@@ -36,7 +36,7 @@ func (c *checker) callValue(n syntax.NodeID, ft TypeID, args []syntax.NodeID, wa
 	} else if closure != 0 {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: closure, Node: n})
 	} else {
-		c.callbackEdge(n, Effects(node.Flags), 0)
+		c.callbackEdge(n, Effects(node.Flags), 0, false)
 	}
 	if node.Flags&uint16(EffUnsafe) != 0 && c.unsafe == 0 {
 		c.errAt(n, cUnsafeRequired, "calling an `unsafe fn` value")

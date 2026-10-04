@@ -15,3 +15,15 @@ pub fn Executor.spawn[T](self, future: Future[T]) -> Task[T]
 
 /// Waits for the task and returns its result.
 pub fn Task[T].join(move self) -> T
+
+/// A bounded, root-owned boundary for running direct-blocking work from an async body instead of calling it bare.
+pub type BlockingPool
+
+/// `run`'s only failure: the pool already has `capacity` closures in flight.
+pub type BlockingError = | CapacityExhausted
+
+/// Creates a pool that runs at most capacity closures at once.
+pub fn BlockingPool.new(capacity: usize) -> BlockingPool
+
+/// Runs work through the pool's boundary instead of a bare direct call.
+pub fn BlockingPool.run[T](self, work: fn() -> T) -> Result[Future[T], BlockingError]

@@ -1,0 +1,15 @@
+-- src --
+import task from std/task
+
+fn run() -> Unit {
+    let pool = task.BlockingPool.new(1)
+    let a = pool.run(() => 1)
+    print "${a is Ok(_)}"
+    let b = pool.run(() => 2)
+    print "${b is Err(task.BlockingError.CapacityExhausted)}"
+}
+
+run()
+-- stdout --
+true
+true

@@ -117,6 +117,7 @@ func (m *Module) semModule() (*sem.Module, error) {
 	mod.NoDefaultAllocator = m.target.NoDefaultAllocator()
 	mod.RecoverableOnly = m.target.RecoverableOnly()
 	mod.NoPlatform = m.target.Sys == "none"
+	mod.BlockingProfile = m.target.BlockingExecutor
 	mod.Deny = m.deny
 	mod.LayerCeiling = m.ceiling
 	mod.ArtifactName = m.artifactName

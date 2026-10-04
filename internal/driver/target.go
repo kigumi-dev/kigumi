@@ -21,6 +21,9 @@ type Target struct {
 	// Profile is "" or "recoverable-only" (no reachable path may
 	// terminate on a refused allocation); independent of Allocator.
 	Profile string
+	// BlockingExecutor is "" (hosted default: warns on a direct-blocking op reached from async) or a strict
+	// profile (isr, alloc-free-executor, single-thread-event-loop) that rejects it; independent of Profile and Allocator.
+	BlockingExecutor string
 	// Tier is "" or "unverified", for a triple whose ABI segment
 	// ParseTarget does not recognize.
 	Tier string
@@ -136,6 +139,15 @@ func (t Target) NoDefaultAllocator() bool { return t.Allocator == "none" }
 
 // RecoverableOnly reports the `--profile recoverable-only` profile.
 func (t Target) RecoverableOnly() bool { return t.Profile == "recoverable-only" }
+
+// strictBlockingProfiles names every `--blocking-executor` value that rejects a direct-blocking op reached
+// from async instead of warning; the hosted default ("") is not in this set.
+var strictBlockingProfiles = map[string]bool{
+	"isr": true, "alloc-free-executor": true, "single-thread-event-loop": true,
+}
+
+// StrictBlocking reports a `--blocking-executor` profile that rejects direct blocking inside an async body instead of warning.
+func (t Target) StrictBlocking() bool { return strictBlockingProfiles[t.BlockingExecutor] }
 
 // compileTriple is the triple as given; build.go supplies rt_freestanding.h's own declarations for freestanding/UEFI since compileTriple no longer substitutes a musl triple.
 func (t Target) compileTriple() string { return t.Triple }

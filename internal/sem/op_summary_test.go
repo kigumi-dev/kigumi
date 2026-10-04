@@ -141,6 +141,63 @@ let n = 1
 	}
 }
 
+func TestOpSummaryBlockCauseOrderIndependent(t *testing.T) {
+	offloadedFirst := checkOp(t, `
+import fs from std/fs
+import task from std/task
+
+async fn mixed() -> String! {
+    let pool = task.BlockingPool.new(4)
+    let fut = pool.run(() => 1).unwrap()
+    _ = await fut
+    host.files().read(fs.Path.fromString("x")?)?
+}
+
+let n = 1
+`)
+	directFirst := checkOp(t, `
+import fs from std/fs
+import task from std/task
+
+async fn mixed() -> String! {
+    _ = host.files().read(fs.Path.fromString("x")?)?
+    let pool = task.BlockingPool.new(4)
+    let fut = pool.run(() => 1).unwrap()
+    _ = await fut
+    "ok"
+}
+
+let n = 1
+`)
+	for name, r := range map[string]*sem.Result{"pool.run reached first": offloadedFirst, "direct read reached first": directFirst} {
+		fb := r.Fn(findFn(t, r, "mixed")).Ops.Facts[sem.FactBlock]
+		if !fb.Maybe || fb.Offloaded || fb.Cause.Unknown {
+			t.Fatalf("%s: a real direct-blocking call must win over an offloaded one regardless of edge order, got %+v", name, fb)
+		}
+	}
+}
+
+func TestOpSummaryBlockOffloadedThroughPoolClosure(t *testing.T) {
+	r := checkOp(t, `
+import fs from std/fs
+import task from std/task
+
+async fn useProvider() -> Result[String, task.BlockingError] {
+    let pool = task.BlockingPool.new(4)
+    let fut = pool.run(() => {
+        host.files().read(fs.Path.fromString("x").unwrap()).unwrap()
+    })?
+    await fut
+}
+
+let n = 1
+`)
+	fb := r.Fn(findFn(t, r, "useProvider")).Ops.Facts[sem.FactBlock]
+	if fb.Maybe && !fb.Offloaded {
+		t.Fatalf("the closure's direct-blocking read leaked into useProvider's own FactBlock instead of merging as Offloaded, got %+v", fb)
+	}
+}
+
 func TestOpSummaryProvenance(t *testing.T) {
 	r := checkOp(t, `
 type Box = { n Int }

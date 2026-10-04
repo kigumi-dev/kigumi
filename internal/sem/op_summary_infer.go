@@ -43,18 +43,18 @@ func (r *Result) computeOpSummary(id EntityID) OpSummary {
 func (r *Result) applyOpEdge(s *OpSummary, e EffectEdge) {
 	switch e.Kind {
 	case EdgeAlloc:
-		setDirect(s, FactAlloc, e)
+		setDirect(s, FactAlloc, e, false)
 	case EdgePanic:
-		setDirect(s, FactPanic, e)
+		setDirect(s, FactPanic, e, false)
 	case EdgeIO:
-		setDirect(s, FactIO, e)
+		setDirect(s, FactIO, e, false)
 	case EdgeSuspend:
-		setDirect(s, FactSuspend, e)
+		setDirect(s, FactSuspend, e, false)
 	case EdgeDrop:
-		mergeInto(s, r.dropOpSummary(e.Type), e)
+		mergeInto(s, r.dropOpSummary(e.Type), e, false)
 	case EdgeCall, EdgeWitness:
 		if e.Target != 0 {
-			mergeInto(s, r.opSummary(e.Target), e)
+			mergeInto(s, r.opSummary(e.Target), e, false)
 		}
 	case EdgeCallback:
 		r.applyCallbackOpEdge(s, e)
@@ -65,54 +65,66 @@ func (r *Result) applyOpEdge(s *OpSummary, e EffectEdge) {
 	}
 }
 
-// applyCallbackOpEdge mirrors edgeAllows' EdgeCallback case: a plain
-// fn-typed value only bounds FactAlloc, the one fact function types carry.
+// applyCallbackOpEdge mirrors edgeAllows' EdgeCallback case. e.Offloaded (set only for an offloading
+// provider's work argument, e.g. BlockingPool.run) forces every merged fact Offloaded.
 func (r *Result) applyCallbackOpEdge(s *OpSummary, e EffectEdge) {
 	if e.Param != 0 && !slices.Contains(r.Fn(r.Entities[e.Param].Parent).CalledParams, e.Param) {
 		return
 	}
 	if e.Target != 0 {
-		mergeInto(s, r.opSummary(e.Target), e)
+		mergeInto(s, r.opSummary(e.Target), e, e.Offloaded)
 		return
 	}
 	if e.Mods&EffNoalloc == 0 {
-		setDirect(s, FactAlloc, e)
+		setDirect(s, FactAlloc, e, e.Offloaded)
 	}
 	for f := OpFact(0); f < numOpFacts; f++ {
 		if f != FactAlloc {
-			setUnknown(s, f, e)
+			setUnknown(s, f, e, e.Offloaded)
 		}
 	}
 }
 
-func setDirect(s *OpSummary, f OpFact, e EffectEdge) {
-	takeCause(&s.Facts[f], OpFactState{Maybe: true, Cause: OpCause{Edge: e}})
+func setDirect(s *OpSummary, f OpFact, e EffectEdge, offloaded bool) {
+	takeCause(&s.Facts[f], OpFactState{Maybe: true, Cause: OpCause{Edge: e}, Offloaded: offloaded})
 }
 
-func setUnknown(s *OpSummary, f OpFact, e EffectEdge) {
-	takeCause(&s.Facts[f], OpFactState{Maybe: true, Cause: OpCause{Edge: e, Unknown: true}})
+func setUnknown(s *OpSummary, f OpFact, e EffectEdge, offloaded bool) {
+	takeCause(&s.Facts[f], OpFactState{Maybe: true, Cause: OpCause{Edge: e, Unknown: true}, Offloaded: offloaded})
 }
 
-// mergeInto folds a callee/drop-glue summary into s under edge e, recording
-// e itself as the cause; Unresolved propagates transitively.
-func mergeInto(s *OpSummary, from OpSummary, e EffectEdge) {
+// mergeInto folds a callee/drop-glue summary into s under edge e, recording e as the cause; Unresolved
+// propagates transitively, and offloaded forces every fact Offloaded regardless of from's own cause.
+func mergeInto(s *OpSummary, from OpSummary, e EffectEdge, offloaded bool) {
 	if from.Unresolved {
 		s.Unresolved = true
 	}
 	for f := OpFact(0); f < numOpFacts; f++ {
 		if from.Facts[f].Maybe {
-			takeCause(&s.Facts[f], OpFactState{Maybe: true, Cause: OpCause{Edge: e, Unknown: from.Facts[f].Cause.Unknown}, InterruptUnsafe: from.Facts[f].InterruptUnsafe})
+			takeCause(&s.Facts[f], OpFactState{Maybe: true, Cause: OpCause{Edge: e, Unknown: from.Facts[f].Cause.Unknown}, InterruptUnsafe: from.Facts[f].InterruptUnsafe, Offloaded: offloaded || from.Facts[f].Offloaded})
 		}
 	}
 }
 
-// takeCause picks a fact's recorded first cause: a concrete edge always
-// beats an unknown one; within the same concreteness, the earlier wins.
-func takeCause(dst *OpFactState, next OpFactState) {
+// causeRank orders a fact's possible causes (unset < unknown < offloaded < direct) so a genuine direct cause
+// can never be shadowed by an offloaded one reached first, regardless of edge processing order.
+func causeRank(s OpFactState) int {
 	switch {
-	case !dst.Maybe:
-		*dst = next
-	case dst.Cause.Unknown && !next.Cause.Unknown:
+	case !s.Maybe:
+		return 0
+	case s.Cause.Unknown:
+		return 1
+	case s.Offloaded:
+		return 2
+	default:
+		return 3
+	}
+}
+
+// takeCause picks a fact's recorded cause by rank, not by arrival order;
+// within the same rank, the first cause wins.
+func takeCause(dst *OpFactState, next OpFactState) {
+	if causeRank(next) > causeRank(*dst) {
 		*dst = next
 	}
 }

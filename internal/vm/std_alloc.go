@@ -102,5 +102,12 @@ func (m *Machine) freeOpaque(v *obj) {
 		for _, a := range f.args {
 			m.release(a)
 		}
+	case "BlockingFuture":
+		f := v.data.(*blockingFuture)
+		if !f.taken {
+			f.pool.data.(*blockingPool).inFlight--
+			m.release(f.result)
+		}
+		m.release(f.pool)
 	}
 }

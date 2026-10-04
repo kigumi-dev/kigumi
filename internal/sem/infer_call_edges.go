@@ -12,6 +12,7 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 	tt := c.r.Types
 	params := tt.Node(sig).Args
 	info := c.r.Fn(fn)
+	offloaded := c.r.isOffloadingCallback(fn)
 	for i, a := range args {
 		if i >= len(params) || tt.Kind(c.vars.resolve(params[i])) != KFn {
 			continue
@@ -23,24 +24,24 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 		at := c.vars.resolve(c.info.Types[a])
 		switch {
 		case c.info.Uses[a] != 0 && c.r.Entities[c.info.Uses[a]].Kind == EntFn:
-			c.edge(EffectEdge{Kind: EdgeCallback, Target: c.info.Uses[a], Param: param, Node: a})
+			c.edge(EffectEdge{Kind: EdgeCallback, Target: c.info.Uses[a], Param: param, Node: a, Offloaded: offloaded})
 		case tt.Kind(at) == KClosure:
-			c.edge(EffectEdge{Kind: EdgeCallback, Target: tt.Node(at).Ent, Param: param, Node: a})
+			c.edge(EffectEdge{Kind: EdgeCallback, Target: tt.Node(at).Ent, Param: param, Node: a, Offloaded: offloaded})
 		case tt.Kind(at) == KFn:
-			c.callbackEdge(a, Effects(tt.Node(at).Flags), param)
+			c.callbackEdge(a, Effects(tt.Node(at).Flags), param, offloaded)
 		}
 	}
 }
 
 // When the value is a parameter of the enclosing function, that function
 // becomes polymorphic in it instead of being blamed for its effects.
-func (c *checker) callbackEdge(expr syntax.NodeID, mods Effects, param EntityID) {
+func (c *checker) callbackEdge(expr syntax.NodeID, mods Effects, param EntityID, offloaded bool) {
 	if p := c.polyParam(expr); p != 0 {
 		c.deferToParam(p)
 		c.edge(EffectEdge{Kind: EdgeParamCall, Target: p, Node: expr})
 		return
 	}
-	c.edge(EffectEdge{Kind: EdgeCallback, Mods: mods, Param: param, Node: expr})
+	c.edge(EffectEdge{Kind: EdgeCallback, Mods: mods, Param: param, Node: expr, Offloaded: offloaded})
 }
 
 // A non-fn-typed p (from a record-typed parameter's field fact) has

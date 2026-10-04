@@ -133,5 +133,12 @@ func Target(cmd *cobra.Command) (driver.Target, error) {
 	default:
 		return t, fmt.Errorf("profile %q: want fatal-permitted or recoverable-only", profile)
 	}
+	switch bp, _ := cmd.Flags().GetString("blocking-executor"); bp {
+	case "", "hosted":
+	case "isr", "alloc-free-executor", "single-thread-event-loop":
+		t.BlockingExecutor = bp
+	default:
+		return t, fmt.Errorf("blocking-executor %q: want hosted, isr, alloc-free-executor or single-thread-event-loop", bp)
+	}
 	return t, nil
 }

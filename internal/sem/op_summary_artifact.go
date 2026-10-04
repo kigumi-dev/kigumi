@@ -6,6 +6,7 @@ type OpFactJSON struct {
 	Fact            string `json:"fact"`
 	Unknown         bool   `json:"unknown,omitempty"`
 	InterruptUnsafe bool   `json:"interruptUnsafe,omitempty"`
+	Offloaded       bool   `json:"offloaded,omitempty"`
 }
 
 // OpSummaryJSON is one function's cross-package-visible artifact entry. A
@@ -24,7 +25,7 @@ func (r *Result) opSummaryArtifact(id EntityID) OpSummaryJSON {
 		if !st.Maybe {
 			continue
 		}
-		out.Facts = append(out.Facts, OpFactJSON{Fact: f.String(), Unknown: st.Cause.Unknown, InterruptUnsafe: st.InterruptUnsafe})
+		out.Facts = append(out.Facts, OpFactJSON{Fact: f.String(), Unknown: st.Cause.Unknown, InterruptUnsafe: st.InterruptUnsafe, Offloaded: st.Offloaded})
 	}
 	return out
 }

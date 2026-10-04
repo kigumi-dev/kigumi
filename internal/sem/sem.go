@@ -47,6 +47,7 @@ type Result struct {
 	noDefault       bool
 	recoverableOnly bool
 	noPlatform      bool
+	blockingProfile string
 	denyPkgs        map[string]bool
 	layerCeiling    Layer
 	hasCeiling      bool
@@ -112,6 +113,7 @@ func check(mod *Module) *Result {
 	r.checkEffects()
 	r.checkContextRequirements()
 	r.checkInterruptHandlers()
+	r.checkAsyncDirectBlocking()
 	r.checkNomono()
 	r.reportUnused()
 	r.emit()
@@ -142,6 +144,7 @@ func newResult(mod *Module) *Result {
 		noDefault:       mod.NoDefaultAllocator,
 		recoverableOnly: mod.RecoverableOnly,
 		noPlatform:      mod.NoPlatform,
+		blockingProfile: mod.BlockingProfile,
 		denyPkgs:        denySet(mod.Deny),
 		layerCeiling:    LayerShortName[mod.LayerCeiling],
 		hasCeiling:      mod.LayerCeiling != "",

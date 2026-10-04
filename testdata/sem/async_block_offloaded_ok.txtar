@@ -1,0 +1,11 @@
+-- module --
+blocking: single-thread-event-loop
+-- src --
+import task from std/task
+
+async fn useProvider() -> Result[Unit, task.BlockingError] {
+    let pool = task.BlockingPool.new(4)
+    let fut = pool.run(() => 1)?
+    _ = await fut
+}
+-- expect --

@@ -125,6 +125,9 @@ type EffectEdge struct {
 	// Scoped edges sit inside an `allocator` block, which supplies the
 	// current allocator for their dynamic extent.
 	Scoped bool
+	// Offloaded marks an EdgeCallback whose target runs on a bounded blocking provider's worker, not the
+	// caller's own frame; op_summary_infer merges the target's facts as Offloaded regardless of their own cause.
+	Offloaded bool
 }
 
 type BodyRef struct {

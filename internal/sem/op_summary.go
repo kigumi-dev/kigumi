@@ -1,5 +1,7 @@
 package sem
 
+import "strings"
+
 // OpFact is one closed-vocabulary operation a summary answers for. An
 // unrecognized fact on an older schema reads as unknown, never as false.
 type OpFact uint8
@@ -39,12 +41,13 @@ type OpCause struct {
 	Unknown bool
 }
 
-// OpFactState is one fact's answer plus its provenance. InterruptUnsafe only
-// applies to FactSync: whether that sync primitive is interrupt-safe.
+// OpFactState is one fact's answer plus its provenance: InterruptUnsafe applies only to FactSync (whether that
+// sync primitive is interrupt-safe), Offloaded only to FactBlock (blocks a bounded provider's worker, not this agent).
 type OpFactState struct {
 	Maybe           bool
 	Cause           OpCause
 	InterruptUnsafe bool
+	Offloaded       bool
 }
 
 // OpSummary is a node's closed operation summary. Unresolved marks a body
@@ -85,6 +88,9 @@ func (r *Result) opFixedSummary(id EntityID) (OpSummary, bool) {
 	if info.Body != 0 {
 		return OpSummary{}, false
 	}
+	if s, ok := trustedOpSummaries[r.stdKey(id)]; ok {
+		return s, true
+	}
 	s := OpSummary{Known: true}
 	trusted := info.Declared&EffNoalloc != 0
 	s.Facts[FactAlloc] = OpFactState{Maybe: !trusted}
@@ -94,5 +100,20 @@ func (r *Result) opFixedSummary(id EntityID) (OpSummary, bool) {
 		}
 		s.Facts[f] = OpFactState{Maybe: true, Cause: OpCause{Unknown: true}}
 	}
+	if directBlockingPrimitives[r.stdKey(id)] {
+		s.Facts[FactBlock] = OpFactState{Maybe: true}
+	}
 	return s, true
+}
+
+// stdKey names a bodiless std function the way the runtime's dispatch tables key it (mir.StdKey's format);
+// sem cannot import mir, so this is the one place both the alloc and blocking registries key against.
+func (r *Result) stdKey(id EntityID) string {
+	ent := &r.Entities[id]
+	info := r.Fn(id)
+	key := strings.TrimPrefix(r.Packages[ent.Pkg].Path, "std/")
+	if info.Owner != 0 {
+		key += "." + r.Entities[info.Owner].Name
+	}
+	return key + "." + ent.Name
 }

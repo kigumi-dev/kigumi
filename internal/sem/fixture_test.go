@@ -72,7 +72,7 @@ func parseFixture(t *testing.T, path string) fixture {
 	}
 	for k := range fx.opts {
 		switch k {
-		case "entry", "test", "std", "deps", "target", "ptr", "pending":
+		case "entry", "test", "std", "deps", "target", "ptr", "pending", "blocking":
 		default:
 			t.Fatalf("%s: unknown module option %q", path, k)
 		}
@@ -157,7 +157,7 @@ func buildModule(t *testing.T, fx fixture) *sem.Module {
 			p.Entry = tree
 		}
 	}
-	mod := &sem.Module{}
+	mod := &sem.Module{BlockingProfile: fx.opt("blocking", "")}
 	if fx.opt("target", "hosted") == "freestanding" {
 		mod.Target = sem.Freestanding
 	}

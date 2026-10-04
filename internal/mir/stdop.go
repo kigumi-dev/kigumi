@@ -30,6 +30,7 @@ var StdOpNames = []string{
 	"UCELL_NEW", "UCELL_GET", "UCELL_SET",
 	"HOST_STDERR",
 	"BYTES_TRY_ZEROS", "BYTES_TRY_FILL", "SHARED_TRY_NEW",
+	"BLOCKING_POOL_NEW", "BLOCKING_POOL_RUN",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -45,6 +46,7 @@ var providerOps = map[string]bool{
 	"FFI_STRING": true, "FFI_STRING_CHECKED": true, "FFI_STRING_LOSSY": true,
 	"TASK_LOCAL": true, "EXECUTOR_RUN": true, "EXECUTOR_SPAWN": true, "TASK_JOIN": true,
 	"NET_HTTP": true, "NET_CONN_DROP": true, "NET_LISTENER_DROP": true, "BUILD_ONLY": true, "ARGS_LEN": true,
+	"BLOCKING_POOL_NEW": true, "BLOCKING_POOL_RUN": true,
 }
 
 // stdOpKeys maps a std key ("std/"-stripped) to the StdOpNames entry
@@ -139,6 +141,8 @@ var stdOpKeys = map[string]string{
 	"prelude.Bytes.tryZeros":          "BYTES_TRY_ZEROS",
 	"prelude.Bytes.tryFill":           "BYTES_TRY_FILL",
 	"alloc.Shared.tryNew":             "SHARED_TRY_NEW",
+	"task.BlockingPool.new":           "BLOCKING_POOL_NEW",
+	"task.BlockingPool.run":           "BLOCKING_POOL_RUN",
 }
 
 // stdOpSuffixes maps a trailing method name to its op, for primitives

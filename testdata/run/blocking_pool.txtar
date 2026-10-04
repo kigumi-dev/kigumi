@@ -1,0 +1,17 @@
+-- src --
+import task from std/task
+
+async fn useProvider() -> Int {
+    let pool = task.BlockingPool.new(2)
+    let fut = pool.run(() => {
+        print "working"
+        41
+    }).unwrap()
+    await fut
+}
+
+let ex = task.local()
+print "${ex.run(useProvider()) + 1}"
+-- stdout --
+working
+42

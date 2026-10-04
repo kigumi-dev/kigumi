@@ -1,7 +1,5 @@
 package sem
 
-import "strings"
-
 // fatalAllocPrimitives lists bodiless std fns with no fallible sibling
 // whose native/VM body terminates on refused allocation, keyed like mir.StdKey.
 var fatalAllocPrimitives = map[string]bool{
@@ -25,15 +23,7 @@ var trustedFallibleWrappers = map[string]bool{
 	"text.StringBuilder.tryPush": true,
 }
 
-func (r *Result) fatalAllocKey(id EntityID) string {
-	ent := &r.Entities[id]
-	info := r.Fn(id)
-	key := strings.TrimPrefix(r.Packages[ent.Pkg].Path, "std/")
-	if info.Owner != 0 {
-		key += "." + r.Entities[info.Owner].Name
-	}
-	return key + "." + ent.Name
-}
+func (r *Result) fatalAllocKey(id EntityID) string { return r.stdKey(id) }
 
 // inferRecoverableSafe is checkInterruptHandlers' fixpoint shape over a
 // different predicate: true means no reachable OOM non-return termination.

@@ -118,6 +118,7 @@ func (m *Machine) registerAll() {
 	m.registerHost()
 	m.registerShell()
 	m.registerTask()
+	m.registerBlocking()
 	m.registerFFI()
 	m.registerTime()
 	m.registerSignal()

@@ -1270,7 +1270,7 @@ void rt_drop(val v) {
     rt_release(v);
 }
 // A Future is the function value plus its arguments; awaiting runs the call.
-static val await_future(val fut) {
+static val await_lazy(val fut) {
     val arr = (val)fut->u.op.data;
     int n = (int)arr->u.arr.len - 1;
     val stackbuf[STACK_ARGS];
@@ -1279,6 +1279,35 @@ static val await_future(val fut) {
     val r = rt_callv(arr->u.arr.items[0], n, a);
     if (a != stackbuf) free(a);
     return r;
+}
+#ifndef KIGUMI_FREESTANDING
+// blocking_pool is a BlockingPool: a root-owned, bounded count of BlockingFuture results admitted but not taken.
+// run executes work on the calling thread, not a separate worker, so in_flight here does not need to be atomic.
+typedef struct blocking_pool {
+    int capacity, in_flight;
+} blocking_pool;
+// blocking_future is one admitted BlockingPool.run result; pool is
+// retained so the pool outlives every future it issued.
+typedef struct blocking_future {
+    val pool, result;
+    int taken;
+} blocking_future;
+static val blocking_capacity_exhausted(void) {
+    rt_vdesc* d = find_variant(find_type("BlockingError"), "CapacityExhausted");
+    if (!d) return err_msg("blocking pool capacity exhausted");
+    return err_val(rt_variant(d, 0, NULL));
+}
+static val blocking_future_join(blocking_future* f) {
+    f->taken = 1;
+    ((blocking_pool*)f->pool->u.op.data)->in_flight--;
+    return f->result;
+}
+#endif
+static val await_future(val fut) {
+#ifndef KIGUMI_FREESTANDING
+    if (!strcmp(fut->u.op.kind, "BlockingFuture")) return blocking_future_join((blocking_future*)fut->u.op.data);
+#endif
+    return await_lazy(fut);
 }
 // A Shared cell's control block outlives the content for weak handles.
 // borrow is a RefCell-style dynamic borrow flag (0 free, -1 exclusive, >0
@@ -1308,6 +1337,17 @@ static void free_opaque(val v) {
         g_alloc_sp--;
         rt_release((val)d);
     }
+#ifndef KIGUMI_FREESTANDING
+    else if (!strcmp(kind, "BlockingFuture")) {
+        blocking_future* f = d;
+        if (!f->taken) {
+            ((blocking_pool*)f->pool->u.op.data)->in_flight--;
+            rt_release(f->result);
+        }
+        rt_release(f->pool);
+        free(f);
+    } else if (!strcmp(kind, "BlockingPool")) free(d);
+#endif
 }
 static void free_obj(val v) {
     switch (v->kind) {
@@ -1692,6 +1732,8 @@ enum std_op {
     OP_BYTES_TRY_ZEROS,
     OP_BYTES_TRY_FILL,
     OP_SHARED_TRY_NEW,
+    OP_BLOCKING_POOL_NEW,
+    OP_BLOCKING_POOL_RUN,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -1785,6 +1827,8 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "prelude.Bytes.tryZeros")) return OP_BYTES_TRY_ZEROS;
     if (!strcmp(k, "prelude.Bytes.tryFill")) return OP_BYTES_TRY_FILL;
     if (!strcmp(k, "alloc.Shared.tryNew")) return OP_SHARED_TRY_NEW;
+    if (!strcmp(k, "task.BlockingPool.new")) return OP_BLOCKING_POOL_NEW;
+    if (!strcmp(k, "task.BlockingPool.run")) return OP_BLOCKING_POOL_RUN;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;
@@ -2226,6 +2270,38 @@ val rt_std_id(int op, int n, val* a) {
         rt_release(old);
         return rt_unit();
     }
+    case OP_BLOCKING_POOL_NEW:
+#ifdef KIGUMI_FREESTANDING
+        rt_panic("the blocking execution provider is not available on this target");
+        return NULL;
+#else
+    {
+        blocking_pool* p = calloc(1, sizeof *p);
+        if (!p) rt_panic("out of memory");
+        p->capacity = (int)a0->u.i;
+        return opaque("BlockingPool", p);
+    }
+#endif
+    case OP_BLOCKING_POOL_RUN:
+#ifdef KIGUMI_FREESTANDING
+        rt_panic("the blocking execution provider is not available on this target");
+        return NULL;
+#else
+    {
+        blocking_pool* p = (blocking_pool*)a0->u.op.data;
+        if (p->in_flight >= p->capacity) return blocking_capacity_exhausted();
+        val r = rt_callv(a1, 0, NULL);
+        blocking_future* f = calloc(1, sizeof *f);
+        if (!f) {
+            rt_release(r);
+            rt_panic("out of memory");
+        }
+        p->in_flight++;
+        f->pool = rt_retain(a0);
+        f->result = r;
+        return ok(opaque("BlockingFuture", f));
+    }
+#endif
     }
     rt_panic("rt_std_id: bad op");
     return NULL;

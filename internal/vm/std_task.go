@@ -27,6 +27,9 @@ func (m *Machine) asyncBuiltin(name string, args []*obj) (*obj, bool) {
 
 func (m *Machine) await(v *obj) *obj {
 	v = deref(v)
+	if v.k == kOpaque && v.op == "BlockingFuture" {
+		return m.blockingFutureJoin(v.data.(*blockingFuture))
+	}
 	f, ok := v.data.(*future)
 	if v.k != kOpaque || !ok {
 		m.abort("await on a value that is not a Future")

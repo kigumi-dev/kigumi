@@ -38,6 +38,9 @@ type Module struct {
 	// implies it, but the driver sets it independently so a hosted target can
 	// opt in too.
 	NoPlatform bool
+	// BlockingProfile is "" (hosted default: warns on a direct-blocking op reached from async) or a strict
+	// profile name (isr, alloc-free-executor, single-thread-event-loop, ...) that rejects it instead.
+	BlockingProfile string
 	// PtrBits is the target pointer width (usize, isize, raw pointers);
 	// 0 means 64.
 	PtrBits int

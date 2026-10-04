@@ -36,6 +36,8 @@ func hostEffect(key string) bool {
 	switch key {
 	case "time.now", "time.sleep", "time.monotonic", "random.fromClock":
 		return true
+	case "task.BlockingPool.new", "task.BlockingPool.run":
+		return true
 	}
 	return false
 }

@@ -1578,6 +1578,40 @@
       ]
     },
     {
+      "id": "run/blocking_pool",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_capacity",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_capacity.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_match",
       "kind": "run",
       "path": "testdata/run/borrow_match.txtar",
@@ -6074,6 +6108,72 @@
       "id": "sem/async",
       "kind": "sem",
       "path": "testdata/sem/async.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_block_offloaded_ok",
+      "kind": "sem",
+      "path": "testdata/sem/async_block_offloaded_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_block_offloaded_real",
+      "kind": "sem",
+      "path": "testdata/sem/async_block_offloaded_real.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_block_offloaded_real_warn",
+      "kind": "sem",
+      "path": "testdata/sem/async_block_offloaded_real_warn.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_direct_block_mixed",
+      "kind": "sem",
+      "path": "testdata/sem/async_direct_block_mixed.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_direct_block_strict",
+      "kind": "sem",
+      "path": "testdata/sem/async_direct_block_strict.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_direct_block_warn",
+      "kind": "sem",
+      "path": "testdata/sem/async_direct_block_warn.txtar",
       "mode": [
         "check"
       ],

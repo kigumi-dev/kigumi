@@ -1,0 +1,12 @@
+-- src --
+import fs from std/fs
+import task from std/task
+
+async fn useProvider() -> Result[String, task.BlockingError] {
+    let pool = task.BlockingPool.new(4)
+    let fut = pool.run(() => {
+        host.files().read(fs.Path.fromString("x").unwrap()).unwrap()
+    })?
+    await fut
+}
+-- expect --
