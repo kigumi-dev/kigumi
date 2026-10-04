@@ -69,13 +69,13 @@ fn lib.Pair.disjointOk(%self: Pair) -> Unit {
     %t4 = field 1(%self)
     %t5 = borrow 1(%t4)
     %s = copy(%t5)
-    %t7 = const 1: u8
-    %t8 = borrow 1(%r)
-    %t9 = call push(%t8, %t7)
+    %t7 = borrow 1(%r)
+    %t8 = const 1: u8
+    %t9 = call push(%t7, %t8)
     drop(%t9)
-    %t10 = const 2: u8
-    %t11 = borrow 1(%s)
-    %t12 = call push(%t11, %t10)
+    %t10 = borrow 1(%s)
+    %t11 = const 2: u8
+    %t12 = call push(%t10, %t11)
     return %t12
 }
 fn lib.Pair.sameFieldConflict(%self: Pair) -> Unit {
@@ -86,13 +86,13 @@ fn lib.Pair.sameFieldConflict(%self: Pair) -> Unit {
     %t4 = field 0(%self)
     %t5 = borrow 1(%t4)
     %s = copy(%t5)
-    %t7 = const 1: u8
-    %t8 = borrow 1(%r)
-    %t9 = call push(%t8, %t7)
+    %t7 = borrow 1(%r)
+    %t8 = const 1: u8
+    %t9 = call push(%t7, %t8)
     drop(%t9)
-    %t10 = const 2: u8
-    %t11 = borrow 1(%s)
-    %t12 = call push(%t11, %t10)
+    %t10 = borrow 1(%s)
+    %t11 = const 2: u8
+    %t12 = call push(%t10, %t11)
     return %t12
 }
 fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Unit {
@@ -105,9 +105,9 @@ fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Unit {
     %r = copy(%t5)
     %t7 = call len(%s)
     drop(%t7)
-    %t8 = const 1: u8
-    %t9 = borrow 1(%r)
-    %t10 = call push(%t9, %t8)
+    %t8 = borrow 1(%r)
+    %t9 = const 1: u8
+    %t10 = call push(%t8, %t9)
     return %t10
 }
 fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
@@ -119,14 +119,14 @@ fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
     %t5 = field 0(%self)
     %t6 = borrow 1(%t5)
     %s = copy(%t6)
-    %t8 = const 1: u8
-    %t9 = borrow 1(%r)
-    %t10 = call push(%t9, %t8)
+    %t8 = borrow 1(%r)
+    %t9 = const 1: u8
+    %t10 = call push(%t8, %t9)
     drop(%t10)
-    %t11 = const 2: u8
-    %t12 = field 0(%s)
-    %t13 = borrow 1(%t12)
-    %t14 = call push(%t13, %t11)
+    %t11 = field 0(%s)
+    %t12 = borrow 1(%t11)
+    %t13 = const 2: u8
+    %t14 = call push(%t12, %t13)
     return %t14
 }
 fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Unit {
@@ -141,9 +141,9 @@ fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Unit {
     %t8 = field 0(%s)
     %t9 = call len(%t8)
     drop(%t9)
-    %t10 = const 1: u8
-    %t11 = borrow 1(%r)
-    %t12 = call push(%t11, %t10)
+    %t10 = borrow 1(%r)
+    %t11 = const 1: u8
+    %t12 = call push(%t10, %t11)
     return %t12
 }
 fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Unit {
@@ -156,13 +156,13 @@ fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Unit {
     %t6 = field 1(%t5)
     %t7 = borrow 1(%t6)
     %s = copy(%t7)
-    %t9 = const 1: u8
-    %t10 = borrow 1(%r)
-    %t11 = call push(%t10, %t9)
+    %t9 = borrow 1(%r)
+    %t10 = const 1: u8
+    %t11 = call push(%t9, %t10)
     drop(%t11)
-    %t12 = const 2: u8
-    %t13 = borrow 1(%s)
-    %t14 = call push(%t13, %t12)
+    %t12 = borrow 1(%s)
+    %t13 = const 2: u8
+    %t14 = call push(%t12, %t13)
     return %t14
 }
 fn lib.Bag.indexStaysConservative(%self: Bag) -> Unit {
@@ -172,14 +172,14 @@ fn lib.Bag.indexStaysConservative(%self: Bag) -> Unit {
     %t3 = index(%t1, %t2)
     %t4 = borrow 1(%t3)
     %r = copy(%t4)
-    %t6 = const 1: u8
-    %t7 = field 1(%self)
-    %t8 = borrow 1(%t7)
-    %t9 = call push(%t8, %t6)
+    %t6 = field 1(%self)
+    %t7 = borrow 1(%t6)
+    %t8 = const 1: u8
+    %t9 = call push(%t7, %t8)
     drop(%t9)
-    %t10 = const 2: u8
-    %t11 = borrow 1(%r)
-    %t12 = call push(%t11, %t10)
+    %t10 = borrow 1(%r)
+    %t11 = const 2: u8
+    %t12 = call push(%t10, %t11)
     return %t12
 }
 error[borrow-conflict]: `self` is exclusively borrowed and cannot be used here

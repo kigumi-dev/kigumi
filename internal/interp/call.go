@@ -7,31 +7,23 @@ import (
 
 // call dispatches a call expression by the checker's classification.
 func (fr *frame) call(n syntax.NodeID) (Value, *ctrl) {
-	node := fr.t.Nodes[n]
-	call := fr.info.Calls[n]
-	// A named argument moved sem's checked args out of
-	// source order; ArgOrder carries that order back for evaluation.
-	argNodes := call.ArgOrder
-	if argNodes == nil {
-		argNodes = fr.t.Children(syntax.NodeID(node.Rhs))
-	}
-	return fr.callWith(n, syntax.NodeID(node.Lhs), argNodes)
+	return fr.callWith(n, syntax.NodeID(fr.t.Nodes[n].Lhs))
 }
 
-// callWith evaluates a call of callee on argNodes as classified at n; a
-// piped left operand comes first (eval_args.go).
-func (fr *frame) callWith(n, callee syntax.NodeID, argNodes []syntax.NodeID) (Value, *ctrl) {
+// callWith evaluates a call's plan (eval_args.go) and dispatches by the
+// checker's classification; a piped left operand always evaluates first.
+func (fr *frame) callWith(n, callee syntax.NodeID) (Value, *ctrl) {
 	call := fr.info.Calls[n]
 	in := fr.in
 	switch call.Kind {
 	case sem.CallIntrinsic:
-		args, c := fr.args(argNodes, call)
+		args, c := fr.evalArgs(call)
 		if c != nil {
 			return nil, c
 		}
 		return in.intrinsic(fr, n, in.r.Entity(call.Callee).Name, args)
 	case sem.CallVariant:
-		args, c := fr.args(argNodes, call)
+		args, c := fr.evalArgs(call)
 		if c != nil {
 			return nil, c
 		}
@@ -41,11 +33,8 @@ func (fr *frame) callWith(n, callee syntax.NodeID, argNodes []syntax.NodeID) (Va
 		if fr.t.Kind(member) == syntax.BracketExpr {
 			member = syntax.NodeID(fr.t.Nodes[member].Lhs)
 		}
-		recv, c := fr.receiver(syntax.NodeID(fr.t.Nodes[member].Lhs), call.Callee)
-		if c != nil {
-			return nil, c
-		}
-		args, c := fr.args(argNodes, call)
+		base := syntax.NodeID(fr.t.Nodes[member].Lhs)
+		recv, args, c := fr.evalMethodArgs(base, call)
 		if c != nil {
 			return nil, c
 		}
@@ -57,13 +46,13 @@ func (fr *frame) callWith(n, callee syntax.NodeID, argNodes []syntax.NodeID) (Va
 		}
 		return in.callFnValue(fr, call.Callee, n, append(append(args, fr.witnessValues(call.Passes)...), fr.constValues(call.ConstArgs)...), recv)
 	case sem.CallStatic:
-		args, c := fr.args(argNodes, call)
+		args, c := fr.evalArgs(call)
 		if c != nil {
 			return nil, c
 		}
 		return in.callValue(fr, deref(fr.cell(call.Witness).V), n, args)
 	case sem.CallFn, sem.CallAssoc, sem.CallOperator:
-		args, c := fr.args(argNodes, call)
+		args, c := fr.evalArgs(call)
 		if c != nil {
 			return nil, c
 		}
@@ -72,11 +61,7 @@ func (fr *frame) callWith(n, callee syntax.NodeID, argNodes []syntax.NodeID) (Va
 		}
 		return in.callFnValue(fr, call.Callee, n, append(append(args, fr.witnessValues(call.Passes)...), fr.constValues(call.ConstArgs)...), nil)
 	}
-	fv, c := fr.expr(callee)
-	if c != nil {
-		return nil, c
-	}
-	args, c := fr.args(argNodes, call)
+	fv, args, c := fr.evalValueCallArgs(callee, call)
 	if c != nil {
 		return nil, c
 	}

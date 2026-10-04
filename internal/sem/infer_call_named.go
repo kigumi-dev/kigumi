@@ -28,8 +28,9 @@ func (c *checker) paramNames(declParams []EntityID, fixed int) []string {
 // A name missing from the call always double-fills another slot first, so
 // it surfaces as a dup or unknown rather than needing its own case here.
 type namedLayout struct {
-	order    []syntax.NodeID
-	tail     []syntax.NodeID
+	// order and tail hold indices into the call's args, not the nodes.
+	order    []int
+	tail     []int
 	badOrder []syntax.NodeID
 	unknown  []syntax.NodeID
 	dup      []syntax.NodeID
@@ -39,25 +40,25 @@ func (lay namedLayout) ok() bool {
 	return len(lay.badOrder) == 0 && len(lay.unknown) == 0 && len(lay.dup) == 0
 }
 
-func (lay namedLayout) args() []syntax.NodeID {
-	return append(append([]syntax.NodeID{}, lay.order...), lay.tail...)
+func (lay namedLayout) place() []int {
+	return append(append([]int{}, lay.order...), lay.tail...)
 }
 
 // Reports no diagnostics itself, so it doubles as a silent viability probe
 // for overload candidates.
 func (c *checker) layoutNamed(args []syntax.NodeID, names []string) namedLayout {
-	lay := namedLayout{order: make([]syntax.NodeID, len(names))}
+	lay := namedLayout{order: make([]int, len(names))}
 	filled := make([]bool, len(names))
 	seenNamed, pos := false, 0
-	for _, a := range args {
+	for i, a := range args {
 		if c.t.Kind(a) != syntax.NamedArg {
 			if seenNamed {
 				lay.badOrder = append(lay.badOrder, a)
 			} else if pos < len(names) {
 				filled[pos] = true
-				lay.order[pos] = a
+				lay.order[pos] = i
 			} else {
-				lay.tail = append(lay.tail, a)
+				lay.tail = append(lay.tail, i)
 			}
 			pos++
 			continue
@@ -71,29 +72,32 @@ func (c *checker) layoutNamed(args []syntax.NodeID, names []string) namedLayout 
 			lay.dup = append(lay.dup, a)
 		default:
 			filled[idx] = true
-			lay.order[idx] = syntax.NodeID(c.t.Nodes[a].Lhs)
+			lay.order[idx] = i
 		}
 	}
 	return lay
 }
 
-// declParams == nil means the callee has no parameter names (a fn-typed
-// value): named args are rejected and stripped for best-effort positional checking.
-func (c *checker) resolveNamedArgs(fnName string, args []syntax.NodeID, declParams []EntityID, fixed int) ([]syntax.NodeID, bool) {
+// declParams == nil means a fn-typed value with no parameter names: named args are rejected and stripped.
+func (c *checker) resolveNamedArgs(fnName string, args []syntax.NodeID, declParams []EntityID, fixed int) ([]int, bool) {
 	if declParams == nil {
 		for _, a := range args {
 			if c.t.Kind(a) == syntax.NamedArg {
 				c.errAt(a, cNamedArgOnFnValue)
 			}
 		}
-		return c.unwrapNamed(args), true
+		place := make([]int, len(args))
+		for i := range place {
+			place[i] = i
+		}
+		return place, true
 	}
 	lay := c.layoutNamed(args, c.paramNames(declParams, fixed))
 	if !lay.ok() {
 		c.reportNamedLayout(fnName, lay)
 		return nil, false
 	}
-	return lay.args(), true
+	return lay.place(), true
 }
 
 func (c *checker) unwrapNamed(args []syntax.NodeID) []syntax.NodeID {

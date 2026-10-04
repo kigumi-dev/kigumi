@@ -10,13 +10,13 @@ fn outer(out: &mut Array[u8]) -> Unit {
 -- expect --
 fn lib.combine(%a: &mut Array[u8], %b: &mut Array[u8]) -> Unit {
   b0:
-    %t2 = const 1: u8
-    %t3 = borrow 1(%a)
-    %t4 = call push(%t3, %t2)
+    %t2 = borrow 1(%a)
+    %t3 = const 1: u8
+    %t4 = call push(%t2, %t3)
     drop(%t4)
-    %t5 = const 2: u8
-    %t6 = borrow 1(%b)
-    %t7 = call push(%t6, %t5)
+    %t5 = borrow 1(%b)
+    %t6 = const 2: u8
+    %t7 = call push(%t5, %t6)
     return %t7
 }
 fn lib.outer(%out: &mut Array[u8]) -> Unit {

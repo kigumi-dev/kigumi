@@ -52,10 +52,10 @@ func (s *Server) SignatureHelp(ctx context.Context, p *protocol.SignatureHelpPar
 	if doc := syntax.DocText(snap.res.Tree(snap.res.Entity(ent).File), snap.res.Entity(ent).Node); doc != "" && snap.res.Entity(ent).File != 0 {
 		sig.Documentation = protocol.String(doc)
 	}
-	// ArgOrder already places the piped operand (see hir.callWith), so the
-	// pipe shifts the index only when sem kept source order.
-	if order := info.Calls[call].ArgOrder; order != nil {
-		active = activeFromOrder(t, call, active, order)
+	// Plan is nil while the call is still being typed (e.g. a missing
+	// arg trips the arity check), so fall back to counting raw children.
+	if plan := info.Calls[call].Plan; plan != nil {
+		active = activeFromPlan(t, call, active, plan)
 	} else if info.Calls[call].Piped != 0 {
 		active++
 	}
@@ -101,10 +101,10 @@ func enclosingCall(t *syntax.Tree, pos token.Pos) (syntax.NodeID, int) {
 	return best, active
 }
 
-// activeFromOrder maps a source-order argument index to its declared
+// activeFromPlan maps a source-order argument index to its declared
 // parameter position after named arguments reordered the call, falling
 // back to sourceIdx when the argument isn't in order yet.
-func activeFromOrder(t *syntax.Tree, call syntax.NodeID, sourceIdx int, order []syntax.NodeID) int {
+func activeFromPlan(t *syntax.Tree, call syntax.NodeID, sourceIdx int, plan *sem.CallPlan) int {
 	raw := t.Children(syntax.NodeID(t.Nodes[call].Rhs))
 	if sourceIdx < 0 || sourceIdx >= len(raw) {
 		return sourceIdx
@@ -113,9 +113,9 @@ func activeFromOrder(t *syntax.Tree, call syntax.NodeID, sourceIdx int, order []
 	if t.Kind(arg) == syntax.NamedArg {
 		arg = syntax.NodeID(t.Nodes[arg].Lhs)
 	}
-	for i, o := range order {
-		if o == arg {
-			return i
+	for i, e := range plan.Eval {
+		if e == arg {
+			return plan.Order[i]
 		}
 	}
 	return sourceIdx

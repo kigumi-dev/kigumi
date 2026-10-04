@@ -24,7 +24,7 @@ const (
 	Fallback                        // Args[0] || Args[1]; Ent is the branch witness; Param binds the miss value for a lambda
 	Pipe                            // Args[0] |> Args[1], a lambda applied to the left operand
 	Call                            // Ent(Args...) with Passes; Async wraps it in a future
-	MethodCall                      // Ent with receiver Args[0]; Witness for a type-parameter receiver
+	MethodCall                      // Ent with receiver Args[0]; Witness for a type-parameter receiver; IndexWitness for a bracket-read lowering
 	StaticCall                      // Witness(Args...)
 	ValueCall                       // Args[0](Args[1:]...)
 	Intrinsic                       // Name(Args...) runtime builtin
@@ -74,8 +74,10 @@ type Expr struct {
 	// Name is the operator text, the intrinsic name or the panic message.
 	Name string
 	Args []*Expr
-	Cond *Expr
-	Then *Block
+	// EvalOrder[i] is the next Args index to evaluate (index 0 is the receiver/callee); nil means ascending.
+	EvalOrder []int
+	Cond      *Expr
+	Then      *Block
 	// Else is an expression: a block or a chained `if`.
 	Else  *Expr
 	Block *Block
@@ -88,7 +90,10 @@ type Expr struct {
 	// Variadic packs the trailing arguments into an array.
 	Variadic bool
 	Witness  sem.EntityID
-	Passes   []sem.WitnessArg
+	// IndexWitness marks a MethodCall lowered from a bracket read: the
+	// receiver must evaluate before the index, unlike an ordinary method call.
+	IndexWitness bool
+	Passes       []sem.WitnessArg
 	// ConstArgs are the hidden const-parameter arguments a call to a
 	// function with const parameters hands over after Passes.
 	ConstArgs []sem.ConstArg

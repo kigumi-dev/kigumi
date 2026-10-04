@@ -13,7 +13,7 @@ func (c *checker) callIntrinsic(n syntax.NodeID, ent EntityID, args []syntax.Nod
 			c.check(args[0], TyString)
 		}
 		c.edge(EffectEdge{Kind: EdgePanic, Node: n})
-		c.info.Calls[n] = CallInfo{Kind: CallIntrinsic, Callee: ent}
+		c.info.Calls[n] = CallInfo{Kind: CallIntrinsic, Callee: ent, Plan: identityPlan(args)}
 		return TyNever
 	case "print", "eprint":
 		if len(args) != 1 {
@@ -23,7 +23,7 @@ func (c *checker) callIntrinsic(n syntax.NodeID, ent EntityID, args []syntax.Nod
 		}
 		c.check(args[0], TyString)
 		c.edge(EffectEdge{Kind: EdgeIO, Target: ent, Node: n})
-		c.info.Calls[n] = CallInfo{Kind: CallIntrinsic, Callee: ent}
+		c.info.Calls[n] = CallInfo{Kind: CallIntrinsic, Callee: ent, Plan: identityPlan(args)}
 		return TyUnit
 	}
 	c.synthArgs(args)

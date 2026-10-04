@@ -16,9 +16,9 @@ fn main.n1() -> Array[String]! {
   b0:
     %t0 = call empty
     %names = copy(%t0)
-    %t2 = const "b": String
-    %t3 = borrow 1(%names)
-    %t4 = call push(%t3, %t2)
+    %t2 = borrow 1(%names)
+    %t3 = const "b": String
+    %t4 = call push(%t2, %t3)
     drop(%t4)
     %t5 = move(%names)
     %t6 = variant Ok(%t5)

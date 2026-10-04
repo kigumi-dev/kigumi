@@ -196,7 +196,8 @@ pub pure fn Map[K: Eq + Hash, V].take(mut self, key: &K) -> V? {
     if self.position(key) is Some(pos) {
         _ = self.keyList.takeAt(pos)
         let value = self.valueList.takeAt(pos)
-        self.reindex(self.slots.len())
+        let size = self.slots.len()
+        self.reindex(size)
         return value
     }
     None

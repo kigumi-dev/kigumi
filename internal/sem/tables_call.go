@@ -44,9 +44,8 @@ const (
 )
 
 type CallInfo struct {
-	// Piped is the left operand of `|>`, prepended as the call's first
-	// argument. Already included in ArgOrder when that is set — don't
-	// prepend it again in that case.
+	// Piped is the left operand of `|>`, already included as Plan.Eval[0]
+	// when Plan is set.
 	Piped    syntax.NodeID
 	Kind     CallKind
 	Callee   EntityID
@@ -65,11 +64,9 @@ type CallInfo struct {
 	// ConstArgs are the hidden const-parameter arguments a call hands over
 	// after Passes, one per FnInfo.ConstParams slot.
 	ConstArgs []ConstArg
-	// ArgOrder is the call's arguments reordered to parameter position when
-	// a named argument moved them out of source order; nil when already in
-	// order. hir reads this instead of the raw syntax
-	// children when set.
-	ArgOrder []syntax.NodeID
+	// Plan is the call's evaluation/placement schedule; nil only when
+	// checkArgs abandoned the call on an arity or named-argument error.
+	Plan *CallPlan
 }
 
 type WitnessKind uint8

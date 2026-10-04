@@ -1,9 +1,9 @@
 -- lib/hazard.kg --
-// Ledger L-08/L-25/L-116: `w: W` is an interface-constrained type
+// `w: W` is an interface-constrained type
 // parameter, so it is affine like any move-only type. Forwarding it into
 // io.writeAll twice moves it once and reads it again on the second call,
 // which is now a compile-time use-after-move instead of the silent
-// per-call copy this fixture used to pin (docs/limitations_v1.md). Moved
+// per-call copy this fixture used to pin. Moved
 // here from testdata/run: the program no longer builds, so it cannot
 // stay a run fixture (TestAotCorpus has no way to expect a build
 // failure).
@@ -37,10 +37,12 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     %t5 = bin <(%i, %t4)
     branch %t5 ? b2 : b4
   b2:
-    %t6 = copy(%i)
-    %t7 = call get(%data, %t6)
-    %t9 = isvariant Some(%t7)
-    branch %t9 ? b5 : b6
+    %t6 = field 0(%self)
+    %t7 = borrow 1(%t6)
+    %t8 = copy(%i)
+    %t9 = call get(%data, %t8)
+    %t11 = isvariant Some(%t9)
+    branch %t11 ? b5 : b6
   b3:
     jump b1
   b4:
@@ -52,19 +54,17 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     drop(%data)
     return %t21
   b5:
-    %t10 = payload 0(%t7)
-    %t8 = copy(%t10)
+    %t12 = payload 0(%t9)
+    %t10 = copy(%t12)
     jump b7
   b6:
-    %t11 = unit
-    %t12 = const 0: u8
-    %t8 = copy(%t12)
+    %t13 = unit
+    %t14 = const 0: u8
+    %t10 = copy(%t14)
     jump b7
   b7:
-    drop(%t7)
-    %t13 = field 0(%self)
-    %t14 = borrow 1(%t13)
-    %t15 = call push(%t14, %t8)
+    drop(%t9)
+    %t15 = call push(%t7, %t10)
     drop(%t15)
     %t16 = const 1: usize
     %t17 = bin +(%i, %t16)

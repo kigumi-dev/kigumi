@@ -1,0 +1,81 @@
+-- src --
+fn sideA(tag: String, v: Int) -> Int {
+    print tag
+    v
+}
+
+fn f(first: Int, second: Int) -> Int {
+    first - second
+}
+
+let r1 = f(second: sideA("named-second", 20), first: sideA("named-first", 10))
+print "${r1}"
+
+fn g(a: Int, second: Int, third: Int) -> Int {
+    a + second * 10 + third * 100
+}
+
+let r2 = g(sideA("mixed-pos", 1), third: sideA("mixed-third", 2), second: sideA("mixed-second", 3))
+print "${r2}"
+
+fn sumAll(tag: String, items: ...Int) -> Int {
+    print tag
+    let mut total = 0
+    for x in items {
+        total = total + x
+    }
+    total
+}
+
+let r3 = sumAll("variadic", sideA("v1", 1), sideA("v2", 2), sideA("v3", 3))
+print "${r3}"
+
+type Box = { pub n Int }
+
+fn Box.combine(self, a: Int, b: Int) -> Int {
+    self.n + a + b
+}
+
+fn mkBox(tag: String) -> Box {
+    print tag
+    Box { n: 100 }
+}
+
+let r4 = sideA("pipe-left", 1) |> mkBox("pipe-recv").combine(sideA("pipe-arg", 2))
+print "${r4}"
+
+let r5 = mkBox("plain-recv").combine(sideA("plain-a", 5), sideA("plain-b", 6))
+print "${r5}"
+
+fn mkAdder(tag: String) -> fn(Int, Int) -> Int {
+    print tag
+    (x, y) => x + y
+}
+
+let r6 = sideA("value-piped", 3) |> (mkAdder("value-callee"))(sideA("value-arg", 4))
+print "${r6}"
+-- stdout --
+named-second
+named-first
+-10
+mixed-pos
+mixed-third
+mixed-second
+231
+v1
+v2
+v3
+variadic
+6
+pipe-left
+pipe-recv
+pipe-arg
+103
+plain-recv
+plain-a
+plain-b
+111
+value-piped
+value-callee
+value-arg
+7

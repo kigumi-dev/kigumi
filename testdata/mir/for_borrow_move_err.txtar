@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-181: an owned `for` moves its head, and a `for` over a shared
+// An owned `for` moves its head, and a `for` over a shared
 // borrow holds it for the whole loop; both are the pre-existing own/borrow
 // errors, not new diagnostics.
 fn useAfterOwnedLoop() -> Unit {
@@ -76,9 +76,9 @@ fn main.mutateInsideBorrowLoop() -> Unit {
   b2:
     %t10 = builtin iter.at(%t6, %t7)
     %x = copy(%t10)
-    %t12 = const 4: Int
-    %t13 = borrow 1(%items)
-    %t14 = call push(%t13, %t12)
+    %t12 = borrow 1(%items)
+    %t13 = const 4: Int
+    %t14 = call push(%t12, %t13)
     drop(%t14)
     %t15 = interp ""(%x)
     %t16 = builtin print(%t15)

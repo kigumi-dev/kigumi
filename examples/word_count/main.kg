@@ -13,7 +13,8 @@ for line in text.lines(input) {
             continue
         }
         let w = word.toLower()
-        counts.set(w, (counts.get(&w) || 0) + 1)
+        let count = (counts.get(&w) || 0) + 1
+        counts.set(w, count)
     }
 }
 let entries = counts.entries()

@@ -98,36 +98,3 @@ func (fr *frame) tryBorrow(n syntax.NodeID) (Value, *ctrl) {
 	}
 	return nil, nil
 }
-
-// args evaluates call arguments; variadic element lists become one array.
-// A piped left operand comes first, unless ArgOrder already placed it (a
-// named argument at the call site: ArgOrder is then complete).
-func (fr *frame) args(nodes []syntax.NodeID, call sem.CallInfo) ([]Value, *ctrl) {
-	var out []Value
-	if call.Piped != 0 && call.ArgOrder == nil {
-		nodes = append([]syntax.NodeID{call.Piped}, nodes...)
-	}
-	for i, a := range nodes {
-		v, c := fr.expr(a)
-		if c != nil {
-			return nil, c
-		}
-		if isBorrowExpr(fr.t, a) || fr.isReborrow(a, i, call) {
-			out = append(out, v)
-			continue
-		}
-		out = append(out, fr.transfer(a, v))
-	}
-	if call.Variadic == sem.VariadicElements {
-		fixed := len(fr.in.r.Types.Node(fr.in.r.Fn(call.Callee).Sig).Args) - 1
-		if fixed < 0 {
-			fixed = 0
-		}
-		if fixed > len(out) {
-			fixed = len(out)
-		}
-		rest := &Array{Elems: append([]Value{}, out[fixed:]...)}
-		out = append(out[:fixed], rest)
-	}
-	return out, nil
-}

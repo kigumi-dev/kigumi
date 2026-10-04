@@ -15,9 +15,9 @@ fn lib.inner(%out: &mut Array[u8], %v: usize) -> Unit {
     %t3 = bin >(%v, %t2)
     branch %t3 ? b1 : b2
   b1:
-    %t5 = const 1: u8
-    %t6 = borrow 1(%out)
-    %t7 = call push(%t6, %t5)
+    %t5 = borrow 1(%out)
+    %t6 = const 1: u8
+    %t7 = call push(%t5, %t6)
     %t4 = copy(%t7)
     jump b3
   b2:

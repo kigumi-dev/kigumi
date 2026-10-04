@@ -91,7 +91,7 @@ func (fr *frame) binary(n syntax.NodeID) (Value, *ctrl) {
 	}
 	if fr.t.Toks[node.Tok].Kind == token.PipeGt {
 		// `a |> f`: the name on the right called with a.
-		return fr.callWith(n, rhs, nil)
+		return fr.callWith(n, rhs)
 	}
 	if call.OpText == "&&" || fr.t.TokText(node.Tok) == "&&" {
 		l, c := fr.expr(lhs)

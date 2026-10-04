@@ -38,19 +38,19 @@ fn lib.Item.update(%self: Item, %delta: Int) -> Unit {
 }
 fn lib.sharedThenWithMut.closure1(%x: &mut Item) -> Unit {
   b0:
-    %t1 = const 1: Int
-    %t2 = borrow 1(%x)
-    %t3 = call update(%t2, %t1)
+    %t1 = borrow 1(%x)
+    %t2 = const 1: Int
+    %t3 = call update(%t1, %t2)
     return %t3
 }
 fn lib.sharedThenWithMut(%xs: Array[Item]) -> usize {
   b0:
     %t1 = borrow 0(%xs)
     %r = copy(%t1)
-    %t3 = const 0: usize
-    %t4 = closure closure
-    %t5 = borrow 1(%xs)
-    %t6 = call withMut(%t5, %t3, %t4)
+    %t3 = borrow 1(%xs)
+    %t4 = const 0: usize
+    %t5 = closure closure
+    %t6 = call withMut(%t3, %t4, %t5)
     drop(%t6)
     %t7 = call len(%r)
     drop(%xs)
@@ -58,9 +58,9 @@ fn lib.sharedThenWithMut(%xs: Array[Item]) -> usize {
 }
 fn lib.exclusiveThenLen.closure1(%x: &mut Item) -> Unit {
   b0:
-    %t1 = const 1: Int
-    %t2 = borrow 1(%x)
-    %t3 = call update(%t2, %t1)
+    %t1 = borrow 1(%x)
+    %t2 = const 1: Int
+    %t3 = call update(%t1, %t2)
     return %t3
 }
 fn lib.exclusiveThenLen(%xs: Array[Item]) -> usize {
@@ -69,10 +69,10 @@ fn lib.exclusiveThenLen(%xs: Array[Item]) -> usize {
     %m = copy(%t1)
     %t3 = call len(%xs)
     %k = copy(%t3)
-    %t5 = const 0: usize
-    %t6 = closure closure
-    %t7 = borrow 1(%m)
-    %t8 = call withMut(%t7, %t5, %t6)
+    %t5 = borrow 1(%m)
+    %t6 = const 0: usize
+    %t7 = closure closure
+    %t8 = call withMut(%t5, %t6, %t7)
     drop(%t8)
     %t9 = copy(%k)
     drop(%k)
@@ -81,9 +81,9 @@ fn lib.exclusiveThenLen(%xs: Array[Item]) -> usize {
 }
 fn lib.fine.closure1(%x: &mut Item) -> Unit {
   b0:
-    %t1 = const 1: Int
-    %t2 = borrow 1(%x)
-    %t3 = call update(%t2, %t1)
+    %t1 = borrow 1(%x)
+    %t2 = const 1: Int
+    %t3 = call update(%t1, %t2)
     return %t3
 }
 fn lib.fine(%xs: Array[Item]) -> usize {
@@ -92,10 +92,10 @@ fn lib.fine(%xs: Array[Item]) -> usize {
     %r = copy(%t1)
     %t3 = call len(%r)
     %n = copy(%t3)
-    %t5 = const 0: usize
-    %t6 = closure closure
-    %t7 = borrow 1(%xs)
-    %t8 = call withMut(%t7, %t5, %t6)
+    %t5 = borrow 1(%xs)
+    %t6 = const 0: usize
+    %t7 = closure closure
+    %t8 = call withMut(%t5, %t6, %t7)
     drop(%t8)
     %t9 = call len(%xs)
     %t10 = bin +(%t9, %n)

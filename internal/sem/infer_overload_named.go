@@ -27,7 +27,8 @@ func (c *checker) namedArgsFit(m EntityID, args []syntax.NodeID) bool {
 // Callers only use this once namedArgsFit(m, args) holds, so the layout always succeeds.
 func (c *checker) orderedFor(m EntityID, args []syntax.NodeID) []syntax.NodeID {
 	names := c.paramNames(c.r.Fn(m).Params, c.candidateFixed(m))
-	return c.layoutNamed(args, names).args()
+	lay := c.layoutNamed(args, names)
+	return newCallPlan(c.unwrapNamed(args), lay.place()).placed()
 }
 
 // Positional calls share one shape list; named calls recompute per candidate
