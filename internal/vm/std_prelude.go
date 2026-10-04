@@ -32,11 +32,17 @@ func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 		}
 		return mkVariant(miss, []*obj{unitObj})
 	case "prelude.Bytes.concat":
+		if m.faultTick() {
+			m.abort("out of memory")
+		}
 		out := make([]byte, 0, len(a0.s)+len(a1.s))
 		out = append(out, a0.s...)
 		out = append(out, a1.s...)
 		return mkBytes(out)
 	case "prelude.Bytes.tryConcat":
+		if m.faultTick() {
+			return m.allocError()
+		}
 		out := make([]byte, 0, len(a0.s)+len(a1.s))
 		out = append(out, a0.s...)
 		out = append(out, a1.s...)

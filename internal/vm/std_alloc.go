@@ -18,15 +18,28 @@ type sharedCtrl struct {
 func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 	switch key {
 	case "alloc.Arena.create":
+		if m.faultTick() {
+			return m.allocError()
+		}
 		return m.ok(mkOpaque("AllocatorHandle", nil))
 	case "alloc.AllocatorHandle.scope":
 		return mkOpaque("AllocatorScope", retain(a0))
 	case "alloc.AllocatorHandle.allocated":
 		return mkInt(0, 64|256)
 	case "alloc.Shared.new":
+		if m.faultTick() {
+			m.abort("out of memory")
+		}
 		c := &sharedCtrl{cell: mkCell(retain(a0)), alive: true}
 		c.shared = mkOpaque("Shared", c)
 		return c.shared
+	case "alloc.Shared.tryNew":
+		if m.faultTick() {
+			return m.allocError()
+		}
+		c := &sharedCtrl{cell: mkCell(retain(a0)), alive: true}
+		c.shared = mkOpaque("Shared", c)
+		return m.ok(c.shared)
 	case "alloc.Shared.clone", "alloc.Weak.clone":
 		return retain(a0)
 	case "alloc.Shared.get":

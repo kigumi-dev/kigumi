@@ -1718,9 +1718,47 @@
       ]
     },
     {
+      "id": "run/bytes_try_oversize",
+      "kind": "run",
+      "path": "testdata/run/bytes_try_oversize.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/bytes_zeros_huge",
       "kind": "run",
       "path": "testdata/run/bytes_zeros_huge.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: out of memory"
+      }
+    },
+    {
+      "id": "run/bytes_zeros_oversize",
+      "kind": "run",
+      "path": "testdata/run/bytes_zeros_oversize.txtar",
       "mode": [
         "vm",
         "native"

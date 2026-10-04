@@ -13,6 +13,8 @@ type RunOptions struct {
 	Stdin io.Reader
 	// NoAccel runs std bodies in Kigumi instead of the Go accelerators.
 	NoAccel bool
+	// FaultInjectAt is a test-only hook; see vm.Options.FaultInjectAt.
+	FaultInjectAt int64
 }
 
 // Run type-checks a loaded module and runs its entry file on the VM.
@@ -44,7 +46,7 @@ func RunWith(m *Module, opts RunOptions, stdout, stderr io.Writer, args []string
 
 func runVM(a *Analysis, opts RunOptions, stdout, stderr io.Writer, args []string) (int, error) {
 	cwd, _ := os.Getwd()
-	code, err := vm.Run(a.Prog, vm.Options{Args: args, Stdin: opts.Stdin, Cwd: cwd, NoAccel: opts.NoAccel}, stdout, stderr)
+	code, err := vm.Run(a.Prog, vm.Options{Args: args, Stdin: opts.Stdin, Cwd: cwd, NoAccel: opts.NoAccel, FaultInjectAt: opts.FaultInjectAt}, stdout, stderr)
 	if err != nil {
 		return 1, fmt.Errorf("%w", err)
 	}

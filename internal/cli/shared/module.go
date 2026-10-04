@@ -126,5 +126,12 @@ func Target(cmd *cobra.Command) (driver.Target, error) {
 	default:
 		return t, fmt.Errorf("allocator %q: want general or none", alloc)
 	}
+	switch profile, _ := cmd.Flags().GetString("profile"); profile {
+	case "", "fatal-permitted":
+	case "recoverable-only":
+		t.Profile = "recoverable-only"
+	default:
+		return t, fmt.Errorf("profile %q: want fatal-permitted or recoverable-only", profile)
+	}
 	return t, nil
 }

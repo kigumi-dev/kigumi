@@ -1,0 +1,14 @@
+-- src --
+fn zerosOp() -> String {
+    if Bytes.tryZeros(9223372036854775807) is Err(_) { "zeros-fail" } else { "BUG-zeros" }
+}
+
+fn fillOp() -> String {
+    if Bytes.tryFill(1, 9223372036854775807) is Err(_) { "fill-fail" } else { "BUG-fill" }
+}
+
+print zerosOp()
+print fillOp()
+-- stdout --
+zeros-fail
+fill-fail

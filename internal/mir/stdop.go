@@ -29,6 +29,7 @@ var StdOpNames = []string{
 	"FFI_STRING_LOSSY", "FIXED_ARRAY_WITH_MUT",
 	"UCELL_NEW", "UCELL_GET", "UCELL_SET",
 	"HOST_STDERR",
+	"BYTES_TRY_ZEROS", "BYTES_TRY_FILL", "SHARED_TRY_NEW",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -135,6 +136,9 @@ var stdOpKeys = map[string]string{
 	"mem.UnsafeCell.new":              "UCELL_NEW",
 	"mem.UnsafeCell.get":              "UCELL_GET",
 	"mem.UnsafeCell.set":              "UCELL_SET",
+	"prelude.Bytes.tryZeros":          "BYTES_TRY_ZEROS",
+	"prelude.Bytes.tryFill":           "BYTES_TRY_FILL",
+	"alloc.Shared.tryNew":             "SHARED_TRY_NEW",
 }
 
 // stdOpSuffixes maps a trailing method name to its op, for primitives

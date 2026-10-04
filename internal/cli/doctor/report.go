@@ -61,7 +61,7 @@ func stdField(cmd *cobra.Command) Field {
 func targetField(cmd *cobra.Command) Field {
 	t, err := shared.Target(cmd)
 	if err != nil {
-		return Field{Status: "invalid", Source: "--target/--sys/--allocator"}
+		return Field{Status: "invalid", Source: "--target/--sys/--allocator/--profile"}
 	}
 	if triple, _ := cmd.Flags().GetString("target"); triple != "" {
 		return Field{Value: t.Triple, Source: "--target", Status: "ok"}

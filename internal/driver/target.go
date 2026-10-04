@@ -18,6 +18,9 @@ type Target struct {
 	// Allocator is "" (the general allocator) or "none": the build has no
 	// default allocator and the checker enforces that from the entry.
 	Allocator string
+	// Profile is "" or "recoverable-only" (no reachable path may
+	// terminate on a refused allocation); independent of Allocator.
+	Profile string
 	// Tier is "" or "unverified", for a triple whose ABI segment
 	// ParseTarget does not recognize.
 	Tier string
@@ -130,6 +133,9 @@ func (t Target) Layout() target.Layout { return target.ForArch(t.OS, t.Arch) }
 
 // NoDefaultAllocator reports the `--allocator none` profile.
 func (t Target) NoDefaultAllocator() bool { return t.Allocator == "none" }
+
+// RecoverableOnly reports the `--profile recoverable-only` profile.
+func (t Target) RecoverableOnly() bool { return t.Profile == "recoverable-only" }
 
 // compileTriple is the triple as given; build.go supplies rt_freestanding.h's own declarations for freestanding/UEFI since compileTriple no longer substitutes a musl triple.
 func (t Target) compileTriple() string { return t.Triple }

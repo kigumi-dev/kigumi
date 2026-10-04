@@ -115,6 +115,7 @@ func (m *Module) semModule() (*sem.Module, error) {
 	mod.Arch = m.target.Arch
 	mod.PtrBits = m.target.Layout().PtrBits
 	mod.NoDefaultAllocator = m.target.NoDefaultAllocator()
+	mod.RecoverableOnly = m.target.RecoverableOnly()
 	mod.NoPlatform = m.target.Sys == "none"
 	mod.Deny = m.deny
 	mod.LayerCeiling = m.ceiling

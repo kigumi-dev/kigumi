@@ -3,6 +3,10 @@ package vm
 // objOverhead approximates one obj allocation's fixed bookkeeping cost.
 const objOverhead = 32
 
+// maxVMAlloc bounds one make() request; past it a size-taking primitive
+// reports AllocError instead of risking Go's own makeslice panic.
+const maxVMAlloc = 1 << 40
+
 // approxSize estimates the bytes a value's own backing storage costs right
 // now. Scalars (int/float/bool/char/unit) count as 0: the sandbox's memory
 // budget bounds growing data (strings, bytes, arrays, records, closures),
@@ -60,4 +64,14 @@ func (m *Machine) unchargeMemory(v *obj) {
 	if m.mem < 0 {
 		m.mem = 0
 	}
+}
+
+// faultTick counts one allocation attempt and reports whether this is the
+// one FaultInjectAt names (1-based); disabled (0) never fires.
+func (m *Machine) faultTick() bool {
+	if m.opts.FaultInjectAt <= 0 {
+		return false
+	}
+	m.faultN++
+	return m.faultN == m.opts.FaultInjectAt
 }

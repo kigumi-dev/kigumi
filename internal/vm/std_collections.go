@@ -7,6 +7,8 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		return mkArray(nil)
 	case "array.Array.of":
 		return retain(a0)
+	// No fault tick here: growBy is the fallible reservation push commits
+	// into, same as native's try_grow fast path once capacity is enough.
 	case "array.Array.push":
 		a0.fields = append(a0.fields, retain(a[1]))
 		// Growth happens in place on a0, not on the Unit this returns, so
@@ -14,7 +16,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		m.chargeMemory(a0)
 		return unitObj
 	case "array.Array.growBy":
-		return mkBool(uint64(a1.i) < 1<<40)
+		return mkBool(uint64(a1.i) < maxVMAlloc && !m.faultTick())
 	case "array.Array.len":
 		return mkInt(int64(len(a0.fields)), 64)
 	case "array.Array.get":

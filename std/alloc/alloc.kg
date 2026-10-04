@@ -36,6 +36,9 @@ pub fn AllocatorHandle.allocated(self) -> Int
 /// Wraps a value in a shared cell.
 pub fn Shared.new[T](value: T) -> Shared[T]
 
+/// Wraps a value in a shared cell, or AllocError when the allocator refuses (new panics instead).
+pub fn Shared.tryNew[T](value: T) -> Result[Shared[T], AllocError]
+
 /// Another handle to the same cell.
 pub fn Shared[T].clone(self) -> Shared[T]
 

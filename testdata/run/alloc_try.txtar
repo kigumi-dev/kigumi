@@ -1,5 +1,6 @@
 -- src --
 import map from std/map
+import {Shared} from std/alloc
 
 fn run() -> Unit {
     let mut items = Array.empty[u8]()
@@ -23,6 +24,16 @@ fn run() -> Unit {
     print "${m.trySet("b", 2) is Ok(_)}"
     print "${m.trySet("a", 9) is Ok(_)}"
     print "${m.len()} ${m.get(&"a") || 0} ${m.get(&"b") || 0}"
+
+    let zeros = Bytes.tryZeros(3).unwrap()
+    let filled = Bytes.tryFill(7, 3).unwrap()
+    print "${zeros.get(0) || 9} ${filled.get(0) || 0} ${filled.get(2) || 0}"
+    let hugeZeros = Bytes.tryZeros(9223372036854775808)
+    let hugeFill = Bytes.tryFill(1, 9223372036854775808)
+    print "${hugeZeros is Err(AllocError.OutOfMemory)} ${hugeFill is Err(AllocError.OutOfMemory)}"
+
+    let cell = Shared.tryNew(41).unwrap()
+    print "${cell.get()}"
 }
 
 run()
@@ -35,4 +46,7 @@ true
 true
 true
 2 9 2
+0 7 7
+true true
+41
 done

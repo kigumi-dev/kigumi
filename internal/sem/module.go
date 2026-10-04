@@ -31,6 +31,9 @@ type Module struct {
 	// NoDefaultAllocator is the `allocator = none` profile: code
 	// reachable from the entry may allocate only inside `allocator` blocks.
 	NoDefaultAllocator bool
+	// RecoverableOnly is the recoverable-only profile: no path reachable
+	// from the entry may terminate non-returning on an allocation failure.
+	RecoverableOnly bool
 	// NoPlatform is the `--sys none` profile. Freestanding
 	// implies it, but the driver sets it independently so a hosted target can
 	// opt in too.

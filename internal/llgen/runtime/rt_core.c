@@ -54,8 +54,22 @@ static void gen_free(rt_allocator* a, void* p) {
 static int arena_fault_injected(void) {
     return getenv("KIGUMI_FAIL_ARENA_CREATE") != NULL;
 }
+// fault_tick counts allocation attempts and reports whether this is the one
+// KIGUMI_FAIL_ALLOC_AT names (1-based); the env var is read once and cached.
+static int fault_tick(void) {
+    static int64_t at = -2, n = 0;
+    if (at == -2) {
+        const char* e = getenv("KIGUMI_FAIL_ALLOC_AT");
+        at = e ? strtoll(e, NULL, 10) : -1;
+    }
+    if (at <= 0) return 0;
+    return ++n == at;
+}
 #else
 static int arena_fault_injected(void) {
+    return 0;
+}
+static int fault_tick(void) {
     return 0;
 }
 #endif
@@ -66,6 +80,7 @@ static rt_allocator* cur_alloc(void) {
     return g_alloc_stack[g_alloc_sp];
 }
 static void* amalloc(rt_allocator* a, size_t n) {
+    if (fault_tick()) return NULL;
     a->bytes += n;
     return a->alloc(a, n);
 }
@@ -306,6 +321,7 @@ val rt_array(int64_t n, val* items) {
     }
     v->u.arr.cap = n < 4 ? 4 : n;
     v->u.arr.items = amalloc(v->al, v->u.arr.cap * sizeof(val));
+    if (!v->u.arr.items) rt_panic("out of memory");
     for (int64_t i = 0; i < n; i++) v->u.arr.items[i] = items[i];
     v->u.arr.len = n;
     return v;
@@ -337,6 +353,7 @@ val rt_record(rt_type* t, int64_t n, val* fields) {
     v->u.rec.type = t;
     v->u.rec.n = n;
     v->u.rec.fields = amalloc(v->al, (n ? n : 1) * sizeof(val));
+    if (!v->u.rec.fields) rt_panic("out of memory");
     for (int64_t i = 0; i < n; i++) {
         v->u.rec.fields[i] = fields[i];
     }
@@ -347,6 +364,7 @@ val rt_variant(rt_vdesc* d, int64_t n, val* payload) {
     v->u.var.v = d;
     v->u.var.n = n;
     v->u.var.payload = amalloc(v->al, (n ? n : 1) * sizeof(val));
+    if (!v->u.var.payload) rt_panic("out of memory");
     for (int64_t i = 0; i < n; i++) {
         v->u.var.payload[i] = payload[i];
     }
@@ -1061,11 +1079,78 @@ val err_msg(const char* msg) {
     val e = rt_box(opaque("Error", (void*)msg), &T_Error, T_Error_vt);
     return err_val(e);
 }
-// Err(AllocError.OutOfMemory); looked up on demand since it is rare, unlike
-// the V_* variants cached at init.
+// Err(AllocError.OutOfMemory) as a hand-built immortal object: reporting a
+// failed allocation must not need one of its own to succeed.
 static val alloc_error(void) {
-    rt_vdesc* d = find_variant(find_type("AllocError"), "OutOfMemory");
-    return d ? err_val(rt_variant(d, 0, NULL)) : err_msg("out of memory");
+    static struct obj oom, errv;
+    static val payload[1];
+    static int ready = 0;
+    if (!ready) {
+        rt_vdesc* d = find_variant(find_type("AllocError"), "OutOfMemory");
+        if (!d) return err_msg("out of memory");
+        oom = (struct obj){.kind = K_VARIANT, .rc = -1, .u.var = {.v = d, .n = 0, .payload = NULL}};
+        payload[0] = &oom;
+        errv = (struct obj){.kind = K_VARIANT, .rc = -1, .u.var = {.v = V_Err, .n = 1, .payload = payload}};
+        ready = 1;
+    }
+    return &errv;
+}
+// NULL-on-refusal counterparts to alloc_in/rt_str_take/opaque/rt_cell/rt_variant;
+// callers release/free what they already hold on a NULL return.
+static val alloc_in_try(rt_allocator* a, int kind) {
+    val v = amalloc(a, sizeof(struct obj));
+    if (!v) return NULL;
+    v->kind = kind;
+    v->rc = 1;
+    v->al = a;
+    return v;
+}
+static val alloc_try(int kind) {
+    return alloc_in_try(cur_alloc(), kind);
+}
+static val rt_str_take_try(char* data, int64_t len) {
+    val v = alloc_try(K_STR);
+    if (!v) return NULL;
+    v->u.s.data = data;
+    v->u.s.len = len;
+    v->owned = 1;
+    return v;
+}
+static val rt_cell_try(val x) {
+    val v = alloc_try(K_CELL);
+    if (!v) return NULL;
+    v->u.cell.v = x;
+    return v;
+}
+static val opaque_try(const char* kind, void* data) {
+    val v = alloc_try(K_OPAQUE);
+    if (!v) return NULL;
+    v->u.op.kind = kind;
+    v->u.op.data = data;
+    return v;
+}
+static val rt_variant_try(rt_vdesc* d, int64_t n, val* payload) {
+    val v = alloc_try(K_VARIANT);
+    if (!v) return NULL;
+    v->u.var.v = d;
+    v->u.var.n = n;
+    v->u.var.payload = amalloc(v->al, (n ? n : 1) * sizeof(val));
+    if (!v->u.var.payload) {
+        afree(v->al, v);
+        return NULL;
+    }
+    for (int64_t i = 0; i < n; i++) v->u.var.payload[i] = payload[i];
+    return v;
+}
+// try_ok wraps v as Ok(v), or releases v and reports the refusal when the
+// Result wrapper itself can't be allocated.
+static val try_ok(val v) {
+    val r = rt_variant_try(V_Ok, 1, &v);
+    if (!r) {
+        rt_release(v);
+        return alloc_error();
+    }
+    return r;
 }
 static val ordering(int c) {
     return rt_variant(c < 0 ? V_Less : c > 0 ? V_Greater
@@ -1471,7 +1556,10 @@ static val utf8_lossy_val(const char* s, int64_t n) {
             i += len;
         }
     }
-    if (!b.p) b.p = calloc(1, 1);
+    if (!b.p) {
+        b.p = calloc(1, 1);
+        if (!b.p) rt_panic("out of memory");
+    }
     return rt_str_take(b.p, b.len);
 }
 // hash_of is FNV-1a-64 (standard offset basis 0xcbf29ce484222325 /
@@ -1601,6 +1689,9 @@ enum std_op {
     OP_UCELL_GET,
     OP_UCELL_SET,
     OP_HOST_STDERR,
+    OP_BYTES_TRY_ZEROS,
+    OP_BYTES_TRY_FILL,
+    OP_SHARED_TRY_NEW,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -1691,6 +1782,9 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "mem.UnsafeCell.new")) return OP_UCELL_NEW;
     if (!strcmp(k, "mem.UnsafeCell.get")) return OP_UCELL_GET;
     if (!strcmp(k, "mem.UnsafeCell.set")) return OP_UCELL_SET;
+    if (!strcmp(k, "prelude.Bytes.tryZeros")) return OP_BYTES_TRY_ZEROS;
+    if (!strcmp(k, "prelude.Bytes.tryFill")) return OP_BYTES_TRY_FILL;
+    if (!strcmp(k, "alloc.Shared.tryNew")) return OP_SHARED_TRY_NEW;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;
@@ -1723,7 +1817,17 @@ val rt_std_id(int op, int n, val* a) {
         if (!utf8_valid(a0->u.s.data, a0->u.s.len)) return err_msg("invalid UTF-8");
         char* d = strdup_or_null(a0->u.s.data, a0->u.s.len);
         if (!d) return err_msg("out of memory");
-        return ok(rt_str_take(d, a0->u.s.len));
+        val v = rt_str_take_try(d, a0->u.s.len);
+        if (!v) {
+            free(d);
+            return err_msg("out of memory");
+        }
+        val r = rt_variant_try(V_Ok, 1, &v);
+        if (!r) {
+            rt_release(v);
+            return err_msg("out of memory");
+        }
+        return r;
     }
     case OP_EQUALS: return rt_bool(a0->kind == K_FLOAT ? float_total_equal(a0->u.f, a1->u.f) : equal(a0, a1));
     case OP_COMPARE_TO: return ordering(a0->kind == K_FLOAT ? float_total_compare(a0->u.f, a1->u.f) : cmp_vals(a0, a1));
@@ -1738,16 +1842,29 @@ val rt_std_id(int op, int n, val* a) {
     case OP_BYTES_ZEROS: {
         int64_t n2 = a0->u.i;
         if (n2 < 0) rt_panic("out of memory");
-        char* d = calloc((uint64_t)n2 + 1, 1);
+        char* d = fault_tick() ? NULL : calloc((uint64_t)n2 + 1, 1);
         if (!d) rt_panic("out of memory");
         val v = rt_str_take(d, n2);
         v->kind = K_BYTES;
         return v;
     }
+    case OP_BYTES_TRY_ZEROS: {
+        int64_t n2 = a0->u.i;
+        if (n2 < 0) return alloc_error();
+        char* d = fault_tick() ? NULL : calloc((uint64_t)n2 + 1, 1);
+        if (!d) return alloc_error();
+        val v = rt_str_take_try(d, n2);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        v->kind = K_BYTES;
+        return try_ok(v);
+    }
     case OP_BYTES_FILL: {
         int64_t n2 = a1->u.i;
         if (n2 < 0) rt_panic("out of memory");
-        char* d = malloc((uint64_t)n2 + 1);
+        char* d = fault_tick() ? NULL : malloc((uint64_t)n2 + 1);
         if (!d) rt_panic("out of memory");
         memset(d, (unsigned char)a0->u.i, n2);
         d[n2] = 0;
@@ -1755,9 +1872,24 @@ val rt_std_id(int op, int n, val* a) {
         v->kind = K_BYTES;
         return v;
     }
+    case OP_BYTES_TRY_FILL: {
+        int64_t n2 = a1->u.i;
+        if (n2 < 0) return alloc_error();
+        char* d = fault_tick() ? NULL : malloc((uint64_t)n2 + 1);
+        if (!d) return alloc_error();
+        memset(d, (unsigned char)a0->u.i, n2);
+        d[n2] = 0;
+        val v = rt_str_take_try(d, n2);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        v->kind = K_BYTES;
+        return try_ok(v);
+    }
     case OP_BYTES_FROM_ARRAY: {
         int64_t n2 = a0->u.arr.len;
-        char* d = malloc(n2 + 1);
+        char* d = fault_tick() ? NULL : malloc(n2 + 1);
         if (!d) rt_panic("out of memory");
         for (int64_t i = 0; i < n2; i++) d[i] = (char)deref(a0->u.arr.items[i])->u.i;
         d[n2] = 0;
@@ -1767,17 +1899,21 @@ val rt_std_id(int op, int n, val* a) {
     }
     case OP_BYTES_TRY_FROM_ARRAY: {
         int64_t n2 = a0->u.arr.len;
-        char* d = malloc(n2 + 1);
+        char* d = fault_tick() ? NULL : malloc(n2 + 1);
         if (!d) return alloc_error();
         for (int64_t i = 0; i < n2; i++) d[i] = (char)deref(a0->u.arr.items[i])->u.i;
         d[n2] = 0;
-        val v = rt_str_take(d, n2);
+        val v = rt_str_take_try(d, n2);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
         v->kind = K_BYTES;
-        return ok(v);
+        return try_ok(v);
     }
     case OP_BYTES_CONCAT: {
         int64_t l0 = a0->u.s.len, l1 = a1->u.s.len;
-        char* d = malloc(l0 + l1 + 1);
+        char* d = fault_tick() ? NULL : malloc(l0 + l1 + 1);
         if (!d) rt_panic("out of memory");
         memcpy(d, a0->u.s.data, l0);
         memcpy(d + l0, a1->u.s.data, l1);
@@ -1788,14 +1924,18 @@ val rt_std_id(int op, int n, val* a) {
     }
     case OP_BYTES_TRY_CONCAT: {
         int64_t l0 = a0->u.s.len, l1 = a1->u.s.len;
-        char* d = malloc(l0 + l1 + 1);
+        char* d = fault_tick() ? NULL : malloc(l0 + l1 + 1);
         if (!d) return alloc_error();
         memcpy(d, a0->u.s.data, l0);
         memcpy(d + l0, a1->u.s.data, l1);
         d[l0 + l1] = 0;
-        val v = rt_str_take(d, l0 + l1);
+        val v = rt_str_take_try(d, l0 + l1);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
         v->kind = K_BYTES;
-        return ok(v);
+        return try_ok(v);
     }
     // array
     case OP_ARRAY_EMPTY: return rt_array(0, NULL);
@@ -1964,7 +2104,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_EXECUTOR_SPAWN: return opaque("Task", rt_retain(a1));
     case OP_TASK_JOIN: return await_future((val)a0->u.op.data);
     case OP_ARENA_CREATE: {
-        arena* ar = arena_fault_injected() ? NULL : calloc(1, sizeof *ar);
+        arena* ar = (arena_fault_injected() || fault_tick()) ? NULL : calloc(1, sizeof *ar);
         if (!ar) return alloc_error();
         ar->a.alloc = arena_alloc;
         ar->a.free = arena_free;
@@ -1973,12 +2113,32 @@ val rt_std_id(int op, int n, val* a) {
     case OP_ALLOCATOR_SCOPE: return opaque_in(&((arena*)a0->u.op.data)->a, "AllocatorScope", rt_retain(a0));
     case OP_ALLOCATOR_ALLOCATED: return rt_int(((arena*)a0->u.op.data)->a.bytes, 64 | 256);
     case OP_SHARED_NEW: {
-        sctrl* c = calloc(1, sizeof *c);
+        sctrl* c = fault_tick() ? NULL : calloc(1, sizeof *c);
         if (!c) rt_panic("out of memory");
         c->cell = rt_cell(rt_retain(a0));
         c->alive = 1;
         c->shared = opaque("Shared", c);
         return c->shared;
+    }
+    case OP_SHARED_TRY_NEW: {
+        sctrl* c = fault_tick() ? NULL : calloc(1, sizeof *c);
+        if (!c) return alloc_error();
+        val cell = rt_cell_try(rt_retain(a0));
+        if (!cell) {
+            rt_release(a0);
+            free(c);
+            return alloc_error();
+        }
+        c->cell = cell;
+        c->alive = 1;
+        val sh = opaque_try("Shared", c);
+        if (!sh) {
+            rt_release(c->cell);
+            free(c);
+            return alloc_error();
+        }
+        c->shared = sh;
+        return try_ok(sh);
     }
     case OP_SHARED_CLONE: return rt_retain(a0);
     case OP_SHARED_GET: return rt_copy(((sctrl*)a0->u.op.data)->cell->u.cell.v);

@@ -625,8 +625,14 @@ pub pure fn Bytes.contains(self, sub: Bytes) -> Bool {
 /// n zero bytes.
 pub pure fn Bytes.zeros(n: usize) -> Bytes
 
+/// n zero bytes, or AllocError when the allocator refuses (zeros panics instead).
+pub pure fn Bytes.tryZeros(n: usize) -> Result[Bytes, AllocError]
+
 /// n bytes, each set to value.
 pub pure fn Bytes.fill(value: u8, n: usize) -> Bytes
+
+/// n bytes, each set to value, or AllocError when the allocator refuses (fill panics instead).
+pub pure fn Bytes.tryFill(value: u8, n: usize) -> Result[Bytes, AllocError]
 
 /// The bytes of self followed by those of other.
 pub pure fn Bytes.concat(self, other: Bytes) -> Bytes

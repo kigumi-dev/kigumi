@@ -47,6 +47,9 @@ type Options struct {
 	// real sigaction/os-signal.Notify there would hijack the runner's own
 	// Ctrl-C handling for the rest of the invocation.
 	DenySignals bool
+	// FaultInjectAt mirrors rt_core.c's KIGUMI_FAIL_ALLOC_AT: the Nth
+	// allocation attempt refuses instead of succeeding; 0 disables it.
+	FaultInjectAt int64
 }
 
 // Machine runs one program.
@@ -77,6 +80,7 @@ type Machine struct {
 	stack        []*mir.Func
 	steps, depth int
 	mem          int64
+	faultN       int64
 	graph        *buildgraph.Graph
 	sigWatch     map[string]chan os.Signal
 }

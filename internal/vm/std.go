@@ -31,6 +31,9 @@ func (m *Machine) std(key string, a []*obj) *obj {
 	if r := m.mathFn(key, a0, a1); r != nil {
 		return r
 	}
+	if r := m.bytesStd(key, a0, a1, a2); r != nil {
+		return r
+	}
 	if strings.Contains(key, ".wrapping") || strings.Contains(key, ".rotate") {
 		if r := m.intFn(key, a0, a1); r != nil {
 			return r
@@ -63,45 +66,6 @@ func (m *Machine) std(key string, a []*obj) *obj {
 			return m.none()
 		}
 		return m.some(mkStr(append([]byte{}, a0.s[s:e]...)))
-	case "prelude.Bytes.slice":
-		s, e := a1.i, a2.i
-		if s < 0 || s > e || e > int64(len(a0.s)) {
-			return m.none()
-		}
-		return m.some(mkBytes(append([]byte{}, a0.s[s:e]...)))
-	case "prelude.Bytes.zeros":
-		if a0.i < 0 {
-			m.abort("out of memory")
-		}
-		return mkBytes(make([]byte, a0.i))
-	case "prelude.Bytes.fill":
-		if a1.i < 0 {
-			m.abort("out of memory")
-		}
-		out := make([]byte, a1.i)
-		for i := range out {
-			out[i] = byte(a0.i)
-		}
-		return mkBytes(out)
-	case "prelude.Bytes.fromArray":
-		out := make([]byte, len(a0.fields))
-		for i, x := range a0.fields {
-			out[i] = byte(deref(x).i)
-		}
-		return mkBytes(out)
-	// Go's append never refuses a real, already-in-memory input the way the
-	// growBy threshold simulates a refusal for a forward reservation.
-	case "prelude.Bytes.tryFromArray":
-		out := make([]byte, len(a0.fields))
-		for i, x := range a0.fields {
-			out[i] = byte(deref(x).i)
-		}
-		return m.ok(mkBytes(out))
-	case "prelude.Bytes.get":
-		if a1.i < 0 || a1.i >= int64(len(a0.s)) {
-			return m.none()
-		}
-		return m.some(mkInt(int64(a0.s[a1.i]), 8))
 	// The VM has no timing guarantee to keep; this mirrors the algorithm
 	// for correctness only (subtle.kg's doc comment says so).
 	case "crypto/subtle.constantTimeEq":
@@ -149,6 +113,13 @@ func (m *Machine) ok(v *obj) *obj {
 
 func (m *Machine) errMsg(msg string) *obj {
 	return mkVariant(m.variantOf(m.r.Types.ResultEnt(), "Err"), []*obj{mkOpaque("Error", msg)})
+}
+
+// allocError is Err(AllocError.OutOfMemory), for a primitive whose fault
+// injection fired (rt_core.c's alloc_error mirrors this on the native side).
+func (m *Machine) allocError() *obj {
+	oom := mkVariant(m.variantOf(m.lookup("std/prelude", "AllocError"), "OutOfMemory"), nil)
+	return mkVariant(m.variantOf(m.r.Types.ResultEnt(), "Err"), []*obj{oom})
 }
 
 // intFn is prelude.<T>.wrapping* / rotate*: modular arithmetic masked to

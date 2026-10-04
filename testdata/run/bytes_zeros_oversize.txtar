@@ -1,0 +1,10 @@
+-- src --
+print "start"
+let b = Bytes.zeros(9223372036854775807)
+print "unreachable ${b.len()}"
+-- stdout --
+start
+-- stderr --
+panic: out of memory
+-- exit --
+2
