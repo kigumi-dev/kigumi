@@ -25,7 +25,7 @@ func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
 		if m.opts.Sandbox && hostEffect(key) {
 			m.abort("`" + key + "` is not available at compile time")
 		}
-		if h, ok := m.host[key]; ok && m.hostWins(lowered) {
+		if h, ok := m.hostFor(in.Prov, key); ok && m.hostWins(lowered) {
 			r := h(m, ent, args)
 			m.chargeMemory(r)
 			return r
@@ -60,7 +60,7 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 		if m.opts.Sandbox && hostEffect(key) {
 			m.abort("`" + key + "` is not available at compile time")
 		}
-		if _, ok := m.host[key]; ok && m.hostWins(lowered) {
+		if _, ok := m.hostFor(in.Prov, key); ok && m.hostWins(lowered) {
 			useLowered = false
 		}
 	}
@@ -68,7 +68,7 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 		c.fn = f
 		c.bind = in.Op == mir.OpBind
 	} else {
-		c.stdKey, c.ent = m.stdKey(in.Ent), in.Ent
+		c.stdKey, c.ent, c.prov = m.stdKey(in.Ent), in.Ent, in.Prov
 		if in.Op == mir.OpBind {
 			c.lent = mir.LentMask(m.r, in.Ent)
 		}
@@ -92,7 +92,7 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 		site := m.site
 		m.site = &mir.Inst{Op: mir.OpCall, Ent: fv.ent}
 		var r *obj
-		if h, ok := m.host[fv.stdKey]; ok {
+		if h, ok := m.hostFor(fv.prov, fv.stdKey); ok {
 			r = h(m, fv.ent, all)
 		} else {
 			r = m.std(fv.stdKey, all)
@@ -118,7 +118,7 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 // already dedicated to this call and move into the Future unchanged.
 func (m *Machine) asyncValueCall(fv *obj, args []*obj) *obj {
 	raw := newObj(kClosure)
-	raw.fn, raw.stdKey, raw.ent, raw.bind, raw.lent = fv.fn, fv.stdKey, fv.ent, fv.bind, fv.lent
+	raw.fn, raw.stdKey, raw.ent, raw.bind, raw.lent, raw.prov = fv.fn, fv.stdKey, fv.ent, fv.bind, fv.lent, fv.prov
 	raw.env = retain(fv.env)
 	return mkOpaque("Future", &future{fn: raw, args: args})
 }
@@ -181,7 +181,7 @@ func (m *Machine) callMethod(recv *obj, name string, args []*obj) *obj {
 		if m.opts.Sandbox && hostEffect(key) {
 			m.abort("`" + key + "` is not available at compile time")
 		}
-		if h, ok := m.host[key]; ok && m.hostWins(lowered) {
+		if h, ok := m.hostForEnt(fn, key); ok && m.hostWins(lowered) {
 			r := h(m, fn, append([]*obj{target}, args...))
 			m.chargeMemory(r)
 			return r

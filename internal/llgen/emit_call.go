@@ -55,8 +55,8 @@ func (e *emitter) callEntity(sb *strings.Builder, f *mir.Func, in mir.Inst, args
 		}
 	}
 	arr := e.argArray(sb, args)
-	if op, ok := stdOpFor(key); ok {
-		return e.irb(sb).Call(rtStdId, vi32(op), vi32(len(args)), vptr(arr)).Text
+	if op, ok := in.StdOp(); ok {
+		return e.irb(sb).Call(rtStdId, vi32(int(op)), vi32(len(args)), vptr(arr)).Text
 	}
 	return e.irb(sb).Call(rtStd, vptr(e.cstr(key)), vi32(len(args)), vptr(arr)).Text
 }

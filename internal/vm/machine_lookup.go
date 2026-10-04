@@ -47,7 +47,8 @@ func (m *Machine) hostDrop(ent sem.EntityID) (hostFn, sem.EntityID) {
 	if drop == 0 {
 		return nil, 0
 	}
-	return m.host[m.stdKey(drop)], drop
+	h, _ := m.hostForEnt(drop, m.stdKey(drop))
+	return h, drop
 }
 
 // dropFn is the destructor a resource type declares, lowered; nil for a

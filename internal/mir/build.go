@@ -20,6 +20,7 @@ func Build(r *sem.Result) *Program {
 		}
 	}
 	p.Entry = p.ByEnt[r.MainFn()]
+	resolveStdOps(p)
 	return p
 }
 

@@ -12,8 +12,11 @@ import (
 	"kigumi/internal/sem"
 )
 
-// Panic is a program abort with the runtime's message.
-type Panic struct{ Msg string }
+// Panic is a program abort; Site is the panicking instruction's user frame, zero when none (e.g. out of memory).
+type Panic struct {
+	Msg  string
+	Site mir.Site
+}
 
 func (p *Panic) Error() string { return "panic: " + p.Msg }
 
@@ -57,11 +60,15 @@ type Machine struct {
 	stdinSrc io.Reader
 	named    map[string]sem.EntityID
 	host     map[string]hostFn
+	hostByOp map[mir.ProviderOpId]hostFn
 	cvalues  []*obj
 	// site is the call being dispatched, for primitives whose meaning
 	// depends on the argument types at the call (ffi.sizeOf).
 	site   *mir.Inst
 	siteFn *mir.Func
+	// curFn/curInst track every instruction (not just calls, unlike site/siteFn), for Panic's Site.
+	curFn   *mir.Func
+	curInst *mir.Inst
 	// stack is the active calls, innermost last; std/build reads the
 	// nearest non-std caller from it as a step's provenance.
 	stack        []*mir.Func
@@ -111,6 +118,7 @@ func (m *Machine) registerAll() {
 	m.registerNetHTTP()
 	m.registerEntropy()
 	m.registerError()
+	m.indexHostByOp()
 }
 
 // catch turns the machine's aborts (raised with panic) into errors.
@@ -129,7 +137,13 @@ func (m *Machine) catch(f func()) (err error) {
 	return nil
 }
 
-func (m *Machine) abort(msg string) { panic(&Panic{Msg: msg}) }
+func (m *Machine) abort(msg string) {
+	var site mir.Site
+	if m.curFn != nil && m.curInst != nil {
+		site = m.p.SiteAt(m.curFn, m.curInst.Node)
+	}
+	panic(&Panic{Msg: msg, Site: site})
+}
 
 func (m *Machine) exitCode(res *obj) int {
 	res = deref(res)

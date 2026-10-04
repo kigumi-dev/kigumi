@@ -83,6 +83,10 @@ type Inst struct {
 	// EndScope marks an OpDrop synthesized by scope exit, not a user-written drop;
 	// the borrow checker reports it with wording about the scope ending.
 	EndScope bool
+	// Prim/Prov are Ent's typed std op id, resolved once by resolveStdOps;
+	// both zero when Ent is not a registry-covered std call.
+	Prim PrimitiveId
+	Prov ProviderOpId
 }
 
 type TermOp uint8

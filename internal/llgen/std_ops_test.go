@@ -4,6 +4,8 @@ import (
 	"os"
 	"regexp"
 	"testing"
+
+	"kigumi/internal/mir"
 )
 
 var (
@@ -12,8 +14,8 @@ var (
 	caseLabelRe = regexp.MustCompile(`case OP_([A-Z0-9_]+):`)
 )
 
-// TestStdOpsMatchC checks rt_core.c's `enum std_op` matches stdOpNames in
-// order, and that rt_std_id has exactly one case per declared op.
+// TestStdOpsMatchC checks rt_core.c's `enum std_op` matches mir.StdOpNames
+// in order, and that rt_std_id has exactly one case per declared op.
 func TestStdOpsMatchC(t *testing.T) {
 	src, err := os.ReadFile("runtime/rt_core.c")
 	if err != nil {
@@ -27,10 +29,10 @@ func TestStdOpsMatchC(t *testing.T) {
 	for _, m := range enumEntryRe.FindAllSubmatch(block[1], -1) {
 		enumNames = append(enumNames, string(m[1]))
 	}
-	if len(enumNames) != len(stdOpNames) {
-		t.Fatalf("enum std_op has %d entries, stdOpNames has %d", len(enumNames), len(stdOpNames))
+	if len(enumNames) != len(mir.StdOpNames) {
+		t.Fatalf("enum std_op has %d entries, mir.StdOpNames has %d", len(enumNames), len(mir.StdOpNames))
 	}
-	for i, name := range stdOpNames {
+	for i, name := range mir.StdOpNames {
 		if enumNames[i] != name {
 			t.Errorf("id %d: Go has %s, C's enum std_op has %s at the same position", i, name, enumNames[i])
 		}

@@ -97,8 +97,8 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int) string 
 		}
 	}
 	arr := e.argArray(&sb, vals)
-	if op, ok := stdOpFor(e.stdKey(fn)); ok {
-		e.irb(&sb).CallAs("%r", rtStdId, vi32(op), vi32(n), vptr(arr))
+	if op, ok := mir.StdOpFor(e.stdKey(fn)); ok {
+		e.irb(&sb).CallAs("%r", rtStdId, vi32(int(op)), vi32(n), vptr(arr))
 	} else {
 		e.irb(&sb).CallAs("%r", rtStd, vptr(e.cstr(e.stdKey(fn))), vi32(n), vptr(arr))
 	}

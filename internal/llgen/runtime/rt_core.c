@@ -1505,7 +1505,7 @@ static int subtle_constant_time_eq(val a, val b) {
 // Stable small ids for std primitives: llgen resolves a call's std key to
 // one of these at compile time and
 // emits rt_std_id directly, skipping the string compares below. Order
-// matches internal/llgen/std_ops.go's stdOpNames (TestStdOpsMatchC checks it).
+// matches internal/mir/stdop.go's StdOpNames (TestStdOpsMatchC checks it).
 enum std_op {
     OP_LEN,
     OP_STRING_TO_BYTES,
@@ -1577,6 +1577,7 @@ enum std_op {
     OP_WEAK_UPGRADE,
     OP_NET_HTTP,
     OP_NET_CONN_DROP,
+    OP_NET_LISTENER_DROP,
     OP_BUILD_ONLY,
     OP_ARGS_LEN,
     OP_MATH_SQRT,
@@ -1597,7 +1598,7 @@ enum std_op {
     OP_FFI_STRING_LOSSY,
     OP_FIXED_ARRAY_WITH_MUT,
 };
-// rt_std_op_of mirrors std_ops.go's stdOpFor: an exact key first, then its
+// rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
 // a key none of those resolve.
 static int rt_std_op_of(const char* key) {
@@ -1671,7 +1672,8 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "alloc.Shared.downgrade")) return OP_SHARED_DOWNGRADE;
     if (!strcmp(k, "alloc.Weak.upgrade")) return OP_WEAK_UPGRADE;
     if (!strcmp(k, "net.Net.http")) return OP_NET_HTTP;
-    if (!strcmp(k, "net.Conn.drop") || !strcmp(k, "net.Listener.drop")) return OP_NET_CONN_DROP;
+    if (!strcmp(k, "net.Conn.drop")) return OP_NET_CONN_DROP;
+    if (!strcmp(k, "net.Listener.drop")) return OP_NET_LISTENER_DROP;
     if (!strcmp(k, "os.Args.len")) return OP_ARGS_LEN;
     if (!strcmp(k, "math.sqrt")) return OP_MATH_SQRT;
     if (!strcmp(k, "math.floor")) return OP_MATH_FLOOR;
@@ -2012,6 +2014,7 @@ val rt_std_id(int op, int n, val* a) {
     // an accelerator on a *bodied* drop only replaces normal calls to it,
     // not the implicit drop on a resource's last reference going, which
     // always runs the real (here nonexistent) lowered body instead.
+    case OP_NET_LISTENER_DROP:
     case OP_NET_CONN_DROP:
         rt_sys_close((int)a0->u.rec.fields[0]->u.i);
         return rt_unit();

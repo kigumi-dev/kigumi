@@ -44,6 +44,7 @@ type obj struct {
 	fields []*obj
 	fn     *mir.Func
 	stdKey string
+	prov   mir.ProviderOpId
 	bind   bool
 	lent   int
 	env    *obj
