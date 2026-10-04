@@ -1,0 +1,96 @@
+-- app/t/t.kg --
+type Resource = resource {
+    pub mut count Int
+}
+fn Resource.drop(move self) -> Unit {}
+
+fn Resource.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+    f()
+}
+
+fn mutate(x: &mut Resource) -> Unit {
+    x.count = 99
+}
+
+type Holder = {
+    pub cb fn() -> Unit
+}
+
+fn pack(f: escaping fn() -> Unit) -> Holder {
+    Holder { cb: f }
+}
+
+fn viaFieldRead(mut v: Resource) -> Unit {
+    let holder = pack(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
+    v.run(holder.cb) //~ ERROR cannot see what this closure captures
+}
+
+fn identity(f: escaping fn() -> Unit) -> fn() -> Unit {
+    f
+}
+
+fn viaCallResult(mut v: Resource) -> Unit {
+    let stored = identity(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
+    v.run(stored) //~ ERROR cannot see what this closure captures
+}
+
+fn viaIndex(mut v: Resource, cbs: Array[fn() -> Unit]) -> Unit {
+    v.run(cbs[0]) //~ ERROR cannot see what this closure captures
+}
+
+type HolderArray = {
+    pub cbs Array[fn() -> Unit]
+}
+
+fn viaFieldThenIndex(mut v: Resource, holder: HolderArray) -> Unit {
+    v.run(holder.cbs[0]) //~ ERROR cannot see what this closure captures
+}
+
+fn doNothing() -> Unit {}
+
+fn viaTopLevelFn(mut v: Resource) -> Unit {
+    v.run(doNothing)
+}
+-- expect --
+error[E413]: closure captures `v` (move-only) and cannot be a plain `fn`
+  --> app/t/t.kg:23:23
+   |
+23 |     let holder = pack(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
+   |                       ^^^^^^^^^^^^^^^^^^^^^
+   = help: use `F: Fn[...]`
+
+error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+  --> app/t/t.kg:24:11
+   |
+24 |     v.run(holder.cb) //~ ERROR cannot see what this closure captures
+   |           ^^^^^^^^^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+
+error[E413]: closure captures `v` (move-only) and cannot be a plain `fn`
+  --> app/t/t.kg:32:27
+   |
+32 |     let stored = identity(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
+   |                           ^^^^^^^^^^^^^^^^^^^^^
+   = help: use `F: Fn[...]`
+
+error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+  --> app/t/t.kg:33:11
+   |
+33 |     v.run(stored) //~ ERROR cannot see what this closure captures
+   |           ^^^^^^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+
+error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+  --> app/t/t.kg:37:11
+   |
+37 |     v.run(cbs[0]) //~ ERROR cannot see what this closure captures
+   |           ^^^^^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+
+error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+  --> app/t/t.kg:45:11
+   |
+45 |     v.run(holder.cbs[0]) //~ ERROR cannot see what this closure captures
+   |           ^^^^^^^^^^^^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+

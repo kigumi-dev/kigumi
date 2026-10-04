@@ -1,14 +1,11 @@
 -- src --
-// Ledger L-172 (追記 2026-09-27): the bracket-indexing fix only resolved the
-// moved place when the access chain had exactly one `[...]` hop; a chain
-// with two or more (nested, or a bracket on both sides of a field access)
-// still fell through to no-op and double-dropped under --engine interp.
+// Same as fix_interp_bracket_move_drop, through a chain of two index/field hops.
 type Res = resource {
     pub id Int
 }
 
 type Row = {
-    pub cells Array[Res]
+    pub mut cells Array[Res]
 }
 
 fn Res.drop(move self) -> Unit {
@@ -19,26 +16,41 @@ fn consume(x: Res) -> Unit {
     print "consume ${x.id}"
 }
 
-fn byNestedIndex() -> Unit {
+fn peek(x: &Res) -> Unit {
+    print "peek ${x.id}"
+}
+
+fn byNestedTakeAt() -> Unit {
     let mut xs = Array.of(Array.of(Res { id: 1 }, Res { id: 2 }))
-    consume(xs[0][1])
+    consume(xs[0].takeAt(1).unwrap())
+}
+
+fn byNestedBorrow() -> Unit {
+    let xs = Array.of(Array.of(Res { id: 3 }, Res { id: 4 }))
+    peek(&xs[0][1])
 }
 
 fn byIndexFieldIndex() -> Unit {
-    let mut rows = Array.of(Row { cells: Array.of(Res { id: 3 }) })
+    let mut rows = Array.of(Row { cells: Array.of(Res { id: 5 }) })
     let r: usize = 0
-    consume(rows[r].cells[0])
+    consume(rows[r].cells.takeAt(0).unwrap())
 }
 
-byNestedIndex()
-print "nested"
+byNestedTakeAt()
+print "nested takeAt"
+byNestedBorrow()
+print "nested borrow"
 byIndexFieldIndex()
 print "index field index"
 -- stdout --
 consume 2
 drop 2
 drop 1
-nested
-consume 3
+nested takeAt
+peek 4
+drop 4
 drop 3
+nested borrow
+consume 5
+drop 5
 index field index

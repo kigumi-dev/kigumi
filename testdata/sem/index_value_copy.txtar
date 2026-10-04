@@ -1,0 +1,155 @@
+-- app/t/t.kg --
+type Res = resource {
+    pub id Int
+}
+
+type Holder = {
+    pub r Res
+}
+
+fn Res.drop(move self) -> Unit {}
+fn Res.touch(self) -> Unit {}
+fn Res.touchMut(mut self) -> Unit {}
+fn Res.consume(move self) -> Unit {}
+
+type Keyed = {
+    mut slots Array[Res]
+}
+
+fn Keyed.index(mut self, k: usize) -> Res {
+    self.slots.takeAt(0).unwrap()
+}
+
+fn byValue(xs: Array[Res]) -> Unit {
+    let y = xs[0] //~ ERROR reading `Res` out of an index by value needs `Copy`
+}
+
+fn byValueField(ys: Array[Holder]) -> Unit {
+    let z = ys[0].r //~ ERROR reading `Res` out of an index by value needs `Copy`
+}
+
+fn byValueChained(xs: Array[Array[Res]]) -> Unit {
+    let z = xs[0][0] //~ ERROR reading `Res` out of an index by value needs `Copy`
+}
+
+fn viaWitness(k: Keyed) -> Unit {
+    let z = k[0] //~ ERROR reading `Res` out of an index by value needs `Copy`
+}
+
+fn borrowed(xs: &Array[Res]) -> Unit {
+    let r = &xs[0]
+    r.touch()
+}
+
+fn borrowedMut(mut xs: Array[Res]) -> Unit {
+    let r = &mut xs[0]
+    r.touch()
+}
+
+fn methodCall(xs: Array[Res]) -> Unit {
+    xs[0].touch()
+}
+
+fn methodCallMut(mut xs: Array[Res]) -> Unit {
+    xs[0].touchMut()
+}
+
+fn takenOwned(mut xs: Array[Res]) -> Unit {
+    let y = xs.takeAt(0).unwrap()
+}
+
+fn chainedNavigate(xs: Array[Array[Res]]) -> Unit {
+    xs[0][0].touch()
+}
+
+fn moveReceiverViaIndex(xs: Array[Res]) -> Unit {
+    xs[0].consume() //~ ERROR reading `Res` out of an index by value needs `Copy`
+}
+
+fn makeArr() -> Array[Res] {
+    Array.of(Res { id: 1 })
+}
+
+fn makeHolderArr() -> Array[Holder] {
+    Array.of(Holder { r: Res { id: 1 } })
+}
+
+fn moveReceiverViaCallIndex() -> Unit {
+    makeArr()[0].consume() //~ ERROR reading `Res` out of an index by value needs `Copy`
+}
+
+fn byValueFieldOfCallIndex() -> Unit {
+    let z = makeHolderArr()[0].r //~ ERROR reading `Res` out of an index by value needs `Copy`
+}
+
+fn byValueOptField(hs: Array[Holder?]) -> Unit {
+    let z = hs[0]?.r //~ ERROR reading `Res?` out of an index by value needs `Copy`
+}
+
+fn moveExprViaCallIndex() -> Unit {
+    let y = move makeArr()[0] //~ ERROR cannot move a value out of an index
+}
+-- expect --
+error[E1050]: reading `Res` out of an index by value needs `Copy`
+  --> app/t/t.kg:23:13
+   |
+23 |     let y = xs[0] //~ ERROR reading `Res` out of an index by value needs `Copy`
+   |             ^^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1050]: reading `Res` out of an index by value needs `Copy`
+  --> app/t/t.kg:27:13
+   |
+27 |     let z = ys[0].r //~ ERROR reading `Res` out of an index by value needs `Copy`
+   |             ^^^^^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1050]: reading `Res` out of an index by value needs `Copy`
+  --> app/t/t.kg:31:13
+   |
+31 |     let z = xs[0][0] //~ ERROR reading `Res` out of an index by value needs `Copy`
+   |             ^^^^^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1050]: reading `Res` out of an index by value needs `Copy`
+  --> app/t/t.kg:35:13
+   |
+35 |     let z = k[0] //~ ERROR reading `Res` out of an index by value needs `Copy`
+   |             ^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1050]: reading `Res` out of an index by value needs `Copy`
+  --> app/t/t.kg:65:5
+   |
+65 |     xs[0].consume() //~ ERROR reading `Res` out of an index by value needs `Copy`
+   |     ^^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1050]: reading `Res` out of an index by value needs `Copy`
+  --> app/t/t.kg:77:5
+   |
+77 |     makeArr()[0].consume() //~ ERROR reading `Res` out of an index by value needs `Copy`
+   |     ^^^^^^^^^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1050]: reading `Res` out of an index by value needs `Copy`
+  --> app/t/t.kg:81:13
+   |
+81 |     let z = makeHolderArr()[0].r //~ ERROR reading `Res` out of an index by value needs `Copy`
+   |             ^^^^^^^^^^^^^^^^^^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1050]: reading `Res?` out of an index by value needs `Copy`
+  --> app/t/t.kg:85:13
+   |
+85 |     let z = hs[0]?.r //~ ERROR reading `Res?` out of an index by value needs `Copy`
+   |             ^^^^^^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1022]: cannot move a value out of an index
+  --> app/t/t.kg:89:18
+   |
+89 |     let y = move makeArr()[0] //~ ERROR cannot move a value out of an index
+   |                  ^^^^^^^^^^^
+   = help: clone the element instead
+

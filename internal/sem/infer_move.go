@@ -26,16 +26,16 @@ func (c *checker) synthMove(n syntax.NodeID) TypeID {
 			return TyPoison
 		}
 	}
-	t := c.synth(target)
+	t := c.synthPlace(target)
 	if t == TyPoison {
 		return TyPoison
 	}
-	p, ok := c.buildPlace(target)
-	if !ok {
+	if c.indexRooted(target) {
+		c.errAt(target, cMoveIndex)
 		return t
 	}
-	if p.Index {
-		c.errAt(target, cMoveIndex)
+	p, ok := c.buildPlace(target)
+	if !ok {
 		return t
 	}
 	if p.Deref {

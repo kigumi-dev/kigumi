@@ -17,7 +17,7 @@ func (c *checker) synthMember(n syntax.NodeID) TypeID {
 	case headNone:
 		return TyPoison
 	}
-	recv := c.vars.resolve(c.synth(base))
+	recv := c.vars.resolve(c.synthPlace(base))
 	return c.memberOn(n, base, recv, name)
 }
 

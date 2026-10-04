@@ -85,10 +85,9 @@ pub pure fn FixedArray[T, N].at[R](self, index: usize, f: fn(&T) -> R) -> R? {
 }
 
 /// Calls f with an exclusive borrow of the element at index, so f can
-/// mutate it in place; None when index is out of range.
-pub pure fn FixedArray[T, N].withMut[R](mut self, index: usize, f: fn(&mut T) -> R) -> R? {
-    self.items.withMut(index, f)
-}
+/// mutate it in place; None when index is out of range. Native: forwarding
+/// f to Array.withMut would trip E1051 (f's captures are opaque here).
+pub pure fn FixedArray[T, N].withMut[R](mut self, index: usize, f: fn(&mut T) -> R) -> R?
 
 /// Replaces the element at index with value; false when index is out of
 /// range. Bracket assignment, not withMut: withMut's callback can only

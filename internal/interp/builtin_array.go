@@ -47,6 +47,19 @@ func registerCollections(in *Interp) {
 		}
 		return mkSome(in, fr.retType(n), r), nil
 	})
+	in.def("std/prelude.FixedArray.withMut", func(in *Interp, fr *frame, n syntax.NodeID, args []Value) (Value, *ctrl) {
+		rec := deref(args[0]).(*Record)
+		arr := deref(rec.Fields[0]).(*Array)
+		i := deref(args[1]).(Int).V
+		if i < 0 || int(i) >= len(arr.Elems) {
+			return mkNone(in, fr.retType(n)), nil
+		}
+		r, c := in.callValue(fr, args[2], n, []Value{&Ref{Cell: &Cell{V: arr}, Path: []int{int(i)}}})
+		if c != nil {
+			return nil, c
+		}
+		return mkSome(in, fr.retType(n), r), nil
+	})
 	in.def(a+"Array.takeAt", func(in *Interp, fr *frame, n syntax.NodeID, args []Value) (Value, *ctrl) {
 		arr := deref(args[0]).(*Array)
 		i := deref(args[1]).(Int).V

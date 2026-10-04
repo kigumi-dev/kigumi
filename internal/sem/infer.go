@@ -12,10 +12,32 @@ func (c *checker) synth(n syntax.NodeID) TypeID {
 	if n == 0 {
 		return TyPoison
 	}
+	place := c.wantIndexPlace
+	c.wantIndexPlace = false
 	if t := c.info.Types[n]; t != 0 {
 		return t
 	}
-	return c.setType(n, c.synthKind(n, 0))
+	if place && c.t.Kind(n) == syntax.Paren {
+		return c.setType(n, c.synthPlace(syntax.NodeID(c.t.Nodes[n].Lhs)))
+	}
+	if place && c.t.Kind(n) == syntax.BracketExpr {
+		if c.indexAsPlace == nil {
+			c.indexAsPlace = map[syntax.NodeID]bool{}
+		}
+		c.indexAsPlace[n] = true
+	}
+	t := c.synthKind(n, 0)
+	if !place && (c.t.Kind(n) == syntax.MemberExpr || c.t.Kind(n) == syntax.OptMemberExpr) {
+		t = c.checkIndexFieldValue(n, t)
+	}
+	return c.setType(n, t)
+}
+
+// synthPlace is synth for an expression read to extend a place rather than
+// materialized as a value, so a non-Copy BracketExpr result skips indexType's Copy requirement.
+func (c *checker) synthPlace(n syntax.NodeID) TypeID {
+	c.wantIndexPlace = true
+	return c.synth(n)
 }
 
 func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {

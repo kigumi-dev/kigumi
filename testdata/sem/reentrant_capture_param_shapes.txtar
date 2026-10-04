@@ -1,0 +1,54 @@
+-- app/t/t.kg --
+type Resource = resource {
+    pub mut count Int
+}
+fn Resource.drop(move self) -> Unit {}
+
+fn Resource.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+    f()
+}
+
+fn mutate(x: &mut Resource) -> Unit {
+    x.count = 99
+}
+
+fn reenter(mut v: Resource, f: fn() -> Unit) -> Unit {
+    v.run(f) //~ ERROR cannot see what this closure captures
+}
+
+fn forward[G: FnMut[fn() -> Unit]](mut v: Resource, g: G) -> Unit {
+    v.run(g) //~ ERROR cannot see what this closure captures
+}
+
+fn forwardAlias[G: FnMut[fn() -> Unit]](mut v: Resource, g: G) -> Unit {
+    let g2 = g
+    v.run(g2) //~ ERROR cannot see what this closure captures
+}
+
+fn doNothing() -> Unit {}
+
+fn viaTopLevelFnParam(mut v: Resource, unused: fn() -> Unit) -> Unit {
+    v.run(doNothing)
+}
+-- expect --
+error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+  --> app/t/t.kg:15:11
+   |
+15 |     v.run(f) //~ ERROR cannot see what this closure captures
+   |           ^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+
+error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+  --> app/t/t.kg:19:11
+   |
+19 |     v.run(g) //~ ERROR cannot see what this closure captures
+   |           ^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+
+error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+  --> app/t/t.kg:24:11
+   |
+24 |     v.run(g2) //~ ERROR cannot see what this closure captures
+   |           ^^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+

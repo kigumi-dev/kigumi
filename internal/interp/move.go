@@ -5,14 +5,12 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// isPlaceExpr reports whether n names a local's storage (an identifier, a
-// field access, or an array element rooted at one) rather than a
-// temporary, so a value taken out of it can be reflected back onto where
-// it came from.
+// isPlaceExpr reports whether n names a local's storage rather than a temporary.
+// A BracketExpr root never reaches here with a move-only value (that's E1050).
 func isPlaceExpr(t *syntax.Tree, n syntax.NodeID) bool {
 	for {
 		switch t.Kind(n) {
-		case syntax.Paren, syntax.MemberExpr, syntax.BracketExpr, syntax.MoveExpr:
+		case syntax.Paren, syntax.MemberExpr, syntax.MoveExpr:
 			n = syntax.NodeID(t.Nodes[n].Lhs)
 		case syntax.Ident:
 			return true
@@ -71,15 +69,13 @@ func (fr *frame) markMoved(src syntax.NodeID, v Value) {
 }
 
 // moveStep is one hop of a place expression's access chain, root to leaf: a
-// field is a fixed index, a bracket's index is unknown (see resolveMovedPlace).
+// field access at a fixed index.
 type moveStep struct {
-	bracket bool
-	field   int
+	field int
 }
 
-// placeSteps walks n down to its root identifier, collecting the field and
-// bracket hops in root-to-leaf order, and returns the root's cell (a `*Ref`
-// cell resolves to the referent, with its path folded into base).
+// placeSteps walks n down to its root identifier, collecting field hops in
+// root-to-leaf order; a `*Ref` cell resolves to the referent, its path folded into base.
 func (fr *frame) placeSteps(n syntax.NodeID) (cell *Cell, base []int, steps []moveStep, ok bool) {
 	var rev []moveStep
 	for {
@@ -93,9 +89,6 @@ func (fr *frame) placeSteps(n syntax.NodeID) (cell *Cell, base []int, steps []mo
 				return nil, nil, nil, false
 			}
 			rev = append(rev, moveStep{field: fr.in.r.Field(fld).Index})
-			n = syntax.NodeID(node.Lhs)
-		case syntax.BracketExpr:
-			rev = append(rev, moveStep{bracket: true})
 			n = syntax.NodeID(node.Lhs)
 		case syntax.Ident:
 			ent := fr.info.Uses[n]
@@ -117,8 +110,6 @@ func (fr *frame) placeSteps(n syntax.NodeID) (cell *Cell, base []int, steps []mo
 	}
 }
 
-// resolveMovedPlace never re-evaluates a subexpression: an index could hide
-// a side effect, so each bracket hop is found by identity search instead.
 func (fr *frame) resolveMovedPlace(n syntax.NodeID, v Value) (*Cell, []int, bool) {
 	cell, base, steps, ok := fr.placeSteps(n)
 	if !ok {
@@ -139,28 +130,15 @@ func matchMoveSteps(val Value, steps []moveStep, v Value) ([]int, bool) {
 		}
 		return nil, false
 	}
-	s := steps[0]
-	if s.bracket {
-		arr, ok := val.(*Array)
-		if !ok {
-			return nil, false
-		}
-		for i, e := range arr.Elems {
-			if path, ok := matchMoveSteps(e, steps[1:], v); ok {
-				return append([]int{i}, path...), true
-			}
-		}
-		return nil, false
-	}
 	rec, ok := val.(*Record)
 	if !ok {
 		return nil, false
 	}
-	path, ok := matchMoveSteps(rec.Fields[s.field], steps[1:], v)
+	path, ok := matchMoveSteps(rec.Fields[steps[0].field], steps[1:], v)
 	if !ok {
 		return nil, false
 	}
-	return append([]int{s.field}, path...), true
+	return append([]int{steps[0].field}, path...), true
 }
 
 // coercedMatch reports whether v is val, or val wrapped by the checker's

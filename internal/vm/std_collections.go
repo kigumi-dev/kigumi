@@ -37,6 +37,19 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		r := m.callValue(a2, []*obj{cell})
 		a0.fields[a1.i] = cell.inner
 		return m.some(r)
+	case "prelude.FixedArray.withMut":
+		self := a0
+		if self.k == kBox {
+			self = self.inner
+		}
+		arr := self.fields[0]
+		if a1.i < 0 || a1.i >= int64(len(arr.fields)) {
+			return m.none()
+		}
+		cell := mkCell(arr.fields[a1.i])
+		r := m.callValue(a2, []*obj{cell})
+		arr.fields[a1.i] = cell.inner
+		return m.some(r)
 	case "array.Array.takeAt":
 		i := a1.i
 		if i < 0 || i >= int64(len(a0.fields)) {

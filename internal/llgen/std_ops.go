@@ -29,7 +29,7 @@ var stdOpNames = []string{
 	"STRING_SLICE_BYTES", "ARRAY_CLONE",
 	"WRAPPING_ADD", "WRAPPING_SUB", "WRAPPING_MUL", "WRAPPING_SHL", "WRAPPING_SHR",
 	"ROTATE_LEFT", "ROTATE_RIGHT", "CHAR_FROM_INT",
-	"FFI_STRING_LOSSY",
+	"FFI_STRING_LOSSY", "FIXED_ARRAY_WITH_MUT",
 }
 
 // stdOpKeys maps a std key ("std/"-stripped) to the stdOpNames entry
@@ -59,6 +59,7 @@ var stdOpKeys = map[string]string{
 	"array.Array.with":                "ARRAY_WITH",
 	"array.Array.withMut":             "ARRAY_WITH_MUT",
 	"array.Array.takeAt":              "ARRAY_TAKE_AT",
+	"prelude.FixedArray.withMut":      "FIXED_ARRAY_WITH_MUT",
 	"prelude.Option.take":             "OPTION_TAKE",
 	"text.parseFloat":                 "TEXT_PARSE_FLOAT",
 	"os.Host.shell":                   "HOST_SHELL",

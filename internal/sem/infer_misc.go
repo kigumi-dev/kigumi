@@ -100,10 +100,17 @@ func (c *checker) synthContract(n syntax.NodeID, want TypeID) TypeID {
 	saved := c.edges
 	var edges []EffectEdge
 	c.edges = &edges
+	savedLocals := c.locals
+	c.locals = nil
+	savedConsumed, savedBranch := c.consumed, c.branch
+	c.consumed, c.branch = nil, 0
 	c.contracts = append(c.contracts, Effects(node.Lhs))
 	t := c.check(syntax.NodeID(node.Rhs), want)
 	c.contracts = c.contracts[:len(c.contracts)-1]
+	c.dropsAtScopeExit(nil)
 	c.edges = saved
+	c.locals = savedLocals
+	c.consumed, c.branch = savedConsumed, savedBranch
 	c.r.Fn(id).Edges = edges
 	c.edge(EffectEdge{Kind: EdgeCall, Target: id, Node: n})
 	return t
@@ -111,7 +118,7 @@ func (c *checker) synthContract(n syntax.NodeID, want TypeID) TypeID {
 
 func (c *checker) synthOptMember(n syntax.NodeID) TypeID {
 	node := c.t.Nodes[n]
-	base := c.vars.resolve(c.synth(syntax.NodeID(node.Lhs)))
+	base := c.vars.resolve(c.synthPlace(syntax.NodeID(node.Lhs)))
 	elem, ok := c.r.Types.IsOption(base)
 	if !ok {
 		if base != TyPoison {

@@ -2,11 +2,20 @@
 // std primitives that need no operating system. System access goes through
 // rt_sys_*.c.
 #define _GNU_SOURCE
+#ifdef KIGUMI_FREESTANDING
+#include "rt_freestanding.h"
+#else
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#endif
 
 #include "rt.h"
+#ifdef KIGUMI_COFF
+// PE/COFF objects with floating-point code need this marker; the CRT
+// normally defines it, but -nostdlib leaves none.
+int _fltused = 1;
+#endif
 static int g_argc;
 static char** g_argv;
 static int g_ntypes;
@@ -279,6 +288,12 @@ val opaque(const char* kind, void* data) {
 
 val rt_array(int64_t n, val* items) {
     val v = alloc(K_ARRAY);
+    if (n == 0) {
+        v->u.arr.cap = 0;
+        v->u.arr.items = NULL;
+        v->u.arr.len = 0;
+        return v;
+    }
     v->u.arr.cap = n < 4 ? 4 : n;
     v->u.arr.items = amalloc(v->al, v->u.arr.cap * sizeof(val));
     for (int64_t i = 0; i < n; i++) v->u.arr.items[i] = items[i];
@@ -1570,6 +1585,7 @@ enum std_op {
     OP_ROTATE_RIGHT,
     OP_CHAR_FROM_INT,
     OP_FFI_STRING_LOSSY,
+    OP_FIXED_ARRAY_WITH_MUT,
 };
 // rt_std_op_of mirrors std_ops.go's stdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -1599,6 +1615,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "array.Array.with")) return OP_ARRAY_WITH;
     if (!strcmp(k, "array.Array.withMut")) return OP_ARRAY_WITH_MUT;
     if (!strcmp(k, "array.Array.takeAt")) return OP_ARRAY_TAKE_AT;
+    if (!strcmp(k, "prelude.FixedArray.withMut")) return OP_FIXED_ARRAY_WITH_MUT;
     if (!strcmp(k, "prelude.Option.take")) return OP_OPTION_TAKE;
     if (!strcmp(k, "text.parseFloat")) return OP_TEXT_PARSE_FLOAT;
     if (!strcmp(k, "os.Host.shell")) return OP_HOST_SHELL;
@@ -1791,6 +1808,18 @@ val rt_std_id(int op, int n, val* a) {
         a0->u.arr.items[i] = cell->u.cell.v;
         // free_obj on a cell releases its `.v`, already handed to the
         // array slot above; detach it first so that release is a no-op.
+        cell->u.cell.v = NULL;
+        rt_release(cell);
+        return some(r);
+    }
+    case OP_FIXED_ARRAY_WITH_MUT: {
+        val arr = a0->u.rec.fields[0];
+        int64_t i = a1->u.i;
+        if (i < 0 || i >= arr->u.arr.len) return none();
+        val cell = rt_cell(arr->u.arr.items[i]);
+        val arg[1] = {cell};
+        val r = rt_callv(a2, 1, arg);
+        arr->u.arr.items[i] = cell->u.cell.v;
         cell->u.cell.v = NULL;
         rt_release(cell);
         return some(r);

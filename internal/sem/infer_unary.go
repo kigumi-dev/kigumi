@@ -24,6 +24,10 @@ func (c *checker) synthUnary(n syntax.NodeID, want TypeID) TypeID {
 	switch op {
 	case token.Minus:
 		if tt.IsSigned(operand) {
+			if tt.IsInteger(operand) {
+				// Negating the type's minimum value overflows (checked_i64 traps).
+				c.edge(EffectEdge{Kind: EdgePanic, Node: n})
+			}
 			return operand
 		}
 		if tt.IsInteger(operand) {
@@ -45,7 +49,7 @@ func (c *checker) synthUnary(n syntax.NodeID, want TypeID) TypeID {
 func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 	node := c.t.Nodes[n]
 	inner := syntax.NodeID(node.Rhs)
-	t := c.synth(inner)
+	t := c.synthPlace(inner)
 	if w := c.r.Types.Node(c.vars.resolve(want)); w.Kind == KRef && c.r.Types.Kind(c.vars.resolve(t)) == KUntyped {
 		target := c.vars.resolve(w.Elem)
 		if c.r.Types.ContainsVar(target) || c.r.Types.Kind(target) == KUntyped {
@@ -73,6 +77,12 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 				// Writes go through this borrow, not ent, so promote the
 				// capture here instead of relying on assignStmt.
 				c.noteCaptureWrite(inner, ent)
+			} else if c.argAsyncPlace[n] {
+				if !c.indexAssignUnsupported(inner) && c.isMutablePlace(inner) {
+					c.errAt(inner, cMutPlaceAsyncArg)
+				}
+			} else if !c.argPlace[n] && !c.indexAssignUnsupported(inner) && c.isMutablePlace(inner) {
+				c.errAt(inner, cMutPlaceEscape)
 			}
 		}
 	}

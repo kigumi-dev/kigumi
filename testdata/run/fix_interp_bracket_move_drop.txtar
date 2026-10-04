@@ -1,8 +1,6 @@
 -- src --
-// Ledger L-172 (追記 2026-09-27): a resource read out of an Array by plain
-// bracket indexing (`xs[0]`, or `xs[0].field`) and passed straight into a
-// call double-dropped it under --engine interp; `Array.takeAt`/`move self`
-// were already fixed but bracket indexing was out of that fix's scope.
+// A resource read by value out of an Array (bracket indexing, or a field of the
+// indexed element) is a compile error (E1050); takeAt is the sound replacement.
 type Res = resource {
     pub id Int
 }
@@ -19,24 +17,38 @@ fn consume(x: Res) -> Unit {
     print "consume ${x.id}"
 }
 
-fn byIndex() -> Unit {
+fn peek(x: &Res) -> Unit {
+    print "peek ${x.id}"
+}
+
+fn byTakeAt() -> Unit {
     let mut xs = Array.of(Res { id: 1 })
-    consume(xs[0])
+    consume(xs.takeAt(0).unwrap())
+}
+
+fn byBorrow() -> Unit {
+    let xs = Array.of(Res { id: 2 })
+    peek(&xs[0])
 }
 
 fn byIndexField() -> Unit {
-    let mut ys = Array.of(Holder { r: Res { id: 2 } })
-    consume(ys[0].r)
+    let mut ys = Array.of(Holder { r: Res { id: 3 } })
+    consume(ys.takeAt(0).unwrap().r)
 }
 
-byIndex()
-print "indexed"
+byTakeAt()
+print "takeAt"
+byBorrow()
+print "borrow"
 byIndexField()
-print "indexed field"
+print "index field"
 -- stdout --
 consume 1
 drop 1
-indexed
-consume 2
+takeAt
+peek 2
 drop 2
-indexed field
+borrow
+consume 3
+drop 3
+index field

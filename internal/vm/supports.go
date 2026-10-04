@@ -150,7 +150,8 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 var knownPrimitives = map[string]bool{
 	"array.Array.empty": true, "array.Array.of": true, "array.Array.push": true, "array.Array.growBy": true, "array.Array.len": true,
 	"array.Array.get": true, "array.Array.with": true, "array.Array.withMut": true, "array.Array.takeAt": true, "array.Array.clone": true,
-	"math.sqrt": true, "math.floor": true, "math.ceil": true, "math.round": true, "math.pow": true,
+	"prelude.FixedArray.withMut": true,
+	"math.sqrt":                  true, "math.floor": true, "math.ceil": true, "math.round": true, "math.pow": true,
 	"prelude.String.len": true, "prelude.Bytes.len": true, "prelude.String.toBytes": true, "prelude.String.bytes": true,
 	"prelude.String.fromBytes": true, "prelude.String.tryFromBytes": true, "prelude.String.sliceBytes": true,
 	"prelude.Bytes.fromArray": true, "prelude.Bytes.tryFromArray": true,

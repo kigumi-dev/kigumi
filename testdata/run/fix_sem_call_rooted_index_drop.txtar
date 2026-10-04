@@ -1,0 +1,46 @@
+-- src --
+// A non-Copy element read by value out of an index rooted at a call result (not a
+// local) is rejected (E1050) same as an Ident-rooted one.
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn consume(x: Res) -> Unit {
+    print "consume ${x.id}"
+}
+
+fn peek(x: &Res) -> Unit {
+    print "peek ${x.id}"
+}
+
+fn makeArr() -> Array[Res] {
+    Array.of(Res { id: 1 }, Res { id: 2 })
+}
+
+fn byTakeAt() -> Unit {
+    let mut xs = makeArr()
+    consume(xs.takeAt(0).unwrap())
+}
+
+fn byBorrow() -> Unit {
+    let xs = makeArr()
+    peek(&xs[0])
+}
+
+byTakeAt()
+print "takeAt"
+byBorrow()
+print "borrow"
+-- stdout --
+consume 1
+drop 1
+drop 2
+takeAt
+peek 1
+drop 2
+drop 1
+borrow
