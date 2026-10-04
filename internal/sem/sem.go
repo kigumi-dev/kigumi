@@ -2,7 +2,6 @@ package sem
 
 import (
 	"cmp"
-	"slices"
 
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
@@ -83,9 +82,13 @@ type Result struct {
 	conformMemo             map[conformKey]conformResult
 	identPaths              map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID
 	pendingWitnessCallbacks []pendingWitnessCallback
-	// lifetimeEscapeSeen dedupes an escaping (carrier, arg) pair: a written
-	// annotation and the inferred type it accepts often find the same one.
+	// lifetimeEscapeSeen dedupes an escaping (carrier, arg) pair.
 	lifetimeEscapeSeen map[lifetimeEscapeKey]bool
+	// provides maps a provider type's EntType entity to the context keys its
+	// fields supply, declared by `@provides(...)`.
+	provides map[EntityID][]ProvideBinding
+	// ctxValueRefs are fn-value refs pending a post-fixpoint CtxReal check.
+	ctxValueRefs []ctxValueRef
 }
 
 func check(mod *Module) *Result {
@@ -97,12 +100,15 @@ func check(mod *Module) *Result {
 	r.declareSignatures()
 	r.declareConsts()
 	r.declareStatics()
+	r.declareContextKeys()
+	r.checkContextProviders()
 	r.checkImpls()
 	r.closeFieldParamForwarding()
 	r.checkBodies()
 	r.checkAccelKeys()
 	r.resolvePendingWitnessCallbacks()
 	r.checkEffects()
+	r.checkContextRequirements()
 	r.checkInterruptHandlers()
 	r.checkNomono()
 	r.reportUnused()
@@ -154,6 +160,7 @@ func newResult(mod *Module) *Result {
 		conformMemo:     map[conformKey]conformResult{},
 		dropMemo:        map[TypeID]EffectSummary{},
 		identPaths:      map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID{},
+		provides:        map[EntityID][]ProvideBinding{},
 	}
 	r.Files = []FileInfo{{}}
 	r.Packages = []PackageInfo{{Path: "", Module: ""}}
@@ -162,33 +169,4 @@ func newResult(mod *Module) *Result {
 	r.declareUniverse()
 	r.addPackages(mod)
 	return r
-}
-
-// Packages and files are sorted here so ids and diagnostics are deterministic.
-func (r *Result) addPackages(mod *Module) {
-	pkgs := slices.Clone(mod.Packages)
-	slices.SortStableFunc(pkgs, func(a, b *Package) int {
-		return cmp.Or(cmp.Compare(moduleRank(a.Module), moduleRank(b.Module)),
-			cmp.Compare(a.Module, b.Module), cmp.Compare(a.Path, b.Path))
-	})
-	for _, p := range pkgs {
-		id := PackageID(len(r.Packages))
-		info := PackageInfo{Path: p.Path, Module: p.Module, Std: p.Std}
-		info.Scope = r.newScope(ScopePackage, r.prelude, 0, 0)
-		files := slices.Clone(p.Files)
-		slices.SortStableFunc(files, func(a, b *syntax.Tree) int { return cmp.Compare(a.File.Name, b.File.Name) })
-		for _, t := range files {
-			fid := FileID(len(r.Files))
-			r.Files = append(r.Files, newFileInfo(t, id))
-			r.fileIndex[t] = fid
-			info.Files = append(info.Files, fid)
-			if t == p.Entry {
-				info.Entry = fid
-			}
-		}
-		r.Packages = append(r.Packages, info)
-		if _, dup := r.pathIndex[p.Path]; !dup {
-			r.pathIndex[p.Path] = id
-		}
-	}
 }

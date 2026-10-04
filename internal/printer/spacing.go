@@ -20,7 +20,7 @@ func (p *printer) documented(id syntax.NodeID) bool { return p.t.Slot(id, "doc")
 
 func (p *printer) compact(id syntax.NodeID) bool {
 	switch p.t.Kind(id) {
-	case syntax.ImportDecl, syntax.ConstDecl, syntax.StaticDecl, syntax.LetStmt, syntax.ExprStmt,
+	case syntax.ImportDecl, syntax.ConstDecl, syntax.StaticDecl, syntax.ContextKeyDecl, syntax.LetStmt, syntax.ExprStmt,
 		syntax.AssignStmt, syntax.DeferStmt, syntax.ErrdeferStmt, syntax.InstantiateDecl:
 		return true
 	case syntax.FnDecl, syntax.TypeDecl:

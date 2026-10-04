@@ -1,0 +1,59 @@
+-- src --
+import stdio from std/stdio
+import {stdout} from std/stdio
+
+context token: String
+
+@provides(token)
+type Bundle = {
+    token String
+}
+
+fn Bundle.wrap(t: String) -> Bundle {
+    Bundle { token: t }
+}
+
+interface Greeter {
+    fn greet(self) -> String
+}
+
+type Thing = {
+    mut x Int
+}
+
+fn Thing.needsToken(self) -> String {
+    token
+}
+
+fn Thing.greet(self) -> String {
+    "hi from Thing"
+}
+
+type Quiet = {}
+
+fn Quiet.greet(self) -> String {
+    "hi from Quiet"
+}
+
+fn callGreeter[T: Greeter](v: T) -> String {
+    v.greet()
+}
+
+fn callBoxedGreeter(g: Greeter) -> String {
+    g.greet()
+}
+
+context (stdio.hostStdio(host), Bundle.wrap("sekret")) {
+    _ = stdout.write("${callGreeter(Thing { x: 1 })}\n".toBytes())?
+    _ = stdout.write("${callGreeter(Quiet {})}\n".toBytes())?
+    _ = stdout.write("${callBoxedGreeter(Thing { x: 1 })}\n".toBytes())?
+    _ = stdout.write("${callBoxedGreeter(Quiet {})}\n".toBytes())?
+    let t = Thing { x: 1 }
+    _ = stdout.write("${t.needsToken()}\n".toBytes())?
+}
+-- stdout --
+hi from Thing
+hi from Quiet
+hi from Thing
+hi from Quiet
+sekret

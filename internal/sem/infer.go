@@ -54,7 +54,7 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 	case syntax.CallExpr, syntax.WsCallExpr, syntax.RecordLit, syntax.TupleLit, syntax.Lambda, syntax.BorrowExpr:
 		return c.coerce(n, c.setType(n, c.synthKind(n, want)), want)
 	case syntax.IntLit, syntax.FloatLit, syntax.Paren, syntax.Block, syntax.IfExpr, syntax.IfLetExpr,
-		syntax.MatchExpr, syntax.UnsafeExpr, syntax.AllocatorExpr, syntax.ContractExpr, syntax.AsmExpr:
+		syntax.MatchExpr, syntax.UnsafeExpr, syntax.AllocatorExpr, syntax.ContextExpr, syntax.ContractExpr, syntax.AsmExpr:
 		return c.setType(n, c.synthKind(n, want))
 	case syntax.Ident, syntax.MemberExpr:
 		if c.r.Types.Kind(c.vars.resolve(want)) == KFn {
@@ -153,6 +153,8 @@ func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
 		return t
 	case syntax.AllocatorExpr:
 		return c.synthAllocator(n, want)
+	case syntax.ContextExpr:
+		return c.synthContext(n, want)
 	case syntax.ContractExpr:
 		return c.synthContract(n, want)
 	case syntax.BorrowExpr:
@@ -189,4 +191,7 @@ func (c *checker) edge(e EffectEdge) {
 	e.File = c.f
 	e.Scoped = c.allocDepth > 0
 	*c.edges = append(*c.edges, e)
+	if e.Kind == EdgeCall {
+		c.recordCtxCallEdge(e.Target, e.Node)
+	}
 }

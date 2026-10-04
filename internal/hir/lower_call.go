@@ -99,6 +99,9 @@ func (l *lowerer) callWith(n, callee syntax.NodeID, call sem.CallInfo) *Expr {
 		out.Args = append([]*Expr{l.expr(callee)}, args...)
 		out.EvalOrder = prefixEvalOrder(plan, call.Piped != 0)
 	}
+	for _, b := range l.info.CtxCall[n] {
+		out.CtxArgs = append(out.CtxArgs, l.ctxBindExpr(n, b))
+	}
 	return out
 }
 

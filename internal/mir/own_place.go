@@ -116,6 +116,11 @@ func (p *Program) consumesArg(in *Inst, i int) bool {
 		if info.Abi != "" || info.Naked {
 			return false
 		}
+		// A trailing hidden provider argument forwards a lease; it never
+		// changes hands.
+		if i >= len(in.Args)-ctxArgCount(info) {
+			return false
+		}
 		return i != 0 || info.Recv == sem.RecvNone || info.Recv == sem.RecvMove
 	case OpCallValue:
 		// A witness call names its requirement: a `self` / `mut self`
@@ -129,4 +134,16 @@ func (p *Program) consumesArg(in *Inst, i int) bool {
 		return in.Str == "await"
 	}
 	return false
+}
+
+// ctxArgCount is how many trailing hidden provider arguments a call to info
+// carries, the only ones with an actual parameter slot.
+func ctxArgCount(info *sem.FnInfo) int {
+	n := 0
+	for _, k := range info.CtxRequires {
+		if info.CtxReal[k] {
+			n++
+		}
+	}
+	return n
 }

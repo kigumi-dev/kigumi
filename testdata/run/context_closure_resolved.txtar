@@ -1,0 +1,24 @@
+-- src --
+import stdio from std/stdio
+import {stdout} from std/stdio
+
+fn call[F: Fn[fn() -> Unit!]](f: F) -> Unit! {
+    f()
+}
+
+context (stdio.hostStdio(host)) {
+    _ = call(() => {
+        _ = stdout.write("direct\n".toBytes())?
+        ()
+    })?
+    _ = call(() => {
+        _ = call(() => {
+            _ = stdout.write("nested\n".toBytes())?
+            ()
+        })?
+        ()
+    })?
+}
+-- stdout --
+direct
+nested

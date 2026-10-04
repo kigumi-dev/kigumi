@@ -1600,6 +1600,7 @@ enum std_op {
     OP_UCELL_NEW,
     OP_UCELL_GET,
     OP_UCELL_SET,
+    OP_HOST_STDERR,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -1650,6 +1651,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "dl.Symbol.call")) return OP_DL_SYMBOL_CALL;
     if (!strcmp(k, "os.Host.stdin")) return OP_HOST_STDIN;
     if (!strcmp(k, "os.Host.stdout")) return OP_HOST_STDOUT;
+    if (!strcmp(k, "os.Host.stderr")) return OP_HOST_STDERR;
     if (!strcmp(k, "ffi.Pin.new")) return OP_PIN_NEW;
     if (!strcmp(k, "ffi.Pin.ptr")) return OP_PIN_PTR;
     if (!strcmp(k, "ffi.Pin.with")) return OP_PIN_WITH;
@@ -1910,6 +1912,7 @@ val rt_std_id(int op, int n, val* a) {
         return NULL;
     case OP_HOST_STDIN: return opaque("Stdin", NULL);
     case OP_HOST_STDOUT: return opaque("Stdout", NULL);
+    case OP_HOST_STDERR: return opaque("Stderr", NULL);
     case OP_PIN_NEW: {
         val v = rt_retain(deref(a[0]));
         val h = rt_int((int64_t)(intptr_t)v, 64 | 256);

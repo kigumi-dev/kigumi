@@ -82,6 +82,7 @@ func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 					c.errAt(n, cIfaceBoxWitness, got, want, c.r.Entities[w].Name)
 					return []CoStep{{CoExistential, want}}, true
 				}
+				c.recordCtxValueRef(n, w)
 			}
 			c.edge(EffectEdge{Kind: EdgeAlloc, Type: want, From: got, Node: n})
 			return []CoStep{{CoExistential, want}}, true

@@ -23,6 +23,7 @@ func (c *checker) callIntrinsic(n syntax.NodeID, ent EntityID, args []syntax.Nod
 		}
 		c.check(args[0], TyString)
 		c.edge(EffectEdge{Kind: EdgeIO, Target: ent, Node: n})
+		c.printCtxRequirement(n, name)
 		c.info.Calls[n] = CallInfo{Kind: CallIntrinsic, Callee: ent, Plan: identityPlan(args)}
 		return TyUnit
 	}

@@ -64,6 +64,8 @@ func (c *checker) synthIdent(n syntax.NodeID) TypeID {
 		return TyPoison
 	case EntIntrinsic:
 		return c.intrinsicValue(n, ent)
+	case EntContextKey:
+		return c.contextKeyValue(n, ent)
 	case EntTypeParam:
 		if !c.r.typeParam(ent).IsConst {
 			c.errAt(n, cTypeAsValue, name)
@@ -146,6 +148,7 @@ func (c *checker) fnItemValue(n syntax.NodeID, set OverloadSetID) TypeID {
 	if info.Declared&EffAsync != 0 {
 		sig = c.asyncValueFn(sig)
 	}
+	c.recordCtxValueRef(n, fn)
 	return sig
 }
 

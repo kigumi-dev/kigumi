@@ -40,8 +40,8 @@ func (c *checker) headValue(n syntax.NodeID, h headRef) TypeID {
 		if h.ent != 0 {
 			e := &c.r.Entities[h.ent]
 			c.info.Uses[n] = h.ent
-			if e.Kind == EntConst {
-				return e.Type
+			if e.Kind == EntContextKey {
+				return c.contextKeyValue(n, h.ent)
 			}
 			return e.Type
 		}
@@ -91,6 +91,7 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 	if req, sig, ambiguous := c.ifaceMember(n, recv, name); req != 0 {
 		c.info.Uses[n] = req
 		c.info.Calls[n] = CallInfo{Kind: CallMethodValue, Callee: req, Recv: c.r.Fn(req).Recv}
+		c.recordCtxValueRef(n, req)
 		return sig
 	} else if ambiguous {
 		return TyPoison

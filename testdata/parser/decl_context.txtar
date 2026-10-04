@@ -1,0 +1,53 @@
+-- src --
+pub context stdout: io.Writer
+
+context stdin: io.Reader
+
+fn f() {
+    context (host.stdio()) {
+        context (other.provider()) {
+            print "hi"
+        }
+    }
+}
+-- expect --
+File
+  ContextKeyDecl
+    vis: Visibility
+    name: stdout
+    type: TypePath
+      Path io.Writer
+  ContextKeyDecl
+    name: stdin
+    type: TypePath
+      Path io.Reader
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: f
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      ExprStmt
+        Context
+          List
+            Call
+              Member stdio
+                Ident host
+              List
+          Block
+            ExprStmt
+              Context
+                List
+                  Call
+                    Member provider
+                      Ident other
+                    List
+                Block
+                  ExprStmt
+                    WsCall
+                      Ident print
+                      List
+                        StringLit "hi"

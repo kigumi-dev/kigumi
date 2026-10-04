@@ -29,6 +29,9 @@ func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
 			return Place{}, false
 		}
 		e := &c.r.Entities[ent]
+		if e.Kind == EntContextKey {
+			return c.ctxPlace(n)
+		}
 		if e.Kind != EntLocal && e.Kind != EntParam {
 			return Place{}, false
 		}
@@ -36,6 +39,9 @@ func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
 	case syntax.Paren:
 		return c.buildPlace(syntax.NodeID(node.Lhs))
 	case syntax.MemberExpr:
+		if ent := c.info.Uses[n]; ent != 0 && c.r.Entities[ent].Kind == EntContextKey {
+			return c.ctxPlace(n)
+		}
 		base, ok := c.buildPlace(syntax.NodeID(node.Lhs))
 		if !ok {
 			return Place{}, false

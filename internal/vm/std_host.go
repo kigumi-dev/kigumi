@@ -79,6 +79,14 @@ func (m *Machine) registerHost() {
 		}
 		return m.ok(mkInt(int64(n), m.numKind(sem.TyUsize)))
 	}
+	h["os.Host.stderr"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Stderr", nil) }
+	h["os.Stderr.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		n, err := m.err.Write(deref(a[1]).s)
+		if err != nil {
+			return m.errMsg(err.Error())
+		}
+		return m.ok(mkInt(int64(n), m.numKind(sem.TyUsize)))
+	}
 	h["os.Stdin.read"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		max := deref(a[2]).i
 		if max < 0 {

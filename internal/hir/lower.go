@@ -46,6 +46,11 @@ func Lower(r *sem.Result, ent sem.EntityID) *Func {
 		for _, local := range info.ConstParams {
 			out.Const = append(out.Const, l.decl(local))
 		}
+		for _, key := range info.CtxRequires {
+			if info.CtxReal[key] {
+				out.CtxParams = append(out.CtxParams, l.decl(info.CtxParam[key]))
+			}
+		}
 		out.Ret = r.Types.Node(info.Sig).Elem
 		out.Body = l.expr(info.Body)
 	case sem.EntImplicitMain:

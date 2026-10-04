@@ -22,6 +22,9 @@ func hoverText(res *sem.Result, ent sem.EntityID, at sem.TypeID) string {
 	if doc != "" {
 		out += "\n\n" + doc
 	}
+	if req := ctxRequiresText(res, ent); req != "" {
+		out += "\n\n" + req
+	}
 	return out
 }
 
@@ -30,6 +33,24 @@ func hoverText(res *sem.Result, ent sem.EntityID, at sem.TypeID) string {
 func definedValueHover(res *sem.Result, ent sem.EntityID, at sem.TypeID) string {
 	name := res.Entity(ent).Name
 	return "```kigumi\n" + name + ".value: " + res.TypeString(at) + "\n```\n\npackage-private representation of `" + name + "`"
+}
+
+// ctxRequiresText lists a function's inferred context requirement, as
+// canonical `package.name` per key.
+func ctxRequiresText(res *sem.Result, ent sem.EntityID) string {
+	if res.Entity(ent).Kind != sem.EntFn {
+		return ""
+	}
+	keys := res.Fn(ent).CtxRequires
+	if len(keys) == 0 {
+		return ""
+	}
+	names := make([]string, len(keys))
+	for i, k := range keys {
+		ke := res.Entity(k)
+		names[i] = res.Packages[ke.Pkg].Path + "." + ke.Name
+	}
+	return "requires: " + strings.Join(names, ", ")
 }
 
 // describe renders an entity as `kind name: type`.

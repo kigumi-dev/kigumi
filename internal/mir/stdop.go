@@ -28,6 +28,7 @@ var StdOpNames = []string{
 	"ROTATE_LEFT", "ROTATE_RIGHT", "CHAR_FROM_INT",
 	"FFI_STRING_LOSSY", "FIXED_ARRAY_WITH_MUT",
 	"UCELL_NEW", "UCELL_GET", "UCELL_SET",
+	"HOST_STDERR",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -37,7 +38,7 @@ var providerOps = map[string]bool{
 	"HOST_DL": true, "HOST_ENTROPY": true, "HOST_SIGNALS": true, "ARGS_GET": true,
 	"CSTRING_NEW": true, "CSTRING_PTR": true, "CSTRING_DROP": true,
 	"FFI_BYTES_FROM": true, "FFI_BYTES_PTR": true,
-	"DL_SYMBOL_CALL": true, "HOST_STDIN": true, "HOST_STDOUT": true,
+	"DL_SYMBOL_CALL": true, "HOST_STDIN": true, "HOST_STDOUT": true, "HOST_STDERR": true,
 	"PIN_NEW": true, "PIN_PTR": true, "PIN_WITH": true, "PIN_DROP": true,
 	"PIN_RELEASE": true, "PIN_RECLAIM": true,
 	"FFI_STRING": true, "FFI_STRING_CHECKED": true, "FFI_STRING_LOSSY": true,
@@ -93,6 +94,7 @@ var stdOpKeys = map[string]string{
 	"dl.Symbol.call":                  "DL_SYMBOL_CALL",
 	"os.Host.stdin":                   "HOST_STDIN",
 	"os.Host.stdout":                  "HOST_STDOUT",
+	"os.Host.stderr":                  "HOST_STDERR",
 	"ffi.Pin.new":                     "PIN_NEW",
 	"ffi.Pin.ptr":                     "PIN_PTR",
 	"ffi.Pin.with":                    "PIN_WITH",

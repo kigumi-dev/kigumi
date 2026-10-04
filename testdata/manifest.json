@@ -1106,6 +1106,17 @@
       ]
     },
     {
+      "id": "parser/decl_context",
+      "kind": "parser",
+      "path": "testdata/parser/decl_context.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "parser/decl_fn",
       "kind": "parser",
       "path": "testdata/parser/decl_fn.txtar",
@@ -1969,6 +1980,108 @@
       "id": "run/const_generic_method",
       "kind": "run",
       "path": "testdata/run/const_generic_method.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_closure_calls_bound",
+      "kind": "run",
+      "path": "testdata/run/context_closure_calls_bound.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_closure_resolved",
+      "kind": "run",
+      "path": "testdata/run/context_closure_resolved.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_forward_param",
+      "kind": "run",
+      "path": "testdata/run/context_forward_param.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_iface_witness_no_requirement",
+      "kind": "run",
+      "path": "testdata/run/context_iface_witness_no_requirement.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_provider",
+      "kind": "run",
+      "path": "testdata/run/context_provider.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_value_closure_workaround",
+      "kind": "run",
+      "path": "testdata/run/context_value_closure_workaround.txtar",
       "mode": [
         "vm",
         "native"
@@ -6121,6 +6234,17 @@
       "id": "sem/const_generic_err",
       "kind": "sem",
       "path": "testdata/sem/const_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_keys",
+      "kind": "sem",
+      "path": "testdata/sem/context_keys.txtar",
       "mode": [
         "check"
       ],

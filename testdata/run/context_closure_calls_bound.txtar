@@ -1,0 +1,28 @@
+-- src --
+import stdio from std/stdio
+import {stdout} from std/stdio
+
+fn inner() -> Unit! {
+    _ = stdout.write("inner\n".toBytes())?
+}
+
+fn call[F: Fn[fn() -> Unit!]](f: F) -> Unit! {
+    f()
+}
+
+context (stdio.hostStdio(host)) {
+    _ = call(() => {
+        _ = inner()?
+        ()
+    })?
+    _ = call(() => {
+        _ = call(() => {
+            _ = inner()?
+            ()
+        })?
+        ()
+    })?
+}
+-- stdout --
+inner
+inner

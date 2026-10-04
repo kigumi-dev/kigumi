@@ -29,6 +29,13 @@ func (p *printer) staticDecl(id syntax.NodeID) {
 	}
 }
 
+func (p *printer) contextKeyDecl(id syntax.NodeID) {
+	p.prefix(id)
+	s := p.t.Slots(id)
+	p.write("context " + p.tok(s[3]) + ": ")
+	p.typ(syntax.NodeID(s[4]))
+}
+
 func (p *printer) importDecl(id syntax.NodeID) {
 	s := p.t.Slots(id)
 	if s[0] != 0 {

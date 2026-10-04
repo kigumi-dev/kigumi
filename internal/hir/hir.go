@@ -100,6 +100,9 @@ type Expr struct {
 	// ConstArgs are the hidden const-parameter arguments a call to a
 	// function with const parameters hands over after Passes.
 	ConstArgs []sem.ConstArg
+	// CtxArgs are the hidden provider arguments a call hands over after
+	// ConstArgs, one per callee CtxRequires slot that needs a real value.
+	CtxArgs []*Expr
 	// BoxType is the concrete error type a `?` boxes, 0 for none.
 	BoxType sem.TypeID
 	Pat     *Pat

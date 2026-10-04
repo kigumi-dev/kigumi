@@ -46,3 +46,11 @@ pub type Stdout
 
 /// Standard output.
 pub fn Host.stdout(self) -> Stdout
+
+/// Standard error of the process, obtained from `host.stderr()`.
+/// Safety: holds no state of its own; it may be handed off to one other thread at a time (writes through a shared reference are not coordinated, so Sync is not claimed).
+@unsafeGuarantee(Send)
+pub type Stderr
+
+/// Standard error.
+pub fn Host.stderr(self) -> Stderr

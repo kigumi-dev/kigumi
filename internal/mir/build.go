@@ -88,6 +88,15 @@ func (p *Program) build(hf *hir.Func) *Func {
 			f.Params = append(f.Params, b.param(d))
 		}
 	}
+	// A context key's hidden parameter is a lease, not an owned value: like
+	// a borrowed `self` above, it is dropped out of the owning scope.
+	ownedBefore := len(b.scopes[0].owned)
+	for _, d := range hf.CtxParams {
+		id := b.param(d)
+		f.Params = append(f.Params, id)
+		f.Locals[id].Borrowed = true
+	}
+	b.scopes[0].owned = b.scopes[0].owned[:ownedBefore]
 	if hf.Kind == hir.FuncMain {
 		for _, s := range hf.Main.Stmts {
 			b.stmt(s)
@@ -170,27 +179,4 @@ func (b *builder) assign(dst, src LocalID) {
 // returnValue ends the function with v; the caller has unwound scopes.
 func (b *builder) returnValue(v LocalID) {
 	b.term(Term{Op: TermReturn, Args: []LocalID{v}})
-}
-
-func (b *builder) variantNamed(adt sem.EntityID, name string) sem.EntityID {
-	for _, v := range b.r.TypeDecl(adt).Variants {
-		if b.r.Entity(v).Name == name {
-			return v
-		}
-	}
-	return 0
-}
-
-// closureOrdinal numbers a closure among its parent's closures in
-// declaration order, so names stay stable across unrelated edits and std
-// load order (a global entity id would not).
-func (p *Program) closureOrdinal(ent sem.EntityID) int {
-	parent := p.R.Entity(ent).Parent
-	n := 0
-	for id := sem.EntityID(1); id <= ent; id++ {
-		if e := p.R.Entity(id); e.Kind == sem.EntClosure && e.Parent == parent {
-			n++
-		}
-	}
-	return n
 }

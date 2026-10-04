@@ -63,6 +63,9 @@ func (r *Result) collectFile(f FileID) {
 			}
 		case syntax.StaticDecl:
 			r.collectStatic(f, d, StaticOwned, "")
+		case syntax.ContextKeyDecl:
+			s := contextKeyDecl(t, d)
+			r.declareTop(f, d, s.Name, EntContextKey, r.resolveVis(f, s.Vis, r.packageOf(f)))
 		case syntax.TestDecl:
 			id := r.newEntity(Entity{Kind: EntTest, Name: t.TokText(t.Nodes[d].Lhs), Pkg: r.packageOf(f), File: f, Node: d, Tok: t.Nodes[d].Tok})
 			r.Entities[id].Detail = r.addFn(FnInfo{Body: syntax.NodeID(t.Nodes[d].Rhs)})

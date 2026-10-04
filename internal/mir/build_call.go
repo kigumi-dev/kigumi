@@ -18,21 +18,25 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		recv, rest := b.methodArgs(e)
 		args := append([]LocalID{recv}, rest...)
 		if e.Async {
+			args = append(args, b.ctxArgs(e)...)
 			fnv := b.emit(Inst{Op: OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Node: n})
 			return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: "future", Args: append([]LocalID{fnv}, args...), Node: n})
 		}
 		if e.Witness != 0 {
+			args = append(args, b.ctxArgs(e)...)
 			dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
 			b.applyArgFixups()
 			return dst
 		}
 		args = append(args, b.witnessArgs(e.Passes, n)...)
 		args = append(args, b.constArgs(e.ConstArgs, n)...)
+		args = append(args, b.ctxArgs(e)...)
 		dst := b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
 		b.applyArgFixups()
 		return dst
 	case hir.StaticCall:
 		args := b.args(e, e.Args, e.EvalOrder, true, true, e.Ent)
+		args = append(args, b.ctxArgs(e)...)
 		dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
 		b.applyArgFixups()
 		return dst
@@ -40,11 +44,13 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		// An async call's future can outlive the call, so its args are moved, never reborrowed or fixed up.
 		args := b.args(e, e.Args, e.EvalOrder, !e.Async, !e.Async, e.Ent)
 		if e.Async {
+			args = append(args, b.ctxArgs(e)...)
 			fnv := b.emit(Inst{Op: OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Node: n})
 			return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: "future", Args: append([]LocalID{fnv}, args...), Node: n})
 		}
 		args = append(args, b.witnessArgs(e.Passes, n)...)
 		args = append(args, b.constArgs(e.ConstArgs, n)...)
+		args = append(args, b.ctxArgs(e)...)
 		dst := b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
 		b.applyArgFixups()
 		return dst
@@ -59,6 +65,16 @@ func (b *builder) call(e *hir.Expr) LocalID {
 	dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Args: args, Node: n})
 	b.applyArgFixups()
 	return dst
+}
+
+// ctxArgs evaluates a call's hidden provider arguments: plain reads, so
+// unlike witnessArgs/constArgs they need no closure construction.
+func (b *builder) ctxArgs(e *hir.Expr) []LocalID {
+	var out []LocalID
+	for _, a := range e.CtxArgs {
+		out = append(out, b.expr(a))
+	}
+	return out
 }
 
 // evalOrder calls eval(i) for i in 0..n in the order sequence gives (nil: ascending), results indexed by i.

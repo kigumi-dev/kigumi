@@ -119,6 +119,7 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 		sig = c.asyncValueFn(sig)
 	}
 	c.edge(EffectEdge{Kind: EdgeCall, Target: m, Node: n})
+	c.recordCtxValueRef(n, m)
 	return sig
 }
 
@@ -174,5 +175,6 @@ func (c *checker) overloadValue(n syntax.NodeID, want TypeID) (TypeID, bool) {
 	}
 	c.r.useEntity(c.f, n, match[0])
 	c.info.Uses[n] = match[0]
+	c.recordCtxValueRef(n, match[0])
 	return c.r.Fn(match[0]).Sig, true
 }

@@ -167,6 +167,8 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 		out := l.node(n, Allocator)
 		out.Args, out.Block = []*Expr{l.expr(lhs)}, l.block(syntax.NodeID(node.Rhs))
 		return out
+	case syntax.ContextExpr:
+		return l.contextExpr(n, node)
 	case syntax.BorrowExpr:
 		out := l.node(n, Borrow)
 		out.Args, out.Mut = []*Expr{l.expr(syntax.NodeID(node.Rhs))}, node.Lhs&syntax.FlagMut != 0

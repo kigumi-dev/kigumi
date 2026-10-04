@@ -47,6 +47,7 @@ const (
 	ComptimeExpr
 	UnsafeExpr
 	AllocatorExpr
+	ContextExpr
 	ContractExpr
 	BorrowExpr
 	MoveExpr
@@ -130,6 +131,7 @@ var exprKindNames = [...]string{
 	MatchExpr: "Match", MatchArm: "Arm", ForExpr: "For", ReturnExpr: "Return",
 	FailExpr: "Fail", BreakExpr: "Break", ContinueExpr: "Continue", AwaitExpr: "Await",
 	ComptimeExpr: "Comptime", UnsafeExpr: "Unsafe", AllocatorExpr: "Allocator",
+	ContextExpr:  "Context",
 	ContractExpr: "ContractExpr", BorrowExpr: "Borrow", MoveExpr: "Move",
 	AsmExpr: "Asm", AsmTemplate: "AsmTemplate", AsmOperand: "AsmOperand",
 	AsmClobber: "AsmClobber", AsmOptions: "AsmOptions", AsmAbi: "AsmAbi",

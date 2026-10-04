@@ -32,5 +32,5 @@ func Keywords() []string {
 // recognizes them by position. They are listed here so tooling can highlight them.
 var Contextual = []string{
 	"allocator", "resource", "from", "export", "instantiate", "asm",
-	"layout", "test", "module", "super", "self", "static",
+	"layout", "test", "module", "super", "self", "static", "context",
 }

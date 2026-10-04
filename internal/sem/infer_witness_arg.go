@@ -34,6 +34,7 @@ func (c *checker) witnessArg(n syntax.NodeID, t, iface TypeID, req EntityID) Wit
 		}
 		return WitnessArg{}
 	}
+	c.recordCtxValueRef(n, m)
 	out := WitnessArg{Kind: WitnessFn, Ent: m}
 	slots := c.r.Fn(m).Witnesses
 	constParams := c.r.constParamsOf(m)

@@ -80,6 +80,22 @@ type FnInfo struct {
 	LinkName string
 	// Section is `@section`'s object-file section for an owned fn's body.
 	Section string
+	// CtxDirect is the set of keys this function's body reads directly
+	// unbound; CtxDirectRefs is each occurrence's use-site node.
+	CtxDirect     []EntityID
+	CtxDirectRefs []ctxNodeRef
+	// CtxDirectReal marks a CtxDirect key with a real value use, as opposed
+	// to only print's phantom dependency.
+	CtxDirectReal map[EntityID]bool
+	// CtxReal is CtxDirectReal transitively closed over the call graph.
+	CtxReal map[EntityID]bool
+	// ctxCalls are this function's deferred call-site context requirements.
+	ctxCalls []ctxCallEdge
+	// CtxRequires is the final, sorted set of context keys this function
+	// requires from its caller, after the call-graph fixpoint.
+	CtxRequires []EntityID
+	// CtxParam maps a required key to the hidden parameter entity reading it.
+	CtxParam map[EntityID]EntityID
 }
 
 type InterfaceInfo struct {
@@ -120,28 +136,6 @@ const (
 )
 
 type ConstInfo struct {
-	Value    constValue
-	State    uint8
-	Metadata []MetaRef
-}
-
-// StaticOwner says who owns a static's storage: Kigumi itself, or a
-// foreign definition imported/exported across the C ABI.
-type StaticOwner uint8
-
-const (
-	StaticOwned StaticOwner = iota
-	StaticExtern
-	StaticExport
-)
-
-// StaticInfo is a top-level `static`/`static mut` declaration.
-type StaticInfo struct {
-	Mut      bool
-	Owner    StaticOwner
-	Abi      string
-	LinkName string
-	Section  string
 	Value    constValue
 	State    uint8
 	Metadata []MetaRef

@@ -1,0 +1,46 @@
+-- src --
+import io from std/io
+import stdio from std/stdio
+import task from std/task
+import {stdout} from std/stdio
+import {stdout as out2} from std/stdio
+
+pub type PrefixedWriter = {
+    pub mut tag String
+}
+
+pub fn PrefixedWriter.write(mut self, data: Bytes) -> usize! {
+    let mut out = host.stdout()
+    _ = out.write(self.tag.toBytes())?
+    out.write(data)
+}
+
+@provides(stdout)
+pub type Prefixed = {
+    pub mut stdout io.Writer
+}
+
+async fn writeLineAsync(text: String) -> Unit! {
+    _ = stdout.write("${text}\n".toBytes())?
+}
+
+print "start"
+
+context (stdio.hostStdio(host)) {
+    _ = stdout.write("outer-1\n".toBytes())?
+    _ = out2.write("outer-alias\n".toBytes())?
+    let future = writeLineAsync("outer-future")
+    context (Prefixed { stdout: PrefixedWriter { tag: "[inner] " } }) {
+        _ = stdout.write("inner-1\n".toBytes())?
+        let ex = task.local()
+        _ = ex.run(future)?
+    }
+    _ = stdout.write("outer-2\n".toBytes())?
+}
+-- stdout --
+start
+outer-1
+outer-alias
+[inner] inner-1
+outer-future
+outer-2

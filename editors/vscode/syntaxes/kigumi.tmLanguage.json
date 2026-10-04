@@ -161,7 +161,7 @@
                 },
                 {
                     "name": "storage.modifier.kigumi",
-                    "match": "\\b(pub|pure|noalloc|unsafe|async|move|comptime|allocator|asm)\\b"
+                    "match": "\\b(pub|pure|noalloc|unsafe|async|move|comptime|allocator|context|asm)\\b"
                 },
                 {
                     "name": "keyword.operator.expression.kigumi",

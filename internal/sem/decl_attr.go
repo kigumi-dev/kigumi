@@ -83,6 +83,10 @@ func (r *Result) implAttrs(id EntityID, list syntax.NodeID) {
 		if name == "linkName" || name == "section" {
 			continue
 		}
+		if name == "provides" {
+			// checkContextProviders resolves this once context keys have types.
+			continue
+		}
 		if name != "impl" {
 			// Dotted metadata is collected by metaAttrs.
 			if len(t.PathToks(syntax.NodeID(t.Nodes[a].Lhs))) == 1 {

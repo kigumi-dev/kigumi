@@ -155,6 +155,8 @@ func (p *parser) decl() NodeID {
 		return p.interfaceDecl(pf)
 	case p.at(token.KwConst):
 		return p.constDecl(pf)
+	case p.atIdent("context") && p.peek(1) == token.Ident && p.peek(2) == token.Colon:
+		return p.contextKeyDecl(pf)
 	case p.at(token.KwImport):
 		return p.importDecl(pf)
 	case p.atIdent("test") && p.peek(1) == token.String:
@@ -178,23 +180,4 @@ func (p *parser) rejectDeclPrefix(pf prefix, what string) {
 	if pf.vis != 0 || pf.mods != 0 || len(pf.attrs) > 0 {
 		p.errorAt(p.spanFrom(pf.start), "modifiers are not allowed on %s", what)
 	}
-}
-
-func (p *parser) constDecl(pf prefix) NodeID {
-	tok := p.expect(token.KwConst)
-	name := p.expect(token.Ident)
-	var typ NodeID
-	if p.eat(token.Colon) {
-		typ = p.typ()
-	}
-	p.expect(token.Assign)
-	value := p.expr()
-	return p.tree.addRec(ConstDecl, tok, []uint32{pf.doc, uint32(p.attrList(pf)), uint32(pf.vis), name, uint32(typ), uint32(value)})
-}
-
-func (p *parser) attrList(pf prefix) NodeID {
-	if len(pf.attrs) == 0 {
-		return 0
-	}
-	return p.tree.addList(List, p.tree.Nodes[pf.attrs[0]].Tok, pf.attrs)
 }

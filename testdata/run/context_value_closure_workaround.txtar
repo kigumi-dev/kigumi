@@ -1,0 +1,41 @@
+-- src --
+import stdio from std/stdio
+import {stdout} from std/stdio
+
+context token: String
+
+@provides(token)
+type Bundle = {
+    token String
+}
+
+fn Bundle.wrap(t: String) -> Bundle {
+    Bundle { token: t }
+}
+
+type Thing = {
+    mut x Int
+}
+
+fn Thing.needsToken(self) -> String {
+    token
+}
+
+fn Thing.make() -> String {
+    token
+}
+
+fn call(f: fn() -> String) -> String {
+    f()
+}
+
+context (stdio.hostStdio(host), Bundle.wrap("sekret")) {
+    let t = Thing { x: 1 }
+    let methodValue = () => t.needsToken()
+    let staticValue = () => Thing.make()
+    _ = stdout.write("${call(methodValue)}\n".toBytes())?
+    _ = stdout.write("${call(staticValue)}\n".toBytes())?
+}
+-- stdout --
+sekret
+sekret

@@ -24,6 +24,10 @@ func (r *Result) metaAttrs(f FileID, list syntax.NodeID, onType bool) []MetaRef 
 			}
 		case name == "linkName" || name == "section":
 			// Target and argument validation is resolveLinkSection's job.
+		case name == "provides":
+			if !onType {
+				r.errAt(f, a, cAttrWrongTarget)
+			}
 		default:
 			r.errAt(f, a, cAttrUnknown, name)
 		}
@@ -44,7 +48,7 @@ func (r *Result) rejectAttrs(f FileID, list syntax.NodeID) {
 			continue
 		}
 		name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), ".")
-		if name == "impl" {
+		if name == "impl" || name == "provides" {
 			r.errAt(f, a, cAttrWrongTarget)
 		} else {
 			r.errAt(f, a, cAttrUnknown, name)

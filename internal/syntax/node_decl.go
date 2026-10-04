@@ -21,6 +21,7 @@ const (
 	InterfaceDecl
 	ConstDecl
 	StaticDecl
+	ContextKeyDecl
 	ImportDecl
 	ImportAlias
 	TestDecl
@@ -65,7 +66,7 @@ const (
 var declKindNames = [...]string{
 	"File", "FnDecl", "Param", "GenericParam", "TypeDecl", "RecordBody",
 	"ResourceBody", "AdtBody", "AliasBody", "DefinedBody", "Field", "Variant", "VariantField",
-	"Metadata", "MetaItem", "InterfaceDecl", "ConstDecl", "StaticDecl", "ImportDecl", "ImportAlias", "TestDecl",
+	"Metadata", "MetaItem", "InterfaceDecl", "ConstDecl", "StaticDecl", "ContextKeyDecl", "ImportDecl", "ImportAlias", "TestDecl",
 	"AbiBlock", "ContractBlock", "Instantiate", "Layout", "Attr",
 	"UnsafeGuarantee", "UGRule", "UGRequirement", "Visibility",
 	"Let", "ExprStmt", "Assign", "Defer", "Errdefer",
@@ -91,22 +92,23 @@ const (
 // Slot names for sRec kinds. A leading '#' marks a flag/int slot and '@' a
 // token index; other slots are child nodes.
 var recFields = map[NodeKind][]string{
-	FnDecl:        {"@doc", "attrs", "#mods", "vis", "recv", "@name", "generics", "params", "ret", "body"},
-	Param:         {"attrs", "#flags", "type"},
-	TypeDecl:      {"@doc", "attrs", "vis", "@name", "generics", "layout", "body"},
-	Field:         {"vis", "#flags", "type", "metadata"},
-	InterfaceDecl: {"@doc", "attrs", "vis", "@name", "generics", "members"},
-	ConstDecl:     {"@doc", "attrs", "vis", "@name", "type", "value"},
-	StaticDecl:    {"@doc", "attrs", "#flags", "vis", "@name", "type", "value"},
-	ImportDecl:    {"vis", "binding", "path"},
-	LetStmt:       {"#flags", "pattern", "type", "init", "else"},
-	IfExpr:        {"cond", "then", "else"},
-	IfLetExpr:     {"#flags", "pattern", "init", "guard", "then", "else"},
-	MatchArm:      {"pattern", "guard", "body"},
-	ForExpr:       {"pattern", "head", "body"},
-	TypeFn:        {"#mods", "@abi", "params", "#flags", "ret"},
-	AsmOperand:    {"@label", "@kind", "@reg", "expr"},
-	ShellRedirect: {"#op", "#fd", "target"},
+	FnDecl:         {"@doc", "attrs", "#mods", "vis", "recv", "@name", "generics", "params", "ret", "body"},
+	Param:          {"attrs", "#flags", "type"},
+	TypeDecl:       {"@doc", "attrs", "vis", "@name", "generics", "layout", "body"},
+	Field:          {"vis", "#flags", "type", "metadata"},
+	InterfaceDecl:  {"@doc", "attrs", "vis", "@name", "generics", "members"},
+	ConstDecl:      {"@doc", "attrs", "vis", "@name", "type", "value"},
+	StaticDecl:     {"@doc", "attrs", "#flags", "vis", "@name", "type", "value"},
+	ContextKeyDecl: {"@doc", "attrs", "vis", "@name", "type"},
+	ImportDecl:     {"vis", "binding", "path"},
+	LetStmt:        {"#flags", "pattern", "type", "init", "else"},
+	IfExpr:         {"cond", "then", "else"},
+	IfLetExpr:      {"#flags", "pattern", "init", "guard", "then", "else"},
+	MatchArm:       {"pattern", "guard", "body"},
+	ForExpr:        {"pattern", "head", "body"},
+	TypeFn:         {"#mods", "@abi", "params", "#flags", "ret"},
+	AsmOperand:     {"@label", "@kind", "@reg", "expr"},
+	ShellRedirect:  {"#op", "#fd", "target"},
 }
 
 var shapes = map[NodeKind]shape{
@@ -117,7 +119,7 @@ var shapes = map[NodeKind]shape{
 	Spread: sL, NamedArg: sL, TupleLit: sList, UnitLit: sLeaf, Lambda: sLR, Block: sList, IfExpr: sRec, IfLetExpr: sRec, MatchExpr: sLR,
 	MatchArm: sRec, ForExpr: sRec, ReturnExpr: sL, FailExpr: sL, BreakExpr: sL,
 	ContinueExpr: sL, AwaitExpr: sL, ComptimeExpr: sL, UnsafeExpr: sL,
-	AllocatorExpr: sLR, ContractExpr: sFlagR, BorrowExpr: sFlagR, MoveExpr: sL,
+	AllocatorExpr: sLR, ContextExpr: sLR, ContractExpr: sFlagR, BorrowExpr: sFlagR, MoveExpr: sL,
 	AsmExpr: sL, AsmTemplate: sL, AsmOperand: sRec, AsmClobber: sL, AsmOptions: sL, AsmAbi: sLeaf,
 	PatWildcard: sLeaf, PatBind: sFlagR, PatLit: sL, PatCtor: sLR,
 	PatRecord: sLR, PatField: sL, PatOr: sList, PatTuple: sList, PatRange: sLR,
@@ -126,7 +128,7 @@ var shapes = map[NodeKind]shape{
 	File: sList, FnDecl: sRec, Param: sRec, GenericParam: sFlagR, TypeDecl: sRec,
 	RecordBody: sList, ResourceBody: sList, AdtBody: sList, AliasBody: sL, DefinedBody: sL, Field: sRec,
 	Variant: sL, VariantField: sFlagR, Metadata: sList, MetaItem: sLR, InterfaceDecl: sRec,
-	ConstDecl: sRec, StaticDecl: sRec, ImportDecl: sRec, ImportAlias: sLR, TestDecl: sTokR, AbiBlock: sLR, ContractBlock: sFlagR,
+	ConstDecl: sRec, StaticDecl: sRec, ContextKeyDecl: sRec, ImportDecl: sRec, ImportAlias: sLR, TestDecl: sTokR, AbiBlock: sLR, ContractBlock: sFlagR,
 	InstantiateDecl: sTokR, LayoutClause: sL, Attr: sLR, Visibility: sTokR,
 	UnsafeGuarantee: sList, UGRule: sL, UGRequirement: sL,
 	LetStmt: sRec, ExprStmt: sL, AssignStmt: sLR, DeferStmt: sL, ErrdeferStmt: sL,

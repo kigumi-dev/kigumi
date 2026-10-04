@@ -149,9 +149,12 @@ type Func struct {
 	Witness    []*LocalDecl
 	// Const are the hidden const-parameter locals, bound
 	// after Witness the same way a call's ConstArgs follow its Passes.
-	Const    []*LocalDecl
-	Captures []*LocalDecl
-	Ret      sem.TypeID
-	Body     *Expr
-	Main     *Block
+	Const []*LocalDecl
+	// CtxParams are the hidden provider-parameter locals, bound after Const
+	// the same way a call's CtxArgs follow its ConstArgs.
+	CtxParams []*LocalDecl
+	Captures  []*LocalDecl
+	Ret       sem.TypeID
+	Body      *Expr
+	Main      *Block
 }

@@ -68,10 +68,29 @@ func (l *lowerer) ident(n syntax.NodeID) *Expr {
 		return out
 	case sem.EntIntrinsic:
 		return l.node(n, Host)
+	case sem.EntContextKey:
+		return l.ctxUse(n)
 	}
 	out := l.node(n, Panic)
 	out.Name = "not a value"
 	return out
+}
+
+// ctxUse reads a resolved context-key reference: a bound provider field, or
+// the current function's own hidden parameter.
+func (l *lowerer) ctxUse(n syntax.NodeID) *Expr {
+	return l.ctxBindExpr(n, l.info.CtxUse[n])
+}
+
+// ctxBindExpr lowers one resolved hidden-argument binding (a direct use, or
+// one slot of a call's CtxArgs) to the expression that reads it.
+func (l *lowerer) ctxBindExpr(n syntax.NodeID, b sem.CtxBind) *Expr {
+	if b.Local != 0 {
+		fld := l.r.Field(b.Field)
+		base := &Expr{Kind: Local, Type: l.r.Entity(b.Local).Type, Loc: l.loc(n), Node: n, Ent: b.Local}
+		return &Expr{Kind: Field, Type: fld.Type, Loc: l.loc(n), Node: n, Args: []*Expr{base}, Index: fld.Index}
+	}
+	return &Expr{Kind: Local, Type: l.r.Entity(b.Param).Type, Loc: l.loc(n), Node: n, Ent: b.Param}
 }
 
 func (l *lowerer) member(n syntax.NodeID) *Expr {
@@ -107,6 +126,8 @@ func (l *lowerer) member(n syntax.NodeID) *Expr {
 		out := l.node(n, Variant)
 		out.Ent = ent
 		return out
+	case sem.EntContextKey:
+		return l.ctxUse(n)
 	}
 	out := l.node(n, Panic)
 	out.Name = "not a value"

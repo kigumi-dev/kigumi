@@ -35,6 +35,7 @@ const (
 	EntLocal
 	EntParam
 	EntClosure
+	EntContextKey
 	EntContract
 	EntIntrinsic
 	EntTest
@@ -45,7 +46,7 @@ const (
 var entityKindNames = [...]string{
 	"none", "package", "import", "type", "alias", "interface", "constraint",
 	"type parameter", "function", "const", "variant", "field", "local", "parameter",
-	"closure", "contract block", "intrinsic", "test", "implicit main", "static",
+	"closure", "context key", "contract block", "intrinsic", "test", "implicit main", "static",
 }
 
 func (k EntityKind) String() string { return entityKindNames[k] }

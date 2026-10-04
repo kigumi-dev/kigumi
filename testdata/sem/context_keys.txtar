@@ -1,0 +1,280 @@
+-- lib/lib.kg --
+pub context token: String
+
+@provides(token)
+pub type Bundle = {
+    pub token String
+}
+
+pub fn Bundle.wrap(t: String) -> Bundle {
+    Bundle { token: t }
+}
+
+pub fn needsToken() -> String {
+    token
+}
+
+pub async fn needsTokenAsync() -> String {
+    token
+}
+
+pub type Thing = {
+    pub mut x Int
+}
+
+pub fn Thing.needsToken(self) -> String {
+    token
+}
+
+pub fn Thing.make() -> String {
+    token
+}
+
+pub fn Thing.make(n: Int) -> String {
+    "n"
+}
+
+pub interface Factory {
+    fn make() -> String
+}
+
+pub interface Greeter {
+    fn greet(self) -> String
+}
+
+pub fn Thing.greet(self) -> String {
+    token
+}
+
+pub type Quiet = {}
+
+pub fn Quiet.greet(self) -> String {
+    "hi"
+}
+
+context secret: String
+
+pub fn leaksPrivateKey() -> String { //~ ERROR public function `leaksPrivateKey` requires private context key `secret`, which callers outside its visibility cannot supply
+    secret
+}
+-- src --
+import lib from lib
+import {token as myToken} from lib
+
+fn ok() -> String {
+    context (lib.Bundle.wrap("a")) {
+        lib.needsToken()
+    }
+}
+
+fn okAlias() -> String {
+    context (lib.Bundle.wrap("a")) {
+        myToken
+    }
+}
+
+fn nestedOverride() -> Unit {
+    context (lib.Bundle.wrap("outer")) {
+        let a = lib.needsToken()
+        context (lib.Bundle.wrap("inner")) {
+            let b = lib.needsToken()
+        }
+    }
+}
+
+async fn futureKeepsCallSiteBinding() -> Unit {
+    context (lib.Bundle.wrap("outer")) {
+        let future = lib.needsTokenAsync()
+        context (lib.Bundle.wrap("inner")) {
+            let v = await future
+        }
+    }
+}
+
+fn fnValueReal() -> String {
+    context (lib.Bundle.wrap("a")) {
+        let g: fn() -> String = lib.needsToken //~ ERROR `needsToken` requires context key `token` and can't be used as a plain function value
+        g()
+    }
+}
+
+fn methodValueReal() -> String {
+    context (lib.Bundle.wrap("a")) {
+        let t = lib.Thing { x: 1 }
+        let g: fn() -> String = t.needsToken //~ ERROR `needsToken` requires context key `token` and can't be used as a plain function value
+        g()
+    }
+}
+
+fn staticValueReal() -> String {
+    context (lib.Bundle.wrap("a")) {
+        let g: fn() -> String = lib.Thing.make //~ ERROR `make` requires context key `token` and can't be used as a plain function value
+        g()
+    }
+}
+
+fn witnessValue[T: lib.Factory]() -> fn() -> String {
+    T.make //~ ERROR `T` is a type, not a value
+}
+
+fn callGreeter[T: lib.Greeter](v: T) -> String {
+    v.greet()
+}
+
+fn ifaceGenericCallReal() -> String {
+    context (lib.Bundle.wrap("a")) {
+        let t = lib.Thing { x: 1 }
+        callGreeter(t) //~ ERROR `greet` requires context key `token` and can't be used as a plain function value
+    }
+}
+
+fn ifaceGenericCallNoContext() -> String {
+    callGreeter(lib.Quiet {})
+}
+
+fn ifaceGenericCallUnbound() -> String {
+    let t = lib.Thing { x: 1 }
+    callGreeter(t) //~ ERROR `greet` requires context key `token` and can't be used as a plain function value
+}
+
+fn callBoxedGreeter(g: lib.Greeter) -> String {
+    g.greet()
+}
+
+fn ifaceBoxCallReal() -> String {
+    context (lib.Bundle.wrap("a")) {
+        let t = lib.Thing { x: 1 }
+        callBoxedGreeter(t) //~ ERROR `greet` requires context key `token` and can't be used as a plain function value
+    }
+}
+
+fn ifaceBoxCallNoContext() -> String {
+    callBoxedGreeter(lib.Quiet {})
+}
+
+fn unbound() -> String {
+    lib.needsToken()
+}
+
+fn duplicate() -> String {
+    context (lib.Bundle.wrap("a"), lib.Bundle.wrap("b")) { //~ ERROR context key `token` is already supplied by another provider in this `context (...)` list
+        lib.needsToken()
+    }
+}
+
+fn wrongType() -> Unit {
+    context (1) { //~ ERROR `{integer}` does not declare any context keys
+    }
+}
+
+fn notAKey() -> Int { 1 }
+
+@provides(notAKey) //~ ERROR `notAKey` in `@provides` is not a `context` key declaration
+pub type BadProvider = {
+    pub mut notAKey Int
+}
+
+_ = ok()
+_ = okAlias()
+nestedOverride()
+_ = fnValueReal()
+_ = methodValueReal()
+_ = staticValueReal()
+_ = witnessValue[lib.Thing]() //~ ERROR `make` requires context key `token` and can't be used as a plain function value
+_ = ifaceGenericCallReal()
+_ = ifaceGenericCallNoContext()
+_ = ifaceGenericCallUnbound()
+_ = ifaceBoxCallReal()
+_ = ifaceBoxCallNoContext()
+_ = unbound() //~ ERROR context key `token` is required here but nothing supplies it
+_ = duplicate()
+wrongType()
+-- expect --
+error[E1218]: public function `leaksPrivateKey` requires private context key `secret`, which callers outside its visibility cannot supply
+  --> lib/lib.kg:56:1
+   |
+56 | pub fn leaksPrivateKey() -> String { //~ ERROR public function `leaksPrivateKey` requires private context key `secret`, which callers outside its visibility cannot supply
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1217]: `needsToken` requires context key `token` and can't be used as a plain function value
+  --> main/main.kg:36:33
+   |
+36 |         let g: fn() -> String = lib.needsToken //~ ERROR `needsToken` requires context key `token` and can't be used as a plain function value
+   |                                 ^^^^^^^^^^^^^^
+   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+
+error[E1217]: `needsToken` requires context key `token` and can't be used as a plain function value
+  --> main/main.kg:44:33
+   |
+44 |         let g: fn() -> String = t.needsToken //~ ERROR `needsToken` requires context key `token` and can't be used as a plain function value
+   |                                 ^^^^^^^^^^^^
+   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+
+error[E1217]: `make` requires context key `token` and can't be used as a plain function value
+  --> main/main.kg:51:33
+   |
+51 |         let g: fn() -> String = lib.Thing.make //~ ERROR `make` requires context key `token` and can't be used as a plain function value
+   |                                 ^^^^^^^^^^^^^^
+   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+
+error[E123]: `T` is a type, not a value
+  --> main/main.kg:57:5
+   |
+57 |     T.make //~ ERROR `T` is a type, not a value
+   |     ^
+
+error[E1217]: `greet` requires context key `token` and can't be used as a plain function value
+  --> main/main.kg:67:9
+   |
+67 |         callGreeter(t) //~ ERROR `greet` requires context key `token` and can't be used as a plain function value
+   |         ^^^^^^^^^^^^^
+   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+
+error[E1217]: `greet` requires context key `token` and can't be used as a plain function value
+  --> main/main.kg:77:5
+   |
+77 |     callGreeter(t) //~ ERROR `greet` requires context key `token` and can't be used as a plain function value
+   |     ^^^^^^^^^^^^^
+   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+
+error[E1217]: `greet` requires context key `token` and can't be used as a plain function value
+  --> main/main.kg:87:26
+   |
+87 |         callBoxedGreeter(t) //~ ERROR `greet` requires context key `token` and can't be used as a plain function value
+   |                          ^
+   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+
+error[E1211]: context key `token` is already supplied by another provider in this `context (...)` list
+   --> main/main.kg:100:36
+    |
+100 |     context (lib.Bundle.wrap("a"), lib.Bundle.wrap("b")) { //~ ERROR context key `token` is already supplied by another provider in this `context (...)` list
+    |                                    ^^^^^^^^^^^^^^^^^^^
+    = help: remove one
+
+error[E1210]: `{integer}` does not declare any context keys
+   --> main/main.kg:106:14
+    |
+106 |     context (1) { //~ ERROR `{integer}` does not declare any context keys
+    |              ^
+    = help: mark its type with `@provides(...)` or pass a value of a provider type
+
+error[E1213]: `notAKey` in `@provides` is not a `context` key declaration
+   --> main/main.kg:112:11
+    |
+112 | @provides(notAKey) //~ ERROR `notAKey` in `@provides` is not a `context` key declaration
+    |           ^^^^^^^
+
+error[E1217]: `make` requires context key `token` and can't be used as a plain function value
+   --> main/main.kg:123:5
+    |
+123 | _ = witnessValue[lib.Thing]() //~ ERROR `make` requires context key `token` and can't be used as a plain function value
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+
+error[E1212]: context key `token` is required here but nothing supplies it
+   --> main/main.kg:129:5
+    |
+129 | _ = unbound() //~ ERROR context key `token` is required here but nothing supplies it
+    |     ^^^^^^^^
+    = help: wrap the call in `context (...) { }` supplying it
+

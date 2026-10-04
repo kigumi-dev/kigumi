@@ -81,6 +81,17 @@ func staticDecl(t *syntax.Tree, n syntax.NodeID) staticSlots {
 		Type: syntax.NodeID(s[5]), Value: syntax.NodeID(s[6])}
 }
 
+type contextKeyDeclSlots struct {
+	Doc, Name        uint32
+	Attrs, Vis, Type syntax.NodeID
+}
+
+func contextKeyDecl(t *syntax.Tree, n syntax.NodeID) contextKeyDeclSlots {
+	s := t.Slots(n)
+	return contextKeyDeclSlots{Doc: s[0], Attrs: syntax.NodeID(s[1]), Vis: syntax.NodeID(s[2]), Name: s[3],
+		Type: syntax.NodeID(s[4])}
+}
+
 type importSlots struct {
 	Vis, Binding, Path syntax.NodeID
 }

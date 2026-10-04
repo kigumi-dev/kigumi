@@ -105,6 +105,11 @@ func (p *printer) expr(id syntax.NodeID) {
 		p.expr(syntax.NodeID(n.Lhs))
 		p.write(" ")
 		p.block(syntax.NodeID(n.Rhs))
+	case syntax.ContextExpr:
+		p.write("context (")
+		p.exprList(syntax.NodeID(n.Lhs))
+		p.write(") ")
+		p.block(syntax.NodeID(n.Rhs))
 	case syntax.ContractExpr:
 		p.write(modsText(n.Lhs) + " ")
 		p.block(syntax.NodeID(n.Rhs))

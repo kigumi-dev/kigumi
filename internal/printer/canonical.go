@@ -114,6 +114,8 @@ func (p *printer) decl(id syntax.NodeID) {
 		p.constDecl(id)
 	case syntax.StaticDecl:
 		p.staticDecl(id)
+	case syntax.ContextKeyDecl:
+		p.contextKeyDecl(id)
 	case syntax.ImportDecl:
 		p.importDecl(id)
 	case syntax.TestDecl:

@@ -36,6 +36,13 @@ func (p *parser) identPrimary() NodeID {
 		scope := p.condition()
 		return p.node2(AllocatorExpr, tok, scope, p.block())
 	}
+	if p.atIdent("context") && p.startsContextBlock() {
+		tok := p.advance()
+		open := p.pos
+		items := p.exprList()
+		list := p.tree.addList(List, open, items)
+		return p.node2(ContextExpr, tok, list, p.block())
+	}
 	return p.leaf(Ident, p.advance())
 }
 
@@ -50,4 +57,12 @@ func (p *parser) startsAllocatorBlock() bool {
 		return true
 	}
 	return false
+}
+
+// startsContextBlock requires a space before `(`, like startsAllocatorBlock.
+func (p *parser) startsContextBlock() bool {
+	if int(p.pos)+1 >= len(p.toks) || !p.toks[p.pos+1].HasSpaceBefore() {
+		return false
+	}
+	return p.peek(1) == token.LParen
 }

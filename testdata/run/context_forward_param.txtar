@@ -1,0 +1,36 @@
+-- src --
+import stdio from std/stdio
+import {stdout} from std/stdio
+
+fn inner() -> Unit! {
+    _ = stdout.write("inner\n".toBytes())?
+}
+
+fn middle() -> Unit! {
+    inner()?
+}
+
+fn ping(n: Int) -> Unit! {
+    if n <= 0 {
+        return
+    }
+    _ = stdout.write("ping\n".toBytes())?
+    pong(n - 1)?
+}
+
+fn pong(n: Int) -> Unit! {
+    if n <= 0 {
+        return
+    }
+    _ = stdout.write("pong\n".toBytes())?
+    ping(n - 1)?
+}
+
+context (stdio.hostStdio(host)) {
+    middle()?
+    ping(2)?
+}
+-- stdout --
+inner
+ping
+pong

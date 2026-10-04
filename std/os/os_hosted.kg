@@ -283,6 +283,24 @@ pub fn Stdout.write(mut self, data: Bytes) -> usize! {
     w.toUsize() || 0
 }
 
+/// Writes data to standard error as-is, on the same terms as Stdout.write.
+pub fn Stderr.write(mut self, data: Bytes) -> usize! {
+    let n = data.len()
+    if n == 0 {
+        return 0
+    }
+    let mut w: isize = -1
+    for w < 0 {
+        w = unsafe {
+            write(2, ffi.bytesPtr(&data), n)
+        }
+        if w < 0 && ffi.errno() != eintr() {
+            fail ffi.lastError()
+        }
+    }
+    w.toUsize() || 0
+}
+
 /// Value of the environment variable name, or None when it is unset or not
 /// valid UTF-8 (an environment variable is an arbitrary byte string on
 /// Unix).

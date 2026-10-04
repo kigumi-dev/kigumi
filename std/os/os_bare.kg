@@ -23,6 +23,11 @@ pub fn Stdout.write(mut self, data: Bytes) -> usize! {
     panic()
 }
 
+/// Writes to standard error; a bare target has no stderr.
+pub fn Stderr.write(mut self, data: Bytes) -> usize! {
+    panic()
+}
+
 /// Value of an environment variable; a bare target has no environment.
 pub fn Host.env(self, name: String) -> String? {
     panic()

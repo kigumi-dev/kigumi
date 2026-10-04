@@ -24,6 +24,14 @@ type FileInfo struct {
 	Literals map[syntax.NodeID]constValue
 	Asm      map[syntax.NodeID]*AsmInfo
 	Diags    []diag.Diagnostic
+	// CtxUse resolves a direct context-key value reference.
+	CtxUse map[syntax.NodeID]CtxBind
+	// CtxCall resolves one call's hidden provider arguments, in the
+	// callee's CtxRequires order.
+	CtxCall map[syntax.NodeID][]CtxBind
+	// CtxProviders maps a `context (...) { }` node to the hidden local
+	// holding each provider expression's one-time evaluated value.
+	CtxProviders map[syntax.NodeID][]EntityID
 }
 
 func newFileInfo(t *syntax.Tree, pkg PackageID) FileInfo {
