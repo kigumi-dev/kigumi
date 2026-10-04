@@ -118,7 +118,7 @@ func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*build
 		}
 		p.prog = prog
 	}
-	return vm.EvalBuild(p.prog, p.Configure, req, buildgraph.Roots{Roots: roots, Host: buildgraph.Target{Sys: host.Sys}})
+	return vm.EvalBuild(p.prog, p.Configure, req, buildgraph.Roots{Roots: roots, Host: buildgraph.Target{Sys: host.Sys, Allocator: target.Allocator}})
 }
 
 // DescriptorRoots lists where a Framework descriptor may come from: the
