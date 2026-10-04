@@ -5,17 +5,19 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"kigumi/internal/driver"
 )
 
-// fakeZig wraps the real zig so a test can count invocations: it appends a
-// line to countFile, then execs the real binary with the same arguments.
+// fakeZig wraps the real zig so a test can count invocations by subcommand
+// (its first argument): it appends that argument to countFile, then execs
+// the real binary with the same arguments.
 func fakeZig(t *testing.T, realZig, countFile string) {
 	t.Helper()
 	dir := t.TempDir()
-	script := "#!/bin/sh\necho run >> " + shQuote(countFile) + "\nexec " + shQuote(realZig) + ` "$@"` + "\n"
+	script := "#!/bin/sh\necho \"$1\" >> " + shQuote(countFile) + "\nexec " + shQuote(realZig) + ` "$@"` + "\n"
 	path := filepath.Join(dir, "zig")
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
@@ -25,7 +27,9 @@ func fakeZig(t *testing.T, realZig, countFile string) {
 
 func shQuote(s string) string { return "'" + s + "'" }
 
-func countLines(t *testing.T, path string) int {
+// countSubcommand counts countFile's lines equal to subcommand (fakeZig
+// writes one zig subcommand name per invocation).
+func countSubcommand(t *testing.T, path, subcommand string) int {
 	t.Helper()
 	b, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
@@ -35,17 +39,18 @@ func countLines(t *testing.T, path string) int {
 		t.Fatal(err)
 	}
 	n := 0
-	for _, c := range b {
-		if c == '\n' {
+	for _, l := range strings.Split(string(b), "\n") {
+		if l == subcommand {
 			n++
 		}
 	}
 	return n
 }
 
-// TestHeaderImportCache: importing the same
-// header twice (same content, zig version and target) invokes zig only on
-// the first LoadModule, reading the second from HeaderCacheDir's cache.
+// TestHeaderImportCache: importing the same header twice (same content,
+// zig fingerprint and target) only runs the expensive translate-c on the
+// first LoadModule; a lookup still runs the cheap `zig cc -M` closure
+// check every time, to catch a changed #include (IMP-056).
 func TestHeaderImportCache(t *testing.T) {
 	realZig, err := exec.LookPath("zig")
 	if err != nil {
@@ -70,16 +75,19 @@ func TestHeaderImportCache(t *testing.T) {
 	if _, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std}); err != nil {
 		t.Fatalf("first load: %v", err)
 	}
-	first := countLines(t, countFile)
+	first := countSubcommand(t, countFile, "translate-c")
 	if first == 0 {
-		t.Fatal("first import should have invoked zig")
+		t.Fatal("first import should have invoked translate-c")
 	}
 
 	if _, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std}); err != nil {
 		t.Fatalf("second load: %v", err)
 	}
-	second := countLines(t, countFile)
+	second := countSubcommand(t, countFile, "translate-c")
 	if second != first {
-		t.Errorf("second import invoked zig again: %d calls before, %d after", first, second)
+		t.Errorf("second import ran translate-c again: %d calls before, %d after", first, second)
+	}
+	if countSubcommand(t, countFile, "cc") == 0 {
+		t.Error("even a cache hit should run the cheap include-closure check")
 	}
 }

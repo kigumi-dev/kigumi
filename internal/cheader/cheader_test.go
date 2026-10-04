@@ -155,6 +155,37 @@ int add(int a, int b);
 	}
 }
 
+// TestImportInvalidatesOnIncludedHeaderChange: a wrapper header whose own
+// bytes never change still regenerates once a header it #includes changes,
+// instead of returning the stale cache entry.
+func TestImportInvalidatesOnIncludedHeaderChange(t *testing.T) {
+	zig := zigOrSkip(t)
+	dir := t.TempDir()
+	wrapper := filepath.Join(dir, "wrap.h")
+	included := filepath.Join(dir, "config.h")
+	os.WriteFile(wrapper, []byte("#include \"config.h\"\nint add(int a, int b);\n"), 0o644)
+	os.WriteFile(included, []byte("#define BASE_VALUE 1\n"), 0o644)
+	opts := Options{ZigPath: zig, HeaderPath: wrapper, ABI: ABIFor("linux", "amd64"), CacheDir: t.TempDir()}
+	first, err := Import(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(first.Source, "BASE_VALUE: i32 = 1") {
+		t.Fatalf("expected BASE_VALUE from the included header:\n%s", first.Source)
+	}
+	os.WriteFile(included, []byte("#define BASE_VALUE 2\n"), 0o644)
+	second, err := Import(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.FromCache {
+		t.Error("changing an #included header, with the wrapper's own bytes unchanged, must miss the cache")
+	}
+	if !strings.Contains(second.Source, "BASE_VALUE: i32 = 2") {
+		t.Fatalf("expected the updated BASE_VALUE, got a stale hit:\n%s", second.Source)
+	}
+}
+
 func TestABIFor(t *testing.T) {
 	if got := ABIFor("windows", "amd64"); !got.LLP64 {
 		t.Error("windows/amd64 should be LLP64")

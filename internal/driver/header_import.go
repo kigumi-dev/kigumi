@@ -18,10 +18,8 @@ type HeaderImport struct {
 	Path, Package string
 }
 
-// HeaderCacheDir is where imported headers' generated packages are cached,
-// keyed by content hash, zig binary fingerprint and target (cheader.Import);
-// separate from CacheDir's fetched-module tree since a header import is
-// local to this module rather than a dependency someone else published.
+// HeaderCacheDir is where imported headers' generated packages are cached
+// (cheader.Import), separate from CacheDir's fetched-module tree.
 func HeaderCacheDir() (string, error) {
 	dir, err := os.UserCacheDir()
 	if err != nil {

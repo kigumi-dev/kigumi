@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // Runner executes `zig translate-c` and returns its stdout; it exists so
@@ -41,6 +42,16 @@ func zigFingerprint(zigPath string) (string, error) {
 		return "", fmt.Errorf("stat zig at %s: %w", zigPath, err)
 	}
 	return fmt.Sprintf("%d-%d", st.Size(), st.ModTime().UnixNano()), nil
+}
+
+// zigVersionString is informational only, unlike zigFingerprint: never
+// part of the cache key, so a lookup never depends on it succeeding.
+func zigVersionString(zigPath string) string {
+	out, err := exec.Command(zigPath, "version").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 // translateBoth runs translate-c on header and, for the baseline Generate
