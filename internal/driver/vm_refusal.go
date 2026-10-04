@@ -1,14 +1,26 @@
 package driver
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
-// std/net's Http gets its own wording here: the VM's rejection is
-// deliberate, not a gap, and a
-// program always hits `Net.http` (to get an `Http` at all) before it could
-// ever reach `Http.post` itself.
+// nativeOnlyRefusal reports whether why is C ABI/asm/cfnptr/ffi/dl: `kigumi build` is the fix, not --engine interp.
+func nativeOnlyRefusal(why string) bool {
+	switch why {
+	case "callc", "asm", "cfnptr", "primitive os.Host.dl":
+		return true
+	}
+	return strings.HasPrefix(why, "foreign function ") ||
+		strings.HasPrefix(why, "primitive ffi.") ||
+		strings.HasPrefix(why, "primitive dl.")
+}
+
+// vmRefusalError turns vm.Supports/SupportsTests' reason into the CLI
+// error: native-only points at `kigumi build`, anything else at --engine interp.
 func vmRefusalError(why string) error {
-	if why == "primitive net.Net.http" || why == "primitive net.Http.post" {
-		return fmt.Errorf("net.Http.post is deliberately not supported by the VM: its native, interp and VM behavior would otherwise diverge (cleanup_plan_v1.md §2.3) (run with --engine interp)")
+	if nativeOnlyRefusal(why) {
+		return fmt.Errorf("%s is not supported by the VM: native-only, run `kigumi build` instead", why)
 	}
 	return fmt.Errorf("%s is not supported by the VM (run with --engine interp)", why)
 }

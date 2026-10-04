@@ -20,6 +20,12 @@ func TestEngineFlagValidation(t *testing.T) {
 	if code, errOut := executeReal(t, "--std", std, "run", "--engine", "VM", hello); code != 2 || !strings.Contains(errOut, "--engine") {
 		t.Fatalf("run --engine VM (case typo): exit %d, stderr %q", code, errOut)
 	}
+	if code, errOut := executeReal(t, "--std", std, "run", "--engine", "auto", hello); code != 2 || !strings.Contains(errOut, "\"auto\" was removed") {
+		t.Fatalf("run --engine auto: exit %d, stderr %q", code, errOut)
+	}
+	if code, errOut := executeReal(t, "--std", std, "test", "--engine", "auto", testing_); code != 2 || !strings.Contains(errOut, "\"auto\" was removed") {
+		t.Fatalf("test --engine auto: exit %d, stderr %q", code, errOut)
+	}
 	if code, out, errOut := execute(t, "--std", std, "run", "--engine", "vm", hello); code != 0 || out != "Hello, Kigumi!\n" {
 		t.Fatalf("run --engine vm: exit %d, stdout %q, stderr %q", code, out, errOut)
 	}

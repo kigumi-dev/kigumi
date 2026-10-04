@@ -1,5 +1,5 @@
-// Package run implements `kigumi run` and `kigumi test`: interpret the
-// entry file or the test blocks of a module.
+// Package run implements `kigumi run` and `kigumi test`: run the entry
+// file or the test blocks of a module on the chosen engine.
 package run
 
 import (
@@ -17,12 +17,12 @@ func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                   "run [flags] <module-root|entry.kg> [args...]",
 		DisableFlagsInUseLine: true,
-		Short:                 "Run the entry file in the interpreter",
+		Short:                 "Run the entry file",
 		Args:                  cobra.MinimumNArgs(1),
 		RunE:                  Script,
 	}
 	cmd.Flags().SetInterspersed(false)
-	cmd.Flags().String("engine", "auto", "executor: auto (the VM when it can run the program), vm, or interp (tree walker)")
+	cmd.Flags().String("engine", "vm", "executor: vm (the default) or interp (tree walker)")
 	return cmd
 }
 
@@ -131,18 +131,14 @@ func TestCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().String("engine", "auto", "executor: auto (the VM when it can run the tests), vm, or interp (tree walker)")
+	cmd.Flags().String("engine", "vm", "executor: vm (the default) or interp (tree walker)")
 	return cmd
 }
 
-// validateEngine rejects any --engine value other than the three the flag
-// documents; RunWith/RunTestsWith otherwise treat an unrecognized string
-// exactly like "auto" with no indication the flag was misspelled.
+// validateEngine wraps CheckEngine as a UsageError: a bad --engine is a usage mistake, not a run failure.
 func validateEngine(s string) error {
-	switch s {
-	case "", "auto", "vm", "interp":
-		return nil
-	default:
-		return &cliutil.UsageError{Err: errors.NewErrf("unknown --engine %q: want auto, vm, or interp", s)}
+	if err := driver.CheckEngine(s); err != nil {
+		return &cliutil.UsageError{Err: errors.NewErrf("--engine: %s", err)}
 	}
+	return nil
 }

@@ -8,16 +8,13 @@ import (
 	"kigumi/internal/vm"
 )
 
-// The VM leaves foreign memory, the dynamic loader and the HTTP client to
-// `kigumi build`; Supports sends such programs to the interpreter. The
-// socket layer (Net.connect/listen and Conn/Listener) is accelerated
-// instead (net_socket.go), so os.Host.net is not a gap here.
+// The VM leaves foreign memory and the dynamic loader to `kigumi build`; everything else (sockets, HTTP) is accelerated, so Supports has no other gap.
 var vmGaps = map[string]bool{
 	"std/ffi.CString.new": true, "std/ffi.CString.ptr": true, "std/ffi.CString.drop": true, "std/ffi.offset": true, "std/ffi.string": true, "std/ffi.stringChecked": true, "std/ffi.stringLossy": true,
 	"std/ffi.readU8": true, "std/ffi.readI32": true, "std/ffi.readI64": true, "std/ffi.readF64": true, "std/ffi.writeU8": true,
 	"std/ffi.writeI32": true, "std/ffi.writeI64": true, "std/ffi.writeF64": true, "std/ffi.bytesFrom": true, "std/ffi.bytesPtr": true,
 	"std/ffi.readPtr": true, "std/ffi.writePtr": true,
-	"std/net.Net.http": true, "std/os.Host.dl": true, "std/dl.Symbol.call": true,
+	"std/os.Host.dl": true, "std/dl.Symbol.call": true,
 }
 
 // TestStdPrimitives pins the contract between std and the VM: every

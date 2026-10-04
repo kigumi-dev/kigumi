@@ -108,6 +108,7 @@ func (m *Machine) registerAll() {
 	m.registerSignal()
 	m.registerBuild()
 	m.registerNet()
+	m.registerNetHTTP()
 	m.registerEntropy()
 	m.registerError()
 }

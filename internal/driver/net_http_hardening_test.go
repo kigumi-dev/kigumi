@@ -42,9 +42,7 @@ func buildHTTPProbe(t *testing.T) string {
 	return exe
 }
 
-// TestHttpPostRequestLine serves a raw TCP endpoint and checks the request
-// line and Host header Http.post's native body sends, for a plain URL and
-// an IPv6 literal.
+// TestHttpPostRequestLine checks the request line and Host header Http.post's native body sends, for a plain URL and an IPv6 literal.
 func TestHttpPostRequestLine(t *testing.T) {
 	t.Parallel()
 	if driver.CCompiler() == nil {
@@ -110,9 +108,7 @@ func TestHttpPostRequestLine(t *testing.T) {
 	}
 }
 
-// TestHttpPostInvalidUTF8StatusLine checks that a status line containing
-// invalid UTF-8 fails Http.post with a clear message instead of readLine
-// silently swallowing the bad bytes into "" (net-readline-utf8).
+// TestHttpPostInvalidUTF8StatusLine checks invalid UTF-8 in the status line fails clearly instead of readLine silently swallowing the bad bytes into "".
 func TestHttpPostInvalidUTF8StatusLine(t *testing.T) {
 	t.Parallel()
 	if driver.CCompiler() == nil {
@@ -189,11 +185,7 @@ func TestHttpPostTimeout(t *testing.T) {
 	}
 }
 
-// TestHttpPostConnectTimeout checks that Http.post bounds the connect()
-// phase itself, not just send/receive: a listener whose accept queue is
-// already full silently drops the next SYN, so a plain blocking connect()
-// would otherwise be bounded only by the OS's own default of well over a
-// minute.
+// TestHttpPostConnectTimeout checks Http.post bounds connect() itself: a full accept queue drops the SYN, which a plain blocking connect() wouldn't catch for over a minute.
 func TestHttpPostConnectTimeout(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")
@@ -243,5 +235,243 @@ func TestHttpPostConnectTimeout(t *testing.T) {
 	}
 	if !strings.HasPrefix(strings.TrimSpace(out.String()), "err:") {
 		t.Fatalf("expected a connect-timeout error, got %q", out.String())
+	}
+}
+
+// runEmulatedEngine runs the HTTP post probe on the vm or interp engine, buildHTTPProbe's in-process counterparts.
+func runEmulatedEngine(t *testing.T, engine, url string) string {
+	t.Helper()
+	std, _ := filepath.Abs("../../std")
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"httpprobe\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte(httpPostProbeSrc), 0o644)
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out, errOut bytes.Buffer
+	if _, err := driver.RunWith(m, driver.RunOptions{Engine: engine}, &out, &errOut, []string{"main", url}); err != nil {
+		t.Fatalf("%s: %v\n%s", engine, err, errOut.String())
+	}
+	return strings.TrimSpace(out.String())
+}
+
+// TestHttpPostSlowDripSucceeds checks the 10s timeout is re-armed per read, not an overall deadline: a byte-at-a-time peer clears 10s total but every engine still succeeds.
+func TestHttpPostSlowDripSucceeds(t *testing.T) {
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	t.Parallel()
+	exe := buildHTTPProbe(t)
+	const line = "HTTP/1.1 200 \r\n"
+	drip := func(t *testing.T) string {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { ln.Close() })
+		go func() {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			defer conn.Close()
+			buf := make([]byte, 4096)
+			conn.Read(buf)
+			for i := range len(line) {
+				conn.Write([]byte{line[i]})
+				time.Sleep(time.Second)
+			}
+		}()
+		return fmt.Sprintf("http://%s/x", ln.Addr())
+	}
+
+	t.Run("native", func(t *testing.T) {
+		t.Parallel()
+		url := drip(t)
+		cmd := exec.Command(exe, url)
+		var out, errOut bytes.Buffer
+		cmd.Stdout, cmd.Stderr = &out, &errOut
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("run: %v\n%s", err, errOut.String())
+		}
+		if got, want := strings.TrimSpace(out.String()), "ok status=200"; got != want {
+			t.Fatalf("got %q, want %q", got, want)
+		}
+	})
+	for _, engine := range []string{"vm", "interp"} {
+		t.Run(engine, func(t *testing.T) {
+			t.Parallel()
+			if got, want := runEmulatedEngine(t, engine, drip(t)), "ok status=200"; got != want {
+				t.Fatalf("got %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+// TestHttpPostGracefulCloseBeforeStatusLine checks a peer that drains the request then closes without writing: an orderly EOF must end the read loop like native's got==0, not surface as a raw "EOF".
+func TestHttpPostGracefulCloseBeforeStatusLine(t *testing.T) {
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	t.Parallel()
+	exe := buildHTTPProbe(t)
+	const wantMsg = "err: malformed response"
+	closeAfterDrain := func(t *testing.T) string {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { ln.Close() })
+		go func() {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			defer conn.Close()
+			buf := make([]byte, 4096)
+			for {
+				conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+				n, err := conn.Read(buf)
+				if n == 0 || err != nil {
+					break
+				}
+			}
+		}()
+		return fmt.Sprintf("http://%s/x", ln.Addr())
+	}
+
+	t.Run("native", func(t *testing.T) {
+		t.Parallel()
+		url := closeAfterDrain(t)
+		cmd := exec.Command(exe, url)
+		var out, errOut bytes.Buffer
+		cmd.Stdout, cmd.Stderr = &out, &errOut
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("run: %v\n%s", err, errOut.String())
+		}
+		if got := strings.TrimSpace(out.String()); got != wantMsg {
+			t.Fatalf("got %q, want %q", got, wantMsg)
+		}
+	})
+	for _, engine := range []string{"vm", "interp"} {
+		t.Run(engine, func(t *testing.T) {
+			t.Parallel()
+			if got := runEmulatedEngine(t, engine, closeAfterDrain(t)); got != wantMsg {
+				t.Fatalf("%s: got %q, want %q", engine, got, wantMsg)
+			}
+		})
+	}
+}
+
+// TestHttpPostResetAfterRequestSent checks a peer that closes with SO_LINGER{0} after reading (a deterministic TCP RST): every engine must report native's ECONNRESET strerror text, not a raw Go error.
+func TestHttpPostResetAfterRequestSent(t *testing.T) {
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	t.Parallel()
+	exe := buildHTTPProbe(t)
+	const wantMsg = "err: Connection reset by peer"
+	resetAfterRead := func(t *testing.T) string {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { ln.Close() })
+		go func() {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			tc := conn.(*net.TCPConn)
+			buf := make([]byte, 4096)
+			tc.Read(buf)
+			tc.SetLinger(0)
+			tc.Close()
+		}()
+		return fmt.Sprintf("http://%s/x", ln.Addr())
+	}
+
+	t.Run("native", func(t *testing.T) {
+		t.Parallel()
+		url := resetAfterRead(t)
+		cmd := exec.Command(exe, url)
+		var out, errOut bytes.Buffer
+		cmd.Stdout, cmd.Stderr = &out, &errOut
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("run: %v\n%s", err, errOut.String())
+		}
+		if got := strings.TrimSpace(out.String()); got != wantMsg {
+			t.Fatalf("got %q, want %q", got, wantMsg)
+		}
+	})
+	for _, engine := range []string{"vm", "interp"} {
+		t.Run(engine, func(t *testing.T) {
+			t.Parallel()
+			if got := runEmulatedEngine(t, engine, resetAfterRead(t)); got != wantMsg {
+				t.Fatalf("%s: got %q, want %q", engine, got, wantMsg)
+			}
+		})
+	}
+}
+
+// TestHttpPostStalledTimeoutMessage checks a peer that never answers fails at ~10s with the same wording (native's EAGAIN strerror text) on every engine.
+func TestHttpPostStalledTimeoutMessage(t *testing.T) {
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	t.Parallel()
+	exe := buildHTTPProbe(t)
+	const wantMsg = "err: Resource temporarily unavailable"
+	stall := func(t *testing.T) string {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		done := make(chan struct{})
+		t.Cleanup(func() { close(done); ln.Close() })
+		go func() {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			<-done
+			conn.Close()
+		}()
+		return fmt.Sprintf("http://%s/x", ln.Addr())
+	}
+	checkElapsed := func(t *testing.T, elapsed time.Duration) {
+		t.Helper()
+		if elapsed < 5*time.Second || elapsed > 30*time.Second {
+			t.Fatalf("timed out after %s, expected close to the 10s per-call budget", elapsed)
+		}
+	}
+
+	t.Run("native", func(t *testing.T) {
+		t.Parallel()
+		url := stall(t)
+		cmd := exec.Command(exe, url)
+		var out, errOut bytes.Buffer
+		cmd.Stdout, cmd.Stderr = &out, &errOut
+		start := time.Now()
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("run: %v\n%s", err, errOut.String())
+		}
+		checkElapsed(t, time.Since(start))
+		if got := strings.TrimSpace(out.String()); got != wantMsg {
+			t.Fatalf("got %q, want %q", got, wantMsg)
+		}
+	})
+	for _, engine := range []string{"vm", "interp"} {
+		t.Run(engine, func(t *testing.T) {
+			t.Parallel()
+			url := stall(t)
+			start := time.Now()
+			got := runEmulatedEngine(t, engine, url)
+			checkElapsed(t, time.Since(start))
+			if got != wantMsg {
+				t.Fatalf("%s: got %q, want %q", engine, got, wantMsg)
+			}
+		})
 	}
 }

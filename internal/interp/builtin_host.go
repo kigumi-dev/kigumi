@@ -1,11 +1,7 @@
 package interp
 
 import (
-	"bytes"
-	"io"
-	"net/http"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"kigumi/internal/sem"
@@ -49,19 +45,12 @@ func registerHost(in *Interp) {
 		return opaque("Http", nil), nil
 	})
 	in.hostAccel("std/net.Http.post", func(in *Interp, fr *frame, n syntax.NodeID, a []Value) (Value, *ctrl) {
-		raw := string(deref(a[1]).(Str))
-		if why := httpPostGuard(raw); why != "" {
-			return mkErr(in, fr.retType(n), why), nil
-		}
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Post(raw, "text/plain", bytes.NewReader([]byte(deref(a[2]).(Str))))
+		status, err := httpPost(string(deref(a[1]).(Str)), []byte(deref(a[2]).(Str)))
 		if err != nil {
 			return mkErr(in, fr.retType(n), err.Error()), nil
 		}
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
 		t, _, _ := in.r.Types.IsResult(fr.retType(n))
-		return mkOk(in, fr.retType(n), &Record{Type: t, Fields: []Value{Int{V: int64(resp.StatusCode), T: sem.TyI64}}}), nil
+		return mkOk(in, fr.retType(n), &Record{Type: t, Fields: []Value{Int{V: int64(status), T: sem.TyI64}}}), nil
 	})
 	in.def("std/alloc.Arena.create", func(in *Interp, fr *frame, n syntax.NodeID, a []Value) (Value, *ctrl) {
 		return mkOk(in, fr.retType(n), opaque("AllocatorHandle", nil)), nil
