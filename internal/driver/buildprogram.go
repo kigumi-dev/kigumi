@@ -100,7 +100,7 @@ func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*build
 	if err != nil {
 		return nil, err
 	}
-	req := buildgraph.Request{Target: buildgraph.Target{Triple: target.Triple, Sys: target.Sys}, Flags: []string{}}
+	req := buildgraph.Request{Target: buildgraph.Target{Triple: target.Triple, Sys: target.Sys, Allocator: target.Allocator}, Flags: []string{}}
 	for _, f := range flags {
 		req.Flags = append(req.Flags, strings.TrimLeft(f, "-"))
 	}

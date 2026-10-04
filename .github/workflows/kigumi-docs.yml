@@ -15,7 +15,7 @@ on:
       kigumi-version:
         description: Git ref of the kigumi toolchain to build, or `local`.
         type: string
-        default: main
+        default: master
       all:
         description: Include declarations without `pub`.
         type: boolean

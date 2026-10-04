@@ -13,7 +13,7 @@ on:
       kigumi-version:
         description: Git ref of the kigumi toolchain to build, or `local` to build the calling repository itself.
         type: string
-        default: main
+        default: master
       zig-version:
         description: Zig version for `kigumi build`; empty skips the native build.
         type: string
@@ -41,4 +41,12 @@ jobs:
       - run: kigumi check "${{ inputs.module-root }}"
       - run: kigumi test "${{ inputs.module-root }}"
       - if: inputs.zig-version != ''
-        run: kigumi build "${{ inputs.module-root }}" -o "$RUNNER_TEMP/kigumi-build-out"
+        # build.kg rejects -o; a plain module rejects --out-dir.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kigumi-build-out"
+          if [ -f "${{ inputs.module-root }}/build.kg" ]; then
+            kigumi build "${{ inputs.module-root }}" --out-dir "$RUNNER_TEMP/kigumi-build-out"
+          else
+            kigumi build "${{ inputs.module-root }}" -o "$RUNNER_TEMP/kigumi-build-out/a.out"
+          fi

@@ -155,7 +155,6 @@ int add(int a, int b);
 	}
 }
 
-// A wrapper header's own bytes never change, but it must still regenerate once a header it #includes changes.
 func TestImportInvalidatesOnIncludedHeaderChange(t *testing.T) {
 	zig := zigOrSkip(t)
 	dir := t.TempDir()

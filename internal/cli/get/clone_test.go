@@ -23,8 +23,7 @@ func gitOrSkip(t *testing.T, dir string, args ...string) string {
 	return strings.TrimSpace(string(out))
 }
 
-// repoWithHistory builds a repo with n commits on main and returns its path
-// and the HEAD commit's full hash.
+// repoWithHistory builds a repo with n commits on main and returns its path and HEAD's full hash.
 func repoWithHistory(t *testing.T, n int) (string, string) {
 	t.Helper()
 	repo := filepath.Join(t.TempDir(), "repo")
