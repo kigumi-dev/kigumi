@@ -70,8 +70,8 @@ func checkSource(t *testing.T, src string) *sem.Result {
 }
 
 // The scalar fixture runs through HIR, MIR and the VM and prints what the
-// tree interpreter and the AOT corpus print for the same source; the HIR
-// dump pins what the checker decided.
+// AOT corpus prints for the same source; the HIR dump pins what the
+// checker decided.
 func TestScalarSlice(t *testing.T) {
 	fx := readFixture(t, "../../testdata/run/hir_scalar.txtar")
 	res := checkSource(t, fx.src)

@@ -168,9 +168,8 @@ func windowsAmd64Size(typ string) int64 {
 }
 
 // layoutCOffsets is the byte offset of each field under natural alignment,
-// the rule internal/llgen's cOffsets and internal/interp's cLayout use for
-// a layout(C) record (every field aligns to its own size here, true for
-// every field type these two structs use).
+// the rule internal/llgen's cOffsets uses for a layout(C) record (every
+// field here aligns to its own size).
 func layoutCOffsets(fields []layoutCField, sizeOf func(string) int64) map[string]int64 {
 	offsets := make(map[string]int64, len(fields))
 	var off int64

@@ -21,9 +21,8 @@ match r {
 `
 
 // TestStdinReadAllReportsRealError checks that a real read(2) failure (not
-// EOF) surfaces as Err on every engine instead of being folded into an
-// empty Ok, the errno-reporting-1 bug: reading from a directory fd fails
-// with EISDIR, a genuine kernel error distinct from end-of-input.
+// EOF) surfaces as Err instead of being folded into an empty Ok: EISDIR on
+// a directory fd is a genuine kernel error distinct from end-of-input.
 func TestStdinReadAllReportsRealError(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
@@ -44,18 +43,16 @@ func TestStdinReadAllReportsRealError(t *testing.T) {
 		return f
 	}
 
-	for _, engine := range []string{"vm", "interp"} {
-		t.Run(engine, func(t *testing.T) {
-			var out, errOut bytes.Buffer
-			code, err := driver.RunWith(m, driver.RunOptions{Engine: engine, Stdin: dirStdin(t)}, &out, &errOut, []string{"main/main.kg"})
-			if err != nil || code != 0 {
-				t.Fatalf("%s: err %v exit %d\n%s", engine, err, code, errOut.String())
-			}
-			if strings.TrimSpace(out.String()) != "ERR" {
-				t.Errorf("%s stdout = %q, want %q (a real read error must not look like a clean, empty EOF)", engine, out.String(), "ERR")
-			}
-		})
-	}
+	t.Run("vm", func(t *testing.T) {
+		var out, errOut bytes.Buffer
+		code, err := driver.RunWith(m, driver.RunOptions{Stdin: dirStdin(t)}, &out, &errOut, []string{"main/main.kg"})
+		if err != nil || code != 0 {
+			t.Fatalf("err %v exit %d\n%s", err, code, errOut.String())
+		}
+		if strings.TrimSpace(out.String()) != "ERR" {
+			t.Errorf("stdout = %q, want %q (a real read error must not look like a clean, empty EOF)", out.String(), "ERR")
+		}
+	})
 
 	t.Run("build", func(t *testing.T) {
 		if driver.CCompiler() == nil {
@@ -89,9 +86,8 @@ match r {
 `
 
 // TestStdinReadLineUTF8AndEOF checks readLine's Result[Option[String], Error]
-// shape (errno-reporting-5) across engines: invalid UTF-8 on the line must
-// fail (utf8-text-3) rather than embedding raw bytes or returning Some("");
-// a writer that closes without sending anything must still report a clean
+// shape: invalid UTF-8 must fail rather than embedding raw bytes or
+// returning Some(""); a writer that closes without sending anything must still report a clean
 // Ok(None).
 func TestStdinReadLineUTF8AndEOF(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
@@ -114,31 +110,29 @@ func TestStdinReadLineUTF8AndEOF(t *testing.T) {
 		{"closed_writer_no_data", nil, "NONE"},
 	}
 
-	for _, engine := range []string{"vm", "interp"} {
-		for _, tc := range cases {
-			t.Run(engine+"/"+tc.name, func(t *testing.T) {
-				r, w, err := os.Pipe()
-				if err != nil {
+	for _, tc := range cases {
+		t.Run("vm/"+tc.name, func(t *testing.T) {
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Close()
+			if len(tc.data) > 0 {
+				if _, err := w.Write(tc.data); err != nil {
 					t.Fatal(err)
 				}
-				defer r.Close()
-				if len(tc.data) > 0 {
-					if _, err := w.Write(tc.data); err != nil {
-						t.Fatal(err)
-					}
-				}
-				w.Close()
+			}
+			w.Close()
 
-				var out, errOut bytes.Buffer
-				code, err := driver.RunWith(m, driver.RunOptions{Engine: engine, Stdin: r}, &out, &errOut, []string{"main/main.kg"})
-				if err != nil || code != 0 {
-					t.Fatalf("%s: err %v exit %d\n%s", engine, err, code, errOut.String())
-				}
-				if strings.TrimSpace(out.String()) != tc.want {
-					t.Errorf("%s stdout = %q, want %q", engine, out.String(), tc.want)
-				}
-			})
-		}
+			var out, errOut bytes.Buffer
+			code, err := driver.RunWith(m, driver.RunOptions{Stdin: r}, &out, &errOut, []string{"main/main.kg"})
+			if err != nil || code != 0 {
+				t.Fatalf("err %v exit %d\n%s", err, code, errOut.String())
+			}
+			if strings.TrimSpace(out.String()) != tc.want {
+				t.Errorf("stdout = %q, want %q", out.String(), tc.want)
+			}
+		})
 	}
 
 	t.Run("build", func(t *testing.T) {
@@ -263,9 +257,8 @@ fn main() -> Unit! {
 // TestStdinNativeEINTRRetried is native-only (fd-resource-leaks-1/-3): a
 // signal arriving without SA_RESTART must not be mistaken for EOF.
 // signal()+siginterrupt(1) plus a 1ms itimer interrupt readAll/readLine's
-// blocking read(2) on a FIFO with a delayed writer; the interpreter has no
-// FFI and the VM/interp accelerators never call
-// raw read(2), so neither needs this coverage.
+// blocking read(2) on a FIFO with a delayed writer; the VM has no FFI and
+// its accelerators never call raw read(2), so it needs no coverage here.
 func TestStdinNativeEINTRRetried(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")

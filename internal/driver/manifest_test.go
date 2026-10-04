@@ -62,7 +62,7 @@ func staticFixtures(t *testing.T, kind, mode string) []testtool.Fixture {
 	return out
 }
 
-// runFixtures classifies each run fixture's engine mode by probing the VM; panics get a regex stderr matcher since only the interpreter appends a location.
+// runFixtures classifies each run fixture's engine mode by probing the VM; panics get a regex stderr matcher since a native-only refusal reports a bare message with no location.
 func runFixtures(t *testing.T) []testtool.Fixture {
 	t.Helper()
 	files, err := filepath.Glob("../../testdata/run/*.txtar")
@@ -81,12 +81,11 @@ func runFixtures(t *testing.T) []testtool.Fixture {
 		if fixtureEngines(path) == "native" {
 			fx.Mode = []string{"native"}
 			fx.Requires = []string{"c-compiler"}
-			fx.Skip = map[string]string{"interp": "static-refusal", "vm": "static-refusal"}
+			fx.Skip = map[string]string{"vm": "static-refusal"}
 			out = append(out, fx)
 			continue
 		}
 		t.Run(base, func(t *testing.T) {
-			declared := fixtureEngines(path)
 			root, _, wantErr, wantExit := loadRunFixture(t, path)
 			m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
 			if err != nil {
@@ -94,20 +93,14 @@ func runFixtures(t *testing.T) []testtool.Fixture {
 			}
 			t.Chdir(t.TempDir())
 			var vmOut, vmErrOut bytes.Buffer
-			_, vmErr := driver.RunWith(m, driver.RunOptions{Engine: "vm"}, &vmOut, &vmErrOut, []string{"main/main.kg", "one", "two"})
+			_, vmErr := driver.RunWith(m, driver.RunOptions{}, &vmOut, &vmErrOut, []string{"main/main.kg", "one", "two"})
 			fx.Requires = []string{"c-compiler"}
 			switch {
 			case vmErr == nil:
-				fx.Mode = []string{"interp", "vm", "native"}
-			case strings.Contains(vmErr.Error(), "--engine interp"):
-				fx.Mode = []string{"interp", "native"}
-				fx.Skip = map[string]string{"vm": "static-refusal"}
-			case strings.Contains(vmErr.Error(), "kigumi build") && declared == "interp":
-				fx.Mode = []string{"interp", "native"}
-				fx.Skip = map[string]string{"vm": "native-only"}
+				fx.Mode = []string{"vm", "native"}
 			case strings.Contains(vmErr.Error(), "kigumi build"):
 				fx.Mode = []string{"native"}
-				fx.Skip = map[string]string{"interp": "native-only", "vm": "native-only"}
+				fx.Skip = map[string]string{"vm": "native-only"}
 			default:
 				t.Fatalf("vm: %v", vmErr)
 			}

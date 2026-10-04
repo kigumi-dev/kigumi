@@ -2,10 +2,8 @@ package vm
 
 import "kigumi/internal/sem"
 
-// The VM has no C ABI, like the interpreter: CValue and Pin contents stay
-// VM values in a table, a pointer to one is the opaque handle, and null is
-// the only other pointer. Foreign memory stops with a pointer to `kigumi
-// build` through Supports.
+// The VM has no C ABI: CValue and Pin contents stay VM values in a table, and a pointer to one is just the opaque handle (null is the only other pointer).
+// Foreign memory support stops with a pointer to `kigumi build`, gated by Supports.
 func (m *Machine) registerFFI() {
 	h := m.host
 	handleOf := func(v *obj) int64 { return deref(deref(v).fields[0]).i }

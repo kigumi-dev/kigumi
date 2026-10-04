@@ -10,7 +10,7 @@ import (
 	"kigumi/internal/driver"
 )
 
-// TestVMRefusalHostDL checks host.dl() refuses as native-only, not as a gap --engine interp closes.
+// TestVMRefusalHostDL checks host.dl() refuses as native-only.
 func TestVMRefusalHostDL(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
@@ -27,14 +27,11 @@ print "opened"
 	}
 
 	var out, errOut bytes.Buffer
-	_, err = driver.RunWith(m, driver.RunOptions{Engine: "vm"}, &out, &errOut, nil)
+	_, err = driver.RunWith(m, driver.RunOptions{}, &out, &errOut, nil)
 	if err == nil {
 		t.Fatal("want a VM refusal")
 	}
 	if !strings.Contains(err.Error(), "primitive os.Host.dl") || !strings.Contains(err.Error(), "native-only") || !strings.Contains(err.Error(), "kigumi build") {
 		t.Errorf("want a native-only `kigumi build` refusal naming os.Host.dl, got %q", err.Error())
-	}
-	if strings.Contains(err.Error(), "--engine interp") {
-		t.Errorf("must not point at --engine interp: interp only panics later, inside Loader.open, got %q", err.Error())
 	}
 }

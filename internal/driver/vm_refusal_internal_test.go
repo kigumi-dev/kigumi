@@ -10,9 +10,7 @@ func TestNativeOnlyRefusal(t *testing.T) {
 		why        string
 		nativeOnly bool
 	}{
-		{"callc", true},
 		{"asm", true},
-		{"cfnptr", true},
 		{"primitive os.Host.dl", true},
 		{"primitive dl.Symbol.call", true},
 		{"primitive ffi.CString.new", true},
@@ -28,7 +26,7 @@ func TestNativeOnlyRefusal(t *testing.T) {
 				t.Errorf("nativeOnlyRefusal(%q) = %v, want %v", c.why, got, c.nativeOnly)
 			}
 			err := vmRefusalError(c.why)
-			wantSubstr := "run with --engine interp"
+			wantSubstr := "not supported by the VM"
 			if c.nativeOnly {
 				wantSubstr = "kigumi build"
 			}

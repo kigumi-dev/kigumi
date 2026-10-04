@@ -12,9 +12,9 @@ import (
 
 // TestAotFFIResourceExplicitDrop: `ffi.CString.drop`
 // needs real foreign memory, so unlike `ffi.CValue` it never runs on the
-// interpreter or the VM (internal/interp/builtin_ffi.go). Native is the
-// only engine that can catch its double free, and KIGUMI_RC_CHECK makes
-// glibc's tcache detector fatal instead of merely likely.
+// VM. Native is the only engine that can catch its double free, and
+// KIGUMI_RC_CHECK makes glibc's tcache detector fatal instead of merely
+// likely.
 func TestAotFFIResourceExplicitDrop(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")

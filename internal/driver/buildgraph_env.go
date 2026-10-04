@@ -29,8 +29,8 @@ func placeholderIndex(a string, n int) (int, error) {
 	return i, nil
 }
 
-// withinSandbox mirrors the interpreter's check for the executing side:
-// symlinks are followed on both the path and the roots.
+// withinSandbox mirrors the VM's check for the executing side: symlinks
+// are followed on both the path and the roots.
 func withinSandbox(roots []string, path string) bool {
 	resolve := func(p string) string {
 		if r, err := filepath.EvalSymlinks(p); err == nil {

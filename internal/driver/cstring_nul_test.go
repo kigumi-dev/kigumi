@@ -48,7 +48,7 @@ func runCstringNulProbe(t *testing.T, exe string) string {
 
 // TestCstringNulGrepPattern covers the one embedded-NUL call site that
 // TestRunCorpusEngines can't: a grep pattern with a NUL rejects on native
-// (ffi.CString.new guards it), but vm/interp compile the pattern with Go's
+// (ffi.CString.new guards it), but the VM compiles the pattern with Go's
 // regexp, which has no C string to truncate and so has nothing to reject
 // (finding injection-validation-1).
 func TestCstringNulGrepPattern(t *testing.T) {

@@ -4,7 +4,7 @@ Each directory is a small Kigumi module: `mod.kg` marks the module root,
 `main.kg` next to it is the entry script, and libraries sit in their own
 directories (see `testing/numbers/`). Every `main.kg` starts with
 `#!/usr/bin/env kigumi` and is executable, so it can run directly, through the
-interpreter, or as a native executable:
+VM, or as a native executable:
 
 ```
 ./examples/hello/main.kg
@@ -13,9 +13,13 @@ kigumi build examples/hello -o hello && ./hello
 kigumi test examples/testing
 ```
 
-`expect.txt` next to an example is what it prints; `go test ./internal/driver`
-runs every example in both the interpreter and the compiler and compares the
-output, so the examples double as an end-to-end test suite. `args.txt` and
+`catalog.json` declares what each example is checked by: `run-output` runs it
+through the VM and as a native build and compares stdout against
+`expect.txt`, `test-only` relies on its `_test.kg` blocks instead, and
+`build-graph` is driven by its own `build.kg`-specific test. `go test
+./internal/driver` checks every example against its catalog entry, so a
+missing or unreadable `expect.txt` fails the build unless the catalog says
+why; the examples double as an end-to-end test suite. `args.txt` and
 `stdin.txt` supply arguments and input where an example needs them.
 
 Start at the top and read down.

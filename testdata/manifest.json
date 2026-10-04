@@ -1,8 +1,8 @@
 {
   "schema": 1,
   "reasons": {
-    "native-only": "the construct is native-only (C ABI, asm, cfnptr, ffi, dl); `kigumi build` runs it",
-    "static-refusal": "this engine cannot run a construct the fixture needs (the VM's Supports check statically refuses it by name, or the tree interpreter would panic on it); only the engines left in mode run the fixture."
+    "native-only": "the construct is native-only (C ABI, asm, ffi, dl); `kigumi build` runs it",
+    "static-refusal": "this engine cannot run a construct the fixture needs (the VM's Supports check statically refuses it by name); only the engines left in mode run the fixture."
   },
   "fixtures": [
     {
@@ -1385,7 +1385,6 @@
       "kind": "run",
       "path": "testdata/run/adt.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1403,7 +1402,6 @@
       "kind": "run",
       "path": "testdata/run/alloc.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1421,7 +1419,6 @@
       "kind": "run",
       "path": "testdata/run/alloc_error.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1439,7 +1436,6 @@
       "kind": "run",
       "path": "testdata/run/alloc_try.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1457,7 +1453,6 @@
       "kind": "run",
       "path": "testdata/run/array_bulk.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1475,7 +1470,6 @@
       "kind": "run",
       "path": "testdata/run/async.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1493,7 +1487,6 @@
       "kind": "run",
       "path": "testdata/run/async_fn_value.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1511,7 +1504,6 @@
       "kind": "run",
       "path": "testdata/run/async_method.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1529,7 +1521,6 @@
       "kind": "run",
       "path": "testdata/run/bind_temp_share.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1547,7 +1538,6 @@
       "kind": "run",
       "path": "testdata/run/borrow_match.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1565,7 +1555,6 @@
       "kind": "run",
       "path": "testdata/run/break_value.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1583,7 +1572,6 @@
       "kind": "run",
       "path": "testdata/run/byte_string_in_interpolation.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1601,7 +1589,6 @@
       "kind": "run",
       "path": "testdata/run/byte_string_literal.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1619,7 +1606,6 @@
       "kind": "run",
       "path": "testdata/run/bytes_concat_large.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1637,7 +1623,6 @@
       "kind": "run",
       "path": "testdata/run/bytes_fill_huge.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1659,7 +1644,6 @@
       "kind": "run",
       "path": "testdata/run/bytes_search.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1677,7 +1661,6 @@
       "kind": "run",
       "path": "testdata/run/bytes_slice.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1695,7 +1678,6 @@
       "kind": "run",
       "path": "testdata/run/bytes_zeros_huge.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1717,7 +1699,6 @@
       "kind": "run",
       "path": "testdata/run/call_plan_order.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1735,7 +1716,6 @@
       "kind": "run",
       "path": "testdata/run/cell_capture_copy.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1753,7 +1733,7 @@
       "kind": "run",
       "path": "testdata/run/cfnptr.txtar",
       "mode": [
-        "interp",
+        "vm",
         "native"
       ],
       "requires": [
@@ -1763,17 +1743,13 @@
         "stdout",
         "stderr",
         "exit"
-      ],
-      "skip": {
-        "vm": "native-only"
-      }
+      ]
     },
     {
       "id": "run/closure_captured_mut_call",
       "kind": "run",
       "path": "testdata/run/closure_captured_mut_call.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1791,7 +1767,6 @@
       "kind": "run",
       "path": "testdata/run/closures.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1809,7 +1784,6 @@
       "kind": "run",
       "path": "testdata/run/collection_ownership.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1827,7 +1801,6 @@
       "kind": "run",
       "path": "testdata/run/comptime.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1845,7 +1818,6 @@
       "kind": "run",
       "path": "testdata/run/comptime_multi_block.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1863,7 +1835,6 @@
       "kind": "run",
       "path": "testdata/run/conform_generic_method_constraint_dispatch.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1881,7 +1852,6 @@
       "kind": "run",
       "path": "testdata/run/conform_generic_method_dispatch.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1899,7 +1869,6 @@
       "kind": "run",
       "path": "testdata/run/conform_generic_method_own_constrained.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1917,7 +1886,6 @@
       "kind": "run",
       "path": "testdata/run/conform_generic_method_param_iface_dispatch.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1935,7 +1903,6 @@
       "kind": "run",
       "path": "testdata/run/const_float.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1953,7 +1920,6 @@
       "kind": "run",
       "path": "testdata/run/const_generic_fn.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1971,7 +1937,6 @@
       "kind": "run",
       "path": "testdata/run/const_generic_method.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -1989,7 +1954,6 @@
       "kind": "run",
       "path": "testdata/run/control.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2007,7 +1971,6 @@
       "kind": "run",
       "path": "testdata/run/conversions.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2025,7 +1988,6 @@
       "kind": "run",
       "path": "testdata/run/custom_eq.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2043,7 +2005,6 @@
       "kind": "run",
       "path": "testdata/run/custom_index_witness.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2061,7 +2022,6 @@
       "kind": "run",
       "path": "testdata/run/custom_index_witness_nonusize.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2079,7 +2039,6 @@
       "kind": "run",
       "path": "testdata/run/custom_index_witness_order.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2097,7 +2056,6 @@
       "kind": "run",
       "path": "testdata/run/cvalue.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2115,7 +2073,6 @@
       "kind": "run",
       "path": "testdata/run/cvalue_scalar.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2133,7 +2090,6 @@
       "kind": "run",
       "path": "testdata/run/defer.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2151,7 +2107,6 @@
       "kind": "run",
       "path": "testdata/run/defer_move_reassign.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2169,7 +2124,6 @@
       "kind": "run",
       "path": "testdata/run/discard_place_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2187,7 +2141,6 @@
       "kind": "run",
       "path": "testdata/run/disjoint_field_borrow.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2205,7 +2158,6 @@
       "kind": "run",
       "path": "testdata/run/drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2223,7 +2175,6 @@
       "kind": "run",
       "path": "testdata/run/effect_poly_args_closures.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2241,7 +2192,6 @@
       "kind": "run",
       "path": "testdata/run/effect_poly_field.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2259,7 +2209,6 @@
       "kind": "run",
       "path": "testdata/run/effect_poly_iface_call.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2277,7 +2226,6 @@
       "kind": "run",
       "path": "testdata/run/effect_poly_iface_generic.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2295,7 +2243,6 @@
       "kind": "run",
       "path": "testdata/run/effect_poly_param_forward.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2313,7 +2260,6 @@
       "kind": "run",
       "path": "testdata/run/effect_poly_wrap_generic.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2331,7 +2277,6 @@
       "kind": "run",
       "path": "testdata/run/entropy_bytes_huge.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2349,7 +2294,6 @@
       "kind": "run",
       "path": "testdata/run/entropy_host.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2367,7 +2311,6 @@
       "kind": "run",
       "path": "testdata/run/entry_intrinsics_ok.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2385,7 +2328,6 @@
       "kind": "run",
       "path": "testdata/run/error_as.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2403,7 +2345,6 @@
       "kind": "run",
       "path": "testdata/run/error_context.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2421,7 +2362,6 @@
       "kind": "run",
       "path": "testdata/run/errors.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2439,7 +2379,6 @@
       "kind": "run",
       "path": "testdata/run/escape_capborrow.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2457,7 +2396,6 @@
       "kind": "run",
       "path": "testdata/run/explicit_main_http_fallback.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2475,7 +2413,6 @@
       "kind": "run",
       "path": "testdata/run/f32_rounding.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2493,7 +2430,6 @@
       "kind": "run",
       "path": "testdata/run/fallback_tail.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2511,7 +2447,6 @@
       "kind": "run",
       "path": "testdata/run/ffi_cvalue_explicit_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2529,7 +2464,6 @@
       "kind": "run",
       "path": "testdata/run/ffi_nested_packed.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2547,7 +2481,6 @@
       "kind": "run",
       "path": "testdata/run/ffi_sizeof_scalar.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2565,7 +2498,6 @@
       "kind": "run",
       "path": "testdata/run/fix_borrow_bind_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2583,7 +2515,6 @@
       "kind": "run",
       "path": "testdata/run/fix_capture_ref_write.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2601,7 +2532,6 @@
       "kind": "run",
       "path": "testdata/run/fix_closure_erase_pure.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2619,7 +2549,6 @@
       "kind": "run",
       "path": "testdata/run/fix_convert_value.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2637,7 +2566,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_float_precision.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2655,7 +2583,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_iface_manyargs.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2673,7 +2600,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_instant_utc_floor.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2691,7 +2617,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_json_decode_width.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2709,7 +2634,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_json_lone_surrogate.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2727,7 +2651,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_json_number_grammar.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2745,7 +2668,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_qsort_empty_dir.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2763,7 +2685,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_shell_pipe_chain.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2781,7 +2702,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_shell_startup_errors.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2799,7 +2719,6 @@
       "kind": "run",
       "path": "testdata/run/fix_crt_tilde_mask.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2817,7 +2736,6 @@
       "kind": "run",
       "path": "testdata/run/fix_error_message.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2835,7 +2753,6 @@
       "kind": "run",
       "path": "testdata/run/fix_fallback_diverge.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2853,7 +2770,6 @@
       "kind": "run",
       "path": "testdata/run/fix_fn_constraint_self_ref.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2871,7 +2787,6 @@
       "kind": "run",
       "path": "testdata/run/fix_fs_mkdir_eexist.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2889,7 +2804,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_assign_order.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2907,7 +2821,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_bracket_move_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2925,7 +2838,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_chained_bracket_move_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2943,7 +2855,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_coerce_arg_move_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2961,7 +2872,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_compound_assign_once.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2979,7 +2889,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_double_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -2997,7 +2906,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_future_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3015,7 +2923,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_json_control_chars.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3033,7 +2940,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_mut_arg.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3051,7 +2957,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_nested_tail_for.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3069,7 +2974,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_partial_bind_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3087,7 +2991,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_self_let_alias.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3105,7 +3008,6 @@
       "kind": "run",
       "path": "testdata/run/fix_interp_shell_stderr.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3123,7 +3025,6 @@
       "kind": "run",
       "path": "testdata/run/fix_json_float_roundtrip.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3141,7 +3042,6 @@
       "kind": "run",
       "path": "testdata/run/fix_json_string_control_chars.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3159,7 +3059,6 @@
       "kind": "run",
       "path": "testdata/run/fix_lead_borrow_temp.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3177,7 +3076,6 @@
       "kind": "run",
       "path": "testdata/run/fix_lead_pipe_early_exit.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3195,7 +3093,6 @@
       "kind": "run",
       "path": "testdata/run/fix_lead_shell_redirect.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3213,7 +3110,6 @@
       "kind": "run",
       "path": "testdata/run/fix_lead_try_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3231,7 +3127,6 @@
       "kind": "run",
       "path": "testdata/run/fix_let_self_borrow.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3249,7 +3144,6 @@
       "kind": "run",
       "path": "testdata/run/fix_literal_borrow.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3267,7 +3161,6 @@
       "kind": "run",
       "path": "testdata/run/fix_loop_never.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3285,7 +3178,6 @@
       "kind": "run",
       "path": "testdata/run/fix_map_eq.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3303,7 +3195,6 @@
       "kind": "run",
       "path": "testdata/run/fix_mir_early_exit_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3321,7 +3212,6 @@
       "kind": "run",
       "path": "testdata/run/fix_self_closure_write.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3339,7 +3229,6 @@
       "kind": "run",
       "path": "testdata/run/fix_self_nested_closure.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3357,7 +3246,6 @@
       "kind": "run",
       "path": "testdata/run/fix_sem_call_rooted_index_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3375,7 +3263,6 @@
       "kind": "run",
       "path": "testdata/run/fix_unit_protocol.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3393,7 +3280,6 @@
       "kind": "run",
       "path": "testdata/run/fix_vm_implicit_drop_accel.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3411,7 +3297,6 @@
       "kind": "run",
       "path": "testdata/run/fixed_array.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3440,7 +3325,6 @@
         "exit"
       ],
       "skip": {
-        "interp": "static-refusal",
         "vm": "static-refusal"
       }
     },
@@ -3449,7 +3333,6 @@
       "kind": "run",
       "path": "testdata/run/fixed_array_move.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3467,7 +3350,6 @@
       "kind": "run",
       "path": "testdata/run/float_nan.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3485,7 +3367,6 @@
       "kind": "run",
       "path": "testdata/run/float_total_eq_ord.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3503,7 +3384,6 @@
       "kind": "run",
       "path": "testdata/run/for_borrow.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3521,7 +3401,6 @@
       "kind": "run",
       "path": "testdata/run/for_borrow_discard_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3539,7 +3418,6 @@
       "kind": "run",
       "path": "testdata/run/for_borrow_field_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3557,7 +3435,6 @@
       "kind": "run",
       "path": "testdata/run/for_borrow_mut.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3575,7 +3452,6 @@
       "kind": "run",
       "path": "testdata/run/for_borrow_temp_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3593,7 +3469,6 @@
       "kind": "run",
       "path": "testdata/run/for_map_forms.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3611,7 +3486,6 @@
       "kind": "run",
       "path": "testdata/run/for_owned_consume.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3629,7 +3503,6 @@
       "kind": "run",
       "path": "testdata/run/fs_append.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3647,7 +3520,6 @@
       "kind": "run",
       "path": "testdata/run/fs_read_error.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3665,7 +3537,6 @@
       "kind": "run",
       "path": "testdata/run/future_await_once.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3683,7 +3554,6 @@
       "kind": "run",
       "path": "testdata/run/generic_callable_borrow.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3701,7 +3571,6 @@
       "kind": "run",
       "path": "testdata/run/generic_callable_withmut.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3719,7 +3588,6 @@
       "kind": "run",
       "path": "testdata/run/generic_resource_ownership.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3737,7 +3605,6 @@
       "kind": "run",
       "path": "testdata/run/generics.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3755,7 +3622,6 @@
       "kind": "run",
       "path": "testdata/run/hash_consistency.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3773,7 +3639,6 @@
       "kind": "run",
       "path": "testdata/run/hello.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3791,7 +3656,6 @@
       "kind": "run",
       "path": "testdata/run/hir_scalar.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3809,7 +3673,6 @@
       "kind": "run",
       "path": "testdata/run/if_let_refutable.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3827,7 +3690,6 @@
       "kind": "run",
       "path": "testdata/run/iface_static.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3845,7 +3707,6 @@
       "kind": "run",
       "path": "testdata/run/import_rename.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3863,7 +3724,6 @@
       "kind": "run",
       "path": "testdata/run/int_overflow_flag.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3881,7 +3741,6 @@
       "kind": "run",
       "path": "testdata/run/int_saturating_signed.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3899,7 +3758,6 @@
       "kind": "run",
       "path": "testdata/run/int_saturating_unsigned.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3917,7 +3775,6 @@
       "kind": "run",
       "path": "testdata/run/int_wrapping.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3935,7 +3792,6 @@
       "kind": "run",
       "path": "testdata/run/int_wrapping_narrow.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3953,7 +3809,6 @@
       "kind": "run",
       "path": "testdata/run/is_short_circuit.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3971,7 +3826,6 @@
       "kind": "run",
       "path": "testdata/run/isr.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -3989,7 +3843,6 @@
       "kind": "run",
       "path": "testdata/run/json_decode.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4007,7 +3860,6 @@
       "kind": "run",
       "path": "testdata/run/json_derive.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4025,7 +3877,6 @@
       "kind": "run",
       "path": "testdata/run/json_map_keys.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4043,7 +3894,6 @@
       "kind": "run",
       "path": "testdata/run/json_u64_map_key.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4061,7 +3911,6 @@
       "kind": "run",
       "path": "testdata/run/json_u64_unsigned.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4079,7 +3928,6 @@
       "kind": "run",
       "path": "testdata/run/layout_align.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4097,7 +3945,6 @@
       "kind": "run",
       "path": "testdata/run/leading_andor.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4115,7 +3962,6 @@
       "kind": "run",
       "path": "testdata/run/let_wildcard_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4133,7 +3979,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_branch_ambiguous_same_scope.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4151,7 +3996,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_generic_call.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4169,7 +4013,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_generic_multi_param_return.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4187,7 +4030,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_generic_passthrough.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4205,7 +4047,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_multi_param_disambiguated.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4223,7 +4064,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_param_relabel.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4241,7 +4081,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_rc_nested.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4259,7 +4098,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_receiver_elision.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4277,7 +4115,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_receiver_param_disambiguated.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4295,7 +4132,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_return.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4313,7 +4149,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_scope_exit_future_ok.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4331,7 +4166,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_scope_exit_mut_ok.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4349,7 +4183,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_scope_exit_plain_ok.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4367,7 +4200,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_scope_exit_view_ok.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4385,7 +4217,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_view.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4403,7 +4234,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_witness_method_in_scope.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4421,7 +4251,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_witness_receiver_return.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4439,7 +4268,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_witness_static_in_scope.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4457,7 +4285,6 @@
       "kind": "run",
       "path": "testdata/run/lifetime_witness_static_return.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4475,7 +4302,6 @@
       "kind": "run",
       "path": "testdata/run/literal_receiver.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4493,7 +4319,6 @@
       "kind": "run",
       "path": "testdata/run/match_record_lit.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4511,7 +4336,6 @@
       "kind": "run",
       "path": "testdata/run/math_abs_min_i16.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4533,7 +4357,6 @@
       "kind": "run",
       "path": "testdata/run/math_abs_min_i32.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4555,7 +4378,6 @@
       "kind": "run",
       "path": "testdata/run/math_abs_min_i8.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4577,7 +4399,6 @@
       "kind": "run",
       "path": "testdata/run/math_abs_min_int.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4599,7 +4420,6 @@
       "kind": "run",
       "path": "testdata/run/math_abs_min_isize.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4621,7 +4441,6 @@
       "kind": "run",
       "path": "testdata/run/math_fixed_width.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4639,7 +4458,6 @@
       "kind": "run",
       "path": "testdata/run/method_typeargs.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4657,7 +4475,6 @@
       "kind": "run",
       "path": "testdata/run/mut_index_arg.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4675,7 +4492,6 @@
       "kind": "run",
       "path": "testdata/run/mut_index_arg_out_of_range.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4697,7 +4513,6 @@
       "kind": "run",
       "path": "testdata/run/mut_self_alias_disjoint.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4715,7 +4530,6 @@
       "kind": "run",
       "path": "testdata/run/named_args.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4733,7 +4547,6 @@
       "kind": "run",
       "path": "testdata/run/nested_interpolation_deep.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4751,7 +4564,6 @@
       "kind": "run",
       "path": "testdata/run/numeric_convert.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4769,7 +4581,6 @@
       "kind": "run",
       "path": "testdata/run/option_result_combinators.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4787,7 +4598,6 @@
       "kind": "run",
       "path": "testdata/run/option_take.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4805,7 +4615,6 @@
       "kind": "run",
       "path": "testdata/run/panic.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4827,7 +4636,6 @@
       "kind": "run",
       "path": "testdata/run/partial_move.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4845,7 +4653,6 @@
       "kind": "run",
       "path": "testdata/run/partial_move_copy_field.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4863,7 +4670,6 @@
       "kind": "run",
       "path": "testdata/run/partial_move_expr_lambda.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4881,7 +4687,6 @@
       "kind": "run",
       "path": "testdata/run/partial_move_nested.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4899,7 +4704,6 @@
       "kind": "run",
       "path": "testdata/run/pattern_or.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4917,7 +4721,6 @@
       "kind": "run",
       "path": "testdata/run/pattern_range.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4935,7 +4738,6 @@
       "kind": "run",
       "path": "testdata/run/pin.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4953,7 +4755,6 @@
       "kind": "run",
       "path": "testdata/run/pin_drop.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4971,7 +4772,6 @@
       "kind": "run",
       "path": "testdata/run/pin_release_reclaim.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -4989,7 +4789,6 @@
       "kind": "run",
       "path": "testdata/run/pipe_insert.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5007,7 +4806,6 @@
       "kind": "run",
       "path": "testdata/run/range_inclusive_max.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5025,7 +4823,6 @@
       "kind": "run",
       "path": "testdata/run/range_literal_double.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5043,7 +4840,6 @@
       "kind": "run",
       "path": "testdata/run/range_literal_element.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5061,7 +4857,6 @@
       "kind": "run",
       "path": "testdata/run/reborrow_call_arg.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5079,7 +4874,6 @@
       "kind": "run",
       "path": "testdata/run/reborrow_call_arg_paren.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5097,7 +4891,6 @@
       "kind": "run",
       "path": "testdata/run/recursive_adt.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5115,7 +4908,6 @@
       "kind": "run",
       "path": "testdata/run/recv_move_self_mut.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5133,7 +4925,6 @@
       "kind": "run",
       "path": "testdata/run/reinit.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5151,7 +4942,6 @@
       "kind": "run",
       "path": "testdata/run/self_capture_copy.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5169,7 +4959,6 @@
       "kind": "run",
       "path": "testdata/run/self_whole_reassign.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5187,7 +4976,6 @@
       "kind": "run",
       "path": "testdata/run/shell.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5205,7 +4993,6 @@
       "kind": "run",
       "path": "testdata/run/spread_borrow_copy.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5223,7 +5010,6 @@
       "kind": "run",
       "path": "testdata/run/std_base64.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5241,7 +5027,6 @@
       "kind": "run",
       "path": "testdata/run/std_binary_fmt_hex.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5259,7 +5044,6 @@
       "kind": "run",
       "path": "testdata/run/std_ffi_cstring_nul.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5277,7 +5061,6 @@
       "kind": "run",
       "path": "testdata/run/std_io_bufreader.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5295,7 +5078,6 @@
       "kind": "run",
       "path": "testdata/run/std_io_copy_file_stdout.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5313,7 +5095,6 @@
       "kind": "run",
       "path": "testdata/run/std_io_helpers.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5331,7 +5112,6 @@
       "kind": "run",
       "path": "testdata/run/std_io_multichunk.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5349,7 +5129,6 @@
       "kind": "run",
       "path": "testdata/run/std_io_n_laws.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5367,7 +5146,6 @@
       "kind": "run",
       "path": "testdata/run/std_io_reader_dispatch.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5385,7 +5163,6 @@
       "kind": "run",
       "path": "testdata/run/std_more.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5403,7 +5180,6 @@
       "kind": "run",
       "path": "testdata/run/std_net_conn_iface_dispatch.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5421,7 +5197,6 @@
       "kind": "run",
       "path": "testdata/run/std_net_conn_read_huge.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5439,7 +5214,6 @@
       "kind": "run",
       "path": "testdata/run/std_net_http_injection.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5457,7 +5231,6 @@
       "kind": "run",
       "path": "testdata/run/std_net_listen_empty_host.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5475,7 +5248,6 @@
       "kind": "run",
       "path": "testdata/run/std_net_socket.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5493,7 +5265,6 @@
       "kind": "run",
       "path": "testdata/run/std_text_search.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5511,7 +5282,6 @@
       "kind": "run",
       "path": "testdata/run/stdlib.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5529,7 +5299,6 @@
       "kind": "run",
       "path": "testdata/run/stdlib_host.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5547,7 +5316,6 @@
       "kind": "run",
       "path": "testdata/run/stdout_write.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5565,7 +5333,6 @@
       "kind": "run",
       "path": "testdata/run/str_slice_boundary_panic.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5587,7 +5354,6 @@
       "kind": "run",
       "path": "testdata/run/str_slice_multibyte_boundary_ok.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5605,7 +5371,6 @@
       "kind": "run",
       "path": "testdata/run/string_builder.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5623,7 +5388,6 @@
       "kind": "run",
       "path": "testdata/run/strings_edge.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5641,7 +5405,6 @@
       "kind": "run",
       "path": "testdata/run/subtle_constant_time.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5659,7 +5422,6 @@
       "kind": "run",
       "path": "testdata/run/text_parsefloat.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5677,7 +5439,6 @@
       "kind": "run",
       "path": "testdata/run/time_monotonic.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5695,7 +5456,6 @@
       "kind": "run",
       "path": "testdata/run/tuple.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5713,7 +5473,6 @@
       "kind": "run",
       "path": "testdata/run/unit.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5731,7 +5490,6 @@
       "kind": "run",
       "path": "testdata/run/unit_bare_return.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5749,7 +5507,6 @@
       "kind": "run",
       "path": "testdata/run/unit_ok_branch.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5767,7 +5524,6 @@
       "kind": "run",
       "path": "testdata/run/unit_ok_fallthrough.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5785,7 +5541,6 @@
       "kind": "run",
       "path": "testdata/run/unsafe_guarantee_copy.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5803,7 +5558,6 @@
       "kind": "run",
       "path": "testdata/run/utf8_validate_edge_cases.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5821,7 +5575,6 @@
       "kind": "run",
       "path": "testdata/run/variadic_empty_tail.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5839,7 +5592,6 @@
       "kind": "run",
       "path": "testdata/run/weak.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5857,7 +5609,6 @@
       "kind": "run",
       "path": "testdata/run/with_mut.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5875,7 +5626,6 @@
       "kind": "run",
       "path": "testdata/run/with_mut_reentrant_ok.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5893,7 +5643,6 @@
       "kind": "run",
       "path": "testdata/run/withmut_scalar.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5911,7 +5660,6 @@
       "kind": "run",
       "path": "testdata/run/withmut_scalar_alias.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5929,7 +5677,6 @@
       "kind": "run",
       "path": "testdata/run/withmut_scalar_closure.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],
@@ -5947,7 +5694,6 @@
       "kind": "run",
       "path": "testdata/run/withmut_scalar_closures.txtar",
       "mode": [
-        "interp",
         "vm",
         "native"
       ],

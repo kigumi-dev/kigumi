@@ -30,9 +30,9 @@ match files.list(dirPath) {
 // TestDirentLossyUtf8 covers ffi-string-utf8: a
 // directory entry name that isn't valid UTF-8 (an arbitrary byte string on
 // Linux) must list as U+FFFD in place of the bad byte instead of building a
-// String that fails its UTF-8 invariant. VM and interp back Files.list with
-// Go's os.ReadDir, native with readdir(3) through ffi.stringLossy; all three
-// must land on the same replacement.
+// String that fails its UTF-8 invariant. VM backs Files.list with Go's
+// os.ReadDir, native with readdir(3) through ffi.stringLossy; both must
+// land on the same replacement.
 func TestDirentLossyUtf8(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
@@ -52,19 +52,17 @@ func TestDirentLossyUtf8(t *testing.T) {
 	}
 
 	want := "name=sub/�"
-	for _, engine := range []string{"vm", "interp"} {
-		t.Run(engine, func(t *testing.T) {
-			t.Chdir(filepath.Join(root, "main"))
-			var out, errOut bytes.Buffer
-			code, err := driver.RunWith(m, driver.RunOptions{Engine: engine}, &out, &errOut, []string{"main/main.kg"})
-			if err != nil || code != 0 {
-				t.Fatalf("%s: err %v exit %d\n%s", engine, err, code, errOut.String())
-			}
-			if got := strings.TrimSpace(out.String()); got != want {
-				t.Errorf("%s stdout = %q, want %q", engine, got, want)
-			}
-		})
-	}
+	t.Run("vm", func(t *testing.T) {
+		t.Chdir(filepath.Join(root, "main"))
+		var out, errOut bytes.Buffer
+		code, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, []string{"main/main.kg"})
+		if err != nil || code != 0 {
+			t.Fatalf("vm: err %v exit %d\n%s", err, code, errOut.String())
+		}
+		if got := strings.TrimSpace(out.String()); got != want {
+			t.Errorf("vm stdout = %q, want %q", got, want)
+		}
+	})
 
 	t.Run("native", func(t *testing.T) {
 		if driver.CCompiler() == nil {

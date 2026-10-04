@@ -14,14 +14,14 @@ import (
 	"kigumi/internal/driver"
 )
 
-// TestHttpPostEngineMatrix checks the VM and the interpreter agree with each other and with native on the same local listener.
+// TestHttpPostEngineMatrix checks the VM agrees with native on the same local listener.
 func TestHttpPostEngineMatrix(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"httpprobe\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(httpPostProbeSrc), 0o644)
 
-	runProbe := func(t *testing.T, engine, url string) string {
+	runProbe := func(t *testing.T, url string) string {
 		t.Helper()
 		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
 		if err != nil {
@@ -29,8 +29,8 @@ func TestHttpPostEngineMatrix(t *testing.T) {
 		}
 		t.Chdir(t.TempDir())
 		var out, errOut bytes.Buffer
-		if _, err := driver.RunWith(m, driver.RunOptions{Engine: engine}, &out, &errOut, []string{"main", url}); err != nil {
-			t.Fatalf("%s: %v\n%s", engine, err, errOut.String())
+		if _, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, []string{"main", url}); err != nil {
+			t.Fatalf("vm: %v\n%s", err, errOut.String())
 		}
 		return strings.TrimSpace(out.String())
 	}
@@ -56,10 +56,8 @@ func TestHttpPostEngineMatrix(t *testing.T) {
 		}()
 		addr := ln.Addr().(*net.TCPAddr)
 		url := fmt.Sprintf("http://127.0.0.1:%d/x", addr.Port)
-		for _, engine := range []string{"vm", "interp"} {
-			if got, want := runProbe(t, engine, url), "ok status=201"; got != want {
-				t.Errorf("%s: got %q, want %q", engine, got, want)
-			}
+		if got, want := runProbe(t, url), "ok status=201"; got != want {
+			t.Errorf("got %q, want %q", got, want)
 		}
 	})
 
@@ -82,7 +80,7 @@ func TestHttpPostEngineMatrix(t *testing.T) {
 		}()
 		addr := ln.Addr().(*net.TCPAddr)
 		url := fmt.Sprintf("http://127.0.0.1:%d/x", addr.Port)
-		if got, want := runProbe(t, "vm", url), "err: invalid UTF-8"; got != want {
+		if got, want := runProbe(t, url), "err: invalid UTF-8"; got != want {
 			t.Errorf("vm: got %q, want %q", got, want)
 		}
 	})
@@ -113,11 +111,9 @@ func TestHttpPostEngineMatrix(t *testing.T) {
 				}
 				addr := ln.Addr().(*net.TCPAddr)
 				url := fmt.Sprintf("http://127.0.0.1:%d/x", addr.Port)
-				for _, engine := range []string{"vm", "interp"} {
-					go serve()
-					if got, want := runProbe(t, engine, url), "err: malformed response"; got != want {
-						t.Errorf("%s: got %q, want %q", engine, got, want)
-					}
+				go serve()
+				if got, want := runProbe(t, url), "err: malformed response"; got != want {
+					t.Errorf("got %q, want %q", got, want)
 				}
 			})
 		}
@@ -147,18 +143,16 @@ func TestHttpPostEngineMatrix(t *testing.T) {
 			}
 		}()
 		url := fmt.Sprintf("http://127.0.0.1:%d/x", addr.Port)
-		for _, engine := range []string{"vm", "interp"} {
-			if got, want := runProbe(t, engine, url), "ok status=302"; got != want {
-				t.Errorf("%s: got %q, want %q", engine, got, want)
-			}
+		if got, want := runProbe(t, url), "ok status=302"; got != want {
+			t.Errorf("got %q, want %q", got, want)
 		}
-		if n := requests.Load(); n != 2 {
-			t.Errorf("got %d requests, want 2 (one per engine, no redirect followed)", n)
+		if n := requests.Load(); n != 1 {
+			t.Errorf("got %d requests, want 1 (no redirect followed)", n)
 		}
 	})
 
 	t.Run("validation error matches native wording", func(t *testing.T) {
-		if got, want := runProbe(t, "vm", "https://example.com/x"), "err: https is not supported in native builds"; got != want {
+		if got, want := runProbe(t, "https://example.com/x"), "err: https is not supported in native builds"; got != want {
 			t.Errorf("vm: got %q, want %q", got, want)
 		}
 	})

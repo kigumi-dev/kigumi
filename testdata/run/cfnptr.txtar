@@ -13,5 +13,3 @@ let f: extern(C) fn(i32) -> i32 = twice
 print "${unsafe { f(21) }} ${applyTwice(twice, 5)}"
 -- stdout --
 42 20
--- engines --
-interp

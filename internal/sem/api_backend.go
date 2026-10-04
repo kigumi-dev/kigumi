@@ -6,7 +6,7 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// Accessors for the back ends (mir, interp, llgen): tables stay unexported
+// Accessors for the back ends (mir, llgen): tables stay unexported
 // so the checker owns them, and readers go through here.
 
 // FnCVariadic is the fn type flag of a C `...` signature; FnCAbi marks a C

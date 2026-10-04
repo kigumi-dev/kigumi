@@ -2,9 +2,12 @@
 // execution. Slices keep declaration order so --plan and link order are stable.
 package buildgraph
 
+// Target is Triple/Sys (driver.ParseTarget's facts) plus Allocator, the
+// root's allocation policy, which a build program cannot set itself.
 type Target struct {
-	Triple string `json:"triple,omitempty"`
-	Sys    string `json:"sys,omitempty"`
+	Triple    string `json:"triple,omitempty"`
+	Sys       string `json:"sys,omitempty"`
+	Allocator string `json:"allocator,omitempty"`
 }
 
 // Provenance names the module and package whose code recorded a node.

@@ -22,7 +22,7 @@ func Implements(prog *mir.Program, fn sem.EntityID) bool {
 	m := &Machine{p: prog, r: prog.R, host: map[string]hostFn{}}
 	m.registerAll()
 	key := m.stdKey(fn)
-	_, hosted := m.host[key]
+	_, hosted := m.hostForEnt(fn, key)
 	return hosted || m.primitiveKnown(key)
 }
 
@@ -82,14 +82,14 @@ func supportsFrom(prog *mir.Program, roots ...*mir.Func) (bool, string) {
 // or every method of that name when the call goes through an interface.
 func (m *Machine) callees(in *mir.Inst) []*mir.Func {
 	switch in.Op {
-	case mir.OpCall, mir.OpClosure, mir.OpFnItem, mir.OpBind:
+	case mir.OpCall, mir.OpClosure, mir.OpFnItem, mir.OpBind, mir.OpCFnPtr:
 	default:
 		return nil
 	}
 	if f, ok := m.p.ByEnt[in.Ent]; ok {
 		// A host accelerator replaces the body, so what the body calls
 		// (the C shims of std/fs, std/shell) never runs here.
-		if _, hosted := m.host[m.stdKey(in.Ent)]; hosted {
+		if _, hosted := m.hostFor(in.Prov, m.stdKey(in.Ent)); hosted {
 			return nil
 		}
 		return []*mir.Func{f}
@@ -106,7 +106,7 @@ func (m *Machine) callees(in *mir.Inst) []*mir.Func {
 		// A host accelerator replaces the body here too, the same as the
 		// direct-call branch above: an accelerated implementer's body
 		// (e.g. its extern(C) calls) never actually runs.
-		if _, hosted := m.host[m.stdKey(ent)]; hosted {
+		if _, hosted := m.hostForEnt(ent, m.stdKey(ent)); hosted {
 			continue
 		}
 		fs = append(fs, f)
@@ -116,8 +116,11 @@ func (m *Machine) callees(in *mir.Inst) []*mir.Func {
 
 func (m *Machine) supportsInst(in *mir.Inst) string {
 	switch in.Op {
-	case mir.OpCallC, mir.OpAsm, mir.OpCFnPtr:
+	case mir.OpAsm:
 		return in.Op.String()
+	case mir.OpCallC:
+		// A CFn-typed value only ever comes from OpCFnPtr, naming a real Kigumi entity, so this is never a true foreign call.
+		return ""
 	case mir.OpCall:
 		e := m.r.Entity(in.Ent)
 		if e.Kind != sem.EntFn {
@@ -131,7 +134,7 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 			return ""
 		}
 		key := m.stdKey(in.Ent)
-		if _, ok := m.host[key]; ok || m.primitiveKnown(key) {
+		if _, ok := m.hostFor(in.Prov, key); ok || in.Prim != 0 || m.primitiveKnown(key) {
 			return ""
 		}
 		return "primitive " + key
@@ -147,44 +150,21 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 	return ""
 }
 
+// knownPrimitives lists branch witnesses dispatched by OpBuiltin, so they carry no registry entry of their own.
 var knownPrimitives = map[string]bool{
-	"array.Array.empty": true, "array.Array.of": true, "array.Array.push": true, "array.Array.growBy": true, "array.Array.len": true,
-	"array.Array.get": true, "array.Array.with": true, "array.Array.withMut": true, "array.Array.takeAt": true, "array.Array.clone": true,
-	"prelude.FixedArray.withMut": true,
-	"math.sqrt":                  true, "math.floor": true, "math.ceil": true, "math.round": true, "math.pow": true,
-	"prelude.String.len": true, "prelude.Bytes.len": true, "prelude.String.toBytes": true, "prelude.String.bytes": true,
-	"prelude.String.fromBytes": true, "prelude.String.tryFromBytes": true, "prelude.String.sliceBytes": true,
-	"prelude.Bytes.fromArray": true, "prelude.Bytes.tryFromArray": true,
-	"prelude.Bytes.concat": true, "prelude.Bytes.tryConcat": true,
-	"prelude.Bytes.slice": true, "prelude.Bytes.zeros": true, "prelude.Bytes.fill": true,
-	"prelude.Bytes.get": true, "prelude.Char.fromInt": true, "text.fromChar": true, "text.parseFloat": true,
-	"prelude.debug":       true,
-	"prelude.Bool.branch": true, "prelude.Option.branch": true, "prelude.Result.branch": true, "prelude.Option.take": true,
-	"alloc.Arena.create": true, "alloc.AllocatorHandle.scope": true, "alloc.AllocatorHandle.allocated": true, "alloc.Shared.new": true,
-	"alloc.Shared.clone": true, "alloc.Weak.clone": true, "alloc.Shared.get": true, "alloc.Shared.set": true, "alloc.Shared.with": true, "alloc.Shared.withMut": true,
-	"alloc.Shared.downgrade": true, "alloc.Weak.upgrade": true,
-	"crypto/subtle.constantTimeEq": true,
+	"prelude.Bool.branch": true, "prelude.Option.branch": true, "prelude.Result.branch": true,
 }
 
-// primitiveKnown covers the table above and the key families answered by
-// pattern: conversions, wrapping arithmetic and the Eq / Ord / Hash
-// witnesses of the primitive types.
+// primitiveKnown also accepts KindPrimitive registry entries and `.to...` conversions, which callEntity lowers without a registry entry.
 func (m *Machine) primitiveKnown(key string) bool {
 	if knownPrimitives[key] {
 		return true
 	}
-	if strings.HasPrefix(key, "prelude.") {
-		for _, suffix := range []string{".equals", ".compareTo", ".hash"} {
-			if strings.HasSuffix(key, suffix) {
-				return true
-			}
-		}
-		if strings.Contains(key, ".wrapping") || strings.Contains(key, ".rotate") {
-			return true
-		}
-		if strings.Contains(strings.TrimPrefix(key, "prelude."), ".to") {
-			return true
-		}
+	if id, ok := mir.StdOpFor(key); ok && id.Kind() == mir.KindPrimitive {
+		return true
+	}
+	if strings.HasPrefix(key, "prelude.") && strings.Contains(strings.TrimPrefix(key, "prelude."), ".to") {
+		return true
 	}
 	return false
 }

@@ -51,7 +51,7 @@ func stringLitNodes(t *Tree) []NodeID {
 	return ids
 }
 
-// visitAllStringParts replays what sem, hir and interp each do to every
+// visitAllStringParts replays what sem, hir and the VM each do to every
 // string node after parsing: read its StringParts and its Span.
 func visitAllStringParts(t *Tree, ids []NodeID) {
 	for _, id := range ids {

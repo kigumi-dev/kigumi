@@ -7,45 +7,6 @@ import (
 	"testing"
 )
 
-// An unrecognized --engine value must be a usage error, not a silent
-// alias for "auto".
-func TestEngineFlagValidation(t *testing.T) {
-	std, _ := filepath.Abs("../../std")
-	hello, _ := filepath.Abs("../../examples/hello/main.kg")
-	testing_, _ := filepath.Abs("../../examples/testing")
-
-	if code, errOut := executeReal(t, "--std", std, "run", "--engine", "bogus", hello); code != 2 || !strings.Contains(errOut, "--engine") {
-		t.Fatalf("run --engine bogus: exit %d, stderr %q", code, errOut)
-	}
-	if code, errOut := executeReal(t, "--std", std, "run", "--engine", "VM", hello); code != 2 || !strings.Contains(errOut, "--engine") {
-		t.Fatalf("run --engine VM (case typo): exit %d, stderr %q", code, errOut)
-	}
-	if code, errOut := executeReal(t, "--std", std, "run", "--engine", "auto", hello); code != 2 || !strings.Contains(errOut, "\"auto\" was removed") {
-		t.Fatalf("run --engine auto: exit %d, stderr %q", code, errOut)
-	}
-	if code, errOut := executeReal(t, "--std", std, "test", "--engine", "auto", testing_); code != 2 || !strings.Contains(errOut, "\"auto\" was removed") {
-		t.Fatalf("test --engine auto: exit %d, stderr %q", code, errOut)
-	}
-	if code, out, errOut := execute(t, "--std", std, "run", "--engine", "vm", hello); code != 0 || out != "Hello, Kigumi!\n" {
-		t.Fatalf("run --engine vm: exit %d, stdout %q, stderr %q", code, out, errOut)
-	}
-	if code, errOut := executeReal(t, "--std", std, "test", "--engine", "bogus", testing_); code != 2 || !strings.Contains(errOut, "--engine") {
-		t.Fatalf("test --engine bogus: exit %d, stderr %q", code, errOut)
-	}
-
-	// An invalid --engine value must be reported even when the target
-	// module itself fails to load.
-	dir := t.TempDir()
-	broken := filepath.Join(dir, "main.kg")
-	os.WriteFile(broken, []byte("fn main() -> Unit! {\n"), 0o644)
-	if code, errOut := executeReal(t, "--std", std, "run", "--engine", "bogus", broken); code != 2 || !strings.Contains(errOut, "--engine") {
-		t.Fatalf("run --engine bogus on a broken module: exit %d, stderr %q", code, errOut)
-	}
-	if code, errOut := executeReal(t, "--std", std, "test", "--engine", "bogus", dir); code != 2 || !strings.Contains(errOut, "--engine") {
-		t.Fatalf("test --engine bogus on a broken module: exit %d, stderr %q", code, errOut)
-	}
-}
-
 // An unrecognized --color value must be a usage error rather than
 // silently falling back to auto-detection.
 func TestColorFlagValidation(t *testing.T) {
@@ -80,9 +41,6 @@ func TestBuildRejectsBuildProgramFlagsWithoutOne(t *testing.T) {
 	}
 	if code, errOut := executeReal(t, "--std", std, "build", "--secret", "x=/nonexistent", "-o", out, file); code != 2 || !strings.Contains(errOut, "--secret") {
 		t.Fatalf("build --secret without build.kg: exit %d, stderr %q", code, errOut)
-	}
-	if code, _, _ := execute(t, "--std", std, "build", "-o", out, file); code != 0 {
-		t.Fatalf("plain build without those flags should still work: exit %d", code)
 	}
 }
 

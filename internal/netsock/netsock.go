@@ -1,8 +1,7 @@
-// Package netsock is the interp and vm accelerators' shared IPv4 TCP
-// implementation of std/net's socket layer. It works directly on raw file
-// descriptors, the same currency std/net/net_hosted.kg's extern(C) body
-// uses, so a Conn/Listener's `fd` field means the same thing under every
-// backend.
+// Package netsock is the VM accelerators' IPv4 TCP implementation of
+// std/net's socket layer. It works directly on raw file descriptors, the
+// same currency std/net/net_hosted.kg's extern(C) body uses, so a
+// Conn/Listener's `fd` field means the same thing under every backend.
 package netsock
 
 import (

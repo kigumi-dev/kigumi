@@ -78,9 +78,9 @@ func loadRunFixture(t testing.TB, path string) (root, wantOut, wantErr string, w
 
 // fixtureEngines reads a testdata/run fixture's optional `-- engines --`
 // section: "" (absent) runs everywhere, "native" only under TestAotCorpus
-// (a real extern(C) declaration panics on the interpreter and the VM
-// statically refuses it, so TestRunCorpus and TestRunCorpusEngines would
-// otherwise have nothing consistent to assert).
+// (a real extern(C) declaration the VM statically refuses, so
+// TestRunCorpus and TestRunCorpusEngines would otherwise have nothing
+// consistent to assert).
 func fixtureEngines(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {

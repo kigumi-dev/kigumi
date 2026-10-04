@@ -9,11 +9,9 @@ import (
 	"kigumi/internal/driver"
 )
 
-// TestHashConsistency runs testdata/run/hash_consistency.txtar on interp
-// and vm directly (TestRunCorpusEngines only exercises interp when vm
-// refuses a program by name, which never happens here) and on the native
-// build, so a hash() drift between any two engines fails here even when
-// it would not fail the shared-fixture checks.
+// TestHashConsistency runs testdata/run/hash_consistency.txtar on the VM
+// directly and on the native build, so a hash() drift between the two
+// engines fails here even when it would not fail the shared-fixture checks.
 func TestHashConsistency(t *testing.T) {
 	path := "../../testdata/run/hash_consistency.txtar"
 	root, wantOut, _, _ := loadRunFixture(t, path)
@@ -22,23 +20,14 @@ func TestHashConsistency(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	run := func(t *testing.T, engine string) string {
-		t.Chdir(t.TempDir())
-		var out, errOut bytes.Buffer
-		code, err := driver.RunWith(m, driver.RunOptions{Engine: engine}, &out, &errOut, []string{"main/main.kg"})
-		if err != nil || code != 0 {
-			t.Fatalf("%s: err %v exit %d\n%s", engine, err, code, errOut.String())
-		}
-		return out.String()
+	t.Chdir(t.TempDir())
+	var out, errOut bytes.Buffer
+	code, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, []string{"main/main.kg"})
+	if err != nil || code != 0 {
+		t.Fatalf("vm: err %v exit %d\n%s", err, code, errOut.String())
 	}
-
-	vmOut := run(t, "vm")
-	if vmOut != wantOut {
-		t.Errorf("vm stdout mismatch\n--- got ---\n%s--- want ---\n%s", vmOut, wantOut)
-	}
-	interpOut := run(t, "interp")
-	if interpOut != wantOut {
-		t.Errorf("interp stdout mismatch\n--- got ---\n%s--- want ---\n%s", interpOut, wantOut)
+	if out.String() != wantOut {
+		t.Errorf("vm stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), wantOut)
 	}
 
 	if driver.CCompiler() == nil {

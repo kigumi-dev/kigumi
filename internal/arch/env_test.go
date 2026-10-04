@@ -10,8 +10,8 @@ import (
 
 // envAllowed lists where a process environment may be read: the CLI
 // boundary, which turns KIGUMI_* into explicit options, and the host
-// intrinsics (interp and VM) that expose the environment to Kigumi programs.
-var envAllowed = []string{"internal/cli/", "internal/interp/accel_host.go", "internal/interp/accel_os_time.go", "internal/vm/std_host.go"}
+// intrinsic (the VM) that exposes the environment to Kigumi programs.
+var envAllowed = []string{"internal/cli/", "internal/vm/std_host.go"}
 
 func TestNoEnvReads(t *testing.T) {
 	err := filepath.WalkDir("../..", func(p string, d fs.DirEntry, err error) error {

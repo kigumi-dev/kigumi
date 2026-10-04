@@ -37,29 +37,12 @@ func TestReadSomeNegativeTimeoutClamped(t *testing.T) {
 		defer r.Close()
 		defer w.Close()
 		var out, errOut bytes.Buffer
-		code, err := driver.RunWith(m, driver.RunOptions{Engine: "vm", Stdin: r}, &out, &errOut, []string{"main/main.kg"})
+		code, err := driver.RunWith(m, driver.RunOptions{Stdin: r}, &out, &errOut, []string{"main/main.kg"})
 		if err != nil || code != 0 {
 			t.Fatalf("vm: err %v exit %d\n%s", err, code, errOut.String())
 		}
 		if out.String() != "a=0\n" {
 			t.Errorf("vm stdout = %q, want %q", out.String(), "a=0\n")
-		}
-	})
-
-	t.Run("interp", func(t *testing.T) {
-		r, w, err := os.Pipe()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer r.Close()
-		defer w.Close()
-		var out, errOut bytes.Buffer
-		code, err := driver.RunWith(m, driver.RunOptions{Engine: "interp", Stdin: r}, &out, &errOut, []string{"main/main.kg"})
-		if err != nil || code != 0 {
-			t.Fatalf("interp: err %v exit %d\n%s", err, code, errOut.String())
-		}
-		if out.String() != "a=0\n" {
-			t.Errorf("interp stdout = %q, want %q", out.String(), "a=0\n")
 		}
 	})
 

@@ -11,6 +11,7 @@ import (
 // follows the C runtime's retain rules.
 func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	f := fr.f
+	m.curFn, m.curInst = f, in
 	args := make([]*obj, len(in.Args))
 	for i, a := range in.Args {
 		args[i] = fr.locals[a]
@@ -44,7 +45,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpCall:
 		m.site, m.siteFn = in, f
 		res = m.callEntity(in, args)
-	case mir.OpCallValue:
+	case mir.OpCallValue, mir.OpCallC:
 		res = m.callValue(args[0], args[1:])
 	case mir.OpBuiltin:
 		res = m.builtin(in.Str, args)
@@ -104,7 +105,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 			m.chargeMemory(b)
 		}
 		res = v
-	case mir.OpClosure, mir.OpFnItem, mir.OpBind:
+	case mir.OpClosure, mir.OpFnItem, mir.OpBind, mir.OpCFnPtr:
 		res = m.closure(in, args)
 		m.chargeMemory(res)
 	case mir.OpBorrow:

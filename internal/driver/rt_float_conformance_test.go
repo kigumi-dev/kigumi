@@ -126,9 +126,8 @@ func runRtFloatHarness(t *testing.T, bin string, requests []string) []string {
 
 // TestRtFloatFormatConformance covers handoff 3.7 item 12: rt_float.c's
 // Dragon4 shortest-digit formatter must produce exactly what Go's
-// strconv.FormatFloat(f, 'g', -1, bits) does, since internal/interp and
-// internal/vm format floats that way (internal/vm/display.go,
-// internal/interp/display.go) and native must agree byte for byte.
+// strconv.FormatFloat(f, 'g', -1, bits) does, since internal/vm formats floats
+// that way (internal/vm/display.go) and native must agree byte for byte.
 func TestRtFloatFormatConformance(t *testing.T) {
 	t.Parallel()
 	bin := compileRtFloatHarness(t)

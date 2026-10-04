@@ -64,8 +64,7 @@ func TestComptimeSandbox(t *testing.T) {
 }
 
 // TestArenaAllocates checks the native runtime really routes allocations
-// through an arena; the interpreter reports 0 so this cannot be a shared
-// fixture.
+// through an arena; the VM reports 0 so this cannot be a shared fixture.
 func TestArenaAllocates(t *testing.T) {
 	t.Parallel()
 	if driver.CCompiler() == nil {

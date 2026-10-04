@@ -39,7 +39,7 @@ type Manifest struct {
 // EngineUniverse lists every engine/target a fixture kind could run under;
 // Mode is always a subset and the rest must appear in Skip with a reason.
 var EngineUniverse = map[string][]string{
-	"run":    {"interp", "vm", "native"},
+	"run":    {"vm", "native"},
 	"parser": {"parse"},
 	"sem":    {"check"},
 	"mir":    {"build"},

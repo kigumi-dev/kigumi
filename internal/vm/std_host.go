@@ -16,7 +16,7 @@ type hostFn func(m *Machine, fn sem.EntityID, a []*obj) *obj
 
 // registerHost supplies the capability objects, the process arguments,
 // stdin, the environment and the file system, replacing the extern(C)
-// bodies of std/fs and std/os the way the interpreter's accelerators do.
+// bodies of std/fs and std/os with Go accelerators.
 func (m *Machine) registerHost() {
 	m.host = map[string]hostFn{}
 	h := m.host

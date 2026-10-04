@@ -28,7 +28,7 @@ func TestRepostatChecks(t *testing.T) {
 	}
 }
 
-// TestRepostatTests runs the example's `test` blocks in the interpreter.
+// TestRepostatTests runs the example's `test` blocks on the VM.
 func TestRepostatTests(t *testing.T) {
 	t.Parallel()
 	m, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{Test: true, StdRoot: "../../std"})

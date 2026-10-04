@@ -98,10 +98,10 @@ struct dirent *readdir(DIR *d) {
 // TestFilesListReaddirError checks that Files.list distinguishes a
 // mid-iteration readdir(3) failure from a clean end-of-directory
 // (errno-reporting-4): a genuine error must surface as Err, not be folded
-// into a truncated Ok. VM and interp back Files.list with Go's os.ReadDir,
-// which already reports such an error, so only native needs the fix; the
-// interp/vm subtests are a baseline sanity check for the (unforced) happy
-// path shared with the fixture.
+// into a truncated Ok. The VM backs Files.list with Go's os.ReadDir, which
+// already reports such an error, so only native needs the fix; the vm
+// subtest is a baseline sanity check for the (unforced) happy path shared
+// with the fixture.
 func TestFilesListReaddirError(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
@@ -116,19 +116,17 @@ func TestFilesListReaddirError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, engine := range []string{"vm", "interp"} {
-		t.Run(engine, func(t *testing.T) {
-			t.Chdir(filepath.Join(root, "main"))
-			var out, errOut bytes.Buffer
-			code, err := driver.RunWith(m, driver.RunOptions{Engine: engine}, &out, &errOut, []string{"main/main.kg"})
-			if err != nil || code != 0 {
-				t.Fatalf("%s: err %v exit %d\n%s", engine, err, code, errOut.String())
-			}
-			if got := strings.TrimSpace(out.String()); got != "count=3" {
-				t.Errorf("%s stdout = %q, want %q", engine, got, "count=3")
-			}
-		})
-	}
+	t.Run("vm", func(t *testing.T) {
+		t.Chdir(filepath.Join(root, "main"))
+		var out, errOut bytes.Buffer
+		code, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, []string{"main/main.kg"})
+		if err != nil || code != 0 {
+			t.Fatalf("vm: err %v exit %d\n%s", err, code, errOut.String())
+		}
+		if got := strings.TrimSpace(out.String()); got != "count=3" {
+			t.Errorf("vm stdout = %q, want %q", got, "count=3")
+		}
+	})
 
 	t.Run("native", func(t *testing.T) {
 		if driver.CCompiler() == nil {

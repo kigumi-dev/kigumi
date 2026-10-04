@@ -238,8 +238,8 @@ func TestHttpPostConnectTimeout(t *testing.T) {
 	}
 }
 
-// runEmulatedEngine runs the HTTP post probe on the vm or interp engine, buildHTTPProbe's in-process counterparts.
-func runEmulatedEngine(t *testing.T, engine, url string) string {
+// runEmulatedEngine runs the HTTP post probe on the VM, buildHTTPProbe's in-process counterpart.
+func runEmulatedEngine(t *testing.T, url string) string {
 	t.Helper()
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
@@ -250,13 +250,13 @@ func runEmulatedEngine(t *testing.T, engine, url string) string {
 		t.Fatal(err)
 	}
 	var out, errOut bytes.Buffer
-	if _, err := driver.RunWith(m, driver.RunOptions{Engine: engine}, &out, &errOut, []string{"main", url}); err != nil {
-		t.Fatalf("%s: %v\n%s", engine, err, errOut.String())
+	if _, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, []string{"main", url}); err != nil {
+		t.Fatalf("vm: %v\n%s", err, errOut.String())
 	}
 	return strings.TrimSpace(out.String())
 }
 
-// TestHttpPostSlowDripSucceeds checks the 10s timeout is re-armed per read, not an overall deadline: a byte-at-a-time peer clears 10s total but every engine still succeeds.
+// TestHttpPostSlowDripSucceeds checks the 10s timeout is re-armed per read, not an overall deadline: a byte-at-a-time peer clears 10s total but the VM still succeeds.
 func TestHttpPostSlowDripSucceeds(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")
@@ -299,14 +299,12 @@ func TestHttpPostSlowDripSucceeds(t *testing.T) {
 			t.Fatalf("got %q, want %q", got, want)
 		}
 	})
-	for _, engine := range []string{"vm", "interp"} {
-		t.Run(engine, func(t *testing.T) {
-			t.Parallel()
-			if got, want := runEmulatedEngine(t, engine, drip(t)), "ok status=200"; got != want {
-				t.Fatalf("got %q, want %q", got, want)
-			}
-		})
-	}
+	t.Run("vm", func(t *testing.T) {
+		t.Parallel()
+		if got, want := runEmulatedEngine(t, drip(t)), "ok status=200"; got != want {
+			t.Fatalf("got %q, want %q", got, want)
+		}
+	})
 }
 
 // TestHttpPostGracefulCloseBeforeStatusLine checks a peer that drains the request then closes without writing: an orderly EOF must end the read loop like native's got==0, not surface as a raw "EOF".
@@ -354,17 +352,15 @@ func TestHttpPostGracefulCloseBeforeStatusLine(t *testing.T) {
 			t.Fatalf("got %q, want %q", got, wantMsg)
 		}
 	})
-	for _, engine := range []string{"vm", "interp"} {
-		t.Run(engine, func(t *testing.T) {
-			t.Parallel()
-			if got := runEmulatedEngine(t, engine, closeAfterDrain(t)); got != wantMsg {
-				t.Fatalf("%s: got %q, want %q", engine, got, wantMsg)
-			}
-		})
-	}
+	t.Run("vm", func(t *testing.T) {
+		t.Parallel()
+		if got := runEmulatedEngine(t, closeAfterDrain(t)); got != wantMsg {
+			t.Fatalf("got %q, want %q", got, wantMsg)
+		}
+	})
 }
 
-// TestHttpPostResetAfterRequestSent checks a peer that closes with SO_LINGER{0} after reading (a deterministic TCP RST): every engine must report native's ECONNRESET strerror text, not a raw Go error.
+// TestHttpPostResetAfterRequestSent checks a peer that closes with SO_LINGER{0} after reading (a deterministic TCP RST): the VM must report native's ECONNRESET strerror text, not a raw Go error.
 func TestHttpPostResetAfterRequestSent(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")
@@ -405,17 +401,15 @@ func TestHttpPostResetAfterRequestSent(t *testing.T) {
 			t.Fatalf("got %q, want %q", got, wantMsg)
 		}
 	})
-	for _, engine := range []string{"vm", "interp"} {
-		t.Run(engine, func(t *testing.T) {
-			t.Parallel()
-			if got := runEmulatedEngine(t, engine, resetAfterRead(t)); got != wantMsg {
-				t.Fatalf("%s: got %q, want %q", engine, got, wantMsg)
-			}
-		})
-	}
+	t.Run("vm", func(t *testing.T) {
+		t.Parallel()
+		if got := runEmulatedEngine(t, resetAfterRead(t)); got != wantMsg {
+			t.Fatalf("got %q, want %q", got, wantMsg)
+		}
+	})
 }
 
-// TestHttpPostStalledTimeoutMessage checks a peer that never answers fails at ~10s with the same wording (native's EAGAIN strerror text) on every engine.
+// TestHttpPostStalledTimeoutMessage checks a peer that never answers fails at ~10s with the same wording (native's EAGAIN strerror text) on the VM too.
 func TestHttpPostStalledTimeoutMessage(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")
@@ -462,16 +456,14 @@ func TestHttpPostStalledTimeoutMessage(t *testing.T) {
 			t.Fatalf("got %q, want %q", got, wantMsg)
 		}
 	})
-	for _, engine := range []string{"vm", "interp"} {
-		t.Run(engine, func(t *testing.T) {
-			t.Parallel()
-			url := stall(t)
-			start := time.Now()
-			got := runEmulatedEngine(t, engine, url)
-			checkElapsed(t, time.Since(start))
-			if got != wantMsg {
-				t.Fatalf("%s: got %q, want %q", engine, got, wantMsg)
-			}
-		})
-	}
+	t.Run("vm", func(t *testing.T) {
+		t.Parallel()
+		url := stall(t)
+		start := time.Now()
+		got := runEmulatedEngine(t, url)
+		checkElapsed(t, time.Since(start))
+		if got != wantMsg {
+			t.Fatalf("got %q, want %q", got, wantMsg)
+		}
+	})
 }

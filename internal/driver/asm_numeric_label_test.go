@@ -38,9 +38,9 @@ print "${sumTo(5)}"
 // TestAsmNumericLocalLabel: an inline asm template's
 // GNU-style numeric local label (`1:`, `jnc 1b`) used to make LLVM's x86
 // Intel-syntax parser misread the backward reference as a binary integer
-// literal ("invalid operand for instruction"). interp and VM keep their
-// existing asm treatment (a panic and a refusal respectively); only native
-// actually runs the loop, so it is the only engine that has to add to 15.
+// literal ("invalid operand for instruction"). The VM keeps refusing asm;
+// only native actually runs the loop, so it is the only engine that has
+// to add to 15.
 func TestAsmNumericLocalLabel(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
@@ -77,24 +77,9 @@ func TestAsmNumericLocalLabel(t *testing.T) {
 
 	t.Run("vm", func(t *testing.T) {
 		var out, errOut bytes.Buffer
-		_, err := driver.RunWith(m, driver.RunOptions{Engine: "vm"}, &out, &errOut, nil)
+		_, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, nil)
 		if err == nil || !strings.Contains(err.Error(), "not supported by the VM") {
 			t.Fatalf("want a VM refusal, got %v", err)
-		}
-	})
-
-	t.Run("interp", func(t *testing.T) {
-		t.Chdir(t.TempDir())
-		var out, errOut bytes.Buffer
-		code, err := driver.RunWith(m, driver.RunOptions{Engine: "interp"}, &out, &errOut, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if code != 2 || !strings.Contains(errOut.String(), "inline assembly needs `kigumi build`") {
-			t.Errorf("exit %d, stderr %q", code, errOut.String())
-		}
-		if out.String() != "start\n" {
-			t.Errorf("stdout = %q, want %q", out.String(), "start\n")
 		}
 	})
 }

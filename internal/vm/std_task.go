@@ -11,7 +11,7 @@ type future struct {
 }
 
 // asyncBuiltin implements `future` and `await`: the local executor runs
-// futures on the calling thread, as the interpreter does.
+// futures on the calling thread.
 func (m *Machine) asyncBuiltin(name string, args []*obj) (*obj, bool) {
 	switch name {
 	case "future":

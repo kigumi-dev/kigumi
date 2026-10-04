@@ -11,27 +11,31 @@ import (
 	"kigumi/internal/driver"
 )
 
-// TestExampleModules checks every module under examples/ and, when the
-// example ships an expect.txt, runs it in the interpreter and as a native
-// executable (args.txt and stdin.txt feed both) and compares stdout. An
-// aot_only marker skips the interpreter (FFI). Test blocks of the example
-// must pass as well.
+// TestExampleModules checks each example against its examples/catalog.json entry: run-output examples run on the VM and natively and must match expect.txt; a missing expect.txt fails unless the catalog declares another oracle.
 func TestExampleModules(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
-	dirs, _ := filepath.Glob("../../examples/*/mod.kg")
-	if len(dirs) == 0 {
+	examplesRoot, _ := filepath.Abs("../../examples")
+	catalog, names, err := driver.LoadExampleCatalog(examplesRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(names) == 0 {
 		t.Fatal("no examples found")
 	}
-	for _, mod := range dirs {
-		root := filepath.Dir(mod)
+	for _, name := range names {
+		meta := catalog[name]
+		root := filepath.Join(examplesRoot, name)
 		if _, err := os.Stat(filepath.Join(root, driver.BuildFileName)); err == nil {
+			if meta.Oracle != "build-graph" {
+				t.Errorf("%s: has build.kg but catalog oracle is %q, want build-graph", name, meta.Oracle)
+			}
 			continue // driven by its build.kg: TestBuildProgramExample
 		}
-		t.Run(filepath.Base(root), func(t *testing.T) { runExample(t, root, std) })
+		t.Run(name, func(t *testing.T) { runExample(t, root, std, meta) })
 	}
 }
 
-func runExample(t *testing.T, root, std string) {
+func runExample(t *testing.T, root, std string, meta driver.ExampleMeta) {
 	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Test: true})
 	if err != nil {
 		t.Fatal(err)
@@ -53,9 +57,21 @@ func runExample(t *testing.T, root, std string) {
 		}
 	}
 	want, err := os.ReadFile(filepath.Join(root, "expect.txt"))
-	if err != nil {
+	switch {
+	case err == nil:
+		if meta.Oracle != "run-output" {
+			t.Fatalf("expect.txt is present but catalog oracle is %q", meta.Oracle)
+		}
+	case os.IsNotExist(err):
+		if meta.Oracle == "run-output" {
+			t.Fatalf("catalog oracle is run-output but expect.txt is missing")
+		}
+		t.Logf("no run-output check: oracle=%s reason=%s", meta.Oracle, meta.Reason)
 		return
+	default:
+		t.Fatalf("read expect.txt: %v", err)
 	}
+
 	args := []string{"main"}
 	if b, err := os.ReadFile(filepath.Join(root, "args.txt")); err == nil {
 		args = append(args, strings.Fields(string(b))...)
@@ -66,19 +82,21 @@ func runExample(t *testing.T, root, std string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, aotOnly := os.Stat(filepath.Join(root, "aot_only")); aotOnly != nil {
+	if contains(meta.Backends, "vm") {
 		var out, errOut bytes.Buffer
 		cwd, _ := os.Getwd()
 		os.Chdir(t.TempDir())
 		code, err := driver.RunInput(plain, bytes.NewReader(stdin), &out, &errOut, args)
 		os.Chdir(cwd)
 		if err != nil || code != 0 || out.String() != string(want) {
-			t.Errorf("interp: err %v exit %d\n--- got ---\n%s--- want ---\n%s--- stderr ---\n%s", err, code, out.String(), want, errOut.String())
+			t.Errorf("vm: err %v exit %d\n--- got ---\n%s--- want ---\n%s--- stderr ---\n%s", err, code, out.String(), want, errOut.String())
 		}
 	}
-
+	if !contains(meta.Backends, "native") {
+		return
+	}
 	if driver.CCompiler() == nil {
-		t.Skip("no C compiler: the AOT half of this example needs zig or clang")
+		t.Skip("no C compiler: the native half of this example needs zig or clang")
 	}
 	exe := filepath.Join(t.TempDir(), "prog")
 	var buildErr bytes.Buffer
@@ -88,11 +106,20 @@ func runExample(t *testing.T, root, std string) {
 	cmd := exec.Command(exe, args[1:]...)
 	cmd.Dir = t.TempDir()
 	cmd.Stdin = bytes.NewReader(stdin)
-	var aotOut, aotErr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &aotOut, &aotErr
-	if err := cmd.Run(); err != nil || aotOut.String() != string(want) {
-		t.Errorf("aot: %v\n--- got ---\n%s--- want ---\n%s--- stderr ---\n%s", err, aotOut.String(), want, aotErr.String())
+	var nativeOut, nativeErr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &nativeOut, &nativeErr
+	if err := cmd.Run(); err != nil || nativeOut.String() != string(want) {
+		t.Errorf("native: %v\n--- got ---\n%s--- want ---\n%s--- stderr ---\n%s", err, nativeOut.String(), want, nativeErr.String())
 	}
+}
+
+func contains(xs []string, x string) bool {
+	for _, v := range xs {
+		if v == x {
+			return true
+		}
+	}
+	return false
 }
 
 func hasTests(m *driver.Module) bool {

@@ -1,8 +1,8 @@
 // Package hashkey is the one definition of the primitive Hash algorithm,
-// shared by internal/interp and internal/vm so both engines (and, ported
-// by hand, internal/llgen/runtime/rt_core.c) hash identical values to the
-// identical uint64. It also holds the Float total order the Eq/Ord/Hash
-// protocol methods use, kept apart from the IEEE `==`/`<` operators.
+// used by internal/vm so it (and, ported by hand,
+// internal/llgen/runtime/rt_core.c) hash identical values to the identical
+// uint64. It also holds the Float total order the Eq/Ord/Hash protocol
+// methods use, kept apart from the IEEE `==`/`<` operators.
 package hashkey
 
 import "math"

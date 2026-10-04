@@ -26,11 +26,8 @@ files.remove(path)?
 `
 
 // TestStdinToFileIoCopy proves os.Stdin and fs.File satisfy std/io's
-// Reader/Writer: io.copy streams real stdin
-// content into a file on every engine. The generic testdata/run corpus
-// cannot cover Stdin itself (a fixture with no injected Stdin would block
-// on the test binary's real stdin), so this sets Stdin explicitly the way
-// TestStdinReadAllReportsRealError does.
+// Reader/Writer: io.copy streams stdin into a file. testdata/run fixtures
+// can't inject Stdin without blocking, so this sets it directly like TestStdinReadAllReportsRealError.
 func TestStdinToFileIoCopy(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
@@ -58,19 +55,17 @@ func TestStdinToFileIoCopy(t *testing.T) {
 		return r
 	}
 
-	for _, engine := range []string{"vm", "interp"} {
-		t.Run(engine, func(t *testing.T) {
-			t.Chdir(t.TempDir())
-			var out, errOut bytes.Buffer
-			code, err := driver.RunWith(m, driver.RunOptions{Engine: engine, Stdin: pipeWith(t)}, &out, &errOut, []string{"main/main.kg"})
-			if err != nil || code != 0 {
-				t.Fatalf("%s: err %v exit %d\n%s", engine, err, code, errOut.String())
-			}
-			if strings.TrimSpace(out.String()) != want {
-				t.Errorf("%s stdout = %q, want %q", engine, out.String(), want)
-			}
-		})
-	}
+	t.Run("vm", func(t *testing.T) {
+		t.Chdir(t.TempDir())
+		var out, errOut bytes.Buffer
+		code, err := driver.RunWith(m, driver.RunOptions{Stdin: pipeWith(t)}, &out, &errOut, []string{"main/main.kg"})
+		if err != nil || code != 0 {
+			t.Fatalf("err %v exit %d\n%s", err, code, errOut.String())
+		}
+		if strings.TrimSpace(out.String()) != want {
+			t.Errorf("stdout = %q, want %q", out.String(), want)
+		}
+	})
 
 	t.Run("build", func(t *testing.T) {
 		if driver.CCompiler() == nil {

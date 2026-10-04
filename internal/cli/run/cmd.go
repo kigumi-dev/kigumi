@@ -1,5 +1,5 @@
 // Package run implements `kigumi run` and `kigumi test`: run the entry
-// file or the test blocks of a module on the chosen engine.
+// file or the test blocks of a module on the VM.
 package run
 
 import (
@@ -22,7 +22,6 @@ func Cmd() *cobra.Command {
 		RunE:                  Script,
 	}
 	cmd.Flags().SetInterspersed(false)
-	cmd.Flags().String("engine", "vm", "executor: vm (the default) or interp (tree walker)")
 	return cmd
 }
 
@@ -37,15 +36,11 @@ func Script(cmd *cobra.Command, args []string) error {
 		}
 		args = dropDashDash(args)
 	}
-	engine, _ := cmd.Flags().GetString("engine")
-	if err := validateEngine(engine); err != nil {
-		return err
-	}
 	m, err := shared.Load(cmd, args[0], false, cmd.ErrOrStderr())
 	if err != nil {
 		return err
 	}
-	code, err := driver.RunWith(m, driver.RunOptions{NoAccel: shared.NoAccel(), Engine: engine}, cmd.OutOrStdout(), cmd.ErrOrStderr(), args)
+	code, err := driver.RunWith(m, driver.RunOptions{NoAccel: shared.NoAccel()}, cmd.OutOrStdout(), cmd.ErrOrStderr(), args)
 	if err != nil {
 		return errors.WrapErr(err, "run module")
 	}
@@ -113,15 +108,15 @@ func TestCmd() *cobra.Command {
 		Short: "Run the test blocks of a module",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			engine, _ := cmd.Flags().GetString("engine")
-			if err := validateEngine(engine); err != nil {
-				return err
-			}
 			m, err := shared.Load(cmd, args[0], true, cmd.ErrOrStderr())
 			if err != nil {
 				return err
 			}
-			code, err := driver.RunTestsWith(m, driver.RunOptions{NoAccel: shared.NoAccel(), Engine: engine}, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			opts, err := testRunOptions(cmd)
+			if err != nil {
+				return err
+			}
+			code, err := driver.RunTestsReportingWith(m, opts, cmd.OutOrStdout(), cmd.ErrOrStderr())
 			if err != nil {
 				return errors.WrapErr(err, "run tests")
 			}
@@ -131,14 +126,27 @@ func TestCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().String("engine", "vm", "executor: vm (the default) or interp (tree walker)")
+	cmd.Flags().Bool("list", false, "print every selected test's stable id and file:line, and run nothing")
+	cmd.Flags().String("filter", "", "keep only tests whose stable id (<module>/<package>::<name>) contains this substring")
+	cmd.Flags().Duration("timeout", 0, "fail a single test that runs longer than this (0: no bound)")
+	cmd.Flags().Duration("suite-timeout", 0, "stop starting new tests once the whole run has taken this long (0: no bound)")
+	cmd.Flags().Bool("json", false, "stream versioned JSON test events on stdout instead of ok/FAIL/TIME lines")
 	return cmd
 }
 
-// validateEngine wraps CheckEngine as a UsageError: a bad --engine is a usage mistake, not a run failure.
-func validateEngine(s string) error {
-	if err := driver.CheckEngine(s); err != nil {
-		return &cliutil.UsageError{Err: errors.NewErrf("--engine: %s", err)}
+func testRunOptions(cmd *cobra.Command) (driver.TestRunOptions, error) {
+	list, _ := cmd.Flags().GetBool("list")
+	filter, _ := cmd.Flags().GetString("filter")
+	timeout, _ := cmd.Flags().GetDuration("timeout")
+	suiteTimeout, _ := cmd.Flags().GetDuration("suite-timeout")
+	asJSON, _ := cmd.Flags().GetBool("json")
+	opts := driver.TestRunOptions{
+		RunOptions:     driver.RunOptions{NoAccel: shared.NoAccel()},
+		List:           list,
+		Filter:         filter,
+		PerTestTimeout: timeout,
+		SuiteTimeout:   suiteTimeout,
+		JSON:           asJSON,
 	}
-	return nil
+	return opts, nil
 }

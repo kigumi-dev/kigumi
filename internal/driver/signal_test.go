@@ -69,8 +69,8 @@ print "pending=${got}"
 `
 
 // TestSignalWatchPending sends a real SIGINT (syscall.Kill) to itself for
-// the interpreter and the VM, and to the child process for a native build,
-// and checks watch/pending observes it without crashing: the C-side handler
+// the VM, and to the child process for a native build, and checks
+// watch/pending observes it without crashing: the C-side handler
 // (rt_signal.c) only sets a flag, so it never re-enters the refcounted
 // runtime the way running arbitrary Kigumi from signal context would.
 func TestSignalWatchPending(t *testing.T) {
@@ -84,14 +84,14 @@ func TestSignalWatchPending(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runEngine := func(t *testing.T, engine string) {
+	t.Run("vm", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		watched := &watchReadyWriter{w: &out, ready: make(chan struct{})}
 		done := make(chan struct{})
 		var code int
 		var runErr error
 		go func() {
-			code, runErr = driver.RunWith(m, driver.RunOptions{Engine: engine}, watched, &errOut, []string{"main/main.kg"})
+			code, runErr = driver.RunWith(m, driver.RunOptions{}, watched, &errOut, []string{"main/main.kg"})
 			close(done)
 		}()
 		select {
@@ -101,7 +101,7 @@ func TestSignalWatchPending(t *testing.T) {
 			// mismatch surfaces below instead of hanging on a signal that
 			// would now have nothing to interrupt.
 		case <-time.After(5 * time.Second):
-			t.Fatalf("%s: never printed \"watching\"\n%s", engine, watched.String())
+			t.Fatalf("never printed \"watching\"\n%s", watched.String())
 		}
 		if err := syscall.Kill(os.Getpid(), syscall.SIGINT); err != nil {
 			t.Fatal(err)
@@ -109,17 +109,15 @@ func TestSignalWatchPending(t *testing.T) {
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
-			t.Fatalf("%s: watch/pending never returned\n%s", engine, watched.String())
+			t.Fatalf("watch/pending never returned\n%s", watched.String())
 		}
 		if runErr != nil || code != 0 {
-			t.Fatalf("%s: err %v exit %d\n%s", engine, runErr, code, errOut.String())
+			t.Fatalf("err %v exit %d\n%s", runErr, code, errOut.String())
 		}
 		if !strings.Contains(out.String(), "pending=true") {
-			t.Errorf("%s stdout = %q, want it to contain pending=true", engine, out.String())
+			t.Errorf("stdout = %q, want it to contain pending=true", out.String())
 		}
-	}
-	t.Run("interp", func(t *testing.T) { runEngine(t, "interp") })
-	t.Run("vm", func(t *testing.T) { runEngine(t, "vm") })
+	})
 
 	t.Run("build", func(t *testing.T) {
 		if driver.CCompiler() == nil {
@@ -191,25 +189,23 @@ func TestSignalDeniedUnderKigumiTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runEngine := func(t *testing.T, engine string) {
+	t.Run("vm", func(t *testing.T) {
 		var out, errOut bytes.Buffer
-		code, err := driver.RunTestsWith(m, driver.RunOptions{Engine: engine}, &out, &errOut)
+		code, err := driver.RunTestsWith(m, driver.RunOptions{}, &out, &errOut)
 		if err != nil {
-			t.Fatalf("%s: %v\n%s%s", engine, err, out.String(), errOut.String())
+			t.Fatalf("%v\n%s%s", err, out.String(), errOut.String())
 		}
 		if code == 0 {
-			t.Fatalf("%s: want a failed test, got exit 0\n%s%s", engine, out.String(), errOut.String())
+			t.Fatalf("want a failed test, got exit 0\n%s%s", out.String(), errOut.String())
 		}
 		if !strings.Contains(out.String(), `FAIL "signal watch is refused under kigumi test"`) {
-			t.Errorf("%s stdout = %q, want the watch test to FAIL", engine, out.String())
+			t.Errorf("stdout = %q, want the watch test to FAIL", out.String())
 		}
 		if !strings.Contains(errOut.String(), "not available under `kigumi test`") {
-			t.Errorf("%s stderr = %q, want the refusal message", engine, errOut.String())
+			t.Errorf("stderr = %q, want the refusal message", errOut.String())
 		}
 		if !strings.Contains(out.String(), `ok   "no signal handler was installed"`) {
-			t.Errorf("%s stdout = %q, want pending() to still report false", engine, out.String())
+			t.Errorf("stdout = %q, want pending() to still report false", out.String())
 		}
-	}
-	t.Run("interp", func(t *testing.T) { runEngine(t, "interp") })
-	t.Run("vm", func(t *testing.T) { runEngine(t, "vm") })
+	})
 }

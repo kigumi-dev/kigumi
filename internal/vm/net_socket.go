@@ -6,9 +6,7 @@ import (
 )
 
 // std/net's Conn/Listener bodies reach the host through extern(C) socket
-// calls the VM cannot make; these are their Go counterparts, sharing
-// netsock's raw-fd implementation with the interpreter's. A Conn/Listener
-// is the record { fd }, so fdOf/connRecord read and build that one field.
+// calls the VM cannot make; these are their Go counterparts, built on netsock's raw-fd implementation.
 func (m *Machine) registerNet() {
 	h := m.host
 	fdOf := func(v *obj) int { return int(deref(deref(v).fields[0]).i) }

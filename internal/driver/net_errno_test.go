@@ -56,7 +56,7 @@ func connectRefusedProbe(t *testing.T, attempt func(port int) (string, error)) {
 
 // TestNetConnectRefusedReportsErrno checks that Net.connect against a
 // closed port fails with the OS's real reason (ECONNREFUSED) instead of a
-// generic "cannot connect", on every engine.
+// generic "cannot connect", on both engines.
 func TestNetConnectRefusedReportsErrno(t *testing.T) {
 	const srcTmpl = `let n = host.net()
 match n.connect("127.0.0.1", %d) {
@@ -97,24 +97,22 @@ match n.connect("127.0.0.1", %d) {
 		})
 	})
 
-	for _, engine := range []string{"interp", "vm"} {
-		t.Run(engine, func(t *testing.T) {
-			connectRefusedProbe(t, func(port int) (string, error) {
-				m, err := driver.LoadModule(writeMain(t, port), driver.LoadOptions{StdRoot: std})
-				if err != nil {
-					return "", err
-				}
-				t.Chdir(t.TempDir())
-				var out, errOut bytes.Buffer
-				code, err := driver.RunWith(m, driver.RunOptions{Engine: engine}, &out, &errOut, nil)
-				if err != nil {
-					return "", fmt.Errorf("%s: %v", engine, err)
-				}
-				if code != 0 {
-					return "", fmt.Errorf("%s: exit %d, stderr: %s", engine, code, errOut.String())
-				}
-				return out.String(), nil
-			})
+	t.Run("vm", func(t *testing.T) {
+		connectRefusedProbe(t, func(port int) (string, error) {
+			m, err := driver.LoadModule(writeMain(t, port), driver.LoadOptions{StdRoot: std})
+			if err != nil {
+				return "", err
+			}
+			t.Chdir(t.TempDir())
+			var out, errOut bytes.Buffer
+			code, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, nil)
+			if err != nil {
+				return "", fmt.Errorf("vm: %v", err)
+			}
+			if code != 0 {
+				return "", fmt.Errorf("vm: exit %d, stderr: %s", code, errOut.String())
+			}
+			return out.String(), nil
 		})
-	}
+	})
 }
