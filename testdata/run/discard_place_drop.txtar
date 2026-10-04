@@ -1,0 +1,25 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn make(id: Int) -> Res {
+    Res { id: id }
+}
+
+let a = make(1)
+_ = a
+print "after assign discard"
+
+let b = make(2)
+let _ = b
+print "after let discard"
+-- stdout --
+drop 1
+after assign discard
+drop 2
+after let discard

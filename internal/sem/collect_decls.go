@@ -76,6 +76,9 @@ func (r *Result) collectAbi(f FileID, block syntax.NodeID) {
 	abiArgs := t.Children(syntax.NodeID(t.Nodes[block].Lhs))
 	abi := t.TokText(t.Nodes[abiArgs[0]].Tok)
 	export := t.Toks[t.Nodes[block].Tok].Kind != token.KwExtern
+	if abi == "interrupt" && !export {
+		r.errAt(f, abiArgs[0], cInterruptExtern)
+	}
 	noalloc, naked := false, false
 	for _, a := range abiArgs[1:] {
 		switch t.TokText(t.Nodes[a].Tok) {

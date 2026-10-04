@@ -241,10 +241,11 @@ pub fn BufReader.readUntil(mut self, delim: Bytes) -> Bytes?! {
             None -> {
                 let n = self.fill()?
                 if n == 0 {
-                    if self.buf.len() == 0 {
+                    let len = self.buf.len()
+                    if len == 0 {
                         return Ok(None)
                     }
-                    return Ok(Some(self.takeFront(self.buf.len())))
+                    return Ok(Some(self.takeFront(len)))
                 }
             }
         }
@@ -310,7 +311,7 @@ fn BufReader.takeFront(mut self, count: usize) -> Bytes {
 }
 
 /// Byte offset of `sub` in `items`, or None.
-pure noalloc fn findIn(items: &Array[u8], sub: Bytes) -> usize? {
+pure fn findIn(items: &Array[u8], sub: Bytes) -> usize? {
     if sub.len() == 0 || sub.len() > items.len() {
         return None
     }

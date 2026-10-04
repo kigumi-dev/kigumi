@@ -578,7 +578,7 @@ pub pure noalloc fn Bytes.get(self, index: usize) -> u8?
 pub pure fn Bytes.slice(self, start: usize, end: usize) -> Bytes?
 
 /// Byte-wise position of the first occurrence of sub in self; the empty sub matches at 0.
-pub pure noalloc fn Bytes.indexOf(self, sub: Bytes) -> usize? {
+pub pure fn Bytes.indexOf(self, sub: Bytes) -> usize? {
     if sub.len() > self.len() {
         return None
     }
@@ -618,7 +618,7 @@ pub pure noalloc fn Bytes.endsWith(self, sub: Bytes) -> Bool {
 }
 
 /// Whether sub occurs in self; the empty sub occurs in every Bytes.
-pub pure noalloc fn Bytes.contains(self, sub: Bytes) -> Bool {
+pub pure fn Bytes.contains(self, sub: Bytes) -> Bool {
     self.indexOf(sub) is Some(_)
 }
 

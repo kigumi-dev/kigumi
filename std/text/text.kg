@@ -51,7 +51,7 @@ pub pure fn graphemes(s: String) -> Array[String] {
 pub pure fn parseFloat(s: String) -> Float?
 
 /// Parses s (surrounding spaces and tabs allowed) as a base-10 integer with an optional sign, or None.
-pub pure noalloc fn parseInt(s: String) -> Int? {
+pub pure fn parseInt(s: String) -> Int? {
     let n = s.len()
     let mut i: usize = 0
     for i < n && (s[i] == 32 || s[i] == 9) {
@@ -90,7 +90,7 @@ pub pure noalloc fn parseInt(s: String) -> Int? {
 }
 
 /// Parses s (surrounding spaces and tabs allowed) as a base-10 unsigned integer with an optional leading `+`, or None. The full u64 range, unlike parseInt.
-pub pure noalloc fn parseUint(s: String) -> u64? {
+pub pure fn parseUint(s: String) -> u64? {
     let n = s.len()
     let mut i: usize = 0
     for i < n && (s[i] == 32 || s[i] == 9) {

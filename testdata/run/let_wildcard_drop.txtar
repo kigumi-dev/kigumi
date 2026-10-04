@@ -1,0 +1,18 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn make(id: Int) -> Res {
+    Res { id: id }
+}
+
+let _ = make(1)
+print "after let _"
+-- stdout --
+drop 1
+after let _

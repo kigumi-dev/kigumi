@@ -52,9 +52,12 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 			body.WriteString(e.methodAdapter(f))
 		}
 		if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Export != "" {
-			if e.byValue(e.r.Fn(f.Ent).Sig) {
+			switch {
+			case e.r.Fn(f.Ent).Export == "interrupt":
+				body.WriteString(e.exportInterruptWrapper(f))
+			case e.byValue(e.r.Fn(f.Ent).Sig):
 				body.WriteString(e.exportByval(f))
-			} else {
+			default:
 				body.WriteString(e.exportWrapper(f))
 			}
 		}

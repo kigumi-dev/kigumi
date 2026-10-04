@@ -69,8 +69,23 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 	return c.operandMismatch(n, rhs, c.t.TokText(node.Tok), l, r)
 }
 
+// traps reports whether op's native codegen can panic on result's operands (overflow, division by zero, out-of-range shift).
+func traps(op token.Kind, result TypeID, tt *TypeTable) bool {
+	if !tt.IsInteger(result) {
+		return false
+	}
+	switch op {
+	case token.Plus, token.Minus, token.Star, token.Slash, token.Percent, token.Shl, token.Shr:
+		return true
+	}
+	return false
+}
+
 func (c *checker) builtinOp(n syntax.NodeID, op token.Kind, result TypeID) TypeID {
 	c.info.Calls[n] = CallInfo{Kind: CallBuiltinOp, Op: op, OpText: op.String()}
+	if traps(op, result, c.r.Types) {
+		c.edge(EffectEdge{Kind: EdgePanic, Node: n})
+	}
 	return result
 }
 

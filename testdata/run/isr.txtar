@@ -1,0 +1,13 @@
+-- src --
+noalloc fn poke() -> Unit {}
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        poke()
+    }
+}
+
+tick()
+print "tick ok"
+-- stdout --
+tick ok

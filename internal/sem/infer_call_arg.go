@@ -3,13 +3,29 @@ package sem
 import "kigumi/internal/syntax"
 
 // paramEnt is the declared parameter entity for the alias hint, or 0 when there is none.
-func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID) {
+// async marks a call that build_call.go's placeArg never boxes an argument for.
+func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, async bool) {
+	if c.t.Kind(a) == syntax.BorrowExpr {
+		if async {
+			if c.argAsyncPlace == nil {
+				c.argAsyncPlace = map[syntax.NodeID]bool{}
+			}
+			c.argAsyncPlace[a] = true
+		} else {
+			if c.argPlace == nil {
+				c.argPlace = map[syntax.NodeID]bool{}
+			}
+			c.argPlace[a] = true
+		}
+	}
 	aliasFile, aliasNode := c.r.paramAliasSite(paramEnt)
 	param = c.vars.resolve(param)
 	if !c.r.Types.ContainsVar(param) || c.t.Kind(a) == syntax.Lambda {
 		c.checkAlias(a, param, aliasFile, aliasNode)
 		if c.info.Types[a] == TyPoison {
 			c.vars.poison(param)
+		} else {
+			c.consumeArg(a, param)
 		}
 		return
 	}
@@ -32,6 +48,15 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID) {
 		c.info.Coerce[a] = Coercion{From: got, Steps: steps}
 		c.touched = append(c.touched, a)
 	}
+	c.consumeArg(a, param)
+}
+
+// consumeArg marks a by-value argument consumed; a &T param borrows instead of moving.
+func (c *checker) consumeArg(a syntax.NodeID, param TypeID) {
+	if c.r.Types.Kind(param) == KRef {
+		return
+	}
+	c.consumeWhole(a)
 }
 
 // entAt is params[i], or 0 when i is out of range (e.g. no source declaration).

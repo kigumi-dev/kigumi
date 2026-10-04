@@ -107,7 +107,7 @@ func (c *checker) unresolved(n syntax.NodeID, name string) TypeID {
 	return TyPoison
 }
 
-// scriptLocalHint implements ENT-3.
+// scriptLocalHint names the script-local form in the hint.
 func (c *checker) scriptLocalHint(name string) string {
 	for id := 1; id < len(c.r.Entities); id++ {
 		e := &c.r.Entities[id]
@@ -154,7 +154,9 @@ func (c *checker) variantValue(n syntax.NodeID, v EntityID, args []TypeID) TypeI
 		return TyPoison
 	}
 	adt := c.r.Entities[v].Parent
-	return c.r.Types.Named(adt, c.adtArgs(n, adt, args))
+	result := c.r.Types.Named(adt, c.adtArgs(n, adt, args))
+	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	return result
 }
 
 func (c *checker) intrinsicValue(n syntax.NodeID, ent EntityID) TypeID {

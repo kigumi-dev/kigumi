@@ -35,12 +35,15 @@ func (c *checker) mismatchAlias(n syntax.NodeID, want, got TypeID, aliasFile Fil
 // position whose value is n's: an alias hint active on n follows
 // to e, then reverts, so it cascades through nested tail positions.
 func (c *checker) checkTail(n, e syntax.NodeID, want TypeID) TypeID {
+	var t TypeID
 	if n == 0 || c.wantAliasTarget != n {
-		return c.check(e, want)
+		t = c.check(e, want)
+	} else {
+		c.wantAliasTarget = e
+		t = c.check(e, want)
+		c.wantAliasTarget = n
 	}
-	c.wantAliasTarget = e
-	t := c.check(e, want)
-	c.wantAliasTarget = n
+	c.consumeWhole(e)
 	return t
 }
 

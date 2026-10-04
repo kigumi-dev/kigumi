@@ -246,7 +246,7 @@ pub pure noalloc fn Array[T: Copy].first(self) -> T? {
 }
 
 /// The last element, or None when the array is empty.
-pub pure noalloc fn Array[T: Copy].last(self) -> T? {
+pub pure fn Array[T: Copy].last(self) -> T? {
     if self.len() == 0 {
         return None
     }
