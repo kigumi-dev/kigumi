@@ -8,7 +8,7 @@ func (c *checker) checkCArgs(n syntax.NodeID, name string, sn typeNode, args []s
 	params := sn.Args
 	for i, a := range args {
 		if i < len(params) {
-			c.checkArg(a, params[i], 0)
+			c.checkArg(a, params[i], 0, false)
 			continue
 		}
 		t := c.readThrough(c.vars.resolve(c.synth(a)))

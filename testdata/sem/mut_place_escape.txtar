@@ -1,0 +1,44 @@
+-- src --
+fn bump(x: &mut Int) -> Unit {
+    x = x + 1
+}
+
+type Box = { mut v Int }
+
+fn boundIndex() -> Unit {
+    let mut arr = Array.of(10, 20, 30)
+    let r = &mut arr[0] //~ ERROR a mutable borrow of an array element or struct field
+    bump(r)
+}
+
+fn boundField() -> Unit {
+    let mut b = Box { v: 1 }
+    let r = &mut b.v //~ ERROR a mutable borrow of an array element or struct field
+    bump(r)
+}
+
+fn directArgStillOk() -> Unit {
+    let mut arr = Array.of(10, 20, 30)
+    bump(&mut arr[0])
+}
+
+fn boundLocalStillOk() -> Unit {
+    let mut x = 1
+    let r = &mut x
+    bump(r)
+}
+-- expect --
+error[E1121]: a mutable borrow of an array element or struct field cannot be stored in a variable
+ --> main/main.kg:9:18
+  |
+9 |     let r = &mut arr[0] //~ ERROR a mutable borrow of an array element or struct field
+  |                  ^^^^^
+  = help: pass `&mut ...` directly as the call argument instead
+
+error[E1121]: a mutable borrow of an array element or struct field cannot be stored in a variable
+  --> main/main.kg:15:18
+   |
+15 |     let r = &mut b.v //~ ERROR a mutable borrow of an array element or struct field
+   |                  ^^^
+   = help: pass `&mut ...` directly as the call argument instead
+

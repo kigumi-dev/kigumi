@@ -1,0 +1,19 @@
+-- src --
+type Counter = {
+    mut n Int
+}
+
+fn Counter.run(mut self) -> Unit {
+    let old = self
+    let mut bump = () => {
+        self.n = self.n + 1
+    }
+    bump()
+    bump()
+    print "${old.n} ${self.n}"
+}
+
+let mut c = Counter { n: 0 }
+c.run()
+-- stdout --
+0 2

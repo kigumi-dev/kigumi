@@ -1,0 +1,15 @@
+-- src --
+fn bump(x: &mut Int) -> Unit {
+    x = x + 1
+}
+
+let mut arr = Array.of(1, 2, 3)
+print "start"
+bump(&mut arr[5])
+print "unreachable"
+-- stdout --
+start
+-- stderr --
+panic: index
+-- exit --
+2

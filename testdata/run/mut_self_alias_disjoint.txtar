@@ -1,0 +1,46 @@
+-- src --
+type Box = {
+    mut v Int
+    mut w Int
+}
+
+fn Box.touch(mut self, x: &mut Int) -> Unit {
+    self.v = self.v + 1
+    x = x + 100
+}
+
+type Reader = {
+    v Int
+    mut w Int
+}
+
+fn Reader.peek(self, x: &mut Int) -> Unit {
+    x = x + self.v
+}
+
+fn useAlias(w: &mut Box) -> Unit {
+    let mut y = 7
+    w.touch(&mut y)
+    print "alias v=${w.v} y=${y}"
+}
+
+let mut b = Box { v: 1, w: 2 }
+let mut side = 7
+b.touch(&mut side)
+print "v=${b.v} w=${b.w} side=${side}"
+
+let mut c = Box { v: 10, w: 20 }
+b.touch(&mut c.v)
+print "b.v=${b.v} c.v=${c.v}"
+
+useAlias(&mut b)
+
+let mut r = Reader { v: 1, w: 2 }
+let mut rside = 7
+r.peek(&mut rside)
+print "rside=${rside}"
+-- stdout --
+v=2 w=2 side=107
+b.v=3 c.v=110
+alias v=4 y=107
+rside=8

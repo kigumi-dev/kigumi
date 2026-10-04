@@ -1,0 +1,66 @@
+-- src --
+fn addBoth(a: &mut Int, b: &mut Int) -> Unit {
+    a = a + 10
+    b = b + 100
+}
+
+fn sameIndexLiteral() -> Unit {
+    let mut arr = Array.of(1, 2, 3)
+    addBoth(&mut arr[0], &mut arr[0]) //~ ERROR this `&mut` argument may target the same element
+}
+
+type Box = { mut v Int }
+
+fn sameField() -> Unit {
+    let mut b = Box { v: 1 }
+    addBoth(&mut b.v, &mut b.v) //~ ERROR this `&mut` argument may target the same element
+}
+
+fn unknownIndices(i: usize, j: usize) -> Unit {
+    let mut arr = Array.of(1, 2, 3)
+    addBoth(&mut arr[i], &mut arr[j]) //~ ERROR this `&mut` argument may target the same element
+}
+
+fn distinctLiteral() -> Unit {
+    let mut arr = Array.of(1, 2, 3)
+    addBoth(&mut arr[0], &mut arr[2])
+}
+
+fn distinctNestedRow() -> Unit {
+    let mut mat = Array.of(Array.of(1, 2), Array.of(3, 4))
+    addBoth(&mut mat[0][1], &mut mat[1][1])
+}
+
+fn sameNestedIndex() -> Unit {
+    let mut mat = Array.of(Array.of(1, 2), Array.of(3, 4))
+    addBoth(&mut mat[0][1], &mut mat[0][1]) //~ ERROR this `&mut` argument may target the same element
+}
+-- expect --
+error[E1120]: this `&mut` argument may target the same element as an earlier `&mut` argument in this call
+ --> main/main.kg:8:26
+  |
+8 |     addBoth(&mut arr[0], &mut arr[0]) //~ ERROR this `&mut` argument may target the same element
+  |                          ^^^^^^^^^^
+  = help: use indices the checker can prove differ, or restructure to one borrow
+
+error[E1120]: this `&mut` argument may target the same element as an earlier `&mut` argument in this call
+  --> main/main.kg:15:23
+   |
+15 |     addBoth(&mut b.v, &mut b.v) //~ ERROR this `&mut` argument may target the same element
+   |                       ^^^^^^^^
+   = help: use indices the checker can prove differ, or restructure to one borrow
+
+error[E1120]: this `&mut` argument may target the same element as an earlier `&mut` argument in this call
+  --> main/main.kg:20:26
+   |
+20 |     addBoth(&mut arr[i], &mut arr[j]) //~ ERROR this `&mut` argument may target the same element
+   |                          ^^^^^^^^^^
+   = help: use indices the checker can prove differ, or restructure to one borrow
+
+error[E1120]: this `&mut` argument may target the same element as an earlier `&mut` argument in this call
+  --> main/main.kg:35:29
+   |
+35 |     addBoth(&mut mat[0][1], &mut mat[0][1]) //~ ERROR this `&mut` argument may target the same element
+   |                             ^^^^^^^^^^^^^
+   = help: use indices the checker can prove differ, or restructure to one borrow
+

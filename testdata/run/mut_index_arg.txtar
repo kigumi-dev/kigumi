@@ -1,0 +1,50 @@
+-- src --
+type Box = {
+    mut v Int
+}
+
+type Holder = {
+    mut items Array[Int]
+}
+
+fn bump(x: &mut Int) -> Unit {
+    x = x + 1
+}
+
+let mut arr = Array.of(10, 20, 30)
+bump(&mut arr[0])
+print "arr0=${arr[0]}"
+
+let mut mat = Array.of(Array.of(1, 2), Array.of(3, 4))
+bump(&mut mat[0][1])
+print "mat01=${mat[0][1]}"
+
+let mut h = Holder { items: Array.of(100, 200) }
+bump(&mut h.items[1])
+print "h1=${h.items[1]}"
+
+let mut b = Box { v: 5 }
+bump(&mut b.v)
+print "bv=${b.v}"
+
+bump(&mut arr[0])
+bump(&mut arr[0])
+print "arr0twice=${arr[0]}"
+
+fn addBoth(a: &mut Int, b: &mut Int) -> Unit {
+    a = a + 10
+    b = b + 100
+}
+addBoth(&mut arr[0], &mut arr[2])
+print "distinct=${arr[0]} ${arr[1]} ${arr[2]}"
+
+addBoth(&mut mat[0][1], &mut mat[1][1])
+print "distinctRows=${mat[0][1]} ${mat[1][1]}"
+-- stdout --
+arr0=11
+mat01=3
+h1=201
+bv=6
+arr0twice=13
+distinct=23 20 130
+distinctRows=13 104

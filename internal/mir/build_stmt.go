@@ -66,13 +66,19 @@ func (b *builder) transfer(src *hir.Expr, v LocalID) LocalID {
 	if src.Kind != hir.Local {
 		return v
 	}
-	if _, isLocal := b.locals[src.Ent]; src.Ent == 0 || !isLocal {
+	id, isLocal := b.locals[src.Ent]
+	if src.Ent == 0 || !isLocal {
 		return v
 	}
 	// A named local is dropped when its scope unwinds, so what leaves the
 	// scope travels in a temporary: a copy of a Copy value, a move otherwise.
 	t := src.Type
 	if b.r.IsCopy(t) {
+		if b.fn.Locals[id].Cell {
+			// v is an OpCellGet read; PlanRC would alias an Ent-less OpCopy
+			// source, drifting with the cell's later in-place field writes.
+			return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: src.Node})
+		}
 		return b.emit(Inst{Op: OpCopy, Dst: b.temp(t), Args: []LocalID{v}, Node: src.Node})
 	}
 	return b.emit(Inst{Op: OpMove, Dst: b.temp(t), Args: []LocalID{v}, Node: src.Node})
