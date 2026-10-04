@@ -1,0 +1,26 @@
+-- src --
+fn relay(f: fn(Int) -> Int, x: Int) -> Int {
+    f(x)
+}
+
+fn forward(f: fn(Int) -> Int, x: Int) -> Int {
+    relay(f, x)
+}
+
+pure fn pureAdd(x: Int) -> Int {
+    x + 1
+}
+
+pure fn callDirect(x: Int) -> Int {
+    relay(pureAdd, x)
+}
+
+pure fn callForwardDirect(x: Int) -> Int {
+    forward(pureAdd, x)
+}
+
+let a = callDirect(10)
+let b = callForwardDirect(10)
+print "${a} ${b}"
+-- stdout --
+11 11

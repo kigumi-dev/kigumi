@@ -26,14 +26,21 @@ func (r *Result) checkContracts(id EntityID) {
 func (r *Result) checkContractEdge(e EffectEdge) {
 	target := e.Target
 	s := r.summary(target)
-	// A field/witness requirement deferred through target's own parameter
-	// has no call-site argument to resolve against here, so it
-	// can't back an erased fn value's contract even though the summary reads
-	// clean (EdgeParamCall/EdgeWitnessCall always allow).
-	deferred := r.Entities[target].Kind == EntFn &&
-		(len(r.Fn(target).CalledFieldParams) > 0 || len(r.Fn(target).CalledWitnessReqs) > 0)
+	fn := r.Entities[target].Kind == EntFn
+	var info *FnInfo
+	if fn {
+		info = r.Fn(target)
+	}
+	// A requirement deferred through target's own parameter has no call-site argument
+	// to resolve here, so it can't back an erased fn value's contract.
+	deferred := fn &&
+		(len(info.CalledFieldParams) > 0 || len(info.CalledWitnessReqs) > 0 || len(info.CalledParams) > 0)
 	for _, mod := range []Effects{EffPure, EffNoalloc} {
 		if e.Mods&mod == 0 || (allows(s, mod) && !deferred) {
+			continue
+		}
+		if fn && allows(s, mod) && len(info.CalledParams) > 0 && len(info.CalledFieldParams) == 0 && len(info.CalledWitnessReqs) == 0 {
+			r.reportDeferredParam(e, target, info.CalledParams[0], mod)
 			continue
 		}
 		why := r.violationText(target, mod)
@@ -43,6 +50,14 @@ func (r *Result) checkContractEdge(e EffectEdge) {
 			r.errAt(e.File, e.Node, cFnItemContract, r.Entities[target].Name, modName(mod), why)
 		}
 	}
+}
+
+// reportDeferredParam covers an erasure whose only obstacle is a forwarded fn-typed
+// parameter: it names the parameter and says how to fix it.
+func (r *Result) reportDeferredParam(e EffectEdge, target, param EntityID, mod Effects) {
+	name, m, pname := r.Entities[target].Name, modName(mod), r.Entities[param].Name
+	help := "declare `" + pname + "` as `" + m + " fn(...)`, or call `" + name + "` directly instead of using it as a value"
+	r.errAt(e.File, e.Node, cFnItemContractParam, name, m, pname, help)
 }
 
 func (r *Result) violationText(target EntityID, mod Effects) string {
@@ -76,6 +91,9 @@ func (r *Result) violationText(target EntityID, mod Effects) string {
 		if len(info.CalledWitnessReqs) > 0 {
 			key := info.CalledWitnessReqs[0]
 			return "calls `" + r.Entities[key.Param].Name + "." + r.Entities[key.Req].Name + "`"
+		}
+		if len(info.CalledParams) > 0 {
+			return "calls `" + r.Entities[info.CalledParams[0]].Name + "`"
 		}
 	}
 	if _, fixed := r.fixedSummary(target); fixed {
@@ -127,6 +145,8 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 			r.errAt(e.File, e.Node, cAllocInterpolation)
 		case e.Why == 2:
 			r.errAt(e.File, e.Node, cAllocVariadic)
+		case e.Why == 3:
+			r.errAt(e.File, e.Node, cAllocConstruct, r.TypeString(e.Type))
 		case e.Type != 0:
 			r.errAt(e.File, e.Node, cAllocWiden, r.TypeString(e.From), r.TypeString(e.Type))
 		default:

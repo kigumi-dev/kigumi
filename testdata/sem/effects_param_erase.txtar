@@ -1,0 +1,131 @@
+-- lib/param.kg --
+fn relayDirect(f: fn(Int) -> Int, x: Int) -> Int {
+    f(x)
+}
+
+pure fn pureAdd(x: Int) -> Int {
+    x + 1
+}
+
+fn impureAdd(x: Int) -> Int {
+    unsafe { x + 1 }
+}
+
+fn erasedPure() -> Int {
+    let g: pure fn(fn(Int) -> Int, Int) -> Int = relayDirect //~ ERROR `relayDirect` is not `pure` (calls `f`, whose effect is not fixed)
+    g(impureAdd, 1)
+}
+
+fn erasedNoalloc() -> Int {
+    let g: noalloc fn(fn(Int) -> Int, Int) -> Int = relayDirect //~ ERROR `relayDirect` is not `noalloc` (calls `f`, whose effect is not fixed)
+    g(impureAdd, 1)
+}
+
+pure fn directPureOk(x: Int) -> Int {
+    relayDirect(pureAdd, x)
+}
+
+pure fn directImpureRejected(x: Int) -> Int {
+    relayDirect(impureAdd, x) //~ ERROR `impureAdd` is not `pure` (contains `unsafe`)
+}
+
+// relayBeforeHop is checked before hopAfter, the function it forwards its callback
+// to: CalledParams for a forwarded parameter must not depend on that order.
+fn relayBeforeHop(f: fn(Int) -> Int, x: Int) -> Int {
+    hopAfter(f, x)
+}
+
+fn hopAfter(f: fn(Int) -> Int, x: Int) -> Int {
+    f(x)
+}
+
+fn erasedBeforeHop() -> Int {
+    let g: pure fn(fn(Int) -> Int, Int) -> Int = relayBeforeHop //~ ERROR `relayBeforeHop` is not `pure` (calls `f`, whose effect is not fixed)
+    g(impureAdd, 1)
+}
+
+fn hopBefore(f: fn(Int) -> Int, x: Int) -> Int {
+    f(x)
+}
+
+fn relayAfterHop(f: fn(Int) -> Int, x: Int) -> Int {
+    hopBefore(f, x)
+}
+
+fn erasedAfterHop() -> Int {
+    let g: pure fn(fn(Int) -> Int, Int) -> Int = relayAfterHop //~ ERROR `relayAfterHop` is not `pure` (calls `f`, whose effect is not fixed)
+    g(impureAdd, 1)
+}
+
+// mutualA/mutualB forward their callback to each other before reaching mutualLeaf:
+// CalledParams must converge regardless of which is checked first.
+fn mutualA(f: fn(Int) -> Int, n: Int) -> Int {
+    if n <= 0 { mutualLeaf(f) } else { mutualB(f, n - 1) }
+}
+
+fn mutualB(f: fn(Int) -> Int, n: Int) -> Int {
+    if n <= 0 { mutualLeaf(f) } else { mutualA(f, n - 1) }
+}
+
+fn mutualLeaf(f: fn(Int) -> Int) -> Int {
+    f(0)
+}
+
+fn erasedMutualA() -> Int {
+    let g: pure fn(fn(Int) -> Int, Int) -> Int = mutualA //~ ERROR `mutualA` is not `pure` (calls `f`, whose effect is not fixed)
+    g(impureAdd, 3)
+}
+
+fn erasedMutualB() -> Int {
+    let g: pure fn(fn(Int) -> Int, Int) -> Int = mutualB //~ ERROR `mutualB` is not `pure` (calls `f`, whose effect is not fixed)
+    g(impureAdd, 3)
+}
+-- expect --
+error[E1060]: `relayDirect` is not `pure` (calls `f`, whose effect is not fixed)
+  --> lib/param.kg:14:50
+   |
+14 |     let g: pure fn(fn(Int) -> Int, Int) -> Int = relayDirect //~ ERROR `relayDirect` is not `pure` (calls `f`, whose effect is not fixed)
+   |                                                  ^^^^^^^^^^^
+   = help: declare `f` as `pure fn(...)`, or call `relayDirect` directly instead of using it as a value
+
+error[E1060]: `relayDirect` is not `noalloc` (calls `f`, whose effect is not fixed)
+  --> lib/param.kg:19:53
+   |
+19 |     let g: noalloc fn(fn(Int) -> Int, Int) -> Int = relayDirect //~ ERROR `relayDirect` is not `noalloc` (calls `f`, whose effect is not fixed)
+   |                                                     ^^^^^^^^^^^
+   = help: declare `f` as `noalloc fn(...)`, or call `relayDirect` directly instead of using it as a value
+
+error[E423]: `impureAdd` is not `pure` (contains `unsafe`)
+  --> lib/param.kg:28:17
+   |
+28 |     relayDirect(impureAdd, x) //~ ERROR `impureAdd` is not `pure` (contains `unsafe`)
+   |                 ^^^^^^^^^
+
+error[E1060]: `relayBeforeHop` is not `pure` (calls `f`, whose effect is not fixed)
+  --> lib/param.kg:42:50
+   |
+42 |     let g: pure fn(fn(Int) -> Int, Int) -> Int = relayBeforeHop //~ ERROR `relayBeforeHop` is not `pure` (calls `f`, whose effect is not fixed)
+   |                                                  ^^^^^^^^^^^^^^
+   = help: declare `f` as `pure fn(...)`, or call `relayBeforeHop` directly instead of using it as a value
+
+error[E1060]: `relayAfterHop` is not `pure` (calls `f`, whose effect is not fixed)
+  --> lib/param.kg:55:50
+   |
+55 |     let g: pure fn(fn(Int) -> Int, Int) -> Int = relayAfterHop //~ ERROR `relayAfterHop` is not `pure` (calls `f`, whose effect is not fixed)
+   |                                                  ^^^^^^^^^^^^^
+   = help: declare `f` as `pure fn(...)`, or call `relayAfterHop` directly instead of using it as a value
+
+error[E1060]: `mutualA` is not `pure` (calls `f`, whose effect is not fixed)
+  --> lib/param.kg:74:50
+   |
+74 |     let g: pure fn(fn(Int) -> Int, Int) -> Int = mutualA //~ ERROR `mutualA` is not `pure` (calls `f`, whose effect is not fixed)
+   |                                                  ^^^^^^^
+   = help: declare `f` as `pure fn(...)`, or call `mutualA` directly instead of using it as a value
+
+error[E1060]: `mutualB` is not `pure` (calls `f`, whose effect is not fixed)
+  --> lib/param.kg:79:50
+   |
+79 |     let g: pure fn(fn(Int) -> Int, Int) -> Int = mutualB //~ ERROR `mutualB` is not `pure` (calls `f`, whose effect is not fixed)
+   |                                                  ^^^^^^^
+   = help: declare `f` as `pure fn(...)`, or call `mutualB` directly instead of using it as a value
+
