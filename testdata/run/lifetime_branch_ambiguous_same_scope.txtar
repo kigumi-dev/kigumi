@@ -1,0 +1,17 @@
+-- src --
+fn pickOne['a](cond: Bool, a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    if cond {
+        a
+    } else {
+        b
+    }
+}
+
+fn main() -> Unit! {
+    let buf1 = Bytes.fromArray(&Array.of(1, 2, 3))
+    let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
+    let r = pickOne(false, &buf1, &buf2)
+    print "${r[0]}"
+}
+-- stdout --
+4

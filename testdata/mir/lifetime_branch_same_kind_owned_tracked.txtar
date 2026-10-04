@@ -1,0 +1,61 @@
+-- lib/lt.kg --
+fn pickOne['a](cond: Bool, a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    if cond {
+        a
+    } else {
+        b
+    }
+}
+
+fn relay(cond: Bool) -> u8 {
+    let x = Bytes.fromArray(&Array.of(1, 2, 3))
+    let y = Bytes.fromArray(&Array.of(4, 5, 6))
+    let r = pickOne(cond, &x, &y)
+    r[0]
+}
+-- expect --
+fn lib.pickOne(%cond: Bool, %a: &Bytes, %b: &Bytes) -> &Bytes {
+  b0:
+    branch %cond ? b1 : b2
+  b1:
+    %t4 = copy(%a)
+    %t3 = copy(%t4)
+    jump b3
+  b2:
+    %t5 = copy(%b)
+    %t3 = copy(%t5)
+    jump b3
+  b3:
+    drop(%cond)
+    return %t3
+}
+fn lib.relay(%cond: Bool) -> u8 {
+  b0:
+    %t1 = const 1: u8
+    %t2 = const 2: u8
+    %t3 = const 3: u8
+    %t4 = array(%t1, %t2, %t3)
+    %t5 = call of(%t4)
+    %t6 = borrow 0(%t5)
+    %t7 = call fromArray(%t6)
+    %x = copy(%t7)
+    %t9 = const 4: u8
+    %t10 = const 5: u8
+    %t11 = const 6: u8
+    %t12 = array(%t9, %t10, %t11)
+    %t13 = call of(%t12)
+    %t14 = borrow 0(%t13)
+    %t15 = call fromArray(%t14)
+    %y = copy(%t15)
+    %t17 = copy(%cond)
+    %t18 = borrow 0(%x)
+    %t19 = borrow 0(%y)
+    %t20 = call pickOne(%t17, %t18, %t19)
+    %r = copy(%t20)
+    %t22 = const 0: usize
+    %t23 = index(%r, %t22)
+    drop(%y)
+    drop(%x)
+    drop(%cond)
+    return %t23
+}

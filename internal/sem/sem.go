@@ -82,6 +82,9 @@ type Result struct {
 	conformMemo             map[conformKey]conformResult
 	identPaths              map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID
 	pendingWitnessCallbacks []pendingWitnessCallback
+	// lifetimeEscapeSeen dedupes an escaping (carrier, arg) pair: a written
+	// annotation and the inferred type it accepts often find the same one.
+	lifetimeEscapeSeen map[lifetimeEscapeKey]bool
 }
 
 func check(mod *Module) *Result {
@@ -95,8 +98,10 @@ func check(mod *Module) *Result {
 	r.checkImpls()
 	r.closeFieldParamForwarding()
 	r.checkBodies()
+	r.checkAccelKeys()
 	r.resolvePendingWitnessCallbacks()
 	r.checkEffects()
+	r.checkInterruptHandlers()
 	r.checkNomono()
 	r.reportUnused()
 	r.emit()
@@ -155,16 +160,6 @@ func newResult(mod *Module) *Result {
 	r.declareUniverse()
 	r.addPackages(mod)
 	return r
-}
-
-func moduleRank(m string) int {
-	switch m {
-	case "":
-		return 0
-	case "std":
-		return 2
-	}
-	return 1
 }
 
 // Packages and files are sorted here so ids and diagnostics are deterministic.

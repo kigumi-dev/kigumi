@@ -1,0 +1,21 @@
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn pick2[T](a: T, b: T) -> T {
+    b
+}
+
+fn pickData['a, 'b](v: View['a], other: View['b]) -> &'b Bytes {
+    pick2(v.data, other.data)
+}
+
+fn main() -> Unit! {
+    let buf1 = Bytes.fromArray(&Array.of(1, 2, 3))
+    let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
+    let v1 = View { data: &buf1, off: 0 }
+    let v2 = View { data: &buf2, off: 9 }
+    let r = pickData(v1, v2)
+    print "${r[0]}"
+}
+-- stdout --
+4

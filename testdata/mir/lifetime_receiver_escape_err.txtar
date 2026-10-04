@@ -1,0 +1,51 @@
+-- lib/lt.kg --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn head['a](b: &'a Bytes) -> View['a] {
+    View { data: b, off: 0 }
+}
+
+fn View['a].peek(self) -> &Bytes {
+    self.data
+}
+
+fn escapeRecv['a](buf: &'a Bytes) -> Unit {
+    let v = head(buf)
+    let r = v.peek()
+    let xs = Array.of(r)
+}
+-- expect --
+fn lib.head(%b: &Bytes) -> View['a] {
+  b0:
+    %t1 = copy(%b)
+    %t2 = const 0: usize
+    %t3 = record View(%t1, %t2)
+    return %t3
+}
+fn lib.View.peek(%self: View['a]) -> &Bytes {
+  b0:
+    %t1 = field 0(%self)
+    return %t1
+}
+fn lib.escapeRecv(%buf: &Bytes) -> Unit {
+  b0:
+    %t1 = copy(%buf)
+    %t2 = call head(%t1)
+    %v = copy(%t2)
+    %t4 = call peek(%v)
+    %r = copy(%t4)
+    %t6 = copy(%r)
+    %t7 = array(%t6)
+    %t8 = call of(%t7)
+    %xs = copy(%t8)
+    drop(%xs)
+    drop(%v)
+    %t10 = unit
+    return %t10
+}
+error[borrow-escape]: a borrow cannot be stored
+  --> lib/lt.kg:14:14
+   |
+14 |     let xs = Array.of(r)
+   |              ^^^^^^^^^^
+

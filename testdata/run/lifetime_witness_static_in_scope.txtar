@@ -1,0 +1,23 @@
+-- src --
+interface MakeView['a] {
+    fn make(b: &'a Bytes) -> &'a Bytes
+}
+
+type Holder['a] = { pub off usize }
+
+fn Holder['a].make(b: &'a Bytes) -> &'a Bytes {
+    b
+}
+
+fn useStatic['a, T: MakeView['a]](x: T, b: &'a Bytes) -> usize {
+    let r = T.make(b)
+    r.len()
+}
+
+fn main() -> Unit! {
+    let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    let n = useStatic(Holder { off: 0 }, &buf)
+    print "${n}"
+}
+-- stdout --
+3

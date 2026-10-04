@@ -38,11 +38,29 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 	return false, nil, true
 }
 
-func (c *borrowCheck) report(n syntax.NodeID, code, msg string) {
-	if n == 0 || c.reported[n] {
+// reportKey dedups one diagnostic at one node; local is needed too since an unnamed
+// temporary's synthesized drop falls back to sharing one node with others like it.
+type reportKey struct {
+	node  syntax.NodeID
+	code  string
+	local LocalID
+}
+
+func (c *borrowCheck) report(n syntax.NodeID, local LocalID, code, msg string) {
+	if c.quiet {
 		return
 	}
-	c.reported[n] = true
+	if n == 0 {
+		n = c.p.R.Entity(c.f.Ent).Node
+	}
+	if n == 0 {
+		return
+	}
+	key := reportKey{n, code, local}
+	if c.reported[key] {
+		return
+	}
+	c.reported[key] = true
 	t := c.p.R.Tree(c.f.File)
 	c.f.Diags = append(c.f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: code})
 }

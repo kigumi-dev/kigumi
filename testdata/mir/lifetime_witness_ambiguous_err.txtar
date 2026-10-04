@@ -1,0 +1,45 @@
+-- lib/lt.kg --
+interface Mix['a] {
+    fn mix(self, other: &'a Bytes) -> &'a Bytes
+}
+
+type Holder['a] = { pub buf &'a Bytes }
+
+fn Holder['a].mix(self, other: &'a Bytes) -> &'a Bytes {
+    other
+}
+
+fn useWitness['a, T: Mix['a]](x: T) -> &'a Bytes {
+    let buf2 = Bytes.fromArray(&Array.of(7, 8, 9))
+    x.mix(&buf2)
+}
+-- expect --
+fn lib.Holder.mix(%self: Holder['a], %other: &Bytes) -> &Bytes {
+  b0:
+    %t2 = copy(%other)
+    return %t2
+}
+fn lib.useWitness(%x: T, %$w:T:mix: fn(&Bytes) -> &Bytes) -> &Bytes {
+  b0:
+    %t2 = const 7: u8
+    %t3 = const 8: u8
+    %t4 = const 9: u8
+    %t5 = array(%t2, %t3, %t4)
+    %t6 = call of(%t5)
+    %t7 = borrow 0(%t6)
+    %t8 = call fromArray(%t7)
+    %buf2 = copy(%t8)
+    %t10 = borrow 0(%buf2)
+    %t12 = copy(%$w:T:mix)
+    %t11 = callv(%t12, %x, %t10)
+    drop(%buf2)
+    drop(%$w:T:mix)
+    drop(%x)
+    return %t11
+}
+error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+  --> lib/lt.kg:13:5
+   |
+13 |     x.mix(&buf2)
+   |     ^^^^^^^^^^^
+

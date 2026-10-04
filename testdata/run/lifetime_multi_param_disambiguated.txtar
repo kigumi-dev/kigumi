@@ -1,0 +1,15 @@
+-- src --
+// Two parameters can share the same declared lifetime; the callee's body is traced
+// to find which one it actually returns, so the result aliases b, not a by position.
+fn second['a](a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    b
+}
+
+fn main() -> Unit! {
+    let buf1 = Bytes.fromArray(&Array.of(1, 2, 3))
+    let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
+    let r = second(&buf1, &buf2)
+    print "${r[0]}"
+}
+-- stdout --
+4

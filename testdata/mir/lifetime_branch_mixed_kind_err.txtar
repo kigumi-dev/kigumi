@@ -1,0 +1,53 @@
+-- lib/lt.kg --
+fn pickOne['a](cond: Bool, a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    if cond {
+        a
+    } else {
+        b
+    }
+}
+
+fn make5['a](cond: Bool, a: &'a Bytes) -> &'a Bytes {
+    let buf2 = Bytes.fromArray(&Array.of(9, 9, 9))
+    pickOne(cond, a, &buf2)
+}
+-- expect --
+fn lib.pickOne(%cond: Bool, %a: &Bytes, %b: &Bytes) -> &Bytes {
+  b0:
+    branch %cond ? b1 : b2
+  b1:
+    %t4 = copy(%a)
+    %t3 = copy(%t4)
+    jump b3
+  b2:
+    %t5 = copy(%b)
+    %t3 = copy(%t5)
+    jump b3
+  b3:
+    drop(%cond)
+    return %t3
+}
+fn lib.make5(%cond: Bool, %a: &Bytes) -> &Bytes {
+  b0:
+    %t2 = const 9: u8
+    %t3 = const 9: u8
+    %t4 = const 9: u8
+    %t5 = array(%t2, %t3, %t4)
+    %t6 = call of(%t5)
+    %t7 = borrow 0(%t6)
+    %t8 = call fromArray(%t7)
+    %buf2 = copy(%t8)
+    %t10 = copy(%cond)
+    %t11 = copy(%a)
+    %t12 = borrow 0(%buf2)
+    %t13 = call pickOne(%t10, %t11, %t12)
+    drop(%buf2)
+    drop(%cond)
+    return %t13
+}
+error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+  --> lib/lt.kg:11:5
+   |
+11 |     pickOne(cond, a, &buf2)
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+

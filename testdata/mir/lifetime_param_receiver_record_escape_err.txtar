@@ -1,0 +1,34 @@
+-- lib/lt.kg --
+type View['a] = { pub data &'a Bytes, pub off usize }
+type Box['c] = { pub d &'c Bytes }
+
+fn View['a].peek(self) -> &Bytes {
+    self.data
+}
+
+fn take['a, 'b](v: View['a], other: View['b]) -> Box['a] {
+    let r = other.peek()
+    Box { d: r }
+}
+-- expect --
+fn lib.View.peek(%self: View['a]) -> &Bytes {
+  b0:
+    %t1 = field 0(%self)
+    return %t1
+}
+fn lib.take(%v: View['a], %other: View['b]) -> Box['a] {
+  b0:
+    %t2 = call peek(%other)
+    %r = copy(%t2)
+    %t4 = copy(%r)
+    %t5 = record Box(%t4)
+    drop(%other)
+    drop(%v)
+    return %t5
+}
+error[borrow-escape]: a borrow cannot be stored
+  --> lib/lt.kg:10:5
+   |
+10 |     Box { d: r }
+   |     ^^^^^^^^^^
+

@@ -80,6 +80,9 @@ type Inst struct {
 	// Async marks an OpFnItem/OpClosure for an async fn/method value
 	// (A25-b): calling it builds a Future instead of running the body.
 	Async bool
+	// EndScope marks an OpDrop synthesized by scope exit, not a user-written drop;
+	// the borrow checker reports it with wording about the scope ending.
+	EndScope bool
 }
 
 type TermOp uint8

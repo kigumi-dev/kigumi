@@ -1,0 +1,45 @@
+-- lib/lt.kg --
+type Holder['a] = { pub buf &'a Bytes }
+
+fn Holder['a].mix(self, other: &'a Bytes) -> &'a Bytes {
+    other
+}
+
+fn make['a](h: Holder['a]) -> &'a Bytes {
+    let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
+    h.mix(&buf2)
+}
+-- expect --
+fn lib.Holder.mix(%self: Holder['a], %other: &Bytes) -> &Bytes {
+  b0:
+    %t2 = copy(%other)
+    return %t2
+}
+fn lib.make(%h: Holder['a]) -> &Bytes {
+  b0:
+    %t1 = const 4: u8
+    %t2 = const 5: u8
+    %t3 = const 6: u8
+    %t4 = array(%t1, %t2, %t3)
+    %t5 = call of(%t4)
+    %t6 = borrow 0(%t5)
+    %t7 = call fromArray(%t6)
+    %buf2 = copy(%t7)
+    %t9 = borrow 0(%buf2)
+    %t10 = call mix(%h, %t9)
+    drop(%buf2)
+    drop(%h)
+    return %t10
+}
+error[borrow-escape]: a borrow cannot be returned
+ --> lib/lt.kg:9:11
+  |
+9 |     h.mix(&buf2)
+  |           ^^^^^
+
+error[move-while-borrowed]: `buf2` is still borrowed when its scope ends here
+ --> lib/lt.kg:8:9
+  |
+8 |     let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
+  |         ^^^^
+

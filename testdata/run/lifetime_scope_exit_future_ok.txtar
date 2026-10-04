@@ -1,0 +1,17 @@
+-- src --
+import task from std/task
+
+async fn readFirst(b: &Bytes) -> u8 {
+    b[0]
+}
+
+async fn run() -> u8 {
+    let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    let r = readFirst(&buf)
+    await r
+}
+
+let ex = task.local()
+print "${ex.run(run())}"
+-- stdout --
+1

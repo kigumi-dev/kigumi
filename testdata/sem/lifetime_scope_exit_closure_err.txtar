@@ -1,0 +1,16 @@
+-- app/t/t.kg --
+fn peek() -> u8 {
+    let f = {
+        let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+        let r = &buf
+        () => r[0] //~ ERROR closure cannot capture the borrow `r`
+    }
+    f()
+}
+-- expect --
+error[E412]: closure cannot capture the borrow `r`
+ --> app/t/t.kg:5:15
+  |
+5 |         () => r[0] //~ ERROR closure cannot capture the borrow `r`
+  |               ^
+

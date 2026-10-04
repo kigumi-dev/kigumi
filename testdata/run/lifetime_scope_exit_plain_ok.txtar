@@ -1,0 +1,10 @@
+-- src --
+fn peek() -> u8 {
+    let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    let r = &buf
+    r[0]
+}
+
+print "${peek()}"
+-- stdout --
+1

@@ -24,21 +24,62 @@ func (r *Result) checkFieldLifetimeEscape(f FileID, n syntax.NodeID, owner Entit
 	}
 }
 
-// checkLifetimeEscapeArgs rejects a lifetime-carrying type argument to
-// `Shared[T]` or `Future[T]`; Shared is matched by name and
-// home package rather than Result.langItem, which would misreport
-// lang-item-missing for a file that has not imported std/alloc.
+// lifetimeEscapeKey identifies one escaping (carrier, argument) pair, shared between
+// checkLifetimeEscapeArgs's two call sites, which routinely resolve to the same escape.
+type lifetimeEscapeKey struct {
+	ent EntityID
+	arg TypeID
+}
+
+// checkLifetimeEscapeArgs rejects a lifetime-carrying type argument to `Shared[T]` or `Future[T]`,
+// written as a type or found in an expression's inferred type (checkLifetimeEscapeType).
 func (r *Result) checkLifetimeEscapeArgs(f FileID, n syntax.NodeID, ent EntityID, args []TypeID) {
+	a, ok := r.lifetimeEscapeArg(ent, args)
+	if !ok {
+		return
+	}
+	key := lifetimeEscapeKey{ent, a}
+	if r.lifetimeEscapeSeen == nil {
+		r.lifetimeEscapeSeen = map[lifetimeEscapeKey]bool{}
+	}
+	if r.lifetimeEscapeSeen[key] {
+		return
+	}
+	r.lifetimeEscapeSeen[key] = true
+	r.errAt(f, n, cLifetimeEscapes, r.TypeString(a), "`"+r.Entities[ent].Name+"`")
+}
+
+// checkLifetimeEscapeType is checkLifetimeEscapeArgs's counterpart for an inferred
+// type: a generic call's return type is never a type-path node, so resolveTypePath misses it.
+func (r *Result) checkLifetimeEscapeType(f FileID, n syntax.NodeID, t TypeID, seen map[TypeID]bool) {
+	if t == 0 || t == TyPoison || seen[t] {
+		return
+	}
+	seen[t] = true
+	node := r.Types.Node(t)
+	if node.Kind == KNamed {
+		r.checkLifetimeEscapeArgs(f, n, node.Ent, node.Args)
+	}
+	r.checkLifetimeEscapeType(f, n, node.Elem, seen)
+	for _, a := range node.Args {
+		r.checkLifetimeEscapeType(f, n, a, seen)
+	}
+}
+
+// lifetimeEscapeArg returns the first of args carrying a lifetime, for `Shared`
+// or `Future`; matched by name, not Result.langItem, to avoid a false lang-item-missing.
+func (r *Result) lifetimeEscapeArg(ent EntityID, args []TypeID) (TypeID, bool) {
 	alloc, hasAlloc := r.pathIndex["std/alloc"]
 	isShared := hasAlloc && r.Entities[ent].Name == "Shared" && r.Entities[ent].Pkg == alloc
 	if !isShared && ent != r.Types.FutureEnt() {
-		return
+		return 0, false
 	}
 	for _, a := range args {
 		if r.typeHasLifetime(a) {
-			r.errAt(f, n, cLifetimeEscapes, r.TypeString(a), "`"+r.Entities[ent].Name+"`")
+			return a, true
 		}
 	}
+	return 0, false
 }
 
 // typeHasLifetime reports whether t, or a generic argument reachable

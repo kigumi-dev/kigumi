@@ -1,0 +1,46 @@
+-- lib/lt.kg --
+interface MakeView['a] {
+    fn make(x: &'a Bytes, y: &'a Bytes) -> &'a Bytes
+}
+
+type Holder['a] = { pub off usize }
+
+fn Holder['a].make(x: &'a Bytes, y: &'a Bytes) -> &'a Bytes {
+    y
+}
+
+fn useStatic['a, T: MakeView['a]](x: T, a: &'a Bytes) -> &'a Bytes {
+    let buf2 = Bytes.fromArray(&Array.of(1, 2, 3))
+    T.make(a, &buf2)
+}
+-- expect --
+fn lib.Holder.make(%x: &Bytes, %y: &Bytes) -> &Bytes {
+  b0:
+    %t2 = copy(%y)
+    return %t2
+}
+fn lib.useStatic(%x: T, %a: &Bytes, %$w:T:make: fn(&Bytes, &Bytes) -> &Bytes) -> &Bytes {
+  b0:
+    %t3 = const 1: u8
+    %t4 = const 2: u8
+    %t5 = const 3: u8
+    %t6 = array(%t3, %t4, %t5)
+    %t7 = call of(%t6)
+    %t8 = borrow 0(%t7)
+    %t9 = call fromArray(%t8)
+    %buf2 = copy(%t9)
+    %t11 = copy(%a)
+    %t12 = borrow 0(%buf2)
+    %t14 = copy(%$w:T:make)
+    %t13 = callv(%t14, %t11, %t12)
+    drop(%buf2)
+    drop(%$w:T:make)
+    drop(%x)
+    return %t13
+}
+error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+  --> lib/lt.kg:13:5
+   |
+13 |     T.make(a, &buf2)
+   |     ^^^^^^^^^^^^^^^
+

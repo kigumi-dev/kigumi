@@ -1,0 +1,12 @@
+-- app/t/t.kg --
+type Pair['a, 'b] = { pub x &'a Bytes, pub y &'b Bytes }
+
+type Outer['a, 'b] = { pub inner Pair['a, 'b] } //~ ERROR more than one lifetime
+-- expect --
+error[E1042]: a borrow's source cannot be tracked when this type names more than one lifetime here
+ --> app/t/t.kg:3:34
+  |
+3 | type Outer['a, 'b] = { pub inner Pair['a, 'b] } //~ ERROR more than one lifetime
+  |                                  ^^^^^^^^^^^
+  = help: give it a single `'a` of its own, or take each lifetime as a separate parameter
+

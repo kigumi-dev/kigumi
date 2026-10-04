@@ -1,0 +1,68 @@
+-- lib/lt.kg --
+fn pickOne['a](cond: Bool, a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    if cond {
+        a
+    } else {
+        b
+    }
+}
+
+fn peek() -> u8 {
+    let buf1 = Bytes.fromArray(&Array.of(1, 2, 3))
+    let r = {
+        let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
+        pickOne(false, &buf1, &buf2)
+    }
+    r[0]
+}
+-- expect --
+fn lib.pickOne(%cond: Bool, %a: &Bytes, %b: &Bytes) -> &Bytes {
+  b0:
+    branch %cond ? b1 : b2
+  b1:
+    %t4 = copy(%a)
+    %t3 = copy(%t4)
+    jump b3
+  b2:
+    %t5 = copy(%b)
+    %t3 = copy(%t5)
+    jump b3
+  b3:
+    drop(%cond)
+    return %t3
+}
+fn lib.peek() -> u8 {
+  b0:
+    %t0 = const 1: u8
+    %t1 = const 2: u8
+    %t2 = const 3: u8
+    %t3 = array(%t0, %t1, %t2)
+    %t4 = call of(%t3)
+    %t5 = borrow 0(%t4)
+    %t6 = call fromArray(%t5)
+    %buf1 = copy(%t6)
+    %t8 = const 4: u8
+    %t9 = const 5: u8
+    %t10 = const 6: u8
+    %t11 = array(%t8, %t9, %t10)
+    %t12 = call of(%t11)
+    %t13 = borrow 0(%t12)
+    %t14 = call fromArray(%t13)
+    %buf2 = copy(%t14)
+    %t16 = const false: Bool
+    %t17 = borrow 0(%buf1)
+    %t18 = borrow 0(%buf2)
+    %t19 = call pickOne(%t16, %t17, %t18)
+    drop(%buf2)
+    %r = copy(%t19)
+    %t21 = const 0: usize
+    %t22 = index(%r, %t21)
+    drop(%buf1)
+    return %t22
+}
+error[move-while-borrowed]: `buf2` is still borrowed when its scope ends here
+  --> lib/lt.kg:12:13
+   |
+12 |         let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
+   |             ^^^^
+

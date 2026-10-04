@@ -114,12 +114,30 @@ error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
    |     ^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
+  --> lib/lt.kg:13:5
+   |
+13 |     buf = Bytes.zeros(8)
+   |     ^^^
+
+error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> lib/lt.kg:25:9
+   |
+25 |     let taken = buf
+   |         ^^^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> lib/lt.kg:25:17
    |
 25 |     let taken = buf
    |                 ^^^
 
 error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> lib/lt.kg:36:5
+   |
+36 |     buf = Bytes.zeros(8)
+   |     ^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> lib/lt.kg:36:5
    |
 36 |     buf = Bytes.zeros(8)

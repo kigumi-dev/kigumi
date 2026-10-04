@@ -37,9 +37,8 @@ func (r *Result) resolveLifetimeName(f FileID, scope ScopeID, n syntax.NodeID, n
 	return b.Ent
 }
 
-// resolveType already validated and reported this; a failed lookup here
-// yields 0 (as if untagged) rather than a duplicate diagnostic. Only the
-// record's first lifetime argument is a valid elision source.
+// resolveType already validated and reported this; a failed lookup yields 0 rather than
+// a duplicate diagnostic. cLifetimeMultiArg rejects more than one lifetime argument instead of silently keeping the first.
 func (r *Result) explicitLifetimeOf(f FileID, scope ScopeID, n syntax.NodeID) EntityID {
 	t := r.tree(f)
 	switch t.Kind(n) {
@@ -54,11 +53,18 @@ func (r *Result) explicitLifetimeOf(f FileID, scope ScopeID, n syntax.NodeID) En
 		if node.Rhs == 0 {
 			return 0
 		}
+		var lt EntityID
 		for _, a := range t.Children(syntax.NodeID(node.Rhs)) {
-			if t.Kind(a) == syntax.TypeLifetime {
-				return r.lookupLifetimeName(scope, t.TokText(t.Nodes[a].Tok))
+			if t.Kind(a) != syntax.TypeLifetime {
+				continue
 			}
+			if lt != 0 {
+				r.errAt(f, n, cLifetimeMultiArg)
+				return 0
+			}
+			lt = r.lookupLifetimeName(scope, t.TokText(t.Nodes[a].Tok))
 		}
+		return lt
 	}
 	return 0
 }

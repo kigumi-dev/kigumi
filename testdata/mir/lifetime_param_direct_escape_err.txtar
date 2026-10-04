@@ -1,0 +1,20 @@
+-- lib/lt.kg --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn pickData['a, 'b](v: View['a], other: View['b]) -> &'a Bytes {
+    other.data
+}
+-- expect --
+fn lib.pickData(%v: View['a], %other: View['b]) -> &Bytes {
+  b0:
+    %t2 = field 0(%other)
+    drop(%other)
+    drop(%v)
+    return %t2
+}
+error[E1041]: a borrow returned here cannot be traced to the declared lifetime; its source must carry the same `'a` as this function's own return
+ --> lib/lt.kg:4:5
+  |
+4 |     other.data
+  |     ^^^^^^^^^^
+

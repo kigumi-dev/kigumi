@@ -3,6 +3,7 @@ package mir
 import (
 	"kigumi/internal/hir"
 	"kigumi/internal/sem"
+	"kigumi/internal/syntax"
 )
 
 func (b *builder) pushScope() { b.scopes = append(b.scopes, &scope{}) }
@@ -37,8 +38,18 @@ func (b *builder) unwindScope(s *scope, failing bool) {
 		if consumed[s.owned[i]] {
 			continue
 		}
-		b.emit(Inst{Op: OpDrop, Args: []LocalID{s.owned[i]}})
+		l := s.owned[i]
+		b.emit(Inst{Op: OpDrop, Args: []LocalID{l}, Node: b.dropNode(l), EndScope: true})
 	}
+}
+
+// dropNode is the node to blame for a synthesized end-of-scope drop of l: l's own
+// declaration when it has one, else the enclosing function's (an unnamed temporary has none).
+func (b *builder) dropNode(l LocalID) syntax.NodeID {
+	if ent := b.fn.Locals[l].Ent; ent != 0 {
+		return b.r.Entity(ent).Node
+	}
+	return b.r.Entity(b.fn.Ent).Node
 }
 
 // markMoved records every local a just-lowered defer body (the

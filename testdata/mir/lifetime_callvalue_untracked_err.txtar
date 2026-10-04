@@ -1,0 +1,21 @@
+-- lib/lt.kg --
+fn chooseRef['a](b: &'a Bytes, which: fn(&'a Bytes) -> &'a Bytes) -> Unit {
+    let r = which(b)
+    _ = r
+}
+-- expect --
+fn lib.chooseRef(%b: &Bytes, %which: fn(&Bytes) -> &Bytes) -> Unit {
+  b0:
+    %t2 = copy(%b)
+    %t3 = callv(%which, %t2)
+    %r = copy(%t3)
+    %t5 = unit
+    drop(%which)
+    return %t5
+}
+error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+ --> lib/lt.kg:2:13
+  |
+2 |     let r = which(b)
+  |             ^^^^^^^
+

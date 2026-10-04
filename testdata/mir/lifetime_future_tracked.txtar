@@ -1,0 +1,37 @@
+-- lib/lt.kg --
+async fn readFirst(b: &Bytes) -> u8 {
+    b[0]
+}
+
+async fn run() -> u8 {
+    let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    let r = readFirst(&buf)
+    await r
+}
+-- expect --
+fn lib.readFirst(%b: &Bytes) -> u8 {
+  b0:
+    %t1 = const 0: usize
+    %t2 = index(%b, %t1)
+    return %t2
+}
+fn lib.run() -> u8 {
+  b0:
+    %t0 = const 1: u8
+    %t1 = const 2: u8
+    %t2 = const 3: u8
+    %t3 = array(%t0, %t1, %t2)
+    %t4 = call of(%t3)
+    %t5 = borrow 0(%t4)
+    %t6 = call fromArray(%t5)
+    %buf = copy(%t6)
+    %t8 = borrow 0(%buf)
+    %t9 = fnitem readFirst
+    %t10 = builtin future(%t9, %t8)
+    %r = copy(%t10)
+    %t12 = move(%r)
+    %t13 = builtin await(%t12)
+    nop
+    drop(%buf)
+    return %t13
+}

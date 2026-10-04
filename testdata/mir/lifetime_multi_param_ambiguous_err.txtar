@@ -1,0 +1,43 @@
+-- lib/lt.kg --
+fn second['a](a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    b
+}
+
+fn make3['a](a: &'a Bytes) -> &'a Bytes {
+    let buf2 = Bytes.fromArray(&Array.of(9, 9, 9))
+    second(a, &buf2)
+}
+-- expect --
+fn lib.second(%a: &Bytes, %b: &Bytes) -> &Bytes {
+  b0:
+    %t2 = copy(%b)
+    return %t2
+}
+fn lib.make3(%a: &Bytes) -> &Bytes {
+  b0:
+    %t1 = const 9: u8
+    %t2 = const 9: u8
+    %t3 = const 9: u8
+    %t4 = array(%t1, %t2, %t3)
+    %t5 = call of(%t4)
+    %t6 = borrow 0(%t5)
+    %t7 = call fromArray(%t6)
+    %buf2 = copy(%t7)
+    %t9 = copy(%a)
+    %t10 = borrow 0(%buf2)
+    %t11 = call second(%t9, %t10)
+    drop(%buf2)
+    return %t11
+}
+error[borrow-escape]: a borrow cannot be returned
+ --> lib/lt.kg:7:15
+  |
+7 |     second(a, &buf2)
+  |               ^^^^^
+
+error[move-while-borrowed]: `buf2` is still borrowed when its scope ends here
+ --> lib/lt.kg:6:9
+  |
+6 |     let buf2 = Bytes.fromArray(&Array.of(9, 9, 9))
+  |         ^^^^
+

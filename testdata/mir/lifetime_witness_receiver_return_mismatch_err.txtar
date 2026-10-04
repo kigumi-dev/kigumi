@@ -1,0 +1,34 @@
+-- lib/lt.kg --
+interface Peek['a] {
+    fn peek(self) -> &'a Bytes
+}
+
+type Holder['a] = { pub buf &'a Bytes }
+
+fn Holder['a].peek(self) -> &'a Bytes {
+    self.buf
+}
+
+fn useWitnessWrong['a, 'b, T: Peek['a]](x: T, other: &'b Bytes) -> &'b Bytes {
+    x.peek()
+}
+-- expect --
+fn lib.Holder.peek(%self: Holder['a]) -> &Bytes {
+  b0:
+    %t1 = field 0(%self)
+    return %t1
+}
+fn lib.useWitnessWrong(%x: T, %other: &Bytes, %$w:T:peek: fn() -> &Bytes) -> &Bytes {
+  b0:
+    %t4 = copy(%$w:T:peek)
+    %t3 = callv(%t4, %x)
+    drop(%$w:T:peek)
+    drop(%x)
+    return %t3
+}
+error[E1041]: a borrow returned here cannot be traced to the declared lifetime; its source must carry the same `'a` as this function's own return
+  --> lib/lt.kg:12:5
+   |
+12 |     x.peek()
+   |     ^^^^^^^
+

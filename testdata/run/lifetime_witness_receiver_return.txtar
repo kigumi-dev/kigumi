@@ -1,0 +1,23 @@
+-- src --
+interface Peek['a] {
+    fn peek(self) -> &'a Bytes
+}
+
+type Holder['a] = { pub buf &'a Bytes }
+
+fn Holder['a].peek(self) -> &'a Bytes {
+    self.buf
+}
+
+fn useWitness['a, T: Peek['a]](x: T) -> &'a Bytes {
+    x.peek()
+}
+
+fn main() -> Unit! {
+    let data = Bytes.fromArray(&Array.of(4, 5, 6))
+    let h = Holder { buf: &data }
+    let r = useWitness(h)
+    print "${r[0]} ${r[2]}"
+}
+-- stdout --
+4 6

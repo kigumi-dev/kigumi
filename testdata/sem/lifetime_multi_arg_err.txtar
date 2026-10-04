@@ -1,0 +1,20 @@
+-- app/t/t.kg --
+type Pair['a, 'b] = { pub x &'a Bytes, pub y &'b Bytes }
+
+fn takeY['a, 'b](p: Pair['a, 'b]) -> &'b Bytes { //~ ERROR more than one lifetime
+    p.y
+}
+
+type Box['c] = { pub d &'c Bytes }
+
+fn takeD['c](b: Box['c]) -> &'c Bytes {
+    b.d
+}
+-- expect --
+error[E1042]: a borrow's source cannot be tracked when this type names more than one lifetime here
+ --> app/t/t.kg:3:21
+  |
+3 | fn takeY['a, 'b](p: Pair['a, 'b]) -> &'b Bytes { //~ ERROR more than one lifetime
+  |                     ^^^^^^^^^^^
+  = help: give it a single `'a` of its own, or take each lifetime as a separate parameter
+

@@ -1,0 +1,10 @@
+-- src --
+fn poke() -> u8 {
+    let mut buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    let r = &mut buf
+    r[0]
+}
+
+print "${poke()}"
+-- stdout --
+1

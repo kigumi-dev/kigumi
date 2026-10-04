@@ -112,6 +112,13 @@ var (
 	cLifetimeUnresolved  = defineCode("E1019", "lifetime-unresolved", "undefined lifetime `{name}`")
 	cLifetimeEscapes     = defineCode("E1020", "lifetime-escapes", "`{type}` carries a borrow and cannot be stored in {where}")
 
+	// E1040/E1041 are raised by the MIR borrow checker, not here; declared in this
+	// catalog so `kigumi explain` and the code range stay centralized.
+	cLifetimeUntrackedCall   = defineCode("E1040", "lifetime-untracked-call", "a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type")
+	cLifetimeUntrackedReturn = defineCode("E1041", "lifetime-untracked-return", "a borrow returned here cannot be traced to the declared lifetime; its source must carry the same `'a` as this function's own return")
+	// E1042 is raised here (explicitLifetimeOf), unlike its two neighbors.
+	cLifetimeMultiArg = defineCode("E1042", "lifetime-multi-arg", "a borrow's source cannot be tracked when this type names more than one lifetime here; give it a single `'a` of its own, or take each lifetime as a separate parameter")
+
 	// partial field move: a move out of a borrow reuses
 	// cMoveOutOfBorrow (E517); index and Shared[T] get their own codes
 	// (E1022/E1024).
@@ -119,7 +126,34 @@ var (
 	cMoveIndex      = defineCode("E1022", "move-index", "cannot move a value out of an index; clone the element instead")
 	cMoveShared     = defineCode("E1024", "move-shared", "cannot move a value out of `{type}`; borrow its content instead")
 	cMovePartialUse = defineCode("E1025", "move-partial-use", "`{name}` was moved out of `{owner}`; using the whole value needs it back")
+	cIndexValueCopy = defineCode("E1050", "index-value-copy", "reading `{type}` out of an index by value needs `Copy`; borrow it with `&`, clone it, or take it with `.takeAt`")
+
+	// Two `&mut` args taking the same scalar element box separate snapshots and
+	// write back after the call, so a true alias would silently drop one write.
+	cMutAliasArgs = defineCode("E1120", "mut-alias-args", "this `&mut` argument may target the same element as an earlier `&mut` argument in this call; use indices the checker can prove differ, or restructure to one borrow")
+
+	// Bound to a variable, a scalar &mut of an index/field has no base left
+	// for build_call_fixup.go to write back to once it reaches a call.
+	cMutPlaceEscape = defineCode("E1121", "mut-place-escape", "a mutable borrow of an array element or struct field cannot be stored in a variable; pass `&mut ...` directly as the call argument instead")
+
+	// An async call's box write-back would run before the callee's body
+	// actually does (it runs later, at await), so build_call_fixup.go skips it.
+	cMutPlaceAsyncArg = defineCode("E1122", "mut-place-async-arg", "a mutable borrow of an array element or struct field cannot be passed to an async call; copy the value to a local first, call with `&mut` on that local, and write it back after the call")
+
+	// A `mut self`/`self` receiver borrows the whole place; a scalar &mut
+	// argument rooted there boxes a snapshot the MIR checker can't trace back to it.
+	cMutAliasSelfArg = defineCode("E1123", "mut-alias-self-arg", "this `&mut` argument may target storage this call's receiver already borrows; copy the value to a local first, call with `&mut` on that local, and write it back after the call")
 
 	// A cleanup body must not suspend.
 	cCleanupAwait = defineCode("E1026", "cleanup-await", "`await` is not allowed in a cleanup body")
+
+	// @unsafeGuarantee: a positive Copy/Send/Sync contract on a resource or
+	// opaque type.
+	cUnsafeGuaranteeDuplicateDirective = defineCode("E1070", "unsafe-guarantee-duplicate-directive", "at most one `@unsafeGuarantee` is allowed per type declaration")
+	cUnsafeGuaranteeDuplicateProperty  = defineCode("E1071", "unsafe-guarantee-duplicate-property", "`{prop}` is already guaranteed by this `@unsafeGuarantee`")
+	cUnsafeGuaranteeWrongTarget        = defineCode("E1072", "unsafe-guarantee-wrong-target", "`@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration")
+	cUnsafeGuaranteeCopyResource       = defineCode("E1073", "unsafe-guarantee-copy-resource", "a `resource` type cannot guarantee `Copy`; it always moves")
+	cUnsafeGuaranteeUnknownProperty    = defineCode("E1074", "unsafe-guarantee-unknown-property", "`{name}` is not a guarantee property; expected `Copy`, `Send` or `Sync`")
+	cUnsafeGuaranteeUnknownParam       = defineCode("E1075", "unsafe-guarantee-unknown-param", "`{name}` is not a type parameter of `{type}`")
+	cUnsafeGuaranteeNeedsSafetyDoc     = defineCode("W1076", "unsafe-guarantee-needs-safety-doc", "`@unsafeGuarantee` needs a doc comment line starting with `Safety:` explaining why the guarantee holds")
 )

@@ -1,0 +1,38 @@
+-- lib/lt.kg --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn peek() -> u8 {
+    let v = {
+        let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+        View { data: &buf, off: 0 }
+    }
+    v.data[0]
+}
+-- expect --
+fn lib.peek() -> u8 {
+  b0:
+    %t0 = const 1: u8
+    %t1 = const 2: u8
+    %t2 = const 3: u8
+    %t3 = array(%t0, %t1, %t2)
+    %t4 = call of(%t3)
+    %t5 = borrow 0(%t4)
+    %t6 = call fromArray(%t5)
+    %buf = copy(%t6)
+    %t8 = borrow 0(%buf)
+    %t9 = const 0: usize
+    %t10 = record View(%t8, %t9)
+    drop(%buf)
+    %v = copy(%t10)
+    %t12 = field 0(%v)
+    %t13 = const 0: usize
+    %t14 = index(%t12, %t13)
+    drop(%v)
+    return %t14
+}
+error[move-while-borrowed]: `buf` is still borrowed when its scope ends here
+ --> lib/lt.kg:5:13
+  |
+5 |         let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+  |             ^^^
+

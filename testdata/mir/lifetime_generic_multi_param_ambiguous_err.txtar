@@ -1,0 +1,49 @@
+-- lib/lt.kg --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn pickEither[T](cond: Bool, a: T, b: T) -> T {
+    if cond {
+        a
+    } else {
+        b
+    }
+}
+
+fn pickData['a, 'b](cond: Bool, v: View['a], other: View['b]) -> &'a Bytes {
+    pickEither(cond, v.data, other.data)
+}
+-- expect --
+fn lib.pickEither(%cond: Bool, %a: T, %b: T) -> T {
+  b0:
+    branch %cond ? b1 : b2
+  b1:
+    %t4 = move(%a)
+    %t3 = copy(%t4)
+    jump b3
+  b2:
+    %t5 = move(%b)
+    %t3 = copy(%t5)
+    jump b3
+  b3:
+    drop(%b)
+    drop(%a)
+    drop(%cond)
+    return %t3
+}
+fn lib.pickData(%cond: Bool, %v: View['a], %other: View['b]) -> &Bytes {
+  b0:
+    %t3 = copy(%cond)
+    %t4 = field 0(%v)
+    %t5 = field 0(%other)
+    %t6 = call pickEither(%t3, %t4, %t5)
+    drop(%other)
+    drop(%v)
+    drop(%cond)
+    return %t6
+}
+error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+  --> lib/lt.kg:12:5
+   |
+12 |     pickEither(cond, v.data, other.data)
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

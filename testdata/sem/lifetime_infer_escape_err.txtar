@@ -1,0 +1,32 @@
+-- app/t/t.kg --
+import {Shared} from std/alloc
+
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn stash['a](b: &'a Bytes) -> Unit {
+    let v = View { data: b, off: 0 }
+    let s = Shared.new(v) //~ ERROR carries a borrow and cannot be stored
+    _ = s
+}
+
+async fn head['a](b: &'a Bytes) -> View['a] {
+    View { data: b, off: 0 }
+}
+
+fn awaitIt['a](b: &'a Bytes) -> Unit {
+    let f = head(b) //~ ERROR carries a borrow and cannot be stored
+    _ = f
+}
+-- expect --
+error[E1020]: `View['a]` carries a borrow and cannot be stored in `Shared`
+ --> app/t/t.kg:7:13
+  |
+7 |     let s = Shared.new(v) //~ ERROR carries a borrow and cannot be stored
+  |             ^^^^^^^^^^^^
+
+error[E1020]: `View['a]` carries a borrow and cannot be stored in `Future`
+  --> app/t/t.kg:16:13
+   |
+16 |     let f = head(b) //~ ERROR carries a borrow and cannot be stored
+   |             ^^^^^^
+

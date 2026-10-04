@@ -1,0 +1,18 @@
+-- src --
+// Receiver and parameter both carry 'a; mix's own body is traced to find it
+// returns other, not self, so the result aliases buf2, not the receiver's buf.
+type Holder['a] = { pub buf &'a Bytes }
+
+fn Holder['a].mix(self, other: &'a Bytes) -> &'a Bytes {
+    other
+}
+
+fn main() -> Unit! {
+    let buf1 = Bytes.fromArray(&Array.of(1, 2, 3))
+    let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
+    let h = Holder { buf: &buf1 }
+    let r = h.mix(&buf2)
+    print "${r[0]}"
+}
+-- stdout --
+4

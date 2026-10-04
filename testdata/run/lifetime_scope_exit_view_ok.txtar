@@ -1,0 +1,12 @@
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn peek() -> u8 {
+    let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    let v = View { data: &buf, off: 0 }
+    v.data[0]
+}
+
+print "${peek()}"
+-- stdout --
+1

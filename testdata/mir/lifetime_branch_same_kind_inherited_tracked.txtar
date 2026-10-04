@@ -1,0 +1,37 @@
+-- lib/lt.kg --
+fn pickOne['a](cond: Bool, a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    if cond {
+        a
+    } else {
+        b
+    }
+}
+
+fn relay['a](cond: Bool, a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    pickOne(cond, a, b)
+}
+-- expect --
+fn lib.pickOne(%cond: Bool, %a: &Bytes, %b: &Bytes) -> &Bytes {
+  b0:
+    branch %cond ? b1 : b2
+  b1:
+    %t4 = copy(%a)
+    %t3 = copy(%t4)
+    jump b3
+  b2:
+    %t5 = copy(%b)
+    %t3 = copy(%t5)
+    jump b3
+  b3:
+    drop(%cond)
+    return %t3
+}
+fn lib.relay(%cond: Bool, %a: &Bytes, %b: &Bytes) -> &Bytes {
+  b0:
+    %t3 = copy(%cond)
+    %t4 = copy(%a)
+    %t5 = copy(%b)
+    %t6 = call pickOne(%t3, %t4, %t5)
+    drop(%cond)
+    return %t6
+}

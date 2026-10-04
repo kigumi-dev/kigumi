@@ -1,0 +1,28 @@
+-- lib/lt.kg --
+interface Peek['a] {
+    fn peek(self) -> &'a Bytes
+}
+
+type Holder['a] = { pub buf &'a Bytes }
+
+fn Holder['a].peek(self) -> &'a Bytes {
+    self.buf
+}
+
+fn useWitness['a, T: Peek['a]](x: T) -> &'a Bytes {
+    x.peek()
+}
+-- expect --
+fn lib.Holder.peek(%self: Holder['a]) -> &Bytes {
+  b0:
+    %t1 = field 0(%self)
+    return %t1
+}
+fn lib.useWitness(%x: T, %$w:T:peek: fn() -> &Bytes) -> &Bytes {
+  b0:
+    %t3 = copy(%$w:T:peek)
+    %t2 = callv(%t3, %x)
+    drop(%$w:T:peek)
+    drop(%x)
+    return %t2
+}
