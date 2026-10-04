@@ -92,7 +92,7 @@ type typeNode struct {
 }
 
 type typeProps struct {
-	copy, eq, hash, ord, send, sync int8
+	copy, eq, hash, ord, send, sync, repr int8
 }
 
 // TypeTable hash-conses typeNodes so structurally equal types share one id

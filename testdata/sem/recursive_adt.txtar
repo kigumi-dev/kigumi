@@ -1,11 +1,11 @@
 -- app/t/t.kg --
-type Node[M] = Text(s: String) | Wrap(kid: Node[M])
+type Node[M] = Text(s: String) | Wrap(kid: Node[M])  //~ ERROR `Node` contains itself without indirection
 
-type Chain = Leaf | Link(next: Chain)
+type Chain = Leaf | Link(next: Chain)  //~ ERROR `Chain` contains itself without indirection
 
 type Mutual = Base | Cont(other: OtherAdt)
 
-type OtherAdt = Stop | Back(m: Mutual)
+type OtherAdt = Stop | Back(m: Mutual)  //~ ERROR `OtherAdt` contains itself without indirection
 
 type Rec = { //~ ERROR `Rec` contains itself without indirection
     next Rec
@@ -14,10 +14,54 @@ type Rec = { //~ ERROR `Rec` contains itself without indirection
 type ThroughAdt = {
     n Node[Int]
 }
+
+type NodeTuple = LeafC(v: Int) | BranchC(kid: (Int, NodeTuple))  //~ ERROR `NodeTuple` contains itself without indirection
+
+type RecTuple = { //~ ERROR `RecTuple` contains itself without indirection
+    next (Int, RecTuple)
+}
+
+type Newtype = (Int, Newtype)  //~ ERROR `Newtype` contains itself without indirection
 -- expect --
+error[E221]: `Node` contains itself without indirection
+ --> app/t/t.kg:1:1
+  |
+1 | type Node[M] = Text(s: String) | Wrap(kid: Node[M])  //~ ERROR `Node` contains itself without indirection
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E221]: `Chain` contains itself without indirection
+ --> app/t/t.kg:3:1
+  |
+3 | type Chain = Leaf | Link(next: Chain)  //~ ERROR `Chain` contains itself without indirection
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E221]: `OtherAdt` contains itself without indirection
+ --> app/t/t.kg:7:1
+  |
+7 | type OtherAdt = Stop | Back(m: Mutual)  //~ ERROR `OtherAdt` contains itself without indirection
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 error[E221]: `Rec` contains itself without indirection
  --> app/t/t.kg:9:1
   |
 9 | type Rec = { //~ ERROR `Rec` contains itself without indirection
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E221]: `NodeTuple` contains itself without indirection
+  --> app/t/t.kg:17:1
+   |
+17 | type NodeTuple = LeafC(v: Int) | BranchC(kid: (Int, NodeTuple))  //~ ERROR `NodeTuple` contains itself without indirection
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E221]: `RecTuple` contains itself without indirection
+  --> app/t/t.kg:19:1
+   |
+19 | type RecTuple = { //~ ERROR `RecTuple` contains itself without indirection
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E221]: `Newtype` contains itself without indirection
+  --> app/t/t.kg:23:1
+   |
+23 | type Newtype = (Int, Newtype)  //~ ERROR `Newtype` contains itself without indirection
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

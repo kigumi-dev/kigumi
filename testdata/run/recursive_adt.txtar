@@ -1,43 +1,71 @@
 -- src --
-type Node = Text(s: String) | Wrap(kid: Node)
+import {Shared} from std/alloc
+
+type Node = Text(s: String) | Wrap(kid: Shared[Node])
 
 fn depth(n: &Node) -> Int {
     match n {
         Text(_) -> 0
-        Wrap(kid) -> 1 + depth(kid)
+        Wrap(kid) -> 1 + kid.with((k: &Node) => depth(k))
     }
 }
 
 fn label(n: &Node) -> String {
     match n {
         Text(s) -> s
-        Wrap(kid) -> "(${label(kid)})"
+        Wrap(kid) -> "(${kid.with((k: &Node) => label(k))})"
     }
 }
 
-type Boxed[M: Eq] = Leaf(v: M) | Nest(kid: Boxed[M])
+fn nodeEq(a: &Node, b: &Node) -> Bool {
+    match a {
+        Text(sa) -> match b {
+            Text(sb) -> sa == sb
+            Wrap(_) -> false
+        }
+        Wrap(ka) -> match b {
+            Text(_) -> false
+            Wrap(kb) -> ka.with((na: &Node) => kb.with((nb: &Node) => nodeEq(na, nb)))
+        }
+    }
+}
+
+type Boxed[M: Eq] = Leaf(v: M) | Nest(kid: Shared[Boxed[M]])
 
 fn boxedDepth(n: &Boxed[Int]) -> Int {
     match n {
         Leaf(_) -> 0
-        Nest(kid) -> 1 + boxedDepth(kid)
+        Nest(kid) -> 1 + kid.with((k: &Boxed[Int]) => boxedDepth(k))
     }
 }
 
-let chain = Wrap(Wrap(Wrap(Text("x"))))
+fn boxedEq(a: &Boxed[Int], b: &Boxed[Int]) -> Bool {
+    match a {
+        Leaf(va) -> match b {
+            Leaf(vb) -> va == vb
+            Nest(_) -> false
+        }
+        Nest(ka) -> match b {
+            Leaf(_) -> false
+            Nest(kb) -> ka.with((na) => kb.with((nb) => boxedEq(na, nb)))
+        }
+    }
+}
+
+let chain = Wrap(Shared.new(Wrap(Shared.new(Text("x")))))
 print "depth=${depth(&chain)} label=${label(&chain)}"
 
-let chain2 = Wrap(Wrap(Wrap(Text("x"))))
-print "eq=${chain == chain2}"
+let chain2 = Wrap(Shared.new(Wrap(Shared.new(Text("x")))))
+print "eq=${nodeEq(&chain, &chain2)}"
 
-let other = Wrap(Text("y"))
-print "neq=${chain == other}"
+let other = Wrap(Shared.new(Text("y")))
+print "neq=${nodeEq(&chain, &other)}"
 
-let bx: Boxed[Int] = Nest(Nest(Leaf(7)))
-let by: Boxed[Int] = Nest(Nest(Leaf(7)))
-print "boxedDepth=${boxedDepth(&bx)} boxedEq=${bx == by}"
+let bx: Boxed[Int] = Nest(Shared.new(Nest(Shared.new(Leaf(7)))))
+let by: Boxed[Int] = Nest(Shared.new(Nest(Shared.new(Leaf(7)))))
+print "boxedDepth=${boxedDepth(&bx)} boxedEq=${boxedEq(&bx, &by)}"
 -- stdout --
-depth=3 label=(((x)))
+depth=2 label=((x))
 eq=true
 neq=false
 boxedDepth=2 boxedEq=true

@@ -46,6 +46,9 @@ func (r *Result) checkFiniteSize(id EntityID) {
 	}
 	info.Size = sizeComputing
 	infinite := false
+	if info.Form == FormDefined && info.Underlying != 0 && r.containsByValue(info.Underlying, id) {
+		infinite = true
+	}
 	for _, fld := range info.Fields {
 		if r.containsByValue(r.Entities[fld].Type, id) {
 			infinite = true
@@ -68,10 +71,8 @@ func (r *Result) checkFiniteSize(id EntityID) {
 	info.Size = sizeFinite
 }
 
-// containsByValue reports whether t stores target inline, walking through
-// records and Option/Result but not heap containers or ADT payloads: every
-// ADT instance is boxed uniformly, so a field or payload of ADT type is
-// already an indirection regardless of what it contains.
+// containsByValue reports whether t stores target inline, walking records,
+// ADT payloads, and Option/Result but not heap containers: an ADT's payload sizes like a record field.
 func (r *Result) containsByValue(t TypeID, target EntityID) bool {
 	n := r.Types.Node(t)
 	if n.Kind != KNamed {
@@ -85,32 +86,29 @@ func (r *Result) containsByValue(t TypeID, target EntityID) bool {
 		}
 		return false
 	}
-	e := &r.Entities[n.Ent]
-	if e.File == 0 {
-		return n.Ent == target
+	if n.Ent == target {
+		return true
 	}
 	info := r.typeDecl(n.Ent)
+	if info.Size == sizeComputing {
+		return true
+	}
+	if info.Form == FormOpaque {
+		return false
+	}
+	if info.Size == sizeUnknown {
+		r.checkFiniteSize(n.Ent)
+		info = r.typeDecl(n.Ent)
+	}
+	// An infinite type was already reported at its declaration; walking into it again would not terminate.
+	if info.Size == sizeInfinite {
+		return false
+	}
 	if info.Form == FormDefined {
 		if info.Underlying == 0 || info.Underlying == TyPoison {
 			return false
 		}
 		return r.containsByValue(r.Types.Subst(info.Underlying, instSubst(info.Params, n.Args)), target)
-	}
-	if info.Form == FormOpaque || info.Form == FormAdt {
-		return false
-	}
-	if n.Ent == target {
-		return true
-	}
-	if info.Size == sizeComputing {
-		return true
-	}
-	if info.Size == sizeUnknown {
-		r.checkFiniteSize(n.Ent)
-	}
-	// An infinite type was already reported at its declaration; walking into it again would not terminate.
-	if r.typeDecl(n.Ent).Size == sizeInfinite {
-		return false
 	}
 	subst := map[EntityID]TypeID{}
 	for i, p := range info.Params {
@@ -121,6 +119,13 @@ func (r *Result) containsByValue(t TypeID, target EntityID) bool {
 	for _, fld := range info.Fields {
 		if r.containsByValue(r.Types.Subst(r.Entities[fld].Type, subst), target) {
 			return true
+		}
+	}
+	for _, v := range info.Variants {
+		for _, p := range r.variant(v).Payload {
+			if r.containsByValue(r.Types.Subst(p, subst), target) {
+				return true
+			}
 		}
 	}
 	return false
