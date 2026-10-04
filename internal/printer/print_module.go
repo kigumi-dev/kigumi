@@ -14,6 +14,21 @@ func (p *printer) constDecl(id syntax.NodeID) {
 	p.expr(syntax.NodeID(s[5]))
 }
 
+func (p *printer) staticDecl(id syntax.NodeID) {
+	p.prefix(id)
+	s := p.t.Slots(id)
+	p.write("static ")
+	if s[2]&syntax.FlagMut != 0 {
+		p.write("mut ")
+	}
+	p.write(p.tok(s[4]) + ": ")
+	p.typ(syntax.NodeID(s[5]))
+	if s[6] != 0 {
+		p.write(" = ")
+		p.expr(syntax.NodeID(s[6]))
+	}
+}
+
 func (p *printer) importDecl(id syntax.NodeID) {
 	s := p.t.Slots(id)
 	if s[0] != 0 {

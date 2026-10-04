@@ -22,6 +22,8 @@ func (r *Result) metaAttrs(f FileID, list syntax.NodeID, onType bool) []MetaRef 
 			if !onType {
 				r.errAt(f, a, cAttrWrongTarget)
 			}
+		case name == "linkName" || name == "section":
+			// Target and argument validation is resolveLinkSection's job.
 		default:
 			r.errAt(f, a, cAttrUnknown, name)
 		}

@@ -42,6 +42,10 @@ func (c *checker) synthIdent(n syntax.NodeID) TypeID {
 			c.info.Literals[n] = v
 		}
 		return e.Type
+	case EntStatic:
+		c.r.useEntity(c.f, n, ent)
+		c.checkStaticAccess(n, ent, name)
+		return e.Type
 	case EntFn:
 		return c.fnItemValue(n, c.r.Fn(ent).Set)
 	case EntVariant:

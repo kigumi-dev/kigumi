@@ -30,6 +30,11 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		res = e.constant(sb, in)
 	case mir.OpUnit:
 		res = e.irb(sb).Call(rtUnit).Text
+	case mir.OpGlobalGet:
+		res = e.loadGlobal(sb, in.Ent)
+	case mir.OpGlobalSet:
+		e.storeGlobal(sb, in.Ent, args[0])
+		return
 	case mir.OpAlias:
 		res = args[0]
 	case mir.OpShare:

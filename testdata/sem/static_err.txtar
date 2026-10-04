@@ -1,0 +1,183 @@
+-- app/t/t.kg --
+static noInit: u32 //~ ERROR `noInit` needs a compile-time initializer
+
+static immutable: u32 = 1
+
+fn badAssign() -> Unit {
+    immutable = 2 //~ ERROR `immutable` is an immutable static
+}
+
+fn badBorrowMut() -> Unit {
+    let p = &mut immutable //~ ERROR `&mut immutable` cannot be taken of a static place
+    _ = p
+}
+
+static mut ticks: u32 = 0
+
+fn readNoUnsafe() -> u32 {
+    ticks //~ ERROR accessing `static mut ticks` requires an `unsafe { }` block
+}
+
+fn writeNoUnsafe() -> Unit {
+    ticks = 1 //~ ERROR accessing `static mut ticks` requires an `unsafe { }` block
+}
+
+fn borrowMutStatic() -> Unit {
+    unsafe {
+        let a = &ticks //~ ERROR an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut`, even inside `unsafe`
+        let b = &mut ticks //~ ERROR an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut`, even inside `unsafe`
+        _ = a
+        _ = b
+    }
+}
+
+fn useStaticLifetime(x: &'static u32) -> Unit { //~ ERROR program-lifetime references are not supported in v1
+    _ = x
+}
+
+type Res = resource {
+    pub id u32
+}
+
+static badType: Res = Res { id: 1 } //~ ERROR `Res` cannot be a static's type //~ ERROR this expression is not a compile-time constant
+
+static vectorTable: FixedArray[u32, 4] = FixedArray.filled[u32, 4](0) //~ ERROR `FixedArray[u32, 4]` cannot be a static's type //~ ERROR this expression is not a compile-time constant
+
+extern(C) {
+    static importedWithInit: u32 = 1 //~ ERROR an `extern` static cannot have an initializer
+
+    static badAbi: Res //~ ERROR `Res` is not a C ABI-safe type
+
+    @section(".data") //~ ERROR `@section` is only allowed on a Kigumi-owned function or static definition
+    static sectioned: u32
+}
+
+@linkName("oops") //~ ERROR `@linkName` is only allowed on a function or static inside an `extern`/`export` block
+static plainLinked: u32 = 1
+
+export(C) {
+    static missingInit: u32 //~ ERROR `missingInit` needs a compile-time initializer
+
+    @linkName("dup_one")
+    @linkName("dup_two") //~ ERROR `@linkName` cannot be given twice on the same declaration
+    static dup: u32 = 1
+}
+-- expect --
+error[E1190]: `noInit` needs a compile-time initializer
+ --> app/t/t.kg:1:1
+  |
+1 | static noInit: u32 //~ ERROR `noInit` needs a compile-time initializer
+  | ^^^^^^^^^^^^^^^^^^
+  = help: write `= <expr>`
+
+error[E1193]: `immutable` is an immutable static
+ --> app/t/t.kg:6:5
+  |
+6 |     immutable = 2 //~ ERROR `immutable` is an immutable static
+  |     ^^^^^^^^^
+  = help: direct assignment is not allowed; use `static mut` and an `unsafe` block, or a package-private wrapper function
+
+error[E1194]: `&mut immutable` cannot be taken of a static place
+  --> app/t/t.kg:10:13
+   |
+10 |     let p = &mut immutable //~ ERROR `&mut immutable` cannot be taken of a static place
+   |             ^^^^^^^^^^^^^^
+   = help: use `static mut` with an unsafe raw pointer
+
+error[E914]: accessing `static mut ticks` requires an `unsafe { }` block
+  --> app/t/t.kg:17:5
+   |
+17 |     ticks //~ ERROR accessing `static mut ticks` requires an `unsafe { }` block
+   |     ^^^^^
+
+error[E914]: accessing `static mut ticks` requires an `unsafe { }` block
+  --> app/t/t.kg:21:5
+   |
+21 |     ticks = 1 //~ ERROR accessing `static mut ticks` requires an `unsafe { }` block
+   |     ^^^^^
+
+error[E1197]: an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut`, even inside `unsafe`
+  --> app/t/t.kg:26:17
+   |
+26 |         let a = &ticks //~ ERROR an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut`, even inside `unsafe`
+   |                 ^^^^^^
+   = help: use an explicit raw pointer operation instead
+
+error[E1197]: an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut`, even inside `unsafe`
+  --> app/t/t.kg:27:17
+   |
+27 |         let b = &mut ticks //~ ERROR an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut`, even inside `unsafe`
+   |                 ^^^^^^^^^^
+   = help: use an explicit raw pointer operation instead
+
+error[E1199]: program-lifetime references are not supported in v1
+  --> app/t/t.kg:33:26
+   |
+33 | fn useStaticLifetime(x: &'static u32) -> Unit { //~ ERROR program-lifetime references are not supported in v1
+   |                          ^^^^^^^^^^^
+   = help: use the static directly, pass a call-scoped borrow, or an unsafe raw pointer with an explicit contract
+
+error[E1192]: `Res` cannot be a static's type
+  --> app/t/t.kg:41:17
+   |
+41 | static badType: Res = Res { id: 1 } //~ ERROR `Res` cannot be a static's type //~ ERROR this expression is not a compile-time constant
+   |                 ^^^
+   = help: a static must be an allocation-free, drop-free `Copy` value; move the resource or owning value behind an explicit accessor instead
+
+error[E238]: this expression is not a compile-time constant
+  --> app/t/t.kg:41:23
+   |
+41 | static badType: Res = Res { id: 1 } //~ ERROR `Res` cannot be a static's type //~ ERROR this expression is not a compile-time constant
+   |                       ^^^^^^^^^^^
+
+error[E1192]: `FixedArray[u32, 4]` cannot be a static's type
+  --> app/t/t.kg:43:21
+   |
+43 | static vectorTable: FixedArray[u32, 4] = FixedArray.filled[u32, 4](0) //~ ERROR `FixedArray[u32, 4]` cannot be a static's type //~ ERROR this expression is not a compile-time constant
+   |                     ^^^^^^^^^^^^^^^^^
+   = help: a static must be an allocation-free, drop-free `Copy` value; move the resource or owning value behind an explicit accessor instead
+
+error[E238]: this expression is not a compile-time constant
+  --> app/t/t.kg:43:42
+   |
+43 | static vectorTable: FixedArray[u32, 4] = FixedArray.filled[u32, 4](0) //~ ERROR `FixedArray[u32, 4]` cannot be a static's type //~ ERROR this expression is not a compile-time constant
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1191]: an `extern` static cannot have an initializer
+  --> app/t/t.kg:46:36
+   |
+46 |     static importedWithInit: u32 = 1 //~ ERROR an `extern` static cannot have an initializer
+   |                                    ^
+   = help: its storage is provided by the external definition
+
+error[E1201]: `Res` is not a C ABI-safe type for an `extern`/`export` static
+  --> app/t/t.kg:48:20
+   |
+48 |     static badAbi: Res //~ ERROR `Res` is not a C ABI-safe type
+   |                    ^^^
+
+error[E1206]: `@section` is only allowed on a Kigumi-owned function or static definition, not an `extern` declaration
+  --> app/t/t.kg:50:5
+   |
+50 |     @section(".data") //~ ERROR `@section` is only allowed on a Kigumi-owned function or static definition
+   |     ^^^^^^^^^^^^^^^^
+
+error[E1204]: `@linkName` is only allowed on a function or static inside an `extern`/`export` block
+  --> app/t/t.kg:54:1
+   |
+54 | @linkName("oops") //~ ERROR `@linkName` is only allowed on a function or static inside an `extern`/`export` block
+   | ^^^^^^^^^^^^^^^^
+
+error[E1190]: `missingInit` needs a compile-time initializer
+  --> app/t/t.kg:58:5
+   |
+58 |     static missingInit: u32 //~ ERROR `missingInit` needs a compile-time initializer
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+   = help: write `= <expr>`
+
+error[E1208]: `@linkName` cannot be given twice on the same declaration
+  --> app/t/t.kg:61:5
+   |
+61 |     @linkName("dup_two") //~ ERROR `@linkName` cannot be given twice on the same declaration
+   |     ^^^^^^^^^^^^^^^^^^^
+

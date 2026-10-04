@@ -159,7 +159,7 @@ func collidesInPackage(res *sem.Result, ent sem.EntityID, newName string) bool {
 		if other := res.PackageMember(e.Pkg, newName); other != 0 && other != ent {
 			return true
 		}
-	case e.Kind == sem.EntType || e.Kind == sem.EntInterface || e.Kind == sem.EntConst || e.Kind == sem.EntAlias || e.Kind == sem.EntConstraint:
+	case e.Kind == sem.EntType || e.Kind == sem.EntInterface || e.Kind == sem.EntConst || e.Kind == sem.EntStatic || e.Kind == sem.EntAlias || e.Kind == sem.EntConstraint:
 		if other := res.PackageMember(e.Pkg, newName); other != 0 && other != ent {
 			return true
 		}

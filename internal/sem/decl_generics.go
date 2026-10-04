@@ -19,6 +19,9 @@ func (r *Result) declareGenerics(f FileID, owner EntityID, list syntax.NodeID, s
 		if name == "nil" {
 			r.errAt(f, g, cNilName)
 		}
+		if name == "'static" {
+			r.errAt(f, g, cStaticLifetime)
+		}
 		if _, dup := r.define(scope, name, Binding{Ent: id}); dup {
 			r.errAt(f, g, cGenericDuplicate, name)
 		}

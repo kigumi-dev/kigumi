@@ -69,6 +69,18 @@ func constDecl(t *syntax.Tree, n syntax.NodeID) constSlots {
 		Type: syntax.NodeID(s[4]), Value: syntax.NodeID(s[5])}
 }
 
+type staticSlots struct {
+	Doc, Name               uint32
+	Flags                   uint32
+	Attrs, Vis, Type, Value syntax.NodeID
+}
+
+func staticDecl(t *syntax.Tree, n syntax.NodeID) staticSlots {
+	s := t.Slots(n)
+	return staticSlots{Doc: s[0], Attrs: syntax.NodeID(s[1]), Flags: s[2], Vis: syntax.NodeID(s[3]), Name: s[4],
+		Type: syntax.NodeID(s[5]), Value: syntax.NodeID(s[6])}
+}
+
 type importSlots struct {
 	Vis, Binding, Path syntax.NodeID
 }

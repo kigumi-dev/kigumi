@@ -90,9 +90,10 @@ type Stmt struct {
 type PlaceKind uint8
 
 const (
-	PlaceLocal PlaceKind = iota + 1 // Expr reads it, Ent stores
-	PlaceField                      // Base.Index
-	PlaceIndex                      // Base[Idx]
+	PlaceLocal  PlaceKind = iota + 1 // Expr reads it, Ent stores
+	PlaceField                       // Base.Index
+	PlaceIndex                       // Base[Idx]
+	PlaceGlobal                      // a static, Ent stores
 )
 
 type Place struct {

@@ -57,6 +57,8 @@ const (
 	OpPanic                        // abort with Str
 	OpNop                          // removed instruction
 	OpBoxReplace                   // Args[0]'s boxed value becomes Args[1]'s, in place; the old value ends up owned by Args[1] and is dropped
+	OpGlobalGet                    // Dst = value of static Ent
+	OpGlobalSet                    // static Ent = Args[0]
 )
 
 // Inst is one instruction; the fields used depend on Op.
@@ -156,7 +158,7 @@ var opNames = [...]string{
 	OpBox: "box", OpClosure: "closure", OpFnItem: "fnitem", OpBind: "bind", OpCFnPtr: "cfnptr", OpCallC: "callc", OpAsm: "asm", OpBorrow: "borrow",
 	OpNewCell: "newcell", OpCellGet: "cellget", OpCellSet: "cellset", OpInterp: "interp",
 	OpShell: "shell", OpDrop: "drop", OpAlias: "alias", OpShare: "share", OpRelease: "release", OpPanic: "panic", OpNop: "nop",
-	OpBoxReplace: "boxreplace",
+	OpBoxReplace: "boxreplace", OpGlobalGet: "globalget", OpGlobalSet: "globalset",
 }
 
 func (o Opcode) String() string { return opNames[o] }

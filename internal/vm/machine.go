@@ -62,6 +62,9 @@ type Machine struct {
 	host     map[string]hostFn
 	hostByOp map[mir.ProviderOpId]hostFn
 	cvalues  []*obj
+	// globals is every owned/exported static's storage slot:
+	// an immortal (rc -1) object, replaced wholesale on a `static mut` write.
+	globals map[sem.EntityID]*obj
 	// site is the call being dispatched, for primitives whose meaning
 	// depends on the argument types at the call (ffi.sizeOf).
 	site   *mir.Inst
@@ -100,6 +103,7 @@ func Run(prog *mir.Program, opts Options, out, errOut io.Writer) (int, error) {
 func newMachine(prog *mir.Program, opts Options, out, errOut io.Writer) *Machine {
 	m := &Machine{p: prog, r: prog.R, out: out, err: errOut, opts: opts, drops: map[sem.EntityID]*mir.Func{}, named: map[string]sem.EntityID{}}
 	m.registerAll()
+	m.initGlobals()
 	return m
 }
 

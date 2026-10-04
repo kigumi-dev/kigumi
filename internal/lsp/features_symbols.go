@@ -47,7 +47,7 @@ func slotTok(t *syntax.Tree, n syntax.NodeID, name string) uint32 {
 
 var keywords = []string{"fn", "let", "mut", "pub", "type", "interface", "const", "import", "from", "match", "if", "else", "for", "in",
 	"return", "fail", "defer", "errdefer", "break", "continue", "is", "pure", "noalloc", "unsafe", "async", "await", "comptime",
-	"allocator", "asm", "extern", "export", "test", "resource", "move", "self", "true", "false", "None", "Some", "Ok", "Err"}
+	"allocator", "asm", "extern", "export", "test", "resource", "move", "self", "static", "true", "false", "None", "Some", "Ok", "Err"}
 
 // Completion offers keywords, names in scope, and then import candidates
 // from the rest of the module; a name already available bare always wins

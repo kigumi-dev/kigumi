@@ -65,14 +65,17 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	// data() runs before declarations are written: std drop adapters it
 	// builds may add foreign declarations of their own.
 	data := e.data()
+	globalDecls, globalInit := e.staticGlobals()
 	e.out.WriteString(header)
 	e.out.WriteString(e.modAsm.String())
 	e.out.WriteString(externs)
 	for _, name := range slices.Sorted(maps.Keys(e.foreign)) {
 		e.out.WriteString(e.foreign[name] + "\n")
 	}
+	e.out.WriteString(globalDecls)
 	e.out.WriteString(data)
 	e.out.WriteString(body.String())
+	e.out.WriteString(globalInit)
 	e.out.WriteString(e.helpers.String())
 	e.out.WriteString(e.mainWrapper())
 	return Output{IR: e.out.String(), CShim: e.shim.text()}
@@ -100,7 +103,13 @@ func (e *emitter) function(f *mir.Func) string {
 		}
 		fmt.Fprintf(&sb, "ptr %%p%d", i)
 	}
-	sb.WriteString(") {\nentry:\n")
+	sb.WriteString(")")
+	if e.r.Entity(f.Ent).Kind == sem.EntFn {
+		if name := e.r.FnSectionOf(f.Ent); name != "" {
+			fmt.Fprintf(&sb, " section %q", name)
+		}
+	}
+	sb.WriteString(" {\nentry:\n")
 	for i := range f.Locals {
 		if info, ok := e.scalar[mir.LocalID(i)]; ok {
 			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, info.Ty)
@@ -181,6 +190,7 @@ func (e *emitter) mainWrapper() string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "define i32 @%s(i32 %%argc, ptr %%argv) {\n", name)
 	e.irb(&sb).Call(rtInit, vi32text("%argc"), vptr("%argv"), vi32(e.typeCount()), vptr("@rt_types"))
+	sb.WriteString("  call void @kg_init_statics()\n")
 	fmt.Fprintf(&sb, "  %%r = call ptr %s()\n", entry)
 	e.irb(&sb).CallAs("%c", rtExitCode, vptr("%r"))
 	sb.WriteString("  ret i32 %c\n}\n")

@@ -26,10 +26,12 @@ func (r *Result) declareAttrs() {
 			} else if ug != 0 {
 				r.errAt(e.File, ug, cUnsafeGuaranteeWrongTarget)
 			}
+			r.resolveLinkSection(e.File, s.Attrs, false, false)
 		case EntFn:
 			s := fnDecl(t, e.Node)
 			if r.Entities[e.Parent].Kind == EntInterface {
 				r.rejectGuarantee(e.File, s.Attrs)
+				r.resolveLinkSection(e.File, s.Attrs, false, false)
 				if s.Params != 0 {
 					for _, p := range t.Children(s.Params) {
 						r.rejectGuarantee(e.File, param(t, p).Attrs)
@@ -40,10 +42,13 @@ func (r *Result) declareAttrs() {
 			info := r.Fn(EntityID(id))
 			info.Metadata = r.metaAttrs(e.File, s.Attrs, false)
 			r.rejectGuarantee(e.File, s.Attrs)
+			ls := r.resolveLinkSection(e.File, s.Attrs, info.Abi != "" || info.Export != "", s.Body != 0)
+			info.LinkName, info.Section = ls.LinkName, ls.Section
 			for _, p := range info.Params {
 				pAttrs := param(t, r.Entities[p].Node).Attrs
 				r.local(p).Metadata = r.metaAttrs(e.File, pAttrs, false)
 				r.rejectGuarantee(e.File, pAttrs)
+				r.resolveLinkSection(e.File, pAttrs, false, false)
 			}
 		case EntInterface:
 			r.rejectAttrs(e.File, ifaceDecl(t, e.Node).Attrs)
@@ -52,6 +57,12 @@ func (r *Result) declareAttrs() {
 			s := constDecl(t, e.Node)
 			r.constInfo(EntityID(id)).Metadata = r.metaAttrs(e.File, s.Attrs, false)
 			r.rejectGuarantee(e.File, s.Attrs)
+			r.resolveLinkSection(e.File, s.Attrs, false, false)
+		case EntStatic:
+			s := staticDecl(t, e.Node)
+			info := r.Static(EntityID(id))
+			ls := r.resolveLinkSection(e.File, s.Attrs, info.Owner != StaticOwned, info.Owner != StaticExtern)
+			info.LinkName, info.Section = ls.LinkName, ls.Section
 		}
 	}
 }
@@ -69,6 +80,9 @@ func (r *Result) implAttrs(id EntityID, list syntax.NodeID) {
 			continue
 		}
 		name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), ".")
+		if name == "linkName" || name == "section" {
+			continue
+		}
 		if name != "impl" {
 			// Dotted metadata is collected by metaAttrs.
 			if len(t.PathToks(syntax.NodeID(t.Nodes[a].Lhs))) == 1 {

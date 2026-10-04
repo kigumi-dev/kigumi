@@ -1,0 +1,52 @@
+-- lib/s.kg --
+static config: u32 = 42
+
+fn port() -> u32 {
+    config
+}
+
+fn show() -> Unit {
+    let v = &config
+    reader(v)
+}
+
+fn reader(v: &u32) -> Unit {}
+
+fn leak['a]() -> &'a u32 {
+    return &config
+}
+-- expect --
+fn lib.port() -> u32 {
+  b0:
+    %t0 = globalget config
+    return %t0
+}
+fn lib.show() -> Unit {
+  b0:
+    %t0 = globalget config
+    %t1 = borrow 0(%t0)
+    %v = copy(%t1)
+    %t3 = copy(%v)
+    %t4 = call reader(%t3)
+    return %t4
+}
+fn lib.reader(%v: &u32) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.leak() -> &u32 {
+  b0:
+    %t0 = globalget config
+    %t1 = borrow 0(%t0)
+    return %t1
+  b1:
+    %t2 = unit
+    return %t2
+}
+error[E1198]: a static-origin borrow cannot escape its call/local scope in v1; return an owned copy, expose an operation/callback, or use an unsafe raw pointer with an explicit contract
+  --> lib/s.kg:15:12
+   |
+15 |     return &config
+   |            ^^^^^^^
+

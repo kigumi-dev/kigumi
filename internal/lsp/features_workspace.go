@@ -26,6 +26,8 @@ func declSymbol(t *syntax.Tree, d syntax.NodeID) (name string, kind protocol.Sym
 		kind = protocol.SymbolKindInterface
 	case syntax.ConstDecl:
 		kind = protocol.SymbolKindConstant
+	case syntax.StaticDecl:
+		kind = protocol.SymbolKindVariable
 	default:
 		return "", 0, 0, false
 	}

@@ -29,6 +29,10 @@ func (r *Result) resolveRefType(f FileID, scope ScopeID, n syntax.NodeID, node s
 // Only declareGenerics binds such a name, so a hit is always a lifetime
 // parameter.
 func (r *Result) resolveLifetimeName(f FileID, scope ScopeID, n syntax.NodeID, name string) EntityID {
+	if name == "'static" {
+		r.errAt(f, n, cStaticLifetime)
+		return 0
+	}
 	b, _, ok := r.lookup(scope, name)
 	if !ok || b.Ent == 0 {
 		r.errAt(f, n, cLifetimeUnresolved, name)

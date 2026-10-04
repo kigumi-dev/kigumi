@@ -108,6 +108,11 @@ func semanticTokenFor(res *sem.Result, ent sem.EntityID) (typ, mods uint32, ok b
 		return 4, mods, true
 	case sem.EntConst:
 		return 5, mods | modReadonly, true
+	case sem.EntStatic:
+		if !res.Static(ent).Mut {
+			mods |= modReadonly
+		}
+		return 5, mods, true
 	case sem.EntField:
 		return 6, mods, true
 	case sem.EntVariant:

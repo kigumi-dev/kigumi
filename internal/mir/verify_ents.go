@@ -54,6 +54,10 @@ func (p *Program) verifyEntities(f *Func) *Error {
 				if p.R.AsmOf(f.File, in.Node) == nil {
 					return fail("entities", bid, i, "asm without its operand table")
 				}
+			case OpGlobalGet, OpGlobalSet:
+				if kindOf(in.Ent) != sem.EntStatic {
+					want = "a static"
+				}
 			case OpField, OpFieldMove, OpPayload:
 				if in.Index < 0 {
 					return fail("entities", bid, i, "%s index %d", in.Op, in.Index)

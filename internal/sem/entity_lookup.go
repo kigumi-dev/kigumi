@@ -11,6 +11,8 @@ func (r *Result) iface(id EntityID) *InterfaceInfo { return &r.Ifaces[r.Entities
 
 func (r *Result) constInfo(id EntityID) *ConstInfo { return &r.Consts[r.Entities[id].Detail] }
 
+func (r *Result) Static(id EntityID) *StaticInfo { return &r.Statics[r.Entities[id].Detail] }
+
 func (r *Result) local(id EntityID) *LocalInfo { return &r.Locals[r.Entities[id].Detail] }
 
 func (r *Result) closure(id EntityID) *ClosureInfo { return &r.Closures[r.Entities[id].Detail] }

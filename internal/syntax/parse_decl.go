@@ -141,6 +141,8 @@ func (p *parser) decl() NodeID {
 		p.errorf("`static fn` does not exist; an associated function is `fn Type.name(...)` without `self`")
 		p.advance()
 		return p.fnDecl(pf)
+	case p.atIdent("static") && p.staticDeclAhead():
+		return p.staticDecl(pf)
 	case p.atIdent("impl") && p.peek(1) == token.Ident:
 		p.errorf("`impl` blocks do not exist; write `fn Type.name(self)` at top level and use `@impl(Interface)` on the type")
 		p.recover()

@@ -51,7 +51,7 @@ func (p *Program) inst(f *Func, in Inst) string {
 	}
 	head := ""
 	switch in.Op {
-	case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpBoxReplace, OpPanic, OpNop:
+	case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpBoxReplace, OpGlobalSet, OpPanic, OpNop:
 	default:
 		head = p.local(f, in.Dst) + " = "
 	}
@@ -59,7 +59,7 @@ func (p *Program) inst(f *Func, in Inst) string {
 	switch in.Op {
 	case OpConst:
 		body += " " + litText(in) + ": " + p.R.TypeString(in.Type)
-	case OpCall, OpVariant, OpRecord, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpIsVariant, OpIsType:
+	case OpCall, OpVariant, OpRecord, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpIsVariant, OpIsType, OpGlobalGet, OpGlobalSet:
 		body += " " + p.R.Entity(in.Ent).Name
 		if in.Str != "" {
 			body += " " + in.Str

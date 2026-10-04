@@ -1,0 +1,59 @@
+-- app/t/t.kg --
+static deviceId: u32 = 42
+pub static version: u32 = 1 + 2
+
+static mut ticks: u32 = 0
+
+fn port() -> u32 {
+    deviceId
+}
+
+fn show() -> Unit {
+    let v = &version
+    reader(v)
+}
+
+fn reader(v: &u32) -> Unit {}
+
+fn reset() -> Unit {
+    unsafe {
+        ticks = 0
+    }
+}
+
+fn increment() -> u32 {
+    unsafe {
+        ticks = ticks + 1
+        ticks
+    }
+}
+
+extern(C) {
+    static firmwareVersion: u32
+
+    @linkName("vendor_counter")
+    static mut vendorCounter: u32
+}
+
+export(C) {
+    @linkName("plugin_version")
+    pub static pluginVersion: u32 = 1
+
+    static mut pluginCounter: u32 = 0
+}
+
+@section(".isr_vector")
+static vectorTable: u32 = 0
+
+fn readFirmware() -> u32 {
+    unsafe {
+        firmwareVersion
+    }
+}
+
+fn bumpVendor() -> Unit {
+    unsafe {
+        vendorCounter = vendorCounter + 1
+    }
+}
+-- expect --

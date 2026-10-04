@@ -32,7 +32,7 @@ func (c *borrowCheck) liveness() {
 			}
 			for i := len(blk.Insts) - 1; i >= 0; i-- {
 				in := blk.Insts[i]
-				if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace {
+				if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet {
 					delete(live, in.Dst)
 				}
 				for _, a := range uses(in) {

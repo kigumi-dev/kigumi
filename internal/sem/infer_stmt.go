@@ -149,7 +149,9 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		return
 	}
 	target := c.synthPlace(lhs)
-	if c.indexAssignUnsupported(lhs) {
+	if staticEnt, ok := c.staticRootOf(lhs); ok {
+		c.checkStaticAssign(lhs, staticEnt)
+	} else if c.indexAssignUnsupported(lhs) {
 		c.errAt(lhs, cIndexAssignUnsupported)
 	} else if !c.isMutablePlace(lhs) {
 		c.reportImmutable(lhs)

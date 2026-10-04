@@ -1,0 +1,126 @@
+-- src --
+static deviceId: u32 = 42
+pub static version: Version = Version { major: 1, minor: 0 }
+static mut ticks: u32 = 0
+pub static mut counter: i32 = 0
+
+extern(C) {
+    static firmwareVersion: u32
+
+    @linkName("vendor_counter")
+    static mut vendorCounter: u32
+}
+
+export(C) {
+    @linkName("plugin_version")
+    pub static pluginVersion: u32 = 1
+
+    @linkName("plugin_counter")
+    static mut pluginCounter: u32 = 0
+}
+
+@section(".isr_vector")
+static vectorTable: u32 = 0
+
+@section(".ramfunc")
+fn flashWriter() -> Unit {}
+-- expect --
+File
+  StaticDecl
+    name: deviceId
+    type: TypePath
+      Path u32
+    value: IntLit 42
+  StaticDecl
+    vis: Visibility
+    name: version
+    type: TypePath
+      Path Version
+    value: RecordLit
+      Ident Version
+      List
+        FieldInit major
+          IntLit 1
+        FieldInit minor
+          IntLit 0
+  StaticDecl
+    flags: mut
+    name: ticks
+    type: TypePath
+      Path u32
+    value: IntLit 0
+  StaticDecl
+    flags: mut
+    vis: Visibility
+    name: counter
+    type: TypePath
+      Path i32
+    value: IntLit 0
+  AbiBlock extern
+    List
+      Ident C
+    List
+      StaticDecl
+        name: firmwareVersion
+        type: TypePath
+          Path u32
+      StaticDecl
+        attrs: List
+          Attr
+            Path linkName
+            List
+              StringLit "vendor_counter"
+        flags: mut
+        name: vendorCounter
+        type: TypePath
+          Path u32
+  AbiBlock export
+    List
+      Ident C
+    List
+      StaticDecl
+        attrs: List
+          Attr
+            Path linkName
+            List
+              StringLit "plugin_version"
+        vis: Visibility
+        name: pluginVersion
+        type: TypePath
+          Path u32
+        value: IntLit 1
+      StaticDecl
+        attrs: List
+          Attr
+            Path linkName
+            List
+              StringLit "plugin_counter"
+        flags: mut
+        name: pluginCounter
+        type: TypePath
+          Path u32
+        value: IntLit 0
+  StaticDecl
+    attrs: List
+      Attr
+        Path section
+        List
+          StringLit ".isr_vector"
+    name: vectorTable
+    type: TypePath
+      Path u32
+    value: IntLit 0
+  FnDecl
+    attrs: List
+      Attr
+        Path section
+        List
+          StringLit ".ramfunc"
+    vis: -
+    recv: -
+    name: flashWriter
+    generics: -
+    params: List
+    ret: TypePath
+      Path Unit
+    body: Block

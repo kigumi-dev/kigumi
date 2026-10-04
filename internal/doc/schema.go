@@ -115,6 +115,12 @@ func declaration(res *sem.Result, t *syntax.Tree, d syntax.NodeID) (Declaration,
 	case sem.EntConst:
 		decl.Kind = "const"
 		decl.Attributes = attributes(res, t, res.Const(ent).Metadata)
+	case sem.EntStatic:
+		decl.Kind = "static"
+		if res.Static(ent).Mut {
+			decl.Kind = "static mut"
+		}
+		decl.Attributes = attributes(res, t, res.Static(ent).Metadata)
 	case sem.EntInterface:
 		decl.Kind = "interface"
 	default:

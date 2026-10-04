@@ -35,6 +35,7 @@ type Result struct {
 	Fns        []FnInfo
 	Ifaces     []InterfaceInfo
 	Consts     []ConstInfo
+	Statics    []StaticInfo
 	Locals     []LocalInfo
 	Closures   []ClosureInfo
 	Fields     []FieldInfo
@@ -95,6 +96,7 @@ func check(mod *Module) *Result {
 	r.declareTypes()
 	r.declareSignatures()
 	r.declareConsts()
+	r.declareStatics()
 	r.checkImpls()
 	r.closeFieldParamForwarding()
 	r.checkBodies()

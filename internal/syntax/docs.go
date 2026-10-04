@@ -10,7 +10,7 @@ import (
 // or with it (types, interfaces, consts), capped at maxHeadLines lines.
 func DeclHead(t *Tree, n NodeID) string {
 	switch t.Kind(n) {
-	case FnDecl, TypeDecl, InterfaceDecl, ConstDecl:
+	case FnDecl, TypeDecl, InterfaceDecl, ConstDecl, StaticDecl:
 	default:
 		return ""
 	}

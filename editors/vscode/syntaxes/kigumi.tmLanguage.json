@@ -157,7 +157,7 @@
                 },
                 {
                     "name": "keyword.declaration.kigumi",
-                    "match": "\\b(fn|let|mut|const|type|interface|import|extern|export|instantiate|resource|layout)\\b"
+                    "match": "\\b(fn|let|mut|const|type|interface|import|extern|export|instantiate|resource|layout|static)\\b"
                 },
                 {
                     "name": "storage.modifier.kigumi",

@@ -1,0 +1,12 @@
+-- src --
+@section(".rodata.kg_vector")
+static vectorTable: u32 = 7
+
+@section(".text.kg_flash")
+fn flashWriter() -> u32 {
+    42
+}
+
+print "vector=${vectorTable} flash=${flashWriter()}"
+-- stdout --
+vector=7 flash=42

@@ -88,7 +88,11 @@ func (c *borrowCheck) checkLifetimeEscape(a LocalID, b *borrowInfo) {
 	if def := c.definition(a); def != nil {
 		node = def.Node
 	}
-	code, msg := lifetimeUntrackedDiag("lifetime-untracked-return")
+	name := "lifetime-untracked-return"
+	if b.fromStatic {
+		name = "static-borrow-escape"
+	}
+	code, msg := lifetimeUntrackedDiag(name)
 	c.report(node, a, code, msg)
 }
 

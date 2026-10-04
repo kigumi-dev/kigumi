@@ -22,6 +22,11 @@ func (r *Result) addConst(info ConstInfo) uint32 {
 	return uint32(len(r.Consts) - 1)
 }
 
+func (r *Result) addStatic(info StaticInfo) uint32 {
+	r.Statics = append(r.Statics, info)
+	return uint32(len(r.Statics) - 1)
+}
+
 func (r *Result) addLocal(info LocalInfo) uint32 {
 	r.Locals = append(r.Locals, info)
 	return uint32(len(r.Locals) - 1)

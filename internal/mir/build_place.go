@@ -24,6 +24,8 @@ func (b *builder) resolvePlace(pl *hir.Place) place {
 		base := b.expr(pl.Base)
 		idx := b.expr(pl.Idx)
 		return place{src: pl, base: base, idx: idx}
+	case hir.PlaceGlobal:
+		return place{src: pl}
 	}
 	return place{src: pl, id: b.local(pl.Ent)}
 }
@@ -34,6 +36,8 @@ func (b *builder) loadPlace(p place) LocalID {
 		return b.emit(Inst{Op: OpField, Dst: b.temp(p.src.Type), Args: []LocalID{p.base}, Index: p.src.Index, Node: p.src.Node})
 	case hir.PlaceIndex:
 		return b.emit(Inst{Op: OpIndex, Dst: b.temp(p.src.Type), Args: []LocalID{p.base, p.idx}, Node: p.src.Node})
+	case hir.PlaceGlobal:
+		return b.emit(Inst{Op: OpGlobalGet, Dst: b.temp(p.src.Type), Ent: p.src.Ent, Node: p.src.Node})
 	}
 	return b.expr(p.src.Expr)
 }
@@ -49,6 +53,8 @@ func (b *builder) storePlace(p place, v LocalID) {
 		b.emit(Inst{Op: OpSetField, Args: []LocalID{p.base, v}, Index: p.src.Index, Node: p.src.Node})
 	case hir.PlaceIndex:
 		b.emit(Inst{Op: OpSetIndex, Args: []LocalID{p.base, p.idx, v}, Node: p.src.Node})
+	case hir.PlaceGlobal:
+		b.emit(Inst{Op: OpGlobalSet, Args: []LocalID{v}, Ent: p.src.Ent, Node: p.src.Node})
 	default:
 		if b.fn.Locals[p.id].Borrowed {
 			if b.storeSelf(p, v) {

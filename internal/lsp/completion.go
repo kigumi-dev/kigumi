@@ -177,6 +177,8 @@ func completionKindOf(k sem.EntityKind) protocol.CompletionItemKind {
 		return protocol.CompletionItemKindInterface
 	case sem.EntConst:
 		return protocol.CompletionItemKindConstant
+	case sem.EntStatic:
+		return protocol.CompletionItemKindVariable
 	case sem.EntVariant:
 		return protocol.CompletionItemKindEnumMember
 	case sem.EntPackage, sem.EntImport:

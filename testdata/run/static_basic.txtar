@@ -1,0 +1,21 @@
+-- src --
+static deviceId: u32 = 42
+
+static mut ticks: u32 = 0
+
+fn increment() -> u32 {
+    unsafe {
+        ticks = ticks + 1
+        ticks
+    }
+}
+
+print "device=${deviceId}"
+print "tick1=${increment()}"
+print "tick2=${increment()}"
+print "tick3=${increment()}"
+-- stdout --
+device=42
+tick1=1
+tick2=2
+tick3=3

@@ -28,6 +28,10 @@ type borrowInfo struct {
 	// lifetime is the named lifetime a param-inherited holder (hasOwner false)
 	// traces back to, 0 when it cannot be named.
 	lifetime sem.EntityID
+	// fromStatic marks a holder traced to a static's storage:
+	// checkLifetimeEscape reports it with its own wording, not the generic
+	// untracked-lifetime one.
+	fromStatic bool
 }
 
 type borrowCheck struct {
@@ -85,6 +89,12 @@ func (c *borrowCheck) collect() {
 							ref := ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact}
 							c.holders[in.Dst] = &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}
 							changed = true
+						} else if def := c.definition(in.Args[0]); def != nil && def.Op == OpGlobalGet {
+							// A static-origin borrow: no local owner to
+							// touch-check against, but return/store/capture
+							// still has to reject it like any untracked lifetime.
+							c.holders[in.Dst] = &borrowInfo{node: in.Node, fromStatic: true}
+							changed = true
 						}
 					}
 				case OpCopy, OpMove:
@@ -141,7 +151,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		in := blk.Insts[i]
 		c.checkInst(in, intersect(live, before[i]))
-		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace {
+		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet {
 			delete(live, in.Dst)
 		}
 		for _, a := range uses(in) {

@@ -25,6 +25,11 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 		m.chargeMemory(res)
 	case mir.OpUnit:
 		res = unitObj
+	case mir.OpGlobalGet:
+		res = m.loadGlobal(in.Ent)
+	case mir.OpGlobalSet:
+		m.storeGlobal(in.Ent, args[0])
+		return
 	case mir.OpAlias:
 		res = args[0]
 	case mir.OpShare:
