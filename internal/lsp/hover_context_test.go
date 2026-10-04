@@ -7,9 +7,8 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// A function that only calls `print` carries a real `stdout` requirement
-// (joined into CtxRequires, not a disconnected bookkeeping list), visible
-// transitively on hover at any of its callers.
+// A function that only calls `print` carries a real `stdout` requirement,
+// visible transitively on hover at any of its callers.
 func TestHoverContextRequiresFromPrint(t *testing.T) {
 	src := "fn greet() -> Unit {\n    print \"hi\"\n}\n\nfn wrapper() -> Unit {\n    greet()\n}\n\nwrapper()\n"
 	s, ctx, doc, _ := openModule(t, src)

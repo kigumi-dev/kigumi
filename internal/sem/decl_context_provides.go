@@ -2,15 +2,12 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// ProvideBinding is one context key a provider type's field supplies,
-// declared by `@provides(key, ...)` on the type.
+// ProvideBinding is one context key a provider type's field supplies via `@provides(key, ...)`.
 type ProvideBinding struct {
 	Key   EntityID
 	Field EntityID
 }
 
-// checkContextProviders resolves every `@provides(...)` attribute on a type
-// declaration into the context keys its fields supply.
 func (r *Result) checkContextProviders() {
 	for id := 1; id < len(r.Entities); id++ {
 		e := &r.Entities[id]

@@ -2,8 +2,8 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// definedUnderlying resolves id's (a FormDefined EntType) direct underlying
-// type, unsubstituted; chain cycles are caught separately by checkDefinedChain.
+// definedUnderlying returns id's direct underlying type, unsubstituted; chain
+// cycles are caught separately by checkDefinedChain.
 func (r *Result) definedUnderlying(id EntityID) TypeID {
 	info := r.typeDecl(id)
 	if info.Underlying != 0 {
@@ -17,8 +17,7 @@ func (r *Result) definedUnderlying(id EntityID) TypeID {
 	return info.Underlying
 }
 
-// checkDefinedChain walks id's Underlying chain through other defined types
-// and reports a cycle, poisoning every entity on it together.
+// checkDefinedChain poisons every entity on a discovered Underlying cycle together.
 func (r *Result) checkDefinedChain(id EntityID) {
 	info := r.typeDecl(id)
 	if info.Form != FormDefined || r.poisoned(id) {
@@ -52,8 +51,7 @@ func (r *Result) checkDefinedChain(id EntityID) {
 	}
 }
 
-// underlyingRepr resolves t through defined-type layers to its representation
-// carrier, substituting generics and looking through a reference to its element.
+// underlyingRepr resolves t through defined-type layers to its representation carrier.
 func (r *Result) underlyingRepr(t TypeID) TypeID {
 	n := r.Types.Node(t)
 	switch n.Kind {
@@ -75,8 +73,7 @@ func (r *Result) underlyingRepr(t TypeID) TypeID {
 	return t
 }
 
-// definedAccessible reports whether a representation operation (wrap or
-// `.value`) on defined type ent is usable from file f.
+// definedAccessible reports whether a representation operation (wrap or `.value`) is usable from file f.
 func (r *Result) definedAccessible(f FileID, ent EntityID) bool {
 	return r.typeDecl(ent).Home == r.packageOf(f)
 }

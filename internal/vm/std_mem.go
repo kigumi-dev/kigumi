@@ -1,8 +1,7 @@
 package vm
 
-// memStd implements std/mem: UnsafeCell as an opaque handle around a plain
-// VM cell, so the general deref pass (which unwraps a kCell transparently)
-// never sees through it by accident.
+// memStd implements std/mem: UnsafeCell is an opaque handle around a plain
+// VM cell, so the general deref pass does not unwrap it by accident.
 func (m *Machine) memStd(key string, a []*obj, a0, a1 *obj) *obj {
 	switch key {
 	case "mem.UnsafeCell.new":

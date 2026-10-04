@@ -11,8 +11,7 @@ import (
 )
 
 // TestAotExportStaticReadByC: an `export(C)` static is a genuine C ABI
-// object, not a boxed Kigumi value; a C shim reads and writes it directly
-// by its linked symbol.
+// object; a C shim reads and writes it directly by its linked symbol.
 func TestAotExportStaticReadByC(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")

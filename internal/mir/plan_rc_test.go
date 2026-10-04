@@ -210,11 +210,7 @@ func TestPlanRCReturnShare(t *testing.T) {
 	}
 }
 
-// TestPlanRCAliasChainReturnShare: a defined-type wrap/unwrap (build_expr.go)
-// emits OpAlias directly rather than OpCopy, so a chain of two such aliases
-// of a borrowed receiver (`x: &Meters` returning `x.value`) must still
-// trace back to the named local they stand for and share it on return,
-// exactly like TestPlanRCReturnShare's single OpCopy-derived alias.
+// A chain of two OpAlias steps must still resolve to the named local, not just one.
 func TestPlanRCAliasChainReturnShare(t *testing.T) {
 	p := program(t)
 	ent := p.R.Types.ErrorEnt()

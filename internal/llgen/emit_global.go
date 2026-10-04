@@ -10,13 +10,12 @@ import (
 	"kigumi/internal/sem"
 )
 
-// globalSym names a Kigumi-owned static's internal LLVM storage, mangled
-// by entity id since two packages may declare a static of the same name.
+// globalSym mangles by entity id since two packages may declare a static of the same name.
 func (e *emitter) globalSym(ent sem.EntityID) string {
 	return fmt.Sprintf("@\"kg.static.%d\"", uint32(ent))
 }
 
-// staticGlobals emits every static's LLVM storage plus kg_init_statics; extern/export statics get their own real C-layout global, owned ones stay the ordinary boxed-ptr representation every other Kigumi value uses.
+// staticGlobals: extern/export statics get a real C-layout global; owned ones keep the ordinary boxed-ptr representation.
 func (e *emitter) staticGlobals() (decls, initFn string) {
 	var g, init strings.Builder
 	init.WriteString("define void @kg_init_statics() {\n")
@@ -40,8 +39,6 @@ func (e *emitter) staticGlobals() (decls, initFn string) {
 	return g.String(), init.String()
 }
 
-// loadGlobal reads a static's current value as a boxed ptr: a raw load
-// plus box() at the C ABI boundary, a plain pointer load for an owned one.
 func (e *emitter) loadGlobal(sb *strings.Builder, ent sem.EntityID) string {
 	typ := e.r.Entity(ent).Type
 	if owner, _ := e.r.StaticOwnerOf(ent); owner != sem.StaticOwned {
@@ -57,7 +54,7 @@ func (e *emitter) loadGlobal(sb *strings.Builder, ent sem.EntityID) string {
 	return e.irb(sb).Call(rtRetain, vptr(loaded)).Text
 }
 
-// storeGlobal is loadGlobal's write side for a `static mut`: the caller hands over an owned reference (Args[0] is consumed), so only the overwritten old value needs releasing, mirroring rt_setfield.
+// storeGlobal: the caller hands over an owned reference, so only the old value needs releasing, mirroring rt_setfield.
 func (e *emitter) storeGlobal(sb *strings.Builder, ent sem.EntityID, v string) {
 	typ := e.r.Entity(ent).Type
 	if owner, _ := e.r.StaticOwnerOf(ent); owner != sem.StaticOwned {
@@ -72,8 +69,6 @@ func (e *emitter) storeGlobal(sb *strings.Builder, ent sem.EntityID, v string) {
 	e.irb(sb).Call(rtRelease, vptr(old))
 }
 
-// sectionClause is `@section`'s LLVM text, empty when the declaration has
-// none.
 func sectionClause(name string) string {
 	if name == "" {
 		return ""
@@ -81,8 +76,7 @@ func sectionClause(name string) string {
 	return fmt.Sprintf(", section %q", name)
 }
 
-// cLiteralText renders a static-initializable literal as the LLVM constant
-// text of ct, for an export(C) static's global initializer.
+// cLiteralText renders a literal as ct's LLVM constant text, for an export(C) static's initializer.
 func cLiteralText(lit sem.Literal, ct string) string {
 	if ct == "float" || ct == "double" {
 		f := 0.0

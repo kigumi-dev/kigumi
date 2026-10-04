@@ -7,8 +7,6 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// checkContextRequirements computes every function's provider requirement
-// set by fixpoint and resolves every recorded use and call to a binding.
 func (r *Result) checkContextRequirements() {
 	nodes := r.ctxNodes()
 	// sets[id][key] is the nearest node inside id that pulls key in, for
@@ -91,8 +89,6 @@ func (r *Result) checkCtxVisibility(nodes []EntityID) {
 	}
 }
 
-// ctxNodes lists every function-shaped entity context requirements track:
-// ordinary functions with a body, the implicit main and tests.
 func (r *Result) ctxNodes() []EntityID {
 	var out []EntityID
 	for id := 1; id < len(r.Entities); id++ {
@@ -112,8 +108,7 @@ func (r *Result) ctxNodes() []EntityID {
 	return out
 }
 
-// ctxParamFor returns the hidden parameter entity that reads key inside fn,
-// creating it the first time.
+// ctxParamFor returns fn's hidden parameter entity that reads key.
 func (r *Result) ctxParamFor(fn, key EntityID) EntityID {
 	info := r.Fn(fn)
 	if info.CtxParam == nil {
@@ -131,8 +126,6 @@ func (r *Result) ctxParamFor(fn, key EntityID) EntityID {
 	return id
 }
 
-// resolveCtxFn mints fn's hidden parameters and resolves every recorded use
-// and call edge against them.
 func (r *Result) resolveCtxFn(fn EntityID) {
 	info := r.Fn(fn)
 	for _, key := range info.CtxRequires {

@@ -48,7 +48,7 @@ func (r *Result) computeCopy(t TypeID) bool {
 	return false
 }
 
-// ScalarRefElem returns (T, true) when t is `&mut T` and T's representation, looking through any defined-type layers, is a scalar kind that can be written through.
+// ScalarRefElem returns (T, true) when t is `&mut T` and T's underlying representation is a scalar kind that can be written through.
 // String and Bytes are Copy but excluded: their runtime form isn't a plain scalar, so writing through needs a move.
 func (r *Result) ScalarRefElem(t TypeID) (TypeID, bool) {
 	tt := r.Types

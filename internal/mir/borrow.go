@@ -28,9 +28,8 @@ type borrowInfo struct {
 	// lifetime is the named lifetime a param-inherited holder (hasOwner false)
 	// traces back to, 0 when it cannot be named.
 	lifetime sem.EntityID
-	// fromStatic marks a holder traced to a static's storage:
-	// checkLifetimeEscape reports it with its own wording, not the generic
-	// untracked-lifetime one.
+	// fromStatic marks a holder traced to a static's storage, so
+	// checkLifetimeEscape can report it with its own wording.
 	fromStatic bool
 }
 
@@ -90,9 +89,8 @@ func (c *borrowCheck) collect() {
 							c.holders[in.Dst] = &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}
 							changed = true
 						} else if def := c.definition(in.Args[0]); def != nil && def.Op == OpGlobalGet {
-							// A static-origin borrow: no local owner to
-							// touch-check against, but return/store/capture
-							// still has to reject it like any untracked lifetime.
+							// A static-origin borrow has no local owner to touch-check
+							// against, but still has to reject escape like any other.
 							c.holders[in.Dst] = &borrowInfo{node: in.Node, fromStatic: true}
 							changed = true
 						}

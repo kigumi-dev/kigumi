@@ -7,8 +7,7 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// synthContext checks a `context (providers...) { body }` block; its
-// bindings shadow any outer ones for the block's extent.
+// synthContext's bindings shadow any outer ones for the block's extent.
 func (c *checker) synthContext(n syntax.NodeID, want TypeID) TypeID {
 	node := c.t.Nodes[n]
 	items := c.t.Children(syntax.NodeID(node.Lhs))
@@ -44,8 +43,6 @@ func (c *checker) synthContext(n syntax.NodeID, want TypeID) TypeID {
 	return t
 }
 
-// ctxLookup finds a key's binding in the lexically enclosing context
-// frames, innermost first (nested override).
 func (c *checker) ctxLookup(key EntityID) (ctxBindSource, bool) {
 	for i := len(c.ctxStack) - 1; i >= 0; i-- {
 		if s, ok := c.ctxStack[i].bind[key]; ok {
@@ -55,8 +52,6 @@ func (c *checker) ctxLookup(key EntityID) (ctxBindSource, bool) {
 	return ctxBindSource{}, false
 }
 
-// contextKeyValue resolves a context-key read: bound reads the provider
-// field; unbound becomes a direct requirement, or errors inside a closure.
 func (c *checker) contextKeyValue(n syntax.NodeID, key EntityID) TypeID {
 	typ := c.r.Entities[key].Type
 	if src, ok := c.ctxLookup(key); ok {
@@ -90,8 +85,7 @@ func (c *checker) addCtxDirect(info *FnInfo, key EntityID, n syntax.NodeID) {
 	info.CtxDirectRefs = append(info.CtxDirectRefs, ctxNodeRef{File: c.f, Node: n})
 }
 
-// ctxPlace mirrors buildPlace for a resolved context-key use (place.go):
-// a provider field, or the hidden parameter reading it.
+// ctxPlace mirrors buildPlace (place.go) for a resolved context-key use.
 func (c *checker) ctxPlace(n syntax.NodeID) (Place, bool) {
 	b, ok := c.info.CtxUse[n]
 	if !ok {
@@ -167,8 +161,7 @@ func (c *checker) printCtxRequirement(n syntax.NodeID, name string) {
 	c.setCtxUse(n, CtxBind{Key: key})
 }
 
-// stdCtxKey looks up a standard context key by package and name, returning 0
-// silently when it isn't loaded or isn't a context key there.
+// stdCtxKey returns 0 silently when the key isn't loaded or isn't a context key.
 func (r *Result) stdCtxKey(pkgPath, name string) EntityID {
 	pkg, ok := r.pathIndex[pkgPath]
 	if !ok {
