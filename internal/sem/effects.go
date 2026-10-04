@@ -13,8 +13,12 @@ func (r *Result) checkEffects() {
 		r.checkContracts(id)
 	}
 	r.inferDefault(nodes)
+	r.inferOpSummaries(nodes)
 	if r.noDefault {
 		r.checkDefaultAllocator()
+	}
+	if r.recoverableOnly {
+		r.checkRecoverableOnly(nodes)
 	}
 }
 

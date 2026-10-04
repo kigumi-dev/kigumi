@@ -20,32 +20,33 @@ func (r *Result) checkInterruptHandlers() {
 	}
 }
 
+// isrFacts are the operations every strict boundary rejects outright;
+// FactSync is checked separately since a verified-safe primitive is allowed.
+var isrFacts = [...]OpFact{FactAlloc, FactRelease, FactBlock, FactSuspend, FactPanic, FactIO, FactSpawn}
+
+// isrSafeOp reads the already-converged shared OpSummary instead of walking
+// the edge graph again; Unresolved has no caller here, so it is unsafe.
+func (r *Result) isrSafeOp(s OpSummary) bool {
+	if s.Unresolved {
+		return false
+	}
+	for _, f := range isrFacts {
+		if s.Facts[f].Maybe {
+			return false
+		}
+	}
+	sy := s.Facts[FactSync]
+	return !sy.Maybe || !sy.InterruptUnsafe
+}
+
 func (r *Result) inferIsrSafe(nodes []EntityID) map[EntityID]bool {
 	safe := make(map[EntityID]bool, len(nodes))
-	var inferred []EntityID
 	for _, id := range nodes {
 		if fixed, ok := r.isrFixed(id); ok {
 			safe[id] = fixed
 			continue
 		}
-		inferred = append(inferred, id)
-		safe[id] = true
-	}
-	for changed := true; changed; {
-		changed = false
-		for _, id := range inferred {
-			ok := true
-			for _, e := range r.edgesOf(id) {
-				if !r.isrEdgeSafe(e, safe) {
-					ok = false
-					break
-				}
-			}
-			if ok != safe[id] {
-				safe[id] = ok
-				changed = true
-			}
-		}
+		safe[id] = r.isrSafeOp(r.opSummary(id))
 	}
 	return safe
 }
@@ -77,23 +78,6 @@ func (r *Result) isrTargetSafe(target EntityID, safe map[EntityID]bool) bool {
 		return fixed
 	}
 	return false
-}
-
-func (r *Result) isrEdgeSafe(e EffectEdge, safe map[EntityID]bool) bool {
-	switch e.Kind {
-	case EdgeAlloc, EdgePanic, EdgeIO:
-		return false
-	case EdgeCall:
-		return r.isrTargetSafe(e.Target, safe)
-	case EdgeCallback:
-		return e.Target != 0 && r.isrTargetSafe(e.Target, safe)
-	case EdgeWitness, EdgeParamCall, EdgeWitnessCall:
-		// The concrete callee is only known at run time, or deferred to a caller this pass never sees.
-		return false
-	case EdgeDrop:
-		return r.isrDropSafe(e.Type, safe)
-	}
-	return true
 }
 
 // isrDropSafe mirrors computeDrop's shape for the ISR dimension; memo breaks self-referential cycles.
@@ -139,7 +123,7 @@ func (r *Result) isrDropSafeMemo(t TypeID, safe map[EntityID]bool, memo map[Type
 		memo[t] = false
 		return false
 	}
-	if r.langItems["Shared"] == n.Ent {
+	if r.isSharedCell(n.Ent) {
 		memo[t] = false
 		return false
 	}

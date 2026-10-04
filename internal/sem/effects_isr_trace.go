@@ -48,6 +48,9 @@ func (r *Result) isrTrace(id EntityID, safe map[EntityID]bool, visited map[Entit
 		case EdgeIO:
 			find.code = cInterruptUnsafeExtern
 			return []isrHop{{e.File, e.Node, "performs I/O here"}}
+		case EdgeSuspend:
+			find.code = cInterruptUnsafeExtern
+			return []isrHop{{e.File, e.Node, "may suspend here"}}
 		case EdgeWitness, EdgeParamCall, EdgeWitnessCall:
 			find.code = cInterruptUnknown
 			return []isrHop{{e.File, e.Node, "dispatches dynamically; the target is not known until run time"}}
@@ -153,7 +156,7 @@ func (r *Result) isrTraceDropInto(t TypeID, file FileID, node syntax.NodeID, saf
 		hops, _ := r.isrTraceCall(info.Drop, file, node, safe, visited, find)
 		return hops
 	}
-	if r.langItems["Shared"] == n.Ent {
+	if r.isSharedCell(n.Ent) {
 		return []isrHop{{file, node, "drops a `Shared` value, which may free its contents"}}
 	}
 	subst := map[EntityID]TypeID{}

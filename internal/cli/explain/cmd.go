@@ -14,11 +14,18 @@ import (
 )
 
 func Cmd() *cobra.Command {
-	return &cobra.Command{
+	var fn string
+	cmd := &cobra.Command{
 		Use:   "explain <code>",
-		Short: "Describe a diagnostic code such as E100 (no argument lists them all)",
+		Short: "Describe a diagnostic code such as E100 (no argument lists them all), or --fn <pkg.Name> <module> for an operation summary",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if fn != "" {
+				if len(args) != 1 {
+					return &cliutil.UsageError{Err: errors.NewErrf("--fn needs exactly one module/entry argument")}
+				}
+				return explainOp(cmd, fn, args[0])
+			}
 			out := cmd.OutOrStdout()
 			if len(args) == 0 {
 				for _, c := range sem.Codes() {
@@ -40,4 +47,6 @@ func Cmd() *cobra.Command {
 			return &cliutil.UsageError{Err: errors.NewErrf("unknown diagnostic code %q; `kigumi explain` lists them", args[0])}
 		},
 	}
+	cmd.Flags().StringVar(&fn, "fn", "", "print a function's inferred operation summary instead (pkg/path.Name)")
+	return cmd
 }

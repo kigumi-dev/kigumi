@@ -192,6 +192,31 @@ export(interrupt) {
 	}
 }
 
+func TestInterruptHandlerSuspend(t *testing.T) {
+	res := checkIsr(t, `
+async fn fetch() -> Int {
+    1
+}
+
+async fn twice() -> Int {
+    await fetch()
+}
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let _ = twice()
+    }
+}
+`)
+	out := res.Render()
+	if !res.HasErrors() || !strings.Contains(out, "E1082") || !strings.Contains(out, "may suspend here") {
+		t.Fatalf("a handler reaching an await point must be rejected with a precise note:\n%s", out)
+	}
+	if !strings.Contains(out, "calls `twice`") {
+		t.Fatalf("the diagnostic must show the path through `twice`:\n%s", out)
+	}
+}
+
 func TestInterruptHandlerUnvettedExtern(t *testing.T) {
 	res := checkIsr(t, `
 extern(C) {
@@ -766,5 +791,40 @@ extern(interrupt) {
 	out := res.Render()
 	if !res.HasErrors() || !strings.Contains(out, "E1086") {
 		t.Fatalf("`interrupt` on an extern block must be rejected:\n%s", out)
+	}
+}
+
+// isrFixed's full-trust rule: a bodiless noalloc declaration stays ISR-safe outright.
+func TestInterruptHandlerBodilessNoallocCallee(t *testing.T) {
+	res := checkIsrWithSource(t, `
+pub noalloc fn raw_op() -> Unit
+`, `
+import {raw_op} from buflib
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        raw_op()
+    }
+}
+`)
+	if res.HasErrors() {
+		t.Fatalf("a bodiless noalloc callee must stay fully ISR-trusted:\n%s", res.Render())
+	}
+}
+
+func TestInterruptHandlerBodilessPureNoallocCallee(t *testing.T) {
+	res := checkIsrWithSource(t, `
+pub pure noalloc fn raw_op() -> Unit
+`, `
+import {raw_op} from buflib
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        raw_op()
+    }
+}
+`)
+	if res.HasErrors() {
+		t.Fatalf("a bodiless pure noalloc callee must stay fully ISR-trusted:\n%s", res.Render())
 	}
 }

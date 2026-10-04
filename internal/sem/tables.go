@@ -108,6 +108,8 @@ const (
 	// EdgeWitnessCall is a `pure?` requirement deferred to the caller's
 	// resolved witness.
 	EdgeWitnessCall
+	// EdgeSuspend marks an `await` point: FactSuspend's only direct source.
+	EdgeSuspend
 )
 
 type EffectEdge struct {

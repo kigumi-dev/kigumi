@@ -12,6 +12,7 @@ func (c *checker) synthAwait(n syntax.NodeID) TypeID {
 	if c.cleanup > 0 {
 		c.errAt(n, cCleanupAwait)
 	}
+	c.edge(EffectEdge{Kind: EdgeSuspend, Node: n})
 	if t == TyPoison {
 		return TyPoison
 	}

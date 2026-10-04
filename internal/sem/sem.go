@@ -43,27 +43,29 @@ type Result struct {
 	// Comptime lists the blocks the driver must evaluate before lowering.
 	Comptime []ComptimeSite
 
-	target       Target
-	noDefault    bool
-	noPlatform   bool
-	denyPkgs     map[string]bool
-	layerCeiling Layer
-	hasCeiling   bool
-	artifactName string
-	arch         string
-	universe     ScopeID
-	prelude      ScopeID
-	pathIndex    map[string]PackageID
-	fileIndex    map[*syntax.Tree]FileID
-	placeIndex   map[string]PlaceID
-	seen         map[diagKey]struct{}
-	derives      []deriveRequest
-	mod          *Module
-	sources      *token.SourceStore
-	langItems    map[string]EntityID
+	target          Target
+	noDefault       bool
+	recoverableOnly bool
+	noPlatform      bool
+	denyPkgs        map[string]bool
+	layerCeiling    Layer
+	hasCeiling      bool
+	artifactName    string
+	arch            string
+	universe        ScopeID
+	prelude         ScopeID
+	pathIndex       map[string]PackageID
+	fileIndex       map[*syntax.Tree]FileID
+	placeIndex      map[string]PlaceID
+	seen            map[diagKey]struct{}
+	derives         []deriveRequest
+	mod             *Module
+	sources         *token.SourceStore
+	langItems       map[string]EntityID
 
 	langItemMissing         map[string]bool
 	dropMemo                map[TypeID]EffectSummary
+	opDropMemo              map[TypeID]OpSummary
 	threadOpen              map[threadKey]int
 	threadLow               int
 	pkgEntity               []EntityID
@@ -128,27 +130,28 @@ func newResult(mod *Module) *Result {
 		}
 	}
 	r := &Result{
-		sources:      mod.Sources,
-		mod:          mod,
-		Types:        newTypeTable(cmp.Or(mod.PtrBits, 64)),
-		Entities:     []Entity{{}},
-		Scopes:       []Scope{{}},
-		Overloads:    []OverloadSet{{}},
-		Places:       []Place{{}},
-		Instances:    map[EntityID][]Instance{},
-		target:       mod.Target,
-		noDefault:    mod.NoDefaultAllocator,
-		noPlatform:   mod.NoPlatform,
-		denyPkgs:     denySet(mod.Deny),
-		layerCeiling: LayerShortName[mod.LayerCeiling],
-		hasCeiling:   mod.LayerCeiling != "",
-		artifactName: mod.ArtifactName,
-		arch:         cmp.Or(mod.Arch, "amd64"),
-		pathIndex:    map[string]PackageID{},
-		fileIndex:    map[*syntax.Tree]FileID{},
-		placeIndex:   map[string]PlaceID{},
-		seen:         map[diagKey]struct{}{},
-		langItems:    map[string]EntityID{},
+		sources:         mod.Sources,
+		mod:             mod,
+		Types:           newTypeTable(cmp.Or(mod.PtrBits, 64)),
+		Entities:        []Entity{{}},
+		Scopes:          []Scope{{}},
+		Overloads:       []OverloadSet{{}},
+		Places:          []Place{{}},
+		Instances:       map[EntityID][]Instance{},
+		target:          mod.Target,
+		noDefault:       mod.NoDefaultAllocator,
+		recoverableOnly: mod.RecoverableOnly,
+		noPlatform:      mod.NoPlatform,
+		denyPkgs:        denySet(mod.Deny),
+		layerCeiling:    LayerShortName[mod.LayerCeiling],
+		hasCeiling:      mod.LayerCeiling != "",
+		artifactName:    mod.ArtifactName,
+		arch:            cmp.Or(mod.Arch, "amd64"),
+		pathIndex:       map[string]PackageID{},
+		fileIndex:       map[*syntax.Tree]FileID{},
+		placeIndex:      map[string]PlaceID{},
+		seen:            map[diagKey]struct{}{},
+		langItems:       map[string]EntityID{},
 
 		langItemMissing: map[string]bool{},
 		implicitMain:    map[PackageID]EntityID{},
@@ -159,6 +162,7 @@ func newResult(mod *Module) *Result {
 		variantNames:    map[PackageID]map[string][]EntityID{},
 		conformMemo:     map[conformKey]conformResult{},
 		dropMemo:        map[TypeID]EffectSummary{},
+		opDropMemo:      map[TypeID]OpSummary{},
 		identPaths:      map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID{},
 		provides:        map[EntityID][]ProvideBinding{},
 	}

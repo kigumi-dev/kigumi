@@ -39,6 +39,7 @@ type FnInfo struct {
 	Sig        TypeID
 	Declared   Effects
 	Summary    EffectSummary
+	Ops        OpSummary
 	Edges      []EffectEdge
 	Body       syntax.NodeID
 	Abi        string
@@ -173,6 +174,7 @@ type ClosureInfo struct {
 	Sig      TypeID
 	Captures []Capture
 	Summary  EffectSummary
+	Ops      OpSummary
 	Edges    []EffectEdge
 	Copy     bool
 	// Immediate marks a lambda written as a call argument: its borrowed

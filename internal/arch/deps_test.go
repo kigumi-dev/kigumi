@@ -45,7 +45,7 @@ var allowed = map[string][]string{
 	"cli/lsp":     {"cli/shared", "errors", "lsp"},
 	"cli/doc":     {"cli/shared", "cliutil", "doc", "driver", "errors"},
 	"cli/doctor":  {"cli/shared", "cliutil", "driver", "errors", "version"},
-	"cli/explain": {"sem", "cliutil", "errors"},
+	"cli/explain": {"cli/shared", "cliutil", "driver", "errors", "sem"},
 	"cli/get":     {"cli/shared", "cliutil", "driver", "errors"},
 	"cli/mod":     {"cliutil", "driver", "errors", "version"},
 	"doc":         {"token", "diag", "syntax", "sem", "driver", "errors", "version"},
