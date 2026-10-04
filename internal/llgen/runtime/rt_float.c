@@ -3,7 +3,11 @@
 // Dragon4 (Steele & White); parsing is "Algorithm M" big-integer division,
 // so one bignum engine serves both.
 #include <stdint.h>
+#ifdef KIGUMI_FREESTANDING
+#include "rt_freestanding.h"
+#else
 #include <string.h>
+#endif
 
 #include "rt.h"
 

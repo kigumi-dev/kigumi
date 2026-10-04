@@ -24,6 +24,15 @@ func splitArchiveCFlags(flags []string) (compile, linkerLike []string) {
 	return compile, linkerLike
 }
 
+// arTool is the archiver for cc: zig's own, since a plain system `ar`
+// cannot read object files zig cc produced for some targets.
+func arTool(cc []string) []string {
+	if strings.HasSuffix(cc[0], "zig") || filepath.Base(cc[0]) == "zig" {
+		return []string{cc[0], "ar"}
+	}
+	return []string{"ar"}
+}
+
 // buildArchive compiles every input to an object and packs them into a
 // static archive: a freestanding target has no startup code or libc of
 // its own, so linking is the embedder's step.
@@ -61,10 +70,7 @@ func buildArchive(cc, args, inputs []string, dir, out string, env []string, stde
 		objs = append(objs, obj)
 	}
 	os.Remove(out)
-	ar := []string{"ar"}
-	if strings.HasSuffix(cc[0], "zig") || filepath.Base(cc[0]) == "zig" {
-		ar = []string{cc[0], "ar"}
-	}
+	ar := arTool(cc)
 	absOut, err := filepath.Abs(out)
 	if err != nil {
 		return false, err

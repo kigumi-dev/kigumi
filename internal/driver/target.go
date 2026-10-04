@@ -56,6 +56,9 @@ func ParseTarget(triple, sys string) (Target, error) {
 		if sys != "posix" && sys != "none" {
 			return t, fmt.Errorf("sys %q: want posix or none", sys)
 		}
+		if sys == "posix" && t.Freestanding() {
+			return t, fmt.Errorf("target %q has no operating system; --sys posix contradicts it", triple)
+		}
 		t.Sys = sys
 	}
 	return t, nil
@@ -65,11 +68,12 @@ func ParseTarget(triple, sys string) (Target, error) {
 // with a `kigumi_main` entry for the embedder's startup code.
 func (t Target) Freestanding() bool { return t.OS == "freestanding" || t.OS == "uefi" }
 
-// Bare targets get Freestanding's archive output and `_bare.kg` files even
-// on a hosted OS, since `--sys none` also means no OS services
-// compileTriple and Layout stay keyed on
-// Freestanding alone: a host-OS bare archive still uses the real OS
-// headers and ABI, not the musl substitution.
+// COFF reports a PE/COFF object format (UEFI today), which needs the
+// _fltused marker rt_core.c defines since -nostdlib leaves no CRT to.
+func (t Target) COFF() bool { return t.OS == "uefi" }
+
+// Bare targets get Freestanding's archive output even on a hosted OS, since `--sys none`
+// means no OS services; a host-OS bare archive still uses that OS's own headers and ABI.
 func (t Target) Bare() bool { return t.Freestanding() || t.Sys == "none" }
 
 // Layout is the width-dependent view of the target for the checker,
@@ -79,15 +83,5 @@ func (t Target) Layout() target.Layout { return target.ForArch(t.OS, t.Arch) }
 // NoDefaultAllocator reports the `--allocator none` profile.
 func (t Target) NoDefaultAllocator() bool { return t.Allocator == "none" }
 
-// compileTriple is what the C compiler sees. A freestanding target borrows
-// the arch's musl headers so the runtime's libc calls type-check; the
-// symbols themselves come from the embedder.
-func (t Target) compileTriple() string {
-	if t.Triple == "" {
-		return ""
-	}
-	if t.Freestanding() {
-		return strings.Split(t.Triple, "-")[0] + "-linux-musl"
-	}
-	return t.Triple
-}
+// compileTriple is the triple as given; build.go supplies rt_freestanding.h's own declarations for freestanding/UEFI since compileTriple no longer substitutes a musl triple.
+func (t Target) compileTriple() string { return t.Triple }

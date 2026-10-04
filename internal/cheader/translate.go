@@ -13,11 +13,8 @@ import (
 // (cache_test.go: a cache hit must not invoke it at all).
 type Runner func(zigPath, target, headerPath string) ([]byte, error)
 
-// RunZig is the default Runner: `zig translate-c -lc [-target T] header.h`.
-// `-lc` makes translate-c look at the target's bundled-sysroot libc headers
-// at all (without it even `#include <string.h>` fails to resolve); the
-// same sysroot already covers freestanding includes, matching
-// BuildWith's `zig cc` (target.go's compileTriple).
+// RunZig is the default Runner: `zig translate-c -lc [-target T] header.h`; freestanding
+// and UEFI have no libc sysroot, so headers beyond the compiler's built-in set fail here too.
 func RunZig(zigPath, target, headerPath string) ([]byte, error) {
 	args := []string{"translate-c", "-lc"}
 	if target != "" {

@@ -17,6 +17,9 @@ var runtimeSys string
 //go:embed runtime/rt_signal.c
 var runtimeSignal string
 
+//go:embed runtime/rt_freestanding.h
+var runtimeFreestandingHeader string
+
 // RuntimeFile is one C source or header of the runtime.
 type RuntimeFile struct {
 	Name, Src string
@@ -27,6 +30,10 @@ type RuntimeFile struct {
 // rt_signal.c must be gated on this instead of on sys alone.
 var posixSignalOS = map[string]bool{"linux": true, "darwin": true, "freebsd": true, "netbsd": true, "openbsd": true}
 
+// freestandingOS have no bundled libc headers at all; a hosted "--sys
+// none" target keeps its real OS headers (driver.Target.Bare's doc).
+var freestandingOS = map[string]bool{"freestanding": true, "uefi": true}
+
 // RuntimeFiles includes rt_signal.c only for hosted POSIX OSes: sigaction
 // needs a POSIX <signal.h>, which freestanding/"--sys none" and
 // Windows/WASI lack.
@@ -34,6 +41,9 @@ func RuntimeFiles(sys, os string) []RuntimeFile {
 	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys.c", runtimeSys}}
 	if sys != "none" && posixSignalOS[os] {
 		files = append(files, RuntimeFile{"rt_signal.c", runtimeSignal})
+	}
+	if freestandingOS[os] {
+		files = append(files, RuntimeFile{"rt_freestanding.h", runtimeFreestandingHeader})
 	}
 	return files
 }

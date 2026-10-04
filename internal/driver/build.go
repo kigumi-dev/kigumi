@@ -131,10 +131,22 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if t.compileTriple() != "" {
 		args = append(args, "-target", t.compileTriple())
 	}
+	if t.Freestanding() {
+		args = append(args, "-DKIGUMI_FREESTANDING", "-nostdlib")
+	}
+	if t.COFF() {
+		// No CRT to supply __chkstk; raise its threshold out of reach instead.
+		args = append(args, "-DKIGUMI_COFF", "-mstack-probe-size=1048576")
+	}
 	if t.Bare() {
 		compileFlags, _ := splitArchiveCFlags(opts.CFlags)
 		args = append(args, compileFlags...)
-		return buildArchive(cc, args, inputs, dir, out, opts.ccEnv, stderr)
+		ok, err := buildArchive(cc, args, inputs, dir, out, opts.ccEnv, stderr)
+		if err != nil || !ok {
+			return ok, err
+		}
+		err = auditBareArchive(cc, out)
+		return err == nil, err
 	}
 	linkOut, linkInputsList, err := linkInputs(opts.pinCompDir, dir, out, inputs)
 	if err != nil {
