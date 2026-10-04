@@ -20,7 +20,7 @@ import (
 //	Lock {
 //	    name: "greet"
 //	    version: "v0.1.0"
-//	    commit: "3f2c..."
+//	    commit: "sha1:3f2c..."
 //	    hash: "h1:9a0b..."
 //	}
 type Lock struct {
@@ -62,7 +62,7 @@ func ParseLock(f *token.File) (Lock, []diag.Diagnostic) {
 		if _, dup := lk.Entries[r.Fields["name"]]; dup {
 			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("%s is locked twice", r.Fields["name"])))
 		}
-		lk.Entries[r.Fields["name"]] = LockEntry{Version: r.Fields["version"], Commit: r.Fields["commit"], Hash: r.Fields["hash"]}
+		lk.Entries[r.Fields["name"]] = LockEntry{Version: r.Fields["version"], Commit: NormalizeCommit(r.Fields["commit"]), Hash: r.Fields["hash"]}
 	}
 	return lk, ds
 }

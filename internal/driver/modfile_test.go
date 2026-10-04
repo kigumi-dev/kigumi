@@ -82,6 +82,29 @@ func TestRepoOf(t *testing.T) {
 	if driver.TagOf("sgx", "v0.1.0") != "sgx/v0.1.0" || driver.TagOf("", "v1.0.0") != "v1.0.0" || !driver.IsCommitHash("3f2c9a1") || driver.IsCommitHash("v0.1.0") {
 		t.Error("tag or hash rules")
 	}
+	sha256Id := strings.Repeat("a", 64)
+	if !driver.IsCommitHash(sha256Id) {
+		t.Error("a full sha256 object id should read as a commit, not a tag")
+	}
+}
+
+// TestTagCommit checks the lock's algorithm-tagged commit id and that a
+// pre-existing, untagged lock entry still normalizes to it.
+func TestTagCommit(t *testing.T) {
+	sha1Id := strings.Repeat("a", 40)
+	sha256Id := strings.Repeat("b", 64)
+	if got := driver.TagCommit(sha1Id); got != "sha1:"+sha1Id {
+		t.Errorf("TagCommit(sha1) = %q", got)
+	}
+	if got := driver.TagCommit(sha256Id); got != "sha256:"+sha256Id {
+		t.Errorf("TagCommit(sha256) = %q", got)
+	}
+	if got := driver.NormalizeCommit(sha1Id); got != driver.TagCommit(sha1Id) {
+		t.Errorf("NormalizeCommit of a legacy bare hash = %q, want %q", got, driver.TagCommit(sha1Id))
+	}
+	if got := driver.NormalizeCommit(driver.TagCommit(sha1Id)); got != driver.TagCommit(sha1Id) {
+		t.Errorf("NormalizeCommit of an already-tagged id must be a no-op, got %q", got)
+	}
 }
 
 func TestManifestEdit(t *testing.T) {

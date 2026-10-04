@@ -97,10 +97,11 @@ func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
 	prev, locked := f.lock.Entries[r.Name]
 	locked = locked && prev.Version == r.Version
 	if missing {
-		commit, err := clone(f.cmd, r, dir)
+		rawCommit, err := clone(f.cmd, r, dir)
 		if err != nil {
 			return err
 		}
+		commit := driver.TagCommit(rawCommit)
 		if locked && !f.update && prev.Commit != commit {
 			os.RemoveAll(dir)
 			return errors.NewErrf("%s %s now points at %s but the lock recorded %s; run `kigumi get -u` to accept the new commit", r.Name, r.Version, short(commit), short(prev.Commit))
@@ -120,13 +121,22 @@ func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
 	if err != nil {
 		return errors.WrapErrf(err, "%s %s: read the origin marker", r.Name, r.Version)
 	}
-	f.next.Entries[r.Name] = driver.LockEntry{Version: r.Version, Commit: strings.TrimSpace(string(commit)), Hash: hash}
+	f.next.Entries[r.Name] = driver.LockEntry{Version: r.Version, Commit: driver.TagCommit(strings.TrimSpace(string(commit))), Hash: hash}
 	return nil
 }
 
+// short renders an algorithm-tagged commit for an error message: the full
+// tag, a dozen hex digits, an ellipsis.
 func short(commit string) string {
-	if len(commit) > 12 {
-		return commit[:12]
+	algo, hex, ok := strings.Cut(commit, ":")
+	if !ok {
+		hex, algo = algo, ""
 	}
-	return commit
+	if len(hex) > 12 {
+		hex = hex[:12] + "…"
+	}
+	if algo == "" {
+		return hex
+	}
+	return algo + ":" + hex
 }

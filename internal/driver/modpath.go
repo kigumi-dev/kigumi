@@ -89,10 +89,34 @@ func TagOf(subdir, version string) string {
 	return subdir + "/" + version
 }
 
-var commitHash = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+// commitHash goes up to a sha256 digest's width, not just sha1's 40, so a
+// repository using the newer object format still reads as a commit.
+var commitHash = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
 
-// IsCommitHash tells a commit version from a tag: hex only, 7 to 40 digits.
+// IsCommitHash tells a commit version from a tag: hex only, 7 to 64 digits.
 func IsCommitHash(version string) bool { return commitHash.MatchString(version) }
+
+// TagCommit labels a full commit id with its hash algorithm (40 hex digits
+// is sha1, 64 is sha256); a width it does not recognize passes through.
+func TagCommit(full string) string {
+	switch len(full) {
+	case 40:
+		return "sha1:" + full
+	case 64:
+		return "sha256:" + full
+	default:
+		return full
+	}
+}
+
+// NormalizeCommit tags a bare-hash commit id from a lock file older than
+// TagCommit, so it still compares equal to a freshly resolved one.
+func NormalizeCommit(commit string) string {
+	if strings.Contains(commit, ":") {
+		return commit
+	}
+	return TagCommit(commit)
+}
 
 // CacheDir is where a fetched module lives: <cache>/kigumi/mod/<name>@<version>
 // with upper-case letters escaped as `!x`, so names differing only in case

@@ -88,7 +88,51 @@ func cloneTag(cmd *cobra.Command, url, tag, tmp string) (string, error) {
 	return head, nil
 }
 
+// shallowFetch is a var, not a direct call, so a test can make it fail
+// without a real server that refuses a direct commit fetch.
+var shallowFetch = shallowFetchCommit
+
+// cloneCommit tries a bounded fetch of exactly hash first, falling back to
+// a full clone, visibly, when the server rejects that.
 func cloneCommit(cmd *cobra.Command, url, hash, tmp string) (string, error) {
+	full, err := shallowFetch(cmd, url, hash, tmp)
+	if err == nil {
+		return full, nil
+	}
+	cmd.Printf("%s: cannot fetch commit %s directly (%s); cloning the full history instead\n", url, hash, err)
+	if err := os.RemoveAll(tmp); err != nil {
+		return "", errors.WrapErr(err, "clear partial fetch")
+	}
+	if err := os.Mkdir(tmp, 0o755); err != nil {
+		return "", errors.WrapErr(err, "clear partial fetch")
+	}
+	return cloneCommitFull(cmd, url, hash, tmp)
+}
+
+// shallowFetchCommit is cloneCommit's bounded first attempt: a fresh repo,
+// one remote, one fetch of exactly hash at depth 1.
+func shallowFetchCommit(cmd *cobra.Command, url, hash, tmp string) (string, error) {
+	if _, err := git(cmd, "", "init", "--quiet", tmp); err != nil {
+		return "", err
+	}
+	if _, err := git(cmd, tmp, "remote", "add", "origin", url); err != nil {
+		return "", err
+	}
+	if _, err := git(cmd, tmp, "fetch", "--quiet", "--depth", "1", "origin", hash); err != nil {
+		return "", err
+	}
+	full, err := git(cmd, tmp, "rev-parse", "--verify", "--quiet", "FETCH_HEAD^{commit}")
+	if err != nil {
+		return "", err
+	}
+	if _, err := git(cmd, tmp, "checkout", "--quiet", full); err != nil {
+		return "", err
+	}
+	return full, nil
+}
+
+// cloneCommitFull is the unbounded fallback every server supports.
+func cloneCommitFull(cmd *cobra.Command, url, hash, tmp string) (string, error) {
 	if _, err := git(cmd, "", "clone", "--quiet", "--no-checkout", url, tmp); err != nil {
 		return "", errors.WrapErrf(err, "git clone %s", url)
 	}
