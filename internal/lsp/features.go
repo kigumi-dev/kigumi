@@ -109,12 +109,8 @@ func (s *Server) Definition(ctx context.Context, p *protocol.DefinitionParams) (
 	return nil, nil
 }
 
-// RangeFormatting formats the whole document: the canonical form is
-// defined per file, so a partial reformat would leave inconsistent output.
-func (s *Server) RangeFormatting(ctx context.Context, p *protocol.DocumentRangeFormattingParams) ([]protocol.TextEdit, error) {
-	return s.Formatting(ctx, &protocol.DocumentFormattingParams{TextDocument: p.TextDocument, Options: p.Options})
-}
-
+// Formatting returns a format failure as an error, not an empty edit list,
+// so the client can tell it apart from "already formatted".
 func (s *Server) Formatting(ctx context.Context, p *protocol.DocumentFormattingParams) ([]protocol.TextEdit, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -123,7 +119,10 @@ func (s *Server) Formatting(ctx context.Context, p *protocol.DocumentFormattingP
 		return nil, nil
 	}
 	out, err := driver.Format(driver.Source{Path: uriToPath(p.TextDocument.URI), Src: []byte(text)})
-	if err != nil || out == text {
+	if err != nil {
+		return nil, err
+	}
+	if out == text {
 		return []protocol.TextEdit{}, nil
 	}
 	return []protocol.TextEdit{{Range: protocol.Range{End: position(fileOfText(text), token.Pos(len(text)))}, NewText: out}}, nil

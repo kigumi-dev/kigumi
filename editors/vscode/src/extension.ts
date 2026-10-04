@@ -8,7 +8,12 @@ import {
 let client: LanguageClient | undefined;
 let output: vscode.LogOutputChannel;
 
-function serverOptions(): { command: string; args: string[] } {
+// In an untrusted workspace, serverPath/stdRoot settings are unreviewed
+// config, so they're ignored and the server runs as plain "kigumi" from PATH.
+function serverOptions(): { command: string; args: string[]; stdRoot: string } {
+    if (!vscode.workspace.isTrusted) {
+        return { command: "kigumi", args: ["lsp"], stdRoot: "" };
+    }
     const config = vscode.workspace.getConfiguration("kigumi");
     const command = config.get<string>("serverPath") || "kigumi";
     const stdRoot = config.get<string>("stdRoot") || "";
@@ -16,18 +21,17 @@ function serverOptions(): { command: string; args: string[] } {
     if (stdRoot !== "") {
         args.push("--std", stdRoot);
     }
-    return { command, args };
+    return { command, args, stdRoot };
 }
 
 async function start(context: vscode.ExtensionContext): Promise<void> {
-    const config = vscode.workspace.getConfiguration("kigumi");
     const server = serverOptions();
     const clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: "file", language: "kigumi" }],
         synchronize: {
             fileEvents: vscode.workspace.createFileSystemWatcher("**/*.kg"),
         },
-        initializationOptions: { stdRoot: config.get<string>("stdRoot") || "" },
+        initializationOptions: { stdRoot: server.stdRoot },
         outputChannel: output,
         traceOutputChannel: output,
     };
@@ -81,6 +85,12 @@ export async function activate(
                 output.info("configuration changed, restarting");
                 await vscode.commands.executeCommand("kigumi.restartServer");
             }
+        }),
+        vscode.workspace.onDidGrantWorkspaceTrust(async () => {
+            output.info(
+                "workspace trust granted, restarting to honor kigumi.serverPath/stdRoot",
+            );
+            await vscode.commands.executeCommand("kigumi.restartServer");
         }),
     );
     await start(context);

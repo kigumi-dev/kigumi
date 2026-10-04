@@ -45,6 +45,9 @@ func (s *Server) CodeAction(ctx context.Context, p *protocol.CodeActionParams) (
 		}
 		for _, fix := range fixes {
 			target := s.fileOf(snap, t.File, fix.Loc)
+			if o, ok := snap.originOf(target.Name); ok && !o.editable {
+				continue
+			}
 			edit := protocol.TextEdit{Range: spanRange(target, fix.Loc.Span), NewText: fix.NewText}
 			editURI := p.TextDocument.URI
 			if target != t.File {
@@ -54,7 +57,7 @@ func (s *Server) CodeAction(ctx context.Context, p *protocol.CodeActionParams) (
 				Title:       fix.Title,
 				Kind:        &kind,
 				Diagnostics: []protocol.Diagnostic{s.toDiagnostic(snap, t.File, d)},
-				Edit:        &protocol.WorkspaceEdit{Changes: map[uri.URI][]protocol.TextEdit{editURI: {edit}}},
+				Edit:        s.workspaceEdit(map[uri.URI][]protocol.TextEdit{editURI: {edit}}),
 			})
 		}
 	}
@@ -69,7 +72,7 @@ func (s *Server) PrepareRename(ctx context.Context, p *protocol.PrepareRenamePar
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	snap, t, n, ent := s.entityAt(ctx, p.TextDocumentPositionParams)
-	if t == nil || !renamable(snap.res, ent) {
+	if t == nil || !renamable(snap, ent) {
 		return nil, nil
 	}
 	sp := t.Toks[snap.res.Entity(ent).Tok].Span
@@ -92,19 +95,27 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 	if t == nil || ent == 0 {
 		return nil, nil
 	}
-	if !renamable(snap.res, ent) {
+	if !renamable(snap, ent) {
 		return nil, errors.New("only declarations of this module can be renamed")
+	}
+	if collidesInPackage(snap.res, ent, p.NewName) {
+		pkgPath := snap.res.Packages[snap.res.Entity(ent).Pkg].Path
+		return nil, errors.NewErrf("%q already declares a member named %q", pkgPath, p.NewName)
 	}
 	targets := map[sem.EntityID]bool{ent: true}
 	if isMethod(snap.res, ent) {
 		for _, m := range implementations(snap.res, ent) {
-			if renamable(snap.res, m) {
+			if renamable(snap, m) {
 				targets[m] = true
 			}
 		}
 	}
 	changes := map[uri.URI][]protocol.TextEdit{}
 	add := func(f *token.File, name string, sp token.Span) {
+		if o, ok := snap.originOf(name); ok && !o.editable {
+			s.logf(ctx, protocol.MessageTypeWarning, "rename: skipping non-editable %s source %s", o.kind, name)
+			return
+		}
 		u := uri.File(s.pathOfFile(snap, name))
 		changes[u] = append(changes[u], protocol.TextEdit{Range: spanRange(f, sp), NewText: p.NewName})
 	}
@@ -121,14 +132,41 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 			}
 		}
 	}
-	return &protocol.WorkspaceEdit{Changes: changes}, nil
+	return s.workspaceEdit(changes), nil
 }
 
-// renamable excludes std, predeclared and unnamed entities.
-func renamable(res *sem.Result, ent sem.EntityID) bool {
-	if res == nil || ent == 0 {
+// renamable excludes std, predeclared, unnamed and any entity declared
+// outside this module, since rename only updates this module's own usages.
+func renamable(snap *snapshot, ent sem.EntityID) bool {
+	if snap == nil || snap.res == nil || ent == 0 {
 		return false
 	}
+	e := snap.res.Entity(ent)
+	if e.File == 0 || e.Tok == 0 {
+		return false
+	}
+	decl := snap.res.Tree(e.File)
+	o, ok := snap.originOf(decl.File.Name)
+	return ok && o.editable
+}
+
+// collidesInPackage preflights name collisions; methods are left unchecked
+// since their sibling methods are an overload set, not a name collision.
+func collidesInPackage(res *sem.Result, ent sem.EntityID, newName string) bool {
 	e := res.Entity(ent)
-	return e.File != 0 && e.Tok != 0 && e.Flags&sem.EfStd == 0
+	switch {
+	case e.Kind == sem.EntFn && !isMethod(res, ent):
+		if other := res.PackageMember(e.Pkg, newName); other != 0 && other != ent {
+			return true
+		}
+	case e.Kind == sem.EntType || e.Kind == sem.EntInterface || e.Kind == sem.EntConst || e.Kind == sem.EntAlias || e.Kind == sem.EntConstraint:
+		if other := res.PackageMember(e.Pkg, newName); other != 0 && other != ent {
+			return true
+		}
+	case e.Kind == sem.EntField:
+		if other := res.FindField(e.Parent, newName); other != 0 && other != ent {
+			return true
+		}
+	}
+	return false
 }

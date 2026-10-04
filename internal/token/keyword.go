@@ -18,6 +18,16 @@ func Lookup(ident string) Kind {
 	return Ident
 }
 
+// Keywords lists every reserved word the lexer itself recognizes, for
+// tooling (an editor grammar's drift check) that must stay in step with it.
+func Keywords() []string {
+	out := make([]string, 0, len(keywords))
+	for k := range keywords {
+		out = append(out, k)
+	}
+	return out
+}
+
 // Contextual keywords stay Ident in the token stream; the parser
 // recognizes them by position. They are listed here so tooling can highlight them.
 var Contextual = []string{

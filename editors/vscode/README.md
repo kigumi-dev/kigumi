@@ -5,7 +5,8 @@ server (`kigumi lsp`): diagnostics as you type, hover types, go to
 definition, go to implementation, find all references, rename (`F2`),
 quick fixes for diagnostics that carry one (unused import, missing `mut`,
 unqualified variant, discarded `Result`), formatting, document and
-workspace symbols (`Ctrl+T`) and completion.
+workspace symbols (`Ctrl+T`), completion and checker-backed semantic
+tokens (so a local shadowing a std name highlights as the local).
 
 Diagnostics cover the whole workspace, not only open files: the extension
 activates as soon as the workspace contains a `.kg` file, the server checks
@@ -25,6 +26,9 @@ Problems view and the explorer.
    `out/extension.js`, so the `.vsix` carries no `node_modules`). Then open
    `editors/vscode` in VS Code and press F5, or run `pnpm package` and
    install the `.vsix` with `code --install-extension`.
+
+In an untrusted workspace, `kigumi.serverPath` and `kigumi.stdRoot` are
+ignored and the server always runs as plain `kigumi` from `PATH`.
 
 Settings: `kigumi.serverPath`, `kigumi.stdRoot`, `kigumi.trace.server`.
 Commands: `Kigumi: Restart Language Server`, `Kigumi: Show Language Server Log`.

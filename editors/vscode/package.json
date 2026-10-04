@@ -21,6 +21,12 @@
         "onLanguage:kigumi",
         "workspaceContains:**/*.kg"
     ],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "In an untrusted workspace, kigumi.serverPath and kigumi.stdRoot are ignored and the server runs as plain \"kigumi\" from PATH, so a workspace cannot point the extension at an arbitrary executable."
+        }
+    },
     "main": "./out/extension.js",
     "contributes": {
         "languages": [

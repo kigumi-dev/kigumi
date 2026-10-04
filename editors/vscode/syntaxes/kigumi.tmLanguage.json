@@ -22,6 +22,9 @@
             "include": "#chars"
         },
         {
+            "include": "#lifetimes"
+        },
+        {
             "include": "#numbers"
         },
         {
@@ -44,8 +47,29 @@
         "comments": {
             "patterns": [
                 {
+                    "include": "#block-comment"
+                },
+                {
+                    "name": "comment.line.documentation.kigumi",
+                    "match": "///.*$"
+                },
+                {
                     "name": "comment.line.double-slash.kigumi",
                     "match": "//.*$"
+                },
+                {
+                    "name": "comment.line.number-sign.kigumi",
+                    "match": "#.*$"
+                }
+            ]
+        },
+        "block-comment": {
+            "name": "comment.block.kigumi",
+            "begin": "/\\*",
+            "end": "\\*/",
+            "patterns": [
+                {
+                    "include": "#block-comment"
                 }
             ]
         },
@@ -133,7 +157,7 @@
                 },
                 {
                     "name": "keyword.declaration.kigumi",
-                    "match": "\\b(fn|let|mut|const|type|interface|import|extern|export|instantiate|resource)\\b"
+                    "match": "\\b(fn|let|mut|const|type|interface|import|extern|export|instantiate|resource|layout)\\b"
                 },
                 {
                     "name": "storage.modifier.kigumi",
@@ -142,6 +166,10 @@
                 {
                     "name": "keyword.operator.expression.kigumi",
                     "match": "\\b(is)\\b"
+                },
+                {
+                    "name": "keyword.other.kigumi",
+                    "match": "(?<=\\()\\s*(module|super)(?=\\s*\\))"
                 },
                 {
                     "name": "variable.language.kigumi",
@@ -155,7 +183,11 @@
         },
         "attributes": {
             "name": "meta.attribute.kigumi",
-            "match": "@[A-Za-z_][A-Za-z0-9_]*"
+            "match": "@[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*"
+        },
+        "lifetimes": {
+            "name": "storage.modifier.lifetime.kigumi",
+            "match": "'[A-Za-z_][A-Za-z0-9_]*\\b(?!')"
         },
         "types": {
             "patterns": [
@@ -191,7 +223,7 @@
         },
         "imports": {
             "name": "meta.import.kigumi",
-            "match": "^\\s*(import)\\s+(\\{[^}]*\\}|[A-Za-z_][A-Za-z0-9_]*)\\s+(from)\\s+([A-Za-z0-9_/.]+)",
+            "match": "^\\s*(import)\\s+(\\{[^}]*\\}|[A-Za-z_][A-Za-z0-9_]*)\\s+(from)\\s+([A-Za-z0-9_][A-Za-z0-9_/.-]*)",
             "captures": {
                 "1": {
                     "name": "keyword.declaration.import.kigumi"

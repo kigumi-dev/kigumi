@@ -3,24 +3,23 @@ package lsp
 import (
 	"context"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/diag"
 	"kigumi/internal/driver"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 )
 
-// snapshot is one analysis of the module containing a document.
+// snapshot is immutable once cached under a key: it is replaced, never mutated.
 type snapshot struct {
-	root string
-	mod  *driver.Module
-	res  *sem.Result
-	err  error
+	root    string
+	mod     *driver.Module
+	res     *sem.Result
+	err     error
+	origins map[string]fileOrigin
 }
 
 func (s *Server) loadDoc(ctx context.Context, u uri.URI) *snapshot {
@@ -56,6 +55,8 @@ func (s *Server) loadFresh(ctx context.Context, root string, u uri.URI, path str
 		s.logf(ctx, protocol.MessageTypeError, "load module %s: %v", root, err)
 		return snap
 	}
+	snap.origins = buildOrigins(mod)
+	s.indexDeps(root, mod)
 	// Edited files rarely fully parse; recovering here keeps hover,
 	// completion and definition working around the broken statement.
 	func() {
@@ -73,99 +74,35 @@ func (s *Server) loadFresh(ctx context.Context, root string, u uri.URI, path str
 	return snap
 }
 
-// Analysis runs synchronously under s.mu, so publish needs no staleness check.
-func (s *Server) publish(ctx context.Context, u uri.URI, ds []protocol.Diagnostic) {
-	if ds == nil {
-		ds = []protocol.Diagnostic{}
-	}
-	if client, ok := protocol.ClientFromContext(ctx); ok {
-		p := &protocol.PublishDiagnosticsParams{URI: u, Diagnostics: ds}
-		if v, ok := s.docVersions[u]; ok {
-			p.Version = protocol.NewOptional(v)
-		}
-		client.PublishDiagnostics(ctx, p)
-	}
-}
-
-func (s *Server) analyze(ctx context.Context, u uri.URI) {
-	path := uriToPath(u)
-	if driver.IsManifest(filepath.Base(path)) {
-		s.publish(ctx, u, s.manifestDiagnostics(u))
-	}
-	s.analyzeModule(ctx, s.moduleRoot(path), u)
-}
-
-func (s *Server) analyzeModule(ctx context.Context, root string, u uri.URI) {
-	snap := s.load(ctx, root, u)
-	if snap.mod == nil {
-		if u != "" && !driver.IsManifest(filepath.Base(uriToPath(u))) {
-			s.publish(ctx, u, []protocol.Diagnostic{{Message: protocol.String(snap.err.Error()), Severity: protocol.DiagnosticSeverityError}})
-		}
-		return
-	}
-	fresh, stale := map[uri.URI]bool{}, s.published[root]
-	for _, p := range snap.mod.Order {
-		pkg := snap.mod.Packages[p]
-		if pkg.Std {
-			continue
-		}
-		for _, t := range pkg.Files {
-			fileURI := uri.File(filepath.Join(snap.root, filepath.FromSlash(t.File.Name)))
-			all := append([]diag.Diagnostic{}, t.Diags...)
-			if snap.res != nil {
-				all = append(all, snap.res.Diagnostics(t)...)
-			}
-			var ds []protocol.Diagnostic
-			for _, d := range all {
-				ds = append(ds, s.toDiagnostic(snap, t.File, d))
-			}
-			if len(ds) > 0 || stale[fileURI] || fileURI == u {
-				s.publish(ctx, fileURI, ds)
-			}
-			fresh[fileURI] = len(ds) > 0
-		}
-	}
-	for d := range stale {
-		if !fresh[d] {
-			s.publish(ctx, d, nil)
-		}
-	}
-	s.published[root] = fresh
-	s.logf(ctx, protocol.MessageTypeLog, "analyzed %s: %d packages, %d files with diagnostics", snap.root, len(snap.mod.Order), countTrue(fresh))
-}
-
-// pickEntry treats the one script-shaped file outside cmd/ as the entry,
-// or the preferred (open) file when several qualify; the CLI stays strict.
-func pickEntry(mod *driver.Module, prefer string) string {
-	var found []string
+// indexDeps records which package directories root's snapshot read, so a
+// later change under one of them invalidates root too, not just the owner.
+func (s *Server) indexDeps(root string, mod *driver.Module) {
 	for _, p := range mod.Order {
-		pkg := mod.Packages[p]
-		if pkg.Std || strings.HasPrefix(mod.Rel(p), "cmd/") {
-			continue
+		dir := mod.Packages[p].Dir
+		if s.depIndex[dir] == nil {
+			s.depIndex[dir] = map[string]bool{}
 		}
-		for _, t := range pkg.Files {
-			if t.HasTopLevelStatements() || t.HasExplicitMain() {
-				found = append(found, t.File.Name)
-			}
-		}
+		s.depIndex[dir][root] = true
 	}
-	if len(found) == 1 {
-		return found[0]
-	}
-	if slices.Contains(found, prefer) {
-		return prefer
-	}
-	return ""
 }
 
-func countTrue(m map[uri.URI]bool) int {
-	n := 0
-	for _, v := range m {
-		if v {
-			n++
+// invalidateFile drops path's module and any root that last read its
+// directory, root-grained since driver's checker isn't itself incremental.
+func (s *Server) invalidateFile(path string) []string {
+	roots := map[string]bool{s.moduleRoot(path): true}
+	for root := range s.depIndex[filepath.Dir(path)] {
+		roots[root] = true
+	}
+	for key := range s.snaps {
+		if root, _, ok := strings.Cut(key, "\x00"); ok && roots[root] {
+			delete(s.snaps, key)
 		}
 	}
-	return n
+	out := make([]string, 0, len(roots))
+	for root := range roots {
+		out = append(out, root)
+	}
+	return out
 }
 
 func (snap *snapshot) fileOf(path string) *syntax.Tree {
@@ -183,7 +120,12 @@ func (snap *snapshot) fileOf(path string) *syntax.Tree {
 	return nil
 }
 
+// pathOfFile resolves a file's logical name via the origin map; the join
+// fallback is only for names buildOrigins never saw (a synthetic file).
 func (s *Server) pathOfFile(snap *snapshot, name string) string {
+	if o, ok := snap.originOf(name); ok {
+		return o.path
+	}
 	if rest, ok := strings.CutPrefix(name, "std/"); ok {
 		return filepath.Join(s.stdRoot, filepath.FromSlash(rest))
 	}

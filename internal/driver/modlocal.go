@@ -25,6 +25,13 @@ type Local struct {
 	Provenance map[string]string
 }
 
+// LocalReplaceDir reports the directory a Replace record sent name to, so
+// callers can tell a developer's checkout apart from the module cache.
+func (m *Module) LocalReplaceDir(name string) (string, bool) {
+	p, ok := m.local.Replaces[name]
+	return p, ok
+}
+
 // ReadLocal finds the nearest mod.local.kg at or above dir.
 func ReadLocal(dir string) (Local, error) {
 	// A relative dir would stop the walk at "." before reaching any parent.

@@ -9,7 +9,6 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/driver"
 	"kigumi/internal/syntax"
 )
 
@@ -78,10 +77,10 @@ func (s *Server) Symbols(ctx context.Context, p *protocol.WorkspaceSymbolParams)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	out := protocol.SymbolInformationSlice{}
-	if p.Query == "" || s.root == "" {
+	if p.Query == "" || len(s.roots) == 0 {
 		return out, nil
 	}
-	for _, root := range driver.ModuleRoots(s.root, s.stdRoot) {
+	for _, root := range s.allModuleRoots() {
 		snap := s.load(ctx, root, "")
 		if snap.mod == nil {
 			continue
