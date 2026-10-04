@@ -1,0 +1,20 @@
+-- src --
+pub interface Describe {
+    fn describe(self) -> String
+}
+
+pub type Meters = f64
+
+pub fn Meters.describe(self) -> String {
+    "${self.value}m"
+}
+
+fn announce(d: Describe) -> String {
+    d.describe()
+}
+
+print announce(Meters(2.5))
+print announce(Meters(1.0))
+-- stdout --
+2.5m
+1m

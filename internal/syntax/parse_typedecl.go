@@ -71,6 +71,9 @@ func (p *parser) typeBody() NodeID {
 		return p.fieldList(ResourceBody, tok)
 	case p.at(token.LBrace):
 		return p.fieldList(RecordBody, p.pos)
+	case p.atIdent("alias"):
+		tok := p.advance()
+		return p.node1(AliasBody, tok, p.typ())
 	case p.at(token.Ident) && (p.peek(1) == token.LParen || p.peek(1) == token.Pipe ||
 		(p.peek(1) == token.Newline && p.peekPastNewlines() == token.Pipe)):
 		return p.adtBody()
@@ -78,7 +81,7 @@ func (p *parser) typeBody() NodeID {
 		p.advance()
 		return p.adtBody()
 	}
-	return p.node1(AliasBody, p.pos, p.typ())
+	return p.node1(DefinedBody, p.pos, p.typ())
 }
 
 func (p *parser) fieldList(kind NodeKind, tok uint32) NodeID {

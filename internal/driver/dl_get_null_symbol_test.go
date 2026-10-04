@@ -24,7 +24,7 @@ func TestDLGetNullValuedSymbol(t *testing.T) {
 	root := t.TempDir()
 	const src = `import dl from std/dl
 
-type VoidFn = extern(C) fn() -> Unit
+type VoidFn = alias extern(C) fn() -> Unit
 
 fn run() -> Unit! {
     let lib = host.dl().open("./libprobe.so")?

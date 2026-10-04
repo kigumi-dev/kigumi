@@ -10,6 +10,7 @@ import (
 
 func (e *emitter) cType(t sem.TypeID) string {
 	tt := e.r.Types
+	t = e.r.UnderlyingRepr(t)
 	switch {
 	case t == sem.TyUnit, t == sem.TyNever:
 		return "void"
@@ -28,6 +29,7 @@ func (e *emitter) cType(t sem.TypeID) string {
 // double, narrow integers to int.
 func (e *emitter) cArg(sb *strings.Builder, v string, t sem.TypeID) string {
 	tt := e.r.Types
+	t = e.r.UnderlyingRepr(t)
 	switch {
 	case tt.IsFloat(t):
 		return "double " + e.unbox(sb, v, t, "double")
@@ -110,6 +112,7 @@ func deadParam(f *mir.Func, i int) bool {
 
 func (e *emitter) unbox(sb *strings.Builder, v string, t sem.TypeID, ct string) string {
 	tt := e.r.Types
+	t = e.r.UnderlyingRepr(t)
 	switch {
 	case ct == "float" || ct == "double":
 		d := e.irb(sb).Call(rtFloatVal, vptr(v)).Text
@@ -135,6 +138,7 @@ func (e *emitter) unbox(sb *strings.Builder, v string, t sem.TypeID, ct string) 
 
 func (e *emitter) box(sb *strings.Builder, raw string, t sem.TypeID, ct string) string {
 	tt := e.r.Types
+	t = e.r.UnderlyingRepr(t)
 	switch {
 	case ct == "float":
 		d := e.newTmp()

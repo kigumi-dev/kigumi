@@ -10,6 +10,9 @@ const (
 	ResourceBody
 	AdtBody
 	AliasBody
+	// DefinedBody is the plain `= TypeExpr` type declaration body: a nominal
+	// defined type over TypeExpr, as opposed to AliasBody's `= alias TypeExpr`.
+	DefinedBody
 	Field
 	Variant
 	VariantField
@@ -17,6 +20,7 @@ const (
 	MetaItem
 	InterfaceDecl
 	ConstDecl
+	StaticDecl
 	ImportDecl
 	ImportAlias
 	TestDecl
@@ -60,8 +64,8 @@ const (
 
 var declKindNames = [...]string{
 	"File", "FnDecl", "Param", "GenericParam", "TypeDecl", "RecordBody",
-	"ResourceBody", "AdtBody", "AliasBody", "Field", "Variant", "VariantField",
-	"Metadata", "MetaItem", "InterfaceDecl", "ConstDecl", "ImportDecl", "ImportAlias", "TestDecl",
+	"ResourceBody", "AdtBody", "AliasBody", "DefinedBody", "Field", "Variant", "VariantField",
+	"Metadata", "MetaItem", "InterfaceDecl", "ConstDecl", "StaticDecl", "ImportDecl", "ImportAlias", "TestDecl",
 	"AbiBlock", "ContractBlock", "Instantiate", "Layout", "Attr",
 	"UnsafeGuarantee", "UGRule", "UGRequirement", "Visibility",
 	"Let", "ExprStmt", "Assign", "Defer", "Errdefer",
@@ -93,6 +97,7 @@ var recFields = map[NodeKind][]string{
 	Field:         {"vis", "#flags", "type", "metadata"},
 	InterfaceDecl: {"@doc", "attrs", "vis", "@name", "generics", "members"},
 	ConstDecl:     {"@doc", "attrs", "vis", "@name", "type", "value"},
+	StaticDecl:    {"@doc", "attrs", "#flags", "vis", "@name", "type", "value"},
 	ImportDecl:    {"vis", "binding", "path"},
 	LetStmt:       {"#flags", "pattern", "type", "init", "else"},
 	IfExpr:        {"cond", "then", "else"},
@@ -119,9 +124,9 @@ var shapes = map[NodeKind]shape{
 	ShellPlan: sList, ShellCmd: sList, ShellWord: sList, ShellText: sSpan,
 	ShellInterp: sL, ShellRedirect: sRec,
 	File: sList, FnDecl: sRec, Param: sRec, GenericParam: sFlagR, TypeDecl: sRec,
-	RecordBody: sList, ResourceBody: sList, AdtBody: sList, AliasBody: sL, Field: sRec,
+	RecordBody: sList, ResourceBody: sList, AdtBody: sList, AliasBody: sL, DefinedBody: sL, Field: sRec,
 	Variant: sL, VariantField: sFlagR, Metadata: sList, MetaItem: sLR, InterfaceDecl: sRec,
-	ConstDecl: sRec, ImportDecl: sRec, ImportAlias: sLR, TestDecl: sTokR, AbiBlock: sLR, ContractBlock: sFlagR,
+	ConstDecl: sRec, StaticDecl: sRec, ImportDecl: sRec, ImportAlias: sLR, TestDecl: sTokR, AbiBlock: sLR, ContractBlock: sFlagR,
 	InstantiateDecl: sTokR, LayoutClause: sL, Attr: sLR, Visibility: sTokR,
 	UnsafeGuarantee: sList, UGRule: sL, UGRequirement: sL,
 	LetStmt: sRec, ExprStmt: sL, AssignStmt: sLR, DeferStmt: sL, ErrdeferStmt: sL,

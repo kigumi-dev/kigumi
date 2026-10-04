@@ -80,6 +80,8 @@ func (s *Server) Hover(ctx context.Context, p *protocol.HoverParams) (*protocol.
 	info := snap.res.File(t)
 	text := ""
 	switch {
+	case ent != 0 && n != 0 && t.Kind(n) == syntax.MemberExpr && snap.res.Entity(ent).Kind == sem.EntType:
+		text = definedValueHover(snap.res, ent, info.Types[n])
 	case ent != 0:
 		text = hoverText(snap.res, ent, info.Types[n])
 	case info.Types[n] != 0:

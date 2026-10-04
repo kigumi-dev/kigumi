@@ -15,11 +15,12 @@ const (
 	posAlias
 	posConstraint
 	posConst
+	posDefined
 )
 
 var typePosNames = [...]string{
 	"parameter types", "local types", "return types", "field types", "variant payloads",
-	"type arguments", "alias targets", "constraints", "const types",
+	"type arguments", "alias targets", "constraints", "const types", "defined type targets",
 }
 
 // Failures are reported once and yield TyPoison.

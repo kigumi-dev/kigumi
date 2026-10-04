@@ -41,6 +41,10 @@ func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
 			return Place{}, false
 		}
 		fld := c.info.Uses[n]
+		if fld != 0 && c.r.Entities[fld].Kind == EntType {
+			// `.value`: the same storage as the receiver, just retyped.
+			return base, true
+		}
 		if fld == 0 || c.r.Entities[fld].Kind != EntField {
 			return Place{}, false
 		}
@@ -96,8 +100,20 @@ func (c *checker) isIdentPlace(n syntax.NodeID) bool {
 }
 
 func (c *checker) identPlaceEnt(n syntax.NodeID) (EntityID, bool) {
-	for c.t.Kind(n) == syntax.Paren {
-		n = syntax.NodeID(c.t.Nodes[n].Lhs)
+	for {
+		switch {
+		case c.t.Kind(n) == syntax.Paren:
+			n = syntax.NodeID(c.t.Nodes[n].Lhs)
+			continue
+		case c.t.Kind(n) == syntax.MemberExpr:
+			// `.value` is the same storage as its receiver: peel through it
+			// the way Paren is peeled.
+			if use := c.info.Uses[n]; use != 0 && c.r.Entities[use].Kind == EntType {
+				n = syntax.NodeID(c.t.Nodes[n].Lhs)
+				continue
+			}
+		}
+		break
 	}
 	if c.t.Kind(n) != syntax.Ident {
 		return 0, false

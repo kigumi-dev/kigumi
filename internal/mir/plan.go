@@ -32,7 +32,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 	isTemp := func(l LocalID) bool { return f.Locals[l].Ent == 0 }
 	for b, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if isTemp(in.Dst) && in.Op != OpNop && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace {
+			if isTemp(in.Dst) && in.Op != OpNop && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet {
 				defBlock[in.Dst] = b
 			}
 		}
@@ -58,17 +58,16 @@ func (p *Program) planFunc(f *Func) *Plan {
 				continue
 			}
 			switch in.Op {
-			case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpBoxReplace:
+			case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpBoxReplace, OpGlobalSet:
 				continue
 			}
 			defs[in.Dst]++
 			if _, used := last[in.Dst]; !used {
 				last[in.Dst] = use{b, k}
 			}
-			// A copy of a named local only aliases it; a borrow is always an
-			// alias, its source (a local, or a temporary kept alive by
-			// extendBorrowed) is what gets released.
-			if in.Op == OpCopy && len(in.Args) == 1 && (!isTemp(in.Args[0]) || noRelease[in.Args[0]]) {
+			// A copy or wrap/unwrap alias of a named local only aliases it; a
+			// borrow is always an alias and releases its source instead.
+			if (in.Op == OpCopy || in.Op == OpAlias) && len(in.Args) == 1 && (!isTemp(in.Args[0]) || noRelease[in.Args[0]]) {
 				noRelease[in.Dst] = true
 			}
 			// iter.at_ref hands out a `for` element without

@@ -24,6 +24,9 @@ type TypeDeclInfo struct {
 	// Guarantee is the resolved `@unsafeGuarantee` contract, nil when the
 	// type carries none (resource/opaque properties then default to false).
 	Guarantee *UnsafeGuarantee
+	// Underlying is a FormDefined type's direct underlying type (unsubstituted:
+	// its own type parameters stand for the generic case), TyPoison on a cycle.
+	Underlying TypeID
 }
 
 type FnInfo struct {
@@ -72,6 +75,11 @@ type FnInfo struct {
 	// RetLifetime is the lifetime parameter entity the return type's `'a`
 	// tag names (explicit or elided), 0 when the return carries none.
 	RetLifetime EntityID
+	// LinkName is `@linkName`'s override of an extern/export fn's external
+	// symbol, empty to use the source name.
+	LinkName string
+	// Section is `@section`'s object-file section for an owned fn's body.
+	Section string
 }
 
 type InterfaceInfo struct {
@@ -112,6 +120,28 @@ const (
 )
 
 type ConstInfo struct {
+	Value    constValue
+	State    uint8
+	Metadata []MetaRef
+}
+
+// StaticOwner says who owns a static's storage: Kigumi itself, or a
+// foreign definition imported/exported across the C ABI.
+type StaticOwner uint8
+
+const (
+	StaticOwned StaticOwner = iota
+	StaticExtern
+	StaticExport
+)
+
+// StaticInfo is a top-level `static`/`static mut` declaration.
+type StaticInfo struct {
+	Mut      bool
+	Owner    StaticOwner
+	Abi      string
+	LinkName string
+	Section  string
 	Value    constValue
 	State    uint8
 	Metadata []MetaRef

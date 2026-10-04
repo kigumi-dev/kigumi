@@ -1,5 +1,5 @@
 -- app/t/t.kg --
-type Cb = extern(C) fn(i32) -> i32
+type Cb = alias extern(C) fn(i32) -> i32
 
 fn use() -> Unit {
     let cbs = Array.empty[extern(C) fn(i32) -> i32]()

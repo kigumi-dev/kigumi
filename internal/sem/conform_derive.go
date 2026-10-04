@@ -61,7 +61,7 @@ func (r *Result) computeDerive(t TypeID, proto string) bool {
 			r.requestDerive(t, tt.Iface(iface, nil))
 		}
 	}()
-	if info.Form == FormOpaque || info.Form == FormResource {
+	if info.Form == FormOpaque || info.Form == FormResource || info.Form == FormDefined {
 		if n.Ent != tt.arrayEnt {
 			return false
 		}

@@ -1,5 +1,5 @@
 -- app/t/t.kg --
-pub type UserId = Int
+pub type UserId = alias Int
 
 fn takesUser(id: UserId) -> Int {
     id

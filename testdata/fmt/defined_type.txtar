@@ -1,0 +1,7 @@
+-- src --
+pub type UserId = u64
+type IoResult[T] = alias Result[T, Error]
+-- expect --
+pub type UserId = u64
+
+type IoResult[T] = alias Result[T, Error]

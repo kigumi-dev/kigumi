@@ -13,6 +13,7 @@ type Cmd2 =
     Serve(ServeFlags)
     | Version
 type UserId = Int
+type IoResult = alias Int
 type Callback = pure fn(Event) -> Unit
 type File = resource {
     handle usize
@@ -114,12 +115,17 @@ File
       Variant Version
   TypeDecl
     name: UserId
+    body: DefinedBody
+      TypePath
+        Path Int
+  TypeDecl
+    name: IoResult
     body: AliasBody
       TypePath
         Path Int
   TypeDecl
     name: Callback
-    body: AliasBody
+    body: DefinedBody
       TypeFn
         mods: pure
         params: List
@@ -217,8 +223,8 @@ File
 
 -- diagnostics --
 error: methods cannot be declared inside a type body; write `fn Type.name(self)` at top level
-  --> decl_type.txtar:43:5
+  --> decl_type.txtar:44:5
    |
-43 |     fn method(self) -> Int { 1 }
+44 |     fn method(self) -> Int { 1 }
    |     ^^
 

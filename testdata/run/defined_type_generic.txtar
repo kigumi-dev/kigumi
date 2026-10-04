@@ -1,0 +1,19 @@
+-- src --
+pub type Secret[T] = T
+
+pub fn Secret[T].reveal(move self) -> T {
+    self.value
+}
+
+pub fn Secret[T].fromRaw(raw: T) -> Secret[T] {
+    Secret(raw)
+}
+
+let s = Secret[String].fromRaw("shh")
+print "${s.reveal()}"
+
+let n = Secret(42)
+print "${n.reveal()}"
+-- stdout --
+shh
+42

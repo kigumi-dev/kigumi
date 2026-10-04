@@ -50,6 +50,9 @@ func (r *Result) registerMember(id EntityID) {
 	if r.findField(owner, name) != 0 {
 		r.errAt(e.File, e.Node, cFieldMethodClash, name, r.Entities[owner].Name)
 	}
+	if name == "value" && tinfo.Form == FormDefined {
+		r.errAt(e.File, e.Node, cDefinedValueClash, r.Entities[owner].Name)
+	}
 	if name == "drop" {
 		r.checkDrop(id, owner)
 	}

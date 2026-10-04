@@ -54,5 +54,11 @@ func (c *checker) ffiCValueCheck(n syntax.NodeID, fn EntityID, inst []TypeID, re
 // Int and Float are aliases already covered by IsNumeric; no separate check needed.
 func (c *checker) cValueScalar(t TypeID) bool {
 	tt := c.r.Types
-	return tt.IsNumeric(t) || t == TyBool || t == TyChar || tt.Kind(t) == KPtr || tt.IsCFn(t)
+	if tt.IsNumeric(t) || t == TyBool || t == TyChar || tt.Kind(t) == KPtr || tt.IsCFn(t) {
+		return true
+	}
+	if n := tt.Node(t); n.Kind == KNamed && c.r.typeDecl(n.Ent).Form == FormDefined {
+		return c.cValueScalar(c.r.underlyingRepr(t))
+	}
+	return false
 }

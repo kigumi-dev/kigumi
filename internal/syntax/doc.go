@@ -9,7 +9,8 @@
 // Node shapes (see shapes in node_decl.go):
 //   - sLeaf: Tok only (Ident, literals, PatWildcard, PatBind flags in Lhs).
 //   - sL: Lhs is a child (Paren, Unary, MemberExpr with Tok = name, TryExpr,
-//     TypeOptional, TypeResult, Variant with Lhs = field List, AliasBody).
+//     TypeOptional, TypeResult, Variant with Lhs = field List, AliasBody,
+//     DefinedBody).
 //   - sLR: Lhs and Rhs are children (Binary/IsExpr with Tok = operator,
 //     CallExpr/WsCallExpr/BracketExpr with Rhs = argument List, RecordLit,
 //     Lambda with Lhs = param List, MatchExpr with Rhs = arm List, TypePath with

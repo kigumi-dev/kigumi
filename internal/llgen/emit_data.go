@@ -33,7 +33,7 @@ func llEscape(s string) string {
 }
 
 // numKind encodes an integer or float type: bits, signedness, floatness.
-func (e *emitter) numKind(t sem.TypeID) int { return mir.NumKind(e.r.Types, t) }
+func (e *emitter) numKind(t sem.TypeID) int { return mir.NumKind(e.r.Types, e.r.UnderlyingRepr(t)) }
 
 // Must mirror %rt_type and %rt_variant in the header (emit.go).
 var rtTypeStruct = StructType{Name: "%rt_type", Fields: []Type{TPtr, TI32, TI32, TPtr, TI32, TPtr, TPtr, TI64}}

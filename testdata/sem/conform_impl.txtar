@@ -63,7 +63,7 @@ pub type N = {
 }
 
 @impl(Display) //~ ERROR an alias cannot be an `@impl` target
-pub type Uid = Int
+pub type Uid = alias Int
 
 @derive(Eq) //~ ERROR unknown attribute `@derive`
 pub type D = {

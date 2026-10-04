@@ -1,7 +1,7 @@
 -- app/t/t.kg --
 import dl from std/dl
 
-type Twice = extern(C) fn(i32) -> i32
+type Twice = alias extern(C) fn(i32) -> i32
 
 fn use(lib: dl.Library, s: dl.Symbol[Twice], bad: dl.Symbol[i32]) -> i32 {
     let a = s.call(1) //~ ERROR calling `call` requires an `unsafe { }` block

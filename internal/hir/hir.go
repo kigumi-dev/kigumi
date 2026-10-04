@@ -15,6 +15,7 @@ type ExprKind uint8
 const (
 	Lit         ExprKind = iota + 1 // Lit of Type
 	Local                           // Ent (a local or parameter)
+	Global                          // Ent (a static)
 	FnItem                          // Ent
 	Variant                         // Ent(Args...) or a nullary variant
 	Host                            // the `host` intrinsic value
@@ -53,12 +54,14 @@ const (
 	Interp    // Strs with "" for each of Args
 	Shell     // shell plan words in Strs, Args for interpolations
 	Unit
-	Wrap     // Args[0] through parentheses, `unsafe` or a spread
-	Comptime // comptime { Args[0] }, not yet folded to a literal
-	Panic    // Name is the message; a construct the checker let through
+	Wrap          // Args[0] through parentheses, `unsafe` or a spread
+	Comptime      // comptime { Args[0] }, not yet folded to a literal
+	Panic         // Name is the message; a construct the checker let through
+	DefinedWrap   // A(value): a defined type's representation wrap over Args[0]
+	DefinedUnwrap // a.value: the inverse projection over Args[0]
 )
 
-var exprNames = [...]string{Lit: "lit", Local: "local", FnItem: "fnitem", Variant: "variant", Host: "host", Unary: "un", Binary: "bin", And: "and", Fallback: "or", Pipe: "pipe", Call: "call", MethodCall: "mcall", StaticCall: "scall", ValueCall: "callv", Intrinsic: "builtin", Index: "index", Field: "field", FieldMove: "fieldmove", MethodValue: "mvalue", OptField: "optfield", Try: "try", Record: "record", Lambda: "lambda", BlockExpr: "block", If: "if", IfLet: "iflet", Match: "match", Loop: "loop", Return: "return", Fail: "fail", Break: "break", Continue: "continue", Is: "is", Borrow: "borrow", Allocator: "allocator", Asm: "asm", Await: "await", Interp: "interp", Shell: "shell", Unit: "unit", Wrap: "wrap", Comptime: "comptime", Panic: "panic"}
+var exprNames = [...]string{Lit: "lit", Local: "local", FnItem: "fnitem", Variant: "variant", Host: "host", Unary: "un", Binary: "bin", And: "and", Fallback: "or", Pipe: "pipe", Call: "call", MethodCall: "mcall", StaticCall: "scall", ValueCall: "callv", Intrinsic: "builtin", Index: "index", Field: "field", FieldMove: "fieldmove", MethodValue: "mvalue", OptField: "optfield", Try: "try", Record: "record", Lambda: "lambda", BlockExpr: "block", If: "if", IfLet: "iflet", Match: "match", Loop: "loop", Return: "return", Fail: "fail", Break: "break", Continue: "continue", Is: "is", Borrow: "borrow", Allocator: "allocator", Asm: "asm", Await: "await", Interp: "interp", Shell: "shell", Unit: "unit", Wrap: "wrap", Comptime: "comptime", Panic: "panic", DefinedWrap: "definedwrap", DefinedUnwrap: "definedunwrap", Global: "global"}
 
 func (k ExprKind) String() string { return exprNames[k] }
 

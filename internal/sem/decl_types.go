@@ -4,7 +4,7 @@ import "kigumi/internal/syntax"
 
 // declareTypes resolves type declarations, interfaces, and aliases (pass 3).
 func (r *Result) declareTypes() {
-	var types, ifaces, aliases []EntityID
+	var types, ifaces, aliases, defined []EntityID
 	for id := 1; id < len(r.Entities); id++ {
 		e := &r.Entities[id]
 		if e.File == 0 || e.Flags&EfPoison != 0 {
@@ -13,6 +13,9 @@ func (r *Result) declareTypes() {
 		switch e.Kind {
 		case EntType:
 			types = append(types, EntityID(id))
+			if r.typeDecl(EntityID(id)).Form == FormDefined {
+				defined = append(defined, EntityID(id))
+			}
 		case EntInterface:
 			ifaces = append(ifaces, EntityID(id))
 		case EntAlias:
@@ -52,6 +55,12 @@ func (r *Result) declareTypes() {
 	}
 	for _, id := range aliases {
 		r.aliasType(id)
+	}
+	for _, id := range defined {
+		r.definedUnderlying(id)
+	}
+	for _, id := range defined {
+		r.checkDefinedChain(id)
 	}
 	for _, id := range ifaces {
 		r.declareRequirements(id)

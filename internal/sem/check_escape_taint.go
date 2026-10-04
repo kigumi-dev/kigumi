@@ -21,6 +21,8 @@ func (r *Result) mayContainFn(t TypeID, visited map[TypeID]bool) bool {
 		decl := r.typeDecl(n.Ent)
 		subst := instSubst(decl.Params, n.Args)
 		switch decl.Form {
+		case FormDefined:
+			return r.mayContainFn(r.Types.Subst(decl.Underlying, subst), visited)
 		case FormRecord, FormResource:
 			for _, fld := range decl.Fields {
 				if r.mayContainFn(r.Types.Subst(r.field(fld).Type, subst), visited) {

@@ -25,6 +25,13 @@ func hoverText(res *sem.Result, ent sem.EntityID, at sem.TypeID) string {
 	return out
 }
 
+// definedValueHover shows `.value`, a defined type's package-private
+// representation projection, rather than ent's own declaration.
+func definedValueHover(res *sem.Result, ent sem.EntityID, at sem.TypeID) string {
+	name := res.Entity(ent).Name
+	return "```kigumi\n" + name + ".value: " + res.TypeString(at) + "\n```\n\npackage-private representation of `" + name + "`"
+}
+
 // describe renders an entity as `kind name: type`.
 func describe(res *sem.Result, ent sem.EntityID, at sem.TypeID) string {
 	e := res.Entity(ent)

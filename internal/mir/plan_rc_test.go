@@ -209,3 +209,29 @@ func TestPlanRCReturnShare(t *testing.T) {
 		t.Fatalf("got %d instructions, want no share for a temporary return: %s", len(insts), p.Dump())
 	}
 }
+
+// TestPlanRCAliasChainReturnShare: a defined-type wrap/unwrap (build_expr.go)
+// emits OpAlias directly rather than OpCopy, so a chain of two such aliases
+// of a borrowed receiver (`x: &Meters` returning `x.value`) must still
+// trace back to the named local they stand for and share it on return,
+// exactly like TestPlanRCReturnShare's single OpCopy-derived alias.
+func TestPlanRCAliasChainReturnShare(t *testing.T) {
+	p := program(t)
+	ent := p.R.Types.ErrorEnt()
+	ref := p.R.Types.Ref(sem.TyF64, false)
+	locals := []mir.Local{{Name: "x", Type: ref, Ent: ent}, {Name: "t1", Type: sem.TyF64}, {Name: "t2", Type: sem.TyF64}}
+	f := fn("aliaschain", sem.TyF64, locals,
+		mir.Block{Insts: []mir.Inst{
+			{Op: mir.OpAlias, Dst: 1, Args: []mir.LocalID{0}},
+			{Op: mir.OpAlias, Dst: 2, Args: []mir.LocalID{1}},
+		}, Term: ret(2)})
+	f.Params = []mir.LocalID{0}
+	planRC(t, f, p)
+	insts := f.Blocks[0].Insts
+	if len(insts) != 3 || insts[2].Op != mir.OpShare {
+		t.Fatalf("got %v, want the two aliases plus one share before the return", insts)
+	}
+	if got := f.Blocks[0].Term.Args[0]; got != insts[2].Dst {
+		t.Fatalf("return argument %d, want the shared value %d", got, insts[2].Dst)
+	}
+}

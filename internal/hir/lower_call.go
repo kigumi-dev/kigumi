@@ -78,6 +78,9 @@ func (l *lowerer) callWith(n, callee syntax.NodeID, call sem.CallInfo) *Expr {
 	case sem.CallVariant:
 		out.Kind = Variant
 		out.EvalOrder = plan.Order
+	case sem.CallDefinedWrap:
+		out.Kind = DefinedWrap
+		out.EvalOrder = plan.Order
 	case sem.CallMethod:
 		base := syntax.NodeID(l.t.Nodes[memberNode(l.t, callee)].Lhs)
 		out.Kind, out.Witness, out.Passes, out.ConstArgs = MethodCall, call.Witness, call.Passes, call.ConstArgs

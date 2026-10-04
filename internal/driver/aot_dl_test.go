@@ -24,7 +24,7 @@ func TestAotDL(t *testing.T) {
 	root := t.TempDir()
 	src := `import dl from std/dl
 
-type Sqrt = extern(C) fn(f64) -> f64
+type Sqrt = alias extern(C) fn(f64) -> f64
 
 fn run() -> Unit! {
     let lib = host.dl().open("libm.so.6")?

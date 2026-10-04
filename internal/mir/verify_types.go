@@ -13,8 +13,12 @@ func (p *Program) verifyTypes(f *Func) *Error {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
 			switch in.Op {
-			case OpCopy, OpMove, OpAlias, OpShare:
+			case OpCopy, OpMove, OpShare:
 				if !p.sameType(ty(in.Dst), ty(in.Args[0])) && ty(in.Args[0]) != sem.TyNever {
+					return fail("types", bid, i, "%s from %s into %s", in.Op, p.R.TypeString(ty(in.Args[0])), p.R.TypeString(ty(in.Dst)))
+				}
+			case OpAlias:
+				if !p.sameTypeAcrossRef(ty(in.Dst), ty(in.Args[0])) && ty(in.Args[0]) != sem.TyNever {
 					return fail("types", bid, i, "%s from %s into %s", in.Op, p.R.TypeString(ty(in.Args[0])), p.R.TypeString(ty(in.Dst)))
 				}
 			case OpConst:
@@ -86,7 +90,25 @@ func (p *Program) returnable(f *Func, t sem.TypeID) bool {
 // pass (an EdgeContract), never in the value's runtime representation.
 func (p *Program) sameType(a, b sem.TypeID) bool {
 	a, b = p.fnType(a), p.fnType(b)
-	return a == b || p.sameFnRepr(a, b)
+	if a == b || p.sameFnRepr(a, b) {
+		return true
+	}
+	// A defined type and its underlying chain share one representation, so
+	// OpCopy/OpMove/OpShare cross that boundary at zero cost.
+	return p.R.UnderlyingRepr(a) == p.R.UnderlyingRepr(b)
+}
+
+// sameTypeAcrossRef is sameType after peeling one reference layer off each
+// side: a wrap/unwrap aliases its receiver's own bits even through a borrow.
+func (p *Program) sameTypeAcrossRef(a, b sem.TypeID) bool {
+	return p.sameType(p.derefOnce(a), p.derefOnce(b))
+}
+
+func (p *Program) derefOnce(t sem.TypeID) sem.TypeID {
+	if p.R.Types.Kind(t) == sem.KRef {
+		return p.R.Types.Node(t).Elem
+	}
+	return t
 }
 
 func (p *Program) fnType(t sem.TypeID) sem.TypeID {

@@ -61,27 +61,39 @@ func (b *builder) exprMoved(e *hir.Expr) LocalID {
 	return b.coerce(e.Coercion, e.Node, v)
 }
 
-// transfer moves a move-only source local or copies a structural value.
-func (b *builder) transfer(src *hir.Expr, v LocalID) LocalID {
+// transfer moves a move-only source local or copies a structural value,
+// seeing through a wrap/unwrap to its receiver and retagging the result back.
+func (b *builder) transfer(outer *hir.Expr, v LocalID) LocalID {
+	src := outer
+	for src.Kind == hir.DefinedWrap || src.Kind == hir.DefinedUnwrap {
+		src = src.Args[0]
+	}
+	wrapped := src != outer
+	retag := func(out LocalID) LocalID {
+		if !wrapped {
+			return out
+		}
+		return b.emit(Inst{Op: OpAlias, Dst: b.temp(outer.Type), Args: []LocalID{out}, Node: outer.Node})
+	}
 	if src.Kind != hir.Local {
-		return v
+		return retag(v)
 	}
 	id, isLocal := b.locals[src.Ent]
 	if src.Ent == 0 || !isLocal {
-		return v
+		return retag(v)
 	}
 	// A named local is dropped when its scope unwinds, so what leaves the
 	// scope travels in a temporary: a copy of a Copy value, a move otherwise.
 	t := src.Type
-	if b.r.IsCopy(t) {
-		if b.fn.Locals[id].Cell {
-			// v is an OpCellGet read; PlanRC would alias an Ent-less OpCopy
-			// source, drifting with the cell's later in-place field writes.
-			return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: src.Node})
-		}
-		return b.emit(Inst{Op: OpCopy, Dst: b.temp(t), Args: []LocalID{v}, Node: src.Node})
+	switch {
+	case b.r.IsCopy(t) && b.fn.Locals[id].Cell:
+		// v is an OpCellGet read; PlanRC would alias an Ent-less OpCopy
+		// source, drifting with the cell's later in-place field writes.
+		return retag(b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: src.Node}))
+	case b.r.IsCopy(t):
+		return retag(b.emit(Inst{Op: OpCopy, Dst: b.temp(t), Args: []LocalID{v}, Node: src.Node}))
 	}
-	return b.emit(Inst{Op: OpMove, Dst: b.temp(t), Args: []LocalID{v}, Node: src.Node})
+	return retag(b.emit(Inst{Op: OpMove, Dst: b.temp(t), Args: []LocalID{v}, Node: src.Node}))
 }
 
 // discard lowers `_ = value`. Discarding a binding changes nothing unless

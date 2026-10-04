@@ -1,0 +1,30 @@
+-- src --
+type Meters = f64
+type Point = {x i64, y i64}
+type Loc = Point
+
+fn readIt(x: &Meters) -> f64 {
+    x.value
+}
+
+fn bump(x: &mut Meters) -> Unit {
+    x.value = x.value + 1.0
+}
+
+fn sumXY(p: &Loc) -> i64 {
+    p.value.x + p.value.y
+}
+
+let m = Meters(1.0)
+print "${readIt(&m)}"
+
+let mut n = Meters(1.0)
+bump(&mut n)
+print "${n.value}"
+
+let l = Loc(Point { x: 3, y: 4 })
+print "${sumXY(&l)}"
+-- stdout --
+1
+2
+7

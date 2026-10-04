@@ -23,7 +23,13 @@ func (r *Result) checkAbiTypes(f FileID, s fnSlots, params []TypeID, ret TypeID)
 
 func (r *Result) abiSafe(t TypeID) bool {
 	tt := r.Types
-	return t == TyPoison || tt.IsNumeric(t) || tt.Kind(t) == KPtr || tt.IsCFn(t) || r.cRecord(t)
+	if t == TyPoison || tt.IsNumeric(t) || tt.Kind(t) == KPtr || tt.IsCFn(t) || r.cRecord(t) {
+		return true
+	}
+	if n := tt.Node(t); n.Kind == KNamed && r.typeDecl(n.Ent).Form == FormDefined {
+		return r.abiSafe(r.underlyingRepr(t))
+	}
+	return false
 }
 
 // cRecord reports whether t is a user record with a C layout, which the C

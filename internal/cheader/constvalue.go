@@ -28,7 +28,7 @@ func classifyBareConst(chunk string, known, opaque map[string]bool, abi ABI) ite
 		}
 		friendly := stripTagPrefix(name)
 		known[friendly] = true
-		return item{kind: "alias", name: friendly, text: "type " + friendly + " = " + kt}
+		return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + kt}
 	}
 	typ, lit, ok := parseConstValue(target, abi)
 	if !ok {
@@ -56,7 +56,7 @@ func classifyAlias(name, target string, known, opaque map[string]bool, abi ABI) 
 	if kt, ok := mapScalar(target, abi); ok {
 		friendly := stripTagPrefix(name)
 		known[friendly] = true
-		return item{kind: "alias", name: friendly, text: "type " + friendly + " = " + kt, scalar: kt}
+		return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + kt, scalar: kt}
 	}
 	resolved := target
 	if !known[resolved] {
@@ -77,7 +77,7 @@ func classifyAlias(name, target string, known, opaque map[string]bool, abi ABI) 
 	if opaque[resolved] {
 		opaque[friendly] = true
 	}
-	return item{kind: "alias", name: friendly, text: "type " + friendly + " = " + resolved}
+	return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + resolved}
 }
 
 // parseConstValue reads the value zig gave a `#define`d constant: a signed

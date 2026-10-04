@@ -21,7 +21,7 @@ func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[stri
 	var info PatInfo
 	var lookup func(name string) (TypeID, EntityID, bool)
 	switch {
-	case e.Kind == EntType && c.r.typeDecl(ent).Form != FormAdt:
+	case e.Kind == EntType && c.r.typeDecl(ent).Form != FormAdt && c.r.typeDecl(ent).Form != FormDefined:
 		if scrutinee != TyPoison && (sn.Kind != KNamed || sn.Ent != ent) {
 			c.errAt(p, cPatternKind, scrutinee)
 			c.skipFields(fields, seen)

@@ -32,6 +32,9 @@ func (p *printer) typeDecl(id syntax.NodeID) {
 	case syntax.AdtBody:
 		p.variants(body)
 	case syntax.AliasBody:
+		p.write(" alias ")
+		p.typ(syntax.NodeID(p.node(body).Lhs))
+	case syntax.DefinedBody:
 		p.write(" ")
 		p.typ(syntax.NodeID(p.node(body).Lhs))
 	}

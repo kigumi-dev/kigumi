@@ -54,6 +54,10 @@ func (l *lowerer) ident(n syntax.NodeID) *Expr {
 			out.Type = e.Type
 		}
 		return out
+	case sem.EntStatic:
+		out := l.node(n, Global)
+		out.Ent = ent
+		return out
 	case sem.EntFn:
 		out := l.node(n, FnItem)
 		out.Ent = ent
@@ -83,6 +87,10 @@ func (l *lowerer) member(n syntax.NodeID) *Expr {
 		out := l.node(n, Field)
 		out.Args, out.Index = []*Expr{l.expr(syntax.NodeID(node.Lhs))}, l.r.Field(ent).Index
 		return out
+	case sem.EntType:
+		out := l.node(n, DefinedUnwrap)
+		out.Args = []*Expr{l.expr(syntax.NodeID(node.Lhs))}
+		return out
 	case sem.EntFn:
 		out := l.node(n, FnItem)
 		out.Ent = ent
@@ -90,6 +98,10 @@ func (l *lowerer) member(n syntax.NodeID) *Expr {
 	case sem.EntConst:
 		out := l.node(n, Lit)
 		out.Lit, _ = l.r.ConstValueOf(ent)
+		return out
+	case sem.EntStatic:
+		out := l.node(n, Global)
+		out.Ent = ent
 		return out
 	case sem.EntVariant:
 		out := l.node(n, Variant)

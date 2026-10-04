@@ -173,21 +173,3 @@ func (l *lowerer) assign(n syntax.NodeID, out *Stmt) *Stmt {
 	out.Expr = l.expr(rhs)
 	return out
 }
-
-// place resolves an assignment target; its operands are lowered here so
-// the builder evaluates them once, before the right-hand side.
-func (l *lowerer) place(lhs syntax.NodeID) *Place {
-	node := l.t.Nodes[lhs]
-	out := &Place{Node: lhs, Type: l.typeOf(lhs)}
-	switch node.Kind {
-	case syntax.Paren:
-		return l.place(syntax.NodeID(node.Lhs))
-	case syntax.MemberExpr:
-		out.Kind, out.Base, out.Index = PlaceField, l.expr(syntax.NodeID(node.Lhs)), l.r.Field(l.info.Uses[lhs]).Index
-	case syntax.BracketExpr:
-		out.Kind, out.Base, out.Idx = PlaceIndex, l.expr(syntax.NodeID(node.Lhs)), l.expr(l.t.Children(syntax.NodeID(node.Rhs))[0])
-	default:
-		out.Kind, out.Ent, out.Expr = PlaceLocal, l.info.Uses[lhs], l.expr(lhs)
-	}
-	return out
-}

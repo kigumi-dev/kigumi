@@ -94,6 +94,14 @@ func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState) {
 	case OpBorrow:
 		st.borrowed[in.Dst] = true
 		return
+	case OpAlias:
+		// A defined-type wrap/unwrap (build_expr.go) emits this directly
+		// instead of an OpCopy PlanRC rewrites; its chain must still be
+		// recorded, or origin() stops short of the local it stands for.
+		if len(in.Args) == 1 {
+			st.alias[in.Dst] = st.origin(in.Args[0])
+		}
+		return
 	case OpCopy:
 	default:
 		return

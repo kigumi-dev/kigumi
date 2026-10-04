@@ -30,7 +30,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		}
 	}
 	e := &c.r.Entities[ent]
-	if e.Kind != EntType || c.r.typeDecl(ent).Form == FormAdt || c.r.typeDecl(ent).Form == FormOpaque {
+	if e.Kind != EntType || c.r.typeDecl(ent).Form == FormAdt || c.r.typeDecl(ent).Form == FormOpaque || c.r.typeDecl(ent).Form == FormDefined {
 		c.errAt(headNode, cRecordLitNotRecord, e.Name, "a "+e.Kind.String())
 		c.synthEntries(entries)
 		return TyPoison
@@ -118,7 +118,7 @@ func (c *checker) spreadEntry(target EntityID, subst map[EntityID]TypeID, src sy
 			st = elem
 		}
 	}
-	if tt.Kind(st) != KNamed || c.r.typeDecl(tt.Node(st).Ent).Form == FormAdt || c.r.typeDecl(tt.Node(st).Ent).Form == FormOpaque {
+	if tt.Kind(st) != KNamed || c.r.typeDecl(tt.Node(st).Ent).Form == FormAdt || c.r.typeDecl(tt.Node(st).Ent).Form == FormOpaque || c.r.typeDecl(tt.Node(st).Ent).Form == FormDefined {
 		c.errAt(src, cSpreadNotRecord, st)
 		return false
 	}

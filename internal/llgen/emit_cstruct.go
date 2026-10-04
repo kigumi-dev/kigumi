@@ -48,6 +48,9 @@ func (e *emitter) cLayoutOf(t sem.TypeID) (size, align int64) {
 		es, ea := e.cLayoutOf(elem)
 		return es * n, ea
 	}
+	if u := e.r.UnderlyingRepr(t); u != t {
+		return e.cLayoutOf(u)
+	}
 	info := e.r.TypeDecl(tt.Node(t).Ent)
 	packed := info.Layout == "packed"
 	var off, maxAlign int64 = 0, 1

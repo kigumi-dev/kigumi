@@ -26,7 +26,7 @@ pub type Holder = {
 
 pub type Sum = A(Hidden) //~ ERROR `Hidden` is private but appears in the pub signature of `A`
 
-pub type Alias = Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `Alias`
+pub type Alias = alias Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `Alias`
 
 pub interface Display {
     fn display(self) -> String
@@ -83,8 +83,8 @@ error[E118]: `Hidden` is private but appears in the pub signature of `A`
 error[E118]: `Hidden` is private but appears in the pub signature of `Alias`
   --> app/v/v.kg:28:1
    |
-28 | pub type Alias = Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `Alias`
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+28 | pub type Alias = alias Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `Alias`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E120]: `Shown` asserts `Display` with pub visibility but witness `display` is private
   --> app/v/v.kg:34:7

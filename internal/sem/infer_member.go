@@ -60,6 +60,9 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 		node = tt.Node(recv)
 	}
 	if node.Kind == KNamed {
+		if name == "value" && c.r.typeDecl(node.Ent).Form == FormDefined {
+			return c.definedValue(n, node)
+		}
 		if fld := c.r.findField(node.Ent, name); fld != 0 {
 			if !c.r.useEntity(c.f, n, fld) {
 				return TyPoison

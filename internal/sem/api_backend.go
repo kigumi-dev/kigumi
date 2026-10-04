@@ -107,6 +107,7 @@ func (r *Result) Requirement(iface EntityID, name string) EntityID {
 func (r *Result) MemberSet(t TypeID, name string) OverloadSetID  { return r.memberSet(t, name) }
 func (r *Result) FindField(owner EntityID, name string) EntityID { return r.findField(owner, name) }
 func (r *Result) IsCopy(t TypeID) bool                           { return r.isCopy(t) }
+func (r *Result) UnderlyingRepr(t TypeID) TypeID                 { return r.underlyingRepr(t) }
 func (r *Result) IsSend(t TypeID) bool                           { return r.isSend(t) }
 func (r *Result) IsSync(t TypeID) bool                           { return r.isSync(t) }
 func (r *Result) Summary(id EntityID) EffectSummary              { return r.summary(id) }

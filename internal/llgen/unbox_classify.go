@@ -55,6 +55,11 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 		for _, in := range blk.Insts {
 			classifyDst(in, disqualify)
 			classifyArgs(in, disqualify)
+			// A wrap/unwrap alias from a reference keeps its source's boxed
+			// pointer bits, so its result can't live in a native register.
+			if in.Op == mir.OpAlias && e.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KRef {
+				disqualify(in.Dst)
+			}
 		}
 		classifyTerm(blk.Term, out, disqualify)
 	}

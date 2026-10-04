@@ -123,6 +123,9 @@ func (m *Machine) cLayout(t sem.TypeID) (size, align int64) {
 		p := int64(tt.PtrBits() / 8)
 		return p, p
 	}
+	if u := m.r.UnderlyingRepr(t); u != t {
+		return m.cLayout(u)
+	}
 	info := m.r.TypeDecl(tt.Node(t).Ent)
 	packed := info.Layout == "packed"
 	var off, maxAlign int64 = 0, 1

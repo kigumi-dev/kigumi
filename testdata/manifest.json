@@ -127,6 +127,17 @@
       ]
     },
     {
+      "id": "fmt/defined_type",
+      "kind": "fmt",
+      "path": "testdata/fmt/defined_type.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/doc_comments",
       "kind": "fmt",
       "path": "testdata/fmt/doc_comments.txtar",
@@ -985,6 +996,17 @@
       ]
     },
     {
+      "id": "mir/static_borrow_escape_err",
+      "kind": "mir",
+      "path": "testdata/mir/static_borrow_escape_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/std_io_bytes_writer_reuse",
       "kind": "mir",
       "path": "testdata/mir/std_io_bytes_writer_reuse.txtar",
@@ -1098,6 +1120,17 @@
       "id": "parser/decl_misc",
       "kind": "parser",
       "path": "testdata/parser/decl_misc.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/decl_static",
+      "kind": "parser",
+      "path": "testdata/parser/decl_static.txtar",
       "mode": [
         "parse"
       ],
@@ -2106,6 +2139,91 @@
       "id": "run/defer_move_reassign",
       "kind": "run",
       "path": "testdata/run/defer_move_reassign.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_basic",
+      "kind": "run",
+      "path": "testdata/run/defined_type_basic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_conform",
+      "kind": "run",
+      "path": "testdata/run/defined_type_conform.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_ffi",
+      "kind": "run",
+      "path": "testdata/run/defined_type_ffi.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_generic",
+      "kind": "run",
+      "path": "testdata/run/defined_type_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_ref",
+      "kind": "run",
+      "path": "testdata/run/defined_type_ref.txtar",
       "mode": [
         "vm",
         "native"
@@ -5006,6 +5124,40 @@
       ]
     },
     {
+      "id": "run/static_basic",
+      "kind": "run",
+      "path": "testdata/run/static_basic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/static_section",
+      "kind": "run",
+      "path": "testdata/run/static_section.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/std_base64",
       "kind": "run",
       "path": "testdata/run/std_base64.txtar",
@@ -5523,6 +5675,23 @@
       "id": "run/unit_ok_fallthrough",
       "kind": "run",
       "path": "testdata/run/unit_ok_fallthrough.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/unsafe_cell",
+      "kind": "run",
+      "path": "testdata/run/unsafe_cell.txtar",
       "mode": [
         "vm",
         "native"
@@ -6117,6 +6286,17 @@
       "id": "sem/decl_variant_prelude_fn_const_collision",
       "kind": "sem",
       "path": "testdata/sem/decl_variant_prelude_fn_const_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defined_types",
+      "kind": "sem",
+      "path": "testdata/sem/defined_types.txtar",
       "mode": [
         "check"
       ],
@@ -7401,6 +7581,28 @@
       ]
     },
     {
+      "id": "sem/static_err",
+      "kind": "sem",
+      "path": "testdata/sem/static_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/static_ok",
+      "kind": "sem",
+      "path": "testdata/sem/static_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/std_layer_direction",
       "kind": "sem",
       "path": "testdata/sem/std_layer_direction.txtar",
@@ -7525,6 +7727,39 @@
       "id": "sem/unit",
       "kind": "sem",
       "path": "testdata/sem/unit.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/unsafe_cell_copy",
+      "kind": "sem",
+      "path": "testdata/sem/unsafe_cell_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/unsafe_cell_send_sync",
+      "kind": "sem",
+      "path": "testdata/sem/unsafe_cell_send_sync.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/unsafe_cell_unsafe_required",
+      "kind": "sem",
+      "path": "testdata/sem/unsafe_cell_unsafe_required.txtar",
       "mode": [
         "check"
       ],

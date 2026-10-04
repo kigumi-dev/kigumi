@@ -96,6 +96,9 @@ func (r *Result) cRepresentable(t TypeID) bool {
 	if t == TyPoison || tt.IsNumeric(t) || tt.Kind(t) == KPtr || tt.IsCFn(t) || r.cRecord(t) {
 		return true
 	}
+	if n := tt.Node(t); n.Kind == KNamed && r.typeDecl(n.Ent).Form == FormDefined {
+		return r.cRepresentable(r.underlyingRepr(t))
+	}
 	elem, _, ok := r.fixedArrayShape(t)
 	return ok && tt.IsNumeric(elem)
 }

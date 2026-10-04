@@ -14,6 +14,9 @@ func (b *builder) expr(e *hir.Expr) LocalID {
 	if e.Kind == hir.Fallback {
 		return v
 	}
+	if e.Kind == hir.DefinedWrap || e.Kind == hir.DefinedUnwrap {
+		v = b.emit(Inst{Op: OpAlias, Dst: b.temp(e.Type), Args: []LocalID{v}, Node: e.Node})
+	}
 	return b.coerce(e.Coercion, e.Node, v)
 }
 
@@ -28,12 +31,14 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return id
 	case hir.Lit:
 		return b.emit(Inst{Op: OpConst, Dst: b.temp(t), Lit: e.Lit, Type: t, Node: n})
+	case hir.Global:
+		return b.emit(Inst{Op: OpGlobalGet, Dst: b.temp(t), Ent: e.Ent, Node: n})
 	case hir.FnItem:
 		async := b.r.Fn(e.Ent).Declared&sem.EffAsync != 0
 		return b.emit(Inst{Op: OpFnItem, Dst: b.temp(t), Ent: e.Ent, Async: async, Node: n})
 	case hir.Host:
 		return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: "host", Node: n})
-	case hir.Wrap:
+	case hir.Wrap, hir.DefinedWrap, hir.DefinedUnwrap:
 		return b.expr(e.Args[0])
 	case hir.Unary:
 		v := b.expr(e.Args[0])
@@ -145,35 +150,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		b.exitScope()
 		return result
 	case hir.Borrow:
-		// A scalar `&mut` of a bare local/parameter aliases that
-		// local's own cell (sem flags it EfAddrTaken so it gets one) rather
-		// than boxing a disconnected copy, so the write reaches whatever
-		// holds this borrow, not just reads through it.
-		if e.Mut {
-			if _, ok := b.r.ScalarRefElem(t); ok && e.Args[0].Kind == hir.Local {
-				if id := b.local(e.Args[0].Ent); b.fn.Locals[id].Cell {
-					return b.emit(Inst{Op: OpBorrow, Dst: b.temp(t), Args: []LocalID{id}, Index: 1, Node: n})
-				}
-			}
-		}
-		v := b.expr(e.Args[0])
-		mut := 0
-		if e.Mut {
-			mut = 1
-		}
-		ref := b.emit(Inst{Op: OpBorrow, Dst: b.temp(t), Args: []LocalID{v}, Index: mut, Node: n})
-		// A scalar `&mut` must be stored through by replacing its
-		// referent (Copy scalars alias their obj on plain copy), so it is
-		// boxed; the box takes its own reference first since a borrow
-		// doesn't own what it points at, but the cell's store releases
-		// what it replaces.
-		if e.Mut {
-			if _, ok := b.r.ScalarRefElem(t); ok {
-				owned := b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{ref}, Node: n, Copy: true})
-				return b.emit(Inst{Op: OpNewCell, Dst: b.temp(t), Args: []LocalID{owned}, Node: n})
-			}
-		}
-		return ref
+		return b.borrowExpr(e, n, t)
 	case hir.Interp:
 		// The result temporary is numbered before the pieces it interpolates.
 		in := Inst{Op: OpInterp, Dst: b.temp(sem.TyString), Strs: e.Strs, Node: n}

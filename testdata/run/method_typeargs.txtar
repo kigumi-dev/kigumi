@@ -1,7 +1,7 @@
 -- src --
 import alloc from std/alloc
 
-type Op = fn(Int) -> Int
+type Op = alias fn(Int) -> Int
 
 type Handlers = {
     pub fs Array[Op]

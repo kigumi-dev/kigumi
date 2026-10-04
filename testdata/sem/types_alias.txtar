@@ -1,17 +1,17 @@
 -- app/t/t.kg --
-pub type UserId = Int
+pub type UserId = alias Int
 
-type A = B //~ ERROR alias cycle: A
+type A = alias B //~ ERROR alias cycle: A
 
-type B = A
+type B = alias A
 
-type C = Int?
+type C = alias Int?
 
-type D = Result[UserId, Error]
+type D = alias Result[UserId, Error]
 
-type E = fn(Int) -> Int
+type E = alias fn(Int) -> Int
 
-type F = Nope //~ ERROR undefined name `Nope`
+type F = alias Nope //~ ERROR undefined name `Nope`
 
 fn f(x: UserId) -> i64 {
     x
@@ -41,14 +41,14 @@ fn UserId.next(self) -> UserId { //~ ERROR alias `UserId` cannot own methods
 error[E214]: alias cycle: A
  --> app/t/t.kg:3:1
   |
-3 | type A = B //~ ERROR alias cycle: A
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+3 | type A = alias B //~ ERROR alias cycle: A
+  | ^^^^^^^^^^^^^^^^
 
 error[E100]: undefined name `Nope`
-  --> app/t/t.kg:13:10
+  --> app/t/t.kg:13:16
    |
-13 | type F = Nope //~ ERROR undefined name `Nope`
-   |          ^^^^
+13 | type F = alias Nope //~ ERROR undefined name `Nope`
+   |                ^^^^
 
 error[E125]: `Copy` is a constraint, not a type
   --> app/t/t.kg:19:9

@@ -1,0 +1,45 @@
+-- src --
+pub type UserId = u64
+type Meters = f64
+
+pub fn UserId.fromRaw(raw: u64) -> UserId {
+    UserId(raw)
+}
+
+pub fn UserId.raw(self) -> u64 {
+    self.value
+}
+
+fn bumpRaw(r: &mut u64) -> Unit {
+    r = r + 1
+}
+
+fn Meters.+(left: Meters, right: Meters) -> Meters {
+    Meters(left.value + right.value)
+}
+
+let id = UserId.fromRaw(41)
+print "${id.raw()}"
+
+let viaCall = UserId(9)
+print "${viaCall.raw()}"
+
+let viaWs = UserId 11
+print "${viaWs.raw()}"
+
+let mut m = UserId(1)
+bumpRaw(&mut m.value)
+print "${m.raw()}"
+
+m.value = 100
+print "${m.raw()}"
+
+let total = Meters(1.5) + Meters(2.5)
+print "${total.value}"
+-- stdout --
+41
+9
+11
+2
+100
+4

@@ -33,6 +33,9 @@ const (
 	CallIterMap
 	CallRecord
 	CallStatic
+	// CallDefinedWrap is `A(value)`: a nominal defined type's package-private
+	// representation wrap.
+	CallDefinedWrap
 )
 
 type VariadicForm uint8

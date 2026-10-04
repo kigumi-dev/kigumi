@@ -29,7 +29,7 @@ fn use(arr: Array[(Int, String)]) -> Unit {
 File
   TypeDecl
     name: Pair
-    body: AliasBody
+    body: DefinedBody
       TypeTuple
         TypePath
           Path Int

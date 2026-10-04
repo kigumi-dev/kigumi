@@ -39,12 +39,13 @@ const (
 	EntIntrinsic
 	EntTest
 	EntImplicitMain
+	EntStatic
 )
 
 var entityKindNames = [...]string{
 	"none", "package", "import", "type", "alias", "interface", "constraint",
 	"type parameter", "function", "const", "variant", "field", "local", "parameter",
-	"closure", "contract block", "intrinsic", "test", "implicit main",
+	"closure", "contract block", "intrinsic", "test", "implicit main", "static",
 }
 
 func (k EntityKind) String() string { return entityKindNames[k] }
@@ -125,6 +126,9 @@ const (
 	FormResource
 	FormAdt
 	FormOpaque
+	// FormDefined is a nominal defined type (`type A = T`): its own type
+	// identity, T's runtime representation, no inherited members.
+	FormDefined
 )
 
 type sizeState uint8

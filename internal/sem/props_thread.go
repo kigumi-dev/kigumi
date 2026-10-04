@@ -101,6 +101,9 @@ func (r *Result) computeThread(t TypeID, sync bool) bool {
 		}
 		return r.evalGuarantee(info, n.Args, prop)
 	}
+	if info.Form == FormDefined {
+		return r.threadProp(tt.Subst(info.Underlying, instSubst(info.Params, n.Args)), sync)
+	}
 	for _, a := range n.Args {
 		if !r.threadProp(a, sync) {
 			return false

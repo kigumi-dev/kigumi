@@ -38,7 +38,18 @@ func (c *checker) synthCallWith(n, callee syntax.NodeID, args []syntax.NodeID, w
 		return c.callIntrinsic(n, head.ent, args)
 	case headStatic:
 		return c.callStatic(n, callee, head, args, want)
-	case headType, headParam:
+	case headType:
+		if c.r.Entities[head.ent].Kind == EntType && c.r.typeDecl(head.ent).Form == FormDefined {
+			return c.callDefinedWrap(n, head, args, want)
+		}
+		c.synthArgs(args)
+		if c.r.Entities[head.ent].Kind == EntAlias {
+			c.errAt(callee, cAliasNotConstructible, c.r.Entities[head.ent].Name)
+			return TyPoison
+		}
+		c.errAt(callee, cTypeAsValue, c.r.Entities[head.ent].Name)
+		return TyPoison
+	case headParam:
 		c.synthArgs(args)
 		c.errAt(callee, cTypeAsValue, c.r.Entities[head.ent].Name)
 		return TyPoison

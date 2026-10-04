@@ -23,18 +23,25 @@ func (c *checker) reportImmutable(lhs syntax.NodeID) {
 			return
 		}
 	case syntax.MemberExpr:
-		if fld := c.info.Uses[lhs]; fld != 0 && c.r.Entities[fld].Kind == EntField {
-			if fe := c.r.Entities[fld]; fe.Flags&EfMut == 0 {
-				fix, tok, file := c.assignImmutableFix(lhs)
-				if file != 0 && file == c.f && tok != 0 {
-					c.errFix(lhs, c.r.insertAt(c.f, tok, "Declare `mut "+fe.Name+"`", "mut "), cAssignImmutableField, fe.Name, fix)
+		if fld := c.info.Uses[lhs]; fld != 0 {
+			switch c.r.Entities[fld].Kind {
+			case EntField:
+				if fe := c.r.Entities[fld]; fe.Flags&EfMut == 0 {
+					fix, tok, file := c.assignImmutableFix(lhs)
+					if file != 0 && file == c.f && tok != 0 {
+						c.errFix(lhs, c.r.insertAt(c.f, tok, "Declare `mut "+fe.Name+"`", "mut "), cAssignImmutableField, fe.Name, fix)
+						return
+					}
+					c.errAt(lhs, cAssignImmutableField, fe.Name, fix)
 					return
 				}
-				c.errAt(lhs, cAssignImmutableField, fe.Name, fix)
+				c.reportImmutable(syntax.NodeID(node.Lhs))
+				return
+			case EntType:
+				// `.value`: same storage as the receiver, just retyped (mirrors buildPlace).
+				c.reportImmutable(syntax.NodeID(node.Lhs))
 				return
 			}
-			c.reportImmutable(syntax.NodeID(node.Lhs))
-			return
 		}
 	case syntax.BracketExpr:
 		if c.isPlace(lhs) {

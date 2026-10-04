@@ -90,6 +90,12 @@ func (r *Result) containsByValue(t TypeID, target EntityID) bool {
 		return n.Ent == target
 	}
 	info := r.typeDecl(n.Ent)
+	if info.Form == FormDefined {
+		if info.Underlying == 0 || info.Underlying == TyPoison {
+			return false
+		}
+		return r.containsByValue(r.Types.Subst(info.Underlying, instSubst(info.Params, n.Args)), target)
+	}
 	if info.Form == FormOpaque || info.Form == FormAdt {
 		return false
 	}

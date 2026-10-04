@@ -1,0 +1,137 @@
+-- lib/ids/i.kg --
+pub type UserId = u64
+
+pub fn UserId.fromRaw(raw: u64) -> UserId {
+    UserId(raw)
+}
+
+pub fn UserId.raw(self) -> u64 {
+    self.value
+}
+-- app/t/t.kg --
+import ids from lib/ids
+
+pub type OrderId = u64
+type Meters = f64
+
+fn wrongAssign1(x: u64) -> OrderId {
+    x //~ ERROR expected `OrderId`, found `u64`
+}
+
+fn wrongAssign2(x: OrderId) -> u64 {
+    x //~ ERROR expected `u64`, found `OrderId`
+}
+
+fn wrongSibling(x: OrderId) -> ids.UserId {
+    x //~ ERROR expected `UserId`, found `OrderId`
+}
+
+fn badWrapArgs() -> Unit {
+    let a = OrderId() //~ ERROR `OrderId(...)` takes exactly one argument, 0 given
+    let b = OrderId(1, 2) //~ ERROR `OrderId(...)` takes exactly one argument, 2 given
+    let c = OrderId(value: 1) //~ ERROR named, default and spread arguments are not allowed when wrapping `OrderId`
+}
+
+fn OrderId.value(self) -> u64 { //~ ERROR `value` is `OrderId`'s representation projection and cannot also be a method name
+    0
+}
+
+fn outsideAccess(raw: u64, id: ids.UserId) -> Unit {
+    let w = ids.UserId(raw) //~ ERROR `UserId(...)` is a representation operation usable only inside the package that declares `UserId`
+    let v = id.value //~ ERROR `.value` is `UserId`'s private representation, usable only inside the package that declares `UserId`
+}
+
+fn notAConstructor() -> Int {
+    Int(1) //~ ERROR `Int` is a transparent alias with no representation constructor
+}
+
+type Holder = {
+    m Meters
+}
+
+fn unwrapAssignLocal() -> Unit {
+    let m = Meters(10.0)
+    m.value = 5.0 //~ ERROR `m` is immutable
+}
+
+fn unwrapAssignField() -> Unit {
+    let mut h = Holder { m: Meters(10.0) }
+    h.m.value = 5.0 //~ ERROR field `m` is immutable
+}
+-- expect --
+error[E400]: expected `OrderId`, found `u64`
+ --> app/t/t.kg:7:5
+  |
+7 |     x //~ ERROR expected `OrderId`, found `u64`
+  |     ^
+
+error[E400]: expected `u64`, found `OrderId`
+  --> app/t/t.kg:11:5
+   |
+11 |     x //~ ERROR expected `u64`, found `OrderId`
+   |     ^
+
+error[E400]: expected `UserId`, found `OrderId`
+  --> app/t/t.kg:15:5
+   |
+15 |     x //~ ERROR expected `UserId`, found `OrderId`
+   |     ^
+
+error[E1173]: `OrderId(...)` takes exactly one argument, 0 given
+  --> app/t/t.kg:19:13
+   |
+19 |     let a = OrderId() //~ ERROR `OrderId(...)` takes exactly one argument, 0 given
+   |             ^^^^^^^^
+
+error[E1173]: `OrderId(...)` takes exactly one argument, 2 given
+  --> app/t/t.kg:20:13
+   |
+20 |     let b = OrderId(1, 2) //~ ERROR `OrderId(...)` takes exactly one argument, 2 given
+   |             ^^^^^^^^^^^^
+
+error[E1174]: named, default and spread arguments are not allowed when wrapping `OrderId`
+  --> app/t/t.kg:21:13
+   |
+21 |     let c = OrderId(value: 1) //~ ERROR named, default and spread arguments are not allowed when wrapping `OrderId`
+   |             ^^^^^^^^^^^^^^^^
+
+error[E1175]: `value` is `OrderId`'s representation projection and cannot also be a method name
+  --> app/t/t.kg:24:1
+   |
+24 | fn OrderId.value(self) -> u64 { //~ ERROR `value` is `OrderId`'s representation projection and cannot also be a method name
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1171]: `UserId(...)` is a representation operation usable only inside the package that declares `UserId`
+  --> app/t/t.kg:29:13
+   |
+29 |     let w = ids.UserId(raw) //~ ERROR `UserId(...)` is a representation operation usable only inside the package that declares `UserId`
+   |             ^^^^^^^^^^^^^^
+   = help: use the functions that package exports for `{name}` instead
+
+error[E1172]: `.value` is `UserId`'s private representation, usable only inside the package that declares `UserId`
+  --> app/t/t.kg:30:13
+   |
+30 |     let v = id.value //~ ERROR `.value` is `UserId`'s private representation, usable only inside the package that declares `UserId`
+   |             ^^^^^^^^
+   = help: use the functions that package exports for `{name}` instead
+
+error[E1176]: `Int` is a transparent alias with no representation constructor
+  --> app/t/t.kg:34:5
+   |
+34 |     Int(1) //~ ERROR `Int` is a transparent alias with no representation constructor
+   |     ^^^
+
+error[E701]: `m` is immutable
+  --> app/t/t.kg:43:5
+   |
+43 |     m.value = 5.0 //~ ERROR `m` is immutable
+   |     ^
+   = help: declare `let mut m`
+
+error[E702]: field `m` is immutable
+  --> app/t/t.kg:48:5
+   |
+48 |     h.m.value = 5.0 //~ ERROR field `m` is immutable
+   |     ^^^
+   = help: declare `mut m`
+

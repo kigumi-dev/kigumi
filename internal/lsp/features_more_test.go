@@ -97,6 +97,22 @@ func TestHoverImportAlias(t *testing.T) {
 	}
 }
 
+func TestHoverDefinedValue(t *testing.T) {
+	src := "type UserId = u64\n\nfn raw(id: UserId) -> u64 {\n    id.value\n}\n"
+	s, ctx, doc, _ := openModule(t, src)
+	h, err := s.Hover(ctx, &protocol.HoverParams{TextDocumentPositionParams: at(doc, 3, 8)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h == nil {
+		t.Fatal("no hover")
+	}
+	got := h.Contents.(*protocol.MarkupContent).Value
+	if !strings.Contains(got, "UserId.value: u64") || !strings.Contains(got, "package-private") {
+		t.Fatalf("hover on `.value` should show the representation projection, not a synthetic API: %q", got)
+	}
+}
+
 // Highlights cover the declaration and every use in the file.
 func TestDocumentHighlightAndFolding(t *testing.T) {
 	src := "fn twice(n: Int) -> Int {\n    n + n\n}\n\nlet v = twice(2)\nprint \"${twice(v)}\"\n"

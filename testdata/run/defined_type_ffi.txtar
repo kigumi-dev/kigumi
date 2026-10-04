@@ -1,0 +1,23 @@
+-- src --
+import ffi from std/ffi
+
+type Count = i32
+
+type Box layout(C) = {
+    pub n Count
+    pub tag u8
+}
+
+let raw: i32 = 7
+let c = Count(7)
+print "${ffi.sizeOf(&c)} ${ffi.sizeOf(&raw)}"
+
+let b = Box { n: Count(7), tag: 1 }
+print "${ffi.sizeOf(&b)}"
+let cv = ffi.CValue.new(b)
+let back = cv.get()
+print "${back.n.value} ${back.tag}"
+-- stdout --
+4 4
+8
+7 1
