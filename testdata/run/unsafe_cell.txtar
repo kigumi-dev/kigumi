@@ -1,0 +1,59 @@
+-- src --
+import {UnsafeCell} from std/mem
+
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Counter = {
+    n UnsafeCell[Int]
+}
+
+fn bump(c: &Counter) -> Int {
+    unsafe {
+        let v = c.n.get() + 1
+        c.n.set(v)
+        v
+    }
+}
+
+fn scalar() -> Unit {
+    let counter = Counter { n: UnsafeCell.new(0) }
+    let a = &counter
+    let b = &counter
+    print "${bump(a)} ${bump(b)} ${bump(a)}"
+}
+
+fn standalone() -> Unit {
+    let cell = UnsafeCell.new(10)
+    let v = unsafe { cell.get() + 5 }
+    unsafe {
+        cell.set(v)
+    }
+    let r = unsafe { cell.get() }
+    print "cell ${r}"
+}
+
+fn dropsOldOnSet() -> Unit {
+    let cell = UnsafeCell.new(Handle { id: 1 })
+    unsafe {
+        cell.set(Handle { id: 2 })
+    }
+    print "after set"
+}
+
+scalar()
+standalone()
+dropsOldOnSet()
+print "end"
+-- stdout --
+1 2 3
+cell 15
+drop 1
+after set
+drop 2
+end

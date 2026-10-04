@@ -1,0 +1,21 @@
+/// The only compiler-known interior-mutable storage: holds a T inline, with
+/// no cell-specific allocation, header, or lock. An ordinary `&UnsafeCell[T]`
+/// has no safe way to see or change the T inside; every accessor below needs
+/// an `unsafe { }` block, and the borrow checker does not look past the cell
+/// to track what it holds.
+/// Safety: moving an UnsafeCell[T] to another thread only ever moves the T
+/// inside, so doing so is sound exactly when T itself is.
+@unsafeGuarantee(Send when T: Send)
+pub type UnsafeCell[T]
+
+/// Wraps value for interior mutation through shared references.
+pub fn UnsafeCell.new[T](value: T) -> UnsafeCell[T]
+
+/// A copy of the content as of this call. The caller rules out a
+/// concurrent write through another alias of the same cell.
+pub unsafe fn UnsafeCell[T: Copy].get(self) -> T
+
+/// Replaces the content; the old value is dropped. The caller rules out
+/// overlapping access through another alias of the same cell for the
+/// duration of the call.
+pub unsafe fn UnsafeCell[T].set(self, value: T) -> Unit

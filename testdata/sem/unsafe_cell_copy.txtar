@@ -1,0 +1,27 @@
+-- app/t/t.kg --
+import {UnsafeCell} from std/mem
+
+fn needsCopy[T: Copy](x: T) -> T { x }
+
+type Cell = {
+    n UnsafeCell[Int]
+}
+
+fn use(c: Cell, raw: UnsafeCell[Int]) -> Unit {
+    let _ = needsCopy(c) //~ ERROR `Cell` does not satisfy `Copy`
+    let _ = needsCopy(raw) //~ ERROR `UnsafeCell[Int]` does not satisfy `Copy`
+}
+
+-- expect --
+error[E300]: `Cell` does not satisfy `Copy`: it is move-only
+  --> app/t/t.kg:10:13
+   |
+10 |     let _ = needsCopy(c) //~ ERROR `Cell` does not satisfy `Copy`
+   |             ^^^^^^^^^^^
+
+error[E300]: `UnsafeCell[Int]` does not satisfy `Copy`: it is move-only
+  --> app/t/t.kg:11:13
+   |
+11 |     let _ = needsCopy(raw) //~ ERROR `UnsafeCell[Int]` does not satisfy `Copy`
+   |             ^^^^^^^^^^^^^
+

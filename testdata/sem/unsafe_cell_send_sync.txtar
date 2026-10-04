@@ -1,0 +1,29 @@
+-- app/t/t.kg --
+import {UnsafeCell} from std/mem
+
+fn ship[T: Send](x: T) -> Unit {}
+fn share[T: Sync](x: &T) -> Unit {}
+
+type Handle = resource {
+    fd Int
+}
+
+fn use(c: UnsafeCell[Int], r: &UnsafeCell[Int], h: UnsafeCell[Handle]) -> Unit {
+    ship(c)
+    share(r) //~ ERROR `UnsafeCell[Int]` does not satisfy `Sync`: it cannot be shared between threads
+    ship(h) //~ ERROR `UnsafeCell[Handle]` does not satisfy `Send`: it cannot move to another thread
+}
+
+-- expect --
+error[E300]: `UnsafeCell[Int]` does not satisfy `Sync`: it cannot be shared between threads
+  --> app/t/t.kg:12:5
+   |
+12 |     share(r) //~ ERROR `UnsafeCell[Int]` does not satisfy `Sync`: it cannot be shared between threads
+   |     ^^^^^^^
+
+error[E300]: `UnsafeCell[Handle]` does not satisfy `Send`: it cannot move to another thread
+  --> app/t/t.kg:13:5
+   |
+13 |     ship(h) //~ ERROR `UnsafeCell[Handle]` does not satisfy `Send`: it cannot move to another thread
+   |     ^^^^^^
+

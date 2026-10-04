@@ -27,6 +27,7 @@ var StdOpNames = []string{
 	"WRAPPING_ADD", "WRAPPING_SUB", "WRAPPING_MUL", "WRAPPING_SHL", "WRAPPING_SHR",
 	"ROTATE_LEFT", "ROTATE_RIGHT", "CHAR_FROM_INT",
 	"FFI_STRING_LOSSY", "FIXED_ARRAY_WITH_MUT",
+	"UCELL_NEW", "UCELL_GET", "UCELL_SET",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -129,6 +130,9 @@ var stdOpKeys = map[string]string{
 	"prelude.String.sliceBytes":       "STRING_SLICE_BYTES",
 	"array.Array.clone":               "ARRAY_CLONE",
 	"prelude.Char.fromInt":            "CHAR_FROM_INT",
+	"mem.UnsafeCell.new":              "UCELL_NEW",
+	"mem.UnsafeCell.get":              "UCELL_GET",
+	"mem.UnsafeCell.set":              "UCELL_SET",
 }
 
 // stdOpSuffixes maps a trailing method name to its op, for primitives

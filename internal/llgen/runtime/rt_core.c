@@ -1218,7 +1218,7 @@ static void free_opaque(val v) {
     } else if (!strcmp(kind, "Weak")) {
         sctrl* c = d;
         if (--c->weak == 0 && !c->alive) free(c);
-    } else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "Future") || !strcmp(kind, "Task")) rt_release((val)d);
+    } else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "Future") || !strcmp(kind, "Task") || !strcmp(kind, "UnsafeCell")) rt_release((val)d);
     else if (!strcmp(kind, "AllocGuard")) {
         g_alloc_sp--;
         rt_release((val)d);
@@ -1597,6 +1597,9 @@ enum std_op {
     OP_CHAR_FROM_INT,
     OP_FFI_STRING_LOSSY,
     OP_FIXED_ARRAY_WITH_MUT,
+    OP_UCELL_NEW,
+    OP_UCELL_GET,
+    OP_UCELL_SET,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -1683,6 +1686,9 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "prelude.String.sliceBytes")) return OP_STRING_SLICE_BYTES;
     if (!strcmp(k, "array.Array.clone")) return OP_ARRAY_CLONE;
     if (!strcmp(k, "prelude.Char.fromInt")) return OP_CHAR_FROM_INT;
+    if (!strcmp(k, "mem.UnsafeCell.new")) return OP_UCELL_NEW;
+    if (!strcmp(k, "mem.UnsafeCell.get")) return OP_UCELL_GET;
+    if (!strcmp(k, "mem.UnsafeCell.set")) return OP_UCELL_SET;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;
@@ -2047,6 +2053,15 @@ val rt_std_id(int op, int n, val* a) {
         int64_t v = a0->u.i;
         if (v < 0 || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF)) return none();
         return some(rt_char((uint32_t)v));
+    }
+    case OP_UCELL_NEW: return opaque("UnsafeCell", rt_cell(rt_retain(a0)));
+    case OP_UCELL_GET: return rt_copy(((val)a0->u.op.data)->u.cell.v);
+    case OP_UCELL_SET: {
+        val cell = (val)a0->u.op.data;
+        val old = cell->u.cell.v;
+        cell->u.cell.v = rt_retain(a1);
+        rt_release(old);
+        return rt_unit();
     }
     }
     rt_panic("rt_std_id: bad op");

@@ -1,0 +1,28 @@
+-- app/t/t.kg --
+import {UnsafeCell} from std/mem
+
+fn get(c: UnsafeCell[Int]) -> Int {
+    c.get() //~ ERROR calling `get` requires an `unsafe { }` block
+}
+
+fn set(c: UnsafeCell[Int]) -> Unit {
+    c.set(1) //~ ERROR calling `set` requires an `unsafe { }` block
+}
+
+fn ok(c: UnsafeCell[Int]) -> Int {
+    unsafe { c.get() }
+}
+
+-- expect --
+error[E914]: calling `get` requires an `unsafe { }` block
+ --> app/t/t.kg:4:5
+  |
+4 |     c.get() //~ ERROR calling `get` requires an `unsafe { }` block
+  |     ^^^^^^
+
+error[E914]: calling `set` requires an `unsafe { }` block
+ --> app/t/t.kg:8:5
+  |
+8 |     c.set(1) //~ ERROR calling `set` requires an `unsafe { }` block
+  |     ^^^^^^^
+

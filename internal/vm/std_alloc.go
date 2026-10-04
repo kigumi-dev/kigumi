@@ -79,7 +79,7 @@ func (m *Machine) freeOpaque(v *obj) {
 	case "Weak":
 		c := v.data.(*sharedCtrl)
 		c.weak--
-	case "AllocatorScope", "Task":
+	case "AllocatorScope", "Task", "UnsafeCell":
 		if h, ok := v.data.(*obj); ok {
 			m.release(h)
 		}

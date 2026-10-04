@@ -19,6 +19,7 @@ var stdLayer = map[string]Layer{
 	"std/prelude":         LayerFoundation,
 	"std/math":            LayerFoundation,
 	"std/ffi":             LayerFoundation,
+	"std/mem":             LayerFoundation,
 	"std/task":            LayerFoundation,
 	"std/test":            LayerFoundation,
 	"std/crypto/subtle":   LayerFoundation,
