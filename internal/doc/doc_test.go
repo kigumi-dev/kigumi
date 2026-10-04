@@ -36,3 +36,15 @@ func TestPackageMarkdown(t *testing.T) {
 		t.Errorf("index: %q", idx)
 	}
 }
+
+func TestIndexFileNameCollision(t *testing.T) {
+	if got := doc.IndexFileName([]string{"shapes"}, ".md", "README.md"); got != "README.md" {
+		t.Errorf("no collision: got %q", got)
+	}
+	if got := doc.IndexFileName([]string{"README", "shapes"}, ".md", "README.md"); got != "README-2.md" {
+		t.Errorf("collision: got %q", got)
+	}
+	if got := doc.IndexFileName([]string{"README", "README-2", "shapes"}, ".md", "README.md"); got != "README-3.md" {
+		t.Errorf("cascading collision: got %q", got)
+	}
+}

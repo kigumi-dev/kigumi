@@ -3,8 +3,6 @@
 package doc
 
 import (
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -49,14 +47,12 @@ func Cmd() *cobra.Command {
 				if !opts.Std {
 					title = m.Name
 				}
+				files := make(map[string][]byte)
 				for name, text := range doc.HTML(pages, title) {
-					file := filepath.Join(outDir, filepath.FromSlash(name))
-					if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
-						return errors.WrapErr(err, "create doc directory")
-					}
-					if err := driver.WriteFileAtomic(file, []byte(text), 0o644); err != nil {
-						return errors.WrapErr(err, "write doc page")
-					}
+					files[name] = []byte(text)
+				}
+				if err := doc.Publish(outDir, files, doc.ValidateSite); err != nil {
+					return errors.WrapErr(err, "publish doc site")
 				}
 				return nil
 			}
@@ -72,18 +68,18 @@ func Cmd() *cobra.Command {
 				}
 				return nil
 			}
-			for p, text := range pages {
-				file := filepath.Join(outDir, filepath.FromSlash(p)+".md")
-				if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
-					return errors.WrapErr(err, "create doc directory")
-				}
-				if err := driver.WriteFileAtomic(file, []byte(text), 0o644); err != nil {
-					return errors.WrapErr(err, "write doc page")
-				}
+			paths := make([]string, 0, len(pages))
+			for p := range pages {
+				paths = append(paths, p)
 			}
-			index := filepath.Join(outDir, "README.md")
-			if err := driver.WriteFileAtomic(index, []byte(strings.TrimSpace(doc.Index(pages))+"\n"), 0o644); err != nil {
-				return errors.WrapErr(err, "write doc index")
+			files := make(map[string][]byte, len(pages)+1)
+			for p, text := range pages {
+				files[p+".md"] = []byte(text)
+			}
+			indexName := doc.IndexFileName(paths, ".md", "README.md")
+			files[indexName] = []byte(strings.TrimSpace(doc.Index(pages)) + "\n")
+			if err := doc.Publish(outDir, files, doc.ValidateMarkdownSite); err != nil {
+				return errors.WrapErr(err, "publish doc pages")
 			}
 			return nil
 		},
@@ -91,5 +87,6 @@ func Cmd() *cobra.Command {
 	cmd.Flags().StringP("output", "o", "", "directory for one .md per package plus README.md (default: stdout)")
 	cmd.Flags().Bool("all", false, "include declarations without pub")
 	cmd.Flags().Bool("html", false, "write a static HTML site (index.html and one page per package) instead of Markdown")
+	cmd.AddCommand(ExamplesCmd())
 	return cmd
 }

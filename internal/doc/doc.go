@@ -5,6 +5,7 @@ package doc
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
 	"kigumi/internal/driver"
@@ -31,6 +32,24 @@ func Module(m *driver.Module, opts Options) map[string]string {
 		}
 	}
 	return out
+}
+
+// IndexFileName picks the site-relative filename for the generated package-list page, renaming it if a package already uses def.
+func IndexFileName(paths []string, ext, def string) string {
+	used := make(map[string]bool, len(paths))
+	for _, p := range paths {
+		used[p+ext] = true
+	}
+	if !used[def] {
+		return def
+	}
+	base := strings.TrimSuffix(def, ext)
+	for i := 2; ; i++ {
+		name := base + "-" + strconv.Itoa(i) + ext
+		if !used[name] {
+			return name
+		}
+	}
 }
 
 // Index lists the rendered packages.
