@@ -34,7 +34,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	} else if info.Owner != 0 {
 		kind = CallAssoc
 	}
-	ret, order := c.checkArgs(n, name, sig, args, inst, want, info.Params)
+	ret, plan := c.checkArgs(n, name, sig, args, inst, want, info.Params, info.Body != 0, async)
 	c.ffiCValueCheck(n, fn, inst, recv)
 	c.errorAsCheck(n, fn, inst)
 	if async {
@@ -42,12 +42,12 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 		ret = c.r.Types.Named(c.r.Types.futureEnt, []TypeID{ret})
 	}
 	effArgs := args
-	if order != nil {
-		effArgs = order
+	if plan != nil {
+		effArgs = plan.placed()
 	}
 	c.callbackEdges(n, fn, sig, effArgs)
 	c.fieldCallbackEdges(fn, effArgs)
-	call := CallInfo{Kind: kind, Callee: fn, Inst: inst, Recv: info.Recv, Variadic: c.variadicForm(effArgs, sig), ArgOrder: order}
+	call := CallInfo{Kind: kind, Callee: fn, Inst: inst, Recv: info.Recv, Variadic: c.variadicForm(effArgs, sig), Plan: plan}
 	c.info.Calls[n] = call
 	// badTypeArgs already reported cTypeArgCount; inst is made-up, so skip
 	// to avoid a second diagnostic for the same mistake.
@@ -59,8 +59,9 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 }
 
 // declParams may be nil (no declaration backs sig, e.g. a bare fn value).
-// The second return value is args reordered to parameter position, or nil if unchanged.
-func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syntax.NodeID, inst []TypeID, want TypeID, declParams []EntityID) (TypeID, []syntax.NodeID) {
+// selfVerified: the callee's own body was already checked not to leak its arguments, so taintCallResult is skipped.
+// The second result is the call's plan, or nil on an arity/named-argument error.
+func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syntax.NodeID, inst []TypeID, want TypeID, declParams []EntityID, selfVerified, async bool) (TypeID, *CallPlan) {
 	tt := c.r.Types
 	sn := tt.Node(sig)
 	params := sn.Args
@@ -85,24 +86,22 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 		c.errAt(args[len(args)-1], cVariadicMixed)
 		return c.abandonCall(sig, args), nil
 	}
-	var order []syntax.NodeID
+	plan := identityPlan(args)
 	if c.hasNamedArg(args) {
-		reordered, ok := c.resolveNamedArgs(name, args, declParams, fixed)
+		place, ok := c.resolveNamedArgs(name, args, declParams, fixed)
 		if !ok {
 			return c.abandonCall(sig, args), nil
 		}
-		args, order = reordered, reordered
+		plan = newCallPlan(c.unwrapNamed(args), place)
+		args = plan.placed()
 	}
 	if cVariadic {
-		return c.checkCArgs(n, name, sn, args), order
+		return c.checkCArgs(n, name, sn, args), plan
 	}
 	for pass := 0; pass < 2; pass++ {
 		for i, a := range args {
 			if (c.t.Kind(a) == syntax.Lambda) != (pass == 1) {
 				continue
-			}
-			if pass == 1 {
-				c.markImmediate(a)
 			}
 			if c.t.Kind(a) == syntax.Spread {
 				if !variadic {
@@ -110,7 +109,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 					c.synth(syntax.NodeID(c.t.Nodes[a].Lhs))
 					continue
 				}
-				c.checkArg(syntax.NodeID(c.t.Nodes[a].Lhs), params[fixed], entAt(declParams, fixed))
+				c.checkArg(syntax.NodeID(c.t.Nodes[a].Lhs), params[fixed], entAt(declParams, fixed), async)
 				continue
 			}
 			pi := min(i, len(params)-1)
@@ -119,16 +118,27 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 				param = tt.Node(params[fixed]).Args[0]
 				pi = fixed
 			}
-			c.checkArg(a, param, entAt(declParams, pi))
+			if pass == 1 {
+				c.markImmediate(a, c.r.nonEscapingParam(entAt(declParams, pi)))
+			}
+			c.checkArg(a, param, entAt(declParams, pi), async)
+			if pass == 0 {
+				c.checkEscapeArg(a, entAt(declParams, pi), param, name)
+			}
 		}
 	}
+	c.checkMutAliasArgs(args)
 	tailSpread := len(args) > 0 && c.t.Kind(args[len(args)-1]) == syntax.Spread
-	if variadic && !tailSpread && len(args) > fixed {
+	if variadic && !tailSpread {
 		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Why: 2})
 	}
 	ret := sn.Elem
 	if want != 0 && tt.ContainsVar(c.vars.resolve(ret)) {
 		c.unifyWant(n, ret, want)
 	}
-	return c.vars.resolve(ret), order
+	rt := c.vars.resolve(ret)
+	if !selfVerified {
+		c.taintCallResult(n, rt, args)
+	}
+	return rt, plan
 }

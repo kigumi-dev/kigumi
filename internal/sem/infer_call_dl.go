@@ -14,11 +14,11 @@ func (c *checker) dlCall(n syntax.NodeID, fn EntityID, sig TypeID, inst []TypeID
 	switch {
 	case owner == "Library" && e.Name == "get":
 		// T is usually fixed by the expected type, so check it after args/result unify.
-		ret, order := c.checkArgs(n, e.Name, sig, args, inst, want, info.Params)
+		ret, plan := c.checkArgs(n, e.Name, sig, args, inst, want, info.Params, info.Body != 0, false)
 		if t := c.vars.resolve(inst[0]); t != TyPoison && tt.Kind(t) != KVar && !tt.IsCFn(t) {
 			c.errAt(n, cDlSymbolType, c.r.TypeString(t))
 		}
-		c.info.Calls[n] = CallInfo{Kind: CallMethod, Callee: fn, Inst: inst, Recv: info.Recv, ArgOrder: order}
+		c.info.Calls[n] = CallInfo{Kind: CallMethod, Callee: fn, Inst: inst, Recv: info.Recv, Plan: plan}
 		c.touched = append(c.touched, n)
 		return ret, true
 	case owner == "Symbol" && e.Name == "call":
@@ -39,12 +39,12 @@ func (c *checker) dlCall(n syntax.NodeID, fn EntityID, sig TypeID, inst []TypeID
 			c.synthArgs(args)
 			return TyPoison, true
 		}
-		ret, order := c.checkArgs(n, "call", sig, args, nil, want, nil)
+		ret, plan := c.checkArgs(n, "call", sig, args, nil, want, nil, false, false)
 		effArgs := args
-		if order != nil {
-			effArgs = order
+		if plan != nil {
+			effArgs = plan.placed()
 		}
-		c.info.Calls[n] = CallInfo{Kind: CallMethod, Callee: fn, Recv: info.Recv, Variadic: c.variadicForm(effArgs, sig), ArgOrder: order}
+		c.info.Calls[n] = CallInfo{Kind: CallMethod, Callee: fn, Recv: info.Recv, Variadic: c.variadicForm(effArgs, sig), Plan: plan}
 		c.touched = append(c.touched, n)
 		return ret, true
 	}

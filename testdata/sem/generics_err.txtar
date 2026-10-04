@@ -44,7 +44,7 @@ fn use(p: P, f: fn() -> Unit) -> Unit {
     })
     showIt(1) //~ ERROR `Int` does not satisfy `Show` //~ WARNING unused value of type `String`
     showIt(p) //~ ERROR `P` does not satisfy `Show` //~ WARNING unused value of type `String`
-    let x = Wrap { v: f } //~ ERROR `fn() -> Unit` does not satisfy `Eq`
+    let x = Wrap { v: f } //~ ERROR `fn() -> Unit` does not satisfy `Eq` //~ ERROR non-escaping callback and cannot be stored
     let y = same(1, "s") //~ ERROR expected `Int`, found `String`
     let z = showIt[Int, Int](1) //~ ERROR `showIt` takes 1 type argument, 2 given
 }
@@ -119,8 +119,15 @@ warning[W400]: unused value of type `String`
 error[E300]: `fn() -> Unit` does not satisfy `Eq`: it cannot be derived
   --> lib/gen.kg:46:13
    |
-46 |     let x = Wrap { v: f } //~ ERROR `fn() -> Unit` does not satisfy `Eq`
+46 |     let x = Wrap { v: f } //~ ERROR `fn() -> Unit` does not satisfy `Eq` //~ ERROR non-escaping callback and cannot be stored
    |             ^^^^^^^^^^^
+
+error[E1031]: `f` is a non-escaping callback and cannot be stored
+  --> lib/gen.kg:46:23
+   |
+46 |     let x = Wrap { v: f } //~ ERROR `fn() -> Unit` does not satisfy `Eq` //~ ERROR non-escaping callback and cannot be stored
+   |                       ^
+   = help: declare the parameter `escaping fn(...) -> ...`
 
 error[E400]: expected `Int`, found `String`
   --> lib/gen.kg:47:21

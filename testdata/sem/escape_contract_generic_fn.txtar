@@ -1,0 +1,43 @@
+-- std/probe/probe.kg --
+// Not on the reviewed nonEscapingIntrinsics allowlist: its fn-typed
+// parameter is escaping, same as any other bodiless std declaration.
+pub fn unknownPrimitive(f: fn() -> Unit) -> Unit
+
+-- lib/esc.kg --
+import probe from std/probe
+
+fn genericCall[F: Fn[fn(fn() -> Unit) -> Unit]](call: F, cb: fn() -> Unit) -> Unit {
+    call(cb)
+}
+
+fn direct(cb: fn() -> Unit) -> Unit {
+    cb()
+}
+
+fn useExactMatch(cb: fn() -> Unit) -> Unit {
+    genericCall(direct, cb)
+}
+
+// unknownPrimitive is escaping where the constraint promises non-escaping (the unsafe direction);
+// genericCall trusts that promise to grant capBorrow, so a too-loose F must still be rejected.
+fn useTooEscaping() -> Unit {
+    genericCall(probe.unknownPrimitive, () => {}) //~ ERROR does not satisfy
+}
+
+// Isolated from forwarding (no call(cb) in the body); only constraint satisfaction is exercised.
+fn holdsFn[F: Fn[fn(escaping fn() -> Unit) -> Unit]](call: F) -> Unit {
+    _ = call
+}
+
+// direct is plain where the constraint only demands AT MOST escaping: a witness may be more
+// conservative than its requirement, never looser.
+fn useLooserConstraint() -> Unit {
+    holdsFn(direct)
+}
+-- expect --
+error[E300]: `fn(escaping fn() -> Unit) -> Unit` does not satisfy `Fn[fn(fn() -> Unit) -> Unit]`: may keep the callback at parameter 1, which the constraint requires not to escape
+  --> lib/esc.kg:18:5
+   |
+18 |     genericCall(probe.unknownPrimitive, () => {}) //~ ERROR does not satisfy
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

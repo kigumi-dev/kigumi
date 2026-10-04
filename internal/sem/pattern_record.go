@@ -132,16 +132,19 @@ func (c *checker) synthIs(n syntax.NodeID) TypeID {
 	if c.r.Types.Kind(scrutinee) == KUntyped {
 		scrutinee = c.adopt(c.literalNode(syntax.NodeID(node.Lhs)), defaultOf(scrutinee))
 	}
+	rp := c.restrictedAliasOf(syntax.NodeID(node.Lhs))
 	if c.inCond == 0 {
 		saved := c.scope
 		c.pushScope(ScopeArm, n)
 		c.checkPatternOn(syntax.NodeID(node.Rhs), syntax.NodeID(node.Lhs), scrutinee, false, c.scope)
+		c.taintPatternBindings(syntax.NodeID(node.Rhs), rp)
 		if len(c.r.Scopes[c.scope].Names) > 0 {
 			c.errAt(n, cIsBindingOutsideCond)
 		}
 		c.popScope(saved)
 	} else {
 		c.checkPatternOn(syntax.NodeID(node.Rhs), syntax.NodeID(node.Lhs), scrutinee, false, c.scope)
+		c.taintPatternBindings(syntax.NodeID(node.Rhs), rp)
 	}
 	c.info.Narrow[n] = c.snapshotFacts()
 	c.info.Matches[n] = MatchInfo{}

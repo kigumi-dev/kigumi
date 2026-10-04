@@ -90,7 +90,10 @@ func (c *checker) checkBranch(n, body syntax.NodeID, want TypeID, valuePos bool)
 	if !valuePos && want == 0 {
 		c.stmtPos = body
 	}
-	return c.checkTail(n, body, want)
+	c.branch++
+	t := c.checkTail(n, body, want)
+	c.branch--
+	return t
 }
 
 func (c *checker) branchResult(want TypeID, valuePos bool, nodes []syntax.NodeID, types []TypeID) TypeID {
@@ -122,6 +125,7 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 	entry := c.snapshotFacts()
 	c.pushScope(ScopeArm, n)
 	c.checkPatternOn(s.Pattern, s.Init, init, s.Flags&syntax.FlagMut != 0, c.scope)
+	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
 	pos, neg := c.patternFacts(s.Pattern, place)
 	c.addFacts(pos)
 	if s.Guard != 0 {

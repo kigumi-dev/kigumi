@@ -5,7 +5,7 @@ fn apply(f: fn(Int) -> Int, x: Int) -> Int {
     f(x)
 }
 
-fn compose[A, B, C](f: fn(A) -> B, g: fn(B) -> C) -> fn(A) -> C {
+fn compose[A, B, C](f: escaping fn(A) -> B, g: escaping fn(B) -> C) -> fn(A) -> C {
     (x) => g(f(x))
 }
 

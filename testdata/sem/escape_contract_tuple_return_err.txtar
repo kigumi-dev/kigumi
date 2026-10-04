@@ -1,0 +1,56 @@
+-- lib/esc.kg --
+// A tuple (or other aggregate) return type must still catch a non-escaping callback leaking out
+// through a fresh tuple literal, even though the return type itself isn't Fn-shaped.
+fn noop() -> Unit {}
+
+fn tupleTailReturn(cb: fn() -> Unit) -> (fn() -> Unit, Int) {
+    (cb, 1) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn tupleExplicitReturn(cb: fn() -> Unit) -> (fn() -> Unit, Int) {
+    return (cb, 1) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn tupleViaIfBranch(cb: fn() -> Unit, flag: Bool) -> (fn() -> Unit, Int) {
+    if flag { (cb, 1) } else { (noop, 2) } //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn tupleNested(cb: fn() -> Unit) -> ((fn() -> Unit, Int), Int) {
+    ((cb, 1), 2) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+// A tuple return with no restricted value anywhere in it stays clean, even
+// though the return type has the same (fn, Int) shape as the rejected cases.
+fn tupleTailOk(cb: fn() -> Unit) -> (fn() -> Unit, Int) {
+    cb()
+    (noop, 1)
+}
+-- expect --
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+ --> lib/esc.kg:6:5
+  |
+6 |     (cb, 1) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+  |     ^^^^^^
+  = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:10:12
+   |
+10 |     return (cb, 1) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |            ^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:14:5
+   |
+14 |     if flag { (cb, 1) } else { (noop, 2) } //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:18:5
+   |
+18 |     ((cb, 1), 2) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^^^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+

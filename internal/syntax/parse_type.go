@@ -9,7 +9,10 @@ func (p *parser) typ() NodeID {
 		return 0
 	}
 	defer p.exitDepth()
-	t := p.typPrimary()
+	return p.typPostfix(p.typPrimary())
+}
+
+func (p *parser) typPostfix(t NodeID) NodeID {
 	for {
 		switch {
 		case p.at(token.Question) && !p.tok().HasSpaceBefore():
@@ -26,13 +29,34 @@ func (p *parser) typ() NodeID {
 	}
 }
 
+// escapableType parses a parameter type, where `escaping` is a contextual keyword before a fn type.
+func (p *parser) escapableType() NodeID {
+	if !p.enterDepth() {
+		return 0
+	}
+	defer p.exitDepth()
+	if p.atIdent("escaping") && isFnTypeStart(p.peek(1)) {
+		p.advance()
+		return p.typPostfix(p.fnType(true))
+	}
+	return p.typPostfix(p.typPrimary())
+}
+
+func isFnTypeStart(k token.Kind) bool {
+	switch k {
+	case token.KwPure, token.KwNoalloc, token.KwUnsafe, token.KwFn, token.KwAsync, token.KwExtern:
+		return true
+	}
+	return false
+}
+
 func (p *parser) typPrimary() NodeID {
 	switch {
 	case p.at(token.KwPure), p.at(token.KwNoalloc), p.at(token.KwUnsafe), p.at(token.KwFn),
 		p.at(token.KwAsync):
-		return p.fnType()
+		return p.fnType(false)
 	case p.at(token.KwExtern):
-		return p.fnType()
+		return p.fnType(false)
 	case p.at(token.Star):
 		tok := p.advance()
 		var flags uint32
@@ -111,7 +135,7 @@ func (p *parser) typeArgs() NodeID {
 
 // fnType parses `pure noalloc unsafe fn(A, B) -> R`, `pure? fn(A) -> R`
 // (effect polymorphism) and `extern(C) fn(A, ...) -> R`.
-func (p *parser) fnType() NodeID {
+func (p *parser) fnType(escaping bool) NodeID {
 	start := p.pos
 	var mods uint32
 	var abi uint32
@@ -139,7 +163,7 @@ func (p *parser) fnType() NodeID {
 			p.advance()
 			continue
 		case p.at(token.KwAsync):
-			p.errorf("`async fn(...)` is not a first-class function type (§4.7); call async declarations directly")
+			p.errorf("`async fn(...)` is not a first-class function type; call async declarations directly")
 			p.advance()
 			continue
 		case p.at(token.KwExtern):
@@ -154,6 +178,9 @@ func (p *parser) fnType() NodeID {
 	p.expect(token.KwFn)
 	var params []NodeID
 	var flags uint32
+	if escaping {
+		flags |= FlagEscaping
+	}
 	p.layoutList(token.LParen, token.RParen, func() {
 		if p.at(token.Ellipsis) {
 			flags |= FlagVariadic
@@ -162,7 +189,7 @@ func (p *parser) fnType() NodeID {
 				return
 			}
 		}
-		params = append(params, p.typ())
+		params = append(params, p.escapableType())
 	})
 	p.expect(token.Arrow)
 	ret := p.typ()

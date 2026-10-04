@@ -3,6 +3,9 @@ package sem
 import "strings"
 
 func (r *Result) writeFn(sb *strings.Builder, n typeNode) {
+	if n.Flags&fnEscaping != 0 {
+		sb.WriteString("escaping ")
+	}
 	if n.Flags&fnCAbi != 0 {
 		sb.WriteString("extern(C) ")
 	}

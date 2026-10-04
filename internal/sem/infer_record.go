@@ -67,7 +67,8 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 			c.errAt(entry, cDuplicateFieldInit, name)
 		}
 		given[fld] = true
-		c.checkArg(syntax.NodeID(en.Lhs), c.r.Types.Subst(c.r.Entities[fld].Type, subst), 0)
+		c.checkArg(syntax.NodeID(en.Lhs), c.r.Types.Subst(c.r.Entities[fld].Type, subst), 0, false)
+		c.checkEscapeStore(syntax.NodeID(en.Lhs))
 	}
 	var missing []string
 	for _, fld := range info.Fields {
@@ -78,6 +79,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 	if len(missing) > 0 && spreadOK {
 		c.errAt(n, cMissingField, plural(len(missing)), joinComma(missing), e.Name)
 	}
+	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
 	c.info.Calls[n] = CallInfo{Kind: CallRecord, Callee: ent, Inst: typeArgs}
 	c.touched = append(c.touched, n)
 	return result

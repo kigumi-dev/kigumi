@@ -79,15 +79,16 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	} else {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Node: n})
 	}
-	ret, order := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params)
+	ret, plan := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params, false, c.r.Fn(req).Declared&EffAsync != 0)
 	effArgs := args
-	if order != nil {
-		effArgs = order
+	if plan != nil {
+		effArgs = plan.placed()
 	}
 	if c.r.Fn(req).Recv == RecvMut {
 		c.checkReentrantCapture(base, effArgs)
 	}
-	call := CallInfo{Kind: CallMethod, Callee: req, Recv: c.r.Fn(req).Recv, Variadic: c.variadicForm(effArgs, sig), ArgOrder: order}
+	c.checkSelfAliasArgs(base, c.r.Fn(req).Recv, c.r.Fn(req).Declared&EffAsync != 0, effArgs)
+	call := CallInfo{Kind: CallMethod, Callee: req, Recv: c.r.Fn(req).Recv, Variadic: c.variadicForm(effArgs, sig), Plan: plan}
 	if paramEnt != 0 {
 		call.Witness = c.witnessLocal(n, paramEnt, req)
 	}
@@ -96,7 +97,7 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	return ret
 }
 
-// Types `v.m` without a call: a fn value that copies its receiver (LAM-5).
+// Types `v.m` without a call: a fn value that copies its receiver.
 func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityID) TypeID {
 	info := c.r.Fn(m)
 	name := c.r.Entities[m].Name

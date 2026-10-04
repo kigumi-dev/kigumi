@@ -89,12 +89,30 @@ func (c *checker) letStmt(n syntax.NodeID) {
 		if p := c.polyParam(s.Init); p != 0 && !mut {
 			c.paramAlias[c.info.Defs[s.Pattern]] = p
 		}
+		if !mut {
+			if c.letInit == nil {
+				c.letInit = map[EntityID]syntax.NodeID{}
+			}
+			c.letInit[c.info.Defs[s.Pattern]] = s.Init
+		}
+		// Unlike paramAlias this survives `mut`: the local can still hold the restricted value.
+		if p := c.restrictedAliasOf(s.Init); p != 0 {
+			c.escapeAlias[c.info.Defs[s.Pattern]] = p
+		}
 		if c.t.Kind(s.Init) == syntax.RecordLit {
 			c.recordEffectFacts(s.Init, c.r.identPlace(c.info.Defs[s.Pattern]))
 		}
+		c.consumeWhole(s.Init)
+		return
+	}
+	if c.t.Kind(s.Pattern) == syntax.PatWildcard {
+		c.setType(s.Pattern, got)
+		c.edge(EffectEdge{Kind: EdgeDrop, Type: got, Node: s.Init})
+		c.consumeWhole(s.Init)
 		return
 	}
 	pi := c.checkPatternOn(s.Pattern, s.Init, got, mut, c.scope)
+	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
 	if !c.irrefutable(s.Pattern, got) {
 		c.errAt(s.Pattern, cPatternRefutable, c.witnessText(s.Pattern, got))
 	}
@@ -102,7 +120,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 }
 
 // letElse handles `let pat = e else { ... }`: bindings live after the
-// statement and the else block must diverge (CTL-4).
+// statement and the else block must diverge.
 func (c *checker) letElse(n syntax.NodeID, s letSlots, got TypeID) {
 	saved := c.scope
 	elseType := c.check(s.Else, 0)
@@ -111,6 +129,7 @@ func (c *checker) letElse(n syntax.NodeID, s letSlots, got TypeID) {
 	}
 	c.scope = saved
 	c.checkPatternOn(s.Pattern, s.Init, got, s.Flags&syntax.FlagMut != 0, c.scope)
+	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
 	if c.irrefutable(s.Pattern, got) {
 		c.errAt(s.Pattern, cLetElseIrrefutable)
 	}
@@ -126,9 +145,10 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	if c.t.Kind(lhs) == syntax.Ident && c.t.TokText(c.t.Nodes[lhs].Tok) == "_" && !op.IsCompoundAssign() {
 		t := c.synth(rhs)
 		c.edge(EffectEdge{Kind: EdgeDrop, Type: t, Node: rhs})
+		c.consumeWhole(rhs)
 		return
 	}
-	target := c.synth(lhs)
+	target := c.synthPlace(lhs)
 	if c.indexAssignUnsupported(lhs) {
 		c.errAt(lhs, cIndexAssignUnsupported)
 	} else if !c.isMutablePlace(lhs) {
@@ -145,6 +165,18 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		target = elem
 	}
 	c.check(rhs, target)
+	if c.t.Kind(lhs) != syntax.Ident {
+		c.checkEscapeStore(rhs)
+	} else if p := c.restrictedAliasOf(rhs); p != 0 {
+		// Sticky: an earlier branch may still reach here holding the restricted parameter.
+		if ent := c.info.Uses[lhs]; ent != 0 {
+			c.escapeAlias[ent] = p
+		}
+	}
+	c.consumeWhole(rhs)
+	if ent, ok := c.identPlaceEnt(lhs); ok {
+		c.unconsume(ent)
+	}
 	if c.t.Kind(rhs) == syntax.RecordLit {
 		if place := c.placeOf(lhs); place != 0 {
 			c.recordEffectFacts(rhs, c.r.Places[place])
@@ -154,17 +186,3 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 
 // cleanupStmt checks a defer/errdefer body as a Unit statement with
 // control flow forbidden inside.
-func (c *checker) cleanupStmt(n syntax.NodeID) {
-	node := c.t.Nodes[n]
-	if node.Kind == syntax.ErrdeferStmt && !c.isResultFn() {
-		c.errAt(n, cErrdeferOutsideResult)
-	}
-	c.cleanup++
-	body := syntax.NodeID(node.Lhs)
-	if c.t.Kind(body) == syntax.Block {
-		c.check(body, TyUnit)
-	} else {
-		c.stmt(body)
-	}
-	c.cleanup--
-}

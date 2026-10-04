@@ -2,7 +2,7 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// constraintCheck implements GEN-3. subst lets a sibling-parameter
+// constraintCheck: subst lets a sibling-parameter
 // constraint check against this call's actual types, not KParam.
 type constraintCheck struct {
 	node  syntax.NodeID
@@ -135,38 +135,6 @@ func (c *checker) paramHasIface(arg, iface TypeID) bool {
 		}
 	}
 	return false
-}
-
-func (c *checker) fnUnsatisfied(arg TypeID, con Constraint) string {
-	tt := c.r.Types
-	switch tt.Kind(arg) {
-	case KFn:
-		if c.sameFnShape(arg, con.Type) {
-			return ""
-		}
-		return "signature differs"
-	case KClosure:
-		info := c.r.closure(tt.Node(arg).Ent)
-		if !c.sameFnShape(info.Sig, con.Type) {
-			return "signature differs"
-		}
-		if con.Kind == CFn {
-			for _, cap := range info.Captures {
-				if cap.Mode == capCell {
-					return "the closure assigns `" + c.r.Entities[cap.Local].Name + "`; it is `FnMut`"
-				}
-			}
-		}
-		return ""
-	case KParam:
-		for _, own := range c.r.typeParam(tt.Node(arg).Ent).Constraints {
-			if own.Kind >= CFn && own.Kind <= con.Kind && c.sameFnShape(own.Type, con.Type) {
-				return ""
-			}
-		}
-		return "add the constraint to `" + c.r.TypeString(arg) + "`"
-	}
-	return "it is not callable"
 }
 
 func (c *checker) constraintText(con Constraint) string {

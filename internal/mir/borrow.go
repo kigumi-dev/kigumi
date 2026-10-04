@@ -10,17 +10,24 @@ import (
 // exclusive borrow is live, and cannot be mutated, moved or dropped while
 // a shared borrow is live. Liveness is by last use.
 
-type borrowInfo struct {
-	owner    LocalID
-	hasOwner bool
-	mut      bool
-	node     syntax.NodeID
-	// path and exact are the owner-rooted field chain the borrow was taken
-	// through (root-first) and whether it is a plain field projection; see
-	// projectionPlace. A disjoint path lets two borrows of the same owner
-	// coexist.
+// ownerRef is one local a borrow may actually alias, with the field chain
+// (see projectionPlace) it was taken through.
+type ownerRef struct {
+	owner LocalID
+	mut   bool
 	path  []int
 	exact bool
+}
+
+// borrowInfo tracks every owner a holder might alias, not just one: an ambiguous
+// same-kind call result (sameKindCandidate) can't name its single true source.
+type borrowInfo struct {
+	owners   []ownerRef
+	hasOwner bool
+	node     syntax.NodeID
+	// lifetime is the named lifetime a param-inherited holder (hasOwner false)
+	// traces back to, 0 when it cannot be named.
+	lifetime sem.EntityID
 }
 
 type borrowCheck struct {
@@ -32,7 +39,8 @@ type borrowCheck struct {
 	// path into a block: a binding that `is` assigns only when its pattern
 	// matches is live at the join but not yet defined before the test.
 	definedIn []map[LocalID]bool
-	reported  map[syntax.NodeID]bool
+	reported  map[reportKey]bool
+	quiet     bool
 	// defs maps a temporary to its defining instruction (nil when defined
 	// more than once), built on first use.
 	defs map[LocalID]*Inst
@@ -41,7 +49,7 @@ type borrowCheck struct {
 }
 
 func analyzeBorrows(p *Program, f *Func) {
-	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[syntax.NodeID]bool{}}
+	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]bool{}}
 	c.collect()
 	if len(c.holders) == 0 {
 		return
@@ -53,12 +61,17 @@ func analyzeBorrows(p *Program, f *Func) {
 	}
 }
 
-// collect finds the locals holding borrows: borrow results, copies of
-// them, and reference-typed parameters.
+// collect finds the locals holding borrows: borrow results, copies and field reads
+// of them, reference-typed parameters, and by-value params of a named-lifetime-generic type.
 func (c *borrowCheck) collect() {
 	for _, prm := range c.f.Params {
-		if c.p.R.Types.Kind(c.f.Locals[prm].Type) == sem.KRef {
-			c.holders[prm] = &borrowInfo{mut: c.p.R.Types.Node(c.f.Locals[prm].Type).Flags&1 != 0}
+		typ := c.f.Locals[prm].Type
+		lt, node := c.paramLifetime(prm)
+		switch {
+		case c.p.R.Types.Kind(typ) == sem.KRef:
+			c.holders[prm] = &borrowInfo{lifetime: lt, node: node}
+		case lt != 0:
+			c.holders[prm] = &borrowInfo{lifetime: lt, node: node}
 		}
 	}
 	for changed := true; changed; {
@@ -69,7 +82,8 @@ func (c *borrowCheck) collect() {
 				case OpBorrow:
 					if _, ok := c.holders[in.Dst]; !ok {
 						if root, path, exact, ok := c.projectionPlace(in.Args[0]); ok {
-							c.holders[in.Dst] = &borrowInfo{owner: root, hasOwner: true, mut: in.Index == 1, node: in.Node, path: path, exact: exact}
+							ref := ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact}
+							c.holders[in.Dst] = &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}
 							changed = true
 						}
 					}
@@ -80,9 +94,16 @@ func (c *borrowCheck) collect() {
 							changed = true
 						}
 					}
-				case OpRecord, OpCall:
+				case OpRecord, OpCall, OpCallValue, OpBuiltin:
 					if _, has := c.holders[in.Dst]; !has {
 						if src, ok := c.lifetimeSource(in); ok {
+							c.holders[in.Dst] = src
+							changed = true
+						}
+					}
+				case OpField:
+					if _, has := c.holders[in.Dst]; !has && c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type) {
+						if src, ok := c.holders[in.Args[0]]; ok {
 							c.holders[in.Dst] = src
 							changed = true
 						}
@@ -108,10 +129,11 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 			// intended lifetime escape, and the caller's
 			// own call site becomes the new holder (lifetimeSource).
 			if !b.hasOwner {
+				c.checkLifetimeEscape(a, b)
 				live[a] = true
 				continue
 			}
-			c.report(b.node, "borrow-escape", "a borrow cannot be returned")
+			c.report(b.node, a, "borrow-escape", "a borrow cannot be returned")
 			live[a] = true
 		}
 	}
@@ -133,49 +155,30 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 // checkInst sees the holders live after in; a conflict is a touch of an
 // owner whose borrow outlives this instruction.
 func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
-	switch in.Op {
-	case OpRecord, OpVariant, OpArray, OpClosure:
-		if in.Op == OpClosure && c.p.R.Closure(in.Ent).Immediate {
-			break
-		}
-		// A record that itself became a holder (lifetimeSource) is
-		// routing a borrow through its own `['a]`, not letting it
-		// escape: the check below runs on the record's own liveness
-		// instead, exactly like an OpCopy of a holder.
-		if in.Op == OpRecord {
-			if _, ok := c.holders[in.Dst]; ok {
-				break
-			}
-		}
-		for _, a := range in.Args {
-			if _, ok := c.holders[a]; ok {
-				c.report(in.Node, "borrow-escape", "a borrow cannot be stored")
-			}
-		}
-	case OpSetField, OpSetIndex, OpBoxReplace:
-		if _, ok := c.holders[in.Args[len(in.Args)-1]]; ok {
-			c.report(in.Node, "borrow-escape", "a borrow cannot be stored")
-		}
-	}
+	c.checkCapture(in)
 	for holder := range liveAfter {
 		b := c.holders[holder]
 		if !b.hasOwner || holder == in.Dst {
 			continue
 		}
-		touched, path, exact := c.touch(in, b.owner)
-		if !touched || !fieldPathsOverlap(path, b.path, exact, b.exact) {
-			continue
-		}
-		mutates := in.Op == OpMove || in.Op == OpDrop || (in.Op == OpBorrow && in.Index == 1) ||
-			in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || in.Op == OpBoxReplace
-		name := c.f.Locals[b.owner].Name
-		switch {
-		case in.Op == OpMove || in.Op == OpDrop:
-			c.report(in.Node, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
-		case b.mut:
-			c.report(in.Node, "borrow-conflict", "`"+name+"` is exclusively borrowed and cannot be used here")
-		case mutates || in.Dst == b.owner:
-			c.report(in.Node, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here")
+		for _, o := range b.owners {
+			touched, path, exact := c.touch(in, o.owner)
+			if !touched || !fieldPathsOverlap(path, o.path, exact, o.exact) {
+				continue
+			}
+			mutates := in.Op == OpMove || in.Op == OpDrop || (in.Op == OpBorrow && in.Index == 1) ||
+				in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || in.Op == OpBoxReplace
+			name := c.f.Locals[o.owner].Name
+			switch {
+			case in.Op == OpDrop && in.EndScope:
+				c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is still borrowed when its scope ends here")
+			case in.Op == OpMove || in.Op == OpDrop:
+				c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
+			case o.mut:
+				c.report(in.Node, o.owner, "borrow-conflict", "`"+name+"` is exclusively borrowed and cannot be used here")
+			case mutates || in.Dst == o.owner:
+				c.report(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here")
+			}
 		}
 	}
 }

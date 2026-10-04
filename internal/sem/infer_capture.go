@@ -35,6 +35,8 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 			// A non-immediate closure can escape its call, so a captured
 			// borrow-carrying value would outlive its owner.
 			c.errAt(n, cLifetimeEscapes, c.r.TypeString(e.Type), "a closure")
+		case c.restrictedEntity(ent):
+			c.errAt(n, cEscapingCaptured, c.r.Entities[c.aliasChase(ent)].Name)
 		}
 		// Start shared rather than waiting for a write this checker
 		// won't see again once ctx is off c.lambdas.
@@ -77,7 +79,12 @@ func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
 	}
 }
 
-func (c *checker) markImmediate(lambda syntax.NodeID) {
+// markImmediate records a lambda passed to a verified non-escaping parameter; only then may its
+// captures borrow instead of move, since the callee's contract guarantees it won't outlive the call.
+func (c *checker) markImmediate(lambda syntax.NodeID, nonEscaping bool) {
+	if !nonEscaping {
+		return
+	}
 	if c.argLambda == nil {
 		c.argLambda = map[syntax.NodeID]bool{}
 	}
@@ -102,7 +109,7 @@ func closureCopy(caps []Capture) bool {
 	return true
 }
 
-// closureErase implements LAM-2.
+// closureErase coerces a closure to a plain fn type; cell and move-only captures cannot erase.
 func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) ([]CoStep, bool) {
 	info := c.r.closure(closure)
 	if !c.sameFnShape(info.Sig, want) {
@@ -129,6 +136,8 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 	return []CoStep{{CoClosureErase, want}}, true
 }
 
+// sameFnShape judges two fn signatures interchangeable for closure erasure and Fn/FnMut/
+// FnOnce satisfaction, ignoring escaping-vs-plain mismatches: enforced separately at call sites.
 func (c *checker) sameFnShape(got, want TypeID) bool {
 	tt := c.r.Types
 	g, w := tt.Node(c.vars.resolve(got)), tt.Node(c.vars.resolve(want))
@@ -137,12 +146,12 @@ func (c *checker) sameFnShape(got, want TypeID) bool {
 	}
 	mark := c.vars.mark()
 	for i := range g.Args {
-		if !c.vars.unify(g.Args[i], w.Args[i]) {
+		if !c.vars.unifyIgnoringEscaping(g.Args[i], w.Args[i]) {
 			c.vars.rollback(mark)
 			return false
 		}
 	}
-	if !c.vars.unify(g.Elem, w.Elem) {
+	if !c.vars.unifyIgnoringEscaping(g.Elem, w.Elem) {
 		c.vars.rollback(mark)
 		return false
 	}

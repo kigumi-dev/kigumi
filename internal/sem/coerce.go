@@ -26,6 +26,11 @@ func (c *checker) coerce(n syntax.NodeID, got, want TypeID) TypeID {
 func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool) {
 	tt := c.r.Types
 	got, want = c.vars.resolve(got), c.vars.resolve(want)
+	if tt.Kind(got) == KFn && tt.Kind(want) == KFn {
+		if item, ok := c.genericFnItemCallable(n); ok {
+			return nil, c.coerceGenericFnItem(n, item, got, want)
+		}
+	}
 	switch {
 	case got == TyPoison || want == TyPoison:
 		return nil, true
@@ -105,6 +110,10 @@ func (c *checker) coerceToFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool)
 	}
 	if !c.sameFnShape(got, want) || (g.Flags^w.Flags)&uint16(EffUnsafe) != 0 {
 		return nil, false
+	}
+	if i, ok := c.firstEscapeMismatch(got, want); ok {
+		c.errAt(n, cEscapingCoerce, got, i+1, want)
+		return nil, true
 	}
 	need := Effects(w.Flags) & (EffPure | EffNoalloc)
 	if Effects(g.Flags)&need != need {

@@ -1,0 +1,29 @@
+-- lib/esc.kg --
+pub interface Runner {
+    fn run(self, cb: fn() -> Unit) -> Unit
+}
+
+@impl(Runner) //~ ERROR `Bad` does not implement `Runner`
+pub type Bad = {
+    pub v Int
+}
+
+async fn Bad.run(self, cb: fn() -> Unit) -> Unit {
+    cb()
+}
+
+@impl(Runner)
+pub type Good = {
+    pub v Int
+}
+
+pub fn Good.run(self, cb: fn() -> Unit) -> Unit {
+    cb()
+}
+-- expect --
+error[E304]: `Bad` does not implement `Runner`: `run` may keep the callback at parameter 1, which the interface requires not to escape
+ --> lib/esc.kg:5:7
+  |
+5 | @impl(Runner) //~ ERROR `Bad` does not implement `Runner`
+  |       ^^^^^^
+

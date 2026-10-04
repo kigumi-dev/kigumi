@@ -102,6 +102,9 @@ const (
 	FlagConst
 	// FlagLifetime marks a GenericParam declared as `'a`.
 	FlagLifetime
+	// FlagEscaping marks a TypeFn written `escaping fn(...)...` in parameter
+	// position.
+	FlagEscaping
 )
 
 // Shell redirect operators stored in ShellRedirect "#op".

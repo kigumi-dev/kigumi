@@ -1,0 +1,72 @@
+-- std/probe/probe.kg --
+// Not on the reviewed nonEscapingIntrinsics allowlist: its fn-typed
+// parameter is escaping, same as any other bodiless std declaration.
+pub fn unknownPrimitive(f: fn() -> Unit) -> Unit
+
+-- lib/esc.kg --
+import probe from std/probe
+
+// An async fn's escaping mode lives on the fn's own TYPE, not just the parameter entity, so
+// referencing it as a value still triggers the direct-call check below.
+async fn runLater(cb: fn() -> Unit) -> Unit {
+    cb()
+}
+
+fn asyncFnAsValue(cb: fn() -> Unit) -> Unit {
+    let f = runLater
+    _ = f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+}
+
+fn bodilessIntrinsicAsValue(cb: fn() -> Unit) -> Unit {
+    let f = probe.unknownPrimitive
+    f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+}
+
+pub interface Runner {
+    fn run(self, cb: escaping fn() -> Unit) -> Unit
+}
+
+// A witness's method, obtained as a value through a generic type parameter, must see the
+// requirement's `escaping` the same way a direct call does.
+fn interfaceMethodAsValue[T: Runner](t: T, cb: fn() -> Unit) -> Unit {
+    let m = t.run
+    m(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+}
+
+// A C function pointer carries no captured environment (abiSafe forbids a closure there), so
+// forwarding one into another's callback-shaped parameter is the ordinary FFI idiom and must stay clean.
+extern(C) {
+    fn strlen(s: *const u8) -> usize
+    fn applyLen(f: extern(C) fn(*const u8) -> usize, s: *const u8) -> usize
+}
+
+fn forwardCFnPointer(s: *const u8) -> usize {
+    unsafe { applyLen(strlen, s) }
+}
+
+fn forwardCFnPointerAsValue(s: *const u8) -> usize {
+    let f = applyLen
+    unsafe { f(strlen, s) }
+}
+-- expect --
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+  --> lib/esc.kg:11:11
+   |
+11 |     _ = f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+   |           ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+  --> lib/esc.kg:16:7
+   |
+16 |     f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+   |       ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+  --> lib/esc.kg:27:7
+   |
+27 |     m(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+   |       ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+

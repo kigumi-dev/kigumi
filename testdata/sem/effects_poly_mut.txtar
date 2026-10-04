@@ -32,7 +32,7 @@ pure fn withImpureClosure(files: fs.Files, p: fs.Path) -> Int {
 
 // A field bound to an identifier tracing to this function's own `pure?
 // fn` parameter defers to the caller's instantiation of that parameter.
-fn withCallbackField(cb: pure? fn(Int) -> Int) -> Int {
+fn withCallbackField(cb: escaping pure? fn(Int) -> Int) -> Int {
     let app = App { view: cb }
     app.view(1)
 }
@@ -45,10 +45,8 @@ pure fn callWithCallbackFieldBad(files: fs.Files, p: fs.Path) -> Int {
     withCallbackField((n) => impureView(files, p, n)) //~ ERROR closure is not `pure` (calls `impureView`)
 }
 
-// A closure reading a `pure?` field through a captured enclosing
-// parameter does not defer to the caller's instantiation the way a
-// direct call in the parameter's own function body does (L-156): its
-// summary is resolved once, so it stays impure by default.
+// A closure reading a `pure?` field through a captured enclosing parameter does not defer to the
+// caller's instantiation the way a direct call does: its summary is resolved once, impure by default.
 pure fn withParamClosure(app: App) -> Int {
     let f = () => app.view(1)
     f() //~ ERROR `f` is not `pure`
@@ -81,10 +79,8 @@ pure fn withMutBranchAgree(flag: Bool) -> Int {
     app.view(1)
 }
 
-// A `mut` parameter has no entry-point fact a reassignment could
-// invalidate the way a `mut` local's does, so it never defers to the
-// caller's argument (L-158): unlike `withParam` in effects_poly.txtar,
-// this stays impure even though every actual argument is pure.
+// A `mut` parameter has no entry-point fact a reassignment could invalidate the way a `mut` local's
+// does, so it never defers to the caller's argument: it stays impure even though every actual argument is pure.
 pure fn withMutParam(mut app: App) -> Int {
     app.view(1) //~ ERROR `app.view` may be impure
 }
@@ -102,22 +98,22 @@ error[E422]: closure is not `pure` (calls `impureView`)
    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E900]: `f` is not `pure`
-  --> lib/poly_mut.kg:53:5
+  --> lib/poly_mut.kg:51:5
    |
-53 |     f() //~ ERROR `f` is not `pure`
+51 |     f() //~ ERROR `f` is not `pure`
    |     ^^
 
 error[E901]: `app.view` may be impure
-  --> lib/poly_mut.kg:71:5
+  --> lib/poly_mut.kg:69:5
    |
-71 |     app.view(1) //~ ERROR `app.view` may be impure
+69 |     app.view(1) //~ ERROR `app.view` may be impure
    |     ^^^^^^^^^^
    = help: declare it `pure fn(...)`
 
 error[E901]: `app.view` may be impure
-  --> lib/poly_mut.kg:88:5
+  --> lib/poly_mut.kg:84:5
    |
-88 |     app.view(1) //~ ERROR `app.view` may be impure
+84 |     app.view(1) //~ ERROR `app.view` may be impure
    |     ^^^^^^^^^^
    = help: declare it `pure fn(...)`
 

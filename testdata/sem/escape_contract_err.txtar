@@ -1,0 +1,228 @@
+-- lib/esc.kg --
+pub type Res = resource {
+    pub tag Int
+}
+
+fn Res.drop(move self) -> Unit {
+    _ = self
+}
+
+fn Res.touch(self) -> Unit {}
+
+fn storeIt(cb: escaping fn() -> Unit) -> Unit {}
+
+fn useIt(cb: fn() -> Unit) -> Unit {
+    cb()
+}
+
+fn returnsIt(cb: fn() -> Unit) -> fn() -> Unit {
+    cb //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+pub type Holder = { mut cb fn() -> Unit }
+
+fn storesInField(mut h: Holder, cb: fn() -> Unit) -> Unit {
+    h.cb = cb //~ ERROR `cb` is a non-escaping callback and cannot be stored
+}
+
+fn capturedByEscapingClosure(cb: fn() -> Unit) -> fn() -> Unit {
+    () => cb() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+}
+
+fn forwardsToEscaping(cb: fn() -> Unit) -> Unit {
+    storeIt(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+}
+
+fn forwardsToNonEscaping(cb: fn() -> Unit) -> Unit {
+    useIt(cb)
+}
+
+fn aliasAndReturn(cb: fn() -> Unit) -> fn() -> Unit {
+    let g = cb
+    g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn noop() -> Unit {}
+
+fn aliasViaIf(cb: fn() -> Unit, flag: Bool) -> fn() -> Unit {
+    let g = if flag { cb } else { noop }
+    g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn aliasViaMatch(cb: fn() -> Unit, n: Int) -> fn() -> Unit {
+    let g = match n {
+        0 -> noop
+        _ -> cb
+    }
+    g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+// forward's own leak is rejected where it happens; callForward needs no second diagnostic.
+fn forward(cb: fn() -> Unit, flag: Bool) -> fn() -> Unit {
+    let g = if flag { cb } else { noop }
+    g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn callForward(cb: fn() -> Unit, flag: Bool) -> fn() -> Unit {
+    forward(cb, flag)
+}
+
+// `mut` doesn't clear the restriction: the local can still hold cb's value.
+fn mutAliasAndReturn(cb: fn() -> Unit) -> fn() -> Unit {
+    let mut g = cb
+    return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn mutAliasAndStore(mut h: Holder, cb: fn() -> Unit) -> Unit {
+    let mut g = cb
+    h.cb = g //~ ERROR `cb` is a non-escaping callback and cannot be stored
+}
+
+fn mutAliasAndForward(cb: fn() -> Unit) -> Unit {
+    let mut g = cb
+    storeIt(g) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+}
+
+fn aliasCapturedByEscapingClosure(cb: fn() -> Unit) -> fn() -> Unit {
+    let g = cb
+    () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+}
+
+fn mutAliasCapturedByEscapingClosure(cb: fn() -> Unit) -> fn() -> Unit {
+    let mut g = cb
+    () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+}
+
+// A later plain assignment into an existing `mut` local taints it the same way a `let` does.
+fn assignedAliasAndReturn(cb: fn() -> Unit) -> fn() -> Unit {
+    let mut g = noop
+    g = cb
+    return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+pub type Holder2 = { cb fn() -> Unit }
+
+fn storesInRecordLit(cb: fn() -> Unit) -> Holder2 {
+    Holder2 { cb: cb } //~ ERROR `cb` is a non-escaping callback and cannot be stored
+}
+
+// storeIt is escaping, so this lambda gets no capBorrow trust and falls back to ordinary move
+// semantics, rejecting the capture of `r` -- preventing a cross-engine use-after-drop.
+fn danger() -> Unit {
+    let r = Res { tag: 1 }
+    storeIt(() => r.touch()) //~ ERROR closure captures `r` (move-only) and cannot be a plain `fn`
+    r.touch()
+}
+-- expect --
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:18:5
+   |
+18 |     cb //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1031]: `cb` is a non-escaping callback and cannot be stored
+  --> lib/esc.kg:24:12
+   |
+24 |     h.cb = cb //~ ERROR `cb` is a non-escaping callback and cannot be stored
+   |            ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1032]: `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+  --> lib/esc.kg:28:11
+   |
+28 |     () => cb() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+   |           ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+  --> lib/esc.kg:32:13
+   |
+32 |     storeIt(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+   |             ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:41:5
+   |
+41 |     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:48:5
+   |
+48 |     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:56:5
+   |
+56 |     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:62:5
+   |
+62 |     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:72:12
+   |
+72 |     return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |            ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1031]: `cb` is a non-escaping callback and cannot be stored
+  --> lib/esc.kg:77:12
+   |
+77 |     h.cb = g //~ ERROR `cb` is a non-escaping callback and cannot be stored
+   |            ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+  --> lib/esc.kg:82:13
+   |
+82 |     storeIt(g) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+   |             ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1032]: `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+  --> lib/esc.kg:87:11
+   |
+87 |     () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+   |           ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1032]: `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+  --> lib/esc.kg:92:11
+   |
+92 |     () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+   |           ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:99:12
+   |
+99 |     return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |            ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1031]: `cb` is a non-escaping callback and cannot be stored
+   --> lib/esc.kg:105:19
+    |
+105 |     Holder2 { cb: cb } //~ ERROR `cb` is a non-escaping callback and cannot be stored
+    |                   ^^
+    = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E413]: closure captures `r` (move-only) and cannot be a plain `fn`
+   --> lib/esc.kg:112:13
+    |
+112 |     storeIt(() => r.touch()) //~ ERROR closure captures `r` (move-only) and cannot be a plain `fn`
+    |             ^^^^^^^^^^^^^^
+    = help: use `F: Fn[...]`
+

@@ -77,6 +77,9 @@ const (
 	// fnEffectPoly marks a `pure? fn` type; EffPure is left unset at
 	// declaration and resolved per use site instead.
 	fnEffectPoly uint16 = 1 << 12
+	// fnEscaping marks a parameter's own `escaping fn(...)...` type: the
+	// callee may store, return or forward the value it receives there.
+	fnEscaping uint16 = 1 << 13
 )
 
 type typeNode struct {

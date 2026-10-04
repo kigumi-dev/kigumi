@@ -1,0 +1,92 @@
+-- lib/esc.kg --
+type Res = resource {
+    pub tag Int
+}
+
+fn Res.drop(move self) -> Unit {
+    _ = self
+}
+
+fn Res.touch(self) -> Unit {
+    _ = self
+}
+
+fn sink(r: Res) -> Unit {
+    _ = r
+}
+
+// twoArgs's cb is non-escaping (capBorrow granted), but the branching sibling argument moves the
+// call to a different block than the closure's creation; a touch of the owner before it must still be rejected.
+fn twoArgs(cb: fn() -> Unit, flag: Bool) -> Unit {
+    cb()
+}
+
+fn danger(flag: Bool) -> Unit {
+    let r = Res { tag: 42 }
+    twoArgs(() => r.touch(), if flag { sink(r); true } else { false })
+}
+-- expect --
+fn lib.Res.drop(%self: Res) -> Unit {
+  b0:
+    %t1 = move(%self)
+    drop(%t1)
+    %t2 = unit
+    return %t2
+}
+fn lib.Res.touch(%self: Res) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.sink(%r: Res) -> Unit {
+  b0:
+    %t1 = move(%r)
+    drop(%t1)
+    %t2 = unit
+    nop
+    return %t2
+}
+fn lib.twoArgs(%cb: fn() -> Unit, %flag: Bool) -> Unit {
+  b0:
+    %t2 = callv(%cb)
+    drop(%flag)
+    drop(%cb)
+    return %t2
+}
+fn lib.danger.closure1(%r: Res) -> Unit {
+  b0:
+    %t1 = call touch(%r)
+    drop(%r)
+    return %t1
+}
+fn lib.danger(%flag: Bool) -> Unit {
+  b0:
+    %t1 = const 42: Int
+    %t2 = record Res(%t1)
+    %r = copy(%t2)
+    %t4 = copy(%r)
+    %t5 = closure closure(%t4)
+    branch %flag ? b1 : b2
+  b1:
+    %t7 = move(%r)
+    %t8 = call sink(%t7)
+    drop(%t8)
+    %t9 = const true: Bool
+    %t6 = copy(%t9)
+    jump b3
+  b2:
+    %t10 = const false: Bool
+    %t6 = copy(%t10)
+    jump b3
+  b3:
+    %t11 = call twoArgs(%t5, %t6)
+    drop(%r)
+    drop(%flag)
+    return %t11
+}
+error[borrow-conflict]: `r` is captured by a closure passed to this call and cannot be used until the call returns
+  --> lib/esc.kg:25:45
+   |
+25 |     twoArgs(() => r.touch(), if flag { sink(r); true } else { false })
+   |                                             ^
+

@@ -15,7 +15,7 @@ fn useApp(app: App, x: Int) -> Int {
     app.view(x)
 }
 
-fn withCallbackField(cb: pure? fn(Int) -> Int, x: Int) -> Int {
+fn withCallbackField(cb: escaping fn(Int) -> Int, x: Int) -> Int {
     let app = App { view: cb }
     app.view(x)
 }
@@ -26,8 +26,8 @@ fn withMutReassigned(x: Int) -> Int {
     app.view(x)
 }
 
-// callChain forwards app to forwardChain, declared after it: the caller's
-// own CalledFieldParams must not depend on that order (L-159).
+// callChain forwards app to forwardChain, declared after it: the caller's own CalledFieldParams
+// must not depend on declaration order.
 fn callChain(app: App, x: Int) -> Int {
     forwardChain(app, x)
 }
@@ -36,9 +36,8 @@ fn forwardChain(app: App, x: Int) -> Int {
     app.view(x)
 }
 
-// sameArityApply's two overloads share one arity: a pure caller reaching
-// the String overload through a forwarding hop must not be rejected for
-// the unrelated App overload's field requirement (L-160 revised).
+// sameArityApply's two overloads share one arity: a pure caller reaching the String overload through
+// a forwarding hop must not be rejected for the unrelated App overload's field requirement.
 fn sameArityApply(a: App, x: Int) -> Int {
     a.view(x)
 }
@@ -55,11 +54,8 @@ pure fn callSameArityHop(x: Int) -> Int {
     sameArityHop("s", x)
 }
 
-// multiParamRelay's two overloads share the forwarded position's type
-// (App), differing only at the other parameter (mode: Bool vs Int): a pure
-// caller reaching the Int overload through a forwarding hop must not be
-// rejected for the Bool overload's field requirement (L-160 revised a
-// second time).
+// multiParamRelay's two overloads share the forwarded position's type (App), differing only at mode
+// (Bool vs Int): a pure caller reaching the Int overload must not be rejected for the Bool overload's field requirement.
 fn multiParamRelay(a: App, mode: Bool) -> Int {
     a.view(1)
 }
@@ -76,10 +72,8 @@ pure fn callMultiParamHop(x: Int) -> Int {
     multiParamHop(App { view: plainView }, x)
 }
 
-// literalParamRelay is multiParamRelay's shape again, but the hop passes
-// mode as a literal instead of forwarding an identifier: the filter must
-// type a literal argument itself, not only bare identifiers naming the
-// caller's own parameters (L-160 revised a third time).
+// literalParamRelay is multiParamRelay's shape again, but the hop passes mode as a literal instead
+// of an identifier: the filter must type a literal argument itself, not just bare identifiers.
 fn literalParamRelay(a: App, mode: Bool) -> Int {
     a.view(1)
 }

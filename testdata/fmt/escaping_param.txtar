@@ -1,0 +1,15 @@
+-- src --
+fn spawn(task: escaping fn() -> Unit) -> Unit {}
+fn with(f: fn(&Int) -> Int) -> Int { 0 }
+fn relay(cb: fn(escaping fn() -> Unit) -> Unit) -> Unit {}
+fn poly(cb: escaping pure? fn() -> Unit) -> Unit {}
+-- expect --
+fn spawn(task: escaping fn() -> Unit) -> Unit {}
+
+fn with(f: fn(&Int) -> Int) -> Int {
+    0
+}
+
+fn relay(cb: fn(escaping fn() -> Unit) -> Unit) -> Unit {}
+
+fn poly(cb: escaping pure? fn() -> Unit) -> Unit {}

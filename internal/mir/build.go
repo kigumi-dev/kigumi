@@ -34,6 +34,8 @@ type builder struct {
 	scopes []*scope
 	loops  []*loopCtx
 	ret    sem.TypeID
+	// argFixups holds pending scalar &mut write-backs for the call being built.
+	argFixups []argFixup
 }
 
 // scope tracks the owned locals and deferred statements of one block.
@@ -102,6 +104,7 @@ func (p *Program) build(hf *hir.Func) *Func {
 	analyzeOwnership(p, f)
 	analyzeBorrows(p, f)
 	checkBorrowedMoves(p, f)
+	checkImmediateCaptures(p, f)
 	return f
 }
 

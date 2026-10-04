@@ -1,0 +1,28 @@
+-- lib/esc.kg --
+// A `mut` local alias (`let mut g = cb`) must not hide the escape, or `make` could hand `leaky` a
+// borrow-capturing closure over `h`, risking a cross-engine use-after-drop.
+type Handle = resource { pub id Int }
+
+fn Handle.drop(move self) -> Unit {
+    _ = self
+}
+
+fn Handle.touch(self) -> Unit {}
+
+fn leaky(cb: fn() -> Unit) -> fn() -> Unit {
+    let mut g = cb
+    return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn make() -> fn() -> Unit {
+    let h = Handle { id: 1 }
+    leaky(() => h.touch())
+}
+-- expect --
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:13:12
+   |
+13 |     return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |            ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+

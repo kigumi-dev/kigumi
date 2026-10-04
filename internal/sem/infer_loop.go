@@ -15,9 +15,10 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	c.pushScope(ScopeArm, n)
 	switch {
 	case s.Pattern != 0:
-		iter := c.vars.resolve(c.synth(s.Head))
+		iter := c.vars.resolve(c.synthPlace(s.Head))
 		elem := c.iterElement(n, s.Head, iter)
 		c.checkPattern(s.Pattern, elem, false, c.scope)
+		c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Head))
 		if !c.irrefutable(s.Pattern, elem) {
 			c.errAt(s.Pattern, cPatternRefutable, c.witnessText(s.Pattern, elem))
 		}
@@ -135,7 +136,10 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 		}
 		return TyNever
 	}
-	c.check(syntax.NodeID(node.Lhs), c.retType)
+	val := syntax.NodeID(node.Lhs)
+	c.check(val, c.retType)
+	c.checkEscapeReturn(val)
+	c.consumeWhole(val)
 	return TyNever
 }
 

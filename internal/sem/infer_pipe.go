@@ -41,7 +41,9 @@ func (c *checker) synthPipe(n, lhs, rhs syntax.NodeID) TypeID {
 
 func (c *checker) pipeLambda(n, lhs, rhs syntax.NodeID) TypeID {
 	tt := c.r.Types
-	c.markImmediate(rhs)
+	// The lambda is invoked right here, not forwarded anywhere, so a
+	// borrow capture is always sound.
+	c.markImmediate(rhs, true)
 	a := c.vars.resolve(c.synth(lhs))
 	if tt.Kind(a) == KUntyped {
 		a = c.adopt(c.literalNode(lhs), defaultOf(a))

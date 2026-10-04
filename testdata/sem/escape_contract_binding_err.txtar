@@ -1,0 +1,132 @@
+-- lib/esc.kg --
+fn storeIt(cb: escaping fn() -> Unit) -> Unit {}
+
+fn noop() -> Unit {}
+
+fn tupleDestructureReturn(cb: fn() -> Unit) -> fn() -> Unit {
+    let (g, _n) = (cb, 0)
+    g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn tupleDestructureForward(cb: fn() -> Unit) -> Unit {
+    let (g, _n) = (cb, 0)
+    storeIt(g) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+}
+
+fn tupleDestructureCapturedByEscapingClosure(cb: fn() -> Unit) -> fn() -> Unit {
+    let (g, _n) = (cb, 0)
+    () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+}
+
+fn matchArmBindReturn(cb: fn() -> Unit) -> fn() -> Unit {
+    match cb { //~ ERROR `cb` is a non-escaping callback and cannot be returned
+        x -> x
+    }
+}
+
+fn ifLetBindReturn(cb: fn() -> Unit) -> fn() -> Unit {
+    if let g = cb { //~ ERROR `cb` is a non-escaping callback and cannot be returned
+        g
+    } else {
+        noop
+    }
+}
+
+fn isBindReturn(cb: fn() -> Unit) -> fn() -> Unit {
+    if cb is x {
+        return x //~ ERROR `cb` is a non-escaping callback and cannot be returned
+    }
+    noop
+}
+
+fn closureParamLaundering(cb: fn() -> Unit) -> fn() -> Unit {
+    let identity = (x: fn() -> Unit) => x
+    identity(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+pub type Wrapped = Boxed(fn() -> Unit)
+
+fn variantPayloadStore(cb: fn() -> Unit) -> Wrapped {
+    Boxed(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
+}
+
+fn optionWrap(cb: fn() -> Unit) -> Unit {
+    let o = Some(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
+    _ = o
+}
+
+fn intoGenericArray(cb: fn() -> Unit) -> Unit {
+    let arr = Array.of(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `of`, whose parameter type cannot be verified not to keep it
+    _ = arr
+}
+-- expect --
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+ --> lib/esc.kg:7:5
+  |
+7 |     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
+  |     ^
+  = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+  --> lib/esc.kg:12:13
+   |
+12 |     storeIt(g) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
+   |             ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1032]: `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+  --> lib/esc.kg:17:11
+   |
+17 |     () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+   |           ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:21:5
+   |
+21 |     match cb { //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:27:5
+   |
+27 |     if let g = cb { //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:36:16
+   |
+36 |         return x //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |                ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:43:5
+   |
+43 |     identity(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^^^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1031]: `cb` is a non-escaping callback and cannot be stored
+  --> lib/esc.kg:49:11
+   |
+49 |     Boxed(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
+   |           ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1031]: `cb` is a non-escaping callback and cannot be stored
+  --> lib/esc.kg:53:18
+   |
+53 |     let o = Some(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
+   |                  ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1036]: `cb` is a non-escaping callback and cannot be passed to `of`, whose parameter type cannot be verified not to keep it
+  --> lib/esc.kg:58:24
+   |
+58 |     let arr = Array.of(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `of`, whose parameter type cannot be verified not to keep it
+   |                        ^^
+   = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
+

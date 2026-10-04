@@ -18,6 +18,7 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 	var excluded []NarrowFact
 	var joined []NarrowFact
 	live := 0
+	scrutineeRp := c.restrictedAliasOf(syntax.NodeID(node.Lhs))
 	for _, arm := range arms {
 		s := matchArm(c.t, arm)
 		saved := c.scope
@@ -25,6 +26,7 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 		c.addFacts(excluded)
 		c.pushScope(ScopeArm, arm)
 		c.checkPatternOn(s.Pattern, syntax.NodeID(node.Lhs), scrutinee, false, c.scope)
+		c.taintPatternBindings(s.Pattern, scrutineeRp)
 		pos, neg := c.patternFacts(s.Pattern, place)
 		c.addFacts(pos)
 		if s.Guard != 0 {

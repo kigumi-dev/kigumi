@@ -44,11 +44,11 @@ func (c *checker) callValue(n syntax.NodeID, ft TypeID, args []syntax.NodeID, wa
 	if node.Flags&fnCAbi != 0 && c.unsafe == 0 {
 		c.errAt(n, cUnsafeRequired, "calling a C function pointer")
 	}
-	ret, order := c.checkArgs(n, "this function", ft, args, nil, want, nil)
+	ret, plan := c.checkArgs(n, "this function", ft, args, nil, want, nil, false, false)
 	effArgs := args
-	if order != nil {
-		effArgs = order
+	if plan != nil {
+		effArgs = plan.placed()
 	}
-	c.info.Calls[n] = CallInfo{Kind: CallFnValue, Variadic: c.variadicForm(effArgs, ft), ArgOrder: order}
+	c.info.Calls[n] = CallInfo{Kind: CallFnValue, Variadic: c.variadicForm(effArgs, ft), Plan: plan}
 	return ret
 }

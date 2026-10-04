@@ -33,9 +33,11 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 			c.errAt(a, cSpreadNonVariadic, name)
 			continue
 		}
-		c.checkArg(a, c.r.Types.Subst(vi.Payload[i], subst), 0)
+		c.checkArg(a, c.r.Types.Subst(vi.Payload[i], subst), 0, false)
+		c.checkEscapeStore(a)
 	}
-	c.info.Calls[n] = CallInfo{Kind: CallVariant, Callee: v, Inst: typeArgs}
+	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	c.info.Calls[n] = CallInfo{Kind: CallVariant, Callee: v, Inst: typeArgs, Plan: identityPlan(args)}
 	c.touched = append(c.touched, n)
 	return result
 }
@@ -44,7 +46,7 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 	node := c.t.Nodes[callee]
 	base := syntax.NodeID(node.Lhs)
 	name := c.t.TokText(node.Tok)
-	recv := c.vars.resolve(c.synth(base))
+	recv := c.vars.resolve(c.synthPlace(base))
 	tt := c.r.Types
 	if recv == TyPoison {
 		c.synthArgs(args)
@@ -124,6 +126,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 	if info.Recv == RecvMut {
 		c.checkReentrantCapture(base, args)
 	}
+	c.checkSelfAliasArgs(base, info.Recv, info.Declared&EffAsync != 0, args)
 	return result
 }
 
@@ -149,6 +152,10 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 	case RecvMove:
 		if tt.Kind(recv) == KRef {
 			c.errAt(base, cMoveOutOfBorrow, tt.Node(recv).Elem)
+		} else if c.indexRooted(base) && !c.r.isCopy(recv) {
+			c.errAt(base, cIndexValueCopy, recv)
+		} else {
+			c.consumeWhole(base)
 		}
 	}
 }

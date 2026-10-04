@@ -33,12 +33,12 @@ func (c *checker) callStatic(n, callee syntax.NodeID, head headRef, args []synta
 	} else {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Node: n})
 	}
-	ret, order := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params)
+	ret, plan := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params, false, false)
 	effArgs := args
-	if order != nil {
-		effArgs = order
+	if plan != nil {
+		effArgs = plan.placed()
 	}
-	c.info.Calls[n] = CallInfo{Kind: CallStatic, Callee: req, Inst: []TypeID{self}, Witness: local, Variadic: c.variadicForm(effArgs, sig), ArgOrder: order}
+	c.info.Calls[n] = CallInfo{Kind: CallStatic, Callee: req, Inst: []TypeID{self}, Witness: local, Variadic: c.variadicForm(effArgs, sig), Plan: plan}
 	c.touched = append(c.touched, n)
 	return ret
 }

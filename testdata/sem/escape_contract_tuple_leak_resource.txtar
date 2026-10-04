@@ -1,0 +1,29 @@
+-- lib/esc.kg --
+// Same use-after-drop risk through a tuple-literal return instead of a `mut` alias: a tuple return
+// type isn't Fn-shaped, so the tail-return check must still catch it.
+type Handle = resource { pub id Int }
+
+fn Handle.drop(move self) -> Unit {
+    _ = self
+}
+
+fn Handle.touch(self) -> Unit {}
+
+fn leaky(cb: fn() -> Unit) -> (fn() -> Unit, Int) {
+    (cb, 0) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn danger() -> fn() -> Unit {
+    let h = Handle { id: 1 }
+    let (g, _n) = leaky(() => h.touch())
+    h.touch()
+    g
+}
+-- expect --
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:12:5
+   |
+12 |     (cb, 0) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+

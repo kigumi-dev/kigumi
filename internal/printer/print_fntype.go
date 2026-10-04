@@ -4,6 +4,9 @@ import "kigumi/internal/syntax"
 
 func (p *printer) fnType(id syntax.NodeID) {
 	s := p.t.Slots(id)
+	if s[3]&syntax.FlagEscaping != 0 {
+		p.write("escaping ")
+	}
 	if s[1] != 0 {
 		p.write("extern(" + p.tok(s[1]) + ") ")
 	}

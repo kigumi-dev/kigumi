@@ -139,7 +139,7 @@ func (r *Result) matchesRequirement(id, req EntityID, ownerType TypeID) bool {
 	}
 	want := r.Types.Node(r.substRequirement(req, ownerType))
 	got := r.Types.Node(info.Sig)
-	return sameArgs(got.Args, want.Args) && got.Elem == want.Elem
+	return sameArgs(r.Types, got.Args, want.Args) && r.Types.SameIgnoringEscaping(got.Elem, want.Elem)
 }
 
 func (r *Result) substRequirement(req EntityID, ownerType TypeID) TypeID {

@@ -40,8 +40,15 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	savedEdges := c.edges
 	var edges []EffectEdge
 	c.edges = &edges
+	savedLocals := c.locals
+	c.locals = nil
+	savedConsumed, savedBranch := c.consumed, c.branch
+	c.consumed, c.branch = nil, 0
 	ret = c.lambdaBody(body, ret)
+	c.dropsAtScopeExit(pents)
 	c.edges = savedEdges
+	c.locals = savedLocals
+	c.consumed, c.branch = savedConsumed, savedBranch
 	c.lambdas = c.lambdas[:len(c.lambdas)-1]
 	c.popScope(saved)
 	if bad {
@@ -56,7 +63,9 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info.Immediate = ctx.immediate
 	info.Edges = edges
 	c.closures = append(c.closures, id)
-	return tt.Closure(id)
+	result := tt.Closure(id)
+	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	return result
 }
 
 func (c *checker) lambdaTarget(want TypeID) TypeID {
@@ -149,6 +158,7 @@ func (c *checker) lambdaBody(body syntax.NodeID, ret TypeID) TypeID {
 			c.mismatch(body, ret, got)
 		}
 	}
+	c.checkEscapeTailReturn(body)
 	c.retType, c.loop, c.cleanup, c.stmtPos = savedRet, savedLoop, savedCleanup, savedStmt
 	c.breaks = savedBreaks
 	c.vars.first = savedFirst

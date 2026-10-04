@@ -44,12 +44,31 @@ func (r *Result) computeConforms(t, iface TypeID, from PackageID) conformResult 
 			generic = generic || whyGeneric
 			continue
 		}
+		if why := r.escapeMismatch(req, w); why != "" {
+			missing = append(missing, why)
+			continue
+		}
 		witnesses = append(witnesses, w)
 	}
 	if len(missing) > 0 {
 		return conformResult{missing: strings.Join(missing, "; "), generic: generic}
 	}
 	return conformResult{ok: true, witnesses: witnesses}
+}
+
+// escapeMismatch rejects a witness that may keep a callback the requirement promises callers it
+// won't: a witness may be more conservative than the requirement, never looser.
+func (r *Result) escapeMismatch(req, w EntityID) string {
+	rp, wp := r.Fn(req).Params, r.Fn(w).Params
+	if len(rp) != len(wp) {
+		return ""
+	}
+	for i := range rp {
+		if r.nonEscapingParam(rp[i]) && !r.nonEscapingParam(wp[i]) {
+			return r.noteText(cEscapingWitness.Template, r.Entities[w].Name, i+1)
+		}
+	}
+	return ""
 }
 
 func (r *Result) ifaceInstSubst(iface, t TypeID) map[EntityID]TypeID {
@@ -112,7 +131,7 @@ func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, 
 		switch {
 		case minfo.Recv != rinfo.Recv:
 			why, generic = "`"+name+"` takes `"+recvText(minfo.Recv)+"`, the requirement takes `"+recvText(rinfo.Recv)+"`", false
-		case !sameArgs(gotNode.Args, wantNode.Args) || gotNode.Elem != wantNode.Elem:
+		case !sameArgs(r.Types, gotNode.Args, wantNode.Args) || !r.Types.SameIgnoringEscaping(gotNode.Elem, wantNode.Elem):
 			why, generic = "`"+name+"` has signature `"+r.reqText(name, minfo.Recv, got)+"`, the requirement is `"+sig+"`", false
 		case (gotNode.Flags^wantNode.Flags)&uint16(EffUnsafe) != 0:
 			why, generic = "`"+name+"` differs in `unsafe`", false
@@ -125,12 +144,14 @@ func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, 
 	return 0, why, generic, nil
 }
 
-func sameArgs(a, b []TypeID) bool {
+// sameArgs ignores a plain-vs-escaping difference in a parameter's fn type: escapeMismatch is the
+// specific, sharper-diagnostic check for that, and must still run even if that's the only difference.
+func sameArgs(tt *TypeTable, a, b []TypeID) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for i := range a {
-		if a[i] != b[i] {
+		if !tt.SameIgnoringEscaping(a[i], b[i]) {
 			return false
 		}
 	}

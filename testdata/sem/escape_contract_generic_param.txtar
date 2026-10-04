@@ -1,0 +1,50 @@
+-- lib/esc.kg --
+// An unconstrained generic T is rejected with the "not Fn-shaped" diagnostic, not the Fn-specific
+// "declare it escaping" advice, which doesn't apply to a plain, non-fn slot.
+fn identity[T](x: T) -> T { x }
+
+fn useIdentity(cb: fn() -> Unit) -> Unit {
+    let y = identity(cb) //~ ERROR whose parameter type cannot be verified not to keep it
+    y()
+}
+
+interface Marker {}
+
+// A type parameter constrained to something unrelated to Fn is just as unverified as a bare T.
+fn ship[T: Marker](x: T) -> Unit {}
+
+fn useShip(cb: fn() -> Unit) -> Unit {
+    ship(cb) //~ ERROR whose parameter type cannot be verified not to keep it
+}
+
+// An Fn-constrained generic parameter is directly verified (fnShapeOf resolves its bound), so an
+// async fn's implied escaping still triggers the original diagnostic.
+async fn runWithEscaping[F: Fn[fn() -> Unit]](action: F) -> Unit {
+    action()
+}
+
+fn useRunWithEscaping(cb: fn() -> Unit) -> Unit {
+    _ = runWithEscaping(cb) //~ ERROR which may keep it
+}
+-- expect --
+error[E1036]: `cb` is a non-escaping callback and cannot be passed to `identity`, whose parameter type cannot be verified not to keep it
+ --> lib/esc.kg:6:22
+  |
+6 |     let y = identity(cb) //~ ERROR whose parameter type cannot be verified not to keep it
+  |                      ^^
+  = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
+
+error[E1036]: `cb` is a non-escaping callback and cannot be passed to `ship`, whose parameter type cannot be verified not to keep it
+  --> lib/esc.kg:16:10
+   |
+16 |     ship(cb) //~ ERROR whose parameter type cannot be verified not to keep it
+   |          ^^
+   = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `runWithEscaping`, which may keep it
+  --> lib/esc.kg:26:25
+   |
+26 |     _ = runWithEscaping(cb) //~ ERROR which may keep it
+   |                         ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+

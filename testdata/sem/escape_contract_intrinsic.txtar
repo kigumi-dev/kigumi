@@ -1,0 +1,19 @@
+-- std/probe/probe.kg --
+// Not on the reviewed nonEscapingIntrinsics allowlist: its fn-typed
+// parameter is escaping, same as any other bodiless std declaration.
+pub fn unknownPrimitive(f: fn() -> Unit) -> Unit
+
+-- lib/esc.kg --
+import probe from std/probe
+
+fn forwardsToUnlisted(cb: fn() -> Unit) -> Unit {
+    probe.unknownPrimitive(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `unknownPrimitive`, which may keep it
+}
+-- expect --
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `unknownPrimitive`, which may keep it
+ --> lib/esc.kg:4:28
+  |
+4 |     probe.unknownPrimitive(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `unknownPrimitive`, which may keep it
+  |                            ^^
+  = help: declare the parameter `escaping fn(...) -> ...`
+

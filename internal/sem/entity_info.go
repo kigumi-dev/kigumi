@@ -21,6 +21,9 @@ type TypeDeclInfo struct {
 	Drop    EntityID
 	Home    PackageID
 	Size    sizeState
+	// Guarantee is the resolved `@unsafeGuarantee` contract, nil when the
+	// type carries none (resource/opaque properties then default to false).
+	Guarantee *UnsafeGuarantee
 }
 
 type FnInfo struct {
@@ -131,7 +134,7 @@ const (
 	capMove
 	capCell
 	// capBorrow lends a move-only local to a lambda passed straight to a
-	// call; the callee is trusted not to keep the closure.
+	// call whose target parameter's escape mode is verified non-escaping.
 	capBorrow
 )
 

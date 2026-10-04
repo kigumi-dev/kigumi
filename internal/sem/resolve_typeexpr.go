@@ -70,10 +70,18 @@ func (r *Result) resolveFnType(f FileID, scope ScopeID, n syntax.NodeID) TypeID 
 		r.errAt(f, n, cFnTypeVariadic)
 	}
 	eff := Effects(s.Mods) & (EffPure | EffNoalloc | EffUnsafe)
-	if s.Mods&syntax.ModPureVar != 0 {
+	escaping := s.Flags&syntax.FlagEscaping != 0
+	switch {
+	case s.Mods&syntax.ModPureVar != 0:
+		if escaping {
+			return r.Types.FnEscaping(params, ret, eff, false, true)
+		}
 		return r.Types.FnEffectPoly(params, ret, eff, false)
+	case escaping:
+		return r.Types.FnEscaping(params, ret, eff, false, false)
+	default:
+		return r.Types.Fn(params, ret, eff, false)
 	}
-	return r.Types.Fn(params, ret, eff, false)
 }
 
 // extern(C) fn types forbid effect modifiers and require ABI-safe

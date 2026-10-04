@@ -1,0 +1,61 @@
+-- lib/esc.kg --
+import {Shared} from std/alloc
+
+type Item = { mut count Int }
+
+fn Item.update(mut self, delta: Int) -> Unit {
+    self.count = self.count + delta
+}
+
+// cell is lent (capBorrow) to the outer closure for the span of this call; touching it again before
+// the call returns must be rejected here, not deferred to Shared's runtime exclusive-borrow panic.
+fn reentrant(cell: Shared[Item]) -> Unit {
+    cell.withMut((x: &mut Item) => {
+        cell.withMut((y: &mut Item) => {
+            y.update(100)
+        })
+        x.update(1)
+    })
+}
+-- expect --
+fn lib.Item.update(%self: Item, %delta: Int) -> Unit {
+  b0:
+    %t2 = field 0(%self)
+    %t3 = bin +(%t2, %delta)
+    setfield 0(%self, %t3)
+    %t4 = unit
+    drop(%delta)
+    return %t4
+}
+fn lib.reentrant.closure2(%y: &mut Item) -> Unit {
+  b0:
+    %t1 = borrow 1(%y)
+    %t2 = const 100: Int
+    %t3 = call update(%t1, %t2)
+    return %t3
+}
+fn lib.reentrant.closure1(%cell: Shared[Item], %x: &mut Item) -> Unit {
+  b0:
+    %t2 = closure closure
+    %t3 = call withMut(%cell, %t2)
+    drop(%t3)
+    %t4 = borrow 1(%x)
+    %t5 = const 1: Int
+    %t6 = call update(%t4, %t5)
+    drop(%cell)
+    return %t6
+}
+fn lib.reentrant(%cell: Shared[Item]) -> Unit {
+  b0:
+    %t1 = copy(%cell)
+    %t2 = closure closure(%t1)
+    %t3 = call withMut(%cell, %t2)
+    drop(%cell)
+    return %t3
+}
+error[borrow-conflict]: `cell` is captured by a closure passed to this call and cannot be used until the call returns
+  --> lib/esc.kg:12:5
+   |
+12 |     cell.withMut((x: &mut Item) => {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -69,6 +69,8 @@ const (
 	// taken of: like EfCapturedMut, MIR gives it a cell so the borrow can
 	// alias its storage instead of a disconnected copy.
 	EfAddrTaken
+	// EfEscaping: the callee may keep this fn parameter (`escaping`, or implied by async/extern/bodiless).
+	EfEscaping
 )
 
 type Entity struct {
