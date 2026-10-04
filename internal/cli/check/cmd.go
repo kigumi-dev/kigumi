@@ -13,24 +13,32 @@ import (
 )
 
 func Cmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "check <module-root|entry.kg>",
 		Short: "Type-check a module and print its diagnostics",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			m, err := shared.Load(cmd, args[0], false, cmd.ErrOrStderr())
-			if err != nil {
-				return err
-			}
-			res, err := driver.Check(m)
-			if err != nil {
-				return errors.WrapErr(err, "check module")
-			}
-			fmt.Fprint(cmd.ErrOrStderr(), res.Render())
-			if res.HasErrors() {
-				return cliutil.Exit(1)
-			}
-			return nil
-		},
 	}
+	shared.ReleaseFlag(cmd)
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		policy := shared.Policy(cmd)
+		m, err := shared.Load(cmd, args[0], false, cmd.ErrOrStderr(), policy)
+		if err != nil {
+			return err
+		}
+		report := driver.EvaluateRelease(m, policy, shared.ReleaseViolations(cmd, false)...)
+		fmt.Fprint(cmd.ErrOrStderr(), report.Render())
+		if report.HasErrors() {
+			return cliutil.Exit(1)
+		}
+		res, err := driver.Check(m)
+		if err != nil {
+			return errors.WrapErr(err, "check module")
+		}
+		fmt.Fprint(cmd.ErrOrStderr(), res.Render())
+		if res.HasErrors() {
+			return cliutil.Exit(1)
+		}
+		return nil
+	}
+	return cmd
 }

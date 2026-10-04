@@ -105,6 +105,9 @@ func (m *Module) addNative(dir string, mf ModFile) error {
 			if !withinSandbox([]string{dir}, l.Search) {
 				return fmt.Errorf("%s: Link search path %q resolves outside the module", mf.Name, l.Search)
 			}
+			if _, err := os.Stat(l.Search); err != nil {
+				m.Violations = append(m.Violations, nativeLinkUnresolvedViolation(byName(mf), l.Search))
+			}
 		}
 		m.Links = append(m.Links, l)
 	}

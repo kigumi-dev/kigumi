@@ -12,12 +12,12 @@ import (
 	"kigumi/internal/errors"
 )
 
-func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outDir string, secretSpecs []string, reproducible bool) error {
+func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outDir string, secretSpecs []string, reproducible bool, policy driver.BuildPolicy) error {
 	target, err := shared.Target(cmd)
 	if err != nil {
 		return &cliutil.UsageError{Err: err}
 	}
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: shared.StdRoot(cmd)})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: shared.StdRoot(cmd), Policy: policy})
 	if err != nil {
 		cmd.PrintErr(err.Error())
 		if !strings.HasSuffix(err.Error(), "\n") {
@@ -27,6 +27,11 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 	}
 	if !ok {
 		return errors.NewErrf("%s has no %s", root, driver.BuildFileName)
+	}
+	report := driver.EvaluateRelease(p.Module, policy, shared.ReleaseViolations(cmd, true)...)
+	fmt.Fprint(cmd.ErrOrStderr(), report.Render())
+	if report.HasErrors() {
+		return cliutil.Exit(1)
 	}
 	g, err := p.Run(target, flags, outDir)
 	if err != nil {
@@ -69,5 +74,6 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 		cmd.PrintErrln("build: " + err.Error())
 		return cliutil.Exit(1)
 	}
+	fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, p.Module, policy, reproducible).Render())
 	return nil
 }

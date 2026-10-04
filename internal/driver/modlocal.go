@@ -3,6 +3,7 @@ package driver
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"kigumi/internal/diag"
 	"kigumi/internal/token"
@@ -16,10 +17,12 @@ const LocalName = "mod.local.kg"
 var localFields = map[string][]string{"Replace": {"name", "path"}}
 
 // Local is a parsed mod.local.kg: replaced module names mapped to absolute
-// directories.
+// directories. Provenance carries the same keys mapped to "file:line" of
+// the Replace record, for release-mode diagnostics.
 type Local struct {
-	File     string
-	Replaces map[string]string
+	File       string
+	Replaces   map[string]string
+	Provenance map[string]string
 }
 
 // ReadLocal finds the nearest mod.local.kg at or above dir.
@@ -41,6 +44,9 @@ func ReadLocal(dir string) (Local, error) {
 				return lc, fmt.Errorf("%s: %s", path, diag.RenderAll(f, ds[:1]))
 			}
 			lc.File = path
+			for name, loc := range lc.Provenance {
+				lc.Provenance[name] = path + strings.TrimPrefix(loc, f.Name)
+			}
 			return lc, nil
 		}
 		if filepath.Dir(d) == d {
@@ -51,7 +57,7 @@ func ReadLocal(dir string) (Local, error) {
 
 // ParseLocal decodes Replace records; paths are resolved against dir.
 func ParseLocal(f *token.File, dir string) (Local, []diag.Diagnostic) {
-	lc := Local{Replaces: map[string]string{}}
+	lc := Local{Replaces: map[string]string{}, Provenance: map[string]string{}}
 	recs, ds := parseRecords(f, localFields)
 	for _, r := range recs {
 		p := r.Fields["path"]
@@ -63,6 +69,7 @@ func ParseLocal(f *token.File, dir string) (Local, []diag.Diagnostic) {
 			p = filepath.Join(dir, p)
 		}
 		lc.Replaces[r.Fields["name"]] = p
+		lc.Provenance[r.Fields["name"]] = fmt.Sprintf("%s:%d", f.Name, f.Line(r.Span.Start))
 	}
 	return lc, ds
 }

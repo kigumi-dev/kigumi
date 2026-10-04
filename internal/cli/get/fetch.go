@@ -22,6 +22,9 @@ type fetcher struct {
 	// lock is what the lock file said before; next is what it will say.
 	lock, next driver.Lock
 	local      driver.Local
+	// after collects each resolved dependency's native declarations, for
+	// the native consent diff against snapshotNative's before.
+	after map[string]driver.ModFile
 }
 
 // module fetches until minimal version selection over the manifests
@@ -68,8 +71,11 @@ func (f *fetcher) module(mf driver.ModFile) error {
 }
 
 // native lists what a dependency adds to the link line, so the root sees
-// what it is trusting.
+// what it is trusting, and records it for the before/after consent diff.
 func (f *fetcher) native(name string, mf driver.ModFile) {
+	if f.after != nil {
+		f.after[name] = mf
+	}
 	for _, l := range mf.Links {
 		if l.Library != "" {
 			f.cmd.Printf("  %s links -l%s\n", name, l.Library)

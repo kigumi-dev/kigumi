@@ -26,10 +26,12 @@ func Cmd() *cobra.Command {
 	outDir := cmd.Flags().String("out-dir", ".", "with a build.kg, the directory artifacts and generated files go to")
 	secrets := cmd.Flags().StringArray("secret", nil, "with a build.kg, name=file of a secret a tool step may read")
 	reproducible := cmd.Flags().Bool("reproducible", false, "build twice, each with a fresh build dir and compiler cache, and fail if the outputs differ")
+	shared.ReleaseFlag(cmd)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if *reproducible && *emit {
 			return &cliutil.UsageError{Err: errors.NewErr("--reproducible and --emit-llvm are incompatible")}
 		}
+		policy := shared.Policy(cmd)
 		if !strings.HasSuffix(args[0], ".kg") {
 			if _, hasProgram, err := driver.ReadBuildFile(args[0]); err != nil {
 				cmd.PrintErr(err.Error())
@@ -38,7 +40,7 @@ func Cmd() *cobra.Command {
 				if *exe != "" || *emit {
 					return &cliutil.UsageError{Err: errors.NewErr("a module with build.kg takes --out-dir and --plan, not -o or --emit-llvm")}
 				}
-				return runProgram(cmd, args[0], args[1:], *plan, *outDir, *secrets, *reproducible)
+				return runProgram(cmd, args[0], args[1:], *plan, *outDir, *secrets, *reproducible, policy)
 			}
 		}
 		if cmd.Flags().Changed("plan") || cmd.Flags().Changed("out-dir") || cmd.Flags().Changed("secret") {
@@ -47,9 +49,14 @@ func Cmd() *cobra.Command {
 		if len(args) > 1 {
 			return &cliutil.UsageError{Err: errors.NewErrf("extra arguments after %s belong to a build.kg, which this module has none of", args[0])}
 		}
-		m, err := shared.Load(cmd, args[0], false, cmd.ErrOrStderr())
+		m, err := shared.Load(cmd, args[0], false, cmd.ErrOrStderr(), policy)
 		if err != nil {
 			return err
+		}
+		report := driver.EvaluateRelease(m, policy, shared.ReleaseViolations(cmd, true)...)
+		fmt.Fprint(cmd.ErrOrStderr(), report.Render())
+		if report.HasErrors() {
+			return cliutil.Exit(1)
 		}
 		if *emit {
 			ir, ok, err := driver.Compile(m, cmd.ErrOrStderr())
@@ -80,6 +87,7 @@ func Cmd() *cobra.Command {
 		if !ok {
 			return cliutil.Exit(1)
 		}
+		fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, policy, *reproducible).Render())
 		return nil
 	}
 	return cmd

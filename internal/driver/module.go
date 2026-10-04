@@ -62,6 +62,9 @@ type Module struct {
 	Selected map[string]Require
 	// ScriptFile is the root-relative entry that carried the manifest.
 	ScriptFile string
+	// Violations are release-policy findings from loading (a local replacement,
+	// an unresolved native Link); EvaluateRelease classifies each under a BuildPolicy.
+	Violations []Violation
 	local      Local
 	target     Target
 	// deny, ceiling and artifactName carry an artifact's declared
@@ -100,6 +103,9 @@ type LoadOptions struct {
 	Deny         []string
 	Ceiling      string
 	ArtifactName string
+	// Policy governs the release predicate: under Release a local replacement or
+	// unlocked dependency-bearing script fails the load instead of only warning.
+	Policy BuildPolicy
 }
 
 // LoadModule parses every package under root and, when configured, the std
@@ -131,6 +137,9 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 		if m.local, err = ReadLocal(root); err != nil {
 			return nil, err
 		}
+		if err := m.checkLocalReplace(opts.Policy); err != nil {
+			return nil, err
+		}
 	}
 	if !opts.NoDeps {
 		lock, err := ReadLock(root)
@@ -141,6 +150,13 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 		if m.ScriptFile != "" {
 			scriptLock := filepath.Join(root, filepath.FromSlash(m.ScriptFile)) + ".lock.kg"
 			if _, statErr := os.Stat(scriptLock); statErr != nil {
+				if len(m.Manifest.Requires) > 0 {
+					v := unlockedScriptViolation(m.ScriptFile, filepath.ToSlash(scriptLock))
+					if opts.Policy.Dependency == DependencyLocked {
+						return nil, releaseError(v)
+					}
+					m.Violations = append(m.Violations, v)
+				}
 				enforceLock = false
 			} else if lock, err = ReadLockFile(scriptLock); err != nil {
 				return nil, err

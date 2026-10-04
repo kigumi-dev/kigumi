@@ -41,7 +41,9 @@ func StdRoot(cmd *cobra.Command) string {
 
 // Load reads the module named by target: a module root, or an entry file.
 // Parse diagnostics go to errOut and end the command with exit code 1.
-func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer) (*driver.Module, error) {
+// policy is Development when omitted; only `kigumi build`/`check` pass
+// Release, through the --release flag.
+func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer, policy ...driver.BuildPolicy) (*driver.Module, error) {
 	root, entry := target, ""
 	if strings.HasSuffix(target, ".kg") {
 		if _, err := os.Stat(target); err != nil {
@@ -63,7 +65,11 @@ func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer) (*driv
 	if err != nil {
 		return nil, &cliutil.UsageError{Err: err}
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: StdRoot(cmd), Test: test, Entry: entry, NoLocal: noLocal || LocalOff(), Target: tgt})
+	pol := driver.Development()
+	if len(policy) > 0 {
+		pol = policy[0]
+	}
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: StdRoot(cmd), Test: test, Entry: entry, NoLocal: noLocal || LocalOff(), Target: tgt, Policy: pol})
 	if err != nil {
 		return nil, errors.WrapErrf(err, "load module %s", root)
 	}

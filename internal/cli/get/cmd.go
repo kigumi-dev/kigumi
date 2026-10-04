@@ -17,7 +17,7 @@ import (
 )
 
 func Cmd() *cobra.Command {
-	var update, lock bool
+	var update, lock, diffJSON bool
 	var url string
 	cmd := &cobra.Command{
 		Use:   "get [<module path>[@<version>]] [<module-root>|<script.kg>]",
@@ -45,12 +45,13 @@ func Cmd() *cobra.Command {
 					return err
 				}
 			}
-			return t.fetch(cmd, update)
+			return t.fetch(cmd, update, diffJSON)
 		},
 	}
 	cmd.Flags().BoolVarP(&update, "update", "u", false, "accept a tag that moved since the lock file was written")
 	cmd.Flags().BoolVar(&lock, "lock", false, "for a script, write <script>.lock.kg next to it")
 	cmd.Flags().StringVar(&url, "url", "", "clone URL of the module being added, when it cannot be derived from its name")
+	cmd.Flags().BoolVar(&diffJSON, "diff-json", false, "also print the native consent diff (added/removed Source and Link declarations) as JSON")
 	return cmd
 }
 
@@ -117,7 +118,7 @@ func (t *target) add(cmd *cobra.Command, spec, url string) error {
 	return nil
 }
 
-func (t *target) fetch(cmd *cobra.Command, update bool) error {
+func (t *target) fetch(cmd *cobra.Command, update, diffJSON bool) error {
 	lock := driver.Lock{Entries: map[string]driver.LockEntry{}}
 	if t.lockPath != "" {
 		var err error
@@ -135,10 +136,12 @@ func (t *target) fetch(cmd *cobra.Command, update bool) error {
 	if noLocal, _ := cmd.Flags().GetBool("no-local"); noLocal {
 		local = driver.Local{Replaces: map[string]string{}}
 	}
-	f := &fetcher{cmd: cmd, update: update, lock: lock, local: local, next: driver.Lock{Entries: map[string]driver.LockEntry{}}}
+	before := snapshotNative(lock)
+	f := &fetcher{cmd: cmd, update: update, lock: lock, local: local, next: driver.Lock{Entries: map[string]driver.LockEntry{}}, after: map[string]driver.ModFile{}}
 	if err := f.module(t.manifest); err != nil {
 		return err
 	}
+	printNativeChanges(cmd, diffNative(before, f.after), diffJSON)
 	if t.lockPath == "" {
 		return nil
 	}
