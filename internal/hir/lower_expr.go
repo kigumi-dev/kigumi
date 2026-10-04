@@ -70,8 +70,16 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 	case syntax.CallExpr, syntax.WsCallExpr:
 		return l.call(n)
 	case syntax.BracketExpr:
+		idx := l.t.Children(syntax.NodeID(node.Rhs))[0]
+		if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallIndexWitness {
+			out := l.node(n, MethodCall)
+			out.Ent, out.Args = call.Callee, []*Expr{l.expr(lhs), l.expr(idx)}
+			out.Async = l.r.Fn(call.Callee).Declared&sem.EffAsync != 0
+			out.IndexWitness = true
+			return out
+		}
 		out := l.node(n, Index)
-		out.Args = []*Expr{l.expr(lhs), l.expr(l.t.Children(syntax.NodeID(node.Rhs))[0])}
+		out.Args = []*Expr{l.expr(lhs), l.expr(idx)}
 		return out
 	case syntax.MemberExpr:
 		return l.member(n)

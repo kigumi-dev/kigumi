@@ -1,0 +1,14 @@
+-- src --
+type Grid = {
+    pub w Int
+    pub data Array[Int]
+}
+
+fn Grid.index(self, i: usize) -> Int {
+    self.data[i * 2]
+}
+
+let g = Grid { w: 2, data: Array.of(10, 20, 30, 40) }
+print "${g[0]} ${g[1]}"
+-- stdout --
+10 30

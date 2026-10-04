@@ -1,0 +1,24 @@
+-- src --
+type Grid = {
+    pub data Array[Int]
+}
+
+fn Grid.index(self, i: usize) -> Int {
+    self.data[i]
+}
+
+fn makeGrid() -> Grid {
+    print "base"
+    Grid { data: Array.of(10, 20, 30) }
+}
+
+fn pickIndex() -> usize {
+    print "index"
+    1
+}
+
+print "${makeGrid()[pickIndex()]}"
+-- stdout --
+base
+index
+20

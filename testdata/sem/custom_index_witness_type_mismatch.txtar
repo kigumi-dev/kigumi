@@ -1,0 +1,19 @@
+-- lib/civ.kg --
+type Grid = {
+    pub data Array[Int]
+}
+
+fn Grid.index(self, i: i32) -> Int {
+    self.data[i.toUsize() || 0]
+}
+
+fn use(g: Grid) -> Int {
+    g["x"] //~ ERROR index must be `usize` or `Range[usize]`, found `String`
+}
+-- expect --
+error[E615]: index must be `usize` or `Range[usize]`, found `String`
+  --> lib/civ.kg:10:7
+   |
+10 |     g["x"] //~ ERROR index must be `usize` or `Range[usize]`, found `String`
+   |       ^^^
+

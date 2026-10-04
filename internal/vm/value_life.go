@@ -22,15 +22,19 @@ func (m *Machine) release(v *obj) {
 	}
 }
 
+// hostWins reports whether a std entity's host accelerator runs instead of its
+// lowered body: always with no body, otherwise unless the accelerator is off.
+func (m *Machine) hostWins(lowered bool) bool {
+	return !lowered || !m.opts.NoAccel
+}
+
 func (m *Machine) free(v *obj) {
 	m.unchargeMemory(v)
 	switch v.k {
 	case kRecord:
 		v.rc = -1
-		// Priority matches callEntity (calls.go): the host accelerator
-		// wins over a lowered body unless NoAccel asks for the real one.
 		drop := m.dropFn(v.ent)
-		if h, ent := m.hostDrop(v.ent); h != nil && (drop == nil || !m.opts.NoAccel) {
+		if h, ent := m.hostDrop(v.ent); h != nil && m.hostWins(drop != nil) {
 			h(m, ent, []*obj{v})
 		} else if drop != nil {
 			m.invoke(drop, nil, false, []*obj{v})

@@ -1,0 +1,13 @@
+-- src --
+type Grid = {
+    pub data Array[Int]
+}
+
+fn Grid.index(self, i: i32) -> Int {
+    self.data[i.toUsize() || 0]
+}
+
+let g = Grid { data: Array.of(10, 20, 30) }
+print "${g[1]}"
+-- stdout --
+20

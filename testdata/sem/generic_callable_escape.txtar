@@ -1,0 +1,21 @@
+-- lib/gce.kg --
+fn identity[T](x: T) -> T {
+    x
+}
+
+fn sumLens(xs: Array[Array[Int]]) -> usize {
+    let mapped = xs.map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+    let mut total: usize = 0
+    for a in mapped {
+        total = total + a.len()
+    }
+    total
+}
+-- expect --
+error[E1130]: `identity`'s type parameter would be inferred as a reference here
+ --> lib/gce.kg:6:25
+  |
+6 |     let mapped = xs.map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+  |                         ^^^^^^^^
+  = help: declare the parameter `&T` or `&mut T` instead of relying on inference to borrow it
+

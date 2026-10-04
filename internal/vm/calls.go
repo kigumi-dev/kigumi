@@ -25,7 +25,7 @@ func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
 		if m.opts.Sandbox && hostEffect(key) {
 			m.abort("`" + key + "` is not available at compile time")
 		}
-		if h, ok := m.host[key]; ok && (!lowered || !m.opts.NoAccel) {
+		if h, ok := m.host[key]; ok && m.hostWins(lowered) {
 			r := h(m, ent, args)
 			m.chargeMemory(r)
 			return r
@@ -60,7 +60,7 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 		if m.opts.Sandbox && hostEffect(key) {
 			m.abort("`" + key + "` is not available at compile time")
 		}
-		if _, ok := m.host[key]; ok && (!lowered || !m.opts.NoAccel) {
+		if _, ok := m.host[key]; ok && m.hostWins(lowered) {
 			useLowered = false
 		}
 	}
@@ -181,7 +181,7 @@ func (m *Machine) callMethod(recv *obj, name string, args []*obj) *obj {
 		if m.opts.Sandbox && hostEffect(key) {
 			m.abort("`" + key + "` is not available at compile time")
 		}
-		if h, ok := m.host[key]; ok && (!lowered || !m.opts.NoAccel) {
+		if h, ok := m.host[key]; ok && m.hostWins(lowered) {
 			r := h(m, fn, append([]*obj{target}, args...))
 			m.chargeMemory(r)
 			return r

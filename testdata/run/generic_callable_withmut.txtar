@@ -1,0 +1,10 @@
+-- src --
+fn bump[T](x: &mut T) -> Int {
+    0
+}
+
+let mut xs = Array.of(10, 20, 30)
+let r = xs.withMut(1, bump)
+print "${r || -1} ${xs[1]}"
+-- stdout --
+0 20

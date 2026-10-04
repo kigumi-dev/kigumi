@@ -68,3 +68,55 @@ func (c *checker) instantiateFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID,
 	}
 	return tt.Subst(info.Sig, subst), inst, bad
 }
+
+// genericFnItemCallable reports whether n is a generic fn item (not yet
+// resolved to a fixed signature) being matched against a callable type.
+func (c *checker) genericFnItemCallable(n syntax.NodeID) (EntityID, bool) {
+	item := c.info.Uses[n]
+	if item == 0 || c.r.Entities[item].Kind != EntFn || len(c.ownGenerics(item)) == 0 {
+		return 0, false
+	}
+	return item, true
+}
+
+// coerceGenericFnItem fits a generic fn item's instantiation to a callable type; a bare type
+// parameter never adopts a `&T`/`&mut T` slot's referent, since the item's compiled body expects
+// an owned parameter and calling it through a borrow would hand back a reference with no retain to match.
+func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want TypeID) bool {
+	var fresh []TypeID
+	for i := len(c.r.Instances[item]) - 1; i >= 0; i-- {
+		if c.r.Instances[item][i].Node == n {
+			fresh = c.r.Instances[item][i].Args
+			break
+		}
+	}
+	tt := c.r.Types
+	g, w := tt.Node(got), tt.Node(want)
+	if fresh == nil || len(g.Args) != len(w.Args) || g.Flags&fnVariadic != w.Flags&fnVariadic ||
+		(g.Flags^w.Flags)&uint16(EffUnsafe) != 0 {
+		return false
+	}
+	mark := c.vars.mark()
+	for i := range g.Args {
+		if !c.vars.unifyIgnoringEscaping(g.Args[i], w.Args[i]) {
+			c.vars.rollback(mark)
+			return false
+		}
+	}
+	for _, f := range fresh {
+		if tt.Kind(c.vars.resolve(f)) == KRef {
+			// Poison instead of unifying g.Elem/w.Elem: a rejected `&T` must not leak into the caller's U.
+			c.vars.poison(w.Elem)
+			c.errAt(n, cGenericCallableBorrow, c.r.Entities[item].Name)
+			return true
+		}
+	}
+	if !c.vars.unifyIgnoringEscaping(g.Elem, w.Elem) {
+		c.vars.rollback(mark)
+		return false
+	}
+	if need := Effects(w.Flags) & (EffPure | EffNoalloc); Effects(g.Flags)&need != need {
+		c.edge(EffectEdge{Kind: EdgeContract, Target: item, Mods: need, Node: n})
+	}
+	return true
+}

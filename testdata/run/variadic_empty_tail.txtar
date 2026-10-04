@@ -1,0 +1,16 @@
+-- src --
+noalloc fn count(xs: ...Int) -> usize {
+    xs.len()
+}
+
+fn callsEmpty() -> usize {
+    count()
+}
+
+fn callsListed() -> usize {
+    count(1, 2, 3)
+}
+
+print "${callsEmpty()} ${callsListed()}"
+-- stdout --
+0 3

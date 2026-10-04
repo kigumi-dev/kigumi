@@ -1,0 +1,16 @@
+-- lib/vea.kg --
+noalloc fn count(xs: ...Int) -> usize {
+    xs.len()
+}
+
+noalloc fn callsEmpty() -> usize {
+    count() //~ ERROR listed variadic arguments allocate
+}
+-- expect --
+error[E911]: listed variadic arguments allocate
+ --> lib/vea.kg:6:5
+  |
+6 |     count() //~ ERROR listed variadic arguments allocate
+  |     ^^^^^^
+  = help: pass `...array`
+

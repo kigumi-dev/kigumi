@@ -8,6 +8,9 @@ import (
 
 func (fr *frame) index(n syntax.NodeID) (Value, *ctrl) {
 	node := fr.t.Nodes[n]
+	if call := fr.info.Calls[n]; call.Kind == sem.CallIndexWitness {
+		return fr.indexWitness(n, syntax.NodeID(node.Lhs), call)
+	}
 	base, c := fr.expr(syntax.NodeID(node.Lhs))
 	if c != nil {
 		return nil, c
@@ -18,6 +21,24 @@ func (fr *frame) index(n syntax.NodeID) (Value, *ctrl) {
 		return nil, c
 	}
 	return fr.indexValue(n, deref(base), deref(iv)), nil
+}
+
+// indexWitness calls recv's own `index` member, the same way a regular
+// method call evaluates its receiver and argument (call.go callWith).
+func (fr *frame) indexWitness(n, base syntax.NodeID, call sem.CallInfo) (Value, *ctrl) {
+	recv, c := fr.receiver(base, call.Callee)
+	if c != nil {
+		return nil, c
+	}
+	args, c := fr.evalArgs(call)
+	if c != nil {
+		return nil, c
+	}
+	in := fr.in
+	if in.r.Fn(call.Callee).Declared&sem.EffAsync != 0 {
+		return &Future{Fn: call.Callee, Args: append([]Value{recv}, args...)}, nil
+	}
+	return in.callFnValue(fr, call.Callee, n, args, recv)
 }
 
 func (fr *frame) indexValue(n syntax.NodeID, base, idx Value) Value {

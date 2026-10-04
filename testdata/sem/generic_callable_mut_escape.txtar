@@ -1,0 +1,17 @@
+-- lib/gcme.kg --
+fn identity[T](x: T) -> T {
+    x
+}
+
+fn unwrap() -> Unit {
+    let mut xs = Array.of(1, 2, 3)
+    let r = xs.withMut(0, identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+}
+-- expect --
+error[E1130]: `identity`'s type parameter would be inferred as a reference here
+ --> lib/gcme.kg:7:27
+  |
+7 |     let r = xs.withMut(0, identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+  |                           ^^^^^^^^
+  = help: declare the parameter `&T` or `&mut T` instead of relying on inference to borrow it
+
