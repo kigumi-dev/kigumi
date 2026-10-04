@@ -11,6 +11,9 @@ func (r *Result) metaAttrs(f FileID, list syntax.NodeID, onType bool) []MetaRef 
 	t := r.tree(f)
 	var dotted []syntax.NodeID
 	for _, a := range t.Children(list) {
+		if t.Kind(a) == syntax.UnsafeGuarantee {
+			continue
+		}
 		path := syntax.NodeID(t.Nodes[a].Lhs)
 		switch name := pathText(t, path, "."); {
 		case len(t.PathToks(path)) > 1:
@@ -35,6 +38,9 @@ func (r *Result) rejectAttrs(f FileID, list syntax.NodeID) {
 	}
 	t := r.tree(f)
 	for _, a := range t.Children(list) {
+		if t.Kind(a) == syntax.UnsafeGuarantee {
+			continue
+		}
 		name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), ".")
 		if name == "impl" {
 			r.errAt(f, a, cAttrWrongTarget)

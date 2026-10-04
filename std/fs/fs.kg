@@ -1,6 +1,8 @@
 import ffi from std/ffi
 
 /// File system access, obtained from `host.files()`.
+/// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Files
 
 /// Validated file system path.

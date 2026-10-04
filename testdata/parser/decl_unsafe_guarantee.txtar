@@ -1,0 +1,70 @@
+-- src --
+@unsafeGuarantee(Send)
+pub type Socket = resource {
+    fd i32
+}
+@unsafeGuarantee(Send when T: Send, Sync when T: Send + Sync)
+pub type Mutex[T] = resource {
+    cell T
+}
+@unsafeGuarantee(Copy, Send, Sync)
+pub type NativeTimestamp
+fn paramTarget(@unsafeGuarantee(Send) x: Int) -> Unit {}
+-- expect --
+File
+  TypeDecl
+    attrs: List
+      UnsafeGuarantee
+        UGRule Send
+    vis: Visibility
+    name: Socket
+    body: ResourceBody
+      Field fd
+        type: TypePath
+          Path i32
+  TypeDecl
+    attrs: List
+      UnsafeGuarantee
+        UGRule Send
+          List
+            UGRequirement T
+              List
+                Ident Send
+        UGRule Sync
+          List
+            UGRequirement T
+              List
+                Ident Send
+                Ident Sync
+    vis: Visibility
+    name: Mutex
+    generics: List
+      GenericParam T
+    body: ResourceBody
+      Field cell
+        type: TypePath
+          Path T
+  TypeDecl
+    attrs: List
+      UnsafeGuarantee
+        UGRule Copy
+        UGRule Send
+        UGRule Sync
+    vis: Visibility
+    name: NativeTimestamp
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: paramTarget
+    generics: -
+    params: List
+      Param x
+        attrs: List
+          UnsafeGuarantee
+            UGRule Send
+        type: TypePath
+          Path Int
+    ret: TypePath
+      Path Unit
+    body: Block

@@ -1,4 +1,6 @@
 /// Ability to run external commands, obtained from `host.shell()`.
+/// Safety: a stateless capability marker; every command it runs is independent, so sharing or duplicating it is free.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Shell
 
 /// One piece of a plan; a `$"..."` literal pushes them in source order.

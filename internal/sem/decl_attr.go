@@ -15,26 +15,43 @@ func (r *Result) declareAttrs() {
 		case EntType, EntAlias:
 			s := typeDecl(t, e.Node)
 			r.implAttrs(EntityID(id), s.Attrs)
+			ug := r.extractGuarantee(e.File, s.Attrs)
 			if e.Kind == EntType {
 				info := r.typeDecl(EntityID(id))
 				info.Metadata = r.metaAttrs(e.File, s.Attrs, true)
 				for _, fld := range info.Fields {
 					r.checkSchemas(e.File, r.field(fld).Metadata)
 				}
+				r.declareGuarantee(EntityID(id), ug)
+			} else if ug != 0 {
+				r.errAt(e.File, ug, cUnsafeGuaranteeWrongTarget)
 			}
 		case EntFn:
+			s := fnDecl(t, e.Node)
 			if r.Entities[e.Parent].Kind == EntInterface {
+				r.rejectGuarantee(e.File, s.Attrs)
+				if s.Params != 0 {
+					for _, p := range t.Children(s.Params) {
+						r.rejectGuarantee(e.File, param(t, p).Attrs)
+					}
+				}
 				continue
 			}
 			info := r.Fn(EntityID(id))
-			info.Metadata = r.metaAttrs(e.File, fnDecl(t, e.Node).Attrs, false)
+			info.Metadata = r.metaAttrs(e.File, s.Attrs, false)
+			r.rejectGuarantee(e.File, s.Attrs)
 			for _, p := range info.Params {
-				r.local(p).Metadata = r.metaAttrs(e.File, param(t, r.Entities[p].Node).Attrs, false)
+				pAttrs := param(t, r.Entities[p].Node).Attrs
+				r.local(p).Metadata = r.metaAttrs(e.File, pAttrs, false)
+				r.rejectGuarantee(e.File, pAttrs)
 			}
 		case EntInterface:
 			r.rejectAttrs(e.File, ifaceDecl(t, e.Node).Attrs)
+			r.rejectGuarantee(e.File, ifaceDecl(t, e.Node).Attrs)
 		case EntConst:
-			r.constInfo(EntityID(id)).Metadata = r.metaAttrs(e.File, constDecl(t, e.Node).Attrs, false)
+			s := constDecl(t, e.Node)
+			r.constInfo(EntityID(id)).Metadata = r.metaAttrs(e.File, s.Attrs, false)
+			r.rejectGuarantee(e.File, s.Attrs)
 		}
 	}
 }
@@ -48,6 +65,9 @@ func (r *Result) implAttrs(id EntityID, list syntax.NodeID) {
 	t := r.tree(f)
 	scope := r.declScope(id)
 	for _, a := range t.Children(list) {
+		if t.Kind(a) == syntax.UnsafeGuarantee {
+			continue
+		}
 		name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), ".")
 		if name != "impl" {
 			// Dotted metadata is collected by metaAttrs.

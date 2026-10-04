@@ -1,0 +1,48 @@
+-- app/t/t.kg --
+import alloc from std/alloc
+
+fn ship[T: Send](x: T) -> Unit {}
+
+fn share[T: Sync](x: &T) -> Unit {}
+
+type Handle = resource {
+    fd Int
+}
+
+async fn capture(h: Handle) -> Int {
+    42
+}
+
+fn use(h: Handle, a: alloc.AllocatorHandle) -> Unit {
+    let fut = capture(h)
+    ship(fut) //~ ERROR `Future[Int]` does not satisfy `Send`: it cannot move to another thread
+    share(&fut) //~ ERROR `Future[Int]` does not satisfy `Sync`: it cannot be shared between threads
+    ship(a) //~ ERROR `AllocatorHandle` does not satisfy `Send`: it cannot move to another thread
+    share(&a) //~ ERROR `AllocatorHandle` does not satisfy `Sync`: it cannot be shared between threads
+}
+
+-- expect --
+error[E300]: `Future[Int]` does not satisfy `Send`: it cannot move to another thread
+  --> app/t/t.kg:17:5
+   |
+17 |     ship(fut) //~ ERROR `Future[Int]` does not satisfy `Send`: it cannot move to another thread
+   |     ^^^^^^^^
+
+error[E300]: `Future[Int]` does not satisfy `Sync`: it cannot be shared between threads
+  --> app/t/t.kg:18:5
+   |
+18 |     share(&fut) //~ ERROR `Future[Int]` does not satisfy `Sync`: it cannot be shared between threads
+   |     ^^^^^^^^^^
+
+error[E300]: `AllocatorHandle` does not satisfy `Send`: it cannot move to another thread
+  --> app/t/t.kg:19:5
+   |
+19 |     ship(a) //~ ERROR `AllocatorHandle` does not satisfy `Send`: it cannot move to another thread
+   |     ^^^^^^
+
+error[E300]: `AllocatorHandle` does not satisfy `Sync`: it cannot be shared between threads
+  --> app/t/t.kg:20:5
+   |
+20 |     share(&a) //~ ERROR `AllocatorHandle` does not satisfy `Sync`: it cannot be shared between threads
+   |     ^^^^^^^^
+

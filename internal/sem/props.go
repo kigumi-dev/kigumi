@@ -78,9 +78,7 @@ func (r *Result) namedCopy(n typeNode) bool {
 		return false
 	}
 	if info.Form == FormOpaque {
-		// generic opaque types (Array, Map, Shared) own heap storage and move; non-generic ones
-		// are handles and copy freely.
-		return len(info.Params) == 0
+		return r.evalGuarantee(info, n.Args, ugCopyProp)
 	}
 	subst := map[EntityID]TypeID{}
 	for i, p := range info.Params {

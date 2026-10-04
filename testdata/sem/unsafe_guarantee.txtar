@@ -1,0 +1,185 @@
+-- app/t/t.kg --
+fn ship[T: Send](x: T) -> Unit {}
+
+/// Safety: test fixture only; not a real guarantee.
+@unsafeGuarantee(Send, Send) //~ ERROR `Send` is already guaranteed by this `@unsafeGuarantee`
+type DupProp = resource {
+    fd Int
+}
+
+/// Safety: test fixture only; not a real guarantee.
+@unsafeGuarantee(Send)
+@unsafeGuarantee(Sync) //~ ERROR at most one `@unsafeGuarantee` is allowed per type declaration
+type TwoDirectives = resource {
+    fd Int
+}
+
+@unsafeGuarantee(Copy) //~ ERROR a `resource` type cannot guarantee `Copy`
+type CopyResource = resource {
+    fd Int
+}
+
+@unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+type OrdinaryRecord = {
+    n Int
+}
+
+@unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+fn stray() -> Unit {}
+
+@unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+const K: Int = 1
+
+@unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+interface Trait {
+    fn f(self) -> Int
+}
+
+interface MethodTarget {
+    @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+    fn g(self, @unsafeGuarantee(Sync) x: Int) -> Int //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+}
+
+@unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+type Adt = Red | Blue
+
+fn paramTarget(@unsafeGuarantee(Send) x: Int) -> Unit {} //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+
+/// Safety: test fixture only; not a real guarantee.
+@unsafeGuarantee(Send when U: Send) //~ ERROR `U` is not a type parameter of `BadParam`
+type BadParam[T] = resource {
+    t T
+}
+
+@unsafeGuarantee(Bogus) //~ ERROR `Bogus` is not a guarantee property
+type BadProp = resource {
+    fd Int
+}
+
+@unsafeGuarantee(Send) //~ WARNING `@unsafeGuarantee` needs a doc comment line starting with `Safety:`
+type NoSafetyDoc = resource {
+    fd Int
+}
+
+/// Safety: fd is a plain OS handle with no shared state.
+@unsafeGuarantee(Send, Sync)
+type Documented = resource {
+    fd Int
+}
+
+/// Safety: T is only reachable through the lock, so Cell is Send/Sync exactly
+/// when T is.
+@unsafeGuarantee(Send when T: Send, Sync when T: Send + Sync)
+type Cell[T] = resource {
+    t T
+}
+
+type CellAlias = Cell[Int]
+
+fn use(doc: Documented, cell: Cell[Int], nested: Cell[Cell[Int]], alias: CellAlias) -> Unit {
+    ship(doc)
+    ship(cell)
+    ship(nested)
+    ship(alias)
+}
+
+fn share[T: Sync](x: &T) -> Unit {}
+
+fn useSync(cell: Cell[Int], notSync: Cell[*const u8]) -> Unit {
+    share(&cell)
+    share(&notSync) //~ ERROR `Cell[*const u8]` does not satisfy `Sync`: it cannot be shared between threads
+}
+
+-- expect --
+error[E1071]: `Send` is already guaranteed by this `@unsafeGuarantee`
+ --> app/t/t.kg:4:24
+  |
+4 | @unsafeGuarantee(Send, Send) //~ ERROR `Send` is already guaranteed by this `@unsafeGuarantee`
+  |                        ^^^^
+
+error[E1070]: at most one `@unsafeGuarantee` is allowed per type declaration
+  --> app/t/t.kg:11:1
+   |
+11 | @unsafeGuarantee(Sync) //~ ERROR at most one `@unsafeGuarantee` is allowed per type declaration
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1073]: a `resource` type cannot guarantee `Copy`
+  --> app/t/t.kg:16:18
+   |
+16 | @unsafeGuarantee(Copy) //~ ERROR a `resource` type cannot guarantee `Copy`
+   |                  ^^^^
+   = help: it always moves
+
+error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+  --> app/t/t.kg:21:1
+   |
+21 | @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+  --> app/t/t.kg:26:1
+   |
+26 | @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+  --> app/t/t.kg:29:1
+   |
+29 | @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+  --> app/t/t.kg:32:1
+   |
+32 | @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+  --> app/t/t.kg:38:5
+   |
+38 |     @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+  --> app/t/t.kg:39:16
+   |
+39 |     fn g(self, @unsafeGuarantee(Sync) x: Int) -> Int //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+   |                ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+  --> app/t/t.kg:42:1
+   |
+42 | @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+  --> app/t/t.kg:45:16
+   |
+45 | fn paramTarget(@unsafeGuarantee(Send) x: Int) -> Unit {} //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+   |                ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1075]: `U` is not a type parameter of `BadParam`
+  --> app/t/t.kg:48:28
+   |
+48 | @unsafeGuarantee(Send when U: Send) //~ ERROR `U` is not a type parameter of `BadParam`
+   |                            ^^^^^^^
+
+error[E1074]: `Bogus` is not a guarantee property
+  --> app/t/t.kg:53:18
+   |
+53 | @unsafeGuarantee(Bogus) //~ ERROR `Bogus` is not a guarantee property
+   |                  ^^^^^
+   = help: expected `Copy`, `Send` or `Sync`
+
+warning[W1076]: `@unsafeGuarantee` needs a doc comment line starting with `Safety:` explaining why the guarantee holds
+  --> app/t/t.kg:58:1
+   |
+58 | @unsafeGuarantee(Send) //~ WARNING `@unsafeGuarantee` needs a doc comment line starting with `Safety:`
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `Cell[*const u8]` does not satisfy `Sync`: it cannot be shared between threads
+  --> app/t/t.kg:89:5
+   |
+89 |     share(&notSync) //~ ERROR `Cell[*const u8]` does not satisfy `Sync`: it cannot be shared between threads
+   |     ^^^^^^^^^^^^^^
+

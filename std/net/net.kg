@@ -1,7 +1,11 @@
 /// Network access, obtained from `host.net()`.
+/// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Net
 
 /// HTTP client, obtained from `Net.http()`.
+/// Safety: holds no per-client state; each request is independent, so sharing or duplicating the handle is free.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Http
 
 /// Result of an HTTP request.

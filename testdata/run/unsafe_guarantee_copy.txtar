@@ -1,0 +1,10 @@
+-- src --
+let a = host.args()
+let b = a
+print "len=${a.len()} same-len=${a.len() == b.len()}"
+print "get1-same=${a.get(1) == b.get(1)}"
+print "get2-same=${a.get(2) == b.get(2)}"
+-- stdout --
+len=3 same-len=true
+get1-same=true
+get2-same=true

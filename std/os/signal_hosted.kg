@@ -19,6 +19,8 @@ extern(C) {
 }
 
 /// Signal delivery, obtained from `host.signals()`.
+/// Safety: a stateless capability marker; every call it makes targets process-wide signal state, so sharing or duplicating the handle is free.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Signals
 
 /// Signal handling.

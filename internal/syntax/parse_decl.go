@@ -95,6 +95,9 @@ func modBit(k token.Kind) uint32 {
 
 func (p *parser) attr() NodeID {
 	at := p.expect(token.At)
+	if p.atIdent("unsafeGuarantee") && p.peek(1) == token.LParen {
+		return p.unsafeGuaranteeAttr(at)
+	}
 	path := p.path()
 	var args NodeID
 	if p.at(token.LParen) && !p.tok().HasSpaceBefore() {
@@ -131,15 +134,15 @@ func (p *parser) visibility() NodeID {
 func (p *parser) decl() NodeID {
 	pf := p.parsePrefix()
 	if pf.mods != 0 && !p.at(token.KwFn) && !p.at(token.LBrace) {
-		p.errorf("`%s` is only allowed on `fn` declarations (§4.5)", modsString(pf.mods))
+		p.errorf("`%s` is only allowed on `fn` declarations", modsString(pf.mods))
 	}
 	switch {
 	case p.atIdent("static") && p.peek(1) == token.KwFn:
-		p.errorf("`static fn` does not exist; an associated function is `fn Type.name(...)` without `self` (§5.1)")
+		p.errorf("`static fn` does not exist; an associated function is `fn Type.name(...)` without `self`")
 		p.advance()
 		return p.fnDecl(pf)
 	case p.atIdent("impl") && p.peek(1) == token.Ident:
-		p.errorf("`impl` blocks do not exist; write `fn Type.name(self)` at top level and use `@impl(Interface)` on the type (§5.1)")
+		p.errorf("`impl` blocks do not exist; write `fn Type.name(self)` at top level and use `@impl(Interface)` on the type")
 		p.recover()
 		return 0
 	case p.at(token.KwFn):

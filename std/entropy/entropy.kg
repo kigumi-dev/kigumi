@@ -2,4 +2,6 @@
 /// is a deterministic splitmix64 and must not be used for keys or nonces.
 /// No bare variant: a freestanding target has no entropy source in std
 /// (an SGX enclave supplies its own through `Runtime.randomBytes`).
+/// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Entropy

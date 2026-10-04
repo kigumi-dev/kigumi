@@ -30,6 +30,11 @@ func (p *printer) prefix(id syntax.NodeID) {
 func (p *printer) attrs(list syntax.NodeID) {
 	var impls []syntax.NodeID
 	for _, a := range p.t.Children(list) {
+		if p.t.Kind(a) == syntax.UnsafeGuarantee {
+			p.unsafeGuarantee(a)
+			p.newline()
+			continue
+		}
 		n := p.node(a)
 		if p.pathText(syntax.NodeID(n.Lhs)) == "impl" {
 			impls = append(impls, p.t.Children(syntax.NodeID(n.Rhs))...)
@@ -159,6 +164,11 @@ func (p *printer) param(id syntax.NodeID) {
 	}
 	if s[0] != 0 {
 		for _, a := range p.t.Children(syntax.NodeID(s[0])) {
+			if p.t.Kind(a) == syntax.UnsafeGuarantee {
+				p.unsafeGuarantee(a)
+				p.write(" ")
+				continue
+			}
 			an := p.node(a)
 			p.write("@" + p.pathText(syntax.NodeID(an.Lhs)))
 			if an.Rhs != 0 {

@@ -3,9 +3,13 @@ import net from std/net
 import shell from std/shell
 
 /// The process environment; `host` is the predeclared instance in the entry file.
+/// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Host
 
 /// Command line arguments; index 0 is the program path.
+/// Safety: a read-only view of the process argv; duplicating or sharing it touches nothing.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Args
 
 /// Shell for running external commands.
@@ -25,6 +29,8 @@ pub fn Host.files(self) -> fs.Files
 pub fn Host.net(self) -> net.Net
 
 /// Standard input of the process, obtained from `host.stdin()`.
+/// Safety: holds no state of its own; it may be handed off to one other thread at a time (reads through a shared reference are not coordinated, so Sync is not claimed).
+@unsafeGuarantee(Send)
 pub type Stdin
 
 /// Standard input.
@@ -34,6 +40,8 @@ pub fn Host.stdin(self) -> Stdin
 pub pure noalloc fn Args.len(self) -> usize
 
 /// Standard output of the process, obtained from `host.stdout()`.
+/// Safety: holds no state of its own; it may be handed off to one other thread at a time (writes through a shared reference are not coordinated, so Sync is not claimed).
+@unsafeGuarantee(Send)
 pub type Stdout
 
 /// Standard output.

@@ -1,0 +1,42 @@
+-- std/t/t.kg --
+fn ship[T: Send](x: T) -> Unit {}
+fn needsCopy[T: Copy](x: T) -> T { x }
+
+pub type NoContract
+
+/// Safety: test fixture only; not a real guarantee.
+@unsafeGuarantee(Copy, Send, Sync)
+pub type Timestamp
+
+/// Safety: test fixture only; not a real guarantee.
+@unsafeGuarantee(Send when T: Send, Sync when T: Send + Sync)
+pub type Handle[T]
+
+fn use(a: NoContract, b: Timestamp, h: Handle[Int], hn: Handle[*const u8]) -> Unit {
+    let _ = needsCopy(a) //~ ERROR `NoContract` does not satisfy `Copy`
+    let _ = needsCopy(b)
+    ship(a) //~ ERROR `NoContract` does not satisfy `Send`
+    ship(b)
+    ship(h)
+    ship(hn) //~ ERROR `Handle[*const u8]` does not satisfy `Send`
+}
+
+-- expect --
+error[E300]: `NoContract` does not satisfy `Copy`: it is move-only
+  --> std/t/t.kg:15:13
+   |
+15 |     let _ = needsCopy(a) //~ ERROR `NoContract` does not satisfy `Copy`
+   |             ^^^^^^^^^^^
+
+error[E300]: `NoContract` does not satisfy `Send`: it cannot move to another thread
+  --> std/t/t.kg:17:5
+   |
+17 |     ship(a) //~ ERROR `NoContract` does not satisfy `Send`
+   |     ^^^^^^
+
+error[E300]: `Handle[*const u8]` does not satisfy `Send`: it cannot move to another thread
+  --> std/t/t.kg:20:5
+   |
+20 |     ship(hn) //~ ERROR `Handle[*const u8]` does not satisfy `Send`
+   |     ^^^^^^^
+

@@ -38,7 +38,7 @@ func (t *Tree) dump(d *dumper, id NodeID, label string) {
 	case Ident, IntLit, FloatLit, CharLit, BoolLit, StringLit, ByteStringLit, MemberExpr,
 		OptMemberExpr, PatBind, PatWildcard, FieldInit, NamedArg, PatField,
 		Variant, Param, InstantiateDecl, Unary, Binary, AssignStmt,
-		Field, PatRange, TypeLifetime:
+		Field, PatRange, TypeLifetime, UGRule, UGRequirement:
 		fmt.Fprintf(&d.sb, " %s", t.TokText(n.Tok))
 	case GenericParam:
 		fmt.Fprintf(&d.sb, " %s", t.TokText(n.Tok))

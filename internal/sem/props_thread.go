@@ -1,7 +1,7 @@
 package sem
 
 // Send/Sync: raw pointers, erased fn values, existential boxes and executor handles
-// never qualify; std opaque types use the table below.
+// never qualify; a resource or opaque type needs an explicit @unsafeGuarantee.
 
 func (r *Result) isSend(t TypeID) bool { return r.threadProp(t, false) }
 func (r *Result) isSync(t TypeID) bool { return r.threadProp(t, true) }
@@ -53,15 +53,6 @@ func (r *Result) threadProp(t TypeID, sync bool) bool {
 	return ok
 }
 
-// stdThread: per type, (sendable, shareable when it holds no mutable state).
-var stdThread = map[string][2]bool{
-	"Array": {true, true}, "Shared": {false, false}, "Weak": {false, false},
-	"Path": {true, true}, "Instant": {true, true}, "Files": {true, true}, "Args": {true, true},
-	"Net": {true, true}, "Http": {true, true}, "Shell": {true, true}, "Host": {true, true}, "Loader": {true, true},
-	"AllocatorHandle": {true, true}, "Metadata": {true, true},
-	"Stdin": {true, false},
-}
-
 func (r *Result) computeThread(t TypeID, sync bool) bool {
 	tt := r.Types
 	n := tt.Node(t)
@@ -94,22 +85,26 @@ func (r *Result) computeThread(t TypeID, sync bool) bool {
 	default:
 		return false
 	}
+	e := &r.Entities[n.Ent]
+	info := r.typeDecl(n.Ent)
+	// Future is never Send/Sync: its TypeID carries only the async fn's return type,
+	// not the captured parameters, so there is nothing sound to check.
+	if n.Ent == tt.futureEnt {
+		return false
+	}
+	// A predeclared opaque type (e.File == 0) has no declaration to attach
+	// @unsafeGuarantee to, so it falls through to the structural check below.
+	if info.Form == FormResource || (info.Form == FormOpaque && e.File != 0) {
+		prop := ugSendProp
+		if sync {
+			prop = ugSyncProp
+		}
+		return r.evalGuarantee(info, n.Args, prop)
+	}
 	for _, a := range n.Args {
 		if !r.threadProp(a, sync) {
 			return false
 		}
-	}
-	e := &r.Entities[n.Ent]
-	info := r.typeDecl(n.Ent)
-	if info.Form == FormOpaque {
-		if e.File != 0 && e.Flags&EfStd == 0 {
-			return false
-		}
-		flags, ok := stdThread[e.Name]
-		return ok && flags[boolIndex(sync)]
-	}
-	if sync && info.Form == FormResource {
-		return false
 	}
 	subst := map[EntityID]TypeID{}
 	for i, p := range info.Params {
@@ -130,11 +125,4 @@ func (r *Result) computeThread(t TypeID, sync bool) bool {
 		}
 	}
 	return true
-}
-
-func boolIndex(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }

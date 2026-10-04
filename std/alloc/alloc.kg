@@ -2,6 +2,8 @@
 pub type Arena
 
 /// Handle to an allocator, obtained from `Arena.create()`; `scope()` makes it current.
+/// Its arena tracks live references with a plain counter, not an atomic one,
+/// so it is neither Send nor Sync.
 pub type AllocatorHandle
 
 /// Value consumed by an `allocator ... { }` block to route its allocations.

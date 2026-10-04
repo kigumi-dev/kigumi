@@ -2,6 +2,8 @@ import alloc from std/alloc
 
 /// The dynamic loader; loading a library runs its initialisers, so the
 /// capability comes from `host.dl()` in the entry file like fs and net.
+/// Safety: a stateless capability marker; each load it starts is independent, so sharing or duplicating it is free.
+@unsafeGuarantee(Copy, Send, Sync)
 pub type Loader
 
 /// A loaded library handle; closed when the last Library or Symbol sharing it is dropped.

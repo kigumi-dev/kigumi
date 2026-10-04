@@ -1,0 +1,76 @@
+-- src --
+@unsafeGuarantee(Send when T: Send || T: Sync)
+pub type Bad = resource {
+    fd i32
+}
+@unsafeGuarantee(Send when !T: Send)
+pub type Negated = resource {
+    fd i32
+}
+@unsafeGuarantee(Send when foo(T))
+pub type Predicate = resource {
+    fd i32
+}
+-- expect --
+File
+  TypeDecl
+    attrs: List
+      UnsafeGuarantee
+        UGRule Send
+          List
+            UGRequirement T
+              List
+                Ident Send
+    vis: Visibility
+    name: Bad
+    body: ResourceBody
+      Field fd
+        type: TypePath
+          Path i32
+  TypeDecl
+    attrs: List
+      UnsafeGuarantee
+        UGRule Send
+          List
+            UGRequirement !
+              List
+                Ident !
+    vis: Visibility
+    name: Negated
+    body: ResourceBody
+      Field fd
+        type: TypePath
+          Path i32
+  TypeDecl
+    attrs: List
+      UnsafeGuarantee
+        UGRule Send
+          List
+            UGRequirement foo
+              List
+                Ident (
+    vis: Visibility
+    name: Predicate
+    body: ResourceBody
+      Field fd
+        type: TypePath
+          Path i32
+-- diagnostics --
+error: expected `,` or newline between list entries, found `||`
+ --> errors_unsafe_guarantee.txtar:1:36
+  |
+1 | @unsafeGuarantee(Send when T: Send || T: Sync)
+  |                                    ^^
+
+error: expected identifier, found `!`
+ --> errors_unsafe_guarantee.txtar:5:28
+  |
+5 | @unsafeGuarantee(Send when !T: Send)
+  |                            ^
+
+error: expected :, found `(`
+ --> errors_unsafe_guarantee.txtar:9:31
+  |
+9 | @unsafeGuarantee(Send when foo(T))
+  |                               ^
+

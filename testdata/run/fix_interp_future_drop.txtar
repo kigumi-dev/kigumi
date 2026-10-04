@@ -23,18 +23,18 @@ fn never() -> Unit {
     print "created, not awaited"
 }
 
-fn awaited(ex: task.Executor) -> Unit {
+fn awaited(ex: &task.Executor) -> Unit {
     let f = consume(make(50))
     let _ = ex.run(f)
     print "after await"
 }
 
-fn neverJoined(ex: task.Executor) -> Unit {
+fn neverJoined(ex: &task.Executor) -> Unit {
     let t = ex.spawn(consume(make(77)))
     print "spawned, never joined"
 }
 
-fn joined(ex: task.Executor) -> Unit {
+fn joined(ex: &task.Executor) -> Unit {
     let t = ex.spawn(consume(make(88)))
     let _ = t.join()
     print "after join"
@@ -43,10 +43,10 @@ fn joined(ex: task.Executor) -> Unit {
 never()
 print "after never"
 let ex = task.local()
-awaited(ex)
-neverJoined(ex)
+awaited(&ex)
+neverJoined(&ex)
 print "after neverJoined"
-joined(ex)
+joined(&ex)
 print "done"
 -- stdout --
 created, not awaited

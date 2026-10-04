@@ -4,21 +4,31 @@
 pub type Builder
 
 /// The `kigumi build` invocation this run of `configure` serves.
+/// Safety: a read-only view over the request; its accessors touch no build-graph state, so duplicating it is free.
+@unsafeGuarantee(Copy)
 pub type Request
 
 /// A target triple such as `"x86_64-linux-musl"` or `"x86_64-freestanding"`; the host when empty.
 /// Resolved when the graph executes, so a bad triple is a build error there, never a `configure` failure.
+/// Safety: either a plain triple string or an index into the build graph's target table; duplicating it does not touch build-graph state.
+@unsafeGuarantee(Copy)
 pub type Target
 
 /// A provider-namespaced Framework (`b.framework("intel/sgx-sdk", "2.30")`) whose descriptor lists the
 /// external tools `runTool` may call.
+/// Safety: a plain index into the build graph's framework table; duplicating it does not touch build-graph state.
+@unsafeGuarantee(Copy)
 pub type Framework
 
 /// An opaque build secret (a signing key). `configure` never sees its bytes; `runTool` binds it to a
 /// `$secret:<i>` argument for one tool run.
+/// Safety: a plain index into the build graph's secret table, never the key bytes; duplicating it does not touch build-graph state.
+@unsafeGuarantee(Copy)
 pub type Secret
 
 /// A file inside the root module, a required module or the build output directory.
+/// Safety: a plain index into the build graph's file table; duplicating it does not touch build-graph state.
+@unsafeGuarantee(Copy)
 pub type FilePath
 
 /// A declared executable or library artifact.

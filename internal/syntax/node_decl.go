@@ -25,6 +25,14 @@ const (
 	InstantiateDecl
 	LayoutClause
 	Attr
+	// UnsafeGuarantee is `@unsafeGuarantee(Rule, ...)`: a list of UGRule.
+	UnsafeGuarantee
+	// UGRule is one `Property ["when" Requirement ("&&" Requirement)*]`;
+	// Tok is the property name, Lhs the requirement List (0 if unconditional).
+	UGRule
+	// UGRequirement is `TypeParam ":" Property ("+" Property)*`; Tok is the
+	// type parameter name, Lhs the List of property Ident leaves.
+	UGRequirement
 	Visibility
 
 	LetStmt
@@ -54,7 +62,8 @@ var declKindNames = [...]string{
 	"File", "FnDecl", "Param", "GenericParam", "TypeDecl", "RecordBody",
 	"ResourceBody", "AdtBody", "AliasBody", "Field", "Variant", "VariantField",
 	"Metadata", "MetaItem", "InterfaceDecl", "ConstDecl", "ImportDecl", "ImportAlias", "TestDecl",
-	"AbiBlock", "ContractBlock", "Instantiate", "Layout", "Attr", "Visibility",
+	"AbiBlock", "ContractBlock", "Instantiate", "Layout", "Attr",
+	"UnsafeGuarantee", "UGRule", "UGRequirement", "Visibility",
 	"Let", "ExprStmt", "Assign", "Defer", "Errdefer",
 	"List",
 	"TypePath", "TypeLifetime", "TypeOptional", "TypeResult", "TypeFn", "TypePtr", "TypeRef", "TypeTuple", "Path",
@@ -114,6 +123,7 @@ var shapes = map[NodeKind]shape{
 	Variant: sL, VariantField: sFlagR, Metadata: sList, MetaItem: sLR, InterfaceDecl: sRec,
 	ConstDecl: sRec, ImportDecl: sRec, ImportAlias: sLR, TestDecl: sTokR, AbiBlock: sLR, ContractBlock: sFlagR,
 	InstantiateDecl: sTokR, LayoutClause: sL, Attr: sLR, Visibility: sTokR,
+	UnsafeGuarantee: sList, UGRule: sL, UGRequirement: sL,
 	LetStmt: sRec, ExprStmt: sL, AssignStmt: sLR, DeferStmt: sL, ErrdeferStmt: sL,
 	List:     sList,
 	TypePath: sLR, TypeLifetime: sLeaf, TypeOptional: sL, TypeResult: sL, TypeFn: sRec, TypePtr: sFlagR,
