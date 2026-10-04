@@ -10,6 +10,7 @@ import (
 	"kigumi/internal/cli/build"
 	"kigumi/internal/cli/check"
 	"kigumi/internal/cli/doc"
+	"kigumi/internal/cli/doctor"
 	"kigumi/internal/cli/explain"
 	"kigumi/internal/cli/fmtcmd"
 	"kigumi/internal/cli/get"
@@ -62,7 +63,7 @@ func RootCmd() *cobra.Command {
 	}
 	root.Version = version.Toolchain
 	root.SetVersionTemplate("kigumi version {{.Version}}\n")
-	root.AddCommand(parse.Cmd(), fmtcmd.Cmd(), check.Cmd(), run.Cmd(), run.TestCmd(), build.Cmd(), doc.Cmd(), doc.SchemaCmd(), get.Cmd(), mod.Cmd(), lsp.Cmd(), explain.Cmd())
+	root.AddCommand(parse.Cmd(), fmtcmd.Cmd(), check.Cmd(), run.Cmd(), run.TestCmd(), build.Cmd(), doc.Cmd(), doc.SchemaCmd(), get.Cmd(), mod.Cmd(), lsp.Cmd(), explain.Cmd(), doctor.Cmd())
 	return root
 }
 

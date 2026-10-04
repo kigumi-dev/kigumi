@@ -64,6 +64,48 @@ jobs:
       - run: go test -timeout 60m ./internal/driver/
       - run: KIGUMI_CFLAGS=-DKIGUMI_RC_CHECK go test -timeout 60m ./internal/driver/
       - run: KIGUMI_CFLAGS='-fsanitize=address,undefined -g' go test -timeout 60m -run 'TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/driver/
+      # internal/cli and internal/testtool each have one native-toolchain test, skipped by the hermetic job above.
+      - run: go test -timeout 10m ./internal/cli/... ./internal/testtool/...
+
+  benchmarks:
+    name: benchmarks (observation only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      # The Go microbenchmarks, as Go's own versioned test2json.
+      - run: go test -run '^$' -bench . -benchtime=1x -json ./internal/syntax/ ./internal/sem/ ./internal/mir/ ./internal/vm/ ./internal/llgen/ > bench-micro.json
+      # The process-level runner, as versioned JSON Lines.
+      - run: go run ./cmd/e2ebench -module examples/fizzbuzz > bench-e2e.jsonl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-${{ github.sha }}
+          path: |
+            bench-micro.json
+            bench-e2e.jsonl
+
+  editor:
+    name: VS Code extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm build
+      - run: pnpm package
+        working-directory: editors/vscode
 
   # The reusable workflow other Kigumi repositories call, exercised on an
   # example module with the toolchain built from this checkout.

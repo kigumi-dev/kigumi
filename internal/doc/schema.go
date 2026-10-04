@@ -7,6 +7,7 @@ import (
 	"kigumi/internal/driver"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
+	"kigumi/internal/version"
 )
 
 // Declaration is one top-level declaration with its metadata attributes:
@@ -158,6 +159,11 @@ func literalJSON(lit sem.Literal) any {
 
 // SchemaJSON renders the declarations for tools.
 func SchemaJSON(decls []Declaration) string {
-	out, _ := json.MarshalIndent(decls, "", "  ")
+	wrapped := struct {
+		FormatVersion int                `json:"formatVersion"`
+		Toolchain     version.Provenance `json:"toolchain"`
+		Declarations  []Declaration      `json:"declarations"`
+	}{FormatVersion: version.SchemaFormatVersion, Toolchain: version.Current(), Declarations: decls}
+	out, _ := json.MarshalIndent(wrapped, "", "  ")
 	return string(out) + "\n"
 }

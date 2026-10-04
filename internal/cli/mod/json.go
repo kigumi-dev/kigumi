@@ -8,16 +8,19 @@ import (
 	"kigumi/internal/cliutil"
 	"kigumi/internal/driver"
 	"kigumi/internal/errors"
+	"kigumi/internal/version"
 )
 
 type manifestJSON struct {
-	Name     string                `json:"name"`
-	Kigumi   string                `json:"kigumi"`
-	Requires []requireJSON         `json:"requires"`
-	Links    []driver.Link         `json:"links"`
-	Sources  []driver.NativeSource `json:"sources"`
-	Local    map[string]string     `json:"local"`
-	Lock     map[string]lockJSON   `json:"lock"`
+	FormatVersion int                   `json:"formatVersion"`
+	Toolchain     version.Provenance    `json:"toolchain"`
+	Name          string                `json:"name"`
+	Kigumi        string                `json:"kigumi"`
+	Requires      []requireJSON         `json:"requires"`
+	Links         []driver.Link         `json:"links"`
+	Sources       []driver.NativeSource `json:"sources"`
+	Local         map[string]string     `json:"local"`
+	Lock          map[string]lockJSON   `json:"lock"`
 }
 
 type requireJSON struct {
@@ -55,7 +58,7 @@ func jsonCmd(root *string) *cobra.Command {
 			if err != nil {
 				return errors.WrapErr(err, "read local overrides")
 			}
-			out := manifestJSON{Name: mf.Name, Kigumi: mf.Kigumi, Requires: []requireJSON{}, Links: mf.Links, Sources: mf.Sources, Local: local.Replaces, Lock: map[string]lockJSON{}}
+			out := manifestJSON{FormatVersion: version.ModJSONFormatVersion, Toolchain: version.Current(), Name: mf.Name, Kigumi: mf.Kigumi, Requires: []requireJSON{}, Links: mf.Links, Sources: mf.Sources, Local: local.Replaces, Lock: map[string]lockJSON{}}
 			for _, r := range mf.Requires {
 				out.Requires = append(out.Requires, requireJSON{Name: r.Name, Version: r.Version, URL: r.URL})
 			}
