@@ -30,6 +30,7 @@ var allowed = map[string][]string{
 	"llgen":       {"token", "diag", "syntax", "sem", "mir"},
 	"hashkey":     {},
 	"cheader":     {},
+	"testtool":    {},
 	"interp":      {"token", "diag", "syntax", "sem", "hostshell", "netsock", "hashkey"},
 	"vm":          {"token", "diag", "syntax", "sem", "mir", "hostshell", "buildgraph", "netsock", "hashkey"},
 	"driver":      {"token", "diag", "syntax", "printer", "sem", "mir", "llgen", "interp", "vm", "buildgraph", "version", "platform", "target", "cheader"},
@@ -60,7 +61,7 @@ func TestDependencyDAG(t *testing.T) {
 		pkg := strings.TrimPrefix(pkgPath, mod)
 		ok, known := allowed[pkg]
 		if !known {
-			t.Errorf("%s は層表にない(kigumi_layout_v1.md §3 を更新せよ)", pkg)
+			t.Errorf("%s は層表にない(internal/arch/deps_test.go の層表を更新せよ)", pkg)
 			continue
 		}
 		imports, err := exec.Command("go", "list", "-f",

@@ -19,6 +19,36 @@ jobs:
       - run: go test -timeout 60m ./...
       - run: go test -run 'Fuzz' -fuzz 'Fuzz' -fuzztime 20s ./internal/syntax/
 
+  race:
+    name: race (${{ matrix.pkg }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: [syntax, sem, mir, vm]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - run: go test -race ./internal/${{ matrix.pkg }}/...
+
+  audit:
+    name: test audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - run: go run ./cmd/testaudit -out test-audit.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-audit
+          path: test-audit.json
+
   aot:
     name: AOT with pinned zig
     runs-on: ubuntu-latest

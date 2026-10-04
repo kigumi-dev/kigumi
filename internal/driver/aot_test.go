@@ -5,28 +5,44 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"kigumi/internal/driver"
+	"kigumi/internal/testtool"
 )
 
-// TestAotCorpus builds every testdata/run program ahead of time and compares
-// its output with the interpreter's expectations; it is skipped without a
-// C compiler.
+// A fixture whose manifest mode excludes native is skipped with that
+// reason instead of being built anyway.
 func TestAotCorpus(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
+	manifest := loadManifest(t)
 	files, _ := filepath.Glob("../../testdata/run/*.txtar")
+	want, ran := 0, 0
 	for _, path := range files {
-		t.Run(filepath.Base(path), func(t *testing.T) {
-			runAot(t, path)
-		})
+		id := fixtureID(path)
+		fx := manifest.ByID(id)
+		if fx == nil {
+			t.Fatalf("%s: no manifest entry (run UPDATE=1 go test -run TestManifestFresh ./internal/driver/)", id)
+		}
+		if !fx.Runs("native") {
+			t.Run(filepath.Base(path), func(t *testing.T) {
+				t.Skipf("manifest: %s excludes native (%v)", id, fx.Skip)
+			})
+			continue
+		}
+		want++
+		if ok := t.Run(filepath.Base(path), func(t *testing.T) {
+			runAot(t, path, fx)
+		}); ok {
+			ran++
+		}
 	}
+	t.Logf("native: expect %d, ran %d", want, ran)
 }
 
-func runAot(t *testing.T, path string) {
+func runAot(t *testing.T, path string, fx *testtool.Fixture) {
 	root, wantOut, wantErr, wantExit := loadRunFixture(t, path)
 	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
@@ -53,8 +69,12 @@ func runAot(t *testing.T, path string) {
 	if out.String() != wantOut {
 		t.Errorf("stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), wantOut)
 	}
-	if wantErr != "" && !strings.Contains(errOut.String(), strings.TrimSpace(wantErr)) {
-		t.Errorf("stderr mismatch\n--- got ---\n%s--- want ---\n%s", errOut.String(), wantErr)
+	var stderrMatch *testtool.StderrMatch
+	if fx != nil {
+		stderrMatch = fx.Stderr
+	}
+	if err := testtool.CheckStderr(stderrMatch, wantErr, errOut.String()); err != nil {
+		t.Error(err)
 	}
 	if code != wantExit {
 		t.Errorf("exit %d, want %d\nstderr:\n%s", code, wantExit, errOut.String())

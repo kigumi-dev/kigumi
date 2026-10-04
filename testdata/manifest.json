@@ -1,0 +1,7955 @@
+{
+  "schema": 1,
+  "reasons": {
+    "native-only": "the construct is native-only (C ABI, asm, cfnptr, ffi, dl); `kigumi build` runs it",
+    "static-refusal": "this engine cannot run a construct the fixture needs (the VM's Supports check statically refuses it by name, or the tree interpreter would panic on it); only the engines left in mode run the fixture."
+  },
+  "fixtures": [
+    {
+      "id": "fmt/adt_leading_bar",
+      "kind": "fmt",
+      "path": "testdata/fmt/adt_leading_bar.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/adt_single_variant",
+      "kind": "fmt",
+      "path": "testdata/fmt/adt_single_variant.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/andor_leading",
+      "kind": "fmt",
+      "path": "testdata/fmt/andor_leading.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/andor_multiline_rhs",
+      "kind": "fmt",
+      "path": "testdata/fmt/andor_multiline_rhs.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/andor_singleline_chain",
+      "kind": "fmt",
+      "path": "testdata/fmt/andor_singleline_chain.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/andor_trailing",
+      "kind": "fmt",
+      "path": "testdata/fmt/andor_trailing.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/asm",
+      "kind": "fmt",
+      "path": "testdata/fmt/asm.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/break_value",
+      "kind": "fmt",
+      "path": "testdata/fmt/break_value.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/byte_string_in_interpolation",
+      "kind": "fmt",
+      "path": "testdata/fmt/byte_string_in_interpolation.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/canonical",
+      "kind": "fmt",
+      "path": "testdata/fmt/canonical.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/const_generic",
+      "kind": "fmt",
+      "path": "testdata/fmt/const_generic.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/doc_comments",
+      "kind": "fmt",
+      "path": "testdata/fmt/doc_comments.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/escaping_param",
+      "kind": "fmt",
+      "path": "testdata/fmt/escaping_param.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/import_rename",
+      "kind": "fmt",
+      "path": "testdata/fmt/import_rename.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/lifetime",
+      "kind": "fmt",
+      "path": "testdata/fmt/lifetime.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/lit_byte_string",
+      "kind": "fmt",
+      "path": "testdata/fmt/lit_byte_string.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/named_args",
+      "kind": "fmt",
+      "path": "testdata/fmt/named_args.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/pattern_range",
+      "kind": "fmt",
+      "path": "testdata/fmt/pattern_range.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/shebang",
+      "kind": "fmt",
+      "path": "testdata/fmt/shebang.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/tuple",
+      "kind": "fmt",
+      "path": "testdata/fmt/tuple.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/unit",
+      "kind": "fmt",
+      "path": "testdata/fmt/unit.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/affine_type_param_borrow_move",
+      "kind": "mir",
+      "path": "testdata/mir/affine_type_param_borrow_move.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/affine_type_param_copy_ok",
+      "kind": "mir",
+      "path": "testdata/mir/affine_type_param_copy_ok.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/affine_type_param_double_consume",
+      "kind": "mir",
+      "path": "testdata/mir/affine_type_param_double_consume.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/basic",
+      "kind": "mir",
+      "path": "testdata/mir/basic.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/borrow",
+      "kind": "mir",
+      "path": "testdata/mir/borrow.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/borrow_capture_move",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_capture_move.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/borrow_field_move",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_field_move.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/borrow_projection_conflict",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_projection_conflict.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/borrow_record_variant_move",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_record_variant_move.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/borrow_with_mut",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_with_mut.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/borrowed_self",
+      "kind": "mir",
+      "path": "testdata/mir/borrowed_self.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/comptime_multi_block",
+      "kind": "mir",
+      "path": "testdata/mir/comptime_multi_block.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/defer_move_reassign",
+      "kind": "mir",
+      "path": "testdata/mir/defer_move_reassign.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/disjoint_field_borrow",
+      "kind": "mir",
+      "path": "testdata/mir/disjoint_field_borrow.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/early_return",
+      "kind": "mir",
+      "path": "testdata/mir/early_return.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/empty_push_return",
+      "kind": "mir",
+      "path": "testdata/mir/empty_push_return.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/escape_immediate_branch",
+      "kind": "mir",
+      "path": "testdata/mir/escape_immediate_branch.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/escape_immediate_span",
+      "kind": "mir",
+      "path": "testdata/mir/escape_immediate_span.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/fallback_diverge",
+      "kind": "mir",
+      "path": "testdata/mir/fallback_diverge.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/fix_closure_erase_pure",
+      "kind": "mir",
+      "path": "testdata/mir/fix_closure_erase_pure.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/fix_lead_ownfield",
+      "kind": "mir",
+      "path": "testdata/mir/fix_lead_ownfield.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/fix_self_closure_cell",
+      "kind": "mir",
+      "path": "testdata/mir/fix_self_closure_cell.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/for_borrow_move_err",
+      "kind": "mir",
+      "path": "testdata/mir/for_borrow_move_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/for_borrowed_array",
+      "kind": "mir",
+      "path": "testdata/mir/for_borrowed_array.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/if_discard_ffi",
+      "kind": "mir",
+      "path": "testdata/mir/if_discard_ffi.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/if_let_refutable",
+      "kind": "mir",
+      "path": "testdata/mir/if_let_refutable.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_borrow_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_borrow_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_branch_ambiguous_scope_exit_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_branch_ambiguous_scope_exit_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_branch_mixed_kind_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_branch_mixed_kind_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_branch_same_kind_inherited_tracked",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_branch_same_kind_inherited_tracked.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_branch_same_kind_owned_tracked",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_branch_same_kind_owned_tracked.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_callvalue_composite_untracked_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_callvalue_composite_untracked_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_callvalue_untracked_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_callvalue_untracked_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_future_multi_owner_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_future_multi_owner_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_future_tracked",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_future_tracked.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_generic_call_tracked",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_generic_call_tracked.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_generic_call_untracked_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_generic_call_untracked_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_generic_multi_param_ambiguous_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_generic_multi_param_ambiguous_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_generic_multi_param_mismatch_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_generic_multi_param_mismatch_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_generic_multi_param_tracked",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_generic_multi_param_tracked.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_multi_param_ambiguous_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_multi_param_ambiguous_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_param_composite_escape_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_param_composite_escape_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_param_direct_escape_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_param_direct_escape_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_param_receiver_escape_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_param_receiver_escape_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_param_receiver_record_escape_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_param_receiver_record_escape_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_receiver_escape_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_receiver_escape_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_receiver_param_ambiguous_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_receiver_param_ambiguous_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_scope_exit_future_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_scope_exit_future_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_scope_exit_mut_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_scope_exit_mut_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_scope_exit_plain_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_scope_exit_plain_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_scope_exit_view_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_scope_exit_view_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_witness_ambiguous_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_witness_ambiguous_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_witness_receiver_return_mismatch_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_witness_receiver_return_mismatch_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_witness_receiver_return_tracked",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_witness_receiver_return_tracked.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/lifetime_witness_static_ambiguous_err",
+      "kind": "mir",
+      "path": "testdata/mir/lifetime_witness_static_ambiguous_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/loop_never",
+      "kind": "mir",
+      "path": "testdata/mir/loop_never.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/own_await",
+      "kind": "mir",
+      "path": "testdata/mir/own_await.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/ownership",
+      "kind": "mir",
+      "path": "testdata/mir/ownership.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/partial_move_closure_capture",
+      "kind": "mir",
+      "path": "testdata/mir/partial_move_closure_capture.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/partial_move_drop",
+      "kind": "mir",
+      "path": "testdata/mir/partial_move_drop.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/reborrow_alias",
+      "kind": "mir",
+      "path": "testdata/mir/reborrow_alias.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/reborrow_async",
+      "kind": "mir",
+      "path": "testdata/mir/reborrow_async.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/reborrow_conflict",
+      "kind": "mir",
+      "path": "testdata/mir/reborrow_conflict.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/reborrow_generic_escape",
+      "kind": "mir",
+      "path": "testdata/mir/reborrow_generic_escape.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/reinit",
+      "kind": "mir",
+      "path": "testdata/mir/reinit.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/self_closure_reassign_adt",
+      "kind": "mir",
+      "path": "testdata/mir/self_closure_reassign_adt.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/self_closure_reassign_resource",
+      "kind": "mir",
+      "path": "testdata/mir/self_closure_reassign_resource.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/spread_borrow_copy",
+      "kind": "mir",
+      "path": "testdata/mir/spread_borrow_copy.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/std_io_bytes_writer_reuse",
+      "kind": "mir",
+      "path": "testdata/mir/std_io_bytes_writer_reuse.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/std_io_generic_forward_gap",
+      "kind": "mir",
+      "path": "testdata/mir/std_io_generic_forward_gap.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/std_io_generic_forward_hazard",
+      "kind": "mir",
+      "path": "testdata/mir/std_io_generic_forward_hazard.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/unit_bare_return",
+      "kind": "mir",
+      "path": "testdata/mir/unit_bare_return.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/unit_ok_fallthrough",
+      "kind": "mir",
+      "path": "testdata/mir/unit_ok_fallthrough.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/asm",
+      "kind": "parser",
+      "path": "testdata/parser/asm.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/byte_string_in_interpolation",
+      "kind": "parser",
+      "path": "testdata/parser/byte_string_in_interpolation.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/byte_string_in_interpolation_err",
+      "kind": "parser",
+      "path": "testdata/parser/byte_string_in_interpolation_err.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/const_generic",
+      "kind": "parser",
+      "path": "testdata/parser/const_generic.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/decl_fn",
+      "kind": "parser",
+      "path": "testdata/parser/decl_fn.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/decl_misc",
+      "kind": "parser",
+      "path": "testdata/parser/decl_misc.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/decl_type",
+      "kind": "parser",
+      "path": "testdata/parser/decl_type.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/decl_unsafe_guarantee",
+      "kind": "parser",
+      "path": "testdata/parser/decl_unsafe_guarantee.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/errors_leading_andor",
+      "kind": "parser",
+      "path": "testdata/parser/errors_leading_andor.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/errors_mixing",
+      "kind": "parser",
+      "path": "testdata/parser/errors_mixing.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/errors_recovery",
+      "kind": "parser",
+      "path": "testdata/parser/errors_recovery.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/errors_unsafe_guarantee",
+      "kind": "parser",
+      "path": "testdata/parser/errors_unsafe_guarantee.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/errors_v26",
+      "kind": "parser",
+      "path": "testdata/parser/errors_v26.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/expr_call",
+      "kind": "parser",
+      "path": "testdata/parser/expr_call.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/expr_ops",
+      "kind": "parser",
+      "path": "testdata/parser/expr_ops.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/fix_syntax_invalid_utf8",
+      "kind": "parser",
+      "path": "testdata/parser/fix_syntax_invalid_utf8.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/fix_syntax_redirect_fd_overflow",
+      "kind": "parser",
+      "path": "testdata/parser/fix_syntax_redirect_fd_overflow.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/import_rename",
+      "kind": "parser",
+      "path": "testdata/parser/import_rename.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/lifetime",
+      "kind": "parser",
+      "path": "testdata/parser/lifetime.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/lit_byte_string",
+      "kind": "parser",
+      "path": "testdata/parser/lit_byte_string.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/lit_byte_string_err",
+      "kind": "parser",
+      "path": "testdata/parser/lit_byte_string_err.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/lit_byte_string_err_short_hex",
+      "kind": "parser",
+      "path": "testdata/parser/lit_byte_string_err_short_hex.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/lit_string_escape_unicode_err",
+      "kind": "parser",
+      "path": "testdata/parser/lit_string_escape_unicode_err.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/lit_string_shell",
+      "kind": "parser",
+      "path": "testdata/parser/lit_string_shell.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/named_args",
+      "kind": "parser",
+      "path": "testdata/parser/named_args.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/named_args_ws_call",
+      "kind": "parser",
+      "path": "testdata/parser/named_args_ws_call.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/pattern_or",
+      "kind": "parser",
+      "path": "testdata/parser/pattern_or.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/pattern_range",
+      "kind": "parser",
+      "path": "testdata/parser/pattern_range.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/stmt_control",
+      "kind": "parser",
+      "path": "testdata/parser/stmt_control.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/tuple",
+      "kind": "parser",
+      "path": "testdata/parser/tuple.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/unit",
+      "kind": "parser",
+      "path": "testdata/parser/unit.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "run/adt",
+      "kind": "run",
+      "path": "testdata/run/adt.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/alloc",
+      "kind": "run",
+      "path": "testdata/run/alloc.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/alloc_error",
+      "kind": "run",
+      "path": "testdata/run/alloc_error.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/alloc_try",
+      "kind": "run",
+      "path": "testdata/run/alloc_try.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/array_bulk",
+      "kind": "run",
+      "path": "testdata/run/array_bulk.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async",
+      "kind": "run",
+      "path": "testdata/run/async.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_fn_value",
+      "kind": "run",
+      "path": "testdata/run/async_fn_value.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_method",
+      "kind": "run",
+      "path": "testdata/run/async_method.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/bind_temp_share",
+      "kind": "run",
+      "path": "testdata/run/bind_temp_share.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_match",
+      "kind": "run",
+      "path": "testdata/run/borrow_match.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/break_value",
+      "kind": "run",
+      "path": "testdata/run/break_value.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/byte_string_in_interpolation",
+      "kind": "run",
+      "path": "testdata/run/byte_string_in_interpolation.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/byte_string_literal",
+      "kind": "run",
+      "path": "testdata/run/byte_string_literal.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/bytes_concat_large",
+      "kind": "run",
+      "path": "testdata/run/bytes_concat_large.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/bytes_fill_huge",
+      "kind": "run",
+      "path": "testdata/run/bytes_fill_huge.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: out of memory"
+      }
+    },
+    {
+      "id": "run/bytes_search",
+      "kind": "run",
+      "path": "testdata/run/bytes_search.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/bytes_slice",
+      "kind": "run",
+      "path": "testdata/run/bytes_slice.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/bytes_zeros_huge",
+      "kind": "run",
+      "path": "testdata/run/bytes_zeros_huge.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: out of memory"
+      }
+    },
+    {
+      "id": "run/call_plan_order",
+      "kind": "run",
+      "path": "testdata/run/call_plan_order.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cell_capture_copy",
+      "kind": "run",
+      "path": "testdata/run/cell_capture_copy.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cfnptr",
+      "kind": "run",
+      "path": "testdata/run/cfnptr.txtar",
+      "mode": [
+        "interp",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "native-only"
+      }
+    },
+    {
+      "id": "run/closure_captured_mut_call",
+      "kind": "run",
+      "path": "testdata/run/closure_captured_mut_call.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/closures",
+      "kind": "run",
+      "path": "testdata/run/closures.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/collection_ownership",
+      "kind": "run",
+      "path": "testdata/run/collection_ownership.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/comptime",
+      "kind": "run",
+      "path": "testdata/run/comptime.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/comptime_multi_block",
+      "kind": "run",
+      "path": "testdata/run/comptime_multi_block.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/conform_generic_method_constraint_dispatch",
+      "kind": "run",
+      "path": "testdata/run/conform_generic_method_constraint_dispatch.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/conform_generic_method_dispatch",
+      "kind": "run",
+      "path": "testdata/run/conform_generic_method_dispatch.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/conform_generic_method_own_constrained",
+      "kind": "run",
+      "path": "testdata/run/conform_generic_method_own_constrained.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/conform_generic_method_param_iface_dispatch",
+      "kind": "run",
+      "path": "testdata/run/conform_generic_method_param_iface_dispatch.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_float",
+      "kind": "run",
+      "path": "testdata/run/const_float.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_generic_fn",
+      "kind": "run",
+      "path": "testdata/run/const_generic_fn.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/const_generic_method",
+      "kind": "run",
+      "path": "testdata/run/const_generic_method.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/control",
+      "kind": "run",
+      "path": "testdata/run/control.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/conversions",
+      "kind": "run",
+      "path": "testdata/run/conversions.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/custom_eq",
+      "kind": "run",
+      "path": "testdata/run/custom_eq.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/custom_index_witness",
+      "kind": "run",
+      "path": "testdata/run/custom_index_witness.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/custom_index_witness_nonusize",
+      "kind": "run",
+      "path": "testdata/run/custom_index_witness_nonusize.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/custom_index_witness_order",
+      "kind": "run",
+      "path": "testdata/run/custom_index_witness_order.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cvalue",
+      "kind": "run",
+      "path": "testdata/run/cvalue.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cvalue_scalar",
+      "kind": "run",
+      "path": "testdata/run/cvalue_scalar.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer",
+      "kind": "run",
+      "path": "testdata/run/defer.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_move_reassign",
+      "kind": "run",
+      "path": "testdata/run/defer_move_reassign.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/discard_place_drop",
+      "kind": "run",
+      "path": "testdata/run/discard_place_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/disjoint_field_borrow",
+      "kind": "run",
+      "path": "testdata/run/disjoint_field_borrow.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/drop",
+      "kind": "run",
+      "path": "testdata/run/drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/effect_poly_args_closures",
+      "kind": "run",
+      "path": "testdata/run/effect_poly_args_closures.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/effect_poly_field",
+      "kind": "run",
+      "path": "testdata/run/effect_poly_field.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/effect_poly_iface_call",
+      "kind": "run",
+      "path": "testdata/run/effect_poly_iface_call.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/effect_poly_iface_generic",
+      "kind": "run",
+      "path": "testdata/run/effect_poly_iface_generic.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/effect_poly_param_forward",
+      "kind": "run",
+      "path": "testdata/run/effect_poly_param_forward.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/effect_poly_wrap_generic",
+      "kind": "run",
+      "path": "testdata/run/effect_poly_wrap_generic.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/entropy_bytes_huge",
+      "kind": "run",
+      "path": "testdata/run/entropy_bytes_huge.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/entropy_host",
+      "kind": "run",
+      "path": "testdata/run/entropy_host.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/entry_intrinsics_ok",
+      "kind": "run",
+      "path": "testdata/run/entry_intrinsics_ok.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/error_as",
+      "kind": "run",
+      "path": "testdata/run/error_as.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/error_context",
+      "kind": "run",
+      "path": "testdata/run/error_context.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/errors",
+      "kind": "run",
+      "path": "testdata/run/errors.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/escape_capborrow",
+      "kind": "run",
+      "path": "testdata/run/escape_capborrow.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/explicit_main_http_fallback",
+      "kind": "run",
+      "path": "testdata/run/explicit_main_http_fallback.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/f32_rounding",
+      "kind": "run",
+      "path": "testdata/run/f32_rounding.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fallback_tail",
+      "kind": "run",
+      "path": "testdata/run/fallback_tail.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/ffi_cvalue_explicit_drop",
+      "kind": "run",
+      "path": "testdata/run/ffi_cvalue_explicit_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/ffi_nested_packed",
+      "kind": "run",
+      "path": "testdata/run/ffi_nested_packed.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/ffi_sizeof_scalar",
+      "kind": "run",
+      "path": "testdata/run/ffi_sizeof_scalar.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_borrow_bind_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_borrow_bind_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_capture_ref_write",
+      "kind": "run",
+      "path": "testdata/run/fix_capture_ref_write.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_closure_erase_pure",
+      "kind": "run",
+      "path": "testdata/run/fix_closure_erase_pure.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_convert_value",
+      "kind": "run",
+      "path": "testdata/run/fix_convert_value.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_float_precision",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_float_precision.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_iface_manyargs",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_iface_manyargs.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_instant_utc_floor",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_instant_utc_floor.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_json_decode_width",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_json_decode_width.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_json_lone_surrogate",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_json_lone_surrogate.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_json_number_grammar",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_json_number_grammar.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_qsort_empty_dir",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_qsort_empty_dir.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_shell_pipe_chain",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_shell_pipe_chain.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_shell_startup_errors",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_shell_startup_errors.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_crt_tilde_mask",
+      "kind": "run",
+      "path": "testdata/run/fix_crt_tilde_mask.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_error_message",
+      "kind": "run",
+      "path": "testdata/run/fix_error_message.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_fallback_diverge",
+      "kind": "run",
+      "path": "testdata/run/fix_fallback_diverge.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_fn_constraint_self_ref",
+      "kind": "run",
+      "path": "testdata/run/fix_fn_constraint_self_ref.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_fs_mkdir_eexist",
+      "kind": "run",
+      "path": "testdata/run/fix_fs_mkdir_eexist.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_assign_order",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_assign_order.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_bracket_move_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_bracket_move_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_chained_bracket_move_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_chained_bracket_move_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_coerce_arg_move_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_coerce_arg_move_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_compound_assign_once",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_compound_assign_once.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_double_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_double_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_future_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_future_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_json_control_chars",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_json_control_chars.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_mut_arg",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_mut_arg.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_nested_tail_for",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_nested_tail_for.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_partial_bind_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_partial_bind_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_self_let_alias",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_self_let_alias.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_interp_shell_stderr",
+      "kind": "run",
+      "path": "testdata/run/fix_interp_shell_stderr.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_json_float_roundtrip",
+      "kind": "run",
+      "path": "testdata/run/fix_json_float_roundtrip.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_json_string_control_chars",
+      "kind": "run",
+      "path": "testdata/run/fix_json_string_control_chars.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_lead_borrow_temp",
+      "kind": "run",
+      "path": "testdata/run/fix_lead_borrow_temp.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_lead_pipe_early_exit",
+      "kind": "run",
+      "path": "testdata/run/fix_lead_pipe_early_exit.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_lead_shell_redirect",
+      "kind": "run",
+      "path": "testdata/run/fix_lead_shell_redirect.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_lead_try_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_lead_try_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_let_self_borrow",
+      "kind": "run",
+      "path": "testdata/run/fix_let_self_borrow.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_literal_borrow",
+      "kind": "run",
+      "path": "testdata/run/fix_literal_borrow.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_loop_never",
+      "kind": "run",
+      "path": "testdata/run/fix_loop_never.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_map_eq",
+      "kind": "run",
+      "path": "testdata/run/fix_map_eq.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_mir_early_exit_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_mir_early_exit_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_self_closure_write",
+      "kind": "run",
+      "path": "testdata/run/fix_self_closure_write.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_self_nested_closure",
+      "kind": "run",
+      "path": "testdata/run/fix_self_nested_closure.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_sem_call_rooted_index_drop",
+      "kind": "run",
+      "path": "testdata/run/fix_sem_call_rooted_index_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_unit_protocol",
+      "kind": "run",
+      "path": "testdata/run/fix_unit_protocol.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fix_vm_implicit_drop_accel",
+      "kind": "run",
+      "path": "testdata/run/fix_vm_implicit_drop_accel.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fixed_array",
+      "kind": "run",
+      "path": "testdata/run/fixed_array.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fixed_array_ffi",
+      "kind": "run",
+      "path": "testdata/run/fixed_array_ffi.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "interp": "static-refusal",
+        "vm": "static-refusal"
+      }
+    },
+    {
+      "id": "run/fixed_array_move",
+      "kind": "run",
+      "path": "testdata/run/fixed_array_move.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/float_nan",
+      "kind": "run",
+      "path": "testdata/run/float_nan.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/float_total_eq_ord",
+      "kind": "run",
+      "path": "testdata/run/float_total_eq_ord.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_borrow",
+      "kind": "run",
+      "path": "testdata/run/for_borrow.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_borrow_discard_drop",
+      "kind": "run",
+      "path": "testdata/run/for_borrow_discard_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_borrow_field_drop",
+      "kind": "run",
+      "path": "testdata/run/for_borrow_field_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_borrow_mut",
+      "kind": "run",
+      "path": "testdata/run/for_borrow_mut.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_borrow_temp_drop",
+      "kind": "run",
+      "path": "testdata/run/for_borrow_temp_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_map_forms",
+      "kind": "run",
+      "path": "testdata/run/for_map_forms.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_owned_consume",
+      "kind": "run",
+      "path": "testdata/run/for_owned_consume.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fs_append",
+      "kind": "run",
+      "path": "testdata/run/fs_append.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fs_read_error",
+      "kind": "run",
+      "path": "testdata/run/fs_read_error.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/future_await_once",
+      "kind": "run",
+      "path": "testdata/run/future_await_once.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generic_callable_borrow",
+      "kind": "run",
+      "path": "testdata/run/generic_callable_borrow.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generic_callable_withmut",
+      "kind": "run",
+      "path": "testdata/run/generic_callable_withmut.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generic_resource_ownership",
+      "kind": "run",
+      "path": "testdata/run/generic_resource_ownership.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generics",
+      "kind": "run",
+      "path": "testdata/run/generics.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/hash_consistency",
+      "kind": "run",
+      "path": "testdata/run/hash_consistency.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/hello",
+      "kind": "run",
+      "path": "testdata/run/hello.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/hir_scalar",
+      "kind": "run",
+      "path": "testdata/run/hir_scalar.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/if_let_refutable",
+      "kind": "run",
+      "path": "testdata/run/if_let_refutable.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/iface_static",
+      "kind": "run",
+      "path": "testdata/run/iface_static.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/import_rename",
+      "kind": "run",
+      "path": "testdata/run/import_rename.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_overflow_flag",
+      "kind": "run",
+      "path": "testdata/run/int_overflow_flag.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_saturating_signed",
+      "kind": "run",
+      "path": "testdata/run/int_saturating_signed.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_saturating_unsigned",
+      "kind": "run",
+      "path": "testdata/run/int_saturating_unsigned.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_wrapping",
+      "kind": "run",
+      "path": "testdata/run/int_wrapping.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_wrapping_narrow",
+      "kind": "run",
+      "path": "testdata/run/int_wrapping_narrow.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/is_short_circuit",
+      "kind": "run",
+      "path": "testdata/run/is_short_circuit.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/isr",
+      "kind": "run",
+      "path": "testdata/run/isr.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/json_decode",
+      "kind": "run",
+      "path": "testdata/run/json_decode.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/json_derive",
+      "kind": "run",
+      "path": "testdata/run/json_derive.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/json_map_keys",
+      "kind": "run",
+      "path": "testdata/run/json_map_keys.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/json_u64_map_key",
+      "kind": "run",
+      "path": "testdata/run/json_u64_map_key.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/json_u64_unsigned",
+      "kind": "run",
+      "path": "testdata/run/json_u64_unsigned.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/layout_align",
+      "kind": "run",
+      "path": "testdata/run/layout_align.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/leading_andor",
+      "kind": "run",
+      "path": "testdata/run/leading_andor.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/let_wildcard_drop",
+      "kind": "run",
+      "path": "testdata/run/let_wildcard_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_branch_ambiguous_same_scope",
+      "kind": "run",
+      "path": "testdata/run/lifetime_branch_ambiguous_same_scope.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_generic_call",
+      "kind": "run",
+      "path": "testdata/run/lifetime_generic_call.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_generic_multi_param_return",
+      "kind": "run",
+      "path": "testdata/run/lifetime_generic_multi_param_return.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_generic_passthrough",
+      "kind": "run",
+      "path": "testdata/run/lifetime_generic_passthrough.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_multi_param_disambiguated",
+      "kind": "run",
+      "path": "testdata/run/lifetime_multi_param_disambiguated.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_param_relabel",
+      "kind": "run",
+      "path": "testdata/run/lifetime_param_relabel.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_rc_nested",
+      "kind": "run",
+      "path": "testdata/run/lifetime_rc_nested.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_receiver_elision",
+      "kind": "run",
+      "path": "testdata/run/lifetime_receiver_elision.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_receiver_param_disambiguated",
+      "kind": "run",
+      "path": "testdata/run/lifetime_receiver_param_disambiguated.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_return",
+      "kind": "run",
+      "path": "testdata/run/lifetime_return.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_scope_exit_future_ok",
+      "kind": "run",
+      "path": "testdata/run/lifetime_scope_exit_future_ok.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_scope_exit_mut_ok",
+      "kind": "run",
+      "path": "testdata/run/lifetime_scope_exit_mut_ok.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_scope_exit_plain_ok",
+      "kind": "run",
+      "path": "testdata/run/lifetime_scope_exit_plain_ok.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_scope_exit_view_ok",
+      "kind": "run",
+      "path": "testdata/run/lifetime_scope_exit_view_ok.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_view",
+      "kind": "run",
+      "path": "testdata/run/lifetime_view.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_witness_method_in_scope",
+      "kind": "run",
+      "path": "testdata/run/lifetime_witness_method_in_scope.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_witness_receiver_return",
+      "kind": "run",
+      "path": "testdata/run/lifetime_witness_receiver_return.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_witness_static_in_scope",
+      "kind": "run",
+      "path": "testdata/run/lifetime_witness_static_in_scope.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/lifetime_witness_static_return",
+      "kind": "run",
+      "path": "testdata/run/lifetime_witness_static_return.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/literal_receiver",
+      "kind": "run",
+      "path": "testdata/run/literal_receiver.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/match_record_lit",
+      "kind": "run",
+      "path": "testdata/run/match_record_lit.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/math_abs_min_i16",
+      "kind": "run",
+      "path": "testdata/run/math_abs_min_i16.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/math_abs_min_i32",
+      "kind": "run",
+      "path": "testdata/run/math_abs_min_i32.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/math_abs_min_i8",
+      "kind": "run",
+      "path": "testdata/run/math_abs_min_i8.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/math_abs_min_int",
+      "kind": "run",
+      "path": "testdata/run/math_abs_min_int.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/math_abs_min_isize",
+      "kind": "run",
+      "path": "testdata/run/math_abs_min_isize.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/math_fixed_width",
+      "kind": "run",
+      "path": "testdata/run/math_fixed_width.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/method_typeargs",
+      "kind": "run",
+      "path": "testdata/run/method_typeargs.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_index_arg",
+      "kind": "run",
+      "path": "testdata/run/mut_index_arg.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_index_arg_out_of_range",
+      "kind": "run",
+      "path": "testdata/run/mut_index_arg_out_of_range.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: index"
+      }
+    },
+    {
+      "id": "run/mut_self_alias_disjoint",
+      "kind": "run",
+      "path": "testdata/run/mut_self_alias_disjoint.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/named_args",
+      "kind": "run",
+      "path": "testdata/run/named_args.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/nested_interpolation_deep",
+      "kind": "run",
+      "path": "testdata/run/nested_interpolation_deep.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/numeric_convert",
+      "kind": "run",
+      "path": "testdata/run/numeric_convert.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/option_result_combinators",
+      "kind": "run",
+      "path": "testdata/run/option_result_combinators.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/option_take",
+      "kind": "run",
+      "path": "testdata/run/option_take.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/panic",
+      "kind": "run",
+      "path": "testdata/run/panic.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/partial_move",
+      "kind": "run",
+      "path": "testdata/run/partial_move.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/partial_move_copy_field",
+      "kind": "run",
+      "path": "testdata/run/partial_move_copy_field.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/partial_move_expr_lambda",
+      "kind": "run",
+      "path": "testdata/run/partial_move_expr_lambda.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/partial_move_nested",
+      "kind": "run",
+      "path": "testdata/run/partial_move_nested.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/pattern_or",
+      "kind": "run",
+      "path": "testdata/run/pattern_or.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/pattern_range",
+      "kind": "run",
+      "path": "testdata/run/pattern_range.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/pin",
+      "kind": "run",
+      "path": "testdata/run/pin.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/pin_drop",
+      "kind": "run",
+      "path": "testdata/run/pin_drop.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/pin_release_reclaim",
+      "kind": "run",
+      "path": "testdata/run/pin_release_reclaim.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/pipe_insert",
+      "kind": "run",
+      "path": "testdata/run/pipe_insert.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/range_inclusive_max",
+      "kind": "run",
+      "path": "testdata/run/range_inclusive_max.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/range_literal_double",
+      "kind": "run",
+      "path": "testdata/run/range_literal_double.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/range_literal_element",
+      "kind": "run",
+      "path": "testdata/run/range_literal_element.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/reborrow_call_arg",
+      "kind": "run",
+      "path": "testdata/run/reborrow_call_arg.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/reborrow_call_arg_paren",
+      "kind": "run",
+      "path": "testdata/run/reborrow_call_arg_paren.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/recursive_adt",
+      "kind": "run",
+      "path": "testdata/run/recursive_adt.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/recv_move_self_mut",
+      "kind": "run",
+      "path": "testdata/run/recv_move_self_mut.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/reinit",
+      "kind": "run",
+      "path": "testdata/run/reinit.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/self_capture_copy",
+      "kind": "run",
+      "path": "testdata/run/self_capture_copy.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/self_whole_reassign",
+      "kind": "run",
+      "path": "testdata/run/self_whole_reassign.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/shell",
+      "kind": "run",
+      "path": "testdata/run/shell.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/spread_borrow_copy",
+      "kind": "run",
+      "path": "testdata/run/spread_borrow_copy.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_base64",
+      "kind": "run",
+      "path": "testdata/run/std_base64.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_binary_fmt_hex",
+      "kind": "run",
+      "path": "testdata/run/std_binary_fmt_hex.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_ffi_cstring_nul",
+      "kind": "run",
+      "path": "testdata/run/std_ffi_cstring_nul.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_io_bufreader",
+      "kind": "run",
+      "path": "testdata/run/std_io_bufreader.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_io_copy_file_stdout",
+      "kind": "run",
+      "path": "testdata/run/std_io_copy_file_stdout.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_io_helpers",
+      "kind": "run",
+      "path": "testdata/run/std_io_helpers.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_io_multichunk",
+      "kind": "run",
+      "path": "testdata/run/std_io_multichunk.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_io_n_laws",
+      "kind": "run",
+      "path": "testdata/run/std_io_n_laws.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_io_reader_dispatch",
+      "kind": "run",
+      "path": "testdata/run/std_io_reader_dispatch.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_more",
+      "kind": "run",
+      "path": "testdata/run/std_more.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_net_conn_iface_dispatch",
+      "kind": "run",
+      "path": "testdata/run/std_net_conn_iface_dispatch.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_net_conn_read_huge",
+      "kind": "run",
+      "path": "testdata/run/std_net_conn_read_huge.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_net_http_injection",
+      "kind": "run",
+      "path": "testdata/run/std_net_http_injection.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_net_listen_empty_host",
+      "kind": "run",
+      "path": "testdata/run/std_net_listen_empty_host.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_net_socket",
+      "kind": "run",
+      "path": "testdata/run/std_net_socket.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_text_search",
+      "kind": "run",
+      "path": "testdata/run/std_text_search.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/stdlib",
+      "kind": "run",
+      "path": "testdata/run/stdlib.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/stdlib_host",
+      "kind": "run",
+      "path": "testdata/run/stdlib_host.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/stdout_write",
+      "kind": "run",
+      "path": "testdata/run/stdout_write.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/str_slice_boundary_panic",
+      "kind": "run",
+      "path": "testdata/run/str_slice_boundary_panic.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "is not on character boundaries"
+      }
+    },
+    {
+      "id": "run/str_slice_multibyte_boundary_ok",
+      "kind": "run",
+      "path": "testdata/run/str_slice_multibyte_boundary_ok.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/string_builder",
+      "kind": "run",
+      "path": "testdata/run/string_builder.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/strings_edge",
+      "kind": "run",
+      "path": "testdata/run/strings_edge.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/subtle_constant_time",
+      "kind": "run",
+      "path": "testdata/run/subtle_constant_time.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/text_parsefloat",
+      "kind": "run",
+      "path": "testdata/run/text_parsefloat.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/time_monotonic",
+      "kind": "run",
+      "path": "testdata/run/time_monotonic.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/tuple",
+      "kind": "run",
+      "path": "testdata/run/tuple.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/unit",
+      "kind": "run",
+      "path": "testdata/run/unit.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/unit_bare_return",
+      "kind": "run",
+      "path": "testdata/run/unit_bare_return.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/unit_ok_branch",
+      "kind": "run",
+      "path": "testdata/run/unit_ok_branch.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/unit_ok_fallthrough",
+      "kind": "run",
+      "path": "testdata/run/unit_ok_fallthrough.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/unsafe_guarantee_copy",
+      "kind": "run",
+      "path": "testdata/run/unsafe_guarantee_copy.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/utf8_validate_edge_cases",
+      "kind": "run",
+      "path": "testdata/run/utf8_validate_edge_cases.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/variadic_empty_tail",
+      "kind": "run",
+      "path": "testdata/run/variadic_empty_tail.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/weak",
+      "kind": "run",
+      "path": "testdata/run/weak.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/with_mut",
+      "kind": "run",
+      "path": "testdata/run/with_mut.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/with_mut_reentrant_ok",
+      "kind": "run",
+      "path": "testdata/run/with_mut_reentrant_ok.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/withmut_scalar",
+      "kind": "run",
+      "path": "testdata/run/withmut_scalar.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/withmut_scalar_alias",
+      "kind": "run",
+      "path": "testdata/run/withmut_scalar_alias.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/withmut_scalar_closure",
+      "kind": "run",
+      "path": "testdata/run/withmut_scalar_closure.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/withmut_scalar_closures",
+      "kind": "run",
+      "path": "testdata/run/withmut_scalar_closures.txtar",
+      "mode": [
+        "interp",
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "sem/accel_key_collision",
+      "kind": "sem",
+      "path": "testdata/sem/accel_key_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/ambiguous_member",
+      "kind": "sem",
+      "path": "testdata/sem/ambiguous_member.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/asm_err",
+      "kind": "sem",
+      "path": "testdata/sem/asm_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/assign_immutable_multi",
+      "kind": "sem",
+      "path": "testdata/sem/assign_immutable_multi.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async",
+      "kind": "sem",
+      "path": "testdata/sem/async.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_fn_value",
+      "kind": "sem",
+      "path": "testdata/sem/async_fn_value.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/attrs",
+      "kind": "sem",
+      "path": "testdata/sem/attrs.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_pattern_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_pattern_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_pattern_ok",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_pattern_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/break_value_err",
+      "kind": "sem",
+      "path": "testdata/sem/break_value_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cfnptr_err",
+      "kind": "sem",
+      "path": "testdata/sem/cfnptr_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cleanup_await",
+      "kind": "sem",
+      "path": "testdata/sem/cleanup_await.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/closure_captured_mut_conflict",
+      "kind": "sem",
+      "path": "testdata/sem/closure_captured_mut_conflict.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/collection_copy",
+      "kind": "sem",
+      "path": "testdata/sem/collection_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/comptime",
+      "kind": "sem",
+      "path": "testdata/sem/comptime.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/conform_err",
+      "kind": "sem",
+      "path": "testdata/sem/conform_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/conform_generic_method",
+      "kind": "sem",
+      "path": "testdata/sem/conform_generic_method.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/conform_generic_method_own_ref",
+      "kind": "sem",
+      "path": "testdata/sem/conform_generic_method_own_ref.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/conform_impl",
+      "kind": "sem",
+      "path": "testdata/sem/conform_impl.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/conform_object",
+      "kind": "sem",
+      "path": "testdata/sem/conform_object.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/conform_ok",
+      "kind": "sem",
+      "path": "testdata/sem/conform_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/const_float_fits",
+      "kind": "sem",
+      "path": "testdata/sem/const_float_fits.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/const_generic_err",
+      "kind": "sem",
+      "path": "testdata/sem/const_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/custom_index_witness_type_mismatch",
+      "kind": "sem",
+      "path": "testdata/sem/custom_index_witness_type_mismatch.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cvalue_type_err",
+      "kind": "sem",
+      "path": "testdata/sem/cvalue_type_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cvalue_type_generic_err",
+      "kind": "sem",
+      "path": "testdata/sem/cvalue_type_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_entry_name_collision",
+      "kind": "sem",
+      "path": "testdata/sem/decl_entry_name_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_entry_name_collision_multifile",
+      "kind": "sem",
+      "path": "testdata/sem/decl_entry_name_collision_multifile.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_entry_reexport_collision",
+      "kind": "sem",
+      "path": "testdata/sem/decl_entry_reexport_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_fn",
+      "kind": "sem",
+      "path": "testdata/sem/decl_fn.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_interface",
+      "kind": "sem",
+      "path": "testdata/sem/decl_interface.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_type",
+      "kind": "sem",
+      "path": "testdata/sem/decl_type.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_variant_fn_const_collision",
+      "kind": "sem",
+      "path": "testdata/sem/decl_variant_fn_const_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_variant_import_collision",
+      "kind": "sem",
+      "path": "testdata/sem/decl_variant_import_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_variant_import_fn_const_collision",
+      "kind": "sem",
+      "path": "testdata/sem/decl_variant_import_fn_const_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_variant_package_collision",
+      "kind": "sem",
+      "path": "testdata/sem/decl_variant_package_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_variant_prelude_collision",
+      "kind": "sem",
+      "path": "testdata/sem/decl_variant_prelude_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/decl_variant_prelude_fn_const_collision",
+      "kind": "sem",
+      "path": "testdata/sem/decl_variant_prelude_fn_const_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/dl_err",
+      "kind": "sem",
+      "path": "testdata/sem/dl_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_closure",
+      "kind": "sem",
+      "path": "testdata/sem/effects_closure.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_param_erase",
+      "kind": "sem",
+      "path": "testdata/sem/effects_param_erase.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_poly",
+      "kind": "sem",
+      "path": "testdata/sem/effects_poly.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_poly_iface",
+      "kind": "sem",
+      "path": "testdata/sem/effects_poly_iface.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_poly_iface_order",
+      "kind": "sem",
+      "path": "testdata/sem/effects_poly_iface_order.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_poly_mut",
+      "kind": "sem",
+      "path": "testdata/sem/effects_poly_mut.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_pure",
+      "kind": "sem",
+      "path": "testdata/sem/effects_pure.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_unsafe_async",
+      "kind": "sem",
+      "path": "testdata/sem/effects_unsafe_async.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/empty_ok",
+      "kind": "sem",
+      "path": "testdata/sem/empty_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/entry_err",
+      "kind": "sem",
+      "path": "testdata/sem/entry_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/entry_ok",
+      "kind": "sem",
+      "path": "testdata/sem/entry_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/error_as_not_copy_err",
+      "kind": "sem",
+      "path": "testdata/sem/error_as_not_copy_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/error_as_type_err",
+      "kind": "sem",
+      "path": "testdata/sem/error_as_type_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/error_as_type_generic_err",
+      "kind": "sem",
+      "path": "testdata/sem/error_as_type_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_async",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_async.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_binding_err",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_binding_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_coerce_escaping",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_coerce_escaping.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_err",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_generic_fn",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_generic_fn.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_generic_param",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_generic_param.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_iface",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_iface.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_intrinsic",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_intrinsic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_lambda_tail",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_lambda_tail.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_mut_alias_leak",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_mut_alias_leak.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_result_taint",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_result_taint.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_tuple_leak_resource",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_tuple_leak_resource.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_tuple_return_err",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_tuple_return_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_type_escaping",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_type_escaping.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_err",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fallback_ok",
+      "kind": "sem",
+      "path": "testdata/sem/fallback_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/ffi_err",
+      "kind": "sem",
+      "path": "testdata/sem/ffi_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/ffi_layout_type_err",
+      "kind": "sem",
+      "path": "testdata/sem/ffi_layout_type_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/ffi_layout_type_generic_err",
+      "kind": "sem",
+      "path": "testdata/sem/ffi_layout_type_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fix_lead_main_signature",
+      "kind": "sem",
+      "path": "testdata/sem/fix_lead_main_signature.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/for_borrow_move_err",
+      "kind": "sem",
+      "path": "testdata/sem/for_borrow_move_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/for_loop_scalar_mut",
+      "kind": "sem",
+      "path": "testdata/sem/for_loop_scalar_mut.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/foreign_method_signature",
+      "kind": "sem",
+      "path": "testdata/sem/foreign_method_signature.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generic_callable_borrow",
+      "kind": "sem",
+      "path": "testdata/sem/generic_callable_borrow.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generic_callable_escape",
+      "kind": "sem",
+      "path": "testdata/sem/generic_callable_escape.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generic_callable_mut_escape",
+      "kind": "sem",
+      "path": "testdata/sem/generic_callable_mut_escape.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generics_alias",
+      "kind": "sem",
+      "path": "testdata/sem/generics_alias.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generics_callable",
+      "kind": "sem",
+      "path": "testdata/sem/generics_callable.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generics_decl",
+      "kind": "sem",
+      "path": "testdata/sem/generics_decl.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generics_err",
+      "kind": "sem",
+      "path": "testdata/sem/generics_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generics_fn_self_ref",
+      "kind": "sem",
+      "path": "testdata/sem/generics_fn_self_ref.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generics_nomono",
+      "kind": "sem",
+      "path": "testdata/sem/generics_nomono.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generics_ok",
+      "kind": "sem",
+      "path": "testdata/sem/generics_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/generics_recv_bound",
+      "kind": "sem",
+      "path": "testdata/sem/generics_recv_bound.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/if_let_refutable",
+      "kind": "sem",
+      "path": "testdata/sem/if_let_refutable.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/iface_static",
+      "kind": "sem",
+      "path": "testdata/sem/iface_static.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/import_rename_err",
+      "kind": "sem",
+      "path": "testdata/sem/import_rename_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/index_assign_unsupported",
+      "kind": "sem",
+      "path": "testdata/sem/index_assign_unsupported.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/index_value_copy",
+      "kind": "sem",
+      "path": "testdata/sem/index_value_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/infer_err",
+      "kind": "sem",
+      "path": "testdata/sem/infer_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/infer_ok",
+      "kind": "sem",
+      "path": "testdata/sem/infer_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/int128_reject",
+      "kind": "sem",
+      "path": "testdata/sem/int128_reject.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/json_derive",
+      "kind": "sem",
+      "path": "testdata/sem/json_derive.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/json_map_key_unsupported",
+      "kind": "sem",
+      "path": "testdata/sem/json_map_key_unsupported.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/json_nested_option",
+      "kind": "sem",
+      "path": "testdata/sem/json_nested_option.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/json_nested_option_generic",
+      "kind": "sem",
+      "path": "testdata/sem/json_nested_option_generic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lambda_borrow_return",
+      "kind": "sem",
+      "path": "testdata/sem/lambda_borrow_return.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lambda_err",
+      "kind": "sem",
+      "path": "testdata/sem/lambda_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lambda_ok",
+      "kind": "sem",
+      "path": "testdata/sem/lambda_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/layout_align_err",
+      "kind": "sem",
+      "path": "testdata/sem/layout_align_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/layout_err",
+      "kind": "sem",
+      "path": "testdata/sem/layout_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lifetime_err",
+      "kind": "sem",
+      "path": "testdata/sem/lifetime_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lifetime_infer_escape_err",
+      "kind": "sem",
+      "path": "testdata/sem/lifetime_infer_escape_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lifetime_multi_arg_err",
+      "kind": "sem",
+      "path": "testdata/sem/lifetime_multi_arg_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lifetime_multi_arg_field_err",
+      "kind": "sem",
+      "path": "testdata/sem/lifetime_multi_arg_field_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lifetime_scope_exit_closure_err",
+      "kind": "sem",
+      "path": "testdata/sem/lifetime_scope_exit_closure_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lift_err",
+      "kind": "sem",
+      "path": "testdata/sem/lift_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lift_ok",
+      "kind": "sem",
+      "path": "testdata/sem/lift_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lit_byte_string",
+      "kind": "sem",
+      "path": "testdata/sem/lit_byte_string.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/literal_receiver_ambiguous",
+      "kind": "sem",
+      "path": "testdata/sem/literal_receiver_ambiguous.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/loop_never",
+      "kind": "sem",
+      "path": "testdata/sem/loop_never.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/match_conditions",
+      "kind": "sem",
+      "path": "testdata/sem/match_conditions.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/match_exhaust",
+      "kind": "sem",
+      "path": "testdata/sem/match_exhaust.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/match_or",
+      "kind": "sem",
+      "path": "testdata/sem/match_or.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/match_patterns",
+      "kind": "sem",
+      "path": "testdata/sem/match_patterns.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/methods_receiver",
+      "kind": "sem",
+      "path": "testdata/sem/methods_receiver.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_alias_args",
+      "kind": "sem",
+      "path": "testdata/sem/mut_alias_args.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_alias_self_arg",
+      "kind": "sem",
+      "path": "testdata/sem/mut_alias_self_arg.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_place_async_arg",
+      "kind": "sem",
+      "path": "testdata/sem/mut_place_async_arg.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_place_escape",
+      "kind": "sem",
+      "path": "testdata/sem/mut_place_escape.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/naked_err",
+      "kind": "sem",
+      "path": "testdata/sem/naked_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/named_args_err",
+      "kind": "sem",
+      "path": "testdata/sem/named_args_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/narrow_invalidate",
+      "kind": "sem",
+      "path": "testdata/sem/narrow_invalidate.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/narrow_ok",
+      "kind": "sem",
+      "path": "testdata/sem/narrow_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/operators_decl",
+      "kind": "sem",
+      "path": "testdata/sem/operators_decl.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/operators_user",
+      "kind": "sem",
+      "path": "testdata/sem/operators_user.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/overload_err",
+      "kind": "sem",
+      "path": "testdata/sem/overload_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/overload_ok",
+      "kind": "sem",
+      "path": "testdata/sem/overload_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/partial_move_err",
+      "kind": "sem",
+      "path": "testdata/sem/partial_move_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pipeline_err",
+      "kind": "sem",
+      "path": "testdata/sem/pipeline_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pipeline_ok",
+      "kind": "sem",
+      "path": "testdata/sem/pipeline_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/protocol_mismatch",
+      "kind": "sem",
+      "path": "testdata/sem/protocol_mismatch.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/range_literal_element",
+      "kind": "sem",
+      "path": "testdata/sem/range_literal_element.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/range_pattern",
+      "kind": "sem",
+      "path": "testdata/sem/range_pattern.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recursive_adt",
+      "kind": "sem",
+      "path": "testdata/sem/recursive_adt.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/redeclare_cross_file",
+      "kind": "sem",
+      "path": "testdata/sem/redeclare_cross_file.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/reentrant_capture_erased_shapes",
+      "kind": "sem",
+      "path": "testdata/sem/reentrant_capture_erased_shapes.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/reentrant_capture_indirect",
+      "kind": "sem",
+      "path": "testdata/sem/reentrant_capture_indirect.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/reentrant_capture_param_shapes",
+      "kind": "sem",
+      "path": "testdata/sem/reentrant_capture_param_shapes.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/resolve_cycle",
+      "kind": "sem",
+      "path": "testdata/sem/resolve_cycle.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/resolve_import",
+      "kind": "sem",
+      "path": "testdata/sem/resolve_import.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/resolve_package",
+      "kind": "sem",
+      "path": "testdata/sem/resolve_package.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/resolve_reexport",
+      "kind": "sem",
+      "path": "testdata/sem/resolve_reexport.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/result_cleanup",
+      "kind": "sem",
+      "path": "testdata/sem/result_cleanup.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/result_err",
+      "kind": "sem",
+      "path": "testdata/sem/result_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/result_ok",
+      "kind": "sem",
+      "path": "testdata/sem/result_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/send_sync",
+      "kind": "sem",
+      "path": "testdata/sem/send_sync.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/send_sync_cycle",
+      "kind": "sem",
+      "path": "testdata/sem/send_sync_cycle.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/send_sync_future",
+      "kind": "sem",
+      "path": "testdata/sem/send_sync_future.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/spread_borrow_copy",
+      "kind": "sem",
+      "path": "testdata/sem/spread_borrow_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/std_layer_direction",
+      "kind": "sem",
+      "path": "testdata/sem/std_layer_direction.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/target_platform_err",
+      "kind": "sem",
+      "path": "testdata/sem/target_platform_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/tuple",
+      "kind": "sem",
+      "path": "testdata/sem/tuple.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/type_mismatch_pkg_collision",
+      "kind": "sem",
+      "path": "testdata/sem/type_mismatch_pkg_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/typearg_inline",
+      "kind": "sem",
+      "path": "testdata/sem/typearg_inline.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/types_alias",
+      "kind": "sem",
+      "path": "testdata/sem/types_alias.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/types_alias_diag",
+      "kind": "sem",
+      "path": "testdata/sem/types_alias_diag.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/types_binding",
+      "kind": "sem",
+      "path": "testdata/sem/types_binding.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/types_control",
+      "kind": "sem",
+      "path": "testdata/sem/types_control.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/types_numeric",
+      "kind": "sem",
+      "path": "testdata/sem/types_numeric.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/types_record",
+      "kind": "sem",
+      "path": "testdata/sem/types_record.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/unit",
+      "kind": "sem",
+      "path": "testdata/sem/unit.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/unsafe_guarantee",
+      "kind": "sem",
+      "path": "testdata/sem/unsafe_guarantee.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/unsafe_guarantee_opaque",
+      "kind": "sem",
+      "path": "testdata/sem/unsafe_guarantee_opaque.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/user_witness",
+      "kind": "sem",
+      "path": "testdata/sem/user_witness.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/v26_consume",
+      "kind": "sem",
+      "path": "testdata/sem/v26_consume.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/v26_len_index",
+      "kind": "sem",
+      "path": "testdata/sem/v26_len_index.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/v26_none",
+      "kind": "sem",
+      "path": "testdata/sem/v26_none.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/v26_patterns",
+      "kind": "sem",
+      "path": "testdata/sem/v26_patterns.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/v26_variadic",
+      "kind": "sem",
+      "path": "testdata/sem/v26_variadic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/variadic_empty_alloc",
+      "kind": "sem",
+      "path": "testdata/sem/variadic_empty_alloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/visibility_members",
+      "kind": "sem",
+      "path": "testdata/sem/visibility_members.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/visibility_pkg",
+      "kind": "sem",
+      "path": "testdata/sem/visibility_pkg.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/with_mut_ok",
+      "kind": "sem",
+      "path": "testdata/sem/with_mut_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/with_mut_reentrant",
+      "kind": "sem",
+      "path": "testdata/sem/with_mut_reentrant.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/withmut_scalar_reject",
+      "kind": "sem",
+      "path": "testdata/sem/withmut_scalar_reject.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/wscall",
+      "kind": "sem",
+      "path": "testdata/sem/wscall.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    }
+  ]
+}

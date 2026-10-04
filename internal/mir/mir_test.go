@@ -11,22 +11,35 @@ import (
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
+	"kigumi/internal/testtool"
 	"kigumi/internal/token"
 )
 
 // Each testdata/mir fixture holds source sections and an `-- expect --`
 // section with the IR dump followed by ownership diagnostics.
 func TestMirCorpus(t *testing.T) {
+	manifest, err := testtool.Load("../../testdata/manifest.json")
+	if err != nil {
+		t.Fatalf("load testdata/manifest.json: %v", err)
+	}
 	files, _ := filepath.Glob("../../testdata/mir/*.txtar")
 	if len(files) == 0 {
 		t.Fatal("no mir fixtures")
 	}
 	std := testkit.LoadStd(t, "../../std")
+	ran := 0
 	for _, path := range files {
-		t.Run(filepath.Base(path), func(t *testing.T) {
+		id := "mir/" + strings.TrimSuffix(filepath.Base(path), ".txtar")
+		if manifest.ByID(id) == nil {
+			t.Fatalf("%s: no manifest entry (run UPDATE=1 go test -run TestManifestFresh ./internal/driver/)", id)
+		}
+		if ok := t.Run(filepath.Base(path), func(t *testing.T) {
 			runFixture(t, path, std)
-		})
+		}); ok {
+			ran++
+		}
 	}
+	t.Logf("mir: %d/%d fixtures passed", ran, len(files))
 }
 
 type section struct{ name, body string }

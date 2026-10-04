@@ -6,7 +6,25 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"kigumi/internal/testtool"
 )
+
+// Fails loudly on a missing/stale manifest instead of treating an absent
+// entry as "nothing to check".
+func loadManifest(t testing.TB) *testtool.Manifest {
+	t.Helper()
+	m, err := testtool.Load("../../testdata/manifest.json")
+	if err != nil {
+		t.Fatalf("load testdata/manifest.json: %v (regenerate with UPDATE=1 go test -run TestManifestFresh ./internal/driver/)", err)
+	}
+	return m
+}
+
+// fixtureID turns a testdata/run fixture path into its manifest id.
+func fixtureID(path string) string {
+	return "run/" + strings.TrimSuffix(filepath.Base(path), ".txtar")
+}
 
 // loadRunFixture writes a testdata/run fixture's source sections under a
 // fresh module root (`-- src --` is main/main.kg) and returns the expected

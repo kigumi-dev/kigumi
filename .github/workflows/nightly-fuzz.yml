@@ -1,0 +1,26 @@
+name: nightly fuzz
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+jobs:
+  fuzz:
+    name: fuzz (${{ matrix.func }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pkg: ./internal/syntax/
+            func: FuzzParse
+          - pkg: ./internal/driver/
+            func: FuzzMutatedMIR
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - run: go test -run '^$' -fuzz "^${{ matrix.func }}$" -fuzztime 10m ${{ matrix.pkg }}
