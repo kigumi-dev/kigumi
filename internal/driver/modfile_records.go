@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"kigumi/internal/diag"
+	"kigumi/internal/token"
 )
 
 // modFileOf assembles records into a manifest. module is false for a
@@ -67,8 +68,12 @@ func modFileOf(recs []record, module bool) (ModFile, []diag.Diagnostic) {
 			ds = append(ds, diag.Errorf(diag.Location{Span: recs[0].Span}, fmt.Sprintf("this module needs kigumi %s; this toolchain is %s", mf.Kigumi, ToolchainVersion)))
 		}
 	}
-	if module && !seenModule && len(recs) > 0 {
-		ds = append(ds, diag.Errorf(diag.Location{Span: recs[0].Span}, "the manifest needs a Module record"))
+	if module && !seenModule {
+		span := token.Span{}
+		if len(recs) > 0 {
+			span = recs[0].Span
+		}
+		ds = append(ds, diag.Errorf(diag.Location{Span: span}, "the manifest needs a Module record"))
 	}
 	return mf, ds
 }

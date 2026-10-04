@@ -104,7 +104,18 @@ func verifyCmd(root *string) *cobra.Command {
 					return err
 				}
 				if _, err := os.Stat(dir); err != nil {
+					bad++
 					cmd.Printf("%s %s: not fetched\n", name, e.Version)
+					continue
+				}
+				if !driver.CacheReady(dir) {
+					bad++
+					cmd.Printf("%s %s: incomplete cache entry in %s (missing origin marker or manifest)\n", name, e.Version, dir)
+					continue
+				}
+				if err := driver.CheckCacheTree(dir); err != nil {
+					bad++
+					cmd.Printf("%s %s: %s\n", name, e.Version, err)
 					continue
 				}
 				hash, err := driver.TreeHash(dir)

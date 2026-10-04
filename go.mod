@@ -11,6 +11,7 @@ require (
 	go.lsp.dev/protocol v1.0.1
 	go.lsp.dev/uri v1.0.1
 	golang.org/x/sys v0.45.0
+	golang.org/x/text v0.36.0
 )
 
 require (
@@ -25,5 +26,4 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	golang.org/x/text v0.36.0 // indirect
 )

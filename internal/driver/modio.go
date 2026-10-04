@@ -25,12 +25,14 @@ func readFileMaybe(path string) (data []byte, ok bool, err error) {
 	return nil, false, err
 }
 
-// writeFileAtomic publishes data at path through a temporary file in the
-// same directory, so a crash or a concurrent reader never sees a partial
-// file. An existing file's mode is preserved; perm applies only when path
-// does not exist yet, so a chmod +x'd script does not lose its bit.
+// writeFileAtomic publishes data at path via a same-directory temp file so a crash never leaves a partial file; an existing file's mode is preserved, perm applies only when path is new.
 func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
-	if fi, err := os.Stat(path); err == nil {
+	// Lstat, not Stat: the rename below replaces the entry itself, so a
+	// symlink there is refused rather than silently followed.
+	if fi, err := os.Lstat(path); err == nil {
+		if fi.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("%s is a symlink; refusing to replace it with a regular file", path)
+		}
 		perm = fi.Mode().Perm()
 	}
 	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".tmp-")
@@ -55,16 +57,12 @@ func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
 	return os.Rename(tmp.Name(), path)
 }
 
-// WriteFileAtomic is writeFileAtomic for callers outside this package
-// (`kigumi fmt -w`), which needs the same crash-safety and mode
-// preservation for the user's own source files.
+// WriteFileAtomic is writeFileAtomic exported for callers outside this package (kigumi fmt -w), for the same crash-safety and mode preservation.
 func WriteFileAtomic(path string, data []byte, perm os.FileMode) error {
 	return writeFileAtomic(path, data, perm)
 }
 
-// CheckCacheTree refuses a fetched module that holds anything but regular
-// files and directories: a symlink could lead the compiler outside the
-// cache, and devices or pipes are never module content.
+// CheckCacheTree refuses a fetched module holding anything but regular files and directories, since a symlink could lead the compiler outside the cache.
 func CheckCacheTree(dir string) error {
 	return filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {

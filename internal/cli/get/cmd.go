@@ -1,6 +1,4 @@
-// Package get implements `kigumi get`: fetch the dependencies of a module
-// or script (and theirs) into the cache and record them in the lock file,
-// or add one Require and fetch it.
+// Package get implements "kigumi get": fetch a module or script's dependencies into the cache and lock file, or add and fetch one Require.
 package get
 
 import (
@@ -45,7 +43,15 @@ func Cmd() *cobra.Command {
 					return err
 				}
 			}
-			return t.fetch(cmd, update, diffJSON)
+			if err := t.fetch(cmd, update, diffJSON); err != nil {
+				// Roll back the add so a failed fetch leaves no orphaned Require; scripts have no removal helper yet.
+				if add != "" && t.script == "" {
+					name, _, _ := strings.Cut(add, "@")
+					driver.RemoveRequires(t.dir, map[string]bool{name: true})
+				}
+				return err
+			}
+			return nil
 		},
 	}
 	cmd.Flags().BoolVarP(&update, "update", "u", false, "accept a tag that moved since the lock file was written")

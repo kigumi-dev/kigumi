@@ -14,9 +14,7 @@ import (
 type ExecOptions struct {
 	Secrets map[string]string
 	CFlags  []string
-	// ToolEnv is the whole environment of a tool process:
-	// nothing of the driver's own environment is inherited, so the CLI
-	// passes an allowlist such as PATH and the locale.
+	// ToolEnv is the whole environment of a tool process; the driver's own env is never inherited, so the CLI passes an allowlist like PATH.
 	ToolEnv []string
 	// Reproducible builds every artifact with BuildOptions.Reproducible,
 	// for the --reproducible flag.
@@ -80,10 +78,7 @@ func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOp
 	return nil
 }
 
-// runToolStep runs one registered tool, or (Kind "artifact") an artifact
-// built earlier in the same graph, with `$in:<i>`, `$out:<i>` and
-// `$secret:<i>` filled in; a secret is copied to a private file for the
-// duration of the run and removed afterwards.
+// runToolStep runs one registered tool or earlier-built artifact with $in/$out/$secret filled in; a secret is copied to a private file for the run and removed afterward.
 func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts ExecOptions, outDir string, stderr io.Writer) error {
 	secrets := opts.Secrets
 	s := rg.Graph.ToolSteps[idx]
@@ -159,10 +154,17 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 		args = append(args, a)
 		display = append(display, d)
 	}
-	for _, o := range s.Outputs {
-		if err := checkOutputSlot(filePath(o)); err != nil {
+	outPaths := make([]string, len(s.Outputs))
+	for i, o := range s.Outputs {
+		p := filePath(o)
+		if err := checkOutputSlot(p); err != nil {
 			return fmt.Errorf("tool %s: %w", name, err)
 		}
+		outPaths[i] = p
+	}
+	quarantined, err := quarantineStaleOutputs(outPaths)
+	if err != nil {
+		return fmt.Errorf("tool %s: quarantine a stale output: %w", name, err)
 	}
 	fullArgs := append(append([]string{}, prefix...), args...)
 	fullDisplay := append(append([]string{}, prefix...), display...)
@@ -173,14 +175,17 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 	cmd.Stdout = stderr
 	fmt.Fprintf(stderr, "build: tool %s runs trusted (no sandbox), env %s\n", name, envNames(cmd.Env))
 	if err := cmd.Run(); err != nil {
+		restoreQuarantinedOutputs(outPaths, quarantined)
 		return fmt.Errorf("tool %s (%s %s) failed: %w", name, program, strings.Join(fullDisplay, " "), err)
 	}
 	for _, o := range s.Outputs {
 		p := filePath(o)
 		fi, err := os.Lstat(p)
 		if err != nil || !fi.Mode().IsRegular() {
+			restoreQuarantinedOutputs(outPaths, quarantined)
 			return fmt.Errorf("tool %s did not produce a regular file at %s", name, rg.Graph.Files[o].Path)
 		}
 	}
+	dropQuarantinedOutputs(quarantined)
 	return nil
 }

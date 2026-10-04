@@ -20,5 +20,5 @@ error: non-ASCII character in byte string literal (it would be UTF-8-encoded, no
  --> lit_byte_string_err.txtar:2:14
   |
 2 | let b = b"café"
-  |              ^^
+  |              ^
 

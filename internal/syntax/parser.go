@@ -15,6 +15,7 @@ func Parse(f *token.File) *Tree {
 	p.tree.Root = p.parseFile()
 	p.tree.interp = p.interp
 	p.tree.Diags = bag.Sorted()
+	p.tree.DiagsDropped = bag.Dropped()
 	for i := range p.tree.Diags {
 		p.tree.Diags[i].Loc.Source = f.ID
 	}
@@ -32,9 +33,7 @@ type parser struct {
 	lastErr     uint32
 	splitAssign bool
 	depth       uint32
-	// closer[i] is the matching close-bracket index for an open bracket at i,
-	// precomputed once so lambda-vs-paren disambiguation is O(1) (see
-	// matchClosers).
+	// closer[i] is the matching close-bracket index for an open bracket at i, precomputed once so lambda-vs-paren disambiguation is O(1).
 	closer []uint32
 	// interp caches interpolation-range discovery for string literals, keyed
 	// by opening-quote offset (see interpolationRanges).
@@ -159,10 +158,7 @@ func (p *parser) spanFrom(start uint32) token.Span {
 	return token.Span{Start: p.toks[start].Start, End: p.toks[end].End}
 }
 
-// recover skips to the next statement boundary: a newline at brace depth zero,
-// an unmatched `}`, or EOF. Parentheses are ignored on purpose so one missing
-// `)` cannot swallow the rest of the file. The `}` is left for the enclosing
-// block; parseFile consumes it itself.
+// recover skips to the next statement boundary (newline at brace depth zero, unmatched }, or EOF); parens are ignored so one missing ) can't swallow the rest of the file.
 func (p *parser) recover() {
 	depth := 0
 	for !p.at(token.EOF) {

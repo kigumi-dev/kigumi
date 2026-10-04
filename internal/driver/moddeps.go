@@ -6,9 +6,7 @@ import (
 	"path/filepath"
 )
 
-// DepDir resolves where a required module is on disk: the developer's
-// local override (root module only) or the fetched copy in the cache.
-// missing is true when the cache has no copy yet.
+// DepDir resolves a required module's directory: a local override (root only) or the fetched cache copy; missing is true when uncached.
 func DepDir(local Local, r Require, isRoot bool) (dir string, missing bool, err error) {
 	if p, ok := local.Replaces[r.Name]; ok && isRoot {
 		return p, false, nil
@@ -33,9 +31,7 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 		return err
 	}
 	m.Selected = sel.Requires
-	// The root's own packages carry Module=="" too, same as a dependency
-	// package not yet attributed below; snapshotting them here keeps
-	// a dependency name that prefixes the root's own from claiming them.
+	// The root's own packages carry Module=="" too; snapshotting them here keeps a dependency name that prefixes the root's own from claiming them.
 	rootOwned := make(map[string]bool, len(m.Packages))
 	for p := range m.Packages {
 		rootOwned[p] = true
@@ -95,9 +91,7 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 	return nil
 }
 
-// addNative collects a module's C libraries and sources, resolved against
-// its directory. The manifest's lexical check cannot see symlinks, so each
-// resolved path is confined to the directory again here.
+// addNative collects a module's C libraries/sources resolved against its directory; each path is re-confined since the manifest's lexical check can't see symlinks.
 func (m *Module) addNative(dir string, mf ModFile) error {
 	for _, l := range mf.Links {
 		if l.Search != "" {
@@ -112,7 +106,11 @@ func (m *Module) addNative(dir string, mf ModFile) error {
 		m.Links = append(m.Links, l)
 	}
 	for _, s := range mf.Sources {
-		for _, f := range m.selectSources(filepath.Join(dir, filepath.FromSlash(s.Path)), s.Asm) {
+		files, err := m.selectSources(filepath.Join(dir, filepath.FromSlash(s.Path)), s.Asm)
+		if err != nil {
+			return fmt.Errorf("%s: Source %q: %w", mf.Name, s.Path, err)
+		}
+		for _, f := range files {
 			if !withinSandbox([]string{dir}, f) {
 				rel, _ := filepath.Rel(dir, f)
 				return fmt.Errorf("%s: Source %q resolves outside the module", mf.Name, filepath.ToSlash(rel))
@@ -123,21 +121,19 @@ func (m *Module) addNative(dir string, mf ModFile) error {
 	return nil
 }
 
-// selectSources expands a Source candidate: a directory contributes its
-// C (or .s/.S) files, and any file with a platform suffix is kept only
-// when it matches the target. A missing file is passed on for the C
-// compiler to report.
-func (m *Module) selectSources(path string, asm bool) []string {
+// selectSources expands a Source candidate into its matching files.
+// A directory that fails to list returns an error; an empty one does not.
+func (m *Module) selectSources(path string, asm bool) ([]string, error) {
 	st, err := os.Stat(path)
 	if err != nil || !st.IsDir() {
 		if tagged, ok := m.platformFile(filepath.Base(path)); tagged && !ok {
-			return nil
+			return nil, nil
 		}
-		return []string{path}
+		return []string{path}, nil
 	}
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	var out []string
 	for _, e := range entries {
@@ -151,7 +147,7 @@ func (m *Module) selectSources(path string, asm bool) []string {
 		}
 		out = append(out, filepath.Join(path, name))
 	}
-	return out
+	return out, nil
 }
 
 func byName(mf ModFile) string {

@@ -59,6 +59,18 @@ func AmbientCFlagsViolation(flags []string) Violation {
 	}
 }
 
+// unverifiedTargetViolation reports a triple whose ABI segment ParseTarget
+// could not check against a known list.
+func unverifiedTargetViolation(triple string) Violation {
+	return Violation{
+		ID:      "release-unverified-target",
+		Subject: fmt.Sprintf("target %q has an ABI this build does not recognize", triple),
+		Detail:  []KV{kv("triple", triple)},
+		Policy:  "rejected because release requires a target this toolchain has verified support for",
+		Help:    "use a recognized triple, or keep this as a development build",
+	}
+}
+
 // releaseError renders v as a single build-ending error, for violations that
 // must stop the build before release reads unverified content from disk.
 func releaseError(v Violation) error {

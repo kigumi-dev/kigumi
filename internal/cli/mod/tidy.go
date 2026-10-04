@@ -10,9 +10,7 @@ import (
 	"kigumi/internal/errors"
 )
 
-// tidyCmd drops the Requires no package of the module imports, together
-// with their Replace and lock records. It never adds a Require: an import of
-// an unknown module has no url to fetch from.
+// tidyCmd drops Requires (and their Replace/lock records) nothing imports; it never adds one, since an unknown import has no url to fetch.
 func tidyCmd(root *string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "tidy",
@@ -41,18 +39,27 @@ func tidyCmd(root *string) *cobra.Command {
 				cmd.Println("nothing to remove")
 				return nil
 			}
-			if err := driver.RemoveRequires(*root, unused); err != nil {
-				return errors.WrapErr(err, "edit manifest")
-			}
+			// Read the lock before editing the manifest, not after.
 			lock, err := driver.ReadLock(*root)
 			if err != nil {
 				return errors.WrapErr(err, "read lock")
 			}
 			for name := range unused {
 				delete(lock.Entries, name)
+			}
+			if err := driver.RemoveRequires(*root, unused); err != nil {
+				return errors.WrapErr(err, "edit manifest")
+			}
+			if err := driver.RemoveLocalReplaces(*root, unused); err != nil {
+				return errors.WrapErr(err, "edit local overrides")
+			}
+			if err := driver.WriteLock(*root, lock); err != nil {
+				return errors.WrapErr(err, "write lock")
+			}
+			for name := range unused {
 				cmd.Printf("removed %s\n", name)
 			}
-			return driver.WriteLock(*root, lock)
+			return nil
 		},
 	}
 }

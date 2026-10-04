@@ -40,7 +40,11 @@ func Parse(s Source) (*syntax.Tree, string) {
 }
 
 func diagRender(tree *syntax.Tree) string {
-	return diag.RenderAll(tree.File, tree.Diags)
+	out := diag.RenderAll(tree.File, tree.Diags)
+	if tree.DiagsDropped > 0 {
+		out += fmt.Sprintf("%s: %d diagnostics omitted (parse diagnostic limit reached)\n\n", tree.File.Name, tree.DiagsDropped)
+	}
+	return out
 }
 
 func hasErrors(tree *syntax.Tree) bool {

@@ -15,9 +15,7 @@ type Node struct {
 	Rhs  uint32
 }
 
-// Tree is the flat, lossless syntax tree. Nodes reference each other and the
-// token array by index only; semantic information is kept in side tables
-// owned by later passes.
+// Tree is the flat, lossless syntax tree; nodes reference each other and the token array by index only, with semantics kept in side tables.
 type Tree struct {
 	File  *token.File
 	Toks  []token.Token
@@ -25,12 +23,12 @@ type Tree struct {
 	Extra []uint32
 	Root  NodeID
 	Diags []diag.Diagnostic
+	// DiagsDropped is how many further diagnostics the bag's limit cut off.
+	DiagsDropped int
 	// interp is the parser's interpolation-range cache (see parser.interp),
 	// kept so StringParts reuses it instead of rescanning nested strings.
 	interp map[int]interpInfo
-	// spanCache memoizes Span per node id: every hir/sem/mir location lookup
-	// calls Span, and without caching a chain of D nested nodes costs O(D)
-	// per lookup, O(D²) total across the chain.
+	// spanCache memoizes Span per node id, since every hir/sem/mir lookup calls it and an uncached chain of D nested nodes would cost O(D²) total.
 	spanCache []token.Span
 	spanKnown []bool
 }

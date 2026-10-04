@@ -16,9 +16,7 @@ var scriptFields = map[string][]string{
 	"Link":    {"library", "search"},
 }
 
-// scriptManifest reads the manifest records a script may carry before its
-// first statement and removes them from the tree, so the checker
-// never sees them. Inside a module they belong in mod.kg instead.
+// scriptManifest reads a script's leading manifest records and removes them from the tree so the checker never sees them; inside a module they belong in mod.kg.
 func (m *Module) scriptManifest(hasMod bool) error {
 	for _, p := range m.Packages {
 		for _, t := range p.Files {
@@ -81,6 +79,12 @@ func ReadScriptManifest(path string) (ModFile, bool, error) {
 	if err != nil {
 		return ModFile{}, false, err
 	}
+	return parseScriptManifest(path, src)
+}
+
+// parseScriptManifest is ReadScriptManifest's decoding, split out so a
+// writer can re-parse a prospective next version before committing it.
+func parseScriptManifest(path string, src []byte) (ModFile, bool, error) {
 	t := syntax.Parse(token.NewFile(filepath.Base(path), src))
 	n := leadingRecords(t)
 	if n == 0 {

@@ -8,17 +8,7 @@ import (
 	"kigumi/internal/token"
 )
 
-// Render formats one diagnostic the way the CLI prints it and the golden
-// tests pin it (the layout rustc made familiar):
-//
-//	error[E100]: undefined name `foo`
-//	 --> main.kg:3:9
-//	  |
-//	3 | let x = foo
-//	  |         ^^^
-//	  = help: did you mean `for`?
-//
-// Notes with a location follow as `note:` blocks with their own snippet.
+// Render formats one diagnostic in the rustc-familiar layout the golden tests pin; notes with a location follow as their own note: snippet.
 func Render(src Sources, d Diagnostic) string {
 	var sb strings.Builder
 	renderInto(&sb, src, d)
@@ -60,16 +50,19 @@ func renderHead(sb *strings.Builder, d Diagnostic) {
 	fmt.Fprintf(sb, "%s%s\n", paint(severityColor(d.Severity), word), paint(ansiBold, ": "+d.Msg))
 }
 
-// renderSnippet prints the location, the source line and the underline.
+// renderSnippet positions the underline in display cells, not byte columns, since CJK/emoji/tab bytes vary in width.
 func renderSnippet(sb *strings.Builder, f *token.File, span token.Span, sev Severity, width int) {
 	line, col := f.Line(span.Start), f.Column(span.Start)
 	pad := strings.Repeat(" ", width)
 	fmt.Fprintf(sb, "%s%s %s:%d:%d\n", pad, paint(ansiBlue, "-->"), f.Name, line, col)
 	fmt.Fprintf(sb, "%s %s\n", pad, paint(ansiBlue, "|"))
 	num := strconv.Itoa(line)
-	fmt.Fprintf(sb, "%s%s %s %s\n", strings.Repeat(" ", width-len(num)), paint(ansiBlue, num), paint(ansiBlue, "|"), f.LineText(line))
-	carets := strings.Repeat("^", caretWidth(f, span, line))
-	fmt.Fprintf(sb, "%s %s %s%s\n", pad, paint(ansiBlue, "|"), strings.Repeat(" ", col-1), paint(underlineColor(sev), carets))
+	lineText := f.LineText(line)
+	fmt.Fprintf(sb, "%s%s %s %s\n", strings.Repeat(" ", width-len(num)), paint(ansiBlue, num), paint(ansiBlue, "|"), lineText)
+	lineStart := f.LineSpan(line).Start
+	leadCells := displayWidth(lineText[:int(span.Start-lineStart)])
+	carets := strings.Repeat("^", caretCells(f, span, line))
+	fmt.Fprintf(sb, "%s %s %s%s\n", pad, paint(ansiBlue, "|"), strings.Repeat(" ", leadCells), paint(underlineColor(sev), carets))
 }
 
 // gutterWidth is the width of the widest line number the diagnostic and
@@ -88,8 +81,12 @@ func gutterWidth(src Sources, d Diagnostic) int {
 	return width
 }
 
-func caretWidth(f *token.File, span token.Span, line int) int {
+// caretCells is the underline's width in display cells, covering the part
+// of span that lies on line.
+func caretCells(f *token.File, span token.Span, line int) int {
 	ls := f.LineSpan(line)
 	end := min(span.End, ls.End)
-	return max(int(end-span.Start), 1)
+	text := f.LineText(line)
+	cells := displayWidth(text[int(span.Start-ls.Start):int(end-ls.Start)])
+	return max(cells, 1)
 }

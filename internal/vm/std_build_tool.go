@@ -31,6 +31,9 @@ func (m *Machine) registerBuildFiles() {
 		if !bareOutputName(name) {
 			return m.errMsg("write needs a bare file name, not " + name)
 		}
+		if other, taken := claimOutputName(g, name); taken {
+			return m.errMsg("write " + name + " collides with " + other)
+		}
 		g.Files = append(g.Files, buildgraph.FileRef{ID: len(g.Files), Kind: "generated", Path: name, Content: str(a[2]), Provenance: m.provenance()})
 		return m.ok(mkOpaque("build.FilePath", len(g.Files)-1))
 	}
@@ -81,10 +84,8 @@ func (m *Machine) recordToolOutputs(g *buildgraph.Graph, stepID int, names *obj)
 		if !bareOutputName(name) {
 			return nil, nil, m.errMsg("tool outputs are bare file names, not " + name)
 		}
-		for _, f := range g.Files {
-			if f.Kind != "literal" && f.Path == name {
-				return nil, nil, m.errMsg("output " + name + " is produced twice")
-			}
+		if other, taken := claimOutputName(g, name); taken {
+			return nil, nil, m.errMsg("output " + name + " collides with " + other)
 		}
 		g.Files = append(g.Files, buildgraph.FileRef{ID: len(g.Files), Kind: "toolOutput", Path: name, ProducedBy: stepID, Provenance: m.provenance()})
 		ids = append(ids, len(g.Files)-1)
@@ -96,47 +97,7 @@ func (m *Machine) recordToolOutputs(g *buildgraph.Graph, stepID int, names *obj)
 	return outs, ids, nil
 }
 
-// bareOutputName rejects anything but a plain file name: empty, ".", ".."
-// or containing a path separator would let filepath.Join reach outside
-// the build output directory. Windows reserved device names are rejected
-// unconditionally, not just when targeting Windows, so a build graph
-// stays reproducible across host platforms.
-func bareOutputName(name string) bool {
-	return name != "" && name != "." && name != ".." && !strings.ContainsAny(name, `/\`) && !isWindowsReservedName(name)
-}
-
-// windowsReservedNames are the MS-DOS/Win32 device names CreateFile
-// reserves at any path component, with or without an extension.
-var windowsReservedNames = map[string]bool{
-	"CON": true, "PRN": true, "AUX": true, "NUL": true,
-	"COM0": true, "COM1": true, "COM2": true, "COM3": true, "COM4": true,
-	"COM5": true, "COM6": true, "COM7": true, "COM8": true, "COM9": true,
-	"LPT0": true, "LPT1": true, "LPT2": true, "LPT3": true, "LPT4": true,
-	"LPT5": true, "LPT6": true, "LPT7": true, "LPT8": true, "LPT9": true,
-}
-
-func isWindowsReservedName(name string) bool {
-	base, _, _ := strings.Cut(name, ".")
-	return windowsReservedNames[strings.ToUpper(base)]
-}
-
-// hasReservedPathComponent reports whether any "/"-separated segment of a
-// root-relative directory (declareArtifact's dir) is a Windows reserved
-// device name: CreateFile reserves these at any path component, not only
-// the final one.
-func hasReservedPathComponent(dir string) bool {
-	for _, seg := range strings.Split(dir, "/") {
-		if isWindowsReservedName(seg) {
-			return true
-		}
-	}
-	return false
-}
-
-// withinRoots accepts an absolute path under one of the sandboxed roots,
-// after following symlinks on both sides so a link planted inside a root
-// cannot point outside it. A path that does not exist yet is judged by
-// its nearest existing ancestor.
+// withinRoots accepts an absolute path under a sandboxed root after resolving symlinks on both sides, so a planted link can't point outside it; a nonexistent path is judged by its nearest existing ancestor.
 func withinRoots(roots []string, path string) bool {
 	path = resolveExisting(filepath.Clean(path))
 	for _, r := range roots {

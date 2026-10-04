@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"kigumi/internal/diag"
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
 )
@@ -22,8 +23,7 @@ func WriteManifest(root, name string) error {
 	return writeFileAtomic(path, []byte(sb.String()), 0o644)
 }
 
-// AppendRequire adds a Require to the end of root/mod.kg, leaving
-// everything already there untouched.
+// AppendRequire adds a Require to the end of root/mod.kg; the next content is validated with the normal manifest reader before being written.
 func AppendRequire(root string, r Require) error {
 	mf, ok, err := ReadModFile(root)
 	if err != nil {
@@ -35,21 +35,33 @@ func AppendRequire(root string, r Require) error {
 	if err := alreadyRequired(mf, r); err != nil {
 		return err
 	}
+	path := filepath.Join(root, ManifestName)
 	var sb strings.Builder
 	sb.WriteString("\n")
 	writeRecord(&sb, "Require", "name", r.Name, "version", r.Version, "url", r.URL)
-	return appendText(filepath.Join(root, ManifestName), sb.String())
+	next, err := nextFileContent(path, sb.String())
+	if err != nil {
+		return err
+	}
+	if _, ds := ParseModFile(token.NewFile(ManifestName, next)); len(ds) > 0 {
+		return fmt.Errorf("%s would become invalid: %s", path, diag.RenderAll(token.NewFile(ManifestName, next), ds[:1]))
+	}
+	return writeFileAtomic(path, next, 0o644)
 }
 
-// AppendScriptRequire adds a Require to a script's leading records, after
-// the ones it has or, for the first, after the shebang and comments
-// together with the Kigumi record.
+// AppendScriptRequire adds a Require after a script's leading records, or after its shebang/comments and Kigumi record if it has none yet.
 func AppendScriptRequire(path string, r Require) error {
 	mf, has, err := ReadScriptManifest(path)
 	if err != nil {
 		return err
 	}
 	if err := alreadyRequired(mf, r); err != nil {
+		return err
+	}
+	if err := ValidModuleName(r.Name); err != nil {
+		return err
+	}
+	if err := ValidVersion(r.Version); err != nil {
 		return err
 	}
 	src, err := os.ReadFile(path)
@@ -73,6 +85,9 @@ func AppendScriptRequire(path string, r Require) error {
 		}
 	}
 	out := append(append(append([]byte{}, src[:at]...), sb.String()...), src[at:]...)
+	if _, _, err := parseScriptManifest(path, out); err != nil {
+		return fmt.Errorf("%s would become invalid: %w", path, err)
+	}
 	return writeFileAtomic(path, out, 0o644)
 }
 
@@ -101,33 +116,7 @@ func alreadyRequired(mf ModFile, r Require) error {
 	return nil
 }
 
-// AppendLocalReplace adds a Replace to dir/mod.local.kg, creating it.
-func AppendLocalReplace(dir, name, path string) error {
-	var sb strings.Builder
-	file := filepath.Join(dir, LocalName)
-	if _, err := os.Stat(file); err != nil {
-		sb.WriteString("// Local overrides for development; never read from a dependency.\n")
-	} else {
-		sb.WriteString("\n")
-	}
-	writeRecord(&sb, "Replace", "name", name, "path", path)
-	return appendText(file, sb.String())
-}
-
-func appendText(path, text string) error {
-	src, err := os.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	if len(src) > 0 && src[len(src)-1] != '\n' {
-		src = append(src, '\n')
-	}
-	return writeFileAtomic(path, append(src, text...), 0o644)
-}
-
-// RemoveRequires deletes the Require records of the named dependencies
-// from root/mod.kg, line by line, so comments and the other records keep
-// their text.
+// RemoveRequires deletes the named dependencies' Require records from root/mod.kg line by line, leaving comments and other records untouched.
 func RemoveRequires(root string, names map[string]bool) error {
 	path := filepath.Join(root, ManifestName)
 	src, err := os.ReadFile(path)

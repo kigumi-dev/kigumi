@@ -19,7 +19,7 @@ func (m *Machine) registerBuild() {
 		return mkOpaque("build.Target", m.graphOf(a[0]).Host)
 	}
 	h["build.Builder.target"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		return mkOpaque("build.Target", buildgraph.Target{Triple: str(a[1])})
+		return mkOpaque("build.Target", buildgraph.Target{Triple: str(a[1]), Allocator: m.graphOf(a[0]).Request.Target.Allocator})
 	}
 	h["build.Request.target"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		return mkOpaque("build.Target", m.graphOf(a[0]).Request.Target)
@@ -139,6 +139,13 @@ func (m *Machine) declareArtifact(a []*obj, kind string) *obj {
 		return m.errMsg("artifact needs a bare name and a root-relative directory")
 	}
 	target, _ := deref(a[3]).data.(buildgraph.Target)
+	physical := name
+	if kind == "library" {
+		physical += ".a"
+	}
+	if other, taken := claimOutputName(g, physical); taken {
+		return m.errMsg("artifact " + name + " collides with " + other)
+	}
 	art := &buildgraph.Artifact{ID: len(g.Artifacts), Name: name, Kind: kind, Dir: strings.TrimSuffix(dir, "/"), Target: target, Provenance: m.provenance()}
 	g.Artifacts = append(g.Artifacts, art)
 	return m.ok(mkOpaque("build.Artifact", art.ID))

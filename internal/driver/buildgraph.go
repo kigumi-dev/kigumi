@@ -1,8 +1,9 @@
 package driver
 
 import (
-	"encoding/json"
 	"fmt"
+	"strings"
+
 	"kigumi/internal/buildgraph"
 )
 
@@ -16,8 +17,7 @@ type ResolvedGraph struct {
 	Order []string
 }
 
-// ResolveGraph validates a graph before anything runs: every target parses,
-// every framework and tool is registered, and the dependency edges form a DAG.
+// ResolveGraph validates a graph before anything runs: every target parses, every framework/tool is registered, and the edges form a DAG.
 func ResolveGraph(g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*ResolvedGraph, error) {
 	rg := &ResolvedGraph{Graph: g}
 	host := HostTarget()
@@ -25,6 +25,12 @@ func ResolveGraph(g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*Reso
 		t, err := ParseTarget(a.Target.Triple, a.Target.Sys)
 		if err != nil {
 			return nil, fmt.Errorf("artifact %s: %w", a.Name, err)
+		}
+		switch a.Target.Allocator {
+		case "", "none":
+			t.Allocator = a.Target.Allocator
+		default:
+			return nil, fmt.Errorf("artifact %s: allocator %q: want \"\" or \"none\"", a.Name, a.Target.Allocator)
 		}
 		if a.Kind == "library" && !t.Bare() {
 			return nil, fmt.Errorf("artifact %s: host-target library archives need a freestanding target or --sys none", a.Name)
@@ -39,16 +45,23 @@ func ResolveGraph(g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*Reso
 			rg.Frameworks = append(rg.Frameworks, toolchainDescriptor(zigCacheDir(g)))
 			continue
 		}
-		found := false
+		var matches []FrameworkDescriptor
 		for _, d := range descriptors {
 			if d.Name == f.Name && d.Version == f.Version {
-				rg.Frameworks = append(rg.Frameworks, d)
-				found = true
-				break
+				matches = append(matches, d)
 			}
 		}
-		if !found {
+		switch len(matches) {
+		case 0:
 			return nil, fmt.Errorf("framework %s %s has no descriptor (%s) in the module or its dependencies", f.Name, f.Version, FrameworkFileName)
+		case 1:
+			rg.Frameworks = append(rg.Frameworks, matches[0])
+		default:
+			dirs := make([]string, len(matches))
+			for i, d := range matches {
+				dirs[i] = d.Dir
+			}
+			return nil, fmt.Errorf("framework %s %s is provided by %d descriptors, which one wins would depend on dependency order: %s", f.Name, f.Version, len(matches), strings.Join(dirs, ", "))
 		}
 	}
 	for _, s := range g.ToolSteps {
@@ -146,27 +159,4 @@ func buildOrder(g *buildgraph.Graph) ([]string, error) {
 		}
 	}
 	return order, nil
-}
-
-// PlanJSON is `kigumi build --plan`: the resolved graph as data, before
-// any tool runs or artifact compiles.
-func PlanJSON(rg *ResolvedGraph) string {
-	type artifact struct {
-		*buildgraph.Artifact
-		Resolved Target `json:"resolved"`
-	}
-	plan := struct {
-		Request    buildgraph.Request        `json:"request"`
-		Frameworks []buildgraph.FrameworkRef `json:"frameworks"`
-		Secrets    []buildgraph.SecretRef    `json:"secrets"`
-		Files      []buildgraph.FileRef      `json:"files"`
-		ToolSteps  []buildgraph.ToolStep     `json:"toolSteps"`
-		Artifacts  []artifact                `json:"artifacts"`
-		Order      []string                  `json:"order"`
-	}{Request: rg.Graph.Request, Frameworks: rg.Graph.Frameworks, Secrets: rg.Graph.Secrets, Files: rg.Graph.Files, ToolSteps: rg.Graph.ToolSteps, Artifacts: []artifact{}, Order: rg.Order}
-	for i, a := range rg.Graph.Artifacts {
-		plan.Artifacts = append(plan.Artifacts, artifact{a, rg.Targets[i]})
-	}
-	out, _ := json.MarshalIndent(plan, "", "  ")
-	return string(out) + "\n"
 }

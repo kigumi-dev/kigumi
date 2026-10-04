@@ -29,7 +29,12 @@ func ValidModuleName(name string) error {
 			return fmt.Errorf("module name %q has a `%s` segment", name, seg)
 		case !nameSegment.MatchString(seg):
 			return fmt.Errorf("module name %q: segment %q may only use letters, digits, `.`, `-` and `_`", name, seg)
+		case strings.HasSuffix(seg, "."):
+			return fmt.Errorf("module name %q: segment %q may not end with `.`", name, seg)
 		}
+	}
+	if canon := CanonicalModuleName(name); canon != name {
+		return fmt.Errorf("module name %q is not canonical; the host segment is lowercase (did you mean %q?)", name, canon)
 	}
 	return nil
 }
@@ -85,11 +90,7 @@ func numeric(s string) bool {
 	return s != ""
 }
 
-// CompareVersions orders two SemVer tags as SemVer 2.0 does: numeric
-// components, then prerelease identifiers (numeric before alphanumeric,
-// numeric ones by value), a release above its prereleases; build metadata
-// is ignored. A malformed tag sorts by plain string comparison so that a
-// selection never panics on manifests that validation already reported.
+// CompareVersions orders two SemVer tags per SemVer 2.0, release above prereleases; a malformed tag sorts by plain string comparison so selection never panics.
 func CompareVersions(a, b string) int {
 	va, ea := parseSemVer(a)
 	vb, eb := parseSemVer(b)
@@ -120,11 +121,7 @@ func CompareVersions(a, b string) int {
 	return compareInts(len(va.pre), len(vb.pre))
 }
 
-// comparePre orders two prerelease identifiers per SemVer 2.0: numeric
-// ones by value, numeric below alphanumeric, alphanumeric lexically.
-// parseSemVer already rejects a leading zero on a numeric identifier, so
-// two of them compare by digit count then digit string, with no int64
-// conversion to overflow.
+// comparePre orders two prerelease identifiers per SemVer 2.0; parseSemVer already rejects a leading zero, so numeric ones compare by digit count/string with no int64 to overflow.
 func comparePre(x, y string) int {
 	nx, ny := numeric(x), numeric(y)
 	switch {

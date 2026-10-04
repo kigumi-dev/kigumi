@@ -27,7 +27,7 @@ type fetcher struct {
 	after map[string]driver.ModFile
 }
 
-// module fetches until minimal version selection over the manifests closes.
+// module fetches until minimal version selection closes; a mod.local.kg Replace applies to the root only and is never locked.
 func (f *fetcher) module(mf driver.ModFile) error {
 	var sel *driver.Selection
 	for {
@@ -105,6 +105,19 @@ func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
 			return errors.NewErrf("%s %s now points at %s but the lock recorded %s; run `kigumi get -u` to accept the new commit", r.Name, r.Version, short(commit), short(prev.Commit))
 		}
 		f.cmd.Printf("%s %s: fetched into %s\n", r.Name, r.Version, dir)
+	} else if f.update && locked && !driver.IsCommitHash(r.Version) {
+		remote, err := remoteTagCommit(r)
+		if err != nil {
+			return errors.WrapErrf(err, "%s %s: check the remote tag", r.Name, r.Version)
+		}
+		if driver.TagCommit(remote) == driver.NormalizeCommit(prev.Commit) {
+			f.cmd.Printf("%s %s: %s (up to date)\n", r.Name, r.Version, dir)
+		} else if newCommit, err := refetch(f.cmd, r, dir); err != nil {
+			return err
+		} else {
+			f.cmd.Printf("%s %s: moved from %s to %s; refetched into %s\n", r.Name, r.Version, short(prev.Commit), short(newCommit), dir)
+			missing = true
+		}
 	} else {
 		f.cmd.Printf("%s %s: %s\n", r.Name, r.Version, dir)
 	}
@@ -123,8 +136,6 @@ func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
 	return nil
 }
 
-// short renders an algorithm-tagged commit for an error message: the full
-// tag, a dozen hex digits, an ellipsis.
 func short(commit string) string {
 	algo, hex, ok := strings.Cut(commit, ":")
 	if !ok {

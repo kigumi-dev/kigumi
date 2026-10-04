@@ -2,11 +2,9 @@ package driver
 
 import (
 	"fmt"
-	"os"
 
 	"kigumi/internal/version"
 
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,8 +25,21 @@ func HasHost(name string) bool {
 	return strings.Contains(first, ".")
 }
 
-// RepoOf derives the clone URL and the subdirectory of a module name; a Require's
-// explicit url wins.
+// CanonicalModuleName lowercases name's host segment (the first, when
+// HasHost) and leaves the rest as given; an unqualified name is unchanged.
+func CanonicalModuleName(name string) string {
+	if !HasHost(name) {
+		return name
+	}
+	host, rest, ok := strings.Cut(name, "/")
+	host = strings.ToLower(host)
+	if !ok {
+		return host
+	}
+	return host + "/" + rest
+}
+
+// RepoOf derives a module name's clone URL and subdirectory; a Require's explicit url wins, and the subdirectory is whatever the name carries beyond it.
 func RepoOf(r Require) (url, subdir string, ok bool) {
 	if r.URL != "" {
 		return r.URL, subdirUnder(r.Name, r.URL), true
@@ -48,8 +59,7 @@ func RepoOf(r Require) (url, subdir string, ok bool) {
 	return "", "", false
 }
 
-// subdirUnder strips the repo part of a url from a module name: the longest tail of
-// the url's path that starts the name, segment-wise. No overlap means the repo root.
+// subdirUnder strips a url's repo part from a module name: the longest tail of the url's path that starts the name segment-wise; no overlap means the repo root.
 func subdirUnder(name, url string) string {
 	u := url
 	if i := strings.Index(u, "://"); i >= 0 {
@@ -115,35 +125,6 @@ func NormalizeCommit(commit string) string {
 	return TagCommit(commit)
 }
 
-// CacheDir is where a fetched module lives: <cache>/kigumi/mod/<name>@<version>, with
-// upper-case letters escaped as `!x` so names differing only in case stay apart.
-func CacheDir(r Require) (string, error) {
-	if err := ValidModuleName(r.Name); err != nil {
-		return "", err
-	}
-	if err := ValidVersion(r.Version); err != nil {
-		return "", err
-	}
-	cache, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(cache, "kigumi", "mod", filepath.FromSlash(escapePath(r.Name))+"@"+escapePath(r.Version)), nil
-}
-
-func escapePath(s string) string {
-	var sb strings.Builder
-	for _, c := range s {
-		if c >= 'A' && c <= 'Z' {
-			sb.WriteByte('!')
-			sb.WriteRune(c + ('a' - 'A'))
-			continue
-		}
-		sb.WriteRune(c)
-	}
-	return sb.String()
-}
-
 // ownerOf picks the module a path belongs to: the longest name that is the
 // path itself or a segment-wise prefix of it.
 func ownerOf(path string, names []string) string {
@@ -156,8 +137,7 @@ func ownerOf(path string, names []string) string {
 	return best
 }
 
-// versionAtLeast compares dotted numeric versions ("0.4" >= "0.3.1"); a non-numeric
-// component in want is reported instead of silently comparing as 0.
+// versionAtLeast compares dotted numeric versions; want is a manifest's kigumi field, so a non-numeric component is reported instead of compared as 0.
 func versionAtLeast(have, want string) (bool, error) {
 	h, w := strings.Split(have, "."), strings.Split(want, ".")
 	for i := 0; i < len(h) || i < len(w); i++ {

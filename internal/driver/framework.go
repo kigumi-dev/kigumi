@@ -9,38 +9,24 @@ import (
 	"kigumi/internal/token"
 )
 
-// FrameworkDescriptor is a kigumi.framework.kg: which Framework a
-// directory provides and the tools it registers. Only tools
-// listed here may run; the build program never names a program path.
-//
-//	Framework { name: "acme/sdk", version: "1.0" }
-//	Tool { name: "gen", program: "tools/gen.sh" }
+// FrameworkDescriptor is a kigumi.framework.kg: the Framework a directory provides and the tools it registers; only listed tools may run.
 type FrameworkDescriptor struct {
 	Name, Version string
 	Dir           string
 	Tools         map[string]ToolProgram
 }
 
-// ToolProgram is what a registered tool actually runs: an executable and,
-// for a tool that is really a subcommand (`zig cc`), the fixed arguments
-// that select it, ahead of the step's own args. Env adds to the trusted
-// allowlist (toolEnv), for a tool that needs more than PATH and the target
-// to do anything at all.
+// ToolProgram is what a registered tool runs: an executable and, for a subcommand like zig cc, its fixed selecting args ahead of the step's own; Env extends the trusted allowlist.
 type ToolProgram struct {
 	Path string
 	Args []string
 	Env  []string
 }
 
-// builtinToolchainName is the Framework `Builder.toolchain` records:
-// ResolveGraph answers it from the compiler
-// the driver itself links with, instead of a kigumi.framework.kg.
+// builtinToolchainName is the Framework name ResolveGraph answers for Builder.toolchain from the driver's own linked compiler, not a kigumi.framework.kg.
 const builtinToolchainName = "toolchain"
 
-// toolchainDescriptor exposes BuildWith's own C compiler as tool "cc" and,
-// when the compiler is zig, its LLD wrapper as tool "ld". zig needs a cache
-// directory but the tool env allowlist has no HOME, so its tools get one
-// under the build's own output directory.
+// toolchainDescriptor exposes BuildWith's C compiler as tool "cc" and, for zig, its LLD wrapper as "ld"; its cache dir goes under the build's own output dir since the tool env allowlist has no HOME.
 func toolchainDescriptor(cacheDir string) FrameworkDescriptor {
 	fd := FrameworkDescriptor{Name: builtinToolchainName, Tools: map[string]ToolProgram{}}
 	cc := CCompiler()
@@ -81,15 +67,27 @@ func LoadFrameworks(roots []string) ([]FrameworkDescriptor, error) {
 		f := token.NewFile(FrameworkFileName, src)
 		recs, ds := parseRecords(f, frameworkFields)
 		fd := FrameworkDescriptor{Dir: dir, Tools: map[string]ToolProgram{}}
+		seenFramework, seenTool := false, map[string]bool{}
 		for _, r := range recs {
 			switch r.Kind {
 			case "Framework":
+				if seenFramework {
+					ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "only one Framework record is allowed per descriptor"))
+					continue
+				}
+				seenFramework = true
 				fd.Name, fd.Version = r.Fields["name"], r.Fields["version"]
 			case "Tool":
 				if r.Fields["program"] == "" {
 					ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Tool needs a program"))
 				}
-				fd.Tools[r.Fields["name"]] = ToolProgram{Path: r.Fields["program"]}
+				name := r.Fields["name"]
+				if seenTool[name] {
+					ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("tool %q is declared twice in this descriptor", name)))
+					continue
+				}
+				seenTool[name] = true
+				fd.Tools[name] = ToolProgram{Path: r.Fields["program"]}
 			}
 		}
 		if fd.Name == "" && len(ds) == 0 {
