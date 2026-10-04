@@ -39,9 +39,7 @@ func repoWithHistory(t *testing.T, n int) (string, string) {
 	return repo, head
 }
 
-// TestShallowFetchCommitIsBounded checks that resolving a commit through
-// shallowFetchCommit, unlike cloneCommitFull, never pulls the rest of the
-// repository's history.
+// Unlike cloneCommitFull, shallowFetchCommit must never pull the rest of the repository's history.
 func TestShallowFetchCommitIsBounded(t *testing.T) {
 	repo, head := repoWithHistory(t, 5)
 	tmp := t.TempDir()
@@ -59,10 +57,7 @@ func TestShallowFetchCommitIsBounded(t *testing.T) {
 	}
 }
 
-// TestCloneCommitFallsBackWhenShallowFetchFails checks that cloneCommit
-// still resolves the commit, visibly, when the bounded fetch cannot (a
-// server without uploadpack.allow*SHA1InWant, or any other reason this
-// repository's local transport cannot be made to reproduce).
+// cloneCommit must still resolve the commit, visibly, when the bounded fetch fails.
 func TestCloneCommitFallsBackWhenShallowFetchFails(t *testing.T) {
 	repo, head := repoWithHistory(t, 3)
 	tmp := t.TempDir()
@@ -89,9 +84,7 @@ func TestCloneCommitFallsBackWhenShallowFetchFails(t *testing.T) {
 	}
 }
 
-// TestCloneCommitSucceedsOnPlainHistory exercises cloneCommit's whole path
-// (shallow attempt, then checkout) against an ordinary local repo, where
-// the shallow attempt is expected to succeed.
+// Exercises cloneCommit's whole path (shallow attempt, then checkout) where the shallow attempt is expected to succeed.
 func TestCloneCommitSucceedsOnPlainHistory(t *testing.T) {
 	repo, head := repoWithHistory(t, 4)
 	tmp := t.TempDir()

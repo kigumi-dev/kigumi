@@ -15,10 +15,8 @@ import (
 	"kigumi/internal/errors"
 )
 
-// clone fetches the version of r into dir through a temporary directory,
-// so a failed fetch leaves no half-written module, and returns the commit
-// it resolved to. Tags are `<subdir>/<version>` for nested modules; a hex
-// version is a commit, expanded from its short form in the clone.
+// clone fetches the version of r into dir through a temporary directory, so a failed
+// fetch leaves no half-written module, and returns the commit it resolved to.
 func clone(cmd *cobra.Command, r driver.Require, dir string) (string, error) {
 	url, subdir, ok := driver.RepoOf(r)
 	if !ok {

@@ -14,15 +14,8 @@ import (
 	"kigumi/internal/token"
 )
 
-// Lock is mod.lock.kg: what each fetched Require resolved to, keyed by
-// module name. A Replace'd dependency has no entry.
-//
-//	Lock {
-//	    name: "greet"
-//	    version: "v0.1.0"
-//	    commit: "sha1:3f2c..."
-//	    hash: "h1:9a0b..."
-//	}
+// Lock is mod.lock.kg: what each fetched Require resolved to, keyed by module
+// name. A Replace'd dependency has no entry.
 type Lock struct {
 	Entries map[string]LockEntry
 }

@@ -25,9 +25,7 @@ func writeAllocatorFixture(t *testing.T, dir string) {
 	os.WriteFile(filepath.Join(dir, "main.kg"), []byte("let xs = Array.of(1)\n"), 0o644)
 }
 
-// TestBuildProgramAllocatorNoneRejected carries the root's `--allocator
-// none` into a build.kg artifact's own checker, the same way the direct
-// build path (TestAllocatorNoneProfile) does.
+// Carries root `--allocator none` into a build.kg artifact's own checker, like TestAllocatorNoneProfile does for the direct build path.
 func TestBuildProgramAllocatorNoneRejected(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -105,10 +103,7 @@ func TestBuildProgramAllocatorNoneSurvivesHostTarget(t *testing.T) {
 	}
 }
 
-// TestBuildProgramAllocatorNoneSurvivesExplicitTarget checks that
-// Builder.target(triple), which only names a different Triple, still
-// carries the root's allocator policy rather than resetting it to the
-// general allocator.
+// Builder.target(triple) names only a different Triple; the root's allocator policy must survive it, not reset to the general allocator.
 func TestBuildProgramAllocatorNoneSurvivesExplicitTarget(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()

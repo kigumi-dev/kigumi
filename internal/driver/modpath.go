@@ -27,9 +27,8 @@ func HasHost(name string) bool {
 	return strings.Contains(first, ".")
 }
 
-// RepoOf derives the clone URL and the subdirectory of a module name.
-// A Require's explicit url wins; the subdirectory is then what the name
-// carries beyond the url's host and path.
+// RepoOf derives the clone URL and the subdirectory of a module name; a Require's
+// explicit url wins.
 func RepoOf(r Require) (url, subdir string, ok bool) {
 	if r.URL != "" {
 		return r.URL, subdirUnder(r.Name, r.URL), true
@@ -49,10 +48,8 @@ func RepoOf(r Require) (url, subdir string, ok bool) {
 	return "", "", false
 }
 
-// subdirUnder strips the repo part of a url from a module name: the
-// longest tail of the url's path that starts the name, segment-wise, so
-// both `https://h/a/b.git` and a local `/tmp/h/a/b` checkout of
-// `h/a/b/sub` give `sub`. No overlap means the repo root.
+// subdirUnder strips the repo part of a url from a module name: the longest tail of
+// the url's path that starts the name, segment-wise. No overlap means the repo root.
 func subdirUnder(name, url string) string {
 	u := url
 	if i := strings.Index(u, "://"); i >= 0 {
@@ -118,9 +115,8 @@ func NormalizeCommit(commit string) string {
 	return TagCommit(commit)
 }
 
-// CacheDir is where a fetched module lives: <cache>/kigumi/mod/<name>@<version>
-// with upper-case letters escaped as `!x`, so names differing only in case
-// stay apart on case-insensitive file systems (as Go does).
+// CacheDir is where a fetched module lives: <cache>/kigumi/mod/<name>@<version>, with
+// upper-case letters escaped as `!x` so names differing only in case stay apart.
 func CacheDir(r Require) (string, error) {
 	if err := ValidModuleName(r.Name); err != nil {
 		return "", err
@@ -160,9 +156,8 @@ func ownerOf(path string, names []string) string {
 	return best
 }
 
-// versionAtLeast compares dotted numeric versions ("0.4" >= "0.3.1"). want
-// is a manifest's `kigumi` field, so a non-numeric component is reported
-// instead of silently comparing as 0.
+// versionAtLeast compares dotted numeric versions ("0.4" >= "0.3.1"); a non-numeric
+// component in want is reported instead of silently comparing as 0.
 func versionAtLeast(have, want string) (bool, error) {
 	h, w := strings.Split(have, "."), strings.Split(want, ".")
 	for i := 0; i < len(h) || i < len(w); i++ {

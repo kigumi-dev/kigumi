@@ -16,9 +16,8 @@ type ResolvedGraph struct {
 	Order []string
 }
 
-// ResolveGraph validates a graph before anything runs: every target
-// parses, every library is freestanding, every framework and tool is
-// registered, and the dependency edges form a DAG.
+// ResolveGraph validates a graph before anything runs: every target parses,
+// every framework and tool is registered, and the dependency edges form a DAG.
 func ResolveGraph(g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*ResolvedGraph, error) {
 	rg := &ResolvedGraph{Graph: g}
 	host := HostTarget()
@@ -78,9 +77,7 @@ func ResolveGraph(g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*Reso
 	return rg, nil
 }
 
-// buildOrder sorts artifacts and tool steps so every producer precedes
-// its consumers: artifacts before what uses them, tool steps before the
-// files they output are read.
+// buildOrder sorts artifacts and tool steps so every producer precedes its consumers.
 func buildOrder(g *buildgraph.Graph) ([]string, error) {
 	producer := func(file int) (string, bool) {
 		f := g.Files[file]

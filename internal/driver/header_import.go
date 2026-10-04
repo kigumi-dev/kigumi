@@ -28,11 +28,8 @@ func HeaderCacheDir() (string, error) {
 	return filepath.Join(dir, "kigumi", "cheader"), nil
 }
 
-// addHeaders imports each Header record of mf, resolved against dir, as the
-// package `c/<package>`. A
-// header with unsupported constructs still imports what it can; a single
-// warning naming what it skipped attaches to the generated package's file,
-// so `kigumi check` and the LSP surface it like any other diagnostic.
+// addHeaders imports each Header record of mf, resolved against dir, as the package
+// `c/<package>`; a header with unsupported constructs still imports what it can.
 func (m *Module) addHeaders(dir string, mf ModFile) error {
 	if len(mf.Headers) == 0 {
 		return nil
@@ -67,9 +64,8 @@ func (m *Module) addHeaders(dir string, mf ModFile) error {
 	return nil
 }
 
-// loadHeaderPackage registers one imported header's generated source as the
-// package `c/<package>`, loading it like any other package file (real
-// spans, so diagnostics, LSP hover and `kigumi doc` all see it normally).
+// loadHeaderPackage registers one imported header's generated source as the package
+// `c/<package>`, loading it like any other package file.
 func (m *Module) loadHeaderPackage(h HeaderImport, res cheader.Result) error {
 	pkgPath := "c/" + h.Package
 	genDir := filepath.Dir(res.CachePath)

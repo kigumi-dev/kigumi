@@ -190,9 +190,8 @@ func TestLockRoundTrip(t *testing.T) {
 	}
 }
 
-// TestDependencyConflict requires lib at two versions through two paths
-// (resolved by selection), rejects overlapping names, and checks the
-// longest-match attribution of nested module names.
+// Requires lib at two versions through two paths, rejects overlapping names, and
+// checks the longest-match attribution of nested module names.
 func TestDependencyConflict(t *testing.T) {
 	root := t.TempDir()
 	write := func(dir, name string, body []byte) {
@@ -216,9 +215,7 @@ func TestDependencyConflict(t *testing.T) {
 	if _, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{}); err == nil || !strings.Contains(err.Error(), "different major versions cannot be mixed") {
 		t.Fatalf("major mix not reported: %v", err)
 	}
-	// A required name nested under the root's own name is
-	// only a naming detail: fetching aside, it must not be rejected as an
-	// overlap by name alone.
+	// A required name nested under the root's own name must not be rejected as an overlap by name alone.
 	write("app", "mod.kg", manifest("github.com/acme/app", "Require { name: \"github.com/acme/app/sub\", version: \"v1.0.0\" }\n"))
 	m, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{NoDeps: true})
 	if err != nil {
@@ -233,10 +230,8 @@ func TestDependencyConflict(t *testing.T) {
 	}
 }
 
-// TestModuleNamePrefixNotOverlap: a monorepo example nested
-// under its own library depends on that library and loads and builds,
-// while a dependency whose package path actually collides with one the
-// root already provides is still rejected.
+// A monorepo example nested under its own library loads and builds, while a real
+// package-path collision is still rejected.
 func TestModuleNamePrefixNotOverlap(t *testing.T) {
 	root := t.TempDir()
 	write := func(dir, name string, body []byte) {
@@ -270,11 +265,8 @@ func TestModuleNamePrefixNotOverlap(t *testing.T) {
 	}
 }
 
-// TestDependencyEmptyRootNotOverlap covers a false-positive edge case:
-// a dependency whose own root directory has no package file of its own
-// (all its code lives in a subdirectory) must not be rejected merely
-// because its bare name coincides with a package path the root already
-// owns, since loading it would never actually produce a duplicate.
+// A dependency with no package file in its own root directory must not be rejected
+// merely because its bare name coincides with a package path the root already owns.
 func TestDependencyEmptyRootNotOverlap(t *testing.T) {
 	root := t.TempDir()
 	write := func(dir, name string, body []byte) {

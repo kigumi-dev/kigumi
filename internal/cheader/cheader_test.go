@@ -155,9 +155,7 @@ int add(int a, int b);
 	}
 }
 
-// TestImportInvalidatesOnIncludedHeaderChange: a wrapper header whose own
-// bytes never change still regenerates once a header it #includes changes,
-// instead of returning the stale cache entry.
+// A wrapper header's own bytes never change, but it must still regenerate once a header it #includes changes.
 func TestImportInvalidatesOnIncludedHeaderChange(t *testing.T) {
 	zig := zigOrSkip(t)
 	dir := t.TempDir()

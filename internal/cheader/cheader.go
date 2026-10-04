@@ -1,6 +1,5 @@
 // Package cheader imports a C header into Kigumi extern(C) declarations by
-// running `zig translate-c` and reading its output, instead of embedding a
-// C parser.
+// running `zig translate-c` and reading its output, instead of embedding a C parser.
 package cheader
 
 import (
@@ -33,16 +32,14 @@ type Options struct {
 type Result struct {
 	// Source is the generated package's file content.
 	Source string
-	// Skipped lists what the header declared that this importer left
-	// out, one entry per declaration; nil when
-	// nothing was skipped.
+	// Skipped lists what the header declared that this importer left out,
+	// one entry per declaration; nil when nothing was skipped.
 	Skipped []string
 	// FromCache is true when Source came from a prior run's cache entry
 	// rather than a fresh zig translate-c invocation.
 	FromCache bool
-	// CachePath is the generated file's path on disk, so the driver can
-	// load it like any other package file (real spans for diagnostics,
-	// hover and doc).
+	// CachePath is the generated file's path on disk, so the driver loads it
+	// like any other package file (real spans for diagnostics, hover and doc).
 	CachePath string
 	// Manifest is the published cache entry's full identity.
 	Manifest Manifest

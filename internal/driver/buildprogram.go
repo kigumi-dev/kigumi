@@ -13,9 +13,8 @@ import (
 	"kigumi/internal/vm"
 )
 
-// BuildProgram is a checked build.kg: the module it configures, the
-// checker result over std, the dependencies and the program itself, and
-// its configure entity.
+// BuildProgram is a checked build.kg: the module it configures, the checker
+// result over std and the dependencies, and its configure entity.
 type BuildProgram struct {
 	Module    *Module
 	Res       *sem.Result
@@ -25,9 +24,8 @@ type BuildProgram struct {
 	prog      *mir.Program
 }
 
-// LoadBuildProgram loads root's module and checks its build.kg as a
-// package named build over std and the required modules; ok is false
-// when the module has no build program.
+// LoadBuildProgram loads root's module and checks its build.kg as a package named
+// build; ok is false when the module has no build program.
 func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error) {
 	tree, ok, err := ReadBuildFile(root)
 	if err != nil || !ok {
@@ -95,9 +93,8 @@ func configureEntity(res *sem.Result) (sem.EntityID, error) {
 	return fn, nil
 }
 
-// Run evaluates configure in the sandbox for a requested target and the
-// flags given after `--`, and returns the recorded graph. outDir bounds
-// Builder.file together with the module and its dependencies.
+// Run evaluates configure in the sandbox for a requested target and the flags
+// given after `--`, and returns the recorded graph.
 func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*buildgraph.Graph, error) {
 	roots, err := p.Roots(outDir)
 	if err != nil {
@@ -121,9 +118,8 @@ func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*build
 	return vm.EvalBuild(p.prog, p.Configure, req, buildgraph.Roots{Roots: roots, Host: buildgraph.Target{Sys: host.Sys, Allocator: target.Allocator}})
 }
 
-// DescriptorRoots lists where a Framework descriptor may come from: the
-// module root and the required modules, never the output directory, which
-// anyone may write to.
+// DescriptorRoots lists where a Framework descriptor may come from, never the
+// output directory, which anyone may write to.
 func (p *BuildProgram) DescriptorRoots() ([]string, error) {
 	roots, err := p.Roots(".")
 	if err != nil {
@@ -132,11 +128,8 @@ func (p *BuildProgram) DescriptorRoots() ([]string, error) {
 	return roots[:len(roots)-1], nil
 }
 
-// Roots lists the directories a build program may name files in: the
-// module root first, then every selected dependency (minimal version
-// selection's result, not the root manifest's raw Requires, so a version
-// bump elsewhere in the graph is reflected here too), then the output
-// directory.
+// Roots lists the directories a build program may name files in: the module root,
+// then every selected dependency, then the output directory.
 func (p *BuildProgram) Roots(outDir string) ([]string, error) {
 	root, err := filepath.Abs(p.Module.Root)
 	if err != nil {

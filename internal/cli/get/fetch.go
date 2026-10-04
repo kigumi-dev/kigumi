@@ -27,9 +27,7 @@ type fetcher struct {
 	after map[string]driver.ModFile
 }
 
-// module fetches until minimal version selection over the manifests
-// closes. A Replace from mod.local.kg applies to the root and is never
-// locked.
+// module fetches until minimal version selection over the manifests closes.
 func (f *fetcher) module(mf driver.ModFile) error {
 	var sel *driver.Selection
 	for {

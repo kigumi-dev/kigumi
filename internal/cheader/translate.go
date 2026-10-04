@@ -9,9 +9,8 @@ import (
 	"strings"
 )
 
-// Runner executes `zig translate-c` and returns its stdout; it exists so
-// tests can substitute a counting fake instead of the real zig binary
-// (cache_test.go: a cache hit must not invoke it at all).
+// Runner executes `zig translate-c` and returns its stdout; a test can substitute
+// a counting fake to check that a cache hit never invokes it.
 type Runner func(zigPath, target, headerPath string) ([]byte, error)
 
 // RunZig is the default Runner: `zig translate-c -lc [-target T] header.h`; freestanding
@@ -31,11 +30,8 @@ func RunZig(zigPath, target, headerPath string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// zigFingerprint identifies the zig binary at zigPath without running it
-// (its mtime and size), so a cache hit costs one stat call, never a zig
-// invocation; a rebuilt or upgraded zig gets a new fingerprint and
-// regenerates (cache.go's cacheKey: `zig version` itself was
-// rejected for this precisely because a hit must invoke zig zero times).
+// zigFingerprint identifies the zig binary by mtime and size, not `zig version`,
+// so a cache hit costs one stat call and never invokes zig.
 func zigFingerprint(zigPath string) (string, error) {
 	st, err := os.Stat(zigPath)
 	if err != nil {

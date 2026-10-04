@@ -10,9 +10,7 @@ import (
 	"kigumi/internal/driver"
 )
 
-// TestArenaCreateReportsAllocFailureNatively builds with
-// -DKIGUMI_FAULT_INJECT, rt_core.c's test-only fault-injection hook, and
-// checks Arena.tryCreate reports a refused calloc instead of crashing.
+// Builds with -DKIGUMI_FAULT_INJECT (rt_core.c's test-only fault-injection hook) and checks Arena.tryCreate reports a refused calloc instead of crashing.
 func TestArenaCreateReportsAllocFailureNatively(t *testing.T) {
 	t.Parallel()
 	if driver.CCompiler() == nil {

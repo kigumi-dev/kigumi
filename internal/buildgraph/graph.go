@@ -1,7 +1,5 @@
-// Package buildgraph is the graph a build program records: pure data,
-// no execution. Slices keep
-// declaration order so --plan and link order are stable; the interpreter
-// fills it and the driver performs every effect.
+// Package buildgraph is the graph a build program records: pure data, no
+// execution. Slices keep declaration order so --plan and link order are stable.
 package buildgraph
 
 type Target struct {
@@ -71,9 +69,7 @@ type Artifact struct {
 	LinkerScript *int     `json:"linkerScript,omitempty"`
 	LinkFlags    []string `json:"linkFlags,omitempty"`
 	Entry        string   `json:"entry,omitempty"`
-	// Deny and Ceiling are Artifact.availability's declaration
-	// Deny bars exact std import paths,
-	// Ceiling caps std packages by layer short name, "" for no ceiling.
+	// Deny bars exact std import paths; Ceiling caps std packages by layer short name, "" for no ceiling.
 	Deny       []string   `json:"deny,omitempty"`
 	Ceiling    string     `json:"ceiling,omitempty"`
 	Provenance Provenance `json:"provenance"`

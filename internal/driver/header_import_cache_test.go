@@ -11,9 +11,7 @@ import (
 	"kigumi/internal/driver"
 )
 
-// fakeZig wraps the real zig so a test can count invocations by subcommand
-// (its first argument): it appends that argument to countFile, then execs
-// the real binary with the same arguments.
+// fakeZig records each invocation's subcommand to countFile, then execs realZig.
 func fakeZig(t *testing.T, realZig, countFile string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -27,8 +25,7 @@ func fakeZig(t *testing.T, realZig, countFile string) {
 
 func shQuote(s string) string { return "'" + s + "'" }
 
-// countSubcommand counts countFile's lines equal to subcommand (fakeZig
-// writes one zig subcommand name per invocation).
+// countSubcommand counts countFile's lines equal to subcommand.
 func countSubcommand(t *testing.T, path, subcommand string) int {
 	t.Helper()
 	b, err := os.ReadFile(path)
@@ -47,10 +44,7 @@ func countSubcommand(t *testing.T, path, subcommand string) int {
 	return n
 }
 
-// TestHeaderImportCache: importing the same header twice (same content,
-// zig fingerprint and target) only runs the expensive translate-c on the
-// first LoadModule; a lookup still runs the cheap `zig cc -M` closure
-// check every time, to catch a changed #include (IMP-056).
+// A cache hit still re-runs the cheap `zig cc -M` closure check, to catch a changed #include.
 func TestHeaderImportCache(t *testing.T) {
 	realZig, err := exec.LookPath("zig")
 	if err != nil {
@@ -60,9 +54,7 @@ func TestHeaderImportCache(t *testing.T) {
 	fakeZig(t, realZig, countFile)
 
 	root := t.TempDir()
-	// A nonce macro keeps this header's content hash unique to this test
-	// run, so an earlier run's cache entry can never make the first import
-	// below a false cache hit.
+	// The nonce keeps this header's content hash unique, so no earlier run's cache entry can false-hit it.
 	header := fmt.Sprintf("#define CACHE_TEST_NONCE %d\nint cache_test_fn(int x);\n", os.Getpid())
 	os.WriteFile(filepath.Join(root, "n.h"), []byte(header), 0o644)
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"cache-test\"\n    kigumi: \"0.1\"\n}\n\nHeader {\n    path: \"n.h\"\n    package: \"n\"\n}\n"), 0o644)

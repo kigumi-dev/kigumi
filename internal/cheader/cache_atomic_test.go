@@ -7,9 +7,7 @@ import (
 	"testing"
 )
 
-// TestPublishEntryNeverExposesPartialDirectory races duplicate publishes
-// of the same content-addressed dir against readers, and checks a reader
-// never sees manifest.json without a matching gen.kg.
+// Races duplicate publishes of the same content-addressed dir against readers; a reader must never see manifest.json without a matching gen.kg.
 func TestPublishEntryNeverExposesPartialDirectory(t *testing.T) {
 	cacheDir := t.TempDir()
 	dir := filepath.Join(cacheDir, "entry")
