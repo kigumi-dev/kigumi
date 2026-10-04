@@ -49,6 +49,16 @@ static void gen_free(rt_allocator* a, void* p) {
     a->live--;
     free(p);
 }
+#if defined(KIGUMI_FAULT_INJECT) && !defined(KIGUMI_FREESTANDING)
+// Test-only; this macro is never set in a normal build.
+static int arena_fault_injected(void) {
+    return getenv("KIGUMI_FAIL_ARENA_CREATE") != NULL;
+}
+#else
+static int arena_fault_injected(void) {
+    return 0;
+}
+#endif
 static rt_allocator g_general = {.alloc = gen_alloc, .free = gen_free};
 static rt_allocator* g_alloc_stack[64] = {&g_general};
 static int g_alloc_sp = 0;
@@ -1943,7 +1953,8 @@ val rt_std_id(int op, int n, val* a) {
     case OP_EXECUTOR_SPAWN: return opaque("Task", rt_retain(a1));
     case OP_TASK_JOIN: return await_future((val)a0->u.op.data);
     case OP_ARENA_CREATE: {
-        arena* ar = calloc(1, sizeof *ar);
+        arena* ar = arena_fault_injected() ? NULL : calloc(1, sizeof *ar);
+        if (!ar) return alloc_error();
         ar->a.alloc = arena_alloc;
         ar->a.free = arena_free;
         return ok(opaque("AllocatorHandle", ar));
@@ -1952,6 +1963,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_ALLOCATOR_ALLOCATED: return rt_int(((arena*)a0->u.op.data)->a.bytes, 64 | 256);
     case OP_SHARED_NEW: {
         sctrl* c = calloc(1, sizeof *c);
+        if (!c) rt_panic("out of memory");
         c->cell = rt_cell(rt_retain(a0));
         c->alive = 1;
         c->shared = opaque("Shared", c);
