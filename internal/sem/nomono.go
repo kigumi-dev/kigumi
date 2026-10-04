@@ -2,7 +2,7 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// checkNomono (GEN-7) rejects polymorphic recursion, after Featherweight Go's nomono check.
+// checkNomono rejects polymorphic recursion, after Featherweight Go's nomono check.
 func (r *Result) checkNomono() {
 	g := newInstGraph(r)
 	g.build()

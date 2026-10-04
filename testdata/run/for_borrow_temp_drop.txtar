@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-181: `for x in &f()` borrows a collection that is itself a
+// `for x in &f()` borrows a collection that is itself a
 // temporary, owned by nobody; the loop must still drop it exactly once,
 // after the last iteration and before the statement that follows.
 type Res = resource {

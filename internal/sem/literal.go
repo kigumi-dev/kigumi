@@ -125,7 +125,7 @@ func defaultOf(t TypeID) TypeID {
 	return t
 }
 
-// adopt gives a literal node the concrete numeric type target (INF-9).
+// adopt gives a literal node the concrete numeric type target.
 func (c *checker) adopt(n syntax.NodeID, target TypeID) TypeID {
 	if c.checkLiteralFits(n, target) {
 		return c.setType(n, target)

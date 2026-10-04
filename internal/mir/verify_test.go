@@ -97,7 +97,7 @@ func TestVerifyTypes(t *testing.T) {
 }
 
 // TestVerifyFnPurityErasure checks that a copy from a plain fn value into a
-// `pure`/`noalloc`-qualified fn-typed slot (LAM-2, or a plain fn item)
+// `pure`/`noalloc`-qualified fn-typed slot (or a plain fn item)
 // verifies, since purity is the effects pass's job, not the runtime
 // representation's.
 func TestVerifyFnPurityErasure(t *testing.T) {

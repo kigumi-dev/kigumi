@@ -3,9 +3,8 @@ interface Viewer {
     pure? fn view(self, x: Int) -> Int
 }
 
-// The caller is declared, and so body-checked, BEFORE the generic callee in
-// this file — every effects_poly_iface.txtar fixture has the generic callee
-// first. CalledWitnessReqs must not depend on this order (L-178).
+// The caller is declared, and so body-checked, BEFORE the generic callee here,
+// unlike every effects_poly_iface.txtar fixture; CalledWitnessReqs must not depend on this order.
 pure fn callGenericImpure(x: Int) -> Int {
     callViewGeneric(ImpureV { tag: 1 }, x) //~ ERROR `callViewGeneric` may be impure
 }
@@ -36,9 +35,8 @@ interface WrapViewer {
     pure? fn wview(self, x: Int) -> Int
 }
 
-// Same order flip, this time through a WitnessBind's own nested
-// CalledWitnessReqs (`Wrap[T].wview` calling `self.inner.wview(x)`), which
-// witnessArgMods recurses into (L-178).
+// Same order flip, this time through a WitnessBind's own nested CalledWitnessReqs
+// (`Wrap[T].wview` calling `self.inner.wview(x)`), which witnessArgMods recurses into.
 pure fn wrapImpure(x: Int) -> Int {
     callWrapGeneric(Wrap { inner: ImpureW { tag: 1 } }, x) //~ ERROR `callWrapGeneric` may be impure
 }
@@ -78,10 +76,8 @@ interface AliasViewer {
     pure? fn aview(self, x: Int) -> Int
 }
 
-// Same order flip, but the generic callee's receiver is a local alias
-// (`let u = t`), not `t` itself: witnessRecvType's structural pre-pass only
-// chased self/a parameter/one field access, so this shape kept the order
-// dependency even after L-178 (L-178 追記).
+// Same order flip, but the generic callee's receiver is a local alias (`let u = t`):
+// witnessRecvType's structural pre-pass must chase through it too, not just self/a parameter.
 pure fn aliasImpure(x: Int) -> Int {
     callAliasGeneric(ImpureA { tag: 1 }, x) //~ ERROR `callAliasGeneric` may be impure
 }
@@ -117,8 +113,7 @@ fn identity[T](t: T) -> T {
     t
 }
 
-// Same order flip, receiver is another call's result (`identity(t)`), same
-// gap as order_local_alias.kg (L-178 追記).
+// Same order flip, receiver is another call's result (`identity(t)`), same gap as order_local_alias.kg.
 pure fn resultImpure(x: Int) -> Int {
     callResultGeneric(ImpureR { tag: 1 }, x) //~ ERROR `callResultGeneric` may be impure
 }
@@ -146,30 +141,30 @@ fn ImpureR.rview(self, x: Int) -> Int {
 }
 -- expect --
 error[E901]: `callResultGeneric` may be impure
-  --> lib/order_call_result.kg:12:5
+  --> lib/order_call_result.kg:11:5
    |
-12 |     callResultGeneric(ImpureR { tag: 1 }, x) //~ ERROR `callResultGeneric` may be impure
+11 |     callResultGeneric(ImpureR { tag: 1 }, x) //~ ERROR `callResultGeneric` may be impure
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: declare it `pure fn(...)`
 
 error[E901]: `callAliasGeneric` may be impure
-  --> lib/order_local_alias.kg:10:5
-   |
-10 |     callAliasGeneric(ImpureA { tag: 1 }, x) //~ ERROR `callAliasGeneric` may be impure
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = help: declare it `pure fn(...)`
+ --> lib/order_local_alias.kg:8:5
+  |
+8 |     callAliasGeneric(ImpureA { tag: 1 }, x) //~ ERROR `callAliasGeneric` may be impure
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: declare it `pure fn(...)`
 
 error[E901]: `callViewGeneric` may be impure
- --> lib/order_same_file.kg:9:5
+ --> lib/order_same_file.kg:8:5
   |
-9 |     callViewGeneric(ImpureV { tag: 1 }, x) //~ ERROR `callViewGeneric` may be impure
+8 |     callViewGeneric(ImpureV { tag: 1 }, x) //~ ERROR `callViewGeneric` may be impure
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   = help: declare it `pure fn(...)`
 
 error[E901]: `callWrapGeneric` may be impure
- --> lib/order_wrap.kg:9:5
+ --> lib/order_wrap.kg:8:5
   |
-9 |     callWrapGeneric(Wrap { inner: ImpureW { tag: 1 } }, x) //~ ERROR `callWrapGeneric` may be impure
+8 |     callWrapGeneric(Wrap { inner: ImpureW { tag: 1 } }, x) //~ ERROR `callWrapGeneric` may be impure
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   = help: declare it `pure fn(...)`
 

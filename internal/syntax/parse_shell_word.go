@@ -18,7 +18,7 @@ func (s *shellParser) word(tok uint32) NodeID {
 				parts = append(parts, s.interpolation(tok))
 				continue
 			}
-			s.errorf(s.pos, "`$name` expansion is not allowed; use `${name}` (§10.7)")
+			s.errorf(s.pos, "`$name` expansion is not allowed; use `${name}`")
 			s.pos++
 		default:
 			parts = append(parts, s.bareText())

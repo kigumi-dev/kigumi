@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-186: a function generic over its own `'a` can take a
+// A function generic over its own `'a` can take a
 // lifetime-carrying value produced by another declaration (`identity`,
 // `wrapIt`), and the lifetime keeps flowing through a two-level
 // pass-through (`passThrough` calling `identity`).

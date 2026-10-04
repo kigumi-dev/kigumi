@@ -1,9 +1,8 @@
 -- src --
 import io from std/io
 
-// crypto_http_language_requests_v1.md §2.12: src and buf are disjoint
-// fields, so borrowing one `&mut` and the other `&mut` (or `&`) at the
-// same time no longer needs a local go-between.
+// src and buf are disjoint fields, so borrowing one `&mut` and the other
+// `&mut` (or `&`) at the same time no longer needs a local go-between.
 type Buffered = {
     mut src io.Reader
     mut buf Array[u8]

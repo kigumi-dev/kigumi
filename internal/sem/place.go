@@ -78,7 +78,7 @@ func (c *checker) indexAssignUnsupported(n syntax.NodeID) bool {
 	return false
 }
 
-// isMutablePlace implements the OWN-6 predicate.
+// isMutablePlace: every link of the place chain must be mutable.
 func (c *checker) isMutablePlace(n syntax.NodeID) bool {
 	p, ok := c.buildPlace(n)
 	return ok && p.Mutable

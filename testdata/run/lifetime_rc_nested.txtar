@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-186: a view returned through two calls, stored in a record that
+// A view returned through two calls, stored in a record that
 // shares its owner's `'a`, dropped inside a nested scope. Regression for a
 // refcount imbalance found by the native RC checker (-DKIGUMI_RC_CHECK):
 // releasing the record used to release its `&'a Bytes` field too, as if

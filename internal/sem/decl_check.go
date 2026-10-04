@@ -33,7 +33,7 @@ func (r *Result) checkDeclarations() {
 }
 
 // checkSignatureVisibility reports every nominal type in t whose visibility
-// does not cover the declaration's (VIS-6). Fields use their own visibility
+// does not cover the declaration's. Fields use their own visibility
 // narrowed by the container's.
 func (r *Result) checkSignatureVisibility(id EntityID, vis Visibility, t TypeID) {
 	if t == 0 || t == TyPoison {
@@ -76,7 +76,7 @@ func (r *Result) nominalEntities(t TypeID) []EntityID {
 }
 
 // checkMain enforces `fn main() -> Unit!` or `fn main(host: Host) -> Unit!`
-// in the main module (ENT-5). Not gated on an entry file: a module whose main
+// in the main module. Not gated on an entry file: a module whose main
 // is written out explicitly has no script-shaped file at all.
 func (r *Result) checkMain(id EntityID) {
 	e := &r.Entities[id]

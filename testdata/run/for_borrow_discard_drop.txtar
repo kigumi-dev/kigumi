@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-181: discarding a `for` loop's borrowed binding (`_ = x`) must
+// Discarding a `for` loop's borrowed binding (`_ = x`) must
 // not drop it — the loop never owns a borrowed element, so only the real
 // owner's own scope exit drops it, exactly once.
 type Res = resource {

@@ -1,7 +1,7 @@
 -- lib/flsm.kg --
 import map from std/map
 
-// Ledger L-181: the vm and native backends give a `for` element no cell to
+// The vm and native backends give a `for` element no cell to
 // write through, unlike an ordinary `&mut` local (R10), so a mutable
 // scalar element binding is rejected outright instead of silently losing
 // the write on those two engines.

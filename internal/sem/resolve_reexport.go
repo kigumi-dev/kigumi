@@ -63,7 +63,7 @@ func (r *Result) publishReexport(id EntityID) {
 	}
 }
 
-// A re-export may not be wider than the declaration it names (PKG-9).
+// A re-export may not be wider than the declaration it names.
 func (r *Result) checkReexportWidening(id EntityID) {
 	e := &r.Entities[id]
 	target := e.Target

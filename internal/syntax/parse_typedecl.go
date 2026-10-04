@@ -101,7 +101,7 @@ func (p *parser) field() NodeID {
 		flags |= FlagMut
 	}
 	if p.at(token.KwFn) {
-		p.errorf("methods cannot be declared inside a type body; write `fn Type.name(self)` at top level (§5.1)")
+		p.errorf("methods cannot be declared inside a type body; write `fn Type.name(self)` at top level")
 		p.recoverList(token.RBrace)
 		return p.tree.addRec(Field, p.pos, []uint32{0, 0, 0, 0})
 	}

@@ -65,7 +65,7 @@ var (
 	cFieldMethodClash        = defineCode("E224", "field-method-clash", "`{name}` is both a field and a method of `{type}`")
 	cVariantPayloadMixed     = defineCode("E225", "variant-payload-mixed", "variant `{name}` mixes named and positional payload")
 	cVariantPreludeCollision = defineCode("E255", "variant-prelude-collision", "variant `{name}` collides with the {what} {kind} `{name}`; rename it")
-	cEntryNameRedeclared     = defineCode("E256", "entry-name-redeclared", "`{name}` is an entry-only intrinsic (§10.2, §10.3) and cannot be redeclared in the entry package")
+	cEntryNameRedeclared     = defineCode("E256", "entry-name-redeclared", "`{name}` is an entry-only intrinsic and cannot be redeclared in the entry package")
 	cDropSignature           = defineCode("E226", "drop-signature", "`drop` must be `fn {type}.drop(move self) -> Unit`")
 	cDropOnNonResource       = defineCode("E227", "drop-on-non-resource", "only `resource` types define `drop`")
 	cDropDuplicate           = defineCode("E228", "drop-duplicate", "`{type}` already defines `drop`")
@@ -93,7 +93,7 @@ var (
 	cConstraintNotIface      = defineCode("E248", "constraint-not-interface", "`{name}` is not an interface or compiler-known constraint")
 	cFnRedeclared            = defineCode("E249", "fn-redeclared", "`{name}` with parameters ({types}) is already declared")
 	cParamDuplicate          = defineCode("E250", "param-duplicate", "duplicate parameter `{name}`")
-	cEffectPolyNotReq        = defineCode("E257", "effect-poly-not-requirement", "`pure?` is only allowed on an interface requirement (§4.7, L-121)")
+	cEffectPolyNotReq        = defineCode("E257", "effect-poly-not-requirement", "`pure?` is only allowed on an interface requirement")
 
 	cConstraintUnsatisfied = defineCode("E300", "constraint-unsatisfied", "`{type}` does not satisfy `{constraint}`: {missing}")
 	cInferUnresolved       = defineCode("E301", "infer-unresolved", "cannot infer type parameter `{name}`; write {hint}")

@@ -1,6 +1,6 @@
 -- src --
-// Ledger L-186: a `&'a T` return borrows from a parameter tagged `'a`, one
-// or two of them; the elision rule (§2.8) requires the two-parameter form
+// A `&'a T` return borrows from a parameter tagged `'a`, one
+// or two of them; the elision rule requires the two-parameter form
 // to write the return's lifetime explicitly.
 fn first['a](x: &'a Int) -> &Int {
     x

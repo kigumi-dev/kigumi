@@ -51,7 +51,7 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 	}
 	for _, path := range importPaths(tree) {
 		if p, ok := m.Packages[path]; ok && !p.Std && p.Module == "" {
-			return nil, true, fmt.Errorf("%s cannot import %s, a package of the module it builds; call a helper a dependency exports or select a Framework (v2.8 §6)", BuildFileName, path)
+			return nil, true, fmt.Errorf("%s cannot import %s, a package of the module it builds; call a helper a dependency exports or select a Framework", BuildFileName, path)
 		}
 	}
 	mod.Packages = append(mod.Packages, &sem.Package{Path: "build", Files: []*syntax.Tree{tree}})

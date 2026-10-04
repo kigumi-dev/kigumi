@@ -81,7 +81,7 @@ func (p *Program) returnable(f *Func, t sem.TypeID) bool {
 
 // sameType is type identity, with a closure counted as its signature (every
 // back end treats a closure as a function value of that type) and, failing
-// that, two fn types compared ignoring `pure`/`noalloc`: LAM-2 erasure and a
+// that, two fn types compared ignoring `pure`/`noalloc`: closure erasure and a
 // plain fn item both carry those qualifiers only for the checker's effects
 // pass (an EdgeContract), never in the value's runtime representation.
 func (p *Program) sameType(a, b sem.TypeID) bool {

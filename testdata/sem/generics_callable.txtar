@@ -36,9 +36,7 @@ fn use(b: Box[Int]) -> Unit {
     let mw: fn(fn(Int) -> String) -> Box[String] = b.map
     let p = h //~ ERROR `h` is overloaded
     let q = h[Int] //~ ERROR `h` is overloaded
-    // A bare generic passed with no instantiation or use-site annotation
-    // unifies T to &Int here instead of Int (docs/limitations_v1.md).
-    let xs = Array.of(1, 2).map(identity) //~ TYPE xs : Array[&Int]
+    let xs = Array.of(1, 2).map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
 }
 -- expect --
 error[E301]: cannot infer type parameter `T`
@@ -68,4 +66,11 @@ error[E420]: `h` is overloaded
 37 |     let q = h[Int] //~ ERROR `h` is overloaded
    |             ^^^^^
    = help: annotate the function type
+
+error[E1130]: `identity`'s type parameter would be inferred as a reference here
+  --> lib/gc.kg:38:33
+   |
+38 |     let xs = Array.of(1, 2).map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+   |                                 ^^^^^^^^
+   = help: declare the parameter `&T` or `&mut T` instead of relying on inference to borrow it
 

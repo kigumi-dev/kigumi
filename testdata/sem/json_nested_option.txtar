@@ -17,13 +17,13 @@ fn useIt(text: String) -> Unit! {
     _ = back
 }
 -- expect --
-error[E972]: `Weird` cannot derive JSON `Encode`: field `value` is `Option[Option[...]]`, and JSON `null` cannot tell `Some(None)` from `None` (ledger L-123)
+error[E972]: `Weird` cannot derive JSON `Encode`: field `value` is `Option[Option[...]]`, and JSON `null` cannot tell `Some(None)` from `None`
   --> app/n/n.kg:13:19
    |
 13 |     let encoded = json.encode(w)? //~ ERROR `Weird` cannot derive JSON `Encode`
    |                   ^^^^^^^^^^^^^
 
-error[E972]: `Choice` cannot derive JSON `Decode`: field `A` is `Option[Option[...]]`, and JSON `null` cannot tell `Some(None)` from `None` (ledger L-123)
+error[E972]: `Choice` cannot derive JSON `Decode`: field `A` is `Option[Option[...]]`, and JSON `null` cannot tell `Some(None)` from `None`
   --> app/n/n.kg:15:16
    |
 15 |     let back = json.decode[Choice](text)? //~ ERROR `Choice` cannot derive JSON `Decode`

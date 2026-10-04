@@ -3,7 +3,7 @@ import ffi from std/ffi
 
 // align widens a record's own alignment past what its fields alone need,
 // padding size to a multiple of it; a smaller align than the fields already
-// need has no effect (§13.1, L-145).
+// need has no effect.
 type Wide layout(C, align: 8) = {
     pub tag u8
 }

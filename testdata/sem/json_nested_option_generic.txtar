@@ -19,7 +19,7 @@ fn useIt() -> Unit! {
     _ = encodedOk
 }
 -- expect --
-error[E972]: `Box[Int?]` cannot derive JSON `Encode`: field `value` is `Option[Option[...]]`, and JSON `null` cannot tell `Some(None)` from `None` (ledger L-123)
+error[E972]: `Box[Int?]` cannot derive JSON `Encode`: field `value` is `Option[Option[...]]`, and JSON `null` cannot tell `Some(None)` from `None`
   --> app/n/n.kg:13:19
    |
 13 |     let encoded = json.encode(bad)? //~ ERROR `Box[Int?]` cannot derive JSON `Encode`

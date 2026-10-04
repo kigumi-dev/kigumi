@@ -37,7 +37,7 @@ func (r *Result) declareTop(f FileID, d syntax.NodeID, nameTok uint32, kind Enti
 	return id
 }
 
-// checkTopName rejects `nil`, `panic`, predeclared names (PRE-3, PRE-4), and
+// checkTopName rejects `nil`, `panic`, predeclared names, and
 // anywhere in the entry package the entry-only intrinsics entryScope binds:
 // that scope reaches every file of the package via the scope chain, not just
 // the entry file, so the check must too.

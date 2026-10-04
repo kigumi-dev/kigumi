@@ -16,7 +16,7 @@ func (p *parser) postfix() NodeID {
 	arg := p.postfixChain(p.primary())
 	call := p.node2(WsCallExpr, p.tree.Nodes[e].Tok, e, p.tree.addList(List, argTok, []NodeID{arg}))
 	if p.startsWsArg() {
-		p.errorf("whitespace call takes exactly one argument; write `f(g(x))` or `f(g, x)` (§4.2)")
+		p.errorf("whitespace call takes exactly one argument; write `f(g(x))` or `f(g, x)`")
 	}
 	return call
 }

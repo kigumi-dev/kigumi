@@ -6,7 +6,7 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// emits E701/E702 for an OWN-6 violation, walking outside-in like recvMutabilityFixes (E515)
+// emits E701/E702 for a mutable-place violation, walking outside-in like recvMutabilityFixes (E515)
 // to blame the link nearest the point of use.
 func (c *checker) reportImmutable(lhs syntax.NodeID) {
 	node := c.t.Nodes[lhs]
@@ -58,7 +58,7 @@ func (c *checker) assignImmutableFix(n syntax.NodeID) (fix string, tok uint32, f
 	}
 }
 
-// walks n's place chain outside-in for every OWN-6-broken link (nearest point of use first); a
+// walks n's place chain outside-in for every non-mutable link (nearest point of use first); a
 // chain can carry both a non-mut field and an immutable root, so it must not stop at the first.
 func (c *checker) assignImmutableFixes(n syntax.NodeID) (fixes []string, tok uint32, file FileID) {
 	switch c.t.Kind(n) {

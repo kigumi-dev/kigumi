@@ -41,13 +41,13 @@ fn readOnlyCapture() -> Unit {
     let _ = peek()
 }
 -- expect --
-error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell (ledger L-152)
+error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
   --> app/t/t.kg:12:5
    |
 12 |     item.update(1) //~ ERROR a `mut self` call on `item` conflicts
    |     ^^^^
 
-error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell (ledger L-152)
+error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
   --> app/t/t.kg:19:5
    |
 19 |     item.update(1) //~ ERROR a `mut self` call on `item` conflicts

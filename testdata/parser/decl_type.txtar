@@ -216,7 +216,7 @@ File
       Field 
 
 -- diagnostics --
-error: methods cannot be declared inside a type body; write `fn Type.name(self)` at top level (§5.1)
+error: methods cannot be declared inside a type body; write `fn Type.name(self)` at top level
   --> decl_type.txtar:43:5
    |
 43 |     fn method(self) -> Int { 1 }

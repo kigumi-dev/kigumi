@@ -1,6 +1,6 @@
 package sem
 
-// dropEffect is the Phase 1 subset of EFF-5.
+// dropEffect sums the effects of t's drop glue; the memo seeds neutral so recursive types terminate.
 func (r *Result) dropEffect(t TypeID) EffectSummary {
 	neutral := EffectSummary{Pure: true, Noalloc: true, Known: true}
 	if t == 0 {

@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-181: a `for` loop whose borrowed head is a field projection
+// A `for` loop whose borrowed head is a field projection
 // (`&self.items`, `&b.items`, `&mut b.items`) must retain nothing of its
 // own; the real owner still drops the elements exactly once when it goes
 // out of scope.

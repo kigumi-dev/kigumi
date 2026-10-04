@@ -39,7 +39,7 @@ func TestNoEnvReads(t *testing.T) {
 		}
 		for _, call := range []string{"os.Getenv(", "os.LookupEnv(", "os.Environ(", "os.ExpandEnv("} {
 			if strings.Contains(string(b), call) {
-				t.Errorf("%s: %s を読んでいる。環境変数は internal/cli で Options に変換せよ (plan §5.13)", rel, call)
+				t.Errorf("%s: %s を読んでいる。環境変数は internal/cli で Options に変換せよ", rel, call)
 			}
 		}
 		return nil

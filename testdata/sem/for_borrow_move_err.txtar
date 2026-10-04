@@ -7,7 +7,7 @@ fn consume(x: Res) -> Int {
     x.id
 }
 
-// Ledger L-181: `for x in xs` over a borrowed head binds x: &T, so moving
+// `for x in xs` over a borrowed head binds x: &T, so moving
 // it into an owning parameter is the existing "expected T, found &T"
 // mismatch. The other two own/borrow rejections (use of xs after an owned
 // loop, mutation of xs inside a &xs loop) are MIR-level, not sem-level —

@@ -1,0 +1,24 @@
+-- lib/gcb.kg --
+fn identity[T](x: T) -> T {
+    x
+}
+
+fn use(xs: Array[Int]) -> Unit {
+    let a = xs.map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+    let b: Array[Int] = xs.map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+}
+-- expect --
+error[E1130]: `identity`'s type parameter would be inferred as a reference here
+ --> lib/gcb.kg:6:20
+  |
+6 |     let a = xs.map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+  |                    ^^^^^^^^
+  = help: declare the parameter `&T` or `&mut T` instead of relying on inference to borrow it
+
+error[E1130]: `identity`'s type parameter would be inferred as a reference here
+ --> lib/gcb.kg:7:32
+  |
+7 |     let b: Array[Int] = xs.map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
+  |                                ^^^^^^^^
+  = help: declare the parameter `&T` or `&mut T` instead of relying on inference to borrow it
+

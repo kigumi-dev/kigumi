@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-181: `for x in &mut xs` holds an exclusive borrow for the
+// `for x in &mut xs` holds an exclusive borrow for the
 // loop's duration and binds x: &mut T, so a field write through x lands
 // in xs and is visible afterward.
 type Counter = {

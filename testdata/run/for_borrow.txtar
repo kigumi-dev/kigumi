@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-181: `for x in &xs` holds a shared borrow for the loop's
+// `for x in &xs` holds a shared borrow for the loop's
 // duration and binds x: &T; xs is still usable afterward. A Copy element
 // keeps the existing rule that &T of a Copy T is usable as T in operators.
 type Item = {

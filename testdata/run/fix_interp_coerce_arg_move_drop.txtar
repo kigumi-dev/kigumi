@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-172 (追記 2026-09-28): passing a resource straight into a call
+// Passing a resource straight into a call
 // whose parameter type coerces the argument (`T?`, `T!`, or an object-safe
 // interface) double-dropped it under --engine interp, since args() applies
 // the coercion before transfer/markMoved compares by identity, and a

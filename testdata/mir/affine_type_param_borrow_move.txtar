@@ -1,5 +1,5 @@
 -- lib/peek.kg --
-// Ledger L-08/L-116: a T-typed field read through a borrowed receiver is
+// A T-typed field read through a borrowed receiver is
 // still a borrow of the caller's storage, so moving it out is rejected
 // exactly like a concrete move-only field (own_borrowed.go's moveOnly
 // used to exempt every sem.KParam local from this check).

@@ -42,7 +42,7 @@ func (s *shellParser) plan(tok uint32) NodeID {
 		s.skipSpace()
 		if s.pos < s.end && s.src[s.pos] == '|' {
 			if s.pos+1 < s.end && s.src[s.pos+1] == '|' {
-				s.errorf(s.pos, "`||` is not part of the portable shell dialect (§10.7)")
+				s.errorf(s.pos, "`||` is not part of the portable shell dialect")
 				s.pos += 2
 				continue
 			}
@@ -75,10 +75,10 @@ func (s *shellParser) command(tok uint32) NodeID {
 		case c == '|':
 			return s.p.tree.addList(ShellCmd, tok, parts)
 		case c == '&' && s.pos+1 < s.end && s.src[s.pos+1] == '&':
-			s.errorf(s.pos, "`&&` is not part of the portable shell dialect (§10.7)")
+			s.errorf(s.pos, "`&&` is not part of the portable shell dialect")
 			s.pos += 2
 		case c == '&' || c == ';' || c == '(' || c == ')' || c == '`':
-			s.errorf(s.pos, "`"+string(c)+"` is not part of the portable shell dialect (§10.7)")
+			s.errorf(s.pos, "`"+string(c)+"` is not part of the portable shell dialect")
 			s.pos++
 		case c == '<' || c == '>' || (c >= '0' && c <= '9' && s.isRedirectAfterDigits()):
 			parts = append(parts, s.redirect(tok))
@@ -136,7 +136,7 @@ func (s *shellParser) redirect(tok uint32) NodeID {
 		op = RedirAppend
 		s.pos++
 	} else if s.pos < s.end && s.src[s.pos] == '<' && op == RedirIn {
-		s.errorf(start, "here documents are not supported (§10.7)")
+		s.errorf(start, "here documents are not supported")
 		s.pos++
 	}
 	if s.pos < s.end && s.src[s.pos] == '&' {

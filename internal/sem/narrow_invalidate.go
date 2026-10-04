@@ -2,7 +2,7 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// Unstable places (NAR-2, S8): facts may attach to mutable locals, mutable
+// Unstable places: facts may attach to mutable locals, mutable
 // fields and indexed places, and are dropped by the events that could
 // change them.
 

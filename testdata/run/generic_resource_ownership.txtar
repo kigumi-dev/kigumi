@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-08/L-116: a resource passed through a chain of user generic
+// A resource passed through a chain of user generic
 // functions still has exactly one owner at a time and drops exactly
 // once, the same as passing it through a concrete function.
 type Res = resource {

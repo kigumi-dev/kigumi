@@ -332,7 +332,7 @@ File
         Ident i
     IntLit 2
 -- diagnostics --
-error: whitespace call takes exactly one argument; write `f(g(x))` or `f(g, x)` (§4.2)
+error: whitespace call takes exactly one argument; write `f(g(x))` or `f(g, x)`
   --> expr_call.txtar:10:5
    |
 10 | f g x

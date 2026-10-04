@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-181: `for x in xs` over an owned collection moves xs into the
+// `for x in xs` over an owned collection moves xs into the
 // loop and binds each element by value; a resource element drops exactly
 // once, including the ones an early break leaves behind.
 type Res = resource {

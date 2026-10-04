@@ -8,7 +8,7 @@ import (
 	"kigumi/internal/driver"
 )
 
-// TestRunExplicitMain locks in interp/vm/auto parity for the ENT-5 explicit
+// TestRunExplicitMain locks in interp/vm/auto parity for the explicit
 // entry form: interp.RunEntry must fall back to sem.Result.MainFn() like
 // the VM and AOT paths, not only ImplicitMains().
 func TestRunExplicitMain(t *testing.T) {
@@ -44,7 +44,7 @@ func TestRunExplicitMain(t *testing.T) {
 }
 
 // TestRunExplicitMainWithHost covers the `fn main(host: Host) -> Unit!`
-// form (ENT-5's second sanctioned signature) on interp and vm alike.
+// form (the second sanctioned signature) on interp and vm alike.
 func TestRunExplicitMainWithHost(t *testing.T) {
 	root := t.TempDir()
 	writeEntryScopeModule(t, root, map[string]string{

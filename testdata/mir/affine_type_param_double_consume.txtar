@@ -1,5 +1,5 @@
 -- lib/twice.kg --
-// Ledger L-08/L-116: an unconstrained type parameter is affine, so
+// An unconstrained type parameter is affine, so
 // consuming it twice is use-after-move, exactly like a concrete
 // move-only type (this used to type-check: own.go's moveOnly excluded
 // every sem.KParam local from tracking).

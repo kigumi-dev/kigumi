@@ -40,7 +40,7 @@ func (lx *lexer) lexOperator() {
 		return
 	}
 	if text[0] == '=' {
-		lx.errorf(start, lx.pos, "operator cannot start with `=` (§6.2); separate `=` from the following operator")
+		lx.errorf(start, lx.pos, "operator cannot start with `=`; separate `=` from the following operator")
 	}
 	lx.emit(token.Operator, start, lx.pos)
 }

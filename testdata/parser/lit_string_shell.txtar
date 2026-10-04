@@ -174,19 +174,19 @@ File
         IntLit 1_000
       FloatLit 2e10
 -- diagnostics --
-error: `&&` is not part of the portable shell dialect (§10.7)
+error: `&&` is not part of the portable shell dialect
   --> lit_string_shell.txtar:10:14
    |
 10 | let p6 = $"a && b"
    |              ^
 
-error: `$name` expansion is not allowed; use `${name}` (§10.7)
+error: `$name` expansion is not allowed; use `${name}`
   --> lit_string_shell.txtar:11:17
    |
 11 | let p7 = $"echo $var"
    |                 ^
 
-error: here documents are not supported (§10.7)
+error: here documents are not supported
   --> lit_string_shell.txtar:12:16
    |
 12 | let p8 = $"cat <<EOF"

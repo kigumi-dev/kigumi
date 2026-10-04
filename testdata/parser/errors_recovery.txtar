@@ -93,13 +93,13 @@ error: expected ), found `let`
 3 | let ok = 1
   | ^^^
 
-error: `static fn` does not exist; an associated function is `fn Type.name(...)` without `self` (§5.1)
+error: `static fn` does not exist; an associated function is `fn Type.name(...)` without `self`
  --> errors_recovery.txtar:4:1
   |
 4 | static fn User.anonymous() -> User { User { name: "?" } }
   | ^^^^^^
 
-error: `impl` blocks do not exist; write `fn Type.name(self)` at top level and use `@impl(Interface)` on the type (§5.1)
+error: `impl` blocks do not exist; write `fn Type.name(self)` at top level and use `@impl(Interface)` on the type
  --> errors_recovery.txtar:5:1
   |
 5 | impl User { }

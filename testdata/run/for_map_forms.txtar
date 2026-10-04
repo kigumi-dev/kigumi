@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-181: `for (k, v) in map` follows the same owned/&/&mut split as
+// `for (k, v) in map` follows the same owned/&/&mut split as
 // Array, reading the entries as (K, V) pairs built from Map's keyList and
 // valueList in lockstep.
 import map from std/map

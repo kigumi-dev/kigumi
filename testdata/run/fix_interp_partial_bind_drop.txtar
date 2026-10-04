@@ -1,5 +1,5 @@
 -- src --
-// Ledger L-172 (amended): a compound pattern that binds only PART of a
+// A compound pattern that binds only PART of a
 // resource-bearing place by value, leaving another field/payload slot to a
 // wildcard, dropped wrong under --engine interp only. Marking the whole
 // scrutinee place Moved after any by-value bind double-dropped the bound

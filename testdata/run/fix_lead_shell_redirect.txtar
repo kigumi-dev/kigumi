@@ -14,7 +14,7 @@ fn read(files: fs.Files, name: String) -> String! {
 let r1 = ($"printf both > a.txt > b.txt" |> shell.capture(sh))?
 print "captured=[${String.fromBytes(r1.stdout)?}] a=[${read(files, "a.txt")?}] b=[${read(files, "b.txt")?}]"
 
-// `2>&1 >file` and `>file 2>&1` must differ (§10.6 source-order application).
+// `2>&1 >file` and `>file 2>&1` must differ.
 let r2 = ($"sh -c 'echo E >&2; echo O' 2>&1 > c.txt" |> shell.capture(sh))?
 print "orderA=[${String.fromBytes(r2.stdout)?}] c=[${read(files, "c.txt")?}]"
 let r3 = ($"sh -c 'echo E >&2; echo O' > d.txt 2>&1" |> shell.capture(sh))?

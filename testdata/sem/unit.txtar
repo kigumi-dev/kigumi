@@ -1,6 +1,6 @@
 -- app/t/t.kg --
-// `()` is the value of type Unit, the 0-tuple counterpart of `(a, b)`
-// (L-112); `Unit` itself stays a type name.
+// `()` is the value of type Unit, the 0-tuple counterpart of `(a, b)`;
+// `Unit` itself stays a type name.
 fn takesUnit(u: Unit) -> Unit {
     _ = u
 }

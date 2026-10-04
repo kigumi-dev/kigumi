@@ -34,7 +34,7 @@ fn arityMismatch() -> Unit {
 }
 
 // Destructuring through a borrow gives `&T` bindings, the same binding mode
-// a record pattern uses over a borrowed scrutinee (§2.8); a move-only
+// a record pattern uses over a borrowed scrutinee; a move-only
 // component cannot then be read back out as owned.
 fn steal(t: &(Res, Int)) -> Res {
     let (r, n) = t

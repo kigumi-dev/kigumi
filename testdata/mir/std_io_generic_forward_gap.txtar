@@ -1,5 +1,5 @@
 -- lib/gap.kg --
-// Ledger L-08/L-25: `%w` is an interface-constrained type parameter, so it
+// `%w` is an interface-constrained type parameter, so it
 // is affine like any move-only type unless `W: Copy`. The second call
 // below reuses `w` after the first `writeAll` moved it, so it is a
 // use-after-move, exactly like the identical pattern on a concrete
