@@ -72,8 +72,8 @@ func (e *emitter) borrowFieldMask(info *sem.TypeDeclInfo) uint64 {
 	return mask
 }
 
-// data emits descriptors for all named types, not just used ones, so the
-// runtime can construct std records by name.
+// data emits a descriptor for every type reach.Types keeps, plus any type
+// e.descs already names (complete by now) in case that pass missed one.
 func (e *emitter) data() string {
 	var sb strings.Builder
 	var typeRefs []string
@@ -82,6 +82,11 @@ func (e *emitter) data() string {
 		x := e.r.Entity(ent)
 		if x.Kind != sem.EntType {
 			continue
+		}
+		if e.reachable != nil && !e.reachable.KeepType(ent) {
+			if _, used := e.descs[ent]; !used {
+				continue
+			}
 		}
 		info := e.r.TypeDecl(ent)
 		for _, v := range info.Variants {

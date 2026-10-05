@@ -15,6 +15,9 @@ type Summary struct {
 	// Resources is ResourceReport's per-root lines; always reported,
 	// strict profiles additionally gate the build on these.
 	Resources []string
+	// Capabilities is the reason graph's build-output half: the public
+	// vocabulary of runtime features this build's reachable code draws on.
+	Capabilities []string
 	// ReproducibleChecked is true once --reproducible ran both builds; a mismatch
 	// stops the build first, so Reproducible is then always true.
 	ReproducibleChecked bool
@@ -32,6 +35,8 @@ func (s Summary) Render() string {
 	writeListOrNone(&sb, s.HostInputs)
 	sb.WriteString("  resources: ")
 	writeListOrNone(&sb, s.Resources)
+	sb.WriteString("  capabilities: ")
+	writeListOrNone(&sb, s.Capabilities)
 	sb.WriteString("  build isolation: trusted host (not sandboxed)\n")
 	sb.WriteString("  reproducibility: ")
 	switch {

@@ -13,7 +13,8 @@ const (
 	RootEntry
 	RootExport
 	RootTest
-	// emit_data.go wires every named type's descriptor unconditionally, so a type's drop fn must stay available the same way.
+	// A kept type's drop runs through its descriptor's function pointer
+	// (rt_drop), never a direct call edge, so it must be rooted explicitly.
 	RootDropGlue
 )
 
@@ -39,9 +40,14 @@ type Reachability struct {
 	Order   []sem.EntityID
 	Ops     []StdOpId
 	OpSites map[StdOpId]OpSite
+	// Types are the named types data() must give a real descriptor: built,
+	// held or tested by reachable code, or built by name in rt_core.c.
+	Types map[sem.EntityID]bool
 }
 
 func (rs *Reachability) Keep(ent sem.EntityID) bool { return rs.Funcs[ent] }
+
+func (rs *Reachability) KeepType(ent sem.EntityID) bool { return rs.Types[ent] }
 
 func (rs *Reachability) add(id sem.EntityID, reason Reason) bool {
 	if id == 0 || rs.Funcs[id] {
@@ -53,16 +59,42 @@ func (rs *Reachability) add(id sem.EntityID, reason Reason) bool {
 	return true
 }
 
-// Reachable computes p's canonical reachability set: entry, exported symbols, tests and every
-// type's drop glue as roots, closed over call/value/bind edges and (for a box) the vtable witnesses llgen would resolve.
+// Reachable computes p's canonical reachability set: entry, exported symbols and tests as
+// roots, closed over call/value/bind edges, box witnesses, and the named types those reach.
 func Reachable(p *Program) *Reachability {
 	r := p.R
-	rs := &Reachability{Funcs: map[sem.EntityID]bool{}, Reason: map[sem.EntityID]Reason{}, OpSites: map[StdOpId]OpSite{}}
+	rs := &Reachability{Funcs: map[sem.EntityID]bool{}, Reason: map[sem.EntityID]Reason{}, OpSites: map[StdOpId]OpSite{}, Types: map[sem.EntityID]bool{}}
 	var worklist []sem.EntityID
 	root := func(id sem.EntityID, kind RootKind) {
 		if rs.add(id, Reason{Root: kind}) {
 			worklist = append(worklist, id)
 		}
+	}
+	markType := func(id sem.EntityID) {
+		if id == 0 || r.Entity(id).Kind != sem.EntType || rs.Types[id] {
+			return
+		}
+		rs.Types[id] = true
+		root(r.TypeDecl(id).Drop, RootDropGlue)
+	}
+	seenTypeIDs := map[sem.TypeID]bool{}
+	var walkType func(t sem.TypeID)
+	walkType = func(t sem.TypeID) {
+		if t == 0 || seenTypeIDs[t] {
+			return
+		}
+		seenTypeIDs[t] = true
+		n := r.Types.Node(t)
+		if n.Kind == sem.KNamed {
+			markType(n.Ent)
+		}
+		walkType(n.Elem)
+		for _, a := range n.Args {
+			walkType(a)
+		}
+	}
+	for _, ent := range baseTypeEnts(r) {
+		markType(ent)
 	}
 	if p.Entry != nil {
 		root(p.Entry.Ent, RootEntry)
@@ -75,13 +107,6 @@ func Reachable(p *Program) *Reachability {
 		case ent.Kind == sem.EntFn && r.Fn(f.Ent).Export != "":
 			root(f.Ent, RootExport)
 		}
-	}
-	for id := 1; id < len(r.Entities); id++ {
-		ent := sem.EntityID(id)
-		if r.Entity(ent).Kind != sem.EntType {
-			continue
-		}
-		root(r.TypeDecl(ent).Drop, RootDropGlue)
 	}
 	opSeen := map[StdOpId]bool{}
 	for len(worklist) > 0 {
@@ -99,10 +124,25 @@ func Reachable(p *Program) *Reachability {
 				worklist = append(worklist, target)
 			}
 		}
+		walkType(f.Ret)
+		for _, l := range f.Locals {
+			walkType(l.Type)
+		}
 		for _, blk := range f.Blocks {
 			for i := range blk.Insts {
 				in := &blk.Insts[i]
 				visit(in.Ent, "call")
+				walkType(in.Type)
+				switch in.Op {
+				case OpRecord:
+					markType(in.Ent)
+				case OpVariant, OpIsVariant:
+					if parent := r.Entity(in.Ent).Parent; parent != 0 {
+						markType(parent)
+					}
+				case OpIsType:
+					markType(in.Ent)
+				}
 				if in.Op == OpShell {
 					visit(shellRuntimeFn(r, "planNew"), "call")
 					visit(shellRuntimeFn(r, "planPush"), "call")
@@ -117,6 +157,9 @@ func Reachable(p *Program) *Reachability {
 					opSeen[op] = true
 					rs.Ops = append(rs.Ops, op)
 					rs.OpSites[op] = OpSite{Caller: id, Node: in.Node}
+					for _, ref := range nativeRecordTypesForOp[op] {
+						markType(r.PackageMember(r.PackageByPath(ref.pkg), ref.name))
+					}
 				}
 			}
 		}

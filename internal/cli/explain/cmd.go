@@ -15,16 +15,26 @@ import (
 
 func Cmd() *cobra.Command {
 	var fn string
+	var capabilities bool
 	cmd := &cobra.Command{
 		Use:   "explain <code>",
-		Short: "Describe a diagnostic code such as E100 (no argument lists them all), or --fn <pkg.Name> <module> for an operation summary",
+		Short: "Describe a diagnostic code such as E100 (no argument lists them all), --fn <pkg.Name> <module> for an operation summary, or --capabilities <module> for its reason graph",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if fn != "" && capabilities {
+				return &cliutil.UsageError{Err: errors.NewErrf("--fn and --capabilities are exclusive")}
+			}
 			if fn != "" {
 				if len(args) != 1 {
 					return &cliutil.UsageError{Err: errors.NewErrf("--fn needs exactly one module/entry argument")}
 				}
 				return explainOp(cmd, fn, args[0])
+			}
+			if capabilities {
+				if len(args) != 1 {
+					return &cliutil.UsageError{Err: errors.NewErrf("--capabilities needs exactly one module/entry argument")}
+				}
+				return explainCapabilities(cmd, args[0])
 			}
 			out := cmd.OutOrStdout()
 			if len(args) == 0 {
@@ -48,5 +58,6 @@ func Cmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&fn, "fn", "", "print a function's inferred operation summary instead (pkg/path.Name)")
+	cmd.Flags().BoolVar(&capabilities, "capabilities", false, "print a module's reason graph: every capability its reachable code draws on, and the call path that reaches it")
 	return cmd
 }
