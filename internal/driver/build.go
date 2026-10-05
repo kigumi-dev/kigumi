@@ -4,6 +4,8 @@ import (
 	"io"
 
 	"kigumi/internal/llgen"
+	"kigumi/internal/mir"
+	"kigumi/internal/sem"
 )
 
 // Compile type-checks and lowers m to MIR, returning LLVM IR for its own resolved target so --emit-llvm matches what BuildWith would link.
@@ -34,8 +36,33 @@ func compile(m *Module, stderr io.Writer, opts llgen.EmitOptions) (llgen.Output,
 		io.WriteString(stderr, a.Res.Render())
 		return llgen.Output{}, false, nil
 	}
+	reach := mir.Reachable(a.Prog)
+	if m.target.Freestanding() && m.target.NoDefaultAllocator() {
+		a.Res.CheckStrictCapabilities(strictCapabilityUses(a.Prog, reach))
+		if a.Res.HasErrors() {
+			io.WriteString(stderr, a.Res.Render())
+			return llgen.Output{}, false, nil
+		}
+	}
+	opts.Reachable = reach
 	m.stats.Emit++
 	return llgen.EmitProgram(a.Prog, opts), true, nil
+}
+
+func strictCapabilityUses(p *mir.Program, reach *mir.Reachability) []sem.CapabilityUse {
+	var out []sem.CapabilityUse
+	for _, op := range reach.Ops {
+		if !op.NeedsHostCapability() {
+			continue
+		}
+		site := reach.OpSites[op]
+		caller := p.ByEnt[site.Caller]
+		if caller == nil {
+			continue
+		}
+		out = append(out, sem.CapabilityUse{Op: mir.StdOpNames[op], File: caller.File, Node: site.Node, Path: reach.PathNames(p.R, site.Caller)})
+	}
+	return out
 }
 
 // BuildOptions selects the target; the zero value builds for the host.

@@ -57,23 +57,21 @@ void _start(void) {
 }
 `
 
-// TestBuildArchiveFunctionSections: without
-// -ffunction-sections/-fdata-sections at compile time, the linker's
-// --gc-sections has no per-function sections to drop unused std symbols.
+// -ffunction-sections/-fdata-sections still matters for symbols reachability itself cannot prune.
 func TestBuildArchiveFunctionSections(t *testing.T) {
 	t.Parallel()
 	cc := driver.CCompiler()
 	if cc == nil {
 		t.Skip("no C compiler")
 	}
-	for _, tool := range []string{"ar", "readelf", "nm"} {
+	for _, tool := range []string{"ar", "readelf"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			t.Skipf("no %s", tool)
 		}
 	}
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"fsects\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import json from std/json\nprint \"hello\"\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
 	target, err := driver.ParseTarget("x86_64-freestanding", "")
 	if err != nil {
@@ -100,40 +98,71 @@ func TestBuildArchiveFunctionSections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("readelf -S: %v\n%s", err, sections)
 	}
-	if !strings.Contains(string(sections), ".text.std/json.") {
-		t.Fatalf("expected per-function .text.std/json.* sections in the module object, got:\n%s", sections)
+	if !strings.Contains(string(sections), ".text.") {
+		t.Fatalf("expected per-function .text.* sections in the module object, got:\n%s", sections)
+	}
+}
+
+// An unused import contributes no symbols at all, with no embedder --gc-sections needed.
+func TestBuildArchiveReachabilityPrunesUnusedImport(t *testing.T) {
+	t.Parallel()
+	cc := driver.CCompiler()
+	if cc == nil {
+		t.Skip("no C compiler")
+	}
+	if _, err := exec.LookPath("nm"); err != nil {
+		t.Skip("no nm")
+	}
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"unused\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import json from std/json\nprint \"hello\"\n"), 0o644)
+	std, _ := filepath.Abs("../../std")
+	target, err := driver.ParseTarget("x86_64-freestanding", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive := filepath.Join(root, "unused.a")
+	var buildErr bytes.Buffer
+	if ok, err := driver.BuildWith(m, archive, &buildErr, driver.BuildOptions{Target: target}); err != nil || !ok {
+		t.Fatalf("build: %v\n%s", err, buildErr.String())
 	}
 
 	stub := filepath.Join(root, "embedder_stub.c")
 	os.WriteFile(stub, []byte(embedderGCStub), 0o644)
-	jsonSymbols := func(gc bool) int {
-		bin := filepath.Join(root, "linked")
-		args := append(append([]string{}, cc[1:]...), "-target", "x86_64-freestanding", "-nostdlib", "-static")
-		if gc {
-			args = append(args, "-Wl,--gc-sections")
-			bin += "_gc"
-		}
-		args = append(args, "-o", bin, stub, archive)
-		linkCmd := exec.Command(cc[0], args...)
-		var linkErr bytes.Buffer
-		linkCmd.Stderr = &linkErr
-		if err := linkCmd.Run(); err != nil {
-			t.Fatalf("link (gc=%v): %v\n%s", gc, err, linkErr.String())
-		}
-		out, err := exec.Command("nm", "--defined-only", bin).CombinedOutput()
-		if err != nil {
-			t.Fatalf("nm: %v\n%s", err, out)
-		}
-		return strings.Count(string(out), "std/json.")
+	bin := filepath.Join(root, "linked")
+	args := append(append([]string{}, cc[1:]...), "-target", "x86_64-freestanding", "-nostdlib", "-static", "-o", bin, stub, archive)
+	linkCmd := exec.Command(cc[0], args...)
+	var linkErr bytes.Buffer
+	linkCmd.Stderr = &linkErr
+	if err := linkCmd.Run(); err != nil {
+		t.Fatalf("link: %v\n%s", err, linkErr.String())
 	}
-	before := jsonSymbols(false)
-	after := jsonSymbols(true)
-	if before < 100 {
-		t.Fatalf("expected the whole unused std/json package linked in without --gc-sections, got %d symbols", before)
+	out, err := exec.Command("nm", "--defined-only", bin).CombinedOutput()
+	if err != nil {
+		t.Fatalf("nm: %v\n%s", err, out)
 	}
-	if after >= before {
-		t.Fatalf("expected --gc-sections to drop most unused std/json symbols: before=%d after=%d", before, after)
+	if n := codeSymbolsOf(string(out), "std/json."); n != 0 {
+		t.Fatalf("expected an unused std/json import to contribute no function symbols without --gc-sections, got %d:\n%s", n, out)
 	}
+}
+
+// T/t are code symbols; type descriptors are data symbols and always linked, so excluded here.
+func codeSymbolsOf(nmOut, substr string) int {
+	n := 0
+	for _, line := range strings.Split(nmOut, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		if (fields[1] == "T" || fields[1] == "t") && strings.Contains(fields[2], substr) {
+			n++
+		}
+	}
+	return n
 }
 
 // TestBuildArchiveCFlagsLinkerFlagsIgnored:

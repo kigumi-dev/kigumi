@@ -16,6 +16,7 @@ type emitter struct {
 	entryAllocas []string
 	hoisting     bool
 	freestanding bool
+	reachable    *mir.Reachability
 	r            *sem.Result
 	out          strings.Builder
 	strs         map[string]string
@@ -44,9 +45,12 @@ type emitter struct {
 }
 
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
-	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, replaced: inPlaceReplaced(p), rewritten: rewrittenVariants(p), constVals: map[string]constVal{}, constIndex: map[string]int{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, shim: newCshim()}
+	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, replaced: inPlaceReplaced(p), rewritten: rewrittenVariants(p), constVals: map[string]constVal{}, constIndex: map[string]int{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	var body strings.Builder
 	for _, f := range p.Funcs {
+		if e.reachable != nil && !e.reachable.Keep(f.Ent) {
+			continue
+		}
 		if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Naked {
 			e.nakedFn(f)
 			continue

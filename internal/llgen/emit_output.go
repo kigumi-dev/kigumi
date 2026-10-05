@@ -19,6 +19,9 @@ type EmitOptions struct {
 	// SymbolPrefix is what the target prepends to C symbol names ("_" on
 	// Mach-O); module-level asm has to spell it out explicitly.
 	SymbolPrefix string
+	// Reachable, when set, skips a Func this reachability result does not
+	// keep; nil emits every lowered function, as every direct llgen test does.
+	Reachable *mir.Reachability
 }
 
 func EmitWith(p *mir.Program, opts EmitOptions) string { return EmitProgram(p, opts).IR }
