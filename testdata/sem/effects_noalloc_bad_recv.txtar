@@ -1,0 +1,42 @@
+-- lib/na.kg --
+type Box[T] = Full(T) | Empty
+
+fn Box.reset(mut self) -> Unit { //~ ERROR `Box` is generic
+    self = Empty //~ ERROR cannot infer type parameter `T`
+}
+
+fn Result.reset(mut self) -> Unit { //~ ERROR member functions of `Result` must be declared in package `std/prelude`
+    let r: Result[Unit, AllocError] = Err(AllocError.OutOfMemory)
+    self = r
+}
+
+type Slot = Free | Busy
+
+noalloc fn freeSlot() -> Slot {
+    Free
+}
+
+noalloc fn optionNone() -> Int? {
+    None
+}
+-- expect --
+error[E231]: `Box` is generic
+ --> lib/na.kg:3:4
+  |
+3 | fn Box.reset(mut self) -> Unit { //~ ERROR `Box` is generic
+  |    ^^^
+  = help: write `fn Box[T].reset`
+
+error[E301]: cannot infer type parameter `T`
+ --> lib/na.kg:4:12
+  |
+4 |     self = Empty //~ ERROR cannot infer type parameter `T`
+  |            ^^^^^
+  = help: write explicit type arguments or an annotation
+
+error[E229]: member functions of `Result` must be declared in package `std/prelude`
+ --> lib/na.kg:7:4
+  |
+7 | fn Result.reset(mut self) -> Unit { //~ ERROR member functions of `Result` must be declared in package `std/prelude`
+  |    ^^^^^^
+

@@ -159,6 +159,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		c.noteCaptureWrite(lhs, root)
 	}
 	c.invalidatePlace(lhs)
+	c.noteWholeSelfAssign(lhs)
 	if op.IsCompoundAssign() {
 		c.compoundAssign(n, lhs, rhs, target)
 		return

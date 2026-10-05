@@ -97,9 +97,7 @@ export(interrupt) {
 	}
 }
 
-// `Option.take` writes its receiver in place, so an Option value cannot be
-// shared and its construction keeps the allocation.
-func TestInterruptHandlerOptionNoneConstruct(t *testing.T) {
+func TestInterruptHandlerOptionNoneAccepted(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
     pub fn tick() -> Unit {
@@ -108,9 +106,31 @@ export(interrupt) {
     }
 }
 `)
+	if res.HasErrors() {
+		t.Fatalf("a handler constructing `None` must be accepted:\n%s", res.Render())
+	}
+}
+
+// `self = ...` swaps the content of the box the receiver was built in, so
+// a value of that type cannot be shared and its construction allocates.
+func TestInterruptHandlerWholeAssignedVariantConstruct(t *testing.T) {
+	res := checkIsr(t, `
+type Slot = Free | Busy(id: Int)
+
+fn Slot.release(mut self) -> Unit {
+    self = Free
+}
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let s = Free
+        _ = s
+    }
+}
+`)
 	out := res.Render()
 	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
-		t.Fatalf("a handler constructing `None` must be rejected:\n%s", out)
+		t.Fatalf("a handler constructing a whole-assigned variant must be rejected:\n%s", out)
 	}
 }
 

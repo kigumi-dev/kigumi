@@ -1,0 +1,108 @@
+-- src --
+type Mark = Cold | Hot
+
+type Slot = Free | Held(id: Int)
+
+fn Slot.release(mut self) -> Unit {
+    self = Free
+}
+
+fn slotName(s: Slot) -> String {
+    match s {
+        Free -> "free"
+        Held(id) -> "held${id}"
+    }
+}
+
+fn reserve(n: usize) -> Result[Unit, AllocError] {
+    let mut xs = Array.empty[Int]()
+    xs.tryReserve(n)?
+}
+
+fn chain(n: usize) -> Result[Unit, AllocError] {
+    reserve(n)?
+    reserve(n)?
+}
+
+fn refuse() -> Result[Unit, AllocError] {
+    Err(AllocError.OutOfMemory)
+}
+
+fn shout(text: String) -> Unit {
+    print text
+}
+
+fn wrapCall(text: String) -> Result[Unit, AllocError] {
+    shout(text)
+}
+
+fn ordering(a: Int, b: Int) -> Result[Ordering, AllocError] {
+    Ok(a.compareTo(b))
+}
+
+fn marked(hot: Bool) -> Option[Mark] {
+    if hot {
+        Some(Hot)
+    } else {
+        Some(Cold)
+    }
+}
+
+fn markName(m: Mark) -> String {
+    match m {
+        Cold -> "cold"
+        Hot -> "hot"
+    }
+}
+
+noalloc fn absent() -> Int? {
+    None
+}
+
+noalloc fn coldest() -> Mark {
+    Cold
+}
+
+print "${chain(4) is Ok(_)} ${refuse() is Err(_)}"
+print "${wrapCall("spoken") is Ok(_)}"
+
+let r = reserve(2)
+let s = r
+print "${r is Ok(_)} ${s is Ok(_)}"
+
+match refuse() {
+    Ok(_) -> print "unexpected"
+    Err(e) -> print "${e is AllocError.OutOfMemory}"
+}
+
+match ordering(1, 2) {
+    Ok(Ordering.Less) -> print "less"
+    Ok(Ordering.Equal) -> print "equal"
+    Ok(Ordering.Greater) -> print "greater"
+    Err(_) -> print "refused"
+}
+
+let mut m = marked(true)
+print "${markName(m.take().unwrap())} ${m is None}"
+
+let mut n = marked(false)
+let kept = n
+print "${markName(n.take().unwrap())} ${kept is Some(_)}"
+
+let mut held = Held(7)
+let copied = held
+held.release()
+print "${slotName(held)} ${slotName(copied)}"
+
+print "${absent() is None} ${markName(coldest())}"
+-- stdout --
+true true
+spoken
+true
+true true
+true
+less
+hot true
+cold true
+free held7
+true cold

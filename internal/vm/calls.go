@@ -149,8 +149,9 @@ func (m *Machine) invoke(f *mir.Func, env *obj, bind bool, args []*obj) *obj {
 		}
 	}
 	r := m.call(f, params)
-	for _, a := range args {
-		m.release(a)
+	// Reverse, as a direct call's arguments drop and rt_core.c's invoke releases them.
+	for i := len(args) - 1; i >= 0; i-- {
+		m.release(args[i])
 	}
 	return r
 }

@@ -1,5 +1,7 @@
 package sem
 
+import "kigumi/internal/syntax"
+
 // ReprKind is a type's own storage class: Direct never allocates for
 // construction, move or drop; Carrier owns its own indirection, even nested inside a Direct aggregate's fields.
 type ReprKind uint8
@@ -70,18 +72,56 @@ func (r *Result) namedRepr(n typeNode) ReprKind {
 	}
 }
 
-// assignedInPlace reports whether ent has a `mut self` member, the only way
-// a value of ent is written through the storage it was built in.
-func (r *Result) assignedInPlace(ent EntityID) bool {
-	if ent == 0 || r.Entities[ent].Kind != EntType {
+// whySharedValue marks an EdgeAlloc for building a value with no per-value
+// state; checkEffects drops it unless the type is written as a whole.
+const whySharedValue = 4
+
+// noteWholeSelfAssign records the receiver type of a `self = ...`, the
+// only statement that writes a value through the storage it was built in.
+func (c *checker) noteWholeSelfAssign(lhs syntax.NodeID) {
+	ent, ok := c.identPlaceEnt(lhs)
+	if !ok || c.r.Entities[ent].Flags&EfSelf == 0 {
+		return
+	}
+	t := c.r.Entities[ent].Type
+	if n := c.r.Types.Node(t); n.Kind == KRef {
+		t = n.Elem
+	}
+	if n := c.r.Types.Node(t); n.Kind == KNamed {
+		c.r.wholeAssigned[n.Ent] = true
+		return
+	}
+	if owner := c.r.selfOwner(ent); owner != 0 {
+		c.r.wholeAssigned[owner] = true
+		return
+	}
+	// A receiver that resolved to nothing is already reported; widening to
+	// every type would bury that error under unrelated ones.
+	if c.r.Types.Node(t).Kind != KPoison {
+		c.r.wholeAssigned[0] = true
+	}
+}
+
+// selfOwner names the type whose member declares the self parameter ent,
+// 0 when the receiver never resolved to one.
+func (r *Result) selfOwner(ent EntityID) EntityID {
+	fn := r.Entities[ent].Parent
+	if fn == 0 || r.Entities[fn].Kind != EntFn {
+		return 0
+	}
+	owner := r.Fn(fn).Owner
+	if owner == 0 || r.Entities[owner].Kind != EntType {
+		return 0
+	}
+	return owner
+}
+
+// sharedValueAllocates reports whether a value of t with no per-value state
+// still needs storage: only when the program writes a t as a whole.
+func (r *Result) sharedValueAllocates(t TypeID) bool {
+	if r.wholeAssigned[0] {
 		return true
 	}
-	for _, set := range r.typeDecl(ent).Members {
-		for _, m := range r.Overloads[set].Members {
-			if r.Fn(m).Recv == RecvMut {
-				return true
-			}
-		}
-	}
-	return false
+	n := r.Types.Node(t)
+	return n.Kind != KNamed || r.wholeAssigned[n.Ent]
 }

@@ -8,6 +8,7 @@ import "slices"
 
 func (r *Result) checkEffects() {
 	nodes := r.effectNodes()
+	r.dropSharedValueAllocs(nodes)
 	r.inferSummaries(nodes)
 	for _, id := range nodes {
 		r.checkContracts(id)
@@ -39,6 +40,24 @@ func (r *Result) effectNodes() []EntityID {
 		}
 	}
 	return out
+}
+
+// dropSharedValueAllocs drops the construction edges nothing allocates for.
+// Which those are needs the whole program, so it waits until every body is checked.
+func (r *Result) dropSharedValueAllocs(nodes []EntityID) {
+	for _, id := range nodes {
+		edges := r.edgesPtr(id)
+		*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool {
+			return e.Kind == EdgeAlloc && e.Why == whySharedValue && !r.sharedValueAllocates(e.Type)
+		})
+	}
+}
+
+func (r *Result) edgesPtr(id EntityID) *[]EffectEdge {
+	if r.Entities[id].Kind == EntClosure {
+		return &r.closure(id).Edges
+	}
+	return &r.Fn(id).Edges
 }
 
 func (r *Result) edgesOf(id EntityID) []EffectEdge {

@@ -381,6 +381,16 @@ val rt_nullary(rt_vdesc* d) {
     }
     return &d->nullary;
 }
+// A variant whose payload is itself fixed at compile time has one value
+// per program; slot and payload are emitter-reserved storage.
+void rt_const_variant(void* slot, val* payload, rt_vdesc* d, int64_t n) {
+    val v = (val)slot;
+    v->kind = K_VARIANT;
+    v->rc = -1;
+    v->u.var.v = d;
+    v->u.var.n = n;
+    v->u.var.payload = payload;
+}
 val rt_variant(rt_vdesc* d, int64_t n, val* payload) {
     if (n == 0) return rt_nullary(d);
     val v = alloc(K_VARIANT);
@@ -411,7 +421,7 @@ void rt_box_replace(val dst, val v) {
     v = deref(v);
     // An immortal value is shared by every site that built it, so the swap
     // below would hand dst's old content to all of them.
-    if (v->rc < 0) rt_panic("cannot replace a box with a shared value");
+    if (dst->rc < 0 || v->rc < 0) rt_panic("cannot replace a box with a shared value");
     int dst_rc = dst->rc, v_rc = v->rc;
     rt_allocator *dst_al = dst->al, *v_al = v->al;
     struct obj tmp = *dst;
@@ -573,6 +583,8 @@ val rt_closure_async(adapter_fn fn, int n, val* caps) {
 
 val rt_copy(val v) {
     if (!v) return v;
+    // An immortal is never written through, so a copy of it can be itself.
+    if (v->rc < 0) return v;
     switch (v->kind) {
     case K_RECORD: {
         if (v->u.rec.type->kind == 1) return rt_retain(v);
@@ -1087,6 +1099,10 @@ static rt_vdesc* find_variant(rt_type* t, const char* name) {
         if (!strcmp(t->variants[i]->name, name)) return t->variants[i];
     return NULL;
 }
+// Err(AllocError.OutOfMemory) as a file-scope immortal rt_init fills: reporting
+// a failed allocation must not need one of its own, nor race a half-built one.
+static struct obj g_alloc_error;
+static val g_alloc_error_payload[1];
 void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
     g_argc = argc;
     g_argv = argv;
@@ -1100,6 +1116,11 @@ void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
     V_Less = find_variant(ord, "Less");
     V_Equal = find_variant(ord, "Equal");
     V_Greater = find_variant(ord, "Greater");
+    rt_vdesc* oom = find_variant(find_type("AllocError"), "OutOfMemory");
+    if (oom && V_Err && !oom->adt->replaced_in_place) {
+        g_alloc_error_payload[0] = rt_nullary(oom);
+        rt_const_variant(&g_alloc_error, g_alloc_error_payload, V_Err, 1);
+    }
 }
 val some(val v) {
     return rt_variant(V_Some, 1, &v);
@@ -1117,20 +1138,9 @@ val err_msg(const char* msg) {
     val e = rt_box(opaque("Error", (void*)msg), &T_Error, T_Error_vt);
     return err_val(e);
 }
-// Err(AllocError.OutOfMemory) as a hand-built immortal object: reporting a
-// failed allocation must not need one of its own to succeed.
 static val alloc_error(void) {
-    static struct obj errv;
-    static val payload[1];
-    static int ready = 0;
-    if (!ready) {
-        rt_vdesc* d = find_variant(find_type("AllocError"), "OutOfMemory");
-        if (!d) return err_msg("out of memory");
-        payload[0] = rt_nullary(d);
-        errv = (struct obj){.kind = K_VARIANT, .rc = -1, .u.var = {.v = V_Err, .n = 1, .payload = payload}};
-        ready = 1;
-    }
-    return &errv;
+    if (g_alloc_error.kind == 0) return err_msg("out of memory");
+    return &g_alloc_error;
 }
 // NULL-on-refusal counterparts to alloc_in/rt_str_take/opaque/rt_cell/rt_variant;
 // callers release/free what they already hold on a NULL return.
@@ -1225,13 +1235,12 @@ int rt_exit_code(val r) {
     }
     return 0;
 }
-// invoke runs an adapter on a fresh argument array and releases the array
-// afterwards: the adapter retained what it bound, so the caller's references
-// in the array are consumed here.
+// The argument array lives in this frame: an adapter only rt_at's out of it,
+// and it is immortal so none can free it. args are consumed here, as before.
 val invoke(adapter_fn fn, val env, int n, val* args) {
-    val arr = rt_array(n, args);
-    val r = fn(env, arr);
-    rt_release(arr);
+    struct obj arr = {.kind = K_ARRAY, .rc = -1, .u.arr = {.items = args, .len = n, .cap = n}};
+    val r = fn(env, &arr);
+    for (int i = n - 1; i >= 0; i--) rt_release(args[i]);
     return r;
 }
 // A call's argument count has no compile-time cap (interface dispatch, std

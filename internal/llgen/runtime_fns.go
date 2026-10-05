@@ -43,6 +43,7 @@ var (
 	rtRecord       = RuntimeFn{"rt_record", []Type{TPtr, TI64, TPtr}, TPtr}
 	rtVariant      = RuntimeFn{"rt_variant", []Type{TPtr, TI64, TPtr}, TPtr}
 	rtNullary      = RuntimeFn{"rt_nullary", []Type{TPtr}, TPtr}
+	rtConstVariant = RuntimeFn{"rt_const_variant", []Type{TPtr, TPtr, TPtr, TI64}, TVoid}
 	rtInitNullary  = RuntimeFn{"rt_init_nullary", []Type{TI32, TPtr}, TVoid}
 	rtField        = RuntimeFn{"rt_field", []Type{TPtr, TI64}, TPtr}
 	rtFieldMove    = RuntimeFn{"rt_field_move", []Type{TPtr, TI64}, TPtr}
@@ -85,7 +86,7 @@ var runtimeFns = []RuntimeFn{
 	rtInit, rtExitCode, rtUnit, rtInt, rtFloat, rtBool, rtChar, rtStr, rtBytes, rtCopy,
 	rtTruth, rtAt, rtCallv, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
-	rtRecord, rtVariant, rtNullary, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
+	rtRecord, rtVariant, rtNullary, rtConstVariant, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
 	rtIndex, rtSetindex, rtPayload, rtIsvariant, rtIstype, rtUnbox, rtBox,
 	rtClosure, rtClosureAsync, rtFnItemInit, rtCell, rtCellget, rtCellset, rtBoxReplace, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,

@@ -62,11 +62,19 @@ func boolBit(b bool) int {
 	return 0
 }
 
-// variant builds an ADT value. A payload-free one carries no per-value
-// state, so it comes from the immortal slot inside its own descriptor.
+// variant builds an ADT value, from a shared immortal when its content is
+// fixed: the descriptor's own slot with no payload, else a reserved one.
 func (e *emitter) variant(sb *strings.Builder, in mir.Inst, args []string) string {
-	if len(args) == 0 && !e.replacedWhole(e.r.Entity(in.Ent).Parent) {
+	if len(args) == 0 && e.shareableVariant(in.Ent) {
 		return e.irb(sb).Call(rtNullary, vptr(e.vdesc(in.Ent))).Text
+	}
+	if key, ok := e.constKey[in.Dst]; ok && len(args) > 0 {
+		for i, a := range in.Args {
+			if e.constOwned[a] {
+				e.irb(sb).Call(rtRelease, vptr(args[i]))
+			}
+		}
+		return e.constSlotName(key)
 	}
 	arr := e.argArray(sb, args)
 	return e.irb(sb).Call(rtVariant, vptr(e.vdesc(in.Ent)), vi64(len(args)), vptr(arr)).Text
@@ -109,12 +117,14 @@ func (e *emitter) fnItemSlots() string {
 // could be read half-written by a handler that preempted its constructor.
 func (e *emitter) initImmortals() string {
 	var sb strings.Builder
+	e.tmp = 0
 	sb.WriteString("define void @kg_init_immortals() {\n")
 	e.irb(&sb).Call(rtInitNullary, vi32(e.typeCount()), vptr("@rt_types"))
 	for _, n := range slices.Sorted(maps.Keys(e.fnItems)) {
 		it := e.fnItems[n]
 		e.irb(&sb).Call(rtFnItemInit, vptr(n), vptr(it.sym), vi32(boolBit(it.async)))
 	}
+	e.initConstVals(&sb)
 	sb.WriteString("  ret void\n}\n\n")
 	return sb.String()
 }

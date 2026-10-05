@@ -1862,6 +1862,23 @@
       ]
     },
     {
+      "id": "run/closure_call_args",
+      "kind": "run",
+      "path": "testdata/run/closure_call_args.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/closure_captured_mut_call",
       "kind": "run",
       "path": "testdata/run/closure_captured_mut_call.txtar",
@@ -5436,6 +5453,23 @@
       ]
     },
     {
+      "id": "run/shared_variant_values",
+      "kind": "run",
+      "path": "testdata/run/shared_variant_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/shell",
       "kind": "run",
       "path": "testdata/run/shell.txtar",
@@ -6753,6 +6787,17 @@
       "id": "sem/effects_noalloc",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_bad_recv",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_bad_recv.txtar",
       "mode": [
         "check"
       ],

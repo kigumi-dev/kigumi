@@ -93,6 +93,9 @@ type Result struct {
 	provides map[EntityID][]ProvideBinding
 	// ctxValueRefs are fn-value refs pending a post-fixpoint CtxReal check.
 	ctxValueRefs []ctxValueRef
+	// wholeAssigned holds the types some `mut self` method writes as a whole,
+	// key 0 one too generic to name; such a value is written through its own storage.
+	wholeAssigned map[EntityID]bool
 }
 
 func check(mod *Module) *Result {
@@ -157,6 +160,7 @@ func newResult(mod *Module) *Result {
 		seen:            map[diagKey]struct{}{},
 		langItems:       map[string]EntityID{},
 
+		wholeAssigned:   map[EntityID]bool{},
 		langItemMissing: map[string]bool{},
 		implicitMain:    map[PackageID]EntityID{},
 		declScopes:      map[EntityID]ScopeID{},

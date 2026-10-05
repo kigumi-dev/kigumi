@@ -139,6 +139,7 @@ val rt_array(int64_t n, val* items);
 void push(val a, val x);
 val rt_record(rt_type* t, int64_t n, val* fields);
 val rt_nullary(rt_vdesc* d);
+void rt_const_variant(void* slot, val* payload, rt_vdesc* d, int64_t n);
 void rt_init_nullary(int ntypes, rt_type** types);
 void rt_fnitem_init(void* slot, adapter_fn fn, int async);
 val rt_copy(val v);

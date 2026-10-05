@@ -50,6 +50,13 @@ func init() {
 // operation.
 func (id StdOpId) Kind() OpKind { return stdOpKind[id] }
 
+// StdOpIdOf resolves a StdOpNames entry to its id, for a backend that has
+// to name one operation in particular.
+func StdOpIdOf(name string) (StdOpId, bool) {
+	id, ok := stdOpID[name]
+	return id, ok
+}
+
 // StdOpFor resolves a std dispatch key to the id rt_std_id dispatches on.
 func StdOpFor(key string) (StdOpId, bool) {
 	key = strings.TrimPrefix(key, "std/")

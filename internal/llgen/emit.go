@@ -35,10 +35,16 @@ type emitter struct {
 	scalar       map[mir.LocalID]scalarInfo
 	fnItems      map[string]fnItem
 	replaced     map[sem.EntityID]bool
+	rewritten    map[sem.EntityID]bool
+	constVals    map[string]constVal
+	constIndex   map[string]int
+	constOrder   []string
+	constKey     map[mir.LocalID]string
+	constOwned   map[mir.LocalID]bool
 }
 
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
-	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, replaced: inPlaceReplaced(p), freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, shim: newCshim()}
+	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, replaced: inPlaceReplaced(p), rewritten: rewrittenVariants(p), constVals: map[string]constVal{}, constIndex: map[string]int{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, shim: newCshim()}
 	var body strings.Builder
 	for _, f := range p.Funcs {
 		if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Naked {
@@ -99,6 +105,8 @@ func (e *emitter) function(f *mir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
 	e.scalar = e.classifyScalars(f)
+	e.constOwned = map[mir.LocalID]bool{}
+	e.constKey = e.constLocals(f)
 	fmt.Fprintf(&sb, "define ptr %s(", e.sym(f))
 	for i := range f.Params {
 		if i > 0 {

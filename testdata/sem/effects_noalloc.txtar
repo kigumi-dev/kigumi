@@ -30,7 +30,17 @@ noalloc fn nullaryVariant() -> Mark {
 }
 
 noalloc fn optionNone() -> Int? {
-    None //~ ERROR constructing `_?` allocates
+    None
+}
+
+type Slot = Free | Busy
+
+fn Slot.release(mut self) -> Unit {
+    self = Free
+}
+
+noalloc fn wholeAssignedVariant() -> Slot {
+    Free //~ ERROR constructing `Slot` allocates
 }
 
 noalloc fn payloadVariant(x: Int) -> Int? {
@@ -141,69 +151,69 @@ error[E910]: boxing `MyErr` into `Error` allocates
 18 |     fail MyErr { code: 1 } //~ ERROR constructing `MyErr` allocates //~ ERROR boxing `MyErr` into `Error` allocates
    |          ^^^^^^^^^^^^^^^
 
-error[E961]: constructing `_?` allocates
-  --> lib/na.kg:32:5
+error[E961]: constructing `Slot` allocates
+  --> lib/na.kg:42:5
    |
-32 |     None //~ ERROR constructing `_?` allocates
+42 |     Free //~ ERROR constructing `Slot` allocates
    |     ^^^^
 
 error[E961]: constructing `_?` allocates
-  --> lib/na.kg:36:5
+  --> lib/na.kg:46:5
    |
-36 |     Some(x) //~ ERROR constructing `_?` allocates
+46 |     Some(x) //~ ERROR constructing `_?` allocates
    |     ^^^^^^
 
 error[E907]: `push` is not `noalloc`
-  --> lib/na.kg:44:5
+  --> lib/na.kg:54:5
    |
-44 |     xs.push(1) //~ ERROR `push` is not `noalloc`
+54 |     xs.push(1) //~ ERROR `push` is not `noalloc`
    |     ^^^^^^^^^
 
 error[E422]: closure is not `noalloc` (calls `grows`)
-  --> lib/na.kg:57:8
+  --> lib/na.kg:67:8
    |
-57 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
+67 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
    |        ^^^^^^^^^^^^
 
 error[E961]: constructing `closure fn() -> Unit` allocates
-  --> lib/na.kg:63:8
+  --> lib/na.kg:73:8
    |
-63 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+73 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
    |        ^^^^^^^^^^^^
 
 error[E910]: boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
-  --> lib/na.kg:63:8
+  --> lib/na.kg:73:8
    |
-63 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+73 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
    |        ^^^^^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:71:9
+  --> lib/na.kg:81:9
    |
-71 |     _ = e //~ ERROR dropping `Error` may allocate or deallocate
+81 |     _ = e //~ ERROR dropping `Error` may allocate or deallocate
    |         ^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:74:27
+  --> lib/na.kg:84:27
    |
-74 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
+84 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
    |                           ^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:77:9
+  --> lib/na.kg:87:9
    |
-77 |     let local = e //~ ERROR dropping `Error` may allocate or deallocate
+87 |     let local = e //~ ERROR dropping `Error` may allocate or deallocate
    |         ^^^^^
 
 error[E907]: `helper2` is not `noalloc`
-   --> lib/na.kg:101:5
+   --> lib/na.kg:111:5
     |
-101 |     helper2(x) //~ ERROR `helper2` is not `noalloc`
+111 |     helper2(x) //~ ERROR `helper2` is not `noalloc`
     |     ^^^^^^^^^
 
 error[E907]: `pureOnly` is not `noalloc`
-   --> lib/na.kg:109:5
+   --> lib/na.kg:119:5
     |
-109 |     pureOnly(xs) //~ ERROR `pureOnly` is not `noalloc`
+119 |     pureOnly(xs) //~ ERROR `pureOnly` is not `noalloc`
     |     ^^^^^^^^^^^
 

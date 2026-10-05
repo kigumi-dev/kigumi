@@ -1,0 +1,72 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Pair = {
+    pub left String
+    pub right String
+}
+
+type Tag = {
+    pub text String
+}
+
+fn Tag.name(self) -> String {
+    self.text
+}
+
+fn take3(a: Handle, b: Handle, c: Handle) -> Int {
+    a.id + b.id + c.id
+}
+
+fn apply3(f: fn(Handle, Handle, Handle) -> Int) -> Int {
+    f(Handle { id: 1 }, Handle { id: 2 }, Handle { id: 3 })
+}
+
+fn joinPair(p: &Pair, sep: String) -> String {
+    "${p.left}${sep}${p.right}"
+}
+
+fn callJoin(f: fn(&Pair, String) -> String, p: &Pair) -> String {
+    f(p, "-")
+}
+
+fn nested(f: fn(Int) -> Int, g: fn(Int) -> Int, n: Int) -> Int {
+    f(g(n))
+}
+
+fn label[T](f: fn() -> String) -> String {
+    f()
+}
+
+print "${apply3(take3)}"
+print "end of three"
+
+let p = Pair { left: "a", right: "b" }
+print callJoin(joinPair, &p)
+
+let bump = (x: Int) => x + 1
+let twice = (x: Int) => x * 2
+print "${nested(bump, twice, 5)}"
+
+let base = 10
+let shift = (x: Int) => x + base
+print "${nested(shift, bump, 1)}"
+
+let tag = Tag { text: "tagged" }
+print label[Int](tag.name)
+-- stdout --
+drop 3
+drop 2
+drop 1
+6
+end of three
+a-b
+11
+12
+tagged
