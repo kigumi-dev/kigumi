@@ -1,0 +1,40 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn leaf() -> Int {
+    1
+}
+
+// The resource pins this child to the lane that made it, so no worker may
+// steal it and the request below always lands before its first poll.
+async fn parks() -> Int {
+    let r = Res { id: 1 }
+    let t = task.spawn(leaf())
+    let v = await t
+    r.id + v
+}
+
+async fn root() -> Int {
+    let c = task.spawn(parks())
+    c.cancel()
+    print "cancel requested"
+    await c
+}
+
+let ex = task.threadPoolExecutor(3)
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+cancel requested
+drop 1
+-- stderr --
+panic: the root task was cancelled
+-- exit --
+2

@@ -1,0 +1,21 @@
+-- module --
+target: freestanding
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    1
+}
+
+fn start() -> Int {
+    let ex = task.threadPoolExecutor(4) //~ ERROR needs OS worker threads
+    ex.runToCompletion(leaf())
+}
+-- expect --
+error[E1460]: `threadPoolExecutor` needs OS worker threads, which this target has none of
+ --> main/main.kg:8:14
+  |
+8 |     let ex = task.threadPoolExecutor(4) //~ ERROR needs OS worker threads
+  |              ^^^^^^^^^^^^^^^^^^^^^^^
+  = help: drive the task tree with `task.currentThreadExecutor()` instead
+

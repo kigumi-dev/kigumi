@@ -175,10 +175,16 @@ func classifyMobility(f *Func, r *sem.Result) {
 	if e := r.Entity(f.Ent); e.Kind != sem.EntFn {
 		return
 	}
+	inFrame := map[LocalID]bool{}
+	for _, at := range liveAtSuspends(f) {
+		for l := range at {
+			inFrame[l] = true
+		}
+	}
 	info := r.Fn(f.Ent)
 	info.Mobility, info.BoundBy = sem.MobilityMigratable, ""
 	for i, l := range f.Locals {
-		if f.Slot[i] < 0 || r.IsSend(l.Type) {
+		if !inFrame[LocalID(i)] || r.IsSend(l.Type) {
 			continue
 		}
 		info.Mobility, info.BoundBy = sem.MobilityExecutorBound, r.TypeString(l.Type)

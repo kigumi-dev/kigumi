@@ -4,6 +4,14 @@
 #define KIGUMI_RT_H
 #include <stddef.h>
 #include <stdint.h>
+#ifdef KIGUMI_THREADS
+#include <stdatomic.h>
+// Under the thread profile a value's last reference can be dropped on a
+// worker other than the one that made it, so rc is atomic.
+#define KG_RC _Atomic int
+#else
+#define KG_RC int
+#endif
 typedef struct rt_type rt_type;
 typedef struct rt_vdesc rt_vdesc;
 enum { K_INT = 1,
@@ -27,7 +35,7 @@ typedef val (*adapter_fn)(val env, val args);
 struct obj {
     int kind;
     int nk;
-    int rc;
+    KG_RC rc;
     int owned;
     struct rt_allocator* al;
     union rt_value {

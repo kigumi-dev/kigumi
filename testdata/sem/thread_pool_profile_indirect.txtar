@@ -1,0 +1,53 @@
+-- module --
+blocking: single-thread-event-loop
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    1
+}
+
+fn poolCtor() -> fn(usize) -> task.Executor {
+    task.threadPoolExecutor //~ ERROR needs OS worker threads
+}
+
+fn apply(make: fn(usize) -> task.Executor) -> task.Executor {
+    make(4)
+}
+
+fn viaValue() -> Int {
+    let ex = poolCtor()(4)
+    ex.runToCompletion(leaf())
+}
+
+fn viaArgument() -> Int {
+    let ex = apply(task.threadPoolExecutor) //~ ERROR needs OS worker threads
+    ex.runToCompletion(leaf())
+}
+
+fn viaParen() -> Int {
+    let ex = (task.threadPoolExecutor)(4) //~ ERROR needs OS worker threads
+    ex.runToCompletion(leaf())
+}
+-- expect --
+error[E1461]: `threadPoolExecutor` needs OS worker threads, which profile single-thread-event-loop forbids
+ --> main/main.kg:8:5
+  |
+8 |     task.threadPoolExecutor //~ ERROR needs OS worker threads
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+  = help: drive the task tree with `task.currentThreadExecutor()` instead
+
+error[E1461]: `threadPoolExecutor` needs OS worker threads, which profile single-thread-event-loop forbids
+  --> main/main.kg:21:20
+   |
+21 |     let ex = apply(task.threadPoolExecutor) //~ ERROR needs OS worker threads
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^
+   = help: drive the task tree with `task.currentThreadExecutor()` instead
+
+error[E1461]: `threadPoolExecutor` needs OS worker threads, which profile single-thread-event-loop forbids
+  --> main/main.kg:26:15
+   |
+26 |     let ex = (task.threadPoolExecutor)(4) //~ ERROR needs OS worker threads
+   |               ^^^^^^^^^^^^^^^^^^^^^^^
+   = help: drive the task tree with `task.currentThreadExecutor()` instead
+

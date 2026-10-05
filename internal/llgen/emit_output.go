@@ -10,6 +10,8 @@ func Emit(p *mir.Program) string { return EmitWith(p, EmitOptions{}) }
 type Output struct {
 	IR    string
 	CShim string
+	// Threads says the build needs the runtime's thread profile for a pool executor.
+	Threads bool
 }
 
 // EmitOptions selects the entry point: a hosted `main`, or `kigumi_main`

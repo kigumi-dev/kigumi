@@ -1,0 +1,36 @@
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    n * n
+}
+
+async fn child(n: Int) -> Int {
+    let t = task.spawn(leaf(n))
+    n + await t
+}
+
+// A pool may finish the children in any order on any worker; only the root
+// prints, so the awaits fix the order their results are read in.
+async fn root() -> Int {
+    let a = task.spawn(child(1))
+    let b = task.spawn(child(2))
+    let c = task.spawn(child(3))
+    print "spawned"
+    let x = await a
+    print "a ${x}"
+    let y = await b
+    print "b ${y}"
+    let z = await c
+    print "c ${z}"
+    x + y + z
+}
+
+let ex = task.threadPoolExecutor(3)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+spawned
+a 2
+b 6
+c 12
+total 20

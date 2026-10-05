@@ -1,0 +1,46 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn leaf(n: Int) -> Int {
+    n
+}
+
+// A resource live across the await pins this child to the lane that made
+// it, which is the one the root runs on.
+async fn pinned(n: Int) -> Int {
+    let r = Res { id: n }
+    let t = task.spawn(leaf(n))
+    let v = await t
+    r.id + v
+}
+
+async fn mobile(n: Int) -> Int {
+    let t = task.spawn(leaf(n))
+    n * 10 + await t
+}
+
+async fn root() -> Int {
+    let p = task.spawn(pinned(7))
+    let m = task.spawn(mobile(2))
+    let x = await p
+    print "pinned ${x}"
+    let y = await m
+    print "mobile ${y}"
+    x + y
+}
+
+let ex = task.threadPoolExecutor(2)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 7
+pinned 14
+mobile 22
+total 36

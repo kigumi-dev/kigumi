@@ -8672,6 +8672,16 @@
     "status": "ok"
   },
   {
+    "key": "task.Executor.handoff",
+    "signature": "fn(Future[T]) -\u003e Task[T]",
+    "has_body": false,
+    "kind": "provider",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "task.Executor.runToCompletion",
     "signature": "fn(Future[T]) -\u003e T",
     "has_body": false,
@@ -8714,6 +8724,16 @@
   {
     "key": "task.spawn",
     "signature": "fn(Future[T]) -\u003e Task[T]",
+    "has_body": false,
+    "kind": "provider",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "task.threadPoolExecutor",
+    "signature": "fn(usize) -\u003e Executor",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -8933,7 +8953,7 @@
   },
   {
     "key": "text.parseUint",
-    "signature": "pure fn(String, usize) -\u003e u64?",
+    "signature": "pure fn(String) -\u003e u64?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8943,7 +8963,7 @@
   },
   {
     "key": "text.parseUint",
-    "signature": "pure fn(String) -\u003e u64?",
+    "signature": "pure fn(String, usize) -\u003e u64?",
     "has_body": true,
     "kind": "",
     "vm": "gap",

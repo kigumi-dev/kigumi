@@ -21,6 +21,12 @@ func Build(r *sem.Result) *Program {
 	}
 	p.Entry = p.ByEnt[r.MainFn()]
 	resolveStdOps(p)
+	for _, f := range p.allFuncs() {
+		if f.Async {
+			classifyMobility(f, r)
+		}
+	}
+	checkHandoff(p)
 	return p
 }
 

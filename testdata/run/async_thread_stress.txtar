@@ -1,0 +1,32 @@
+-- src --
+import task from std/task
+
+async fn inner(n: Int) -> Int {
+    n * 2
+}
+
+async fn leaf(n: Int) -> Int {
+    let t = task.spawn(inner(n))
+    n + await t
+}
+
+// Many tasks at once over a few workers; the sum is the same whichever
+// worker runs which child.
+async fn root() -> Int {
+    let mut kids = Array.empty[task.Task[Int]]()
+    let mut i = 0
+    for i < 120 {
+        kids.push(task.spawn(leaf(i)))
+        i = i + 1
+    }
+    let mut total = 0
+    for k in kids {
+        total = total + await k
+    }
+    total
+}
+
+let ex = task.threadPoolExecutor(4)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+total 21420

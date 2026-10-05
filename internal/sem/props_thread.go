@@ -92,6 +92,11 @@ func (r *Result) computeThread(t TypeID, sync bool) bool {
 	if n.Ent == tt.futureEnt {
 		return false
 	}
+	// A Task handle is a control block the scheduler already shares safely
+	// across lanes, so it carries only its result's thread property.
+	if n.Ent == r.taskEntity() && len(n.Args) == 1 {
+		return r.threadProp(n.Args[0], sync)
+	}
 	// A predeclared opaque type (e.File == 0) has no declaration to attach
 	// @unsafeGuarantee to, so it falls through to the structural check below.
 	if info.Form == FormResource || (info.Form == FormOpaque && e.File != 0) {

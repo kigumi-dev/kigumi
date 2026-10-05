@@ -37,6 +37,7 @@ var StdOpNames = []string{
 	"WITH_ADDRESS",
 	"TASK_CANCEL_REQUESTED",
 	"SECURE_ERASE", "SECURE_ERASE_RAW", "SECURE_ERASE_TRY",
+	"TASK_THREAD_POOL_EXECUTOR", "TASK_HANDOFF",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -52,6 +53,7 @@ var providerOps = map[string]bool{
 	"FFI_STRING": true, "FFI_STRING_CHECKED": true, "FFI_STRING_LOSSY": true,
 	"TASK_CURRENT_EXECUTOR": true, "EXECUTOR_RUN_TO_COMPLETION": true, "TASK_SPAWN": true,
 	"TASK_CANCEL": true, "TASK_CANCEL_REQUESTED": true,
+	"TASK_THREAD_POOL_EXECUTOR": true, "TASK_HANDOFF": true,
 	"NET_HTTP": true, "NET_CONN_DROP": true, "NET_LISTENER_DROP": true, "BUILD_ONLY": true, "ARGS_LEN": true,
 	"BLOCKING_POOL_NEW": true, "BLOCKING_POOL_RUN": true,
 	"HANDLE_TABLE_NEW": true, "HANDLE_TABLE_INSERT": true, "HANDLE_TABLE_WITH": true,
@@ -123,6 +125,8 @@ var stdOpKeys = map[string]string{
 	"task.spawn":                      "TASK_SPAWN",
 	"task.Task.cancel":                "TASK_CANCEL",
 	"task.cancelRequested":            "TASK_CANCEL_REQUESTED",
+	"task.threadPoolExecutor":         "TASK_THREAD_POOL_EXECUTOR",
+	"task.Executor.handoff":           "TASK_HANDOFF",
 	"alloc.Arena.create":              "ARENA_CREATE",
 	"alloc.AllocatorHandle.scope":     "ALLOCATOR_SCOPE",
 	"alloc.AllocatorHandle.allocated": "ALLOCATOR_ALLOCATED",

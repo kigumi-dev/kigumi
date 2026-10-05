@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/sem"
 )
 
 func (e *emitter) asyncDescSym(f *mir.Func) string { return "@\"" + e.symName(f) + "$async\"" }
@@ -111,9 +112,13 @@ func (e *emitter) frameDrop(f *mir.Func) string {
 	return sb.String()
 }
 
-// asyncDesc is what a Future is built from: the poll function, the drop
-// function, and how many slots the frame holds.
+// asyncDesc is what a Future is built from: the poll and drop functions, the
+// frame's slot count, and whether a pool may move it between workers.
 func (e *emitter) asyncDesc(f *mir.Func) string {
-	return fmt.Sprintf("%s = internal global { ptr, ptr, i32 } { ptr %s, ptr %s, i32 %d }, align 8\n",
-		e.asyncDescSym(f), e.sym(f), e.frameDropSym(f), f.Frame)
+	mobile := 0
+	if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Mobility == sem.MobilityMigratable {
+		mobile = 1
+	}
+	return fmt.Sprintf("%s = internal global { ptr, ptr, i32, i32 } { ptr %s, ptr %s, i32 %d, i32 %d }, align 8\n",
+		e.asyncDescSym(f), e.sym(f), e.frameDropSym(f), f.Frame, mobile)
 }

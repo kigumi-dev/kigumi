@@ -5,38 +5,84 @@ func (m *Machine) spawnTask(fut *obj) *obj {
 	if m.cur == nil {
 		m.abort("`task.spawn` needs a running task; start one with `Executor.runToCompletion`")
 	}
-	t := &task{fut: fut, ex: m.cur.ex, parent: m.cur, cancelReq: m.cur.cancelReq}
-	m.cur.kids = append(m.cur.kids, t)
-	t.ex.push(t)
+	return m.startTask(m.cur.ex, fut, m.futureMobile(fut))
+}
+
+// handoffTask is the explicit cross-executor move: the child stays a
+// structured child of the running task but runs on the given executor.
+func (m *Machine) handoffTask(ex *executor, fut *obj) *obj {
+	if m.cur == nil {
+		m.abort("`Executor.handoff` needs a running task; start one with `Executor.runToCompletion`")
+	}
+	if !m.futureMobile(fut) {
+		m.abort("this future is bound to its own executor and cannot be handed to another one")
+	}
+	if ex != m.cur.ex && ex.workers == 0 && !ex.driving {
+		m.abort("this executor has no worker and is not running a task tree, so it cannot take a handed-off task")
+	}
+	return m.startTask(ex, fut, true)
+}
+
+// Admission is one linearization point: a child joins its parent's kid list
+// and its executor's queue under the same lock.
+func (m *Machine) startTask(ex *executor, fut *obj, mobile bool) *obj {
+	m.sched.Lock()
+	p := m.cur
+	t := &task{fut: fut, ex: ex, pex: p.ex, parent: p, cancelReq: p.cancelReq, lane: 0}
+	if ex.workers > 0 {
+		switch {
+		case mobile:
+			t.lane = -1
+		case ex == p.ex:
+			t.lane = m.curLane
+		}
+	}
+	p.kids = append(p.kids, t)
+	if ex != p.ex {
+		p.ex.external++
+	}
+	ex.live++
+	ex.push(t)
+	m.sched.Unlock()
 	return mkOpaque("Task", t)
 }
 
 // Registers the waiter before reading target state, so a racing completion is still seen.
 func (m *Machine) pollTask(t *task) (*obj, polled) {
+	m.sched.Lock()
 	if !t.terminal() {
 		t.waiter = m.cur
+		m.sched.Unlock()
 		return nil, pending
 	}
 	t.waiter = nil
-	switch t.state {
+	st := t.state
+	r := t.result
+	t.result = nil
+	m.sched.Unlock()
+	switch st {
 	case taskCancelled:
 		return nil, cancelled
 	case taskFaulted:
 		m.abort("the awaited task did not finish")
 	}
-	r := t.result
-	t.result = nil
 	return r, ready
 }
 
 // Cancellation is cooperative: this only sets a sticky flag, observed at the next suspension point.
 func (m *Machine) requestCancel(t *task) {
+	m.sched.Lock()
+	m.cancelLocked(t)
+	m.sched.Unlock()
+}
+
+func (m *Machine) cancelLocked(t *task) {
 	if t.terminal() || t.cancelReq {
 		return
 	}
 	t.cancelReq = true
 	for _, k := range t.kids {
-		m.requestCancel(k)
+		m.cancelLocked(k)
 	}
 	m.wake(t)
 }
@@ -56,7 +102,7 @@ func (m *Machine) wake(t *task) {
 func (m *Machine) beginFinish(t *task, end taskState) {
 	t.ending, t.draining = end, true
 	for _, k := range t.kids {
-		m.requestCancel(k)
+		m.cancelLocked(k)
 	}
 	m.finishDrain(t)
 }
@@ -69,10 +115,18 @@ func (m *Machine) finishDrain(t *task) {
 		}
 	}
 	t.state, t.draining = t.ending, false
+	t.ex.live--
+	if t.ex.finished() {
+		t.ex.cv.Broadcast()
+	}
 	for _, k := range t.kids {
 		m.endTask(k)
 	}
 	t.kids = nil
+	if t.pex != nil && t.pex != t.ex {
+		t.pex.external--
+		t.pex.cv.Broadcast()
+	}
 	if t.waiter != nil {
 		w := t.waiter
 		t.waiter = nil
@@ -84,14 +138,8 @@ func (m *Machine) finishDrain(t *task) {
 }
 
 func (m *Machine) endTask(t *task) {
-	if t.fut != nil {
-		f := t.fut
-		t.fut = nil
-		m.release(f)
-	}
-	if t.result != nil {
-		r := t.result
-		t.result = nil
-		m.release(r)
-	}
+	f, r := t.fut, t.result
+	t.fut, t.result = nil, nil
+	m.releaseLater(f)
+	m.releaseLater(r)
 }

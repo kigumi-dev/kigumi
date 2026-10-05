@@ -1,4 +1,4 @@
-/// Runs tasks on the calling thread, one at a time.
+/// Runs one task tree: on the thread driving it, and on its own workers when it has any.
 pub type Executor
 
 /// A running task; await it for its result.
@@ -6,6 +6,12 @@ pub type Task[T]
 
 /// An executor that drives tasks on the thread calling it.
 pub fn currentThreadExecutor() -> Executor
+
+/// An executor with `workers` worker threads besides the one that drives it; migratable tasks run on any of them.
+pub fn threadPoolExecutor(workers: usize) -> Executor
+
+/// Starts the future as a child of the running task, but on this executor instead of the running task's own.
+pub fn Executor.handoff[T](self, future: Future[T]) -> Task[T]
 
 /// Drives the future, and everything it spawns, to a terminal state.
 pub fn Executor.runToCompletion[T](self, future: Future[T]) -> T

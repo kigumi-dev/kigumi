@@ -11,6 +11,11 @@ import (
 	"kigumi/internal/llgen"
 )
 
+// wantsThreadRuntime withholds -DKIGUMI_THREADS where sem already rejects a pool, so rt_core.c keeps its no-thread panic instead of needing a pthread.h the target has not got.
+func wantsThreadRuntime(t Target, uses bool) bool {
+	return uses && !t.Bare() && !t.StrictBlocking()
+}
+
 // buildOnce is BuildWith's single-build implementation; buildReproducible
 // calls it twice with pinCompDir and ccEnv set.
 func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool, error) {
@@ -61,6 +66,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	}
 	if t.Freestanding() {
 		args = append(args, "-DKIGUMI_FREESTANDING", "-nostdlib")
+	}
+	if wantsThreadRuntime(t, code.Threads) {
+		args = append(args, "-DKIGUMI_THREADS")
 	}
 	if t.COFF() {
 		// No CRT to supply __chkstk; raise its threshold out of reach instead.

@@ -1,0 +1,47 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    let _ = self.id
+}
+
+async fn leaf(n: Int) -> Int {
+    n
+}
+
+async fn pinned(n: Int) -> Int {
+    let r = Res { id: n }
+    let t = task.spawn(leaf(n))
+    r.id + await t
+}
+
+async fn mobile(n: Int) -> Int {
+    let t = task.spawn(leaf(n))
+    n + await t
+}
+
+// The root leaves without awaiting most of its children: the close cancels
+// them wherever they are and waits for every terminal transition.
+async fn root() -> Int {
+    let mut kids = Array.empty[task.Task[Int]]()
+    let mut i = 0
+    for i < 12 {
+        kids.push(task.spawn(mobile(i)))
+        kids.push(task.spawn(pinned(i)))
+        i = i + 1
+    }
+    let one = task.spawn(mobile(5))
+    let v = await one
+    print "awaited ${v}"
+    9
+}
+
+let ex = task.threadPoolExecutor(3)
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+awaited 10
+result 9

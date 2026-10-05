@@ -1678,6 +1678,129 @@
       ]
     },
     {
+      "id": "run/async_thread_cancel",
+      "kind": "run",
+      "path": "testdata/run/async_thread_cancel.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: the root task was cancelled"
+      }
+    },
+    {
+      "id": "run/async_thread_children",
+      "kind": "run",
+      "path": "testdata/run/async_thread_children.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_thread_drain",
+      "kind": "run",
+      "path": "testdata/run/async_thread_drain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_thread_drop",
+      "kind": "run",
+      "path": "testdata/run/async_thread_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_thread_handoff",
+      "kind": "run",
+      "path": "testdata/run/async_thread_handoff.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_thread_spawn",
+      "kind": "run",
+      "path": "testdata/run/async_thread_spawn.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_thread_stress",
+      "kind": "run",
+      "path": "testdata/run/async_thread_stress.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/bind_temp_share",
       "kind": "run",
       "path": "testdata/run/bind_temp_share.txtar",
@@ -8483,6 +8606,50 @@
       "id": "sem/target_platform_err",
       "kind": "sem",
       "path": "testdata/sem/target_platform_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/thread_pool_freestanding",
+      "kind": "sem",
+      "path": "testdata/sem/thread_pool_freestanding.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/thread_pool_freestanding_indirect",
+      "kind": "sem",
+      "path": "testdata/sem/thread_pool_freestanding_indirect.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/thread_pool_profile",
+      "kind": "sem",
+      "path": "testdata/sem/thread_pool_profile.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/thread_pool_profile_indirect",
+      "kind": "sem",
+      "path": "testdata/sem/thread_pool_profile_indirect.txtar",
       "mode": [
         "check"
       ],

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"kigumi/internal/buildgraph"
 	"kigumi/internal/diag"
@@ -81,8 +82,17 @@ type Machine struct {
 	// nearest non-std caller from it as a step's provenance.
 	stack        []*mir.Func
 	steps, depth int
-	// cur is the task whose body is running, for spawn and cancellation.
-	cur      *task
+	// cur is the running task and curLane its executor lane, for spawn and
+	// cancellation; only the worker holding run may touch them.
+	cur     *task
+	curLane int
+	// run serializes task bodies; sched covers the scheduler state a worker
+	// touches around a poll, and pending holds releases it owes once it unlocks.
+	run     sync.Mutex
+	sched   sync.Mutex
+	pending []*obj
+	// orphans are dropped thread pools a worker had not left yet.
+	orphans  []*executor
 	mem      int64
 	faultN   int64
 	graph    *buildgraph.Graph

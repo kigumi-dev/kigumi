@@ -1,6 +1,9 @@
 package vm
 
-import "kigumi/internal/mir"
+import (
+	"kigumi/internal/mir"
+	"kigumi/internal/sem"
+)
 
 type polled int
 
@@ -42,6 +45,25 @@ func (m *Machine) futureOf(v *obj) *future {
 		m.abort("await on a value that is not a Future")
 	}
 	return f
+}
+
+// A value that is not a compiler-built Future (a BlockingPool result) has
+// no mobility summary, so it stays on the lane that created it.
+func (m *Machine) futureMobile(v *obj) bool {
+	d := deref(v)
+	if d.k != kOpaque || d.op != "Future" {
+		return false
+	}
+	fu, ok := d.data.(*future)
+	if !ok || fu.fn == nil {
+		return false
+	}
+	fv := deref(fu.fn)
+	if fv.k != kClosure || fv.fn == nil {
+		return false
+	}
+	ent := fv.fn.Ent
+	return m.r.Entity(ent).Kind == sem.EntFn && m.r.Fn(ent).Mobility == sem.MobilityMigratable
 }
 
 func (m *Machine) pollValue(v *obj) (*obj, polled) {

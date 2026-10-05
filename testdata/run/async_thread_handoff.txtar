@@ -1,0 +1,31 @@
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    n * 3
+}
+
+async fn job(n: Int) -> Int {
+    let t = task.spawn(leaf(n))
+    n + await t
+}
+
+// handoff keeps the child a structured child of the running task but runs
+// it on the other executor, so this single-threaded root waits on workers.
+async fn root(pool: task.Executor) -> Int {
+    let a = pool.handoff(job(1))
+    let b = pool.handoff(job(2))
+    let x = await a
+    print "a ${x}"
+    let y = await b
+    print "b ${y}"
+    x + y
+}
+
+let pool = task.threadPoolExecutor(2)
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root(pool))}"
+-- stdout --
+a 4
+b 8
+total 12

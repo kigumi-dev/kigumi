@@ -98,5 +98,7 @@ func (m *Machine) freeOpaque(v *obj) {
 		}
 	case "Future":
 		m.freeFuture(v.data.(*future))
+	case "Executor":
+		m.closeExecutor(v.data.(*executor))
 	}
 }

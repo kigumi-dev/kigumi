@@ -1,0 +1,42 @@
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    n * 3
+}
+
+async fn job(n: Int) -> Int {
+    let t = task.spawn(leaf(n))
+    n + await t
+}
+
+// The frame owning the handle ends while the task it handed over is still
+// running, so the drop cannot wait for the worker that has to finish it.
+async fn launch(pool: task.Executor, n: Int) -> task.Task[Int] {
+    pool.handoff(job(n))
+}
+
+// This one drops the second pool's last handle from a worker of the first.
+async fn chain(second: task.Executor) -> Int {
+    let t = await launch(second, 2)
+    await t
+}
+
+async fn root(first: task.Executor, second: task.Executor) -> Int {
+    let b = first.handoff(chain(second))
+    let a = await launch(first, 1)
+    let x = await a
+    print "a ${x}"
+    let y = await b
+    print "b ${y}"
+    x + y
+}
+
+let first = task.threadPoolExecutor(2)
+let second = task.threadPoolExecutor(2)
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root(first, second))}"
+-- stdout --
+a 4
+b 8
+total 12
