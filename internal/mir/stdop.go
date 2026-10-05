@@ -34,6 +34,7 @@ var StdOpNames = []string{
 	"HANDLE_TABLE_NEW", "HANDLE_TABLE_INSERT", "HANDLE_TABLE_WITH",
 	"HANDLE_TABLE_REMOVE", "HANDLE_TABLE_RECLAIM", "HANDLE_TABLE_CLOSE",
 	"HANDLE_TABLE_DROP", "HANDLE_RAW", "HANDLE_DROP",
+	"WITH_ADDRESS",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -158,6 +159,8 @@ var stdOpKeys = map[string]string{
 	"ffi.HandleTable.drop":            "HANDLE_TABLE_DROP",
 	"ffi.FfiHandle.raw":               "HANDLE_RAW",
 	"ffi.FfiHandle.drop":              "HANDLE_DROP",
+	"ffi.withAddress":                 "WITH_ADDRESS",
+	"ffi.withAddressConst":            "WITH_ADDRESS",
 }
 
 // stdOpSuffixes maps a trailing method name to its op, for primitives

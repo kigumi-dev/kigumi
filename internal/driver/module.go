@@ -40,7 +40,10 @@ type Module struct {
 	// across files.
 	FileStore *token.SourceStore
 	stats     Stats
-	Packages  map[string]*Package
+	// lastAnalysis is the most recent Analyze result, for a post-build
+	// report (ResourceReport) that would otherwise need to re-lower the module.
+	lastAnalysis *Analysis
+	Packages     map[string]*Package
 	// Order lists package paths sorted for deterministic iteration.
 	Order []string
 	// Links and Sources collect the C libraries and sources of the module

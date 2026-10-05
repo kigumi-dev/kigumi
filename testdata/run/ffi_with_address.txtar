@@ -1,0 +1,13 @@
+-- engines --
+native
+-- src --
+import ffi from std/ffi
+
+let mut x: i32 = 41
+let result = ffi.withAddress(&mut x, (p: *mut i32) => unsafe {
+    ffi.writeI32(p, ffi.readI32(ffi.toConst(p)) + 1)
+    ffi.readI32(ffi.toConst(p))
+})
+print "${result}"
+-- stdout --
+42

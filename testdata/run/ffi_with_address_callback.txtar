@@ -1,0 +1,8 @@
+-- src --
+import ffi from std/ffi
+
+let mut x: i32 = 7
+let result = ffi.withAddress(&mut x, (p: *mut i32) => ffi.isNull(ffi.toConst(p)))
+print "${result}"
+-- stdout --
+false

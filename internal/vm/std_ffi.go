@@ -76,6 +76,17 @@ func (m *Machine) registerFFI() {
 		// f borrows the value, so the reference invoke takes is the only one.
 		return m.callValue(a[1], []*obj{v})
 	}
+	// Call-scoped: the handle lives only for f's call, unlike Pin's handle,
+	// which lives until an explicit drop.
+	withAddress := func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		m.cvalues = append(m.cvalues, retain(deref(a[0])))
+		hd := int64(len(m.cvalues))
+		r := m.callValue(a[1], []*obj{mkOpaque("Ptr", hd)})
+		m.replaceCValue(hd, nil)
+		return r
+	}
+	h["ffi.withAddress"] = withAddress
+	h["ffi.withAddressConst"] = withAddress
 	h["ffi.Pin.drop"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		// Zero from Pin.release means this is the caller's bogus re-drop
 		// (see above), not a real one: skip it.

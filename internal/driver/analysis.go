@@ -33,12 +33,13 @@ func (m *Module) analyze(mod *sem.Module) (*Analysis, error) {
 	m.stats.Check++
 	res := sem.Check(mod)
 	a := &Analysis{Res: res}
+	m.lastAnalysis = a
 	if res.HasErrors() {
 		return a, nil
 	}
 	m.stats.MIR++
 	var err error
-	if a.Prog, err = buildProgram(res); err != nil {
+	if a.Prog, err = buildProgram(res, m.target.StrictStack, m.target.StackBudgetKiB); err != nil {
 		return nil, err
 	}
 	// Several cmd/ scripts each have an implicit main; the module's entry
@@ -53,11 +54,14 @@ func (m *Module) analyze(mod *sem.Module) (*Analysis, error) {
 	return a, nil
 }
 
-// buildProgram returns a program with diagnostics unverified: the MIR
-// contract holds only for programs the builder accepted, and nothing runs
-// an unverified one.
-func buildProgram(res *sem.Result) (*mir.Program, error) {
+// buildProgram returns a program with diagnostics unverified; strict and
+// budgetKiB gate its resource summary (the build program itself always passes hosted-growable).
+func buildProgram(res *sem.Result, strict bool, budgetKiB int) (*mir.Program, error) {
 	prog := mir.Build(res)
+	if !prog.HasErrors() {
+		prog.Resources = mir.ComputeResourceSummaries(prog)
+		mir.CheckResourceBudget(prog, prog.Resources, mir.ResourceOptions{Strict: strict, BudgetKiB: budgetKiB})
+	}
 	for _, f := range prog.Funcs {
 		res.Files[f.File].Diags = append(res.Files[f.File].Diags, f.Diags...)
 	}
@@ -77,3 +81,7 @@ func buildProgram(res *sem.Result) (*mir.Program, error) {
 
 // Stats reports how often each phase ran for this module.
 func (m *Module) Stats() Stats { return m.stats }
+
+// LastAnalysis is the most recent Analyze result for this module, nil
+// before any call; a resource report reads it instead of re-analyzing.
+func (m *Module) LastAnalysis() *Analysis { return m.lastAnalysis }

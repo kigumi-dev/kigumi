@@ -53,6 +53,8 @@ func RootCmd() *cobra.Command {
 	root.PersistentFlags().String("allocator", "", "default allocator profile: general or none (none rejects allocation outside `allocator` blocks)")
 	root.PersistentFlags().String("profile", "", "allocation-failure profile: fatal-permitted (default) or recoverable-only (rejects any path that terminates on a refused allocation instead of returning it as a value)")
 	root.PersistentFlags().String("blocking-executor", "", "async/blocking execution-agent profile: hosted (default, warns on a direct-blocking operation reachable from an async body) or a strict profile that rejects it instead - isr, alloc-free-executor, single-thread-event-loop")
+	root.PersistentFlags().String("stack-profile", "", "stack policy: hosted-growable (default, reports the resource summary only) or strict (rejects an entry whose call chain is unbounded or unknown)")
+	root.PersistentFlags().Int("stack-budget-kib", 0, "with --stack-profile strict, the available stack capacity in KiB a bounded entry must additionally fit under (default: no numeric budget)")
 	root.PersistentFlags().String("color", "auto", "color diagnostics: auto (a terminal without NO_COLOR), always, or never")
 	root.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		mode, _ := cmd.Flags().GetString("color")

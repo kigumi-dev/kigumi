@@ -106,7 +106,7 @@ func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*build
 	}
 	host := HostTarget()
 	if p.prog == nil {
-		prog, err := buildProgram(p.Res)
+		prog, err := buildProgram(p.Res, false, 0)
 		if err != nil {
 			return nil, err
 		}

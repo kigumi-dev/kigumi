@@ -68,6 +68,12 @@ func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(in
 	if !ok {
 		return fmt.Errorf("artifact %s did not build", a.Name)
 	}
+	if report := ResourceReport(m.LastAnalysis()); len(report) > 0 {
+		fmt.Fprintf(stderr, "artifact %s resources:\n", a.Name)
+		for _, line := range report {
+			fmt.Fprintf(stderr, "  %s\n", line)
+		}
+	}
 	return nil
 }
 

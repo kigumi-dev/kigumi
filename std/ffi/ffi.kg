@@ -102,6 +102,13 @@ pub fn CValue[T].set(self, value: &T) -> Unit
 /// Frees the C memory.
 pub fn CValue[T].drop(move self) -> Unit
 
+/// Runs f with a raw pointer to value, valid only for the call: it cannot
+/// escape past f's own return. Use Pin for a pointer that must outlive it.
+pub fn withAddress[T, R](value: &mut T, f: fn(*mut T) -> R) -> R
+
+/// Like withAddress, but the pointer is read-only.
+pub fn withAddressConst[T, R](value: &T, f: fn(*const T) -> R) -> R
+
 /// A Kigumi value pinned for C as userdata; the pointer stays valid until drop.
 pub type Pin[T] = resource {
     handle Int

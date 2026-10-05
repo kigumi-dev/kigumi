@@ -27,6 +27,12 @@ type Target struct {
 	// Tier is "" or "unverified", for a triple whose ABI segment
 	// ParseTarget does not recognize.
 	Tier string
+	// StrictStack requires every stack root to have a bounded call chain;
+	// the zero value is hosted-growable, which only reports the summary.
+	StrictStack bool
+	// StackBudgetKiB is the stack capacity in KiB a strict profile's
+	// bounded roots must fit under; 0 only requires boundedness.
+	StackBudgetKiB int
 }
 
 var targetArch = map[string]string{"x86_64": "amd64", "aarch64": "arm64", "riscv64": "riscv64", "wasm32": "wasm32", "x86": "386", "arm": "arm"}

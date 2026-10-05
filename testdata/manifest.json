@@ -2835,6 +2835,61 @@
       ]
     },
     {
+      "id": "run/ffi_with_address",
+      "kind": "run",
+      "path": "testdata/run/ffi_with_address.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
+      "id": "run/ffi_with_address_callback",
+      "kind": "run",
+      "path": "testdata/run/ffi_with_address_callback.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/ffi_with_address_const",
+      "kind": "run",
+      "path": "testdata/run/ffi_with_address_const.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
       "id": "run/fix_borrow_bind_drop",
       "kind": "run",
       "path": "testdata/run/fix_borrow_bind_drop.txtar",

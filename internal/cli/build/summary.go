@@ -24,6 +24,7 @@ func buildSummary(cmd *cobra.Command, m *driver.Module, policy driver.BuildPolic
 		Dependencies:        m.Dependencies(),
 		LocalOverrides:      m.LocalOverrides(),
 		HostInputs:          inputs,
+		Resources:           driver.ResourceReport(m.LastAnalysis()),
 		ReproducibleChecked: reproducible,
 		Reproducible:        reproducible,
 	}

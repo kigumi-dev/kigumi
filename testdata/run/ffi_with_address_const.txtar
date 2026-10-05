@@ -1,0 +1,10 @@
+-- engines --
+native
+-- src --
+import ffi from std/ffi
+
+let x: i32 = 9
+let result = ffi.withAddressConst(&x, (p: *const i32) => unsafe { ffi.readI32(p) })
+print "${result}"
+-- stdout --
+9

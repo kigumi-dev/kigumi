@@ -36,6 +36,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	}
 	ret, plan := c.checkArgs(n, name, sig, args, inst, want, info.Params, info.Body != 0, async)
 	c.ffiCValueCheck(n, fn, inst, recv)
+	c.ffiAddressLeaseCheck(n, fn, inst)
 	c.errorAsCheck(n, fn, inst)
 	if async {
 		// A direct call to an async fn yields a lazy Future.

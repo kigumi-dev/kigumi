@@ -1790,6 +1790,7 @@ enum std_op {
     OP_HANDLE_TABLE_DROP,
     OP_HANDLE_RAW,
     OP_HANDLE_DROP,
+    OP_WITH_ADDRESS,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -1894,6 +1895,8 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "alloc.Shared.tryNew")) return OP_SHARED_TRY_NEW;
     if (!strcmp(k, "task.BlockingPool.new")) return OP_BLOCKING_POOL_NEW;
     if (!strcmp(k, "task.BlockingPool.run")) return OP_BLOCKING_POOL_RUN;
+    if (!strcmp(k, "ffi.withAddress")) return OP_WITH_ADDRESS;
+    if (!strcmp(k, "ffi.withAddressConst")) return OP_WITH_ADDRESS;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;
@@ -2228,6 +2231,12 @@ val rt_std_id(int op, int n, val* a) {
     case OP_PIN_PTR: return rt_ptr((void*)(intptr_t)a0->u.rec.fields[0]->u.i);
     case OP_PIN_WITH: {
         val arg[1] = {(val)a0->u.p};
+        return rt_callv(a1, 1, arg);
+    }
+    // value's scalar payload lives in the union after the header fields,
+    // so &a0->u is that payload's address regardless of which member.
+    case OP_WITH_ADDRESS: {
+        val arg[1] = {rt_ptr((void*)&a0->u)};
         return rt_callv(a1, 1, arg);
     }
     case OP_PIN_DROP: {

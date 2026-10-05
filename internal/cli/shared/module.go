@@ -140,5 +140,13 @@ func Target(cmd *cobra.Command) (driver.Target, error) {
 	default:
 		return t, fmt.Errorf("blocking-executor %q: want hosted, isr, alloc-free-executor or single-thread-event-loop", bp)
 	}
+	switch stackProfile, _ := cmd.Flags().GetString("stack-profile"); stackProfile {
+	case "", "hosted-growable":
+	case "strict":
+		t.StrictStack = true
+	default:
+		return t, fmt.Errorf("stack-profile %q: want hosted-growable or strict", stackProfile)
+	}
+	t.StackBudgetKiB, _ = cmd.Flags().GetInt("stack-budget-kib")
 	return t, nil
 }

@@ -51,6 +51,28 @@ func (c *checker) ffiCValueCheck(n syntax.NodeID, fn EntityID, inst []TypeID, re
 	c.errAt(n, cFFILayoutType, c.r.TypeString(t), e.Name)
 }
 
+// ffiAddressLeaseCheck rejects a withAddress(Const) call whose callback
+// could hand its own lease pointer back as R, letting it outlive the call.
+func (c *checker) ffiAddressLeaseCheck(n syntax.NodeID, fn EntityID, inst []TypeID) {
+	e := &c.r.Entities[fn]
+	if c.r.Packages[e.Pkg].Path != "std/ffi" || (e.Name != "withAddress" && e.Name != "withAddressConst") {
+		return
+	}
+	if len(inst) < 2 {
+		return
+	}
+	t := c.vars.resolve(inst[0])
+	if t != TyPoison && t != 0 && !c.cValueScalar(t) {
+		c.errAt(n, cAddressLeaseType, c.r.TypeString(t), e.Name)
+		return
+	}
+	ret := c.vars.resolve(inst[1])
+	if !c.r.mayContainPtr(ret, map[TypeID]bool{}) {
+		return
+	}
+	c.errAt(n, cCarrierLeaseEscape, e.Name, c.r.TypeString(ret))
+}
+
 // Int and Float are aliases already covered by IsNumeric; no separate check needed.
 func (c *checker) cValueScalar(t TypeID) bool {
 	tt := c.r.Types
