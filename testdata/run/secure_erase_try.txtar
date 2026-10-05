@@ -1,0 +1,32 @@
+-- src --
+import mem from std/mem
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    let mut i: usize = 0
+    for x in b {
+        if i > 0 {
+            out = "${out},${x}"
+        } else {
+            out = "${x}"
+        }
+        i = i + 1
+    }
+    out
+}
+
+let mut owned = Bytes.fromArray(&Array.of[u8](1, 2, 3, 4, 5))
+let r1 = mem.trySecureErase(&mut owned)
+print "owned: ${show(&owned)} ok=${r1 is Ok(_)}"
+
+let mut lit = b"hello"
+let r2 = mem.trySecureErase(&mut lit)
+print "literal: ${show(&lit)} ok=${r2 is Ok(_)}"
+
+let mut empty = Bytes.zeros(0)
+let r3 = mem.trySecureErase(&mut empty)
+print "empty len=${empty.len()} ok=${r3 is Ok(_)}"
+-- stdout --
+owned: 0,0,0,0,0 ok=true
+literal: 0,0,0,0,0 ok=true
+empty len=0 ok=true

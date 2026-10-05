@@ -206,6 +206,9 @@ pub unsafe fn bytesFrom(p: *const u8, n: usize) -> Bytes
 /// Pointer to the bytes; valid while b lives and is not changed.
 pub unsafe fn bytesPtr(b: &Bytes) -> *const u8
 
+/// Zeros n bytes at p like mem.secureErase; p..p+n must be valid and writable. Native-only.
+pub unsafe fn secureEraseRaw(p: *mut u8, n: usize) -> Unit
+
 /// Reads the pointer stored at p.
 pub unsafe fn readPtr(p: *const u8) -> *const u8
 

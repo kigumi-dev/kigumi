@@ -1,0 +1,48 @@
+-- src --
+import mem from std/mem
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    let mut i: usize = 0
+    for x in b {
+        if i > 0 {
+            out = "${out},${x}"
+        } else {
+            out = "${x}"
+        }
+        i = i + 1
+    }
+    out
+}
+
+let mut owned = Bytes.fromArray(&Array.of[u8](1, 2, 3, 4, 5))
+mem.secureErase(&mut owned)
+print "owned: ${show(&owned)} len=${owned.len()}"
+
+let mut lit = b"hello"
+mem.secureErase(&mut lit)
+print "literal: ${show(&lit)} len=${lit.len()}"
+
+let mut empty = Bytes.zeros(0)
+mem.secureErase(&mut empty)
+print "empty len=${empty.len()}"
+
+let mut src = Bytes.fromArray(&Array.of[u8](9, 9, 9))
+let aliasCopy = src
+mem.secureErase(&mut src)
+print "src: ${show(&src)}"
+print "copy untouched: ${show(&aliasCopy)}"
+
+let mut litSrc = b"world"
+let litCopy = litSrc
+mem.secureErase(&mut litSrc)
+print "lit: ${show(&litSrc)}"
+print "lit copy untouched: ${show(&litCopy)}"
+-- stdout --
+owned: 0,0,0,0,0 len=5
+literal: 0,0,0,0,0 len=5
+empty len=0
+src: 0,0,0
+copy untouched: 9,9,9
+lit: 0,0,0,0,0
+lit copy untouched: 119,111,114,108,100

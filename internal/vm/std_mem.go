@@ -14,6 +14,16 @@ func (m *Machine) memStd(key string, a []*obj, a0, a1 *obj) *obj {
 		cell.inner = retain(a1)
 		m.release(old)
 		return unitObj
+	case "mem.secureErase":
+		for i := range a0.s {
+			a0.s[i] = 0
+		}
+		return unitObj
+	case "mem.trySecureErase":
+		for i := range a0.s {
+			a0.s[i] = 0
+		}
+		return m.ok(unitObj)
 	}
 	return nil
 }

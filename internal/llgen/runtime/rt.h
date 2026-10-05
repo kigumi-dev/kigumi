@@ -143,6 +143,7 @@ void rt_const_variant(void* slot, val* payload, rt_vdesc* d, int64_t n);
 void rt_init_nullary(int ntypes, rt_type** types);
 void rt_fnitem_init(void* slot, adapter_fn fn, int async);
 val rt_copy(val v);
+void rt_secure_zero(volatile unsigned char* p, int64_t n);
 val opaque(const char* kind, void* data);
 val some(val v);
 val none(void);

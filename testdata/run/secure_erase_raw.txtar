@@ -1,0 +1,33 @@
+-- engines --
+native
+-- src --
+import ffi from std/ffi
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    let mut i: usize = 0
+    for x in b {
+        if i > 0 {
+            out = "${out},${x}"
+        } else {
+            out = "${x}"
+        }
+        i = i + 1
+    }
+    out
+}
+
+let mut data = Bytes.fromArray(&Array.of[u8](1, 2, 3, 4))
+unsafe {
+    ffi.secureEraseRaw(ffi.toMut(ffi.bytesPtr(&data)), data.len())
+}
+print "raw: ${show(&data)}"
+
+let mut zeroLen = Bytes.fromArray(&Array.of[u8](7, 8))
+unsafe {
+    ffi.secureEraseRaw(ffi.toMut(ffi.bytesPtr(&zeroLen)), 0)
+}
+print "zero-length no-op: ${show(&zeroLen)}"
+-- stdout --
+raw: 0,0,0,0
+zero-length no-op: 7,8

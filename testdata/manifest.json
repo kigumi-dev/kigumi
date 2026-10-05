@@ -5574,6 +5574,59 @@
       ]
     },
     {
+      "id": "run/secure_erase",
+      "kind": "run",
+      "path": "testdata/run/secure_erase.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/secure_erase_raw",
+      "kind": "run",
+      "path": "testdata/run/secure_erase_raw.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
+      "id": "run/secure_erase_try",
+      "kind": "run",
+      "path": "testdata/run/secure_erase_try.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/self_capture_copy",
       "kind": "run",
       "path": "testdata/run/self_capture_copy.txtar",

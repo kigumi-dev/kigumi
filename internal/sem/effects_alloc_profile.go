@@ -10,6 +10,7 @@ var fatalAllocPrimitives = map[string]bool{
 	"prelude.Bytes.concat":     true,
 	"prelude.String.fromBytes": true,
 	"alloc.Shared.new":         true,
+	"mem.secureErase":          true,
 }
 
 // trustedFallibleWrappers lists bodied std fns proven safe by a preceding

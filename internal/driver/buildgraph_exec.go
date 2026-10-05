@@ -95,7 +95,7 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 	var secretFiles []string
 	defer func() {
 		for _, f := range secretFiles {
-			os.Remove(f)
+			wipeAndRemove(f)
 		}
 	}()
 	args := make([]string, 0, len(s.Args))
@@ -136,15 +136,18 @@ func runToolStep(rg *ResolvedGraph, idx int, filePath func(int) string, opts Exe
 			}
 			tmp, err := os.CreateTemp("", "kigumi-secret-")
 			if err != nil {
+				zeroBytes(data)
 				return err
 			}
 			if _, err := tmp.Write(data); err != nil {
+				zeroBytes(data)
 				tmp.Close()
-				os.Remove(tmp.Name())
+				wipeAndRemove(tmp.Name())
 				return fmt.Errorf("secret %s: %w", secretName, err)
 			}
+			zeroBytes(data)
 			if err := tmp.Close(); err != nil {
-				os.Remove(tmp.Name())
+				wipeAndRemove(tmp.Name())
 				return fmt.Errorf("secret %s: %w", secretName, err)
 			}
 			secretFiles = append(secretFiles, tmp.Name())

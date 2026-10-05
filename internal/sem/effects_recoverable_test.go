@@ -48,6 +48,17 @@ func TestRecoverableOnlyAcceptsTrustedWrapper(t *testing.T) {
 	}
 }
 
+func TestRecoverableOnlyAcceptsTrySecureErase(t *testing.T) {
+	bad := checkRecoverableOnly(t, "import mem from std/mem\n\nlet mut b = Bytes.tryZeros(4).unwrap()\nmem.secureErase(&mut b)\n")
+	if !bad.HasErrors() || !strings.Contains(bad.Render(), "recoverable-only") {
+		t.Fatalf("mem.secureErase must be rejected under recoverable-only:\n%s", bad.Render())
+	}
+	good := checkRecoverableOnly(t, "import mem from std/mem\n\nlet mut b = Bytes.tryZeros(4).unwrap()\nlet r = mem.trySecureErase(&mut b)\n")
+	if good.HasErrors() {
+		t.Fatalf("mem.trySecureErase must pass under recoverable-only:\n%s", good.Render())
+	}
+}
+
 // TestRecoverableOnlyRejectsCompilerGeneratedAlloc checks a record literal is rejected too, same as a bodiless fatal convenience.
 func TestRecoverableOnlyRejectsCompilerGeneratedAlloc(t *testing.T) {
 	bad := checkRecoverableOnly(t, "type P = { x Int }\n\nlet p = P { x: 1 }\n")

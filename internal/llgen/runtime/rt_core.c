@@ -607,6 +607,23 @@ val rt_copy(val v) {
         for (int64_t i = 0; i < c->u.arr.len; i++) c->u.arr.items[i] = rt_copy(c->u.arr.items[i]);
         return c;
     }
+    case K_BYTES: {
+        // Each copy gets its own val, even when unowned, so secureErase on
+        // one cannot reach through a shared struct into another's fields.
+        val c = alloc(K_BYTES);
+        c->u.s.len = v->u.s.len;
+        if (!v->owned) {
+            c->u.s.data = v->u.s.data;
+            return c;
+        }
+        char* d = malloc((uint64_t)v->u.s.len + 1);
+        if (!d) rt_panic("out of memory");
+        memcpy(d, v->u.s.data, v->u.s.len);
+        d[v->u.s.len] = 0;
+        c->u.s.data = d;
+        c->owned = 1;
+        return c;
+    }
     case K_BOX: {
         val c = alloc(K_BOX);
         c->u.box.dyn = v->u.box.dyn;
@@ -1930,6 +1947,11 @@ static int subtle_constant_time_eq(val a, val b) {
     }
     return diff == 0;
 }
+// p is volatile, so the standard forbids eliding these stores as dead
+// even though nothing reads p afterward.
+void rt_secure_zero(volatile unsigned char* p, int64_t n) {
+    for (int64_t i = 0; i < n; i++) p[i] = 0;
+}
 // Stable small ids for std primitives: llgen resolves a call's std key to
 // one of these at compile time and
 // emits rt_std_id directly, skipping the string compares below. Order
@@ -2045,6 +2067,9 @@ enum std_op {
     OP_HANDLE_DROP,
     OP_WITH_ADDRESS,
     OP_TASK_CANCEL_REQUESTED,
+    OP_SECURE_ERASE,
+    OP_SECURE_ERASE_RAW,
+    OP_SECURE_ERASE_TRY,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -2111,6 +2136,9 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "ffi.HandleTable.drop")) return OP_HANDLE_TABLE_DROP;
     if (!strcmp(k, "ffi.FfiHandle.raw")) return OP_HANDLE_RAW;
     if (!strcmp(k, "ffi.FfiHandle.drop")) return OP_HANDLE_DROP;
+    if (!strcmp(k, "mem.secureErase")) return OP_SECURE_ERASE;
+    if (!strcmp(k, "mem.trySecureErase")) return OP_SECURE_ERASE_TRY;
+    if (!strcmp(k, "ffi.secureEraseRaw")) return OP_SECURE_ERASE_RAW;
     if (!strcmp(k, "ffi.string")) return OP_FFI_STRING;
     if (!strcmp(k, "ffi.stringChecked")) return OP_FFI_STRING_CHECKED;
     if (!strcmp(k, "ffi.stringLossy")) return OP_FFI_STRING_LOSSY;
@@ -2472,6 +2500,39 @@ val rt_std_id(int op, int n, val* a) {
         return some(rt_int((uint8_t)a0->u.s.data[i], 8));
     }
     case OP_SUBTLE_CT_EQ: return rt_bool(subtle_constant_time_eq(a0, a1));
+    case OP_SECURE_ERASE: {
+        int64_t n2 = a0->u.s.len;
+        if (n2 <= 0) return rt_unit();
+        if (a0->owned) {
+            rt_secure_zero((volatile unsigned char*)a0->u.s.data, n2);
+            return rt_unit();
+        }
+        // a literal/foreign Bytes has no writable backing of its own; give
+        // self a fresh owned one instead of writing through static memory.
+        char* d = calloc((uint64_t)n2 + 1, 1);
+        if (!d) rt_panic("out of memory");
+        a0->u.s.data = d;
+        a0->owned = 1;
+        return rt_unit();
+    }
+    case OP_SECURE_ERASE_RAW: {
+        int64_t n2 = a1->u.i;
+        if (n2 > 0) rt_secure_zero((volatile unsigned char*)a0->u.p, n2);
+        return rt_unit();
+    }
+    case OP_SECURE_ERASE_TRY: {
+        int64_t n2 = a0->u.s.len;
+        if (n2 <= 0) return try_ok(rt_unit());
+        if (a0->owned) {
+            rt_secure_zero((volatile unsigned char*)a0->u.s.data, n2);
+            return try_ok(rt_unit());
+        }
+        char* d = fault_tick() ? NULL : calloc((uint64_t)n2 + 1, 1);
+        if (!d) return alloc_error();
+        a0->u.s.data = d;
+        a0->owned = 1;
+        return try_ok(rt_unit());
+    }
     case OP_DL_SYMBOL_CALL:
         rt_panic("dl.Symbol.call is lowered by the compiler");
         return NULL;

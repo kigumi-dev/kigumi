@@ -36,6 +36,7 @@ var StdOpNames = []string{
 	"HANDLE_TABLE_DROP", "HANDLE_RAW", "HANDLE_DROP",
 	"WITH_ADDRESS",
 	"TASK_CANCEL_REQUESTED",
+	"SECURE_ERASE", "SECURE_ERASE_RAW", "SECURE_ERASE_TRY",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -56,6 +57,7 @@ var providerOps = map[string]bool{
 	"HANDLE_TABLE_NEW": true, "HANDLE_TABLE_INSERT": true, "HANDLE_TABLE_WITH": true,
 	"HANDLE_TABLE_REMOVE": true, "HANDLE_TABLE_RECLAIM": true, "HANDLE_TABLE_CLOSE": true,
 	"HANDLE_TABLE_DROP": true, "HANDLE_RAW": true, "HANDLE_DROP": true,
+	"SECURE_ERASE_RAW": true,
 }
 
 // stdOpKeys maps a std key ("std/"-stripped) to the StdOpNames entry
@@ -164,6 +166,9 @@ var stdOpKeys = map[string]string{
 	"ffi.FfiHandle.drop":              "HANDLE_DROP",
 	"ffi.withAddress":                 "WITH_ADDRESS",
 	"ffi.withAddressConst":            "WITH_ADDRESS",
+	"mem.secureErase":                 "SECURE_ERASE",
+	"mem.trySecureErase":              "SECURE_ERASE_TRY",
+	"ffi.secureEraseRaw":              "SECURE_ERASE_RAW",
 }
 
 // stdOpSuffixes maps a trailing method name to its op, for primitives

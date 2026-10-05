@@ -36,7 +36,7 @@ var vmFFIGap = map[string]bool{
 	"ffi.string": true, "ffi.stringChecked": true, "ffi.stringLossy": true,
 	"ffi.readU8": true, "ffi.readI32": true, "ffi.readI64": true, "ffi.readF64": true, "ffi.writeU8": true,
 	"ffi.writeI32": true, "ffi.writeI64": true, "ffi.writeF64": true, "ffi.bytesFrom": true, "ffi.bytesPtr": true,
-	"ffi.readPtr": true, "ffi.writePtr": true,
+	"ffi.readPtr": true, "ffi.writePtr": true, "ffi.secureEraseRaw": true,
 	"os.Host.dl": true, "dl.Symbol.call": true,
 }
 

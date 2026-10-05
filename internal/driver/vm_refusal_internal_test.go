@@ -14,6 +14,7 @@ func TestNativeOnlyRefusal(t *testing.T) {
 		{"primitive os.Host.dl", true},
 		{"primitive dl.Symbol.call", true},
 		{"primitive ffi.CString.new", true},
+		{"primitive ffi.secureEraseRaw", true},
 		{"foreign function dlopen", true},
 		{"primitive os.Host.net", false},
 		{"primitive net.Net.http", false},

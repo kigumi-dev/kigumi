@@ -95,6 +95,12 @@ func (m *Machine) copy(v *obj) *obj {
 		}
 		m.chargeMemory(c)
 		return c
+	case kBytes:
+		// A fresh backing array, not just a retain: secureErase mutates
+		// in place, and a shared slice would let it zero another copy too.
+		c := mkBytes(append([]byte(nil), v.s...))
+		m.chargeMemory(c)
+		return c
 	case kBox:
 		c := newObj(kBox)
 		c.dyn, c.inner = v.dyn, m.copy(v.inner)

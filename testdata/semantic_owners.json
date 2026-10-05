@@ -1582,6 +1582,17 @@
     "reason": "ffi/dl: native-only; kigumi build diagnoses it on the VM"
   },
   {
+    "key": "ffi.secureEraseRaw",
+    "signature": "unsafe fn(*mut u8, usize) -\u003e Unit",
+    "has_body": false,
+    "kind": "provider",
+    "vm": "gap",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "legacy-gap",
+    "reason": "ffi/dl: native-only; kigumi build diagnoses it on the VM"
+  },
+  {
     "key": "ffi.sizeOf",
     "signature": "pure fn(\u0026T) -\u003e usize",
     "has_body": false,
@@ -3591,7 +3602,7 @@
   },
   {
     "key": "math.max",
-    "signature": "pure noalloc fn(u8, u8) -\u003e u8",
+    "signature": "pure noalloc fn(usize, usize) -\u003e usize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3601,7 +3612,7 @@
   },
   {
     "key": "math.max",
-    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "signature": "pure noalloc fn(i16, i16) -\u003e i16",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3621,7 +3632,7 @@
   },
   {
     "key": "math.max",
-    "signature": "pure noalloc fn(u32, u32) -\u003e u32",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3641,7 +3652,7 @@
   },
   {
     "key": "math.max",
-    "signature": "pure noalloc fn(i16, i16) -\u003e i16",
+    "signature": "pure noalloc fn(u32, u32) -\u003e u32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3671,7 +3682,7 @@
   },
   {
     "key": "math.max",
-    "signature": "pure noalloc fn(usize, usize) -\u003e usize",
+    "signature": "pure noalloc fn(u8, u8) -\u003e u8",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3701,17 +3712,7 @@
   },
   {
     "key": "math.min",
-    "signature": "pure noalloc fn(u8, u8) -\u003e u8",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.min",
-    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3722,6 +3723,16 @@
   {
     "key": "math.min",
     "signature": "pure noalloc fn(Float, Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.min",
+    "signature": "pure noalloc fn(i16, i16) -\u003e i16",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3771,27 +3782,27 @@
   },
   {
     "key": "math.min",
+    "signature": "pure noalloc fn(u8, u8) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.min",
+    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.min",
     "signature": "pure noalloc fn(i32, i32) -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.min",
-    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.min",
-    "signature": "pure noalloc fn(i16, i16) -\u003e i16",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3872,6 +3883,26 @@
   {
     "key": "mem.UnsafeCell.set",
     "signature": "unsafe fn(T) -\u003e Unit",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.secureErase",
+    "signature": "pure fn(\u0026mut Bytes) -\u003e Unit",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.trySecureErase",
+    "signature": "pure fn(\u0026mut Bytes) -\u003e Result[Unit, AllocError]",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
