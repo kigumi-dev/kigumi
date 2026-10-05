@@ -25,7 +25,8 @@ func Cmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		report := driver.EvaluateRelease(m, policy, shared.ReleaseViolations(cmd, false)...)
+		extra := append(shared.ReleaseViolations(cmd, false), driver.LinkIdentityViolations(m, driver.HostTarget())...)
+		report := driver.EvaluateRelease(m, policy, extra...)
 		fmt.Fprint(cmd.ErrOrStderr(), report.Render())
 		if report.HasErrors() {
 			return cliutil.Exit(1)

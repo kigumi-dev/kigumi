@@ -65,6 +65,8 @@ type Machine struct {
 	host     map[string]hostFn
 	hostByOp map[mir.ProviderOpId]hostFn
 	cvalues  []*obj
+	// handleTables backs std/ffi's HandleTable[T]; see std_ffi_handle.go.
+	handleTables []*handleTableState
 	// globals is every owned/exported static's storage slot:
 	// an immortal (rc -1) object, replaced wholesale on a `static mut` write.
 	globals map[sem.EntityID]*obj
@@ -120,6 +122,7 @@ func (m *Machine) registerAll() {
 	m.registerTask()
 	m.registerBlocking()
 	m.registerFFI()
+	m.registerFFIHandle()
 	m.registerTime()
 	m.registerSignal()
 	m.registerBuild()

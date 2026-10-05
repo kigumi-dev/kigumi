@@ -1,0 +1,13 @@
+-- src --
+import ffi from std/ffi
+
+let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let h = table.insert(42)
+let got = table.with(&h, (v: &Int) => v + 1)
+let raw = h.raw()
+let removed = table.remove(h)
+let closed = if table.close() is Ok(_) { "closed" } else { "busy" }
+let stale = if (unsafe { table.reclaim(raw) }) is Err(_) { "stale" } else { "live" }
+print "${got} ${removed} ${closed} ${stale}"
+-- stdout --
+43 42 closed stale

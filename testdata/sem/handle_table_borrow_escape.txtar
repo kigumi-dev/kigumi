@@ -1,0 +1,13 @@
+-- lib/handle.kg --
+import ffi from std/ffi
+
+fn leak['a](table: &'a ffi.HandleTable[Int], h: &'a ffi.FfiHandle[Int]) -> &'a Int {
+    table.with(h, (v: &'a Int) => v) //~ ERROR borrow types cannot appear in return types
+}
+-- expect --
+error[E220]: borrow types cannot appear in return types
+ --> lib/handle.kg:4:35
+  |
+4 |     table.with(h, (v: &'a Int) => v) //~ ERROR borrow types cannot appear in return types
+  |                                   ^
+

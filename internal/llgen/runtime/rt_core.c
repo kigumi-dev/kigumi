@@ -1772,6 +1772,15 @@ enum std_op {
     OP_SHARED_TRY_NEW,
     OP_BLOCKING_POOL_NEW,
     OP_BLOCKING_POOL_RUN,
+    OP_HANDLE_TABLE_NEW,
+    OP_HANDLE_TABLE_INSERT,
+    OP_HANDLE_TABLE_WITH,
+    OP_HANDLE_TABLE_REMOVE,
+    OP_HANDLE_TABLE_RECLAIM,
+    OP_HANDLE_TABLE_CLOSE,
+    OP_HANDLE_TABLE_DROP,
+    OP_HANDLE_RAW,
+    OP_HANDLE_DROP,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -1829,6 +1838,15 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "ffi.Pin.drop")) return OP_PIN_DROP;
     if (!strcmp(k, "ffi.Pin.release")) return OP_PIN_RELEASE;
     if (!strcmp(k, "ffi.Pin.reclaim")) return OP_PIN_RECLAIM;
+    if (!strcmp(k, "ffi.HandleTable.new")) return OP_HANDLE_TABLE_NEW;
+    if (!strcmp(k, "ffi.HandleTable.insert")) return OP_HANDLE_TABLE_INSERT;
+    if (!strcmp(k, "ffi.HandleTable.with")) return OP_HANDLE_TABLE_WITH;
+    if (!strcmp(k, "ffi.HandleTable.remove")) return OP_HANDLE_TABLE_REMOVE;
+    if (!strcmp(k, "ffi.HandleTable.reclaim")) return OP_HANDLE_TABLE_RECLAIM;
+    if (!strcmp(k, "ffi.HandleTable.close")) return OP_HANDLE_TABLE_CLOSE;
+    if (!strcmp(k, "ffi.HandleTable.drop")) return OP_HANDLE_TABLE_DROP;
+    if (!strcmp(k, "ffi.FfiHandle.raw")) return OP_HANDLE_RAW;
+    if (!strcmp(k, "ffi.FfiHandle.drop")) return OP_HANDLE_DROP;
     if (!strcmp(k, "ffi.string")) return OP_FFI_STRING;
     if (!strcmp(k, "ffi.stringChecked")) return OP_FFI_STRING_CHECKED;
     if (!strcmp(k, "ffi.stringLossy")) return OP_FFI_STRING_LOSSY;
@@ -1881,6 +1899,64 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(m, "rotateRight")) return OP_ROTATE_RIGHT;
     if (strstr(k, "build.")) return OP_BUILD_ONLY;
     return -1;
+}
+// handle_slot/handle_table back std/ffi's HandleTable[T]: like Pin, a slot
+// holds a boxed value, but also a generation a stale or forged RawHandle must match.
+typedef struct {
+    int64_t generation;
+    int occupied;
+    val value;
+} handle_slot;
+typedef struct {
+    handle_slot* slots;
+    int64_t len, cap;
+} handle_table;
+// Table identity is this registry's permanent 1-based index, never reused;
+// the heap pointer itself can be, once freed, handed back by a later calloc.
+static handle_table** g_handle_tables;
+static int64_t g_handle_tables_len, g_handle_tables_cap;
+static int64_t handle_table_register(handle_table* t) {
+    if (g_handle_tables_len == g_handle_tables_cap) {
+        int64_t newcap = g_handle_tables_cap ? g_handle_tables_cap * 2 : 4;
+        handle_table** ns = realloc(g_handle_tables, (size_t)newcap * sizeof *ns);
+        if (!ns) rt_panic("out of memory");
+        g_handle_tables = ns;
+        g_handle_tables_cap = newcap;
+    }
+    g_handle_tables[g_handle_tables_len] = t;
+    return ++g_handle_tables_len;
+}
+
+static int64_t handle_pack(int64_t generation, int64_t index) {
+    return (generation << 32) | (index & 0xFFFFFFFF);
+}
+static void handle_unpack(int64_t raw, int64_t* generation, int64_t* index) {
+    *generation = raw >> 32;
+    *index = raw & 0xFFFFFFFF;
+}
+// Only an unsafe reclaim of a forged/stale RawHandle can fail this check;
+// a live FfiHandle otherwise always names a live slot.
+static int64_t handle_find(val h, handle_table** out) {
+    handle_table* t = g_handle_tables[h->u.rec.fields[0]->u.i - 1];
+    int64_t generation, index;
+    handle_unpack(h->u.rec.fields[1]->u.i, &generation, &index);
+    if (index < 0 || index >= t->len || !t->slots[index].occupied || t->slots[index].generation != generation) {
+        rt_panic("this handle does not address a live slot of this table");
+    }
+    *out = t;
+    return index;
+}
+static val handle_free(handle_table* t, int64_t index) {
+    val v = t->slots[index].value;
+    t->slots[index].occupied = 0;
+    t->slots[index].value = NULL;
+    t->slots[index].generation++;
+    return v;
+}
+static val handle_fault(const char* variant) {
+    rt_vdesc* d = find_variant(find_type("HandleFault"), variant);
+    if (!d) return err_msg("handle fault");
+    return err_val(rt_variant(d, 0, NULL));
 }
 // rt_std_id never compares key strings: llgen resolves a call's std key to
 // an enum std_op at compile time (rt_std_op_of does the same resolution
@@ -2165,6 +2241,97 @@ val rt_std_id(int op, int n, val* a) {
     case OP_PIN_RECLAIM: {
         val h = rt_int((int64_t)(intptr_t)a0->u.p, 64 | 256);
         return make_record("Pin", 1, &h);
+    }
+    case OP_HANDLE_TABLE_NEW: {
+        handle_table* t = calloc(1, sizeof *t);
+        if (!t) rt_panic("out of memory");
+        val h = rt_int(handle_table_register(t), 64 | 256);
+        return make_record("HandleTable", 1, &h);
+    }
+    case OP_HANDLE_TABLE_INSERT: {
+        int64_t ti = a0->u.rec.fields[0]->u.i;
+        handle_table* t = g_handle_tables[ti - 1];
+        int64_t index = -1;
+        for (int64_t i = 0; i < t->len; i++) {
+            if (!t->slots[i].occupied) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) {
+            int64_t newcap = t->cap ? t->cap * 2 : 4;
+            handle_slot* ns = realloc(t->slots, (size_t)newcap * sizeof *ns);
+            if (!ns) rt_panic("out of memory");
+            for (int64_t i = t->cap; i < newcap; i++) ns[i] = (handle_slot){0};
+            t->slots = ns;
+            t->cap = newcap;
+            index = t->len++;
+        }
+        t->slots[index].occupied = 1;
+        t->slots[index].value = rt_retain(a1);
+        val f[2] = {rt_int(ti, 64 | 256), rt_int(handle_pack(t->slots[index].generation, index), 64 | 256)};
+        return make_record("FfiHandle", 2, f);
+    }
+    case OP_HANDLE_TABLE_WITH: {
+        handle_table* t;
+        int64_t index = handle_find(a1, &t);
+        val arg[1] = {t->slots[index].value};
+        return rt_callv(a2, 1, arg);
+    }
+    case OP_HANDLE_TABLE_REMOVE: {
+        handle_table* t;
+        int64_t index = handle_find(a1, &t);
+        val v = handle_free(t, index);
+        // h is only lent like any primitive argument, so the caller's
+        // scope-exit FfiHandle.drop still runs on it; zero it to a no-op.
+        a1->u.rec.fields[0]->u.i = 0;
+        return v;
+    }
+    case OP_HANDLE_TABLE_RECLAIM: {
+        int64_t self_tbl = a0->u.rec.fields[0]->u.i;
+        int64_t raw_tbl = a1->u.rec.fields[0]->u.i, raw_slot = a1->u.rec.fields[1]->u.i;
+        if (raw_tbl != self_tbl) return handle_fault("WrongTable");
+        handle_table* t = g_handle_tables[self_tbl - 1];
+        int64_t generation, index;
+        handle_unpack(raw_slot, &generation, &index);
+        if (index < 0 || index >= t->len) return handle_fault("OutOfRange");
+        if (!t->slots[index].occupied || t->slots[index].generation != generation) return handle_fault("Stale");
+        val f[2] = {rt_int(self_tbl, 64 | 256), rt_int(raw_slot, 64 | 256)};
+        return ok(make_record("FfiHandle", 2, f));
+    }
+    case OP_HANDLE_TABLE_CLOSE: {
+        handle_table* t = g_handle_tables[a0->u.rec.fields[0]->u.i - 1];
+        int64_t live = 0;
+        for (int64_t i = 0; i < t->len; i++) {
+            if (t->slots[i].occupied) live++;
+        }
+        if (live > 0) {
+            val n = rt_int(live, 64 | 256);
+            return err_val(make_record("HandleTableBusy", 1, &n));
+        }
+        return ok(rt_unit());
+    }
+    case OP_HANDLE_TABLE_DROP: {
+        int64_t ti = a0->u.rec.fields[0]->u.i;
+        handle_table* t = g_handle_tables[ti - 1];
+        for (int64_t i = 0; i < t->len; i++) {
+            if (t->slots[i].occupied) rt_panic("dropped a HandleTable with a handle still outstanding; call close() first");
+        }
+        free(t->slots);
+        free(t);
+        g_handle_tables[ti - 1] = NULL;
+        return rt_unit();
+    }
+    case OP_HANDLE_RAW: {
+        val f[2] = {rt_int(a0->u.rec.fields[0]->u.i, 64 | 256), rt_int(a0->u.rec.fields[1]->u.i, 64 | 256)};
+        return make_record("RawHandle", 2, f);
+    }
+    case OP_HANDLE_DROP: {
+        if (a0->u.rec.fields[0]->u.i == 0) return rt_unit();
+        handle_table* t;
+        int64_t index = handle_find(a0, &t);
+        rt_release(handle_free(t, index));
+        return rt_unit();
     }
     case OP_FFI_STRING: {
         const char* s = a0->u.p ? (const char*)a0->u.p : "";

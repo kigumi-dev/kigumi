@@ -1,0 +1,13 @@
+-- src --
+import ffi from std/ffi
+
+let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let h1 = table.insert(1)
+let raw1 = h1.raw()
+_ = table.remove(h1)
+let h2 = table.insert(2)
+let result = if (unsafe { table.reclaim(raw1) }) is Err(_) { "stale" } else { "live" }
+_ = table.remove(h2)
+print result
+-- stdout --
+stale

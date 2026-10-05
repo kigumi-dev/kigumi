@@ -129,6 +129,67 @@ pub fn Pin[T].release(move self) -> *mut u8
 /// never released, or reclaiming one twice, is undefined.
 pub unsafe fn Pin.reclaim[T](p: *mut u8) -> Pin[T]
 
+/// Carries a handle across a trusted in-process C boundary as plain
+/// integers; rebuild it on the way back with `HandleTable.reclaim`.
+pub type RawHandle layout(C) = {
+    pub table i64
+    pub slot i64
+}
+
+/// Why `HandleTable.reclaim` refused a `RawHandle`.
+pub type HandleFault = Stale | WrongTable | OutOfRange
+
+/// Why `HandleTable.close` refused to close.
+pub type HandleTableBusy = {
+    pub outstanding usize
+}
+
+/// A table of foreign-boundary handles for T; each slot's generation
+/// rejects a stale or replayed `RawHandle`, and a slot releases exactly once.
+pub type HandleTable[T] = resource {
+    handle Int
+}
+
+/// Creates an empty table.
+pub fn HandleTable.new[T]() -> HandleTable[T]
+
+/// Moves value into a fresh slot and returns an owned handle to it.
+pub fn HandleTable[T].insert(self, value: T) -> FfiHandle[T]
+
+/// Runs f with a borrow of h's value that cannot outlive the call; a
+/// direct getter would let the borrow escape.
+pub fn HandleTable[T].with[R](self, h: &FfiHandle[T], f: fn(&T) -> R) -> R
+
+/// Removes h from the table and returns its value; h's slot generation
+/// advances, so a `RawHandle` taken from h before this call becomes stale.
+pub fn HandleTable[T].remove(self, h: FfiHandle[T]) -> T
+
+/// Reconstructs an owned handle from a `RawHandle` a foreign caller handed
+/// back; fails when it does not address a live slot of this exact table.
+pub unsafe fn HandleTable[T].reclaim(self, raw: RawHandle) -> Result[FfiHandle[T], HandleFault]
+
+/// Reports whether the table can drop without aborting, without consuming
+/// self, so a caller on Err can clear handles and check again.
+pub fn HandleTable[T].close(self) -> Result[Unit, HandleTableBusy]
+
+/// Drops the table; aborts if a handle is still outstanding, since drop
+/// cannot report an error — call `close` first to recover.
+pub fn HandleTable[T].drop(move self) -> Unit
+
+/// An owned slot in a HandleTable.
+pub type FfiHandle[T] = resource {
+    table Int
+    slot Int
+}
+
+/// The value to hand to foreign code; reconstruct it with
+/// `HandleTable.reclaim`.
+pub fn FfiHandle[T].raw(self) -> RawHandle
+
+/// Releases the slot and drops the value, like `HandleTable.remove`
+/// without using the result.
+pub fn FfiHandle[T].drop(move self) -> Unit
+
 /// Reinterprets a byte pointer as a pointer to T; reading through it is the caller's responsibility.
 pub pure fn cast[T](p: *const u8) -> *const T
 

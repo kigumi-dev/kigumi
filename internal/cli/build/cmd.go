@@ -53,7 +53,13 @@ func Cmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		report := driver.EvaluateRelease(m, policy, shared.ReleaseViolations(cmd, true)...)
+		extra := shared.ReleaseViolations(cmd, true)
+		// An invalid --target surfaces below with usage context; here it
+		// just skips the link-identity check for this run.
+		if linkTarget, err := shared.Target(cmd); err == nil {
+			extra = append(extra, driver.LinkIdentityViolations(m, linkTarget)...)
+		}
+		report := driver.EvaluateRelease(m, policy, extra...)
 		fmt.Fprint(cmd.ErrOrStderr(), report.Render())
 		if report.HasErrors() {
 			return cliutil.Exit(1)

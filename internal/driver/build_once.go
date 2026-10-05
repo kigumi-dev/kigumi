@@ -69,9 +69,13 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if t.Bare() {
 		compileFlags, _ := splitArchiveCFlags(opts.CFlags)
 		args = append(args, compileFlags...)
+		reportStaleFingerprint(out, t, stderr)
 		ok, err := buildArchive(cc, args, inputs, dir, out, opts.ccEnv, stderr)
 		if err != nil || !ok {
 			return ok, err
+		}
+		if err := WriteFingerprintSidecar(out, CurrentFingerprint(t)); err != nil {
+			return false, err
 		}
 		err = auditBareArchive(cc, out)
 		return err == nil, err

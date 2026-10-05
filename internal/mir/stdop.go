@@ -31,6 +31,9 @@ var StdOpNames = []string{
 	"HOST_STDERR",
 	"BYTES_TRY_ZEROS", "BYTES_TRY_FILL", "SHARED_TRY_NEW",
 	"BLOCKING_POOL_NEW", "BLOCKING_POOL_RUN",
+	"HANDLE_TABLE_NEW", "HANDLE_TABLE_INSERT", "HANDLE_TABLE_WITH",
+	"HANDLE_TABLE_REMOVE", "HANDLE_TABLE_RECLAIM", "HANDLE_TABLE_CLOSE",
+	"HANDLE_TABLE_DROP", "HANDLE_RAW", "HANDLE_DROP",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -47,6 +50,9 @@ var providerOps = map[string]bool{
 	"TASK_LOCAL": true, "EXECUTOR_RUN": true, "EXECUTOR_SPAWN": true, "TASK_JOIN": true,
 	"NET_HTTP": true, "NET_CONN_DROP": true, "NET_LISTENER_DROP": true, "BUILD_ONLY": true, "ARGS_LEN": true,
 	"BLOCKING_POOL_NEW": true, "BLOCKING_POOL_RUN": true,
+	"HANDLE_TABLE_NEW": true, "HANDLE_TABLE_INSERT": true, "HANDLE_TABLE_WITH": true,
+	"HANDLE_TABLE_REMOVE": true, "HANDLE_TABLE_RECLAIM": true, "HANDLE_TABLE_CLOSE": true,
+	"HANDLE_TABLE_DROP": true, "HANDLE_RAW": true, "HANDLE_DROP": true,
 }
 
 // stdOpKeys maps a std key ("std/"-stripped) to the StdOpNames entry
@@ -143,6 +149,15 @@ var stdOpKeys = map[string]string{
 	"alloc.Shared.tryNew":             "SHARED_TRY_NEW",
 	"task.BlockingPool.new":           "BLOCKING_POOL_NEW",
 	"task.BlockingPool.run":           "BLOCKING_POOL_RUN",
+	"ffi.HandleTable.new":             "HANDLE_TABLE_NEW",
+	"ffi.HandleTable.insert":          "HANDLE_TABLE_INSERT",
+	"ffi.HandleTable.with":            "HANDLE_TABLE_WITH",
+	"ffi.HandleTable.remove":          "HANDLE_TABLE_REMOVE",
+	"ffi.HandleTable.reclaim":         "HANDLE_TABLE_RECLAIM",
+	"ffi.HandleTable.close":           "HANDLE_TABLE_CLOSE",
+	"ffi.HandleTable.drop":            "HANDLE_TABLE_DROP",
+	"ffi.FfiHandle.raw":               "HANDLE_RAW",
+	"ffi.FfiHandle.drop":              "HANDLE_DROP",
 }
 
 // stdOpSuffixes maps a trailing method name to its op, for primitives

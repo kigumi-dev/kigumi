@@ -1,0 +1,23 @@
+-- src --
+type Guard = resource {
+    pub id Int
+}
+
+fn Guard.drop(move self) -> Unit {
+    panic("drop panicked: ${self.id}")
+}
+
+fn scope() -> Unit {
+    let g = Guard { id: 7 }
+    _ = g
+}
+
+print "start"
+scope()
+print "unreachable"
+-- stdout --
+start
+-- stderr --
+panic: drop panicked: 7
+-- exit --
+2

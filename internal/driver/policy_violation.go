@@ -33,6 +33,8 @@ func (p BuildPolicy) severity(id string) (isError bool) {
 		return p.Ambient == AmbientDeny
 	case "release-native-link-unresolved":
 		return p.Dependency == DependencyLocked
+	case "release-native-link-identity-unknown":
+		return p.IsRelease()
 	case "release-unverified-target":
 		return p.IsRelease()
 	default:

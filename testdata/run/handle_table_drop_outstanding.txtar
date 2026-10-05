@@ -1,0 +1,19 @@
+-- src --
+import ffi from std/ffi
+
+fn make() -> ffi.FfiHandle[Int] {
+    let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
+    let h = table.insert(7)
+    h
+}
+
+print "start"
+let h = make()
+_ = h
+print "unreachable"
+-- stdout --
+start
+-- stderr --
+panic: dropped a HandleTable with a handle still outstanding; call close() first
+-- exit --
+2

@@ -1,0 +1,16 @@
+-- src --
+import ffi from std/ffi
+
+let tableA: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let hA = tableA.insert(111)
+let rawA = hA.raw()
+_ = tableA.remove(hA)
+_ = tableA.close()
+tableA.drop()
+let tableB: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let hB = tableB.insert(222)
+let result = if (unsafe { tableB.reclaim(rawA) }) is Err(_) { "rejected" } else { "ABA" }
+_ = tableB.remove(hB)
+print result
+-- stdout --
+rejected
