@@ -1,7 +1,5 @@
 package sem
 
-import "slices"
-
 // Driving a root task is unsafe wherever a task is already running, not just
 // in the body that lexically holds the call, so the reach is transitive.
 
@@ -35,6 +33,10 @@ type rootRun struct {
 	runner EntityID
 	dist   map[EntityID]int
 	bind   map[EntityID]EffectEdge
+	// invoked marks a parameter actually invoked, directly or through a
+	// forwarding chain that bottoms out in an invocation; a parameter merely
+	// stored or returned is never flagged even if a root-driving fn reaches it.
+	invoked map[EntityID]bool
 }
 
 // A dynamic target proves nothing, so an unresolved call is not a bridge.
@@ -52,9 +54,12 @@ func (rr *rootRun) hops(target EntityID) int {
 
 // inferRootRun is checkInterruptHandlers' fixpoint shape over call edges.
 func (r *Result) inferRootRun(nodes []EntityID, runner EntityID) *rootRun {
-	rr := &rootRun{runner: runner, dist: map[EntityID]int{}, bind: map[EntityID]EffectEdge{}}
+	rr := &rootRun{runner: runner, dist: map[EntityID]int{}, bind: map[EntityID]EffectEdge{}, invoked: map[EntityID]bool{}}
 	for changed := true; changed; {
 		changed = false
+		if r.rootRunResolveInvoked(nodes, rr) {
+			changed = true
+		}
 		for _, id := range nodes {
 			if r.rootRunBind(id, rr) {
 				changed = true
@@ -67,12 +72,31 @@ func (r *Result) inferRootRun(nodes []EntityID, runner EntityID) *rootRun {
 	return rr
 }
 
+// rootRunResolveInvoked finds which forwarded parameters are actually called:
+// an EdgeParamCall with Param == 0 is a direct invocation, and one forwarding
+// into an already-invoked parameter is invoked transitively.
+func (r *Result) rootRunResolveInvoked(nodes []EntityID, rr *rootRun) bool {
+	changed := false
+	for _, id := range nodes {
+		for _, e := range r.edgesOf(id) {
+			if e.Kind != EdgeParamCall || rr.invoked[e.Target] {
+				continue
+			}
+			if e.Param == 0 || rr.invoked[e.Param] {
+				rr.invoked[e.Target] = true
+				changed = true
+			}
+		}
+	}
+	return changed
+}
+
 // rootRunBind resolves a deferred parameter call the way the effect system
 // does, by letting the argument a call site supplies stand for the parameter.
 func (r *Result) rootRunBind(id EntityID, rr *rootRun) bool {
 	changed := false
 	for _, e := range r.edgesOf(id) {
-		if e.Kind != EdgeCallback || e.Param == 0 || !r.callsParam(e.Param) {
+		if e.Kind != EdgeCallback || e.Param == 0 || !rr.invoked[e.Param] {
 			continue
 		}
 		if d := rr.hops(e.Target); d > 0 && (rr.dist[e.Param] == 0 || d < rr.dist[e.Param]) {
@@ -83,15 +107,10 @@ func (r *Result) rootRunBind(id EntityID, rr *rootRun) bool {
 	return changed
 }
 
-func (r *Result) callsParam(p EntityID) bool {
-	owner := r.Entities[p].Parent
-	return r.Entities[owner].Kind == EntFn && slices.Contains(r.Fn(owner).CalledParams, p)
-}
-
 func (r *Result) rootRunDist(id EntityID, rr *rootRun) int {
 	best := 0
 	for _, e := range r.edgesOf(id) {
-		if !rootRunCallEdge(e.Kind) {
+		if !rr.callEdgeCounts(e) {
 			continue
 		}
 		if d := rr.hops(e.Target); d > 0 && (best == 0 || d < best) {
@@ -101,8 +120,18 @@ func (r *Result) rootRunDist(id EntityID, rr *rootRun) int {
 	return best
 }
 
-func rootRunCallEdge(k EdgeKind) bool {
-	return k == EdgeCall || k == EdgeWitness || k == EdgeCallback || k == EdgeParamCall
+// callEdgeCounts keeps EdgeCall/EdgeWitness unconditional (a resolved callee
+// has no deferred parameter to gate on); EdgeCallback and EdgeParamCall only
+// count once the parameter they carry (e.Param) is itself invoked, or when
+// e.Param is 0, meaning the body is unknown or this already is the invocation.
+func (rr *rootRun) callEdgeCounts(e EffectEdge) bool {
+	switch e.Kind {
+	case EdgeCall, EdgeWitness:
+		return true
+	case EdgeCallback, EdgeParamCall:
+		return e.Param == 0 || rr.invoked[e.Param]
+	}
+	return false
 }
 
 func (r *Result) reportRootBridge(id EntityID, rr *rootRun) {
@@ -157,7 +186,7 @@ func (r *Result) rootRunStep(id EntityID, rr *rootRun) (*EffectEdge, EntityID) {
 	edges := r.edgesOf(id)
 	for i := range edges {
 		e := &edges[i]
-		if !rootRunCallEdge(e.Kind) || rr.hops(e.Target) != rr.dist[id] {
+		if !rr.callEdgeCounts(*e) || rr.hops(e.Target) != rr.dist[id] {
 			continue
 		}
 		if e.Target == rr.runner {

@@ -1,0 +1,58 @@
+-- src --
+context tok: Int
+
+@provides(tok)
+type Bundle = resource {
+    tok Int
+}
+
+fn Bundle.drop(move self) -> Unit {
+    _ = "${self.tok}"
+}
+
+type Trivial = resource {
+    x Int
+}
+
+fn Trivial.drop(move self) -> Unit {}
+
+fn needsTok() -> Int {
+    tok
+}
+
+noalloc fn useClosure(t: Trivial) -> Int {
+    context (Bundle { tok: 1 }) { //~ ERROR constructing `Bundle` allocates //~ ERROR dropping `Bundle` may allocate or deallocate
+        let f = () => { //~ ERROR dropping `closure fn() -> Int` may allocate or deallocate //~ ERROR constructing `closure fn() -> Int` allocates
+            let _held = t
+            needsTok()
+        }
+        f()
+    }
+}
+
+_ = useClosure(Trivial { x: 0 })
+-- expect --
+error[E961]: constructing `Bundle` allocates
+  --> main/main.kg:23:14
+   |
+23 |     context (Bundle { tok: 1 }) { //~ ERROR constructing `Bundle` allocates //~ ERROR dropping `Bundle` may allocate or deallocate
+   |              ^^^^^^^^^^^^^^^
+
+error[E912]: dropping `Bundle` may allocate or deallocate
+  --> main/main.kg:23:14
+   |
+23 |     context (Bundle { tok: 1 }) { //~ ERROR constructing `Bundle` allocates //~ ERROR dropping `Bundle` may allocate or deallocate
+   |              ^^^^^^^^^^^^^^^
+
+error[E912]: dropping `closure fn() -> Int` may allocate or deallocate
+  --> main/main.kg:24:13
+   |
+24 |         let f = () => { //~ ERROR dropping `closure fn() -> Int` may allocate or deallocate //~ ERROR constructing `closure fn() -> Int` allocates
+   |             ^
+
+error[E961]: constructing `closure fn() -> Int` allocates
+  --> main/main.kg:24:17
+   |
+24 |         let f = () => { //~ ERROR dropping `closure fn() -> Int` may allocate or deallocate //~ ERROR constructing `closure fn() -> Int` allocates
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

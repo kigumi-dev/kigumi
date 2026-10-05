@@ -6571,6 +6571,17 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_forward",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_forward.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/attrs",
       "kind": "sem",
       "path": "testdata/sem/attrs.txtar",
@@ -6750,6 +6761,50 @@
       "id": "sem/const_generic_err",
       "kind": "sem",
       "path": "testdata/sem/const_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_closure_chain_drop",
+      "kind": "sem",
+      "path": "testdata/sem/context_closure_chain_drop.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_closure_indirect_only_drop",
+      "kind": "sem",
+      "path": "testdata/sem/context_closure_indirect_only_drop.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_closure_indirect_only_drop_isr",
+      "kind": "sem",
+      "path": "testdata/sem/context_closure_indirect_only_drop_isr.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_closure_indirect_only_drop_trivial",
+      "kind": "sem",
+      "path": "testdata/sem/context_closure_indirect_only_drop_trivial.txtar",
       "mode": [
         "check"
       ],

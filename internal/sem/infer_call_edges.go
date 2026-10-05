@@ -38,7 +38,9 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 func (c *checker) callbackEdge(expr syntax.NodeID, mods Effects, param EntityID, offloaded bool) {
 	if p := c.polyParam(expr); p != 0 {
 		c.deferToParam(p)
-		c.edge(EffectEdge{Kind: EdgeParamCall, Target: p, Node: expr})
+		// Param, when set, is the slot p was forwarded into; root-bridge
+		// reachability needs that to tell forwarding from invoking.
+		c.edge(EffectEdge{Kind: EdgeParamCall, Target: p, Param: param, Node: expr})
 		return
 	}
 	c.edge(EffectEdge{Kind: EdgeCallback, Mods: mods, Param: param, Node: expr, Offloaded: offloaded})

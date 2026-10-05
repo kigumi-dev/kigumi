@@ -21,6 +21,7 @@ func (r *Result) ctxCaptureChain(chain []EntityID, local EntityID) {
 		if slices.ContainsFunc(info.Captures, func(c Capture) bool { return c.Local == local }) {
 			continue
 		}
+		wasEmpty := len(info.Captures) == 0
 		mode := capMove
 		if r.isCopy(r.Entities[local].Type) {
 			mode = capCopy
@@ -35,5 +36,22 @@ func (r *Result) ctxCaptureChain(chain []EntityID, local EntityID) {
 		if mode != capCopy {
 			info.Copy = false
 		}
+		if wasEmpty {
+			r.closureConstructAlloc(cl, info)
+		}
 	}
+}
+
+// A hidden capture discovered after body check turns a capture-free closure into one that allocates its environment.
+func (r *Result) closureConstructAlloc(cl EntityID, info *ClosureInfo) {
+	e := &r.Entities[cl]
+	edges := r.edgesPtr(info.Creator)
+	*edges = append(*edges, EffectEdge{
+		Kind:   EdgeAlloc,
+		Node:   e.Node,
+		File:   e.File,
+		Type:   r.Types.Closure(cl),
+		Why:    3,
+		Scoped: info.Scoped,
+	})
 }

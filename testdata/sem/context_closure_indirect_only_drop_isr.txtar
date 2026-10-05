@@ -1,0 +1,41 @@
+-- src --
+context tok: Int
+
+@provides(tok)
+type Bundle = resource {
+    tok Int
+}
+
+fn Bundle.drop(move self) -> Unit {
+    _ = "${self.tok}"
+}
+
+fn needsTok() -> Int {
+    tok
+}
+
+export(interrupt) {
+    pub fn tick() -> Unit { //~ ERROR export(interrupt) handler `tick` may allocate or deallocate memory
+        context (Bundle { tok: 1 }) {
+            let f = () => {
+                needsTok()
+            }
+            _ = f()
+        }
+    }
+}
+
+tick()
+-- expect --
+error[E1080]: export(interrupt) handler `tick` may allocate or deallocate memory
+  --> main/main.kg:17:5
+   |
+17 |     pub fn tick() -> Unit { //~ ERROR export(interrupt) handler `tick` may allocate or deallocate memory
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: interrupt handlers must never touch the allocator
+note: allocates or deallocates here
+  --> main/main.kg:18:18
+   |
+18 |         context (Bundle { tok: 1 }) {
+   |                  ^^^^^^^^^^^^^^^
+

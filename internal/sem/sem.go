@@ -114,8 +114,10 @@ func check(mod *Module) *Result {
 	r.checkBodies()
 	r.checkAccelKeys()
 	r.resolvePendingWitnessCallbacks()
-	r.checkEffects()
+	// Must precede checkEffects: it appends hidden provider captures to
+	// ClosureInfo.Captures, which computeDrop/computeDropOp read.
 	r.checkContextRequirements()
+	r.checkEffects()
 	r.checkInterruptHandlers()
 	r.checkAsyncDirectBlocking()
 	r.checkRootBridges()

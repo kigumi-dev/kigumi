@@ -193,4 +193,8 @@ type ClosureInfo struct {
 	// Immediate marks a lambda written as a call argument: its borrowed
 	// captures live only for that call.
 	Immediate bool
+	// Creator held this closure's edges, for a late construction alloc.
+	Creator EntityID
+	// Scoped mirrors c.allocDepth > 0 at the closure's creation site.
+	Scoped bool
 }

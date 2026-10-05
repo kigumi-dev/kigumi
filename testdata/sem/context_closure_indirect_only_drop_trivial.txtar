@@ -1,0 +1,31 @@
+-- src --
+context tok: Int
+
+@provides(tok)
+type Bundle = resource {
+    tok Int
+}
+
+fn Bundle.drop(move self) -> Unit {}
+
+fn needsTok() -> Int {
+    tok
+}
+
+noalloc fn useClosure(b: Bundle) -> Int {
+    context (b) {
+        let f = () => { //~ ERROR constructing `closure fn() -> Int` allocates
+            needsTok()
+        }
+        f()
+    }
+}
+
+_ = useClosure(Bundle { tok: 1 })
+-- expect --
+error[E961]: constructing `closure fn() -> Int` allocates
+  --> main/main.kg:16:17
+   |
+16 |         let f = () => { //~ ERROR constructing `closure fn() -> Int` allocates
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

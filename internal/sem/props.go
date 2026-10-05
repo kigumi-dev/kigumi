@@ -12,6 +12,12 @@ func (r *Result) isCopy(t TypeID) bool {
 	case -1:
 		return false
 	}
+	// A closure's Captures keep growing until checkContextRequirements finishes
+	// (indirect context providers are appended last), so its Copy answer can't be
+	// memoized before then; recomputing it is a single field read anyway.
+	if r.Types.Kind(t) == KClosure {
+		return r.computeCopy(t)
+	}
 	p.copy = 1
 	res := r.computeCopy(t)
 	if !res {

@@ -36,7 +36,12 @@ func (c *checker) dropsAtScopeExit(params []EntityID) {
 // implicitDrop over-approximates: a binding moved out some other way still drops wherever that reaches, so this never loses soundness.
 func (c *checker) implicitDrop(id EntityID) {
 	e := &c.r.Entities[id]
-	if c.r.isCopy(e.Type) || c.consumed[id] {
+	if c.consumed[id] {
+		return
+	}
+	// A closure's Copy-ness isn't settled until checkContextRequirements runs, so
+	// always record the drop here; dropEffect later finds it trivial once it is.
+	if c.r.Types.Kind(e.Type) != KClosure && c.r.isCopy(e.Type) {
 		return
 	}
 	c.edge(EffectEdge{Kind: EdgeDrop, Type: e.Type, Node: e.Node})

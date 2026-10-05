@@ -1,0 +1,85 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn work() -> Int {
+    0
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(work())
+}
+
+fn keepIgnore(f: escaping fn() -> Int) -> Unit {
+    let _ = f
+}
+
+fn forwardIgnore(f: escaping fn() -> Int) -> Unit {
+    keepIgnore(f)
+}
+
+async fn okForwardIgnore() -> Unit {
+    forwardIgnore(syncRoot)
+}
+
+fn callIt(f: escaping fn() -> Int) -> Int {
+    f()
+}
+
+fn forwardCall(f: escaping fn() -> Int) -> Int {
+    callIt(f)
+}
+
+async fn badForwardCall() -> Int {
+    forwardCall(syncRoot) //~ ERROR cannot run inside an `async fn`
+}
+
+fn mid(f: escaping fn() -> Int) -> Int {
+    forwardCall(f)
+}
+
+fn outer(f: escaping fn() -> Int) -> Int {
+    mid(f)
+}
+
+async fn badTwoHop() -> Int {
+    outer(syncRoot) //~ ERROR cannot run inside an `async fn`
+}
+
+fn dropsIt(f: escaping fn() -> Int) -> Unit {
+    let g = f
+    let _ = g
+}
+
+fn midDrop(f: escaping fn() -> Int) -> Unit {
+    dropsIt(f)
+}
+
+async fn okTwoHopDrop() -> Unit {
+    midDrop(syncRoot)
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:33:17
+   |
+33 |     forwardCall(syncRoot) //~ ERROR cannot run inside an `async fn`
+   |                 ^^^^^^^^
+   = help: `await` the future instead
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:45:11
+   |
+45 |     outer(syncRoot) //~ ERROR cannot run inside an `async fn`
+   |           ^^^^^^^^
+   = help: `await` the future instead
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
