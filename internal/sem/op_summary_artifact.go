@@ -44,6 +44,10 @@ func (r *Result) PublicOpSummaries() map[string]OpSummaryJSON {
 	return out
 }
 
+// OpSummaryOf is opSummaryArtifact, exported for callers outside the
+// package (internal/schema) that build a declaration's contract summary.
+func (r *Result) OpSummaryOf(id EntityID) OpSummaryJSON { return r.opSummaryArtifact(id) }
+
 // HasOpFact reports whether j's Facts include name; an unrecognized Schema
 // answers true for every name (widen to unknown).
 func (j OpSummaryJSON) HasOpFact(name string) bool {

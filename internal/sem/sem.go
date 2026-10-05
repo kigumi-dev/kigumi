@@ -60,6 +60,7 @@ type Result struct {
 	placeIndex      map[string]PlaceID
 	seen            map[diagKey]struct{}
 	derives         []deriveRequest
+	generated       []generatedFile
 	mod             *Module
 	sources         *token.SourceStore
 	langItems       map[string]EntityID

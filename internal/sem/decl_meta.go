@@ -28,6 +28,10 @@ func (r *Result) metaAttrs(f FileID, list syntax.NodeID, onType bool) []MetaRef 
 			if !onType {
 				r.errAt(f, a, cAttrWrongTarget)
 			}
+		case name == "schema":
+			if !onType {
+				r.errAt(f, a, cSchemaWrongTarget)
+			}
 		default:
 			r.errAt(f, a, cAttrUnknown, name)
 		}
@@ -48,9 +52,12 @@ func (r *Result) rejectAttrs(f FileID, list syntax.NodeID) {
 			continue
 		}
 		name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), ".")
-		if name == "impl" || name == "provides" {
+		switch name {
+		case "impl", "provides":
 			r.errAt(f, a, cAttrWrongTarget)
-		} else {
+		case "derivable":
+			// declareNominalAttrs already applied this.
+		default:
 			r.errAt(f, a, cAttrUnknown, name)
 		}
 	}
@@ -68,19 +75,17 @@ func (r *Result) resolveMetadata(f FileID, fld, meta syntax.NodeID) []MetaRef {
 	for _, item := range t.Children(meta) {
 		path := syntax.NodeID(t.Nodes[item].Lhs)
 		head := r.resolveValueName(f, r.fileScopes[f], path)
-		// No metadata item is repeatable today,
-		// so a repeated name is always a duplicate, even with different
-		// arguments that would otherwise silently override each other.
 		key := pathText(t, path, ".")
-		if seen[key] {
+		// sigReady is false for field metadata; checkSchemas re-checks once
+		// signatures exist.
+		sigReady := head != 0 && r.Entities[head].Kind == EntFn && r.Fn(head).Sig != 0
+		if sigReady && seen[key] && !r.schemaRepeatable(head) {
 			r.errAt(f, item, cMetadataDuplicate, key)
 		}
 		seen[key] = true
 		if head != 0 {
 			r.Files[f].Uses[item] = head
-			// Field metadata is resolved before signatures exist; checkSchemas
-			// validates those heads later.
-			if r.Entities[head].Kind == EntFn && r.Fn(head).Sig != 0 && !r.isSchema(head) {
+			if sigReady && !r.isSchema(head) {
 				r.errAt(f, path, cAttrNotSchema, pathText(t, path, "."))
 				continue
 			}
@@ -95,28 +100,4 @@ func (r *Result) resolveMetadata(f FileID, fld, meta syntax.NodeID) []MetaRef {
 		out = append(out, ref)
 	}
 	return out
-}
-
-// checkSchemas validates the heads of field metadata once signatures are
-// known.
-func (r *Result) checkSchemas(f FileID, refs []MetaRef) {
-	t := r.tree(f)
-	for _, m := range refs {
-		if m.Head != 0 && !r.isSchema(m.Head) {
-			path := syntax.NodeID(t.Nodes[m.Node].Lhs)
-			r.errAt(f, path, cAttrNotSchema, pathText(t, path, "."))
-		}
-	}
-}
-
-// isSchema accepts a function whose result type is named Metadata (e.g.
-// std/json's `name`).
-func (r *Result) isSchema(head EntityID) bool {
-	e := &r.Entities[head]
-	if e.Kind != EntFn {
-		return false
-	}
-	ret := r.Types.Node(r.Fn(head).Sig).Elem
-	n := r.Types.Node(ret)
-	return n.Kind == KNamed && r.Entities[n.Ent].Name == "Metadata"
 }

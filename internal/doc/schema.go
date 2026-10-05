@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/driver"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/version"
@@ -161,6 +162,13 @@ func literalJSON(lit sem.Literal) any {
 		return string(lit.Char)
 	}
 	return lit.Str
+}
+
+// SchemaIRJSON renders m's versioned typed Schema IR, stamping the given
+// target/profile onto the envelope; SchemaJSON's legacy strings project from it.
+func SchemaIRJSON(m *driver.Module, res *sem.Result, attr, target, profile string) ([]byte, error) {
+	mod, _ := schema.Build(m, res, schema.Options{Attr: attr, Target: target, Profile: profile})
+	return schema.ProjectJSON(mod)
 }
 
 // SchemaJSON renders the declarations for tools.

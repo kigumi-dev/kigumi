@@ -27,6 +27,12 @@ type TypeDeclInfo struct {
 	// Underlying is a FormDefined type's direct underlying type (unsubstituted:
 	// its own type parameters stand for the generic case), TyPoison on a cycle.
 	Underlying TypeID
+	// Schema marks the type `@schema`: a function returning it is a schema,
+	// not any type merely named the same.
+	Schema           bool
+	SchemaRepeatable bool
+	SchemaOrdered    bool
+	SchemaTarget     string
 }
 
 type FnInfo struct {
@@ -105,6 +111,9 @@ type InterfaceInfo struct {
 	SelfParam     EntityID
 	ObjectSafe    int8
 	ObjectSafeWhy string
+	// Derivable marks the interface `@derivable`, so its single requirement
+	// may be generated without compiler source naming the interface.
+	Derivable bool
 }
 
 type constKind uint8

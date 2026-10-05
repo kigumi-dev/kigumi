@@ -1,0 +1,63 @@
+-- src --
+@schema //~ ERROR `@schema` applies to type declarations only
+pub fn notAType() -> Int {
+    1
+}
+
+@schema
+@schema //~ ERROR duplicate `@schema` attribute
+type Twice = {
+    tag String
+}
+
+@schema(1) //~ ERROR `@schema` takes up to three literal arguments
+type BadArg = {
+    tag String
+}
+
+@derivable
+@derivable //~ ERROR duplicate `@derivable` attribute
+pub interface TwiceDerivable {
+    pure fn equals(self, other: &Self) -> Bool
+}
+
+@schema(true)
+pub type Repeatable = {
+    tag String
+}
+
+pub pure fn rep(n: String) -> Repeatable {
+    Repeatable { tag: n }
+}
+
+type Holder = {
+    pub a Int {
+        rep("a")
+        rep("b")
+    }
+}
+-- expect --
+error[E1350]: `@schema` applies to type declarations only
+ --> main/main.kg:1:1
+  |
+1 | @schema //~ ERROR `@schema` applies to type declarations only
+  | ^^^^^^^
+
+error[E1351]: duplicate `@schema` attribute
+ --> main/main.kg:7:1
+  |
+7 | @schema //~ ERROR duplicate `@schema` attribute
+  | ^^^^^^^
+
+error[E1352]: `@schema` takes up to three literal arguments (repeatable: Bool, ordered: Bool, target: String)
+  --> main/main.kg:12:1
+   |
+12 | @schema(1) //~ ERROR `@schema` takes up to three literal arguments
+   | ^^^^^^^^^
+
+error[E1353]: duplicate `@derivable` attribute
+  --> main/main.kg:18:1
+   |
+18 | @derivable //~ ERROR duplicate `@derivable` attribute
+   | ^^^^^^^^^^
+

@@ -17,7 +17,15 @@ const (
 	ModJSONFormatVersion   = 1
 	BuildPlanFormatVersion = 1
 	DoctorFormatVersion    = 1
+	// SchemaIRFormatMajor/Minor version internal/schema's envelope; a minor
+	// bump only adds fields or node kinds an older reader can ignore.
+	SchemaIRFormatMajor = 1
+	SchemaIRFormatMinor = 0
 )
+
+// AbiRevision names the native Kigumi ABI generation this compiler emits
+// (calling convention, layout, drop glue, ...); bump on any incompatible change, independent of Release.
+const AbiRevision = 1
 
 // Provenance identifies the exact build: commit, dirty working tree and Go
 // toolchain, so CLI and LSP both report this instead of hard-coding a version string.

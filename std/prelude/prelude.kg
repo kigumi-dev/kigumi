@@ -3,12 +3,14 @@ pub type Ordering = Less | Equal | Greater
 
 /// Equality; `==` and `!=` call `equals`. A record or ADT whose parts are
 /// all `Eq` gets a generated `equals` unless it defines one.
+@derivable
 pub interface Eq {
     pure fn equals(self, other: &Self) -> Bool
 }
 
 /// Hashing consistent with `Eq`; `Map` keys need both. A `Copy` record or
 /// ADT whose parts are all `Hash` gets a generated `hash`.
+@derivable
 pub interface Hash {
     pure fn hash(self) -> u64
 }

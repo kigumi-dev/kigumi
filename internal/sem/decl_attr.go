@@ -2,6 +2,38 @@ package sem
 
 import "kigumi/internal/syntax"
 
+// declareNominalAttrs runs before declareAttrs so isSchema and deriveIface
+// see every nominal declaration regardless of entity order.
+func (r *Result) declareNominalAttrs() {
+	for id := 1; id < len(r.Entities); id++ {
+		e := &r.Entities[id]
+		if e.File == 0 || e.Flags&EfPoison != 0 {
+			continue
+		}
+		t := r.tree(e.File)
+		var attrs syntax.NodeID
+		switch e.Kind {
+		case EntType:
+			attrs = typeDecl(t, e.Node).Attrs
+		case EntInterface:
+			attrs = ifaceDecl(t, e.Node).Attrs
+		default:
+			continue
+		}
+		for _, a := range t.Children(attrs) {
+			if t.Kind(a) == syntax.UnsafeGuarantee {
+				continue
+			}
+			switch name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), "."); {
+			case e.Kind == EntType && name == "schema":
+				r.schemaAttr(EntityID(id), e.File, a)
+			case e.Kind == EntInterface && name == "derivable":
+				r.derivableAttr(EntityID(id), e.File, a)
+			}
+		}
+	}
+}
+
 // declareAttrs validates `@impl(...)` targets and `layout(...)` clauses and
 // rejects every other attribute.
 func (r *Result) declareAttrs() {
@@ -85,6 +117,14 @@ func (r *Result) implAttrs(id EntityID, list syntax.NodeID) {
 		}
 		if name == "provides" {
 			// checkContextProviders resolves this once context keys have types.
+			continue
+		}
+		if name == "schema" {
+			// declareNominalAttrs already applied this to an EntType; an
+			// alias never qualifies.
+			if e.Kind != EntType {
+				r.errAt(f, a, cSchemaWrongTarget)
+			}
 			continue
 		}
 		if name != "impl" {

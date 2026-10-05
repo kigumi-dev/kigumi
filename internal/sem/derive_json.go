@@ -19,28 +19,27 @@ var deriveMethods = map[string]string{"Encode": "toJson", "Decode": "fromJson", 
 
 type generatedFile struct {
 	pkg  int
+	path string
 	name string
 	text string
 }
 
-// deriveIface names a derivable interface (std/json's Encode / Decode,
-// the prelude's Eq / Hash), or "".
+// deriveIface names a std package's own `@derivable` interface with
+// exactly one requirement, or ""; a non-std interface never qualifies.
 func (r *Result) deriveIface(iface TypeID) string {
 	if r.Types.Kind(iface) != KIface {
 		return ""
 	}
-	e := r.Entities[r.Types.Node(iface).Ent]
-	switch r.Packages[e.Pkg].Path {
-	case "std/json":
-		if e.Name == "Encode" || e.Name == "Decode" {
-			return e.Name
-		}
-	case "std/prelude":
-		if e.Name == "Eq" || e.Name == "Hash" {
-			return e.Name
-		}
+	ent := r.Types.Node(iface).Ent
+	e := &r.Entities[ent]
+	if !r.Packages[e.Pkg].Std {
+		return ""
 	}
-	return ""
+	info := r.iface(ent)
+	if !info.Derivable || len(info.Reqs) != 1 {
+		return ""
+	}
+	return e.Name
 }
 
 // requestDerive records that t needs a generated method for iface and
@@ -82,11 +81,12 @@ func (r *Result) deriveSources() []generatedFile {
 			dir = dirOf(r.Files[f].Tree.File.Name)
 			break
 		}
+		path := r.Packages[pkg].Path
 		if text, ok := g.texts[PackageID(pkg)]; ok {
-			out = append(out, generatedFile{pkg: r.moduleIndex(PackageID(pkg)), name: dir + "json.derived.kg", text: "import json from std/json\n" + text})
+			out = append(out, generatedFile{pkg: r.moduleIndex(PackageID(pkg)), path: path, name: dir + "json.derived.kg", text: "import json from std/json\n" + text})
 		}
 		if text, ok := g.protos[PackageID(pkg)]; ok {
-			out = append(out, generatedFile{pkg: r.moduleIndex(PackageID(pkg)), name: dir + "proto.derived.kg", text: text})
+			out = append(out, generatedFile{pkg: r.moduleIndex(PackageID(pkg)), path: path, name: dir + "proto.derived.kg", text: text})
 		}
 	}
 	return out
@@ -118,10 +118,15 @@ func Check(mod *Module) *Result {
 		return r
 	}
 	mod.derived = true
-	for _, g := range r.deriveSources() {
+	generated := r.deriveSources()
+	for _, g := range generated {
 		f := token.NewFile(g.name, []byte(g.text))
 		f.Generated = true
 		mod.Packages[g.pkg].Files = append(mod.Packages[g.pkg].Files, syntax.Parse(f))
 	}
-	return check(mod)
+	r2 := check(mod)
+	// The rerun's own r2.derives is empty (requestDerive no-ops once
+	// mod.derived is set), so provenance carries the first pass's answer.
+	r2.derives, r2.generated = r.derives, generated
+	return r2
 }

@@ -24,6 +24,7 @@ func (r *Result) declareSignatures() {
 		}
 	}
 	r.checkOverloadSets()
+	r.declareNominalAttrs()
 	r.declareAttrs()
 	r.checkDeclarations()
 }

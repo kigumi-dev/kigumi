@@ -2474,6 +2474,27 @@
       ]
     },
     {
+      "id": "run/drop_panic_hard_fault",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_hard_fault.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop panicked: 7"
+      }
+    },
+    {
       "id": "run/effect_poly_args_closures",
       "kind": "run",
       "path": "testdata/run/effect_poly_args_closures.txtar",
@@ -3907,6 +3928,78 @@
       "id": "run/generics",
       "kind": "run",
       "path": "testdata/run/generics.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/handle_table",
+      "kind": "run",
+      "path": "testdata/run/handle_table.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/handle_table_cross_reuse",
+      "kind": "run",
+      "path": "testdata/run/handle_table_cross_reuse.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/handle_table_drop_outstanding",
+      "kind": "run",
+      "path": "testdata/run/handle_table_drop_outstanding.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: dropped a HandleTable with a handle still outstanding; call close\\(\\) first"
+      }
+    },
+    {
+      "id": "run/handle_table_reuse_stale",
+      "kind": "run",
+      "path": "testdata/run/handle_table_reuse_stale.txtar",
       "mode": [
         "vm",
         "native"
@@ -7185,6 +7278,17 @@
       ]
     },
     {
+      "id": "sem/handle_table_borrow_escape",
+      "kind": "sem",
+      "path": "testdata/sem/handle_table_borrow_escape.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/if_let_refutable",
       "kind": "sem",
       "path": "testdata/sem/if_let_refutable.txtar",
@@ -7859,6 +7963,17 @@
       "id": "sem/result_ok",
       "kind": "sem",
       "path": "testdata/sem/result_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/schema_metadata",
+      "kind": "sem",
+      "path": "testdata/sem/schema_metadata.txtar",
       "mode": [
         "check"
       ],

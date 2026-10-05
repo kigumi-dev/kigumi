@@ -1,6 +1,7 @@
 import map from std/map
 
 /// Field metadata read by encode and decode; attach it in a field's `{ ... }` block, e.g. `pub id Int { json.name("user_id") }`.
+@schema
 pub type Metadata = {
     key String
 }
@@ -37,11 +38,13 @@ pub fn Error.message(self) -> String {
 }
 
 /// Types that encode to JSON. Records and ADTs get a structural implementation from the compiler unless they define one.
+@derivable
 pub interface Encode {
     fn toJson(self) -> Value
 }
 
 /// Types that decode from JSON; the requirement has no receiver, so it is dispatched on the type argument.
+@derivable
 pub interface Decode {
     fn fromJson(value: Value) -> Self!
 }

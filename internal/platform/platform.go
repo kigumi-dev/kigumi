@@ -56,3 +56,26 @@ func File(name, os, arch string) (tagged, matches bool) {
 	}
 	return false, false
 }
+
+// Parse reports a file's own OS/Arch tag without matching it against a
+// target; os can also hold the literal pseudo-name "hosted" or "bare".
+func Parse(name string) (os, arch string, tagged bool) {
+	base := strings.TrimSuffix(strings.TrimSuffix(name, filepath.Ext(name)), "_test")
+	parts := strings.Split(base, "_")
+	if len(parts) < 2 {
+		return "", "", false
+	}
+	last := parts[len(parts)-1]
+	switch {
+	case Arch[last]:
+		if len(parts) >= 3 && OS[parts[len(parts)-2]] {
+			return parts[len(parts)-2], last, true
+		}
+		return "", last, true
+	case OS[last]:
+		return last, "", true
+	case last == "hosted", last == "bare":
+		return last, "", true
+	}
+	return "", "", false
+}

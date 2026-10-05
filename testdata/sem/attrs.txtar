@@ -1,4 +1,5 @@
 -- app/web/w.kg --
+@schema
 pub type Metadata = {
     tag String
 }
