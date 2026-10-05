@@ -158,6 +158,7 @@ func (e *emitter) data() string {
 	e.ntypes = len(typeRefs)
 	sb.WriteString(e.ptrTableDef("@rt_types", typeRefs))
 	sb.WriteString(e.fnItemSlots())
+	sb.WriteString(e.stdBindSlots())
 	sb.WriteString(e.constSlots())
 	var pool strings.Builder
 	for i, s := range e.strList {

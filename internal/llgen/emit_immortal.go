@@ -93,6 +93,35 @@ func (e *emitter) closureCtor(sb *strings.Builder, sym string, async bool, args 
 	return e.irb(sb).Call(ctor, vptr(sym), vi32(len(args)), vptr(arr)).Text
 }
 
+// stdBind is one capture-free std primitive used as a witness: the key
+// rt_std names it by, and which of its arguments are only lent.
+type stdBind struct {
+	slot string
+	key  string
+	lent int
+}
+
+// stdBindSlot reserves the immortal a generic call passes instead of
+// building a witness closure per call; cstr runs here so data() pools the key.
+func (e *emitter) stdBindSlot(key string, lent int) string {
+	id := fmt.Sprintf("%s|%d", key, lent)
+	if slot, ok := e.stdBindOf[id]; ok {
+		return slot
+	}
+	slot := fmt.Sprintf("@\".stdbind.%d\"", len(e.stdBinds))
+	e.stdBindOf[id] = slot
+	e.stdBinds = append(e.stdBinds, stdBind{slot: slot, key: e.cstr(key), lent: lent})
+	return slot
+}
+
+func (e *emitter) stdBindSlots() string {
+	var sb strings.Builder
+	for _, b := range e.stdBinds {
+		fmt.Fprintf(&sb, "%s = internal global %s zeroinitializer, align 16\n", b.slot, objSlotType())
+	}
+	return sb.String()
+}
+
 func (e *emitter) fnItemSlot(sym string, async bool) string {
 	suffix := "fnitem"
 	if async {
@@ -123,6 +152,9 @@ func (e *emitter) initImmortals() string {
 	for _, n := range slices.Sorted(maps.Keys(e.fnItems)) {
 		it := e.fnItems[n]
 		e.irb(&sb).Call(rtFnItemInit, vptr(n), vptr(it.sym), vi32(boolBit(it.async)))
+	}
+	for _, b := range e.stdBinds {
+		e.irb(&sb).Call(rtStdItemInit, vptr(b.slot), vptr(b.key), vi32(b.lent))
 	}
 	e.initConstVals(&sb)
 	sb.WriteString("  ret void\n}\n\n")

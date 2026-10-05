@@ -1,0 +1,25 @@
+-- src --
+import mem from std/mem
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    for x in b { out = "${out}${x}," }
+    out
+}
+
+fn fresh() -> Bytes { b"abc" }
+
+let mut x = fresh()
+mem.secureErase(&mut x)
+print "erased: ${show(&x)}"
+print "fresh again: ${show(&fresh())}"
+for i in 0..2 {
+    let mut z = b"xyz"
+    print "loop ${i}: ${show(&z)}"
+    mem.secureErase(&mut z)
+}
+-- stdout --
+erased: 0,0,0,
+fresh again: 97,98,99,
+loop 0: 120,121,122,
+loop 1: 120,121,122,

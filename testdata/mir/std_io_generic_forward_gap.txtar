@@ -21,42 +21,36 @@ fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) 
     %t8 = isvariant Ok(%t7)
     branch %t8 ? b1 : b2
   b1:
-    %t11 = payload 0(%t7)
-    drop(%t7)
-    drop(%t11)
-    %t12 = move(%w)
-    %t13 = copy(%b)
-    %t14 = copy(%$w:W:write)
-    %t15 = call writeAll(%t12, %t13, %t14)
-    %t16 = isvariant Ok(%t15)
-    branch %t16 ? b3 : b4
-  b2:
     %t9 = payload 0(%t7)
     drop(%t7)
+    drop(%t9)
+    %t10 = move(%w)
+    %t11 = copy(%b)
+    %t12 = copy(%$w:W:write)
+    %t13 = call writeAll(%t10, %t11, %t12)
+    %t14 = isvariant Ok(%t13)
+    branch %t14 ? b3 : b4
+  b2:
     drop(%$w:W:write)
     drop(%b)
     drop(%a)
     nop
-    %t10 = variant Err(%t9)
-    return %t10
+    return %t7
   b3:
-    %t19 = payload 0(%t15)
-    drop(%t15)
-    %t20 = variant Ok(%t19)
+    %t15 = payload 0(%t13)
+    drop(%t13)
+    %t16 = variant Ok(%t15)
     drop(%$w:W:write)
     drop(%b)
     drop(%a)
     nop
-    return %t20
+    return %t16
   b4:
-    %t17 = payload 0(%t15)
-    drop(%t15)
     drop(%$w:W:write)
     drop(%b)
     drop(%a)
     nop
-    %t18 = variant Err(%t17)
-    return %t18
+    return %t13
 }
 error[use-after-move]: `w` was moved; it cannot be used again
   --> lib/gap.kg:11:17

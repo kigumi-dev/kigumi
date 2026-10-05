@@ -35,6 +35,8 @@ type emitter struct {
 	symPrefix    string
 	scalar       map[mir.LocalID]scalarInfo
 	fnItems      map[string]fnItem
+	stdBinds     []stdBind
+	stdBindOf    map[string]string
 	replaced     map[sem.EntityID]bool
 	rewritten    map[sem.EntityID]bool
 	constVals    map[string]constVal
@@ -45,7 +47,7 @@ type emitter struct {
 }
 
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
-	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, replaced: inPlaceReplaced(p), rewritten: rewrittenVariants(p), constVals: map[string]constVal{}, constIndex: map[string]int{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
+	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, replaced: inPlaceReplaced(p), rewritten: rewrittenVariants(p), constVals: map[string]constVal{}, constIndex: map[string]int{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	var body strings.Builder
 	for _, f := range p.Funcs {
 		if e.reachable != nil && !e.reachable.Keep(f.Ent) {
@@ -79,10 +81,10 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 			}
 		}
 	}
-	// data() runs before declarations are written: std drop adapters it
-	// builds may add foreign declarations of their own.
-	data := e.data()
+	// Both add foreign declarations before those are written, and a static's
+	// initializer adds literal pool and immortal slots that data() emits.
 	globalDecls, globalInit := e.staticGlobals()
+	data := e.data()
 	e.out.WriteString(header)
 	e.out.WriteString(e.modAsm.String())
 	e.out.WriteString(externs)
@@ -171,30 +173,4 @@ func (e *emitter) load(sb *strings.Builder, l mir.LocalID) string {
 
 func (e *emitter) store(sb *strings.Builder, l mir.LocalID, v string) {
 	fmt.Fprintf(sb, "  store ptr %s, ptr %%l%d\n", v, l)
-}
-
-func (e *emitter) term(sb *strings.Builder, t mir.Term) {
-	switch t.Op {
-	case mir.TermJump:
-		fmt.Fprintf(sb, "  br label %%b%d\n", t.Targets[0])
-	case mir.TermBranch:
-		if info, ok := e.scalar[t.Args[0]]; ok && info.Ty == TI1 {
-			c := e.loadNative(sb, t.Args[0])
-			fmt.Fprintf(sb, "  br i1 %s, label %%b%d, label %%b%d\n", c.Text, t.Targets[0], t.Targets[1])
-			return
-		}
-		v := e.load(sb, t.Args[0])
-		c := e.irb(sb).Call(rtTruth, vptr(v)).Text
-		fmt.Fprintf(sb, "  br i1 %s, label %%b%d, label %%b%d\n", c, t.Targets[0], t.Targets[1])
-	case mir.TermReturn:
-		if info, ok := e.scalar[t.Args[0]]; ok {
-			boxed := e.boxNative(sb, info, e.loadNative(sb, t.Args[0]))
-			fmt.Fprintf(sb, "  ret ptr %s\n", boxed)
-			return
-		}
-		v := e.load(sb, t.Args[0])
-		fmt.Fprintf(sb, "  ret ptr %s\n", v)
-	default:
-		sb.WriteString("  unreachable\n")
-	}
 }

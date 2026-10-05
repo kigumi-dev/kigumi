@@ -17,7 +17,12 @@ const constUnitKey = "unit"
 type constVal struct {
 	vdesc string
 	args  []string
+	lit   *constLit
 }
+
+// needsSlot reports whether cv is built in reserved storage; a payload-free
+// variant lives in its own descriptor instead.
+func (cv constVal) needsSlot() bool { return cv.lit != nil || len(cv.args) > 0 }
 
 func (e *emitter) constSlotName(key string) string {
 	return fmt.Sprintf("@\".constval.%d\"", e.constIndex[key])
@@ -68,6 +73,10 @@ func (e *emitter) constLocals(f *mir.Func) map[mir.LocalID]string {
 			case mir.OpUnit:
 				e.registerConst(constUnitKey, constVal{})
 				out[in.Dst] = constUnitKey
+			case mir.OpConst:
+				if k, ok := e.litKey(in); ok {
+					out[in.Dst] = k
+				}
 			case mir.OpAlias, mir.OpMove, mir.OpCopy, mir.OpShare:
 				if k, ok := out[in.Args[0]]; ok {
 					out[in.Dst] = k
@@ -127,11 +136,13 @@ func (e *emitter) constSlots() string {
 	var sb strings.Builder
 	for _, key := range e.constOrder {
 		cv := e.constVals[key]
-		if len(cv.args) == 0 {
+		if !cv.needsSlot() {
 			continue
 		}
 		fmt.Fprintf(&sb, "%s = internal global %s zeroinitializer, align 16\n", e.constSlotName(key), objSlotType())
-		fmt.Fprintf(&sb, "%s = internal global [%d x ptr] zeroinitializer, align 8\n", e.constPayloadName(key), len(cv.args))
+		if len(cv.args) > 0 {
+			fmt.Fprintf(&sb, "%s = internal global [%d x ptr] zeroinitializer, align 8\n", e.constPayloadName(key), len(cv.args))
+		}
 	}
 	return sb.String()
 }
@@ -141,6 +152,10 @@ func (e *emitter) constSlots() string {
 func (e *emitter) initConstVals(sb *strings.Builder) {
 	for _, key := range e.constOrder {
 		cv := e.constVals[key]
+		if cv.lit != nil {
+			e.initLit(sb, e.constSlotName(key), cv.lit)
+			continue
+		}
 		if len(cv.args) == 0 {
 			continue
 		}
@@ -156,11 +171,12 @@ func (e *emitter) initConstVals(sb *strings.Builder) {
 }
 
 func (e *emitter) constArgValue(sb *strings.Builder, key string) string {
+	cv := e.constVals[key]
 	switch {
 	case key == constUnitKey:
 		return e.irb(sb).Call(rtUnit).Text
-	case !strings.Contains(key, "("):
-		return e.irb(sb).Call(rtNullary, vptr(key)).Text
+	case cv.lit == nil && len(cv.args) == 0:
+		return e.irb(sb).Call(rtNullary, vptr(cv.vdesc)).Text
 	}
 	return e.constSlotName(key)
 }

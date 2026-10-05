@@ -1,0 +1,58 @@
+-- src --
+import map from std/map
+
+type Suit = Clubs | Hearts
+
+fn Suit.name(self) -> String {
+    match self {
+        Clubs -> "clubs"
+        Hearts -> "hearts"
+    }
+}
+
+fn biggest[T: Ord](xs: &Array[T]) -> usize {
+    let mut best: usize = 0
+    for i in 0..xs.len() {
+        if &xs[i] > &xs[best] {
+            best = i
+        }
+    }
+    best
+}
+
+fn countOf[T: Eq](xs: &Array[T], want: &T) -> usize {
+    let mut n: usize = 0
+    for i in 0..xs.len() {
+        if &xs[i] == want {
+            n = n + 1
+        }
+    }
+    n
+}
+
+fn keep[T](v: T) -> T {
+    let held = v
+    held
+}
+
+let ints = Array.of[Int](3, 9, 4, 9)
+let words = Array.of[String]("pear", "fig", "plum")
+print "${biggest(&ints)} ${biggest(&words)}"
+print "${countOf(&ints, &9)} ${countOf(&words, &"fig")}"
+
+print "${keep(7)} ${keep("held")} ${keep(Hearts).name()}"
+
+let mut tally = map.empty[String, Int]()
+for i in 0..3 {
+    tally.set("hit", i)
+}
+print "${tally.len()} ${tally.get("hit") || -1}"
+
+let suits = Array.of[Suit](Clubs, Hearts, Clubs)
+print "${countOf(&suits, &Clubs)} ${suits[1].name()}"
+-- stdout --
+1 2
+2 1
+7 held hearts
+1 2
+2 hearts

@@ -105,6 +105,12 @@ func (b *builder) try(e *hir.Expr) LocalID {
 	yes, no := b.newBlockAt(), b.newBlockAt()
 	b.term(Term{Op: TermBranch, Args: []LocalID{ok}, Targets: []BlockID{yes, no}})
 	b.cur = no
+	if b.forwardErr(e, v, rt) {
+		b.cur = yes
+		p := b.emit(Inst{Op: OpPayload, Dst: b.temp(val), Args: []LocalID{v}, Node: n})
+		b.dropUnwrapped(v, n)
+		return p
+	}
 	err := b.emit(Inst{Op: OpPayload, Dst: b.temp(errT), Args: []LocalID{v}, Node: n})
 	if e.BoxType != 0 {
 		err = b.emit(Inst{Op: OpBox, Dst: b.temp(b.r.Types.Iface(b.r.Types.ErrorEnt(), nil)), Type: e.BoxType, Args: []LocalID{err}, Node: n})
@@ -115,6 +121,24 @@ func (b *builder) try(e *hir.Expr) LocalID {
 	p := b.emit(Inst{Op: OpPayload, Dst: b.temp(val), Args: []LocalID{v}, Node: n})
 	b.dropUnwrapped(v, n)
 	return p
+}
+
+// forwardErr returns the Result a `?` took apart instead of rebuilding Err,
+// which allocates; it needs one Result type and an owned temporary.
+func (b *builder) forwardErr(e *hir.Expr, v LocalID, rt sem.TypeID) bool {
+	ret := b.ret
+	if ret == 0 {
+		ret = b.fn.Ret
+	}
+	if e.BoxType != 0 || ret == 0 || ret != rt || b.fn.Locals[v].Ent != 0 {
+		return false
+	}
+	if b.r.Types.Kind(e.Args[0].Type) == sem.KRef {
+		return false
+	}
+	b.unwindTo(0, true)
+	b.returnValue(v)
+	return true
 }
 
 // dropUnwrapped releases the Result a `?` took apart. Extracting the payload

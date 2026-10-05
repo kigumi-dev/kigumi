@@ -114,10 +114,23 @@ func (e *emitter) storeScalarResult(sb *strings.Builder, f *mir.Func, dst mir.Lo
 }
 
 // scalarBoxOnDemand's caller must release the box right after use; nothing
-// else ever will.
+// else ever will (releasing an immortal literal is a no-op).
 func (e *emitter) scalarBoxOnDemand(sb *strings.Builder, l mir.LocalID) string {
+	if slot, ok := e.litSlot(l); ok {
+		return slot
+	}
 	info := e.scalar[l]
 	return e.boxNative(sb, info, e.loadNative(sb, l))
+}
+
+// litSlot names the immortal a local holding a literal was given, so the
+// boundaries this pass boxes at read it instead of allocating.
+func (e *emitter) litSlot(l mir.LocalID) (string, bool) {
+	key, ok := e.constKey[l]
+	if !ok || e.constVals[key].lit == nil {
+		return "", false
+	}
+	return e.constSlotName(key), true
 }
 
 // releaseScalarArgs releases the ephemeral boxes classifyArgs allows for a

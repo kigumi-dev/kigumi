@@ -392,6 +392,31 @@ void rt_const_variant(void* slot, val* payload, rt_vdesc* d, int64_t n) {
     v->u.var.n = n;
     v->u.var.payload = payload;
 }
+// A literal has one value per program, so every site that builds it reads
+// the same immortal out of emitter-reserved storage.
+void rt_const_num(void* slot, int kind, int nk, int64_t i, double f) {
+    val v = (val)slot;
+    v->kind = kind;
+    v->rc = -1;
+    if (kind == K_FLOAT) {
+        v->u.f = (nk & 255) == 32 ? (double)(float)f : f;
+        v->nk = nk;
+        return;
+    }
+    if (kind == K_CHAR) {
+        v->u.c = (uint32_t)i;
+        return;
+    }
+    v->u.i = i;
+    v->nk = nk ? nk : (64 | 256);
+}
+void rt_const_text(void* slot, int kind, const char* data, int64_t len) {
+    val v = (val)slot;
+    v->kind = kind;
+    v->rc = -1;
+    v->u.s.data = data;
+    v->u.s.len = len;
+}
 val rt_variant(rt_vdesc* d, int64_t n, val* payload) {
     if (n == 0) return rt_nullary(d);
     val v = alloc(K_VARIANT);
@@ -572,6 +597,15 @@ void rt_fnitem_init(void* slot, adapter_fn fn, int async) {
     v->u.clo.fn = fn;
     v->u.clo.env = &empty_env;
     v->u.clo.async = async;
+}
+
+// slot gets a capture-free std primitive used as a witness, so the
+// dictionary a generic call passes is a constant, not a per-call closure.
+void rt_stditem_init(void* slot, const char* key, int lent) {
+    rt_fnitem_init(slot, NULL, 0);
+    val v = (val)slot;
+    v->u.clo.key = key;
+    v->u.clo.lent = lent;
 }
 
 // rt_closure_async is rt_closure for an async fn/method used as a value
@@ -1261,9 +1295,8 @@ val invoke(adapter_fn fn, val env, int n, val* args) {
     for (int i = n - 1; i >= 0; i--) rt_release(args[i]);
     return r;
 }
-// A call's argument count has no compile-time cap (interface dispatch, std
-// closures, awaited futures), so anything past this stack capacity spills
-// to the heap instead of writing past a fixed buffer.
+// A call's argument count has no compile-time cap, and a variable-length
+// stack array needs __chkstk, which freestanding_symbols.txt refuses.
 #define STACK_ARGS 16
 // args are dedicated to this call, so they move into the frame the Future owns.
 static val callv_async(val f, int n, val* args) {
@@ -2616,9 +2649,9 @@ val rt_std_id(int op, int n, val* a) {
         handle_table* t;
         int64_t index = handle_find(a1, &t);
         val v = handle_free(t, index);
-        // h is only lent like any primitive argument, so the caller's
-        // scope-exit FfiHandle.drop still runs on it; zero it to a no-op.
-        a1->u.rec.fields[0]->u.i = 0;
+        // h is only lent, so the caller's scope-exit FfiHandle.drop still
+        // runs; replace the id (never mutate it: literals are immortal).
+        rt_setfield(a1, 0, rt_int(0, 64 | 256));
         return v;
     }
     case OP_HANDLE_TABLE_RECLAIM: {

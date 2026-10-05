@@ -119,8 +119,13 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		}
 		res = e.cPtrCall(sb, args[0], in.Type, args[1:], types)
 	case mir.OpBind:
+		fn, own := e.p.ByEnt[in.Ent]
+		if !own && len(args) == 0 {
+			res = e.stdBindSlot(e.stdKey(in.Ent), mir.LentMask(e.r, in.Ent))
+			break
+		}
 		arr := e.argArray(sb, args)
-		if fn, ok := e.p.ByEnt[in.Ent]; ok {
+		if own {
 			res = e.closureCtor(sb, e.bindSym(fn), false, args, arr)
 		} else {
 			res = e.irb(sb).Call(rtStdBind, vptr(e.cstr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)), vi32(len(args)), vptr(arr)).Text

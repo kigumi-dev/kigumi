@@ -1,0 +1,94 @@
+-- src --
+import map from std/map
+
+type Card = {
+    pub mut label String
+    pub mut count Int
+}
+
+type Note = Blank | Text(body: String, n: Int)
+
+fn noteBody(n: &Note) -> String {
+    match n {
+        Blank -> "blank"
+        Text(body, k) -> "${body}#${k}"
+    }
+}
+
+noalloc fn tag() -> String {
+    "tag"
+}
+
+noalloc fn five() -> Int {
+    5
+}
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let s = "isr"
+        _ = s
+        let k = 7
+        _ = k
+    }
+}
+
+fn shout(text: String) -> Unit {
+    print text
+}
+
+let a = "same"
+let b = "same"
+print "${a == b} ${a.len()} ${b.len()}"
+
+let mut r = Card { label: "one", count: 1 }
+let keep = r.label
+r.label = "two"
+r.count = r.count + 1
+print "${keep} ${r.label} ${r.count}"
+
+let mut xs = Array.empty[String]()
+xs.push("x")
+xs.push("x")
+xs[0] = "y"
+print "${xs[0]} ${xs[1]} ${xs.len()}"
+
+shout("moved")
+shout(tag())
+
+let n1 = Text("hello", 3)
+let n2 = n1
+print "${noteBody(&n1)} ${noteBody(&n2)}"
+
+let c = 'z'
+let bs = b"ab"
+print "${c} ${bs.len()}"
+
+tick()
+print "${five()} ${tag()}"
+
+let mut loops = Array.empty[String]()
+for i in 0..4 {
+    loops.push("rep")
+}
+loops[1] = "odd"
+print "${loops.len()} ${loops[0]} ${loops[1]} ${loops[3]}"
+
+let mut m = map.empty[String, Int]()
+m.set("k", 1)
+m.set("k", 2)
+m.set("j", 3)
+print "${m.len()} ${m.get("k") || 0} ${m.get("j") || 0}"
+
+print "${tag() == tag()} ${five() + five()}"
+-- stdout --
+true 4 4
+one two 2
+y x 2
+moved
+tag
+hello#3 hello#3
+z 2
+5 tag
+4 rep odd rep
+2 2 3
+true 10

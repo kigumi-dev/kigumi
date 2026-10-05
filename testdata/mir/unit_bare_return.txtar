@@ -20,17 +20,14 @@ fn main() -> Unit! {
     %t1 = isvariant Ok(%t0)
     branch %t1 ? b1 : b2
   b1:
-    %t4 = payload 0(%t0)
-    drop(%t0)
-    drop(%t4)
-    %t5 = const "ok": String
-    %t6 = builtin print(%t5)
-    drop(%t6)
-    %t7 = unit
-    return %t7
-  b2:
     %t2 = payload 0(%t0)
     drop(%t0)
-    %t3 = variant Err(%t2)
-    return %t3
+    drop(%t2)
+    %t3 = const "ok": String
+    %t4 = builtin print(%t3)
+    drop(%t4)
+    %t5 = unit
+    return %t5
+  b2:
+    return %t0
 }

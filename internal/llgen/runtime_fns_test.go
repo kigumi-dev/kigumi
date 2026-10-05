@@ -3,6 +3,7 @@ package llgen
 import (
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -99,5 +100,30 @@ func TestObjSlotMatchesC(t *testing.T) {
 	}
 	if !strings.Contains(header, "%rt_variant = type { ptr, ptr, i32, i32, "+objSlotType()+" }") {
 		t.Errorf("the emitted %%rt_variant does not reserve %s:\n%s", objSlotType(), header)
+	}
+}
+
+// The literal slots kg_init_immortals fills name their object kind by
+// number, so the enum rt.h declares fixes these.
+func TestObjectKindsMatchC(t *testing.T) {
+	src, err := os.ReadFile("runtime/rt.h")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?s)enum \{ K_INT = 1,(.*?)\};`).FindSubmatch(src)
+	if m == nil {
+		t.Fatal("rt.h declares no object kind enum starting at K_INT = 1")
+	}
+	order := []string{"K_INT"}
+	for _, name := range strings.Split(string(m[1]), ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			order = append(order, name)
+		}
+	}
+	for name, want := range map[string]int{"K_INT": kInt, "K_FLOAT": kFloat, "K_STR": kStr, "K_BYTES": kBytes, "K_CHAR": kChar} {
+		got := slices.Index(order, name) + 1
+		if got != want {
+			t.Errorf("%s is %d in rt.h, %d in llgen", name, got, want)
+		}
 	}
 }

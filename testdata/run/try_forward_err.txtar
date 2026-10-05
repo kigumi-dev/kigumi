@@ -1,0 +1,81 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Fault = Low | High(code: Int)
+
+fn Fault.message(self) -> String {
+    match self {
+        Low -> "low"
+        High(c) -> "high ${c}"
+    }
+}
+
+fn source(bad: Bool) -> Result[Int, Fault] {
+    if bad {
+        return Err(High(7))
+    }
+    Ok(3)
+}
+
+fn forwards(bad: Bool) -> Result[Int, Fault] {
+    let a = Res { id: 1 }
+    let b = Res { id: 2 }
+    let v = source(bad)?
+    Ok(v + 10)
+}
+
+fn nested(bad: Bool) -> Result[Int, Fault] {
+    let x = forwards(bad)?
+    Ok(x + 100)
+}
+
+fn fromLocal(bad: Bool) -> Result[Int, Fault] {
+    let r = source(bad)
+    let v = r?
+    Ok(v + 1000)
+}
+
+fn unitChain(bad: Bool) -> Result[Unit, Fault] {
+    let _v = source(bad)?
+}
+
+fn widened(bad: Bool) -> Int! {
+    let v = source(bad)?
+    Ok(v)
+}
+
+fn show(r: Result[Int, Fault]) -> String {
+    match r {
+        Ok(v) -> "ok ${v}"
+        Err(e) -> "err ${e.message()}"
+    }
+}
+
+print show(forwards(false))
+print show(forwards(true))
+print show(nested(true))
+print show(fromLocal(true))
+print "${unitChain(true) is Err(_)} ${unitChain(false) is Ok(_)}"
+match widened(true) {
+    Ok(v) -> print "wide ok ${v}"
+    Err(e) -> print "wide err ${e.message()}"
+}
+-- stdout --
+drop 2
+drop 1
+ok 13
+drop 2
+drop 1
+err high 7
+drop 2
+drop 1
+err high 7
+err high 7
+true true
+wide err high 7

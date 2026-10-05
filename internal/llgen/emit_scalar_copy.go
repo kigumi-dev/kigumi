@@ -34,8 +34,11 @@ func (e *emitter) scalarCopyLike(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 		}
 		e.storeNative(sb, in.Dst, v)
 	case !dstNative && srcNative:
-		nk := e.numKind(f.Locals[in.Dst].Type)
-		boxed := e.boxNative(sb, scalarInfo{Ty: srcInfo.Ty, Nk: nk}, e.loadNative(sb, in.Args[0]))
+		boxed, lit := e.litSlot(in.Args[0])
+		if !lit {
+			nk := e.numKind(f.Locals[in.Dst].Type)
+			boxed = e.boxNative(sb, scalarInfo{Ty: srcInfo.Ty, Nk: nk}, e.loadNative(sb, in.Args[0]))
+		}
 		e.store(sb, in.Dst, boxed)
 	}
 	return true

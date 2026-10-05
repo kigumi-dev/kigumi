@@ -38,17 +38,14 @@ fn lib.consume(%f: File) -> Unit! {
     %t3 = isvariant Ok(%t2)
     branch %t3 ? b1 : b2
   b1:
-    %t6 = payload 0(%t2)
-    drop(%t2)
-    %t7 = variant Ok(%t6)
-    nop
-    return %t7
-  b2:
     %t4 = payload 0(%t2)
     drop(%t2)
+    %t5 = variant Ok(%t4)
     nop
-    %t5 = variant Err(%t4)
     return %t5
+  b2:
+    nop
+    return %t2
 }
 fn lib.twice(%f: File) -> Unit! {
   b0:
@@ -57,31 +54,25 @@ fn lib.twice(%f: File) -> Unit! {
     %t3 = isvariant Ok(%t2)
     branch %t3 ? b1 : b2
   b1:
-    %t6 = payload 0(%t2)
-    drop(%t2)
-    drop(%t6)
-    %t7 = move(%f)
-    %t8 = call consume(%t7)
-    %t9 = isvariant Ok(%t8)
-    branch %t9 ? b3 : b4
-  b2:
     %t4 = payload 0(%t2)
     drop(%t2)
+    drop(%t4)
+    %t5 = move(%f)
+    %t6 = call consume(%t5)
+    %t7 = isvariant Ok(%t6)
+    branch %t7 ? b3 : b4
+  b2:
     nop
-    %t5 = variant Err(%t4)
-    return %t5
+    return %t2
   b3:
-    %t12 = payload 0(%t8)
-    drop(%t8)
-    %t13 = variant Ok(%t12)
+    %t8 = payload 0(%t6)
+    drop(%t6)
+    %t9 = variant Ok(%t8)
     nop
-    return %t13
+    return %t9
   b4:
-    %t10 = payload 0(%t8)
-    drop(%t8)
     nop
-    %t11 = variant Err(%t10)
-    return %t11
+    return %t6
 }
 fn lib.branchy(%f: File, %flag: Bool) -> Unit! {
   b0:
@@ -92,41 +83,35 @@ fn lib.branchy(%f: File, %flag: Bool) -> Unit! {
     %t5 = isvariant Ok(%t4)
     branch %t5 ? b4 : b5
   b2:
-    %t9 = unit
-    %t2 = copy(%t9)
+    %t7 = unit
+    %t2 = copy(%t7)
     jump b3
   b3:
     drop(%t2)
-    %t10 = move(%f)
-    %t11 = call consume(%t10)
-    %t12 = isvariant Ok(%t11)
-    branch %t12 ? b6 : b7
+    %t8 = move(%f)
+    %t9 = call consume(%t8)
+    %t10 = isvariant Ok(%t9)
+    branch %t10 ? b6 : b7
   b4:
-    %t8 = payload 0(%t4)
-    drop(%t4)
-    %t2 = copy(%t8)
-    jump b3
-  b5:
     %t6 = payload 0(%t4)
     drop(%t4)
+    %t2 = copy(%t6)
+    jump b3
+  b5:
     drop(%flag)
     nop
-    %t7 = variant Err(%t6)
-    return %t7
+    return %t4
   b6:
-    %t15 = payload 0(%t11)
-    drop(%t11)
-    %t16 = variant Ok(%t15)
+    %t11 = payload 0(%t9)
+    drop(%t9)
+    %t12 = variant Ok(%t11)
     drop(%flag)
     nop
-    return %t16
+    return %t12
   b7:
-    %t13 = payload 0(%t11)
-    drop(%t11)
     drop(%flag)
     nop
-    %t14 = variant Err(%t13)
-    return %t14
+    return %t9
 }
 fn lib.diverge(%f: File, %flag: Bool) -> Unit! {
   b0:
@@ -137,48 +122,42 @@ fn lib.diverge(%f: File, %flag: Bool) -> Unit! {
     %t5 = isvariant Ok(%t4)
     branch %t5 ? b4 : b5
   b2:
-    %t12 = unit
-    %t2 = copy(%t12)
+    %t10 = unit
+    %t2 = copy(%t10)
     jump b3
   b3:
     drop(%t2)
-    %t13 = move(%f)
-    %t14 = call consume(%t13)
-    %t15 = isvariant Ok(%t14)
-    branch %t15 ? b7 : b8
+    %t11 = move(%f)
+    %t12 = call consume(%t11)
+    %t13 = isvariant Ok(%t12)
+    branch %t13 ? b7 : b8
   b4:
-    %t8 = payload 0(%t4)
-    drop(%t4)
-    drop(%t8)
-    %t9 = unit
-    %t10 = variant Ok(%t9)
-    drop(%flag)
-    nop
-    return %t10
-  b5:
     %t6 = payload 0(%t4)
     drop(%t4)
+    drop(%t6)
+    %t7 = unit
+    %t8 = variant Ok(%t7)
     drop(%flag)
     nop
-    %t7 = variant Err(%t6)
-    return %t7
+    return %t8
+  b5:
+    drop(%flag)
+    nop
+    return %t4
   b6:
-    %t11 = unit
+    %t9 = unit
     jump b3
   b7:
-    %t18 = payload 0(%t14)
-    drop(%t14)
-    %t19 = variant Ok(%t18)
+    %t14 = payload 0(%t12)
+    drop(%t12)
+    %t15 = variant Ok(%t14)
     drop(%flag)
     nop
-    return %t19
+    return %t15
   b8:
-    %t16 = payload 0(%t14)
-    drop(%t14)
     drop(%flag)
     nop
-    %t17 = variant Err(%t16)
-    return %t17
+    return %t12
 }
 fn lib.dropped(%files: Files, %p: Path) -> Unit! {
   b0:
@@ -218,23 +197,20 @@ fn lib.dropped(%files: Files, %p: Path) -> Unit! {
     %t13 = variant Err(%t12)
     return %t13
   b5:
-    %t21 = payload 0(%t17)
-    drop(%t17)
-    %t22 = variant Ok(%t21)
-    nop
-    drop(%f)
-    drop(%p)
-    drop(%files)
-    return %t22
-  b6:
     %t19 = payload 0(%t17)
     drop(%t17)
+    %t20 = variant Ok(%t19)
     nop
     drop(%f)
     drop(%p)
     drop(%files)
-    %t20 = variant Err(%t19)
     return %t20
+  b6:
+    nop
+    drop(%f)
+    drop(%p)
+    drop(%files)
+    return %t17
 }
 error[use-after-move]: `f` was moved; it cannot be used again
  --> lib/own.kg:9:13

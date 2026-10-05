@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"kigumi/internal/mir"
@@ -11,11 +12,31 @@ import (
 )
 
 func (e *emitter) constant(sb *strings.Builder, in mir.Inst) string {
+	if key, ok := e.litKey(in); ok {
+		return e.constSlotName(key)
+	}
+	switch in.Lit.Kind {
+	case sem.LitBool:
+		b := "0"
+		if in.Lit.Bool {
+			b = "1"
+		}
+		return e.irb(sb).Call(rtBool, vi1(b)).Text
+	case sem.LitBytes:
+		// secureErase rewrites a Bytes in place, so a literal cannot be one shared object.
+		return e.irb(sb).Call(rtBytes, vptr(e.cstr(in.Lit.Str)), vi64(len(in.Lit.Str))).Text
+	}
+	return e.irb(sb).Call(rtUnit).Text
+}
+
+// litKey registers in's literal as an immortal and names its slot key;
+// Bool and Unit have one static object each already, so they stay out.
+func (e *emitter) litKey(in mir.Inst) (string, bool) {
 	lit := in.Lit
 	tt := e.r.Types
 	switch {
 	case in.Str != "" && tt.IsInteger(in.Type):
-		return e.irb(sb).Call(rtInt, vi64text(in.Str), vi32(e.numKind(in.Type))).Text
+		return e.constNum(kInt, e.numKind(in.Type), in.Str), true
 	case tt.IsFloat(in.Type):
 		f := 0.0
 		if lit.Float != nil {
@@ -23,7 +44,7 @@ func (e *emitter) constant(sb *strings.Builder, in mir.Inst) string {
 		} else if lit.Int != nil {
 			f, _ = new(big.Float).SetInt(lit.Int).Float64()
 		}
-		return e.irb(sb).Call(rtFloat, vdouble(fmt.Sprintf("0x%X", math.Float64bits(f))), vi32(e.numKind(in.Type))).Text
+		return e.constNum(kFloat, e.numKind(in.Type), fmt.Sprintf("0x%X", math.Float64bits(f))), true
 	case lit.Kind == sem.LitInt:
 		v := "0"
 		if lit.Int != nil {
@@ -33,21 +54,13 @@ func (e *emitter) constant(sb *strings.Builder, in mir.Inst) string {
 				v = fmt.Sprintf("%d", int64(lit.Int.Uint64()))
 			}
 		}
-		return e.irb(sb).Call(rtInt, vi64text(v), vi32(e.numKind(in.Type))).Text
-	case lit.Kind == sem.LitBool:
-		b := "0"
-		if lit.Bool {
-			b = "1"
-		}
-		return e.irb(sb).Call(rtBool, vi1(b)).Text
+		return e.constNum(kInt, e.numKind(in.Type), v), true
 	case lit.Kind == sem.LitChar:
-		return e.irb(sb).Call(rtChar, vi32(int(lit.Char))).Text
+		return e.constNum(kChar, 0, strconv.Itoa(int(lit.Char))), true
 	case lit.Kind == sem.LitString:
-		return e.irb(sb).Call(rtStr, vptr(e.cstr(lit.Str)), vi64(len(lit.Str))).Text
-	case lit.Kind == sem.LitBytes:
-		return e.irb(sb).Call(rtBytes, vptr(e.cstr(lit.Str)), vi64(len(lit.Str))).Text
+		return e.constText(kStr, lit.Str), true
 	}
-	return e.irb(sb).Call(rtUnit).Text
+	return "", false
 }
 
 func (e *emitter) interp(sb *strings.Builder, in mir.Inst, args []string) string {
@@ -59,7 +72,7 @@ func (e *emitter) interp(sb *strings.Builder, in mir.Inst, args []string) string
 			ai++
 			continue
 		}
-		items = append(items, e.irb(sb).Call(rtStr, vptr(e.cstr(s)), vi64(len(s))).Text)
+		items = append(items, e.constSlotName(e.constText(kStr, s)))
 	}
 	arr := e.argArray(sb, items)
 	return e.irb(sb).Call(rtInterp, vi32(len(items)), vptr(arr)).Text
@@ -83,12 +96,12 @@ func (e *emitter) shell(sb *strings.Builder, in mir.Inst, args []string) string 
 			push(e.shellItem(sb, "Text", []string{text}))
 		case s[0] == 'r':
 			op, fd, _ := strings.Cut(s[1:], ":")
-			opv := e.irb(sb).Call(rtInt, vi64text(op), vi32(320)).Text
-			fdv := e.irb(sb).Call(rtInt, vi64text(fd), vi32(320)).Text
+			opv := e.constSlotName(e.constNum(kInt, 320, op))
+			fdv := e.constSlotName(e.constNum(kInt, 320, fd))
 			push(e.shellItem(sb, "Redirect", []string{opv, fdv}))
 		default:
 			text := s[1:]
-			push(e.shellItem(sb, "Text", []string{e.irb(sb).Call(rtStr, vptr(e.cstr(text)), vi64(len(text))).Text}))
+			push(e.shellItem(sb, "Text", []string{e.constSlotName(e.constText(kStr, text))}))
 		}
 	}
 	return plan
