@@ -23,30 +23,30 @@ fn never() -> Unit {
     print "created, not awaited"
 }
 
-fn awaited(ex: &task.Executor) -> Unit {
+async fn awaited() -> Unit {
     let f = consume(make(50))
-    let _ = ex.run(f)
+    let _ = await f
     print "after await"
 }
 
-fn neverJoined(ex: &task.Executor) -> Unit {
-    let t = ex.spawn(consume(make(77)))
-    print "spawned, never joined"
+async fn neverAwaited() -> Unit {
+    let t = task.spawn(consume(make(77)))
+    print "spawned, never awaited"
 }
 
-fn joined(ex: &task.Executor) -> Unit {
-    let t = ex.spawn(consume(make(88)))
-    let _ = t.join()
-    print "after join"
+async fn root() -> Unit {
+    await awaited()
+    await neverAwaited()
+    print "after neverAwaited"
+    let t = task.spawn(consume(make(88)))
+    let _ = await t
+    print "after await of task"
 }
 
 never()
 print "after never"
-let ex = task.local()
-awaited(&ex)
-neverJoined(&ex)
-print "after neverJoined"
-joined(&ex)
+let ex = task.currentThreadExecutor()
+ex.runToCompletion(root())
 print "done"
 -- stdout --
 created, not awaited
@@ -55,10 +55,11 @@ after never
 consume 50
 drop 50
 after await
-spawned, never joined
+spawned, never awaited
+after neverAwaited
+consume 77
 drop 77
-after neverJoined
 consume 88
 drop 88
-after join
+after await of task
 done

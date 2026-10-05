@@ -2,17 +2,10 @@ package vm
 
 import "kigumi/internal/sem"
 
-// blockingPool is a BlockingPool: a root-owned, bounded count of blockingFuture results admitted but not taken.
-// run executes work on the calling goroutine, not a separate one, so inFlight is a plain int, not atomic.
+// blockingPool bounds admitted-but-unclaimed BlockingPool.run results;
+// run executes on the calling goroutine, so inFlight needs no atomics.
 type blockingPool struct {
 	capacity, inFlight int
-}
-
-// blockingFuture is one admitted BlockingPool.run result; pool is retained
-// so the pool outlives every future it issued.
-type blockingFuture struct {
-	pool, result *obj
-	taken        bool
 }
 
 func (m *Machine) registerBlocking() {
@@ -27,17 +20,11 @@ func (m *Machine) registerBlocking() {
 		}
 		r := m.callValue(a[1], nil)
 		pool.inFlight++
-		return m.ok(mkOpaque("BlockingFuture", &blockingFuture{pool: retain(deref(a[0])), result: r}))
+		return m.ok(mkOpaque("Future", &future{result: r, pool: retain(deref(a[0]))}))
 	}
 }
 
 func (m *Machine) blockingCapacityExhausted() *obj {
 	e := mkVariant(m.variantOf(m.lookup("std/task", "BlockingError"), "CapacityExhausted"), nil)
 	return mkVariant(m.variantOf(m.r.Types.ResultEnt(), "Err"), []*obj{e})
-}
-
-func (m *Machine) blockingFutureJoin(f *blockingFuture) *obj {
-	f.taken = true
-	f.pool.data.(*blockingPool).inFlight--
-	return f.result
 }

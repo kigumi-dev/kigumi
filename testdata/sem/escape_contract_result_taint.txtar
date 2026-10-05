@@ -36,7 +36,7 @@ async fn runLater(cb: fn() -> Unit) -> Unit {
 // carries `escaping`, so no Task can end up holding it.
 fn danger(ex: task.Executor, cb: fn() -> Unit) -> task.Task[Unit] {
     let f = runLater
-    ex.spawn(f(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+    task.spawn(f(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
 }
 
 fn makeTask(ex: task.Executor) -> task.Task[Unit] {
@@ -52,9 +52,9 @@ error[E1030]: `cb` is a non-escaping callback and cannot be returned
    = help: declare the parameter `escaping fn(...) -> ...`
 
 error[E1033]: `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
-  --> lib/esc.kg:38:16
+  --> lib/esc.kg:38:18
    |
-38 |     ex.spawn(f(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
-   |                ^^
+38 |     task.spawn(f(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+   |                  ^^
    = help: declare the parameter `escaping fn(...) -> ...`
 

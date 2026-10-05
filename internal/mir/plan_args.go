@@ -86,7 +86,7 @@ func (p *Program) mustCopy(f *Func, in Inst, a LocalID) bool {
 	}
 	switch in.Op {
 	case OpDrop, OpCopy, OpBorrow, OpField, OpFieldMove, OpIndex, OpIsVariant, OpIsType, OpPayload, OpUnbox,
-		OpCellGet, OpBinary, OpUnary, OpInterp, OpBuiltin:
+		OpCellGet, OpBinary, OpUnary, OpInterp, OpBuiltin, OpFutureNew, OpFutureDone:
 		return false
 	}
 	return true

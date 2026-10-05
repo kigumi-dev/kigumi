@@ -1,7 +1,6 @@
 package llgen
 
 import (
-	"fmt"
 	"strings"
 
 	"kigumi/internal/mir"
@@ -61,6 +60,15 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpBuiltin:
 		arr := e.argArray(sb, args)
 		res = e.irb(sb).Call(rtBuiltin, vptr(e.cstr(in.Str)), vi32(len(args)), vptr(arr)).Text
+	case mir.OpFutureNew:
+		arr := e.argArray(sb, args[1:])
+		res = e.irb(sb).Call(rtFutureNew, vptr(args[0]), vi32(len(args)-1), vptr(arr)).Text
+	case mir.OpAwait:
+		e.await(sb, in, args[0])
+		return
+	case mir.OpFutureDone:
+		e.irb(sb).Call(rtFutureComplete, vptr("%fut"), vptr(args[0]))
+		return
 	case mir.OpBinary:
 		res = e.irb(sb).Call(rtBinop, vptr(e.cstr(in.Str)), vptr(args[0]), vptr(args[1])).Text
 	case mir.OpUnary:
@@ -130,6 +138,11 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			if in.Op == mir.OpClosure && in.Str == "method" {
 				sym = e.methodAdapterSym(fn)
 			}
+			// An async body has no adapter: its value carries the frame
+			// descriptor a Future is built from.
+			if in.Async {
+				sym = e.asyncDescSym(fn)
+			}
 			res = e.closureCtor(sb, sym, in.Async, args, arr)
 		} else if e.loweredStd(in.Ent) {
 			res = e.closureCtor(sb, e.stdBound(in.Ent, len(args)), in.Async, args, arr)
@@ -168,26 +181,4 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	}
 	e.releaseScalarArgs(sb, in, args)
 	e.storeMaybeScalar(sb, in.Dst, res)
-}
-
-func (e *emitter) call(sb *strings.Builder, fn string, args []string) string {
-	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = call ptr @%s(%s)\n", t, fn, joinArgs(args))
-	return t
-}
-
-func (e *emitter) callVoid(sb *strings.Builder, fn string, args []string) {
-	fmt.Fprintf(sb, "  call void @%s(%s)\n", fn, joinArgs(args))
-}
-
-func joinArgs(args []string) string {
-	var parts []string
-	for _, a := range args {
-		if strings.HasPrefix(a, "%") || strings.HasPrefix(a, "@") || strings.HasPrefix(a, "null") {
-			parts = append(parts, "ptr "+a)
-		} else {
-			parts = append(parts, a)
-		}
-	}
-	return strings.Join(parts, ", ")
 }

@@ -138,9 +138,11 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 			return ""
 		}
 		return "primitive " + key
+	case mir.OpFutureNew, mir.OpAwait, mir.OpFutureDone:
+		return ""
 	case mir.OpBuiltin:
 		switch in.Str {
-		case "print", "eprint", "panic", "message", "iter.len", "iter.at", "iter.at_ref", "iter.at_move", "host", "alloc.push", "future", "await":
+		case "print", "eprint", "panic", "message", "iter.len", "iter.at", "iter.at_ref", "iter.at_move", "host", "alloc.push":
 			return ""
 		case "comptime":
 			return "an unevaluated comptime block"

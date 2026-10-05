@@ -1,0 +1,53 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn stall() -> Int {
+    print "stall runs"
+    0
+}
+
+async fn never() -> Int {
+    let t = task.spawn(stall())
+    await t
+}
+
+async fn worker() -> Int {
+    let first = Res { id: 1 }
+    let second = Res { id: 2 }
+    print "worker parked"
+    let v = await never()
+    print "resumed ${v}"
+    v
+}
+
+async fn tick() -> Int {
+    0
+}
+
+// The root never awaits `w`: leaving its body cancels the child and waits
+// for the child's terminal transition before the executor returns.
+async fn root() -> Int {
+    let w = task.spawn(worker())
+    let t = task.spawn(tick())
+    let _ = await t
+    print "root returning"
+    7
+}
+
+let ex = task.currentThreadExecutor()
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+worker parked
+stall runs
+root returning
+drop 2
+drop 1
+result 7

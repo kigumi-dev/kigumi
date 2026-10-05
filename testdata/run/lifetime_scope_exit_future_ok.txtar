@@ -11,7 +11,7 @@ async fn run() -> u8 {
     await r
 }
 
-let ex = task.local()
-print "${ex.run(run())}"
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(run())}"
 -- stdout --
 1

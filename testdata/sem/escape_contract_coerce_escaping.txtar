@@ -23,7 +23,7 @@ fn intoRecordField() -> Unit {
 // Same mismatch through a plain `let` with a declared type, not a record field.
 fn intoDeclaredLet(ex: task.Executor, cb: fn() -> Unit) -> task.Task[Unit] {
     let f: fn(fn() -> Unit) -> Future[Unit] = runLater //~ ERROR may keep its callback at parameter 1
-    ex.spawn(f(cb))
+    task.spawn(f(cb))
 }
 
 // The sound direction still coerces cleanly: a plain, verified-non-escaping

@@ -1,0 +1,62 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn step(n: Int) -> Int {
+    n
+}
+
+// Observes the request itself and leaves through its own return, so the
+// scope's drops run in the ordinary order.
+async fn polite() -> Int {
+    let guard = Res { id: 1 }
+    if task.cancelRequested() {
+        print "polite stops"
+        return 0
+    }
+    print "polite works"
+    await step(1)
+}
+
+// Ignores the request and keeps running until its next suspension point,
+// where the frame is abandoned instead.
+async fn stubborn() -> Int {
+    let guard = Res { id: 2 }
+    let mut n = 0
+    for i in 0..3 {
+        n = n + i
+    }
+    print "stubborn computed ${n}"
+    let v = await step(n)
+    print "stubborn resumed ${v}"
+    v
+}
+
+async fn root() -> Int {
+    let a = task.spawn(polite())
+    a.cancel()
+    let b = task.spawn(stubborn())
+    b.cancel()
+    print "requested"
+    let v = await a
+    print "polite returned ${v}"
+    v
+}
+
+let ex = task.currentThreadExecutor()
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+requested
+polite stops
+drop 1
+stubborn computed 3
+drop 2
+polite returned 0
+result 0

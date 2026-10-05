@@ -10,8 +10,8 @@ async fn useProvider() -> Int {
     await fut
 }
 
-let ex = task.local()
-print "${ex.run(useProvider()) + 1}"
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(useProvider()) + 1}"
 -- stdout --
 working
 42

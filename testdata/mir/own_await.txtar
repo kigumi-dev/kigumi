@@ -48,31 +48,31 @@ async fn awaitLoop() -> Int {
     total
 }
 -- expect --
-fn lib.work() -> Int {
+async fn lib.work() -> Int {
   b0:
     %t0 = const 1: Int
     return %t0
 }
-fn lib.awaitOnce() -> Int {
+async fn lib.awaitOnce() -> Int {
   b0:
-    %t0 = fnitem work
-    %t1 = builtin future(%t0)
+    %t0 = fnitem work async
+    %t1 = future(%t0)
     %f = copy(%t1)
     %t3 = move(%f)
-    %t4 = builtin await(%t3)
+    %t4 = await(%t3)
     nop
     return %t4
 }
-fn lib.awaitTwice() -> Int {
+async fn lib.awaitTwice() -> Int {
   b0:
-    %t0 = fnitem work
-    %t1 = builtin future(%t0)
+    %t0 = fnitem work async
+    %t1 = future(%t0)
     %f = copy(%t1)
     %t3 = move(%f)
-    %t4 = builtin await(%t3)
+    %t4 = await(%t3)
     %a = copy(%t4)
     %t6 = move(%f)
-    %t7 = builtin await(%t6)
+    %t7 = await(%t6)
     %b = copy(%t7)
     %t9 = bin +(%a, %b)
     drop(%b)
@@ -80,17 +80,17 @@ fn lib.awaitTwice() -> Int {
     nop
     return %t9
 }
-fn lib.awaitValueTwice() -> Int {
+async fn lib.awaitValueTwice() -> Int {
   b0:
     %t0 = fnitem work async
     %g = copy(%t0)
     %t2 = callv(%g)
     %f = copy(%t2)
     %t4 = move(%f)
-    %t5 = builtin await(%t4)
+    %t5 = await(%t4)
     %a = copy(%t5)
     %t7 = move(%f)
-    %t8 = builtin await(%t7)
+    %t8 = await(%t7)
     %b = copy(%t8)
     %t10 = bin +(%a, %b)
     drop(%b)
@@ -99,13 +99,13 @@ fn lib.awaitValueTwice() -> Int {
     drop(%g)
     return %t10
 }
-fn lib.awaitField(%b: Box) -> Int {
+async fn lib.awaitField(%b: Box) -> Int {
   b0:
     %t1 = field 0(%b)
-    %t2 = builtin await(%t1)
+    %t2 = await(%t1)
     %x = copy(%t2)
     %t4 = field 0(%b)
-    %t5 = builtin await(%t4)
+    %t5 = await(%t4)
     %y = copy(%t5)
     %t7 = bin +(%x, %y)
     drop(%y)
@@ -113,13 +113,13 @@ fn lib.awaitField(%b: Box) -> Int {
     drop(%b)
     return %t7
 }
-fn lib.awaitParam(%f: Future[Int]) -> Int {
+async fn lib.awaitParam(%f: Future[Int]) -> Int {
   b0:
     %t1 = move(%f)
-    %t2 = builtin await(%t1)
+    %t2 = await(%t1)
     %a = copy(%t2)
     %t4 = move(%f)
-    %t5 = builtin await(%t4)
+    %t5 = await(%t4)
     %b = copy(%t5)
     %t7 = bin +(%a, %b)
     drop(%b)
@@ -127,10 +127,10 @@ fn lib.awaitParam(%f: Future[Int]) -> Int {
     nop
     return %t7
 }
-fn lib.awaitLoop() -> Int {
+async fn lib.awaitLoop() -> Int {
   b0:
-    %t0 = fnitem work
-    %t1 = builtin future(%t0)
+    %t0 = fnitem work async
+    %t1 = future(%t0)
     %f = copy(%t1)
     %t3 = const 0: Int
     %total = copy(%t3)
@@ -147,7 +147,7 @@ fn lib.awaitLoop() -> Int {
     %t11 = builtin iter.at(%t7, %t8)
     %i = copy(%t11)
     %t13 = move(%f)
-    %t14 = builtin await(%t13)
+    %t14 = await(%t13)
     %t15 = bin +(%total, %t14)
     drop(%total)
     %total = copy(%t15)

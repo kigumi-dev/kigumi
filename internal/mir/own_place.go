@@ -130,8 +130,8 @@ func (p *Program) consumesArg(in *Inst, i int) bool {
 			return recv == sem.RecvNone || recv == sem.RecvMove
 		}
 		return i != 0
-	case OpBuiltin:
-		return in.Str == "await"
+	case OpAwait:
+		return i == 0
 	}
 	return false
 }

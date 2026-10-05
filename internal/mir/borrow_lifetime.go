@@ -12,10 +12,8 @@ func (c *borrowCheck) lifetimeSource(in Inst) (*borrowInfo, bool) {
 		return c.callLifetimeSource(in)
 	case OpCallValue:
 		return c.callValueLifetimeSource(in)
-	case OpBuiltin:
-		if in.Str == "future" {
-			return c.futureLifetimeSource(in)
-		}
+	case OpFutureNew:
+		return c.futureLifetimeSource(in)
 	}
 	return nil, false
 }

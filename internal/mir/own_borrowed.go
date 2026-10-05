@@ -107,7 +107,7 @@ func checkBorrowedMoves(p *Program, f *Func) {
 				if v := in.Args[len(in.Args)-1]; moveOnly(v) {
 					report(in.Node, v)
 				}
-			case OpCall, OpCallValue, OpBuiltin:
+			case OpCall, OpCallValue, OpBuiltin, OpFutureNew:
 				for i, a := range in.Args {
 					if moveOnly(a) && p.consumesArg(&in, i) {
 						report(in.Node, a)

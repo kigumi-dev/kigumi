@@ -92,22 +92,11 @@ func (m *Machine) freeOpaque(v *obj) {
 	case "Weak":
 		c := v.data.(*sharedCtrl)
 		c.weak--
-	case "AllocatorScope", "Task", "UnsafeCell":
+	case "AllocatorScope", "UnsafeCell":
 		if h, ok := v.data.(*obj); ok {
 			m.release(h)
 		}
 	case "Future":
-		f := v.data.(*future)
-		m.release(f.fn)
-		for _, a := range f.args {
-			m.release(a)
-		}
-	case "BlockingFuture":
-		f := v.data.(*blockingFuture)
-		if !f.taken {
-			f.pool.data.(*blockingPool).inFlight--
-			m.release(f.result)
-		}
-		m.release(f.pool)
+		m.freeFuture(v.data.(*future))
 	}
 }

@@ -55,6 +55,13 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpBuiltin:
 		res = m.builtin(in.Str, args)
 		m.chargeMemory(res)
+	case mir.OpFutureNew:
+		res = m.newFuture(args)
+		m.chargeMemory(res)
+	case mir.OpAwait:
+		m.abort("`await` outside an async body")
+	case mir.OpFutureDone:
+		return
 	case mir.OpBinary:
 		res = m.binop(in.Str, args[0], args[1])
 	case mir.OpUnary:

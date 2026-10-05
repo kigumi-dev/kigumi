@@ -15,6 +15,11 @@ type OpSummaryJSON struct {
 	Schema     int          `json:"schema"`
 	Unresolved bool         `json:"unresolved"`
 	Facts      []OpFactJSON `json:"facts"`
+	// Mobility, Executor and BoundBy describe an async fn's Future: how it
+	// may move, where it runs, and the first type pinning it. Else absent.
+	Mobility string `json:"mobility,omitempty"`
+	Executor string `json:"executor,omitempty"`
+	BoundBy  string `json:"boundBy,omitempty"`
 }
 
 func (r *Result) opSummaryArtifact(id EntityID) OpSummaryJSON {
@@ -26,6 +31,11 @@ func (r *Result) opSummaryArtifact(id EntityID) OpSummaryJSON {
 			continue
 		}
 		out.Facts = append(out.Facts, OpFactJSON{Fact: f.String(), Unknown: st.Cause.Unknown, InterruptUnsafe: st.InterruptUnsafe, Offloaded: st.Offloaded})
+	}
+	if e := &r.Entities[id]; e.Kind == EntFn && r.Fn(id).Declared&EffAsync != 0 {
+		info := r.Fn(id)
+		out.Mobility, out.BoundBy = info.Mobility.String(), info.BoundBy
+		out.Executor = "inherited"
 	}
 	return out
 }

@@ -45,7 +45,7 @@ Start at the top and read down.
 | [game_of_life](game_of_life/) | A larger program: consts, `usize` indices, nested loops. |
 | [dependency](dependency/) | `mod.kg` with `Require`, `mod.local.kg` with `Replace`: importing another module's packages. |
 | [ffi](ffi/) | Calling C functions through `extern(C)` (`kigumi build` only). |
-| [async](async/) | `async fn` calls as lazy futures, `await`, and `std/task`'s local executor. |
+| [async](async/) | `async fn` calls as lazy futures, `await`, `task.spawn`, and the current-thread executor. |
 | [comptime](comptime/) | `comptime { }` blocks evaluated by the compiler into literals. |
 | [build_program](build_program/) | `build.kg`: a freestanding library, a registered tool generating C, and a host executable from one graph (`kigumi build` only). |
 | [repostat](repostat/) | The example program from the language spec: shell, JSON, allocators, several packages. |

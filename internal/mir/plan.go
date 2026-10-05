@@ -32,7 +32,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 	isTemp := func(l LocalID) bool { return f.Locals[l].Ent == 0 }
 	for b, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if isTemp(in.Dst) && in.Op != OpNop && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet {
+			if isTemp(in.Dst) && in.Op != OpNop && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet && in.Op != OpFutureDone {
 				defBlock[in.Dst] = b
 			}
 		}
@@ -58,7 +58,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 				continue
 			}
 			switch in.Op {
-			case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpBoxReplace, OpGlobalSet:
+			case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpBoxReplace, OpGlobalSet, OpFutureDone:
 				continue
 			}
 			defs[in.Dst]++
@@ -145,7 +145,7 @@ func (p *Program) consumes(in Inst, i int) bool {
 	}
 	switch in.Op {
 	case OpField, OpFieldMove, OpIndex, OpIsVariant, OpIsType, OpPayload, OpUnbox,
-		OpCellGet, OpBinary, OpUnary, OpInterp, OpBuiltin, OpBorrow:
+		OpCellGet, OpBinary, OpUnary, OpInterp, OpBuiltin, OpBorrow, OpFutureNew, OpFutureDone:
 		return false
 	}
 	return true

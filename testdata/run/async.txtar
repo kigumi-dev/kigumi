@@ -12,14 +12,22 @@ async fn total(a: Int, b: Int) -> Int {
     x + y
 }
 
-let ex = task.local()
-let pending = total(1, 2)
-print "created"
-let t = ex.spawn(twice(10))
-print "${ex.run(pending)} ${t.join()}"
+async fn root() -> Int {
+    let pending = total(1, 2)
+    print "created"
+    let t = task.spawn(twice(10))
+    let a = await pending
+    let b = await t
+    print "${a} ${b}"
+    a + b
+}
+
+let ex = task.currentThreadExecutor()
+print "sum ${ex.runToCompletion(root())}"
 -- stdout --
 created
 twice 1
 twice 2
 twice 10
 6 20
+sum 26

@@ -10,7 +10,7 @@ async fn run() -> u8 {
     await r
 }
 -- expect --
-fn lib.pick(%a: &Bytes, %b: &Bytes) -> u8 {
+async fn lib.pick(%a: &Bytes, %b: &Bytes) -> u8 {
   b0:
     %t2 = const 0: usize
     %t3 = index(%a, %t2)
@@ -19,7 +19,7 @@ fn lib.pick(%a: &Bytes, %b: &Bytes) -> u8 {
     %t6 = bin +(%t3, %t5)
     return %t6
 }
-fn lib.run() -> u8 {
+async fn lib.run() -> u8 {
   b0:
     %t0 = const 1: u8
     %t1 = const 2: u8
@@ -39,11 +39,11 @@ fn lib.run() -> u8 {
     %y = copy(%t14)
     %t16 = borrow 0(%x)
     %t17 = borrow 0(%y)
-    %t18 = fnitem pick
-    %t19 = builtin future(%t18, %t16, %t17)
+    %t18 = fnitem pick async
+    %t19 = future(%t18, %t16, %t17)
     %r = copy(%t19)
     %t21 = move(%r)
-    %t22 = builtin await(%t21)
+    %t22 = await(%t21)
     nop
     drop(%y)
     drop(%x)

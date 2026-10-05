@@ -187,6 +187,7 @@ val rt_retain(val v) {
     return v;
 }
 static void free_obj(val v);
+val rt_future_new(val callee, int n, val* args);
 void rt_release(val v) {
     CHK(v);
     if (!v || v->rc <= 0) return;
@@ -1247,22 +1248,11 @@ val invoke(adapter_fn fn, val env, int n, val* args) {
 // closures, awaited futures), so anything past this stack capacity spills
 // to the heap instead of writing past a fixed buffer.
 #define STACK_ARGS 16
-// callv_async builds a lazy Future instead of running the
-// body: f is lent, so the Future keeps an independent closure of its own;
-// args move into the Future unchanged.
+// args are dedicated to this call, so they move into the frame the Future owns.
 static val callv_async(val f, int n, val* args) {
-    val raw = alloc(K_CLOSURE);
-    raw->u.clo.fn = f->u.clo.fn;
-    raw->u.clo.env = rt_retain(f->u.clo.env);
-    raw->u.clo.key = f->u.clo.key;
-    raw->u.clo.lent = f->u.clo.lent;
-    val stackbuf[STACK_ARGS];
-    val* all = n + 1 <= STACK_ARGS ? stackbuf : malloc((n + 1) * sizeof(val));
-    all[0] = raw;
-    for (int i = 0; i < n; i++) all[i + 1] = args[i];
-    val arr = rt_array(n + 1, all);
-    if (all != stackbuf) free(all);
-    return opaque("Future", arr);
+    val fut = rt_future_new(f, n, args);
+    for (int i = 0; i < n; i++) rt_release(args[i]);
+    return fut;
 }
 val rt_callv(val f, int n, val* args) {
     f = deref(f);
@@ -1316,15 +1306,221 @@ val rt_std_bind(const char* key, int lent, int n, val* caps) {
 void rt_drop(val v) {
     rt_release(v);
 }
-// A Future is the function value plus its arguments; awaiting runs the call.
-static val await_lazy(val fut) {
-    val arr = (val)fut->u.op.data;
-    int n = (int)arr->u.arr.len - 1;
-    val stackbuf[STACK_ARGS];
-    val* a = n <= STACK_ARGS ? stackbuf : malloc(n * sizeof(val));
-    for (int i = 0; i < n; i++) a[i] = rt_retain(arr->u.arr.items[i + 1]);
-    val r = rt_callv(arr->u.arr.items[0], n, a);
-    if (a != stackbuf) free(a);
+// A frame's slots[] holds nslots locals then the arguments the body takes over.
+typedef struct kg_async_desc {
+    val (*poll)(val);
+    void (*drop)(val);
+    int32_t nslots;
+} kg_async_desc;
+typedef struct kgframe {
+    const kg_async_desc* desc;
+    val awaited;
+    int32_t state;
+    int32_t nargs;
+    val* args;
+    val slots[];
+} kgframe;
+// A poll returns NULL for Pending and this marker for Cancelled; neither
+// can be an ordinary value.
+struct obj kg_cancel_marker = {.kind = K_UNIT, .rc = -1};
+#define KG_CANCELLED (&kg_cancel_marker)
+
+enum { T_CREATED, T_RUNNABLE, T_RUNNING, T_SUSPENDED, T_COMPLETED, T_CANCELLED, T_FAULTED };
+typedef struct kgtask kgtask;
+typedef struct kgexec kgexec;
+struct kgtask {
+    val fut, result;
+    kgexec* ex;
+    kgtask *parent, *waiter;
+    kgtask** kids;
+    int nkids, capkids;
+    int state, ending, refs;
+    int cancel, notified, queued, draining;
+};
+struct kgexec {
+    kgtask** q;
+    int head, len, cap, driving;
+};
+static kgtask* g_cur_task;
+
+static kgframe* frame_of(val v) {
+    if (!v || v->kind != K_OPAQUE || strcmp(v->u.op.kind, "Future")) rt_panic("await on a value that is not a Future");
+    return (kgframe*)v->u.op.data;
+}
+val* rt_future_slots(val fut) { return frame_of(fut)->slots; }
+int rt_future_state(val fut) { return frame_of(fut)->state; }
+val rt_future_arg(val fut, int64_t i) { return frame_of(fut)->args[i]; }
+void rt_future_started(val fut) { frame_of(fut)->nargs = 0; }
+void rt_future_suspend(val fut, int k, val awaited) {
+    kgframe* f = frame_of(fut);
+    f->state = k;
+    f->awaited = awaited;
+}
+val rt_future_complete(val fut, val v) {
+    frame_of(fut)->state = -1;
+    return v;
+}
+val rt_future_new(val callee, int n, val* args) {
+    val clo = deref(callee);
+    if (clo->kind != K_CLOSURE || !clo->u.clo.fn) rt_panic("this Future has no async body to run");
+    const kg_async_desc* d = (const kg_async_desc*)(void*)clo->u.clo.fn;
+    val env = clo->u.clo.env;
+    int ne = env ? (int)env->u.arr.len : 0;
+    int total = ne + n;
+    kgframe* f = calloc(1, sizeof(kgframe) + (size_t)(d->nslots + total) * sizeof(val));
+    if (!f) rt_panic("out of memory");
+    f->desc = d;
+    f->nargs = total;
+    f->args = f->slots + d->nslots;
+    int m = 0;
+    for (int i = 0; i < ne; i++) f->args[m++] = rt_retain(env->u.arr.items[i]);
+    for (int i = 0; i < n; i++) f->args[m++] = rt_retain(args[i]);
+    return opaque("Future", f);
+}
+static void frame_abandon(val fut) {
+    kgframe* f = frame_of(fut);
+    val a = f->awaited;
+    f->awaited = NULL;
+    rt_release(a);
+    if (f->state > 0 && f->desc->drop) f->desc->drop(fut);
+    f->state = -1;
+}
+static val poll_value(val v);
+static val poll_future(val fut) {
+    kgframe* f = frame_of(fut);
+    if (f->state < 0) rt_panic("a Future that already completed cannot be polled again");
+    return f->desc->poll(fut);
+}
+val rt_future_resume(val fut) {
+    kgframe* f = frame_of(fut);
+    if (g_cur_task && g_cur_task->cancel) {
+        frame_abandon(fut);
+        return KG_CANCELLED;
+    }
+    val r = poll_value(f->awaited);
+    if (!r) return NULL;
+    if (r == KG_CANCELLED) {
+        frame_abandon(fut);
+        return KG_CANCELLED;
+    }
+    val a = f->awaited;
+    f->awaited = NULL;
+    rt_release(a);
+    return r;
+}
+
+static int task_terminal(kgtask* t) { return t->state >= T_COMPLETED; }
+static void exec_push(kgexec* e, kgtask* t) {
+    if (t->queued) return;
+    t->queued = 1;
+    t->state = T_RUNNABLE;
+    if (e->head + e->len == e->cap) {
+        for (int i = 0; i < e->len; i++) e->q[i] = e->q[e->head + i];
+        e->head = 0;
+        if (e->len == e->cap) {
+            e->cap = e->cap ? e->cap * 2 : 8;
+            e->q = realloc(e->q, (size_t)e->cap * sizeof(kgtask*));
+            if (!e->q) rt_panic("out of memory");
+        }
+    }
+    e->q[e->head + e->len++] = t;
+}
+static kgtask* exec_pop(kgexec* e) {
+    if (e->len == 0) return NULL;
+    kgtask* t = e->q[e->head++];
+    if (--e->len == 0) e->head = 0;
+    t->queued = 0;
+    return t;
+}
+static void task_unref(kgtask* t) {
+    if (--t->refs > 0) return;
+    rt_release(t->fut);
+    rt_release(t->result);
+    free(t->kids);
+    free(t);
+}
+static void task_end(kgtask* t) {
+    val f = t->fut;
+    t->fut = NULL;
+    rt_release(f);
+    val r = t->result;
+    t->result = NULL;
+    rt_release(r);
+}
+// task_wake coalesces: it only marks the task runnable, never runs its code.
+static void task_wake(kgtask* t) {
+    if (task_terminal(t)) return;
+    t->notified = 1;
+    if (t->state == T_SUSPENDED) exec_push(t->ex, t);
+}
+static void task_request_cancel(kgtask* t) {
+    if (task_terminal(t) || t->cancel) return;
+    t->cancel = 1;
+    for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
+    task_wake(t);
+}
+static void task_finish_drain(kgtask* t) {
+    for (int i = 0; i < t->nkids; i++)
+        if (!task_terminal(t->kids[i])) {
+            t->state = T_SUSPENDED;
+            return;
+        }
+    t->state = t->ending;
+    t->draining = 0;
+    for (int i = 0; i < t->nkids; i++) {
+        task_end(t->kids[i]);
+        task_unref(t->kids[i]);
+    }
+    t->nkids = 0;
+    if (t->waiter) {
+        kgtask* w = t->waiter;
+        t->waiter = NULL;
+        task_wake(w);
+    }
+    if (t->parent && t->parent->draining) task_wake(t->parent);
+}
+// task_begin_finish cancels still-running kids; the terminal transition waits for all of them.
+static void task_begin_finish(kgtask* t, int end) {
+    t->ending = end;
+    t->draining = 1;
+    for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
+    task_finish_drain(t);
+}
+static void task_run(kgtask* t) {
+    if (task_terminal(t)) return;
+    if (t->draining) {
+        task_finish_drain(t);
+        return;
+    }
+    kgtask* prev = g_cur_task;
+    g_cur_task = t;
+    t->state = T_RUNNING;
+    t->notified = 0;
+    val r = poll_value(t->fut);
+    g_cur_task = prev;
+    if (!r) {
+        t->state = T_SUSPENDED;
+        if (t->notified) exec_push(t->ex, t);
+        return;
+    }
+    if (r == KG_CANCELLED) {
+        task_begin_finish(t, T_CANCELLED);
+        return;
+    }
+    t->result = r;
+    task_begin_finish(t, T_COMPLETED);
+}
+// Registers the waiter before reading target state, so a racing completion is still seen.
+static val poll_task(kgtask* t) {
+    if (!task_terminal(t)) {
+        t->waiter = g_cur_task;
+        return NULL;
+    }
+    t->waiter = NULL;
+    if (t->state == T_CANCELLED) return KG_CANCELLED;
+    if (t->state == T_FAULTED) rt_panic("the awaited task did not finish");
+    val r = t->result;
+    t->result = NULL;
     return r;
 }
 #ifndef KIGUMI_FREESTANDING
@@ -1350,12 +1546,65 @@ static val blocking_future_join(blocking_future* f) {
     return f->result;
 }
 #endif
-static val await_future(val fut) {
+static val poll_value(val v) {
+    val d = deref(v);
+    if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "Task")) return poll_task((kgtask*)d->u.op.data);
 #ifndef KIGUMI_FREESTANDING
-    if (!strcmp(fut->u.op.kind, "BlockingFuture")) return blocking_future_join((blocking_future*)fut->u.op.data);
+    if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "BlockingFuture")) return blocking_future_join((blocking_future*)d->u.op.data);
 #endif
-    return await_lazy(fut);
+    return poll_future(d);
 }
+val rt_executor_new(void) {
+    kgexec* e = calloc(1, sizeof *e);
+    if (!e) rt_panic("out of memory");
+    return opaque("Executor", e);
+}
+val rt_run_to_completion(val exv, val fut) {
+    if (g_cur_task) rt_panic("`Executor.runToCompletion` cannot run inside a task; `await` the future instead");
+    kgexec* e = (kgexec*)deref(exv)->u.op.data;
+    if (e->driving) rt_panic("this executor is already running a task tree");
+    e->driving = 1;
+    kgtask* root = calloc(1, sizeof *root);
+    if (!root) rt_panic("out of memory");
+    root->fut = fut;
+    root->ex = e;
+    root->refs = 1;
+    exec_push(e, root);
+    while (!task_terminal(root)) {
+        kgtask* t = exec_pop(e);
+        if (!t) rt_panic("every task on this executor is waiting for something that cannot happen");
+        task_run(t);
+    }
+    e->driving = 0;
+    if (root->state == T_CANCELLED) rt_panic("the root task was cancelled");
+    if (root->state == T_FAULTED) rt_panic("the root task did not finish");
+    val r = root->result;
+    root->result = NULL;
+    task_end(root);
+    task_unref(root);
+    return r;
+}
+val rt_task_spawn(val fut) {
+    if (!g_cur_task) rt_panic("`task.spawn` needs a running task; start one with `Executor.runToCompletion`");
+    kgtask* t = calloc(1, sizeof *t);
+    if (!t) rt_panic("out of memory");
+    t->fut = fut;
+    t->ex = g_cur_task->ex;
+    t->parent = g_cur_task;
+    t->cancel = g_cur_task->cancel;
+    t->refs = 2;
+    kgtask* p = g_cur_task;
+    if (p->nkids == p->capkids) {
+        p->capkids = p->capkids ? p->capkids * 2 : 4;
+        p->kids = realloc(p->kids, (size_t)p->capkids * sizeof(kgtask*));
+        if (!p->kids) rt_panic("out of memory");
+    }
+    p->kids[p->nkids++] = t;
+    exec_push(t->ex, t);
+    return opaque("Task", t);
+}
+void rt_task_cancel(val tv) { task_request_cancel((kgtask*)deref(tv)->u.op.data); }
+int rt_cancel_requested(void) { return g_cur_task && g_cur_task->cancel; }
 // A Shared cell's control block outlives the content for weak handles.
 // borrow is a RefCell-style dynamic borrow flag (0 free, -1 exclusive, >0
 // shared count), since Shared's receiver is a freely-copyable handle the
@@ -1379,7 +1628,17 @@ static void free_opaque(val v) {
     } else if (!strcmp(kind, "Weak")) {
         sctrl* c = d;
         if (--c->weak == 0 && !c->alive) free(c);
-    } else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "Future") || !strcmp(kind, "Task") || !strcmp(kind, "UnsafeCell")) rt_release((val)d);
+    } else if (!strcmp(kind, "Future")) {
+        kgframe* f = (kgframe*)d;
+        frame_abandon(v);
+        for (int i = 0; i < f->nargs; i++) rt_release(f->args[i]);
+        free(f);
+    } else if (!strcmp(kind, "Task")) task_unref((kgtask*)d);
+    else if (!strcmp(kind, "Executor")) {
+        kgexec* e = (kgexec*)d;
+        free(e->q);
+        free(e);
+    } else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "UnsafeCell")) rt_release((val)d);
     else if (!strcmp(kind, "AllocGuard")) {
         g_alloc_sp--;
         rt_release((val)d);
@@ -1534,12 +1793,6 @@ val rt_builtin(const char* name, int n, val* args) {
     if (!strcmp(name, "iter.at")) return iter_at(args[0], deref(args[1]), 0);
     if (!strcmp(name, "iter.at_ref")) return iter_at(args[0], deref(args[1]), 1);
     if (!strcmp(name, "iter.at_move")) return iter_at(args[0], deref(args[1]), 2);
-    if (!strcmp(name, "future")) {
-        val arr = rt_array(n, args);
-        for (int i = 0; i < n; i++) rt_retain(args[i]);
-        return opaque("Future", arr);
-    }
-    if (!strcmp(name, "await")) return await_future(deref(args[0]));
     if (!strcmp(name, "alloc.push")) {
         val scope = deref(args[0]);
         if (g_alloc_sp + 1 >= 64) rt_panic("allocator blocks nested too deeply");
@@ -1735,10 +1988,10 @@ enum std_op {
     OP_PIN_RECLAIM,
     OP_FFI_STRING,
     OP_FFI_STRING_CHECKED,
-    OP_TASK_LOCAL,
-    OP_EXECUTOR_RUN,
-    OP_EXECUTOR_SPAWN,
-    OP_TASK_JOIN,
+    OP_TASK_CURRENT_EXECUTOR,
+    OP_EXECUTOR_RUN_TO_COMPLETION,
+    OP_TASK_SPAWN,
+    OP_TASK_CANCEL,
     OP_ARENA_CREATE,
     OP_ALLOCATOR_SCOPE,
     OP_ALLOCATOR_ALLOCATED,
@@ -1791,6 +2044,7 @@ enum std_op {
     OP_HANDLE_RAW,
     OP_HANDLE_DROP,
     OP_WITH_ADDRESS,
+    OP_TASK_CANCEL_REQUESTED,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -1860,10 +2114,11 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "ffi.string")) return OP_FFI_STRING;
     if (!strcmp(k, "ffi.stringChecked")) return OP_FFI_STRING_CHECKED;
     if (!strcmp(k, "ffi.stringLossy")) return OP_FFI_STRING_LOSSY;
-    if (!strcmp(k, "task.local")) return OP_TASK_LOCAL;
-    if (!strcmp(k, "task.Executor.run")) return OP_EXECUTOR_RUN;
-    if (!strcmp(k, "task.Executor.spawn")) return OP_EXECUTOR_SPAWN;
-    if (!strcmp(k, "task.Task.join")) return OP_TASK_JOIN;
+    if (!strcmp(k, "task.currentThreadExecutor")) return OP_TASK_CURRENT_EXECUTOR;
+    if (!strcmp(k, "task.Executor.runToCompletion")) return OP_EXECUTOR_RUN_TO_COMPLETION;
+    if (!strcmp(k, "task.spawn")) return OP_TASK_SPAWN;
+    if (!strcmp(k, "task.Task.cancel")) return OP_TASK_CANCEL;
+    if (!strcmp(k, "task.cancelRequested")) return OP_TASK_CANCEL_REQUESTED;
     if (!strcmp(k, "alloc.Arena.create")) return OP_ARENA_CREATE;
     if (!strcmp(k, "alloc.AllocatorHandle.scope")) return OP_ALLOCATOR_SCOPE;
     if (!strcmp(k, "alloc.AllocatorHandle.allocated")) return OP_ALLOCATOR_ALLOCATED;
@@ -2366,10 +2621,11 @@ val rt_std_id(int op, int n, val* a) {
         return some(strdup_val(s, len));
     }
     // task / alloc / net
-    case OP_TASK_LOCAL: return opaque("Executor", NULL);
-    case OP_EXECUTOR_RUN: return await_future(a1);
-    case OP_EXECUTOR_SPAWN: return opaque("Task", rt_retain(a1));
-    case OP_TASK_JOIN: return await_future((val)a0->u.op.data);
+    case OP_TASK_CURRENT_EXECUTOR: return rt_executor_new();
+    case OP_EXECUTOR_RUN_TO_COMPLETION: return rt_run_to_completion(a0, rt_retain(a1));
+    case OP_TASK_SPAWN: return rt_task_spawn(rt_retain(a0));
+    case OP_TASK_CANCEL: rt_task_cancel(a0); return rt_unit();
+    case OP_TASK_CANCEL_REQUESTED: return rt_bool(rt_cancel_requested());
     case OP_ARENA_CREATE: {
         arena* ar = (arena_fault_injected() || fault_tick()) ? NULL : calloc(1, sizeof *ar);
         if (!ar) return alloc_error();

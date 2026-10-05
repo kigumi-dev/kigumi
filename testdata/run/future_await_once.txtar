@@ -14,8 +14,8 @@ async fn total(a: Int, b: Int) -> Int {
     x + y
 }
 
-let ex = task.local()
-print "sum=${ex.run(total(3, 4))}"
+let ex = task.currentThreadExecutor()
+print "sum=${ex.runToCompletion(total(3, 4))}"
 -- stdout --
 work 3
 work 4

@@ -303,6 +303,17 @@
       ]
     },
     {
+      "id": "mir/borrow_across_await",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_across_await.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/borrow_capture_move",
       "kind": "mir",
       "path": "testdata/mir/borrow_capture_move.txtar",
@@ -1527,6 +1538,57 @@
       ]
     },
     {
+      "id": "run/async_await_shapes",
+      "kind": "run",
+      "path": "testdata/run/async_await_shapes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_cancel_await",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_await.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_cancel_check",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_check.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_fn_value",
       "kind": "run",
       "path": "testdata/run/async_fn_value.txtar",
@@ -1547,6 +1609,61 @@
       "id": "run/async_method",
       "kind": "run",
       "path": "testdata/run/async_method.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_parent_exit",
+      "kind": "run",
+      "path": "testdata/run/async_parent_exit.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_root_bridge_dynamic",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_spawn_order",
+      "kind": "run",
+      "path": "testdata/run/async_spawn_order.txtar",
       "mode": [
         "vm",
         "native"
@@ -6435,6 +6552,17 @@
       "id": "sem/async_fn_value",
       "kind": "sem",
       "path": "testdata/sem/async_fn_value.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge.txtar",
       "mode": [
         "check"
       ],

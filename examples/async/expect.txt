@@ -4,3 +4,4 @@ fetching grace
 total 80
 fetching linus
 background 50
+sum 130

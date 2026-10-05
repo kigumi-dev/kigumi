@@ -1,20 +1,23 @@
-/// Runs futures on the calling thread, one at a time.
+/// Runs tasks on the calling thread, one at a time.
 pub type Executor
 
-/// A future handed to an executor; join it to get its result.
+/// A running task; await it for its result.
 pub type Task[T]
 
-/// The executor of the current thread.
-pub fn local() -> Executor
+/// An executor that drives tasks on the thread calling it.
+pub fn currentThreadExecutor() -> Executor
 
-/// Runs the future to completion and returns its result.
-pub fn Executor.run[T](self, future: Future[T]) -> T
+/// Drives the future, and everything it spawns, to a terminal state.
+pub fn Executor.runToCompletion[T](self, future: Future[T]) -> T
 
-/// Queues the future; it runs when the task is joined.
-pub fn Executor.spawn[T](self, future: Future[T]) -> Task[T]
+/// Starts the future as a child of the running task.
+pub fn spawn[T](future: Future[T]) -> Task[T]
 
-/// Waits for the task and returns its result.
-pub fn Task[T].join(move self) -> T
+/// Asks the task to stop at its next suspension point.
+pub fn Task[T].cancel(self) -> Unit
+
+/// Whether the running task has been asked to stop.
+pub fn cancelRequested() -> Bool
 
 /// A bounded, root-owned boundary for running direct-blocking work from an async body instead of calling it bare.
 pub type BlockingPool

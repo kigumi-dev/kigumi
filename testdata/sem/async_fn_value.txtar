@@ -33,5 +33,5 @@ error[E925]: `await` is only allowed inside an `async fn`
    |
 16 |     let x = await p //~ ERROR `await` is only allowed inside an `async fn`
    |             ^^^^^^^
-   = help: use `task.local().run(...)` elsewhere
+   = help: use `task.currentThreadExecutor().runToCompletion(...)` elsewhere
 

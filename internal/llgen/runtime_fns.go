@@ -78,6 +78,15 @@ var (
 	rtCstr         = RuntimeFn{"rt_cstr", []Type{TPtr}, TPtr}
 	rtFromCstr     = RuntimeFn{"rt_from_cstr", []Type{TPtr}, TPtr}
 	rtErrorAs      = RuntimeFn{"rt_error_as", []Type{TPtr, TPtr, TPtr, TI64}, TPtr}
+
+	rtFutureNew      = RuntimeFn{"rt_future_new", []Type{TPtr, TI32, TPtr}, TPtr}
+	rtFutureSlots    = RuntimeFn{"rt_future_slots", []Type{TPtr}, TPtr}
+	rtFutureState    = RuntimeFn{"rt_future_state", []Type{TPtr}, TI32}
+	rtFutureArg      = RuntimeFn{"rt_future_arg", []Type{TPtr, TI64}, TPtr}
+	rtFutureStarted  = RuntimeFn{"rt_future_started", []Type{TPtr}, TVoid}
+	rtFutureSuspend  = RuntimeFn{"rt_future_suspend", []Type{TPtr, TI32, TPtr}, TVoid}
+	rtFutureResume   = RuntimeFn{"rt_future_resume", []Type{TPtr}, TPtr}
+	rtFutureComplete = RuntimeFn{"rt_future_complete", []Type{TPtr, TPtr}, TPtr}
 )
 
 // runtimeFns lists every RuntimeFn above in `declare` order: the single
@@ -91,6 +100,8 @@ var runtimeFns = []RuntimeFn{
 	rtClosure, rtClosureAsync, rtFnItemInit, rtCell, rtCellget, rtCellset, rtBoxReplace, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
+	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,
+	rtFutureSuspend, rtFutureResume, rtFutureComplete,
 }
 
 // renderExterns renders the `declare` list, one line per RuntimeFn in

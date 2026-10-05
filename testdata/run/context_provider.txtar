@@ -32,8 +32,8 @@ context (stdio.hostStdio(host)) {
     let future = writeLineAsync("outer-future")
     context (Prefixed { stdout: PrefixedWriter { tag: "[inner] " } }) {
         _ = stdout.write("inner-1\n".toBytes())?
-        let ex = task.local()
-        _ = ex.run(future)?
+        let ex = task.currentThreadExecutor()
+        _ = ex.runToCompletion(future)?
     }
     _ = stdout.write("outer-2\n".toBytes())?
 }

@@ -70,6 +70,9 @@ func (r *Result) declareFn(id EntityID) {
 	case mods&EffAsync != 0 && mods&EffNoalloc != 0:
 		r.errAt(f, e.Node, cUnsupportedAsync)
 	}
+	if info.Export != "" && mods&EffAsync != 0 {
+		r.errAt(f, e.Node, cExportAsync, e.Name)
+	}
 	if info.Abi != "" && mods&(EffPure|EffNoalloc|EffAsync) != 0 {
 		r.errAt(f, e.Node, cForeignMods, effectsText(mods&(EffPure|EffNoalloc|EffAsync)))
 	}

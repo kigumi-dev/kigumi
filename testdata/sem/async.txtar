@@ -16,7 +16,7 @@ fn sync() -> Int {
 }
 
 async fn wrong() -> Int {
-    await 3 //~ ERROR `await` needs a `Future[T]`, found `{integer}`
+    await 3 //~ ERROR `await` needs a `Future[T]` or a `Task[T]`, found `{integer}`
 }
 
 type Box = {
@@ -44,12 +44,12 @@ error[E925]: `await` is only allowed inside an `async fn`
    |
 13 |     let m = await f //~ ERROR `await` is only allowed inside an `async fn`
    |             ^^^^^^^
-   = help: use `task.local().run(...)` elsewhere
+   = help: use `task.currentThreadExecutor().runToCompletion(...)` elsewhere
 
-error[E926]: `await` needs a `Future[T]`, found `{integer}`
+error[E926]: `await` needs a `Future[T]` or a `Task[T]`, found `{integer}`
   --> app/t/t.kg:18:5
    |
-18 |     await 3 //~ ERROR `await` needs a `Future[T]`, found `{integer}`
+18 |     await 3 //~ ERROR `await` needs a `Future[T]` or a `Task[T]`, found `{integer}`
    |     ^^^^^^^
 
 error[E400]: expected `Int`, found `Future[Int]`

@@ -23,11 +23,8 @@ func (c *borrowCheck) checkCapture(in Inst) {
 				c.report(in.Node, a, "borrow-escape", "a borrow cannot be stored")
 			}
 		}
-	case OpBuiltin:
+	case OpFutureNew:
 		// Same holder-record exception, for a future's own captures.
-		if in.Str != "future" {
-			return
-		}
 		if _, ok := c.holders[in.Dst]; ok {
 			return
 		}

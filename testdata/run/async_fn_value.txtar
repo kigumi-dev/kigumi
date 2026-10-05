@@ -28,8 +28,8 @@ async fn driver() -> Int {
     a + b
 }
 
-let ex = task.local()
-print "${ex.run(driver())}"
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(driver())}"
 -- stdout --
 fetch 5
 job 3

@@ -46,9 +46,13 @@ type FnInfo struct {
 	Declared   Effects
 	Summary    EffectSummary
 	Ops        OpSummary
-	Edges      []EffectEdge
-	Body       syntax.NodeID
-	Abi        string
+	// Mobility and BoundBy classify an async fn's Future once the frame
+	// layout is known; BoundBy names the first type that pins it.
+	Mobility Mobility
+	BoundBy  string
+	Edges    []EffectEdge
+	Body     syntax.NodeID
+	Abi      string
 	// Export names the C ABI a function with a body is exported under.
 	Export string
 	// Naked marks an export(C, naked) function: its body is one asm block

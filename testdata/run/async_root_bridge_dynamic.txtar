@@ -1,0 +1,38 @@
+-- src --
+import task from std/task
+
+interface Driver {
+    fn drive(self) -> Int
+}
+
+type Direct = {
+    pub n Int
+}
+
+async fn leaf(n: Int) -> Int {
+    n
+}
+
+fn Direct.drive(self) -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(leaf(self.n))
+}
+
+fn callDyn(d: Driver) -> Int {
+    d.drive()
+}
+
+async fn outer() -> Int {
+    let d: Driver = Direct { n: 7 }
+    callDyn(d)
+}
+
+print "start"
+let ex = task.currentThreadExecutor()
+print "got ${ex.runToCompletion(outer())}"
+-- stdout --
+start
+-- stderr --
+panic: `Executor.runToCompletion` cannot run inside a task; `await` the future instead
+-- exit --
+2

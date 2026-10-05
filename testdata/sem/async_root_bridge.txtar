@@ -1,0 +1,180 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn inner() -> Int {
+    0
+}
+
+async fn nestedRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(inner()) //~ ERROR cannot run inside an `async fn`
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(inner())
+}
+
+fn bridgeHop() -> Int {
+    syncRoot()
+}
+
+async fn indirectRoot() -> Int {
+    bridgeHop() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn closureRoot() -> Int {
+    let drive = () => syncRoot()
+    drive() //~ ERROR cannot run inside an `async fn`
+}
+
+fn hopA(n: Int) -> Int {
+    if n <= 0 { syncRoot() } else { hopB(n - 1) }
+}
+
+fn hopB(n: Int) -> Int {
+    hopA(n - 1)
+}
+
+async fn recursiveRoot() -> Int {
+    hopA(3) //~ ERROR cannot run inside an `async fn`
+}
+
+fn forward(cb: fn() -> Int) -> Int {
+    cb()
+}
+
+async fn paramRoot(cb: fn() -> Int) -> Int {
+    forward(cb) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn paramDirect(cb: fn() -> Int) -> Int {
+    cb() //~ ERROR cannot run inside an `async fn`
+}
+
+type Holder = {
+    cb fn() -> Int
+}
+
+fn callField(h: Holder) -> Int {
+    h.cb()
+}
+
+async fn fieldRoot(h: Holder) -> Int {
+    callField(h)
+}
+
+fn supply() -> Int {
+    let ex = task.currentThreadExecutor()
+    let a = ex.runToCompletion(paramRoot(syncRoot))
+    let ex2 = task.currentThreadExecutor()
+    let b = ex2.runToCompletion(paramDirect(syncRoot))
+    let ex3 = task.currentThreadExecutor()
+    a + b + ex3.runToCompletion(fieldRoot(Holder { cb: syncRoot }))
+}
+
+export(C) {
+    async fn ping() -> Int { //~ ERROR exported to C and cannot be `async`
+        1
+    }
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+ --> app/t/t.kg:9:5
+  |
+9 |     ex.runToCompletion(inner()) //~ ERROR cannot run inside an `async fn`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: `await` the future instead
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:22:5
+   |
+22 |     bridgeHop() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^
+   = help: `await` the future instead
+note: calls `syncRoot`
+  --> app/t/t.kg:18:5
+   |
+18 |     syncRoot()
+   |     ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:14:5
+   |
+14 |     ex.runToCompletion(inner())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:27:5
+   |
+27 |     drive() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^
+   = help: `await` the future instead
+note: calls `syncRoot`
+  --> app/t/t.kg:26:23
+   |
+26 |     let drive = () => syncRoot()
+   |                       ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:14:5
+   |
+14 |     ex.runToCompletion(inner())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:39:5
+   |
+39 |     hopA(3) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^
+   = help: `await` the future instead
+note: calls `syncRoot`
+  --> app/t/t.kg:31:17
+   |
+31 |     if n <= 0 { syncRoot() } else { hopB(n - 1) }
+   |                 ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:14:5
+   |
+14 |     ex.runToCompletion(inner())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:47:13
+   |
+47 |     forward(cb) //~ ERROR cannot run inside an `async fn`
+   |             ^^
+   = help: `await` the future instead
+note: `syncRoot` is bound to `cb` here
+  --> app/t/t.kg:68:42
+   |
+68 |     let a = ex.runToCompletion(paramRoot(syncRoot))
+   |                                          ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:14:5
+   |
+14 |     ex.runToCompletion(inner())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:51:5
+   |
+51 |     cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^
+   = help: `await` the future instead
+note: `syncRoot` is bound to `cb` here
+  --> app/t/t.kg:70:45
+   |
+70 |     let b = ex2.runToCompletion(paramDirect(syncRoot))
+   |                                             ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:14:5
+   |
+14 |     ex.runToCompletion(inner())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1292]: `ping` is exported to C and cannot be `async`: a C caller has no executor to drive the Future
+  --> app/t/t.kg:76:11
+   |
+76 |     async fn ping() -> Int { //~ ERROR exported to C and cannot be `async`
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: export a synchronous wrapper that runs it to completion
+

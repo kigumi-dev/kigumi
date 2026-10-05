@@ -1,0 +1,41 @@
+-- src --
+import task from std/task
+
+async fn twice(n: Int) -> Int {
+    n * 2
+}
+
+async fn loopSum(n: Int) -> Int {
+    let mut total = 0
+    for i in 0..n {
+        total = total + await twice(i)
+    }
+    total
+}
+
+async fn nested(n: Int) -> Int {
+    let base = {
+        let inner = await twice(n)
+        inner + 1
+    }
+    match base {
+        1 -> await twice(100)
+        _ -> {
+            let other = await twice(base)
+            other + base
+        }
+    }
+}
+
+async fn root() -> Int {
+    let a = await loopSum(4)
+    let b = await nested(3)
+    print "loop ${a} nested ${b}"
+    a + b
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+loop 12 nested 21
+total 33

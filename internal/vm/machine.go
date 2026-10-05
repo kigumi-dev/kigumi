@@ -81,10 +81,12 @@ type Machine struct {
 	// nearest non-std caller from it as a step's provenance.
 	stack        []*mir.Func
 	steps, depth int
-	mem          int64
-	faultN       int64
-	graph        *buildgraph.Graph
-	sigWatch     map[string]chan os.Signal
+	// cur is the task whose body is running, for spawn and cancellation.
+	cur      *task
+	mem      int64
+	faultN   int64
+	graph    *buildgraph.Graph
+	sigWatch map[string]chan os.Signal
 }
 
 // Run executes the program's entry and returns its exit code: 0, 1 for a

@@ -14,7 +14,7 @@ func PlanRC(p *Program) error {
 	for _, f := range p.allFuncs() {
 		p.planRCFunc(f)
 	}
-	return nil
+	return planAsync(p)
 }
 
 // rcState is the working memory PlanRC threads across one function's

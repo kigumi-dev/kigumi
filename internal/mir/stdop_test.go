@@ -40,7 +40,7 @@ func TestResolveStdOpKind(t *testing.T) {
 		{"crypto/subtle.constantTimeEq", KindPrimitive},
 		{"os.Host.files", KindProvider},
 		{"net.Net.http", KindProvider},
-		{"task.Executor.run", KindProvider},
+		{"task.Executor.runToCompletion", KindProvider},
 		{"ffi.Pin.new", KindProvider},
 		{"dl.Symbol.call", KindProvider},
 		{"build.Builder.request", KindProvider},

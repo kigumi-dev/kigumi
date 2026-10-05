@@ -102,7 +102,7 @@ func (c *borrowCheck) collect() {
 							changed = true
 						}
 					}
-				case OpRecord, OpCall, OpCallValue, OpBuiltin:
+				case OpRecord, OpCall, OpCallValue, OpBuiltin, OpFutureNew:
 					if _, has := c.holders[in.Dst]; !has {
 						if src, ok := c.lifetimeSource(in); ok {
 							c.holders[in.Dst] = src
@@ -149,7 +149,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		in := blk.Insts[i]
 		c.checkInst(in, intersect(live, before[i]))
-		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet {
+		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet && in.Op != OpFutureDone {
 			delete(live, in.Dst)
 		}
 		for _, a := range uses(in) {
@@ -164,6 +164,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 // owner whose borrow outlives this instruction.
 func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 	c.checkCapture(in)
+	c.checkSuspend(in, liveAfter)
 	for holder := range liveAfter {
 		b := c.holders[holder]
 		if !b.hasOwner || holder == in.Dst {

@@ -56,7 +56,7 @@ type loopCtx struct {
 }
 
 func (p *Program) build(hf *hir.Func) *Func {
-	f := &Func{Name: p.funcName(hf.Ent), Ent: hf.Ent, File: hf.File, Ret: hf.Ret}
+	f := &Func{Name: p.funcName(hf.Ent), Ent: hf.Ent, File: hf.File, Ret: hf.Ret, Async: p.isAsyncBody(hf.Ent)}
 	b := &builder{p: p, r: p.R, fn: f, locals: map[sem.EntityID]LocalID{}, shared: map[LocalID]bool{}, ret: hf.Ret}
 	b.newBlock()
 	b.pushScope()

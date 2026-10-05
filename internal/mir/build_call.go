@@ -19,8 +19,8 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		args := append([]LocalID{recv}, rest...)
 		if e.Async {
 			args = append(args, b.ctxArgs(e)...)
-			fnv := b.emit(Inst{Op: OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Node: n})
-			return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: "future", Args: append([]LocalID{fnv}, args...), Node: n})
+			fnv := b.emit(Inst{Op: OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Async: true, Node: n})
+			return b.emit(Inst{Op: OpFutureNew, Dst: b.temp(t), Args: append([]LocalID{fnv}, args...), Node: n})
 		}
 		if e.Witness != 0 {
 			args = append(args, b.ctxArgs(e)...)
@@ -45,8 +45,8 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		args := b.args(e, e.Args, e.EvalOrder, !e.Async, !e.Async, e.Ent)
 		if e.Async {
 			args = append(args, b.ctxArgs(e)...)
-			fnv := b.emit(Inst{Op: OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Node: n})
-			return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: "future", Args: append([]LocalID{fnv}, args...), Node: n})
+			fnv := b.emit(Inst{Op: OpFnItem, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Async: true, Node: n})
+			return b.emit(Inst{Op: OpFutureNew, Dst: b.temp(t), Args: append([]LocalID{fnv}, args...), Node: n})
 		}
 		args = append(args, b.witnessArgs(e.Passes, n)...)
 		args = append(args, b.constArgs(e.ConstArgs, n)...)

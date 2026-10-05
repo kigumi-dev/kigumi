@@ -3,6 +3,8 @@ package mir
 import (
 	"fmt"
 	"strings"
+
+	"kigumi/internal/sem"
 )
 
 // Dump renders the program for golden tests.
@@ -15,6 +17,9 @@ func (p *Program) Dump() string {
 }
 
 func (p *Program) dumpFunc(sb *strings.Builder, f *Func) {
+	if f.Async {
+		sb.WriteString("async ")
+	}
 	fmt.Fprintf(sb, "fn %s(", f.Name)
 	for i, prm := range f.Params {
 		if i > 0 {
@@ -22,7 +27,11 @@ func (p *Program) dumpFunc(sb *strings.Builder, f *Func) {
 		}
 		fmt.Fprintf(sb, "%%%s: %s", f.Locals[prm].Name, p.R.TypeString(f.Locals[prm].Type))
 	}
-	fmt.Fprintf(sb, ") -> %s {\n", p.R.TypeString(f.Ret))
+	fmt.Fprintf(sb, ") -> %s ", p.R.TypeString(f.Ret))
+	if f.Async && f.Slot != nil {
+		fmt.Fprintf(sb, "[suspends %d, frame %d, %s] ", f.Suspends, f.Frame, p.mobility(f))
+	}
+	sb.WriteString("{\n")
 	for bid, blk := range f.Blocks {
 		fmt.Fprintf(sb, "  b%d:\n", bid)
 		for _, in := range blk.Insts {
@@ -127,4 +136,19 @@ func (p *Program) term(f *Func, t Term) string {
 		return "unreachable"
 	}
 	return "<no terminator>"
+}
+
+// mobility names how a Future's state may move, as classifyMobility left it.
+func (p *Program) mobility(f *Func) string {
+	if e := p.R.Entity(f.Ent); e.Kind != sem.EntFn {
+		return "unknown"
+	}
+	info := p.R.Fn(f.Ent)
+	if info.BoundBy != "" {
+		return info.Mobility.String() + " by " + info.BoundBy
+	}
+	if s := info.Mobility.String(); s != "" {
+		return s
+	}
+	return "unknown"
 }

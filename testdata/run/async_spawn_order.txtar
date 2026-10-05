@@ -1,0 +1,52 @@
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    print "leaf ${n}"
+    n * 10
+}
+
+async fn child(n: Int) -> Int {
+    print "child start ${n}"
+    let v = await leaf(n)
+    print "child end ${n}"
+    v
+}
+
+// A spawn inside an awaited helper joins the running task's executor, not
+// one of its own.
+async fn helper() -> Unit {
+    let deep = task.spawn(child(3))
+    print "helper spawned"
+    let v = await deep
+    print "helper got ${v}"
+}
+
+async fn root() -> Int {
+    let a = task.spawn(child(1))
+    let b = task.spawn(child(2))
+    print "spawned"
+    await helper()
+    let x = await a
+    print "root got ${x}"
+    let y = await b
+    x + y
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+spawned
+helper spawned
+child start 1
+leaf 1
+child end 1
+child start 2
+leaf 2
+child end 2
+child start 3
+leaf 3
+child end 3
+helper got 30
+root got 10
+total 30

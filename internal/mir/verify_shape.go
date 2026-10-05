@@ -58,6 +58,9 @@ var shapes = map[Opcode]shape{
 	OpBoxReplace: {2, 2, false, false, false, false},
 	OpGlobalGet:  {0, 0, true, true, false, false},
 	OpGlobalSet:  {1, 1, false, true, false, false},
+	OpFutureNew:  {1, -1, true, false, false, false},
+	OpAwait:      {1, 1, true, false, false, false},
+	OpFutureDone: {1, 1, false, false, false, false},
 }
 
 // Yields reports whether an opcode defines its destination.

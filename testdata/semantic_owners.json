@@ -8641,7 +8641,7 @@
     "status": "ok"
   },
   {
-    "key": "task.Executor.run",
+    "key": "task.Executor.runToCompletion",
     "signature": "fn(Future[T]) -\u003e T",
     "has_body": false,
     "kind": "provider",
@@ -8651,8 +8651,8 @@
     "status": "ok"
   },
   {
-    "key": "task.Executor.spawn",
-    "signature": "fn(Future[T]) -\u003e Task[T]",
+    "key": "task.Task.cancel",
+    "signature": "fn() -\u003e Unit",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -8661,8 +8661,8 @@
     "status": "ok"
   },
   {
-    "key": "task.Task.join",
-    "signature": "fn() -\u003e T",
+    "key": "task.cancelRequested",
+    "signature": "fn() -\u003e Bool",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -8671,8 +8671,18 @@
     "status": "ok"
   },
   {
-    "key": "task.local",
+    "key": "task.currentThreadExecutor",
     "signature": "fn() -\u003e Executor",
+    "has_body": false,
+    "kind": "provider",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "task.spawn",
+    "signature": "fn(Future[T]) -\u003e Task[T]",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -8892,7 +8902,7 @@
   },
   {
     "key": "text.parseUint",
-    "signature": "pure fn(String) -\u003e u64?",
+    "signature": "pure fn(String, usize) -\u003e u64?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8902,7 +8912,7 @@
   },
   {
     "key": "text.parseUint",
-    "signature": "pure fn(String, usize) -\u003e u64?",
+    "signature": "pure fn(String) -\u003e u64?",
     "has_body": true,
     "kind": "",
     "vm": "gap",

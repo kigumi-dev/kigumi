@@ -59,6 +59,9 @@ const (
 	OpBoxReplace                   // Args[0]'s boxed value becomes Args[1]'s, in place; the old value ends up owned by Args[1] and is dropped
 	OpGlobalGet                    // Dst = value of static Ent
 	OpGlobalSet                    // static Ent = Args[0]
+	OpFutureNew                    // Dst = Future running async callee Args[0] on Args[1:]
+	OpAwait                        // Dst = result of Args[0]; Index is the suspension point
+	OpFutureDone                   // Args[0] completes the enclosing async body
 )
 
 // Inst is one instruction; the fields used depend on Op.
@@ -137,6 +140,15 @@ type Func struct {
 	// list returns a bare Unit standing for Ok(()), unlike every other
 	// return of a fallible-Unit function, which must carry a real Ok.
 	ImplicitOk bool
+	// Async marks a body that runs as a resumable state machine: Suspends
+	// counts its points, Slot places a local in the Frame slots (-1: none).
+	Async    bool
+	Suspends int
+	Slot     []int
+	Frame    int
+	// Cleanup lists, per suspension point, the frame slots an abandoned
+	// body releases, innermost binding first.
+	Cleanup [][]LocalID
 }
 
 type Program struct {
@@ -162,6 +174,7 @@ var opNames = [...]string{
 	OpNewCell: "newcell", OpCellGet: "cellget", OpCellSet: "cellset", OpInterp: "interp",
 	OpShell: "shell", OpDrop: "drop", OpAlias: "alias", OpShare: "share", OpRelease: "release", OpPanic: "panic", OpNop: "nop",
 	OpBoxReplace: "boxreplace", OpGlobalGet: "globalget", OpGlobalSet: "globalset",
+	OpFutureNew: "future", OpAwait: "await", OpFutureDone: "complete",
 }
 
 func (o Opcode) String() string { return opNames[o] }

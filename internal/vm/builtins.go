@@ -37,9 +37,6 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 	case "alloc.push":
 		// The VM allocates from Go; an `allocator` block only scopes.
 		return mkOpaque("AllocatorScope", nil)
-	case "future", "await":
-		r, _ := m.asyncBuiltin(name, args)
-		return r
 	case "iter.len":
 		it := deref(args[0])
 		switch it.k {

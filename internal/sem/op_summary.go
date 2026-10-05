@@ -32,7 +32,27 @@ func (f OpFact) String() string {
 
 // OpSummarySchemaVersion bumps when the artifact encoding changes shape; an
 // unrecognized version reads back as fully unknown, not as "no operations".
-const OpSummarySchemaVersion = 1
+const OpSummarySchemaVersion = 2
+
+// Mobility says whether a Future's state may move between workers: all
+// Send is migratable, anything else stays on its task's executor.
+type Mobility uint8
+
+const (
+	MobilityUnknown Mobility = iota
+	MobilityMigratable
+	MobilityExecutorBound
+)
+
+func (m Mobility) String() string {
+	switch m {
+	case MobilityMigratable:
+		return "migratable"
+	case MobilityExecutorBound:
+		return "executorBound"
+	}
+	return ""
+}
 
 // OpCause is the first-cause reason behind one fact's Maybe bit: a concrete
 // edge, or Unknown for a dynamic target or an untrusted bodiless callee.

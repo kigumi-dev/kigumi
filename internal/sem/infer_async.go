@@ -2,7 +2,15 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// Both back ends run the future's body at this point.
+// taskEntity is std/task's `Task`, the second operand `await` accepts.
+func (r *Result) taskEntity() EntityID {
+	pkg, ok := r.pathIndex["std/task"]
+	if !ok {
+		return 0
+	}
+	return r.Scopes[r.Packages[pkg].Scope].Names["Task"].Ent
+}
+
 func (c *checker) synthAwait(n syntax.NodeID) TypeID {
 	c.dropUnstableFacts()
 	t := c.vars.resolve(c.synth(syntax.NodeID(c.t.Nodes[n].Lhs)))
@@ -16,7 +24,8 @@ func (c *checker) synthAwait(n syntax.NodeID) TypeID {
 	if t == TyPoison {
 		return TyPoison
 	}
-	if node := c.r.Types.Node(t); node.Kind == KNamed && node.Ent == c.r.Types.futureEnt {
+	if node := c.r.Types.Node(t); node.Kind == KNamed && len(node.Args) == 1 &&
+		(node.Ent == c.r.Types.futureEnt || node.Ent == c.r.taskEntity()) {
 		return node.Args[0]
 	}
 	c.errAt(n, cAwaitNotFuture, c.r.TypeString(t))

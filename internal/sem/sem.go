@@ -118,6 +118,7 @@ func check(mod *Module) *Result {
 	r.checkContextRequirements()
 	r.checkInterruptHandlers()
 	r.checkAsyncDirectBlocking()
+	r.checkRootBridges()
 	r.checkNomono()
 	r.reportUnused()
 	r.emit()
