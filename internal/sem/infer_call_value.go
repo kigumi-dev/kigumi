@@ -2,7 +2,7 @@ package sem
 
 import "kigumi/internal/syntax"
 
-func (c *checker) callValue(n syntax.NodeID, ft TypeID, args []syntax.NodeID, want TypeID) TypeID {
+func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.NodeID, want TypeID) TypeID {
 	tt := c.r.Types
 	if ft == TyPoison {
 		c.synthArgs(args)
@@ -37,6 +37,9 @@ func (c *checker) callValue(n syntax.NodeID, ft TypeID, args []syntax.NodeID, wa
 		c.edge(EffectEdge{Kind: EdgeCall, Target: closure, Node: n})
 	} else {
 		c.callbackEdge(n, Effects(node.Flags), 0, false)
+		for _, tgt := range c.knownCallTargets(callee) {
+			c.edge(EffectEdge{Kind: EdgeKnownCall, Target: tgt, Node: n})
+		}
 	}
 	if node.Flags&uint16(EffUnsafe) != 0 && c.unsafe == 0 {
 		c.errAt(n, cUnsafeRequired, "calling an `unsafe fn` value")

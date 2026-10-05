@@ -1,0 +1,34 @@
+-- app/t/t.kg --
+import {cancellation} from std/task
+
+// Reading `cancellation` needs no `context (...)` provider and no public
+// visibility leak, in a plain fn, an async fn, or a closure.
+fn plainCheck() -> Bool {
+    cancellation
+}
+
+async fn asyncCheck() -> Bool {
+    cancellation
+}
+
+pub fn publicCheck() -> Bool {
+    cancellation
+}
+
+fn closureCheck() -> Bool {
+    let f = () => cancellation
+    f()
+}
+
+@provides(cancellation) //~ ERROR cannot be supplied by `@provides`
+type Bad = {
+    pub cancellation Bool
+}
+-- expect --
+error[E1440]: `cancellation` is bound by the task runtime at every suspension point and cannot be supplied by `@provides`
+  --> app/t/t.kg:22:11
+   |
+22 | @provides(cancellation) //~ ERROR cannot be supplied by `@provides`
+   |           ^^^^^^^^^^^^
+   = help: read it directly instead
+

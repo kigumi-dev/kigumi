@@ -94,6 +94,10 @@ func (c *checker) letStmt(n syntax.NodeID) {
 				c.letInit = map[EntityID]syntax.NodeID{}
 			}
 			c.letInit[c.info.Defs[s.Pattern]] = s.Init
+			if w, ok := c.info.CoerceWitness[s.Init]; ok {
+				c.r.localWitness[c.info.Defs[s.Pattern]] = w
+			}
+			c.trackKnownFn(s.Init, c.info.Defs[s.Pattern])
 		}
 		// Unlike paramAlias this survives `mut`: the local can still hold the restricted value.
 		if p := c.restrictedAliasOf(s.Init); p != 0 {
@@ -160,6 +164,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	}
 	c.invalidatePlace(lhs)
 	c.rejectAsyncSelfAssign(lhs)
+	c.invalidateFieldWitness(lhs)
 	c.noteWholeSelfAssign(lhs)
 	if op.IsCompoundAssign() {
 		c.compoundAssign(n, lhs, rhs, target)

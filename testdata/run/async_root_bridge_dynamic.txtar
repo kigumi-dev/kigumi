@@ -1,30 +1,36 @@
 -- src --
 import task from std/task
 
-interface Driver {
-    fn drive(self) -> Int
-}
-
-type Direct = {
-    pub n Int
+type Holder = {
+    pub cb fn() -> Int
 }
 
 async fn leaf(n: Int) -> Int {
     n
 }
 
-fn Direct.drive(self) -> Int {
+fn syncRoot() -> Int {
     let ex = task.currentThreadExecutor()
-    ex.runToCompletion(leaf(self.n))
+    ex.runToCompletion(leaf(7))
 }
 
-fn callDyn(d: Driver) -> Int {
-    d.drive()
+fn safeRoot() -> Int {
+    9
+}
+
+// pick's result defeats the static field-value tracker: the field holds
+// whichever fn this call returns, known only at run time.
+fn pick(risky: Bool) -> fn() -> Int {
+    if risky { syncRoot } else { safeRoot }
+}
+
+fn callField(h: Holder) -> Int {
+    h.cb()
 }
 
 async fn outer() -> Int {
-    let d: Driver = Direct { n: 7 }
-    callDyn(d)
+    let h = Holder { cb: pick(true) }
+    callField(h)
 }
 
 print "start"

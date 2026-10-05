@@ -1,0 +1,48 @@
+-- src --
+import task from std/task
+import {cancellation} from std/task
+
+// A plain fn, not just an async one, can read the same request.
+fn stopRequested() -> Bool {
+    cancellation
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn step(n: Int) -> Int {
+    n
+}
+
+async fn polite() -> Int {
+    let guard = Res { id: 1 }
+    if stopRequested() {
+        print "polite stops"
+        return 0
+    }
+    print "polite works"
+    await step(1)
+}
+
+async fn root() -> Int {
+    let a = task.spawn(polite())
+    a.cancel()
+    print "requested"
+    let v = await a
+    print "polite returned ${v}"
+    v
+}
+
+let ex = task.currentThreadExecutor()
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+requested
+polite stops
+drop 1
+polite returned 0
+result 0

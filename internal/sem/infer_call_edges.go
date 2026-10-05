@@ -14,7 +14,15 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 	info := c.r.Fn(fn)
 	offloaded := c.r.isOffloadingCallback(fn)
 	for i, a := range args {
-		if i >= len(params) || tt.Kind(c.vars.resolve(params[i])) != KFn {
+		if i >= len(params) {
+			continue
+		}
+		pt := c.vars.resolve(params[i])
+		if tt.Kind(pt) == KIface {
+			c.ifaceArgEdge(n, a, info, i)
+			continue
+		}
+		if tt.Kind(pt) != KClosure && c.r.fnShapeOf(pt) == 0 {
 			continue
 		}
 		var param EntityID
@@ -27,10 +35,21 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 			c.edge(EffectEdge{Kind: EdgeCallback, Target: c.info.Uses[a], Param: param, Node: a, Offloaded: offloaded})
 		case tt.Kind(at) == KClosure:
 			c.edge(EffectEdge{Kind: EdgeCallback, Target: tt.Node(at).Ent, Param: param, Node: a, Offloaded: offloaded})
-		case tt.Kind(at) == KFn:
-			c.callbackEdge(a, Effects(tt.Node(at).Flags), param, offloaded)
+		default:
+			if shape := c.r.fnShapeOf(at); shape != 0 {
+				c.callbackEdge(a, Effects(tt.Node(shape).Flags), param, offloaded)
+			}
 		}
 	}
+}
+
+// ifaceArgEdge records which parameter an interface-typed argument binds,
+// keyed at the call node n to match it back to that call's own EdgeCall.
+func (c *checker) ifaceArgEdge(n, a syntax.NodeID, info *FnInfo, i int) {
+	if info.Body == 0 || i >= len(info.Params) {
+		return
+	}
+	c.edge(EffectEdge{Kind: EdgeIfaceArg, Target: c.info.Uses[a], Param: info.Params[i], Node: n})
 }
 
 // When the value is a parameter of the enclosing function, that function
@@ -49,7 +68,7 @@ func (c *checker) callbackEdge(expr syntax.NodeID, mods Effects, param EntityID,
 // A non-fn-typed p (from a record-typed parameter's field fact) has
 // no matching argument slot in callbackEdges, so it's skipped here.
 func (c *checker) deferToParam(p EntityID) {
-	if c.r.Types.Kind(c.r.Entities[p].Type) != KFn {
+	if c.r.fnShapeOf(c.r.Entities[p].Type) == 0 {
 		return
 	}
 	info := c.r.Fn(c.r.Entities[p].Parent)

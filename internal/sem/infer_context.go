@@ -54,6 +54,11 @@ func (c *checker) ctxLookup(key EntityID) (ctxBindSource, bool) {
 
 func (c *checker) contextKeyValue(n syntax.NodeID, key EntityID) TypeID {
 	typ := c.r.Entities[key].Type
+	if key == c.r.taskCancellationKey() {
+		c.addCtxDirect(c.r.Fn(c.fn), key, n)
+		c.setCtxUse(n, CtxBind{Key: key})
+		return typ
+	}
 	if src, ok := c.ctxLookup(key); ok {
 		c.noteCapture(n, src.Local, c.r.local(src.Local).Scope)
 		c.setCtxUse(n, CtxBind{Key: key, Local: src.Local, Field: src.Field})
@@ -159,6 +164,11 @@ func (c *checker) printCtxRequirement(n syntax.NodeID, name string) {
 	}
 	c.addCtxDirect(c.r.Fn(c.fn), key, n)
 	c.setCtxUse(n, CtxBind{Key: key})
+}
+
+// taskCancellationKey is always phantom: the executor binds it to live task state, never a threaded parameter.
+func (r *Result) taskCancellationKey() EntityID {
+	return r.stdCtxKey("std/task", "cancellation")
 }
 
 // stdCtxKey returns 0 silently when the key isn't loaded or isn't a context key.

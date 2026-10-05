@@ -1589,6 +1589,23 @@
       ]
     },
     {
+      "id": "run/async_cancel_context_key",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_context_key.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_fn_value",
       "kind": "run",
       "path": "testdata/run/async_fn_value.txtar",
@@ -8702,6 +8719,17 @@
       "id": "sem/target_platform_err",
       "kind": "sem",
       "path": "testdata/sem/target_platform_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_cancellation_context",
+      "kind": "sem",
+      "path": "testdata/sem/task_cancellation_context.txtar",
       "mode": [
         "check"
       ],

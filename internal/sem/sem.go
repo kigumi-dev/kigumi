@@ -1,8 +1,6 @@
 package sem
 
 import (
-	"cmp"
-
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
 )
@@ -65,25 +63,40 @@ type Result struct {
 	sources         *token.SourceStore
 	langItems       map[string]EntityID
 
-	langItemMissing         map[string]bool
-	dropMemo                map[TypeID]EffectSummary
-	opDropMemo              map[TypeID]OpSummary
-	threadOpen              map[threadKey]int
-	threadLow               int
-	pkgEntity               []EntityID
-	fileScopes              []ScopeID
-	implicitMain            map[PackageID]EntityID
-	importEdges             [][]PackageID
-	stdImportGraph          map[PackageID][]PackageID
-	pendingImports          []pendingImport
-	order                   []PackageID
-	bodiesChecked           bool
-	declScopes              map[EntityID]ScopeID
-	aliasState              map[EntityID]uint8
-	aliasParams             map[EntityID][]EntityID
-	primEntity              map[TypeID]EntityID
-	variantNames            map[PackageID]map[string][]EntityID
-	conformMemo             map[conformKey]conformResult
+	langItemMissing map[string]bool
+	dropMemo        map[TypeID]EffectSummary
+	opDropMemo      map[TypeID]OpSummary
+	threadOpen      map[threadKey]int
+	threadLow       int
+	pkgEntity       []EntityID
+	fileScopes      []ScopeID
+	implicitMain    map[PackageID]EntityID
+	importEdges     [][]PackageID
+	stdImportGraph  map[PackageID][]PackageID
+	pendingImports  []pendingImport
+	order           []PackageID
+	bodiesChecked   bool
+	declScopes      map[EntityID]ScopeID
+	aliasState      map[EntityID]uint8
+	aliasParams     map[EntityID][]EntityID
+	primEntity      map[TypeID]EntityID
+	variantNames    map[PackageID]map[string][]EntityID
+	conformMemo     map[conformKey]conformResult
+	// localWitness is an immutable local's witnesses when its let
+	// initializer coerces it to an interface; check_root_bridge.go reads it.
+	localWitness map[EntityID][]EntityID
+	// knownFn is a local/param's known fn item target(s) traced through
+	// `let` aliasing; check_root_bridge.go uses it for a captured-variable call.
+	knownFn map[EntityID][]EntityID
+	// knownFieldFn is a record field's known fn item target(s), keyed by
+	// the local its literal was bound to; check_root_bridge.go uses it for a stored field.
+	knownFieldFn map[fieldFnKey][]EntityID
+	// fieldParamEnts caches the synthetic EntFieldParam minted for one
+	// (parameter, field) pair; see EntFieldParam.
+	fieldParamEnts map[fieldFnKey]EntityID
+	// fieldWitnessOf is a record field's source local/param, keyed by the
+	// local its literal was bound to; a reassigned field is deleted, not stale.
+	fieldWitnessOf          map[fieldFnKey]EntityID
 	identPaths              map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID
 	pendingWitnessCallbacks []pendingWitnessCallback
 	// lifetimeEscapeSeen dedupes an escaping (carrier, arg) pair.
@@ -95,94 +108,4 @@ type Result struct {
 	ctxValueRefs    []ctxValueRef
 	selfWholeAssign map[EntityID]bool
 	borrowRecvCalls []borrowRecvCall
-}
-
-func check(mod *Module) *Result {
-	r := newResult(mod)
-	r.prepareProgram()
-	r.collect()
-	r.resolveImports()
-	r.declareTypes()
-	r.declareSignatures()
-	r.declareConsts()
-	r.declareStatics()
-	r.declareContextKeys()
-	r.checkContextProviders()
-	r.checkImpls()
-	r.closeFieldParamForwarding()
-	r.checkBodies()
-	r.checkBorrowedReceivers()
-	r.checkAccelKeys()
-	r.resolvePendingWitnessCallbacks()
-	// Must precede checkEffects: it appends hidden provider captures to
-	// ClosureInfo.Captures, which computeDrop/computeDropOp read.
-	r.checkContextRequirements()
-	r.checkEffects()
-	r.checkInterruptHandlers()
-	r.checkAsyncDirectBlocking()
-	r.checkThreadPool()
-	r.checkRootBridges()
-	r.checkNomono()
-	r.reportUnused()
-	r.emit()
-	return r
-}
-
-func newResult(mod *Module) *Result {
-	if mod.Sources == nil {
-		mod.Sources = &token.SourceStore{}
-	}
-	for _, p := range mod.Packages {
-		for _, t := range p.Files {
-			if t.File.ID == 0 {
-				mod.Sources.Add(t.File)
-			}
-		}
-	}
-	r := &Result{
-		sources:         mod.Sources,
-		mod:             mod,
-		Types:           newTypeTable(cmp.Or(mod.PtrBits, 64)),
-		Entities:        []Entity{{}},
-		Scopes:          []Scope{{}},
-		Overloads:       []OverloadSet{{}},
-		Places:          []Place{{}},
-		Instances:       map[EntityID][]Instance{},
-		target:          mod.Target,
-		noDefault:       mod.NoDefaultAllocator,
-		recoverableOnly: mod.RecoverableOnly,
-		noPlatform:      mod.NoPlatform,
-		blockingProfile: mod.BlockingProfile,
-		denyPkgs:        denySet(mod.Deny),
-		layerCeiling:    LayerShortName[mod.LayerCeiling],
-		hasCeiling:      mod.LayerCeiling != "",
-		artifactName:    mod.ArtifactName,
-		arch:            cmp.Or(mod.Arch, "amd64"),
-		pathIndex:       map[string]PackageID{},
-		fileIndex:       map[*syntax.Tree]FileID{},
-		placeIndex:      map[string]PlaceID{},
-		seen:            map[diagKey]struct{}{},
-		selfWholeAssign: map[EntityID]bool{},
-		langItems:       map[string]EntityID{},
-
-		langItemMissing: map[string]bool{},
-		implicitMain:    map[PackageID]EntityID{},
-		declScopes:      map[EntityID]ScopeID{},
-		aliasState:      map[EntityID]uint8{},
-		aliasParams:     map[EntityID][]EntityID{},
-		primEntity:      map[TypeID]EntityID{},
-		variantNames:    map[PackageID]map[string][]EntityID{},
-		conformMemo:     map[conformKey]conformResult{},
-		dropMemo:        map[TypeID]EffectSummary{},
-		opDropMemo:      map[TypeID]OpSummary{},
-		identPaths:      map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID{},
-		provides:        map[EntityID][]ProvideBinding{},
-	}
-	r.Files = []FileInfo{{}}
-	r.Packages = []PackageInfo{{Path: "", Module: ""}}
-	r.universe = r.newScope(ScopeUniverse, 0, 0, 0)
-	r.prelude = r.newScope(ScopePrelude, r.universe, 0, 0)
-	r.declareUniverse()
-	r.addPackages(mod)
-	return r
 }

@@ -34,7 +34,7 @@ func (c *checker) callBracketMethod(n, callee syntax.NodeID, args []syntax.NodeI
 		index := c.vars.resolve(c.synth(items[0]))
 		elem := c.indexType(callee, items[0], ft, index)
 		c.setType(callee, elem)
-		return c.callValue(n, c.vars.resolve(elem), args, want), true
+		return c.callValue(n, 0, c.vars.resolve(elem), args, want), true
 	}
 	var typeArgs []TypeID
 	for _, a := range items {

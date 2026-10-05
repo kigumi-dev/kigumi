@@ -41,12 +41,16 @@ const (
 	EntTest
 	EntImplicitMain
 	EntStatic
+	// EntFieldParam stands for one (parameter, field) pair read through
+	// `self.field()`, so root-bridge can trace a stored fn like a plain param.
+	EntFieldParam
 )
 
 var entityKindNames = [...]string{
 	"none", "package", "import", "type", "alias", "interface", "constraint",
 	"type parameter", "function", "const", "variant", "field", "local", "parameter",
 	"closure", "context key", "contract block", "intrinsic", "test", "implicit main", "static",
+	"field parameter",
 }
 
 func (k EntityKind) String() string { return entityKindNames[k] }

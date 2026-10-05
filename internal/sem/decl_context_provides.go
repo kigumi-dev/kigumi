@@ -60,6 +60,10 @@ func (r *Result) providesArg(id EntityID, f FileID, scope ScopeID, arg syntax.No
 		r.errAt(f, arg, cCtxProvidesNotKey, r.Entities[ent].Name)
 		return
 	}
+	if ent == r.taskCancellationKey() {
+		r.errAt(f, arg, cCancelKeyProvided, "@provides")
+		return
+	}
 	if seen[ent] {
 		r.errAt(f, arg, cCtxProvidesDuplicate, ent)
 		return

@@ -70,5 +70,5 @@ func (c *checker) synthCallWith(n, callee syntax.NodeID, args []syntax.NodeID, w
 		}
 	}
 	ft := c.vars.resolve(c.synth(callee))
-	return c.callValue(n, ft, args, want)
+	return c.callValue(n, callee, ft, args, want)
 }

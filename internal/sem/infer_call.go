@@ -48,6 +48,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	}
 	c.callbackEdges(n, fn, sig, effArgs)
 	c.fieldCallbackEdges(fn, effArgs)
+	c.knownFieldCallEdges(fn, effArgs)
 	call := CallInfo{Kind: kind, Callee: fn, Inst: inst, Recv: info.Recv, Variadic: c.variadicForm(effArgs, sig), Plan: plan}
 	c.info.Calls[n] = call
 	// badTypeArgs already reported cTypeArgCount; inst is made-up, so skip

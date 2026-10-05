@@ -81,8 +81,9 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 			} else if p := c.identParam(base); p != 0 {
 				c.deferToFieldParam(p, fld)
 				c.stashFieldFact(n, NarrowFact{Kind: FactPureField, Param: p})
+				c.edge(EffectEdge{Kind: EdgeKnownCall, Target: c.r.fieldParamEnt(fieldFnKey{Ent: p, Field: fld}), Node: n})
 			}
-			return c.callValue(n, resolved, args, want)
+			return c.callValue(n, callee, resolved, args, want)
 		}
 	}
 	return c.callMethodOn(n, callee, base, recv, valueType, nil, args, want)

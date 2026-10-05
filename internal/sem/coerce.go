@@ -84,6 +84,7 @@ func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 				}
 				c.recordCtxValueRef(n, w)
 			}
+			c.info.CoerceWitness[n] = res.witnesses
 			c.edge(EffectEdge{Kind: EdgeAlloc, Type: want, From: got, Node: n})
 			return []CoStep{{CoExistential, want}}, true
 		}

@@ -104,6 +104,17 @@ func (r *Result) LangItem(name string) EntityID         { return r.langItems[nam
 func (r *Result) Requirement(iface EntityID, name string) EntityID {
 	return r.requirement(iface, name)
 }
+
+// CancelRequestedFn is lower_atom.go's lowering target for a phantom `cancellation` read.
+func (r *Result) CancelRequestedFn() EntityID {
+	for id := 1; id < len(r.Entities); id++ {
+		e := &r.Entities[id]
+		if e.Kind == EntFn && e.Parent == 0 && e.Name == "cancelRequested" && r.Packages[e.Pkg].Path == "std/task" {
+			return EntityID(id)
+		}
+	}
+	return 0
+}
 func (r *Result) MemberSet(t TypeID, name string) OverloadSetID  { return r.memberSet(t, name) }
 func (r *Result) FindField(owner EntityID, name string) EntityID { return r.findField(owner, name) }
 func (r *Result) IsCopy(t TypeID) bool                           { return r.isCopy(t) }

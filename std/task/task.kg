@@ -25,6 +25,9 @@ pub fn Task[T].cancel(self) -> Unit
 /// Whether the running task has been asked to stop.
 pub fn cancelRequested() -> Bool
 
+/// `cancelRequested` read as a context key; the executor binds it to every task, and `context (...)` cannot override it.
+pub context cancellation: Bool
+
 /// A bounded, root-owned boundary for running direct-blocking work from an async body instead of calling it bare.
 pub type BlockingPool
 

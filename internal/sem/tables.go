@@ -15,15 +15,18 @@ type FileInfo struct {
 	Defs   []EntityID
 	Scopes []ScopeID
 
-	Coerce   map[syntax.NodeID]Coercion
-	Calls    map[syntax.NodeID]CallInfo
-	Pats     map[syntax.NodeID]PatInfo
-	Matches  map[syntax.NodeID]MatchInfo
-	Places   map[syntax.NodeID]PlaceID
-	Narrow   map[syntax.NodeID][]NarrowFact
-	Literals map[syntax.NodeID]constValue
-	Asm      map[syntax.NodeID]*AsmInfo
-	Diags    []diag.Diagnostic
+	Coerce map[syntax.NodeID]Coercion
+	// CoerceWitness is an existential coercion's resolved witnesses, keyed
+	// by the same node as Coerce; root-bridge reachability reads it.
+	CoerceWitness map[syntax.NodeID][]EntityID
+	Calls         map[syntax.NodeID]CallInfo
+	Pats          map[syntax.NodeID]PatInfo
+	Matches       map[syntax.NodeID]MatchInfo
+	Places        map[syntax.NodeID]PlaceID
+	Narrow        map[syntax.NodeID][]NarrowFact
+	Literals      map[syntax.NodeID]constValue
+	Asm           map[syntax.NodeID]*AsmInfo
+	Diags         []diag.Diagnostic
 	// CtxUse resolves a direct context-key value reference.
 	CtxUse map[syntax.NodeID]CtxBind
 	// CtxCall resolves one call's hidden provider arguments, in the
@@ -39,7 +42,8 @@ func newFileInfo(t *syntax.Tree, pkg PackageID) FileInfo {
 	return FileInfo{
 		Tree: t, Pkg: pkg,
 		Types: make([]TypeID, n), Uses: make([]EntityID, n), Defs: make([]EntityID, n), Scopes: make([]ScopeID, n),
-		Coerce: map[syntax.NodeID]Coercion{}, Calls: map[syntax.NodeID]CallInfo{}, Pats: map[syntax.NodeID]PatInfo{},
+		Coerce: map[syntax.NodeID]Coercion{}, CoerceWitness: map[syntax.NodeID][]EntityID{},
+		Calls: map[syntax.NodeID]CallInfo{}, Pats: map[syntax.NodeID]PatInfo{},
 		Matches: map[syntax.NodeID]MatchInfo{}, Places: map[syntax.NodeID]PlaceID{},
 		Narrow: map[syntax.NodeID][]NarrowFact{}, Literals: map[syntax.NodeID]constValue{},
 		Asm: map[syntax.NodeID]*AsmInfo{},
@@ -110,7 +114,21 @@ const (
 	EdgeWitnessCall
 	// EdgeSuspend marks an `await` point: FactSuspend's only direct source.
 	EdgeSuspend
+	// EdgeIfaceArg carries an argument's known witnesses (Target) to the
+	// parameter (Param) it binds; root-bridge reachability only.
+	EdgeIfaceArg
+	// EdgeKnownCall is a call to a statically known fn item (Target); root-bridge only.
+	EdgeKnownCall
+	// EdgeFieldBind binds a call-site argument's known fn (Target) to the
+	// callee's field-param entity (Param); root-bridge reachability only.
+	EdgeFieldBind
 )
+
+// fieldFnKey names one record field of a value held by Ent (a local or a parameter).
+type fieldFnKey struct {
+	Ent   EntityID
+	Field EntityID
+}
 
 type EffectEdge struct {
 	Kind   EdgeKind

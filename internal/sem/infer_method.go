@@ -78,7 +78,7 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 		c.deferToWitnessReq(paramEnt, req)
 		c.edge(EffectEdge{Kind: EdgeWitnessCall, Target: req, Node: n})
 	} else {
-		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Node: n})
+		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Param: c.ifaceRecvEnt(base, recv), Node: n})
 	}
 	ret, plan := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params, false, c.r.Fn(req).Declared&EffAsync != 0)
 	effArgs := args

@@ -82,15 +82,17 @@ func (l *lowerer) ctxUse(n syntax.NodeID) *Expr {
 	return l.ctxBindExpr(n, l.info.CtxUse[n])
 }
 
-// ctxBindExpr lowers one resolved hidden-argument binding (a direct use, or
-// one slot of a call's CtxArgs) to the expression that reads it.
+// ctxBindExpr: if neither Local nor Param is set, b is std/task's phantom `cancellation` key.
 func (l *lowerer) ctxBindExpr(n syntax.NodeID, b sem.CtxBind) *Expr {
 	if b.Local != 0 {
 		fld := l.r.Field(b.Field)
 		base := &Expr{Kind: Local, Type: l.r.Entity(b.Local).Type, Loc: l.loc(n), Node: n, Ent: b.Local}
 		return &Expr{Kind: Field, Type: fld.Type, Loc: l.loc(n), Node: n, Args: []*Expr{base}, Index: fld.Index}
 	}
-	return &Expr{Kind: Local, Type: l.r.Entity(b.Param).Type, Loc: l.loc(n), Node: n, Ent: b.Param}
+	if b.Param != 0 {
+		return &Expr{Kind: Local, Type: l.r.Entity(b.Param).Type, Loc: l.loc(n), Node: n, Ent: b.Param}
+	}
+	return &Expr{Kind: Call, Type: l.r.Entity(b.Key).Type, Loc: l.loc(n), Node: n, Ent: l.r.CancelRequestedFn()}
 }
 
 func (l *lowerer) member(n syntax.NodeID) *Expr {
