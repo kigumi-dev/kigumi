@@ -111,8 +111,7 @@ export(interrupt) {
 	}
 }
 
-// `self = ...` swaps the content of the box the receiver was built in, so
-// a value of that type cannot be shared and its construction allocates.
+// `self = ...` writes through the receiver cell, not the value handed in, so a payload-free variant stays shareable.
 func TestInterruptHandlerWholeAssignedVariantConstruct(t *testing.T) {
 	res := checkIsr(t, `
 type Slot = Free | Busy(id: Int)
@@ -128,9 +127,8 @@ export(interrupt) {
     }
 }
 `)
-	out := res.Render()
-	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
-		t.Fatalf("a handler constructing a whole-assigned variant must be rejected:\n%s", out)
+	if res.HasErrors() {
+		t.Fatalf("a handler constructing a variant some method whole-assigns must be accepted:\n%s", res.Render())
 	}
 }
 

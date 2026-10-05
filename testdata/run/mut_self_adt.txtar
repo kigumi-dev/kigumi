@@ -1,0 +1,143 @@
+-- src --
+type Shape = Circle(r: Int) | Square(side: Int) | Dot
+
+fn area(s: &Shape) -> Int {
+    match s {
+        Circle(r) -> 3 * r * r
+        Square(side) -> side * side
+        Dot -> 0
+    }
+}
+
+fn Shape.grow(mut self, k: Int) -> Unit {
+    self = match self {
+        Circle(r) -> Circle(r + k)
+        Square(side) -> Square(side + k)
+        Dot -> Circle(k)
+    }
+}
+
+fn Shape.flatten(mut self) -> Unit {
+    self = Dot
+}
+
+fn Shape.growTwice(mut self, k: Int) -> Unit {
+    self.grow(k)
+    self.grow(k)
+}
+
+fn Shape.growViaClosure(mut self, k: Int) -> Unit {
+    let step = () => { self = Circle(k) }
+    step()
+}
+
+fn Shape.shrink(mut self, k: Int) -> Unit {
+    if k == 0 {
+        return
+    }
+    self.grow(0 - 1)
+    self.shrink(k - 1)
+}
+
+type Scene = {
+    pub mut head Shape
+    pub mut tail Shape
+}
+
+fn Scene.growHead(mut self, k: Int) -> Unit {
+    self.head.grow(k)
+}
+
+type Marked = Shape
+
+fn Marked.flattenInner(mut self) -> Unit {
+    self.value.flatten()
+}
+
+interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+    fn size(self) -> Int
+}
+
+fn Shape.size(self) -> Int { area(&self) }
+
+type Cell = {
+    pub mut n Int
+}
+
+fn Cell.grow(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+fn Cell.size(self) -> Int { self.n }
+
+fn driveGrower(mut g: Grower, k: Int) -> Int {
+    g.grow(k)
+    g.grow(k)
+    g.size()
+}
+
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Handle.replace(mut self, newId: Int) -> Unit {
+    self = Handle { id: newId }
+}
+
+let mut s: Shape = Dot
+s.grow(2)
+print "local=${area(&s)}"
+s.growTwice(1)
+print "twice=${area(&s)}"
+s.growViaClosure(5)
+print "closure=${area(&s)}"
+s.shrink(2)
+print "recursion=${area(&s)}"
+s.flatten()
+print "flatten=${area(&s)}"
+
+let mut sc = Scene { head: Square(2), tail: Circle(1) }
+sc.growHead(3)
+print "field=${area(&sc.head)} ${area(&sc.tail)}"
+sc.tail.flatten()
+print "fieldFlatten=${area(&sc.tail)}"
+
+let mut shapes = Array.of[Shape](Square(2), Dot)
+shapes[0].grow(1)
+shapes[1].grow(4)
+print "index=${area(&shapes[0])} ${area(&shapes[1])}"
+
+let mut m = Marked(Square(5))
+m.flattenInner()
+print "defined=${area(&m.value)}"
+
+print "ifaceShape=${driveGrower(Square(1), 2)}"
+print "ifaceCell=${driveGrower(Cell { n: 1 }, 10)}"
+
+let mut h = Handle { id: 1 }
+h.replace(2)
+print "res=${h.id}"
+h.replace(3)
+print "res=${h.id}"
+-- stdout --
+local=12
+twice=48
+closure=75
+recursion=27
+flatten=0
+field=25 3
+fieldFlatten=0
+index=9 48
+defined=0
+ifaceShape=25
+ifaceCell=21
+drop 1
+res=2
+drop 2
+res=3
+drop 3

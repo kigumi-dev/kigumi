@@ -7,6 +7,9 @@ import (
 
 func (b *builder) call(e *hir.Expr) LocalID {
 	n, t := e.Node, e.Type
+	// A nested call inside an argument flushes only its own write-backs,
+	// leaving this call's pending until after it returns.
+	mark := len(b.argFixups)
 	switch e.Kind {
 	case hir.Intrinsic:
 		args := b.args(e, e.Args, e.EvalOrder, true, false, 0)
@@ -25,20 +28,20 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		if e.Witness != 0 {
 			args = append(args, b.ctxArgs(e)...)
 			dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
-			b.applyArgFixups()
+			b.applyArgFixups(mark)
 			return dst
 		}
 		args = append(args, b.witnessArgs(e.Passes, n)...)
 		args = append(args, b.constArgs(e.ConstArgs, n)...)
 		args = append(args, b.ctxArgs(e)...)
 		dst := b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
-		b.applyArgFixups()
+		b.applyArgFixups(mark)
 		return dst
 	case hir.StaticCall:
 		args := b.args(e, e.Args, e.EvalOrder, true, true, e.Ent)
 		args = append(args, b.ctxArgs(e)...)
 		dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Ent: e.Ent, Args: append([]LocalID{b.witnessLocal(e.Witness)}, args...), Node: n})
-		b.applyArgFixups()
+		b.applyArgFixups(mark)
 		return dst
 	case hir.Call:
 		// An async call's future can outlive the call, so its args are moved, never reborrowed or fixed up.
@@ -52,18 +55,18 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		args = append(args, b.constArgs(e.ConstArgs, n)...)
 		args = append(args, b.ctxArgs(e)...)
 		dst := b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: args, Node: n})
-		b.applyArgFixups()
+		b.applyArgFixups(mark)
 		return dst
 	}
 	fv, rest := b.valueCallArgs(e)
 	args := append([]LocalID{fv}, rest...)
 	if ct := b.fn.Locals[fv].Type; b.r.Types.IsCFn(ct) {
 		dst := b.emit(Inst{Op: OpCallC, Dst: b.temp(t), Type: ct, Args: args, Node: n})
-		b.applyArgFixups()
+		b.applyArgFixups(mark)
 		return dst
 	}
 	dst := b.emit(Inst{Op: OpCallValue, Dst: b.temp(t), Args: args, Node: n})
-	b.applyArgFixups()
+	b.applyArgFixups(mark)
 	return dst
 }
 
@@ -96,7 +99,7 @@ func evalOrder(n int, order []int, eval func(i int) LocalID) []LocalID {
 func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
 	full := evalOrder(len(e.Args), e.EvalOrder, func(i int) LocalID {
 		if i == 0 {
-			return b.receiver(e.Args[0], e.Ent)
+			return b.receiver(e.Args[0], e.Ent, !e.Async)
 		}
 		return b.argValue(e.Args[i], i-1, e.Ent, true, !e.Async)
 	})
@@ -147,17 +150,15 @@ func (b *builder) declaredRef(ent sem.EntityID, idx int) bool {
 	return b.r.Types.Kind(b.r.Entity(params[idx]).Type) == sem.KRef
 }
 
-// receiver lowers a method receiver by its kind: `mut self` borrows the place, `move self` moves the value, `self` shares it.
-func (b *builder) receiver(base *hir.Expr, m sem.EntityID) LocalID {
-	info := b.r.Fn(m)
-	if info.Recv == sem.RecvMove {
+// `mut self` takes a cell over the place, `move self` moves the value, `self` shares it.
+func (b *builder) receiver(base *hir.Expr, m sem.EntityID, sync bool) LocalID {
+	switch b.r.Fn(m).Recv {
+	case sem.RecvMove:
 		return b.exprMoved(base)
+	case sem.RecvMut:
+		return b.recvCell(base, sync)
 	}
-	v := b.expr(base)
-	if info.Recv == sem.RecvMut {
-		return b.emit(Inst{Op: OpBorrow, Dst: b.temp(b.r.Types.Ref(base.Type, true)), Args: []LocalID{v}, Index: 1, Node: base.Node})
-	}
-	return v
+	return b.expr(base)
 }
 
 func (b *builder) args(call *hir.Expr, exprs []*hir.Expr, order []int, reborrow, sync bool, ent sem.EntityID) []LocalID {

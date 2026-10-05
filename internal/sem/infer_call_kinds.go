@@ -127,6 +127,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 		c.checkReentrantCapture(base, args)
 	}
 	c.checkSelfAliasArgs(base, info.Recv, info.Declared&EffAsync != 0, args)
+	c.noteBorrowedRecv(base, recv, m)
 	return result
 }
 

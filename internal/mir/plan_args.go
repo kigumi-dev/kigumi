@@ -20,7 +20,7 @@ func (p *Program) inPlace(in Inst, i int) bool {
 			return recv != sem.RecvNone && recv != sem.RecvMove
 		}
 		return i == 0
-	case OpSetField, OpSetIndex, OpCellSet, OpBoxReplace:
+	case OpSetField, OpSetIndex, OpCellSet:
 		return i == 0
 	case OpCallC, OpAsm, OpShell:
 		return true
@@ -86,7 +86,7 @@ func (p *Program) mustCopy(f *Func, in Inst, a LocalID) bool {
 	}
 	switch in.Op {
 	case OpDrop, OpCopy, OpBorrow, OpField, OpFieldMove, OpIndex, OpIsVariant, OpIsType, OpPayload, OpUnbox,
-		OpCellGet, OpBinary, OpUnary, OpInterp, OpBuiltin, OpFutureNew, OpFutureDone:
+		OpCellGet, OpCellTake, OpBinary, OpUnary, OpInterp, OpBuiltin, OpFutureNew, OpFutureDone:
 		return false
 	}
 	return true

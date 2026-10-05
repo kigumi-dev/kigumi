@@ -77,25 +77,30 @@ fn main.mutateInsideBorrowLoop() -> Unit {
     %t10 = builtin iter.at(%t6, %t7)
     %x = copy(%t10)
     %t12 = borrow 1(%items)
-    %t13 = const 4: Int
-    %t14 = call push(%t12, %t13)
-    drop(%t14)
-    %t15 = interp ""(%x)
-    %t16 = builtin print(%t15)
+    %t13 = share retain(%t12)
+    %t14 = newcell(%t13)
+    %t15 = const 4: Int
+    %t16 = call push(%t14, %t15)
+    %t17 = celltake(%t14)
+    drop(%items)
+    %items = copy(%t17)
+    drop(%t16)
+    %t18 = interp ""(%x)
+    %t19 = builtin print(%t18)
     drop(%x)
     jump b3
   b3:
-    %t17 = const 1: usize
-    %t18 = bin +(%t7, %t17)
+    %t20 = const 1: usize
+    %t21 = bin +(%t7, %t20)
     drop(%t7)
-    %t7 = copy(%t18)
+    %t7 = copy(%t21)
     jump b1
   b4:
     drop(%t8)
     drop(%t7)
-    %t19 = unit
+    %t22 = unit
     drop(%items)
-    return %t19
+    return %t22
 }
 error[use-after-move]: `items` was moved; it cannot be used again
  --> main/main.kg:9:14

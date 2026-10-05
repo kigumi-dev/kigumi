@@ -1,0 +1,128 @@
+-- src --
+type Shape = Circle(r: Int) | Dot
+
+fn Shape.flatten(mut self) -> Unit {
+    self = Dot
+}
+
+fn Shape.widen(mut self, k: Int) -> Unit {
+    self = Circle(k)
+}
+
+type Counter = {
+    pub mut n Int
+}
+
+fn Counter.inc(mut self) -> Unit {
+    self.n = self.n + 1
+}
+
+async fn Counter.incLater(mut self) -> Unit {
+    self = Counter { n: self.n + 1 } //~ ERROR assigns `self` as a whole in an `async` body
+}
+
+async fn Counter.bumpLater(mut self) -> Unit {
+    self.n = self.n + 1
+}
+
+fn viaBorrow(s: &mut Shape) -> Unit {
+    s.flatten() //~ ERROR replaces its receiver as a whole
+}
+
+fn viaBorrowNested(s: &mut Shape, k: Int) -> Unit {
+    s.widen(k) //~ ERROR replaces its receiver as a whole
+}
+
+fn takeViaBorrow(o: &mut Int?) -> Int {
+    o.take() || 0 //~ ERROR replaces its receiver as a whole
+}
+
+fn fieldWriteIsFine(c: &mut Counter) -> Unit {
+    c.inc()
+}
+
+type Holder = {
+    mut shape Shape
+}
+
+fn placeIsFine(h: &mut Holder) -> Unit {
+    h.shape.flatten()
+}
+
+fn ownedIsFine() -> Unit {
+    let mut s: Shape = Circle(1)
+    s.flatten()
+}
+
+fn Counter.escapingRead(mut self) -> fn() -> Int {
+    () => self.n //~ ERROR cannot be a plain `fn`
+}
+
+fn Counter.closureIsFine(mut self) -> Int {
+    let add = (k: Int) => { self.n = self.n + k }
+    add(3)
+    self.n
+}
+
+interface Widener {
+    fn widen(mut self, k: Int) -> Unit
+}
+
+fn widenViaBorrowedParam[W: Widener](w: &mut W, k: Int) -> Unit {
+    w.widen(k) //~ ERROR can be witnessed by `Shape.widen`
+}
+
+fn widenOwnedParamIsFine[W: Widener](mut w: W, k: Int) -> Unit {
+    w.widen(k)
+}
+
+interface Bumper {
+    fn inc(mut self) -> Unit
+}
+
+fn incViaBorrowedParamIsFine[B: Bumper](b: &mut B) -> Unit {
+    b.inc()
+}
+-- expect --
+error[E1330]: `incLater` assigns `self` as a whole in an `async` body, where the caller's storage is out of reach by the time it runs
+  --> main/main.kg:20:5
+   |
+20 |     self = Counter { n: self.n + 1 } //~ ERROR assigns `self` as a whole in an `async` body
+   |     ^^^^
+   = help: assign self's fields instead, or make the method synchronous
+
+error[E1331]: `flatten` replaces its receiver as a whole, which a borrowed receiver cannot carry back to its owner
+  --> main/main.kg:28:5
+   |
+28 |     s.flatten() //~ ERROR replaces its receiver as a whole
+   |     ^
+   = help: call it on the value itself, or on a field or element of one
+
+error[E1331]: `widen` replaces its receiver as a whole, which a borrowed receiver cannot carry back to its owner
+  --> main/main.kg:32:5
+   |
+32 |     s.widen(k) //~ ERROR replaces its receiver as a whole
+   |     ^
+   = help: call it on the value itself, or on a field or element of one
+
+error[E1331]: `take` replaces its receiver as a whole, which a borrowed receiver cannot carry back to its owner
+  --> main/main.kg:36:5
+   |
+36 |     o.take() || 0 //~ ERROR replaces its receiver as a whole
+   |     ^
+   = help: call it on the value itself, or on a field or element of one
+
+error[E413]: closure captures `self` (a receiver lent by the caller) and cannot be a plain `fn`
+  --> main/main.kg:57:5
+   |
+57 |     () => self.n //~ ERROR cannot be a plain `fn`
+   |     ^^^^^^^^^^^^
+   = help: use `F: Fn[...]`
+
+error[E1332]: `widen` on a borrowed type parameter can be witnessed by `Shape.widen`, which replaces its receiver as a whole
+  --> main/main.kg:71:5
+   |
+71 |     w.widen(k) //~ ERROR can be witnessed by `Shape.widen`
+   |     ^
+   = help: take the receiver by value (`mut g: G`) rather than `&mut G`
+

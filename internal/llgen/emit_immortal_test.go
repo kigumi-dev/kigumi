@@ -171,9 +171,9 @@ fn main() -> Unit! {}
 	}
 }
 
-// A method that reassigns a whole value rewrites the object it was built
-// in, so that type's payload-free variants cannot share one immortal.
-func TestReplacedWholeVariantStillAllocates(t *testing.T) {
+// `self = Dot` writes the caller's storage through the receiver cell, not
+// the Dot it was handed, so that type's variants still share one immortal.
+func TestWholeSelfAssignKeepsVariantsShared(t *testing.T) {
 	ir := emitIR(t, `
 type Shape = Circle(r: Float) | Dot
 
@@ -184,10 +184,12 @@ fn blank() -> Shape { Dot }
 fn main() -> Unit! {}
 `)
 	body := bodyOf(t, ir, `define ptr @"main.blank"(`)
-	if strings.Contains(body, "@rt_nullary(") {
-		t.Errorf("a replaced-in-place variant must not share the immortal:\n%s", body)
+	checkNoHeap(t, "main.blank", body)
+	if !strings.Contains(body, "@rt_nullary(") {
+		t.Errorf("a payload-free variant must share the immortal:\n%s", body)
 	}
-	if !strings.Contains(body, "@rt_variant(") {
-		t.Errorf("a replaced-in-place variant must keep the boxed form:\n%s", body)
+	clear := bodyOf(t, ir, `define ptr @"main.Shape.clear"(`)
+	if !strings.Contains(clear, "@rt_cellset(") {
+		t.Errorf("`self = Dot` must store through the receiver cell:\n%s", clear)
 	}
 }

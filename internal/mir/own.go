@@ -169,7 +169,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			}
 			continue
 		}
-		if in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet && in.Op != OpFutureDone && a.tracked[in.Dst] {
+		if in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && a.tracked[in.Dst] {
 			st.val[in.Dst] = ownValid
 		}
 	}

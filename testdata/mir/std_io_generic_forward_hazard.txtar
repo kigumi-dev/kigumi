@@ -37,40 +37,45 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     %t5 = bin <(%i, %t4)
     branch %t5 ? b2 : b4
   b2:
-    %t6 = field 0(%self)
-    %t7 = borrow 1(%t6)
-    %t8 = copy(%i)
-    %t9 = call get(%data, %t8)
-    %t11 = isvariant Some(%t9)
-    branch %t11 ? b5 : b6
+    %t6 = cellget(%self)
+    %t7 = field 0(%t6)
+    %t8 = borrow 1(%t7)
+    %t9 = share retain(%t8)
+    %t10 = newcell(%t9)
+    %t11 = copy(%i)
+    %t12 = call get(%data, %t11)
+    %t14 = isvariant Some(%t12)
+    branch %t14 ? b5 : b6
   b3:
     jump b1
   b4:
-    %t19 = unit
-    drop(%t19)
-    %t20 = call len(%data)
-    %t21 = variant Ok(%t20)
+    %t23 = unit
+    drop(%t23)
+    %t24 = call len(%data)
+    %t25 = variant Ok(%t24)
     drop(%i)
     drop(%data)
-    return %t21
+    return %t25
   b5:
-    %t12 = payload 0(%t9)
-    %t10 = copy(%t12)
+    %t15 = payload 0(%t12)
+    %t13 = copy(%t15)
     jump b7
   b6:
-    %t13 = unit
-    %t14 = const 0: u8
-    %t10 = copy(%t14)
+    %t16 = unit
+    %t17 = const 0: u8
+    %t13 = copy(%t17)
     jump b7
   b7:
-    drop(%t9)
-    %t15 = call push(%t7, %t10)
-    drop(%t15)
-    %t16 = const 1: usize
-    %t17 = bin +(%i, %t16)
+    drop(%t12)
+    %t18 = call push(%t10, %t13)
+    %t19 = celltake(%t10)
+    setfield 0(%t6, %t19)
+    drop(%t18)
+    %t20 = const 1: usize
+    %t21 = bin +(%i, %t20)
     drop(%i)
-    %i = copy(%t17)
-    %t18 = unit
+    %i = copy(%t21)
+    %t22 = unit
     jump b3
 }
 fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) -> Unit! {

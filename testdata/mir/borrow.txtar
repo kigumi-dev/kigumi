@@ -38,12 +38,13 @@ fn escape(mut b: Buf) -> Unit {
 -- expect --
 fn lib.Buf.push(%self: Buf) -> Unit {
   b0:
-    %t1 = field 0(%self)
-    %t2 = const 1: Int
-    %t3 = bin +(%t1, %t2)
-    setfield 0(%self, %t3)
-    %t4 = unit
-    return %t4
+    %t1 = cellget(%self)
+    %t2 = field 0(%t1)
+    %t3 = const 1: Int
+    %t4 = bin +(%t2, %t3)
+    setfield 0(%t1, %t4)
+    %t5 = unit
+    return %t5
 }
 fn lib.Buf.len(%self: Buf) -> Int {
   b0:
@@ -55,11 +56,16 @@ fn lib.sharedThenMutate(%b: Buf) -> Int {
     %t1 = borrow 0(%b)
     %r = copy(%t1)
     %t3 = borrow 1(%b)
-    %t4 = call push(%t3)
-    drop(%t4)
-    %t5 = call len(%r)
+    %t4 = share retain(%t3)
+    %t5 = newcell(%t4)
+    %t6 = call push(%t5)
+    %t7 = celltake(%t5)
     drop(%b)
-    return %t5
+    %b = copy(%t7)
+    drop(%t6)
+    %t8 = call len(%r)
+    drop(%b)
+    return %t8
 }
 fn lib.exclusiveThenRead(%b: Buf) -> Int {
   b0:
@@ -68,12 +74,16 @@ fn lib.exclusiveThenRead(%b: Buf) -> Int {
     %t3 = call len(%b)
     %k = copy(%t3)
     %t5 = borrow 1(%m)
-    %t6 = call push(%t5)
-    drop(%t6)
-    %t7 = copy(%k)
+    %t6 = share retain(%t5)
+    %t7 = newcell(%t6)
+    %t8 = call push(%t7)
+    %t9 = celltake(%t7)
+    drop(%t9)
+    drop(%t8)
+    %t10 = copy(%k)
     drop(%k)
     drop(%b)
-    return %t7
+    return %t10
 }
 fn lib.fine(%b: Buf) -> Int {
   b0:
@@ -82,13 +92,18 @@ fn lib.fine(%b: Buf) -> Int {
     %t3 = call len(%r)
     %n = copy(%t3)
     %t5 = borrow 1(%b)
-    %t6 = call push(%t5)
-    drop(%t6)
-    %t7 = call len(%b)
-    %t8 = bin +(%t7, %n)
+    %t6 = share retain(%t5)
+    %t7 = newcell(%t6)
+    %t8 = call push(%t7)
+    %t9 = celltake(%t7)
+    drop(%b)
+    %b = copy(%t9)
+    drop(%t8)
+    %t10 = call len(%b)
+    %t11 = bin +(%t10, %n)
     drop(%n)
     drop(%b)
-    return %t8
+    return %t11
 }
 fn lib.escape(%b: Buf) -> Unit {
   b0:

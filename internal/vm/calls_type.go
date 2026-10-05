@@ -55,5 +55,5 @@ func (m *Machine) intType(nk int) sem.TypeID {
 }
 
 func (m *Machine) errorMessage(e *obj) *obj {
-	return m.callMethod(e, "message", nil)
+	return m.callMethod(e, "message", nil, false)
 }

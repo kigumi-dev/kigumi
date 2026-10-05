@@ -324,8 +324,23 @@ val rt_cell(val x) {
     v->u.cell.v = x;
     return v;
 }
+// A `mut self` receiver's cell never outlives the call it is built for, so
+// the caller hands over frame storage instead of allocating.
+void rt_cell_init(void* slot, val x) {
+    val v = (val)slot;
+    v->kind = K_CELL;
+    v->rc = -1;
+    v->u.cell.v = x;
+}
 val rt_cellget(val c) {
     return rt_retain(c->u.cell.v);
+}
+// The caller takes back what it lent a `mut self` receiver: the cell's own
+// reference moves to the result, so a frame-resident cell leaks nothing.
+val rt_cell_take(val c) {
+    val v = c->u.cell.v;
+    c->u.cell.v = NULL;
+    return v;
 }
 void rt_cellset(val c, val x) {
     val old = c->u.cell.v;
@@ -410,13 +425,6 @@ void rt_init_nullary(int ntypes, rt_type** types) {
 // A payload-free variant has no per-value state, so every construction
 // hands back the one immortal value living in its descriptor.
 val rt_nullary(rt_vdesc* d) {
-    if (d->adt->replaced_in_place) {
-        val fresh = alloc(K_VARIANT);
-        fresh->u.var.v = d;
-        fresh->u.var.n = 0;
-        fresh->u.var.payload = NULL;
-        return fresh;
-    }
     return &d->nullary;
 }
 // A variant whose payload is itself fixed at compile time has one value
@@ -473,28 +481,6 @@ val deref(val v) {
         CHK(v);
     }
     return v;
-}
-// rt_box_replace swaps dst's content with v's in place, keeping dst's
-// identity (rc/al stay put) so every other holder of dst sees the new
-// value; v ends up holding dst's old content, released normally through
-// its own drop(). Used for `self = newValue` on a receiver too wide a
-// shape for field-by-field (a multi-variant ADT, or a resource).
-void rt_box_replace(val dst, val v) {
-    dst = deref(dst);
-    v = deref(v);
-    // An immortal value is shared by every site that built it, so the swap
-    // below would hand dst's old content to all of them.
-    if (dst->rc < 0 || v->rc < 0) rt_panic("cannot replace a box with a shared value");
-    int dst_rc = dst->rc, v_rc = v->rc;
-    rt_allocator *dst_al = dst->al, *v_al = v->al;
-    struct obj tmp = *dst;
-    *dst = *v;
-    *v = tmp;
-    dst->rc = dst_rc;
-    dst->al = dst_al;
-    v->rc = v_rc;
-    v->al = v_al;
-    rt_release(v);
 }
 val rt_field(val r, int64_t i) {
     r = deref(r);
@@ -1206,7 +1192,7 @@ void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
     V_Equal = find_variant(ord, "Equal");
     V_Greater = find_variant(ord, "Greater");
     rt_vdesc* oom = find_variant(find_type("AllocError"), "OutOfMemory");
-    if (oom && V_Err && !oom->adt->replaced_in_place) {
+    if (oom && V_Err) {
         g_alloc_error_payload[0] = rt_nullary(oom);
         rt_const_variant(&g_alloc_error, g_alloc_error_payload, V_Err, 1);
     }
@@ -1266,7 +1252,7 @@ static val opaque_try(const char* kind, void* data) {
     return v;
 }
 static val rt_variant_try(rt_vdesc* d, int64_t n, val* payload) {
-    if (n == 0 && !d->adt->replaced_in_place) return rt_nullary(d);
+    if (n == 0) return rt_nullary(d);
     val v = alloc_try(K_VARIANT);
     if (!v) return NULL;
     v->u.var.v = d;
@@ -1308,10 +1294,10 @@ val make_record(const char* tname, int n, val* fields) {
     return rt_record(t, n, fields);
 }
 
-val rt_call_slot(val recv, int slot, int n, val* args);
+val rt_call_slot(val recv, int slot, int n, val* args, int mutrecv);
 val rt_std(const char* key, int n, val* args);
 static val error_message(val e) {
-    return rt_call_slot(e, 0, 0, NULL);
+    return rt_call_slot(e, 0, 0, NULL, 0);
 }
 int rt_exit_code(val r) {
     r = deref(r);
@@ -1364,16 +1350,29 @@ val rt_callv(val f, int n, val* args) {
 // rt_call_slot calls requirement slot of the interface a boxed value was
 // boxed as. invoke's rt_at-based unpacking retains the receiver once and
 // invoke's own release balances it, matching a direct call's borrow.
-val rt_call_slot(val recv, int slot, int n, val* args) {
+val rt_call_slot(val recv, int slot, int n, val* args, int mutrecv) {
     val target = deref(recv);
     if (target->kind != K_BOX || !target->u.box.vt) rt_panic("dynamic call on a value without a witness table");
     adapter_fn fn = (adapter_fn)target->u.box.vt[slot];
     int64_t total = n + 1;
     val stackbuf[STACK_ARGS];
     val* all = total <= STACK_ARGS ? stackbuf : malloc(total * sizeof(val));
-    all[0] = target->u.box.v;
+    struct obj cell;
+    // A concrete `mut self` body writes self through a cell; the boxed
+    // value is behind the existential, so the cell is built over it here.
+    if (mutrecv) {
+        rt_cell_init(&cell, rt_retain(target->u.box.v));
+        all[0] = &cell;
+    } else {
+        all[0] = target->u.box.v;
+    }
     for (int i = 0; i < n; i++) all[i + 1] = args[i];
     val r = invoke(fn, NULL, (int)total, all);
+    if (mutrecv) {
+        val old = target->u.box.v;
+        target->u.box.v = cell.u.cell.v;
+        rt_release(old);
+    }
     if (all != stackbuf) free(all);
     return r;
 }
@@ -2808,9 +2807,8 @@ val rt_std_id(int op, int n, val* a) {
     }
     case OP_OPTION_TAKE: {
         if (a0->u.var.v != V_Some) return none();
-        val x = a0->u.var.payload[0];
-        a0->u.var.v = V_None;
-        a0->u.var.n = 0;
+        val x = rt_retain(a0->u.var.payload[0]);
+        rt_cellset(a[0], none());
         return some(x);
     }
     // text

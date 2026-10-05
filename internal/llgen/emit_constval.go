@@ -32,18 +32,12 @@ func (e *emitter) constPayloadName(key string) string {
 	return fmt.Sprintf("@\".constval.%d.payload\"", e.constIndex[key])
 }
 
-// shareableVariant reports whether one value may stand for every
-// construction of ent: nothing may rewrite it through its own storage.
-func (e *emitter) shareableVariant(ent sem.EntityID) bool {
-	return !e.replacedWhole(e.r.Entity(ent).Parent) && !e.rewritten[ent]
-}
-
 // definesDst reports whether op writes its Dst local; the exceptions match
 // mir's own printer.
 func definesDst(op mir.Opcode) bool {
 	switch op {
 	case mir.OpDrop, mir.OpSetField, mir.OpSetIndex, mir.OpCellSet,
-		mir.OpBoxReplace, mir.OpGlobalSet, mir.OpPanic, mir.OpNop, mir.OpRelease:
+		mir.OpGlobalSet, mir.OpPanic, mir.OpNop, mir.OpRelease:
 		return false
 	}
 	return true
@@ -100,9 +94,6 @@ func (e *emitter) constLocals(f *mir.Func) map[mir.LocalID]string {
 // constVariantKey keys in's value when every payload of it is itself
 // fixed, recording the shape kg_init_immortals builds it from.
 func (e *emitter) constVariantKey(in mir.Inst, keys map[mir.LocalID]string) (string, bool) {
-	if !e.shareableVariant(in.Ent) {
-		return "", false
-	}
 	d := e.vdesc(in.Ent)
 	if len(in.Args) == 0 {
 		e.registerConst(d, constVal{vdesc: d})

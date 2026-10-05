@@ -112,6 +112,9 @@ func (r *Result) IsSend(t TypeID) bool                           { return r.isSe
 func (r *Result) IsSync(t TypeID) bool                           { return r.isSync(t) }
 func (r *Result) Summary(id EntityID) EffectSummary              { return r.summary(id) }
 
+// A `mut self` receiver is a write-back cell the caller hands in, not the value itself.
+func (r *Result) IsMutSelf(ent EntityID) bool { return lentReceiver(&r.Entities[ent]) }
+
 // MainFn names the process entry: the implicit main of an entry file, or an
 // explicit top-level `fn main` when the module has no script file.
 func (r *Result) MainFn() EntityID {

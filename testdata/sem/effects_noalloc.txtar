@@ -40,7 +40,7 @@ fn Slot.release(mut self) -> Unit {
 }
 
 noalloc fn wholeAssignedVariant() -> Slot {
-    Free //~ ERROR constructing `Slot` allocates
+    Free
 }
 
 noalloc fn payloadVariant(x: Int) -> Int? {
@@ -150,12 +150,6 @@ error[E910]: boxing `MyErr` into `Error` allocates
    |
 18 |     fail MyErr { code: 1 } //~ ERROR constructing `MyErr` allocates //~ ERROR boxing `MyErr` into `Error` allocates
    |          ^^^^^^^^^^^^^^^
-
-error[E961]: constructing `Slot` allocates
-  --> lib/na.kg:42:5
-   |
-42 |     Free //~ ERROR constructing `Slot` allocates
-   |     ^^^^
 
 error[E961]: constructing `_?` allocates
   --> lib/na.kg:46:5

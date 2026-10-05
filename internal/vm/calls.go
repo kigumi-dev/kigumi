@@ -16,7 +16,7 @@ func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
 			panic(&Unsupported{What: "foreign call to " + e.Name})
 		}
 		if m.r.Entity(e.Parent).Kind == sem.EntInterface {
-			return m.callMethod(args[0], e.Name, args[1:])
+			return m.callMethod(args[0], e.Name, args[1:], info.Recv == sem.RecvMut)
 		}
 	}
 	f, lowered := m.p.ByEnt[ent]
@@ -152,49 +152,6 @@ func (m *Machine) invoke(f *mir.Func, env *obj, bind bool, args []*obj) *obj {
 	// Reverse, as a direct call's arguments drop and rt_core.c's invoke releases them.
 	for i := len(args) - 1; i >= 0; i-- {
 		m.release(args[i])
-	}
-	return r
-}
-
-// callMethod dispatches an interface requirement on the receiver's
-// dynamic type (rt_call_method): the receiver is lent, the rest handed over.
-func (m *Machine) callMethod(recv *obj, name string, args []*obj) *obj {
-	target := deref(recv)
-	var t sem.TypeID
-	if target.k == kBox {
-		t = target.dyn
-		target = target.inner
-	}
-	if target.k == kOpaque && target.op == "Error" && name == "message" {
-		return mkStr([]byte(target.data.(string)))
-	}
-	if t == 0 {
-		t = m.dynType(target)
-	}
-	set := m.r.MemberSet(t, name)
-	if set == 0 {
-		m.abort("no method " + name)
-	}
-	fn := m.r.Overloads[set].Members[0]
-	f, lowered := m.p.ByEnt[fn]
-	if e := m.r.Entity(fn); e.Kind == sem.EntFn && e.Flags&sem.EfStd != 0 {
-		key := m.stdKey(fn)
-		if m.opts.Sandbox && hostEffect(key) {
-			m.abort("`" + key + "` is not available at compile time")
-		}
-		if h, ok := m.hostForEnt(fn, key); ok && m.hostWins(lowered) {
-			r := h(m, fn, append([]*obj{target}, args...))
-			m.chargeMemory(r)
-			return r
-		}
-	}
-	if lowered {
-		return m.invoke(f, nil, false, append([]*obj{target}, args...))
-	}
-	r := m.std(m.stdKey(fn), append([]*obj{target}, args...))
-	m.chargeMemory(r)
-	for _, a := range args {
-		m.release(a)
 	}
 	return r
 }

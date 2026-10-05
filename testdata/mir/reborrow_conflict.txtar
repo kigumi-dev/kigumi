@@ -16,13 +16,17 @@ fn lib.inner(%out: &mut Array[u8], %v: usize) -> Unit {
     branch %t3 ? b1 : b2
   b1:
     %t5 = borrow 1(%out)
-    %t6 = const 1: u8
-    %t7 = call push(%t5, %t6)
-    %t4 = copy(%t7)
+    %t6 = share retain(%t5)
+    %t7 = newcell(%t6)
+    %t8 = const 1: u8
+    %t9 = call push(%t7, %t8)
+    %t10 = celltake(%t7)
+    drop(%t10)
+    %t4 = copy(%t9)
     jump b3
   b2:
-    %t8 = unit
-    %t4 = copy(%t8)
+    %t11 = unit
+    %t4 = copy(%t11)
     jump b3
   b3:
     drop(%v)

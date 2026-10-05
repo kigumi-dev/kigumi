@@ -26,6 +26,11 @@ func (c *borrowCheck) projectionPlace(l LocalID) (root LocalID, path []int, exac
 			l = in.Args[0]
 		case OpCopy:
 			l = in.Args[0]
+		case OpCellGet:
+			if !c.f.Locals[in.Args[0]].Borrowed {
+				return 0, nil, false, false
+			}
+			l = in.Args[0]
 		default:
 			return 0, nil, false, false
 		}

@@ -19,6 +19,9 @@ func (c *checker) fnUnsatisfied(arg TypeID, con Constraint) string {
 		if con.Kind == CFn {
 			for _, cap := range info.Captures {
 				if cap.Mode == capCell {
+					if lentReceiver(&c.r.Entities[cap.Local]) {
+						return "the closure captures the lent receiver `" + c.r.Entities[cap.Local].Name + "`"
+					}
 					return "the closure assigns `" + c.r.Entities[cap.Local].Name + "`; it is `FnMut`"
 				}
 			}

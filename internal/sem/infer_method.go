@@ -64,6 +64,7 @@ func (c *checker) ifaceMember(n syntax.NodeID, t TypeID, name string) (req Entit
 func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, req EntityID, sig TypeID, args []syntax.NodeID, want TypeID) TypeID {
 	c.info.Uses[callee] = req
 	c.checkReceiver(base, recv, req)
+	c.noteWitnessRecv(base, recv, req)
 	var paramEnt EntityID
 	if valueType := c.r.Types.Node(recv); c.r.Types.Kind(recv) == KParam || c.r.Types.Kind(recv) == KRef && c.r.Types.Kind(valueType.Elem) == KParam {
 		param := recv

@@ -1,0 +1,43 @@
+-- src --
+import task from std/task
+
+type Counter = {
+    pub mut n Int
+}
+
+fn Counter.bump(mut self, by: Int) -> Unit {
+    self.n = self.n + by
+}
+
+async fn five() -> Int { 5 }
+
+async fn acrossAwait() -> Int {
+    let mut c = Counter { n: 1 }
+    c.bump(await five())
+    c.n
+}
+
+async fn aroundAwait() -> Int {
+    let mut c = Counter { n: 1 }
+    c.bump(3)
+    let x = await five()
+    c.bump(x)
+    c.n
+}
+
+async fn nestedAwait() -> Int {
+    let mut c = Counter { n: 0 }
+    for i in 0..3 {
+        c.bump(await five())
+    }
+    c.n
+}
+
+let ex = task.currentThreadExecutor()
+print "across=${ex.runToCompletion(acrossAwait())}"
+print "around=${ex.runToCompletion(aroundAwait())}"
+print "nested=${ex.runToCompletion(nestedAwait())}"
+-- stdout --
+across=6
+around=9
+nested=15

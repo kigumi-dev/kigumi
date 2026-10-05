@@ -127,13 +127,13 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 		m.chargeMemory(res)
 	case mir.OpCellGet:
 		res = retain(args[0].inner)
+	case mir.OpCellTake:
+		res = args[0].inner
+		args[0].inner = nil
 	case mir.OpCellSet:
 		old := args[0].inner
 		args[0].inner = args[1]
 		m.release(old)
-		return
-	case mir.OpBoxReplace:
-		m.boxReplace(deref(args[0]), deref(args[1]))
 		return
 	case mir.OpInterp:
 		var sb strings.Builder

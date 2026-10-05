@@ -30,23 +30,21 @@ fn main.Counter.bump.closure1(%self: Counter) -> Unit {
     %t6 = unit
     return %t6
 }
-fn main.Counter.bump(%t0: Counter) -> Unit {
+fn main.Counter.bump(%self: Counter) -> Unit {
   b0:
-    %self = newcell(%t0)
-    %t2 = closure closure(%self)
-    %step = copy(%t2)
-    %t4 = callv(%step)
+    %t1 = closure closure(%self)
+    %step = copy(%t1)
+    %t3 = callv(%step)
     drop(%step)
-    return %t4
+    return %t3
 }
 fn main.Counter.resetDirect(%self: Counter) -> Unit {
   b0:
     %t1 = const 99: Int
     %t2 = record Counter(%t1)
-    %t3 = field 0(%t2)
-    setfield 0(%self, %t3)
-    %t4 = unit
-    return %t4
+    cellset(%self, %t2)
+    %t3 = unit
+    return %t3
 }
 fn main() -> Unit! {
   b0:
@@ -54,16 +52,26 @@ fn main() -> Unit! {
     %t1 = record Counter(%t0)
     %c = copy(%t1)
     %t3 = borrow 1(%c)
-    %t4 = call bump(%t3)
-    drop(%t4)
-    %t5 = borrow 1(%c)
-    %t6 = call resetDirect(%t5)
-    drop(%t6)
-    %t8 = field 0(%c)
-    %t7 = interp "n=\x00"(%t8)
-    %t9 = builtin print(%t7)
-    drop(%t9)
+    %t4 = share retain(%t3)
+    %t5 = newcell(%t4)
+    %t6 = call bump(%t5)
+    %t7 = celltake(%t5)
     drop(%c)
-    %t10 = unit
-    return %t10
+    %c = copy(%t7)
+    drop(%t6)
+    %t8 = borrow 1(%c)
+    %t9 = share retain(%t8)
+    %t10 = newcell(%t9)
+    %t11 = call resetDirect(%t10)
+    %t12 = celltake(%t10)
+    drop(%c)
+    %c = copy(%t12)
+    drop(%t11)
+    %t14 = field 0(%c)
+    %t13 = interp "n=\x00"(%t14)
+    %t15 = builtin print(%t13)
+    drop(%t15)
+    drop(%c)
+    %t16 = unit
+    return %t16
 }

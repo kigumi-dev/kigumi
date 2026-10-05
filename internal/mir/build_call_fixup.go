@@ -6,8 +6,11 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// argFixup is a scalar &mut argument's place, boxed into a cell since the array/record itself holds a plain scalar.
+// argFixup is one cell the callee writes through and the storage its content
+// goes back to: a scalar &mut argument's field or element, or recv's place.
 type argFixup struct {
+	recv     *place
+	retag    sem.TypeID
 	index    bool
 	base     LocalID
 	idx      LocalID
@@ -67,16 +70,26 @@ func (b *builder) boxScalarCell(v LocalID, t sem.TypeID, n syntax.NodeID) LocalI
 	return b.emit(Inst{Op: OpNewCell, Dst: b.temp(t), Args: []LocalID{owned}, Node: n})
 }
 
-// applyArgFixups must run right after the call that may have mutated each place returns.
-func (b *builder) applyArgFixups() {
-	fixups := b.argFixups
-	b.argFixups = nil
+// applyArgFixups must run right after the call that may have mutated each
+// place returns; mark is where that call's own fixups start.
+func (b *builder) applyArgFixups(mark int) {
+	fixups := append([]argFixup(nil), b.argFixups[mark:]...)
+	b.argFixups = b.argFixups[:mark]
 	for _, fx := range fixups {
+		if fx.recv != nil {
+			v := b.emit(Inst{Op: OpCellTake, Dst: b.temp(fx.elemType), Args: []LocalID{fx.cell}, Node: fx.node})
+			if fx.recv.src == nil {
+				b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Scoped: true, Node: fx.node})
+				continue
+			}
+			b.storePlace(*fx.recv, b.retagTo(v, fx.elemType, fx.retag, fx.node))
+			continue
+		}
 		v := b.emit(Inst{Op: OpCellGet, Dst: b.temp(fx.elemType), Args: []LocalID{fx.cell}, Node: fx.node})
 		if fx.index {
 			b.emit(Inst{Op: OpSetIndex, Args: []LocalID{fx.base, fx.idx, v}, Node: fx.node})
-		} else {
-			b.emit(Inst{Op: OpSetField, Args: []LocalID{fx.base, v}, Index: fx.field, Node: fx.node})
+			continue
 		}
+		b.emit(Inst{Op: OpSetField, Args: []LocalID{fx.base, v}, Index: fx.field, Node: fx.node})
 	}
 }

@@ -47,6 +47,7 @@ const (
 	OpBorrow                       // Dst = &Args[0] (Index: 1 for mut)
 	OpNewCell                      // Dst = cell holding Args[0]
 	OpCellGet                      // Dst = *Args[0]
+	OpCellTake                     // Dst = *Args[0], handed over: the cell is left empty
 	OpCellSet                      // *Args[0] = Args[1]
 	OpInterp                       // Dst = string of Args... (Strs holds text pieces)
 	OpShell                        // Dst = plan (Strs/Args describe words)
@@ -56,7 +57,6 @@ const (
 	OpRelease                      // release the temporary Args[0]
 	OpPanic                        // abort with Str
 	OpNop                          // removed instruction
-	OpBoxReplace                   // Args[0]'s boxed value becomes Args[1]'s, in place; the old value ends up owned by Args[1] and is dropped
 	OpGlobalGet                    // Dst = value of static Ent
 	OpGlobalSet                    // static Ent = Args[0]
 	OpFutureNew                    // Dst = Future running async callee Args[0] on Args[1:]
@@ -88,6 +88,9 @@ type Inst struct {
 	// EndScope marks an OpDrop synthesized by scope exit, not a user-written drop;
 	// the borrow checker reports it with wording about the scope ending.
 	EndScope bool
+	// Scoped marks one call's receiver-cell plumbing: an OpNewCell a backend
+	// may place in the frame, and the OpDrop that gives its content back.
+	Scoped bool
 	// Prim/Prov are Ent's typed std op id, resolved once by resolveStdOps;
 	// both zero when Ent is not a registry-covered std call.
 	Prim PrimitiveId
@@ -171,9 +174,9 @@ var opNames = [...]string{
 	OpArray: "array", OpIndex: "index", OpSetIndex: "setindex", OpTag: "tag",
 	OpPayload: "payload", OpIsVariant: "isvariant", OpIsType: "istype", OpUnbox: "unbox",
 	OpBox: "box", OpClosure: "closure", OpFnItem: "fnitem", OpBind: "bind", OpCFnPtr: "cfnptr", OpCallC: "callc", OpAsm: "asm", OpBorrow: "borrow",
-	OpNewCell: "newcell", OpCellGet: "cellget", OpCellSet: "cellset", OpInterp: "interp",
+	OpNewCell: "newcell", OpCellGet: "cellget", OpCellTake: "celltake", OpCellSet: "cellset", OpInterp: "interp",
 	OpShell: "shell", OpDrop: "drop", OpAlias: "alias", OpShare: "share", OpRelease: "release", OpPanic: "panic", OpNop: "nop",
-	OpBoxReplace: "boxreplace", OpGlobalGet: "globalget", OpGlobalSet: "globalset",
+	OpGlobalGet: "globalget", OpGlobalSet: "globalset",
 	OpFutureNew: "future", OpAwait: "await", OpFutureDone: "complete",
 }
 

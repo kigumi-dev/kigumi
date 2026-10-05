@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"kigumi/internal/mir"
-	"kigumi/internal/sem"
 )
 
 // fnItem is one capture-free function value: the adapter it calls and
@@ -23,38 +22,6 @@ const objSlotBytes = 64
 
 func objSlotType() string { return fmt.Sprintf("[%d x i8]", objSlotBytes) }
 
-// inPlaceReplaced collects the types a method assigns as a whole through
-// the box they were built in; key 0 means a receiver too generic to name.
-func inPlaceReplaced(p *mir.Program) map[sem.EntityID]bool {
-	out := map[sem.EntityID]bool{}
-	for _, f := range p.Funcs {
-		for _, blk := range f.Blocks {
-			for _, in := range blk.Insts {
-				if in.Op != mir.OpBoxReplace {
-					continue
-				}
-				t := f.Locals[in.Args[0]].Type
-				if n := p.R.Types.Node(t); n.Kind == sem.KRef {
-					t = n.Elem
-				}
-				n := p.R.Types.Node(t)
-				if n.Kind != sem.KNamed {
-					out[0] = true
-					continue
-				}
-				out[n.Ent] = true
-			}
-		}
-	}
-	return out
-}
-
-// replacedWhole reports whether ent's values are mutated through their own
-// box, which rules out sharing one immortal value per payload-free variant.
-func (e *emitter) replacedWhole(ent sem.EntityID) bool {
-	return e.replaced[0] || e.replaced[ent]
-}
-
 func boolBit(b bool) int {
 	if b {
 		return 1
@@ -65,7 +32,7 @@ func boolBit(b bool) int {
 // variant builds an ADT value, from a shared immortal when its content is
 // fixed: the descriptor's own slot with no payload, else a reserved one.
 func (e *emitter) variant(sb *strings.Builder, in mir.Inst, args []string) string {
-	if len(args) == 0 && e.shareableVariant(in.Ent) {
+	if len(args) == 0 {
 		return e.irb(sb).Call(rtNullary, vptr(e.vdesc(in.Ent))).Text
 	}
 	if key, ok := e.constKey[in.Dst]; ok && len(args) > 0 {

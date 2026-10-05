@@ -25,6 +25,19 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 		if root, p, ex, ok := c.projectionPlace(in.Args[0]); ok && root == owner {
 			return true, p, ex
 		}
+	// Reading a lent receiver's write-back cell stands for the receiver
+	// itself, so a field chain through it resolves like a plain one.
+	case OpCellGet:
+		if !c.f.Locals[in.Args[0]].Borrowed {
+			return in.Dst == owner || in.Args[0] == owner, nil, true
+		}
+		if c.chainedOnly(in.Dst) {
+			return false, nil, true
+		}
+		if root, p, ex, ok := c.projectionPlace(in.Dst); ok && root == owner {
+			return true, p, ex
+		}
+		return false, nil, true
 	default:
 		if in.Dst == owner && in.Op != OpDrop {
 			return true, nil, true

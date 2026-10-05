@@ -33,7 +33,7 @@ func (c *borrowCheck) checkCapture(in Inst) {
 				c.report(in.Node, a, "borrow-escape", "a borrow cannot be captured by a future")
 			}
 		}
-	case OpSetField, OpSetIndex, OpBoxReplace:
+	case OpSetField, OpSetIndex:
 		if _, ok := c.holders[in.Args[len(in.Args)-1]]; ok {
 			c.report(in.Node, in.Args[len(in.Args)-1], "borrow-escape", "a borrow cannot be stored")
 		}

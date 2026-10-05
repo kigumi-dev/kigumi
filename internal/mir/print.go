@@ -60,7 +60,7 @@ func (p *Program) inst(f *Func, in Inst) string {
 	}
 	head := ""
 	switch in.Op {
-	case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpBoxReplace, OpGlobalSet, OpPanic, OpNop:
+	case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpPanic, OpNop:
 	default:
 		head = p.local(f, in.Dst) + " = "
 	}

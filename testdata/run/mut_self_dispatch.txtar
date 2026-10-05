@@ -1,0 +1,154 @@
+-- src --
+import task from std/task
+
+interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+    fn size(self) -> Int
+}
+
+type Shape = Circle(r: Int) | Dot
+
+fn Shape.grow(mut self, k: Int) -> Unit {
+    self = match self {
+        Circle(r) -> Circle(r + k)
+        Dot -> Circle(k)
+    }
+}
+
+fn Shape.size(self) -> Int {
+    match self {
+        Circle(r) -> r
+        Dot -> 0
+    }
+}
+
+type Counter = {
+    pub mut n Int
+}
+
+fn Counter.grow(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+fn Counter.size(self) -> Int { self.n }
+
+fn growGeneric[G: Grower](mut g: G, k: Int) -> Int {
+    g.grow(k)
+    g.grow(k)
+    g.size()
+}
+
+fn growDynamic(mut g: Grower, k: Int) -> Int {
+    g.grow(k)
+    g.grow(k)
+    g.size()
+}
+
+async fn Counter.bumpLater(mut self, by: Int) -> Int {
+    self.n = self.n + by
+    self.n
+}
+
+fn Counter.viaClosure(mut self) -> Int {
+    let add = (k: Int) => { self.n = self.n + k }
+    add(3)
+    add(4)
+    self.n
+}
+
+fn Shape.flattenViaClosure(mut self) -> Unit {
+    let step = () => { self = Dot }
+    step()
+}
+
+interface Bumper {
+    fn bump(mut self, k: Int) -> Unit
+    fn total(self) -> Int
+}
+
+type Tally = {
+    pub mut hits Int
+    pub mut sum Int
+}
+
+fn Tally.bump(mut self, k: Int) -> Unit {
+    self.hits = self.hits + 1
+    self.sum = self.sum + k
+}
+
+fn Tally.total(self) -> Int { self.hits * 100 + self.sum }
+
+fn Counter.bump(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+fn Counter.total(self) -> Int { self.n }
+
+fn bumpBorrowed[B: Bumper](b: &mut B, k: Int) -> Int {
+    b.bump(k)
+    b.bump(k)
+    b.total()
+}
+
+fn bumpForwarded[B: Bumper](b: &mut B, k: Int) -> Int {
+    bumpBorrowed(b, k)
+}
+
+fn growDynBorrowed(g: &mut Grower, k: Int) -> Int {
+    g.grow(k)
+    g.grow(k)
+    g.size()
+}
+
+print "genericAdt=${growGeneric(Dot, 5)}"
+print "genericRecord=${growGeneric(Counter { n: 1 }, 2)}"
+print "dynamicAdt=${growDynamic(Circle(1), 3)}"
+print "dynamicRecord=${growDynamic(Counter { n: 10 }, 4)}"
+
+let mut c = Counter { n: 1 }
+let ex = task.currentThreadExecutor()
+let got = ex.runToCompletion(c.bumpLater(10))
+print "async=${got} ${c.n}"
+
+let mut d = Counter { n: 0 }
+print "closure=${d.viaClosure()} ${d.n}"
+
+let mut s: Shape = Circle(9)
+s.flattenViaClosure()
+print "closureAdt=${s.size()}"
+
+let mut mv = Counter { n: 1 }
+let bump = mv.grow
+bump(4)
+bump(5)
+print "methodValue=${mv.n}"
+
+let mut opt: Int? = Some(5)
+let take = opt.take
+print "optValue=${debug(take())} ${debug(opt)}"
+
+let mut bc = Counter { n: 1 }
+print "borrowedParam=${bumpBorrowed(&mut bc, 5)} ${bc.n}"
+
+let mut bt = Tally { hits: 0, sum: 0 }
+print "borrowedParamRecord=${bumpForwarded(&mut bt, 3)} ${bt.hits} ${bt.sum}"
+
+let mut dg: Grower = Circle(1)
+print "borrowedDynAdt=${growDynBorrowed(&mut dg, 4)} ${dg.size()}"
+
+let mut dr: Grower = Counter { n: 2 }
+print "borrowedDynRecord=${growDynBorrowed(&mut dr, 6)} ${dr.size()}"
+-- stdout --
+genericAdt=10
+genericRecord=5
+dynamicAdt=7
+dynamicRecord=18
+async=11 11
+closure=7 7
+closureAdt=0
+methodValue=1
+optValue=Some(5) Some(5)
+borrowedParam=11 11
+borrowedParamRecord=206 2 6
+borrowedDynAdt=9 9
+borrowedDynRecord=14 14

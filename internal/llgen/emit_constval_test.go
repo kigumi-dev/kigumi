@@ -66,9 +66,9 @@ fn main() -> Unit! {}
 	checkNoHeap(t, "main.here", body)
 }
 
-// rt_core.c turns a Some into a None through the receiver's own storage,
-// so once take() is reachable no Some may stand for more than one value.
-func TestOptionTakeKeepsSomeBoxed(t *testing.T) {
+// take() empties the receiver through its write-back cell, not through the
+// Some it found, so a program that calls it still shares one Some.
+func TestOptionTakeSharesSome(t *testing.T) {
 	ir := emitIR(t, `
 type Mark = Cold | Hot
 
@@ -80,14 +80,16 @@ fn main() -> Unit! {
 }
 `)
 	body := bodyOf(t, ir, `define ptr @"main.here"(`)
-	if !strings.Contains(body, "@rt_variant(") {
-		t.Errorf("a Some the program can take() from must keep its own object:\n%s", body)
+	checkNoHeap(t, "main.here", body)
+	if !strings.Contains(body, `@".constval.`) {
+		t.Errorf("a Some whose payload is fixed must come from the shared slot:\n%s", body)
 	}
 }
 
 var varRewrite = regexp.MustCompile(`(?m)^\s*(a[0-9]->u\.var\.[a-z]+ = [^;]*;)`)
 
-// Sharing one value per construction site is only sound while no runtime op rewrites a variant in place; a new such op must be excluded in scan_stdops.go.
+// Sharing one value per construction site is only sound while no runtime
+// op rewrites a variant in place.
 func TestVariantRewriteInventory(t *testing.T) {
 	src, err := os.ReadFile("runtime/rt_core.c")
 	if err != nil {
@@ -97,13 +99,11 @@ func TestVariantRewriteInventory(t *testing.T) {
 	for _, m := range varRewrite.FindAllStringSubmatch(string(src), -1) {
 		got = append(got, m[1])
 	}
-	want := []string{"a0->u.var.v = V_None;", "a0->u.var.n = 0;"}
-	if strings.Join(got, "\n") != strings.Join(want, "\n") {
-		t.Errorf("rt_core.c rewrites variants in place at:\n%s\nwant only OP_OPTION_TAKE's:\n%s",
-			strings.Join(got, "\n"), strings.Join(want, "\n"))
+	if len(got) > 0 {
+		t.Errorf("rt_core.c rewrites variants in place at:\n%s", strings.Join(got, "\n"))
 	}
 	if _, ok := mir.StdOpIdOf("OPTION_TAKE"); !ok {
-		t.Error("the registry no longer names OPTION_TAKE, which scan_stdops.go excludes by name")
+		t.Error("the registry no longer names OPTION_TAKE")
 	}
 }
 

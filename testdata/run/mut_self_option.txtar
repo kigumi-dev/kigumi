@@ -1,0 +1,74 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Slot = {
+    pub mut value Int?
+    pub mut name String
+}
+
+type Nest = {
+    pub mut inner Slot
+}
+
+type Boxed = Int?
+
+fn fixed() -> Int? { Some(7) }
+
+fn drain(s: &mut Slot) -> Int {
+    (s.value.take() || 0) + (s.value.take() || 100)
+}
+
+let mut single: Int? = Some(10)
+print "local=${debug(single.take())} ${debug(single.take())} ${debug(single)}"
+
+let mut s = Slot { value: Some(42), name: "s" }
+print "field=${debug(s.value.take())} ${debug(s.value)} ${s.name}"
+
+let mut n = Nest { inner: Slot { value: Some(5), name: "n" } }
+print "nested=${debug(n.inner.value.take())} ${debug(n.inner.value)}"
+
+let mut arr = Array.of[Int?](Some(1), None, Some(3))
+print "index=${debug(arr[0].take())} ${debug(arr[1].take())} ${debug(arr[2])}"
+
+let mut b = Boxed(Some(8))
+print "defined=${debug(b.value.take())} ${debug(b.value)}"
+
+let mut d = Slot { value: Some(4), name: "d" }
+print "throughRef=${drain(&mut d)} ${debug(d.value)}"
+
+let mut a = fixed()
+let mut c = fixed()
+print "shared=${debug(a.take())} ${debug(c)} ${debug(a)}"
+
+let mut opts = Array.empty[Int?]()
+for i in 0..3 {
+    opts.push(fixed())
+}
+let _ = opts[1].take()
+print "loop=${debug(opts[0])} ${debug(opts[1])} ${debug(opts[2])}"
+
+let mut nested: Int?? = Some(Some(6))
+let outer = nested.take()
+print "double=${debug(nested)} ${outer is Some(_)}"
+
+let mut held: Res? = Some(Res { id: 9 })
+let taken = held.take()
+print "res=${held is None} ${taken is Some(_)}"
+-- stdout --
+local=Some(10) None None
+field=Some(42) None s
+nested=Some(5) None
+index=Some(1) None Some(3)
+defined=Some(8) None
+throughRef=104 None
+shared=Some(7) Some(7) None
+loop=Some(7) None Some(7)
+double=None true
+res=true true
+drop 9

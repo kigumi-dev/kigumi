@@ -3,6 +3,8 @@ package llgen
 import (
 	"fmt"
 	"strings"
+
+	"kigumi/internal/mir"
 )
 
 // stackSlot hoists to the entry block in a lowered function, since an
@@ -31,4 +33,9 @@ func (e *emitter) argArray(sb *strings.Builder, vals []string) string {
 		fmt.Fprintf(sb, "  store ptr %s, ptr %s\n", v, slot)
 	}
 	return arr
+}
+
+// A cell for l must be heap-allocated once framed: resume re-enters on a fresh stack frame.
+func framed(f *mir.Func, l mir.LocalID) bool {
+	return int(l) < len(f.Slot) && f.Slot[l] >= 0
 }

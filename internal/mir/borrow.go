@@ -149,7 +149,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		in := blk.Insts[i]
 		c.checkInst(in, intersect(live, before[i]))
-		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpBoxReplace && in.Op != OpGlobalSet && in.Op != OpFutureDone {
+		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone {
 			delete(live, in.Dst)
 		}
 		for _, a := range uses(in) {
@@ -165,6 +165,11 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 	c.checkCapture(in)
 	c.checkSuspend(in, liveAfter)
+	// A receiver cell's write-back releases the place's old value; the
+	// exclusive borrow the call took of that place already reported.
+	if in.Op == OpDrop && in.Scoped {
+		return
+	}
 	for holder := range liveAfter {
 		b := c.holders[holder]
 		if !b.hasOwner || holder == in.Dst {
@@ -176,7 +181,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 				continue
 			}
 			mutates := in.Op == OpMove || in.Op == OpDrop || (in.Op == OpBorrow && in.Index == 1) ||
-				in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet || in.Op == OpBoxReplace
+				in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet
 			name := c.f.Locals[o.owner].Name
 			switch {
 			case in.Op == OpDrop && in.EndScope:

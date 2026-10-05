@@ -35,12 +35,14 @@ func checkBorrowedMoves(p *Program, f *Func) {
 				if propagates {
 					borrowed[in.Dst] = true
 				}
-			// A field taken out of a `self`/`mut self` receiver is meant to
-			// escape: it stays untainted for the receiver's
-			// own method. A closure only lends a captured self, so the same
-			// move through its own cell (OpCellGet) stays tainted there.
-			case OpFieldMove, OpCellGet:
+			// A field taken out of a receiver is meant to escape its own
+			// method; a closure only lends a captured self, so it stays tainted.
+			case OpFieldMove:
 				if propagates && isClosure {
+					borrowed[in.Dst] = true
+				}
+			case OpCellGet:
+				if propagates && f.Locals[in.Args[0]].Ent != 0 {
 					borrowed[in.Dst] = true
 				}
 			}
@@ -103,7 +105,7 @@ func checkBorrowedMoves(p *Program, f *Func) {
 				if f.Locals[in.Dst].Ent != 0 && !in.Share && moveOnly(in.Args[0]) {
 					report(in.Node, in.Args[0])
 				}
-			case OpSetField, OpSetIndex, OpNewCell, OpBoxReplace:
+			case OpSetField, OpSetIndex, OpNewCell:
 				if v := in.Args[len(in.Args)-1]; moveOnly(v) {
 					report(in.Node, v)
 				}

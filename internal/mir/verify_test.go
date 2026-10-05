@@ -145,20 +145,15 @@ func TestVerifyOwnership(t *testing.T) {
 	expectRule(t, p, over, "ownership", "still holds a value")
 }
 
-// TestVerifyCellCaptures checks that a closure's captured `mut self` is
-// backed by an OpNewCell, and that breaking a real self capture's
-// OpNewCell is caught as a cellcapture error.
 func TestVerifyCellCaptures(t *testing.T) {
 	res := checkSourceMir(t, `
-type Counter = {
-    pub mut n Int
-}
-fn Counter.bump(mut self) -> Unit {
-    let step = () => { self.n = self.n + 1 }
+fn bump() -> Int {
+    let mut n = 0
+    let step = () => { n = n + 1 }
     step()
+    n
 }
-let mut c = Counter { n: 0 }
-c.bump()
+let _ = bump()
 `)
 	prog := mir.Build(res)
 	if err := prog.Verify(); err != nil {
@@ -166,12 +161,12 @@ c.bump()
 	}
 	var target *mir.Func
 	for _, f := range prog.Funcs {
-		if strings.Contains(f.Name, "Counter.bump") {
+		if strings.HasSuffix(f.Name, ".bump") {
 			target = f
 		}
 	}
 	if target == nil {
-		t.Fatal("Counter.bump not found among the built functions")
+		t.Fatal("bump not found among the built functions")
 	}
 	patched := false
 	for bi := range target.Blocks {
@@ -183,7 +178,7 @@ c.bump()
 		}
 	}
 	if !patched {
-		t.Fatal("Counter.bump has no OpNewCell to break")
+		t.Fatal("bump has no OpNewCell to break")
 	}
 	err := prog.Verify()
 	ve, ok := err.(*mir.Error)

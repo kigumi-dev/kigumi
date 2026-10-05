@@ -96,9 +96,6 @@ struct rt_type {
     // borrow_fields bits the fields holding a borrow (`&'a T`);
     // rt_release/rt_copy skip them, since the record never owns them.
     uint64_t borrow_fields;
-    // Set when some method assigns a whole value of this type through the
-    // box it was built in, which rules out sharing one immortal value.
-    int replaced_in_place;
 };
 // nullary is this variant's payload-free value: immortal, filled once by
 // rt_init_nullary, so constructing it allocates nothing.
@@ -153,6 +150,8 @@ void rt_const_text(void* slot, int kind, const char* data, int64_t len);
 void rt_init_nullary(int ntypes, rt_type** types);
 void rt_fnitem_init(void* slot, adapter_fn fn, int async);
 void rt_stditem_init(void* slot, const char* key, int lent);
+void rt_cell_init(void* slot, val x);
+val rt_cell_take(val c);
 val rt_copy(val v);
 void rt_secure_zero(volatile unsigned char* p, int64_t n);
 val opaque(const char* kind, void* data);

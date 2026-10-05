@@ -26,7 +26,7 @@ var (
 	rtStdId        = RuntimeFn{"rt_std_id", []Type{TI32, TI32, TPtr}, TPtr}
 	rtStdClosure   = RuntimeFn{"rt_std_closure", []Type{TPtr, TI32, TPtr}, TPtr}
 	rtStdBind      = RuntimeFn{"rt_std_bind", []Type{TPtr, TI32, TI32, TPtr}, TPtr}
-	rtCallSlot     = RuntimeFn{"rt_call_slot", []Type{TPtr, TI32, TI32, TPtr}, TPtr}
+	rtCallSlot     = RuntimeFn{"rt_call_slot", []Type{TPtr, TI32, TI32, TPtr, TI32}, TPtr}
 	rtBinop        = RuntimeFn{"rt_binop", []Type{TPtr, TPtr, TPtr}, TPtr}
 	rtUnop         = RuntimeFn{"rt_unop", []Type{TPtr, TPtr}, TPtr}
 	rtCast         = RuntimeFn{"rt_cast", []Type{TPtr, TI32}, TPtr}
@@ -63,9 +63,10 @@ var (
 	rtFnItemInit   = RuntimeFn{"rt_fnitem_init", []Type{TPtr, TPtr, TI32}, TVoid}
 	rtStdItemInit  = RuntimeFn{"rt_stditem_init", []Type{TPtr, TPtr, TI32}, TVoid}
 	rtCell         = RuntimeFn{"rt_cell", []Type{TPtr}, TPtr}
+	rtCellInit     = RuntimeFn{"rt_cell_init", []Type{TPtr, TPtr}, TVoid}
 	rtCellget      = RuntimeFn{"rt_cellget", []Type{TPtr}, TPtr}
+	rtCellTake     = RuntimeFn{"rt_cell_take", []Type{TPtr}, TPtr}
 	rtCellset      = RuntimeFn{"rt_cellset", []Type{TPtr, TPtr}, TVoid}
-	rtBoxReplace   = RuntimeFn{"rt_box_replace", []Type{TPtr, TPtr}, TVoid}
 	rtInterp       = RuntimeFn{"rt_interp", []Type{TI32, TPtr}, TPtr}
 	rtDisplay      = RuntimeFn{"display", []Type{TPtr}, TPtr}
 	rtDrop         = RuntimeFn{"rt_drop", []Type{TPtr}, TVoid}
@@ -100,7 +101,7 @@ var runtimeFns = []RuntimeFn{
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
 	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstNum, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
 	rtIndex, rtSetindex, rtPayload, rtIsvariant, rtIstype, rtUnbox, rtBox,
-	rtClosure, rtClosureAsync, rtFnItemInit, rtStdItemInit, rtCell, rtCellget, rtCellset, rtBoxReplace, rtInterp, rtDisplay, rtDrop,
+	rtClosure, rtClosureAsync, rtFnItemInit, rtStdItemInit, rtCell, rtCellInit, rtCellget, rtCellTake, rtCellset, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,

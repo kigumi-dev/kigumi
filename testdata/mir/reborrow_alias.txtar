@@ -11,13 +11,21 @@ fn outer(out: &mut Array[u8]) -> Unit {
 fn lib.combine(%a: &mut Array[u8], %b: &mut Array[u8]) -> Unit {
   b0:
     %t2 = borrow 1(%a)
-    %t3 = const 1: u8
-    %t4 = call push(%t2, %t3)
-    drop(%t4)
-    %t5 = borrow 1(%b)
-    %t6 = const 2: u8
-    %t7 = call push(%t5, %t6)
-    return %t7
+    %t3 = share retain(%t2)
+    %t4 = newcell(%t3)
+    %t5 = const 1: u8
+    %t6 = call push(%t4, %t5)
+    %t7 = celltake(%t4)
+    drop(%t7)
+    drop(%t6)
+    %t8 = borrow 1(%b)
+    %t9 = share retain(%t8)
+    %t10 = newcell(%t9)
+    %t11 = const 2: u8
+    %t12 = call push(%t10, %t11)
+    %t13 = celltake(%t10)
+    drop(%t13)
+    return %t12
 }
 fn lib.outer(%out: &mut Array[u8]) -> Unit {
   b0:

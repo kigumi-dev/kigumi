@@ -67,9 +67,15 @@ func (p *Program) build(hf *hir.Func) *Func {
 	b.newBlock()
 	b.pushScope()
 	if hf.Self != nil {
-		// self goes through param(), like any other parameter, so a self
-		// captured mutably by a closure gets the same OpNewCell backing.
-		f.Params = append(f.Params, b.param(hf.Self))
+		// A `mut self` receiver arrives as the caller's write-back cell; every
+		// other self goes through param(), like an ordinary parameter.
+		if b.r.IsMutSelf(hf.Self.Ent) {
+			id := b.declare(hf.Self.Ent)
+			f.Locals[id].Cell = true
+			f.Params = append(f.Params, id)
+		} else {
+			f.Params = append(f.Params, b.param(hf.Self))
+		}
 		self := b.locals[hf.Self.Ent]
 		f.Locals[self].Borrowed = !hf.SelfMove
 		// A `self`/`mut self` receiver is borrowed from the caller and a
@@ -88,6 +94,9 @@ func (p *Program) build(hf *hir.Func) *Func {
 		// has no hf.Self to read it from.
 		e := b.r.Entity(d.Ent).Flags
 		f.Locals[id].Borrowed = e&sem.EfSelf != 0 && e&sem.EfMove == 0
+		if b.r.IsMutSelf(d.Ent) {
+			f.Locals[id].Cell = true
+		}
 	}
 	for _, decls := range [][]*hir.LocalDecl{hf.Params, hf.Witness, hf.Const} {
 		for _, d := range decls {
@@ -141,8 +150,9 @@ func (b *builder) newBlockAt() BlockID {
 func (b *builder) block() *Block { return &b.fn.Blocks[b.cur] }
 
 func (b *builder) emit(in Inst) LocalID {
-	// A borrow never owns what it aliases, so it has nothing to drop.
-	if in.Op == OpDrop && len(in.Args) == 1 && (b.r.Types.Kind(b.fn.Locals[in.Args[0]].Type) == sem.KRef || b.fn.Locals[in.Args[0]].Borrowed) {
+	// A borrow never owns what it aliases, so it has nothing to drop; a
+	// Scoped drop releases a receiver cell's own reference, not an alias.
+	if in.Op == OpDrop && !in.Scoped && len(in.Args) == 1 && (b.r.Types.Kind(b.fn.Locals[in.Args[0]].Type) == sem.KRef || b.fn.Locals[in.Args[0]].Borrowed) {
 		return in.Dst
 	}
 	if b.block().Term.Op != TermNone {

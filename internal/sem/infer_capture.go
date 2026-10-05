@@ -43,6 +43,10 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 		if mode == capCopy && e.Flags&EfCapturedMut != 0 {
 			mode = capCell
 		}
+		// A `mut self` receiver is the caller's write-back cell, so a closure over it shares that cell.
+		if lentReceiver(e) {
+			mode = capCell
+		}
 		ctx.captured[ent] = len(ctx.list)
 		ctx.list = append(ctx.list, Capture{Local: ent, Mode: mode})
 		c.captureSites[ent] = append(c.captureSites[ent], captureSite{ctx: ctx, idx: len(ctx.list) - 1})
@@ -119,7 +123,7 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 		name := c.r.Entities[cap.Local].Name
 		switch cap.Mode {
 		case capCell:
-			c.errAt(n, cClosureNotPlainFn, name, "assigned inside the closure")
+			c.errAt(n, cClosureNotPlainFn, name, c.r.cellCaptureWhy(cap.Local))
 			return nil, true
 		case capMove, capRetain:
 			c.errAt(n, cClosureNotPlainFn, name, "move-only")
@@ -156,4 +160,16 @@ func (c *checker) sameFnShape(got, want TypeID) bool {
 		return false
 	}
 	return true
+}
+
+func lentReceiver(e *Entity) bool {
+	const want = EfSelf | EfMut
+	return e.Flags&want == want && e.Flags&EfMove == 0
+}
+
+func (r *Result) cellCaptureWhy(ent EntityID) string {
+	if lentReceiver(&r.Entities[ent]) {
+		return "a receiver lent by the caller"
+	}
+	return "assigned inside the closure"
 }

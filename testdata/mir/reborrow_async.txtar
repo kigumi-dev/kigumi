@@ -12,9 +12,13 @@ async fn scenario(out: &mut Array[u8]) -> Unit {
 async fn lib.addOne(%out: &mut Array[u8]) -> Unit {
   b0:
     %t1 = borrow 1(%out)
-    %t2 = const 99: u8
-    %t3 = call push(%t1, %t2)
-    return %t3
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const 99: u8
+    %t5 = call push(%t3, %t4)
+    %t6 = celltake(%t3)
+    drop(%t6)
+    return %t5
 }
 async fn lib.scenario(%out: &mut Array[u8]) -> Unit {
   b0:
@@ -23,13 +27,17 @@ async fn lib.scenario(%out: &mut Array[u8]) -> Unit {
     %t3 = future(%t2, %t1)
     %f = copy(%t3)
     %t5 = borrow 1(%out)
-    %t6 = const 1: u8
-    %t7 = call push(%t5, %t6)
-    drop(%t7)
-    %t8 = move(%f)
-    %t9 = await(%t8)
+    %t6 = share retain(%t5)
+    %t7 = newcell(%t6)
+    %t8 = const 1: u8
+    %t9 = call push(%t7, %t8)
+    %t10 = celltake(%t7)
+    drop(%t10)
+    drop(%t9)
+    %t11 = move(%f)
+    %t12 = await(%t11)
     nop
-    return %t9
+    return %t12
 }
 error[use-after-move]: `out` was moved; it cannot be used again
  --> lib/reborrow.kg:7:5

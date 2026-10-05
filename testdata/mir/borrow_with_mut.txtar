@@ -29,39 +29,54 @@ fn fine(mut xs: Array[Item]) -> usize {
 -- expect --
 fn lib.Item.update(%self: Item, %delta: Int) -> Unit {
   b0:
-    %t2 = field 0(%self)
-    %t3 = bin +(%t2, %delta)
-    setfield 0(%self, %t3)
-    %t4 = unit
+    %t2 = cellget(%self)
+    %t3 = cellget(%self)
+    %t4 = field 0(%t3)
+    %t5 = bin +(%t4, %delta)
+    setfield 0(%t2, %t5)
+    %t6 = unit
     drop(%delta)
-    return %t4
+    return %t6
 }
 fn lib.sharedThenWithMut.closure1(%x: &mut Item) -> Unit {
   b0:
     %t1 = borrow 1(%x)
-    %t2 = const 1: Int
-    %t3 = call update(%t1, %t2)
-    return %t3
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const 1: Int
+    %t5 = call update(%t3, %t4)
+    %t6 = celltake(%t3)
+    drop(%t6)
+    return %t5
 }
 fn lib.sharedThenWithMut(%xs: Array[Item]) -> usize {
   b0:
     %t1 = borrow 0(%xs)
     %r = copy(%t1)
     %t3 = borrow 1(%xs)
-    %t4 = const 0: usize
-    %t5 = closure closure
-    %t6 = call withMut(%t3, %t4, %t5)
-    drop(%t6)
-    %t7 = call len(%r)
+    %t4 = share retain(%t3)
+    %t5 = newcell(%t4)
+    %t6 = const 0: usize
+    %t7 = closure closure
+    %t8 = call withMut(%t5, %t6, %t7)
+    %t9 = celltake(%t5)
     drop(%xs)
-    return %t7
+    %xs = copy(%t9)
+    drop(%t8)
+    %t10 = call len(%r)
+    drop(%xs)
+    return %t10
 }
 fn lib.exclusiveThenLen.closure1(%x: &mut Item) -> Unit {
   b0:
     %t1 = borrow 1(%x)
-    %t2 = const 1: Int
-    %t3 = call update(%t1, %t2)
-    return %t3
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const 1: Int
+    %t5 = call update(%t3, %t4)
+    %t6 = celltake(%t3)
+    drop(%t6)
+    return %t5
 }
 fn lib.exclusiveThenLen(%xs: Array[Item]) -> usize {
   b0:
@@ -70,21 +85,29 @@ fn lib.exclusiveThenLen(%xs: Array[Item]) -> usize {
     %t3 = call len(%xs)
     %k = copy(%t3)
     %t5 = borrow 1(%m)
-    %t6 = const 0: usize
-    %t7 = closure closure
-    %t8 = call withMut(%t5, %t6, %t7)
-    drop(%t8)
-    %t9 = copy(%k)
+    %t6 = share retain(%t5)
+    %t7 = newcell(%t6)
+    %t8 = const 0: usize
+    %t9 = closure closure
+    %t10 = call withMut(%t7, %t8, %t9)
+    %t11 = celltake(%t7)
+    drop(%t11)
+    drop(%t10)
+    %t12 = copy(%k)
     drop(%k)
     drop(%xs)
-    return %t9
+    return %t12
 }
 fn lib.fine.closure1(%x: &mut Item) -> Unit {
   b0:
     %t1 = borrow 1(%x)
-    %t2 = const 1: Int
-    %t3 = call update(%t1, %t2)
-    return %t3
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const 1: Int
+    %t5 = call update(%t3, %t4)
+    %t6 = celltake(%t3)
+    drop(%t6)
+    return %t5
 }
 fn lib.fine(%xs: Array[Item]) -> usize {
   b0:
@@ -93,15 +116,20 @@ fn lib.fine(%xs: Array[Item]) -> usize {
     %t3 = call len(%r)
     %n = copy(%t3)
     %t5 = borrow 1(%xs)
-    %t6 = const 0: usize
-    %t7 = closure closure
-    %t8 = call withMut(%t5, %t6, %t7)
-    drop(%t8)
-    %t9 = call len(%xs)
-    %t10 = bin +(%t9, %n)
+    %t6 = share retain(%t5)
+    %t7 = newcell(%t6)
+    %t8 = const 0: usize
+    %t9 = closure closure
+    %t10 = call withMut(%t7, %t8, %t9)
+    %t11 = celltake(%t7)
+    drop(%xs)
+    %xs = copy(%t11)
+    drop(%t10)
+    %t12 = call len(%xs)
+    %t13 = bin +(%t12, %n)
     drop(%n)
     drop(%xs)
-    return %t10
+    return %t13
 }
 error[borrow-conflict]: `xs` is borrowed and cannot be mutated here
   --> lib/wm.kg:11:5

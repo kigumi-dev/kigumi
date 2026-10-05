@@ -157,14 +157,19 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpBorrow:
 		res = args[0]
 	case mir.OpNewCell:
+		if in.Scoped && !framed(f, in.Dst) {
+			slot := e.stackSlot(sb, objSlotType()+", align 16")
+			e.irb(sb).Call(rtCellInit, vptr(slot), vptr(args[0]))
+			res = slot
+			break
+		}
 		res = e.irb(sb).Call(rtCell, vptr(args[0])).Text
 	case mir.OpCellGet:
 		res = e.irb(sb).Call(rtCellget, vptr(args[0])).Text
+	case mir.OpCellTake:
+		res = e.irb(sb).Call(rtCellTake, vptr(args[0])).Text
 	case mir.OpCellSet:
 		e.irb(sb).Call(rtCellset, vptr(args[0]), vptr(args[1]))
-		return
-	case mir.OpBoxReplace:
-		e.irb(sb).Call(rtBoxReplace, vptr(args[0]), vptr(args[1]))
 		return
 	case mir.OpInterp:
 		res = e.interp(sb, in, args)

@@ -16,6 +16,9 @@ type places struct {
 	// children lists a root's own direct field-place representatives, by
 	// field index, so own.go can tell which of its fields are still valid.
 	children map[LocalID]map[int]LocalID
+	// cellRoot maps a read of a lent receiver's write-back cell back to the
+	// receiver, so `self.a` keys the same place a plain receiver's would.
+	cellRoot map[LocalID]LocalID
 }
 
 // findPlaces keys each projection temporary and elects the first temporary of a
@@ -23,7 +26,18 @@ type places struct {
 // can cross a back edge.
 func findPlaces(p *Program, f *Func) *places {
 	pl := &places{key: map[LocalID]string{}, rep: map[string]LocalID{}, name: map[LocalID]string{},
-		children: map[LocalID]map[int]LocalID{}}
+		children: map[LocalID]map[int]LocalID{}, cellRoot: map[LocalID]LocalID{}}
+	// checkBorrowedMoves already rejects every move out of a closure's
+	// captured receiver; keying places there reports the same move twice.
+	if p.R.Entity(f.Ent).Kind != sem.EntClosure {
+		for bi := range f.Blocks {
+			for _, in := range f.Blocks[bi].Insts {
+				if in.Op == OpCellGet && in.Dst != 0 && f.Locals[in.Args[0]].Borrowed {
+					pl.cellRoot[in.Dst] = in.Args[0]
+				}
+			}
+		}
+	}
 	t := p.R.Tree(f.File)
 	for changed := true; changed; {
 		changed = false
@@ -68,10 +82,11 @@ func (pl *places) base(f *Func, in Inst) (string, bool) {
 	if k := pl.key[in.Args[0]]; k != "" {
 		return k, true
 	}
-	if f.Locals[in.Args[0]].Ent == 0 {
+	a := pl.canon(in.Args[0])
+	if f.Locals[a].Ent == 0 {
 		return "", false
 	}
-	return strconv.Itoa(int(in.Args[0])), true
+	return strconv.Itoa(int(a)), true
 }
 
 func (pl *places) isPlace(l LocalID) bool { return pl.key[l] != "" }
@@ -79,6 +94,9 @@ func (pl *places) isPlace(l LocalID) bool { return pl.key[l] != "" }
 func (pl *places) canon(l LocalID) LocalID {
 	if k := pl.key[l]; k != "" {
 		return pl.rep[k]
+	}
+	if r, ok := pl.cellRoot[l]; ok {
+		return r
 	}
 	return l
 }

@@ -1,13 +1,13 @@
 package vm
 
-// boxReplace overwrites dst's content with v's, keeping dst's own identity
-// (its rc stays put) so every other holder of dst sees the new value; what
-// ends up in v is dst's old content, released the way any value is.
-func (m *Machine) boxReplace(dst, v *obj) {
-	dstRC, vRC := dst.rc, v.rc
-	*dst, *v = *v, *dst
-	dst.rc, v.rc = dstRC, vRC
-	m.release(v)
+// Mirrors the native rt_cellset.
+func (m *Machine) cellSet(c *obj, v *obj) {
+	if c == nil || c.k != kCell {
+		m.abort("a `mut self` receiver reached the runtime without its cell")
+	}
+	old := c.inner
+	c.inner = v
+	m.release(old)
 }
 
 // release drops one reference; the machine runs the drop hook and frees

@@ -24,13 +24,21 @@ fn lib.outer(%out: &mut Array[u8]) -> Unit {
     %t2 = call identity(%t1)
     %r = copy(%t2)
     %t4 = borrow 1(%out)
-    %t5 = const 1: u8
-    %t6 = call push(%t4, %t5)
-    drop(%t6)
-    %t7 = borrow 1(%r)
-    %t8 = const 2: u8
-    %t9 = call push(%t7, %t8)
-    return %t9
+    %t5 = share retain(%t4)
+    %t6 = newcell(%t5)
+    %t7 = const 1: u8
+    %t8 = call push(%t6, %t7)
+    %t9 = celltake(%t6)
+    drop(%t9)
+    drop(%t8)
+    %t10 = borrow 1(%r)
+    %t11 = share retain(%t10)
+    %t12 = newcell(%t11)
+    %t13 = const 2: u8
+    %t14 = call push(%t12, %t13)
+    %t15 = celltake(%t12)
+    drop(%t15)
+    return %t14
 }
 error[use-after-move]: `out` was moved; it cannot be used again
   --> lib/reborrow.kg:10:5

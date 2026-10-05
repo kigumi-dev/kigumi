@@ -20,19 +20,25 @@ fn reentrant(cell: Shared[Item]) -> Unit {
 -- expect --
 fn lib.Item.update(%self: Item, %delta: Int) -> Unit {
   b0:
-    %t2 = field 0(%self)
-    %t3 = bin +(%t2, %delta)
-    setfield 0(%self, %t3)
-    %t4 = unit
+    %t2 = cellget(%self)
+    %t3 = cellget(%self)
+    %t4 = field 0(%t3)
+    %t5 = bin +(%t4, %delta)
+    setfield 0(%t2, %t5)
+    %t6 = unit
     drop(%delta)
-    return %t4
+    return %t6
 }
 fn lib.reentrant.closure2(%y: &mut Item) -> Unit {
   b0:
     %t1 = borrow 1(%y)
-    %t2 = const 100: Int
-    %t3 = call update(%t1, %t2)
-    return %t3
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const 100: Int
+    %t5 = call update(%t3, %t4)
+    %t6 = celltake(%t3)
+    drop(%t6)
+    return %t5
 }
 fn lib.reentrant.closure1(%cell: Shared[Item], %x: &mut Item) -> Unit {
   b0:
@@ -40,10 +46,14 @@ fn lib.reentrant.closure1(%cell: Shared[Item], %x: &mut Item) -> Unit {
     %t3 = call withMut(%cell, %t2)
     drop(%t3)
     %t4 = borrow 1(%x)
-    %t5 = const 1: Int
-    %t6 = call update(%t4, %t5)
+    %t5 = share retain(%t4)
+    %t6 = newcell(%t5)
+    %t7 = const 1: Int
+    %t8 = call update(%t6, %t7)
+    %t9 = celltake(%t6)
+    drop(%t9)
     drop(%cell)
-    return %t6
+    return %t8
 }
 fn lib.reentrant(%cell: Shared[Item]) -> Unit {
   b0:

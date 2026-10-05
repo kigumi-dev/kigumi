@@ -92,10 +92,9 @@ type Result struct {
 	// fields supply, declared by `@provides(...)`.
 	provides map[EntityID][]ProvideBinding
 	// ctxValueRefs are fn-value refs pending a post-fixpoint CtxReal check.
-	ctxValueRefs []ctxValueRef
-	// wholeAssigned holds the types some `mut self` method writes as a whole,
-	// key 0 one too generic to name; such a value is written through its own storage.
-	wholeAssigned map[EntityID]bool
+	ctxValueRefs    []ctxValueRef
+	selfWholeAssign map[EntityID]bool
+	borrowRecvCalls []borrowRecvCall
 }
 
 func check(mod *Module) *Result {
@@ -112,6 +111,7 @@ func check(mod *Module) *Result {
 	r.checkImpls()
 	r.closeFieldParamForwarding()
 	r.checkBodies()
+	r.checkBorrowedReceivers()
 	r.checkAccelKeys()
 	r.resolvePendingWitnessCallbacks()
 	// Must precede checkEffects: it appends hidden provider captures to
@@ -162,9 +162,9 @@ func newResult(mod *Module) *Result {
 		fileIndex:       map[*syntax.Tree]FileID{},
 		placeIndex:      map[string]PlaceID{},
 		seen:            map[diagKey]struct{}{},
+		selfWholeAssign: map[EntityID]bool{},
 		langItems:       map[string]EntityID{},
 
-		wholeAssigned:   map[EntityID]bool{},
 		langItemMissing: map[string]bool{},
 		implicitMain:    map[PackageID]EntityID{},
 		declScopes:      map[EntityID]ScopeID{},

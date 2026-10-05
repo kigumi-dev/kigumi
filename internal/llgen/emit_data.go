@@ -36,7 +36,7 @@ func llEscape(s string) string {
 func (e *emitter) numKind(t sem.TypeID) int { return mir.NumKind(e.r.Types, e.r.UnderlyingRepr(t)) }
 
 // Must mirror %rt_type and %rt_variant in the header (emit.go).
-var rtTypeStruct = StructType{Name: "%rt_type", Fields: []Type{TPtr, TI32, TI32, TPtr, TI32, TPtr, TPtr, TI64, TI32}}
+var rtTypeStruct = StructType{Name: "%rt_type", Fields: []Type{TPtr, TI32, TI32, TPtr, TI32, TPtr, TPtr, TI64}}
 var rtVariantStruct = StructType{Name: "%rt_variant", Fields: []Type{TPtr, TPtr, TI32, TI32, TObjSlot}}
 
 // Bit 10 of rt_convert's dnk parameter means "target is Char" (rt_core.c).
@@ -130,7 +130,7 @@ func (e *emitter) data() string {
 		}
 		e.irb(&sb).GlobalStruct(name, rtTypeStruct,
 			vptr(e.cstr(e.r.Packages[x.Pkg].Path+"."+x.Name)), vi32(kind), vi32(len(info.Fields)),
-			vptr(fields), vi32(len(info.Variants)), vptr(variants), vptr(drop), vi64(int(e.borrowFieldMask(info))), vi32(boolBit(e.replacedWhole(ent))))
+			vptr(fields), vi32(len(info.Variants)), vptr(variants), vptr(drop), vi64(int(e.borrowFieldMask(info))))
 		for i, v := range info.Variants {
 			e.irb(&sb).GlobalStruct(e.vdesc(v), rtVariantStruct, vptr(e.cstr(e.r.Entity(v).Name)), vptr(name), vi32(i), vi32(len(e.r.Variant(v).Payload)), vobjslot())
 		}

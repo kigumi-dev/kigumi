@@ -5302,9 +5302,94 @@
       }
     },
     {
+      "id": "run/mut_self_adt",
+      "kind": "run",
+      "path": "testdata/run/mut_self_adt.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/mut_self_alias_disjoint",
       "kind": "run",
       "path": "testdata/run/mut_self_alias_disjoint.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_self_async_frame",
+      "kind": "run",
+      "path": "testdata/run/mut_self_async_frame.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_self_dispatch",
+      "kind": "run",
+      "path": "testdata/run/mut_self_dispatch.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_self_option",
+      "kind": "run",
+      "path": "testdata/run/mut_self_option.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_self_record",
+      "kind": "run",
+      "path": "testdata/run/mut_self_record.txtar",
       "mode": [
         "vm",
         "native"
@@ -8221,6 +8306,17 @@
       "id": "sem/mut_place_escape",
       "kind": "sem",
       "path": "testdata/sem/mut_place_escape.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_self_receiver",
+      "kind": "sem",
+      "path": "testdata/sem/mut_self_receiver.txtar",
       "mode": [
         "check"
       ],

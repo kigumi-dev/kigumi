@@ -75,8 +75,9 @@ fn lib.useWhole(%p: Pair) -> Unit {
 }
 fn lib.S.leak(%self: S) -> Res {
   b0:
-    %t1 = fieldmove 0(%self)
-    return %t1
+    %t1 = cellget(%self)
+    %t2 = fieldmove 0(%t1)
+    return %t2
 }
 error[E1025]: `p.a` was moved out of `p`; using the whole value needs it back
   --> lib/partial_move_drop.kg:27:13

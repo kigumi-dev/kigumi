@@ -51,9 +51,8 @@ func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 		if m.r.Entity(a0.ent).Name != "Some" {
 			return m.none()
 		}
-		x := a0.fields[0]
-		a0.ent = m.variantOf(m.r.Types.OptionEnt(), "None")
-		a0.fields = nil
+		x := retain(a0.fields[0])
+		m.cellSet(a[0], m.none())
 		return m.some(x)
 	}
 	if strings.HasSuffix(key, ".equals") {

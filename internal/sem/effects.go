@@ -43,12 +43,11 @@ func (r *Result) effectNodes() []EntityID {
 }
 
 // dropSharedValueAllocs drops the construction edges nothing allocates for.
-// Which those are needs the whole program, so it waits until every body is checked.
 func (r *Result) dropSharedValueAllocs(nodes []EntityID) {
 	for _, id := range nodes {
 		edges := r.edgesPtr(id)
 		*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool {
-			return e.Kind == EdgeAlloc && e.Why == whySharedValue && !r.sharedValueAllocates(e.Type)
+			return e.Kind == EdgeAlloc && e.Why == whySharedValue
 		})
 	}
 }

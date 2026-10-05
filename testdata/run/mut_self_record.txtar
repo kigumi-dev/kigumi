@@ -1,0 +1,98 @@
+-- src --
+type Counter = {
+    pub mut n Int
+    pub mut tag String
+}
+
+fn Counter.bump(mut self, by: Int) -> Unit {
+    self.n = self.n + by
+}
+
+fn Counter.bumpTwice(mut self, by: Int) -> Unit {
+    self.bump(by)
+    self.bump(by)
+}
+
+fn Counter.reset(mut self, tag: String) -> Unit {
+    self = Counter { n: 0, tag: tag }
+}
+
+fn Counter.descend(mut self, k: Int) -> Unit {
+    if k == 0 {
+        return
+    }
+    self.n = self.n + k
+    self.descend(k - 1)
+}
+
+type Pair = {
+    pub mut left Counter
+    pub mut right Counter
+}
+
+fn Pair.bumpLeft(mut self, by: Int) -> Unit {
+    self.left.bump(by)
+}
+
+fn Pair.swap(mut self) -> Unit {
+    self = Pair { left: self.right, right: self.left }
+}
+
+type Tagged = Counter
+
+fn Tagged.scale(mut self, k: Int) -> Unit {
+    self.value.n = self.value.n * k
+}
+
+static mut slot: Int = 0
+
+fn Counter.record(mut self) -> Unit {
+    unsafe { slot = self.n }
+}
+
+let mut c = Counter { n: 1, tag: "a" }
+c.bump(2)
+c.bumpTwice(5)
+print "local=${c.n} ${c.tag}"
+c.reset("fresh")
+print "reset=${c.n} ${c.tag}"
+c.descend(4)
+print "recursion=${c.n}"
+
+let mut p = Pair { left: Counter { n: 5, tag: "l" }, right: Counter { n: 7, tag: "r" } }
+p.bumpLeft(10)
+print "field=${p.left.n} ${p.right.n}"
+p.left.bumpTwice(1)
+print "field2=${p.left.n}"
+p.swap()
+print "swap=${p.left.n}${p.left.tag} ${p.right.n}${p.right.tag}"
+
+let mut arr = Array.of(Counter { n: 1, tag: "x" }, Counter { n: 2, tag: "y" })
+arr[1].bump(40)
+arr[0].reset("z")
+print "index=${arr[0].n}${arr[0].tag} ${arr[1].n}"
+
+let mut t = Tagged(Counter { n: 3, tag: "t" })
+t.scale(10)
+print "defined=${t.value.n}"
+
+let mut r = Counter { n: 99, tag: "r" }
+r.record()
+unsafe { print "static=${slot}" }
+
+let mut loops = Counter { n: 0, tag: "loop" }
+for i in 0..5 {
+    loops.bump(i)
+}
+print "loop=${loops.n}"
+-- stdout --
+local=13 a
+reset=0 fresh
+recursion=10
+field=15 7
+field2=17
+swap=7r 17l
+index=0z 42
+defined=30
+static=99
+loop=10
