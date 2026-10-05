@@ -70,7 +70,7 @@ func isProto(iface string) bool { return iface == "Eq" || iface == "Hash" }
 // deriveSources generates one JSON file and one protocol file per package,
 // covering the requested types and their fields transitively.
 func (r *Result) deriveSources() []generatedFile {
-	g := &deriver{r: r, done: map[deriveRequest]bool{}, texts: map[PackageID]string{}, protos: map[PackageID]string{}}
+	g := &deriver{r: r, gen: r.mod.deriveGen, done: map[deriveRequest]bool{}, texts: map[PackageID]string{}, protos: map[PackageID]string{}}
 	for _, d := range r.derives {
 		g.derive(d)
 	}
@@ -111,8 +111,15 @@ func dirOf(name string) string {
 }
 
 // Check runs the passes, then re-runs them with generated derive sources
-// added if any type needed one.
+// added if any type needed one, via legacyDeriveGenerator; see CheckWith.
 func Check(mod *Module) *Result {
+	return CheckWith(mod, legacyDeriveGenerator)
+}
+
+// CheckWith is Check with an explicit DeriveGenerator (internal/schema's,
+// in the real pipeline).
+func CheckWith(mod *Module, gen DeriveGenerator) *Result {
+	mod.deriveGen = gen
 	r := check(mod)
 	if len(r.derives) == 0 || mod.derived {
 		return r

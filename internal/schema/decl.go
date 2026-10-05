@@ -63,6 +63,12 @@ type Member struct {
 	Name     string     `json:"name"`
 	Type     *TypeRef   `json:"type"`
 	Metadata []Metadata `json:"metadata,omitempty"`
+	// Const marks a `const N: T` type parameter: a derive generator's
+	// generic binder gives it no protocol bound, unlike a type parameter.
+	Const bool `json:"const,omitempty"`
+	// Copy mirrors sem's Copy classification for a variant payload slot; a
+	// derive generator uses it to pick a pattern binding's mode (value vs reference).
+	Copy bool `json:"copy,omitempty"`
 }
 
 // Variant is one ADT constructor and its named payload.

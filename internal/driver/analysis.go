@@ -22,16 +22,29 @@ type Stats struct {
 // a compiler fault: the MIR the builder or a pass produced broke the MIR
 // contract (mir.Program.Verify), never a diagnostic of the program.
 func Analyze(m *Module) (*Analysis, error) {
+	return AnalyzeWith(m, nil)
+}
+
+// AnalyzeWith is Analyze with an explicit sem.DeriveGenerator (nil keeps
+// sem.Check's own default); it lets a caller above driver's own layer
+// (internal/schema's derive generators, which import driver) supply derive
+// source without driver importing that package back.
+func AnalyzeWith(m *Module, gen sem.DeriveGenerator) (*Analysis, error) {
 	mod, err := m.semModule()
 	if err != nil {
 		return nil, err
 	}
-	return m.analyze(mod)
+	return m.analyze(mod, gen)
 }
 
-func (m *Module) analyze(mod *sem.Module) (*Analysis, error) {
+func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, error) {
 	m.stats.Check++
-	res := sem.Check(mod)
+	var res *sem.Result
+	if gen == nil {
+		res = sem.Check(mod)
+	} else {
+		res = sem.CheckWith(mod, gen)
+	}
 	a := &Analysis{Res: res}
 	m.lastAnalysis = a
 	if res.HasErrors() {

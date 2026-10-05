@@ -28,6 +28,8 @@ type Module struct {
 	Sources *token.SourceStore
 	// derived marks the second pass, which carries the generated codecs.
 	derived bool
+	// deriveGen produces derive source; nil means legacyDeriveGenerator.
+	deriveGen DeriveGenerator
 	// NoDefaultAllocator is the `allocator = none` profile: code
 	// reachable from the entry may allocate only inside `allocator` blocks.
 	NoDefaultAllocator bool

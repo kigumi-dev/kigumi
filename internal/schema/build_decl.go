@@ -62,6 +62,11 @@ func buildType(res *sem.Result, t *syntax.Tree, ent sem.EntityID, decl *Declarat
 	decl.Kind = KindType
 	decl.Metadata = metadataOf(res, t, info.Metadata)
 	decl.SchemaDecl = schemaDeclOf(res, ent)
+	for _, p := range info.Params {
+		m := buildMember(res, t, p, nil)
+		m.Const = res.TypeParam(p).IsConst
+		decl.Params = append(decl.Params, m)
+	}
 	for _, f := range info.Fields {
 		decl.Fields = append(decl.Fields, buildMember(res, t, f, res.Field(f).Metadata))
 	}
@@ -84,7 +89,7 @@ func buildVariant(res *sem.Result, t *syntax.Tree, v sem.EntityID) *Variant {
 		if i < len(info.Names) {
 			pname = info.Names[i]
 		}
-		variant.Payload = append(variant.Payload, &Member{ID: memberID(variant.ID, pname), Name: pname, Type: typeRef(res, pt), Metadata: []Metadata{}})
+		variant.Payload = append(variant.Payload, &Member{ID: memberID(variant.ID, pname), Name: pname, Type: typeRef(res, pt), Metadata: []Metadata{}, Copy: res.IsCopy(pt)})
 	}
 	return variant
 }

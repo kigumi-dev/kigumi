@@ -2,6 +2,7 @@ package sem
 
 type deriver struct {
 	r     *Result
+	gen   DeriveGenerator
 	done  map[deriveRequest]bool
 	texts map[PackageID]string
 	// protos collects the generated Eq / Hash methods, which need no import.
@@ -42,14 +43,14 @@ func (g *deriver) derive(d deriveRequest) {
 			}
 		}
 	}
-	var text string
-	switch {
-	case isProto(d.iface):
-		text = g.proto(d, info)
-	case info.Form == FormAdt:
-		text = g.adt(d, info)
-	default:
-		text = g.record(d, info)
+	gen := g.gen
+	if gen == nil {
+		gen = legacyDeriveGenerator
+	}
+	text, err := gen(r, DeriveRequest{Decl: d.decl, Interface: d.iface})
+	if err != nil {
+		r.errAt(r.Entities[d.decl].File, r.Entities[d.decl].Node, generatorFailureCode(err), r.Entities[d.decl].Name, d.iface, err.Error())
+		return
 	}
 	pkg := r.Entities[d.decl].Pkg
 	if pkg == 0 {

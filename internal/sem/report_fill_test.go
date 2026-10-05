@@ -16,3 +16,27 @@ func TestFillTemplate(t *testing.T) {
 		t.Errorf("Plural(2) = %q, want \"s\"", Plural(2))
 	}
 }
+
+// E1430-E1433's call site in derive_gen.go always passes (Name, iface, detail);
+// each template's placeholders must appear in that same order.
+func TestDeriveGeneratorCodeTemplateArgOrder(t *testing.T) {
+	cases := []struct {
+		name string
+		want string
+	}{
+		{"derive-generator-failed", "`MyType`'s `Ord` derive generator failed: detail"},
+		{"derive-generator-no-schema", "`MyType` has no Schema IR declaration to derive `Ord` from: detail"},
+		{"derive-generator-unsupported", "no derive generator is registered for `MyType`'s `Ord`"},
+		{"derive-generator-nondeterministic", "`MyType`'s `Ord` derive generator produced different source on a second run: detail"},
+	}
+	for _, c := range cases {
+		code, ok := CodeByName(c.name)
+		if !ok {
+			t.Fatalf("%s: no such code", c.name)
+		}
+		got := FillTemplate(code.Template, "MyType", "Ord", "detail")
+		if got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}
