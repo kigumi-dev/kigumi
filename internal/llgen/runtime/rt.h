@@ -4,24 +4,8 @@
 #define KIGUMI_RT_H
 #include <stddef.h>
 #include <stdint.h>
-typedef struct rt_type {
-    const char* name;
-    int kind;
-    int nfields;
-    const char** fields;
-    int nvariants;
-    struct rt_vdesc** variants;
-    void* drop;
-    // borrow_fields bits the fields holding a borrow (`&'a T`);
-    // rt_release/rt_copy skip them, since the record never owns them.
-    uint64_t borrow_fields;
-} rt_type;
-typedef struct rt_vdesc {
-    const char* name;
-    rt_type* adt;
-    int index;
-    int npayload;
-} rt_vdesc;
+typedef struct rt_type rt_type;
+typedef struct rt_vdesc rt_vdesc;
 enum { K_INT = 1,
        K_FLOAT,
        K_BOOL,
@@ -93,6 +77,35 @@ struct obj {
         void* p;
     } u;
 };
+struct rt_type {
+    const char* name;
+    int kind;
+    int nfields;
+    const char** fields;
+    int nvariants;
+    rt_vdesc** variants;
+    void* drop;
+    // borrow_fields bits the fields holding a borrow (`&'a T`);
+    // rt_release/rt_copy skip them, since the record never owns them.
+    uint64_t borrow_fields;
+    // Set when some method assigns a whole value of this type through the
+    // box it was built in, which rules out sharing one immortal value.
+    int replaced_in_place;
+};
+// nullary is this variant's payload-free value: immortal, filled once by
+// rt_init_nullary, so constructing it allocates nothing.
+struct rt_vdesc {
+    const char* name;
+    rt_type* adt;
+    int index;
+    int npayload;
+    struct obj nullary;
+};
+// The emitted %rt_variant global reserves RT_OBJ_SLOT bytes for nullary at
+// this offset; llgen (emit_data.go) must agree with both.
+#define RT_OBJ_SLOT 64
+_Static_assert(sizeof(struct obj) <= RT_OBJ_SLOT, "struct obj outgrew the emitted variant slot");
+_Static_assert(offsetof(rt_vdesc, nullary) == 2 * sizeof(void*) + 2 * sizeof(int), "rt_vdesc prefix does not match the emitted %rt_variant");
 
 typedef struct {
     char* p;
@@ -125,6 +138,9 @@ val rt_ptr(void* p);
 val rt_array(int64_t n, val* items);
 void push(val a, val x);
 val rt_record(rt_type* t, int64_t n, val* fields);
+val rt_nullary(rt_vdesc* d);
+void rt_init_nullary(int ntypes, rt_type** types);
+void rt_fnitem_init(void* slot, adapter_fn fn, int async);
 val rt_copy(val v);
 val opaque(const char* kind, void* data);
 val some(val v);

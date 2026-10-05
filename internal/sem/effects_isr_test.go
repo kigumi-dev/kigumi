@@ -79,8 +79,27 @@ export(interrupt) {
 	}
 }
 
-// TestInterruptHandlerNullaryVariantConstruct checks a payload-less variant still needs the alloc edge: rt_variant() calloc's a node regardless.
-func TestInterruptHandlerNullaryVariantConstruct(t *testing.T) {
+// A payload-free variant holds nothing and is built in its descriptor, so
+// a handler may construct one.
+func TestInterruptHandlerNullaryVariantAccepted(t *testing.T) {
+	res := checkIsr(t, `
+type Mark = Cold | Hot
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let x = Cold
+        _ = x
+    }
+}
+`)
+	if res.HasErrors() {
+		t.Fatalf("a handler constructing a nullary variant must be accepted:\n%s", res.Render())
+	}
+}
+
+// `Option.take` writes its receiver in place, so an Option value cannot be
+// shared and its construction keeps the allocation.
+func TestInterruptHandlerOptionNoneConstruct(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
     pub fn tick() -> Unit {
@@ -91,11 +110,11 @@ export(interrupt) {
 `)
 	out := res.Render()
 	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
-		t.Fatalf("a handler constructing a nullary variant must be rejected:\n%s", out)
+		t.Fatalf("a handler constructing `None` must be rejected:\n%s", out)
 	}
 }
 
-func TestInterruptHandlerQualifiedNullaryVariantConstruct(t *testing.T) {
+func TestInterruptHandlerQualifiedNullaryVariantAccepted(t *testing.T) {
 	res := checkIsr(t, `
 type Box = Empty | Full(x: Int)
 
@@ -106,9 +125,8 @@ export(interrupt) {
     }
 }
 `)
-	out := res.Render()
-	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
-		t.Fatalf("a handler constructing a qualified nullary variant must be rejected:\n%s", out)
+	if res.HasErrors() {
+		t.Fatalf("a handler constructing a qualified nullary variant must be accepted:\n%s", res.Render())
 	}
 }
 
@@ -127,18 +145,35 @@ export(interrupt) {
 	}
 }
 
-func TestInterruptHandlerClosureConstruct(t *testing.T) {
+// A capture-free closure has an empty environment and is built in place;
+// capturing anything still needs one.
+func TestInterruptHandlerCapturelessClosureAccepted(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
     pub fn tick() -> Unit {
         let f = () => 1
-        _ = f()
+        _ = f
+    }
+}
+`)
+	if res.HasErrors() {
+		t.Fatalf("a handler creating a captureless closure must be accepted:\n%s", res.Render())
+	}
+}
+
+func TestInterruptHandlerCapturingClosureConstruct(t *testing.T) {
+	res := checkIsr(t, `
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let n = 1
+        let f = () => n
+        _ = f
     }
 }
 `)
 	out := res.Render()
 	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
-		t.Fatalf("a handler constructing a closure, even a captureless one, must be rejected:\n%s", out)
+		t.Fatalf("a handler constructing a capturing closure must be rejected:\n%s", out)
 	}
 }
 

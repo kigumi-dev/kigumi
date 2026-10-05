@@ -3,6 +3,7 @@ package llgen
 import (
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -79,5 +80,24 @@ func TestRuntimeFnsMatchC(t *testing.T) {
 		if !cTypeMatches(fn.Ret, def.ret) {
 			t.Errorf("%s: returns %q in C, %s in the table", fn.Name, def.ret, fn.Ret)
 		}
+	}
+}
+
+// TestObjSlotMatchesC keeps the reserved immortal storage in step with the
+// bound rt.h asserts struct obj against.
+func TestObjSlotMatchesC(t *testing.T) {
+	src, err := os.ReadFile("runtime/rt.h")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`#define RT_OBJ_SLOT (\d+)`).FindSubmatch(src)
+	if m == nil {
+		t.Fatal("rt.h defines no RT_OBJ_SLOT")
+	}
+	if got := string(m[1]); got != strconv.Itoa(objSlotBytes) {
+		t.Errorf("rt.h reserves %s bytes, llgen emits %d", got, objSlotBytes)
+	}
+	if !strings.Contains(header, "%rt_variant = type { ptr, ptr, i32, i32, "+objSlotType()+" }") {
+		t.Errorf("the emitted %%rt_variant does not reserve %s:\n%s", objSlotType(), header)
 	}
 }

@@ -359,7 +359,30 @@ val rt_record(rt_type* t, int64_t n, val* fields) {
     }
     return v;
 }
+// Every payload-free variant's immortal, built before any Kigumi code
+// runs: an interrupt handler must never find one half-initialized.
+void rt_init_nullary(int ntypes, rt_type** types) {
+    for (int i = 0; i < ntypes; i++) {
+        for (int j = 0; j < types[i]->nvariants; j++) {
+            rt_vdesc* d = types[i]->variants[j];
+            d->nullary = (struct obj){.kind = K_VARIANT, .rc = -1, .u.var = {.v = d, .n = 0, .payload = NULL}};
+        }
+    }
+}
+// A payload-free variant has no per-value state, so every construction
+// hands back the one immortal value living in its descriptor.
+val rt_nullary(rt_vdesc* d) {
+    if (d->adt->replaced_in_place) {
+        val fresh = alloc(K_VARIANT);
+        fresh->u.var.v = d;
+        fresh->u.var.n = 0;
+        fresh->u.var.payload = NULL;
+        return fresh;
+    }
+    return &d->nullary;
+}
 val rt_variant(rt_vdesc* d, int64_t n, val* payload) {
+    if (n == 0) return rt_nullary(d);
     val v = alloc(K_VARIANT);
     v->u.var.v = d;
     v->u.var.n = n;
@@ -386,6 +409,9 @@ val deref(val v) {
 void rt_box_replace(val dst, val v) {
     dst = deref(dst);
     v = deref(v);
+    // An immortal value is shared by every site that built it, so the swap
+    // below would hand dst's old content to all of them.
+    if (v->rc < 0) rt_panic("cannot replace a box with a shared value");
     int dst_rc = dst->rc, v_rc = v->rc;
     rt_allocator *dst_al = dst->al, *v_al = v->al;
     struct obj tmp = *dst;
@@ -523,6 +549,18 @@ val rt_closure(adapter_fn fn, int n, val* caps) {
     v->u.clo.env = rt_array(n, caps);
     for (int i = 0; i < n; i++) rt_retain(caps[i]);
     return v;
+}
+
+// slot is the storage the emitter reserved for a capture-free function
+// value; kg_init_immortals fills it before any Kigumi code runs.
+void rt_fnitem_init(void* slot, adapter_fn fn, int async) {
+    static struct obj empty_env = {.kind = K_ARRAY, .rc = -1};
+    val v = (val)slot;
+    v->kind = K_CLOSURE;
+    v->rc = -1;
+    v->u.clo.fn = fn;
+    v->u.clo.env = &empty_env;
+    v->u.clo.async = async;
 }
 
 // rt_closure_async is rt_closure for an async fn/method used as a value
@@ -1082,14 +1120,13 @@ val err_msg(const char* msg) {
 // Err(AllocError.OutOfMemory) as a hand-built immortal object: reporting a
 // failed allocation must not need one of its own to succeed.
 static val alloc_error(void) {
-    static struct obj oom, errv;
+    static struct obj errv;
     static val payload[1];
     static int ready = 0;
     if (!ready) {
         rt_vdesc* d = find_variant(find_type("AllocError"), "OutOfMemory");
         if (!d) return err_msg("out of memory");
-        oom = (struct obj){.kind = K_VARIANT, .rc = -1, .u.var = {.v = d, .n = 0, .payload = NULL}};
-        payload[0] = &oom;
+        payload[0] = rt_nullary(d);
         errv = (struct obj){.kind = K_VARIANT, .rc = -1, .u.var = {.v = V_Err, .n = 1, .payload = payload}};
         ready = 1;
     }
@@ -1130,6 +1167,7 @@ static val opaque_try(const char* kind, void* data) {
     return v;
 }
 static val rt_variant_try(rt_vdesc* d, int64_t n, val* payload) {
+    if (n == 0 && !d->adt->replaced_in_place) return rt_nullary(d);
     val v = alloc_try(K_VARIANT);
     if (!v) return NULL;
     v->u.var.v = d;

@@ -23,8 +23,18 @@ pure noalloc fn ok(data: Bytes) -> usize {
     data.len()
 }
 
-noalloc fn nullaryVariant() -> Int? {
+type Mark = Cold | Hot
+
+noalloc fn nullaryVariant() -> Mark {
+    Cold
+}
+
+noalloc fn optionNone() -> Int? {
     None //~ ERROR constructing `_?` allocates
+}
+
+noalloc fn payloadVariant(x: Int) -> Int? {
+    Some(x) //~ ERROR constructing `_?` allocates
 }
 
 noalloc fn bytes(s: String) -> Bytes {
@@ -45,7 +55,13 @@ fn grows() -> Unit {
 }
 
 noalloc fn cbCaller() -> Unit {
-    cb(() => grows()) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR closure is not `noalloc` (calls `grows`)
+    cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
+}
+
+noalloc fn noop(n: Int) -> Unit {}
+
+noalloc fn cbCapturing(n: Int) -> Unit {
+    cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
 }
 
 noalloc fn cbOk(f: noalloc fn() -> Unit) -> Unit {
@@ -126,56 +142,68 @@ error[E910]: boxing `MyErr` into `Error` allocates
    |          ^^^^^^^^^^^^^^^
 
 error[E961]: constructing `_?` allocates
-  --> lib/na.kg:26:5
+  --> lib/na.kg:32:5
    |
-26 |     None //~ ERROR constructing `_?` allocates
+32 |     None //~ ERROR constructing `_?` allocates
    |     ^^^^
 
-error[E907]: `push` is not `noalloc`
-  --> lib/na.kg:34:5
+error[E961]: constructing `_?` allocates
+  --> lib/na.kg:36:5
    |
-34 |     xs.push(1) //~ ERROR `push` is not `noalloc`
+36 |     Some(x) //~ ERROR constructing `_?` allocates
+   |     ^^^^^^
+
+error[E907]: `push` is not `noalloc`
+  --> lib/na.kg:44:5
+   |
+44 |     xs.push(1) //~ ERROR `push` is not `noalloc`
    |     ^^^^^^^^^
 
-error[E961]: constructing `closure fn() -> Unit` allocates
-  --> lib/na.kg:47:8
+error[E422]: closure is not `noalloc` (calls `grows`)
+  --> lib/na.kg:57:8
    |
-47 |     cb(() => grows()) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR closure is not `noalloc` (calls `grows`)
+57 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
    |        ^^^^^^^^^^^^
 
-error[E422]: closure is not `noalloc` (calls `grows`)
-  --> lib/na.kg:47:8
+error[E961]: constructing `closure fn() -> Unit` allocates
+  --> lib/na.kg:63:8
    |
-47 |     cb(() => grows()) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR closure is not `noalloc` (calls `grows`)
+63 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+   |        ^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+  --> lib/na.kg:63:8
+   |
+63 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
    |        ^^^^^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:55:9
+  --> lib/na.kg:71:9
    |
-55 |     _ = e //~ ERROR dropping `Error` may allocate or deallocate
+71 |     _ = e //~ ERROR dropping `Error` may allocate or deallocate
    |         ^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:58:27
+  --> lib/na.kg:74:27
    |
-58 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
+74 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
    |                           ^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:61:9
+  --> lib/na.kg:77:9
    |
-61 |     let local = e //~ ERROR dropping `Error` may allocate or deallocate
+77 |     let local = e //~ ERROR dropping `Error` may allocate or deallocate
    |         ^^^^^
 
 error[E907]: `helper2` is not `noalloc`
-  --> lib/na.kg:85:5
-   |
-85 |     helper2(x) //~ ERROR `helper2` is not `noalloc`
-   |     ^^^^^^^^^
+   --> lib/na.kg:101:5
+    |
+101 |     helper2(x) //~ ERROR `helper2` is not `noalloc`
+    |     ^^^^^^^^^
 
 error[E907]: `pureOnly` is not `noalloc`
-  --> lib/na.kg:93:5
-   |
-93 |     pureOnly(xs) //~ ERROR `pureOnly` is not `noalloc`
-   |     ^^^^^^^^^^^
+   --> lib/na.kg:109:5
+    |
+109 |     pureOnly(xs) //~ ERROR `pureOnly` is not `noalloc`
+    |     ^^^^^^^^^^^
 

@@ -1,0 +1,62 @@
+-- src --
+type Shape = Circle(r: Float) | Square(side: Float) | Dot
+
+type Mode = Idle | Busy
+
+fn Shape.growCircle(mut self, r: Float) -> Unit {
+    self = Circle(r)
+}
+
+fn Shape.clear(mut self) -> Unit {
+    self = Dot
+}
+
+fn area(s: Shape) -> Float {
+    match s {
+        Circle(r) -> 3.0 * r * r
+        Square(side) -> side * side
+        Dot -> 0.0
+    }
+}
+
+fn modeName(m: Mode) -> String {
+    match m {
+        Idle -> "idle"
+        Busy -> "busy"
+    }
+}
+
+fn bumped(s: Shape) -> Shape {
+    let mut local = s
+    local.growCircle(5.0)
+    local
+}
+
+let mut s = Dot
+let mut t = s
+t.growCircle(2.0)
+print "${area(s)} ${area(t)}"
+
+let mut u = Square(3.0)
+let mut v = u
+v.clear()
+print "${area(u)} ${area(v)}"
+
+let mut a = Dot
+let mut b = a
+let mut c = b
+b.growCircle(1.0)
+print "${area(a)} ${area(b)} ${area(c)}"
+
+let base = Dot
+print "${area(base)} ${area(bumped(base))} ${area(base)}"
+
+let i = Idle
+let j = i
+print "${modeName(i)} ${modeName(j)}"
+-- stdout --
+0 12
+9 0
+0 3 0
+0 75 0
+idle idle

@@ -1,0 +1,75 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Slot = Free | Taken(label: String, h: Handle)
+
+fn describe(s: &Slot) -> String {
+    match s {
+        Free -> "free"
+        Taken(label, h) -> "${label}#${h.id}"
+    }
+}
+
+fn Slot.release(mut self) -> Unit {
+    self = Free
+}
+
+type Mark = Cold | Warm | Hot
+
+type Inner = {
+    pub name String
+    pub tags Array[String]
+}
+
+type Outer = {
+    pub inner Inner
+    pub mark Mark
+}
+
+fn markName(m: Mark) -> String {
+    match m {
+        Cold -> "cold"
+        Warm -> "warm"
+        Hot -> "hot"
+    }
+}
+
+fn summarize(o: &Outer) -> String {
+    "${o.inner.name}/${o.inner.tags.len()}/${markName(o.mark)}"
+}
+
+let o = Outer { inner: Inner { name: "box", tags: Array.of("a", "b") }, mark: Warm }
+print summarize(&o)
+let shown = (() => summarize(&o))()
+print shown
+
+let mut s: Slot = Taken("one", Handle { id: 1 })
+print describe(&s)
+s.release()
+print describe(&s)
+
+let mut slots = Array.empty[Mark]()
+slots.push(Hot)
+slots.push(Cold)
+slots.push(Hot)
+print "${slots.len()} ${markName(slots[0])} ${markName(slots[1])}"
+
+let t: Slot = Taken("two", Handle { id: 2 })
+print describe(&t)
+print "end"
+-- stdout --
+box/2/warm
+box/2/warm
+one#1
+drop 1
+free
+3 hot cold
+two#2
+end
+drop 2

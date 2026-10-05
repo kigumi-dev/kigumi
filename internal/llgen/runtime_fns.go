@@ -42,6 +42,8 @@ var (
 	rtInot         = RuntimeFn{"rt_inot", []Type{TI64, TI32}, TI64}
 	rtRecord       = RuntimeFn{"rt_record", []Type{TPtr, TI64, TPtr}, TPtr}
 	rtVariant      = RuntimeFn{"rt_variant", []Type{TPtr, TI64, TPtr}, TPtr}
+	rtNullary      = RuntimeFn{"rt_nullary", []Type{TPtr}, TPtr}
+	rtInitNullary  = RuntimeFn{"rt_init_nullary", []Type{TI32, TPtr}, TVoid}
 	rtField        = RuntimeFn{"rt_field", []Type{TPtr, TI64}, TPtr}
 	rtFieldMove    = RuntimeFn{"rt_field_move", []Type{TPtr, TI64}, TPtr}
 	rtSetfield     = RuntimeFn{"rt_setfield", []Type{TPtr, TI64, TPtr}, TVoid}
@@ -55,6 +57,7 @@ var (
 	rtBox          = RuntimeFn{"rt_box", []Type{TPtr, TPtr, TPtr}, TPtr}
 	rtClosure      = RuntimeFn{"rt_closure", []Type{TPtr, TI32, TPtr}, TPtr}
 	rtClosureAsync = RuntimeFn{"rt_closure_async", []Type{TPtr, TI32, TPtr}, TPtr}
+	rtFnItemInit   = RuntimeFn{"rt_fnitem_init", []Type{TPtr, TPtr, TI32}, TVoid}
 	rtCell         = RuntimeFn{"rt_cell", []Type{TPtr}, TPtr}
 	rtCellget      = RuntimeFn{"rt_cellget", []Type{TPtr}, TPtr}
 	rtCellset      = RuntimeFn{"rt_cellset", []Type{TPtr, TPtr}, TVoid}
@@ -82,9 +85,9 @@ var runtimeFns = []RuntimeFn{
 	rtInit, rtExitCode, rtUnit, rtInt, rtFloat, rtBool, rtChar, rtStr, rtBytes, rtCopy,
 	rtTruth, rtAt, rtCallv, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
-	rtRecord, rtVariant, rtField, rtFieldMove, rtSetfield, rtArray,
+	rtRecord, rtVariant, rtNullary, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
 	rtIndex, rtSetindex, rtPayload, rtIsvariant, rtIstype, rtUnbox, rtBox,
-	rtClosure, rtClosureAsync, rtCell, rtCellget, rtCellset, rtBoxReplace, rtInterp, rtDisplay, rtDrop,
+	rtClosure, rtClosureAsync, rtFnItemInit, rtCell, rtCellget, rtCellset, rtBoxReplace, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
 }

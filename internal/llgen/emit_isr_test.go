@@ -3,13 +3,6 @@ package llgen_test
 import (
 	"strings"
 	"testing"
-
-	"kigumi/internal/llgen"
-	"kigumi/internal/mir"
-	"kigumi/internal/sem"
-	"kigumi/internal/syntax"
-	"kigumi/internal/testkit"
-	"kigumi/internal/token"
 )
 
 // TestExportInterruptWrapperNoAlloc checks the export(interrupt) wrapper and handler body never allocate.
@@ -23,18 +16,7 @@ export(interrupt) {
     }
 }
 `
-	main := &sem.Package{Path: "main"}
-	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
-	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.Check(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)})
-	if res.HasErrors() {
-		t.Fatalf("check errors:\n%s", res.Render())
-	}
-	prog := mir.Build(res)
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
-		t.Fatal(err)
-	}
-	ir := llgen.Emit(prog)
+	ir := emitIR(t, src)
 	start := strings.Index(ir, "define void @tick()")
 	if start < 0 {
 		t.Fatalf("no export(interrupt) wrapper for `tick` in IR:\n%s", ir)

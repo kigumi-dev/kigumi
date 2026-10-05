@@ -64,7 +64,10 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info.Edges = edges
 	c.closures = append(c.closures, id)
 	result := tt.Closure(id)
-	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	// With nothing captured the environment is empty and needs no storage.
+	if len(info.Captures) > 0 {
+		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	}
 	return result
 }
 

@@ -16,6 +16,9 @@ const (
 	TI32
 	TI64
 	TDouble
+	// TObjSlot is the zeroed storage a descriptor reserves for an immortal
+	// value; RT_OBJ_SLOT in rt.h must agree with its size.
+	TObjSlot
 )
 
 func (t Type) String() string {
@@ -32,6 +35,8 @@ func (t Type) String() string {
 		return "i64"
 	case TDouble:
 		return "double"
+	case TObjSlot:
+		return objSlotType()
 	default:
 		panic(fmt.Sprintf("irb: unknown type %d", t))
 	}
@@ -129,3 +134,4 @@ func vi32text(text string) Value { return Value{TI32, text} }
 func vi64(n int) Value           { return Value{TI64, strconv.Itoa(n)} }
 func vi64text(text string) Value { return Value{TI64, text} }
 func vdouble(text string) Value  { return Value{TDouble, text} }
+func vobjslot() Value            { return Value{TObjSlot, "zeroinitializer"} }

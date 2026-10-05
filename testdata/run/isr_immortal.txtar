@@ -1,0 +1,25 @@
+-- src --
+type Mark = Cold | Hot
+
+fn name(m: Mark) -> String {
+    match m {
+        Cold -> "cold"
+        Hot -> "hot"
+    }
+}
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let m = Hot
+        _ = m
+        let f = () => 1
+        _ = f
+    }
+}
+
+tick()
+print "${name(Hot)} ${name(Cold)}"
+print "tick ok"
+-- stdout --
+hot cold
+tick ok

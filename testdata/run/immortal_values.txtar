@@ -1,0 +1,66 @@
+-- src --
+import {Arena} from std/alloc
+
+type Color = Red | Green | Blue
+
+fn Color.label(self) -> String {
+    match self {
+        Red -> "red"
+        Green -> "green"
+        Blue -> "blue"
+    }
+}
+
+type Tagged = Empty | Named(name: String, tag: Color)
+
+fn describe(t: &Tagged) -> String {
+    match t {
+        Empty -> "empty"
+        Named(name, tag) -> "${name}/${tag.label()}"
+    }
+}
+
+fn twice(x: Int) -> Int { x + x }
+
+fn apply(f: fn(Int) -> Int, x: Int) -> Int { f(x) }
+
+let c = Red
+let d = c
+print "${c.label()} ${d.label()}"
+
+let mut colors = Array.empty[Color]()
+colors.push(Green)
+colors.push(Blue)
+colors.push(Green)
+print "${colors.len()} ${colors[0].label()} ${colors[2].label()}"
+
+let n: Int? = None
+let s: Int? = Some(7)
+print "${n is None} ${s is Some(_)}"
+
+print describe(&Empty)
+print describe(&Named("x", Blue))
+
+print "${apply(twice, 21)} ${apply((x: Int) => x + 1, 41)}"
+
+let ord = 1.compareTo(&2)
+print "${ord is Ordering.Less} ${2.compareTo(&2) is Ordering.Equal}"
+
+fn arenaColor() -> Color! {
+    let arena = Arena.create()?
+    allocator arena.scope() {
+        Blue
+    }
+}
+
+let kept = arenaColor() || (e) => Red
+print "${kept.label()}"
+-- stdout --
+red red
+3 green green
+true true
+empty
+x/blue
+42 42
+true true
+blue

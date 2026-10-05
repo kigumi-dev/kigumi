@@ -73,8 +73,7 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		arr := e.argArray(sb, args)
 		res = e.irb(sb).Call(rtRecord, vptr(e.desc(in.Ent)), vi64(len(args)), vptr(arr)).Text
 	case mir.OpVariant:
-		arr := e.argArray(sb, args)
-		res = e.irb(sb).Call(rtVariant, vptr(e.vdesc(in.Ent)), vi64(len(args)), vptr(arr)).Text
+		res = e.variant(sb, in, args)
 	case mir.OpField:
 		res = e.irb(sb).Call(rtField, vptr(args[0]), vi64(in.Index)).Text
 	case mir.OpFieldMove:
@@ -114,7 +113,7 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpBind:
 		arr := e.argArray(sb, args)
 		if fn, ok := e.p.ByEnt[in.Ent]; ok {
-			res = e.irb(sb).Call(rtClosure, vptr(e.bindSym(fn)), vi32(len(args)), vptr(arr)).Text
+			res = e.closureCtor(sb, e.bindSym(fn), false, args, arr)
 		} else {
 			res = e.irb(sb).Call(rtStdBind, vptr(e.cstr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)), vi32(len(args)), vptr(arr)).Text
 		}
@@ -124,10 +123,6 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			break
 		}
 		arr := e.argArray(sb, args)
-		ctor := rtClosure
-		if in.Async {
-			ctor = rtClosureAsync
-		}
 		if fn, ok := e.p.ByEnt[in.Ent]; ok {
 			sym := e.adapterSym(fn)
 			// A method value captures the receiver in the environment; the
@@ -135,9 +130,9 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			if in.Op == mir.OpClosure && in.Str == "method" {
 				sym = e.methodAdapterSym(fn)
 			}
-			res = e.irb(sb).Call(ctor, vptr(sym), vi32(len(args)), vptr(arr)).Text
+			res = e.closureCtor(sb, sym, in.Async, args, arr)
 		} else if e.loweredStd(in.Ent) {
-			res = e.irb(sb).Call(ctor, vptr(e.stdBound(in.Ent, len(args))), vi32(len(args)), vptr(arr)).Text
+			res = e.closureCtor(sb, e.stdBound(in.Ent, len(args)), in.Async, args, arr)
 		} else {
 			res = e.irb(sb).Call(rtStdClosure, vptr(e.cstr(e.stdKey(in.Ent))), vi32(len(args)), vptr(arr)).Text
 		}

@@ -69,3 +69,19 @@ func (r *Result) namedRepr(n typeNode) ReprKind {
 		return ReprDirect
 	}
 }
+
+// assignedInPlace reports whether ent has a `mut self` member, the only way
+// a value of ent is written through the storage it was built in.
+func (r *Result) assignedInPlace(ent EntityID) bool {
+	if ent == 0 || r.Entities[ent].Kind != EntType {
+		return true
+	}
+	for _, set := range r.typeDecl(ent).Members {
+		for _, m := range r.Overloads[set].Members {
+			if r.Fn(m).Recv == RecvMut {
+				return true
+			}
+		}
+	}
+	return false
+}

@@ -4006,6 +4006,40 @@
       ]
     },
     {
+      "id": "run/immortal_drop_order",
+      "kind": "run",
+      "path": "testdata/run/immortal_drop_order.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/immortal_values",
+      "kind": "run",
+      "path": "testdata/run/immortal_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/import_rename",
       "kind": "run",
       "path": "testdata/run/import_rename.txtar",
@@ -4128,6 +4162,23 @@
       "id": "run/isr",
       "kind": "run",
       "path": "testdata/run/isr.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/isr_immortal",
+      "kind": "run",
+      "path": "testdata/run/isr_immortal.txtar",
       "mode": [
         "vm",
         "native"
@@ -5244,6 +5295,23 @@
       "id": "run/self_capture_copy",
       "kind": "run",
       "path": "testdata/run/self_capture_copy.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/self_reassign_copy",
+      "kind": "run",
+      "path": "testdata/run/self_reassign_copy.txtar",
       "mode": [
         "vm",
         "native"

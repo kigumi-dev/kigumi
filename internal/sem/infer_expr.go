@@ -162,7 +162,11 @@ func (c *checker) variantValue(n syntax.NodeID, v EntityID, args []TypeID) TypeI
 	}
 	adt := c.r.Entities[v].Parent
 	result := c.r.Types.Named(adt, c.adtArgs(n, adt, args))
-	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	// A payload-free variant holds nothing, so one value can stand for every
+	// construction unless a `mut self` method writes a receiver in place.
+	if c.r.assignedInPlace(adt) {
+		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	}
 	return result
 }
 
