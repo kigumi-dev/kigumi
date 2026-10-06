@@ -43,6 +43,8 @@ type builder struct {
 	ret    sem.TypeID
 	// argFixups holds pending scalar &mut write-backs for the call being built.
 	argFixups []argFixup
+	// unowned tracks which locals hold no count of their own: a borrow, or anything that only forwards one.
+	unowned map[LocalID]bool
 }
 
 // scope tracks the owned locals and deferred statements of one block.
@@ -59,78 +61,6 @@ type loopCtx struct {
 	// so valued (not a zero check on result) says whether this loop has one.
 	valued bool
 	result LocalID
-}
-
-func (p *Program) build(hf *hir.Func) *Func {
-	f := &Func{Name: p.funcName(hf.Ent), Ent: hf.Ent, File: hf.File, Ret: hf.Ret, Async: p.isAsyncBody(hf.Ent)}
-	b := &builder{p: p, r: p.R, fn: f, locals: map[sem.EntityID]LocalID{}, shared: map[LocalID]bool{}, ret: hf.Ret}
-	b.newBlock()
-	b.pushScope()
-	if hf.Self != nil {
-		// A `mut self` receiver arrives as the caller's write-back cell; every
-		// other self goes through param(), like an ordinary parameter.
-		if b.r.IsMutSelf(hf.Self.Ent) {
-			id := b.declare(hf.Self.Ent)
-			f.Locals[id].Cell = true
-			f.Params = append(f.Params, id)
-		} else {
-			f.Params = append(f.Params, b.param(hf.Self))
-		}
-		self := b.locals[hf.Self.Ent]
-		f.Locals[self].Borrowed = !hf.SelfMove
-		// A `self`/`mut self` receiver is borrowed from the caller and a
-		// destructor's `move self` is being destroyed already: neither is
-		// dropped by the method itself.
-		if !hf.SelfMove || hf.Destructor {
-			b.scopes[0].owned = nil
-		}
-	}
-	for _, d := range hf.Captures {
-		id := b.declare(d.Ent)
-		f.Params = append(f.Params, id)
-		// A closure capturing its enclosing method's `mut self` inherits
-		// the same borrowed-place status: EfSelf without EfMove marks
-		// mut/plain self on the entity itself, since a closure's own Func
-		// has no hf.Self to read it from.
-		e := b.r.Entity(d.Ent).Flags
-		f.Locals[id].Borrowed = e&sem.EfSelf != 0 && e&sem.EfMove == 0
-		if b.r.IsMutSelf(d.Ent) {
-			f.Locals[id].Cell = true
-		}
-	}
-	for _, decls := range [][]*hir.LocalDecl{hf.Params, hf.Witness, hf.Const} {
-		for _, d := range decls {
-			f.Params = append(f.Params, b.param(d))
-		}
-	}
-	// A context key's hidden parameter is a lease, not an owned value: like
-	// a borrowed `self` above, it is dropped out of the owning scope.
-	ownedBefore := len(b.scopes[0].owned)
-	for _, d := range hf.CtxParams {
-		id := b.param(d)
-		f.Params = append(f.Params, id)
-		f.Locals[id].Borrowed = true
-	}
-	b.scopes[0].owned = b.scopes[0].owned[:ownedBefore]
-	if hf.Kind == hir.FuncMain {
-		for _, s := range hf.Main.Stmts {
-			b.stmt(s)
-		}
-		b.exitScope()
-		f.ImplicitOk = true
-		b.returnValue(b.unit(hf.Main.Node))
-	} else {
-		v := b.detach(b.expr(hf.Body))
-		b.exitScope()
-		b.returnValue(v)
-	}
-	p.Funcs = append(p.Funcs, f)
-	p.ByEnt[hf.Ent] = f
-	analyzeOwnership(p, f)
-	analyzeBorrows(p, f)
-	checkBorrowedMoves(p, f)
-	checkImmediateCaptures(p, f)
-	return f
 }
 
 func (b *builder) newBlock() BlockID {
@@ -150,16 +80,32 @@ func (b *builder) newBlockAt() BlockID {
 func (b *builder) block() *Block { return &b.fn.Blocks[b.cur] }
 
 func (b *builder) emit(in Inst) LocalID {
-	// A borrow never owns what it aliases, so it has nothing to drop; a
-	// Scoped drop releases a receiver cell's own reference, not an alias.
-	if in.Op == OpDrop && !in.Scoped && len(in.Args) == 1 && (b.r.Types.Kind(b.fn.Locals[in.Args[0]].Type) == sem.KRef || b.fn.Locals[in.Args[0]].Borrowed) {
+	// A reference with no count of its own has nothing to drop; a Scoped
+	// drop releases a receiver cell's own reference, not an alias.
+	if in.Op == OpDrop && !in.Scoped && len(in.Args) == 1 && (b.unowned[in.Args[0]] || b.fn.Locals[in.Args[0]].Borrowed) {
 		return in.Dst
 	}
 	if b.block().Term.Op != TermNone {
 		b.newBlock()
 	}
 	b.block().Insts = append(b.block().Insts, in)
+	b.trackUnowned(in)
 	return in.Dst
+}
+
+func (b *builder) trackUnowned(in Inst) {
+	switch in.Op {
+	case OpBorrow:
+		b.unowned[in.Dst] = true
+	case OpAlias, OpMove:
+		if len(in.Args) == 1 {
+			b.unowned[in.Dst] = b.unowned[in.Args[0]]
+		}
+	case OpCopy:
+		if len(in.Args) == 1 {
+			b.unowned[in.Dst] = !in.Share && b.unowned[in.Args[0]]
+		}
+	}
 }
 
 func (b *builder) term(t Term) {

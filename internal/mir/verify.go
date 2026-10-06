@@ -24,6 +24,7 @@ func (e *Error) Error() string {
 // the entities named, types, definition before use, and exactly-once
 // ownership of move-only locals. The first finding is returned.
 func (p *Program) Verify() error {
+	defer p.invalidateUnowned()
 	for _, f := range p.allFuncs() {
 		if err := p.verifyFunc(f); err != nil {
 			return err

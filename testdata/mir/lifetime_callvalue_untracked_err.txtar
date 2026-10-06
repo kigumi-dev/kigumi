@@ -9,6 +9,7 @@ fn lib.chooseRef(%b: &Bytes, %which: fn(&Bytes) -> &Bytes) -> Unit {
     %t2 = copy(%b)
     %t3 = callv(%which, %t2)
     %r = copy(%t3)
+    drop(%r)
     %t5 = unit
     drop(%which)
     return %t5

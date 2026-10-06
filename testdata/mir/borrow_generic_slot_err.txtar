@@ -178,19 +178,19 @@ error[E1531]: a borrow cannot go in `v`, a field of `Wrap` declared `T`: a field
 22 |     let w = Wrap { v: Wrap { v: &b } }
    |                       ^^^^^^^^^^^^
 
-error[E1531]: a borrow cannot go in `_0`, a field of `Tuple2` declared `A`: a field declared that way is released with the record, and this borrow has no count to give; declare the field `&'a T` and take a `['a]` on the record, or store a value the record can own
+error[E1531]: a borrow cannot go in `_0`, an element of `Tuple2` declared `A`: an element declared that way is released with the tuple, and this borrow has no count to give; a tuple cannot take a `['a]` of its own, so put it in a record that can, or store a value the tuple can own
   --> lib/slot.kg:27:13
    |
 27 |     let t = (&b, 1)
    |             ^^^^^^
 
-error[borrow-escape]: a borrow cannot be stored
+error[E1582]: a borrow cannot go in payload 0, a payload of `Option`: a payload declared that way is released with the variant, and this borrow has no count to give; nest it in a type that takes a `['a]` and routes the borrow through its own field, or store a value it can own
   --> lib/slot.kg:32:13
    |
 32 |     let o = Option.Some(&b)
    |             ^^^^^^^^^^^^^^
 
-error[borrow-escape]: a borrow cannot be stored
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array cannot take a `['a]` of its own, so store a value it can own
   --> lib/slot.kg:37:13
    |
 37 |     let a = Array.of(&b)

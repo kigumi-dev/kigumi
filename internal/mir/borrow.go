@@ -104,7 +104,7 @@ func (c *borrowCheck) collect() {
 							changed = true
 						}
 					}
-				case OpRecord, OpCall, OpCallValue, OpBuiltin, OpFutureNew:
+				case OpRecord, OpVariant, OpCall, OpCallValue, OpBuiltin, OpFutureNew:
 					if _, has := c.holders[in.Dst]; !has {
 						if src, ok := c.lifetimeSource(in); ok {
 							c.holders[in.Dst] = src

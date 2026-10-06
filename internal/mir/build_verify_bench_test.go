@@ -91,3 +91,76 @@ func BenchmarkBuildVerify(b *testing.B) {
 		}
 	}
 }
+
+// benchMIRBorrowUnit stresses unownedRefs: a `&` parameter and a field read
+// into a named local are the shapes its fixed point must walk every block for.
+const benchMIRBorrowUnit = `
+pub type Box%d = {
+    pub mut n Int
+}
+
+pub fn Box%d.bump(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+pub type Holder%d['a] = {
+    pub mut r &'a mut Box%d
+}
+
+fn bumpLent%d(r: &mut Box%d) -> Unit {
+    r.bump(3)
+}
+
+fn useField%d['a](h: Holder%d['a]) -> Unit {
+    let r = h.r
+    r.bump(2)
+    bumpLent%d(r)
+}
+`
+
+func genMIRBorrowBenchModule(b *testing.B, count int) *sem.Result {
+	b.Helper()
+	pkgs := map[string]*sem.Package{}
+	for _, p := range testkit.LoadStd(b, "../../std") {
+		pkgs[p.Path] = p
+	}
+	var sb strings.Builder
+	for i := 0; i < count; i++ {
+		sb.WriteString(strings.ReplaceAll(benchMIRBorrowUnit, "%d", strconv.Itoa(i)))
+	}
+	tree := syntax.Parse(token.NewFile("main/main.kg", []byte(sb.String())))
+	if tree.HasErrors() {
+		b.Fatalf("parse errors: %d diagnostics", len(tree.Diags))
+	}
+	pkgs["main"] = &sem.Package{Path: "main", Files: []*syntax.Tree{tree}, Entry: tree}
+	var paths []string
+	for p := range pkgs {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	mod := &sem.Module{}
+	for _, p := range paths {
+		mod.Packages = append(mod.Packages, pkgs[p])
+	}
+	res := sem.CheckWith(mod, schema.GenerateDerive)
+	if res.HasErrors() {
+		b.Fatalf("check errors:\n%s", res.Render())
+	}
+	return res
+}
+
+// BenchmarkBuildVerifyBorrows is BenchmarkBuildVerify over a module that
+// actually exercises unownedRefs, unlike benchMIRUnit (no `&T` anywhere).
+func BenchmarkBuildVerifyBorrows(b *testing.B) {
+	res := genMIRBorrowBenchModule(b, 20)
+	b.ReportAllocs()
+	for b.Loop() {
+		prog := mir.Build(res)
+		if prog.HasErrors() {
+			b.Fatal("mir.Build reported errors on a module that already type-checked")
+		}
+		if err := prog.Verify(); err != nil {
+			b.Fatalf("verify: %v", err)
+		}
+	}
+}

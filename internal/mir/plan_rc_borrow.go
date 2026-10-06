@@ -5,6 +5,9 @@ import "kigumi/internal/sem"
 // unownedRefs marks the references this frame holds no count of: a borrow of a
 // value it has, and one a caller lent it. A field read takes its own count.
 func (p *Program) unownedRefs(f *Func) []bool {
+	if f.unownedCached {
+		return f.unownedCache
+	}
 	out := make([]bool, len(f.Locals))
 	for _, prm := range f.Params {
 		out[prm] = p.R.Types.Kind(f.Locals[prm].Type) == sem.KRef
@@ -20,7 +23,16 @@ func (p *Program) unownedRefs(f *Func) []bool {
 			}
 		}
 	}
+	f.unownedCache, f.unownedCached = out, true
 	return out
+}
+
+// invalidateUnowned drops every function's cached unownedRefs; Verify defers
+// this call so the cache never survives past the round that filled it.
+func (p *Program) invalidateUnowned() {
+	for _, f := range p.allFuncs() {
+		f.unownedCache, f.unownedCached = nil, false
+	}
 }
 
 func lendsOn(in Inst, out []bool) bool {

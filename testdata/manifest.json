@@ -369,6 +369,17 @@
       ]
     },
     {
+      "id": "mir/borrow_variant_holder",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_variant_holder.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/borrow_with_mut",
       "kind": "mir",
       "path": "testdata/mir/borrow_with_mut.txtar",
@@ -3252,6 +3263,23 @@
       "skip": {
         "vm": "static-refusal"
       }
+    },
+    {
+      "id": "run/field_ref_named_local",
+      "kind": "run",
+      "path": "testdata/run/field_ref_named_local.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
     },
     {
       "id": "run/fix_borrow_bind_drop",

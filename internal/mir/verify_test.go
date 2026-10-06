@@ -161,6 +161,31 @@ func TestVerifyDropOwned(t *testing.T) {
 	expectRule(t, p, f, "droplent", "a reference this frame does not own")
 }
 
+// TestVerifyDropOwnedAfterDirectMutation checks a second Verify call recomputes unownedRefs instead of reusing the first call's cache.
+func TestVerifyDropOwnedAfterDirectMutation(t *testing.T) {
+	p := program(t)
+	ref := p.R.Types.Ref(resource(p), true)
+	locals := []mir.Local{{Name: "b", Type: resource(p), Ent: p.R.Types.ErrorEnt()}, {Name: "t1", Type: ref, Ent: p.R.Types.ErrorEnt()}, {Name: "t2", Type: sem.TyUnit}}
+	unit := mir.Inst{Op: mir.OpUnit, Dst: 2}
+	f := fn("recompute", sem.TyUnit, locals, mir.Block{Insts: []mir.Inst{
+		{Op: mir.OpAlias, Dst: 1, Args: []mir.LocalID{0}},
+		{Op: mir.OpDrop, Args: []mir.LocalID{1}},
+		{Op: mir.OpDrop, Args: []mir.LocalID{0}},
+		unit,
+	}, Term: ret(2)})
+	f.Params = []mir.LocalID{0}
+	p.Funcs = []*mir.Func{f}
+	if err := p.Verify(); err != nil {
+		t.Fatalf("verify before mutation: %v", err)
+	}
+	f.Blocks[0].Insts[0].Op, f.Blocks[0].Insts[0].Index = mir.OpBorrow, 1
+	err := p.Verify()
+	ve, ok := err.(*mir.Error)
+	if !ok || ve.Rule != "droplent" {
+		t.Fatalf("got %v, want a droplent error after the mutation turned t1 into a borrow", err)
+	}
+}
+
 func TestVerifyCellCaptures(t *testing.T) {
 	res := checkSourceMir(t, `
 fn bump() -> Int {

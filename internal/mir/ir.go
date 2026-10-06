@@ -158,6 +158,9 @@ type Func struct {
 	// DSig does the same for the parameters and the result; PlanDirect sets both.
 	Direct []bool
 	DSig   *DirectSig
+	// unownedCache memoizes unownedRefs for one build-then-verify round; Verify drops it on return.
+	unownedCache  []bool
+	unownedCached bool
 }
 
 type Program struct {

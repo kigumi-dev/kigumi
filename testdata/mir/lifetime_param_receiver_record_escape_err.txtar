@@ -22,6 +22,7 @@ fn lib.take(%v: View['a], %other: View['b]) -> Box['a] {
     %r = copy(%t2)
     %t4 = copy(%r)
     %t5 = record Box(%t4)
+    drop(%r)
     drop(%other)
     drop(%v)
     return %t5

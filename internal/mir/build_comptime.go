@@ -20,7 +20,7 @@ func (b *builder) comptime(e *hir.Expr) LocalID {
 		}
 	}
 	f := &Func{Name: fmt.Sprintf("%s.comptime%d", b.fn.Name, len(b.p.Comptime)), File: b.fn.File, Ret: ret}
-	cb := &builder{p: b.p, r: b.r, fn: f, locals: map[sem.EntityID]LocalID{}, shared: map[LocalID]bool{}, ret: ret}
+	cb := &builder{p: b.p, r: b.r, fn: f, locals: map[sem.EntityID]LocalID{}, shared: map[LocalID]bool{}, unowned: map[LocalID]bool{}, ret: ret}
 	cb.newBlock()
 	cb.pushScope()
 	v := cb.detach(cb.expr(inner))

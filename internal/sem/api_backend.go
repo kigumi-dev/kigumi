@@ -183,6 +183,10 @@ func (tt *TypeTable) ErrorEnt() EntityID  { return tt.errorEnt }
 // tuple value directly (a Map's `for` element).
 func (tt *TypeTable) TupleEntity(n int) (EntityID, bool) { return tt.tupleEntity(n) }
 
+// IsTupleEnt is isTupleEnt, exported for a diagnostic that reads differently
+// for a tuple element than for a record field.
+func (tt *TypeTable) IsTupleEnt(ent EntityID) bool { return tt.isTupleEnt(ent) }
+
 // MapEntity is mapEntity, exported for the backends that recognize a Map
 // container at runtime.
 func (r *Result) MapEntity() EntityID { return r.mapEntity() }

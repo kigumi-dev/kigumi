@@ -123,12 +123,22 @@ func (b *builder) declare(ent sem.EntityID) LocalID {
 	id := LocalID(len(b.fn.Locals))
 	b.fn.Locals = append(b.fn.Locals, Local{Name: e.Name, Type: e.Type, Ent: ent, Cell: e.Flags&(sem.EfCapturedMut|sem.EfAddrTaken) != 0})
 	b.locals[ent] = id
-	// Borrows never own what they point at, so they are not dropped.
-	if len(b.scopes) > 0 && b.r.Types.Kind(e.Type) != sem.KRef {
+	refKind := b.r.Types.Kind(e.Type) == sem.KRef
+	// A reference parameter is lent, not handed over; ownIfCounted overrides this once its binding instruction runs.
+	b.unowned[id] = refKind
+	if len(b.scopes) > 0 && !refKind {
 		s := b.scopes[len(b.scopes)-1]
 		s.owned = append(s.owned, id)
 	}
 	return id
+}
+
+// ownIfCounted marks a reference owned once its binding proves it counted; declare can't tell the two cases apart up front.
+func (b *builder) ownIfCounted(id LocalID) {
+	if b.r.Types.Kind(b.fn.Locals[id].Type) != sem.KRef || b.unowned[id] {
+		return
+	}
+	b.own(id)
 }
 
 // param declares an ordinary parameter. One a closure assigns arrives as

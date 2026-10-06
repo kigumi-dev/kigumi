@@ -38,6 +38,7 @@ fn lib.outer(%out: &mut Array[u8]) -> Unit {
     %t14 = call push(%t12, %t13)
     %t15 = celltake(%t12)
     drop(%t15)
+    drop(%r)
     return %t14
 }
 error[use-after-move]: `out` was moved; it cannot be used again

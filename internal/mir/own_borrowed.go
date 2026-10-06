@@ -11,10 +11,12 @@ import (
 // two owners. A borrow is a `self` receiver or a `&T` local, and anything
 // projected out of one (a field, an element, a payload) stays borrowed.
 func checkBorrowedMoves(p *Program, f *Func) {
+	unowned := p.unownedRefs(f)
 	borrowed := make([]bool, len(f.Locals))
 	defNode := make([]syntax.NodeID, len(f.Locals))
 	for i, l := range f.Locals {
-		borrowed[i] = l.Borrowed || p.R.Types.Kind(l.Type) == sem.KRef
+		// A reference local that took its own count isn't aliasing the caller's.
+		borrowed[i] = l.Borrowed || unowned[i]
 	}
 	isClosure := p.R.Entity(f.Ent).Kind == sem.EntClosure
 	if isClosure {

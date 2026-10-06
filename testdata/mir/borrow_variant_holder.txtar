@@ -1,0 +1,52 @@
+-- lib/vh.kg --
+type Box = { pub v Int }
+
+type View['a] = { pub data &'a Box }
+
+type Holder['a] = Has(View['a])
+
+type Loose[T] = Wrap2(T)
+
+fn make['a](b: &'a Box) -> Holder['a] {
+    let v = View { data: b }
+    Has(v)
+}
+
+fn makeLoose() -> Unit {
+    let b = Box { v: 1 }
+    let r = &b
+    let l = Wrap2(r)
+}
+
+-- expect --
+fn lib.make(%b: &Box) -> Holder['a] {
+  b0:
+    %t1 = copy(%b)
+    %t2 = record View(%t1)
+    %v = copy(%t2)
+    %t4 = copy(%v)
+    %t5 = variant Has(%t4)
+    drop(%v)
+    return %t5
+}
+fn lib.makeLoose() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 0(%b)
+    %r = copy(%t3)
+    %t5 = copy(%r)
+    %t6 = variant Wrap2(%t5)
+    %l = copy(%t6)
+    drop(%l)
+    drop(%b)
+    %t8 = unit
+    return %t8
+}
+error[E1582]: a borrow cannot go in payload 0, a payload of `Loose`: a payload declared that way is released with the variant, and this borrow has no count to give; nest it in a type that takes a `['a]` and routes the borrow through its own field, or store a value it can own
+  --> lib/vh.kg:17:13
+   |
+17 |     let l = Wrap2(r)
+   |             ^^^^^^^
+

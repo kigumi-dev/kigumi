@@ -5,6 +5,10 @@ import (
 	"kigumi/internal/syntax"
 )
 
+// borrowOwnedTupleElem is borrow-owned-field's message for a tuple element:
+// a built-in TupleN has no `['a]` of its own for an element to route through.
+const borrowOwnedTupleElem = "a borrow cannot go in `{name}`, an element of `{type}` declared `{type2}`: an element declared that way is released with the tuple, and this borrow has no count to give; a tuple cannot take a `['a]` of its own, so put it in a record that can, or store a value the tuple can own"
+
 // Only a field declared `&'a T`, or one routing a borrow through its own `'a`,
 // is skipped by the destructor and by rt_copy; a type parameter is not.
 func (c *borrowCheck) checkHolderFields(in Inst) {
@@ -15,9 +19,14 @@ func (c *borrowCheck) checkHolderFields(in Inst) {
 	if len(fields) != len(in.Args) {
 		return
 	}
+	tuple := c.p.R.Types.IsTupleEnt(in.Ent)
 	for i, a := range in.Args {
 		t := c.p.R.Entity(fields[i]).Type
 		if !c.unownedRef(a) || c.declaredAsBorrow(t) {
+			continue
+		}
+		if tuple {
+			c.reportTemplate(in.Node, a, "E1531", borrowOwnedTupleElem, c.p.R.Entity(fields[i]).Name, c.p.R.Entity(in.Ent).Name, c.p.R.TypeString(t))
 			continue
 		}
 		c.reportCode(in.Node, a, "borrow-owned-field", c.p.R.Entity(fields[i]).Name, c.p.R.Entity(in.Ent).Name, c.p.R.TypeString(t))
@@ -66,4 +75,10 @@ func (c *borrowCheck) reportCode(n syntax.NodeID, local LocalID, name string, ar
 		msg += "; " + code.Help
 	}
 	c.report(n, local, code.Num, msg)
+}
+
+// reportTemplate is reportCode for a message that varies by shape (E1531's
+// tuple element vs. record field): template already carries its help text.
+func (c *borrowCheck) reportTemplate(n syntax.NodeID, local LocalID, num, template string, args ...any) {
+	c.report(n, local, num, sem.FillTemplate(template, args...))
 }

@@ -39,11 +39,12 @@ fn lib.escapeRecv(%buf: &Bytes) -> Unit {
     %t8 = call of(%t7)
     %xs = copy(%t8)
     drop(%xs)
+    drop(%r)
     drop(%v)
     %t10 = unit
     return %t10
 }
-error[borrow-escape]: a borrow cannot be stored
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array cannot take a `['a]` of its own, so store a value it can own
   --> lib/lt.kg:14:14
    |
 14 |     let xs = Array.of(r)

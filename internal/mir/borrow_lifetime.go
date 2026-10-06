@@ -6,7 +6,7 @@ import "kigumi/internal/sem"
 // should alias, matched by entity identity (no per-call-site lifetime substitution).
 func (c *borrowCheck) lifetimeSource(in Inst) (*borrowInfo, bool) {
 	switch in.Op {
-	case OpRecord:
+	case OpRecord, OpVariant:
 		return c.recordLifetimeSource(in)
 	case OpCall:
 		return c.callLifetimeSource(in)

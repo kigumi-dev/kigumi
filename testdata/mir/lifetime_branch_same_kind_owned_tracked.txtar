@@ -54,6 +54,7 @@ fn lib.relay(%cond: Bool) -> u8 {
     %r = copy(%t20)
     %t22 = const 0: usize
     %t23 = index(%r, %t22)
+    drop(%r)
     drop(%y)
     drop(%x)
     drop(%cond)

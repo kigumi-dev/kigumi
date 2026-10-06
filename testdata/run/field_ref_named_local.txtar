@@ -1,0 +1,69 @@
+-- src --
+// `let r = h.r` holds a count of its own; a resource's drop print catches
+// a leaked one, whether r is used and dropped, forwarded, or returned.
+type Box = resource {
+    pub mut n Int
+    tag Int
+}
+
+fn Box.bump(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+fn Box.drop(move self) -> Unit {
+    print "drop ${self.tag}"
+}
+
+type Holder['a] = {
+    pub mut r &'a mut Box
+}
+
+fn bumpLent(r: &mut Box) -> Unit {
+    r.bump(3)
+}
+
+fn useLocal['a](h: Holder['a]) -> Unit {
+    let r = h.r
+    r.bump(2)
+}
+
+fn forwardLocal['a](h: Holder['a]) -> Unit {
+    let r = h.r
+    bumpLent(r)
+}
+
+fn returnLocal['a](h: Holder['a]) -> &'a mut Box {
+    let r = h.r
+    r
+}
+
+fn scopeUse() -> Unit {
+    let mut a = Box { n: 1, tag: 1 }
+    useLocal(Holder { r: &mut a })
+    print "a=${a.n}"
+}
+
+fn scopeForward() -> Unit {
+    let mut b = Box { n: 1, tag: 2 }
+    forwardLocal(Holder { r: &mut b })
+    print "b=${b.n}"
+}
+
+fn scopeReturn() -> Unit {
+    let mut c = Box { n: 1, tag: 3 }
+    returnLocal(Holder { r: &mut c }).bump(4)
+    print "c=${c.n}"
+}
+
+scopeUse()
+scopeForward()
+scopeReturn()
+print "done"
+-- stdout --
+a=3
+drop 1
+b=4
+drop 2
+c=5
+drop 3
+done

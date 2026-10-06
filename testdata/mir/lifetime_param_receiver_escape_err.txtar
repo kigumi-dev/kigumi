@@ -24,11 +24,12 @@ fn lib.take(%v: View['a]) -> Unit {
     %t5 = call of(%t4)
     %xs = copy(%t5)
     drop(%xs)
+    drop(%r)
     %t7 = unit
     drop(%v)
     return %t7
 }
-error[borrow-escape]: a borrow cannot be stored
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array cannot take a `['a]` of its own, so store a value it can own
  --> lib/lt.kg:9:14
   |
 9 |     let xs = Array.of(r)

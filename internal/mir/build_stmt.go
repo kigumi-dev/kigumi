@@ -1,9 +1,6 @@
 package mir
 
-import (
-	"kigumi/internal/hir"
-	"kigumi/internal/sem"
-)
+import "kigumi/internal/hir"
 
 func (b *builder) stmt(s *hir.Stmt) {
 	switch s.Kind {
@@ -15,9 +12,7 @@ func (b *builder) stmt(s *hir.Stmt) {
 		b.discard(s)
 	case hir.ExprStmt:
 		v := b.expr(s.Expr)
-		if b.r.Types.Kind(s.Expr.Type) != sem.KRef {
-			b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: s.Node})
-		}
+		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: s.Node})
 	case hir.DeferStmt:
 		sc := b.scopes[len(b.scopes)-1]
 		sc.defers = append(sc.defers, s)

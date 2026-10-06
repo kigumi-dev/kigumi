@@ -6,7 +6,7 @@ import "kigumi/internal/sem"
 // capture, or a field/index/box write: none can outlive the borrow.
 func (c *borrowCheck) checkCapture(in Inst) {
 	switch in.Op {
-	case OpRecord, OpVariant, OpArray, OpClosure:
+	case OpRecord, OpClosure:
 		// checkImmediateCaptures verifies a capBorrow closure's owners over its real span instead.
 		if in.Op == OpClosure && c.p.R.Entity(in.Ent).Kind == sem.EntClosure && c.p.R.Closure(in.Ent).Immediate {
 			return
@@ -24,6 +24,15 @@ func (c *borrowCheck) checkCapture(in Inst) {
 				c.report(in.Node, a, "borrow-escape", "a borrow cannot be stored")
 			}
 		}
+	case OpVariant:
+		// A variant with its own ['a] routes a payload through it, same as OpRecord.
+		if _, ok := c.holders[in.Dst]; ok {
+			c.checkHolderPayloads(in)
+			return
+		}
+		c.checkPayloadBorrows(in)
+	case OpArray:
+		c.checkElementBorrows(in)
 	case OpFutureNew:
 		// Same holder-record exception, for a future's own captures.
 		if _, ok := c.holders[in.Dst]; ok {

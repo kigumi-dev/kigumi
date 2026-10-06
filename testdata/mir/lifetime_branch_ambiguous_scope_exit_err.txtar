@@ -57,6 +57,7 @@ fn lib.peek() -> u8 {
     %r = copy(%t19)
     %t21 = const 0: usize
     %t22 = index(%r, %t21)
+    drop(%r)
     drop(%buf1)
     return %t22
 }
