@@ -88,27 +88,26 @@ func ccompilerField() Field {
 // zigField reads mod.kg directly; no std root is available here to load a full module.
 func zigField() Field {
 	mf, _, _ := driver.ReadModFile(".")
-	explicit := shared.ZigPath()
-	source := "PATH"
-	if explicit != "" {
-		source = "$KIGUMI_ZIG"
+	root, err := shared.ZigStoreRoot()
+	if err != nil {
+		root = ""
 	}
-	c := zigtool.CheckZig(explicit, mf.Zig)
+	r := zigtool.ForModule(root, shared.ZigPath(), mf.Zig)
 	switch {
-	case c.Path == "":
+	case r.Path == "":
 		status := "missing"
 		if mf.Zig == "" {
-			return Field{Source: source, Status: status}
+			return Field{Source: r.Source, Status: status}
 		}
-		return Field{Value: fmt.Sprintf("pin %s not resolved: %s", mf.Zig, c.Err), Source: source, Status: status}
+		return Field{Value: fmt.Sprintf("pin %s not resolved: %s", mf.Zig, r.Err), Source: r.Source, Status: status}
 	case mf.Zig == "":
-		return Field{Value: c.Path, Source: source, Status: "ok"}
-	case c.Mismatch:
-		return Field{Value: fmt.Sprintf("%s (%s, pin %s not satisfied)", c.Path, c.Version, mf.Zig), Source: source, Status: "mismatch"}
-	case c.Err != nil:
-		return Field{Value: fmt.Sprintf("%s (version unknown: %s; pin %s)", c.Path, c.Err, mf.Zig), Source: source, Status: "unknown"}
+		return Field{Value: r.Path, Source: r.Source, Status: "ok"}
+	case r.Mismatch:
+		return Field{Value: fmt.Sprintf("%s (%s, pin %s not satisfied)", r.Path, r.Version, mf.Zig), Source: r.Source, Status: "mismatch"}
+	case r.Err != nil:
+		return Field{Value: fmt.Sprintf("%s (version unknown: %s; pin %s)", r.Path, r.Err, mf.Zig), Source: r.Source, Status: "unknown"}
 	default:
-		return Field{Value: fmt.Sprintf("%s (%s, satisfies pin %s)", c.Path, c.Version, mf.Zig), Source: source, Status: "ok"}
+		return Field{Value: fmt.Sprintf("%s (%s, satisfies pin %s)", r.Path, r.Version, mf.Zig), Source: r.Source, Status: "ok"}
 	}
 }
 

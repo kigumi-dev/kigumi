@@ -19,6 +19,7 @@ import (
 	"kigumi/internal/cli/parse"
 	"kigumi/internal/cli/run"
 	"kigumi/internal/cli/shared"
+	"kigumi/internal/cli/zig"
 	"kigumi/internal/cliutil"
 	"kigumi/internal/diag"
 	"kigumi/internal/errors"
@@ -56,6 +57,7 @@ func RootCmd() *cobra.Command {
 	root.PersistentFlags().String("stack-profile", "", "stack policy: hosted-growable (default, reports the resource summary only) or strict (rejects an entry whose call chain is unbounded or unknown)")
 	root.PersistentFlags().Int("stack-budget-kib", 0, "with --stack-profile strict, the available stack capacity in KiB a bounded entry must additionally fit under (default: no numeric budget)")
 	root.PersistentFlags().String("color", "auto", "color diagnostics: auto (a terminal without NO_COLOR), always, or never")
+	root.PersistentFlags().Bool("offline", false, "never fetch a pinned zig on demand; report a diagnostic instead")
 	root.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		mode, _ := cmd.Flags().GetString("color")
 		color, err := shared.Color(mode, os.Stderr)
@@ -67,7 +69,7 @@ func RootCmd() *cobra.Command {
 	}
 	root.Version = version.Toolchain
 	root.SetVersionTemplate("kigumi version {{.Version}}\n")
-	root.AddCommand(parse.Cmd(), fmtcmd.Cmd(), check.Cmd(), run.Cmd(), run.TestCmd(), build.Cmd(), doc.Cmd(), doc.SchemaCmd(), get.Cmd(), mod.Cmd(), lsp.Cmd(), explain.Cmd(), doctor.Cmd())
+	root.AddCommand(parse.Cmd(), fmtcmd.Cmd(), check.Cmd(), run.Cmd(), run.TestCmd(), build.Cmd(), doc.Cmd(), doc.SchemaCmd(), get.Cmd(), mod.Cmd(), lsp.Cmd(), explain.Cmd(), doctor.Cmd(), zig.Cmd())
 	return root
 }
 

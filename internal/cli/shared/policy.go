@@ -22,6 +22,13 @@ func Policy(cmd *cobra.Command) driver.BuildPolicy {
 	return driver.Development()
 }
 
+// Offline reports --offline: stop a pinned zig build from fetching the pin
+// on demand, reporting a diagnostic instead.
+func Offline(cmd *cobra.Command) bool {
+	v, _ := cmd.Flags().GetBool("offline")
+	return v
+}
+
 // AmbientStd reports $KIGUMI_STD when --std did not pin the std root
 // instead; env reads stay in this package, never in internal/driver.
 func AmbientStd(cmd *cobra.Command) (path string, ambient bool) {

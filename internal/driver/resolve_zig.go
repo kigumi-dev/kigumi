@@ -9,24 +9,46 @@ import (
 	"kigumi/internal/sem"
 	"kigumi/internal/token"
 	"kigumi/internal/zigtool"
+	"kigumi/internal/zigtool/fetch"
+	"kigumi/internal/zigtool/store"
 )
 
-// ResolveZig tries explicitZig then PATH, verified against the manifest's
-// pin; "" with a nil error means no zig at all, so the caller may fall back to clang.
+// ResolveZig resolves zig per zigtool.ForModule's order (store, explicit,
+// PATH); an unsatisfied pin fetches it on demand unless m.offline (E1563).
 func (m *Module) ResolveZig() (string, error) {
-	c := zigtool.CheckZig(m.explicitZig, m.Manifest.Zig)
+	storeRoot, _ := store.Root(m.zigHome)
+	r := zigtool.ForModule(storeRoot, m.explicitZig, m.Manifest.Zig)
 	switch {
-	case c.Err == nil && !c.Mismatch:
-		return c.Path, nil
-	case c.Want == "":
-		return "", c.Err
-	case c.Mismatch:
-		return "", m.zigPinError(sem.ZigVersionMismatch, c.Path, c.Version, c.Want)
-	case c.Path == "":
-		return "", m.zigPinError(sem.ZigMissing, c.Want, c.Err.Error())
-	default:
-		return "", m.zigPinError(sem.ZigVersionUnknown, c.Path, c.Err.Error(), c.Want)
+	case r.Want == "":
+		return r.Path, r.Err
+	case r.Err == nil && !r.Mismatch:
+		return r.Path, nil
+	case m.offline:
+		return "", m.zigPinError(sem.ZigOfflineUnresolved, r.Want, r.Want)
 	}
+	path, err := m.fetchZigOnDemand(storeRoot, r.Want)
+	if err != nil {
+		return "", m.zigPinError(sem.ZigFetchUnavailable, r.Want, err.Error(), r.Want)
+	}
+	return path, nil
+}
+
+// fetchZigOnDemand installs want into storeRoot via internal/zigtool/fetch,
+// noting it on m.zigNotice (os.Stderr by default) first.
+func (m *Module) fetchZigOnDemand(storeRoot, want string) (string, error) {
+	notice := m.zigNotice
+	if notice == nil {
+		notice = os.Stderr
+	}
+	fmt.Fprintf(notice, "kigumi: zig %s is pinned but not installed; fetching it now (run `kigumi zig install` to do this ahead of time)\n", want)
+	if _, err := fetch.InstallRelease(fetch.Options{IndexURL: m.zigIndexURL, StoreRoot: storeRoot, Version: want, Stderr: notice, PublicKey: m.zigPublicKey}); err != nil {
+		return "", err
+	}
+	path, ok := store.Installed(storeRoot, want)
+	if !ok {
+		return "", fmt.Errorf("zig %s was installed but is not where the store expects it", want)
+	}
+	return path, nil
 }
 
 // zigPinError points the error at the manifest's `zig`/`Zig` field; args

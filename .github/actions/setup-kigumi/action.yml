@@ -60,8 +60,13 @@ runs:
     - shell: bash
       run: echo "$RUNNER_TEMP/kigumi-bin" >> "$GITHUB_PATH"
     - if: inputs.zig-version != ''
-      uses: mlugg/setup-zig@v2
+      id: zig-cache
+      uses: actions/cache@v4
       with:
-        version: ${{ inputs.zig-version }}
+        path: ~/.local/share/kigumi/zig
+        key: kigumi-zig-${{ runner.os }}-${{ runner.arch }}-${{ inputs.zig-version }}
+    - if: inputs.zig-version != ''
+      shell: bash
+      run: kigumi zig install "${{ inputs.zig-version }}"
     - shell: bash
       run: kigumi --version

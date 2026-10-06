@@ -68,6 +68,7 @@ func TestDoctorZig(t *testing.T) {
 	binDir := t.TempDir()
 	writeFakeZig(t, binDir, "0.16.0-dev.2287+eb3f16db5")
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("KIGUMI_ZIG_HOME", t.TempDir())
 	t.Chdir(dir)
 
 	code, out, _ := execute(t, "--std", std, "doctor")

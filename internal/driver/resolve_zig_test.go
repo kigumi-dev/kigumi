@@ -35,7 +35,14 @@ func fakeZigFailing(t *testing.T) string {
 	return path
 }
 
+// loadPinned isolates ZigHome in an empty store so these tests never see a
+// real managed install; Offline defaults to true to avoid the real network.
 func loadPinned(t *testing.T, zigPin, zigPath string) (*driver.Module, error) {
+	t.Helper()
+	return loadPinnedOpts(t, zigPin, zigPath, driver.LoadOptions{Offline: true})
+}
+
+func loadPinnedOpts(t *testing.T, zigPin, zigPath string, extra driver.LoadOptions) (*driver.Module, error) {
 	t.Helper()
 	root := t.TempDir()
 	src := "Module {\n    name: \"pinned\"\n    kigumi: \"0.1\"\n"
@@ -50,7 +57,12 @@ func loadPinned(t *testing.T, zigPin, zigPath string) (*driver.Module, error) {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	return driver.LoadModule(root, driver.LoadOptions{StdRoot: std, ZigPath: zigPath})
+	opts := extra
+	opts.StdRoot, opts.ZigPath = std, zigPath
+	if opts.ZigHome == "" {
+		opts.ZigHome = t.TempDir()
+	}
+	return driver.LoadModule(root, opts)
 }
 
 func TestResolveZigMatch(t *testing.T) {
@@ -65,6 +77,9 @@ func TestResolveZigMatch(t *testing.T) {
 	}
 }
 
+// Offline, a mismatch, an unreadable version, or no zig at all now all report
+// the same E1563; the old per-cause E1560/E1561/E1562 fire only when an on-demand fetch fails.
+
 func TestResolveZigMismatch(t *testing.T) {
 	zig := fakeZigReporting(t, "0.16.0-dev.2287+eb3f16db5")
 	m, err := loadPinned(t, "0.17.0", zig)
@@ -73,10 +88,10 @@ func TestResolveZigMismatch(t *testing.T) {
 	}
 	_, err = m.ResolveZig()
 	if err == nil {
-		t.Fatal("expected a mismatch error")
+		t.Fatal("expected an offline-unresolved error")
 	}
-	if !strings.Contains(err.Error(), "E1562") || !strings.Contains(err.Error(), "0.16.0-dev.2287+eb3f16db5") || !strings.Contains(err.Error(), "0.17.0") {
-		t.Errorf("want E1562 naming both versions, got: %v", err)
+	if !strings.Contains(err.Error(), "E1563") || !strings.Contains(err.Error(), "0.17.0") {
+		t.Errorf("want E1563 naming the pin, got: %v", err)
 	}
 }
 
@@ -88,14 +103,11 @@ func TestResolveZigVersionUnknown(t *testing.T) {
 	}
 	_, err = m.ResolveZig()
 	if err == nil {
-		t.Fatal("expected a version-unknown error")
+		t.Fatal("expected an offline-unresolved error")
 	}
 	got := err.Error()
-	if !strings.Contains(got, "E1561") {
-		t.Fatalf("want E1561, got: %v", got)
-	}
-	if !strings.Contains(got, "exit status 1") {
-		t.Errorf("want the real `zig version` failure in the message, got: %v", got)
+	if !strings.Contains(got, "E1563") {
+		t.Fatalf("want E1563, got: %v", got)
 	}
 	if !strings.Contains(got, "0.17.0") {
 		t.Errorf("want the pinned version named in the help, got: %v", got)
@@ -112,8 +124,20 @@ func TestResolveZigMissingWithPin(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = m.ResolveZig()
-	if err == nil || !strings.Contains(err.Error(), "E1560") {
-		t.Errorf("want E1560 (zig missing), got: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "E1563") {
+		t.Errorf("want E1563 (offline, nothing satisfies the pin), got: %v", err)
+	}
+}
+
+func TestResolveZigOfflineDiagnosticNamesInstallCommand(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "does-not-exist")
+	m, err := loadPinned(t, "0.17.0", missing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = m.ResolveZig()
+	if err == nil || !strings.Contains(err.Error(), "kigumi zig install") {
+		t.Errorf("want the offline diagnostic to name `kigumi zig install`, got: %v", err)
 	}
 }
 

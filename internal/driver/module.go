@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -68,6 +69,12 @@ type Module struct {
 	// explicitZig is $KIGUMI_ZIG (LoadOptions.ZigPath), read only by
 	// internal/cli; ResolveZig tries it before PATH.
 	explicitZig string
+	// Carry LoadOptions' same-named fields to ResolveZig's on-demand fetch.
+	zigHome      string
+	zigIndexURL  string
+	zigPublicKey string
+	offline      bool
+	zigNotice    io.Writer
 }
 
 // LoadOptions controls which files become part of the module.
@@ -101,12 +108,27 @@ type LoadOptions struct {
 	// ZigPath is $KIGUMI_ZIG; internal/cli reads the environment and passes
 	// it in here. "" resolves zig from PATH instead.
 	ZigPath string
+	// ZigHome overrides the managed zig store's directory (KIGUMI_ZIG_HOME,
+	// or a test); "" uses the default (internal/zigtool/store.Root("")).
+	ZigHome string
+	// ZigIndexURL overrides ziglang.org's download index, for a test's
+	// httptest server; "" uses the real one.
+	ZigIndexURL string
+	// ZigPublicKey overrides the pinned Zig signing key for a test's fake
+	// server; internal/cli never sets this.
+	ZigPublicKey string
+	// Offline stops ResolveZig from fetching a pinned zig on demand; a pin
+	// nothing local satisfies becomes a diagnostic instead.
+	Offline bool
+	// ZigNotice receives ResolveZig's one-line on-demand-fetch notice; nil
+	// means os.Stderr.
+	ZigNotice io.Writer
 }
 
 // LoadModule parses every package under root and, when configured, the std
 // stubs. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
 func LoadModule(root string, opts LoadOptions) (*Module, error) {
-	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath}
+	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice}
 	if m.target.OS == "" {
 		m.target = HostTarget()
 	}
