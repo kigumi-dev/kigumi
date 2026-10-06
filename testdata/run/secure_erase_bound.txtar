@@ -1,0 +1,42 @@
+-- src --
+import mem from std/mem
+import subtle from std/crypto/subtle
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    for x in b { out = "${out}${x}," }
+    out
+}
+
+let erase = mem.secureErase
+let mut owned = Bytes.fromArray(&Array.of[u8](1, 2, 3, 4, 5))
+erase(&mut owned)
+print "owned: ${show(&owned)} len=${owned.len()}"
+
+let mut src = Bytes.fromArray(&Array.of[u8](9, 9, 9))
+let aliasCopy = src
+erase(&mut src)
+print "src: ${show(&src)}"
+print "copy untouched: ${show(&aliasCopy)}"
+
+for i in 0..2 {
+    let mut z = b"xyz"
+    erase(&mut z)
+    print "loop ${i}: ${show(&z)}"
+}
+
+let tryErase = mem.trySecureErase
+let mut lit = b"hello"
+let r = tryErase(&mut lit)
+print "literal: ${show(&lit)} ok=${r is Ok(_)}"
+
+let eq = subtle.constantTimeEq
+print "eq same=${eq(b"abc", b"abc")} diff=${eq(b"abc", b"abz")}"
+-- stdout --
+owned: 0,0,0,0,0, len=5
+src: 0,0,0,
+copy untouched: 9,9,9,
+loop 0: 0,0,0,
+loop 1: 0,0,0,
+literal: 0,0,0,0,0, ok=true
+eq same=true diff=false

@@ -5850,6 +5850,23 @@
       ]
     },
     {
+      "id": "run/secure_erase_bound",
+      "kind": "run",
+      "path": "testdata/run/secure_erase_bound.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/secure_erase_literal_reuse",
       "kind": "run",
       "path": "testdata/run/secure_erase_literal_reuse.txtar",

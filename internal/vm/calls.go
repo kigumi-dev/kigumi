@@ -69,9 +69,7 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 		c.bind = in.Op == mir.OpBind
 	} else {
 		c.stdKey, c.ent, c.prov = m.stdKey(in.Ent), in.Ent, in.Prov
-		if in.Op == mir.OpBind {
-			c.lent = mir.LentMask(m.r, in.Ent)
-		}
+		c.lent = mir.LentMask(m.r, in.Ent)
 	}
 	return c
 }
