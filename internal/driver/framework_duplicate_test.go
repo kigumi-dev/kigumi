@@ -42,7 +42,7 @@ func TestResolveGraphAcceptsUniqueFrameworkProvider(t *testing.T) {
 	if len(rg.Frameworks) != 1 || rg.Frameworks[0].Dir != "/root" {
 		t.Fatalf("unexpected resolved frameworks: %+v", rg.Frameworks)
 	}
-	plan := driver.PlanJSON(rg)
+	plan := driver.PlanJSON(rg, nil)
 	if !strings.Contains(plan, "\"provider\": \"/root\"") {
 		t.Fatalf("plan must record the winning provider's directory:\n%s", plan)
 	}

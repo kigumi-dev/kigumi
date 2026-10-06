@@ -85,7 +85,11 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		if err != nil || !ok {
 			return ok, err
 		}
-		if err := WriteFingerprintSidecar(out, CurrentFingerprint(t)); err != nil {
+		fp := CurrentFingerprint(t)
+		if a := m.LastAnalysis(); a != nil {
+			fp.DeriveProvenance = a.Provenance
+		}
+		if err := WriteFingerprintSidecar(out, fp); err != nil {
 			return false, err
 		}
 		err = auditBareArchive(cc, out)

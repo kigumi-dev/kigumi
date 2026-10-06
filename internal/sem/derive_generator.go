@@ -1,7 +1,7 @@
 package sem
 
-// DeriveGenerator produces the source for one DeriveRequest; the default,
-// legacyDeriveGenerator, keeps every caller but the real pipeline on today's behavior.
+// DeriveGenerator produces the source for one DeriveRequest; CheckWith's
+// caller supplies one (the real pipeline passes internal/schema's GenerateDerive).
 type DeriveGenerator func(r *Result, req DeriveRequest) (string, error)
 
 // generatorFailureCode reads a generator error's Kind by method set, so sem
@@ -23,18 +23,13 @@ func generatorFailureCode(err error) Code {
 	}
 }
 
-// legacyDeriveGenerator reproduces derive_json_text.go/derive_proto_text.go
-// exactly; a throwaway deriver is safe since its methods only read g.r.
-func legacyDeriveGenerator(r *Result, req DeriveRequest) (string, error) {
-	g := &deriver{r: r}
-	d := deriveRequest{decl: req.Decl, iface: req.Interface}
-	info := r.typeDecl(d.decl)
-	switch {
-	case isProto(d.iface):
-		return g.proto(d, info), nil
-	case info.Form == FormAdt:
-		return g.adt(d, info), nil
-	default:
-		return g.record(d, info), nil
-	}
+// noDeriveGenerator is Check's generator; a module with nothing to derive
+// never calls it, one that does needs CheckWith with a real generator instead.
+func noDeriveGenerator(*Result, DeriveRequest) (string, error) {
+	return "", &noGeneratorError{}
 }
+
+type noGeneratorError struct{}
+
+func (*noGeneratorError) Error() string    { return "no derive generator configured; call CheckWith" }
+func (*noGeneratorError) DiagKind() string { return "unsupported" }

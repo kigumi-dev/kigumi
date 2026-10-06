@@ -110,10 +110,10 @@ func dirOf(name string) string {
 	return ""
 }
 
-// Check runs the passes, then re-runs them with generated derive sources
-// added if any type needed one, via legacyDeriveGenerator; see CheckWith.
+// Check runs CheckWith with noDeriveGenerator: a module needing one derived
+// fails with E1432; call CheckWith directly with a real generator instead.
 func Check(mod *Module) *Result {
-	return CheckWith(mod, legacyDeriveGenerator)
+	return CheckWith(mod, noDeriveGenerator)
 }
 
 // CheckWith is Check with an explicit DeriveGenerator (internal/schema's,
@@ -126,6 +126,11 @@ func CheckWith(mod *Module, gen DeriveGenerator) *Result {
 	}
 	mod.derived = true
 	generated := r.deriveSources()
+	// A generator failure (E1430-E1433) belongs to this pass; the rerun
+	// below would just bury it behind a generic missing-witness error instead.
+	if r.genFailed {
+		return r
+	}
 	for _, g := range generated {
 		f := token.NewFile(g.name, []byte(g.text))
 		f.Generated = true

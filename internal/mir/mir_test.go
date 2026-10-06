@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -107,7 +108,7 @@ func checkFixture(t *testing.T, path string, std []*sem.Package) (*sem.Result, s
 	for _, p := range paths {
 		mod.Packages = append(mod.Packages, pkgs[p])
 	}
-	res := sem.Check(mod)
+	res := sem.CheckWith(mod, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
 )
@@ -170,6 +171,20 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 	}
 	sort.Strings(m.Order)
 	return m, nil
+}
+
+// OwnPackages satisfies schema.ModuleScope: m's own packages (never std or
+// a dependency), in Order.
+func (m *Module) OwnPackages() []schema.OwnPackage {
+	var out []schema.OwnPackage
+	for _, path := range m.Order {
+		p := m.Packages[path]
+		if p.Std || p.Module != "" {
+			continue
+		}
+		out = append(out, schema.OwnPackage{Path: path, Files: p.Files})
+	}
+	return out
 }
 
 // Rel strips the module name from one of its own package paths, giving the

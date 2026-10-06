@@ -52,7 +52,7 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 		return cliutil.Exit(1)
 	}
 	if plan {
-		fmt.Fprint(cmd.OutOrStdout(), driver.PlanJSON(rg))
+		fmt.Fprint(cmd.OutOrStdout(), driver.PlanJSON(rg, p))
 		return nil
 	}
 	secrets := map[string]string{}

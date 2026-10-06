@@ -3,11 +3,12 @@ package sem_test
 import (
 	"testing"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 )
 
 func TestTypeIntern(t *testing.T) {
-	res := sem.Check(&sem.Module{})
+	res := sem.CheckWith(&sem.Module{}, schema.GenerateDerive)
 	tt := res.Types
 	a := tt.Fn([]sem.TypeID{sem.TyI64}, sem.TyI64, 0, false)
 	b := tt.Fn([]sem.TypeID{sem.TyI64}, sem.TyI64, 0, false)
@@ -42,7 +43,7 @@ func TestTypeIntern(t *testing.T) {
 }
 
 func TestSubst(t *testing.T) {
-	res := sem.Check(&sem.Module{})
+	res := sem.CheckWith(&sem.Module{}, schema.GenerateDerive)
 	tt := res.Types
 	arr := res.EntityOfName("Array")
 	tp := res.TypeDecls[res.Entity(arr).Detail].Params[0]

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -46,7 +47,7 @@ func TestFingerprintSidecarRoundTrip(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("ok=%v err=%v", ok, err)
 	}
-	if got != fp {
+	if !reflect.DeepEqual(got, fp) {
 		t.Errorf("got %+v, want %+v", got, fp)
 	}
 }
@@ -79,7 +80,7 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("expected a fingerprint sidecar: ok=%v err=%v", ok, err)
 	}
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 
@@ -103,7 +104,7 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("expected a refreshed sidecar: ok=%v err=%v", ok, err)
 	}
-	if got2 != want {
+	if !reflect.DeepEqual(got2, want) {
 		t.Errorf("sidecar after rebuild = %+v, want the current fingerprint %+v", got2, want)
 	}
 }

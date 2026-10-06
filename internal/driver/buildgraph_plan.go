@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 
 	"kigumi/internal/buildgraph"
+	"kigumi/internal/schema"
 	"kigumi/internal/version"
 )
 
-// PlanJSON is `kigumi build --plan`: the resolved graph as data, before
-// any tool runs or artifact compiles.
-func PlanJSON(rg *ResolvedGraph) string {
+// PlanJSON is `kigumi build --plan`: the resolved graph as data, before any
+// tool runs; p's own derive provenance rides along, since plan time never compiles a target artifact.
+func PlanJSON(rg *ResolvedGraph, p *BuildProgram) string {
 	type artifact struct {
 		*buildgraph.Artifact
 		Resolved    Target              `json:"resolved"`
@@ -21,17 +22,21 @@ func PlanJSON(rg *ResolvedGraph) string {
 		Provider string `json:"provider,omitempty"`
 	}
 	plan := struct {
-		FormatVersion   int                    `json:"formatVersion"`
-		Toolchain       version.Provenance     `json:"toolchain"`
-		NativeToolchain []string               `json:"nativeToolchain,omitempty"`
-		Request         buildgraph.Request     `json:"request"`
-		Frameworks      []resolvedFramework    `json:"frameworks"`
-		Secrets         []buildgraph.SecretRef `json:"secrets"`
-		Files           []buildgraph.FileRef   `json:"files"`
-		ToolSteps       []buildgraph.ToolStep  `json:"toolSteps"`
-		Artifacts       []artifact             `json:"artifacts"`
-		Order           []string               `json:"order"`
+		FormatVersion    int                        `json:"formatVersion"`
+		Toolchain        version.Provenance         `json:"toolchain"`
+		NativeToolchain  []string                   `json:"nativeToolchain,omitempty"`
+		Request          buildgraph.Request         `json:"request"`
+		Frameworks       []resolvedFramework        `json:"frameworks"`
+		Secrets          []buildgraph.SecretRef     `json:"secrets"`
+		Files            []buildgraph.FileRef       `json:"files"`
+		ToolSteps        []buildgraph.ToolStep      `json:"toolSteps"`
+		Artifacts        []artifact                 `json:"artifacts"`
+		Order            []string                   `json:"order"`
+		DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
 	}{FormatVersion: version.BuildPlanFormatVersion, Toolchain: version.Current(), NativeToolchain: CCompiler(), Request: rg.Graph.Request, Secrets: rg.Graph.Secrets, Files: rg.Graph.Files, ToolSteps: rg.Graph.ToolSteps, Artifacts: []artifact{}, Order: rg.Order}
+	if p != nil {
+		plan.DeriveProvenance = schema.BuildProvenance(p.Res, nil)
+	}
 	for i, f := range rg.Graph.Frameworks {
 		provider := ""
 		if i < len(rg.Frameworks) {

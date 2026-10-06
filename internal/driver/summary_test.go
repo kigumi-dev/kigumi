@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/driver"
+	"kigumi/internal/schema"
 )
 
 func TestSummaryRender(t *testing.T) {
@@ -36,5 +37,21 @@ func TestSummaryRender(t *testing.T) {
 	}
 	if !strings.Contains(relOut, "reproducibility: verified (two independent builds produced identical output)\n") {
 		t.Fatalf("missing verified reproducibility line:\n%s", relOut)
+	}
+	if !strings.Contains(out, "derive generators: none\n") {
+		t.Fatalf("missing empty derive generators line:\n%s", out)
+	}
+}
+
+func TestSummaryRenderDeriveProvenance(t *testing.T) {
+	s := driver.Summary{
+		Policy: driver.Development(),
+		DeriveProvenance: []schema.GeneratedArtifact{
+			{Generator: "derive:Eq", Origin: &schema.DeclRef{Name: "Point"}, ContentHash: "abcdef0123456789"},
+		},
+	}
+	out := s.Render()
+	if !strings.Contains(out, "derive generators: derive:Eq on Point (abcdef012345)\n") {
+		t.Fatalf("missing derive provenance line:\n%s", out)
 	}
 }

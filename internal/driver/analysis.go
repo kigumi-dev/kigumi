@@ -2,6 +2,7 @@ package driver
 
 import (
 	"kigumi/internal/mir"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 )
 
@@ -9,7 +10,8 @@ import (
 type Analysis struct {
 	Res *sem.Result
 	// Prog is nil when the checker reported errors.
-	Prog *mir.Program
+	Prog       *mir.Program
+	Provenance []schema.GeneratedArtifact
 }
 
 // Stats counts the phase runs of one module, so a test can pin that one
@@ -26,9 +28,7 @@ func Analyze(m *Module) (*Analysis, error) {
 }
 
 // AnalyzeWith is Analyze with an explicit sem.DeriveGenerator (nil keeps
-// sem.Check's own default); it lets a caller above driver's own layer
-// (internal/schema's derive generators, which import driver) supply derive
-// source without driver importing that package back.
+// Analyze's default); a caller overrides it to compare generators or check a module that can't derive.
 func AnalyzeWith(m *Module, gen sem.DeriveGenerator) (*Analysis, error) {
 	mod, err := m.semModule()
 	if err != nil {
@@ -39,13 +39,11 @@ func AnalyzeWith(m *Module, gen sem.DeriveGenerator) (*Analysis, error) {
 
 func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, error) {
 	m.stats.Check++
-	var res *sem.Result
 	if gen == nil {
-		res = sem.Check(mod)
-	} else {
-		res = sem.CheckWith(mod, gen)
+		gen = schema.GenerateDerive
 	}
-	a := &Analysis{Res: res}
+	res := sem.CheckWith(mod, gen)
+	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
 	m.lastAnalysis = a
 	if res.HasErrors() {
 		return a, nil

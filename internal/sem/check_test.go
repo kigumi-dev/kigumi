@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/diag"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/testkit"
 )
@@ -28,7 +29,7 @@ func TestSemCorpus(t *testing.T) {
 				t.Skipf("pending: %s", p)
 			}
 			mod := buildModule(t, fx)
-			res := sem.Check(mod)
+			res := sem.CheckWith(mod, schema.GenerateDerive)
 			bodies := map[string]string{}
 			for _, s := range fx.sections {
 				name := s.name
@@ -64,7 +65,7 @@ func TestSemCorpus(t *testing.T) {
 // TestStdStubs checks the shared stubs alone: they must be clean.
 func TestStdStubs(t *testing.T) {
 	mod := &sem.Module{Packages: testkit.LoadStd(t, "../../std")}
-	res := sem.Check(mod)
+	res := sem.CheckWith(mod, schema.GenerateDerive)
 	if out := res.Render(); out != "" {
 		t.Errorf("std stubs are not clean:\n%s", out)
 	}

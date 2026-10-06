@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -15,7 +16,7 @@ func TestCheckStrictCapabilitiesReportsE1370(t *testing.T) {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte("let n = 1\n")))
 	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.Check(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)})
+	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

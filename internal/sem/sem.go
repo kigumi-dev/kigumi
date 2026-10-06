@@ -59,9 +59,12 @@ type Result struct {
 	seen            map[diagKey]struct{}
 	derives         []deriveRequest
 	generated       []generatedFile
-	mod             *Module
-	sources         *token.SourceStore
-	langItems       map[string]EntityID
+	// genFailed marks a DeriveGenerator failure (E1430-E1433); CheckWith
+	// skips its rerun then, rather than burying the cause behind missing-witness errors.
+	genFailed bool
+	mod       *Module
+	sources   *token.SourceStore
+	langItems map[string]EntityID
 
 	langItemMissing map[string]bool
 	dropMemo        map[TypeID]EffectSummary

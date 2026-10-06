@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/testkit"
 )
@@ -54,7 +55,7 @@ func TestStdPrimitives(t *testing.T) {
 	for _, m := range methodKey.FindAllStringSubmatch(string(src), -1) {
 		patterns = append(patterns, "."+m[1])
 	}
-	res := sem.Check(&sem.Module{Packages: testkit.LoadStd(t, "../../std")})
+	res := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../std")}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

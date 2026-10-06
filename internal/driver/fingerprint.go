@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/version"
 )
 
@@ -17,6 +18,8 @@ type ArtifactFingerprint struct {
 	CompilerDirty   bool   `json:"compilerDirty"`
 	Target          string `json:"target"`
 	AbiRevision     int    `json:"abiRevision"`
+	// FingerprintMismatch never compares DeriveProvenance.
+	DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
 }
 
 // targetIdentity falls back to OS/Arch/Sys because HostTarget leaves

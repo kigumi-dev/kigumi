@@ -10,6 +10,7 @@ import (
 
 	"kigumi/internal/hir"
 	"kigumi/internal/mir"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -66,7 +67,7 @@ func checkSource(t *testing.T, src string) *sem.Result {
 	for _, p := range paths {
 		mod.Packages = append(mod.Packages, pkgs[p])
 	}
-	return sem.Check(mod)
+	return sem.CheckWith(mod, schema.GenerateDerive)
 }
 
 // The scalar fixture runs through HIR, MIR and the VM and prints what the

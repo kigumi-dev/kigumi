@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 )
@@ -27,7 +28,7 @@ func CheckOnly(m *Module) (*sem.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return sem.Check(mod), nil
+	return sem.CheckWith(mod, schema.GenerateDerive), nil
 }
 
 // Diagnostics renders every parse diagnostic in the module, skipping

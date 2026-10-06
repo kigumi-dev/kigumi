@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -26,10 +27,10 @@ func checkBlocking(t *testing.T, profile, src string) *sem.Result {
 		t.Fatalf("parse errors:\n%s", main.Entry.Dump())
 	}
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.Check(&sem.Module{
+	return sem.CheckWith(&sem.Module{
 		Packages:        append(testkit.LoadStd(t, "../../std"), main),
 		BlockingProfile: profile,
-	})
+	}, schema.GenerateDerive)
 }
 
 func TestAsyncDirectBlockStrictRejected(t *testing.T) {

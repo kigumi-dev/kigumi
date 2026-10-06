@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"kigumi/internal/driver"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 )
@@ -14,17 +13,25 @@ type Options struct {
 	Profile string
 }
 
+type OwnPackage struct {
+	Path  string
+	Files []*syntax.Tree
+}
+
+// ModuleScope is the subset of a loaded module Build needs: its own packages
+// (never std or a dependency), in order; driver.Module satisfies this without schema importing driver.
+type ModuleScope interface {
+	OwnPackages() []OwnPackage
+}
+
 // Build walks m's own packages, never std or a dependency; the returned
 // map looks a Declaration back up by its originating sem.EntityID.
-func Build(m *driver.Module, res *sem.Result, opt Options) (*Module, map[sem.EntityID]*Declaration) {
+func Build(m ModuleScope, res *sem.Result, opt Options) (*Module, map[sem.EntityID]*Declaration) {
 	byEntity := map[sem.EntityID]*Declaration{}
 	var scope []string
 	var decls []*Declaration
-	for _, path := range m.Order {
-		p := m.Packages[path]
-		if p.Std || p.Module != "" {
-			continue
-		}
+	for _, p := range m.OwnPackages() {
+		path := p.Path
 		scope = append(scope, path)
 		for _, t := range p.Files {
 			for _, d := range t.Children(t.Root) {

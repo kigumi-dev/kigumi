@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/testkit"
 	"kigumi/internal/vm"
@@ -54,7 +55,7 @@ var nativeLowered = map[string]bool{
 // TestSemanticOwnersFresh diffs testdata/semantic_owners.json against std
 // (UPDATE=1 regenerates it) and fails a bodiless declaration with no backend.
 func TestSemanticOwnersFresh(t *testing.T) {
-	res := sem.Check(&sem.Module{Packages: testkit.LoadStd(t, "../../std")})
+	res := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../std")}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

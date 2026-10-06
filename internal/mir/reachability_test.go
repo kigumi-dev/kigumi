@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -28,7 +29,7 @@ func checkedReach(t *testing.T) (*sem.Result, *mir.Program) {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(reachSrc)))
 	main.Files = []*syntax.Tree{main.Entry}
-	res := sem.Check(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)})
+	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -15,7 +16,7 @@ func checkIsr(t *testing.T, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.Check(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)})
+	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)}, schema.GenerateDerive)
 }
 
 // checkIsrWithSource is checkIsr plus a trusted bodiless Std package, letting a test isolate a drop-only path.
@@ -27,7 +28,7 @@ func checkIsrWithSource(t *testing.T, source, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.Check(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), lib, main)})
+	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), lib, main)}, schema.GenerateDerive)
 }
 
 func TestInterruptHandlerOK(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 
 	"kigumi/internal/cli/shared"
 	"kigumi/internal/driver"
+	"kigumi/internal/schema"
 )
 
 func buildSummary(cmd *cobra.Command, m *driver.Module, policy driver.BuildPolicy, reproducible bool) driver.Summary {
@@ -19,6 +20,10 @@ func buildSummary(cmd *cobra.Command, m *driver.Module, policy driver.BuildPolic
 	if flags, ambient := shared.AmbientCFlags(); ambient {
 		inputs = append(inputs, "cflags: "+strings.Join(flags, " ")+" (from $KIGUMI_CFLAGS)")
 	}
+	var provenance []schema.GeneratedArtifact
+	if a := m.LastAnalysis(); a != nil {
+		provenance = a.Provenance
+	}
 	return driver.Summary{
 		Policy:              policy,
 		Dependencies:        m.Dependencies(),
@@ -28,5 +33,6 @@ func buildSummary(cmd *cobra.Command, m *driver.Module, policy driver.BuildPolic
 		Capabilities:        driver.Capabilities(m.LastAnalysis()),
 		ReproducibleChecked: reproducible,
 		Reproducible:        reproducible,
+		DeriveProvenance:    provenance,
 	}
 }

@@ -41,7 +41,7 @@ func TestBuildProgramExample(t *testing.T) {
 	if strings.Join(rg.Order, " ") != "a0 t0 a1" {
 		t.Fatalf("order: %v", rg.Order)
 	}
-	plan := driver.PlanJSON(rg)
+	plan := driver.PlanJSON(rg, p)
 	for _, want := range []string{"\"name\": \"core\"", "\"tool\": \"gen\"", "\"kind\": \"executable\"", "\"order\""} {
 		if !strings.Contains(plan, want) {
 			t.Errorf("plan lacks %s:\n%s", want, plan)

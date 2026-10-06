@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -68,7 +69,7 @@ func genMIRBenchModule(b *testing.B, count int) *sem.Result {
 	for _, p := range paths {
 		mod.Packages = append(mod.Packages, pkgs[p])
 	}
-	res := sem.Check(mod)
+	res := sem.CheckWith(mod, schema.GenerateDerive)
 	if res.HasErrors() {
 		b.Fatalf("check errors:\n%s", res.Render())
 	}

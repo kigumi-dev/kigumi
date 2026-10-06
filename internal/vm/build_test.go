@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -18,7 +19,7 @@ import (
 func evalBuild(t *testing.T, src string, flags []string) (*buildgraph.Graph, error) {
 	t.Helper()
 	build := &sem.Package{Path: "build", Files: []*syntax.Tree{syntax.Parse(token.NewFile("build.kg", []byte(src)))}}
-	res := sem.Check(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), build)})
+	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), build)}, schema.GenerateDerive)
 	if res.HasErrors() {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}

@@ -43,12 +43,9 @@ func (g *deriver) derive(d deriveRequest) {
 			}
 		}
 	}
-	gen := g.gen
-	if gen == nil {
-		gen = legacyDeriveGenerator
-	}
-	text, err := gen(r, DeriveRequest{Decl: d.decl, Interface: d.iface})
+	text, err := g.gen(r, DeriveRequest{Decl: d.decl, Interface: d.iface})
 	if err != nil {
+		r.genFailed = true
 		r.errAt(r.Entities[d.decl].File, r.Entities[d.decl].Node, generatorFailureCode(err), r.Entities[d.decl].Name, d.iface, err.Error())
 		return
 	}

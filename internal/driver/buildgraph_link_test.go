@@ -54,7 +54,7 @@ func TestBuildProgramLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	plan := driver.PlanJSON(rg)
+	plan := driver.PlanJSON(rg, p)
 	for _, want := range []string{"\"linkFlags\"", "-static-pie", "\"entry\": \"_start\"", "linkerScript"} {
 		if !strings.Contains(plan, want) {
 			t.Errorf("plan lacks %s:\n%s", want, plan)

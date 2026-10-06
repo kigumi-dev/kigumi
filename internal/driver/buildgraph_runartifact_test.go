@@ -49,7 +49,7 @@ func TestBuildProgramRunArtifact(t *testing.T) {
 	if strings.Join(rg.Order, " ") != "a0 t0" {
 		t.Fatalf("order: %v", rg.Order)
 	}
-	plan := driver.PlanJSON(rg)
+	plan := driver.PlanJSON(rg, p)
 	if !strings.Contains(plan, "\"kind\": \"artifact\"") {
 		t.Errorf("plan lacks the artifact tool step:\n%s", plan)
 	}

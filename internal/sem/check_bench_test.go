@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -81,7 +82,7 @@ func BenchmarkCheckModule(b *testing.B) {
 	mod := buildBenchModule(b, 20)
 	b.ReportAllocs()
 	for b.Loop() {
-		res := sem.Check(mod)
+		res := sem.CheckWith(mod, schema.GenerateDerive)
 		if res.HasErrors() {
 			b.Fatalf("check errors:\n%s", res.Render())
 		}

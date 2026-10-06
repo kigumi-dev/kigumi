@@ -39,6 +39,11 @@ func BuildProvenance(res *sem.Result, byEntity map[sem.EntityID]*Declaration) []
 			inputDigest = digest(origin)
 		}
 		pkg := res.Packages[res.PackageOf(res.Entity(req.Decl).File)].Path
+		if pkg == "" {
+			// A predeclared type (Option, Result, TupleN) has no package of its
+			// own; derive_gen.go and build_one.go both file it under std/prelude.
+			pkg = builtinPkg
+		}
 		suffix := "json.derived.kg"
 		if req.Interface == "Eq" || req.Interface == "Hash" {
 			suffix = "proto.derived.kg"

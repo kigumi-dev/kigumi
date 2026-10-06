@@ -3,6 +3,8 @@ package driver
 import (
 	"fmt"
 	"strings"
+
+	"kigumi/internal/schema"
 )
 
 // Summary is the build summary `kigumi build` prints after a successful build:
@@ -22,6 +24,7 @@ type Summary struct {
 	// stops the build first, so Reproducible is then always true.
 	ReproducibleChecked bool
 	Reproducible        bool
+	DeriveProvenance    []schema.GeneratedArtifact
 }
 
 func (s Summary) Render() string {
@@ -37,6 +40,8 @@ func (s Summary) Render() string {
 	writeListOrNone(&sb, s.Resources)
 	sb.WriteString("  capabilities: ")
 	writeListOrNone(&sb, s.Capabilities)
+	sb.WriteString("  derive generators: ")
+	writeListOrNone(&sb, deriveProvenanceLines(s.DeriveProvenance))
 	sb.WriteString("  build isolation: trusted host (not sandboxed)\n")
 	sb.WriteString("  reproducibility: ")
 	switch {
@@ -48,6 +53,18 @@ func (s Summary) Render() string {
 		sb.WriteString("not verified (pass --reproducible to verify)\n")
 	}
 	return sb.String()
+}
+
+func deriveProvenanceLines(items []schema.GeneratedArtifact) []string {
+	out := make([]string, len(items))
+	for i, g := range items {
+		name := ""
+		if g.Origin != nil {
+			name = g.Origin.Name
+		}
+		out[i] = fmt.Sprintf("%s on %s (%s)", g.Generator, name, short(g.ContentHash))
+	}
+	return out
 }
 
 func writeListOrNone(sb *strings.Builder, items []string) {
