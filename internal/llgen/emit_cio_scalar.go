@@ -35,7 +35,7 @@ func (e *emitter) ffiScalarCall(sb *strings.Builder, key string, args []string, 
 	case "std/ffi.isNull":
 		c := e.newTmp()
 		fmt.Fprintf(sb, "  %s = icmp eq ptr %s, null\n", c, rawPtr(args[0]))
-		return e.irb(sb).Call(rtBool, vi1(c)).Text, true
+		return e.boolBox(sb, c), true
 	case "std/ffi.cast", "std/ffi.toConst", "std/ffi.toMut":
 		return e.irb(sb).Call(rtPtr, vptr(rawPtr(args[0]))).Text, true
 	case "std/ffi.offset":

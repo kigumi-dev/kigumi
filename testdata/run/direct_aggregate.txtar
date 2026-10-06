@@ -1,0 +1,97 @@
+-- src --
+type Fail = {
+    pub why String
+}
+
+fn Fail.message(self) -> String { self.why }
+
+interface Sized {
+    fn size(self) -> Int
+}
+
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Box = {
+    pub lo Point
+    pub hi Point
+    pub tight Bool
+}
+
+type Named = {
+    pub at Point
+    pub label String
+}
+
+fn Point.size(self) -> Int { self.x + self.y }
+
+fn Box.size(self) -> Int {
+    (self.hi.x - self.lo.x) * (self.hi.y - self.lo.y)
+}
+
+fn mk(x: Int, y: Int) -> Point { Point { x: x, y: y } }
+
+fn grow(b: Box, k: Int) -> Box {
+    Box { lo: mk(b.lo.x - k, b.lo.y - k), hi: mk(b.hi.x + k, b.hi.y + k), tight: false }
+}
+
+fn sizeOf[T: Sized](v: T) -> Int { v.size() }
+
+fn dynSize(v: Sized) -> Int { v.size() }
+
+fn firstPoint(ps: &Array[Point]) -> Point? { ps.get(0) }
+
+fn half(p: Point) -> Result[Point, Fail] {
+    if p.x % 2 != 0 { fail Fail { why: "odd" } }
+    Ok(mk(p.x / 2, p.y / 2))
+}
+
+let b = Box { lo: mk(1, 2), hi: mk(5, 8), tight: true }
+let c = b
+let w = grow(c, 1)
+print "size=${b.size()} grown=${w.size()} tight=${w.tight} kept=${b.tight}"
+
+let n = Named { at: mk(7, 9), label: "here" }
+print "named=${n.label} ${n.at.x} ${n.at.y}"
+
+let pair = (3, 4)
+let (pa, pb) = pair
+print "tuple=${pa} ${pb} eq=${pair == (3, 4)} hasheq=${hash(&pair) == hash(&(3, 4))}"
+
+let ps = Array.of(mk(1, 1), mk(2, 2), mk(3, 3))
+print "arr=${ps.get(1) is Some(q) && q.x == 2} len=${ps.len()}"
+if firstPoint(&ps) is Some(f) {
+    print "first=${f.x},${f.y}"
+}
+
+print "generic=${sizeOf(b)} ${sizeOf(mk(2, 3))}"
+print "dyn=${dynSize(b)} ${dynSize(mk(4, 5))}"
+
+let base = mk(10, 20)
+let shift = (k: Int) => mk(base.x + k, base.y + k)
+let s2 = shift(2)
+print "closure=${s2.x},${s2.y}"
+
+print "eq=${mk(1, 2) == mk(1, 2)} ne=${mk(1, 2) == mk(1, 3)} hash=${hash(&mk(1, 2)) == hash(&mk(1, 2))}"
+
+match half(mk(8, 6)) {
+    Ok(h) -> print "half=${h.x},${h.y}"
+    Err(e) -> print "err=${e.message()}"
+}
+if half(mk(3, 3)) is Err(e) {
+    print "odd=${e.message()}"
+}
+-- stdout --
+size=24 grown=48 tight=false kept=true
+named=here 7 9
+tuple=3 4 eq=true hasheq=true
+arr=true len=3
+first=1,1
+generic=24 5
+dyn=24 9
+closure=12,22
+eq=true ne=false hash=true
+half=4,3
+odd=odd

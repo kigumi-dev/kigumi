@@ -123,9 +123,9 @@ func (e *emitter) adapter(f *mir.Func) string {
 		} else {
 			e.irb(&sb).CallAs(v, rtAt, vptr("%args"), vi64(i-ncaps))
 		}
-		vals = append(vals, "ptr "+v)
+		vals = append(vals, v)
 	}
-	fmt.Fprintf(&sb, "  %%r = call ptr %s(%s)\n  ret ptr %%r\n}\n\n", e.sym(f), strings.Join(vals, ", "))
+	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", e.callBoxed(&sb, f, vals))
 	return sb.String()
 }
 
@@ -149,9 +149,9 @@ func (e *emitter) methodAdapter(f *mir.Func) string {
 		} else {
 			e.irb(&sb).CallAs(v, rtAt, vptr("%args"), vi64(i-1))
 		}
-		vals = append(vals, "ptr "+v)
+		vals = append(vals, v)
 	}
-	fmt.Fprintf(&sb, "  %%r = call ptr %s(%s)\n  ret ptr %%r\n}\n\n", e.sym(f), strings.Join(vals, ", "))
+	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", e.callBoxed(&sb, f, vals))
 	return sb.String()
 }
 
@@ -176,8 +176,8 @@ func (e *emitter) bindAdapter(f *mir.Func) string {
 		} else {
 			e.irb(&sb).CallAs(v, rtAt, vptr("%env"), vi64(i-plain))
 		}
-		vals = append(vals, "ptr "+v)
+		vals = append(vals, v)
 	}
-	fmt.Fprintf(&sb, "  %%r = call ptr %s(%s)\n  ret ptr %%r\n}\n\n", e.sym(f), strings.Join(vals, ", "))
+	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", e.callBoxed(&sb, f, vals))
 	return sb.String()
 }

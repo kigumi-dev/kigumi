@@ -128,7 +128,6 @@ func (b Builder) GlobalStruct(name string, st StructType, fields ...Value) strin
 }
 
 func vptr(text string) Value     { return Value{TPtr, text} }
-func vi1(text string) Value      { return Value{TI1, text} }
 func vi32(n int) Value           { return Value{TI32, strconv.Itoa(n)} }
 func vi32text(text string) Value { return Value{TI32, text} }
 func vi64(n int) Value           { return Value{TI64, strconv.Itoa(n)} }

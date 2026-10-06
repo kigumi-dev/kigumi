@@ -54,11 +54,19 @@ func (e *emitter) boxNative(sb *strings.Builder, info scalarInfo, v Value) strin
 	case TDouble:
 		return e.irb(sb).Call(rtFloat, v, vi32(info.Nk)).Text
 	case TI1:
-		return e.irb(sb).Call(rtBool, v).Text
+		return e.boolBox(sb, v.Text)
 	case TI32:
 		return e.irb(sb).Call(rtChar, v).Text
 	}
 	panic("llgen: boxNative: unknown scalar type")
+}
+
+// boolBox widens to the `int` rt_bool is written as: an i1 argument leaves
+// the rest of the register undefined, which an aggregate read exposes.
+func (e *emitter) boolBox(sb *strings.Builder, bit string) string {
+	t := e.newTmp()
+	fmt.Fprintf(sb, "  %s = zext i1 %s to i32\n", t, bit)
+	return e.irb(sb).Call(rtBool, vi32text(t)).Text
 }
 
 // unboxScalar is a borrow, like the plain (non-scalar) e.load it stands in

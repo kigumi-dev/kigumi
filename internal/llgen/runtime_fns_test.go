@@ -36,6 +36,10 @@ func parseCDefs(src string) map[string]cDef {
 	return out
 }
 
+// A Bool widens before the call: an i1 argument leaves the upper bits of a
+// C `int` parameter undefined. An i1 result only reads the low bit.
+func cParamMatches(t Type, c string) bool { return t != TI1 && cTypeMatches(t, c) }
+
 func cTypeMatches(t Type, c string) bool {
 	switch t {
 	case TPtr:
@@ -74,7 +78,7 @@ func TestRuntimeFnsMatchC(t *testing.T) {
 			continue
 		}
 		for i, p := range def.params {
-			if !cTypeMatches(fn.Params[i], p) {
+			if !cParamMatches(fn.Params[i], p) {
 				t.Errorf("%s: parameter %d is %q in C, %s in the table", fn.Name, i, p, fn.Params[i])
 			}
 		}

@@ -17,6 +17,8 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
 	e.scalar = map[mir.LocalID]scalarInfo{}
+	e.direct = map[mir.LocalID]*aggInfo{}
+	e.sig = nil
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%fut) {\nentry:\n", e.sym(f))
 	sb.WriteString("  %slots = call ptr @rt_future_slots(ptr %fut)\n")
 	for i := range f.Locals {

@@ -13,7 +13,7 @@ var (
 	rtUnit         = RuntimeFn{"rt_unit", nil, TPtr}
 	rtInt          = RuntimeFn{"rt_int", []Type{TI64, TI32}, TPtr}
 	rtFloat        = RuntimeFn{"rt_float", []Type{TDouble, TI32}, TPtr}
-	rtBool         = RuntimeFn{"rt_bool", []Type{TI1}, TPtr}
+	rtBool         = RuntimeFn{"rt_bool", []Type{TI32}, TPtr}
 	rtChar         = RuntimeFn{"rt_char", []Type{TI32}, TPtr}
 	rtStr          = RuntimeFn{"rt_str", []Type{TPtr, TI64}, TPtr}
 	rtBytes        = RuntimeFn{"rt_bytes", []Type{TPtr, TI64}, TPtr}

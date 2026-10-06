@@ -11,20 +11,16 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	if e.tryScalarInst(sb, f, in) {
 		return
 	}
-	var args []string
-	for _, a := range in.Args {
-		if e.isScalar(a) {
-			// classifyArgs only lets a scalar-classified local reach here at a
-			// non-retaining read; released below, in releaseScalarArgs.
-			args = append(args, e.scalarBoxOnDemand(sb, a))
-			continue
-		}
-		args = append(args, e.load(sb, a))
+	if e.tryDirectInst(sb, f, in) {
+		return
 	}
+	if in.Op == mir.OpNop {
+		return
+	}
+	args, boxed := e.instArgs(sb, in)
+	defer e.releaseAggArgs(sb, in, args, boxed)
 	res := ""
 	switch in.Op {
-	case mir.OpNop:
-		return
 	case mir.OpConst:
 		res = e.constant(sb, in)
 	case mir.OpUnit:
@@ -190,5 +186,7 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		return
 	}
 	e.releaseScalarArgs(sb, in, args)
-	e.storeMaybeScalar(sb, in.Dst, res)
+	if !e.storeDirectResult(sb, in.Dst, res) {
+		e.storeMaybeScalar(sb, in.Dst, res)
+	}
 }

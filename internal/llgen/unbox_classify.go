@@ -53,8 +53,8 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 	disqualify := func(l mir.LocalID) { delete(out, l) }
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			classifyDst(in, disqualify)
-			classifyArgs(in, disqualify)
+			e.classifyDst(in, disqualify)
+			e.classifyArgs(in, disqualify)
 			// A wrap/unwrap alias from a reference keeps its source's boxed
 			// pointer bits, so its result can't live in a native register.
 			if in.Op == mir.OpAlias && e.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KRef {
@@ -68,11 +68,15 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 
 // classifyDst disqualifies in.Dst unless in.Op is one the scalar codegen
 // computes without ever creating a box for its result.
-func classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
+func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 	if !in.Op.Yields() {
 		return
 	}
 	switch in.Op {
+	case mir.OpField, mir.OpFieldMove:
+		if !e.isDirect(in.Args[0]) {
+			disqualify(in.Dst)
+		}
 	case mir.OpConst, mir.OpBinary, mir.OpAlias, mir.OpShare, mir.OpMove:
 	case mir.OpUnary:
 		if in.Str == "cast" {
@@ -86,8 +90,20 @@ func classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 // classifyArgs disqualifies locals an instruction can't read natively.
 // OpIndex/OpSetIndex allow the index arg boxed-on-demand; OpDrop/OpRelease
 // become no-ops instead of disqualifying; everything else needs a real box.
-func classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
+func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 	switch in.Op {
+	case mir.OpRecord:
+		if !e.isDirect(in.Dst) {
+			for _, a := range in.Args {
+				disqualify(a)
+			}
+		}
+	case mir.OpSetField:
+		if !e.isDirect(in.Args[0]) {
+			for _, a := range in.Args {
+				disqualify(a)
+			}
+		}
 	case mir.OpBorrow:
 		disqualify(in.Args[0])
 	case mir.OpAlias, mir.OpShare, mir.OpMove:

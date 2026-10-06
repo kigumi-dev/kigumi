@@ -21,7 +21,7 @@ func (e *emitter) constant(sb *strings.Builder, in mir.Inst) string {
 		if in.Lit.Bool {
 			b = "1"
 		}
-		return e.irb(sb).Call(rtBool, vi1(b)).Text
+		return e.boolBox(sb, b)
 	case sem.LitBytes:
 		// secureErase rewrites a Bytes in place, so a literal cannot be one shared object.
 		return e.irb(sb).Call(rtBytes, vptr(e.cstr(in.Lit.Str)), vi64(len(in.Lit.Str))).Text
@@ -120,7 +120,5 @@ func (e *emitter) shellItem(sb *strings.Builder, name string, payload []string) 
 
 func (e *emitter) callStd(sb *strings.Builder, pkg, name string, args []string) string {
 	fn := e.p.ByEnt[e.r.PackageMember(e.r.PackageByPath(pkg), name)]
-	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = call ptr %s(%s)\n", t, e.sym(fn), joinArgs(args))
-	return t
+	return e.callBoxed(sb, fn, args)
 }

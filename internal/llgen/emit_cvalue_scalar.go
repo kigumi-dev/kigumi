@@ -46,7 +46,7 @@ func (e *emitter) loadScalar(sb *strings.Builder, t sem.TypeID, ptr string) stri
 		fmt.Fprintf(sb, "  %s = load i8, ptr %s\n", raw, ptr)
 		bit := e.newTmp()
 		fmt.Fprintf(sb, "  %s = trunc i8 %s to i1\n", bit, raw)
-		return e.irb(sb).Call(rtBool, vi1(bit)).Text
+		return e.boolBox(sb, bit)
 	case sem.TyChar:
 		raw := e.newTmp()
 		fmt.Fprintf(sb, "  %s = load i32, ptr %s\n", raw, ptr)

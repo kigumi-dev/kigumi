@@ -1,0 +1,65 @@
+-- src --
+type Point = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Frame = {
+    pub mut tl Point
+    pub mut br Point
+    pub mut live Bool
+    pub mut weight Float
+}
+
+fn Point.shift(mut self, d: Int) -> Unit {
+    self.x = self.x + d
+    self.y = self.y + d
+}
+
+fn Frame.span(self) -> Int { (self.br.x - self.tl.x) + (self.br.y - self.tl.y) }
+
+fn widen(f: Frame, k: Int) -> Frame {
+    let mut out = f
+    out.tl.x = f.tl.x - k
+    out.br.x = f.br.x + k
+    out.live = !f.live
+    out.weight = f.weight * 2.0
+    out
+}
+
+let base = Frame {
+    tl: Point { x: 1, y: 2 },
+    br: Point { x: 7, y: 9 },
+    live: true,
+    weight: 1.5,
+}
+let wide = widen(base, 3)
+print "base=${base.span()} ${base.live} ${base.weight}"
+print "wide=${wide.span()} ${wide.live} ${wide.weight}"
+
+let mut p = Point { x: 4, y: 5 }
+p.shift(2)
+let q = p
+p.shift(10)
+print "p=${p.x},${p.y} q=${q.x},${q.y}"
+
+let frames = Array.of(base, wide)
+let read = frames.get(1)
+print "stored=${read is Some(r) && r.span() == wide.span()}"
+if frames.get(0) is Some(f0) {
+    print "kept=${f0.live} ${f0.weight}"
+}
+if frames.get(1) is Some(f1) {
+    print "flipped=${f1.live} ${f1.weight}"
+}
+
+let keep = (f: Frame) => f.span() + 1
+print "closure=${keep(base)} ${keep(wide)}"
+-- stdout --
+base=13 true 1.5
+wide=19 false 3
+p=16,17 q=6,7
+stored=true
+kept=true 1.5
+flipped=false 3
+closure=14 20

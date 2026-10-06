@@ -42,10 +42,16 @@ type emitter struct {
 	constOrder   []string
 	constKey     map[mir.LocalID]string
 	constOwned   map[mir.LocalID]bool
+	aggs         map[sem.TypeID]*aggInfo
+	aggOrder     []sem.TypeID
+	aggDone      map[sem.TypeID]bool
+	direct       map[mir.LocalID]*aggInfo
+	sigs         map[*mir.Func]*aggSig
+	sig          *aggSig
 }
 
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
-	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constIndex: map[string]int{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
+	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, sigs: map[*mir.Func]*aggSig{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	var body strings.Builder
 	for _, f := range p.Funcs {
 		if e.reachable != nil && !e.reachable.Keep(f.Ent) {
@@ -84,6 +90,7 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	globalDecls, globalInit := e.staticGlobals()
 	data := e.data()
 	e.out.WriteString(header)
+	e.out.WriteString(e.aggTypes())
 	e.out.WriteString(e.modAsm.String())
 	e.out.WriteString(externs)
 	for _, name := range slices.Sorted(maps.Keys(e.foreign)) {
@@ -118,17 +125,12 @@ func (e *emitter) newTmp() string {
 func (e *emitter) function(f *mir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
+	e.sig = e.directSig(f)
+	e.direct = e.classifyDirect(f)
 	e.scalar = e.classifyScalars(f)
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)
-	fmt.Fprintf(&sb, "define ptr %s(", e.sym(f))
-	for i := range f.Params {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		fmt.Fprintf(&sb, "ptr %%p%d", i)
-	}
-	sb.WriteString(")")
+	sb.WriteString(e.sigHeader(f, e.sig))
 	if e.r.Entity(f.Ent).Kind == sem.EntFn {
 		if name := e.r.FnSectionOf(f.Ent); name != "" {
 			fmt.Fprintf(&sb, " section %q", name)
@@ -136,6 +138,11 @@ func (e *emitter) function(f *mir.Func) string {
 	}
 	sb.WriteString(" {\nentry:\n")
 	for i := range f.Locals {
+		if a, ok := e.direct[mir.LocalID(i)]; ok {
+			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, a.Name)
+			fmt.Fprintf(&sb, "  store %s zeroinitializer, ptr %%l%d\n", a.Name, i)
+			continue
+		}
 		if info, ok := e.scalar[mir.LocalID(i)]; ok {
 			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, info.Ty)
 			fmt.Fprintf(&sb, "  store %s %s, ptr %%l%d\n", info.Ty, zeroOf(info.Ty), i)
@@ -158,9 +165,7 @@ func (e *emitter) function(f *mir.Func) string {
 		sb.WriteString(a)
 	}
 	// Parameters arrive owned or borrowed; either way, store as is.
-	for i, prm := range f.Params {
-		fmt.Fprintf(&sb, "  store ptr %%p%d, ptr %%l%d\n", i, prm)
-	}
+	e.storeParams(&sb, f, e.sig)
 	sb.WriteString("  br label %b0\n")
 	sb.WriteString(body.String())
 	sb.WriteString("}\n\n")
