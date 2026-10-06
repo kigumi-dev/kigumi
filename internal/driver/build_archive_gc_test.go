@@ -134,7 +134,8 @@ func TestBuildArchiveReachabilityPrunesUnusedImport(t *testing.T) {
 	stub := filepath.Join(root, "embedder_stub.c")
 	os.WriteFile(stub, []byte(embedderGCStub), 0o644)
 	bin := filepath.Join(root, "linked")
-	args := append(append([]string{}, cc[1:]...), "-target", "x86_64-freestanding", "-nostdlib", "-static", "-o", bin, stub, archive)
+	// zig cc instruments C with UBSan by default; without a libc there is no handler runtime to link.
+	args := append(append([]string{}, cc[1:]...), "-target", "x86_64-freestanding", "-nostdlib", "-static", "-fno-sanitize=undefined", "-o", bin, stub, archive)
 	linkCmd := exec.Command(cc[0], args...)
 	var linkErr bytes.Buffer
 	linkCmd.Stderr = &linkErr
