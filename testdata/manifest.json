@@ -9079,6 +9079,17 @@
       ]
     },
     {
+      "id": "sem/witness_recv_private_pkg",
+      "kind": "sem",
+      "path": "testdata/sem/witness_recv_private_pkg.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/wscall",
       "kind": "sem",
       "path": "testdata/sem/wscall.txtar",

@@ -94,8 +94,8 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 	name := c.t.TokText(c.t.Nodes[callee].Tok)
 	set := c.r.memberSet(valueType, name)
 	if set == 0 {
-		if req, sig, ambiguous := c.ifaceMember(callee, valueType, name); req != 0 {
-			return c.callRequirement(n, callee, base, recv, req, sig, args, want)
+		if req, sig, iface, ambiguous := c.ifaceMember(callee, valueType, name); req != 0 {
+			return c.callRequirement(n, callee, base, recv, req, sig, iface, args, want)
 		} else if ambiguous {
 			c.synthArgs(args)
 			return TyPoison

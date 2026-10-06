@@ -83,6 +83,59 @@ interface Bumper {
 fn incViaBorrowedParamIsFine[B: Bumper](b: &mut B) -> Unit {
     b.inc()
 }
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.escapingRead(self) -> fn() -> Int {
+    () => self.id //~ ERROR move-only //~ ERROR cannot capture the borrow `self`
+}
+
+fn Res.readVia(self, f: fn(Int) -> Int) -> Int {
+    f(self.id)
+}
+
+fn Res.localReadIsFine(self) -> Int {
+    self.readVia((x: Int) => x + self.id)
+}
+
+interface Replacer {
+    fn grow(mut self, k: Int) -> Unit
+    fn size(self) -> Int
+}
+
+type Tank = {
+    pub mut amount Int
+}
+
+fn Tank.grow(mut self, k: Int) -> Unit {
+    self.amount = self.amount + k
+}
+
+fn Tank.size(self) -> Int { self.amount }
+
+type Fuse = {
+    pub mut armed Bool
+}
+
+// Same name/arity/recv as Replacer.grow, but Fuse has no `size`, so it can
+// never instantiate G: Replacer; the precise conformance check excludes it.
+fn Fuse.grow(mut self, k: Int) -> Unit {
+    self = Fuse { armed: k > 0 }
+}
+
+fn growViaBorrowedParamIsFine[G: Replacer](g: &mut G, k: Int) -> Int {
+    g.grow(k)
+    g.size()
+}
+
+fn growViaWitnessValue[G: Replacer](mut g: G) -> Unit {
+    let h = g.grow //~ ERROR is an interface requirement with no single implementation
+    h(1)
+}
 -- expect --
 error[E1330]: `incLater` assigns `self` as a whole in an `async` body, where the caller's storage is out of reach by the time it runs
   --> main/main.kg:20:5
@@ -125,4 +178,24 @@ error[E1332]: `widen` on a borrowed type parameter can be witnessed by `Shape.wi
 71 |     w.widen(k) //~ ERROR can be witnessed by `Shape.widen`
    |     ^
    = help: take the receiver by value (`mut g: G`) rather than `&mut G`
+
+error[E413]: closure captures `self` (move-only) and cannot be a plain `fn`
+  --> main/main.kg:93:5
+   |
+93 |     () => self.id //~ ERROR move-only //~ ERROR cannot capture the borrow `self`
+   |     ^^^^^^^^^^^^^
+   = help: use `F: Fn[...]`
+
+error[E412]: closure cannot capture the borrow `self`
+  --> main/main.kg:93:11
+   |
+93 |     () => self.id //~ ERROR move-only //~ ERROR cannot capture the borrow `self`
+   |           ^^^^
+
+error[E1520]: `grow` is an interface requirement with no single implementation
+   --> main/main.kg:135:13
+    |
+135 |     let h = g.grow //~ ERROR is an interface requirement with no single implementation
+    |             ^^^^^^
+    = help: call it directly instead of taking a method value
 

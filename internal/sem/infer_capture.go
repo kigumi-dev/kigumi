@@ -28,7 +28,8 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 			if mode == capMove {
 				mode = capBorrow
 			}
-		case c.r.Types.Kind(e.Type) == KRef:
+		// A plain `self` has no write-back cell, so it is lent like a `&T` param.
+		case c.r.Types.Kind(e.Type) == KRef, mode == capMove && plainSelfReceiver(e):
 			c.errAt(n, cClosureCapturesRef, e.Name)
 			ctx.refCapture = true
 		case c.r.typeHasLifetime(e.Type):
@@ -165,6 +166,10 @@ func (c *checker) sameFnShape(got, want TypeID) bool {
 func lentReceiver(e *Entity) bool {
 	const want = EfSelf | EfMut
 	return e.Flags&want == want && e.Flags&EfMove == 0
+}
+
+func plainSelfReceiver(e *Entity) bool {
+	return e.Flags&(EfSelf|EfMut|EfMove) == EfSelf
 }
 
 func (r *Result) cellCaptureWhy(ent EntityID) string {

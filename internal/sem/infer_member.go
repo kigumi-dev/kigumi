@@ -88,10 +88,15 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 		}
 		return c.methodValue(n, base, recv, m)
 	}
-	if req, sig, ambiguous := c.ifaceMember(n, recv, name); req != 0 {
+	if req, sig, _, ambiguous := c.ifaceMember(n, recv, name); req != 0 {
 		c.info.Uses[n] = req
 		c.info.Calls[n] = CallInfo{Kind: CallMethodValue, Callee: req, Recv: c.r.Fn(req).Recv}
 		c.recordCtxValueRef(n, req)
+		// A `mut self` witness dispatches through a call site's write-back cell; a bare value has none.
+		if c.r.Fn(req).Recv == RecvMut {
+			c.errAt(n, cRequirementMethodValue, name)
+			return TyPoison
+		}
 		return sig
 	} else if ambiguous {
 		return TyPoison

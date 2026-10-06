@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/syntax"
+)
 
 // A `mut self` call on a borrowed receiver, judged once every body is checked; witness marks a callee picked per instantiation.
 type borrowRecvCall struct {
@@ -8,6 +12,8 @@ type borrowRecvCall struct {
 	file    FileID
 	node    syntax.NodeID
 	witness bool
+	iface   TypeID
+	pkg     PackageID
 }
 
 func (c *checker) noteWholeSelfAssign(lhs syntax.NodeID) {
@@ -34,12 +40,12 @@ func (c *checker) noteBorrowedRecv(base syntax.NodeID, recv TypeID, m EntityID) 
 }
 
 // An existential receiver keeps its box, so only a borrowed type parameter is at risk here.
-func (c *checker) noteWitnessRecv(base syntax.NodeID, recv TypeID, req EntityID) {
+func (c *checker) noteWitnessRecv(base syntax.NodeID, recv TypeID, req EntityID, iface TypeID) {
 	tt := c.r.Types
 	if c.r.Fn(req).Recv != RecvMut || tt.Kind(recv) != KRef || tt.Kind(tt.Node(recv).Elem) != KParam {
 		return
 	}
-	c.r.borrowRecvCalls = append(c.r.borrowRecvCalls, borrowRecvCall{callee: req, file: c.f, node: base, witness: true})
+	c.r.borrowRecvCalls = append(c.r.borrowRecvCalls, borrowRecvCall{callee: req, file: c.f, node: base, witness: true, iface: iface, pkg: c.pkg})
 }
 
 func (c *checker) leasedBinding(base syntax.NodeID) bool {
@@ -51,7 +57,11 @@ func (c *checker) leasedBinding(base syntax.NodeID) bool {
 func (r *Result) checkBorrowedReceivers() {
 	for _, call := range r.borrowRecvCalls {
 		if call.witness {
-			if w := r.witnessReplacingSelf(call.callee); w != 0 {
+			w, resolved := r.witnessReplacingSelfConforming(call.callee, call.iface, call.pkg)
+			if !resolved {
+				w = r.witnessReplacingSelf(call.callee)
+			}
+			if w != 0 {
 				r.errAt(call.file, call.node, cWitnessRecvReplace, r.Entities[call.callee].Name, r.memberPath(w))
 			}
 			continue
@@ -61,6 +71,36 @@ func (r *Result) checkBorrowedReceivers() {
 		}
 		r.errAt(call.file, call.node, cBorrowedRecvReplace, r.Entities[call.callee].Name)
 	}
+}
+
+// Conformance is seen from pkg, so a witness private to another package looks unresolved;
+// such a candidate falls back to the name/arity approximation instead of being cleared.
+func (r *Result) witnessReplacingSelfConforming(req EntityID, iface TypeID, pkg PackageID) (EntityID, bool) {
+	if iface == 0 || iface == TyPoison || r.Types.Kind(iface) != KIface {
+		return 0, false
+	}
+	reqs := r.iface(r.Types.Node(iface).Ent).Reqs
+	idx := slices.Index(reqs, req)
+	if idx < 0 {
+		return 0, false
+	}
+	for id := EntityID(1); id < EntityID(len(r.Entities)); id++ {
+		if r.Entities[id].Kind != EntType {
+			continue
+		}
+		t := r.ownerInstance(id)
+		res := r.conforms(t, iface, pkg)
+		if res.ok {
+			if r.replacesSelf(res.witnesses[idx]) {
+				return res.witnesses[idx], true
+			}
+			continue
+		}
+		if w := r.mutSelfReplacerOwnedBy(id, req); w != 0 && !r.visibleFrom(r.Entities[w].Vis, pkg) {
+			return w, true
+		}
+	}
+	return 0, true
 }
 
 // Matches by name, receiver and arity only, over-approximating rather than risk missing a method that replaces self.
@@ -73,6 +113,24 @@ func (r *Result) witnessReplacingSelf(req EntityID) EntityID {
 		}
 		fi := r.Fn(id)
 		if fi.Recv != RecvMut || len(fi.Params) != arity || fi.Owner == 0 || r.Entities[fi.Owner].Kind != EntType {
+			continue
+		}
+		if r.replacesSelf(id) {
+			return id
+		}
+	}
+	return 0
+}
+
+func (r *Result) mutSelfReplacerOwnedBy(owner, req EntityID) EntityID {
+	name, arity := r.Entities[req].Name, len(r.Fn(req).Params)
+	for id := EntityID(1); id < EntityID(len(r.Entities)); id++ {
+		e := &r.Entities[id]
+		if id == req || e.Kind != EntFn || e.Name != name {
+			continue
+		}
+		fi := r.Fn(id)
+		if fi.Recv != RecvMut || len(fi.Params) != arity || fi.Owner != owner {
 			continue
 		}
 		if r.replacesSelf(id) {

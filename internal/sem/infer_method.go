@@ -8,7 +8,7 @@ import (
 
 // Differing signatures for the same name are an ambiguity error, not a
 // silent first pick; dedup keys on interface instantiation, not the requirement entity.
-func (c *checker) ifaceMember(n syntax.NodeID, t TypeID, name string) (req EntityID, sig TypeID, ambiguous bool) {
+func (c *checker) ifaceMember(n syntax.NodeID, t TypeID, name string) (req EntityID, sig, iface TypeID, ambiguous bool) {
 	tt := c.r.Types
 	node := tt.Node(t)
 	var ifaces []TypeID
@@ -48,23 +48,23 @@ func (c *checker) ifaceMember(n syntax.NodeID, t TypeID, name string) (req Entit
 	}
 	switch len(founds) {
 	case 0:
-		return 0, 0, false
+		return 0, 0, 0, false
 	case 1:
-		return founds[0].req, founds[0].sig, false
+		return founds[0].req, founds[0].sig, founds[0].iface, false
 	}
 	for _, f := range founds[1:] {
 		if !c.r.sameRequirementSig(founds[0].req, founds[0].sig, f.req, f.sig) {
 			c.errAt(n, cAmbiguousMember, name, founds[0].iface, f.iface)
-			return 0, TyPoison, true
+			return 0, TyPoison, 0, true
 		}
 	}
-	return founds[0].req, founds[0].sig, false
+	return founds[0].req, founds[0].sig, founds[0].iface, false
 }
 
-func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, req EntityID, sig TypeID, args []syntax.NodeID, want TypeID) TypeID {
+func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, req EntityID, sig, iface TypeID, args []syntax.NodeID, want TypeID) TypeID {
 	c.info.Uses[callee] = req
 	c.checkReceiver(base, recv, req)
-	c.noteWitnessRecv(base, recv, req)
+	c.noteWitnessRecv(base, recv, req, iface)
 	var paramEnt EntityID
 	if valueType := c.r.Types.Node(recv); c.r.Types.Kind(recv) == KParam || c.r.Types.Kind(recv) == KRef && c.r.Types.Kind(valueType.Elem) == KParam {
 		param := recv
