@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"kigumi/internal/mir"
-	"kigumi/internal/sem"
 )
 
 // aggByValueBytes: up to two machine words travels as a first-class value,
@@ -36,49 +35,23 @@ func (e *emitter) directSig(f *mir.Func) *aggSig {
 	return s
 }
 
-// computeSig stays a function of the declaration alone, so a call site and
-// the definition always agree on the signature.
+// computeSig reads the signature MIR fixed, so a call site and the
+// definition always agree.
 func (e *emitter) computeSig(f *mir.Func) *aggSig {
-	if f.Async || f == e.p.Entry || e.r.Entity(f.Ent).Kind != sem.EntFn {
-		return nil
-	}
-	info := e.r.Fn(f.Ent)
-	if info.Naked || info.Export != "" || info.Abi != "" {
+	d := f.DSig
+	if d == nil {
 		return nil
 	}
 	s := &aggSig{Params: make([]*aggInfo, len(f.Params))}
-	any := false
-	for i, p := range f.Params {
-		l := f.Locals[p]
-		if l.Cell || l.Borrowed {
-			continue
-		}
-		if a, ok := e.agg(l.Type); ok {
-			s.Params[i], any = a, true
+	for i := range f.Params {
+		if t := d.Param(i); t != 0 {
+			s.Params[i], _ = e.agg(t)
 		}
 	}
-	if a, ok := e.aggReturn(f); ok {
-		s.Ret, any = a, true
-	}
-	if !any {
-		return nil
+	if d.Ret != 0 {
+		s.Ret, _ = e.agg(d.Ret)
 	}
 	return s
-}
-
-func (e *emitter) aggReturn(f *mir.Func) (*aggInfo, bool) {
-	var found *aggInfo
-	for _, blk := range f.Blocks {
-		if blk.Term.Op != mir.TermReturn {
-			continue
-		}
-		a, ok := e.agg(f.Locals[blk.Term.Args[0]].Type)
-		if !ok || (found != nil && found != a) {
-			return nil, false
-		}
-		found = a
-	}
-	return found, found != nil
 }
 
 func (e *emitter) sigHeader(f *mir.Func, s *aggSig) string {

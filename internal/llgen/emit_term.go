@@ -25,10 +25,6 @@ func (e *emitter) term(sb *strings.Builder, t mir.Term) {
 			e.returnAgg(sb, e.sig.Ret, t.Args[0])
 			return
 		}
-		if a, ok := e.direct[t.Args[0]]; ok {
-			fmt.Fprintf(sb, "  ret ptr %s\n", e.boxAgg(sb, a, e.loadAgg(sb, a, t.Args[0])))
-			return
-		}
 		if info, ok := e.scalar[t.Args[0]]; ok {
 			boxed, lit := e.litSlot(t.Args[0])
 			if !lit {

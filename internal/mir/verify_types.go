@@ -46,6 +46,10 @@ func (p *Program) verifyTypes(f *Func) *Error {
 				if tt.Kind(ty(in.Dst)) != sem.KIface || in.Type != ty(in.Args[0]) {
 					return fail("types", bid, i, "box of %s as %s into %s", p.R.TypeString(ty(in.Args[0])), p.R.TypeString(in.Type), p.R.TypeString(ty(in.Dst)))
 				}
+			case OpBoxDirect, OpUnboxDirect:
+				if !p.sameType(in.Type, ty(in.Args[0])) || !p.sameType(in.Type, ty(in.Dst)) {
+					return fail("types", bid, i, "%s of %s between %s and %s", in.Op, p.R.TypeString(in.Type), p.R.TypeString(ty(in.Args[0])), p.R.TypeString(ty(in.Dst)))
+				}
 			case OpNewCell:
 				if ty(in.Dst) != ty(in.Args[0]) {
 					return fail("types", bid, i, "cell of %s into %s", p.R.TypeString(ty(in.Args[0])), p.R.TypeString(ty(in.Dst)))

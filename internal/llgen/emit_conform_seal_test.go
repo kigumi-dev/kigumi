@@ -71,7 +71,7 @@ func TestNoConformanceQueryAfterSeal(t *testing.T) {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mir.Build(res)
-	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect}); err != nil {
 		t.Fatal(err)
 	}
 	llgen.Emit(prog)

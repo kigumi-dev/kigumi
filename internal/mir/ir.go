@@ -15,53 +15,55 @@ type BlockID uint32
 type Opcode uint8
 
 const (
-	OpConst      Opcode = iota + 1 // Dst = Lit (Type)
-	OpUnit                         // Dst = ()
-	OpCopy                         // Dst = Args[0]
-	OpMove                         // Dst = Args[0], source consumed
-	OpCall                         // Dst = Ent(Args...)
-	OpCallValue                    // Dst = Args[0](Args[1:]...)
-	OpBuiltin                      // Dst = Str(Args...) runtime function
-	OpBinary                       // Dst = Args[0] Str Args[1]
-	OpUnary                        // Dst = Str Args[0]
-	OpRecord                       // Dst = Ent { Args... }
-	OpVariant                      // Dst = Ent(Args...)
-	OpField                        // Dst = Args[0].Index
-	OpFieldMove                    // Dst = Args[0].Index, then Args[0].Index is cleared
-	OpSetField                     // Args[0].Index = Args[1]
-	OpArray                        // Dst = [Args...]
-	OpIndex                        // Dst = Args[0][Args[1]]
-	OpSetIndex                     // Args[0][Args[1]] = Args[2]
-	OpTag                          // Dst = variant tag of Args[0]
-	OpPayload                      // Dst = payload Index of Args[0]
-	OpIsVariant                    // Dst = Args[0] is variant Ent
-	OpIsType                       // Dst = existential Args[0] holds Ent
-	OpUnbox                        // Dst = value inside existential Args[0]
-	OpBox                          // Dst = existential over Args[0] (Type = dynamic type)
-	OpClosure                      // Dst = closure Ent capturing Args...
-	OpFnItem                       // Dst = function Ent
-	OpBind                         // Dst = function Ent with its trailing witness parameters bound to Args
-	OpCFnPtr                       // Dst = C function pointer to Ent
-	OpCallC                        // Dst = Args[0](Args[1:]...) through a C function pointer of Type
-	OpAsm                          // Dst = inline asm at Node over input Args (sem.AsmInfo)
-	OpBorrow                       // Dst = &Args[0] (Index: 1 for mut)
-	OpNewCell                      // Dst = cell holding Args[0]
-	OpCellGet                      // Dst = *Args[0]
-	OpCellTake                     // Dst = *Args[0], handed over: the cell is left empty
-	OpCellSet                      // *Args[0] = Args[1]
-	OpInterp                       // Dst = string of Args... (Strs holds text pieces)
-	OpShell                        // Dst = plan (Strs/Args describe words)
-	OpDrop                         // drop Args[0]
-	OpAlias                        // Dst = Args[0], the same reference: no runtime call
-	OpShare                        // Dst = a new reference to Args[0] (Copy: rt_copy vs rt_retain)
-	OpRelease                      // release the temporary Args[0]
-	OpPanic                        // abort with Str
-	OpNop                          // removed instruction
-	OpGlobalGet                    // Dst = value of static Ent
-	OpGlobalSet                    // static Ent = Args[0]
-	OpFutureNew                    // Dst = Future running async callee Args[0] on Args[1:]
-	OpAwait                        // Dst = result of Args[0]; Index is the suspension point
-	OpFutureDone                   // Args[0] completes the enclosing async body
+	OpConst       Opcode = iota + 1 // Dst = Lit (Type)
+	OpUnit                          // Dst = ()
+	OpCopy                          // Dst = Args[0]
+	OpMove                          // Dst = Args[0], source consumed
+	OpCall                          // Dst = Ent(Args...)
+	OpCallValue                     // Dst = Args[0](Args[1:]...)
+	OpBuiltin                       // Dst = Str(Args...) runtime function
+	OpBinary                        // Dst = Args[0] Str Args[1]
+	OpUnary                         // Dst = Str Args[0]
+	OpRecord                        // Dst = Ent { Args... }
+	OpVariant                       // Dst = Ent(Args...)
+	OpField                         // Dst = Args[0].Index
+	OpFieldMove                     // Dst = Args[0].Index, then Args[0].Index is cleared
+	OpSetField                      // Args[0].Index = Args[1]
+	OpArray                         // Dst = [Args...]
+	OpIndex                         // Dst = Args[0][Args[1]]
+	OpSetIndex                      // Args[0][Args[1]] = Args[2]
+	OpTag                           // Dst = variant tag of Args[0]
+	OpPayload                       // Dst = payload Index of Args[0]
+	OpIsVariant                     // Dst = Args[0] is variant Ent
+	OpIsType                        // Dst = existential Args[0] holds Ent
+	OpUnbox                         // Dst = value inside existential Args[0]
+	OpBox                           // Dst = existential over Args[0] (Type = dynamic type)
+	OpClosure                       // Dst = closure Ent capturing Args...
+	OpFnItem                        // Dst = function Ent
+	OpBind                          // Dst = function Ent with its trailing witness parameters bound to Args
+	OpCFnPtr                        // Dst = C function pointer to Ent
+	OpCallC                         // Dst = Args[0](Args[1:]...) through a C function pointer of Type
+	OpAsm                           // Dst = inline asm at Node over input Args (sem.AsmInfo)
+	OpBorrow                        // Dst = &Args[0] (Index: 1 for mut)
+	OpNewCell                       // Dst = cell holding Args[0]
+	OpCellGet                       // Dst = *Args[0]
+	OpCellTake                      // Dst = *Args[0], handed over: the cell is left empty
+	OpCellSet                       // *Args[0] = Args[1]
+	OpInterp                        // Dst = string of Args... (Strs holds text pieces)
+	OpShell                         // Dst = plan (Strs/Args describe words)
+	OpDrop                          // drop Args[0]
+	OpAlias                         // Dst = Args[0], the same reference: no runtime call
+	OpShare                         // Dst = a new reference to Args[0] (Copy: rt_copy vs rt_retain)
+	OpRelease                       // release the temporary Args[0]
+	OpPanic                         // abort with Str
+	OpNop                           // removed instruction
+	OpGlobalGet                     // Dst = value of static Ent
+	OpGlobalSet                     // static Ent = Args[0]
+	OpFutureNew                     // Dst = Future running async callee Args[0] on Args[1:]
+	OpAwait                         // Dst = result of Args[0]; Index is the suspension point
+	OpFutureDone                    // Args[0] completes the enclosing async body
+	OpBoxDirect                     // Dst = a carrier holding the direct aggregate Args[0] (Type: its type)
+	OpUnboxDirect                   // Dst = the direct aggregate in carrier Args[0] (Type: its type), consumed
 )
 
 // Inst is one instruction; the fields used depend on Op.
@@ -152,6 +154,10 @@ type Func struct {
 	// Cleanup lists, per suspension point, the frame slots an abandoned
 	// body releases, innermost binding first.
 	Cleanup [][]LocalID
+	// Direct marks the locals a backend keeps as an unboxed aggregate and
+	// DSig does the same for the parameters and the result; PlanDirect sets both.
+	Direct []bool
+	DSig   *DirectSig
 }
 
 type Program struct {
@@ -178,6 +184,7 @@ var opNames = [...]string{
 	OpShell: "shell", OpDrop: "drop", OpAlias: "alias", OpShare: "share", OpRelease: "release", OpPanic: "panic", OpNop: "nop",
 	OpGlobalGet: "globalget", OpGlobalSet: "globalset",
 	OpFutureNew: "future", OpAwait: "await", OpFutureDone: "complete",
+	OpBoxDirect: "boxdirect", OpUnboxDirect: "unboxdirect",
 }
 
 func (o Opcode) String() string { return opNames[o] }

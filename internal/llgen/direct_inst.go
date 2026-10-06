@@ -53,6 +53,19 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 	case mir.OpDrop, mir.OpRelease:
 		// A pure direct value owns no reference and has no drop glue.
 		return e.isDirect(in.Args[0])
+	case mir.OpBoxDirect:
+		if a, ok := e.agg(in.Type); ok {
+			e.store(sb, in.Dst, e.boxAgg(sb, a, e.loadAgg(sb, a, in.Args[0])))
+			return true
+		}
+	case mir.OpUnboxDirect:
+		if a, ok := e.agg(in.Type); ok {
+			p := e.load(sb, in.Args[0])
+			v := e.unboxAgg(sb, a, p)
+			e.irb(sb).Call(rtRelease, vptr(p))
+			e.storeAgg(sb, a, in.Dst, v)
+			return true
+		}
 	}
 	return false
 }
@@ -112,17 +125,14 @@ func (e *emitter) instArgs(sb *strings.Builder, in mir.Inst) ([]string, []bool) 
 	args := make([]string, 0, len(in.Args))
 	boxed := make([]bool, len(in.Args))
 	for i, a := range in.Args {
-		switch ag, direct := e.direct[a]; {
-		case e.isScalar(a):
+		if e.isScalar(a) {
 			// classifyArgs only lets a scalar-classified local reach here
 			// at a non-retaining read; released below, in releaseScalarArgs.
 			args = append(args, e.scalarBoxOnDemand(sb, a))
-		case direct:
-			args = append(args, e.boxAgg(sb, ag, e.loadAgg(sb, ag, a)))
-			boxed[i] = true
-		default:
-			args = append(args, e.load(sb, a))
+			continue
 		}
+		args = append(args, e.load(sb, a))
+		boxed[i] = e.boxTmp[a]
 	}
 	return args, boxed
 }

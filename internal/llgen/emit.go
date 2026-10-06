@@ -46,6 +46,7 @@ type emitter struct {
 	aggOrder     []sem.TypeID
 	aggDone      map[sem.TypeID]bool
 	direct       map[mir.LocalID]*aggInfo
+	boxTmp       map[mir.LocalID]bool
 	sigs         map[*mir.Func]*aggSig
 	sig          *aggSig
 }
@@ -127,6 +128,7 @@ func (e *emitter) function(f *mir.Func) string {
 	e.tmp = 0
 	e.sig = e.directSig(f)
 	e.direct = e.classifyDirect(f)
+	e.boxTmp = boxTemps(f)
 	e.scalar = e.classifyScalars(f)
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)

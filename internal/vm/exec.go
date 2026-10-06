@@ -30,7 +30,8 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpGlobalSet:
 		m.storeGlobal(in.Ent, args[0])
 		return
-	case mir.OpAlias:
+	case mir.OpAlias, mir.OpBoxDirect, mir.OpUnboxDirect:
+		// A direct aggregate and its box are one object here.
 		res = args[0]
 	case mir.OpShare:
 		if in.Copy {

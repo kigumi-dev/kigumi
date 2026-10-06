@@ -84,10 +84,18 @@ func buildProgram(res *sem.Result, strict bool, budgetKiB int) (*mir.Program, er
 	}
 	// plan-rc runs first: fold-comptime evaluates comptime blocks in the
 	// VM, which only translates the ops plan-rc produces.
-	return prog, prog.Apply(
+	err := prog.Apply(
 		mir.Transform{Name: "plan-rc", Run: mir.PlanRC},
 		mir.Transform{Name: "fold-comptime", Run: foldComptime},
+		mir.Transform{Name: "plan-direct", Run: mir.PlanDirect},
 	)
+	if err != nil {
+		return prog, err
+	}
+	for _, c := range mir.CheckAllocClaims(prog) {
+		res.Files[c.File].Diags = append(res.Files[c.File].Diags, c.Diag)
+	}
+	return prog, nil
 }
 
 // Stats reports how often each phase ran for this module.

@@ -1,0 +1,90 @@
+-- src --
+import map from std/map
+import {Shared} from std/alloc
+
+interface Sized {
+    fn size(self) -> Int
+}
+
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn Point.size(self) -> Int { self.x + self.y }
+
+fn Point.dist(self, other: Point) -> Int { (other.x - self.x) + (other.y - self.y) }
+
+type Holder = {
+    pub at Point
+    pub tag String
+}
+
+type Counter = {
+    pub mut at Point
+}
+
+fn Counter.reset(mut self) -> Unit {
+    self = Counter { at: mk(9, 9) }
+}
+
+fn Counter.bump(mut self) -> Unit {
+    self.at = mk(self.at.x + 1, self.at.y + 1)
+}
+
+fn mk(x: Int, y: Int) -> Point { Point { x: x, y: y } }
+
+fn pick[T](v: T) -> T { v }
+
+fn dynSize(v: Sized) -> Int { v.size() }
+
+fn localOnly(x: Int) -> Int {
+    let p = mk(x, x + 1)
+    p.x * p.y
+}
+
+let arr = Array.of(mk(1, 2), mk(3, 4))
+print "array=${arr.get(1) is Some(a) && a.x == 3}"
+
+let mut m = map.empty[Int, Point]()
+m.set(1, mk(5, 6))
+print "map=${m.get(&1) is Some(v) && v.y == 6} len=${m.len()}"
+
+let sh = Shared.new(mk(7, 8))
+print "shared=${sh.get().x},${sh.get().y}"
+
+let h = Holder { at: mk(2, 3), tag: "tag" }
+print "field=${h.at.x},${h.at.y} ${h.tag}"
+
+print "generic=${pick(mk(4, 5)).y} dyn=${dynSize(mk(6, 7))}"
+
+let base = mk(10, 20)
+let shift = (k: Int) => mk(base.x + k, base.y + k)
+print "capture=${shift(3).x},${shift(3).y}"
+
+let opt: Point? = Some(mk(11, 12))
+print "option=${opt is Some(o) && o.x == 11}"
+
+let mut c = Counter { at: mk(0, 0) }
+c.bump()
+c.bump()
+print "cell=${c.at.x},${c.at.y}"
+c.reset()
+print "reset=${c.at.x},${c.at.y}"
+
+let home = mk(1, 2)
+print "lent=${home.x},${home.dist(mk(4, 6))}"
+
+print "local=${localOnly(4)}"
+-- stdout --
+array=true
+map=true len=1
+shared=7,8
+field=2,3 tag
+generic=5 dyn=13
+capture=13,23
+option=true
+cell=2,2
+reset=9,9
+lent=1,7
+local=20

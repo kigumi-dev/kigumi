@@ -105,3 +105,43 @@ fn main() -> Unit! {}
 		t.Errorf("storing a direct aggregate into an Array does not go through the boxing helper:\n%s", body)
 	}
 }
+
+const lentReceiverSrc = `
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn Point.combine(self, other: Point) -> Int { self.x + other.x }
+
+fn touch(n: Int) -> Int {
+    let p = Point { x: n, y: n + 1 }
+    p.y + p.combine(Point { x: n + 2, y: n + 3 })
+}
+
+fn main() -> Unit! {
+    print "${touch(1)}"
+}
+`
+
+func callArg(t *testing.T, body, head string) string {
+	t.Helper()
+	i := strings.Index(body, head)
+	if i < 0 {
+		t.Fatalf("no %s in:\n%s", head, body)
+	}
+	rest := body[i+len(head):]
+	return rest[:strings.IndexAny(rest, ",)")]
+}
+
+// A direct signature never covers a lent receiver: that box is the caller's to give back.
+func TestLentDirectReceiverGivesItsBoxBack(t *testing.T) {
+	body := bodyOf(t, emitIR(t, lentReceiverSrc), `@"main.touch"(`)
+	if !strings.Contains(body, `call ptr @"kg.box.Point"(`) {
+		t.Fatalf("the lent receiver does not cross through the boxing helper:\n%s", body)
+	}
+	recv := callArg(t, body, `call ptr @"main.Point.combine"(ptr `)
+	if !strings.Contains(body, "call void @rt_release(ptr "+recv+")") {
+		t.Errorf("the box handed to the lent receiver is never released:\n%s", body)
+	}
+}
