@@ -35,7 +35,7 @@ func RunTests(prog *mir.Program, opts Options, out, errOut io.Writer) (failed in
 func (m *Machine) runTest(f *mir.Func, name string) bool {
 	res := deref(m.call(f, nil))
 	if res != nil && res.k == kVariant && res.ent == m.variantOf(m.r.Types.ResultEnt(), "Err") {
-		fmt.Fprintf(m.err, "%s: %s\n", name, m.display(m.errorMessage(res.fields[0])))
+		m.writeErr([]byte(fmt.Sprintf("%s: %s\n", name, m.display(m.errorMessage(res.fields[0])))))
 		m.release(res)
 		return false
 	}

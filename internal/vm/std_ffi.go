@@ -17,8 +17,7 @@ func (m *Machine) registerFFI() {
 	// A generic return type (`Pin[T]`) carries no entity, so the handle
 	// records are looked up by name.
 	newHandle := func(m *Machine, name string, v *obj) *obj {
-		m.cvalues = append(m.cvalues, v)
-		return mkRecord(m.lookup("std/ffi", name), []*obj{mkInt(int64(len(m.cvalues)), m.numKind(sem.TyI64))})
+		return mkRecord(m.lookup("std/ffi", name), []*obj{mkInt(m.addCValue(v), m.numKind(sem.TyI64))})
 	}
 	h["ffi.null"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Ptr", nil) }
 	h["ffi.isNull"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkBool(deref(a[0]).data == nil) }
@@ -50,7 +49,7 @@ func (m *Machine) registerFFI() {
 		deref(a[0]).fields[0].i = 0
 		return mkOpaque("Ptr", hd)
 	}
-	h["ffi.CValue.get"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return m.copy(m.cvalues[handleOf(a[0])-1]) }
+	h["ffi.CValue.get"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return m.copy(m.cvalue(handleOf(a[0]))) }
 	h["ffi.CValue.set"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		m.replaceCValue(handleOf(a[0]), m.copy(deref(a[1])))
 		return unitObj
@@ -59,7 +58,7 @@ func (m *Machine) registerFFI() {
 		m.replaceCValue(handleOf(a[0]), nil)
 		return unitObj
 	}
-	h["ffi.readRecord"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return m.copy(m.cvalues[ptrHandle(m, a[0])-1]) }
+	h["ffi.readRecord"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return m.copy(m.cvalue(ptrHandle(m, a[0]))) }
 	h["ffi.writeRecord"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		m.replaceCValue(ptrHandle(m, a[0]), m.copy(deref(a[1])))
 		return unitObj
@@ -69,7 +68,7 @@ func (m *Machine) registerFFI() {
 		if !ok {
 			m.abort("this pointer does not address a Pin; run the program with `kigumi build`")
 		}
-		v := m.cvalues[hd-1]
+		v := m.cvalue(hd)
 		if v == nil {
 			m.abort("this pointer addresses a Pin that was already dropped")
 		}
@@ -79,8 +78,7 @@ func (m *Machine) registerFFI() {
 	// Call-scoped: the handle lives only for f's call, unlike Pin's handle,
 	// which lives until an explicit drop.
 	withAddress := func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		m.cvalues = append(m.cvalues, retain(deref(a[0])))
-		hd := int64(len(m.cvalues))
+		hd := m.addCValue(retain(deref(a[0])))
 		r := m.callValue(a[1], []*obj{mkOpaque("Ptr", hd)})
 		m.replaceCValue(hd, nil)
 		return r
@@ -100,16 +98,11 @@ func (m *Machine) registerFFI() {
 		if !ok {
 			m.abort("this pointer does not address a Pin; run the program with `kigumi build`")
 		}
-		if m.cvalues[hd-1] == nil {
+		if m.cvalue(hd) == nil {
 			m.abort("this pointer addresses a Pin that was already dropped")
 		}
 		return mkRecord(m.lookup("std/ffi", "Pin"), []*obj{mkInt(hd, m.numKind(sem.TyI64))})
 	}
-}
-
-func (m *Machine) replaceCValue(hd int64, v *obj) {
-	m.release(m.cvalues[hd-1])
-	m.cvalues[hd-1] = v
 }
 
 // retType is the callee's declared return type.
@@ -134,7 +127,7 @@ func (m *Machine) cLayout(t sem.TypeID) (size, align int64) {
 		p := int64(tt.PtrBits() / 8)
 		return p, p
 	}
-	if u := m.r.UnderlyingRepr(t); u != t {
+	if u := m.underlyingRepr(t); u != t {
 		return m.cLayout(u)
 	}
 	info := m.r.TypeDecl(tt.Node(t).Ent)

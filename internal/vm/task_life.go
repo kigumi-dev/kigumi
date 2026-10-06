@@ -26,9 +26,10 @@ func (m *Machine) handoffTask(ex *executor, fut *obj) *obj {
 // Admission is one linearization point: a child joins its parent's kid list
 // and its executor's queue under the same lock.
 func (m *Machine) startTask(ex *executor, fut *obj, mobile bool) *obj {
-	m.sched.Lock()
+	m.sh.sched.Lock()
 	p := m.cur
-	t := &task{fut: fut, ex: ex, pex: p.ex, parent: p, cancelReq: p.cancelReq, lane: 0}
+	t := &task{fut: fut, ex: ex, pex: p.ex, parent: p, lane: 0}
+	t.cancelReq.Store(p.cancelReq.Load())
 	if ex.workers > 0 {
 		switch {
 		case mobile:
@@ -43,23 +44,23 @@ func (m *Machine) startTask(ex *executor, fut *obj, mobile bool) *obj {
 	}
 	ex.live++
 	ex.push(t)
-	m.sched.Unlock()
+	m.sh.sched.Unlock()
 	return mkOpaque("Task", t)
 }
 
 // Registers the waiter before reading target state, so a racing completion is still seen.
 func (m *Machine) pollTask(t *task) (*obj, polled) {
-	m.sched.Lock()
+	m.sh.sched.Lock()
 	if !t.terminal() {
 		t.waiter = m.cur
-		m.sched.Unlock()
+		m.sh.sched.Unlock()
 		return nil, pending
 	}
 	t.waiter = nil
 	st := t.state
 	r := t.result
 	t.result = nil
-	m.sched.Unlock()
+	m.sh.sched.Unlock()
 	switch st {
 	case taskCancelled:
 		return nil, cancelled
@@ -71,16 +72,16 @@ func (m *Machine) pollTask(t *task) (*obj, polled) {
 
 // Cancellation is cooperative: this only sets a sticky flag, observed at the next suspension point.
 func (m *Machine) requestCancel(t *task) {
-	m.sched.Lock()
+	m.sh.sched.Lock()
 	m.cancelLocked(t)
-	m.sched.Unlock()
+	m.sh.sched.Unlock()
 }
 
 func (m *Machine) cancelLocked(t *task) {
-	if t.terminal() || t.cancelReq {
+	if t.terminal() || t.cancelReq.Load() {
 		return
 	}
-	t.cancelReq = true
+	t.cancelReq.Store(true)
 	for _, k := range t.kids {
 		m.cancelLocked(k)
 	}

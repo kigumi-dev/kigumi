@@ -22,7 +22,7 @@ func (m *Machine) registerSignal() {
 		return m.ok(unitObj)
 	}
 	h["os.Signals.pending"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		ch, ok := m.sigWatch[m.signalName(a[1])]
+		ch, ok := m.watchedSignal(m.signalName(a[1]))
 		if !ok {
 			return mkBool(false)
 		}
@@ -36,16 +36,25 @@ func (m *Machine) signalName(a *obj) string { return m.r.Entity(deref(a).ent).Na
 // signalChan installs os/signal.Notify on first watch; an unwatched signal
 // has no channel, so pending() just reports false.
 func (m *Machine) signalChan(name string) chan os.Signal {
-	if m.sigWatch == nil {
-		m.sigWatch = map[string]chan os.Signal{}
+	m.sh.store.Lock()
+	defer m.sh.store.Unlock()
+	if m.sh.sigWatch == nil {
+		m.sh.sigWatch = map[string]chan os.Signal{}
 	}
-	ch, ok := m.sigWatch[name]
+	ch, ok := m.sh.sigWatch[name]
 	if !ok {
 		ch = make(chan os.Signal, 1)
 		signal.Notify(ch, signalOf(name))
-		m.sigWatch[name] = ch
+		m.sh.sigWatch[name] = ch
 	}
 	return ch
+}
+
+func (m *Machine) watchedSignal(name string) (chan os.Signal, bool) {
+	m.sh.store.Lock()
+	defer m.sh.store.Unlock()
+	ch, ok := m.sh.sigWatch[name]
+	return ch, ok
 }
 
 func signalOf(name string) os.Signal {

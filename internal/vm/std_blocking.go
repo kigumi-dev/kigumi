@@ -1,11 +1,16 @@
 package vm
 
-import "kigumi/internal/sem"
+import (
+	"sync/atomic"
 
-// blockingPool bounds admitted-but-unclaimed BlockingPool.run results;
-// run executes on the calling goroutine, so inFlight needs no atomics.
+	"kigumi/internal/sem"
+)
+
+// blockingPool bounds admitted-but-unclaimed BlockingPool.run results; the
+// Future it hands back can be taken or dropped on another lane, so count atomically.
 type blockingPool struct {
-	capacity, inFlight int
+	capacity int
+	inFlight atomic.Int64
 }
 
 func (m *Machine) registerBlocking() {
@@ -15,11 +20,11 @@ func (m *Machine) registerBlocking() {
 	}
 	h["task.BlockingPool.run"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		pool := deref(a[0]).data.(*blockingPool)
-		if pool.inFlight >= pool.capacity {
+		if pool.inFlight.Load() >= int64(pool.capacity) {
 			return m.blockingCapacityExhausted()
 		}
 		r := m.callValue(a[1], nil)
-		pool.inFlight++
+		pool.inFlight.Add(1)
 		return m.ok(mkOpaque("Future", &future{result: r, pool: retain(deref(a[0]))}))
 	}
 }

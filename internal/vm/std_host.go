@@ -40,17 +40,9 @@ func (m *Machine) registerHost() {
 		return m.none()
 	}
 	h["os.Stdin.readAll"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		var out []byte
-		buf := make([]byte, 4096)
-		for {
-			n, err := m.stdinReader().Read(buf)
-			out = append(out, buf[:n]...)
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				return m.errMsg(err.Error())
-			}
+		out, err := m.stdinAll()
+		if err != nil {
+			return m.errMsg(err.Error())
 		}
 		if !utf8.Valid(out) {
 			return m.errMsg("invalid UTF-8")
@@ -58,7 +50,7 @@ func (m *Machine) registerHost() {
 		return m.ok(mkStr(out))
 	}
 	h["os.Stdin.readLine"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		line, err := m.stdinReader().ReadString('\n')
+		line, err := m.stdinLine()
 		if err != nil && err != io.EOF {
 			return m.errMsg(err.Error())
 		}
@@ -73,7 +65,7 @@ func (m *Machine) registerHost() {
 	}
 	h["os.Host.stdout"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Stdout", nil) }
 	h["os.Stdout.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		n, err := m.out.Write(deref(a[1]).s)
+		n, err := m.writeOut(deref(a[1]).s)
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
@@ -81,7 +73,7 @@ func (m *Machine) registerHost() {
 	}
 	h["os.Host.stderr"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Stderr", nil) }
 	h["os.Stderr.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		n, err := m.err.Write(deref(a[1]).s)
+		n, err := m.writeErr(deref(a[1]).s)
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
@@ -93,7 +85,7 @@ func (m *Machine) registerHost() {
 			return m.errMsg("out of memory")
 		}
 		buf := make([]byte, max)
-		got, err := m.stdinReader().Read(buf)
+		got, err := m.stdinRead(buf)
 		if err != nil && err != io.EOF {
 			return m.errMsg(err.Error())
 		}
@@ -116,16 +108,18 @@ func (m *Machine) registerHost() {
 	m.registerFiles()
 }
 
+// Callers hold sh.in: the reader is machine-wide and one lane's read must not
+// interleave with another's.
 func (m *Machine) stdinReader() *bufio.Reader {
-	if m.stdin == nil {
+	if m.sh.stdin == nil {
 		r := m.opts.Stdin
 		if r == nil {
 			r = os.Stdin
 		}
-		m.stdinSrc = r
-		m.stdin = bufio.NewReader(r)
+		m.sh.stdinSrc = r
+		m.sh.stdin = bufio.NewReader(r)
 	}
-	return m.stdin
+	return m.sh.stdin
 }
 
 func (m *Machine) resolvePath(p string) string {

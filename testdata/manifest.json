@@ -1817,6 +1817,40 @@
       ]
     },
     {
+      "id": "run/async_thread_parallel",
+      "kind": "run",
+      "path": "testdata/run/async_thread_parallel.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_thread_resource_frame",
+      "kind": "run",
+      "path": "testdata/run/async_thread_resource_frame.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_thread_spawn",
       "kind": "run",
       "path": "testdata/run/async_thread_spawn.txtar",

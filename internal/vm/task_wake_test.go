@@ -7,7 +7,7 @@ func queued(e *executor) int { return len(e.pool.q) + len(e.lane[0].q) }
 // A producer wakes without knowing the task's state; several wakes before
 // the task runs again must mean one more poll, not several.
 func TestWakeCoalesces(t *testing.T) {
-	m := &Machine{}
+	m := &Machine{sh: newShared()}
 	ex := m.newExecutor(0)
 	w := &task{ex: ex, state: taskSuspended}
 	m.wake(w)
@@ -36,14 +36,14 @@ func TestWakeCoalesces(t *testing.T) {
 }
 
 func TestCancelIsStickyAndReachesChildren(t *testing.T) {
-	m := &Machine{}
+	m := &Machine{sh: newShared()}
 	ex := m.newExecutor(0)
 	parent := &task{ex: ex, state: taskSuspended}
 	kid := &task{ex: ex, parent: parent, state: taskSuspended}
 	parent.kids = []*task{kid}
 	m.requestCancel(parent)
 	m.requestCancel(parent)
-	if !parent.cancelReq || !kid.cancelReq {
+	if !parent.cancelReq.Load() || !kid.cancelReq.Load() {
 		t.Fatal("a cancel request must reach the task and its descendants")
 	}
 	if queued(ex) != 2 {
@@ -51,7 +51,7 @@ func TestCancelIsStickyAndReachesChildren(t *testing.T) {
 	}
 	done := &task{ex: ex, state: taskCompleted}
 	m.requestCancel(done)
-	if done.cancelReq {
+	if done.cancelReq.Load() {
 		t.Fatal("a request to a task that already finished must change nothing")
 	}
 }
@@ -59,7 +59,7 @@ func TestCancelIsStickyAndReachesChildren(t *testing.T) {
 // A pool keeps a pinned task on the lane that created it: the pool-wide
 // queue a worker steals from must never hold one.
 func TestPinnedTaskStaysOnItsLane(t *testing.T) {
-	m := &Machine{}
+	m := &Machine{sh: newShared()}
 	ex := m.newExecutor(2)
 	bound := &task{ex: ex, lane: 2, state: taskSuspended}
 	free := &task{ex: ex, lane: -1, state: taskSuspended}

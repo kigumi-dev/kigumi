@@ -12,19 +12,20 @@ async fn job(n: Int) -> Int {
 
 // The frame owning the handle ends while the task it handed over is still
 // running, so the drop cannot wait for the worker that has to finish it.
-async fn launch(pool: task.Executor, n: Int) -> task.Task[Int] {
+fn launch(pool: task.Executor, n: Int) -> task.Task[Int] {
     pool.handoff(job(n))
 }
 
-// This one drops the second pool's last handle from a worker of the first.
-async fn chain(second: task.Executor) -> Int {
-    let t = await launch(second, 2)
+// The pool is born and loses its last handle inside one poll, so a worker of
+// the outer pool is the lane that has to let it go.
+async fn chain(n: Int) -> Int {
+    let t = launch(task.threadPoolExecutor(2), n)
     await t
 }
 
-async fn root(first: task.Executor, second: task.Executor) -> Int {
-    let b = first.handoff(chain(second))
-    let a = await launch(first, 1)
+async fn root(first: task.Executor) -> Int {
+    let b = first.handoff(chain(2))
+    let a = first.handoff(chain(1))
     let x = await a
     print "a ${x}"
     let y = await b
@@ -33,9 +34,8 @@ async fn root(first: task.Executor, second: task.Executor) -> Int {
 }
 
 let first = task.threadPoolExecutor(2)
-let second = task.threadPoolExecutor(2)
 let ex = task.currentThreadExecutor()
-print "total ${ex.runToCompletion(root(first, second))}"
+print "total ${ex.runToCompletion(root(first))}"
 -- stdout --
 a 4
 b 8

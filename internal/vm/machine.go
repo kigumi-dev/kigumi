@@ -1,13 +1,9 @@
 package vm
 
 import (
-	"bufio"
 	"fmt"
 	"io"
-	"os"
-	"sync"
 
-	"kigumi/internal/buildgraph"
 	"kigumi/internal/diag"
 	"kigumi/internal/mir"
 	"kigumi/internal/sem"
@@ -53,26 +49,16 @@ type Options struct {
 	FaultInjectAt int64
 }
 
-// Machine runs one program.
+// Machine is one lane of a run: the interpreter state below belongs to the
+// goroutine holding it, and sh is what every lane shares.
 type Machine struct {
 	p        *mir.Program
 	r        *sem.Result
 	out, err io.Writer
 	opts     Options
-	drops    map[sem.EntityID]*mir.Func
-	stdin    *bufio.Reader
-	stdinSrc io.Reader
-	named    map[string]sem.EntityID
 	host     map[string]hostFn
 	hostByOp map[mir.ProviderOpId]hostFn
-	cvalues  []*obj
-	// borrowMask caches rt_type.borrow_fields per record type.
-	borrowMask map[sem.EntityID]uint64
-	// handleTables backs std/ffi's HandleTable[T]; see std_ffi_handle.go.
-	handleTables []*handleTableState
-	// globals is every owned/exported static's storage slot:
-	// an immortal (rc -1) object, replaced wholesale on a `static mut` write.
-	globals map[sem.EntityID]*obj
+	sh       *shared
 	// site is the call being dispatched, for primitives whose meaning
 	// depends on the argument types at the call (ffi.sizeOf).
 	site   *mir.Inst
@@ -84,21 +70,11 @@ type Machine struct {
 	// nearest non-std caller from it as a step's provenance.
 	stack        []*mir.Func
 	steps, depth int
-	// cur is the running task and curLane its executor lane, for spawn and
-	// cancellation; only the worker holding run may touch them.
+	// cur is the running task and curLane its executor lane, for spawn and cancellation.
 	cur     *task
 	curLane int
-	// run serializes task bodies; sched covers the scheduler state a worker
-	// touches around a poll, and pending holds releases it owes once it unlocks.
-	run     sync.Mutex
-	sched   sync.Mutex
+	// pending holds releases this lane owes once it leaves the scheduler lock.
 	pending []*obj
-	// orphans are dropped thread pools a worker had not left yet.
-	orphans  []*executor
-	mem      int64
-	faultN   int64
-	graph    *buildgraph.Graph
-	sigWatch map[string]chan os.Signal
 }
 
 // Run executes the program's entry and returns its exit code: 0, 1 for a
@@ -121,7 +97,7 @@ func Run(prog *mir.Program, opts Options, out, errOut io.Writer) (int, error) {
 }
 
 func newMachine(prog *mir.Program, opts Options, out, errOut io.Writer) *Machine {
-	m := &Machine{p: prog, r: prog.R, out: out, err: errOut, opts: opts, drops: map[sem.EntityID]*mir.Func{}, borrowMask: map[sem.EntityID]uint64{}, named: map[string]sem.EntityID{}}
+	m := &Machine{p: prog, r: prog.R, out: out, err: errOut, opts: opts, sh: newShared()}
 	m.registerAll()
 	m.initGlobals()
 	return m
@@ -174,7 +150,7 @@ func (m *Machine) abort(msg string) {
 func (m *Machine) exitCode(res *obj) int {
 	res = deref(res)
 	if res != nil && res.k == kVariant && res.ent == m.variantOf(m.r.Types.ResultEnt(), "Err") {
-		fmt.Fprintf(m.err, "%s: %s\n", diag.Prefix("error"), m.display(m.errorMessage(res.fields[0])))
+		m.writeErr([]byte(fmt.Sprintf("%s: %s\n", diag.Prefix("error"), m.display(m.errorMessage(res.fields[0])))))
 		return 1
 	}
 	return 0

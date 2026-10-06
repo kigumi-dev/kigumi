@@ -92,7 +92,7 @@ func (m *Machine) pollFuture(fu *future) (*obj, polled) {
 func (m *Machine) takeReady(fu *future) *obj {
 	fu.done = true
 	if fu.pool != nil {
-		fu.pool.data.(*blockingPool).inFlight--
+		fu.pool.data.(*blockingPool).inFlight.Add(-1)
 		m.release(fu.pool)
 		fu.pool = nil
 	}

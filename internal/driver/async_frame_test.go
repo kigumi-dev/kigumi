@@ -55,3 +55,30 @@ func TestAsyncMobility(t *testing.T) {
 		t.Fatalf("loopSum: mobility=%v boundBy=%q, want migratable", free.Mobility, free.BoundBy)
 	}
 }
+
+// A body with no suspension point still hands its parameters over at spawn
+// and its result back at the await, so a resource in either place pins it.
+func TestAsyncMobilityInitialFrameAndResult(t *testing.T) {
+	p := analyzeFixture(t, "async_thread_resource_frame.txtar")
+	for _, name := range []string{"main.takes", "main.gives"} {
+		info := p.R.Fn(asyncFunc(t, p, name).Ent)
+		if info.Mobility != sem.MobilityExecutorBound || info.BoundBy != "Res" {
+			t.Errorf("%s: mobility=%v boundBy=%q, want executor-bound by Res", name, info.Mobility, info.BoundBy)
+		}
+	}
+}
+
+// An awaited operand parks in the awaiter's frame, so an executor-bound body
+// awaited directly pins its awaiter; one reached through a Task does not.
+func TestAsyncMobilityFollowsAwaitedOperand(t *testing.T) {
+	p := analyzeFixture(t, "async_thread_drop.txtar")
+	free := p.R.Fn(asyncFunc(t, p, "main.chain").Ent)
+	if free.Mobility != sem.MobilityMigratable {
+		t.Errorf("chain: mobility=%v boundBy=%q, want migratable", free.Mobility, free.BoundBy)
+	}
+	q := analyzeFixture(t, "async_thread_handoff.txtar")
+	bound := q.R.Fn(asyncFunc(t, q, "main.root").Ent)
+	if bound.Mobility != sem.MobilityExecutorBound || bound.BoundBy != "Executor" {
+		t.Errorf("root: mobility=%v boundBy=%q, want executor-bound by Executor", bound.Mobility, bound.BoundBy)
+	}
+}

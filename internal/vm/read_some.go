@@ -14,9 +14,11 @@ import (
 // that a later call would collide with; a source that isn't a file (only
 // possible in tests) skips the wait and reads directly.
 func (m *Machine) readSome(timeoutMs int64) ([]byte, error) {
+	m.sh.in.Lock()
+	defer m.sh.in.Unlock()
 	r := m.stdinReader()
 	if r.Buffered() == 0 {
-		if f, ok := m.stdinSrc.(*os.File); ok {
+		if f, ok := m.sh.stdinSrc.(*os.File); ok {
 			ready, err := pollReadable(int(f.Fd()), timeoutMs)
 			if err != nil {
 				return nil, err
@@ -53,4 +55,34 @@ func pollReadable(fd int, timeoutMs int64) (bool, error) {
 		}
 		return n > 0, nil
 	}
+}
+
+func (m *Machine) stdinAll() ([]byte, error) {
+	m.sh.in.Lock()
+	defer m.sh.in.Unlock()
+	r := m.stdinReader()
+	var out []byte
+	buf := make([]byte, 4096)
+	for {
+		n, err := r.Read(buf)
+		out = append(out, buf[:n]...)
+		if err == io.EOF {
+			return out, nil
+		}
+		if err != nil {
+			return out, err
+		}
+	}
+}
+
+func (m *Machine) stdinLine() (string, error) {
+	m.sh.in.Lock()
+	defer m.sh.in.Unlock()
+	return m.stdinReader().ReadString('\n')
+}
+
+func (m *Machine) stdinRead(buf []byte) (int, error) {
+	m.sh.in.Lock()
+	defer m.sh.in.Unlock()
+	return m.stdinReader().Read(buf)
 }

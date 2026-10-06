@@ -26,6 +26,7 @@ func Build(r *sem.Result) *Program {
 			classifyMobility(f, r)
 		}
 	}
+	refineMobility(p)
 	checkHandoff(p)
 	return p
 }

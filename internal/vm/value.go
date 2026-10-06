@@ -5,6 +5,8 @@
 package vm
 
 import (
+	"sync/atomic"
+
 	"kigumi/internal/mir"
 	"kigumi/internal/sem"
 )
@@ -29,8 +31,8 @@ const (
 	kOpaque
 )
 
-// obj is one runtime value; rc < 0 marks a static object that is never
-// freed. Fields double as record fields, variant payload and array items.
+// obj is one runtime value; rc < 0 marks a static object that is never freed,
+// and rc is the only field two lanes reach at once, so it moves atomically.
 type obj struct {
 	k      kind
 	rc     int32
@@ -123,9 +125,13 @@ func deref(v *obj) *obj {
 	return v
 }
 
+// The caller holds a reference, so a positive count cannot reach zero under
+// it and an immortal one never moves: the load decides, the add follows.
 func retain(v *obj) *obj {
-	if v != nil && v.rc > 0 {
-		v.rc++
+	if v != nil && atomic.LoadInt32(&v.rc) > 0 {
+		atomic.AddInt32(&v.rc, 1)
 	}
 	return v
 }
+
+func setImmortal(v *obj) { atomic.StoreInt32(&v.rc, -1) }

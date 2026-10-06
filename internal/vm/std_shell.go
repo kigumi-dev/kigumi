@@ -100,8 +100,8 @@ func (m *Machine) registerShell() {
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
-		m.out.Write(out)
-		m.err.Write(errOut)
+		m.writeOut(out)
+		m.writeErr(errOut)
 		codes := mkArray(nil)
 		for _, st := range statuses {
 			codes.fields = append(codes.fields, mkInt(int64(st), 64|256))

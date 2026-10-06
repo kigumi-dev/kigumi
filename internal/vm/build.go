@@ -16,7 +16,7 @@ const buildStepLimit = 2_000_000_000
 func EvalBuild(prog *mir.Program, configure sem.EntityID, req buildgraph.Request, roots buildgraph.Roots) (*buildgraph.Graph, error) {
 	m := newMachine(prog, Options{Sandbox: true, StepLimit: buildStepLimit, DepthLimit: comptimeDepthLimit}, io.Discard, io.Discard)
 	g := &buildgraph.Graph{Request: req, Artifacts: []*buildgraph.Artifact{}, Roots: roots.Roots, Host: roots.Host}
-	m.graph = g
+	m.sh.graph = g
 	var failure string
 	cerr := m.catch(func() {
 		res := deref(m.call(prog.ByEnt[configure], []*obj{mkOpaque("build.Builder", g)}))
@@ -53,10 +53,10 @@ func (m *Machine) provenance() buildgraph.Provenance {
 }
 
 func (m *Machine) currentGraph() *buildgraph.Graph {
-	if m.graph == nil {
+	if m.sh.graph == nil {
 		m.abort("std/build is only available to a build program run by `kigumi build`")
 	}
-	return m.graph
+	return m.sh.graph
 }
 
 // graphOf checks that a Builder value is this build program's capability.

@@ -15,6 +15,7 @@ func planAsync(p *Program) error {
 		planFrame(f, p.R)
 		classifyMobility(f, p.R)
 	}
+	refineMobility(p)
 	return nil
 }
 
@@ -167,27 +168,4 @@ func aliasParents(f *Func) map[LocalID]LocalID {
 		}
 	}
 	return parent
-}
-
-// classifyMobility answers whether the frame may move between workers: all
-// Send is migratable, and the first state that is not pins the Future.
-func classifyMobility(f *Func, r *sem.Result) {
-	if e := r.Entity(f.Ent); e.Kind != sem.EntFn {
-		return
-	}
-	inFrame := map[LocalID]bool{}
-	for _, at := range liveAtSuspends(f) {
-		for l := range at {
-			inFrame[l] = true
-		}
-	}
-	info := r.Fn(f.Ent)
-	info.Mobility, info.BoundBy = sem.MobilityMigratable, ""
-	for i, l := range f.Locals {
-		if !inFrame[LocalID(i)] || r.IsSend(l.Type) {
-			continue
-		}
-		info.Mobility, info.BoundBy = sem.MobilityExecutorBound, r.TypeString(l.Type)
-		return
-	}
 }

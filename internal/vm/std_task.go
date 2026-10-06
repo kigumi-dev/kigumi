@@ -59,6 +59,6 @@ func (m *Machine) registerTask() {
 		return unitObj
 	}
 	h["task.cancelRequested"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		return mkBool(m.cur != nil && m.cur.cancelReq)
+		return mkBool(m.cur != nil && m.cur.cancelReq.Load())
 	}
 }

@@ -9,7 +9,10 @@ import (
 // resolved lazily by the checker, so the VM finds them itself.
 func (m *Machine) lookup(pkg, name string) sem.EntityID {
 	key := pkg + "." + name
-	if ent, ok := m.named[key]; ok {
+	m.sh.derived.Lock()
+	ent, ok := m.sh.named[key]
+	m.sh.derived.Unlock()
+	if ok {
 		return ent
 	}
 	var found sem.EntityID
@@ -20,7 +23,9 @@ func (m *Machine) lookup(pkg, name string) sem.EntityID {
 			break
 		}
 	}
-	m.named[key] = found
+	m.sh.derived.Lock()
+	m.sh.named[key] = found
+	m.sh.derived.Unlock()
 	return found
 }
 
@@ -54,15 +59,19 @@ func (m *Machine) hostDrop(ent sem.EntityID) (hostFn, sem.EntityID) {
 // dropFn is the destructor a resource type declares, lowered; nil for a
 // type without one or with a runtime-only one.
 func (m *Machine) dropFn(ent sem.EntityID) *mir.Func {
-	if f, ok := m.drops[ent]; ok {
+	m.sh.derived.Lock()
+	f, ok := m.sh.drops[ent]
+	m.sh.derived.Unlock()
+	if ok {
 		return f
 	}
-	var f *mir.Func
 	if m.isResource(ent) {
 		if drop := m.r.TypeDecl(ent).Drop; drop != 0 {
 			f = m.p.ByEnt[drop]
 		}
 	}
-	m.drops[ent] = f
+	m.sh.derived.Lock()
+	m.sh.drops[ent] = f
+	m.sh.derived.Unlock()
 	return f
 }

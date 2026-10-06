@@ -19,7 +19,7 @@ func Supports(prog *mir.Program) (bool, string) {
 // Implements reports whether the VM has an implementation of a bodiless
 // std function: a host accelerator or a Go primitive.
 func Implements(prog *mir.Program, fn sem.EntityID) bool {
-	m := &Machine{p: prog, r: prog.R, host: map[string]hostFn{}}
+	m := &Machine{p: prog, r: prog.R, host: map[string]hostFn{}, sh: newShared()}
 	m.registerAll()
 	key := m.stdKey(fn)
 	_, hosted := m.hostForEnt(fn, key)
@@ -42,7 +42,7 @@ func testFuncs(prog *mir.Program) []*mir.Func {
 }
 
 func supportsFrom(prog *mir.Program, roots ...*mir.Func) (bool, string) {
-	m := &Machine{p: prog, r: prog.R, host: map[string]hostFn{}}
+	m := &Machine{p: prog, r: prog.R, host: map[string]hostFn{}, sh: newShared()}
 	m.registerAll()
 	seen := map[*mir.Func]bool{}
 	var work []*mir.Func

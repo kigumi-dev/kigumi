@@ -1,5 +1,7 @@
 package vm
 
+import "sync/atomic"
+
 // Mirrors the native rt_cellset.
 func (m *Machine) cellSet(c *obj, v *obj) {
 	if c == nil || c.k != kCell {
@@ -13,11 +15,10 @@ func (m *Machine) cellSet(c *obj, v *obj) {
 // release drops one reference; the machine runs the drop hook and frees
 // the children when it was the last.
 func (m *Machine) release(v *obj) {
-	if v == nil || v.rc <= 0 {
+	if v == nil || atomic.LoadInt32(&v.rc) <= 0 {
 		return
 	}
-	v.rc--
-	if v.rc == 0 {
+	if atomic.AddInt32(&v.rc, -1) == 0 {
 		m.free(v)
 	}
 }
@@ -32,14 +33,14 @@ func (m *Machine) free(v *obj) {
 	m.unchargeMemory(v)
 	switch v.k {
 	case kRecord:
-		v.rc = -1
+		setImmortal(v)
 		drop := m.dropFn(v.ent)
 		if h, ent := m.hostDrop(v.ent); h != nil && m.hostWins(drop != nil) {
 			h(m, ent, []*obj{v})
 		} else if drop != nil {
 			m.invoke(drop, nil, false, []*obj{v})
 		}
-		v.rc = 0
+		atomic.StoreInt32(&v.rc, 0)
 		for i := len(v.fields) - 1; i >= 0; i-- {
 			if !m.borrowField(v, i) {
 				m.release(v.fields[i])

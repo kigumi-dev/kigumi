@@ -43,26 +43,23 @@ func (m *Machine) chargeMemory(v *obj) {
 		return
 	}
 	v.chg = size
-	m.mem += delta
-	if m.mem < 0 {
-		m.mem = 0
-	}
-	if delta > 0 && m.mem > m.opts.MemoryLimit {
+	if live := m.sh.mem.Add(delta); live < 0 {
+		m.sh.mem.Store(0)
+	} else if delta > 0 && live > m.opts.MemoryLimit {
 		m.abort("comptime block allocated too much memory")
 	}
 }
 
 // unchargeMemory reclaims a freed value's last-charged share of the live
-// total. m.mem tracks live bytes, not cumulative churn, so a loop that
+// total. The total tracks live bytes, not cumulative churn, so a loop that
 // builds and immediately drops small values stays bounded instead of
 // tripping the limit on volume alone.
 func (m *Machine) unchargeMemory(v *obj) {
 	if !m.opts.Sandbox || m.opts.MemoryLimit <= 0 || v == nil || v.chg == 0 {
 		return
 	}
-	m.mem -= v.chg
-	if m.mem < 0 {
-		m.mem = 0
+	if m.sh.mem.Add(-v.chg) < 0 {
+		m.sh.mem.Store(0)
 	}
 }
 
@@ -72,6 +69,5 @@ func (m *Machine) faultTick() bool {
 	if m.opts.FaultInjectAt <= 0 {
 		return false
 	}
-	m.faultN++
-	return m.faultN == m.opts.FaultInjectAt
+	return m.sh.faultN.Add(1) == m.opts.FaultInjectAt
 }

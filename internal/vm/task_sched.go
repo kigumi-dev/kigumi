@@ -1,6 +1,9 @@
 package vm
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 type taskState uint8
 
@@ -20,17 +23,19 @@ type task struct {
 	ex     *executor
 	// pex is the executor the parent runs on; it differs from ex only for a
 	// handed-off child, whose parent must not be declared stuck while it runs.
-	pex       *executor
-	parent    *task
-	waiter    *task
-	kids      []*task
-	state     taskState
-	ending    taskState
-	lane      int
-	cancelReq bool
-	notified  bool
-	queued    bool
-	draining  bool
+	pex      *executor
+	parent   *task
+	waiter   *task
+	kids     []*task
+	state    taskState
+	ending   taskState
+	lane     int
+	notified bool
+	queued   bool
+	draining bool
+	// cancelReq is read at every suspension point by the lane running the
+	// task and set by whichever lane asks, so it stays outside sched.
+	cancelReq atomic.Bool
 }
 
 type taskQueue struct{ q []*task }
@@ -71,7 +76,7 @@ type executor struct {
 func (e *executor) finished() bool { return e.stopping || (e.dropped && e.live == 0) }
 
 func (m *Machine) newExecutor(workers int) *executor {
-	e := &executor{lane: make([]taskQueue, workers+1), workers: workers, cv: sync.NewCond(&m.sched)}
+	e := &executor{lane: make([]taskQueue, workers+1), workers: workers, cv: sync.NewCond(&m.sh.sched)}
 	return e
 }
 
@@ -79,7 +84,7 @@ func (t *task) terminal() bool {
 	return t.state == taskCompleted || t.state == taskCancelled || t.state == taskFaulted
 }
 
-// push and take run under m.sched; work stealing never reaches a lane queue.
+// push and take run under m.sh.sched; work stealing never reaches a lane queue.
 func (e *executor) push(t *task) {
 	if t.queued {
 		return
@@ -106,26 +111,24 @@ func (e *executor) take(lane int) *task {
 
 // A wake that arrives mid-poll is sticky: the task goes straight back on the queue.
 func (m *Machine) runTask(t *task, lane int) {
-	m.run.Lock()
-	defer m.run.Unlock()
-	m.sched.Lock()
+	m.sh.sched.Lock()
 	if t.terminal() {
-		m.sched.Unlock()
+		m.sh.sched.Unlock()
 		return
 	}
 	if t.draining {
 		m.finishDrain(t)
-		m.sched.Unlock()
+		m.sh.sched.Unlock()
 		m.flushReleases()
 		return
 	}
 	t.state, t.notified = taskRunning, false
-	m.sched.Unlock()
+	m.sh.sched.Unlock()
 	prev, prevLane := m.cur, m.curLane
 	m.cur, m.curLane = t, lane
 	v, st := m.pollValue(t.fut)
 	m.cur, m.curLane = prev, prevLane
-	m.sched.Lock()
+	m.sh.sched.Lock()
 	switch st {
 	case ready:
 		t.result = v
@@ -138,6 +141,6 @@ func (m *Machine) runTask(t *task, lane int) {
 			t.ex.push(t)
 		}
 	}
-	m.sched.Unlock()
+	m.sh.sched.Unlock()
 	m.flushReleases()
 }

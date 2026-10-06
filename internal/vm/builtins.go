@@ -1,7 +1,5 @@
 package vm
 
-import "fmt"
-
 // isTrivialScalar reports whether k is a value kind with no drop hook of
 // its own: sharing it needs no ownership transfer, only a retain.
 func isTrivialScalar(k kind) bool {
@@ -16,11 +14,12 @@ func isTrivialScalar(k kind) bool {
 func (m *Machine) builtin(name string, args []*obj) *obj {
 	switch name {
 	case "print", "eprint":
-		w := m.out
+		line := append([]byte(m.display(args[0])), '\n')
 		if name == "eprint" {
-			w = m.err
+			m.writeErr(line)
+		} else {
+			m.writeOut(line)
 		}
-		fmt.Fprintln(w, m.display(args[0]))
 		return unitObj
 	case "panic":
 		if len(args) > 0 {

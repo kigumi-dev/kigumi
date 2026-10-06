@@ -1,0 +1,49 @@
+-- src --
+import task from std/task
+
+type Tally = {
+    pub mut total Int
+    pub mut count Int
+}
+
+// Each child owns the array and the tally it mutates, so the lanes share
+// nothing but the scheduler.
+async fn work(seed: Int) -> Int {
+    let mut xs = Array.empty[Int]()
+    let mut i = 0
+    for i < 128 {
+        xs.push((i * seed + 7) % 97)
+        i = i + 1
+    }
+    let mut t = Tally { total: 0, count: 0 }
+    for x in xs {
+        t.total = t.total + x
+        t.count = t.count + 1
+    }
+    t.total * 2 + t.count
+}
+
+async fn chunk(base: Int) -> Int {
+    let a = task.spawn(work(base))
+    let b = task.spawn(work(base + 1))
+    await a + await b
+}
+
+async fn root() -> Int {
+    let mut kids = Array.empty[task.Task[Int]]()
+    let mut i = 0
+    for i < 32 {
+        kids.push(task.spawn(chunk(i * 2)))
+        i = i + 1
+    }
+    let mut total = 0
+    for k in kids {
+        total = total + await k
+    }
+    total
+}
+
+let ex = task.threadPoolExecutor(4)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+total 775560

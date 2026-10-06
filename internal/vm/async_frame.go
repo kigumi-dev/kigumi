@@ -10,7 +10,7 @@ func (m *Machine) suspendPoint(fu *future, in *mir.Inst) (*obj, polled) {
 		fu.co.fr.locals[in.Args[0]] = nil
 	}
 	fu.at = in.Index
-	if m.cur != nil && m.cur.cancelReq {
+	if m.cur != nil && m.cur.cancelReq.Load() {
 		m.dropFrame(fu)
 		return nil, cancelled
 	}
@@ -58,7 +58,7 @@ func (m *Machine) freeFuture(fu *future) {
 	}
 	fu.fn, fu.args = nil, nil
 	if fu.pool != nil {
-		fu.pool.data.(*blockingPool).inFlight--
+		fu.pool.data.(*blockingPool).inFlight.Add(-1)
 		m.release(fu.pool)
 		fu.pool = nil
 	}

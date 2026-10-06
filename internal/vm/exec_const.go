@@ -47,7 +47,7 @@ func (m *Machine) constant(in *mir.Inst) *obj {
 
 // numKind encodes a numeric type the runtime's way: width, 256 for
 // signed, 512 for float.
-func (m *Machine) numKind(t sem.TypeID) int { return mir.NumKind(m.r.Types, m.r.UnderlyingRepr(t)) }
+func (m *Machine) numKind(t sem.TypeID) int { return mir.NumKind(m.r.Types, m.underlyingRepr(t)) }
 
 func (m *Machine) typeEnt(t sem.TypeID) sem.EntityID {
 	if m.r.Types.Kind(t) == sem.KNamed {

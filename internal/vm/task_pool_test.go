@@ -19,44 +19,39 @@ func within(t *testing.T, what string, f func()) {
 	}
 }
 
-// The drop of an Executor holds run, and a worker with a task left needs run
-// to finish it, so waiting for that worker from the drop would never return.
+// A task running on the pool may be the one dropping its handle, so the drop
+// only asks the workers to stop and leaves the wait to the driving thread.
 func TestDropWithALiveTaskDefersTheJoin(t *testing.T) {
-	m := &Machine{}
+	m := &Machine{sh: newShared()}
 	ex := m.newExecutor(1)
 	m.startWorkers(ex)
-	left := &task{ex: ex, lane: -1, state: taskSuspended}
-	m.sched.Lock()
+	m.sh.sched.Lock()
 	ex.live++
-	ex.push(left)
-	m.sched.Unlock()
+	m.sh.sched.Unlock()
 
-	m.run.Lock()
 	within(t, "the drop", func() { m.closeExecutor(ex) })
-	m.sched.Lock()
-	if len(m.orphans) != 1 || m.orphans[0] != ex {
-		t.Fatalf("the drop left %d pools for the join, want the one it could not wait for", len(m.orphans))
+	m.sh.sched.Lock()
+	if len(m.sh.orphans) != 1 || m.sh.orphans[0] != ex {
+		t.Fatalf("the drop left %d pools for the join, want the one it could not wait for", len(m.sh.orphans))
 	}
-	left.state = taskCompleted
 	ex.live--
 	ex.cv.Broadcast()
-	m.sched.Unlock()
-	m.run.Unlock()
+	m.sh.sched.Unlock()
 
 	within(t, "the join", m.joinOrphans)
-	if len(m.orphans) != 0 {
-		t.Fatalf("%d pools are still waiting to be joined", len(m.orphans))
+	if len(m.sh.orphans) != 0 {
+		t.Fatalf("%d pools are still waiting to be joined", len(m.sh.orphans))
 	}
 }
 
 // A pool nothing can reach any more is joined by the drop itself, so a
 // program that makes one per round does not pile workers up.
 func TestDropWithNoTaskJoinsRightAway(t *testing.T) {
-	m := &Machine{}
+	m := &Machine{sh: newShared()}
 	ex := m.newExecutor(2)
 	m.startWorkers(ex)
 	within(t, "the drop", func() { m.closeExecutor(ex) })
-	if len(m.orphans) != 0 {
+	if len(m.sh.orphans) != 0 {
 		t.Fatalf("an idle pool was left for the join")
 	}
 }

@@ -5,10 +5,12 @@ import "kigumi/internal/sem"
 // borrowFields mirrors rt_type.borrow_fields: a record never owns what a `&'a T`
 // field holds, so reading, overwriting and freeing one all touch no count.
 func (m *Machine) borrowFields(ent sem.EntityID) uint64 {
-	if mask, ok := m.borrowMask[ent]; ok {
+	m.sh.derived.Lock()
+	mask, ok := m.sh.borrowMask[ent]
+	m.sh.derived.Unlock()
+	if ok {
 		return mask
 	}
-	var mask uint64
 	if ent != 0 && m.r.Entity(ent).Kind == sem.EntType {
 		for i, f := range m.r.TypeDecl(ent).Fields {
 			if i < 64 && m.r.Types.Kind(m.r.Entity(f).Type) == sem.KRef {
@@ -16,7 +18,9 @@ func (m *Machine) borrowFields(ent sem.EntityID) uint64 {
 			}
 		}
 	}
-	m.borrowMask[ent] = mask
+	m.sh.derived.Lock()
+	m.sh.borrowMask[ent] = mask
+	m.sh.derived.Unlock()
 	return mask
 }
 
