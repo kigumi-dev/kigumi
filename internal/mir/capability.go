@@ -1,6 +1,9 @@
 package mir
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // Capability is a reachable std op's runtime feature, named for a build's
 // reason graph (kigumi build's summary, kigumi explain) instead of a StdOpNames id.
@@ -16,9 +19,12 @@ const (
 	CapHostSignals    Capability = "host.signals"
 	CapHostStdio      Capability = "host.stdio"
 	CapFFICString     Capability = "ffi.cstring"
+	CapFFIRaw         Capability = "ffi.raw"
 	CapFFIPin         Capability = "ffi.pin"
 	CapFFIHandleTable Capability = "ffi.handle-table"
 	CapTaskBlocking   Capability = "task.blocking-pool"
+	CapTaskExecutor   Capability = "task.executor"
+	CapSecureErase    Capability = "mem.secure-erase"
 )
 
 // hostOnlyCapabilities are reachable only through os.Host; the ffi/task
@@ -47,6 +53,12 @@ var opCapability = map[string]Capability{
 	"HANDLE_TABLE_RECLAIM": CapFFIHandleTable, "HANDLE_TABLE_CLOSE": CapFFIHandleTable,
 	"HANDLE_TABLE_DROP": CapFFIHandleTable, "HANDLE_RAW": CapFFIHandleTable, "HANDLE_DROP": CapFFIHandleTable,
 	"BLOCKING_POOL_NEW": CapTaskBlocking, "BLOCKING_POOL_RUN": CapTaskBlocking,
+	"FFI_BYTES_FROM": CapFFIRaw, "FFI_BYTES_PTR": CapFFIRaw,
+	"FFI_STRING": CapFFIRaw, "FFI_STRING_CHECKED": CapFFIRaw, "FFI_STRING_LOSSY": CapFFIRaw,
+	"TASK_CURRENT_EXECUTOR": CapTaskExecutor, "EXECUTOR_RUN_TO_COMPLETION": CapTaskExecutor,
+	"TASK_SPAWN": CapTaskExecutor, "TASK_CANCEL": CapTaskExecutor, "TASK_CANCEL_REQUESTED": CapTaskExecutor,
+	"TASK_THREAD_POOL_EXECUTOR": CapTaskExecutor, "TASK_HANDOFF": CapTaskExecutor,
+	"SECURE_ERASE": CapSecureErase, "SECURE_ERASE_RAW": CapSecureErase, "SECURE_ERASE_TRY": CapSecureErase,
 }
 
 func (id StdOpId) Capability() (Capability, bool) {
@@ -58,6 +70,13 @@ func (id StdOpId) Capability() (Capability, bool) {
 func (id StdOpId) NeedsHostCapability() bool {
 	c, ok := id.Capability()
 	return ok && c.HostOnly()
+}
+
+func (c Capability) Macro() string {
+	up := strings.ToUpper(string(c))
+	up = strings.ReplaceAll(up, ".", "_")
+	up = strings.ReplaceAll(up, "-", "_")
+	return "KIGUMI_CAP_" + up
 }
 
 func Capabilities(ops []StdOpId) []string {
@@ -72,5 +91,14 @@ func Capabilities(ops []StdOpId) []string {
 		out = append(out, string(c))
 	}
 	sort.Strings(out)
+	return out
+}
+
+func CapabilityMacros(ops []StdOpId) []string {
+	names := Capabilities(ops)
+	out := make([]string, len(names))
+	for i, n := range names {
+		out[i] = Capability(n).Macro()
+	}
 	return out
 }

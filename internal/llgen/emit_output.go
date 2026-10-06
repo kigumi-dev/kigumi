@@ -12,6 +12,9 @@ type Output struct {
 	CShim string
 	// Threads says the build needs the runtime's thread profile for a pool executor.
 	Threads bool
+	// Capabilities are reachable Capability macros (mir.CapabilityMacros) the
+	// driver passes to rt_core.c as -D flags; nil when Reachable was nil.
+	Capabilities []string
 }
 
 // EmitOptions selects the entry point: a hosted `main`, or `kigumi_main`

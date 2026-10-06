@@ -70,6 +70,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if wantsThreadRuntime(t, code.Threads) {
 		args = append(args, "-DKIGUMI_THREADS")
 	}
+	for _, cap := range code.Capabilities {
+		args = append(args, "-D"+cap)
+	}
 	if t.COFF() {
 		// No CRT to supply __chkstk; raise its threshold out of reach instead.
 		args = append(args, "-DKIGUMI_COFF", "-mstack-probe-size=1048576")

@@ -50,3 +50,16 @@ func TestHostedBinarySizeReachabilityObservation(t *testing.T) {
 	}
 	t.Logf("hosted binary size observation: %s", report)
 }
+
+// A program that never reaches task.spawn/currentThreadExecutor must not
+// pay for rt_core.c's executor/worker-thread machinery.
+func TestHostedBinarySizeOmitsUnreachableCapability(t *testing.T) {
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	plain := sizeOfBuild(t, "print \"hello\"\n")
+	withExecutor := sizeOfBuild(t, "import task from std/task\nlet ex = task.currentThreadExecutor()\nasync fn f() -> Int { 1 }\nprint \"${ex.runToCompletion(f())}\"\n")
+	if withExecutor <= plain {
+		t.Fatalf("reaching task.currentThreadExecutor did not grow the binary: plain=%d withExecutor=%d", plain, withExecutor)
+	}
+}

@@ -1559,6 +1559,7 @@ val rt_future_resume(val fut) {
     return r;
 }
 
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
 static int task_terminal(kgtask* t) { return t->state >= T_COMPLETED; }
 static void q_push(kgqueue* k, kgtask* t) {
     if (k->head + k->len == k->cap) {
@@ -1712,7 +1713,8 @@ static val poll_task(kgtask* t) {
     if (st == T_FAULTED) rt_panic("the awaited task did not finish");
     return r;
 }
-#ifndef KIGUMI_FREESTANDING
+#endif
+#if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
 // blocking_pool is a BlockingPool: a root-owned, bounded count of BlockingFuture results admitted but not taken.
 // run executes work on the calling thread, not a separate worker, so in_flight here does not need to be atomic.
 typedef struct blocking_pool {
@@ -1737,12 +1739,15 @@ static val blocking_future_join(blocking_future* f) {
 #endif
 static val poll_value(val v) {
     val d = deref(v);
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
     if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "Task")) return poll_task((kgtask*)d->u.op.data);
-#ifndef KIGUMI_FREESTANDING
+#endif
+#if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
     if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "BlockingFuture")) return blocking_future_join((blocking_future*)d->u.op.data);
 #endif
     return poll_future(d);
 }
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
 #ifdef KIGUMI_THREADS
 typedef struct kgworker {
     kgexec* e;
@@ -1969,6 +1974,7 @@ void rt_task_cancel(val tv) {
     sched_flush();
 }
 int rt_cancel_requested(void) { return g_cur_task && KG_ALOAD(g_cur_task->cancel); }
+#endif
 // A Shared cell's control block outlives the content for weak handles.
 // borrow is a RefCell-style dynamic borrow flag (0 free, -1 exclusive, >0
 // shared count), since Shared's receiver is a freely-copyable handle the
@@ -1997,16 +2003,19 @@ static void free_opaque(val v) {
         frame_abandon(v);
         for (int i = 0; i < f->nargs; i++) rt_release(f->args[i]);
         free(f);
-    } else if (!strcmp(kind, "Task")) {
+    }
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
+    else if (!strcmp(kind, "Task")) {
         task_unref((kgtask*)d);
         sched_flush();
-    }
-    else if (!strcmp(kind, "Executor")) exec_drop((kgexec*)d); else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "UnsafeCell")) rt_release((val)d);
+    } else if (!strcmp(kind, "Executor")) exec_drop((kgexec*)d);
+#endif
+    else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "UnsafeCell")) rt_release((val)d);
     else if (!strcmp(kind, "AllocGuard")) {
         g_alloc_sp--;
         rt_release((val)d);
     }
-#ifndef KIGUMI_FREESTANDING
+#if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
     else if (!strcmp(kind, "BlockingFuture")) {
         blocking_future* f = d;
         if (!f->taken) {
@@ -2205,6 +2214,7 @@ int utf8_valid(const char* s, int64_t n) {
     }
     return 1;
 }
+#ifdef KIGUMI_CAP_FFI_RAW
 // Decodes one codepoint at s[i], the same rules utf8_valid checks; returns
 // the sequence length on success or 0 on any violation, so a caller can
 // tell exactly where a bad sequence starts.
@@ -2265,6 +2275,7 @@ static val utf8_lossy_val(const char* s, int64_t n) {
     }
     return rt_str_take(b.p, b.len);
 }
+#endif
 // hash_of is FNV-1a-64 (standard offset basis 0xcbf29ce484222325 /
 // 14695981039346656037) over the canon rendering of v, so this and
 // internal/hashkey.Sum64 (interp, vm) agree byte for byte.
@@ -2293,11 +2304,13 @@ static int subtle_constant_time_eq(val a, val b) {
     }
     return diff == 0;
 }
+#ifdef KIGUMI_CAP_MEM_SECURE_ERASE
 // p is volatile, so the standard forbids eliding these stores as dead
 // even though nothing reads p afterward.
 void rt_secure_zero(volatile unsigned char* p, int64_t n) {
     for (int64_t i = 0; i < n; i++) p[i] = 0;
 }
+#endif
 // Stable small ids for std primitives: llgen resolves a call's std key to
 // one of these at compile time and
 // emits rt_std_id directly, skipping the string compares below. Order
@@ -2545,6 +2558,7 @@ static int rt_std_op_of(const char* key) {
     if (strstr(k, "build.")) return OP_BUILD_ONLY;
     return -1;
 }
+#ifdef KIGUMI_CAP_FFI_HANDLE_TABLE
 // handle_slot/handle_table back std/ffi's HandleTable[T]: like Pin, a slot
 // holds a boxed value, but also a generation a stale or forged RawHandle must match.
 typedef struct {
@@ -2613,6 +2627,7 @@ static val handle_fault(const char* variant) {
     if (!d) return err_msg("handle fault");
     return err_val(rt_variant(d, 0, NULL));
 }
+#endif
 // rt_std_id never compares key strings: llgen resolves a call's std key to
 // an enum std_op at compile time (rt_std_op_of does the same resolution
 // for rt_std's few dynamic callers).
@@ -2824,13 +2839,42 @@ val rt_std_id(int op, int n, val* a) {
         return some(rt_float(d, 64 | 512));
     }
     // os / fs
+#ifdef KIGUMI_CAP_HOST_SHELL
     case OP_HOST_SHELL: return opaque("Shell", NULL);
+#else
+    case OP_HOST_SHELL: rt_panic("this build has no host.shell capability"); return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_ARGS
     case OP_HOST_ARGS: return opaque("Args", NULL);
+#else
+    case OP_HOST_ARGS: rt_panic("this build has no host.args capability"); return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_FILES
     case OP_HOST_FILES: return opaque("Files", NULL);
+#else
+    case OP_HOST_FILES: rt_panic("this build has no host.files capability"); return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_NET
     case OP_HOST_NET: return opaque("Net", NULL);
+#else
+    case OP_HOST_NET: rt_panic("this build has no host.net capability"); return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_DL
     case OP_HOST_DL: return opaque("Loader", NULL);
+#else
+    case OP_HOST_DL: rt_panic("this build has no host.dl capability"); return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_ENTROPY
     case OP_HOST_ENTROPY: return opaque("Entropy", NULL);
+#else
+    case OP_HOST_ENTROPY: rt_panic("this build has no host.entropy capability"); return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_SIGNALS
     case OP_HOST_SIGNALS: return opaque("Signals", NULL);
+#else
+    case OP_HOST_SIGNALS: rt_panic("this build has no host.signals capability"); return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_ARGS
     case OP_ARGS_GET: {
         int64_t i = a1->u.i;
         if (i < 0 || i >= g_argc) return none();
@@ -2838,7 +2882,11 @@ val rt_std_id(int op, int n, val* a) {
         if (!utf8_valid(g_argv[i], len)) return none();
         return some(rt_str(g_argv[i], len));
     }
+#else
+    case OP_ARGS_GET: rt_panic("this build has no host.args capability"); return NULL;
+#endif
     // ffi / crypto / dl
+#ifdef KIGUMI_CAP_FFI_CSTRING
     case OP_CSTRING_NEW: {
         // Every String/Bytes buffer already carries a guaranteed trailing
         // NUL at data[len] (see strdup_val); strchr for the first NUL byte
@@ -2851,14 +2899,29 @@ val rt_std_id(int op, int n, val* a) {
     case OP_CSTRING_DROP:
         free((void*)(intptr_t)a0->u.rec.fields[0]->u.i);
         return rt_unit();
+#else
+    case OP_CSTRING_NEW:
+    case OP_CSTRING_PTR:
+    case OP_CSTRING_DROP:
+        rt_panic("this build has no ffi.cstring capability");
+        return NULL;
+#endif
+#ifdef KIGUMI_CAP_FFI_RAW
     case OP_FFI_BYTES_FROM: return bytes_val((const char*)a0->u.p, a1->u.i);
     case OP_FFI_BYTES_PTR: return rt_ptr((void*)a0->u.s.data);
+#else
+    case OP_FFI_BYTES_FROM:
+    case OP_FFI_BYTES_PTR:
+        rt_panic("this build has no ffi.raw capability");
+        return NULL;
+#endif
     case OP_BYTES_GET: {
         int64_t i = a1->u.i;
         if (i < 0 || i >= a0->u.s.len) return none();
         return some(rt_int((uint8_t)a0->u.s.data[i], 8));
     }
     case OP_SUBTLE_CT_EQ: return rt_bool(subtle_constant_time_eq(a0, a1));
+#ifdef KIGUMI_CAP_MEM_SECURE_ERASE
     case OP_SECURE_ERASE: {
         int64_t n2 = a0->u.s.len;
         if (n2 <= 0) return rt_unit();
@@ -2892,12 +2955,32 @@ val rt_std_id(int op, int n, val* a) {
         a0->owned = 1;
         return try_ok(rt_unit());
     }
+#else
+    case OP_SECURE_ERASE:
+    case OP_SECURE_ERASE_RAW:
+    case OP_SECURE_ERASE_TRY:
+        rt_panic("this build has no mem.secure-erase capability");
+        return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_DL
     case OP_DL_SYMBOL_CALL:
         rt_panic("dl.Symbol.call is lowered by the compiler");
         return NULL;
+#else
+    case OP_DL_SYMBOL_CALL: rt_panic("this build has no host.dl capability"); return NULL;
+#endif
+#ifdef KIGUMI_CAP_HOST_STDIO
     case OP_HOST_STDIN: return opaque("Stdin", NULL);
     case OP_HOST_STDOUT: return opaque("Stdout", NULL);
     case OP_HOST_STDERR: return opaque("Stderr", NULL);
+#else
+    case OP_HOST_STDIN:
+    case OP_HOST_STDOUT:
+    case OP_HOST_STDERR:
+        rt_panic("this build has no host.stdio capability");
+        return NULL;
+#endif
+#ifdef KIGUMI_CAP_FFI_PIN
     case OP_PIN_NEW: {
         val v = rt_retain(deref(a[0]));
         val h = rt_int((int64_t)(intptr_t)v, 64 | 256);
@@ -2908,12 +2991,20 @@ val rt_std_id(int op, int n, val* a) {
         val arg[1] = {(val)a0->u.p};
         return rt_callv(a1, 1, arg);
     }
+#else
+    case OP_PIN_NEW:
+    case OP_PIN_PTR:
+    case OP_PIN_WITH:
+        rt_panic("this build has no ffi.pin capability");
+        return NULL;
+#endif
     // value's scalar payload lives in the union after the header fields,
     // so &a0->u is that payload's address regardless of which member.
     case OP_WITH_ADDRESS: {
         val arg[1] = {rt_ptr((void*)&a0->u)};
         return rt_callv(a1, 1, arg);
     }
+#ifdef KIGUMI_CAP_FFI_PIN
     case OP_PIN_DROP: {
         // mir now consumes self for a type's own drop (isOwnDrop in
         // internal/mir/plan_args.go), so scope exit no longer re-enters
@@ -2935,6 +3026,14 @@ val rt_std_id(int op, int n, val* a) {
         val h = rt_int((int64_t)(intptr_t)a0->u.p, 64 | 256);
         return make_record("Pin", 1, &h);
     }
+#else
+    case OP_PIN_DROP:
+    case OP_PIN_RELEASE:
+    case OP_PIN_RECLAIM:
+        rt_panic("this build has no ffi.pin capability");
+        return NULL;
+#endif
+#ifdef KIGUMI_CAP_FFI_HANDLE_TABLE
     case OP_HANDLE_TABLE_NEW: {
         handle_table* t = calloc(1, sizeof *t);
         if (!t) rt_panic("out of memory");
@@ -3026,6 +3125,20 @@ val rt_std_id(int op, int n, val* a) {
         rt_release(handle_free(t, index));
         return rt_unit();
     }
+#else
+    case OP_HANDLE_TABLE_NEW:
+    case OP_HANDLE_TABLE_INSERT:
+    case OP_HANDLE_TABLE_WITH:
+    case OP_HANDLE_TABLE_REMOVE:
+    case OP_HANDLE_TABLE_RECLAIM:
+    case OP_HANDLE_TABLE_CLOSE:
+    case OP_HANDLE_TABLE_DROP:
+    case OP_HANDLE_RAW:
+    case OP_HANDLE_DROP:
+        rt_panic("this build has no ffi.handle-table capability");
+        return NULL;
+#endif
+#ifdef KIGUMI_CAP_FFI_RAW
     case OP_FFI_STRING: {
         const char* s = a0->u.p ? (const char*)a0->u.p : "";
         return strdup_val(s, strlen(s));
@@ -3040,7 +3153,15 @@ val rt_std_id(int op, int n, val* a) {
         if (!utf8_valid(s, len)) return none();
         return some(strdup_val(s, len));
     }
+#else
+    case OP_FFI_STRING:
+    case OP_FFI_STRING_LOSSY:
+    case OP_FFI_STRING_CHECKED:
+        rt_panic("this build has no ffi.raw capability");
+        return NULL;
+#endif
     // task / alloc / net
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
     case OP_TASK_CURRENT_EXECUTOR: return rt_executor_new();
     case OP_EXECUTOR_RUN_TO_COMPLETION: return rt_run_to_completion(a0, rt_retain(a1));
     case OP_TASK_SPAWN: return rt_task_spawn(rt_retain(a0));
@@ -3048,6 +3169,17 @@ val rt_std_id(int op, int n, val* a) {
     case OP_TASK_CANCEL_REQUESTED: return rt_bool(rt_cancel_requested());
     case OP_TASK_THREAD_POOL_EXECUTOR: return rt_thread_pool_new(a0->u.i);
     case OP_TASK_HANDOFF: return rt_task_handoff(a0, rt_retain(a1));
+#else
+    case OP_TASK_CURRENT_EXECUTOR:
+    case OP_EXECUTOR_RUN_TO_COMPLETION:
+    case OP_TASK_SPAWN:
+    case OP_TASK_CANCEL:
+    case OP_TASK_CANCEL_REQUESTED:
+    case OP_TASK_THREAD_POOL_EXECUTOR:
+    case OP_TASK_HANDOFF:
+        rt_panic("this build has no task.executor capability");
+        return NULL;
+#endif
     case OP_ARENA_CREATE: {
         arena* ar = (arena_fault_injected() || fault_tick()) ? NULL : calloc(1, sizeof *ar);
         if (!ar) return alloc_error();
@@ -3123,6 +3255,7 @@ val rt_std_id(int op, int n, val* a) {
         sctrl* c = a0->u.op.data;
         return c->alive ? some(rt_retain(c->shared)) : none();
     }
+#ifdef KIGUMI_CAP_HOST_NET
     case OP_NET_HTTP: return opaque("Http", NULL);
     // Bodiless like Conn.drop/Listener.drop themselves (see net_hosted.kg):
     // an accelerator on a *bodied* drop only replaces normal calls to it,
@@ -3132,11 +3265,22 @@ val rt_std_id(int op, int n, val* a) {
     case OP_NET_CONN_DROP:
         rt_sys_close((int)a0->u.rec.fields[0]->u.i);
         return rt_unit();
+#else
+    case OP_NET_HTTP:
+    case OP_NET_LISTENER_DROP:
+    case OP_NET_CONN_DROP:
+        rt_panic("this build has no host.net capability");
+        return NULL;
+#endif
     case OP_BUILD_ONLY:
         rt_panic("std/build only runs inside `kigumi build`");
         return NULL;
     // math / misc
+#ifdef KIGUMI_CAP_HOST_ARGS
     case OP_ARGS_LEN: return rt_int(g_argc, 64);
+#else
+    case OP_ARGS_LEN: rt_panic("this build has no host.args capability"); return NULL;
+#endif
     case OP_MATH_SQRT: return rt_float(sqrt(a0->u.f), 64 | 512);
     case OP_MATH_FLOOR: return rt_float(floor(a0->u.f), 64 | 512);
     case OP_MATH_CEIL: return rt_float(ceil(a0->u.f), 64 | 512);
@@ -3172,8 +3316,8 @@ val rt_std_id(int op, int n, val* a) {
         return rt_unit();
     }
     case OP_BLOCKING_POOL_NEW:
-#ifdef KIGUMI_FREESTANDING
-        rt_panic("the blocking execution provider is not available on this target");
+#if defined(KIGUMI_FREESTANDING) || !defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
+        rt_panic("this build has no task.blocking-pool capability");
         return NULL;
 #else
     {
@@ -3184,8 +3328,8 @@ val rt_std_id(int op, int n, val* a) {
     }
 #endif
     case OP_BLOCKING_POOL_RUN:
-#ifdef KIGUMI_FREESTANDING
-        rt_panic("the blocking execution provider is not available on this target");
+#if defined(KIGUMI_FREESTANDING) || !defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
+        rt_panic("this build has no task.blocking-pool capability");
         return NULL;
 #else
     {
