@@ -84,7 +84,9 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 		r := deref(args[0])
 		old := r.fields[in.Index]
 		r.fields[in.Index] = args[1]
-		m.release(old)
+		if !m.borrowField(r, in.Index) {
+			m.release(old)
+		}
 		return
 	case mir.OpArray:
 		res = mkArray(args)

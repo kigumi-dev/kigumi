@@ -15,6 +15,7 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		// its own `['a]`; it isn't escaping here.
 		if in.Op == OpRecord {
 			if _, ok := c.holders[in.Dst]; ok {
+				c.checkHolderFields(in)
 				return
 			}
 		}
@@ -33,6 +34,8 @@ func (c *borrowCheck) checkCapture(in Inst) {
 				c.report(in.Node, a, "borrow-escape", "a borrow cannot be captured by a future")
 			}
 		}
+	case OpCall, OpCallValue:
+		c.checkOwningArgs(in)
 	case OpSetField, OpSetIndex:
 		if _, ok := c.holders[in.Args[len(in.Args)-1]]; ok {
 			c.report(in.Node, in.Args[len(in.Args)-1], "borrow-escape", "a borrow cannot be stored")

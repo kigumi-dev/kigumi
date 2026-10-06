@@ -1,0 +1,120 @@
+-- src --
+type Box = {
+    pub mut n Int
+}
+
+fn Box.bump(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+fn Box.reset(mut self) -> Unit {
+    self = Box { n: 0 }
+}
+
+fn Box.forwarded(mut self) -> Unit {
+    self.reset()
+}
+
+type Holder['a] = {
+    pub mut r &'a mut Box
+}
+
+type Nest['a] = {
+    pub mut h Holder['a]
+}
+
+fn lend['a](h: Holder['a]) -> &'a mut Box {
+    h.r
+}
+
+fn fieldRecv['a](h: Holder['a]) -> Unit {
+    h.r.reset() //~ ERROR a `&mut` held in a field is the receiver here
+}
+
+fn nestedFieldRecv['a](n: Nest['a]) -> Unit {
+    n.h.r.reset() //~ ERROR a `&mut` held in a field is the receiver here
+}
+
+fn returnedRecv['a](h: Holder['a]) -> Unit {
+    lend(h).reset() //~ ERROR a `&mut` a call returned is the receiver here
+}
+
+fn parenFieldRecv['a](h: Holder['a]) -> Unit {
+    (h.r).reset() //~ ERROR a `&mut` held in a field is the receiver here
+}
+
+fn forwardingRecv['a](h: Holder['a]) -> Unit {
+    h.r.forwarded() //~ ERROR a `&mut` held in a field is the receiver here
+}
+
+interface Resettable {
+    fn reset(mut self) -> Unit
+}
+
+fn resetAny[T: Resettable](x: &mut T) -> Unit {
+    x.reset()
+}
+
+fn witnessRecv['a](h: Holder['a]) -> Unit {
+    resetAny(h.r) //~ ERROR a `&mut` held in a field is lent here
+}
+
+fn fieldWriteIsFine['a](h: Holder['a]) -> Unit {
+    h.r.bump(1)
+}
+
+fn nestedFieldWriteIsFine['a](n: Nest['a]) -> Unit {
+    n.h.r.bump(1)
+}
+
+fn returnedWriteIsFine['a](h: Holder['a]) -> Unit {
+    lend(h).bump(1)
+}
+
+fn ownPlaceReplaceIsFine() -> Unit {
+    let mut b = Box { n: 1 }
+    b.reset()
+}
+-- expect --
+error[E1530]: a `&mut` held in a field is the receiver here, and `reset` replaces its receiver as a whole with no place of this body's to put the new value
+  --> main/main.kg:30:5
+   |
+30 |     h.r.reset() //~ ERROR a `&mut` held in a field is the receiver here
+   |     ^^^
+   = help: call it on the place that owns the value, or on a field or element of one
+
+error[E1530]: a `&mut` held in a field is the receiver here, and `reset` replaces its receiver as a whole with no place of this body's to put the new value
+  --> main/main.kg:34:5
+   |
+34 |     n.h.r.reset() //~ ERROR a `&mut` held in a field is the receiver here
+   |     ^^^^^
+   = help: call it on the place that owns the value, or on a field or element of one
+
+error[E1530]: a `&mut` a call returned is the receiver here, and `reset` replaces its receiver as a whole with no place of this body's to put the new value
+  --> main/main.kg:38:5
+   |
+38 |     lend(h).reset() //~ ERROR a `&mut` a call returned is the receiver here
+   |     ^^^^^^
+   = help: call it on the place that owns the value, or on a field or element of one
+
+error[E1530]: a `&mut` held in a field is the receiver here, and `reset` replaces its receiver as a whole with no place of this body's to put the new value
+  --> main/main.kg:42:5
+   |
+42 |     (h.r).reset() //~ ERROR a `&mut` held in a field is the receiver here
+   |     ^^^^
+   = help: call it on the place that owns the value, or on a field or element of one
+
+error[E1530]: a `&mut` held in a field is the receiver here, and `forwarded` replaces its receiver as a whole with no place of this body's to put the new value
+  --> main/main.kg:46:5
+   |
+46 |     h.r.forwarded() //~ ERROR a `&mut` held in a field is the receiver here
+   |     ^^^
+   = help: call it on the place that owns the value, or on a field or element of one
+
+error[E1503]: a `&mut` held in a field is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+  --> main/main.kg:58:14
+   |
+58 |     resetAny(h.r) //~ ERROR a `&mut` held in a field is lent here
+   |              ^^^
+   = help: borrow the place at the call with `&mut`, or pass the value itself
+

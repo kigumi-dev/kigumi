@@ -1,0 +1,33 @@
+-- src --
+// A record never owns what a borrow field holds, so moving one into a
+// function that drops it must leave the referent alone.
+type View['a] = {
+    pub data &'a Bytes
+    pub mut off usize
+}
+
+fn consume['a](v: View['a]) -> u8 {
+    v.data[v.off]
+}
+
+fn consumeCopy['a](v: View['a]) -> u8 {
+    let w = v
+    w.data[1]
+}
+
+fn lend['a](v: View['a]) -> &'a Bytes {
+    v.data
+}
+
+fn main() -> Unit! {
+    let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    print "one=${consume(View { data: &buf, off: 2 })}"
+    print "copy=${consumeCopy(View { data: &buf, off: 0 })}"
+    print "lent=${lend(View { data: &buf, off: 0 })[1]}"
+    print "buf=${buf[0]},${buf[1]},${buf[2]}"
+}
+-- stdout --
+one=3
+copy=2
+lent=2
+buf=1,2,3

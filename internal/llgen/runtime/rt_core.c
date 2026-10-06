@@ -401,6 +401,11 @@ val rt_at(val a, int64_t i) {
     if (!a || i < 0 || i >= a->u.arr.len) return rt_unit();
     return rt_retain(a->u.arr.items[i]);
 }
+// A record never owns what a borrow field holds (rt.h's borrow_fields), so
+// overwriting one releases nothing; a read still hands the frame its own count.
+static int borrow_field(val r, int64_t i) {
+    return r->kind == K_RECORD && i < 64 && ((r->u.rec.type->borrow_fields >> i) & 1);
+}
 val rt_record(rt_type* t, int64_t n, val* fields) {
     val v = alloc(K_RECORD);
     v->u.rec.type = t;
@@ -503,7 +508,7 @@ void rt_setfield(val r, int64_t i, val x) {
     r = deref(r);
     val old = r->u.rec.fields[i];
     r->u.rec.fields[i] = x;
-    rt_release(old);
+    if (!borrow_field(r, i)) rt_release(old);
 }
 val rt_payload(val v, int64_t i) {
     v = deref(v);

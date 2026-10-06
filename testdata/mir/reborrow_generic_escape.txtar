@@ -46,6 +46,12 @@ error[use-after-move]: `out` was moved; it cannot be used again
 10 |     out.push(1)
    |     ^^^
 
+error[E1532]: a borrow cannot go to `x`, a parameter of `identity` declared `T`: a parameter declared that way is dropped by the callee, and this borrow has no count to give; declare the parameter `&T`, or pass a value the callee can own
+ --> lib/reborrow.kg:9:13
+  |
+9 |     let r = identity(out)
+  |             ^^^^^^^^^^^^
+
 error[move-from-borrow]: `out` is borrowed by this method and cannot be moved out; clone it or take `move self`
  --> lib/reborrow.kg:9:22
   |

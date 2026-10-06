@@ -14,6 +14,7 @@ type refCellRecv struct {
 	file    FileID
 	node    syntax.NodeID
 	witness bool
+	what    string
 	iface   TypeID
 	pkg     PackageID
 }
@@ -92,6 +93,8 @@ func (r *Result) resolveRefCells() {
 		}
 		switch {
 		case !replacing:
+		case q.ent == 0 && q.what != "":
+			r.errAt(q.file, q.node, cRecvRefNoPlace, q.what, r.Entities[q.callee].Name)
 		case q.ent == 0:
 			r.errAt(q.file, q.node, cRefCellLentRecv, r.Entities[q.callee].Name)
 		default:

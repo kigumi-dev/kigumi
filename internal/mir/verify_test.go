@@ -146,6 +146,21 @@ func TestVerifyOwnership(t *testing.T) {
 	expectRule(t, p, over, "ownership", "still holds a value")
 }
 
+func TestVerifyDropOwned(t *testing.T) {
+	p := program(t)
+	ref := p.R.Types.Ref(resource(p), true)
+	locals := []mir.Local{{Name: "b", Type: resource(p), Ent: p.R.Types.ErrorEnt()}, {Name: "t1", Type: ref}, {Name: "t2", Type: sem.TyUnit}}
+	unit := mir.Inst{Op: mir.OpUnit, Dst: 2}
+	f := fn("droplent", sem.TyUnit, locals, mir.Block{Insts: []mir.Inst{
+		{Op: mir.OpBorrow, Dst: 1, Args: []mir.LocalID{0}, Index: 1},
+		{Op: mir.OpDrop, Args: []mir.LocalID{1}},
+		{Op: mir.OpDrop, Args: []mir.LocalID{0}},
+		unit,
+	}, Term: ret(2)})
+	f.Params = []mir.LocalID{0}
+	expectRule(t, p, f, "droplent", "a reference this frame does not own")
+}
+
 func TestVerifyCellCaptures(t *testing.T) {
 	res := checkSourceMir(t, `
 fn bump() -> Int {

@@ -1,0 +1,73 @@
+-- src --
+type Box = {
+    pub mut n Int
+}
+
+fn Box.bump(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+type Holder['a] = {
+    pub mut r &'a mut Box
+}
+
+fn bumpField['a](h: Holder['a]) -> Unit {
+    h.r.bump(2)
+}
+
+fn readField['a](h: Holder['a]) -> Int {
+    h.r.n
+}
+
+let mut b = Box { n: 1 }
+bumpField(Holder { r: &mut b })
+print "${b.n}"
+-- expect --
+fn main.Box.bump(%self: Box, %k: Int) -> Unit {
+  b0:
+    %t2 = cellget(%self)
+    %t3 = cellget(%self)
+    %t4 = field 0(%t3)
+    %t5 = bin +(%t4, %k)
+    setfield 0(%t2, %t5)
+    %t6 = unit
+    drop(%k)
+    return %t6
+}
+fn main.bumpField(%h: Holder['a]) -> Unit {
+  b0:
+    %t1 = field 0(%h)
+    %t2 = borrow 1(%t1)
+    %t3 = share retain(%t2)
+    %t4 = newcell(%t3)
+    %t5 = const 2: Int
+    %t6 = call bump(%t4, %t5)
+    %t7 = celltake(%t4)
+    drop(%t7)
+    drop(%h)
+    return %t6
+}
+fn main.readField(%h: Holder['a]) -> Int {
+  b0:
+    %t1 = field 0(%h)
+    %t2 = field 0(%t1)
+    drop(%h)
+    return %t2
+}
+fn main() -> Unit! {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 1(%b)
+    %t4 = record Holder(%t3)
+    %t5 = call bumpField(%t4)
+    drop(%t5)
+    %t7 = field 0(%b)
+    %t6 = interp ""(%t7)
+    %t8 = builtin print(%t6)
+    drop(%t8)
+    drop(%b)
+    %t9 = unit
+    return %t9
+}

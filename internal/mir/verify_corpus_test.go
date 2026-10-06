@@ -24,6 +24,11 @@ func TestVerifyCorpus(t *testing.T) {
 			if err := prog.Verify(); err != nil {
 				t.Errorf("%v", err)
 			}
+			// Apply verifies again afterwards, so the drops and releases
+			// plan-rc makes explicit are checked too.
+			if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+				t.Errorf("plan-rc: %v", err)
+			}
 			mir.Reachable(prog)
 			if n := res.ConformMissesAfterSeal(); n != 0 {
 				t.Errorf("%d conformance queries first asked after resolveRefCells sealed the witness table", n)

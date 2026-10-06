@@ -140,7 +140,7 @@ func extendBorrowed(borrowed map[LocalID]LocalID, last map[LocalID]use, noReleas
 // value: it is stored, moved, boxed or handed to a callee that owns it.
 // Reads, arithmetic, display and borrowed receivers do not.
 func (p *Program) consumes(in Inst, i int) bool {
-	if p.inPlace(in, i) {
+	if p.inPlace(in, i) || p.lentParam(in, i) {
 		return false
 	}
 	switch in.Op {

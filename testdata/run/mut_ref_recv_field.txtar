@@ -1,0 +1,79 @@
+-- src --
+type Box = {
+    pub mut n Int
+}
+
+fn Box.bump(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+fn Box.get(self) -> Int {
+    self.n
+}
+
+type Holder['a] = {
+    pub mut r &'a mut Box
+    pub mut tag Int
+}
+
+type Nest['a] = {
+    pub mut h Holder['a]
+}
+
+fn bumpField['a](h: Holder['a]) -> Unit {
+    h.r.bump(2)
+}
+
+fn bumpNested['a](n: Nest['a]) -> Unit {
+    n.h.r.bump(3)
+}
+
+fn lend['a](h: Holder['a]) -> &'a mut Box {
+    h.r
+}
+
+fn bumpReturned['a](h: Holder['a]) -> Unit {
+    lend(h).bump(4)
+}
+
+fn readField['a](h: Holder['a]) -> Int {
+    h.r.n
+}
+
+fn readMethod['a](h: Holder['a]) -> Int {
+    h.r.get()
+}
+
+fn retagged['a](h: Holder['a]) -> Int {
+    let other = Holder { ..h, tag: 9 }
+    other.r.bump(5)
+    other.tag
+}
+
+let mut a = Box { n: 1 }
+bumpField(Holder { r: &mut a, tag: 0 })
+print "a=${a.n}"
+
+let mut b = Box { n: 1 }
+bumpNested(Nest { h: Holder { r: &mut b, tag: 0 } })
+print "b=${b.n}"
+
+let mut c = Box { n: 1 }
+bumpReturned(Holder { r: &mut c, tag: 0 })
+print "c=${c.n}"
+
+let mut d = Box { n: 7 }
+print "d=${readField(Holder { r: &mut d, tag: 0 })} ${readMethod(Holder { r: &mut d, tag: 0 })}"
+print "d=${d.n}"
+
+let mut e = Box { n: 1 }
+print "tag=${retagged(Holder { r: &mut e, tag: 0 })}"
+print "e=${e.n}"
+-- stdout --
+a=3
+b=4
+c=5
+d=7 7
+d=7
+tag=9
+e=6

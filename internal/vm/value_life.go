@@ -41,7 +41,9 @@ func (m *Machine) free(v *obj) {
 		}
 		v.rc = 0
 		for i := len(v.fields) - 1; i >= 0; i-- {
-			m.release(v.fields[i])
+			if !m.borrowField(v, i) {
+				m.release(v.fields[i])
+			}
 		}
 	case kVariant:
 		for _, p := range v.fields {
@@ -77,7 +79,9 @@ func (m *Machine) copy(v *obj) *obj {
 		}
 		c := mkRecord(v.ent, v.fields)
 		for i := range c.fields {
-			c.fields[i] = m.copy(c.fields[i])
+			if !m.borrowField(v, i) {
+				c.fields[i] = m.copy(c.fields[i])
+			}
 		}
 		m.chargeMemory(c)
 		return c

@@ -49,6 +49,8 @@ type borrowCheck struct {
 	defs map[LocalID]*Inst
 	// chainOnly caches chainedOnly's result per local.
 	chainOnly map[LocalID]bool
+	// unowned caches unownedRefs, built on first use.
+	unowned []bool
 }
 
 func analyzeBorrows(p *Program, f *Func) {

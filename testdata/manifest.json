@@ -336,6 +336,17 @@
       ]
     },
     {
+      "id": "mir/borrow_generic_slot_err",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_generic_slot_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/borrow_projection_conflict",
       "kind": "mir",
       "path": "testdata/mir/borrow_projection_conflict.txtar",
@@ -867,6 +878,17 @@
       "id": "mir/loop_never",
       "kind": "mir",
       "path": "testdata/mir/loop_never.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/mut_ref_recv_field",
+      "kind": "mir",
+      "path": "testdata/mir/mut_ref_recv_field.txtar",
       "mode": [
         "build"
       ],
@@ -1855,6 +1877,40 @@
       "id": "run/blocking_pool_capacity",
       "kind": "run",
       "path": "testdata/run/blocking_pool_capacity.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_field_ownership",
+      "kind": "run",
+      "path": "testdata/run/borrow_field_ownership.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_generic_passthrough",
+      "kind": "run",
+      "path": "testdata/run/borrow_generic_passthrough.txtar",
       "mode": [
         "vm",
         "native"
@@ -5457,6 +5513,23 @@
       ]
     },
     {
+      "id": "run/mut_ref_recv_field",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_recv_field.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/mut_ref_write_back",
       "kind": "run",
       "path": "testdata/run/mut_ref_write_back.txtar",
@@ -8517,6 +8590,17 @@
       "id": "sem/mut_ref_lent_value",
       "kind": "sem",
       "path": "testdata/sem/mut_ref_lent_value.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_ref_recv_field_err",
+      "kind": "sem",
+      "path": "testdata/sem/mut_ref_recv_field_err.txtar",
       "mode": [
         "check"
       ],

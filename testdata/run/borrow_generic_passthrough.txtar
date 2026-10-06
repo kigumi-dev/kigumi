@@ -1,0 +1,49 @@
+-- src --
+// A borrow only ever reaches a field declared `&'a T`, so a record holding
+// one keeps working when a generic function owns, returns and drops it, and
+// when another generic record owns that record in turn.
+type View['a] = {
+    pub data &'a Bytes
+    pub mut off usize
+}
+
+type Nest['a] = {
+    pub inner View['a]
+    pub tag Int
+}
+
+type Cell[T] = {
+    pub v T
+}
+
+fn identity[T](x: T) -> T {
+    x
+}
+
+fn pick2[T](a: T, b: T) -> T {
+    b
+}
+
+fn deepen['a](v: View['a]) -> Nest['a] {
+    Nest { inner: v, tag: 7 }
+}
+
+fn main() -> Unit! {
+    let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    let other = Bytes.fromArray(&Array.of(4, 5, 6))
+    let n = deepen(identity(View { data: &buf, off: 1 }))
+    print "nest=${n.inner.data[n.inner.off]} tag=${n.tag}"
+    let r = identity(n.inner.data)
+    print "lent=${r[0]}"
+    let both = pick2(View { data: &buf, off: 0 }, View { data: &other, off: 2 })
+    print "pick=${both.data[both.off]}"
+    let held = Cell { v: deepen(View { data: &buf, off: 2 }) }
+    print "held=${held.v.inner.data[held.v.inner.off]}"
+    print "buf=${buf[0]},${buf[1]},${buf[2]} other=${other[0]}"
+}
+-- stdout --
+nest=2 tag=7
+lent=1
+pick=6
+held=3
+buf=1,2,3 other=4

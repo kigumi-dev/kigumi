@@ -1,0 +1,69 @@
+package mir
+
+import (
+	"kigumi/internal/sem"
+	"kigumi/internal/syntax"
+)
+
+// Only a field declared `&'a T`, or one routing a borrow through its own `'a`,
+// is skipped by the destructor and by rt_copy; a type parameter is not.
+func (c *borrowCheck) checkHolderFields(in Inst) {
+	if in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntType {
+		return
+	}
+	fields := c.p.R.TypeDecl(in.Ent).Fields
+	if len(fields) != len(in.Args) {
+		return
+	}
+	for i, a := range in.Args {
+		t := c.p.R.Entity(fields[i]).Type
+		if !c.unownedRef(a) || c.declaredAsBorrow(t) {
+			continue
+		}
+		c.reportCode(in.Node, a, "borrow-owned-field", c.p.R.Entity(fields[i]).Name, c.p.R.Entity(in.Ent).Name, c.p.R.TypeString(t))
+	}
+}
+
+// A parameter declared as a type parameter is dropped by the callee, however
+// that parameter is later instantiated.
+func (c *borrowCheck) checkOwningArgs(in Inst) {
+	for i, a := range in.Args {
+		if !c.unownedRef(a) {
+			continue
+		}
+		prm, ok := c.p.declaredParamEnt(in, i)
+		if !ok {
+			continue
+		}
+		t := c.p.R.Entity(prm).Type
+		if c.declaredAsBorrow(t) {
+			continue
+		}
+		c.reportCode(in.Node, a, "borrow-owned-param", c.p.R.Entity(prm).Name, c.p.R.Entity(in.Ent).Name, c.p.R.TypeString(t))
+	}
+}
+
+func (c *borrowCheck) declaredAsBorrow(t sem.TypeID) bool {
+	return c.p.R.Types.Kind(t) == sem.KRef || c.declaredLifetime(t) != 0
+}
+
+// A field read retains, so only a borrow and a lent parameter are unowned.
+func (c *borrowCheck) unownedRef(l LocalID) bool {
+	if c.unowned == nil {
+		c.unowned = c.p.unownedRefs(c.f)
+	}
+	return c.unowned[l]
+}
+
+// The help is folded into the message, the way the lifetime rules render theirs.
+func (c *borrowCheck) reportCode(n syntax.NodeID, local LocalID, name string, args ...any) {
+	code, ok := sem.CodeByName(name)
+	if !ok {
+		return
+	}
+	msg := sem.FillTemplate(code.Template, args...)
+	if code.Help != "" {
+		msg += "; " + code.Help
+	}
+	c.report(n, local, code.Num, msg)
+}

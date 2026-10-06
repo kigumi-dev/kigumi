@@ -1,0 +1,210 @@
+-- lib/slot.kg --
+// A slot whose declared type is a type parameter owns and releases what it
+// holds, however that parameter is later instantiated, so a borrow with no
+// count to give cannot go there. Only `&'a T` and a type routing one through
+// its own `'a` are skipped by the destructor.
+type Box = { pub mut n Int }
+
+type Wrap[T] = { pub v T }
+
+type View['a] = { pub data &'a Box }
+
+fn own[T](x: T) -> Unit {}
+
+fn lend[T](x: &T) -> Unit {}
+
+fn wrapped() -> Unit {
+    let b = Box { n: 1 }
+    let w = Wrap { v: &b }
+}
+
+fn nested() -> Unit {
+    let b = Box { n: 1 }
+    let w = Wrap { v: Wrap { v: &b } }
+}
+
+fn tupled() -> Unit {
+    let b = Box { n: 1 }
+    let t = (&b, 1)
+}
+
+fn variant() -> Unit {
+    let b = Box { n: 1 }
+    let o = Option.Some(&b)
+}
+
+fn element() -> Unit {
+    let b = Box { n: 1 }
+    let a = Array.of(&b)
+}
+
+fn handed() -> Unit {
+    let b = Box { n: 1 }
+    own(&b)
+}
+
+fn forwarded(r: &Box) -> Unit {
+    own(r)
+}
+
+fn viewed() -> Unit {
+    let b = Box { n: 1 }
+    let v = View { data: &b }
+    lend(v.data)
+    own(v.data)
+}
+-- expect --
+fn lib.own(%x: T) -> Unit {
+  b0:
+    %t1 = unit
+    drop(%x)
+    return %t1
+}
+fn lib.lend(%x: &T) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.wrapped() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 0(%b)
+    %t4 = record Wrap(%t3)
+    %w = copy(%t4)
+    drop(%w)
+    drop(%b)
+    %t6 = unit
+    return %t6
+}
+fn lib.nested() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 0(%b)
+    %t4 = record Wrap(%t3)
+    %t5 = record Wrap(%t4)
+    %w = copy(%t5)
+    drop(%w)
+    drop(%b)
+    %t7 = unit
+    return %t7
+}
+fn lib.tupled() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 0(%b)
+    %t4 = const 1: Int
+    %t5 = record Tuple2(%t3, %t4)
+    %t = copy(%t5)
+    drop(%t)
+    drop(%b)
+    %t7 = unit
+    return %t7
+}
+fn lib.variant() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 0(%b)
+    %t4 = variant Some(%t3)
+    %o = copy(%t4)
+    drop(%o)
+    drop(%b)
+    %t6 = unit
+    return %t6
+}
+fn lib.element() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 0(%b)
+    %t4 = array(%t3)
+    %t5 = call of(%t4)
+    %a = copy(%t5)
+    drop(%a)
+    drop(%b)
+    %t7 = unit
+    return %t7
+}
+fn lib.handed() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 0(%b)
+    %t4 = call own(%t3)
+    drop(%b)
+    return %t4
+}
+fn lib.forwarded(%r: &Box) -> Unit {
+  b0:
+    %t1 = copy(%r)
+    %t2 = call own(%t1)
+    return %t2
+}
+fn lib.viewed() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record Box(%t0)
+    %b = copy(%t1)
+    %t3 = borrow 0(%b)
+    %t4 = record View(%t3)
+    %v = copy(%t4)
+    %t6 = field 0(%v)
+    %t7 = call lend(%t6)
+    drop(%t7)
+    %t8 = field 0(%v)
+    %t9 = call own(%t8)
+    drop(%v)
+    drop(%b)
+    return %t9
+}
+error[E1531]: a borrow cannot go in `v`, a field of `Wrap` declared `T`: a field declared that way is released with the record, and this borrow has no count to give; declare the field `&'a T` and take a `['a]` on the record, or store a value the record can own
+  --> lib/slot.kg:17:13
+   |
+17 |     let w = Wrap { v: &b }
+   |             ^^^^^^^^^^^^
+
+error[E1531]: a borrow cannot go in `v`, a field of `Wrap` declared `T`: a field declared that way is released with the record, and this borrow has no count to give; declare the field `&'a T` and take a `['a]` on the record, or store a value the record can own
+  --> lib/slot.kg:22:23
+   |
+22 |     let w = Wrap { v: Wrap { v: &b } }
+   |                       ^^^^^^^^^^^^
+
+error[E1531]: a borrow cannot go in `_0`, a field of `Tuple2` declared `A`: a field declared that way is released with the record, and this borrow has no count to give; declare the field `&'a T` and take a `['a]` on the record, or store a value the record can own
+  --> lib/slot.kg:27:13
+   |
+27 |     let t = (&b, 1)
+   |             ^^^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+  --> lib/slot.kg:32:13
+   |
+32 |     let o = Option.Some(&b)
+   |             ^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+  --> lib/slot.kg:37:13
+   |
+37 |     let a = Array.of(&b)
+   |             ^^^^^^^^^^^
+
+error[E1532]: a borrow cannot go to `x`, a parameter of `own` declared `T`: a parameter declared that way is dropped by the callee, and this borrow has no count to give; declare the parameter `&T`, or pass a value the callee can own
+  --> lib/slot.kg:42:5
+   |
+42 |     own(&b)
+   |     ^^^^^^
+
+error[E1532]: a borrow cannot go to `x`, a parameter of `own` declared `T`: a parameter declared that way is dropped by the callee, and this borrow has no count to give; declare the parameter `&T`, or pass a value the callee can own
+  --> lib/slot.kg:46:5
+   |
+46 |     own(r)
+   |     ^^^^^
+

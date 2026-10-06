@@ -64,7 +64,9 @@ func (c *checker) noteBorrowedRecv(base syntax.NodeID, recv TypeID, m EntityID) 
 	}
 	if ent, ok := c.refBinding(base); ok {
 		c.queueRefRecv(refCellRecv{ent: ent, callee: m, node: base})
-	} else if c.r.Types.Kind(recv) == KRef || c.leasedBinding(base) {
+	} else if c.r.Types.Kind(recv) == KRef {
+		c.queueRefRecv(refCellRecv{callee: m, node: base, what: c.recvRefShape(base)})
+	} else if c.leasedBinding(base) {
 		c.queueRefRecv(refCellRecv{callee: m, node: base})
 	}
 }
@@ -77,8 +79,16 @@ func (c *checker) noteWitnessRecv(base syntax.NodeID, recv TypeID, req EntityID,
 	if ent, ok := c.refBinding(base); ok {
 		c.queueRefRecv(refCellRecv{ent: ent, callee: req, node: base, witness: true, iface: iface, pkg: c.pkg})
 	} else if c.r.Types.Kind(recv) == KRef {
-		c.queueRefRecv(refCellRecv{callee: req, node: base, witness: true, iface: iface, pkg: c.pkg})
+		c.queueRefRecv(refCellRecv{callee: req, node: base, what: c.recvRefShape(base), witness: true, iface: iface, pkg: c.pkg})
 	}
+}
+
+// Paren peels the same way mir's peelNoOp does, so both see one shape.
+func (c *checker) recvRefShape(base syntax.NodeID) string {
+	for c.t.Kind(base) == syntax.Paren && len(c.info.Coerce[base].Steps) == 0 {
+		base = syntax.NodeID(c.t.Nodes[base].Lhs)
+	}
+	return lentRefShape(c.t, base)
 }
 
 func (c *checker) queueRefRecv(q refCellRecv) {

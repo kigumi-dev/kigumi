@@ -66,6 +66,8 @@ type Machine struct {
 	host     map[string]hostFn
 	hostByOp map[mir.ProviderOpId]hostFn
 	cvalues  []*obj
+	// borrowMask caches rt_type.borrow_fields per record type.
+	borrowMask map[sem.EntityID]uint64
 	// handleTables backs std/ffi's HandleTable[T]; see std_ffi_handle.go.
 	handleTables []*handleTableState
 	// globals is every owned/exported static's storage slot:
@@ -119,7 +121,7 @@ func Run(prog *mir.Program, opts Options, out, errOut io.Writer) (int, error) {
 }
 
 func newMachine(prog *mir.Program, opts Options, out, errOut io.Writer) *Machine {
-	m := &Machine{p: prog, r: prog.R, out: out, err: errOut, opts: opts, drops: map[sem.EntityID]*mir.Func{}, named: map[string]sem.EntityID{}}
+	m := &Machine{p: prog, r: prog.R, out: out, err: errOut, opts: opts, drops: map[sem.EntityID]*mir.Func{}, borrowMask: map[sem.EntityID]uint64{}, named: map[string]sem.EntityID{}}
 	m.registerAll()
 	m.initGlobals()
 	return m
