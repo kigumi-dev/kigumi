@@ -1,0 +1,75 @@
+-- src --
+import alloc from std/alloc
+
+type Shape = Circle(r: Int) | Dot
+
+fn Shape.area(self) -> Int {
+    match self {
+        Circle(r) -> r
+        Dot -> 0
+    }
+}
+
+fn Shape.flatten(mut self) -> Unit {
+    self = Dot
+}
+
+fn apply(f: fn(&mut Shape) -> Unit, s: &mut Shape) -> Unit {
+    f(s)
+}
+
+fn applyHere(f: fn(&mut Shape) -> Unit) -> Int {
+    let mut owned: Shape = Circle(2)
+    f(&mut owned)
+    owned.area()
+}
+
+fn reset(s: &mut Shape, k: Int) -> Unit {
+    s = Circle(k)
+}
+
+fn pick(k: Int) -> fn(&mut Shape) -> Unit {
+    (s: &mut Shape) => { s = Circle(k) }
+}
+
+let mut viaValue: Shape = Dot
+apply((s: &mut Shape) => { s = Circle(11) }, &mut viaValue)
+print "value=${viaValue.area()}"
+
+let mut viaFnItem: Shape = Dot
+apply((s: &mut Shape) => reset(s, 12), &mut viaFnItem)
+print "fnItem=${viaFnItem.area()}"
+
+print "ownedArg=${applyHere((s: &mut Shape) => { s = Circle(13) })}"
+
+let mut returned: Shape = Dot
+apply(pick(14), &mut returned)
+print "returned=${returned.area()}"
+
+let mut readOnly: Shape = Circle(15)
+apply((s: &mut Shape) => { s.flatten() }, &mut readOnly)
+print "recvInClosure=${readOnly.area()}"
+
+let mut xs = Array.of[Shape](Circle(1), Circle(2))
+let _ = xs.withMut(1, (e: &mut Shape) => { e = Circle(16) })
+let _ = xs.withMut(0, (e: &mut Shape) => { e.flatten() })
+print "withMut=${xs[0].area()} ${xs[1].area()}"
+
+let sh = alloc.Shared.new[Shape](Circle(3))
+let _ = sh.withMut((e: &mut Shape) => { e = Circle(17) })
+print "shared=${sh.get().area()}"
+
+let mut counted: Shape = Dot
+for i in 1..4 {
+    apply((s: &mut Shape) => { s = Circle(i * 10) }, &mut counted)
+}
+print "loop=${counted.area()}"
+-- stdout --
+value=11
+fnItem=12
+ownedArg=13
+returned=14
+recvInClosure=0
+withMut=0 16
+shared=17
+loop=30

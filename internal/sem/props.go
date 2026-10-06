@@ -54,6 +54,14 @@ func (r *Result) computeCopy(t TypeID) bool {
 	return false
 }
 
+func (r *Result) MutRefElem(t TypeID) (TypeID, bool) {
+	tt := r.Types
+	if tt.Kind(t) != KRef || tt.Node(t).Flags&flagMut == 0 {
+		return 0, false
+	}
+	return tt.Node(t).Elem, true
+}
+
 // ScalarRefElem returns (T, true) when t is `&mut T` and T's underlying representation is a scalar kind that can be written through.
 // String and Bytes are Copy but excluded: their runtime form isn't a plain scalar, so writing through needs a move.
 func (r *Result) ScalarRefElem(t TypeID) (TypeID, bool) {

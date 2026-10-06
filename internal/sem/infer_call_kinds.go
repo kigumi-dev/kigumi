@@ -129,6 +129,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 	}
 	c.checkSelfAliasArgs(base, info.Recv, info.Declared&EffAsync != 0, args)
 	c.noteBorrowedRecv(base, recv, m)
+	c.noteSelfRecvCall(base, m, false, 0)
 	return result
 }
 

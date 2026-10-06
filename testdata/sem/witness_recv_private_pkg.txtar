@@ -11,14 +11,7 @@ pub interface Grower {
     fn grow(mut self, k: Int) -> Unit
 }
 
-fn growViaBorrowedParam[G: Grower](g: &mut G, k: Int) -> Unit {
-    g.grow(k) //~ ERROR can be witnessed by `Guard.grow`
+fn growViaBorrowedParamIsFine[G: Grower](g: &mut G, k: Int) -> Unit {
+    g.grow(k)
 }
 -- expect --
-error[E1332]: `grow` on a borrowed type parameter can be witnessed by `Guard.grow`, which replaces its receiver as a whole
- --> app/b/b.kg:6:5
-  |
-6 |     g.grow(k) //~ ERROR can be witnessed by `Guard.grow`
-  |     ^
-  = help: take the receiver by value (`mut g: G`) rather than `&mut G`
-

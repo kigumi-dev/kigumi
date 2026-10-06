@@ -5319,6 +5319,127 @@
       }
     },
     {
+      "id": "run/mut_ref_c_boundary",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_c_boundary.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_ref_c_boundary_native",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_c_boundary_native.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
+      "id": "run/mut_ref_closure",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_closure.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_ref_generic",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_ref_lent_value",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_lent_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_ref_name_collision",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_name_collision.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/mut_ref_write_back",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_write_back.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/mut_self_adt",
       "kind": "run",
       "path": "testdata/run/mut_self_adt.txtar",
@@ -8340,6 +8461,28 @@
       "id": "sem/mut_place_escape",
       "kind": "sem",
       "path": "testdata/sem/mut_place_escape.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_ref_cell",
+      "kind": "sem",
+      "path": "testdata/sem/mut_ref_cell.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_ref_lent_value",
+      "kind": "sem",
+      "path": "testdata/sem/mut_ref_lent_value.txtar",
       "mode": [
         "check"
       ],

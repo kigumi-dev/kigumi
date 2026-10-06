@@ -10,7 +10,7 @@ import (
 
 // TestVerifyCorpus runs the verifier over the MIR of every run fixture,
 // std included: a program the builder produces without diagnostics has to
-// satisfy the contract.
+// satisfy the contract, and ask for no conformance sem had not settled before sealing the witness table.
 func TestVerifyCorpus(t *testing.T) {
 	std := testkit.LoadStd(t, "../../std")
 	files, _ := filepath.Glob("../../testdata/run/*.txtar")
@@ -23,6 +23,10 @@ func TestVerifyCorpus(t *testing.T) {
 			}
 			if err := prog.Verify(); err != nil {
 				t.Errorf("%v", err)
+			}
+			mir.Reachable(prog)
+			if n := res.ConformMissesAfterSeal(); n != 0 {
+				t.Errorf("%d conformance queries first asked after resolveRefCells sealed the witness table", n)
 			}
 		})
 	}

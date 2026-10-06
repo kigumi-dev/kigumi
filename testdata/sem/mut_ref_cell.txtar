@@ -1,0 +1,139 @@
+-- src --
+type Shape = Circle(r: Int) | Dot
+
+context seat: Shape
+
+@provides(seat)
+type Env = {
+    pub seat Shape
+}
+
+fn Shape.flatten(mut self) -> Unit {
+    self = Dot
+}
+
+fn Shape.area(self) -> Int {
+    match self {
+        Circle(r) -> r
+        Dot -> 0
+    }
+}
+
+fn reset(s: &mut Shape, k: Int) -> Unit {
+    s = Circle(k)
+}
+
+fn forwardIsFine(s: &mut Shape, k: Int) -> Unit {
+    reset(s, k)
+}
+
+fn recvIsFine(s: &mut Shape) -> Unit {
+    s.flatten()
+}
+
+fn readIsFine(s: &mut Shape) -> Int {
+    s.area()
+}
+
+type Holder = {
+    pub mut shape Shape
+}
+
+fn fieldIsFine(h: &mut Holder) -> Unit {
+    reset(&mut h.shape, 1)
+    h.shape.flatten()
+}
+
+fn ownedIsFine() -> Unit {
+    let mut s: Shape = Circle(1)
+    reset(&mut s, 2)
+    s.flatten()
+}
+
+fn letBoundAssign() -> Unit {
+    let mut s: Shape = Circle(1)
+    let r = &mut s
+    r = Dot //~ ERROR with no owner a whole new value could go back to
+}
+
+fn letBoundForward() -> Unit {
+    let mut s: Shape = Circle(1)
+    let r = &mut s
+    reset(r, 2) //~ ERROR with no owner a whole new value could go back to
+}
+
+fn letBoundRecv() -> Unit {
+    let mut s: Shape = Circle(1)
+    let r = &mut s
+    r.flatten() //~ ERROR with no owner a whole new value could go back to
+}
+
+fn forLoopBinding() -> Unit {
+    let mut xs = Array.of[Shape](Circle(1), Dot)
+    for s in &mut xs {
+        s = Dot //~ ERROR with no owner a whole new value could go back to
+    }
+}
+
+fn letBoundReadIsFine() -> Int {
+    let mut s: Shape = Circle(1)
+    let r = &mut s
+    r.area()
+}
+
+async fn resetLater(s: &mut Shape, k: Int) -> Unit {
+    s = Circle(k)
+}
+
+async fn awaitsReset() -> Unit {
+    let mut s: Shape = Circle(1)
+    await resetLater(&mut s, 3) //~ ERROR cannot be lent to an `async` call
+}
+
+fn viaLease() -> Int {
+    seat.flatten() //~ ERROR this receiver is lent with no owner to return it to
+    seat.area()
+}
+-- expect --
+error[E1500]: `r` is a borrow bound to a name, with no owner a whole new value could go back to
+  --> main/main.kg:55:5
+   |
+55 |     r = Dot //~ ERROR with no owner a whole new value could go back to
+   |     ^
+   = help: write through the place itself, or pass `&mut` straight into the call
+
+error[E1500]: `r` is a borrow bound to a name, with no owner a whole new value could go back to
+  --> main/main.kg:61:11
+   |
+61 |     reset(r, 2) //~ ERROR with no owner a whole new value could go back to
+   |           ^
+   = help: write through the place itself, or pass `&mut` straight into the call
+
+error[E1500]: `r` is a borrow bound to a name, with no owner a whole new value could go back to
+  --> main/main.kg:67:5
+   |
+67 |     r.flatten() //~ ERROR with no owner a whole new value could go back to
+   |     ^
+   = help: write through the place itself, or pass `&mut` straight into the call
+
+error[E1500]: `s` is a borrow bound to a name, with no owner a whole new value could go back to
+  --> main/main.kg:73:9
+   |
+73 |         s = Dot //~ ERROR with no owner a whole new value could go back to
+   |         ^
+   = help: write through the place itself, or pass `&mut` straight into the call
+
+error[E1501]: a `&mut` the callee may replace as a whole cannot be lent to an `async` call, which outlives the storage the new value would go back to
+  --> main/main.kg:89:22
+   |
+89 |     await resetLater(&mut s, 3) //~ ERROR cannot be lent to an `async` call
+   |                      ^^^^^^
+   = help: pass the value itself, or make the call synchronous
+
+error[E1502]: `flatten` replaces its receiver as a whole, and this receiver is lent with no owner to return it to
+  --> main/main.kg:93:5
+   |
+93 |     seat.flatten() //~ ERROR this receiver is lent with no owner to return it to
+   |     ^^^^
+   = help: call it on the value itself, or on a field or element of one
+

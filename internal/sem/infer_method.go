@@ -65,6 +65,7 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	c.info.Uses[callee] = req
 	c.checkReceiver(base, recv, req)
 	c.noteWitnessRecv(base, recv, req, iface)
+	c.noteSelfRecvCall(base, req, true, iface)
 	var paramEnt EntityID
 	if valueType := c.r.Types.Node(recv); c.r.Types.Kind(recv) == KParam || c.r.Types.Kind(recv) == KRef && c.r.Types.Kind(valueType.Elem) == KParam {
 		param := recv

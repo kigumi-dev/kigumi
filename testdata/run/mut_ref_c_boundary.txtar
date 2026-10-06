@@ -1,0 +1,50 @@
+-- src --
+import ffi from std/ffi
+import mem from std/mem
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    let mut i: usize = 0
+    for x in b {
+        if i > 0 {
+            out = "${out},${x}"
+        } else {
+            out = "${x}"
+        }
+        i = i + 1
+    }
+    out
+}
+
+// b reaches a runtime primitive that wants the object itself, and is
+// replaced as a whole in the same body, so it travels as a cell.
+fn scrub(b: &mut Bytes, replace: Bool) -> usize {
+    mem.secureErase(b)
+    if replace {
+        b = Bytes.zeros(2)
+    }
+    b.len()
+}
+
+fn reseat(x: &mut i32, v: i32) -> Bool {
+    let null = unsafe { ffi.withAddress(x, (p: *mut i32) => ffi.isNull(ffi.toConst(p))) }
+    x = v
+    null
+}
+
+let mut keep = Bytes.fromArray(&Array.of[u8](1, 2, 3))
+print "erase=${scrub(&mut keep, false)} ${show(&keep)}"
+
+let mut swap = Bytes.fromArray(&Array.of[u8](4, 5, 6))
+print "replace=${scrub(&mut swap, true)} ${show(&swap)}"
+
+let mut nested = Bytes.fromArray(&Array.of[u8](7, 8))
+print "again=${scrub(&mut nested, true)} ${show(&nested)}"
+
+let mut r: i32 = 1
+print "reseat=${reseat(&mut r, 5)} ${r}"
+-- stdout --
+erase=3 0,0,0
+replace=2 0,0
+again=2 0,0
+reseat=false 5

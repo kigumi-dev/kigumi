@@ -1,0 +1,33 @@
+-- engines --
+native
+-- src --
+import ffi from std/ffi
+
+type Counter = {
+    pub mut n i32
+}
+
+fn pokeScalar(x: &mut i32, v: i32) -> i32 {
+    let before = unsafe { ffi.withAddress(x, (p: *mut i32) => ffi.readI32(ffi.toConst(p))) }
+    unsafe { ffi.withAddress(x, (p: *mut i32) => ffi.writeI32(p, v)) }
+    before
+}
+
+// c travels as a cell, so the address lease has to see through it to the
+// record the callback measures.
+fn bumped(c: &mut Counter, by: i32) -> i32 {
+    let mut raw = by
+    let step = unsafe { ffi.withAddress(&mut raw, (p: *mut i32) => ffi.readI32(ffi.toConst(p))) }
+    c = Counter { n: c.n + step }
+    c.n
+}
+
+let mut s: i32 = 7
+print "scalarBefore=${pokeScalar(&mut s, 9)} after=${s}"
+
+let step: i32 = 3
+let mut c = Counter { n: 4 }
+print "counter=${bumped(&mut c, step)} ${c.n}"
+-- stdout --
+scalarBefore=7 after=9
+counter=7 7

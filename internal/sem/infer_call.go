@@ -124,6 +124,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 				c.markImmediate(a, c.r.nonEscapingParam(entAt(declParams, pi)))
 			}
 			c.checkArg(a, param, entAt(declParams, pi), async)
+			c.noteLentRefArg(a, entAt(declParams, pi), async)
 			if pass == 0 {
 				c.checkEscapeArg(a, entAt(declParams, pi), param, name)
 			}

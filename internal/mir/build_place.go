@@ -59,7 +59,7 @@ func (b *builder) storePlace(p place, v LocalID) {
 	case hir.PlaceGlobal:
 		b.emit(Inst{Op: OpGlobalSet, Args: []LocalID{v}, Ent: p.src.Ent, Node: p.src.Node})
 	default:
-		if _, ok := b.r.ScalarRefElem(b.fn.Locals[p.id].Type); b.fn.Locals[p.id].Cell || ok {
+		if b.cellLocal(p.id) {
 			b.emit(Inst{Op: OpCellSet, Args: []LocalID{p.id, v}, Node: p.src.Node})
 			return
 		}

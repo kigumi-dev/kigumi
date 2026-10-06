@@ -1,0 +1,171 @@
+-- src --
+type Shape = Circle(r: Int) | Dot
+
+fn Shape.area(self) -> Int {
+    match self {
+        Circle(r) -> r
+        Dot -> 0
+    }
+}
+
+type Holder['a] = {
+    pub mut r &'a mut Shape
+}
+
+type Nest['a] = {
+    pub mut h Holder['a]
+}
+
+fn reset(s: &mut Shape, k: Int) -> Unit {
+    s = Circle(k)
+}
+
+fn readOnly(s: &mut Shape) -> Int {
+    s.area()
+}
+
+fn lend['a](h: Holder['a]) -> &'a mut Shape {
+    h.r
+}
+
+fn fieldArg['a](h: Holder['a]) -> Unit {
+    reset(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
+}
+
+fn nestedFieldArg['a](n: Nest['a]) -> Unit {
+    reset(n.h.r, 2) //~ ERROR a `&mut` held in a field is lent here
+}
+
+fn returnedArg['a](h: Holder['a]) -> Unit {
+    reset(lend(h), 3) //~ ERROR a `&mut` a call returned is lent here
+}
+
+fn valueCallArg['a](h: Holder['a], f: fn(&mut Shape, Int) -> Unit) -> Unit {
+    f(h.r, 4) //~ ERROR a `&mut` held in a field is lent here
+}
+
+fn blockArg() -> Unit {
+    let mut s: Shape = Dot
+    reset(unsafe { &mut s }, 5) //~ ERROR a `&mut` with no place behind it is lent here
+}
+
+async fn resetLater(s: &mut Shape, k: Int) -> Unit {
+    s = Circle(k)
+}
+
+async fn asyncFieldArg['a](h: Holder['a]) -> Unit {
+    await resetLater(h.r, 6) //~ ERROR cannot be lent to an `async` call
+}
+
+fn optionOfRefs['a](o: (&'a mut Shape)?) -> Unit { //~ ERROR borrow types cannot appear in type arguments
+    match o {
+        Some(r) -> reset(r, 7) //~ ERROR with no owner a whole new value could go back to
+        None -> {}
+    }
+}
+
+fn arrayOfRefs['a](xs: Array[&'a mut Shape]) -> Unit { //~ ERROR borrow types cannot appear in type arguments
+    reset(xs[0], 8) //~ ERROR needs `Copy` //~ ERROR a `&mut` read out of an element is lent here
+}
+
+fn readOnlyFieldIsFine['a](h: Holder['a]) -> Int {
+    readOnly(h.r)
+}
+
+fn parenBorrowIsFine() -> Int {
+    let mut s: Shape = Dot
+    reset((&mut s), 9)
+    s.area()
+}
+
+fn forwardIsFine(s: &mut Shape, k: Int) -> Unit {
+    reset((s), k)
+}
+
+type Count['a] = {
+    pub mut n &'a mut Int
+}
+
+fn setScalar(x: &mut Int, k: Int) -> Unit {
+    x = k
+}
+
+fn scalarFieldIsFine['a](c: Count['a]) -> Unit {
+    setScalar(c.n, 10)
+}
+-- expect --
+error[E1503]: a `&mut` held in a field is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+  --> main/main.kg:31:11
+   |
+31 |     reset(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
+   |           ^^^
+   = help: borrow the place at the call with `&mut`, or pass the value itself
+
+error[E1503]: a `&mut` held in a field is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+  --> main/main.kg:35:11
+   |
+35 |     reset(n.h.r, 2) //~ ERROR a `&mut` held in a field is lent here
+   |           ^^^^^
+   = help: borrow the place at the call with `&mut`, or pass the value itself
+
+error[E1503]: a `&mut` a call returned is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+  --> main/main.kg:39:11
+   |
+39 |     reset(lend(h), 3) //~ ERROR a `&mut` a call returned is lent here
+   |           ^^^^^^
+   = help: borrow the place at the call with `&mut`, or pass the value itself
+
+error[E1503]: a `&mut` held in a field is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+  --> main/main.kg:43:7
+   |
+43 |     f(h.r, 4) //~ ERROR a `&mut` held in a field is lent here
+   |       ^^^
+   = help: borrow the place at the call with `&mut`, or pass the value itself
+
+error[E1503]: a `&mut` with no place behind it is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+  --> main/main.kg:48:11
+   |
+48 |     reset(unsafe { &mut s }, 5) //~ ERROR a `&mut` with no place behind it is lent here
+   |           ^^^^^^^^^^^^^^^
+   = help: borrow the place at the call with `&mut`, or pass the value itself
+
+error[E1501]: a `&mut` the callee may replace as a whole cannot be lent to an `async` call, which outlives the storage the new value would go back to
+  --> main/main.kg:56:22
+   |
+56 |     await resetLater(h.r, 6) //~ ERROR cannot be lent to an `async` call
+   |                      ^^^
+   = help: pass the value itself, or make the call synchronous
+
+error[E220]: borrow types cannot appear in type arguments
+  --> main/main.kg:59:26
+   |
+59 | fn optionOfRefs['a](o: (&'a mut Shape)?) -> Unit { //~ ERROR borrow types cannot appear in type arguments
+   |                          ^^^^^^^^^^^^
+
+error[E1500]: `r` is a borrow bound to a name, with no owner a whole new value could go back to
+  --> main/main.kg:61:26
+   |
+61 |         Some(r) -> reset(r, 7) //~ ERROR with no owner a whole new value could go back to
+   |                          ^
+   = help: write through the place itself, or pass `&mut` straight into the call
+
+error[E220]: borrow types cannot appear in type arguments
+  --> main/main.kg:66:31
+   |
+66 | fn arrayOfRefs['a](xs: Array[&'a mut Shape]) -> Unit { //~ ERROR borrow types cannot appear in type arguments
+   |                               ^^^^^^^^^^^^
+
+error[E1050]: reading `&mut Shape` out of an index by value needs `Copy`
+  --> main/main.kg:67:11
+   |
+67 |     reset(xs[0], 8) //~ ERROR needs `Copy` //~ ERROR a `&mut` read out of an element is lent here
+   |           ^^^^
+   = help: borrow it with `&`, clone it, or take it with `.takeAt`
+
+error[E1503]: a `&mut` read out of an element is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+  --> main/main.kg:67:11
+   |
+67 |     reset(xs[0], 8) //~ ERROR needs `Copy` //~ ERROR a `&mut` read out of an element is lent here
+   |           ^^^^
+   = help: borrow the place at the call with `&mut`, or pass the value itself
+

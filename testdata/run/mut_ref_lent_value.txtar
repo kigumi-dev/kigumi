@@ -1,0 +1,95 @@
+-- src --
+type Shape = Circle(r: Int) | Square(side: Int) | Dot
+
+fn Shape.area(self) -> Int {
+    match self {
+        Circle(r) -> r
+        Square(side) -> side * 10
+        Dot -> 0
+    }
+}
+
+fn reset(s: &mut Shape, k: Int) -> Unit {
+    s = Circle(k)
+}
+
+fn forward(s: &mut Shape, k: Int) -> Unit {
+    reset(s, k)
+}
+
+fn forwardTwice(s: &mut Shape, k: Int) -> Unit {
+    forward(s, k)
+}
+
+fn forwardThrice(s: &mut Shape, k: Int) -> Unit {
+    forwardTwice((s), k)
+}
+
+fn readOnly(s: &mut Shape) -> Int {
+    s.area()
+}
+
+type Holder['a] = {
+    pub mut r &'a mut Shape
+}
+
+type Count['a] = {
+    pub mut n &'a mut Int
+}
+
+fn lend['a](h: Holder['a]) -> &'a mut Shape {
+    h.r
+}
+
+fn readField['a](h: Holder['a]) -> Int {
+    readOnly(h.r)
+}
+
+fn readReturned['a](h: Holder['a]) -> Int {
+    readOnly(lend(h))
+}
+
+fn setScalar(x: &mut Int, k: Int) -> Unit {
+    x = k
+}
+
+fn setScalarField['a](c: Count['a], k: Int) -> Unit {
+    setScalar(c.n, k)
+}
+
+let mut named: Shape = Dot
+forward(&mut named, 2)
+print "named=${named.area()}"
+
+let mut twice: Shape = Dot
+forwardTwice(&mut twice, 3)
+print "twice=${twice.area()}"
+
+let mut thrice: Shape = Dot
+forwardThrice(&mut thrice, 4)
+print "thrice=${thrice.area()}"
+
+let mut parened: Shape = Dot
+reset((&mut parened), 5)
+print "parened=${parened.area()}"
+
+let mut held: Shape = Square(6)
+let h = Holder { r: &mut held }
+print "field=${readField(h)}"
+
+let mut lent: Shape = Circle(7)
+let l = Holder { r: &mut lent }
+print "returned=${readReturned(l)}"
+
+let mut counted: Int = 1
+let c = Count { n: &mut counted }
+setScalarField(c, 8)
+print "scalarField=${counted}"
+-- stdout --
+named=2
+twice=3
+thrice=4
+parened=5
+field=60
+returned=7
+scalarField=8

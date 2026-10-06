@@ -28,6 +28,9 @@ func (r *Result) conforms(t, iface TypeID, from PackageID) conformResult {
 	return res
 }
 
+// Nonzero means the `&mut` cell fixpoint closed over the witness table before resolveRefCells finished sealing it.
+func (r *Result) ConformMissesAfterSeal() int { return len(r.conformMemo) - r.conformSealed }
+
 func (r *Result) computeConforms(t, iface TypeID, from PackageID) conformResult {
 	if t == TyPoison || iface == TyPoison {
 		return conformResult{ok: true}
@@ -138,6 +141,7 @@ func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, 
 		case Effects(gotNode.Flags)&Effects(wantNode.Flags)&(EffPure|EffNoalloc) != Effects(wantNode.Flags)&(EffPure|EffNoalloc):
 			why, generic = "`"+name+"` is not `"+effectsText(Effects(wantNode.Flags)&(EffPure|EffNoalloc))+"`", false
 		default:
+			r.noteWitness(req, cand)
 			return cand, "", false, candOwn
 		}
 	}

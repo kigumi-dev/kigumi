@@ -1,0 +1,94 @@
+-- src --
+type Shape = Circle(r: Int) | Dot
+
+fn Shape.area(self) -> Int {
+    match self {
+        Circle(r) -> r
+        Dot -> 0
+    }
+}
+
+type Counter = {
+    pub mut n Int
+}
+
+interface Thing {
+    fn tweak(mut self, s: &mut Shape) -> Unit
+}
+
+fn Shape.tweak(mut self, s: &mut Shape) -> Unit {
+    s = Dot
+}
+
+type Gauge = {
+    pub mut n Int
+}
+
+fn Gauge.tweak(mut self, s: &mut Shape) -> Unit {
+    self.n = self.n + s.area()
+}
+
+fn Counter.tweak(mut self, mut s: Int) -> Unit {
+    s = s + 1
+    self.n = self.n + s
+}
+
+fn tweak(mut x: Int) -> Int {
+    x = x + 1
+    x
+}
+
+interface Sink {
+    fn drain(mut self, s: &mut Shape) -> Unit
+}
+
+fn Shape.drain(mut self, s: &mut Shape) -> Unit {
+    s = Circle(self.area())
+}
+
+fn drain(s: &mut Shape) -> Int {
+    s.area()
+}
+
+fn tweakVia[T: Thing](t: &mut T, s: &mut Shape) -> Unit {
+    t.tweak(s)
+}
+
+let mut a: Shape = Circle(1)
+let mut b: Shape = Circle(2)
+a.tweak(&mut b)
+print "written=${b.area()}"
+
+let mut g: Shape = Circle(3)
+let mut h: Shape = Circle(4)
+tweakVia(&mut g, &mut h)
+print "generic=${h.area()}"
+
+print "scalarParam=${tweak(10)}"
+
+let mut c = Counter { n: 5 }
+c.tweak(3)
+print "plainParam=${c.n}"
+
+let mut d: Shape = Circle(6)
+let mut e: Shape = Circle(7)
+d.drain(&mut e)
+print "drained=${e.area()}"
+
+let mut f: Shape = Circle(8)
+let r = &mut f
+print "readOnly=${drain(r)}"
+
+let mut k: Shape = Circle(11)
+let rk = &mut k
+let mut gauge = Gauge { n: 1 }
+gauge.tweak(rk)
+print "unrelated=${gauge.n}"
+-- stdout --
+written=0
+generic=0
+scalarParam=11
+plainParam=9
+drained=6
+readOnly=8
+unrelated=12

@@ -21,7 +21,7 @@ func check(mod *Module) *Result {
 	r.checkImpls()
 	r.closeFieldParamForwarding()
 	r.checkBodies()
-	r.checkBorrowedReceivers()
+	r.resolveRefCells()
 	r.checkAccelKeys()
 	r.resolvePendingWitnessCallbacks()
 	// Must precede checkEffects: it appends hidden provider captures to
@@ -83,6 +83,7 @@ func newResult(mod *Module) *Result {
 		primEntity:      map[TypeID]EntityID{},
 		variantNames:    map[PackageID]map[string][]EntityID{},
 		conformMemo:     map[conformKey]conformResult{},
+		witnessSeen:     map[witnessPair]bool{},
 		localWitness:    map[EntityID][]EntityID{},
 		knownFn:         map[EntityID][]EntityID{},
 		knownFieldFn:    map[fieldFnKey][]EntityID{},

@@ -110,5 +110,15 @@ type Result struct {
 	// ctxValueRefs are fn-value refs pending a post-fixpoint CtxReal check.
 	ctxValueRefs    []ctxValueRef
 	selfWholeAssign map[EntityID]bool
-	borrowRecvCalls []borrowRecvCall
+	// refCell* decide `&mut` cell lowering (resolve_ref_cells.go); the fixpoint runs once every body is checked.
+	refCellRecvs              []refCellRecv
+	refCellSeeds              []EntityID
+	refCellEdges              []refCellEdge
+	refCellSites, refCellArgs []refCellSite
+	refCellValues             []refCellValue
+	refCellParams             map[EntityID]bool
+	selfRecvCalls             []selfRecvCall
+	witnessPairs              []witnessPair
+	witnessSeen               map[witnessPair]bool
+	conformSealed             int
 }

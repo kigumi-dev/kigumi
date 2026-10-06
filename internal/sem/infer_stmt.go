@@ -170,7 +170,8 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		c.compoundAssign(n, lhs, rhs, target)
 		return
 	}
-	if elem, ok := c.r.ScalarRefElem(target); ok && c.isIdentPlace(lhs) {
+	c.noteWholeRefAssign(lhs)
+	if elem, ok := c.r.MutRefElem(target); ok && c.isIdentPlace(lhs) {
 		target = elem
 	}
 	c.check(rhs, target)

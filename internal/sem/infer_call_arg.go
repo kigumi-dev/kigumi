@@ -18,6 +18,9 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 			c.argPlace[a] = true
 		}
 	}
+	// After the argument is synthesized: refBinding reads info.Uses.
+	defer c.noteRefArg(a, paramEnt, async)
+	c.noteRefPlaceArg(a, paramEnt, async)
 	aliasFile, aliasNode := c.r.paramAliasSite(paramEnt)
 	param = c.vars.resolve(param)
 	if !c.r.Types.ContainsVar(param) || c.t.Kind(a) == syntax.Lambda {

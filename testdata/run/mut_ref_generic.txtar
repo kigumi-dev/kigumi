@@ -1,0 +1,123 @@
+-- src --
+type Shape = Circle(r: Int) | Dot
+
+fn Shape.area(self) -> Int {
+    match self {
+        Circle(r) -> r
+        Dot -> 0
+    }
+}
+
+type Counter = {
+    pub mut n Int
+}
+
+interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+    fn size(self) -> Int
+}
+
+fn Shape.grow(mut self, k: Int) -> Unit {
+    self = Circle(self.area() + k)
+}
+
+fn Shape.size(self) -> Int {
+    self.area()
+}
+
+fn Counter.grow(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+fn Counter.size(self) -> Int {
+    self.n
+}
+
+interface Filler {
+    fn fill(self, out: &mut Shape) -> Unit
+}
+
+type Replacer = {
+    pub k Int
+}
+
+type Bumper = {
+    pub k Int
+}
+
+fn Replacer.fill(self, out: &mut Shape) -> Unit {
+    out = Circle(self.k)
+}
+
+fn Bumper.fill(self, out: &mut Shape) -> Unit {
+    out.grow(self.k)
+}
+
+fn growBorrowed[G: Grower](g: &mut G, k: Int) -> Unit {
+    g.grow(k)
+}
+
+fn growTwice[G: Grower](g: &mut G, k: Int) -> Unit {
+    growBorrowed(g, k)
+    growBorrowed(g, k)
+}
+
+fn growDyn(g: &mut Grower, k: Int) -> Unit {
+    g.grow(k)
+}
+
+fn fillVia[F: Filler](f: F, out: &mut Shape) -> Unit {
+    f.fill(out)
+}
+
+fn fillDyn(f: &Filler, out: &mut Shape) -> Unit {
+    f.fill(out)
+}
+
+let mut s: Shape = Circle(1)
+growBorrowed(&mut s, 4)
+print "adt=${s.size()}"
+
+let mut c = Counter { n: 1 }
+growBorrowed(&mut c, 4)
+print "record=${c.size()}"
+
+let mut chained: Shape = Circle(1)
+growTwice(&mut chained, 2)
+print "chained=${chained.size()}"
+
+let mut dyn: Grower = Circle(1)
+growDyn(&mut dyn, 5)
+print "dyn=${dyn.size()}"
+
+let mut dynRec: Grower = Counter { n: 1 }
+growDyn(&mut dynRec, 5)
+print "dynRecord=${dynRec.size()}"
+
+let mut outA: Shape = Circle(1)
+fillVia(Replacer { k: 20 }, &mut outA)
+print "replace=${outA.size()}"
+
+let mut outB: Shape = Circle(1)
+fillVia(Bumper { k: 2 }, &mut outB)
+print "bump=${outB.size()}"
+
+let fillerA: Filler = Replacer { k: 21 }
+let mut outC: Shape = Circle(1)
+fillDyn(&fillerA, &mut outC)
+print "replaceDyn=${outC.size()}"
+
+let fillerB: Filler = Bumper { k: 3 }
+let mut outD: Shape = Circle(1)
+fillDyn(&fillerB, &mut outD)
+print "bumpDyn=${outD.size()}"
+-- stdout --
+adt=5
+record=5
+chained=5
+dyn=6
+dynRecord=6
+replace=20
+bump=3
+replaceDyn=21
+bumpDyn=4

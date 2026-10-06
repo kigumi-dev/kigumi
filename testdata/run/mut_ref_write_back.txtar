@@ -1,0 +1,196 @@
+-- src --
+type Shape = Circle(r: Int) | Square(side: Int) | Dot
+
+fn Shape.area(self) -> Int {
+    match self {
+        Circle(r) -> r
+        Square(side) -> side * 10
+        Dot -> 0
+    }
+}
+
+fn size(s: &Shape) -> Int {
+    s.area()
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Holder = {
+    pub mut shape Shape
+    pub mut name String
+}
+
+type Nest = {
+    pub mut inner Holder
+}
+
+type Marked = Shape
+
+fn Shape.flatten(mut self) -> Unit {
+    self = Dot
+}
+
+fn Shape.grow(mut self, k: Int) -> Unit {
+    self = match self {
+        Circle(r) -> Circle(r + k)
+        Square(side) -> Square(side + k)
+        Dot -> Circle(k)
+    }
+}
+
+fn reset(s: &mut Shape, k: Int) -> Unit {
+    s = Circle(k)
+}
+
+fn forward(s: &mut Shape, k: Int) -> Unit {
+    reset(s, k)
+}
+
+fn forwardTwice(s: &mut Shape, k: Int) -> Unit {
+    forward(s, k)
+    s.grow(1)
+}
+
+fn viaRecv(s: &mut Shape) -> Unit {
+    s.flatten()
+}
+
+fn Shape.growTwice(mut self, k: Int) -> Unit {
+    self.grow(k)
+    self.grow(k)
+}
+
+fn Marked.growInner(mut self, k: Int) -> Unit {
+    self.value.grow(k)
+}
+
+fn viaTransitive(s: &mut Shape, k: Int) -> Unit {
+    s.growTwice(k)
+}
+
+fn viaDefinedRecv(m: &mut Marked, k: Int) -> Unit {
+    m.growInner(k)
+}
+
+fn viaDefinedValue(m: &mut Marked, k: Int) -> Unit {
+    m.value.grow(k)
+}
+
+fn viaDefinedAssign(m: &mut Marked, k: Int) -> Unit {
+    m.value = Circle(k)
+}
+
+fn readOnly(s: &mut Shape) -> Int {
+    s.area()
+}
+
+fn fieldOnly(h: &mut Holder) -> Unit {
+    h.name = "written"
+}
+
+fn rename(s: &mut String) -> Unit {
+    s = "renamed"
+}
+
+fn drain(o: &mut Int?) -> Int {
+    o.take() || 0
+}
+
+fn swapRes(r: &mut Res, id: Int) -> Unit {
+    r = Res { id: id }
+}
+
+fn loopReset(s: &mut Shape, n: Int) -> Unit {
+    for i in 0..n {
+        reset(s, i)
+    }
+}
+
+let mut local: Shape = Circle(5)
+reset(&mut local, 9)
+print "local=${size(&local)}"
+
+let mut chained: Shape = Circle(5)
+forwardTwice(&mut chained, 3)
+print "chained=${size(&chained)}"
+
+let mut recv: Shape = Circle(5)
+viaRecv(&mut recv)
+print "recv=${size(&recv)}"
+
+let mut kept: Shape = Square(4)
+print "readOnly=${readOnly(&mut kept)} ${size(&kept)}"
+
+let mut h = Holder { shape: Circle(1), name: "h" }
+reset(&mut h.shape, 7)
+fieldOnly(&mut h)
+print "field=${size(&h.shape)} ${h.name}"
+
+let mut n = Nest { inner: Holder { shape: Circle(1), name: "n" } }
+reset(&mut n.inner.shape, 8)
+print "nested=${size(&n.inner.shape)}"
+
+let mut arr = Array.of[Shape](Circle(1), Dot, Square(2))
+reset(&mut arr[1], 4)
+viaRecv(&mut arr[2])
+print "index=${size(&arr[0])} ${size(&arr[1])} ${size(&arr[2])}"
+
+let mut m = Marked(Circle(2))
+reset(&mut m.value, 6)
+print "defined=${size(&m.value)}"
+
+let mut t: Shape = Circle(1)
+viaTransitive(&mut t, 2)
+print "transitive=${size(&t)}"
+
+let mut dr = Marked(Circle(1))
+viaDefinedRecv(&mut dr, 3)
+print "definedRecv=${size(&dr.value)}"
+
+let mut dv = Marked(Circle(1))
+viaDefinedValue(&mut dv, 4)
+print "definedValue=${size(&dv.value)}"
+
+let mut da = Marked(Circle(1))
+viaDefinedAssign(&mut da, 6)
+print "definedAssign=${size(&da.value)}"
+
+let mut text = "before"
+rename(&mut text)
+print "string=${text}"
+
+let mut opt: Int? = Some(3)
+print "option=${drain(&mut opt)} ${opt is None}"
+
+let mut looped: Shape = Dot
+loopReset(&mut looped, 4)
+print "loop=${size(&looped)}"
+
+let mut r = Res { id: 1 }
+swapRes(&mut r, 2)
+print "res=${r.id}"
+-- stdout --
+local=9
+chained=4
+recv=0
+readOnly=40 40
+field=7 written
+nested=8
+index=1 4 0
+defined=6
+transitive=5
+definedRecv=4
+definedValue=5
+definedAssign=6
+string=renamed
+option=3 true
+loop=3
+drop 1
+res=2
+drop 2
