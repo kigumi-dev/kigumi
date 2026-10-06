@@ -30,8 +30,15 @@ func modFileOf(recs []record, module bool) (ModFile, []diag.Diagnostic) {
 			if mf.Kigumi == "" {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Module needs `kigumi`, the toolchain version the module is written for"))
 			}
+			if mf.Zig = r.Fields["zig"]; mf.Zig != "" {
+				mf.ZigSpan = r.Span
+			}
 		case "Kigumi":
 			mf.Kigumi = r.Fields["version"]
+		case "Zig":
+			if mf.Zig = r.Fields["version"]; mf.Zig != "" {
+				mf.ZigSpan = r.Span
+			}
 		case "Require":
 			if r.Fields["version"] == "" {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Require needs a version"))
@@ -66,6 +73,11 @@ func modFileOf(recs []record, module bool) (ModFile, []diag.Diagnostic) {
 			ds = append(ds, diag.Errorf(diag.Location{Span: recs[0].Span}, err.Error()))
 		} else if !atLeast {
 			ds = append(ds, diag.Errorf(diag.Location{Span: recs[0].Span}, fmt.Sprintf("this module needs kigumi %s; this toolchain is %s", mf.Kigumi, ToolchainVersion)))
+		}
+	}
+	if mf.Zig != "" {
+		if err := ValidZigVersion(mf.Zig); err != nil {
+			ds = append(ds, diag.Errorf(diag.Location{Span: mf.ZigSpan}, err.Error()))
 		}
 	}
 	if module && !seenModule {

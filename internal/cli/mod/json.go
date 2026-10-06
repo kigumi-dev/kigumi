@@ -16,6 +16,7 @@ type manifestJSON struct {
 	Toolchain     version.Provenance    `json:"toolchain"`
 	Name          string                `json:"name"`
 	Kigumi        string                `json:"kigumi"`
+	Zig           string                `json:"zig,omitempty"`
 	Requires      []requireJSON         `json:"requires"`
 	Links         []driver.Link         `json:"links"`
 	Sources       []driver.NativeSource `json:"sources"`
@@ -58,7 +59,7 @@ func jsonCmd(root *string) *cobra.Command {
 			if err != nil {
 				return errors.WrapErr(err, "read local overrides")
 			}
-			out := manifestJSON{FormatVersion: version.ModJSONFormatVersion, Toolchain: version.Current(), Name: mf.Name, Kigumi: mf.Kigumi, Requires: []requireJSON{}, Links: mf.Links, Sources: mf.Sources, Local: local.Replaces, Lock: map[string]lockJSON{}}
+			out := manifestJSON{FormatVersion: version.ModJSONFormatVersion, Toolchain: version.Current(), Name: mf.Name, Kigumi: mf.Kigumi, Zig: mf.Zig, Requires: []requireJSON{}, Links: mf.Links, Sources: mf.Sources, Local: local.Replaces, Lock: map[string]lockJSON{}}
 			for _, r := range mf.Requires {
 				out.Requires = append(out.Requires, requireJSON{Name: r.Name, Version: r.Version, URL: r.URL})
 			}

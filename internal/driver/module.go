@@ -4,9 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
-	"kigumi/internal/schema"
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
 )
@@ -67,6 +65,9 @@ type Module struct {
 	deny         []string
 	ceiling      string
 	artifactName string
+	// explicitZig is $KIGUMI_ZIG (LoadOptions.ZigPath), read only by
+	// internal/cli; ResolveZig tries it before PATH.
+	explicitZig string
 }
 
 // LoadOptions controls which files become part of the module.
@@ -97,12 +98,15 @@ type LoadOptions struct {
 	// Policy governs the release predicate: under Release a local replacement or
 	// unlocked dependency-bearing script fails the load instead of only warning.
 	Policy BuildPolicy
+	// ZigPath is $KIGUMI_ZIG; internal/cli reads the environment and passes
+	// it in here. "" resolves zig from PATH instead.
+	ZigPath string
 }
 
 // LoadModule parses every package under root and, when configured, the std
 // stubs. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
 func LoadModule(root string, opts LoadOptions) (*Module, error) {
-	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName}
+	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath}
 	if m.target.OS == "" {
 		m.target = HostTarget()
 	}
@@ -171,30 +175,4 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 	}
 	sort.Strings(m.Order)
 	return m, nil
-}
-
-// OwnPackages satisfies schema.ModuleScope: m's own packages (never std or
-// a dependency), in Order.
-func (m *Module) OwnPackages() []schema.OwnPackage {
-	var out []schema.OwnPackage
-	for _, path := range m.Order {
-		p := m.Packages[path]
-		if p.Std || p.Module != "" {
-			continue
-		}
-		out = append(out, schema.OwnPackage{Path: path, Files: p.Files})
-	}
-	return out
-}
-
-// Rel strips the module name from one of its own package paths, giving the
-// directory relative to the root ("cmd/app"); other paths pass through.
-func (m *Module) Rel(pkgPath string) string {
-	if m.Name == "" {
-		return pkgPath
-	}
-	if pkgPath == m.Name {
-		return ""
-	}
-	return strings.TrimPrefix(pkgPath, m.Name+"/")
 }

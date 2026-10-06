@@ -36,7 +36,8 @@ func TestExampleModules(t *testing.T) {
 }
 
 func runExample(t *testing.T, root, std string, meta driver.ExampleMeta) {
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Test: true})
+	zigPath := os.Getenv("KIGUMI_ZIG")
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Test: true, ZigPath: zigPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ func runExample(t *testing.T, root, std string, meta driver.ExampleMeta) {
 	}
 	stdin, _ := os.ReadFile(filepath.Join(root, "stdin.txt"))
 
-	plain, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	plain, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, ZigPath: zigPath})
 	if err != nil {
 		t.Fatal(err)
 	}

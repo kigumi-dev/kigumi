@@ -1,4 +1,5 @@
 Module {
     name: "testing"
     kigumi: "0.1"
+    zig: "0.17.0"
 }

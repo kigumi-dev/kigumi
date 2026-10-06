@@ -3,7 +3,6 @@ package driver
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -34,8 +33,11 @@ func (m *Module) addHeaders(dir string, mf ModFile) error {
 	if len(mf.Headers) == 0 {
 		return nil
 	}
-	zigPath, err := exec.LookPath("zig")
+	zigPath, err := m.ResolveZig()
 	if err != nil {
+		return err
+	}
+	if zigPath == "" {
 		return fmt.Errorf("zig not found (needed to import %s's Header records); install zig or remove them", byName(mf))
 	}
 	cacheDir, err := HeaderCacheDir()

@@ -34,8 +34,12 @@ func PlanJSON(rg *ResolvedGraph, p *BuildProgram) string {
 		Order            []string                   `json:"order"`
 		DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
 	}{FormatVersion: version.BuildPlanFormatVersion, Toolchain: version.Current(), NativeToolchain: CCompiler(), Request: rg.Graph.Request, Secrets: rg.Graph.Secrets, Files: rg.Graph.Files, ToolSteps: rg.Graph.ToolSteps, Artifacts: []artifact{}, Order: rg.Order}
+	zigVersion := ""
 	if p != nil {
 		plan.DeriveProvenance = schema.BuildProvenance(p.Res, nil)
+		if cc, err := CCompilerFor(p.Module); err == nil {
+			plan.NativeToolchain, zigVersion = cc, ZigVersionOf(cc)
+		}
 	}
 	for i, f := range rg.Graph.Frameworks {
 		provider := ""
@@ -45,7 +49,7 @@ func PlanJSON(rg *ResolvedGraph, p *BuildProgram) string {
 		plan.Frameworks = append(plan.Frameworks, resolvedFramework{FrameworkRef: f, Provider: provider})
 	}
 	for i, a := range rg.Graph.Artifacts {
-		plan.Artifacts = append(plan.Artifacts, artifact{a, rg.Targets[i], CurrentFingerprint(rg.Targets[i])})
+		plan.Artifacts = append(plan.Artifacts, artifact{a, rg.Targets[i], CurrentFingerprint(rg.Targets[i], zigVersion)})
 	}
 	out, _ := json.MarshalIndent(plan, "", "  ")
 	return string(out) + "\n"

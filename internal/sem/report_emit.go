@@ -88,6 +88,18 @@ func FillTemplate(template string, args ...any) string {
 	return fillTemplate(template, func(a any) string { return fmt.Sprint(a) }, args)
 }
 
+// FillCode is FillTemplate applied to a whole Code: message holes consume
+// args first, the same way diagSpan splits them, and help takes the rest.
+func FillCode(c Code, args ...any) (msg, help string) {
+	fmtArg := func(a any) string { return fmt.Sprint(a) }
+	used := strings.Count(c.Template, "{")
+	msg = fillTemplate(c.Template, fmtArg, args)
+	if c.Help != "" {
+		help = fillTemplate(c.Help, fmtArg, args[min(used, len(args)):])
+	}
+	return msg, help
+}
+
 // Plural is plural, exported for the same reason as FillTemplate.
 func Plural(n int) string { return plural(n) }
 

@@ -69,7 +69,7 @@ func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer, policy
 	if len(policy) > 0 {
 		pol = policy[0]
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: StdRoot(cmd), Test: test, Entry: entry, NoLocal: noLocal || LocalOff(), Target: tgt, Policy: pol})
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: StdRoot(cmd), Test: test, Entry: entry, NoLocal: noLocal || LocalOff(), Target: tgt, Policy: pol, ZigPath: ZigPath()})
 	if err != nil {
 		return nil, errors.WrapErrf(err, "load module %s", root)
 	}

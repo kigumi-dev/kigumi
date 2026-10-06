@@ -2,6 +2,7 @@
 package doctor
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -9,6 +10,7 @@ import (
 	"kigumi/internal/cli/shared"
 	"kigumi/internal/driver"
 	"kigumi/internal/version"
+	"kigumi/internal/zigtool"
 )
 
 // Field is one resolved value, its source, and whether it is usable.
@@ -24,6 +26,7 @@ type Report struct {
 	Std       Field `json:"std"`
 	Target    Field `json:"target"`
 	CCompiler Field `json:"cCompiler"`
+	Zig       Field `json:"zig"`
 	ModCache  Field `json:"modCache"`
 	Formats   struct {
 		Schema    int `json:"schema"`
@@ -39,6 +42,7 @@ func Build(cmd *cobra.Command) Report {
 	r.Std = stdField(cmd)
 	r.Target = targetField(cmd)
 	r.CCompiler = ccompilerField()
+	r.Zig = zigField()
 	r.ModCache = modCacheField()
 	r.Formats.Schema = version.SchemaFormatVersion
 	r.Formats.ModJSON = version.ModJSONFormatVersion
@@ -79,6 +83,33 @@ func ccompilerField() Field {
 		name += " " + argv[1]
 	}
 	return Field{Value: name, Source: "PATH (zig cc, then clang)", Status: "ok"}
+}
+
+// zigField reads mod.kg directly; no std root is available here to load a full module.
+func zigField() Field {
+	mf, _, _ := driver.ReadModFile(".")
+	explicit := shared.ZigPath()
+	source := "PATH"
+	if explicit != "" {
+		source = "$KIGUMI_ZIG"
+	}
+	c := zigtool.CheckZig(explicit, mf.Zig)
+	switch {
+	case c.Path == "":
+		status := "missing"
+		if mf.Zig == "" {
+			return Field{Source: source, Status: status}
+		}
+		return Field{Value: fmt.Sprintf("pin %s not resolved: %s", mf.Zig, c.Err), Source: source, Status: status}
+	case mf.Zig == "":
+		return Field{Value: c.Path, Source: source, Status: "ok"}
+	case c.Mismatch:
+		return Field{Value: fmt.Sprintf("%s (%s, pin %s not satisfied)", c.Path, c.Version, mf.Zig), Source: source, Status: "mismatch"}
+	case c.Err != nil:
+		return Field{Value: fmt.Sprintf("%s (version unknown: %s; pin %s)", c.Path, c.Err, mf.Zig), Source: source, Status: "unknown"}
+	default:
+		return Field{Value: fmt.Sprintf("%s (%s, satisfies pin %s)", c.Path, c.Version, mf.Zig), Source: source, Status: "ok"}
+	}
 }
 
 func modCacheField() Field {

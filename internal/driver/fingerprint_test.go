@@ -24,6 +24,7 @@ func TestFingerprintMismatch(t *testing.T) {
 		{"target", driver.ArtifactFingerprint{CompilerRelease: base.CompilerRelease, CompilerCommit: base.CompilerCommit, Target: "aarch64-linux", AbiRevision: base.AbiRevision}},
 		{"abi", driver.ArtifactFingerprint{CompilerRelease: base.CompilerRelease, CompilerCommit: base.CompilerCommit, Target: base.Target, AbiRevision: base.AbiRevision + 1}},
 		{"dirty", driver.ArtifactFingerprint{CompilerRelease: base.CompilerRelease, CompilerCommit: base.CompilerCommit, CompilerDirty: true, Target: base.Target, AbiRevision: base.AbiRevision}},
+		{"zig", driver.ArtifactFingerprint{CompilerRelease: base.CompilerRelease, CompilerCommit: base.CompilerCommit, Target: base.Target, AbiRevision: base.AbiRevision, ZigVersion: "0.17.0"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -75,7 +76,11 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if ok, err := driver.BuildWith(m, archive, &buildErr, driver.BuildOptions{Target: target}); err != nil || !ok {
 		t.Fatalf("build: %v\n%s", err, buildErr.String())
 	}
-	want := driver.CurrentFingerprint(target)
+	cc, err := driver.CCompilerFor(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := driver.CurrentFingerprint(target, driver.ZigVersionOf(cc))
 	got, ok, err := driver.ReadFingerprintSidecar(archive)
 	if err != nil || !ok {
 		t.Fatalf("expected a fingerprint sidecar: ok=%v err=%v", ok, err)

@@ -14,6 +14,9 @@ import (
 // written for a newer toolchain is refused instead of misparsed.
 const ToolchainVersion = version.Toolchain
 
+// ZigVersion is the zig version `kigumi mod init` pins a new module to.
+const ZigVersion = version.Zig
+
 // knownHosts are forges where the first three path segments name the repo;
 // elsewhere a `.git` segment marks the boundary.
 var knownHosts = map[string]bool{"github.com": true, "gitlab.com": true, "bitbucket.org": true, "codeberg.org": true, "sr.ht": true}

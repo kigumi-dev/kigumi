@@ -19,7 +19,7 @@ func WriteManifest(root, name string) error {
 		return fmt.Errorf("%s already exists", path)
 	}
 	var sb strings.Builder
-	writeRecord(&sb, "Module", "name", name, "kigumi", ToolchainVersion)
+	writeRecord(&sb, "Module", "name", name, "kigumi", ToolchainVersion, "zig", ZigVersion)
 	return writeFileAtomic(path, []byte(sb.String()), 0o644)
 }
 

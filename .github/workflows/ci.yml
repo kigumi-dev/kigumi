@@ -5,6 +5,17 @@ on:
   pull_request:
 
 jobs:
+  zig-version:
+    name: resolve pinned zig version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read
+        run: echo "version=$(cat ZIG_VERSION)" >> "$GITHUB_OUTPUT"
+
   hermetic:
     name: go test (no C toolchain)
     runs-on: ubuntu-latest
@@ -51,6 +62,7 @@ jobs:
 
   aot:
     name: AOT with pinned zig
+    needs: zig-version
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
@@ -60,7 +72,7 @@ jobs:
           go-version: "1.26"
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.2
+          version: ${{ needs.zig-version.outputs.version }}
       - run: go test -timeout 60m ./internal/driver/
       - run: KIGUMI_CFLAGS=-DKIGUMI_RC_CHECK go test -timeout 60m ./internal/driver/
       - run: KIGUMI_CFLAGS='-fsanitize=address,undefined -g' go test -timeout 60m -run 'TestAotCorpus|TestAotFFI|TestAotDL|TestAotAsm' ./internal/driver/
@@ -69,6 +81,7 @@ jobs:
 
   benchmarks:
     name: benchmarks (observation only)
+    needs: zig-version
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -78,7 +91,7 @@ jobs:
           go-version: "1.26"
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.2
+          version: ${{ needs.zig-version.outputs.version }}
       # The Go microbenchmarks, as Go's own versioned test2json.
       - run: go test -run '^$' -bench . -benchtime=1x -json ./internal/syntax/ ./internal/sem/ ./internal/mir/ ./internal/vm/ ./internal/llgen/ > bench-micro.json
       # The process-level runner, as versioned JSON Lines.
@@ -110,8 +123,9 @@ jobs:
   # The reusable workflow other Kigumi repositories call, exercised on an
   # example module with the toolchain built from this checkout.
   module:
+    needs: zig-version
     uses: ./.github/workflows/kigumi-test.yml
     with:
       module-root: examples/repostat
       kigumi-version: local
-      zig-version: 0.15.2
+      zig-version: ${{ needs.zig-version.outputs.version }}

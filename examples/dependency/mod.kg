@@ -1,6 +1,7 @@
 Module {
     name: "dependency"
     kigumi: "0.1"
+    zig: "0.17.0"
 }
 
 // A dependency is a module; mod.local.kg points this one at a directory in this repo.

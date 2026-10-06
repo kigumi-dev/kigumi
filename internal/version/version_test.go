@@ -1,6 +1,10 @@
 package version
 
-import "testing"
+import (
+	"os"
+	"strings"
+	"testing"
+)
 
 func TestCurrentReportsRelease(t *testing.T) {
 	p := Current()
@@ -19,5 +23,15 @@ func TestWrapStampsFormatVersionAndKind(t *testing.T) {
 	}
 	if e.Toolchain.Release != Release {
 		t.Errorf("Wrap did not stamp the running release")
+	}
+}
+
+func TestZigVersionFile(t *testing.T) {
+	b, err := os.ReadFile("../../ZIG_VERSION")
+	if err != nil {
+		t.Fatalf("read ZIG_VERSION: %v", err)
+	}
+	if got := strings.TrimSpace(string(b)); got != Zig {
+		t.Errorf("ZIG_VERSION is %q, Zig constant is %q; keep them in sync", got, Zig)
 	}
 }

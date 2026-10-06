@@ -41,6 +41,18 @@ func ValidModuleName(name string) error {
 
 var semverTag = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
 
+// zigVersionTag is semverTag without the `v` prefix: `zig version` prints
+// a bare SemVer (a release like "0.17.0", or a dev snapshot's -dev./+hash).
+var zigVersionTag = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$`)
+
+// ValidZigVersion checks a mod.kg `zig` pin against the shape `zig version` itself prints.
+func ValidZigVersion(v string) error {
+	if !zigVersionTag.MatchString(v) {
+		return fmt.Errorf("zig version %q is not `<major>.<minor>.<patch>[-prerelease][+build]`, the shape `zig version` prints", v)
+	}
+	return nil
+}
+
 // ValidVersion accepts a `v`-prefixed SemVer 2.0 tag or a commit hash.
 func ValidVersion(v string) error {
 	if IsCommitHash(v) {

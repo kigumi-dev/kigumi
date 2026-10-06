@@ -18,6 +18,9 @@ func LocalOff() bool { return os.Getenv("KIGUMI_LOCAL") == "off" }
 // NoAccel reports KIGUMI_NO_ACCEL, which runs std bodies in Kigumi.
 func NoAccel() bool { return os.Getenv("KIGUMI_NO_ACCEL") != "" }
 
+// ZigPath returns KIGUMI_ZIG, an explicit zig binary resolved before PATH.
+func ZigPath() string { return os.Getenv("KIGUMI_ZIG") }
+
 // Color decides whether output to f gets ANSI colors: --color always or
 // never settle it, otherwise NO_COLOR (no-color.org) turns it off,
 // CLICOLOR_FORCE turns it on, and a dumb terminal or a non-terminal

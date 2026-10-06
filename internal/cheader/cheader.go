@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"kigumi/internal/zigtool"
 )
 
 // Options selects one header import.
@@ -97,7 +99,7 @@ func Import(opts Options) (Result, error) {
 	if depRun == nil {
 		depRun = RunZigDeps
 	}
-	zigDigest, err := zigFingerprint(opts.ZigPath)
+	zigDigest, err := zigtool.Fingerprint(opts.ZigPath)
 	if err != nil {
 		return Result{}, err
 	}

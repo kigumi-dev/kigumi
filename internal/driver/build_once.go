@@ -27,7 +27,10 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if err != nil || !ok {
 		return ok, err
 	}
-	cc := CCompiler()
+	cc, err := CCompilerFor(m)
+	if err != nil {
+		return false, err
+	}
 	if cc == nil {
 		return false, fmt.Errorf("no C compiler found (need zig or clang)")
 	}
@@ -59,7 +62,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	}
 	inputs = append(inputs, m.Sources...)
 	// llgen emits no target triple, so the compiler always "overrides" one
-	// from the host; only that expected warning is silenced.
+	// from the host; only that expected warning is silenced. -O1 also
+	// keeps zig cc out of its Debug mode, which instruments C with UBSan
+	// calls freestanding has no runtime for.
 	args := append(cc[1:], "-Wno-override-module", "-O1")
 	if t.compileTriple() != "" {
 		args = append(args, "-target", t.compileTriple())
@@ -80,12 +85,12 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if t.Bare() {
 		compileFlags, _ := splitArchiveCFlags(opts.CFlags)
 		args = append(args, compileFlags...)
-		reportStaleFingerprint(out, t, stderr)
+		fp := CurrentFingerprint(t, ZigVersionOf(cc))
+		reportStaleFingerprint(out, fp, stderr)
 		ok, err := buildArchive(cc, args, inputs, dir, out, opts.ccEnv, stderr)
 		if err != nil || !ok {
 			return ok, err
 		}
-		fp := CurrentFingerprint(t)
 		if a := m.LastAnalysis(); a != nil {
 			fp.DeriveProvenance = a.Provenance
 		}

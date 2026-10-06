@@ -25,6 +25,9 @@ func TestParseModFile(t *testing.T) {
 	if mf.Name != "github.com/acme/app" || mf.Kigumi != "0.1" || len(mf.Requires) != 1 || mf.Requires[0] != (driver.Require{Name: "github.com/acme/greet", Version: "v0.1.0"}) || len(mf.Links) != 1 || mf.Sources[0] != (driver.NativeSource{Path: "bridge/x.c"}) || mf.Headers[0] != (driver.HeaderImport{Path: "vendor/x.h", Package: "x"}) {
 		t.Fatalf("parsed %+v", mf)
 	}
+	if mf.Zig != "" {
+		t.Fatalf("zig is optional and was not given: %+v", mf)
+	}
 	bad := map[string]string{
 		"Module { name: \"a\" }\n":                                                                   "needs `kigumi`",
 		"Module { name: \"a\", kigumi: \"9.0\" }\n":                                                  "needs kigumi 9.0",
@@ -58,6 +61,28 @@ func TestParseModFile(t *testing.T) {
 		if !found {
 			t.Errorf("%q: want %q, got %+v", src, want, ds)
 		}
+	}
+}
+
+func TestParseModFileZig(t *testing.T) {
+	onModule := "Module { name: \"a\", kigumi: \"0.1\", zig: \"0.17.0\" }\n"
+	mf, ds := driver.ParseModFile(token.NewFile("mod.kg", []byte(onModule)))
+	if len(ds) != 0 || mf.Zig != "0.17.0" {
+		t.Fatalf("zig on Module: mf=%+v ds=%+v", mf, ds)
+	}
+	standalone := "Module { name: \"a\", kigumi: \"0.1\" }\nZig { version: \"0.17.0\" }\n"
+	mf, ds = driver.ParseModFile(token.NewFile("mod.kg", []byte(standalone)))
+	if len(ds) != 0 || mf.Zig != "0.17.0" {
+		t.Fatalf("standalone Zig record: mf=%+v ds=%+v", mf, ds)
+	}
+	bad := "Module { name: \"a\", kigumi: \"0.1\", zig: \"not-a-version\" }\n"
+	_, ds = driver.ParseModFile(token.NewFile("mod.kg", []byte(bad)))
+	found := false
+	for _, d := range ds {
+		found = found || strings.Contains(d.Msg, "<major>.<minor>.<patch>")
+	}
+	if !found {
+		t.Errorf("a malformed zig pin should be rejected, got %+v", ds)
 	}
 }
 
@@ -118,6 +143,9 @@ func TestManifestEdit(t *testing.T) {
 	mf, _, err := driver.ReadModFile(root)
 	if err != nil || mf.Kigumi != driver.ToolchainVersion {
 		t.Fatalf("init should record the toolchain version: %+v %v", mf, err)
+	}
+	if mf.Zig != driver.ZigVersion {
+		t.Fatalf("init should pin the current default zig version: %+v", mf)
 	}
 	os.WriteFile(filepath.Join(root, "mod.kg"), manifest("app", "\n// keep me\nRequire {\n    name: \"a\"\n    version: \"v1.0.0\"\n    url: \"u\"\n}\n"), 0o644)
 	if err := driver.AppendRequire(root, driver.Require{Name: "github.com/acme/b", Version: "v2.0.0"}); err != nil {

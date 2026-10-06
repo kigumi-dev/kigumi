@@ -6,7 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+
+	"kigumi/internal/zigtool"
 )
 
 // Runner executes `zig translate-c` and returns its stdout; a test can substitute
@@ -30,24 +31,14 @@ func RunZig(zigPath, target, headerPath string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// zigFingerprint identifies the zig binary by mtime and size, not `zig version`,
-// so a cache hit costs one stat call and never invokes zig.
-func zigFingerprint(zigPath string) (string, error) {
-	st, err := os.Stat(zigPath)
-	if err != nil {
-		return "", fmt.Errorf("stat zig at %s: %w", zigPath, err)
-	}
-	return fmt.Sprintf("%d-%d", st.Size(), st.ModTime().UnixNano()), nil
-}
-
-// zigVersionString is informational only, unlike zigFingerprint: never
+// zigVersionString is informational only, unlike zigtool.Fingerprint: never
 // part of the cache key, so a lookup never depends on it succeeding.
 func zigVersionString(zigPath string) string {
-	out, err := exec.Command(zigPath, "version").Output()
+	v, err := zigtool.Version(zigPath)
 	if err != nil {
 		return ""
 	}
-	return strings.TrimSpace(string(out))
+	return v
 }
 
 // translateBoth runs translate-c on header and, for the baseline Generate

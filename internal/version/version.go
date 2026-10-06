@@ -10,6 +10,10 @@ const Toolchain = "0.1"
 // Release is the human-facing release version.
 const Release = "0.1.0"
 
+// Zig is the version std and the examples are pinned to; ZIG_VERSION at the
+// repository root mirrors it for CI, which has no Go toolchain built yet.
+const Zig = "0.17.0"
+
 // Format versions for machine-readable outputs: each bumps on its own when
 // that output's meaning changes; adding a field never bumps it.
 const (

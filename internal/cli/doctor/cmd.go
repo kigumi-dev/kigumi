@@ -47,6 +47,7 @@ func renderText(w io.Writer, r Report) {
 	printField(w, "std", r.Std)
 	printField(w, "target", r.Target)
 	printField(w, "c compiler", r.CCompiler)
+	printField(w, "zig", r.Zig)
 	printField(w, "mod cache", r.ModCache)
 	fmt.Fprintf(w, "format versions: schema=%d modJson=%d buildPlan=%d testEvent=%d\n",
 		r.Formats.Schema, r.Formats.ModJSON, r.Formats.BuildPlan, r.Formats.TestEvent)

@@ -18,6 +18,8 @@ type ArtifactFingerprint struct {
 	CompilerDirty   bool   `json:"compilerDirty"`
 	Target          string `json:"target"`
 	AbiRevision     int    `json:"abiRevision"`
+	// ZigVersion is "" for a clang build, or a zig build with no pin to check.
+	ZigVersion string `json:"zigVersion,omitempty"`
 	// FingerprintMismatch never compares DeriveProvenance.
 	DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
 }
@@ -39,10 +41,10 @@ func targetIdentity(t Target) string {
 }
 
 // CurrentFingerprint is this toolchain's own fingerprint for a build
-// targeting t.
-func CurrentFingerprint(t Target) ArtifactFingerprint {
+// targeting t; zigVersion comes from ZigVersionOf.
+func CurrentFingerprint(t Target, zigVersion string) ArtifactFingerprint {
 	p := version.Current()
-	return ArtifactFingerprint{CompilerRelease: p.Release, CompilerCommit: p.Commit, CompilerDirty: p.Dirty, Target: targetIdentity(t), AbiRevision: version.AbiRevision}
+	return ArtifactFingerprint{CompilerRelease: p.Release, CompilerCommit: p.Commit, CompilerDirty: p.Dirty, Target: targetIdentity(t), AbiRevision: version.AbiRevision, ZigVersion: zigVersion}
 }
 
 // FingerprintMismatch lists, one reason per differing axis, why got was not
@@ -58,7 +60,17 @@ func FingerprintMismatch(got, want ArtifactFingerprint) []string {
 	if got.AbiRevision != want.AbiRevision {
 		reasons = append(reasons, fmt.Sprintf("native ABI revision %d, this toolchain uses revision %d", got.AbiRevision, want.AbiRevision))
 	}
+	if got.ZigVersion != want.ZigVersion {
+		reasons = append(reasons, fmt.Sprintf("built with zig %s, this build resolves zig %s", orNone(got.ZigVersion), orNone(want.ZigVersion)))
+	}
 	return reasons
+}
+
+func orNone(v string) string {
+	if v == "" {
+		return "none"
+	}
+	return v
 }
 
 // FingerprintSidecarPath names the metadata file WriteFingerprintSidecar
@@ -93,12 +105,12 @@ func ReadFingerprintSidecar(out string) (fp ArtifactFingerprint, ok bool, err er
 
 // reportStaleFingerprint never blocks the rebuild; it only surfaces the
 // mismatch to stderr.
-func reportStaleFingerprint(out string, t Target, stderr io.Writer) {
+func reportStaleFingerprint(out string, want ArtifactFingerprint, stderr io.Writer) {
 	prev, ok, err := ReadFingerprintSidecar(out)
 	if err != nil || !ok {
 		return
 	}
-	if reasons := FingerprintMismatch(prev, CurrentFingerprint(t)); len(reasons) > 0 {
+	if reasons := FingerprintMismatch(prev, want); len(reasons) > 0 {
 		fmt.Fprintf(stderr, "note: rebuilding %s: the existing artifact is incompatible (%s)\n", out, reasons[0])
 	}
 }
