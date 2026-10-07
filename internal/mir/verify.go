@@ -42,7 +42,7 @@ func (p *Program) allFuncs() []*Func {
 }
 
 func (p *Program) verifyFunc(f *Func) error {
-	for _, rule := range []func(*Func) *Error{verifyStructure, verifyShape, p.verifyEntities, p.verifyTypes, verifyDefs, p.verifyOwnership, p.verifyCellCaptures, p.verifyDropOwned, p.verifyDirect, p.verifyAllocClaim} {
+	for _, rule := range []func(*Func) *Error{verifyStructure, verifyShape, p.verifyEntities, p.verifyTypes, p.verifyPrimCalls, verifyDefs, p.verifyOwnership, p.verifyCellCaptures, p.verifyDropOwned, p.verifyDirect, p.verifyAllocClaim} {
 		if err := rule(f); err != nil {
 			err.Func = f.Name
 			return err
