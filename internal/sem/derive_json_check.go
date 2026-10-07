@@ -2,6 +2,11 @@ package sem
 
 func (g *deriver) derivable(t TypeID, iface string) bool {
 	r := g.r
+	// Display forwards to debug() regardless of field shape, so no field
+	// of any type blocks it.
+	if iface == "Display" {
+		return true
+	}
 	if isProto(iface) {
 		return r.Types.Kind(t) == KParam || r.deriveOf(t, iface)
 	}

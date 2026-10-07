@@ -142,3 +142,35 @@ func TestGenerateDeriveUnsupportedInterface(t *testing.T) {
 		t.Errorf("expected DiagKind \"unsupported\", got %v (ok=%v)", err, ok)
 	}
 }
+
+// TestGenerateDeriveDisplay reads only Declaration.Name/Visibility, so the
+// expected text is fixed regardless of Point's fields.
+func TestGenerateDeriveDisplay(t *testing.T) {
+	m, res := loadModule(t, deriveParitySrc)
+	_, byEntity := schema.Build(m, res, schema.Options{})
+	var point sem.EntityID
+	for ent, d := range byEntity {
+		if d.Name == "Point" {
+			point = ent
+		}
+	}
+	if point == 0 {
+		t.Fatal("Point not found in Schema IR")
+	}
+	req := sem.DeriveRequest{Decl: point, Interface: "Display"}
+	first, err := schema.GenerateDerive(res, req)
+	if err != nil {
+		t.Fatalf("first generate: %v", err)
+	}
+	want := "pure fn Point.display(self) -> String {\n    debug(&self)\n}\n"
+	if first != want {
+		t.Errorf("got:\n%s\nwant:\n%s", first, want)
+	}
+	second, err := schema.GenerateDerive(res, req)
+	if err != nil {
+		t.Fatalf("second generate: %v", err)
+	}
+	if first != second {
+		t.Errorf("non-deterministic output:\n--- first ---\n%s\n--- second ---\n%s", first, second)
+	}
+}

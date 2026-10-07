@@ -2900,6 +2900,23 @@
       ]
     },
     {
+      "id": "run/display_derive",
+      "kind": "run",
+      "path": "testdata/run/display_derive.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/drop",
       "kind": "run",
       "path": "testdata/run/drop.txtar",

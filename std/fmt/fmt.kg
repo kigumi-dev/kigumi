@@ -1,5 +1,12 @@
 import text from std/text
 
+/// Human-readable rendering. A record or ADT gets a generated `display`
+/// (the same text `debug` already renders it as) unless it defines one.
+@derivable
+pub interface Display {
+    pure fn display(self) -> String
+}
+
 /// Rendering a number as text. String interpolation covers base 10 with no
 /// padding; this is for the rest.
 const digits: String = "0123456789abcdefghijklmnopqrstuvwxyz"

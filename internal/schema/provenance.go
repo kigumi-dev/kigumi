@@ -24,8 +24,11 @@ func BuildProvenance(res *sem.Result, byEntity map[sem.EntityID]*Declaration) []
 	files := map[key]sem.GeneratedSource{}
 	for _, g := range res.GeneratedSources() {
 		suffix := "json.derived.kg"
-		if strings.HasSuffix(g.Name, "proto.derived.kg") {
+		switch {
+		case strings.HasSuffix(g.Name, "proto.derived.kg"):
 			suffix = "proto.derived.kg"
+		case strings.HasSuffix(g.Name, "display.derived.kg"):
+			suffix = "display.derived.kg"
 		}
 		files[key{g.Package, suffix}] = g
 	}
@@ -45,8 +48,11 @@ func BuildProvenance(res *sem.Result, byEntity map[sem.EntityID]*Declaration) []
 			pkg = builtinPkg
 		}
 		suffix := "json.derived.kg"
-		if req.Interface == "Eq" || req.Interface == "Hash" {
+		switch req.Interface {
+		case "Eq", "Hash":
 			suffix = "proto.derived.kg"
+		case "Display":
+			suffix = "display.derived.kg"
 		}
 		g, ok := files[key{pkg, suffix}]
 		if !ok {

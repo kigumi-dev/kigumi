@@ -11,10 +11,11 @@ import (
 type GeneratorID string
 
 const (
-	GenEq     GeneratorID = "derive.eq"
-	GenHash   GeneratorID = "derive.hash"
-	GenEncode GeneratorID = "derive.json.encode"
-	GenDecode GeneratorID = "derive.json.decode"
+	GenEq      GeneratorID = "derive.eq"
+	GenHash    GeneratorID = "derive.hash"
+	GenEncode  GeneratorID = "derive.json.encode"
+	GenDecode  GeneratorID = "derive.json.decode"
+	GenDisplay GeneratorID = "derive.display"
 )
 
 type GeneratedUnit struct {
@@ -61,10 +62,11 @@ func cacheKey(id GeneratorID, decl *Declaration) string {
 // generators is keyed by sem.DeriveRequest.Interface ("Eq", "Hash",
 // "Encode", "Decode").
 var generators = map[string]Generator{
-	"Eq":     eqGenerator{},
-	"Hash":   hashGenerator{},
-	"Encode": encodeGenerator{},
-	"Decode": decodeGenerator{},
+	"Eq":      eqGenerator{},
+	"Hash":    hashGenerator{},
+	"Encode":  encodeGenerator{},
+	"Decode":  decodeGenerator{},
+	"Display": displayGenerator{},
 }
 
 // GenerateDerive matches sem.DeriveGenerator, for sem.CheckWith/driver.AnalyzeWith.

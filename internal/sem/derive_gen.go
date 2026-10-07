@@ -7,6 +7,8 @@ type deriver struct {
 	texts map[PackageID]string
 	// protos collects the generated Eq / Hash methods, which need no import.
 	protos map[PackageID]string
+	// displays collects the generated Display methods; like protos, no import.
+	displays map[PackageID]string
 	// visiting guards derivable against recursive types.
 	visiting map[EntityID]bool
 }
@@ -53,9 +55,12 @@ func (g *deriver) derive(d deriveRequest) {
 	if pkg == 0 {
 		pkg = r.pathIndex["std/prelude"]
 	}
-	if isProto(d.iface) {
+	switch {
+	case isProto(d.iface):
 		g.protos[pkg] += "\n" + text
-	} else {
+	case d.iface == "Display":
+		g.displays[pkg] += "\n" + text
+	default:
 		g.texts[pkg] += "\n" + text
 	}
 	for _, fld := range info.Fields {

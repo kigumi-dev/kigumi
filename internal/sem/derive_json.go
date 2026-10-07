@@ -11,11 +11,11 @@ import (
 
 type deriveRequest struct {
 	decl  EntityID
-	iface string // "Encode", "Decode", "Eq" or "Hash"
+	iface string // "Encode", "Decode", "Eq", "Hash" or "Display"
 }
 
 // deriveMethods names the method each derivable interface requires.
-var deriveMethods = map[string]string{"Encode": "toJson", "Decode": "fromJson", "Eq": "equals", "Hash": "hash"}
+var deriveMethods = map[string]string{"Encode": "toJson", "Decode": "fromJson", "Eq": "equals", "Hash": "hash", "Display": "display"}
 
 type generatedFile struct {
 	pkg  int
@@ -67,10 +67,10 @@ func (r *Result) requestDerive(t, iface TypeID) bool {
 
 func isProto(iface string) bool { return iface == "Eq" || iface == "Hash" }
 
-// deriveSources generates one JSON file and one protocol file per package,
-// covering the requested types and their fields transitively.
+// deriveSources generates one JSON file, one protocol file and one display
+// file per package, covering the requested types and their fields transitively.
 func (r *Result) deriveSources() []generatedFile {
-	g := &deriver{r: r, gen: r.mod.deriveGen, done: map[deriveRequest]bool{}, texts: map[PackageID]string{}, protos: map[PackageID]string{}}
+	g := &deriver{r: r, gen: r.mod.deriveGen, done: map[deriveRequest]bool{}, texts: map[PackageID]string{}, protos: map[PackageID]string{}, displays: map[PackageID]string{}}
 	for _, d := range r.derives {
 		g.derive(d)
 	}
@@ -87,6 +87,9 @@ func (r *Result) deriveSources() []generatedFile {
 		}
 		if text, ok := g.protos[PackageID(pkg)]; ok {
 			out = append(out, generatedFile{pkg: r.moduleIndex(PackageID(pkg)), path: path, name: dir + "proto.derived.kg", text: text})
+		}
+		if text, ok := g.displays[PackageID(pkg)]; ok {
+			out = append(out, generatedFile{pkg: r.moduleIndex(PackageID(pkg)), path: path, name: dir + "display.derived.kg", text: text})
 		}
 	}
 	return out
