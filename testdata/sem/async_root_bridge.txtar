@@ -301,8 +301,8 @@ fn safeFnBoundValue() -> Int {
     41
 }
 
-// A generic Fn-bound parameter has no per-call-site narrowing, so a clean
-// caller needs its own instantiation instead of sharing callFnBound's f.
+// callFnBoundSafe is its own instantiation rather than sharing callFnBound's
+// f; fnBoundSharedSafeRoot below shares callFnBound directly instead.
 fn callFnBoundSafe[F: Fn[fn() -> Int]](f: F) -> Int {
     f()
 }
@@ -327,6 +327,393 @@ fn callFnBoundForwardSafe[G: Fn[fn() -> Int]](g: G) -> Int {
 
 async fn fnBoundTwoHopSafeRoot() -> Int {
     callFnBoundForwardSafe(() => safeFnBoundValue())
+}
+
+// forwardSubst's EdgeFnBoundArg case narrows callFnBound (and, through it,
+// callFnBoundForward) per call site, so a safe caller can finally share
+// them directly with fnBoundNamedRoot/fnBoundTwoHopRoot above.
+async fn fnBoundSharedSafeRoot() -> Int {
+    callFnBound(() => safeFnBoundValue())
+}
+
+async fn fnBoundSharedTwoHopSafeRoot() -> Int {
+    callFnBoundForward(() => safeFnBoundValue())
+}
+
+type MutHolder = {
+    mut cb fn() -> Int
+}
+
+fn callMutField(h: MutHolder) -> Int {
+    h.cb()
+}
+
+// A field reassigned after construction joins the known set (safe) or
+// poisons it to the global union (risky), the same as a fresh literal.
+async fn safeFieldReassign() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.cb = safeFnBoundValue
+    callMutField(h)
+}
+
+async fn riskyFieldReassign() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.cb = syncRoot
+    callMutField(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyFieldReassign() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.cb = syncRoot
+    callMutField(h)
+}
+
+type MutBox = {
+    mut c Calc
+}
+
+fn callMutBoxField(b: MutBox) -> Int {
+    b.c.value()
+}
+
+// Same as above, for an interface-typed field's witness set instead of a
+// fn value's knownFieldFn.
+async fn safeWitnessReassign() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 20 } }
+    let c: Calc = SafeCalc { n: 21 }
+    b.c = c
+    callMutBoxField(b)
+}
+
+async fn riskyWitnessReassign() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 22 } }
+    let c: Calc = RiskyCalc { n: 23 }
+    b.c = c
+    callMutBoxField(b) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyWitnessReassign() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 24 } }
+    let c: Calc = RiskyCalc { n: 25 }
+    b.c = c
+    callMutBoxField(b)
+}
+
+// A whole-value reassignment (`b = MutBox{...}`), not a per-field write,
+// re-registers the new literal's own fields instead of leaving the field
+// poisoned forever.
+async fn safeWholeValueReassign() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 40 } }
+    b = MutBox { c: SafeCalc { n: 41 } }
+    callMutBoxField(b)
+}
+
+async fn riskyWholeValueReassign() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 42 } }
+    b = MutBox { c: RiskyCalc { n: 43 } }
+    callMutBoxField(b) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyWholeValueReassign() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 44 } }
+    b = MutBox { c: RiskyCalc { n: 45 } }
+    callMutBoxField(b)
+}
+
+type FieldOuter = {
+    c Calc
+}
+
+fn callFieldOuter(o: FieldOuter) -> Int {
+    o.c.value()
+}
+
+// An interface-typed field crossing a plain-fn call boundary (passed by
+// value): the callee's own field-param entity narrows per call site too.
+async fn safeOuterFieldCall() -> Int {
+    let c: Calc = SafeCalc { n: 30 }
+    callFieldOuter(FieldOuter { c: c })
+}
+
+async fn riskyOuterFieldCall() -> Int {
+    let c: Calc = RiskyCalc { n: 31 }
+    callFieldOuter(FieldOuter { c: c }) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyOuterFieldCall() -> Int {
+    let c: Calc = RiskyCalc { n: 32 }
+    callFieldOuter(FieldOuter { c: c })
+}
+
+fn callFieldOuterRef(o: &FieldOuter) -> Int {
+    o.c.value()
+}
+
+// Same, passed by reference instead of by value.
+async fn safeOuterFieldRefCall() -> Int {
+    let c: Calc = SafeCalc { n: 33 }
+    let o = FieldOuter { c: c }
+    callFieldOuterRef(&o)
+}
+
+async fn riskyOuterFieldRefCall() -> Int {
+    let c: Calc = RiskyCalc { n: 34 }
+    let o = FieldOuter { c: c }
+    callFieldOuterRef(&o) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyOuterFieldRefCall() -> Int {
+    let c: Calc = RiskyCalc { n: 35 }
+    let o = FieldOuter { c: c }
+    callFieldOuterRef(&o)
+}
+
+type FieldWrap = {
+    inner FieldOuter
+}
+
+fn callFieldTwoHop(w: FieldWrap) -> Int {
+    w.inner.c.value()
+}
+
+// Two field hops crossing the call boundary: w.inner.c, not w.c.
+async fn safeFieldTwoHop() -> Int {
+    let c: Calc = SafeCalc { n: 36 }
+    callFieldTwoHop(FieldWrap { inner: FieldOuter { c: c } })
+}
+
+async fn riskyFieldTwoHop() -> Int {
+    let c: Calc = RiskyCalc { n: 37 }
+    callFieldTwoHop(FieldWrap { inner: FieldOuter { c: c } }) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyFieldTwoHop() -> Int {
+    let c: Calc = RiskyCalc { n: 38 }
+    callFieldTwoHop(FieldWrap { inner: FieldOuter { c: c } })
+}
+
+// A non-mut local's field set straight from a record literal, not an ident:
+// fieldChainEnt can't trace it, so this needs its own CoerceWitness lookup.
+async fn safeOneHopLiteralField() -> Int {
+    let o = FieldOuter { c: SafeCalc { n: 50 } }
+    callFieldOuter(o)
+}
+
+async fn riskyOneHopLiteralField() -> Int {
+    let o = FieldOuter { c: RiskyCalc { n: 51 } }
+    callFieldOuter(o) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyOneHopLiteralField() -> Int {
+    let o = FieldOuter { c: RiskyCalc { n: 52 } }
+    callFieldOuter(o)
+}
+
+// Same gap, two field hops deep: the leaf is a literal, not an ident.
+async fn safeTwoHopLiteralField() -> Int {
+    callFieldTwoHop(FieldWrap { inner: FieldOuter { c: SafeCalc { n: 53 } } })
+}
+
+async fn riskyTwoHopLiteralField() -> Int {
+    callFieldTwoHop(FieldWrap { inner: FieldOuter { c: RiskyCalc { n: 54 } } }) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyTwoHopLiteralField() -> Int {
+    callFieldTwoHop(FieldWrap { inner: FieldOuter { c: RiskyCalc { n: 55 } } })
+}
+
+// A `mut self` method's own field write must bind back to the caller's
+// receiver, not just the method's own self parameter.
+fn MutHolder.setCb(mut self, f: escaping fn() -> Int) -> Unit {
+    self.cb = f
+}
+
+async fn safeSetterCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.setCb(safeFnBoundValue)
+    callMutField(h)
+}
+
+async fn riskySetterCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.setCb(syncRoot)
+    callMutField(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskySetterCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.setCb(syncRoot)
+    callMutField(h)
+}
+
+// Same setter, reached through a `&mut` parameter instead of a bare local.
+fn setAndReadRefSafe(mut h: &mut MutHolder) -> Int {
+    h.setCb(safeFnBoundValue)
+    h.cb()
+}
+
+fn setAndReadRefRisky(mut h: &mut MutHolder) -> Int {
+    h.setCb(syncRoot)
+    h.cb()
+}
+
+async fn safeSetterRefCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    setAndReadRefSafe(&mut h)
+}
+
+async fn riskySetterRefCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    setAndReadRefRisky(&mut h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskySetterRefCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    setAndReadRefRisky(&mut h)
+}
+
+// setCbChainSafe/Risky call setCb on their own self: the summary must compose.
+fn MutHolder.setCbChainSafe(mut self) -> Unit {
+    self.setCb(safeFnBoundValue)
+}
+
+fn MutHolder.setCbChainRisky(mut self) -> Unit {
+    self.setCb(syncRoot)
+}
+
+async fn safeSetterChainCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.setCbChainSafe()
+    callMutField(h)
+}
+
+async fn riskySetterChainCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.setCbChainRisky()
+    callMutField(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskySetterChainCall() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.setCbChainRisky()
+    callMutField(h)
+}
+
+// A setter's argument that isn't ident/literal-resolvable poisons the field
+// to the global union, same as an unresolved direct write.
+fn MutBox.setC(mut self, c: Calc) -> Unit {
+    self.c = c
+}
+
+fn unknownCalc() -> Calc {
+    SafeCalc { n: 60 }
+}
+
+async fn unknownSetterCall() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 61 } }
+    b.setC(unknownCalc())
+    callMutBoxField(b) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedUnknownSetterCall() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 62 } }
+    b.setC(unknownCalc())
+    callMutBoxField(b)
+}
+
+// A setter's argument passed as a bare record literal, not through an ident:
+// the same call site is revisited every closeMethodFieldWrites pass, so it must resolve the same way each time.
+async fn safeLiteralSetterCall() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 70 } }
+    b.setC(SafeCalc { n: 71 })
+    callMutBoxField(b)
+}
+
+async fn riskyLiteralSetterCall() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 72 } }
+    b.setC(RiskyCalc { n: 73 })
+    callMutBoxField(b) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyLiteralSetterCall() -> Int {
+    let mut b = MutBox { c: SafeCalc { n: 74 } }
+    b.setC(RiskyCalc { n: 75 })
+    callMutBoxField(b)
+}
+
+type NestBox = {
+    mut inner MutBox
+}
+
+fn callNestBoxField(o: NestBox) -> Int {
+    o.inner.c.value()
+}
+
+// A setter called on a nested field receiver (`o.inner.setC(...)`), not a
+// bare local: the receiver must resolve through the same field-chain lookup a read uses.
+async fn safeNestedSetterCall() -> Int {
+    let mut o = NestBox { inner: MutBox { c: SafeCalc { n: 76 } } }
+    o.inner.setC(SafeCalc { n: 77 })
+    callNestBoxField(o)
+}
+
+async fn riskyNestedSetterCall() -> Int {
+    let mut o = NestBox { inner: MutBox { c: SafeCalc { n: 78 } } }
+    o.inner.setC(RiskyCalc { n: 79 })
+    callNestBoxField(o) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyNestedSetterCall() -> Int {
+    let mut o = NestBox { inner: MutBox { c: SafeCalc { n: 80 } } }
+    o.inner.setC(RiskyCalc { n: 81 })
+    callNestBoxField(o)
+}
+
+type GBox[T] = {
+    mut cb T
+}
+
+fn GBox[T].setCb(mut self, f: T) -> Unit {
+    self.cb = f
+}
+
+fn callGBoxField(g: GBox[fn() -> Int]) -> Int {
+    g.cb()
+}
+
+// A generic field typed by an unconstrained type param, instantiated to a plain
+// fn type: construction and the setter must both track it, or at least fall back to the union.
+async fn safeGBoxConstructCall() -> Int {
+    let g = GBox[fn() -> Int] { cb: safeFnBoundValue }
+    callGBoxField(g)
+}
+
+async fn riskyGBoxConstructCall() -> Int {
+    let g = GBox[fn() -> Int] { cb: syncRoot }
+    callGBoxField(g) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyGBoxConstructCall() -> Int {
+    let g = GBox[fn() -> Int] { cb: syncRoot }
+    callGBoxField(g)
+}
+
+async fn safeGBoxSetterCall() -> Int {
+    let mut g = GBox[fn() -> Int] { cb: safeFnBoundValue }
+    g.setCb(safeFnBoundValue)
+    callGBoxField(g)
+}
+
+async fn riskyGBoxSetterCall() -> Int {
+    let mut g = GBox[fn() -> Int] { cb: safeFnBoundValue }
+    g.setCb(syncRoot)
+    callGBoxField(g) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyGBoxSetterCall() -> Int {
+    let mut g = GBox[fn() -> Int] { cb: safeFnBoundValue }
+    g.setCb(syncRoot)
+    callGBoxField(g)
 }
 
 fn supply() -> Int {
@@ -375,9 +762,86 @@ fn supply() -> Int {
     let y = ex22.runToCompletion(fnBoundTwoHopRoot())
     let ex23 = task.currentThreadExecutor()
     let z = ex23.runToCompletion(fnBoundTwoHopSafeRoot())
+    let ex24 = task.currentThreadExecutor()
+    let aa = ex24.runToCompletion(fnBoundSharedSafeRoot())
+    let ex25 = task.currentThreadExecutor()
+    let ab = ex25.runToCompletion(fnBoundSharedTwoHopSafeRoot())
+    let ex26 = task.currentThreadExecutor()
+    let ac = ex26.runToCompletion(safeFieldReassign())
+    let ex27 = task.currentThreadExecutor()
+    let ad = ex27.runToCompletion(riskyFieldReassign())
+    let ex28 = task.currentThreadExecutor()
+    let ae = ex28.runToCompletion(safeWitnessReassign())
+    let ex29 = task.currentThreadExecutor()
+    let af = ex29.runToCompletion(riskyWitnessReassign())
+    let ex29b = task.currentThreadExecutor()
+    let afb = ex29b.runToCompletion(safeWholeValueReassign())
+    let ex29c = task.currentThreadExecutor()
+    let afc = ex29c.runToCompletion(riskyWholeValueReassign())
+    let ex30 = task.currentThreadExecutor()
+    let ag = ex30.runToCompletion(safeOuterFieldCall())
+    let ex31 = task.currentThreadExecutor()
+    let ah = ex31.runToCompletion(riskyOuterFieldCall())
+    let ex32 = task.currentThreadExecutor()
+    let ai = ex32.runToCompletion(safeOuterFieldRefCall())
+    let ex33 = task.currentThreadExecutor()
+    let aj = ex33.runToCompletion(riskyOuterFieldRefCall())
+    let ex34 = task.currentThreadExecutor()
+    let ak = ex34.runToCompletion(safeFieldTwoHop())
+    let ex35 = task.currentThreadExecutor()
+    let al = ex35.runToCompletion(riskyFieldTwoHop())
+    let ex36 = task.currentThreadExecutor()
+    let am = ex36.runToCompletion(safeOneHopLiteralField())
+    let ex37 = task.currentThreadExecutor()
+    let an = ex37.runToCompletion(riskyOneHopLiteralField())
+    let ex38 = task.currentThreadExecutor()
+    let ao = ex38.runToCompletion(safeTwoHopLiteralField())
+    let ex39 = task.currentThreadExecutor()
+    let ap = ex39.runToCompletion(riskyTwoHopLiteralField())
+    let ex40 = task.currentThreadExecutor()
+    let aq = ex40.runToCompletion(safeSetterCall())
+    let ex41 = task.currentThreadExecutor()
+    let ar = ex41.runToCompletion(riskySetterCall())
+    let ex42 = task.currentThreadExecutor()
+    let au = ex42.runToCompletion(safeSetterRefCall())
+    let ex43 = task.currentThreadExecutor()
+    let av = ex43.runToCompletion(riskySetterRefCall())
+    let ex44 = task.currentThreadExecutor()
+    let aw = ex44.runToCompletion(safeSetterChainCall())
+    let ex45 = task.currentThreadExecutor()
+    let ax = ex45.runToCompletion(riskySetterChainCall())
+    let ex46 = task.currentThreadExecutor()
+    let ay = ex46.runToCompletion(unknownSetterCall())
+    let ex47 = task.currentThreadExecutor()
+    let az = ex47.runToCompletion(safeLiteralSetterCall())
+    let ex48 = task.currentThreadExecutor()
+    let ba = ex48.runToCompletion(riskyLiteralSetterCall())
+    let ex49 = task.currentThreadExecutor()
+    let bb = ex49.runToCompletion(safeNestedSetterCall())
+    let ex50 = task.currentThreadExecutor()
+    let bc = ex50.runToCompletion(riskyNestedSetterCall())
+    let ex51 = task.currentThreadExecutor()
+    let bd = ex51.runToCompletion(safeGBoxConstructCall())
+    let ex52 = task.currentThreadExecutor()
+    let be = ex52.runToCompletion(riskyGBoxConstructCall())
+    let ex53 = task.currentThreadExecutor()
+    let bf = ex53.runToCompletion(safeGBoxSetterCall())
+    let ex54 = task.currentThreadExecutor()
+    let bg = ex54.runToCompletion(riskyGBoxSetterCall())
     a + b + c + d + e + g + h + i + j + k + l + m + o + p + q + s + u + v + w + x + y + z +
+        aa + ab + ac + ad + ae + af + afb + afc + ag + ah + ai + aj + ak + al + am + an + ao + ap +
+        aq + ar + au + av + aw + ax + ay + az + ba + bb + bc + bd + be + bf + bg +
         unrelatedRiskyCalc() + unrelatedRiskyTwoHop() +
         unrelatedRiskyFieldCall() + unrelatedRiskyClosureCall() + useShallowWitness() +
+        unrelatedRiskyFieldReassign() + unrelatedRiskyWitnessReassign() +
+        unrelatedRiskyWholeValueReassign() +
+        unrelatedRiskyOuterFieldCall() + unrelatedRiskyOuterFieldRefCall() +
+        unrelatedRiskyFieldTwoHop() +
+        unrelatedRiskyOneHopLiteralField() + unrelatedRiskyTwoHopLiteralField() +
+        unrelatedRiskySetterCall() + unrelatedRiskySetterRefCall() + unrelatedRiskySetterChainCall() +
+        unrelatedUnknownSetterCall() +
+        unrelatedRiskyLiteralSetterCall() + unrelatedRiskyNestedSetterCall() +
+        unrelatedRiskyGBoxConstructCall() + unrelatedRiskyGBoxSetterCall() +
         ex5.runToCompletion(safeIfaceCall())
 }
 
@@ -452,9 +916,9 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
     |             ^^
     = help: `await` the future instead
 note: `syncRoot` is bound to `cb` here
-   --> app/t/t.kg:333:42
+   --> app/t/t.kg:720:42
     |
-333 |     let a = ex.runToCompletion(paramRoot(syncRoot))
+720 |     let a = ex.runToCompletion(paramRoot(syncRoot))
     |                                          ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
@@ -469,9 +933,9 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
     |     ^^^
     = help: `await` the future instead
 note: `syncRoot` is bound to `cb` here
-   --> app/t/t.kg:335:45
+   --> app/t/t.kg:722:45
     |
-335 |     let b = ex2.runToCompletion(paramDirect(syncRoot))
+722 |     let b = ex2.runToCompletion(paramDirect(syncRoot))
     |                                             ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
@@ -491,15 +955,15 @@ note: calls `h.cb`
  59 |     h.cb()
     |     ^^^^^
 note: `h.cb` is bound to `h.cb` here
-   --> app/t/t.kg:63:15
+   --> app/t/t.kg:63:5
     |
  63 |     callField(h) //~ ERROR cannot run inside an `async fn`
-    |               ^
+    |     ^^^^^^^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:337:43
+   --> app/t/t.kg:724:33
     |
-337 |     let c = ex3.runToCompletion(fieldRoot(Holder { cb: syncRoot }))
-    |                                           ^^^^^^^^^^^^^^^^^^^^^
+724 |     let c = ex3.runToCompletion(fieldRoot(Holder { cb: syncRoot }))
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
     |
@@ -810,10 +1274,407 @@ note: drives a new root task here
  14 |     ex.runToCompletion(inner())
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E1292]: `ping` is exported to C and cannot be `async`: a C caller has no executor to drive the Future
-   --> app/t/t.kg:384:11
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:361:5
     |
-384 |     async fn ping() -> Int { //~ ERROR exported to C and cannot be `async`
+361 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:347:5
+    |
+347 |     h.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:361:5
+    |
+361 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:391:5
+    |
+391 |     callMutBoxField(b) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:375:5
+    |
+375 |     b.c.value()
+    |     ^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:413:5
+    |
+413 |     callMutBoxField(b) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:375:5
+    |
+375 |     b.c.value()
+    |     ^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:439:5
+    |
+439 |     callFieldOuter(FieldOuter { c: c }) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:427:5
+    |
+427 |     o.c.value()
+    |     ^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:461:5
+    |
+461 |     callFieldOuterRef(&o) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:448:5
+    |
+448 |     o.c.value()
+    |     ^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:486:5
+    |
+486 |     callFieldTwoHop(FieldWrap { inner: FieldOuter { c: c } }) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:475:5
+    |
+475 |     w.inner.c.value()
+    |     ^^^^^^^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:503:5
+    |
+503 |     callFieldOuter(o) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:427:5
+    |
+427 |     o.c.value()
+    |     ^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:517:5
+    |
+517 |     callFieldTwoHop(FieldWrap { inner: FieldOuter { c: RiskyCalc { n: 54 } } }) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:475:5
+    |
+475 |     w.inner.c.value()
+    |     ^^^^^^^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:539:5
+    |
+539 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:347:5
+    |
+347 |     h.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:361:5
+    |
+361 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:566:5
+    |
+566 |     setAndReadRefRisky(&mut h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `syncRoot`
+   --> app/t/t.kg:556:5
+    |
+556 |     h.cb()
+    |     ^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:592:5
+    |
+592 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:347:5
+    |
+347 |     h.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:361:5
+    |
+361 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:614:5
+    |
+614 |     callMutBoxField(b) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:375:5
+    |
+375 |     b.c.value()
+    |     ^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:634:5
+    |
+634 |     callMutBoxField(b) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:375:5
+    |
+375 |     b.c.value()
+    |     ^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:662:5
+    |
+662 |     callNestBoxField(o) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:648:5
+    |
+648 |     o.inner.c.value()
+    |     ^^^^^^^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:692:5
+    |
+692 |     callGBoxField(g) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `g.cb`
+   --> app/t/t.kg:680:5
+    |
+680 |     g.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `g.cb` here
+   --> app/t/t.kg:692:5
+    |
+692 |     callGBoxField(g) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:709:5
+    |
+709 |     callGBoxField(g) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `g.cb`
+   --> app/t/t.kg:680:5
+    |
+680 |     g.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `g.cb` here
+   --> app/t/t.kg:692:5
+    |
+692 |     callGBoxField(g) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1292]: `ping` is exported to C and cannot be `async`: a C caller has no executor to drive the Future
+   --> app/t/t.kg:848:11
+    |
+848 |     async fn ping() -> Int { //~ ERROR exported to C and cannot be `async`
     |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     = help: export a synchronous wrapper that runs it to completion
 

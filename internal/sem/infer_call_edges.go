@@ -32,15 +32,28 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 		at := c.vars.resolve(c.info.Types[a])
 		switch {
 		case c.info.Uses[a] != 0 && c.r.Entities[c.info.Uses[a]].Kind == EntFn:
-			c.edge(EffectEdge{Kind: EdgeCallback, Target: c.info.Uses[a], Param: param, Node: a, Offloaded: offloaded})
+			tgt := c.info.Uses[a]
+			c.edge(EffectEdge{Kind: EdgeCallback, Target: tgt, Param: param, Node: a, Offloaded: offloaded})
+			c.fnBoundArgEdge(n, tgt, param)
 		case tt.Kind(at) == KClosure:
-			c.edge(EffectEdge{Kind: EdgeCallback, Target: tt.Node(at).Ent, Param: param, Node: a, Offloaded: offloaded})
+			tgt := tt.Node(at).Ent
+			c.edge(EffectEdge{Kind: EdgeCallback, Target: tgt, Param: param, Node: a, Offloaded: offloaded})
+			c.fnBoundArgEdge(n, tgt, param)
 		default:
 			if shape := c.r.fnShapeOf(at); shape != 0 {
-				c.callbackEdge(a, Effects(tt.Node(shape).Flags), param, offloaded)
+				c.callbackEdge(n, a, Effects(tt.Node(shape).Flags), param, offloaded)
 			}
 		}
 	}
+}
+
+// fnBoundArgEdge is ifaceArgEdge's counterpart for a Fn-bound parameter,
+// keyed on the call node n rather than the argument's own node like EdgeCallback.
+func (c *checker) fnBoundArgEdge(n syntax.NodeID, tgt, param EntityID) {
+	if param == 0 {
+		return
+	}
+	c.edge(EffectEdge{Kind: EdgeFnBoundArg, Target: tgt, Param: param, Node: n})
 }
 
 // ifaceArgEdge records which parameter an interface-typed argument binds,
@@ -54,12 +67,13 @@ func (c *checker) ifaceArgEdge(n, a syntax.NodeID, info *FnInfo, i int) {
 
 // When the value is a parameter of the enclosing function, that function
 // becomes polymorphic in it instead of being blamed for its effects.
-func (c *checker) callbackEdge(expr syntax.NodeID, mods Effects, param EntityID, offloaded bool) {
+func (c *checker) callbackEdge(n, expr syntax.NodeID, mods Effects, param EntityID, offloaded bool) {
 	if p := c.polyParam(expr); p != 0 {
 		c.deferToParam(p)
 		// Param, when set, is the slot p was forwarded into; root-bridge
 		// reachability needs that to tell forwarding from invoking.
 		c.edge(EffectEdge{Kind: EdgeParamCall, Target: p, Param: param, Node: expr})
+		c.fnBoundArgEdge(n, p, param)
 		return
 	}
 	c.edge(EffectEdge{Kind: EdgeCallback, Mods: mods, Param: param, Node: expr, Offloaded: offloaded})

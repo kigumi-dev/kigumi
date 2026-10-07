@@ -97,9 +97,20 @@ type Result struct {
 	// fieldParamEnts caches the synthetic EntFieldParam minted for one
 	// (parameter, field) pair; see EntFieldParam.
 	fieldParamEnts map[fieldFnKey]EntityID
-	// fieldWitnessOf is a record field's source local/param, keyed by the
-	// local its literal was bound to; a reassigned field is deleted, not stale.
-	fieldWitnessOf          map[fieldFnKey]EntityID
+	// fieldWitnessOf is a never-reassignable field's source local/param (owner
+	// not `mut`), aliased directly so per-call-site narrowing still sees through it.
+	fieldWitnessOf map[fieldFnKey]EntityID
+	// fieldWitnessPoisoned sticks once a field write isn't statically known, so
+	// a later known write can't resurrect it; read indirectly via absence.
+	fieldWitnessPoisoned map[fieldFnKey]bool
+	// methodFieldCalls stage a `mut self` method call site for
+	// closeMethodFieldWrites, run once every body is checked.
+	methodFieldCalls []methodFieldCallSite
+	// fieldBindOwners is a field-param entity's EdgeFieldBind/EdgeIfaceArg
+	// owners, so poisonFieldKeyGlobal can retract a now-stale edge.
+	fieldBindOwners map[EntityID][]EntityID
+	// literalFieldEnts caches literalFieldEnt's synthetic entity per literal node.
+	literalFieldEnts        map[literalEntKey]EntityID
 	identPaths              map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID
 	pendingWitnessCallbacks []pendingWitnessCallback
 	// lifetimeEscapeSeen dedupes an escaping (carrier, arg) pair.

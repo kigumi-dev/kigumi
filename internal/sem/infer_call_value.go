@@ -36,7 +36,7 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 	} else if closure != 0 {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: closure, Node: n})
 	} else {
-		c.callbackEdge(n, Effects(node.Flags), 0, false)
+		c.callbackEdge(n, n, Effects(node.Flags), 0, false)
 		for _, tgt := range c.knownCallTargets(callee) {
 			c.edge(EffectEdge{Kind: EdgeKnownCall, Target: tgt, Node: n})
 		}

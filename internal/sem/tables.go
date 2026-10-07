@@ -122,6 +122,9 @@ const (
 	// EdgeFieldBind binds a call-site argument's known fn (Target) to the
 	// callee's field-param entity (Param); root-bridge reachability only.
 	EdgeFieldBind
+	// EdgeFnBoundArg carries a Fn-bound argument's known fn/closure (Target,
+	// or a forwarded param) to the parameter (Param) it binds; root-bridge only.
+	EdgeFnBoundArg
 )
 
 // fieldFnKey names one record field of a value held by Ent (a local or a parameter).

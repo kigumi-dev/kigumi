@@ -75,7 +75,7 @@ func (c *checker) callOperator(n syntax.NodeID, op string, m EntityID, operands 
 			c.adopt(c.literalNode(nodes[i]), params[i])
 		}
 	}
-	ret := c.callFn(n, m, nil, nodes, 0, 0)
+	ret := c.callFn(n, m, nil, nodes, 0, 0, 0)
 	call := c.info.Calls[n]
 	call.Kind = CallOperator
 	call.OpText = op

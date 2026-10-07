@@ -31,6 +31,7 @@ func check(mod *Module) *Result {
 	r.checkInterruptHandlers()
 	r.checkAsyncDirectBlocking()
 	r.checkThreadPool()
+	r.closeMethodFieldWrites()
 	r.checkRootBridges()
 	r.checkNomono()
 	r.reportUnused()
@@ -74,25 +75,26 @@ func newResult(mod *Module) *Result {
 		seen:            map[diagKey]struct{}{},
 		langItems:       map[string]EntityID{},
 
-		selfWholeAssign: map[EntityID]bool{},
-		langItemMissing: map[string]bool{},
-		implicitMain:    map[PackageID]EntityID{},
-		declScopes:      map[EntityID]ScopeID{},
-		aliasState:      map[EntityID]uint8{},
-		aliasParams:     map[EntityID][]EntityID{},
-		primEntity:      map[TypeID]EntityID{},
-		variantNames:    map[PackageID]map[string][]EntityID{},
-		conformMemo:     map[conformKey]conformResult{},
-		witnessSeen:     map[witnessPair]bool{},
-		localWitness:    map[EntityID][]EntityID{},
-		knownFn:         map[EntityID][]EntityID{},
-		knownFieldFn:    map[fieldFnKey][]EntityID{},
-		fieldParamEnts:  map[fieldFnKey]EntityID{},
-		fieldWitnessOf:  map[fieldFnKey]EntityID{},
-		dropMemo:        map[TypeID]EffectSummary{},
-		opDropMemo:      map[TypeID]OpSummary{},
-		identPaths:      map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID{},
-		provides:        map[EntityID][]ProvideBinding{},
+		selfWholeAssign:      map[EntityID]bool{},
+		langItemMissing:      map[string]bool{},
+		implicitMain:         map[PackageID]EntityID{},
+		declScopes:           map[EntityID]ScopeID{},
+		aliasState:           map[EntityID]uint8{},
+		aliasParams:          map[EntityID][]EntityID{},
+		primEntity:           map[TypeID]EntityID{},
+		variantNames:         map[PackageID]map[string][]EntityID{},
+		conformMemo:          map[conformKey]conformResult{},
+		witnessSeen:          map[witnessPair]bool{},
+		localWitness:         map[EntityID][]EntityID{},
+		knownFn:              map[EntityID][]EntityID{},
+		knownFieldFn:         map[fieldFnKey][]EntityID{},
+		fieldParamEnts:       map[fieldFnKey]EntityID{},
+		fieldWitnessOf:       map[fieldFnKey]EntityID{},
+		fieldWitnessPoisoned: map[fieldFnKey]bool{},
+		dropMemo:             map[TypeID]EffectSummary{},
+		opDropMemo:           map[TypeID]OpSummary{},
+		identPaths:           map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID{},
+		provides:             map[EntityID][]ProvideBinding{},
 	}
 	r.Files = []FileInfo{{}}
 	r.Packages = []PackageInfo{{Path: "", Module: ""}}

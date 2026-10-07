@@ -104,7 +104,15 @@ func (r *Result) rootRunStepSubst(id EntityID, subst map[EntityID][]EntityID, rr
 // edgeHopsSubst is edgeHops plus the witness it resolved to, preferring an
 // inherited subst over the whole-program pool; nextSubst carries a fresh one forward.
 func (r *Result) edgeHopsSubst(caller EntityID, e EffectEdge, subst map[EntityID][]EntityID, rr *rootRun) (hops int, witness EntityID, nextSubst map[EntityID][]EntityID) {
-	if e.Kind != EdgeCall {
+	switch e.Kind {
+	case EdgeParamCall, EdgeCallback, EdgeKnownCall:
+		if w, ok := subst[e.Target]; ok {
+			d, _ := minHopsWitness(w, rr)
+			return d, 0, nil
+		}
+		return rr.hops(e.Target), 0, nil
+	case EdgeCall:
+	default:
 		return rr.hops(e.Target), 0, nil
 	}
 	if _, isReq := rr.impls[e.Target]; isReq {

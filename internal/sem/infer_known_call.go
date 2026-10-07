@@ -21,31 +21,12 @@ func (r *Result) fieldParamEnt(key fieldFnKey) EntityID {
 
 // knownFnRefs is expr itself when it's a bare fn name, else what trackKnownFn
 // already recorded for its local/param.
-func (c *checker) knownFnRefs(expr syntax.NodeID) []EntityID {
-	if c.t.Kind(expr) != syntax.Ident {
-		return nil
-	}
-	ent := c.info.Uses[expr]
-	if ent == 0 {
-		return nil
-	}
-	if c.r.Entities[ent].Kind == EntFn {
-		return []EntityID{ent}
-	}
-	switch c.r.Entities[ent].Kind {
-	case EntLocal, EntParam:
-		return c.r.knownFn[ent]
-	}
-	return nil
-}
+func (c *checker) knownFnRefs(expr syntax.NodeID) []EntityID { return c.r.chainKnownFnRefs(c.f, expr) }
 
 // trackKnownFn records what local holds, so a later call through it can be traced.
 func (c *checker) trackKnownFn(init syntax.NodeID, local EntityID) {
 	if w := c.knownFnRefs(init); len(w) > 0 {
 		c.r.knownFn[local] = w
-	}
-	if c.t.Kind(init) == syntax.RecordLit {
-		c.recordKnownFieldFns(init, local)
 	}
 }
 
@@ -58,39 +39,36 @@ func (c *checker) recordKnownFieldFns(lit syntax.NodeID, local EntityID) {
 		if field == 0 {
 			continue
 		}
-		init := syntax.NodeID(c.t.Nodes[entry].Lhs)
-		if w := c.knownFnRefs(init); len(w) > 0 {
-			c.r.knownFieldFn[fieldFnKey{Ent: local, Field: field}] = w
-		}
-		if src := c.identEnt(init); src != 0 {
-			c.r.fieldWitnessOf[fieldFnKey{Ent: local, Field: field}] = src
-		}
+		c.recordFieldWrite(local, field, syntax.NodeID(c.t.Nodes[entry].Lhs))
 	}
 }
 
 // identEnt is expr's own local/param entity, for a field init that just
-// forwards an interface-typed value through without calling it.
-func (c *checker) identEnt(expr syntax.NodeID) EntityID {
-	if c.t.Kind(expr) != syntax.Ident {
-		return 0
-	}
-	ent := c.info.Uses[expr]
-	if ent == 0 || (c.r.Entities[ent].Kind != EntLocal && c.r.Entities[ent].Kind != EntParam) {
-		return 0
-	}
-	return ent
-}
+// forwards a value through without calling it.
+func (c *checker) identEnt(expr syntax.NodeID) EntityID { return c.r.chainIdentEnt(c.f, expr) }
 
-// invalidateFieldWitness drops a field-witness alias on reassignment, so a later read falls back to the global union.
-func (c *checker) invalidateFieldWitness(lhs syntax.NodeID) {
+// applyFieldWrite is assignStmt's `x.f = rhs` hook: a single-field write joins
+// recordFieldWrite; anything else or a multi-hop place poisons conservatively.
+func (c *checker) applyFieldWrite(lhs, rhs syntax.NodeID) {
 	p, ok := c.buildPlace(lhs)
 	if !ok {
 		return
 	}
-	for key := range c.r.fieldWitnessOf {
-		if key.Ent == p.Root && (len(p.Fields) == 0 || p.Fields[0] == key.Field) {
-			delete(c.r.fieldWitnessOf, key)
+	switch len(p.Fields) {
+	case 0:
+		if c.t.Kind(rhs) == syntax.RecordLit {
+			c.reassignRecordFields(p.Root, rhs)
+			return
 		}
+		for key := range c.r.fieldParamEnts {
+			if key.Ent == p.Root {
+				c.poisonFieldKey(key)
+			}
+		}
+	case 1:
+		c.recordFieldWrite(p.Root, p.Fields[0], rhs)
+	default:
+		c.poisonFieldKey(fieldFnKey{Ent: p.Root, Field: p.Fields[0]})
 	}
 }
 
@@ -128,9 +106,9 @@ func (c *checker) knownCallTargets(callee syntax.NodeID) []EntityID {
 	return nil
 }
 
-// knownFieldCallEdges is fieldCallbackEdges' root-bridge counterpart: bind
-// each call-site argument's known fn to the field fn actually reads.
-func (c *checker) knownFieldCallEdges(fn EntityID, args []syntax.NodeID) {
+// knownFieldCallEdges binds each call-site argument's known fn to the field
+// fn reads; n is EdgeFieldBind's Node, so forwardSubst can narrow per call site.
+func (c *checker) knownFieldCallEdges(n syntax.NodeID, fn EntityID, args []syntax.NodeID) {
 	info := c.r.Fn(fn)
 	for _, key := range info.CalledFieldParams {
 		i := slices.Index(info.Params, key.Param)
@@ -138,20 +116,20 @@ func (c *checker) knownFieldCallEdges(fn EntityID, args []syntax.NodeID) {
 			continue
 		}
 		dst := c.r.fieldParamEnt(fieldFnKey{Ent: key.Param, Field: key.Field})
-		c.knownFieldArgEdge(args[i], key.Field, dst)
+		c.knownFieldArgEdge(n, args[i], key.Field, dst)
 	}
 }
 
 // knownFieldArgEdge binds dst to arg's field: a concrete fn, or the
 // caller's own field-param entity when arg just forwards its parameter.
-func (c *checker) knownFieldArgEdge(arg syntax.NodeID, field, dst EntityID) {
+func (c *checker) knownFieldArgEdge(n, arg syntax.NodeID, field, dst EntityID) {
 	if c.t.Kind(arg) == syntax.RecordLit {
 		for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[arg].Rhs)) {
 			if c.t.Kind(entry) == syntax.Spread || c.info.Uses[entry] != field {
 				continue
 			}
 			for _, tgt := range c.knownFnRefs(syntax.NodeID(c.t.Nodes[entry].Lhs)) {
-				c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: arg})
+				c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
 			}
 			return
 		}
@@ -166,10 +144,10 @@ func (c *checker) knownFieldArgEdge(arg syntax.NodeID, field, dst EntityID) {
 	}
 	switch c.r.Entities[ent].Kind {
 	case EntParam:
-		c.edge(EffectEdge{Kind: EdgeFieldBind, Target: c.r.fieldParamEnt(fieldFnKey{Ent: ent, Field: field}), Param: dst, Node: arg})
+		c.edge(EffectEdge{Kind: EdgeFieldBind, Target: c.r.fieldParamEnt(fieldFnKey{Ent: ent, Field: field}), Param: dst, Node: n})
 	case EntLocal:
 		for _, tgt := range c.r.knownFieldFn[fieldFnKey{Ent: ent, Field: field}] {
-			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: arg})
+			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
 		}
 	}
 }

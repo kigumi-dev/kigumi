@@ -20,18 +20,18 @@ func (c *checker) ifaceRecvEnt(base syntax.NodeID, recv TypeID) EntityID {
 	return c.info.Uses[base]
 }
 
+// fieldWitnessRecvEnt resolves base's (owner, field) pair: a non-mut local
+// aliases the source directly for per-call-site narrowing; mut/param mint a field-param entity instead.
 func (c *checker) fieldWitnessRecvEnt(base syntax.NodeID) EntityID {
-	field := c.info.Uses[base]
-	if field == 0 {
-		return 0
+	return c.r.chainFieldWitnessRecvEnt(c.f, base)
+}
+
+// fieldKeyEnt is fieldWitnessRecvEnt's gate for when the caller already has
+// owner's entity (e.g. ifaceFieldArgEdge chaining) instead of a MemberExpr.
+func (r *Result) fieldKeyEnt(owner, field EntityID) EntityID {
+	key := fieldFnKey{Ent: owner, Field: field}
+	if r.Entities[owner].Kind == EntLocal && r.Entities[owner].Flags&EfMut == 0 {
+		return r.fieldWitnessOf[key]
 	}
-	baseExpr := syntax.NodeID(c.t.Nodes[base].Lhs)
-	if c.t.Kind(baseExpr) != syntax.Ident {
-		return 0
-	}
-	baseEnt := c.info.Uses[baseExpr]
-	if baseEnt == 0 {
-		return 0
-	}
-	return c.r.fieldWitnessOf[fieldFnKey{Ent: baseEnt, Field: field}]
+	return r.fieldParamEnt(key)
 }

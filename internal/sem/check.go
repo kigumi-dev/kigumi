@@ -84,6 +84,9 @@ type checker struct {
 	// ctxStack is the lexical stack of `context (...) { }` bindings open at
 	// the current point; the innermost frame with a key wins.
 	ctxStack []ctxFrame
+	// pendingFieldEdges are field writes' root-bridge edges, held back for
+	// flushFieldWrites; see pendingFieldEdge.
+	pendingFieldEdges []pendingFieldEdge
 }
 
 // checkBodies (pass 7) type-checks every function, test and implicit main
@@ -129,6 +132,7 @@ func (r *Result) checkFnBody(id EntityID) {
 		}
 	}
 	c.checkBodyBlock(info.Body)
+	c.flushFieldWrites()
 	c.dropsAtScopeExit(info.Params)
 	r.Fn(id).Edges = edges
 }

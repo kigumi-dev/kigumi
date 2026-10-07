@@ -24,14 +24,14 @@ func (c *checker) synthCallWith(n, callee syntax.NodeID, args []syntax.NodeID, w
 	switch head.kind {
 	case headFn:
 		c.info.Uses[callee] = head.ent
-		return c.callFn(n, head.ent, head.args, args, want, 0)
+		return c.callFn(n, head.ent, head.args, args, want, 0, 0)
 	case headSet:
 		m := c.pickOverload(n, head.set, args, 0)
 		if m == 0 {
 			return TyPoison
 		}
 		c.info.Uses[callee] = m
-		return c.callFn(n, m, head.args, args, want, 0)
+		return c.callFn(n, m, head.args, args, want, 0, 0)
 	case headVariant:
 		return c.callVariant(n, head, args, want)
 	case headIntrinsic:

@@ -123,7 +123,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 	}
 	c.info.Uses[callee] = m
 	c.checkReceiver(base, recv, m)
-	result := c.callFn(n, m, typeArgs, args, want, valueType)
+	result := c.callFn(n, m, typeArgs, args, want, valueType, base)
 	if info.Recv == RecvMut {
 		c.checkReentrantCapture(base, args)
 	}
