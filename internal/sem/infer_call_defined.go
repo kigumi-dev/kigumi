@@ -36,6 +36,8 @@ func (c *checker) callDefinedWrap(n syntax.NodeID, head headRef, args []syntax.N
 	subst := instSubst(info.Params, typeArgs)
 	underlying := c.r.Types.Subst(info.Underlying, subst)
 	c.checkArg(args[0], underlying, 0, false)
+	// A defined type's own value is boxed, so a direct underlying value crosses into it.
+	c.crossDirect(args[0], underlying)
 	c.info.Calls[n] = CallInfo{Kind: CallDefinedWrap, Callee: ent, Inst: typeArgs, Plan: identityPlan(args)}
 	c.touched = append(c.touched, n)
 	return result

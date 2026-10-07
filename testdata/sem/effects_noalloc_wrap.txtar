@@ -1,0 +1,117 @@
+-- lib/na.kg --
+type Tick = Up(n: Int) | Flat
+
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Spot = {
+    pub x Int
+    pub y Int
+}
+
+// Some and Ok a coercion adds build the wrapper like a constructor call:
+// in the frame when the wrapper is direct, a box when it is not.
+noalloc fn wrapDirect(t: Tick, n: Int) -> Result[Tick?, Int] {
+    if n > 0 { return t }
+    Ok(None)
+}
+
+noalloc fn wrapCarrier(s: String) -> String? {
+    s //~ ERROR constructing `String?` allocates
+}
+
+noalloc fn wrapIntoABox(t: Tick) -> Result[Tick, String] {
+    t //~ ERROR constructing `Result[Tick, String]` allocates
+}
+
+// `fail` and a `?` that cannot hand its operand on build an Err the same way.
+noalloc fn failDirect(n: Int) -> Result[Int, Tick] {
+    if n > 0 { fail Up(n) }
+    Ok(n)
+}
+
+noalloc fn failIntoABox(n: Int) -> Result[String, Tick] {
+    fail Up(n) //~ ERROR constructing `Result[String, Tick]` allocates
+}
+
+noalloc fn rethrowDirect(r: Result[Int, Tick]) -> Result[Bool, Tick] {
+    let v = r?
+    Ok(v > 0)
+}
+
+noalloc fn rethrowIntoABox(r: Result[Int, Tick], s: Result[String, Tick]) -> Result[String, Tick] {
+    let v = r? //~ ERROR constructing `Result[String, Tick]` allocates
+    s
+}
+
+// An optional member read builds the Option it yields.
+noalloc fn optDirect(o: Spot?) -> Int? {
+    o?.y
+}
+
+noalloc fn optCarrier(o: Named?) -> String? {
+    o?.name //~ ERROR constructing `String?` allocates
+}
+
+// A wrapper around a fixed value is one immortal shared by every site.
+noalloc fn fixedOk() -> Unit! {
+    Ok(())
+}
+
+noalloc fn fixedTail() -> Unit! {}
+
+noalloc fn fixedLiteral() -> String? {
+    "lit"
+}
+
+noalloc fn fixedNullary() -> Result[String, Tick] {
+    Err(Flat)
+}
+
+noalloc fn notFixed(n: Int) -> Result[String, Tick] {
+    Err(Up(n)) //~ ERROR constructing `Result[String, Tick]` allocates
+}
+
+noalloc fn fixedFail(n: Int) -> Result[String, Tick] {
+    if n > 0 { fail Flat }
+    Ok("ok")
+}
+-- expect --
+error[E961]: constructing `String?` allocates
+  --> lib/na.kg:21:5
+   |
+21 |     s //~ ERROR constructing `String?` allocates
+   |     ^
+
+error[E961]: constructing `Result[Tick, String]` allocates
+  --> lib/na.kg:25:5
+   |
+25 |     t //~ ERROR constructing `Result[Tick, String]` allocates
+   |     ^
+
+error[E961]: constructing `Result[String, Tick]` allocates
+  --> lib/na.kg:35:5
+   |
+35 |     fail Up(n) //~ ERROR constructing `Result[String, Tick]` allocates
+   |     ^^^^^^^^^
+
+error[E961]: constructing `Result[String, Tick]` allocates
+  --> lib/na.kg:44:13
+   |
+44 |     let v = r? //~ ERROR constructing `Result[String, Tick]` allocates
+   |             ^^
+
+error[E961]: constructing `String?` allocates
+  --> lib/na.kg:54:5
+   |
+54 |     o?.name //~ ERROR constructing `String?` allocates
+   |     ^^^^^^^
+
+error[E961]: constructing `Result[String, Tick]` allocates
+  --> lib/na.kg:73:5
+   |
+73 |     Err(Up(n)) //~ ERROR constructing `Result[String, Tick]` allocates
+   |     ^^^^^^^^
+

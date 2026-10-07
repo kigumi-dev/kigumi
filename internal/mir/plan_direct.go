@@ -15,6 +15,7 @@ func PlanDirect(p *Program) error {
 	}
 	for _, f := range fs {
 		p.crossFunc(f)
+		p.markFixed(f)
 	}
 	return nil
 }

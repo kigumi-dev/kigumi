@@ -16,7 +16,7 @@ noalloc fn variadic() -> Array[Int] {
 }
 
 noalloc fn widen() -> Unit! {
-    fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates
+    fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Unit!` allocates
 }
 
 pure noalloc fn ok(data: Bytes) -> usize {
@@ -75,7 +75,36 @@ noalloc fn wholeAssignedVariant() -> Slot {
 }
 
 noalloc fn payloadVariant(x: Int) -> Int? {
-    Some(x) //~ ERROR constructing `_?` allocates
+    Some(x)
+}
+
+// Every payload is register-wide, so the tag and the payload area live in
+// the caller's own frame; matching one reads them back out.
+type Shape = Circle(r: Int) | Square(side: Int, filled: Bool) | Dot
+
+noalloc fn directVariant(n: Int) -> Int {
+    let s = Square(n, true)
+    match s {
+        Circle(r) -> r
+        Square(side, filled) -> if filled { side } else { 0 }
+        Dot -> 0
+    }
+}
+
+noalloc fn directVariantPropagates(x: Result[Int, Int]) -> Result[Int, Int] {
+    let v = x?
+    Ok(v + 1)
+}
+
+// A payload with storage of its own keeps the whole ADT boxed.
+type Tagged = Labelled(name: String) | Blank
+
+noalloc fn carrierVariant(s: String) -> Tagged {
+    Labelled(s) //~ ERROR constructing `Tagged` allocates
+}
+
+noalloc fn directVariantIntoAnArray(n: Int, mut xs: Array[Int?]) -> Unit {
+    xs.push(Some(n)) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it
 }
 
 noalloc fn bytes(s: String) -> Bytes {
@@ -170,10 +199,16 @@ error[E911]: listed variadic arguments allocate
    |     ^^^^^^^^^^^^^
    = help: pass `...array`
 
+error[E961]: constructing `Unit!` allocates
+  --> lib/na.kg:18:5
+   |
+18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Unit!` allocates
+   |     ^^^^^^^^^^^^^^^^^^^^
+
 error[E910]: boxing `MyErr` into `Error` allocates
   --> lib/na.kg:18:10
    |
-18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates
+18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Unit!` allocates
    |          ^^^^^^^^^^^^^^^
 
 error[E1610]: handing `MyErr` to a slot that holds a reference allocates a box for it
@@ -196,63 +231,76 @@ error[E1610]: handing `MyErr` to a slot that holds a reference allocates a box f
    |             ^^^^^^^^^^^^^^^
    = help: keep it in a value of its own, or drop the declaration
 
-error[E961]: constructing `_?` allocates
-  --> lib/na.kg:77:5
-   |
-77 |     Some(x) //~ ERROR constructing `_?` allocates
-   |     ^^^^^^
+error[E961]: constructing `Tagged` allocates
+   --> lib/na.kg:102:5
+    |
+102 |     Labelled(s) //~ ERROR constructing `Tagged` allocates
+    |     ^^^^^^^^^^
 
 error[E907]: `push` is not `noalloc`
-  --> lib/na.kg:85:5
-   |
-85 |     xs.push(1) //~ ERROR `push` is not `noalloc`
-   |     ^^^^^^^^^
+   --> lib/na.kg:106:5
+    |
+106 |     xs.push(Some(n)) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it
+    |     ^^^^^^^^^^^^^^
+
+error[E1610]: handing `Int?` to a slot that holds a reference allocates a box for it
+   --> lib/na.kg:106:13
+    |
+106 |     xs.push(Some(n)) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it
+    |             ^^^^^^
+    = help: keep it in a value of its own, or drop the declaration
+
+error[E907]: `push` is not `noalloc`
+   --> lib/na.kg:114:5
+    |
+114 |     xs.push(1) //~ ERROR `push` is not `noalloc`
+    |     ^^^^^^^^^
 
 error[E422]: closure is not `noalloc` (calls `grows`)
-  --> lib/na.kg:98:8
-   |
-98 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
-   |        ^^^^^^^^^^^^
+   --> lib/na.kg:127:8
+    |
+127 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
+    |        ^^^^^^^^^^^^
 
 error[E961]: constructing `closure fn() -> Unit` allocates
-   --> lib/na.kg:104:8
+   --> lib/na.kg:133:8
     |
-104 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+133 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
     |        ^^^^^^^^^^^^
 
 error[E910]: boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
-   --> lib/na.kg:104:8
+   --> lib/na.kg:133:8
     |
-104 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+133 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
     |        ^^^^^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
-   --> lib/na.kg:112:9
+   --> lib/na.kg:141:9
     |
-112 |     _ = e //~ ERROR dropping `Error` may allocate or deallocate
+141 |     _ = e //~ ERROR dropping `Error` may allocate or deallocate
     |         ^
 
 error[E912]: dropping `Error` may allocate or deallocate
-   --> lib/na.kg:115:27
+   --> lib/na.kg:144:27
     |
-115 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
+144 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
     |                           ^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
-   --> lib/na.kg:118:9
+   --> lib/na.kg:147:9
     |
-118 |     let local = e //~ ERROR dropping `Error` may allocate or deallocate
+147 |     let local = e //~ ERROR dropping `Error` may allocate or deallocate
     |         ^^^^^
 
 error[E907]: `helper2` is not `noalloc`
-   --> lib/na.kg:142:5
+   --> lib/na.kg:171:5
     |
-142 |     helper2(x) //~ ERROR `helper2` is not `noalloc`
+171 |     helper2(x) //~ ERROR `helper2` is not `noalloc`
     |     ^^^^^^^^^
 
 error[E907]: `pureOnly` is not `noalloc`
-   --> lib/na.kg:150:5
+   --> lib/na.kg:179:5
     |
-150 |     pureOnly(xs) //~ ERROR `pureOnly` is not `noalloc`
+179 |     pureOnly(xs) //~ ERROR `pureOnly` is not `noalloc`
     |     ^^^^^^^^^^^
 

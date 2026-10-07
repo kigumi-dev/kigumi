@@ -36,7 +36,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpBoxDirect:
 		// No object is built here, but the box native emits is an
 		// allocation, so the two backends refuse at the same crossings.
-		if m.faultTick() {
+		if !in.Fixed && !payloadFree(args[0]) && m.faultTick() {
 			m.abort("out of memory")
 		}
 		res = args[0]

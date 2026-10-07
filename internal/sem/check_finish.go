@@ -4,6 +4,7 @@ package sem
 // boundary is substituted to its final, defaulted form.
 func (c *checker) finish() {
 	c.vars.settle(c)
+	c.settleAllocs()
 	c.checkConstraints()
 	for _, id := range c.closures {
 		info := c.r.closure(id)

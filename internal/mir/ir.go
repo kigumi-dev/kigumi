@@ -93,6 +93,8 @@ type Inst struct {
 	// Scoped marks one call's receiver-cell plumbing: an OpNewCell a backend
 	// may place in the frame, and the OpDrop that gives its content back.
 	Scoped bool
+	// Fixed marks an OpBoxDirect of a compile-time value: both backends hand over its one immortal.
+	Fixed bool
 	// Prim/Prov are Ent's typed std op id, resolved once by resolveStdOps;
 	// both zero when Ent is not a registry-covered std call.
 	Prim PrimitiveId

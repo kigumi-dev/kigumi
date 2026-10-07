@@ -1,0 +1,129 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Tick = Up(n: Int) | Flat
+
+type Pair[T] = One(a: T) | Two(a: T, b: T)
+
+type Named = {
+    pub name String
+    pub n Int
+}
+
+fn Pair[T].count(self) -> Int {
+    match self {
+        One(_) -> 1
+        Two(_, _) -> 2
+    }
+}
+
+fn tickValue(t: Tick) -> Int {
+    match t {
+        Up(n) -> n
+        Flat -> 0
+    }
+}
+
+fn ident[T](v: T) -> Int { 1 }
+
+fn literals() -> Int { ident(Some(1)) + ident((1, 2)) + One(3).count() }
+
+fn wrapPoint(p: Point) -> Result[Point, String] { p }
+
+fn wrapTick(t: Tick) -> Result[Tick, String] { t }
+
+fn failPoint(n: Int) -> Result[String, Point] {
+    if n > 0 { fail Point { x: n, y: 2 } }
+    Ok("none")
+}
+
+fn failTick(n: Int) -> Result[String, Tick] {
+    if n > 0 { fail Up(n) }
+    fail Flat
+}
+
+fn inner(n: Int) -> Result[Int, Tick] { if n > 0 { Err(Up(n)) } else { Ok(n) } }
+
+fn rethrow(r: Result[Int, Tick], s: Result[String, Tick]) -> Result[String, Tick] {
+    let v = r?
+    s
+}
+
+fn fallbackWrap(o: Tick?) -> Result[Tick, String] {
+    let r: Result[Tick, String] = o || Flat
+    r
+}
+
+fn callWrap(n: Int) -> Result[Tick, String] { tickOf(n) }
+
+fn tickOf(n: Int) -> Tick { if n > 0 { Up(n) } else { Flat } }
+
+fn nameOf(o: Named?) -> String? { o?.name }
+
+fn yOf(o: Point?) -> Int? { o?.y }
+
+type Marked = Tick
+
+type Prio = Low | Mid(n: Int) | High
+
+pure fn Prio.rank(self) -> Int {
+    match self {
+        Low -> 0
+        Mid(n) -> 1 + n
+        High -> 100
+    }
+}
+
+pure fn Prio.compareTo(self, other: &Prio) -> Ordering {
+    let a = self.rank()
+    let b = other.rank()
+    if a < b { Ordering.Less } else if a > b { Ordering.Greater } else { Ordering.Equal }
+}
+
+fn peek(t: &Tick) -> Int {
+    match t {
+        Up(n) -> n
+        Flat -> 0
+    }
+}
+
+fn lend(t: Tick) -> Int { peek(t) + peek(Flat) }
+
+fn less(a: Prio, b: Prio) -> Bool { a < b }
+
+fn lends(n: Int) -> Int { if less(Mid(n), High) && Mid(n) < High { lend(Up(n)) } else { 0 } }
+
+fn wrapMarked(n: Int) -> Marked { Marked(Up(n)) }
+
+fn marked(n: Int) -> Int { tickValue(wrapMarked(n).value) }
+
+fn errFlat() -> Result[String, Tick] { Err(Flat) }
+
+fn okUnit() -> Unit! {}
+
+fn sizeAny[T](v: T) -> Int { 1 }
+
+fn handFlat() -> Int { sizeAny(Flat) + sizeAny(Ordering.Less) }
+
+print "literals=${literals()}"
+print "wrap=${wrapPoint(Point { x: 1, y: 2 }) is Ok(p) && p.y == 2} ${wrapTick(Up(4)) is Ok(Up(4))}"
+print "fail=${failPoint(3) is Err(p) && p.x == 3} ${failPoint(0) is Ok(_)} ${failTick(2) is Err(Up(2))} ${failTick(0) is Err(Flat)}"
+print "rethrow=${rethrow(inner(5), Ok("s")) is Err(Up(5))} ${rethrow(inner(0), Ok("s")) is Ok(_)}"
+print "fallback=${fallbackWrap(None) is Ok(Flat)} ${fallbackWrap(Some(Up(1))) is Ok(Up(1))}"
+print "call=${callWrap(6) is Ok(t) && tickValue(t) == 6}"
+print "opt=${nameOf(Some(Named { name: "kg", n: 1 })) is Some(_)} ${nameOf(None) is None} ${yOf(Some(Point { x: 1, y: 9 })) || 0}"
+print "lend=${lends(4)} ${less(High, Low)} marked=${marked(7)}"
+print "fixed=${errFlat() is Err(Flat)} ${okUnit() is Ok(_)} ${handFlat()}"
+-- stdout --
+literals=3
+wrap=true true
+fail=true true true true
+rethrow=true true
+fallback=true true
+call=true
+opt=true true 9
+lend=4 false marked=7
+fixed=true true 2

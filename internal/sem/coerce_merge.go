@@ -36,6 +36,7 @@ func (c *checker) merge(nodes []syntax.NodeID, types []TypeID) TypeID {
 		}
 		if len(steps) > 0 {
 			c.info.Coerce[nodes[i]] = Coercion{From: t, Steps: steps}
+			c.chargeCoercion(nodes[i], c.info.Coerce[nodes[i]])
 			if steps[0].Kind == CoLiteral {
 				c.setType(c.literalNode(nodes[i]), steps[0].To)
 			}

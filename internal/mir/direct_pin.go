@@ -46,7 +46,7 @@ func spreadPins(f *Func, out []bool) {
 // the view reaches the value it was taken from.
 func storageSource(in Inst) (LocalID, bool) {
 	switch in.Op {
-	case OpCopy, OpAlias, OpMove, OpField, OpFieldMove:
+	case OpCopy, OpAlias, OpMove, OpField, OpFieldMove, OpPayload:
 		return in.Args[0], true
 	case OpShare:
 		return in.Args[0], !in.Copy

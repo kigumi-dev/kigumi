@@ -88,6 +88,10 @@ func (p *Program) inst(f *Func, in Inst) string {
 		} else {
 			body += " retain"
 		}
+	case OpBoxDirect:
+		if in.Fixed {
+			body += " fixed"
+		}
 	case OpInterp, OpShell:
 		body += fmt.Sprintf(" %q", strings.Join(in.Strs, "\x00"))
 	case OpPanic:

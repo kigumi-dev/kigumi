@@ -130,5 +130,6 @@ func (c *checker) synthOptMember(n syntax.NodeID) TypeID {
 	if t == TyPoison {
 		return TyPoison
 	}
+	c.buildEdge(n, c.r.Types.Option(t))
 	return c.r.Types.Option(t)
 }

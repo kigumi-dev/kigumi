@@ -32,9 +32,10 @@ type checker struct {
 	// consumed marks a binding moved out before scope exit, skipped by dropsAtScopeExit.
 	consumed map[EntityID]bool
 	// branch counts nested if/match/loop bodies, where a consuming use doesn't mark consumed.
-	branch  int
-	vars    *varStore
-	touched []syntax.NodeID
+	branch       int
+	vars         *varStore
+	touched      []syntax.NodeID
+	allocPending []pendingAlloc
 	// piped maps a call node to the `|>` left operand it takes first.
 	piped map[syntax.NodeID]syntax.NodeID
 	// argLambda marks a lambda written directly as a call argument; it may capture borrows, the callee not expected to keep them.

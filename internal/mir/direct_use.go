@@ -7,9 +7,11 @@ func (p *Program) directUses(f *Func, cand []bool) []bool {
 			out[prm] = true
 		}
 	}
+	nullary := nullaryLocals(f)
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			p.markDirectUse(in, out)
+			markInlineArgs(in, out, cand, nullary)
 		}
 		if blk.Term.Op == TermReturn && f.DSig.result() != 0 {
 			out[blk.Term.Args[0]] = true
@@ -19,10 +21,13 @@ func (p *Program) directUses(f *Func, cand []bool) []bool {
 	return out
 }
 
+// Building a payload-free variant or matching a carrier keeps nothing unboxed: unboxing to match would box the payload again.
 func (p *Program) markDirectUse(in Inst, out []bool) {
 	switch in.Op {
 	case OpRecord:
 		out[in.Dst] = true
+	case OpVariant:
+		out[in.Dst] = len(in.Args) > 0 || out[in.Dst]
 	case OpField, OpFieldMove, OpSetField:
 		out[in.Args[0]] = true
 	case OpCall:
@@ -52,7 +57,7 @@ func spreadDirectUse(f *Func, out, cand []bool) {
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
 				switch in.Op {
-				case OpField, OpFieldMove:
+				case OpField, OpFieldMove, OpPayload:
 					if cand[in.Dst] {
 						join(in.Dst, in.Args[0])
 					}
@@ -64,4 +69,32 @@ func spreadDirectUse(f *Func, out, cand []bool) {
 			}
 		}
 	}
+}
+
+func markInlineArgs(in Inst, out, cand, nullary []bool) {
+	args := in.Args
+	switch {
+	case (in.Op == OpRecord || in.Op == OpVariant) && cand[in.Dst]:
+	case in.Op == OpSetField && cand[in.Args[0]]:
+		args = in.Args[1:]
+	default:
+		return
+	}
+	for _, a := range args {
+		if nullary[a] && cand[a] {
+			out[a] = true
+		}
+	}
+}
+
+func nullaryLocals(f *Func) []bool {
+	out := make([]bool, len(f.Locals))
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if in.Op == OpVariant && len(in.Args) == 0 {
+				out[in.Dst] = true
+			}
+		}
+	}
+	return out
 }

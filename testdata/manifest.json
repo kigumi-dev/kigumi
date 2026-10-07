@@ -1639,6 +1639,23 @@
       ]
     },
     {
+      "id": "run/async_const_key",
+      "kind": "run",
+      "path": "testdata/run/async_const_key.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_fn_value",
       "kind": "run",
       "path": "testdata/run/async_fn_value.txtar",
@@ -2784,6 +2801,108 @@
       "id": "run/defined_type_ref",
       "kind": "run",
       "path": "testdata/run/defined_type_ref.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_adt",
+      "kind": "run",
+      "path": "testdata/run/direct_adt.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_adt_crossings",
+      "kind": "run",
+      "path": "testdata/run/direct_adt_crossings.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_adt_fixed_cross",
+      "kind": "run",
+      "path": "testdata/run/direct_adt_fixed_cross.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_adt_hidden_build",
+      "kind": "run",
+      "path": "testdata/run/direct_adt_hidden_build.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_adt_widths",
+      "kind": "run",
+      "path": "testdata/run/direct_adt_widths.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_agg_same_name",
+      "kind": "run",
+      "path": "testdata/run/direct_agg_same_name.txtar",
       "mode": [
         "vm",
         "native"
@@ -7757,6 +7876,39 @@
       "id": "sem/effects_noalloc_bad_recv",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_bad_recv.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_lend",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_lend.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_literal_cross",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_literal_cross.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_wrap",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_wrap.txtar",
       "mode": [
         "check"
       ],

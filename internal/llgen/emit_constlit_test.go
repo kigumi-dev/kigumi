@@ -63,10 +63,10 @@ fn main() -> Unit! {}
 // around its payload allocates an object and a payload array.
 func TestTryForwardsErrWithoutRebuilding(t *testing.T) {
 	ir := emitIR(t, `
-type Fault = Low | High
+type Fault = Low | Named(why: String)
 
 fn source(bad: Bool) -> Result[Int, Fault] {
-    if bad { Err(High) } else { Ok(1) }
+    if bad { Err(Low) } else { Ok(1) }
 }
 
 fn forwards(bad: Bool) -> Result[Int, Fault] {

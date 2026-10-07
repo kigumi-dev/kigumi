@@ -1,0 +1,34 @@
+-- src --
+import task from std/task
+
+fn a1(n: Int) -> String? { Some("stale") }
+
+async fn b1(s: String) -> String? { Some(s) }
+
+fn a2(n: Int) -> Int? { Some(7) }
+
+async fn b2(n: Int) -> Int? { Some(n) }
+
+fn a3() -> String? { Some("stale") }
+
+async fn b3(s: String) -> String? {
+    let t = s
+    Some(t)
+}
+
+async fn root() -> String {
+    let r1 = await b1("fresh1")
+    let r2 = await b2(42)
+    let r3 = await b3("fresh3")
+    let s1 = r1 || "none"
+    let s2 = r2 || 0
+    let s3 = r3 || "none"
+    "${s1} ${s2} ${s3}"
+}
+
+print "${a1(1) is Some(_)} ${a2(1) is Some(_)} ${a3() is Some(_)}"
+let ex = task.currentThreadExecutor()
+print ex.runToCompletion(root())
+-- stdout --
+true true true
+fresh1 42 fresh3

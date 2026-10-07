@@ -54,13 +54,13 @@ func checkNoHeap(t *testing.T, what, body string) {
 
 func TestNullaryVariantBuildsWithoutAllocating(t *testing.T) {
 	ir := emitIR(t, `
-type Color = Red | Green | Blue
+type Color = Red | Green | Tinted(name: String)
 
 fn pick(n: Int) -> Color {
-    if n == 0 { Red } else { Blue }
+    if n == 0 { Red } else { Green }
 }
 
-fn nothing() -> Int? {
+fn nothing() -> String? {
     None
 }
 
@@ -176,7 +176,7 @@ fn main() -> Unit! {}
 // the Dot it was handed, so that type's variants still share one immortal.
 func TestWholeSelfAssignKeepsVariantsShared(t *testing.T) {
 	ir := emitIR(t, `
-type Shape = Circle(r: Float) | Dot
+type Shape = Circle(label: String) | Dot
 
 fn Shape.clear(mut self) -> Unit { self = Dot }
 

@@ -24,6 +24,21 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 			e.buildAgg(sb, a, in)
 			return true
 		}
+	case mir.OpVariant:
+		if a, ok := e.direct[in.Dst]; ok {
+			e.buildVariant(sb, a, in)
+			return true
+		}
+	case mir.OpPayload:
+		if a, ok := e.direct[in.Args[0]]; ok {
+			e.readPayload(sb, f, a, in)
+			return true
+		}
+	case mir.OpIsVariant:
+		if a, ok := e.direct[in.Args[0]]; ok {
+			e.testVariant(sb, f, a, in)
+			return true
+		}
 	case mir.OpField, mir.OpFieldMove:
 		if a, ok := e.direct[in.Args[0]]; ok {
 			e.readAggField(sb, f, a, in)
@@ -54,6 +69,10 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 		// A pure direct value owns no reference and has no drop glue.
 		return e.isDirect(in.Args[0])
 	case mir.OpBoxDirect:
+		if key, ok := e.constKey[in.Dst]; ok {
+			e.store(sb, in.Dst, e.constArgValue(sb, key))
+			return true
+		}
 		if a, ok := e.agg(in.Type); ok {
 			e.store(sb, in.Dst, e.boxAgg(sb, a, e.loadAgg(sb, a, in.Args[0])))
 			return true
@@ -85,6 +104,10 @@ func (e *emitter) buildAgg(sb *strings.Builder, a *aggInfo, in mir.Inst) {
 
 func (e *emitter) readAggField(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {
 	fld := a.Fields[in.Index]
+	if fld.Unit {
+		e.store(sb, in.Dst, e.irb(sb).Call(rtUnit).Text)
+		return
+	}
 	t := e.newTmp()
 	fmt.Fprintf(sb, "  %s = extractvalue %s %s, %d\n", t, a.Name, e.loadAgg(sb, a, in.Args[0]), in.Index)
 	if fld.Agg == nil {
@@ -96,6 +119,9 @@ func (e *emitter) readAggField(sb *strings.Builder, f *mir.Func, a *aggInfo, in 
 
 // Every leaf position takes over the reference, so a box read here is released.
 func (e *emitter) aggLeaf(sb *strings.Builder, fld aggField, l mir.LocalID) string {
+	if fld.Unit {
+		return "zeroinitializer"
+	}
 	if fld.Agg != nil {
 		return e.loadAgg(sb, e.direct[l], l)
 	}

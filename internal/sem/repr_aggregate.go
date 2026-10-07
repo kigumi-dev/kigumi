@@ -12,6 +12,10 @@ func (r *Result) RegScalar(t TypeID) bool {
 	return false
 }
 
+func (r *Result) directLeaf(t TypeID) bool {
+	return t == TyUnit || r.RegScalar(t) || r.DirectAgg(t)
+}
+
 func (r *Result) DirectAgg(t TypeID) bool {
 	if t == 0 {
 		return false
@@ -38,27 +42,56 @@ func (r *Result) computeDirectAgg(t TypeID) bool {
 		return false
 	}
 	info := r.typeDecl(n.Ent)
-	if info.Form != FormRecord || info.Layout != "" || len(info.Fields) == 0 {
+	if info.Layout != "" {
 		return false
 	}
 	subst := instSubst(info.Params, n.Args)
-	for _, fld := range info.Fields {
-		ft := r.Types.Subst(r.Entities[fld].Type, subst)
-		if !r.RegScalar(ft) && !r.DirectAgg(ft) {
+	switch info.Form {
+	case FormRecord:
+		return len(info.Fields) > 0 && r.leavesDirect(r.fieldTypes(info, subst))
+	case FormAdt:
+		return len(info.Variants) > 0 && r.variantsDirect(info, subst)
+	}
+	return false
+}
+
+func (r *Result) leavesDirect(ts []TypeID) bool {
+	for _, t := range ts {
+		if !r.directLeaf(t) {
 			return false
 		}
 	}
 	return true
 }
 
-// The caller has already checked DirectAgg.
-func (r *Result) AggFields(t TypeID) []TypeID {
-	n := r.Types.Node(t)
-	info := r.typeDecl(n.Ent)
-	subst := instSubst(info.Params, n.Args)
+func (r *Result) variantsDirect(info *TypeDeclInfo, subst map[EntityID]TypeID) bool {
+	for _, v := range info.Variants {
+		if !r.leavesDirect(r.payloadTypes(v, subst)) {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Result) fieldTypes(info *TypeDeclInfo, subst map[EntityID]TypeID) []TypeID {
 	out := make([]TypeID, len(info.Fields))
 	for i, fld := range info.Fields {
 		out[i] = r.Types.Subst(r.Entities[fld].Type, subst)
 	}
 	return out
+}
+
+func (r *Result) payloadTypes(v EntityID, subst map[EntityID]TypeID) []TypeID {
+	pl := r.variant(v).Payload
+	out := make([]TypeID, len(pl))
+	for i, p := range pl {
+		out[i] = r.Types.Subst(p, subst)
+	}
+	return out
+}
+
+func (r *Result) AggFields(t TypeID) []TypeID {
+	n := r.Types.Node(t)
+	info := r.typeDecl(n.Ent)
+	return r.fieldTypes(info, instSubst(info.Params, n.Args))
 }

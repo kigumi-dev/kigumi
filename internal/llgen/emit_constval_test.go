@@ -9,20 +9,21 @@ import (
 	"kigumi/internal/mir"
 )
 
-// The implicit `Ok(unit)` of a `-> Unit!` body and `Err(AllocError.OutOfMemory)`
-// are the same value everywhere they are built, so neither needs storage.
 func TestFixedPayloadVariantBuildsWithoutAllocating(t *testing.T) {
 	ir := emitIR(t, `
-fn unitOk(bad: Bool) -> Result[Unit, AllocError] {
+type Tag = Lit(name: String) | Plain
+
+fn pick(bad: Bool) -> Result[Tag, Int] {
     if bad {
-        return Err(AllocError.OutOfMemory)
+        return Err(7)
     }
+    Ok(Plain)
 }
 
 fn main() -> Unit! {}
 `)
-	body := bodyOf(t, ir, `define ptr @"main.unitOk"(`)
-	checkNoHeap(t, "main.unitOk", body)
+	body := bodyOf(t, ir, `define ptr @"main.pick"(`)
+	checkNoHeap(t, "main.pick", body)
 	if n := strings.Count(body, `@".constval.`); n < 2 {
 		t.Errorf("want both the Ok and the Err from a shared slot, found %d:\n%s", n, body)
 	}
@@ -35,9 +36,7 @@ fn main() -> Unit! {}
 	}
 }
 
-// A fallible-Unit body ending in a call returns the same one Ok(unit):
-// the call's own Unit value is released at the site, not stored.
-func TestUnitTailOkBuildsWithoutAllocating(t *testing.T) {
+func TestUnitTailOkBuildsInline(t *testing.T) {
 	ir := emitIR(t, `
 fn side(n: Int) -> Unit {}
 
@@ -47,16 +46,33 @@ fn wrap(n: Int) -> Result[Unit, AllocError] {
 
 fn main() -> Unit! {}
 `)
-	body := bodyOf(t, ir, `define ptr @"main.wrap"(`)
+	body := bodyOf(t, ir, `define %"kg.adt.Result[Unit, AllocError]" @"main.wrap"(`)
 	checkNoHeap(t, "main.wrap", body)
-	if !strings.Contains(body, `@".constval.`) {
-		t.Errorf("the Ok wrapping a called Unit must come from the shared slot:\n%s", body)
+	if strings.Contains(body, `@".constval.`) {
+		t.Errorf("an inline result must not read a shared slot:\n%s", body)
+	}
+}
+
+func TestAllocErrorBuildsInline(t *testing.T) {
+	ir := emitIR(t, `
+fn fails(bad: Bool) -> Result[Unit, AllocError] {
+    if bad {
+        return Err(AllocError.OutOfMemory)
+    }
+}
+
+fn main() -> Unit! {}
+`)
+	body := bodyOf(t, ir, `define %"kg.adt.Result[Unit, AllocError]" @"main.fails"(`)
+	checkNoHeap(t, "main.fails", body)
+	if strings.Contains(body, "@rt_nullary(") || strings.Contains(body, `@".constval.`) {
+		t.Errorf("an inline AllocError must not come from an immortal:\n%s", body)
 	}
 }
 
 func TestFixedPayloadSharedWithoutOptionTake(t *testing.T) {
 	ir := emitIR(t, `
-type Mark = Cold | Hot
+type Mark = Cold | Named(s: String)
 
 fn here() -> Option[Mark] { Some(Cold) }
 
@@ -70,7 +86,7 @@ fn main() -> Unit! {}
 // Some it found, so a program that calls it still shares one Some.
 func TestOptionTakeSharesSome(t *testing.T) {
 	ir := emitIR(t, `
-type Mark = Cold | Hot
+type Mark = Cold | Named(s: String)
 
 fn here() -> Option[Mark] { Some(Cold) }
 

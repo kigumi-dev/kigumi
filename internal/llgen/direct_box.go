@@ -7,8 +7,8 @@ import (
 	"kigumi/internal/mir"
 )
 
-func (e *emitter) aggBoxSym(a *aggInfo) string   { return "@\"kg.box." + e.r.TypeString(a.T) + "\"" }
-func (e *emitter) aggUnboxSym(a *aggInfo) string { return "@\"kg.unbox." + e.r.TypeString(a.T) + "\"" }
+func (e *emitter) aggBoxSym(a *aggInfo) string   { return "@\"kg.box." + a.Label + "\"" }
+func (e *emitter) aggUnboxSym(a *aggInfo) string { return "@\"kg.unbox." + a.Label + "\"" }
 
 // The only two places a direct aggregate crosses into the boxed value model.
 func (e *emitter) aggHelpers(a *aggInfo) {
@@ -16,13 +16,29 @@ func (e *emitter) aggHelpers(a *aggInfo) {
 		return
 	}
 	e.aggDone[a.T] = true
-	for _, f := range a.Fields {
+	for _, f := range a.leaves() {
 		if f.Agg != nil {
 			e.aggHelpers(f.Agg)
 		}
 	}
+	if a.isAdt() {
+		e.helpers.WriteString(e.adtBoxFn(a))
+		e.helpers.WriteString(e.adtUnboxFn(a))
+		return
+	}
 	e.helpers.WriteString(e.aggBoxFn(a))
 	e.helpers.WriteString(e.aggUnboxFn(a))
+}
+
+func (a *aggInfo) leaves() []aggField {
+	if !a.isAdt() {
+		return a.Fields
+	}
+	var out []aggField
+	for _, v := range a.Variants {
+		out = append(out, v.Payload...)
+	}
+	return out
 }
 
 func (e *emitter) aggBoxFn(a *aggInfo) string {
@@ -30,10 +46,14 @@ func (e *emitter) aggBoxFn(a *aggInfo) string {
 	fmt.Fprintf(&sb, "define internal ptr %s(%s %%v) {\nentry:\n", e.aggBoxSym(a), a.Name)
 	fmt.Fprintf(&sb, "  %%arr = alloca ptr, i32 %d\n", len(a.Fields))
 	for i, f := range a.Fields {
-		fmt.Fprintf(&sb, "  %%f%d = extractvalue %s %%v, %d\n", i, a.Name, i)
-		if f.Agg != nil {
+		switch {
+		case f.Unit:
+			fmt.Fprintf(&sb, "  %%b%d = call ptr @rt_unit()\n", i)
+		case f.Agg != nil:
+			fmt.Fprintf(&sb, "  %%f%d = extractvalue %s %%v, %d\n", i, a.Name, i)
 			fmt.Fprintf(&sb, "  %%b%d = call ptr %s(%s %%f%d)\n", i, e.aggBoxSym(f.Agg), f.Agg.Name, i)
-		} else {
+		default:
+			fmt.Fprintf(&sb, "  %%f%d = extractvalue %s %%v, %d\n", i, a.Name, i)
 			boxLeaf(&sb, i, f)
 		}
 		fmt.Fprintf(&sb, "  %%p%d = getelementptr ptr, ptr %%arr, i32 %d\n", i, i)
@@ -83,6 +103,11 @@ func (e *emitter) aggUnboxFn(a *aggInfo) string {
 	fmt.Fprintf(&sb, "define internal %s %s(ptr %%b) {\nentry:\n", a.Name, e.aggUnboxSym(a))
 	prev := "undef"
 	for i, f := range a.Fields {
+		if f.Unit {
+			fmt.Fprintf(&sb, "  %%a%d = insertvalue %s %s, [0 x i8] zeroinitializer, %d\n", i, a.Name, prev, i)
+			prev = fmt.Sprintf("%%a%d", i)
+			continue
+		}
 		fmt.Fprintf(&sb, "  %%f%d = call ptr @rt_field(ptr %%b, i64 %d)\n", i, i)
 		if f.Agg != nil {
 			fmt.Fprintf(&sb, "  %%s%d = call %s %s(ptr %%f%d)\n", i, f.Agg.Name, e.aggUnboxSym(f.Agg), i)

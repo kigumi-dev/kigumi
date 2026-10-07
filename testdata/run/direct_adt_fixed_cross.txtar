@@ -1,0 +1,49 @@
+-- src --
+import map from std/map
+
+type Tick = Up(n: Int) | Flat
+
+interface Shown {
+    fn show(self) -> String
+}
+
+fn Tick.show(self) -> String {
+    match self {
+        Up(n) -> "up${n}"
+        Flat -> "flat"
+    }
+}
+
+fn pick[T](v: T) -> T { v }
+
+fn showIt(s: Shown) -> String { s.show() }
+
+fn unitOk() -> Result[Unit, AllocError] { pick(Ok(())) }
+
+fn sum(xs: &Array[Tick]) -> Int {
+    let mut total = 0
+    for i in 0..xs.len() {
+        if xs.get(i) is Some(Up(n)) { total = total + n }
+    }
+    total
+}
+
+print "generic=${pick(Some(4)) is Some(v) && v == 4} ${pick(Some(Up(7))) is Some(Up(7))} ${pick(Up(9)) == pick(Up(9))}"
+print "iface=${showIt(Up(5))} ${showIt(Flat)}"
+let xs = Array.of(Up(1), Flat, Up(1))
+print "array=${sum(&xs)} ${xs.len()}"
+let mut m = map.empty[String, Tick]()
+m.set("a", Up(2))
+m.set("b", Up(2))
+print "map=${m.get(&"a") is Some(Up(2))} ${m.get(&"b") == m.get(&"a")}"
+let t = Up(6)
+let f = () => t.show()
+print "capture=${f()} ${f()}"
+print "unit=${unitOk() is Ok(_)} hash=${hash(&Up(4)) == hash(&pick(Up(4)))}"
+-- stdout --
+generic=true true true
+iface=up5 flat
+array=2 3
+map=true true
+capture=up6 up6
+unit=true hash=true

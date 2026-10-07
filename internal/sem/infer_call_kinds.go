@@ -36,7 +36,9 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 		c.checkArg(a, c.r.Types.Subst(vi.Payload[i], subst), 0, false)
 		c.checkEscapeStore(a)
 	}
-	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	if !c.fixedPayload(args) {
+		c.buildEdge(n, result)
+	}
 	c.info.Calls[n] = CallInfo{Kind: CallVariant, Callee: v, Inst: typeArgs, Plan: identityPlan(args)}
 	c.touched = append(c.touched, n)
 	return result

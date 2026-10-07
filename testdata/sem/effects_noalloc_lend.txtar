@@ -1,0 +1,72 @@
+-- lib/na.kg --
+type Tick = Up(n: Int) | Flat
+
+type Marked = Tick
+
+type Prio = Low | Mid(n: Int) | High
+
+pure noalloc fn Prio.rank(self) -> Int {
+    match self {
+        Low -> 0
+        Mid(n) -> 1 + n
+        High -> 100
+    }
+}
+
+pure noalloc fn Prio.compareTo(self, other: &Prio) -> Ordering {
+    let a = self.rank()
+    let b = other.rank()
+    if a < b { Ordering.Less } else if a > b { Ordering.Greater } else { Ordering.Equal }
+}
+
+noalloc fn peek(t: &Tick) -> Int {
+    match t {
+        Up(n) -> n
+        Flat -> 0
+    }
+}
+
+// A value lent to a `&T` parameter, by a coercion or an operator, needs an
+// object to point at; a payload-free variant already is one.
+noalloc fn lendParam(t: Tick) -> Int {
+    peek(t) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
+}
+
+noalloc fn lendNullary() -> Int {
+    peek(Flat)
+}
+
+noalloc fn lessParam(a: Prio, b: Prio) -> Bool {
+    a < b //~ ERROR handing `Prio` to a slot that holds a reference allocates a box for it
+}
+
+noalloc fn lessNullary(n: Int) -> Bool {
+    Mid(n) < High
+}
+
+// A defined type's own value is boxed, so wrapping a direct one crosses.
+noalloc fn wrapDefined(t: Tick) -> Marked {
+    Marked(t) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
+}
+-- expect --
+error[E1610]: handing `Tick` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:31:10
+   |
+31 |     peek(t) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
+   |          ^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Prio` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:39:9
+   |
+39 |     a < b //~ ERROR handing `Prio` to a slot that holds a reference allocates a box for it
+   |         ^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Tick` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:48:12
+   |
+48 |     Marked(t) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
+   |            ^
+   = help: keep it in a value of its own, or drop the declaration
+

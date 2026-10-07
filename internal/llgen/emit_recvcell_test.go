@@ -48,7 +48,7 @@ fn main() -> Unit! {}
 // takes the new value back out of it.
 func TestWholeSelfAssignWritesBackThroughCell(t *testing.T) {
 	ir := emitIR(t, `
-type Shape = Circle(r: Int) | Dot
+type Shape = Circle(label: String) | Dot
 
 fn Shape.flatten(mut self) -> Unit {
     self = Dot

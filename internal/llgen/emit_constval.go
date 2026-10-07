@@ -57,7 +57,7 @@ func (e *emitter) constLocals(f *mir.Func) map[mir.LocalID]string {
 			}
 		}
 	}
-	out := map[mir.LocalID]string{}
+	out, shape := map[mir.LocalID]string{}, map[mir.LocalID]string{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if !definesDst(in.Op) || defs[in.Dst] != 1 || f.Locals[in.Dst].Cell {
@@ -66,50 +66,43 @@ func (e *emitter) constLocals(f *mir.Func) map[mir.LocalID]string {
 			switch in.Op {
 			case mir.OpUnit:
 				e.registerConst(constUnitKey, constVal{})
-				out[in.Dst] = constUnitKey
+				out[in.Dst], shape[in.Dst] = constUnitKey, constUnitKey
 			case mir.OpConst:
 				if k, ok := e.litKey(in); ok {
-					out[in.Dst] = k
+					out[in.Dst], shape[in.Dst] = k, k
 				}
 			case mir.OpAlias, mir.OpMove, mir.OpCopy, mir.OpShare:
-				if k, ok := out[in.Args[0]]; ok {
-					out[in.Dst] = k
+				if k, ok := shape[in.Args[0]]; ok {
+					shape[in.Dst] = k
+					if _, boxed := out[in.Args[0]]; boxed {
+						out[in.Dst] = k
+					}
 				}
 			case mir.OpVariant:
-				if k, ok := e.constVariantKey(in, out); ok {
-					out[in.Dst] = k
+				if k, ok := e.variantShape(in, shape); ok {
+					shape[in.Dst] = k
+					if !e.isDirect(in.Dst) {
+						e.commitConst(k)
+						out[in.Dst] = k
+					}
+				}
+			case mir.OpBoxDirect:
+				// The VM counts no allocation where mir marks a crossing fixed, so mir alone decides.
+				if in.Fixed {
+					k := fixedShape(shape, in.Args[0])
+					e.commitConst(k)
+					out[in.Dst], shape[in.Dst] = k, k
 				}
 			}
 			// Unit carries nothing and rt_unit() is its only object, so any
 			// one stands for the rest; the site releases what it was handed.
 			if _, keyed := out[in.Dst]; !keyed && f.Locals[in.Dst].Type == sem.TyUnit {
 				e.registerConst(constUnitKey, constVal{})
-				out[in.Dst], e.constOwned[in.Dst] = constUnitKey, true
+				out[in.Dst], shape[in.Dst], e.constOwned[in.Dst] = constUnitKey, constUnitKey, true
 			}
 		}
 	}
 	return out
-}
-
-// constVariantKey keys in's value when every payload of it is itself
-// fixed, recording the shape kg_init_immortals builds it from.
-func (e *emitter) constVariantKey(in mir.Inst, keys map[mir.LocalID]string) (string, bool) {
-	d := e.vdesc(in.Ent)
-	if len(in.Args) == 0 {
-		e.registerConst(d, constVal{vdesc: d})
-		return d, true
-	}
-	args := make([]string, 0, len(in.Args))
-	for _, a := range in.Args {
-		k, ok := keys[a]
-		if !ok {
-			return "", false
-		}
-		args = append(args, k)
-	}
-	key := d + "(" + strings.Join(args, ",") + ")"
-	e.registerConst(key, constVal{vdesc: d, args: args})
-	return key, true
 }
 
 func (e *emitter) registerConst(key string, cv constVal) {

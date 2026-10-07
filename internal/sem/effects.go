@@ -9,6 +9,7 @@ import "slices"
 func (r *Result) checkEffects() {
 	nodes := r.effectNodes()
 	r.dropSharedValueAllocs(nodes)
+	r.dropDirectBuildAllocs(nodes)
 	r.inferSummaries(nodes)
 	for _, id := range nodes {
 		r.checkContracts(id)
@@ -48,6 +49,23 @@ func (r *Result) dropSharedValueAllocs(nodes []EntityID) {
 		edges := r.edgesPtr(id)
 		*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool {
 			return e.Kind == EdgeAlloc && e.Why == whySharedValue
+		})
+	}
+}
+
+// An async body keeps its builds, since its slots are pointer-wide.
+func (r *Result) dropDirectBuildAllocs(nodes []EntityID) {
+	for _, id := range nodes {
+		async := r.Entities[id].Kind == EntFn && r.Fn(id).Declared&EffAsync != 0
+		edges := r.edgesPtr(id)
+		*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool {
+			switch {
+			case e.Kind != EdgeAlloc:
+				return false
+			case e.Why == whyDirectCross:
+				return !r.DirectAgg(e.Type)
+			}
+			return e.Why == whyBuild && !async && r.DirectAgg(e.Type)
 		})
 	}
 }

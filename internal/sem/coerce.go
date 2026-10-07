@@ -16,6 +16,7 @@ func (c *checker) coerce(n syntax.NodeID, got, want TypeID) TypeID {
 	if len(steps) > 0 {
 		c.info.Coerce[n] = Coercion{From: got, Steps: steps}
 		c.touched = append(c.touched, n)
+		c.chargeCoercion(n, c.info.Coerce[n])
 		if steps[0].Kind == CoLiteral {
 			c.setType(c.literalNode(n), steps[0].To)
 		}

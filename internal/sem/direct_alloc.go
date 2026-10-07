@@ -6,12 +6,6 @@ import "kigumi/internal/syntax"
 // position that holds a reference: the box is built there, not at the value.
 const whyDirectCross = 5
 
-// builtDirect reports that building t here costs nothing. An async body
-// keeps every live value in a pointer-wide frame slot, so it builds the boxed form.
-func (c *checker) builtDirect(t TypeID) bool {
-	return c.r.DirectAgg(t) && !c.asyncBody()
-}
-
 // A lambda compiles to a body of its own, never into its creator's frame.
 func (c *checker) asyncBody() bool {
 	if len(c.lambdas) > 0 || c.r.Entities[c.fn].Kind != EntFn {
@@ -20,9 +14,17 @@ func (c *checker) asyncBody() bool {
 	return c.r.Fn(c.fn).Declared&EffAsync != 0
 }
 
-func (c *checker) crossDirect(n syntax.NodeID, t TypeID) {
+func (c *checker) crossDirect(n syntax.NodeID, t TypeID) { c.crossDirectBut(n, t, 0) }
+
+// A type inference has not settled yet is decided by finish.
+func (c *checker) crossDirectBut(n syntax.NodeID, t, keep TypeID) {
 	t = c.vars.resolve(t)
-	if c.r.DirectAgg(t) {
+	if c.r.Types.ContainsVar(t) {
+		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: whyDirectCross})
+		c.allocPending = append(c.allocPending, pendingAlloc{edges: c.edges, at: len(*c.edges) - 1, keep: keep})
+		return
+	}
+	if t != keep && c.r.DirectAgg(t) {
 		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: whyDirectCross})
 	}
 }
@@ -30,11 +32,22 @@ func (c *checker) crossDirect(n syntax.NodeID, t TypeID) {
 // crossArg claims the box an argument needs when the parameter holds a
 // reference: a type parameter, an interface, or an ABI fixed elsewhere.
 func (c *checker) crossArg(a syntax.NodeID, p EntityID) {
-	got := c.vars.resolve(c.info.Types[a])
-	if p != 0 && c.r.DirectParamType(c.r.Entities[p].Parent, p) == got {
+	if _, coerced := c.info.Coerce[a]; !coerced && c.nullaryValue(a) {
 		return
 	}
-	c.crossDirect(a, got)
+	keep := TypeID(0)
+	if p != 0 {
+		keep = c.r.DirectParamType(c.r.Entities[p].Parent, p)
+	}
+	c.crossDirectBut(a, c.argType(a), keep)
+}
+
+// A coercion's last step names the type the argument arrives as, which an `Int` wrapped into `Int?` is not.
+func (c *checker) argType(a syntax.NodeID) TypeID {
+	if co, ok := c.info.Coerce[a]; ok && len(co.Steps) > 0 {
+		return c.vars.resolve(co.Steps[len(co.Steps)-1].To)
+	}
+	return c.vars.resolve(c.info.Types[a])
 }
 
 // crossAsyncResult claims the box a result needs on the way into an async
@@ -48,30 +61,31 @@ func (c *checker) crossAsyncResult(n syntax.NodeID, ret TypeID) {
 // crossRecv claims the box a receiver needs: a `mut self` method writes
 // through the caller's cell, and a receiver already in one is handed on as is.
 func (c *checker) crossRecv(n syntax.NodeID, fn EntityID, recv TypeID, recvNode syntax.NodeID) {
-	if c.r.Fn(fn).Recv == RecvNone || c.r.DirectParamType(fn, c.r.Fn(fn).SelfParam) == recv {
+	if c.r.Fn(fn).Recv == RecvNone || recvNode != 0 && c.cellPlace(recvNode) {
 		return
 	}
-	if recvNode != 0 && c.cellPlace(recvNode) {
-		return
-	}
-	c.crossDirect(n, recv)
+	c.crossDirectBut(n, recv, c.r.DirectParamType(fn, c.r.Fn(fn).SelfParam))
 }
 
 // crossStore claims the box a store needs when the place is someone else's
 // storage: a container slot, a static, or a view a write reaches the owner through.
 func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) {
+	// A `&mut T` place holds T; the reference is the cell the store reaches it through.
+	if elem, ok := c.r.MutRefElem(c.vars.resolve(t)); ok {
+		t = elem
+	}
 	if _, static := c.staticRootOf(lhs); static && c.t.Kind(lhs) == syntax.Ident {
 		c.crossDirect(lhs, t)
 		return
 	}
 	switch c.t.Kind(lhs) {
 	case syntax.Ident:
-		if c.cellPlace(lhs) {
+		if c.lentPlace(lhs) {
 			c.crossDirect(lhs, t)
 		}
 	case syntax.MemberExpr:
 		base := syntax.NodeID(c.t.Nodes[lhs].Lhs)
-		if c.cellPlace(base) || !c.r.DirectAgg(c.vars.resolve(c.info.Types[base])) {
+		if c.lentPlace(base) || !c.r.DirectAgg(c.vars.resolve(c.info.Types[base])) {
 			c.crossDirect(lhs, t)
 			return
 		}
@@ -90,10 +104,27 @@ func (c *checker) cellPlace(n syntax.NodeID) bool {
 	return ok && (c.r.IsMutSelf(ent) || c.r.RefCellParam(ent))
 }
 
+// The store side runs while refCellParams is still being filled.
+func (c *checker) lentPlace(n syntax.NodeID) bool {
+	ent, ok := c.identPlaceEnt(n)
+	return ok && (c.r.IsMutSelf(ent) || c.r.wholeRefBinding(c.r.Entities[ent].Type))
+}
+
 // crossBorrow claims the box a reference needs: it names the owner's
 // storage, which the unboxed form does not have.
 func (c *checker) crossBorrow(inner syntax.NodeID) {
-	c.crossDirect(inner, c.placeRootType(inner))
+	if !c.nullaryValue(inner) {
+		c.crossDirect(inner, c.placeRootType(inner))
+	}
+}
+
+// A payload-free variant's boxed form is the one immortal every site reads, so lending it costs nothing.
+func (c *checker) nullaryValue(n syntax.NodeID) bool {
+	for c.t.Kind(n) == syntax.Paren {
+		n = syntax.NodeID(c.t.Nodes[n].Lhs)
+	}
+	v := c.info.Uses[n]
+	return v != 0 && c.r.Entities[v].Kind == EntVariant && len(c.r.variant(v).Payload) == 0
 }
 
 // placeRootType is the type of the value a projection chain starts from.
@@ -107,4 +138,10 @@ func (c *checker) placeRootType(n syntax.NodeID) TypeID {
 		}
 	}
 	return 0
+}
+
+func (c *checker) borrowOperand(rhs syntax.NodeID, t TypeID) {
+	if c.r.Types.Kind(c.vars.resolve(t)) != KRef {
+		c.crossBorrow(rhs)
+	}
 }

@@ -145,7 +145,7 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 			r.errAt(e.File, e.Node, cAllocInterpolation)
 		case e.Why == 2:
 			r.errAt(e.File, e.Node, cAllocVariadic)
-		case e.Why == 3 || e.Why == whySharedValue:
+		case e.Why == whyBuild || e.Why == whySharedValue:
 			r.errAt(e.File, e.Node, cAllocConstruct, r.TypeString(e.Type))
 		case e.Why == whyDirectCross:
 			r.errAt(e.File, e.Node, cAllocDirectCross, r.TypeString(e.Type))

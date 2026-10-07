@@ -1,0 +1,113 @@
+-- src --
+import {Shared} from std/alloc
+import map from std/map
+import task from std/task
+
+type Tick = Up(n: Int) | Down(n: Int) | Flat
+
+type Tree = Leaf(v: Int) | Node(kid: Shared[Tree])
+
+type Labelled = Named(s: String) | Blank
+
+type Marked = Tick
+
+type Counter = {
+    pub last Tick
+    pub hits Int
+}
+
+fn Tick.value(self) -> Int {
+    match self {
+        Up(n) -> n
+        Down(n) -> 0 - n
+        Flat -> 0
+    }
+}
+
+fn Counter.bump(mut self, t: Tick) -> Unit {
+    self = Counter { last: t, hits: self.hits + 1 }
+}
+
+fn depth(t: &Tree) -> Int {
+    match t {
+        Leaf(_) -> 0
+        Node(kid) -> 1 + kid.with((k: &Tree) => depth(k))
+    }
+}
+
+fn keep(t: Tick) -> Shared[Tick] { Shared.new(t) }
+
+fn label(l: Labelled) -> String {
+    match l {
+        Named(s) -> s
+        Blank -> "-"
+    }
+}
+
+fn bumpTo(t: &mut Tick, n: Int) -> Unit { t = Up(n) }
+
+fn marked(n: Int) -> Int {
+    let mut m = Marked(Up(n * 2))
+    bumpTo(&mut m.value, n + 1)
+    m.value.value()
+}
+
+async fn later(t: Tick) -> Int {
+    t.value() + 1
+}
+
+async fn root() -> Int {
+    let a = await later(Up(10))
+    let b = await later(Down(1))
+    a + b
+}
+
+fn main() -> Unit! {
+    let mut c = Counter { last: Flat, hits: 0 }
+    c.bump(Up(3))
+    c.bump(Down(4))
+    print "cell=${c.last.value()} ${c.hits}"
+
+    let s = keep(Up(5))
+    print "shared=${s.with((t: &Tick) => t.value())}"
+
+    let mut m = map.empty[String, Tick]()
+    m.set("a", Up(7))
+    print "map=${m.get(&"a") is Some(v) && v.value() == 7}"
+
+    let tree = Node(Shared.new(Node(Shared.new(Leaf(3)))))
+    print "tree=${depth(&tree)}"
+
+    print "boxedadt=${label(Named("hi"))} ${label(Blank)}"
+
+    print "defined=${marked(3)}"
+
+    let held = Up(8)
+    let f = () => held.value() * 2
+    print "capture=${f()}"
+
+    let mut opt: Tick? = Some(Up(9))
+    let taken = opt.take()
+    print "take=${taken is Some(t) && t.value() == 9} left=${opt is None}"
+
+    let ex = task.currentThreadExecutor()
+    print "async=${ex.runToCompletion(root())}"
+
+    let xs = Array.of(Up(1), Flat, Down(2))
+    let mut total = 0
+    for i in 0..xs.len() {
+        if xs.get(i) is Some(t) { total = total + t.value() }
+    }
+    print "array=${total}"
+}
+-- stdout --
+cell=-4 2
+shared=5
+map=true
+tree=2
+boxedadt=hi -
+defined=4
+capture=16
+take=true left=true
+async=11
+array=-1

@@ -296,3 +296,158 @@ func countDirect(f *mir.Func) int {
 	}
 	return n
 }
+
+const directAdtSrc = `
+type Shape = Circle(r: Int) | Rect(w: Int, h: Int) | Dot
+
+fn area(n: Int) -> Int {
+    let s = if n == 0 { Dot } else { Rect(n, n + 1) }
+    match s {
+        Circle(r) -> r
+        Rect(w, h) -> w * h
+        Dot -> 0
+    }
+}
+
+fn store(n: Int, mut xs: Array[Shape]) -> Unit {
+    xs.push(Circle(n))
+}
+`
+
+func TestPlanDirectBuildsAndMatchesAnAdtInPlace(t *testing.T) {
+	p := planned(t, directAdtSrc)
+	f := funcNamed(t, p, "main.area")
+	if n := countOp(f, mir.OpBoxDirect) + countOp(f, mir.OpUnboxDirect); n != 0 {
+		t.Errorf("building and matching an ADT in one body crossed %d times:\n%s", n, p.Dump())
+	}
+	direct := 0
+	for i := range f.Locals {
+		if f.IsDirect(mir.LocalID(i)) {
+			direct++
+		}
+	}
+	if direct == 0 {
+		t.Errorf("no local of main.area stayed unboxed:\n%s", p.Dump())
+	}
+}
+
+func TestPlanDirectBoxesAnAdtAtTheCarrier(t *testing.T) {
+	p := planned(t, directAdtSrc)
+	f := funcNamed(t, p, "main.store")
+	if n := countOp(f, mir.OpBoxDirect); n != 1 {
+		t.Errorf("an ADT handed to an Array crossed %d times, want 1:\n%s", n, p.Dump())
+	}
+}
+
+const carrierMatchSrc = `
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn copyAll(xs: &Array[Point]) -> Array[Point] {
+    let mut ys = Array.empty[Point]()
+    for i in 0..xs.len() {
+        if xs.get(i) is Some(p) { ys.push(p) }
+    }
+    ys
+}
+
+fn sumAll(xs: &Array[Point]) -> Int {
+    let mut n = 0
+    for i in 0..xs.len() {
+        if xs.get(i) is Some(p) { n = n + p.x }
+    }
+    n
+}
+`
+
+func TestPlanDirectMatchesACarrierInPlace(t *testing.T) {
+	p := planned(t, carrierMatchSrc)
+	f := funcNamed(t, p, "main.copyAll")
+	if n := countOp(f, mir.OpBoxDirect) + countOp(f, mir.OpUnboxDirect); n != 0 {
+		t.Errorf("matching a carrier and handing its payload on crossed %d times:\n%s", n, p.Dump())
+	}
+	f = funcNamed(t, p, "main.sumAll")
+	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+		t.Errorf("reading a field of a matched payload boxed %d times:\n%s", n, p.Dump())
+	}
+	if n := countOp(f, mir.OpUnboxDirect); n != 1 {
+		t.Errorf("reading a field of a matched payload unboxed %d times, want 1:\n%s", n, p.Dump())
+	}
+}
+
+const fixedCrossSrc = `
+type Tick = Up(n: Int) | Flat
+
+fn pick[T](v: T) -> T { v }
+
+fn fixed() -> Int {
+    if pick(Some(1)) is Some(v) { v } else { 0 }
+}
+
+fn nested() -> Bool {
+    pick(Some(Up(7))) is Some(Up(7))
+}
+
+fn fresh(n: Int) -> Int {
+    if pick(Some(n)) is Some(v) { v } else { 0 }
+}
+`
+
+func boxFlags(f *mir.Func) (fixed, fresh int) {
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			switch {
+			case in.Op != mir.OpBoxDirect:
+			case in.Fixed:
+				fixed++
+			default:
+				fresh++
+			}
+		}
+	}
+	return fixed, fresh
+}
+
+func TestPlanDirectMarksAFixedCrossing(t *testing.T) {
+	p := planned(t, fixedCrossSrc)
+	for _, name := range []string{"main.fixed", "main.nested"} {
+		if fixed, fresh := boxFlags(funcNamed(t, p, name)); fixed != 1 || fresh != 0 {
+			t.Errorf("%s: %d fixed and %d other crossings, want 1 and 0:\n%s", name, fixed, fresh, p.Dump())
+		}
+	}
+	if fixed, fresh := boxFlags(funcNamed(t, p, "main.fresh")); fixed != 0 || fresh != 1 {
+		t.Errorf("main.fresh: %d fixed and %d other crossings, want 0 and 1:\n%s", fixed, fresh, p.Dump())
+	}
+	if !strings.Contains(p.Dump(), "boxdirect fixed(") {
+		t.Errorf("the dump does not show the fixed crossing:\n%s", p.Dump())
+	}
+}
+
+const definedOverRecordSrc = `
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Marked = Point
+
+fn bump(p: &mut Point, n: Int) -> Unit { p = Point { x: n, y: n + 1 } }
+
+fn marked(n: Int) -> Int {
+    let mut m = Marked(Point { x: n * 2, y: n })
+    bump(&mut m.value, n + 1)
+    m.value.x + m.value.y
+}
+`
+
+// sem must charge both crossings or the alloc-claim check rejects the plan.
+func TestPlanDirectChargesADefinedWrapAndAMutStore(t *testing.T) {
+	p := planned(t, definedOverRecordSrc)
+	for _, name := range []string{"main.marked", "main.bump"} {
+		if n := countOp(funcNamed(t, p, name), mir.OpBoxDirect); n != 1 {
+			t.Errorf("%s boxes %d times, want 1:\n%s", name, n, p.Dump())
+		}
+	}
+}

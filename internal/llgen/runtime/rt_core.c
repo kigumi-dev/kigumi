@@ -519,6 +519,14 @@ val rt_isvariant(val v, rt_vdesc* d) {
     v = deref(v);
     return rt_bool(v->kind == K_VARIANT && v->u.var.v == d);
 }
+// The tag an inline ADT keeps beside its payload area: a variant's
+// declaration index, which is also the order llgen lays the cases out in.
+int rt_variant_index(val v) {
+    v = deref(v);
+    // A value that is no variant matches no case, as a boxed `match` finds.
+    if (!v || v->kind != K_VARIANT) rt_panic("no match arm matched");
+    return v->u.var.v->index;
+}
 val rt_box(val v, rt_type* dyn, void** vt) {
     if (v->kind == K_BOX) return v;
     val b = alloc(K_BOX);

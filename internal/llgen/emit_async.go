@@ -19,6 +19,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	e.scalar = map[mir.LocalID]scalarInfo{}
 	e.direct = e.classifyDirect(f)
 	e.boxTmp = map[mir.LocalID]bool{}
+	e.constKey, e.constOwned = map[mir.LocalID]string{}, map[mir.LocalID]bool{}
 	e.sig = nil
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%fut) {\nentry:\n", e.sym(f))
 	sb.WriteString("  %slots = call ptr @rt_future_slots(ptr %fut)\n")

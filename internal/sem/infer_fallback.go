@@ -33,6 +33,7 @@ func (c *checker) synthFallback(n, lhs, rhs syntax.NodeID, want TypeID) TypeID {
 		}
 		if len(steps) > 0 {
 			c.info.Coerce[n] = Coercion{From: v, Steps: steps}
+			c.chargeCoercion(n, c.info.Coerce[n])
 		}
 		result = want
 	}

@@ -1,0 +1,165 @@
+-- src --
+import map from std/map
+
+type Mixed =
+    Flag(b: Bool)
+  | Wide(x: u8, y: i64)
+  | Real(f: Float)
+  | Letter(c: Char)
+  | Small(a: i32, b: i16, c: u8)
+  | Nothing
+
+type Tick = Up(n: Int) | Down(n: Int) | Flat
+
+type Big = {
+    pub a Int
+    pub b Int
+    pub c Int
+}
+
+type Holder = Full(big: Big, t: Tick) | Empty
+
+interface Source {
+    fn next(self, n: Int) -> Tick?
+}
+
+type Counter = {
+    pub step Int
+}
+
+fn Counter.next(self, n: Int) -> Tick? {
+    if n > 3 { None } else { Some(Up(n * self.step)) }
+}
+
+fn describe(m: Mixed) -> String {
+    match m {
+        Flag(b) -> "flag ${b}"
+        Wide(x, y) -> "wide ${x} ${y}"
+        Real(f) -> "real ${f}"
+        Letter(c) -> "letter ${c}"
+        Small(a, b, c) -> "small ${a} ${b} ${c}"
+        Nothing -> "nothing"
+    }
+}
+
+fn make(n: Int) -> Mixed {
+    if n == 0 { Flag(true) }
+    else if n == 1 { Wide(200, -5) }
+    else if n == 2 { Real(2.5) }
+    else if n == 3 { Letter('z') }
+    else if n == 4 { Small(-7, 300, 9) }
+    else { Nothing }
+}
+
+fn ident[T](v: T) -> T { v }
+
+fn flip(m: Mixed) -> Mixed {
+    match m {
+        Flag(b) -> Flag(!b)
+        Wide(x, y) -> Wide(x, 0 - y)
+        other -> other
+    }
+}
+
+fn total(src: Source) -> Int {
+    let mut sum = 0
+    let mut i = 0
+    for {
+        match src.next(i) {
+            Some(Up(v)) if v > 4 -> { sum = sum + v * 10 }
+            Some(Up(v)) -> { sum = sum + v }
+            Some(_) -> ()
+            None -> break
+        }
+        i = i + 1
+    }
+    sum
+}
+
+fn deep(h: Holder) -> Int {
+    match h {
+        Full(Big { a, b, c }, Up(n)) -> a + b + c + n
+        Full(big, Down(n)) -> big.a - n
+        Full(_, Flat) -> -1
+        Empty -> 0
+    }
+}
+
+fn mkHolder(n: Int) -> Holder {
+    if n == 0 { Empty } else { Full(Big { a: n, b: n + 1, c: n + 2 }, if n > 2 { Down(n) } else { Up(n) }) }
+}
+
+fn twice(f: fn(Tick) -> Tick?, t: Tick) -> Tick? {
+    match f(t) {
+        Some(u) -> f(u)
+        None -> None
+    }
+}
+
+let ms = Array.of(make(0), make(1), make(2), make(3), make(4), make(5))
+for k in 0..ms.len() {
+    let i = k.toInt() || 0
+    if ms.get(k) is Some(m) { print "${describe(make(i))} | ${describe(ident(m))} | ${describe(flip(m))}" }
+}
+print "eq=${make(1) == Wide(200, -5)} ${make(0) == Flag(false)} ${make(4) == Small(-7, 300, 9)} ${make(5) == Nothing}"
+let ob: Bool? = Some(false)
+let oc: Char? = Some('q')
+let of: Float? = Some(1.25)
+let ou: u8? = Some(255)
+print "opts=${ob is Some(false)} ${oc is Some('q')} ${of || 0.0} ${ou || 0}"
+let pair = (Some(3), Flag(true))
+print "tuple=${pair._0 || 0} ${describe(pair._1)}"
+
+print "iface=${total(Counter { step: 2 })}"
+print "deep=${deep(mkHolder(0))} ${deep(mkHolder(1))} ${deep(mkHolder(3))} ${deep(Full(Big { a: 1, b: 1, c: 1 }, Flat))}"
+let inc = (t: Tick) => match t {
+    Up(n) -> if n > 10 { None } else { Some(Up(n + 5)) }
+    Down(n) -> Some(Down(n - 1))
+    Flat -> None
+}
+print "closure=${twice(inc, Up(1)) is Some(Up(11))} ${twice(inc, Up(8)) is None} ${twice(inc, Down(3)) is Some(Down(1))}"
+
+let mut m = map.empty[Tick, Int]()
+m.set(Up(1), 10)
+m.set(Down(1), 20)
+m.set(Flat, 30)
+m.set(Up(1), 11)
+print "map=${m.get(&Up(1)) || 0} ${m.get(&Down(1)) || 0} ${m.get(&Flat) || 0} ${m.get(&Up(2)) || -1} ${m.len()}"
+
+let mut hs = Array.of(mkHolder(1), mkHolder(4))
+hs.push(Empty)
+hs[0] = mkHolder(2)
+let hn = hs.len()
+let mut acc = 0
+for h in hs { acc = acc + deep(h) }
+print "array=${acc} ${hn}"
+
+let mut cur: Tick = Flat
+for _ in 0..5 {
+    cur = match cur {
+        Flat -> Up(1)
+        Up(n) if n >= 2 -> Down(n)
+        Up(n) -> Up(n + 1)
+        Down(n) -> Down(n - 1)
+    }
+}
+print "loop=${cur == Down(0)} ${cur != Down(2)}"
+let o: Option[Holder] = Some(mkHolder(2))
+print "nest=${o is Some(Full(Big { a: 2, b: _, c: _ }, Up(2)))}"
+-- stdout --
+flag true | flag true | flag false
+wide 200 -5 | wide 200 -5 | wide 200 5
+real 2.5 | real 2.5 | real 2.5
+letter z | letter z | letter z
+small -7 300 9 | small -7 300 9 | small -7 300 9
+nothing | nothing | nothing
+eq=true false true true
+opts=true true 1.25 255
+tuple=3 flag true
+iface=66
+deep=0 7 0 -1
+closure=true true true
+map=11 20 30 -1 3
+array=11 3
+loop=true true
+nest=true

@@ -46,6 +46,9 @@ func (e *emitter) aggConsumes(in mir.Inst, i int) bool {
 	case mir.OpRecord, mir.OpVariant, mir.OpArray, mir.OpBox, mir.OpGlobalSet, mir.OpNewCell,
 		mir.OpDrop, mir.OpRelease, mir.OpAwait:
 		return true
+	case mir.OpAlias, mir.OpMove:
+		// The result is the same reference under another name, so the crossing's box is dropped through the result.
+		return true
 	case mir.OpSetField, mir.OpCellSet:
 		return i == 1
 	case mir.OpSetIndex:

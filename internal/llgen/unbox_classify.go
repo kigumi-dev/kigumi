@@ -73,7 +73,7 @@ func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 		return
 	}
 	switch in.Op {
-	case mir.OpField, mir.OpFieldMove:
+	case mir.OpField, mir.OpFieldMove, mir.OpPayload, mir.OpIsVariant:
 		if !e.isDirect(in.Args[0]) {
 			disqualify(in.Dst)
 		}
@@ -92,7 +92,7 @@ func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 // become no-ops instead of disqualifying; everything else needs a real box.
 func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 	switch in.Op {
-	case mir.OpRecord:
+	case mir.OpRecord, mir.OpVariant:
 		if !e.isDirect(in.Dst) {
 			for _, a := range in.Args {
 				disqualify(a)

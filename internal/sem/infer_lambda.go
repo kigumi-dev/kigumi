@@ -73,7 +73,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info.Scoped = c.allocDepth > 0
 	// With nothing captured the environment is empty and needs no storage.
 	if len(info.Captures) > 0 {
-		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+		c.buildEdge(n, result)
 	}
 	return result
 }

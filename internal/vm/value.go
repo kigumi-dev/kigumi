@@ -115,6 +115,12 @@ func mkVariant(ent sem.EntityID, payload []*obj) *obj {
 
 func mkCell(x *obj) *obj { v := newObj(kCell); v.inner = x; return v }
 
+// Native boxes such a variant as its one immortal, with no allocation.
+func payloadFree(v *obj) bool {
+	v = deref(v)
+	return v != nil && v.k == kVariant && len(v.fields) == 0
+}
+
 func mkOpaque(op string, data any) *obj { v := newObj(kOpaque); v.op, v.data = op, data; return v }
 
 // deref follows cells, as every runtime entry point does.

@@ -24,6 +24,9 @@ func (c *checker) synthFail(n syntax.NodeID) TypeID {
 		return TyNever
 	}
 	c.check(operand, errType)
+	if !c.fixedValue(operand, errType) {
+		c.buildEdge(n, c.retType)
+	}
 	return TyNever
 }
 
@@ -67,6 +70,9 @@ func (c *checker) synthTry(n syntax.NodeID) TypeID {
 		return val
 	}
 	c.info.Calls[n] = CallInfo{Kind: CallTry}
+	if borrowed || got != c.vars.resolve(c.retType) || c.namedOperand(operand) {
+		c.buildEdge(n, c.retType)
+	}
 	if e == want || e == TyPoison || want == TyPoison {
 		return val
 	}
@@ -80,4 +86,10 @@ func (c *checker) synthTry(n syntax.NodeID) TypeID {
 	}
 	c.errAt(n, cTryErrorMismatch, e, want)
 	return val
+}
+
+// The Result stays owned by the binding, so the Err is built anew rather than handed on.
+func (c *checker) namedOperand(n syntax.NodeID) bool {
+	_, ok := c.identPlaceEnt(n)
+	return ok
 }

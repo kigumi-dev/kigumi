@@ -83,11 +83,13 @@ export(interrupt) {
 
 func TestInterruptHandlerVariantConstruct(t *testing.T) {
 	res := checkIsr(t, `
-type Pair = A(x: Int) | B(y: Int)
+type Pair = A(x: String) | B(y: Int)
+
+fn level() -> Int { 3 }
 
 export(interrupt) {
     pub fn tick() -> Unit {
-        let p = A(1)
+        let p = B(level())
         _ = p
     }
 }
@@ -95,6 +97,22 @@ export(interrupt) {
 	out := res.Render()
 	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
 		t.Fatalf("a handler constructing a sum-type variant must be rejected:\n%s", out)
+	}
+}
+
+func TestInterruptHandlerDirectVariantConstruct(t *testing.T) {
+	res := checkIsr(t, `
+type Pair = A(x: Int) | B(y: Int)
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let p = A(1)
+        _ = p is A(n) && n == 1
+    }
+}
+`)
+	if res.HasErrors() {
+		t.Fatalf("a handler building a direct variant must pass:\n%s", res.Render())
 	}
 }
 
@@ -171,7 +189,7 @@ func TestInterruptHandlerTupleConstruct(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
     pub fn tick() -> Unit {
-        let p = (1, 2)
+        let p = (1, "a")
         _ = p
     }
 }
@@ -179,6 +197,21 @@ export(interrupt) {
 	out := res.Render()
 	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
 		t.Fatalf("a handler constructing a tuple must be rejected:\n%s", out)
+	}
+}
+
+// A literal's type is known only once inference settles, so the tuple is judged there.
+func TestInterruptHandlerDirectTupleAccepted(t *testing.T) {
+	res := checkIsr(t, `
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let p = (1, 2)
+        _ = p._0 == p._1
+    }
+}
+`)
+	if res.HasErrors() {
+		t.Fatalf("a handler building a tuple of scalars must pass:\n%s", res.Render())
 	}
 }
 

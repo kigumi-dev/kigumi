@@ -1,0 +1,73 @@
+-- lib/na.kg --
+type Tick = Up(n: Int) | Flat
+
+type Pair[T] = One(a: T) | Two(a: T, b: T)
+
+fn Pair[T].count(self) -> Int {
+    match self {
+        One(_) -> 1
+        Two(_, _) -> 2
+    }
+}
+
+fn ident[T](v: T) -> Int { 0 }
+
+fn takesOpt(o: Int?) -> Int {
+    match o {
+        Some(v) -> v
+        None -> 0
+    }
+}
+
+fn takesTick(t: Tick) -> Int {
+    match t {
+        Up(n) -> n
+        Flat -> 0
+    }
+}
+
+// A literal's type settles after the call is checked, so the crossing
+// into a type parameter is judged once it has.
+noalloc fn literalIntoAParam() -> Int {
+    ident(Some(1)) //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it
+}
+
+noalloc fn tupleIntoAParam() -> Int {
+    ident((1, 2)) //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it
+}
+
+noalloc fn literalRecv() -> Int {
+    One(3).count() //~ ERROR handing `Pair[Int]` to a slot that holds a reference allocates a box for it
+}
+
+// The same literals reach a parameter of their own type unboxed.
+noalloc fn literalStaysDirect() -> Int {
+    takesOpt(Some(1)) + takesOpt(None) + takesTick(Up(2)) + takesTick(Flat)
+}
+
+// A payload-free variant handed on alone is built as its boxed immortal.
+noalloc fn nullaryIntoAParam() -> Int {
+    ident(Flat) + ident(Ordering.Less)
+}
+-- expect --
+error[E1610]: handing `Int?` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:31:11
+   |
+31 |     ident(Some(1)) //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it
+   |           ^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `(Int, Int)` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:35:11
+   |
+35 |     ident((1, 2)) //~ ERROR handing `(Int, Int)` to a slot that holds a reference allocates a box for it
+   |           ^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Pair[Int]` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:39:5
+   |
+39 |     One(3).count() //~ ERROR handing `Pair[Int]` to a slot that holds a reference allocates a box for it
+   |     ^^^^^^^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+

@@ -79,9 +79,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 	if len(missing) > 0 && spreadOK {
 		c.errAt(n, cMissingField, plural(len(missing)), joinComma(missing), e.Name)
 	}
-	if !c.builtDirect(c.vars.resolve(result)) {
-		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
-	}
+	c.buildEdge(n, result)
 	c.info.Calls[n] = CallInfo{Kind: CallRecord, Callee: ent, Inst: typeArgs}
 	c.touched = append(c.touched, n)
 	return result

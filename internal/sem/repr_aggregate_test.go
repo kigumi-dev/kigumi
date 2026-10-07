@@ -14,6 +14,8 @@ type Thin = { a: f32 }
 type Empty = {}
 type CHeader layout(C) = { flag: u8, count: u32 }
 type Shape = Circle(r: Int) | Dot
+type Tagged = Labelled(label: String) | Blank
+type Wrap = Just(p: Point) | Plain(n: Int) | Nothing
 type Res = { handle: Int }
 let p = Point { x: 1, y: 2 }
 let b = Box { lo: p, hi: p, tight: true }
@@ -24,7 +26,7 @@ let t = (1, 2)
 
 func TestDirectAggAcceptsScalarRecordsAndTuples(t *testing.T) {
 	res := checkRepr(t, aggSrc)
-	for _, name := range []string{"Point", "Box"} {
+	for _, name := range []string{"Point", "Box", "Shape", "Wrap"} {
 		if !res.DirectAgg(mainType(t, res, name)) {
 			t.Errorf("%s is not a direct aggregate", name)
 		}
@@ -43,7 +45,7 @@ func TestDirectAggAcceptsScalarRecordsAndTuples(t *testing.T) {
 
 func TestDirectAggRejectsCarriersAndLayoutContracts(t *testing.T) {
 	res := checkRepr(t, aggSrc)
-	for _, name := range []string{"Named", "Thin", "Empty", "CHeader", "Shape"} {
+	for _, name := range []string{"Named", "Thin", "Empty", "CHeader", "Tagged"} {
 		if res.DirectAgg(mainType(t, res, name)) {
 			t.Errorf("%s must not be a direct aggregate", name)
 		}
@@ -52,6 +54,24 @@ func TestDirectAggRejectsCarriersAndLayoutContracts(t *testing.T) {
 		if res.DirectAgg(ty) {
 			t.Errorf("%s is not a record", res.TypeString(ty))
 		}
+	}
+}
+
+func TestDirectAdtNamesItsVariantsAndPayloads(t *testing.T) {
+	res := checkRepr(t, aggSrc)
+	wrap := mainType(t, res, "Wrap")
+	if !res.DirectAdt(wrap) || res.DirectAdt(mainType(t, res, "Point")) {
+		t.Fatal("DirectAdt must hold for a closed ADT and not for a record")
+	}
+	vs := res.AggVariants(wrap)
+	if len(vs) != 3 {
+		t.Fatalf("Wrap has %d variants, want 3", len(vs))
+	}
+	if got := res.AggPayload(wrap, vs[0]); len(got) != 1 || got[0] != mainType(t, res, "Point") {
+		t.Errorf("Just carries %v, want one Point", got)
+	}
+	if got := res.AggPayload(wrap, vs[2]); len(got) != 0 {
+		t.Errorf("Nothing carries %v, want no payload", got)
 	}
 }
 

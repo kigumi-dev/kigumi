@@ -139,3 +139,59 @@ func TestPlainReceiverCrossesNothing(t *testing.T) {
 		}
 	}
 }
+
+const directAdtIRSrc = `
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn find(n: Int) -> Point? {
+    if n > 0 { Some(Point { x: n, y: n + 1 }) } else { None }
+}
+
+fn readBack(n: Int) -> Int {
+    match find(n) {
+        Some(p) -> p.x + p.y
+        None -> 0
+    }
+}
+
+fn stash(n: Int) -> Array[Point?] {
+    Array.of(find(n))
+}
+
+fn main() -> Unit! {
+    print "${readBack(1)}"
+}
+`
+
+func TestDirectAdtBuildsAndMatchesInline(t *testing.T) {
+	ir := emitIR(t, directAdtIRSrc)
+	if !strings.Contains(ir, `%"kg.adt.Point?" = type { i32, [2 x i64] }`) {
+		t.Fatalf("no inline type for an Option of a direct record:\n%s", ir)
+	}
+	for _, fn := range []string{`@"main.find"(`, `@"main.readBack"(`} {
+		body := bodyOf(t, ir, fn)
+		for _, call := range []string{"@rt_variant(", "@rt_nullary(", "@rt_record(", "@rt_payload(", "@rt_isvariant(", "@calloc(", "@malloc(", `@"kg.box.`} {
+			if strings.Contains(body, call) {
+				t.Errorf("%s still reaches %s:\n%s", fn, call, body)
+			}
+		}
+	}
+}
+
+// 24 bytes outgrows the by-value window, so the result travels through caller storage like a record of that size.
+func TestDirectAdtFollowsTheSizeThreshold(t *testing.T) {
+	ir := emitIR(t, directAdtIRSrc)
+	if !strings.Contains(ir, `define void @"main.find"(ptr %sret, ptr %p0)`) {
+		t.Errorf("an ADT over the by-value size is not returned through caller storage:\n%s", ir)
+	}
+}
+
+func TestDirectAdtCrossesIntoAnArray(t *testing.T) {
+	body := bodyOf(t, emitIR(t, directAdtIRSrc), `@"main.stash"(`)
+	if !strings.Contains(body, `call ptr @"kg.box.Point?"(`) {
+		t.Errorf("storing an inline ADT into an Array does not go through the boxing helper:\n%s", body)
+	}
+}

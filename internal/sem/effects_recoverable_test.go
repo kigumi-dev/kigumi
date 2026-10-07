@@ -71,3 +71,14 @@ func TestRecoverableOnlyRejectsCompilerGeneratedAlloc(t *testing.T) {
 		t.Fatalf("a direct record literal must pass under recoverable-only:\n%s", ok.Render())
 	}
 }
+
+func TestRecoverableOnlyAcceptsADirectVariant(t *testing.T) {
+	ok := checkRecoverableOnly(t, "type Tick = Up(n: Int) | Flat\n\nfn pick(n: Int) -> Tick { if n > 0 { Up(n) } else { Flat } }\n\nlet r: Result[Int, Int] = Ok(if pick(1) is Up(v) { v } else { 0 })\nlet s = Some(2)\nlet n = s || 0\n")
+	if ok.HasErrors() {
+		t.Fatalf("a direct variant must pass under recoverable-only:\n%s", ok.Render())
+	}
+	bad := checkRecoverableOnly(t, "type Tag = Named(s: String) | Blank\n\nfn tag(s: String) -> Tag { Named(s) }\n\nlet t = tag(\"x\")\n")
+	if !bad.HasErrors() || !strings.Contains(bad.Render(), "recoverable-only") {
+		t.Fatalf("a variant with a carrier payload must be rejected:\n%s", bad.Render())
+	}
+}

@@ -1,0 +1,117 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Shape =
+    Circle(r: Int)
+  | Rect(at: Point, w: Int, h: Int)
+  | Dot
+
+type Slot = {
+    pub tag Int
+    pub what Shape
+}
+
+interface Sized {
+    fn size(self) -> Int
+}
+
+fn Shape.size(self) -> Int {
+    match self {
+        Circle(r) -> r * r
+        Rect(at, w, h) -> at.x + w * h
+        Dot -> 0
+    }
+}
+
+fn Shape.wide(self) -> Bool {
+    match self {
+        Rect(_, w, _) if w > 10 -> true
+        Circle(r) if r > 100 -> true
+        _ -> false
+    }
+}
+
+fn pick(n: Int) -> Shape {
+    if n == 0 { Dot }
+    else if n == 1 { Circle(n + 4) }
+    else { Rect(Point { x: n, y: n * 2 }, n, n + 1) }
+}
+
+fn sizeOf[T: Sized](v: T) -> Int { v.size() }
+
+fn dynSize(v: Sized) -> Int { v.size() }
+
+fn half(n: Int) -> Int? {
+    if n % 2 == 0 { Some(n / 2) } else { None }
+}
+
+fn chain(n: Int) -> Result[Int, Int] {
+    let a = step(n)?
+    let b = step(a)?
+    Ok(a + b)
+}
+
+fn step(n: Int) -> Result[Int, Int] {
+    if n > 100 { Err(n) }
+    else { Ok(n + 1) }
+}
+
+fn nested(o: Option[Option[Int]]) -> Int {
+    match o {
+        Some(Some(v)) -> v
+        Some(None) -> -1
+        None -> -2
+    }
+}
+
+fn opt(p: Point?) -> Int {
+    if p is Some(q) { q.x + q.y } else { 0 }
+}
+
+let shapes = Array.of(pick(0), pick(1), pick(2))
+print "sizes=${shapes.get(0) is Some(a) && a.size() == 0} ${shapes.get(2) is Some(b) && b.size() == 8}"
+print "wide=${pick(2).wide()} ${Rect(Point { x: 0, y: 0 }, 11, 1).wide()}"
+print "generic=${sizeOf(pick(1))} dyn=${dynSize(pick(1))}"
+print "half=${half(8) is Some(h) && h == 4} none=${half(7) is None}"
+print "chain=${chain(1) is Ok(c) && c == 5} err=${chain(200) is Err(e) && e == 200}"
+print "nested=${nested(Some(Some(7)))} ${nested(Some(None))} ${nested(None)}"
+print "optrec=${opt(Some(Point { x: 3, y: 4 }))} ${opt(None)}"
+
+let s = Slot { tag: 1, what: Circle(3) }
+let t = s
+print "field=${s.what.size()} copy=${t.tag} ${t.what.size()}"
+
+let base = pick(1)
+let grab = (k: Int) => base.size() + k
+print "closure=${grab(2)}"
+
+print "eq=${half(8) == Some(4)} ne=${half(8) == Some(5)} hasheq=${hash(&half(8)) == hash(&Some(4))}"
+print "eqshape=${pick(0) == Dot} ${pick(1) == Circle(5)}"
+
+let mut boxv: Shape = Dot
+boxv = Circle(9)
+print "mut=${boxv.size()}"
+
+let rs: Array[Int?] = Array.of(Some(1), None, Some(3))
+let mut total = 0
+for i in 0..rs.len() {
+    if rs.get(i) is Some(r) && r is Some(v) { total = total + v }
+}
+print "arr=${total} len=${rs.len()}"
+-- stdout --
+sizes=true true
+wide=false true
+generic=25 dyn=25
+half=true none=true
+chain=true err=true
+nested=7 -1 -2
+optrec=7 0
+field=9 copy=1 9
+closure=27
+eq=true ne=false hasheq=true
+eqshape=true true
+mut=81
+arr=4 len=3

@@ -50,6 +50,7 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 	if len(steps) > 0 {
 		c.info.Coerce[a] = Coercion{From: got, Steps: steps}
 		c.touched = append(c.touched, a)
+		c.chargeCoercion(a, c.info.Coerce[a])
 	}
 	c.consumeArg(a, param)
 }
@@ -91,5 +92,6 @@ func (c *checker) unifyWant(n syntax.NodeID, ret, want TypeID) {
 	}
 	if len(steps) > 0 {
 		c.info.Coerce[n] = Coercion{From: ret, Steps: steps}
+		c.chargeCoercion(n, c.info.Coerce[n])
 	}
 }

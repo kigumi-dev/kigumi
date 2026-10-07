@@ -73,3 +73,6 @@ func (r *Result) namedRepr(n typeNode) ReprKind {
 // whySharedValue marks an EdgeAlloc for building a value with no per-value
 // state; checkEffects drops it, since no write reaches it through its storage.
 const whySharedValue = 4
+
+// Inference settles the type first, so checkEffects, not the construction site, drops the direct ones.
+const whyBuild = 3
