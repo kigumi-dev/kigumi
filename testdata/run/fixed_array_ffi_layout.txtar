@@ -1,0 +1,48 @@
+-- src --
+import ffi from std/ffi
+
+extern(C) {
+    fn memcpy(dst: *mut Frame, src: *const Frame, n: usize) -> *mut Frame
+}
+
+// tag at 0, a at 2 (u16 alignment), b at 8 (i32 alignment): 16 bytes, as C lays it out.
+type Frame layout(C) = {
+    pub tag u8
+    pub a FixedArray[u16, 3]
+    pub b FixedArray[i32, 2]
+}
+
+fn sumA(a: FixedArray[u16, 3]) -> Int {
+    let mut s = 0
+    for x in a {
+        s = s + x.toInt()
+    }
+    s
+}
+
+let mut a = FixedArray.filled[u16, 3](0)
+a[0] = 1
+a[1] = 300
+a[2] = 65535
+let mut b = FixedArray.filled[i32, 2](-7)
+b[1] = 2147483647
+let frame = Frame { tag: 9, a: a, b: b }
+print "size ${ffi.sizeOf(&frame)}"
+
+let src = ffi.CValue.new(frame)
+let dst = ffi.CValue.new(Frame { tag: 0, a: FixedArray.filled[u16, 3](0), b: FixedArray.filled[i32, 2](0) })
+unsafe {
+    let _ = memcpy(dst.ptr(), ffi.toConst(src.ptr()), ffi.sizeOf(&frame))
+}
+let back = dst.get()
+let ba = back.a
+let mut local = FixedArray.filled[i32, 2](0)
+local[0] = back.b[0] + 10
+print "tag ${back.tag} a ${ba[0]} ${ba[1]} ${ba[2]} sum ${sumA(ba)}"
+print "b ${back.b[0]} ${back.b[1]} edited ${local[0]}"
+-- stdout --
+size 16
+tag 9 a 1 300 65535 sum 65836
+b -7 2147483647 edited 3
+-- engines --
+native

@@ -235,15 +235,30 @@ func TestInterruptHandlerCapturingClosureConstruct(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
     pub fn tick() -> Unit {
-        let n = 1
-        let f = () => n
+        let n = "x"
+        let f = () => n.len()
         _ = f
     }
 }
 `)
 	out := res.Render()
 	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
-		t.Fatalf("a handler constructing a capturing closure must be rejected:\n%s", out)
+		t.Fatalf("a handler constructing a closure over a String must be rejected:\n%s", out)
+	}
+}
+
+func TestInterruptHandlerDirectClosureConstruct(t *testing.T) {
+	res := checkIsr(t, `
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let n = 1
+        let f = (x: Int) => x == n
+        _ = f(2)
+    }
+}
+`)
+	if res.HasErrors() {
+		t.Fatalf("a handler building and calling a direct closure must be accepted:\n%s", res.Render())
 	}
 }
 

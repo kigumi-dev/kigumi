@@ -33,6 +33,16 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 			m.abort("`host` is not available at compile time")
 		}
 		return mkOpaque("Host", nil)
+	case "fixed.fill":
+		n := deref(args[1]).i
+		items := make([]*obj, n)
+		for i := range items {
+			items[i] = m.copy(args[0])
+		}
+		out := newObj(kArray)
+		out.fields = items
+		m.chargeMemory(out)
+		return out
 	case "alloc.push":
 		// The VM allocates from Go; an `allocator` block only scopes.
 		return mkOpaque("AllocatorScope", nil)

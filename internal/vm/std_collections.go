@@ -5,7 +5,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	switch key {
 	case "array.Array.empty":
 		return mkArray(nil)
-	case "array.Array.of":
+	case "array.Array.of", "prelude.FixedArray.adopt":
 		return retain(a0)
 	// No fault tick here: growBy is the fallible reservation push commits
 	// into, same as native's try_grow fast path once capacity is enough.
@@ -29,7 +29,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 			return m.none()
 		}
 		return m.some(m.callValue(a2, []*obj{a0.fields[a1.i]}))
-	case "array.Array.withMut":
+	case "array.Array.withMut", "prelude.FixedArray.withMut":
 		if a1.i < 0 || a1.i >= int64(len(a0.fields)) {
 			return m.none()
 		}
@@ -37,18 +37,6 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		// writes through a cell instead; the slot takes it back after.
 		cell := mkCell(a0.fields[a1.i])
 		defer func() { a0.fields[a1.i] = cell.inner }()
-		return m.some(m.callValue(a2, []*obj{cell}))
-	case "prelude.FixedArray.withMut":
-		self := a0
-		if self.k == kBox {
-			self = self.inner
-		}
-		arr := self.fields[0]
-		if a1.i < 0 || a1.i >= int64(len(arr.fields)) {
-			return m.none()
-		}
-		cell := mkCell(arr.fields[a1.i])
-		defer func() { arr.fields[a1.i] = cell.inner }()
 		return m.some(m.callValue(a2, []*obj{cell}))
 	case "array.Array.takeAt":
 		i := a1.i

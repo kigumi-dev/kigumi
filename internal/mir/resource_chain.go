@@ -9,7 +9,7 @@ const trustedStdFrame = 2
 // hoCallbackArg maps a std op that natively calls a user closure
 // (invisible to the call graph otherwise) to that closure's Args index.
 var hoCallbackArg = map[string]int{
-	"ARRAY_WITH": 2, "ARRAY_WITH_MUT": 2, "FIXED_ARRAY_WITH_MUT": 2,
+	"ARRAY_WITH": 2, "ARRAY_WITH_MUT": 2,
 	"PIN_WITH": 1, "WITH_ADDRESS": 1, "SHARED_WITH": 1, "SHARED_WITH_MUT": 1,
 }
 

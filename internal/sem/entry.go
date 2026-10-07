@@ -20,6 +20,7 @@ func (r *Result) checkImplicitMain(id EntityID) {
 			c.stmt(d)
 		}
 	}
+	c.settleInlineAt(true)
 	c.flushFieldWrites()
 	c.dropsAtScopeExit(nil)
 	defer func() { r.Fn(id).Edges = edges }()

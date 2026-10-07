@@ -3402,7 +3402,17 @@
   },
   {
     "key": "math.abs",
-    "signature": "pure noalloc fn(isize) -\u003e isize",
+    "signature": "pure noalloc fn(Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.abs",
+    "signature": "pure noalloc fn(Float) -\u003e Float",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3432,27 +3442,17 @@
   },
   {
     "key": "math.abs",
-    "signature": "pure noalloc fn(Float) -\u003e Float",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.abs",
-    "signature": "pure noalloc fn(Int) -\u003e Int",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.abs",
     "signature": "pure noalloc fn(i32) -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.abs",
+    "signature": "pure noalloc fn(isize) -\u003e isize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3472,7 +3472,47 @@
   },
   {
     "key": "math.clamp",
-    "signature": "pure noalloc fn(u32, u32, u32) -\u003e u32",
+    "signature": "pure noalloc fn(Int, Int, Int) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.clamp",
+    "signature": "pure noalloc fn(Float, Float, Float) -\u003e Float",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.clamp",
+    "signature": "pure noalloc fn(i8, i8, i8) -\u003e i8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.clamp",
+    "signature": "pure noalloc fn(i16, i16, i16) -\u003e i16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.clamp",
+    "signature": "pure noalloc fn(i32, i32, i32) -\u003e i32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3512,27 +3552,7 @@
   },
   {
     "key": "math.clamp",
-    "signature": "pure noalloc fn(Int, Int, Int) -\u003e Int",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.clamp",
-    "signature": "pure noalloc fn(Float, Float, Float) -\u003e Float",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.clamp",
-    "signature": "pure noalloc fn(i16, i16, i16) -\u003e i16",
+    "signature": "pure noalloc fn(u32, u32, u32) -\u003e u32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3543,26 +3563,6 @@
   {
     "key": "math.clamp",
     "signature": "pure noalloc fn(u64, u64, u64) -\u003e u64",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.clamp",
-    "signature": "pure noalloc fn(i32, i32, i32) -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.clamp",
-    "signature": "pure noalloc fn(i8, i8, i8) -\u003e i8",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3592,67 +3592,7 @@
   },
   {
     "key": "math.max",
-    "signature": "pure noalloc fn(isize, isize) -\u003e isize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.max",
-    "signature": "pure noalloc fn(usize, usize) -\u003e usize",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.max",
-    "signature": "pure noalloc fn(i16, i16) -\u003e i16",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.max",
-    "signature": "pure noalloc fn(i8, i8) -\u003e i8",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.max",
-    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.max",
-    "signature": "pure noalloc fn(i32, i32) -\u003e i32",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.max",
-    "signature": "pure noalloc fn(u32, u32) -\u003e u32",
+    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3672,7 +3612,37 @@
   },
   {
     "key": "math.max",
-    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
+    "signature": "pure noalloc fn(i8, i8) -\u003e i8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.max",
+    "signature": "pure noalloc fn(i16, i16) -\u003e i16",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.max",
+    "signature": "pure noalloc fn(i32, i32) -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.max",
+    "signature": "pure noalloc fn(isize, isize) -\u003e isize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3692,7 +3662,7 @@
   },
   {
     "key": "math.max",
-    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
+    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3701,8 +3671,8 @@
     "status": "ok"
   },
   {
-    "key": "math.min",
-    "signature": "pure noalloc fn(i8, i8) -\u003e i8",
+    "key": "math.max",
+    "signature": "pure noalloc fn(u32, u32) -\u003e u32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3711,8 +3681,28 @@
     "status": "ok"
   },
   {
-    "key": "math.min",
+    "key": "math.max",
     "signature": "pure noalloc fn(u64, u64) -\u003e u64",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.max",
+    "signature": "pure noalloc fn(usize, usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.min",
+    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3732,6 +3722,16 @@
   },
   {
     "key": "math.min",
+    "signature": "pure noalloc fn(i8, i8) -\u003e i8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.min",
     "signature": "pure noalloc fn(i16, i16) -\u003e i16",
     "has_body": true,
     "kind": "",
@@ -3742,7 +3742,7 @@
   },
   {
     "key": "math.min",
-    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
+    "signature": "pure noalloc fn(i32, i32) -\u003e i32",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3762,7 +3762,17 @@
   },
   {
     "key": "math.min",
-    "signature": "pure noalloc fn(usize, usize) -\u003e usize",
+    "signature": "pure noalloc fn(u8, u8) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "math.min",
+    "signature": "pure noalloc fn(u16, u16) -\u003e u16",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3782,7 +3792,7 @@
   },
   {
     "key": "math.min",
-    "signature": "pure noalloc fn(u8, u8) -\u003e u8",
+    "signature": "pure noalloc fn(u64, u64) -\u003e u64",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3792,17 +3802,7 @@
   },
   {
     "key": "math.min",
-    "signature": "pure noalloc fn(Int, Int) -\u003e Int",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "math.min",
-    "signature": "pure noalloc fn(i32, i32) -\u003e i32",
+    "signature": "pure noalloc fn(usize, usize) -\u003e usize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4822,6 +4822,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.FixedArray.adopt",
+    "signature": "pure fn(Array[T]) -\u003e FixedArray[T, N]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.FixedArray.at",
     "signature": "pure fn(usize, fn(\u0026T) -\u003e R) -\u003e R?",
     "has_body": true,
@@ -4829,6 +4839,16 @@
     "vm": "gap",
     "native": "gap",
     "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.FixedArray.equals",
+    "signature": "pure fn(\u0026FixedArray[T, N]) -\u003e Bool",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -4869,6 +4889,16 @@
     "vm": "gap",
     "native": "gap",
     "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.FixedArray.hash",
+    "signature": "pure fn() -\u003e u64",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
     "status": "ok"
   },
   {

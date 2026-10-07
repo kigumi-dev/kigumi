@@ -92,6 +92,7 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	body.WriteString(e.emitWrappers())
 	e.out.WriteString(header)
 	e.out.WriteString(e.aggTypes())
+	e.out.WriteString(memIntrinsics)
 	e.out.WriteString(e.modAsm.String())
 	e.out.WriteString(externs)
 	for _, name := range slices.Sorted(maps.Keys(e.foreign)) {
@@ -142,7 +143,7 @@ func (e *emitter) function(f *mir.Func) string {
 	for i := range f.Locals {
 		if a, ok := e.direct[mir.LocalID(i)]; ok {
 			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, a.Name)
-			fmt.Fprintf(&sb, "  store %s zeroinitializer, ptr %%l%d\n", a.Name, i)
+			zeroAgg(&sb, a, aggPtr(mir.LocalID(i)))
 			continue
 		}
 		if info, ok := e.scalar[mir.LocalID(i)]; ok {

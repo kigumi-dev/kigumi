@@ -1,0 +1,88 @@
+-- src --
+// Arrays up to a page stay inline and longer ones boxed; either way a
+// narrow signed element keeps its width and reads back sign-extended.
+type Buf = {
+    pub data FixedArray[u8, 4096]
+    pub len usize
+}
+
+type Packet = Data(FixedArray[u8, 64], usize) | Closed
+
+fn fill(seed: u8, n: usize) -> Buf {
+    let mut data = FixedArray.filled[u8, 4096](seed)
+    data[n] = 7
+    Buf { data: data, len: n }
+}
+
+fn sumBytes(b: Buf) -> Int {
+    let mut s = 0
+    for x in b.data {
+        s = s + x.toInt()
+    }
+    s
+}
+
+fn packetLen(p: Packet) -> Int {
+    match p {
+        Data(bytes, n) -> bytes[n].toInt() + (n.toInt() || 0)
+        Closed -> -1
+    }
+}
+
+fn main() -> Unit! {
+    let a = fill(1, 100)
+    let b = a
+    print "buf ${sumBytes(a)} ${sumBytes(b)} ${b.data[100]} ${b.data[4095]} ${b.len}"
+
+    let mut big = FixedArray.filled[Int, 2048](3)
+    let snapshot = big
+    big[2047] = 9
+    let mut total = 0
+    for x in big {
+        total = total + x
+    }
+    print "big ${big[2047]} ${snapshot[2047]} ${total} ${big.len()}"
+
+    let mut i8s = FixedArray.filled[i8, 4](-128)
+    i8s[1] = 127
+    i8s[2] = -1
+    let mut i16s = FixedArray.filled[i16, 2](-32768)
+    i16s[1] = 32767
+    let mut i32s = FixedArray.filled[i32, 2](-2147483648)
+    i32s[1] = 2147483647
+    let mut u16s = FixedArray.filled[u16, 2](65535)
+    u16s[1] = 0
+    let mut u32s = FixedArray.filled[u32, 2](4294967295)
+    u32s[0] = 1
+    print "i8 ${i8s[0]} ${i8s[1]} ${i8s[2]} ${i8s[3]} i16 ${i16s[0]} ${i16s[1]} i32 ${i32s[0]} ${i32s[1]}"
+    print "u16 ${u16s[0]} ${u16s[1]} u32 ${u32s[0]} ${u32s[1]} sum ${i8s[0].toInt() + i8s[1].toInt() + i8s[2].toInt()}"
+
+    let mut neg = 0
+    for x in i8s {
+        if x < 0 {
+            neg = neg + 1
+        }
+    }
+    let wrapped = i8s[1].wrappingAdd(1)
+    print "neg ${neg} wrapped ${wrapped} eq ${i8s == i8s} ${hash(&u16s) == hash(&u16s)}"
+
+    let p = Data(FixedArray.filled[u8, 64](2), 63)
+    print "packet ${packetLen(p)} ${packetLen(Closed)}"
+
+    let grid: FixedArray[FixedArray[u8, 300], 20] = FixedArray.filled(FixedArray.filled[u8, 300](1))
+    let mut cells = 0
+    for row in grid {
+        for c in row {
+            cells = cells + c.toInt()
+        }
+    }
+    print "grid ${cells}"
+}
+-- stdout --
+buf 4102 4102 7 1 100
+big 9 3 6150 2048
+i8 -128 127 -1 -128 i16 -32768 32767 i32 -2147483648 2147483647
+u16 65535 0 u32 1 4294967295 sum -2
+neg 3 wrapped -128 eq true true
+packet 65 -1
+grid 6000

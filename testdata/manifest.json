@@ -2970,6 +2970,23 @@
       ]
     },
     {
+      "id": "run/const_generic_eq_operator",
+      "kind": "run",
+      "path": "testdata/run/const_generic_eq_operator.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/const_generic_fn",
       "kind": "run",
       "path": "testdata/run/const_generic_fn.txtar",
@@ -3531,6 +3548,133 @@
       ]
     },
     {
+      "id": "run/direct_closure",
+      "kind": "run",
+      "path": "testdata/run/direct_closure.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_closure_late_capture",
+      "kind": "run",
+      "path": "testdata/run/direct_closure_late_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_fixed_array",
+      "kind": "run",
+      "path": "testdata/run/direct_fixed_array.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_fixed_array_large",
+      "kind": "run",
+      "path": "testdata/run/direct_fixed_array_large.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_fixed_array_oob",
+      "kind": "run",
+      "path": "testdata/run/direct_fixed_array_oob.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: index out of range"
+      }
+    },
+    {
+      "id": "run/direct_fixed_array_oob_write",
+      "kind": "run",
+      "path": "testdata/run/direct_fixed_array_oob_write.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: index out of range"
+      }
+    },
+    {
+      "id": "run/direct_fixed_array_wide",
+      "kind": "run",
+      "path": "testdata/run/direct_fixed_array_wide.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/direct_prim_captured",
       "kind": "run",
       "path": "testdata/run/direct_prim_captured.txtar",
@@ -3551,6 +3695,23 @@
       "id": "run/direct_prim_results",
       "kind": "run",
       "path": "testdata/run/direct_prim_results.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_value_copies",
+      "kind": "run",
+      "path": "testdata/run/direct_value_copies.txtar",
       "mode": [
         "vm",
         "native"
@@ -4884,9 +5045,45 @@
       }
     },
     {
+      "id": "run/fixed_array_ffi_layout",
+      "kind": "run",
+      "path": "testdata/run/fixed_array_ffi_layout.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
       "id": "run/fixed_array_move",
       "kind": "run",
       "path": "testdata/run/fixed_array_move.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fixed_array_recursive",
+      "kind": "run",
+      "path": "testdata/run/fixed_array_recursive.txtar",
       "mode": [
         "vm",
         "native"
@@ -8553,6 +8750,28 @@
       "id": "sem/effects_noalloc_bad_recv",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_bad_recv.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_closure",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_closure.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_fixed",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fixed.txtar",
       "mode": [
         "check"
       ],

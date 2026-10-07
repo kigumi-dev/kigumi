@@ -4,8 +4,11 @@ import "kigumi/internal/mir"
 
 // frame is one activation: its locals.
 type frame struct {
-	f      *mir.Func
-	locals []*obj
+	f       *mir.Func
+	locals  []*obj
+	pending []crossing
+	blk     mir.BlockID
+	pc      int
 }
 
 // call runs a MIR function on arguments handed over (owned) or lent.
@@ -30,7 +33,11 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 		blk := &f.Blocks[bid]
 		for k := range blk.Insts {
 			m.chargeStep()
+			fr.blk, fr.pc = bid, k
 			m.exec(fr, &blk.Insts[k])
+			if len(fr.pending) > 0 {
+				m.settle(fr, &blk.Insts[k])
+			}
 		}
 		switch blk.Term.Op {
 		case mir.TermJump:
@@ -43,6 +50,9 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 				bid = blk.Term.Targets[1]
 			}
 		case mir.TermReturn:
+			if len(fr.pending) > 0 {
+				m.settleReturn(fr, blk.Term.Args[0])
+			}
 			return fr.locals[blk.Term.Args[0]]
 		default:
 			m.abort("unreachable code in " + f.Name)

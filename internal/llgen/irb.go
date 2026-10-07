@@ -19,6 +19,8 @@ const (
 	// TObjSlot is the zeroed storage a descriptor reserves for an immortal
 	// value; RT_OBJ_SLOT in rt.h must agree with its size.
 	TObjSlot
+	TI8
+	TI16
 )
 
 func (t Type) String() string {
@@ -37,6 +39,10 @@ func (t Type) String() string {
 		return "double"
 	case TObjSlot:
 		return objSlotType()
+	case TI8:
+		return "i8"
+	case TI16:
+		return "i16"
 	default:
 		panic(fmt.Sprintf("irb: unknown type %d", t))
 	}

@@ -84,8 +84,7 @@ func (r *Result) ScalarRefElem(t TypeID) (TypeID, bool) {
 func (r *Result) namedCopy(n typeNode) bool {
 	e := &r.Entities[n.Ent]
 	info := r.typeDecl(n.Ent)
-	// FixedArray[T, N] wraps an Array[T], so the field walk below would wrongly say
-	// "not Copy"; FixedArray's value semantics depend only on T.
+	// FixedArray is opaque in source, so no field walk reaches T.
 	if n.Ent == r.langItem(0, 0, "FixedArray") && len(n.Args) > 0 {
 		return r.isCopy(n.Args[0])
 	}

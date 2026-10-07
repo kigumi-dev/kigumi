@@ -4,15 +4,24 @@ import (
 	"fmt"
 	"strings"
 
+	"kigumi/internal/mir"
 	"kigumi/internal/sem"
 )
 
 type aggField struct {
 	T    sem.TypeID
 	Ty   Type
+	Mem  Type
 	Nk   int
 	Agg  *aggInfo
 	Unit bool
+}
+
+func (f aggField) mem() Type {
+	if f.Mem != TVoid {
+		return f.Mem
+	}
+	return f.Ty
 }
 
 // Payload slots are shared across variants, so slot i has the same offset whichever variant is live.
@@ -33,14 +42,19 @@ type aggInfo struct {
 	Pay      string
 	Size     int64
 	Align    int64
+	Clo      *mir.Func
+	Arr      *aggField
+	Len      int64
 }
 
 func (a *aggInfo) isAdt() bool { return a.Variants != nil }
 
 func scalarBytes(t Type) int64 {
 	switch t {
-	case TI1:
+	case TI1, TI8:
 		return 1
+	case TI16:
+		return 2
 	case TI32:
 		return 4
 	}
@@ -56,7 +70,7 @@ func fieldBytes(f aggField) (int64, int64) {
 	case f.Agg != nil:
 		return f.Agg.Size, f.Agg.Align
 	}
-	b := scalarBytes(f.Ty)
+	b := scalarBytes(f.mem())
 	return b, b
 }
 
@@ -70,12 +84,28 @@ func (e *emitter) agg(t sem.TypeID) (*aggInfo, bool) {
 		return nil, false
 	}
 	adt := e.r.DirectAdt(t)
-	label := e.aggLabel(t)
-	a := &aggInfo{T: t, Label: label, Name: aggName(adt, label), Ent: e.r.Types.Node(t).Ent, Align: 1}
+	ent := e.r.Types.Node(t).Ent
+	a := &aggInfo{T: t, Ent: ent, Align: 1}
+	spelling, prefix := e.r.TypeString(t), "agg"
+	switch {
+	case adt:
+		prefix = "adt"
+	case e.r.DirectClosure(t):
+		a.Clo = e.p.ByEnt[ent]
+		spelling, prefix = a.Clo.Name, "clo"
+	}
+	if _, _, ok := e.r.FixedElem(t); ok {
+		prefix = "arr"
+	}
+	a.Label = e.aggLabel(spelling)
+	a.Name = "%\"kg." + prefix + "." + a.Label + "\""
 	e.aggs[t] = a
-	if adt {
+	switch {
+	case adt:
 		e.layoutAdt(t, a)
-	} else {
+	case prefix == "arr":
+		e.layoutFixed(t, a)
+	default:
 		e.layoutRecord(t, a)
 	}
 	e.aggOrder = append(e.aggOrder, t)
@@ -83,8 +113,7 @@ func (e *emitter) agg(t sem.TypeID) (*aggInfo, bool) {
 }
 
 // Two packages may declare a type of the same spelling, so a later one takes a numbered label.
-func (e *emitter) aggLabel(t sem.TypeID) string {
-	s := e.r.TypeString(t)
+func (e *emitter) aggLabel(s string) string {
 	if e.aggLabels == nil {
 		e.aggLabels = map[string]bool{}
 	}
@@ -94,13 +123,6 @@ func (e *emitter) aggLabel(t sem.TypeID) string {
 	}
 	e.aggLabels[label] = true
 	return label
-}
-
-func aggName(adt bool, s string) string {
-	if adt {
-		return "%\"kg.adt." + s + "\""
-	}
-	return "%\"kg.agg." + s + "\""
 }
 
 func (e *emitter) layoutRecord(t sem.TypeID, a *aggInfo) {
@@ -143,12 +165,15 @@ func (f aggField) llType() string {
 	case f.Agg != nil:
 		return f.Agg.Name
 	}
-	return f.Ty.String()
+	return f.mem().String()
 }
 
 func (a *aggInfo) body() string {
-	if a.isAdt() {
+	switch {
+	case a.isAdt():
 		return adtTag + ", " + a.Pay
+	case a.Arr != nil:
+		return fmt.Sprintf("[%d x %s]", a.Len, a.Arr.llType())
 	}
 	parts := make([]string, len(a.Fields))
 	for i, f := range a.Fields {

@@ -1,0 +1,57 @@
+-- src --
+// A closure's captures can change after it is first classified: a later
+// write turns a copied capture into a shared cell, and a context provider
+// adds a capture once requirements settle. Types built over it follow.
+context level: Int
+
+@provides(level)
+type Lv = {
+    level Int
+}
+
+type Holder[F] = {
+    pub f F
+    pub tag Int
+}
+
+fn needs() -> Int {
+    level + 1
+}
+
+fn id[T](x: T) -> T {
+    x
+}
+
+fn call(f: fn() -> Int) -> Int {
+    f()
+}
+
+fn written() -> Int {
+    let mut n = 1
+    let f = () => n
+    let h = Holder { f: f, tag: 2 }
+    let o = Some(f)
+    let h2 = id(h)
+    let o2 = id(o)
+    n = 5
+    let g = h2.f
+    let fromOption = match o2 {
+        Some(k) -> k()
+        None -> 0
+    }
+    g() + fromOption + h2.tag
+}
+
+fn provided() -> Int {
+    context (Lv { level: 40 }) {
+        let f = () => needs()
+        let h = Holder { f: f, tag: 3 }
+        let h2 = id(h)
+        let g = h2.f
+        f() + g() + call(f) + h2.tag
+    }
+}
+
+print "written ${written()} provided ${provided()}"
+-- stdout --
+written 12 provided 126

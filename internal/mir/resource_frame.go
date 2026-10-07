@@ -34,6 +34,12 @@ func localBytes(r *sem.Result, t sem.TypeID, word uint64, depth int) uint64 {
 	case t == sem.TyBool, t == sem.TyChar, tt.Kind(t) == sem.KPtr, tt.IsCFn(t):
 		return word
 	}
+	if r.DirectClosure(t) {
+		return aggBytes(r, r.AggFields(t), word, depth+1)
+	}
+	if elem, n, ok := r.FixedElem(t); ok && r.DirectFixed(t) {
+		return max(uint64(n)*localBytes(r, elem, word, depth+1), word)
+	}
 	n := tt.Node(t)
 	if n.Kind != sem.KNamed || n.Ent == 0 {
 		return word
@@ -76,6 +82,14 @@ func staticWritableBytes(r *sem.Result, word uint64) uint64 {
 		total += localBytes(r, r.Entity(id).Type, word, 0)
 	}
 	return total
+}
+
+func aggBytes(r *sem.Result, leaves []sem.TypeID, word uint64, depth int) uint64 {
+	var total uint64
+	for _, t := range leaves {
+		total += localBytes(r, t, word, depth)
+	}
+	return max(total, word)
 }
 
 // adtBytes takes the largest variant's payload plus one tag word: a

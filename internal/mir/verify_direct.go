@@ -44,5 +44,8 @@ func (p *Program) verifyDirectInst(f *Func, bid BlockID, i int, in Inst) *Error 
 	if in.Op.Yields() && f.IsDirect(in.Dst) != (p.dstPos(f, in) != 0) {
 		return fail("direct", bid, i, "%s writes %s in the form this position does not yield", in.Op, p.local(f, in.Dst))
 	}
+	if msg := p.directShape(f, in); msg != "" {
+		return fail("direct", bid, i, "%s %s", in.Op, msg)
+	}
 	return nil
 }

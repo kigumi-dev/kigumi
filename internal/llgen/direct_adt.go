@@ -75,35 +75,23 @@ func (e *emitter) slotPtr(sb *strings.Builder, a *aggInfo, base string, j int) s
 }
 
 func (e *emitter) buildVariant(sb *strings.Builder, a *aggInfo, in mir.Inst) {
-	base := fmt.Sprintf("%%l%d", in.Dst)
-	fmt.Fprintf(sb, "  store %s zeroinitializer, ptr %s\n", a.Name, base)
+	base := aggPtr(in.Dst)
+	zeroAgg(sb, a, base)
 	fmt.Fprintf(sb, "  store %s %d, ptr %s\n", adtTag, a.tagOf(in.Ent), e.tagPtr(sb, a, base))
 	for j, f := range a.Variants[a.tagOf(in.Ent)].Payload {
-		if f.Unit {
-			continue
-		}
-		v := e.aggLeaf(sb, f, in.Args[j])
-		fmt.Fprintf(sb, "  store %s %s, ptr %s\n", f.llType(), v, e.slotPtr(sb, a, base, j))
+		e.storeLeaf(sb, f, e.slotPtr(sb, a, base, j), in.Args[j])
 	}
 }
 
 func (e *emitter) readPayload(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {
-	dst := f.Locals[in.Dst].Type
-	if dst == sem.TyUnit {
+	if f.Locals[in.Dst].Type == sem.TyUnit {
 		e.store(sb, in.Dst, e.irb(sb).Call(rtUnit).Text)
 		return
 	}
-	base := fmt.Sprintf("%%l%d", in.Args[0])
-	if sub, ok := e.direct[in.Dst]; ok {
-		v := e.newTmp()
-		fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", v, sub.Name, e.slotPtr(sb, a, base, in.Index))
-		e.storeAgg(sb, sub, in.Dst, v)
-		return
-	}
-	ty, _ := e.scalarType(dst)
-	v := e.newTmp()
-	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", v, ty, e.slotPtr(sb, a, base, in.Index))
-	e.storeScalarResult(sb, f, in.Dst, Value{ty, v})
+	t := f.Locals[in.Dst].Type
+	ty, _ := e.scalarType(t)
+	fld := aggField{T: t, Ty: ty, Nk: e.numKind(t), Agg: e.direct[in.Dst]}
+	e.loadLeaf(sb, f, fld, e.slotPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Dst)
 }
 
 func (e *emitter) testVariant(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {

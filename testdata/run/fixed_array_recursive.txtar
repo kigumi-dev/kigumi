@@ -1,0 +1,44 @@
+-- src --
+// A type reaching itself through a FixedArray is boxed, so its size is finite.
+type Tree = Leaf(v: Int) | Node(kids: FixedArray[Tree, 2])
+
+type Rose = {
+    pub tag Int
+    pub kids FixedArray[Rose?, 2]
+}
+
+fn sum(t: Tree) -> Int {
+    match t {
+        Leaf(v) -> v
+        Node(kids) -> {
+            let mut s = 0
+            for k in kids {
+                s = s + sum(k)
+            }
+            s
+        }
+    }
+}
+
+fn build(depth: Int, base: Int) -> Tree {
+    if depth == 0 {
+        return Leaf(base)
+    }
+    let mut kids = FixedArray.filled[Tree, 2](Leaf(0))
+    kids[0] = build(depth - 1, base * 2)
+    kids[1] = build(depth - 1, base * 2 + 1)
+    Node(kids)
+}
+
+fn main() -> Unit! {
+    let t = build(3, 1)
+    let leaf = Rose { tag: 2, kids: FixedArray.filled(None) }
+    let mut kids = FixedArray.filled[Rose?, 2](None)
+    kids[1] = Some(leaf)
+    let rose = Rose { tag: 1, kids: kids }
+    kids[1] = None
+    let inner = rose.kids[1] || leaf
+    print "tree ${sum(t)} ${rose.tag} ${inner.tag} ${kids[1] is None}"
+}
+-- stdout --
+tree 92 1 2 true

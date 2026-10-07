@@ -162,7 +162,11 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 				continue
 			}
 			m.chargeStep()
+			co.fr.blk, co.fr.pc = co.bid, co.pc
 			m.exec(&co.fr, in)
+			if len(co.fr.pending) > 0 {
+				m.settle(&co.fr, in)
+			}
 			co.pc++
 		}
 		switch blk.Term.Op {
@@ -176,6 +180,9 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 			}
 			co.pc = 0
 		case mir.TermReturn:
+			if len(co.fr.pending) > 0 {
+				m.settleReturn(&co.fr, blk.Term.Args[0])
+			}
 			fu.done, fu.co = true, nil
 			return co.fr.locals[blk.Term.Args[0]], ready
 		default:

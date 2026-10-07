@@ -68,7 +68,7 @@ func (c *checker) settleAllocs() {
 		switch {
 		case c.r.Types.ContainsVar(t):
 			kept = append(kept, p)
-		case e.Why == whyDirectCross && (t == p.keep || !c.r.DirectAgg(t)):
+		case e.Why == whyDirectCross && (t == p.keep || !c.r.DirectAgg(t) && !c.r.containsClosure(t)):
 			t = 0
 		}
 		e.Type = t

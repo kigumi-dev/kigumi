@@ -1,0 +1,14 @@
+-- src --
+fn readAt(i: usize) -> Int {
+    let fa = FixedArray.filled[Int, 3](4)
+    fa[i]
+}
+
+print "in ${readAt(2)}"
+print "out ${readAt(3)}"
+-- stdout --
+in 4
+-- stderr --
+panic: index out of range
+-- exit --
+2

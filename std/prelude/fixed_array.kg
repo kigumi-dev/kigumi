@@ -1,15 +1,13 @@
-/// A value of exactly N elements of T, fixed at the type via const
-/// generics. Backed by an Array[T] since a true inline buffer is out of
-/// scope for now; Copy and structural Eq/Hash still hold because the
-/// compiler derives them from this field the way it does for any other
-/// record.
-pub type FixedArray[T, const N: usize] = {
-    mut items Array[T]
-}
+/// Exactly N elements of T, stored inline with no heap buffer. `a[i]` traps
+/// when i is out of range; Copy, Eq and Hash follow T.
+pub type FixedArray[T, const N: usize]
+
+/// a's elements reinterpreted as N of them; the caller has checked a.len() == N.
+pure fn FixedArray.adopt[T, const N: usize](a: Array[T]) -> FixedArray[T, N]
 
 /// N copies of value.
 pub pure fn FixedArray.filled[T: Copy, const N: usize](value: T) -> FixedArray[T, N] {
-    FixedArray { items: Array.fill(value, N) }
+    FixedArray.adopt(Array.fill(value, N))
 }
 
 /// A type whose zero value is known statically, dispatched the way
@@ -72,43 +70,72 @@ pub pure fn FixedArray.zeroed[T: Copy + Zero, const N: usize]() -> FixedArray[T,
     FixedArray.filled(T.zero())
 }
 
-/// A copy of the element at index, or None when index is out of range.
-pub pure fn FixedArray[T: Copy, N].get(self, index: usize) -> T? {
-    self.items.get(index)
-}
-
-/// Calls f with a borrow of the element at index; None when index is out
-/// of range. `at` cannot return `&T` directly (E220: borrow types cannot
-/// appear in return types), so it follows Array.with's callback shape.
-pub pure fn FixedArray[T, N].at[R](self, index: usize, f: fn(&T) -> R) -> R? {
-    self.items.with(index, f)
-}
-
-/// Calls f with an exclusive borrow of the element at index, so f can
-/// mutate it in place; None when index is out of range. Native: forwarding
-/// f to Array.withMut would trip E1051 (f's captures are opaque here).
-pub pure fn FixedArray[T, N].withMut[R](mut self, index: usize, f: fn(&mut T) -> R) -> R?
-
-/// Replaces the element at index with value; false when index is out of
-/// range. Bracket assignment, not withMut: withMut's callback can only
-/// write through `&mut T` when T is a known scalar, not a generic
-/// T (E400), so a generic `set` needs the array's own index-assignment.
-pub pure fn FixedArray[T, N].set(mut self, index: usize, value: T) -> Bool {
-    if index >= N {
-        return false
-    }
-    self.items[index] = value
-    true
-}
-
 /// Number of elements: always N, the type's own length.
 pub pure noalloc fn FixedArray[T, N].len(self) -> usize {
     N
 }
 
+/// A copy of the element at index, or None when index is out of range.
+pub pure fn FixedArray[T: Copy, N].get(self, index: usize) -> T? {
+    if index >= N {
+        return None
+    }
+    Some(self[index])
+}
+
+/// Calls f with a borrow of the element at index; None when out of range.
+/// Borrows cannot be returned (E220), hence the callback.
+pub pure fn FixedArray[T, N].at[R](self, index: usize, f: fn(&T) -> R) -> R? {
+    if index >= N {
+        return None
+    }
+    Some(f(&self[index]))
+}
+
+/// Calls f with an exclusive borrow of the element at index, so f can
+/// mutate it in place; None when index is out of range.
+pub pure fn FixedArray[T, N].withMut[R](mut self, index: usize, f: fn(&mut T) -> R) -> R?
+
+/// Replaces the element at index with value; false when index is out of
+/// range instead of the trap `a[i] = value` has.
+pub pure fn FixedArray[T, N].set(mut self, index: usize, value: T) -> Bool {
+    if index >= N {
+        return false
+    }
+    self[index] = value
+    true
+}
+
+/// Element-wise equality; satisfies `Eq` when T does.
+pub pure fn FixedArray[T: Eq, N].equals(self, other: &FixedArray[T, N]) -> Bool {
+    let mut i: usize = 0
+    for i < N {
+        if !(self.at(i, (a: &T) => other.at(i, (b: &T) => a == b) is Some(true)) is Some(true)) {
+            return false
+        }
+        i = i + 1
+    }
+    true
+}
+
+/// Hash over the elements in order; satisfies `Hash` when T does.
+pub pure fn FixedArray[T: Hash, N].hash(self) -> u64 {
+    let mut h: u64 = 14695981039346656037
+    let mut i: usize = 0
+    for i < N {
+        h = (h ^ (self.at(i, (a: &T) => hash(a)) || 0)).wrappingMul(1099511628211)
+        i = i + 1
+    }
+    h
+}
+
 /// A growable copy of the elements, in order.
 pub pure fn FixedArray[T: Copy, N].toArray(self) -> Array[T] {
-    self.items.clone()
+    let mut out = Array.empty[T]()
+    for x in self {
+        out.push(x)
+    }
+    out
 }
 
 /// The elements of a, or None when its length is not N.
@@ -116,7 +143,7 @@ pub pure fn FixedArray.fromArray[T: Copy, const N: usize](a: &Array[T]) -> Fixed
     if a.len() != N {
         return None
     }
-    Some(FixedArray { items: a.clone() })
+    Some(FixedArray.adopt(a.clone()))
 }
 
 /// Moves a's elements in, or None (dropping a) when its length is not N.
@@ -126,7 +153,7 @@ pub pure fn FixedArray.fromArrayMove[T, const N: usize](a: Array[T]) -> FixedArr
     if a.len() != N {
         return None
     }
-    Some(FixedArray { items: a })
+    Some(FixedArray.adopt(a))
 }
 
 /// N bytes read out of a Bytes value, or None when its length is not N.
@@ -143,11 +170,11 @@ pub pure fn Bytes.toFixed[const N: usize](self) -> FixedArray[u8, N]? {
         items.push(self.get(i) || 0)
         i = i + 1
     }
-    Some(FixedArray { items: items })
+    Some(FixedArray.adopt(items))
 }
 
 /// The N bytes of fa, in order. A static function under FixedArray for the
 /// same reason as Bytes.toFixed: no receiver binder can fix T to `u8`.
 pub pure fn FixedArray.toBytes[const N: usize](fa: FixedArray[u8, N]) -> Bytes {
-    Bytes.fromArray(&fa.items)
+    Bytes.fromArray(&fa.toArray())
 }

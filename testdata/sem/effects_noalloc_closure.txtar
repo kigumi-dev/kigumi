@@ -1,0 +1,80 @@
+-- lib/clo.kg --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+noalloc fn apply(f: noalloc fn(Int) -> Int, v: Int) -> Int {
+    f(v)
+}
+
+noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+// A closure over register-wide values keeps its environment inline, so
+// building, copying and calling it costs nothing.
+noalloc fn directScalars(n: Int) -> Int {
+    let k = n + 1
+    let on = n > 0
+    let f = (x: Int) => if on { x + k } else { x }
+    let g = f
+    g(2) + f(3)
+}
+
+noalloc fn directRecord(p: Point) -> Int {
+    let f = (d: Int) => p.x * d + p.y
+    f(1)
+}
+
+noalloc fn directNested(n: Int) -> Int {
+    let inner = (x: Int) => x + n
+    let outer = (x: Int) => inner(x) * 2
+    outer(1)
+}
+
+noalloc fn carrierCapture(s: String) -> Int {
+    let f = () => s.len() //~ ERROR constructing `closure fn() -> usize` allocates
+    f().toInt() || 0
+}
+
+noalloc fn erases(n: Int) -> Int {
+    apply((x: Int) => x + n, 1) //~ ERROR boxing `closure fn(Int) -> Int` into `noalloc fn(Int) -> Int` allocates
+}
+
+noalloc fn toGeneric(n: Int) -> Int {
+    applyGen((x: Int) => x + n, 1) //~ ERROR handing `closure fn(Int) -> Int` to a slot that holds a reference allocates a box for it
+}
+
+noalloc fn mutCapture() -> Int {
+    let mut c = 0
+    let f = () => { c = c + 1 } //~ ERROR constructing `closure fn() -> Unit` allocates
+    f()
+    c
+}
+-- expect --
+error[E961]: constructing `closure fn() -> usize` allocates
+  --> lib/clo.kg:36:13
+   |
+36 |     let f = () => s.len() //~ ERROR constructing `closure fn() -> usize` allocates
+   |             ^^^^^^^^^^^^
+
+error[E910]: boxing `closure fn(Int) -> Int` into `noalloc fn(Int) -> Int` allocates
+  --> lib/clo.kg:41:11
+   |
+41 |     apply((x: Int) => x + n, 1) //~ ERROR boxing `closure fn(Int) -> Int` into `noalloc fn(Int) -> Int` allocates
+   |           ^^^^^^^^^^^^^^^^^
+
+error[E1610]: handing `closure fn(Int) -> Int` to a slot that holds a reference allocates a box for it
+  --> lib/clo.kg:45:14
+   |
+45 |     applyGen((x: Int) => x + n, 1) //~ ERROR handing `closure fn(Int) -> Int` to a slot that holds a reference allocates a box for it
+   |              ^^^^^^^^^^^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E961]: constructing `closure fn() -> Unit` allocates
+  --> lib/clo.kg:50:13
+   |
+50 |     let f = () => { c = c + 1 } //~ ERROR constructing `closure fn() -> Unit` allocates
+   |             ^^^^^^^^^^^^^^^^^
+

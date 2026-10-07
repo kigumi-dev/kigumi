@@ -109,7 +109,7 @@ func (r *Result) cRepresentable(t TypeID) bool {
 // length argument.
 func (r *Result) fixedArrayShape(t TypeID) (elem TypeID, n int64, ok bool) {
 	tt := r.Types
-	if tt.Kind(t) != KNamed {
+	if t == 0 || tt.Kind(t) != KNamed {
 		return 0, 0, false
 	}
 	node := tt.Node(t)

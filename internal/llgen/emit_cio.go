@@ -48,7 +48,7 @@ func (e *emitter) cReader(ent sem.EntityID, cap int64) string {
 		fmt.Fprintf(&sb, "  %s = getelementptr i8, ptr %%p, i64 %d\n", at, offs[i])
 		var v string
 		if elem, fixedN, ok := e.fixedArrayShape(t); ok {
-			v = e.readFixedArray(&sb, at, t, elem, fixedN, aligns[i])
+			v = e.readFixedArray(&sb, at, elem, fixedN, aligns[i])
 		} else if e.isCRecord(t) {
 			v = e.call(&sb, strings.TrimPrefix(e.cReader(e.r.Types.Node(t).Ent, aligns[i]), "@"), []string{"ptr " + at})
 		} else {

@@ -3,14 +3,11 @@ package llgen
 import (
 	"fmt"
 	"strings"
-
-	"kigumi/internal/mir"
 )
 
 func (e *emitter) aggBoxSym(a *aggInfo) string   { return "@\"kg.box." + a.Label + "\"" }
 func (e *emitter) aggUnboxSym(a *aggInfo) string { return "@\"kg.unbox." + a.Label + "\"" }
 
-// The only two places a direct aggregate crosses into the boxed value model.
 func (e *emitter) aggHelpers(a *aggInfo) {
 	if e.aggDone[a.T] {
 		return
@@ -21,17 +18,27 @@ func (e *emitter) aggHelpers(a *aggInfo) {
 			e.aggHelpers(f.Agg)
 		}
 	}
-	if a.isAdt() {
+	switch {
+	case a.isAdt():
 		e.helpers.WriteString(e.adtBoxFn(a))
 		e.helpers.WriteString(e.adtUnboxFn(a))
-		return
+	case a.Clo != nil:
+		e.helpers.WriteString(e.cloBoxFn(a))
+		e.helpers.WriteString(e.cloUnboxFn(a))
+	case a.Arr != nil:
+		e.helpers.WriteString(e.arrBoxFn(a))
+		e.helpers.WriteString(e.arrUnboxFn(a))
+	default:
+		e.helpers.WriteString(e.aggBoxFn(a))
+		e.helpers.WriteString(e.aggUnboxFn(a))
 	}
-	e.helpers.WriteString(e.aggBoxFn(a))
-	e.helpers.WriteString(e.aggUnboxFn(a))
 }
 
 func (a *aggInfo) leaves() []aggField {
-	if !a.isAdt() {
+	switch {
+	case a.Arr != nil:
+		return []aggField{*a.Arr}
+	case !a.isAdt():
 		return a.Fields
 	}
 	var out []aggField
@@ -43,35 +50,56 @@ func (a *aggInfo) leaves() []aggField {
 
 func (e *emitter) aggBoxFn(a *aggInfo) string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "define internal ptr %s(%s %%v) {\nentry:\n", e.aggBoxSym(a), a.Name)
-	fmt.Fprintf(&sb, "  %%arr = alloca ptr, i32 %d\n", len(a.Fields))
-	for i, f := range a.Fields {
-		switch {
-		case f.Unit:
-			fmt.Fprintf(&sb, "  %%b%d = call ptr @rt_unit()\n", i)
-		case f.Agg != nil:
-			fmt.Fprintf(&sb, "  %%f%d = extractvalue %s %%v, %d\n", i, a.Name, i)
-			fmt.Fprintf(&sb, "  %%b%d = call ptr %s(%s %%f%d)\n", i, e.aggBoxSym(f.Agg), f.Agg.Name, i)
-		default:
-			fmt.Fprintf(&sb, "  %%f%d = extractvalue %s %%v, %d\n", i, a.Name, i)
-			boxLeaf(&sb, i, f)
-		}
-		fmt.Fprintf(&sb, "  %%p%d = getelementptr ptr, ptr %%arr, i32 %d\n", i, i)
-		fmt.Fprintf(&sb, "  store ptr %%b%d, ptr %%p%d\n", i, i)
-	}
-	fmt.Fprintf(&sb, "  %%r = call ptr @rt_record(ptr %s, i64 %d, ptr %%arr)\n", e.desc(a.Ent), len(a.Fields))
+	fmt.Fprintf(&sb, "define internal ptr %s(ptr %%v) {\nentry:\n", e.aggBoxSym(a))
+	arr, _ := e.boxLeaves(&sb, a, "%v")
+	fmt.Fprintf(&sb, "  %%r = call ptr @rt_record(ptr %s, i64 %d, ptr %s)\n", e.desc(a.Ent), len(a.Fields), arr)
 	sb.WriteString("  ret ptr %r\n}\n\n")
 	return sb.String()
 }
 
-// A Bool widens to the `int` rt_bool takes, as boolBox does on the scalar path.
-func boxLeaf(sb *strings.Builder, i int, f aggField) {
-	v := fmt.Sprintf("%%f%d", i)
-	if f.Ty == TI1 {
-		v = fmt.Sprintf("%%w%d", i)
-		fmt.Fprintf(sb, "  %s = zext i1 %%f%d to i32\n", v, i)
+func (e *emitter) boxLeaves(sb *strings.Builder, a *aggInfo, src string) (arr string, boxes []string) {
+	arr = e.newTmp()
+	fmt.Fprintf(sb, "  %s = alloca ptr, i32 %d\n", arr, max(len(a.Fields), 1))
+	for i, f := range a.Fields {
+		b := e.boxLeafAt(sb, f, e.fieldPtr(sb, a, src, i))
+		p := e.newTmp()
+		fmt.Fprintf(sb, "  %s = getelementptr ptr, ptr %s, i32 %d\n  store ptr %s, ptr %s\n", p, arr, i, b, p)
+		boxes = append(boxes, b)
 	}
-	fmt.Fprintf(sb, "  %%b%d = call ptr @%s\n", i, boxCallText(f, v))
+	return arr, boxes
+}
+
+func (e *emitter) boxLeafAt(sb *strings.Builder, f aggField, p string) string {
+	b := e.newTmp()
+	switch {
+	case f.Unit:
+		fmt.Fprintf(sb, "  %s = call ptr @rt_unit()\n", b)
+	case f.Agg != nil:
+		fmt.Fprintf(sb, "  %s = call ptr %s(ptr %s)\n", b, e.aggBoxSym(f.Agg), p)
+	default:
+		v := e.loadLeafScalar(sb, f, p)
+		// rt_bool takes an int, so a Bool widens.
+		if f.Ty == TI1 {
+			w := e.newTmp()
+			fmt.Fprintf(sb, "  %s = zext i1 %s to i32\n", w, v)
+			v = w
+		}
+		fmt.Fprintf(sb, "  %s = call ptr @%s\n", b, boxCallText(f, v))
+	}
+	return b
+}
+
+func (e *emitter) unboxLeafAt(sb *strings.Builder, f aggField, p, box string) {
+	switch {
+	case f.Unit:
+	case f.Agg != nil:
+		fmt.Fprintf(sb, "  call void %s(ptr %s, ptr %s)\n", e.aggUnboxSym(f.Agg), p, box)
+	default:
+		v := e.newTmp()
+		fmt.Fprintf(sb, "  %s = call %s\n", v, unboxCallText(f, box))
+		e.storeLeafScalar(sb, f, p, v)
+	}
+	fmt.Fprintf(sb, "  call void @rt_release(ptr %s)\n", box)
 }
 
 func boxCallText(f aggField, v string) string {
@@ -100,87 +128,34 @@ func unboxCallText(f aggField, v string) string {
 
 func (e *emitter) aggUnboxFn(a *aggInfo) string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "define internal %s %s(ptr %%b) {\nentry:\n", a.Name, e.aggUnboxSym(a))
-	prev := "undef"
-	for i, f := range a.Fields {
-		if f.Unit {
-			fmt.Fprintf(&sb, "  %%a%d = insertvalue %s %s, [0 x i8] zeroinitializer, %d\n", i, a.Name, prev, i)
-			prev = fmt.Sprintf("%%a%d", i)
-			continue
-		}
-		fmt.Fprintf(&sb, "  %%f%d = call ptr @rt_field(ptr %%b, i64 %d)\n", i, i)
-		if f.Agg != nil {
-			fmt.Fprintf(&sb, "  %%s%d = call %s %s(ptr %%f%d)\n", i, f.Agg.Name, e.aggUnboxSym(f.Agg), i)
-		} else {
-			fmt.Fprintf(&sb, "  %%s%d = call %s\n", i, unboxCallText(f, fmt.Sprintf("%%f%d", i)))
-		}
-		fmt.Fprintf(&sb, "  call void @rt_release(ptr %%f%d)\n", i)
-		fmt.Fprintf(&sb, "  %%a%d = insertvalue %s %s, %s %%s%d, %d\n", i, a.Name, prev, f.llType(), i, i)
-		prev = fmt.Sprintf("%%a%d", i)
-	}
-	fmt.Fprintf(&sb, "  ret %s %s\n}\n\n", a.Name, prev)
+	fmt.Fprintf(&sb, "define internal void %s(ptr %%d, ptr %%b) {\nentry:\n", e.aggUnboxSym(a))
+	e.unboxLeaves(&sb, a, "%d", func(i int) string {
+		return fmt.Sprintf("call ptr @rt_field(ptr %%b, i64 %d)", i)
+	})
+	sb.WriteString("  ret void\n}\n\n")
 	return sb.String()
 }
 
+func (e *emitter) unboxLeaves(sb *strings.Builder, a *aggInfo, dst string, fetch func(int) string) {
+	for i, f := range a.Fields {
+		if f.Unit {
+			continue
+		}
+		box := e.newTmp()
+		fmt.Fprintf(sb, "  %s = %s\n", box, fetch(i))
+		e.unboxLeafAt(sb, f, e.fieldPtr(sb, a, dst, i), box)
+	}
+}
+
 // The caller releases the box when the instruction only borrows what it is given.
-func (e *emitter) boxAgg(sb *strings.Builder, a *aggInfo, v string) string {
+func (e *emitter) boxAgg(sb *strings.Builder, a *aggInfo, src string) string {
 	e.aggHelpers(a)
 	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = call ptr %s(%s %s)\n", t, e.aggBoxSym(a), a.Name, v)
+	fmt.Fprintf(sb, "  %s = call ptr %s(ptr %s)\n", t, e.aggBoxSym(a), src)
 	return t
 }
 
-func (e *emitter) unboxAgg(sb *strings.Builder, a *aggInfo, ptrVal string) string {
+func (e *emitter) unboxAgg(sb *strings.Builder, a *aggInfo, dst, box string) {
 	e.aggHelpers(a)
-	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = call %s %s(ptr %s)\n", t, a.Name, e.aggUnboxSym(a), ptrVal)
-	return t
-}
-
-// vals and the result are owned ptr operands.
-func (e *emitter) callBoxed(sb *strings.Builder, f *mir.Func, vals []string) string {
-	s := e.directSig(f)
-	if s == nil {
-		t := e.newTmp()
-		fmt.Fprintf(sb, "  %s = call ptr %s(%s)\n", t, e.sym(f), joinArgs(vals))
-		return t
-	}
-	var args []string
-	out := ""
-	if s.Ret != nil && !byValueAgg(s.Ret) {
-		out = e.stackSlot(sb, s.Ret.Name)
-		args = append(args, "ptr "+out)
-	}
-	for i, v := range vals {
-		a := s.param(i)
-		if a == nil {
-			args = append(args, "ptr "+v)
-			continue
-		}
-		u := e.unboxAgg(sb, a, v)
-		// A lent position never owned the box, so the reference stays where it was.
-		if !e.p.ParamLent(f.Ent, i) {
-			e.irb(sb).Call(rtRelease, vptr(v))
-		}
-		if byValueAgg(a) {
-			args = append(args, a.Name+" "+u)
-			continue
-		}
-		slot := e.stackSlot(sb, a.Name)
-		fmt.Fprintf(sb, "  store %s %s, ptr %s\n", a.Name, u, slot)
-		args = append(args, "ptr "+slot)
-	}
-	if s.Ret == nil {
-		t := e.newTmp()
-		fmt.Fprintf(sb, "  %s = call ptr %s(%s)\n", t, e.sym(f), strings.Join(args, ", "))
-		return t
-	}
-	v := e.newTmp()
-	if byValueAgg(s.Ret) {
-		fmt.Fprintf(sb, "  %s = call %s %s(%s)\n", v, s.Ret.Name, e.sym(f), strings.Join(args, ", "))
-	} else {
-		fmt.Fprintf(sb, "  call void %s(%s)\n", e.sym(f), strings.Join(args, ", "))
-		fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", v, s.Ret.Name, out)
-	}
-	return e.boxAgg(sb, s.Ret, v)
+	fmt.Fprintf(sb, "  call void %s(ptr %s, ptr %s)\n", e.aggUnboxSym(a), dst, box)
 }

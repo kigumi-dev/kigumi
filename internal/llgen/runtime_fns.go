@@ -61,6 +61,8 @@ var (
 	rtBox          = RuntimeFn{"rt_box", []Type{TPtr, TPtr, TPtr}, TPtr}
 	rtClosure      = RuntimeFn{"rt_closure", []Type{TPtr, TI32, TPtr}, TPtr}
 	rtClosureAsync = RuntimeFn{"rt_closure_async", []Type{TPtr, TI32, TPtr}, TPtr}
+	rtClosureEnv   = RuntimeFn{"rt_closure_env", []Type{TPtr}, TPtr}
+	rtArrayPush    = RuntimeFn{"rt_array_push", []Type{TPtr, TPtr}, TVoid}
 	rtFnItemInit   = RuntimeFn{"rt_fnitem_init", []Type{TPtr, TPtr, TI32}, TVoid}
 	rtStdItemInit  = RuntimeFn{"rt_stditem_init", []Type{TPtr, TPtr, TI32}, TVoid}
 	rtCell         = RuntimeFn{"rt_cell", []Type{TPtr}, TPtr}
@@ -102,7 +104,7 @@ var runtimeFns = []RuntimeFn{
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
 	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstNum, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
 	rtIndex, rtSetindex, rtPayload, rtIsvariant, rtVariantIndex, rtIstype, rtUnbox, rtBox,
-	rtClosure, rtClosureAsync, rtFnItemInit, rtStdItemInit, rtCell, rtCellInit, rtCellget, rtCellTake, rtCellset, rtInterp, rtDisplay, rtDrop,
+	rtClosure, rtClosureAsync, rtClosureEnv, rtArrayPush, rtFnItemInit, rtStdItemInit, rtCell, rtCellInit, rtCellget, rtCellTake, rtCellset, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,

@@ -136,6 +136,8 @@ func extendBorrowed(borrowed map[LocalID]LocalID, last map[LocalID]use, noReleas
 	}
 }
 
+func (p *Program) ArgConsumed(in Inst, i int) bool { return p.consumes(in, i) }
+
 // consumes reports whether argument i of an instruction takes over the
 // value: it is stored, moved, boxed or handed to a callee that owns it.
 // Reads, arithmetic, display and borrowed receivers do not.

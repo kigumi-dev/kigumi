@@ -20,7 +20,7 @@ func (l *lowerer) protoBinary(n syntax.NodeID, op string, call sem.CallInfo, lhs
 		right = b
 	}
 	mc := l.node(n, MethodCall)
-	mc.Ent, mc.Args, mc.Witness, mc.Passes = call.Callee, []*Expr{left, right}, call.Witness, call.Passes
+	mc.Ent, mc.Args, mc.Witness, mc.Passes, mc.ConstArgs = call.Callee, []*Expr{left, right}, call.Witness, call.Passes, call.ConstArgs
 	var out *Expr
 	switch op {
 	case "==", "!=":

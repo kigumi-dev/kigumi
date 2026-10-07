@@ -20,6 +20,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 		want = 0
 	}
 	sig, inst, badTypeArgs := c.instantiateFn(n, fn, typeArgs, recv)
+	from := len(*c.edges)
 	c.edge(EffectEdge{Kind: EdgeCall, Target: fn, Node: n})
 	c.callInvalidates()
 	if (info.Declared&EffUnsafe != 0 || info.Abi != "" || info.Naked) && c.unsafe == 0 {
@@ -63,6 +64,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	if !badTypeArgs {
 		c.deferWitnesses(n, fn, recv, inst)
 	}
+	c.noteInline(n, recvBase, fn, args, from)
 	c.touched = append(c.touched, n)
 	return ret
 }

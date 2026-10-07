@@ -1,0 +1,128 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Shape = Circle(r: Int) | Rect(w: Int, h: Int) | Dot
+
+type Holder[F] = {
+    pub f F
+    pub tag Int
+}
+
+fn area(s: Shape) -> Int {
+    match s {
+        Circle(r) -> r * r * 3
+        Rect(w, h) -> w * h
+        Dot -> 0
+    }
+}
+
+fn apply(f: fn(Int) -> Int, v: Int) -> Int {
+    f(v)
+}
+
+fn applyGen[F: Fn[fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+fn makeAdder(k: Int) -> fn(Int) -> Int {
+    (x: Int) => x + k
+}
+
+// A capturing closure built and called on every turn of a loop.
+fn loopCalls(n: Int) -> Int {
+    let base = 10
+    let on = true
+    let p = Point { x: 1, y: 2 }
+    let mut total = 0
+    let mut i = 0
+    for i < n {
+        let f = (x: Int) => if on { x + base + p.y } else { x }
+        total = total + f(i)
+        i = i + 1
+    }
+    total
+}
+
+// The body lends a capture, which boxes it once on entry.
+fn lendsCapture(p: Point) -> Bool {
+    let f = () => hash(&p) == hash(&p)
+    f()
+}
+
+fn applyPoint(f: fn(Point) -> Point, p: Point) -> Point {
+    f(p)
+}
+
+fn applyPointGen[F: Fn[fn(Point) -> Point]](f: F, p: Point) -> Point {
+    f(p)
+}
+
+// Aggregates in and out of a closure travel unboxed when it is called directly.
+fn aggregates(k: Int) -> String {
+    let shift = (p: Point) => Point { x: p.x + k, y: p.y - k }
+    let widen = (a: FixedArray[Int, 8]) => {
+        let mut out = a
+        out[7] = a[0] + k
+        out
+    }
+    let moved = shift(Point { x: 1, y: 2 })
+    let wide = widen(FixedArray.filled[Int, 8](4))
+    let viaFn = applyPoint(shift, moved)
+    let viaGen = applyPointGen(shift, viaFn)
+    let erased: fn(FixedArray[Int, 8]) -> FixedArray[Int, 8] = widen
+    let again = erased(wide)
+    "${moved.x} ${moved.y} ${wide[7]} ${viaFn.x} ${viaGen.y} ${again[7]} ${again[0]}"
+}
+
+noalloc fn quiet(n: Int) -> Int {
+    let k = n + 1
+    let f = (x: Int) => x == k
+    let g = f
+    if g(n + 1) { 1 } else { 0 }
+}
+
+fn main() -> Unit! {
+    let p = Point { x: 3, y: 4 }
+    let s = Rect(2, 5)
+    let o: Int? = Some(7)
+    let c = 'k'
+    let ratio = 0.25
+    let byRecord = (d: Int) => p.x * d + p.y
+    let byAdt = (d: Int) => area(s) + d
+    let byOption = (d: Int) => (o || 0) + d
+    let byMixed = (d: Int) => d + (if c == 'k' { 1 } else { 0 }) + ((ratio * 4.0).toInt() || 0)
+    print "record ${byRecord(10)} adt ${byAdt(1)} option ${byOption(1)} mixed ${byMixed(1)}"
+    print "known ${apply(byRecord, 2)} generic ${applyGen(byAdt, 3)}"
+    let stored = Array.of(byRecord, byRecord)
+    print "stored ${(stored.get(1) || panic())(1)}"
+    let h = Holder { f: byOption, tag: 9 }
+    let hf = h.f
+    print "holder ${hf(1)} ${h.tag}"
+    let erased: fn(Int) -> Int = byAdt
+    print "erased ${erased(100)} adder ${makeAdder(5)(1)}"
+    let twice = (d: Int) => byRecord(byRecord(d))
+    let outer = (d: Int) => {
+        let inner = (e: Int) => e + d + p.y
+        inner(1)
+    }
+    print "nested ${twice(1)} inner ${outer(2)}"
+    let copied = byRecord
+    print "copy ${copied(1)} ${byRecord(1)}"
+    let u = ()
+    let unitCap = () => u == ()
+    print "unit ${unitCap()} loop ${loopCalls(4)} lend ${lendsCapture(p)} quiet ${quiet(2)}"
+    print "aggregates ${aggregates(10)}"
+}
+-- stdout --
+record 34 adt 11 option 8 mixed 3
+known 10 generic 13
+stored 7
+holder 8 9
+erased 110 adder 6
+nested 25 inner 7
+copy 7 7
+unit true loop 54 lend true quiet 1
+aggregates 11 -8 14 21 -28 14 4

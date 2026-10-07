@@ -34,7 +34,12 @@ func (e *emitter) cStruct(ent sem.EntityID) string {
 	info := e.r.TypeDecl(ent)
 	var fields strings.Builder
 	for i, f := range info.Fields {
-		fmt.Fprintf(&fields, "    %s f%d;\n", e.cLang(e.r.Entity(f).Type), i)
+		t := e.r.Entity(f).Type
+		if elem, n, ok := e.fixedArrayShape(t); ok {
+			fmt.Fprintf(&fields, "    %s f%d[%d];\n", e.cLang(elem), i, n)
+			continue
+		}
+		fmt.Fprintf(&fields, "    %s f%d;\n", e.cLang(t), i)
 	}
 	attr := ""
 	if info.Layout == "packed" {

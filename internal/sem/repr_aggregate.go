@@ -20,6 +20,9 @@ func (r *Result) DirectAgg(t TypeID) bool {
 	if t == 0 {
 		return false
 	}
+	if r.Types.Kind(t) == KClosure {
+		return r.directClosure(t)
+	}
 	p := &r.Types.props[t]
 	switch p.agg {
 	case 1:
@@ -29,17 +32,24 @@ func (r *Result) DirectAgg(t TypeID) bool {
 	}
 	// A field cycle answers "not an aggregate"; by-value recursion is E221.
 	p.agg = -1
-	if r.computeDirectAgg(t) {
+	res := r.computeDirectAgg(t)
+	switch {
+	case r.containsClosure(t):
+		// A closure's captures can still change, so neither answer is kept.
+		r.Types.props[t].agg = 0
+	case res:
 		r.Types.props[t].agg = 1
-		return true
 	}
-	return false
+	return res
 }
 
 func (r *Result) computeDirectAgg(t TypeID) bool {
 	n := r.Types.Node(t)
 	if n.Kind != KNamed || r.Repr(t) != ReprDirect {
 		return false
+	}
+	if _, _, ok := r.fixedArrayShape(t); ok {
+		return r.directFixed(t)
 	}
 	info := r.typeDecl(n.Ent)
 	if info.Layout != "" {
@@ -92,6 +102,9 @@ func (r *Result) payloadTypes(v EntityID, subst map[EntityID]TypeID) []TypeID {
 
 func (r *Result) AggFields(t TypeID) []TypeID {
 	n := r.Types.Node(t)
+	if n.Kind == KClosure {
+		return r.closureEnv(n.Ent)
+	}
 	info := r.typeDecl(n.Ent)
 	return r.fieldTypes(info, instSubst(info.Params, n.Args))
 }

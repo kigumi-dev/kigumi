@@ -1,0 +1,16 @@
+-- src --
+// `==` on a type whose equals reads its own const parameter.
+type Tag[const N: usize] = {
+    pub v usize
+}
+
+pure fn Tag[N].equals(self, other: &Tag[N]) -> Bool {
+    self.v % N == other.v % N
+}
+
+let a = Tag[3] { v: 4 }
+let b = Tag[3] { v: 7 }
+let c = Tag[3] { v: 5 }
+print "${a == b} ${a == c} ${a != c}"
+-- stdout --
+true false true

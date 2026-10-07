@@ -8,7 +8,7 @@ func PlanDirect(p *Program) error {
 	pins := make([][]bool, len(fs))
 	for i, f := range fs {
 		p.markDirectPrims(f)
-		pins[i] = p.pinned(f)
+		pins[i] = p.unpinEnv(f, p.pinned(f))
 		f.DSig = p.directSig(f, pins[i])
 	}
 	for i, f := range fs {

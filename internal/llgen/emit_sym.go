@@ -109,6 +109,9 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int) string 
 // adapter wraps a function as a closure body taking an environment array
 // and an argument array, for function values and dynamic dispatch.
 func (e *emitter) adapter(f *mir.Func) string {
+	if env, ok := e.envOf(f); ok {
+		return e.envAdapter(f, env)
+	}
 	var sb strings.Builder
 	ncaps := 0
 	if e.r.Entity(f.Ent).Kind == sem.EntClosure {

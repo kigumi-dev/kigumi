@@ -54,7 +54,7 @@ func (r *Result) declareStatic(id EntityID) {
 	info.State = constDone
 }
 
-// staticInitializable rejects non-Copy types, plus FixedArray[T, N] specifically: props.go makes it Copy-if-T-is-Copy even though it wraps a heap Array[T].
+// FixedArray is rejected too: no compile-time constant builds one.
 func (r *Result) staticInitializable(t TypeID) bool {
 	if !r.IsCopy(t) {
 		return false

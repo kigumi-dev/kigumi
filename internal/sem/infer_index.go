@@ -110,7 +110,7 @@ func (c *checker) indexType(n, idx syntax.NodeID, recv, index TypeID) TypeID {
 	c.info.Calls[n] = CallInfo{Kind: CallIndex}
 	// Bounds are not proven in range, so `[]` can trap at run time.
 	c.edge(EffectEdge{Kind: EdgePanic, Node: n})
-	if tt.Kind(recv) == KNamed && recv != TyString && recv != TyBytes && tt.Node(recv).Ent != tt.arrayEnt {
+	if tt.Kind(recv) == KNamed && recv != TyString && recv != TyBytes && tt.Node(recv).Ent != tt.arrayEnt && !c.r.isFixedArray(recv) {
 		return c.indexWitnessType(n, idx, recv, index)
 	}
 	if tt.Kind(index) == KUntyped {
@@ -134,6 +134,12 @@ func (c *checker) indexType(n, idx syntax.NodeID, recv, index TypeID) TypeID {
 		}
 		if isRange {
 			return recv
+		}
+	case c.r.isFixedArray(recv):
+		// A range would need a length the type does not carry.
+		if index == TyUsize {
+			c.placeOf(n)
+			return c.indexValueResult(n, tt.Node(recv).Args[0])
 		}
 	default:
 		c.errAt(n, cNotIndexable, recv)

@@ -32,7 +32,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 		// lives across a suspension is one pointer in a frame slot.
 		if a, ok := e.direct[mir.LocalID(i)]; ok {
 			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, a.Name)
-			fmt.Fprintf(&sb, "  store %s zeroinitializer, ptr %%l%d\n", a.Name, i)
+			zeroAgg(&sb, a, aggPtr(mir.LocalID(i)))
 			continue
 		}
 		fmt.Fprintf(&sb, "  %%l%d = alloca ptr\n", i)

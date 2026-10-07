@@ -32,18 +32,20 @@ func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {
 	return TVoid, false
 }
 
-// classifyScalars finds locals that can live in a native register for
-// their whole lifetime: excluded are parameters, closure Cells, and
-// borrowed receivers; the rest are disqualified unless every use is one
-// classifyDst/classifyArgs/classifyTerm know how to keep unboxed.
 func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 	out := map[mir.LocalID]scalarInfo{}
 	isParam := make([]bool, len(f.Locals))
-	for _, p := range f.Params {
-		isParam[p] = true
+	envParam := make([]bool, len(f.Locals))
+	ncaps := 0
+	if env, ok := e.envOf(f); ok {
+		ncaps = len(env.Fields)
+	}
+	for i, p := range f.Params {
+		isParam[p] = i >= ncaps
+		envParam[p] = i < ncaps
 	}
 	for i, l := range f.Locals {
-		if isParam[i] || l.Cell || l.Borrowed {
+		if isParam[i] || l.Cell || (l.Borrowed && !envParam[i]) {
 			continue
 		}
 		if ty, ok := e.scalarType(l.Type); ok {
@@ -73,8 +75,12 @@ func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 		return
 	}
 	switch in.Op {
-	case mir.OpField, mir.OpFieldMove, mir.OpPayload, mir.OpIsVariant:
+	case mir.OpField, mir.OpFieldMove, mir.OpPayload, mir.OpIsVariant, mir.OpIndex:
 		if !e.isDirect(in.Args[0]) {
+			disqualify(in.Dst)
+		}
+	case mir.OpBuiltin:
+		if !e.inPlaceBuiltin(in) || in.Str == "fixed.fill" {
 			disqualify(in.Dst)
 		}
 	case mir.OpConst, mir.OpBinary, mir.OpAlias, mir.OpShare, mir.OpMove:
@@ -96,7 +102,7 @@ func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 // become no-ops instead of disqualifying; everything else needs a real box.
 func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 	switch in.Op {
-	case mir.OpRecord, mir.OpVariant:
+	case mir.OpRecord, mir.OpVariant, mir.OpClosure:
 		if !e.isDirect(in.Dst) {
 			for _, a := range in.Args {
 				disqualify(a)
@@ -104,6 +110,12 @@ func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 		}
 	case mir.OpSetField:
 		if !e.isDirect(in.Args[0]) {
+			for _, a := range in.Args {
+				disqualify(a)
+			}
+		}
+	case mir.OpBuiltin:
+		if !e.inPlaceBuiltin(in) {
 			for _, a := range in.Args {
 				disqualify(a)
 			}
@@ -118,7 +130,7 @@ func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 	case mir.OpBinary:
 	case mir.OpIndex, mir.OpSetIndex:
 		for i, a := range in.Args {
-			if i != 1 {
+			if i != 1 && !(i == 2 && e.isDirect(in.Args[0])) {
 				disqualify(a)
 			}
 		}
@@ -145,4 +157,14 @@ func classifyTerm(t mir.Term, out map[mir.LocalID]scalarInfo, disqualify func(mi
 			disqualify(t.Args[0])
 		}
 	}
+}
+
+func (e *emitter) inPlaceBuiltin(in mir.Inst) bool {
+	switch in.Str {
+	case "fixed.fill":
+		return true
+	case "iter.len", "iter.at", "iter.at_ref", "iter.at_move":
+		return e.isDirect(in.Args[0])
+	}
+	return false
 }

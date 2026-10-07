@@ -24,7 +24,8 @@ func (c *checker) crossDirectBut(n syntax.NodeID, t, keep TypeID) {
 		c.allocPending = append(c.allocPending, pendingAlloc{edges: c.edges, at: len(*c.edges) - 1, keep: keep})
 		return
 	}
-	if t != keep && c.r.DirectAgg(t) {
+	// A closure's captures settle only after checking, so checkEffects decides its edge.
+	if t != keep && (c.r.DirectAgg(t) || c.r.containsClosure(t)) {
 		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: whyDirectCross})
 	}
 }
@@ -83,9 +84,9 @@ func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) {
 		if c.lentPlace(lhs) {
 			c.crossDirect(lhs, t)
 		}
-	case syntax.MemberExpr:
+	case syntax.MemberExpr, syntax.BracketExpr:
 		base := syntax.NodeID(c.t.Nodes[lhs].Lhs)
-		if c.lentPlace(base) || !c.r.DirectAgg(c.vars.resolve(c.info.Types[base])) {
+		if bt := c.vars.resolve(c.info.Types[base]); c.lentPlace(base) || !c.r.DirectAgg(bt) || c.r.containsClosure(bt) {
 			c.crossDirect(lhs, t)
 			return
 		}

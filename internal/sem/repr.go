@@ -56,6 +56,10 @@ func (r *Result) computeRepr(t TypeID) ReprKind {
 }
 
 func (r *Result) namedRepr(n typeNode) ReprKind {
+	if n.Ent != 0 && n.Ent == r.langItem(0, 0, "FixedArray") {
+		// Opaque in source, but its N elements are its own storage, the way a record's fields are.
+		return ReprDirect
+	}
 	info := r.typeDecl(n.Ent)
 	switch info.Form {
 	case FormDefined:

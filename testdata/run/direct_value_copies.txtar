@@ -1,0 +1,77 @@
+-- src --
+// A write through one copy of a direct value is never seen through another.
+type Point = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Holder = {
+    pub mut a FixedArray[Int, 3]
+    pub mut p Point
+}
+
+fn setAt(mut a: FixedArray[Int, 3], v: Int) -> FixedArray[Int, 3] {
+    a[1] = v
+    let ok = a.set(2, v + 1)
+    a
+}
+
+fn moveBy(mut p: Point, d: Int) -> Point {
+    p.x = p.x + d
+    p
+}
+
+fn arrayOf(h: &Holder) -> FixedArray[Int, 3] {
+    h.a
+}
+
+fn pointOf(h: &Holder) -> Point {
+    h.p
+}
+
+fn main() -> Unit! {
+    let mut a = FixedArray.filled[Int, 3](1)
+    let mut arr: Array[FixedArray[Int, 3]] = Array.empty()
+    arr.push(a)
+    a[2] = 7
+    print "push ${arr[0][2]} ${a[2]}"
+
+    let mut p = Point { x: 1, y: 2 }
+    let mut pts: Array[Point] = Array.empty()
+    pts.push(p)
+    p.x = 9
+    print "push ${pts[0].x} ${p.x}"
+
+    let h = Holder { a: FixedArray.filled(4), p: Point { x: 5, y: 6 } }
+    let r = setAt(h.a, 70)
+    let q = moveBy(h.p, 100)
+    print "param ${h.a[1]} ${h.a[2]} ${r[1]} ${r[2]} ${h.p.x} ${q.x}"
+
+    let fromArr = setAt(arr[0], 30)
+    let fromPts = moveBy(pts[0], 10)
+    print "element ${arr[0][1]} ${fromArr[1]} ${pts[0].x} ${fromPts.x}"
+
+    let mut c = arrayOf(&h)
+    c[0] = 40
+    let mut d = pointOf(&h)
+    d.y = 60
+    print "result ${h.a[0]} ${c[0]} ${h.p.y} ${d.y}"
+
+    let seen = arr[0]
+    let seenPt = pts[0]
+    arr[0][0] = 11
+    pts[0].y = 12
+    print "place ${seen[0]} ${arr[0][0]} ${seenPt.y} ${pts[0].y}"
+
+    let _ = arr.withMut(0, (v: &mut FixedArray[Int, 3]) => { v[1] = 13 })
+    let _ = pts.withMut(0, (v: &mut Point) => { v.x = 14 })
+    print "withMut ${seen[1]} ${arr[0][1]} ${seenPt.x} ${pts[0].x} ${a[1]} ${p.y}"
+}
+-- stdout --
+push 1 7
+push 1 9
+param 4 4 70 71 5 105
+element 1 30 1 11
+result 4 40 6 60
+place 1 11 2 12
+withMut 1 13 1 14 1 2

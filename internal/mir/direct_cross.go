@@ -37,6 +37,13 @@ func (p *Program) argPos(f *Func, in Inst, i int) sem.TypeID {
 		return fn.DSig.Param(i)
 	case OpRecord:
 		return p.fieldPos(f, in.Dst, i)
+	case OpClosure:
+		return p.envPos(f, in.Dst, i)
+	case OpCallValue:
+		if i == 0 {
+			return p.wholePos(f, in.Args[0])
+		}
+		return p.valueArgPos(f, in, i)
 	case OpVariant:
 		return p.payloadPos(f, in.Dst, in.Ent, i)
 	case OpPayload, OpIsVariant:
@@ -52,6 +59,8 @@ func (p *Program) argPos(f *Func, in Inst, i int) sem.TypeID {
 		return p.wholePos(f, in.Dst)
 	case OpBoxDirect:
 		return in.Type
+	case OpIndex, OpSetIndex, OpBuiltin:
+		return p.fixedArgPos(f, in, i)
 	}
 	return 0
 }
@@ -68,10 +77,16 @@ func (p *Program) dstPos(f *Func, in Inst) sem.TypeID {
 		return p.fieldPos(f, in.Args[0], in.Index)
 	case OpPayload:
 		return p.payloadDst(f, in)
-	case OpRecord, OpVariant, OpAlias, OpMove, OpCopy, OpShare:
+	case OpRecord, OpVariant, OpClosure, OpAlias, OpMove, OpCopy, OpShare:
 		return p.wholePos(f, in.Dst)
 	case OpUnboxDirect:
 		return in.Type
+	case OpIndex, OpBuiltin:
+		return p.fixedDstPos(f, in)
+	case OpCallValue:
+		if body := p.valueCallee(f, in); body != nil {
+			return body.DSig.result()
+		}
 	}
 	return 0
 }
@@ -87,6 +102,14 @@ func (p *Program) wholePos(f *Func, l LocalID) sem.TypeID {
 func (p *Program) fieldPos(f *Func, base LocalID, i int) sem.TypeID {
 	t := p.wholePos(f, base)
 	if t == 0 || p.R.DirectAdt(t) {
+		return 0
+	}
+	return p.leafPos(t, p.R.AggFields(t), i)
+}
+
+func (p *Program) envPos(f *Func, clo LocalID, i int) sem.TypeID {
+	t := p.wholePos(f, clo)
+	if t == 0 || !p.R.DirectClosure(t) {
 		return 0
 	}
 	return p.leafPos(t, p.R.AggFields(t), i)

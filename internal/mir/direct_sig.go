@@ -26,7 +26,13 @@ func (s *DirectSig) result() sem.TypeID {
 // directSig reads sem's direct-carrier predicates, then excludes pin: a
 // lent parameter needs an object only the caller can own across the call.
 func (p *Program) directSig(f *Func, pin []bool) *DirectSig {
-	if f.Async || !p.R.DirectCarried(f.Ent) {
+	if f.Async {
+		return nil
+	}
+	if p.EnvABI(f) {
+		return p.envSig(f, pin)
+	}
+	if !p.R.DirectCarried(f.Ent) {
 		return nil
 	}
 	s := &DirectSig{Params: make([]sem.TypeID, len(f.Params))}

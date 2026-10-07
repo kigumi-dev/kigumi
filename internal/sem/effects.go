@@ -60,6 +60,8 @@ func (r *Result) dropDirectBuildAllocs(nodes []EntityID) {
 		edges := r.edgesPtr(id)
 		*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool {
 			switch {
+			case e.Why == whyInlined:
+				return true
 			case e.Kind != EdgeAlloc:
 				return false
 			case e.Why == whyDirectCross:

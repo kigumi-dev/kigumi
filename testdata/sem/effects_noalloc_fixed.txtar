@@ -1,0 +1,48 @@
+-- lib/fixed.kg --
+// An inline array's set is an index store, so it allocates nothing.
+noalloc fn setInPlace(n: Int) -> Int {
+    let mut a = FixedArray.filled[Int, 8](n)
+    let ok = a.set(3, 1)
+    if ok { a[3] } else { 0 }
+}
+
+// A capture written later makes the local a cell, so set stays a call.
+noalloc fn setThroughCell(n: Int) -> Int {
+    let mut a = FixedArray.filled[Int, 8](n)
+    let ok = a.set(3, 1) //~ ERROR `set` is not `noalloc` //~ ERROR handing `FixedArray[Int, 8]` to a slot that holds a reference allocates a box for it
+    let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Unit` allocates
+    bump()
+    a[3]
+}
+
+// Past a page the array is boxed, so building it is a call that allocates.
+noalloc fn boxedFill(n: u8) -> u8 {
+    let a = FixedArray.filled[u8, 8192](n) //~ ERROR `filled` is not `noalloc`
+    a[1]
+}
+-- expect --
+error[E907]: `set` is not `noalloc`
+  --> lib/fixed.kg:11:14
+   |
+11 |     let ok = a.set(3, 1) //~ ERROR `set` is not `noalloc` //~ ERROR handing `FixedArray[Int, 8]` to a slot that holds a reference allocates a box for it
+   |              ^^^^^^^^^^
+
+error[E1610]: handing `FixedArray[Int, 8]` to a slot that holds a reference allocates a box for it
+  --> lib/fixed.kg:11:14
+   |
+11 |     let ok = a.set(3, 1) //~ ERROR `set` is not `noalloc` //~ ERROR handing `FixedArray[Int, 8]` to a slot that holds a reference allocates a box for it
+   |              ^^^^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E961]: constructing `closure fn() -> Unit` allocates
+  --> lib/fixed.kg:12:16
+   |
+12 |     let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Unit` allocates
+   |                ^^^^^^^^^^^^^^^^
+
+error[E907]: `filled` is not `noalloc`
+  --> lib/fixed.kg:19:13
+   |
+19 |     let a = FixedArray.filled[u8, 8192](n) //~ ERROR `filled` is not `noalloc`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

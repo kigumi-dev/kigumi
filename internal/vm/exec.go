@@ -30,16 +30,10 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpGlobalSet:
 		m.storeGlobal(in.Ent, args[0])
 		return
-	case mir.OpAlias, mir.OpUnboxDirect:
-		// A direct aggregate and its box are one object here.
+	case mir.OpAlias:
 		res = args[0]
-	case mir.OpBoxDirect:
-		// No object is built here, but the box native emits is an
-		// allocation, so the two backends refuse at the same crossings.
-		if !in.Fixed && !payloadFree(args[0]) && m.faultTick() {
-			m.abort("out of memory")
-		}
-		res = args[0]
+	case mir.OpBoxDirect, mir.OpUnboxDirect:
+		res = m.cross(fr, in, args[0])
 	case mir.OpShare:
 		if in.Copy {
 			res = m.copy(args[0])
@@ -89,7 +83,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpFieldMove:
 		res = m.fieldMove(args[0], in.Index)
 	case mir.OpSetField:
-		r := deref(args[0])
+		r := deref(m.ownDirect(fr, in.Args[0], args[0]))
 		old := r.fields[in.Index]
 		r.fields[in.Index] = args[1]
 		if !m.borrowField(r, in.Index) {
@@ -102,7 +96,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpIndex:
 		res = m.index(args[0], args[1])
 	case mir.OpSetIndex:
-		m.setIndex(args[0], args[1], args[2])
+		m.setIndex(m.ownDirect(fr, in.Args[0], args[0]), args[1], args[2])
 		return
 	case mir.OpPayload:
 		res = retain(deref(args[0]).fields[in.Index])

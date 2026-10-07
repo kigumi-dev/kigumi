@@ -65,7 +65,7 @@ func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
 	return Place{}, false
 }
 
-// only Array[T] has an index-set (E617).
+// only Array[T] and FixedArray[T, N] have an index-set (E617).
 func (c *checker) indexAssignUnsupported(n syntax.NodeID) bool {
 	switch c.t.Kind(n) {
 	case syntax.Paren, syntax.MemberExpr:
@@ -80,7 +80,7 @@ func (c *checker) indexAssignUnsupported(n syntax.NodeID) bool {
 		if tt.Kind(t) == KRef {
 			t = tt.Node(t).Elem
 		}
-		if !(tt.Kind(t) == KNamed && tt.Node(t).Ent == tt.arrayEnt) {
+		if !(tt.Kind(t) == KNamed && tt.Node(t).Ent == tt.arrayEnt) && !c.r.isFixedArray(t) {
 			return true
 		}
 		return c.indexAssignUnsupported(base)

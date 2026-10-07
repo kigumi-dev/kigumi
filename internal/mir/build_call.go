@@ -10,6 +10,9 @@ func (b *builder) call(e *hir.Expr) LocalID {
 	// A nested call inside an argument flushes only its own write-backs,
 	// leaving this call's pending until after it returns.
 	mark := len(b.argFixups)
+	if v, ok := b.fixedInline(e); ok {
+		return v
+	}
 	switch e.Kind {
 	case hir.Intrinsic:
 		args := b.args(e, e.Args, e.EvalOrder, true, false, 0)

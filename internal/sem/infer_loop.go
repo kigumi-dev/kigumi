@@ -85,7 +85,7 @@ func (c *checker) iterElement(loop, n syntax.NodeID, iter TypeID) TypeID {
 		return TyU8
 	}
 	node := tt.Node(iter)
-	if node.Kind == KNamed && node.Ent == tt.arrayEnt {
+	if node.Kind == KNamed && (node.Ent == tt.arrayEnt || c.r.isFixedArray(iter)) {
 		c.info.Calls[loop] = CallInfo{Kind: CallIter}
 		return node.Args[0]
 	}

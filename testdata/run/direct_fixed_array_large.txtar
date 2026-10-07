@@ -1,0 +1,50 @@
+-- src --
+// Past a page a FixedArray stays boxed, so a long one takes no frame space.
+fn fill(mut a: FixedArray[Int, 65536]) -> FixedArray[Int, 65536] {
+    let mut i: usize = 0
+    for i < 65536 {
+        a[i] = i.toInt() || 0
+        i = i + 1
+    }
+    a
+}
+
+fn depth(a: FixedArray[Int, 65536], n: Int) -> Int {
+    if n == 0 {
+        return a[7]
+    }
+    depth(a, n - 1) + 1
+}
+
+type Big = {
+    pub mut data FixedArray[u8, 8192]
+    pub tag Int
+}
+
+fn main() -> Unit! {
+    let a = FixedArray.filled[Int, 65536](3)
+    let b = fill(a)
+    let mut c = b
+    c[5] = -1
+    let mut sum = 0
+    for x in b {
+        sum = sum + x
+    }
+    print "long ${a[1000]} ${b[1000]} ${c[5]} ${b[5]} ${sum} ${b.len()} ${depth(b, 40)}"
+
+    let mut big = Big { data: FixedArray.filled(1), tag: 2 }
+    big.data[8191] = 9
+    let copy = big
+    big.data[0] = 0
+    print "record ${big.data[0]} ${copy.data[0]} ${copy.data[8191]} ${big.tag}"
+
+    let mut grid: FixedArray[FixedArray[Int, 64], 16] = FixedArray.filled(FixedArray.filled(1))
+    let row = grid[3]
+    grid[3][5] = 7
+    let ok = grid.set(4, FixedArray.filled(2))
+    print "grid ${grid[3][5]} ${row[5]} ${grid[4][63]} ${ok} ${grid.get(16) is None}"
+}
+-- stdout --
+long 3 1000 -1 5 2147450880 65536 47
+record 0 1 9 2
+grid 7 1 2 true true

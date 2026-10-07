@@ -162,8 +162,7 @@ func cBody(t *testing.T, src, header string) string {
 	return src[start : start+end]
 }
 
-// A capture carries state, so its closure keeps the ordinary boxed form.
-func TestCapturingClosureStillAllocates(t *testing.T) {
+func TestErasedClosureBoxesAtTheCrossing(t *testing.T) {
 	ir := emitIR(t, `
 fn apply(f: fn(Int) -> Int) -> Int { f(1) }
 
@@ -172,8 +171,12 @@ fn capturing(n: Int) -> Int { apply((x: Int) => x + n) }
 fn main() -> Unit! {}
 `)
 	body := bodyOf(t, ir, `define ptr @"main.capturing"(`)
-	if !strings.Contains(body, "@rt_closure(") {
-		t.Errorf("a capturing closure must still go through rt_closure:\n%s", body)
+	if strings.Contains(body, "@rt_closure(") || !strings.Contains(body, `@"kg.box.main.capturing.closure1"(`) {
+		t.Errorf("the closure must be built inline and boxed only at the crossing:\n%s", body)
+	}
+	helper := bodyOf(t, ir, `define internal ptr @"kg.box.main.capturing.closure1"(`)
+	if !strings.Contains(helper, `@rt_closure(ptr @"main.capturing.closure1$adapter"`) {
+		t.Errorf("the box helper must build the closure object over the adapter:\n%s", helper)
 	}
 }
 

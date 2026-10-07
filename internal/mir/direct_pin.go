@@ -15,7 +15,7 @@ func (p *Program) pinned(f *Func) []bool {
 				// Both yield an object over the argument's storage, and
 				// OpNewCell's result keeps the content's type while holding a cell.
 				out[in.Args[0]], out[in.Dst] = true, true
-			case OpSetField:
+			case OpSetField, OpSetIndex:
 				if foreign[in.Args[0]] {
 					out[in.Args[0]] = true
 				}
@@ -46,7 +46,7 @@ func spreadPins(f *Func, out []bool) {
 // the view reaches the value it was taken from.
 func storageSource(in Inst) (LocalID, bool) {
 	switch in.Op {
-	case OpCopy, OpAlias, OpMove, OpField, OpFieldMove, OpPayload:
+	case OpCopy, OpAlias, OpMove, OpField, OpFieldMove, OpPayload, OpIndex:
 		return in.Args[0], true
 	case OpShare:
 		return in.Args[0], !in.Copy

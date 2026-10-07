@@ -1,7 +1,7 @@
 package sem
 
 func (r *Result) DirectAdt(t TypeID) bool {
-	return r.DirectAgg(t) && r.typeDecl(r.Types.Node(t).Ent).Form == FormAdt
+	return r.Types.Kind(t) == KNamed && r.DirectAgg(t) && r.typeDecl(r.Types.Node(t).Ent).Form == FormAdt
 }
 
 func (r *Result) AggVariants(t TypeID) []EntityID {

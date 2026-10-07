@@ -1,6 +1,7 @@
 package llgen_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -222,7 +223,7 @@ func TestDirectAggregateBoxWidensBool(t *testing.T) {
 		t.Error("a Bool reaches rt_bool as an i1")
 	}
 	body := bodyOf(t, ir, `define internal ptr @"kg.box.Flag"(`)
-	if !strings.Contains(body, "zext i1 %f0 to i32") || !strings.Contains(body, "@rt_bool(i32 ") {
+	if !regexp.MustCompile(`zext i1 %v\d+ to i32`).MatchString(body) || !strings.Contains(body, "@rt_bool(i32 ") {
 		t.Errorf("the boxing helper does not widen its Bool field:\n%s", body)
 	}
 }

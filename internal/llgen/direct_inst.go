@@ -1,27 +1,24 @@
 package llgen
 
 import (
-	"fmt"
 	"strings"
 
 	"kigumi/internal/mir"
 )
 
-func (e *emitter) loadAgg(sb *strings.Builder, a *aggInfo, l mir.LocalID) string {
-	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = load %s, ptr %%l%d\n", t, a.Name, l)
-	return t
-}
-
-func (e *emitter) storeAgg(sb *strings.Builder, a *aggInfo, l mir.LocalID, v string) {
-	fmt.Fprintf(sb, "  store %s %s, ptr %%l%d\n", a.Name, v, l)
-}
-
 func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
+	if e.tryFixedInst(sb, f, in) {
+		return true
+	}
 	switch in.Op {
-	case mir.OpRecord:
+	case mir.OpRecord, mir.OpClosure:
 		if a, ok := e.direct[in.Dst]; ok {
 			e.buildAgg(sb, a, in)
+			return true
+		}
+	case mir.OpCallValue:
+		if a, ok := e.direct[in.Args[0]]; ok && a.Clo != nil {
+			e.closureCall(sb, in, a)
 			return true
 		}
 	case mir.OpVariant:
@@ -41,21 +38,17 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 		}
 	case mir.OpField, mir.OpFieldMove:
 		if a, ok := e.direct[in.Args[0]]; ok {
-			e.readAggField(sb, f, a, in)
+			e.loadLeaf(sb, f, a.Fields[in.Index], e.fieldPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Dst)
 			return true
 		}
 	case mir.OpSetField:
 		if a, ok := e.direct[in.Args[0]]; ok {
-			fld := a.Fields[in.Index]
-			v := e.aggLeaf(sb, fld, in.Args[1])
-			g := e.newTmp()
-			fmt.Fprintf(sb, "  %s = getelementptr %s, ptr %%l%d, i32 0, i32 %d\n", g, a.Name, in.Args[0], in.Index)
-			fmt.Fprintf(sb, "  store %s %s, ptr %s\n", fld.llType(), v, g)
+			e.storeLeaf(sb, a.Fields[in.Index], e.fieldPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Args[1])
 			return true
 		}
 	case mir.OpAlias, mir.OpMove, mir.OpCopy, mir.OpShare:
 		if a, ok := e.direct[in.Dst]; ok {
-			e.storeAgg(sb, a, in.Dst, e.loadAgg(sb, a, in.Args[0]))
+			copyAgg(sb, a, aggPtr(in.Dst), aggPtr(in.Args[0]))
 			return true
 		}
 	case mir.OpCall:
@@ -78,17 +71,16 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 			return true
 		}
 		if a, ok := e.agg(in.Type); ok {
-			e.store(sb, in.Dst, e.boxAgg(sb, a, e.loadAgg(sb, a, in.Args[0])))
+			e.store(sb, in.Dst, e.boxAgg(sb, a, aggPtr(in.Args[0])))
 			return true
 		}
 	case mir.OpUnboxDirect:
 		if a, ok := e.agg(in.Type); ok {
 			p := e.load(sb, in.Args[0])
-			v := e.unboxAgg(sb, a, p)
+			e.unboxAgg(sb, a, aggPtr(in.Dst), p)
 			if f.Locals[in.Args[0]].Cross {
 				e.irb(sb).Call(rtRelease, vptr(p))
 			}
-			e.storeAgg(sb, a, in.Dst, v)
 			return true
 		}
 	}
@@ -96,46 +88,9 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 }
 
 func (e *emitter) buildAgg(sb *strings.Builder, a *aggInfo, in mir.Inst) {
-	cur := "undef"
 	for i, fld := range a.Fields {
-		v := e.aggLeaf(sb, fld, in.Args[i])
-		t := e.newTmp()
-		fmt.Fprintf(sb, "  %s = insertvalue %s %s, %s %s, %d\n", t, a.Name, cur, fld.llType(), v, i)
-		cur = t
+		e.storeLeaf(sb, fld, e.fieldPtr(sb, a, aggPtr(in.Dst), i), in.Args[i])
 	}
-	e.storeAgg(sb, a, in.Dst, cur)
-}
-
-func (e *emitter) readAggField(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {
-	fld := a.Fields[in.Index]
-	if fld.Unit {
-		e.store(sb, in.Dst, e.irb(sb).Call(rtUnit).Text)
-		return
-	}
-	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = extractvalue %s %s, %d\n", t, a.Name, e.loadAgg(sb, a, in.Args[0]), in.Index)
-	if fld.Agg == nil {
-		e.storeScalarResult(sb, f, in.Dst, Value{fld.Ty, t})
-		return
-	}
-	e.storeAgg(sb, e.direct[in.Dst], in.Dst, t)
-}
-
-// Every leaf position takes over the reference, so a box read here is released.
-func (e *emitter) aggLeaf(sb *strings.Builder, fld aggField, l mir.LocalID) string {
-	if fld.Unit {
-		return "zeroinitializer"
-	}
-	if fld.Agg != nil {
-		return e.loadAgg(sb, e.direct[l], l)
-	}
-	if _, ok := e.scalar[l]; ok {
-		return e.loadNative(sb, l).Text
-	}
-	p := e.load(sb, l)
-	v := e.unboxScalar(sb, fld.Ty, p)
-	e.irb(sb).Call(rtRelease, vptr(p))
-	return v.Text
 }
 
 func (e *emitter) instArgs(sb *strings.Builder, in mir.Inst) ([]string, []bool) {

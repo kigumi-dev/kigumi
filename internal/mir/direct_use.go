@@ -10,7 +10,7 @@ func (p *Program) directUses(f *Func, cand []bool) []bool {
 	nullary := nullaryLocals(f)
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			p.markDirectUse(in, out)
+			p.markDirectUse(f, in, out)
 			p.markPrimResult(f, in, out)
 			markInlineArgs(in, out, cand, nullary)
 		}
@@ -18,15 +18,19 @@ func (p *Program) directUses(f *Func, cand []bool) []bool {
 			out[blk.Term.Args[0]] = true
 		}
 	}
-	spreadDirectUse(f, out, cand)
+	p.spreadDirectUse(f, out, cand)
 	return out
 }
 
 // Building a payload-free variant or matching a carrier keeps nothing unboxed: unboxing to match would box the payload again.
-func (p *Program) markDirectUse(in Inst, out []bool) {
+func (p *Program) markDirectUse(f *Func, in Inst, out []bool) {
+	p.fixedUse(f, in, out)
 	switch in.Op {
-	case OpRecord:
+	case OpRecord, OpClosure:
 		out[in.Dst] = true
+	case OpCallValue:
+		out[in.Args[0]] = true
+		p.markValueCall(f, in, out)
 	case OpVariant:
 		out[in.Dst] = len(in.Args) > 0 || out[in.Dst]
 	case OpField, OpFieldMove, OpSetField:
@@ -47,7 +51,7 @@ func (p *Program) markDirectUse(in Inst, out []bool) {
 	}
 }
 
-func spreadDirectUse(f *Func, out, cand []bool) {
+func (p *Program) spreadDirectUse(f *Func, out, cand []bool) {
 	for changed := true; changed; {
 		changed = false
 		join := func(a, b LocalID) {
@@ -60,6 +64,10 @@ func spreadDirectUse(f *Func, out, cand []bool) {
 				switch in.Op {
 				case OpField, OpFieldMove, OpPayload:
 					if cand[in.Dst] {
+						join(in.Dst, in.Args[0])
+					}
+				case OpIndex, OpBuiltin:
+					if (in.Op == OpIndex || iterBuiltin(in)) && cand[in.Dst] && p.R.IsFixedArray(f.Locals[in.Args[0]].Type) {
 						join(in.Dst, in.Args[0])
 					}
 				case OpMove, OpCopy, OpShare, OpAlias:
@@ -75,7 +83,7 @@ func spreadDirectUse(f *Func, out, cand []bool) {
 func markInlineArgs(in Inst, out, cand, nullary []bool) {
 	args := in.Args
 	switch {
-	case (in.Op == OpRecord || in.Op == OpVariant) && cand[in.Dst]:
+	case (in.Op == OpRecord || in.Op == OpVariant || in.Op == OpClosure) && cand[in.Dst]:
 	case in.Op == OpSetField && cand[in.Args[0]]:
 		args = in.Args[1:]
 	default:

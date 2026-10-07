@@ -138,6 +138,9 @@ func TestRunCorpusOnVM(t *testing.T) {
 			if errs := vm.FoldComptime(prog); len(errs) > 0 {
 				t.Fatalf("comptime: %v", errs[0].Err)
 			}
+			if err := prog.Apply(mir.Transform{Name: "plan-direct", Run: mir.PlanDirect}); err != nil {
+				t.Fatalf("plan-direct: %v", err)
+			}
 			if ok, why := vm.Supports(prog); !ok {
 				skipped++
 				t.Skip(why)

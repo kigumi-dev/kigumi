@@ -11,7 +11,7 @@ import (
 // above it as a pointer to caller storage the callee copies in.
 const aggByValueBytes = 16
 
-func byValueAgg(a *aggInfo) bool { return a.Size <= aggByValueBytes }
+func byValueAgg(a *aggInfo) bool { return a.Size <= aggByValueBytes && !a.holdsArray() }
 
 // A nil entry means that position stays a val.
 type aggSig struct {
@@ -63,7 +63,11 @@ func (e *emitter) sigHeader(f *mir.Func, s *aggSig) string {
 			ret, params = "void", append(params, "ptr %sret")
 		}
 	}
-	for i := range f.Params {
+	from := 0
+	if env, ok := e.envOf(f); ok {
+		params, from = append(params, "ptr %env"), len(env.Fields)
+	}
+	for i := from; i < len(f.Params); i++ {
 		if a := s.param(i); a != nil && byValueAgg(a) {
 			params = append(params, fmt.Sprintf("%s %%p%d", a.Name, i))
 			continue
@@ -74,17 +78,24 @@ func (e *emitter) sigHeader(f *mir.Func, s *aggSig) string {
 }
 
 func (e *emitter) storeParams(sb *strings.Builder, f *mir.Func, s *aggSig) {
-	for i, prm := range f.Params {
+	from := 0
+	if env, ok := e.envOf(f); ok {
+		for i, fld := range env.Fields {
+			e.loadLeaf(sb, f, fld, e.fieldPtr(sb, env, "%env", i), f.Params[i])
+		}
+		from = len(env.Fields)
+	}
+	for i := from; i < len(f.Params); i++ {
+		prm := f.Params[i]
 		a := s.param(i)
 		if a == nil {
 			fmt.Fprintf(sb, "  store ptr %%p%d, ptr %%l%d\n", i, prm)
 			continue
 		}
-		v := fmt.Sprintf("%%p%d", i)
-		if !byValueAgg(a) {
-			v = fmt.Sprintf("%%pv%d", i)
-			fmt.Fprintf(sb, "  %s = load %s, ptr %%p%d\n", v, a.Name, i)
+		if byValueAgg(a) {
+			fmt.Fprintf(sb, "  store %s %%p%d, ptr %s\n", a.Name, i, aggPtr(prm))
+			continue
 		}
-		e.storeAgg(sb, a, prm, v)
+		copyAgg(sb, a, aggPtr(prm), fmt.Sprintf("%%p%d", i))
 	}
 }

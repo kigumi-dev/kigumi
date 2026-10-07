@@ -5,6 +5,7 @@ package sem
 func (c *checker) finish() {
 	c.vars.settle(c)
 	c.settleAllocs()
+	c.settleInline()
 	c.checkConstraints()
 	for _, id := range c.closures {
 		info := c.r.closure(id)

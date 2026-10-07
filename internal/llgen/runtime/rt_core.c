@@ -436,6 +436,9 @@ void push(val a, val x) {
     if (!try_grow(a, 1)) rt_panic("out of memory");
     a->u.arr.items[a->u.arr.len++] = x;
 }
+void rt_array_push(val a, val x) {
+    push(a, x);
+}
 val rt_at(val a, int64_t i) {
     if (!a || i < 0 || i >= a->u.arr.len) return rt_unit();
     return rt_retain(a->u.arr.items[i]);
@@ -660,6 +663,11 @@ val rt_closure(adapter_fn fn, int n, val* caps) {
     v->u.clo.env = rt_array(n, caps);
     for (int i = 0; i < n; i++) rt_retain(caps[i]);
     return v;
+}
+
+val rt_closure_env(val f) {
+    f = deref(f);
+    return f->u.clo.env;
 }
 
 // slot is the storage the emitter reserved for a capture-free function
@@ -1896,6 +1904,11 @@ static val take_or_retain(val* slot) {
     *slot = rt_unit();
     return v;
 }
+static val fixed_fill(val v, int64_t n) {
+    val a = rt_array(0, NULL);
+    for (int64_t i = 0; i < n; i++) push(a, rt_copy(v));
+    return a;
+}
 /* mode: 0 = iter.at (retains in place), 1 = iter.at_ref (borrowed, no
  * retain), 2 = iter.at_move (owned, transfers non-Copy elements). */
 static val iter_at(val it, val i, int mode) {
@@ -1940,6 +1953,7 @@ val rt_builtin(const char* name, int n, val* args) {
     }
     if (!strcmp(name, "panic")) rt_panic(n > 0 ? cstr(args[0]) : "explicit panic");
     if (!strcmp(name, "host")) return opaque("Host", NULL);
+    if (!strcmp(name, "fixed.fill")) return fixed_fill(args[0], deref(args[1])->u.i);
     if (!strcmp(name, "iter.len")) return iter_len(args[0]);
     if (!strcmp(name, "iter.at")) return iter_at(args[0], deref(args[1]), 0);
     if (!strcmp(name, "iter.at_ref")) return iter_at(args[0], deref(args[1]), 1);
@@ -2115,7 +2129,6 @@ enum std_op {
     OP_ROTATE_RIGHT,
     OP_CHAR_FROM_INT,
     OP_FFI_STRING_LOSSY,
-    OP_FIXED_ARRAY_WITH_MUT,
     OP_UCELL_NEW,
     OP_UCELL_GET,
     OP_UCELL_SET,
@@ -2162,15 +2175,14 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "prelude.Bytes.concat")) return OP_BYTES_CONCAT;
     if (!strcmp(k, "prelude.Bytes.tryConcat")) return OP_BYTES_TRY_CONCAT;
     if (!strcmp(k, "array.Array.empty")) return OP_ARRAY_EMPTY;
-    if (!strcmp(k, "array.Array.of")) return OP_ARRAY_OF;
+    if (!strcmp(k, "array.Array.of") || !strcmp(k, "prelude.FixedArray.adopt")) return OP_ARRAY_OF;
     if (!strcmp(k, "array.Array.push")) return OP_ARRAY_PUSH;
     if (!strcmp(k, "array.Array.growBy")) return OP_ARRAY_GROW_BY;
     if (!strcmp(k, "array.Array.len")) return OP_ARRAY_LEN;
     if (!strcmp(k, "array.Array.get")) return OP_ARRAY_GET;
     if (!strcmp(k, "array.Array.with")) return OP_ARRAY_WITH;
-    if (!strcmp(k, "array.Array.withMut")) return OP_ARRAY_WITH_MUT;
+    if (!strcmp(k, "array.Array.withMut") || !strcmp(k, "prelude.FixedArray.withMut")) return OP_ARRAY_WITH_MUT;
     if (!strcmp(k, "array.Array.takeAt")) return OP_ARRAY_TAKE_AT;
-    if (!strcmp(k, "prelude.FixedArray.withMut")) return OP_FIXED_ARRAY_WITH_MUT;
     if (!strcmp(k, "prelude.Option.take")) return OP_OPTION_TAKE;
     if (!strcmp(k, "text.parseFloat")) return OP_TEXT_PARSE_FLOAT;
     if (!strcmp(k, "os.Host.shell")) return OP_HOST_SHELL;
@@ -2477,20 +2489,6 @@ val rt_std_id(int op, int n, val* a) {
         a0->u.arr.items[i] = cell->u.cell.v;
         // free_obj on a cell releases its `.v`, already handed to the
         // array slot above; detach it first so that release is a no-op.
-        cell->u.cell.v = NULL;
-        rt_release(cell);
-        return some(r);
-    }
-    case OP_FIXED_ARRAY_WITH_MUT: {
-        val arr = a0->u.rec.fields[0];
-        int64_t i = a1->u.i;
-        if (i < 0 || i >= arr->u.arr.len) return none();
-        val cell = rt_cell(arr->u.arr.items[i]);
-        val arg[1] = {cell};
-        UNWIND_PUSH(u, unwind_lend_back, arr, cell, i);
-        val r = rt_callv(a2, 1, arg);
-        UNWIND_POP(u);
-        arr->u.arr.items[i] = cell->u.cell.v;
         cell->u.cell.v = NULL;
         rt_release(cell);
         return some(r);

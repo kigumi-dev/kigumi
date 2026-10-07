@@ -131,7 +131,7 @@ noalloc fn cbCaller() -> Unit {
 noalloc fn noop(n: Int) -> Unit {}
 
 noalloc fn cbCapturing(n: Int) -> Unit {
-    cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+    cb(() => noop(n)) //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
 }
 
 noalloc fn cbOk(f: noalloc fn() -> Unit) -> Unit {
@@ -262,16 +262,10 @@ error[E422]: closure is not `noalloc` (calls `grows`)
 127 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
     |        ^^^^^^^^^^^^
 
-error[E961]: constructing `closure fn() -> Unit` allocates
-   --> lib/na.kg:133:8
-    |
-133 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
-    |        ^^^^^^^^^^^^
-
 error[E910]: boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
    --> lib/na.kg:133:8
     |
-133 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+133 |     cb(() => noop(n)) //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
     |        ^^^^^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate

@@ -1,0 +1,20 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn writeAt(i: usize) -> Int {
+    let mut fa = FixedArray.filled[Point, 2](Point { x: 1, y: 2 })
+    fa[i] = Point { x: 5, y: 6 }
+    fa[0].x + fa[1].y
+}
+
+print "in ${writeAt(1)}"
+print "out ${writeAt(7)}"
+-- stdout --
+in 7
+-- stderr --
+panic: index out of range
+-- exit --
+2

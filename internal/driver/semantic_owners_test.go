@@ -103,7 +103,8 @@ func TestSemanticOwnersFresh(t *testing.T) {
 			Status:      status, Reason: reason,
 		})
 	}
-	sort.Slice(entries, func(i, j int) bool { return entries[i].Key < entries[j].Key })
+	// Overloads share a key; a stable sort keeps declaration order.
+	sort.SliceStable(entries, func(i, j int) bool { return entries[i].Key < entries[j].Key })
 	if len(entries) < 40 {
 		t.Fatalf("only %d std entries found; std not loaded as std?", len(entries))
 	}
