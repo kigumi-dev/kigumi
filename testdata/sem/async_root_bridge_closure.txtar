@@ -1,0 +1,283 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn work() -> Int {
+    0
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(work())
+}
+
+fn safeFn() -> Int {
+    9
+}
+
+type Holder = {
+    mut cb fn() -> Int
+}
+
+type Gen[F] = {
+    f F
+}
+
+fn callH(h: Holder) -> Int {
+    h.cb()
+}
+
+fn runGen[F: Fn[fn() -> Int]](g: Gen[F]) -> Int {
+    g.f()
+}
+
+async fn safeLiteralRead() -> Int {
+    let h = Holder { cb: () => 5 }
+    h.cb()
+}
+
+async fn safeLiteralReassign() -> Int {
+    let mut h = Holder { cb: safeFn }
+    h.cb = () => 6
+    h.cb()
+}
+
+async fn safeLiteralGeneric() -> Int {
+    runGen(Gen { f: () => 5 })
+}
+
+async fn safeLiteralArg() -> Int {
+    callH(Holder { cb: () => 5 })
+}
+
+async fn safeLocalClosure() -> Int {
+    let f = () => 7
+    let h = Holder { cb: f }
+    callH(h)
+}
+
+async fn safeMutLocalClosure() -> Int {
+    let mut f = () => 7
+    let h = Holder { cb: f }
+    callH(h)
+}
+
+async fn safeAnnotatedClosure() -> Int {
+    let f: fn() -> Int = () => 7
+    let h = Holder { cb: f }
+    callH(h)
+}
+
+async fn riskyLiteralRead() -> Int {
+    let h = Holder { cb: () => syncRoot() }
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskyLiteralArg() -> Int {
+    callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskyLocalClosure() -> Int {
+    let f = () => syncRoot()
+    let h = Holder { cb: f }
+    callH(h) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskyMutLocalClosure() -> Int {
+    let mut f = () => syncRoot()
+    let h = Holder { cb: f }
+    callH(h) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskyAnnotatedClosure() -> Int {
+    let f: fn() -> Int = () => syncRoot()
+    let h = Holder { cb: f }
+    callH(h) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskyLiteralReassign() -> Int {
+    let mut h = Holder { cb: safeFn }
+    h.cb = () => syncRoot()
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskyLiteralGeneric() -> Int {
+    runGen(Gen { f: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyLiteralRead() -> Int {
+    let h = Holder { cb: () => syncRoot() }
+    h.cb()
+}
+
+fn unrelatedRiskyLiteralArg() -> Int {
+    callH(Holder { cb: () => syncRoot() })
+}
+
+fn supply() -> Int {
+    let ex = task.currentThreadExecutor()
+    let a = ex.runToCompletion(safeLiteralRead())
+    let b = ex.runToCompletion(safeLiteralReassign())
+    let c = ex.runToCompletion(safeLiteralGeneric())
+    let d = ex.runToCompletion(safeLiteralArg())
+    let e = ex.runToCompletion(safeLocalClosure())
+    let f = ex.runToCompletion(safeMutLocalClosure())
+    let g = ex.runToCompletion(safeAnnotatedClosure())
+    let h = ex.runToCompletion(riskyLiteralRead())
+    let i = ex.runToCompletion(riskyLiteralArg())
+    let j = ex.runToCompletion(riskyLocalClosure())
+    let k = ex.runToCompletion(riskyMutLocalClosure())
+    let l = ex.runToCompletion(riskyAnnotatedClosure())
+    let m = ex.runToCompletion(riskyLiteralReassign())
+    let n = ex.runToCompletion(riskyLiteralGeneric())
+    a + b + c + d + e + f + g + h + i + j + k + l + m + n + unrelatedRiskyLiteralRead() + unrelatedRiskyLiteralArg()
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:71:5
+   |
+71 |     h.cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^
+   = help: `await` the future instead
+note: calls `syncRoot`
+  --> app/t/t.kg:70:32
+   |
+70 |     let h = Holder { cb: () => syncRoot() }
+   |                                ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:75:11
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: `await` the future instead
+note: calls `syncRoot`
+  --> app/t/t.kg:75:30
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |                              ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:81:5
+   |
+81 |     callH(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^
+   = help: `await` the future instead
+note: calls `h.cb`
+  --> app/t/t.kg:25:5
+   |
+25 |     h.cb()
+   |     ^^^^^
+note: this closure is bound to `h.cb` here
+  --> app/t/t.kg:75:5
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+  --> app/t/t.kg:75:30
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |                              ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:87:5
+   |
+87 |     callH(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^
+   = help: `await` the future instead
+note: calls `h.cb`
+  --> app/t/t.kg:25:5
+   |
+25 |     h.cb()
+   |     ^^^^^
+note: this closure is bound to `h.cb` here
+  --> app/t/t.kg:75:5
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+  --> app/t/t.kg:75:30
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |                              ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:93:5
+   |
+93 |     callH(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^
+   = help: `await` the future instead
+note: calls `h.cb`
+  --> app/t/t.kg:25:5
+   |
+25 |     h.cb()
+   |     ^^^^^
+note: this closure is bound to `h.cb` here
+  --> app/t/t.kg:75:5
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+  --> app/t/t.kg:75:30
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |                              ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:99:5
+   |
+99 |     h.cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^
+   = help: `await` the future instead
+note: calls `syncRoot`
+  --> app/t/t.kg:98:18
+   |
+98 |     h.cb = () => syncRoot()
+   |                  ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:103:12
+    |
+103 |     runGen(Gen { f: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `syncRoot`
+   --> app/t/t.kg:103:27
+    |
+103 |     runGen(Gen { f: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+    |                           ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+

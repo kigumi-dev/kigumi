@@ -1,0 +1,270 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn work() -> Int {
+    0
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(work())
+}
+
+fn safeFn() -> Int {
+    9
+}
+
+type SafeHolder = {
+    mut cb fn() -> Int
+}
+
+type RiskyHolder = {
+    mut cb fn() -> Int
+}
+
+interface Armable {
+    fn arm(mut self) -> Unit
+}
+
+fn SafeHolder.arm(mut self) -> Unit {
+    self.cb = safeFn
+}
+
+fn RiskyHolder.arm(mut self) -> Unit {
+    self.cb = syncRoot
+}
+
+fn callSafe(h: SafeHolder) -> Int {
+    h.cb()
+}
+
+fn callRisky(h: RiskyHolder) -> Int {
+    h.cb()
+}
+
+fn armVia[S: Armable](s: &mut S) -> Unit {
+    s.arm()
+}
+
+fn armViaTwice[S: Armable](s: &mut S) -> Unit {
+    armVia(s)
+}
+
+// Declared before the generic fns it calls: the verdict must not depend on order.
+async fn riskyWitnessEarly() -> Int {
+    let mut h = RiskyHolder { cb: safeFn }
+    armViaLate(&mut h)
+    callRisky(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn armViaLate[S: Armable](s: &mut S) -> Unit {
+    s.arm()
+}
+
+async fn safeWitnessCall() -> Int {
+    let mut h = SafeHolder { cb: safeFn }
+    armVia(&mut h)
+    callSafe(h)
+}
+
+async fn riskyWitnessCall() -> Int {
+    let mut h = RiskyHolder { cb: safeFn }
+    armVia(&mut h)
+    callRisky(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyWitnessCall() -> Int {
+    let mut h = RiskyHolder { cb: safeFn }
+    armVia(&mut h)
+    callRisky(h)
+}
+
+async fn safeWitnessTwoHop() -> Int {
+    let mut h = SafeHolder { cb: safeFn }
+    armViaTwice(&mut h)
+    callSafe(h)
+}
+
+async fn riskyWitnessTwoHop() -> Int {
+    let mut h = RiskyHolder { cb: safeFn }
+    armViaTwice(&mut h)
+    callRisky(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyWitnessTwoHop() -> Int {
+    let mut h = RiskyHolder { cb: safeFn }
+    armViaTwice(&mut h)
+    callRisky(h)
+}
+
+fn setRef(h: &mut SafeHolder, f: escaping fn() -> Int) -> Unit {
+    h.cb = f
+}
+
+fn forwardSet(h: &mut SafeHolder, f: escaping fn() -> Int) -> Unit {
+    setRef(h, f)
+}
+
+async fn safeForwardedFnArg() -> Int {
+    let mut h = SafeHolder { cb: safeFn }
+    forwardSet(&mut h, safeFn)
+    callSafe(h)
+}
+
+async fn riskyForwardedFnArg() -> Int {
+    let mut h = SafeHolder { cb: safeFn }
+    forwardSet(&mut h, syncRoot)
+    callSafe(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyForwardedFnArg() -> Int {
+    let mut h = SafeHolder { cb: safeFn }
+    forwardSet(&mut h, syncRoot)
+    callSafe(h)
+}
+
+fn pickCb(risky: Bool) -> fn() -> Int {
+    if risky { syncRoot } else { safeFn }
+}
+
+async fn safeDirectFieldRead() -> Int {
+    let mut h = SafeHolder { cb: safeFn }
+    h.cb = safeFn
+    h.cb()
+}
+
+async fn riskyDirectFieldRead() -> Int {
+    let mut h = SafeHolder { cb: safeFn }
+    h.cb = pickCb(true) //~ ERROR cannot run inside an `async fn`
+    h.cb()
+}
+
+fn unrelatedRiskyDirectFieldRead() -> Int {
+    let mut h = SafeHolder { cb: safeFn }
+    h.cb = pickCb(true)
+    h.cb()
+}
+
+fn supply() -> Int {
+    let e1 = task.currentThreadExecutor()
+    let a = e1.runToCompletion(riskyWitnessEarly())
+    let e2 = task.currentThreadExecutor()
+    let b = e2.runToCompletion(safeWitnessCall())
+    let e3 = task.currentThreadExecutor()
+    let c = e3.runToCompletion(riskyWitnessCall())
+    let e4 = task.currentThreadExecutor()
+    let d = e4.runToCompletion(safeWitnessTwoHop())
+    let e5 = task.currentThreadExecutor()
+    let e = e5.runToCompletion(riskyWitnessTwoHop())
+    let e6 = task.currentThreadExecutor()
+    let f = e6.runToCompletion(safeForwardedFnArg())
+    let e7 = task.currentThreadExecutor()
+    let g = e7.runToCompletion(riskyForwardedFnArg())
+    let e8 = task.currentThreadExecutor()
+    let h = e8.runToCompletion(safeDirectFieldRead())
+    let e9 = task.currentThreadExecutor()
+    let i = e9.runToCompletion(riskyDirectFieldRead())
+    a + b + c + d + e + f + g + h + i + unrelatedRiskyWitnessCall() + unrelatedRiskyWitnessTwoHop() +
+        unrelatedRiskyForwardedFnArg() + unrelatedRiskyDirectFieldRead()
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:56:5
+   |
+56 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^
+   = help: `await` the future instead
+note: calls `h.cb`
+  --> app/t/t.kg:41:5
+   |
+41 |     h.cb()
+   |     ^^^^^
+note: `syncRoot` is bound to `h.cb` here
+  --> app/t/t.kg:56:5
+   |
+56 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:72:5
+   |
+72 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^
+   = help: `await` the future instead
+note: calls `h.cb`
+  --> app/t/t.kg:41:5
+   |
+41 |     h.cb()
+   |     ^^^^^
+note: `syncRoot` is bound to `h.cb` here
+  --> app/t/t.kg:56:5
+   |
+56 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:90:5
+   |
+90 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^
+   = help: `await` the future instead
+note: calls `h.cb`
+  --> app/t/t.kg:41:5
+   |
+41 |     h.cb()
+   |     ^^^^^
+note: `syncRoot` is bound to `h.cb` here
+  --> app/t/t.kg:56:5
+   |
+56 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:116:5
+    |
+116 |     callSafe(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:37:5
+    |
+ 37 |     h.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:116:5
+    |
+116 |     callSafe(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:137:12
+    |
+137 |     h.cb = pickCb(true) //~ ERROR cannot run inside an `async fn`
+    |            ^^^^^^^^^^^
+    = help: `await` the future instead
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:137:12
+    |
+137 |     h.cb = pickCb(true) //~ ERROR cannot run inside an `async fn`
+    |            ^^^^^^^^^^^
+

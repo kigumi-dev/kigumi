@@ -1,0 +1,41 @@
+-- src --
+import task from std/task
+
+type Holder = {
+    pub mut cb fn() -> Int
+}
+
+async fn leaf(n: Int) -> Int {
+    n
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(leaf(7))
+}
+
+fn safeRoot() -> Int {
+    9
+}
+
+fn callH(h: Holder) -> Int {
+    h.cb()
+}
+
+fn makeHolder() -> Holder {
+    Holder { cb: syncRoot }
+}
+
+async fn outer() -> Int {
+    callH(makeHolder())
+}
+
+print "start"
+let ex = task.currentThreadExecutor()
+print "got ${ex.runToCompletion(outer())}"
+-- stdout --
+start
+-- stderr --
+panic: `Executor.runToCompletion` cannot run inside a task; `await` the future instead
+-- exit --
+2

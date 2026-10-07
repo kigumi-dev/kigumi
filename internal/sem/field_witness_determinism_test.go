@@ -12,7 +12,12 @@ import (
 // TestFieldWitnessDeterministic reruns the field-witness fixture and expects
 // byte-identical diagnostics each time, catching unstable map iteration.
 func TestFieldWitnessDeterministic(t *testing.T) {
-	path := "../../testdata/sem/async_root_bridge.txtar"
+	for _, name := range []string{"async_root_bridge", "async_root_bridge_witness", "async_root_bridge_closure", "async_root_bridge_summary", "async_root_bridge_late", "async_root_bridge_order"} {
+		t.Run(name, func(t *testing.T) { checkDeterministic(t, "../../testdata/sem/"+name+".txtar") })
+	}
+}
+
+func checkDeterministic(t *testing.T, path string) {
 	first := ""
 	for i := range 5 {
 		fx := parseFixture(t, path)

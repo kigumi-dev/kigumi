@@ -66,9 +66,9 @@ func (c *checker) applyFieldWrite(lhs, rhs syntax.NodeID) {
 			}
 		}
 	case 1:
-		c.recordFieldWrite(p.Root, p.Fields[0], rhs)
+		c.recordFieldWrite(c.r.canonEnt(p.Root), p.Fields[0], rhs)
 	default:
-		c.poisonFieldKey(fieldFnKey{Ent: p.Root, Field: p.Fields[0]})
+		c.poisonFieldKey(fieldFnKey{Ent: c.r.canonEnt(p.Root), Field: p.Fields[0]})
 	}
 }
 
@@ -89,65 +89,96 @@ func (c *checker) knownCallTargets(callee syntax.NodeID) []EntityID {
 			return c.r.knownFn[ent]
 		}
 	case syntax.MemberExpr:
-		field := c.info.Uses[callee]
-		if field == 0 || c.r.Entities[field].Kind != EntField {
-			return nil
+		if key, ok := c.knownFieldCallKey(callee); ok {
+			return c.r.knownFieldFn[key]
 		}
-		base := syntax.NodeID(c.t.Nodes[callee].Lhs)
-		if c.t.Kind(base) != syntax.Ident {
-			return nil
-		}
-		baseEnt := c.info.Uses[base]
-		if baseEnt == 0 || (c.r.Entities[baseEnt].Kind != EntLocal && c.r.Entities[baseEnt].Kind != EntParam) {
-			return nil
-		}
-		return c.r.knownFieldFn[fieldFnKey{Ent: baseEnt, Field: field}]
 	}
 	return nil
+}
+
+func (c *checker) knownFieldCallKey(callee syntax.NodeID) (fieldFnKey, bool) {
+	field := c.info.Uses[callee]
+	if field == 0 || c.r.Entities[field].Kind != EntField {
+		return fieldFnKey{}, false
+	}
+	base := syntax.NodeID(c.t.Nodes[callee].Lhs)
+	switch c.t.Kind(base) {
+	case syntax.Ident:
+		baseEnt := c.info.Uses[base]
+		if baseEnt == 0 || (c.r.Entities[baseEnt].Kind != EntLocal && c.r.Entities[baseEnt].Kind != EntParam) {
+			return fieldFnKey{}, false
+		}
+		return fieldFnKey{Ent: c.r.canonEnt(baseEnt), Field: field}, true
+	case syntax.MemberExpr:
+		if baseEnt := c.fieldChainEnt(base); baseEnt != 0 {
+			return fieldFnKey{Ent: baseEnt, Field: field}, true
+		}
+	}
+	return fieldFnKey{}, false
 }
 
 // knownFieldCallEdges binds each call-site argument's known fn to the field
 // fn reads; n is EdgeFieldBind's Node, so forwardSubst can narrow per call site.
 func (c *checker) knownFieldCallEdges(n syntax.NodeID, fn EntityID, args []syntax.NodeID) {
 	info := c.r.Fn(fn)
+	if c.fn != 0 {
+		c.stageLateBindSite(n, fn, args, len(info.CalledFieldParams))
+	}
 	for _, key := range info.CalledFieldParams {
 		i := slices.Index(info.Params, key.Param)
 		if i < 0 || i >= len(args) || c.t.Kind(args[i]) == syntax.Spread {
 			continue
 		}
-		dst := c.r.fieldParamEnt(fieldFnKey{Ent: key.Param, Field: key.Field})
-		c.knownFieldArgEdge(n, args[i], key.Field, dst)
+		c.knownFieldArgEdge(n, args[i], fieldFnKey{Ent: key.Param, Field: key.Field})
 	}
 }
 
-// knownFieldArgEdge binds dst to arg's field: a concrete fn, or the
-// caller's own field-param entity when arg just forwards its parameter.
-func (c *checker) knownFieldArgEdge(n, arg syntax.NodeID, field, dst EntityID) {
+func (c *checker) knownFieldArgEdge(n, arg syntax.NodeID, fk fieldFnKey) {
+	dst := c.r.fieldParamEnt(fk)
 	if c.t.Kind(arg) == syntax.RecordLit {
 		for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[arg].Rhs)) {
-			if c.t.Kind(entry) == syntax.Spread || c.info.Uses[entry] != field {
+			if c.t.Kind(entry) == syntax.Spread || c.info.Uses[entry] != fk.Field {
 				continue
 			}
-			for _, tgt := range c.knownFnRefs(syntax.NodeID(c.t.Nodes[entry].Lhs)) {
-				c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
-			}
+			c.bindFieldArgValue(n, syntax.NodeID(c.t.Nodes[entry].Lhs), fk, dst)
 			return
+		}
+		c.poisonFieldKey(fk)
+		return
+	}
+	if ent := c.fieldChainEnt(arg); ent != 0 && !c.r.isLiteralFieldEnt(ent) {
+		c.bindIdentFieldArg(n, ent, fk.Field, dst)
+	}
+}
+
+// Anything but a record literal poisons fk; there is nothing left to defer to.
+func (c *checker) bindFieldArgValue(n, init syntax.NodeID, fk fieldFnKey, dst EntityID) {
+	if tgts := c.knownFnRefs(init); len(tgts) > 0 {
+		for _, tgt := range tgts {
+			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
 		}
 		return
 	}
-	if c.t.Kind(arg) != syntax.Ident {
+	if ent := c.identEnt(init); ent != 0 {
+		c.bindIdentFieldArg(n, ent, fk.Field, dst)
 		return
 	}
-	ent := c.info.Uses[arg]
-	if ent == 0 {
-		return
-	}
+	c.poisonFieldKey(fk)
+}
+
+func (c *checker) bindIdentFieldArg(n syntax.NodeID, ent, field, dst EntityID) {
 	switch c.r.Entities[ent].Kind {
 	case EntParam:
 		c.edge(EffectEdge{Kind: EdgeFieldBind, Target: c.r.fieldParamEnt(fieldFnKey{Ent: ent, Field: field}), Param: dst, Node: n})
-	case EntLocal:
-		for _, tgt := range c.r.knownFieldFn[fieldFnKey{Ent: ent, Field: field}] {
+	case EntLocal, EntFieldParam:
+		if c.r.Entities[ent].Kind == EntFieldParam {
+			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: c.r.fieldParamEnt(fieldFnKey{Ent: ent, Field: field}), Param: dst, Node: n})
+		}
+		srcKey := fieldFnKey{Ent: ent, Field: field}
+		for _, tgt := range c.r.knownFieldFn[srcKey] {
 			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
 		}
+		c.stageLateFieldEdge(EdgeFieldBind, srcKey, dst, n)
+		c.r.fieldPoisonForwards = append(c.r.fieldPoisonForwards, fieldPoisonForward{src: srcKey, dst: dst, file: c.f, node: n})
 	}
 }

@@ -10,6 +10,9 @@ func (r *Result) reportRootBridge(id EntityID, rr *rootRun) {
 	if !ok {
 		return
 	}
+	if _, poisoned := rr.poisonedFnField[id]; poisoned && len(hops) == 1 {
+		d = d.WithNote(r.loc(file, r.Files[file].span(node)), hops[0].Text)
+	}
 	for i := 1; i < len(hops); i++ {
 		d = d.WithNote(r.loc(hops[i].File, r.Files[hops[i].File].span(hops[i].Node)), hops[i].Text)
 	}
@@ -27,6 +30,9 @@ func (r *Result) rootRunHops(id EntityID, rr *rootRun) []OpHop {
 			break
 		}
 		visited[cur] = true
+		if _, ok := rr.poisonedFnField[cur]; ok {
+			return append(hops, rr.poisonHopVia(cur, hops))
+		}
 		if r.Entities[cur].Kind == EntParam || r.Entities[cur].Kind == EntFieldParam {
 			e := rr.bind[cur]
 			hops = append(hops, OpHop{e.File, e.Node, r.boundHopText(cur, e.Target)})

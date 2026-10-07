@@ -33,7 +33,20 @@ func (c *checker) recordFieldWrite(ent, field EntityID, init syntax.NodeID) {
 		c.recordFnFieldWrite(key, init)
 	case KIface:
 		c.recordWitnessFieldWrite(key, init)
+	case KNamed:
+		c.recordNestedFieldWrite(key, init)
 	}
+}
+
+// Anything but a record expr poisons the field.
+func (c *checker) recordNestedFieldWrite(key fieldFnKey, init syntax.NodeID) {
+	if c.r.Entities[key.Ent].Kind == EntLocal && c.r.Entities[key.Ent].Flags&EfMut == 0 {
+		if src := c.fieldChainEnt(init); src != 0 {
+			c.r.fieldWitnessOf[key] = src
+			return
+		}
+	}
+	c.poisonFieldKey(key)
 }
 
 // recordFnFieldWrite joins a fn-typed field write into knownFieldFn directly;
@@ -51,7 +64,20 @@ func (c *checker) recordFnFieldWrite(key fieldFnKey, init syntax.NodeID) {
 		c.pendingFieldEdges = append(c.pendingFieldEdges, pendingFieldEdge{key, EdgeFieldBind, ent, init})
 		return
 	}
+	c.recordFieldPoisonSite(key, init)
 	c.poisonFieldKey(key)
+}
+
+type fieldPoisonSiteInfo struct {
+	File FileID
+	Node syntax.NodeID
+}
+
+func (c *checker) recordFieldPoisonSite(key fieldFnKey, init syntax.NodeID) {
+	if c.r.fieldPoisonSite == nil {
+		c.r.fieldPoisonSite = map[fieldFnKey]fieldPoisonSiteInfo{}
+	}
+	c.r.fieldPoisonSite[key] = fieldPoisonSiteInfo{File: c.f, Node: init}
 }
 
 // recordWitnessFieldWrite joins an interface-typed write into the field's
@@ -144,7 +170,9 @@ func (c *checker) flushFieldWrites() {
 		if c.r.fieldWitnessPoisoned[p.key] {
 			continue
 		}
-		c.edge(EffectEdge{Kind: p.kind, Target: p.target, Param: c.r.fieldParamEnt(p.key), Node: p.node})
+		param := c.r.fieldParamEnt(p.key)
+		c.edge(EffectEdge{Kind: p.kind, Target: p.target, Param: param, Node: p.node})
+		c.r.noteFieldBindOwner(param, c.fn)
 	}
 	c.pendingFieldEdges = nil
 }

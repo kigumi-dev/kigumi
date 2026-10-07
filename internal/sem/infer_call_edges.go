@@ -40,6 +40,7 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 			c.edge(EffectEdge{Kind: EdgeCallback, Target: tgt, Param: param, Node: a, Offloaded: offloaded})
 			c.fnBoundArgEdge(n, tgt, param)
 		default:
+			c.stageFnFieldHandoff(n, a, param)
 			if shape := c.r.fnShapeOf(at); shape != 0 {
 				c.callbackEdge(n, a, Effects(tt.Node(shape).Flags), param, offloaded)
 			}
@@ -62,7 +63,11 @@ func (c *checker) ifaceArgEdge(n, a syntax.NodeID, info *FnInfo, i int) {
 	if info.Body == 0 || i >= len(info.Params) {
 		return
 	}
-	c.edge(EffectEdge{Kind: EdgeIfaceArg, Target: c.info.Uses[a], Param: info.Params[i], Node: n})
+	src := c.info.Uses[a]
+	if src == 0 {
+		src = c.fieldChainEnt(a)
+	}
+	c.edge(EffectEdge{Kind: EdgeIfaceArg, Target: src, Param: info.Params[i], Node: n})
 }
 
 // When the value is a parameter of the enclosing function, that function

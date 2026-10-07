@@ -6,6 +6,16 @@ import "slices"
 // EdgeIfaceArg edges, the union-set counterpart of rootRunBind's hop map.
 func (r *Result) inferIfaceParamWitness(nodes []EntityID, rr *rootRun) bool {
 	changed := false
+	if rr.ifaceBound == nil {
+		rr.ifaceBound = map[EntityID]bool{}
+		for _, id := range nodes {
+			for _, e := range r.edgesOf(id) {
+				if e.Kind == EdgeIfaceArg && e.Param != 0 {
+					rr.ifaceBound[e.Param] = true
+				}
+			}
+		}
+	}
 	for _, id := range nodes {
 		for _, e := range r.edgesOf(id) {
 			if e.Kind != EdgeIfaceArg || e.Param == 0 {
@@ -13,6 +23,10 @@ func (r *Result) inferIfaceParamWitness(nodes []EntityID, rr *rootRun) bool {
 			}
 			w, ok := r.witnessOf(e.Target, rr)
 			if !ok {
+				if r.witnessUnknown(e.Target, rr) && !rr.openParam[e.Param] {
+					rr.openParam[e.Param] = true
+					changed = true
+				}
 				continue
 			}
 			if r.unionWitness(rr, e.Param, w) {
@@ -21,6 +35,25 @@ func (r *Result) inferIfaceParamWitness(nodes []EntityID, rr *rootRun) bool {
 		}
 	}
 	return changed
+}
+
+// witnessUnknown can never name witnesses, unlike a source the fixpoint hasn't reached; binding it opens the parameter to its whole pool.
+func (r *Result) witnessUnknown(ent EntityID, rr *rootRun) bool {
+	if ent == 0 {
+		return true
+	}
+	switch r.Entities[ent].Kind {
+	case EntLocal:
+		_, known := r.localWitness[ent]
+		return !known
+	case EntParam, EntFieldParam:
+		if rr.openParam[ent] {
+			return true
+		}
+		_, known := r.localWitness[ent]
+		return !known && !rr.ifaceBound[ent]
+	}
+	return true
 }
 
 func (r *Result) unionWitness(rr *rootRun, param EntityID, add []EntityID) bool {
@@ -45,9 +78,15 @@ func (r *Result) witnessOf(ent EntityID, rr *rootRun) ([]EntityID, bool) {
 		w, ok := r.localWitness[ent]
 		return w, ok
 	case EntParam:
+		if rr.openParam[ent] {
+			return nil, false
+		}
 		w, ok := rr.paramWitness[ent]
 		return w, ok
 	case EntFieldParam:
+		if rr.openParam[ent] {
+			return nil, false
+		}
 		lw, lok := r.localWitness[ent]
 		pw, pok := rr.paramWitness[ent]
 		if !lok && !pok {

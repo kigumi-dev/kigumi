@@ -52,6 +52,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	c.fieldCallbackEdges(fn, effArgs)
 	c.knownFieldCallEdges(n, fn, effArgs)
 	c.ifaceFieldArgEdges(n, fn, effArgs)
+	c.recordBorrowFieldCallSites(n, fn, effArgs)
 	if info.Recv == RecvMut && recvBase != 0 {
 		c.recordMethodFieldCallSite(n, fn, recvBase, effArgs)
 	}

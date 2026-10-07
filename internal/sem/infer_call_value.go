@@ -40,6 +40,11 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		for _, tgt := range c.knownCallTargets(callee) {
 			c.edge(EffectEdge{Kind: EdgeKnownCall, Target: tgt, Node: n})
 		}
+		if callee != 0 {
+			if key, ok := c.fnFieldSrcKey(callee); ok {
+				c.stageLateFieldEdge(EdgeKnownCall, key, 0, n)
+			}
+		}
 	}
 	if node.Flags&uint16(EffUnsafe) != 0 && c.unsafe == 0 {
 		c.errAt(n, cUnsafeRequired, "calling an `unsafe fn` value")
@@ -53,5 +58,10 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		effArgs = plan.placed()
 	}
 	c.info.Calls[n] = CallInfo{Kind: CallFnValue, Variadic: c.variadicForm(effArgs, ft), Plan: plan}
+	for _, tgt := range c.knownCallTargets(callee) {
+		if c.r.Entities[tgt].Kind == EntFn {
+			c.recordBorrowFieldCallSites(n, tgt, effArgs)
+		}
+	}
 	return ret
 }

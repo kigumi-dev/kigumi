@@ -41,6 +41,12 @@ type rootRun struct {
 	witness map[EntityID]EntityID
 	// paramWitness narrows a requirement's witness pool to the receiver reaching this parameter.
 	paramWitness map[EntityID][]EntityID
+	// openParam is bound at some call site to a value with no known witnesses, so pooled witnesses can't narrow it.
+	openParam  map[EntityID]bool
+	ifaceBound map[EntityID]bool
+	// poisonedFnField stands in for a bound argument since no caller ever supplied one.
+	poisonedFnField map[EntityID]OpHop
+	poisonAt        map[bindSite]OpHop
 }
 
 // A dynamic target proves nothing, so an unresolved call is not a bridge.
@@ -59,7 +65,9 @@ func (rr *rootRun) hops(target EntityID) int {
 // inferRootRun is checkInterruptHandlers' fixpoint shape over call edges.
 func (r *Result) inferRootRun(nodes []EntityID, runner EntityID) *rootRun {
 	rr := &rootRun{runner: runner, dist: map[EntityID]int{}, bind: map[EntityID]EffectEdge{}, invoked: map[EntityID]bool{},
-		impls: r.ifaceReqImpls(), witness: map[EntityID]EntityID{}, paramWitness: map[EntityID][]EntityID{}}
+		impls: r.ifaceReqImpls(), witness: map[EntityID]EntityID{}, paramWitness: map[EntityID][]EntityID{}, openParam: map[EntityID]bool{},
+		poisonedFnField: map[EntityID]OpHop{}, poisonAt: map[bindSite]OpHop{}}
+	r.rootRunPoisonedFnFields(rr)
 	for changed := true; changed; {
 		changed = false
 		if r.rootRunResolveInvoked(nodes, rr) {

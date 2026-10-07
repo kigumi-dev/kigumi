@@ -6,19 +6,19 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// methodFieldCallSite is a call to a known `mut self` method, staged during
-// body-checking since the callee's own field-write summary may not exist yet.
 type methodFieldCallSite struct {
-	file   FileID
-	node   syntax.NodeID
-	caller EntityID
-	recv   EntityID
-	method EntityID
-	args   []syntax.NodeID
+	file     FileID
+	node     syntax.NodeID
+	caller   EntityID
+	recv     EntityID
+	method   EntityID
+	req      EntityID
+	callee   EntityID
+	srcParam EntityID
+	owner    EntityID
+	args     []syntax.NodeID
 }
 
-// recordMethodFieldCallSite stages recv.method(args) for closeMethodFieldWrites,
-// resolving a nested-field receiver (`o.inner.setC(...)`) the same way a read does.
 func (c *checker) recordMethodFieldCallSite(n syntax.NodeID, m EntityID, base syntax.NodeID, args []syntax.NodeID) {
 	recv := c.r.chainFieldEnt(c.f, base)
 	if recv == 0 {
@@ -50,48 +50,89 @@ func (r *Result) closeMethodFieldWrites() {
 }
 
 func (r *Result) applyMethodFieldWrites(site methodFieldCallSite) bool {
-	info := r.Fn(site.method)
-	if info.Owner == 0 || info.SelfParam == 0 {
-		return false
-	}
-	changed := false
-	for _, field := range r.typeDecl(info.Owner).Fields {
-		if r.applyFieldWriteSummary(site, field, info) {
-			changed = true
+	switch {
+	case site.req != 0:
+		changed := false
+		for _, w := range r.ifaceReqImpls()[site.req] {
+			info := r.Fn(w)
+			if info.Owner == 0 || info.SelfParam == 0 {
+				continue
+			}
+			for _, field := range r.typeDecl(info.Owner).Fields {
+				if r.applyFieldWriteSummary(site, field, w, info.SelfParam) {
+					changed = true
+				}
+			}
 		}
+		return changed
+	case site.method != 0:
+		info := r.Fn(site.method)
+		if info.Owner == 0 || info.SelfParam == 0 {
+			return false
+		}
+		changed := false
+		for _, field := range r.typeDecl(info.Owner).Fields {
+			if r.applyFieldWriteSummary(site, field, site.method, info.SelfParam) {
+				changed = true
+			}
+		}
+		return changed
+	case site.callee != 0:
+		if site.srcParam == 0 {
+			return false
+		}
+		fields := r.writtenFields(site.srcParam)
+		if site.owner != 0 {
+			fields = r.typeDecl(site.owner).Fields
+		}
+		changed := false
+		for _, field := range fields {
+			if r.applyFieldWriteSummary(site, field, site.callee, site.srcParam) {
+				changed = true
+			}
+		}
+		return changed
 	}
-	return changed
+	return false
 }
 
-// applyFieldWriteSummary replays method's self.field write onto site.recv.field,
-// re-resolving a parameter-sourced write against this call site's actual argument.
-func (r *Result) applyFieldWriteSummary(site methodFieldCallSite, field EntityID, info *FnInfo) bool {
-	srcKey := fieldFnKey{Ent: info.SelfParam, Field: field}
+func (r *Result) applyFieldWriteSummary(site methodFieldCallSite, field, calleeFn, srcParam EntityID) bool {
+	srcKey := fieldFnKey{Ent: srcParam, Field: field}
 	dstKey := fieldFnKey{Ent: site.recv, Field: field}
 	if r.fieldWitnessPoisoned[dstKey] {
 		return false
 	}
 	if r.fieldWitnessPoisoned[srcKey] {
-		return r.poisonFieldKeyGlobal(dstKey)
+		if at, ok := r.fieldPoisonSite[srcKey]; ok {
+			return r.poisonFieldKeyAt(dstKey, at.File, at.Node)
+		}
+		return r.poisonFieldKeyAt(dstKey, site.file, site.node)
 	}
 	changed := false
 	if fns := r.knownFieldFn[srcKey]; len(fns) > 0 && r.joinKnownFieldFn(dstKey, fns) {
 		changed = true
 	}
-	srcParam, tracked := r.fieldParamEnts[srcKey]
+	srcParamEnt, tracked := r.fieldParamEnts[srcKey]
 	if !tracked {
 		return changed
 	}
-	if w := r.localWitness[srcParam]; len(w) > 0 && r.joinLocalWitness(r.fieldParamEnt(dstKey), w) {
+	if w := r.localWitness[srcParamEnt]; len(w) > 0 && r.joinLocalWitness(r.fieldParamEnt(dstKey), w) {
 		changed = true
 	}
+	info := r.Fn(calleeFn)
 	t := r.tree(site.file)
 	for _, e := range info.Edges {
-		if e.Param != srcParam || (e.Kind != EdgeFieldBind && e.Kind != EdgeIfaceArg) {
+		if e.Param != srcParamEnt || (e.Kind != EdgeFieldBind && e.Kind != EdgeIfaceArg) {
 			continue
 		}
 		i := slices.Index(info.Params, e.Target)
-		if i < 0 || i >= len(site.args) || t.Kind(site.args[i]) == syntax.Spread {
+		if i < 0 {
+			if r.applyUntracedSummaryWrite(site, dstKey, e) {
+				changed = true
+			}
+			continue
+		}
+		if i >= len(site.args) || t.Kind(site.args[i]) == syntax.Spread {
 			continue
 		}
 		if r.applyFieldWriteExpr(site.file, dstKey, site.args[i], site.caller, site.node) {
@@ -101,91 +142,12 @@ func (r *Result) applyFieldWriteSummary(site methodFieldCallSite, field EntityID
 	return changed
 }
 
-// applyFieldWriteExpr is recordFieldWrite's post-pass, cross-function form:
-// expr is the actual argument standing in for the method's own parameter.
-func (r *Result) applyFieldWriteExpr(file FileID, key fieldFnKey, expr syntax.NodeID, caller EntityID, call syntax.NodeID) bool {
-	if r.fieldWitnessPoisoned[key] {
-		return false
+func (r *Result) applyUntracedSummaryWrite(site methodFieldCallSite, dstKey fieldFnKey, e EffectEdge) bool {
+	switch src := r.Entities[e.Target]; {
+	case e.Kind == EdgeFieldBind && (src.Kind == EntFn || src.Kind == EntClosure):
+		return r.joinKnownFieldFn(dstKey, []EntityID{e.Target})
+	case e.Kind == EdgeIfaceArg && r.isLiteralFieldEnt(e.Target):
+		return r.joinLocalWitness(r.fieldParamEnt(dstKey), r.localWitness[e.Target])
 	}
-	r.fieldParamEnt(key)
-	switch r.Types.Kind(r.Entities[key.Field].Type) {
-	case KFn, KClosure, KParam:
-		return r.applyFnFieldWriteExpr(file, key, expr, caller, call)
-	case KIface:
-		return r.applyWitnessFieldWriteExpr(file, key, expr, caller, call)
-	}
-	return false
-}
-
-func (r *Result) applyFnFieldWriteExpr(file FileID, key fieldFnKey, expr syntax.NodeID, caller EntityID, call syntax.NodeID) bool {
-	if fns := r.chainKnownFnRefs(file, expr); len(fns) > 0 {
-		return r.joinKnownFieldFn(key, fns)
-	}
-	if ent := r.chainIdentEnt(file, expr); ent != 0 && r.Entities[ent].Kind == EntParam {
-		return r.addFieldBindEdge(caller, EdgeFieldBind, ent, key, file, call)
-	}
-	return r.poisonFieldKeyGlobal(key)
-}
-
-func (r *Result) applyWitnessFieldWriteExpr(file FileID, key fieldFnKey, expr syntax.NodeID, caller EntityID, call syntax.NodeID) bool {
-	src := r.chainFieldEnt(file, expr)
-	if src == 0 {
-		return r.poisonFieldKeyGlobal(key)
-	}
-	if r.Entities[src].Kind == EntLocal {
-		if w, ok := r.localWitness[src]; ok {
-			return r.joinLocalWitness(r.fieldParamEnt(key), w)
-		}
-		return r.poisonFieldKeyGlobal(key)
-	}
-	return r.addFieldBindEdge(caller, EdgeIfaceArg, src, key, file, call)
-}
-
-func (r *Result) joinKnownFieldFn(key fieldFnKey, add []EntityID) bool {
-	changed := false
-	for _, f := range add {
-		if !slices.Contains(r.knownFieldFn[key], f) {
-			r.knownFieldFn[key] = append(r.knownFieldFn[key], f)
-			changed = true
-		}
-	}
-	return changed
-}
-
-// addFieldBindEdge records key's fieldBindOwners so poisonFieldKeyGlobal can
-// retract a stale edge added before a later call site poisons the same key.
-func (r *Result) addFieldBindEdge(fn EntityID, kind EdgeKind, target EntityID, key fieldFnKey, file FileID, node syntax.NodeID) bool {
-	param := r.fieldParamEnt(key)
-	info := r.Fn(fn)
-	for _, e := range info.Edges {
-		if e.Kind == kind && e.Target == target && e.Param == param {
-			return false
-		}
-	}
-	info.Edges = append(info.Edges, EffectEdge{Kind: kind, Target: target, Param: param, File: file, Node: node})
-	if r.fieldBindOwners == nil {
-		r.fieldBindOwners = map[EntityID][]EntityID{}
-	}
-	if !slices.Contains(r.fieldBindOwners[param], fn) {
-		r.fieldBindOwners[param] = append(r.fieldBindOwners[param], fn)
-	}
-	return true
-}
-
-func (r *Result) poisonFieldKeyGlobal(key fieldFnKey) bool {
-	if r.fieldWitnessPoisoned[key] {
-		return false
-	}
-	delete(r.knownFieldFn, key)
-	delete(r.fieldWitnessOf, key)
-	if ent, ok := r.fieldParamEnts[key]; ok {
-		delete(r.localWitness, ent)
-		for _, fn := range r.fieldBindOwners[ent] {
-			edges := &r.Fn(fn).Edges
-			*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool { return e.Param == ent })
-		}
-		delete(r.fieldBindOwners, ent)
-	}
-	r.fieldWitnessPoisoned[key] = true
-	return true
+	return r.poisonFieldKeyAt(dstKey, site.file, site.node)
 }

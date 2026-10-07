@@ -716,6 +716,114 @@ fn unrelatedRiskyGBoxSetterCall() -> Int {
     callGBoxField(g)
 }
 
+// Chained lets through a record-typed field narrow to the inner record's own witnesses.
+async fn safeFieldTwoHopLet() -> Int {
+    let c: Calc = SafeCalc { n: 90 }
+    let o = FieldOuter { c: c }
+    let w = FieldWrap { inner: o }
+    callFieldTwoHop(w)
+}
+
+async fn riskyFieldTwoHopLet() -> Int {
+    let c: Calc = RiskyCalc { n: 91 }
+    let o = FieldOuter { c: c }
+    let w = FieldWrap { inner: o }
+    callFieldTwoHop(w) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyFieldTwoHopLet() -> Int {
+    let c: Calc = RiskyCalc { n: 92 }
+    let o = FieldOuter { c: c }
+    let w = FieldWrap { inner: o }
+    callFieldTwoHop(w)
+}
+
+// A `&mut T` argument to a plain fn that writes the referent's field.
+fn setHolderFieldViaRef(h: &mut MutHolder, f: escaping fn() -> Int) -> Unit {
+    h.cb = f
+}
+
+async fn safeBorrowFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    setHolderFieldViaRef(&mut h, safeFnBoundValue)
+    callMutField(h)
+}
+
+async fn riskyBorrowFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    setHolderFieldViaRef(&mut h, syncRoot)
+    callMutField(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyBorrowFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    setHolderFieldViaRef(&mut h, syncRoot)
+    callMutField(h)
+}
+
+// A fn type has no witness pool, so an unresolved write counts as reaching the runner.
+fn pickCb(risky: Bool) -> fn() -> Int {
+    if risky { syncRoot } else { safeFnBoundValue }
+}
+
+async fn riskyUnresolvedFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.cb = pickCb(true)
+    callMutField(h) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn safeKnownFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.cb = safeFnBoundValue
+    callMutField(h)
+}
+
+fn unrelatedRiskyUnresolvedFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    h.cb = pickCb(true)
+    callMutField(h)
+}
+
+// An already-`&mut` parameter forwarded as a bare ident traces like a fresh borrow.
+fn forwardSafeHolderFieldViaRef(h: &mut MutHolder) -> Unit {
+    setHolderFieldViaRef(h, safeFnBoundValue)
+}
+
+fn forwardRiskyHolderFieldViaRef(h: &mut MutHolder) -> Unit {
+    setHolderFieldViaRef(h, syncRoot)
+}
+
+async fn safeForwardBorrowFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    forwardSafeHolderFieldViaRef(&mut h)
+    callMutField(h)
+}
+
+async fn riskyForwardBorrowFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    forwardRiskyHolderFieldViaRef(&mut h)
+    callMutField(h) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyForwardBorrowFieldWrite() -> Int {
+    let mut h = MutHolder { cb: safeFnBoundValue }
+    forwardRiskyHolderFieldViaRef(&mut h)
+    callMutField(h)
+}
+
+// An inline record literal as the call argument, with no local in between.
+async fn safeInlineLiteralFieldArg() -> Int {
+    callMutField(MutHolder { cb: safeFnBoundValue })
+}
+
+async fn riskyInlineLiteralFieldArg() -> Int {
+    callMutField(MutHolder { cb: pickCb(true) }) //~ ERROR cannot run inside an `async fn`
+}
+
+fn unrelatedRiskyInlineLiteralFieldArg() -> Int {
+    callMutField(MutHolder { cb: pickCb(true) })
+}
+
 fn supply() -> Int {
     let ex = task.currentThreadExecutor()
     let a = ex.runToCompletion(paramRoot(syncRoot))
@@ -828,9 +936,30 @@ fn supply() -> Int {
     let bf = ex53.runToCompletion(safeGBoxSetterCall())
     let ex54 = task.currentThreadExecutor()
     let bg = ex54.runToCompletion(riskyGBoxSetterCall())
+    let ex55 = task.currentThreadExecutor()
+    let bh = ex55.runToCompletion(safeFieldTwoHopLet())
+    let ex56 = task.currentThreadExecutor()
+    let bi = ex56.runToCompletion(riskyFieldTwoHopLet())
+    let ex57 = task.currentThreadExecutor()
+    let bj = ex57.runToCompletion(safeBorrowFieldWrite())
+    let ex58 = task.currentThreadExecutor()
+    let bk = ex58.runToCompletion(riskyBorrowFieldWrite())
+    let ex59 = task.currentThreadExecutor()
+    let bl = ex59.runToCompletion(safeKnownFieldWrite())
+    let ex60 = task.currentThreadExecutor()
+    let bm = ex60.runToCompletion(riskyUnresolvedFieldWrite())
+    let ex61 = task.currentThreadExecutor()
+    let bn = ex61.runToCompletion(safeForwardBorrowFieldWrite())
+    let ex62 = task.currentThreadExecutor()
+    let bo = ex62.runToCompletion(riskyForwardBorrowFieldWrite())
+    let ex63 = task.currentThreadExecutor()
+    let bp = ex63.runToCompletion(safeInlineLiteralFieldArg())
+    let ex64 = task.currentThreadExecutor()
+    let bq = ex64.runToCompletion(riskyInlineLiteralFieldArg())
     a + b + c + d + e + g + h + i + j + k + l + m + o + p + q + s + u + v + w + x + y + z +
         aa + ab + ac + ad + ae + af + afb + afc + ag + ah + ai + aj + ak + al + am + an + ao + ap +
         aq + ar + au + av + aw + ax + ay + az + ba + bb + bc + bd + be + bf + bg +
+        bh + bi + bj + bk + bl + bm + bn + bo + bp + bq +
         unrelatedRiskyCalc() + unrelatedRiskyTwoHop() +
         unrelatedRiskyFieldCall() + unrelatedRiskyClosureCall() + useShallowWitness() +
         unrelatedRiskyFieldReassign() + unrelatedRiskyWitnessReassign() +
@@ -842,6 +971,9 @@ fn supply() -> Int {
         unrelatedUnknownSetterCall() +
         unrelatedRiskyLiteralSetterCall() + unrelatedRiskyNestedSetterCall() +
         unrelatedRiskyGBoxConstructCall() + unrelatedRiskyGBoxSetterCall() +
+        unrelatedRiskyFieldTwoHopLet() + unrelatedRiskyBorrowFieldWrite() +
+        unrelatedRiskyUnresolvedFieldWrite() +
+        unrelatedRiskyForwardBorrowFieldWrite() + unrelatedRiskyInlineLiteralFieldArg() +
         ex5.runToCompletion(safeIfaceCall())
 }
 
@@ -916,9 +1048,9 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
     |             ^^
     = help: `await` the future instead
 note: `syncRoot` is bound to `cb` here
-   --> app/t/t.kg:720:42
+   --> app/t/t.kg:828:42
     |
-720 |     let a = ex.runToCompletion(paramRoot(syncRoot))
+828 |     let a = ex.runToCompletion(paramRoot(syncRoot))
     |                                          ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
@@ -933,9 +1065,9 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
     |     ^^^
     = help: `await` the future instead
 note: `syncRoot` is bound to `cb` here
-   --> app/t/t.kg:722:45
+   --> app/t/t.kg:830:45
     |
-722 |     let b = ex2.runToCompletion(paramDirect(syncRoot))
+830 |     let b = ex2.runToCompletion(paramDirect(syncRoot))
     |                                             ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
@@ -960,9 +1092,9 @@ note: `h.cb` is bound to `h.cb` here
  63 |     callField(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:724:33
+   --> app/t/t.kg:832:33
     |
-724 |     let c = ex3.runToCompletion(fieldRoot(Holder { cb: syncRoot }))
+832 |     let c = ex3.runToCompletion(fieldRoot(Holder { cb: syncRoot }))
     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
@@ -1285,16 +1417,11 @@ note: calls `h.cb`
     |
 347 |     h.cb()
     |     ^^^^^
-note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:361:5
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:782:12
     |
-361 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
-    |     ^^^^^^^^^^^^^^
-note: drives a new root task here
-   --> app/t/t.kg:14:5
-    |
- 14 |     ex.runToCompletion(inner())
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+782 |     h.cb = pickCb(true)
+    |            ^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:391:5
@@ -1496,16 +1623,11 @@ note: calls `h.cb`
     |
 347 |     h.cb()
     |     ^^^^^
-note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:361:5
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:782:12
     |
-361 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
-    |     ^^^^^^^^^^^^^^
-note: drives a new root task here
-   --> app/t/t.kg:14:5
-    |
- 14 |     ex.runToCompletion(inner())
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+782 |     h.cb = pickCb(true)
+    |            ^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:566:5
@@ -1535,16 +1657,11 @@ note: calls `h.cb`
     |
 347 |     h.cb()
     |     ^^^^^
-note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:361:5
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:782:12
     |
-361 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
-    |     ^^^^^^^^^^^^^^
-note: drives a new root task here
-   --> app/t/t.kg:14:5
-    |
- 14 |     ex.runToCompletion(inner())
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+782 |     h.cb = pickCb(true)
+    |            ^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:614:5
@@ -1671,10 +1788,105 @@ note: drives a new root task here
  14 |     ex.runToCompletion(inner())
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E1292]: `ping` is exported to C and cannot be `async`: a C caller has no executor to drive the Future
-   --> app/t/t.kg:848:11
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:730:5
     |
-848 |     async fn ping() -> Int { //~ ERROR exported to C and cannot be `async`
+730 |     callFieldTwoHop(w) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `value`
+   --> app/t/t.kg:475:5
+    |
+475 |     w.inner.c.value()
+    |     ^^^^^^^^^^^^^^^^
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+   --> app/t/t.kg:103:1
+    |
+103 | fn RiskyCalc.value(self) -> Int {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:104:5
+    |
+104 |     syncRoot()
+    |     ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:754:5
+    |
+754 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:347:5
+    |
+347 |     h.cb()
+    |     ^^^^^
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:782:12
+    |
+782 |     h.cb = pickCb(true)
+    |            ^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:771:5
+    |
+771 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:347:5
+    |
+347 |     h.cb()
+    |     ^^^^^
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:770:12
+    |
+770 |     h.cb = pickCb(true)
+    |            ^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:804:5
+    |
+804 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:347:5
+    |
+347 |     h.cb()
+    |     ^^^^^
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:782:12
+    |
+782 |     h.cb = pickCb(true)
+    |            ^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:819:5
+    |
+819 |     callMutField(MutHolder { cb: pickCb(true) }) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:347:5
+    |
+347 |     h.cb()
+    |     ^^^^^
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:782:12
+    |
+782 |     h.cb = pickCb(true)
+    |            ^^^^^^^^^^^
+
+error[E1292]: `ping` is exported to C and cannot be `async`: a C caller has no executor to drive the Future
+   --> app/t/t.kg:980:11
+    |
+980 |     async fn ping() -> Int { //~ ERROR exported to C and cannot be `async`
     |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     = help: export a synchronous wrapper that runs it to completion
 

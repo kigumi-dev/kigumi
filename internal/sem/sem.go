@@ -108,7 +108,15 @@ type Result struct {
 	methodFieldCalls []methodFieldCallSite
 	// fieldBindOwners is a field-param entity's EdgeFieldBind/EdgeIfaceArg
 	// owners, so poisonFieldKeyGlobal can retract a now-stale edge.
-	fieldBindOwners map[EntityID][]EntityID
+	fieldBindOwners     map[EntityID][]EntityID
+	fieldPoisonForwards []fieldPoisonForward
+	lateFieldEdges      []lateFieldEdge
+	lateBindSites       []lateBindSite
+	retractedBinds      map[bindSite]bool
+	fnLocalField        map[EntityID]fieldFnKey
+	refAlias            map[EntityID]EntityID
+	// fieldPoisonSite is best-effort: not every unresolved write is tracked.
+	fieldPoisonSite map[fieldFnKey]fieldPoisonSiteInfo
 	// literalFieldEnts caches literalFieldEnt's synthetic entity per literal node.
 	literalFieldEnts        map[literalEntKey]EntityID
 	identPaths              map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID

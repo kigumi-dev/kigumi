@@ -13,25 +13,37 @@ func (r *Result) chainIdentEnt(file FileID, expr syntax.NodeID) EntityID {
 	if ent == 0 || (r.Entities[ent].Kind != EntLocal && r.Entities[ent].Kind != EntParam) {
 		return 0
 	}
-	return ent
+	return r.canonEnt(ent)
 }
 
-// chainKnownFnRefs is knownFnRefs' file-parameterized form.
 func (r *Result) chainKnownFnRefs(file FileID, expr syntax.NodeID) []EntityID {
 	t := r.tree(file)
-	if t.Kind(expr) != syntax.Ident {
+	switch t.Kind(expr) {
+	case syntax.Lambda:
+		if cl := r.Files[file].Defs[expr]; cl != 0 {
+			return []EntityID{cl}
+		}
+		return nil
+	case syntax.Paren:
+		return r.chainKnownFnRefs(file, syntax.NodeID(t.Nodes[expr].Lhs))
+	case syntax.Ident:
+	default:
 		return nil
 	}
 	ent := r.Files[file].Uses[expr]
 	if ent == 0 {
 		return nil
 	}
-	if r.Entities[ent].Kind == EntFn {
-		return []EntityID{ent}
-	}
 	switch r.Entities[ent].Kind {
+	case EntFn:
+		return []EntityID{ent}
 	case EntLocal, EntParam:
-		return r.knownFn[ent]
+		if fns := r.knownFn[ent]; len(fns) > 0 {
+			return fns
+		}
+		if ty := r.Entities[ent].Type; r.Types.Kind(ty) == KClosure {
+			return []EntityID{r.Types.Node(ty).Ent}
+		}
 	}
 	return nil
 }

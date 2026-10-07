@@ -5,6 +5,10 @@ type Holder = {
     pub cb fn() -> Int
 }
 
+type Wrap = {
+    pub inner Holder
+}
+
 async fn leaf(n: Int) -> Int {
     n
 }
@@ -14,23 +18,10 @@ fn syncRoot() -> Int {
     ex.runToCompletion(leaf(7))
 }
 
-fn safeRoot() -> Int {
-    9
-}
-
-// pick's result defeats the static field-value tracker: the field holds
-// whichever fn this call returns, known only at run time.
-fn pick(risky: Bool) -> fn() -> Int {
-    if risky { syncRoot } else { safeRoot }
-}
-
-fn callField(h: Holder) -> Int {
-    h.cb()
-}
-
 async fn outer() -> Int {
-    let h = Holder { cb: pick(true) }
-    callField(h)
+    let w = Wrap { inner: Holder { cb: syncRoot } }
+    let h = w.inner
+    h.cb()
 }
 
 print "start"

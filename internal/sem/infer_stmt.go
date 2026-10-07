@@ -98,6 +98,8 @@ func (c *checker) letStmt(n syntax.NodeID) {
 				c.r.localWitness[c.info.Defs[s.Pattern]] = w
 			}
 			c.trackKnownFn(s.Init, c.info.Defs[s.Pattern])
+			c.trackFnFieldLocal(s.Init, c.info.Defs[s.Pattern])
+			c.trackRefAlias(s.Init, c.info.Defs[s.Pattern])
 		}
 		// Unlike the local-wide tracking above this runs for `let mut` too:
 		// recordFieldWrite keeps a field's own known set sound under reassignment.

@@ -4,6 +4,7 @@ package sem
 // parameter: EdgeIfaceArg's witnesses, EdgeFnBoundArg's known fn, EdgeFieldBind's field fn.
 func (r *Result) forwardSubst(caller EntityID, e EffectEdge, subst map[EntityID][]EntityID, rr *rootRun) map[EntityID][]EntityID {
 	var out map[EntityID][]EntityID
+	var open map[EntityID]bool
 	for _, ie := range r.edgesOf(caller) {
 		if ie.Param == 0 || ie.File != e.File || ie.Node != e.Node {
 			continue
@@ -22,22 +23,49 @@ func (r *Result) forwardSubst(caller EntityID, e EffectEdge, subst map[EntityID]
 				w, ok = []EntityID{ie.Target}, true
 			}
 		case EdgeFieldBind:
+			if r.retractedBinds[bindSite{ie.File, ie.Node, ie.Param}] {
+				break
+			}
 			w, ok = subst[ie.Target]
-			if !ok && r.Entities[ie.Target].Kind == EntFn {
+			if !ok && (r.Entities[ie.Target].Kind == EntFn || r.Entities[ie.Target].Kind == EntClosure) {
 				w, ok = []EntityID{ie.Target}, true
 			}
 		default:
 			continue
 		}
 		if !ok {
+			if ie.Kind == EdgeFieldBind && !r.unboundPlace(ie.Target) {
+				if open == nil {
+					open = map[EntityID]bool{}
+				}
+				open[ie.Param] = true
+			}
 			continue
 		}
 		if out == nil {
 			out = map[EntityID][]EntityID{}
 		}
-		out[ie.Param] = w
+		if ie.Kind == EdgeFieldBind {
+			out[ie.Param] = append(out[ie.Param], w...)
+		} else {
+			out[ie.Param] = w
+		}
+	}
+	for param := range open {
+		delete(out, param)
 	}
 	return out
+}
+
+func (r *Result) unboundPlace(ent EntityID) bool {
+	return r.Entities[ent].Kind == EntFieldParam && r.Entities[ent].Parent != 0 && r.Entities[r.rootOf(ent)].Kind != EntParam && len(r.fieldBindOwners[ent]) == 0
+}
+
+func (r *Result) rootOf(ent EntityID) EntityID {
+	for r.Entities[ent].Kind == EntFieldParam && r.Entities[ent].Parent != 0 {
+		ent = r.Entities[ent].Parent
+	}
+	return ent
 }
 
 // calleeHopsWith is callee's distance to the runner, narrowing with subst

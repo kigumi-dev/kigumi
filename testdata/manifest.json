@@ -1728,6 +1728,216 @@
       }
     },
     {
+      "id": "run/async_root_bridge_dynamic_callee",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_callee.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_callresult",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_callresult.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_generic",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_inlinenested",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_inlinenested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_mutreturn",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_mutreturn.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_nestedset",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_nestedset.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_paramfield",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_paramfield.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_recvread",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_recvread.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_refpick",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_refpick.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_selfmethod",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_selfmethod.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
       "id": "run/async_root_panic_no_drop",
       "kind": "run",
       "path": "testdata/run/async_root_panic_no_drop.txtar",
@@ -7789,9 +7999,64 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_closure",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_closure.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge_forward",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_forward.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_late",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_late.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_order",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_order.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_summary",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_summary.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_witness",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_witness.txtar",
       "mode": [
         "check"
       ],
