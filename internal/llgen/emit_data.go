@@ -88,15 +88,8 @@ func (e *emitter) data() string {
 	e.requireKeptDescriptors()
 	var sb strings.Builder
 	var typeRefs []string
-	for id := 1; id < len(e.r.Entities); id++ {
-		ent := sem.EntityID(id)
+	for _, ent := range e.dataTypes() {
 		x := e.r.Entity(ent)
-		if x.Kind != sem.EntType {
-			continue
-		}
-		if e.reachable != nil && !e.reachable.KeepType(ent) {
-			continue
-		}
 		info := e.r.TypeDecl(ent)
 		for _, v := range info.Variants {
 			e.vdesc(v)
@@ -119,15 +112,7 @@ func (e *emitter) data() string {
 			}
 			variants = e.ptrTable(subSymbol(name, "variants"), vn)
 		}
-		drop := "null"
-		if info.Drop != 0 {
-			if fn, ok := e.p.ByEnt[info.Drop]; ok {
-				drop = e.adapterSym(fn)
-			} else if e.p.IsStdPrimitive(info.Drop) {
-				drop = e.stdAdapterSym(info.Drop)
-				e.stdDrops[info.Drop] = true
-			}
-		}
+		drop := e.typeDrop(info)
 		kind := 0
 		switch {
 		case info.Form == sem.FormResource:

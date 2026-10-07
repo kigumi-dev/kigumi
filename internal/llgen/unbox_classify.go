@@ -82,6 +82,10 @@ func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 		if in.Str == "cast" {
 			disqualify(in.Dst)
 		}
+	case mir.OpCall:
+		if in.DPrim == mir.DPNone {
+			disqualify(in.Dst)
+		}
 	default:
 		disqualify(in.Dst)
 	}
@@ -119,6 +123,12 @@ func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 			}
 		}
 	case mir.OpDrop, mir.OpRelease:
+	case mir.OpCall:
+		if in.DPrim == mir.DPNone {
+			for _, a := range in.Args {
+				disqualify(a)
+			}
+		}
 	default:
 		for _, a := range in.Args {
 			disqualify(a)

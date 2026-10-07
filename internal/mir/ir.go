@@ -95,10 +95,10 @@ type Inst struct {
 	Scoped bool
 	// Fixed marks an OpBoxDirect of a compile-time value: both backends hand over its one immortal.
 	Fixed bool
-	// Prim/Prov are Ent's typed std op id, resolved once by resolveStdOps;
-	// both zero when Ent is not a registry-covered std call.
-	Prim PrimitiveId
-	Prov ProviderOpId
+	// Prim/Prov are zero unless Ent is a registry-covered std call.
+	Prim  PrimitiveId
+	Prov  ProviderOpId
+	DPrim DirectPrim
 }
 
 type TermOp uint8

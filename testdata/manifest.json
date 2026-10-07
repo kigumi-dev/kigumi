@@ -3531,6 +3531,40 @@
       ]
     },
     {
+      "id": "run/direct_prim_captured",
+      "kind": "run",
+      "path": "testdata/run/direct_prim_captured.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_prim_results",
+      "kind": "run",
+      "path": "testdata/run/direct_prim_results.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/discard_place_drop",
       "kind": "run",
       "path": "testdata/run/discard_place_drop.txtar",

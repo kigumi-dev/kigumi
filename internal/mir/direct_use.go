@@ -11,6 +11,7 @@ func (p *Program) directUses(f *Func, cand []bool) []bool {
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			p.markDirectUse(in, out)
+			p.markPrimResult(f, in, out)
 			markInlineArgs(in, out, cand, nullary)
 		}
 		if blk.Term.Op == TermReturn && f.DSig.result() != 0 {

@@ -7,11 +7,13 @@ func PlanDirect(p *Program) error {
 	fs := p.allFuncs()
 	pins := make([][]bool, len(fs))
 	for i, f := range fs {
+		p.markDirectPrims(f)
 		pins[i] = p.pinned(f)
 		f.DSig = p.directSig(f, pins[i])
 	}
 	for i, f := range fs {
 		f.Direct = p.classifyDirect(f, pins[i])
+		p.settlePrims(f, pins[i])
 	}
 	for _, f := range fs {
 		p.crossFunc(f)

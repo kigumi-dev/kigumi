@@ -1052,21 +1052,28 @@ int64_t rt_inot(int64_t x, int nk) {
     return truncate_to(~x, nk);
 }
 // prelude.<T>.wrapping* / rotate*: modular arithmetic and shifts masked to the width.
+// Op ids index wrapping_names.
+static const char* const wrapping_names[] = {"wrappingAdd", "wrappingSub", "wrappingMul", "wrappingShiftLeft", "wrappingShiftRight", "rotateLeft", "rotateRight"};
+int64_t rt_d_wrapping(int op, int64_t xs, int64_t ys, int nk) {
+    int b = bits_of(nk);
+    uint64_t x = (uint64_t)xs, y = (uint64_t)ys;
+    unsigned c = (unsigned)(y & (uint64_t)(b - 1));
+    uint64_t ux = b == 64 ? x : x & (((uint64_t)1 << b) - 1);
+    switch (op) {
+    case 0: return truncate_to((int64_t)(x + y), nk);
+    case 1: return truncate_to((int64_t)(x - y), nk);
+    case 2: return truncate_to((int64_t)(x * y), nk);
+    case 3: return truncate_to((int64_t)(ux << c), nk);
+    case 4: return truncate_to(is_signed(nk) ? truncate_to((int64_t)ux, nk) >> c : (int64_t)(ux >> c), nk);
+    case 5: return truncate_to((int64_t)(c ? (ux << c) | (ux >> (b - c)) : ux), nk);
+    default: return truncate_to((int64_t)(c ? (ux >> c) | (ux << (b - c)) : ux), nk);
+    }
+}
 static val int_fn(const char* k, val a0, val a1) {
     const char* op = strrchr(k, '.');
     if (!op++) return NULL;
-    int nk = a0->nk;
-    int b = bits_of(nk);
-    uint64_t x = (uint64_t)a0->u.i, y = (uint64_t)a1->u.i;
-    if (!strcmp(op, "wrappingAdd")) return rt_int(truncate_to((int64_t)(x + y), nk), nk);
-    if (!strcmp(op, "wrappingSub")) return rt_int(truncate_to((int64_t)(x - y), nk), nk);
-    if (!strcmp(op, "wrappingMul")) return rt_int(truncate_to((int64_t)(x * y), nk), nk);
-    unsigned c = (unsigned)(y & (uint64_t)(b - 1));
-    uint64_t ux = b == 64 ? x : x & (((uint64_t)1 << b) - 1);
-    if (!strcmp(op, "wrappingShiftLeft")) return rt_int(truncate_to((int64_t)(ux << c), nk), nk);
-    if (!strcmp(op, "wrappingShiftRight")) return rt_int(truncate_to(is_signed(nk) ? truncate_to((int64_t)ux, nk) >> c : (int64_t)(ux >> c), nk), nk);
-    if (!strcmp(op, "rotateLeft")) return rt_int(truncate_to((int64_t)(c ? (ux << c) | (ux >> (b - c)) : ux), nk), nk);
-    if (!strcmp(op, "rotateRight")) return rt_int(truncate_to((int64_t)(c ? (ux >> c) | (ux << (b - c)) : ux), nk), nk);
+    for (int i = 0; i < 7; i++)
+        if (!strcmp(op, wrapping_names[i])) return rt_int(rt_d_wrapping(i, a0->u.i, a1->u.i, a0->nk), a0->nk);
     return NULL;
 }
 static int cmp_vals(val a, val b) {
@@ -1136,6 +1143,111 @@ val rt_convert(val a0, int dnk, int checked) {
     if (!checked) return rt_int(a0->u.i, dnk);
     if (!in_range(a0->u.i, a0->nk, dnk)) return none();
     return some(rt_int(a0->u.i, dnk));
+}
+static val direct_arg(val v) {
+    v = deref(v);
+    return v->kind == K_BOX ? v->u.box.v : v;
+}
+static uint64_t double_bits(double d) {
+    uint64_t b;
+    memcpy(&b, &d, sizeof b);
+    return b;
+}
+static uint64_t leaf_bits(val v) {
+    v = deref(v);
+    switch (v->kind) {
+    case K_FLOAT: return double_bits(v->u.f);
+    case K_BOOL: return (uint64_t)(v->u.b != 0);
+    case K_CHAR: return v->u.c;
+    default: return (uint64_t)v->u.i;
+    }
+}
+int64_t rt_d_len(val s) {
+    return direct_arg(s)->u.s.len;
+}
+int64_t rt_d_array_len(val a) {
+    return direct_arg(a)->u.arr.len;
+}
+int rt_d_bytes_get(val s, int64_t i, uint64_t* out) {
+    s = direct_arg(s);
+    *out = 0;
+    if (i < 0 || i >= s->u.s.len) return 0;
+    *out = (uint8_t)s->u.s.data[i];
+    return 1;
+}
+int rt_d_array_get(val a, int64_t i, uint64_t* out) {
+    a = direct_arg(a);
+    *out = 0;
+    if (i < 0 || i >= a->u.arr.len) return 0;
+    *out = leaf_bits(a->u.arr.items[i]);
+    return 1;
+}
+int rt_d_char_from_int(int64_t v, uint64_t* out) {
+    *out = 0;
+    if (v < 0 || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF)) return 0;
+    *out = (uint64_t)v;
+    return 1;
+}
+// snk is 0 for a Char source; the rest mirrors rt_convert case for case.
+int rt_d_convert_int(int64_t v, int snk, int dnk, int checked, uint64_t* out) {
+    *out = (uint64_t)v;
+    if (dnk & 1024) {
+        *out = (uint32_t)v;
+        return 1;
+    }
+    if (!snk) return 1;
+    if (dnk & 512) {
+        *out = double_bits(is_signed(snk) ? (double)v : (double)(uint64_t)v);
+        return 1;
+    }
+    if (!checked) return 1;
+    if (in_range(v, snk, dnk)) return 1;
+    *out = 0;
+    return 0;
+}
+static int parse_float_text(val text, double* d) {
+    const char* s = cstr(text);
+    int ok = 0;
+    if (*s && *s != ' ' && *s != '\t' && *s != '\n' && *s != '+') {
+        const char* end;
+        // erange also fires on underflow; Go errors only on overflow, so reject only inf.
+        ok = rt_parse_f64(s, &end, d, NULL) && !*end && !isinf(*d);
+    }
+    if (direct_arg(text)->kind != K_OPAQUE) free((void*)s);
+    return ok;
+}
+int rt_d_parse_float(val s, uint64_t* out) {
+    double d;
+    *out = 0;
+    if (!parse_float_text(direct_arg(s), &d)) return 0;
+    *out = double_bits(d);
+    return 1;
+}
+double rt_d_sqrt(double x) {
+    return sqrt(x);
+}
+double rt_d_floor(double x) {
+    return floor(x);
+}
+double rt_d_ceil(double x) {
+    return ceil(x);
+}
+double rt_d_round(double x) {
+    return round(x);
+}
+double rt_d_pow(double x, double y) {
+    return pow(x, y);
+}
+int rt_d_convert_float(double x, int dnk, uint64_t* out) {
+    *out = 0;
+    if (dnk & 512) {
+        *out = double_bits(x);
+        return 1;
+    }
+    double t = trunc(x);
+    if (t != t || t < -9223372036854775808.0 || t >= 9223372036854775808.0) return 0;
+    *out = (uint64_t)(int64_t)t;
+    return 1;
 }
 static val range_new(val lo, val hi, int inclusive);
 val rt_binop(const char* op, val a, val b) {
@@ -2399,14 +2511,8 @@ val rt_std_id(int op, int n, val* a) {
     }
     // text
     case OP_TEXT_PARSE_FLOAT: {
-        const char* s = cstr(a0);
-        if (!*s || *s == ' ' || *s == '\t' || *s == '\n' || *s == '+') return none();
-        const char* end;
         double d;
-        // rt_parse_f64's erange also fires on underflow to 0/subnormal;
-        // Go's strconv.ParseFloat only errors on overflow, so reject only
-        // when the rounded result is actually infinite.
-        if (!rt_parse_f64(s, &end, &d, NULL) || *end || isinf(d)) return none();
+        if (!parse_float_text(a0, &d)) return none();
         return some(rt_float(d, 64 | 512));
     }
     // os / fs

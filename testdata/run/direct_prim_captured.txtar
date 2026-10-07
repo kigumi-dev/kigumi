@@ -1,0 +1,88 @@
+-- src --
+import text from std/text
+
+fn passg[T](o: T) -> T {
+    o
+}
+
+fn viaU8(n: Int) -> u8 {
+    let mut x: u8? = None
+    let g = () => {
+        x = n.toU8()
+    }
+    g()
+    x || 3
+}
+
+fn viaChar(n: Int) -> Char {
+    let mut c: Char? = None
+    let g = () => {
+        c = Char.fromInt(n)
+    }
+    g()
+    c || 'z'
+}
+
+fn viaByte(b: Bytes, i: usize) -> u8 {
+    let mut x: u8? = None
+    let g = () => {
+        x = b.get(i)
+    }
+    g()
+    x || 7
+}
+
+fn viaFloat(s: String) -> Float {
+    let mut x: Float? = None
+    let g = () => {
+        x = text.parseFloat(s)
+    }
+    g()
+    x || -1.0
+}
+
+fn viaGeneric(n: Int) -> u16 {
+    passg(n.toU16()) || 9
+}
+
+fn viaMove(n: Int) -> u8 {
+    let mut x: u8? = None
+    let a = n.toU8()
+    let g = () => {
+        x = a
+    }
+    g()
+    x || 4
+}
+
+fn viaReturn(n: Int) -> u8? {
+    let a = n.toU8()
+    a
+}
+
+let mut counter: u8? = None
+let bump = (n: Int) => {
+    counter = n.toU8()
+}
+
+bump(9)
+print "${viaU8(5)} ${viaU8(500)}"
+print "${viaChar(65)} ${viaChar(-1)}"
+print "${viaByte("ab".toBytes(), 1)} ${viaByte("ab".toBytes(), 5)}"
+print "${viaFloat("2.5")} ${viaFloat("x")}"
+print "${viaGeneric(70)} ${viaGeneric(70000)}"
+print "${viaMove(8)} ${viaMove(300)}"
+print "${viaReturn(8) || 0} ${viaReturn(300) || 0}"
+print "${counter || 0}"
+bump(999)
+print "${counter || 0}"
+-- stdout --
+5 3
+A z
+98 7
+2.5 -1
+70 9
+8 4
+8 0
+9
+0

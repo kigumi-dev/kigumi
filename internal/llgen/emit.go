@@ -51,10 +51,12 @@ type emitter struct {
 	boxTmp       map[mir.LocalID]bool
 	sigs         map[*mir.Func]*aggSig
 	sig          *aggSig
+	wrapNeed     map[wrapperKey]bool
+	wrapDone     map[wrapperKey]bool
 }
 
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
-	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, sigs: map[*mir.Func]*aggSig{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
+	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	var body strings.Builder
 	for _, f := range p.Funcs {
 		if e.reachable != nil && !e.reachable.Keep(f.Ent) {
@@ -70,13 +72,6 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 			continue
 		}
 		body.WriteString(e.function(f))
-		body.WriteString(e.adapter(f))
-		if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Abi == "" {
-			body.WriteString(e.bindAdapter(f))
-		}
-		if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Recv != sem.RecvNone {
-			body.WriteString(e.methodAdapter(f))
-		}
 		if e.r.Entity(f.Ent).Kind == sem.EntFn && e.r.Fn(f.Ent).Export != "" {
 			switch {
 			case e.r.Fn(f.Ent).Export == "interrupt":
@@ -91,7 +86,10 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	// Both add foreign declarations before those are written, and a static's
 	// initializer adds literal pool and immortal slots that data() emits.
 	globalDecls, globalInit := e.staticGlobals()
+	body.WriteString(e.emitWrappers())
 	data := e.data()
+	// data() can name a wrapper nothing else asked for.
+	body.WriteString(e.emitWrappers())
 	e.out.WriteString(header)
 	e.out.WriteString(e.aggTypes())
 	e.out.WriteString(e.modAsm.String())

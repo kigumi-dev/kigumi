@@ -122,7 +122,7 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		}
 		arr := e.argArray(sb, args)
 		if own {
-			res = e.closureCtor(sb, e.bindSym(fn), false, args, arr)
+			res = e.closureCtor(sb, e.useBind(fn), false, args, arr)
 		} else {
 			res = e.irb(sb).Call(rtStdBind, vptr(e.cstr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)), vi32(len(args)), vptr(arr)).Text
 		}
@@ -133,16 +133,17 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		}
 		arr := e.argArray(sb, args)
 		if fn, ok := e.p.ByEnt[in.Ent]; ok {
-			sym := e.adapterSym(fn)
-			// A method value captures the receiver in the environment; the
-			// plain adapter expects self in the call's arguments instead.
-			if in.Op == mir.OpClosure && in.Str == "method" {
-				sym = e.methodAdapterSym(fn)
-			}
+			var sym string
+			switch {
 			// An async body has no adapter: its value carries the frame
 			// descriptor a Future is built from.
-			if in.Async {
+			case in.Async:
 				sym = e.asyncDescSym(fn)
+			// A method value carries its receiver in the environment, not in the arguments.
+			case in.Op == mir.OpClosure && in.Str == "method":
+				sym = e.useMethodAdapter(fn)
+			default:
+				sym = e.useAdapter(fn)
 			}
 			res = e.closureCtor(sb, sym, in.Async, args, arr)
 		} else if e.loweredStd(in.Ent) {

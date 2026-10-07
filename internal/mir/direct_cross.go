@@ -61,7 +61,7 @@ func (p *Program) dstPos(f *Func, in Inst) sem.TypeID {
 	case OpCall:
 		fn, ok := p.ByEnt[in.Ent]
 		if !ok {
-			return 0
+			return p.primResult(f, in)
 		}
 		return fn.DSig.result()
 	case OpField, OpFieldMove:

@@ -14,8 +14,9 @@ type Used = { n: Int }
 
 fn build() -> Used { Used { n: 1 } }
 
-let u = build()
-print "${u.n}"
+let mut xs: Array[Used] = Array.empty()
+xs.push(build())
+print "${xs[0].n}"
 `
 
 func namedType(t *testing.T, r *sem.Result, name string) sem.EntityID {

@@ -1,0 +1,203 @@
+-- src --
+import text from std/text
+import math from std/math
+
+type Reading = {
+    pub raw Int
+    pub low u8?
+}
+
+fn show(o: Int?) -> String {
+    match o {
+        Some(v) -> "${v}"
+        None -> "-"
+    }
+}
+
+fn show16(o: u16?) -> String {
+    match o {
+        Some(v) -> "${v}"
+        None -> "-"
+    }
+}
+
+fn showChar(o: Char?) -> String {
+    match o {
+        Some(v) -> "${v}"
+        None -> "-"
+    }
+}
+
+fn showByte(o: u8?) -> String {
+    match o {
+        Some(v) -> "${v}"
+        None -> "-"
+    }
+}
+
+fn narrow(n: Int) -> u16? {
+    n.toU16()
+}
+
+fn narrowOr(n: Int, d: u8) -> u8 {
+    match n.toU8() {
+        Some(v) -> v
+        None -> d
+    }
+}
+
+fn signedFrom(n: u64) -> Int? {
+    n.toInt()
+}
+
+fn widen(n: u8) -> Int {
+    n.toInt() + 1
+}
+
+fn chars(n: Int) -> String {
+    match Char.fromInt(n) {
+        Some(c) -> "char ${c}"
+        None -> "no char for ${n}"
+    }
+}
+
+fn code(c: Char) -> Int {
+    c.toInt()
+}
+
+fn truncate(f: Float) -> Int? {
+    f.toInt()
+}
+
+fn scale(n: i32) -> Float {
+    n.toFloat() * 0.5
+}
+
+fn byteAt(data: Bytes, i: usize) -> u8 {
+    data.get(i) || 255
+}
+
+fn firstWord(s: String) -> usize {
+    let bs = s.bytes()
+    let mut i: usize = 0
+    for i < bs.len() {
+        if bs.get(i) == Some(32) {
+            return i
+        }
+        i = i + 1
+    }
+    bs.len()
+}
+
+fn pick(xs: &Array[Int], i: usize) -> Int? {
+    xs.get(i)
+}
+
+fn flagAt(xs: &Array[Bool], i: usize) -> String {
+    match xs.get(i) {
+        Some(true) -> "yes"
+        Some(false) -> "no"
+        None -> "none"
+    }
+}
+
+fn letterAt(xs: &Array[Char], i: usize) -> Char? {
+    xs.get(i)
+}
+
+fn weight(xs: &Array[Float], i: usize) -> Float {
+    xs.get(i) || -1.0
+}
+
+fn reading(n: Int) -> Reading {
+    Reading { raw: n, low: n.toU8() }
+}
+
+fn parse(s: String) -> String {
+    match text.parseFloat(s) {
+        Some(f) -> "float ${f}"
+        None -> "not a float: ${s}"
+    }
+}
+
+fn store(n: Int) -> Array[u16?] {
+    Array.of(n.toU16(), (n + 70000).toU16())
+}
+
+
+let huge = 1e300
+let nan = huge * huge - huge * huge
+print "${show16(narrow(65535))} ${show16(narrow(65536))} ${show16(narrow(-1))} ${show16(narrow(0))}"
+print "${narrowOr(255, 7)} ${narrowOr(256, 7)} ${narrowOr(-3, 7)}"
+print "${show(signedFrom(5))} ${show(signedFrom(18446744073709551615))} ${show(signedFrom(9223372036854775807))}"
+print "${widen(0)} ${widen(255)}"
+print "${chars(65)} | ${chars(128512)} | ${chars(55296)} | ${chars(1114112)} | ${chars(-1)}"
+print "${code('a')} ${code('z')}"
+print "${show(truncate(2.75))} ${show(truncate(-2.75))} ${show(truncate(1e30))} ${show(truncate(nan))}"
+print "${scale(5)} ${scale(-4)}"
+let data = "he llo".bytes()
+print "${byteAt(data, 0)} ${byteAt(data, 2)} ${byteAt(data, 5)} ${byteAt(data, 6)} ${byteAt(data, 100)}"
+print "${firstWord("alpha beta")} ${firstWord("single")} ${firstWord("")}"
+let nums = Array.of(10, 20, 30)
+print "${show(pick(&nums, 0))} ${show(pick(&nums, 2))} ${show(pick(&nums, 3))}"
+let flags = Array.of(true, false)
+print "${flagAt(&flags, 0)} ${flagAt(&flags, 1)} ${flagAt(&flags, 2)}"
+let letters = Array.of('x', 'y')
+print "${showChar(letterAt(&letters, 1))} ${showChar(letterAt(&letters, 5))}"
+let weights = Array.of(0.5, 1.5)
+print "${weight(&weights, 1)} ${weight(&weights, 9)}"
+let r = reading(300)
+print "${r.raw} ${showByte(r.low)} ${showByte(reading(30).low)}"
+print "${parse("2.5")} | ${parse("x1")} | ${parse("")} | ${parse("1e400")}"
+let stored = store(5)
+print "${show16(stored[0])} ${show16(stored[1])}"
+print "${nums.len()} ${"hello".len()} ${data.len()}"
+let conv = Array.of(1, 300, -1)
+let mut total: u8 = 0
+for n in &conv {
+    total = total.wrappingAdd(n.toU8() || 100)
+}
+print "total=${total}"
+let f = narrow
+print "${show16(f(70000))} ${show16(f(7))}"
+fn mix(a: u8, b: u8) -> u8 {
+    a.wrappingAdd(b).rotateLeft(3).wrappingMul(b)
+}
+
+fn mixSigned(a: i32, b: i32) -> i32 {
+    a.wrappingSub(b).wrappingShiftLeft(33).wrappingShiftRight(1)
+}
+
+fn spin(a: u64) -> u64 {
+    a.wrappingMul(a).rotateRight(7)
+}
+
+fn hyp(x: Float, y: Float) -> Float {
+    math.sqrt(x * x + y * y)
+}
+
+print "${mix(200, 100)} ${mix(3, 4)} ${mixSigned(5, 9)} ${mixSigned(-2147483648, 1)} ${spin(18446744073709551615)} ${spin(12345)}"
+print "${hyp(3.0, 4.0)} ${math.floor(-2.5)} ${math.ceil(2.1)} ${math.round(2.5)} ${math.pow(2.0, 10.0)}"
+-- stdout --
+65535 - - 0
+255 7 7
+5 - 9223372036854775807
+1 256
+char A | char 😀 | no char for 55296 | no char for 1114112 | no char for -1
+97 122
+2 -2 - -
+2.5 -2
+104 32 111 255 255
+5 6 0
+10 30 -
+yes no none
+y -
+1.5 -1
+300 - 30
+float 2.5 | not a float: x1 | not a float:  | not a float: 1e400
+5 -
+3 5 6
+total=201
+- 7
+228 224 -4 -1 144115188075855872 7061644215718128345
+5 -3 3 3 1024

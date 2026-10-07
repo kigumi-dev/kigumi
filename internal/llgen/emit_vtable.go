@@ -19,7 +19,7 @@ func (e *emitter) vtable(t, iface sem.TypeID, from sem.PackageID) string {
 	for _, w := range e.r.Witnesses(t, iface, from) {
 		switch {
 		case e.p.ByEnt[w] != nil:
-			entries = append(entries, "ptr "+e.adapterSym(e.p.ByEnt[w]))
+			entries = append(entries, "ptr "+e.useAdapter(e.p.ByEnt[w]))
 		default:
 			e.stdDrops[w] = true
 			entries = append(entries, "ptr "+e.stdAdapterSym(w))

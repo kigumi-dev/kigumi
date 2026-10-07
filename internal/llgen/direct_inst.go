@@ -59,6 +59,10 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 			return true
 		}
 	case mir.OpCall:
+		if in.DPrim != mir.DPNone {
+			e.directPrimCall(sb, f, in)
+			return true
+		}
 		if fn, ok := e.p.ByEnt[in.Ent]; ok {
 			if s := e.directSig(fn); s != nil {
 				e.directCall(sb, f, in, fn, s)

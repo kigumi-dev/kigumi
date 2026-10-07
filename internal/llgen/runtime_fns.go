@@ -107,6 +107,8 @@ var runtimeFns = []RuntimeFn{
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,
 	rtFutureSuspend, rtFutureResume, rtFutureComplete,
+	rtDLen, rtDArrayLen, rtDBytesGet, rtDArrayGet, rtDCharFromInt, rtDParseFloat, rtDConvertInt, rtDConvertFloat,
+	rtDWrapping, rtDSqrt, rtDFloor, rtDCeil, rtDRound, rtDPow,
 }
 
 // renderExterns renders the `declare` list, one line per RuntimeFn in
