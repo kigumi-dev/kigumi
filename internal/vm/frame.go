@@ -19,7 +19,7 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 	m.stack = append(m.stack, f)
 	m.depth++
 	if m.opts.Sandbox && m.depth > m.opts.DepthLimit {
-		m.abort("comptime recursion too deep")
+		m.sandboxAbort("comptime recursion too deep")
 	}
 	defer func() {
 		m.depth--
@@ -29,12 +29,7 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 	for {
 		blk := &f.Blocks[bid]
 		for k := range blk.Insts {
-			if m.opts.Sandbox {
-				m.steps++
-				if m.steps > m.opts.StepLimit {
-					m.abort("comptime block took too long")
-				}
-			}
+			m.chargeStep()
 			m.exec(fr, &blk.Insts[k])
 		}
 		switch blk.Term.Op {

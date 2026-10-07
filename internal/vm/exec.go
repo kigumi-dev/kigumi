@@ -161,10 +161,10 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpShell:
 		res = m.shellPlan(in, args)
 	case mir.OpDrop:
-		m.release(args[0])
 		if f.Locals[in.Args[0]].Ent != 0 {
 			fr.locals[in.Args[0]] = nil
 		}
+		m.release(args[0])
 		return
 	case mir.OpPanic:
 		m.abort(in.Str)

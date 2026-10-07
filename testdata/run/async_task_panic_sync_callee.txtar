@@ -1,0 +1,42 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+fn inner() -> Unit {
+    let r = Res { id: 2 }
+    panic("sync")
+}
+
+// Only the async frames of a faulted task release what they own; a sync
+// callee's locals are not swept.
+async fn boom() -> Int {
+    let r = Res { id: 1 }
+    let v = await tick()
+    inner()
+    v
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 1
+-- stderr --
+panic: sync
+-- exit --
+2

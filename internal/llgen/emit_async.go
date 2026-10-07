@@ -90,8 +90,9 @@ func (e *emitter) await(sb *strings.Builder, in mir.Inst, operand string) {
 	e.store(sb, in.Dst, r)
 }
 
-// frameDrop releases what a frame abandoned at a suspension point still
-// owns, in the order the ownership plan would have released it.
+// framePanicked must match KG_FRAME_PANICKED in rt_core.c.
+const framePanicked = 1 << 30
+
 func (e *emitter) frameDrop(f *mir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
@@ -104,23 +105,34 @@ func (e *emitter) frameDrop(f *mir.Func) string {
 			fmt.Fprintf(&sb, " i32 %d, label %%d%d", k, k)
 		}
 	}
+	if len(f.PanicDrop) > 0 {
+		fmt.Fprintf(&sb, " i32 %d, label %%dp", framePanicked)
+	}
 	sb.WriteString(" ]\n")
 	for k := 1; k <= f.Suspends && k < len(f.Cleanup); k++ {
 		if len(f.Cleanup[k]) == 0 {
 			continue
 		}
 		fmt.Fprintf(&sb, "d%d:\n", k)
-		for _, l := range f.Cleanup[k] {
-			p, v := e.newTmp(), e.newTmp()
-			fmt.Fprintf(&sb, "  %s = getelementptr ptr, ptr %%slots, i64 %d\n", p, f.Slot[l])
-			fmt.Fprintf(&sb, "  %s = load ptr, ptr %s\n", v, p)
-			fmt.Fprintf(&sb, "  store ptr null, ptr %s\n", p)
-			e.irb(&sb).Call(rtRelease, vptr(v))
-		}
-		sb.WriteString("  br label %done\n")
+		e.releaseSlots(&sb, f, f.Cleanup[k])
+	}
+	if len(f.PanicDrop) > 0 {
+		sb.WriteString("dp:\n")
+		e.releaseSlots(&sb, f, f.PanicDrop)
 	}
 	sb.WriteString("done:\n  ret void\n}\n\n")
 	return sb.String()
+}
+
+func (e *emitter) releaseSlots(sb *strings.Builder, f *mir.Func, locals []mir.LocalID) {
+	for _, l := range locals {
+		p, v := e.newTmp(), e.newTmp()
+		fmt.Fprintf(sb, "  %s = getelementptr ptr, ptr %%slots, i64 %d\n", p, f.Slot[l])
+		fmt.Fprintf(sb, "  %s = load ptr, ptr %s\n", v, p)
+		fmt.Fprintf(sb, "  store ptr null, ptr %s\n", p)
+		e.irb(sb).Call(rtRelease, vptr(v))
+	}
+	sb.WriteString("  br label %done\n")
 }
 
 // asyncDesc is what a Future is built from: the poll and drop functions, the

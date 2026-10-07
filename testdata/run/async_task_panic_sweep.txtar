@@ -1,0 +1,126 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+fn eat(r: Res) -> Unit {
+    print "eat ${r.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// Each task panics in a different state; whatever its frames still owned is
+// dropped once, and the first fault in queue order is the one root reports.
+async fn partial() -> Int {
+    let p = Pair { a: Res { id: 10 }, b: Res { id: 11 } }
+    let _ = await tick()
+    eat(p.a)
+    panic("partial")
+}
+
+async fn cond(flag: Bool) -> Int {
+    let r = Res { id: 20 }
+    if flag {
+        eat(r)
+    }
+    let _ = await tick()
+    panic("cond")
+}
+
+async fn looped() -> Int {
+    let mut i = 0
+    for i < 3 {
+        let r = Res { id: 30 + i }
+        let _ = await tick()
+        i = i + 1
+    }
+    let last = Res { id: 40 }
+    panic("looped")
+}
+
+async fn param(r: Res) -> Int {
+    panic("param")
+}
+
+async fn strings(n: Int) -> Int {
+    let s = "value ${n}"
+    let arr = Array.of[Int](n, n + 1)
+    let _ = await tick()
+    let r = Res { id: 50 }
+    panic("strings ${s} ${arr.len()}")
+}
+
+async fn oob() -> Int {
+    let r = Res { id: 60 }
+    let arr = Array.of[Int](1, 2, 3)
+    let _ = await tick()
+    let i: usize = 7
+    arr[i]
+}
+
+async fn divide(d: Int) -> Int {
+    let r = Res { id: 70 }
+    let _ = await tick()
+    100 / d
+}
+
+async fn nested() -> Int {
+    let r = Res { id: 80 }
+    let v = await param(Res { id: 81 })
+    v
+}
+
+async fn sentinel() -> Int {
+    9
+}
+
+async fn root() -> Int {
+    let a = task.spawn(partial())
+    let b = task.spawn(cond(true))
+    let c = task.spawn(cond(false))
+    let d = task.spawn(looped())
+    let e = task.spawn(param(Res { id: 90 }))
+    let f = task.spawn(strings(5))
+    let g = task.spawn(oob())
+    let h = task.spawn(divide(0))
+    let i = task.spawn(nested())
+    let s = task.spawn(sentinel())
+    await s
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+eat 10
+drop 11
+drop 10
+eat 20
+drop 20
+drop 20
+drop 30
+drop 31
+drop 32
+drop 40
+drop 90
+drop 50
+drop 60
+drop 70
+drop 81
+drop 80
+-- stderr --
+panic: partial
+-- exit --
+2

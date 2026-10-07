@@ -29,3 +29,26 @@ func TestWantsThreadRuntime(t *testing.T) {
 		})
 	}
 }
+
+func TestWantsTaskCatch(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		target Target
+		want   bool
+	}{
+		{"linux", Target{OS: "linux", Arch: "amd64", Sys: "posix"}, true},
+		{"macos", Target{OS: "darwin", Arch: "arm64", Sys: "posix"}, true},
+		{"wasi", Target{OS: "wasi", Arch: "wasm32", Sys: "posix"}, false},
+		{"freestanding", Target{OS: "freestanding", Arch: "wasm32", Sys: "none"}, false},
+		{"sys none", Target{OS: "linux", Arch: "amd64", Sys: "none"}, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			if got := wantsTaskCatch(c.target); got != c.want {
+				t.Errorf("wantsTaskCatch(%+v) = %v, want %v", c.target, got, c.want)
+			}
+		})
+	}
+}

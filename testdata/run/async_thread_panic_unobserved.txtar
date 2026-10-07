@@ -1,0 +1,35 @@
+-- src --
+import task from std/task
+
+// Nothing awaits this panic, yet it is not lost: it ends `mid` faulted.
+async fn boom() -> Int {
+    panic("boom")
+}
+
+async fn leaf(n: Int) -> Int {
+    n * n
+}
+
+async fn mid() -> Int {
+    let a = task.spawn(boom())
+    let b = task.spawn(leaf(5))
+    let x = await b
+    print "mid ${x}"
+    x
+}
+
+async fn root() -> Int {
+    let m = task.spawn(mid())
+    let y = await m
+    print "root ${y}"
+    y
+}
+
+let ex = task.threadPoolExecutor(2)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+mid 25
+-- stderr --
+panic: boom
+-- exit --
+2

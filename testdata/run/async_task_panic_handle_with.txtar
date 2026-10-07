@@ -1,0 +1,41 @@
+-- src --
+import task from std/task
+import ffi from std/ffi
+import {Shared} from std/alloc
+
+type Slot = {
+    pub table ffi.HandleTable[Int]
+    pub h ffi.FfiHandle[Int]
+}
+
+async fn boom(s: Shared[Slot]) -> Int {
+    s.with((p: &Slot) => p.table.with(&p.h, (v: &Int) => {
+        if v == 41 {
+            panic("inside")
+        }
+        0
+    }))
+}
+
+async fn sib(s: Shared[Slot]) -> Int {
+    s.with((p: &Slot) => p.table.with(&p.h, (v: &Int) => v + 1))
+}
+
+async fn root(s: Shared[Slot]) -> Int {
+    let a = task.spawn(boom(s.clone()))
+    let b = task.spawn(sib(s.clone()))
+    let x = await b
+    print "sibling ${x}"
+    await a
+}
+
+let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let h = table.insert(41)
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root(Shared.new(Slot { table: table, h: h })))}"
+-- stdout --
+sibling 42
+-- stderr --
+panic: inside
+-- exit --
+2

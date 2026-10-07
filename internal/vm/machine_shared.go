@@ -18,6 +18,7 @@ type shared struct {
 	// sched covers the scheduler: both queues, task fields, executor counters.
 	sched   sync.Mutex
 	orphans []*executor
+	pools   []*executor
 	// out covers stdout and stderr, in the single stdin reader; they are
 	// separate so a lane parked on a read does not hold the printers.
 	out      sync.Mutex
@@ -39,6 +40,8 @@ type shared struct {
 	sigWatch     map[string]chan os.Signal
 	mem          atomic.Int64
 	faultN       atomic.Int64
+	// steps is shared by all lanes so a thread pool has one StepLimit.
+	steps atomic.Int64
 	// graph is written before the run starts and only read after.
 	graph *buildgraph.Graph
 }
@@ -56,7 +59,7 @@ func newShared() *shared {
 func (m *Machine) lane() *Machine {
 	w := *m
 	w.stack, w.pending = nil, nil
-	w.steps, w.depth = 0, 0
+	w.stepsLeft, w.depth = 0, 0
 	w.site, w.siteFn, w.curFn, w.curInst = nil, nil, nil, nil
 	w.cur, w.curLane = nil, 0
 	return &w

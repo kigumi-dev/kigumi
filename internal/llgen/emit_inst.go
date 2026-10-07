@@ -172,12 +172,11 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpShell:
 		res = e.shell(sb, in, args)
 	case mir.OpDrop:
-		e.irb(sb).Call(rtDrop, vptr(args[0]))
-		// A binding assigned on some paths only (ownMaybe) is dropped again
-		// on the next scope exit; a null slot makes that release a no-op.
+		// Null first so a panicking drop never runs twice on the next scope exit.
 		if f.Locals[in.Args[0]].Ent != 0 {
 			e.store(sb, in.Args[0], "null")
 		}
+		e.irb(sb).Call(rtDrop, vptr(args[0]))
 		return
 	case mir.OpPanic:
 		e.irb(sb).Call(rtPanic, vptr(e.cstr(in.Str)))

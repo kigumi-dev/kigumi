@@ -158,7 +158,8 @@ type Func struct {
 	Frame    int
 	// Cleanup lists, per suspension point, the frame slots an abandoned
 	// body releases, innermost binding first.
-	Cleanup [][]LocalID
+	Cleanup   [][]LocalID
+	PanicDrop []LocalID
 	// Direct marks the locals a backend keeps as an unboxed aggregate and
 	// DSig does the same for the parameters and the result; PlanDirect sets both.
 	Direct []bool

@@ -156,6 +156,7 @@ func runOneTest(m *Machine, f *mir.Func, name string, timeout time.Duration) (ou
 	took = time.Since(start)
 
 	if timedOut {
+		m.stopPools()
 		return "timeout", fmt.Sprintf("test exceeded %s", timeout), mir.Site{}, took, newMachine(m.p, m.opts, realOut, realErr), nil
 	}
 	realOut.Write(outBuf.Bytes())

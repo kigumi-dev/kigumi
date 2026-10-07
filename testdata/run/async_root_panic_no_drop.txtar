@@ -1,0 +1,29 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// The root has no waiter to hand a fault to, so its panic runs no drop code.
+async fn root() -> Int {
+    let r = Res { id: 1 }
+    let v = await tick()
+    panic("x")
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+-- stderr --
+panic: x
+-- exit --
+2

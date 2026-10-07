@@ -82,3 +82,27 @@ func TestAsyncMobilityFollowsAwaitedOperand(t *testing.T) {
 		t.Errorf("root: mobility=%v boundBy=%q, want executor-bound by Executor", bound.Mobility, bound.BoundBy)
 	}
 }
+
+func TestAsyncPanicDropPlan(t *testing.T) {
+	p := analyzeFixture(t, "async_task_panic_unwind.txtar")
+	for fn, want := range map[string][]string{
+		"main.inner": {"r", "t", "v", "n"},
+		"main.boom":  {"r", "v"},
+		"main.root":  {"a", "b", "x"},
+	} {
+		f := asyncFunc(t, p, fn)
+		got := map[string]bool{}
+		for _, l := range f.PanicDrop {
+			loc := f.Locals[l]
+			if loc.Ent == 0 || f.Slot[l] < 0 {
+				t.Errorf("%s: panic drop lists %s, want only named locals with a frame slot", fn, loc.Name)
+			}
+			got[loc.Name] = true
+		}
+		for _, name := range want {
+			if !got[name] {
+				t.Errorf("%s: panic drop = %v, missing %s", fn, got, name)
+			}
+		}
+	}
+}

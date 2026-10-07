@@ -42,11 +42,11 @@ func TestConcurrentRetainAndReleaseFreeOnce(t *testing.T) {
 func TestLaneStartsCleanAndKeepsSharedState(t *testing.T) {
 	m := &Machine{sh: newShared(), host: map[string]hostFn{}}
 	m.stack = []*mir.Func{{Name: "caller"}}
-	m.depth, m.steps = 3, 9
+	m.depth, m.stepsLeft = 3, 9
 	m.cur, m.curLane = &task{}, 2
 
 	w := m.lane()
-	if w.stack != nil || w.depth != 0 || w.steps != 0 || w.cur != nil || w.curLane != 0 {
+	if w.stack != nil || w.depth != 0 || w.stepsLeft != 0 || w.cur != nil || w.curLane != 0 {
 		t.Fatal("a lane inherited the interpreter state of the one that started it")
 	}
 	if w.sh != m.sh {

@@ -1,0 +1,44 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+    if self.id == 1 {
+        panic("drop panic 1")
+    }
+}
+
+async fn tick() -> Int {
+    1
+}
+
+async fn inner() -> Int {
+    let r = Res { id: 1 }
+    let v = await tick()
+    panic("first")
+}
+
+// A panic raised while the fault is swept ends the process at once.
+async fn boom() -> Int {
+    let r = Res { id: 2 }
+    let v = await inner()
+    v
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 1
+-- stderr --
+panic: drop panic 1
+-- exit --
+2

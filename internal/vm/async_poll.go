@@ -142,7 +142,7 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 	m.stack = append(m.stack, f)
 	m.depth++
 	if m.opts.Sandbox && m.depth > m.opts.DepthLimit {
-		m.abort("comptime recursion too deep")
+		m.sandboxAbort("comptime recursion too deep")
 	}
 	defer func() {
 		m.depth--
@@ -161,12 +161,7 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 				co.pc++
 				continue
 			}
-			if m.opts.Sandbox {
-				m.steps++
-				if m.steps > m.opts.StepLimit {
-					m.abort("comptime block took too long")
-				}
-			}
+			m.chargeStep()
 			m.exec(&co.fr, in)
 			co.pc++
 		}

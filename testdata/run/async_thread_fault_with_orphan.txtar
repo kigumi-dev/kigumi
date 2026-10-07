@@ -1,0 +1,48 @@
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    n * 3
+}
+
+async fn job(n: Int) -> Int {
+    let t = task.spawn(leaf(n))
+    n + await t
+}
+
+// The pool is born and loses its last handle inside one poll, orphaning it
+// while `job` is still queued; a run that ends faulted must still join it.
+fn launch(pool: task.Executor, n: Int) -> task.Task[Int] {
+    pool.handoff(job(n))
+}
+
+async fn chain(n: Int) -> Int {
+    let t = launch(task.threadPoolExecutor(2), n)
+    await t
+}
+
+async fn boom() -> Int {
+    panic("boom")
+}
+
+async fn quiet() -> Int {
+    0
+}
+
+async fn root(first: task.Executor) -> Int {
+    let orphaned = await first.handoff(chain(1))
+    print "orphaned ${orphaned}"
+    let c = task.spawn(boom())
+    let q = task.spawn(quiet())
+    await q
+}
+
+let first = task.threadPoolExecutor(2)
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root(first))}"
+-- stdout --
+orphaned 4
+-- stderr --
+panic: boom
+-- exit --
+2

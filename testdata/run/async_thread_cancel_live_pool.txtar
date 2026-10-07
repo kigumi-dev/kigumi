@@ -1,0 +1,47 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+async fn spin() -> Int {
+    let mut n = 0
+    for !task.cancelRequested() {
+        n = n + await task.spawn(tick())
+    }
+    n
+}
+
+// The resource pins this task to the root's lane; its child spins on a worker.
+async fn parks(r: Res) -> Int {
+    let t = task.spawn(spin())
+    await t
+}
+
+// The root is cancelled by awaiting a cancelled child while its pool, held
+// through a global handle, still has a task running; the run cancels that
+// task and joins the pool before reporting.
+async fn root() -> Int {
+    let s = task.spawn(spin())
+    let c = task.spawn(parks(Res { id: 3 }))
+    c.cancel()
+    await c
+}
+
+let ex = task.threadPoolExecutor(3)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 3
+-- stderr --
+panic: the root task was cancelled
+-- exit --
+2

@@ -46,7 +46,7 @@ func (m *Machine) chargeMemory(v *obj) {
 	if live := m.sh.mem.Add(delta); live < 0 {
 		m.sh.mem.Store(0)
 	} else if delta > 0 && live > m.opts.MemoryLimit {
-		m.abort("comptime block allocated too much memory")
+		m.sandboxAbort("comptime block allocated too much memory")
 	}
 }
 
@@ -70,4 +70,34 @@ func (m *Machine) faultTick() bool {
 		return false
 	}
 	return m.sh.faultN.Add(1) == m.opts.FaultInjectAt
+}
+
+// stepBatch bounds reservations so the hot loop avoids an atomic per instruction.
+const stepBatch = 256
+
+func (m *Machine) chargeStep() {
+	if !m.opts.Sandbox {
+		return
+	}
+	if m.stepsLeft > 0 {
+		m.stepsLeft--
+		return
+	}
+	m.reserveSteps()
+}
+
+// reserveSteps never exceeds what is left, so the budget trips exactly at StepLimit.
+func (m *Machine) reserveSteps() {
+	limit := int64(m.opts.StepLimit)
+	for {
+		used := m.sh.steps.Load()
+		n := min(stepBatch, limit-used)
+		if n <= 0 {
+			m.sandboxAbort("comptime block took too long")
+		}
+		if m.sh.steps.CompareAndSwap(used, used+n) {
+			m.stepsLeft = int(n) - 1
+			return
+		}
+	}
 }

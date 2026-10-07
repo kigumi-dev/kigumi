@@ -13,6 +13,8 @@ import (
 type Panic struct {
 	Msg  string
 	Site mir.Site
+	// Sandbox marks a budget abort, never contained as a worker's own fault.
+	Sandbox bool
 }
 
 func (p *Panic) Error() string { return "panic: " + p.Msg }
@@ -68,8 +70,8 @@ type Machine struct {
 	curInst *mir.Inst
 	// stack is the active calls, innermost last; std/build reads the
 	// nearest non-std caller from it as a step's provenance.
-	stack        []*mir.Func
-	steps, depth int
+	stack            []*mir.Func
+	stepsLeft, depth int
 	// cur is the running task and curLane its executor lane, for spawn and cancellation.
 	cur     *task
 	curLane int
@@ -83,7 +85,10 @@ func Run(prog *mir.Program, opts Options, out, errOut io.Writer) (int, error) {
 	if prog.Entry == nil {
 		return 1, fmt.Errorf("vm: program has no entry")
 	}
-	m := newMachine(prog, opts, out, errOut)
+	return runMachine(newMachine(prog, opts, out, errOut), prog, errOut)
+}
+
+func runMachine(m *Machine, prog *mir.Program, errOut io.Writer) (int, error) {
 	var code int
 	err := m.catch(func() {
 		res := m.call(prog.Entry, nil)
@@ -140,11 +145,18 @@ func (m *Machine) catch(f func()) (err error) {
 }
 
 func (m *Machine) abort(msg string) {
-	var site mir.Site
+	panic(&Panic{Msg: msg, Site: m.abortSite()})
+}
+
+func (m *Machine) sandboxAbort(msg string) {
+	panic(&Panic{Msg: msg, Site: m.abortSite(), Sandbox: true})
+}
+
+func (m *Machine) abortSite() mir.Site {
 	if m.curFn != nil && m.curInst != nil {
-		site = m.p.SiteAt(m.curFn, m.curInst.Node)
+		return m.p.SiteAt(m.curFn, m.curInst.Node)
 	}
-	panic(&Panic{Msg: msg, Site: site})
+	return mir.Site{}
 }
 
 func (m *Machine) exitCode(res *obj) int {

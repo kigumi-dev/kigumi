@@ -50,6 +50,35 @@ func (m *Machine) dropFrame(fu *future) {
 	}
 }
 
+func (m *Machine) unwindFutures(root *obj) {
+	var chain []*future
+	for v := root; v != nil; {
+		d := deref(v)
+		fu, ok := d.data.(*future)
+		if d.k != kOpaque || !ok || fu.co == nil {
+			break
+		}
+		chain = append(chain, fu)
+		v = fu.awaited
+	}
+	for i := len(chain) - 1; i >= 0; i-- {
+		m.unwindCoro(chain[i])
+	}
+}
+
+// Every local in the current resume is live, so sweep the frame, not the cleanup table.
+func (m *Machine) unwindCoro(fu *future) {
+	fu.done = true
+	if fu.awaited != nil {
+		v := fu.awaited
+		fu.awaited = nil
+		m.release(v)
+	}
+	co := fu.co
+	fu.co = nil
+	m.dropOwnedLocals(co.fr.f, co.fr.locals)
+}
+
 func (m *Machine) freeFuture(fu *future) {
 	m.dropFrame(fu)
 	m.release(fu.fn)

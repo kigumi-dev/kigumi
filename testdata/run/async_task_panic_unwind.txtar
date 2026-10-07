@@ -1,0 +1,52 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// Both frames of the panicking task release what they own, innermost first,
+// before the fault reaches anyone.
+async fn inner(n: Int) -> Int {
+    let r = Res { id: n + 10 }
+    let t = task.spawn(tick())
+    let v = await t
+    panic("boom")
+}
+
+async fn boom() -> Int {
+    let r = Res { id: 1 }
+    let v = await inner(2)
+    v
+}
+
+async fn sib() -> Int {
+    4
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    let b = task.spawn(sib())
+    let x = await b
+    print "b ${x}"
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+b 4
+drop 12
+drop 1
+-- stderr --
+panic: boom
+-- exit --
+2

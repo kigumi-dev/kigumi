@@ -16,6 +16,11 @@ func wantsThreadRuntime(t Target, uses bool) bool {
 	return uses && !t.Bare() && !t.StrictBlocking()
 }
 
+// wasi-libc's setjmp.h needs exception handling, so wasi keeps task panics fatal.
+func wantsTaskCatch(t Target) bool {
+	return !t.Bare() && t.OS != "wasi"
+}
+
 // buildOnce is BuildWith's single-build implementation; buildReproducible
 // calls it twice with pinCompDir and ccEnv set.
 func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool, error) {
@@ -74,6 +79,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	}
 	if wantsThreadRuntime(t, code.Threads) {
 		args = append(args, "-DKIGUMI_THREADS")
+	}
+	if wantsTaskCatch(t) {
+		args = append(args, "-DKIGUMI_TASK_CATCH")
 	}
 	for _, cap := range code.Capabilities {
 		args = append(args, "-D"+cap)

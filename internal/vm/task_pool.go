@@ -1,8 +1,13 @@
 package vm
 
+import "slices"
+
 // startWorkers brings the pool's lanes up; lane 0 belongs to whichever thread
 // drives the executor, and each worker polls lanes 1..n on its own Machine.
 func (m *Machine) startWorkers(e *executor) {
+	m.sh.sched.Lock()
+	m.sh.pools = append(m.sh.pools, e)
+	m.sh.sched.Unlock()
 	for i := 1; i <= e.workers; i++ {
 		e.wg.Add(1)
 		go m.lane().worker(e, i)
@@ -68,7 +73,14 @@ func (m *Machine) closeExecutor(e *executor) {
 	m.sh.sched.Unlock()
 	if idle {
 		e.wg.Wait()
+		m.forgetPool(e)
 	}
+}
+
+func (m *Machine) forgetPool(e *executor) {
+	m.sh.sched.Lock()
+	m.sh.pools = slices.DeleteFunc(m.sh.pools, func(p *executor) bool { return p == e })
+	m.sh.sched.Unlock()
 }
 
 // Runs once the task tree is terminal, so every worker only has to leave its loop.
@@ -79,6 +91,7 @@ func (m *Machine) joinOrphans() {
 	m.sh.sched.Unlock()
 	for _, e := range o {
 		e.wg.Wait()
+		m.forgetPool(e)
 	}
 }
 
@@ -100,74 +113,21 @@ func (m *Machine) flushReleases() {
 	}
 }
 
-func (m *Machine) runToCompletion(ex *executor, fut *obj) *obj {
-	if m.cur != nil {
-		m.abort("`Executor.runToCompletion` cannot run inside a task; `await` the future instead")
+// stopPools runs no drop code and does not wait: a timed-out test has no one to wait for.
+func (m *Machine) stopPools() []*executor {
+	m.sh.sched.Lock()
+	defer m.sh.sched.Unlock()
+	pools := slices.Clone(m.sh.pools)
+	for _, e := range pools {
+		e.stopping = true
+		e.cv.Broadcast()
 	}
-	root := m.admitRoot(ex, fut)
-	for {
-		m.sh.sched.Lock()
-		if ex.failed != nil {
-			f := ex.failed
-			m.sh.sched.Unlock()
-			panic(f)
-		}
-		if root.terminal() {
-			ex.driving = false
-			m.sh.sched.Unlock()
-			break
-		}
-		t := ex.take(0)
-		if t != nil && t.terminal() {
-			m.sh.sched.Unlock()
-			continue
-		}
-		if t == nil {
-			if ex.running > 0 || ex.external > 0 {
-				ex.cv.Wait()
-				m.sh.sched.Unlock()
-				continue
-			}
-			m.sh.sched.Unlock()
-			m.abort("every task on this executor is waiting for something that cannot happen")
-		}
-		ex.running++
-		m.sh.sched.Unlock()
-		m.runTask(t, 0)
-		m.sh.sched.Lock()
-		ex.running--
-		m.sh.sched.Unlock()
-	}
-	return m.rootResult(root)
+	return pools
 }
 
-func (m *Machine) admitRoot(ex *executor, fut *obj) *task {
-	m.sh.sched.Lock()
-	if ex.driving {
-		m.sh.sched.Unlock()
-		m.abort("this executor is already running a task tree")
+func (m *Machine) drainPools() {
+	for _, e := range m.stopPools() {
+		e.wg.Wait()
+		m.forgetPool(e)
 	}
-	ex.driving = true
-	root := &task{fut: fut, ex: ex}
-	ex.live++
-	ex.push(root)
-	m.sh.sched.Unlock()
-	return root
-}
-
-func (m *Machine) rootResult(root *task) *obj {
-	switch root.state {
-	case taskCancelled:
-		m.abort("the root task was cancelled")
-	case taskFaulted:
-		m.abort("the root task did not finish")
-	}
-	r := root.result
-	root.result = nil
-	m.sh.sched.Lock()
-	m.endTask(root)
-	m.sh.sched.Unlock()
-	m.flushReleases()
-	m.joinOrphans()
-	return r
 }

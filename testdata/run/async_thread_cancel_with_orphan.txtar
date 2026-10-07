@@ -1,0 +1,47 @@
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    n * 3
+}
+
+async fn job(n: Int) -> Int {
+    let t = task.spawn(leaf(n))
+    n + await t
+}
+
+// The pool is born and loses its last handle inside one poll, orphaning it
+// while `job` is still queued; a run that ends cancelled must still join it.
+fn launch(pool: task.Executor, n: Int) -> task.Task[Int] {
+    pool.handoff(job(n))
+}
+
+async fn chain(n: Int) -> Int {
+    let t = launch(task.threadPoolExecutor(2), n)
+    await t
+}
+
+async fn never() -> Int {
+    let t = task.spawn(leaf(99))
+    await t
+}
+
+// A plain task.spawn on a currentThreadExecutor has no worker to steal it,
+// so the cancel below always lands before its first poll.
+async fn root(first: task.Executor) -> Int {
+    let orphaned = await first.handoff(chain(1))
+    print "orphaned ${orphaned}"
+    let c = task.spawn(never())
+    c.cancel()
+    await c
+}
+
+let first = task.threadPoolExecutor(2)
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root(first))}"
+-- stdout --
+orphaned 4
+-- stderr --
+panic: the root task was cancelled
+-- exit --
+2

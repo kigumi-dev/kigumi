@@ -60,12 +60,24 @@ func planFrame(f *Func, r *sem.Result) {
 		slices.Reverse(clean)
 		f.Cleanup[k] = clean
 	}
-	for i := range f.Locals {
-		if inFrame[LocalID(i)] {
+	f.PanicDrop = nil
+	for i, l := range f.Locals {
+		id := LocalID(i)
+		named := owned[id] && l.Ent != 0
+		if named {
+			inFrame[id] = true
+		}
+		if inFrame[id] {
 			f.Slot[i] = f.Frame
 			f.Frame++
 		}
+		if named {
+			if src, ok := parent[id]; !ok || !owned[src] || f.Locals[src].Ent == 0 {
+				f.PanicDrop = append(f.PanicDrop, id)
+			}
+		}
 	}
+	slices.Reverse(f.PanicDrop)
 }
 
 // liveAtSuspends is a backward liveness over every local; entry k holds

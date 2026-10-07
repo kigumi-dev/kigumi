@@ -57,7 +57,7 @@ func (m *Machine) pollTask(t *task) (*obj, polled) {
 		return nil, pending
 	}
 	t.waiter = nil
-	st := t.state
+	st, fault := t.state, t.fault
 	r := t.result
 	t.result = nil
 	m.sh.sched.Unlock()
@@ -65,7 +65,7 @@ func (m *Machine) pollTask(t *task) (*obj, polled) {
 	case taskCancelled:
 		return nil, cancelled
 	case taskFaulted:
-		m.abort("the awaited task did not finish")
+		panic(fault)
 	}
 	return r, ready
 }
@@ -115,6 +115,7 @@ func (m *Machine) finishDrain(t *task) {
 			return
 		}
 	}
+	m.inheritFault(t)
 	t.state, t.draining = t.ending, false
 	t.ex.live--
 	if t.ex.finished() {
@@ -143,4 +144,16 @@ func (m *Machine) endTask(t *task) {
 	t.fut, t.result = nil, nil
 	m.releaseLater(f)
 	m.releaseLater(r)
+}
+
+func (m *Machine) inheritFault(t *task) {
+	if t.ending == taskFaulted {
+		return
+	}
+	for _, k := range t.kids {
+		if k.state == taskFaulted {
+			t.ending, t.fault = taskFaulted, k.fault
+			return
+		}
+	}
 }

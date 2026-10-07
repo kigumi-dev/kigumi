@@ -8,6 +8,7 @@ static void* amalloc(rt_allocator* a, size_t n);
 static void afree(rt_allocator* a, void* p);
 static void* arealloc(rt_allocator* a, void* p, size_t oldn, size_t newn);
 static rt_allocator* cur_alloc(void);
+static void rt_fatal(const char* msg);
 static val alloc_in(rt_allocator* a, int kind);
 static val opaque_in(rt_allocator* a, const char* kind, void* data);
 static rt_vdesc* find_variant(rt_type* t, const char* name);

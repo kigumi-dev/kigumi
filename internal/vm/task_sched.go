@@ -33,6 +33,7 @@ type task struct {
 	notified bool
 	queued   bool
 	draining bool
+	fault    *Panic
 	// cancelReq is read at every suspension point by the lane running the
 	// task and set by whichever lane asks, so it stays outside sched.
 	cancelReq atomic.Bool
@@ -126,14 +127,17 @@ func (m *Machine) runTask(t *task, lane int) {
 	m.sh.sched.Unlock()
 	prev, prevLane := m.cur, m.curLane
 	m.cur, m.curLane = t, lane
-	v, st := m.pollValue(t.fut)
+	v, st, fault := m.pollTaskBody(t)
 	m.cur, m.curLane = prev, prevLane
 	m.sh.sched.Lock()
-	switch st {
-	case ready:
+	switch {
+	case fault != nil:
+		t.fault = fault
+		m.beginFinish(t, taskFaulted)
+	case st == ready:
 		t.result = v
 		m.beginFinish(t, taskCompleted)
-	case cancelled:
+	case st == cancelled:
 		m.beginFinish(t, taskCancelled)
 	default:
 		t.state = taskSuspended
@@ -143,4 +147,29 @@ func (m *Machine) runTask(t *task, lane int) {
 	}
 	m.sh.sched.Unlock()
 	m.flushReleases()
+}
+
+// A sandbox abort is never contained; only a non-root fault sweeps frames, the root keeps its own.
+func (m *Machine) pollTaskBody(t *task) (*obj, polled, *Panic) {
+	v, st, fault := m.pollContained(t)
+	if fault != nil && t.parent != nil {
+		m.unwindFutures(t.fut)
+	}
+	return v, st, fault
+}
+
+func (m *Machine) pollContained(t *task) (v *obj, st polled, fault *Panic) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		if p, ok := r.(*Panic); ok && !p.Sandbox {
+			fault = p
+			return
+		}
+		panic(r)
+	}()
+	v, st = m.pollValue(t.fut)
+	return v, st, nil
 }

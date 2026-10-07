@@ -23,7 +23,7 @@ static int64_t handle_table_register(handle_table* t) {
     if (g_handle_tables_len == g_handle_tables_cap) {
         int64_t newcap = g_handle_tables_cap ? g_handle_tables_cap * 2 : 4;
         handle_table** ns = realloc(g_handle_tables, (size_t)newcap * sizeof *ns);
-        if (!ns) rt_panic("out of memory");
+        if (!ns) rt_fatal("out of memory");
         g_handle_tables = ns;
         g_handle_tables_cap = newcap;
     }

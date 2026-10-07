@@ -1,0 +1,27 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn inner() -> Unit {
+    let r = Res { id: 2 }
+    panic("sync")
+}
+
+fn work() -> Unit {
+    let r = Res { id: 1 }
+    let a = Array.of[Int](1, 2)
+    inner()
+    print "${a[5]}"
+}
+
+work()
+-- stdout --
+-- stderr --
+panic: sync
+-- exit --
+2

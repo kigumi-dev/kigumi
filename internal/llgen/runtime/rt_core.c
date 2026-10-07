@@ -37,6 +37,38 @@ static pthread_mutex_t g_sched = PTHREAD_MUTEX_INITIALIZER;
 #define SCHED_LOCK() ((void)0)
 #define SCHED_UNLOCK() ((void)0)
 #endif
+// Contained task panics need a libc, so bare and freestanding builds keep panic fatal.
+#if defined(KIGUMI_TASK_CATCH) && defined(KIGUMI_CAP_TASK_EXECUTOR) && !defined(KIGUMI_FREESTANDING)
+#define KG_CATCH 1
+#include <setjmp.h>
+#ifdef _WIN32
+#define KG_SETJMP(b) setjmp(b)
+#define KG_LONGJMP(b) longjmp(b, 1)
+#else
+#define KG_SETJMP(b) _setjmp(b)
+#define KG_LONGJMP(b) _longjmp(b, 1)
+#endif
+static KG_TLS jmp_buf* g_task_catch;
+static KG_TLS char* g_fault_msg;
+static void task_fault(const char* msg);
+// Records run before the longjmp; later calls would overwrite the dead frames.
+typedef struct kg_unwind {
+    struct kg_unwind* prev;
+    void (*run)(struct kg_unwind*);
+    void* p;
+    val v;
+    int64_t i;
+} kg_unwind;
+static KG_TLS kg_unwind* g_unwind;
+static KG_TLS kg_unwind* g_unwind_base;
+#define UNWIND_PUSH(u, fn, p_, v_, i_) \
+    kg_unwind u = {g_unwind, fn, p_, v_, i_}; \
+    g_unwind = &u
+#define UNWIND_POP(u) (g_unwind = (u).prev)
+#else
+#define UNWIND_PUSH(u, fn, p_, v_, i_) ((void)0)
+#define UNWIND_POP(u) ((void)0)
+#endif
 #ifdef KIGUMI_COFF
 // PE/COFF objects with floating-point code need this marker; the CRT
 // normally defines it, but -nostdlib leaves none.
@@ -231,11 +263,17 @@ void rt_release(val v) {
     if (--v->rc == 0) free_obj(v);
 #endif
 }
-void rt_panic(const char* msg) {
+static void rt_fatal(const char* msg) {
     rt_sys_write(2, "panic: ", 7);
     rt_sys_write(2, msg, strlen(msg));
     rt_sys_write(2, "\n", 1);
     rt_sys_exit(2);
+}
+void rt_panic(const char* msg) {
+#ifdef KG_CATCH
+    if (g_task_catch) task_fault(msg);
+#endif
+    rt_fatal(msg);
 }
 // panicf's every caller passes a fixed message with exactly one "%s"; this
 // avoids a full printf just for that one substitution.
@@ -1413,6 +1451,7 @@ typedef struct kg_async_desc {
     int32_t nslots;
     int32_t mobile;
 } kg_async_desc;
+#define KG_FRAME_PANICKED (1 << 30)
 typedef struct kgframe {
     const kg_async_desc* desc;
     val awaited;
@@ -1434,6 +1473,7 @@ struct kgtask {
     kgexec *ex, *pex;
     kgtask *parent, *waiter;
     kgtask** kids;
+    char* fault;
     int nkids, capkids;
     int state, ending, notified, queued, draining;
     // refs and cancel are read outside the scheduler lock: a Task handle can
@@ -1478,7 +1518,7 @@ static void sched_release(val v) {
     if (g_ndefer == g_capdefer) {
         int c = g_capdefer ? g_capdefer * 2 : 16;
         val* p = realloc(g_defer, (size_t)c * sizeof(val));
-        if (!p) rt_panic("out of memory");
+        if (!p) rt_fatal("out of memory");
         g_defer = p;
         g_capdefer = c;
     }
@@ -1597,6 +1637,19 @@ typedef struct sctrl {
     val cell, shared;
     int weak, alive, borrow;
 } sctrl;
+#ifdef KG_CATCH
+static void unwind_borrow_release(kg_unwind* u) {
+    ((sctrl*)u->p)->borrow--;
+}
+static void unwind_borrow_free(kg_unwind* u) {
+    ((sctrl*)u->p)->borrow = 0;
+}
+static void unwind_lend_back(kg_unwind* u) {
+    ((val)u->p)->u.arr.items[u->i] = u->v->u.cell.v;
+    u->v->u.cell.v = NULL;
+    rt_release(u->v);
+}
+#endif
 // Opaque values that own runtime state: an arena handle closes its arena, a
 // scope keeps its handle alive, a guard pops the allocator it pushed, and a
 // Shared cell releases its content.
@@ -2306,7 +2359,9 @@ val rt_std_id(int op, int n, val* a) {
         // the slot takes the cell's (possibly new) content back after.
         val cell = rt_cell(a0->u.arr.items[i]);
         val arg[1] = {cell};
+        UNWIND_PUSH(u, unwind_lend_back, a0, cell, i);
         val r = rt_callv(a2, 1, arg);
+        UNWIND_POP(u);
         a0->u.arr.items[i] = cell->u.cell.v;
         // free_obj on a cell releases its `.v`, already handed to the
         // array slot above; detach it first so that release is a no-op.
@@ -2320,7 +2375,9 @@ val rt_std_id(int op, int n, val* a) {
         if (i < 0 || i >= arr->u.arr.len) return none();
         val cell = rt_cell(arr->u.arr.items[i]);
         val arg[1] = {cell};
+        UNWIND_PUSH(u, unwind_lend_back, arr, cell, i);
         val r = rt_callv(a2, 1, arg);
+        UNWIND_POP(u);
         arr->u.arr.items[i] = cell->u.cell.v;
         cell->u.cell.v = NULL;
         rt_release(cell);
@@ -2580,7 +2637,9 @@ val rt_std_id(int op, int n, val* a) {
         if (c->borrow < 0) rt_panic("Shared is exclusively borrowed");
         c->borrow++;
         val arg[1] = {c->cell->u.cell.v};
+        UNWIND_PUSH(u, unwind_borrow_release, c, NULL, 0);
         val r = rt_callv(a1, 1, arg);
+        UNWIND_POP(u);
         c->borrow--;
         return r;
     }
@@ -2591,7 +2650,9 @@ val rt_std_id(int op, int n, val* a) {
         // The callback writes through c->cell itself, same as any
         // other &mut Cell store, instead of a snapshot of its content.
         val arg[1] = {c->cell};
+        UNWIND_PUSH(u, unwind_borrow_free, c, NULL, 0);
         val r = rt_callv(a1, 1, arg);
+        UNWIND_POP(u);
         c->borrow = 0;
         return r;
     }

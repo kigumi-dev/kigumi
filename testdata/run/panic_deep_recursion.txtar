@@ -1,0 +1,14 @@
+-- src --
+fn rec(n: Int) -> Int {
+    if n == 0 {
+        panic("deep")
+    }
+    1 + rec(n - 1)
+}
+
+print "${rec(20000)}"
+-- stdout --
+-- stderr --
+panic: deep
+-- exit --
+2

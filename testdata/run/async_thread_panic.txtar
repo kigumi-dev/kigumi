@@ -1,0 +1,33 @@
+-- src --
+import task from std/task
+
+// A panic faults only its own task: the siblings still finish, and the
+// panic surfaces with its own text once the root awaits it.
+async fn boom() -> Int {
+    panic("boom")
+}
+
+async fn leaf(n: Int) -> Int {
+    n * n
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    let b = task.spawn(leaf(2))
+    let c = task.spawn(leaf(3))
+    let x = await b
+    print "b ${x}"
+    let y = await c
+    print "c ${y}"
+    await a
+}
+
+let ex = task.threadPoolExecutor(3)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+b 4
+c 9
+-- stderr --
+panic: boom
+-- exit --
+2

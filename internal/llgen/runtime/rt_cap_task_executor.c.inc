@@ -6,7 +6,7 @@ static void q_push(kgqueue* k, kgtask* t) {
         if (k->len == k->cap) {
             k->cap = k->cap ? k->cap * 2 : 8;
             k->q = realloc(k->q, (size_t)k->cap * sizeof(kgtask*));
-            if (!k->q) rt_panic("out of memory");
+            if (!k->q) rt_fatal("out of memory");
         }
     }
     k->q[k->head + k->len++] = t;
@@ -39,6 +39,7 @@ static void task_unref(kgtask* t) {
     sched_release(t->fut);
     sched_release(t->result);
     free(t->kids);
+    free(t->fault);
     free(t);
 }
 static void task_end(kgtask* t) {
@@ -61,12 +62,28 @@ static void task_request_cancel(kgtask* t) {
     for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
     task_wake(t);
 }
+static char* dup_msg(const char* m) {
+    size_t n = strlen(m) + 1;
+    char* d = malloc(n);
+    if (d) memcpy(d, m, n);
+    return d;
+}
+static void task_inherit_fault(kgtask* t) {
+    if (t->ending == T_FAULTED) return;
+    for (int i = 0; i < t->nkids; i++)
+        if (t->kids[i]->state == T_FAULTED) {
+            t->ending = T_FAULTED;
+            t->fault = t->kids[i]->fault ? dup_msg(t->kids[i]->fault) : NULL;
+            return;
+        }
+}
 static void task_finish_drain(kgtask* t) {
     for (int i = 0; i < t->nkids; i++)
         if (!task_terminal(t->kids[i])) {
             t->state = T_SUSPENDED;
             return;
         }
+    task_inherit_fault(t);
     t->state = t->ending;
     t->draining = 0;
     t->ex->live--;
@@ -98,6 +115,67 @@ static void task_begin_finish(kgtask* t, int end) {
     for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
     task_finish_drain(t);
 }
+#ifdef KG_CATCH
+static void task_fault(const char* msg) {
+    g_fault_msg = dup_msg(msg);
+    if (!g_fault_msg) rt_fatal(msg);
+    while (g_unwind != g_unwind_base) {
+        kg_unwind* u = g_unwind;
+        g_unwind = u->prev;
+        u->run(u);
+    }
+    KG_LONGJMP(*g_task_catch);
+}
+static __attribute__((noinline)) val poll_body(kgtask* t, int* faulted) {
+    jmp_buf jb;
+    jmp_buf* prev = g_task_catch;
+    int sp = g_alloc_sp;
+    kg_unwind* prev_base = g_unwind_base;
+    g_unwind_base = g_unwind;
+    if (KG_SETJMP(jb)) {
+        g_task_catch = prev;
+        g_unwind_base = prev_base;
+        g_alloc_sp = sp;
+#ifdef KIGUMI_THREADS
+        g_flushing = 0;
+#endif
+        *faulted = 1;
+        return NULL;
+    }
+    g_task_catch = &jb;
+    val r = poll_value(t->fut);
+    g_task_catch = prev;
+    g_unwind_base = prev_base;
+    return r;
+}
+// Only the awaited chain was running; the root keeps its frames, as a fatal panic does.
+static void frames_panicked(val v) {
+    for (;;) {
+        val d = deref(v);
+        if (!d || d->kind != K_OPAQUE || strcmp(d->u.op.kind, "Future")) return;
+        kgframe* f = (kgframe*)d->u.op.data;
+        if (f->state >= 0) f->state = KG_FRAME_PANICKED;
+        v = f->awaited;
+    }
+}
+static void task_unwind(kgtask* t) {
+    t->fault = g_fault_msg;
+    g_fault_msg = NULL;
+    if (!t->parent) return;
+    frames_panicked(t->fut);
+    val f = t->fut;
+    t->fut = NULL;
+    rt_release(f);
+}
+#else
+static val poll_body(kgtask* t, int* faulted) {
+    (void)faulted;
+    return poll_value(t->fut);
+}
+static void task_unwind(kgtask* t) {
+    (void)t;
+}
+#endif
 static void task_run(kgtask* t, int lane) {
     SCHED_LOCK();
     if (task_terminal(t)) {
@@ -118,11 +196,15 @@ static void task_run(kgtask* t, int lane) {
     int prevlane = g_cur_lane;
     g_cur_task = t;
     g_cur_lane = lane;
-    val r = poll_value(t->fut);
+    int faulted = 0;
+    val r = poll_body(t, &faulted);
+    if (faulted) task_unwind(t);
     g_cur_task = prev;
     g_cur_lane = prevlane;
     SCHED_LOCK();
-    if (!r) {
+    if (faulted) {
+        task_begin_finish(t, T_FAULTED);
+    } else if (!r) {
         t->state = T_SUSPENDED;
         if (t->notified) exec_push(t->ex, t);
     } else if (r == KG_CANCELLED) {
@@ -146,9 +228,10 @@ static val poll_task(kgtask* t) {
     int st = t->state;
     val r = t->result;
     t->result = NULL;
+    const char* fault = t->fault;
     SCHED_UNLOCK();
     if (st == T_CANCELLED) return KG_CANCELLED;
-    if (st == T_FAULTED) rt_panic("the awaited task did not finish");
+    if (st == T_FAULTED) rt_panic(fault ? fault : "the awaited task did not finish");
     return r;
 }
 #ifdef KIGUMI_THREADS
@@ -181,7 +264,29 @@ static void* worker_main(void* p) {
 }
 static kgexec** g_orphans;
 static int g_norphans, g_caporphans;
+static kgexec** g_pools;
+static int g_npools, g_cappools;
+static void pool_register(kgexec* e) {
+    SCHED_LOCK();
+    if (g_npools == g_cappools) {
+        g_cappools = g_cappools ? g_cappools * 2 : 4;
+        g_pools = realloc(g_pools, (size_t)g_cappools * sizeof(kgexec*));
+        if (!g_pools) rt_fatal("out of memory");
+    }
+    g_pools[g_npools++] = e;
+    SCHED_UNLOCK();
+}
+static void pool_forget(kgexec* e) {
+    SCHED_LOCK();
+    for (int i = 0; i < g_npools; i++)
+        if (g_pools[i] == e) {
+            g_pools[i] = g_pools[--g_npools];
+            break;
+        }
+    SCHED_UNLOCK();
+}
 static void exec_join(kgexec* e) {
+    if (e->nworkers) pool_forget(e);
     for (int i = 0; i < e->nworkers; i++) pthread_join(e->threads[i], NULL);
     free(e->threads);
     free(e->wk);
@@ -223,7 +328,7 @@ static void exec_drop(kgexec* e) {
             if (g_norphans == g_caporphans) {
                 g_caporphans = g_caporphans ? g_caporphans * 2 : 4;
                 kgexec** o = realloc(g_orphans, (size_t)g_caporphans * sizeof(kgexec*));
-                if (!o) rt_panic("out of memory");
+                if (!o) rt_fatal("out of memory");
                 g_orphans = o;
             }
             g_orphans[g_norphans++] = e;
@@ -251,6 +356,22 @@ static void exec_reap(void) {
     free(o);
 #endif
 }
+static void exec_drain(void) {
+#ifdef KIGUMI_THREADS
+    exec_reap();
+    SCHED_LOCK();
+    int n = g_npools;
+    kgexec** held = n ? malloc((size_t)n * sizeof(kgexec*)) : NULL;
+    if (held) memcpy(held, g_pools, (size_t)n * sizeof(kgexec*));
+    for (int i = 0; held && i < n; i++) {
+        held[i]->dropped = 1;
+        pthread_cond_broadcast(&held[i]->cv);
+    }
+    SCHED_UNLOCK();
+    for (int i = 0; held && i < n; i++) exec_join(held[i]);
+    free(held);
+#endif
+}
 val rt_executor_new(void) { return opaque("Executor", exec_new(0)); }
 val rt_thread_pool_new(int64_t workers) {
 #ifdef KIGUMI_THREADS
@@ -261,6 +382,7 @@ val rt_thread_pool_new(int64_t workers) {
     e->wk = calloc((size_t)workers, sizeof(kgworker));
     if (!e->threads || !e->wk) rt_panic("out of memory");
     e->nworkers = (int)workers;
+    pool_register(e);
     for (int i = 0; i < e->nworkers; i++) {
         e->wk[i].e = e;
         e->wk[i].lane = i + 1;
@@ -311,8 +433,9 @@ val rt_run_to_completion(val exv, val fut) {
     e->driving = 0;
     SCHED_UNLOCK();
     sched_flush();
+    if (root->state == T_CANCELLED || root->state == T_FAULTED) exec_drain();
     if (root->state == T_CANCELLED) rt_panic("the root task was cancelled");
-    if (root->state == T_FAULTED) rt_panic("the root task did not finish");
+    if (root->state == T_FAULTED) rt_panic(root->fault ? root->fault : "the root task did not finish");
     val r = root->result;
     root->result = NULL;
     task_end(root);
@@ -344,7 +467,7 @@ static val task_start(kgexec* e, val fut, int mobile) {
     if (p->nkids == p->capkids) {
         p->capkids = p->capkids ? p->capkids * 2 : 4;
         p->kids = realloc(p->kids, (size_t)p->capkids * sizeof(kgtask*));
-        if (!p->kids) rt_panic("out of memory");
+        if (!p->kids) rt_fatal("out of memory");
     }
     p->kids[p->nkids++] = t;
     if (e != p->ex) p->ex->external++;
