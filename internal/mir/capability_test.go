@@ -1,6 +1,9 @@
 package mir
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestCapabilityMacro(t *testing.T) {
 	cases := map[Capability]string{
@@ -35,10 +38,43 @@ func TestCapabilityMacros(t *testing.T) {
 	}
 }
 
-func TestNewCapabilitiesAreNotHostOnly(t *testing.T) {
-	for _, c := range []Capability{CapFFIRaw, CapTaskExecutor, CapSecureErase} {
-		if c.HostOnly() {
-			t.Errorf("%s.HostOnly() = true, want false: it has an OS-free rt_core.c implementation", c)
+func TestCapabilitiesCloseOverNeeds(t *testing.T) {
+	id, ok := StdOpIdOf("TASK_THREAD_POOL_EXECUTOR")
+	if !ok {
+		t.Fatal("TASK_THREAD_POOL_EXECUTOR not found in StdOpNames")
+	}
+	got := strings.Join(Capabilities([]StdOpId{id}), ",")
+	if got != "task.executor,task.threads" {
+		t.Errorf("Capabilities(TASK_THREAD_POOL_EXECUTOR) = %s, want task.executor,task.threads", got)
+	}
+}
+
+func TestVocabularyIsClosed(t *testing.T) {
+	inVocabulary := map[Capability]bool{}
+	for _, c := range Vocabulary() {
+		if inVocabulary[c] {
+			t.Errorf("%s listed twice in the vocabulary", c)
+		}
+		inVocabulary[c] = true
+	}
+	reached := map[Capability]bool{}
+	for op, c := range opCapability {
+		if _, ok := StdOpIdOf(op); !ok {
+			t.Errorf("opCapability names %s, which is not a std op", op)
+		}
+		if !inVocabulary[c] {
+			t.Errorf("op %s maps to %s, which is not in the vocabulary", op, c)
+		}
+		reached[c] = true
+	}
+	for c := range inVocabulary {
+		if !reached[c] {
+			t.Errorf("%s is in the vocabulary but no op draws on it", c)
+		}
+		for _, need := range c.Needs() {
+			if !inVocabulary[need] {
+				t.Errorf("%s needs %s, which is not in the vocabulary", c, need)
+			}
 		}
 	}
 }

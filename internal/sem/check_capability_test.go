@@ -12,7 +12,7 @@ import (
 )
 
 // This package cannot import MIR to build a CapabilityUse, so the test builds one directly.
-func TestCheckStrictCapabilitiesReportsE1370(t *testing.T) {
+func TestCheckCapabilityProvisionReportsE1370(t *testing.T) {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte("let n = 1\n")))
 	main.Files = []*syntax.Tree{main.Entry}
@@ -26,17 +26,19 @@ func TestCheckStrictCapabilitiesReportsE1370(t *testing.T) {
 			file = sem.FileID(i)
 		}
 	}
-	res.CheckStrictCapabilities([]sem.CapabilityUse{{
-		Op:   "HOST_SHELL",
-		File: file,
-		Node: main.Entry.Root,
-		Path: []string{"main", "run", "HOST_SHELL"},
+	res.CheckCapabilityProvision([]sem.CapabilityUse{{
+		Op:         "HOST_SHELL",
+		Capability: "host.shell",
+		Reason:     "no operating system",
+		File:       file,
+		Node:       main.Entry.Root,
+		Path:       []string{"main", "run", "HOST_SHELL"},
 	}})
 	if !res.HasErrors() {
-		t.Fatal("expected CheckStrictCapabilities to report an error")
+		t.Fatal("expected CheckCapabilityProvision to report an error")
 	}
 	out := res.Render()
-	if !strings.Contains(out, "E1370") || !strings.Contains(out, "HOST_SHELL") || !strings.Contains(out, "main -> run -> HOST_SHELL") {
+	if !strings.Contains(out, "E1370") || !strings.Contains(out, "HOST_SHELL") || !strings.Contains(out, "host.shell") || !strings.Contains(out, "no operating system") || !strings.Contains(out, "main -> run -> HOST_SHELL") {
 		t.Fatalf("expected E1370 naming HOST_SHELL and its path, got:\n%s", out)
 	}
 }

@@ -41,8 +41,46 @@ func TestCapabilitiesAndReasonGraphNameCString(t *testing.T) {
 	if len(caps) != 1 || caps[0] != "ffi.cstring" {
 		t.Fatalf("Capabilities(cstring program) = %v, want [ffi.cstring]", caps)
 	}
-	graph := driver.CapabilityReasonGraph(a)
-	if len(graph) != 1 || graph[0].Name != "ffi.cstring" || len(graph[0].Path) == 0 {
-		t.Fatalf("CapabilityReasonGraph = %+v, want one ffi.cstring entry with a non-empty path", graph)
+	graph := driver.CapabilityReasons(a, driver.HostTarget())
+	if len(graph) != 1 || graph[0].Capability != "ffi.cstring" || graph[0].Op != "CSTRING_NEW" || len(graph[0].Path) == 0 || !graph[0].Provided || graph[0].RootKind != "entry" {
+		t.Fatalf("CapabilityReasons = %+v, want one provided ffi.cstring entry reached from the entry", graph)
+	}
+}
+
+func TestCapabilityReasonsNameWithheldCapabilityPerTarget(t *testing.T) {
+	a := loadForCapabilities(t, "let args = host.args()\nprint \"${args.len()}\"\n")
+	wasi, err := driver.ParseTarget("wasm32-wasi", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bare := driver.HostTarget()
+	bare.Sys = "none"
+	for _, c := range []struct {
+		name   string
+		target driver.Target
+		want   bool
+	}{{"host", driver.HostTarget(), true}, {"wasi", wasi, true}, {"sys none", bare, false}} {
+		graph := driver.CapabilityReasons(a, c.target)
+		if len(graph) == 0 || graph[0].Capability != "host.args" {
+			t.Fatalf("%s: CapabilityReasons = %+v, want host.args first", c.name, graph)
+		}
+		if graph[0].Provided != c.want || (!c.want && graph[0].Why == "") {
+			t.Errorf("%s: host.args = %+v, want provided=%v with a reason when withheld", c.name, graph[0], c.want)
+		}
+	}
+}
+
+func TestCapabilityReasonsImplyThreadPoolNeeds(t *testing.T) {
+	a := loadForCapabilities(t, "import task from std/task\n\nasync fn leaf(n: Int) -> Int {\n    n\n}\n\nlet pool = task.threadPoolExecutor(2)\nprint \"${pool.runToCompletion(leaf(1))}\"\n")
+	var threads, implied bool
+	for _, r := range driver.CapabilityReasons(a, driver.HostTarget()) {
+		threads = threads || (r.Capability == "task.threads" && r.Op == "TASK_THREAD_POOL_EXECUTOR" && r.Provided)
+		implied = implied || (r.Capability == "task.executor" && r.RequiredBy == "task.threads")
+	}
+	if !threads || !implied {
+		t.Fatalf("want task.threads reached through the pool op and task.executor implied by it, got %+v", driver.CapabilityReasons(a, driver.HostTarget()))
+	}
+	if caps := driver.Capabilities(a); len(caps) != 2 || caps[0] != "task.executor" || caps[1] != "task.threads" {
+		t.Errorf("Capabilities(thread pool program) = %v, want task.executor and task.threads", caps)
 	}
 }

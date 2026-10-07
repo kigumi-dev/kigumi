@@ -16,6 +16,7 @@ func buildReproducible(m *Module, out string, stderr io.Writer, opts BuildOption
 	name := filepath.Base(out)
 	var data [2][]byte
 	var mode os.FileMode
+	var sidecar []byte
 	for i := range data {
 		dir, err := os.MkdirTemp("", "kigumi-repro")
 		if err != nil {
@@ -42,6 +43,9 @@ func buildReproducible(m *Module, out string, stderr io.Writer, opts BuildOption
 		if err != nil {
 			return false, err
 		}
+		if i == 0 {
+			sidecar, _ = os.ReadFile(FingerprintSidecarPath(buildOut))
+		}
 	}
 	if off, equal := firstDiffOffset(data[0], data[1]); !equal {
 		return false, fmt.Errorf("build is not reproducible: %s differs at byte offset %d (%d vs %d bytes)", name, off, len(data[0]), len(data[1]))
@@ -51,6 +55,11 @@ func buildReproducible(m *Module, out string, stderr io.Writer, opts BuildOption
 	}
 	if err := os.Chmod(out, mode); err != nil {
 		return false, err
+	}
+	if sidecar != nil {
+		if err := os.WriteFile(FingerprintSidecarPath(out), sidecar, 0o644); err != nil {
+			return false, err
+		}
 	}
 	return true, nil
 }

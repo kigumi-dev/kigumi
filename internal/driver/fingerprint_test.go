@@ -85,6 +85,10 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("expected a fingerprint sidecar: ok=%v err=%v", ok, err)
 	}
+	if len(got.CapabilityProvision) == 0 {
+		t.Error("expected the sidecar to record what the target provides")
+	}
+	got.CapabilityProvision, got.CapabilityReasons = nil, nil
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
@@ -109,6 +113,7 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("expected a refreshed sidecar: ok=%v err=%v", ok, err)
 	}
+	got2.CapabilityProvision, got2.CapabilityReasons = nil, nil
 	if !reflect.DeepEqual(got2, want) {
 		t.Errorf("sidecar after rebuild = %+v, want the current fingerprint %+v", got2, want)
 	}

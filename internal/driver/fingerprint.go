@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"kigumi/internal/mir"
 	"kigumi/internal/schema"
 	"kigumi/internal/version"
 )
@@ -20,8 +21,10 @@ type ArtifactFingerprint struct {
 	AbiRevision     int    `json:"abiRevision"`
 	// ZigVersion is "" for a clang build, or a zig build with no pin to check.
 	ZigVersion string `json:"zigVersion,omitempty"`
-	// FingerprintMismatch never compares DeriveProvenance.
-	DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
+	// FingerprintMismatch never compares DeriveProvenance, CapabilityProvision or CapabilityReasons.
+	DeriveProvenance    []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
+	CapabilityProvision []CapabilityVerdict        `json:"capabilityProvision,omitempty"`
+	CapabilityReasons   []mir.CapabilityReason     `json:"capabilityReasons,omitempty"`
 }
 
 // targetIdentity falls back to OS/Arch/Sys because HostTarget leaves
@@ -127,4 +130,12 @@ func dirtySuffix(dirty bool) string {
 		return "+dirty"
 	}
 	return ""
+}
+
+func withProvenance(fp *ArtifactFingerprint, m *Module, t Target, code compiled) {
+	if a := m.LastAnalysis(); a != nil {
+		fp.DeriveProvenance = a.Provenance
+	}
+	fp.CapabilityProvision = ProvidedCapabilities(t)
+	fp.CapabilityReasons = code.Reasons
 }

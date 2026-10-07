@@ -4,6 +4,9 @@
 #define KIGUMI_RT_H
 #include <stddef.h>
 #include <stdint.h>
+#ifdef KIGUMI_CAP_TASK_THREADS
+#define KIGUMI_THREADS
+#endif
 #ifdef KIGUMI_THREADS
 #include <stdatomic.h>
 // Under the thread profile a value's last reference can be dropped on a

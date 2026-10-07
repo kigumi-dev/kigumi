@@ -11,11 +11,6 @@ import (
 	"kigumi/internal/llgen"
 )
 
-// wantsThreadRuntime withholds -DKIGUMI_THREADS where sem already rejects a pool, so rt_core.c keeps its no-thread panic instead of needing a pthread.h the target has not got.
-func wantsThreadRuntime(t Target, uses bool) bool {
-	return uses && !t.Bare() && !t.StrictBlocking()
-}
-
 // wasi-libc's setjmp.h needs exception handling, so wasi keeps task panics fatal.
 func wantsTaskCatch(t Target) bool {
 	return !t.Bare() && t.OS != "wasi"
@@ -28,7 +23,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if t.OS == "" {
 		t = HostTarget()
 	}
-	code, ok, err := compile(m, stderr, emitOptionsFor(t))
+	code, ok, err := compile(m, stderr, t, emitOptionsFor(t))
 	if err != nil || !ok {
 		return ok, err
 	}
@@ -77,9 +72,6 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if t.Freestanding() {
 		args = append(args, "-DKIGUMI_FREESTANDING", "-nostdlib")
 	}
-	if wantsThreadRuntime(t, code.Threads) {
-		args = append(args, "-DKIGUMI_THREADS")
-	}
 	if wantsTaskCatch(t) {
 		args = append(args, "-DKIGUMI_TASK_CATCH")
 	}
@@ -99,16 +91,14 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		if err != nil || !ok {
 			return ok, err
 		}
-		if a := m.LastAnalysis(); a != nil {
-			fp.DeriveProvenance = a.Provenance
-		}
+		withProvenance(&fp, m, t, code)
 		if err := WriteFingerprintSidecar(out, fp); err != nil {
 			return false, err
 		}
 		err = auditBareArchive(cc, out)
 		return err == nil, err
 	}
-	return publishBuildOutput(out, func(staged string) error {
+	ok, err = publishBuildOutput(out, func(staged string) error {
 		linkOut, linkInputsList, err := linkInputs(opts.pinCompDir, dir, staged, inputs)
 		if err != nil {
 			return err
@@ -156,4 +146,10 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		}
 		return nil
 	})
+	if err != nil || !ok {
+		return ok, err
+	}
+	fp := CurrentFingerprint(t, ZigVersionOf(cc))
+	withProvenance(&fp, m, t, code)
+	return true, WriteFingerprintSidecar(out, fp)
 }

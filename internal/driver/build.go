@@ -5,12 +5,11 @@ import (
 
 	"kigumi/internal/llgen"
 	"kigumi/internal/mir"
-	"kigumi/internal/sem"
 )
 
 // Compile type-checks and lowers m to MIR, returning LLVM IR for its own resolved target so --emit-llvm matches what BuildWith would link.
 func Compile(m *Module, stderr io.Writer) (string, bool, error) {
-	out, ok, err := compile(m, stderr, emitOptionsFor(m.target))
+	out, ok, err := compile(m, stderr, m.target, emitOptionsFor(m.target))
 	return out.IR, ok, err
 }
 
@@ -24,45 +23,33 @@ func emitOptionsFor(t Target) llgen.EmitOptions {
 	return opts
 }
 
-func compile(m *Module, stderr io.Writer, opts llgen.EmitOptions) (llgen.Output, bool, error) {
+type compiled struct {
+	llgen.Output
+	Reasons []mir.CapabilityReason
+}
+
+func compile(m *Module, stderr io.Writer, t Target, opts llgen.EmitOptions) (compiled, bool, error) {
 	if m.ReportDiagnostics(stderr) {
-		return llgen.Output{}, false, nil
+		return compiled{}, false, nil
 	}
 	a, err := Analyze(m)
 	if err != nil {
-		return llgen.Output{}, false, err
+		return compiled{}, false, err
 	}
 	if a.Res.HasErrors() {
 		io.WriteString(stderr, a.Res.Render())
-		return llgen.Output{}, false, nil
+		return compiled{}, false, nil
 	}
 	reach := mir.Reachable(a.Prog)
-	if m.target.Freestanding() && m.target.NoDefaultAllocator() {
-		a.Res.CheckStrictCapabilities(strictCapabilityUses(a.Prog, reach))
-		if a.Res.HasErrors() {
-			io.WriteString(stderr, a.Res.Render())
-			return llgen.Output{}, false, nil
-		}
+	plat := t.CapabilityPlatform()
+	a.Res.CheckCapabilityProvision(capabilityUses(a.Prog, reach, plat))
+	if a.Res.HasErrors() {
+		io.WriteString(stderr, a.Res.Render())
+		return compiled{}, false, nil
 	}
 	opts.Reachable = reach
 	m.stats.Emit++
-	return llgen.EmitProgram(a.Prog, opts), true, nil
-}
-
-func strictCapabilityUses(p *mir.Program, reach *mir.Reachability) []sem.CapabilityUse {
-	var out []sem.CapabilityUse
-	for _, op := range reach.Ops {
-		if !op.NeedsHostCapability() {
-			continue
-		}
-		site := reach.OpSites[op]
-		caller := p.ByEnt[site.Caller]
-		if caller == nil {
-			continue
-		}
-		out = append(out, sem.CapabilityUse{Op: mir.StdOpNames[op], File: caller.File, Node: site.Node, Path: reach.PathNames(p.R, site.Caller)})
-	}
-	return out
+	return compiled{llgen.EmitProgram(a.Prog, opts), reach.CapabilityReasons(a.Res, plat)}, true, nil
 }
 
 // BuildOptions selects the target; the zero value builds for the host.

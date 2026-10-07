@@ -72,9 +72,20 @@ func (e *emitter) borrowFieldMask(info *sem.TypeDeclInfo) uint64 {
 	return mask
 }
 
-// data emits a descriptor for every type reach.Types keeps, plus any type
-// e.descs already names (complete by now) in case that pass missed one.
+// Emitting a dropped type's descriptor would leave its drop glue undefined at link time.
+func (e *emitter) requireKeptDescriptors() {
+	if e.reachable == nil {
+		return
+	}
+	for ent := range e.descs {
+		if int(ent) < len(e.r.Entities) && e.r.Entity(ent).Kind == sem.EntType && !e.reachable.KeepType(ent) {
+			panic("llgen: code names the descriptor of " + e.qualifiedName(ent) + ", which reachability did not keep")
+		}
+	}
+}
+
 func (e *emitter) data() string {
+	e.requireKeptDescriptors()
 	var sb strings.Builder
 	var typeRefs []string
 	for id := 1; id < len(e.r.Entities); id++ {
@@ -84,9 +95,7 @@ func (e *emitter) data() string {
 			continue
 		}
 		if e.reachable != nil && !e.reachable.KeepType(ent) {
-			if _, used := e.descs[ent]; !used {
-				continue
-			}
+			continue
 		}
 		info := e.r.TypeDecl(ent)
 		for _, v := range info.Variants {

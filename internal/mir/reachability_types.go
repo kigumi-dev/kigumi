@@ -54,3 +54,14 @@ func baseTypeEnts(r *sem.Result) []sem.EntityID {
 		r.PackageMember(prelude, "AllocError"),
 	}
 }
+
+// Names rt_core.c looks up by name: always-kept base types plus those an op's record construction needs.
+func RuntimeNamedTypes() map[string]bool {
+	out := map[string]bool{"Option": true, "Result": true, "Map": true, "Ordering": true, "Range": true, "AllocError": true}
+	for _, refs := range nativeRecordTypeNames {
+		for _, ref := range refs {
+			out[ref.name] = true
+		}
+	}
+	return out
+}

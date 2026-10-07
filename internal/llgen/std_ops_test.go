@@ -183,9 +183,6 @@ func TestRuntimeCapFileCommentRuns(t *testing.T) {
 // goCommentRunAllowlist holds this package's pre-existing 3+-line doc
 // comments; new ones must stay under 3 lines.
 var goCommentRunAllowlist = map[string]bool{
-	"// posixSignalOS are the driver.Target.OS values with POSIX <signal.h>.\n" +
-		"// Windows and WASI are hosted (sys != \"none\") but have neither, so\n" +
-		"// rt_signal.c must be gated on this instead of on sys alone.": true,
 	"// RuntimeFiles includes rt_signal.c only for hosted POSIX OSes: sigaction\n" +
 		"// needs a POSIX <signal.h>, which freestanding/\"--sys none\" and\n" +
 		"// Windows/WASI lack.": true,

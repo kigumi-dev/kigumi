@@ -1,6 +1,10 @@
 package llgen
 
-import _ "embed"
+import (
+	_ "embed"
+
+	"kigumi/internal/mir"
+)
 
 //go:embed runtime/rt.h
 var runtimeHeader string
@@ -93,11 +97,6 @@ type RuntimeFile struct {
 	Name, Src string
 }
 
-// posixSignalOS are the driver.Target.OS values with POSIX <signal.h>.
-// Windows and WASI are hosted (sys != "none") but have neither, so
-// rt_signal.c must be gated on this instead of on sys alone.
-var posixSignalOS = map[string]bool{"linux": true, "darwin": true, "freebsd": true, "netbsd": true, "openbsd": true}
-
 // freestandingOS have no bundled libc headers at all; a hosted "--sys
 // none" target keeps its real OS headers (driver.Target.Bare's doc).
 var freestandingOS = map[string]bool{"freestanding": true, "uefi": true}
@@ -108,7 +107,7 @@ var freestandingOS = map[string]bool{"freestanding": true, "uefi": true}
 func RuntimeFiles(sys, os string) []RuntimeFile {
 	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys.c", runtimeSys}}
 	files = append(files, capFiles...)
-	if sys != "none" && posixSignalOS[os] {
+	if sys != "none" && mir.PosixSignalOS(os) {
 		files = append(files, RuntimeFile{"rt_signal.c", runtimeSignal})
 	}
 	if freestandingOS[os] {

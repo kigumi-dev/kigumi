@@ -80,3 +80,56 @@ print "ok"
 		t.Errorf("CSTRING_NEW should map to the ffi.cstring capability")
 	}
 }
+
+func TestReachableCountsMentionedStdOp(t *testing.T) {
+	const src = `import ffi from std/ffi
+
+let make = ffi.CString.new
+print "ok"
+`
+	main := &sem.Package{Path: "main"}
+	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
+	main.Files = []*syntax.Tree{main.Entry}
+	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)}, schema.GenerateDerive)
+	if res.HasErrors() {
+		t.Fatalf("check errors:\n%s", res.Render())
+	}
+	rs := mir.Reachable(mir.Build(res))
+	caps := mir.Capabilities(rs.Ops)
+	if len(caps) != 1 || caps[0] != "ffi.cstring" {
+		t.Fatalf("a std function named as a value should still reach its capability, got %v", caps)
+	}
+}
+
+func TestReachableRootsDropGlueOnlyForKeptTypes(t *testing.T) {
+	const src = `
+type Held = resource { pub id Int }
+type Idle = resource { pub id Int }
+
+fn Held.drop(move self) -> Unit {}
+fn Idle.drop(move self) -> Unit {}
+
+fn open() -> Held { Held { id: 1 } }
+
+let h = open()
+print "ok"
+`
+	main := &sem.Package{Path: "main"}
+	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
+	main.Files = []*syntax.Tree{main.Entry}
+	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)}, schema.GenerateDerive)
+	if res.HasErrors() {
+		t.Fatalf("check errors:\n%s", res.Render())
+	}
+	rs := mir.Reachable(mir.Build(res))
+	held, idle := res.TypeDecl(entType(t, res, "Held")).Drop, res.TypeDecl(entType(t, res, "Idle")).Drop
+	if held == 0 || idle == 0 {
+		t.Fatalf("both types should declare a drop, got %d and %d", held, idle)
+	}
+	if !rs.Keep(held) || rs.Reason[held].Root != mir.RootDropGlue {
+		t.Errorf("Held is constructed, so its drop glue should be a drop-glue root, got %+v", rs.Reason[held])
+	}
+	if rs.Keep(idle) {
+		t.Error("Idle is never constructed, so its drop glue should not be emitted")
+	}
+}

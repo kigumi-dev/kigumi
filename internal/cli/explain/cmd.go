@@ -18,7 +18,7 @@ func Cmd() *cobra.Command {
 	var capabilities bool
 	cmd := &cobra.Command{
 		Use:   "explain <code>",
-		Short: "Describe a diagnostic code such as E100 (no argument lists them all), --fn <pkg.Name> <module> for an operation summary, or --capabilities <module> for its reason graph",
+		Short: "Describe a diagnostic code such as E100 (no argument lists them all), --fn <pkg.Name> <module> for an operation summary, or --capabilities <module|artifact> for its reason graph",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if fn != "" && capabilities {
@@ -58,6 +58,6 @@ func Cmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&fn, "fn", "", "print a function's inferred operation summary instead (pkg/path.Name)")
-	cmd.Flags().BoolVar(&capabilities, "capabilities", false, "print a module's reason graph: every capability its reachable code draws on, and the call path that reaches it")
+	cmd.Flags().BoolVar(&capabilities, "capabilities", false, "print a module's or a built artifact's reason graph: every capability its reachable code draws on, whether the target provides it, and the call path that reaches it")
 	return cmd
 }

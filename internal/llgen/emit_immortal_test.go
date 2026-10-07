@@ -16,6 +16,11 @@ import (
 
 func emitIR(t *testing.T, src string) string {
 	t.Helper()
+	return llgen.Emit(plannedProgram(t, src))
+}
+
+func plannedProgram(t *testing.T, src string) *mir.Program {
+	t.Helper()
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
@@ -27,7 +32,7 @@ func emitIR(t *testing.T, src string) string {
 	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect}); err != nil {
 		t.Fatal(err)
 	}
-	return llgen.Emit(prog)
+	return prog
 }
 
 func bodyOf(t *testing.T, ir, header string) string {

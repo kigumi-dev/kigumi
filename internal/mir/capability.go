@@ -24,52 +24,35 @@ const (
 	CapFFIHandleTable Capability = "ffi.handle-table"
 	CapTaskBlocking   Capability = "task.blocking-pool"
 	CapTaskExecutor   Capability = "task.executor"
+	CapTaskThreads    Capability = "task.threads"
 	CapSecureErase    Capability = "mem.secure-erase"
 )
 
-// hostOnlyCapabilities are reachable only through os.Host; the ffi/task
-// capabilities above have an OS-free rt_core.c implementation instead.
-var hostOnlyCapabilities = map[Capability]bool{
-	CapHostShell: true, CapHostArgs: true, CapHostFiles: true, CapHostNet: true,
-	CapHostDL: true, CapHostEntropy: true, CapHostSignals: true, CapHostStdio: true,
+// Single source of capability names for the rt_core.c guards, resolver, summary and artifact.
+var vocabulary = []Capability{
+	CapHostShell, CapHostArgs, CapHostFiles, CapHostNet, CapHostDL,
+	CapHostEntropy, CapHostSignals, CapHostStdio,
+	CapFFICString, CapFFIRaw, CapFFIPin, CapFFIHandleTable,
+	CapTaskBlocking, CapTaskExecutor, CapTaskThreads, CapSecureErase,
 }
 
-func (c Capability) HostOnly() bool { return hostOnlyCapabilities[c] }
+var capabilityNeeds = map[Capability][]Capability{
+	CapTaskThreads: {CapTaskExecutor},
+}
 
-// opCapability omits ops every target provides without a capability.
-var opCapability = map[string]Capability{
-	"HOST_SHELL": CapHostShell, "HOST_ARGS": CapHostArgs, "HOST_FILES": CapHostFiles,
-	"HOST_NET": CapHostNet, "HOST_DL": CapHostDL, "HOST_ENTROPY": CapHostEntropy,
-	"HOST_SIGNALS": CapHostSignals,
-	"HOST_STDIN":   CapHostStdio, "HOST_STDOUT": CapHostStdio, "HOST_STDERR": CapHostStdio,
-	"ARGS_GET": CapHostArgs, "ARGS_LEN": CapHostArgs,
-	"NET_HTTP": CapHostNet, "NET_CONN_DROP": CapHostNet, "NET_LISTENER_DROP": CapHostNet,
-	"DL_SYMBOL_CALL": CapHostDL,
-	"CSTRING_NEW":    CapFFICString, "CSTRING_PTR": CapFFICString, "CSTRING_DROP": CapFFICString,
-	"PIN_NEW": CapFFIPin, "PIN_PTR": CapFFIPin, "PIN_WITH": CapFFIPin,
-	"PIN_DROP": CapFFIPin, "PIN_RELEASE": CapFFIPin, "PIN_RECLAIM": CapFFIPin,
-	"HANDLE_TABLE_NEW": CapFFIHandleTable, "HANDLE_TABLE_INSERT": CapFFIHandleTable,
-	"HANDLE_TABLE_WITH": CapFFIHandleTable, "HANDLE_TABLE_REMOVE": CapFFIHandleTable,
-	"HANDLE_TABLE_RECLAIM": CapFFIHandleTable, "HANDLE_TABLE_CLOSE": CapFFIHandleTable,
-	"HANDLE_TABLE_DROP": CapFFIHandleTable, "HANDLE_RAW": CapFFIHandleTable, "HANDLE_DROP": CapFFIHandleTable,
-	"BLOCKING_POOL_NEW": CapTaskBlocking, "BLOCKING_POOL_RUN": CapTaskBlocking,
-	"FFI_BYTES_FROM": CapFFIRaw, "FFI_BYTES_PTR": CapFFIRaw,
-	"FFI_STRING": CapFFIRaw, "FFI_STRING_CHECKED": CapFFIRaw, "FFI_STRING_LOSSY": CapFFIRaw,
-	"TASK_CURRENT_EXECUTOR": CapTaskExecutor, "EXECUTOR_RUN_TO_COMPLETION": CapTaskExecutor,
-	"TASK_SPAWN": CapTaskExecutor, "TASK_CANCEL": CapTaskExecutor, "TASK_CANCEL_REQUESTED": CapTaskExecutor,
-	"TASK_THREAD_POOL_EXECUTOR": CapTaskExecutor, "TASK_HANDOFF": CapTaskExecutor,
-	"SECURE_ERASE": CapSecureErase, "SECURE_ERASE_RAW": CapSecureErase, "SECURE_ERASE_TRY": CapSecureErase,
+func Vocabulary() []Capability { return append([]Capability(nil), vocabulary...) }
+
+func (c Capability) Needs() []Capability { return capabilityNeeds[c] }
+
+func (c Capability) HasSource() bool { return c != CapTaskThreads }
+
+func (c Capability) SourceFile() string {
+	return "rt_cap_" + strings.NewReplacer(".", "_", "-", "_").Replace(string(c)) + ".c.inc"
 }
 
 func (id StdOpId) Capability() (Capability, bool) {
 	c, ok := opCapability[StdOpNames[id]]
 	return c, ok
-}
-
-// A strict profile (freestanding, no default allocator) never provides a host-only capability.
-func (id StdOpId) NeedsHostCapability() bool {
-	c, ok := id.Capability()
-	return ok && c.HostOnly()
 }
 
 func (c Capability) Macro() string {
@@ -79,6 +62,20 @@ func (c Capability) Macro() string {
 	return "KIGUMI_CAP_" + up
 }
 
+func closure(seen map[Capability]bool) {
+	for changed := true; changed; {
+		changed = false
+		for c := range seen {
+			for _, need := range c.Needs() {
+				if !seen[need] {
+					seen[need] = true
+					changed = true
+				}
+			}
+		}
+	}
+}
+
 func Capabilities(ops []StdOpId) []string {
 	seen := map[Capability]bool{}
 	for _, op := range ops {
@@ -86,6 +83,7 @@ func Capabilities(ops []StdOpId) []string {
 			seen[c] = true
 		}
 	}
+	closure(seen)
 	out := make([]string, 0, len(seen))
 	for c := range seen {
 		out = append(out, string(c))
