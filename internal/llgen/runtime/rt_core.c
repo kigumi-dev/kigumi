@@ -11,6 +11,7 @@
 #endif
 
 #include "rt.h"
+#include "rt_internal.h"
 #ifdef KIGUMI_THREADS
 #include <pthread.h>
 #define KG_TLS _Thread_local
@@ -1565,182 +1566,10 @@ val rt_future_resume(val fut) {
 }
 
 #ifdef KIGUMI_CAP_TASK_EXECUTOR
-static int task_terminal(kgtask* t) { return t->state >= T_COMPLETED; }
-static void q_push(kgqueue* k, kgtask* t) {
-    if (k->head + k->len == k->cap) {
-        for (int i = 0; i < k->len; i++) k->q[i] = k->q[k->head + i];
-        k->head = 0;
-        if (k->len == k->cap) {
-            k->cap = k->cap ? k->cap * 2 : 8;
-            k->q = realloc(k->q, (size_t)k->cap * sizeof(kgtask*));
-            if (!k->q) rt_panic("out of memory");
-        }
-    }
-    k->q[k->head + k->len++] = t;
-}
-static kgtask* q_pop(kgqueue* k) {
-    if (k->len == 0) return NULL;
-    kgtask* t = k->q[k->head++];
-    if (--k->len == 0) k->head = 0;
-    return t;
-}
-// Work stealing never reaches a home-lane queue: a pinned task polls only
-// on the lane that owns it.
-static void exec_push(kgexec* e, kgtask* t) {
-    if (t->queued) return;
-    t->queued = 1;
-    t->state = T_RUNNABLE;
-    q_push(t->lane < 0 ? &e->pool : &e->lane[t->lane], t);
-#ifdef KIGUMI_THREADS
-    pthread_cond_broadcast(&e->cv);
-#endif
-}
-static kgtask* exec_take(kgexec* e, int lane) {
-    kgtask* t = q_pop(&e->lane[lane]);
-    if (!t) t = q_pop(&e->pool);
-    if (t) t->queued = 0;
-    return t;
-}
-static void task_unref(kgtask* t) {
-    if (KG_DEC(t->refs) > 1) return;
-    sched_release(t->fut);
-    sched_release(t->result);
-    free(t->kids);
-    free(t);
-}
-static void task_end(kgtask* t) {
-    val f = t->fut;
-    t->fut = NULL;
-    sched_release(f);
-    val r = t->result;
-    t->result = NULL;
-    sched_release(r);
-}
-// task_wake coalesces: it only marks the task runnable, never runs its code.
-static void task_wake(kgtask* t) {
-    if (task_terminal(t)) return;
-    t->notified = 1;
-    if (t->state == T_SUSPENDED) exec_push(t->ex, t);
-}
-static void task_request_cancel(kgtask* t) {
-    if (task_terminal(t) || KG_ALOAD(t->cancel)) return;
-    KG_ASTORE(t->cancel, 1);
-    for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
-    task_wake(t);
-}
-static void task_finish_drain(kgtask* t) {
-    for (int i = 0; i < t->nkids; i++)
-        if (!task_terminal(t->kids[i])) {
-            t->state = T_SUSPENDED;
-            return;
-        }
-    t->state = t->ending;
-    t->draining = 0;
-    t->ex->live--;
-#ifdef KIGUMI_THREADS
-    if (exec_finished(t->ex)) pthread_cond_broadcast(&t->ex->cv);
-#endif
-    for (int i = 0; i < t->nkids; i++) {
-        task_end(t->kids[i]);
-        task_unref(t->kids[i]);
-    }
-    t->nkids = 0;
-    if (t->pex && t->pex != t->ex) {
-        t->pex->external--;
-#ifdef KIGUMI_THREADS
-        pthread_cond_broadcast(&t->pex->cv);
-#endif
-    }
-    if (t->waiter) {
-        kgtask* w = t->waiter;
-        t->waiter = NULL;
-        task_wake(w);
-    }
-    if (t->parent && t->parent->draining) task_wake(t->parent);
-}
-// task_begin_finish cancels still-running kids; the terminal transition waits for all of them.
-static void task_begin_finish(kgtask* t, int end) {
-    t->ending = end;
-    t->draining = 1;
-    for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
-    task_finish_drain(t);
-}
-static void task_run(kgtask* t, int lane) {
-    SCHED_LOCK();
-    if (task_terminal(t)) {
-        SCHED_UNLOCK();
-        return;
-    }
-    if (t->draining) {
-        task_finish_drain(t);
-        SCHED_UNLOCK();
-        sched_flush();
-        return;
-    }
-    t->state = T_RUNNING;
-    t->notified = 0;
-    SCHED_UNLOCK();
-    sched_flush();
-    kgtask* prev = g_cur_task;
-    int prevlane = g_cur_lane;
-    g_cur_task = t;
-    g_cur_lane = lane;
-    val r = poll_value(t->fut);
-    g_cur_task = prev;
-    g_cur_lane = prevlane;
-    SCHED_LOCK();
-    if (!r) {
-        t->state = T_SUSPENDED;
-        if (t->notified) exec_push(t->ex, t);
-    } else if (r == KG_CANCELLED) {
-        task_begin_finish(t, T_CANCELLED);
-    } else {
-        t->result = r;
-        task_begin_finish(t, T_COMPLETED);
-    }
-    SCHED_UNLOCK();
-    sched_flush();
-}
-// Registers the waiter before reading target state, so a racing completion is still seen.
-static val poll_task(kgtask* t) {
-    SCHED_LOCK();
-    if (!task_terminal(t)) {
-        t->waiter = g_cur_task;
-        SCHED_UNLOCK();
-        return NULL;
-    }
-    t->waiter = NULL;
-    int st = t->state;
-    val r = t->result;
-    t->result = NULL;
-    SCHED_UNLOCK();
-    if (st == T_CANCELLED) return KG_CANCELLED;
-    if (st == T_FAULTED) rt_panic("the awaited task did not finish");
-    return r;
-}
+#include "rt_cap_task_executor.c.inc"
 #endif
 #if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
-// blocking_pool is a BlockingPool: a root-owned, bounded count of BlockingFuture results admitted but not taken.
-// run executes work on the calling thread, not a separate worker, so in_flight here does not need to be atomic.
-typedef struct blocking_pool {
-    int capacity, in_flight;
-} blocking_pool;
-// blocking_future is one admitted BlockingPool.run result; pool is
-// retained so the pool outlives every future it issued.
-typedef struct blocking_future {
-    val pool, result;
-    int taken;
-} blocking_future;
-static val blocking_capacity_exhausted(void) {
-    rt_vdesc* d = find_variant(find_type("BlockingError"), "CapacityExhausted");
-    if (!d) return err_msg("blocking pool capacity exhausted");
-    return err_val(rt_variant(d, 0, NULL));
-}
-static val blocking_future_join(blocking_future* f) {
-    f->taken = 1;
-    ((blocking_pool*)f->pool->u.op.data)->in_flight--;
-    return f->result;
-}
+#include "rt_cap_task_blocking_pool.c.inc"
 #endif
 static val poll_value(val v) {
     val d = deref(v);
@@ -1752,234 +1581,6 @@ static val poll_value(val v) {
 #endif
     return poll_future(d);
 }
-#ifdef KIGUMI_CAP_TASK_EXECUTOR
-#ifdef KIGUMI_THREADS
-typedef struct kgworker {
-    kgexec* e;
-    int lane;
-} kgworker;
-static void* worker_main(void* p) {
-    kgworker* w = (kgworker*)p;
-    g_cur_lane = w->lane;
-    SCHED_LOCK();
-    for (;;) {
-        kgtask* t = exec_take(w->e, w->lane);
-        if (!t) {
-            if (exec_finished(w->e)) break;
-            pthread_cond_wait(&w->e->cv, &g_sched);
-            continue;
-        }
-        w->e->running++;
-        SCHED_UNLOCK();
-        sched_flush();
-        task_run(t, w->lane);
-        SCHED_LOCK();
-        w->e->running--;
-        pthread_cond_broadcast(&w->e->cv);
-    }
-    SCHED_UNLOCK();
-    sched_flush();
-    return NULL;
-}
-static kgexec** g_orphans;
-static int g_norphans, g_caporphans;
-static void exec_join(kgexec* e) {
-    for (int i = 0; i < e->nworkers; i++) pthread_join(e->threads[i], NULL);
-    free(e->threads);
-    free(e->wk);
-    e->threads = NULL;
-    e->wk = NULL;
-    e->nworkers = 0;
-}
-#endif
-static kgexec* exec_new(int workers) {
-    kgexec* e = calloc(1, sizeof *e);
-    if (!e) rt_panic("out of memory");
-    e->nlanes = workers + 1;
-    e->lane = calloc((size_t)e->nlanes, sizeof(kgqueue));
-    if (!e->lane) rt_panic("out of memory");
-#ifdef KIGUMI_THREADS
-    pthread_cond_init(&e->cv, NULL);
-#endif
-    return e;
-}
-static void exec_free(kgexec* e) {
-#ifdef KIGUMI_THREADS
-    pthread_cond_destroy(&e->cv);
-#endif
-    for (int i = 0; i < e->nlanes; i++) free(e->lane[i].q);
-    free(e->lane);
-    free(e->pool.q);
-    free(e);
-}
-// exec_drop runs from the Executor's drop, on any lane; joining a pool that
-// still owes a task would hold that lane until another one finishes.
-static void exec_drop(kgexec* e) {
-#ifdef KIGUMI_THREADS
-    if (e->nworkers) {
-        SCHED_LOCK();
-        e->dropped = 1;
-        pthread_cond_broadcast(&e->cv);
-        int idle = exec_finished(e) && !e->running;
-        if (!idle) {
-            if (g_norphans == g_caporphans) {
-                g_caporphans = g_caporphans ? g_caporphans * 2 : 4;
-                kgexec** o = realloc(g_orphans, (size_t)g_caporphans * sizeof(kgexec*));
-                if (!o) rt_panic("out of memory");
-                g_orphans = o;
-            }
-            g_orphans[g_norphans++] = e;
-        }
-        SCHED_UNLOCK();
-        if (!idle) return;
-        exec_join(e);
-    }
-#endif
-    exec_free(e);
-}
-// Runs once the task tree is terminal, so every worker only has to leave its loop.
-static void exec_reap(void) {
-#ifdef KIGUMI_THREADS
-    SCHED_LOCK();
-    kgexec** o = g_orphans;
-    int n = g_norphans;
-    g_orphans = NULL;
-    g_norphans = g_caporphans = 0;
-    SCHED_UNLOCK();
-    for (int i = 0; i < n; i++) {
-        exec_join(o[i]);
-        exec_free(o[i]);
-    }
-    free(o);
-#endif
-}
-val rt_executor_new(void) { return opaque("Executor", exec_new(0)); }
-val rt_thread_pool_new(int64_t workers) {
-#ifdef KIGUMI_THREADS
-    if (workers < 1) rt_panic("a thread pool executor needs at least one worker");
-    if (workers > 256) rt_panic("a thread pool executor is bounded to 256 workers");
-    kgexec* e = exec_new((int)workers);
-    e->threads = calloc((size_t)workers, sizeof(pthread_t));
-    e->wk = calloc((size_t)workers, sizeof(kgworker));
-    if (!e->threads || !e->wk) rt_panic("out of memory");
-    e->nworkers = (int)workers;
-    for (int i = 0; i < e->nworkers; i++) {
-        e->wk[i].e = e;
-        e->wk[i].lane = i + 1;
-        if (pthread_create(&e->threads[i], NULL, worker_main, &e->wk[i])) rt_panic("could not start an executor worker thread");
-    }
-    return opaque("Executor", e);
-#else
-    (void)workers;
-    rt_panic("this build has no thread support; use `task.currentThreadExecutor()`");
-    return NULL;
-#endif
-}
-val rt_run_to_completion(val exv, val fut) {
-    if (g_cur_task) rt_panic("`Executor.runToCompletion` cannot run inside a task; `await` the future instead");
-    kgexec* e = (kgexec*)deref(exv)->u.op.data;
-    SCHED_LOCK();
-    if (e->driving) {
-        SCHED_UNLOCK();
-        rt_panic("this executor is already running a task tree");
-    }
-    e->driving = 1;
-    kgtask* root = calloc(1, sizeof *root);
-    if (!root) rt_panic("out of memory");
-    root->fut = fut;
-    root->ex = e;
-    KG_ASTORE(root->refs, 1);
-    e->live++;
-    exec_push(e, root);
-    while (!task_terminal(root)) {
-        kgtask* t = exec_take(e, 0);
-        if (!t) {
-#ifdef KIGUMI_THREADS
-            if (e->running || e->external) {
-                pthread_cond_wait(&e->cv, &g_sched);
-                continue;
-            }
-#endif
-            SCHED_UNLOCK();
-            rt_panic("every task on this executor is waiting for something that cannot happen");
-        }
-        e->running++;
-        SCHED_UNLOCK();
-        sched_flush();
-        task_run(t, 0);
-        SCHED_LOCK();
-        e->running--;
-    }
-    e->driving = 0;
-    SCHED_UNLOCK();
-    sched_flush();
-    if (root->state == T_CANCELLED) rt_panic("the root task was cancelled");
-    if (root->state == T_FAULTED) rt_panic("the root task did not finish");
-    val r = root->result;
-    root->result = NULL;
-    task_end(root);
-    task_unref(root);
-    sched_flush();
-    exec_reap();
-    return r;
-}
-// Admission is one linearization point: a child joins its parent's kid list
-// and its executor's queue under the same lock.
-static val task_start(kgexec* e, val fut, int mobile) {
-    kgtask* t = calloc(1, sizeof *t);
-    if (!t) rt_panic("out of memory");
-    t->fut = fut;
-    t->ex = e;
-    KG_ASTORE(t->refs, 2);
-    SCHED_LOCK();
-    kgtask* p = g_cur_task;
-    t->parent = p;
-    t->pex = p->ex;
-    KG_ASTORE(t->cancel, KG_ALOAD(p->cancel));
-    t->lane = -1;
-#ifdef KIGUMI_THREADS
-    if (!e->nworkers || !mobile) t->lane = e == p->ex && e->nworkers ? g_cur_lane : 0;
-#else
-    (void)mobile;
-    t->lane = 0;
-#endif
-    if (p->nkids == p->capkids) {
-        p->capkids = p->capkids ? p->capkids * 2 : 4;
-        p->kids = realloc(p->kids, (size_t)p->capkids * sizeof(kgtask*));
-        if (!p->kids) rt_panic("out of memory");
-    }
-    p->kids[p->nkids++] = t;
-    if (e != p->ex) p->ex->external++;
-    e->live++;
-    exec_push(e, t);
-    SCHED_UNLOCK();
-    sched_flush();
-    return opaque("Task", t);
-}
-val rt_task_spawn(val fut) {
-    if (!g_cur_task) rt_panic("`task.spawn` needs a running task; start one with `Executor.runToCompletion`");
-    return task_start(g_cur_task->ex, fut, future_mobile(fut));
-}
-val rt_task_handoff(val exv, val fut) {
-    if (!g_cur_task) rt_panic("`Executor.handoff` needs a running task; start one with `Executor.runToCompletion`");
-    kgexec* e = (kgexec*)deref(exv)->u.op.data;
-    if (!future_mobile(fut)) rt_panic("this future is bound to its own executor and cannot be handed to another one");
-#ifdef KIGUMI_THREADS
-    int agent = e->nworkers || e->driving;
-#else
-    int agent = e->driving;
-#endif
-    if (e != g_cur_task->ex && !agent) rt_panic("this executor has no worker and is not running a task tree, so it cannot take a handed-off task");
-    return task_start(e, fut, 1);
-}
-void rt_task_cancel(val tv) {
-    SCHED_LOCK();
-    task_request_cancel((kgtask*)deref(tv)->u.op.data);
-    SCHED_UNLOCK();
-    sched_flush();
-}
-int rt_cancel_requested(void) { return g_cur_task && KG_ALOAD(g_cur_task->cancel); }
-#endif
 // A Shared cell's control block outlives the content for weak handles.
 // borrow is a RefCell-style dynamic borrow flag (0 free, -1 exclusive, >0
 // shared count), since Shared's receiver is a freely-copyable handle the
@@ -2219,68 +1820,6 @@ int utf8_valid(const char* s, int64_t n) {
     }
     return 1;
 }
-#ifdef KIGUMI_CAP_FFI_RAW
-// Decodes one codepoint at s[i], the same rules utf8_valid checks; returns
-// the sequence length on success or 0 on any violation, so a caller can
-// tell exactly where a bad sequence starts.
-static int utf8_decode_one(const char* s, int64_t n, int64_t i, uint32_t* cp_out) {
-    unsigned char c = s[i];
-    if (c < 0x80) {
-        *cp_out = c;
-        return 1;
-    }
-    int len;
-    uint32_t min, cp;
-    if ((c & 0xE0) == 0xC0) {
-        len = 2;
-        min = 0x80;
-        cp = c & 0x1F;
-    } else if ((c & 0xF0) == 0xE0) {
-        len = 3;
-        min = 0x800;
-        cp = c & 0x0F;
-    } else if ((c & 0xF8) == 0xF0) {
-        len = 4;
-        min = 0x10000;
-        cp = c & 0x07;
-    } else {
-        return 0;
-    }
-    if (i + len > n) return 0;
-    for (int k = 1; k < len; k++) {
-        unsigned char cc = s[i + k];
-        if ((cc & 0xC0) != 0x80) return 0;
-        cp = (cp << 6) | (cc & 0x3F);
-    }
-    if (cp < min || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return 0;
-    *cp_out = cp;
-    return len;
-}
-// Lossy UTF-8 conversion for ffi.stringLossy: each byte that
-// doesn't start a valid sequence becomes its own U+FFFD, matching Go's
-// utf8.DecodeRuneInString fallback, so native agrees byte for byte with
-// the VM/interp Go paths.
-static val utf8_lossy_val(const char* s, int64_t n) {
-    buf b = {0};
-    int64_t i = 0;
-    while (i < n) {
-        uint32_t cp;
-        int len = utf8_decode_one(s, n, i, &cp);
-        if (len == 0) {
-            bput(&b, "\xEF\xBF\xBD", 3);
-            i++;
-        } else {
-            bput(&b, s + i, (size_t)len);
-            i += len;
-        }
-    }
-    if (!b.p) {
-        b.p = calloc(1, 1);
-        if (!b.p) rt_panic("out of memory");
-    }
-    return rt_str_take(b.p, b.len);
-}
-#endif
 // hash_of is FNV-1a-64 (standard offset basis 0xcbf29ce484222325 /
 // 14695981039346656037) over the canon rendering of v, so this and
 // internal/hashkey.Sum64 (interp, vm) agree byte for byte.
@@ -2309,13 +1848,6 @@ static int subtle_constant_time_eq(val a, val b) {
     }
     return diff == 0;
 }
-#ifdef KIGUMI_CAP_MEM_SECURE_ERASE
-// p is volatile, so the standard forbids eliding these stores as dead
-// even though nothing reads p afterward.
-void rt_secure_zero(volatile unsigned char* p, int64_t n) {
-    for (int64_t i = 0; i < n; i++) p[i] = 0;
-}
-#endif
 // Stable small ids for std primitives: llgen resolves a call's std key to
 // one of these at compile time and
 // emits rt_std_id directly, skipping the string compares below. Order
@@ -2563,75 +2095,44 @@ static int rt_std_op_of(const char* key) {
     if (strstr(k, "build.")) return OP_BUILD_ONLY;
     return -1;
 }
+#ifdef KIGUMI_CAP_FFI_CSTRING
+#include "rt_cap_ffi_cstring.c.inc"
+#endif
+#ifdef KIGUMI_CAP_FFI_PIN
+#include "rt_cap_ffi_pin.c.inc"
+#endif
+#ifdef KIGUMI_CAP_FFI_RAW
+#include "rt_cap_ffi_raw.c.inc"
+#endif
 #ifdef KIGUMI_CAP_FFI_HANDLE_TABLE
-// handle_slot/handle_table back std/ffi's HandleTable[T]: like Pin, a slot
-// holds a boxed value, but also a generation a stale or forged RawHandle must match.
-typedef struct {
-    int64_t generation;
-    int occupied;
-    val value;
-} handle_slot;
-typedef struct {
-    handle_slot* slots;
-    int64_t len, cap;
-} handle_table;
-// Table identity is this registry's permanent 1-based index, never reused;
-// the heap pointer itself can be, once freed, handed back by a later calloc.
-static handle_table** g_handle_tables;
-static int64_t g_handle_tables_len, g_handle_tables_cap;
-// The registry array is the one piece of HandleTable state a second worker
-// can grow under a reader, so it has its own lock.
-static int64_t handle_table_register(handle_table* t) {
-#ifdef KIGUMI_THREADS
-    static pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_lock(&mu);
+#include "rt_cap_ffi_handle_table.c.inc"
 #endif
-    if (g_handle_tables_len == g_handle_tables_cap) {
-        int64_t newcap = g_handle_tables_cap ? g_handle_tables_cap * 2 : 4;
-        handle_table** ns = realloc(g_handle_tables, (size_t)newcap * sizeof *ns);
-        if (!ns) rt_panic("out of memory");
-        g_handle_tables = ns;
-        g_handle_tables_cap = newcap;
-    }
-    g_handle_tables[g_handle_tables_len] = t;
-    int64_t id = ++g_handle_tables_len;
-#ifdef KIGUMI_THREADS
-    pthread_mutex_unlock(&mu);
+#ifdef KIGUMI_CAP_MEM_SECURE_ERASE
+#include "rt_cap_mem_secure_erase.c.inc"
 #endif
-    return id;
-}
-
-static int64_t handle_pack(int64_t generation, int64_t index) {
-    return (generation << 32) | (index & 0xFFFFFFFF);
-}
-static void handle_unpack(int64_t raw, int64_t* generation, int64_t* index) {
-    *generation = raw >> 32;
-    *index = raw & 0xFFFFFFFF;
-}
-// Only an unsafe reclaim of a forged/stale RawHandle can fail this check;
-// a live FfiHandle otherwise always names a live slot.
-static int64_t handle_find(val h, handle_table** out) {
-    handle_table* t = g_handle_tables[h->u.rec.fields[0]->u.i - 1];
-    int64_t generation, index;
-    handle_unpack(h->u.rec.fields[1]->u.i, &generation, &index);
-    if (index < 0 || index >= t->len || !t->slots[index].occupied || t->slots[index].generation != generation) {
-        rt_panic("this handle does not address a live slot of this table");
-    }
-    *out = t;
-    return index;
-}
-static val handle_free(handle_table* t, int64_t index) {
-    val v = t->slots[index].value;
-    t->slots[index].occupied = 0;
-    t->slots[index].value = NULL;
-    t->slots[index].generation++;
-    return v;
-}
-static val handle_fault(const char* variant) {
-    rt_vdesc* d = find_variant(find_type("HandleFault"), variant);
-    if (!d) return err_msg("handle fault");
-    return err_val(rt_variant(d, 0, NULL));
-}
+#ifdef KIGUMI_CAP_HOST_SHELL
+#include "rt_cap_host_shell.c.inc"
+#endif
+#ifdef KIGUMI_CAP_HOST_ARGS
+#include "rt_cap_host_args.c.inc"
+#endif
+#ifdef KIGUMI_CAP_HOST_FILES
+#include "rt_cap_host_files.c.inc"
+#endif
+#ifdef KIGUMI_CAP_HOST_NET
+#include "rt_cap_host_net.c.inc"
+#endif
+#ifdef KIGUMI_CAP_HOST_DL
+#include "rt_cap_host_dl.c.inc"
+#endif
+#ifdef KIGUMI_CAP_HOST_ENTROPY
+#include "rt_cap_host_entropy.c.inc"
+#endif
+#ifdef KIGUMI_CAP_HOST_SIGNALS
+#include "rt_cap_host_signals.c.inc"
+#endif
+#ifdef KIGUMI_CAP_HOST_STDIO
+#include "rt_cap_host_stdio.c.inc"
 #endif
 // rt_std_id never compares key strings: llgen resolves a call's std key to
 // an enum std_op at compile time (rt_std_op_of does the same resolution
@@ -2845,65 +2346,50 @@ val rt_std_id(int op, int n, val* a) {
     }
     // os / fs
 #ifdef KIGUMI_CAP_HOST_SHELL
-    case OP_HOST_SHELL: return opaque("Shell", NULL);
+    case OP_HOST_SHELL: return cap_host_shell();
 #else
     case OP_HOST_SHELL: rt_panic("this build has no host.shell capability"); return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_ARGS
-    case OP_HOST_ARGS: return opaque("Args", NULL);
+    case OP_HOST_ARGS: return cap_host_args();
 #else
     case OP_HOST_ARGS: rt_panic("this build has no host.args capability"); return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_FILES
-    case OP_HOST_FILES: return opaque("Files", NULL);
+    case OP_HOST_FILES: return cap_host_files();
 #else
     case OP_HOST_FILES: rt_panic("this build has no host.files capability"); return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_NET
-    case OP_HOST_NET: return opaque("Net", NULL);
+    case OP_HOST_NET: return cap_host_net();
 #else
     case OP_HOST_NET: rt_panic("this build has no host.net capability"); return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_DL
-    case OP_HOST_DL: return opaque("Loader", NULL);
+    case OP_HOST_DL: return cap_host_dl();
 #else
     case OP_HOST_DL: rt_panic("this build has no host.dl capability"); return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_ENTROPY
-    case OP_HOST_ENTROPY: return opaque("Entropy", NULL);
+    case OP_HOST_ENTROPY: return cap_host_entropy();
 #else
     case OP_HOST_ENTROPY: rt_panic("this build has no host.entropy capability"); return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_SIGNALS
-    case OP_HOST_SIGNALS: return opaque("Signals", NULL);
+    case OP_HOST_SIGNALS: return cap_host_signals();
 #else
     case OP_HOST_SIGNALS: rt_panic("this build has no host.signals capability"); return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_ARGS
-    case OP_ARGS_GET: {
-        int64_t i = a1->u.i;
-        if (i < 0 || i >= g_argc) return none();
-        int64_t len = (int64_t)strlen(g_argv[i]);
-        if (!utf8_valid(g_argv[i], len)) return none();
-        return some(rt_str(g_argv[i], len));
-    }
+    case OP_ARGS_GET: return cap_args_get(a1);
 #else
     case OP_ARGS_GET: rt_panic("this build has no host.args capability"); return NULL;
 #endif
     // ffi / crypto / dl
 #ifdef KIGUMI_CAP_FFI_CSTRING
-    case OP_CSTRING_NEW: {
-        // Every String/Bytes buffer already carries a guaranteed trailing
-        // NUL at data[len] (see strdup_val); strchr for the first NUL byte
-        // reaches that one unless an earlier, embedded NUL is hit first.
-        if (strchr(a0->u.s.data, 0) != a0->u.s.data + a0->u.s.len) return err_msg("text contains a NUL byte");
-        val h = rt_int((int64_t)(intptr_t)rt_cstr(a0), 64 | 256);
-        return ok(make_record("CString", 1, &h));
-    }
-    case OP_CSTRING_PTR: return rt_ptr((void*)(intptr_t)a0->u.rec.fields[0]->u.i);
-    case OP_CSTRING_DROP:
-        free((void*)(intptr_t)a0->u.rec.fields[0]->u.i);
-        return rt_unit();
+    case OP_CSTRING_NEW: return cap_cstring_new(a0);
+    case OP_CSTRING_PTR: return cap_cstring_ptr(a0);
+    case OP_CSTRING_DROP: return cap_cstring_drop(a0);
 #else
     case OP_CSTRING_NEW:
     case OP_CSTRING_PTR:
@@ -2912,8 +2398,8 @@ val rt_std_id(int op, int n, val* a) {
         return NULL;
 #endif
 #ifdef KIGUMI_CAP_FFI_RAW
-    case OP_FFI_BYTES_FROM: return bytes_val((const char*)a0->u.p, a1->u.i);
-    case OP_FFI_BYTES_PTR: return rt_ptr((void*)a0->u.s.data);
+    case OP_FFI_BYTES_FROM: return cap_ffi_bytes_from(a0, a1);
+    case OP_FFI_BYTES_PTR: return cap_ffi_bytes_ptr(a0);
 #else
     case OP_FFI_BYTES_FROM:
     case OP_FFI_BYTES_PTR:
@@ -2927,39 +2413,9 @@ val rt_std_id(int op, int n, val* a) {
     }
     case OP_SUBTLE_CT_EQ: return rt_bool(subtle_constant_time_eq(a0, a1));
 #ifdef KIGUMI_CAP_MEM_SECURE_ERASE
-    case OP_SECURE_ERASE: {
-        int64_t n2 = a0->u.s.len;
-        if (n2 <= 0) return rt_unit();
-        if (a0->owned) {
-            rt_secure_zero((volatile unsigned char*)a0->u.s.data, n2);
-            return rt_unit();
-        }
-        // a literal/foreign Bytes has no writable backing of its own; give
-        // self a fresh owned one instead of writing through static memory.
-        char* d = calloc((uint64_t)n2 + 1, 1);
-        if (!d) rt_panic("out of memory");
-        a0->u.s.data = d;
-        a0->owned = 1;
-        return rt_unit();
-    }
-    case OP_SECURE_ERASE_RAW: {
-        int64_t n2 = a1->u.i;
-        if (n2 > 0) rt_secure_zero((volatile unsigned char*)a0->u.p, n2);
-        return rt_unit();
-    }
-    case OP_SECURE_ERASE_TRY: {
-        int64_t n2 = a0->u.s.len;
-        if (n2 <= 0) return try_ok(rt_unit());
-        if (a0->owned) {
-            rt_secure_zero((volatile unsigned char*)a0->u.s.data, n2);
-            return try_ok(rt_unit());
-        }
-        char* d = fault_tick() ? NULL : calloc((uint64_t)n2 + 1, 1);
-        if (!d) return alloc_error();
-        a0->u.s.data = d;
-        a0->owned = 1;
-        return try_ok(rt_unit());
-    }
+    case OP_SECURE_ERASE: return cap_secure_erase(a0);
+    case OP_SECURE_ERASE_RAW: return cap_secure_erase_raw(a0, a1);
+    case OP_SECURE_ERASE_TRY: return cap_secure_erase_try(a0);
 #else
     case OP_SECURE_ERASE:
     case OP_SECURE_ERASE_RAW:
@@ -2968,16 +2424,14 @@ val rt_std_id(int op, int n, val* a) {
         return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_DL
-    case OP_DL_SYMBOL_CALL:
-        rt_panic("dl.Symbol.call is lowered by the compiler");
-        return NULL;
+    case OP_DL_SYMBOL_CALL: return cap_dl_symbol_call();
 #else
     case OP_DL_SYMBOL_CALL: rt_panic("this build has no host.dl capability"); return NULL;
 #endif
 #ifdef KIGUMI_CAP_HOST_STDIO
-    case OP_HOST_STDIN: return opaque("Stdin", NULL);
-    case OP_HOST_STDOUT: return opaque("Stdout", NULL);
-    case OP_HOST_STDERR: return opaque("Stderr", NULL);
+    case OP_HOST_STDIN: return cap_host_stdin();
+    case OP_HOST_STDOUT: return cap_host_stdout();
+    case OP_HOST_STDERR: return cap_host_stderr();
 #else
     case OP_HOST_STDIN:
     case OP_HOST_STDOUT:
@@ -2986,16 +2440,9 @@ val rt_std_id(int op, int n, val* a) {
         return NULL;
 #endif
 #ifdef KIGUMI_CAP_FFI_PIN
-    case OP_PIN_NEW: {
-        val v = rt_retain(deref(a[0]));
-        val h = rt_int((int64_t)(intptr_t)v, 64 | 256);
-        return make_record("Pin", 1, &h);
-    }
-    case OP_PIN_PTR: return rt_ptr((void*)(intptr_t)a0->u.rec.fields[0]->u.i);
-    case OP_PIN_WITH: {
-        val arg[1] = {(val)a0->u.p};
-        return rt_callv(a1, 1, arg);
-    }
+    case OP_PIN_NEW: return cap_pin_new(a[0]);
+    case OP_PIN_PTR: return cap_pin_ptr(a0);
+    case OP_PIN_WITH: return cap_pin_with(a0, a1);
 #else
     case OP_PIN_NEW:
     case OP_PIN_PTR:
@@ -3010,27 +2457,9 @@ val rt_std_id(int op, int n, val* a) {
         return rt_callv(a1, 1, arg);
     }
 #ifdef KIGUMI_CAP_FFI_PIN
-    case OP_PIN_DROP: {
-        // mir now consumes self for a type's own drop (isOwnDrop in
-        // internal/mir/plan_args.go), so scope exit no longer re-enters
-        // here; the zero-guard just stays as a defensive no-op on repeat.
-        int64_t* hf = &a0->u.rec.fields[0]->u.i;
-        if (*hf) {
-            rt_release((val)(intptr_t)*hf);
-            *hf = 0;
-        }
-        return rt_unit();
-    }
-    case OP_PIN_RELEASE:
-        // release() (unlike drop) still lends self, so the caller's
-        // scope-exit drop runs after this; retain here keeps the
-        // extracted pointer alive through that drop.
-        rt_retain((val)(intptr_t)a0->u.rec.fields[0]->u.i);
-        return rt_ptr((void*)(intptr_t)a0->u.rec.fields[0]->u.i);
-    case OP_PIN_RECLAIM: {
-        val h = rt_int((int64_t)(intptr_t)a0->u.p, 64 | 256);
-        return make_record("Pin", 1, &h);
-    }
+    case OP_PIN_DROP: return cap_pin_drop(a0);
+    case OP_PIN_RELEASE: return cap_pin_release(a0);
+    case OP_PIN_RECLAIM: return cap_pin_reclaim(a0);
 #else
     case OP_PIN_DROP:
     case OP_PIN_RELEASE:
@@ -3039,97 +2468,15 @@ val rt_std_id(int op, int n, val* a) {
         return NULL;
 #endif
 #ifdef KIGUMI_CAP_FFI_HANDLE_TABLE
-    case OP_HANDLE_TABLE_NEW: {
-        handle_table* t = calloc(1, sizeof *t);
-        if (!t) rt_panic("out of memory");
-        val h = rt_int(handle_table_register(t), 64 | 256);
-        return make_record("HandleTable", 1, &h);
-    }
-    case OP_HANDLE_TABLE_INSERT: {
-        int64_t ti = a0->u.rec.fields[0]->u.i;
-        handle_table* t = g_handle_tables[ti - 1];
-        int64_t index = -1;
-        for (int64_t i = 0; i < t->len; i++) {
-            if (!t->slots[i].occupied) {
-                index = i;
-                break;
-            }
-        }
-        if (index < 0) {
-            int64_t newcap = t->cap ? t->cap * 2 : 4;
-            handle_slot* ns = realloc(t->slots, (size_t)newcap * sizeof *ns);
-            if (!ns) rt_panic("out of memory");
-            for (int64_t i = t->cap; i < newcap; i++) ns[i] = (handle_slot){0};
-            t->slots = ns;
-            t->cap = newcap;
-            index = t->len++;
-        }
-        t->slots[index].occupied = 1;
-        t->slots[index].value = rt_retain(a1);
-        val f[2] = {rt_int(ti, 64 | 256), rt_int(handle_pack(t->slots[index].generation, index), 64 | 256)};
-        return make_record("FfiHandle", 2, f);
-    }
-    case OP_HANDLE_TABLE_WITH: {
-        handle_table* t;
-        int64_t index = handle_find(a1, &t);
-        val arg[1] = {t->slots[index].value};
-        return rt_callv(a2, 1, arg);
-    }
-    case OP_HANDLE_TABLE_REMOVE: {
-        handle_table* t;
-        int64_t index = handle_find(a1, &t);
-        val v = handle_free(t, index);
-        // h is only lent, so the caller's scope-exit FfiHandle.drop still
-        // runs; replace the id (never mutate it: literals are immortal).
-        rt_setfield(a1, 0, rt_int(0, 64 | 256));
-        return v;
-    }
-    case OP_HANDLE_TABLE_RECLAIM: {
-        int64_t self_tbl = a0->u.rec.fields[0]->u.i;
-        int64_t raw_tbl = a1->u.rec.fields[0]->u.i, raw_slot = a1->u.rec.fields[1]->u.i;
-        if (raw_tbl != self_tbl) return handle_fault("WrongTable");
-        handle_table* t = g_handle_tables[self_tbl - 1];
-        int64_t generation, index;
-        handle_unpack(raw_slot, &generation, &index);
-        if (index < 0 || index >= t->len) return handle_fault("OutOfRange");
-        if (!t->slots[index].occupied || t->slots[index].generation != generation) return handle_fault("Stale");
-        val f[2] = {rt_int(self_tbl, 64 | 256), rt_int(raw_slot, 64 | 256)};
-        return ok(make_record("FfiHandle", 2, f));
-    }
-    case OP_HANDLE_TABLE_CLOSE: {
-        handle_table* t = g_handle_tables[a0->u.rec.fields[0]->u.i - 1];
-        int64_t live = 0;
-        for (int64_t i = 0; i < t->len; i++) {
-            if (t->slots[i].occupied) live++;
-        }
-        if (live > 0) {
-            val n = rt_int(live, 64 | 256);
-            return err_val(make_record("HandleTableBusy", 1, &n));
-        }
-        return ok(rt_unit());
-    }
-    case OP_HANDLE_TABLE_DROP: {
-        int64_t ti = a0->u.rec.fields[0]->u.i;
-        handle_table* t = g_handle_tables[ti - 1];
-        for (int64_t i = 0; i < t->len; i++) {
-            if (t->slots[i].occupied) rt_panic("dropped a HandleTable with a handle still outstanding; call close() first");
-        }
-        free(t->slots);
-        free(t);
-        g_handle_tables[ti - 1] = NULL;
-        return rt_unit();
-    }
-    case OP_HANDLE_RAW: {
-        val f[2] = {rt_int(a0->u.rec.fields[0]->u.i, 64 | 256), rt_int(a0->u.rec.fields[1]->u.i, 64 | 256)};
-        return make_record("RawHandle", 2, f);
-    }
-    case OP_HANDLE_DROP: {
-        if (a0->u.rec.fields[0]->u.i == 0) return rt_unit();
-        handle_table* t;
-        int64_t index = handle_find(a0, &t);
-        rt_release(handle_free(t, index));
-        return rt_unit();
-    }
+    case OP_HANDLE_TABLE_NEW: return cap_handle_table_new();
+    case OP_HANDLE_TABLE_INSERT: return cap_handle_table_insert(a0, a1);
+    case OP_HANDLE_TABLE_WITH: return cap_handle_table_with(a1, a2);
+    case OP_HANDLE_TABLE_REMOVE: return cap_handle_table_remove(a1);
+    case OP_HANDLE_TABLE_RECLAIM: return cap_handle_table_reclaim(a0, a1);
+    case OP_HANDLE_TABLE_CLOSE: return cap_handle_table_close(a0);
+    case OP_HANDLE_TABLE_DROP: return cap_handle_table_drop(a0);
+    case OP_HANDLE_RAW: return cap_handle_raw(a0);
+    case OP_HANDLE_DROP: return cap_handle_drop(a0);
 #else
     case OP_HANDLE_TABLE_NEW:
     case OP_HANDLE_TABLE_INSERT:
@@ -3144,20 +2491,9 @@ val rt_std_id(int op, int n, val* a) {
         return NULL;
 #endif
 #ifdef KIGUMI_CAP_FFI_RAW
-    case OP_FFI_STRING: {
-        const char* s = a0->u.p ? (const char*)a0->u.p : "";
-        return strdup_val(s, strlen(s));
-    }
-    case OP_FFI_STRING_LOSSY: {
-        const char* s = a0->u.p ? (const char*)a0->u.p : "";
-        return utf8_lossy_val(s, (int64_t)strlen(s));
-    }
-    case OP_FFI_STRING_CHECKED: {
-        const char* s = a0->u.p ? (const char*)a0->u.p : "";
-        int64_t len = (int64_t)strlen(s);
-        if (!utf8_valid(s, len)) return none();
-        return some(strdup_val(s, len));
-    }
+    case OP_FFI_STRING: return cap_ffi_string(a0);
+    case OP_FFI_STRING_LOSSY: return cap_ffi_string_lossy(a0);
+    case OP_FFI_STRING_CHECKED: return cap_ffi_string_checked(a0);
 #else
     case OP_FFI_STRING:
     case OP_FFI_STRING_LOSSY:
@@ -3261,15 +2597,10 @@ val rt_std_id(int op, int n, val* a) {
         return c->alive ? some(rt_retain(c->shared)) : none();
     }
 #ifdef KIGUMI_CAP_HOST_NET
-    case OP_NET_HTTP: return opaque("Http", NULL);
-    // Bodiless like Conn.drop/Listener.drop themselves (see net_hosted.kg):
-    // an accelerator on a *bodied* drop only replaces normal calls to it,
-    // not the implicit drop on a resource's last reference going, which
-    // always runs the real (here nonexistent) lowered body instead.
+    case OP_NET_HTTP: return cap_net_http();
     case OP_NET_LISTENER_DROP:
     case OP_NET_CONN_DROP:
-        rt_sys_close((int)a0->u.rec.fields[0]->u.i);
-        return rt_unit();
+        return cap_net_conn_drop(a0);
 #else
     case OP_NET_HTTP:
     case OP_NET_LISTENER_DROP:
@@ -3282,7 +2613,7 @@ val rt_std_id(int op, int n, val* a) {
         return NULL;
     // math / misc
 #ifdef KIGUMI_CAP_HOST_ARGS
-    case OP_ARGS_LEN: return rt_int(g_argc, 64);
+    case OP_ARGS_LEN: return cap_args_len();
 #else
     case OP_ARGS_LEN: rt_panic("this build has no host.args capability"); return NULL;
 #endif
@@ -3325,32 +2656,14 @@ val rt_std_id(int op, int n, val* a) {
         rt_panic("this build has no task.blocking-pool capability");
         return NULL;
 #else
-    {
-        blocking_pool* p = calloc(1, sizeof *p);
-        if (!p) rt_panic("out of memory");
-        p->capacity = (int)a0->u.i;
-        return opaque("BlockingPool", p);
-    }
+        return cap_blocking_pool_new(a0);
 #endif
     case OP_BLOCKING_POOL_RUN:
 #if defined(KIGUMI_FREESTANDING) || !defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
         rt_panic("this build has no task.blocking-pool capability");
         return NULL;
 #else
-    {
-        blocking_pool* p = (blocking_pool*)a0->u.op.data;
-        if (p->in_flight >= p->capacity) return blocking_capacity_exhausted();
-        val r = rt_callv(a1, 0, NULL);
-        blocking_future* f = calloc(1, sizeof *f);
-        if (!f) {
-            rt_release(r);
-            rt_panic("out of memory");
-        }
-        p->in_flight++;
-        f->pool = rt_retain(a0);
-        f->result = r;
-        return ok(opaque("BlockingFuture", f));
-    }
+        return cap_blocking_pool_run(a0, a1);
 #endif
     }
     rt_panic("rt_std_id: bad op");

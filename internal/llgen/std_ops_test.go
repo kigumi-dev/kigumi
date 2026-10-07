@@ -62,14 +62,10 @@ func exclusive(a, b []ppFrame) bool {
 	return false
 }
 
-// TestStdOpsMatchC checks rt_core.c's `enum std_op` matches mir.StdOpNames
-// in order, and that rt_std_id has exactly one case per declared op, or
-// a capability-guarded pair of mutually exclusive ones (real impl / panic stub).
+// TestStdOpsMatchC checks rt_core.c's `enum std_op` matches mir.StdOpNames,
+// and that rt_std_id has one case per op (real, or a capability-guarded panic stub) across every runtime file.
 func TestStdOpsMatchC(t *testing.T) {
-	src, err := os.ReadFile("runtime/rt_core.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := []byte(RuntimeSource())
 	block := enumBlockRe.FindSubmatch(src)
 	if block == nil {
 		t.Fatal("enum std_op { ... } not found in rt_core.c")
@@ -106,6 +102,105 @@ func TestStdOpsMatchC(t *testing.T) {
 	for name := range cases {
 		if !declared[name] {
 			t.Errorf("rt_std_id has a case for OP_%s, which enum std_op does not declare", name)
+		}
+	}
+}
+
+var commentLineRe = regexp.MustCompile(`^\s*//`)
+
+// commentRuns returns every run of 3+ consecutive `//` comment lines in src,
+// each as the exact lines (including indentation) joined by "\n".
+func commentRuns(src string) []string {
+	var runs []string
+	var cur []string
+	flush := func() {
+		if len(cur) >= 3 {
+			runs = append(runs, strings.Join(cur, "\n"))
+		}
+		cur = nil
+	}
+	for _, line := range strings.Split(src, "\n") {
+		if commentLineRe.MatchString(line) {
+			cur = append(cur, line)
+		} else {
+			flush()
+		}
+	}
+	flush()
+	return runs
+}
+
+// longCommentAllowlist holds the 3+-line comment runs moved verbatim out of
+// rt_core.c by the split; anything else counts as new and must stay under 3 lines.
+var longCommentAllowlist = map[string][]string{
+	"rt_cap_ffi_cstring.c.inc": {
+		"    // Every String/Bytes buffer already carries a guaranteed trailing\n" +
+			"    // NUL at data[len] (see strdup_val); strchr for the first NUL byte\n" +
+			"    // reaches that one unless an earlier, embedded NUL is hit first.",
+	},
+	"rt_cap_ffi_pin.c.inc": {
+		"    // mir now consumes self for a type's own drop (isOwnDrop in\n" +
+			"    // internal/mir/plan_args.go), so scope exit no longer re-enters\n" +
+			"    // here; the zero-guard just stays as a defensive no-op on repeat.",
+		"    // release() (unlike drop) still lends self, so the caller's\n" +
+			"    // scope-exit drop runs after this; retain here keeps the\n" +
+			"    // extracted pointer alive through that drop.",
+	},
+	"rt_cap_ffi_raw.c.inc": {
+		"// Decodes one codepoint at s[i], the same rules utf8_valid checks; returns\n" +
+			"// the sequence length on success or 0 on any violation, so a caller can\n" +
+			"// tell exactly where a bad sequence starts.",
+		"// Lossy UTF-8 conversion for ffi.stringLossy: each byte that\n" +
+			"// doesn't start a valid sequence becomes its own U+FFFD, matching Go's\n" +
+			"// utf8.DecodeRuneInString fallback, so native agrees byte for byte with\n" +
+			"// the VM/interp Go paths.",
+	},
+	"rt_cap_host_net.c.inc": {
+		"// Bodiless like Conn.drop/Listener.drop themselves (see net_hosted.kg):\n" +
+			"// an accelerator on a *bodied* drop only replaces normal calls to it,\n" +
+			"// not the implicit drop on a resource's last reference going, which\n" +
+			"// always runs the real (here nonexistent) lowered body instead.",
+	},
+}
+
+// TestRuntimeCapFileCommentRuns fails on a capability file's 3+-line comment
+// run that isn't in longCommentAllowlist, i.e. not a verbatim move from rt_core.c.
+func TestRuntimeCapFileCommentRuns(t *testing.T) {
+	files := append([]RuntimeFile{{"rt_internal.h", runtimeInternalHeader}}, capFiles...)
+	for _, f := range files {
+		allowed := map[string]bool{}
+		for _, run := range longCommentAllowlist[f.Name] {
+			allowed[run] = true
+		}
+		for _, run := range commentRuns(f.Src) {
+			if !allowed[run] {
+				t.Errorf("%s has an unlisted 3+-line comment run:\n%s", f.Name, run)
+			}
+		}
+	}
+}
+
+// goCommentRunAllowlist holds this package's pre-existing 3+-line doc
+// comments; new ones must stay under 3 lines.
+var goCommentRunAllowlist = map[string]bool{
+	"// posixSignalOS are the driver.Target.OS values with POSIX <signal.h>.\n" +
+		"// Windows and WASI are hosted (sys != \"none\") but have neither, so\n" +
+		"// rt_signal.c must be gated on this instead of on sys alone.": true,
+	"// RuntimeFiles includes rt_signal.c only for hosted POSIX OSes: sigaction\n" +
+		"// needs a POSIX <signal.h>, which freestanding/\"--sys none\" and\n" +
+		"// Windows/WASI lack.": true,
+}
+
+func TestLlgenGoSourceCommentRuns(t *testing.T) {
+	for _, name := range []string{"std_ops_test.go", "runtime_files.go"} {
+		src, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, run := range commentRuns(string(src)) {
+			if !goCommentRunAllowlist[run] {
+				t.Errorf("%s has an unlisted 3+-line comment run:\n%s", name, run)
+			}
 		}
 	}
 }

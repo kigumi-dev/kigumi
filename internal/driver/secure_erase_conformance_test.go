@@ -12,13 +12,13 @@ import (
 	"kigumi/internal/driver"
 )
 
-// Compiling the shipped text, not a copy, keeps the probe from drifting from rt_core.c.
+// Compiling the shipped text, not a copy, keeps the probe from drifting from the runtime.
 func extractCFunc(t *testing.T, src, name string) string {
 	t.Helper()
 	re := regexp.MustCompile(`(?s)\n[\w* ]*\b` + regexp.QuoteMeta(name) + `\([^;{]*\)\s*\{.*?\n\}\n`)
 	m := re.FindString(src)
 	if m == "" {
-		t.Fatalf("could not find %s in rt_core.c (has its text changed shape?)", name)
+		t.Fatalf("could not find %s in the runtime source (has its text changed shape?)", name)
 	}
 	return m
 }
@@ -65,7 +65,7 @@ func TestSecureEraseSurvivesO2DeadStoreElimination(t *testing.T) {
 	if runtime.GOARCH != "amd64" || runtime.GOOS != "linux" {
 		t.Skip("x86-64 Linux only: the test reads AT&T assembly mnemonics")
 	}
-	rtCore, err := os.ReadFile("../llgen/runtime/rt_core.c")
+	rtCore, err := os.ReadFile("../llgen/runtime/rt_cap_mem_secure_erase.c.inc")
 	if err != nil {
 		t.Fatal(err)
 	}
