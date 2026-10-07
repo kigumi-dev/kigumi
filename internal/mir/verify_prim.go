@@ -66,7 +66,8 @@ func (p *Program) primMismatch(f *Func, in Inst) string {
 			return "argument " + itoa(j+skip) + " " + msg
 		}
 	}
-	if in.Op.Yields() {
+	// A declared Unit result is a placeholder for a primitive whose result is typed from a type argument.
+	if in.Op.Yields() && sig.Elem != sem.TyUnit {
 		if msg := p.primSlot(sig.Elem, f.Locals[in.Dst].Type); msg != "" {
 			return "result " + msg
 		}
