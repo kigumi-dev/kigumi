@@ -46,12 +46,13 @@ fn main() -> Unit! {
 `
 
 // Handing an unboxed aggregate to a type parameter's reference slot
-// allocates a box, which a declared `noalloc` does not cover.
+// allocates a box, which a declared `noalloc` does not cover. The effect
+// pass names the argument; E1570 stays behind it as the MIR-side backstop.
 func TestNoallocRejectsABoxingSite(t *testing.T) {
 	t.Parallel()
 	out := checkAllocClaim(t, directCallbackSrc)
-	if !strings.Contains(out, "E1570") {
-		t.Fatalf("expected E1570 direct-box-in-noalloc, got:\n%s", out)
+	if !strings.Contains(out, "E1610") || !strings.Contains(out, "let q = keep(p)") {
+		t.Fatalf("expected the crossing to be rejected at the argument, got:\n%s", out)
 	}
 }
 

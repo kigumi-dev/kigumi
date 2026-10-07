@@ -26,7 +26,9 @@ func (c *checker) synthTuple(n syntax.NodeID, want TypeID) TypeID {
 	for i, it := range items {
 		c.checkArg(it, c.r.Types.Subst(c.r.Entities[info.Fields[i]].Type, subst), 0, false)
 	}
-	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	if !c.builtDirect(c.vars.resolve(result)) {
+		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: result, Why: 3})
+	}
 	c.info.Calls[n] = CallInfo{Kind: CallRecord, Callee: ent, Inst: typeArgs}
 	c.touched = append(c.touched, n)
 	return result

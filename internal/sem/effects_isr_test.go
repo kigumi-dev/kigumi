@@ -48,11 +48,11 @@ export(interrupt) {
 
 func TestInterruptHandlerRecordConstruct(t *testing.T) {
 	res := checkIsr(t, `
-type Pair = { pub x Int, pub y Int }
+type Pair = { pub x String, pub y Int }
 
 export(interrupt) {
     pub fn tick() -> Unit {
-        let p = Pair { x: 1, y: 2 }
+        let p = Pair { x: "a", y: 2 }
         _ = p
     }
 }
@@ -60,6 +60,24 @@ export(interrupt) {
 	out := res.Render()
 	if !res.HasErrors() || !strings.Contains(out, "E1080") || !strings.Contains(out, "allocates or deallocates here") {
 		t.Fatalf("a handler constructing a record must be rejected:\n%s", out)
+	}
+}
+
+// A record of register-wide fields never reaches the allocator, so a
+// handler may build one.
+func TestInterruptHandlerDirectRecordConstruct(t *testing.T) {
+	res := checkIsr(t, `
+type Pair = { pub x Int, pub y Int }
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let p = Pair { x: 1, y: 2 }
+        _ = p.y
+    }
+}
+`)
+	if res.HasErrors() {
+		t.Fatalf("a handler building a direct record must pass:\n%s", res.Render())
 	}
 }
 

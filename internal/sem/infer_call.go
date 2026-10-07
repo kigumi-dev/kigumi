@@ -35,6 +35,8 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 		kind = CallAssoc
 	}
 	ret, plan := c.checkArgs(n, name, sig, args, inst, want, info.Params, info.Body != 0, async)
+	c.crossRecv(n, fn, recv, recvBase)
+	c.crossAsyncResult(n, ret)
 	c.ffiCValueCheck(n, fn, inst, recv)
 	c.ffiAddressLeaseCheck(n, fn, inst)
 	c.errorAsCheck(n, fn, inst)
@@ -115,7 +117,9 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 					c.synth(syntax.NodeID(c.t.Nodes[a].Lhs))
 					continue
 				}
-				c.checkArg(syntax.NodeID(c.t.Nodes[a].Lhs), params[fixed], entAt(declParams, fixed), async)
+				inner := syntax.NodeID(c.t.Nodes[a].Lhs)
+				c.checkArg(inner, params[fixed], entAt(declParams, fixed), async)
+				c.crossArg(inner, entAt(declParams, fixed))
 				continue
 			}
 			pi := min(i, len(params)-1)
@@ -128,6 +132,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 				c.markImmediate(a, c.r.nonEscapingParam(entAt(declParams, pi)))
 			}
 			c.checkArg(a, param, entAt(declParams, pi), async)
+			c.crossArg(a, entAt(declParams, pi))
 			c.noteLentRefArg(a, entAt(declParams, pi), async)
 			if pass == 0 {
 				c.checkEscapeArg(a, entAt(declParams, pi), param, name)

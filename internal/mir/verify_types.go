@@ -47,8 +47,14 @@ func (p *Program) verifyTypes(f *Func) *Error {
 					return fail("types", bid, i, "box of %s as %s into %s", p.R.TypeString(ty(in.Args[0])), p.R.TypeString(in.Type), p.R.TypeString(ty(in.Dst)))
 				}
 			case OpBoxDirect, OpUnboxDirect:
-				if !p.sameType(in.Type, ty(in.Args[0])) || !p.sameType(in.Type, ty(in.Dst)) {
-					return fail("types", bid, i, "%s of %s between %s and %s", in.Op, p.R.TypeString(in.Type), p.R.TypeString(ty(in.Args[0])), p.R.TypeString(ty(in.Dst)))
+				// Only the unboxed side is named: the carrier may be a
+				// reference or a defined type handing the same object on.
+				side := ty(in.Dst)
+				if in.Op == OpBoxDirect {
+					side = ty(in.Args[0])
+				}
+				if !p.sameType(in.Type, side) {
+					return fail("types", bid, i, "%s of %s holds %s", in.Op, p.R.TypeString(in.Type), p.R.TypeString(side))
 				}
 			case OpNewCell:
 				if ty(in.Dst) != ty(in.Args[0]) {

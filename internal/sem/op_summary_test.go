@@ -35,7 +35,7 @@ func findFn(t *testing.T, r *sem.Result, name string) sem.EntityID {
 
 func TestOpSummaryFormula(t *testing.T) {
 	r := checkOp(t, `
-type Box = { n Int }
+type Box = { n String }
 
 fn callIt(f: fn() -> Unit) -> Unit {
     f()
@@ -46,7 +46,7 @@ fn callDead(f: fn() -> Unit) -> Unit {}
 noalloc fn quiet() -> Unit {}
 
 fn allocating() -> Unit {
-    let b = Box { n: 1 }
+    let b = Box { n: "x" }
 }
 
 fn useQuiet() -> Unit {
@@ -84,10 +84,10 @@ let n = 1
 
 func TestOpSummaryFixpointOrderIndependent(t *testing.T) {
 	before := checkOp(t, `
-type Box = { n Int }
+type Box = { n String }
 
 fn leaf() -> Unit {
-    let b = Box { n: 1 }
+    let b = Box { n: "x" }
 }
 
 fn caller() -> Unit {
@@ -97,14 +97,14 @@ fn caller() -> Unit {
 let n = 1
 `)
 	after := checkOp(t, `
-type Box = { n Int }
+type Box = { n String }
 
 fn caller() -> Unit {
     leaf()
 }
 
 fn leaf() -> Unit {
-    let b = Box { n: 1 }
+    let b = Box { n: "x" }
 }
 
 let n = 1
@@ -117,7 +117,7 @@ let n = 1
 	}
 
 	mutual := checkOp(t, `
-type Box = { n Int }
+type Box = { n String }
 
 fn mutualA(n: Int) -> Unit {
     if n > 0 {
@@ -129,7 +129,7 @@ fn mutualB(n: Int) -> Unit {
     if n > 0 {
         mutualA(n - 1)
     } else {
-        let b = Box { n: 1 }
+        let b = Box { n: "x" }
     }
 }
 
@@ -201,10 +201,10 @@ let n = 1
 
 func TestOpSummaryProvenance(t *testing.T) {
 	r := checkOp(t, `
-type Box = { n Int }
+type Box = { n String }
 
 fn c() -> Unit {
-    let b = Box { n: 1 }
+    let b = Box { n: "x" }
 }
 
 fn b() -> Unit {
@@ -265,10 +265,10 @@ let n = 1
 // until an artifact cache exists: two checks of the same source must agree.
 func TestOpSummaryArtifactDeterministic(t *testing.T) {
 	src := `
-type Box = { n Int }
+type Box = { n String }
 
 pub fn allocating() -> Unit {
-    let b = Box { n: 1 }
+    let b = Box { n: "x" }
 }
 
 pub fn quiet() -> Unit {}

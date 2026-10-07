@@ -223,9 +223,9 @@ fn main() -> Unit! {
 	}
 }
 
-// A direct signature covering one parameter says nothing about the rest:
-// a lent receiver is a crossing like any other, and MIR names it.
-func TestPlanDirectBoxesAPositionOutsideTheSignature(t *testing.T) {
+// A plain `self` is a value the callee may hold as a copy, so the signature
+// carries it; a `mut self` receiver is the caller's write-back cell.
+func TestPlanDirectCarriesAPlainReceiver(t *testing.T) {
 	p := planned(t, `
 type Point = {
     pub x Int
@@ -244,11 +244,55 @@ fn main() -> Unit! {
 }
 `)
 	g := funcNamed(t, p, "main.Point.combine")
-	if g.DSig == nil || g.DSig.Param(0) != 0 || g.DSig.Param(1) == 0 {
-		t.Fatalf("the signature does not carry `other` while leaving the receiver out:\n%s", p.Dump())
+	if g.DSig == nil || g.DSig.Param(0) == 0 || g.DSig.Param(1) == 0 {
+		t.Fatalf("the signature leaves a by-value position out:\n%s", p.Dump())
 	}
 	f := funcNamed(t, p, "main.touch")
-	if n := countOp(f, mir.OpBoxDirect); n != 1 {
-		t.Errorf("the lent receiver crossing is %d explicit boxes, want 1:\n%s", n, p.Dump())
+	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+		t.Errorf("a call that crosses nothing boxes %d times:\n%s", n, p.Dump())
 	}
+}
+
+func TestPlanDirectBoxesAMutReceiver(t *testing.T) {
+	p := planned(t, `
+type Point = {
+    pub x Int
+    pub mut y Int
+}
+
+fn Point.raise(mut self) -> Unit {
+    self.y += 1
+}
+
+fn touch(n: Int) -> Int {
+    let mut p = Point { x: n, y: n + 1 }
+    p.raise()
+    p.y
+}
+
+fn main() -> Unit! {
+    print "${touch(1)}"
+}
+`)
+	g := funcNamed(t, p, "main.Point.raise")
+	if g.DSig != nil && g.DSig.Param(0) != 0 {
+		t.Fatalf("a write-back receiver is carried as a value:\n%s", p.Dump())
+	}
+	f := funcNamed(t, p, "main.touch")
+	if countDirect(f) != 0 {
+		t.Errorf("a value lent for a write-back is kept unboxed:\n%s", p.Dump())
+	}
+	if n := countOp(f, mir.OpBoxDirect); n != 0 {
+		t.Errorf("a value boxed from the start crosses %d more times:\n%s", n, p.Dump())
+	}
+}
+
+func countDirect(f *mir.Func) int {
+	n := 0
+	for i := range f.Locals {
+		if f.IsDirect(mir.LocalID(i)) {
+			n++
+		}
+	}
+	return n
 }

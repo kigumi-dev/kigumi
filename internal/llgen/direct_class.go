@@ -26,11 +26,13 @@ func (e *emitter) classifyDirect(f *mir.Func) map[mir.LocalID]*aggInfo {
 	return out
 }
 
+// Only a crossing's own local is given back here: every other box belongs
+// to the ownership plan.
 func boxTemps(f *mir.Func) map[mir.LocalID]bool {
 	out := map[mir.LocalID]bool{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpBoxDirect {
+			if in.Op == mir.OpBoxDirect && f.Locals[in.Dst].Cross {
 				out[in.Dst] = true
 			}
 		}

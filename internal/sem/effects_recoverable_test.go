@@ -62,8 +62,12 @@ func TestRecoverableOnlyAcceptsTrySecureErase(t *testing.T) {
 
 // TestRecoverableOnlyRejectsCompilerGeneratedAlloc checks a record literal is rejected too, same as a bodiless fatal convenience.
 func TestRecoverableOnlyRejectsCompilerGeneratedAlloc(t *testing.T) {
-	bad := checkRecoverableOnly(t, "type P = { x Int }\n\nlet p = P { x: 1 }\n")
+	bad := checkRecoverableOnly(t, "type P = { x String }\n\nlet p = P { x: \"s\" }\n")
 	if !bad.HasErrors() || !strings.Contains(bad.Render(), "recoverable-only") {
 		t.Fatalf("a record literal must be rejected under recoverable-only:\n%s", bad.Render())
+	}
+	ok := checkRecoverableOnly(t, "type P = { x Int }\n\nlet p = P { x: 1 }\nlet q = p.x\n")
+	if ok.HasErrors() {
+		t.Fatalf("a direct record literal must pass under recoverable-only:\n%s", ok.Render())
 	}
 }

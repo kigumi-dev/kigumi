@@ -186,7 +186,5 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		return
 	}
 	e.releaseScalarArgs(sb, in, args)
-	if !e.storeDirectResult(sb, in.Dst, res) {
-		e.storeMaybeScalar(sb, in.Dst, res)
-	}
+	e.storeMaybeScalar(sb, in.Dst, res)
 }

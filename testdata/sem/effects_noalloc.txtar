@@ -16,11 +16,42 @@ noalloc fn variadic() -> Array[Int] {
 }
 
 noalloc fn widen() -> Unit! {
-    fail MyErr { code: 1 } //~ ERROR constructing `MyErr` allocates //~ ERROR boxing `MyErr` into `Error` allocates
+    fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates
 }
 
 pure noalloc fn ok(data: Bytes) -> usize {
     data.len()
+}
+
+// A record of register-wide fields has no storage of its own, so building,
+// copying, reading and returning one costs nothing.
+noalloc fn buildsDirect(n: Int) -> MyErr {
+    let a = MyErr { code: n }
+    let b = a
+    MyErr { code: a.code + b.code }
+}
+
+noalloc fn directPair(n: Int) -> Int {
+    let (x, y) = (n, n + 1)
+    x + y
+}
+
+fn MyErr.doubled(self) -> MyErr {
+    MyErr { code: self.code * 2 }
+}
+
+noalloc fn directMethod(n: Int) -> Int {
+    MyErr { code: n }.doubled().code
+}
+
+noalloc fn directBorrowed(n: Int) -> Int {
+    let p = MyErr { code: n }
+    let r = &p //~ ERROR handing `MyErr` to a slot that holds a reference allocates a box for it
+    r.code
+}
+
+noalloc fn directIntoAnArray(n: Int, mut xs: Array[MyErr]) -> Unit {
+    xs.push(MyErr { code: n }) //~ ERROR `push` is not `noalloc` //~ ERROR handing `MyErr` to a slot that holds a reference allocates a box for it
 }
 
 type Mark = Cold | Hot
@@ -139,75 +170,89 @@ error[E911]: listed variadic arguments allocate
    |     ^^^^^^^^^^^^^
    = help: pass `...array`
 
-error[E961]: constructing `MyErr` allocates
-  --> lib/na.kg:18:10
-   |
-18 |     fail MyErr { code: 1 } //~ ERROR constructing `MyErr` allocates //~ ERROR boxing `MyErr` into `Error` allocates
-   |          ^^^^^^^^^^^^^^^
-
 error[E910]: boxing `MyErr` into `Error` allocates
   --> lib/na.kg:18:10
    |
-18 |     fail MyErr { code: 1 } //~ ERROR constructing `MyErr` allocates //~ ERROR boxing `MyErr` into `Error` allocates
+18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates
    |          ^^^^^^^^^^^^^^^
 
-error[E961]: constructing `_?` allocates
-  --> lib/na.kg:46:5
+error[E1610]: handing `MyErr` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:48:14
    |
-46 |     Some(x) //~ ERROR constructing `_?` allocates
+48 |     let r = &p //~ ERROR handing `MyErr` to a slot that holds a reference allocates a box for it
+   |              ^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E907]: `push` is not `noalloc`
+  --> lib/na.kg:53:5
+   |
+53 |     xs.push(MyErr { code: n }) //~ ERROR `push` is not `noalloc` //~ ERROR handing `MyErr` to a slot that holds a reference allocates a box for it
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1610]: handing `MyErr` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:53:13
+   |
+53 |     xs.push(MyErr { code: n }) //~ ERROR `push` is not `noalloc` //~ ERROR handing `MyErr` to a slot that holds a reference allocates a box for it
+   |             ^^^^^^^^^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E961]: constructing `_?` allocates
+  --> lib/na.kg:77:5
+   |
+77 |     Some(x) //~ ERROR constructing `_?` allocates
    |     ^^^^^^
 
 error[E907]: `push` is not `noalloc`
-  --> lib/na.kg:54:5
+  --> lib/na.kg:85:5
    |
-54 |     xs.push(1) //~ ERROR `push` is not `noalloc`
+85 |     xs.push(1) //~ ERROR `push` is not `noalloc`
    |     ^^^^^^^^^
 
 error[E422]: closure is not `noalloc` (calls `grows`)
-  --> lib/na.kg:67:8
+  --> lib/na.kg:98:8
    |
-67 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
+98 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
    |        ^^^^^^^^^^^^
 
 error[E961]: constructing `closure fn() -> Unit` allocates
-  --> lib/na.kg:73:8
-   |
-73 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
-   |        ^^^^^^^^^^^^
+   --> lib/na.kg:104:8
+    |
+104 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+    |        ^^^^^^^^^^^^
 
 error[E910]: boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
-  --> lib/na.kg:73:8
-   |
-73 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
-   |        ^^^^^^^^^^^^
+   --> lib/na.kg:104:8
+    |
+104 |     cb(() => noop(n)) //~ ERROR constructing `closure fn() -> Unit` allocates //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+    |        ^^^^^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:81:9
-   |
-81 |     _ = e //~ ERROR dropping `Error` may allocate or deallocate
-   |         ^
+   --> lib/na.kg:112:9
+    |
+112 |     _ = e //~ ERROR dropping `Error` may allocate or deallocate
+    |         ^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:84:27
-   |
-84 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
-   |                           ^^^^^^^^
+   --> lib/na.kg:115:27
+    |
+115 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
+    |                           ^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
-  --> lib/na.kg:87:9
-   |
-87 |     let local = e //~ ERROR dropping `Error` may allocate or deallocate
-   |         ^^^^^
+   --> lib/na.kg:118:9
+    |
+118 |     let local = e //~ ERROR dropping `Error` may allocate or deallocate
+    |         ^^^^^
 
 error[E907]: `helper2` is not `noalloc`
-   --> lib/na.kg:111:5
+   --> lib/na.kg:142:5
     |
-111 |     helper2(x) //~ ERROR `helper2` is not `noalloc`
+142 |     helper2(x) //~ ERROR `helper2` is not `noalloc`
     |     ^^^^^^^^^
 
 error[E907]: `pureOnly` is not `noalloc`
-   --> lib/na.kg:119:5
+   --> lib/na.kg:150:5
     |
-119 |     pureOnly(xs) //~ ERROR `pureOnly` is not `noalloc`
+150 |     pureOnly(xs) //~ ERROR `pureOnly` is not `noalloc`
     |     ^^^^^^^^^^^
 

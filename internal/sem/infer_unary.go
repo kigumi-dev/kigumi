@@ -71,6 +71,7 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 	if mut {
 		c.invalidatePlace(inner)
 	}
+	c.crossBorrow(inner)
 	refT := c.r.Types.Ref(t, mut)
 	// A scalar `&mut` of a bare local/parameter can be stored (MIR
 	// build_expr.go hir.Borrow): flag the local so it gets a cell to alias

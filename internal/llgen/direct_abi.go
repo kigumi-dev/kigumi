@@ -85,10 +85,6 @@ func (e *emitter) storeParams(sb *strings.Builder, f *mir.Func, s *aggSig) {
 			v = fmt.Sprintf("%%pv%d", i)
 			fmt.Fprintf(sb, "  %s = load %s, ptr %%p%d\n", v, a.Name, i)
 		}
-		if e.isDirect(prm) {
-			fmt.Fprintf(sb, "  store %s %s, ptr %%l%d\n", a.Name, v, prm)
-			continue
-		}
-		fmt.Fprintf(sb, "  store ptr %s, ptr %%l%d\n", e.boxAgg(sb, a, v), prm)
+		e.storeAgg(sb, a, prm, v)
 	}
 }

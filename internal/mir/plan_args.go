@@ -47,6 +47,11 @@ func (p *Program) inPlace(in Inst, i int) bool {
 // true means argument i is lent, not handed over.
 func (p *Program) ArgLent(in Inst, i int) bool { return p.inPlace(in, i) }
 
+// ParamLent is ArgLent for a caller that has no instruction of its own, an adapter say.
+func (p *Program) ParamLent(fn sem.EntityID, i int) bool {
+	return p.inPlace(Inst{Op: OpCall, Ent: fn}, i)
+}
+
 // isOwnDrop reports whether fn is the registered `drop` of its own owner
 // type, the one case where a bodiless std primitive still consumes `self`.
 func (p *Program) isOwnDrop(fn sem.EntityID, info *sem.FnInfo) bool {

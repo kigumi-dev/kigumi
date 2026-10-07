@@ -133,7 +133,10 @@ func (e *emitter) callBoxed(sb *strings.Builder, f *mir.Func, vals []string) str
 			continue
 		}
 		u := e.unboxAgg(sb, a, v)
-		e.irb(sb).Call(rtRelease, vptr(v))
+		// A lent position never owned the box, so the reference stays where it was.
+		if !e.p.ParamLent(f.Ent, i) {
+			e.irb(sb).Call(rtRelease, vptr(v))
+		}
 		if byValueAgg(a) {
 			args = append(args, a.Name+" "+u)
 			continue

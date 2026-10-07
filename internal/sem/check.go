@@ -133,6 +133,9 @@ func (r *Result) checkFnBody(id EntityID) {
 	}
 	c.checkBodyBlock(info.Body)
 	c.flushFieldWrites()
+	if r.DirectResultType(id, c.retType) == 0 {
+		c.crossDirect(info.Body, c.retType)
+	}
 	c.dropsAtScopeExit(info.Params)
 	r.Fn(id).Edges = edges
 }

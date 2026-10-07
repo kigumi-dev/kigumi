@@ -30,8 +30,15 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpGlobalSet:
 		m.storeGlobal(in.Ent, args[0])
 		return
-	case mir.OpAlias, mir.OpBoxDirect, mir.OpUnboxDirect:
+	case mir.OpAlias, mir.OpUnboxDirect:
 		// A direct aggregate and its box are one object here.
+		res = args[0]
+	case mir.OpBoxDirect:
+		// No object is built here, but the box native emits is an
+		// allocation, so the two backends refuse at the same crossings.
+		if m.faultTick() {
+			m.abort("out of memory")
+		}
 		res = args[0]
 	case mir.OpShare:
 		if in.Copy {

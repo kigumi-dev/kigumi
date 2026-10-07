@@ -124,24 +124,18 @@ fn main() -> Unit! {
 }
 `
 
-func callArg(t *testing.T, body, head string) string {
-	t.Helper()
-	i := strings.Index(body, head)
-	if i < 0 {
-		t.Fatalf("no %s in:\n%s", head, body)
+// A plain `self` is a value the callee may hold as a copy, so the direct
+// signature covers it like any other by-value parameter.
+func TestPlainReceiverCrossesNothing(t *testing.T) {
+	ir := emitIR(t, lentReceiverSrc)
+	want := `@"main.Point.combine"(%"kg.agg.Point" %p0, %"kg.agg.Point" %p1)`
+	if !strings.Contains(ir, want) {
+		t.Fatalf("the receiver is not carried as a value:\n%s", ir)
 	}
-	rest := body[i+len(head):]
-	return rest[:strings.IndexAny(rest, ",)")]
-}
-
-// A direct signature never covers a lent receiver: that box is the caller's to give back.
-func TestLentDirectReceiverGivesItsBoxBack(t *testing.T) {
-	body := bodyOf(t, emitIR(t, lentReceiverSrc), `@"main.touch"(`)
-	if !strings.Contains(body, `call ptr @"kg.box.Point"(`) {
-		t.Fatalf("the lent receiver does not cross through the boxing helper:\n%s", body)
-	}
-	recv := callArg(t, body, `call ptr @"main.Point.combine"(ptr `)
-	if !strings.Contains(body, "call void @rt_release(ptr "+recv+")") {
-		t.Errorf("the box handed to the lent receiver is never released:\n%s", body)
+	body := bodyOf(t, ir, `@"main.touch"(`)
+	for _, call := range []string{`@"kg.box.Point"`, "@rt_record"} {
+		if strings.Contains(body, call) {
+			t.Errorf("a call that crosses nothing still reaches %s:\n%s", call, body)
+		}
 	}
 }

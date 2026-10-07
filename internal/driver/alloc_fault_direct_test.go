@@ -1,0 +1,101 @@
+package driver_test
+
+import (
+	"bytes"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"testing"
+
+	"kigumi/internal/driver"
+	"kigumi/internal/vm"
+)
+
+// directBoxSrc has exactly one allocation the VM can see: the box the
+// direct record needs to reach a type parameter.
+const directBoxSrc = `type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn pick[T](v: T) -> T { v }
+
+fn run() -> Int {
+    let p = Point { x: 1, y: 2 }
+    pick(p).x
+}
+
+print "ok=${run()}"
+`
+
+const directBoxSweep = 120
+
+func checkBoxOutcome(t *testing.T, backend string, n, exit int, out, errOut string) bool {
+	t.Helper()
+	switch exit {
+	case 0:
+		return false
+	case 2:
+		if !strings.Contains(errOut, "out of memory") {
+			t.Errorf("%s N=%d: exit 2 without an out-of-memory panic: %q", backend, n, errOut)
+		}
+		return true
+	}
+	t.Errorf("%s N=%d: exit %d (want 0 or 2), stdout=%q stderr=%q", backend, n, exit, out, errOut)
+	return false
+}
+
+func TestFaultInjectionDirectBoxNative(t *testing.T) {
+	t.Parallel()
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	m := loadTryConstructorModule(t, directBoxSrc)
+	exe := filepath.Join(t.TempDir(), "prog")
+	var buildErr bytes.Buffer
+	ok, err := driver.BuildWith(m, exe, &buildErr, driver.BuildOptions{
+		CFlags: []string{"-DKIGUMI_FAULT_INJECT", "-DKIGUMI_RC_CHECK"},
+	})
+	if err != nil || !ok {
+		t.Fatalf("build: %v\n%s", err, buildErr.String())
+	}
+	refused := false
+	for n := 1; n <= directBoxSweep; n++ {
+		cmd := exec.Command(exe)
+		cmd.Dir = t.TempDir()
+		cmd.Env = append(os.Environ(), "KIGUMI_FAIL_ALLOC_AT="+strconv.Itoa(n))
+		var out, errOut bytes.Buffer
+		cmd.Stdout, cmd.Stderr = &out, &errOut
+		refused = checkBoxOutcome(t, "native", n, exitCodeOf(cmd.Run()), out.String(), errOut.String()) || refused
+	}
+	if !refused {
+		t.Errorf("native: no N in 1..%d refused an allocation", directBoxSweep)
+	}
+}
+
+// The VM counts the crossing and nothing else in this program, so the
+// first injected failure is the box itself, and both backends end the same way.
+func TestFaultInjectionDirectBoxVM(t *testing.T) {
+	t.Parallel()
+	m := loadTryConstructorModule(t, directBoxSrc)
+	a, err := driver.Analyze(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.Res.HasErrors() {
+		t.Fatal(a.Res.Render())
+	}
+	for n := 1; n <= 8; n++ {
+		var out, errOut bytes.Buffer
+		code, err := vm.Run(a.Prog, vm.Options{FaultInjectAt: int64(n)}, &out, &errOut)
+		if err != nil {
+			t.Fatalf("N=%d: run error: %v", n, err)
+		}
+		refused := checkBoxOutcome(t, "vm", n, code, out.String(), errOut.String())
+		if n == 1 && !refused {
+			t.Errorf("the box site does not count as an allocation: exit %d stdout=%q", code, out.String())
+		}
+	}
+}

@@ -45,6 +45,8 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	savedConsumed, savedBranch := c.consumed, c.branch
 	c.consumed, c.branch = nil, 0
 	ret = c.lambdaBody(body, ret)
+	// A closure is reached through a value, so its result crosses as a carrier.
+	c.crossDirect(body, c.vars.resolve(ret))
 	c.dropsAtScopeExit(pents)
 	c.edges = savedEdges
 	c.locals = savedLocals

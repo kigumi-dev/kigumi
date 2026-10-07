@@ -63,7 +63,7 @@ const (
 	OpAwait                         // Dst = result of Args[0]; Index is the suspension point
 	OpFutureDone                    // Args[0] completes the enclosing async body
 	OpBoxDirect                     // Dst = a carrier holding the direct aggregate Args[0] (Type: its type)
-	OpUnboxDirect                   // Dst = the direct aggregate in carrier Args[0] (Type: its type), consumed
+	OpUnboxDirect                   // Dst = the direct aggregate in carrier Args[0] (Type: its type)
 )
 
 // Inst is one instruction; the fields used depend on Op.
@@ -128,6 +128,9 @@ type Local struct {
 	// Borrowed marks a `self` / `mut self` receiver: an alias of the
 	// caller's value that the method neither owns nor may move out.
 	Borrowed bool
+	// Cross marks a local PlanDirect made for one crossing: the crossing
+	// owns what it holds, the ownership plan having run before it existed.
+	Cross bool
 }
 
 // Func is one lowered body: a user function, a closure, an implicit main

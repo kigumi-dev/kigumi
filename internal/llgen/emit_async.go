@@ -17,7 +17,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
 	e.scalar = map[mir.LocalID]scalarInfo{}
-	e.direct = map[mir.LocalID]*aggInfo{}
+	e.direct = e.classifyDirect(f)
 	e.boxTmp = map[mir.LocalID]bool{}
 	e.sig = nil
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%fut) {\nentry:\n", e.sym(f))
@@ -25,6 +25,13 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	for i := range f.Locals {
 		if slot := f.Slot[i]; slot >= 0 {
 			fmt.Fprintf(&sb, "  %%l%d = getelementptr ptr, ptr %%slots, i64 %d\n", i, slot)
+			continue
+		}
+		// Only a crossing's own local is unboxed here: every value that
+		// lives across a suspension is one pointer in a frame slot.
+		if a, ok := e.direct[mir.LocalID(i)]; ok {
+			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, a.Name)
+			fmt.Fprintf(&sb, "  store %s zeroinitializer, ptr %%l%d\n", a.Name, i)
 			continue
 		}
 		fmt.Fprintf(&sb, "  %%l%d = alloca ptr\n", i)

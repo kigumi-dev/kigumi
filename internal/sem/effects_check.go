@@ -147,6 +147,8 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 			r.errAt(e.File, e.Node, cAllocVariadic)
 		case e.Why == 3 || e.Why == whySharedValue:
 			r.errAt(e.File, e.Node, cAllocConstruct, r.TypeString(e.Type))
+		case e.Why == whyDirectCross:
+			r.errAt(e.File, e.Node, cAllocDirectCross, r.TypeString(e.Type))
 		case e.Type != 0:
 			r.errAt(e.File, e.Node, cAllocWiden, r.TypeString(e.From), r.TypeString(e.Type))
 		default:

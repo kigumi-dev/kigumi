@@ -21,7 +21,7 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 	switch in.Op {
 	case mir.OpRecord:
 		if a, ok := e.direct[in.Dst]; ok {
-			e.buildAgg(sb, f, a, in)
+			e.buildAgg(sb, a, in)
 			return true
 		}
 	case mir.OpField, mir.OpFieldMove:
@@ -32,7 +32,7 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 	case mir.OpSetField:
 		if a, ok := e.direct[in.Args[0]]; ok {
 			fld := a.Fields[in.Index]
-			v := e.aggLeaf(sb, f, fld, in.Args[1], true)
+			v := e.aggLeaf(sb, fld, in.Args[1])
 			g := e.newTmp()
 			fmt.Fprintf(sb, "  %s = getelementptr %s, ptr %%l%d, i32 0, i32 %d\n", g, a.Name, in.Args[0], in.Index)
 			fmt.Fprintf(sb, "  store %s %s, ptr %s\n", fld.llType(), v, g)
@@ -62,7 +62,9 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 		if a, ok := e.agg(in.Type); ok {
 			p := e.load(sb, in.Args[0])
 			v := e.unboxAgg(sb, a, p)
-			e.irb(sb).Call(rtRelease, vptr(p))
+			if f.Locals[in.Args[0]].Cross {
+				e.irb(sb).Call(rtRelease, vptr(p))
+			}
 			e.storeAgg(sb, a, in.Dst, v)
 			return true
 		}
@@ -70,10 +72,10 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 	return false
 }
 
-func (e *emitter) buildAgg(sb *strings.Builder, f *mir.Func, a *aggInfo, in mir.Inst) {
+func (e *emitter) buildAgg(sb *strings.Builder, a *aggInfo, in mir.Inst) {
 	cur := "undef"
 	for i, fld := range a.Fields {
-		v := e.aggLeaf(sb, f, fld, in.Args[i], true)
+		v := e.aggLeaf(sb, fld, in.Args[i])
 		t := e.newTmp()
 		fmt.Fprintf(sb, "  %s = insertvalue %s %s, %s %s, %d\n", t, a.Name, cur, fld.llType(), v, i)
 		cur = t
@@ -89,35 +91,20 @@ func (e *emitter) readAggField(sb *strings.Builder, f *mir.Func, a *aggInfo, in 
 		e.storeScalarResult(sb, f, in.Dst, Value{fld.Ty, t})
 		return
 	}
-	if d, ok := e.direct[in.Dst]; ok {
-		e.storeAgg(sb, d, in.Dst, t)
-		return
-	}
-	e.store(sb, in.Dst, e.boxAgg(sb, fld.Agg, t))
+	e.storeAgg(sb, e.direct[in.Dst], in.Dst, t)
 }
 
-// consume says the position takes over the reference, so a box read
-// through here is released.
-func (e *emitter) aggLeaf(sb *strings.Builder, f *mir.Func, fld aggField, l mir.LocalID, consume bool) string {
+// Every leaf position takes over the reference, so a box read here is released.
+func (e *emitter) aggLeaf(sb *strings.Builder, fld aggField, l mir.LocalID) string {
 	if fld.Agg != nil {
-		if a, ok := e.direct[l]; ok {
-			return e.loadAgg(sb, a, l)
-		}
-		p := e.load(sb, l)
-		v := e.unboxAgg(sb, fld.Agg, p)
-		if consume {
-			e.irb(sb).Call(rtRelease, vptr(p))
-		}
-		return v
+		return e.loadAgg(sb, e.direct[l], l)
 	}
 	if _, ok := e.scalar[l]; ok {
 		return e.loadNative(sb, l).Text
 	}
 	p := e.load(sb, l)
 	v := e.unboxScalar(sb, fld.Ty, p)
-	if consume {
-		e.irb(sb).Call(rtRelease, vptr(p))
-	}
+	e.irb(sb).Call(rtRelease, vptr(p))
 	return v.Text
 }
 
@@ -135,15 +122,4 @@ func (e *emitter) instArgs(sb *strings.Builder, in mir.Inst) ([]string, []bool) 
 		boxed[i] = e.boxTmp[a]
 	}
 	return args, boxed
-}
-
-func (e *emitter) storeDirectResult(sb *strings.Builder, dst mir.LocalID, res string) bool {
-	a, ok := e.direct[dst]
-	if !ok {
-		return false
-	}
-	v := e.unboxAgg(sb, a, res)
-	e.irb(sb).Call(rtRelease, vptr(res))
-	e.storeAgg(sb, a, dst, v)
-	return true
 }

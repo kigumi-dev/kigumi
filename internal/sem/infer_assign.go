@@ -22,6 +22,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	} else if root := c.rootOf(lhs); root != 0 {
 		c.noteCaptureWrite(lhs, root)
 	}
+	c.crossStore(lhs, target)
 	c.invalidatePlace(lhs)
 	c.rejectAsyncSelfAssign(lhs)
 	c.noteWholeSelfAssign(lhs)

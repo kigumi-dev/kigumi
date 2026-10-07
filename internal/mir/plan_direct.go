@@ -1,19 +1,17 @@
 package mir
 
-import (
-	"fmt"
-
-	"kigumi/internal/sem"
-)
+import "kigumi/internal/sem"
 
 // PlanDirect, not the backend, decides every crossing between the unboxed and boxed forms.
 func PlanDirect(p *Program) error {
 	fs := p.allFuncs()
-	for _, f := range fs {
-		f.DSig = p.directSig(f)
+	pins := make([][]bool, len(fs))
+	for i, f := range fs {
+		pins[i] = p.pinned(f)
+		f.DSig = p.directSig(f, pins[i])
 	}
-	for _, f := range fs {
-		f.Direct = p.classifyDirect(f)
+	for i, f := range fs {
+		f.Direct = p.classifyDirect(f, pins[i])
 	}
 	for _, f := range fs {
 		p.crossFunc(f)
@@ -21,16 +19,7 @@ func PlanDirect(p *Program) error {
 	return nil
 }
 
-func (f *Func) directTemp(t sem.TypeID) LocalID {
-	f.Locals = append(f.Locals, Local{Name: fmt.Sprintf("x%d", len(f.Locals)), Type: t})
-	f.Direct = append(f.Direct, false)
-	return LocalID(len(f.Locals) - 1)
-}
-
 func (p *Program) crossFunc(f *Func) {
-	if !anyDirect(f) {
-		return
-	}
 	for bid := range f.Blocks {
 		blk := &f.Blocks[bid]
 		out := make([]Inst, 0, len(blk.Insts))
@@ -42,80 +31,74 @@ func (p *Program) crossFunc(f *Func) {
 	}
 }
 
-func anyDirect(f *Func) bool {
-	for _, d := range f.Direct {
-		if d {
-			return true
-		}
-	}
-	return false
-}
-
 func (p *Program) crossInst(f *Func, in Inst, out []Inst) []Inst {
 	src := in
 	for i, a := range src.Args {
-		if !f.IsDirect(a) || p.directArg(f, src, i) {
+		cross, ct, ok := p.argCross(f, src, i, a)
+		if !ok {
 			continue
 		}
-		t := f.directTemp(f.Locals[a].Type)
-		out = append(out, Inst{Op: OpBoxDirect, Dst: t, Type: f.Locals[a].Type, Args: []LocalID{a}, Node: in.Node})
+		t := f.temp(ct, cross == OpUnboxDirect)
+		out = append(out, Inst{Op: cross, Dst: t, Type: ct, Args: []LocalID{a}, Node: in.Node})
 		in.Args = replaceArg(in.Args, i, t)
 	}
-	if !in.Op.Yields() || !f.IsDirect(in.Dst) || p.directDst(f, in) {
+	cross, ct, ok := p.dstCross(f, in)
+	if !ok {
 		return append(out, in)
 	}
 	dst := in.Dst
-	in.Dst = f.directTemp(f.Locals[dst].Type)
+	in.Dst = f.temp(ct, cross == OpBoxDirect)
 	out = append(out, in)
-	return append(out, Inst{Op: OpUnboxDirect, Dst: dst, Type: f.Locals[dst].Type, Args: []LocalID{in.Dst}, Node: in.Node})
+	return append(out, Inst{Op: cross, Dst: dst, Type: ct, Args: []LocalID{in.Dst}, Node: in.Node})
 }
 
-// replaceArg copies on first write: the builder shares argument slices.
-func replaceArg(args []LocalID, i int, l LocalID) []LocalID {
-	cp := make([]LocalID, len(args))
-	copy(cp, args)
-	cp[i] = l
-	return cp
+func (p *Program) argCross(f *Func, in Inst, i int, a LocalID) (Opcode, sem.TypeID, bool) {
+	want := p.argPos(f, in, i)
+	switch {
+	case f.IsDirect(a) && want == 0:
+		return OpBoxDirect, f.Locals[a].Type, true
+	case !f.IsDirect(a) && want != 0:
+		return OpUnboxDirect, want, true
+	}
+	return OpNop, 0, false
+}
+
+func (p *Program) dstCross(f *Func, in Inst) (Opcode, sem.TypeID, bool) {
+	if !in.Op.Yields() {
+		return OpNop, 0, false
+	}
+	want := p.dstPos(f, in)
+	switch {
+	case f.IsDirect(in.Dst) && want == 0:
+		return OpUnboxDirect, f.Locals[in.Dst].Type, true
+	case !f.IsDirect(in.Dst) && want != 0:
+		return OpBoxDirect, want, true
+	}
+	return OpNop, 0, false
 }
 
 func (p *Program) crossReturn(f *Func, blk *Block) {
-	if blk.Term.Op != TermReturn || f.DSig.result() != 0 {
+	if blk.Term.Op != TermReturn {
 		return
 	}
 	a := blk.Term.Args[0]
-	if !f.IsDirect(a) {
+	cross, ct, ok := p.returnCross(f, a)
+	if !ok {
 		return
 	}
-	t := f.directTemp(f.Locals[a].Type)
-	blk.Insts = append(blk.Insts, Inst{Op: OpBoxDirect, Dst: t, Type: f.Locals[a].Type, Args: []LocalID{a}})
+	t := f.temp(ct, cross == OpUnboxDirect)
+	blk.Insts = append(blk.Insts, Inst{Op: cross, Dst: t, Type: ct, Args: []LocalID{a}})
 	blk.Term.Args = replaceArg(blk.Term.Args, 0, t)
 }
 
-func (p *Program) directForm(f *Func, in Inst) bool {
-	switch in.Op {
-	case OpRecord, OpAlias, OpMove, OpCopy, OpShare:
-		return f.IsDirect(in.Dst)
-	case OpField, OpFieldMove, OpSetField, OpDrop, OpRelease:
-		return f.IsDirect(in.Args[0])
-	case OpBoxDirect, OpUnboxDirect:
-		return true
+// The result is one more position the signature fixes, so it crosses the same way an argument does.
+func (p *Program) returnCross(f *Func, a LocalID) (Opcode, sem.TypeID, bool) {
+	carried := f.DSig.result()
+	switch {
+	case f.IsDirect(a) && carried == 0:
+		return OpBoxDirect, f.Locals[a].Type, true
+	case !f.IsDirect(a) && carried != 0:
+		return OpUnboxDirect, carried, true
 	}
-	return false
-}
-
-// A direct signature covers each parameter independently, so a call checks position by position.
-func (p *Program) directArg(f *Func, in Inst, i int) bool {
-	if in.Op == OpCall {
-		fn, ok := p.ByEnt[in.Ent]
-		return ok && fn.DSig.Param(i) != 0
-	}
-	return p.directForm(f, in)
-}
-
-func (p *Program) directDst(f *Func, in Inst) bool {
-	if in.Op == OpCall {
-		fn, ok := p.ByEnt[in.Ent]
-		return ok && fn.DSig.result() != 0
-	}
-	return p.directForm(f, in)
+	return OpNop, 0, false
 }

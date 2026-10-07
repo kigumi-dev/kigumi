@@ -28,10 +28,10 @@ func TestExplainFnOpSummary(t *testing.T) {
 	os.MkdirAll(filepath.Join(dir, "main"), 0o755)
 	file := filepath.Join(dir, "main", "main.kg")
 	os.WriteFile(file, []byte(`
-type Box = { n Int }
+type Box = { n String }
 
 fn allocating() -> Unit {
-    let b = Box { n: 1 }
+    let b = Box { n: "x" }
 }
 
 fn quiet() -> Unit {}

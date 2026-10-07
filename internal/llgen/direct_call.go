@@ -7,15 +7,10 @@ import (
 	"kigumi/internal/mir"
 )
 
+// PlanDirect has already put the argument in the form this position
+// takes, so no crossing is left to make here.
 func (e *emitter) aggArg(sb *strings.Builder, a *aggInfo, l mir.LocalID) string {
-	v := ""
-	if _, ok := e.direct[l]; ok {
-		v = e.loadAgg(sb, a, l)
-	} else {
-		p := e.load(sb, l)
-		v = e.unboxAgg(sb, a, p)
-		e.irb(sb).Call(rtRelease, vptr(p))
-	}
+	v := e.loadAgg(sb, a, l)
 	if byValueAgg(a) {
 		return a.Name + " " + v
 	}
@@ -43,11 +38,7 @@ func (e *emitter) directCall(sb *strings.Builder, f *mir.Func, in mir.Inst, fn *
 		fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", v, s.Ret.Name, out)
 	}
 	e.releaseBoxed(sb, lent)
-	if d, ok := e.direct[in.Dst]; ok {
-		e.storeAgg(sb, d, in.Dst, v)
-		return
-	}
-	e.store(sb, in.Dst, e.boxAgg(sb, s.Ret, v))
+	e.storeAgg(sb, e.direct[in.Dst], in.Dst, v)
 }
 
 // lent names the box a crossing made for a position the callee only
@@ -85,14 +76,7 @@ func (e *emitter) releaseBoxed(sb *strings.Builder, ptrs []string) {
 }
 
 func (e *emitter) returnAgg(sb *strings.Builder, a *aggInfo, l mir.LocalID) {
-	v := ""
-	if _, ok := e.direct[l]; ok {
-		v = e.loadAgg(sb, a, l)
-	} else {
-		p := e.load(sb, l)
-		v = e.unboxAgg(sb, a, p)
-		e.irb(sb).Call(rtRelease, vptr(p))
-	}
+	v := e.loadAgg(sb, a, l)
 	if byValueAgg(a) {
 		fmt.Fprintf(sb, "  ret %s %s\n", a.Name, v)
 		return

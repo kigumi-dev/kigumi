@@ -23,47 +23,25 @@ func (s *DirectSig) result() sem.TypeID {
 	return s.Ret
 }
 
-// directSig stays a function of the declaration alone, so a call site and
-// the definition always agree on the signature.
-func (p *Program) directSig(f *Func) *DirectSig {
-	if f.Async || f == p.Entry || p.R.Entity(f.Ent).Kind != sem.EntFn {
-		return nil
-	}
-	info := p.R.Fn(f.Ent)
-	if info.Naked || info.Export != "" || info.Abi != "" {
+// directSig reads sem's direct-carrier predicates, then excludes pin: a
+// lent parameter needs an object only the caller can own across the call.
+func (p *Program) directSig(f *Func, pin []bool) *DirectSig {
+	if f.Async || !p.R.DirectCarried(f.Ent) {
 		return nil
 	}
 	s := &DirectSig{Params: make([]sem.TypeID, len(f.Params))}
 	any := false
 	for i, prm := range f.Params {
-		l := f.Locals[prm]
-		if l.Cell || l.Borrowed {
-			continue
-		}
-		if p.R.DirectAgg(l.Type) {
-			s.Params[i], any = l.Type, true
+		t := f.Locals[prm].Type
+		if !pin[prm] && p.R.DirectParamSlot(f.Ent, f.Locals[prm].Ent) && p.R.DirectAgg(t) {
+			s.Params[i], any = t, true
 		}
 	}
-	if t, ok := p.directRet(f); ok {
+	if t := p.R.DirectResultType(f.Ent, f.Ret); t != 0 {
 		s.Ret, any = t, true
 	}
 	if !any {
 		return nil
 	}
 	return s
-}
-
-func (p *Program) directRet(f *Func) (sem.TypeID, bool) {
-	var found sem.TypeID
-	for _, blk := range f.Blocks {
-		if blk.Term.Op != TermReturn {
-			continue
-		}
-		t := f.Locals[blk.Term.Args[0]].Type
-		if !p.R.DirectAgg(t) || (found != 0 && found != t) {
-			return 0, false
-		}
-		found = t
-	}
-	return found, found != 0
 }

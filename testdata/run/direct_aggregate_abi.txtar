@@ -1,0 +1,86 @@
+-- src --
+import task from std/task
+
+type Point = {
+    pub mut x Int
+    pub mut y Int
+}
+
+// Past the by-value threshold, so it travels through caller storage.
+type Span = {
+    pub lo Point
+    pub hi Point
+    pub tight Bool
+}
+
+type Frame = {
+    pub mut tl Point
+    pub mut br Point
+}
+
+fn mk(x: Int, y: Int) -> Point { Point { x: x, y: y } }
+
+fn Point.sum(self) -> Int { self.x + self.y }
+
+fn Point.shifted(self, d: Point) -> Point { mk(self.x + d.x, self.y + d.y) }
+
+fn Point.consumed(move self) -> Int { self.x * 100 + self.y }
+
+fn Point.raise(mut self) -> Unit {
+    self.y = self.y + 1
+}
+
+fn Span.width(self) -> Int { self.hi.x - self.lo.x }
+
+fn Span.grown(self, k: Int) -> Span {
+    Span { lo: mk(self.lo.x - k, self.lo.y - k), hi: mk(self.hi.x + k, self.hi.y + k), tight: !self.tight }
+}
+
+fn pick[T](v: T) -> T { v }
+
+fn pair[T](v: T) -> Array[T] { Array.of(v) }
+
+fn through[T](v: T, f: fn(T) -> T) -> T { f(v) }
+
+async fn later(p: Point) -> Point { mk(p.y, p.x) }
+
+fn widen(f: Frame, k: Int) -> Frame {
+    let mut out = f
+    out.tl.x = f.tl.x - k
+    out.br.x = f.br.x + k
+    out
+}
+
+fn borrowed(p: &Point) -> Int { p.x - p.y }
+
+let a = mk(3, 4)
+print "recv=${a.sum()} ${a.shifted(mk(1, 1)).sum()} ${mk(7, 8).consumed()}"
+
+let mut b = mk(5, 5)
+b.raise()
+print "mut=${b.x},${b.y}"
+
+let s = Span { lo: mk(1, 2), hi: mk(9, 9), tight: true }
+print "span=${s.width()} ${s.grown(2).width()} ${s.grown(2).tight}"
+
+print "generic=${pick(a).sum()} ${pick(s).width()}"
+print "store=${pair(a).get(0) is Some(g) && g.x == 3} ${pair(s).len()}"
+print "closure=${through(a, (p: Point) => mk(p.y, p.x)).x}"
+
+let ex = task.currentThreadExecutor()
+print "async=${ex.runToCompletion(later(a)).x}"
+
+let w = widen(Frame { tl: mk(2, 2), br: mk(8, 8) }, 1)
+print "nested=${w.tl.x},${w.br.x}"
+
+print "borrow=${borrowed(&a)} ${borrowed(&s.hi)}"
+-- stdout --
+recv=7 9 708
+mut=5,6
+span=8 12 false
+generic=7 8
+store=true 1
+closure=4
+async=4
+nested=1,9
+borrow=-1 0

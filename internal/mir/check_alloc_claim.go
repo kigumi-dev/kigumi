@@ -54,3 +54,19 @@ func (p *Program) boxClaims(f *Func) []AllocClaim {
 	}
 	return out
 }
+
+// verifyAllocClaim keeps the effect summary a superset of what the backends
+// do: a body sem answers `noalloc` for may hold no crossing, which builds a box.
+func (p *Program) verifyAllocClaim(f *Func) *Error {
+	if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc {
+		return nil
+	}
+	for bid, blk := range f.Blocks {
+		for i, in := range blk.Insts {
+			if in.Op == OpBoxDirect {
+				return fail("alloc-claim", BlockID(bid), i, "boxes %s where the summary claims no allocation", p.R.TypeString(in.Type))
+			}
+		}
+	}
+	return nil
+}
