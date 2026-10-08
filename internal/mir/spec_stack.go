@@ -1,0 +1,113 @@
+package mir
+
+import "kigumi/internal/sem"
+
+// Two leaves of at most 8 bytes always fit the native ABI's 16-byte by-value limit; past it a value is copied into the frame.
+const regLeaves = 2
+
+// The shared body holds a wide value in one boxed word per level.
+func (s *specializer) deepens(sp *spec, held map[*spec]bool) bool {
+	return !held[sp] && s.holdsWide(sp) && s.recursive(sp)
+}
+
+// A caller declared `noalloc` would have to box for a shared body anywhere down its chain of specializations.
+func (s *specializer) noallocHeld(live []*spec) map[*spec]bool {
+	held := map[*spec]bool{}
+	var work []*spec
+	for _, sp := range live {
+		for _, site := range sp.sites {
+			if !site.gone && !held[sp] && s.byFunc[site.f] == nil && s.p.declaredNoalloc(site.f) {
+				held[sp] = true
+				work = append(work, sp)
+			}
+		}
+	}
+	for len(work) > 0 {
+		sp := work[len(work)-1]
+		work = work[:len(work)-1]
+		for _, blk := range sp.fn.Blocks {
+			for _, in := range blk.Insts {
+				if c := s.byEnt[in.Ent]; in.Op == OpCall && c != nil && !held[c] {
+					held[c] = true
+					work = append(work, c)
+				}
+			}
+		}
+	}
+	return held
+}
+
+func (s *specializer) holdsWide(sp *spec) bool {
+	f, g := sp.fn, s.p.ByEnt[sp.gen]
+	for l := range g.Locals {
+		if g.Locals[l].Type != f.Locals[l].Type && f.IsDirect(LocalID(l)) && s.wide(f.Locals[l].Type) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *specializer) wide(t sem.TypeID) bool {
+	n := s.leaves(t, 0)
+	return n < 0 || n > regLeaves
+}
+
+func (s *specializer) leaves(t sem.TypeID, depth int) int {
+	r := s.p.R
+	switch {
+	case depth > maxAggregateDepth:
+		return -1
+	case t == sem.TyUnit:
+		return 0
+	case !r.DirectAgg(t):
+		return 1
+	case r.IsFixedArray(t):
+		return -1
+	case r.DirectAdt(t):
+		most := 0
+		for _, v := range r.AggVariants(t) {
+			n := s.sumLeaves(r.AggPayload(t, v), depth+1)
+			if n < 0 {
+				return -1
+			}
+			most = max(most, n)
+		}
+		return most + 1
+	}
+	return s.sumLeaves(r.AggFields(t), depth+1)
+}
+
+func (s *specializer) sumLeaves(ts []sem.TypeID, depth int) int {
+	n := 0
+	for _, t := range ts {
+		k := s.leaves(t, depth)
+		if k < 0 {
+			return -1
+		}
+		n += k
+	}
+	return n
+}
+
+func (s *specializer) recursive(sp *spec) bool {
+	seen := map[*Func]bool{}
+	work := []*Func{sp.fn}
+	for len(work) > 0 {
+		f := work[len(work)-1]
+		work = work[:len(work)-1]
+		for _, blk := range f.Blocks {
+			for _, in := range blk.Insts {
+				g := s.p.ByEnt[in.Ent]
+				if in.Op != OpCall || g == nil || seen[g] {
+					continue
+				}
+				if g == sp.fn {
+					return true
+				}
+				seen[g] = true
+				work = append(work, g)
+			}
+		}
+	}
+	return false
+}

@@ -1,0 +1,74 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Pair[A, B] = {
+    pub a A
+    pub b B
+}
+
+type Wide = {
+    pub a Int
+    pub b Int
+    pub c Int
+}
+
+type Box[T] = {
+    pub v T
+}
+
+fn countdown[T](x: T, n: Int) -> T {
+    if n == 0 { x } else { countdown(x, n - 1) }
+}
+
+fn isEven[T](x: T, n: Int) -> Bool {
+    if n == 0 { true } else { isOdd(x, n - 1) }
+}
+
+fn isOdd[T](x: T, n: Int) -> Bool {
+    if n == 0 { false } else { isEven(x, n - 1) }
+}
+
+fn Pair[A: Copy, B: Copy].flip(self) -> Pair[B, A] {
+    Pair { a: self.b, b: self.a }
+}
+
+// Each step flips the type arguments, so two instantiations call each other.
+fn Pair[A: Copy, B: Copy].spin(self, n: Int) -> Pair[A, B] {
+    if n == 0 { self } else { self.flip().flip().spin(n - 1) }
+}
+
+fn Pair[A: Copy, B: Copy].hops(self, n: Int) -> Int {
+    if n == 0 { 0 } else { 1 + self.flip().hops(n - 1) }
+}
+
+fn sumTo[T](x: T, n: Int, acc: Int) -> Int {
+    if n == 0 { acc } else { sumTo(x, n - 1, acc + n) }
+}
+
+// Each step wraps the receiver again, so the instantiations stop and the shared body recurses.
+fn Box[T: Copy].nest(self, n: Int) -> Int {
+    if n == 0 { 0 } else { 1 + Box { v: Box { v: self.v } }.nest(n - 1) }
+}
+
+let p = Point { x: 2, y: 5 }
+print "countdown=${countdown(p, 1000).y}"
+print "parity=${isEven(p, 10)} ${isOdd(p, 7)} ${isEven(Some(p), 3)}"
+let pr = Pair { a: p, b: 9 }
+let s = pr.spin(5)
+print "spin=${s.a.x} ${s.b}"
+print "hops=${pr.hops(7)} ${pr.flip().hops(4)}"
+print "sum=${sumTo((p, p), 100, 0)}"
+let w = Wide { a: 1, b: 2, c: 3 }
+print "wide=${countdown(w, 5000).c} ${isEven(w, 9)} ${sumTo(w, 10, 0)}"
+print "nest=${Box { v: (1, 2) }.nest(3)} ${Box { v: p }.nest(5)}"
+-- stdout --
+countdown=5
+parity=true true false
+spin=2 9
+hops=7 4
+sum=5050
+wide=3 false 55
+nest=3 5

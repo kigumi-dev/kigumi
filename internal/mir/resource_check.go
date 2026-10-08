@@ -90,5 +90,5 @@ func emitResourceDiag(prog *Program, f *Func, codeName string, args ...any) {
 	}
 	t := prog.R.Tree(f.File)
 	node := prog.R.Entity(f.Ent).Node
-	f.Diags = append(f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num})
+	prog.Diags = append(prog.Diags, FileDiag{File: f.File, Diag: diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num}})
 }

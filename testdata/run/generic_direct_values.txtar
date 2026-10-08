@@ -1,0 +1,75 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Holder[T] = {
+    pub v T
+    pub n Int
+}
+
+type Shape = Dot | Circle(r: Int) | Rect(w: Int, h: Int)
+
+fn identity[T](x: T) -> T { x }
+
+fn twice[T](x: T) -> T { identity(identity(x)) }
+
+fn both[T: Copy](x: T) -> (T, T) { (x, x) }
+
+fn wrap[T](x: T) -> T? { Some(x) }
+
+fn hold[T](x: T, n: Int) -> Holder[T] { Holder { v: x, n: n } }
+
+fn first[A, B](p: (A, B)) -> A { p._0 }
+
+fn swap[A, B](p: (A, B)) -> (B, A) { (p._1, p._0) }
+
+// An Array slot holds a reference, so this instantiation would box inside;
+// it keeps the shared body and the box stays at the call.
+fn store[T](x: T) -> Array[T] {
+    let mut out = Array.empty[T]()
+    out.push(x)
+    out
+}
+
+fn pickOr[T](o: T?, d: T) -> T {
+    match o {
+        Some(v) -> v
+        None -> d
+    }
+}
+
+fn area(s: Shape) -> Int {
+    match s {
+        Dot -> 0
+        Circle(r) -> 3 * r * r
+        Rect(w, h) -> w * h
+    }
+}
+
+let p = Point { x: 3, y: 4 }
+let q = twice(p)
+print "identity=${identity(p).x} twice=${q.x + q.y}"
+let (a, b) = both(p)
+print "both=${a.x + b.y}"
+print "wrap=${wrap(p) is Some(w) && w.y == 4} ${wrap(Circle(2)) is Some(Circle(2))}"
+let h = hold(p, 7)
+print "hold=${h.v.x} ${h.n}"
+print "pair=${first((p, 9)).y} ${swap((p, Rect(2, 5)))._0 is Rect(2, 5)}"
+let xs = store(p)
+print "store=${xs.len()} ${xs.get(0) is Some(s) && s.x == 3}"
+print "or=${pickOr(None, p).x} ${pickOr(Some(Point { x: 1, y: 1 }), p).x}"
+print "adt=${area(identity(Rect(3, 4)))} ${area(twice(Circle(1)))} ${area(identity(Dot))}"
+let fa = FixedArray.filled[Int, 4](5)
+print "fixed=${identity(fa)[2]} ${twice(fa).len()}"
+-- stdout --
+identity=3 twice=7
+both=7
+wrap=true true
+hold=3 7
+pair=4 true
+store=1 true
+or=3 1
+adt=12 3 0
+fixed=5 4

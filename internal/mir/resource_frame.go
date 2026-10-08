@@ -9,8 +9,12 @@ const maxAggregateDepth = 8
 // frameBytes is a conservative per-function stack estimate: its own
 // locals' sizes summed, not a real backend-measured frame size.
 func frameBytes(r *sem.Result, f *Func, word uint64) uint64 {
+	locals := f.Locals
+	if f.rcBase > 0 {
+		locals = locals[:f.rcBase]
+	}
 	var total uint64
-	for _, l := range f.Locals {
+	for _, l := range locals {
 		total += localBytes(r, l.Type, word, 0)
 	}
 	return total

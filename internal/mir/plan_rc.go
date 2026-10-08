@@ -37,6 +37,7 @@ func (s *rcState) origin(l LocalID) LocalID {
 }
 
 func (p *Program) planRCFunc(f *Func) {
+	f.rcBase = len(f.Locals)
 	plan := p.planFunc(f)
 	st := &rcState{alias: map[LocalID]LocalID{}, borrowed: map[LocalID]bool{}}
 	for bid := range f.Blocks {

@@ -68,34 +68,42 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 // buildProgram returns a program with diagnostics unverified; strict and
 // budgetKiB gate its resource summary (the build program itself always passes hosted-growable).
 func buildProgram(res *sem.Result, strict bool, budgetKiB int) (*mir.Program, error) {
-	prog := mir.Build(res)
-	if !prog.HasErrors() {
-		prog.Resources = mir.ComputeResourceSummaries(prog)
-		mir.CheckResourceBudget(prog, prog.Resources, mir.ResourceOptions{Strict: strict, BudgetKiB: budgetKiB})
+	prog := lowerProgram(res)
+	if res.HasErrors() {
+		return prog, nil
 	}
+	if err := prog.Apply(planPasses(true)...); err != nil {
+		return prog, err
+	}
+	prog.Resources = mir.ComputeResourceSummaries(prog)
+	mir.CheckResourceBudget(prog, prog.Resources, mir.ResourceOptions{Strict: strict, BudgetKiB: budgetKiB})
+	for _, d := range prog.Diags {
+		res.Files[d.File].Diags = append(res.Files[d.File].Diags, d.Diag)
+	}
+	for _, c := range mir.CheckAllocClaims(prog) {
+		res.Files[c.File].Diags = append(res.Files[c.File].Diags, c.Diag)
+	}
+	return prog, nil
+}
+
+func lowerProgram(res *sem.Result) *mir.Program {
+	prog := mir.Build(res)
 	for _, f := range prog.Funcs {
 		res.Files[f.File].Diags = append(res.Files[f.File].Diags, f.Diags...)
 	}
 	for _, cf := range prog.Comptime {
 		res.Files[cf.Func.File].Diags = append(res.Files[cf.Func.File].Diags, cf.Func.Diags...)
 	}
-	if res.HasErrors() {
-		return prog, nil
+	return prog
+}
+
+// fold-comptime runs the VM, which only translates plan-rc output, so plan-rc goes first.
+func planPasses(comptime bool) []mir.Transform {
+	out := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}}
+	if comptime {
+		out = append(out, mir.Transform{Name: "fold-comptime", Run: foldComptime})
 	}
-	// plan-rc runs first: fold-comptime evaluates comptime blocks in the
-	// VM, which only translates the ops plan-rc produces.
-	err := prog.Apply(
-		mir.Transform{Name: "plan-rc", Run: mir.PlanRC},
-		mir.Transform{Name: "fold-comptime", Run: foldComptime},
-		mir.Transform{Name: "plan-direct", Run: mir.PlanDirect},
-	)
-	if err != nil {
-		return prog, err
-	}
-	for _, c := range mir.CheckAllocClaims(prog) {
-		res.Files[c.File].Diags = append(res.Files[c.File].Diags, c.Diag)
-	}
-	return prog, nil
+	return append(out, mir.Transform{Name: "specialize", Run: mir.Specialize}, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect})
 }
 
 // Stats reports how often each phase ran for this module.

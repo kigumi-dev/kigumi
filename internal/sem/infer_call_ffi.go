@@ -6,8 +6,7 @@ import "kigumi/internal/syntax"
 // instead of generated per-instantiation code, so T needs the same gate.
 var ffiFreeLayoutFns = map[string]bool{"sizeOf": true, "alignOf": true, "readRecord": true, "writeRecord": true}
 
-// llgen emits one shared body per generic function (not per instantiation),
-// so a type parameter here is rejected outright rather than deferred.
+// A generic body is checked once for all its type arguments, so a type parameter here is rejected rather than deferred.
 func (c *checker) ffiCValueCheck(n syntax.NodeID, fn EntityID, inst []TypeID, recv TypeID) {
 	e := &c.r.Entities[fn]
 	info := c.r.Fn(fn)

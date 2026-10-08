@@ -1,0 +1,37 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+// A closure type argument with an unboxed environment makes the call inside
+// a direct call to the closure's body.
+fn apply[F: Fn[fn(Point) -> Point]](f: F, p: Point) -> Point { f(p) }
+
+fn applyTwice[F: Fn[fn(Int) -> Int]](f: F, x: Int) -> Int { f(f(x)) }
+
+fn mapPoint[T](p: T, f: fn(T) -> T) -> T { f(p) }
+
+// A closure built inside the body captures a value of type T; its body is
+// shared, so this function keeps the shared body too.
+fn later[T: Copy](x: T) -> fn() -> T { () => x }
+
+fn keepClosure[T](f: T) -> T { f }
+
+let k = 10
+let shift = (p: Point) => Point { x: p.x + k, y: p.y - k }
+let p = Point { x: 1, y: 2 }
+print "apply=${apply(shift, p).x} ${apply((q: Point) => Point { x: q.y, y: q.x }, p).x}"
+print "twice=${applyTwice((n: Int) => n * k, 3)}"
+print "map=${mapPoint(p, (q: Point) => Point { x: q.x * 5, y: q.y }).x}"
+let g = later(p)
+let o: Int? = Some(3)
+print "later=${g().y} ${later(o)() is Some(3)}"
+let h = keepClosure(shift)
+print "keep=${h(p).y} ${keepClosure((n: Int) => n + k)(5)}"
+-- stdout --
+apply=11 2
+twice=300
+map=5
+later=2 true
+keep=-8 15

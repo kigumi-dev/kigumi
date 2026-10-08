@@ -6,6 +6,10 @@ import "kigumi/internal/syntax"
 // position that holds a reference: the box is built there, not at the value.
 const whyDirectCross = 5
 
+const whyGenericCross = 7
+
+func directCrossWhy(why uint8) bool { return why == whyDirectCross || why == whyGenericCross }
+
 // A lambda compiles to a body of its own, never into its creator's frame.
 func (c *checker) asyncBody() bool {
 	if len(c.lambdas) > 0 || c.r.Entities[c.fn].Kind != EntFn {
@@ -14,19 +18,23 @@ func (c *checker) asyncBody() bool {
 	return c.r.Fn(c.fn).Declared&EffAsync != 0
 }
 
-func (c *checker) crossDirect(n syntax.NodeID, t TypeID) { c.crossDirectBut(n, t, 0) }
+func (c *checker) crossDirect(n syntax.NodeID, t TypeID) { c.crossDirectBut(n, t, 0, nil) }
 
 // A type inference has not settled yet is decided by finish.
-func (c *checker) crossDirectBut(n syntax.NodeID, t, keep TypeID) {
+func (c *checker) crossDirectBut(n syntax.NodeID, t, keep TypeID, slot *EffectEdge) {
 	t = c.vars.resolve(t)
+	e := EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: whyDirectCross}
+	if slot != nil {
+		e.Why, e.Param, e.From = whyGenericCross, slot.Param, slot.From
+	}
 	if c.r.Types.ContainsVar(t) {
-		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: whyDirectCross})
+		c.edge(e)
 		c.allocPending = append(c.allocPending, pendingAlloc{edges: c.edges, at: len(*c.edges) - 1, keep: keep})
 		return
 	}
 	// A closure's captures settle only after checking, so checkEffects decides its edge.
 	if t != keep && (c.r.DirectAgg(t) || c.r.containsClosure(t)) {
-		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: whyDirectCross})
+		c.edge(e)
 	}
 }
 
@@ -37,10 +45,12 @@ func (c *checker) crossArg(a syntax.NodeID, p EntityID) {
 		return
 	}
 	keep := TypeID(0)
+	var slot *EffectEdge
 	if p != 0 {
-		keep = c.r.DirectParamType(c.r.Entities[p].Parent, p)
+		fn := c.r.Entities[p].Parent
+		keep, slot = c.r.DirectParamType(fn, p), c.r.genericSlot(fn, c.r.Entities[p].Type)
 	}
-	c.crossDirectBut(a, c.argType(a), keep)
+	c.crossDirectBut(a, c.argType(a), keep, slot)
 }
 
 // A coercion's last step names the type the argument arrives as, which an `Int` wrapped into `Int?` is not.
@@ -65,7 +75,8 @@ func (c *checker) crossRecv(n syntax.NodeID, fn EntityID, recv TypeID, recvNode 
 	if c.r.Fn(fn).Recv == RecvNone || recvNode != 0 && c.cellPlace(recvNode) {
 		return
 	}
-	c.crossDirectBut(n, recv, c.r.DirectParamType(fn, c.r.Fn(fn).SelfParam))
+	self := c.r.Fn(fn).SelfParam
+	c.crossDirectBut(n, recv, c.r.DirectParamType(fn, self), c.r.genericSlot(fn, c.r.Entities[self].Type))
 }
 
 // crossStore claims the box a store needs when the place is someone else's

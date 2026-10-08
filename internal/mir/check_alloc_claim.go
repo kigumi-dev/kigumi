@@ -16,9 +16,21 @@ type AllocClaim struct {
 // the effect pass's own guess, not the author's promise. `pure` allows allocation.
 func CheckAllocClaims(p *Program) []AllocClaim {
 	var out []AllocClaim
+	// An instantiation reports at its generic body's positions.
+	type claimKey struct {
+		loc diag.Location
+		msg string
+	}
+	seen := map[claimKey]bool{}
 	for _, f := range p.allFuncs() {
-		if p.declaredNoalloc(f) {
-			out = append(out, p.boxClaims(f)...)
+		if !p.declaredNoalloc(f) {
+			continue
+		}
+		for _, c := range p.boxClaims(f) {
+			if k := (claimKey{c.Diag.Loc, c.Diag.Msg}); !seen[k] {
+				seen[k] = true
+				out = append(out, c)
+			}
 		}
 	}
 	return out
@@ -55,10 +67,9 @@ func (p *Program) boxClaims(f *Func) []AllocClaim {
 	return out
 }
 
-// verifyAllocClaim keeps the effect summary a superset of what the backends
-// do: a body sem answers `noalloc` for may hold no crossing, which builds a box.
+// verifyAllocClaim keeps an inferred summary a superset of what the backends do.
 func (p *Program) verifyAllocClaim(f *Func) *Error {
-	if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc {
+	if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc || p.declaredNoalloc(f) {
 		return nil
 	}
 	for bid, blk := range f.Blocks {

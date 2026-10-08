@@ -12,6 +12,10 @@ import (
 func Build(r *sem.Result) *Program {
 	p := &Program{R: r, ByEnt: map[sem.EntityID]*Func{}}
 	for id := 1; id < len(r.Entities); id++ {
+		// A minted instantiation has no body of its own to lower.
+		if _, minted := r.InstanceOf(sem.EntityID(id)); minted {
+			continue
+		}
 		switch r.Entity(sem.EntityID(id)).Kind {
 		case sem.EntFn, sem.EntImplicitMain, sem.EntTest:
 			if hf := hir.Lower(r, sem.EntityID(id)); hf != nil {

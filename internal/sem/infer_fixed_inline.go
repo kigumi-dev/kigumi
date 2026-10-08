@@ -92,7 +92,7 @@ func inlinedEdge(e *EffectEdge, p pendingInline) bool {
 	switch {
 	case e.Kind == EdgeCall:
 		return e.Target == p.fn && e.Node == p.call
-	case e.Kind == EdgeAlloc && e.Why == whyDirectCross:
+	case e.Kind == EdgeAlloc && directCrossWhy(e.Why):
 		return e.Node == p.call || slices.Contains(p.args, e.Node)
 	}
 	return false

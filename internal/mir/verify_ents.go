@@ -21,6 +21,8 @@ func (p *Program) verifyEntities(f *Func) *Error {
 			case OpCall, OpFnItem, OpCFnPtr:
 				if kindOf(in.Ent) != sem.EntFn {
 					want = "a function"
+				} else if _, minted := p.R.InstanceOf(in.Ent); minted && p.ByEnt[in.Ent] == nil {
+					want = "an instantiation with a body"
 				}
 			case OpBind:
 				// The bind adapter wraps a lowered body; a std primitive

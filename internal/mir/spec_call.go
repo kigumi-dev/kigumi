@@ -1,0 +1,138 @@
+package mir
+
+import "kigumi/internal/sem"
+
+func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem.WitnessArg, bool) {
+	r := s.p.R
+	gen := in.Ent
+	if s.p.ByEnt[gen] == nil || !r.Specializable(gen) || s.noSpec[gen] {
+		return nil, nil, false
+	}
+	if _, minted := r.InstanceOf(gen); minted {
+		return nil, nil, false
+	}
+	info := r.Fn(gen)
+	want := map[sem.EntityID]bool{}
+	for _, tp := range info.TypeParams {
+		want[tp] = !r.IsLifetimeParam(tp)
+	}
+	bound := map[sem.EntityID]sem.TypeID{}
+	call := r.Files[f.File].Calls[in.Node]
+	if call.Callee == gen {
+		own := s.ownParams(gen)
+		for k, tp := range own {
+			if k < len(call.Inst) && want[tp] && len(call.Inst) == len(own) {
+				bound[tp] = s.inCtx(ctx, call.Inst[k])
+			}
+		}
+	}
+	decl := s.declaredArgs(gen)
+	if decl == nil || len(in.Args) < len(decl) {
+		return nil, nil, false
+	}
+	for i, d := range decl {
+		at := f.Locals[in.Args[i]].Type
+		if i == 0 && info.Recv != sem.RecvNone && r.Types.Kind(at) == sem.KRef {
+			at = r.Types.Node(at).Elem
+		}
+		if !r.Types.BindParams(d, at, want, bound) {
+			return nil, nil, false
+		}
+	}
+	if !r.Types.BindParams(r.Types.Node(info.Sig).Elem, f.Locals[in.Dst].Type, want, bound) {
+		return nil, nil, false
+	}
+	args := make([]sem.TypeID, len(info.TypeParams))
+	for i, tp := range info.TypeParams {
+		if !want[tp] {
+			continue
+		}
+		t, ok := bound[tp]
+		if !ok || !r.ConcreteArg(t) {
+			return nil, nil, false
+		}
+		args[i] = t
+	}
+	if !r.SpecializeArgs(args) {
+		return nil, nil, false
+	}
+	return args, s.witnesses(ctx, gen, call), true
+}
+
+// As in instantiateFn, a method's leading owner parameters come from the receiver.
+func (s *specializer) ownParams(gen sem.EntityID) []sem.EntityID {
+	tps := s.p.R.Fn(gen).TypeParams
+	owner := s.p.R.OwnerParams(gen)
+	if s.p.R.Fn(gen).Recv != sem.RecvNone && len(owner) > 0 && len(tps) >= len(owner) && tps[0] == owner[0] {
+		return tps[len(owner):]
+	}
+	return tps
+}
+
+// A variadic callee's packed argument carries no instantiated type.
+func (s *specializer) declaredArgs(gen sem.EntityID) []sem.TypeID {
+	r := s.p.R
+	info := r.Fn(gen)
+	out := []sem.TypeID{}
+	if info.Recv != sem.RecvNone {
+		out = append(out, r.Entity(info.SelfParam).Type)
+	}
+	for _, prm := range info.Params {
+		if r.Entity(prm).Flags&sem.EfVariadic != 0 {
+			return nil
+		}
+		out = append(out, r.Entity(prm).Type)
+	}
+	return out
+}
+
+func (s *specializer) inCtx(ctx *spec, t sem.TypeID) sem.TypeID {
+	if ctx == nil {
+		return t
+	}
+	return s.p.R.Types.Subst(t, s.p.R.InstanceSubst(ctx.gen, ctx.args))
+}
+
+func (s *specializer) witnesses(ctx *spec, gen sem.EntityID, call sem.CallInfo) []sem.WitnessArg {
+	slots := s.p.R.Fn(gen).Witnesses
+	if len(slots) == 0 || call.Callee != gen || len(call.Passes) != len(slots) {
+		return nil
+	}
+	out := make([]sem.WitnessArg, len(slots))
+	for i, w := range call.Passes {
+		sw, ok := s.static(ctx, w)
+		if !ok {
+			return nil
+		}
+		out[i] = sw
+	}
+	return out
+}
+
+func (s *specializer) static(ctx *spec, w sem.WitnessArg) (sem.WitnessArg, bool) {
+	switch w.Kind {
+	case sem.WitnessFn:
+		return w, true
+	case sem.WitnessBind:
+		out := w
+		out.Args = make([]sem.WitnessArg, len(w.Args))
+		for i, a := range w.Args {
+			sa, ok := s.static(ctx, a)
+			if !ok {
+				return sem.WitnessArg{}, false
+			}
+			out.Args[i] = sa
+		}
+		return out, true
+	case sem.WitnessLocal:
+		if ctx == nil || ctx.wit == nil {
+			return sem.WitnessArg{}, false
+		}
+		for k, slot := range s.p.R.Fn(ctx.gen).Witnesses {
+			if slot.Local == w.Ent {
+				return ctx.wit[k], true
+			}
+		}
+	}
+	return sem.WitnessArg{}, false
+}

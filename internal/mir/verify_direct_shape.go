@@ -45,6 +45,10 @@ func (p *Program) directShape(f *Func, in Inst) string {
 		if t := p.wholePos(f, in.Args[0]); t != 0 && !p.R.DirectClosure(t) {
 			return "calls a value that is not a closure"
 		}
+	case OpCall:
+		if in.DPrim != DPNone && !p.primTypesFit(f, in, in.DPrim) {
+			return "hands a direct primitive operands it does not take"
+		}
 	case OpBuiltin:
 		if t := p.wholePos(f, in.Dst); fixedFill(in) && t != 0 && (!p.R.DirectFixed(t) || len(in.Args) != 2) {
 			return "fills a value that is not an inline array"

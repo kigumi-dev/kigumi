@@ -1,0 +1,35 @@
+-- src --
+type P = {
+    pub x Int
+    pub y Int
+}
+
+fn g0[T: Copy](x: T) -> Int { g1((x, 1)) + g1((2, x)) }
+fn g1[T: Copy](x: T) -> Int { g2((x, 1)) + g2((2, x)) }
+fn g2[T: Copy](x: T) -> Int { g3((x, 1)) + g3((2, x)) }
+fn g3[T: Copy](x: T) -> Int { g4((x, 1)) + g4((2, x)) }
+fn g4[T: Copy](x: T) -> Int { g5((x, 1)) + g5((2, x)) }
+fn g5[T: Copy](x: T) -> Int { g6((x, 1)) + g6((2, x)) }
+fn g6[T: Copy](x: T) -> Int { g7((x, 1)) + g7((2, x)) }
+fn g7[T: Copy](x: T) -> Int { g8((x, 1)) + g8((2, x)) }
+fn g8[T: Copy](x: T) -> Int { g9((x, 1)) + g9((2, x)) }
+fn g9[T: Copy](x: T) -> Int { g10((x, 1)) + g10((2, x)) }
+fn g10[T: Copy](x: T) -> Int { g11((x, 1)) + g11((2, x)) }
+fn g11[T: Copy](x: T) -> Int { g12((x, 1)) + g12((2, x)) }
+fn g12[T: Copy](x: T) -> Int { g13((x, 1)) + g13((2, x)) }
+fn g13[T: Copy](x: T) -> Int { g14((x, 1)) + g14((2, x)) }
+fn g14[T: Copy](x: T) -> Int { g15((x, 1)) + g15((2, x)) }
+fn g15[T: Copy](x: T) -> Int { 1 }
+
+fn f0[T: Copy](x: T) -> Int { f1((x, 0)) + f1((0, x)) }
+fn f1[T: Copy](x: T) -> Int { f2((x, 1)) + f2((1, x)) }
+fn f2[T: Copy](x: T) -> Int { f3((x, 2)) + f3((2, x)) }
+fn f3[T: Copy](x: T) -> Int { f4((x, 3)) + f4((3, x)) }
+fn f4[T: Copy](x: T) -> Int { 1 }
+
+let p = P { x: 1, y: 2 }
+print "wide=${g0(p)}"
+print "fits=${f0(p)}"
+-- stdout --
+wide=32768
+fits=16

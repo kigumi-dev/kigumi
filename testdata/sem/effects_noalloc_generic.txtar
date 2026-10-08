@@ -1,0 +1,67 @@
+-- lib/na.kg --
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+fn pick[T](v: T) -> T {
+    v
+}
+
+fn dup[T: Copy](v: T) -> (T, T) {
+    (v, v)
+}
+
+fn Pt.keep[T](self, v: T) -> T {
+    v
+}
+
+// An instantiation takes the record unboxed, so the alloc-claim check of
+// the built program answers for the slot instead of the generic signature.
+noalloc fn viaPick(p: Pt) -> Pt {
+    pick(p)
+}
+
+noalloc fn viaMethod(p: Pt) -> Pt {
+    p.keep(p)
+}
+
+// The shared body builds `(T, T)` as an object, which the summary still counts.
+noalloc fn viaDup(p: Pt) -> Int {
+    dup(p)._0.x //~ ERROR `dup` is not `noalloc`
+}
+
+noalloc fn viaValue(f: fn(Pt) -> Pt, p: Pt) -> Pt {
+    f(p) //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+}
+
+noalloc fn viaPush(p: Pt, mut xs: Array[Pt]) -> Unit {
+    xs.push(p) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+}
+-- expect --
+error[E907]: `dup` is not `noalloc`
+  --> lib/na.kg:30:5
+   |
+30 |     dup(p)._0.x //~ ERROR `dup` is not `noalloc`
+   |     ^^^^^
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:34:7
+   |
+34 |     f(p) //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+   |       ^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E907]: `push` is not `noalloc`
+  --> lib/na.kg:38:5
+   |
+38 |     xs.push(p) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+   |     ^^^^^^^^^
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> lib/na.kg:38:13
+   |
+38 |     xs.push(p) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+   |             ^
+   = help: keep it in a value of its own, or drop the declaration
+

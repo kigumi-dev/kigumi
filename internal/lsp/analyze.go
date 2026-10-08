@@ -66,7 +66,7 @@ func (s *Server) loadFresh(ctx context.Context, root string, u uri.URI, path str
 				s.logf(ctx, protocol.MessageTypeError, "checker panicked on %s: %v", path, rec)
 			}
 		}()
-		snap.res, snap.err = driver.CheckOnly(mod)
+		snap.res, snap.err = driver.CheckForEditor(mod)
 	}()
 	if snap.err != nil {
 		s.logf(ctx, protocol.MessageTypeError, "check %s: %v", root, snap.err)

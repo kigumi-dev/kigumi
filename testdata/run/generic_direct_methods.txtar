@@ -1,0 +1,72 @@
+-- src --
+interface Measured {
+    fn size(self) -> Int
+}
+
+type Point = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Slot[T] = {
+    pub mut v T
+    pub n Int
+}
+
+type Tag = Small(n: Int) | Big(w: Int, h: Int)
+
+fn Point.size(self) -> Int { self.x + self.y }
+
+fn Tag.size(self) -> Int {
+    match self {
+        Small(n) -> n
+        Big(w, h) -> w * h
+    }
+}
+
+fn Point.choose[T](self, a: T, b: T) -> T {
+    if self.x > self.y { a } else { b }
+}
+
+fn Slot[T: Copy].get(self) -> T { self.v }
+
+fn Slot[T].put(mut self, v: T) -> Unit {
+    self.v = v
+}
+
+fn Slot[T: Measured].weight(self) -> Int { self.v.size() * self.n }
+
+// The witness is fixed by the instantiation, so the call goes to the
+// implementation directly and the receiver stays unboxed.
+fn measure[T: Measured](x: T) -> Int { x.size() * 2 }
+
+fn measureBoth[T: Measured](a: T, b: T) -> Int { measure(a) + measure(b) }
+
+fn total(xs: Array[Measured]) -> Int {
+    let mut sum = 0
+    for x in xs {
+        sum = sum + x.size()
+    }
+    sum
+}
+
+fn same[T: Eq](a: T, b: T) -> Bool { a == b }
+
+let p = Point { x: 7, y: 3 }
+print "choose=${p.choose(Small(1), Big(2, 3)).size()} ${p.choose(p, Point { x: 0, y: 0 }).x}"
+let mut s = Slot { v: p, n: 3 }
+s.put(Point { x: 1, y: 1 })
+print "slot=${s.get().x} ${s.weight()}"
+let mut t = Slot { v: Big(2, 2), n: 2 }
+t.put(Small(9))
+print "tag=${t.get().size()} ${t.weight()}"
+print "measure=${measure(p)} ${measureBoth(Small(4), Big(1, 5))}"
+print "iface=${total(Array.of[Measured](p, Big(3, 3), Small(1)))}"
+print "same=${same((1, p.x), (1, 7))} ${same(Small(2), Small(3))}"
+-- stdout --
+choose=1 7
+slot=1 6
+tag=9 18
+measure=20 18
+iface=20
+same=true false

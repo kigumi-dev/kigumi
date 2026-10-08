@@ -126,23 +126,34 @@ func (cs *chainState) callbackEdgeBound(f *Func, inst Inst, argIdx int) (string,
 	return primName, cs.chain(ent)
 }
 
-// calleeConst resolves local to the OpClosure/OpFnItem entity that
-// uniquely defines it; any other or repeated write is unresolvable.
+// calleeConst resolves local through plan-made copies; any other or repeated write is unresolvable.
 func calleeConst(f *Func, local LocalID) (sem.EntityID, bool) {
-	var ent sem.EntityID
-	found := false
-	for _, b := range f.Blocks {
-		for _, inst := range b.Insts {
-			if inst.Dst != local {
-				continue
+	for range f.Locals {
+		var def *Inst
+		for bid := range f.Blocks {
+			for i := range f.Blocks[bid].Insts {
+				inst := &f.Blocks[bid].Insts[i]
+				if !inst.Op.Yields() || inst.Dst != local {
+					continue
+				}
+				if def != nil {
+					return 0, false
+				}
+				def = inst
 			}
-			if found || (inst.Op != OpClosure && inst.Op != OpFnItem) {
-				return 0, false
-			}
-			ent, found = inst.Ent, true
+		}
+		switch {
+		case def == nil:
+			return 0, false
+		case def.Op == OpClosure || def.Op == OpFnItem:
+			return def.Ent, true
+		case def.Op == OpCopy || def.Op == OpAlias || def.Op == OpShare || def.Op == OpMove || def.Op == OpBoxDirect || def.Op == OpUnboxDirect:
+			local = def.Args[0]
+		default:
+			return 0, false
 		}
 	}
-	return ent, found
+	return 0, false
 }
 
 // combineBound folds one edge into the running worst-case bound: Unbounded

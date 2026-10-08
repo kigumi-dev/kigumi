@@ -5399,6 +5399,91 @@
       ]
     },
     {
+      "id": "run/generic_direct_closures",
+      "kind": "run",
+      "path": "testdata/run/generic_direct_closures.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generic_direct_fanout",
+      "kind": "run",
+      "path": "testdata/run/generic_direct_fanout.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generic_direct_methods",
+      "kind": "run",
+      "path": "testdata/run/generic_direct_methods.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generic_direct_recursion",
+      "kind": "run",
+      "path": "testdata/run/generic_direct_recursion.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generic_direct_values",
+      "kind": "run",
+      "path": "testdata/run/generic_direct_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/generic_resource_ownership",
       "kind": "run",
       "path": "testdata/run/generic_resource_ownership.txtar",
@@ -8863,6 +8948,17 @@
       "id": "sem/effects_noalloc_fixed",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_fixed.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_generic",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_generic.txtar",
       "mode": [
         "check"
       ],

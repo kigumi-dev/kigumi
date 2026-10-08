@@ -52,3 +52,27 @@ func TestVerifyDirectRejectsCallingARecord(t *testing.T) {
 	}
 	t.Fatalf("no direct record local to call:\n%s", p.Dump())
 }
+
+func TestVerifyDirectRejectsAPrimitiveOperandItDoesNotTake(t *testing.T) {
+	p := planned(t, `
+fn widen(n: i32, s: String) -> Int {
+    n.toInt()
+}
+
+fn main() -> Unit! {}
+`)
+	f := funcNamed(t, p, "main.widen")
+	for bi := range f.Blocks {
+		for k, in := range f.Blocks[bi].Insts {
+			if in.Op == mir.OpCall && in.DPrim != mir.DPNone {
+				f.Blocks[bi].Insts[k].Args = []mir.LocalID{f.Params[1]}
+				ve, ok := p.Verify().(*mir.Error)
+				if !ok || (ve.Rule != "types" && ve.Rule != "direct") || !strings.Contains(ve.Msg, "String") {
+					t.Fatalf("got %v, want a types or direct error naming the String operand", ve)
+				}
+				return
+			}
+		}
+	}
+	t.Fatalf("no direct primitive call:\n%s", p.Dump())
+}

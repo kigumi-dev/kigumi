@@ -15,6 +15,11 @@ func (r *Result) checkContracts(id EntityID) {
 			r.checkContractEdge(e)
 			continue
 		}
+		// The built program's alloc-claim check answers for a crossing an instantiation takes unboxed.
+		if e.Kind == EdgeAlloc && r.takenUnboxed(e) {
+			r.deferredClaims = r.deferredClaims || declared&EffNoalloc != 0
+			continue
+		}
 		for _, mod := range []Effects{EffPure, EffNoalloc} {
 			if declared&mod != 0 && !r.edgeAllows(e, mod) {
 				r.reportEdge(e, mod)
@@ -147,7 +152,7 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 			r.errAt(e.File, e.Node, cAllocVariadic)
 		case e.Why == whyBuild || e.Why == whySharedValue:
 			r.errAt(e.File, e.Node, cAllocConstruct, r.TypeString(e.Type))
-		case e.Why == whyDirectCross:
+		case directCrossWhy(e.Why):
 			r.errAt(e.File, e.Node, cAllocDirectCross, r.TypeString(e.Type))
 		case e.Type != 0:
 			r.errAt(e.File, e.Node, cAllocWiden, r.TypeString(e.From), r.TypeString(e.Type))

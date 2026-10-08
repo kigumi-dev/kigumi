@@ -64,7 +64,7 @@ func (r *Result) dropDirectBuildAllocs(nodes []EntityID) {
 				return true
 			case e.Kind != EdgeAlloc:
 				return false
-			case e.Why == whyDirectCross:
+			case directCrossWhy(e.Why):
 				return !r.DirectAgg(e.Type)
 			}
 			return e.Why == whyBuild && !async && r.DirectAgg(e.Type)

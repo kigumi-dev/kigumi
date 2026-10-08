@@ -141,4 +141,7 @@ type Result struct {
 	witnessPairs              []witnessPair
 	witnessSeen               map[witnessPair]bool
 	conformSealed             int
+	instances                 map[EntityID]InstanceInfo
+	instanceKeys              map[string]EntityID
+	deferredClaims            bool
 }

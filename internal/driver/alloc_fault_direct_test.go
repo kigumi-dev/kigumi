@@ -15,8 +15,25 @@ import (
 )
 
 // directBoxSrc has exactly one allocation the VM can see: the box the
-// direct record needs to reach a type parameter.
+// direct record needs to reach a function value's parameter.
 const directBoxSrc = `type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn same(v: Point) -> Point { v }
+
+fn through(f: fn(Point) -> Point, p: Point) -> Point { f(p) }
+
+fn run() -> Int {
+    let p = Point { x: 1, y: 2 }
+    through(same, p).x
+}
+
+print "ok=${run()}"
+`
+
+const genericSrc = `type Point = {
     pub x Int
     pub y Int
 }
@@ -30,6 +47,8 @@ fn run() -> Int {
 
 print "ok=${run()}"
 `
+
+var plainSrc = strings.Replace(genericSrc, "fn pick[T](v: T) -> T { v }", "fn pick(v: Point) -> Point { v }", 1)
 
 const directBoxSweep = 120
 
@@ -101,12 +120,30 @@ func TestFaultInjectionDirectBoxVM(t *testing.T) {
 	}
 }
 
+func TestFaultInjectionGenericDirectVM(t *testing.T) {
+	t.Parallel()
+	if code, out, errOut := vmAtFirstAlloc(t, genericSrc); code != 0 || out != "ok=1\n" {
+		t.Errorf("a generic call with a direct record allocated: exit %d stdout=%q stderr=%q", code, out, errOut)
+	}
+}
+
+func TestFaultInjectionGenericDirectNative(t *testing.T) {
+	t.Parallel()
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	if generic, plain := nativeAllocs(t, genericSrc), nativeAllocs(t, plainSrc); generic != plain {
+		t.Errorf("a generic call with a direct record allocates: %d allocations, %d without the type parameter", generic, plain)
+	}
+}
+
 // Native hands the nullary variant's immortal over without allocating, so the VM counts nothing.
 const nullaryBoxSrc = `type Tick = Up(n: Int) | Flat
 
-fn pick[T](v: T) -> T { v }
+fn same(v: Tick) -> Tick { v }
 
 fn run(n: Int) -> Int {
+    let pick: fn(Tick) -> Tick = same
     let t = if n > 0 { Up(n) } else { Flat }
     match pick(t) {
         Up(v) -> v
@@ -153,7 +190,7 @@ print "ok=${run(4)}"
 func crossProgram(generic bool, payload string) string {
 	sig := "(v: Int?) -> Int?"
 	if generic {
-		sig = "[T](v: T) -> T"
+		sig = "[T](v: T?) -> T?"
 	}
 	return fmt.Sprintf(crossSrc, sig, payload)
 }

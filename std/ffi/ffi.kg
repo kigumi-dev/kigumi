@@ -79,10 +79,8 @@ pub unsafe fn readRecord[T](p: *const T) -> T
 /// Stores a `layout(C)` record at p.
 pub unsafe fn writeRecord[T](p: *mut T, value: &T) -> Unit
 
-/// C memory holding one value of T; freed on drop. T must be concrete: a
-/// `layout(C)` record, a fixed-width number, `Bool`, `Char`, or a pointer,
-/// never a generic type parameter (AOT shares one body per generic function
-/// rather than one per instantiation).
+/// C memory holding one value of T, freed on drop. T must be concrete (a
+/// `layout(C)` record, fixed-width number, `Bool`, `Char` or pointer), not a type parameter.
 pub type CValue[T] = resource {
     handle Int
 }

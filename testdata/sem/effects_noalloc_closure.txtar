@@ -42,8 +42,9 @@ noalloc fn erases(n: Int) -> Int {
     apply((x: Int) => x + n, 1) //~ ERROR boxing `closure fn(Int) -> Int` into `noalloc fn(Int) -> Int` allocates
 }
 
+// The instantiation for this closure type takes its environment unboxed.
 noalloc fn toGeneric(n: Int) -> Int {
-    applyGen((x: Int) => x + n, 1) //~ ERROR handing `closure fn(Int) -> Int` to a slot that holds a reference allocates a box for it
+    applyGen((x: Int) => x + n, 1)
 }
 
 noalloc fn mutCapture() -> Int {
@@ -65,16 +66,9 @@ error[E910]: boxing `closure fn(Int) -> Int` into `noalloc fn(Int) -> Int` alloc
 41 |     apply((x: Int) => x + n, 1) //~ ERROR boxing `closure fn(Int) -> Int` into `noalloc fn(Int) -> Int` allocates
    |           ^^^^^^^^^^^^^^^^^
 
-error[E1610]: handing `closure fn(Int) -> Int` to a slot that holds a reference allocates a box for it
-  --> lib/clo.kg:45:14
-   |
-45 |     applyGen((x: Int) => x + n, 1) //~ ERROR handing `closure fn(Int) -> Int` to a slot that holds a reference allocates a box for it
-   |              ^^^^^^^^^^^^^^^^^
-   = help: keep it in a value of its own, or drop the declaration
-
 error[E961]: constructing `closure fn() -> Unit` allocates
-  --> lib/clo.kg:50:13
+  --> lib/clo.kg:51:13
    |
-50 |     let f = () => { c = c + 1 } //~ ERROR constructing `closure fn() -> Unit` allocates
+51 |     let f = () => { c = c + 1 } //~ ERROR constructing `closure fn() -> Unit` allocates
    |             ^^^^^^^^^^^^^^^^^
 
