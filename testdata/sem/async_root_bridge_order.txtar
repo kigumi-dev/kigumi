@@ -150,11 +150,16 @@ note: calls `h.cb`
    |
 25 |     h.cb()
    |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-  --> app/t/t.kg:46:12
+note: `syncRoot` is bound to `h.cb` here
+  --> app/t/t.kg:35:5
    |
-46 |     h.cb = pickCb(true)
-   |            ^^^^^^^^^^^
+35 |     firstRead(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
   --> app/t/t.kg:41:5
@@ -184,11 +189,16 @@ note: calls `h.cb`
    |
 67 |     h.cb()
    |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-  --> app/t/t.kg:62:12
+note: `syncRoot` is bound to `h.cb` here
+  --> app/t/t.kg:57:5
    |
-62 |     h.cb = pickCb(true)
-   |            ^^^^^^^^^^^
+57 |     midRead(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
   --> app/t/t.kg:63:5
@@ -218,11 +228,16 @@ note: calls `h.cb`
    |
 99 |     h.cb()
    |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-  --> app/t/t.kg:94:12
+note: `syncRoot` is bound to `h.cb` here
+  --> app/t/t.kg:83:5
    |
-94 |     h.cb = pickCb(true)
-   |            ^^^^^^^^^^^
+83 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
   --> app/t/t.kg:89:5
@@ -252,9 +267,19 @@ note: calls `h.cb`
     |
  99 |     h.cb()
     |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-   --> app/t/t.kg:94:12
+note: this closure is bound to `h.cb` here
+   --> app/t/t.kg:111:5
     |
- 94 |     h.cb = pickCb(true)
-    |            ^^^^^^^^^^^
+111 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^
+note: calls `syncRoot`
+   --> app/t/t.kg:110:18
+    |
+110 |     h.cb = () => syncRoot()
+    |                  ^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
 

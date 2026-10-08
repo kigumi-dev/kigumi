@@ -94,6 +94,8 @@ var (
 	rtFutureSuspend  = RuntimeFn{"rt_future_suspend", []Type{TPtr, TI32, TPtr}, TVoid}
 	rtFutureResume   = RuntimeFn{"rt_future_resume", []Type{TPtr}, TPtr}
 	rtFutureComplete = RuntimeFn{"rt_future_complete", []Type{TPtr, TPtr}, TPtr}
+	rtUnwindEnter    = RuntimeFn{"rt_unwind_enter", []Type{TPtr, TPtr, TPtr, TI64}, TVoid}
+	rtUnwindLeave    = RuntimeFn{"rt_unwind_leave", []Type{TPtr}, TVoid}
 )
 
 // runtimeFns lists every RuntimeFn above in `declare` order: the single
@@ -108,7 +110,7 @@ var runtimeFns = []RuntimeFn{
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,
-	rtFutureSuspend, rtFutureResume, rtFutureComplete,
+	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtUnwindEnter, rtUnwindLeave,
 	rtDLen, rtDArrayLen, rtDBytesGet, rtDArrayGet, rtDCharFromInt, rtDParseFloat, rtDConvertInt, rtDConvertFloat,
 	rtDWrapping, rtDSqrt, rtDFloor, rtDCeil, rtDRound, rtDPow,
 }

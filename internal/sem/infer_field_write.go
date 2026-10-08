@@ -19,6 +19,9 @@ type pendingFieldEdge struct {
 // fn- or interface-typed value joins the field's known set, anything else poisons it.
 func (c *checker) recordFieldWrite(ent, field EntityID, init syntax.NodeID) {
 	key := fieldFnKey{Ent: ent, Field: field}
+	if ft := c.vars.resolve(c.r.Entities[field].Type); c.r.Types.Kind(ft) == KNamed && c.r.holdsFn(ft, 0) {
+		c.recordNestedFnFields(key, init)
+	}
 	if c.r.fieldWitnessPoisoned[key] {
 		return
 	}
@@ -158,6 +161,8 @@ func (c *checker) reassignRecordFields(root EntityID, lit syntax.NodeID) {
 	}
 	for key := range c.r.fieldParamEnts {
 		if key.Ent == root && !set[key.Field] {
+			c.poisonFieldKey(key)
+		} else if top, ok := c.r.nestedTopField(key.Ent, root); ok && !set[top] && c.r.fnTypedFieldKey(key) {
 			c.poisonFieldKey(key)
 		}
 	}

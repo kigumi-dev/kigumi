@@ -18,8 +18,12 @@ fn syncRoot() -> Int {
     ex.runToCompletion(leaf(7))
 }
 
+fn mkWrap() -> Wrap {
+    Wrap { inner: Holder { cb: syncRoot } }
+}
+
 async fn outer() -> Int {
-    let w = Wrap { inner: Holder { cb: syncRoot } }
+    let w = mkWrap()
     let h = w.inner
     h.cb()
 }

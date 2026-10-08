@@ -1,0 +1,51 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn explode() -> Int {
+    panic("worker boom")
+}
+
+fn inner() -> Int {
+    let r = Res { id: 2 }
+    let items = Array.of("a", "b")
+    explode() + (items.len().toInt() || 0)
+}
+
+fn outer() -> Int {
+    let r = Res { id: 1 }
+    inner()
+}
+
+// A worker lane unwinds the sync frames under the faulted task like the single-thread executor does.
+async fn boom() -> Int {
+    outer()
+}
+
+async fn leaf(n: Int) -> Int {
+    n * n
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    let b = task.spawn(leaf(2))
+    let x = await b
+    await a + x
+}
+
+let ex = task.threadPoolExecutor(3)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 2
+drop 1
+-- stderr --
+panic: worker boom
+-- exit --
+2

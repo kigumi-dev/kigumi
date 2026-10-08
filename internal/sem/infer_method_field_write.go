@@ -97,6 +97,11 @@ func (r *Result) applyMethodFieldWrites(site methodFieldCallSite) bool {
 }
 
 func (r *Result) applyFieldWriteSummary(site methodFieldCallSite, field, calleeFn, srcParam EntityID) bool {
+	nested := r.applyNestedWriteSummary(site, field, calleeFn, srcParam)
+	return r.applyFieldKeySummary(site, field, calleeFn, srcParam) || nested
+}
+
+func (r *Result) applyFieldKeySummary(site methodFieldCallSite, field, calleeFn, srcParam EntityID) bool {
 	srcKey := fieldFnKey{Ent: srcParam, Field: field}
 	dstKey := fieldFnKey{Ent: site.recv, Field: field}
 	if r.fieldWitnessPoisoned[dstKey] {

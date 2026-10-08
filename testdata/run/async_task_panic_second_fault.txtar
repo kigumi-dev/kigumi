@@ -1,0 +1,70 @@
+-- src --
+import task from std/task
+
+type Bad = resource {
+    pub id Int
+}
+
+fn Bad.drop(move self) -> Unit {
+    print "bad ${self.id}"
+    panic("drop ${self.id}")
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+fn inner() -> Unit {
+    let a = Res { id: 11 }
+    let b = Bad { id: 12 }
+    let c = Bad { id: 13 }
+    let d = Res { id: 14 }
+    panic("first")
+}
+
+fn outer() -> Unit {
+    let r = Res { id: 21 }
+    inner()
+}
+
+async fn boom() -> Int {
+    let x = Res { id: 1 }
+    let y = Bad { id: 2 }
+    let z = Res { id: 3 }
+    let v = await tick()
+    outer()
+    v
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    let other = Res { id: 99 }
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 14
+bad 13
+bad 12
+drop 11
+drop 21
+drop 3
+bad 2
+drop 1
+-- stderr --
+panic: first
+panic: drop 13
+panic: drop 12
+panic: drop 2
+-- exit --
+2

@@ -116,13 +116,30 @@ static void task_begin_finish(kgtask* t, int end) {
     task_finish_drain(t);
 }
 #ifdef KG_CATCH
+static void join_fault(const char* msg) {
+    char* m = dup_msg(msg);
+    if (!m) rt_fatal(msg);
+    if (!g_fault_msg) {
+        g_fault_msg = m;
+        return;
+    }
+    size_t a = strlen(g_fault_msg), b = strlen(m);
+    char* j = malloc(a + b + 9);
+    if (!j) rt_fatal(msg);
+    memcpy(j, g_fault_msg, a);
+    memcpy(j + a, "\npanic: ", 8);
+    memcpy(j + a + 8, m, b + 1);
+    free(g_fault_msg);
+    free(m);
+    g_fault_msg = j;
+}
+// A record stays on the stack while it runs, so a panic inside it resumes it; the root task keeps its sync frames.
 static void task_fault(const char* msg) {
-    g_fault_msg = dup_msg(msg);
-    if (!g_fault_msg) rt_fatal(msg);
+    join_fault(msg);
     while (g_unwind != g_unwind_base) {
         kg_unwind* u = g_unwind;
-        g_unwind = u->prev;
-        u->run(u);
+        if (u->run != unwind_frame || !g_cur_task || g_cur_task->parent) u->run(u);
+        if (g_unwind == u) g_unwind = u->prev;
     }
     KG_LONGJMP(*g_task_catch);
 }
@@ -148,24 +165,77 @@ static __attribute__((noinline)) val poll_body(kgtask* t, int* faulted) {
     g_unwind_base = prev_base;
     return r;
 }
-// Only the awaited chain was running; the root keeps its frames, as a fatal panic does.
-static void frames_panicked(val v) {
-    for (;;) {
-        val d = deref(v);
-        if (!d || d->kind != K_OPAQUE || strcmp(d->u.op.kind, "Future")) return;
-        kgframe* f = (kgframe*)d->u.op.data;
-        if (f->state >= 0) f->state = KG_FRAME_PANICKED;
-        v = f->awaited;
+static __attribute__((noinline)) int contained(void (*fn)(val), val arg) {
+    jmp_buf jb;
+    jmp_buf* prev = g_task_catch;
+    int sp = g_alloc_sp;
+    kg_unwind* prev_base = g_unwind_base;
+    g_unwind_base = g_unwind;
+    if (KG_SETJMP(jb)) {
+        g_task_catch = prev;
+        g_unwind_base = prev_base;
+        g_alloc_sp = sp;
+#ifdef KIGUMI_THREADS
+        g_flushing = 0;
+#endif
+        return 0;
     }
+    g_task_catch = &jb;
+    fn(arg);
+    g_task_catch = prev;
+    g_unwind_base = prev_base;
+    return 1;
 }
+static void frame_slots_drop(val fut) {
+    kgframe* f = frame_of(fut);
+    if (f->desc->drop) f->desc->drop(fut);
+}
+static void frame_release(val fut) {
+    rt_release(fut);
+}
+// Inner to outer; a drop that panics only costs the slot it was releasing.
+static void frames_sweep(val root) {
+    int n = 0;
+    for (val v = root;;) {
+        val d = deref(v);
+        if (!d || d->kind != K_OPAQUE || strcmp(d->u.op.kind, "Future")) break;
+        n++;
+        v = ((kgframe*)d->u.op.data)->awaited;
+    }
+    val* chain = malloc((size_t)n * sizeof(val));
+    if (!chain) rt_fatal("out of memory");
+    val v = root;
+    for (int i = 0; i < n; i++) {
+        chain[i] = v;
+        kgframe* f = frame_of(v);
+        if (f->state >= 0) f->state = KG_FRAME_PANICKED;
+        val next = f->awaited;
+        if (i + 1 < n) f->awaited = NULL;
+        v = next;
+    }
+    for (int i = n - 1; i >= 0; i--) {
+        kgframe* f = frame_of(chain[i]);
+        if (f->state > 0) {
+            while (!contained(frame_slots_drop, chain[i])) {
+            }
+            f->state = -1;
+        }
+        contained(frame_release, chain[i]);
+    }
+    free(chain);
+}
+// Only the awaited chain was running; the root keeps its frames, as a fatal panic does.
 static void task_unwind(kgtask* t) {
-    t->fault = g_fault_msg;
-    g_fault_msg = NULL;
-    if (!t->parent) return;
-    frames_panicked(t->fut);
+    if (!t->parent) {
+        t->fault = g_fault_msg;
+        g_fault_msg = NULL;
+        return;
+    }
     val f = t->fut;
     t->fut = NULL;
-    rt_release(f);
+    frames_sweep(f);
+    t->fault = g_fault_msg;
+    g_fault_msg = NULL;
 }
 #else
 static val poll_body(kgtask* t, int* faulted) {

@@ -26,8 +26,12 @@ type Wrap = {
     pub inner Holder
 }
 
+fn mkWrap() -> Wrap {
+    Wrap { inner: Holder { cb: syncRoot } }
+}
+
 async fn outer() -> Int {
-    let w = Wrap { inner: Holder { cb: syncRoot } }
+    let w = mkWrap()
     callH(w.inner)
 }
 

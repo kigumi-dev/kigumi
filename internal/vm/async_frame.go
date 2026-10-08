@@ -72,7 +72,7 @@ func (m *Machine) unwindCoro(fu *future) {
 	if fu.awaited != nil {
 		v := fu.awaited
 		fu.awaited = nil
-		m.release(v)
+		m.sweepRelease(v)
 	}
 	co := fu.co
 	fu.co = nil

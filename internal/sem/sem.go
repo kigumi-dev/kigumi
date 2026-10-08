@@ -115,6 +115,7 @@ type Result struct {
 	retractedBinds      map[bindSite]bool
 	fnLocalField        map[EntityID]fieldFnKey
 	refAlias            map[EntityID]EntityID
+	fnCopyAlias         map[EntityID]EntityID
 	// fieldPoisonSite is best-effort: not every unresolved write is tracked.
 	fieldPoisonSite map[fieldFnKey]fieldPoisonSiteInfo
 	// literalFieldEnts caches literalFieldEnt's synthetic entity per literal node.

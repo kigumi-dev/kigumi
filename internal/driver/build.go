@@ -16,7 +16,7 @@ func Compile(m *Module, stderr io.Writer) (string, bool, error) {
 // emitOptionsFor is the one Target -> llgen.EmitOptions mapping shared by
 // IR dump (Compile), a normal build and the build graph (buildOnce).
 func emitOptionsFor(t Target) llgen.EmitOptions {
-	opts := llgen.EmitOptions{Freestanding: t.Bare()}
+	opts := llgen.EmitOptions{Freestanding: t.Bare(), Catch: wantsTaskCatch(t)}
 	if t.OS == "darwin" {
 		opts.SymbolPrefix = "_"
 	}
@@ -40,16 +40,14 @@ func compile(m *Module, stderr io.Writer, t Target, opts llgen.EmitOptions) (com
 		io.WriteString(stderr, a.Res.Render())
 		return compiled{}, false, nil
 	}
-	reach := mir.Reachable(a.Prog)
-	plat := t.CapabilityPlatform()
-	a.Res.CheckCapabilityProvision(capabilityUses(a.Prog, reach, plat))
+	reach := a.checkProvision(t)
 	if a.Res.HasErrors() {
 		io.WriteString(stderr, a.Res.Render())
 		return compiled{}, false, nil
 	}
 	opts.Reachable = reach
 	m.stats.Emit++
-	return compiled{llgen.EmitProgram(a.Prog, opts), reach.CapabilityReasons(a.Res, plat)}, true, nil
+	return compiled{llgen.EmitProgram(a.Prog, opts), reach.CapabilityReasons(a.Res, t.CapabilityPlatform())}, true, nil
 }
 
 // BuildOptions selects the target; the zero value builds for the host.

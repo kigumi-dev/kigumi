@@ -1417,11 +1417,16 @@ note: calls `h.cb`
     |
 347 |     h.cb()
     |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-   --> app/t/t.kg:782:12
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:361:5
     |
-782 |     h.cb = pickCb(true)
-    |            ^^^^^^^^^^^
+361 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:391:5
@@ -1623,11 +1628,16 @@ note: calls `h.cb`
     |
 347 |     h.cb()
     |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-   --> app/t/t.kg:782:12
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:539:5
     |
-782 |     h.cb = pickCb(true)
-    |            ^^^^^^^^^^^
+539 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:566:5
@@ -1657,11 +1667,16 @@ note: calls `h.cb`
     |
 347 |     h.cb()
     |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-   --> app/t/t.kg:782:12
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:592:5
     |
-782 |     h.cb = pickCb(true)
-    |            ^^^^^^^^^^^
+592 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:614:5
@@ -1826,11 +1841,16 @@ note: calls `h.cb`
     |
 347 |     h.cb()
     |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-   --> app/t/t.kg:782:12
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:754:5
     |
-782 |     h.cb = pickCb(true)
-    |            ^^^^^^^^^^^
+754 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:771:5
@@ -1860,11 +1880,16 @@ note: calls `h.cb`
     |
 347 |     h.cb()
     |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-   --> app/t/t.kg:782:12
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:804:5
     |
-782 |     h.cb = pickCb(true)
-    |            ^^^^^^^^^^^
+804 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:14:5
+    |
+ 14 |     ex.runToCompletion(inner())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:819:5

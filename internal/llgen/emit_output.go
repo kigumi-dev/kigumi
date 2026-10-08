@@ -25,6 +25,8 @@ type EmitOptions struct {
 	// Reachable, when set, skips a Func this reachability result does not
 	// keep; nil emits every lowered function, as every direct llgen test does.
 	Reachable *mir.Reachability
+	// Catch needs the runtime built with KIGUMI_TASK_CATCH.
+	Catch bool
 }
 
 func EmitWith(p *mir.Program, opts EmitOptions) string { return EmitProgram(p, opts).IR }

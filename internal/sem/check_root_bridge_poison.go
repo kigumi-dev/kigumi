@@ -71,11 +71,26 @@ func (r *Result) fnTypedFieldKey(key fieldFnKey) bool {
 	return false
 }
 
-func (rr *rootRun) poisonHopVia(param EntityID, hops []OpHop) OpHop {
+func (rr *rootRun) poisonHopAtSite(param EntityID, hops []OpHop) (OpHop, bool) {
 	for i := len(hops) - 1; i >= 0; i-- {
 		if hop, ok := rr.poisonAt[bindSite{hops[i].File, hops[i].Node, param}]; ok {
-			return hop
+			return hop, true
 		}
 	}
-	return rr.poisonedFnField[param]
+	return OpHop{}, false
+}
+
+func (r *Result) siteBinding(param EntityID, hops []OpHop, rr *rootRun) (EffectEdge, bool) {
+	nodes := r.effectNodes()
+	for i := len(hops) - 1; i >= 0; i-- {
+		for _, id := range nodes {
+			for _, e := range r.edgesOf(id) {
+				if e.Kind == EdgeFieldBind && e.Param == param && e.File == hops[i].File && e.Node == hops[i].Node &&
+					!r.retractedBinds[bindSite{e.File, e.Node, e.Param}] && rr.hops(e.Target) > 0 {
+					return e, true
+				}
+			}
+		}
+	}
+	return EffectEdge{}, false
 }

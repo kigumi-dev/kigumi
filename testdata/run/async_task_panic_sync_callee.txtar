@@ -18,8 +18,7 @@ fn inner() -> Unit {
     panic("sync")
 }
 
-// Only the async frames of a faulted task release what they own; a sync
-// callee's locals are not swept.
+// A faulted task releases what its sync callee frames own before its async frames.
 async fn boom() -> Int {
     let r = Res { id: 1 }
     let v = await tick()
@@ -35,6 +34,7 @@ async fn root() -> Int {
 let ex = task.currentThreadExecutor()
 print "total ${ex.runToCompletion(root())}"
 -- stdout --
+drop 2
 drop 1
 -- stderr --
 panic: sync

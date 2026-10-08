@@ -80,7 +80,7 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 				} else {
 					resolved = c.upgradeFnEffects(resolved, fact.Mods)
 				}
-			} else if p := c.identParam(base); p != 0 {
+			} else if p := c.aliasedParam(base); p != 0 {
 				c.deferToFieldParam(p, fld)
 				c.stashFieldFact(n, NarrowFact{Kind: FactPureField, Param: p})
 				c.edge(EffectEdge{Kind: EdgeKnownCall, Target: c.r.fieldParamEnt(fieldFnKey{Ent: p, Field: fld}), Node: n})

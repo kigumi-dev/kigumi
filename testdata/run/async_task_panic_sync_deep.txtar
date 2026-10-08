@@ -1,0 +1,59 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+fn explode() -> Int {
+    panic("deep")
+}
+
+fn c() -> Unit {
+    let r = Res { id: 3 }
+    let t = Array.of(Res { id: 7 }, Res { id: explode() })
+    print "unreachable ${t.len()}"
+}
+
+fn b() -> Unit {
+    let r = Res { id: 2 }
+    c()
+}
+
+fn a() -> Unit {
+    let r = Res { id: 1 }
+    b()
+}
+
+async fn boom() -> Int {
+    let r = Res { id: 0 }
+    let v = await tick()
+    a()
+    v
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 7
+drop 3
+drop 2
+drop 1
+drop 0
+-- stderr --
+panic: deep
+-- exit --
+2

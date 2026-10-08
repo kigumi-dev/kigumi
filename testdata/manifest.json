@@ -1833,27 +1833,6 @@
       }
     },
     {
-      "id": "run/async_root_bridge_dynamic_nestedset",
-      "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_nestedset.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
-      "requires": [
-        "c-compiler"
-      ],
-      "observes": [
-        "stdout",
-        "stderr",
-        "exit"
-      ],
-      "stderr": {
-        "type": "regex",
-        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
-      }
-    },
-    {
       "id": "run/async_root_bridge_dynamic_paramfield",
       "kind": "run",
       "path": "testdata/run/async_root_bridge_dynamic_paramfield.txtar",
@@ -1917,27 +1896,6 @@
       }
     },
     {
-      "id": "run/async_root_bridge_dynamic_selfmethod",
-      "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_selfmethod.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
-      "requires": [
-        "c-compiler"
-      ],
-      "observes": [
-        "stdout",
-        "stderr",
-        "exit"
-      ],
-      "stderr": {
-        "type": "regex",
-        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
-      }
-    },
-    {
       "id": "run/async_root_panic_no_drop",
       "kind": "run",
       "path": "testdata/run/async_root_panic_no_drop.txtar",
@@ -1956,6 +1914,27 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: x"
+      }
+    },
+    {
+      "id": "run/async_root_panic_sync_callee_no_drop",
+      "kind": "run",
+      "path": "testdata/run/async_root_panic_sync_callee_no_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: sync"
       }
     },
     {
@@ -2014,7 +1993,7 @@
       ],
       "stderr": {
         "type": "regex",
-        "pattern": "panic: drop panic 1"
+        "pattern": "panic: first\npanic: drop panic 1"
       }
     },
     {
@@ -2057,6 +2036,27 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "run/async_task_panic_second_fault",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_second_fault.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: first\npanic: drop 13\npanic: drop 12\npanic: drop 2"
       }
     },
     {
@@ -2141,6 +2141,27 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: sync"
+      }
+    },
+    {
+      "id": "run/async_task_panic_sync_deep",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_sync_deep.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: deep"
       }
     },
     {
@@ -2359,6 +2380,27 @@
       }
     },
     {
+      "id": "run/async_thread_panic_sync_frames",
+      "kind": "run",
+      "path": "testdata/run/async_thread_panic_sync_frames.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: worker boom"
+      }
+    },
+    {
       "id": "run/async_thread_panic_unobserved",
       "kind": "run",
       "path": "testdata/run/async_thread_panic_unobserved.txtar",
@@ -2412,6 +2454,27 @@
         "stderr",
         "exit"
       ]
+    },
+    {
+      "id": "run/async_thread_root_panic_sync_callee",
+      "kind": "run",
+      "path": "testdata/run/async_thread_root_panic_sync_callee.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: sync"
+      }
     },
     {
       "id": "run/async_thread_spawn",
@@ -6692,6 +6755,23 @@
       ]
     },
     {
+      "id": "run/noalloc_fixed_callbacks",
+      "kind": "run",
+      "path": "testdata/run/noalloc_fixed_callbacks.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/numeric_convert",
       "kind": "run",
       "path": "testdata/run/numeric_convert.txtar",
@@ -8255,6 +8335,17 @@
       "id": "sem/async_root_bridge_late",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_late.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_nested",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_nested.txtar",
       "mode": [
         "check"
       ],

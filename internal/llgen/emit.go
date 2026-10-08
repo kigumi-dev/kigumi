@@ -53,10 +53,13 @@ type emitter struct {
 	sig          *aggSig
 	wrapNeed     map[wrapperKey]bool
 	wrapDone     map[wrapperKey]bool
+	catch        bool
+	unwind       *unwindFrame
 }
 
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
+	e.catch = e.wantsCatch(opts)
 	var body strings.Builder
 	for _, f := range p.Funcs {
 		if e.reachable != nil && !e.reachable.Keep(f.Ent) {
@@ -133,6 +136,7 @@ func (e *emitter) function(f *mir.Func) string {
 	e.scalar = e.classifyScalars(f)
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)
+	e.unwind = e.unwindFor(f)
 	sb.WriteString(e.sigHeader(f, e.sig))
 	if e.r.Entity(f.Ent).Kind == sem.EntFn {
 		if name := e.r.FnSectionOf(f.Ent); name != "" {
@@ -140,7 +144,12 @@ func (e *emitter) function(f *mir.Func) string {
 		}
 	}
 	sb.WriteString(" {\nentry:\n")
+	e.unwindAllocas(&sb)
 	for i := range f.Locals {
+		if e.slotAddr(&sb, mir.LocalID(i)) {
+			fmt.Fprintf(&sb, "  store ptr null, ptr %%l%d\n", i)
+			continue
+		}
 		if a, ok := e.direct[mir.LocalID(i)]; ok {
 			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, a.Name)
 			zeroAgg(&sb, a, aggPtr(mir.LocalID(i)))
@@ -158,7 +167,9 @@ func (e *emitter) function(f *mir.Func) string {
 	e.entryAllocas, e.hoisting = nil, true
 	for bid, blk := range f.Blocks {
 		fmt.Fprintf(&body, "b%d:\n", bid)
-		for _, in := range blk.Insts {
+		e.unwindBlock()
+		for pc, in := range blk.Insts {
+			e.unwindSite(&body, mir.BlockID(bid), pc)
 			e.inst(&body, f, in)
 		}
 		e.term(&body, blk.Term)
@@ -169,9 +180,11 @@ func (e *emitter) function(f *mir.Func) string {
 	}
 	// Parameters arrive owned or borrowed; either way, store as is.
 	e.storeParams(&sb, f, e.sig)
+	e.unwindEnter(&sb)
 	sb.WriteString("  br label %b0\n")
 	sb.WriteString(body.String())
 	sb.WriteString("}\n\n")
+	e.unwind = nil
 	return sb.String()
 }
 

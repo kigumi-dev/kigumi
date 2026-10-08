@@ -70,7 +70,10 @@ type Machine struct {
 	curInst *mir.Inst
 	// stack is the active calls, innermost last; std/build reads the
 	// nearest non-std caller from it as a step's provenance.
-	stack            []*mir.Func
+	stack []*mir.Func
+	// frames stay on a panic, for the task boundary to sweep.
+	frames           []*frame
+	sweepFault       *Panic
 	stepsLeft, depth int
 	// cur is the running task and curLane its executor lane, for spawn and cancellation.
 	cur     *task
@@ -130,7 +133,9 @@ func (m *Machine) registerAll() {
 
 // catch turns the machine's aborts (raised with panic) into errors.
 func (m *Machine) catch(f func()) (err error) {
+	base := len(m.frames)
 	defer func() {
+		m.frames = m.frames[:min(base, len(m.frames))]
 		if rec := recover(); rec != nil {
 			switch e := rec.(type) {
 			case *Panic, *Unsupported:

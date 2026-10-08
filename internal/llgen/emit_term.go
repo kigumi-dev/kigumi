@@ -21,6 +21,7 @@ func (e *emitter) term(sb *strings.Builder, t mir.Term) {
 		c := e.irb(sb).Call(rtTruth, vptr(v)).Text
 		fmt.Fprintf(sb, "  br i1 %s, label %%b%d, label %%b%d\n", c, t.Targets[0], t.Targets[1])
 	case mir.TermReturn:
+		e.unwindLeave(sb)
 		if e.sig != nil && e.sig.Ret != nil {
 			e.returnAgg(sb, e.sig.Ret, t.Args[0])
 			return

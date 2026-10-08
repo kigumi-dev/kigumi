@@ -61,14 +61,16 @@ func (c *checker) applyFieldWrite(lhs, rhs syntax.NodeID) {
 			return
 		}
 		for key := range c.r.fieldParamEnts {
-			if key.Ent == p.Root {
+			if key.Ent == p.Root || c.r.nestedUnder(key.Ent, p.Root) && c.r.fnTypedFieldKey(key) {
 				c.poisonFieldKey(key)
 			}
 		}
 	case 1:
 		c.recordFieldWrite(c.r.canonEnt(p.Root), p.Fields[0], rhs)
 	default:
-		c.poisonFieldKey(fieldFnKey{Ent: c.r.canonEnt(p.Root), Field: p.Fields[0]})
+		root := c.r.canonEnt(p.Root)
+		c.poisonFieldKey(fieldFnKey{Ent: root, Field: p.Fields[0]})
+		c.recordNestedPlaceWrite(root, p.Fields, rhs)
 	}
 }
 
@@ -103,14 +105,8 @@ func (c *checker) knownFieldCallKey(callee syntax.NodeID) (fieldFnKey, bool) {
 	}
 	base := syntax.NodeID(c.t.Nodes[callee].Lhs)
 	switch c.t.Kind(base) {
-	case syntax.Ident:
-		baseEnt := c.info.Uses[base]
-		if baseEnt == 0 || (c.r.Entities[baseEnt].Kind != EntLocal && c.r.Entities[baseEnt].Kind != EntParam) {
-			return fieldFnKey{}, false
-		}
-		return fieldFnKey{Ent: c.r.canonEnt(baseEnt), Field: field}, true
-	case syntax.MemberExpr:
-		if baseEnt := c.fieldChainEnt(base); baseEnt != 0 {
+	case syntax.Ident, syntax.MemberExpr:
+		if baseEnt := c.r.fnChainEnt(c.f, base); baseEnt != 0 {
 			return fieldFnKey{Ent: baseEnt, Field: field}, true
 		}
 	}
@@ -146,7 +142,7 @@ func (c *checker) knownFieldArgEdge(n, arg syntax.NodeID, fk fieldFnKey) {
 		c.poisonFieldKey(fk)
 		return
 	}
-	if ent := c.fieldChainEnt(arg); ent != 0 && !c.r.isLiteralFieldEnt(ent) {
+	if ent := c.r.fnChainEnt(c.f, arg); ent != 0 && !c.r.isLiteralFieldEnt(ent) {
 		c.bindIdentFieldArg(n, ent, fk.Field, dst)
 	}
 }

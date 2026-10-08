@@ -31,7 +31,15 @@ func (r *Result) rootRunHops(id EntityID, rr *rootRun) []OpHop {
 		}
 		visited[cur] = true
 		if _, ok := rr.poisonedFnField[cur]; ok {
-			return append(hops, rr.poisonHopVia(cur, hops))
+			if hop, own := rr.poisonHopAtSite(cur, hops); own {
+				return append(hops, hop)
+			}
+			if e, ok := r.siteBinding(cur, hops, rr); ok {
+				hops = append(hops, OpHop{e.File, e.Node, r.boundHopText(cur, e.Target)})
+				cur, subst = e.Target, nil
+				continue
+			}
+			return append(hops, rr.poisonedFnField[cur])
 		}
 		if r.Entities[cur].Kind == EntParam || r.Entities[cur].Kind == EntFieldParam {
 			e := rr.bind[cur]

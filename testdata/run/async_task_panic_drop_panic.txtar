@@ -22,7 +22,7 @@ async fn inner() -> Int {
     panic("first")
 }
 
-// A panic raised while the fault is swept ends the process at once.
+// A panic raised while the fault is swept joins it, and the rest of the sweep still runs.
 async fn boom() -> Int {
     let r = Res { id: 2 }
     let v = await inner()
@@ -38,7 +38,9 @@ let ex = task.currentThreadExecutor()
 print "total ${ex.runToCompletion(root())}"
 -- stdout --
 drop 1
+drop 2
 -- stderr --
+panic: first
 panic: drop panic 1
 -- exit --
 2

@@ -26,19 +26,19 @@ func (r *Result) fixedInlineOp(fn EntityID) string {
 		return ""
 	}
 	switch name := r.Entities[fn].Name; name {
-	case "len", "get", "set", "filled", "zeroed":
+	case "len", "get", "at", "set", "withMut", "filled", "zeroed":
 		return name
 	}
 	return ""
 }
 
-// FixedInline reports an op lowered in place; set also needs a receiver that is a plain local.
+// FixedInline reports an op lowered in place; set and withMut also need a plain local receiver.
 func (r *Result) FixedInline(fn EntityID, t TypeID) bool {
 	switch r.fixedInlineOp(fn) {
 	case "len":
 		_, _, ok := r.fixedArrayShape(t)
 		return ok
-	case "get", "set", "filled":
+	case "get", "at", "set", "withMut", "filled":
 		return r.DirectFixed(t)
 	case "zeroed":
 		elem, _, _ := r.fixedArrayShape(t)
@@ -57,7 +57,7 @@ func (c *checker) noteInline(n, base syntax.NodeID, fn EntityID, args []syntax.N
 
 func (c *checker) settleInline() { c.settleInlineAt(false) }
 
-// A method waits for its receiver's type; set also waits for the body's end, as a later capture write makes the receiver a cell.
+// set and withMut wait for the body's end, as a later capture write makes the receiver a cell.
 func (c *checker) settleInlineAt(bodyDone bool) {
 	kept := c.inlinePending[:0]
 	for _, p := range c.inlinePending {
@@ -66,8 +66,9 @@ func (c *checker) settleInlineAt(bodyDone bool) {
 			node = p.base
 		}
 		t := c.vars.resolve(c.info.Types[node])
-		mut := c.r.fixedInlineOp(p.fn) == "set"
-		if c.r.Types.ContainsVar(t) || mut && !bodyDone {
+		op := c.r.fixedInlineOp(p.fn)
+		mut := op == "set" || op == "withMut"
+		if c.r.Types.ContainsVar(t) || mut && !bodyDone || c.fixedResultOpen(p, op) {
 			kept = append(kept, p)
 			continue
 		}
@@ -82,6 +83,7 @@ func (c *checker) settleInlineAt(bodyDone bool) {
 				e.Why = whyInlined
 			}
 		}
+		c.chargeFixedResidue(p, op, t)
 	}
 	c.inlinePending = kept
 }

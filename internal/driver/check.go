@@ -9,12 +9,14 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// Check runs the semantic checker over a loaded module; the
-// result carries the comptime and ownership diagnostics of Analyze.
+// Check runs the semantic checker over a loaded module, adding a build's E1370.
 func Check(m *Module) (*sem.Result, error) {
 	a, err := Analyze(m)
 	if err != nil {
 		return nil, err
+	}
+	if a.Prog != nil && !a.Res.HasErrors() {
+		a.checkProvision(m.target)
 	}
 	return a.Res, nil
 }

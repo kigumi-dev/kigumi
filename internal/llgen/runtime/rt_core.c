@@ -58,6 +58,7 @@ typedef struct kg_unwind {
     void* p;
     val v;
     int64_t i;
+    uint64_t* m;
 } kg_unwind;
 static KG_TLS kg_unwind* g_unwind;
 static KG_TLS kg_unwind* g_unwind_base;
@@ -263,10 +264,28 @@ void rt_release(val v) {
     if (--v->rc == 0) free_obj(v);
 #endif
 }
+#ifdef KIGUMI_LEAK_CHECK
+// Test-only: how many allocations are still live at a fatal exit.
+static void report_live(void) {
+    char buf[32];
+    int n = sizeof buf;
+    buf[--n] = '\n';
+    long long v = (long long)g_general.live;
+    do {
+        buf[--n] = (char)('0' + v % 10);
+        v /= 10;
+    } while (v);
+    rt_sys_write(2, "live: ", 6);
+    rt_sys_write(2, buf + n, (size_t)(sizeof buf - n));
+}
+#endif
 static void rt_fatal(const char* msg) {
     rt_sys_write(2, "panic: ", 7);
     rt_sys_write(2, msg, strlen(msg));
     rt_sys_write(2, "\n", 1);
+#ifdef KIGUMI_LEAK_CHECK
+    report_live();
+#endif
     rt_sys_exit(2);
 }
 void rt_panic(const char* msg) {
@@ -275,6 +294,45 @@ void rt_panic(const char* msg) {
 #endif
     rt_fatal(msg);
 }
+#ifdef KG_CATCH
+// A release that panics leaves the other set bits for the nested fault to run.
+static void unwind_frame(kg_unwind* u) {
+    val* slots = (val*)u->p;
+    for (int64_t k = u->i - 1; k >= 0; k--) {
+        uint64_t* w = &u->m[k / 64];
+        uint64_t bit = (uint64_t)1 << (k % 64);
+        if (!(*w & bit)) continue;
+        *w &= ~bit;
+        val v = slots[k];
+        slots[k] = NULL;
+        rt_release(v);
+    }
+}
+void rt_unwind_enter(void* rec, void* slots, uint64_t* mask, int64_t n) {
+    kg_unwind* u = (kg_unwind*)rec;
+    u->prev = g_unwind;
+    u->run = unwind_frame;
+    u->p = slots;
+    u->v = NULL;
+    u->i = n;
+    u->m = mask;
+    g_unwind = u;
+}
+void rt_unwind_leave(void* rec) {
+    g_unwind = ((kg_unwind*)rec)->prev;
+}
+_Static_assert(sizeof(kg_unwind) <= 48, "llgen reserves 48 bytes for an unwind record");
+#else
+void rt_unwind_enter(void* rec, void* slots, uint64_t* mask, int64_t n) {
+    (void)rec;
+    (void)slots;
+    (void)mask;
+    (void)n;
+}
+void rt_unwind_leave(void* rec) {
+    (void)rec;
+}
+#endif
 // panicf's every caller passes a fixed message with exactly one "%s"; this
 // avoids a full printf just for that one substitution.
 void panicf(const char* fmt, const char* a) {

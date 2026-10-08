@@ -151,10 +151,18 @@ func (m *Machine) runTask(t *task, lane int) {
 
 // A sandbox abort is never contained; only a non-root fault sweeps frames, the root keeps its own.
 func (m *Machine) pollTaskBody(t *task) (*obj, polled, *Panic) {
+	base := len(m.frames)
 	v, st, fault := m.pollContained(t)
-	if fault != nil && t.parent != nil {
-		m.unwindFutures(t.fut)
+	if fault == nil {
+		return v, st, nil
 	}
+	if t.parent != nil {
+		m.sweepFault = fault
+		m.sweepFrames(base)
+		m.unwindFutures(t.fut)
+		fault, m.sweepFault = m.sweepFault, nil
+	}
+	m.frames = m.frames[:min(base, len(m.frames))]
 	return v, st, fault
 }
 

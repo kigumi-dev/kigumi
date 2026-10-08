@@ -20,6 +20,7 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 		}
 	}
 	m.stack = append(m.stack, f)
+	m.frames = append(m.frames, fr)
 	m.depth++
 	if m.opts.Sandbox && m.depth > m.opts.DepthLimit {
 		m.sandboxAbort("comptime recursion too deep")
@@ -53,6 +54,7 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 			if len(fr.pending) > 0 {
 				m.settleReturn(fr, blk.Term.Args[0])
 			}
+			m.frames = m.frames[:len(m.frames)-1]
 			return fr.locals[blk.Term.Args[0]]
 		default:
 			m.abort("unreachable code in " + f.Name)
