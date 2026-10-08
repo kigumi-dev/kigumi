@@ -586,7 +586,7 @@ pub pure fn Bytes.indexOf(self, sub: Bytes) -> usize? {
     }
     let mut i: usize = 0
     for i <= self.len() - sub.len() {
-        if self.matchesAt(sub, i) {
+        if self.hasAt(&sub, i) {
             return Some(i)
         }
         i = i + 1
@@ -594,8 +594,7 @@ pub pure fn Bytes.indexOf(self, sub: Bytes) -> usize? {
     None
 }
 
-/// Whether the bytes of sub appear at byte offset at; false for any offset past the end.
-pub pure noalloc fn Bytes.matchesAt(self, sub: Bytes, at: usize) -> Bool {
+pure noalloc fn Bytes.hasAt(self, sub: &Bytes, at: usize) -> Bool {
     if sub.len() > self.len() || at > self.len() - sub.len() {
         return false
     }
@@ -609,14 +608,19 @@ pub pure noalloc fn Bytes.matchesAt(self, sub: Bytes, at: usize) -> Bool {
     true
 }
 
+/// Whether the bytes of sub appear at byte offset at; false for any offset past the end.
+pub pure noalloc fn Bytes.matchesAt(self, sub: Bytes, at: usize) -> Bool {
+    self.hasAt(&sub, at)
+}
+
 /// Whether self begins with sub.
 pub pure noalloc fn Bytes.startsWith(self, sub: Bytes) -> Bool {
-    self.matchesAt(sub, 0)
+    self.hasAt(&sub, 0)
 }
 
 /// Whether self ends with sub.
 pub pure noalloc fn Bytes.endsWith(self, sub: Bytes) -> Bool {
-    sub.len() <= self.len() && self.matchesAt(sub, self.len() - sub.len())
+    sub.len() <= self.len() && self.hasAt(&sub, self.len() - sub.len())
 }
 
 /// Whether sub occurs in self; the empty sub occurs in every Bytes.

@@ -154,7 +154,7 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 			r.errAt(e.File, e.Node, cAllocConstruct, r.TypeString(e.Type))
 		case directCrossWhy(e.Why):
 			r.errAt(e.File, e.Node, cAllocDirectCross, r.TypeString(e.Type))
-		case e.Why == whyCopy:
+		case copyWhy(e.Why):
 			r.errAt(e.File, e.Node, cAllocCopy, r.TypeString(e.Type))
 		case e.Type != 0:
 			r.errAt(e.File, e.Node, cAllocWiden, r.TypeString(e.From), r.TypeString(e.Type))

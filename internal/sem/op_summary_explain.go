@@ -34,8 +34,8 @@ func (r *Result) opHops(cause OpCause, f OpFact, visited map[EntityID]bool) []Op
 	}
 	switch e.Kind {
 	case EdgeAlloc, EdgePanic, EdgeIO, EdgeSuspend:
-		if e.Kind == EdgeAlloc && e.Why == whyCopy {
-			return []OpHop{{e.File, e.Node, "copies `" + r.TypeString(e.Type) + "` into a box of its own here"}}
+		if e.Kind == EdgeAlloc && copyWhy(e.Why) {
+			return []OpHop{{e.File, e.Node, r.copyHop(e)}}
 		}
 		return []OpHop{{e.File, e.Node, "may " + f.String() + " here"}}
 	case EdgeDrop:

@@ -2,7 +2,6 @@ package mir
 
 import (
 	"fmt"
-	"slices"
 
 	"kigumi/internal/sem"
 )
@@ -53,51 +52,17 @@ func (p *Program) planRCBlock(f *Func, bid int, plan *Plan, st *rcState, w *shar
 		in, at := orig[k], Point{bid, k}
 		release := p.shareArgs(f, &in, st, &out, w, at)
 		release = append(release, p.copyBinding(f, &in, st, w, at)...)
-		p.rewriteCopy(f, &in, plan, st)
+		p.rewriteCopy(f, &in, plan, st, w, at)
 		out = append(out, in)
 		for _, t := range append(release, plan.Releases[at]...) {
 			out = append(out, Inst{Op: OpRelease, Args: []LocalID{t}})
 		}
 	}
-	release := p.shareReturn(f, &blk.Term, st, &out, w)
+	release := p.shareReturn(f, &blk.Term, st, &out, w, Point{bid, len(orig)})
 	for _, t := range append(release, plan.Releases[Point{bid, len(orig)}]...) {
 		out = append(out, Inst{Op: OpRelease, Args: []LocalID{t}})
 	}
 	blk.Insts = out
-}
-
-func (p *Program) shareArgs(f *Func, in *Inst, st *rcState, out *[]Inst, w *shareFacts, at Point) []LocalID {
-	if len(in.Args) == 0 {
-		return nil
-	}
-	var back []LocalID
-	args := append([]LocalID(nil), in.Args...)
-	for i, a := range args {
-		kind := p.sinkAt(f, *in, i, w.sum)
-		switch {
-		case kind == keepsArg && w.sinkShared(*in, i, at):
-			back = append(back, p.copyArg(f, in, a, &args[i], out))
-		case p.inPlace(*in, i) || st.borrowed[a]:
-		case p.mustCopy(f, *in, st.origin(a)):
-			t := f.newTemp(f.Locals[a].Type)
-			*out = append(*out, Inst{Op: OpShare, Dst: t, Args: []LocalID{a}, Copy: p.copyable(f.Locals[st.origin(a)].Type)})
-			args[i] = t
-		case kind == takesArg && w.sinkShared(*in, i, at):
-			p.copyArg(f, in, a, &args[i], out)
-			if !w.liveness().after(a, at.Block, at.Inst) && !slices.Contains(back, a) {
-				back = append(back, a)
-			}
-		}
-	}
-	in.Args = args
-	return back
-}
-
-func (p *Program) copyArg(f *Func, in *Inst, a LocalID, slot *LocalID, out *[]Inst) LocalID {
-	t := f.newTemp(f.Locals[a].Type)
-	*out = append(*out, Inst{Op: OpShare, Dst: t, Args: []LocalID{a}, Copy: true, IfWritable: p.R.WritableByParam(f.Locals[a].Type), Own: true, Node: in.Node})
-	*slot = t
-	return t
 }
 
 func (p *Program) copyBinding(f *Func, in *Inst, st *rcState, w *shareFacts, at Point) []LocalID {
@@ -116,7 +81,7 @@ func (p *Program) copyBinding(f *Func, in *Inst, st *rcState, w *shareFacts, at 
 // handling does: an eager Share, a source that is itself a temporary or a
 // borrow (a pure alias), a single-definition temporary destination
 // deferred to its own consuming use, or an eager share by default.
-func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState) {
+func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState, w *shareFacts, at Point) {
 	switch in.Op {
 	case OpBorrow:
 		st.borrowed[in.Dst] = true
@@ -143,11 +108,14 @@ func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState) {
 		st.alias[in.Dst] = src
 	default:
 		in.Op, in.Copy = OpShare, p.copyable(f.Locals[src].Type)
+		if in.Last = p.bindsLast(f, *in, src, w, at); in.Last {
+			in.Args = []LocalID{src}
+		}
 	}
 	in.Share = false
 }
 
-func (p *Program) shareReturn(f *Func, t *Term, st *rcState, out *[]Inst, w *shareFacts) []LocalID {
+func (p *Program) shareReturn(f *Func, t *Term, st *rcState, out *[]Inst, w *shareFacts, at Point) []LocalID {
 	if t.Op != TermReturn {
 		return nil
 	}
@@ -158,7 +126,12 @@ func (p *Program) shareReturn(f *Func, t *Term, st *rcState, out *[]Inst, w *sha
 	}
 	if f.Locals[src].Ent != 0 {
 		nt := f.newTemp(f.Locals[a].Type)
-		*out = append(*out, Inst{Op: OpShare, Dst: nt, Args: []LocalID{a}, Copy: p.copyable(f.Locals[src].Type)})
+		last := p.returnsLast(f, a, src, w, at)
+		from := a
+		if last {
+			from = src
+		}
+		*out = append(*out, Inst{Op: OpShare, Dst: nt, Args: []LocalID{from}, Copy: p.copyable(f.Locals[src].Type), Node: w.defNode(a), Last: last})
 		t.Args = []LocalID{nt}
 		return nil
 	}

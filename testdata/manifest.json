@@ -2651,6 +2651,23 @@
       ]
     },
     {
+      "id": "run/boxed_value_capture",
+      "kind": "run",
+      "path": "testdata/run/boxed_value_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/boxed_value_copies",
       "kind": "run",
       "path": "testdata/run/boxed_value_copies.txtar",

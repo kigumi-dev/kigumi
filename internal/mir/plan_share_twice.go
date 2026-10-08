@@ -9,13 +9,13 @@ import (
 func (w *shareFacts) sinkShared(in Inst, i int, at Point) bool {
 	a := in.Args[i]
 	if w.shared(a, at) {
-		return !w.movedOut(in, i, at)
+		return !w.movedOut(in, i, at) && !w.leftBehind(in, i, at)
 	}
 	if !w.writable(a) {
 		return false
 	}
 	for j, b := range in.Args {
-		if j == i || w.p.R.Types.Kind(w.f.Locals[b].Type) == sem.KPrim || w.p.sinkAt(w.f, in, j, w.sum) == noSink {
+		if j == i || w.p.R.Types.Kind(w.f.Locals[b].Type) == sem.KPrim || w.p.sinkAt(w.f, in, j, w.sum) == noSink || w.copiedAnyway(in, j, at) {
 			continue
 		}
 		if d, ok := w.overlap(a, b, at); ok && (d < 0 || d == 0 && j < i) {
@@ -68,4 +68,12 @@ func (w *shareFacts) readSince(v, r LocalID, at Point) bool {
 		}
 	}
 	return false
+}
+
+func (w *shareFacts) copiedAnyway(in Inst, j int, at Point) bool {
+	o, ok := w.namedOrigin(in.Args[j])
+	if !ok || w.p.inPlace(in, j) || !w.p.mustCopy(w.f, in, o) {
+		return false
+	}
+	return !(w.p.movable(w.f, o) && w.ownsBox(o) && !w.observed(o, at))
 }

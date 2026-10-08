@@ -1,0 +1,167 @@
+-- src --
+// A by-value field read keeps its own box while another argument of the call writes the same storage
+// (a closure, a lent place, the same field twice); a named local moves its box at its last use only if nothing else holds it.
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+type W = {
+    pub mut nm Named
+    pub mut other Named
+    pub k Int
+}
+
+type Two = {
+    pub mut a Named
+    pub mut b Named
+}
+
+fn mkw() -> W {
+    W { nm: Named { name: "a", n: 1 }, other: Named { name: "b", n: 2 }, k: 0 }
+}
+
+fn mkn(n: Int) -> Named {
+    let t = Named { name: "m", n: n }
+    t
+}
+
+fn runs[F: FnMut[fn() -> Unit]](x: Named, mut f: F) -> Int {
+    f()
+    x.n
+}
+
+type Holder[F] = {
+    pub mut f F
+}
+
+fn runsHeld[F: FnMut[fn() -> Unit]](x: Named, mut h: Holder[F]) -> Int {
+    h.f()
+    x.n
+}
+
+fn viaShared[F: FnMut[fn() -> Unit]](w: &W, mut f: F) -> Int {
+    runs(w.nm, f)
+}
+
+fn viaMut[F: FnMut[fn() -> Unit]](w: &mut W, mut f: F) -> Int {
+    runs(w.nm, f)
+}
+
+fn viaRef(x: Named, w: &mut W) -> Int {
+    w.nm.n = 9
+    x.n
+}
+
+fn viaReader(x: Named, w: &W) -> Int {
+    x.n + w.k
+}
+
+fn viaTwo(x: Named, y: Named, w: &mut W) -> Int {
+    w.nm.n = 7
+    x.n + y.n
+}
+
+fn lent(w: &mut W) -> Int {
+    viaRef(w.nm, w)
+}
+
+fn swap(w: &mut W) -> Unit {
+    let t = w.nm
+    w.nm = w.other
+    w.other = t
+}
+
+fn retLent(w: &W) -> Named {
+    let t = w.nm
+    t
+}
+
+fn pass(n: Named) -> Named {
+    n
+}
+
+fn captures() -> Unit {
+    let mut w = mkw()
+    let r = runs(w.nm, () => { w.nm.n = 9 })
+    let mut v = mkw()
+    let bump = () => { v.nm.n = 8 }
+    let r2 = runs(v.nm, bump)
+    let mut u = mkw()
+    let r3 = viaRef(u.nm, &mut u)
+    let mut z = mkw()
+    let r4 = lent(&mut z)
+    let q = mkw()
+    let r5 = viaReader(q.nm, &q)
+    let mut m = mkw()
+    let r6 = viaTwo(m.nm, m.nm, &mut m)
+    print "captures ${r} ${w.nm.n} ${r2} ${v.nm.n} ${r3} ${u.nm.n} ${r4} ${z.nm.n} ${r5} ${r6} ${m.nm.n}"
+}
+
+fn nestedCaptures() -> Unit {
+    let mut a = mkw()
+    let inner = () => { a.nm.n = 31 }
+    let outer = () => { inner() }
+    let r = runs(a.nm, outer)
+    let mut b = mkw()
+    let c1 = () => { b.nm.n = 5 }
+    let c2 = () => { c1() }
+    let r2 = runs(b.nm, c2)
+    let mut c = mkw()
+    let h = Holder { f: () => { c.nm.n = 21 } }
+    let r3 = runsHeld(c.nm, h)
+    print "nestedCaptures ${r} ${a.nm.n} ${r2 * 100 + b.nm.n} ${r3} ${c.nm.n}"
+}
+
+fn wrapped() -> Unit {
+    let mut a = mkw()
+    let r = viaShared(&a, () => { a.nm.n = 4 })
+    let mut b = mkw()
+    let r2 = viaMut(&mut b, () => { b.nm.n = 6 })
+    print "wrapped ${r} ${a.nm.n} ${r2} ${b.nm.n}"
+}
+
+fn handOver() -> Unit {
+    let mut w = mkw()
+    swap(&mut w)
+    w.nm.n = 50
+    w.other.n = 60
+    let mut r = retLent(&w)
+    r.n = 70
+    let orig = mkn(3)
+    let mut c = pass(orig)
+    c.n = 5
+    let mut d = mkn(4)
+    d.n = 6
+    let mut e = pass(d)
+    e.n = 8
+    print "handOver ${w.nm.name} ${w.nm.n} ${w.other.name} ${w.other.n} ${r.n} ${orig.n} ${c.n} ${e.n}"
+}
+
+fn lastUse() -> Unit {
+    let w = mkw()
+    let t = w.nm
+    let mut pair = Two { a: t, b: w.nm }
+    pair.a.n = 40
+    let mut arr = Array.of(mkn(1))
+    let s = mkn(2)
+    arr.push(s)
+    let u = mkn(3)
+    let mut pair2 = Two { a: u, b: u }
+    pair2.b.n = 9
+    print "lastUse ${pair.a.n} ${pair.b.n} ${w.nm.n} ${arr[0].n} ${arr[1].n} ${pair2.a.n} ${pair2.b.n}"
+}
+
+fn main() -> Unit! {
+    captures()
+    nestedCaptures()
+    wrapped()
+    handOver()
+    lastUse()
+}
+-- stdout --
+captures 1 9 1 8 1 9 1 9 1 2 7
+nestedCaptures 1 31 105 1 21
+wrapped 1 4 1 6
+handOver b 50 a 60 70 3 5 8
+lastUse 40 1 1 1 2 3 9

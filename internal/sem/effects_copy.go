@@ -6,14 +6,20 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// whyCopy marks an EdgeAlloc the MIR adds after checking: a copy that gives a value a box of its own.
-const whyCopy = 8
+// EdgeAlloc whys the MIR adds after checking: a copy that ends sharing with another name, and one that keeps a local's value.
+const (
+	whyCopy     = 8
+	whyCopyHeld = 9
+	whyCopyElem = 10
+)
 
 type CopySite struct {
 	Owner EntityID
 	File  FileID
 	Node  syntax.NodeID
 	Type  TypeID
+	Held  bool
+	Elem  bool
 }
 
 func (r *Result) ChargeCopies(sites []CopySite) {
@@ -30,6 +36,12 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 	added := false
 	for _, s := range sites {
 		e := EffectEdge{Kind: EdgeAlloc, Type: s.Type, File: s.File, Node: s.Node, Why: whyCopy}
+		switch {
+		case s.Held:
+			e.Why = whyCopyHeld
+		case s.Elem:
+			e.Why = whyCopyElem
+		}
 		if _, node := before[s.Owner]; !node || slices.Contains(r.edgesOf(s.Owner), e) {
 			continue
 		}
@@ -111,4 +123,17 @@ func (r *Result) reportNoallocBreaks(id EntityID, before []bool) {
 			r.errAt(e.File, e.Node, cFnItemContract, r.Entities[e.Target].Name, modName(EffNoalloc), why)
 		}
 	}
+}
+
+func copyWhy(why uint8) bool { return why == whyCopy || why == whyCopyHeld || why == whyCopyElem }
+
+func (r *Result) copyHop(e EffectEdge) string {
+	text := "copies `" + r.TypeString(e.Type) + "` into a box of its own here"
+	switch e.Why {
+	case whyCopyHeld:
+		return text + ", because the local keeps its own value"
+	case whyCopyElem:
+		return text + ", because the element is handed out as a copy"
+	}
+	return text + ", so it stops sharing a box with another name"
 }

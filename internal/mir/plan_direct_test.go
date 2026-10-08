@@ -167,6 +167,7 @@ func TestPlanDirectCorpus(t *testing.T) {
 			if err != nil {
 				t.Fatalf("plan-direct: %v\n%s", err, prog.Dump())
 			}
+			checkNoallocBodies(t, res, prog)
 			for _, f := range prog.Funcs {
 				for i := range f.Locals {
 					sawDirect = sawDirect || f.IsDirect(mir.LocalID(i))

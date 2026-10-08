@@ -4652,6 +4652,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.Bytes.hasAt",
+    "signature": "pure noalloc fn(\u0026Bytes, usize) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.Bytes.hash",
     "signature": "pure noalloc fn() -\u003e u64",
     "has_body": false,
