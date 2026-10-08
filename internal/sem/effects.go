@@ -53,10 +53,8 @@ func (r *Result) dropSharedValueAllocs(nodes []EntityID) {
 	}
 }
 
-// An async body keeps its builds, since its slots are pointer-wide.
 func (r *Result) dropDirectBuildAllocs(nodes []EntityID) {
 	for _, id := range nodes {
-		async := r.Entities[id].Kind == EntFn && r.Fn(id).Declared&EffAsync != 0
 		edges := r.edgesPtr(id)
 		*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool {
 			switch {
@@ -67,7 +65,7 @@ func (r *Result) dropDirectBuildAllocs(nodes []EntityID) {
 			case directCrossWhy(e.Why):
 				return !r.DirectAgg(e.Type)
 			}
-			return e.Why == whyBuild && !async && r.DirectAgg(e.Type)
+			return e.Why == whyBuild && r.DirectAgg(e.Type)
 		})
 	}
 }

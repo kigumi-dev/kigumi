@@ -35,7 +35,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpBoxDirect, mir.OpUnboxDirect:
 		res = m.cross(fr, in, args[0])
 	case mir.OpShare:
-		if in.Copy {
+		if in.Copy && (!in.IfWritable || m.writableInside(args[0])) {
 			res = m.copy(args[0])
 			m.chargeMemory(res)
 		} else {

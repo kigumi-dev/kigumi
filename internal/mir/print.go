@@ -83,7 +83,9 @@ func (p *Program) inst(f *Func, in Inst) string {
 	case OpBox:
 		body += " " + p.R.TypeString(in.Type)
 	case OpShare:
-		if in.Copy {
+		if in.Copy && in.IfWritable {
+			body += " copy-mut"
+		} else if in.Copy {
 			body += " copy"
 		} else {
 			body += " retain"

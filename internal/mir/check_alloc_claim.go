@@ -67,15 +67,19 @@ func (p *Program) boxClaims(f *Func) []AllocClaim {
 	return out
 }
 
-// verifyAllocClaim keeps an inferred summary a superset of what the backends do.
+// verifyAllocClaim keeps an inferred summary a superset of what the backends do: no crossing, no planned copy.
 func (p *Program) verifyAllocClaim(f *Func) *Error {
 	if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc || p.declaredNoalloc(f) {
 		return nil
 	}
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op == OpBoxDirect {
+			switch {
+			case in.Op == OpBoxDirect:
 				return fail("alloc-claim", BlockID(bid), i, "boxes %s where the summary claims no allocation", p.R.TypeString(in.Type))
+			// A declared `noalloc` that copies is the author's error, which ChargeCopies reports.
+			case ownCopy(f, in) && !p.declaredNoalloc(f):
+				return fail("alloc-claim", BlockID(bid), i, "copies %s where the summary claims no allocation", p.R.TypeString(f.Locals[in.Args[0]].Type))
 			}
 		}
 	}

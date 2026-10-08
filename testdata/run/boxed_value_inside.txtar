@@ -1,0 +1,141 @@
+-- src --
+import task from std/task
+
+// A writable record inside an Option, a Result or a record with no `mut`
+// field is still copied when a call, `?` or a record spread reaches it.
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+type Frozen = {
+    pub q Named
+}
+
+type E = {
+    pub code Int
+}
+
+type W = {
+    pub mut o Named?
+    pub fz Frozen
+    pub mut r Result[Named, E]
+    pub tag Int
+}
+
+fn fresh() -> W {
+    W { o: Some(Named { name: "o", n: 1 }), fz: Frozen { q: Named { name: "f", n: 1 } }, r: Ok(Named { name: "r", n: 1 }), tag: 1 }
+}
+
+fn none() -> Named {
+    Named { name: "none", n: 0 }
+}
+
+fn getQ(f: Frozen) -> Named {
+    f.q
+}
+
+fn W.optQ(self) -> Named? {
+    self.o
+}
+
+fn ident[T](x: T) -> T {
+    x
+}
+
+fn keep[T: Copy](arr: &mut Array[T], x: T) -> Unit {
+    arr.push(x)
+}
+
+fn firstOr[T: Copy](arr: &Array[T?], d: T) -> T {
+    arr[0].unwrapOr(d)
+}
+
+fn wrapped() -> Unit {
+    let w = fresh()
+    let mut a = w.o.unwrapOr(none())
+    a.n = 5
+    let mut b = getQ(w.fz)
+    b.n = 6
+    let mut c = w.optQ().unwrapOr(none())
+    c.n = 7
+    let mut d = ident(w.o).unwrapOr(none())
+    d.n = 8
+    print "wrapped ${a.n} ${b.n} ${c.n} ${d.n} ${w.o.unwrapOr(none()).n} ${w.fz.q.n}"
+}
+
+fn taken() -> Unit {
+    let w = fresh()
+    let mut o = w.o
+    let mut y = o.take().unwrap()
+    y.n = 9
+    print "take ${y.n} ${w.o.unwrapOr(none()).n}"
+}
+
+fn stored() -> Unit {
+    let w = fresh()
+    let mut arr: Array[Named?] = Array.empty()
+    arr.push(w.o)
+    keep(&mut arr, w.o)
+    let mut got = arr[0].unwrapOr(none())
+    got.n = 10
+    let mut viaGeneric = firstOr(&arr, none())
+    viaGeneric.n = 11
+    let ints: Array[Int?] = Array.of(Some(3))
+    print "stored ${got.n} ${viaGeneric.n} ${arr[0].unwrapOr(none()).n} ${arr[1].unwrapOr(none()).n} ${w.o.unwrapOr(none()).n} ${firstOr(&ints, 0)}"
+}
+
+fn viaTry(w: &W) -> Result[Int, E] {
+    let mut x = w.r?
+    x.n = 12
+    Ok(x.n)
+}
+
+fn paths() -> Unit {
+    let w = fresh()
+    let tried = viaTry(&w).unwrap()
+    let mut other = W { ..w, tag: 9 }
+    other.o = Some(Named { name: "x", n: 13 })
+    let mut kept = W { ..w, tag: 8 }.fz
+    let mut q = kept.q
+    q.n = 14
+    let back = match w.r {
+        Ok(v) -> v.n
+        Err(_) -> 0
+    }
+    print "paths ${tried} ${back} ${other.o.unwrapOr(none()).n} ${w.o.unwrapOr(none()).n} ${q.n} ${kept.q.n} ${w.fz.q.n}"
+}
+
+async fn later(o: Named?) -> Int {
+    let _ = await task.spawn(tick())
+    let mut v = o.unwrapOr(none())
+    v.n = 40
+    v.n
+}
+
+async fn tick() -> Int {
+    0
+}
+
+async fn inAsync() -> Int {
+    let w = fresh()
+    let set = await later(w.o)
+    print "async ${set} ${w.o.unwrapOr(none()).n}"
+    set
+}
+
+fn main() -> Unit! {
+    wrapped()
+    taken()
+    stored()
+    paths()
+    let ex = task.currentThreadExecutor()
+    print "done ${ex.runToCompletion(inAsync())}"
+}
+-- stdout --
+wrapped 5 6 7 8 1 1
+take 9 1
+stored 10 11 1 1 1 3
+paths 12 1 13 1 14 1 1
+async 40 1
+done 40

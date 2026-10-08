@@ -1656,6 +1656,44 @@
       ]
     },
     {
+      "id": "run/async_direct_frame",
+      "kind": "run",
+      "path": "testdata/run/async_direct_frame.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_direct_frame_panic",
+      "kind": "run",
+      "path": "testdata/run/async_direct_frame_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
+      }
+    },
+    {
       "id": "run/async_fn_value",
       "kind": "run",
       "path": "testdata/run/async_fn_value.txtar",
@@ -2613,6 +2651,91 @@
       ]
     },
     {
+      "id": "run/boxed_value_copies",
+      "kind": "run",
+      "path": "testdata/run/boxed_value_copies.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/boxed_value_inside",
+      "kind": "run",
+      "path": "testdata/run/boxed_value_inside.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/boxed_value_paths",
+      "kind": "run",
+      "path": "testdata/run/boxed_value_paths.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/boxed_value_sinks",
+      "kind": "run",
+      "path": "testdata/run/boxed_value_sinks.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/boxed_value_twice",
+      "kind": "run",
+      "path": "testdata/run/boxed_value_twice.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/break_value",
       "kind": "run",
       "path": "testdata/run/break_value.txtar",
@@ -2917,6 +3040,23 @@
       "id": "run/comptime",
       "kind": "run",
       "path": "testdata/run/comptime.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/comptime_direct_copies",
+      "kind": "run",
+      "path": "testdata/run/comptime_direct_copies.txtar",
       "mode": [
         "vm",
         "native"
@@ -8085,6 +8225,23 @@
       "id": "run/utf8_validate_edge_cases",
       "kind": "run",
       "path": "testdata/run/utf8_validate_edge_cases.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/value_law_contexts",
+      "kind": "run",
+      "path": "testdata/run/value_law_contexts.txtar",
       "mode": [
         "vm",
         "native"

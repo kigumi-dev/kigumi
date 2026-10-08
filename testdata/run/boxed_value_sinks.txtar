@@ -1,0 +1,134 @@
+-- src --
+import array from std/array
+import task from std/task
+
+// A Copy value stored into a constructor, a payload, a container or a
+// Future keeps no storage in common with the value it was read from.
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+type W = {
+    pub mut q Named
+    pub mut k Int
+}
+
+type W2 = {
+    pub mut q Named
+}
+
+fn W.bumpQ(mut self) -> Unit {
+    self.q.n = self.q.n + 100
+}
+
+fn W.firstQ(self) -> Named {
+    self.q
+}
+
+fn gen[T](x: T) -> T {
+    x
+}
+
+fn qOf(w: &W) -> Named {
+    w.q
+}
+
+fn fresh() -> W {
+    W { q: Named { name: "q", n: 1 }, k: 1 }
+}
+
+fn sinks() -> Unit {
+    let mut w = fresh()
+    let o: Named? = Some(w.q)
+    w.q.n = 6
+    let on = match o {
+        Some(v) -> v.n
+        None -> 0
+    }
+    let v = fresh()
+    let mut w2 = W2 { q: v.q }
+    w2.q.n = 3
+    let mut arr: Array[Named] = Array.empty()
+    arr.push(v.q)
+    arr[0].n = 5
+    print "sinks ${on} ${v.q.n} ${w2.q.n} ${arr[0].n}"
+}
+
+fn calls() -> Unit {
+    let mut w = fresh()
+    let seen = w.q
+    w.bumpQ()
+    let mut g = gen(w.q)
+    g.n = 12
+    let get = qOf
+    let mut viaValue = get(&w)
+    viaValue.n = 80
+    print "calls ${seen.n} ${w.q.n} ${g.n} ${viaValue.n}"
+}
+
+fn helpers() -> Unit {
+    let mut filled = Array.fill(Named { name: "f", n: 1 }, 3)
+    filled[0].n = 5
+    let src: Array[Named] = Array.of(Named { name: "a", n: 1 }, Named { name: "b", n: 2 })
+    let mut taken = src.take(1)
+    taken[0].n = 33
+    let mut sorted = array.sortedBy(&src, (a, b) => b.n.compareTo(a.n))
+    sorted[0].n = 70
+    let fa = FixedArray.filled[Named, 2](Named { name: "x", n: 4 })
+    let mut got = fa.get(0) || Named { name: "none", n: 0 }
+    got.n = 6
+    let mut grids = Array.fill(FixedArray.filled[Int, 2](1), 2)
+    grids[0][1] = 9
+    print "helpers ${filled[0].n} ${filled[1].n} ${filled[2].n} ${src[0].n} ${taken[0].n} ${src[1].n} ${sorted[0].n} ${fa[0].n} ${got.n} ${grids[0][1]} ${grids[1][1]}"
+}
+
+fn captured() -> Unit {
+    let w = fresh()
+    let read = () => w.q
+    let mut a = read()
+    a.n = 5
+    let again = read()
+    let bound = w.firstQ
+    let mut c = bound()
+    c.n = 7
+    let d = bound()
+    print "captured ${a.n} ${again.n} ${c.n} ${d.n} ${w.q.n}"
+}
+
+async fn setLater(mut x: Named) -> Int {
+    let _ = await task.spawn(tick())
+    x.n = 40
+    x.n
+}
+
+async fn tick() -> Int {
+    0
+}
+
+async fn inAsync() -> Int {
+    let w = fresh()
+    let mut kept: Array[Named] = Array.empty()
+    kept.push(w.q)
+    let _ = await tick()
+    kept[0].n = 9
+    let set = await setLater(w.q)
+    print "async ${w.q.n} ${kept[0].n} ${set}"
+    w.q.n
+}
+
+fn main() -> Unit! {
+    sinks()
+    calls()
+    helpers()
+    captured()
+    let ex = task.currentThreadExecutor()
+    print "done ${ex.runToCompletion(inAsync())}"
+}
+-- stdout --
+sinks 1 1 3 5
+calls 1 101 12 80
+helpers 5 1 1 1 33 2 70 4 6 9 1
+captured 5 1 7 1 1
+async 1 9 40
+done 1

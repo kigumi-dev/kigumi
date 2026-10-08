@@ -1,7 +1,6 @@
 package sem
 
-// DirectCarried reports whether fn's signature may hand a direct aggregate
-// across unboxed: a foreign ABI is fixed by C, an async body by its frame.
+// DirectCarried: a foreign ABI is fixed by C, an async one by its Future's argument words.
 func (r *Result) DirectCarried(fn EntityID) bool {
 	e := &r.Entities[fn]
 	if fn == 0 || e.Kind != EntFn || e.Flags&EfPoison != 0 {

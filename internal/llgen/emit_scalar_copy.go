@@ -26,9 +26,10 @@ func (e *emitter) scalarCopyLike(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 		}
 		p := e.load(sb, in.Args[0])
 		v := e.unboxScalar(sb, srcTy, p)
-		if in.Op == mir.OpMove {
+		// An alias of a temporary takes its reference over, which the native destination does not hold.
+		if in.Op == mir.OpMove || in.Op == mir.OpAlias && f.Locals[in.Args[0]].Ent == 0 && !e.nameAlias[in.Args[0]] {
 			e.irb(sb).Call(rtRelease, vptr(p))
-			if f.Locals[in.Args[0]].Ent != 0 {
+			if in.Op == mir.OpMove && f.Locals[in.Args[0]].Ent != 0 {
 				e.store(sb, in.Args[0], "null")
 			}
 		}

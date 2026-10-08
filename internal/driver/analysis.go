@@ -76,6 +76,7 @@ func buildProgram(res *sem.Result, strict bool, budgetKiB int) (*mir.Program, er
 		return prog, err
 	}
 	prog.Resources = mir.ComputeResourceSummaries(prog)
+	mir.SettleAsyncBounds(prog)
 	mir.CheckResourceBudget(prog, prog.Resources, mir.ResourceOptions{Strict: strict, BudgetKiB: budgetKiB})
 	for _, d := range prog.Diags {
 		res.Files[d.File].Diags = append(res.Files[d.File].Diags, d.Diag)
@@ -97,13 +98,17 @@ func lowerProgram(res *sem.Result) *mir.Program {
 	return prog
 }
 
-// fold-comptime runs the VM, which only translates plan-rc output, so plan-rc goes first.
+// fold-comptime runs last so a comptime block runs the planned MIR.
 func planPasses(comptime bool) []mir.Transform {
-	out := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}}
+	out := []mir.Transform{
+		{Name: "plan-rc", Run: mir.PlanRC},
+		{Name: "specialize", Run: mir.Specialize},
+		{Name: "plan-direct", Run: mir.PlanDirect},
+	}
 	if comptime {
 		out = append(out, mir.Transform{Name: "fold-comptime", Run: foldComptime})
 	}
-	return append(out, mir.Transform{Name: "specialize", Run: mir.Specialize}, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect})
+	return out
 }
 
 // Stats reports how often each phase ran for this module.

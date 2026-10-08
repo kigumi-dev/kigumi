@@ -40,7 +40,7 @@ func (m *Machine) crossShares(fr *frame, in *mir.Inst) bool {
 		if !slices.Contains(r.Args, in.Dst) {
 			continue
 		}
-		return r.Op == mir.OpAlias && fr.f.Locals[in.Args[0]].Ent != 0 || r.Op == mir.OpShare && r.Copy
+		return r.Op == mir.OpAlias && fr.f.Locals[in.Args[0]].Ent != 0 || r.Op == mir.OpShare && r.Copy && !r.IfWritable
 	}
 	return false
 }

@@ -2,13 +2,7 @@ package sem
 
 // checkInterruptHandlers uses inferSummaries' own fixpoint shape over the edge graph, so mutual recursion settles without a cycle-aware DFS.
 func (r *Result) checkInterruptHandlers() {
-	var handlers []EntityID
-	for id := 1; id < len(r.Entities); id++ {
-		e := &r.Entities[id]
-		if e.Kind == EntFn && e.Flags&EfPoison == 0 && r.Fn(EntityID(id)).Export == "interrupt" {
-			handlers = append(handlers, EntityID(id))
-		}
-	}
+	handlers := r.interruptHandlers()
 	if len(handlers) == 0 {
 		return
 	}
@@ -18,6 +12,17 @@ func (r *Result) checkInterruptHandlers() {
 			r.reportIsrPath(id, safe)
 		}
 	}
+}
+
+func (r *Result) interruptHandlers() []EntityID {
+	var handlers []EntityID
+	for id := 1; id < len(r.Entities); id++ {
+		e := &r.Entities[id]
+		if e.Kind == EntFn && e.Flags&EfPoison == 0 && r.Fn(EntityID(id)).Export == "interrupt" {
+			handlers = append(handlers, EntityID(id))
+		}
+	}
+	return handlers
 }
 
 // isrFacts are the operations every strict boundary rejects outright;

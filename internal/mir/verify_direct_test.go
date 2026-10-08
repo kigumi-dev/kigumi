@@ -56,7 +56,8 @@ func TestVerifyDirectRejectsCallingARecord(t *testing.T) {
 func TestVerifyDirectRejectsAPrimitiveOperandItDoesNotTake(t *testing.T) {
 	p := planned(t, `
 fn widen(n: i32, s: String) -> Int {
-    n.toInt()
+    let w: Int = n.toInt()
+    w + (s.len().toInt() || 0)
 }
 
 fn main() -> Unit! {}
@@ -64,7 +65,7 @@ fn main() -> Unit! {}
 	f := funcNamed(t, p, "main.widen")
 	for bi := range f.Blocks {
 		for k, in := range f.Blocks[bi].Insts {
-			if in.Op == mir.OpCall && in.DPrim != mir.DPNone {
+			if in.Op == mir.OpCall && in.DPrim == mir.DPConvert {
 				f.Blocks[bi].Insts[k].Args = []mir.LocalID{f.Params[1]}
 				ve, ok := p.Verify().(*mir.Error)
 				if !ok || (ve.Rule != "types" && ve.Rule != "direct") || !strings.Contains(ve.Msg, "String") {
@@ -74,5 +75,5 @@ fn main() -> Unit! {}
 			}
 		}
 	}
-	t.Fatalf("no direct primitive call:\n%s", p.Dump())
+	t.Fatalf("no direct conversion call:\n%s", p.Dump())
 }

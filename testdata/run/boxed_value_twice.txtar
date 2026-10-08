@@ -1,0 +1,111 @@
+-- src --
+// One construct handed two reads of overlapping places keeps them apart: two
+// reads of one field, an element next to the array it came from, a named
+// binding next to its source; a field moved to another slot whose source
+// slot is stored over right after needs no copy and stays noalloc.
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+type V = {
+    pub mut a Named
+    pub mut c Named
+}
+
+type Y = {
+    pub mut a Named
+    pub mut ns Array[Named]
+}
+
+type Two = | Both(Named, Named) | NoneOf
+
+fn mkv() -> V {
+    V { a: Named { name: "a", n: 1 }, c: Named { name: "c", n: 2 } }
+}
+
+fn mky() -> Y {
+    Y { a: Named { name: "y", n: 0 }, ns: Array.of(Named { name: "p", n: 1 }, Named { name: "q", n: 2 }) }
+}
+
+fn mkn() -> Named {
+    Named { name: "x", n: 1 }
+}
+
+fn twoOut(x: Named, y: Named, out: &mut V) -> Unit {
+    out.a = x
+    out.c = y
+}
+
+fn pairOf(x: Named) -> V {
+    V { a: x, c: x }
+}
+
+noalloc fn swap(w: &mut V) -> Unit {
+    let t = w.a
+    w.a = w.c
+    w.c = t
+}
+
+fn reviewed() -> Unit {
+    let v0 = mkv()
+    let mut v1 = V { a: v0.a, c: v0.a }
+    v1.a.n = 5
+    let v2 = mkv()
+    let mut arr = Array.of(v2.a, v2.a)
+    arr[0].n = 5
+    let v3 = mkv()
+    let mut out = V { a: mkn(), c: mkn() }
+    twoOut(v3.a, v3.a, &mut out)
+    out.a.n = 5
+    let v = mky()
+    let mut y = Y { a: v.ns[1], ns: v.ns }
+    y.a.n = 7
+    print "reviewed ${v1.a.n} ${v1.c.n} ${arr[0].n} ${arr[1].n} ${out.a.n} ${out.c.n} ${y.a.n} ${y.ns[1].n}"
+}
+
+fn variants() -> Unit {
+    let v1 = mkv()
+    let n = v1.a
+    let mut r1 = V { a: n, c: v1.a }
+    r1.a.n = 5
+    let x = mkn()
+    let mut r2 = V { a: x, c: x }
+    r2.c.n = 5
+    let y0 = mky()
+    let mut arr = Array.of(y0.ns[0], y0.ns[0])
+    arr[1].n = 9
+    let y1 = mky()
+    let ns = y1.ns
+    let mut y2 = Y { a: ns[1], ns: ns }
+    y2.a.n = 7
+    let v3 = mkv()
+    let tw = Two.Both(v3.a, v3.a)
+    let q = match tw {
+        Both(p, other) -> {
+            let mut pp = p
+            pp.n = 3
+            other.n
+        }
+        NoneOf -> 0
+    }
+    let mut r3 = pairOf(mkn())
+    r3.a.n = 6
+    let v4 = mkv()
+    let mut r4 = V { a: v4.c, c: v4.a }
+    r4.a.n = 4
+    print "variants ${r1.a.n} ${r1.c.n} ${r2.a.n} ${r2.c.n} ${arr[0].n} ${arr[1].n} ${y2.a.n} ${y2.ns[1].n} ${q} ${r3.a.n} ${r3.c.n} ${r4.a.n} ${r4.c.n} ${v4.c.n}"
+}
+
+fn main() -> Unit! {
+    reviewed()
+    variants()
+    let mut w = mkv()
+    swap(&mut w)
+    w.a.n = 7
+    print "swap ${w.a.name} ${w.a.n} ${w.c.name} ${w.c.n}"
+}
+-- stdout --
+reviewed 5 1 5 1 5 1 7 2
+variants 5 1 1 5 1 9 7 2 1 6 1 4 1 2
+swap c 7 a 1

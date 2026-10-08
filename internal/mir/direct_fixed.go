@@ -2,11 +2,7 @@ package mir
 
 import "kigumi/internal/sem"
 
-// An async body is left out: llgen keeps no immortal keys for one.
 func (p *Program) markFixed(f *Func) {
-	if f.Async {
-		return
-	}
 	fixed := p.fixedLocals(f)
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts

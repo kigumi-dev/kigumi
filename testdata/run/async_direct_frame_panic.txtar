@@ -1,0 +1,64 @@
+-- src --
+import task from std/task
+
+// A faulting task drops only the carrier slots of its frames: the inline
+// aggregates beside them own nothing.
+type Point = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+async fn inner(n: Int) -> Int {
+    let mut p = Point { x: n, y: n }
+    let r = Res { id: n + 10 }
+    let grid = FixedArray.filled[Int, 5](n)
+    let v = await task.spawn(tick())
+    p.x = p.x + v + grid[4]
+    print "inner ${p.x}"
+    panic("boom")
+}
+
+async fn boom() -> Int {
+    let r = Res { id: 1 }
+    let q = Point { x: 7, y: 8 }
+    let v = await inner(2)
+    v + q.y
+}
+
+async fn sib() -> Int {
+    let p = Point { x: 4, y: 0 }
+    let v = await tick()
+    p.x + v
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    let b = task.spawn(sib())
+    let x = await b
+    print "b ${x}"
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+b 5
+inner 5
+drop 12
+drop 1
+-- stderr --
+panic: boom
+-- exit --
+2

@@ -18,6 +18,7 @@ var (
 	rtStr          = RuntimeFn{"rt_str", []Type{TPtr, TI64}, TPtr}
 	rtBytes        = RuntimeFn{"rt_bytes", []Type{TPtr, TI64}, TPtr}
 	rtCopy         = RuntimeFn{"rt_copy", []Type{TPtr}, TPtr}
+	rtCopyMut      = RuntimeFn{"rt_copy_mut", []Type{TPtr}, TPtr}
 	rtTruth        = RuntimeFn{"rt_truth", []Type{TPtr}, TI1}
 	rtAt           = RuntimeFn{"rt_at", []Type{TPtr, TI64}, TPtr}
 	rtCallv        = RuntimeFn{"rt_callv", []Type{TPtr, TI32, TPtr}, TPtr}
@@ -101,7 +102,7 @@ var (
 // runtimeFns lists every RuntimeFn above in `declare` order: the single
 // source renderExterns and runtime_fns_test.go both read.
 var runtimeFns = []RuntimeFn{
-	rtInit, rtExitCode, rtUnit, rtInt, rtFloat, rtBool, rtChar, rtStr, rtBytes, rtCopy,
+	rtInit, rtExitCode, rtUnit, rtInt, rtFloat, rtBool, rtChar, rtStr, rtBytes, rtCopy, rtCopyMut,
 	rtTruth, rtAt, rtCallv, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
 	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstNum, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,

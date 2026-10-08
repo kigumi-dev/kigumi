@@ -65,6 +65,12 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 	case mir.OpDrop, mir.OpRelease:
 		// A pure direct value owns no reference and has no drop glue.
 		return e.isDirect(in.Args[0])
+	case mir.OpFutureDone:
+		// The runtime only marks the frame done; the return hands the boxed result over.
+		if e.isDirect(in.Args[0]) {
+			e.irb(sb).Call(rtFutureComplete, vptr("%fut"), vptr("null"))
+			return true
+		}
 	case mir.OpBoxDirect:
 		if key, ok := e.constKey[in.Dst]; ok {
 			e.store(sb, in.Dst, e.constArgValue(sb, key))

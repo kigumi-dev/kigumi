@@ -1,0 +1,115 @@
+-- src --
+import task from std/task
+import {Shared} from std/alloc
+
+// One source pattern, a field read bound to a written local, in every
+// context: each line prints the source's element and then the copy's.
+type Holder = {
+    pub a FixedArray[Int, 3]
+}
+
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+type Slot = {
+    pub mut a FixedArray[Int, 3]
+    pub mut q Named
+}
+
+type Box[T] = {
+    pub v T
+}
+
+fn fresh() -> Holder {
+    Holder { a: FixedArray.filled(1) }
+}
+
+fn inFn() -> String {
+    let w = fresh()
+    let mut b = w.a
+    b[1] = 5
+    "${w.a[1]} ${b[1]}"
+}
+
+fn get[T: Copy](h: &Box[T]) -> T {
+    h.v
+}
+
+fn inGeneric() -> String {
+    let h = Box { v: fresh().a }
+    let mut b = get(&h)
+    b[1] = 5
+    let n = Box { v: Named { name: "n", n: 1 } }
+    let mut m = get(&n)
+    m.n = 5
+    "${h.v[1]} ${b[1]} ${n.v.n} ${m.n}"
+}
+
+async fn tick() -> Int {
+    0
+}
+
+async fn inAsync() -> String {
+    let w = fresh()
+    let mut b = w.a
+    let _ = await tick()
+    b[1] = 5
+    let _ = await tick()
+    "${w.a[1]} ${b[1]}"
+}
+
+fn inClosure() -> String {
+    let w = fresh()
+    let f = () => {
+        let mut b = w.a
+        b[1] = 5
+        b[1]
+    }
+    let inner = f()
+    "${w.a[1]} ${inner}"
+}
+
+fn inCollection() -> String {
+    let hs: Array[Holder] = Array.of(fresh())
+    let mut b = hs[0].a
+    b[1] = 5
+    let mut slots: Array[Slot] = Array.of(Slot { a: FixedArray.filled(1), q: Named { name: "q", n: 1 } })
+    let mut c = slots[0].q
+    c.n = 5
+    slots[0].a[2] = 7
+    "${hs[0].a[1]} ${b[1]} ${slots[0].q.n} ${c.n} ${slots[0].a[2]}"
+}
+
+fn intentional() -> String {
+    let s = Shared.new(Slot { a: FixedArray.filled(1), q: Named { name: "q", n: 1 } })
+    let t = s.clone()
+    t.withMut((x) => {
+        x.a[1] = 9
+        x.q.n = 9
+    })
+    "${s.get().a[1]} ${s.get().q.n}"
+}
+
+let w = fresh()
+let mut b = w.a
+b[1] = 5
+print "script ${w.a[1]} ${b[1]}"
+print "fn ${inFn()}"
+print "generic ${inGeneric()}"
+let ex = task.currentThreadExecutor()
+print "async ${ex.runToCompletion(inAsync())}"
+print "comptime ${comptime { inFn() }}"
+print "closure ${inClosure()}"
+print "collection ${inCollection()}"
+print "shared ${intentional()}"
+-- stdout --
+script 1 5
+fn 1 5
+generic 1 5 1 5
+async 1 5
+comptime 1 5
+closure 1 5
+collection 1 5 1 5 7
+shared 9 9

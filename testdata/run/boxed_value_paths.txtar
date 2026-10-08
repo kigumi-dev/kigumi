@@ -1,0 +1,182 @@
+-- src --
+// A write is seen through a copy only when it lands at or under the place the
+// copy was read from, and a callee that never writes through its reference
+// writes nothing; every line below holds whichever copies are left out.
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+type Pair = {
+    pub mut nm Named
+    pub mut other Named
+}
+
+type W = {
+    pub mut nm Named
+    pub mut other Named
+    pub mut pair Pair
+    pub mut k Int
+    pub mut ns Array[Named]
+}
+
+fn fresh() -> W {
+    W {
+        nm: Named { name: "a", n: 1 },
+        other: Named { name: "b", n: 2 },
+        pair: Pair { nm: Named { name: "c", n: 3 }, other: Named { name: "d", n: 4 } },
+        k: 0,
+        ns: Array.of(Named { name: "e", n: 5 }, Named { name: "f", n: 6 }),
+    }
+}
+
+fn readsN(x: Named) -> Int {
+    x.n
+}
+
+fn keepsN(x: Named, out: &mut Array[Int]) -> Unit {
+    out.push(x.n)
+}
+
+fn reader(w: &mut W) -> Int {
+    w.k + w.nm.n
+}
+
+fn deepReader(w: &mut W) -> Int {
+    reader(w) + 1
+}
+
+fn writer(w: &mut W) -> Unit {
+    w.nm.n = 40
+}
+
+fn deepWriter(w: &mut W) -> Unit {
+    writer(w)
+}
+
+fn poke(x: &mut Named) -> Unit {
+    x.n = 70
+}
+
+fn peek(x: &mut Named) -> Int {
+    x.n
+}
+
+fn Pair.bumpOther(mut self) -> Unit {
+    self.other.n = self.other.n + 100
+}
+
+fn bumpPair(p: &mut Pair) -> Unit {
+    p.nm.n = p.nm.n + 100
+}
+
+fn readers(w: &mut W) -> String {
+    let mut out: Array[Int] = Array.empty()
+    let a = readsN(w.nm)
+    keepsN(w.other, &mut out)
+    w.nm.n = 9
+    w.other.n = 8
+    "readers ${a} ${out[0]} ${w.nm.n} ${w.other.n}"
+}
+
+fn sibling(w: &mut W) -> String {
+    let b = w.nm
+    w.k = 3
+    w.other.n = 4
+    w.pair.nm.n = 5
+    poke(&mut w.other)
+    "sibling ${b.n} ${w.nm.n} ${w.other.n} ${w.pair.nm.n} ${w.k}"
+}
+
+fn same(w: &mut W) -> String {
+    let b = w.nm
+    let c = w.pair
+    w.nm.n = 11
+    w.pair.other.n = 12
+    "same ${b.n} ${w.nm.n} ${c.other.n} ${w.pair.other.n}"
+}
+
+fn replaced(w: &mut W) -> String {
+    let b = w.pair.nm
+    w.pair = Pair { nm: Named { name: "x", n: 21 }, other: Named { name: "y", n: 22 } }
+    w.pair.nm.n = 23
+    let c = w.pair.nm
+    w.pair.nm = Named { name: "z", n: 24 }
+    "replaced ${b.n} ${c.n} ${w.pair.nm.n}"
+}
+
+fn prefix(w: &mut W) -> String {
+    let b = w.pair.nm
+    let c = w.pair.other
+    bumpPair(&mut w.pair)
+    "prefix ${b.n} ${c.n} ${w.pair.nm.n}"
+}
+
+fn method(w: &mut W) -> String {
+    let b = w.pair.other
+    let c = w.nm
+    w.pair.bumpOther()
+    "method ${b.n} ${c.n} ${w.pair.other.n}"
+}
+
+fn elements(w: &mut W) -> String {
+    let b = w.ns[0]
+    w.ns[1].n = 31
+    let c = w.ns[1]
+    w.ns[0] = Named { name: "g", n: 32 }
+    "elements ${b.n} ${c.n} ${w.ns[0].n} ${w.ns[1].n}"
+}
+
+fn calls(w: &mut W) -> String {
+    let b = w.nm
+    let r = reader(w) + deepReader(w) + peek(&mut w.other)
+    let c = w.nm
+    deepWriter(w)
+    let d = w.other
+    poke(&mut w.other)
+    "calls ${b.n} ${r} ${c.n} ${w.nm.n} ${d.n} ${w.other.n}"
+}
+
+fn rebound() -> String {
+    let mut cur = fresh()
+    let mut seen = 0
+    let mut i = 0
+    for i < 2 {
+        let b = cur.nm
+        cur = W { nm: Named { name: "n", n: b.n + 10 }, other: cur.other, pair: cur.pair, k: i, ns: cur.ns }
+        cur.nm.n = cur.nm.n + 1
+        seen = seen + b.n
+        i = i + 1
+    }
+    "rebound ${seen} ${cur.nm.n}"
+}
+
+fn main() -> Unit! {
+    let mut w1 = fresh()
+    print readers(&mut w1)
+    let mut w2 = fresh()
+    print sibling(&mut w2)
+    let mut w3 = fresh()
+    print same(&mut w3)
+    let mut w4 = fresh()
+    print replaced(&mut w4)
+    let mut w5 = fresh()
+    print prefix(&mut w5)
+    let mut w7 = fresh()
+    print method(&mut w7)
+    let mut w8 = fresh()
+    print elements(&mut w8)
+    let mut w6 = fresh()
+    print calls(&mut w6)
+    print rebound()
+}
+-- stdout --
+readers 1 2 9 8
+sibling 1 1 70 5 3
+same 1 11 4 12
+replaced 3 23 24
+prefix 3 4 103
+method 4 1 104
+elements 5 31 32 31
+calls 1 5 1 40 2 70
+rebound 13 23

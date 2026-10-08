@@ -2,8 +2,7 @@ package mir
 
 func (f *Func) IsDirect(l LocalID) bool { return int(l) < len(f.Direct) && f.Direct[l] }
 
-// framed reports a local kept in an async frame slot, which holds one pointer.
-func framed(f *Func, l LocalID) bool { return int(l) < len(f.Slot) && f.Slot[l] >= 0 }
+func (f *Func) DirectPlanned() bool { return f.Direct != nil }
 
 // In the boxed model, a write through one of these reaches the owner's
 // storage, not a copy.
@@ -38,9 +37,6 @@ func foreignLocals(f *Func) []bool {
 // locals; PlanDirect writes every disagreement out as a crossing.
 func (p *Program) classifyDirect(f *Func, pin []bool) []bool {
 	out := make([]bool, len(f.Locals))
-	if f.Async {
-		return out
-	}
 	cand := make([]bool, len(f.Locals))
 	for i, l := range f.Locals {
 		cand[i] = p.R.DirectAgg(l.Type)

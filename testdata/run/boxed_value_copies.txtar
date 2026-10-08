@@ -1,0 +1,181 @@
+-- src --
+import map from std/map
+import {Shared} from std/alloc
+
+// A Copy value read out of another value's storage is a copy, whichever form
+// the backends keep it in: no write through one name is seen through another.
+type Point = {
+    pub mut x Int
+    pub mut y Int
+}
+
+fn Point.bump(mut self) -> Unit {
+    self.x = self.x + 100
+}
+
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+fn Named.bump(mut self) -> Unit {
+    self.n = self.n + 100
+}
+
+type Inner = {
+    pub mut q Named
+    pub mut k Int
+}
+
+type W = {
+    pub mut a FixedArray[Int, 3]
+    pub mut p Point
+    pub mut inner Inner
+}
+
+fn poke(p: &mut Point) -> Unit {
+    p.x = 77
+}
+
+fn W.innerOf(self) -> Inner {
+    self.inner
+}
+
+fn qOf(w: &W) -> Named {
+    w.inner.q
+}
+
+fn setN(mut x: Named, v: Int) -> Int {
+    x.n = v
+    x.n
+}
+
+fn fresh() -> W {
+    W { a: FixedArray.filled(1), p: Point { x: 1, y: 2 }, inner: Inner { q: Named { name: "q", n: 1 }, k: 2 } }
+}
+
+fn bindings() -> Unit {
+    let w = fresh()
+    let mut b = w.a
+    b[1] = 5
+    let mut q = w.p
+    q.x = 9
+    let mut c = w.inner
+    c.k = 50
+    let mut g = w.inner
+    g.q.n = 33
+    print "field ${w.a[1]} ${b[1]} ${w.p.x} ${q.x} ${w.inner.k} ${c.k} ${w.inner.q.n} ${g.q.n}"
+
+    let mut m = w.p
+    m.bump()
+    let mut n = w.inner.q
+    n.bump()
+    let mut d = w.p
+    poke(&mut d)
+    let mut e = w.a
+    let _ = e.set(0, 50)
+    print "write ${w.p.x} ${m.x} ${w.inner.q.n} ${n.n} ${d.x} ${w.a[0]} ${e[0]}"
+
+    let mut cell = w.inner
+    let f = () => { cell.k = 60 }
+    f()
+    let flag = w.p.x > 0
+    let mut pick = if flag { w.inner.q } else { Named { name: "z", n: 0 } }
+    pick.n = 70
+    print "cell ${w.inner.k} ${cell.k} ${w.inner.q.n} ${pick.n}"
+}
+
+fn elements() -> Unit {
+    let mut ns: Array[Named] = Array.of(Named { name: "a", n: 1 }, Named { name: "b", n: 2 })
+    let mut pts: Array[Point] = Array.of(Point { x: 1, y: 1 })
+    let mut e = ns[0]
+    e.n = 8
+    let mut pe = pts[0]
+    pe.x = 8
+    let mut eb = ns[1]
+    eb.bump()
+    print "element ${ns[0].n} ${e.n} ${pts[0].x} ${pe.x} ${ns[1].n} ${eb.n}"
+
+    let seen = ns[0]
+    ns[0].n = 12
+    print "reverse ${seen.n} ${ns[0].n}"
+    let mut w = fresh()
+    let seenq = w.inner.q
+    w.inner.q.n = 9
+    print "reverse ${seenq.n} ${w.inner.q.n}"
+
+    let opt: Named? = Some(Named { name: "p", n: 1 })
+    match opt {
+        Some(v) -> {
+            let mut x = v
+            x.n = 8
+            print "payload ${v.n} ${x.n}"
+        }
+        None -> {}
+    }
+}
+
+fn kept() -> Unit {
+    let mut r = Named { name: "a", n: 1 }
+    let mut rs: Array[Named] = Array.empty()
+    rs.push(r)
+    r.n = 7
+    rs.push(r)
+    r.bump()
+    print "push ${rs[0].n} ${rs[1].n} ${r.n}"
+
+    let mut p = Point { x: 1, y: 2 }
+    let mut ps: Array[Point] = Array.empty()
+    ps.push(p)
+    p.bump()
+    print "push direct ${ps[0].x} ${p.x}"
+
+    let mut k = Named { name: "k", n: 1 }
+    let mut byName: map.Map[String, Named] = map.empty[String, Named]()
+    byName.set("k", k)
+    k.n = 2
+    let s = Shared.new(k)
+    k.n = 3
+    let held = byName.get(&"k") || Named { name: "none", n: 0 }
+    print "kept ${held.n} ${s.get().n} ${k.n}"
+
+    let mut total = 0
+    for x in rs {
+        let mut y = x
+        y.n = y.n + 1000
+        total = total + y.n
+    }
+    print "loop ${total}"
+}
+
+fn calls() -> Unit {
+    let w = fresh()
+    let mut i = w.innerOf()
+    i.k = 77
+    let mut q = qOf(&w)
+    q.n = 88
+    let set = setN(w.inner.q, 5)
+    let ns: Array[Named] = Array.of(Named { name: "b", n: 1 })
+    let setElem = setN(ns[0], 6)
+    print "calls ${w.inner.k} ${i.k} ${w.inner.q.n} ${q.n} ${set} ${ns[0].n} ${setElem}"
+}
+
+fn main() -> Unit! {
+    bindings()
+    elements()
+    kept()
+    calls()
+}
+-- stdout --
+field 1 5 1 9 2 50 1 33
+write 1 101 1 101 77 1 50
+cell 2 60 1 70
+element 1 8 1 8 2 102
+reverse 1 12
+reverse 1 9
+payload 1 8
+push 1 7 107
+push direct 1 101
+kept 1 2 3
+loop 2008
+calls 2 77 1 88 5 1 6

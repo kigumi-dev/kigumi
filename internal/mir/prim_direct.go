@@ -14,11 +14,7 @@ const (
 	shapeOption
 )
 
-// An async body keeps every result boxed.
 func (p *Program) markDirectPrims(f *Func) {
-	if f.Async {
-		return
-	}
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {

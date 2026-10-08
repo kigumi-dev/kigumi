@@ -53,7 +53,7 @@ func (p *Program) argPos(f *Func, in Inst, i int) sem.TypeID {
 			return p.fieldPos(f, in.Args[0], in.Index)
 		}
 		return p.wholePos(f, in.Args[0])
-	case OpField, OpFieldMove, OpDrop, OpRelease:
+	case OpField, OpFieldMove, OpDrop, OpRelease, OpFutureDone:
 		return p.wholePos(f, in.Args[0])
 	case OpAlias, OpMove, OpCopy, OpShare:
 		return p.wholePos(f, in.Dst)

@@ -10,14 +10,6 @@ const whyGenericCross = 7
 
 func directCrossWhy(why uint8) bool { return why == whyDirectCross || why == whyGenericCross }
 
-// A lambda compiles to a body of its own, never into its creator's frame.
-func (c *checker) asyncBody() bool {
-	if len(c.lambdas) > 0 || c.r.Entities[c.fn].Kind != EntFn {
-		return false
-	}
-	return c.r.Fn(c.fn).Declared&EffAsync != 0
-}
-
 func (c *checker) crossDirect(n syntax.NodeID, t TypeID) { c.crossDirectBut(n, t, 0, nil) }
 
 // A type inference has not settled yet is decided by finish.
@@ -59,14 +51,6 @@ func (c *checker) argType(a syntax.NodeID) TypeID {
 		return c.vars.resolve(co.Steps[len(co.Steps)-1].To)
 	}
 	return c.vars.resolve(c.info.Types[a])
-}
-
-// crossAsyncResult claims the box a result needs on the way into an async
-// frame, whose slots hold one pointer each.
-func (c *checker) crossAsyncResult(n syntax.NodeID, ret TypeID) {
-	if c.asyncBody() {
-		c.crossDirect(n, ret)
-	}
 }
 
 // crossRecv claims the box a receiver needs: a `mut self` method writes

@@ -78,14 +78,15 @@ type Inst struct {
 	Lit   sem.Literal
 	Index int
 	Node  syntax.NodeID
-	// Share makes an OpCopy take its own reference: the source is a
-	// temporary some scope still drops on its own.
+	// Share makes an OpCopy take its own reference: the source is a temporary some scope still drops.
 	Share bool
-	// Copy says an OpShare takes its reference via rt_copy (a Copy type)
-	// rather than rt_retain.
+	// Copy says an OpShare takes its reference via rt_copy (a Copy type) rather than rt_retain.
 	Copy bool
-	// Async marks an OpFnItem/OpClosure for an async fn/method value
-	// (A25-b): calling it builds a Future instead of running the body.
+	// IfWritable narrows Copy to a value a write could change, in its box or one inside it; any other is retained.
+	IfWritable bool
+	// Own marks a Copy the share analysis adds so a value stops sharing a box with another name.
+	Own bool
+	// Async marks an OpFnItem/OpClosure for an async fn value: calling it builds a Future instead of running the body.
 	Async bool
 	// EndScope marks an OpDrop synthesized by scope exit, not a user-written drop;
 	// the borrow checker reports it with wording about the scope ending.

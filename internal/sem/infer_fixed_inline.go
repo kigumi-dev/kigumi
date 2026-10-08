@@ -47,9 +47,8 @@ func (r *Result) FixedInline(fn EntityID, t TypeID) bool {
 	return false
 }
 
-// An async body keeps the call: its frame holds the array boxed, which the call's own summary charges.
 func (c *checker) noteInline(n, base syntax.NodeID, fn EntityID, args []syntax.NodeID, from int) {
-	if c.r.fixedInlineOp(fn) == "" || c.asyncBody() {
+	if c.r.fixedInlineOp(fn) == "" {
 		return
 	}
 	c.inlinePending = append(c.inlinePending, pendingInline{edges: c.edges, from: from, to: len(*c.edges), fn: fn, call: n, base: base, args: args})

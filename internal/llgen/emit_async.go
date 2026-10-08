@@ -16,27 +16,24 @@ func (e *emitter) frameDropSym(f *mir.Func) string { return "@\"" + e.symName(f)
 func (e *emitter) asyncFunction(f *mir.Func) string {
 	var sb strings.Builder
 	e.tmp = 0
-	e.scalar = map[mir.LocalID]scalarInfo{}
 	e.direct = e.classifyDirect(f)
-	e.boxTmp = map[mir.LocalID]bool{}
-	e.constKey, e.constOwned = map[mir.LocalID]string{}, map[mir.LocalID]bool{}
+	e.scalar = e.classifyScalars(f)
+	e.boxTmp = boxTemps(f)
+	e.nameAlias = nameAliases(f)
+	e.scalarAliasBoxes(f)
+	e.constOwned = map[mir.LocalID]bool{}
+	e.constKey = e.constLocals(f)
 	e.sig = nil
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%fut) {\nentry:\n", e.sym(f))
 	sb.WriteString("  %slots = call ptr @rt_future_slots(ptr %fut)\n")
 	for i := range f.Locals {
+		l := mir.LocalID(i)
 		if slot := f.Slot[i]; slot >= 0 {
+			e.checkSlot(f, l)
 			fmt.Fprintf(&sb, "  %%l%d = getelementptr ptr, ptr %%slots, i64 %d\n", i, slot)
 			continue
 		}
-		// Only a crossing's own local is unboxed here: every value that
-		// lives across a suspension is one pointer in a frame slot.
-		if a, ok := e.direct[mir.LocalID(i)]; ok {
-			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, a.Name)
-			zeroAgg(&sb, a, aggPtr(mir.LocalID(i)))
-			continue
-		}
-		fmt.Fprintf(&sb, "  %%l%d = alloca ptr\n", i)
-		fmt.Fprintf(&sb, "  store ptr null, ptr %%l%d\n", i)
+		e.frameLocal(&sb, l)
 	}
 	var body strings.Builder
 	e.entryAllocas, e.hoisting = nil, true
@@ -101,22 +98,23 @@ func (e *emitter) frameDrop(f *mir.Func) string {
 	sb.WriteString("  %st = call i32 @rt_future_state(ptr %fut)\n")
 	sb.WriteString("  switch i32 %st, label %done [")
 	for k := 1; k <= f.Suspends && k < len(f.Cleanup); k++ {
-		if len(f.Cleanup[k]) > 0 {
+		if len(e.carrierSlots(f.Cleanup[k])) > 0 {
 			fmt.Fprintf(&sb, " i32 %d, label %%d%d", k, k)
 		}
 	}
-	if len(f.PanicDrop) > 0 {
+	panicDrop := len(e.carrierSlots(f.PanicDrop)) > 0
+	if panicDrop {
 		fmt.Fprintf(&sb, " i32 %d, label %%dp", framePanicked)
 	}
 	sb.WriteString(" ]\n")
 	for k := 1; k <= f.Suspends && k < len(f.Cleanup); k++ {
-		if len(f.Cleanup[k]) == 0 {
+		if len(e.carrierSlots(f.Cleanup[k])) == 0 {
 			continue
 		}
 		fmt.Fprintf(&sb, "d%d:\n", k)
 		e.releaseSlots(&sb, f, f.Cleanup[k])
 	}
-	if len(f.PanicDrop) > 0 {
+	if panicDrop {
 		sb.WriteString("dp:\n")
 		e.releaseSlots(&sb, f, f.PanicDrop)
 	}
@@ -125,7 +123,7 @@ func (e *emitter) frameDrop(f *mir.Func) string {
 }
 
 func (e *emitter) releaseSlots(sb *strings.Builder, f *mir.Func, locals []mir.LocalID) {
-	for _, l := range locals {
+	for _, l := range e.carrierSlots(locals) {
 		p, v := e.newTmp(), e.newTmp()
 		fmt.Fprintf(sb, "  %s = getelementptr ptr, ptr %%slots, i64 %d\n", p, f.Slot[l])
 		fmt.Fprintf(sb, "  %s = load ptr, ptr %s\n", v, p)

@@ -49,6 +49,7 @@ type emitter struct {
 	aggDone      map[sem.TypeID]bool
 	direct       map[mir.LocalID]*aggInfo
 	boxTmp       map[mir.LocalID]bool
+	nameAlias    map[mir.LocalID]bool
 	sigs         map[*mir.Func]*aggSig
 	sig          *aggSig
 	wrapNeed     map[wrapperKey]bool
@@ -134,6 +135,8 @@ func (e *emitter) function(f *mir.Func) string {
 	e.direct = e.classifyDirect(f)
 	e.boxTmp = boxTemps(f)
 	e.scalar = e.classifyScalars(f)
+	e.nameAlias = nameAliases(f)
+	e.scalarAliasBoxes(f)
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)
 	e.unwind = e.unwindFor(f)
@@ -146,22 +149,7 @@ func (e *emitter) function(f *mir.Func) string {
 	sb.WriteString(" {\nentry:\n")
 	e.unwindAllocas(&sb)
 	for i := range f.Locals {
-		if e.slotAddr(&sb, mir.LocalID(i)) {
-			fmt.Fprintf(&sb, "  store ptr null, ptr %%l%d\n", i)
-			continue
-		}
-		if a, ok := e.direct[mir.LocalID(i)]; ok {
-			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, a.Name)
-			zeroAgg(&sb, a, aggPtr(mir.LocalID(i)))
-			continue
-		}
-		if info, ok := e.scalar[mir.LocalID(i)]; ok {
-			fmt.Fprintf(&sb, "  %%l%d = alloca %s\n", i, info.Ty)
-			fmt.Fprintf(&sb, "  store %s %s, ptr %%l%d\n", info.Ty, zeroOf(info.Ty), i)
-			continue
-		}
-		fmt.Fprintf(&sb, "  %%l%d = alloca ptr\n", i)
-		fmt.Fprintf(&sb, "  store ptr null, ptr %%l%d\n", i)
+		e.frameLocal(&sb, mir.LocalID(i))
 	}
 	var body strings.Builder
 	e.entryAllocas, e.hoisting = nil, true

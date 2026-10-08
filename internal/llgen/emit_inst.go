@@ -33,7 +33,9 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpAlias:
 		res = args[0]
 	case mir.OpShare:
-		if in.Copy {
+		if in.Copy && in.IfWritable {
+			res = e.irb(sb).Call(rtCopyMut, vptr(args[0])).Text
+		} else if in.Copy {
 			res = e.irb(sb).Call(rtCopy, vptr(args[0])).Text
 		} else {
 			res = e.irb(sb).Call(rtRetain, vptr(args[0])).Text

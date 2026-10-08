@@ -18,7 +18,11 @@ func PlanDirect(p *Program) error {
 	for _, f := range fs {
 		p.crossFunc(f)
 		p.markFixed(f)
+		if f.Async {
+			p.layoutFrame(f)
+		}
 	}
+	p.chargeCopies()
 	return nil
 }
 

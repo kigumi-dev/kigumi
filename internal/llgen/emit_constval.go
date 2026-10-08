@@ -32,16 +32,7 @@ func (e *emitter) constPayloadName(key string) string {
 	return fmt.Sprintf("@\".constval.%d.payload\"", e.constIndex[key])
 }
 
-// definesDst reports whether op writes its Dst local; the exceptions match
-// mir's own printer.
-func definesDst(op mir.Opcode) bool {
-	switch op {
-	case mir.OpDrop, mir.OpSetField, mir.OpSetIndex, mir.OpCellSet,
-		mir.OpGlobalSet, mir.OpPanic, mir.OpNop, mir.OpRelease:
-		return false
-	}
-	return true
-}
+func definesDst(op mir.Opcode) bool { return op.Yields() }
 
 // constLocals keys the locals of f holding a value fixed at compile time; a
 // local written more than once is left out, since a key has to name one value.

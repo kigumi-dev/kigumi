@@ -114,3 +114,33 @@ func (m *Machine) copy(v *obj) *obj {
 	}
 	return retain(v)
 }
+
+// writableInside mirrors the native rt_copy_mut's test.
+func (m *Machine) writableInside(v *obj) bool {
+	if v == nil {
+		return false
+	}
+	switch v.k {
+	case kArray:
+		return true
+	case kRecord:
+		if m.r.RecordWritable(v.ent) {
+			return true
+		}
+		if m.isResource(v.ent) {
+			return false
+		}
+		for i, f := range v.fields {
+			if !m.borrowField(v, i) && m.writableInside(f) {
+				return true
+			}
+		}
+	case kVariant:
+		for _, f := range v.fields {
+			if m.writableInside(f) {
+				return true
+			}
+		}
+	}
+	return false
+}

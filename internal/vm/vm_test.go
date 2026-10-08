@@ -132,14 +132,12 @@ func TestRunCorpusOnVM(t *testing.T) {
 			if prog.HasErrors() {
 				t.Skip("ownership errors")
 			}
-			if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
-				t.Fatalf("plan-rc: %v", err)
+			plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "plan-direct", Run: mir.PlanDirect}}
+			if err := prog.Apply(plans...); err != nil {
+				t.Fatalf("plans: %v", err)
 			}
 			if errs := vm.FoldComptime(prog); len(errs) > 0 {
 				t.Fatalf("comptime: %v", errs[0].Err)
-			}
-			if err := prog.Apply(mir.Transform{Name: "specialize", Run: mir.Specialize}, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect}); err != nil {
-				t.Fatalf("plan-direct: %v", err)
 			}
 			if ok, why := vm.Supports(prog); !ok {
 				skipped++

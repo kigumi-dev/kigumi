@@ -1,0 +1,144 @@
+-- src --
+import task from std/task
+
+// Direct aggregates live across suspension points in the Future's frame,
+// stored inline, so every await below resumes with the same bytes.
+type Point = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Shape = Circle(r: Int) | Rect(w: Int, h: Int)
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn scale(p: Point, k: Int) -> Point {
+    Point { x: p.x * k, y: p.y * k }
+}
+
+async fn twice(n: Int) -> Int {
+    n * 2
+}
+
+async fn movePoint(p: Point, d: Int) -> Point {
+    let mut q = p
+    q.x = q.x + await twice(d)
+    q.y = q.y + d
+    q
+}
+
+async fn walk(n: Int) -> Int {
+    let mut p = Point { x: 1, y: 2 }
+    let mut grid = FixedArray.filled[Int, 4](0)
+    let mut s = Rect(3, 4)
+    let k = 5
+    let add = (v: Int) => v + k
+    let mut j: usize = 0
+    for i in 0..n {
+        p.x = p.x + await twice(i)
+        grid[j % 4] = grid[j % 4] + p.x
+        j = j + 1
+        s = match s {
+            Circle(r) -> Rect(r, i)
+            Rect(w, h) -> Circle(w + h)
+        }
+        p.y = add(p.y)
+    }
+    let mut moved = await movePoint(p, 10)
+    moved.y = moved.y + 1000
+    let big = scale(moved, 2)
+    let area = match s {
+        Circle(r) -> r
+        Rect(w, h) -> w * h
+    }
+    print "walk ${p.x} ${p.y} ${grid[0]} ${grid[1]} ${grid[2]} ${grid[3]} ${area} ${moved.x} ${moved.y} ${big.x}"
+    p.x + p.y + area
+}
+
+async fn keep() -> Int {
+    let mut p = Point { x: 1, y: 1 }
+    let mut seen: Array[Point] = Array.empty()
+    seen.push(p)
+    p.x = await twice(21)
+    seen.push(p)
+    p.y = await twice(p.x)
+    print "keep ${seen[0].x} ${seen[1].x} ${seen[1].y} ${p.x} ${p.y}"
+    seen.len().toInt() || 0
+}
+
+async fn stall() -> Int {
+    0
+}
+
+async fn never() -> Int {
+    let t = task.spawn(stall())
+    await t
+}
+
+async fn parked() -> Int {
+    let held = Res { id: 1 }
+    let p = Point { x: 3, y: 4 }
+    let grid = FixedArray.filled[Int, 3](9)
+    print "parked ${p.x} ${grid[2]}"
+    let v = await never()
+    v + p.x + grid[0]
+}
+
+async fn tick() -> Int {
+    0
+}
+
+async fn root() -> Int {
+    let w = task.spawn(parked())
+    let a = await walk(5)
+    let b = await keep()
+    let _ = await task.spawn(tick())
+    w.cancel()
+    print "cancelled"
+    a + b
+}
+
+async fn lane(seed: Int) -> Int {
+    let mut acc = Point { x: seed, y: 0 }
+    let mut hist = FixedArray.filled[Int, 8](0)
+    let mut i = 0
+    for i < 16 {
+        acc.y = acc.y + await twice(acc.x + i)
+        hist[(acc.y % 8).toUsize() || 0] = hist[(acc.y % 8).toUsize() || 0] + 1
+        i = i + 1
+    }
+    acc.y + hist[0] + hist[7]
+}
+
+async fn pool() -> Int {
+    let mut kids = Array.empty[task.Task[Int]]()
+    let mut i = 0
+    for i < 8 {
+        kids.push(task.spawn(lane(i)))
+        i = i + 1
+    }
+    let mut total = 0
+    for k in kids {
+        total = total + await k
+    }
+    total
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+let threads = task.threadPoolExecutor(3)
+print "pool ${threads.runToCompletion(pool())}"
+-- stdout --
+walk 21 27 22 3 7 13 11 41 1037 82
+keep 1 42 1 42 84
+parked 3 9
+cancelled
+drop 1
+total 61
+pool 2848

@@ -810,6 +810,32 @@ val rt_copy(val v) {
     return rt_retain(v);
 }
 
+#define KG_WRITABLE_RECORD 4
+// Only a record with a `mut` field and a FixedArray are written in place; any other form reaches one only inside it.
+static int writable_inside(val v) {
+    if (!v || v->rc < 0) return 0;
+    switch (v->kind) {
+    case K_ARRAY: return 1;
+    case K_RECORD: {
+        const rt_type* t = v->u.rec.type;
+        if (t->kind == KG_WRITABLE_RECORD) return 1;
+        if (t->kind == 1) return 0;
+        for (int64_t i = 0; i < v->u.rec.n; i++)
+            if (!((t->borrow_fields >> i) & 1) && writable_inside(v->u.rec.fields[i])) return 1;
+        return 0;
+    }
+    case K_VARIANT:
+        for (int64_t i = 0; i < v->u.var.n; i++)
+            if (writable_inside(v->u.var.payload[i])) return 1;
+        return 0;
+    }
+    return 0;
+}
+val rt_copy_mut(val v) {
+    if (writable_inside(v)) return rt_copy(v);
+    return rt_retain(v);
+}
+
 int equal(val a, val b) {
     a = deref(a);
     b = deref(b);
@@ -1622,7 +1648,7 @@ val rt_std_bind(const char* key, int lent, int n, val* caps) {
 void rt_drop(val v) {
     rt_release(v);
 }
-// A frame's slots[] holds nslots locals then the arguments the body takes over.
+// A frame's slots[] holds nslots words of locals then the arguments; a slot may hold inline aggregate bytes or a raw scalar.
 typedef struct kg_async_desc {
     val (*poll)(val);
     void (*drop)(val);
@@ -1636,7 +1662,7 @@ typedef struct kgframe {
     int32_t state;
     int32_t nargs;
     val* args;
-    val slots[];
+    _Alignas(8) val slots[];
 } kgframe;
 // A poll returns NULL for Pending and this marker for Cancelled; neither
 // can be an ordinary value.

@@ -42,6 +42,9 @@ var rtVariantStruct = StructType{Name: "%rt_variant", Fields: []Type{TPtr, TPtr,
 // Bit 10 of rt_convert's dnk parameter means "target is Char" (rt_core.c).
 const rtConvertCharTarget = 1 << 10
 
+// rtWritableRecord must match KG_WRITABLE_RECORD in rt_core.c.
+const rtWritableRecord = 4
+
 func (e *emitter) descOfType(t sem.TypeID) string {
 	n := e.r.Types.Node(t)
 	if n.Kind == sem.KNamed {
@@ -121,6 +124,8 @@ func (e *emitter) data() string {
 			kind = 2
 		case ent == e.r.LangItem("Range"):
 			kind = 3
+		case e.r.RecordWritable(ent):
+			kind = rtWritableRecord
 		}
 		e.irb(&sb).GlobalStruct(name, rtTypeStruct,
 			vptr(e.cstr(e.r.Packages[x.Pkg].Path+"."+x.Name)), vi32(kind), vi32(len(info.Fields)),

@@ -156,6 +156,7 @@ void rt_stditem_init(void* slot, const char* key, int lent);
 void rt_cell_init(void* slot, val x);
 val rt_cell_take(val c);
 val rt_copy(val v);
+val rt_copy_mut(val v);
 void rt_secure_zero(volatile unsigned char* p, int64_t n);
 val opaque(const char* kind, void* data);
 val some(val v);

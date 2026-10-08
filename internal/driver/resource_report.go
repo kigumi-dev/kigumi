@@ -23,6 +23,7 @@ func ResourceReport(a *Analysis) []string {
 		lines = append(lines, a.Res.Entity(ent).Name+": "+describeStackBound(s.Chain))
 		static = s.Static
 	}
+	lines = append(lines, asyncFrameLines(a)...)
 	sort.Strings(lines)
 	if static > 0 {
 		lines = append(lines, fmt.Sprintf("static: %d bytes", static))
@@ -39,4 +40,19 @@ func describeStackBound(b mir.StackBound) string {
 	default:
 		return "unknown (" + b.Reason + ")"
 	}
+}
+
+func asyncFrameLines(a *Analysis) []string {
+	var lines []string
+	for _, f := range a.Prog.Funcs {
+		s := a.Prog.Resources[f.Ent]
+		if !f.Async || s == nil || s.Async == nil || s.Async.Kind != mir.Bounded {
+			continue
+		}
+		if p := a.Res.Packages[a.Res.Entity(f.Ent).Pkg]; p.Std || p.Module != "" {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%s: async frame, %d bytes", a.Res.Entity(f.Ent).Name, s.Async.Bytes))
+	}
+	return lines
 }

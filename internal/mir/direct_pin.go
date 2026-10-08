@@ -1,11 +1,10 @@
 package mir
 
-// pinned marks the locals that keep the boxed form whatever their type says:
-// reference and cell objects, frame slots, and the roots a view writes through.
+// pinned marks locals that keep the boxed form: reference and cell objects, and roots a view writes through.
 func (p *Program) pinned(f *Func) []bool {
 	out := make([]bool, len(f.Locals))
 	for i := range f.Locals {
-		out[i] = f.Locals[i].Cell || framed(f, LocalID(i))
+		out[i] = f.Locals[i].Cell
 	}
 	foreign := foreignLocals(f)
 	for _, blk := range f.Blocks {

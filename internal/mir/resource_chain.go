@@ -180,18 +180,3 @@ func combineBound(acc StackBound, own uint64, edge StackBound, edgeName string) 
 		return acc
 	}
 }
-
-// asyncBound always reports Unknown: a Future's captured state isn't sized like frameBytes sizes locals.
-func asyncBound(r *sem.Result, f *Func) *StackBound {
-	e := r.Entity(f.Ent)
-	async := false
-	switch e.Kind {
-	case sem.EntFn, sem.EntImplicitMain, sem.EntTest, sem.EntContract:
-		async = r.Fn(f.Ent).Declared&sem.EffAsync != 0
-	}
-	if !async {
-		return nil
-	}
-	b := StackBound{Kind: Unknown, Reason: "async frame sizing is not implemented yet"}
-	return &b
-}

@@ -9,9 +9,7 @@ type ComptimeFunc struct {
 	Func  *Func
 	Owner *Func
 	Block BlockID
-	// Slot is the placeholder's Inst.Index (Op: OpBuiltin, Str: "comptime"):
-	// its identity, since PlanRC rebuilds Owner.Blocks[Block].Insts before
-	// Fold runs and can shift a plain slice index recorded at build time.
+	// Slot is the placeholder's Inst.Index; passes before Fold shift plain indices, so Fold finds it by identity.
 	Slot int
 	// Type is the block's type at the use site, which the constant takes.
 	Type sem.TypeID
