@@ -7,7 +7,7 @@ import (
 )
 
 // whyCopy marks an EdgeAlloc the MIR adds after checking: a copy that gives a value a box of its own.
-const whyCopy = 7
+const whyCopy = 8
 
 type CopySite struct {
 	Owner EntityID
