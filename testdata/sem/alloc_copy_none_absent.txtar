@@ -1,0 +1,19 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+// Reading the parameter leaves the value where it is, so nothing is copied.
+fn peek(o: &Nm?) -> Int {
+    if o is Some(_) { 1 } else { 0 }
+}
+
+fn main() -> Unit! {
+    let o: Nm? = None
+    let n = peek(&o)
+}
+-- expect --

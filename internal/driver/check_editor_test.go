@@ -72,3 +72,40 @@ func TestCheckForEditorAcceptsAnInstantiatedCall(t *testing.T) {
 		t.Fatalf("expected the instantiated call to pass: %v\n%s", err, res.Render())
 	}
 }
+
+const editorCopySrc = `noalloc fn sameStart(a: Bytes, b: Bytes) -> Bool {
+    a.startsWith(b)
+}
+
+noalloc fn viaCaller(a: Bytes, b: Bytes) -> Bool {
+    sameStart(a, b)
+}
+
+fn main() -> Unit! {
+    print "${viaCaller("abc".toBytes(), "ab".toBytes())}"
+}
+`
+
+func TestCheckForEditorReportsAPlannedCopy(t *testing.T) {
+	t.Parallel()
+	res, err := driver.CheckForEditor(editorModule(t, editorCopySrc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := res.Render()
+	if strings.Count(out, "error[E1700]") != 2 {
+		t.Fatalf("expected two E1700 (the copy and its caller), got:\n%s", out)
+	}
+	if want := checkAllocClaim(t, editorCopySrc); out != want {
+		t.Errorf("the editor says\n%s\nbut `kigumi check` says\n%s", out, want)
+	}
+}
+
+func TestCheckForEditorLeavesACopyFreeModuleAlone(t *testing.T) {
+	t.Parallel()
+	src := "noalloc fn add(a: Int, b: Int) -> Int {\n    a + b\n}\n\nfn main() -> Unit! {\n    print \"${add(1, 2)}\"\n}\n"
+	res, err := driver.CheckForEditor(editorModule(t, src))
+	if err != nil || res.HasErrors() {
+		t.Fatalf("expected a clean check: %v\n%s", err, res.Render())
+	}
+}

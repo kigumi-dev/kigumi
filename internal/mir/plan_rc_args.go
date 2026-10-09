@@ -43,7 +43,8 @@ func (p *Program) holdArg(f *Func, in Inst, i int, kind sinkKind, st *rcState, o
 	if last {
 		src = o
 	}
-	*out = append(*out, Inst{Op: OpShare, Dst: t, Args: []LocalID{src}, Copy: p.copyable(f.Locals[o].Type), Node: in.Node, Last: last})
+	retain := !last && kind == noSink && p.retainsArg(f, in, i, o, w)
+	*out = append(*out, Inst{Op: OpShare, Dst: t, Args: []LocalID{src}, Copy: p.copyable(f.Locals[o].Type), Node: in.Node, Last: last, Retain: retain})
 	return t
 }
 

@@ -116,6 +116,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 		refHead = b.r.Types.Kind(head.Type) == sem.KRef
 		if lid, ok := b.locals[head.Ent]; !refHead && head.Kind == hir.Local && ok && !b.fn.Locals[lid].Borrowed {
 			iter = b.exprMoved(head)
+			b.markRetain(iter)
 		} else {
 			iter = b.expr(head)
 		}
@@ -183,4 +184,11 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 		return result
 	}
 	return b.unit(n)
+}
+
+func (b *builder) markRetain(v LocalID) {
+	insts := b.block().Insts
+	if n := len(insts); n > 0 && insts[n-1].Op == OpCopy && insts[n-1].Dst == v {
+		insts[n-1].Retain = true
+	}
 }

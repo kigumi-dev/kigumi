@@ -82,6 +82,7 @@ func (c *checker) synthAllocator(n syntax.NodeID, want TypeID) TypeID {
 		}
 	}
 	c.finishExpr()
+	c.r.allocBlocks = append(c.r.allocBlocks, allocBlock{file: c.f, body: syntax.NodeID(node.Rhs)})
 	c.allocDepth++
 	t := c.check(syntax.NodeID(node.Rhs), want)
 	c.allocDepth--

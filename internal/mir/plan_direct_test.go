@@ -162,6 +162,7 @@ func TestPlanDirectCorpus(t *testing.T) {
 			}
 			err := prog.Apply(
 				mir.Transform{Name: "plan-rc", Run: mir.PlanRC},
+				mir.Transform{Name: "specialize", Run: mir.Specialize},
 				mir.Transform{Name: "plan-direct", Run: mir.PlanDirect},
 			)
 			if err != nil {

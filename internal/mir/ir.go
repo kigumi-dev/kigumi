@@ -87,7 +87,8 @@ type Inst struct {
 	// Own marks a Copy the share analysis adds so a value stops sharing a box with another name.
 	Own bool
 	// Last marks a Copy of a named local nothing reads again, which a boxed one hands over by move instead.
-	Last bool
+	Last   bool
+	Retain bool
 	// Async marks an OpFnItem/OpClosure for an async fn value: calling it builds a Future instead of running the body.
 	Async bool
 	// EndScope marks an OpDrop synthesized by scope exit, not a user-written drop;

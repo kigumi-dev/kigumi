@@ -6997,6 +6997,23 @@
       ]
     },
     {
+      "id": "run/noalloc_copy_accounting",
+      "kind": "run",
+      "path": "testdata/run/noalloc_copy_accounting.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/noalloc_fixed_callbacks",
       "kind": "run",
       "path": "testdata/run/noalloc_fixed_callbacks.txtar",
@@ -8429,6 +8446,61 @@
       "id": "sem/accel_key_collision",
       "kind": "sem",
       "path": "testdata/sem/accel_key_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/alloc_copy_none_absent",
+      "kind": "sem",
+      "path": "testdata/sem/alloc_copy_none_absent.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/alloc_copy_none_inside",
+      "kind": "sem",
+      "path": "testdata/sem/alloc_copy_none_inside.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/alloc_copy_none_outside",
+      "kind": "sem",
+      "path": "testdata/sem/alloc_copy_none_outside.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/alloc_copy_recoverable_absent",
+      "kind": "sem",
+      "path": "testdata/sem/alloc_copy_recoverable_absent.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/alloc_copy_recoverable_outside",
+      "kind": "sem",
+      "path": "testdata/sem/alloc_copy_recoverable_outside.txtar",
       "mode": [
         "check"
       ],

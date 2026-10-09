@@ -144,4 +144,5 @@ type Result struct {
 	instances                 map[EntityID]InstanceInfo
 	instanceKeys              map[string]EntityID
 	deferredClaims            bool
+	allocBlocks               []allocBlock
 }

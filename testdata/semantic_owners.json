@@ -231,7 +231,7 @@
   },
   {
     "key": "array.Array.first",
-    "signature": "pure noalloc fn() -\u003e T?",
+    "signature": "pure fn() -\u003e T?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -291,7 +291,7 @@
   },
   {
     "key": "array.Array.last",
-    "signature": "pure noalloc fn() -\u003e T?",
+    "signature": "pure fn() -\u003e T?",
     "has_body": true,
     "kind": "",
     "vm": "gap",

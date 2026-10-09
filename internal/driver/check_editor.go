@@ -1,6 +1,8 @@
 package driver
 
 import (
+	"fmt"
+
 	"kigumi/internal/mir"
 	"kigumi/internal/schema"
 	"kigumi/internal/sem"
@@ -8,7 +10,7 @@ import (
 
 func CheckForEditor(m *Module) (*sem.Result, error) {
 	res, err := CheckOnly(m)
-	if err != nil || res.HasErrors() || !res.DefersAllocClaims() {
+	if err != nil || res.HasErrors() || !res.DefersAllocClaims() && !res.DeclaresNoalloc() {
 		return res, err
 	}
 	built, claims := editorClaims(m)
@@ -30,8 +32,31 @@ func editorClaims(m *Module) (*sem.Result, []mir.AllocClaim) {
 	if res.HasErrors() {
 		return res, nil
 	}
-	if prog := lowerProgram(res); !res.HasErrors() && prog.Apply(planPasses(false)...) == nil {
-		return res, mir.CheckAllocClaims(prog)
+	prog := lowerProgram(res)
+	if res.HasErrors() {
+		return res, nil
 	}
-	return res, nil
+	known := diagKeys(res)
+	if prog.Apply(planPasses(false)...) != nil {
+		return res, nil
+	}
+	claims := mir.CheckAllocClaims(prog)
+	for id := range res.Files {
+		for _, d := range res.Files[id].Diags {
+			if !known[fmt.Sprint(id, d.Loc.Span, d.Code, d.Msg)] {
+				claims = append(claims, mir.AllocClaim{File: sem.FileID(id), Diag: d})
+			}
+		}
+	}
+	return res, claims
+}
+
+func diagKeys(res *sem.Result) map[string]bool {
+	out := map[string]bool{}
+	for id := range res.Files {
+		for _, d := range res.Files[id].Diags {
+			out[fmt.Sprint(id, d.Loc.Span, d.Code, d.Msg)] = true
+		}
+	}
+	return out
 }

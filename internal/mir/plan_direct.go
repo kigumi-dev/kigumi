@@ -16,7 +16,7 @@ func PlanDirect(p *Program) error {
 		p.settlePrims(f, pins[i])
 	}
 	for _, f := range fs {
-		f.moveLast()
+		f.settleElided()
 		p.crossFunc(f)
 		p.markFixed(f)
 		if f.Async {

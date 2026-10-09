@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/sem"
+import (
+	"kigumi/internal/sem"
+	"kigumi/internal/syntax"
+)
 
 func (p *Program) allocCopy(f *Func, in Inst) bool {
 	if _, ok := p.elemCopy(f, in); ok {
@@ -12,8 +15,6 @@ func (p *Program) allocCopy(f *Func, in Inst) bool {
 	return in.Own || !f.Locals[in.Args[0]].Cell && p.R.CopyAllocates(f.Locals[in.Args[0]].Type)
 }
 
-// Array.get copies its element into the Option it returns unless the call took the direct form;
-// a generic element is left alone, since the body may be instantiated with a scalar.
 func (p *Program) elemCopy(f *Func, in Inst) (sem.TypeID, bool) {
 	if in.Op != OpCall || in.DPrim != DPNone || !f.DirectPlanned() || !p.IsStdPrimitive(in.Ent) {
 		return 0, false
@@ -22,19 +23,31 @@ func (p *Program) elemCopy(f *Func, in Inst) (sem.TypeID, bool) {
 		return 0, false
 	}
 	elem, ok := p.R.Types.IsOption(f.Locals[in.Dst].Type)
-	return elem, ok && len(p.R.Types.Params(elem)) == 0 && p.R.CopyAllocates(elem)
+	return elem, ok
 }
 
 func (p *Program) copiedType(f *Func, in Inst) sem.TypeID {
-	if t, ok := p.elemCopy(f, in); ok {
-		return t
+	if elem, ok := p.elemCopy(f, in); ok {
+		if p.R.CopyAllocates(elem) {
+			return elem
+		}
+		return f.Locals[in.Dst].Type
 	}
 	return f.Locals[in.Args[0]].Type
+}
+
+func (p *Program) InstAllocates(f *Func, in Inst) bool {
+	if in.Op == OpBoxDirect {
+		return true
+	}
+	_, deferred := p.paramCopy(f, in)
+	return p.allocCopy(f, in) && !deferred
 }
 
 // sem settled the effect summaries before PlanRC planned any of these copies.
 func (p *Program) chargeCopies() {
 	var sites []sem.CopySite
+	facts := paramCopies{}
 	for _, f := range p.Funcs {
 		if f.Ent == 0 {
 			continue
@@ -44,14 +57,27 @@ func (p *Program) chargeCopies() {
 				if !p.allocCopy(f, in) {
 					continue
 				}
-				n := in.Node
-				if n == 0 {
-					n = p.R.Entity(f.Ent).Node
+				if k, ok := p.paramCopy(f, in); ok {
+					facts.add(f.Ent, k)
+					continue
 				}
-				_, elem := p.elemCopy(f, in)
-				sites = append(sites, sem.CopySite{Owner: f.Ent, File: f.File, Node: n, Type: p.copiedType(f, in), Held: !in.Own && !elem, Elem: elem})
+				sites = append(sites, p.copySite(f, in))
 			}
 		}
 	}
+	sites = append(sites, p.chargeCalls(facts)...)
 	p.R.ChargeCopies(sites)
+}
+
+func (p *Program) copySite(f *Func, in Inst) sem.CopySite {
+	elem, isElem := p.elemCopy(f, in)
+	copies := !isElem || p.R.CopyAllocates(elem)
+	return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.siteNode(f, in), Type: p.copiedType(f, in), Held: !in.Own && !isElem, Elem: isElem && copies, Boxed: isElem && !copies}
+}
+
+func (p *Program) siteNode(f *Func, in Inst) syntax.NodeID {
+	if in.Node != 0 {
+		return in.Node
+	}
+	return p.R.Entity(f.Ent).Node
 }

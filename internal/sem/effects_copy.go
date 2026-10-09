@@ -11,6 +11,8 @@ const (
 	whyCopy     = 8
 	whyCopyHeld = 9
 	whyCopyElem = 10
+	whyCopyBox  = 11
+	whyCopyInst = 12
 )
 
 type CopySite struct {
@@ -20,6 +22,9 @@ type CopySite struct {
 	Type  TypeID
 	Held  bool
 	Elem  bool
+	// Boxed is an element handed out in its own box; Inst is a call whose generic callee copies a type argument.
+	Boxed bool
+	Inst  bool
 }
 
 func (r *Result) ChargeCopies(sites []CopySite) {
@@ -35,12 +40,16 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 	}
 	added := false
 	for _, s := range sites {
-		e := EffectEdge{Kind: EdgeAlloc, Type: s.Type, File: s.File, Node: s.Node, Why: whyCopy}
+		e := EffectEdge{Kind: EdgeAlloc, Type: s.Type, File: s.File, Node: s.Node, Why: whyCopy, Scoped: r.InAllocatorBlock(s.File, s.Node)}
 		switch {
 		case s.Held:
 			e.Why = whyCopyHeld
 		case s.Elem:
 			e.Why = whyCopyElem
+		case s.Boxed:
+			e.Why = whyCopyBox
+		case s.Inst:
+			e.Why = whyCopyInst
 		}
 		if _, node := before[s.Owner]; !node || slices.Contains(r.edgesOf(s.Owner), e) {
 			continue
@@ -56,6 +65,7 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 		r.reportNoallocBreaks(id, before[id])
 	}
 	r.inferOpSummaries(nodes)
+	r.recheckProfiles(nodes)
 	if len(handlers) > 0 {
 		now := r.inferIsrSafe(nodes)
 		for _, id := range handlers {
@@ -125,7 +135,7 @@ func (r *Result) reportNoallocBreaks(id EntityID, before []bool) {
 	}
 }
 
-func copyWhy(why uint8) bool { return why == whyCopy || why == whyCopyHeld || why == whyCopyElem }
+func copyWhy(why uint8) bool { return why >= whyCopy && why <= whyCopyInst }
 
 func (r *Result) copyHop(e EffectEdge) string {
 	text := "copies `" + r.TypeString(e.Type) + "` into a box of its own here"
@@ -134,6 +144,10 @@ func (r *Result) copyHop(e EffectEdge) string {
 		return text + ", because the local keeps its own value"
 	case whyCopyElem:
 		return text + ", because the element is handed out as a copy"
+	case whyCopyBox:
+		return "boxes `" + r.TypeString(e.Type) + "` for the result here, because the element is not a scalar the call can return directly"
+	case whyCopyInst:
+		return text + ", because `" + r.exprName(e.File, e.Node) + "` copies its type argument"
 	}
 	return text + ", so it stops sharing a box with another name"
 }

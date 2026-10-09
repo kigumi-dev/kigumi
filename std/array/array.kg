@@ -241,12 +241,12 @@ pub pure fn Array[T: Copy].reverse(self) -> Array[T] {
 }
 
 /// The first element, or None when the array is empty.
-pub pure noalloc fn Array[T: Copy].first(self) -> T? {
+pub pure fn Array[T: Copy].first(self) -> T? {
     self.get(0)
 }
 
 /// The last element, or None when the array is empty.
-pub pure noalloc fn Array[T: Copy].last(self) -> T? {
+pub pure fn Array[T: Copy].last(self) -> T? {
     if self.len() == 0 {
         return None
     }

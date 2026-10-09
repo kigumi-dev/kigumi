@@ -111,6 +111,7 @@ func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState, w *sha
 		if in.Last = p.bindsLast(f, *in, src, w, at); in.Last {
 			in.Args = []LocalID{src}
 		}
+		in.Retain = in.Retain && !in.Last && !w.copyBinding(at, *in)
 	}
 	in.Share = false
 }

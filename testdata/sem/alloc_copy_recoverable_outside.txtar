@@ -1,0 +1,27 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+// rt_copy ends the process when the allocator refuses, so a planned copy is a fatal path like a construction.
+fn dup(o: Nm?) -> Int {
+    let mut b = o
+    if b is Some(_) { 1 } else { 0 }
+}
+
+fn main() -> Unit! {
+    let o: Nm? = None
+    let n = dup(o) //~ ERROR `dup` may terminate on a refused allocation
+}
+-- expect --
+error[E1280]: `dup` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:14:13
+   |
+14 |     let n = dup(o) //~ ERROR `dup` may terminate on a refused allocation
+   |             ^^^^^
+   = help: use the fallible (`try`-prefixed) form instead
+

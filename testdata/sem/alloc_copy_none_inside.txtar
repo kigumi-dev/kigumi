@@ -1,0 +1,28 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+import {AllocatorHandle} from std/alloc
+
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+fn dup(o: Nm?) -> Int {
+    let mut b = o
+    if b is Some(_) { 1 } else { 0 }
+}
+
+// The copy sits in an allocator block, so the build needs no default allocator for it; `main` cannot hold a handle, so nothing reaches this from the entry.
+fn scoped(h: AllocatorHandle, o: Nm?) -> Int {
+    allocator h.scope() {
+        let mut b = o
+        if b is Some(_) { 1 } else { 0 }
+    }
+}
+
+fn main() -> Unit! {
+    let n = 1
+}
+-- expect --

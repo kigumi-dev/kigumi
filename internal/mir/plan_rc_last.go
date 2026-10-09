@@ -1,6 +1,10 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 // A parameter is left out: a caller may hand one box to two parameters, and the callee's copy keeps them apart.
 func (p *Program) movable(f *Func, o LocalID) bool {
@@ -32,4 +36,16 @@ func (w *shareFacts) seenBut(l, dst LocalID, at Point) bool {
 		}
 	}
 	return false
+}
+
+func (p *Program) retainsArg(f *Func, in Inst, i int, o LocalID, w *shareFacts) bool {
+	g := p.ByEnt[in.Ent]
+	if in.Op != OpCall || g == nil || g.Async || p.R.Fn(in.Ent).Abi != "" || p.R.Fn(in.Ent).Naked || p.R.Types.Kind(f.Locals[o].Type) == sem.KRef || f.Locals[o].Type == sem.TyBytes {
+		return false
+	}
+	rs := w.rootsOf(o)
+	if rs.other || w.heldAcrossWrite(in, i) {
+		return false
+	}
+	return !slices.ContainsFunc(rs.refs, func(r rootRef) bool { return p.lentLocal(f, r.l) })
 }

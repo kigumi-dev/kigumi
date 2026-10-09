@@ -26,6 +26,14 @@ fn hand(x: Named) -> Int {
     readN(x)
 }
 
+fn keepN(x: Named) -> Named {
+    x
+}
+
+fn handKept(x: Named) -> Int {
+    keepN(x).n
+}
+
 fn written(h: &Holder) -> Int {
     let mut b = h.q
     b.n = 2
@@ -42,7 +50,7 @@ fn main() -> Unit! {}
 
 func TestPlanDirectChargesAPlannedCopy(t *testing.T) {
 	p := planned(t, chargeSrc)
-	for name, want := range map[string]bool{"main.written": false, "main.readOnly": true, "main.hand": false} {
+	for name, want := range map[string]bool{"main.written": false, "main.readOnly": true, "main.hand": true, "main.handKept": false} {
 		if got := p.R.Summary(funcNamed(t, p, name).Ent).Noalloc; got != want {
 			t.Errorf("%s noalloc = %v, want %v:\n%s", name, got, want, p.Dump())
 		}

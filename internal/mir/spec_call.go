@@ -11,6 +11,24 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 	if _, minted := r.InstanceOf(gen); minted {
 		return nil, nil, false
 	}
+	args, ok := s.p.bindTypeArgs(f, in, func(t sem.TypeID) sem.TypeID { return s.inCtx(ctx, t) })
+	if !ok {
+		return nil, nil, false
+	}
+	for _, t := range args {
+		if t != 0 && !r.ConcreteArg(t) {
+			return nil, nil, false
+		}
+	}
+	if !r.SpecializeArgs(args) {
+		return nil, nil, false
+	}
+	return args, s.witnesses(ctx, gen, r.Files[f.File].Calls[in.Node]), true
+}
+
+func (p *Program) bindTypeArgs(f *Func, in Inst, subst func(sem.TypeID) sem.TypeID) ([]sem.TypeID, bool) {
+	r := p.R
+	gen := in.Ent
 	info := r.Fn(gen)
 	want := map[sem.EntityID]bool{}
 	for _, tp := range info.TypeParams {
@@ -19,16 +37,16 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 	bound := map[sem.EntityID]sem.TypeID{}
 	call := r.Files[f.File].Calls[in.Node]
 	if call.Callee == gen {
-		own := s.ownParams(gen)
+		own := p.ownParams(gen)
 		for k, tp := range own {
 			if k < len(call.Inst) && want[tp] && len(call.Inst) == len(own) {
-				bound[tp] = s.inCtx(ctx, call.Inst[k])
+				bound[tp] = subst(call.Inst[k])
 			}
 		}
 	}
-	decl := s.declaredArgs(gen)
+	decl := p.declaredArgs(gen)
 	if decl == nil || len(in.Args) < len(decl) {
-		return nil, nil, false
+		return nil, false
 	}
 	for i, d := range decl {
 		at := f.Locals[in.Args[i]].Type
@@ -36,11 +54,11 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 			at = r.Types.Node(at).Elem
 		}
 		if !r.Types.BindParams(d, at, want, bound) {
-			return nil, nil, false
+			return nil, false
 		}
 	}
 	if !r.Types.BindParams(r.Types.Node(info.Sig).Elem, f.Locals[in.Dst].Type, want, bound) {
-		return nil, nil, false
+		return nil, false
 	}
 	args := make([]sem.TypeID, len(info.TypeParams))
 	for i, tp := range info.TypeParams {
@@ -48,30 +66,27 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 			continue
 		}
 		t, ok := bound[tp]
-		if !ok || !r.ConcreteArg(t) {
-			return nil, nil, false
+		if !ok {
+			return nil, false
 		}
 		args[i] = t
 	}
-	if !r.SpecializeArgs(args) {
-		return nil, nil, false
-	}
-	return args, s.witnesses(ctx, gen, call), true
+	return args, true
 }
 
 // As in instantiateFn, a method's leading owner parameters come from the receiver.
-func (s *specializer) ownParams(gen sem.EntityID) []sem.EntityID {
-	tps := s.p.R.Fn(gen).TypeParams
-	owner := s.p.R.OwnerParams(gen)
-	if s.p.R.Fn(gen).Recv != sem.RecvNone && len(owner) > 0 && len(tps) >= len(owner) && tps[0] == owner[0] {
+func (p *Program) ownParams(gen sem.EntityID) []sem.EntityID {
+	tps := p.R.Fn(gen).TypeParams
+	owner := p.R.OwnerParams(gen)
+	if p.R.Fn(gen).Recv != sem.RecvNone && len(owner) > 0 && len(tps) >= len(owner) && tps[0] == owner[0] {
 		return tps[len(owner):]
 	}
 	return tps
 }
 
 // A variadic callee's packed argument carries no instantiated type.
-func (s *specializer) declaredArgs(gen sem.EntityID) []sem.TypeID {
-	r := s.p.R
+func (p *Program) declaredArgs(gen sem.EntityID) []sem.TypeID {
+	r := p.R
 	info := r.Fn(gen)
 	out := []sem.TypeID{}
 	if info.Recv != sem.RecvNone {

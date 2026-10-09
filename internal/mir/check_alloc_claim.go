@@ -67,10 +67,6 @@ func (p *Program) boxClaims(f *Func) []AllocClaim {
 	return out
 }
 
-func (p *Program) InstAllocates(f *Func, in Inst) bool {
-	return in.Op == OpBoxDirect || p.allocCopy(f, in)
-}
-
 // A declared `noalloc` that allocates is the author's error, which the diagnostics report instead.
 func (p *Program) verifyAllocClaim(f *Func) *Error {
 	if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc || p.declaredNoalloc(f) {

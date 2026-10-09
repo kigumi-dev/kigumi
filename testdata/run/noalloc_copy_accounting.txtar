@@ -1,0 +1,142 @@
+-- src --
+// Copies the plan drops, or takes as a retain, must not change what a program sees; the declared noalloc bodies are the ones the accounting checks.
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+type Tree = Leaf(v: Int) | Node(kids: FixedArray[Tree, 2])
+
+noalloc fn id[T: Copy](x: T) -> T {
+    let y = x
+    y
+}
+
+noalloc fn viaId[T: Copy](x: T) -> T {
+    id(x)
+}
+
+noalloc fn onInt(n: Int) -> Int {
+    viaId(n)
+}
+
+noalloc fn onStr(s: String) -> String {
+    id(s)
+}
+
+noalloc fn onPt(p: Pt) -> Pt {
+    id(p)
+}
+
+fn onNamed(r: Named) -> Named {
+    id(r)
+}
+
+noalloc fn getInt(a: &Array[Int], i: usize) -> Int {
+    a.get(i) || -1
+}
+
+fn getStr(a: &Array[String], i: usize) -> String {
+    a.get(i) || "none"
+}
+
+fn getNamed(a: &Array[Named], i: usize) -> Int {
+    if a.get(i) is Some(v) { v.n } else { -1 }
+}
+
+fn sum(t: Tree) -> Int {
+    match t {
+        Leaf(v) -> v
+        Node(kids) -> {
+            let mut s = 0
+            for k in kids {
+                s = s + sum(k)
+            }
+            s
+        }
+    }
+}
+
+fn build(depth: Int, base: Int) -> Tree {
+    if depth == 0 {
+        return Leaf(base)
+    }
+    let mut kids = FixedArray.filled[Tree, 2](Leaf(0))
+    kids[0] = build(depth - 1, base * 2)
+    kids[1] = build(depth - 1, base * 2 + 1)
+    Node(kids)
+}
+
+fn growWhileLooping() -> Int {
+    let mut xs = FixedArray.filled[Named, 2](mkn(1))
+    xs[1] = mkn(2)
+    let mut total = 0
+    for x in xs {
+        xs[0].n = xs[0].n + 10
+        xs[1].n = xs[1].n + 20
+        total = total + x.n
+    }
+    total * 1000 + xs[0].n * 10 + xs[1].n
+}
+
+fn mkn(n: Int) -> Named {
+    Named { name: "m", n: n }
+}
+
+fn readN(a: Named) -> Int {
+    a.n
+}
+
+fn readAfter[F: FnMut[fn() -> Unit]](a: Named, mut bump: F) -> Int {
+    bump()
+    a.n
+}
+
+fn readThenWrite() -> Int {
+    let mut w = mkn(1)
+    let r = readN(w)
+    w.n = 99
+    r * 1000 + w.n
+}
+
+fn readAfterBump() -> Int {
+    let mut w = mkn(1)
+    let r = readAfter(w, () => { w.n = 7 })
+    r * 1000 + w.n
+}
+
+fn idIsIndependent() -> Int {
+    let a = mkn(1)
+    let mut b = onNamed(a)
+    b.n = 5
+    a.n * 10 + b.n
+}
+
+fn iterateNamed() -> Int {
+    let xs = Array.of(mkn(1), mkn(2), mkn(3))
+    let mut total = 0
+    for x in xs {
+        total = total + readN(x)
+    }
+    total
+}
+
+fn main() -> Unit! {
+    let ints = Array.of(4, 5, 6)
+    let strs = Array.of("a", "b")
+    let named = Array.of(mkn(7), mkn(8))
+    print "ids ${onInt(3)} ${onStr("s")} ${onPt(Pt { x: 1, y: 2 }).y} ${onNamed(mkn(9)).n}"
+    print "gets ${getInt(&ints, 1)} ${getInt(&ints, 9)} ${getStr(&strs, 1)} ${getStr(&strs, 5)} ${getNamed(&named, 1)} ${getNamed(&named, 4)}"
+    print "tree ${sum(build(3, 1))} loop ${growWhileLooping()}"
+    print "reads ${readThenWrite()} ${readAfterBump()} ${idIsIndependent()} ${iterateNamed()}"
+}
+-- stdout --
+ids 3 s 2 9
+gets 5 -1 b none 8 -1
+tree 92 loop 3252
+reads 1099 1007 15 6

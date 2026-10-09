@@ -28,13 +28,18 @@ func TestSemCorpus(t *testing.T) {
 			if p := fx.opt("pending", ""); p != "" {
 				t.Skipf("pending: %s", p)
 			}
-			mod := buildModule(t, fx)
-			res := sem.CheckWith(mod, schema.GenerateDerive)
+			var res *sem.Result
+			srcName := "main/main.kg"
+			if fx.opt("mir", "") == "planned" {
+				res, srcName = checkPlanned(t, fx), "main.kg"
+			} else {
+				res = sem.CheckWith(buildModule(t, fx), schema.GenerateDerive)
+			}
 			bodies := map[string]string{}
 			for _, s := range fx.sections {
 				name := s.name
 				if name == "src" {
-					name = "main/main.kg"
+					name = srcName
 				}
 				bodies[name] = s.body
 			}

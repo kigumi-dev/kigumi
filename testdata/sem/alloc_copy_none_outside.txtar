@@ -1,0 +1,27 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+// A copy of a parameter makes a box of its own, which needs the default allocator like a construction does.
+fn dup(o: Nm?) -> Int {
+    let mut b = o
+    if b is Some(_) { 1 } else { 0 }
+}
+
+fn main() -> Unit! {
+    let o: Nm? = None
+    let n = dup(o) //~ ERROR `dup` needs the default allocator
+}
+-- expect --
+error[E959]: `dup` needs the default allocator, but this build has none (--allocator none)
+  --> main.kg:14:13
+   |
+14 |     let n = dup(o) //~ ERROR `dup` needs the default allocator
+   |             ^^^^^
+   = help: allocate inside an `allocator` block
+
