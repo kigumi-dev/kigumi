@@ -129,7 +129,7 @@ func CheckWith(mod *Module, gen DeriveGenerator) *Result {
 	}
 	mod.derived = true
 	generated := r.deriveSources()
-	// A generator failure (E1430-E1433) belongs to this pass; the rerun
+	// A generator failure (E1430, E1432) belongs to this pass; the rerun
 	// below would just bury it behind a generic missing-witness error instead.
 	if r.genFailed {
 		return r

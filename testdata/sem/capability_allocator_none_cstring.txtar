@@ -1,0 +1,29 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import ffi from std/ffi
+
+export(C) {
+    pub fn start() -> Int {
+        let text = "hi"
+        match ffi.CString.new(&text) {
+            Ok(c) -> {
+                if ffi.isNull(c.ptr()) {
+                    1
+                } else {
+                    0
+                }
+            }
+            Err(_) -> 2
+        }
+    }
+}
+-- expect --
+error[E1370]: `CSTRING_NEW` reaches the `ffi.cstring` capability, which this target does not provide: its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)
+ --> main.kg:6:15
+  |
+6 |         match ffi.CString.new(&text) {
+  |               ^^^^^^^^^^^^^^^^^^^^^
+  = help: reached through: start
+

@@ -75,7 +75,7 @@ func GenerateDerive(res *sem.Result, req sem.DeriveRequest) (string, error) {
 	iface := req.Interface
 	d := BuildOne(res, req.Decl)
 	if d == nil {
-		return "", &GenError{Generator: GeneratorID("derive." + iface), Decl: &DeclRef{}, Kind: "no-schema", Reason: "the entity has no declaring source node"}
+		return "", &GenError{Generator: GeneratorID("derive." + iface), Decl: &DeclRef{}, Kind: "failed", Reason: "the entity has no declaring source node"}
 	}
 	gen, ok := generators[iface]
 	if !ok {
@@ -90,7 +90,7 @@ func GenerateDerive(res *sem.Result, req sem.DeriveRequest) (string, error) {
 		return "", err
 	}
 	if first.Text != second.Text {
-		return "", &GenError{Generator: gen.ID(), Decl: declRef(d), Kind: "nondeterministic", Reason: "two runs over the same declaration produced different source"}
+		return "", &GenError{Generator: gen.ID(), Decl: declRef(d), Kind: "failed", Reason: "two runs over the same declaration produced different source"}
 	}
 	return first.Text, nil
 }

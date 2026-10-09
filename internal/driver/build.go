@@ -20,6 +20,9 @@ func emitOptionsFor(t Target) llgen.EmitOptions {
 	if t.OS == "darwin" {
 		opts.SymbolPrefix = "_"
 	}
+	if t.OS == "wasi" {
+		opts.EntrySymbol = "__main_argc_argv"
+	}
 	return opts
 }
 

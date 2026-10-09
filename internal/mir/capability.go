@@ -44,6 +44,13 @@ func Vocabulary() []Capability { return append([]Capability(nil), vocabulary...)
 
 func (c Capability) Needs() []Capability { return capabilityNeeds[c] }
 
+var heapBacked = map[Capability]bool{
+	CapFFICString: true, CapFFIHandleTable: true, CapTaskBlocking: true, CapTaskExecutor: true,
+}
+
+// HeapBacked reports a capability whose runtime allocates with libc and terminates on refusal.
+func (c Capability) HeapBacked() bool { return heapBacked[c] }
+
 func (c Capability) HasSource() bool { return c != CapTaskThreads }
 
 func (c Capability) SourceFile() string {

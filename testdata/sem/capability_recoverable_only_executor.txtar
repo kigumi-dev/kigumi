@@ -1,0 +1,20 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    1
+}
+
+let ex = task.currentThreadExecutor()
+let n = ex.runToCompletion(leaf())
+-- expect --
+error[E1370]: `TASK_CURRENT_EXECUTOR` reaches the `task.executor` capability, which this target does not provide: its runtime state is heap-allocated by an operation that terminates on a refused allocation (--profile recoverable-only)
+ --> main.kg:7:10
+  |
+7 | let ex = task.currentThreadExecutor()
+  |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: reached through: main
+

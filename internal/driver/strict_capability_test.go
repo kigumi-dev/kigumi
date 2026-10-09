@@ -23,7 +23,6 @@ func TestStrictProfileAllowsFreestandingSafeProviderOp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target.Allocator = "none"
 	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)

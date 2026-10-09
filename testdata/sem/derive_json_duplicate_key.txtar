@@ -1,0 +1,26 @@
+-- src --
+import json from std/json
+
+type Pair = { //~ ERROR derive generator failed
+    pub left Int {
+        json.name("v")
+    }
+
+    pub right Int {
+        json.name("v")
+    }
+}
+
+fn render(p: Pair) -> String! {
+    json.encode(p)
+}
+
+let r = render(Pair { left: 1, right: 2 })
+-- expect --
+error[E1430]: `Pair`'s `Encode` derive generator failed: derive.json.encode on main#type:Pair: fields `left` and `right` share the JSON key "v"
+ --> main/main.kg:3:1
+  |
+3 | type Pair = { //~ ERROR derive generator failed
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: fix the declaration's shape so the generator can produce valid source
+

@@ -1,0 +1,534 @@
+[
+  {
+    "artifact": "app-musl",
+    "target": "x86_64-linux-musl",
+    "provision": [
+      {
+        "capability": "host.shell",
+        "provided": true
+      },
+      {
+        "capability": "host.args",
+        "provided": true
+      },
+      {
+        "capability": "host.files",
+        "provided": true
+      },
+      {
+        "capability": "host.net",
+        "provided": true
+      },
+      {
+        "capability": "host.dl",
+        "provided": true
+      },
+      {
+        "capability": "host.entropy",
+        "provided": true
+      },
+      {
+        "capability": "host.signals",
+        "provided": true
+      },
+      {
+        "capability": "host.stdio",
+        "provided": true
+      },
+      {
+        "capability": "ffi.cstring",
+        "provided": true
+      },
+      {
+        "capability": "ffi.raw",
+        "provided": true
+      },
+      {
+        "capability": "ffi.pin",
+        "provided": true
+      },
+      {
+        "capability": "ffi.handle-table",
+        "provided": true
+      },
+      {
+        "capability": "task.blocking-pool",
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "provided": true
+      },
+      {
+        "capability": "task.threads",
+        "provided": true
+      },
+      {
+        "capability": "mem.secure-erase",
+        "provided": true
+      }
+    ],
+    "reasons": [
+      {
+        "capability": "host.args",
+        "op": "ARGS_LEN",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          },
+          {
+            "rootKind": "entry",
+            "path": [
+              "main",
+              "argCount"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "host.args",
+        "op": "HOST_ARGS",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "op": "EXECUTOR_RUN_TO_COMPLETION",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "op": "TASK_CURRENT_EXECUTOR",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      }
+    ]
+  },
+  {
+    "artifact": "app-gnu",
+    "target": "x86_64-linux-gnu",
+    "provision": [
+      {
+        "capability": "host.shell",
+        "provided": true
+      },
+      {
+        "capability": "host.args",
+        "provided": true
+      },
+      {
+        "capability": "host.files",
+        "provided": true
+      },
+      {
+        "capability": "host.net",
+        "provided": true
+      },
+      {
+        "capability": "host.dl",
+        "provided": true
+      },
+      {
+        "capability": "host.entropy",
+        "provided": true
+      },
+      {
+        "capability": "host.signals",
+        "provided": true
+      },
+      {
+        "capability": "host.stdio",
+        "provided": true
+      },
+      {
+        "capability": "ffi.cstring",
+        "provided": true
+      },
+      {
+        "capability": "ffi.raw",
+        "provided": true
+      },
+      {
+        "capability": "ffi.pin",
+        "provided": true
+      },
+      {
+        "capability": "ffi.handle-table",
+        "provided": true
+      },
+      {
+        "capability": "task.blocking-pool",
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "provided": true
+      },
+      {
+        "capability": "task.threads",
+        "provided": true
+      },
+      {
+        "capability": "mem.secure-erase",
+        "provided": true
+      }
+    ],
+    "reasons": [
+      {
+        "capability": "host.args",
+        "op": "ARGS_LEN",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          },
+          {
+            "rootKind": "entry",
+            "path": [
+              "main",
+              "argCount"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "host.args",
+        "op": "HOST_ARGS",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "op": "EXECUTOR_RUN_TO_COMPLETION",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "op": "TASK_CURRENT_EXECUTOR",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      }
+    ]
+  },
+  {
+    "artifact": "app-wasi",
+    "target": "wasm32-wasi",
+    "provision": [
+      {
+        "capability": "host.shell",
+        "provided": false,
+        "why": "wasi has no process spawning"
+      },
+      {
+        "capability": "host.args",
+        "provided": true
+      },
+      {
+        "capability": "host.files",
+        "provided": true
+      },
+      {
+        "capability": "host.net",
+        "provided": false,
+        "why": "wasi has no sockets"
+      },
+      {
+        "capability": "host.dl",
+        "provided": false,
+        "why": "wasi has no dynamic loader"
+      },
+      {
+        "capability": "host.entropy",
+        "provided": true
+      },
+      {
+        "capability": "host.signals",
+        "provided": false,
+        "why": "wasi has no POSIX signals"
+      },
+      {
+        "capability": "host.stdio",
+        "provided": true
+      },
+      {
+        "capability": "ffi.cstring",
+        "provided": true
+      },
+      {
+        "capability": "ffi.raw",
+        "provided": true
+      },
+      {
+        "capability": "ffi.pin",
+        "provided": true
+      },
+      {
+        "capability": "ffi.handle-table",
+        "provided": true
+      },
+      {
+        "capability": "task.blocking-pool",
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "provided": true
+      },
+      {
+        "capability": "task.threads",
+        "provided": false,
+        "why": "wasi has no worker threads"
+      },
+      {
+        "capability": "mem.secure-erase",
+        "provided": true
+      }
+    ],
+    "reasons": [
+      {
+        "capability": "host.args",
+        "op": "ARGS_LEN",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          },
+          {
+            "rootKind": "entry",
+            "path": [
+              "main",
+              "argCount"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "host.args",
+        "op": "HOST_ARGS",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "op": "EXECUTOR_RUN_TO_COMPLETION",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "op": "TASK_CURRENT_EXECUTOR",
+        "rootKind": "entry",
+        "path": [
+          "main"
+        ],
+        "sites": [
+          {
+            "rootKind": "entry",
+            "path": [
+              "main"
+            ],
+            "calls": 1
+          }
+        ],
+        "provided": true
+      }
+    ]
+  },
+  {
+    "artifact": "tool",
+    "target": "x86_64-linux-musl",
+    "provision": [
+      {
+        "capability": "host.shell",
+        "provided": true
+      },
+      {
+        "capability": "host.args",
+        "provided": true
+      },
+      {
+        "capability": "host.files",
+        "provided": true
+      },
+      {
+        "capability": "host.net",
+        "provided": true
+      },
+      {
+        "capability": "host.dl",
+        "provided": true
+      },
+      {
+        "capability": "host.entropy",
+        "provided": true
+      },
+      {
+        "capability": "host.signals",
+        "provided": true
+      },
+      {
+        "capability": "host.stdio",
+        "provided": true
+      },
+      {
+        "capability": "ffi.cstring",
+        "provided": true
+      },
+      {
+        "capability": "ffi.raw",
+        "provided": true
+      },
+      {
+        "capability": "ffi.pin",
+        "provided": true
+      },
+      {
+        "capability": "ffi.handle-table",
+        "provided": true
+      },
+      {
+        "capability": "task.blocking-pool",
+        "provided": true
+      },
+      {
+        "capability": "task.executor",
+        "provided": true
+      },
+      {
+        "capability": "task.threads",
+        "provided": true
+      },
+      {
+        "capability": "mem.secure-erase",
+        "provided": true
+      }
+    ],
+    "reasons": null
+  }
+]

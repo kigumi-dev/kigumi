@@ -11,16 +11,10 @@ func generatorFailureCode(err error) Code {
 	if !ok {
 		return cDeriveGeneratorFailed
 	}
-	switch kind.DiagKind() {
-	case "no-schema":
-		return cDeriveGeneratorNoSchema
-	case "unsupported":
+	if kind.DiagKind() == "unsupported" {
 		return cDeriveGeneratorUnsupported
-	case "nondeterministic":
-		return cDeriveGeneratorNondeterministic
-	default:
-		return cDeriveGeneratorFailed
 	}
+	return cDeriveGeneratorFailed
 }
 
 // noDeriveGenerator is Check's generator; a module with nothing to derive

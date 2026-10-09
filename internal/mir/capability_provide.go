@@ -8,9 +8,11 @@ type Platform struct {
 	Bare bool
 	// NoLibc is true when the OS ships no libc headers at all (freestanding, uefi).
 	NoLibc bool
-	// No capability depends on Allocator; the checker rejects allocation outside an allocator block.
-	Allocator     string
-	ThreadProfile string
+	// Allocator "none" withholds every heap-backed capability.
+	Allocator string
+	// RecoverableOnly withholds the heap-backed capabilities too.
+	RecoverableOnly bool
+	ThreadProfile   string
 }
 
 func PosixSignalOS(os string) bool {
@@ -83,6 +85,11 @@ func needsOSExcept(os, what string) func(Platform) string {
 
 // A capability is withheld when one it needs is.
 func (p Platform) Provides(c Capability) Provision {
+	if c.HeapBacked() {
+		if why := p.heapWithheld(); why != "" {
+			return Provision{Reason: why}
+		}
+	}
 	if rule := provisionRules[c]; rule != nil {
 		if why := rule(p); why != "" {
 			return Provision{Reason: why}
@@ -94,4 +101,14 @@ func (p Platform) Provides(c Capability) Provision {
 		}
 	}
 	return Provision{Provided: true}
+}
+
+func (p Platform) heapWithheld() string {
+	switch {
+	case p.Allocator == "none":
+		return "its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)"
+	case p.RecoverableOnly:
+		return "its runtime state is heap-allocated by an operation that terminates on a refused allocation (--profile recoverable-only)"
+	}
+	return ""
 }

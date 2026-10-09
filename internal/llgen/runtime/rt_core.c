@@ -507,6 +507,7 @@ static int borrow_field(val r, int64_t i) {
     return r->kind == K_RECORD && i < 64 && ((r->u.rec.type->borrow_fields >> i) & 1);
 }
 val rt_record(rt_type* t, int64_t n, val* fields) {
+    if (!t) rt_panic("a runtime-named type was dropped by reachability");
     val v = alloc(K_RECORD);
     v->u.rec.type = t;
     v->u.rec.n = n;
@@ -568,6 +569,7 @@ void rt_const_text(void* slot, int kind, const char* data, int64_t len) {
     v->u.s.len = len;
 }
 val rt_variant(rt_vdesc* d, int64_t n, val* payload) {
+    if (!d) rt_panic("a runtime-named type was dropped by reachability");
     if (n == 0) return rt_nullary(d);
     val v = alloc(K_VARIANT);
     v->u.var.v = d;

@@ -12,10 +12,16 @@ func (encodeGenerator) ID() GeneratorID { return GenEncode }
 func (decodeGenerator) ID() GeneratorID { return GenDecode }
 
 func (g encodeGenerator) Generate(decl *Declaration) (*GeneratedUnit, error) {
+	if err := jsonShapeError(GenEncode, decl, true); err != nil {
+		return nil, err
+	}
 	return &GeneratedUnit{Generator: GenEncode, Origin: declRef(decl), CacheKey: cacheKey(GenEncode, decl), Text: jsonText(decl, true)}, nil
 }
 
 func (g decodeGenerator) Generate(decl *Declaration) (*GeneratedUnit, error) {
+	if err := jsonShapeError(GenDecode, decl, false); err != nil {
+		return nil, err
+	}
 	return &GeneratedUnit{Generator: GenDecode, Origin: declRef(decl), CacheKey: cacheKey(GenDecode, decl), Text: jsonText(decl, false)}, nil
 }
 

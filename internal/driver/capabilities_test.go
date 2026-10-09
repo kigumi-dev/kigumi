@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"kigumi/internal/driver"
+	"kigumi/internal/mir"
 )
 
 func loadForCapabilities(t *testing.T, main string) *driver.Analysis {
@@ -82,5 +83,40 @@ func TestCapabilityReasonsImplyThreadPoolNeeds(t *testing.T) {
 	}
 	if caps := driver.Capabilities(a); len(caps) != 2 || caps[0] != "task.executor" || caps[1] != "task.threads" {
 		t.Errorf("Capabilities(thread pool program) = %v, want task.executor and task.threads", caps)
+	}
+}
+
+func TestCapabilityReasonsListEveryReachingSite(t *testing.T) {
+	a := loadForCapabilities(t, `import ffi from std/ffi
+
+fn one() -> Bool {
+    let t = "a"
+    ffi.CString.new(&t) is Ok(_)
+}
+
+fn two() -> Bool {
+    let t = "b"
+    let c = ffi.CString.new(&t)
+    let d = ffi.CString.new(&t)
+    c is Ok(_) && d is Ok(_)
+}
+
+print "${one()} ${two()}"
+`)
+	var sites []mir.CapabilitySite
+	for _, r := range driver.CapabilityReasons(a, driver.HostTarget()) {
+		if r.Op == "CSTRING_NEW" {
+			sites = r.Sites
+			if len(r.Path) == 0 || r.Path[len(r.Path)-1] != r.Sites[0].Path[len(r.Sites[0].Path)-1] {
+				t.Errorf("Path %v does not describe the first site %v", r.Path, r.Sites[0].Path)
+			}
+		}
+	}
+	calls := map[string]int{}
+	for _, s := range sites {
+		calls[s.Path[len(s.Path)-1]] = s.Calls
+	}
+	if len(sites) != 2 || calls["one"] != 1 || calls["two"] != 2 {
+		t.Fatalf("CSTRING_NEW sites = %+v, want one call from `one` and two from `two`", sites)
 	}
 }

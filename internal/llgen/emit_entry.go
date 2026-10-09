@@ -9,8 +9,11 @@ import (
 // exported functions with no other chance to set the runtime up.
 func (e *emitter) mainWrapper() string {
 	name := "main"
-	if e.freestanding {
+	switch {
+	case e.freestanding:
 		name = "kigumi_main"
+	case e.entrySymbol != "":
+		name = e.entrySymbol
 	}
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "define i32 @%s(i32 %%argc, ptr %%argv) {\n", name)

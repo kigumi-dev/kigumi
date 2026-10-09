@@ -1,0 +1,24 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    1
+}
+
+export(C) {
+    pub fn start() -> Int {
+        let ex = task.currentThreadExecutor()
+        ex.runToCompletion(leaf())
+    }
+}
+-- expect --
+error[E1370]: `TASK_CURRENT_EXECUTOR` reaches the `task.executor` capability, which this target does not provide: its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)
+ --> main.kg:9:18
+  |
+9 |         let ex = task.currentThreadExecutor()
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: reached through: start
+

@@ -66,7 +66,24 @@ func printCapabilities(out io.Writer, provision []driver.CapabilityVerdict, reas
 			fmt.Fprintf(out, "%s: %s\n", cr.Capability, provisionLine(cr, verdict))
 		}
 		fmt.Fprintf(out, "  %s (%s)\n", reasonSubject(cr), cr.RootKind)
+		printSites(out, cr)
+	}
+}
+
+func printSites(out io.Writer, cr driver.CapabilityReason) {
+	if len(cr.Sites) == 0 {
 		fmt.Fprintf(out, "    %s\n", strings.Join(cr.Path, " -> "))
+		return
+	}
+	for i, site := range cr.Sites {
+		line := strings.Join(site.Path, " -> ")
+		if i > 0 {
+			line += " (" + site.RootKind + ")"
+		}
+		if site.Calls > 1 {
+			line += fmt.Sprintf(" x%d", site.Calls)
+		}
+		fmt.Fprintf(out, "    %s\n", line)
 	}
 }
 

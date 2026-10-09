@@ -1,0 +1,17 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import ffi from std/ffi
+
+export(C) {
+    pub fn start() -> Int {
+        let pin = ffi.Pin.new(5)
+        if ffi.isNull(ffi.toConst(pin.ptr())) {
+            1
+        } else {
+            0
+        }
+    }
+}
+-- expect --

@@ -19,6 +19,8 @@ type Output struct {
 // for a freestanding target.
 type EmitOptions struct {
 	Freestanding bool
+	// EntrySymbol names the hosted entry function; "" is `main`.
+	EntrySymbol string
 	// SymbolPrefix is what the target prepends to C symbol names ("_" on
 	// Mach-O); module-level asm has to spell it out explicitly.
 	SymbolPrefix string

@@ -1,7 +1,5 @@
 package mir
 
-import "kigumi/internal/sem"
-
 // nativeTypeRef names one std package member a reachability root can look
 // up directly, the way shellRuntimeFn resolves a hidden call target.
 type nativeTypeRef struct{ pkg, name string }
@@ -43,19 +41,6 @@ var nativeRecordTypesForOp = func() map[StdOpId][]nativeTypeRef {
 	return m
 }()
 
-// baseTypeEnts are types rt_core.c's rt_init reaches by name with no static
-// call edge to see; omitting one turns a find_type miss into a NULL deref.
-func baseTypeEnts(r *sem.Result) []sem.EntityID {
-	prelude := r.PackageByPath("std/prelude")
-	return []sem.EntityID{
-		r.Types.OptionEnt(), r.Types.ResultEnt(), r.MapEntity(),
-		r.PackageMember(prelude, "Ordering"),
-		r.PackageMember(prelude, "Range"),
-		r.PackageMember(prelude, "AllocError"),
-	}
-}
-
-// Names rt_core.c looks up by name: always-kept base types plus those an op's record construction needs.
 func RuntimeNamedTypes() map[string]bool {
 	out := map[string]bool{"Option": true, "Result": true, "Map": true, "Ordering": true, "Range": true, "AllocError": true}
 	for _, refs := range nativeRecordTypeNames {

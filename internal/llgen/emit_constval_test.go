@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"kigumi/internal/llgen"
 	"kigumi/internal/mir"
 )
 
@@ -164,5 +165,13 @@ export(C) {
 		if !strings.Contains(body, want) {
 			t.Errorf("an entry-less artifact must still call %s:\n%s", want, body)
 		}
+	}
+}
+
+func TestEntrySymbolNamesTheHostedEntry(t *testing.T) {
+	prog := plannedProgram(t, "print \"hi\"\n")
+	ir := llgen.EmitWith(prog, llgen.EmitOptions{EntrySymbol: "__main_argc_argv"})
+	if !strings.Contains(ir, "define i32 @__main_argc_argv(") || strings.Contains(ir, "define i32 @main(") {
+		t.Errorf("wasi entry is not __main_argc_argv:\n%s", bodyOf(t, ir, "define i32 @__main_argc_argv("))
 	}
 }

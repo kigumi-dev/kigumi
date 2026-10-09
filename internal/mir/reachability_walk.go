@@ -44,6 +44,7 @@ func (w *reachWalk) walkType(t sem.TypeID) {
 }
 
 func (w *reachWalk) noteOp(op StdOpId, caller sem.EntityID, node syntax.NodeID) {
+	w.rs.AllOpSites[op] = append(w.rs.AllOpSites[op], OpSite{Caller: caller, Node: node})
 	if w.opSeen[op] {
 		return
 	}
@@ -106,10 +107,7 @@ func (w *reachWalk) inst(f *Func, id sem.EntityID, in *Inst) {
 
 func Reachable(p *Program) *Reachability {
 	w := &reachWalk{p: p, r: p.R, seenTypes: map[sem.TypeID]bool{}, opSeen: map[StdOpId]bool{}}
-	w.rs = &Reachability{Funcs: map[sem.EntityID]bool{}, Reason: map[sem.EntityID]Reason{}, OpSites: map[StdOpId]OpSite{}, Types: map[sem.EntityID]bool{}}
-	for _, ent := range baseTypeEnts(w.r) {
-		w.markType(ent)
-	}
+	w.rs = &Reachability{Funcs: map[sem.EntityID]bool{}, Reason: map[sem.EntityID]Reason{}, OpSites: map[StdOpId]OpSite{}, AllOpSites: map[StdOpId][]OpSite{}, Types: map[sem.EntityID]bool{}}
 	if p.Entry != nil {
 		w.root(p.Entry.Ent, RootEntry)
 	}

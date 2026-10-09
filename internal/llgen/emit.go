@@ -16,6 +16,7 @@ type emitter struct {
 	entryAllocas []string
 	hoisting     bool
 	freestanding bool
+	entrySymbol  string
 	reachable    *mir.Reachability
 	r            *sem.Result
 	out          strings.Builder
@@ -60,7 +61,7 @@ type emitter struct {
 }
 
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
-	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
+	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, entrySymbol: opts.EntrySymbol, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	e.catch = e.wantsCatch(opts)
 	var body strings.Builder
 	for _, f := range p.Funcs {

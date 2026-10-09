@@ -9,12 +9,21 @@ import (
 type CapabilityReason struct {
 	Capability string `json:"capability"`
 	// Op is the std op that draws on Capability; empty when RequiredBy implies it.
-	Op         string   `json:"op,omitempty"`
-	RequiredBy string   `json:"requiredBy,omitempty"`
-	RootKind   string   `json:"rootKind"`
-	Path       []string `json:"path"`
-	Provided   bool     `json:"provided"`
-	Why        string   `json:"why,omitempty"`
+	Op         string `json:"op,omitempty"`
+	RequiredBy string `json:"requiredBy,omitempty"`
+	// RootKind and Path describe the first reaching site, Sites[0].
+	RootKind string           `json:"rootKind"`
+	Path     []string         `json:"path"`
+	Sites    []CapabilitySite `json:"sites"`
+	Provided bool             `json:"provided"`
+	Why      string           `json:"why,omitempty"`
+}
+
+// CapabilitySite is one function that reaches the op, with how many of its call sites do.
+type CapabilitySite struct {
+	RootKind string   `json:"rootKind"`
+	Path     []string `json:"path"`
+	Calls    int      `json:"calls"`
 }
 
 func (cr CapabilityReason) Root() string {
@@ -31,12 +40,10 @@ func (rs *Reachability) CapabilityReasons(r *sem.Result, plat Platform) []Capabi
 		if !ok {
 			continue
 		}
-		site := rs.OpSites[op]
-		path := rs.PathNames(r, site.Caller)
-		kind := rs.rootKindOf(site.Caller)
+		sites := rs.capabilitySites(r, op)
 		add := func(cap Capability, name, by string) {
 			got := plat.Provides(cap)
-			out = append(out, CapabilityReason{Capability: string(cap), Op: name, RequiredBy: by, RootKind: kind, Path: path, Provided: got.Provided, Why: got.Reason})
+			out = append(out, CapabilityReason{Capability: string(cap), Op: name, RequiredBy: by, RootKind: sites[0].RootKind, Path: sites[0].Path, Sites: sites, Provided: got.Provided, Why: got.Reason})
 		}
 		add(c, StdOpNames[op], "")
 		implied := map[Capability]bool{c: true}
@@ -52,6 +59,20 @@ func (rs *Reachability) CapabilityReasons(r *sem.Result, plat Platform) []Capabi
 		}
 		return out[i].Op < out[j].Op
 	})
+	return out
+}
+
+func (rs *Reachability) capabilitySites(r *sem.Result, op StdOpId) []CapabilitySite {
+	var out []CapabilitySite
+	index := map[sem.EntityID]int{}
+	for _, site := range rs.AllOpSites[op] {
+		if i, ok := index[site.Caller]; ok {
+			out[i].Calls++
+			continue
+		}
+		index[site.Caller] = len(out)
+		out = append(out, CapabilitySite{RootKind: rs.rootKindOf(site.Caller), Path: rs.PathNames(r, site.Caller), Calls: 1})
+	}
 	return out
 }
 

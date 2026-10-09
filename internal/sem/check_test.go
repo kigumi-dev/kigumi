@@ -28,6 +28,9 @@ func TestSemCorpus(t *testing.T) {
 			if p := fx.opt("pending", ""); p != "" {
 				t.Skipf("pending: %s", p)
 			}
+			if fx.opt("stage", "sem") == "driver" {
+				t.Skip("checked with a resolved target by internal/driver's TestSemDriverFixtures")
+			}
 			var res *sem.Result
 			srcName := "main/main.kg"
 			if fx.opt("mir", "") == "planned" {

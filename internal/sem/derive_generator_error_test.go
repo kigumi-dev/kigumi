@@ -46,22 +46,22 @@ func TestDeriveGeneratorFailedReachesE1430(t *testing.T) {
 	}
 }
 
-func TestDeriveGeneratorNoSchemaReachesE1431(t *testing.T) {
-	res := checkDerivableEq(t, func(*sem.Result, sem.DeriveRequest) (string, error) {
-		return "", &fakeGenError{kind: "no-schema"}
-	})
-	out := res.Render()
-	if !strings.Contains(out, "E1431") {
-		t.Fatalf("expected E1431:\n%s", out)
+func TestDeriveGeneratorOtherKindsReachE1430(t *testing.T) {
+	for _, kind := range []string{"failed", "no-schema", "nondeterministic"} {
+		res := checkDerivableEq(t, func(*sem.Result, sem.DeriveRequest) (string, error) {
+			return "", &fakeGenError{kind: kind}
+		})
+		if out := res.Render(); !strings.Contains(out, "E1430") {
+			t.Errorf("kind %q: expected E1430:\n%s", kind, out)
+		}
 	}
 }
 
-func TestDeriveGeneratorNondeterministicReachesE1433(t *testing.T) {
+func TestDeriveGeneratorUnsupportedReachesE1432(t *testing.T) {
 	res := checkDerivableEq(t, func(*sem.Result, sem.DeriveRequest) (string, error) {
-		return "", &fakeGenError{kind: "nondeterministic"}
+		return "", &fakeGenError{kind: "unsupported"}
 	})
-	out := res.Render()
-	if !strings.Contains(out, "E1433") {
-		t.Fatalf("expected E1433:\n%s", out)
+	if out := res.Render(); !strings.Contains(out, "E1432") {
+		t.Fatalf("expected E1432:\n%s", out)
 	}
 }

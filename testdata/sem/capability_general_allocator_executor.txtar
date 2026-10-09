@@ -1,0 +1,16 @@
+-- module --
+stage: driver
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    1
+}
+
+export(C) {
+    pub fn start() -> Int {
+        let ex = task.currentThreadExecutor()
+        ex.runToCompletion(leaf())
+    }
+}
+-- expect --

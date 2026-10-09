@@ -8813,6 +8813,72 @@
       ]
     },
     {
+      "id": "sem/capability_allocator_none_cstring",
+      "kind": "sem",
+      "path": "testdata/sem/capability_allocator_none_cstring.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_allocator_none_executor",
+      "kind": "sem",
+      "path": "testdata/sem/capability_allocator_none_executor.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_allocator_none_handle_table",
+      "kind": "sem",
+      "path": "testdata/sem/capability_allocator_none_handle_table.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_allocator_none_pin_provided",
+      "kind": "sem",
+      "path": "testdata/sem/capability_allocator_none_pin_provided.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_general_allocator_executor",
+      "kind": "sem",
+      "path": "testdata/sem/capability_general_allocator_executor.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_recoverable_only_executor",
+      "kind": "sem",
+      "path": "testdata/sem/capability_recoverable_only_executor.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/cfnptr_err",
       "kind": "sem",
       "path": "testdata/sem/cfnptr_err.txtar",
@@ -9179,6 +9245,28 @@
       "id": "sem/defined_types",
       "kind": "sem",
       "path": "testdata/sem/defined_types.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/derive_json_duplicate_key",
+      "kind": "sem",
+      "path": "testdata/sem/derive_json_duplicate_key.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/derive_json_omit_none_needs_option",
+      "kind": "sem",
+      "path": "testdata/sem/derive_json_omit_none_needs_option.txtar",
       "mode": [
         "check"
       ],

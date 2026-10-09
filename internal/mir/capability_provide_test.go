@@ -30,8 +30,13 @@ func TestPlatformProvides(t *testing.T) {
 		{"strict blocking profile", Platform{OS: "linux", ThreadProfile: "isr"}, map[Capability]bool{
 			CapTaskThreads: false, CapTaskExecutor: true, CapHostArgs: true,
 		}},
-		{"allocator none changes nothing", Platform{OS: "linux", Allocator: "none"}, map[Capability]bool{
-			CapHostArgs: true, CapTaskExecutor: true, CapFFIPin: true,
+		{"allocator none withholds the heap-backed capabilities", Platform{OS: "linux", Allocator: "none"}, map[Capability]bool{
+			CapHostArgs: true, CapFFIPin: true, CapSecureErase: true, CapFFIRaw: true,
+			CapTaskExecutor: false, CapTaskThreads: false, CapTaskBlocking: false, CapFFICString: false, CapFFIHandleTable: false,
+		}},
+		{"recoverable-only withholds the same set", Platform{OS: "linux", RecoverableOnly: true}, map[Capability]bool{
+			CapHostArgs: true, CapFFIPin: true, CapSecureErase: true,
+			CapTaskExecutor: false, CapTaskThreads: false, CapTaskBlocking: false, CapFFICString: false, CapFFIHandleTable: false,
 		}},
 	}
 	for _, c := range cases {

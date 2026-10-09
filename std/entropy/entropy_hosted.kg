@@ -3,7 +3,7 @@ import ffi from std/ffi
 
 extern(C) {
     fn getrandom(buf: *mut u8, buflen: usize, flags: u32) -> isize
-    fn open(path: *const u8, flags: i32) -> i32
+    fn open(path: *const u8, flags: i32, ...) -> i32
     fn read(fd: i32, buf: *mut u8, n: usize) -> isize
     fn close(fd: i32) -> i32
     fn malloc(n: usize) -> *mut u8

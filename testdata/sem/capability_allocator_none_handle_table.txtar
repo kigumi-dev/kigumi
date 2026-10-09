@@ -1,0 +1,21 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import ffi from std/ffi
+
+export(C) {
+    pub fn start() -> Int {
+        let table = ffi.HandleTable.new[Int]()
+        let h = table.insert(7)
+        table.with(&h, (v) => 1)
+    }
+}
+-- expect --
+error[E1370]: `HANDLE_TABLE_NEW` reaches the `ffi.handle-table` capability, which this target does not provide: its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)
+ --> main.kg:5:21
+  |
+5 |         let table = ffi.HandleTable.new[Int]()
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: reached through: start
+
