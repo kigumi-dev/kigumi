@@ -49,7 +49,8 @@ func (p *Program) ArgLent(in Inst, i int) bool { return p.inPlace(in, i) }
 
 // ParamLent is ArgLent for a caller that has no instruction of its own, an adapter say.
 func (p *Program) ParamLent(fn sem.EntityID, i int) bool {
-	return p.inPlace(Inst{Op: OpCall, Ent: fn}, i)
+	in := Inst{Op: OpCall, Ent: fn}
+	return p.inPlace(in, i) || p.lentParam(in, i)
 }
 
 // isOwnDrop reports whether fn is the registered `drop` of its own owner

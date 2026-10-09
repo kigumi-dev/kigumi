@@ -1,0 +1,94 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Mixed = {
+    pub a u8
+    pub b i16
+    pub c Bool
+    pub d Char
+    pub e Float
+    pub f u64
+}
+
+type Shape = Circle(r: Int) | Rect(w: Int, h: Int) | Dot
+
+type Wrap = {
+    pub p Point
+    pub s Shape
+    pub tag Bool
+}
+
+type Pair[A, B] = {
+    pub first A
+    pub second B
+}
+
+type Sign = Neg | Nil | Pos
+
+fn eq[T: Eq](a: T, b: T) -> Bool { a == b }
+fn ne[T: Eq](a: T, b: T) -> Bool { a != b }
+fn h[T: Hash](a: T) -> u64 { hash(&a) }
+
+let p = Point { x: 1, y: -2 }
+let q = Point { x: 1, y: -2 }
+let r = Point { x: 1, y: 3 }
+print "point ${p == q} ${p == r} ${p != r} ${eq(p, q)} ${ne(p, r)} ${h(p)} ${h(r)} ${hash(&p)} ${p.equals(&q)}"
+let m1 = Mixed { a: 255, b: -3, c: true, d: 'é', e: 1.5, f: 18446744073709551615 }
+let m2 = Mixed { a: 255, b: -3, c: true, d: 'é', e: 1.5, f: 18446744073709551615 }
+let m3 = Mixed { a: 255, b: -3, c: false, d: 'é', e: 1.5, f: 18446744073709551615 }
+print "mixed ${m1 == m2} ${m1 == m3} ${h(m1)} ${h(m3)}"
+let zr = 0.0
+let nan = zr / zr
+
+let z1 = Mixed { a: 1, b: 1, c: true, d: 'a', e: nan, f: 1 }
+let z2 = Mixed { a: 1, b: 1, c: true, d: 'a', e: nan, f: 1 }
+let z3 = Mixed { a: 1, b: 1, c: true, d: 'a', e: 0.0, f: 1 }
+let z4 = Mixed { a: 1, b: 1, c: true, d: 'a', e: -0.0, f: 1 }
+print "float ${z1 == z2} ${z3 == z4} ${h(z3) == h(z4)} ${h(z1)} ${h(z3)}"
+let s1 = Circle(5)
+let s2 = Circle(5)
+let s3 = Rect(2, 3)
+let s4 = Dot
+print "shape ${s1 == s2} ${s1 == s3} ${s4 == Dot} ${s3 != s4} ${h(s1)} ${h(s3)} ${h(s4)}"
+// A direct record, tuple or closed ADT is compared and hashed in place, with the values the derived methods give.
+let w1 = Wrap { p: p, s: s3, tag: true }
+let w2 = Wrap { p: q, s: Rect(2, 3), tag: true }
+let w3 = Wrap { p: q, s: Rect(2, 4), tag: true }
+print "wrap ${w1 == w2} ${w1 == w3} ${h(w1)} ${h(w3)}"
+let t1 = (1, 2)
+let t2 = (1, 2)
+let t3 = (1, 3)
+print "tuple ${t1 == t2} ${t1 == t3} ${h(t1)} ${h(t3)}"
+let pr1 = Pair { first: 1, second: 'x' }
+let pr2 = Pair { first: 1, second: 'x' }
+print "pair ${pr1 == pr2} ${h(pr1)}"
+print "sign ${Neg == Neg} ${Neg == Pos} ${h(Nil)} ${h(Pos)}"
+let o1: Int? = Some(3)
+let o2: Int? = Some(3)
+print "option ${o1 == o2} ${h(o1)}"
+let arr1 = Array.of(p, q)
+let arr2 = Array.of(q, p)
+let arr3 = Array.of(p, r)
+print "array ${arr1 == arr2} ${arr1 == arr3} ${hash(&arr1) == hash(&arr2)} ${hash(&arr1)}"
+let fa = FixedArray.filled[Point, 2](p)
+let fb = FixedArray.filled[Point, 2](q)
+let fc = FixedArray.filled[Point, 2](r)
+print "fixed ${fa == fb} ${fa == fc} ${hash(&fa) == hash(&fb)} ${hash(&fa)}"
+let pe = p.equals
+print "value ${pe(&q)} ${pe(&r)} ${pe(&p)}"
+-- stdout --
+point true false true true true 1986568856904410783 17653598937285713851 1986568856904410783 true
+mixed true false 18004004531790633318 13470112466405074391
+float true true true 10199854854990847218 3411769482868258711
+shape true false true true 570597089888620355 3243294075908703541 3
+wrap true false 9559205286047479404 224277029551169011
+tuple true false 17660222395333867690 17653598937285713851
+pair true 17799495334242095988
+sign true false 2 3
+option true 576336540586746425
+array true false true 4835247503894429027
+fixed true false true 4835247503894429027
+value true false true

@@ -1,0 +1,63 @@
+-- src --
+type Point = {
+    pub mut x Int
+    pub y Int
+}
+
+fn find(n: Int) -> u8? {
+    n.toU8()
+}
+
+fn mk(n: Int) -> Point {
+    Point { x: n, y: n + 1 }
+}
+
+fn viaCall(n: Int) -> Int {
+    let mut cell: u8? = None
+    let bump = () => { cell = find(n) }
+    bump()
+    (cell || 0).toInt()
+}
+
+fn viaNone(n: Int) -> Int {
+    let mut cell: u8? = find(n)
+    let clear = () => { cell = None }
+    clear()
+    if cell is Some(_) { 1 } else { 0 }
+}
+
+fn viaRecord(n: Int) -> Int {
+    let mut cell = Point { x: 0, y: 0 }
+    let set = () => { cell = mk(n) }
+    set()
+    cell.x + cell.y
+}
+
+fn viaField(n: Int) -> Int {
+    let mut cell = Point { x: 0, y: 0 }
+    let set = () => { cell.x = n }
+    set()
+    cell.x + cell.y
+}
+
+fn viaNested(n: Int) -> Int {
+    let mut cell = Point { x: 0, y: 0 }
+    let outer = () => {
+        let inner = () => { cell = mk(n) }
+        inner()
+    }
+    outer()
+    cell.y
+}
+
+fn viaTuple(n: Int) -> Int {
+    let mut t = (1, 2)
+    let set = () => { t = (n, n) }
+    set()
+    let (a, b) = t
+    a + b
+}
+
+print "${viaCall(5)} ${viaCall(300)} ${viaNone(4)} ${viaRecord(3)} ${viaField(9)} ${viaNested(2)} ${viaTuple(6)}"
+-- stdout --
+5 0 0 7 9 3 12

@@ -7,7 +7,7 @@ const regLeaves = 2
 
 // The shared body holds a wide value in one boxed word per level.
 func (s *specializer) deepens(sp *spec, held map[*spec]bool) bool {
-	return !held[sp] && s.holdsWide(sp) && s.recursive(sp)
+	return sp.fn.Proto == "" && !held[sp] && s.holdsWide(sp) && s.recursive(sp)
 }
 
 // A caller declared `noalloc` would have to box for a shared body anywhere down its chain of specializations.

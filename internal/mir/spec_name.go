@@ -37,6 +37,10 @@ func (s *specializer) name(gen sem.EntityID, args []sem.TypeID) string {
 			}
 		}
 	}
+	return s.instanceName(base, args)
+}
+
+func (s *specializer) instanceName(base string, args []sem.TypeID) string {
 	name := base + "[" + s.argsText(args) + "]"
 	for n := 2; s.names[name]; n++ {
 		name = fmt.Sprintf("%s[%s]#%d", base, s.argsText(args), n)

@@ -173,6 +173,8 @@ type Func struct {
 	unownedCached bool
 	// rcBase is the local count before plan-rc added its temporaries.
 	rcBase int
+	// Proto is "equals" or "hash" for a body specialization replaced by the direct comparison or hash.
+	Proto string
 }
 
 type Program struct {

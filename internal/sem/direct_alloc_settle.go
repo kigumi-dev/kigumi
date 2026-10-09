@@ -74,4 +74,5 @@ func (c *checker) settleAllocs() {
 		e.Type = t
 	}
 	c.allocPending = kept
+	c.settleProtoSites()
 }

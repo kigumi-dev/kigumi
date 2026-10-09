@@ -3768,6 +3768,23 @@
       ]
     },
     {
+      "id": "run/direct_cell_store",
+      "kind": "run",
+      "path": "testdata/run/direct_cell_store.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/direct_closure",
       "kind": "run",
       "path": "testdata/run/direct_closure.txtar",
@@ -3915,6 +3932,23 @@
       "id": "run/direct_prim_results",
       "kind": "run",
       "path": "testdata/run/direct_prim_results.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_protocol_values",
+      "kind": "run",
+      "path": "testdata/run/direct_protocol_values.txtar",
       "mode": [
         "vm",
         "native"
@@ -5542,6 +5576,23 @@
       "id": "run/generic_callable_withmut",
       "kind": "run",
       "path": "testdata/run/generic_callable_withmut.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/generic_direct_closure_bodies",
+      "kind": "run",
+      "path": "testdata/run/generic_direct_closure_bodies.txtar",
       "mode": [
         "vm",
         "native"
@@ -9227,6 +9278,17 @@
       "id": "sem/effects_noalloc_literal_cross",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_literal_cross.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_protocol",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_protocol.txtar",
       "mode": [
         "check"
       ],

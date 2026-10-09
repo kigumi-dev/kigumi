@@ -1,0 +1,86 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Shape = Circle(r: Int) | Dot
+
+type Box[T] = {
+    pub v T
+}
+
+fn hold[T: Copy](x: T) -> T {
+    let g = () => x
+    g()
+}
+
+fn second[T: Copy](x: T, y: T) -> T {
+    let g = (z: T) => y
+    g(x)
+}
+
+fn twice[T: Copy](x: T) -> (T, T) {
+    let g = () => x
+    let h = () => g()
+    (g(), h())
+}
+
+fn nested[T: Copy](x: T) -> T {
+    let outer = () => {
+        let inner = () => x
+        inner()
+    }
+    outer()
+}
+
+fn later[T: Copy](x: T) -> fn() -> T {
+    () => x
+}
+
+fn pass[T: Copy](x: T, f: escaping fn(T) -> T) -> T {
+    let g = (z: T) => f(z)
+    g(x)
+}
+
+fn cell[T: Copy](x: T, y: T) -> T {
+    let mut acc = x
+    let set = () => { acc = y }
+    set()
+    acc
+}
+
+fn Box[T: Copy].via(self) -> T {
+    let v = self.v
+    let g = () => v
+    g()
+}
+
+fn sumWith[T: Copy](x: T, k: Int) -> Int {
+    let g = (n: Int) => n + k
+    g(1) + g(2)
+}
+
+let p = Point { x: 1, y: 2 }
+let q = Point { x: 7, y: 8 }
+let c = Circle(5)
+print "hold=${hold(p).y} ${hold(3)} ${hold(c) is Circle(5)}"
+print "second=${second(p, q).x} ${second(1, 2)}"
+let (a, b) = twice(p)
+print "twice=${a.x} ${b.y}"
+print "nested=${nested(p).x} ${(nested(Some(4)) || 0)}"
+print "later=${later(p)().y} ${later(9)()}"
+print "pass=${pass(p, (z: Point) => Point { x: z.y, y: z.x }).x}"
+print "cell=${cell(p, q).y} ${cell(1, 2)}"
+print "via=${Box { v: p }.via().x} ${Box { v: 4 }.via()}"
+print "sum=${sumWith(p, 10)} ${sumWith(1, 100)}"
+-- stdout --
+hold=2 3 true
+second=7 2
+twice=1 2
+nested=1 4
+later=2 9
+pass=2
+cell=8 2
+via=1 4
+sum=23 203

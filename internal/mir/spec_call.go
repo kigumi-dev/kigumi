@@ -20,7 +20,7 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 			return nil, nil, false
 		}
 	}
-	if !r.SpecializeArgs(args) {
+	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) {
 		return nil, nil, false
 	}
 	return args, s.witnesses(ctx, gen, r.Files[f.File].Calls[in.Node]), true
@@ -105,7 +105,7 @@ func (s *specializer) inCtx(ctx *spec, t sem.TypeID) sem.TypeID {
 	if ctx == nil {
 		return t
 	}
-	return s.p.R.Types.Subst(t, s.p.R.InstanceSubst(ctx.gen, ctx.args))
+	return s.p.R.Types.Subst(t, ctx.sub)
 }
 
 func (s *specializer) witnesses(ctx *spec, gen sem.EntityID, call sem.CallInfo) []sem.WitnessArg {
@@ -150,4 +150,11 @@ func (s *specializer) static(ctx *spec, w sem.WitnessArg) (sem.WitnessArg, bool)
 		}
 	}
 	return sem.WitnessArg{}, false
+}
+
+// The body becomes the direct comparison or hash, so scalar arguments are specialized too.
+func (s *specializer) protoInstance(gen sem.EntityID, args []sem.TypeID) bool {
+	r := s.p.R
+	kind, self := r.ProtoKind(gen), r.ProtoSelf(gen)
+	return kind != "" && self != 0 && r.ProtocolDirect(r.Types.Subst(self, r.InstanceSubst(gen, args)), kind)
 }

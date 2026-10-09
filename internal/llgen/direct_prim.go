@@ -17,6 +17,10 @@ var (
 	rtDParseFloat   = RuntimeFn{"rt_d_parse_float", []Type{TPtr, TPtr}, TI32}
 	rtDConvertInt   = RuntimeFn{"rt_d_convert_int", []Type{TI64, TI32, TI32, TI32, TPtr}, TI32}
 	rtDConvertFloat = RuntimeFn{"rt_d_convert_float", []Type{TDouble, TI32, TPtr}, TI32}
+	rtDHashInt      = RuntimeFn{"rt_d_hash_int", []Type{TI64, TI32}, TI64}
+	rtDHashBool     = RuntimeFn{"rt_d_hash_bool", []Type{TI32}, TI64}
+	rtDHashChar     = RuntimeFn{"rt_d_hash_char", []Type{TI32}, TI64}
+	rtDHashFloat    = RuntimeFn{"rt_d_hash_float", []Type{TDouble, TI32}, TI64}
 )
 
 func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) {

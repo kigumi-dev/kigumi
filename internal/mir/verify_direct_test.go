@@ -77,3 +77,64 @@ fn main() -> Unit! {}
 	}
 	t.Fatalf("no direct conversion call:\n%s", p.Dump())
 }
+
+const crossingSrc = `
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn take(p: Point) -> Int { p.x }
+
+fn mk(x: Int) -> Point { Point { x: x, y: x } }
+
+fn use(x: Int) -> Int {
+    let p = mk(x)
+    take(p)
+}
+
+fn main() -> Unit! {}
+`
+
+// llgen copies an aggregate at parameters, call arguments and results, so each must match the signature.
+func TestVerifyDirectRejectsAParameterInTheWrongForm(t *testing.T) {
+	p := planned(t, crossingSrc)
+	f := funcNamed(t, p, "main.take")
+	if f.DSig.Param(0) == 0 || !f.IsDirect(f.Params[0]) {
+		t.Fatalf("take does not carry its record unboxed:\n%s", p.Dump())
+	}
+	f.Direct[f.Params[0]] = false
+	directRule(t, p, "parameter")
+}
+
+func TestVerifyDirectRejectsASignatureOfAnotherType(t *testing.T) {
+	p := planned(t, crossingSrc)
+	f := funcNamed(t, p, "main.take")
+	f.DSig.Params[0] = p.R.Types.Option(f.DSig.Params[0])
+	directRule(t, p, "another type")
+}
+
+func TestVerifyDirectRejectsAResultInTheWrongForm(t *testing.T) {
+	p := planned(t, crossingSrc)
+	f := funcNamed(t, p, "main.mk")
+	f.DSig.Ret = 0
+	directRule(t, p, "returns")
+}
+
+func TestVerifyDirectRejectsAnArgumentInTheWrongForm(t *testing.T) {
+	p := planned(t, crossingSrc)
+	f := funcNamed(t, p, "main.use")
+	call, ok := firstOp(f, mir.OpCall)
+	for bi := range f.Blocks {
+		for _, in := range f.Blocks[bi].Insts {
+			if in.Op == mir.OpCall && p.R.Entity(in.Ent).Name == "take" {
+				call, ok = in, true
+			}
+		}
+	}
+	if !ok || !f.IsDirect(call.Args[0]) {
+		t.Fatalf("use does not hand take its record unboxed:\n%s", p.Dump())
+	}
+	f.Direct[call.Args[0]] = false
+	directRule(t, p, "reads")
+}

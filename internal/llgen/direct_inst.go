@@ -10,6 +10,10 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 	if e.tryFixedInst(sb, f, in) {
 		return true
 	}
+	if in.Op == mir.OpBuiltin && (in.Str == "direct.eq" || in.Str == "direct.hash") {
+		e.protoBuiltin(sb, f, in)
+		return true
+	}
 	switch in.Op {
 	case mir.OpRecord, mir.OpClosure:
 		if a, ok := e.direct[in.Dst]; ok {

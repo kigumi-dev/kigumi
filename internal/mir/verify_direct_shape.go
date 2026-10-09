@@ -50,6 +50,9 @@ func (p *Program) directShape(f *Func, in Inst) string {
 			return "hands a direct primitive operands it does not take"
 		}
 	case OpBuiltin:
+		if protoBuiltin(in) {
+			return p.protoShape(f, in)
+		}
 		if t := p.wholePos(f, in.Dst); fixedFill(in) && t != 0 && (!p.R.DirectFixed(t) || len(in.Args) != 2) {
 			return "fills a value that is not an inline array"
 		}

@@ -92,6 +92,7 @@ func (e *emitter) storeParams(sb *strings.Builder, f *mir.Func, s *aggSig) {
 			fmt.Fprintf(sb, "  store ptr %%p%d, ptr %%l%d\n", i, prm)
 			continue
 		}
+		e.requireDirect(prm, "parameter")
 		if byValueAgg(a) {
 			fmt.Fprintf(sb, "  store %s %%p%d, ptr %s\n", a.Name, i, aggPtr(prm))
 			continue

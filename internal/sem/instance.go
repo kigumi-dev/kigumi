@@ -62,3 +62,15 @@ func (r *Result) SpecializeArgs(args []TypeID) bool {
 	}
 	return false
 }
+
+// SpecializesCalls reports whether a call hands a direct aggregate to a specializable callee, the only way a specialization limit can trip.
+func (r *Result) SpecializesCalls() bool {
+	for _, f := range r.Files {
+		for _, call := range f.Calls {
+			if call.Callee != 0 && len(call.Inst) > 0 && r.Specializable(call.Callee) && r.SpecializeArgs(call.Inst) {
+				return true
+			}
+		}
+	}
+	return false
+}

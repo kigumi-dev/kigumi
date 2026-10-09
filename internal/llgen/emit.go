@@ -47,6 +47,7 @@ type emitter struct {
 	aggs         map[sem.TypeID]*aggInfo
 	aggOrder     []sem.TypeID
 	aggDone      map[sem.TypeID]bool
+	protoDone    map[protoKey]bool
 	direct       map[mir.LocalID]*aggInfo
 	boxTmp       map[mir.LocalID]bool
 	nameAlias    map[mir.LocalID]bool

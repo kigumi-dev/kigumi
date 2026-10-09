@@ -55,7 +55,9 @@ func (s *specializer) callers(live []*spec) []*Func {
 		}
 	}
 	for _, sp := range live {
-		add(sp.fn)
+		for _, f := range sp.funcs() {
+			add(f)
+		}
 		for _, site := range sp.sites {
 			if !site.gone {
 				add(site.f)
@@ -67,37 +69,47 @@ func (s *specializer) callers(live []*spec) []*Func {
 
 // The shared body never boxes a type-parameter value, and callers rely on a `noalloc` summary.
 func (s *specializer) pays(sp *spec) bool {
-	f, g := sp.fn, s.p.ByEnt[sp.gen]
-	derived := func(l LocalID) bool { return int(l) < len(g.Locals) && g.Locals[l].Type != f.Locals[l].Type }
-	noalloc := s.p.R.Summary(sp.gen).Noalloc
-	counted := func(l LocalID) bool { return noalloc || derived(l) }
-	gains := false
-	for i, prm := range f.Params {
-		gains = gains || f.DSig.Param(i) != 0 && derived(prm)
+	if sp.fn.Proto != "" {
+		return true
 	}
-	for _, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			gains = gains || builds(in) && derived(in.Dst) && f.IsDirect(in.Dst) && s.p.dstPos(f, in) != 0
+	pairs := append([]funcPair{{sp.fn, s.p.ByEnt[sp.gen]}}, sp.clones...)
+	gains := false
+	for _, pr := range pairs {
+		f, g := pr.fn, pr.gen
+		derived := func(l LocalID) bool { return int(l) < len(g.Locals) && g.Locals[l].Type != f.Locals[l].Type }
+		for i, prm := range f.Params {
+			gains = gains || f.DSig.Param(i) != 0 && derived(prm)
+		}
+		for _, blk := range f.Blocks {
+			for _, in := range blk.Insts {
+				gains = gains || builds(in) && derived(in.Dst) && f.IsDirect(in.Dst) && s.p.dstPos(f, in) != 0
+			}
 		}
 	}
 	if !gains {
 		return false
 	}
-	for _, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			for i, a := range in.Args {
-				if cross, _, ok := s.p.argCross(f, in, i, a); ok && cross == OpBoxDirect && counted(a) {
+	for _, pr := range pairs {
+		f, g := pr.fn, pr.gen
+		noalloc := s.p.R.Summary(g.Ent).Noalloc
+		derived := func(l LocalID) bool { return int(l) < len(g.Locals) && g.Locals[l].Type != f.Locals[l].Type }
+		counted := func(l LocalID) bool { return noalloc || derived(l) }
+		for _, blk := range f.Blocks {
+			for _, in := range blk.Insts {
+				for i, a := range in.Args {
+					if cross, _, ok := s.p.argCross(f, in, i, a); ok && cross == OpBoxDirect && counted(a) {
+						return false
+					}
+				}
+				if cross, _, ok := s.p.dstCross(f, in); ok && cross == OpBoxDirect && counted(in.Dst) {
 					return false
 				}
 			}
-			if cross, _, ok := s.p.dstCross(f, in); ok && cross == OpBoxDirect && counted(in.Dst) {
-				return false
-			}
-		}
-		if blk.Term.Op == TermReturn {
-			a := blk.Term.Args[0]
-			if cross, _, ok := s.p.returnCross(f, a); ok && cross == OpBoxDirect && counted(a) {
-				return false
+			if blk.Term.Op == TermReturn {
+				a := blk.Term.Args[0]
+				if cross, _, ok := s.p.returnCross(f, a); ok && cross == OpBoxDirect && counted(a) {
+					return false
+				}
 			}
 		}
 	}
@@ -149,12 +161,14 @@ func (s *specializer) called(sp *spec, reached map[*spec]bool) bool {
 func (s *specializer) prune() {
 	keep := map[*Func]bool{}
 	for _, sp := range s.live() {
-		keep[sp.fn] = true
+		for _, f := range sp.funcs() {
+			keep[f] = true
+		}
 	}
 	out := s.p.Funcs[:0]
 	for _, f := range s.p.Funcs {
 		if sp := s.byFunc[f]; sp != nil && !keep[f] {
-			delete(s.p.ByEnt, sp.ent)
+			delete(s.p.ByEnt, f.Ent)
 			continue
 		}
 		out = append(out, f)

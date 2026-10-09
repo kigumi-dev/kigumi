@@ -3,6 +3,9 @@ package mir
 // A position and the local reaching it always agree on the form, so every
 // crossing is an OpBoxDirect/OpUnboxDirect and no backend picks for itself.
 func (p *Program) verifyDirect(f *Func) *Error {
+	if err := p.verifyDirectSig(f); err != nil {
+		return err
+	}
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
@@ -13,6 +16,23 @@ func (p *Program) verifyDirect(f *Func) *Error {
 		if err := p.verifyDirectReturn(f, bid, blk); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// A parameter and the result are in the form and of the type the signature names.
+func (p *Program) verifyDirectSig(f *Func) *Error {
+	for i, prm := range f.Params {
+		want := f.DSig.Param(i)
+		if f.IsDirect(prm) != (want != 0) {
+			return fail("direct", 0, 0, "parameter %s is in the form the signature does not carry", p.local(f, prm))
+		}
+		if want != 0 && want != f.Locals[prm].Type {
+			return fail("direct", 0, 0, "the signature carries parameter %s as another type", p.local(f, prm))
+		}
+	}
+	if t := f.DSig.result(); t != 0 && t != f.Ret {
+		return fail("direct", 0, 0, "the signature carries a result of another type than the function returns")
 	}
 	return nil
 }

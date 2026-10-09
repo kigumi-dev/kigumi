@@ -46,9 +46,11 @@ fn loopCalls(n: Int) -> Int {
     total
 }
 
+fn peek(p: &Point) -> Int { p.x }
+
 // The body lends a capture, which boxes it once on entry.
 fn lendsCapture(p: Point) -> Bool {
-    let f = () => hash(&p) == hash(&p)
+    let f = () => peek(&p) == peek(&p)
     f()
 }
 

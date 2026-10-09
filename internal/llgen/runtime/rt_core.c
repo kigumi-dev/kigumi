@@ -918,6 +918,23 @@ static void ptr_hex(const void* p, char* out) {
     for (int i = 0; i < n; i++) out[i] = tmp[n - 1 - i];
     out[n] = 0;
 }
+static void char_utf8(uint32_t c, char u[5]) {
+    u[0] = u[1] = u[2] = u[3] = u[4] = 0;
+    if (c < 0x80) u[0] = c;
+    else if (c < 0x800) {
+        u[0] = 0xC0 | (c >> 6);
+        u[1] = 0x80 | (c & 0x3F);
+    } else if (c < 0x10000) {
+        u[0] = 0xE0 | (c >> 12);
+        u[1] = 0x80 | ((c >> 6) & 0x3F);
+        u[2] = 0x80 | (c & 0x3F);
+    } else {
+        u[0] = 0xF0 | (c >> 18);
+        u[1] = 0x80 | ((c >> 12) & 0x3F);
+        u[2] = 0x80 | ((c >> 6) & 0x3F);
+        u[3] = 0x80 | (c & 0x3F);
+    }
+}
 // canon collapses -0.0 to 0.0 when rendering K_FLOAT, so hash_of's digest
 // agrees with equal()'s 0.0 == -0.0; display()
 // and rt_interp() render normally with canon 0.
@@ -942,22 +959,8 @@ void display_into(buf* b, val v, int canon) {
         bputs(b, v->u.b ? "true" : "false");
         break;
     case K_CHAR: {
-        uint32_t c = v->u.c;
-        char u[5] = {0};
-        if (c < 0x80) u[0] = c;
-        else if (c < 0x800) {
-            u[0] = 0xC0 | (c >> 6);
-            u[1] = 0x80 | (c & 0x3F);
-        } else if (c < 0x10000) {
-            u[0] = 0xE0 | (c >> 12);
-            u[1] = 0x80 | ((c >> 6) & 0x3F);
-            u[2] = 0x80 | (c & 0x3F);
-        } else {
-            u[0] = 0xF0 | (c >> 18);
-            u[1] = 0x80 | ((c >> 12) & 0x3F);
-            u[2] = 0x80 | ((c >> 6) & 0x3F);
-            u[3] = 0x80 | (c & 0x3F);
-        }
+        char u[5];
+        char_utf8(v->u.c, u);
         bputs(b, u);
         break;
     }
@@ -1340,6 +1343,35 @@ int rt_d_convert_float(double x, int dnk, uint64_t* out) {
     if (t != t || t < -9223372036854775808.0 || t >= 9223372036854775808.0) return 0;
     *out = (uint64_t)(int64_t)t;
     return 1;
+}
+// The direct hash of a scalar leaf: FNV-1a over the text display_into renders, with no box to hold it.
+static int64_t fnv_text(const char* s) {
+    uint64_t h = 14695981039346656037ULL;
+    for (; *s; s++) {
+        h ^= (unsigned char)*s;
+        h *= 1099511628211ULL;
+    }
+    return (int64_t)h;
+}
+int64_t rt_d_hash_int(int64_t v, int nk) {
+    char tmp[24];
+    if (nk & 256) i64_dec(v, tmp);
+    else u64_dec((uint64_t)v, tmp);
+    return fnv_text(tmp);
+}
+int64_t rt_d_hash_bool(int v) {
+    return fnv_text(v ? "true" : "false");
+}
+int64_t rt_d_hash_char(int c) {
+    char u[5];
+    char_utf8((uint32_t)c, u);
+    return fnv_text(u);
+}
+int64_t rt_d_hash_float(double f, int nk) {
+    char text[64];
+    if (f == 0.0) f = 0.0;
+    rt_format_float(f, (nk & 255) == 32, text, sizeof text);
+    return fnv_text(text);
 }
 static val range_new(val lo, val hi, int inclusive);
 val rt_binop(const char* op, val a, val b) {

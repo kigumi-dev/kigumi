@@ -10,11 +10,11 @@ import (
 
 func CheckForEditor(m *Module) (*sem.Result, error) {
 	res, err := CheckOnly(m)
-	if err != nil || res.HasErrors() || !res.DefersAllocClaims() && !res.DeclaresNoalloc() {
+	if err != nil || res.HasErrors() || !res.DefersAllocClaims() && !res.DeclaresNoalloc() && !res.SpecializesCalls() {
 		return res, err
 	}
-	built, claims := editorClaims(m)
-	for _, c := range claims {
+	built, found := editorDiags(m)
+	for _, c := range found {
 		if f := res.File(built.Tree(c.File)); f != nil {
 			f.Diags = append(f.Diags, c.Diag)
 		}
@@ -23,7 +23,7 @@ func CheckForEditor(m *Module) (*sem.Result, error) {
 }
 
 // A second check keeps the entities specialisation mints out of the result.
-func editorClaims(m *Module) (*sem.Result, []mir.AllocClaim) {
+func editorDiags(m *Module) (*sem.Result, []mir.FileDiag) {
 	mod, err := m.semModule()
 	if err != nil {
 		return nil, nil
@@ -40,15 +40,18 @@ func editorClaims(m *Module) (*sem.Result, []mir.AllocClaim) {
 	if prog.Apply(planPasses(false)...) != nil {
 		return res, nil
 	}
-	claims := mir.CheckAllocClaims(prog)
+	out := append([]mir.FileDiag(nil), prog.Diags...)
+	for _, c := range mir.CheckAllocClaims(prog) {
+		out = append(out, mir.FileDiag(c))
+	}
 	for id := range res.Files {
 		for _, d := range res.Files[id].Diags {
 			if !known[fmt.Sprint(id, d.Loc.Span, d.Code, d.Msg)] {
-				claims = append(claims, mir.AllocClaim{File: sem.FileID(id), Diag: d})
+				out = append(out, mir.FileDiag{File: sem.FileID(id), Diag: d})
 			}
 		}
 	}
-	return res, claims
+	return res, out
 }
 
 func diagKeys(res *sem.Result) map[string]bool {

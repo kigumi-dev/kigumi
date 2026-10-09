@@ -1,0 +1,72 @@
+-- lib/np.kg --
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+type Tag = On(n: Int) | Off
+
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Cell[T] = {
+    pub v T
+}
+
+// Both backends compare and hash a direct record, tuple or closed ADT in place.
+noalloc fn same(a: Pt, b: Pt) -> Bool {
+    a == b
+}
+
+noalloc fn differ(a: Tag, b: Tag) -> Bool {
+    a != b
+}
+
+noalloc fn viaTuple(a: (Int, Bool), b: (Int, Bool)) -> Bool {
+    a == b
+}
+
+noalloc fn viaMethod(a: Pt, b: Pt) -> Bool {
+    a.equals(&b)
+}
+
+noalloc fn fingerprint(a: Pt) -> u64 {
+    hash(&a)
+}
+
+noalloc fn fingerprintTag(a: Tag) -> u64 {
+    hash(&a)
+}
+
+noalloc fn viaGeneric(a: Cell[Int], b: Cell[Int]) -> Bool {
+    a == b
+}
+
+// A record holding a String is not a direct aggregate, so its equals is an ordinary call.
+noalloc fn named(a: Named, b: Named) -> Bool {
+    a == b //~ ERROR `equals` is not `noalloc`
+}
+
+noalloc fn borrowed(a: Pt) -> Int {
+    size(&a) //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+}
+
+fn size(p: &Pt) -> Int {
+    p.x
+}
+-- expect --
+error[E907]: `equals` is not `noalloc`
+  --> lib/np.kg:48:5
+   |
+48 |     a == b //~ ERROR `equals` is not `noalloc`
+   |     ^^^^^^
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> lib/np.kg:52:11
+   |
+52 |     size(&a) //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+   |           ^
+   = help: keep it in a value of its own, or drop the declaration
+

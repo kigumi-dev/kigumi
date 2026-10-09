@@ -8,6 +8,7 @@ import (
 )
 
 func (e *emitter) aggArg(sb *strings.Builder, a *aggInfo, l mir.LocalID) string {
+	e.requireDirect(l, "argument")
 	if byValueAgg(a) {
 		return a.Name + " " + e.aggValue(sb, a, aggPtr(l))
 	}
@@ -76,10 +77,18 @@ func (e *emitter) releaseBoxed(sb *strings.Builder, ptrs []string) {
 }
 
 func (e *emitter) returnAgg(sb *strings.Builder, a *aggInfo, l mir.LocalID) {
+	e.requireDirect(l, "result")
 	if byValueAgg(a) {
 		fmt.Fprintf(sb, "  ret %s %s\n", a.Name, e.aggValue(sb, a, aggPtr(l)))
 		return
 	}
 	copyAgg(sb, a, "%sret", aggPtr(l))
 	sb.WriteString("  ret void\n")
+}
+
+// A crossing is an explicit MIR op, so a position that takes an aggregate never sees a box here.
+func (e *emitter) requireDirect(l mir.LocalID, what string) {
+	if !e.isDirect(l) {
+		panic(fmt.Sprintf("llgen: the %s %%l%d reaches a direct position boxed", what, l))
+	}
 }

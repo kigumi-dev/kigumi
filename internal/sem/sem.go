@@ -143,6 +143,7 @@ type Result struct {
 	conformSealed             int
 	instances                 map[EntityID]InstanceInfo
 	instanceKeys              map[string]EntityID
+	closureOrigins            map[EntityID]EntityID
 	deferredClaims            bool
 	allocBlocks               []allocBlock
 }

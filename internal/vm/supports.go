@@ -142,7 +142,7 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 		return ""
 	case mir.OpBuiltin:
 		switch in.Str {
-		case "print", "eprint", "panic", "message", "iter.len", "iter.at", "iter.at_ref", "iter.at_move", "host", "alloc.push", "fixed.fill":
+		case "print", "eprint", "panic", "message", "iter.len", "iter.at", "iter.at_ref", "iter.at_move", "host", "alloc.push", "fixed.fill", "direct.eq", "direct.hash":
 			return ""
 		case "comptime":
 			return "an unevaluated comptime block"

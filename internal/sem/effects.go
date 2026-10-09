@@ -101,7 +101,7 @@ func (r *Result) fixedSummary(id EntityID) (EffectSummary, bool) {
 	}
 	info := r.Fn(id)
 	if info.Body == 0 || info.Declared&(EffPure|EffNoalloc) != 0 {
-		return EffectSummary{Pure: info.Declared&EffPure != 0, Noalloc: info.Declared&EffNoalloc != 0, Known: true}, true
+		return EffectSummary{Pure: info.Declared&EffPure != 0, Noalloc: info.Declared&EffNoalloc != 0 || r.protoNoalloc(id), Known: true}, true
 	}
 	return EffectSummary{}, false
 }

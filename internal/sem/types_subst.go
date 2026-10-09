@@ -1,6 +1,6 @@
 package sem
 
-// Subst replaces KParam types by s; the result is interned.
+// Subst replaces KParam types and the closure types named in s; the result is interned.
 func (tt *TypeTable) Subst(t TypeID, s map[EntityID]TypeID) TypeID {
 	if len(s) == 0 || t == 0 {
 		return t
@@ -33,6 +33,11 @@ func (tt *TypeTable) Subst(t TypeID, s map[EntityID]TypeID) TypeID {
 			args = n.Args
 		}
 		return tt.Intern(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Var: n.Var, Args: args})
+	case KClosure:
+		if r, ok := s[n.Ent]; ok {
+			return r
+		}
+		return t
 	case KRef, KPtr:
 		elem := tt.Subst(n.Elem, s)
 		if elem == n.Elem {

@@ -161,7 +161,7 @@ func classifyTerm(t mir.Term, out map[mir.LocalID]scalarInfo, disqualify func(mi
 
 func (e *emitter) inPlaceBuiltin(in mir.Inst) bool {
 	switch in.Str {
-	case "fixed.fill":
+	case "fixed.fill", "direct.eq", "direct.hash":
 		return true
 	case "iter.len", "iter.at", "iter.at_ref", "iter.at_move":
 		return e.isDirect(in.Args[0])

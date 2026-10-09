@@ -8,6 +8,8 @@ type spec struct {
 	args    []sem.TypeID
 	wit     []sem.WitnessArg
 	fn      *Func
+	sub     map[sem.EntityID]sem.TypeID
+	clones  []funcPair
 	parent  *spec
 	root    *spec
 	brought int
@@ -40,17 +42,21 @@ func Specialize(p *Program) error {
 	for _, f := range p.Funcs {
 		s.names[f.Name] = true
 	}
+	s.intrinsifyOwned()
 	for _, f := range append([]*Func(nil), p.Funcs...) {
 		s.scan(f, nil)
 	}
 	for len(s.work) > 0 {
 		sp := s.work[0]
 		s.work = s.work[1:]
-		s.devirtualize(sp)
-		s.scan(sp.fn, sp)
+		for _, f := range sp.funcs() {
+			s.devirtualize(sp, f)
+			s.scan(f, sp)
+		}
 	}
 	s.settle()
 	s.prune()
+	p.inlineProtoCalls()
 	return nil
 }
 
@@ -92,17 +98,48 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 		return nil
 	}
 	g := s.p.ByEnt[gen]
-	if s.closureTyped(g) || s.overBudget(ctx) {
+	if s.noSpec[gen] || s.overBudget(ctx) {
+		return nil
+	}
+	sub := s.p.R.InstanceSubst(gen, args)
+	clones, ents, ok := s.closureClones(g, sub)
+	if !ok {
+		s.noSpec[gen] = true
 		return nil
 	}
 	ent := s.p.R.Instantiate(gen, args, key)
-	sp := &spec{ent: ent, gen: gen, args: args, wit: wit, parent: ctx}
+	fn := s.p.cloneFor(g, ent, s.name(gen, args), sub, ents)
+	if kind := s.p.R.ProtoKind(gen); kind != "" {
+		if t, ok := s.p.protoSubject(fn); ok && s.p.R.ProtocolDirect(t, kind) {
+			s.p.intrinsify(fn, kind, t)
+		}
+	}
+	if s.leftGeneric(append([]*Func{fn}, funcsOf(clones)...)) {
+		s.noSpec[gen] = true
+		return nil
+	}
+	sp := &spec{ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones}
 	charge(sp, ctx)
-	sp.fn = s.p.cloneFor(g, ent, s.name(gen, args), s.p.R.InstanceSubst(gen, args))
-	s.p.Funcs = append(s.p.Funcs, sp.fn)
-	s.p.ByEnt[ent] = sp.fn
-	s.byKey[key], s.byEnt[ent], s.byFunc[sp.fn] = sp, sp, sp
+	s.p.Funcs = append(s.p.Funcs, fn)
+	s.p.ByEnt[ent] = fn
+	s.byKey[key], s.byEnt[ent], s.byFunc[fn] = sp, sp, sp
+	for _, c := range clones {
+		c.fn.Name = s.instanceName(c.gen.Name, args)
+		s.p.Funcs = append(s.p.Funcs, c.fn)
+		s.p.ByEnt[c.fn.Ent] = c.fn
+		s.byFunc[c.fn] = sp
+	}
 	s.all = append(s.all, sp)
 	s.work = append(s.work, sp)
 	return sp
+}
+
+func (sp *spec) funcs() []*Func { return append([]*Func{sp.fn}, funcsOf(sp.clones)...) }
+
+func funcsOf(ps []funcPair) []*Func {
+	out := make([]*Func, len(ps))
+	for i, p := range ps {
+		out[i] = p.fn
+	}
+	return out
 }

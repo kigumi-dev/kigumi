@@ -64,8 +64,21 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 		c.deferWitnesses(n, fn, recv, inst)
 	}
 	c.noteInline(n, recvBase, fn, args, from)
+	if kind := c.r.ProtoKind(fn); kind != "" && !badTypeArgs {
+		c.noteProtoSite(from, n, protoSubject(recv, inst), kind, effArgs...)
+	}
 	c.touched = append(c.touched, n)
 	return ret
+}
+
+func protoSubject(recv TypeID, inst []TypeID) TypeID {
+	if recv != 0 {
+		return recv
+	}
+	if len(inst) > 0 {
+		return inst[0]
+	}
+	return 0
 }
 
 // declParams may be nil (no declaration backs sig, e.g. a bare fn value).

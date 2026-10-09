@@ -129,8 +129,10 @@ func (c *checker) equality(n, lhs, rhs syntax.NodeID, l, r TypeID, op token.Kind
 		}
 		c.errAt(n, cEqNoneLint, c.placeName(place))
 	}
+	from := len(*c.edges)
 	if !c.primitiveCompare(l) && c.protoCall(n, l, "Eq", "equals", op) {
 		c.borrowOperand(rhs, r)
+		c.noteProtoSite(from, n, l, "equals", rhs)
 		return TyBool
 	}
 	return c.builtinOp(n, op, TyBool)

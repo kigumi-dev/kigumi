@@ -2,7 +2,8 @@ package mir
 
 import "kigumi/internal/sem"
 
-func (p *Program) cloneFor(g *Func, ent sem.EntityID, name string, subst map[sem.EntityID]sem.TypeID) *Func {
+// ents renames the closures g builds to their copies.
+func (p *Program) cloneFor(g *Func, ent sem.EntityID, name string, subst map[sem.EntityID]sem.TypeID, ents map[sem.EntityID]sem.EntityID) *Func {
 	ty := func(t sem.TypeID) sem.TypeID { return p.R.Types.Subst(t, subst) }
 	f := &Func{Name: name, Ent: ent, File: g.File, Ret: ty(g.Ret), ImplicitOk: g.ImplicitOk, rcBase: g.rcBase}
 	f.Params = append([]LocalID(nil), g.Params...)
@@ -18,26 +19,15 @@ func (p *Program) cloneFor(g *Func, ent sem.EntityID, name string, subst map[sem
 		for i, in := range blk.Insts {
 			in.Args = append([]LocalID(nil), in.Args...)
 			in.Type = ty(in.Type)
+			if c, ok := ents[in.Ent]; ok && in.Op == OpClosure {
+				in.Ent = c
+			}
 			insts[i] = in
 		}
 		term := Term{Op: blk.Term.Op, Args: append([]LocalID(nil), blk.Term.Args...), Targets: append([]BlockID(nil), blk.Term.Targets...)}
 		f.Blocks[bid] = Block{Insts: insts, Term: term}
 	}
 	return f
-}
-
-// A closure's body is keyed by its entity, so a closure type over T cannot be substituted.
-func (s *specializer) closureTyped(g *Func) bool {
-	if done, ok := s.noSpec[g.Ent]; ok {
-		return done
-	}
-	seen := map[sem.TypeID]bool{}
-	bad := false
-	for _, l := range g.Locals {
-		bad = bad || s.genericClosure(l.Type, seen)
-	}
-	s.noSpec[g.Ent] = bad
-	return bad
 }
 
 func (s *specializer) genericClosure(t sem.TypeID, seen map[sem.TypeID]bool) bool {

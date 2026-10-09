@@ -76,7 +76,7 @@ func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) {
 	}
 	switch c.t.Kind(lhs) {
 	case syntax.Ident:
-		if c.lentPlace(lhs) {
+		if c.lentPlace(lhs) || c.sharedCellPlace(lhs) {
 			c.crossDirect(lhs, t)
 		}
 	case syntax.MemberExpr, syntax.BracketExpr:
@@ -98,6 +98,12 @@ func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) {
 func (c *checker) cellPlace(n syntax.NodeID) bool {
 	ent, ok := c.identPlaceEnt(n)
 	return ok && (c.r.IsMutSelf(ent) || c.r.RefCellParam(ent))
+}
+
+// A local a closure writes or a borrow aliases lives in a cell, which holds the boxed form.
+func (c *checker) sharedCellPlace(n syntax.NodeID) bool {
+	ent, ok := c.identPlaceEnt(n)
+	return ok && c.r.Entities[ent].Flags&(EfCapturedMut|EfAddrTaken) != 0
 }
 
 // The store side runs while refCellParams is still being filled.

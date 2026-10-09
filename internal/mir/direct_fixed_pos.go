@@ -37,6 +37,10 @@ func fixedFill(in Inst) bool { return in.Op == OpBuiltin && in.Str == "fixed.fil
 
 func (p *Program) fixedArgPos(f *Func, in Inst, i int) sem.TypeID {
 	switch {
+	case protoBuiltin(in):
+		if f.DirectPlanned() {
+			return f.Locals[in.Args[i]].Type
+		}
 	case in.Op == OpIndex || iterBuiltin(in):
 		if i == 0 {
 			return p.fixedBase(f, in.Args[0])
@@ -69,6 +73,10 @@ func (p *Program) fixedDstPos(f *Func, in Inst) sem.TypeID {
 
 func (p *Program) fixedUse(f *Func, in Inst, out []bool) {
 	switch {
+	case protoBuiltin(in):
+		for _, a := range in.Args {
+			out[a] = true
+		}
 	case fixedFill(in):
 		out[in.Dst] = true
 	case in.Op == OpIndex || in.Op == OpSetIndex || iterBuiltin(in):

@@ -14,6 +14,7 @@ func (p *Program) funcName(ent sem.EntityID) string {
 	case sem.EntTest:
 		return "test." + e.Name
 	case sem.EntClosure:
+		ent = p.R.ClosureOrigin(ent)
 		return fmt.Sprintf("%s.closure%d", p.funcName(e.Parent), p.closureOrdinal(ent))
 	}
 	name := p.R.Packages[e.Pkg].Path + "." + e.Name

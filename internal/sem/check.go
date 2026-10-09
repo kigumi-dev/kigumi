@@ -36,6 +36,7 @@ type checker struct {
 	vars          *varStore
 	touched       []syntax.NodeID
 	allocPending  []pendingAlloc
+	protoSites    []protoSite
 	inlinePending []pendingInline
 	// piped maps a call node to the `|>` left operand it takes first.
 	piped map[syntax.NodeID]syntax.NodeID

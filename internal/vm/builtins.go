@@ -33,6 +33,10 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 			m.abort("`host` is not available at compile time")
 		}
 		return mkOpaque("Host", nil)
+	case "direct.eq":
+		return mkBool(m.directEq(args[0], args[1]))
+	case "direct.hash":
+		return mkInt(int64(m.directHash(args[0])), 64)
 	case "fixed.fill":
 		n := deref(args[1]).i
 		items := make([]*obj, n)

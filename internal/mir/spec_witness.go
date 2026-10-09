@@ -3,12 +3,11 @@ package mir
 import "kigumi/internal/sem"
 
 // Conformance fixes the implementation's receiver kind and parameter types, so plan-rc's plan still holds.
-func (s *specializer) devirtualize(sp *spec) {
+func (s *specializer) devirtualize(sp *spec, f *Func) {
 	if sp.wit == nil {
 		return
 	}
 	slots := s.p.R.Fn(sp.gen).Witnesses
-	f := sp.fn
 	defs := singleDefs(f)
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts

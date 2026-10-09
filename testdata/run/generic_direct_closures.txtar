@@ -12,8 +12,8 @@ fn applyTwice[F: Fn[fn(Int) -> Int]](f: F, x: Int) -> Int { f(f(x)) }
 
 fn mapPoint[T](p: T, f: fn(T) -> T) -> T { f(p) }
 
-// A closure built inside the body captures a value of type T; its body is
-// shared, so this function keeps the shared body too.
+// The closure leaves as a plain fn value, so a specialised body would box
+// its environment anyway and this function keeps the shared body.
 fn later[T: Copy](x: T) -> fn() -> T { () => x }
 
 fn keepClosure[T](f: T) -> T { f }

@@ -12,8 +12,7 @@ type AllocClaim struct {
 	Diag diag.Diagnostic
 }
 
-// Only a declared `noalloc` is checked, not an inferred one: an inferred effect is
-// the effect pass's own guess, not the author's promise. `pure` allows allocation.
+// A body the summary calls `noalloc`, declared or inferred, must not box; `pure` allows allocation.
 func CheckAllocClaims(p *Program) []AllocClaim {
 	var out []AllocClaim
 	// An instantiation reports at its generic body's positions.
@@ -23,10 +22,14 @@ func CheckAllocClaims(p *Program) []AllocClaim {
 	}
 	seen := map[claimKey]bool{}
 	for _, f := range p.allFuncs() {
+		name := "direct-box-in-noalloc"
 		if !p.declaredNoalloc(f) {
-			continue
+			if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc {
+				continue
+			}
+			name = "inferred-box-in-noalloc"
 		}
-		for _, c := range p.boxClaims(f) {
+		for _, c := range p.boxClaims(f, name) {
 			if k := (claimKey{c.Diag.Loc, c.Diag.Msg}); !seen[k] {
 				seen[k] = true
 				out = append(out, c)
@@ -43,8 +46,8 @@ func (p *Program) declaredNoalloc(f *Func) bool {
 	return p.R.Fn(f.Ent).Declared&sem.EffNoalloc != 0
 }
 
-func (p *Program) boxClaims(f *Func) []AllocClaim {
-	c, ok := sem.CodeByName("direct-box-in-noalloc")
+func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
+	c, ok := sem.CodeByName(code)
 	if !ok {
 		return nil
 	}
@@ -67,17 +70,14 @@ func (p *Program) boxClaims(f *Func) []AllocClaim {
 	return out
 }
 
-// A declared `noalloc` that allocates is the author's error, which the diagnostics report instead.
+// A box is reported as a diagnostic; only a copy in a `noalloc` body is a compiler fault.
 func (p *Program) verifyAllocClaim(f *Func) *Error {
 	if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc || p.declaredNoalloc(f) {
 		return nil
 	}
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			switch {
-			case in.Op == OpBoxDirect:
-				return fail("alloc-claim", BlockID(bid), i, "boxes %s where the summary claims no allocation", p.R.TypeString(in.Type))
-			case p.allocCopy(f, in):
+			if p.allocCopy(f, in) {
 				return fail("alloc-claim", BlockID(bid), i, "copies %s where the summary claims no allocation", p.R.TypeString(p.copiedType(f, in)))
 			}
 		}
