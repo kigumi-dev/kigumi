@@ -119,6 +119,7 @@ static void task_begin_finish(kgtask* t, int end) {
 static void join_fault(const char* msg) {
     char* m = dup_msg(msg);
     if (!m) rt_fatal(msg);
+    g_fault_count++;
     if (!g_fault_msg) {
         g_fault_msg = m;
         return;
@@ -133,26 +134,32 @@ static void join_fault(const char* msg) {
     free(m);
     g_fault_msg = j;
 }
-// A record stays on the stack while it runs, so a panic inside it resumes it; the root task keeps its sync frames.
-static void task_fault(const char* msg) {
-    join_fault(msg);
+// A frame record stays on the stack while it runs so a panic inside resumes it; other records are one-shot and pop first.
+static void task_raise(void) {
     while (g_unwind != g_unwind_base) {
         kg_unwind* u = g_unwind;
+        if (u->run != unwind_frame) g_unwind = u->prev;
         if (u->run != unwind_frame || !g_cur_task || g_cur_task->parent) u->run(u);
         if (g_unwind == u) g_unwind = u->prev;
     }
     KG_LONGJMP(*g_task_catch);
 }
+static void task_fault(const char* msg) {
+    join_fault(msg);
+    task_raise();
+}
 static __attribute__((noinline)) val poll_body(kgtask* t, int* faulted) {
-    jmp_buf jb;
-    jmp_buf* prev = g_task_catch;
+    kg_jmp_buf jb;
+    kg_jmp_buf* prev = g_task_catch;
     int sp = g_alloc_sp;
+    int depth = g_drop_depth;
     kg_unwind* prev_base = g_unwind_base;
     g_unwind_base = g_unwind;
     if (KG_SETJMP(jb)) {
         g_task_catch = prev;
         g_unwind_base = prev_base;
         g_alloc_sp = sp;
+        g_drop_depth = depth;
 #ifdef KIGUMI_THREADS
         g_flushing = 0;
 #endif
@@ -166,15 +173,17 @@ static __attribute__((noinline)) val poll_body(kgtask* t, int* faulted) {
     return r;
 }
 static __attribute__((noinline)) int contained(void (*fn)(val), val arg) {
-    jmp_buf jb;
-    jmp_buf* prev = g_task_catch;
+    kg_jmp_buf jb;
+    kg_jmp_buf* prev = g_task_catch;
     int sp = g_alloc_sp;
+    int depth = g_drop_depth;
     kg_unwind* prev_base = g_unwind_base;
     g_unwind_base = g_unwind;
     if (KG_SETJMP(jb)) {
         g_task_catch = prev;
         g_unwind_base = prev_base;
         g_alloc_sp = sp;
+        g_drop_depth = depth;
 #ifdef KIGUMI_THREADS
         g_flushing = 0;
 #endif
@@ -233,7 +242,9 @@ static void task_unwind(kgtask* t) {
     }
     val f = t->fut;
     t->fut = NULL;
+    g_faulting++;
     frames_sweep(f);
+    g_faulting--;
     t->fault = g_fault_msg;
     g_fault_msg = NULL;
 }
@@ -555,11 +566,13 @@ val rt_task_handoff(val exv, val fut) {
     if (!g_cur_task) rt_panic("`Executor.handoff` needs a running task; start one with `Executor.runToCompletion`");
     kgexec* e = (kgexec*)deref(exv)->u.op.data;
     if (!future_mobile(fut)) rt_panic("this future is bound to its own executor and cannot be handed to another one");
+    SCHED_LOCK();
 #ifdef KIGUMI_THREADS
     int agent = e->nworkers || e->driving;
 #else
     int agent = e->driving;
 #endif
+    SCHED_UNLOCK();
     if (e != g_cur_task->ex && !agent) rt_panic("this executor has no worker and is not running a task tree, so it cannot take a handed-off task");
     return task_start(e, fut, 1);
 }

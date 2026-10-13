@@ -56,15 +56,14 @@ func (c *checker) recordNestedFieldWrite(key fieldFnKey, init syntax.NodeID) {
 // a parameter defers to its own call-site binding (EdgeFieldBind).
 func (c *checker) recordFnFieldWrite(key fieldFnKey, init syntax.NodeID) {
 	if fns := c.knownFnRefs(init); len(fns) > 0 {
-		for _, f := range fns {
-			if !slices.Contains(c.r.knownFieldFn[key], f) {
-				c.r.knownFieldFn[key] = append(c.r.knownFieldFn[key], f)
-			}
-		}
+		c.r.joinKnownFieldFnAt(key, fns, fnSiteSrc{file: c.f, node: init})
 		return
 	}
 	if ent := c.identEnt(init); ent != 0 && c.r.Entities[ent].Kind == EntParam {
 		c.pendingFieldEdges = append(c.pendingFieldEdges, pendingFieldEdge{key, EdgeFieldBind, ent, init})
+		return
+	}
+	if c.stageFnResultWrite(key, init) {
 		return
 	}
 	c.recordFieldPoisonSite(key, init)

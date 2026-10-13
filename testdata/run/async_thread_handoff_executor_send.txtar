@@ -1,0 +1,28 @@
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    n * 3
+}
+
+async fn inner(n: Int) -> Int {
+    n + await task.spawn(leaf(n))
+}
+
+async fn worker(pool: task.Executor, n: Int) -> Int {
+    let a = pool.handoff(inner(n))
+    let b = pool.handoff(inner(n + 10))
+    (await a) + (await b)
+}
+
+async fn root(front: task.Executor, pool: task.Executor) -> Int {
+    let t = front.handoff(worker(pool, 1))
+    await t
+}
+
+let front = task.threadPoolExecutor(2)
+let pool = task.threadPoolExecutor(3)
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root(front, pool))}"
+-- stdout --
+total 48

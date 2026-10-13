@@ -61,6 +61,8 @@ func (r *Result) fnChainEnt(file FileID, expr syntax.NodeID) EntityID {
 		return r.fnChainEnt(file, syntax.NodeID(t.Nodes[expr].Rhs))
 	case syntax.Paren:
 		return r.fnChainEnt(file, syntax.NodeID(t.Nodes[expr].Lhs))
+	case syntax.CallExpr:
+		return r.resultEnts[literalEntKey{File: file, Node: expr}]
 	}
 	return 0
 }

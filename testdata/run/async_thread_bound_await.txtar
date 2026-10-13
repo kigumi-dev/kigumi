@@ -1,0 +1,36 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn takes(r: Res) -> Int {
+    r.id
+}
+
+async fn direct() -> Int {
+    await takes(Res { id: 1 })
+}
+
+async fn viaTask() -> Int {
+    let t = task.spawn(takes(Res { id: 2 }))
+    await t
+}
+
+async fn root() -> Int {
+    let a = await direct()
+    let b = await viaTask()
+    a + b
+}
+
+let ex = task.currentThreadExecutor()
+print "sum ${ex.runToCompletion(root())}"
+-- stdout --
+drop 1
+drop 2
+sum 3

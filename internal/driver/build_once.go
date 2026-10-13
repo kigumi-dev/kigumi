@@ -11,9 +11,17 @@ import (
 	"kigumi/internal/llgen"
 )
 
-// wasi-libc's setjmp.h needs exception handling, so wasi keeps task panics fatal.
+// wasi-libc's setjmp.h needs exception handling and a wasm backend has no jump of its own, so wasm keeps task panics fatal.
 func wantsTaskCatch(t Target) bool {
-	return !t.Bare() && t.OS != "wasi"
+	if t.OS == "wasi" {
+		return false
+	}
+	return !t.Bare() || bareJumpTarget(t)
+}
+
+// Only the x86 backends lower __builtin_setjmp, the one jump that needs no libc.
+func bareJumpTarget(t Target) bool {
+	return t.Bare() && (t.Arch == "amd64" || t.Arch == "386")
 }
 
 // buildOnce is BuildWith's single-build implementation; buildReproducible
@@ -74,6 +82,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	}
 	if wantsTaskCatch(t) {
 		args = append(args, "-DKIGUMI_TASK_CATCH")
+	}
+	if bareJumpTarget(t) {
+		args = append(args, "-DKIGUMI_TASK_CATCH_BUILTIN")
 	}
 	for _, cap := range code.Capabilities {
 		args = append(args, "-D"+cap)

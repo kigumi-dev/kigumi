@@ -31,6 +31,7 @@ func (r *Result) rootRunner() EntityID {
 // bind to it — and so does an interface requirement.
 type rootRun struct {
 	runner EntityID
+	final  string
 	dist   map[EntityID]int
 	bind   map[EntityID]EffectEdge
 	// invoked marks a parameter actually invoked, directly or through a
@@ -64,7 +65,12 @@ func (rr *rootRun) hops(target EntityID) int {
 
 // inferRootRun is checkInterruptHandlers' fixpoint shape over call edges.
 func (r *Result) inferRootRun(nodes []EntityID, runner EntityID) *rootRun {
-	rr := &rootRun{runner: runner, dist: map[EntityID]int{}, bind: map[EntityID]EffectEdge{}, invoked: map[EntityID]bool{},
+	return r.inferRunnerReach(nodes, runner, "drives a new root task here", false)
+}
+
+// syncOnly skips async bodies, which run inside a task and never on their caller's thread.
+func (r *Result) inferRunnerReach(nodes []EntityID, runner EntityID, final string, syncOnly bool) *rootRun {
+	rr := &rootRun{runner: runner, final: final, dist: map[EntityID]int{}, bind: map[EntityID]EffectEdge{}, invoked: map[EntityID]bool{},
 		impls: r.ifaceReqImpls(), witness: map[EntityID]EntityID{}, paramWitness: map[EntityID][]EntityID{}, openParam: map[EntityID]bool{},
 		poisonedFnField: map[EntityID]OpHop{}, poisonAt: map[bindSite]OpHop{}}
 	r.rootRunPoisonedFnFields(rr)
@@ -87,6 +93,9 @@ func (r *Result) inferRootRun(nodes []EntityID, runner EntityID) *rootRun {
 			}
 			if r.rootRunFieldBind(id, rr) {
 				changed = true
+			}
+			if syncOnly && r.Entities[id].Kind == EntFn && r.Fn(id).Declared&EffAsync != 0 {
+				continue
 			}
 			if d := r.rootRunDist(id, rr); d > 0 && (rr.dist[id] == 0 || d < rr.dist[id]) {
 				rr.dist[id], changed = d, true

@@ -120,6 +120,15 @@ type Result struct {
 	fieldPoisonSite map[fieldFnKey]fieldPoisonSiteInfo
 	// literalFieldEnts caches literalFieldEnt's synthetic entity per literal node.
 	literalFieldEnts        map[literalEntKey]EntityID
+	fnUnions                []fnUnion
+	fieldFnSites            map[fieldSiteKey]fieldPoisonSiteInfo
+	edgeFnSites             map[edgeSiteKey]fieldPoisonSiteInfo
+	fieldKeyByEnt           map[EntityID]fieldFnKey
+	nestedCalled            map[EntityID][]nestedFieldKey
+	fnResults               map[EntityID]*fnResult
+	fnResultWrites          []fnResultWrite
+	resultEnts              map[literalEntKey]EntityID
+	fnResultEnts            map[EntityID]EntityID
 	identPaths              map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID
 	pendingWitnessCallbacks []pendingWitnessCallback
 	// lifetimeEscapeSeen dedupes an escaping (carrier, arg) pair.

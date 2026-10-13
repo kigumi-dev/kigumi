@@ -69,3 +69,33 @@ func (m *Machine) unwindSet(fr *frame) []mir.LocalID {
 	defer m.sh.derived.Unlock()
 	return m.p.UnwindPlanOf(fr.f).SetAt(fr.blk, fr.pc)
 }
+
+// Outside a task a panic goes straight up, as in native where it is fatal.
+func (m *Machine) releaseJoined(v *obj, fault *Panic) (out *Panic) {
+	if m.cur == nil || v == nil {
+		m.release(v)
+		return fault
+	}
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		p, ok := r.(*Panic)
+		if !ok || p.Sandbox {
+			panic(r)
+		}
+		out = p
+		if fault != nil {
+			out = joinPanic(fault, p)
+		}
+	}()
+	m.release(v)
+	return fault
+}
+
+func (m *Machine) raiseJoined(fault *Panic) {
+	if fault != nil {
+		panic(fault)
+	}
+}

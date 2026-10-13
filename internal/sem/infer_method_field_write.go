@@ -46,6 +46,9 @@ func (r *Result) closeMethodFieldWrites() {
 				changed = true
 			}
 		}
+		if r.applyUnions() || r.applyFnResultWrites() {
+			changed = true
+		}
 	}
 }
 
@@ -114,7 +117,7 @@ func (r *Result) applyFieldKeySummary(site methodFieldCallSite, field, calleeFn,
 		return r.poisonFieldKeyAt(dstKey, site.file, site.node)
 	}
 	changed := false
-	if fns := r.knownFieldFn[srcKey]; len(fns) > 0 && r.joinKnownFieldFn(dstKey, fns) {
+	if fns := r.knownFieldFn[srcKey]; len(fns) > 0 && r.joinKnownFieldFnAt(dstKey, fns, fnSiteSrc{from: srcKey, hasFrom: true, file: site.file, node: site.node}) {
 		changed = true
 	}
 	srcParamEnt, tracked := r.fieldParamEnts[srcKey]
@@ -150,7 +153,7 @@ func (r *Result) applyFieldKeySummary(site methodFieldCallSite, field, calleeFn,
 func (r *Result) applyUntracedSummaryWrite(site methodFieldCallSite, dstKey fieldFnKey, e EffectEdge) bool {
 	switch src := r.Entities[e.Target]; {
 	case e.Kind == EdgeFieldBind && (src.Kind == EntFn || src.Kind == EntClosure):
-		return r.joinKnownFieldFn(dstKey, []EntityID{e.Target})
+		return r.joinKnownFieldFnAt(dstKey, []EntityID{e.Target}, fnSiteSrc{file: site.file, node: site.node})
 	case e.Kind == EdgeIfaceArg && r.isLiteralFieldEnt(e.Target):
 		return r.joinLocalWitness(r.fieldParamEnt(dstKey), r.localWitness[e.Target])
 	}

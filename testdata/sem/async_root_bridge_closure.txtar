@@ -138,6 +138,11 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
 71 |     h.cb() //~ ERROR cannot run inside an `async fn`
    |     ^^^^^
    = help: `await` the future instead
+note: this closure is stored in the field here
+  --> app/t/t.kg:70:26
+   |
+70 |     let h = Holder { cb: () => syncRoot() }
+   |                          ^^^^^^^^^^^^^^^
 note: calls `syncRoot`
   --> app/t/t.kg:70:32
    |
@@ -182,6 +187,11 @@ note: this closure is bound to `h.cb` here
    |
 75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: this closure is stored in the field here
+  --> app/t/t.kg:75:24
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |                        ^^^^^^^^^^^^^^^
 note: calls `syncRoot`
   --> app/t/t.kg:75:30
    |
@@ -209,6 +219,11 @@ note: this closure is bound to `h.cb` here
    |
 75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: this closure is stored in the field here
+  --> app/t/t.kg:75:24
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |                        ^^^^^^^^^^^^^^^
 note: calls `syncRoot`
   --> app/t/t.kg:75:30
    |
@@ -236,6 +251,11 @@ note: this closure is bound to `h.cb` here
    |
 75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: this closure is stored in the field here
+  --> app/t/t.kg:75:24
+   |
+75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
+   |                        ^^^^^^^^^^^^^^^
 note: calls `syncRoot`
   --> app/t/t.kg:75:30
    |
@@ -253,6 +273,11 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
 99 |     h.cb() //~ ERROR cannot run inside an `async fn`
    |     ^^^^^
    = help: `await` the future instead
+note: this closure is stored in the field here
+  --> app/t/t.kg:98:12
+   |
+98 |     h.cb = () => syncRoot()
+   |            ^^^^^^^^^^^^^^^
 note: calls `syncRoot`
   --> app/t/t.kg:98:18
    |

@@ -76,10 +76,23 @@ func TestAsyncMobilityFollowsAwaitedOperand(t *testing.T) {
 	if free.Mobility != sem.MobilityMigratable {
 		t.Errorf("chain: mobility=%v boundBy=%q, want migratable", free.Mobility, free.BoundBy)
 	}
-	q := analyzeFixture(t, "async_thread_handoff.txtar")
-	bound := q.R.Fn(asyncFunc(t, q, "main.root").Ent)
-	if bound.Mobility != sem.MobilityExecutorBound || bound.BoundBy != "Executor" {
-		t.Errorf("root: mobility=%v boundBy=%q, want executor-bound by Executor", bound.Mobility, bound.BoundBy)
+	q := analyzeFixture(t, "async_thread_bound_await.txtar")
+	direct := q.R.Fn(asyncFunc(t, q, "main.direct").Ent)
+	if direct.Mobility != sem.MobilityExecutorBound || direct.BoundBy != "Res" {
+		t.Errorf("direct: mobility=%v boundBy=%q, want executor-bound by Res", direct.Mobility, direct.BoundBy)
+	}
+	viaTask := q.R.Fn(asyncFunc(t, q, "main.viaTask").Ent)
+	if viaTask.Mobility != sem.MobilityMigratable {
+		t.Errorf("viaTask: mobility=%v boundBy=%q, want migratable", viaTask.Mobility, viaTask.BoundBy)
+	}
+}
+
+// Executor is Send, so a body holding one can be handed to another executor.
+func TestAsyncMobilityExecutorIsMigratable(t *testing.T) {
+	p := analyzeFixture(t, "async_thread_handoff.txtar")
+	root := p.R.Fn(asyncFunc(t, p, "main.root").Ent)
+	if root.Mobility != sem.MobilityMigratable || root.BoundBy != "" {
+		t.Errorf("root: mobility=%v boundBy=%q, want migratable", root.Mobility, root.BoundBy)
 	}
 }
 

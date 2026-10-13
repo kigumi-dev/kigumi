@@ -1,0 +1,49 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+async fn child() -> Int {
+    let r = Res { id: 1 }
+    defer print "cleanup a"
+    defer {
+        print "cleanup b"
+        panic("in defer")
+    }
+    let v = await tick()
+    v
+}
+
+async fn sibling() -> Int {
+    let v = await tick()
+    print "sibling ${v}"
+    v
+}
+
+async fn root() -> Int {
+    let a = task.spawn(child())
+    let b = task.spawn(sibling())
+    let y = await b
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+cleanup b
+drop 1
+sibling 1
+-- stderr --
+panic: in defer
+-- exit --
+2

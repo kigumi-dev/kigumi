@@ -36,6 +36,7 @@ func check(mod *Module) *Result {
 	r.closeLateFieldEdges()
 	r.retractPoisonedBindings()
 	r.checkRootBridges()
+	r.checkForeignWake()
 	r.checkNomono()
 	r.reportUnused()
 	r.emit()

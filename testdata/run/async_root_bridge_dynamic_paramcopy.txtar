@@ -18,14 +18,13 @@ fn syncRoot() -> Int {
     ex.runToCompletion(leaf(7))
 }
 
-fn mkWrap() -> Wrap {
-    Wrap { inner: Holder { cb: syncRoot } }
+fn viaCopy(w: Wrap) -> Int {
+    let mut h = w.inner
+    h.cb()
 }
 
 async fn outer() -> Int {
-    let w = mkWrap()
-    let h = w.inner
-    h.cb()
+    viaCopy(Wrap { inner: Holder { cb: syncRoot } })
 }
 
 print "start"

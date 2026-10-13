@@ -342,6 +342,11 @@ note: `syncRoot` is bound to `h.cb` here
    |
 52 |     callH(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:60:12
+   |
+60 |     h.cb = syncRoot
+   |            ^^^^^^^^
 note: drives a new root task here
   --> app/t/t.kg:9:5
    |
@@ -467,6 +472,11 @@ note: `syncRoot` is bound to `h.cb` here
     |
  52 |     callH(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:60:12
+    |
+ 60 |     h.cb = syncRoot
+    |            ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |
@@ -489,6 +499,11 @@ note: `syncRoot` is bound to `h.cb` here
     |
  52 |     callH(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:60:12
+    |
+ 60 |     h.cb = syncRoot
+    |            ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |
@@ -511,6 +526,11 @@ note: `syncRoot` is bound to `h.cb` here
     |
  52 |     callH(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:60:12
+    |
+ 60 |     h.cb = syncRoot
+    |            ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |
@@ -533,6 +553,11 @@ note: `syncRoot` is bound to `h.cb` here
     |
  52 |     callH(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:60:12
+    |
+ 60 |     h.cb = syncRoot
+    |            ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |
@@ -545,6 +570,11 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
 258 |     w.inner.cb() //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^
     = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:256:26
+    |
+256 |     let h = Holder { cb: syncRoot }
+    |                          ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |

@@ -30,6 +30,9 @@ func (r *Result) forwardSubst(caller EntityID, e EffectEdge, subst map[EntityID]
 			if !ok && (r.Entities[ie.Target].Kind == EntFn || r.Entities[ie.Target].Kind == EntClosure) {
 				w, ok = []EntityID{ie.Target}, true
 			}
+			if !ok {
+				w, ok = r.placeWriters(caller, ie.Target, subst)
+			}
 		default:
 			continue
 		}
@@ -45,7 +48,7 @@ func (r *Result) forwardSubst(caller EntityID, e EffectEdge, subst map[EntityID]
 		if out == nil {
 			out = map[EntityID][]EntityID{}
 		}
-		if ie.Kind == EdgeFieldBind {
+		if ie.Kind == EdgeFieldBind || ie.Kind == EdgeFnBoundArg {
 			out[ie.Param] = append(out[ie.Param], w...)
 		} else {
 			out[ie.Param] = w
@@ -132,4 +135,25 @@ func (r *Result) forwardHops(caller EntityID, e EffectEdge, subst map[EntityID][
 // edgeHops is forwardHops with no inherited subst and a fresh visited set.
 func (r *Result) edgeHops(caller EntityID, e EffectEdge, rr *rootRun) int {
 	return r.forwardHops(caller, e, nil, rr, map[EntityID]bool{caller: true})
+}
+
+func (r *Result) placeWriters(caller, place EntityID, subst map[EntityID][]EntityID) ([]EntityID, bool) {
+	if r.Entities[place].Kind != EntFieldParam || len(r.fieldBindOwners[place]) == 0 {
+		return nil, false
+	}
+	var out []EntityID
+	for _, we := range r.edgesOf(caller) {
+		if we.Kind != EdgeFieldBind || we.Param != place {
+			continue
+		}
+		if w, ok := subst[we.Target]; ok {
+			out = append(out, w...)
+			continue
+		}
+		if k := r.Entities[we.Target].Kind; k != EntFn && k != EntClosure {
+			return nil, false
+		}
+		out = append(out, we.Target)
+	}
+	return out, len(out) > 0
 }

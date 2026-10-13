@@ -17,10 +17,17 @@ func (m *Machine) handoffTask(ex *executor, fut *obj) *obj {
 	if !m.futureMobile(fut) {
 		m.abort("this future is bound to its own executor and cannot be handed to another one")
 	}
-	if ex != m.cur.ex && ex.workers == 0 && !ex.driving {
+	if ex != m.cur.ex && !m.executorHasAgent(ex) {
 		m.abort("this executor has no worker and is not running a task tree, so it cannot take a handed-off task")
 	}
 	return m.startTask(ex, fut, true)
+}
+
+// executorHasAgent reads driving under the scheduler lock, since another lane sets it.
+func (m *Machine) executorHasAgent(ex *executor) bool {
+	m.sh.sched.Lock()
+	defer m.sh.sched.Unlock()
+	return ex.workers > 0 || ex.driving
 }
 
 // Admission is one linearization point: a child joins its parent's kid list

@@ -56,6 +56,7 @@ type checker struct {
 	patBorrowMut bool
 	contracts    []Effects
 	lambdas      []*lambdaCtx
+	retLeaves    []syntax.NodeID
 	// captureSites indexes every Capture entry recorded for a local, across
 	// closures open and closed, so a write seen after a closure finishes can
 	// still promote that closure's entry.
@@ -136,6 +137,7 @@ func (r *Result) checkFnBody(id EntityID) {
 		}
 	}
 	c.checkBodyBlock(info.Body)
+	c.recordResultLeaves(info.Body)
 	c.settleInlineAt(true)
 	c.flushFieldWrites()
 	if r.DirectResultType(id, c.retType) == 0 {

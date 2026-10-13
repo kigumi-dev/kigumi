@@ -1,12 +1,16 @@
 package sem
 
 func (r *Result) reportRootBridge(id EntityID, rr *rootRun) {
+	r.reportRunnerReach(id, rr, cRootBridgeInTask)
+}
+
+func (r *Result) reportRunnerReach(id EntityID, rr *rootRun, code Code, args ...any) {
 	hops := r.rootRunHops(id, rr)
 	file, node := r.Entities[id].File, r.Entities[id].Node
 	if len(hops) > 0 {
 		file, node = hops[0].File, hops[0].Node
 	}
-	d, ok := r.diagAt(file, node, cRootBridgeInTask)
+	d, ok := r.diagAt(file, node, code, args...)
 	if !ok {
 		return
 	}
@@ -44,6 +48,9 @@ func (r *Result) rootRunHops(id EntityID, rr *rootRun) []OpHop {
 		if r.Entities[cur].Kind == EntParam || r.Entities[cur].Kind == EntFieldParam {
 			e := rr.bind[cur]
 			hops = append(hops, OpHop{e.File, e.Node, r.boundHopText(cur, e.Target)})
+			if w, ok := r.fieldWriteHop(e); ok {
+				hops = append(hops, w)
+			}
 			cur, subst = e.Target, nil
 			continue
 		}
@@ -57,9 +64,12 @@ func (r *Result) rootRunHops(id EntityID, rr *rootRun) []OpHop {
 			break
 		}
 		if next == 0 {
-			return append(hops, OpHop{e.File, e.Node, "drives a new root task here"})
+			return append(hops, OpHop{e.File, e.Node, rr.final})
 		}
 		hops = append(hops, OpHop{e.File, e.Node, "calls `" + r.Entities[next].Name + "`"})
+		if wh, ok := r.fieldWriteHop(*e); ok && e.Kind == EdgeKnownCall {
+			hops = append(hops, wh)
+		}
 		if w != 0 {
 			hops = append(hops, OpHop{r.Entities[w].File, r.Entities[w].Node, r.witnessHopText(next, w)})
 			cur, subst = w, nil

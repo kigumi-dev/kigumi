@@ -84,6 +84,8 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 				c.deferToFieldParam(p, fld)
 				c.stashFieldFact(n, NarrowFact{Kind: FactPureField, Param: p})
 				c.edge(EffectEdge{Kind: EdgeKnownCall, Target: c.r.fieldParamEnt(fieldFnKey{Ent: p, Field: fld}), Node: n})
+			} else if place, ok := c.nestedParamPlace(base); ok {
+				c.nestedFieldCall(n, place, fld)
 			}
 			return c.callValue(n, callee, resolved, args, want)
 		}

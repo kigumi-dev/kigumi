@@ -1,0 +1,30 @@
+-- app/t/t.kg --
+import task from std/task
+
+fn ship[T: Send](x: T) -> Unit {}
+
+fn share[T: Sync](x: &T) -> Unit {}
+
+async fn drive(pool: task.Executor) -> Int {
+    42
+}
+
+fn use(pool: task.Executor, other: task.Executor) -> Unit {
+    ship(pool)
+    ship(drive(other)) //~ ERROR `Future[Int]` does not satisfy `Send`: it cannot move to another thread
+    share(&pool) //~ ERROR `Executor` does not satisfy `Sync`: it cannot be shared between threads
+}
+
+-- expect --
+error[E300]: `Future[Int]` does not satisfy `Send`: it cannot move to another thread
+  --> app/t/t.kg:13:5
+   |
+13 |     ship(drive(other)) //~ ERROR `Future[Int]` does not satisfy `Send`: it cannot move to another thread
+   |     ^^^^^^^^^^^^^^^^
+
+error[E300]: `Executor` does not satisfy `Sync`: it cannot be shared between threads
+  --> app/t/t.kg:14:5
+   |
+14 |     share(&pool) //~ ERROR `Executor` does not satisfy `Sync`: it cannot be shared between threads
+   |     ^^^^^^^^^^^
+

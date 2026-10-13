@@ -27,27 +27,30 @@ func (m *Machine) suspendPoint(fu *future, in *mir.Inst) (*obj, polled) {
 }
 
 // dropFrame releases the parked operand first, then locals in reverse slot order.
+// Inside a task a drop that panics joins the fault and the rest still drop.
 func (m *Machine) dropFrame(fu *future) {
 	fu.done = true
+	var fault *Panic
 	if fu.awaited != nil {
 		v := fu.awaited
 		fu.awaited = nil
-		m.release(v)
+		fault = m.releaseJoined(v, fault)
 	}
 	co := fu.co
 	if co == nil {
+		m.raiseJoined(fault)
 		return
 	}
 	fu.co = nil
 	f := co.fr.f
-	if fu.at >= len(f.Cleanup) {
-		return
+	if fu.at < len(f.Cleanup) {
+		for _, l := range f.Cleanup[fu.at] {
+			v := co.fr.locals[l]
+			co.fr.locals[l] = nil
+			fault = m.releaseJoined(v, fault)
+		}
 	}
-	for _, l := range f.Cleanup[fu.at] {
-		v := co.fr.locals[l]
-		co.fr.locals[l] = nil
-		m.release(v)
-	}
+	m.raiseJoined(fault)
 }
 
 func (m *Machine) unwindFutures(root *obj) {

@@ -14,8 +14,13 @@ fn safeFn() -> Int {
     9
 }
 
-fn pickCb(risky: Bool) -> fn() -> Int {
+fn chooseCb(risky: Bool) -> fn() -> Int {
     if risky { syncRoot } else { safeFn }
+}
+
+fn pickCb(risky: Bool) -> fn() -> Int {
+    let sel: fn(Bool) -> fn() -> Int = chooseCb
+    sel(risky)
 }
 
 type Holder = {
@@ -140,20 +145,20 @@ fn supply() -> Int {
 }
 -- expect --
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-  --> app/t/t.kg:35:5
+  --> app/t/t.kg:40:5
    |
-35 |     firstRead(h) //~ ERROR cannot run inside an `async fn`
+40 |     firstRead(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^^^
    = help: `await` the future instead
 note: calls `h.cb`
-  --> app/t/t.kg:25:5
+  --> app/t/t.kg:30:5
    |
-25 |     h.cb()
+30 |     h.cb()
    |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-  --> app/t/t.kg:35:5
+  --> app/t/t.kg:40:5
    |
-35 |     firstRead(h) //~ ERROR cannot run inside an `async fn`
+40 |     firstRead(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^^^
 note: drives a new root task here
   --> app/t/t.kg:9:5
@@ -162,37 +167,37 @@ note: drives a new root task here
    |     ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-  --> app/t/t.kg:41:5
+  --> app/t/t.kg:46:5
    |
-41 |     firstRead(h) //~ ERROR cannot run inside an `async fn`
+46 |     firstRead(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^^^
    = help: `await` the future instead
 note: calls `h.cb`
-  --> app/t/t.kg:25:5
+  --> app/t/t.kg:30:5
    |
-25 |     h.cb()
+30 |     h.cb()
    |     ^^^^^
 note: `cb` was written to an unresolved value here, and could hold any fn
-  --> app/t/t.kg:40:12
+  --> app/t/t.kg:45:12
    |
-40 |     h.cb = pickCb(true)
+45 |     h.cb = pickCb(true)
    |            ^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-  --> app/t/t.kg:57:5
+  --> app/t/t.kg:62:5
    |
-57 |     midRead(h) //~ ERROR cannot run inside an `async fn`
+62 |     midRead(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^
    = help: `await` the future instead
 note: calls `h.cb`
-  --> app/t/t.kg:67:5
+  --> app/t/t.kg:72:5
    |
-67 |     h.cb()
+72 |     h.cb()
    |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-  --> app/t/t.kg:57:5
+  --> app/t/t.kg:62:5
    |
-57 |     midRead(h) //~ ERROR cannot run inside an `async fn`
+62 |     midRead(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^
 note: drives a new root task here
   --> app/t/t.kg:9:5
@@ -201,81 +206,81 @@ note: drives a new root task here
    |     ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-  --> app/t/t.kg:63:5
+  --> app/t/t.kg:68:5
    |
-63 |     midRead(h) //~ ERROR cannot run inside an `async fn`
+68 |     midRead(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^
    = help: `await` the future instead
 note: calls `h.cb`
-  --> app/t/t.kg:67:5
+  --> app/t/t.kg:72:5
    |
-67 |     h.cb()
+72 |     h.cb()
    |     ^^^^^
 note: `cb` was written to an unresolved value here, and could hold any fn
-  --> app/t/t.kg:62:12
+  --> app/t/t.kg:67:12
    |
-62 |     h.cb = pickCb(true)
+67 |     h.cb = pickCb(true)
    |            ^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-  --> app/t/t.kg:83:5
-   |
-83 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
-   |     ^^^^^^^^^^
-   = help: `await` the future instead
-note: calls `h.cb`
-  --> app/t/t.kg:99:5
-   |
-99 |     h.cb()
-   |     ^^^^^
-note: `syncRoot` is bound to `h.cb` here
-  --> app/t/t.kg:83:5
-   |
-83 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
-   |     ^^^^^^^^^^
-note: drives a new root task here
-  --> app/t/t.kg:9:5
-   |
- 9 |     ex.runToCompletion(work())
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-  --> app/t/t.kg:89:5
-   |
-89 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
-   |     ^^^^^^^^^^
-   = help: `await` the future instead
-note: calls `h.cb`
-  --> app/t/t.kg:99:5
-   |
-99 |     h.cb()
-   |     ^^^^^
-note: `cb` was written to an unresolved value here, and could hold any fn
-  --> app/t/t.kg:88:12
-   |
-88 |     h.cb = pickCb(true)
-   |            ^^^^^^^^^^^
-
-error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-   --> app/t/t.kg:111:5
+   --> app/t/t.kg:88:5
     |
-111 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
+ 88 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^
     = help: `await` the future instead
 note: calls `h.cb`
-   --> app/t/t.kg:99:5
+   --> app/t/t.kg:104:5
     |
- 99 |     h.cb()
+104 |     h.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `h.cb` here
+   --> app/t/t.kg:88:5
+    |
+ 88 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:94:5
+    |
+ 94 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:104:5
+    |
+104 |     h.cb()
+    |     ^^^^^
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:93:12
+    |
+ 93 |     h.cb = pickCb(true)
+    |            ^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:116:5
+    |
+116 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `h.cb`
+   --> app/t/t.kg:104:5
+    |
+104 |     h.cb()
     |     ^^^^^
 note: this closure is bound to `h.cb` here
-   --> app/t/t.kg:111:5
+   --> app/t/t.kg:116:5
     |
-111 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
+116 |     lastRead(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^
 note: calls `syncRoot`
-   --> app/t/t.kg:110:18
+   --> app/t/t.kg:115:18
     |
-110 |     h.cb = () => syncRoot()
+115 |     h.cb = () => syncRoot()
     |                  ^^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5

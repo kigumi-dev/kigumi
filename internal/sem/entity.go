@@ -77,6 +77,8 @@ const (
 	EfAddrTaken
 	// EfEscaping: the callee may keep this fn parameter (`escaping`, or implied by async/extern/bodiless).
 	EfEscaping
+	// EfResult marks an EntFieldParam standing for a call's returned record, not a record literal.
+	EfResult
 )
 
 type Entity struct {

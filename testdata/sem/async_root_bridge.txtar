@@ -762,8 +762,13 @@ fn unrelatedRiskyBorrowFieldWrite() -> Int {
 }
 
 // A fn type has no witness pool, so an unresolved write counts as reaching the runner.
-fn pickCb(risky: Bool) -> fn() -> Int {
+fn chooseCb(risky: Bool) -> fn() -> Int {
     if risky { syncRoot } else { safeFnBoundValue }
+}
+
+fn pickCb(risky: Bool) -> fn() -> Int {
+    let sel: fn(Bool) -> fn() -> Int = chooseCb
+    sel(risky)
 }
 
 async fn riskyUnresolvedFieldWrite() -> Int {
@@ -1048,9 +1053,9 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
     |             ^^
     = help: `await` the future instead
 note: `syncRoot` is bound to `cb` here
-   --> app/t/t.kg:828:42
+   --> app/t/t.kg:833:42
     |
-828 |     let a = ex.runToCompletion(paramRoot(syncRoot))
+833 |     let a = ex.runToCompletion(paramRoot(syncRoot))
     |                                          ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
@@ -1065,9 +1070,9 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
     |     ^^^
     = help: `await` the future instead
 note: `syncRoot` is bound to `cb` here
-   --> app/t/t.kg:830:45
+   --> app/t/t.kg:835:45
     |
-830 |     let b = ex2.runToCompletion(paramDirect(syncRoot))
+835 |     let b = ex2.runToCompletion(paramDirect(syncRoot))
     |                                             ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
@@ -1092,10 +1097,15 @@ note: `h.cb` is bound to `h.cb` here
  63 |     callField(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:832:33
+   --> app/t/t.kg:837:33
     |
-832 |     let c = ex3.runToCompletion(fieldRoot(Holder { cb: syncRoot }))
+837 |     let c = ex3.runToCompletion(fieldRoot(Holder { cb: syncRoot }))
     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:837:56
+    |
+837 |     let c = ex3.runToCompletion(fieldRoot(Holder { cb: syncRoot }))
+    |                                                        ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
     |
@@ -1650,6 +1660,11 @@ note: calls `syncRoot`
     |
 556 |     h.cb()
     |     ^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:555:13
+    |
+555 |     h.setCb(syncRoot)
+    |             ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
     |
@@ -1775,6 +1790,11 @@ note: `syncRoot` is bound to `g.cb` here
     |
 692 |     callGBoxField(g) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:691:37
+    |
+691 |     let g = GBox[fn() -> Int] { cb: syncRoot }
+    |                                     ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
     |
@@ -1797,6 +1817,11 @@ note: `syncRoot` is bound to `g.cb` here
     |
 692 |     callGBoxField(g) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:691:37
+    |
+691 |     let g = GBox[fn() -> Int] { cb: syncRoot }
+    |                                     ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
     |
@@ -1853,9 +1878,9 @@ note: drives a new root task here
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-   --> app/t/t.kg:771:5
+   --> app/t/t.kg:776:5
     |
-771 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+776 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^^^^
     = help: `await` the future instead
 note: calls `h.cb`
@@ -1864,15 +1889,15 @@ note: calls `h.cb`
 347 |     h.cb()
     |     ^^^^^
 note: `cb` was written to an unresolved value here, and could hold any fn
-   --> app/t/t.kg:770:12
+   --> app/t/t.kg:775:12
     |
-770 |     h.cb = pickCb(true)
+775 |     h.cb = pickCb(true)
     |            ^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-   --> app/t/t.kg:804:5
+   --> app/t/t.kg:809:5
     |
-804 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+809 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^^^^
     = help: `await` the future instead
 note: calls `h.cb`
@@ -1881,9 +1906,9 @@ note: calls `h.cb`
 347 |     h.cb()
     |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:804:5
+   --> app/t/t.kg:809:5
     |
-804 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
+809 |     callMutField(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
@@ -1892,9 +1917,9 @@ note: drives a new root task here
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-   --> app/t/t.kg:819:5
+   --> app/t/t.kg:824:5
     |
-819 |     callMutField(MutHolder { cb: pickCb(true) }) //~ ERROR cannot run inside an `async fn`
+824 |     callMutField(MutHolder { cb: pickCb(true) }) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     = help: `await` the future instead
 note: calls `h.cb`
@@ -1903,15 +1928,15 @@ note: calls `h.cb`
 347 |     h.cb()
     |     ^^^^^
 note: `cb` was written to an unresolved value here, and could hold any fn
-   --> app/t/t.kg:782:12
+   --> app/t/t.kg:787:12
     |
-782 |     h.cb = pickCb(true)
+787 |     h.cb = pickCb(true)
     |            ^^^^^^^^^^^
 
 error[E1292]: `ping` is exported to C and cannot be `async`: a C caller has no executor to drive the Future
-   --> app/t/t.kg:980:11
+   --> app/t/t.kg:985:11
     |
-980 |     async fn ping() -> Int { //~ ERROR exported to C and cannot be `async`
+985 |     async fn ping() -> Int { //~ ERROR exported to C and cannot be `async`
     |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     = help: export a synchronous wrapper that runs it to completion
 

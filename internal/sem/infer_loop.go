@@ -138,6 +138,9 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 	}
 	val := syntax.NodeID(node.Lhs)
 	c.check(val, c.retType)
+	if len(c.lambdas) == 0 {
+		c.retLeaves = append(c.retLeaves, val)
+	}
 	c.checkEscapeReturn(val)
 	c.consumeWhole(val)
 	return TyNever

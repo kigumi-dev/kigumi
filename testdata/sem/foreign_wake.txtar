@@ -1,0 +1,68 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn leaf() -> Int {
+    5
+}
+
+async fn spawner() -> task.Task[Int] {
+    task.spawn(leaf())
+}
+
+async fn canceller() -> Int {
+    let t = task.spawn(leaf())
+    t.cancel()
+    1
+}
+
+fn stop(t: task.Task[Int]) -> Unit {
+    t.cancel()
+}
+
+fn pump(n: Int) -> Int {
+    n + 1
+}
+
+export(C) {
+    pub fn viaHelper() -> Unit {
+        let ex = task.currentThreadExecutor()
+        let t = ex.runToCompletion(spawner())
+        stop(t) //~ ERROR `viaHelper` is exported to C and reaches `Task.cancel`
+    }
+
+    pub fn direct() -> Unit {
+        let ex = task.currentThreadExecutor()
+        let t = ex.runToCompletion(spawner())
+        t.cancel() //~ ERROR `direct` is exported to C and reaches `Task.cancel`
+    }
+
+    pub fn insideTask() -> Int {
+        let ex = task.currentThreadExecutor()
+        ex.runToCompletion(canceller())
+    }
+
+    pub fn unrelated(n: Int) -> Int {
+        pump(n)
+    }
+}
+
+-- expect --
+error[E1780]: `viaHelper` is exported to C and reaches `Task.cancel`: a C caller may run it on a thread the executor does not know, which cannot wake a task safely
+  --> app/t/t.kg:29:9
+   |
+29 |         stop(t) //~ ERROR `viaHelper` is exported to C and reaches `Task.cancel`
+   |         ^^^^^^
+   = help: call `cancel` from inside a task instead
+note: wakes a task here
+  --> app/t/t.kg:18:5
+   |
+18 |     t.cancel()
+   |     ^^^^^^^^^
+
+error[E1780]: `direct` is exported to C and reaches `Task.cancel`: a C caller may run it on a thread the executor does not know, which cannot wake a task safely
+  --> app/t/t.kg:35:9
+   |
+35 |         t.cancel() //~ ERROR `direct` is exported to C and reaches `Task.cancel`
+   |         ^^^^^^^^^
+   = help: call `cancel` from inside a task instead
+

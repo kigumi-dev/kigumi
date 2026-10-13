@@ -16,6 +16,10 @@ func (r *Result) fieldParamEnt(key fieldFnKey) EntityID {
 	name := p.Name + "." + r.Entities[key.Field].Name
 	id := r.newEntity(Entity{Kind: EntFieldParam, Name: name, Pkg: p.Pkg, File: p.File, Node: p.Node, Parent: key.Ent})
 	r.fieldParamEnts[key] = id
+	if r.fieldKeyByEnt == nil {
+		r.fieldKeyByEnt = map[EntityID]fieldFnKey{}
+	}
+	r.fieldKeyByEnt[id] = key
 	return id
 }
 
@@ -60,6 +64,10 @@ func (c *checker) applyFieldWrite(lhs, rhs syntax.NodeID) {
 			c.reassignRecordFields(p.Root, rhs)
 			return
 		}
+		if src := c.r.fnChainEnt(c.f, rhs); src != 0 && c.r.concretePlace(src) {
+			c.unionInto(c.r.canonEnt(p.Root), src, c.r.Entities[p.Root].Type, rhs)
+			return
+		}
 		for key := range c.r.fieldParamEnts {
 			if key.Ent == p.Root || c.r.nestedUnder(key.Ent, p.Root) && c.r.fnTypedFieldKey(key) {
 				c.poisonFieldKey(key)
@@ -98,6 +106,13 @@ func (c *checker) knownCallTargets(callee syntax.NodeID) []EntityID {
 	return nil
 }
 
+func (c *checker) knownFieldCallKeyOf(callee syntax.NodeID) (fieldFnKey, bool) {
+	if callee == 0 || c.t.Kind(callee) != syntax.MemberExpr {
+		return fieldFnKey{}, false
+	}
+	return c.knownFieldCallKey(callee)
+}
+
 func (c *checker) knownFieldCallKey(callee syntax.NodeID) (fieldFnKey, bool) {
 	field := c.info.Uses[callee]
 	if field == 0 || c.r.Entities[field].Kind != EntField {
@@ -105,7 +120,7 @@ func (c *checker) knownFieldCallKey(callee syntax.NodeID) (fieldFnKey, bool) {
 	}
 	base := syntax.NodeID(c.t.Nodes[callee].Lhs)
 	switch c.t.Kind(base) {
-	case syntax.Ident, syntax.MemberExpr:
+	case syntax.Ident, syntax.MemberExpr, syntax.CallExpr:
 		if baseEnt := c.r.fnChainEnt(c.f, base); baseEnt != 0 {
 			return fieldFnKey{Ent: baseEnt, Field: field}, true
 		}
@@ -120,61 +135,12 @@ func (c *checker) knownFieldCallEdges(n syntax.NodeID, fn EntityID, args []synta
 	if c.fn != 0 {
 		c.stageLateBindSite(n, fn, args, len(info.CalledFieldParams))
 	}
+	c.nestedArgEdges(n, fn, args, 0)
 	for _, key := range info.CalledFieldParams {
 		i := slices.Index(info.Params, key.Param)
 		if i < 0 || i >= len(args) || c.t.Kind(args[i]) == syntax.Spread {
 			continue
 		}
 		c.knownFieldArgEdge(n, args[i], fieldFnKey{Ent: key.Param, Field: key.Field})
-	}
-}
-
-func (c *checker) knownFieldArgEdge(n, arg syntax.NodeID, fk fieldFnKey) {
-	dst := c.r.fieldParamEnt(fk)
-	if c.t.Kind(arg) == syntax.RecordLit {
-		for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[arg].Rhs)) {
-			if c.t.Kind(entry) == syntax.Spread || c.info.Uses[entry] != fk.Field {
-				continue
-			}
-			c.bindFieldArgValue(n, syntax.NodeID(c.t.Nodes[entry].Lhs), fk, dst)
-			return
-		}
-		c.poisonFieldKey(fk)
-		return
-	}
-	if ent := c.r.fnChainEnt(c.f, arg); ent != 0 && !c.r.isLiteralFieldEnt(ent) {
-		c.bindIdentFieldArg(n, ent, fk.Field, dst)
-	}
-}
-
-// Anything but a record literal poisons fk; there is nothing left to defer to.
-func (c *checker) bindFieldArgValue(n, init syntax.NodeID, fk fieldFnKey, dst EntityID) {
-	if tgts := c.knownFnRefs(init); len(tgts) > 0 {
-		for _, tgt := range tgts {
-			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
-		}
-		return
-	}
-	if ent := c.identEnt(init); ent != 0 {
-		c.bindIdentFieldArg(n, ent, fk.Field, dst)
-		return
-	}
-	c.poisonFieldKey(fk)
-}
-
-func (c *checker) bindIdentFieldArg(n syntax.NodeID, ent, field, dst EntityID) {
-	switch c.r.Entities[ent].Kind {
-	case EntParam:
-		c.edge(EffectEdge{Kind: EdgeFieldBind, Target: c.r.fieldParamEnt(fieldFnKey{Ent: ent, Field: field}), Param: dst, Node: n})
-	case EntLocal, EntFieldParam:
-		if c.r.Entities[ent].Kind == EntFieldParam {
-			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: c.r.fieldParamEnt(fieldFnKey{Ent: ent, Field: field}), Param: dst, Node: n})
-		}
-		srcKey := fieldFnKey{Ent: ent, Field: field}
-		for _, tgt := range c.r.knownFieldFn[srcKey] {
-			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
-		}
-		c.stageLateFieldEdge(EdgeFieldBind, srcKey, dst, n)
-		c.r.fieldPoisonForwards = append(c.r.fieldPoisonForwards, fieldPoisonForward{src: srcKey, dst: dst, file: c.f, node: n})
 	}
 }

@@ -1,0 +1,70 @@
+-- src --
+import task from std/task
+
+type Bad = resource {
+    pub id Int
+}
+
+fn Bad.drop(move self) -> Unit {
+    print "bad ${self.id}"
+    panic("drop ${self.id}")
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn leaf() -> Int {
+    5
+}
+
+async fn grand() -> Int {
+    let g1 = Res { id: 31 }
+    let g2 = Bad { id: 32 }
+    let g3 = Bad { id: 33 }
+    let s = task.spawn(leaf())
+    let v = await s
+    v
+}
+
+async fn child() -> Int {
+    let a = Res { id: 21 }
+    let b = Bad { id: 22 }
+    let v = await grand()
+    v
+}
+
+async fn trivial() -> Int {
+    print "trivial"
+    0
+}
+
+async fn root() -> Int {
+    let v = task.spawn(child())
+    let k = task.spawn(trivial())
+    let r = await k
+    v.cancel()
+    print "cancelled"
+    await v
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+trivial
+cancelled
+bad 33
+bad 32
+drop 31
+bad 22
+drop 21
+-- stderr --
+panic: drop 33
+panic: drop 32
+panic: drop 22
+-- exit --
+2

@@ -1,4 +1,6 @@
 /// Runs one task tree: on the thread driving it, and on its own workers when it has any.
+/// Safety: every operation on the scheduler state takes its lock, and a drop on any lane leaves a busy pool to be joined by the driver.
+@unsafeGuarantee(Send)
 pub type Executor
 
 /// A running task; await it for its result.

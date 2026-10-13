@@ -2,7 +2,11 @@
 import task from std/task
 
 type Holder = {
-    pub mut cb fn() -> Int
+    pub cb fn() -> Int
+}
+
+type Wrap = {
+    pub inner Holder
 }
 
 async fn leaf(n: Int) -> Int {
@@ -14,20 +18,13 @@ fn syncRoot() -> Int {
     ex.runToCompletion(leaf(7))
 }
 
-fn safeRoot() -> Int {
-    9
-}
-
-fn callH(h: Holder) -> Int {
-    h.cb()
-}
-
-fn makeHolder() -> Holder {
-    Holder { cb: syncRoot }
+fn maybe() -> Option[Holder] {
+    Some(Holder { cb: syncRoot })
 }
 
 async fn outer() -> Int {
-    callH(makeHolder())
+    let h = maybe().unwrap()
+    h.cb()
 }
 
 print "start"

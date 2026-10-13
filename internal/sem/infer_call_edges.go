@@ -39,6 +39,11 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 			tgt := tt.Node(at).Ent
 			c.edge(EffectEdge{Kind: EdgeCallback, Target: tgt, Param: param, Node: a, Offloaded: offloaded})
 			c.fnBoundArgEdge(n, tgt, param)
+		case c.localKnownFns(a) != nil:
+			for _, tgt := range c.localKnownFns(a) {
+				c.edge(EffectEdge{Kind: EdgeCallback, Target: tgt, Param: param, Node: a, Offloaded: offloaded})
+				c.fnBoundArgEdge(n, tgt, param)
+			}
 		default:
 			c.stageFnFieldHandoff(n, a, param)
 			if shape := c.r.fnShapeOf(at); shape != 0 {
@@ -125,4 +130,14 @@ func (c *checker) variadicForm(args []syntax.NodeID, sig TypeID) VariadicForm {
 		return VariadicSpread
 	}
 	return VariadicElements
+}
+
+func (c *checker) localKnownFns(a syntax.NodeID) []EntityID {
+	if c.t.Kind(a) != syntax.Ident {
+		return nil
+	}
+	if ent := c.info.Uses[a]; ent == 0 || c.r.Entities[ent].Kind != EntLocal {
+		return nil
+	}
+	return c.knownFnRefs(a)
 }

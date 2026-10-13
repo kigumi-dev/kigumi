@@ -22,7 +22,7 @@ func (r *Result) applyFieldWriteExpr(file FileID, key fieldFnKey, expr syntax.No
 
 func (r *Result) applyFnFieldWriteExpr(file FileID, key fieldFnKey, expr syntax.NodeID, caller EntityID, call syntax.NodeID) bool {
 	if fns := r.chainKnownFnRefs(file, expr); len(fns) > 0 {
-		return r.joinKnownFieldFn(key, fns)
+		return r.joinKnownFieldFnAt(key, fns, fnSiteSrc{file: file, node: expr})
 	}
 	if ent := r.chainIdentEnt(file, expr); ent != 0 && r.Entities[ent].Kind == EntParam {
 		return r.addFieldBindEdge(caller, EdgeFieldBind, ent, key, file, call)
@@ -45,14 +45,7 @@ func (r *Result) applyWitnessFieldWriteExpr(file FileID, key fieldFnKey, expr sy
 }
 
 func (r *Result) joinKnownFieldFn(key fieldFnKey, add []EntityID) bool {
-	changed := false
-	for _, f := range add {
-		if !slices.Contains(r.knownFieldFn[key], f) {
-			r.knownFieldFn[key] = append(r.knownFieldFn[key], f)
-			changed = true
-		}
-	}
-	return changed
+	return r.joinKnownFieldFnAt(key, add, fnSiteSrc{})
 }
 
 // fieldBindOwners lets poisonFieldKeyGlobal retract an edge added before a later site poisons the key.

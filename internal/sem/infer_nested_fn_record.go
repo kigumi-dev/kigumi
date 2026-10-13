@@ -20,6 +20,9 @@ func (c *checker) recordNestedFnFields(key fieldFnKey, init syntax.NodeID) {
 	if src := c.r.fnChainEnt(c.f, init); src != 0 && c.r.Entities[src].Kind == EntLocal && c.r.Entities[src].Flags&EfMut == 0 {
 		c.copyNestedFnFields(src, c.r.nestedFnOwner(key), c.r.Entities[key.Field].Type, init, 0)
 		return
+	} else if src != 0 && c.r.concretePlace(src) {
+		c.unionInto(c.r.nestedFnOwner(key), src, c.r.Entities[key.Field].Type, init)
+		return
 	}
 	c.poisonNestedFnFields(key, init, nil)
 }

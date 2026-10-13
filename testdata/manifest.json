@@ -1745,9 +1745,9 @@
       ]
     },
     {
-      "id": "run/async_root_bridge_dynamic",
+      "id": "run/async_root_bridge_dynamic_array",
       "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic.txtar",
+      "path": "testdata/run/async_root_bridge_dynamic_array.txtar",
       "mode": [
         "vm",
         "native"
@@ -1766,30 +1766,9 @@
       }
     },
     {
-      "id": "run/async_root_bridge_dynamic_callee",
+      "id": "run/async_root_bridge_dynamic_closureresult",
       "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_callee.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
-      "requires": [
-        "c-compiler"
-      ],
-      "observes": [
-        "stdout",
-        "stderr",
-        "exit"
-      ],
-      "stderr": {
-        "type": "regex",
-        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
-      }
-    },
-    {
-      "id": "run/async_root_bridge_dynamic_callresult",
-      "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_callresult.txtar",
+      "path": "testdata/run/async_root_bridge_dynamic_closureresult.txtar",
       "mode": [
         "vm",
         "native"
@@ -1829,27 +1808,6 @@
       }
     },
     {
-      "id": "run/async_root_bridge_dynamic_inlinenested",
-      "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_inlinenested.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
-      "requires": [
-        "c-compiler"
-      ],
-      "observes": [
-        "stdout",
-        "stderr",
-        "exit"
-      ],
-      "stderr": {
-        "type": "regex",
-        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
-      }
-    },
-    {
       "id": "run/async_root_bridge_dynamic_mutreturn",
       "kind": "run",
       "path": "testdata/run/async_root_bridge_dynamic_mutreturn.txtar",
@@ -1871,9 +1829,51 @@
       }
     },
     {
-      "id": "run/async_root_bridge_dynamic_paramfield",
+      "id": "run/async_root_bridge_dynamic_option",
       "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_paramfield.txtar",
+      "path": "testdata/run/async_root_bridge_dynamic_option.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_paramcopy",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_paramcopy.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_passthrough",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_passthrough.txtar",
       "mode": [
         "vm",
         "native"
@@ -1991,6 +1991,69 @@
         "stderr",
         "exit"
       ]
+    },
+    {
+      "id": "run/async_task_cancel_drop_panic",
+      "kind": "run",
+      "path": "testdata/run/async_task_cancel_drop_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop 2\npanic: drop 1"
+      }
+    },
+    {
+      "id": "run/async_task_cancel_drop_panic_chain",
+      "kind": "run",
+      "path": "testdata/run/async_task_cancel_drop_panic_chain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop 33\npanic: drop 32\npanic: drop 22"
+      }
+    },
+    {
+      "id": "run/async_task_defer_panic",
+      "kind": "run",
+      "path": "testdata/run/async_task_defer_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: in defer"
+      }
     },
     {
       "id": "run/async_task_panic_array_with_mut",
@@ -2224,6 +2287,23 @@
       }
     },
     {
+      "id": "run/async_thread_bound_await",
+      "kind": "run",
+      "path": "testdata/run/async_thread_bound_await.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_thread_cancel",
       "kind": "run",
       "path": "testdata/run/async_thread_cancel.txtar",
@@ -2383,6 +2463,23 @@
       "id": "run/async_thread_handoff",
       "kind": "run",
       "path": "testdata/run/async_thread_handoff.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_thread_handoff_executor_send",
+      "kind": "run",
+      "path": "testdata/run/async_thread_handoff_executor_send.txtar",
       "mode": [
         "vm",
         "native"
@@ -8892,6 +8989,28 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_copy",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_fnbound",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_fnbound.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge_forward",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_forward.txtar",
@@ -8928,6 +9047,28 @@
       "id": "sem/async_root_bridge_order",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_order.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_param_nested",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_param_nested.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_result",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_result.txtar",
       "mode": [
         "check"
       ],
@@ -10014,6 +10155,17 @@
       ]
     },
     {
+      "id": "sem/foreign_wake",
+      "kind": "sem",
+      "path": "testdata/sem/foreign_wake.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/generic_callable_borrow",
       "kind": "sem",
       "path": "testdata/sem/generic_callable_borrow.txtar",
@@ -10226,6 +10378,17 @@
       "id": "sem/int128_reject",
       "kind": "sem",
       "path": "testdata/sem/int128_reject.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/isr_task_wake",
+      "kind": "sem",
+      "path": "testdata/sem/isr_task_wake.txtar",
       "mode": [
         "check"
       ],
@@ -10897,6 +11060,17 @@
       "id": "sem/send_sync_cycle",
       "kind": "sem",
       "path": "testdata/sem/send_sync_cycle.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/send_sync_executor",
+      "kind": "sem",
+      "path": "testdata/sem/send_sync_executor.txtar",
       "mode": [
         "check"
       ],

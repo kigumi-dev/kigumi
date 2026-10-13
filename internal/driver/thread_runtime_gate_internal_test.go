@@ -44,8 +44,12 @@ func TestWantsTaskCatch(t *testing.T) {
 		{"linux", Target{OS: "linux", Arch: "amd64", Sys: "posix"}, true},
 		{"macos", Target{OS: "darwin", Arch: "arm64", Sys: "posix"}, true},
 		{"wasi", Target{OS: "wasi", Arch: "wasm32", Sys: "posix"}, false},
-		{"freestanding", Target{OS: "freestanding", Arch: "wasm32", Sys: "none"}, false},
-		{"sys none", Target{OS: "linux", Arch: "amd64", Sys: "none"}, false},
+		{"freestanding wasm", Target{OS: "freestanding", Arch: "wasm32", Sys: "none"}, false},
+		{"freestanding x86_64", Target{OS: "freestanding", Arch: "amd64", Sys: "none"}, true},
+		{"uefi x86_64", Target{OS: "uefi", Arch: "amd64", Sys: "none"}, true},
+		{"freestanding aarch64", Target{OS: "freestanding", Arch: "arm64", Sys: "none"}, false},
+		{"sys none x86_64", Target{OS: "linux", Arch: "amd64", Sys: "none"}, true},
+		{"sys none riscv64", Target{OS: "linux", Arch: "riscv64", Sys: "none"}, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

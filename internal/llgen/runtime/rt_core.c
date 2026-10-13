@@ -37,10 +37,16 @@ static pthread_mutex_t g_sched = PTHREAD_MUTEX_INITIALIZER;
 #define SCHED_LOCK() ((void)0)
 #define SCHED_UNLOCK() ((void)0)
 #endif
-// Contained task panics need a libc, so bare and freestanding builds keep panic fatal.
-#if defined(KIGUMI_TASK_CATCH) && defined(KIGUMI_CAP_TASK_EXECUTOR) && !defined(KIGUMI_FREESTANDING)
+// A contained task panic needs a non-local jump: libc's where there is one, the compiler's own on a bare build.
+#if defined(KIGUMI_TASK_CATCH) && defined(KIGUMI_CAP_TASK_EXECUTOR) && (!defined(KIGUMI_FREESTANDING) || defined(KIGUMI_TASK_CATCH_BUILTIN))
 #define KG_CATCH 1
+#ifdef KIGUMI_TASK_CATCH_BUILTIN
+typedef void* kg_jmp_buf[5];
+#define KG_SETJMP(b) __builtin_setjmp(b)
+#define KG_LONGJMP(b) __builtin_longjmp(b, 1)
+#else
 #include <setjmp.h>
+typedef jmp_buf kg_jmp_buf;
 #ifdef _WIN32
 #define KG_SETJMP(b) setjmp(b)
 #define KG_LONGJMP(b) longjmp(b, 1)
@@ -48,8 +54,11 @@ static pthread_mutex_t g_sched = PTHREAD_MUTEX_INITIALIZER;
 #define KG_SETJMP(b) _setjmp(b)
 #define KG_LONGJMP(b) _longjmp(b, 1)
 #endif
-static KG_TLS jmp_buf* g_task_catch;
+#endif
+static KG_TLS kg_jmp_buf* g_task_catch;
 static KG_TLS char* g_fault_msg;
+static KG_TLS uint64_t g_fault_count;
+static KG_TLS int g_drop_depth, g_faulting;
 static void task_fault(const char* msg);
 // Records run before the longjmp; later calls would overwrite the dead frames.
 typedef struct kg_unwind {
@@ -279,10 +288,32 @@ static void report_live(void) {
     rt_sys_write(2, buf + n, (size_t)(sizeof buf - n));
 }
 #endif
+#ifdef KIGUMI_THREADS
+static pthread_mutex_t g_out = PTHREAD_MUTEX_INITIALIZER;
+#define OUT_LOCK() pthread_mutex_lock(&g_out)
+#define OUT_UNLOCK() pthread_mutex_unlock(&g_out)
+#else
+#define OUT_LOCK() ((void)0)
+#define OUT_UNLOCK() ((void)0)
+#endif
+// A line is one locked write sequence, so lines from parallel tasks never interleave.
+static void write_line(int fd, const char* pre, size_t pn, const char* p, size_t n) {
+    char buf[1024];
+    OUT_LOCK();
+    if (pn + n < sizeof buf) {
+        memcpy(buf, pre, pn);
+        memcpy(buf + pn, p, n);
+        buf[pn + n] = '\n';
+        rt_sys_write(fd, buf, pn + n + 1);
+    } else {
+        if (pn) rt_sys_write(fd, pre, pn);
+        rt_sys_write(fd, p, n);
+        rt_sys_write(fd, "\n", 1);
+    }
+    OUT_UNLOCK();
+}
 static void rt_fatal(const char* msg) {
-    rt_sys_write(2, "panic: ", 7);
-    rt_sys_write(2, msg, strlen(msg));
-    rt_sys_write(2, "\n", 1);
+    write_line(2, "panic: ", 7, msg, strlen(msg));
 #ifdef KIGUMI_LEAK_CHECK
     report_live();
 #endif
@@ -1593,9 +1624,7 @@ int rt_exit_code(val r) {
     r = deref(r);
     if (r && r->kind == K_VARIANT && r->u.var.v == V_Err) {
         val m = display(error_message(r->u.var.payload[0]));
-        rt_sys_write(2, "error: ", 7);
-        rt_sys_write(2, m->u.s.data, m->u.s.len);
-        rt_sys_write(2, "\n", 1);
+        write_line(2, "error: ", 7, m->u.s.data, m->u.s.len);
         return 1;
     }
     return 0;
@@ -1819,6 +1848,35 @@ val rt_future_new(val callee, int n, val* args) {
     for (int i = 0; i < n; i++) f->args[m++] = rt_retain(args[i]);
     return opaque("Future", f);
 }
+#ifdef KG_CATCH
+static int contained(void (*fn)(val), val arg);
+static void frame_slots_drop(val fut);
+static void frame_release(val fut);
+static void task_raise(void);
+// Inside a task a drop that panics joins the fault and the rest of the frame still drops; the outermost frame then raises it.
+static void frame_abandon(val fut) {
+    kgframe* f = frame_of(fut);
+    if (!g_task_catch) {
+        val a = f->awaited;
+        f->awaited = NULL;
+        rt_release(a);
+        if (f->state > 0 && f->desc->drop) f->desc->drop(fut);
+        f->state = -1;
+        return;
+    }
+    uint64_t seen = g_fault_count;
+    g_drop_depth++;
+    val a = f->awaited;
+    f->awaited = NULL;
+    if (a) contained(frame_release, a);
+    if (f->state > 0 && f->desc->drop)
+        while (!contained(frame_slots_drop, fut)) {
+        }
+    f->state = -1;
+    g_drop_depth--;
+    if (g_fault_count != seen && !g_drop_depth && !g_faulting) task_raise();
+}
+#else
 static void frame_abandon(val fut) {
     kgframe* f = frame_of(fut);
     val a = f->awaited;
@@ -1827,6 +1885,7 @@ static void frame_abandon(val fut) {
     if (f->state > 0 && f->desc->drop) f->desc->drop(fut);
     f->state = -1;
 }
+#endif
 static val poll_value(val v);
 static val poll_future(val fut) {
     kgframe* f = frame_of(fut);
@@ -2057,15 +2116,13 @@ static val iter_at(val it, val i, int mode) {
 val rt_builtin(const char* name, int n, val* args) {
     if (!strcmp(name, "print")) {
         val s = display(args[0]);
-        rt_sys_write(1, s->u.s.data, s->u.s.len);
-        rt_sys_write(1, "\n", 1);
+        write_line(1, "", 0, s->u.s.data, s->u.s.len);
         rt_release(s);
         return rt_unit();
     }
     if (!strcmp(name, "eprint")) {
         val s = display(args[0]);
-        rt_sys_write(2, s->u.s.data, s->u.s.len);
-        rt_sys_write(2, "\n", 1);
+        write_line(2, "", 0, s->u.s.data, s->u.s.len);
         rt_release(s);
         return rt_unit();
     }
