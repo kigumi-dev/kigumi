@@ -3,6 +3,7 @@ package mir
 import (
 	"fmt"
 
+	"kigumi/internal/hir"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 )
@@ -63,4 +64,11 @@ func LentMask(r *sem.Result, fn sem.EntityID) int {
 		i++
 	}
 	return mask
+}
+
+func (b *builder) requirementValue(e *hir.Expr, recv LocalID) LocalID {
+	if e.Witness == 0 {
+		return b.emit(Inst{Op: OpClosure, Dst: b.temp(e.Type), Ent: e.Ent, Args: []LocalID{recv}, Str: "method", Node: e.Node})
+	}
+	return b.emit(Inst{Op: OpClosure, Dst: b.temp(e.Type), Ent: e.Ent, Args: []LocalID{b.witnessLocal(e.Witness), recv}, Str: "witness", Node: e.Node})
 }

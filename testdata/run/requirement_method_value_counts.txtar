@@ -1,0 +1,36 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn Res.fetch(self, k: Int) -> Int { self.n + k }
+
+fn Res.getMove(move self, k: Int) -> Int { self.n + k }
+
+interface Getter {
+    fn fetch(self, k: Int) -> Int
+}
+
+fn viaParam[T: Getter](t: T) -> Int {
+    let m = t.fetch
+    m(1) + m(2)
+}
+
+fn viaExist(g: Getter) -> Int {
+    let m = g.fetch
+    m(1) + m(2)
+}
+
+print "${viaParam(Res { n: 10 })}"
+print "${viaExist(Res { n: 100 })}"
+print "done"
+-- stdout --
+drop res 10
+23
+drop res 100
+203
+done

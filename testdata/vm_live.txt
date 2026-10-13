@@ -38,13 +38,10 @@ fs_read_error.txtar 2
 generic_callable_withmut.txtar 1
 handle_table_cross_reuse.txtar 2
 json_decode.txtar 3
-lifetime_param_relabel.txtar 1
 lifetime_scope_exit_future_ok.txtar 1
-lifetime_view.txtar 1
 mut_param_closure_capture.txtar 1
 mut_ref_closure.txtar 2
 mut_ref_generic.txtar 2
-mut_ref_recv_field.txtar 2
 mut_ref_write_back.txtar 10
 mut_self_adt.txtar 6
 mut_self_dispatch.txtar 15

@@ -133,6 +133,10 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			res = e.cFnPtr(sb, in.Ent)
 			break
 		}
+		if e.r.Entity(e.r.Entity(in.Ent).Parent).Kind == sem.EntInterface && in.Op == mir.OpClosure {
+			res = e.requirementValue(sb, in, args)
+			break
+		}
 		arr := e.argArray(sb, args)
 		if fn, ok := e.p.ByEnt[in.Ent]; ok {
 			var sym string

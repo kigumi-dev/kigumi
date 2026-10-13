@@ -1,0 +1,169 @@
+-- src --
+type Box = resource {
+    pub mut n Int
+}
+
+fn Box.drop(move self) -> Unit {
+    print "drop box ${self.n}"
+}
+
+fn Box.bump(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+type Holder['a] = {
+    pub mut r &'a mut Box
+    pub mut tag Int
+}
+
+type Outer['a] = {
+    pub mut h Holder['a]
+    pub mut extra Int
+}
+
+fn bumpArg['a](b: &'a mut Box, k: Int) -> Unit {
+    b.bump(k)
+}
+
+fn viaArg['a](h: Holder['a]) -> Int {
+    bumpArg(h.r, 1)
+    1
+}
+
+fn viaLet['a](h: Holder['a]) -> Int {
+    let r = h.r
+    r.bump(2)
+    2
+}
+
+fn lend['a](h: Holder['a]) -> &'a mut Box {
+    h.r
+}
+
+fn viaReturn['a](h: Holder['a]) -> Int {
+    lend(h).bump(3)
+    3
+}
+
+fn twice(f: fn(Int) -> Unit) -> Unit {
+    f(4)
+    f(1)
+}
+
+fn viaClosure['a](h: Holder['a]) -> Int {
+    twice((k: Int) => bumpArg(h.r, k))
+    5
+}
+
+fn viaMatch['a](h: Holder['a]) -> Int {
+    match h {
+        Holder { r, tag } -> bumpArg(r, tag)
+    }
+    6
+}
+
+fn viaDestructure['a](h: Holder['a]) -> Int {
+    let Holder { r, tag } = h
+    bumpArg(r, tag)
+    7
+}
+
+fn rewrap['a](h: Holder['a], tag: Int) -> Holder['a] {
+    Holder { r: h.r, tag: tag }
+}
+
+fn viaRewrap['a](h: Holder['a]) -> Int {
+    let g = rewrap(rewrap(h, 3), 4)
+    bumpArg(g.r, g.tag)
+    8
+}
+
+fn viaSpread['a](h: Holder['a]) -> Int {
+    let g = Holder { ..h, tag: 9 }
+    bumpArg(g.r, g.tag)
+    9
+}
+
+fn nest['a](h: Holder['a]) -> Outer['a] {
+    Outer { h: h, extra: 10 }
+}
+
+fn viaNest['a](h: Holder['a]) -> Int {
+    let o = nest(h)
+    bumpArg(o.h.r, 5)
+    o.extra
+}
+
+fn pick['a, T](v: T) -> T { v }
+
+fn viaPick['a](h: Holder['a]) -> Int {
+    bumpArg(pick(h.r), 3)
+    11
+}
+
+fn viaOption['a](o: Holder['a]?) -> Int {
+    match o {
+        Some(h) -> {
+            bumpArg(h.r, 1)
+            12
+        }
+        None -> 0
+    }
+}
+
+fn capture['a](b: &'a mut Box) -> Int {
+    twice((k: Int) => bumpArg(b, k))
+    13
+}
+
+let mut a = Box { n: 0 }
+print "a ${viaArg(Holder { r: &mut a, tag: 0 })}"
+let mut b = Box { n: 10 }
+print "b ${viaLet(Holder { r: &mut b, tag: 0 })}"
+let mut c = Box { n: 20 }
+print "c ${viaReturn(Holder { r: &mut c, tag: 0 })}"
+let mut d = Box { n: 30 }
+print "d ${viaClosure(Holder { r: &mut d, tag: 0 })}"
+let mut e = Box { n: 40 }
+print "e ${viaMatch(Holder { r: &mut e, tag: 5 })}"
+let mut f = Box { n: 50 }
+print "f ${viaDestructure(Holder { r: &mut f, tag: 5 })}"
+let mut g = Box { n: 60 }
+print "g ${viaRewrap(Holder { r: &mut g, tag: 0 })}"
+let mut h = Box { n: 70 }
+print "h ${viaSpread(Holder { r: &mut h, tag: 0 })}"
+let mut i = Box { n: 80 }
+print "i ${viaNest(Holder { r: &mut i, tag: 0 })}"
+let mut j = Box { n: 90 }
+print "j ${viaPick(Holder { r: &mut j, tag: 0 })}"
+let mut k = Box { n: 100 }
+print "k ${viaOption(Some(Holder { r: &mut k, tag: 0 }))}"
+let mut l = Box { n: 110 }
+print "l ${capture(&mut l)}"
+print "done"
+-- stdout --
+a 1
+b 2
+c 3
+d 5
+e 6
+f 7
+g 8
+h 9
+i 10
+j 11
+k 12
+l 13
+done
+drop box 115
+drop box 101
+drop box 93
+drop box 85
+drop box 79
+drop box 64
+drop box 55
+drop box 45
+drop box 35
+drop box 23
+drop box 12
+drop box 1

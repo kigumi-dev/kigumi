@@ -50,8 +50,20 @@ func lendsOn(in Inst, out []bool) bool {
 // build.go's emit drops no reference, so a declared reference parameter keeps
 // the caller's count; a type parameter unified to one is owned like any value.
 func (p *Program) lentParam(in Inst, i int) bool {
+	if in.Op == OpRecord {
+		return p.borrowField(in.Ent, i)
+	}
 	t, ok := p.declaredParam(in, i)
 	return ok && p.R.Types.Kind(t) == sem.KRef
+}
+
+// A record does not own what a reference-typed field holds, so building one leaves the count with the caller.
+func (p *Program) borrowField(rec sem.EntityID, i int) bool {
+	if rec == 0 || p.R.Entity(rec).Kind != sem.EntType {
+		return false
+	}
+	fields := p.R.TypeDecl(rec).Fields
+	return i < len(fields) && p.R.Types.Kind(p.R.Entity(fields[i]).Type) == sem.KRef
 }
 
 // declaredParam is the type before instantiation, not the argument's actual type.

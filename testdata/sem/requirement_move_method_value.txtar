@@ -1,0 +1,64 @@
+-- src --
+interface Eater {
+    fn eat(move self) -> String
+}
+
+interface Shower {
+    fn show(self, k: Int) -> String
+}
+
+type R = resource {
+    pub n Int
+}
+
+fn R.drop(move self) -> Unit {}
+
+fn R.eat(move self) -> String { "ate" }
+
+fn R.show(self, k: Int) -> String { "show" }
+
+fn viaParam[T: Eater](t: T) -> String {
+    let m = t.eat //~ ERROR consumes its receiver
+    m()
+}
+
+fn viaCopyParam[T: Eater + Copy](t: T) -> String {
+    let m = t.eat //~ ERROR consumes its receiver
+    m()
+}
+
+fn viaExistential(t: Eater) -> String {
+    let m = t.eat //~ ERROR consumes its receiver
+    m()
+}
+
+fn directCall[T: Eater](t: T) -> String {
+    t.eat()
+}
+
+fn plainSelf[T: Shower](t: T) -> String {
+    let m = t.show
+    m(1)
+}
+-- expect --
+error[E1800]: `eat` consumes its receiver, so a method value on `T` could consume it twice
+  --> main/main.kg:20:13
+   |
+20 |     let m = t.eat //~ ERROR consumes its receiver
+   |             ^^^^^
+   = help: call it directly instead
+
+error[E1800]: `eat` consumes its receiver, so a method value on `T` could consume it twice
+  --> main/main.kg:25:13
+   |
+25 |     let m = t.eat //~ ERROR consumes its receiver
+   |             ^^^^^
+   = help: call it directly instead
+
+error[E1800]: `eat` consumes its receiver, so a method value on `Eater` could consume it twice
+  --> main/main.kg:30:13
+   |
+30 |     let m = t.eat //~ ERROR consumes its receiver
+   |             ^^^^^
+   = help: call it directly instead
+

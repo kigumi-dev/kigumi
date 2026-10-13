@@ -76,6 +76,9 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return b.emit(Inst{Op: OpFieldMove, Dst: b.temp(t), Args: []LocalID{base}, Index: e.Index, Node: n})
 	case hir.MethodValue:
 		recv := b.expr(e.Args[0])
+		if b.r.Entity(b.r.Entity(e.Ent).Parent).Kind == sem.EntInterface {
+			return b.requirementValue(e, recv)
+		}
 		if b.r.Fn(e.Ent).Recv == sem.RecvMut {
 			recv = b.emit(Inst{Op: OpNewCell, Dst: b.temp(b.fn.Locals[recv].Type), Args: []LocalID{recv}, Node: n})
 		}

@@ -1,0 +1,36 @@
+-- app/a/a.kg --
+pub type Guard = {
+    pub mut amount Int
+}
+
+fn Guard.grow(mut self, k: String) -> Unit {
+    self = Guard { amount: 0 }
+}
+
+pub type Pad = {
+    pub mut n Int
+}
+
+pub fn Pad.grow(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+pub type Holder['a] = {
+    pub mut r &'a mut Pad
+}
+-- app/b/b.kg --
+pub interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+}
+
+pub fn growAny[G: Grower](x: &mut G, k: Int) -> Unit {
+    x.grow(k)
+}
+-- app/c/c.kg --
+import a from app/a
+import b from app/b
+
+pub fn viaField['x](h: a.Holder['x]) -> Unit {
+    b.growAny(h.r, 1)
+}
+-- expect --

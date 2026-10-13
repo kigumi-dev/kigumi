@@ -1,0 +1,85 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn Res.get(self, k: Int) -> String { "res${self.n}/${k}" }
+
+type Plain = {
+    pub n Int
+}
+
+fn Plain.get(self, k: Int) -> String { "plain${self.n}/${k}" }
+
+fn Res.fetch(self, k: Int) -> String { "fres${self.n}/${k}" }
+
+interface Getter {
+    fn get(self, k: Int) -> String
+}
+
+fn viaLambda[T: Getter](t: T) -> String {
+    let m = t.get
+    let g = (k: Int) => m(k + 1)
+    "${g(1)} ${g(2)}"
+}
+
+interface Fetcher {
+    fn fetch(self, k: Int) -> String
+}
+
+fn viaExistLambda(t: Fetcher) -> String {
+    let m = t.fetch
+    let g = (k: Int) => m(k + 1)
+    g(1)
+}
+
+fn returned[T: Getter](t: T) -> fn(Int) -> String {
+    let m = t.get
+    (k: Int) => m(k + 1)
+}
+
+fn twice[T: Getter](t: T) -> String {
+    let m = t.get
+    let g = (k: Int) => m(k)
+    let h = (k: Int) => g(k + 10)
+    h(1)
+}
+
+fn plainName[T: Getter](t: T) -> String {
+    let m = t.get
+    m(3)
+}
+
+print viaLambda(Res { n: 1 })
+print "after 1"
+print viaExistLambda(Res { n: 2 })
+print "after 2"
+let f = returned(Res { n: 3 })
+print f(5)
+print "after 3"
+print twice(Res { n: 4 })
+print "after 4"
+print plainName(Plain { n: 5 })
+print plainName(Res { n: 6 })
+print "done"
+-- stdout --
+drop res 1
+res1/2 res1/3
+after 1
+drop res 2
+fres2/2
+after 2
+res3/6
+after 3
+drop res 4
+res4/11
+after 4
+plain5/3
+drop res 6
+res6/3
+done
+drop res 3

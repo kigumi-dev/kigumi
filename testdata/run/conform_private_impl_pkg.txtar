@@ -1,0 +1,46 @@
+-- src --
+import a from lib/a
+
+print "${a.run()}"
+print "${a.runBox()}"
+-- lib/a/a.kg --
+import b from lib/b
+
+pub type Guard = {
+    pub mut amount Int
+}
+
+fn Guard.grow(mut self, k: Int) -> Unit {
+    self = Guard { amount: self.amount + k }
+}
+
+fn Guard.size(self) -> Int { self.amount }
+
+pub fn run() -> Int {
+    let mut g = Guard { amount: 1 }
+    b.growVia(&mut g, 3)
+}
+
+pub fn runBox() -> Int {
+    let mut g: b.Grower = Guard { amount: 1 }
+    b.growBox(&mut g, 3)
+}
+-- lib/b/b.kg --
+pub interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+    fn size(self) -> Int
+}
+
+pub fn growVia[G: Grower](g: &mut G, k: Int) -> Int {
+    g.grow(k)
+    g.grow(k)
+    g.size()
+}
+
+pub fn growBox(g: &mut Grower, k: Int) -> Int {
+    g.grow(k)
+    g.size()
+}
+-- stdout --
+7
+4

@@ -95,7 +95,7 @@ func (m *Machine) callees(in *mir.Inst) []*mir.Func {
 		return []*mir.Func{f}
 	}
 	e := m.r.Entity(in.Ent)
-	if e.Kind != sem.EntFn || m.r.Entity(e.Parent).Kind != sem.EntInterface {
+	if e.Kind != sem.EntFn || m.r.Entity(e.Parent).Kind != sem.EntInterface || in.Op == mir.OpClosure && in.Str == "witness" {
 		return nil
 	}
 	var fs []*mir.Func

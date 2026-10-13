@@ -1,4 +1,6 @@
 -- app/a/a.kg --
+import b from app/b
+
 pub type Guard = {
     pub mut amount Int
 }
@@ -6,12 +8,29 @@ pub type Guard = {
 fn Guard.grow(mut self, k: Int) -> Unit {
     self = Guard { amount: k }
 }
+
+pub fn growHere(g: &mut Guard, k: Int) -> Unit {
+    b.growViaBorrowedParamIsFine(g, k)
+}
 -- app/b/b.kg --
 pub interface Grower {
     fn grow(mut self, k: Int) -> Unit
 }
 
-fn growViaBorrowedParamIsFine[G: Grower](g: &mut G, k: Int) -> Unit {
+pub fn growViaBorrowedParamIsFine[G: Grower](g: &mut G, k: Int) -> Unit {
     g.grow(k)
 }
+-- app/c/c.kg --
+import a from app/a
+import b from app/b
+
+pub fn growThere(g: &mut a.Guard, k: Int) -> Unit {
+    b.growViaBorrowedParamIsFine(g, k) //~ ERROR `Guard` does not satisfy `Grower`
+}
 -- expect --
+error[E300]: `Guard` does not satisfy `Grower`: `grow` is private in package `app/a`
+ --> app/c/c.kg:5:5
+  |
+5 |     b.growViaBorrowedParamIsFine(g, k) //~ ERROR `Guard` does not satisfy `Grower`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

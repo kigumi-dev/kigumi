@@ -110,7 +110,9 @@ func (p *Program) takesForGood(f *Func, in *Inst, k int) bool {
 	switch in.Op {
 	case OpCall, OpCallValue:
 		return p.consumesArg(in, k) && !p.lentParam(*in, k) && !p.lentByType(f, in, k)
-	case OpRecord, OpVariant, OpArray:
+	case OpRecord:
+		return !p.borrowField(in.Ent, k)
+	case OpVariant, OpArray:
 		return true
 	case OpSetField, OpCellSet:
 		return k == 1

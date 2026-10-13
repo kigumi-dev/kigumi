@@ -1,0 +1,31 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn each(f: fn(Int) -> Int) -> Int {
+    f(1) + f(2)
+}
+
+fn cap(r: Res) -> Int {
+    each((k: Int) => r.n + k)
+}
+
+fn capBorrow(r: &Res) -> Int {
+    each((k: Int) => r.n + k)
+}
+
+print "${cap(Res { n: 1 })}"
+let q = Res { n: 2 }
+print "${capBorrow(&q)}"
+print "done"
+-- stdout --
+drop res 1
+5
+7
+done
+drop res 2

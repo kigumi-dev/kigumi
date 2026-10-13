@@ -1,0 +1,53 @@
+-- app/a/a.kg --
+pub type Guard = {
+    pub mut amount Int
+}
+
+fn Guard.grow(mut self, k: Int) -> Unit {
+    self = Guard { amount: k }
+}
+
+pub type Pad = {
+    pub mut n Int
+}
+
+pub fn Pad.grow(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+pub type Holder['a] = {
+    pub mut r &'a mut Pad
+}
+-- app/b/b.kg --
+pub interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+}
+
+pub fn growAny[G: Grower](x: &mut G, k: Int) -> Unit {
+    x.grow(k)
+}
+-- app/c/c.kg --
+import a from app/a
+import b from app/b
+
+pub fn viaField['x](h: a.Holder['x]) -> Unit {
+    b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
+}
+
+pub fn viaGuard(g: &mut a.Guard) -> Unit {
+    b.growAny(g, 1) //~ ERROR `Guard` does not satisfy `Grower`
+}
+-- expect --
+error[E1503]: a `&mut` held in a field is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+ --> app/c/c.kg:5:15
+  |
+5 |     b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
+  |               ^^^
+  = help: borrow the place at the call with `&mut`, or pass the value itself
+
+error[E300]: `Guard` does not satisfy `Grower`: `grow` is private in package `app/a`
+ --> app/c/c.kg:9:5
+  |
+9 |     b.growAny(g, 1) //~ ERROR `Guard` does not satisfy `Grower`
+  |     ^^^^^^^^^^^^^^
+

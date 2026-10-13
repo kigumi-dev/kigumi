@@ -1,0 +1,94 @@
+-- src --
+interface Shower {
+    fn show(self, pre: String) -> String
+    fn add(self, k: Int, name: String) -> Int
+}
+
+type A = { pub n Int, pub tag String }
+
+fn A.show(self, pre: String) -> String { "${pre}${self.tag}${self.n}" }
+fn A.add(self, k: Int, name: String) -> Int { self.n + k + 2 }
+
+type B = Bx(Int) | By
+
+fn B.show(self, pre: String) -> String {
+    match self {
+        Bx(x) -> "${pre}B${x}"
+        By -> "By"
+    }
+}
+fn B.add(self, k: Int, name: String) -> Int {
+    match self {
+        Bx(x) -> x * k
+        By -> 0
+    }
+}
+
+fn viaParam[T: Shower](t: T, pre: String) -> String {
+    let m = t.show
+    let r = m(pre)
+    "${r}|${m("again:")}"
+}
+
+fn viaAdd[T: Shower](t: T) -> Int {
+    let f = t.add
+    f(2, "ab") + f(3, "c")
+}
+
+fn viaLambda[T: Shower](t: T) -> Int {
+    let f = t.add
+    let g = (k: Int) => f(k, "xyz")
+    g(1) + g(2)
+}
+
+fn viaExist(s: Shower, pre: String) -> String {
+    let m = s.show
+    m(pre)
+}
+
+fn viaExistRef(s: Shower) -> Int {
+    let f = s.add
+    f(5, "q")
+}
+
+fn apply(f: fn(String) -> String, a: String) -> String { f(a) }
+
+fn viaPass[T: Shower](t: T) -> String {
+    apply(t.show, "p:")
+}
+
+
+interface Runner {
+    fn run(self, cb: escaping fn() -> Int) -> Int
+}
+
+fn A.run(self, cb: escaping fn() -> Int) -> Int { self.n + cb() }
+
+fn viaEscaping[T: Runner](t: T, cb: escaping fn() -> Int) -> Int {
+    let m = t.run
+    m(cb)
+}
+
+let a = A { n: 10, tag: "a" }
+let b = Bx(7)
+print viaParam(a, "x:")
+print viaParam(b, "y:")
+print "${viaAdd(a)} ${viaAdd(b)}"
+print "${viaLambda(a)} ${viaLambda(b)}"
+print viaExist(a, "e:")
+print viaExist(b, "f:")
+print "${viaExistRef(a)}"
+print viaPass(a)
+print viaPass(b)
+print "${viaEscaping(a, () => 5)}"
+-- stdout --
+x:a10|again:a10
+y:B7|again:B7
+29 35
+27 21
+e:a10
+f:B7
+17
+p:a10
+p:B7
+15

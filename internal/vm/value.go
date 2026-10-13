@@ -31,6 +31,12 @@ const (
 	kOpaque
 )
 
+// reqCall is a method value on an interface requirement; env[0] is the witness when witness is set.
+type reqCall struct {
+	name    string
+	witness bool
+}
+
 // obj is one runtime value; rc < 0 marks a static object that is never freed,
 // and rc is the only field two lanes reach at once, so it moves atomically.
 type obj struct {
@@ -50,6 +56,7 @@ type obj struct {
 	bind   bool
 	lent   int
 	env    *obj
+	req    *reqCall
 	async  bool
 	dyn    sem.TypeID
 	inner  *obj

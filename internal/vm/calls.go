@@ -53,6 +53,10 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 		retain(x)
 	}
 	c.env = mkArray(caps)
+	if e := m.r.Entity(in.Ent); in.Op == mir.OpClosure && e.Kind == sem.EntFn && m.r.Entity(e.Parent).Kind == sem.EntInterface {
+		c.req = &reqCall{name: e.Name, witness: in.Str == "witness"}
+		return c
+	}
 	f, lowered := m.p.ByEnt[in.Ent]
 	useLowered := lowered
 	if e := m.r.Entity(in.Ent); e.Kind == sem.EntFn && e.Flags&sem.EfStd != 0 {
@@ -80,6 +84,9 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 	fv = deref(fv)
 	if fv.k != kClosure {
 		m.abort("value is not callable")
+	}
+	if fv.req != nil {
+		return m.callRequirementValue(fv, args)
 	}
 	if fv.async {
 		return m.asyncValueCall(fv, args)

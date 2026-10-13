@@ -20,7 +20,6 @@ type selfRecvCall struct {
 	callee  EntityID
 	witness bool
 	iface   TypeID
-	pkg     PackageID
 }
 
 func (c *checker) noteSelfRecvCall(base syntax.NodeID, m EntityID, witness bool, iface TypeID) {
@@ -35,7 +34,7 @@ func (c *checker) noteSelfRecvCall(base syntax.NodeID, m EntityID, witness bool,
 	if e.Flags&EfSelf == 0 || e.Flags&EfMove != 0 || e.Parent == 0 {
 		return
 	}
-	c.r.selfRecvCalls = append(c.r.selfRecvCalls, selfRecvCall{owner: e.Parent, callee: m, witness: witness, iface: iface, pkg: c.pkg})
+	c.r.selfRecvCalls = append(c.r.selfRecvCalls, selfRecvCall{owner: e.Parent, callee: m, witness: witness, iface: iface})
 }
 
 // Propagates "replaces its receiver" up the self-call chain, so a forwarding-only method still counts as replacing.
@@ -48,7 +47,7 @@ func (r *Result) closeSelfWholeAssign() {
 			}
 			replacing := r.replacesSelf(call.callee)
 			if call.witness {
-				replacing = r.witnessReplacesSelf(call.callee, call.iface, call.pkg)
+				replacing = r.witnessReplacesSelf(call.callee, call.iface)
 			}
 			if replacing {
 				r.selfWholeAssign[call.owner], changed = true, true
@@ -77,9 +76,9 @@ func (c *checker) noteWitnessRecv(base syntax.NodeID, recv TypeID, req EntityID,
 		return
 	}
 	if ent, ok := c.refBinding(base); ok {
-		c.queueRefRecv(refCellRecv{ent: ent, callee: req, node: base, witness: true, iface: iface, pkg: c.pkg})
+		c.queueRefRecv(refCellRecv{ent: ent, callee: req, node: base, witness: true, iface: iface})
 	} else if c.r.Types.Kind(recv) == KRef {
-		c.queueRefRecv(refCellRecv{callee: req, node: base, what: c.recvRefShape(base), witness: true, iface: iface, pkg: c.pkg})
+		c.queueRefRecv(refCellRecv{callee: req, node: base, what: c.recvRefShape(base), witness: true, iface: iface})
 	}
 }
 

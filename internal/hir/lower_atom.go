@@ -100,7 +100,7 @@ func (l *lowerer) member(n syntax.NodeID) *Expr {
 	ent := l.info.Uses[n]
 	if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallMethodValue {
 		out := l.node(n, MethodValue)
-		out.Ent, out.Args = call.Callee, []*Expr{l.expr(syntax.NodeID(node.Lhs))}
+		out.Ent, out.Witness, out.Args = call.Callee, call.Witness, []*Expr{l.expr(syntax.NodeID(node.Lhs))}
 		return out
 	}
 	switch l.r.Entity(ent).Kind {

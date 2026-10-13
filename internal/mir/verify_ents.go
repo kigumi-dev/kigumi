@@ -49,7 +49,7 @@ func (p *Program) verifyEntities(f *Func) *Error {
 					want = "a type"
 				}
 			case OpClosure:
-				if k := kindOf(in.Ent); !((k == sem.EntClosure && p.ByEnt[in.Ent] != nil) || (in.Str == "method" && k == sem.EntFn)) {
+				if k := kindOf(in.Ent); !((k == sem.EntClosure && p.ByEnt[in.Ent] != nil) || ((in.Str == "method" || in.Str == "witness") && k == sem.EntFn)) {
 					want = "a lowered closure, or a method for a method value"
 				}
 			case OpAsm:

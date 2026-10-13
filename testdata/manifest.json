@@ -3117,6 +3117,23 @@
       ]
     },
     {
+      "id": "run/closure_ref_capture_counts",
+      "kind": "run",
+      "path": "testdata/run/closure_ref_capture_counts.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/closures",
       "kind": "run",
       "path": "testdata/run/closures.txtar",
@@ -3256,6 +3273,23 @@
       "id": "run/conform_generic_method_param_iface_dispatch",
       "kind": "run",
       "path": "testdata/run/conform_generic_method_param_iface_dispatch.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/conform_private_impl_pkg",
+      "kind": "run",
+      "path": "testdata/run/conform_private_impl_pkg.txtar",
       "mode": [
         "vm",
         "native"
@@ -5825,6 +5859,23 @@
       ]
     },
     {
+      "id": "run/generic_callee_cell_witness",
+      "kind": "run",
+      "path": "testdata/run/generic_callee_cell_witness.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/generic_direct_closure_bodies",
       "kind": "run",
       "path": "testdata/run/generic_direct_closure_bodies.txtar",
@@ -6546,10 +6597,7 @@
       "id": "run/lifetime_param_relabel",
       "kind": "run",
       "path": "testdata/run/lifetime_param_relabel.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
+      "mode": null,
       "requires": [
         "c-compiler"
       ],
@@ -6699,10 +6747,7 @@
       "id": "run/lifetime_view",
       "kind": "run",
       "path": "testdata/run/lifetime_view.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
+      "mode": null,
       "requires": [
         "c-compiler"
       ],
@@ -7096,6 +7141,20 @@
       ]
     },
     {
+      "id": "run/mut_ref_field_counts",
+      "kind": "run",
+      "path": "testdata/run/mut_ref_field_counts.txtar",
+      "mode": null,
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/mut_ref_generic",
       "kind": "run",
       "path": "testdata/run/mut_ref_generic.txtar",
@@ -7150,10 +7209,7 @@
       "id": "run/mut_ref_recv_field",
       "kind": "run",
       "path": "testdata/run/mut_ref_recv_field.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
+      "mode": null,
       "requires": [
         "c-compiler"
       ],
@@ -7757,6 +7813,57 @@
       "id": "run/reinit",
       "kind": "run",
       "path": "testdata/run/reinit.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/requirement_method_value",
+      "kind": "run",
+      "path": "testdata/run/requirement_method_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/requirement_method_value_capture",
+      "kind": "run",
+      "path": "testdata/run/requirement_method_value_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/requirement_method_value_counts",
+      "kind": "run",
+      "path": "testdata/run/requirement_method_value_counts.txtar",
       "mode": [
         "vm",
         "native"
@@ -9322,6 +9429,28 @@
       "id": "sem/conform_ok",
       "kind": "sem",
       "path": "testdata/sem/conform_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/conform_private_impl_other_sig",
+      "kind": "sem",
+      "path": "testdata/sem/conform_private_impl_other_sig.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/conform_private_impl_replacing",
+      "kind": "sem",
+      "path": "testdata/sem/conform_private_impl_replacing.txtar",
       "mode": [
         "check"
       ],
@@ -10950,6 +11079,17 @@
       "id": "sem/reentrant_capture_param_shapes",
       "kind": "sem",
       "path": "testdata/sem/reentrant_capture_param_shapes.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/requirement_move_method_value",
+      "kind": "sem",
+      "path": "testdata/sem/requirement_move_method_value.txtar",
       "mode": [
         "check"
       ],

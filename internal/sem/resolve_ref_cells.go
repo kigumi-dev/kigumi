@@ -16,7 +16,6 @@ type refCellRecv struct {
 	witness bool
 	what    string
 	iface   TypeID
-	pkg     PackageID
 }
 
 type refCellSite struct {
@@ -89,7 +88,7 @@ func (r *Result) resolveRefCells() {
 	for _, q := range r.refCellRecvs {
 		replacing := r.replacesSelf(q.callee)
 		if q.witness {
-			replacing = r.witnessReplacesSelf(q.callee, q.iface, q.pkg)
+			replacing = r.witnessReplacesSelf(q.callee, q.iface)
 		}
 		switch {
 		case !replacing:

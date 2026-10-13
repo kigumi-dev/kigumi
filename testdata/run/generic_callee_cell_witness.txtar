@@ -1,0 +1,66 @@
+-- src --
+interface Taker[V] {
+    fn take(mut self) -> V?
+}
+
+fn drainGeneric[V, T: Taker[V]](x: &mut T, zero: V) -> V {
+    let a = x.take() || zero
+    let b = x.take() || zero
+    b
+}
+
+fn drainInt[T: Taker[Int]](x: &mut T) -> Int {
+    let a = x.take() || 0
+    let b = x.take() || 0
+    a + b
+}
+
+type Slot[V] = Full(V) | Empty
+
+fn Slot[V: Copy].take(mut self) -> V? {
+    match self {
+        Full(v) -> {
+            self = Empty
+            Some(v)
+        }
+        Empty -> None
+    }
+}
+
+fn put[T](x: &mut T, v: T) -> Unit {
+    x = v
+}
+
+fn putVia[T](x: &mut T, v: T) -> Unit {
+    put(x, v)
+}
+
+type Pair = { pub a Int, pub b Int }
+
+let mut pr = Pair { a: 1, b: 2 }
+putVia(&mut pr, Pair { a: 3, b: 4 })
+print "${pr.a} ${pr.b}"
+let mut word = "old"
+put(&mut word, "new")
+print word
+let mut o: Int? = Some(5)
+print "${drainGeneric(&mut o, 0)}"
+print "${o || -1}"
+let mut p: Int? = Some(6)
+print "${drainInt(&mut p)}"
+print "${p || -1}"
+let mut s: Slot[Int] = Full(7)
+print "${drainInt(&mut s)}"
+let mut t: Slot[Int] = Full(9)
+print "${drainGeneric(&mut t, 0)}"
+print "done"
+-- stdout --
+3 4
+new
+0
+-1
+6
+-1
+7
+0
+done
