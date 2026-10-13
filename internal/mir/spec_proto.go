@@ -106,6 +106,13 @@ func (p *Program) inlineProtoCall(f *Func, in *Inst, g *Func, uses map[LocalID]i
 		args[k] = d.Args[0]
 		gone = append(gone, d)
 	}
+	for _, a := range in.Args[operands:] {
+		d := defs[a]
+		if d == nil || uses[a] != 1 || (d.Op != OpBind && d.Op != OpFnItem && d.Op != OpClosure) {
+			return
+		}
+		gone = append(gone, d)
+	}
 	for _, d := range gone {
 		d.Op, d.Args, d.Dst = OpNop, nil, 0
 	}

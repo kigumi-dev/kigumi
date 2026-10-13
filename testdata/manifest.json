@@ -6718,6 +6718,23 @@
       ]
     },
     {
+      "id": "run/live_temp_release",
+      "kind": "run",
+      "path": "testdata/run/live_temp_release.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/match_record_lit",
       "kind": "run",
       "path": "testdata/run/match_record_lit.txtar",

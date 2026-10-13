@@ -159,7 +159,8 @@ func (m *Machine) invoke(f *mir.Func, env *obj, bind bool, args []*obj) *obj {
 // releaseLentEnv drops the references invoke took for captured parameters the
 // callee only borrows, so the callee has nothing to release them.
 func (m *Machine) releaseLentEnv(f *mir.Func, params []*obj, nargs int, bind bool) {
-	if len(params) == nargs || m.r.Entity(f.Ent).Kind != sem.EntFn {
+	kind := m.r.Entity(f.Ent).Kind
+	if len(params) == nargs || kind != sem.EntFn && kind != sem.EntClosure {
 		return
 	}
 	first, end := 0, len(params)-nargs
@@ -167,7 +168,7 @@ func (m *Machine) releaseLentEnv(f *mir.Func, params []*obj, nargs int, bind boo
 		first, end = nargs, len(params)
 	}
 	for i := first; i < end; i++ {
-		if m.p.ParamLent(f.Ent, i) {
+		if kind == sem.EntClosure && m.r.Types.Kind(f.Locals[f.Params[i]].Type) == sem.KRef || kind == sem.EntFn && m.p.ParamLent(f.Ent, i) {
 			m.release(params[i])
 		}
 	}

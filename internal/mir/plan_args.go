@@ -20,8 +20,10 @@ func (p *Program) inPlace(in Inst, i int) bool {
 			return recv != sem.RecvNone && recv != sem.RecvMove
 		}
 		return i == 0
-	case OpSetField, OpSetIndex, OpCellSet:
+	case OpSetField, OpCellSet:
 		return i == 0
+	case OpSetIndex:
+		return i <= 1
 	case OpCallC, OpAsm, OpShell:
 		return true
 	case OpCall:

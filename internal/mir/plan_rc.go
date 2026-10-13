@@ -48,6 +48,9 @@ func (p *Program) planRCBlock(f *Func, bid int, plan *Plan, st *rcState, w *shar
 	blk := &f.Blocks[bid]
 	orig := blk.Insts
 	out := make([]Inst, 0, len(orig))
+	for _, t := range plan.Releases[Point{bid, -1}] {
+		out = append(out, Inst{Op: OpRelease, Args: []LocalID{t}})
+	}
 	for k := range orig {
 		in, at := orig[k], Point{bid, k}
 		release := p.shareArgs(f, &in, st, &out, w, at)

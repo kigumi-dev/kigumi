@@ -141,7 +141,15 @@ func (e *emitter) adapter(f *mir.Func) string {
 		}
 		vals = append(vals, v)
 	}
-	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", e.callBoxed(&sb, f, vals))
+	res := e.callBoxed(&sb, f, vals)
+	if e.directSig(f) == nil {
+		for i := 0; i < ncaps && i < len(vals); i++ {
+			if e.r.Types.Kind(f.Locals[f.Params[i]].Type) == sem.KRef {
+				e.irb(&sb).Call(rtRelease, vptr(vals[i]))
+			}
+		}
+	}
+	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", res)
 	return sb.String()
 }
 

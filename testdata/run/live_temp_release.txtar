@@ -1,0 +1,48 @@
+-- src --
+import map from std/map
+
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+type Shape = Circle(r: Int) | Dot
+
+fn pickIndex(v: Int) -> usize {
+    (v.toUsize() || 0) % 4
+}
+
+fn setOutside(n: Int) -> Bool {
+    let mut grid = FixedArray.filled[Int, 3](1)
+    grid.set(n.toUsize() || 0, 50)
+}
+
+fn nestedWith() -> Bool {
+    let left: Array[Named] = Array.of(Named { name: "a", n: 1 })
+    let right: Array[Named] = Array.of(Named { name: "b", n: 2 })
+    left.with(0, (a: &Named) => right.with(0, (b: &Named) => b.n > a.n) is Some(true)) is Some(true)
+}
+
+fn mapSet() -> Int {
+    let k = Named { name: "k", n: 1 }
+    let mut byName: map.Map[String, Named] = map.empty[String, Named]()
+    byName.set("k", k)
+    (byName.get(&"k") || Named { name: "none", n: 0 }).n
+}
+
+fn derivedEq() -> Bool {
+    let a: Int? = Some(4)
+    let b: Int? = Some(4)
+    a == b && Circle(3) == Circle(3) && Circle(3) != Dot
+}
+
+fn crossBlock(v: Int) -> Int {
+    let hit = (v.toUsize() || 0) + 1
+    if v > 100 { hit.toInt() || 0 } else { (hit + pickIndex(v)).toInt() || 0 }
+}
+
+print "${pickIndex(6)} ${crossBlock(5)} ${crossBlock(300)}"
+print "${setOutside(1)} ${setOutside(7)} ${nestedWith()} ${mapSet()} ${derivedEq()}"
+-- stdout --
+2 7 301
+true false true 1 true

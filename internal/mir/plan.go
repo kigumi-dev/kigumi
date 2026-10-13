@@ -28,18 +28,24 @@ func (p *Program) planFunc(f *Func) *Plan {
 	last := map[LocalID]use{}
 	consumed := map[LocalID]bool{}
 	noRelease := map[LocalID]bool{}
+	crossUse := map[LocalID]bool{}
+	defBlocks := map[LocalID]map[int]bool{}
+	useBlocks := map[LocalID]map[int]bool{}
 	borrowed := map[LocalID]LocalID{}
 	isTemp := func(l LocalID) bool { return f.Locals[l].Ent == 0 }
 	for b, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if isTemp(in.Dst) && in.Op != OpNop && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone {
+			if isTemp(in.Dst) && in.Op != OpNop && in.Op != OpPanic && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone {
 				defBlock[in.Dst] = b
+				if defBlocks[in.Dst] == nil {
+					defBlocks[in.Dst] = map[int]bool{}
+				}
+				defBlocks[in.Dst][b] = true
 			}
 		}
 	}
-	// Block numbers do not follow execution order (loop bodies precede
-	// their headers), so a temporary used outside its defining block is
-	// left alone rather than released at a textual "last" use.
+	// Block numbers do not follow execution order, so a temporary used outside
+	// its defining block is released at a join point or not at all.
 	for b, blk := range f.Blocks {
 		for k, in := range blk.Insts {
 			for i, a := range in.Args {
@@ -47,14 +53,15 @@ func (p *Program) planFunc(f *Func) *Plan {
 					continue
 				}
 				if defBlock[a] != b {
-					noRelease[a] = true
+					crossUse[a] = true
 				}
+				noteUse(useBlocks, a, b)
 				last[a] = use{b, k}
 				if p.consumes(in, i) {
 					consumed[a] = true
 				}
 			}
-			if in.Op == OpNop || !isTemp(in.Dst) {
+			if in.Op == OpNop || in.Op == OpPanic || !isTemp(in.Dst) {
 				continue
 			}
 			switch in.Op {
@@ -67,7 +74,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 			}
 			// A copy or wrap/unwrap alias of a named local only aliases it; a
 			// borrow is always an alias and releases its source instead.
-			if (in.Op == OpCopy || in.Op == OpAlias) && len(in.Args) == 1 && (!isTemp(in.Args[0]) || noRelease[in.Args[0]]) {
+			if (in.Op == OpCopy || in.Op == OpAlias) && len(in.Args) == 1 && (!isTemp(in.Args[0]) || noRelease[in.Args[0]] || crossUse[in.Args[0]]) {
 				noRelease[in.Dst] = true
 			}
 			// iter.at_ref hands out a `for` element without
@@ -85,8 +92,9 @@ func (p *Program) planFunc(f *Func) *Plan {
 		for _, a := range blk.Term.Args {
 			if isTemp(a) {
 				if defBlock[a] != b {
-					noRelease[a] = true
+					crossUse[a] = true
 				}
+				noteUse(useBlocks, a, b)
 				last[a] = use{b, len(blk.Insts)}
 				if blk.Term.Op == TermReturn {
 					consumed[a] = true
@@ -96,11 +104,22 @@ func (p *Program) planFunc(f *Func) *Plan {
 	}
 	extendBorrowed(borrowed, last, noRelease)
 	plan := map[Point][]LocalID{}
+	var joins *joinCtx
 	for t, u := range last {
-		if consumed[t] || noRelease[t] || defs[t] != 1 || defBlock[t] != u.block {
+		if consumed[t] || noRelease[t] {
 			continue
 		}
-		plan[Point{u.block, u.inst}] = append(plan[Point{u.block, u.inst}], t)
+		at := Point{u.block, u.inst}
+		if crossUse[t] || defs[t] != 1 || defBlock[t] != u.block {
+			if joins == nil {
+				joins = newJoinCtx(f)
+			}
+			var ok bool
+			if at, ok = joins.joinPoint(defBlocks[t], useBlocks[t], u); !ok {
+				continue
+			}
+		}
+		plan[at] = append(plan[at], t)
 	}
 	for _, ts := range plan {
 		slices.Sort(ts)

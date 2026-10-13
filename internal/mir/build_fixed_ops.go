@@ -5,7 +5,10 @@ import (
 	"kigumi/internal/sem"
 )
 
-type inBounds struct{ no, join BlockID }
+type inBounds struct {
+	no, join BlockID
+	idx      LocalID
+}
 
 func (b *builder) branchInBounds(e *hir.Expr, idx LocalID) inBounds {
 	_, n, _ := b.r.FixedElem(e.Args[0].Type)
@@ -13,7 +16,7 @@ func (b *builder) branchInBounds(e *hir.Expr, idx LocalID) inBounds {
 	yes, no, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()
 	b.term(Term{Op: TermBranch, Args: []LocalID{ok}, Targets: []BlockID{yes, no}})
 	b.cur = yes
-	return inBounds{no: no, join: join}
+	return inBounds{no: no, join: join, idx: idx}
 }
 
 func (b *builder) otherwise(br inBounds, result LocalID, e *hir.Expr, fill func()) LocalID {
@@ -22,6 +25,7 @@ func (b *builder) otherwise(br inBounds, result LocalID, e *hir.Expr, fill func(
 	fill()
 	b.jump(br.join)
 	b.cur = br.join
+	b.emit(Inst{Op: OpDrop, Args: []LocalID{br.idx}, Node: e.Node})
 	return result
 }
 
@@ -77,6 +81,7 @@ func (b *builder) fixedSet(e *hir.Expr) (LocalID, bool) {
 	b.emit(Inst{Op: OpSetIndex, Args: []LocalID{args[0], args[1], args[2]}, Node: e.Node})
 	b.emit(Inst{Op: OpConst, Dst: result, Lit: sem.Literal{Kind: sem.LitBool, Bool: true}, Type: sem.TyBool, Node: e.Node})
 	return b.otherwise(br, result, e, func() {
+		b.emit(Inst{Op: OpDrop, Args: []LocalID{args[2]}, Node: e.Node})
 		b.emit(Inst{Op: OpConst, Dst: result, Lit: sem.Literal{Kind: sem.LitBool}, Type: sem.TyBool, Node: e.Node})
 	}), true
 }
