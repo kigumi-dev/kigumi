@@ -22,7 +22,9 @@ func TestVerifyDirectRejectsAMissingPart(t *testing.T) {
 		for k, in := range f.Blocks[bi].Insts {
 			if in.Op == mir.OpField && f.IsDirect(in.Args[0]) {
 				f.Blocks[bi].Insts[k].Index = 9
-				directRule(t, p, "names a field its base does not have")
+				if ve, ok := p.Verify().(*mir.Error); !ok || ve.Rule != "aggregates" || !strings.Contains(ve.Msg, "names field 9") {
+					t.Fatalf("got %v, want an aggregates error naming field 9", ve)
+				}
 				return
 			}
 		}
@@ -67,6 +69,7 @@ fn main() -> Unit! {}
 		for k, in := range f.Blocks[bi].Insts {
 			if in.Op == mir.OpCall && in.DPrim == mir.DPConvert {
 				f.Blocks[bi].Insts[k].Args = []mir.LocalID{f.Params[1]}
+				f.Blocks[bi].Insts[k].DPrim = mir.DPNone
 				ve, ok := p.Verify().(*mir.Error)
 				if !ok || (ve.Rule != "types" && ve.Rule != "direct") || !strings.Contains(ve.Msg, "String") {
 					t.Fatalf("got %v, want a types or direct error naming the String operand", ve)
@@ -104,7 +107,7 @@ func TestVerifyDirectRejectsAParameterInTheWrongForm(t *testing.T) {
 		t.Fatalf("take does not carry its record unboxed:\n%s", p.Dump())
 	}
 	f.Direct[f.Params[0]] = false
-	directRule(t, p, "parameter")
+	directRule(t, p, "form")
 }
 
 func TestVerifyDirectRejectsASignatureOfAnotherType(t *testing.T) {

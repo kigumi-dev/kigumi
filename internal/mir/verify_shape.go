@@ -1,6 +1,9 @@
 package mir
 
-import "strconv"
+import (
+	"math/big"
+	"strconv"
+)
 
 // shape is the operand contract of one opcode: how many arguments it
 // takes (max -1 for any number), whether it yields a value, and which
@@ -65,8 +68,15 @@ var shapes = map[Opcode]shape{
 	OpUnboxDirect: {1, 1, true, false, true, false},
 }
 
+var yielding = func() (out [256]bool) {
+	for op, s := range shapes {
+		out[op] = s.result
+	}
+	return out
+}()
+
 // Yields reports whether an opcode defines its destination.
-func (o Opcode) Yields() bool { return shapes[o].result }
+func (o Opcode) Yields() bool { return yielding[o] }
 
 // verifyShape checks each instruction against its opcode's contract.
 func verifyShape(f *Func) *Error {
@@ -89,6 +99,15 @@ func verifyShape(f *Func) *Error {
 			if s.str && in.Str == "" {
 				return fail("shape", bid, i, "%s needs its text", in.Op)
 			}
+			if !s.str && in.Str != "" && in.Op != OpClosure && in.Op != OpNop && in.Op != OpConst {
+				return fail("shape", bid, i, "%s carries the text %q it never reads", in.Op, in.Str)
+			}
+			if in.Op == OpConst && in.Str != "" && !numberText(in) {
+				return fail("shape", bid, i, "const carries the text %q, which is not its number", in.Str)
+			}
+			if msg := flagMisplaced(in); msg != "" {
+				return fail("shape", bid, i, "%s %s", in.Op, msg)
+			}
 			switch in.Op {
 			case OpInterp:
 				if n := countStr(in.Strs, ""); n != len(in.Args) {
@@ -110,6 +129,31 @@ func verifyShape(f *Func) *Error {
 		}
 	}
 	return nil
+}
+
+func flagMisplaced(in Inst) string {
+	switch {
+	case in.Op == OpNop:
+		return ""
+	case in.Fixed && in.Op != OpBoxDirect:
+		return "is marked fixed, which only a box of a constant is"
+	case in.Copy && in.Op != OpShare:
+		return "is marked as a copy, which only a share is"
+	case in.Share && in.Op != OpCopy:
+		return "is marked shared, which only a copy is"
+	case in.Async && in.Op != OpFnItem && in.Op != OpClosure:
+		return "is marked async, which only a function item or closure is"
+	case in.EndScope && in.Op != OpDrop:
+		return "is marked as a scope exit, which only a drop is"
+	case in.Scoped && in.Op != OpNewCell && in.Op != OpDrop:
+		return "is marked scoped, which only a cell or its drop is"
+	}
+	return ""
+}
+
+func numberText(in Inst) bool {
+	v, ok := new(big.Int).SetString(in.Str, 10)
+	return ok && (in.Lit.Int == nil || in.Lit.Int.Cmp(v) == 0)
 }
 
 func arity(s shape) string {

@@ -6929,6 +6929,23 @@
       }
     },
     {
+      "id": "run/mut_param_closure_capture",
+      "kind": "run",
+      "path": "testdata/run/mut_param_closure_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/mut_ref_c_boundary",
       "kind": "run",
       "path": "testdata/run/mut_ref_c_boundary.txtar",
@@ -8499,6 +8516,23 @@
       "id": "run/variadic_empty_tail",
       "kind": "run",
       "path": "testdata/run/variadic_empty_tail.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/variant_loop_reassign",
+      "kind": "run",
+      "path": "testdata/run/variant_loop_reassign.txtar",
       "mode": [
         "vm",
         "native"

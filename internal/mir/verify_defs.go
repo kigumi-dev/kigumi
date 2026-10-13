@@ -7,6 +7,7 @@ import "kigumi/internal/sem"
 // least one, because the checker narrows the reads of a pattern binding
 // behind `&&` to the matched path, which the CFG cannot see.
 func verifyDefs(f *Func) *Error {
+	f.weakDefs = nil
 	n := len(f.Locals)
 	must := make([][]bool, len(f.Blocks))
 	may := make([][]bool, len(f.Blocks))
@@ -86,6 +87,12 @@ func checkDefs(f *Func, bid BlockID, inMust, inMay []bool) *Error {
 	must, may := append([]bool{}, inMust...), append([]bool{}, inMay...)
 	defined := func(l LocalID) bool {
 		if f.Locals[l].Ent != 0 {
+			if may[l] && !must[l] {
+				if f.weakDefs == nil {
+					f.weakDefs = make([]bool, len(f.Locals))
+				}
+				f.weakDefs[l] = true
+			}
 			return may[l]
 		}
 		return must[l]

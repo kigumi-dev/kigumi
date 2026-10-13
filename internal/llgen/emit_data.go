@@ -148,7 +148,7 @@ func (e *emitter) data() string {
 			if int(ent) >= len(e.r.Entities) {
 				label = "prim"
 			}
-			e.irb(&sb).GlobalStruct(name, rtTypeStruct, vptr(e.cstr(label)), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0), vi32(0))
+			e.irb(&sb).GlobalStruct(name, rtTypeStruct, vptr(e.cstr(label)), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0))
 		}
 	}
 	drops := make([]int, 0, len(e.stdDrops))

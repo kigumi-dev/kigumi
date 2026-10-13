@@ -1,0 +1,43 @@
+-- src --
+interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+    fn size(self) -> Int
+}
+
+type Counter = {
+    pub mut n Int
+}
+
+fn Counter.grow(mut self, k: Int) -> Unit { self.n = self.n + k }
+fn Counter.size(self) -> Int { self.n }
+
+fn bump(mut n: Int) -> Int {
+    let add = (k: Int) => { n = n + k }
+    add(2)
+    n
+}
+
+fn viaClosure[G: Grower](mut g: G) -> Int {
+    let add = (k: Int) => { g.grow(k) }
+    add(1)
+    g.size()
+}
+
+fn Counter.twice[G: Grower](mut self, other: G) -> Int {
+    let add = (k: Int) => { self.grow(k) }
+    add(other.size())
+    add(1)
+    self.n
+}
+
+let mut v = 1
+print "bump=${bump(v)}"
+let mut c = Counter { n: 1 }
+print "viaClosure=${viaClosure(c)}"
+let mut d = Counter { n: 1 }
+let e = Counter { n: 4 }
+print "twice=${d.twice(e)}"
+-- stdout --
+bump=3
+viaClosure=2
+twice=6

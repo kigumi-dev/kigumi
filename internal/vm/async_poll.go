@@ -150,6 +150,9 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 	}()
 	for {
 		blk := &f.Blocks[co.bid]
+		if len(blk.Insts) == 0 {
+			m.chargeStep()
+		}
 		for co.pc < len(blk.Insts) {
 			in := &blk.Insts[co.pc]
 			if in.Op == mir.OpAwait {

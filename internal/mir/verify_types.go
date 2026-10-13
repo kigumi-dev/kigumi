@@ -12,6 +12,9 @@ func (p *Program) verifyTypes(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
+			if in.Op.Yields() && yieldsData(in.Op) && ty(in.Dst) == sem.TyNever {
+				return fail("types", bid, i, "%s yields a value into a local of type Never", in.Op)
+			}
 			switch in.Op {
 			case OpCopy, OpMove, OpShare:
 				if !p.sameType(ty(in.Dst), ty(in.Args[0])) && ty(in.Args[0]) != sem.TyNever {
@@ -25,6 +28,18 @@ func (p *Program) verifyTypes(f *Func) *Error {
 				if ty(in.Dst) != in.Type {
 					return fail("types", bid, i, "constant of %s into %s", p.R.TypeString(in.Type), p.R.TypeString(ty(in.Dst)))
 				}
+			case OpUnit:
+				if t := ty(in.Dst); t != sem.TyUnit && t != sem.TyNever {
+					return fail("types", bid, i, "unit into %s", p.R.TypeString(t))
+				}
+			case OpBinary:
+				if msg := p.binaryMismatch(in, ty(in.Args[0]), ty(in.Args[1]), ty(in.Dst)); msg != "" {
+					return fail("types", bid, i, "%s", msg)
+				}
+			case OpUnary:
+				if in.Str == "cast" && !p.sameType(in.Type, ty(in.Dst)) {
+					return fail("types", bid, i, "cast to %s into %s", p.R.TypeString(in.Type), p.R.TypeString(ty(in.Dst)))
+				}
 			case OpIsVariant, OpIsType:
 				if ty(in.Dst) != sem.TyBool {
 					return fail("types", bid, i, "%s yields Bool, not %s", in.Op, p.R.TypeString(ty(in.Dst)))
@@ -32,6 +47,10 @@ func (p *Program) verifyTypes(f *Func) *Error {
 			case OpInterp:
 				if ty(in.Dst) != sem.TyString {
 					return fail("types", bid, i, "interpolation yields String, not %s", p.R.TypeString(ty(in.Dst)))
+				}
+			case OpShell:
+				if n := tt.Node(ty(in.Dst)); !p.looseType(ty(in.Dst)) && (n.Kind != sem.KNamed || n.Ent != p.R.LangItem("Plan")) {
+					return fail("types", bid, i, "shell plan yields %s, not a Plan", p.R.TypeString(ty(in.Dst)))
 				}
 			case OpBorrow:
 				if ty(in.Dst) != tt.Ref(ty(in.Args[0]), in.Index == 1) {
@@ -49,12 +68,19 @@ func (p *Program) verifyTypes(f *Func) *Error {
 			case OpBoxDirect, OpUnboxDirect:
 				// Only the unboxed side is named: the carrier may be a
 				// reference or a defined type handing the same object on.
-				side := ty(in.Dst)
+				side, carrier := ty(in.Dst), ty(in.Args[0])
 				if in.Op == OpBoxDirect {
-					side = ty(in.Args[0])
+					side, carrier = carrier, side
 				}
 				if !p.sameType(in.Type, side) {
 					return fail("types", bid, i, "%s of %s holds %s", in.Op, p.R.TypeString(in.Type), p.R.TypeString(side))
+				}
+				if !p.compatible(in.Type, carrier) {
+					return fail("types", bid, i, "%s of %s carried as %s", in.Op, p.R.TypeString(in.Type), p.R.TypeString(carrier))
+				}
+			case OpFnItem:
+				if sig := p.R.Fn(in.Ent).Sig; !p.fnItemFits(sig, ty(in.Dst), in.Async) {
+					return fail("types", bid, i, "fn item %s of %s into %s", p.R.Entity(in.Ent).Name, p.R.TypeString(sig), p.R.TypeString(ty(in.Dst)))
 				}
 			case OpNewCell:
 				if ty(in.Dst) != ty(in.Args[0]) {

@@ -32,6 +32,10 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 	bid := mir.BlockID(0)
 	for {
 		blk := &f.Blocks[bid]
+		// An empty loop still has to run into the step limit.
+		if len(blk.Insts) == 0 {
+			m.chargeStep()
+		}
 		for k := range blk.Insts {
 			m.chargeStep()
 			fr.blk, fr.pc = bid, k

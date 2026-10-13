@@ -106,5 +106,5 @@ func TestVerifyRejectsAComparisonOfAnotherType(t *testing.T) {
 			}
 		}
 	}
-	directRule(t, p, "operands")
+	wantRule(t, p, "builtins", "direct.eq takes 2 to 2 arguments")
 }

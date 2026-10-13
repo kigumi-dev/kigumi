@@ -20,8 +20,11 @@ func (p *Program) shareArgs(f *Func, in *Inst, st *rcState, out *[]Inst, w *shar
 				back = append(back, args[i])
 			}
 		case kind == takesArg && w.sinkShared(*in, i, at), w.heldAcrossWrite(*in, i):
-			p.copyArg(f, in, a, &args[i], out)
-			if !w.liveness().after(a, at.Block, at.Inst) && !slices.Contains(back, a) {
+			t := p.copyArg(f, in, a, &args[i], out)
+			switch {
+			case !p.consumes(*in, i):
+				back = append(back, t)
+			case !w.liveness().after(a, at.Block, at.Inst) && !slices.Contains(back, a):
 				back = append(back, a)
 			}
 		}

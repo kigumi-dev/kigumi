@@ -3,7 +3,6 @@ package mir
 import "fmt"
 
 // Error is a verifier finding: a rule the program breaks, at one point of
-// one function. Every rule has a negative test in verify_test.go.
 type Error struct {
 	Func string
 	Rule string
@@ -18,13 +17,17 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s: %s: %s", e.Func, e.Rule, e.At, e.Msg)
 }
 
-// Verify checks every function, including the comptime blocks, against
-// the MIR contract: structure (block and local references in range, one
-// terminator per block), instruction shape (arity and fields per opcode),
-// the entities named, types, definition before use, and exactly-once
-// ownership of move-only locals. The first finding is returned.
 func (p *Program) Verify() error {
 	defer p.invalidateUnowned()
+	for _, f := range p.allFuncs() {
+		if err := verifyStructure(f); err != nil {
+			err.Func = f.Name
+			return err
+		}
+	}
+	if err := p.verifyEntry(); err != nil {
+		return err
+	}
 	for _, f := range p.allFuncs() {
 		if err := p.verifyFunc(f); err != nil {
 			return err
@@ -42,7 +45,36 @@ func (p *Program) allFuncs() []*Func {
 }
 
 func (p *Program) verifyFunc(f *Func) error {
-	for _, rule := range []func(*Func) *Error{verifyStructure, verifyShape, p.verifyEntities, p.verifyTypes, p.verifyPrimCalls, verifyDefs, p.verifyOwnership, p.verifyCellCaptures, p.verifyDropOwned, p.verifyDirect, p.verifyAllocClaim} {
+	if err := runRules(f, []func(*Func) *Error{verifyShape, verifyAsync, p.verifyParams, p.verifyEntities, p.verifyTypes, p.verifyStdOpTags, p.verifyPrimCalls, p.verifyCalls, p.verifyAggregates}); err != nil {
+		return err
+	}
+	// Definitions and the flow analyses read only this function and the checked
+	// tree, so a body that passed them before and has not changed is not walked again.
+	hash := flowHash(f)
+	changed := f.flowOK != hash
+	if changed {
+		if err := verifyDefs(f); err != nil {
+			err.Func = f.Name
+			return err
+		}
+	}
+	if err := runRules(f, []func(*Func) *Error{p.verifyOwnership, p.verifyCellCaptures, p.verifyCellOps, p.verifyCellValues, p.verifyBuiltins, p.verifyDropOwned, p.verifyReturnOwned}); err != nil {
+		return err
+	}
+	if changed {
+		if err := runRules(f, []func(*Func) *Error{p.verifyRefs, p.verifyVariants}); err != nil {
+			return err
+		}
+	}
+	if err := runRules(f, []func(*Func) *Error{p.verifyDirect, p.verifyDirectSig, p.verifyDirectForms, p.verifyCrossLocals, p.verifyFixedBoxes, p.verifyAllocClaim}); err != nil {
+		return err
+	}
+	f.flowOK = hash
+	return nil
+}
+
+func runRules(f *Func, rules []func(*Func) *Error) error {
+	for _, rule := range rules {
 		if err := rule(f); err != nil {
 			err.Func = f.Name
 			return err

@@ -41,6 +41,7 @@ json_decode.txtar 3
 lifetime_param_relabel.txtar 1
 lifetime_scope_exit_future_ok.txtar 1
 lifetime_view.txtar 1
+mut_param_closure_capture.txtar 1
 mut_ref_closure.txtar 2
 mut_ref_generic.txtar 2
 mut_ref_recv_field.txtar 2
@@ -66,6 +67,7 @@ std_net_listen_empty_host.txtar 10
 std_net_socket.txtar 10
 stdlib_host.txtar 8
 stdout_write.txtar 2
+variant_loop_reassign.txtar 14
 with_mut.txtar 1
 with_mut_reentrant_ok.txtar 1
 withmut_scalar.txtar 4

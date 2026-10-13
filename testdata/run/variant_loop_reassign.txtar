@@ -1,0 +1,95 @@
+-- src --
+type Step = A(n: Int) | B(n: Int) | Stop
+
+fn walk(start: Int?) -> Int {
+    let mut cur = start
+    let mut t = 0
+    for cur is Some(c) {
+        t += c
+        cur = if c > 0 { Some(c - 1) } else { None }
+    }
+    t
+}
+
+fn next(s: Step) -> Step {
+    match s {
+        A(n) -> if n > 0 { A(n - 1) } else { B(2) }
+        B(n) -> if n > 0 { B(n - 1) } else { Stop }
+        Stop -> Stop
+    }
+}
+
+fn nested(a0: Int?, b0: Int?) -> Int {
+    let mut a = a0
+    let mut t = 0
+    for a is Some(x) {
+        let mut b = b0
+        for b is Some(y) {
+            t += x * 10 + y
+            b = if y > 0 { Some(y - 1) } else { None }
+        }
+        a = if x > 0 { Some(x - 1) } else { None }
+    }
+    t
+}
+
+fn skipping() -> Int {
+    let mut cur = Some(5)
+    let mut t = 0
+    for cur is Some(c) {
+        cur = if c > 0 { Some(c - 1) } else { None }
+        if c % 2 == 0 {
+            continue
+        }
+        t += c
+    }
+    t
+}
+
+fn matched() -> Int {
+    let mut cur = Some(3)
+    let mut t = 0
+    for i in 0..10 {
+        match cur {
+            Some(c) -> {
+                t += c
+                cur = if c > 0 { Some(c - 1) } else { None }
+            }
+            None -> {
+                t += 100
+                cur = Some(i)
+            }
+        }
+    }
+    t
+}
+
+let mut slot: String? = Some("a")
+let mut out = Array.of[String]()
+for i in 0..4 {
+    if slot is Some(s) {
+        out.push(s)
+        slot = None
+    } else {
+        slot = Some("n${i}")
+    }
+}
+print "${out.len()}"
+print "${walk(Some(4))}"
+let mut cur = A(2)
+let mut steps = 0
+for cur is A(n) {
+    steps += n + 1
+    cur = next(cur)
+}
+print "${steps}"
+print "${nested(Some(2), Some(1))}"
+print "${skipping()}"
+print "${matched()}"
+-- stdout --
+2
+10
+6
+63
+9
+116

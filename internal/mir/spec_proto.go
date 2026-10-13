@@ -114,7 +114,7 @@ func (p *Program) inlineProtoCall(f *Func, in *Inst, g *Func, uses map[LocalID]i
 		gone = append(gone, d)
 	}
 	for _, d := range gone {
-		d.Op, d.Args, d.Dst = OpNop, nil, 0
+		*d = Inst{Op: OpNop, Node: d.Node}
 	}
 	*in = Inst{Op: OpBuiltin, Str: name, Dst: in.Dst, Args: args, Node: in.Node}
 }

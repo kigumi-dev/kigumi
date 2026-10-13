@@ -174,7 +174,9 @@ type Func struct {
 	// rcBase is the local count before plan-rc added its temporaries.
 	rcBase int
 	// Proto is "equals" or "hash" for a body specialization replaced by the direct comparison or hash.
-	Proto string
+	Proto    string
+	weakDefs []bool
+	flowOK   uint64
 }
 
 type Program struct {

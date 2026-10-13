@@ -1,5 +1,7 @@
 package mir
 
+import "kigumi/internal/sem"
+
 // verifyCellCaptures checks that a closure capturing a local as a cell
 // actually receives one: build_scope.go's param() and bindPattern always
 // back a Cell local with an OpNewCell before it is used, so a mismatch
@@ -74,4 +76,111 @@ func isParam(f *Func, l LocalID) bool {
 		}
 	}
 	return false
+}
+
+func (p *Program) verifyCellOps(f *Func) *Error {
+	for bid, blk := range f.Blocks {
+		for i, in := range blk.Insts {
+			if (in.Op == OpCellGet || in.Op == OpCellTake || in.Op == OpCellSet) && !p.canBeCell(f, in.Args[0], map[LocalID]bool{}) {
+				return fail("cellops", BlockID(bid), i, "%s through %%%s, which is no cell", in.Op, f.Locals[in.Args[0]].Name)
+			}
+		}
+	}
+	return nil
+}
+
+func (p *Program) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
+	if seen[l] || f.Locals[l].Cell || (isParam(f, l) && p.refCellParam(f, l)) {
+		return true
+	}
+	seen[l] = true
+	defined := false
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if !in.Op.Yields() || in.Dst != l {
+				continue
+			}
+			defined = true
+			switch in.Op {
+			case OpConst, OpUnit, OpBinary, OpUnary, OpInterp, OpShell, OpTag, OpIsVariant, OpIsType, OpRecord, OpVariant, OpArray, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpBox, OpBoxDirect, OpUnboxDirect,
+				OpCall, OpCallValue, OpCallC, OpBuiltin, OpAwait, OpFutureNew, OpCellGet, OpCellTake, OpAsm,
+				OpField, OpFieldMove, OpPayload, OpIndex, OpUnbox, OpGlobalGet:
+			case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
+				if p.canBeCell(f, in.Args[0], seen) {
+					return true
+				}
+			default:
+				return true
+			}
+		}
+	}
+	if isParam(f, l) {
+		return f.Locals[l].Borrowed || f.Locals[l].Cell
+	}
+	return !defined
+}
+
+func (p *Program) cellContent(f *Func, l LocalID, seen map[LocalID]bool) []sem.TypeID {
+	if seen[l] {
+		return nil
+	}
+	seen[l] = true
+	t := f.Locals[l].Type
+	tt := p.R.Types
+	if isParam(f, l) {
+		switch {
+		case f.Locals[l].Cell:
+			return []sem.TypeID{t}
+		case tt.Kind(t) == sem.KRef:
+			return []sem.TypeID{tt.Node(t).Elem}
+		case f.Locals[l].Borrowed:
+			return []sem.TypeID{t}
+		}
+		return nil
+	}
+	var found []sem.TypeID
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if !in.Op.Yields() || in.Dst != l {
+				continue
+			}
+			var c []sem.TypeID
+			switch in.Op {
+			case OpNewCell:
+				c = []sem.TypeID{t}
+				if tt.Kind(t) == sem.KRef {
+					c = append(c, tt.Node(t).Elem)
+				}
+			case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
+				c = p.cellContent(f, in.Args[0], seen)
+			}
+			if len(c) == 0 {
+				return nil
+			}
+			found = append(found, c...)
+		}
+	}
+	return found
+}
+
+func (p *Program) cellFits(f *Func, l LocalID, v sem.TypeID) (bool, sem.TypeID) {
+	content := p.cellContent(f, l, map[LocalID]bool{})
+	for _, c := range content {
+		if p.fits(c, v) {
+			return true, 0
+		}
+	}
+	if len(content) == 0 {
+		return true, 0
+	}
+	return false, content[0]
+}
+
+func (p *Program) refCellParam(f *Func, l LocalID) bool {
+	t := f.Locals[l].Type
+	if _, scalar := p.R.ScalarRefElem(t); scalar {
+		return true
+	}
+	_, mutRef := p.R.MutRefElem(t)
+	return mutRef && f.Locals[l].Ent != 0 && p.R.RefCellParam(f.Locals[l].Ent)
 }
