@@ -356,3 +356,38 @@ fn main() -> Unit! {}
 		}
 	}
 }
+
+func fnItemTargets(p *mir.Program, f *mir.Func) []string {
+	var out []string
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if in.Op == mir.OpFnItem {
+				out = append(out, p.ByEnt[in.Ent].Name)
+			}
+		}
+	}
+	return out
+}
+
+func TestSpecializeFollowsAGenericFnValue(t *testing.T) {
+	p := specialized(t, `
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+fn identity[T](x: T) -> T { x }
+
+fn run(x: Int) -> Int {
+    let f = identity[Point]
+    let g = identity[Int]
+    f(Point { x: x, y: x }).x + g(x)
+}
+
+fn main() -> Unit! {}
+`)
+	got := fnItemTargets(p, funcNamed(t, p, "main.run"))
+	if want := []string{"main.identity[main.Point]", "main.identity"}; fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("fn items name %v, want %v\n%s", got, want, p.Dump())
+	}
+}

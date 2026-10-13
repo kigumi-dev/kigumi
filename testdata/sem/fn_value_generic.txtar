@@ -1,0 +1,54 @@
+-- lib/fv.kg --
+interface Shower {
+    fn show(self) -> String
+}
+
+type Pt = {
+    x Int
+    y Int
+}
+
+fn Pt.show(self) -> String { "pt" }
+
+fn identity[T](x: T) -> T { x }
+fn describe[T: Shower](x: T) -> String { x.show() }
+fn collect(xs: ...Int) -> Int { 0 }
+
+fn use() -> Unit {
+    let a = identity[Pt] //~ TYPE a : fn(Pt) -> Pt
+    let b: fn(Pt) -> Pt = identity
+    let c = describe[Pt] //~ ERROR `describe` has interface-bounded type parameters
+    let d: fn(Pt) -> String = describe //~ ERROR `describe` has interface-bounded type parameters
+    let e = Array.of[Int] //~ ERROR variadic function `of` has no function value
+    let f = collect //~ ERROR variadic function `collect` has no function value
+    let g = describe(Pt { x: 1, y: 2 }) //~ TYPE g : String
+}
+-- expect --
+error[E1730]: `describe` has interface-bounded type parameters, which a function value cannot carry
+  --> lib/fv.kg:19:13
+   |
+19 |     let c = describe[Pt] //~ ERROR `describe` has interface-bounded type parameters
+   |             ^^^^^^^^^^^
+   = help: call it directly or wrap the call in a closure
+
+error[E1730]: `describe` has interface-bounded type parameters, which a function value cannot carry
+  --> lib/fv.kg:20:31
+   |
+20 |     let d: fn(Pt) -> String = describe //~ ERROR `describe` has interface-bounded type parameters
+   |                               ^^^^^^^^
+   = help: call it directly or wrap the call in a closure
+
+error[E418]: variadic function `of` has no function value
+  --> lib/fv.kg:21:13
+   |
+21 |     let e = Array.of[Int] //~ ERROR variadic function `of` has no function value
+   |             ^^^^^^^^^^^^
+   = help: write `(a) => of(..., ...a)`
+
+error[E418]: variadic function `collect` has no function value
+  --> lib/fv.kg:22:13
+   |
+22 |     let f = collect //~ ERROR variadic function `collect` has no function value
+   |             ^^^^^^^
+   = help: write `(a) => collect(..., ...a)`
+

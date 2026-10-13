@@ -142,7 +142,11 @@ func (c *checker) fnItemValue(n syntax.NodeID, set OverloadSetID) TypeID {
 		c.errAt(n, cVariadicNoValue, name, name)
 		return TyPoison
 	case len(c.ownGenerics(fn)) > 0:
-		sig, _, _ = c.instantiateFn(n, fn, nil, 0)
+		c.rejectHiddenArgs(n, fn)
+		var inst []TypeID
+		sig, inst, _ = c.instantiateFn(n, fn, nil, 0)
+		c.errorAsCheck(n, fn, inst)
+		c.deferFFIValueCheck(n, fn, inst, 0)
 		c.touched = append(c.touched, n)
 	}
 	if info.Declared&EffAsync != 0 {

@@ -99,3 +99,31 @@ func TestReachablePathNamesEntryToOp(t *testing.T) {
 		t.Errorf("PathNames(used) = %v, want a chain ending in \"used\"", path)
 	}
 }
+
+func TestReachableCountsAStdFunctionTakenAsAValue(t *testing.T) {
+	src := `
+import ffi from std/ffi
+import mem from std/mem
+
+let make = ffi.CString.new
+let erase = mem.secureErase
+print "taken"
+`
+	main := &sem.Package{Path: "main"}
+	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
+	main.Files = []*syntax.Tree{main.Entry}
+	res := sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)}, schema.GenerateDerive)
+	if res.HasErrors() {
+		t.Fatalf("check errors:\n%s", res.Render())
+	}
+	rs := mir.Reachable(mir.Build(res))
+	seen := map[string]bool{}
+	for _, op := range rs.Ops {
+		seen[mir.StdOpNames[op]] = true
+	}
+	for _, want := range []string{"CSTRING_NEW", "SECURE_ERASE"} {
+		if !seen[want] {
+			t.Errorf("a function value of a std primitive does not reach %s; reached %v", want, seen)
+		}
+	}
+}

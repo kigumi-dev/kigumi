@@ -1,0 +1,53 @@
+-- src --
+import ffi from std/ffi
+
+type Pair layout(C) = {
+    pub a i32
+    pub b i64
+}
+
+fn applyRef[A, R](f: fn(&A) -> R, a: &A) -> R { f(a) }
+
+let x: i64 = 3
+let sizeOfInt = ffi.sizeOf[i64]
+print "sizeOf: ${sizeOfInt(&x)}"
+
+let pair = Pair { a: 1, b: 2 }
+let sizeOfPair = ffi.sizeOf[Pair]
+print "generic fn: ${applyRef(sizeOfPair, &pair)}"
+let alignOfPair = ffi.alignOf[Pair]
+print "alignOf: ${alignOfPair(&pair)}"
+
+let newPair = ffi.CValue.new[Pair]
+let cell = newPair(Pair { a: 5, b: 6 })
+let readPair = ffi.readRecord[Pair]
+let writePair = ffi.writeRecord[Pair]
+let p = cell.ptr()
+unsafe {
+    let got = readPair(ffi.toConst(p))
+    print "read: ${got.a} ${got.b}"
+    writePair(p, &Pair { a: 7, b: 8 })
+}
+print "written: ${cell.get().a} ${cell.get().b}"
+
+let newU32 = ffi.CValue.new[u32]
+let n = newU32(7)
+n.set(&9)
+print "scalar: ${n.get()}"
+
+let newInt = ffi.CValue.new[i64]
+let big = newInt(41)
+print "i64: ${big.get() + 1}"
+
+let isNull = ffi.isNull[u8]
+let nullPtr = ffi.null[u8]
+print "null: ${isNull(nullPtr())}"
+-- stdout --
+sizeOf: 8
+generic fn: 16
+alignOf: 8
+read: 5 6
+written: 7 8
+scalar: 9
+i64: 42
+null: true

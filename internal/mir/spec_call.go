@@ -23,6 +23,9 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) {
 		return nil, nil, false
 	}
+	if in.Op == OpFnItem {
+		return args, nil, true
+	}
 	return args, s.witnesses(ctx, gen, r.Files[f.File].Calls[in.Node]), true
 }
 
@@ -35,6 +38,15 @@ func (p *Program) bindTypeArgs(f *Func, in Inst, subst func(sem.TypeID) sem.Type
 		want[tp] = !r.IsLifetimeParam(tp)
 	}
 	bound := map[sem.EntityID]sem.TypeID{}
+	if in.Op == OpFnItem {
+		if in.Async || info.Recv != sem.RecvNone || len(info.Witnesses) > 0 {
+			return nil, false
+		}
+		if !r.Types.BindParams(info.Sig, f.Locals[in.Dst].Type, want, bound) {
+			return nil, false
+		}
+		return p.boundArgs(gen, want, bound)
+	}
 	call := r.Files[f.File].Calls[in.Node]
 	if call.Callee == gen {
 		own := p.ownParams(gen)
@@ -60,8 +72,14 @@ func (p *Program) bindTypeArgs(f *Func, in Inst, subst func(sem.TypeID) sem.Type
 	if !r.Types.BindParams(r.Types.Node(info.Sig).Elem, f.Locals[in.Dst].Type, want, bound) {
 		return nil, false
 	}
-	args := make([]sem.TypeID, len(info.TypeParams))
-	for i, tp := range info.TypeParams {
+	return p.boundArgs(gen, want, bound)
+}
+
+func (p *Program) boundArgs(gen sem.EntityID, want map[sem.EntityID]bool, bound map[sem.EntityID]sem.TypeID) ([]sem.TypeID, bool) {
+	r := p.R
+	tps := r.Fn(gen).TypeParams
+	args := make([]sem.TypeID, len(tps))
+	for i, tp := range tps {
 		if !want[tp] {
 			continue
 		}

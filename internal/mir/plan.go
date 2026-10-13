@@ -147,7 +147,7 @@ func (p *Program) consumes(in Inst, i int) bool {
 	}
 	switch in.Op {
 	case OpField, OpFieldMove, OpIndex, OpIsVariant, OpIsType, OpPayload, OpUnbox,
-		OpCellGet, OpCellTake, OpBinary, OpUnary, OpInterp, OpBuiltin, OpBorrow, OpFutureNew, OpFutureDone:
+		OpCellGet, OpCellTake, OpBinary, OpUnary, OpInterp, OpBuiltin, OpBorrow, OpFutureNew, OpFutureDone, OpShare, OpClosure, OpBind:
 		return false
 	}
 	return true

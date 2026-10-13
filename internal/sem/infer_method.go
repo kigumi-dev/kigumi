@@ -107,17 +107,20 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 	c.info.Uses[n] = m
 	c.info.Calls[n] = CallInfo{Kind: CallMethodValue, Callee: m, Recv: info.Recv}
 	sig := c.r.memberSig(valueType, m)
+	c.rejectHiddenArgs(n, m)
+	var inst []TypeID
 	switch {
 	case c.r.Types.Node(sig).Flags&fnVariadic != 0:
 		c.errAt(n, cVariadicNoValue, name, name)
 		return TyPoison
 	case len(c.ownGenerics(m)) > 0:
-		sig, _, _ = c.instantiateFn(n, m, nil, valueType)
+		sig, inst, _ = c.instantiateFn(n, m, nil, valueType)
 		c.touched = append(c.touched, n)
 	case !c.r.isCopy(valueType):
 		c.errAt(n, cMethodValueMoveOnly, valueType)
 		return TyPoison
 	}
+	c.deferFFIValueCheck(n, m, inst, valueType)
 	if info.Declared&EffAsync != 0 {
 		sig = c.asyncValueFn(sig)
 	}

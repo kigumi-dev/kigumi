@@ -17,6 +17,7 @@ type argFixup struct {
 	field    int
 	elemType sem.TypeID
 	cell     LocalID
+	dropCell bool
 	node     syntax.NodeID
 }
 
@@ -78,6 +79,9 @@ func (b *builder) applyArgFixups(mark int) {
 	for _, fx := range fixups {
 		if fx.recv != nil {
 			v := b.emit(Inst{Op: OpCellTake, Dst: b.temp(fx.elemType), Args: []LocalID{fx.cell}, Node: fx.node})
+			if fx.dropCell {
+				b.emit(Inst{Op: OpDrop, Args: []LocalID{fx.cell}, Scoped: true, Node: fx.node})
+			}
 			if fx.recv.src == nil {
 				b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Scoped: true, Node: fx.node})
 				continue

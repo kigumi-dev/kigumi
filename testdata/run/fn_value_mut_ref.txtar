@@ -1,0 +1,27 @@
+-- src --
+type R = {
+    mut n Int
+}
+
+fn bump(r: &mut R) -> Unit {
+    r.n = r.n + 1
+}
+
+fn inc(x: &mut Int) -> Unit {
+    x = x + 1
+}
+
+let mut r = R { n: 0 }
+let f = bump
+f(&mut r)
+f(&mut r)
+let c = (q: &mut R) => { q.n = q.n + 10 }
+c(&mut r)
+c(&mut r)
+let mut k = 0
+let g = inc
+g(&mut k)
+g(&mut k)
+print "${r.n} ${k}"
+-- stdout --
+22 2

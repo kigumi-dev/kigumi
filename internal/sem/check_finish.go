@@ -7,6 +7,7 @@ func (c *checker) finish() {
 	c.settleAllocs()
 	c.settleInline()
 	c.checkConstraints()
+	c.runFFIValueChecks()
 	for _, id := range c.closures {
 		info := c.r.closure(id)
 		info.Ret = c.vars.resolve(info.Ret)

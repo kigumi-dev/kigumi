@@ -1,0 +1,82 @@
+-- app/t/t.kg --
+import ffi from std/ffi
+
+type Plain = { a Int }
+
+type Wide layout(C) = {
+    pub a i32
+    pub b i32
+}
+
+fn sizeIn[T](v: &T) -> usize {
+    let f = ffi.sizeOf[T] //~ ERROR `T` cannot be passed to `sizeOf`
+    f(v)
+}
+
+fn cellIn[U](v: U) -> Unit {
+    let mk = ffi.CValue.new[U] //~ ERROR `U` cannot be a `CValue` element
+}
+
+fn lease() -> Unit {
+    let a: fn(&Plain) -> usize = ffi.sizeOf //~ ERROR `Plain` cannot be passed to `sizeOf`
+    let b = ffi.sizeOf[String] //~ ERROR `String` cannot be passed to `sizeOf`
+    let c = ffi.alignOf[Plain] //~ ERROR `Plain` cannot be passed to `alignOf`
+    let d = ffi.CValue.new[Plain] //~ ERROR `Plain` cannot be a `CValue` element
+    let ok = ffi.sizeOf[Wide]
+    let ok2 = ffi.sizeOf[i32]
+    let ok3 = ffi.CValue.new[i64]
+    let w = ffi.withAddress[i32, *mut i32] //~ ERROR `withAddress`'s callback returns
+    let w2: fn(&mut i32, fn(*mut i32) -> *mut i32) -> *mut i32 = ffi.withAddress //~ ERROR `withAddress`'s callback returns
+    let okw = ffi.withAddress[i32, i32]
+}
+-- expect --
+error[E968]: `T` cannot be passed to `sizeOf`: use a fixed-width number, `Bool`, `Char`, a pointer or a `layout(C)` record
+  --> app/t/t.kg:11:13
+   |
+11 |     let f = ffi.sizeOf[T] //~ ERROR `T` cannot be passed to `sizeOf`
+   |             ^^^^^^^^^^^^
+
+error[E967]: `U` cannot be a `CValue` element: use a fixed-width number, `Bool`, `Char`, a pointer or a `layout(C)` record
+  --> app/t/t.kg:16:14
+   |
+16 |     let mk = ffi.CValue.new[U] //~ ERROR `U` cannot be a `CValue` element
+   |              ^^^^^^^^^^^^^^^^
+
+error[E968]: `Plain` cannot be passed to `sizeOf`: use a fixed-width number, `Bool`, `Char`, a pointer or a `layout(C)` record
+  --> app/t/t.kg:20:34
+   |
+20 |     let a: fn(&Plain) -> usize = ffi.sizeOf //~ ERROR `Plain` cannot be passed to `sizeOf`
+   |                                  ^^^^^^^^^^
+
+error[E968]: `String` cannot be passed to `sizeOf`: use a fixed-width number, `Bool`, `Char`, a pointer or a `layout(C)` record
+  --> app/t/t.kg:21:13
+   |
+21 |     let b = ffi.sizeOf[String] //~ ERROR `String` cannot be passed to `sizeOf`
+   |             ^^^^^^^^^^^^^^^^^
+
+error[E968]: `Plain` cannot be passed to `alignOf`: use a fixed-width number, `Bool`, `Char`, a pointer or a `layout(C)` record
+  --> app/t/t.kg:22:13
+   |
+22 |     let c = ffi.alignOf[Plain] //~ ERROR `Plain` cannot be passed to `alignOf`
+   |             ^^^^^^^^^^^^^^^^^
+
+error[E967]: `Plain` cannot be a `CValue` element: use a fixed-width number, `Bool`, `Char`, a pointer or a `layout(C)` record
+  --> app/t/t.kg:23:13
+   |
+23 |     let d = ffi.CValue.new[Plain] //~ ERROR `Plain` cannot be a `CValue` element
+   |             ^^^^^^^^^^^^^^^^^^^^
+
+error[E1413]: `withAddress`'s callback returns `*mut i32`, which can carry the leased pointer out past the call
+  --> app/t/t.kg:27:13
+   |
+27 |     let w = ffi.withAddress[i32, *mut i32] //~ ERROR `withAddress`'s callback returns
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E1413]: `withAddress`'s callback returns `*mut i32`, which can carry the leased pointer out past the call
+  --> app/t/t.kg:28:66
+   |
+28 |     let w2: fn(&mut i32, fn(*mut i32) -> *mut i32) -> *mut i32 = ffi.withAddress //~ ERROR `withAddress`'s callback returns
+   |                                                                  ^^^^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+

@@ -149,7 +149,7 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			}
 			res = e.closureCtor(sb, sym, in.Async, args, arr)
 		} else if e.loweredStd(in.Ent) {
-			res = e.closureCtor(sb, e.stdBound(in.Ent, len(args)), in.Async, args, arr)
+			res = e.closureCtor(sb, e.stdBound(in.Ent, len(args), f.Locals[in.Dst].Type), in.Async, args, arr)
 		} else {
 			res = e.irb(sb).Call(rtStdBind, vptr(e.cstr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)), vi32(len(args)), vptr(arr)).Text
 		}

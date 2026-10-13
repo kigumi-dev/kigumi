@@ -1,0 +1,58 @@
+-- engines --
+native
+-- src --
+import ffi from std/ffi
+
+fn apply[A, R](f: fn(&A) -> R, a: &A) -> R { f(a) }
+
+interface Maker {
+    fn make(self, f: fn(&String) -> ffi.CString!, s: &String) -> Int
+}
+
+@impl(Maker)
+type Plain = {
+    pub tag Int
+}
+
+fn Plain.make(self, f: fn(&String) -> ffi.CString!, s: &String) -> Int {
+    match f(s) {
+        Ok(c) -> {
+            unsafe { ffi.readU8(c.ptr()).toInt() }
+        }
+        Err(_) -> -1
+    }
+}
+
+fn viaMaker(m: Maker, f: fn(&String) -> ffi.CString!, s: &String) -> Int {
+    m.make(f, s)
+}
+
+let s = "hi"
+let f = ffi.CString.new
+match f(&s) {
+    Ok(c) -> print "direct ok ${unsafe { ffi.readU8(c.ptr()) }}"
+    Err(_) -> print "direct err"
+}
+match apply(f, &s) {
+    Ok(c) -> print "generic ok ${unsafe { ffi.readU8(c.ptr()) }}"
+    Err(_) -> print "generic err"
+}
+let m: Maker = Plain { tag: 1 }
+print "iface ${viaMaker(m, ffi.CString.new, &s)}"
+let bad = "a\0b"
+let m2: Maker = Plain { tag: 2 }
+print "nul ${viaMaker(m2, f, &bad)}"
+for i in 0..2 {
+    let g = ffi.CString.new
+    match g(&s) {
+        Ok(_) -> print "loop ${i}"
+        Err(_) -> print "err"
+    }
+}
+-- stdout --
+direct ok 104
+generic ok 104
+iface 104
+nul -1
+loop 0
+loop 1

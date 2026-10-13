@@ -78,7 +78,7 @@ func (e *emitter) convertCall(sb *strings.Builder, ent sem.EntityID, key string,
 // compiler rather than rt_std, so its function value needs that same adapter.
 func (e *emitter) loweredStd(fn sem.EntityID) bool {
 	key := e.stdKey(fn)
-	if strings.HasPrefix(key, "std/ffi.") {
+	if strings.HasPrefix(key, "std/ffi.") || key == "std/error.as" {
 		return true
 	}
 	info := e.r.Fn(fn)
@@ -89,11 +89,12 @@ func (e *emitter) loweredStd(fn sem.EntityID) bool {
 	return e.r.Types.IsNumeric(self) || self == sem.TyChar
 }
 
-func (e *emitter) stdBound(fn sem.EntityID, bound int) string {
-	sym := fmt.Sprintf("@\"%s$stdbound%d\"", e.stdKey(fn), bound)
+// stdBound has one adapter per value type: a generic primitive expands per instantiation.
+func (e *emitter) stdBound(fn sem.EntityID, bound int, value sem.TypeID) string {
+	sym := fmt.Sprintf("@\"%s$stdbound%d$%s#%d\"", e.stdKey(fn), bound, e.r.TypeString(value), value)
 	if !e.cio[sym] {
 		e.cio[sym] = true
-		e.helpers.WriteString(e.stdAdapterWith(fn, sym, bound))
+		e.helpers.WriteString(e.stdAdapterWith(fn, sym, bound, value))
 	}
 	return sym
 }

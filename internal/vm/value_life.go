@@ -63,6 +63,9 @@ func (m *Machine) free(v *obj) {
 	}
 	// A freed object is poisoned so a later use is caught, like -DKIGUMI_RC_CHECK.
 	*v = obj{k: kFree}
+	if liveTrack.Load() {
+		liveFreed.Add(1)
+	}
 }
 
 // copy duplicates a value the way rt_copy does: structural values deeply,

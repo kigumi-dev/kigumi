@@ -1,0 +1,32 @@
+-- src --
+type P = {
+    a Int
+}
+
+fn P.get(self) -> Int { self.a }
+
+fn P.plus(self, n: Int) -> Int { self.a + n }
+
+fn viaRecord(n: Int) -> Int {
+    let p = P { a: n }
+    let g = p.get
+    let h = p.plus
+    g() + h(1)
+}
+
+fn viaString(s: String) -> String {
+    let up = s.toUpper
+    up()
+}
+
+let mut total = 0
+for i in 0..3 {
+    total = total + viaRecord(i)
+    print viaString("ab${i}")
+}
+print "${total}"
+-- stdout --
+AB0
+AB1
+AB2
+9

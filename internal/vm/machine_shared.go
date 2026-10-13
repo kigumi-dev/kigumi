@@ -60,7 +60,7 @@ func (m *Machine) lane() *Machine {
 	w := *m
 	w.stack, w.pending = nil, nil
 	w.stepsLeft, w.depth = 0, 0
-	w.site, w.siteFn, w.curFn, w.curInst = nil, nil, nil, nil
+	w.site, w.siteFn, w.curFn, w.curInst, w.valueSites = nil, nil, nil, nil, nil
 	w.cur, w.curLane = nil, 0
 	return &w
 }

@@ -1,0 +1,73 @@
+-- lib/fv.kg --
+pub context token: String
+
+pub fn say[T](x: T) -> String {
+    token
+}
+
+pub fn zeroLen[const N: usize]() -> usize { N }
+
+pub fn lenOf[T, const N: usize](a: &FixedArray[T, N]) -> usize { N }
+
+pub fn plain[T](x: T) -> T { x }
+
+pub type Box[T] = {
+    pub v T
+}
+
+pub fn Box[T].eqv[U: Eq](self, o: U, p: U) -> Bool { o == p }
+
+pub fn use() -> Unit {
+    let a = say[Int] //~ ERROR `say` requires context key `token`
+    let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
+    let c = lenOf[Int, 3] //~ ERROR `lenOf` has const generic parameters
+    let d = FixedArray.filled[Int, 3] //~ ERROR `filled` has const generic parameters
+    let e = plain[Int] //~ TYPE e : fn(Int) -> Int
+    let arr = FixedArray.filled[Int, 3](1)
+    let f = arr.len //~ ERROR `len` has const generic parameters
+    let box = Box { v: 1 }
+    let g: fn(Int, Int) -> Bool = box.eqv //~ ERROR `eqv` has interface-bounded type parameters
+}
+-- expect --
+error[E1217]: `say` requires context key `token` and can't be used as a plain function value
+  --> lib/fv.kg:20:13
+   |
+20 |     let a = say[Int] //~ ERROR `say` requires context key `token`
+   |             ^^^^^^^
+   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+
+error[E1731]: `zeroLen` has const generic parameters, which a function value cannot carry
+  --> lib/fv.kg:21:13
+   |
+21 |     let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
+   |             ^^^^^^^^^
+   = help: call it directly or wrap the call in a closure
+
+error[E1731]: `lenOf` has const generic parameters, which a function value cannot carry
+  --> lib/fv.kg:22:13
+   |
+22 |     let c = lenOf[Int, 3] //~ ERROR `lenOf` has const generic parameters
+   |             ^^^^^^^^^^^^
+   = help: call it directly or wrap the call in a closure
+
+error[E1731]: `filled` has const generic parameters, which a function value cannot carry
+  --> lib/fv.kg:23:13
+   |
+23 |     let d = FixedArray.filled[Int, 3] //~ ERROR `filled` has const generic parameters
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: call it directly or wrap the call in a closure
+
+error[E1731]: `len` has const generic parameters, which a function value cannot carry
+  --> lib/fv.kg:26:13
+   |
+26 |     let f = arr.len //~ ERROR `len` has const generic parameters
+   |             ^^^^^^^
+   = help: call it directly or wrap the call in a closure
+
+error[E1730]: `eqv` has interface-bounded type parameters, which a function value cannot carry
+  --> lib/fv.kg:28:35
+   |
+28 |     let g: fn(Int, Int) -> Bool = box.eqv //~ ERROR `eqv` has interface-bounded type parameters
+   |                                   ^^^^^^^
+   = help: call it directly or wrap the call in a closure
+

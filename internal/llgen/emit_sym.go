@@ -56,12 +56,14 @@ func (e *emitter) stdAdapterSym(fn sem.EntityID) string {
 }
 
 func (e *emitter) stdAdapter(fn sem.EntityID) string {
-	return e.stdAdapterWith(fn, e.stdAdapterSym(fn), 0)
+	return e.stdAdapterWith(fn, e.stdAdapterSym(fn), 0, 0)
 }
 
 // stdAdapterWith reads the first bound values from the environment (a
 // method value's receiver) and the rest from the call's arguments.
-func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int) string {
+func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value sem.TypeID) string {
+	defer func(h bool) { e.hoisting = h }(e.hoisting)
+	e.hoisting = false
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", sym)
 	n := len(e.r.Types.Node(e.r.Fn(fn).Sig).Args)
@@ -85,8 +87,19 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int) string 
 	if e.r.Fn(fn).Recv != sem.RecvNone {
 		types = append(types, 0)
 	}
-	types = append(types, sig.Args...)
-	if res, ok := e.ffiRecordCall(&sb, e.stdKey(fn), vals, types, sig.Elem); ok {
+	result := sig.Elem
+	if vt := e.r.Types.Node(value); value != 0 && vt.Kind == sem.KFn && e.r.ConcreteArg(value) {
+		types = append(types, make([]sem.TypeID, bound)...)
+		types = append(types, vt.Args...)
+		result = vt.Elem
+	} else {
+		types = append(types, sig.Args...)
+	}
+	if e.stdKey(fn) == "std/error.as" && len(vals) == 1 {
+		fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", e.errorAsCall(&sb, vals[0], result))
+		return sb.String()
+	}
+	if res, ok := e.ffiRecordCall(&sb, e.stdKey(fn), vals, types, result); ok {
 		fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", res)
 		return sb.String()
 	}
@@ -125,32 +138,6 @@ func (e *emitter) adapter(f *mir.Func) string {
 			e.irb(&sb).CallAs(v, rtAt, vptr("%env"), vi64(i))
 		} else {
 			e.irb(&sb).CallAs(v, rtAt, vptr("%args"), vi64(i-ncaps))
-		}
-		vals = append(vals, v)
-	}
-	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", e.callBoxed(&sb, f, vals))
-	return sb.String()
-}
-
-// methodAdapterSym is for a method value (a captured receiver), unlike
-// adapterSym's plain form, which reads every parameter from the arguments.
-func (e *emitter) methodAdapterSym(f *mir.Func) string {
-	return "@\"" + e.symName(f) + "$methodvalue\""
-}
-
-// methodAdapter reads the receiver from the environment and the rest of
-// the parameters from the arguments; adapterSym's plain form assumes no
-// capture, which doesn't fit this case.
-func (e *emitter) methodAdapter(f *mir.Func) string {
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", e.methodAdapterSym(f))
-	var vals []string
-	for i := range f.Params {
-		v := fmt.Sprintf("%%a%d", i)
-		if i == 0 {
-			e.irb(&sb).CallAs(v, rtAt, vptr("%env"), vi64(0))
-		} else {
-			e.irb(&sb).CallAs(v, rtAt, vptr("%args"), vi64(i-1))
 		}
 		vals = append(vals, v)
 	}

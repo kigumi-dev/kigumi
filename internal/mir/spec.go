@@ -64,7 +64,7 @@ func (s *specializer) scan(f *Func, ctx *spec) {
 	for bid := range f.Blocks {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {
-			if insts[i].Op != OpCall {
+			if insts[i].Op != OpCall && insts[i].Op != OpFnItem {
 				continue
 			}
 			// A copy of a body scanned before it was copied already names the instantiation.

@@ -6,6 +6,29 @@ import "kigumi/internal/syntax"
 // instead of generated per-instantiation code, so T needs the same gate.
 var ffiFreeLayoutFns = map[string]bool{"sizeOf": true, "alignOf": true, "readRecord": true, "writeRecord": true}
 
+type ffiValueCheck struct {
+	node syntax.NodeID
+	fn   EntityID
+	inst []TypeID
+	recv TypeID
+}
+
+// A function value's type arguments are known only once inference settles, so its gates run then.
+func (c *checker) deferFFIValueCheck(n syntax.NodeID, fn EntityID, inst []TypeID, recv TypeID) {
+	if c.r.Packages[c.r.Entities[fn].Pkg].Path == "std/ffi" {
+		c.ffiValues = append(c.ffiValues, ffiValueCheck{n, fn, inst, recv})
+	}
+}
+
+func (c *checker) runFFIValueChecks() {
+	pending := c.ffiValues
+	c.ffiValues = nil
+	for _, v := range pending {
+		c.ffiCValueCheck(v.node, v.fn, v.inst, v.recv)
+		c.ffiAddressLeaseCheck(v.node, v.fn, v.inst)
+	}
+}
+
 // A generic body is checked once for all its type arguments, so a type parameter here is rejected rather than deferred.
 func (c *checker) ffiCValueCheck(n syntax.NodeID, fn EntityID, inst []TypeID, recv TypeID) {
 	e := &c.r.Entities[fn]

@@ -13,7 +13,7 @@ func (m *Machine) initGlobals() {
 		}
 		lit, _ := m.r.StaticValueOf(ent)
 		v := m.constant(&mir.Inst{Lit: lit, Type: m.r.Entity(ent).Type})
-		setImmortal(v)
+		m.immortalize(v)
 		m.sh.globals[ent] = v
 	}
 }
@@ -31,7 +31,7 @@ func (m *Machine) loadGlobal(ent sem.EntityID) *obj {
 }
 
 func (m *Machine) storeGlobal(ent sem.EntityID, v *obj) {
-	setImmortal(v)
+	m.immortalize(v)
 	m.sh.store.Lock()
 	old, ok := m.sh.globals[ent]
 	if ok {

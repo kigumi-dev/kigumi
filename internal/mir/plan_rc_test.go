@@ -231,3 +231,54 @@ func TestPlanRCAliasChainReturnShare(t *testing.T) {
 		t.Fatalf("return argument %d, want the shared value %d", got, insts[2].Dst)
 	}
 }
+
+func TestPlanRCReleasesWhatASharedCopyAndAClosureLeave(t *testing.T) {
+	prog := mir.Build(checkSourceMir(t, `
+type Pt = {
+    mut x Int
+}
+
+fn run() -> Unit {
+    let mut rec = Pt { x: 1 }
+    let old = rec
+    let mut bump = () => {
+        rec.x = rec.x + 1
+    }
+    bump()
+    print "${old.x} ${rec.x}"
+}
+
+fn main() -> Unit! {}
+`))
+	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
+		t.Fatal(err)
+	}
+	run := funcNamed(t, prog, "main.run")
+	for _, blk := range run.Blocks {
+		released := map[mir.LocalID]bool{}
+		for _, in := range blk.Insts {
+			if in.Op == mir.OpRelease {
+				released[in.Args[0]] = true
+			}
+		}
+		cellRead := map[mir.LocalID]bool{}
+		shared := map[mir.LocalID]bool{}
+		for _, in := range blk.Insts {
+			switch in.Op {
+			case mir.OpCellGet:
+				cellRead[in.Dst] = true
+			case mir.OpShare:
+				shared[in.Dst] = true
+				if cellRead[in.Args[0]] && !released[in.Args[0]] {
+					t.Errorf("the read %%t%d a share copies is never released:\n%s", in.Args[0], prog.Dump())
+				}
+			case mir.OpClosure:
+				for _, a := range in.Args {
+					if shared[a] && !released[a] {
+						t.Errorf("the share %%t%d a closure retains again is never released:\n%s", a, prog.Dump())
+					}
+				}
+			}
+		}
+	}
+}

@@ -64,7 +64,12 @@ var (
 	falseObj = &obj{k: kBool, rc: -1}
 )
 
-func newObj(k kind) *obj { return &obj{k: k, rc: 1} }
+func newObj(k kind) *obj {
+	if liveTrack.Load() {
+		liveMade.Add(1)
+	}
+	return &obj{k: k, rc: 1}
+}
 
 func mkInt(i int64, nk int) *obj {
 	if nk == 0 {

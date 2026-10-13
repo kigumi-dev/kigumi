@@ -63,8 +63,9 @@ type Machine struct {
 	sh       *shared
 	// site is the call being dispatched, for primitives whose meaning
 	// depends on the argument types at the call (ffi.sizeOf).
-	site   *mir.Inst
-	siteFn *mir.Func
+	site       *mir.Inst
+	siteFn     *mir.Func
+	valueSites map[valueSiteKey]valueSite
 	// curFn/curInst track every instruction (not just calls, unlike site/siteFn), for Panic's Site.
 	curFn   *mir.Func
 	curInst *mir.Inst

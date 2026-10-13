@@ -5386,6 +5386,144 @@
       ]
     },
     {
+      "id": "run/fn_value_error_as",
+      "kind": "run",
+      "path": "testdata/run/fn_value_error_as.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_ffi_cstring",
+      "kind": "run",
+      "path": "testdata/run/fn_value_ffi_cstring.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
+      "id": "run/fn_value_ffi_generic",
+      "kind": "run",
+      "path": "testdata/run/fn_value_ffi_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_generic_async",
+      "kind": "run",
+      "path": "testdata/run/fn_value_generic_async.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_generic_instance",
+      "kind": "run",
+      "path": "testdata/run/fn_value_generic_instance.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_method_lent",
+      "kind": "run",
+      "path": "testdata/run/fn_value_method_lent.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_mut_ref",
+      "kind": "run",
+      "path": "testdata/run/fn_value_mut_ref.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fn_value_std_primitive",
+      "kind": "run",
+      "path": "testdata/run/fn_value_std_primitive.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/for_borrow",
       "kind": "run",
       "path": "testdata/run/for_borrow.txtar",
@@ -9751,6 +9889,39 @@
       "id": "sem/fix_lead_main_signature",
       "kind": "sem",
       "path": "testdata/sem/fix_lead_main_signature.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_value_ffi_gates",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_ffi_gates.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_value_generic",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_generic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fn_value_hidden_args",
+      "kind": "sem",
+      "path": "testdata/sem/fn_value_hidden_args.txtar",
       "mode": [
         "check"
       ],

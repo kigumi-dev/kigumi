@@ -1,0 +1,28 @@
+-- src --
+import task from std/task
+
+async fn echo[T](x: T) -> T {
+    x
+}
+
+type Pt = {
+    x Int
+    y Int
+}
+
+fn apply[A, R](f: fn(A) -> Future[R], a: A) -> Future[R] {
+    f(a)
+}
+
+async fn driver() -> Int {
+    let f = echo[Int]
+    let a = await apply(f, 5)
+    let g = echo[Pt]
+    let p = await apply(g, Pt { x: 3, y: 4 })
+    a + p.y
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(driver())}"
+-- stdout --
+9

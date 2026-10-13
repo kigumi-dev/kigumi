@@ -11,14 +11,26 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 	switch head.kind {
 	case headFn:
 		if params := c.ownGenerics(head.ent); len(params) > 0 {
+			if c.r.Types.Node(c.r.Fn(head.ent).Sig).Flags&fnVariadic != 0 {
+				name := c.r.Entities[head.ent].Name
+				c.errAt(n, cVariadicNoValue, name, name)
+				return TyPoison
+			}
+			c.rejectHiddenArgs(n, head.ent)
 			var typeArgs []TypeID
 			for i, a := range items {
 				typeArgs = append(typeArgs, c.r.resolveExprGenericArg(c.f, c.scope, a, entAt(params, i)))
 			}
 			c.r.useEntity(c.f, n, head.ent)
 			c.info.Uses[n] = head.ent
-			sig, _, _ := c.instantiateFn(n, head.ent, typeArgs, 0)
+			sig, inst, _ := c.instantiateFn(n, head.ent, typeArgs, 0)
+			c.errorAsCheck(n, head.ent, inst)
+			c.deferFFIValueCheck(n, head.ent, inst, 0)
 			c.touched = append(c.touched, n)
+			if c.r.Fn(head.ent).Declared&EffAsync != 0 {
+				sig = c.asyncValueFn(sig)
+			}
+			c.recordCtxValueRef(n, head.ent)
 			return sig
 		}
 	case headType:

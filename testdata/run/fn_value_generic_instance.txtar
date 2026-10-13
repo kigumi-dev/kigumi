@@ -1,0 +1,96 @@
+-- src --
+import ffi from std/ffi
+
+type Pt = {
+    x Int
+    y Int
+}
+
+type Box[T] = {
+    v T
+}
+
+type Res = resource {
+    id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Box.make[T](v: T) -> Box[T] { Box { v: v } }
+
+fn identity[T](x: T) -> T { x }
+fn first[T](a: T, b: T) -> T { a }
+fn pair[T](a: T, b: T) -> Array[T] { Array.of(a, b) }
+
+fn viaValue[T](x: T) -> T {
+    let f = identity[T]
+    f(x)
+}
+
+fn apply[A, B](f: fn(A) -> B, a: A) -> B { f(a) }
+
+fn mapAll[T, R](xs: &Array[T], f: fn(&T) -> R) -> Array[R] {
+    let mut out: Array[R] = Array.empty()
+    for x in xs { out.push(f(x)) }
+    out
+}
+
+fn getX(p: &Pt) -> Int { p.x }
+
+let p = Pt { x: 3, y: 4 }
+let f = identity[Pt]
+let q = f(p)
+print "direct record: ${q.x} ${q.y}"
+let ints = identity[Int]
+print "scalar: ${ints(7)}"
+let strs = identity[String]
+print "shared body: ${strs("str")}"
+print "through generic: ${apply(f, Pt { x: 7, y: 7 }).x}"
+
+let implicit: fn(Pt) -> Pt = identity
+print "implicit: ${implicit(Pt { x: 8, y: 9 }).y}"
+
+for i in 0..3 {
+    let g = identity[Pt]
+    print "loop: ${g(Pt { x: i, y: i }).x}"
+}
+
+print "inside generic: ${viaValue(Pt { x: 1, y: 2 }).y} ${viaValue(5)} ${viaValue("s")}"
+
+let makeBox = Box.make[Pt]
+print "static method: ${makeBox(Pt { x: 9, y: 8 }).v.x}"
+let makePair = pair[Pt]
+print "two args: ${makePair(Pt { x: 1, y: 2 }, Pt { x: 3, y: 4 }).len()}"
+let emptyPts = Array.empty[Pt]
+print "std generic: ${emptyPts().len()}"
+
+let pickFirst = first[Res]
+let kept = pickFirst(Res { id: 2 }, Res { id: 3 })
+print "resource: ${kept.id}"
+
+let xs = Array.of(Pt { x: 1, y: 1 }, Pt { x: 2, y: 2 })
+let xsOnly = mapAll(&xs, getX)
+print "mapped: ${xsOnly.len()} ${xsOnly[1]}"
+
+let nullOf = ffi.null[u8]
+print "null: ${ffi.isNull(nullOf())}"
+-- stdout --
+direct record: 3 4
+scalar: 7
+shared body: str
+through generic: 7
+implicit: 9
+loop: 0
+loop: 1
+loop: 2
+inside generic: 2 5 s
+static method: 9
+two args: 2
+std generic: 0
+drop 3
+resource: 2
+mapped: 2 2
+null: true
+drop 2

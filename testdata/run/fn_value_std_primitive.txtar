@@ -1,0 +1,98 @@
+-- src --
+import mem from std/mem
+import math from std/math
+import text from std/text
+import subtle from std/crypto/subtle
+import task from std/task
+import alloc from std/alloc
+
+interface Runner {
+    fn run(self, f: fn(&mut Bytes) -> Unit, b: &mut Bytes) -> Unit
+}
+
+@impl(Runner)
+type Plain = {
+    pub tag Int
+}
+
+fn Plain.run(self, f: fn(&mut Bytes) -> Unit, b: &mut Bytes) -> Unit {
+    f(b)
+}
+
+type Holder = {
+    op fn(&mut Bytes) -> Unit
+}
+
+fn viaRunner(r: Runner, f: fn(&mut Bytes) -> Unit, b: &mut Bytes) -> Unit {
+    r.run(f, b)
+}
+
+fn apply[A, R](f: fn(A) -> R, a: A) -> R { f(a) }
+fn gen[F: Fn[fn(Float) -> Float]](f: F, x: Float) -> Float { f(x) }
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    for x in b { out = "${out}${x}," }
+    out
+}
+
+let mut b = Bytes.fromArray(&Array.of[u8](1, 2, 3))
+viaRunner(Plain { tag: 1 }, mem.secureErase, &mut b)
+print "interface: ${show(&b)}"
+
+let h = Holder { op: mem.secureErase }
+let mut b2 = Bytes.fromArray(&Array.of[u8](4, 5))
+(h.op)(&mut b2)
+print "field: ${show(&b2)}"
+
+let mut b3 = Bytes.fromArray(&Array.of[u8](6, 7))
+let tryErase = mem.trySecureErase
+print "try: ${tryErase(&mut b3) is Ok(_)} ${show(&b3)}"
+
+print "generic fn: ${gen(math.sqrt, 81.0)} ${apply(math.floor, 2.5)} ${apply(math.ceil, 2.1)}"
+
+let parse = text.parseFloat
+print "parseFloat: ${parse("1.5") || 0.0}"
+let parseInt = text.parseInt
+print "kigumi body: ${apply(parseInt, "42") || 0} ${apply(text.lines, "a\nb\nc").len()}"
+
+let eq = subtle.constantTimeEq
+print "ct: ${eq(b"abc", b"abc")} ${eq(b"abc", b"abd")}"
+
+let fromInt = Char.fromInt
+print "char: ${fromInt(65) is Some(_)}"
+
+let s = "hello"
+let len = s.len
+print "method value: ${len()} ${s.toUpper()}"
+let upper = s.toUpper
+print upper()
+
+let mkShared = alloc.Shared.new[Int]
+let sh = mkShared(5)
+print "shared: ${sh.get()}"
+
+let mkArr = Array.empty[Int]
+print "static generic: ${mkArr().len()}"
+
+let args = host.args
+print "provider: ${args().len() >= 0}"
+let env = host.env
+print "provider env: ${env("KG_FN_VALUE_NO_SUCH_VARIABLE") is None}"
+let exec = task.currentThreadExecutor
+let executor = exec()
+-- stdout --
+interface: 0,0,0,
+field: 0,0,
+try: true 0,0,
+generic fn: 9 2 3
+parseFloat: 1.5
+kigumi body: 42 3
+ct: true false
+char: true
+method value: 5 HELLO
+HELLO
+shared: 5
+static generic: 0
+provider: true
+provider env: true

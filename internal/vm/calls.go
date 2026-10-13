@@ -70,6 +70,7 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 	} else {
 		c.stdKey, c.ent, c.prov = m.stdKey(in.Ent), in.Ent, in.Prov
 		c.lent = mir.LentMask(m.r, in.Ent)
+		c.dyn = m.curFn.Locals[in.Dst].Type
 	}
 	return c
 }
@@ -87,8 +88,8 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 		all := append(append([]*obj{}, fv.env.fields...), args...)
 		// A primitive whose meaning depends on its declaration (a numeric
 		// conversion) is dispatched as if called directly.
-		site := m.site
-		m.site = &mir.Inst{Op: mir.OpCall, Ent: fv.ent}
+		site, siteFn := m.site, m.siteFn
+		m.site, m.siteFn = m.valueSite(fv, len(fv.env.fields))
 		var r *obj
 		if h, ok := m.hostFor(fv.prov, fv.stdKey); ok {
 			r = h(m, fv.ent, all)
@@ -96,7 +97,7 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 			r = m.std(fv.stdKey, all)
 		}
 		m.chargeMemory(r)
-		m.site = site
+		m.site, m.siteFn = site, siteFn
 		// A bound primitive lends its receiver and borrowed parameters
 		// (rt_std_bind).
 		for i, a := range args {
@@ -116,7 +117,7 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 // already dedicated to this call and move into the Future unchanged.
 func (m *Machine) asyncValueCall(fv *obj, args []*obj) *obj {
 	raw := newObj(kClosure)
-	raw.fn, raw.stdKey, raw.ent, raw.bind, raw.lent, raw.prov = fv.fn, fv.stdKey, fv.ent, fv.bind, fv.lent, fv.prov
+	raw.fn, raw.stdKey, raw.ent, raw.bind, raw.lent, raw.prov, raw.dyn = fv.fn, fv.stdKey, fv.ent, fv.bind, fv.lent, fv.prov, fv.dyn
 	raw.env = retain(fv.env)
 	return mkOpaque("Future", &future{fn: raw, args: args})
 }
@@ -147,9 +148,27 @@ func (m *Machine) invoke(f *mir.Func, env *obj, bind bool, args []*obj) *obj {
 		}
 	}
 	r := m.call(f, params)
+	m.releaseLentEnv(f, params, len(args), bind)
 	// Reverse, as a direct call's arguments drop and rt_core.c's invoke releases them.
 	for i := len(args) - 1; i >= 0; i-- {
 		m.release(args[i])
 	}
 	return r
+}
+
+// releaseLentEnv drops the references invoke took for captured parameters the
+// callee only borrows, so the callee has nothing to release them.
+func (m *Machine) releaseLentEnv(f *mir.Func, params []*obj, nargs int, bind bool) {
+	if len(params) == nargs || m.r.Entity(f.Ent).Kind != sem.EntFn {
+		return
+	}
+	first, end := 0, len(params)-nargs
+	if bind {
+		first, end = nargs, len(params)
+	}
+	for i := first; i < end; i++ {
+		if m.p.ParamLent(f.Ent, i) {
+			m.release(params[i])
+		}
+	}
 }
