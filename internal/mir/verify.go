@@ -41,7 +41,7 @@ func (p *Program) allFuncs() []*Func {
 	for _, cf := range p.Comptime {
 		fs = append(fs, cf.Func)
 	}
-	return fs
+	return append(fs, p.Entries...)
 }
 
 func (p *Program) verifyFunc(f *Func) error {
@@ -66,7 +66,7 @@ func (p *Program) verifyFunc(f *Func) error {
 			return err
 		}
 	}
-	if err := runRules(f, []func(*Func) *Error{p.verifyDirect, p.verifyDirectSig, p.verifyDirectForms, p.verifyCrossLocals, p.verifyFixedBoxes, p.verifyAllocClaim}); err != nil {
+	if err := runRules(f, []func(*Func) *Error{p.verifyDirect, p.verifyDirectSig, p.verifyBoxedEntry, p.verifyDirectForms, p.verifyCrossLocals, p.verifyFixedBoxes, p.verifyAllocClaim}); err != nil {
 		return err
 	}
 	f.flowOK = hash

@@ -52,7 +52,7 @@ print "${run(3)}"
 func TestIdentityOfARecordNeverBoxes(t *testing.T) {
 	ir := specializedIR(t, identityProbe)
 	spec := bodyOf(t, ir, `define %"kg.agg.Point" @"main.identity[main.Point]"(%"kg.agg.Point" %p0)`)
-	run := bodyOf(t, ir, `define ptr @"main.run"(`)
+	run := fnBody(t, ir, "main.run")
 	for what, body := range map[string]string{"main.identity[main.Point]": spec, "main.run": run} {
 		for _, bad := range []string{`@"kg.box.`, `@"kg.unbox.`, "@rt_record("} {
 			if strings.Contains(body, bad) {
@@ -84,8 +84,8 @@ fn measure[T: Measured](x: T) -> Int { x.size() * 2 }
 
 print "${measure(Point { x: 1, y: 2 })}"
 `)
-	body := bodyOf(t, ir, `define ptr @"main.measure[main.Point]"(%"kg.agg.Point" %p0`)
-	if !strings.Contains(body, `call ptr @"main.Point.size"(%"kg.agg.Point" `) {
+	body := bodyOf(t, ir, `define i64 @"main.measure[main.Point]"(%"kg.agg.Point" %p0`)
+	if !strings.Contains(body, `call i64 @"main.Point.size"(%"kg.agg.Point" `) {
 		t.Errorf("size is not called directly:\n%s", body)
 	}
 	for _, bad := range []string{`@"kg.box.`, "@rt_callv("} {

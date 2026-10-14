@@ -28,6 +28,9 @@ func (e *emitter) entryFile(ent sem.EntityID) string {
 // symName tells overloads apart by position in the overload set, not
 // entity number, so symbols don't move when unrelated code changes.
 func (e *emitter) symName(f *mir.Func) string {
+	if f.Wraps != nil {
+		return e.symName(f.Wraps) + "$boxed"
+	}
 	if e.r.Entity(f.Ent).Kind == sem.EntImplicitMain {
 		return "main." + e.entryFile(f.Ent)
 	}
@@ -133,9 +136,6 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 // adapter wraps a function as a closure body taking an environment array
 // and an argument array, for function values and dynamic dispatch.
 func (e *emitter) adapter(f *mir.Func) string {
-	if env, ok := e.envOf(f); ok {
-		return e.envAdapter(f, env)
-	}
 	var sb strings.Builder
 	ncaps := 0
 	if e.r.Entity(f.Ent).Kind == sem.EntClosure {

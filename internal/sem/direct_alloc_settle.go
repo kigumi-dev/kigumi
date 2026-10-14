@@ -70,6 +70,8 @@ func (c *checker) settleAllocs() {
 			kept = append(kept, p)
 		case directCrossWhy(e.Why) && (t == p.keep || !c.r.DirectAgg(t) && !c.r.containsClosure(t)):
 			t = 0
+		case boxWhy(e.Why) && (!c.r.BoxAllocates(t) || e.Why == whyEntryBox && c.r.EntryBoxes(e.Target, t) == 0):
+			t = 0
 		}
 		e.Type = t
 	}

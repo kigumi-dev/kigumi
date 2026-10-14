@@ -1,0 +1,102 @@
+-- src --
+interface Scaler {
+    fn scale(self, x: Int) -> Int
+}
+
+type Times = {
+    pub k Int
+}
+
+fn Times.scale(self, x: Int) -> Int { x * self.k }
+
+fn Times.bump(self, x: Int) -> Int { x + self.k }
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+noalloc fn keep[T: Copy](x: T) -> T { x }
+
+noalloc fn pick[T: Copy](on: Bool, a: T, b: T) -> T { if on { a } else { b } }
+
+fn add(a: Int, b: Int) -> Int { a + b }
+
+fn neg(on: Bool) -> Bool { !on }
+
+fn next(c: Char) -> Char { if c == 'a' { 'b' } else { c } }
+
+fn half(x: Float) -> Float { x / 2.0 }
+
+fn seven() -> Int { 7 }
+
+fn label(n: Int) -> String { "n=${n}" }
+
+fn stash(xs: &mut Array[Int], x: Int) -> Int {
+    xs.push(x)
+    x + 1
+}
+
+fn fib(n: Int) -> Int { if n < 2 { n } else { fib(n - 1) + fib(n - 2) } }
+
+fn isEven(n: Int) -> Bool { if n == 0 { true } else { isOdd(n - 1) } }
+
+fn isOdd(n: Int) -> Bool { if n == 0 { false } else { isEven(n - 1) } }
+
+fn apply(f: fn(Int, Int) -> Int, a: Int) -> Int { f(a, a) }
+
+fn viaTable(s: &Scaler, x: Int) -> Int { s.scale(x) }
+
+fn viaWitness[S: Scaler](s: &S, x: Int) -> Int { s.scale(x) }
+
+fn direct() -> String {
+    let mut s = 0
+    for i in 0..4 {
+        s = s + add(i, keep(i + 100000)) + pick(i > 1, i, -i)
+    }
+    "${s} ${neg(false)} ${next('a')} ${half(5.0)} ${seven()} ${keep('z')} ${keep(1.5)} ${label(add(2, 3))}"
+}
+
+fn boxedInputs() -> String {
+    let xs = Array.of(10, 20, 30)
+    let mut ys: Array[Int] = Array.empty[Int]()
+    let mut t = 0
+    for x in &xs {
+        t = t + stash(&mut ys, add(x, 1))
+    }
+    "${t} ${ys.len()} ${add(xs.get(1) || 0, ys.get(2) || 0)}"
+}
+
+fn recursion() -> String { "${fib(15)} ${isEven(10)} ${isOdd(7)}" }
+
+fn values() -> String {
+    let f = add
+    let g = keep[Int]
+    let t = Times { k: 3 }
+    let b = t.bump
+    let d: Scaler = Times { k: 4 }
+    "${apply(f, 4)} ${apply(add, 5)} ${g(6)} ${b(7)} ${viaTable(&d, 8)} ${viaWitness(&t, 9)}"
+}
+
+fn drops() -> Int {
+    let mut held: Array[Res] = Array.of(Res { id: add(1, 0) })
+    held.push(Res { id: add(1, 1) })
+    held.len().toInt() || 0
+}
+
+print "direct=${direct()}"
+print "boxed=${boxedInputs()}"
+print "recursion=${recursion()}"
+print "values=${values()}"
+print "held=${drops()}"
+-- stdout --
+direct=400016 true b 2.5 7 z 1.5 n=5
+boxed=66 3 51
+recursion=610 true true
+values=8 10 6 10 32 27
+drop 2
+drop 1
+held=2

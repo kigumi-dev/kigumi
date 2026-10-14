@@ -53,6 +53,10 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 		m.site, m.siteFn = in, f
 		res = m.callEntity(in, args)
 	case mir.OpCallValue, mir.OpCallC:
+		if f.IsDirect(in.Args[0]) {
+			res = m.callDirectValue(args[0], args[1:])
+			break
+		}
 		res = m.callValue(args[0], args[1:])
 	case mir.OpBuiltin:
 		res = m.builtin(in.Str, args)

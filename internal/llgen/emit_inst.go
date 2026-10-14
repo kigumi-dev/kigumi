@@ -33,7 +33,10 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpAlias:
 		res = args[0]
 	case mir.OpShare:
-		if in.Copy && in.IfWritable {
+		if in.Copy && e.scalarBoxed(f.Locals[in.Args[0]].Type) {
+			// rt_copy retains a scalar box, and a retain says so to an IR audit.
+			res = e.irb(sb).Call(rtRetain, vptr(args[0])).Text
+		} else if in.Copy && in.IfWritable {
 			res = e.irb(sb).Call(rtCopyMut, vptr(args[0])).Text
 		} else if in.Copy {
 			res = e.irb(sb).Call(rtCopy, vptr(args[0])).Text

@@ -16,6 +16,7 @@ type spec struct {
 	capped  bool
 	sites   []*callSite
 	dead    bool
+	scalar  bool
 }
 
 type callSite struct {
@@ -34,11 +35,13 @@ type specializer struct {
 	names    map[string]bool
 	noSpec   map[sem.EntityID]bool
 	reported map[string]bool
+	scanned  map[*Func]bool
+	scalars  bool
 }
 
 // Specialize runs after plan-rc and fold-comptime and before plan-direct, so comptime executes the shared body.
 func Specialize(p *Program) error {
-	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*Func]*spec{}, names: map[string]bool{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}}
+	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*Func]*spec{}, names: map[string]bool{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*Func]bool{}}
 	for _, f := range p.Funcs {
 		s.names[f.Name] = true
 	}
@@ -46,14 +49,8 @@ func Specialize(p *Program) error {
 	for _, f := range append([]*Func(nil), p.Funcs...) {
 		s.scan(f, nil)
 	}
-	for len(s.work) > 0 {
-		sp := s.work[0]
-		s.work = s.work[1:]
-		for _, f := range sp.funcs() {
-			s.devirtualize(sp, f)
-			s.scan(f, sp)
-		}
-	}
+	s.drain()
+	s.scalarPhase()
 	s.settle()
 	s.prune()
 	p.inlineProtoCalls()
@@ -69,7 +66,9 @@ func (s *specializer) scan(f *Func, ctx *spec) {
 			}
 			// A copy of a body scanned before it was copied already names the instantiation.
 			if sp := s.byEnt[insts[i].Ent]; sp != nil {
-				sp.sites = append(sp.sites, &callSite{f: f, blk: bid, idx: i})
+				if !s.scanned[f] {
+					sp.sites = append(sp.sites, &callSite{f: f, blk: bid, idx: i})
+				}
 				continue
 			}
 			args, wit, ok := s.instance(f, ctx, insts[i])
@@ -82,6 +81,7 @@ func (s *specializer) scan(f *Func, ctx *spec) {
 			}
 		}
 	}
+	s.scanned[f] = true
 }
 
 func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []sem.WitnessArg) *spec {
@@ -118,7 +118,7 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 		s.noSpec[gen] = true
 		return nil
 	}
-	sp := &spec{ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones}
+	sp := &spec{ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones, scalar: s.scalars}
 	charge(sp, ctx)
 	s.p.Funcs = append(s.p.Funcs, fn)
 	s.p.ByEnt[ent] = fn

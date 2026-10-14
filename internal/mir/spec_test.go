@@ -91,12 +91,12 @@ func TestSpecializeGivesADirectRecordItsOwnBody(t *testing.T) {
 	}
 }
 
-func TestSpecializeLeavesAScalarInstantiationShared(t *testing.T) {
+func TestSpecializeGivesAReturnedScalarItsOwnBody(t *testing.T) {
 	p := specialized(t, specPointSrc)
-	if got := strings.Join(instances(p), " "); got != "main.identity[main.Point]" {
-		t.Errorf("instantiations = %q, want only the record one", got)
+	if got := strings.Join(instances(p), " "); got != "main.identity[main.Point] main.identity[Int]" {
+		t.Errorf("instantiations = %q, want the record one and the Int one", got)
 	}
-	if f := calleeOf(t, p, funcNamed(t, p, "main.run"), "identity"); f == nil || f.Name != "main.identity[main.Point]" && f.Name != "main.identity" {
+	if f := calleeOf(t, p, funcNamed(t, p, "main.run"), "identity"); f == nil || f.Name != "main.identity[main.Point]" && f.Name != "main.identity[Int]" {
 		t.Errorf("unexpected callee %v", f)
 	}
 }

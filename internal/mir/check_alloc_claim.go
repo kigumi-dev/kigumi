@@ -3,6 +3,7 @@ package mir
 import (
 	"kigumi/internal/diag"
 	"kigumi/internal/sem"
+	"kigumi/internal/syntax"
 )
 
 // AllocClaim is one diagnostic the alloc-claim check produced, with the
@@ -21,15 +22,19 @@ func CheckAllocClaims(p *Program) []AllocClaim {
 		msg string
 	}
 	seen := map[claimKey]bool{}
+	reached := p.namedCallees()
 	for _, f := range p.allFuncs() {
-		name := "direct-box-in-noalloc"
+		if p.sharedUnreached(f, reached) {
+			continue
+		}
+		box, result := "direct-box-in-noalloc", "result-box-in-noalloc"
 		if !p.declaredNoalloc(f) {
 			if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc {
 				continue
 			}
-			name = "inferred-box-in-noalloc"
+			box, result = "inferred-box-in-noalloc", "inferred-result-box-in-noalloc"
 		}
-		for _, c := range p.boxClaims(f, name) {
+		for _, c := range append(p.boxClaims(f, box), p.resultClaims(f, result)...) {
 			if k := (claimKey{c.Diag.Loc, c.Diag.Msg}); !seen[k] {
 				seen[k] = true
 				out = append(out, c)
@@ -51,23 +56,27 @@ func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
 	if !ok {
 		return nil
 	}
-	t := p.R.Tree(f.File)
 	var out []AllocClaim
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if in.Op != OpBoxDirect {
 				continue
 			}
-			msg := sem.FillTemplate(c.Template, p.R.Entity(f.Ent).Name, p.R.TypeString(in.Type))
-			if c.Help != "" {
-				msg += "; " + c.Help
-			}
-			out = append(out, AllocClaim{File: f.File, Diag: diag.Diagnostic{
-				Severity: diag.Error, Loc: diag.At(t.File, t.Span(in.Node)), Msg: msg, Code: c.Num,
-			}})
+			out = append(out, p.claimAt(f, c, in.Node, in.Type))
 		}
 	}
 	return out
+}
+
+func (p *Program) claimAt(f *Func, c sem.Code, n syntax.NodeID, typ sem.TypeID) AllocClaim {
+	t := p.R.Tree(f.File)
+	msg := sem.FillTemplate(c.Template, p.R.Entity(f.Ent).Name, p.R.TypeString(typ))
+	if c.Help != "" {
+		msg += "; " + c.Help
+	}
+	return AllocClaim{File: f.File, Diag: diag.Diagnostic{
+		Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: c.Num,
+	}}
 }
 
 // A box is reported as a diagnostic; a copy in a `noalloc` body is a compiler fault unless sem charged it, where a declaration already rejected it.

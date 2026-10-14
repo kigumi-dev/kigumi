@@ -81,7 +81,9 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	} else {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Param: c.ifaceRecvEnt(base, recv), Node: n})
 	}
+	from := len(*c.edges)
 	ret, plan := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params, false, c.r.Fn(req).Declared&EffAsync != 0)
+	c.requirementResult(n, ret, from, args, paramEnt != 0, c.r.Fn(req).Declared&EffAsync != 0)
 	effArgs := args
 	if plan != nil {
 		effArgs = plan.placed()
@@ -123,7 +125,11 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 	c.deferFFIValueCheck(n, m, inst, valueType)
 	if info.Declared&EffAsync != 0 {
 		sig = c.asyncValueFn(sig)
+	} else {
+		c.valueEntry(n, m, sig)
 	}
+	// The value is a closure holding the receiver.
+	c.buildEdge(n, sig)
 	c.edge(EffectEdge{Kind: EdgeCall, Target: m, Node: n})
 	c.recordCtxValueRef(n, m)
 	return sig

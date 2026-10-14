@@ -26,7 +26,7 @@ fn main() -> Unit! {}
 `
 
 func TestNativeScalarReleasesTheBoxesItReplaces(t *testing.T) {
-	body := bodyOf(t, emitIR(t, scalarBoxesSrc), `define ptr @"main.work"(`)
+	body := fnBody(t, emitIR(t, scalarBoxesSrc), "main.work")
 	elem := regexp.MustCompile(`= call ptr @rt_builtin\([^\n]*\n\s+store ptr %v\d+, ptr %l\d+\n\s+(%v\d+) = load ptr, ptr %l\d+\n\s+%v\d+ = call i64 @rt_int_val\(ptr %v\d+\)\n([^\n]*)`).FindStringSubmatch(body)
 	if elem == nil || !strings.Contains(elem[2], "@rt_release(ptr "+elem[1]+")") {
 		t.Fatalf("the element box read into the loop variable is not released after unboxing:\n%s", body)

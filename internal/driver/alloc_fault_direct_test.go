@@ -178,19 +178,20 @@ func vmAtFirstAlloc(t *testing.T, src string) (int, string, string) {
 	return code, out.String(), errOut.String()
 }
 
-const crossSrc = `fn pick%s { v }
+// The generic returns no aggregate of T, so its scalar instantiation stays shared and the argument crosses.
+const crossSrc = `fn pick%s { v is Some(_) }
 
 fn run(n: Int) -> Int {
-    if pick(Some(%s)) is Some(v) { v + n } else { n }
+    if pick(Some(%s)) { n + 4 } else { n }
 }
 
 print "ok=${run(4)}"
 `
 
 func crossProgram(generic bool, payload string) string {
-	sig := "(v: Int?) -> Int?"
+	sig := "(v: Int?) -> Bool"
 	if generic {
-		sig = "[T](v: T?) -> T?"
+		sig = "[T](v: T?) -> Bool"
 	}
 	return fmt.Sprintf(crossSrc, sig, payload)
 }

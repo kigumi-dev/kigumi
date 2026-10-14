@@ -1,0 +1,81 @@
+package llgen
+
+import "kigumi/internal/mir"
+
+// keepsUnboxed: a boxed parameter is reused for free, so a register one pays only if no copy of it is ever boxed.
+func (e *emitter) keepsUnboxed(f *mir.Func, prm mir.LocalID, regs map[mir.LocalID]scalarInfo, retNative bool) bool {
+	if _, ok := regs[prm]; !ok {
+		return false
+	}
+	fam := map[mir.LocalID]bool{prm: true}
+	for grew := true; grew; {
+		grew = false
+		for _, blk := range f.Blocks {
+			for _, in := range blk.Insts {
+				if copyLike(in.Op) && fam[in.Args[0]] && !fam[in.Dst] {
+					if _, ok := regs[in.Dst]; !ok {
+						return false
+					}
+					fam[in.Dst], grew = true, true
+				}
+			}
+		}
+	}
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			for i, a := range in.Args {
+				if fam[a] && !e.unboxedUse(f, in, i) {
+					return false
+				}
+			}
+		}
+		for _, a := range blk.Term.Args {
+			if !fam[a] {
+				continue
+			}
+			if blk.Term.Op != mir.TermBranch && (blk.Term.Op != mir.TermReturn || !retNative) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func copyLike(op mir.Opcode) bool { return op == mir.OpAlias || op == mir.OpShare || op == mir.OpMove }
+
+func (e *emitter) unboxedUse(f *mir.Func, in mir.Inst, i int) bool {
+	switch in.Op {
+	case mir.OpAlias, mir.OpShare, mir.OpMove, mir.OpDrop, mir.OpRelease, mir.OpInterp:
+		return true
+	case mir.OpBinary:
+		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
+		rty, _ := e.scalarType(f.Locals[in.Args[1]].Type)
+		return ty == rty && nativeBinary(in.Str, ty)
+	case mir.OpUnary:
+		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
+		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TDouble) || in.Str == "~" && ty == TI64
+	case mir.OpCall:
+		_, ok := e.calleeScalarSig(in).param(i)
+		return in.DPrim != mir.DPNone || ok
+	case mir.OpRecord, mir.OpVariant, mir.OpClosure:
+		return e.isDirect(in.Dst)
+	case mir.OpSetField, mir.OpIndex, mir.OpSetIndex:
+		return i > 0 && e.isDirect(in.Args[0])
+	case mir.OpBuiltin:
+		return e.inPlaceBuiltin(in)
+	}
+	return false
+}
+
+// nativeBinary mirrors the operators nativeBinaryOp computes without a box.
+func nativeBinary(op string, ty Type) bool {
+	switch op {
+	case "==", "!=":
+		return ty != TVoid
+	case "<", "<=", ">", ">=", "+", "-", "*", "/":
+		return ty == TI64 || ty == TDouble
+	case "%", "&", "|", "^", "<<", ">>":
+		return ty == TI64
+	}
+	return false
+}

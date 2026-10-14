@@ -25,6 +25,10 @@ func (e *emitter) term(sb *strings.Builder, t mir.Term) {
 		if src, ok := e.crossSrc[t.Args[0]]; ok {
 			e.irb(sb).Call(rtRelease, vptr(e.load(sb, src)))
 		}
+		if _, ok := e.ssig.ret(); ok {
+			fmt.Fprintf(sb, "  ret %s\n", e.loadNative(sb, t.Args[0]).render())
+			return
+		}
 		if e.sig != nil && e.sig.Ret != nil {
 			e.returnAgg(sb, e.sig.Ret, t.Args[0])
 			return

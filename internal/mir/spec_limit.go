@@ -61,6 +61,9 @@ func (s *specializer) overBudget(ctx *spec) bool {
 		return false
 	}
 	root := ctx.root
+	if root.scalar {
+		return true
+	}
 	if !root.capped {
 		root.capped = true
 		site := root.sites[0]

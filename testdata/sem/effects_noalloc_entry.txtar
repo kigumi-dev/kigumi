@@ -1,0 +1,152 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Dir = North | South
+
+interface Maker {
+    noalloc fn make(self, i: Int) -> Point
+    noalloc fn take(self, p: Point) -> Int
+}
+
+type Pm = {
+    pub k Int
+}
+
+noalloc fn Pm.make(self, i: Int) -> Point { Point { x: i, y: self.k } }
+
+noalloc fn Pm.take(self, p: Point) -> Int { p.x + self.k }
+
+type Named = {
+    pub name String
+}
+
+noalloc fn Named.make(self, i: Int) -> Point { Point { x: i, y: 0 } }
+
+noalloc fn Named.take(self, p: Point) -> Int { p.y }
+
+noalloc fn mk(i: Int) -> Point { Point { x: i, y: i } }
+
+noalloc fn turn(d: Dir) -> Dir {
+    match d {
+        North -> South
+        South -> North
+    }
+}
+
+fn apply[T](f: fn(Int) -> T, i: Int) -> T { f(i) }
+
+// Each call through a function value boxes the direct result its entry hands back.
+noalloc fn formValue() -> Int {
+    let f = mk //~ ERROR every call through this function value allocates a box for the result
+    f(1).x //~ ERROR the `Point` it returns arrives in a box the callee allocates
+}
+
+noalloc fn passValue() -> Int {
+    apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result
+}
+
+noalloc fn callValue(f: noalloc fn(Int) -> Point) -> Int {
+    f(3).y //~ ERROR the `Point` it returns arrives in a box the callee allocates
+}
+
+// A payload-free variant's box is an immortal.
+noalloc fn enumValue(f: noalloc fn(Dir) -> Dir) -> Bool {
+    f(North) == South
+}
+
+noalloc fn formEnumValue() -> Dir {
+    let f = turn
+    f(North)
+}
+
+noalloc fn methodValue(p: Pm) -> Int {
+    let f = p.make //~ ERROR constructing //~ ERROR every call through this function value allocates a box for the result
+    f(1).x //~ ERROR the `Point` it returns arrives in a box the callee allocates
+}
+
+// A method table passes everything boxed.
+noalloc fn viaTable(m: &Maker, p: Point) -> Int {
+    m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+}
+
+fn inferredTable(m: &Maker, p: Point) -> Int {
+    m.take(p)
+}
+
+noalloc fn callsInferred(m: &Maker, p: Point) -> Int {
+    inferredTable(m, p) //~ ERROR `inferredTable` is not `noalloc`
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E1840]: `mk` returns `Point` unboxed, so every call through this function value allocates a box for the result
+  --> main/main.kg:42:13
+   |
+42 |     let f = mk //~ ERROR every call through this function value allocates a box for the result
+   |             ^^
+   = help: call `mk` directly, or drop the declaration
+
+error[E1841]: this call goes through a function value or an interface, so the `Point` it returns arrives in a box the callee allocates
+  --> main/main.kg:43:5
+   |
+43 |     f(1).x //~ ERROR the `Point` it returns arrives in a box the callee allocates
+   |     ^^^
+   = help: call the function directly, or drop the declaration
+
+error[E1840]: `mk` returns `Point` unboxed, so every call through this function value allocates a box for the result
+  --> main/main.kg:47:11
+   |
+47 |     apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result
+   |           ^^
+   = help: call `mk` directly, or drop the declaration
+
+error[E1841]: this call goes through a function value or an interface, so the `Point` it returns arrives in a box the callee allocates
+  --> main/main.kg:51:5
+   |
+51 |     f(3).y //~ ERROR the `Point` it returns arrives in a box the callee allocates
+   |     ^^^
+   = help: call the function directly, or drop the declaration
+
+error[E1840]: `make` returns `Point` unboxed, so every call through this function value allocates a box for the result
+  --> main/main.kg:65:13
+   |
+65 |     let f = p.make //~ ERROR constructing //~ ERROR every call through this function value allocates a box for the result
+   |             ^^^^^^
+   = help: call `make` directly, or drop the declaration
+
+error[E961]: constructing `noalloc fn(Int) -> Point` allocates
+  --> main/main.kg:65:13
+   |
+65 |     let f = p.make //~ ERROR constructing //~ ERROR every call through this function value allocates a box for the result
+   |             ^^^^^^
+
+error[E1841]: this call goes through a function value or an interface, so the `Point` it returns arrives in a box the callee allocates
+  --> main/main.kg:66:5
+   |
+66 |     f(1).x //~ ERROR the `Point` it returns arrives in a box the callee allocates
+   |     ^^^
+   = help: call the function directly, or drop the declaration
+
+error[E1841]: this call goes through a function value or an interface, so the `Point` it returns arrives in a box the callee allocates
+  --> main/main.kg:71:5
+   |
+71 |     m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+   |     ^^^^^^^^
+   = help: call the function directly, or drop the declaration
+
+error[E1610]: handing `Point` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:71:26
+   |
+71 |     m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+   |                          ^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E907]: `inferredTable` is not `noalloc`
+  --> main/main.kg:79:5
+   |
+79 |     inferredTable(m, p) //~ ERROR `inferredTable` is not `noalloc`
+   |     ^^^^^^^^^^^^^^^^^^
+

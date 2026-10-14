@@ -1,6 +1,7 @@
 package llgen_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -42,7 +43,7 @@ fn main() -> Unit! {
 `
 
 func defines(ir, sym string) bool {
-	return strings.Contains(ir, "define ptr @\""+sym+"\"(")
+	return regexp.MustCompile(`define \S+ @"` + regexp.QuoteMeta(sym) + `"\(`).MatchString(ir)
 }
 
 func TestUnreferencedFunctionsHaveNoWrappers(t *testing.T) {

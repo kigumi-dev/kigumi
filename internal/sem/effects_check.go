@@ -16,7 +16,7 @@ func (r *Result) checkContracts(id EntityID) {
 			continue
 		}
 		// The built program's alloc-claim check answers for a crossing an instantiation takes unboxed.
-		if e.Kind == EdgeAlloc && r.takenUnboxed(e) {
+		if e.Kind == EdgeAlloc && (r.takenUnboxed(e) || witnessWhy(e.Why)) {
 			r.deferredClaims = r.deferredClaims || declared&EffNoalloc != 0
 			continue
 		}
@@ -154,7 +154,11 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 			r.errAt(e.File, e.Node, cAllocBind, r.Entities[e.Target].Name)
 		case e.Why == whyBuild || e.Why == whySharedValue:
 			r.errAt(e.File, e.Node, cAllocConstruct, r.TypeString(e.Type))
-		case directCrossWhy(e.Why):
+		case e.Why == whyEntryBox:
+			r.errAt(e.File, e.Node, cAllocFnValueResult, r.Entities[e.Target].Name, r.TypeString(e.Type), r.Entities[e.Target].Name)
+		case e.Why == whyDynamicResult || e.Why == whyWitnessResult:
+			r.errAt(e.File, e.Node, cAllocCallResultBox, r.TypeString(e.Type))
+		case directCrossWhy(e.Why) || e.Why == whyWitnessCross:
 			r.errAt(e.File, e.Node, cAllocDirectCross, r.TypeString(e.Type))
 		case copyWhy(e.Why):
 			r.errAt(e.File, e.Node, cAllocCopy, r.TypeString(e.Type))

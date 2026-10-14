@@ -2,6 +2,7 @@ package llgen_test
 
 import (
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -46,6 +47,16 @@ func bodyOf(t *testing.T, ir, header string) string {
 		t.Fatalf("%s is not closed:\n%s", header, ir)
 	}
 	return ir[start : start+end]
+}
+
+// fnBody finds sym's definition whatever its native return type.
+func fnBody(t *testing.T, ir, sym string) string {
+	t.Helper()
+	m := regexp.MustCompile(`define \S+ @"` + regexp.QuoteMeta(sym) + `"\(`).FindString(ir)
+	if m == "" {
+		t.Fatalf("no definition of %s in IR:\n%s", sym, ir)
+	}
+	return bodyOf(t, ir, m)
 }
 
 func checkNoHeap(t *testing.T, what, body string) {

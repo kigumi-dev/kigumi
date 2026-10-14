@@ -174,7 +174,10 @@ type Func struct {
 	// rcBase is the local count before plan-rc added its temporaries.
 	rcBase int
 	// Proto is "equals" or "hash" for a body specialization replaced by the direct comparison or hash.
-	Proto    string
+	Proto string
+	// Entry is the all-boxed body a function value, method table or adapter runs; Wraps points back.
+	Entry    *Func
+	Wraps    *Func
 	weakDefs []bool
 	flowOK   uint64
 }
@@ -192,4 +195,6 @@ type Program struct {
 	Resources map[sem.EntityID]*ResourceSummary
 	unwind    unwindMemo
 	Diags     []FileDiag
+	// Entries holds every Func.Entry; they are not in Funcs, so nothing keyed by entity sees them.
+	Entries []*Func
 }

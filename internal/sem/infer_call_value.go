@@ -9,6 +9,7 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		return TyPoison
 	}
 	node := tt.Node(ft)
+	why := uint8(whyDynamicResult)
 	var closure EntityID
 	if node.Kind == KClosure {
 		closure = node.Ent
@@ -16,6 +17,7 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		node = tt.Node(ft)
 	}
 	if node.Kind == KParam {
+		why = whyWitnessResult
 		for _, con := range c.r.typeParam(node.Ent).Constraints {
 			if con.Kind == CFn || con.Kind == CFnMut || con.Kind == CFnOnce {
 				ft = con.Type
@@ -57,6 +59,9 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		c.errAt(n, cUnsafeRequired, "calling a C function pointer")
 	}
 	ret, plan := c.checkArgs(n, "this function", ft, args, nil, want, nil, false, false)
+	if closure == 0 {
+		c.boxedResult(n, ret, why)
+	}
 	effArgs := args
 	if plan != nil {
 		effArgs = plan.placed()

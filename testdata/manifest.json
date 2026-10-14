@@ -4034,6 +4034,23 @@
       ]
     },
     {
+      "id": "run/direct_entry_crossings",
+      "kind": "run",
+      "path": "testdata/run/direct_entry_crossings.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/direct_fixed_array",
       "kind": "run",
       "path": "testdata/run/direct_fixed_array.txtar",
@@ -8229,6 +8246,23 @@
       ]
     },
     {
+      "id": "run/scalar_register_calls",
+      "kind": "run",
+      "path": "testdata/run/scalar_register_calls.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/secure_erase",
       "kind": "run",
       "path": "testdata/run/secure_erase.txtar",
@@ -10176,6 +10210,28 @@
       "id": "sem/effects_noalloc_derived",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_derived.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_entry",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_entry.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_entry_witness",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_entry_witness.txtar",
       "mode": [
         "check"
       ],

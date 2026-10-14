@@ -72,8 +72,15 @@ func (s *specializer) pays(sp *spec) bool {
 	if sp.fn.Proto != "" {
 		return true
 	}
-	pairs := append([]funcPair{{sp.fn, s.p.ByEnt[sp.gen]}}, sp.clones...)
 	gains := false
+	if sp.scalar {
+		pays, inReg := s.scalarPays(sp)
+		if !pays {
+			return false
+		}
+		gains = inReg
+	}
+	pairs := append([]funcPair{{sp.fn, s.p.ByEnt[sp.gen]}}, sp.clones...)
 	for _, pr := range pairs {
 		f, g := pr.fn, pr.gen
 		derived := func(l LocalID) bool { return int(l) < len(g.Locals) && g.Locals[l].Type != f.Locals[l].Type }
@@ -86,7 +93,7 @@ func (s *specializer) pays(sp *spec) bool {
 			}
 		}
 	}
-	if !gains {
+	if !gains && !s.devirtualizes(pairs) {
 		return false
 	}
 	for _, pr := range pairs {

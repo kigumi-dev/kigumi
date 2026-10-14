@@ -32,17 +32,17 @@ fn main() -> Unit! {}
 func TestCatchBuildsRegisterFrameRecords(t *testing.T) {
 	p := plannedProgram(t, unwindSrc)
 	ir := llgen.EmitWith(p, llgen.EmitOptions{Catch: true})
-	body := bodyOf(t, ir, `define ptr @"main.owner"(`)
+	body := fnBody(t, ir, "main.owner")
 	for _, want := range []string{"%uslots = alloca", "%umask = alloca", "@rt_unwind_enter(", "@rt_unwind_leave("} {
 		if !strings.Contains(body, want) {
 			t.Errorf("owner lacks %q:\n%s", want, body)
 		}
 	}
-	if strings.Index(body, "@rt_unwind_leave(") > strings.LastIndex(body, "ret ptr") {
+	if strings.Index(body, "@rt_unwind_leave(") > strings.LastIndex(body, "\n  ret ") {
 		t.Errorf("the record is left after the return:\n%s", body)
 	}
-	for _, name := range []string{`define ptr @"main.plain"(`, `define ptr @"main.tick"(`} {
-		if strings.Contains(bodyOf(t, ir, name), "@rt_unwind_enter(") {
+	for _, name := range []string{"main.plain", "main.tick"} {
+		if strings.Contains(fnBody(t, ir, name), "@rt_unwind_enter(") {
 			t.Errorf("%s registers a frame record", name)
 		}
 	}
@@ -50,7 +50,7 @@ func TestCatchBuildsRegisterFrameRecords(t *testing.T) {
 
 func TestCatchOffEmitsNoFrameRecords(t *testing.T) {
 	ir := llgen.EmitWith(plannedProgram(t, unwindSrc), llgen.EmitOptions{})
-	if strings.Contains(bodyOf(t, ir, `define ptr @"main.owner"(`), "rt_unwind") {
+	if strings.Contains(fnBody(t, ir, "main.owner"), "rt_unwind") {
 		t.Error("a build without task catch registers frame records")
 	}
 }

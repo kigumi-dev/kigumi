@@ -29,6 +29,8 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 			c.touched = append(c.touched, n)
 			if c.r.Fn(head.ent).Declared&EffAsync != 0 {
 				sig = c.asyncValueFn(sig)
+			} else {
+				c.valueEntry(n, head.ent, sig)
 			}
 			c.recordCtxValueRef(n, head.ent)
 			return sig

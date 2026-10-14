@@ -32,20 +32,27 @@ func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {
 	return TVoid, false
 }
 
+func (e *emitter) scalarBoxed(t sem.TypeID) bool {
+	tt := e.r.Types
+	return t == sem.TyBool || t == sem.TyChar || tt.IsInteger(t) || tt.IsFloat(t)
+}
+
 func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 	out := map[mir.LocalID]scalarInfo{}
 	isParam := make([]bool, len(f.Locals))
-	envParam := make([]bool, len(f.Locals))
+	inReg := make([]bool, len(f.Locals))
 	ncaps := 0
 	if env, ok := e.envOf(f); ok {
 		ncaps = len(env.Fields)
 	}
+	sig := e.ssigs[f]
 	for i, p := range f.Params {
-		isParam[p] = i >= ncaps
-		envParam[p] = i < ncaps
+		_, native := sig.param(i)
+		isParam[p] = i >= ncaps && !native
+		inReg[p] = i < ncaps || native
 	}
 	for i, l := range f.Locals {
-		if isParam[i] || l.Cell || (l.Borrowed && !envParam[i]) {
+		if isParam[i] || l.Cell || (l.Borrowed && !inReg[i]) {
 			continue
 		}
 		if ty, ok := e.scalarType(l.Type); ok {
@@ -53,6 +60,7 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 		}
 	}
 	disqualify := func(l mir.LocalID) { delete(out, l) }
+	e.raw = e.rawScalars(f)
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			e.classifyDst(in, disqualify)
@@ -65,6 +73,7 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 		}
 		classifyTerm(blk.Term, out, disqualify)
 	}
+	e.keepReturnedBoxes(f, disqualify)
 	return out
 }
 
@@ -89,7 +98,7 @@ func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 			disqualify(in.Dst)
 		}
 	case mir.OpCall:
-		if in.DPrim == mir.DPNone {
+		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok {
 			disqualify(in.Dst)
 		}
 	default:
@@ -128,6 +137,12 @@ func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 			disqualify(in.Args[0])
 		}
 	case mir.OpBinary:
+	case mir.OpInterp:
+		for _, a := range in.Args {
+			if !e.raw[a] {
+				disqualify(a)
+			}
+		}
 	case mir.OpIndex, mir.OpSetIndex:
 		for i, a := range in.Args {
 			if i != 1 && !(i == 2 && e.isDirect(in.Args[0])) {
@@ -137,8 +152,11 @@ func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 	case mir.OpDrop, mir.OpRelease:
 	case mir.OpCall:
 		if in.DPrim == mir.DPNone {
-			for _, a := range in.Args {
-				disqualify(a)
+			sig := e.calleeScalarSig(in)
+			for i, a := range in.Args {
+				if _, ok := sig.param(i); !ok {
+					disqualify(a)
+				}
 			}
 		}
 	default:

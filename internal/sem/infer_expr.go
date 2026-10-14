@@ -151,6 +151,8 @@ func (c *checker) fnItemValue(n syntax.NodeID, set OverloadSetID) TypeID {
 	}
 	if info.Declared&EffAsync != 0 {
 		sig = c.asyncValueFn(sig)
+	} else {
+		c.valueEntry(n, fn, sig)
 	}
 	c.recordCtxValueRef(n, fn)
 	return sig

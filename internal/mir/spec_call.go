@@ -20,11 +20,12 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 			return nil, nil, false
 		}
 	}
-	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) {
+	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) || s.grows(ctx, args) {
 		return nil, nil, false
 	}
 	if in.Op == OpFnItem {
-		return args, nil, true
+		// A function value reaches a scalar instance through an adapter that boxes the result again.
+		return args, nil, r.SpecializeArgs(args) || s.protoInstance(gen, args)
 	}
 	return args, s.witnesses(ctx, gen, r.Files[f.File].Calls[in.Node]), true
 }

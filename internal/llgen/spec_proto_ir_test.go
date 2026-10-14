@@ -26,12 +26,12 @@ print "${same(Point { x: 1, y: 2.5 }, Point { x: 1, y: 2.5 })} ${fingerprint(Poi
 func TestDirectComparisonAndHashNeverBox(t *testing.T) {
 	ir := specializedIR(t, protoProbe)
 	for _, c := range []struct{ fn, call string }{
-		{`define ptr @"main.same"(`, `call i1 @"kg.eq.Point"(`},
-		{`define ptr @"main.fingerprint"(`, `call i64 @"kg.hash.Point"(`},
-		{`define ptr @"main.sameTag"(`, `call i1 @"kg.eq.Tag"(`},
-		{`define ptr @"main.tagHash"(`, `call i64 @"kg.hash.Tag"(`},
+		{"main.same", `call i1 @"kg.eq.Point"(`},
+		{"main.fingerprint", `call i64 @"kg.hash.Point"(`},
+		{"main.sameTag", `call i1 @"kg.eq.Tag"(`},
+		{"main.tagHash", `call i64 @"kg.hash.Tag"(`},
 	} {
-		body := bodyOf(t, ir, c.fn)
+		body := fnBody(t, ir, c.fn)
 		if !strings.Contains(body, c.call) {
 			t.Errorf("%s does not call %s:\n%s", c.fn, c.call, body)
 		}

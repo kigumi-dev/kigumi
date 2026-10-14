@@ -28,63 +28,6 @@ func (e *emitter) closureCall(sb *strings.Builder, in mir.Inst, a *aggInfo) {
 	e.callInto(sb, in.Dst, e.sym(a.Clo), args, s.Ret, out)
 }
 
-func (e *emitter) envAdapter(f *mir.Func, env *aggInfo) string {
-	e.aggHelpers(env)
-	s := e.directSig(f)
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\nentry:\n", e.adapterSym(f))
-	slot := e.helperSlot(&sb, env)
-	e.unboxLeaves(&sb, env, slot, func(i int) string {
-		return fmt.Sprintf("call ptr @rt_at(ptr %%env, i64 %d)", i)
-	})
-	var args []string
-	out := ""
-	if s.Ret != nil {
-		out = e.helperSlot(&sb, s.Ret)
-		if !byValueAgg(s.Ret) {
-			args = append(args, "ptr "+out)
-		}
-	}
-	args = append(args, "ptr "+slot)
-	for i := len(env.Fields); i < len(f.Params); i++ {
-		a := e.newTmp()
-		e.irb(&sb).CallAs(a, rtAt, vptr("%args"), vi64(i-len(env.Fields)))
-		p := s.param(i)
-		if p == nil {
-			args = append(args, "ptr "+a)
-			continue
-		}
-		u := e.helperSlot(&sb, p)
-		e.unboxAgg(&sb, p, u, a)
-		e.irb(&sb).Call(rtRelease, vptr(a))
-		if byValueAgg(p) {
-			args = append(args, p.Name+" "+e.aggValue(&sb, p, u))
-		} else {
-			args = append(args, "ptr "+u)
-		}
-	}
-	r := e.newTmp()
-	switch {
-	case s.Ret == nil:
-		fmt.Fprintf(&sb, "  %s = call ptr %s(%s)\n", r, e.sym(f), strings.Join(args, ", "))
-	case byValueAgg(s.Ret):
-		fmt.Fprintf(&sb, "  %s = call %s %s(%s)\n  store %s %s, ptr %s\n", r, s.Ret.Name, e.sym(f), strings.Join(args, ", "), s.Ret.Name, r, out)
-		r = e.boxAgg(&sb, s.Ret, out)
-	default:
-		fmt.Fprintf(&sb, "  call void %s(%s)\n", e.sym(f), strings.Join(args, ", "))
-		r = e.boxAgg(&sb, s.Ret, out)
-	}
-	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", r)
-	return sb.String()
-}
-
-// Not stackSlot: that hoists into the function being emitted, not into this helper.
-func (e *emitter) helperSlot(sb *strings.Builder, a *aggInfo) string {
-	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = alloca %s\n", t, a.Name)
-	return t
-}
-
 // rt_closure retains each capture, so the boxes made here are released after.
 func (e *emitter) cloBoxFn(a *aggInfo) string {
 	var sb strings.Builder

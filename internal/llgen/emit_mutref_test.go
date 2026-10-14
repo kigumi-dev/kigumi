@@ -48,7 +48,7 @@ func TestMutRefArgWritesBackThroughCell(t *testing.T) {
 	if !strings.Contains(callee, "@rt_cellset(") {
 		t.Errorf("`s = Circle(k)` does not store through the lent cell:\n%s", callee)
 	}
-	caller := bodyOf(t, ir, `define ptr @"main.replaceLocal"(`)
+	caller := fnBody(t, ir, "main.replaceLocal")
 	checkNoHeap(t, "main.replaceLocal", caller)
 	if !strings.Contains(caller, "@rt_cell_init(") || !strings.Contains(caller, "@rt_cell_take(") {
 		t.Errorf("the caller does not lend a frame cell and take it back:\n%s", caller)
@@ -65,8 +65,8 @@ func TestMutRefForwardsTheSameCell(t *testing.T) {
 
 func TestReadOnlyMutRefBuildsNoCell(t *testing.T) {
 	ir := emitIR(t, mutRefSrc)
-	for _, fn := range []string{`define ptr @"main.readOnly"(`, `define ptr @"main.readLocal"(`} {
-		body := bodyOf(t, ir, fn)
+	for _, fn := range []string{"main.readOnly", "main.readLocal"} {
+		body := fnBody(t, ir, fn)
 		for _, call := range []string{"@rt_cell_init(", "@rt_cell(", "@rt_cell_take("} {
 			if strings.Contains(body, call) {
 				t.Errorf("%s builds a cell for a borrow nothing replaces (%s):\n%s", fn, call, body)

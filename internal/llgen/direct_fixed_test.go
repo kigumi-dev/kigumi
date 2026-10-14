@@ -35,7 +35,7 @@ func TestFixedArrayRunsInPlace(t *testing.T) {
 	if !strings.Contains(ir, `%"kg.arr.FixedArray[Int, 4]" = type { [4 x i64] }`) {
 		t.Fatalf("FixedArray[Int, 4] is not an inline array:\n%s", ir)
 	}
-	body := bodyOf(t, ir, `define ptr @"main.work"(`)
+	body := fnBody(t, ir, "main.work")
 	checkNoHeap(t, "main.work", body)
 	for _, bad := range []string{"@rt_index(", "@rt_setindex(", "@rt_builtin(", `@"kg.box.`, `@"kg.unbox.`, `@"std/prelude.FixedArray`} {
 		if strings.Contains(body, bad) {
@@ -49,11 +49,11 @@ func TestFixedArrayRunsInPlace(t *testing.T) {
 
 func TestFixedArrayCrossesIntoAGenericBody(t *testing.T) {
 	ir := emitIR(t, fixedWorkSrc)
-	sum3 := bodyOf(t, ir, `define ptr @"main.sum3"(ptr %p0)`)
+	sum3 := bodyOf(t, ir, `define i64 @"main.sum3"(ptr %p0)`)
 	if !strings.Contains(sum3, `@llvm.memcpy.p0.p0.i64(ptr %l0, ptr %p0, i64 ptrtoint (ptr getelementptr (%"kg.arr.FixedArray[Int, 3]"`) || strings.Contains(sum3, "@rt_index(") {
 		t.Errorf("sum3 does not copy the 24-byte array in from caller storage:\n%s", sum3)
 	}
-	body := bodyOf(t, ir, `define ptr @"main.crossing"(`)
+	body := fnBody(t, ir, "main.crossing")
 	if strings.Count(body, `@"kg.box.FixedArray[Int, 3]"(`) != 1 {
 		t.Errorf("want one box at the generic call:\n%s", body)
 	}

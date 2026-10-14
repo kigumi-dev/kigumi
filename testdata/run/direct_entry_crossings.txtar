@@ -1,0 +1,142 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Tag = On(n: Int) | Off
+
+type Pair = {
+    pub p Point
+    pub t Tag
+}
+
+interface Maker {
+    fn make(self, i: Int) -> Point
+    fn tag(self, p: Point) -> Tag
+}
+
+type Pm = {
+    pub k Int
+}
+
+fn Pm.make(self, i: Int) -> Point { Point { x: i, y: self.k } }
+
+fn Pm.tag(self, p: Point) -> Tag {
+    if p.x > self.k { On(p.x - self.k) } else { Off }
+}
+
+type Named = {
+    pub name String
+}
+
+fn Named.make(self, i: Int) -> Point { Point { x: i, y: self.name.len().toInt() || 0 } }
+
+fn Named.tag(self, p: Point) -> Tag { On(p.y) }
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn holdAll() -> Int {
+    let mut held: Array[Res] = Array.of(Res { id: 1 })
+    held.push(Res { id: 2 })
+    held.len().toInt() || 0
+}
+
+fn mk(i: Int) -> Point { Point { x: i, y: i * 2 } }
+
+fn shift(p: Point, d: Int) -> Point { Point { x: p.x + d, y: p.y - d } }
+
+fn pair(p: Point, t: Tag) -> Pair { Pair { p: p, t: t } }
+
+fn tagValue(t: Tag) -> Int {
+    match t {
+        On(n) -> n
+        Off -> -1
+    }
+}
+
+fn through(f: fn(Int) -> Point, i: Int) -> Point { f(i) }
+
+fn moveBy(f: fn(Point, Int) -> Point, p: Point) -> Point { f(p, 3) }
+
+fn viaTable(m: &Maker, i: Int) -> Int {
+    let p = m.make(i)
+    p.x + p.y + tagValue(m.tag(p))
+}
+
+fn viaWitness[T: Maker](m: &T, i: Int) -> Int {
+    let p = m.make(i)
+    p.x * 10 + p.y + tagValue(m.tag(p))
+}
+
+fn fnValues() -> String {
+    let a = through(mk, 4)
+    let b = moveBy(shift, a)
+    let g: fn(Point, Tag) -> Pair = pair
+    let c = g(b, On(9))
+    "${a.x},${a.y} ${b.x},${b.y} ${c.p.x} ${tagValue(c.t)}"
+}
+
+fn methodValues() -> String {
+    let pm = Pm { k: 2 }
+    let make = pm.make
+    let tag = pm.tag
+    let p = make(5)
+    "${p.x},${p.y} ${tagValue(tag(p))} ${tagValue(tag(make(1)))}"
+}
+
+fn closures(k: Int, base: Point) -> String {
+    let f: fn(Int) -> Point = (i: Int) => Point { x: i + k, y: base.y }
+    let g: fn(Point) -> Tag = (p: Point) => if p.x > k { On(p.x + base.x) } else { Off }
+    let h = (i: Int) => Point { x: i, y: k }
+    let kept = h(7)
+    "${f(1).x},${f(1).y} ${tagValue(g(f(5)))} ${tagValue(g(base))} ${kept.y}"
+}
+
+fn tables() -> String {
+    let a: Maker = Pm { k: 1 }
+    let b: Maker = Named { name: "four" }
+    "${viaTable(&a, 3)} ${viaTable(&b, 3)}"
+}
+
+fn witnesses() -> String {
+    let pm = Pm { k: 3 }
+    let nm = Named { name: "ab" }
+    let bound = viaWitness[Named]
+    "${viaWitness(&pm, 4)} ${viaWitness(&nm, 4)} ${bound(&nm, 6)}"
+}
+
+fn higherOrder() -> String {
+    let xs = Array.of(1, 2, 3)
+    let ps = xs.map((i) => mk(i + 0))
+    let total = ps.fold(0, (acc, p) => acc + p.y)
+    "${ps.len()} ${total}"
+}
+
+let early = comptime { through(mk, 6).y + viaWitness(&Pm { k: 1 }, 2) }
+
+print "early=${early}"
+print "held=${holdAll()}"
+print "fnValues=${fnValues()}"
+print "methodValues=${methodValues()}"
+print "closures=${closures(2, Point { x: 10, y: 20 })}"
+print "tables=${tables()}"
+print "witnesses=${witnesses()}"
+print "higherOrder=${higherOrder()}"
+-- stdout --
+early=34
+drop 2
+drop 1
+held=2
+fnValues=4,8 7,5 7 9
+methodValues=5,2 3 -1
+closures=3,20 17 20 2
+tables=6 11
+witnesses=44 44 64
+higherOrder=3 12

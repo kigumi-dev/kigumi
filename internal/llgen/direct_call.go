@@ -16,8 +16,17 @@ func (e *emitter) aggArg(sb *strings.Builder, a *aggInfo, l mir.LocalID) string 
 }
 
 func (e *emitter) directCall(sb *strings.Builder, f *mir.Func, in mir.Inst, fn *mir.Func, s *aggSig) {
-	args, lent, out := e.directCallArgs(sb, in, s)
-	e.callInto(sb, in.Dst, e.sym(fn), args, s.Ret, out)
+	ss := e.ssigs[fn]
+	args, lent, out := e.directCallArgs(sb, in, s, ss)
+	if r, ok := ss.ret(); ok {
+		e.nativeCallInto(sb, in.Dst, e.sym(fn), args, r)
+	} else {
+		var ret *aggInfo
+		if s != nil {
+			ret = s.Ret
+		}
+		e.callInto(sb, in.Dst, e.sym(fn), args, ret, out)
+	}
 	e.releaseBoxed(sb, lent)
 }
 
@@ -47,10 +56,14 @@ func (e *emitter) callInto(sb *strings.Builder, dst mir.LocalID, sym string, arg
 
 // lent names the box a crossing made for a position the callee only
 // borrows: nothing else owns it, so the call site gives it back.
-func (e *emitter) directCallArgs(sb *strings.Builder, in mir.Inst, s *aggSig) (args, lent []string, out string) {
+func (e *emitter) directCallArgs(sb *strings.Builder, in mir.Inst, s *aggSig, ss *scalarSig) (args, lent []string, out string) {
 	args, out = e.retSlot(sb, s)
 	lent = make([]string, len(in.Args))
 	for i, l := range in.Args {
+		if info, ok := ss.param(i); ok {
+			args = append(args, e.nativeArg(sb, in, i, l, info))
+			continue
+		}
 		if a := s.param(i); a != nil {
 			args = append(args, e.aggArg(sb, a, l))
 			continue

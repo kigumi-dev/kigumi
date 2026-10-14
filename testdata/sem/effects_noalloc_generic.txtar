@@ -32,7 +32,7 @@ noalloc fn viaDup(p: Pt) -> Int {
 }
 
 noalloc fn viaValue(f: fn(Pt) -> Pt, p: Pt) -> Pt {
-    f(p) //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+    f(p) //~ ERROR the `Pt` it returns arrives in a box the callee allocates //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
 }
 
 noalloc fn viaPush(p: Pt, mut xs: Array[Pt]) -> Unit {
@@ -45,10 +45,17 @@ error[E907]: `dup` is not `noalloc`
 30 |     dup(p)._0.x //~ ERROR `dup` is not `noalloc`
    |     ^^^^^
 
+error[E1841]: this call goes through a function value or an interface, so the `Pt` it returns arrives in a box the callee allocates
+  --> lib/na.kg:34:5
+   |
+34 |     f(p) //~ ERROR the `Pt` it returns arrives in a box the callee allocates //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+   |     ^^^
+   = help: call the function directly, or drop the declaration
+
 error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
   --> lib/na.kg:34:7
    |
-34 |     f(p) //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+34 |     f(p) //~ ERROR the `Pt` it returns arrives in a box the callee allocates //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
    |       ^
    = help: keep it in a value of its own, or drop the declaration
 

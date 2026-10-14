@@ -56,6 +56,10 @@ func (e *emitter) computeSig(f *mir.Func) *aggSig {
 
 func (e *emitter) sigHeader(f *mir.Func, s *aggSig) string {
 	ret, params := "ptr", []string{}
+	ss := e.ssigs[f]
+	if r, ok := ss.ret(); ok {
+		ret = r.Ty.String()
+	}
 	if s != nil && s.Ret != nil {
 		if byValueAgg(s.Ret) {
 			ret = s.Ret.Name
@@ -68,6 +72,10 @@ func (e *emitter) sigHeader(f *mir.Func, s *aggSig) string {
 		params, from = append(params, "ptr %env"), len(env.Fields)
 	}
 	for i := from; i < len(f.Params); i++ {
+		if info, ok := ss.param(i); ok {
+			params = append(params, fmt.Sprintf("%s %%p%d", info.Ty, i))
+			continue
+		}
 		if a := s.param(i); a != nil && byValueAgg(a) {
 			params = append(params, fmt.Sprintf("%s %%p%d", a.Name, i))
 			continue
@@ -87,6 +95,13 @@ func (e *emitter) storeParams(sb *strings.Builder, f *mir.Func, s *aggSig) {
 	}
 	for i := from; i < len(f.Params); i++ {
 		prm := f.Params[i]
+		if info, ok := e.ssigs[f].param(i); ok {
+			if !e.isScalar(prm) {
+				panic(fmt.Sprintf("llgen: %s: register parameter %%l%d is boxed in the body", f.Name, prm))
+			}
+			fmt.Fprintf(sb, "  store %s %%p%d, ptr %%l%d\n", info.Ty, i, prm)
+			continue
+		}
 		a := s.param(i)
 		if a == nil {
 			fmt.Fprintf(sb, "  store ptr %%p%d, ptr %%l%d\n", i, prm)

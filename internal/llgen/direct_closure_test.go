@@ -31,7 +31,7 @@ fn main() -> Unit! {}
 
 func TestDirectClosureLoopAllocatesNothing(t *testing.T) {
 	ir := emitIR(t, closureLoopSrc)
-	body := bodyOf(t, ir, `define ptr @"main.run"(`)
+	body := fnBody(t, ir, "main.run")
 	checkNoHeap(t, "main.run", body)
 	if strings.Contains(body, "@rt_callv(") || !strings.Contains(body, `call ptr @"main.run.closure1"(ptr %l`) {
 		t.Errorf("the closure must be called directly on its environment:\n%s", body)
@@ -49,8 +49,12 @@ func TestDirectClosureBodyTakesItsEnvironment(t *testing.T) {
 	}
 	ir = emitIR(t, closureEscapeSrc)
 	adapter := bodyOf(t, ir, `define ptr @"main.run.closure1$adapter"(`)
-	if !strings.Contains(adapter, "@rt_at(ptr %env") || !strings.Contains(adapter, `@"main.run.closure1"(ptr `) {
-		t.Errorf("the adapter must rebuild the environment and call the body:\n%s", adapter)
+	if !strings.Contains(adapter, "@rt_at(ptr %env") || !strings.Contains(adapter, `@"main.run.closure1$boxed"(ptr `) {
+		t.Errorf("the adapter must read the environment and call the boxed entry:\n%s", adapter)
+	}
+	entry := bodyOf(t, ir, `define ptr @"main.run.closure1$boxed"(`)
+	if !strings.Contains(entry, `%"kg.clo.main.run.closure1"`) || !strings.Contains(entry, `@"main.run.closure1"(ptr `) {
+		t.Errorf("the entry must rebuild the environment and call the body:\n%s", entry)
 	}
 }
 

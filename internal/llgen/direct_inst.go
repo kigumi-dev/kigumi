@@ -61,7 +61,7 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 			return true
 		}
 		if fn, ok := e.p.ByEnt[in.Ent]; ok {
-			if s := e.directSig(fn); s != nil {
+			if s := e.directSig(fn); s != nil || e.ssigs[fn] != nil {
 				e.directCall(sb, f, in, fn, s)
 				return true
 			}
@@ -110,6 +110,10 @@ func (e *emitter) instArgs(sb *strings.Builder, in mir.Inst) ([]string, []bool) 
 		if e.isScalar(a) {
 			// classifyArgs only lets a scalar-classified local reach here
 			// at a non-retaining read; released below, in releaseScalarArgs.
+			if in.Op == mir.OpInterp {
+				args = append(args, e.scalarFrameBox(sb, a))
+				continue
+			}
 			args = append(args, e.scalarBoxOnDemand(sb, a))
 			continue
 		}

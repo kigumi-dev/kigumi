@@ -75,7 +75,7 @@ func TestDirectAggregateCallingConvention(t *testing.T) {
 	if !strings.Contains(ir, `define %"kg.agg.Point" @"main.mk"(`) {
 		t.Error("a 16-byte result is not returned in registers")
 	}
-	if !strings.Contains(ir, `define void @"main.grow"(ptr %sret, ptr %p0, ptr %p1)`) {
+	if !strings.Contains(ir, `define void @"main.grow"(ptr %sret, ptr %p0, i64 %p1)`) {
 		t.Error("a result over the by-value threshold is not returned through caller storage")
 	}
 	if !strings.Contains(ir, `define %"kg.agg.(Int, Int)" @"main.swap"(%"kg.agg.(Int, Int)" %p0)`) {
@@ -184,7 +184,7 @@ func TestDirectAdtBuildsAndMatchesInline(t *testing.T) {
 // 24 bytes outgrows the by-value window, so the result travels through caller storage like a record of that size.
 func TestDirectAdtFollowsTheSizeThreshold(t *testing.T) {
 	ir := emitIR(t, directAdtIRSrc)
-	if !strings.Contains(ir, `define void @"main.find"(ptr %sret, ptr %p0)`) {
+	if !strings.Contains(ir, `define void @"main.find"(ptr %sret, i64 %p0)`) {
 		t.Errorf("an ADT over the by-value size is not returned through caller storage:\n%s", ir)
 	}
 }

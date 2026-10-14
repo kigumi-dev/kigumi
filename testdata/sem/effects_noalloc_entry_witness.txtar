@@ -1,0 +1,62 @@
+-- module --
+mir: planned
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+interface Maker {
+    noalloc fn make(self, i: Int) -> Point
+    noalloc fn take(self, p: Point) -> Int
+}
+
+type Pm = {
+    pub k Int
+}
+
+noalloc fn Pm.make(self, i: Int) -> Point { Point { x: i, y: self.k } }
+
+noalloc fn Pm.take(self, p: Point) -> Int { p.x + self.k }
+
+type Named = {
+    pub name String
+}
+
+noalloc fn Named.make(self, i: Int) -> Point { Point { x: i, y: 0 } }
+
+noalloc fn Named.take(self, p: Point) -> Int { p.y }
+
+// A specialized instance calls the witness directly; only the shared body a boxed type runs boxes.
+noalloc fn viaWitness[T: Maker](m: &T, p: Point) -> Int {
+    m.make(1).y + m.take(p) //~ ERROR `viaWitness` is declared `noalloc`, and the `Point` this call returns //~ ERROR `viaWitness` is declared `noalloc`, and handing `Point`
+}
+
+noalloc fn onlyDirect[T: Maker](m: &T, p: Point) -> Int {
+    m.make(1).y + m.take(p)
+}
+
+// The summary of an undeclared body charges what a shared body would box.
+fn inferred[T: Maker](m: &T, p: Point) -> Int {
+    m.take(p)
+}
+
+fn main() -> Unit! {
+    let pm = Pm { k: 1 }
+    let nm = Named { name: "n" }
+    let p = Point { x: 1, y: 2 }
+    print "${viaWitness(&pm, p)} ${viaWitness(&nm, p)} ${onlyDirect(&pm, p)} ${inferred(&pm, p)}"
+}
+-- expect --
+error[E1570]: `viaWitness` is declared `noalloc`, and handing `Point` to a slot that holds a reference allocates a box for it here; pass it by reference, or drop the declaration
+  --> main.kg:29:19
+   |
+29 |     m.make(1).y + m.take(p) //~ ERROR `viaWitness` is declared `noalloc`, and the `Point` this call returns //~ ERROR `viaWitness` is declared `noalloc`, and handing `Point`
+   |                   ^^^^^^^^
+
+error[E1842]: `viaWitness` is declared `noalloc`, and the `Point` this call returns through a function value or an interface arrives in a box allocated for it; call the function directly, or drop the declaration
+  --> main.kg:29:5
+   |
+29 |     m.make(1).y + m.take(p) //~ ERROR `viaWitness` is declared `noalloc`, and the `Point` this call returns //~ ERROR `viaWitness` is declared `noalloc`, and handing `Point`
+   |     ^^^^^^^^
+

@@ -3,7 +3,8 @@ package sem
 // DirectCarried: a foreign ABI is fixed by C, an async one by its Future's argument words.
 func (r *Result) DirectCarried(fn EntityID) bool {
 	e := &r.Entities[fn]
-	if fn == 0 || e.Kind != EntFn || e.Flags&EfPoison != 0 {
+	// A requirement is reached through a method table or a witness, which pass everything boxed.
+	if fn == 0 || e.Kind != EntFn || e.Flags&EfPoison != 0 || r.Entities[e.Parent].Kind == EntInterface {
 		return false
 	}
 	info := r.Fn(fn)

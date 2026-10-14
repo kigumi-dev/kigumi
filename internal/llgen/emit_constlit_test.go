@@ -19,15 +19,18 @@ fn build() -> usize {
 
 fn main() -> Unit! {}
 `)
-	body := bodyOf(t, ir, `define ptr @"main.build"(`)
+	body := fnBody(t, ir, "main.build")
 	checkNoHeap(t, "main.build", body)
 	for _, bad := range []string{"@rt_str(", "@rt_int(", "@rt_char(", "@rt_float("} {
 		if strings.Contains(body, bad) {
 			t.Errorf("main.build calls %s for a literal:\n%s", bad, body)
 		}
 	}
-	if n := strings.Count(body, `@".constval.`); n < 4 {
-		t.Errorf("want all four literals from shared slots, found %d:\n%s", n, body)
+	if n := strings.Count(body, `@".constval.`); n < 1 {
+		t.Errorf("want the String literal from a shared slot, found %d:\n%s", n, body)
+	}
+	if !strings.Contains(body, `(ptr %v1, i64 %v2, i32 %v3, double %v4)`) {
+		t.Errorf("the scalar literals do not reach takes in registers:\n%s", body)
 	}
 	init := bodyOf(t, ir, "define void @kg_init_immortals() {")
 	for _, want := range []string{"@rt_const_num(", "@rt_const_text("} {
@@ -37,11 +40,13 @@ fn main() -> Unit! {}
 	}
 }
 
-// A literal reaching a call through the scalar pass is boxed at the call
-// boundary; that box is the immortal too.
+// A literal reaching a parameter the callee keeps boxed is the immortal, not a fresh box.
 func TestScalarLiteralArgumentUsesImmortal(t *testing.T) {
 	ir := emitIR(t, `
-fn step(n: Int) -> Int { n + 1 }
+fn step(n: Int) -> Int {
+    let xs = Array.of(n, 2)
+    (xs.get(0) || 0) + 1
+}
 
 fn run() -> Int {
     let k = 4
@@ -50,9 +55,9 @@ fn run() -> Int {
 
 fn main() -> Unit! {}
 `)
-	body := bodyOf(t, ir, `define ptr @"main.run"(`)
-	if n := strings.Count(body, "@rt_int("); n != 1 {
-		t.Errorf("want only the computed sum boxed, found %d rt_int calls:\n%s", n, body)
+	body := fnBody(t, ir, "main.run")
+	if n := strings.Count(body, "@rt_int("); n != 0 {
+		t.Errorf("want nothing boxed, the sum leaves in a register; found %d rt_int calls:\n%s", n, body)
 	}
 	if n := strings.Count(body, `@".constval.`); n != 2 {
 		t.Errorf("want both literal arguments from the shared slot, found %d:\n%s", n, body)

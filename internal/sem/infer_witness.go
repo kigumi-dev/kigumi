@@ -33,7 +33,9 @@ func (c *checker) callStatic(n, callee syntax.NodeID, head headRef, args []synta
 	} else {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Node: n})
 	}
+	from := len(*c.edges)
 	ret, plan := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params, false, false)
+	c.requirementResult(n, ret, from, args, true, false)
 	effArgs := args
 	if plan != nil {
 		effArgs = plan.placed()

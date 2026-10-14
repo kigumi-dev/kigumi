@@ -13,6 +13,7 @@ const (
 	wrapAdapter wrapperKind = iota
 	wrapBind
 	wrapMethod
+	wrapEntry
 	wrapKinds
 )
 
@@ -29,6 +30,11 @@ func (e *emitter) useAdapter(f *mir.Func) string {
 func (e *emitter) useBind(f *mir.Func) string {
 	e.wrapNeed[wrapperKey{f, wrapBind}] = true
 	return e.bindSym(f)
+}
+
+func (e *emitter) useEntry(f *mir.Func) string {
+	e.wrapNeed[wrapperKey{f, wrapEntry}] = true
+	return e.sym(f.Entry)
 }
 
 func (e *emitter) useMethodAdapter(f *mir.Func) string {
@@ -75,6 +81,8 @@ func (e *emitter) emitWrappers() string {
 					sb.WriteString(e.bindAdapter(f))
 				case wrapMethod:
 					sb.WriteString(e.methodAdapter(f))
+				case wrapEntry:
+					sb.WriteString(e.function(f.Entry))
 				}
 			}
 		}

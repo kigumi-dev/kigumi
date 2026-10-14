@@ -66,3 +66,33 @@ func (s *specializer) reboxes(c *Func, call Inst) int {
 	}
 	return n
 }
+
+// devirtualizes reports an instance calling directly a witness its shared body reaches through a box.
+func (s *specializer) devirtualizes(pairs []funcPair) bool {
+	for _, pr := range pairs {
+		if s.witnessBoxes(pr.fn) < s.witnessBoxes(pr.gen) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *specializer) witnessBoxes(f *Func) int {
+	n := 0
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if in.Op != OpCallValue || in.Ent == 0 {
+				continue
+			}
+			for _, a := range in.Args[1:] {
+				if s.p.R.BoxAllocates(f.Locals[a].Type) {
+					n++
+				}
+			}
+			if s.p.R.BoxAllocates(f.Locals[in.Dst].Type) {
+				n++
+			}
+		}
+	}
+	return n
+}

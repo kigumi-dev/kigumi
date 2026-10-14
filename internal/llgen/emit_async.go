@@ -24,7 +24,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	e.scalarAliasBoxes(f)
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)
-	e.sig = nil
+	e.sig, e.ssig = nil, nil
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%fut) {\nentry:\n", e.sym(f))
 	sb.WriteString("  %slots = call ptr @rt_future_slots(ptr %fut)\n")
 	for i := range f.Locals {
