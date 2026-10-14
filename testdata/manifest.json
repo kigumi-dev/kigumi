@@ -6597,7 +6597,10 @@
       "id": "run/lifetime_param_relabel",
       "kind": "run",
       "path": "testdata/run/lifetime_param_relabel.txtar",
-      "mode": null,
+      "mode": [
+        "vm",
+        "native"
+      ],
       "requires": [
         "c-compiler"
       ],
@@ -6747,7 +6750,10 @@
       "id": "run/lifetime_view",
       "kind": "run",
       "path": "testdata/run/lifetime_view.txtar",
-      "mode": null,
+      "mode": [
+        "vm",
+        "native"
+      ],
       "requires": [
         "c-compiler"
       ],
@@ -7144,7 +7150,10 @@
       "id": "run/mut_ref_field_counts",
       "kind": "run",
       "path": "testdata/run/mut_ref_field_counts.txtar",
-      "mode": null,
+      "mode": [
+        "vm",
+        "native"
+      ],
       "requires": [
         "c-compiler"
       ],
@@ -7209,7 +7218,10 @@
       "id": "run/mut_ref_recv_field",
       "kind": "run",
       "path": "testdata/run/mut_ref_recv_field.txtar",
-      "mode": null,
+      "mode": [
+        "vm",
+        "native"
+      ],
       "requires": [
         "c-compiler"
       ],
