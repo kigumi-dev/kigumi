@@ -31,33 +31,29 @@ func (m *Machine) hostWins(lowered bool) bool {
 
 func (m *Machine) free(v *obj) {
 	m.unchargeMemory(v)
+	var fault *Panic
 	switch v.k {
 	case kRecord:
 		setImmortal(v)
-		drop := m.dropFn(v.ent)
-		if h, ent := m.hostDrop(v.ent); h != nil && m.hostWins(drop != nil) {
-			h(m, ent, []*obj{v})
-		} else if drop != nil {
-			m.invoke(drop, nil, false, []*obj{v})
-		}
+		fault = m.runDropHook(v, nil)
 		atomic.StoreInt32(&v.rc, 0)
 		for i := len(v.fields) - 1; i >= 0; i-- {
 			if !m.borrowField(v, i) {
-				m.release(v.fields[i])
+				fault = m.releaseChild(v.fields[i], fault)
 			}
 		}
 	case kVariant:
 		for _, p := range v.fields {
-			m.release(p)
+			fault = m.releaseChild(p, fault)
 		}
 	case kArray:
 		for i := len(v.fields) - 1; i >= 0; i-- {
-			m.release(v.fields[i])
+			fault = m.releaseChild(v.fields[i], fault)
 		}
 	case kBox, kCell:
-		m.release(v.inner)
+		fault = m.releaseChild(v.inner, fault)
 	case kClosure:
-		m.release(v.env)
+		fault = m.releaseChild(v.env, fault)
 	case kOpaque:
 		m.freeOpaque(v)
 	}
@@ -66,6 +62,7 @@ func (m *Machine) free(v *obj) {
 	if liveTrack.Load() {
 		liveFreed.Add(1)
 	}
+	m.raiseJoined(fault)
 }
 
 // copy duplicates a value the way rt_copy does: structural values deeply,

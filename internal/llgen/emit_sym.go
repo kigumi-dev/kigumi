@@ -95,17 +95,28 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 	} else {
 		types = append(types, sig.Args...)
 	}
+	// The primitive only lends, so the adapter returns the references rt_at took, except for borrowed parameters.
+	lent := mir.LentMask(e.r, fn)
+	finish := func(res string) string {
+		for i, v := range vals {
+			if i < bound || lent>>i&1 == 0 {
+				e.irb(&sb).Call(rtRelease, vptr(v))
+			}
+		}
+		return fmt.Sprintf("  ret ptr %s\n}\n\n", res)
+	}
 	if e.stdKey(fn) == "std/error.as" && len(vals) == 1 {
-		fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", e.errorAsCall(&sb, vals[0], result))
+		res := e.errorAsCall(&sb, vals[0], result)
+		sb.WriteString(finish(res))
 		return sb.String()
 	}
 	if res, ok := e.ffiRecordCall(&sb, e.stdKey(fn), vals, types, result); ok {
-		fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", res)
+		sb.WriteString(finish(res))
 		return sb.String()
 	}
 	if info := e.r.Fn(fn); info.Owner != 0 && len(vals) == 1 {
 		if res, ok := e.convertCall(&sb, fn, e.stdKey(fn), vals, e.r.Entity(info.Owner).Type, sig.Elem); ok {
-			fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", res)
+			sb.WriteString(finish(res))
 			return sb.String()
 		}
 	}
@@ -115,7 +126,7 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 	} else {
 		e.irb(&sb).CallAs("%r", rtStd, vptr(e.cstr(e.stdKey(fn))), vi32(n), vptr(arr))
 	}
-	sb.WriteString("  ret ptr %r\n}\n\n")
+	sb.WriteString(finish("%r"))
 	return sb.String()
 }
 
@@ -144,7 +155,7 @@ func (e *emitter) adapter(f *mir.Func) string {
 	res := e.callBoxed(&sb, f, vals)
 	if e.directSig(f) == nil {
 		for i := 0; i < ncaps && i < len(vals); i++ {
-			if e.r.Types.Kind(f.Locals[f.Params[i]].Type) == sem.KRef {
+			if e.p.CaptureLent(f, i) {
 				e.irb(&sb).Call(rtRelease, vptr(vals[i]))
 			}
 		}

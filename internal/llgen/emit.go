@@ -51,6 +51,7 @@ type emitter struct {
 	protoDone    map[protoKey]bool
 	direct       map[mir.LocalID]*aggInfo
 	boxTmp       map[mir.LocalID]bool
+	crossSrc     map[mir.LocalID]mir.LocalID
 	nameAlias    map[mir.LocalID]bool
 	sigs         map[*mir.Func]*aggSig
 	sig          *aggSig
@@ -136,6 +137,7 @@ func (e *emitter) function(f *mir.Func) string {
 	e.sig = e.directSig(f)
 	e.direct = e.classifyDirect(f)
 	e.boxTmp = boxTemps(f)
+	e.crossSrc = crossSources(f)
 	e.scalar = e.classifyScalars(f)
 	e.nameAlias = nameAliases(f)
 	e.scalarAliasBoxes(f)

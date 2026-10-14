@@ -29,6 +29,7 @@ fn lib.outer(%out: &mut Array[u8]) -> Unit {
     %t7 = const 1: u8
     %t8 = call push(%t6, %t7)
     %t9 = celltake(%t6)
+    drop(%t6)
     drop(%t9)
     drop(%t8)
     %t10 = borrow 1(%r)
@@ -37,6 +38,7 @@ fn lib.outer(%out: &mut Array[u8]) -> Unit {
     %t13 = const 2: u8
     %t14 = call push(%t12, %t13)
     %t15 = celltake(%t12)
+    drop(%t12)
     drop(%t15)
     drop(%r)
     return %t14

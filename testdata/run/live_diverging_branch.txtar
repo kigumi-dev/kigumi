@@ -1,0 +1,16 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+// A branch that panics never reaches the join, so the other branch's temporary is released there.
+let p = Point { x: 3, y: 4 }
+let byRecord = (d: Int) => p.x * d + p.y
+let stored = Array.of(byRecord, byRecord)
+print "${(stored.get(1) || panic())(1)}"
+let again = (stored.get(0) || panic())
+print "${again(2)}"
+-- stdout --
+7
+10

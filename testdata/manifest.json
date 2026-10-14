@@ -2056,6 +2056,90 @@
       }
     },
     {
+      "id": "run/async_task_drop_panic_elements",
+      "kind": "run",
+      "path": "testdata/run/async_task_drop_panic_elements.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop 4\npanic: drop 2"
+      }
+    },
+    {
+      "id": "run/async_task_drop_panic_fields",
+      "kind": "run",
+      "path": "testdata/run/async_task_drop_panic_fields.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop 2"
+      }
+    },
+    {
+      "id": "run/async_task_drop_panic_hook_fields",
+      "kind": "run",
+      "path": "testdata/run/async_task_drop_panic_hook_fields.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: outer 5"
+      }
+    },
+    {
+      "id": "run/async_task_drop_panic_nested",
+      "kind": "run",
+      "path": "testdata/run/async_task_drop_panic_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop 6\npanic: drop 4\npanic: drop 2"
+      }
+    },
+    {
       "id": "run/async_task_panic_array_with_mut",
       "kind": "run",
       "path": "testdata/run/async_task_panic_array_with_mut.txtar",
@@ -6866,9 +6950,179 @@
       ]
     },
     {
+      "id": "run/live_arg_cell_early_exit",
+      "kind": "run",
+      "path": "testdata/run/live_arg_cell_early_exit.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_async_lent_params",
+      "kind": "run",
+      "path": "testdata/run/live_async_lent_params.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_diverging_branch",
+      "kind": "run",
+      "path": "testdata/run/live_diverging_branch.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_explicit_drop",
+      "kind": "run",
+      "path": "testdata/run/live_explicit_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_move_self_existential",
+      "kind": "run",
+      "path": "testdata/run/live_move_self_existential.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_multi_def_join",
+      "kind": "run",
+      "path": "testdata/run/live_multi_def_join.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_nested_merge",
+      "kind": "run",
+      "path": "testdata/run/live_nested_merge.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_pending_arg_exit",
+      "kind": "run",
+      "path": "testdata/run/live_pending_arg_exit.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_std_value_args",
+      "kind": "run",
+      "path": "testdata/run/live_std_value_args.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/live_temp_release",
       "kind": "run",
       "path": "testdata/run/live_temp_release.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/live_unbox_consumed",
+      "kind": "run",
+      "path": "testdata/run/live_unbox_consumed.txtar",
       "mode": [
         "vm",
         "native"

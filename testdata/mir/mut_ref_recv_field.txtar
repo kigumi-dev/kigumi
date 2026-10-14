@@ -43,6 +43,7 @@ fn main.bumpField(%h: Holder['a]) -> Unit {
     %t5 = const 2: Int
     %t6 = call bump(%t4, %t5)
     %t7 = celltake(%t4)
+    drop(%t4)
     drop(%t7)
     drop(%h)
     return %t6

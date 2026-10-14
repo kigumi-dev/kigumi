@@ -9,43 +9,29 @@ type Point struct{ Block, Inst int }
 // use is where a temporary was last read.
 type use struct{ block, inst int }
 
-// Plan is the runtime ownership plan of one function, shared by every
-// backend that executes MIR: where unconsumed temporaries are released,
-// how often each temporary is defined, and which alias temporaries must
-// take their own reference.
+// Plan is the ownership plan every backend shares: where temporaries are
+// released, how often each is defined, and which aliases take a reference.
 type Plan struct {
 	Releases    map[Point][]LocalID
+	Splits      map[Edge][]LocalID
 	Defs        map[LocalID]int
 	Materialize map[LocalID]bool
 }
 
-// MIR drops only named locals, so a temporary that no instruction consumes
-// (stores, moves or hands to an owning callee) is released after its last
-// use, provided that use sits in the block that defined it.
+// MIR drops only named locals, so a temporary no instruction consumes is
+// released after its last use, or by liveness when it crosses blocks.
 func (p *Program) planFunc(f *Func) *Plan {
-	defBlock := map[LocalID]int{}
-	defs := map[LocalID]int{}
 	last := map[LocalID]use{}
 	consumed := map[LocalID]bool{}
-	noRelease := map[LocalID]bool{}
 	crossUse := map[LocalID]bool{}
-	defBlocks := map[LocalID]map[int]bool{}
+	reads := map[LocalID]int{}
 	useBlocks := map[LocalID]map[int]bool{}
 	borrowed := map[LocalID]LocalID{}
 	isTemp := func(l LocalID) bool { return f.Locals[l].Ent == 0 }
-	for b, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			if isTemp(in.Dst) && in.Op != OpNop && in.Op != OpPanic && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone {
-				defBlock[in.Dst] = b
-				if defBlocks[in.Dst] == nil {
-					defBlocks[in.Dst] = map[int]bool{}
-				}
-				defBlocks[in.Dst][b] = true
-			}
-		}
-	}
+	defs, defBlocks, defBlock := tempDefs(f, isTemp)
+	materialize := p.planAliases(f, isTemp, defs)
 	// Block numbers do not follow execution order, so a temporary used outside
-	// its defining block is released at a join point or not at all.
+	// its defining block is released by liveness instead of at its last read.
 	for b, blk := range f.Blocks {
 		for k, in := range blk.Insts {
 			for i, a := range in.Args {
@@ -55,38 +41,21 @@ func (p *Program) planFunc(f *Func) *Plan {
 				if defBlock[a] != b {
 					crossUse[a] = true
 				}
-				noteUse(useBlocks, a, b)
+				noteBlock(useBlocks, a, b)
+				reads[a]++
 				last[a] = use{b, k}
-				if p.consumes(in, i) {
+				if p.consumes(f, in, i) {
 					consumed[a] = true
 				}
 			}
-			if in.Op == OpNop || in.Op == OpPanic || !isTemp(in.Dst) {
+			if !definesTemp(in, isTemp) {
 				continue
 			}
-			switch in.Op {
-			case OpDrop, OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpFutureDone:
-				continue
-			}
-			defs[in.Dst]++
 			if _, used := last[in.Dst]; !used {
 				last[in.Dst] = use{b, k}
 			}
-			// A copy or wrap/unwrap alias of a named local only aliases it; a
-			// borrow is always an alias and releases its source instead.
-			if (in.Op == OpCopy || in.Op == OpAlias) && len(in.Args) == 1 && (!isTemp(in.Args[0]) || noRelease[in.Args[0]] || crossUse[in.Args[0]]) {
-				noRelease[in.Dst] = true
-			}
-			// iter.at_ref hands out a `for` element without
-			// its own retain, so it needs no matching release either.
-			if in.Op == OpBuiltin && in.Str == "iter.at_ref" {
-				noRelease[in.Dst] = true
-			}
-			if in.Op == OpBorrow {
-				noRelease[in.Dst] = true
-				if len(in.Args) == 1 && isTemp(in.Args[0]) {
-					borrowed[in.Dst] = in.Args[0]
-				}
+			if in.Op == OpBorrow && len(in.Args) == 1 && isTemp(in.Args[0]) {
+				borrowed[in.Dst] = in.Args[0]
 			}
 		}
 		for _, a := range blk.Term.Args {
@@ -94,7 +63,8 @@ func (p *Program) planFunc(f *Func) *Plan {
 				if defBlock[a] != b {
 					crossUse[a] = true
 				}
-				noteUse(useBlocks, a, b)
+				noteBlock(useBlocks, a, b)
+				reads[a]++
 				last[a] = use{b, len(blk.Insts)}
 				if blk.Term.Op == TermReturn {
 					consumed[a] = true
@@ -102,36 +72,64 @@ func (p *Program) planFunc(f *Func) *Plan {
 			}
 		}
 	}
-	extendBorrowed(borrowed, last, noRelease)
+	extendBorrowed(borrowed, last, crossUse)
+	noRelease := p.unownedTemps(f, isTemp, defs, materialize, func(l LocalID) bool { return crossUse[l] && reads[l] > 1 })
+	root := func(l LocalID) LocalID {
+		for {
+			src, ok := borrowed[l]
+			if !ok {
+				return l
+			}
+			l = src
+		}
+	}
+	touch := map[LocalID]map[int]bool{}
+	for t, bs := range defBlocks {
+		for b := range bs {
+			noteBlock(touch, t, b)
+		}
+	}
+	for t, bs := range useBlocks {
+		for b := range bs {
+			noteBlock(touch, root(t), b)
+		}
+	}
 	plan := map[Point][]LocalID{}
-	var joins *joinCtx
+	var live *liveCtx
 	for t, u := range last {
-		if consumed[t] || noRelease[t] {
+		if noRelease[t] {
 			continue
 		}
-		at := Point{u.block, u.inst}
-		if crossUse[t] || defs[t] != 1 || defBlock[t] != u.block {
-			if joins == nil {
-				joins = newJoinCtx(f)
+		if consumed[t] {
+			if crossUse[t] || defs[t] != 1 {
+				if live == nil {
+					live = newLiveCtx(f, isTemp, root, plan)
+				}
+				live.placeAbandoned(t, touch[t])
 			}
-			var ok bool
-			if at, ok = joins.joinPoint(defBlocks[t], useBlocks[t], u); !ok {
-				continue
-			}
+			continue
 		}
-		plan[at] = append(plan[at], t)
+		if !crossUse[t] && defs[t] == 1 && defBlock[t] == u.block {
+			plan[Point{u.block, u.inst}] = append(plan[Point{u.block, u.inst}], t)
+			continue
+		}
+		if live == nil {
+			live = newLiveCtx(f, isTemp, root, plan)
+		}
+		live.place(t, touch[t])
+	}
+	var split map[Edge][]LocalID
+	if live != nil {
+		split = live.edgePoints()
 	}
 	for _, ts := range plan {
 		slices.Sort(ts)
 	}
-	return &Plan{Releases: plan, Defs: defs, Materialize: p.planAliases(f, isTemp, defs)}
+	return &Plan{Releases: plan, Splits: split, Defs: defs, Materialize: materialize}
 }
 
-// extendBorrowed keeps a borrowed temporary alive as long as the borrow of
-// it. A borrow is an alias, not a reference, so releasing the source at its
-// own last use — the borrow instruction — would hand the callee a freed
-// object. Chains are followed to a fixed point.
-func extendBorrowed(borrowed map[LocalID]LocalID, last map[LocalID]use, noRelease map[LocalID]bool) {
+// extendBorrowed keeps a source alive while a borrow of it is read; a borrow read in another block sends it to the liveness placement.
+func extendBorrowed(borrowed map[LocalID]LocalID, last map[LocalID]use, crossUse map[LocalID]bool) {
 	for changed := true; changed; {
 		changed = false
 		for alias, src := range borrowed {
@@ -141,8 +139,8 @@ func extendBorrowed(borrowed map[LocalID]LocalID, last map[LocalID]use, noReleas
 			}
 			su := last[src]
 			if au.block != su.block {
-				if !noRelease[src] {
-					noRelease[src] = true
+				if !crossUse[src] {
+					crossUse[src] = true
 					changed = true
 				}
 				continue
@@ -155,13 +153,12 @@ func extendBorrowed(borrowed map[LocalID]LocalID, last map[LocalID]use, noReleas
 	}
 }
 
-func (p *Program) ArgConsumed(in Inst, i int) bool { return p.consumes(in, i) }
+func (p *Program) ArgConsumed(f *Func, in Inst, i int) bool { return p.consumes(f, in, i) }
 
-// consumes reports whether argument i of an instruction takes over the
-// value: it is stored, moved, boxed or handed to a callee that owns it.
-// Reads, arithmetic, display and borrowed receivers do not.
-func (p *Program) consumes(in Inst, i int) bool {
-	if p.inPlace(in, i) || p.lentParam(in, i) {
+// consumes reports whether argument i is stored, moved, boxed or handed to
+// an owning callee; reads, arithmetic, display and borrowed receivers do not.
+func (p *Program) consumes(f *Func, in Inst, i int) bool {
+	if p.inPlace(in, i) || p.lentParam(in, i) || p.lentByType(f, &in, i) {
 		return false
 	}
 	switch in.Op {

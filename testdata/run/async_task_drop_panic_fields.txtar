@@ -1,0 +1,39 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+    if self.id % 2 == 0 {
+        panic("drop ${self.id}")
+    }
+}
+
+type Pair = resource {
+    pub a Res
+    pub b Res
+}
+
+// A drop that panics costs only its own slot: the fields before it in the record still drop.
+async fn boom() -> Int {
+    let p = Pair { a: Res { id: 1 }, b: Res { id: 2 } }
+    7
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 2
+drop 1
+-- stderr --
+panic: drop 2
+-- exit --
+2

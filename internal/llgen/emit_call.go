@@ -31,8 +31,8 @@ func (e *emitter) callEntity(sb *strings.Builder, f *mir.Func, in mir.Inst, args
 	}
 	if iface := e.r.Entity(ent).Parent; e.r.Entity(iface).Kind == sem.EntInterface {
 		arr := e.argArray(sb, args[1:])
-		mut := boolBit(e.r.Fn(ent).Recv == sem.RecvMut)
-		return e.irb(sb).Call(rtCallSlot, vptr(args[0]), vi32(e.slotOf(iface, ent)), vi32(len(args)-1), vptr(arr), vi32(mut)).Text
+		mode := map[sem.RecvKind]int{sem.RecvMut: 1, sem.RecvMove: 2}[e.r.Fn(ent).Recv]
+		return e.irb(sb).Call(rtCallSlot, vptr(args[0]), vi32(e.slotOf(iface, ent)), vi32(len(args)-1), vptr(arr), vi32(mode)).Text
 	}
 	key := e.stdKey(ent)
 	if key == "std/dl.Symbol.call" {

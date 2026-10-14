@@ -17,6 +17,7 @@ async fn lib.addOne(%out: &mut Array[u8]) -> Unit {
     %t4 = const 99: u8
     %t5 = call push(%t3, %t4)
     %t6 = celltake(%t3)
+    drop(%t3)
     drop(%t6)
     return %t5
 }
@@ -32,6 +33,7 @@ async fn lib.scenario(%out: &mut Array[u8]) -> Unit {
     %t8 = const 1: u8
     %t9 = call push(%t7, %t8)
     %t10 = celltake(%t7)
+    drop(%t7)
     drop(%t10)
     drop(%t9)
     %t11 = move(%f)

@@ -11,7 +11,7 @@ func planAsync(p *Program) error {
 		if !f.Async {
 			continue
 		}
-		completeReturns(f)
+		p.completeReturns(f)
 		planFrame(f, p.R)
 		classifyMobility(f, p.R)
 	}
@@ -24,11 +24,17 @@ func (p *Program) isAsyncBody(ent sem.EntityID) bool {
 	return e.Kind == sem.EntFn && p.R.Fn(ent).Declared&sem.EffAsync != 0
 }
 
-func completeReturns(f *Func) {
+// The Future holds a reference to every argument, so the body returns the borrowed ones when it finishes.
+func (p *Program) completeReturns(f *Func) {
 	for bid := range f.Blocks {
 		blk := &f.Blocks[bid]
 		if blk.Term.Op != TermReturn {
 			continue
+		}
+		for i, prm := range f.Params {
+			if p.CaptureLent(f, i) {
+				blk.Insts = append(blk.Insts, Inst{Op: OpRelease, Args: []LocalID{prm}})
+			}
 		}
 		blk.Insts = append(blk.Insts, Inst{Op: OpFutureDone, Args: []LocalID{blk.Term.Args[0]}})
 	}
@@ -134,6 +140,9 @@ func owningLocals(f *Func, r *sem.Result) map[LocalID]bool {
 	owned := map[LocalID]bool{}
 	for i, l := range f.Locals {
 		owned[LocalID(i)] = !l.Borrowed && r.Types.Kind(l.Type) != sem.KRef
+	}
+	for _, prm := range f.Params {
+		owned[prm] = true
 	}
 	defined := map[LocalID]bool{}
 	for _, prm := range f.Params {

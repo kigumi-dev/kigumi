@@ -1,0 +1,37 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+    if self.id % 2 == 0 {
+        panic("drop ${self.id}")
+    }
+}
+
+// Two elements panic while the array drops; every other element still drops and both panics are reported.
+async fn boom() -> Int {
+    let xs = Array.of(Res { id: 1 }, Res { id: 2 }, Res { id: 3 }, Res { id: 4 })
+    xs.len().toInt() || 0
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 4
+drop 3
+drop 2
+drop 1
+-- stderr --
+panic: drop 4
+panic: drop 2
+-- exit --
+2

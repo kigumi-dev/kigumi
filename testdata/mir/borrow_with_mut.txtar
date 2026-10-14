@@ -46,6 +46,7 @@ fn lib.sharedThenWithMut.closure1(%x: &mut Item) -> Unit {
     %t4 = const 1: Int
     %t5 = call update(%t3, %t4)
     %t6 = celltake(%t3)
+    drop(%t3)
     drop(%t6)
     return %t5
 }
@@ -60,6 +61,7 @@ fn lib.sharedThenWithMut(%xs: Array[Item]) -> usize {
     %t7 = closure closure
     %t8 = call withMut(%t5, %t6, %t7)
     %t9 = celltake(%t5)
+    drop(%t5)
     drop(%xs)
     %xs = copy(%t9)
     drop(%t8)
@@ -75,6 +77,7 @@ fn lib.exclusiveThenLen.closure1(%x: &mut Item) -> Unit {
     %t4 = const 1: Int
     %t5 = call update(%t3, %t4)
     %t6 = celltake(%t3)
+    drop(%t3)
     drop(%t6)
     return %t5
 }
@@ -91,6 +94,7 @@ fn lib.exclusiveThenLen(%xs: Array[Item]) -> usize {
     %t9 = closure closure
     %t10 = call withMut(%t7, %t8, %t9)
     %t11 = celltake(%t7)
+    drop(%t7)
     drop(%t11)
     drop(%t10)
     %t12 = copy(%k)
@@ -106,6 +110,7 @@ fn lib.fine.closure1(%x: &mut Item) -> Unit {
     %t4 = const 1: Int
     %t5 = call update(%t3, %t4)
     %t6 = celltake(%t3)
+    drop(%t3)
     drop(%t6)
     return %t5
 }
@@ -122,6 +127,7 @@ fn lib.fine(%xs: Array[Item]) -> usize {
     %t9 = closure closure
     %t10 = call withMut(%t7, %t8, %t9)
     %t11 = celltake(%t7)
+    drop(%t7)
     drop(%xs)
     %xs = copy(%t11)
     drop(%t10)

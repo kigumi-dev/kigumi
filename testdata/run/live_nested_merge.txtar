@@ -1,0 +1,42 @@
+-- src --
+fn a(n: Int) -> String { "a${n}" }
+
+fn interp(k: Int) -> String {
+    "${if k == 0 { a(0) } else if k == 1 { a(1) } else { a(2) }}"
+}
+
+fn recv(k: Int) -> Int {
+    (if k == 0 { a(0) } else if k == 1 { a(1) } else { a(2) }).len().toInt() || 0
+}
+
+fn eq(k: Int) -> Bool {
+    (if k == 0 { a(0) } else if k == 1 { a(1) } else { a(2) }) == "a1"
+}
+
+fn arms(k: Int) -> String {
+    "${match k {
+        0 -> a(0)
+        1 -> a(1)
+        _ -> if k > 5 { a(5) } else { a(2) }
+    }}"
+}
+
+for i in 0..3 {
+    print interp(i)
+    print "${recv(i)}"
+    print "${eq(i)}"
+    print arms(i + 4)
+}
+-- stdout --
+a0
+2
+false
+a2
+a1
+2
+true
+a2
+a2
+2
+false
+a5

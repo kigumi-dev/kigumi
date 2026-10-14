@@ -16,13 +16,13 @@ func (p *Program) shareArgs(f *Func, in *Inst, st *rcState, out *[]Inst, w *shar
 		case p.inPlace(*in, i) || st.borrowed[a]:
 		case p.mustCopy(f, *in, st.origin(a)):
 			args[i] = p.holdArg(f, *in, i, kind, st, out, w, at)
-			if !p.consumes(*in, i) {
+			if !p.consumes(f, *in, i) {
 				back = append(back, args[i])
 			}
 		case kind == takesArg && w.sinkShared(*in, i, at), w.heldAcrossWrite(*in, i):
 			t := p.copyArg(f, in, a, &args[i], out)
 			switch {
-			case !p.consumes(*in, i):
+			case !p.consumes(f, *in, i):
 				back = append(back, t)
 			case !w.liveness().after(a, at.Block, at.Inst) && !slices.Contains(back, a):
 				back = append(back, a)

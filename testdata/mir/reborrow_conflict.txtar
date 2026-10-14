@@ -21,6 +21,7 @@ fn lib.inner(%out: &mut Array[u8], %v: usize) -> Unit {
     %t8 = const 1: u8
     %t9 = call push(%t7, %t8)
     %t10 = celltake(%t7)
+    drop(%t7)
     drop(%t10)
     %t4 = copy(%t9)
     jump b3

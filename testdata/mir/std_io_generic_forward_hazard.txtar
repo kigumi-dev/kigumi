@@ -69,6 +69,7 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     drop(%t12)
     %t18 = call push(%t10, %t13)
     %t19 = celltake(%t10)
+    drop(%t10)
     setfield 0(%t6, %t19)
     drop(%t18)
     %t20 = const 1: usize

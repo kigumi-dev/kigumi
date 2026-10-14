@@ -1,0 +1,25 @@
+-- src --
+type Handle = resource {
+    pub id Int
+    pub label String
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id} ${self.label}"
+}
+
+fn make(id: Int) -> Handle {
+    Handle { id: id, label: "h${id}" }
+}
+
+// An explicit call of the destructor ends the value: its record and fields are released with it, once.
+let a = make(1)
+a.drop()
+make(2).drop()
+let b = make(3)
+print "end"
+-- stdout --
+drop 1 h1
+drop 2 h2
+end
+drop 3 h3

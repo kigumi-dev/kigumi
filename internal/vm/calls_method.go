@@ -4,8 +4,8 @@ import (
 	"kigumi/internal/sem"
 )
 
-// Mirrors rt_call_slot: the receiver is lent, the rest handed over.
-func (m *Machine) callMethod(recv *obj, name string, args []*obj, mutRecv bool) *obj {
+// Mirrors rt_call_slot: the receiver is lent unless the method moves it.
+func (m *Machine) callMethod(recv *obj, name string, args []*obj, kind sem.RecvKind) *obj {
 	var box *obj
 	target, t := deref(recv), sem.TypeID(0)
 	if target.k == kBox {
@@ -24,22 +24,27 @@ func (m *Machine) callMethod(recv *obj, name string, args []*obj, mutRecv bool) 
 	fn := m.r.Overloads[set].Members[0]
 	self, cell := target, (*obj)(nil)
 	// mut self writes through a cell even though the value sits behind the existential.
-	if mutRecv {
+	if kind == sem.RecvMut {
 		cell = mkCell(retain(target))
 		self = cell
 	}
-	r := m.dispatch(fn, append([]*obj{self}, args...), args)
+	r := m.dispatch(fn, append([]*obj{self}, args...))
+	if kind == sem.RecvMove && box != nil {
+		box.inner = nil
+		m.release(box)
+	}
 	if cell != nil {
 		if box != nil {
-			box.inner = cell.inner
+			box.inner, cell.inner = cell.inner, nil
+			m.release(target)
 		}
-		m.release(target)
+		m.release(cell)
 	}
 	return r
 }
 
-// all leads with the receiver; a primitive call releases args, not all.
-func (m *Machine) dispatch(fn sem.EntityID, all, args []*obj) *obj {
+// all leads with the receiver, which stays lent.
+func (m *Machine) dispatch(fn sem.EntityID, all []*obj) *obj {
 	f, lowered := m.p.ByEnt[fn]
 	if e := m.r.Entity(fn); e.Kind == sem.EntFn && e.Flags&sem.EfStd != 0 {
 		key := m.stdKey(fn)
@@ -49,6 +54,7 @@ func (m *Machine) dispatch(fn sem.EntityID, all, args []*obj) *obj {
 		if h, ok := m.hostForEnt(fn, key); ok && m.hostWins(lowered) {
 			r := h(m, fn, all)
 			m.chargeMemory(r)
+			m.releaseArgs(fn, all)
 			return r
 		}
 	}
@@ -57,8 +63,14 @@ func (m *Machine) dispatch(fn sem.EntityID, all, args []*obj) *obj {
 	}
 	r := m.std(m.stdKey(fn), all)
 	m.chargeMemory(r)
-	for _, a := range args {
-		m.release(a)
-	}
+	m.releaseArgs(fn, all)
 	return r
+}
+
+func (m *Machine) releaseArgs(fn sem.EntityID, all []*obj) {
+	for i := 1; i < len(all); i++ {
+		if !m.p.ParamBorrowed(fn, i) {
+			m.release(all[i])
+		}
+	}
 }

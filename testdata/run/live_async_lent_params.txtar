@@ -1,0 +1,25 @@
+-- src --
+import task from std/task
+
+async fn first(b: &Bytes) -> u8 {
+    b[0]
+}
+
+async fn append(xs: &mut Array[u8], n: u8) -> usize {
+    xs.push(n)
+    xs.len()
+}
+
+// A Future keeps a reference to every argument, including the ones its body only borrows, and gives them back when it finishes.
+async fn run() -> usize {
+    let buf = Bytes.fromArray(&Array.of(1, 2, 3))
+    let head = await first(&buf)
+    let mut xs = Array.of(head)
+    let r = append(&mut xs, 9)
+    await r
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(run())}"
+-- stdout --
+2

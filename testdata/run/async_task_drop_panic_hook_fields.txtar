@@ -1,0 +1,43 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Outer = resource {
+    pub inner Res
+    pub id Int
+}
+
+fn Outer.drop(move self) -> Unit {
+    print "outer ${self.id}"
+    panic("outer ${self.id}")
+}
+
+// The destructor of a record panics, and its fields still drop afterwards.
+async fn boom() -> Int {
+    let o = Outer { inner: Res { id: 1 }, id: 5 }
+    let r = Res { id: 2 }
+    9
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 2
+outer 5
+drop 1
+-- stderr --
+panic: outer 5
+-- exit --
+2

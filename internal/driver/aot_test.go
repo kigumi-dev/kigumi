@@ -20,6 +20,10 @@ func TestAotCorpus(t *testing.T) {
 	manifest := loadManifest(t)
 	files, _ := filepath.Glob("../../testdata/run/*.txtar")
 	want, ran := 0, 0
+	var live map[string]int64
+	if countsNativeLive() {
+		live = loadNativeLive(t)
+	}
 	for _, path := range files {
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
@@ -34,15 +38,18 @@ func TestAotCorpus(t *testing.T) {
 		}
 		want++
 		if ok := t.Run(filepath.Base(path), func(t *testing.T) {
-			runAot(t, path, fx)
+			runAot(t, path, fx, live)
 		}); ok {
 			ran++
 		}
 	}
+	if live != nil {
+		finishNativeLive(t, live)
+	}
 	t.Logf("native: expect %d, ran %d", want, ran)
 }
 
-func runAot(t *testing.T, path string, fx *testtool.Fixture) {
+func runAot(t *testing.T, path string, fx *testtool.Fixture, live map[string]int64) {
 	root, wantOut, wantErr, wantExit := loadRunFixture(t, path)
 	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
@@ -56,6 +63,9 @@ func runAot(t *testing.T, path string, fx *testtool.Fixture) {
 	}
 	cmd := exec.Command(exe, "one", "two")
 	cmd.Dir = t.TempDir()
+	if live != nil {
+		cmd.Env = append(os.Environ(), "KIGUMI_LIVE_REPORT=1")
+	}
 	var out, errOut bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errOut
 	code := 0
@@ -66,6 +76,14 @@ func runAot(t *testing.T, path string, fx *testtool.Fixture) {
 			t.Fatal(err)
 		}
 	}
+	stderr := errOut.String()
+	if live != nil {
+		var n int64
+		var counted bool
+		if stderr, n, counted = splitNativeLive(stderr); counted {
+			noteNativeLive(t, filepath.Base(path), n, live)
+		}
+	}
 	if out.String() != wantOut {
 		t.Errorf("stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), wantOut)
 	}
@@ -73,11 +91,11 @@ func runAot(t *testing.T, path string, fx *testtool.Fixture) {
 	if fx != nil {
 		stderrMatch = fx.Stderr
 	}
-	if err := testtool.CheckStderr(stderrMatch, wantErr, errOut.String()); err != nil {
+	if err := testtool.CheckStderr(stderrMatch, wantErr, stderr); err != nil {
 		t.Error(err)
 	}
 	if code != wantExit {
-		t.Errorf("exit %d, want %d\nstderr:\n%s", code, wantExit, errOut.String())
+		t.Errorf("exit %d, want %d\nstderr:\n%s", code, wantExit, stderr)
 	}
 }
 

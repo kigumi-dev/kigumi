@@ -209,9 +209,22 @@ static void arena_close(arena* ar) {
     ar->a.closed = 1;
     if (ar->a.live == 0) arena_drop_chunks(ar);
 }
+#ifdef KIGUMI_RC_CHECK
+static long g_live_objs;
+static long g_live_kinds[K_PTR + 1];
+// Bytes start as strings and are retagged, so they share a bucket.
+#define LIVE_OBJ(kind, d)                                                                       \
+    do {                                                                                        \
+        __atomic_add_fetch(&g_live_objs, (d), __ATOMIC_RELAXED);                                \
+        __atomic_add_fetch(&g_live_kinds[(kind) == K_BYTES ? K_STR : (kind)], (d), __ATOMIC_RELAXED); \
+    } while (0)
+#else
+#define LIVE_OBJ(kind, d) ((void)0)
+#endif
 static val alloc_in(rt_allocator* a, int kind) {
     val v = amalloc(a, sizeof(struct obj));
     if (!v) rt_panic("out of memory");
+    LIVE_OBJ(kind, 1);
     v->kind = kind;
     v->rc = 1;
     v->al = a;
@@ -1543,6 +1556,7 @@ static val alloc_error(void) {
 static val alloc_in_try(rt_allocator* a, int kind) {
     val v = amalloc(a, sizeof(struct obj));
     if (!v) return NULL;
+    LIVE_OBJ(kind, 1);
     v->kind = kind;
     v->rc = 1;
     v->al = a;
@@ -1580,6 +1594,7 @@ static val rt_variant_try(rt_vdesc* d, int64_t n, val* payload) {
     v->u.var.n = n;
     v->u.var.payload = amalloc(v->al, (n ? n : 1) * sizeof(val));
     if (!v->u.var.payload) {
+        LIVE_OBJ(K_VARIANT, -1);
         afree(v->al, v);
         return NULL;
     }
@@ -1615,11 +1630,41 @@ val make_record(const char* tname, int n, val* fields) {
     return rt_record(t, n, fields);
 }
 
-val rt_call_slot(val recv, int slot, int n, val* args, int mutrecv);
+val rt_call_slot(val recv, int slot, int n, val* args, int recvmode);
 val rt_std(const char* key, int n, val* args);
 static val error_message(val e) {
     return rt_call_slot(e, 0, 0, NULL, 0);
 }
+#ifdef KIGUMI_RC_CHECK
+static void put_live(const char* label, size_t ln, long v) {
+    char buf[48];
+    int n = sizeof buf;
+    int neg = v < 0;
+    if (neg) v = -v;
+    buf[--n] = '\n';
+    do {
+        buf[--n] = (char)('0' + v % 10);
+        v /= 10;
+    } while (v);
+    if (neg) buf[--n] = '-';
+    rt_sys_write(2, label, ln);
+    rt_sys_write(2, buf + n, (size_t)(sizeof buf - n));
+}
+// Test-only: KIGUMI_LIVE_REPORT (or =kinds for a per-kind table) prints the objects still live at a clean exit.
+static void report_live_objs(val r) {
+    const char* want = getenv("KIGUMI_LIVE_REPORT");
+    if (!want) return;
+    rt_release(r);
+    put_live("kigumi-live: ", 13, g_live_objs);
+    if (strcmp(want, "kinds") != 0) return;
+    for (int k = 1; k <= K_PTR; k++) {
+        if (g_live_kinds[k]) {
+            put_live("kigumi-live-kind ", 17, k);
+            put_live("kigumi-live-count ", 18, g_live_kinds[k]);
+        }
+    }
+}
+#endif
 int rt_exit_code(val r) {
     r = deref(r);
     if (r && r->kind == K_VARIANT && r->u.var.v == V_Err) {
@@ -1627,6 +1672,9 @@ int rt_exit_code(val r) {
         write_line(2, "error: ", 7, m->u.s.data, m->u.s.len);
         return 1;
     }
+#ifdef KIGUMI_RC_CHECK
+    report_live_objs(r);
+#endif
     return 0;
 }
 // The argument array lives in this frame: an adapter only rt_at's out of it,
@@ -1667,9 +1715,9 @@ val rt_callv(val f, int n, val* args) {
     return invoke(f->u.clo.fn, f->u.clo.env, n, args);
 }
 // rt_call_slot calls requirement slot of the interface a boxed value was
-// boxed as. invoke's rt_at-based unpacking retains the receiver once and
-// invoke's own release balances it, matching a direct call's borrow.
-val rt_call_slot(val recv, int slot, int n, val* args, int mutrecv) {
+// boxed as. invoke retains the receiver once and releases it, like a direct
+// call's borrow. recvmode: 1 `mut self`, 2 `move self` (consumes the box).
+val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
     val target = deref(recv);
     if (target->kind != K_BOX || !target->u.box.vt) rt_panic("dynamic call on a value without a witness table");
     adapter_fn fn = (adapter_fn)target->u.box.vt[slot];
@@ -1679,7 +1727,7 @@ val rt_call_slot(val recv, int slot, int n, val* args, int mutrecv) {
     struct obj cell;
     // A concrete `mut self` body writes self through a cell; the boxed
     // value is behind the existential, so the cell is built over it here.
-    if (mutrecv) {
+    if (recvmode == 1) {
         rt_cell_init(&cell, rt_retain(target->u.box.v));
         all[0] = &cell;
     } else {
@@ -1687,10 +1735,13 @@ val rt_call_slot(val recv, int slot, int n, val* args, int mutrecv) {
     }
     for (int i = 0; i < n; i++) all[i + 1] = args[i];
     val r = invoke(fn, NULL, (int)total, all);
-    if (mutrecv) {
+    if (recvmode == 1) {
         val old = target->u.box.v;
         target->u.box.v = cell.u.cell.v;
         rt_release(old);
+    } else if (recvmode == 2 && recv == target) {
+        target->u.box.v = NULL;
+        rt_release(recv);
     }
     if (all != stackbuf) free(all);
     return r;
@@ -1991,7 +2042,97 @@ static void free_opaque(val v) {
     } else if (!strcmp(kind, "BlockingPool")) free(d);
 #endif
 }
+#ifdef KG_CATCH
+// A slot is cleared first so a retry after a contained panic resumes at the next child.
+static void release_slot(val* p) {
+    val c = *p;
+    *p = NULL;
+    rt_release(c);
+}
+static void free_children(val v) {
+    switch (v->kind) {
+    case K_RECORD: {
+        rt_type* t = v->u.rec.type;
+        for (int64_t i = v->u.rec.n - 1; i >= 0; i--) {
+            if (!((t->borrow_fields >> i) & 1)) release_slot(&v->u.rec.fields[i]);
+        }
+        break;
+    }
+    case K_VARIANT:
+        for (int64_t i = 0; i < v->u.var.n; i++) release_slot(&v->u.var.payload[i]);
+        break;
+    case K_ARRAY:
+        for (int64_t i = v->u.arr.len - 1; i >= 0; i--) release_slot(&v->u.arr.items[i]);
+        break;
+    case K_BOX:
+        release_slot(&v->u.box.v);
+        break;
+    case K_CLOSURE:
+        release_slot(&v->u.clo.env);
+        break;
+    case K_CELL:
+        release_slot(&v->u.cell.v);
+        break;
+    }
+}
+static void run_drop_hook(val v) {
+    val a[1] = {v};
+    invoke((adapter_fn)v->u.rec.type->drop, NULL, 1, a);
+}
+static int has_drop_hook(val v) {
+    return v->kind == K_RECORD && v->u.rec.type->kind == 1 && v->u.rec.type->drop;
+}
+static int child_may_run_drop(val c) {
+    return c && c->rc == 1 && c->kind >= K_RECORD && c->kind != K_PTR;
+}
+static int free_runs_user_code(val v) {
+    if (has_drop_hook(v)) return 1;
+    switch (v->kind) {
+    case K_RECORD:
+        for (int64_t i = 0; i < v->u.rec.n; i++) {
+            if (child_may_run_drop(v->u.rec.fields[i])) return 1;
+        }
+        return 0;
+    case K_VARIANT:
+        for (int64_t i = 0; i < v->u.var.n; i++) {
+            if (child_may_run_drop(v->u.var.payload[i])) return 1;
+        }
+        return 0;
+    case K_ARRAY:
+        for (int64_t i = 0; i < v->u.arr.len; i++) {
+            if (child_may_run_drop(v->u.arr.items[i])) return 1;
+        }
+        return 0;
+    case K_BOX:
+        return child_may_run_drop(v->u.box.v);
+    case K_CLOSURE:
+        return child_may_run_drop(v->u.clo.env);
+    case K_CELL:
+        return child_may_run_drop(v->u.cell.v);
+    }
+    return 0;
+}
+// Returns whether the joined fault is still to be raised once the object is freed.
+static int free_contained(val v) {
+    uint64_t seen = g_fault_count;
+    g_drop_depth++;
+    if (has_drop_hook(v)) {
+        v->rc = -1;
+        contained(run_drop_hook, v);
+        v->rc = 0;
+    }
+    while (!contained(free_children, v)) {
+    }
+    g_drop_depth--;
+    return g_fault_count != seen && !g_drop_depth && !g_faulting;
+}
+#endif
 static void free_obj(val v) {
+    int guarded = 0, raise = 0;
+#ifdef KG_CATCH
+    guarded = g_task_catch && free_runs_user_code(v);
+    if (guarded) raise = free_contained(v);
+#endif
     switch (v->kind) {
     case K_STR:
     case K_BYTES:
@@ -1999,45 +2140,56 @@ static void free_obj(val v) {
         break;
     case K_RECORD: {
         rt_type* t = v->u.rec.type;
-        if (t->kind == 1 && t->drop) {
-            v->rc = -1;
-            val a[1] = {v};
-            invoke((adapter_fn)t->drop, NULL, 1, a);
-            v->rc = 0;
-        }
-        for (int64_t i = v->u.rec.n - 1; i >= 0; i--) {
-            if ((t->borrow_fields >> i) & 1) continue;
-            rt_release(v->u.rec.fields[i]);
+        if (!guarded) {
+            if (t->kind == 1 && t->drop) {
+                v->rc = -1;
+                val a[1] = {v};
+                invoke((adapter_fn)t->drop, NULL, 1, a);
+                v->rc = 0;
+            }
+            for (int64_t i = v->u.rec.n - 1; i >= 0; i--) {
+                if ((t->borrow_fields >> i) & 1) continue;
+                rt_release(v->u.rec.fields[i]);
+            }
         }
         afree(v->al, v->u.rec.fields);
         break;
     }
     case K_VARIANT:
-        for (int64_t i = 0; i < v->u.var.n; i++) rt_release(v->u.var.payload[i]);
+        if (!guarded) {
+            for (int64_t i = 0; i < v->u.var.n; i++) rt_release(v->u.var.payload[i]);
+        }
         afree(v->al, v->u.var.payload);
         break;
     case K_ARRAY:
-        for (int64_t i = v->u.arr.len - 1; i >= 0; i--) rt_release(v->u.arr.items[i]);
+        if (!guarded) {
+            for (int64_t i = v->u.arr.len - 1; i >= 0; i--) rt_release(v->u.arr.items[i]);
+        }
         afree(v->al, v->u.arr.items);
         break;
     case K_BOX:
-        rt_release(v->u.box.v);
+        if (!guarded) rt_release(v->u.box.v);
         break;
     case K_CLOSURE:
-        rt_release(v->u.clo.env);
+        if (!guarded) rt_release(v->u.clo.env);
         break;
     case K_CELL:
-        rt_release(v->u.cell.v);
+        if (!guarded) rt_release(v->u.cell.v);
         break;
     case K_OPAQUE:
         free_opaque(v);
         break;
     }
+    LIVE_OBJ(v->kind, -1);
 #ifdef KIGUMI_RC_CHECK
     v->kind = 0;
-    return;
-#endif
+#else
     afree(v->al, v);
+#endif
+#ifdef KG_CATCH
+    if (raise) task_raise();
+#endif
+    (void)raise;
 }
 static rt_type* map_type(void) {
     static rt_type* t;

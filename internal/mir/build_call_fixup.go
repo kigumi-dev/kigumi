@@ -17,8 +17,8 @@ type argFixup struct {
 	field    int
 	elemType sem.TypeID
 	cell     LocalID
-	dropCell bool
 	node     syntax.NodeID
+	depth    int
 }
 
 // placeArg boxes a scalar `&mut` argument for applyArgFixups to write back; skipped for async calls since their future can outlive this frame.
@@ -42,13 +42,13 @@ func (b *builder) placeArg(a *hir.Expr, sync bool) (LocalID, bool) {
 		idx := b.expr(inner.Args[1])
 		cur := b.emit(Inst{Op: OpIndex, Dst: b.temp(inner.Type), Args: []LocalID{base, idx}, Node: inner.Node})
 		cell := b.boxScalarCell(b.retagTo(cur, inner.Type, scalarT, inner.Node), a.Type, a.Node)
-		b.argFixups = append(b.argFixups, argFixup{index: true, base: base, idx: idx, elemType: scalarT, cell: cell, node: a.Node})
+		b.argFixups = append(b.argFixups, argFixup{index: true, base: base, idx: idx, elemType: scalarT, cell: cell, node: a.Node, depth: len(b.scopes)})
 		return b.coerce(a.Coercion, a.Node, cell), true
 	case hir.Field:
 		base := b.expr(inner.Args[0])
 		cur := b.emit(Inst{Op: OpField, Dst: b.temp(inner.Type), Args: []LocalID{base}, Index: inner.Index, Node: inner.Node})
 		cell := b.boxScalarCell(b.retagTo(cur, inner.Type, scalarT, inner.Node), a.Type, a.Node)
-		b.argFixups = append(b.argFixups, argFixup{index: false, base: base, field: inner.Index, elemType: scalarT, cell: cell, node: a.Node})
+		b.argFixups = append(b.argFixups, argFixup{index: false, base: base, field: inner.Index, elemType: scalarT, cell: cell, node: a.Node, depth: len(b.scopes)})
 		return b.coerce(a.Coercion, a.Node, cell), true
 	}
 	return 0, false
@@ -71,17 +71,28 @@ func (b *builder) boxScalarCell(v LocalID, t sem.TypeID, n syntax.NodeID) LocalI
 	return b.emit(Inst{Op: OpNewCell, Dst: b.temp(t), Args: []LocalID{owned}, Node: n})
 }
 
+func (b *builder) abandonFixups(depth int) {
+	for i := len(b.argFixups) - 1; i >= 0; i-- {
+		fx := b.argFixups[i]
+		if fx.depth <= depth {
+			continue
+		}
+		v := b.emit(Inst{Op: OpCellTake, Dst: b.temp(fx.elemType), Args: []LocalID{fx.cell}, Node: fx.node})
+		b.emit(Inst{Op: OpDrop, Args: []LocalID{fx.cell}, Scoped: true, Node: fx.node})
+		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Scoped: true, Node: fx.node})
+	}
+}
+
 // applyArgFixups must run right after the call that may have mutated each
 // place returns; mark is where that call's own fixups start.
 func (b *builder) applyArgFixups(mark int) {
 	fixups := append([]argFixup(nil), b.argFixups[mark:]...)
 	b.argFixups = b.argFixups[:mark]
 	for _, fx := range fixups {
+		drop := Inst{Op: OpDrop, Args: []LocalID{fx.cell}, Scoped: true, Node: fx.node}
 		if fx.recv != nil {
 			v := b.emit(Inst{Op: OpCellTake, Dst: b.temp(fx.elemType), Args: []LocalID{fx.cell}, Node: fx.node})
-			if fx.dropCell {
-				b.emit(Inst{Op: OpDrop, Args: []LocalID{fx.cell}, Scoped: true, Node: fx.node})
-			}
+			b.emit(drop)
 			if fx.recv.src == nil {
 				b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Scoped: true, Node: fx.node})
 				continue
@@ -90,6 +101,7 @@ func (b *builder) applyArgFixups(mark int) {
 			continue
 		}
 		v := b.emit(Inst{Op: OpCellGet, Dst: b.temp(fx.elemType), Args: []LocalID{fx.cell}, Node: fx.node})
+		b.emit(drop)
 		if fx.index {
 			b.emit(Inst{Op: OpSetIndex, Args: []LocalID{fx.base, fx.idx, v}, Node: fx.node})
 			continue

@@ -108,6 +108,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.pushScope()
 	var iter, idx, length LocalID
 	var refHead bool
+	var headBound []LocalID
 	if pattern != nil {
 		// A borrowed head (its own type, `&Array[T]`/`&mut Array[T]`, or a
 		// fresh `&`/`&mut` written at the head) is never moved nor owned by
@@ -137,7 +138,8 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 		c := b.emit(Inst{Op: OpBinary, Dst: b.temp(sem.TyBool), Str: "<", Args: []LocalID{idx, length}, Node: n})
 		b.term(Term{Op: TermBranch, Args: []LocalID{c}, Targets: []BlockID{loop, exit}})
 	case head != nil:
-		c := b.expr(head)
+		var c LocalID
+		c, headBound = b.loopHead(head)
 		b.term(Term{Op: TermBranch, Args: []LocalID{c}, Targets: []BlockID{loop, exit}})
 	default:
 		b.jump(loop)
@@ -166,6 +168,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.loops = b.loops[:len(b.loops)-1]
 	b.jump(next)
 	b.cur = next
+	b.dropLoopBound(headBound)
 	if pattern != nil {
 		one := b.emit(Inst{Op: OpConst, Dst: b.temp(sem.TyUsize), Lit: sem.Literal{Kind: sem.LitInt}, Type: sem.TyUsize, Str: "1", Node: n})
 		sum := b.emit(Inst{Op: OpBinary, Dst: b.temp(sem.TyUsize), Str: "+", Args: []LocalID{idx, one}, Node: n})

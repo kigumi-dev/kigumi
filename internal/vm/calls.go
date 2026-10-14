@@ -16,7 +16,7 @@ func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
 			panic(&Unsupported{What: "foreign call to " + e.Name})
 		}
 		if m.r.Entity(e.Parent).Kind == sem.EntInterface {
-			return m.callMethod(args[0], e.Name, args[1:], info.Recv == sem.RecvMut)
+			return m.callMethod(args[0], e.Name, args[1:], info.Recv)
 		}
 	}
 	f, lowered := m.p.ByEnt[ent]
@@ -28,6 +28,9 @@ func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
 		if h, ok := m.hostFor(in.Prov, key); ok && m.hostWins(lowered) {
 			r := h(m, ent, args)
 			m.chargeMemory(r)
+			if lowered {
+				m.releaseOwned(ent, args)
+			}
 			return r
 		}
 	}
@@ -37,6 +40,15 @@ func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
 	r := m.std(m.stdKey(ent), args)
 	m.chargeMemory(r)
 	return r
+}
+
+// releaseOwned drops what the lowered body would have consumed.
+func (m *Machine) releaseOwned(fn sem.EntityID, args []*obj) {
+	for i, a := range args {
+		if !m.p.ParamLent(fn, i) {
+			m.release(a)
+		}
+	}
 }
 
 // stdKey names a bodiless std function the way the runtime's table does.
@@ -74,6 +86,9 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 	} else {
 		c.stdKey, c.ent, c.prov = m.stdKey(in.Ent), in.Ent, in.Prov
 		c.lent = mir.LentMask(m.r, in.Ent)
+		if in.Op == mir.OpClosure {
+			c.lent >>= len(caps)
+		}
 		c.dyn = m.curFn.Locals[in.Dst].Type
 	}
 	return c
@@ -175,7 +190,7 @@ func (m *Machine) releaseLentEnv(f *mir.Func, params []*obj, nargs int, bind boo
 		first, end = nargs, len(params)
 	}
 	for i := first; i < end; i++ {
-		if kind == sem.EntClosure && m.r.Types.Kind(f.Locals[f.Params[i]].Type) == sem.KRef || kind == sem.EntFn && m.p.ParamLent(f.Ent, i) {
+		if kind == sem.EntClosure && m.p.CaptureLent(f, i) || kind == sem.EntFn && m.p.ParamLent(f.Ent, i) {
 			m.release(params[i])
 		}
 	}

@@ -55,6 +55,11 @@ func (p *Program) ParamLent(fn sem.EntityID, i int) bool {
 	return p.inPlace(in, i) || p.lentParam(in, i)
 }
 
+// ParamBorrowed is ParamLent without the rule that a primitive lends every argument.
+func (p *Program) ParamBorrowed(fn sem.EntityID, i int) bool {
+	return p.lentParam(Inst{Op: OpCall, Ent: fn}, i)
+}
+
 // isOwnDrop reports whether fn is the registered `drop` of its own owner
 // type, the one case where a bodiless std primitive still consumes `self`.
 func (p *Program) isOwnDrop(fn sem.EntityID, info *sem.FnInfo) bool {

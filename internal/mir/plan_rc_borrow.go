@@ -53,6 +53,11 @@ func (p *Program) lentParam(in Inst, i int) bool {
 	if in.Op == OpRecord {
 		return p.borrowField(in.Ent, i)
 	}
+	if in.Op == OpCall {
+		if g := p.ByEnt[in.Ent]; g != nil && i < len(g.Params) && g.Locals[g.Params[i]].Borrowed {
+			return true
+		}
+	}
 	t, ok := p.declaredParam(in, i)
 	return ok && p.R.Types.Kind(t) == sem.KRef
 }

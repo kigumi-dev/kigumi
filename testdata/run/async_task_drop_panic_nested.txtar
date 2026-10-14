@@ -1,0 +1,46 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+    if self.id % 2 == 0 {
+        panic("drop ${self.id}")
+    }
+}
+
+type Pair = resource {
+    pub a Res
+    pub b Res
+}
+
+// A panic inside a nested drop is raised once, after the whole aggregate has been released.
+async fn boom() -> Int {
+    let xs = Array.of(Pair { a: Res { id: 1 }, b: Res { id: 2 } }, Pair { a: Res { id: 3 }, b: Res { id: 4 } })
+    let o = Some(Pair { a: Res { id: 5 }, b: Res { id: 6 } })
+    xs.len().toInt() || 0
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 6
+drop 5
+drop 4
+drop 3
+drop 2
+drop 1
+-- stderr --
+panic: drop 6
+panic: drop 4
+panic: drop 2
+-- exit --
+2

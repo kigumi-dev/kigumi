@@ -73,6 +73,7 @@ func (b *builder) markMoved(fromBlock BlockID, fromInst int, consumed map[LocalI
 // unwindTo emits the cleanups of every scope down to depth (exclusive),
 // for early exits.
 func (b *builder) unwindTo(depth int, failing bool) {
+	b.abandonFixups(depth)
 	for i := len(b.scopes) - 1; i >= depth; i-- {
 		b.unwindScope(b.scopes[i], failing)
 	}

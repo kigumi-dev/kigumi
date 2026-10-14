@@ -1,0 +1,39 @@
+-- src --
+type Tick = Up(n: Int) | Down(n: Int) | Flat
+
+type Big = {
+    pub a Int
+    pub b Int
+    pub c Int
+}
+
+type Holder = Full(big: Big, t: Tick) | Empty
+
+fn mk(n: Int) -> Holder {
+    if n == 0 { Empty } else { Full(Big { a: n, b: n + 1, c: n + 2 }, if n > 2 { Down(n) } else { Up(n) }) }
+}
+
+// Several paths define and read the pattern's temporaries, and the match can fail at any test.
+fn shape(h: Option[Holder]) -> String {
+    if h is Some(Full(Big { a: 2, b: _, c: _ }, Up(2))) {
+        "two"
+    } else if h is Some(Full(_, Down(_))) {
+        "down"
+    } else if h is Some(Empty) {
+        "empty"
+    } else {
+        "other"
+    }
+}
+
+print shape(Some(mk(2)))
+print shape(Some(mk(3)))
+print shape(Some(mk(1)))
+print shape(Some(mk(0)))
+print shape(None)
+-- stdout --
+two
+down
+other
+empty
+other

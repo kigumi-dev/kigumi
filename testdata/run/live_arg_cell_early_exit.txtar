@@ -1,0 +1,31 @@
+-- src --
+fn step(n: Int) -> Result[Int, String] {
+    if n > 2 { fail "step ${n}" }
+    Ok(n * 10)
+}
+
+// The receiver cell of `out.push(...)` exists while the argument is evaluated, so an early exit has to give it back.
+fn collect(limit: Int) -> Result[Array[Int], String] {
+    let mut out = Array.empty[Int]()
+    let mut i = 0
+    for i < limit {
+        out.push(step(i)?)
+        i += 1
+    }
+    Ok(out)
+}
+
+fn label(r: Result[Array[Int], String]) -> String {
+    match r {
+        Ok(xs) -> "ok ${xs.len()}"
+        Err(e) -> "err ${e}"
+    }
+}
+
+print label(collect(2))
+print label(collect(5))
+print label(collect(0))
+-- stdout --
+ok 2
+err step 3
+ok 0

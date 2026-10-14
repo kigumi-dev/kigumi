@@ -21,7 +21,7 @@ func (b *builder) recvCell(base *hir.Expr, sync bool) LocalID {
 	}
 	cell := b.lendCell(v, rt, n, sync)
 	if sync {
-		b.argFixups = append(b.argFixups, argFixup{recv: &p, elemType: base.Type, retag: inner.Type, cell: cell, node: n})
+		b.argFixups = append(b.argFixups, argFixup{recv: &p, elemType: base.Type, retag: inner.Type, cell: cell, node: n, depth: len(b.scopes)})
 	}
 	return cell
 }

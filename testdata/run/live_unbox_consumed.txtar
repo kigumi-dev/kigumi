@@ -1,0 +1,27 @@
+-- src --
+type Tick = Up(n: Int) | Down(n: Int) | Flat
+
+type Marked = Tick
+
+fn tickValue(t: Tick) -> Int {
+    match t {
+        Up(n) -> n
+        Down(n) -> 0 - n
+        Flat -> 0
+    }
+}
+
+fn wrap(n: Int) -> Marked { Marked(Up(n)) }
+
+fn bumpTo(t: &mut Tick, n: Int) -> Unit { t = Up(n) }
+
+// An unboxed copy that a call takes over leaves the box it came from to be released.
+fn marked(n: Int) -> Int {
+    let mut m = Marked(Up(n * 2))
+    bumpTo(&mut m.value, n + 1)
+    tickValue(m.value) + tickValue(wrap(n).value)
+}
+
+print "${marked(3)}"
+-- stdout --
+7

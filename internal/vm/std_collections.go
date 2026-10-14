@@ -36,7 +36,10 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		// A scalar element aliases its obj on copy, so the callback
 		// writes through a cell instead; the slot takes it back after.
 		cell := mkCell(a0.fields[a1.i])
-		defer func() { a0.fields[a1.i] = cell.inner }()
+		defer func() {
+			a0.fields[a1.i], cell.inner = cell.inner, nil
+			m.release(cell)
+		}()
 		return m.some(m.callValue(a2, []*obj{cell}))
 	case "array.Array.takeAt":
 		i := a1.i

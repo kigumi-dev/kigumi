@@ -1,7 +1,9 @@
 package mir
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 
 	"kigumi/internal/sem"
 )
@@ -41,6 +43,24 @@ func (p *Program) planRCFunc(f *Func, w *shareFacts) {
 	st := &rcState{alias: map[LocalID]LocalID{}, borrowed: map[LocalID]bool{}}
 	for bid := range f.Blocks {
 		p.planRCBlock(f, bid, plan, st, w)
+	}
+	splitEdges(f, plan)
+}
+
+func splitEdges(f *Func, plan *Plan) {
+	edges := make([]Edge, 0, len(plan.Splits))
+	for e := range plan.Splits {
+		edges = append(edges, e)
+	}
+	slices.SortFunc(edges, func(a, b Edge) int { return cmp.Or(cmp.Compare(a.From, b.From), cmp.Compare(a.Slot, b.Slot)) })
+	for _, e := range edges {
+		var insts []Inst
+		for _, t := range plan.Splits[e] {
+			insts = append(insts, Inst{Op: OpRelease, Args: []LocalID{t}})
+		}
+		to := f.Blocks[e.From].Term.Targets[e.Slot]
+		f.Blocks = append(f.Blocks, Block{Insts: insts, Term: Term{Op: TermJump, Targets: []BlockID{to}}})
+		f.Blocks[e.From].Term.Targets[e.Slot] = BlockID(len(f.Blocks) - 1)
 	}
 }
 

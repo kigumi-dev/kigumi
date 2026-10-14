@@ -22,6 +22,7 @@ fn main.n1() -> Array[String]! {
     %t5 = const "b": String
     %t6 = call push(%t4, %t5)
     %t7 = celltake(%t4)
+    drop(%t4)
     drop(%names)
     %names = copy(%t7)
     drop(%t6)

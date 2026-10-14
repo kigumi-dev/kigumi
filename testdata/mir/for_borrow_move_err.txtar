@@ -82,6 +82,7 @@ fn main.mutateInsideBorrowLoop() -> Unit {
     %t15 = const 4: Int
     %t16 = call push(%t14, %t15)
     %t17 = celltake(%t14)
+    drop(%t14)
     drop(%items)
     %items = copy(%t17)
     drop(%t16)

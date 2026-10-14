@@ -19,6 +19,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	e.direct = e.classifyDirect(f)
 	e.scalar = e.classifyScalars(f)
 	e.boxTmp = boxTemps(f)
+	e.crossSrc = crossSources(f)
 	e.nameAlias = nameAliases(f)
 	e.scalarAliasBoxes(f)
 	e.constOwned = map[mir.LocalID]bool{}

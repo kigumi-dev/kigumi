@@ -40,6 +40,34 @@ func boxTemps(f *mir.Func) map[mir.LocalID]bool {
 	return out
 }
 
+func crossSources(f *mir.Func) map[mir.LocalID]mir.LocalID {
+	out := map[mir.LocalID]mir.LocalID{}
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if in.Op == mir.OpUnboxDirect && f.Locals[in.Dst].Cross && f.Locals[in.Args[0]].Ent == 0 && !f.Locals[in.Args[0]].Cross {
+				out[in.Dst] = in.Args[0]
+			}
+		}
+	}
+	return out
+}
+
+func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+	e.instBody(sb, f, in)
+	e.releaseCrossSources(sb, f, in)
+}
+
+func (e *emitter) releaseCrossSources(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+	if in.Op == mir.OpShare {
+		return
+	}
+	for i, a := range in.Args {
+		if src, ok := e.crossSrc[a]; ok && e.p.ArgConsumed(f, in, i) {
+			e.irb(sb).Call(rtRelease, vptr(e.load(sb, src)))
+		}
+	}
+}
+
 // A box made for a direct local at a consuming position is not released again.
 func (e *emitter) aggConsumes(in mir.Inst, i int) bool {
 	switch in.Op {

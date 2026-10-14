@@ -7,7 +7,7 @@ import (
 	"kigumi/internal/sem"
 )
 
-func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	if e.tryScalarInst(sb, f, in) {
 		return
 	}
@@ -155,7 +155,7 @@ func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		} else if e.loweredStd(in.Ent) {
 			res = e.closureCtor(sb, e.stdBound(in.Ent, len(args), f.Locals[in.Dst].Type), in.Async, args, arr)
 		} else {
-			res = e.irb(sb).Call(rtStdBind, vptr(e.cstr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)), vi32(len(args)), vptr(arr)).Text
+			res = e.irb(sb).Call(rtStdBind, vptr(e.cstr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)>>len(args)), vi32(len(args)), vptr(arr)).Text
 		}
 	case mir.OpBorrow:
 		res = args[0]

@@ -37,6 +37,7 @@ fn lib.reentrant.closure2(%y: &mut Item) -> Unit {
     %t4 = const 100: Int
     %t5 = call update(%t3, %t4)
     %t6 = celltake(%t3)
+    drop(%t3)
     drop(%t6)
     return %t5
 }
@@ -51,6 +52,7 @@ fn lib.reentrant.closure1(%cell: Shared[Item], %x: &mut Item) -> Unit {
     %t7 = const 1: Int
     %t8 = call update(%t6, %t7)
     %t9 = celltake(%t6)
+    drop(%t6)
     drop(%t9)
     drop(%cell)
     return %t8

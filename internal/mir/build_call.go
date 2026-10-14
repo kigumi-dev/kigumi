@@ -22,6 +22,9 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		return b.emit(Inst{Op: OpVariant, Dst: b.temp(t), Ent: e.Ent, Type: t, Args: args, Node: n})
 	case hir.MethodCall:
 		recv, rest := b.methodArgs(e)
+		if v, ok := b.explicitDrop(e, recv, rest); ok {
+			return v
+		}
 		args := append([]LocalID{recv}, rest...)
 		if e.Async {
 			args = append(args, b.ctxArgs(e)...)
@@ -135,9 +138,6 @@ func (b *builder) argValue(a *hir.Expr, idx int, ent sem.EntityID, reborrow, syn
 		return v
 	}
 	if v, ok := b.mutRefArg(a, idx, ent, sync); ok {
-		if ent == 0 {
-			b.argFixups[len(b.argFixups)-1].dropCell = true
-		}
 		return v
 	}
 	if reborrow && a.Kind == hir.Local && b.r.Types.Kind(a.Type) == sem.KRef && !b.r.IsCopy(a.Type) && b.declaredRef(ent, idx) {

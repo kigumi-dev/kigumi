@@ -1,0 +1,12 @@
+-- src --
+import ffi from std/ffi
+
+// A primitive used as a value is called through an adapter that gives back the references it took for its arguments.
+let isNull = ffi.isNull[u8]
+let makeNull = ffi.null[u8]
+let q = makeNull()
+print "null: ${isNull(q)}"
+print "again: ${isNull(makeNull())}"
+-- stdout --
+null: true
+again: true

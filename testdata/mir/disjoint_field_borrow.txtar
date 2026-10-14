@@ -77,6 +77,7 @@ fn lib.Pair.disjointOk(%self: Pair) -> Unit {
     %t12 = const 1: u8
     %t13 = call push(%t11, %t12)
     %t14 = celltake(%t11)
+    drop(%t11)
     drop(%t14)
     drop(%t13)
     %t15 = borrow 1(%s)
@@ -85,6 +86,7 @@ fn lib.Pair.disjointOk(%self: Pair) -> Unit {
     %t18 = const 2: u8
     %t19 = call push(%t17, %t18)
     %t20 = celltake(%t17)
+    drop(%t17)
     drop(%t20)
     return %t19
 }
@@ -104,6 +106,7 @@ fn lib.Pair.sameFieldConflict(%self: Pair) -> Unit {
     %t12 = const 1: u8
     %t13 = call push(%t11, %t12)
     %t14 = celltake(%t11)
+    drop(%t11)
     drop(%t14)
     drop(%t13)
     %t15 = borrow 1(%s)
@@ -112,6 +115,7 @@ fn lib.Pair.sameFieldConflict(%self: Pair) -> Unit {
     %t18 = const 2: u8
     %t19 = call push(%t17, %t18)
     %t20 = celltake(%t17)
+    drop(%t17)
     drop(%t20)
     return %t19
 }
@@ -133,6 +137,7 @@ fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Unit {
     %t13 = const 1: u8
     %t14 = call push(%t12, %t13)
     %t15 = celltake(%t12)
+    drop(%t12)
     drop(%t15)
     return %t14
 }
@@ -153,6 +158,7 @@ fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
     %t13 = const 1: u8
     %t14 = call push(%t12, %t13)
     %t15 = celltake(%t12)
+    drop(%t12)
     drop(%t15)
     drop(%t14)
     %t16 = field 0(%s)
@@ -162,6 +168,7 @@ fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
     %t20 = const 2: u8
     %t21 = call push(%t19, %t20)
     %t22 = celltake(%t19)
+    drop(%t19)
     setfield 0(%s, %t22)
     return %t21
 }
@@ -185,6 +192,7 @@ fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Unit {
     %t15 = const 1: u8
     %t16 = call push(%t14, %t15)
     %t17 = celltake(%t14)
+    drop(%t14)
     drop(%t17)
     return %t16
 }
@@ -206,6 +214,7 @@ fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Unit {
     %t14 = const 1: u8
     %t15 = call push(%t13, %t14)
     %t16 = celltake(%t13)
+    drop(%t13)
     drop(%t16)
     drop(%t15)
     %t17 = borrow 1(%s)
@@ -214,6 +223,7 @@ fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Unit {
     %t20 = const 2: u8
     %t21 = call push(%t19, %t20)
     %t22 = celltake(%t19)
+    drop(%t19)
     drop(%t22)
     return %t21
 }
@@ -233,6 +243,7 @@ fn lib.Bag.indexStaysConservative(%self: Bag) -> Unit {
     %t12 = const 1: u8
     %t13 = call push(%t11, %t12)
     %t14 = celltake(%t11)
+    drop(%t11)
     setfield 1(%t7, %t14)
     drop(%t13)
     %t15 = borrow 1(%r)
@@ -241,6 +252,7 @@ fn lib.Bag.indexStaysConservative(%self: Bag) -> Unit {
     %t18 = const 2: u8
     %t19 = call push(%t17, %t18)
     %t20 = celltake(%t17)
+    drop(%t17)
     drop(%t20)
     return %t19
 }

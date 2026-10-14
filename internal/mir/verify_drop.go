@@ -1,6 +1,10 @@
 package mir
 
-import "kigumi/internal/sem"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 func (p *Program) verifyDropOwned(f *Func) *Error {
 	lent := p.unownedRefs(f)
@@ -14,6 +18,9 @@ func (p *Program) verifyDropOwned(f *Func) *Error {
 				return fail("droplent", BlockID(bid), i, "wraps %%%s, a reference this frame does not own, in a cell that releases it", f.Locals[in.Args[0]].Name)
 			}
 			if in.Op != OpDrop && in.Op != OpRelease {
+				continue
+			}
+			if in.Op == OpRelease && f.Async && slices.Contains(f.Params, in.Args[0]) {
 				continue
 			}
 			if len(in.Args) == 1 && (lent[in.Args[0]] || f.Locals[in.Args[0]].Borrowed || (origin != nil && origin[in.Args[0]])) {

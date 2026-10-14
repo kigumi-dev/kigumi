@@ -81,7 +81,7 @@ func (b *builder) mutRefArg(a *hir.Expr, idx int, ent sem.EntityID, sync bool) (
 		v = b.expr(base)
 	}
 	cell := b.lendCell(v, borrow.Type, n, sync)
-	b.argFixups = append(b.argFixups, argFixup{recv: &p, elemType: base.Type, retag: inner.Type, cell: cell, node: n})
+	b.argFixups = append(b.argFixups, argFixup{recv: &p, elemType: base.Type, retag: inner.Type, cell: cell, node: n, depth: len(b.scopes)})
 	return b.coerce(a.Coercion, n, cell), true
 }
 
@@ -95,7 +95,7 @@ func (b *builder) lentRefArg(a *hir.Expr) (LocalID, bool) {
 		return 0, false
 	}
 	cell := b.cellOver(b.expr(a), a.Type, a.Node, true)
-	b.argFixups = append(b.argFixups, argFixup{recv: &place{}, elemType: elem, retag: elem, cell: cell, node: a.Node})
+	b.argFixups = append(b.argFixups, argFixup{recv: &place{}, elemType: elem, retag: elem, cell: cell, node: a.Node, depth: len(b.scopes)})
 	return cell, true
 }
 

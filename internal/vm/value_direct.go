@@ -62,7 +62,7 @@ func (m *Machine) settle(fr *frame, in *mir.Inst) {
 		switch {
 		case in.Op == mir.OpShare:
 			m.release(c.copy)
-		case m.p.ArgConsumed(*in, i):
+		case m.p.ArgConsumed(fr.f, *in, i):
 			if in.Op == mir.OpMove && named {
 				fr.locals[c.src] = nil
 			}

@@ -1,0 +1,30 @@
+-- src --
+interface Sink {
+    fn finish(move self) -> Int
+}
+
+type Buf = resource {
+    pub id Int
+    pub data Array[Int]
+}
+
+fn Buf.finish(move self) -> Int {
+    self.data.len().toInt() || 0
+}
+
+fn Buf.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+// The call moves the whole existential; its box goes with the call and the value is dropped once.
+fn close(s: Sink) -> Int {
+    s.finish()
+}
+
+let b = Buf { id: 1, data: Array.of(1, 2, 3) }
+print "closed ${close(b)}"
+print "end"
+-- stdout --
+drop 1
+closed 3
+end

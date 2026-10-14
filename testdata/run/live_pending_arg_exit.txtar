@@ -1,0 +1,37 @@
+-- src --
+fn a(n: Int) -> String { "a${n}" }
+
+fn b(n: Int) -> Result[String, String] {
+    if n % 3 == 0 { fail "b${n}" } else { Ok("b${n}") }
+}
+
+fn join3(x: String, y: String, z: String) -> String { "${x}${y}${z}" }
+
+fn run(n: Int) -> Result[String, String] {
+    let r = join3(a(n), b(n)?, a(n + 1))
+    Ok(r)
+}
+
+fn nested(n: Int) -> Result[String, String] {
+    Ok(join3(a(n), join3(a(n + 1), b(n)?, a(n + 2)), a(n + 3)))
+}
+
+for i in 0..4 {
+    match run(i) {
+        Ok(s) -> print s
+        Err(e) -> print "err ${e}"
+    }
+    match nested(i) {
+        Ok(s) -> print s
+        Err(e) -> print "err ${e}"
+    }
+}
+-- stdout --
+err b0
+err b0
+a1b1a2
+a1a2b1a3a4
+a2b2a3
+a2a3b2a4a5
+err b3
+err b3
