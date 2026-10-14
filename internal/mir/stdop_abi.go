@@ -15,6 +15,8 @@ const (
 	DPArrayLen
 	DPBytesGet
 	DPArrayGet
+	DPArrayFirst
+	DPArrayLast
 	DPCharFromInt
 	DPParseFloat
 	DPConvert
@@ -38,6 +40,8 @@ var directResultOps = map[string]DirectPrim{
 	"ARRAY_LEN":        DPArrayLen,
 	"BYTES_GET":        DPBytesGet,
 	"ARRAY_GET":        DPArrayGet,
+	"ARRAY_FIRST":      DPArrayFirst,
+	"ARRAY_LAST":       DPArrayLast,
 	"CHAR_FROM_INT":    DPCharFromInt,
 	"TEXT_PARSE_FLOAT": DPParseFloat,
 	"WRAPPING_ADD":     DPWrapAdd,

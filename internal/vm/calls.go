@@ -66,7 +66,7 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 	}
 	c.env = mkArray(caps)
 	if e := m.r.Entity(in.Ent); in.Op == mir.OpClosure && e.Kind == sem.EntFn && m.r.Entity(e.Parent).Kind == sem.EntInterface {
-		c.req = &reqCall{name: e.Name, witness: in.Str == "witness"}
+		c.req = &reqCall{name: e.Name, witness: in.Str == "witness", move: m.r.Fn(in.Ent).Recv == sem.RecvMove}
 		return c
 	}
 	f, lowered := m.p.ByEnt[in.Ent]

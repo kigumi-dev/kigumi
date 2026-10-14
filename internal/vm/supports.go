@@ -106,7 +106,7 @@ func (m *Machine) callees(in *mir.Inst) []*mir.Func {
 		// A host accelerator replaces the body here too, the same as the
 		// direct-call branch above: an accelerated implementer's body
 		// (e.g. its extern(C) calls) never actually runs.
-		if _, hosted := m.hostForEnt(ent, m.stdKey(ent)); hosted {
+		if _, hosted := m.hostForEnt(ent, m.stdKey(ent)); hosted || !m.mayWitness(in.Ent, ent) {
 			continue
 		}
 		fs = append(fs, f)

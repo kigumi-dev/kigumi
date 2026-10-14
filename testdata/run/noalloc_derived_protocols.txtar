@@ -1,0 +1,69 @@
+-- src --
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Pair = {
+    pub left Named
+    pub k Int
+    pub ok Bool
+}
+
+type Tag = Text(s: String) | Num(n: Int, flag: Bool) | Empty
+
+type Wrap = {
+    pub tag Tag
+    pub at Named
+}
+
+noalloc fn sameNamed(a: &Named, b: &Named) -> Bool {
+    a == b
+}
+
+noalloc fn samePair(a: &Pair, b: &Pair) -> Bool {
+    a == b
+}
+
+noalloc fn sameTag(a: &Tag, b: &Tag) -> Bool {
+    a == b
+}
+
+noalloc fn sameWrap(a: &Wrap, b: &Wrap) -> Bool {
+    a == b
+}
+
+noalloc fn differ(a: &Named, b: &Named) -> Bool {
+    a != b
+}
+
+fn hashNamed(a: &Named) -> u64 {
+    hash(a)
+}
+
+fn hashTag(a: &Tag) -> u64 {
+    hash(a)
+}
+
+fn main() -> Unit! {
+    let a = Named { name: "ab", n: 1 }
+    let b = Named { name: "ab", n: 1 }
+    let c = Named { name: "ab", n: 2 }
+    print "named ${sameNamed(&a, &b)} ${sameNamed(&a, &c)} ${differ(&a, &c)}"
+    let p = Pair { left: a, k: 3, ok: true }
+    let q = Pair { left: b, k: 3, ok: true }
+    let r = Pair { left: c, k: 3, ok: true }
+    print "pair ${samePair(&p, &q)} ${samePair(&p, &r)}"
+    print "tag ${sameTag(&Text("x"), &Text("x"))} ${sameTag(&Text("x"), &Text("y"))} ${sameTag(&Num(1, true), &Num(1, true))} ${sameTag(&Num(1, true), &Empty)}"
+    let w1 = Wrap { tag: Num(2, false), at: a }
+    let w2 = Wrap { tag: Num(2, false), at: b }
+    let w3 = Wrap { tag: Text("t"), at: b }
+    print "wrap ${sameWrap(&w1, &w2)} ${sameWrap(&w1, &w3)}"
+    print "hash ${hashNamed(&a) == hashNamed(&b)} ${hashNamed(&a) == hashNamed(&c)} ${hashTag(&Text("x")) == hashTag(&Text("x"))} ${hashTag(&Text("x")) == hashTag(&Empty)}"
+}
+-- stdout --
+named true false true
+pair true false
+tag true false true false
+wrap true false
+hash true false true false

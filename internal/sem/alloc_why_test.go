@@ -7,7 +7,7 @@ func TestAllocReasonsAreDistinct(t *testing.T) {
 	for name, why := range map[string]uint8{
 		"build": whyBuild, "sharedValue": whySharedValue, "directCross": whyDirectCross,
 		"inlined": whyInlined, "genericCross": whyGenericCross, "copy": whyCopy,
-		"copyHeld": whyCopyHeld, "copyElem": whyCopyElem, "copyBox": whyCopyBox, "copyInst": whyCopyInst,
+		"copyHeld": whyCopyHeld, "copyElem": whyCopyElem, "copyBox": whyCopyBox, "copyInst": whyCopyInst, "bind": whyBind,
 	} {
 		if other, dup := seen[why]; dup {
 			t.Errorf("%s and %s share reason %d", name, other, why)

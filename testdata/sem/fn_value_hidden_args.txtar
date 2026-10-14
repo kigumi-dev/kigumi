@@ -17,6 +17,8 @@ pub type Box[T] = {
 
 pub fn Box[T].eqv[U: Eq](self, o: U, p: U) -> Bool { o == p }
 
+pub async fn sameLater[T: Eq](a: T, b: T) -> Bool { a == b }
+
 pub fn use() -> Unit {
     let a = say[Int] //~ ERROR `say` requires context key `token`
     let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
@@ -27,47 +29,55 @@ pub fn use() -> Unit {
     let f = arr.len //~ ERROR `len` has const generic parameters
     let box = Box { v: 1 }
     let g: fn(Int, Int) -> Bool = box.eqv //~ ERROR `eqv` has interface-bounded type parameters
+    let h = sameLater[Int] //~ ERROR `sameLater` has interface-bounded type parameters
 }
 -- expect --
 error[E1217]: `say` requires context key `token` and can't be used as a plain function value
-  --> lib/fv.kg:20:13
+  --> lib/fv.kg:22:13
    |
-20 |     let a = say[Int] //~ ERROR `say` requires context key `token`
+22 |     let a = say[Int] //~ ERROR `say` requires context key `token`
    |             ^^^^^^^
    = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
 
 error[E1731]: `zeroLen` has const generic parameters, which a function value cannot carry
-  --> lib/fv.kg:21:13
+  --> lib/fv.kg:23:13
    |
-21 |     let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
+23 |     let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
    |             ^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 
 error[E1731]: `lenOf` has const generic parameters, which a function value cannot carry
-  --> lib/fv.kg:22:13
+  --> lib/fv.kg:24:13
    |
-22 |     let c = lenOf[Int, 3] //~ ERROR `lenOf` has const generic parameters
+24 |     let c = lenOf[Int, 3] //~ ERROR `lenOf` has const generic parameters
    |             ^^^^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 
 error[E1731]: `filled` has const generic parameters, which a function value cannot carry
-  --> lib/fv.kg:23:13
+  --> lib/fv.kg:25:13
    |
-23 |     let d = FixedArray.filled[Int, 3] //~ ERROR `filled` has const generic parameters
+25 |     let d = FixedArray.filled[Int, 3] //~ ERROR `filled` has const generic parameters
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 
 error[E1731]: `len` has const generic parameters, which a function value cannot carry
-  --> lib/fv.kg:26:13
+  --> lib/fv.kg:28:13
    |
-26 |     let f = arr.len //~ ERROR `len` has const generic parameters
+28 |     let f = arr.len //~ ERROR `len` has const generic parameters
    |             ^^^^^^^
    = help: call it directly or wrap the call in a closure
 
 error[E1730]: `eqv` has interface-bounded type parameters, which a function value cannot carry
-  --> lib/fv.kg:28:35
+  --> lib/fv.kg:30:35
    |
-28 |     let g: fn(Int, Int) -> Bool = box.eqv //~ ERROR `eqv` has interface-bounded type parameters
+30 |     let g: fn(Int, Int) -> Bool = box.eqv //~ ERROR `eqv` has interface-bounded type parameters
    |                                   ^^^^^^^
+   = help: call it directly or wrap the call in a closure
+
+error[E1730]: `sameLater` has interface-bounded type parameters, which a function value cannot carry
+  --> lib/fv.kg:31:13
+   |
+31 |     let h = sameLater[Int] //~ ERROR `sameLater` has interface-bounded type parameters
+   |             ^^^^^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 

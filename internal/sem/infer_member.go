@@ -98,7 +98,7 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 			c.errAt(n, cRequirementMethodValue, name)
 			return TyPoison
 		}
-		if call.Recv == RecvMove {
+		if call.Recv == RecvMove && !c.r.isCopy(recv) {
 			c.info.Calls[n] = call
 			c.errAt(n, cRequirementMoveValue, name, recv)
 			return TyPoison

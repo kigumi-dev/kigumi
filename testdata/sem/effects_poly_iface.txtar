@@ -42,7 +42,7 @@ pure fn callGenericImpure(x: Int) -> Int {
 // Erasing the generic function itself to a fixed-effect fn value has no call-site
 // type argument left to resolve the witness against.
 fn erasedGenericWitness() -> Int {
-    let g: pure fn(PureV, Int) -> Int = callViewGeneric //~ ERROR `callViewGeneric` is not `pure` (calls `T.view`) //~ ERROR `callViewGeneric` has interface-bounded type parameters
+    let g: pure fn(PureV, Int) -> Int = callViewGeneric //~ ERROR `callViewGeneric` is not `pure` (calls `T.view`)
     g(PureV { tag: 1 }, 1)
 }
 
@@ -88,17 +88,10 @@ error[E901]: `callViewGeneric` may be impure
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: declare it `pure fn(...)`
 
-error[E1730]: `callViewGeneric` has interface-bounded type parameters, which a function value cannot carry
-  --> lib/poly_iface.kg:44:41
-   |
-44 |     let g: pure fn(PureV, Int) -> Int = callViewGeneric //~ ERROR `callViewGeneric` is not `pure` (calls `T.view`) //~ ERROR `callViewGeneric` has interface-bounded type parameters
-   |                                         ^^^^^^^^^^^^^^^
-   = help: call it directly or wrap the call in a closure
-
 error[E423]: `callViewGeneric` is not `pure` (calls `T.view`)
   --> lib/poly_iface.kg:44:41
    |
-44 |     let g: pure fn(PureV, Int) -> Int = callViewGeneric //~ ERROR `callViewGeneric` is not `pure` (calls `T.view`) //~ ERROR `callViewGeneric` has interface-bounded type parameters
+44 |     let g: pure fn(PureV, Int) -> Int = callViewGeneric //~ ERROR `callViewGeneric` is not `pure` (calls `T.view`)
    |                                         ^^^^^^^^^^^^^^^
 
 error[E257]: `pure?` is only allowed on an interface requirement

@@ -71,9 +71,7 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 		return l.call(n)
 	case syntax.BracketExpr:
 		if ent := l.info.Uses[n]; ent != 0 && l.r.Entity(ent).Kind == sem.EntFn {
-			out := l.node(n, FnItem)
-			out.Ent = ent
-			return out
+			return l.fnItem(n, ent)
 		}
 		idx := l.t.Children(syntax.NodeID(node.Rhs))[0]
 		if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallIndexWitness {

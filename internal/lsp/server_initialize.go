@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
+	"kigumi/internal/driver"
 	"kigumi/internal/version"
 	"path/filepath"
 
@@ -14,10 +15,23 @@ func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (
 	defer s.mu.Unlock()
 	s.roots = workspaceRoots(p)
 	var opts struct {
-		StdRoot string `json:"stdRoot"`
+		StdRoot   string `json:"stdRoot"`
+		Allocator string `json:"allocator"`
+		Profile   string `json:"profile"`
 	}
-	if json.Unmarshal([]byte(p.InitializationOptions), &opts) == nil && opts.StdRoot != "" {
-		s.stdRoot = opts.StdRoot
+	if json.Unmarshal([]byte(p.InitializationOptions), &opts) == nil {
+		if opts.StdRoot != "" {
+			s.stdRoot = opts.StdRoot
+		}
+		if s.target.OS == "" {
+			s.target = driver.HostTarget()
+		}
+		if opts.Allocator == "none" {
+			s.target.Allocator = "none"
+		}
+		if opts.Profile == "recoverable-only" {
+			s.target.Profile = "recoverable-only"
+		}
 	}
 	if s.stdRoot == "" {
 		s.stdRoot = findStd(s.primaryRoot())

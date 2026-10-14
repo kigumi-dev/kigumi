@@ -47,6 +47,12 @@ func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 		present = b.Call(rtDBytesGet, args[0], args[1], vptr(out))
 	case mir.DPArrayGet:
 		present = b.Call(rtDArrayGet, args[0], args[1], vptr(out))
+	case mir.DPArrayFirst:
+		present = b.Call(rtDArrayGet, args[0], vi64(0), vptr(out))
+	case mir.DPArrayLast:
+		n, last := b.Call(rtDArrayLen, args[0]).Text, e.newTmp()
+		fmt.Fprintf(sb, "  %s = sub i64 %s, 1\n", last, n)
+		present = b.Call(rtDArrayGet, args[0], vi64text(last), vptr(out))
 	case mir.DPCharFromInt:
 		present = b.Call(rtDCharFromInt, args[0], vptr(out))
 	case mir.DPParseFloat:

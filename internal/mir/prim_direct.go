@@ -63,6 +63,8 @@ func (p *Program) primTypesFit(f *Func, in Inst, kind DirectPrim) bool {
 		return len(in.Args) == 1 && shape == shapeScalar
 	case DPBytesGet, DPArrayGet:
 		return len(in.Args) == 2 && p.R.RegScalar(arg(1)) && shape == shapeOption
+	case DPArrayFirst, DPArrayLast:
+		return len(in.Args) == 1 && shape == shapeOption
 	case DPCharFromInt:
 		return len(in.Args) == 1 && p.R.RegScalar(arg(0)) && shape == shapeOption && p.optionElem(f.Locals[in.Dst].Type) == sem.TyChar
 	case DPParseFloat:

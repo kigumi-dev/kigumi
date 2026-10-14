@@ -45,7 +45,7 @@ func (s *Server) loadFresh(ctx context.Context, root string, u uri.URI, path str
 	for d, text := range s.docs {
 		overlay[uriToPath(d)] = []byte(text)
 	}
-	mod, err := driver.LoadModule(root, driver.LoadOptions{Test: true, StdRoot: s.stdRoot, Overlay: overlay})
+	mod, err := driver.LoadModule(root, driver.LoadOptions{Test: true, StdRoot: s.stdRoot, Overlay: overlay, Target: s.target})
 	if err == nil && mod.Entry == "" {
 		prefer, _ := filepath.Rel(root, path)
 		mod.Entry = pickEntry(mod, filepath.ToSlash(prefer))

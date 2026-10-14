@@ -1,0 +1,54 @@
+-- src --
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+noalloc fn firstInt(a: &Array[Int]) -> Int {
+    a.first() || -1
+}
+
+noalloc fn lastInt(a: &Array[Int]) -> Int {
+    a.last() || -1
+}
+
+noalloc fn endsU8(a: &Array[u8]) -> u8 {
+    let f = a.first() || 0
+    let l = a.last() || 0
+    f + l
+}
+
+noalloc fn hasFirst(a: &Array[Int]) -> Bool {
+    a.first() is Some(_)
+}
+
+fn firstOf[T: Copy](a: &Array[T]) -> T? {
+    a.first()
+}
+
+fn lastOf[T: Copy](a: &Array[T]) -> T? {
+    a.last()
+}
+
+fn main() -> Unit! {
+    let some = Array.of(4, 5, 6)
+    let none: Array[Int] = Array.empty()
+    print "int ${firstInt(&some)} ${lastInt(&some)} ${firstInt(&none)} ${lastInt(&none)} ${hasFirst(&some)} ${hasFirst(&none)}"
+    let bytes: Array[u8] = Array.of(1, 2, 9)
+    let one: Array[u8] = Array.of(7)
+    let zero: Array[u8] = Array.empty()
+    print "u8 ${endsU8(&bytes)} ${endsU8(&one)} ${endsU8(&zero)}"
+    let words = Array.of("x", "y", "z")
+    print "str ${firstOf(&words) || "none"} ${lastOf(&words) || "none"} ${firstOf(&Array.empty[String]()) || "none"}"
+    let named = Array.of(Named { name: "a", n: 1 }, Named { name: "b", n: 2 })
+    let mut head = firstOf(&named).unwrap()
+    head.n = 10
+    print "named ${head.n} ${named.first().unwrap().n} ${lastOf(&named).unwrap().name}"
+    print "generic ${firstOf(&some) || -1} ${lastOf(&some) || -1}"
+}
+-- stdout --
+int 4 6 -1 -1 true false
+u8 10 14 0
+str x z none
+named 10 1 b
+generic 4 6

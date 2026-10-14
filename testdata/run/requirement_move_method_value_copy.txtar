@@ -1,0 +1,70 @@
+-- src --
+interface Eater {
+    fn eat(move self, k: Int) -> String
+}
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Tag = On(n: Int, s: String) | Off
+
+fn Pt.eat(move self, k: Int) -> String { "pt ${self.x + self.y + k}" }
+
+fn Named.eat(move self, k: Int) -> String { "${self.name}${self.n + k}" }
+
+fn Tag.eat(move self, k: Int) -> String {
+    match self {
+        On(n, s) -> "${s}${n * k}"
+        Off -> "off"
+    }
+}
+
+fn i64.eat(move self, k: Int) -> String { "int ${self + k}" }
+
+fn twice[T: Eater + Copy](t: T) -> String {
+    let m = t.eat
+    "${m(1)}|${m(2)}"
+}
+
+fn viaLambda[T: Eater + Copy](t: T) -> String {
+    let m = t.eat
+    let g = (k: Int) => m(k * 10)
+    "${g(1)}|${g(2)}"
+}
+
+fn passed[T: Eater + Copy](t: T) -> String {
+    "${apply(t.eat, 3)}${apply(t.eat, 4)}"
+}
+
+fn apply(f: fn(Int) -> String, k: Int) -> String { f(k) }
+
+fn direct[T: Eater + Copy](t: T) -> String {
+    "${t.eat(5)}${t.eat(6)}"
+}
+
+fn main() -> Unit! {
+    print twice(Pt { x: 1, y: 2 })
+    print twice(Named { name: "n", n: 3 })
+    print twice(On(4, "s"))
+    print twice(Off)
+    print twice(7)
+    print viaLambda(Named { name: "v", n: 1 })
+    print passed(Pt { x: 2, y: 2 })
+    print direct(Named { name: "d", n: 0 })
+}
+-- stdout --
+pt 4|pt 5
+n4|n5
+s4|s8
+off|off
+int 8|int 9
+v11|v21
+pt 7pt 8
+d5d6

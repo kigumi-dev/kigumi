@@ -1,0 +1,59 @@
+-- module --
+mir: planned
+-- src --
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Pair = {
+    pub left Named
+    pub ok Bool
+}
+
+type Tag = Text(s: String) | Num(n: Int) | Empty
+
+type Listed = {
+    pub name String
+    pub items Array[Int]
+}
+
+noalloc fn sameNamed(a: &Named, b: &Named) -> Bool {
+    a == b
+}
+
+noalloc fn samePair(a: &Pair, b: &Pair) -> Bool {
+    a == b
+}
+
+noalloc fn sameTag(a: &Tag, b: &Tag) -> Bool {
+    a == b
+}
+
+// A derived hash boxes its u64 result, so it stays allocating.
+noalloc fn hashNamed(a: &Named) -> u64 {
+    hash(a) //~ ERROR `hash` is not `noalloc`
+}
+
+// An Array field is compared element by element through callbacks that allocate.
+noalloc fn sameListed(a: &Listed, b: &Listed) -> Bool {
+    a == b //~ ERROR `equals` is not `noalloc`
+}
+
+fn main() -> Unit! {
+    let n = Named { name: "a", n: 1 }
+    print "${sameNamed(&n, &n)}"
+}
+-- expect --
+error[E907]: `hash` is not `noalloc`
+  --> main.kg:32:5
+   |
+32 |     hash(a) //~ ERROR `hash` is not `noalloc`
+   |     ^^^^^^
+
+error[E907]: `equals` is not `noalloc`
+  --> main.kg:37:5
+   |
+37 |     a == b //~ ERROR `equals` is not `noalloc`
+   |     ^^^^^^
+

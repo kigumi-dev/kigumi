@@ -44,9 +44,9 @@ noalloc fn viaGeneric(a: Cell[Int], b: Cell[Int]) -> Bool {
     a == b
 }
 
-// A record holding a String is not a direct aggregate, so its equals is an ordinary call.
+// A record holding a String is not a direct aggregate, so its equals is an ordinary call, but one that allocates nothing.
 noalloc fn named(a: Named, b: Named) -> Bool {
-    a == b //~ ERROR `equals` is not `noalloc`
+    a == b
 }
 
 noalloc fn borrowed(a: Pt) -> Int {
@@ -57,12 +57,6 @@ fn size(p: &Pt) -> Int {
     p.x
 }
 -- expect --
-error[E907]: `equals` is not `noalloc`
-  --> lib/np.kg:48:5
-   |
-48 |     a == b //~ ERROR `equals` is not `noalloc`
-   |     ^^^^^^
-
 error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
   --> lib/np.kg:52:11
    |

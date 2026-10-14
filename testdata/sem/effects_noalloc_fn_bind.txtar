@@ -1,0 +1,67 @@
+-- module --
+mir: planned
+-- src --
+interface Sz {
+    noalloc fn sz(self) -> Int
+}
+
+noalloc fn i64.sz(self) -> Int { self }
+
+noalloc fn total[T: Sz](x: T) -> Int {
+    x.sz()
+}
+
+noalloc fn takes(f: noalloc fn(Int) -> Int, p: Int) -> Int {
+    f(p)
+}
+
+noalloc fn direct(p: Int) -> Int {
+    total(p)
+}
+
+noalloc fn viaParam(p: Int) -> Int {
+    takes(total[Int], p) //~ ERROR binding the witnesses of `total`
+}
+
+noalloc fn viaLocal(p: Int) -> Int {
+    let f = total[Int] //~ ERROR binding the witnesses of `total`
+    f(p)
+}
+
+fn inferred(p: Int) -> Int {
+    takes(total[Int], p)
+}
+
+noalloc fn callsInferred(p: Int) -> Int {
+    inferred(p) //~ ERROR `inferred` is not `noalloc`
+}
+
+fn plain(p: Int) -> Int {
+    let f = total[Int]
+    f(p)
+}
+
+fn main() -> Unit! {
+    print "${direct(1)} ${viaParam(2)} ${viaLocal(3)} ${callsInferred(4)} ${plain(5)}"
+}
+-- expect --
+error[E1820]: binding the witnesses of `total` into a function value allocates
+  --> main.kg:20:11
+   |
+20 |     takes(total[Int], p) //~ ERROR binding the witnesses of `total`
+   |           ^^^^^^^^^
+   = help: call it directly or bind it outside the `noalloc` body
+
+error[E1820]: binding the witnesses of `total` into a function value allocates
+  --> main.kg:24:13
+   |
+24 |     let f = total[Int] //~ ERROR binding the witnesses of `total`
+   |             ^^^^^^^^^
+   = help: call it directly or bind it outside the `noalloc` body
+
+error[E907]: `inferred` is not `noalloc`
+  --> main.kg:33:5
+   |
+33 |     inferred(p) //~ ERROR `inferred` is not `noalloc`
+   |     ^^^^^^^^^^
+

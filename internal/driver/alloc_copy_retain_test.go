@@ -214,11 +214,15 @@ func TestNoallocArrayGetIsChargedUnlessDirect(t *testing.T) {
 	}
 }
 
-func TestNoallocFirstIsNoLongerPromised(t *testing.T) {
+func TestNoallocFirstIsChargedLikeGet(t *testing.T) {
 	t.Parallel()
-	src := "noalloc fn head(a: &Array[Int]) -> Int {\n    a.first() || 0\n}\n\nfn main() -> Unit! {\n    print \"${head(&Array.of(1))}\"\n}\n"
-	if out := checkAllocClaim(t, src); !strings.Contains(out, "`first` is not `noalloc`") {
-		t.Errorf("first still claims noalloc:\n%s", out)
+	scalar := "noalloc fn head(a: &Array[Int]) -> Int {\n    a.first() || 0\n}\n\nfn main() -> Unit! {\n    print \"${head(&Array.of(1))}\"\n}\n"
+	if out := checkAllocClaim(t, scalar); strings.Contains(out, "error[") {
+		t.Errorf("a scalar first must stay noalloc:\n%s", out)
+	}
+	heap := "noalloc fn head(a: &Array[String]) -> Bool {\n    a.first() is Some(_)\n}\n\nfn main() -> Unit! {\n    print \"${head(&Array.of(\"a\"))}\"\n}\n"
+	if out := checkAllocClaim(t, heap); !strings.Contains(out, "error[E1700]") {
+		t.Errorf("a heap element copied by first must be an E1700:\n%s", out)
 	}
 }
 

@@ -100,6 +100,9 @@ func (r *Result) fixedSummary(id EntityID) (EffectSummary, bool) {
 		return EffectSummary{}, true
 	}
 	info := r.Fn(id)
+	if r.derivedInferred(id) {
+		return EffectSummary{}, false
+	}
 	if info.Body == 0 || info.Declared&(EffPure|EffNoalloc) != 0 {
 		return EffectSummary{Pure: info.Declared&EffPure != 0, Noalloc: info.Declared&EffNoalloc != 0 || r.protoNoalloc(id), Known: true}, true
 	}
@@ -130,6 +133,7 @@ func (r *Result) inferSummaries(nodes []EntityID) {
 				pure = pure && r.edgeAllows(e, EffPure)
 				noalloc = noalloc && r.edgeAllows(e, EffNoalloc)
 			}
+			pure = pure || r.derivedInferred(id)
 			if pure != s.Pure || noalloc != s.Noalloc {
 				s.Pure, s.Noalloc = pure, noalloc
 				changed = true

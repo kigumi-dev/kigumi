@@ -15,7 +15,11 @@ func Cmd() *cobra.Command {
 		Short: "Speak the Language Server Protocol on stdin/stdout",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return errors.WrapErr(lsp.Serve(shared.StdRoot(cmd)), "language server")
+			target, err := shared.Target(cmd)
+			if err != nil {
+				return err
+			}
+			return errors.WrapErr(lsp.Serve(shared.StdRoot(cmd), target), "language server")
 		},
 	}
 }

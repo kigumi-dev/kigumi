@@ -22,8 +22,9 @@ fn viaParam[T: Eater](t: T) -> String {
     m()
 }
 
+// A Copy receiver hands every call a copy of its own, the way a concrete Copy type's method value does.
 fn viaCopyParam[T: Eater + Copy](t: T) -> String {
-    let m = t.eat //~ ERROR consumes its receiver
+    let m = t.eat
     m()
 }
 
@@ -48,17 +49,10 @@ error[E1800]: `eat` consumes its receiver, so a method value on `T` could consum
    |             ^^^^^
    = help: call it directly instead
 
-error[E1800]: `eat` consumes its receiver, so a method value on `T` could consume it twice
-  --> main/main.kg:25:13
-   |
-25 |     let m = t.eat //~ ERROR consumes its receiver
-   |             ^^^^^
-   = help: call it directly instead
-
 error[E1800]: `eat` consumes its receiver, so a method value on `Eater` could consume it twice
-  --> main/main.kg:30:13
+  --> main/main.kg:31:13
    |
-30 |     let m = t.eat //~ ERROR consumes its receiver
+31 |     let m = t.eat //~ ERROR consumes its receiver
    |             ^^^^^
    = help: call it directly instead
 

@@ -146,6 +146,9 @@ func (t Target) NoDefaultAllocator() bool { return t.Allocator == "none" }
 // RecoverableOnly reports the `--profile recoverable-only` profile.
 func (t Target) RecoverableOnly() bool { return t.Profile == "recoverable-only" }
 
+// RestrictsAllocation reports a profile that makes a planned copy a diagnostic.
+func (t Target) RestrictsAllocation() bool { return t.NoDefaultAllocator() || t.RecoverableOnly() }
+
 // strictBlockingProfiles names every `--blocking-executor` value that rejects a direct-blocking op reached
 // from async instead of warning; the hosted default ("") is not in this set.
 var strictBlockingProfiles = map[string]bool{

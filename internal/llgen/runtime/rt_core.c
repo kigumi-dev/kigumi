@@ -2481,6 +2481,8 @@ enum std_op {
     OP_SECURE_ERASE_TRY,
     OP_TASK_THREAD_POOL_EXECUTOR,
     OP_TASK_HANDOFF,
+    OP_ARRAY_FIRST,
+    OP_ARRAY_LAST,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -2507,6 +2509,8 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "array.Array.growBy")) return OP_ARRAY_GROW_BY;
     if (!strcmp(k, "array.Array.len")) return OP_ARRAY_LEN;
     if (!strcmp(k, "array.Array.get")) return OP_ARRAY_GET;
+    if (!strcmp(k, "array.Array.first")) return OP_ARRAY_FIRST;
+    if (!strcmp(k, "array.Array.last")) return OP_ARRAY_LAST;
     if (!strcmp(k, "array.Array.with")) return OP_ARRAY_WITH;
     if (!strcmp(k, "array.Array.withMut") || !strcmp(k, "prelude.FixedArray.withMut")) return OP_ARRAY_WITH_MUT;
     if (!strcmp(k, "array.Array.takeAt")) return OP_ARRAY_TAKE_AT;
@@ -2796,6 +2800,12 @@ val rt_std_id(int op, int n, val* a) {
         if (i < 0 || i >= a0->u.arr.len) return none();
         return some(rt_copy(a0->u.arr.items[i]));
     }
+    case OP_ARRAY_FIRST:
+        if (a0->u.arr.len == 0) return none();
+        return some(rt_copy(a0->u.arr.items[0]));
+    case OP_ARRAY_LAST:
+        if (a0->u.arr.len == 0) return none();
+        return some(rt_copy(a0->u.arr.items[a0->u.arr.len - 1]));
     case OP_ARRAY_WITH: {
         int64_t i = a1->u.i;
         if (i < 0 || i >= a0->u.arr.len) return none();

@@ -12,6 +12,8 @@ import (
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
+
+	"kigumi/internal/driver"
 )
 
 // Server holds the open documents and the module roots; every LSP method
@@ -24,6 +26,7 @@ type Server struct {
 	// them; roots[0] is where std auto-discovery looks.
 	roots       []string
 	stdRoot     string
+	target      driver.Target
 	docs        map[uri.URI]string
 	docVersions map[uri.URI]int32
 	published   map[string]map[uri.URI]bool
@@ -48,9 +51,15 @@ func (stdio) Read(p []byte) (int, error)  { return os.Stdin.Read(p) }
 func (stdio) Write(p []byte) (int, error) { return os.Stdout.Write(p) }
 func (stdio) Close() error                { return os.Stdout.Close() }
 
+// WithTarget makes the editor enforce the allocation profiles of t like `kigumi check`.
+func (s *Server) WithTarget(t driver.Target) *Server {
+	s.target = t
+	return s
+}
+
 // Serve speaks the protocol on stdin/stdout until the client hangs up.
-func Serve(stdRoot string) error {
-	_, conn, _ := protocol.NewServer(context.Background(), New(stdRoot), jsonrpc2.NewStream(stdio{}))
+func Serve(stdRoot string, target driver.Target) error {
+	_, conn, _ := protocol.NewServer(context.Background(), New(stdRoot).WithTarget(target), jsonrpc2.NewStream(stdio{}))
 	<-conn.Done()
 	if err := conn.Err(); err != nil && err != io.EOF {
 		return err

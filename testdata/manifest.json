@@ -5739,6 +5739,23 @@
       ]
     },
     {
+      "id": "run/fn_value_witness_generic",
+      "kind": "run",
+      "path": "testdata/run/fn_value_witness_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/for_borrow",
       "kind": "run",
       "path": "testdata/run/for_borrow.txtar",
@@ -7639,9 +7656,43 @@
       ]
     },
     {
+      "id": "run/noalloc_array_first_last",
+      "kind": "run",
+      "path": "testdata/run/noalloc_array_first_last.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/noalloc_copy_accounting",
       "kind": "run",
       "path": "testdata/run/noalloc_copy_accounting.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/noalloc_derived_protocols",
+      "kind": "run",
+      "path": "testdata/run/noalloc_derived_protocols.txtar",
       "mode": [
         "vm",
         "native"
@@ -8130,6 +8181,40 @@
       "id": "run/requirement_method_value_counts",
       "kind": "run",
       "path": "testdata/run/requirement_method_value_counts.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/requirement_move_method_value_copy",
+      "kind": "run",
+      "path": "testdata/run/requirement_move_method_value_copy.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/requirement_name_shared_std",
+      "kind": "run",
+      "path": "testdata/run/requirement_name_shared_std.txtar",
       "mode": [
         "vm",
         "native"
@@ -10033,6 +10118,17 @@
       ]
     },
     {
+      "id": "sem/effects_noalloc_array_first",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_array_first.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/effects_noalloc_bad_recv",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_bad_recv.txtar",
@@ -10055,6 +10151,17 @@
       ]
     },
     {
+      "id": "sem/effects_noalloc_derived",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_derived.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/effects_noalloc_fixed",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_fixed.txtar",
@@ -10066,9 +10173,31 @@
       ]
     },
     {
+      "id": "sem/effects_noalloc_fn_bind",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fn_bind.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/effects_noalloc_generic",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_generic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_generic_copy",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_generic_copy.txtar",
       "mode": [
         "check"
       ],

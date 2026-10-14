@@ -1,0 +1,71 @@
+-- module --
+mir: planned
+-- src --
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+type Tag = On(n: Int) | Off
+
+// The copy of a type parameter allocates only for an argument that needs a box of its own.
+noalloc fn keep[T: Copy](x: T) -> T {
+    let y = x
+    y
+}
+
+noalloc fn keepTwice[T: Copy](x: T) -> T {
+    keep(x)
+}
+
+noalloc fn onInt(n: Int) -> Int {
+    keepTwice(n)
+}
+
+noalloc fn onPt(p: Pt) -> Pt {
+    keep(p)
+}
+
+noalloc fn onTag(t: Tag) -> Tag {
+    keep(t)
+}
+
+noalloc fn onStr(s: String) -> String {
+    keep(s)
+}
+
+noalloc fn onNamed(r: Named) -> Named {
+    keep(r) //~ ERROR copying `Named`
+}
+
+noalloc fn onNamedTwice(r: Named) -> Named {
+    keepTwice(r) //~ ERROR copying `Named`
+}
+
+fn plain(r: Named) -> Named {
+    keep(r)
+}
+
+fn main() -> Unit! {
+    let n = onInt(1)
+}
+-- expect --
+error[E1700]: copying `Named` here allocates a box of its own for the copy
+  --> main.kg:40:5
+   |
+40 |     keep(r) //~ ERROR copying `Named`
+   |     ^^^^^^
+   = help: use the original instead of a copy, or drop the declaration
+
+error[E1700]: copying `Named` here allocates a box of its own for the copy
+  --> main.kg:44:5
+   |
+44 |     keepTwice(r) //~ ERROR copying `Named`
+   |     ^^^^^^^^^^^
+   = help: use the original instead of a copy, or drop the declaration
+

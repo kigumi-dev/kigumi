@@ -38,6 +38,7 @@ var StdOpNames = []string{
 	"TASK_CANCEL_REQUESTED",
 	"SECURE_ERASE", "SECURE_ERASE_RAW", "SECURE_ERASE_TRY",
 	"TASK_THREAD_POOL_EXECUTOR", "TASK_HANDOFF",
+	"ARRAY_FIRST", "ARRAY_LAST",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -86,6 +87,8 @@ var stdOpKeys = map[string]string{
 	"array.Array.growBy":              "ARRAY_GROW_BY",
 	"array.Array.len":                 "ARRAY_LEN",
 	"array.Array.get":                 "ARRAY_GET",
+	"array.Array.first":               "ARRAY_FIRST",
+	"array.Array.last":                "ARRAY_LAST",
 	"array.Array.with":                "ARRAY_WITH",
 	"array.Array.withMut":             "ARRAY_WITH_MUT",
 	"array.Array.takeAt":              "ARRAY_TAKE_AT",

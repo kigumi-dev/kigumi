@@ -10,7 +10,7 @@ import (
 
 func CheckForEditor(m *Module) (*sem.Result, error) {
 	res, err := CheckOnly(m)
-	if err != nil || res.HasErrors() || !res.DefersAllocClaims() && !res.DeclaresNoalloc() && !res.SpecializesCalls() {
+	if err != nil || res.HasErrors() || !res.DefersAllocClaims() && !res.DeclaresNoalloc() && !res.SpecializesCalls() && !m.target.RestrictsAllocation() {
 		return res, err
 	}
 	built, found := editorDiags(m)

@@ -36,6 +36,8 @@ const (
 	// CallDefinedWrap is `A(value)`: a nominal defined type's package-private
 	// representation wrap.
 	CallDefinedWrap
+	// CallFnItem is a function value over a witness-constrained generic; Passes are the witnesses it binds.
+	CallFnItem
 )
 
 type VariadicForm uint8

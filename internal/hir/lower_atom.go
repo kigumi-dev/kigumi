@@ -59,9 +59,7 @@ func (l *lowerer) ident(n syntax.NodeID) *Expr {
 		out.Ent = ent
 		return out
 	case sem.EntFn:
-		out := l.node(n, FnItem)
-		out.Ent = ent
-		return out
+		return l.fnItem(n, ent)
 	case sem.EntVariant:
 		out := l.node(n, Variant)
 		out.Ent = ent
@@ -113,9 +111,7 @@ func (l *lowerer) member(n syntax.NodeID) *Expr {
 		out.Args = []*Expr{l.expr(syntax.NodeID(node.Lhs))}
 		return out
 	case sem.EntFn:
-		out := l.node(n, FnItem)
-		out.Ent = ent
-		return out
+		return l.fnItem(n, ent)
 	case sem.EntConst:
 		out := l.node(n, Lit)
 		out.Lit, _ = l.r.ConstValueOf(ent)
@@ -159,5 +155,15 @@ func (l *lowerer) stringLit(n syntax.NodeID) *Expr {
 func (l *lowerer) byteStringLit(n syntax.NodeID) *Expr {
 	out := l.node(n, Lit)
 	out.Type, out.Lit = sem.TyBytes, sem.Literal{Kind: sem.LitBytes, Str: string(syntax.DecodeByteString(l.t.TokText(l.t.Nodes[n].Tok)))}
+	return out
+}
+
+// A function value over a constrained generic carries the witnesses sem resolved for its instantiation.
+func (l *lowerer) fnItem(n syntax.NodeID, ent sem.EntityID) *Expr {
+	out := l.node(n, FnItem)
+	out.Ent = ent
+	if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallFnItem {
+		out.Passes = call.Passes
+	}
 	return out
 }

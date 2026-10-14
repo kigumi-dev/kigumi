@@ -42,7 +42,12 @@ func (e *emitter) requirementAdapter(req sem.EntityID, witness bool) string {
 		e.irb(&sb).CallAs(rest[i], rtAt, vptr("%args"), vi64(i))
 	}
 	if witness {
-		arr := e.argArray(&sb, append([]string{"%r"}, rest...))
+		recv := "%r"
+		if e.r.Fn(req).Recv == sem.RecvMove {
+			e.irb(&sb).CallAs("%rc", rtCopy, vptr("%r"))
+			recv = "%rc"
+		}
+		arr := e.argArray(&sb, append([]string{recv}, rest...))
 		e.irb(&sb).CallAs("%res", rtCallv, vptr("%w"), vi32(n+1), vptr(arr))
 		e.irb(&sb).Call(rtRelease, vptr("%w"))
 	} else {

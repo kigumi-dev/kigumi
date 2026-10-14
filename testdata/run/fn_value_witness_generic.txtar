@@ -1,0 +1,82 @@
+-- src --
+import json from std/json
+
+interface Shower {
+    fn show(self) -> String
+}
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Tag = A(n: Int) | B(s: String)
+
+fn Pt.show(self) -> String { "pt${self.x}" }
+fn Named.show(self) -> String { "${self.name}${self.n}" }
+fn Tag.show(self) -> String {
+    match self {
+        A(n) -> "a${n}"
+        B(s) -> "b${s}"
+    }
+}
+fn i64.show(self) -> String { "i${self}" }
+fn String.show(self) -> String { "s${self}" }
+
+fn describe[T: Shower](x: T) -> String { x.show() }
+
+fn pair[T: Shower, U: Shower](a: T, b: U) -> String { "${a.show()}&${b.show()}" }
+
+fn same[T: Eq](a: T, b: T) -> Bool { a == b }
+
+fn viaParam[T: Shower](x: T) -> String {
+    let f = describe[T]
+    f(x)
+}
+
+fn viaInfer[T: Shower](x: T) -> String {
+    let f: fn(T) -> String = describe
+    let g = () => f(x)
+    g()
+}
+
+fn run(f: fn(Pt) -> String, p: Pt) -> String { f(p) }
+
+fn main() -> Unit! {
+    let a = describe[Pt]
+    let b = describe[Named]
+    let c = describe[Tag]
+    let d = describe[Int]
+    let e = describe[String]
+    print "${a(Pt { x: 1, y: 2 })} ${b(Named { name: "n", n: 3 })} ${c(B("q"))} ${d(7)} ${e("w")}"
+    let p = pair[Pt, Tag]
+    print p(Pt { x: 9, y: 9 }, A(4))
+    let eq = same[Named]
+    let eqi = same[Int]
+    print "${eq(Named { name: "a", n: 1 }, Named { name: "a", n: 1 })} ${eq(Named { name: "a", n: 1 }, Named { name: "b", n: 1 })} ${eqi(3, 3)} ${eqi(3, 4)}"
+    print "${viaParam(Pt { x: 5, y: 5 })} ${viaInfer(Named { name: "z", n: 0 })} ${run(describe, Pt { x: 6, y: 6 })}"
+    let enc = json.encode[Int]
+    let encs = json.encode[String]
+    let r1 = enc(42)?
+    let r2 = encs("hi")?
+    print "${r1} ${r2}"
+    let fs = Array.of(describe[Pt], describe[Pt])
+    let mut total: usize = 0
+    let n = fs.len()
+    for f in fs {
+        total = total + f(Pt { x: 1, y: 1 }).len()
+    }
+    print "${n} ${total}"
+}
+-- stdout --
+pt1 n3 bq i7 sw
+pt9&a4
+true false true false
+pt5 z0 pt6
+42 "hi"
+2 6

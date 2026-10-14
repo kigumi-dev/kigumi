@@ -1,0 +1,33 @@
+-- src --
+interface Getter {
+    fn get(self) -> Int
+}
+
+type A = {
+    pub n Int
+}
+
+fn A.get(self) -> Int { self.n }
+
+type B = Bx(Int) | By
+
+fn B.get(self) -> Int {
+    match self {
+        Bx(x) -> x * 2
+        By -> 0
+    }
+}
+
+fn viaExistential(g: Getter) -> Int {
+    g.get()
+}
+
+fn viaParam[T: Getter](g: T) -> Int {
+    g.get()
+}
+
+fn main() -> Unit! {
+    print "${viaExistential(A { n: 4 })} ${viaExistential(Bx(5))} ${viaParam(A { n: 7 })} ${viaParam(Bx(8))} ${viaParam(By)}"
+}
+-- stdout --
+4 10 7 16 0

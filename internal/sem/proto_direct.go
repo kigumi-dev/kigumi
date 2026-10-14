@@ -83,3 +83,12 @@ func (r *Result) protoNoalloc(fn EntityID) bool {
 	kind := r.ProtoKind(fn)
 	return kind != "" && info.Owner != 0 && len(info.TypeParams) == 0 && r.ProtocolDirect(r.Entities[info.SelfParam].Type, kind)
 }
+
+// A derived `equals` is noalloc when its field types are; a derived `hash` boxes its u64 result.
+func (r *Result) derivedInferred(fn EntityID) bool {
+	if r.Entities[fn].Kind != EntFn {
+		return false
+	}
+	info := r.Fn(fn)
+	return info.Owner != 0 && len(info.TypeParams) == 0 && r.ProtoKind(fn) == "equals" && !r.protoNoalloc(fn)
+}

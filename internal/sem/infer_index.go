@@ -16,7 +16,6 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 				c.errAt(n, cVariadicNoValue, name, name)
 				return TyPoison
 			}
-			c.rejectHiddenArgs(n, head.ent)
 			var typeArgs []TypeID
 			for i, a := range items {
 				typeArgs = append(typeArgs, c.r.resolveExprGenericArg(c.f, c.scope, a, entAt(params, i)))
@@ -24,6 +23,7 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 			c.r.useEntity(c.f, n, head.ent)
 			c.info.Uses[n] = head.ent
 			sig, inst, _ := c.instantiateFn(n, head.ent, typeArgs, 0)
+			c.fnItemHidden(n, head.ent, inst)
 			c.errorAsCheck(n, head.ent, inst)
 			c.deferFFIValueCheck(n, head.ent, inst, 0)
 			c.touched = append(c.touched, n)

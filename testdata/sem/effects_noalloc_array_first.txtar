@@ -1,0 +1,75 @@
+-- module --
+mir: planned
+-- src --
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+// A scalar element comes back in a direct option, so first and last allocate no more than get does.
+noalloc fn firstInt(a: &Array[Int]) -> Int {
+    a.first() || -1
+}
+
+noalloc fn lastByte(a: &Array[u8]) -> u8 {
+    a.last() || 0
+}
+
+noalloc fn getInt(a: &Array[Int]) -> Int {
+    a.get(0) || -1
+}
+
+noalloc fn firstStr(a: &Array[String]) -> Bool {
+    a.first() is Some(_) //~ ERROR copying `String?`
+}
+
+noalloc fn lastNamed(a: &Array[Named]) -> Bool {
+    a.last() is Some(_) //~ ERROR copying `Named`
+}
+
+noalloc fn firstPt(a: &Array[Pt]) -> Bool {
+    a.first() is Some(_) //~ ERROR copying `Pt`
+}
+
+noalloc fn genericGet[T: Copy](xs: &Array[T]) -> T? {
+    xs.get(0) //~ ERROR copying `T`
+}
+
+fn main() -> Unit! {
+    let a = Array.of(1, 2)
+    print "${firstInt(&a)} ${getInt(&a)}"
+}
+-- expect --
+error[E1700]: copying `String?` here allocates a box of its own for the copy
+  --> main.kg:25:5
+   |
+25 |     a.first() is Some(_) //~ ERROR copying `String?`
+   |     ^^^^^^^^
+   = help: use the original instead of a copy, or drop the declaration
+
+error[E1700]: copying `Named` here allocates a box of its own for the copy
+  --> main.kg:29:5
+   |
+29 |     a.last() is Some(_) //~ ERROR copying `Named`
+   |     ^^^^^^^
+   = help: use the original instead of a copy, or drop the declaration
+
+error[E1700]: copying `Pt` here allocates a box of its own for the copy
+  --> main.kg:33:5
+   |
+33 |     a.first() is Some(_) //~ ERROR copying `Pt`
+   |     ^^^^^^^^
+   = help: use the original instead of a copy, or drop the declaration
+
+error[E1700]: copying `T` here allocates a box of its own for the copy
+  --> main.kg:37:5
+   |
+37 |     xs.get(0) //~ ERROR copying `T`
+   |     ^^^^^^^^
+   = help: use the original instead of a copy, or drop the declaration
+

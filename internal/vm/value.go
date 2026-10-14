@@ -35,6 +35,8 @@ const (
 type reqCall struct {
 	name    string
 	witness bool
+	// move marks a `move self` requirement: each call hands the witness a copy.
+	move bool
 }
 
 // obj is one runtime value; rc < 0 marks a static object that is never freed,

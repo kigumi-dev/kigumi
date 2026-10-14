@@ -81,6 +81,8 @@ type Machine struct {
 	curLane int
 	// pending holds releases this lane owes once it leaves the scheduler lock.
 	pending []*obj
+	// witnessed memoizes Supports' answer for a requirement and a method of its name.
+	witnessed map[[2]sem.EntityID]bool
 }
 
 // Run executes the program's entry and returns its exit code: 0, 1 for a
