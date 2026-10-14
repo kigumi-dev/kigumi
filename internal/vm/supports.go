@@ -141,10 +141,10 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 	case mir.OpFutureNew, mir.OpAwait, mir.OpFutureDone:
 		return ""
 	case mir.OpBuiltin:
-		switch in.Str {
-		case "print", "eprint", "panic", "message", "iter.len", "iter.at", "iter.at_ref", "iter.at_move", "host", "alloc.push", "fixed.fill", "direct.eq", "direct.hash":
+		if spec, ok := mir.BuiltinFor(in.Str); ok && spec.VM {
 			return ""
-		case "comptime":
+		}
+		if in.Str == "comptime" {
 			return "an unevaluated comptime block"
 		}
 		return "builtin " + in.Str

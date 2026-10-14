@@ -6,13 +6,6 @@ import (
 	"kigumi/internal/sem"
 )
 
-var builtinArgs = map[string][2]int{
-	"print": {1, 1}, "eprint": {1, 1}, "panic": {0, 1}, "message": {1, 1},
-	"host": {0, 0}, "comptime": {0, 0}, "alloc.push": {1, 1}, "fixed.fill": {2, 2},
-	"iter.len": {1, 1}, "iter.at": {2, 2}, "iter.at_ref": {2, 2}, "iter.at_move": {2, 2},
-	"direct.eq": {2, 2}, "direct.hash": {1, 1},
-}
-
 func (p *Program) verifyBuiltins(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
@@ -20,32 +13,67 @@ func (p *Program) verifyBuiltins(f *Func) *Error {
 			if in.Op != OpBuiltin {
 				continue
 			}
-			n, ok := builtinArgs[in.Str]
-			switch {
-			case !ok:
-				return fail("builtins", bid, i, "no runtime entry %q", in.Str)
-			case len(in.Args) < n[0] || len(in.Args) > n[1]:
-				return fail("builtins", bid, i, "%s takes %d to %d arguments, got %d", in.Str, n[0], n[1], len(in.Args))
-			}
-			if msg := p.iterMismatch(f, in); msg != "" {
+			if msg := p.builtinMismatch(f, in); msg != "" {
 				return fail("builtins", bid, i, "%s", msg)
-			}
-			if idx := builtinIndex(in); idx >= 0 {
-				if t := f.Locals[in.Args[idx]].Type; !p.R.Types.IsInteger(t) && !p.looseType(t) && t != sem.TyUntypedInt {
-					return fail("builtins", bid, i, "%s indexes with %s", in.Str, p.R.TypeString(t))
-				}
 			}
 		}
 	}
 	return nil
 }
 
-func builtinIndex(in Inst) int {
-	switch in.Str {
-	case "fixed.fill", "iter.at", "iter.at_ref", "iter.at_move":
-		return 1
+func (p *Program) builtinMismatch(f *Func, in Inst) string {
+	spec, ok := builtinByName[in.Str]
+	if !ok {
+		return "no runtime entry \"" + in.Str + "\""
 	}
-	return -1
+	if len(in.Args) < spec.Min || len(in.Args) > len(spec.Args) {
+		return in.Str + " takes " + itoa(spec.Min) + " to " + itoa(len(spec.Args)) + " arguments, got " + itoa(len(in.Args))
+	}
+	if msg := p.iterMismatch(f, in); msg != "" {
+		return msg
+	}
+	for k, a := range in.Args {
+		if msg := p.builtinArgMismatch(in.Str, k, spec.Args[k], f.Locals[a].Type); msg != "" {
+			return msg
+		}
+	}
+	if msg := p.builtinResultMismatch(spec, f.Locals[in.Dst].Type); msg != "" && in.Op.Yields() {
+		return in.Str + " " + msg
+	}
+	return ""
+}
+
+func (p *Program) builtinArgMismatch(name string, k int, want builtinArg, got sem.TypeID) string {
+	got = p.R.UnderlyingRepr(p.derefAll(got))
+	switch {
+	case p.looseType(got):
+	case want == argString && !p.compatible(sem.TyString, got):
+		return name + " takes " + p.R.TypeString(got) + " as argument " + itoa(k) + ", not a String"
+	case want == argInt && !p.R.Types.IsInteger(got) && got != sem.TyUntypedInt:
+		return name + " indexes with " + p.R.TypeString(got)
+	}
+	return ""
+}
+
+func (p *Program) builtinResultMismatch(spec *BuiltinSpec, got sem.TypeID) string {
+	var want sem.TypeID
+	switch spec.Result {
+	case resUnit:
+		want = sem.TyUnit
+	case resBool:
+		want = sem.TyBool
+	case resInt:
+		if t := p.R.UnderlyingRepr(p.derefAll(got)); !p.looseType(t) && !p.R.Types.IsInteger(t) {
+			return "yields " + p.R.TypeString(got) + ", not an integer"
+		}
+		return ""
+	default:
+		return ""
+	}
+	if !p.looseType(got) && !p.compatible(want, got) {
+		return "yields " + p.R.TypeString(got) + ", not " + p.R.TypeString(want)
+	}
+	return ""
 }
 
 func (p *Program) iterMismatch(f *Func, in Inst) string {

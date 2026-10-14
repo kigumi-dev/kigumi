@@ -7,7 +7,8 @@ import (
 )
 
 func iterAt(name string) bool {
-	return name == "iter.at" || name == "iter.at_ref" || name == "iter.at_move"
+	s, ok := builtinByName[name]
+	return ok && s.Iter && len(s.Args) == 2
 }
 
 func iterLengths(f *Func) map[LocalID]LocalID {

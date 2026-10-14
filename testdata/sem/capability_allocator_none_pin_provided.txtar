@@ -15,3 +15,10 @@ export(C) {
     }
 }
 -- expect --
+error[E959]: `new` needs the default allocator, but this build has none (--allocator none)
+ --> main.kg:5:19
+  |
+5 |         let pin = ffi.Pin.new(5)
+  |                   ^^^^^^^^^^^^^
+  = help: allocate inside an `allocator` block
+

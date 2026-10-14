@@ -1,0 +1,29 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+export(C) {
+    pub fn lib_clean(n: i64) -> i64 {
+        n + 1
+    }
+
+    pub fn lib_direct(n: i64) -> i64 {
+        let r = Nm { name: "a", n: 1 } //~ ERROR this allocation may terminate on a refused allocation
+        r.n + n
+    }
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E1280]: this allocation may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:12:17
+   |
+12 |         let r = Nm { name: "a", n: 1 } //~ ERROR this allocation may terminate on a refused allocation
+   |                 ^^^^^^^^^^^^^^^^^^^^
+   = help: use the fallible (`try`-prefixed) form instead
+

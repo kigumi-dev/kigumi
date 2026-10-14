@@ -15,10 +15,10 @@ export(C) {
     }
 }
 -- expect --
-error[E1370]: `TASK_CURRENT_EXECUTOR` reaches the `task.executor` capability, which this target does not provide: its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)
+error[E959]: `currentThreadExecutor` needs the default allocator, but this build has none (--allocator none)
  --> main.kg:9:18
   |
 9 |         let ex = task.currentThreadExecutor()
   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  = help: reached through: start
+  = help: allocate inside an `allocator` block
 

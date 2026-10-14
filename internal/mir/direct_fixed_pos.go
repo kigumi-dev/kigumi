@@ -23,14 +23,8 @@ func (p *Program) elemPos(f *Func, base LocalID) sem.TypeID {
 }
 
 func iterBuiltin(in Inst) bool {
-	if in.Op != OpBuiltin {
-		return false
-	}
-	switch in.Str {
-	case "iter.len", "iter.at", "iter.at_ref", "iter.at_move":
-		return true
-	}
-	return false
+	s, ok := builtinByName[in.Str]
+	return in.Op == OpBuiltin && ok && s.Iter
 }
 
 func fixedFill(in Inst) bool { return in.Op == OpBuiltin && in.Str == "fixed.fill" }

@@ -72,23 +72,42 @@ func (r *Result) edgeAllowsDefault(e EffectEdge) bool {
 	return true
 }
 
-// checkDefaultAllocator enforces `allocator = none` at the entry: the first
-// edge that reaches the ambient allocator is reported.
-func (r *Result) checkDefaultAllocator() {
-	entry := r.MainFn()
-	if entry == 0 || r.defaultOf(entry) {
-		return
+// Foreign code calls an export(C) function without going through the entry, so each is a root of its own.
+func (r *Result) allocRoots() []EntityID {
+	var roots []EntityID
+	if entry := r.MainFn(); entry != 0 {
+		roots = append(roots, entry)
 	}
-	for _, e := range r.edgesOf(entry) {
-		if r.edgeAllowsDefault(e) {
+	for id := 1; id < len(r.Entities); id++ {
+		e := &r.Entities[id]
+		if e.Kind != EntFn || e.Flags&EfPoison != 0 || r.Packages[e.Pkg].Std {
 			continue
 		}
-		what := "this allocation"
-		if e.Kind == EdgeCall || e.Kind == EdgeWitness || e.Kind == EdgeCallback && e.Target != 0 {
-			what = "`" + r.Entities[e.Target].Name + "`"
+		if info := r.Fn(EntityID(id)); info.Export != "" && info.Body != 0 {
+			roots = append(roots, EntityID(id))
 		}
-		r.errAt(e.File, e.Node, cNoDefaultAllocator, what)
-		return
+	}
+	return roots
+}
+
+// checkDefaultAllocator enforces `allocator = none` at every root: the first
+// edge that reaches the ambient allocator is reported.
+func (r *Result) checkDefaultAllocator() {
+	for _, root := range r.allocRoots() {
+		if r.defaultOf(root) {
+			continue
+		}
+		for _, e := range r.edgesOf(root) {
+			if r.edgeAllowsDefault(e) {
+				continue
+			}
+			what := "this allocation"
+			if e.Kind == EdgeCall || e.Kind == EdgeWitness || e.Kind == EdgeCallback && e.Target != 0 {
+				what = "`" + r.Entities[e.Target].Name + "`"
+			}
+			r.errAt(e.File, e.Node, cNoDefaultAllocator, what)
+			break
+		}
 	}
 }
 

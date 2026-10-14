@@ -9304,6 +9304,28 @@
       ]
     },
     {
+      "id": "sem/alloc_none_export_root",
+      "kind": "sem",
+      "path": "testdata/sem/alloc_none_export_root.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/alloc_recoverable_export_root",
+      "kind": "sem",
+      "path": "testdata/sem/alloc_recoverable_export_root.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/ambiguous_member",
       "kind": "sem",
       "path": "testdata/sem/ambiguous_member.txtar",
@@ -10176,6 +10198,28 @@
       "id": "sem/effects_noalloc_fn_bind",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_fn_bind.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_fn_bound",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fn_bound.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_fn_bound_copy",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fn_bound_copy.txtar",
       "mode": [
         "check"
       ],

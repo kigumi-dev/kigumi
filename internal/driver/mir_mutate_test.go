@@ -19,7 +19,7 @@ import (
 var mutantBases = []string{
 	"adt", "closures", "async", "async_method", "direct_aggregate", "direct_closure",
 	"direct_fixed_array", "fixed_array", "generic_direct_methods", "generics",
-	"mut_self_dispatch", "iface_static", "direct_adt", "conform_generic_method_dispatch",
+	"mut_self_dispatch", "iface_static", "direct_adt", "conform_generic_method_dispatch", "cfnptr",
 }
 
 func fixtureFile(base string) string { return base + ".txtar" }
@@ -56,14 +56,20 @@ type sweepStats struct {
 	vm                map[vmOutcome]int
 }
 
-func checkMutant(base *mir.Program, mu *mutator, seed int64, st *sweepStats, verbose func(string, ...any)) (what, finding string) {
-	p, what := mutantOf(base, mu, seed)
-	return what, checkProgram(p, st, verbose)
+func checkMutant(base *mir.Program, mu *mutator, seed int64, st *sweepStats, verbose func(string, ...any)) (what, finding, pin string) {
+	p, what, rec := mutantOf(base, mu, seed)
+	finding = checkProgram(p, st, verbose)
+	if finding != "" {
+		pin = rec.format(p)
+	}
+	return what, finding, pin
 }
 
-func mutantOf(base *mir.Program, mu *mutator, seed int64) (*mir.Program, string) {
+// mutantOf draws the mutation a seed stands for. Only the discovery sweep goes by seed; a regression is pinned by the returned recipe.
+func mutantOf(base *mir.Program, mu *mutator, seed int64) (*mir.Program, string, recipe) {
 	p := cloneProgram(base)
-	return p, mu.mutate(p, rand.New(rand.NewSource(seed)))
+	what, rec := mu.mutateRecorded(p, rand.New(rand.NewSource(seed)))
+	return p, what, rec
 }
 
 func checkProgram(p *mir.Program, st *sweepStats, verbose func(string, ...any)) (finding string) {
@@ -128,9 +134,9 @@ func TestMutatedMIR(t *testing.T) {
 			st := &sweepStats{rejected: map[string]int{}, vm: map[vmOutcome]int{}}
 			findings := 0
 			for seed := from; findings < maxFindings && (st.mutants < count || time.Now().Before(deadline)); seed++ {
-				if what, finding := checkMutant(base, m, seed, st, func(string, ...any) {}); finding != "" {
+				if what, finding, pin := checkMutant(base, m, seed, st, func(string, ...any) {}); finding != "" {
 					findings++
-					t.Errorf("seed %d (%s): verifier accepted MIR the back end could not take: %s\nreplay: KIGUMI_MIR_FUZZ_REPLAY=%s:%d go test ./internal/driver/ -run TestMutatedMIR -v", seed, what, finding, name, seed)
+					t.Errorf("seed %d (%s): verifier accepted MIR the back end could not take: %s\nreplay: KIGUMI_MIR_FUZZ_REPLAY=%s:%d go test ./internal/driver/ -run TestMutatedMIR -v\npin it in mir_mutate_regress_test.go as base %q with the recipe:\n%s", seed, what, finding, name, seed, name, pin)
 				}
 			}
 			mu.Lock()
@@ -149,8 +155,8 @@ func replayMutant(t *testing.T, spec string) {
 	debug.SetTraceback("all")
 	base := analyzeFixture(t, fixtureFile(name))
 	st := &sweepStats{rejected: map[string]int{}, vm: map[vmOutcome]int{}}
-	p, what := mutantOf(base, newMutator(base), seed)
-	t.Logf("mutant: %s", what)
+	p, what, rec := mutantOf(base, newMutator(base), seed)
+	t.Logf("mutant: %s\nrecipe:\n%s", what, rec.format(p))
 	for _, d := range changedFuncs(base, p) {
 		t.Logf("%s", d)
 	}
@@ -176,8 +182,8 @@ func FuzzMutatedMIR(f *testing.F) {
 	f.Fuzz(func(t *testing.T, which uint8, seed int64) {
 		i := int(which) % len(mutantBases)
 		st := &sweepStats{rejected: map[string]int{}, vm: map[vmOutcome]int{}}
-		if what, finding := checkMutant(bases[i], muts[i], seed, st, func(string, ...any) {}); finding != "" {
-			t.Fatalf("%s seed %d (%s): %s", mutantBases[i], seed, what, finding)
+		if what, finding, pin := checkMutant(bases[i], muts[i], seed, st, func(string, ...any) {}); finding != "" {
+			t.Fatalf("%s seed %d (%s): %s\nrecipe:\n%s", mutantBases[i], seed, what, finding, pin)
 		}
 	})
 }

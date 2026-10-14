@@ -70,17 +70,32 @@ func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
 	return out
 }
 
-// A box is reported as a diagnostic; only a copy in a `noalloc` body is a compiler fault.
+// A box is reported as a diagnostic; a copy in a `noalloc` body is a compiler fault unless sem charged it, where a declaration already rejected it.
 func (p *Program) verifyAllocClaim(f *Func) *Error {
-	if f.Ent == 0 || !p.R.Summary(f.Ent).Noalloc || p.declaredNoalloc(f) {
+	if f.Ent == 0 {
+		return nil
+	}
+	declared := p.declaredNoalloc(f)
+	if !declared && !p.R.Summary(f.Ent).Noalloc {
 		return nil
 	}
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if p.allocCopy(f, in) {
-				return fail("alloc-claim", BlockID(bid), i, "copies %s where the summary claims no allocation", p.R.TypeString(p.copiedType(f, in)))
+			if !p.allocCopy(f, in) {
+				continue
 			}
+			if declared && p.copyAccounted(f, in) {
+				continue
+			}
+			return fail("alloc-claim", BlockID(bid), i, "copies %s where the summary claims no allocation", p.R.TypeString(p.copiedType(f, in)))
 		}
 	}
 	return nil
+}
+
+func (p *Program) copyAccounted(f *Func, in Inst) bool {
+	if _, deferred := p.paramCopy(f, in); deferred {
+		return true
+	}
+	return p.R.CopyCharged(p.copySite(f, in))
 }

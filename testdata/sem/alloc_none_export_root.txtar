@@ -1,0 +1,46 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+fn make(n: Int) -> Int {
+    let r = Nm { name: "a", n: n }
+    r.n
+}
+
+// Foreign code calls these without going through main, so each one is a root of its own.
+export(C) {
+    pub fn lib_clean(n: i64) -> i64 {
+        n + 1
+    }
+
+    pub fn lib_direct(n: i64) -> i64 {
+        let r = Nm { name: "a", n: 1 } //~ ERROR this allocation needs the default allocator
+        r.n + n
+    }
+
+    pub fn lib_called(n: i64) -> i64 {
+        make(1) + n //~ ERROR `make` needs the default allocator
+    }
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E959]: this allocation needs the default allocator, but this build has none (--allocator none)
+  --> main.kg:18:17
+   |
+18 |         let r = Nm { name: "a", n: 1 } //~ ERROR this allocation needs the default allocator
+   |                 ^^^^^^^^^^^^^^^^^^^^
+   = help: allocate inside an `allocator` block
+
+error[E959]: `make` needs the default allocator, but this build has none (--allocator none)
+  --> main.kg:23:9
+   |
+23 |         make(1) + n //~ ERROR `make` needs the default allocator
+   |         ^^^^^^
+   = help: allocate inside an `allocator` block
+

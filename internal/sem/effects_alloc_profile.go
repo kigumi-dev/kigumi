@@ -106,26 +106,28 @@ func (r *Result) recoverableEdgeSafe(e EffectEdge, safe map[EntityID]bool) bool 
 	return true
 }
 
-// checkRecoverableOnly enforces the recoverable-only profile at the
-// entry: the first edge reaching a fatal allocation path is reported.
+// checkRecoverableOnly enforces the recoverable-only profile at every
+// root: the first edge reaching a fatal allocation path is reported.
 func (r *Result) checkRecoverableOnly(nodes []EntityID) {
-	entry := r.MainFn()
-	if entry == 0 {
+	roots := r.allocRoots()
+	if len(roots) == 0 {
 		return
 	}
 	safe := r.inferRecoverableSafe(nodes)
-	if safe[entry] {
-		return
-	}
-	for _, e := range r.edgesOf(entry) {
-		if r.recoverableEdgeSafe(e, safe) {
+	for _, root := range roots {
+		if safe[root] {
 			continue
 		}
-		what := "this allocation"
-		if (e.Kind == EdgeCall || e.Kind == EdgeCallback) && e.Target != 0 {
-			what = "`" + r.Entities[e.Target].Name + "`"
+		for _, e := range r.edgesOf(root) {
+			if r.recoverableEdgeSafe(e, safe) {
+				continue
+			}
+			what := "this allocation"
+			if (e.Kind == EdgeCall || e.Kind == EdgeCallback) && e.Target != 0 {
+				what = "`" + r.Entities[e.Target].Name + "`"
+			}
+			r.errAt(e.File, e.Node, cRecoverableOnlyFatalAlloc, what)
+			break
 		}
-		r.errAt(e.File, e.Node, cRecoverableOnlyFatalAlloc, what)
-		return
 	}
 }

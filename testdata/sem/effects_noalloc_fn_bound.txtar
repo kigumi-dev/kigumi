@@ -1,0 +1,83 @@
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+type W = {
+    pub mut nm Nm
+}
+
+fn mkn(x: Int) -> Nm { Nm { name: "b", n: x } }
+
+fn plainFn(x: Int) -> Int { mkn(x).n }
+
+noalloc fn cheap(x: Int) -> Int { x + 1 }
+
+noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+pure fn applyPure[F: Fn[pure fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+fn okItem() -> Int { applyGen(cheap, 1) }
+
+fn okClosure(n: Int) -> Int {
+    let k = n + 1
+    applyGen((x: Int) => x + k, 1)
+}
+
+fn okForwarded(f: noalloc fn(Int) -> Int) -> Int { applyGen(f, 1) }
+
+fn badItem() -> Int { applyGen(plainFn, 1) } //~ ERROR `plainFn` is not `noalloc`
+
+fn badClosure() -> Int { applyGen((x: Int) => mkn(x).n, 1) } //~ ERROR closure is not `noalloc`
+
+fn badBuild(w: &mut W) -> Int {
+    applyGen((x: Int) => { //~ ERROR closure is not `noalloc`
+        w.nm = Nm { name: "b", n: x }
+        x
+    }, 1)
+}
+
+fn badValue(f: fn(Int) -> Int) -> Int { applyGen(f, 1) } //~ ERROR `fn(Int) -> Int` cannot be used as `noalloc fn(Int) -> Int`
+
+fn badPure() -> Int {
+    applyPure((x: Int) => { //~ ERROR closure is not `pure`
+        print "${x}"
+        x
+    }, 1)
+}
+-- expect --
+error[E423]: `plainFn` is not `noalloc` (calls `mkn`)
+  --> main/main.kg:33:32
+   |
+33 | fn badItem() -> Int { applyGen(plainFn, 1) } //~ ERROR `plainFn` is not `noalloc`
+   |                                ^^^^^^^
+
+error[E422]: closure is not `noalloc` (calls `mkn`)
+  --> main/main.kg:35:35
+   |
+35 | fn badClosure() -> Int { applyGen((x: Int) => mkn(x).n, 1) } //~ ERROR closure is not `noalloc`
+   |                                   ^^^^^^^^^^^^^^^^^^^^
+
+error[E422]: closure is not `noalloc` (allocates)
+  --> main/main.kg:38:14
+   |
+38 |     applyGen((x: Int) => { //~ ERROR closure is not `noalloc`
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E421]: `fn(Int) -> Int` cannot be used as `noalloc fn(Int) -> Int`: it is not declared `noalloc`
+  --> main/main.kg:44:50
+   |
+44 | fn badValue(f: fn(Int) -> Int) -> Int { applyGen(f, 1) } //~ ERROR `fn(Int) -> Int` cannot be used as `noalloc fn(Int) -> Int`
+   |                                                  ^
+
+error[E422]: closure is not `pure` (performs I/O)
+  --> main/main.kg:47:15
+   |
+47 |     applyPure((x: Int) => { //~ ERROR closure is not `pure`
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -249,7 +249,7 @@ func editStr(s *site) string {
 	if len(s.m.strs) == 0 {
 		return ""
 	}
-	in.Str = s.m.strs[s.r.Intn(len(s.m.strs))]
+	in.Str = s.str()
 	return fmt.Sprintf("%s text of %s now %q", s.where(), in.Op, in.Str)
 }
 
@@ -271,12 +271,12 @@ func editPrim(s *site) string {
 		if len(s.m.prims) == 0 {
 			return ""
 		}
-		in.Prim = s.m.prims[s.r.Intn(len(s.m.prims))]
+		in.Prim = s.prim()
 	case 1:
 		if len(s.m.provs) == 0 {
 			return ""
 		}
-		in.Prov = s.m.provs[s.r.Intn(len(s.m.provs))]
+		in.Prov = s.prov()
 	default:
 		in.DPrim = mir.DirectPrim(s.r.Intn(int(mir.DPPow) + 2))
 	}

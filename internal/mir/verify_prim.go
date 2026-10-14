@@ -57,7 +57,7 @@ func (p *Program) primMismatch(f *Func, in Inst) string {
 		return ""
 	}
 	if skip == 1 {
-		if msg := p.primSlot(p.R.Entity(info.Owner).Type, p.derefAll(f.Locals[in.Args[0]].Type)); msg != "" {
+		if msg := p.receiverMismatch(p.receiverOwner(info), f.Locals[in.Args[0]].Type); msg != "" {
 			return "receiver " + msg
 		}
 	}
@@ -91,4 +91,23 @@ func (p *Program) derefAll(t sem.TypeID) sem.TypeID {
 		t = p.R.Types.Node(t).Elem
 	}
 	return t
+}
+
+// A generic type's entity has no type of its own, so its methods are held to their declared receiver.
+func (p *Program) receiverOwner(info *sem.FnInfo) sem.TypeID {
+	if info.SelfParam != 0 {
+		return p.R.Entity(info.SelfParam).Type
+	}
+	return p.R.Entity(info.Owner).Type
+}
+
+func (p *Program) receiverMismatch(owner, got sem.TypeID) string {
+	owner, got = p.derefAll(owner), p.derefAll(got)
+	if msg := p.primSlot(owner, got); msg != "" {
+		return msg
+	}
+	if !p.looseType(owner) && !p.compatibleGeneric(owner, got) {
+		return "wants " + p.R.TypeString(owner) + ", got " + p.R.TypeString(got)
+	}
+	return ""
 }

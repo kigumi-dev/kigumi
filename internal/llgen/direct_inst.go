@@ -42,12 +42,12 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 		}
 	case mir.OpField, mir.OpFieldMove:
 		if a, ok := e.direct[in.Args[0]]; ok {
-			e.loadLeaf(sb, f, a.Fields[in.Index], e.fieldPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Dst)
+			e.loadLeaf(sb, f, leafOf(a, in), e.fieldPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Dst)
 			return true
 		}
 	case mir.OpSetField:
 		if a, ok := e.direct[in.Args[0]]; ok {
-			e.storeLeaf(sb, a.Fields[in.Index], e.fieldPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Args[1])
+			e.storeLeaf(sb, leafOf(a, in), e.fieldPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Args[1])
 			return true
 		}
 	case mir.OpAlias, mir.OpMove, mir.OpCopy, mir.OpShare:

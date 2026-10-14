@@ -1,0 +1,31 @@
+-- module --
+mir: planned
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+noalloc fn take(n: Nm) -> Int { n.n }
+
+noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+// The closure body copies the captured record to hand it over by value, which only the built program sees.
+fn badCopy(n: Nm) -> Int {
+    applyGen((x: Int) => take(n) + x, 1) //~ ERROR closure is not `noalloc`
+}
+
+fn okRead(n: Nm) -> Int {
+    applyGen((x: Int) => n.n + x, 1)
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E422]: closure is not `noalloc` (allocates)
+  --> main.kg:14:14
+   |
+14 |     applyGen((x: Int) => take(n) + x, 1) //~ ERROR closure is not `noalloc`
+   |              ^^^^^^^^^^^^^^^^^^^^^^^
+

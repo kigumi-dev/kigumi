@@ -12,10 +12,10 @@ export(C) {
     }
 }
 -- expect --
-error[E1370]: `HANDLE_TABLE_NEW` reaches the `ffi.handle-table` capability, which this target does not provide: its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)
+error[E959]: `new` needs the default allocator, but this build has none (--allocator none)
  --> main.kg:5:21
   |
 5 |         let table = ffi.HandleTable.new[Int]()
   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
-  = help: reached through: start
+  = help: allocate inside an `allocator` block
 

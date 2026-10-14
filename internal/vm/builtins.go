@@ -26,8 +26,6 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 			m.abort(m.display(args[0]))
 		}
 		m.abort("explicit panic")
-	case "message":
-		return m.errorMessage(args[0])
 	case "host":
 		if m.opts.Sandbox {
 			m.abort("`host` is not available at compile time")

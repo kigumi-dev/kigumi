@@ -30,21 +30,26 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 			param = info.Params[i]
 		}
 		at := c.vars.resolve(c.info.Types[a])
+		need, bound := c.fnBoundMods(fn, i)
 		switch {
 		case c.info.Uses[a] != 0 && c.r.Entities[c.info.Uses[a]].Kind == EntFn:
 			tgt := c.info.Uses[a]
 			c.edge(EffectEdge{Kind: EdgeCallback, Target: tgt, Param: param, Node: a, Offloaded: offloaded})
 			c.fnBoundArgEdge(n, tgt, param)
+			c.fnBoundContract(a, tgt, need)
 		case tt.Kind(at) == KClosure:
 			tgt := tt.Node(at).Ent
 			c.edge(EffectEdge{Kind: EdgeCallback, Target: tgt, Param: param, Node: a, Offloaded: offloaded})
 			c.fnBoundArgEdge(n, tgt, param)
+			c.fnBoundContract(a, tgt, need)
 		case c.localKnownFns(a) != nil:
 			for _, tgt := range c.localKnownFns(a) {
 				c.edge(EffectEdge{Kind: EdgeCallback, Target: tgt, Param: param, Node: a, Offloaded: offloaded})
 				c.fnBoundArgEdge(n, tgt, param)
+				c.fnBoundContract(a, tgt, need)
 			}
 		default:
+			c.fnBoundValue(a, at, bound, need)
 			c.stageFnFieldHandoff(n, a, param)
 			if shape := c.r.fnShapeOf(at); shape != 0 {
 				c.callbackEdge(n, a, Effects(tt.Node(shape).Flags), param, offloaded)

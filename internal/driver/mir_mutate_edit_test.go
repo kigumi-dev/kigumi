@@ -2,8 +2,6 @@ package driver_test
 
 import (
 	"fmt"
-	"math/rand"
-	"strings"
 
 	"kigumi/internal/mir"
 	"kigumi/internal/sem"
@@ -66,39 +64,18 @@ func newMutator(p *mir.Program) *mutator {
 }
 
 type site struct {
-	m  *mutator
-	p  *mir.Program
-	r  *rand.Rand
-	f  *mir.Func
-	bi int
-	ii int
+	m     *mutator
+	p     *mir.Program
+	r     *chooser
+	f     *mir.Func
+	fnIdx int
+	bi    int
+	ii    int
 }
 
 func (s *site) blk() *mir.Block { return &s.f.Blocks[s.bi] }
 func (s *site) inst() *mir.Inst { return &s.f.Blocks[s.bi].Insts[s.ii] }
 func (s *site) hasInst() bool   { return s.ii >= 0 }
-
-func (s *site) local() mir.LocalID {
-	if len(s.f.Locals) == 0 || s.r.Intn(24) == 0 {
-		return mir.LocalID(len(s.f.Locals) + s.r.Intn(2))
-	}
-	return mir.LocalID(s.r.Intn(len(s.f.Locals)))
-}
-
-func (s *site) typ() sem.TypeID {
-	if s.r.Intn(12) == 0 {
-		return sem.TypeID(s.r.Intn(s.p.R.Types.Len()))
-	}
-	return s.m.types[s.r.Intn(len(s.m.types))]
-}
-
-func (s *site) ent(k sem.EntityKind) (sem.EntityID, bool) {
-	pool := s.m.ents[k]
-	if len(pool) == 0 {
-		return 0, false
-	}
-	return pool[s.r.Intn(len(pool))], true
-}
 
 func (s *site) block() mir.BlockID {
 	return mir.BlockID(s.r.Intn(len(s.f.Blocks) + 1))
@@ -117,46 +94,23 @@ type edit struct {
 	apply func(s *site) string
 }
 
-func (m *mutator) pickFunc(p *mir.Program, r *rand.Rand) *mir.Func {
-	if len(m.user) > 0 && r.Intn(10) < 7 {
-		return p.Funcs[m.user[r.Intn(len(m.user))]]
+func (m *mutator) pickFunc(p *mir.Program, r *chooser) int {
+	if len(m.user) > 0 && r.draw(10) < 7 {
+		return m.user[r.draw(len(m.user))]
 	}
-	if len(p.Comptime) > 0 && r.Intn(40) == 0 {
-		return p.Comptime[r.Intn(len(p.Comptime))].Func
+	if len(p.Comptime) > 0 && r.draw(40) == 0 {
+		return len(p.Funcs) + r.draw(len(p.Comptime))
 	}
-	return p.Funcs[r.Intn(len(p.Funcs))]
+	return r.draw(len(p.Funcs))
 }
 
-func (m *mutator) pickSite(p *mir.Program, r *rand.Rand) *site {
-	f := m.pickFunc(p, r)
-	s := &site{m: m, p: p, r: r, f: f, bi: r.Intn(len(f.Blocks)), ii: -1}
+func (m *mutator) pickSite(p *mir.Program, r *chooser) *site {
+	idx := m.pickFunc(p, r)
+	f := allFuncs(p)[idx]
+	s := &site{m: m, p: p, r: r, f: f, fnIdx: idx, ii: -1}
+	s.bi = r.draw(len(f.Blocks))
 	if n := len(s.blk().Insts); n > 0 {
-		s.ii = r.Intn(n)
+		s.ii = r.draw(n)
 	}
 	return s
-}
-
-func (m *mutator) mutate(p *mir.Program, r *rand.Rand) string {
-	n := 1
-	if r.Intn(4) == 0 {
-		n++
-		if r.Intn(4) == 0 {
-			n++
-		}
-	}
-	var did []string
-	for attempt := 0; len(did) < n && attempt < 80; attempt++ {
-		s := m.pickSite(p, r)
-		e := allEdits[r.Intn(len(allEdits))]
-		if e.inst && !s.hasInst() {
-			continue
-		}
-		if d := e.apply(s); d != "" {
-			did = append(did, fmt.Sprintf("%s: %s", e.name, d))
-		}
-	}
-	if len(did) == 0 {
-		return "no edit applied"
-	}
-	return strings.Join(did, "; ")
 }

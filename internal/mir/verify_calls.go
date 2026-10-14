@@ -29,6 +29,10 @@ func (p *Program) callMismatch(f *Func, in Inst) string {
 		return msg
 	case OpCallValue:
 		return p.valueCallMismatch(f, in)
+	case OpCallC:
+		return p.cCallMismatch(f, in)
+	case OpAsm:
+		return p.asmMismatch(f, in)
 	case OpClosure:
 		if callee := p.ByEnt[in.Ent]; callee != nil {
 			if msg := p.captureMismatch(f, in, callee); msg != "" {
