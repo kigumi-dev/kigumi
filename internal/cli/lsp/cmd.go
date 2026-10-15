@@ -19,7 +19,7 @@ func Cmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return errors.WrapErr(lsp.Serve(shared.StdRoot(cmd), target, shared.PackageCache(), shared.CompilerOptions()), "language server")
+			return errors.WrapErr(lsp.Serve(shared.StdRoot(cmd), target, shared.PackageCache(), shared.CompilerOptions(), shared.UnitCheck()), "language server")
 		},
 	}
 }

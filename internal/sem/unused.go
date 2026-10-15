@@ -8,7 +8,7 @@ func (r *Result) reportUnused() {
 	}
 	for id := 1; id < len(r.Entities); id++ {
 		e := &r.Entities[id]
-		if e.Kind != EntImport || e.Flags&(EfUsed|EfReexport|EfPoison) != 0 {
+		if e.Kind != EntImport || e.Flags&(EfUsed|EfReexport|EfPoison) != 0 || r.lazyPkg != nil && r.lazyPkg[e.Pkg] && r.namedOutside(e.File, e.Name) {
 			continue
 		}
 		r.errFix(e.File, e.Node, r.removeLine(e.File, e.Node, "Remove unused import"), cImportUnused, e.Name)

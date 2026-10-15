@@ -30,6 +30,11 @@ func Analyze(m *Module) (*Analysis, error) {
 // AnalyzeWith is Analyze with an explicit sem.DeriveGenerator (nil keeps
 // Analyze's default); a caller overrides it to compare generators or check a module that can't derive.
 func AnalyzeWith(m *Module, gen sem.DeriveGenerator) (*Analysis, error) {
+	if m.lazyStd && !m.lowerAll {
+		if a, ok, err := m.analyzeLazyStd(gen); ok || err != nil {
+			return a, err
+		}
+	}
 	mod, err := m.semModule()
 	if err != nil {
 		return nil, err
@@ -91,7 +96,7 @@ type progOptions struct {
 // buildProgram returns a program with diagnostics unverified.
 func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	prog := lowerProgram(res, o.lowerAll, o.rootKeep)
-	if res.HasErrors() {
+	if res.HasErrors() || len(prog.Skipped) > 0 {
 		return prog, nil
 	}
 	prog.VerifyEach = o.verifyEach

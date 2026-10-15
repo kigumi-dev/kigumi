@@ -175,4 +175,6 @@ type Result struct {
 	boxedLends                map[lendSite]bool
 	pendingLends              []lendSite
 	allocBlocks               []allocBlock
+	skipBody                  []bool
+	lazyPkg                   []bool
 }

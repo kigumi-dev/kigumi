@@ -14,7 +14,7 @@ func Check(m *Module) (*sem.Result, error) {
 	if m.settled != nil {
 		return sem.ReplayResult(m.settled.Render, false), nil
 	}
-	a, err := Analyze(m)
+	a, err := m.analyzeForCheck()
 	if err != nil {
 		return nil, err
 	}

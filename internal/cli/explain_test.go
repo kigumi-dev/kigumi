@@ -42,6 +42,13 @@ fn quiet() -> Unit {}
 		t.Fatalf("explain --fn on an allocating function: exit %d\n%s%s", code, out, errOut)
 	}
 
+	for _, fn := range []string{"std/array.join", "std/text.lines"} {
+		code, out, errOut = execute(t, "--std", std, "explain", "--fn", fn, file)
+		if code != 0 || !strings.Contains(out, "may allocate") {
+			t.Fatalf("explain --fn on %s, which the module never names: exit %d\n%s%s", fn, code, out, errOut)
+		}
+	}
+
 	code, out, errOut = execute(t, "--std", std, "explain", "--fn", "main.quiet", file)
 	if code != 0 || !strings.Contains(out, "no operation in this closed vocabulary") {
 		t.Fatalf("explain --fn on a quiet function: exit %d\n%s%s", code, out, errOut)

@@ -58,4 +58,6 @@ type Module struct {
 	ArtifactName string
 	// Cancel is polled between phases and before each body; true stops the check.
 	Cancel func() bool
+	// LazyBodies names the packages whose bodies are checked only when an eagerly checked body names them.
+	LazyBodies func(path string) bool
 }

@@ -19,6 +19,7 @@ func explainOp(cmd *cobra.Command, name, target string) error {
 	if err != nil {
 		return err
 	}
+	m.EveryBody()
 	res, err := driver.Check(m)
 	if err != nil {
 		return errors.WrapErr(err, "check module")

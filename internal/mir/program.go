@@ -23,6 +23,8 @@ type Program struct {
 	unlowered  []bool
 	// rootKeep, when set, limits the up-front lowering to the packages it accepts.
 	rootKeep func(path string) bool
+	// Skipped lists the bodies lowering needed that sem left unchecked; the program is unusable when it is non-empty.
+	Skipped []sem.EntityID
 }
 
 // Unlowered reports whether ent has a body Build left out because nothing reaches it.

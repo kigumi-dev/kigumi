@@ -16,6 +16,17 @@ type lowering struct {
 }
 
 func (p *Program) lowerable(id sem.EntityID) bool {
+	if !p.hasLowerableBody(id) {
+		return false
+	}
+	if p.R.BodySkipped(id) {
+		p.Skipped = append(p.Skipped, id)
+		return false
+	}
+	return true
+}
+
+func (p *Program) hasLowerableBody(id sem.EntityID) bool {
 	if _, minted := p.R.InstanceOf(id); minted {
 		return false
 	}
@@ -47,7 +58,7 @@ func (p *Program) lowerReachable(all bool) {
 	if !all {
 		p.unlowered = make([]bool, len(p.R.Entities))
 		for i := 1; i < len(p.unlowered); i++ {
-			p.unlowered[i] = p.ByEnt[sem.EntityID(i)] == nil && p.lowerable(sem.EntityID(i))
+			p.unlowered[i] = p.ByEnt[sem.EntityID(i)] == nil && p.hasLowerableBody(sem.EntityID(i))
 		}
 	}
 }
@@ -63,7 +74,7 @@ func (p *Program) lowerRoots(all bool) []sem.EntityID {
 	var roots []sem.EntityID
 	for i := 1; i < len(r.Entities); i++ {
 		id := sem.EntityID(i)
-		if p.lowerable(id) && (all || comptime[id] || p.alwaysLowered(id, main) && p.keepsRoot(id)) {
+		if p.hasLowerableBody(id) && (all || comptime[id] || p.alwaysLowered(id, main) && p.keepsRoot(id)) && p.lowerable(id) {
 			roots = append(roots, id)
 		}
 	}

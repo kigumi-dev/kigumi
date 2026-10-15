@@ -31,6 +31,7 @@ func (r *Result) phases() []func() {
 		r.checkContextProviders,
 		r.checkImpls,
 		r.closeFieldParamForwarding,
+		r.planLazyBodies,
 		r.checkBodies,
 		r.bindLateFieldCalls,
 		r.resolveRefCells,

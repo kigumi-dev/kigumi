@@ -49,6 +49,7 @@ type Server struct {
 	counts   counters
 	cache    string
 	compiler driver.CompilerOptions
+	lazyStd  bool
 	docSyms  map[uri.URI]docSymbols
 	pkgSyms  map[string]pkgSymbols
 	hook     func(stage string, in *analysisInput)
@@ -76,6 +77,12 @@ func (s *Server) WithPackageCache(dir string, o driver.CompilerOptions) *Server 
 	return s
 }
 
+// WithLazyStd lets the MIR diagnostics run skip the std bodies a module never names.
+func (s *Server) WithLazyStd(on bool) *Server {
+	s.lazyStd = on
+	return s
+}
+
 type stdio struct{}
 
 func (stdio) Read(p []byte) (int, error)  { return os.Stdin.Read(p) }
@@ -89,8 +96,8 @@ func (s *Server) WithTarget(t driver.Target) *Server {
 }
 
 // Serve speaks the protocol on stdin/stdout until the client hangs up.
-func Serve(stdRoot string, target driver.Target, cache string, o driver.CompilerOptions) error {
-	_, conn, _ := protocol.NewServer(context.Background(), New(stdRoot).WithTarget(target).WithPackageCache(cache, o), jsonrpc2.NewStream(stdio{}))
+func Serve(stdRoot string, target driver.Target, cache string, o driver.CompilerOptions, lazyStd bool) error {
+	_, conn, _ := protocol.NewServer(context.Background(), New(stdRoot).WithTarget(target).WithPackageCache(cache, o).WithLazyStd(lazyStd), jsonrpc2.NewStream(stdio{}))
 	<-conn.Done()
 	if err := conn.Err(); err != nil && err != io.EOF {
 		return err

@@ -156,7 +156,7 @@ func sweepSeed(name string, k int) int64 {
 	return int64(h.Sum64())
 }
 
-type sweepTotals struct{ fixtures, multi, runs, replays, fallbacks int }
+type sweepTotals struct{ fixtures, multi, runs, replays, fallbacks, lazy, lazyRetries int }
 
 func sweepFixtureRun(t *testing.T, fx sweepFixture, mutations int, tot *sweepTotals) {
 	root, cache := t.TempDir(), t.TempDir()
@@ -213,6 +213,8 @@ func sweepFixtureRun(t *testing.T, fx sweepFixture, mutations int, tot *sweepTot
 		st := um.UnitStats()
 		tot.runs += st.Runs
 		tot.fallbacks += st.Fallbacks
+		tot.lazy += st.Lazy
+		tot.lazyRetries += st.LazyRetries
 		for _, n := range st.Replayed {
 			tot.replays += n
 		}
@@ -235,7 +237,7 @@ func TestUnitSweepSemFixtures(t *testing.T) {
 		}
 		t.Run(fx.name, func(t *testing.T) { sweepFixtureRun(t, fx, unitSweepMutations, &tot) })
 	}
-	t.Logf("fixtures=%d multi-package=%d semantic runs=%d replayed packages=%d fallbacks=%d", tot.fixtures, tot.multi, tot.runs, tot.replays, tot.fallbacks)
+	t.Logf("fixtures=%d multi-package=%d semantic runs=%d replayed packages=%d fallbacks=%d lazy runs=%d lazy retries=%d", tot.fixtures, tot.multi, tot.runs, tot.replays, tot.fallbacks, tot.lazy, tot.lazyRetries)
 }
 
 const (

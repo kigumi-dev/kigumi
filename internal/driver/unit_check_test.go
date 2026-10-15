@@ -77,6 +77,9 @@ func TestUnitPrivateEditChecksOnlyThatPackage(t *testing.T) {
 	if m.Stats().Check != 1 {
 		t.Fatalf("one semantic run: %+v", m.Stats())
 	}
+	if st.Lazy != 1 || st.LazyRetries != 0 || st.SkippedBodies == 0 {
+		t.Fatalf("the run checks only the import bodies leaf names: %+v", st)
+	}
 }
 
 func TestUnitNoopWritesNothing(t *testing.T) {

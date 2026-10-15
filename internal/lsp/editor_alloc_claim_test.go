@@ -13,6 +13,12 @@ import (
 )
 
 func TestEditorReportsABoxOnlyTheBuildFinds(t *testing.T) {
+	for _, lazy := range []bool{false, true} {
+		t.Run(map[bool]string{false: "eager", true: "lazy-std"}[lazy], func(t *testing.T) { editorReportsABox(t, lazy) })
+	}
+}
+
+func editorReportsABox(t *testing.T, lazyStd bool) {
 	root := t.TempDir()
 	os.MkdirAll(filepath.Join(root, "main"), 0o755)
 	src := "type Point = {\n    pub x Int\n    pub y Int\n}\n\nfn size[T](v: &T) -> Int { 1 }\n\nnoalloc fn lend[T](v: T) -> Int { size(&v) }\n\nnoalloc fn span(p: Point) -> Int {\n    lend(p)\n}\n\nprint \"${span(Point { x: 1, y: 2 })}\"\n"
@@ -21,7 +27,7 @@ func TestEditorReportsABoxOnlyTheBuildFinds(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New(std)
+	s := lsp.New(std).WithLazyStd(lazyStd)
 	doc := uri.File(path)
 	if _, err := s.Initialize(ctx, initParams(uri.File(root))); err != nil {
 		t.Fatal(err)

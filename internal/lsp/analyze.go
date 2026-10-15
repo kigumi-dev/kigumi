@@ -82,7 +82,7 @@ func (s *Server) refresh(ctx context.Context, root string, u uri.URI, bump bool)
 func (s *Server) build(ctx context.Context, in *analysisInput) *snapshot {
 	s.counts.built.Add(1)
 	snap := &snapshot{root: in.root, gen: in.gen, pos: map[*syntax.Tree]*posIndex{}}
-	mod, err := driver.LoadModule(in.root, driver.LoadOptions{Test: true, StdRoot: s.stdRoot, Overlay: in.overlay, Target: s.target, AllPackages: true, DeferParse: true, PackageCache: s.cache, Compiler: s.compiler})
+	mod, err := driver.LoadModule(in.root, driver.LoadOptions{Test: true, StdRoot: s.stdRoot, Overlay: in.overlay, Target: s.target, AllPackages: true, DeferParse: true, PackageCache: s.cache, Compiler: s.compiler, LazyStd: s.lazyStd})
 	if err == nil && in.ctx.Err() != nil {
 		err = in.ctx.Err()
 	}

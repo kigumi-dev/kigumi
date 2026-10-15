@@ -15,11 +15,7 @@ func (u *unitPlan) run(batch []int) error {
 			}
 		}
 	}
-	mod, err := m.semModuleOf(func(path string) bool { return include[path] })
-	if err != nil {
-		return err
-	}
-	a, err := m.analyzeCore(mod, nil, func(path string) bool { return unit[path] })
+	a, lazy, err := u.analyze(unit, include)
 	if err != nil {
 		return err
 	}
@@ -33,7 +29,10 @@ func (u *unitPlan) run(batch []int) error {
 		u.comptime = true
 	}
 	for id := 1; id < len(res.Packages); id++ {
-		u.texts[res.Packages[id].Path] = res.RenderPackage(res.Packages[id].Path)
+		// A lazy run reports nothing outside its units, so an earlier run's text for an import stands.
+		if path := res.Packages[id].Path; unit[path] || !lazy {
+			u.texts[path] = res.RenderPackage(path)
+		}
 	}
 	for p := range include {
 		if unit[p] {
@@ -79,4 +78,27 @@ func (u *unitPlan) demote(p string) {
 	u.status[p] = st
 	u.m.pkgCache.putSealed("pkg", st.Key, keyRecord{Path: p, Digest: st.Digest})
 	u.m.unitStats.Demoted++
+}
+
+// analyze checks the unit's bodies and only the import bodies they name, and checks every body again when that was not enough.
+func (u *unitPlan) analyze(unit, include map[string]bool) (*Analysis, bool, error) {
+	if a, err := u.analyzeWith(unit, include, true); err == nil && lazyComplete(a) {
+		u.m.unitStats.Lazy++
+		u.m.unitStats.SkippedBodies += a.Res.SkippedBodies()
+		return a, true, nil
+	}
+	u.m.unitStats.LazyRetries++
+	a, err := u.analyzeWith(unit, include, false)
+	return a, false, err
+}
+
+func (u *unitPlan) analyzeWith(unit, include map[string]bool, lazy bool) (*Analysis, error) {
+	mod, err := u.m.semModuleOf(func(path string) bool { return include[path] })
+	if err != nil {
+		return nil, err
+	}
+	if lazy {
+		mod.LazyBodies = func(path string) bool { return !unit[path] }
+	}
+	return u.m.analyzeCore(mod, nil, func(path string) bool { return unit[path] })
 }

@@ -105,7 +105,7 @@ func (r *Result) checkBodies() {
 	}
 	for id := 1; id < len(r.Entities); id++ {
 		e := &r.Entities[id]
-		if e.File == 0 || e.Flags&EfPoison != 0 {
+		if e.File == 0 || e.Flags&EfPoison != 0 || r.BodySkipped(EntityID(id)) {
 			continue
 		}
 		if r.Cancelled() {

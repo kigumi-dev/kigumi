@@ -97,12 +97,13 @@ type Module struct {
 	cancel      func() bool
 	pkgStatus   []PackageStatus
 	unitCheck   bool
+	lazyStd     bool
 	unitStats   UnitStats
 }
 
 // LoadModule indexes every package under root and the std stubs, then parses the packages the root set reaches. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
 func LoadModule(root string, opts LoadOptions) (*Module, error) {
-	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, rootDirs: opts.RootDirs, rootImports: opts.RootImports, allPackages: opts.AllPackages, allOwn: opts.AllOwnPackages, deferred: opts.DeferParse, unitCheck: opts.UnitCheck, test: opts.Test, keyEntry: opts.Entry, keyExplicit: opts.Entry != "", fileOrder: opts.FileOrder, compiler: opts.Compiler}
+	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, rootDirs: opts.RootDirs, rootImports: opts.RootImports, allPackages: opts.AllPackages, allOwn: opts.AllOwnPackages, deferred: opts.DeferParse, unitCheck: opts.UnitCheck, lazyStd: opts.LazyStd, test: opts.Test, keyEntry: opts.Entry, keyExplicit: opts.Entry != "", fileOrder: opts.FileOrder, compiler: opts.Compiler}
 	m.index = newPkgIndex(opts.PackageCache, root, opts.Compiler, time.Now)
 	m.pkgCache = newPackageCache(opts.PackageCache)
 	if m.target.OS == "" {

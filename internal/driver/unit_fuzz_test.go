@@ -144,7 +144,7 @@ func TestUnitFuzzRichModule(t *testing.T) {
 		fx := sweepFixture{name: fmt.Sprintf("rich-%d", seed), files: richFiles(), entry: "cmd/app/main.kg", keepClean: true}
 		t.Run(fx.name, func(t *testing.T) { sweepFixtureRun(t, fx, 6, &tot) })
 	}
-	t.Logf("semantic runs=%d replayed packages=%d fallbacks=%d", tot.runs, tot.replays, tot.fallbacks)
+	t.Logf("semantic runs=%d replayed packages=%d fallbacks=%d lazy runs=%d lazy retries=%d", tot.runs, tot.replays, tot.fallbacks, tot.lazy, tot.lazyRetries)
 }
 
 const unitFuzzSeeds = 12

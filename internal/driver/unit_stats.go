@@ -13,6 +13,10 @@ type UnitStats struct {
 	Demoted int
 	// Fallbacks counts the checks that gave up on units and ran the whole module.
 	Fallbacks int
+	// Lazy counts the runs that checked only the import and std bodies the checked code names; LazyRetries the ones that needed every body after all.
+	Lazy, LazyRetries int
+	// SkippedBodies counts the bodies the lazy runs left unchecked.
+	SkippedBodies int
 }
 
 // UnitStats reports what CheckUnits did for this module.

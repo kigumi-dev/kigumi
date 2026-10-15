@@ -32,7 +32,7 @@ func PackageCache() string {
 	}
 }
 
-// UnitCheck is off with KIGUMI_PKG_UNITS=off, which makes `kigumi check` check the whole module instead of skipping packages whose cached outcome is clean.
+// UnitCheck is off with KIGUMI_PKG_UNITS=off, which makes `kigumi check` check the whole module instead of skipping packages whose cached outcome is clean, and every command check every std body.
 func UnitCheck() bool { return os.Getenv("KIGUMI_PKG_UNITS") != "off" }
 
 // NoAccel reports KIGUMI_NO_ACCEL, which runs std bodies in Kigumi.
