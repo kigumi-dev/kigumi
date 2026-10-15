@@ -118,7 +118,7 @@ pub fn Pin.new[T](value: T) -> Pin[T]
 /// The userdata pointer to hand to C; valid while the Pin lives.
 pub fn Pin[T].ptr(self) -> *mut u8
 
-/// Runs f on the value behind a userdata pointer that came from a live Pin[T].
+/// Runs f once on the value behind a userdata pointer that came from a live Pin[T]; f is not kept.
 pub unsafe fn Pin.with[T, R](p: *mut u8, f: fn(&T) -> R) -> R
 
 /// Releases the value.
@@ -161,7 +161,7 @@ pub fn HandleTable.new[T]() -> HandleTable[T]
 /// Moves value into a fresh slot and returns an owned handle to it.
 pub fn HandleTable[T].insert(self, value: T) -> FfiHandle[T]
 
-/// Runs f with a borrow of h's value that cannot outlive the call; a
+/// Runs f once with a borrow of h's value that cannot outlive the call and does not keep f; a
 /// direct getter would let the borrow escape.
 pub fn HandleTable[T].with[R](self, h: &FfiHandle[T], f: fn(&T) -> R) -> R
 

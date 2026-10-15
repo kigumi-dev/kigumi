@@ -86,10 +86,10 @@ pub pure noalloc fn Array[T].len(self) -> usize
 /// A copy of the element at index, or None when index is out of range.
 pub pure noalloc fn Array[T: Copy].get(self, index: usize) -> T?
 
-/// Calls f with a borrow of the element at index; None when index is out of range.
+/// Calls f once with a borrow of the element at index and does not keep it (f is non-escaping); None when index is out of range.
 pub pure fn Array[T].with[R](self, index: usize, f: fn(&T) -> R) -> R?
 
-/// Calls f with an exclusive borrow of the element at index, so f can mutate it in place; None when index is out of range.
+/// Calls f once with an exclusive borrow of the element at index, so f can mutate it in place, and does not keep it; None when index is out of range.
 pub pure fn Array[T].withMut[R](mut self, index: usize, f: fn(&mut T) -> R) -> R?
 
 /// Moves the element at index out, closing the gap; None when index is out of range.
@@ -109,7 +109,7 @@ pub pure fn Array[T: Copy].take(self, count: usize) -> Array[T] {
     out
 }
 
-/// Applies f to every element and collects the results in order.
+/// Applies f to a borrow of every element and collects the results in order; f cannot move an element out (use `for` to consume them) and is not kept.
 pub pure fn Array[T].map[U](self, f: fn(&T) -> U) -> Array[U] {
     let mut out = Array.empty[U]()
     for item in &self {
