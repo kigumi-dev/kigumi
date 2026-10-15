@@ -30,7 +30,7 @@ operand "main.Point.choose[main.Point]" b1/0 move | i0 l"self"
 entity "main" b11/1 istype | i1 i5 ealias:"||byte"
 `},
 	{"direct_fixed_array", "structure", `
-local-flag "std/math.min"#2 b0/0 bin | i0 i0
+local-flag "std/math.min#(i8,i8)" b0/0 bin | i0 i0
 func "main.Point.hash" b0/0 builtin | i3 l+0
 `},
 	{"direct_closure", "types", `
@@ -44,7 +44,7 @@ term-operand "main.lendsCapture" b0/1 share | l"t1"
 duplicate "main.Pair.show" b0/3 release
 `},
 	{"direct_adt", "structure", `
-term-kind "std/math.clamp"#8 b1/1 share | i0
+term-kind "std/math.clamp#(u32,u32,u32)" b1/1 share | i0
 type "main.Point.equals" b0/0 builtin | i0
 `},
 	{"mut_self_dispatch", "cellops", `
