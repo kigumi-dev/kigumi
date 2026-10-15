@@ -62,12 +62,6 @@ static void task_request_cancel(kgtask* t) {
     for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
     task_wake(t);
 }
-static char* dup_msg(const char* m) {
-    size_t n = strlen(m) + 1;
-    char* d = malloc(n);
-    if (d) memcpy(d, m, n);
-    return d;
-}
 static void task_inherit_fault(kgtask* t) {
     if (t->ending == T_FAULTED) return;
     for (int i = 0; i < t->nkids; i++)
@@ -116,38 +110,6 @@ static void task_begin_finish(kgtask* t, int end) {
     task_finish_drain(t);
 }
 #ifdef KG_CATCH
-static void join_fault(const char* msg) {
-    char* m = dup_msg(msg);
-    if (!m) rt_fatal(msg);
-    g_fault_count++;
-    if (!g_fault_msg) {
-        g_fault_msg = m;
-        return;
-    }
-    size_t a = strlen(g_fault_msg), b = strlen(m);
-    char* j = malloc(a + b + 9);
-    if (!j) rt_fatal(msg);
-    memcpy(j, g_fault_msg, a);
-    memcpy(j + a, "\npanic: ", 8);
-    memcpy(j + a + 8, m, b + 1);
-    free(g_fault_msg);
-    free(m);
-    g_fault_msg = j;
-}
-// A frame record stays on the stack while it runs so a panic inside resumes it; other records are one-shot and pop first.
-static void task_raise(void) {
-    while (g_unwind != g_unwind_base) {
-        kg_unwind* u = g_unwind;
-        if (u->run != unwind_frame) g_unwind = u->prev;
-        if (u->run != unwind_frame || !g_cur_task || g_cur_task->parent) u->run(u);
-        if (g_unwind == u) g_unwind = u->prev;
-    }
-    KG_LONGJMP(*g_task_catch);
-}
-static void task_fault(const char* msg) {
-    join_fault(msg);
-    task_raise();
-}
 static __attribute__((noinline)) val poll_body(kgtask* t, int* faulted) {
     kg_jmp_buf jb;
     kg_jmp_buf* prev = g_task_catch;
@@ -171,36 +133,6 @@ static __attribute__((noinline)) val poll_body(kgtask* t, int* faulted) {
     g_task_catch = prev;
     g_unwind_base = prev_base;
     return r;
-}
-static __attribute__((noinline)) int contained(void (*fn)(val), val arg) {
-    kg_jmp_buf jb;
-    kg_jmp_buf* prev = g_task_catch;
-    int sp = g_alloc_sp;
-    int depth = g_drop_depth;
-    kg_unwind* prev_base = g_unwind_base;
-    g_unwind_base = g_unwind;
-    if (KG_SETJMP(jb)) {
-        g_task_catch = prev;
-        g_unwind_base = prev_base;
-        g_alloc_sp = sp;
-        g_drop_depth = depth;
-#ifdef KIGUMI_THREADS
-        g_flushing = 0;
-#endif
-        return 0;
-    }
-    g_task_catch = &jb;
-    fn(arg);
-    g_task_catch = prev;
-    g_unwind_base = prev_base;
-    return 1;
-}
-static void frame_slots_drop(val fut) {
-    kgframe* f = frame_of(fut);
-    if (f->desc->drop) f->desc->drop(fut);
-}
-static void frame_release(val fut) {
-    rt_release(fut);
 }
 // Inner to outer; a drop that panics only costs the slot it was releasing.
 static void frames_sweep(val root) {

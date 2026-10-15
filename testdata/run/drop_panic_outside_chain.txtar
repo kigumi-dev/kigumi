@@ -1,0 +1,51 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+    if self.id % 2 == 0 {
+        panic("drop ${self.id}")
+    }
+}
+
+type Pair = resource {
+    pub a Res
+    pub b Res
+}
+
+async fn tick() -> Int {
+    1
+}
+
+fn scope() -> Unit {
+    let first = Res { id: 1 }
+    let second = Res { id: 2 }
+    let pair = Pair { a: Res { id: 3 }, b: Res { id: 4 } }
+    let opt = Some(Res { id: 6 })
+    let last = Res { id: 7 }
+    print "body"
+}
+
+let ex = task.currentThreadExecutor()
+print "start ${ex.runToCompletion(tick())}"
+scope()
+print "unreachable"
+-- stdout --
+start 1
+body
+drop 7
+drop 6
+drop 4
+drop 3
+drop 2
+drop 1
+-- stderr --
+panic: drop 6
+panic: drop 4
+panic: drop 2
+-- exit --
+2

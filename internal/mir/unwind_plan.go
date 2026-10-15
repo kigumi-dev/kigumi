@@ -38,14 +38,16 @@ func (p *Program) UnwindPlanOf(f *Func) *UnwindPlan {
 	if p.unwind.plans == nil {
 		p.unwind.plans = map[*Func]*UnwindPlan{}
 	}
-	plan := planUnwind(f, p.R)
+	plan := planUnwind(f, p.R, false)
 	p.unwind.plans[f] = plan
 	return plan
 }
 
+// Nothing here allocates, charges, runs a drop hook or checks a bound.
 func cannotPanic(op Opcode) bool {
 	switch op {
-	case OpConst, OpUnit, OpAlias, OpMove, OpCopy, OpNop, OpFnItem, OpShare:
+	case OpConst, OpUnit, OpAlias, OpMove, OpCopy, OpNop, OpFnItem, OpShare,
+		OpField, OpFieldMove, OpPayload, OpTag, OpIsVariant, OpIsType, OpUnbox, OpBorrow, OpCellGet, OpCellTake:
 		return true
 	}
 	return false
@@ -57,7 +59,8 @@ func (b bitset) has(l LocalID) bool { return b[l/64]&(1<<(l%64)) != 0 }
 func (b bitset) set(l LocalID)      { b[l/64] |= 1 << (l % 64) }
 func (b bitset) clear(l LocalID)    { b[l/64] &^= 1 << (l % 64) }
 
-func planUnwind(f *Func, r *sem.Result) *UnwindPlan {
+// candidates ignores frame slots, since the plan decides which temporaries get one.
+func planUnwind(f *Func, r *sem.Result, candidates bool) *UnwindPlan {
 	plan := &UnwindPlan{Sets: [][]LocalID{nil}, At: make([][]int32, len(f.Blocks))}
 	for i := range f.Blocks {
 		plan.At[i] = make([]int32, len(f.Blocks[i].Insts))
@@ -65,10 +68,7 @@ func planUnwind(f *Func, r *sem.Result) *UnwindPlan {
 			plan.At[i][j] = -1
 		}
 	}
-	if f.Async {
-		return plan
-	}
-	owned := owningLocals(f, r)
+	owned := unwindOwned(f, r, candidates)
 	words := (len(f.Locals) + 63) / 64
 	liveIn := make([]bitset, len(f.Blocks))
 	for i := range liveIn {

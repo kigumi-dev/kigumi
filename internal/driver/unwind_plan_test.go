@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/sem"
 )
 
 func callSets(p *mir.Program, f *mir.Func) map[string][]string {
@@ -41,14 +42,45 @@ func TestUnwindPlanNamesWhatEachCallLeavesOwned(t *testing.T) {
 	}
 }
 
-func TestUnwindPlanIsEmptyForAsyncBodies(t *testing.T) {
-	p := analyzeFixture(t, "async_task_panic_sync_deep.txtar")
-	f := asyncFunc(t, p, "main.boom")
+func TestUnwindPlanOfAsyncBodiesNamesFrameTemporaries(t *testing.T) {
+	p := analyzeFixture(t, "async_task_panic_temps_await.txtar")
+	f := asyncFunc(t, p, "main.inner")
+	checkAsyncTemporaries(t, p, f, true)
+	checkAsyncTemporaries(t, p, asyncFunc(t, p, "main.boom"), true)
+	checkAsyncTemporaries(t, p, asyncFunc(t, p, "main.sib"), false)
+}
+
+func checkAsyncTemporaries(t *testing.T, p *mir.Program, f *mir.Func, want bool) {
+	t.Helper()
 	plan := p.UnwindPlanOf(f)
-	for bid, blk := range f.Blocks {
-		for pc := range blk.Insts {
-			if len(plan.SetAt(mir.BlockID(bid), pc)) != 0 {
-				t.Fatalf("an async body carries an unwind set at block %d instruction %d", bid, pc)
+	temps := 0
+	for _, set := range plan.Sets {
+		for _, l := range set {
+			if f.Locals[l].Ent != 0 {
+				t.Errorf("the plan names the local %q, which the frame sweeps by name", f.Locals[l].Name)
+			}
+			if f.Slot[l] < 0 {
+				t.Errorf("the plan names a temporary with no frame slot")
+			}
+			temps++
+		}
+	}
+	if want && temps == 0 {
+		t.Errorf("%s: the plan names no temporary live across a call that can panic", f.Name)
+	}
+	if !want && temps != 0 {
+		t.Errorf("%s: the plan names %d temporaries, want none", f.Name, temps)
+	}
+}
+
+func TestUnwindPlanSkipsLocalsThatOwnNothing(t *testing.T) {
+	p := analyzeFixture(t, "async_task_panic_sync_deep.txtar")
+	for _, f := range p.Funcs {
+		for _, set := range p.UnwindPlanOf(f).Sets {
+			for _, l := range set {
+				if f.Locals[l].Type == sem.TyUnit {
+					t.Errorf("%s: the plan names a unit-typed local, which owns no reference", f.Name)
+				}
 			}
 		}
 	}

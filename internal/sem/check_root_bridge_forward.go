@@ -26,6 +26,10 @@ func (r *Result) forwardSubst(caller EntityID, e EffectEdge, subst map[EntityID]
 			if r.retractedBinds[bindSite{ie.File, ie.Node, ie.Param}] {
 				break
 			}
+			if rr.poisonedPlace(r, ie.Target) {
+				w, ok = []EntityID{rr.unresolved}, true
+				break
+			}
 			w, ok = subst[ie.Target]
 			if !ok && (r.Entities[ie.Target].Kind == EntFn || r.Entities[ie.Target].Kind == EntClosure) {
 				w, ok = []EntityID{ie.Target}, true
@@ -56,6 +60,12 @@ func (r *Result) forwardSubst(caller EntityID, e EffectEdge, subst map[EntityID]
 	}
 	for param := range open {
 		delete(out, param)
+	}
+	for _, param := range rr.poisonBySite[siteLoc{e.File, e.Node}] {
+		if out == nil {
+			out = map[EntityID][]EntityID{}
+		}
+		out[param] = []EntityID{rr.unresolved}
 	}
 	return out
 }

@@ -25,8 +25,11 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)
 	e.sig, e.ssig = nil, nil
+	e.unwind, e.outer = e.asyncUnwindFor(f), nil
+	defer func() { e.unwind = nil }()
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%fut) {\nentry:\n", e.sym(f))
 	sb.WriteString("  %slots = call ptr @rt_future_slots(ptr %fut)\n")
+	e.unwindAllocas(&sb)
 	for i := range f.Locals {
 		l := mir.LocalID(i)
 		if slot := f.Slot[i]; slot >= 0 {
@@ -41,7 +44,10 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	stores := e.p.CopyStores(f)
 	for bid, blk := range f.Blocks {
 		fmt.Fprintf(&body, "b%d:\n", bid)
-		for _, in := range copyStoreInsts(&blk, bid, stores) {
+		e.unwindBlock()
+		for pc, in := range copyStoreInsts(&blk, bid, stores) {
+			e.at = siteAt{mir.BlockID(bid), pc}
+			e.unwindSite(&body, e.at.blk, pc)
 			e.inst(&body, f, in)
 		}
 		e.term(&body, blk.Term)
@@ -50,6 +56,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	for _, a := range e.entryAllocas {
 		sb.WriteString(a)
 	}
+	e.unwindEnter(&sb)
 	sb.WriteString("  %st = call i32 @rt_future_state(ptr %fut)\n")
 	sb.WriteString("  switch i32 %st, label %resume.bad [ i32 0, label %start")
 	for k := 1; k <= f.Suspends; k++ {
@@ -77,15 +84,20 @@ func (e *emitter) await(sb *strings.Builder, in mir.Inst, operand string) {
 	k := in.Index
 	e.irb(sb).Call(rtFutureSuspend, vptr("%fut"), vi32(k), vptr(operand))
 	fmt.Fprintf(sb, "  br label %%rs%d\nrs%d:\n", k, k)
+	e.unwindResume(sb)
 	r := e.irb(sb).Call(rtFutureResume, vptr("%fut")).Text
 	p := e.newTmp()
 	fmt.Fprintf(sb, "  %s = icmp eq ptr %s, null\n", p, r)
 	fmt.Fprintf(sb, "  br i1 %s, label %%pend%d, label %%ck%d\n", p, k, k)
-	fmt.Fprintf(sb, "pend%d:\n  ret ptr null\nck%d:\n", k, k)
+	fmt.Fprintf(sb, "pend%d:\n", k)
+	e.unwindLeave(sb)
+	fmt.Fprintf(sb, "  ret ptr null\nck%d:\n", k)
 	c := e.newTmp()
 	fmt.Fprintf(sb, "  %s = icmp eq ptr %s, @kg_cancel_marker\n", c, r)
 	fmt.Fprintf(sb, "  br i1 %s, label %%can%d, label %%cont%d\n", c, k, k)
-	fmt.Fprintf(sb, "can%d:\n  ret ptr @kg_cancel_marker\ncont%d:\n", k, k)
+	fmt.Fprintf(sb, "can%d:\n", k)
+	e.unwindLeave(sb)
+	fmt.Fprintf(sb, "  ret ptr @kg_cancel_marker\ncont%d:\n", k)
 	e.store(sb, in.Dst, r)
 }
 

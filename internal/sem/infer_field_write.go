@@ -76,10 +76,9 @@ type fieldPoisonSiteInfo struct {
 }
 
 func (c *checker) recordFieldPoisonSite(key fieldFnKey, init syntax.NodeID) {
-	if c.r.fieldPoisonSite == nil {
-		c.r.fieldPoisonSite = map[fieldFnKey]fieldPoisonSiteInfo{}
-	}
-	c.r.fieldPoisonSite[key] = fieldPoisonSiteInfo{File: c.f, Node: init}
+	here := fieldPoisonSiteInfo{File: c.f, Node: init}
+	keepEarlier(c.r, &c.r.fieldPoisonSite, key, here)
+	keepEarlier(c.r, &c.r.flow.poisonAt, key, here)
 }
 
 // recordWitnessFieldWrite joins an interface-typed write into the field's
@@ -134,6 +133,12 @@ func (c *checker) poisonFieldKey(key fieldFnKey) {
 	}
 	c.r.fieldWitnessPoisoned[key] = true
 	if len(c.pendingFieldEdges) > 0 {
+		for _, p := range c.pendingFieldEdges {
+			if p.key == key {
+				ent := c.r.fieldParamEnt(key)
+				c.r.noteBindHist(ent, c.fn, EffectEdge{Kind: p.kind, Target: p.target, Param: ent, File: c.f, Node: p.node})
+			}
+		}
 		c.pendingFieldEdges = slices.DeleteFunc(c.pendingFieldEdges, func(p pendingFieldEdge) bool { return p.key == key })
 	}
 }

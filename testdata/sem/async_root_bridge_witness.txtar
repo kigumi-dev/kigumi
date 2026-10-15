@@ -212,9 +212,9 @@ note: calls `h.cb`
 41 |     h.cb()
    |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-  --> app/t/t.kg:56:5
+  --> app/t/t.kg:72:5
    |
-56 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
+72 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^^^
 note: `syncRoot` is stored in the field here
   --> app/t/t.kg:33:15
@@ -239,9 +239,9 @@ note: calls `h.cb`
 41 |     h.cb()
    |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-  --> app/t/t.kg:56:5
+  --> app/t/t.kg:90:5
    |
-56 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
+90 |     callRisky(h) //~ ERROR cannot run inside an `async fn`
    |     ^^^^^^^^^^^
 note: `syncRoot` is stored in the field here
   --> app/t/t.kg:33:15

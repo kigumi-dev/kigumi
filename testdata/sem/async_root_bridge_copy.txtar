@@ -79,11 +79,11 @@ async fn riskyCopyWrite() -> Int {
     h.cb() //~ ERROR cannot run inside an `async fn`
 }
 
-async fn riskySourceWrittenLater() -> Int {
+async fn safeSourceWrittenLater() -> Int {
     let mut w = Wrap { inner: Holder { cb: safeFn } }
     let mut h = w.inner
     w.inner.cb = syncRoot
-    h.cb() //~ ERROR cannot run inside an `async fn`
+    h.cb()
 }
 
 async fn riskyBorrowedCopy() -> Int {
@@ -197,23 +197,6 @@ note: `syncRoot` is stored in the field here
    |
 77 |     h.cb = syncRoot
    |            ^^^^^^^^
-note: drives a new root task here
-  --> app/t/t.kg:9:5
-   |
- 9 |     ex.runToCompletion(work())
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
-  --> app/t/t.kg:85:5
-   |
-85 |     h.cb() //~ ERROR cannot run inside an `async fn`
-   |     ^^^^^
-   = help: `await` the future instead
-note: `syncRoot` is stored in the field here
-  --> app/t/t.kg:84:18
-   |
-84 |     w.inner.cb = syncRoot
-   |                  ^^^^^^^^
 note: drives a new root task here
   --> app/t/t.kg:9:5
    |

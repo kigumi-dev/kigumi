@@ -464,15 +464,15 @@ note: calls `h.cb`
  70 |     h.cb()
     |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:118:5
+   --> app/t/t.kg:126:5
     |
-118 |     callH3(h) //~ ERROR cannot run inside an `async fn`
+126 |     callH3(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:114:30
+   --> app/t/t.kg:124:16
     |
-114 |     let mut h = Holder { cb: syncRoot }
-    |                              ^^^^^^^^
+124 |         h.cb = syncRoot
+    |                ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |

@@ -44,7 +44,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			res = e.irb(sb).Call(rtRetain, vptr(args[0])).Text
 		}
 	case mir.OpRelease:
-		e.irb(sb).Call(rtRelease, vptr(args[0]))
+		e.dropCall(sb, f, rtRelease, args[0])
 		return
 	case mir.OpMove:
 		res = args[0]
@@ -186,7 +186,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		if f.Locals[in.Args[0]].Ent != 0 {
 			e.store(sb, in.Args[0], "null")
 		}
-		e.irb(sb).Call(rtDrop, vptr(args[0]))
+		e.dropCall(sb, f, rtDrop, args[0])
 		return
 	case mir.OpPanic:
 		e.irb(sb).Call(rtPanic, vptr(e.cstr(in.Str)))

@@ -48,6 +48,7 @@ func compile(m *Module, stderr io.Writer, t Target, opts llgen.EmitOptions) (com
 		io.WriteString(stderr, a.Res.Render())
 		return compiled{}, false, nil
 	}
+	io.WriteString(stderr, a.Res.RenderTaskPanicWarning())
 	opts.Reachable = reach
 	m.stats.Emit++
 	return compiled{llgen.EmitProgram(a.Prog, opts), reach.CapabilityReasons(a.Res, t.CapabilityPlatform())}, true, nil

@@ -42,7 +42,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 			res = retain(args[0])
 		}
 	case mir.OpRelease:
-		m.release(args[0])
+		m.dropChecked(fr, args[0])
 		return
 	case mir.OpMove:
 		res = args[0]
@@ -162,7 +162,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 		if f.Locals[in.Args[0]].Ent != 0 {
 			fr.locals[in.Args[0]] = nil
 		}
-		m.release(args[0])
+		m.dropChecked(fr, args[0])
 		return
 	case mir.OpPanic:
 		m.abort(in.Str)

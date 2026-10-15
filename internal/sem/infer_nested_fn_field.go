@@ -67,7 +67,13 @@ func (r *Result) fnChainEnt(file FileID, expr syntax.NodeID) EntityID {
 	return 0
 }
 
-// An immutable copy holds at most the fns its source ever holds, whenever the copy was made.
+// A copy of a local still written later is merged at the copy, since an alias would see those writes.
+func (r *Result) writableLocalPlace(ent EntityID) bool {
+	root := &r.Entities[r.rootOf(ent)]
+	return root.Kind == EntLocal && root.Flags&EfMut != 0
+}
+
+// An immutable copy holds at most the fns its source ever holds.
 func (c *checker) trackFnCopyAlias(init syntax.NodeID, local EntityID) {
 	t := c.vars.resolve(c.r.Entities[local].Type)
 	if c.r.Types.Kind(t) == KRef {
@@ -78,6 +84,10 @@ func (c *checker) trackFnCopyAlias(init syntax.NodeID, local EntityID) {
 	}
 	src := c.r.fnChainEnt(c.f, init)
 	if src == 0 || src == local || c.r.isLiteralFieldEnt(src) {
+		return
+	}
+	if c.r.writableLocalPlace(src) {
+		c.unionInto(local, src, t, init)
 		return
 	}
 	if c.r.fnCopyAlias == nil {

@@ -1,0 +1,49 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn make(n: Int) -> Res {
+    Res { id: n }
+}
+
+fn consume(a: Res, b: Res, c: Int) -> Int {
+    a.id + b.id + c
+}
+
+fn explode(n: Int) -> Int {
+    panic("explode ${n}")
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// Arguments already evaluated when a later one panics are released with the frame.
+async fn boom() -> Int {
+    let keep = Res { id: 1 }
+    let v = consume(make(10), make(11), explode(0))
+    v
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 11
+drop 10
+drop 1
+-- stderr --
+panic: explode 0
+-- exit --
+2

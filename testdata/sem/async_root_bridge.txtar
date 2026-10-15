@@ -1813,15 +1813,15 @@ note: calls `g.cb`
 680 |     g.cb()
     |     ^^^^^
 note: `syncRoot` is bound to `g.cb` here
-   --> app/t/t.kg:692:5
+   --> app/t/t.kg:709:5
     |
-692 |     callGBoxField(g) //~ ERROR cannot run inside an `async fn`
+709 |     callGBoxField(g) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:691:37
+   --> app/t/t.kg:708:13
     |
-691 |     let g = GBox[fn() -> Int] { cb: syncRoot }
-    |                                     ^^^^^^^^
+708 |     g.setCb(syncRoot)
+    |             ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:14:5
     |

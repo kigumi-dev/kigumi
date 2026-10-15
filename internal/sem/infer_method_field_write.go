@@ -89,6 +89,9 @@ func (r *Result) applyMethodFieldWrites(site methodFieldCallSite) bool {
 			fields = r.typeDecl(site.owner).Fields
 		}
 		changed := false
+		if r.isResultEnt(site.srcParam) && r.applyResultParams(site) {
+			changed = true
+		}
 		for _, field := range fields {
 			if r.applyFieldWriteSummary(site, field, site.callee, site.srcParam) {
 				changed = true
@@ -111,10 +114,11 @@ func (r *Result) applyFieldKeySummary(site methodFieldCallSite, field, calleeFn,
 		return false
 	}
 	if r.fieldWitnessPoisoned[srcKey] {
+		here := fieldPoisonSiteInfo{File: site.file, Node: site.node}
 		if at, ok := r.fieldPoisonSite[srcKey]; ok {
-			return r.poisonFieldKeyAt(dstKey, at.File, at.Node)
+			return r.poisonFieldKeyFrom(dstKey, at, here)
 		}
-		return r.poisonFieldKeyAt(dstKey, site.file, site.node)
+		return r.poisonFieldKeyFrom(dstKey, here, here)
 	}
 	changed := false
 	if fns := r.knownFieldFn[srcKey]; len(fns) > 0 && r.joinKnownFieldFnAt(dstKey, fns, fnSiteSrc{from: srcKey, hasFrom: true, file: site.file, node: site.node}) {

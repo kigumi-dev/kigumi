@@ -72,26 +72,29 @@ func (m *Machine) unwindSet(fr *frame) []mir.LocalID {
 
 // Outside a task a panic goes straight up, as in native where it is fatal.
 func (m *Machine) releaseJoined(v *obj, fault *Panic) (out *Panic) {
-	if m.cur == nil || v == nil {
+	if !m.containing() || v == nil {
 		m.release(v)
 		return fault
 	}
-	defer func() {
-		r := recover()
-		if r == nil {
-			return
-		}
-		p, ok := r.(*Panic)
-		if !ok || p.Sandbox {
-			panic(r)
-		}
-		out = p
-		if fault != nil {
-			out = joinPanic(fault, p)
-		}
-	}()
-	m.release(v)
-	return fault
+	return m.callJoined(fault, func() { m.release(v) })
+}
+
+func (m *Machine) containing() bool { return m.cur != nil || m.outerDepth > 0 }
+
+func (m *Machine) recoverJoined(r any, fault *Panic, base int) *Panic {
+	p, ok := r.(*Panic)
+	if !ok || p.Sandbox {
+		panic(r)
+	}
+	if fault != nil {
+		p = joinPanic(fault, p)
+	}
+	outer := m.sweepFault
+	m.sweepFault = p
+	m.sweepFrames(base)
+	out := m.sweepFault
+	m.sweepFault = outer
+	return out
 }
 
 func (m *Machine) raiseJoined(fault *Panic) {

@@ -75,6 +75,7 @@ type Machine struct {
 	// frames stay on a panic, for the task boundary to sweep.
 	frames           []*frame
 	sweepFault       *Panic
+	outerDepth       int
 	stepsLeft, depth int
 	// cur is the running task and curLane its executor lane, for spawn and cancellation.
 	cur     *task
@@ -109,6 +110,9 @@ func runMachine(m *Machine, prog *mir.Program, errOut io.Writer) (int, error) {
 
 func newMachine(prog *mir.Program, opts Options, out, errOut io.Writer) *Machine {
 	m := &Machine{p: prog, r: prog.R, out: out, err: errOut, opts: opts, sh: newShared()}
+	if !opts.Sandbox {
+		prog.ContainsDropPanics()
+	}
 	m.registerAll()
 	m.initGlobals()
 	return m

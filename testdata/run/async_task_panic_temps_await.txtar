@@ -1,0 +1,66 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn make(n: Int) -> Res {
+    Res { id: n }
+}
+
+fn consume(a: Res, b: Res, c: Int) -> Int {
+    a.id + b.id + c
+}
+
+fn explode(n: Int) -> Int {
+    panic("explode ${n}")
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// Temporaries live across a suspension are released when the frame faults after the resume.
+async fn inner(n: Int) -> Int {
+    let local = Res { id: n + 30 }
+    let v = consume(make(n + 10), make(n + 20), explode(await tick()))
+    v
+}
+
+async fn boom() -> Int {
+    let keep = Res { id: 1 }
+    let v = consume(make(40), make(41), await inner(2))
+    v
+}
+
+async fn sib() -> Int {
+    4
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    let b = task.spawn(sib())
+    let x = await b
+    print "b ${x}"
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 22
+drop 12
+drop 41
+drop 40
+drop 32
+drop 1
+b 4
+-- stderr --
+panic: explode 1
+-- exit --
+2

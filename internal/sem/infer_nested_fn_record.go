@@ -48,11 +48,7 @@ func (c *checker) copyNestedFnFields(src, dst EntityID, t TypeID, site syntax.No
 			continue
 		}
 		c.r.fieldParamEnt(to)
-		for _, fn := range c.r.knownFieldFn[from] {
-			if !slices.Contains(c.r.knownFieldFn[to], fn) {
-				c.r.knownFieldFn[to] = append(c.r.knownFieldFn[to], fn)
-			}
-		}
+		c.r.joinKnownFieldFnAt(to, c.r.knownFieldFn[from], fnSiteSrc{from: from, hasFrom: true, file: c.f, node: site})
 		for _, p := range slices.Clone(c.pendingFieldEdges) {
 			if p.key == from {
 				c.pendingFieldEdges = append(c.pendingFieldEdges, pendingFieldEdge{to, p.kind, p.target, p.node})

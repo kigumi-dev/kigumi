@@ -1,0 +1,42 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+    if self.id % 2 == 0 {
+        panic("drop ${self.id}")
+    }
+}
+
+type Pair = resource {
+    pub a Res
+    pub b Res
+}
+
+fn scope() -> Unit {
+    let first = Res { id: 1 }
+    let second = Res { id: 2 }
+    let pair = Pair { a: Res { id: 3 }, b: Res { id: 4 } }
+    let opt = Some(Res { id: 6 })
+    let last = Res { id: 7 }
+    print "body"
+}
+
+scope()
+print "unreachable"
+-- stdout --
+body
+drop 7
+drop 6
+drop 4
+drop 3
+drop 2
+drop 1
+-- stderr --
+panic: drop 6
+panic: drop 4
+panic: drop 2
+-- exit --
+2

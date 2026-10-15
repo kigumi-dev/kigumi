@@ -37,13 +37,14 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		c.applyFieldFact(n, fact)
 	} else if closure != 0 {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: closure, Node: n})
+		c.noteClosureResult(n, closure)
 	} else {
 		c.callbackEdge(n, n, Effects(node.Flags), 0, false)
 		key, viaField := c.knownFieldCallKeyOf(callee)
 		for _, tgt := range c.knownCallTargets(callee) {
 			c.edge(EffectEdge{Kind: EdgeKnownCall, Target: tgt, Node: n})
 			if viaField {
-				c.r.noteEdgeSite(key, c.f, n, tgt)
+				c.r.noteEdgeSite(key, c.f, n, tgt, 0)
 			}
 		}
 		if callee != 0 {

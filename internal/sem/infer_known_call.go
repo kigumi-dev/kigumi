@@ -1,10 +1,6 @@
 package sem
 
-import (
-	"slices"
-
-	"kigumi/internal/syntax"
-)
+import "kigumi/internal/syntax"
 
 // fieldParamEnt mints (or returns the cached) EntFieldParam standing for
 // param's field, named for reporting exactly like a bound parameter.
@@ -66,6 +62,8 @@ func (c *checker) applyFieldWrite(lhs, rhs syntax.NodeID) {
 		}
 		if src := c.r.fnChainEnt(c.f, rhs); src != 0 && c.r.concretePlace(src) {
 			c.unionInto(c.r.canonEnt(p.Root), src, c.r.Entities[p.Root].Type, rhs)
+			return
+		} else if src != 0 && c.notePlaceCopy(c.r.canonEnt(p.Root), src) {
 			return
 		}
 		for key := range c.r.fieldParamEnts {
@@ -137,10 +135,9 @@ func (c *checker) knownFieldCallEdges(n syntax.NodeID, fn EntityID, args []synta
 	}
 	c.nestedArgEdges(n, fn, args, 0)
 	for _, key := range info.CalledFieldParams {
-		i := slices.Index(info.Params, key.Param)
-		if i < 0 || i >= len(args) || c.t.Kind(args[i]) == syntax.Spread {
-			continue
-		}
-		c.knownFieldArgEdge(n, args[i], fieldFnKey{Ent: key.Param, Field: key.Field})
+		c.bindCalledKey(n, info.Params, args, key)
+	}
+	for _, key := range c.r.flow.fwdCalled[fn] {
+		c.bindCalledKey(n, info.Params, args, key)
 	}
 }

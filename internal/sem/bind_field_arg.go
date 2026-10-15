@@ -17,6 +17,9 @@ func (c *checker) knownFieldArgEdge(n, arg syntax.NodeID, fk fieldFnKey) {
 	}
 	if ent := c.r.fnChainEnt(c.f, arg); ent != 0 && !c.r.isLiteralFieldEnt(ent) {
 		c.bindIdentFieldArg(n, ent, fk.Field, dst)
+		for _, place := range c.r.paramPlacesOf(ent) {
+			c.bindIdentFieldArg(n, place, fk.Field, dst)
+		}
 	}
 }
 
@@ -25,7 +28,7 @@ func (c *checker) bindFieldArgValue(n, init syntax.NodeID, fk fieldFnKey, dst En
 	if tgts := c.knownFnRefs(init); len(tgts) > 0 {
 		for _, tgt := range tgts {
 			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
-			c.r.noteEdgeSiteAt(c.f, n, tgt, c.f, init)
+			c.r.noteEdgeSiteAt(c.f, n, tgt, dst, c.f, init)
 		}
 		return
 	}
@@ -39,6 +42,7 @@ func (c *checker) bindFieldArgValue(n, init syntax.NodeID, fk fieldFnKey, dst En
 func (c *checker) bindIdentFieldArg(n syntax.NodeID, ent, field, dst EntityID) {
 	switch c.r.Entities[ent].Kind {
 	case EntParam:
+		c.noteFwdCalled(ent, field)
 		c.edge(EffectEdge{Kind: EdgeFieldBind, Target: c.r.fieldParamEnt(fieldFnKey{Ent: ent, Field: field}), Param: dst, Node: n})
 	case EntLocal, EntFieldParam:
 		if c.r.Entities[ent].Kind == EntFieldParam {
@@ -50,7 +54,7 @@ func (c *checker) bindIdentFieldArg(n syntax.NodeID, ent, field, dst EntityID) {
 		srcKey := fieldFnKey{Ent: ent, Field: field}
 		for _, tgt := range c.r.knownFieldFn[srcKey] {
 			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
-			c.r.noteEdgeSite(srcKey, c.f, n, tgt)
+			c.r.noteEdgeSite(srcKey, c.f, n, tgt, dst)
 		}
 		c.stageLateFieldEdge(EdgeFieldBind, srcKey, dst, n)
 		c.r.fieldPoisonForwards = append(c.r.fieldPoisonForwards, fieldPoisonForward{src: srcKey, dst: dst, file: c.f, node: n})

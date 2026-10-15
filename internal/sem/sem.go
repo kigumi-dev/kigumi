@@ -122,6 +122,7 @@ type Result struct {
 	// literalFieldEnts caches literalFieldEnt's synthetic entity per literal node.
 	literalFieldEnts        map[literalEntKey]EntityID
 	fnUnions                []fnUnion
+	flow                    flowState
 	fieldFnSites            map[fieldSiteKey]fieldPoisonSiteInfo
 	edgeFnSites             map[edgeSiteKey]fieldPoisonSiteInfo
 	fieldKeyByEnt           map[EntityID]fieldFnKey

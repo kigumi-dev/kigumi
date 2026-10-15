@@ -38,7 +38,7 @@ static pthread_mutex_t g_sched = PTHREAD_MUTEX_INITIALIZER;
 #define SCHED_UNLOCK() ((void)0)
 #endif
 // A contained task panic needs a non-local jump: libc's where there is one, the compiler's own on a bare build.
-#if defined(KIGUMI_TASK_CATCH) && defined(KIGUMI_CAP_TASK_EXECUTOR) && (!defined(KIGUMI_FREESTANDING) || defined(KIGUMI_TASK_CATCH_BUILTIN))
+#if defined(KIGUMI_TASK_CATCH) && defined(KIGUMI_UNWIND) && (!defined(KIGUMI_FREESTANDING) || defined(KIGUMI_TASK_CATCH_BUILTIN))
 #define KG_CATCH 1
 #ifdef KIGUMI_TASK_CATCH_BUILTIN
 typedef void* kg_jmp_buf[5];
@@ -58,7 +58,7 @@ typedef jmp_buf kg_jmp_buf;
 static KG_TLS kg_jmp_buf* g_task_catch;
 static KG_TLS char* g_fault_msg;
 static KG_TLS uint64_t g_fault_count;
-static KG_TLS int g_drop_depth, g_faulting;
+static KG_TLS int g_drop_depth, g_faulting, g_outer_drop;
 static void task_fault(const char* msg);
 // Records run before the longjmp; later calls would overwrite the dead frames.
 typedef struct kg_unwind {
@@ -278,8 +278,13 @@ void rt_release(val v) {
     if (!v) return;
 #ifdef KIGUMI_THREADS
     if (atomic_load_explicit(&v->rc, memory_order_relaxed) <= 0) return;
+#ifdef __SANITIZE_THREAD__
+    // TSan does not model a standalone fence, so the last decrement carries the acquire itself.
+    if (atomic_fetch_sub_explicit(&v->rc, 1, memory_order_acq_rel) != 1) return;
+#else
     if (atomic_fetch_sub_explicit(&v->rc, 1, memory_order_release) != 1) return;
     atomic_thread_fence(memory_order_acquire);
+#endif
     free_obj(v);
 #else
     if (v->rc <= 0) return;
@@ -339,11 +344,15 @@ void rt_panic(const char* msg) {
     rt_fatal(msg);
 }
 #ifdef KG_CATCH
-// A release that panics leaves the other set bits for the nested fault to run.
-static void unwind_frame(kg_unwind* u) {
-    val* slots = (val*)u->p;
-    for (int64_t k = u->i - 1; k >= 0; k--) {
-        uint64_t* w = &u->m[k / 64];
+// Mask words and then slots follow the header.
+typedef struct kg_uframe {
+    struct kg_unwind* prev;
+    void (*run)(struct kg_unwind*);
+    int64_t n;
+} kg_uframe;
+static void unwind_slots(val* slots, uint64_t* mask, int64_t n) {
+    for (int64_t k = n - 1; k >= 0; k--) {
+        uint64_t* w = &mask[k / 64];
         uint64_t bit = (uint64_t)1 << (k % 64);
         if (!(*w & bit)) continue;
         *w &= ~bit;
@@ -352,10 +361,27 @@ static void unwind_frame(kg_unwind* u) {
         rt_release(v);
     }
 }
-void rt_unwind_enter(void* rec, void* slots, uint64_t* mask, int64_t n) {
+// A release that panics leaves the other set bits for the nested fault to run.
+static void unwind_frame(kg_unwind* u) {
+    kg_uframe* f = (kg_uframe*)u;
+    uint64_t* mask = (uint64_t*)(f + 1);
+    unwind_slots((val*)(mask + (f->n + 63) / 64), mask, f->n);
+}
+static void unwind_frame_slots(kg_unwind* u) {
+    unwind_slots((val*)u->p, u->m, u->i);
+}
+#define IS_FRAME_REC(u) ((u)->run == unwind_frame || (u)->run == unwind_frame_slots)
+void rt_unwind_enter(void* rec, int64_t n) {
+    kg_uframe* f = (kg_uframe*)rec;
+    f->prev = g_unwind;
+    f->run = unwind_frame;
+    f->n = n;
+    g_unwind = (kg_unwind*)f;
+}
+void rt_unwind_enter_slots(void* rec, void* slots, uint64_t* mask, int64_t n) {
     kg_unwind* u = (kg_unwind*)rec;
     u->prev = g_unwind;
-    u->run = unwind_frame;
+    u->run = unwind_frame_slots;
     u->p = slots;
     u->v = NULL;
     u->i = n;
@@ -365,9 +391,48 @@ void rt_unwind_enter(void* rec, void* slots, uint64_t* mask, int64_t n) {
 void rt_unwind_leave(void* rec) {
     g_unwind = ((kg_unwind*)rec)->prev;
 }
-_Static_assert(sizeof(kg_unwind) <= 48, "llgen reserves 48 bytes for an unwind record");
+// Nothing catches a panic outside a task, so the caller sweeps its own frame after a faulting release.
+int rt_release_outer(val v) {
+    if (g_task_catch) {
+        rt_release(v);
+        return 0;
+    }
+    uint64_t seen = g_fault_count;
+    g_outer_drop++;
+    rt_release(v);
+    g_outer_drop--;
+    return g_fault_count != seen;
+}
+void rt_sweep_release(val v) {
+    g_outer_drop++;
+    rt_release(v);
+    g_outer_drop--;
+}
+void rt_outer_fatal(void) {
+    rt_fatal(g_fault_msg);
+}
+void rt_drop_outer(val v) {
+    if (rt_release_outer(v)) rt_outer_fatal();
+}
 #else
-void rt_unwind_enter(void* rec, void* slots, uint64_t* mask, int64_t n) {
+int rt_release_outer(val v) {
+    rt_release(v);
+    return 0;
+}
+void rt_sweep_release(val v) {
+    rt_release(v);
+}
+void rt_outer_fatal(void) {
+    rt_fatal("panic");
+}
+void rt_drop_outer(val v) {
+    rt_release(v);
+}
+void rt_unwind_enter(void* rec, int64_t n) {
+    (void)rec;
+    (void)n;
+}
+void rt_unwind_enter_slots(void* rec, void* slots, uint64_t* mask, int64_t n) {
     (void)rec;
     (void)slots;
     (void)mask;
@@ -1938,11 +2003,77 @@ val rt_future_new(val callee, int n, val* args) {
     for (int i = 0; i < n; i++) f->args[m++] = rt_retain(args[i]);
     return opaque("Future", f);
 }
+#if defined(KG_CATCH) || defined(KIGUMI_CAP_TASK_EXECUTOR)
+static char* dup_msg(const char* m) {
+    size_t n = strlen(m) + 1;
+    char* d = malloc(n);
+    if (d) memcpy(d, m, n);
+    return d;
+}
+#endif
 #ifdef KG_CATCH
-static int contained(void (*fn)(val), val arg);
-static void frame_slots_drop(val fut);
-static void frame_release(val fut);
-static void task_raise(void);
+static void join_fault(const char* msg) {
+    char* m = dup_msg(msg);
+    if (!m) rt_fatal(msg);
+    g_fault_count++;
+    if (!g_fault_msg) {
+        g_fault_msg = m;
+        return;
+    }
+    size_t a = strlen(g_fault_msg), b = strlen(m);
+    char* j = malloc(a + b + 9);
+    if (!j) rt_fatal(msg);
+    memcpy(j, g_fault_msg, a);
+    memcpy(j + a, "\npanic: ", 8);
+    memcpy(j + a + 8, m, b + 1);
+    free(g_fault_msg);
+    free(m);
+    g_fault_msg = j;
+}
+// A frame record stays on the stack while it runs so a panic inside resumes it; other records are one-shot and pop first.
+static void task_raise(void) {
+    while (g_unwind != g_unwind_base) {
+        kg_unwind* u = g_unwind;
+        if (!IS_FRAME_REC(u)) g_unwind = u->prev;
+        if (!IS_FRAME_REC(u) || !g_cur_task || g_cur_task->parent) u->run(u);
+        if (g_unwind == u) g_unwind = u->prev;
+    }
+    KG_LONGJMP(*g_task_catch);
+}
+static void task_fault(const char* msg) {
+    join_fault(msg);
+    task_raise();
+}
+static __attribute__((noinline)) int contained(void (*fn)(val), val arg) {
+    kg_jmp_buf jb;
+    kg_jmp_buf* prev = g_task_catch;
+    int sp = g_alloc_sp;
+    int depth = g_drop_depth;
+    kg_unwind* prev_base = g_unwind_base;
+    g_unwind_base = g_unwind;
+    if (KG_SETJMP(jb)) {
+        g_task_catch = prev;
+        g_unwind_base = prev_base;
+        g_alloc_sp = sp;
+        g_drop_depth = depth;
+#ifdef KIGUMI_THREADS
+        g_flushing = 0;
+#endif
+        return 0;
+    }
+    g_task_catch = &jb;
+    fn(arg);
+    g_task_catch = prev;
+    g_unwind_base = prev_base;
+    return 1;
+}
+static void frame_slots_drop(val fut) {
+    kgframe* f = frame_of(fut);
+    if (f->desc->drop) f->desc->drop(fut);
+}
+static void frame_release(val fut) {
+    rt_release(fut);
+}
 // Inside a task a drop that panics joins the fault and the rest of the frame still drops; the outermost frame then raises it.
 static void frame_abandon(val fut) {
     kgframe* f = frame_of(fut);
@@ -2169,7 +2300,7 @@ static int free_contained(val v) {
 static void free_obj(val v) {
     int guarded = 0, raise = 0;
 #ifdef KG_CATCH
-    guarded = g_task_catch && free_runs_user_code(v);
+    guarded = (g_task_catch || g_outer_drop) && free_runs_user_code(v);
     if (guarded) raise = free_contained(v);
 #endif
     switch (v->kind) {
@@ -2226,7 +2357,7 @@ static void free_obj(val v) {
     afree(v->al, v);
 #endif
 #ifdef KG_CATCH
-    if (raise) task_raise();
+    if (raise && g_task_catch) task_raise();
 #endif
     (void)raise;
 }

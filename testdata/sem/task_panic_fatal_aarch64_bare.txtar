@@ -1,0 +1,26 @@
+-- module --
+stage: driver
+triple: aarch64-linux-gnu
+sys: none
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    n
+}
+
+async fn root() -> Int {
+    let t = task.spawn(leaf(1))
+    await t
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(root())}"
+-- expect --
+warning[W1860]: this program spawns tasks for `aarch64-linux-gnu`, where a panic in a task cannot be contained and ends the whole process
+ --> main.kg:8:13
+  |
+8 |     let t = task.spawn(leaf(1))
+  |             ^^^^^^^^^^^^^^^^^
+  = help: build for a target with panic containment or keep panics out of spawned tasks
+

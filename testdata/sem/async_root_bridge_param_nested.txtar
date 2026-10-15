@@ -222,15 +222,15 @@ note: calls `w.inner.cb`
 46 |     h.cb()
    |     ^^^^^
 note: `syncRoot` is bound to `w.inner.cb` here
-  --> app/t/t.kg:77:5
+  --> app/t/t.kg:86:5
    |
-77 |     viaLocal(w) //~ ERROR cannot run inside an `async fn`
-   |     ^^^^^^^^^^
+86 |     viaLocal(mkWrapRisky()) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^^
 note: `syncRoot` is stored in the field here
-  --> app/t/t.kg:76:40
+  --> app/t/t.kg:29:32
    |
-76 |     let w = Wrap { inner: Holder { cb: syncRoot } }
-   |                                        ^^^^^^^^
+29 |     Wrap { inner: Holder { cb: syncRoot } }
+   |                                ^^^^^^^^
 note: drives a new root task here
   --> app/t/t.kg:9:5
    |
@@ -296,15 +296,15 @@ note: `w.inner.cb` is bound to `h.cb` here
  50 |     callH(w.inner)
     |     ^^^^^^^^^^^^^
 note: `syncRoot` is bound to `w.inner.cb` here
-   --> app/t/t.kg:94:5
+   --> app/t/t.kg:103:5
     |
- 94 |     viaForward(Wrap { inner: Holder { cb: syncRoot } }) //~ ERROR cannot run inside an `async fn`
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+103 |     viaForward(w) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:94:43
+   --> app/t/t.kg:102:40
     |
- 94 |     viaForward(Wrap { inner: Holder { cb: syncRoot } }) //~ ERROR cannot run inside an `async fn`
-    |                                           ^^^^^^^^
+102 |     let w = Wrap { inner: Holder { cb: syncRoot } }
+    |                                        ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |
@@ -337,16 +337,21 @@ note: `w.inner.cb` is bound to `h.cb` here
     |
  50 |     callH(w.inner)
     |     ^^^^^^^^^^^^^
-note: `syncRoot` is bound to `w.inner.cb` here
-   --> app/t/t.kg:94:5
+note: `d.wrap.inner.cb` is bound to `w.inner.cb` here
+   --> app/t/t.kg:54:5
     |
- 94 |     viaForward(Wrap { inner: Holder { cb: syncRoot } }) //~ ERROR cannot run inside an `async fn`
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 54 |     viaForward(d.wrap)
+    |     ^^^^^^^^^^^^^^^^^
+note: `syncRoot` is bound to `d.wrap.inner.cb` here
+   --> app/t/t.kg:112:5
+    |
+112 |     viaForward2(Deep { wrap: Wrap { inner: Holder { cb: syncRoot } } }) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:94:43
+   --> app/t/t.kg:112:57
     |
- 94 |     viaForward(Wrap { inner: Holder { cb: syncRoot } }) //~ ERROR cannot run inside an `async fn`
-    |                                           ^^^^^^^^
+112 |     viaForward2(Deep { wrap: Wrap { inner: Holder { cb: syncRoot } } }) //~ ERROR cannot run inside an `async fn`
+    |                                                         ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |
@@ -392,14 +397,14 @@ note: calls `d.wrap.inner.cb`
  58 |     d.wrap.inner.cb()
     |     ^^^^^^^^^^^^^^^^
 note: `syncRoot` is bound to `d.wrap.inner.cb` here
-   --> app/t/t.kg:120:5
+   --> app/t/t.kg:129:5
     |
-120 |     viaDeep(Deep { wrap: Wrap { inner: Holder { cb: syncRoot } } }) //~ ERROR cannot run inside an `async fn`
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+129 |     viaDeep(d) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:120:53
+   --> app/t/t.kg:128:53
     |
-120 |     viaDeep(Deep { wrap: Wrap { inner: Holder { cb: syncRoot } } }) //~ ERROR cannot run inside an `async fn`
+128 |     let d = Deep { wrap: Wrap { inner: Holder { cb: syncRoot } } }
     |                                                     ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
@@ -446,15 +451,15 @@ note: calls `d.wrap.inner.cb`
  58 |     d.wrap.inner.cb()
     |     ^^^^^^^^^^^^^^^^
 note: `syncRoot` is bound to `d.wrap.inner.cb` here
-   --> app/t/t.kg:120:5
+   --> app/t/t.kg:149:5
     |
-120 |     viaDeep(Deep { wrap: Wrap { inner: Holder { cb: syncRoot } } }) //~ ERROR cannot run inside an `async fn`
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+149 |     viaDeep(d) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:120:53
+   --> app/t/t.kg:29:32
     |
-120 |     viaDeep(Deep { wrap: Wrap { inner: Holder { cb: syncRoot } } }) //~ ERROR cannot run inside an `async fn`
-    |                                                     ^^^^^^^^
+ 29 |     Wrap { inner: Holder { cb: syncRoot } }
+    |                                ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |

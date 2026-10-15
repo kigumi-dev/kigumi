@@ -4,7 +4,7 @@ import "sync/atomic"
 
 // Inside a task a panic from one child's drop joins the others instead of ending the free.
 func (m *Machine) releaseChild(c *obj, fault *Panic) *Panic {
-	if m.cur == nil || c == nil || c.k < kRecord || atomic.LoadInt32(&c.rc) != 1 {
+	if !m.containing() || c == nil || c.k < kRecord || atomic.LoadInt32(&c.rc) != 1 {
 		m.release(c)
 		return fault
 	}
@@ -24,22 +24,14 @@ func (m *Machine) runDropHook(v *obj, fault *Panic) (out *Panic) {
 }
 
 func (m *Machine) callJoined(fault *Panic, run func()) (out *Panic) {
-	if m.cur == nil {
+	if !m.containing() {
 		run()
 		return fault
 	}
+	base := len(m.frames)
 	defer func() {
-		r := recover()
-		if r == nil {
-			return
-		}
-		p, ok := r.(*Panic)
-		if !ok || p.Sandbox {
-			panic(r)
-		}
-		out = p
-		if fault != nil {
-			out = joinPanic(fault, p)
+		if r := recover(); r != nil {
+			out = m.recoverJoined(r, fault, base)
 		}
 	}()
 	run()

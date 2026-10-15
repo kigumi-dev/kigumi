@@ -31,5 +31,6 @@ func capabilityUses(p *mir.Program, reach *mir.Reachability, plat mir.Platform) 
 func (a *Analysis) checkProvision(t Target) *mir.Reachability {
 	reach := mir.Reachable(a.Prog)
 	a.Res.CheckCapabilityProvision(capabilityUses(a.Prog, reach, t.CapabilityPlatform()))
+	a.warnTaskPanicFatal(t, reach)
 	return reach
 }

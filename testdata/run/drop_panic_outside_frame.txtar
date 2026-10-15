@@ -1,0 +1,45 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Bad = resource {
+    pub id Int
+}
+
+fn Bad.drop(move self) -> Unit {
+    print "bad ${self.id}"
+    panic("drop failed: ${self.id}")
+}
+
+async fn tick() -> Int {
+    1
+}
+
+fn scope() -> Unit {
+    let a = Res { id: 1 }
+    let bad = Bad { id: 2 }
+    let c = Res { id: 3 }
+    print "body"
+}
+
+let ex = task.currentThreadExecutor()
+print "start ${ex.runToCompletion(tick())}"
+scope()
+print "unreachable"
+-- stdout --
+start 1
+body
+drop 3
+bad 2
+drop 1
+-- stderr --
+panic: drop failed: 2
+-- exit --
+2

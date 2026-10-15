@@ -87,6 +87,7 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 			} else if place, ok := c.nestedParamPlace(base); ok {
 				c.nestedFieldCall(n, place, fld)
 			}
+			c.copiedPlaceCalls(n, base, fld)
 			return c.callValue(n, callee, resolved, args, want)
 		}
 	}

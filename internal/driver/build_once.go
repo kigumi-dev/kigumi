@@ -83,6 +83,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if wantsTaskCatch(t) {
 		args = append(args, "-DKIGUMI_TASK_CATCH")
 	}
+	if code.Unwind {
+		args = append(args, "-DKIGUMI_UNWIND")
+	}
 	if bareJumpTarget(t) {
 		args = append(args, "-DKIGUMI_TASK_CATCH_BUILTIN")
 	}

@@ -1,0 +1,52 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Outer = resource {
+    pub inner Res
+    pub id Int
+}
+
+fn Outer.drop(move self) -> Unit {
+    let local = Res { id: 90 + self.id }
+    print "outer ${self.id}"
+    panic("outer ${self.id}")
+}
+
+async fn tick() -> Int {
+    1
+}
+
+fn helper(n: Int) -> Int {
+    let o = Outer { inner: Res { id: n }, id: n + 10 }
+    let r = Res { id: n + 20 }
+    n
+}
+
+fn scope() -> Int {
+    let before = Res { id: 5 }
+    let v = helper(1)
+    v + 1
+}
+
+let ex = task.currentThreadExecutor()
+print "start ${ex.runToCompletion(tick())}"
+print "scope ${scope()}"
+print "unreachable"
+-- stdout --
+start 1
+drop 21
+outer 11
+drop 101
+drop 1
+-- stderr --
+panic: outer 11
+-- exit --
+2

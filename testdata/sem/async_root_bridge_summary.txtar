@@ -468,14 +468,14 @@ note: calls `h.cb`
  88 |     h.cb()
     |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:52:5
+   --> app/t/t.kg:185:5
     |
- 52 |     callH(h) //~ ERROR cannot run inside an `async fn`
+185 |     callH(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:60:12
+   --> app/t/t.kg:108:12
     |
- 60 |     h.cb = syncRoot
+108 |     h.cb = syncRoot
     |            ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
@@ -495,14 +495,14 @@ note: calls `h.cb`
  88 |     h.cb()
     |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:52:5
+   --> app/t/t.kg:206:5
     |
- 52 |     callH(h) //~ ERROR cannot run inside an `async fn`
+206 |     callH(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:60:12
+   --> app/t/t.kg:205:12
     |
- 60 |     h.cb = syncRoot
+205 |     r.cb = syncRoot
     |            ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
@@ -522,14 +522,14 @@ note: calls `h.cb`
  88 |     h.cb()
     |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:52:5
+   --> app/t/t.kg:220:5
     |
- 52 |     callH(h) //~ ERROR cannot run inside an `async fn`
+220 |     callH(h) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:60:12
+   --> app/t/t.kg:108:12
     |
- 60 |     h.cb = syncRoot
+108 |     h.cb = syncRoot
     |            ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
@@ -549,14 +549,14 @@ note: calls `h.cb`
  88 |     h.cb()
     |     ^^^^^
 note: `syncRoot` is bound to `h.cb` here
-   --> app/t/t.kg:52:5
+   --> app/t/t.kg:240:5
     |
- 52 |     callH(h) //~ ERROR cannot run inside an `async fn`
-    |     ^^^^^^^
+240 |     callH(w.inner) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^
 note: `syncRoot` is stored in the field here
-   --> app/t/t.kg:60:12
+   --> app/t/t.kg:108:12
     |
- 60 |     h.cb = syncRoot
+108 |     h.cb = syncRoot
     |            ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5

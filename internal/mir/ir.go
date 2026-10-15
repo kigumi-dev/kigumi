@@ -190,10 +190,10 @@ type Program struct {
 	// Comptime lists the comptime blocks, each lowered as a function of its
 	// own that the driver evaluates and folds before anything runs.
 	Comptime []*ComptimeFunc
-	// Resources is every function's resource summary, set once
-	// ComputeResourceSummaries runs; nil before then.
+	// Resources is every function's resource summary, set once ComputeResourceSummaries runs; nil before then.
 	Resources map[sem.EntityID]*ResourceSummary
 	unwind    unwindMemo
+	executor  executorMemo
 	Diags     []FileDiag
 	// Entries holds every Func.Entry; they are not in Funcs, so nothing keyed by entity sees them.
 	Entries []*Func

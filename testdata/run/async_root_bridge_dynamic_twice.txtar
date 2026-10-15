@@ -5,10 +5,6 @@ type Holder = {
     pub cb fn() -> Int
 }
 
-type Wrap = {
-    pub inner Holder
-}
-
 async fn leaf(n: Int) -> Int {
     n
 }
@@ -18,13 +14,17 @@ fn syncRoot() -> Int {
     ex.runToCompletion(leaf(7))
 }
 
-fn viaCopy(w: Wrap) -> Int {
-    let mut h = w.inner
-    h.cb()
+fn passThrough(h: Holder) -> Holder {
+    h
+}
+
+fn twice(h: Holder) -> Holder {
+    passThrough(h)
 }
 
 async fn outer() -> Int {
-    viaCopy(Wrap { inner: Holder { cb: syncRoot } })
+    let h = twice(Holder { cb: syncRoot })
+    h.cb()
 }
 
 print "start"

@@ -183,20 +183,20 @@ note: calls `h.cb`
 25 |     h.cb()
    |     ^^^^^
 note: this closure is bound to `h.cb` here
-  --> app/t/t.kg:75:5
+  --> app/t/t.kg:81:5
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+81 |     callH(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^
 note: this closure is stored in the field here
-  --> app/t/t.kg:75:24
+  --> app/t/t.kg:80:26
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |                        ^^^^^^^^^^^^^^^
+80 |     let h = Holder { cb: f }
+   |                          ^
 note: calls `syncRoot`
-  --> app/t/t.kg:75:30
+  --> app/t/t.kg:79:19
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |                              ^^^^^^^^^
+79 |     let f = () => syncRoot()
+   |                   ^^^^^^^^^
 note: drives a new root task here
   --> app/t/t.kg:9:5
    |
@@ -215,20 +215,20 @@ note: calls `h.cb`
 25 |     h.cb()
    |     ^^^^^
 note: this closure is bound to `h.cb` here
-  --> app/t/t.kg:75:5
+  --> app/t/t.kg:87:5
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+87 |     callH(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^
 note: this closure is stored in the field here
-  --> app/t/t.kg:75:24
+  --> app/t/t.kg:86:26
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |                        ^^^^^^^^^^^^^^^
+86 |     let h = Holder { cb: f }
+   |                          ^
 note: calls `syncRoot`
-  --> app/t/t.kg:75:30
+  --> app/t/t.kg:85:23
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |                              ^^^^^^^^^
+85 |     let mut f = () => syncRoot()
+   |                       ^^^^^^^^^
 note: drives a new root task here
   --> app/t/t.kg:9:5
    |
@@ -247,20 +247,20 @@ note: calls `h.cb`
 25 |     h.cb()
    |     ^^^^^
 note: this closure is bound to `h.cb` here
-  --> app/t/t.kg:75:5
+  --> app/t/t.kg:93:5
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+93 |     callH(h) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^
 note: this closure is stored in the field here
-  --> app/t/t.kg:75:24
+  --> app/t/t.kg:92:26
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |                        ^^^^^^^^^^^^^^^
+92 |     let h = Holder { cb: f }
+   |                          ^
 note: calls `syncRoot`
-  --> app/t/t.kg:75:30
+  --> app/t/t.kg:91:32
    |
-75 |     callH(Holder { cb: () => syncRoot() }) //~ ERROR cannot run inside an `async fn`
-   |                              ^^^^^^^^^
+91 |     let f: fn() -> Int = () => syncRoot()
+   |                                ^^^^^^^^^
 note: drives a new root task here
   --> app/t/t.kg:9:5
    |

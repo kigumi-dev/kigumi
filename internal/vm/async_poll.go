@@ -148,6 +148,8 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 		m.depth--
 		m.stack = m.stack[:len(m.stack)-1]
 	}()
+	m.frames = append(m.frames, &co.fr)
+	leave := func() { m.frames = m.frames[:len(m.frames)-1] }
 	for {
 		blk := &f.Blocks[co.bid]
 		if len(blk.Insts) == 0 {
@@ -156,8 +158,10 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 		for co.pc < len(blk.Insts) {
 			in := &blk.Insts[co.pc]
 			if in.Op == mir.OpAwait {
+				co.fr.blk, co.fr.pc = co.bid, co.pc
 				v, st := m.suspendPoint(fu, in)
 				if st != ready {
+					leave()
 					return nil, st
 				}
 				co.fr.locals[in.Dst] = v
@@ -187,6 +191,7 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 				m.settleReturn(&co.fr, blk.Term.Args[0])
 			}
 			fu.done, fu.co = true, nil
+			leave()
 			return co.fr.locals[blk.Term.Args[0]], ready
 		default:
 			m.abort("unreachable code in " + f.Name)

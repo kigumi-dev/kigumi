@@ -13,6 +13,8 @@ type Output struct {
 	// Capabilities are reachable Capability macros (mir.CapabilityMacros) the
 	// driver passes to rt_core.c as -D flags; nil when Reachable was nil.
 	Capabilities []string
+	// Unwind asks for the runtime built with KIGUMI_UNWIND: the generated code registers unwind records and sweeps after a faulting drop.
+	Unwind bool
 }
 
 // EmitOptions selects the entry point: a hosted `main`, or `kigumi_main`
@@ -27,7 +29,7 @@ type EmitOptions struct {
 	// Reachable, when set, skips a Func this reachability result does not
 	// keep; nil emits every lowered function, as every direct llgen test does.
 	Reachable *mir.Reachability
-	// Catch needs the runtime built with KIGUMI_TASK_CATCH.
+	// Catch lets the build unwind on a panic; it also needs the runtime built with KIGUMI_TASK_CATCH.
 	Catch bool
 }
 

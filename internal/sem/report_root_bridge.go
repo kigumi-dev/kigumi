@@ -29,7 +29,7 @@ func (r *Result) rootRunHops(id EntityID, rr *rootRun) []OpHop {
 	var hops []OpHop
 	var subst map[EntityID][]EntityID
 	visited := map[EntityID]bool{}
-	for cur := id; rr.dist[cur] > 0; {
+	for cur := id; r.walkable(cur, subst, hops, rr); {
 		if visited[cur] {
 			break
 		}
@@ -47,6 +47,9 @@ func (r *Result) rootRunHops(id EntityID, rr *rootRun) []OpHop {
 		}
 		if r.Entities[cur].Kind == EntParam || r.Entities[cur].Kind == EntFieldParam {
 			e := rr.bind[cur]
+			if at, ok := r.siteBinding(cur, hops, rr); ok {
+				e = at
+			}
 			hops = append(hops, OpHop{e.File, e.Node, r.boundHopText(cur, e.Target)})
 			if w, ok := r.fieldWriteHop(e); ok {
 				hops = append(hops, w)

@@ -72,12 +72,14 @@ func (r *Result) noteFieldBindOwner(param, fn EntityID) {
 }
 
 func (r *Result) poisonFieldKeyAt(key fieldFnKey, file FileID, node syntax.NodeID) bool {
-	if _, ok := r.fieldPoisonSite[key]; !ok && !r.fieldWitnessPoisoned[key] {
-		if r.fieldPoisonSite == nil {
-			r.fieldPoisonSite = map[fieldFnKey]fieldPoisonSiteInfo{}
-		}
-		r.fieldPoisonSite[key] = fieldPoisonSiteInfo{File: file, Node: node}
-	}
+	here := fieldPoisonSiteInfo{File: file, Node: node}
+	return r.poisonFieldKeyFrom(key, here, here)
+}
+
+// note is the write to cite; here is where it takes effect in the key's own body.
+func (r *Result) poisonFieldKeyFrom(key fieldFnKey, note, here fieldPoisonSiteInfo) bool {
+	keepEarlier(r, &r.fieldPoisonSite, key, note)
+	keepEarlier(r, &r.flow.poisonAt, key, here)
 	return r.poisonFieldKeyGlobal(key)
 }
 
@@ -91,10 +93,22 @@ func (r *Result) poisonFieldKeyGlobal(key fieldFnKey) bool {
 		delete(r.localWitness, ent)
 		for _, fn := range r.fieldBindOwners[ent] {
 			edges := &r.Fn(fn).Edges
+			for _, e := range *edges {
+				if e.Param == ent && (e.Kind == EdgeFieldBind || e.Kind == EdgeIfaceArg) {
+					r.noteBindHist(ent, fn, e)
+				}
+			}
 			*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool { return e.Param == ent })
 		}
 		delete(r.fieldBindOwners, ent)
 	}
 	r.fieldWitnessPoisoned[key] = true
 	return true
+}
+
+func (r *Result) noteBindHist(ent, owner EntityID, e EffectEdge) {
+	if r.flow.bindHist == nil {
+		r.flow.bindHist = map[EntityID][]histBind{}
+	}
+	r.flow.bindHist[ent] = append(r.flow.bindHist[ent], histBind{owner: owner, edge: e})
 }

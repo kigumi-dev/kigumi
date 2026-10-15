@@ -1783,51 +1783,9 @@
       }
     },
     {
-      "id": "run/async_root_bridge_dynamic_closureresult",
-      "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_closureresult.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
-      "requires": [
-        "c-compiler"
-      ],
-      "observes": [
-        "stdout",
-        "stderr",
-        "exit"
-      ],
-      "stderr": {
-        "type": "regex",
-        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
-      }
-    },
-    {
       "id": "run/async_root_bridge_dynamic_generic",
       "kind": "run",
       "path": "testdata/run/async_root_bridge_dynamic_generic.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
-      "requires": [
-        "c-compiler"
-      ],
-      "observes": [
-        "stdout",
-        "stderr",
-        "exit"
-      ],
-      "stderr": {
-        "type": "regex",
-        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
-      }
-    },
-    {
-      "id": "run/async_root_bridge_dynamic_mutreturn",
-      "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_mutreturn.txtar",
       "mode": [
         "vm",
         "native"
@@ -1867,30 +1825,9 @@
       }
     },
     {
-      "id": "run/async_root_bridge_dynamic_paramcopy",
+      "id": "run/async_root_bridge_dynamic_poisonarray",
       "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_paramcopy.txtar",
-      "mode": [
-        "vm",
-        "native"
-      ],
-      "requires": [
-        "c-compiler"
-      ],
-      "observes": [
-        "stdout",
-        "stderr",
-        "exit"
-      ],
-      "stderr": {
-        "type": "regex",
-        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
-      }
-    },
-    {
-      "id": "run/async_root_bridge_dynamic_passthrough",
-      "kind": "run",
-      "path": "testdata/run/async_root_bridge_dynamic_passthrough.txtar",
+      "path": "testdata/run/async_root_bridge_dynamic_poisonarray.txtar",
       "mode": [
         "vm",
         "native"
@@ -1933,6 +1870,27 @@
       "id": "run/async_root_bridge_dynamic_refpick",
       "kind": "run",
       "path": "testdata/run/async_root_bridge_dynamic_refpick.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: `Executor\\.runToCompletion` cannot run inside a task; `await` the future instead"
+      }
+    },
+    {
+      "id": "run/async_root_bridge_dynamic_twice",
+      "kind": "run",
+      "path": "testdata/run/async_root_bridge_dynamic_twice.txtar",
       "mode": [
         "vm",
         "native"
@@ -2364,6 +2322,48 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: deep"
+      }
+    },
+    {
+      "id": "run/async_task_panic_temps",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_temps.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: explode 0"
+      }
+    },
+    {
+      "id": "run/async_task_panic_temps_await",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_temps_await.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: explode 1"
       }
     },
     {
@@ -4332,6 +4332,132 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: drop panicked: 7"
+      }
+    },
+    {
+      "id": "run/drop_panic_outside_chain",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_outside_chain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop 6\npanic: drop 4\npanic: drop 2"
+      }
+    },
+    {
+      "id": "run/drop_panic_outside_frame",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_outside_frame.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop failed: 2"
+      }
+    },
+    {
+      "id": "run/drop_panic_outside_hook_frame",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_outside_hook_frame.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: outer 11"
+      }
+    },
+    {
+      "id": "run/drop_panic_outside_notask_chain",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_outside_notask_chain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop 6\npanic: drop 4\npanic: drop 2"
+      }
+    },
+    {
+      "id": "run/drop_panic_outside_notask_frame",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_outside_notask_frame.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop failed: 2"
+      }
+    },
+    {
+      "id": "run/drop_panic_outside_notask_hook_frame",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_outside_notask_hook_frame.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: outer 11"
       }
     },
     {
@@ -9616,6 +9742,17 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_flow",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_flow.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge_fnbound",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_fnbound.txtar",
@@ -9693,9 +9830,31 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_scope",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_scope.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge_summary",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_summary.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_value",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_value.txtar",
       "mode": [
         "check"
       ],
@@ -11973,6 +12132,39 @@
       "id": "sem/task_cancellation_context",
       "kind": "sem",
       "path": "testdata/sem/task_cancellation_context.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_panic_contained_x86_bare",
+      "kind": "sem",
+      "path": "testdata/sem/task_panic_contained_x86_bare.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_panic_fatal_aarch64_bare",
+      "kind": "sem",
+      "path": "testdata/sem/task_panic_fatal_aarch64_bare.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_panic_fatal_wasi",
+      "kind": "sem",
+      "path": "testdata/sem/task_panic_fatal_wasi.txtar",
       "mode": [
         "check"
       ],

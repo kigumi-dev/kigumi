@@ -76,13 +76,15 @@ func (r *Result) mergeFnField(from, to fieldFnKey, u fnUnion) bool {
 	if r.fieldWitnessPoisoned[to] {
 		return false
 	}
-	if r.fieldWitnessPoisoned[from] {
+	cut := copyCut{file: u.file, node: u.node, root: r.rootOf(from.Ent)}
+	if r.poisonVisible(from, cut) {
+		here := fieldPoisonSiteInfo{File: u.file, Node: u.node}
 		if at, ok := r.fieldPoisonSite[from]; ok {
-			return r.poisonFieldKeyAt(to, at.File, at.Node)
+			return r.poisonFieldKeyFrom(to, at, here)
 		}
-		return r.poisonFieldKeyAt(to, u.file, u.node)
+		return r.poisonFieldKeyFrom(to, here, here)
 	}
-	changed := r.joinKnownFieldFnAt(to, r.knownFieldFn[from], fnSiteSrc{from: from, hasFrom: true, file: u.file, node: u.node})
+	changed := r.joinKnownFieldFnAt(to, r.visibleFns(from, cut), fnSiteSrc{from: from, hasFrom: true, file: u.file, node: u.node})
 	fromEnt, tracked := r.fieldParamEnts[from]
 	if !tracked {
 		return changed
@@ -91,12 +93,25 @@ func (r *Result) mergeFnField(from, to fieldFnKey, u fnUnion) bool {
 	if w := r.localWitness[fromEnt]; len(w) > 0 && r.joinLocalWitness(toEnt, w) {
 		changed = true
 	}
-	for _, fn := range slices.Clone(r.fieldBindOwners[fromEnt]) {
-		for _, e := range slices.Clone(r.Fn(fn).Edges) {
-			if e.Param == fromEnt && (e.Kind == EdgeFieldBind || e.Kind == EdgeIfaceArg) && r.addFieldBindEdge(fn, e.Kind, e.Target, to, e.File, e.Node) {
-				changed = true
-			}
+	for _, hb := range r.bindEdgesOf(fromEnt) {
+		if !r.writeMayPrecede(fieldPoisonSiteInfo{File: hb.edge.File, Node: hb.edge.Node}, cut) {
+			continue
+		}
+		if r.addFieldBindEdge(hb.owner, hb.edge.Kind, hb.edge.Target, to, hb.edge.File, hb.edge.Node) {
+			changed = true
 		}
 	}
 	return changed
+}
+
+func (r *Result) bindEdgesOf(ent EntityID) []histBind {
+	var out []histBind
+	for _, fn := range slices.Clone(r.fieldBindOwners[ent]) {
+		for _, e := range slices.Clone(r.Fn(fn).Edges) {
+			if e.Param == ent && (e.Kind == EdgeFieldBind || e.Kind == EdgeIfaceArg) {
+				out = append(out, histBind{owner: fn, edge: e})
+			}
+		}
+	}
+	return append(out, r.flow.bindHist[ent]...)
 }

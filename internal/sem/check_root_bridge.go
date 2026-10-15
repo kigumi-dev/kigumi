@@ -1,5 +1,7 @@
 package sem
 
+import "kigumi/internal/syntax"
+
 // Driving a root task is unsafe wherever a task is already running, not just
 // in the body that lexically holds the call, so the reach is transitive.
 
@@ -48,6 +50,15 @@ type rootRun struct {
 	// poisonedFnField stands in for a bound argument since no caller ever supplied one.
 	poisonedFnField map[EntityID]OpHop
 	poisonAt        map[bindSite]OpHop
+	// unresolved stands for a call site's binding of a poisoned source, so only that site reaches the runner.
+	unresolved     EntityID
+	poisonBySite   map[siteLoc][]EntityID
+	poisonedPlaces map[EntityID]bool
+}
+
+type siteLoc struct {
+	file FileID
+	node syntax.NodeID
 }
 
 // A dynamic target proves nothing, so an unresolved call is not a bridge.
@@ -55,7 +66,7 @@ func (rr *rootRun) hops(target EntityID) int {
 	switch {
 	case target == 0:
 		return 0
-	case target == rr.runner:
+	case target == rr.runner || target == rr.unresolved:
 		return 1
 	case rr.dist[target] > 0:
 		return rr.dist[target] + 1
@@ -145,7 +156,7 @@ func (r *Result) rootRunBind(id EntityID, rr *rootRun) bool {
 func (r *Result) rootRunFieldBind(id EntityID, rr *rootRun) bool {
 	changed := false
 	for _, e := range r.edgesOf(id) {
-		if e.Kind != EdgeFieldBind || e.Param == 0 {
+		if e.Kind != EdgeFieldBind || e.Param == 0 || rr.poisonedPlace(r, e.Target) {
 			continue
 		}
 		if d := rr.hops(e.Target); d > 0 && (rr.dist[e.Param] == 0 || d < rr.dist[e.Param]) {

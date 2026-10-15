@@ -1,0 +1,19 @@
+-- module --
+stage: driver
+triple: x86_64-linux-gnu
+sys: none
+-- src --
+import task from std/task
+
+async fn leaf(n: Int) -> Int {
+    n
+}
+
+async fn root() -> Int {
+    let t = task.spawn(leaf(1))
+    await t
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(root())}"
+-- expect --

@@ -2,11 +2,7 @@
 import task from std/task
 
 type Holder = {
-    pub cb fn() -> Int
-}
-
-type Wrap = {
-    pub inner Holder
+    pub mut cb fn() -> Int
 }
 
 async fn leaf(n: Int) -> Int {
@@ -18,10 +14,27 @@ fn syncRoot() -> Int {
     ex.runToCompletion(leaf(7))
 }
 
-async fn outer() -> Int {
-    let make = () => Holder { cb: syncRoot }
-    let h = make()
+fn safeFn() -> Int {
+    1
+}
+
+fn opaqueSel(pick: Bool) -> fn() -> Int {
+    if pick {
+        syncRoot
+    } else {
+        safeFn
+    }
+}
+
+fn callIt(h: Holder) -> Int {
     h.cb()
+}
+
+async fn outer() -> Int {
+    let mut w = Holder { cb: safeFn }
+    w.cb = opaqueSel(true)
+    let hs = Array.of(w)
+    callIt(hs.get(0).unwrap())
 }
 
 print "start"

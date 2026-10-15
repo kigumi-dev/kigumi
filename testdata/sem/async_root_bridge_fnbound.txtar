@@ -304,6 +304,16 @@ error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor c
 153 |     runBoxed(syncRoot) //~ ERROR cannot run inside an `async fn`
     |     ^^^^^^^^^^^^^^^^^
     = help: `await` the future instead
+note: calls `callH`
+   --> app/t/t.kg:65:5
+    |
+ 65 |     callH(h)
+    |     ^^^^^^^
+note: calls `h.cb`
+   --> app/t/t.kg:60:5
+    |
+ 60 |     h.cb()
+    |     ^^^^^
 
 error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
    --> app/t/t.kg:161:9

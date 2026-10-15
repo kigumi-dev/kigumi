@@ -103,6 +103,8 @@ func (c *checker) letStmt(n syntax.NodeID) {
 			c.trackFnCopyAlias(s.Init, c.info.Defs[s.Pattern])
 		} else if src := c.r.fnChainEnt(c.f, s.Init); src != 0 && c.r.concretePlace(src) {
 			c.unionInto(c.info.Defs[s.Pattern], src, typ, s.Init)
+		} else {
+			c.notePlaceCopy(c.info.Defs[s.Pattern], src)
 		}
 		// Unlike the local-wide tracking above this runs for `let mut` too:
 		// recordFieldWrite keeps a field's own known set sound under reassignment.
