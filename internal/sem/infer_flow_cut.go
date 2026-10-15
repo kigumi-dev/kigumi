@@ -24,6 +24,10 @@ type flowState struct {
 	unionSeen      map[fnUnion]bool
 	order          map[fieldSiteKey]fieldPoisonSiteInfo
 	poisonAt       map[fieldFnKey]fieldPoisonSiteInfo
+	// sites lists every statement that wrote the fn into the key, not only the earliest.
+	sites    map[fieldSiteKey][]fieldPoisonSiteInfo
+	kills    map[EntityID][]killSite
+	soleElem map[EntityID]token.Span
 }
 
 type histBind struct {
@@ -129,7 +133,7 @@ func (r *Result) visibleFns(key fieldFnKey, cut copyCut) []EntityID {
 	var out []EntityID
 	for _, f := range r.flow.fnHist[key] {
 		site, ok := r.flow.order[fieldSiteKey{Key: key, Fn: f}]
-		if !ok || r.writeMayPrecede(site, cut) {
+		if (!ok || r.writeMayPrecede(site, cut)) && !r.fnKilledAt(key, f, cut.file, cut.node) {
 			out = append(out, f)
 		}
 	}

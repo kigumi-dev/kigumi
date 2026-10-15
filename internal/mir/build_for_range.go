@@ -19,7 +19,7 @@ func (b *builder) rangeCursor(e *hir.Expr) *rangeCursor {
 		return nil
 	}
 	t := e.Pat.Type
-	if !b.r.Types.IsInteger(t) || sem.WideScalar(t) || head.Args[0].Type != t || head.Args[1].Type != t {
+	if !b.r.Types.IsInteger(t) || head.Args[0].Type != t || head.Args[1].Type != t {
 		return nil
 	}
 	c := &rangeCursor{b: b, typ: t, inclusive: head.Name == "..="}

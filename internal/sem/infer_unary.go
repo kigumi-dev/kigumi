@@ -12,7 +12,7 @@ func (c *checker) synthUnary(n syntax.NodeID, want TypeID) TypeID {
 	if isNumericLiteral(c.t, n) {
 		return c.synthLiteral(n, want)
 	}
-	operand := c.synth(u.Operand().ID())
+	operand := c.unaryOperand(u.Operand().ID(), op, want)
 	tt := c.r.Types
 	operand = c.readThrough(c.vars.resolve(operand))
 	if operand == TyPoison {
@@ -96,3 +96,10 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 }
 
 func (c *checker) noteDiag(d diag.Diagnostic) { c.r.emitDiag(c.f, d) }
+
+func (c *checker) unaryOperand(n syntax.NodeID, op token.Kind, want TypeID) TypeID {
+	if ctx := c.shiftContext(want); op == token.Minus && ctx != 0 && c.info.Types[n] == 0 && c.shiftShaped(n) {
+		return c.setType(n, c.synthKind(n, ctx))
+	}
+	return c.synth(n)
+}

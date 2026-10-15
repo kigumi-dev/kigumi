@@ -1,0 +1,32 @@
+-- module --
+mir: planned
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+noalloc fn peek(p: &Point) -> Int { p.x + p.y }
+
+fn lendsOnce(i: Int) -> Int {
+    let p = Point { x: i, y: 2 }
+    peek(&p) + 1
+}
+
+fn lendsTwice(i: Int) -> Int {
+    let p = Point { x: i, y: 2 }
+    let q = Point { x: 1, y: i }
+    peek(&p) + peek(q) + lendsOnce(i)
+}
+
+noalloc fn direct() -> Int { lendsOnce(3) + lendsTwice(4) }
+
+noalloc fn throughClosure() -> Int {
+    let f: noalloc fn(Int) -> Int = lendsOnce
+    f(2)
+}
+
+fn main() -> Unit! {
+    let n = direct() + throughClosure()
+}
+-- expect --

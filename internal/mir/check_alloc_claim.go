@@ -23,6 +23,7 @@ func CheckAllocClaims(p *Program) []AllocClaim {
 	}
 	seen := map[claimKey]bool{}
 	reached := p.namedCallees()
+	p.demoteBoxedLends(reached)
 	for _, f := range p.allFuncs() {
 		if p.sharedUnreached(f, reached) {
 			continue
@@ -52,6 +53,7 @@ func (p *Program) declaredNoalloc(f *Func) bool {
 }
 
 func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
+	declared := p.declaredNoalloc(f)
 	c, ok := sem.CodeByName(code)
 	if !ok {
 		return nil
@@ -59,7 +61,7 @@ func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
 	var out []AllocClaim
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if typ := p.boxedType(f, in); typ != 0 {
+			if typ := p.boxedType(f, in); typ != 0 && (declared || in.Op != OpBorrow) {
 				out = append(out, p.claimAt(f, c, in.Node, typ))
 			}
 		}

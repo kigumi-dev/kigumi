@@ -1,0 +1,52 @@
+-- src --
+fn typed(n: usize, m: usize) -> String {
+    let a: u32 = (1 << n) + 1
+    let b: u32 = (1 << n) | (1 << m)
+    let c: u64 = (1 << n) * 3
+    let d: u8 = ((1 << n) + (1 << m)) << 1
+    let e: i32 = (-1 << n) + 1
+    let f: u32 = 5 + (1 << n)
+    let g: i64 = 100 - (1 << n)
+    "${a} ${b} ${c} ${d} ${e} ${f} ${g}"
+}
+
+fn sibling(x: u32, y: i32, n: usize) -> String {
+    let a = x + (1 << n)
+    let b = (1 << n) + x
+    let c = y + (-1 << n)
+    let d = (x | (1 << n)) & ((1 << 2) << n)
+    "${a} ${b} ${c} ${d} ${x != (1 << n)} ${(1 << n) > x}"
+}
+
+fn wide(n: usize) -> String {
+    let a: u128 = (1 << n) | (1 << 100)
+    let b: u128 = (1 << n) * (1 << n)
+    let c: i128 = (-1 << n) - 1
+    let d: i128 = (-1 << n) * (1 << 70)
+    "${a} ${b} ${c} ${d}"
+}
+
+fn untypedDefaults(n: usize) -> String {
+    let up = 1 << n
+    let down = -1 << n
+    "${up} ${down}"
+}
+
+fn negated(n: usize) -> String {
+    let a: i32 = -(1 << n)
+    let b: i16 = -(-1 << n) + 2
+    let c: i64 = -(1 << n) * 3
+    "${a} ${b} ${c}"
+}
+
+print typed(3, 2)
+print sibling(5, -4, 3)
+print wide(4)
+print untypedDefaults(3)
+print negated(3)
+-- stdout --
+9 12 24 24 -7 13 92
+13 13 -12 0 true true
+1267650600228229401496703205392 256 -17 -18889465931478580854784
+8 -8
+-8 10 -24

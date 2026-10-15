@@ -18,8 +18,7 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 		c.condFacts(n)
 		return TyBool
 	}
-	l := c.readThrough(c.vars.resolve(c.synth(lhs)))
-	r := c.readThrough(c.vars.resolve(c.synth(rhs)))
+	l, r := c.synthOperands(op, lhs, rhs, want)
 	tt := c.r.Types
 	if op == token.DotDot || op == token.DotDotEq {
 		return c.synthRange(n, op, lhs, rhs, l, r)

@@ -12,7 +12,7 @@ func (r *Result) checkContracts(id EntityID) {
 	}
 	for _, e := range r.edgesOf(id) {
 		if e.Kind == EdgeContract {
-			r.checkContractEdge(e)
+			r.checkContractEdge(e, EffPure|EffNoalloc)
 			continue
 		}
 		// The built program's alloc-claim check answers for a crossing an instantiation takes unboxed or a callee takes by value.
@@ -28,7 +28,7 @@ func (r *Result) checkContracts(id EntityID) {
 	}
 }
 
-func (r *Result) checkContractEdge(e EffectEdge) {
+func (r *Result) checkContractEdge(e EffectEdge, only Effects) {
 	target := e.Target
 	s := r.summary(target)
 	fn := r.Entities[target].Kind == EntFn
@@ -41,7 +41,7 @@ func (r *Result) checkContractEdge(e EffectEdge) {
 	deferred := fn &&
 		(len(info.CalledFieldParams) > 0 || len(info.CalledWitnessReqs) > 0 || len(info.CalledParams) > 0)
 	for _, mod := range []Effects{EffPure, EffNoalloc} {
-		if e.Mods&mod == 0 {
+		if e.Mods&mod == 0 || only&mod == 0 {
 			continue
 		}
 		if !fn && allows(s, mod) && r.closureCalledParam(target, mod) == 0 {

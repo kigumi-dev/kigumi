@@ -29,6 +29,9 @@ func TestVerifyCorpus(t *testing.T) {
 			if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
 				t.Errorf("plan-rc: %v", err)
 			}
+			if err := prog.Apply(mir.Transform{Name: "elide-rc", Run: mir.ElideRC}); err != nil {
+				t.Errorf("elide-rc: %v", err)
+			}
 			if err := prog.Apply(mir.Transform{Name: "plan-direct", Run: mir.PlanDirect}); err != nil {
 				t.Errorf("plan-direct: %v", err)
 			}

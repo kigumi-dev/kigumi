@@ -56,6 +56,12 @@ func (r *Result) noteFnSite(key fieldFnKey, f EntityID, s fnSiteSrc) bool {
 			note = from
 		}
 	}
+	if here.File != 0 && !slices.Contains(r.flow.sites[k], here) {
+		if r.flow.sites == nil {
+			r.flow.sites = map[fieldSiteKey][]fieldPoisonSiteInfo{}
+		}
+		r.flow.sites[k] = append(r.flow.sites[k], here)
+	}
 	changed := keepEarlier(r, &r.flow.order, k, here)
 	if keepEarlier(r, &r.fieldFnSites, k, note) {
 		changed = true

@@ -42,6 +42,9 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		c.callbackEdge(n, n, Effects(node.Flags), 0, false)
 		key, viaField := c.knownFieldCallKeyOf(callee)
 		for _, tgt := range c.knownCallTargets(callee) {
+			if viaField && c.r.fnKilledAt(key, tgt, c.f, n) {
+				continue
+			}
 			c.edge(EffectEdge{Kind: EdgeKnownCall, Target: tgt, Node: n})
 			if viaField {
 				c.r.noteEdgeSite(key, c.f, n, tgt, 0)
@@ -49,7 +52,7 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		}
 		if callee != 0 {
 			if key, ok := c.fnFieldSrcKey(callee); ok {
-				c.stageLateFieldEdge(EdgeKnownCall, key, 0, n)
+				c.stageLateFieldEdge(EdgeKnownCall, key, 0, n, c.fnFieldReadNode(callee))
 			}
 		}
 	}

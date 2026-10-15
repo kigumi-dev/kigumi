@@ -50,6 +50,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	}
 	c.applyFieldWrite(lhs, rhs)
 	c.noteStrongFieldWrite(n, lhs)
+	c.noteAssignKill(n, lhs, rhs)
 	if c.t.Kind(lhs) != syntax.Ident {
 		c.checkEscapeStore(rhs)
 	} else if p := c.restrictedAliasOf(rhs); p != 0 {

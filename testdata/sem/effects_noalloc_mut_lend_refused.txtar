@@ -1,0 +1,46 @@
+-- module --
+mir: planned
+-- src --
+type Point = {
+    pub mut x Int
+    pub y Int
+}
+
+fn Point.bump(mut self) -> Unit {
+    self.x = self.x + 1
+}
+
+fn setX(p: &mut Point) -> Unit {
+    p.x = 5
+}
+
+noalloc fn viaReceiver() -> Int {
+    let mut p = Point { x: 1, y: 2 }
+    p.bump() //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+    p.x
+}
+
+noalloc fn viaMutBorrow() -> Int {
+    let mut p = Point { x: 1, y: 2 }
+    setX(&mut p) //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+    p.x
+}
+
+fn main() -> Unit! {
+    let n = viaReceiver() + viaMutBorrow()
+}
+-- expect --
+error[E1610]: handing `Point` to a slot that holds a reference allocates a box for it
+  --> main.kg:16:5
+   |
+16 |     p.bump() //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+   |     ^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Point` to a slot that holds a reference allocates a box for it
+  --> main.kg:22:15
+   |
+22 |     setX(&mut p) //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+   |               ^
+   = help: keep it in a value of its own, or drop the declaration
+

@@ -27,12 +27,10 @@ func (p *Program) elideBlock(f *Func, in []Inst) []Inst {
 			continue
 		case x.Op == OpShare && immortalLocal(f, x.Args[0]):
 			x = Inst{Op: OpAlias, Dst: x.Dst, Args: x.Args, Type: x.Type, Node: x.Node}
-		case k+1 < len(in):
-			if keep, skip := p.elidePair(f, x, in[k+1]); skip {
-				k++
-				if keep != nil {
-					out = append(out, *keep)
-				}
+		case x.Op == OpShare:
+			if keep, gone, ok := p.elideShare(f, in[k:]); ok {
+				out = append(out, keep...)
+				k += gone
 				continue
 			}
 		}
@@ -41,20 +39,48 @@ func (p *Program) elideBlock(f *Func, in []Inst) []Inst {
 	return out
 }
 
-// elidePair cancels a retain the next instruction releases, or hands the source's count to the retained temporary.
-func (p *Program) elidePair(f *Func, share, next Inst) (keep *Inst, skip bool) {
-	if share.Op != OpShare || share.Copy || next.Op != OpRelease || len(share.Args) != 1 {
-		return nil, false
+// A copy of one of these is a retain: the value is immutable, so no one can tell the two apart.
+func (p *Program) retainOnly(t sem.TypeID) bool {
+	return p.R.Types.IsNumeric(t) || t == sem.TyBool || t == sem.TyChar || t == sem.TyString || t == sem.TyUnit
+}
+
+// elideShare cancels a retain the source's or its own release undoes, or hands the source's count to the
+// new reference when the source dies right after it. Only drops of other locals may lie between.
+func (p *Program) elideShare(f *Func, run []Inst) (keep []Inst, gone int, ok bool) {
+	share := run[0]
+	if len(share.Args) != 1 || share.Copy && !p.retainOnly(f.Locals[share.Args[0]].Type) {
+		return nil, 0, false
 	}
-	src, dst, rel := share.Args[0], share.Dst, next.Args[0]
+	src, dst := share.Args[0], share.Dst
 	if f.IsDirect(src) || f.IsDirect(dst) || src == dst {
-		return nil, false
+		return nil, 0, false
 	}
-	switch {
-	case rel == dst && f.Locals[dst].Ent == 0 && !f.Locals[dst].Cell:
-		return nil, true
-	case rel == src && f.Locals[src].Ent == 0 && !f.Locals[src].Cell:
-		return &Inst{Op: OpMove, Dst: dst, Args: []LocalID{src}, Type: share.Type, Node: share.Node}, true
+	for j := 1; j < len(run); j++ {
+		next := run[j]
+		if (next.Op != OpRelease && next.Op != OpDrop) || len(next.Args) != 1 {
+			return nil, 0, false
+		}
+		switch rel := next.Args[0]; {
+		case rel == dst && next.Op == OpRelease && f.Locals[dst].Ent == 0 && !f.Locals[dst].Cell:
+			return run[1:j], j, true
+		case rel == src && p.diesAt(f, src, next):
+			move := Inst{Op: OpMove, Dst: dst, Args: []LocalID{src}, Type: share.Type, Node: share.Node}
+			return append([]Inst{move}, run[1:j]...), j, true
+		case rel == src || rel == dst:
+			return nil, 0, false
+		}
 	}
-	return nil, false
+	return nil, 0, false
+}
+
+// diesAt reports that next ends the life of src, a local this body owns the count of.
+func (p *Program) diesAt(f *Func, src LocalID, next Inst) bool {
+	l := f.Locals[src]
+	if l.Cell {
+		return false
+	}
+	if next.Op == OpRelease {
+		return l.Ent == 0
+	}
+	return l.Ent != 0 && !l.Borrowed
 }

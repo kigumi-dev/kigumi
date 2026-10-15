@@ -53,10 +53,10 @@ func (c *checker) retagCross(from int, nodes ...syntax.NodeID) {
 		}
 		e.Why = whyLendCross
 		if c.r.lendSites == nil {
-			c.r.lendSites = map[lendSite]bool{}
+			c.r.lendSites = map[lendSite]lendSite{}
 		}
 		for _, n := range nodes {
-			c.r.lendSites[lendSite{c.f, n}] = true
+			c.r.lendSites[lendSite{c.f, n}] = lendSite{c.f, e.Node}
 		}
 	}
 }
@@ -67,7 +67,8 @@ type lendSite struct {
 }
 
 func (r *Result) LendSite(file FileID, node syntax.NodeID) bool {
-	return r.lendSites[lendSite{file, node}]
+	_, ok := r.lendSites[lendSite{file, node}]
+	return ok
 }
 
 func (c *checker) borrowCoerced(a syntax.NodeID) bool {

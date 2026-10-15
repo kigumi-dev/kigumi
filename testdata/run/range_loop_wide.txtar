@@ -1,0 +1,91 @@
+-- src --
+fn sumU(n: u128) -> u128 {
+    let mut s: u128 = 0
+    for i in 0..n { s = s + i }
+    s
+}
+
+fn inclusiveBreak(lo: i128, hi: i128) -> i128 {
+    let mut s: i128 = 0
+    for i in lo..=hi {
+        if i == lo + 5 { break }
+        s = s + i
+    }
+    s
+}
+
+fn captured(n: i128) -> i128 {
+    let mut s: i128 = 0
+    for i in 0..n {
+        let f = () => i * 2
+        s = s + f()
+    }
+    s
+}
+
+fn nested(n: u128) -> u128 {
+    let mut s: u128 = 0
+    for i in 0..n {
+        for j in i..=n { s = s + i * j }
+    }
+    s
+}
+
+fn beyondU64() -> u128 {
+    let mut s: u128 = 0
+    let lo: u128 = 18446744073709551610
+    for i in lo..(lo + 12) { s = s + i - lo }
+    s
+}
+
+fn topEnd() -> u128 {
+    let mut c: u128 = 0
+    let hi: u128 = 340282366920938463463374607431768211455
+    for _ in (hi - 3)..=hi { c = c + 1 }
+    c
+}
+
+fn emptyAndReversed() -> i128 {
+    let mut c: i128 = 0
+    let a: i128 = 5
+    let b: i128 = 2
+    for _ in a..b { c = c + 1 }
+    for _ in a..=b { c = c + 10 }
+    for _ in a..a { c = c + 100 }
+    c
+}
+
+fn bound(x: i128) -> i128 { x + 3 }
+
+fn collect(n: i128) -> Array[i128] {
+    let mut out: Array[i128] = Array.empty()
+    for i in bound(0)..bound(n) {
+        if i == 4 { continue }
+        out.push(i)
+    }
+    out
+}
+
+fn generic[T](xs: Array[T], n: u128) -> u128 {
+    let mut c: u128 = 0
+    for _ in 0..n { c = c + 1 }
+    c
+}
+
+fn shadowed() -> i128 {
+    let mut s: i128 = 0
+    let three: i128 = 3
+    for i in 0..three {
+        let k = i * 2
+        for j in k..(k + 2) { s = s + j }
+    }
+    s
+}
+
+print "${sumU(10)} ${inclusiveBreak(-3, 100)} ${captured(5)} ${nested(4)}"
+print "${beyondU64()} ${topEnd()} ${emptyAndReversed()}"
+print "${collect(7).len()} ${generic(Array.of(1, 2, 3), 5)} ${shadowed()}"
+-- stdout --
+45 -5 20 49
+66 4 0
+6 5 15

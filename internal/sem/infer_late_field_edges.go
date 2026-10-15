@@ -14,14 +14,16 @@ type lateFieldEdge struct {
 	caller EntityID
 	file   FileID
 	node   syntax.NodeID
+	// read is where the fn was read from src, which precedes node when a local carried it.
+	read   syntax.NodeID
 	scoped bool
 }
 
-func (c *checker) stageLateFieldEdge(kind EdgeKind, src fieldFnKey, param EntityID, n syntax.NodeID) {
+func (c *checker) stageLateFieldEdge(kind EdgeKind, src fieldFnKey, param EntityID, n, read syntax.NodeID) {
 	if c.fn == 0 {
 		return
 	}
-	c.r.lateFieldEdges = append(c.r.lateFieldEdges, lateFieldEdge{kind: kind, src: src, param: param, caller: c.fn, file: c.f, node: n, scoped: c.allocDepth > 0})
+	c.r.lateFieldEdges = append(c.r.lateFieldEdges, lateFieldEdge{kind: kind, src: src, param: param, caller: c.fn, file: c.f, node: n, read: read, scoped: c.allocDepth > 0})
 }
 
 func (r *Result) closeLateFieldEdges() {
@@ -30,6 +32,9 @@ func (r *Result) closeLateFieldEdges() {
 		r.bindWrittenPlace(info, late)
 	next:
 		for _, tgt := range r.knownFieldFn[late.src] {
+			if r.fnKilledAt(late.src, tgt, late.file, late.read) {
+				continue next
+			}
 			r.noteEdgeSite(late.src, late.file, late.node, tgt, late.param)
 			r.noteBindSrc(late.file, late.node, tgt, late.param, late.src)
 			for _, e := range info.Edges {

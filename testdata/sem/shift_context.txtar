@@ -1,0 +1,67 @@
+-- src --
+fn main() -> Unit! {
+    let n: usize = 3
+    let x: u32 = 5
+    let y: u64 = 7
+    let ok1: u32 = (1 << n) + 1
+    let ok2: i32 = (-1 << n) + 1
+    let ok3 = x + (1 << n)
+    let ok4 = (1 << n) < x
+    let ok5: i32 = -(1 << n)
+    let ok6: i16 = -(-1 << n) + 2
+    let ok7: i64 = -(1 << n) * 3
+    let up = 1 << n
+    let down = -1 << n
+    let a: u8 = (1 << n) + 300 //~ ERROR `300` does not fit `u8`
+    let b = y + (1 << n) + x //~ ERROR `u64` and `u32` cannot be mixed
+    let c: usize = (-1 << n) + 1 //~ ERROR expected `usize`, found `Int`
+    let d: u32 = up + 1 //~ ERROR expected `u32`, found `usize`
+    let e: i32 = down //~ ERROR expected `i32`, found `Int`
+    let z: i32 = 4
+    let f: u32 = -(1 << n) //~ ERROR unary `-` on unsigned `u32`
+    let g: i64 = -(z << n) //~ ERROR expected `Int`, found `i32`
+}
+-- expect --
+error[E402]: `300` does not fit `u8`
+  --> main/main.kg:14:28
+   |
+14 |     let a: u8 = (1 << n) + 300 //~ ERROR `300` does not fit `u8`
+   |                            ^^^
+
+error[E405]: `u64` and `u32` cannot be mixed
+  --> main/main.kg:15:13
+   |
+15 |     let b = y + (1 << n) + x //~ ERROR `u64` and `u32` cannot be mixed
+   |             ^^^^^^^^^^^
+   = help: convert explicitly
+
+error[E400]: expected `usize`, found `Int`
+  --> main/main.kg:16:21
+   |
+16 |     let c: usize = (-1 << n) + 1 //~ ERROR expected `usize`, found `Int`
+   |                     ^^^^^^^
+
+error[E400]: expected `u32`, found `usize`
+  --> main/main.kg:17:18
+   |
+17 |     let d: u32 = up + 1 //~ ERROR expected `u32`, found `usize`
+   |                  ^^^^^^
+
+error[E400]: expected `i32`, found `Int`
+  --> main/main.kg:18:18
+   |
+18 |     let e: i32 = down //~ ERROR expected `i32`, found `Int`
+   |                  ^^^^
+
+error[E608]: unary `-` on unsigned `u32`
+  --> main/main.kg:20:18
+   |
+20 |     let f: u32 = -(1 << n) //~ ERROR unary `-` on unsigned `u32`
+   |                  ^^^^^^^^
+
+error[E400]: expected `Int`, found `i32`
+  --> main/main.kg:21:20
+   |
+21 |     let g: i64 = -(z << n) //~ ERROR expected `Int`, found `i32`
+   |                    ^^^^^^
+

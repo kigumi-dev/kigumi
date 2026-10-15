@@ -66,13 +66,33 @@ func TestElideRCKeepsWhatItCannotProve(t *testing.T) {
 		locals []mir.Local
 		insts  []mir.Inst
 	}{
-		"copy": {
-			[]mir.Local{{Name: "t0", Type: str}, {Name: "t1", Type: str}},
+		"copy of a type whose copy allocates": {
+			[]mir.Local{{Name: "t0", Type: sem.TyBytes}, {Name: "t1", Type: sem.TyBytes}},
 			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0), Copy: true}, {Op: mir.OpRelease, Args: arg(0)}},
 		},
-		"named source": {
+		"named source released like a temporary": {
 			[]mir.Local{{Name: "s", Type: str, Ent: 1}, {Name: "t1", Type: str}},
 			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpRelease, Args: arg(0)}},
+		},
+		"temporary source dropped": {
+			[]mir.Local{{Name: "t0", Type: str}, {Name: "t1", Type: str}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpDrop, Args: arg(0)}},
+		},
+		"borrowed receiver": {
+			[]mir.Local{{Name: "self", Type: str, Ent: 1, Borrowed: true}, {Name: "t1", Type: str}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpDrop, Args: arg(0)}},
+		},
+		"cell": {
+			[]mir.Local{{Name: "c", Type: str, Ent: 1, Cell: true}, {Name: "t1", Type: str}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpDrop, Args: arg(0)}},
+		},
+		"source dropped after another read": {
+			[]mir.Local{{Name: "s", Type: str, Ent: 1}, {Name: "t1", Type: str}, {Name: "t2", Type: str}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpCopy, Dst: 2, Args: arg(0)}, {Op: mir.OpDrop, Args: arg(0)}},
+		},
+		"something dropped is the new reference": {
+			[]mir.Local{{Name: "s", Type: str, Ent: 1}, {Name: "t1", Type: str, Ent: 2}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpDrop, Args: arg(1)}, {Op: mir.OpDrop, Args: arg(0)}},
 		},
 		"something between": {
 			[]mir.Local{{Name: "t0", Type: str}, {Name: "t1", Type: str}, {Name: "u", Type: sem.TyUnit}},
@@ -83,6 +103,48 @@ func TestElideRCKeepsWhatItCannotProve(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			if got := elideOps(t, c.locals, c.insts); len(got) != len(c.insts) {
 				t.Errorf("ops = %v, want all %d kept", got, len(c.insts))
+			}
+		})
+	}
+}
+
+func TestElideRCMovesTheSourceThatDiesAtTheShare(t *testing.T) {
+	str, num := sem.TyString, sem.TyI64
+	cases := map[string]struct {
+		locals []mir.Local
+		insts  []mir.Inst
+		want   []mir.Opcode
+	}{
+		"named source dropped next": {
+			[]mir.Local{{Name: "s", Type: str, Ent: 1}, {Name: "t1", Type: str}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpDrop, Args: arg(0)}},
+			[]mir.Opcode{mir.OpMove},
+		},
+		"copy of a scalar": {
+			[]mir.Local{{Name: "n", Type: num, Ent: 1}, {Name: "t1", Type: num}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0), Copy: true}, {Op: mir.OpDrop, Args: arg(0)}},
+			[]mir.Opcode{mir.OpMove},
+		},
+		"copy of a temporary scalar": {
+			[]mir.Local{{Name: "t0", Type: num}, {Name: "t1", Type: num}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0), Copy: true}, {Op: mir.OpRelease, Args: arg(0)}},
+			[]mir.Opcode{mir.OpMove},
+		},
+		"other locals dropped in between": {
+			[]mir.Local{{Name: "s", Type: str, Ent: 1}, {Name: "t1", Type: str}, {Name: "o", Type: str, Ent: 2}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpDrop, Args: arg(2)}, {Op: mir.OpDrop, Args: arg(0)}},
+			[]mir.Opcode{mir.OpMove, mir.OpDrop},
+		},
+		"the new reference released after other drops": {
+			[]mir.Local{{Name: "s", Type: str, Ent: 1}, {Name: "t1", Type: str}, {Name: "o", Type: str, Ent: 2}},
+			[]mir.Inst{{Op: mir.OpShare, Dst: 1, Args: arg(0)}, {Op: mir.OpDrop, Args: arg(2)}, {Op: mir.OpRelease, Args: arg(1)}},
+			[]mir.Opcode{mir.OpDrop},
+		},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			if got := elideOps(t, c.locals, c.insts); !slices.Equal(got, c.want) {
+				t.Errorf("ops = %v, want %v", got, c.want)
 			}
 		})
 	}

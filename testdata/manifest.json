@@ -9514,6 +9514,23 @@
       ]
     },
     {
+      "id": "run/range_loop_wide",
+      "kind": "run",
+      "path": "testdata/run/range_loop_wide.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/range_reversed",
       "kind": "run",
       "path": "testdata/run/range_reversed.txtar",
@@ -9944,6 +9961,23 @@
       "id": "run/shell",
       "kind": "run",
       "path": "testdata/run/shell.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/shift_context",
+      "kind": "run",
+      "path": "testdata/run/shift_context.txtar",
       "mode": [
         "vm",
         "native"
@@ -11201,6 +11235,17 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_container_kill",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_container_kill.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge_copy",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_copy.txtar",
@@ -12257,6 +12302,28 @@
       ]
     },
     {
+      "id": "sem/effects_noalloc_lend_inferred",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_lend_inferred.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_lend_inferred_refused",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_lend_inferred_refused.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/effects_noalloc_lend_planned",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_lend_planned.txtar",
@@ -12282,6 +12349,17 @@
       "id": "sem/effects_noalloc_literal_cross",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_literal_cross.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_mut_lend_refused",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_mut_lend_refused.txtar",
       "mode": [
         "check"
       ],
@@ -13734,6 +13812,17 @@
       "id": "sem/send_sync_future",
       "kind": "sem",
       "path": "testdata/sem/send_sync_future.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/shift_context",
+      "kind": "sem",
+      "path": "testdata/sem/shift_context.txtar",
       "mode": [
         "check"
       ],

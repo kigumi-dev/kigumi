@@ -1,0 +1,83 @@
+-- module --
+mir: planned
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Big = {
+    pub a Int
+    pub b Int
+    pub c Int
+    pub d Int
+    pub e Int
+    pub f Int
+    pub g Int
+    pub h Int
+    pub i Int
+    pub j Int
+    pub k Int
+    pub l Int
+    pub m Int
+    pub n Int
+    pub o Int
+    pub p Int
+    pub q Int
+}
+
+noalloc fn keep['a](p: &'a Point) -> &'a Point { p }
+
+noalloc fn peekBig(b: &Big) -> Int { b.a + b.q }
+
+fn boxedKeep(i: Int) -> Int {
+    let p = Point { x: i, y: 2 }
+    keep(&p).x
+}
+
+fn boxedBig(i: Int) -> Int {
+    let b = Big { a: i, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9, j: 10, k: 11, l: 12, m: 13, n: 14, o: 15, p: 16, q: 17 }
+    peekBig(&b)
+}
+
+fn chained(i: Int) -> Int { boxedKeep(i) + 1 }
+
+noalloc fn viaKeep() -> Int { boxedKeep(3) } //~ ERROR `boxedKeep` is not `noalloc`
+
+noalloc fn viaBig() -> Int { boxedBig(3) } //~ ERROR `boxedBig` is not `noalloc`
+
+noalloc fn viaChain() -> Int { chained(3) } //~ ERROR `chained` is not `noalloc`
+
+noalloc fn viaClosure() -> Int {
+    let f: noalloc fn(Int) -> Int = boxedKeep //~ ERROR `boxedKeep` is not `noalloc`
+    f(2)
+}
+
+fn main() -> Unit! {
+    let n = viaKeep() + viaBig() + viaChain() + viaClosure()
+}
+-- expect --
+error[E907]: `boxedKeep` is not `noalloc`
+  --> main.kg:42:31
+   |
+42 | noalloc fn viaKeep() -> Int { boxedKeep(3) } //~ ERROR `boxedKeep` is not `noalloc`
+   |                               ^^^^^^^^^^^
+
+error[E907]: `boxedBig` is not `noalloc`
+  --> main.kg:44:30
+   |
+44 | noalloc fn viaBig() -> Int { boxedBig(3) } //~ ERROR `boxedBig` is not `noalloc`
+   |                              ^^^^^^^^^^
+
+error[E907]: `chained` is not `noalloc`
+  --> main.kg:46:32
+   |
+46 | noalloc fn viaChain() -> Int { chained(3) } //~ ERROR `chained` is not `noalloc`
+   |                                ^^^^^^^^^
+
+error[E423]: `boxedKeep` is not `noalloc` (allocates)
+  --> main.kg:49:37
+   |
+49 |     let f: noalloc fn(Int) -> Int = boxedKeep //~ ERROR `boxedKeep` is not `noalloc`
+   |                                     ^^^^^^^^^
+

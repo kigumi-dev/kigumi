@@ -120,6 +120,7 @@ type Result struct {
 	lateBindSites       []lateBindSite
 	retractedBinds      map[bindSite]bool
 	fnLocalField        map[EntityID]fieldFnKey
+	fnLocalFieldRead    map[EntityID]syntax.NodeID
 	refAlias            map[EntityID]EntityID
 	fnCopyAlias         map[EntityID]EntityID
 	// fieldPoisonSite is best-effort: not every unresolved write is tracked.
@@ -170,6 +171,8 @@ type Result struct {
 	closureOrdinals           map[EntityID]int
 	lifetimeStandIns          []EntityID
 	deferredClaims            bool
-	lendSites                 map[lendSite]bool
+	lendSites                 map[lendSite]lendSite
+	boxedLends                map[lendSite]bool
+	pendingLends              []lendSite
 	allocBlocks               []allocBlock
 }

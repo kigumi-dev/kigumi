@@ -53,11 +53,14 @@ func (c *checker) bindIdentFieldArg(n syntax.NodeID, ent, field, dst EntityID) {
 		}
 		srcKey := fieldFnKey{Ent: ent, Field: field}
 		for _, tgt := range c.r.knownFieldFn[srcKey] {
+			if c.r.fnKilledAt(srcKey, tgt, c.f, n) {
+				continue
+			}
 			c.edge(EffectEdge{Kind: EdgeFieldBind, Target: tgt, Param: dst, Node: n})
 			c.r.noteEdgeSite(srcKey, c.f, n, tgt, dst)
 			c.r.noteBindSrc(c.f, n, tgt, dst, srcKey)
 		}
-		c.stageLateFieldEdge(EdgeFieldBind, srcKey, dst, n)
+		c.stageLateFieldEdge(EdgeFieldBind, srcKey, dst, n, n)
 		c.r.fieldPoisonForwards = append(c.r.fieldPoisonForwards, fieldPoisonForward{src: srcKey, dst: dst, file: c.f, node: n})
 	}
 }

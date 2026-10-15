@@ -32,6 +32,8 @@ var rangeLoopBodies = map[string]string{
 	"narrow":    "for k in 0..small { s = s + 1 }",
 	"nested":    "for k in 0..n { for j in k..=n { s = s + j } }",
 	"break":     "for k in 0..=n { if k == 2 { break }\n        s = s + k }",
+	"wide":      "let hi: i128 = 4\n    for k in 0..hi { s = s + 1 }",
+	"wideIncl":  "let hi: u128 = 4\n    for k in 0..=hi { s = s + 1 }",
 }
 
 // A counted loop over a written range keeps its bounds in registers: the callee allocates nothing per call.

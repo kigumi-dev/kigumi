@@ -1,0 +1,780 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn work() -> Int {
+    0
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(work())
+}
+
+fn safeFn() -> Int {
+    9
+}
+
+type Holder = {
+    pub mut cb fn() -> Int
+}
+
+type Bag = {
+    pub mut items Array[Holder]
+}
+
+fn fresh() -> Array[Holder] {
+    Array.of(Holder { cb: safeFn })
+}
+
+async fn reassignSafe() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a = Array.of(Holder { cb: safeFn })
+    a[0].cb()
+}
+
+async fn reassignBefore() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let first = a[0].cb() //~ ERROR cannot run inside an `async fn`
+    a = Array.of(Holder { cb: safeFn })
+    first + a[0].cb()
+}
+
+async fn reassignRisky() -> Int {
+    let mut a = Array.of(Holder { cb: safeFn })
+    a = Array.of(Holder { cb: syncRoot })
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn reassignUnknown() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a = fresh()
+    a[0].cb()
+}
+
+async fn reassignConditional(flag: Bool) -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    if flag {
+        a = Array.of(Holder { cb: safeFn })
+    }
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn reassignInLoop() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let mut s = 0
+    for i in 0..3 {
+        s = s + a[0].cb() //~ ERROR cannot run inside an `async fn`
+        a = Array.of(Holder { cb: safeFn })
+    }
+    s
+}
+
+async fn reassignThroughClosure() -> Int {
+    let mut a = Array.of(Holder { cb: safeFn })
+    let arm = () => {
+        a = Array.of(Holder { cb: syncRoot })
+    }
+    a = Array.of(Holder { cb: safeFn })
+    arm()
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn overwriteOnly() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a[0] = Holder { cb: safeFn }
+    a[0].cb()
+}
+
+async fn overwriteWithRisk() -> Int {
+    let mut a = Array.of(Holder { cb: safeFn })
+    a[0] = Holder { cb: syncRoot }
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn overwriteTwoElements() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot }, Holder { cb: safeFn })
+    a[0] = Holder { cb: safeFn }
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn overwriteSecondOfOne() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a[1] = Holder { cb: safeFn }
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn overwriteDynamic(i: usize) -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a[i] = Holder { cb: safeFn }
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn overwriteAfterUse() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let _ = a.insertAt(0, Holder { cb: safeFn })
+    a[0] = Holder { cb: safeFn }
+    a[1].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn takeAtSafe() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let _ = a.takeAt(0)
+    a.push(Holder { cb: safeFn })
+    a[0].cb()
+}
+
+async fn takeAtResult() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    match a.takeAt(0) {
+        Some(h) -> h.cb() //~ ERROR cannot run inside an `async fn`
+        None -> 0
+    }
+}
+
+async fn takeAtOther() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let _ = a.takeAt(1)
+    a.push(Holder { cb: safeFn })
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn takeAtTwoElements() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot }, Holder { cb: safeFn })
+    let _ = a.takeAt(0)
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn takeAtAfterInsert() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let _ = a.insertAt(0, Holder { cb: safeFn })
+    let _ = a.takeAt(0)
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn fieldReplaceSafe() -> Int {
+    let mut b = Bag { items: Array.of(Holder { cb: syncRoot }) }
+    b.items = Array.of(Holder { cb: safeFn })
+    b.items[0].cb()
+}
+
+async fn fieldReplaceRisky() -> Int {
+    let mut b = Bag { items: Array.of(Holder { cb: safeFn }) }
+    b.items = Array.of(Holder { cb: syncRoot })
+    b.items[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn fieldReplaceUnknown() -> Int {
+    let mut b = Bag { items: Array.of(Holder { cb: syncRoot }) }
+    b.items = fresh()
+    b.items[0].cb()
+}
+
+async fn fieldReplaceOther() -> Int {
+    let mut b = Bag { items: Array.of(Holder { cb: syncRoot }) }
+    let mut c = Bag { items: Array.of(Holder { cb: safeFn }) }
+    c.items = Array.of(Holder { cb: safeFn })
+    b.items[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn recordFieldOverwrite() -> Int {
+    let mut h = Holder { cb: syncRoot }
+    h.cb = safeFn
+    h.cb()
+}
+
+async fn recordReassign() -> Int {
+    let mut h = Holder { cb: syncRoot }
+    h = Holder { cb: safeFn }
+    h.cb()
+}
+
+async fn optionReassign() -> Int {
+    let mut o = Some(Holder { cb: syncRoot })
+    o = Some(Holder { cb: safeFn })
+    o.unwrap().cb()
+}
+
+async fn copyBeforeReassign() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let h = a[0]
+    a = Array.of(Holder { cb: safeFn })
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn getAfterReassign() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a = Array.of(Holder { cb: safeFn })
+    match a.get(0) {
+        Some(h) -> h.cb()
+        None -> 0
+    }
+}
+
+fn callOn(a: &Array[Holder]) -> Int {
+    a[0].cb()
+}
+
+async fn passAfterReassign() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a = Array.of(Holder { cb: safeFn })
+    callOn(&a)
+}
+
+async fn passBeforeReassign() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let n = callOn(&a) //~ ERROR cannot run inside an `async fn`
+    a = Array.of(Holder { cb: safeFn })
+    n + callOn(&a)
+}
+
+async fn fieldCopyBeforeOverwrite() -> Int {
+    let mut h = Holder { cb: syncRoot }
+    let f = h.cb
+    h.cb = safeFn
+    f() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn fieldCopyAfterOverwrite() -> Int {
+    let mut h = Holder { cb: syncRoot }
+    h.cb = safeFn
+    let f = h.cb
+    f()
+}
+
+async fn fieldCopyBothSides() -> Int {
+    let mut h = Holder { cb: syncRoot }
+    let v = h.cb
+    h.cb = safeFn
+    let w = h.cb
+    w() + v() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn fieldCopyPassedOn() -> Int {
+    let mut h = Holder { cb: syncRoot }
+    let f = h.cb
+    h.cb = safeFn
+    apply(f) //~ ERROR cannot run inside an `async fn`
+}
+
+fn apply(g: fn() -> Int) -> Int {
+    g()
+}
+
+async fn elementFieldCopyBeforeReplace() -> Int {
+    let mut b = Bag { items: Array.of(Holder { cb: syncRoot }) }
+    let f = b.items[0].cb
+    b.items = Array.of(Holder { cb: safeFn })
+    f() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn takeAtKept() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let t = a.takeAt(0)
+    match t {
+        Some(h) -> h.cb() //~ ERROR cannot run inside an `async fn`
+        None -> 0
+    }
+}
+
+async fn takeAtKeptUnwrap() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    let t = a.takeAt(0)
+    if t is Some(_) {
+        t.unwrap().cb() //~ ERROR cannot run inside an `async fn`
+    } else {
+        0
+    }
+}
+
+async fn overwriteWithSelf() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a[0] = a[0]
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn overwriteWithOwnField() -> Int {
+    let mut a = Array.of(Holder { cb: syncRoot })
+    a[0] = Holder { cb: a[0].cb }
+    a[0].cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn fieldOverwriteWithSelf() -> Int {
+    let mut h = Holder { cb: syncRoot }
+    h.cb = h.cb //~ ERROR cannot run inside an `async fn`
+    h.cb()
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:36:17
+   |
+36 |     let first = a[0].cb() //~ ERROR cannot run inside an `async fn`
+   |                 ^^^^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:35:39
+   |
+35 |     let mut a = Array.of(Holder { cb: syncRoot })
+   |                                       ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:44:5
+   |
+44 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:43:31
+   |
+43 |     a = Array.of(Holder { cb: syncRoot })
+   |                               ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:58:5
+   |
+58 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:54:39
+   |
+54 |     let mut a = Array.of(Holder { cb: syncRoot })
+   |                                       ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:65:17
+   |
+65 |         s = s + a[0].cb() //~ ERROR cannot run inside an `async fn`
+   |                 ^^^^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:62:39
+   |
+62 |     let mut a = Array.of(Holder { cb: syncRoot })
+   |                                       ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:78:5
+   |
+78 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:74:35
+   |
+74 |         a = Array.of(Holder { cb: syncRoot })
+   |                                   ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:90:5
+   |
+90 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:89:25
+   |
+89 |     a[0] = Holder { cb: syncRoot }
+   |                         ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:96:5
+   |
+96 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:94:39
+   |
+94 |     let mut a = Array.of(Holder { cb: syncRoot }, Holder { cb: safeFn })
+   |                                       ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:102:5
+    |
+102 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:100:39
+    |
+100 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:108:5
+    |
+108 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:106:39
+    |
+106 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:115:5
+    |
+115 |     a[1].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:112:39
+    |
+112 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:128:20
+    |
+128 |         Some(h) -> h.cb() //~ ERROR cannot run inside an `async fn`
+    |                    ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:126:39
+    |
+126 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:137:5
+    |
+137 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:134:39
+    |
+134 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:143:5
+    |
+143 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:141:39
+    |
+141 |     let mut a = Array.of(Holder { cb: syncRoot }, Holder { cb: safeFn })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:150:5
+    |
+150 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:147:39
+    |
+147 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:162:5
+    |
+162 |     b.items[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:161:37
+    |
+161 |     b.items = Array.of(Holder { cb: syncRoot })
+    |                                     ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:175:5
+    |
+175 |     b.items[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:172:52
+    |
+172 |     let mut b = Bag { items: Array.of(Holder { cb: syncRoot }) }
+    |                                                    ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:200:5
+    |
+200 |     h.cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:197:39
+    |
+197 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:224:13
+    |
+224 |     let n = callOn(&a) //~ ERROR cannot run inside an `async fn`
+    |             ^^^^^^^^^
+    = help: `await` the future instead
+note: calls `a.element.cb`
+   --> app/t/t.kg:213:5
+    |
+213 |     a[0].cb()
+    |     ^^^^^^^^
+note: `syncRoot` is bound to `a.element.cb` here
+   --> app/t/t.kg:224:13
+    |
+224 |     let n = callOn(&a) //~ ERROR cannot run inside an `async fn`
+    |             ^^^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:223:39
+    |
+223 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:233:5
+    |
+233 |     f() //~ ERROR cannot run inside an `async fn`
+    |     ^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:230:30
+    |
+230 |     let mut h = Holder { cb: syncRoot }
+    |                              ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:248:11
+    |
+248 |     w() + v() //~ ERROR cannot run inside an `async fn`
+    |           ^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:244:30
+    |
+244 |     let mut h = Holder { cb: syncRoot }
+    |                              ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:255:5
+    |
+255 |     apply(f) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^
+    = help: `await` the future instead
+note: calls `g`
+   --> app/t/t.kg:259:5
+    |
+259 |     g()
+    |     ^^
+note: `syncRoot` is bound to `g` here
+   --> app/t/t.kg:255:5
+    |
+255 |     apply(f) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:252:30
+    |
+252 |     let mut h = Holder { cb: syncRoot }
+    |                              ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:266:5
+    |
+266 |     f() //~ ERROR cannot run inside an `async fn`
+    |     ^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:263:52
+    |
+263 |     let mut b = Bag { items: Array.of(Holder { cb: syncRoot }) }
+    |                                                    ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:273:20
+    |
+273 |         Some(h) -> h.cb() //~ ERROR cannot run inside an `async fn`
+    |                    ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:270:39
+    |
+270 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:282:9
+    |
+282 |         t.unwrap().cb() //~ ERROR cannot run inside an `async fn`
+    |         ^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:279:39
+    |
+279 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:291:5
+    |
+291 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:289:39
+    |
+289 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:297:5
+    |
+297 |     a[0].cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:295:39
+    |
+295 |     let mut a = Array.of(Holder { cb: syncRoot })
+    |                                       ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:302:12
+    |
+302 |     h.cb = h.cb //~ ERROR cannot run inside an `async fn`
+    |            ^^^^
+    = help: `await` the future instead
+note: `cb` was written to an unresolved value here, and could hold any fn
+   --> app/t/t.kg:302:12
+    |
+302 |     h.cb = h.cb //~ ERROR cannot run inside an `async fn`
+    |            ^^^^
+

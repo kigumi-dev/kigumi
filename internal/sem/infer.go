@@ -1,9 +1,6 @@
 package sem
 
-import (
-	"kigumi/internal/syntax"
-	"kigumi/internal/token"
-)
+import "kigumi/internal/syntax"
 
 // synth infers the type of an expression without an expected type; check
 // pushes an expected type inward where the kind allows and coerces
@@ -62,16 +59,9 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 				return c.coerce(n, c.setType(n, t), want)
 			}
 		}
-	case syntax.Unary:
-		if isNumericLiteral(c.t, n) {
-			return c.setType(n, c.synthKind(n, want))
-		}
-	case syntax.Binary:
-		switch c.t.View(n).Tok().Kind() {
-		case token.OrOr:
-			return c.setType(n, c.synthKind(n, want))
-		case token.Shl, token.Shr:
-			return c.coerce(n, c.setType(n, c.synthKind(n, want)), want)
+	case syntax.Unary, syntax.Binary:
+		if t, ok := c.checkOperator(n, want); ok {
+			return t
 		}
 	}
 	got := c.synth(n)

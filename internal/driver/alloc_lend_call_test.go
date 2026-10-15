@@ -30,6 +30,13 @@ pure noalloc fn Prio.compareTo(self, other: &Prio) -> Ordering {
     if self.rank() < other.rank() { Ordering.Less } else { Ordering.Greater }
 }
 
+fn lendsInferred(i: Int) -> Int {
+    let p = Point { x: i, y: 2 }
+    peek(&p) + forward(&p)
+}
+
+fn lendsDeeper(i: Int) -> Int { lendsInferred(i) + 1 }
+
 noalloc fn call(i: Int) -> Int {
     %s
 }
@@ -48,6 +55,8 @@ print "ok=${run(%d)}"
 var lendCallBodies = map[string]string{
 	"written":  "let p = Point { x: i, y: 2 }\n    peek(&p) + forward(&p)",
 	"coerced":  "let p = Point { x: i, y: 2 }\n    peek(p)",
+	"inferred": "lendsInferred(i)",
+	"deeper":   "lendsDeeper(i)",
 	"operator": "let a = Mid(i)\n    let b = Mid(2)\n    if a < b { 1 } else { 0 }",
 	"equals":   "let a = Point { x: i, y: 2 }\n    let b = Point { x: 1, y: 2 }\n    if a.equals(&b) && a == b { 1 } else { 0 }",
 }

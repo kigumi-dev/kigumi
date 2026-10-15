@@ -9,6 +9,7 @@ import (
 // stmt checks one statement and returns its type.
 func (c *checker) stmt(n syntax.NodeID) TypeID {
 	var t TypeID
+	c.noteTakeAtKill(n)
 	switch c.t.Kind(n) {
 	case syntax.LetStmt:
 		c.letStmt(n)
@@ -102,6 +103,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 			c.trackFnCopyAlias(s.Init, c.info.Defs[s.Pattern])
 		} else if src := c.r.fnChainEnt(c.f, s.Init); src != 0 && c.r.concretePlace(src) {
 			c.unionInto(c.info.Defs[s.Pattern], src, typ, s.Init)
+			c.noteSoleElement(n, s.Init, c.info.Defs[s.Pattern])
 		} else {
 			c.notePlaceCopy(c.info.Defs[s.Pattern], src)
 		}

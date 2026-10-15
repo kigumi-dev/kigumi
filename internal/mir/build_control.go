@@ -126,7 +126,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.cur = loop
 	b.loops = append(b.loops, &loopCtx{cont: next, exit: exit, depth: len(b.scopes), valued: valued, result: result})
 	b.pushScope()
-	if pattern != nil {
+	if pattern != nil && pattern.Kind != hir.PatWild {
 		b.bindPattern(pattern, cur.elem(n))
 	}
 	b.blockExpr(e.Block)
