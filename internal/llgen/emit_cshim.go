@@ -63,6 +63,10 @@ func (e *emitter) cLang(t sem.TypeID) string {
 			return "float"
 		}
 		return "double"
+	case t == sem.TyI128:
+		return "__int128"
+	case t == sem.TyU128:
+		return "unsigned __int128"
 	case tt.IsInteger(t) && tt.IsSigned(t):
 		return fmt.Sprintf("int%d_t", tt.Width(t))
 	case tt.IsInteger(t):

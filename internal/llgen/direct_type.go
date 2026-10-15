@@ -49,31 +49,6 @@ type aggInfo struct {
 
 func (a *aggInfo) isAdt() bool { return a.Variants != nil }
 
-func scalarBytes(t Type) int64 {
-	switch t {
-	case TI1, TI8:
-		return 1
-	case TI16:
-		return 2
-	case TI32:
-		return 4
-	}
-	return 8
-}
-
-func roundUp(n, a int64) int64 { return (n + a - 1) / a * a }
-
-func fieldBytes(f aggField) (int64, int64) {
-	switch {
-	case f.Unit:
-		return 0, 1
-	case f.Agg != nil:
-		return f.Agg.Size, f.Agg.Align
-	}
-	b := scalarBytes(f.mem())
-	return b, b
-}
-
 // aggOrder keeps nested types ahead of the types that embed them.
 func (e *emitter) agg(t sem.TypeID) (*aggInfo, bool) {
 	if a, ok := e.aggs[t]; ok {
@@ -154,19 +129,14 @@ func (e *emitter) leafField(t sem.TypeID) aggField {
 	return f
 }
 
-func maxI64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func (f aggField) llType() string {
 	switch {
 	case f.Unit:
 		return "[0 x i8]"
 	case f.Agg != nil:
 		return f.Agg.Name
+	case f.mem() == TI128:
+		return wideSlot
 	}
 	return f.mem().String()
 }

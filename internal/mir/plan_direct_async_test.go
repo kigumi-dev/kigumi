@@ -102,12 +102,19 @@ type Mixed = {
 
 type Shape = Circle(r: Int) | Rect(w: Int, h: Int) | Dot
 
-fn use(f: Flags, m: Mixed, s: Shape, b: FixedArray[u8, 5], o: Int?) -> Int { 0 }
+type Wide = {
+    pub on Bool
+    pub v u128
+}
+
+type WideShape = Big(v: u128) | Dot
+
+fn use(f: Flags, m: Mixed, s: Shape, b: FixedArray[u8, 5], o: Int?, w: Wide, ws: WideShape, wa: FixedArray[i128, 3]) -> Int { 0 }
 
 fn main() -> Unit! {}
 `)
 	f := funcNamed(t, prog, "main.use")
-	want := [][2]int64{{8, 4}, {16, 8}, {24, 8}, {5, 1}, {16, 8}}
+	want := [][2]int64{{8, 4}, {16, 8}, {24, 8}, {5, 1}, {16, 8}, {24, 8}, {24, 8}, {48, 8}}
 	for i, prm := range f.Params {
 		ty := f.Locals[prm].Type
 		if !prog.R.DirectAgg(ty) {

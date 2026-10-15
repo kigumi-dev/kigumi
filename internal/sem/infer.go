@@ -67,8 +67,11 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 			return c.setType(n, c.synthKind(n, want))
 		}
 	case syntax.Binary:
-		if c.t.Toks[c.t.Nodes[n].Tok].Kind == token.OrOr {
+		switch c.t.Toks[c.t.Nodes[n].Tok].Kind {
+		case token.OrOr:
 			return c.setType(n, c.synthKind(n, want))
+		case token.Shl, token.Shr:
+			return c.coerce(n, c.setType(n, c.synthKind(n, want)), want)
 		}
 	}
 	got := c.synth(n)

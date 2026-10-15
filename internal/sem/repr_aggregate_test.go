@@ -17,6 +17,8 @@ type Shape = Circle(r: Int) | Dot
 type Tagged = Labelled(label: String) | Blank
 type Wrap = Just(p: Point) | Plain(n: Int) | Nothing
 type Res = { handle: Int }
+type Wide = { lo: u128, n: i128, tag: Int }
+type WideShape = Big(v: u128) | Dot
 let p = Point { x: 1, y: 2 }
 let b = Box { lo: p, hi: p, tight: true }
 let n = Named { at: p, label: "x" }
@@ -85,6 +87,20 @@ func TestRegScalarMatchesTheRegisterSet(t *testing.T) {
 	for _, ty := range []sem.TypeID{sem.TyF32, sem.TyString, sem.TyUnit} {
 		if res.RegScalar(ty) {
 			t.Errorf("%s should not be a register scalar", res.TypeString(ty))
+		}
+	}
+}
+
+func TestDirectAggHoldsWideIntegersWithoutMakingThemRegisterScalars(t *testing.T) {
+	res := checkRepr(t, aggSrc)
+	for _, name := range []string{"Wide", "WideShape"} {
+		if !res.DirectAgg(mainType(t, res, name)) {
+			t.Errorf("%s is not a direct aggregate", name)
+		}
+	}
+	for _, ty := range []sem.TypeID{sem.TyI128, sem.TyU128} {
+		if res.RegScalar(ty) {
+			t.Errorf("%s must stay out of the register set", res.TypeString(ty))
 		}
 	}
 }

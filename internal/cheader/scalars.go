@@ -13,6 +13,8 @@ type ABI struct {
 	// CharUnsigned is true on arm/arm64, where plain `char` defaults to
 	// unsigned unlike x86/x86_64.
 	CharUnsigned bool
+	// Int128 is true where C has __int128: a record field may carry one, a parameter or result may not.
+	Int128 bool
 }
 
 // ABIFor derives ABI facts from the same os/arch names internal/driver.Target
@@ -21,6 +23,7 @@ func ABIFor(os, arch string) ABI {
 	return ABI{
 		LLP64:        os == "windows",
 		CharUnsigned: arch == "arm64" || arch == "arm",
+		Int128:       arch == "amd64" || arch == "arm64" || arch == "riscv64",
 	}
 }
 

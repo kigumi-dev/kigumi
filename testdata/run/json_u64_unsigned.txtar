@@ -16,6 +16,10 @@ match json.decode[u64]("99999999999999999999999999") {
     Ok(_) -> print "unexpected"
     Err(e) -> print "error: ${e.message()}"
 }
+match json.decode[u64]("99999999999999999999999999999999999999999") {
+    Ok(_) -> print "unexpected"
+    Err(e) -> print "error: ${e.message()}"
+}
 match json.decode[i64]("18446744073709551615") {
     Ok(_) -> print "unexpected"
     Err(e) -> print "error: ${e.message()}"
@@ -26,5 +30,6 @@ big-roundtrip=true
 small=42
 sz=18446744073709551615
 sz-roundtrip=true
-error: integer literal 99999999999999999999999999 is out of range for u64 (max 18446744073709551615)
+error: 99999999999999999999999999 does not fit u64
+error: integer literal 99999999999999999999999999999999999999999 is out of range for 128-bit integers (magnitude max 340282366920938463463374607431768211455)
 error: expected integer, found number

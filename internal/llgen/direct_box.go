@@ -76,6 +76,8 @@ func (e *emitter) boxLeafAt(sb *strings.Builder, f aggField, p string) string {
 		fmt.Fprintf(sb, "  %s = call ptr @rt_unit()\n", b)
 	case f.Agg != nil:
 		fmt.Fprintf(sb, "  %s = call ptr %s(ptr %s)\n", b, e.aggBoxSym(f.Agg), p)
+	case f.Ty == TI128:
+		b = e.boxNative(sb, scalarInfo{Ty: TI128, Nk: f.Nk}, Value{TI128, e.loadLeafScalar(sb, f, p)})
 	default:
 		v := e.loadLeafScalar(sb, f, p)
 		// rt_bool takes an int, so a Bool widens.
@@ -94,6 +96,8 @@ func (e *emitter) unboxLeafAt(sb *strings.Builder, f aggField, p, box string) {
 	case f.Unit:
 	case f.Agg != nil:
 		fmt.Fprintf(sb, "  call void %s(ptr %s, ptr %s)\n", e.aggUnboxSym(f.Agg), p, box)
+	case f.Ty == TI128:
+		e.storeLeafScalar(sb, f, p, e.unboxScalar(sb, TI128, box).Text)
 	default:
 		v := e.newTmp()
 		fmt.Fprintf(sb, "  %s = call %s\n", v, unboxCallText(f, box))

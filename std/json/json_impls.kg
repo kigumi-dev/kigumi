@@ -72,6 +72,7 @@ pub fn u64.fromJson(value: Value) -> u64! {
     match value {
         Value.Integer(n) -> n.toU64() || fail Error { text: "${n} does not fit u64" }
         Value.Unsigned(n) -> Ok(n)
+        Value.Wide(negative, m) -> fail Error { text: "${wideText(negative, m)} does not fit u64" }
         other -> mismatch("integer", other)
     }
 }
@@ -92,6 +93,7 @@ pub fn usize.fromJson(value: Value) -> usize! {
     match value {
         Value.Integer(n) -> n.toUsize() || fail Error { text: "${n} does not fit usize" }
         Value.Unsigned(n) -> Ok(n.toUsize())
+        Value.Wide(negative, m) -> fail Error { text: "${wideText(negative, m)} does not fit usize" }
         other -> mismatch("integer", other)
     }
 }
@@ -99,6 +101,83 @@ pub fn usize.fromJson(value: Value) -> usize! {
 pub fn usize.fromKeyText(s: String) -> usize! {
     let n = text.parseUint(s) || fail Error { text: "expected an integer key, found \"${s}\"" }
     Ok(n.toUsize())
+}
+
+fn wideText(negative: Bool, magnitude: u128) -> String {
+    if negative {
+        "-${magnitude}"
+    } else {
+        "${magnitude}"
+    }
+}
+
+/// Integer when the value fits i64, Unsigned when it fits u64, else Wide.
+pub fn i128.toJson(self) -> Value {
+    if self.toInt() is Some(n) {
+        return Value.Integer(n)
+    }
+    if self.toU64() is Some(u) {
+        return Value.Unsigned(u)
+    }
+    if self > 0 {
+        return Value.Wide(false, self.toU128() || 0)
+    }
+    let below = (0 - (self + 1)).toU128() || 0
+    Value.Wide(true, below + 1)
+}
+
+pub fn i128.fromJson(value: Value) -> i128! {
+    match value {
+        Value.Integer(n) -> Ok(n.toI128())
+        Value.Unsigned(n) -> Ok(n.toI128())
+        Value.Wide(negative, m) -> {
+            let limit: u128 = 170141183460469231731687303715884105728
+            if m > limit || (m == limit && !negative) {
+                fail Error { text: "${wideText(negative, m)} does not fit i128" }
+            }
+            if !negative {
+                return Ok(m.toI128() || 0)
+            }
+            if m == limit {
+                return Ok(-170141183460469231731687303715884105727 - 1)
+            }
+            Ok(0 - (m.toI128() || 0))
+        }
+        other -> mismatch("integer", other)
+    }
+}
+
+pub fn i128.fromKeyText(s: String) -> i128! {
+    text.parseI128(s) || fail Error { text: "expected an integer key, found \"${s}\"" }
+}
+
+/// Integer when the value fits i64, Unsigned when it fits u64, else Wide.
+pub fn u128.toJson(self) -> Value {
+    if self.toInt() is Some(n) {
+        return Value.Integer(n)
+    }
+    if self.toU64() is Some(u) {
+        return Value.Unsigned(u)
+    }
+    Value.Wide(false, self)
+}
+
+pub fn u128.fromJson(value: Value) -> u128! {
+    match value {
+        Value.Integer(n) -> n.toU128() || fail Error { text: "${n} does not fit u128" }
+        Value.Unsigned(n) -> Ok(n.toU128())
+        Value.Wide(negative, m) -> {
+            if negative {
+                fail Error { text: "-${m} does not fit u128" }
+            }
+            Ok(m)
+        }
+        other -> mismatch("integer", other)
+    }
+}
+
+pub fn u128.fromKeyText(s: String) -> u128! {
+    text.parseU128(s) || fail Error { text: "expected an integer key, found \"${s}\"" }
 }
 
 pub fn f64.toJson(self) -> Value {

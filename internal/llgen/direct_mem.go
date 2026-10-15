@@ -9,6 +9,9 @@ import (
 
 const memIntrinsics = "declare void @llvm.memcpy.p0.p0.i64(ptr, ptr, i64, i1)\ndeclare void @llvm.memset.p0.i64(ptr, i8, i64, i1)\n\n"
 
+// The slot is two i64 words, which no supported target aligns below 4.
+const wideAccessAlign = 4
+
 func aggPtr(l mir.LocalID) string { return fmt.Sprintf("%%l%d", l) }
 
 // LLVM's own size for the type, folded to a constant, never a second layout to keep in step.
@@ -65,6 +68,10 @@ func (e *emitter) leafScalar(sb *strings.Builder, fld aggField, l mir.LocalID) s
 // A narrow array element is stored truncated and read back extended by its signedness.
 func (e *emitter) storeLeafScalar(sb *strings.Builder, fld aggField, p, v string) {
 	m := fld.mem()
+	if m == TI128 {
+		fmt.Fprintf(sb, "  store i128 %s, ptr %s, align %d\n", v, p, wideAccessAlign)
+		return
+	}
 	if m != fld.Ty {
 		t := e.newTmp()
 		fmt.Fprintf(sb, "  %s = trunc %s %s to %s\n", t, fld.Ty, v, m)
@@ -76,6 +83,10 @@ func (e *emitter) storeLeafScalar(sb *strings.Builder, fld aggField, p, v string
 func (e *emitter) loadLeafScalar(sb *strings.Builder, fld aggField, p string) string {
 	m := fld.mem()
 	v := e.newTmp()
+	if m == TI128 {
+		fmt.Fprintf(sb, "  %s = load i128, ptr %s, align %d\n", v, p, wideAccessAlign)
+		return v
+	}
 	fmt.Fprintf(sb, "  %s = load %s, ptr %s\n", v, m, p)
 	if m == fld.Ty {
 		return v

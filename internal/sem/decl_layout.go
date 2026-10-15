@@ -86,6 +86,9 @@ func (r *Result) checkLayoutFields(id EntityID) {
 	for _, fld := range info.Fields {
 		t := r.Entities[fld].Type
 		if !r.cRepresentable(t) {
+			if r.wideInt(t) && r.cHasInt128() {
+				continue
+			}
 			if r.wideInt(t) {
 				r.errAt(e.File, r.Entities[fld].Node, cInt128Unsupported, r.TypeString(t))
 				continue
@@ -94,6 +97,9 @@ func (r *Result) checkLayoutFields(id EntityID) {
 		}
 	}
 }
+
+// cHasInt128 is true where the C compiler has __int128, which a layout(C) field can then use; by value in a signature it never can.
+func (r *Result) cHasInt128() bool { return r.Types.PtrBits() >= 64 }
 
 func (r *Result) cRepresentable(t TypeID) bool {
 	tt := r.Types

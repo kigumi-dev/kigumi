@@ -34,6 +34,8 @@ func leafLayout(r *sem.Result, t sem.TypeID, element bool) (int64, int64) {
 		return 4, 4
 	case r.DirectAgg(t):
 		return AggLayout(r, t)
+	case sem.WideScalar(t):
+		return 16, 8
 	case element && tt.IsInteger(t) && tt.Width(t) < 64:
 		w := int64(tt.Width(t)) / 8
 		return w, w

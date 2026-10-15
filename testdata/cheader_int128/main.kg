@@ -1,0 +1,14 @@
+import ffi from std/ffi
+import wide from c/wide
+
+let made = unsafe { wide.cheader128_make(3, 5, -1, 11) }
+print "made ${made.tag} ${made.big} ${made.neg} ${made.last}"
+let bumped = unsafe { wide.cheader128_bump(made) }
+print "bumped ${bumped.tag} ${bumped.big} ${bumped.neg} ${bumped.last}"
+let mine = wide.Wide { tag: 1, big: 340282366920938463463374607431768211455, neg: -5, last: -2 }
+print "hi/lo ${unsafe { wide.cheader128_hi(mine) }} ${unsafe { wide.cheader128_lo(mine) }}"
+let again = unsafe { wide.cheader128_bump(mine) }
+print "again ${again.tag} ${again.big} ${again.neg} ${again.last}"
+let cSize = unsafe { wide.cheader128_sizeof() }
+let cAlign = unsafe { wide.cheader128_alignof() }
+print "layout ${ffi.sizeOf(&mine)} ${cSize} ${ffi.alignOf(&mine)} ${cAlign}"

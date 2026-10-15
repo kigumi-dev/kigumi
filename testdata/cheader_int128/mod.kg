@@ -1,0 +1,9 @@
+Module {
+    name: "cheader-int128-sample"
+    kigumi: "0.1"
+}
+
+Header {
+    path: "wide.h"
+    package: "wide"
+}

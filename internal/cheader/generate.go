@@ -36,6 +36,9 @@ func classifyRecord(chunk string, known, opaque map[string]bool, abi ABI) item {
 			return item{name: name, skip: "field `" + fname + "` of `" + name + "` holds `" + stripTagPrefix(ftyp) + "` by value (opaque type; zig demoted it, most likely for a bitfield, so only a pointer to it crosses the C ABI)"}
 		}
 		kt, ok := mapByValueType(ftyp, known, opaque, abi)
+		if !ok && abi.Int128 && (ftyp == "i128" || ftyp == "u128") {
+			kt, ok = ftyp, true
+		}
 		if !ok {
 			return item{name: name, skip: "unsupported field `" + fname + "` in `" + name + "`"}
 		}

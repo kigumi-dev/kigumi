@@ -5,7 +5,8 @@ type Halves layout(C) = {
 }
 
 type Wide layout(C) = {
-    pub v u128 //~ ERROR `u128` has no C or register representation here
+    pub v u128
+    pub w i128
 }
 
 type Id = i128
@@ -39,52 +40,45 @@ fn operand(x: u128) -> Unit {
 }
 
 -- expect --
-error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
- --> app/t/t.kg:7:5
-  |
-7 |     pub v u128 //~ ERROR `u128` has no C or register representation here
-  |     ^^^^^^^^^^
-  = help: pass it as two u64 halves
-
 error[E960]: `i128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
-  --> app/t/t.kg:13:17
+  --> app/t/t.kg:14:17
    |
-13 |     fn takes(x: i128) -> i32 //~ ERROR `i128` has no C or register representation here
+14 |     fn takes(x: i128) -> i32 //~ ERROR `i128` has no C or register representation here
    |                 ^^^^
    = help: pass it as two u64 halves
 
 error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
-  --> app/t/t.kg:14:19
+  --> app/t/t.kg:15:19
    |
-14 |     fn gives() -> u128 //~ ERROR `u128` has no C or register representation here
+15 |     fn gives() -> u128 //~ ERROR `u128` has no C or register representation here
    |                   ^^^^
    = help: pass it as two u64 halves
 
 error[E960]: `Id` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
-  --> app/t/t.kg:15:31
+  --> app/t/t.kg:16:31
    |
-15 |     fn viaPtr(f: extern(C) fn(Id) -> i32) -> i32 //~ ERROR `Id` has no C or register representation here
+16 |     fn viaPtr(f: extern(C) fn(Id) -> i32) -> i32 //~ ERROR `Id` has no C or register representation here
    |                               ^^
    = help: pass it as two u64 halves
 
 error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
-  --> app/t/t.kg:19:20
+  --> app/t/t.kg:20:20
    |
-19 |     pub fn echo(x: u128) -> u64 { //~ ERROR `u128` has no C or register representation here
+20 |     pub fn echo(x: u128) -> u64 { //~ ERROR `u128` has no C or register representation here
    |                    ^^^^
    = help: pass it as two u64 halves
 
 error[E960]: `i128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
-  --> app/t/t.kg:24:18
+  --> app/t/t.kg:25:18
    |
-24 | fn counted[const N: i128]() -> Unit {} //~ ERROR `i128` has no C or register representation here
+25 | fn counted[const N: i128]() -> Unit {} //~ ERROR `i128` has no C or register representation here
    |                  ^^^^^^^
    = help: pass it as two u64 halves
 
 error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
-  --> app/t/t.kg:35:13
+  --> app/t/t.kg:36:13
    |
-35 |             in(reg) x //~ ERROR `u128` has no C or register representation here
+36 |             in(reg) x //~ ERROR `u128` has no C or register representation here
    |             ^^^^^^^^^
    = help: pass it as two u64 halves
 

@@ -1,0 +1,40 @@
+-- src --
+fn main() -> Unit! {
+    let n: usize = 4
+    let a: u8 = 1 << 8 //~ ERROR `256` does not fit `u8`
+    let b = 340282366920938463463374607431768211456 >> n //~ ERROR `340282366920938463463374607431768211456` does not fit `u128`
+    let c = -170141183460469231731687303715884105729 >> n //~ ERROR `-170141183460469231731687303715884105729` does not fit `i128`
+    let d = 1 << -1 //~ ERROR `-1` does not fit `usize`
+    let e: i8 = -129 << 1 //~ ERROR `-258` does not fit `i8`
+}
+-- expect --
+error[E402]: `256` does not fit `u8`
+ --> main/main.kg:3:17
+  |
+3 |     let a: u8 = 1 << 8 //~ ERROR `256` does not fit `u8`
+  |                 ^^^^^^
+
+error[E402]: `340282366920938463463374607431768211456` does not fit `u128`
+ --> main/main.kg:4:13
+  |
+4 |     let b = 340282366920938463463374607431768211456 >> n //~ ERROR `340282366920938463463374607431768211456` does not fit `u128`
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E402]: `-170141183460469231731687303715884105729` does not fit `i128`
+ --> main/main.kg:5:13
+  |
+5 |     let c = -170141183460469231731687303715884105729 >> n //~ ERROR `-170141183460469231731687303715884105729` does not fit `i128`
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E402]: `-1` does not fit `usize`
+ --> main/main.kg:6:18
+  |
+6 |     let d = 1 << -1 //~ ERROR `-1` does not fit `usize`
+  |                  ^^
+
+error[E402]: `-258` does not fit `i8`
+ --> main/main.kg:7:17
+  |
+7 |     let e: i8 = -129 << 1 //~ ERROR `-258` does not fit `i8`
+  |                 ^^^^^^^^^
+

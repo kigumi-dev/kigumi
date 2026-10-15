@@ -3181,6 +3181,36 @@
     "status": "ok"
   },
   {
+    "key": "json.i128.fromJson",
+    "signature": "fn(Value) -\u003e i128!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.i128.fromKeyText",
+    "signature": "fn(String) -\u003e i128!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.i128.toJson",
+    "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.i32.fromJson",
     "signature": "fn(Value) -\u003e i32!",
     "has_body": true,
@@ -3351,6 +3381,36 @@
     "status": "ok"
   },
   {
+    "key": "json.u128.fromJson",
+    "signature": "fn(Value) -\u003e u128!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.u128.fromKeyText",
+    "signature": "fn(String) -\u003e u128!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.u128.toJson",
+    "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.u32.fromJson",
     "signature": "fn(Value) -\u003e u32!",
     "has_body": true,
@@ -3463,6 +3523,16 @@
   {
     "key": "json.usize.toJson",
     "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.wideText",
+    "signature": "fn(Bool, u128) -\u003e String",
     "has_body": true,
     "kind": "",
     "vm": "gap",

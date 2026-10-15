@@ -3835,6 +3835,23 @@
       ]
     },
     {
+      "id": "run/cvalue_int128",
+      "kind": "run",
+      "path": "testdata/run/cvalue_int128.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/cvalue_scalar",
       "kind": "run",
       "path": "testdata/run/cvalue_scalar.txtar",
@@ -6957,6 +6974,57 @@
       ]
     },
     {
+      "id": "run/int128_direct_fields",
+      "kind": "run",
+      "path": "testdata/run/int128_direct_fields.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_direct_option",
+      "kind": "run",
+      "path": "testdata/run/int128_direct_option.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_direct_protocols",
+      "kind": "run",
+      "path": "testdata/run/int128_direct_protocols.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/int128_literals",
       "kind": "run",
       "path": "testdata/run/int128_literals.txtar",
@@ -7298,6 +7366,23 @@
       ]
     },
     {
+      "id": "run/int128_shift_literal",
+      "kind": "run",
+      "path": "testdata/run/int128_shift_literal.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/int128_text_hash",
       "kind": "run",
       "path": "testdata/run/int128_text_hash.txtar",
@@ -7522,6 +7607,23 @@
       "id": "run/json_derive_box",
       "kind": "run",
       "path": "testdata/run/json_derive_box.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/json_int128",
+      "kind": "run",
+      "path": "testdata/run/json_int128.txtar",
       "mode": [
         "vm",
         "native"
@@ -12439,6 +12541,17 @@
       ]
     },
     {
+      "id": "sem/int128_layout_c_32bit",
+      "kind": "sem",
+      "path": "testdata/sem/int128_layout_c_32bit.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/int128_reject",
       "kind": "sem",
       "path": "testdata/sem/int128_reject.txtar",
@@ -13179,6 +13292,17 @@
       "id": "sem/send_sync_future",
       "kind": "sem",
       "path": "testdata/sem/send_sync_future.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/shift_literal_reject",
+      "kind": "sem",
+      "path": "testdata/sem/shift_literal_reject.txtar",
       "mode": [
         "check"
       ],

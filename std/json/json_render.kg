@@ -70,6 +70,12 @@ fn Buffer.value(mut self, value: Value) -> Unit! {
         Value.Boolean(b) -> self.text("${b}")
         Value.Integer(n) -> self.text("${n}")
         Value.Unsigned(n) -> self.text("${n}")
+        Value.Wide(negative, magnitude) -> {
+            if negative {
+                self.text("-")
+            }
+            self.text("${magnitude}")
+        }
         Value.Number(f) -> {
             if f != f || f > 1.7976931348623157e308 || f < -1.7976931348623157e308 {
                 fail Error { text: "cannot encode non-finite float ${f} as JSON" }

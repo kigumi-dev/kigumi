@@ -14,7 +14,7 @@ type scalarInfo struct {
 }
 
 // scalarType covers Bool, Char, f64/Int and every integer width; a 128-bit
-// integer is an LLVM i128 here but never a field of a direct aggregate. f32 stays boxed:
+// integer is an LLVM i128 in a register and a two-word slot in a direct aggregate. f32 stays boxed:
 // every boxed float rounds to single precision on construction (rt_float),
 // which native ops don't replicate.
 func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {

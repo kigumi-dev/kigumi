@@ -246,6 +246,20 @@ func TestBuildFreestandingInt128SymbolSet(t *testing.T) {
 	checkFreestandingSymbols(t, "x86_64-freestanding", src)
 }
 
+// A record holding 128-bit fields is moved with loads, stores and copies, so it adds no runtime symbol.
+func TestBuildFreestandingInt128AggregateSymbolSet(t *testing.T) {
+	t.Parallel()
+	src := "type Acc = {\n    pub mut lo u128\n    pub n i128\n}\n\n" +
+		"type Shape = Big(v: u128) | Dot\n\n" +
+		"fn step(a: Acc, k: u128) -> Acc {\n    Acc { lo: a.lo * k + 1, n: a.n / 3 - 1 }\n}\n\n" +
+		"let mut a = Acc { lo: 340282366920938463463374607431768211455, n: -170141183460469231731687303715884105728 }\n" +
+		"for i in 0..3 {\n    a = step(a, 1)\n}\n" +
+		"let s = Shape.Big(a.lo)\n" +
+		"let r = match s {\n    Shape.Big(v) -> v % 7\n    Shape.Dot -> 0\n}\n" +
+		"print \"${a.lo} ${a.n} ${r}\"\n"
+	checkFreestandingSymbols(t, "x86_64-freestanding", src)
+}
+
 func checkFreestandingSymbols(t *testing.T, triple, src string) {
 	t.Helper()
 	if driver.CCompiler() == nil {

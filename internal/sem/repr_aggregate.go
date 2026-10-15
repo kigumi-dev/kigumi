@@ -12,8 +12,11 @@ func (r *Result) RegScalar(t TypeID) bool {
 	return false
 }
 
+// WideScalar is a 128-bit integer: a direct aggregate stores it in a 16-byte slot, though no register holds it as a boxed payload.
+func WideScalar(t TypeID) bool { return t == TyI128 || t == TyU128 }
+
 func (r *Result) directLeaf(t TypeID) bool {
-	return t == TyUnit || r.RegScalar(t) || r.DirectAgg(t)
+	return t == TyUnit || r.RegScalar(t) || WideScalar(t) || r.DirectAgg(t)
 }
 
 func (r *Result) DirectAgg(t TypeID) bool {

@@ -1,0 +1,24 @@
+-- module --
+stage: driver
+triple: x86-linux-musl
+-- src --
+type Wide layout(C) = {
+    pub v u128
+}
+
+type Halves layout(C) = {
+    pub lo u64
+    pub hi u64
+}
+
+fn main() -> Unit! {
+    _ = Halves { lo: 1, hi: 2 }
+}
+-- expect --
+error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
+ --> main.kg:2:5
+  |
+2 |     pub v u128
+  |     ^^^^^^^^^^
+  = help: pass it as two u64 halves
+

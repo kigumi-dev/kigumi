@@ -124,6 +124,8 @@ func (e *emitter) unbox(sb *strings.Builder, v string, t sem.TypeID, ct string) 
 		return d
 	case tt.Kind(t) == sem.KPtr || tt.IsCFn(t):
 		return e.irb(sb).Call(rtPtrVal, vptr(v)).Text
+	case ct == "i128":
+		return e.unboxScalar(sb, TI128, v).Text
 	case tt.IsInteger(t):
 		w := e.irb(sb).Call(rtIntVal, vptr(v)).Text
 		if ct != "i64" {
@@ -148,6 +150,8 @@ func (e *emitter) box(sb *strings.Builder, raw string, t sem.TypeID, ct string) 
 		return e.irb(sb).Call(rtFloat, vdouble(raw), vi32(e.numKind(t))).Text
 	case tt.Kind(t) == sem.KPtr || tt.IsCFn(t):
 		return e.irb(sb).Call(rtPtr, vptr(raw)).Text
+	case ct == "i128":
+		return e.boxNative(sb, scalarInfo{Ty: TI128, Nk: e.numKind(t)}, Value{TI128, raw})
 	case tt.IsInteger(t):
 		w := raw
 		if ct != "i64" {

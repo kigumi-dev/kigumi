@@ -27,6 +27,11 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 	if folded := c.foldBinary(n, op, lhs, rhs, l, r); folded != 0 {
 		return folded
 	}
+	if op == token.Shl || op == token.Shr {
+		if folded := c.foldShift(n, op, lhs, rhs, l, r); folded != 0 {
+			return folded
+		}
+	}
 	switch op {
 	case token.EqEq, token.NotEq, token.Lt, token.LtEq, token.Gt, token.GtEq:
 		l, r = c.adoptPair(lhs, rhs, c.scrutineeOf(l), c.scrutineeOf(r))
@@ -43,6 +48,9 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 	}
 	if (op == token.Shl || op == token.Shr) && tt.Kind(r) == KUntyped {
 		r = c.adopt(c.literalNode(rhs), TyUsize)
+	}
+	if (op == token.Shl || op == token.Shr) && r == TyUsize {
+		l = c.shiftReceiver(lhs, l, want)
 	}
 	l, r = c.adoptPair(lhs, rhs, l, r)
 	if l == TyPoison || r == TyPoison {

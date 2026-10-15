@@ -1,0 +1,133 @@
+-- src --
+type Acc = {
+    pub mut lo u128
+    pub mut n i128
+    pub tag Int
+}
+
+type Cell = {
+    pub name String
+    pub v u128
+}
+
+type Mixed = {
+    pub flag Bool
+    pub w i128
+    pub c Char
+    pub f Float
+    pub u u128
+    pub small u8
+}
+
+type Wrap = {
+    pub inner Acc
+    pub extra u128
+}
+
+type Shape = Dot | Big(v: u128) | Pair(a: i128, b: u128) | Tri(x: i128, y: i128, z: Int)
+
+type Gen[T] = {
+    pub a T
+    pub b T
+}
+
+fn bump(a: Acc) -> Acc {
+    Acc { lo: a.lo + 3, n: a.n - 1, tag: a.tag + 1 }
+}
+
+fn sumShape(s: Shape) -> i128 {
+    match s {
+        Shape.Dot -> 0
+        Shape.Big(v) -> v.toI128() || 0
+        Shape.Pair(a, b) -> a + (b.toI128() || 0)
+        Shape.Tri(x, y, z) -> x * y + z.toI128()
+    }
+}
+
+fn swap(g: Gen[u128]) -> Gen[u128] {
+    Gen { a: g.b, b: g.a }
+}
+
+fn mk(n: u128) -> Wrap {
+    Wrap { inner: Acc { lo: n, n: -(n.toI128() || 0), tag: 1 }, extra: n * 2 }
+}
+
+let big: u128 = 340282366920938463463374607431768211455
+let neg: i128 = -170141183460469231731687303715884105728
+
+let mut a = Acc { lo: 18446744073709551000, n: -5, tag: 0 }
+for _ in 0..5 {
+    a = bump(a)
+}
+print "acc ${a.lo} ${a.n} ${a.tag}"
+a.lo = big
+a.n = neg
+print "set ${a.lo} ${a.n}"
+let b = a
+print "copy ${b.lo == a.lo} ${b.n == a.n}"
+
+let m = Mixed { flag: true, w: neg, c: 'z', f: 1.5, u: big, small: 255 }
+print "mixed ${m.flag} ${m.w} ${m.c} ${m.f} ${m.u} ${m.small}"
+
+let w = mk(1000000000000000000000)
+print "wrap ${w.inner.lo} ${w.inner.n} ${w.inner.tag} ${w.extra}"
+
+print "shapes ${sumShape(Shape.Dot)} ${sumShape(Shape.Big(9))} ${sumShape(Shape.Pair(-7, 9))} ${sumShape(Shape.Tri(neg / 2, 2, 5))}"
+
+let g = swap(Gen { a: 1, b: big })
+print "gen ${g.a} ${g.b}"
+
+let mut p: (u128, i128) = (2, -3)
+for i in 0..4 {
+    let (x, y) = p
+    p = (x * 10 + i.toU128().unwrap(), y * 10 - 1)
+}
+let (px, py) = p
+print "tuple ${px} ${py}"
+
+let mut arr: FixedArray[u128, 4] = FixedArray.filled(big)
+_ = arr.set(2, 5)
+_ = arr.set(0, 18446744073709551616)
+let mut total: u128 = 0
+for i in 0..4 {
+    total = total + (arr.get(i) || 0) / 4
+}
+print "fixed ${arr.get(0) || 0} ${arr.get(2) || 0} ${arr.get(3) || 0} ${total}"
+
+let nested: FixedArray[Acc, 2] = FixedArray.filled(Acc { lo: 7, n: -7, tag: 7 })
+print "fixedrec ${(nested.get(1) || Acc { lo: 0, n: 0, tag: 0 }).n}"
+
+let capture: u128 = 18446744073709551616
+let add = (x: u128) => x + capture
+print "closure ${add(1)}"
+let mk2 = (y: i128) => Acc { lo: capture, n: y, tag: 3 }
+print "closure2 ${mk2(neg).n} ${mk2(neg).lo}"
+
+let o: u128? = Some(big)
+let none: u128? = None
+print "option ${o || 0} ${none || 1}"
+let q: Acc? = Some(a)
+print "optrec ${(q || Acc { lo: 0, n: 0, tag: 0 }).lo}"
+
+let items = Array.of(Acc { lo: 1, n: 2, tag: 3 }, Acc { lo: big, n: neg, tag: 4 })
+let mut sum: u128 = 0
+for it in &items {
+    sum = sum + (it.lo / 2)
+}
+print "array ${sum} ${items.len()}"
+-- stdout --
+acc 18446744073709551015 -10 5
+set 340282366920938463463374607431768211455 -170141183460469231731687303715884105728
+copy true true
+mixed true -170141183460469231731687303715884105728 z 1.5 340282366920938463463374607431768211455 255
+wrap 1000000000000000000000 -1000000000000000000000 1 2000000000000000000000
+shapes 0 9 2 -170141183460469231731687303715884105723
+gen 340282366920938463463374607431768211455 1
+tuple 20123 -31111
+fixed 18446744073709551616 5 340282366920938463463374607431768211455 170141183460469231736298989734311493631
+fixedrec -7
+closure 18446744073709551617
+closure2 -170141183460469231731687303715884105728 18446744073709551616
+option 340282366920938463463374607431768211455 1
+optrec 340282366920938463463374607431768211455
+array 170141183460469231731687303715884105727 2

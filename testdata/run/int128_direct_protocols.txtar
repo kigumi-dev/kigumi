@@ -1,0 +1,101 @@
+-- src --
+import map from std/map
+import task from std/task
+import {Box, Shared} from std/alloc
+
+interface Show {
+    fn show(self) -> String
+}
+
+@impl(Show)
+type Money = {
+    pub cents u128
+    pub delta i128
+}
+
+@impl(Show)
+type Tagged = Plain(n: u128) | Signed(n: i128) | Both(a: u128, b: i128)
+
+
+fn Money.show(self) -> String {
+    "money(${self.cents}, ${self.delta})"
+}
+
+fn Tagged.show(self) -> String {
+    match self {
+        Tagged.Plain(n) -> "plain(${n})"
+        Tagged.Signed(n) -> "signed(${n})"
+        Tagged.Both(a, b) -> "both(${a}, ${b})"
+    }
+}
+
+fn describe(s: Show) -> String {
+    s.show()
+}
+
+async fn inner(m: Money) -> Money {
+    Money { cents: m.cents + 1, delta: m.delta - 1 }
+}
+
+async fn slow(m: Money, k: u128) -> Money {
+    let first = await inner(m)
+    let second = await inner(first)
+    Money { cents: second.cents + k, delta: second.delta }
+}
+
+fn apply(f: fn(Money) -> Money, m: Money) -> Money {
+    f(m)
+}
+
+let big: u128 = 340282366920938463463374607431768211455
+let a = Money { cents: 5, delta: -5 }
+let b = Money { cents: 5, delta: -5 }
+let c = Money { cents: big, delta: 1 }
+print "eq ${a == b} ${a == c} ${a != c}"
+print "hash ${hash(&a) == hash(&b)} ${hash(&a) == hash(&c)}"
+print "display ${a.show()} ${c.show()}"
+print "dyn ${describe(c)} ${describe(Tagged.Both(7, -7))}"
+
+let t1 = Tagged.Both(big, -1)
+let t2 = Tagged.Both(big, -1)
+let t3 = Tagged.Signed(-1)
+print "tagged ${t1 == t2} ${t1 == t3}"
+
+let mut by = map.empty[u128, Money]()
+by.set(big, c)
+by.set(1, a)
+print "map ${by.len()} ${(by.get(&big) || a).delta} ${(by.get(&1) || c).cents}"
+
+let list = Array.of(c, a, b)
+let mut keep = Array.empty[Money]()
+for m in &list {
+    if m.cents > 10 {
+        keep.push(Money { cents: m.cents, delta: m.delta })
+    }
+}
+print "filter ${keep.len()} ${(keep.first() || a).cents}"
+
+let doubled = apply((m: Money) => Money { cents: m.cents / 2, delta: m.delta * 2 }, c)
+print "fnarg ${doubled.cents} ${doubled.delta}"
+
+let shared = Shared.new(a)
+print "shared ${shared.get().cents}"
+
+let b2 = Box.new(c)
+print "box ${b2.get().cents}"
+
+let ex = task.currentThreadExecutor()
+let awaited = ex.runToCompletion(slow(a, big - 100))
+print "async ${awaited.cents} ${awaited.delta}"
+-- stdout --
+eq true false true
+hash true false
+display money(5, -5) money(340282366920938463463374607431768211455, 1)
+dyn money(340282366920938463463374607431768211455, 1) both(7, -7)
+tagged true false
+map 2 1 5
+filter 1 340282366920938463463374607431768211455
+fnarg 170141183460469231731687303715884105727 2
+shared 5
+box 340282366920938463463374607431768211455
+async 340282366920938463463374607431768211362 -7

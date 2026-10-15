@@ -2749,10 +2749,7 @@ static val iter_len(val it) {
 #endif
     int64_t lo = it->u.rec.fields[0]->u.i, hi = it->u.rec.fields[1]->u.i;
     int reversed = (it->u.rec.fields[0]->nk & 256) ? lo > hi : (uint64_t)lo > (uint64_t)hi;
-    if (reversed) return rt_int(0, 64);
-    int64_t n = (int64_t)((uint64_t)hi - (uint64_t)lo);
-    if (it->u.rec.fields[2]->u.b) n++;
-    return rt_int(n, 64);
+    return rt_int(reversed ? 0 : (int64_t)((uint64_t)hi - (uint64_t)lo + it->u.rec.fields[2]->u.b), 64);
 }
 /* A trivial scalar has no drop hook of its own: sharing it needs no
  * ownership transfer, only a retain. */

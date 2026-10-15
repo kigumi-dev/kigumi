@@ -1,0 +1,202 @@
+-- src --
+import json from std/json
+import map from std/map
+
+type Wallet = {
+    pub owner String
+    pub balance i128
+    pub cap u128
+    pub history Array[i128]
+    pub limit u128?
+}
+
+type Entry =
+    | Credit(u128)
+    | Debit(i128)
+    | Pair(i128, u128)
+    | Named(amount: i128, scale: u128)
+
+fn check_i(label: String, v: i128) -> Unit! {
+    let text = json.encode(v)?
+    let back = json.decode[i128](text)?
+    print "${label} ${text} ${back == v}"
+}
+
+fn check_u(label: String, v: u128) -> Unit! {
+    let text = json.encode(v)?
+    let back = json.decode[u128](text)?
+    print "${label} ${text} ${back == v}"
+}
+
+fn fails_i(src: String) -> Unit {
+    match json.decode[i128](src) {
+        Ok(v) -> print "ok ${v}"
+        Err(e) -> print "error: ${e.message()}"
+    }
+}
+
+fn fails_u(src: String) -> Unit {
+    match json.decode[u128](src) {
+        Ok(v) -> print "ok ${v}"
+        Err(e) -> print "error: ${e.message()}"
+    }
+}
+
+check_i("i128 min", -170141183460469231731687303715884105727 - 1)?
+check_i("i128 min+1", -170141183460469231731687303715884105727)?
+check_i("below i64 min", -9223372036854775807 - 2)?
+check_i("i64 min", -9223372036854775807 - 1)?
+check_i("-1", -1)?
+check_i("0", 0)?
+check_i("i64 max", 9223372036854775807)?
+check_i("i64 max+1", 9223372036854775808)?
+check_i("u64 max", 18446744073709551615)?
+check_i("u64 max+1", 18446744073709551616)?
+check_i("i128 max", 170141183460469231731687303715884105727)?
+check_u("0", 0)?
+check_u("i64 max", 9223372036854775807)?
+check_u("i64 max+1", 9223372036854775808)?
+check_u("u64 max", 18446744073709551615)?
+check_u("u64 max+1", 18446744073709551616)?
+check_u("i128 max+1", 170141183460469231731687303715884105728)?
+check_u("u128 max", 340282366920938463463374607431768211455)?
+
+fails_i("170141183460469231731687303715884105728")
+fails_i("-170141183460469231731687303715884105729")
+fails_i("340282366920938463463374607431768211455")
+fails_i("1.5")
+fails_i("\"7\"")
+fails_u("-1")
+fails_u("-18446744073709551616")
+fails_u("340282366920938463463374607431768211456")
+fails_u("-340282366920938463463374607431768211456")
+fails_u("2.0")
+match json.decode[u64]("18446744073709551616") {
+    Ok(v) -> print "ok ${v}"
+    Err(e) -> print "error: ${e.message()}"
+}
+match json.decode[usize]("-18446744073709551616") {
+    Ok(v) -> print "ok ${v}"
+    Err(e) -> print "error: ${e.message()}"
+}
+match json.decode[i64]("-9223372036854775809") {
+    Ok(v) -> print "ok ${v}"
+    Err(e) -> print "error: ${e.message()}"
+}
+match json.decode[i64]("[1]") {
+    Ok(v) -> print "ok ${v}"
+    Err(e) -> print "error: ${e.message()}"
+}
+
+let w = Wallet {
+    owner: "ann",
+    balance: -170141183460469231731687303715884105727 - 1,
+    cap: 340282366920938463463374607431768211455,
+    history: Array.of(1, -18446744073709551616, 170141183460469231731687303715884105727),
+    limit: Some(18446744073709551616),
+}
+let wt = json.encode(w)?
+print wt
+let w2 = json.decode[Wallet](wt)?
+print "${w2.balance} ${w2.cap} ${w2.history.len()} ${w2.history[1]} ${w2.limit || 0}"
+
+let entries = Array.of(
+    Entry.Credit(340282366920938463463374607431768211455),
+    Entry.Debit(-18446744073709551617),
+    Entry.Pair(-5, 18446744073709551616),
+    Entry.Named(170141183460469231731687303715884105727, 18446744073709551615),
+)
+let et = json.encode(entries)?
+print et
+let back = json.decode[Array[Entry]](et)?
+print "${back.len()}"
+for e in back {
+    match e {
+        Entry.Credit(c) -> print "credit ${c}"
+        Entry.Debit(d) -> print "debit ${d}"
+        Entry.Pair(a, b) -> print "pair ${a} ${b}"
+        Entry.Named(amount, scale) -> print "named ${amount} ${scale}"
+    }
+}
+
+let mut ui = map.empty[u128, String]()
+ui.set(340282366920938463463374607431768211455, "max")
+ui.set(0, "zero")
+ui.set(18446744073709551616, "wrap")
+let uit = json.encode(ui)?
+print "${uit.len()}"
+let ui2 = json.decode[map.Map[u128, String]](uit)?
+print "${ui2.get(&340282366920938463463374607431768211455) || "?"} ${ui2.get(&0) || "?"} ${ui2.get(&18446744073709551616) || "?"} ${ui2.len()}"
+
+let kmin: i128 = -170141183460469231731687303715884105727 - 1
+let kmax: i128 = 170141183460469231731687303715884105727
+let kmid: i128 = -9223372036854775809
+let mut si = map.empty[i128, Int]()
+si.set(kmin, 1)
+si.set(kmax, 2)
+si.set(kmid, 3)
+let sit = json.encode(si)?
+print sit
+let si2 = json.decode[map.Map[i128, Int]](sit)?
+print "${si2.get(&kmin) || 0} ${si2.get(&kmax) || 0} ${si2.get(&kmid) || 0} ${si2.len()}"
+match json.decode[map.Map[u128, Int]]("{\"-1\":1}") {
+    Ok(_) -> print "unexpected"
+    Err(e) -> print "error: ${e.message()}"
+}
+match json.decode[map.Map[i128, Int]]("{\"x\":1}") {
+    Ok(_) -> print "unexpected"
+    Err(e) -> print "error: ${e.message()}"
+}
+
+match json.parse("[-170141183460469231731687303715884105728, 18446744073709551616, 9223372036854775808, -9223372036854775809, 340282366920938463463374607431768211455]") {
+    Ok(v) -> print "parsed ${json.render(v)?}"
+    Err(e) -> print "error: ${e.message()}"
+}
+-- stdout --
+i128 min -170141183460469231731687303715884105728 true
+i128 min+1 -170141183460469231731687303715884105727 true
+below i64 min -9223372036854775809 true
+i64 min -9223372036854775808 true
+-1 -1 true
+0 0 true
+i64 max 9223372036854775807 true
+i64 max+1 9223372036854775808 true
+u64 max 18446744073709551615 true
+u64 max+1 18446744073709551616 true
+i128 max 170141183460469231731687303715884105727 true
+0 0 true
+i64 max 9223372036854775807 true
+i64 max+1 9223372036854775808 true
+u64 max 18446744073709551615 true
+u64 max+1 18446744073709551616 true
+i128 max+1 170141183460469231731687303715884105728 true
+u128 max 340282366920938463463374607431768211455 true
+error: 170141183460469231731687303715884105728 does not fit i128
+error: -170141183460469231731687303715884105729 does not fit i128
+error: 340282366920938463463374607431768211455 does not fit i128
+error: expected integer, found number
+error: expected integer, found string
+error: -1 does not fit u128
+error: -18446744073709551616 does not fit u128
+error: integer literal 340282366920938463463374607431768211456 is out of range for 128-bit integers (magnitude max 340282366920938463463374607431768211455)
+error: integer literal -340282366920938463463374607431768211456 is out of range for 128-bit integers (magnitude max 340282366920938463463374607431768211455)
+error: expected integer, found number
+error: 18446744073709551616 does not fit u64
+error: -18446744073709551616 does not fit usize
+error: expected integer, found number
+error: expected integer, found array
+{"owner":"ann","balance":-170141183460469231731687303715884105728,"cap":340282366920938463463374607431768211455,"history":[1,-18446744073709551616,170141183460469231731687303715884105727],"limit":18446744073709551616}
+-170141183460469231731687303715884105728 340282366920938463463374607431768211455 3 -18446744073709551616 18446744073709551616
+[{"Credit":[340282366920938463463374607431768211455]},{"Debit":[-18446744073709551617]},{"Pair":[-5,18446744073709551616]},{"Named":[170141183460469231731687303715884105727,18446744073709551615]}]
+4
+credit 340282366920938463463374607431768211455
+debit -18446744073709551617
+pair -5 18446744073709551616
+named 170141183460469231731687303715884105727 18446744073709551615
+90
+max zero wrap 3
+{"-170141183460469231731687303715884105728":1,"170141183460469231731687303715884105727":2,"-9223372036854775809":3}
+1 2 3 3
+error: expected an integer key, found "-1"
+error: expected an integer key, found "x"
+parsed [-170141183460469231731687303715884105728,18446744073709551616,9223372036854775808,-9223372036854775809,340282366920938463463374607431768211455]

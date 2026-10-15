@@ -1,0 +1,74 @@
+-- src --
+import text from std/text
+
+type Bad = {
+    pub why String
+}
+
+fn Bad.message(self) -> String {
+    self.why
+}
+
+type Pt = {
+    pub x u128
+    pub y i128
+}
+
+fn half(n: u128) -> u128? {
+    if n % 2 == 0 { Some(n / 2) } else { None }
+}
+
+fn parse(s: String) -> u128! {
+    let v = text.parseU128(s) || fail Bad { why: "bad number" }
+    if v == 0 {
+        fail Bad { why: "zero" }
+    }
+    Ok(v)
+}
+
+fn total(a: String, b: String) -> u128! {
+    let x = parse(a)?
+    let y = parse(b)?
+    Ok(x + y)
+}
+
+fn pick(p: Pt?) -> i128 {
+    match p {
+        Some(q) -> q.y - q.x.toI128().unwrap()
+        None -> 0
+    }
+}
+
+let big: u128 = 340282366920938463463374607431768211454
+print "half ${half(big) || 1} ${half(big + 1) || 1} ${(half(8) || 0) + 1}"
+let chain = half(big).andThen(half)
+print "chain ${chain || 0}"
+let xs = Array.of(big, 7, 18446744073709551616)
+print "get ${xs.get(2) || 0} ${xs.get(5) || 99} ${xs.first() || 0}"
+match total("18446744073709551616", "5") {
+    Ok(v) -> print "total ${v}"
+    Err(e) -> print "err ${e.message()}"
+}
+match total("1", "0") {
+    Ok(v) -> print "total ${v}"
+    Err(e) -> print "err ${e.message()}"
+}
+print "pick ${pick(Some(Pt { x: 5, y: -6 }))} ${pick(None)}"
+let mut slot: Pt? = None
+for i in 0..3 {
+    let k: Int = i
+    slot = Some(Pt { x: k.toU128().unwrap() * (big / 4), y: -k.toI128() })
+}
+print "slot ${pick(slot)}"
+let pairs = Array.of(Pt { x: 1, y: 2 }, Pt { x: big, y: -2 })
+let mapped = pairs.map((p: &Pt) => p.x + 1)
+print "map ${mapped.len()} ${mapped[1]}"
+-- stdout --
+half 170141183460469231731687303715884105727 1 5
+chain 0
+get 18446744073709551616 99 340282366920938463463374607431768211454
+total 18446744073709551621
+err zero
+pick -11 0
+slot -170141183460469231731687303715884105728
+map 2 340282366920938463463374607431768211455

@@ -196,14 +196,14 @@ fn Cursor.number(mut self) -> Value! {
         if text.parseInt(literal) is Some(n) {
             return Ok(Value.Integer(n))
         }
-        if negative {
-            fail invalid()
-        }
         let digits = self.text(digitsStart, self.pos)
-        if text.parseUint(digits) is Some(u) {
+        if !negative && text.parseUint(digits) is Some(u) {
             return Ok(Value.Unsigned(u))
         }
-        fail Error { text: "integer literal ${digits} is out of range for u64 (max 18446744073709551615)" }
+        if text.parseU128(digits) is Some(m) {
+            return Ok(Value.Wide(negative, m))
+        }
+        fail Error { text: "integer literal ${literal} is out of range for 128-bit integers (magnitude max 340282366920938463463374607431768211455)" }
     }
     if text.parseFloat(literal) is Some(f) {
         return Ok(Value.Number(f))

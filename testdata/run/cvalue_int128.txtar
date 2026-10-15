@@ -1,0 +1,48 @@
+-- src --
+import ffi from std/ffi
+
+type Wide layout(C) = {
+    pub tag u8
+    pub big u128
+    pub neg i128
+    pub last i32
+}
+
+type Tight layout(packed) = {
+    pub a u8
+    pub v u128
+}
+
+type Outer layout(C) = {
+    pub head i32
+    pub inner Wide
+}
+
+let big: u128 = 340282366920938463463374607431768211455
+let neg: i128 = -170141183460469231731687303715884105728
+let w = Wide { tag: 1, big: big, neg: neg, last: -9 }
+print "size ${ffi.sizeOf(&w)} align ${ffi.alignOf(&w)} packed ${ffi.sizeOf(&Tight { a: 1, v: 2 })} ${ffi.alignOf(&Tight { a: 1, v: 2 })}"
+let cv = ffi.CValue.new(w)
+let back = cv.get()
+print "${back.tag} ${back.big} ${back.neg} ${back.last}"
+cv.set(&Wide { tag: 2, big: 18446744073709551616, neg: -18446744073709551617, last: 7 })
+let again = unsafe { ffi.readRecord(ffi.toConst(cv.ptr())) }
+print "${again.tag} ${again.big} ${again.neg} ${again.last}"
+unsafe {
+    ffi.writeRecord(cv.ptr(), &Wide { tag: 3, big: 5, neg: -5, last: 0 })
+}
+print "${cv.get().big} ${cv.get().neg}"
+let tv = ffi.CValue.new(Tight { a: 9, v: big })
+print "${tv.get().a} ${tv.get().v}"
+tv.set(&Tight { a: 7, v: 1 })
+print "${tv.get().a} ${tv.get().v}"
+let ov = ffi.CValue.new(Outer { head: 5, inner: Wide { tag: 4, big: big, neg: neg, last: 1 } })
+print "outer ${ffi.sizeOf(&ov.get())} ${ov.get().head} ${ov.get().inner.big} ${ov.get().inner.neg}"
+-- stdout --
+size 64 align 16 packed 17 1
+1 340282366920938463463374607431768211455 -170141183460469231731687303715884105728 -9
+2 18446744073709551616 -18446744073709551617 7
+5 -5
+9 340282366920938463463374607431768211455
+7 1
+outer 80 5 340282366920938463463374607431768211455 -170141183460469231731687303715884105728

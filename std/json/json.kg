@@ -18,11 +18,13 @@ pub pure fn omitNone() -> Metadata {
 
 /// A JSON document. Integers and other numbers are kept apart so a decode into an integer type can refuse `1.5`.
 /// Unsigned holds an integral literal above i64::MAX, which Integer cannot represent.
+/// Wide holds an integral literal outside both i64 and u64 (negative flag and magnitude).
 pub type Value =
     | Null
     | Boolean(Bool)
     | Integer(Int)
     | Unsigned(u64)
+    | Wide(Bool, u128)
     | Number(Float)
     | Text(String)
     | List(Array[Value])
@@ -71,6 +73,7 @@ pub fn kindOf(value: Value) -> String {
         Value.Boolean(_) -> "boolean"
         Value.Integer(_) -> "number"
         Value.Unsigned(_) -> "number"
+        Value.Wide(_, _) -> "number"
         Value.Number(_) -> "number"
         Value.Text(_) -> "string"
         Value.List(_) -> "array"
