@@ -9,14 +9,14 @@ import (
 
 func (r *Result) coerceConstLit(f FileID, n syntax.NodeID, want TypeID) TypeID {
 	t := r.tree(f)
-	node := t.Nodes[n]
-	if node.Kind == syntax.BoolLit {
+	node := t.View(n)
+	if node.Kind() == syntax.BoolLit {
 		if want != 0 && want != TyBool {
 			r.errAt(f, n, cTypeMismatch, want, TyBool)
 			return TyPoison
 		}
 		v := int64(0)
-		if t.Toks[node.Tok].Kind == token.KwTrue {
+		if node.Tok().Kind() == token.KwTrue {
 			v = 1
 		}
 		return r.Types.ConstVal(v, TyBool)
@@ -25,9 +25,9 @@ func (r *Result) coerceConstLit(f FileID, n syntax.NodeID, want TypeID) TypeID {
 	if target == 0 {
 		target = TyUsize
 	}
-	iv, ok := syntax.ParseInt(t.TokText(node.Tok))
+	iv, ok := syntax.ParseInt(node.Tok().Text())
 	if !ok {
-		r.errAt(f, n, cLiteralOutOfRange, t.TokText(node.Tok), target)
+		r.errAt(f, n, cLiteralOutOfRange, node.Tok().Text(), target)
 		return TyPoison
 	}
 	if target == TyBool || !r.Types.IsInteger(target) {
@@ -35,7 +35,7 @@ func (r *Result) coerceConstLit(f FileID, n syntax.NodeID, want TypeID) TypeID {
 		return TyPoison
 	}
 	if !r.intFits(iv, target) {
-		r.errAt(f, n, cLiteralOutOfRange, t.TokText(node.Tok), target)
+		r.errAt(f, n, cLiteralOutOfRange, node.Tok().Text(), target)
 		return TyPoison
 	}
 	v := iv.Int64()
@@ -52,9 +52,9 @@ func (r *Result) coerceNegConstLit(f FileID, n, lit syntax.NodeID, want TypeID) 
 	if target == 0 {
 		target = TyUsize
 	}
-	iv, ok := syntax.ParseInt(t.TokText(t.Nodes[lit].Tok))
+	iv, ok := syntax.ParseInt(t.View(lit).Tok().Text())
 	if !ok {
-		r.errAt(f, n, cLiteralOutOfRange, "-"+t.TokText(t.Nodes[lit].Tok), target)
+		r.errAt(f, n, cLiteralOutOfRange, "-"+t.View(lit).Tok().Text(), target)
 		return TyPoison
 	}
 	iv = new(big.Int).Neg(iv)

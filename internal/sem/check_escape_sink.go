@@ -41,11 +41,11 @@ func (c *checker) checkEscapeTailReturn(body syntax.NodeID) {
 		c.checkEscapeReturn(body)
 		return
 	}
-	stmts := c.t.Children(body)
-	if len(stmts) == 0 || c.t.Kind(stmts[len(stmts)-1]) != syntax.ExprStmt {
+	tail := c.t.View(body).AsBlock().Tail()
+	if !tail.Valid() {
 		return
 	}
-	c.checkEscapeReturn(syntax.NodeID(c.t.Nodes[stmts[len(stmts)-1]].Lhs))
+	c.checkEscapeReturn(tail.ID())
 }
 
 // checkEscapeStore rejects storing a tainted callback into a field: an assignment, a record

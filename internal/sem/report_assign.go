@@ -9,11 +9,11 @@ import (
 // emits E701/E702 for a mutable-place violation, walking outside-in like recvMutabilityFixes (E515)
 // to blame the link nearest the point of use.
 func (c *checker) reportImmutable(lhs syntax.NodeID) {
-	node := c.t.Nodes[lhs]
-	switch node.Kind {
+	node := c.t.View(lhs)
+	switch node.Kind() {
 	case syntax.Ident:
 		if root := c.rootOf(lhs); root != 0 {
-			name := c.t.TokText(node.Tok)
+			name := node.Tok().Text()
 			fix := "declare `let mut " + name + "`"
 			if e := c.r.Entities[root]; e.File == c.f && e.Tok != 0 {
 				c.errFix(lhs, c.r.insertAt(c.f, e.Tok, "Declare `mut "+name+"`", "mut "), cAssignImmutable, name, fix)
@@ -35,17 +35,17 @@ func (c *checker) reportImmutable(lhs syntax.NodeID) {
 					c.errAt(lhs, cAssignImmutableField, fe.Name, fix)
 					return
 				}
-				c.reportImmutable(syntax.NodeID(node.Lhs))
+				c.reportImmutable(node.Base().ID())
 				return
 			case EntType:
 				// `.value`: same storage as the receiver, just retyped (mirrors buildPlace).
-				c.reportImmutable(syntax.NodeID(node.Lhs))
+				c.reportImmutable(node.Base().ID())
 				return
 			}
 		}
 	case syntax.BracketExpr:
 		if c.isPlace(lhs) {
-			c.reportImmutable(syntax.NodeID(node.Lhs))
+			c.reportImmutable(node.Base().ID())
 			return
 		}
 	}
@@ -70,9 +70,9 @@ func (c *checker) assignImmutableFix(n syntax.NodeID) (fix string, tok uint32, f
 func (c *checker) assignImmutableFixes(n syntax.NodeID) (fixes []string, tok uint32, file FileID) {
 	switch c.t.Kind(n) {
 	case syntax.Paren, syntax.BracketExpr:
-		return c.assignImmutableFixes(syntax.NodeID(c.t.Nodes[n].Lhs))
+		return c.assignImmutableFixes(c.t.View(n).Base().ID())
 	case syntax.MemberExpr:
-		rest, rtok, rfile := c.assignImmutableFixes(syntax.NodeID(c.t.Nodes[n].Lhs))
+		rest, rtok, rfile := c.assignImmutableFixes(c.t.View(n).Base().ID())
 		if fld := c.info.Uses[n]; fld != 0 && c.r.Entities[fld].Kind == EntField {
 			if fe := c.r.Entities[fld]; fe.Flags&EfMut == 0 {
 				fix := "declare `mut " + fe.Name + "`"

@@ -31,19 +31,17 @@ func (m *Module) scriptManifest(hasMod bool) error {
 			if m.ScriptFile != "" {
 				return fmt.Errorf("%s and %s both carry manifest records; only the entry may", m.ScriptFile, t.File.Name)
 			}
-			stmts := t.Children(t.Root)
-			recs, ds := recordsOf(t, stmts[:n], scriptFields)
+			stmts := t.List(t.Root)
+			recs, ds := recordsOf(t, stmts, n, scriptFields)
 			mf, more := modFileOf(recs, false)
 			ds = append(ds, more...)
 			if mf.Kigumi == "" && len(ds) == 0 {
-				ds = append(ds, diag.Errorf(diag.Location{Span: t.Span(stmts[0])}, "a script with manifest records needs `Kigumi { version: \"...\" }` first"))
+				ds = append(ds, diag.Errorf(diag.Location{Span: stmts.At(0).Span()}, "a script with manifest records needs `Kigumi { version: \"...\" }` first"))
 			}
 			if len(ds) > 0 {
 				return fmt.Errorf("%s", diag.RenderAll(t.File, ds[:1]))
 			}
-			// The Root list stores its children in Extra; dropping the
-			// first n entries leaves the rest of the file untouched.
-			t.Nodes[t.Root].Lhs += uint32(n)
+			t.DropRootItems(n)
 			m.Manifest, m.ScriptFile = mf, t.File.Name
 		}
 	}
@@ -53,19 +51,19 @@ func (m *Module) scriptManifest(hasMod bool) error {
 // leadingRecords counts the manifest records at the top of a file.
 func leadingRecords(t *syntax.Tree) int {
 	n := 0
-	for _, st := range t.Children(t.Root) {
-		if t.Kind(st) != syntax.ExprStmt {
+	for st := range t.List(t.Root).Views() {
+		if st.Kind() != syntax.ExprStmt {
 			break
 		}
-		lit := syntax.NodeID(t.Nodes[st].Lhs)
-		if t.Kind(lit) != syntax.RecordLit {
+		lit := st.AsExprStmt().Expr()
+		if lit.Kind() != syntax.RecordLit {
 			break
 		}
-		head := syntax.NodeID(t.Nodes[lit].Lhs)
-		if t.Kind(head) != syntax.Ident {
+		head := lit.AsRecordLit().Head()
+		if head.Kind() != syntax.Ident {
 			break
 		}
-		if _, ok := scriptFields[t.TokText(t.Nodes[head].Tok)]; !ok {
+		if _, ok := scriptFields[head.Tok().Text()]; !ok {
 			break
 		}
 		n++
@@ -91,7 +89,7 @@ func parseScriptManifest(path string, src []byte) (ModFile, bool, error) {
 	if n == 0 {
 		return ModFile{}, false, nil
 	}
-	recs, ds := recordsOf(t, t.Children(t.Root)[:n], scriptFields)
+	recs, ds := recordsOf(t, t.List(t.Root), n, scriptFields)
 	mf, more := modFileOf(recs, false)
 	if ds = append(ds, more...); len(ds) > 0 {
 		return mf, true, fmt.Errorf("%s: %s", path, diag.RenderAll(t.File, ds[:1]))

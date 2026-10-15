@@ -91,12 +91,12 @@ func (c *checker) arityList(members []EntityID) string {
 func (c *checker) lambdaNeedsAnnot(args []syntax.NodeID) bool {
 	for _, a := range args {
 		if c.t.Kind(a) == syntax.NamedArg {
-			a = syntax.NodeID(c.t.Nodes[a].Lhs)
+			a = c.t.View(a).AsNamedArg().Value().ID()
 		}
 		if c.t.Kind(a) != syntax.Lambda {
 			continue
 		}
-		for _, p := range c.t.Children(syntax.NodeID(c.t.Nodes[a].Lhs)) {
+		for p := range c.t.View(a).AsLambda().Params().IDs() {
 			if param(c.t, p).Type == 0 {
 				return true
 			}
@@ -123,14 +123,14 @@ func (c *checker) argShapes(args []syntax.NodeID) ([]TypeID, []TypeID) {
 		switch c.t.Kind(a) {
 		case syntax.Lambda:
 			var ps []TypeID
-			for _, p := range c.t.Children(syntax.NodeID(c.t.Nodes[a].Lhs)) {
+			for p := range c.t.View(a).AsLambda().Params().IDs() {
 				ps = append(ps, c.r.resolveType(c.f, c.scope, param(c.t, p).Type, posLocal))
 			}
 			ret := c.vars.fresh(a, "return")
 			trial = append(trial, ret)
 			out = append(out, tt.Fn(ps, ret, 0, false))
 		case syntax.Spread:
-			out = append(out, c.vars.resolve(c.synth(syntax.NodeID(c.t.Nodes[a].Lhs))))
+			out = append(out, c.vars.resolve(c.synth(c.t.View(a).AsSpread().Value().ID())))
 		default:
 			out = append(out, defaultOf(c.vars.resolve(c.synth(a))))
 		}

@@ -37,9 +37,9 @@ func (c *checker) recvMutabilityFix(n syntax.NodeID) (fix string, tok uint32, fi
 func (c *checker) recvMutabilityFixes(n syntax.NodeID) (fixes []string, tok uint32, file FileID) {
 	switch c.t.Kind(n) {
 	case syntax.Paren, syntax.BracketExpr:
-		return c.recvMutabilityFixes(syntax.NodeID(c.t.Nodes[n].Lhs))
+		return c.recvMutabilityFixes(c.t.View(n).Base().ID())
 	case syntax.MemberExpr:
-		rest, rtok, rfile := c.recvMutabilityFixes(syntax.NodeID(c.t.Nodes[n].Lhs))
+		rest, rtok, rfile := c.recvMutabilityFixes(c.t.View(n).Base().ID())
 		if fld := c.info.Uses[n]; fld != 0 && c.r.Entities[fld].Kind == EntField {
 			if fe := c.r.Entities[fld]; fe.Flags&EfMut == 0 {
 				fix := "declare `mut " + fe.Name + "` on the field"

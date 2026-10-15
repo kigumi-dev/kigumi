@@ -12,7 +12,7 @@ func (c *checker) fixedElementOf(n syntax.NodeID, t TypeID) bool {
 	if c.t.Kind(n) != syntax.BracketExpr {
 		return false
 	}
-	bt := c.vars.resolve(c.info.Types[syntax.NodeID(c.t.Nodes[n].Lhs)])
+	bt := c.vars.resolve(c.info.Types[c.t.View(n).AsBracket().Base().ID()])
 	for c.r.Types.Kind(bt) == KRef {
 		bt = c.vars.resolve(c.r.Types.Node(bt).Elem)
 	}
@@ -35,7 +35,7 @@ func (c *checker) copyShape(lhs, rhs syntax.NodeID) bool {
 func isProjection(k syntax.NodeKind) bool { return k == syntax.MemberExpr || k == syntax.BracketExpr }
 
 func (c *checker) projectedBase(n syntax.NodeID) bool {
-	return isProjection(c.t.Kind(c.stripParen(syntax.NodeID(c.t.Nodes[n].Lhs))))
+	return isProjection(c.t.Kind(c.stripParen(c.t.View(n).Base().ID())))
 }
 
 // fieldCopy: `a.f = b.g` or a slot written from a field, between places of an in-place type, fills the destination's own box.

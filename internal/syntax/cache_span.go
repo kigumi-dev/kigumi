@@ -23,10 +23,10 @@ func (t *Tree) Span(id NodeID) token.Span {
 	}
 	sp := t.computeSpan(id)
 	if int(id) >= len(t.spanKnown) {
-		grown := make([]bool, len(t.Nodes))
+		grown := make([]bool, len(t.nodes))
 		copy(grown, t.spanKnown)
 		t.spanKnown = grown
-		cache := make([]token.Span, len(t.Nodes))
+		cache := make([]token.Span, len(t.nodes))
 		copy(cache, t.spanCache)
 		t.spanCache = cache
 	}
@@ -36,7 +36,7 @@ func (t *Tree) Span(id NodeID) token.Span {
 
 func (t *Tree) computeSpan(id NodeID) token.Span {
 	spanComputeOps.Add(1)
-	n := t.Nodes[id]
+	n := t.nodes[id]
 	var sp token.Span
 	if n.Kind == ShellText {
 		return token.Span{Start: token.Pos(n.Lhs), End: token.Pos(n.Rhs)}
@@ -55,26 +55,25 @@ func (t *Tree) computeSpan(id NodeID) token.Span {
 		}
 		sp.Start, sp.End = min(sp.Start, cs.Start), max(sp.End, cs.End)
 	}
-	switch shapes[n.Kind] {
-	case sL:
+	info := &kindTable[n.Kind]
+	switch info.layout {
+	case layL:
 		widen(NodeID(n.Lhs))
-	case sLR:
+	case layLR:
 		widen(NodeID(n.Lhs))
 		widen(NodeID(n.Rhs))
-	case sFlagR, sTokR:
+	case layFlagR, layTokR:
 		widen(NodeID(n.Rhs))
-	case sList:
-		for _, c := range t.Children(id) {
-			widen(c)
+	case layList:
+		for _, c := range t.extra[n.Lhs:n.Rhs] {
+			widen(NodeID(c))
 		}
-	case sRec:
-		for i, name := range recFields[n.Kind] {
-			if name[0] != '#' && name[0] != '@' {
-				widen(NodeID(t.Extra[n.Lhs+uint32(i)]))
-			}
+	case layRec:
+		for _, i := range info.children {
+			widen(NodeID(t.extra[n.Lhs+uint32(i)]))
 		}
-	case sPath:
-		for _, tk := range t.PathToks(id) {
+	case layPath:
+		for _, tk := range t.extra[n.Lhs:n.Rhs] {
 			ts := t.Toks[tk].Span
 			if sp == (token.Span{}) {
 				sp = ts

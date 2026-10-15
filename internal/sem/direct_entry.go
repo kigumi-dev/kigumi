@@ -75,9 +75,7 @@ func (c *checker) witnessArgs(from int, args []syntax.NodeID) {
 	own := map[syntax.NodeID]bool{}
 	for _, a := range args {
 		own[a] = true
-		if k := c.t.Kind(a); k == syntax.Spread || k == syntax.NamedArg {
-			own[syntax.NodeID(c.t.Nodes[a].Lhs)] = true
-		}
+		own[c.t.View(a).ArgValue().ID()] = true
 	}
 	for i := from; i < len(*c.edges); i++ {
 		if e := &(*c.edges)[i]; e.Kind == EdgeAlloc && e.Why == whyDirectCross && own[e.Node] {

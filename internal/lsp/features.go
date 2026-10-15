@@ -14,16 +14,16 @@ import (
 // nodeAt finds the innermost name-bearing node covering a byte offset.
 func nodeAt(t *syntax.Tree, pos token.Pos) syntax.NodeID {
 	best, bestLen := syntax.NodeID(0), -1
-	for id := 1; id < len(t.Nodes); id++ {
-		n := syntax.NodeID(id)
-		switch t.Kind(n) {
+	for v := range t.All() {
+		n := v.ID()
+		switch v.Kind() {
 		case syntax.Ident, syntax.MemberExpr, syntax.PatBind, syntax.Param, syntax.PatCtor, syntax.TypePath, syntax.FieldInit, syntax.PatField:
 		default:
 			continue
 		}
-		sp := t.Span(n)
-		if t.Kind(n) == syntax.MemberExpr {
-			sp = t.Toks[t.Nodes[n].Tok].Span
+		sp := v.Span()
+		if v.Kind() == syntax.MemberExpr {
+			sp = v.Tok().Span()
 		}
 		if pos >= sp.Start && pos <= sp.End && (bestLen < 0 || sp.Len() < bestLen) {
 			best, bestLen = n, sp.Len()

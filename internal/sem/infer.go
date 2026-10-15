@@ -18,7 +18,7 @@ func (c *checker) synth(n syntax.NodeID) TypeID {
 		return t
 	}
 	if place && c.t.Kind(n) == syntax.Paren {
-		return c.setType(n, c.synthPlace(syntax.NodeID(c.t.Nodes[n].Lhs)))
+		return c.setType(n, c.synthPlace(c.t.View(n).AsParen().Inner().ID()))
 	}
 	if place && c.t.Kind(n) == syntax.BracketExpr {
 		if c.indexAsPlace == nil {
@@ -67,7 +67,7 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 			return c.setType(n, c.synthKind(n, want))
 		}
 	case syntax.Binary:
-		switch c.t.Toks[c.t.Nodes[n].Tok].Kind {
+		switch c.t.View(n).Tok().Kind() {
 		case token.OrOr:
 			return c.setType(n, c.synthKind(n, want))
 		case token.Shl, token.Shr:
@@ -80,14 +80,14 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 
 // synthKind dispatches on node kind; want is 0 in synth mode.
 func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	switch node.Kind {
+	node := c.t.View(n)
+	switch node.Kind() {
 	case syntax.Ident:
 		return c.synthIdent(n)
 	case syntax.IntLit, syntax.FloatLit:
 		return c.synthLiteral(n, want)
 	case syntax.CharLit:
-		if _, ok := syntax.DecodeChar(c.t.TokText(node.Tok)); !ok {
+		if _, ok := syntax.DecodeChar(node.Tok().Text()); !ok {
 			c.errAt(n, cCharInvalid)
 		}
 		return TyChar
@@ -100,7 +100,7 @@ func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
 	case syntax.ShellLit:
 		return c.synthShell(n)
 	case syntax.Paren:
-		return c.check(syntax.NodeID(node.Lhs), want)
+		return c.check(node.AsParen().Inner().ID(), want)
 	case syntax.Unary:
 		return c.synthUnary(n, want)
 	case syntax.Binary:
@@ -151,7 +151,7 @@ func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
 		c.edge(EffectEdge{Kind: EdgeUnsafe, Node: n})
 		c.dropUnstableFacts()
 		c.unsafe++
-		t := c.check(syntax.NodeID(node.Lhs), want)
+		t := c.check(node.AsUnsafe().Body().ID(), want)
 		c.unsafe--
 		return t
 	case syntax.AllocatorExpr:
@@ -166,13 +166,13 @@ func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
 		return c.synthMove(n)
 	case syntax.Spread:
 		c.errAt(n, cSpreadNonVariadic, "this call")
-		c.synth(syntax.NodeID(node.Lhs))
+		c.synth(node.AsSpread().Value().ID())
 		return TyPoison
 	case syntax.TypeFn, syntax.TypePtr:
 		c.errAt(n, cTypeExprAsValue)
 		return TyPoison
 	}
-	c.errAt(n, cNotSupportedYet, node.Kind.String())
+	c.errAt(n, cNotSupportedYet, node.Kind().String())
 	return TyPoison
 }
 

@@ -31,13 +31,13 @@ type headRef struct {
 }
 
 func (c *checker) resolveHead(n syntax.NodeID) headRef {
-	node := c.t.Nodes[n]
-	switch node.Kind {
+	node := c.t.View(n)
+	switch node.Kind() {
 	case syntax.Ident:
 		return c.identHead(n)
 	case syntax.MemberExpr:
-		base := c.resolveHead(syntax.NodeID(node.Lhs))
-		name := c.t.TokText(node.Tok)
+		base := c.resolveHead(node.AsMember().Base().ID())
+		name := node.AsMember().Member().Text()
 		switch base.kind {
 		case headPkg:
 			return c.packageMember(n, base.pkg, name)
@@ -50,7 +50,7 @@ func (c *checker) resolveHead(n syntax.NodeID) headRef {
 		}
 		return headRef{kind: headValue}
 	case syntax.BracketExpr:
-		base := c.resolveHead(syntax.NodeID(node.Lhs))
+		base := c.resolveHead(node.AsBracket().Base().ID())
 		generic := base.kind == headType && len(c.r.typeDecl(base.ent).Params) > 0 ||
 			base.kind == headFn && len(c.ownGenerics(base.ent)) > 0 ||
 			base.kind == headSet && c.setHasGeneric(base.set)
@@ -62,7 +62,7 @@ func (c *checker) resolveHead(n syntax.NodeID) headRef {
 			case headFn:
 				params = c.ownGenerics(base.ent)
 			}
-			for i, a := range c.t.Children(syntax.NodeID(node.Rhs)) {
+			for i, a := range node.AsBracket().Args().EnumerateIDs() {
 				base.args = append(base.args, c.r.resolveExprGenericArg(c.f, c.scope, a, entAt(params, i)))
 			}
 			c.info.Uses[n] = base.ent
@@ -83,7 +83,7 @@ func (c *checker) setHasGeneric(set OverloadSetID) bool {
 }
 
 func (c *checker) identHead(n syntax.NodeID) headRef {
-	name := c.t.TokText(c.t.Nodes[n].Tok)
+	name := c.t.View(n).Tok().Text()
 	b, found, ok := c.r.lookup(c.scope, name)
 	if !ok {
 		if variants := c.r.variantNames[c.pkg][name]; len(variants) == 1 {

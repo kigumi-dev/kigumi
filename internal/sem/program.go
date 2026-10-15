@@ -53,7 +53,7 @@ func (r *Result) tree(f FileID) *syntax.Tree { return r.Files[f].Tree }
 
 func (r *Result) topDecls(f FileID) []syntax.NodeID {
 	t := r.tree(f)
-	return t.Children(t.Root)
+	return t.List(t.Root).AppendIDs(nil)
 }
 
 func isStatementKind(k syntax.NodeKind) bool {

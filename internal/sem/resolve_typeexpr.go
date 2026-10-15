@@ -29,23 +29,24 @@ func (r *Result) resolveType(f FileID, scope ScopeID, n syntax.NodeID, pos typeP
 		return TyPoison
 	}
 	t := r.tree(f)
-	node := t.Nodes[n]
+	node := t.View(n)
 	var out TypeID
-	switch node.Kind {
+	switch node.Kind() {
 	case syntax.TypePath:
 		out = r.resolveTypePath(f, scope, n, pos)
 	case syntax.TypeOptional:
-		out = r.Types.Option(r.resolveType(f, scope, syntax.NodeID(node.Lhs), posTypeArg))
+		out = r.Types.Option(r.resolveType(f, scope, node.AsTypeOptional().Inner().ID(), posTypeArg))
 	case syntax.TypeResult:
-		out = r.Types.Result(r.resolveType(f, scope, syntax.NodeID(node.Lhs), posTypeArg), r.Types.errorType())
+		out = r.Types.Result(r.resolveType(f, scope, node.AsTypeResult().Inner().ID(), posTypeArg), r.Types.errorType())
 	case syntax.TypeFn:
 		out = r.resolveFnType(f, scope, n)
 	case syntax.TypePtr:
-		out = r.Types.Ptr(r.resolveType(f, scope, syntax.NodeID(node.Rhs), posTypeArg), node.Lhs&syntax.FlagMut != 0)
+		ptr := node.AsTypePtr()
+		out = r.Types.Ptr(r.resolveType(f, scope, ptr.Pointee().ID(), posTypeArg), ptr.Flags()&syntax.FlagMut != 0)
 	case syntax.TypeRef:
-		out = r.resolveRefType(f, scope, n, node, pos)
+		out = r.resolveRefType(f, scope, n, node.AsTypeRef(), pos)
 	case syntax.Paren:
-		out = r.resolveType(f, scope, syntax.NodeID(node.Lhs), pos)
+		out = r.resolveType(f, scope, node.AsParen().Inner().ID(), pos)
 	case syntax.TypeTuple:
 		out = r.resolveTupleType(f, scope, n, pos)
 	default:
@@ -60,7 +61,7 @@ func (r *Result) resolveFnType(f FileID, scope ScopeID, n syntax.NodeID) TypeID 
 	t := r.tree(f)
 	s := fnType(t, n)
 	var params []TypeID
-	for _, p := range t.Children(s.Params) {
+	for p := range t.List(s.Params).IDs() {
 		params = append(params, r.resolveType(f, scope, p, posParam))
 	}
 	ret := r.resolveType(f, scope, s.Ret, posReturn)
@@ -98,7 +99,7 @@ func (r *Result) resolveCFnType(f FileID, n syntax.NodeID, s fnTypeSlots, params
 	case Effects(s.Mods) != 0:
 		r.errAt(f, n, cCFnTypeMods, effectsText(Effects(s.Mods)))
 	}
-	for i, p := range t.Children(s.Params) {
+	for i, p := range t.List(s.Params).EnumerateIDs() {
 		if !r.abiSafe(params[i]) {
 			r.errAt(f, p, r.abiCode(params[i], cAbiType), r.TypeString(params[i]))
 		}

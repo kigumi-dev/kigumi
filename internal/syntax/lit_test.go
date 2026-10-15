@@ -37,7 +37,7 @@ func TestDecode(t *testing.T) {
 func TestStringParts(t *testing.T) {
 	src := `let s = "a ${b} c ${d.e()}"`
 	tree := syntax.Parse(token.NewFile("x", []byte(src)))
-	lit := syntax.NodeID(tree.Slot(tree.Children(tree.Root)[0], "init"))
+	lit := tree.List(tree.Root).At(0).AsLet().Init().ID()
 	parts := tree.StringParts(lit)
 	var got []string
 	for _, p := range parts {

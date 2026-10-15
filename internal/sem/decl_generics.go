@@ -10,9 +10,10 @@ func (r *Result) declareGenerics(f FileID, owner EntityID, list syntax.NodeID, s
 	}
 	t := r.tree(f)
 	var params []EntityID
-	for i, g := range t.Children(list) {
-		name := t.TokText(t.Nodes[g].Tok)
-		id := r.newEntity(Entity{Kind: EntTypeParam, Name: name, Pkg: r.packageOf(f), File: f, Node: g, Tok: t.Nodes[g].Tok, Parent: owner, Vis: Visibility{Level: VisPub}})
+	for i, g := range t.List(list).EnumerateIDs() {
+		gp := t.View(g).AsGenericParam()
+		name := gp.Name().Text()
+		id := r.newEntity(Entity{Kind: EntTypeParam, Name: name, Pkg: r.packageOf(f), File: f, Node: g, Tok: gp.Name().Index(), Parent: owner, Vis: Visibility{Level: VisPub}})
 		r.Entities[id].Detail = r.addTypeParam(TypeParamInfo{Index: i})
 		r.Entities[id].Type = r.Types.Param(id)
 		r.Files[f].Defs[g] = id
@@ -25,8 +26,8 @@ func (r *Result) declareGenerics(f FileID, owner EntityID, list syntax.NodeID, s
 		if _, dup := r.define(scope, name, Binding{Ent: id}); dup {
 			r.errAt(f, g, cGenericDuplicate, name)
 		}
-		if t.Nodes[g].Lhs&syntax.FlagConst != 0 {
-			ct := r.resolveType(f, scope, syntax.NodeID(t.Nodes[g].Rhs), posConst)
+		if gp.Flags()&syntax.FlagConst != 0 {
+			ct := r.resolveType(f, scope, gp.Bound().ID(), posConst)
 			if ct != TyPoison && !r.allowedConstType(ct) {
 				r.errAt(f, g, r.abiCode(ct, cConstParamType), r.TypeString(ct))
 				ct = TyPoison
@@ -34,7 +35,7 @@ func (r *Result) declareGenerics(f FileID, owner EntityID, list syntax.NodeID, s
 			info := r.typeParam(id)
 			info.IsConst, info.ConstType = true, ct
 		}
-		if t.Nodes[g].Lhs&syntax.FlagLifetime != 0 {
+		if gp.Flags()&syntax.FlagLifetime != 0 {
 			r.typeParam(id).IsLifetime = true
 		}
 		params = append(params, id)
@@ -47,16 +48,16 @@ func (r *Result) resolveConstraints(f FileID, scope ScopeID, list syntax.NodeID,
 		return
 	}
 	t := r.tree(f)
-	for i, g := range t.Children(list) {
+	for i, g := range t.List(list).EnumerateIDs() {
 		if i >= len(params) || r.typeParam(params[i]).IsConst {
 			continue
 		}
-		bounds := syntax.NodeID(t.Nodes[g].Rhs)
+		bounds := t.View(g).AsGenericParam().Bound().ID()
 		if bounds == 0 {
 			continue
 		}
 		info := r.typeParam(params[i])
-		for _, b := range t.Children(bounds) {
+		for b := range t.List(bounds).IDs() {
 			if c, ok := r.resolveConstraint(f, scope, b); ok {
 				info.Constraints = append(info.Constraints, c)
 			}
@@ -70,8 +71,8 @@ func (r *Result) resolveConstraint(f FileID, scope ScopeID, n syntax.NodeID) (Co
 		r.errAt(f, n, cConstraintNotIface, "this")
 		return Constraint{}, false
 	}
-	node := t.Nodes[n]
-	ent := r.resolveTypeName(f, scope, syntax.NodeID(node.Lhs))
+	tp := t.View(n).AsTypePath()
+	ent := r.resolveTypeName(f, scope, tp.Path().ID())
 	if ent == 0 {
 		return Constraint{}, false
 	}
@@ -93,12 +94,12 @@ func (r *Result) resolveConstraint(f FileID, scope ScopeID, n syntax.NodeID) (Co
 		case "Sync":
 			return Constraint{Kind: CSync, Node: n}, true
 		}
-		args := t.Children(syntax.NodeID(node.Rhs))
-		if len(args) != 1 || t.Kind(args[0]) != syntax.TypeFn {
+		args := tp.Args()
+		if args.Len() != 1 || args.At(0).Kind() != syntax.TypeFn {
 			r.errAt(f, n, cConstraintNotIface, e.Name)
 			return Constraint{}, false
 		}
-		sig := r.resolveType(f, scope, args[0], posTypeArg)
+		sig := r.resolveType(f, scope, args.ItemID(0), posTypeArg)
 		kind := map[string]ConstraintKind{"Fn": CFn, "FnMut": CFnMut, "FnOnce": CFnOnce}[e.Name]
 		return Constraint{Kind: kind, Type: sig, Node: n}, true
 	}

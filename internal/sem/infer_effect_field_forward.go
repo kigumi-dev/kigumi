@@ -60,19 +60,21 @@ func (r *Result) scanFieldForwarding(fn EntityID, file FileID, info *FnInfo) []f
 		if t.Kind(n) == syntax.CallExpr || t.Kind(n) == syntax.WsCallExpr {
 			r.scanFieldCall(fn, info, t, n, scope, &edges)
 		}
-		t.EachChild(n, walk)
+		for ch := range t.View(n).Children() {
+			walk(ch.ID())
+		}
 	}
 	walk(info.Body)
 	return edges
 }
 
 func (r *Result) scanFieldCall(fn EntityID, info *FnInfo, t *syntax.Tree, call syntax.NodeID, scope ScopeID, edges *[]fieldForwardEdge) {
-	node := t.Nodes[call]
-	callee := syntax.NodeID(node.Lhs)
+	cv := t.View(call).AsCallLike()
+	callee := cv.Callee().ID()
 	if t.Kind(callee) == syntax.MemberExpr {
-		mnode := t.Nodes[callee]
-		if p := r.paramIdent(info, t, syntax.NodeID(mnode.Lhs)); p != 0 {
-			if fld := r.effectPolyFieldOn(r.Entities[p].Type, t.TokText(mnode.Tok)); fld != 0 {
+		mnode := t.View(callee).AsMember()
+		if p := r.paramIdent(info, t, mnode.Base().ID()); p != 0 {
+			if fld := r.effectPolyFieldOn(r.Entities[p].Type, mnode.Member().Text()); fld != 0 {
 				r.addCalledFieldParam(fn, p, fld)
 			}
 		}
@@ -81,8 +83,8 @@ func (r *Result) scanFieldCall(fn EntityID, info *FnInfo, t *syntax.Tree, call s
 	if t.Kind(callee) != syntax.Ident {
 		return
 	}
-	args := t.Children(syntax.NodeID(node.Rhs))
-	for _, g := range r.candidateFnBindings(scope, t.TokText(t.Nodes[callee].Tok)) {
+	args := cv.Args().AppendIDs(nil)
+	for _, g := range r.candidateFnBindings(scope, t.View(callee).Tok().Text()) {
 		gParams := r.Fn(g).Params
 		if r.callArgsDefinitelyMismatch(info, t, args, gParams) {
 			continue
@@ -105,7 +107,7 @@ func (r *Result) paramIdent(info *FnInfo, t *syntax.Tree, n syntax.NodeID) Entit
 	if t.Kind(n) != syntax.Ident {
 		return 0
 	}
-	name := t.TokText(t.Nodes[n].Tok)
+	name := t.View(n).Tok().Text()
 	for _, p := range info.Params {
 		if r.Entities[p].Name == name {
 			if r.Entities[p].Flags&EfMut != 0 {

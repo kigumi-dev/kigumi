@@ -1,7 +1,5 @@
 package sem
 
-import "kigumi/internal/syntax"
-
 const (
 	aliasUnknown uint8 = iota
 	aliasComputing
@@ -28,7 +26,7 @@ func (r *Result) aliasType(id EntityID) TypeID {
 	r.aliasState[id] = aliasComputing
 	t := r.tree(e.File)
 	body := typeDecl(t, e.Node).Body
-	target := syntax.NodeID(t.Nodes[body].Lhs)
+	target := t.View(body).AsAliasBody().Type().ID()
 	typ := r.resolveType(e.File, r.declScope(id), target, posAlias)
 	if r.aliasState[id] == aliasComputing {
 		r.aliasState[id] = aliasDone

@@ -35,7 +35,7 @@ func buildIndex(mod *driver.Module, current string) importIndex {
 		q := path[strings.LastIndex(path, "/")+1:]
 		ix.qualifiers[q] = append(ix.qualifiers[q], path)
 		for _, t := range pkg.Files {
-			for _, d := range t.Children(t.Root) {
+			for d := range t.List(t.Root).IDs() {
 				name, kind, tok, ok := declSymbol(t, d)
 				if !ok || strings.Contains(name, ".") || !exported(t, d, pkg.Module == "" && !pkg.Std) {
 					continue
@@ -70,11 +70,11 @@ func isEntryPackage(p *driver.Package) bool {
 // exported accepts `pub` declarations, and `pub(module)` ones when the
 // importing file is in the same module.
 func exported(t *syntax.Tree, d syntax.NodeID, sameModule bool) bool {
-	vis := syntax.NodeID(slotTok(t, d, "vis"))
-	if vis == 0 {
+	vis := t.View(d).AsDecl().Vis()
+	if !vis.Valid() {
 		return false
 	}
-	kind, _ := t.VisKind(vis)
+	kind, _ := t.VisKind(vis.ID())
 	return kind == "pub" || (kind == "module" && sameModule)
 }
 
@@ -92,23 +92,23 @@ func completionKind(k protocol.SymbolKind) protocol.CompletionItemKind {
 
 func importEdit(t *syntax.Tree, path, name string) protocol.TextEdit {
 	var lastImport syntax.NodeID
-	for _, d := range t.Children(t.Root) {
-		if t.Kind(d) != syntax.ImportDecl {
+	for dv := range t.List(t.Root).Views() {
+		if dv.Kind() != syntax.ImportDecl {
 			continue
 		}
-		lastImport = d
-		s := t.Slots(d)
-		if name != "" && importPathText(t, syntax.NodeID(s[2])) == path && t.Kind(syntax.NodeID(s[1])) == syntax.List {
+		d := dv.AsImportDecl()
+		lastImport = d.ID()
+		if binding := d.Binding(); name != "" && d.Path().Join("/") == path && binding.Kind() == syntax.List {
 			items := []importItem{{key: name, text: name}}
-			for _, nm := range t.Children(syntax.NodeID(s[1])) {
-				items = append(items, importItem{key: t.TokText(t.Nodes[nm].Tok), text: importItemText(t, nm)})
+			for nm := range binding.AsList().Views() {
+				items = append(items, importItem{key: nm.Tok().Text(), text: importItemText(nm)})
 			}
 			sort.Slice(items, func(i, j int) bool { return items[i].key < items[j].key })
 			names := make([]string, len(items))
 			for i, it := range items {
 				names[i] = it.text
 			}
-			sp := t.Span(syntax.NodeID(s[1]))
+			sp := binding.Span()
 			sp.End++ // the closing brace is not a node
 			return protocol.TextEdit{Range: spanRange(t.File, sp), NewText: "{" + strings.Join(names, ", ") + "}"}
 		}
@@ -118,11 +118,11 @@ func importEdit(t *syntax.Tree, path, name string) protocol.TextEdit {
 		line = "import {" + name + "} from " + path + "\n"
 	}
 	var at token.Pos
-	switch stmts := t.Children(t.Root); {
+	switch stmts := t.List(t.Root); {
 	case lastImport != 0:
 		at = token.Pos(lineEndOf(t.File.Src, int(t.Span(lastImport).End)))
-	case len(stmts) > 0:
-		at = token.Pos(lineStartOf(t.File.Src, int(t.Span(stmts[0]).Start)))
+	case stmts.Len() > 0:
+		at = token.Pos(lineStartOf(t.File.Src, int(stmts.At(0).Span().Start)))
 		line += "\n"
 	default:
 		at = token.Pos(len(t.File.Src))
@@ -134,20 +134,12 @@ func importEdit(t *syntax.Tree, path, name string) protocol.TextEdit {
 // key and text differ only for a renamed import (`orig as alias`).
 type importItem struct{ key, text string }
 
-func importItemText(t *syntax.Tree, nm syntax.NodeID) string {
-	n := t.Nodes[nm]
-	if t.Kind(nm) != syntax.ImportAlias {
-		return t.TokText(n.Tok)
+func importItemText(nm syntax.View) string {
+	if nm.Kind() != syntax.ImportAlias {
+		return nm.Tok().Text()
 	}
-	return t.TokText(t.Nodes[n.Lhs].Tok) + " as " + t.TokText(n.Tok)
-}
-
-func importPathText(t *syntax.Tree, path syntax.NodeID) string {
-	var segs []string
-	for _, tk := range t.PathToks(path) {
-		segs = append(segs, t.TokText(tk))
-	}
-	return strings.Join(segs, "/")
+	a := nm.AsImportAlias()
+	return a.Name().Name().Text() + " as " + a.Alias().Name().Text()
 }
 
 func lineEndOf(src []byte, pos int) int {
@@ -168,18 +160,18 @@ func lineStartOf(src []byte, pos int) int {
 // imports, so completion does not offer to import them again.
 func boundNames(t *syntax.Tree) map[string]bool {
 	out := map[string]bool{}
-	for _, d := range t.Children(t.Root) {
-		if t.Kind(d) != syntax.ImportDecl {
+	for dv := range t.List(t.Root).Views() {
+		if dv.Kind() != syntax.ImportDecl {
 			continue
 		}
-		b := syntax.NodeID(t.Slots(d)[1])
-		if t.Kind(b) == syntax.List {
-			for _, nm := range t.Children(b) {
-				out[t.TokText(t.Nodes[nm].Tok)] = true
+		b := dv.AsImportDecl().Binding()
+		if b.Kind() == syntax.List {
+			for nm := range b.AsList().Views() {
+				out[nm.Tok().Text()] = true
 			}
 			continue
 		}
-		out[t.TokText(t.Nodes[b].Tok)] = true
+		out[b.Tok().Text()] = true
 	}
 	return out
 }

@@ -84,11 +84,11 @@ func (c *checker) recordLitFieldFact(lit syntax.NodeID, field EntityID) (NarrowF
 	if !ok || call.Kind != CallRecord {
 		return NarrowFact{}, false
 	}
-	for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[lit].Rhs)) {
+	for entry := range c.t.View(lit).AsRecordLit().Fields().IDs() {
 		if c.t.Kind(entry) == syntax.Spread || c.info.Uses[entry] != field {
 			continue
 		}
-		return c.effectFact(syntax.NodeID(c.t.Nodes[entry].Lhs))
+		return c.effectFact(c.t.View(entry).AsFieldInit().Value().ID())
 	}
 	return NarrowFact{}, false
 }

@@ -4,8 +4,8 @@ import "kigumi/internal/syntax"
 
 func (c *checker) synthArgs(args []syntax.NodeID) {
 	for _, a := range args {
-		if c.t.Kind(a) == syntax.Spread || c.t.Kind(a) == syntax.NamedArg {
-			c.synth(syntax.NodeID(c.t.Nodes[a].Lhs))
+		if k := c.t.Kind(a); k == syntax.Spread || k == syntax.NamedArg {
+			c.synth(c.t.View(a).ArgValue().ID())
 			continue
 		}
 		c.synth(a)
@@ -130,10 +130,10 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			if c.t.Kind(a) == syntax.Spread {
 				if !variadic {
 					c.errAt(a, cSpreadNonVariadic, name)
-					c.synth(syntax.NodeID(c.t.Nodes[a].Lhs))
+					c.synth(c.t.View(a).AsSpread().Value().ID())
 					continue
 				}
-				inner := syntax.NodeID(c.t.Nodes[a].Lhs)
+				inner := c.t.View(a).AsSpread().Value().ID()
 				c.checkArg(inner, params[fixed], entAt(declParams, fixed), async)
 				c.crossArg(inner, entAt(declParams, fixed))
 				continue

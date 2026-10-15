@@ -4,37 +4,36 @@ import "kigumi/internal/syntax"
 
 func (p *printer) unsafeGuarantee(id syntax.NodeID) {
 	p.write("@unsafeGuarantee(")
-	for i, rule := range p.t.Children(id) {
+	for i, rule := range p.t.List(id).Enumerate() {
 		if i > 0 {
 			p.write(", ")
 		}
-		p.ugRule(rule)
+		p.ugRule(rule.AsUGRule())
 	}
 	p.write(")")
 }
 
-func (p *printer) ugRule(id syntax.NodeID) {
-	n := p.node(id)
-	p.write(p.tok(n.Tok))
-	if n.Lhs == 0 {
+func (p *printer) ugRule(r syntax.UGRuleView) {
+	p.write(r.Property().Text())
+	reqs := r.Requirements()
+	if !reqs.Valid() {
 		return
 	}
 	p.write(" when ")
-	for i, req := range p.t.Children(syntax.NodeID(n.Lhs)) {
+	for i, req := range reqs.Enumerate() {
 		if i > 0 {
 			p.write(" && ")
 		}
-		p.ugRequirement(req)
+		p.ugRequirement(req.AsUGRequirement())
 	}
 }
 
-func (p *printer) ugRequirement(id syntax.NodeID) {
-	n := p.node(id)
-	p.write(p.tok(n.Tok) + ": ")
-	for i, prop := range p.t.Children(syntax.NodeID(n.Lhs)) {
+func (p *printer) ugRequirement(r syntax.UGRequirementView) {
+	p.write(r.Param().Text() + ": ")
+	for i, prop := range r.Properties().Enumerate() {
 		if i > 0 {
 			p.write(" + ")
 		}
-		p.write(p.tok(p.node(prop).Tok))
+		p.write(prop.Tok().Text())
 	}
 }

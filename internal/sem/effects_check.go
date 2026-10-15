@@ -188,7 +188,7 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 func (r *Result) exprName(f FileID, n syntax.NodeID) string {
 	t := r.tree(f)
 	for t.Kind(n) == syntax.CallExpr || t.Kind(n) == syntax.WsCallExpr {
-		n = syntax.NodeID(t.Nodes[n].Lhs)
+		n = t.View(n).AsCallLike().Callee().ID()
 	}
 	sp := t.Span(n)
 	src := t.File.Src

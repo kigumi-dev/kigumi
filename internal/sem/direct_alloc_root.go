@@ -4,7 +4,7 @@ import "kigumi/internal/syntax"
 
 // crossOwnedRoot claims the box a slot copy still costs a root this body owns: the store writes through its field, so the root keeps the boxed form.
 func (c *checker) crossOwnedRoot(lhs syntax.NodeID) {
-	if c.t.Kind(syntax.NodeID(c.t.Nodes[lhs].Lhs)) == syntax.Ident {
+	if c.t.View(lhs).Base().Kind() == syntax.Ident {
 		return
 	}
 	ent := c.rootOf(lhs)

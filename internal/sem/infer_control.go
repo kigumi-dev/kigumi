@@ -5,18 +5,18 @@ import "kigumi/internal/syntax"
 func (c *checker) synthBlock(n syntax.NodeID, want TypeID) TypeID {
 	saved := c.scope
 	c.pushScope(ScopeBlock, n)
-	stmts := c.t.Children(n)
+	stmts := c.t.List(n)
 	result := TyUnit
 	dead := false
 	tailValue := false
-	for i, s := range stmts {
-		last := i == len(stmts)-1
+	for i, s := range stmts.EnumerateIDs() {
+		last := i == stmts.Len()-1
 		if dead {
 			c.r.errAt(c.f, s, cUnreachableCode)
 			dead = false
 		}
-		if last && c.t.Kind(s) == syntax.ExprStmt && want != TyUnit && !c.unitTail(syntax.NodeID(c.t.Nodes[s].Lhs)) {
-			e := syntax.NodeID(c.t.Nodes[s].Lhs)
+		if last && c.t.Kind(s) == syntax.ExprStmt && want != TyUnit && !c.unitTail(c.t.View(s).AsExprStmt().Expr().ID()) {
+			e := c.t.View(s).AsExprStmt().Expr().ID()
 			if want == 0 && c.stmtPos == n {
 				c.stmtPos = e
 			}

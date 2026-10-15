@@ -5,7 +5,7 @@ import (
 )
 
 func (c *checker) synthIdent(n syntax.NodeID) TypeID {
-	name := c.t.TokText(c.t.Nodes[n].Tok)
+	name := c.t.View(n).Tok().Text()
 	if name == "_" {
 		c.errAt(n, cUnderscoreValue)
 		return TyPoison

@@ -3,30 +3,31 @@ package printer
 import "kigumi/internal/syntax"
 
 func (p *printer) fnType(id syntax.NodeID) {
-	s := p.t.Slots(id)
-	if s[3]&syntax.FlagEscaping != 0 {
+	f := p.t.View(id).AsTypeFn()
+	flags := f.Flags()
+	if flags&syntax.FlagEscaping != 0 {
 		p.write("escaping ")
 	}
-	if s[1] != 0 {
-		p.write("extern(" + p.tok(s[1]) + ") ")
+	if abi := f.Abi(); abi.Valid() {
+		p.write("extern(" + abi.Text() + ") ")
 	}
-	if s[0] != 0 {
-		p.write(modsText(s[0]) + " ")
+	if mods := f.Mods(); mods != 0 {
+		p.write(modsText(mods) + " ")
 	}
 	p.write("fn(")
-	params := p.t.Children(syntax.NodeID(s[2]))
-	for i, a := range params {
+	params := f.Params()
+	for i, a := range params.Enumerate() {
 		if i > 0 {
 			p.write(", ")
 		}
-		p.typ(a)
+		p.typ(a.ID())
 	}
-	if s[3]&syntax.FlagVariadic != 0 {
-		if len(params) > 0 {
+	if flags&syntax.FlagVariadic != 0 {
+		if params.Len() > 0 {
 			p.write(", ")
 		}
 		p.write("...")
 	}
 	p.write(") -> ")
-	p.typ(syntax.NodeID(s[4]))
+	p.typ(f.Ret().ID())
 }

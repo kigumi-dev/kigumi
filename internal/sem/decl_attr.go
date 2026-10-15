@@ -20,11 +20,11 @@ func (r *Result) declareNominalAttrs() {
 		default:
 			continue
 		}
-		for _, a := range t.Children(attrs) {
+		for a := range t.List(attrs).IDs() {
 			if t.Kind(a) == syntax.UnsafeGuarantee {
 				continue
 			}
-			switch name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), "."); {
+			switch name := t.View(a).AsAttr().Path().Join("."); {
 			case e.Kind == EntType && name == "schema":
 				r.schemaAttr(EntityID(id), e.File, a)
 			case e.Kind == EntInterface && name == "derivable":
@@ -65,7 +65,7 @@ func (r *Result) declareAttrs() {
 				r.rejectGuarantee(e.File, s.Attrs)
 				r.resolveLinkSection(e.File, s.Attrs, false, false)
 				if s.Params != 0 {
-					for _, p := range t.Children(s.Params) {
+					for p := range t.List(s.Params).IDs() {
 						r.rejectGuarantee(e.File, param(t, p).Attrs)
 					}
 				}
@@ -107,11 +107,12 @@ func (r *Result) implAttrs(id EntityID, list syntax.NodeID) {
 	f := e.File
 	t := r.tree(f)
 	scope := r.declScope(id)
-	for _, a := range t.Children(list) {
+	for a := range t.List(list).IDs() {
 		if t.Kind(a) == syntax.UnsafeGuarantee {
 			continue
 		}
-		name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), ".")
+		attr := t.View(a).AsAttr()
+		name := attr.Path().Join(".")
 		if name == "linkName" || name == "section" {
 			continue
 		}
@@ -129,7 +130,7 @@ func (r *Result) implAttrs(id EntityID, list syntax.NodeID) {
 		}
 		if name != "impl" {
 			// Dotted metadata is collected by metaAttrs.
-			if len(t.PathToks(syntax.NodeID(t.Nodes[a].Lhs))) == 1 {
+			if attr.Path().Len() == 1 {
 				r.errAt(f, a, cAttrUnknown, name)
 			}
 			continue
@@ -138,7 +139,7 @@ func (r *Result) implAttrs(id EntityID, list syntax.NodeID) {
 			r.errAt(f, a, cImplOnAlias)
 			continue
 		}
-		for _, arg := range t.Children(syntax.NodeID(t.Nodes[a].Rhs)) {
+		for arg := range attr.Args().IDs() {
 			if ty, ok := r.implTarget(f, scope, arg); ok {
 				r.typeDecl(id).Impls = append(r.typeDecl(id).Impls, ImplAssert{Iface: ty, Node: arg})
 			}

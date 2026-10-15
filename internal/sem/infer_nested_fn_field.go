@@ -52,15 +52,15 @@ func (r *Result) fnChainEnt(file FileID, expr syntax.NodeID) EntityID {
 		if field == 0 || r.Entities[field].Kind != EntField {
 			return 0
 		}
-		base := r.fnChainEnt(file, syntax.NodeID(t.Nodes[expr].Lhs))
+		base := r.fnChainEnt(file, t.View(expr).AsMember().Base().ID())
 		if base == 0 {
 			return 0
 		}
 		return r.nestedFnOwner(fieldFnKey{Ent: base, Field: field})
 	case syntax.BorrowExpr:
-		return r.fnChainEnt(file, syntax.NodeID(t.Nodes[expr].Rhs))
+		return r.fnChainEnt(file, t.View(expr).AsBorrow().Operand().ID())
 	case syntax.Paren:
-		return r.fnChainEnt(file, syntax.NodeID(t.Nodes[expr].Lhs))
+		return r.fnChainEnt(file, t.View(expr).AsParen().Inner().ID())
 	case syntax.CallExpr:
 		return r.resultEnts[literalEntKey{File: file, Node: expr}]
 	}

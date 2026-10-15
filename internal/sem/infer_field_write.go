@@ -148,7 +148,7 @@ func (c *checker) poisonFieldKey(key fieldFnKey) {
 func (c *checker) reassignRecordFields(root EntityID, lit syntax.NodeID) {
 	set := map[EntityID]bool{}
 	spread := false
-	for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[lit].Rhs)) {
+	for entry := range c.t.View(lit).AsRecordLit().Fields().IDs() {
 		if c.t.Kind(entry) == syntax.Spread {
 			spread = true
 			continue
@@ -158,7 +158,7 @@ func (c *checker) reassignRecordFields(root EntityID, lit syntax.NodeID) {
 			continue
 		}
 		set[field] = true
-		c.recordFieldWrite(root, field, syntax.NodeID(c.t.Nodes[entry].Lhs))
+		c.recordFieldWrite(root, field, c.t.View(entry).AsFieldInit().Value().ID())
 	}
 	if !spread {
 		return

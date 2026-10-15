@@ -4,8 +4,8 @@ import "kigumi/internal/syntax"
 
 func (r *Result) resolveTypePath(f FileID, scope ScopeID, n syntax.NodeID, pos typePos) TypeID {
 	t := r.tree(f)
-	node := t.Nodes[n]
-	path := syntax.NodeID(node.Lhs)
+	tp := t.View(n).AsTypePath()
+	path := tp.Path().ID()
 	ent := r.resolveTypeName(f, scope, path)
 	if ent == 0 {
 		return TyPoison
@@ -13,9 +13,9 @@ func (r *Result) resolveTypePath(f FileID, scope ScopeID, n syntax.NodeID, pos t
 	r.Files[f].Uses[path] = ent
 	r.Files[f].Uses[n] = ent
 	var args []TypeID
-	if node.Rhs != 0 {
+	if tp.Args().Valid() {
 		params := r.genericParamsOf(ent)
-		for i, a := range t.Children(syntax.NodeID(node.Rhs)) {
+		for i, a := range tp.Args().EnumerateIDs() {
 			args = append(args, r.resolveGenericArg(f, scope, a, entAt(params, i)))
 		}
 	}

@@ -121,18 +121,17 @@ func checkTypeAnnotation(t *testing.T, res *sem.Result, tree *syntax.Tree, a ann
 	}
 	name, want = strings.TrimSpace(name), strings.TrimSpace(want)
 	found := false
-	for id := 1; id < len(tree.Nodes); id++ {
-		n := tree.Nodes[id]
-		switch n.Kind {
+	for n := range tree.All() {
+		switch n.Kind() {
 		case syntax.Ident, syntax.PatBind, syntax.Param:
 		default:
 			continue
 		}
-		if tree.TokText(n.Tok) != name || tree.File.Line(tree.Toks[n.Tok].Start) != a.line {
+		if n.Tok().Text() != name || tree.File.Line(n.Tok().Token().Start) != a.line {
 			continue
 		}
 		found = true
-		if got := res.TypeString(res.TypeOf(tree, syntax.NodeID(id))); got != want {
+		if got := res.TypeString(res.TypeOf(tree, n.ID())); got != want {
 			t.Errorf("%s:%d: `%s` has type %s, want %s", a.file, a.line, name, got, want)
 		}
 	}

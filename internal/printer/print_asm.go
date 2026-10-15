@@ -4,16 +4,17 @@ import "kigumi/internal/syntax"
 
 // asmBlock prints `asm { ... }` one entry per line in source order.
 func (p *printer) asmBlock(id syntax.NodeID) {
-	lines := p.t.Children(syntax.NodeID(p.t.Nodes[id].Lhs))
-	if len(lines) == 0 {
+	lines := p.t.View(id).AsAsm().Lines()
+	if lines.Len() == 0 {
 		p.write("asm {}")
 		return
 	}
 	p.write("asm {")
 	p.newline()
 	p.indent++
-	for i, l := range lines {
-		if i > 0 && p.blankBefore(int(p.firstTok(l))) {
+	for c := lines.Cursor(); c.Next(); {
+		l := c.ID()
+		if c.Index() > 0 && p.blankBefore(int(p.firstTok(l))) {
 			p.blank()
 		}
 		p.flushComments(p.firstTok(l))
@@ -25,36 +26,44 @@ func (p *printer) asmBlock(id syntax.NodeID) {
 }
 
 func (p *printer) asmLine(l syntax.NodeID) {
-	n := p.t.Nodes[l]
-	switch n.Kind {
+	v := p.t.View(l)
+	switch v.Kind() {
 	case syntax.AsmTemplate:
-		p.expr(syntax.NodeID(n.Lhs))
+		p.expr(v.AsAsmTemplate().Text().ID())
 	case syntax.AsmOperand:
-		s := p.t.Slots(l)
-		if s[0] != 0 {
-			p.write(p.tok(s[0]) + ": ")
+		o := v.AsAsmOperand()
+		if label := o.Label(); label.Valid() {
+			p.write(label.Text() + ": ")
 		}
-		p.write(p.tok(s[1]))
-		if s[2] != 0 {
-			p.write("(" + p.tok(s[2]) + ")")
+		p.write(o.Dir().Text())
+		if reg := o.Reg(); reg.Valid() {
+			p.write("(" + reg.Text() + ")")
 		}
-		if s[3] != 0 {
+		if expr := o.Expr(); expr.Valid() {
 			p.write(" ")
-			p.expr(syntax.NodeID(s[3]))
+			p.expr(expr.ID())
 		}
 	case syntax.AsmClobber, syntax.AsmOptions:
-		p.write(p.tok(n.Tok))
-		for i, it := range p.t.Children(syntax.NodeID(n.Lhs)) {
+		names := p.asmNames(v)
+		p.write(v.Tok().Text())
+		for i, it := range names.Enumerate() {
 			if i == 0 {
 				p.write(" ")
 			} else {
 				p.write(", ")
 			}
-			if p.t.Kind(it) == syntax.AsmAbi {
-				p.write("abi(" + p.tok(p.t.Nodes[it].Tok) + ")")
+			if it.Kind() == syntax.AsmAbi {
+				p.write("abi(" + it.Tok().Text() + ")")
 			} else {
-				p.write(p.tok(p.t.Nodes[it].Tok))
+				p.write(it.Tok().Text())
 			}
 		}
 	}
+}
+
+func (p *printer) asmNames(v syntax.View) syntax.ListView {
+	if v.Kind() == syntax.AsmClobber {
+		return v.AsAsmClobber().Names()
+	}
+	return v.AsAsmOptions().Names()
 }

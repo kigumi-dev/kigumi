@@ -32,7 +32,7 @@ func (t *Tree) dump(d *dumper, id NodeID, label string) {
 		d.sb.WriteString("-\n")
 		return
 	}
-	n := t.Nodes[id]
+	n := t.nodes[id]
 	d.sb.WriteString(n.Kind.String())
 	switch n.Kind {
 	case Ident, IntLit, FloatLit, CharLit, BoolLit, StringLit, ByteStringLit, MemberExpr,
@@ -78,7 +78,7 @@ func (t *Tree) dump(d *dumper, id NodeID, label string) {
 		}
 	case Path:
 		d.sb.WriteString(" ")
-		for i, tk := range t.PathToks(id) {
+		for i, tk := range t.extra[n.Lhs:n.Rhs] {
 			if i > 0 {
 				d.sb.WriteString(".")
 			}
@@ -87,15 +87,15 @@ func (t *Tree) dump(d *dumper, id NodeID, label string) {
 	case ShellText:
 		fmt.Fprintf(&d.sb, " %q", t.File.Src[n.Lhs:n.Rhs])
 	case ShellRedirect:
-		s := t.Slots(id)
-		fmt.Fprintf(&d.sb, " %s fd=%d", redirNames[s[0]], s[1])
+		r := t.View(id).AsShellRedirect()
+		fmt.Fprintf(&d.sb, " %s fd=%d", redirNames[r.Op()], r.Fd())
 	}
 	d.sb.WriteString("\n")
 	t.dumpChildren(d, id)
 }
 
 func (t *Tree) dumpChildren(d *dumper, id NodeID) {
-	n := t.Nodes[id]
+	n := t.nodes[id]
 	d.push()
 	defer d.pop()
 	child := func(c uint32) {
@@ -103,42 +103,45 @@ func (t *Tree) dumpChildren(d *dumper, id NodeID) {
 			t.dump(d, NodeID(c), "")
 		}
 	}
-	switch shapes[n.Kind] {
-	case sL:
+	switch kindTable[n.Kind].layout {
+	case layL:
 		child(n.Lhs)
-	case sLR:
+	case layLR:
 		child(n.Lhs)
 		child(n.Rhs)
-	case sFlagR, sTokR:
+	case layFlagR, layTokR:
 		child(n.Rhs)
-	case sList:
-		for _, c := range t.Children(id) {
-			t.dump(d, c, "")
+	case layList:
+		for _, c := range t.extra[n.Lhs:n.Rhs] {
+			t.dump(d, NodeID(c), "")
 		}
-	case sRec:
-		slots := t.Slots(id)
-		for i, name := range recFields[n.Kind] {
-			t.dumpSlot(d, n.Kind, name, slots[i])
+	case layRec:
+		for i, s := range kindSchemas[n.Kind].slots {
+			t.dumpSlot(d, n.Kind, s, t.extra[n.Lhs+uint32(i)])
 		}
 	}
 }
 
-func (t *Tree) dumpSlot(d *dumper, kind NodeKind, name string, v uint32) {
-	switch name[0] {
-	case '#':
+func (t *Tree) dumpSlot(d *dumper, kind NodeKind, s slot, v uint32) {
+	name := strings.ToLower(s.name[:1]) + s.name[1:]
+	if name == "dir" {
+		name = "kind"
+	}
+	switch s.role {
+	case roleInt:
 		if v == 0 || kind == ShellRedirect {
 			return
 		}
 		text := fmt.Sprint(v)
 		switch name {
-		case "#mods":
+		case "mods":
 			text = modsString(v)
-		case "#flags":
+		case "flags":
 			text = flagsString(v)
 		}
 		d.sb.Write(d.ind)
-		fmt.Fprintf(&d.sb, "%s: %s\n", name[1:], text)
-	case '@':
+		fmt.Fprintf(&d.sb, "%s: %s\n", name, text)
+	case roleTok:
 		if v == 0 {
 			return
 		}
@@ -147,7 +150,7 @@ func (t *Tree) dumpSlot(d *dumper, kind NodeKind, name string, v uint32) {
 			text = fmt.Sprintf("%q", text)
 		}
 		d.sb.Write(d.ind)
-		fmt.Fprintf(&d.sb, "%s: %s\n", name[1:], text)
+		fmt.Fprintf(&d.sb, "%s: %s\n", name, text)
 	default:
 		if v == 0 && kind != FnDecl {
 			return

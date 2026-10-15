@@ -7,7 +7,7 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 	v := head.ent
 	vi := c.r.variant(v)
 	name := c.r.Entities[v].Name
-	c.info.Uses[syntax.NodeID(c.t.Nodes[n].Lhs)] = v
+	c.info.Uses[c.t.View(n).AsCall().Callee().ID()] = v
 	if len(vi.Payload) == 0 {
 		c.errFix(n, c.replaceNode(n, "Write `"+name+"` without parentheses", name), cVariantNoPayload, name, name)
 		c.synthArgs(args)
@@ -45,9 +45,9 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 }
 
 func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[callee]
-	base := syntax.NodeID(node.Lhs)
-	name := c.t.TokText(node.Tok)
+	member := c.t.View(callee).AsMember()
+	base := member.Base().ID()
+	name := member.Member().Text()
 	recv := c.vars.resolve(c.synthPlace(base))
 	tt := c.r.Types
 	if recv == TyPoison {
@@ -96,7 +96,7 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 
 func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType TypeID, typeArgs []TypeID, args []syntax.NodeID, want TypeID) TypeID {
 	tt := c.r.Types
-	name := c.t.TokText(c.t.Nodes[callee].Tok)
+	name := c.t.View(callee).Tok().Text()
 	set := c.r.memberSet(valueType, name)
 	if set == 0 {
 		if req, sig, iface, ambiguous := c.ifaceMember(callee, valueType, name); req != 0 {

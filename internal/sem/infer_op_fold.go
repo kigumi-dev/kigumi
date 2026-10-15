@@ -65,7 +65,7 @@ func (c *checker) adoptOperand(n syntax.NodeID, target TypeID) TypeID {
 	if c.t.Kind(n) != syntax.BorrowExpr {
 		return c.adopt(n, target)
 	}
-	c.adopt(c.literalNode(syntax.NodeID(c.t.Nodes[n].Rhs)), target)
+	c.adopt(c.literalNode(c.t.View(n).AsBorrow().Operand().ID()), target)
 	c.setType(n, c.r.Types.Ref(target, false))
 	return target
 }
@@ -135,9 +135,9 @@ func (c *checker) foldBinary(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 }
 
 func (c *checker) compoundAssign(n, lhs, rhs syntax.NodeID, target TypeID) {
-	node := c.t.Nodes[n]
-	op := c.t.Toks[node.Tok].Kind.BinaryOf()
-	opText := strings.TrimSuffix(c.t.TokText(node.Tok), "=")
+	opTok := c.t.View(n).Tok()
+	op := opTok.Kind().BinaryOf()
+	opText := strings.TrimSuffix(opTok.Text(), "=")
 	r := c.vars.resolve(c.synth(rhs))
 	target = c.vars.resolve(target)
 	tt := c.r.Types

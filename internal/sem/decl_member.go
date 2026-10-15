@@ -8,9 +8,8 @@ func (r *Result) resolveReceiver(id EntityID, recv syntax.NodeID, scope ScopeID)
 	e := &r.Entities[id]
 	f := e.File
 	t := r.tree(f)
-	node := t.Nodes[recv]
-	path := syntax.NodeID(node.Lhs)
-	name := pathText(t, path, ".")
+	rv := t.View(recv).AsTypePath()
+	name := rv.Path().Join(".")
 	b, _, ok := r.lookup(scope, name)
 	if !ok || b.Ent == 0 {
 		r.errAt(f, recv, cMemberNotNominal, name)
@@ -35,10 +34,7 @@ func (r *Result) resolveReceiver(id EntityID, recv syntax.NodeID, scope ScopeID)
 	// The orphan rule is authorized later, in authorizeForeignMember
 	// (called from declareFn), once Self substitution has the receiver's
 	// own type parameters resolved below.
-	var binders []syntax.NodeID
-	if node.Rhs != 0 {
-		binders = t.Children(syntax.NodeID(node.Rhs))
-	}
+	binders := rv.Args().AppendIDs(nil)
 	if len(info.Params) > 0 && len(binders) == 0 {
 		// Associated functions may omit the binder; methods may not,
 		// which declareFn reports once it knows there is a `self`.
@@ -52,7 +48,7 @@ func (r *Result) resolveReceiver(id EntityID, recv syntax.NodeID, scope ScopeID)
 	var args []TypeID
 	bounded := false
 	for _, bn := range binders {
-		if t.Kind(bn) == syntax.GenericParam && t.Nodes[bn].Rhs != 0 {
+		if t.Kind(bn) == syntax.GenericParam && t.View(bn).AsGenericParam().Bound().Valid() {
 			bounded = true
 		}
 	}
@@ -62,9 +58,9 @@ func (r *Result) resolveReceiver(id EntityID, recv syntax.NodeID, scope ScopeID)
 		got := ""
 		switch t.Kind(bn) {
 		case syntax.TypePath:
-			got = pathText(t, syntax.NodeID(t.Nodes[bn].Lhs), ".")
+			got = t.View(bn).AsTypePath().Path().Join(".")
 		case syntax.GenericParam:
-			got = t.TokText(t.Nodes[bn].Tok)
+			got = t.View(bn).Tok().Text()
 		}
 		if got != want {
 			r.errAt(f, recv, cRecvBinderMismatch, r.paramNames(info.Params), name)
@@ -74,7 +70,7 @@ func (r *Result) resolveReceiver(id EntityID, recv syntax.NodeID, scope ScopeID)
 		if bounded {
 			// A bound on a binder makes the method generic in its own right,
 			// so it gets fresh parameters distinct from the owner's.
-			param = r.newEntity(Entity{Kind: EntTypeParam, Name: want, Pkg: e.Pkg, File: f, Node: bn, Tok: t.Nodes[bn].Tok, Parent: id, Vis: Visibility{Level: VisPub}})
+			param = r.newEntity(Entity{Kind: EntTypeParam, Name: want, Pkg: e.Pkg, File: f, Node: bn, Tok: t.View(bn).Tok().Index(), Parent: id, Vis: Visibility{Level: VisPub}})
 			ownInfo := r.typeParam(info.Params[i])
 			r.Entities[param].Detail = r.addTypeParam(TypeParamInfo{Index: i, Constraints: append([]Constraint(nil), ownInfo.Constraints...), IsConst: ownInfo.IsConst, ConstType: ownInfo.ConstType, IsLifetime: ownInfo.IsLifetime})
 			r.Entities[param].Type = r.Types.Param(param)
@@ -85,7 +81,7 @@ func (r *Result) resolveReceiver(id EntityID, recv syntax.NodeID, scope ScopeID)
 		params = append(params, param)
 	}
 	if bounded {
-		r.resolveConstraints(f, scope, syntax.NodeID(node.Rhs), params)
+		r.resolveConstraints(f, scope, rv.Args().ID(), params)
 		r.Fn(id).RecvParams = params
 	}
 	r.Fn(id).TypeParams = append([]EntityID(nil), params...)

@@ -30,7 +30,7 @@ func (r *Result) declareRequirements(id EntityID) {
 	t := r.tree(f)
 	s := ifaceDecl(t, e.Node)
 	scope := r.declScope(id)
-	for _, m := range t.Children(s.Members) {
+	for m := range t.List(s.Members).IDs() {
 		if t.Kind(m) != syntax.FnDecl {
 			r.errAt(f, m, cIfaceMemberKind)
 			continue

@@ -4,9 +4,9 @@ import "kigumi/internal/syntax"
 
 // synthRecord checks a record literal `T { field: v, ..spread }`.
 func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	headNode := syntax.NodeID(node.Lhs)
-	entries := c.t.Children(syntax.NodeID(node.Rhs))
+	lit := c.t.View(n).AsRecordLit()
+	headNode := lit.Head().ID()
+	entries := lit.Fields().AppendIDs(nil)
 	head := c.resolveHead(headNode)
 	switch head.kind {
 	case headType:
@@ -49,16 +49,17 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 	given := map[EntityID]bool{}
 	spreadOK := true
 	for _, entry := range entries {
-		en := c.t.Nodes[entry]
-		if en.Kind == syntax.Spread {
-			spreadOK = c.spreadEntry(ent, subst, syntax.NodeID(en.Lhs), given) && spreadOK
+		en := c.t.View(entry)
+		value := en.ArgValue().ID()
+		if en.Kind() == syntax.Spread {
+			spreadOK = c.spreadEntry(ent, subst, value, given) && spreadOK
 			continue
 		}
-		name := c.t.TokText(en.Tok)
+		name := en.Tok().Text()
 		fld := c.r.findField(ent, name)
 		if fld == 0 {
 			c.errSuggest(entry, cUnknownField, name, c.r.memberNames(ent), e.Name, name)
-			c.synth(syntax.NodeID(en.Lhs))
+			c.synth(value)
 			continue
 		}
 		c.r.useEntity(c.f, entry, fld)
@@ -67,8 +68,8 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 			c.errAt(entry, cDuplicateFieldInit, name)
 		}
 		given[fld] = true
-		c.checkArg(syntax.NodeID(en.Lhs), c.r.Types.Subst(c.r.Entities[fld].Type, subst), 0, false)
-		c.checkEscapeStore(syntax.NodeID(en.Lhs))
+		c.checkArg(value, c.r.Types.Subst(c.r.Entities[fld].Type, subst), 0, false)
+		c.checkEscapeStore(value)
 	}
 	var missing []string
 	for _, fld := range info.Fields {
@@ -96,7 +97,7 @@ func prevEntry(t *syntax.Tree, entries []syntax.NodeID, entry syntax.NodeID) syn
 
 func (c *checker) synthEntries(entries []syntax.NodeID) {
 	for _, entry := range entries {
-		c.synth(syntax.NodeID(c.t.Nodes[entry].Lhs))
+		c.synth(c.t.View(entry).ArgValue().ID())
 	}
 }
 

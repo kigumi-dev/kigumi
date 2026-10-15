@@ -29,7 +29,7 @@ func (c *checker) synthString(n syntax.NodeID) TypeID {
 
 func (c *checker) synthShell(n syntax.NodeID) TypeID {
 	plan := c.r.langItem(c.f, n, "Plan")
-	c.shellInterps(syntax.NodeID(c.t.Nodes[n].Rhs))
+	c.shellInterps(c.t.View(n).AsShellLit().Plan().ID())
 	if plan == 0 {
 		return TyPoison
 	}
@@ -41,7 +41,7 @@ func (c *checker) shellInterps(n syntax.NodeID) {
 		return
 	}
 	if c.t.Kind(n) == syntax.ShellInterp {
-		e := syntax.NodeID(c.t.Nodes[n].Lhs)
+		e := c.t.View(n).AsShellInterp().Expr().ID()
 		t := c.vars.resolve(c.synth(e))
 		tt := c.r.Types
 		switch {
@@ -54,11 +54,13 @@ func (c *checker) shellInterps(n syntax.NodeID) {
 		}
 		return
 	}
-	c.t.EachChild(n, c.shellInterps)
+	for ch := range c.t.View(n).Children() {
+		c.shellInterps(ch.ID())
+	}
 }
 
 func (c *checker) synthComptime(n syntax.NodeID) TypeID {
-	inner := syntax.NodeID(c.t.Nodes[n].Lhs)
+	inner := c.t.View(n).AsComptime().Body().ID()
 	if c.t.Kind(inner) == syntax.Block {
 		return c.synthComptimeBlock(n, inner)
 	}
@@ -74,17 +76,17 @@ func (c *checker) synthComptime(n syntax.NodeID) TypeID {
 }
 
 func (c *checker) synthAllocator(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	scopeType := c.vars.resolve(c.synth(syntax.NodeID(node.Lhs)))
+	alloc := c.t.View(n).AsAllocator()
+	scopeType := c.vars.resolve(c.synth(alloc.Scope().ID()))
 	if item := c.r.langItem(c.f, n, "AllocatorScope"); item != 0 && scopeType != TyPoison {
 		if scopeType != c.r.Types.Named(item, nil) {
-			c.errAt(syntax.NodeID(node.Lhs), cAllocatorScopeType, scopeType)
+			c.errAt(alloc.Scope().ID(), cAllocatorScopeType, scopeType)
 		}
 	}
 	c.finishExpr()
-	c.r.allocBlocks = append(c.r.allocBlocks, allocBlock{file: c.f, body: syntax.NodeID(node.Rhs)})
+	c.r.allocBlocks = append(c.r.allocBlocks, allocBlock{file: c.f, body: alloc.Body().ID()})
 	c.allocDepth++
-	t := c.check(syntax.NodeID(node.Rhs), want)
+	t := c.check(alloc.Body().ID(), want)
 	c.allocDepth--
 	return t
 }
@@ -94,9 +96,9 @@ func (c *checker) finishExpr() {}
 
 // The effects pass reads the EntContract entity created here.
 func (c *checker) synthContract(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
+	contract := c.t.View(n).AsContract()
 	id := c.r.newEntity(Entity{Kind: EntContract, Name: "contract", Pkg: c.pkg, File: c.f, Node: n, Parent: c.fn})
-	c.r.Entities[id].Detail = c.r.addFn(FnInfo{Declared: Effects(node.Lhs), Body: syntax.NodeID(node.Rhs)})
+	c.r.Entities[id].Detail = c.r.addFn(FnInfo{Declared: Effects(contract.Mods()), Body: contract.Body().ID()})
 	c.info.Defs[n] = id
 	saved := c.edges
 	var edges []EffectEdge
@@ -105,8 +107,8 @@ func (c *checker) synthContract(n syntax.NodeID, want TypeID) TypeID {
 	c.locals = nil
 	savedConsumed, savedBranch := c.consumed, c.branch
 	c.consumed, c.branch = nil, 0
-	c.contracts = append(c.contracts, Effects(node.Lhs))
-	t := c.check(syntax.NodeID(node.Rhs), want)
+	c.contracts = append(c.contracts, Effects(contract.Mods()))
+	t := c.check(contract.Body().ID(), want)
 	c.contracts = c.contracts[:len(c.contracts)-1]
 	c.dropsAtScopeExit(nil)
 	c.edges = saved
@@ -118,8 +120,8 @@ func (c *checker) synthContract(n syntax.NodeID, want TypeID) TypeID {
 }
 
 func (c *checker) synthOptMember(n syntax.NodeID) TypeID {
-	node := c.t.Nodes[n]
-	base := c.vars.resolve(c.synthPlace(syntax.NodeID(node.Lhs)))
+	member := c.t.View(n).AsOptMember()
+	base := c.vars.resolve(c.synthPlace(member.Base().ID()))
 	elem, ok := c.r.Types.IsOption(base)
 	if !ok {
 		if base != TyPoison {
@@ -127,7 +129,7 @@ func (c *checker) synthOptMember(n syntax.NodeID) TypeID {
 		}
 		return TyPoison
 	}
-	t := c.memberOn(n, syntax.NodeID(node.Lhs), elem, c.t.TokText(node.Tok))
+	t := c.memberOn(n, member.Base().ID(), elem, member.Member().Text())
 	if t == TyPoison {
 		return TyPoison
 	}

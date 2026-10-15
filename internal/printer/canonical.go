@@ -68,10 +68,8 @@ func (p *printer) blank() {
 
 func (p *printer) tok(idx uint32) string { return p.t.TokText(idx) }
 
-func (p *printer) node(id syntax.NodeID) syntax.Node { return p.t.Node(id) }
-
 func (p *printer) file(root syntax.NodeID) {
-	decls, tight := p.sortImports(p.t.Children(root))
+	decls, tight := p.sortImports(p.t.List(root).AppendIDs(nil))
 	for i, d := range decls {
 		if i > 0 && !tight[d] {
 			p.separateDecls(decls[i-1], d)
@@ -90,8 +88,8 @@ func (p *printer) multiline(id syntax.NodeID) bool {
 // firstTok is the first non-trivia token of a node, counting the doc
 // comment lines that the node's doc slot points at.
 func (p *printer) firstTok(id syntax.NodeID) uint32 {
-	if doc := p.t.Slot(id, "doc"); doc != 0 {
-		return firstDocTok(p.t, doc)
+	if doc := p.t.View(id).AsDecl().Doc(); doc.Valid() {
+		return firstDocTok(p.t, doc.Index())
 	}
 	sp := p.t.Span(id)
 	for i, tk := range p.t.Toks {
@@ -119,36 +117,37 @@ func (p *printer) decl(id syntax.NodeID) {
 	case syntax.ImportDecl:
 		p.importDecl(id)
 	case syntax.TestDecl:
-		n := p.node(id)
-		p.write("test " + p.tok(n.Lhs) + " ")
-		p.block(syntax.NodeID(n.Rhs))
+		d := p.t.View(id).AsTestDecl()
+		p.write("test " + d.Name().Text() + " ")
+		p.block(d.Body().ID())
 	case syntax.AbiBlock:
 		p.abiBlock(id)
 	case syntax.ContractBlock:
-		n := p.node(id)
-		p.write(modsText(n.Lhs) + " ")
-		p.declList(syntax.NodeID(n.Rhs))
+		d := p.t.View(id).AsContractBlock()
+		p.write(modsText(d.Mods()) + " ")
+		p.declList(d.Body().ID())
 	case syntax.InstantiateDecl:
-		n := p.node(id)
-		p.write("instantiate " + p.tok(n.Tok) + " = ")
-		p.typ(syntax.NodeID(n.Rhs))
+		d := p.t.View(id).AsInstantiateDecl()
+		p.write("instantiate " + d.Name().Text() + " = ")
+		p.typ(d.Type().ID())
 	default:
 		p.stmt(id)
 	}
 }
 
 func (p *printer) declList(list syntax.NodeID) {
-	items := p.t.Children(list)
+	items := p.t.List(list)
 	p.write("{")
-	if len(items) == 0 {
+	if items.Len() == 0 {
 		p.write("}")
 		return
 	}
 	p.newline()
 	p.indent++
-	for i, d := range items {
-		if i > 0 {
-			p.separateDecls(items[i-1], d)
+	for c := items.Cursor(); c.Next(); {
+		d := c.ID()
+		if c.Index() > 0 {
+			p.separateDecls(items.ItemID(c.Index()-1), d)
 		}
 		p.flushComments(p.firstTok(d))
 		p.withIndent(func() { p.decl(d) })

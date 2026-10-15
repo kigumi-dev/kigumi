@@ -20,7 +20,7 @@ func (s *Server) DocumentSymbol(ctx context.Context, p *protocol.DocumentSymbolP
 	}
 	t := syntax.Parse(token.NewFile(uriToPath(p.TextDocument.URI), []byte(text)))
 	out := protocol.DocumentSymbolSlice{}
-	for _, d := range t.Children(t.Root) {
+	for d := range t.List(t.Root).IDs() {
 		name, kind, tok, ok := declSymbol(t, d)
 		if !ok {
 			continue
@@ -32,17 +32,6 @@ func (s *Server) DocumentSymbol(ctx context.Context, p *protocol.DocumentSymbolP
 		out = append(out, sym)
 	}
 	return out, nil
-}
-
-// slotTok reads a slot of a record node by name (`@name`, `recv`, ...).
-func slotTok(t *syntax.Tree, n syntax.NodeID, name string) uint32 {
-	names := syntax.SlotNames(t.Kind(n))
-	for i, s := range t.Slots(n) {
-		if i < len(names) && strings.TrimLeft(names[i], "@#") == name {
-			return s
-		}
-	}
-	return 0
 }
 
 var keywords = []string{"fn", "let", "mut", "pub", "type", "interface", "const", "import", "from", "match", "if", "else", "for", "in",
@@ -89,7 +78,7 @@ func (s *Server) Completion(ctx context.Context, p *protocol.CompletionParams) (
 			path := snap.packageOf(uriToPath(p.TextDocument.URI))
 			if pkg := snap.mod.Packages[path]; pkg != nil {
 				for _, t := range pkg.Files {
-					for _, d := range t.Children(t.Root) {
+					for d := range t.List(t.Root).IDs() {
 						name, kind, _, ok := declSymbol(t, d)
 						if !ok || strings.Contains(name, ".") {
 							continue

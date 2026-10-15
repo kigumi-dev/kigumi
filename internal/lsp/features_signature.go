@@ -32,7 +32,7 @@ func (s *Server) SignatureHelp(ctx context.Context, p *protocol.SignatureHelpPar
 	info := snap.res.File(t)
 	ent := info.Calls[call].Callee
 	if ent == 0 {
-		ent = info.Uses[syntax.NodeID(t.Nodes[call].Lhs)]
+		ent = info.Uses[t.View(call).AsCall().Callee().ID()]
 	}
 	if ent == 0 || snap.res.Entity(ent).Kind != sem.EntFn {
 		return nil, nil
@@ -70,17 +70,16 @@ func (s *Server) SignatureHelp(ctx context.Context, p *protocol.SignatureHelpPar
 func enclosingCall(t *syntax.Tree, pos token.Pos) (syntax.NodeID, int) {
 	best, bestLen := syntax.NodeID(0), -1
 	active := 0
-	for id := 1; id < len(t.Nodes); id++ {
-		n := syntax.NodeID(id)
-		if t.Kind(n) != syntax.CallExpr {
+	for v := range t.All() {
+		if v.Kind() != syntax.CallExpr {
 			continue
 		}
-		callee := syntax.NodeID(t.Nodes[n].Lhs)
-		open := t.Span(callee).End
+		n, c := v.ID(), v.AsCall()
+		open := c.Callee().Span().End
 		if pos <= open {
 			continue
 		}
-		sp := t.Span(n)
+		sp := v.Span()
 		if pos > sp.End && !unclosedAt(t.File.Src, open, pos) {
 			continue
 		}
@@ -89,8 +88,8 @@ func enclosingCall(t *syntax.Tree, pos token.Pos) (syntax.NodeID, int) {
 		}
 		best, bestLen = n, sp.Len()
 		active = 0
-		for _, a := range t.Children(syntax.NodeID(t.Nodes[n].Rhs)) {
-			if t.Span(a).End < pos {
+		for a := range c.Args().Views() {
+			if a.Span().End < pos {
 				active++
 			}
 		}
@@ -105,13 +104,13 @@ func enclosingCall(t *syntax.Tree, pos token.Pos) (syntax.NodeID, int) {
 // parameter position after named arguments reordered the call, falling
 // back to sourceIdx when the argument isn't in order yet.
 func activeFromPlan(t *syntax.Tree, call syntax.NodeID, sourceIdx int, plan *sem.CallPlan) int {
-	raw := t.Children(syntax.NodeID(t.Nodes[call].Rhs))
-	if sourceIdx < 0 || sourceIdx >= len(raw) {
+	raw := t.View(call).AsCall().Args()
+	if sourceIdx < 0 || sourceIdx >= raw.Len() {
 		return sourceIdx
 	}
-	arg := raw[sourceIdx]
+	arg := raw.ItemID(sourceIdx)
 	if t.Kind(arg) == syntax.NamedArg {
-		arg = syntax.NodeID(t.Nodes[arg].Lhs)
+		arg = t.View(arg).AsNamedArg().Value().ID()
 	}
 	for i, e := range plan.Eval {
 		if e == arg {

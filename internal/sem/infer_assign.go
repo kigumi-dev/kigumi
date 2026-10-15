@@ -3,10 +3,10 @@ package sem
 import "kigumi/internal/syntax"
 
 func (c *checker) assignStmt(n syntax.NodeID) {
-	node := c.t.Nodes[n]
-	lhs, rhs := syntax.NodeID(node.Lhs), syntax.NodeID(node.Rhs)
-	op := c.t.Toks[node.Tok].Kind
-	if c.t.Kind(lhs) == syntax.Ident && c.t.TokText(c.t.Nodes[lhs].Tok) == "_" && !op.IsCompoundAssign() {
+	a := c.t.View(n).AsAssign()
+	lhs, rhs := a.Target().ID(), a.Value().ID()
+	op := a.Op().Kind()
+	if c.t.Kind(lhs) == syntax.Ident && c.t.View(lhs).Tok().Text() == "_" && !op.IsCompoundAssign() {
 		t := c.synth(rhs)
 		c.edge(EffectEdge{Kind: EdgeDrop, Type: t, Node: rhs})
 		c.consumeWhole(rhs)

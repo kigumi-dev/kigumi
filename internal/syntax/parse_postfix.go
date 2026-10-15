@@ -14,7 +14,7 @@ func (p *parser) postfix() NodeID {
 	}
 	argTok := p.pos
 	arg := p.postfixChain(p.primary())
-	call := p.node2(WsCallExpr, p.tree.Nodes[e].Tok, e, p.tree.addList(List, argTok, []NodeID{arg}))
+	call := p.node2(WsCallExpr, p.tree.nodes[e].Tok, e, p.tree.addList(List, argTok, []NodeID{arg}))
 	if p.startsWsArg() {
 		p.errorf("whitespace call takes exactly one argument; write `f(g(x))` or `f(g, x)`")
 	}
@@ -27,7 +27,7 @@ func (p *parser) postfixChain(e NodeID) NodeID {
 		case p.at(token.LParen):
 			open := p.pos
 			args := p.exprList()
-			e = p.node2(CallExpr, p.tree.Nodes[e].Tok, e, p.tree.addList(List, open, args))
+			e = p.node2(CallExpr, p.tree.nodes[e].Tok, e, p.tree.addList(List, open, args))
 		case p.at(token.LBracket) && !p.tok().HasSpaceBefore():
 			var items []NodeID
 			tok := p.layoutList(token.LBracket, token.RBracket, func() {
@@ -75,7 +75,7 @@ func (p *parser) memberName() uint32 {
 // or member path, optionally with `[T]` arguments. Case is not consulted;
 // whether the name is a type is decided by name resolution.
 func (p *parser) isRecordHead(e NodeID) bool {
-	n := p.tree.Nodes[e]
+	n := p.tree.nodes[e]
 	switch n.Kind {
 	case Ident, MemberExpr:
 		return true
@@ -112,7 +112,7 @@ func (p *parser) recordLit(head NodeID) NodeID {
 }
 
 func (p *parser) isWsCallee(e NodeID) bool {
-	switch p.tree.Nodes[e].Kind {
+	switch p.tree.nodes[e].Kind {
 	case Ident, MemberExpr:
 		return true
 	}

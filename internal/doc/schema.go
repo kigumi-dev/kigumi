@@ -2,7 +2,6 @@ package doc
 
 import (
 	"encoding/json"
-	"strings"
 
 	"kigumi/internal/driver"
 	"kigumi/internal/schema"
@@ -53,7 +52,7 @@ func Declarations(m *driver.Module, res *sem.Result, attr string) []Declaration 
 			continue
 		}
 		for _, t := range p.Files {
-			for _, d := range t.Children(t.Root) {
+			for d := range t.List(t.Root).IDs() {
 				if decl, ok := declaration(res, t, d); ok && (attr == "" || hasAttr(decl.Attributes, attr)) {
 					decl.Package = path
 					out = append(out, decl)
@@ -133,11 +132,7 @@ func declaration(res *sem.Result, t *syntax.Tree, d syntax.NodeID) (Declaration,
 func attributes(res *sem.Result, t *syntax.Tree, refs []sem.MetaRef) []Attribute {
 	out := []Attribute{}
 	for _, m := range refs {
-		var segs []string
-		for _, tk := range t.PathToks(syntax.NodeID(t.Nodes[m.Node].Lhs)) {
-			segs = append(segs, t.TokText(tk))
-		}
-		a := Attribute{Name: strings.Join(segs, "."), Args: []any{}}
+		a := Attribute{Name: t.View(m.Node).AsMetaItem().Path().Join("."), Args: []any{}}
 		for _, lit := range m.Args {
 			a.Args = append(a.Args, literalJSON(lit))
 		}

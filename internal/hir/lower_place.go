@@ -8,21 +8,23 @@ import (
 // place resolves an assignment target; its operands are lowered here so
 // the builder evaluates them once, before the right-hand side.
 func (l *lowerer) place(lhs syntax.NodeID) *Place {
-	node := l.t.Nodes[lhs]
+	v := l.t.View(lhs)
 	out := &Place{Node: lhs, Type: l.typeOf(lhs)}
-	switch node.Kind {
+	switch v.Kind() {
 	case syntax.Paren:
-		return l.place(syntax.NodeID(node.Lhs))
+		return l.place(v.AsParen().Inner().ID())
 	case syntax.MemberExpr:
+		base := v.AsMember().Base().ID()
 		if ent := l.info.Uses[lhs]; ent != 0 && l.r.Entity(ent).Kind == sem.EntType {
 			// `.value`: the same place as the receiver, just retyped.
-			inner := *l.place(syntax.NodeID(node.Lhs))
+			inner := *l.place(base)
 			inner.Node, inner.Type = lhs, l.typeOf(lhs)
 			return &inner
 		}
-		out.Kind, out.Base, out.Index = PlaceField, l.expr(syntax.NodeID(node.Lhs)), l.r.Field(l.info.Uses[lhs]).Index
+		out.Kind, out.Base, out.Index = PlaceField, l.expr(base), l.r.Field(l.info.Uses[lhs]).Index
 	case syntax.BracketExpr:
-		out.Kind, out.Base, out.Idx = PlaceIndex, l.expr(syntax.NodeID(node.Lhs)), l.expr(l.t.Children(syntax.NodeID(node.Rhs))[0])
+		b := v.AsBracket()
+		out.Kind, out.Base, out.Idx = PlaceIndex, l.expr(b.Base().ID()), l.expr(b.Args().ItemID(0))
 	default:
 		ent := l.info.Uses[lhs]
 		if ent != 0 && l.r.Entity(ent).Kind == sem.EntStatic {

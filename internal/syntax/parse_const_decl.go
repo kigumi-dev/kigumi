@@ -18,5 +18,5 @@ func (p *parser) attrList(pf prefix) NodeID {
 	if len(pf.attrs) == 0 {
 		return 0
 	}
-	return p.tree.addList(List, p.tree.Nodes[pf.attrs[0]].Tok, pf.attrs)
+	return p.tree.addList(List, p.tree.nodes[pf.attrs[0]].Tok, pf.attrs)
 }

@@ -3,58 +3,61 @@ package printer
 import "kigumi/internal/syntax"
 
 func (p *printer) pattern(id syntax.NodeID) {
-	n := p.node(id)
-	switch n.Kind {
+	v := p.t.View(id)
+	switch v.Kind() {
 	case syntax.PatWildcard, syntax.PatBind:
-		p.write(p.tok(n.Tok))
+		p.write(v.Tok().Text())
 	case syntax.PatLit:
-		p.expr(syntax.NodeID(n.Lhs))
+		p.expr(v.AsPatLit().Lit().ID())
 	case syntax.PatCtor:
-		p.write(p.pathText(syntax.NodeID(n.Lhs)))
-		if n.Rhs != 0 {
+		c := v.AsPatCtor()
+		p.write(c.Path().Join("."))
+		if args := c.Args(); args.Valid() {
 			p.write("(")
-			for i, sub := range p.t.Children(syntax.NodeID(n.Rhs)) {
+			for i, sub := range args.Enumerate() {
 				if i > 0 {
 					p.write(", ")
 				}
-				p.pattern(sub)
+				p.pattern(sub.ID())
 			}
 			p.write(")")
 		}
 	case syntax.PatTuple:
-		items := p.t.Children(id)
+		items := v.AsPatTuple()
 		p.write("(")
-		for i, sub := range items {
+		for i, sub := range items.Enumerate() {
 			if i > 0 {
 				p.write(", ")
 			}
-			p.pattern(sub)
+			p.pattern(sub.ID())
 		}
-		if len(items) == 1 {
+		if items.Len() == 1 {
 			p.write(",")
 		}
 		p.write(")")
 	case syntax.PatRange:
-		p.expr(syntax.NodeID(n.Lhs))
-		p.write(p.tok(n.Tok))
-		p.expr(syntax.NodeID(n.Rhs))
+		r := v.AsPatRange()
+		p.expr(r.Lo().ID())
+		p.write(r.Op().Text())
+		p.expr(r.Hi().ID())
 	case syntax.PatOr:
-		for i, alt := range p.t.Children(id) {
+		for i, alt := range v.AsPatOr().Enumerate() {
 			if i > 0 {
 				p.write(" | ")
 			}
-			p.pattern(alt)
+			p.pattern(alt.ID())
 		}
 	case syntax.PatRecord:
-		p.write(p.pathText(syntax.NodeID(n.Lhs)) + " {")
+		r := v.AsPatRecord()
+		p.write(r.Path().Join(".") + " {")
 		p.newline()
 		p.indent++
-		for _, f := range p.t.Children(syntax.NodeID(n.Rhs)) {
-			fn := p.node(f)
-			p.write(p.tok(fn.Tok))
-			if fn.Lhs != 0 {
+		for fv := range r.Fields().Views() {
+			f := fv.AsPatField()
+			p.write(f.Name().Text())
+			if sub := f.Sub(); sub.Valid() {
 				p.write(": ")
-				p.pattern(syntax.NodeID(fn.Lhs))
+				p.pattern(sub.ID())
 			}
 			p.newline()
 		}

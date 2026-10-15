@@ -7,11 +7,10 @@ import (
 
 // `&'a T` and `&T` share one interned type; the tag lives on the
 // declaration instead.
-func (r *Result) resolveRefType(f FileID, scope ScopeID, n syntax.NodeID, node syntax.Node, pos typePos) TypeID {
-	t := r.tree(f)
+func (r *Result) resolveRefType(f FileID, scope ScopeID, n syntax.NodeID, ref syntax.TypeRefView, pos typePos) TypeID {
 	var lt EntityID
-	if t.Toks[node.Tok].Kind == token.Lifetime {
-		lt = r.resolveLifetimeName(f, scope, n, t.TokText(node.Tok))
+	if ref.Op().Kind() == token.Lifetime {
+		lt = r.resolveLifetimeName(f, scope, n, ref.Op().Text())
 	}
 	switch {
 	case pos == posParam || pos == posLocal:
@@ -22,8 +21,8 @@ func (r *Result) resolveRefType(f FileID, scope ScopeID, n syntax.NodeID, node s
 	case pos != posField && pos != posReturn:
 		r.errAt(f, n, cBorrowPosition, typePosNames[pos])
 	}
-	elem := r.resolveType(f, scope, syntax.NodeID(node.Rhs), posTypeArg)
-	return r.Types.Ref(elem, node.Lhs&syntax.FlagMut != 0)
+	elem := r.resolveType(f, scope, ref.Pointee().ID(), posTypeArg)
+	return r.Types.Ref(elem, ref.Flags()&syntax.FlagMut != 0)
 }
 
 // Only declareGenerics binds such a name, so a hit is always a lifetime
@@ -47,18 +46,18 @@ func (r *Result) explicitLifetimeOf(f FileID, scope ScopeID, n syntax.NodeID) En
 	t := r.tree(f)
 	switch t.Kind(n) {
 	case syntax.TypeRef:
-		node := t.Nodes[n]
-		if t.Toks[node.Tok].Kind != token.Lifetime {
+		ref := t.View(n).AsTypeRef()
+		if ref.Op().Kind() != token.Lifetime {
 			return 0
 		}
-		return r.lookupLifetimeName(scope, t.TokText(node.Tok))
+		return r.lookupLifetimeName(scope, ref.Op().Text())
 	case syntax.TypePath:
-		node := t.Nodes[n]
-		if node.Rhs == 0 {
+		args := t.View(n).AsTypePath().Args()
+		if !args.Valid() {
 			return 0
 		}
 		var lt EntityID
-		for _, a := range t.Children(syntax.NodeID(node.Rhs)) {
+		for a := range args.IDs() {
 			if t.Kind(a) != syntax.TypeLifetime {
 				continue
 			}
@@ -66,7 +65,7 @@ func (r *Result) explicitLifetimeOf(f FileID, scope ScopeID, n syntax.NodeID) En
 				r.errAt(f, n, cLifetimeMultiArg)
 				return 0
 			}
-			lt = r.lookupLifetimeName(scope, t.TokText(t.Nodes[a].Tok))
+			lt = r.lookupLifetimeName(scope, t.View(a).Tok().Text())
 		}
 		return lt
 	}
@@ -118,8 +117,7 @@ func (r *Result) resolveLifetimeArg(f FileID, scope ScopeID, n syntax.NodeID) Ty
 		r.errAt(f, n, cLifetimeArgKind, "this", "a lifetime", "a type")
 		return TyPoison
 	}
-	node := t.Nodes[n]
-	ent := r.resolveLifetimeName(f, scope, n, t.TokText(node.Tok))
+	ent := r.resolveLifetimeName(f, scope, n, t.View(n).Tok().Text())
 	if ent == 0 {
 		return TyPoison
 	}

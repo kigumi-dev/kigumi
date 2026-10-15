@@ -130,7 +130,7 @@ func (p *parser) metadata() NodeID {
 			open := p.pos
 			args = p.tree.addList(List, open, p.exprList())
 		}
-		items = append(items, p.node2(MetaItem, p.tree.Nodes[path].Tok, path, args))
+		items = append(items, p.node2(MetaItem, p.tree.nodes[path].Tok, path, args))
 	})
 	return p.tree.addList(Metadata, tok, items)
 }

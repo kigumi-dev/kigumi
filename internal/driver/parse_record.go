@@ -21,28 +21,30 @@ type record struct {
 // record kind to its string fields; "name" is required where it is a field.
 func parseRecords(f *token.File, allowed map[string][]string) ([]record, []diag.Diagnostic) {
 	t := syntax.Parse(f)
-	recs, ds := recordsOf(t, t.Children(t.Root), allowed)
+	root := t.List(t.Root)
+	recs, ds := recordsOf(t, root, root.Len(), allowed)
 	return recs, append(append([]diag.Diagnostic{}, t.Diags...), ds...)
 }
 
-// recordsOf decodes the given top-level statements of an already parsed
+// recordsOf decodes the first n top-level statements of an already parsed
 // tree (a manifest file, or the leading records of a script).
-func recordsOf(t *syntax.Tree, stmts []syntax.NodeID, allowed map[string][]string) ([]record, []diag.Diagnostic) {
+func recordsOf(t *syntax.Tree, stmts syntax.ListView, n int, allowed map[string][]string) ([]record, []diag.Diagnostic) {
 	f := t.File
 	var ds []diag.Diagnostic
 	var recs []record
-	for _, st := range stmts {
-		span := t.Span(st)
-		if t.Kind(st) != syntax.ExprStmt || t.Kind(syntax.NodeID(t.Nodes[st].Lhs)) != syntax.RecordLit {
+	for i := range n {
+		st := stmts.At(i)
+		span := st.Span()
+		if st.Kind() != syntax.ExprStmt || st.AsExprStmt().Expr().Kind() != syntax.RecordLit {
 			ds = append(ds, diag.Errorf(diag.Location{Span: span}, "expected a record such as `Require { name: \"x\", version: \"v1.0.0\" }`"))
 			continue
 		}
-		lit := syntax.NodeID(t.Nodes[st].Lhs)
-		head := syntax.NodeID(t.Nodes[lit].Lhs)
-		kind := t.TokText(t.Nodes[head].Tok)
+		lit := st.AsExprStmt().Expr().AsRecordLit()
+		head := lit.Head()
+		kind := head.Tok().Text()
 		fields, ok := allowed[kind]
-		if t.Kind(head) != syntax.Ident || !ok {
-			ds = append(ds, diag.Errorf(diag.Location{Span: t.Span(head)}, fmt.Sprintf("unknown record %s", kind)))
+		if head.Kind() != syntax.Ident || !ok {
+			ds = append(ds, diag.Errorf(diag.Location{Span: head.Span()}, fmt.Sprintf("unknown record %s", kind)))
 			continue
 		}
 		// Closing tokens are not nodes, so widen the span to the `}`.
@@ -50,7 +52,7 @@ func recordsOf(t *syntax.Tree, stmts []syntax.NodeID, allowed map[string][]strin
 			span.End += token.Pos(i) + 1
 		}
 		r := record{Kind: kind, Fields: map[string]string{}, Span: span}
-		for _, e := range t.Children(syntax.NodeID(t.Nodes[lit].Rhs)) {
+		for e := range lit.Fields().IDs() {
 			ds = r.field(t, e, fields, ds)
 		}
 		if r.Fields["name"] == "" && slices.Contains(fields, "name") {
@@ -65,14 +67,15 @@ func (r *record) field(t *syntax.Tree, e syntax.NodeID, allowed []string, ds []d
 	if t.Kind(e) != syntax.FieldInit {
 		return append(ds, diag.Errorf(diag.Location{Span: t.Span(e)}, "manifest records take `field: \"value\"` entries only"))
 	}
-	name := t.TokText(t.Nodes[e].Tok)
+	entry := t.View(e).AsFieldInit()
+	name := entry.Name().Text()
 	if !slices.Contains(allowed, name) {
 		return append(ds, diag.Errorf(diag.Location{Span: t.Span(e)}, fmt.Sprintf("%s has no field %s", r.Kind, name)))
 	}
 	if _, dup := r.Fields[name]; dup {
 		return append(ds, diag.Errorf(diag.Location{Span: t.Span(e)}, fmt.Sprintf("field %s given twice", name)))
 	}
-	val := syntax.NodeID(t.Nodes[e].Lhs)
+	val := entry.Value().ID()
 	s, ok := plainString(t, val)
 	if !ok {
 		return append(ds, diag.Errorf(diag.Location{Span: t.Span(val)}, fmt.Sprintf("%s must be a plain string literal", name)))

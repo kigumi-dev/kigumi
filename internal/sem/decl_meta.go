@@ -10,13 +10,13 @@ func (r *Result) metaAttrs(f FileID, list syntax.NodeID, onType bool) []MetaRef 
 	}
 	t := r.tree(f)
 	var dotted []syntax.NodeID
-	for _, a := range t.Children(list) {
+	for a := range t.List(list).IDs() {
 		if t.Kind(a) == syntax.UnsafeGuarantee {
 			continue
 		}
-		path := syntax.NodeID(t.Nodes[a].Lhs)
-		switch name := pathText(t, path, "."); {
-		case len(t.PathToks(path)) > 1:
+		path := t.View(a).AsAttr().Path()
+		switch name := path.Join("."); {
+		case path.Len() > 1:
 			dotted = append(dotted, a)
 		case name == "impl":
 			if !onType {
@@ -39,7 +39,7 @@ func (r *Result) metaAttrs(f FileID, list syntax.NodeID, onType bool) []MetaRef 
 	if len(dotted) == 0 {
 		return nil
 	}
-	return r.resolveMetadata(f, 0, t.AddList(syntax.Metadata, t.Nodes[dotted[0]].Tok, dotted))
+	return r.resolveMetadata(f, 0, t.AddList(syntax.Metadata, t.View(dotted[0]).Tok().Index(), dotted))
 }
 
 func (r *Result) rejectAttrs(f FileID, list syntax.NodeID) {
@@ -47,11 +47,11 @@ func (r *Result) rejectAttrs(f FileID, list syntax.NodeID) {
 		return
 	}
 	t := r.tree(f)
-	for _, a := range t.Children(list) {
+	for a := range t.List(list).IDs() {
 		if t.Kind(a) == syntax.UnsafeGuarantee {
 			continue
 		}
-		name := pathText(t, syntax.NodeID(t.Nodes[a].Lhs), ".")
+		name := t.View(a).AsAttr().Path().Join(".")
 		switch name {
 		case "impl", "provides":
 			r.errAt(f, a, cAttrWrongTarget)
@@ -72,10 +72,11 @@ func (r *Result) resolveMetadata(f FileID, fld, meta syntax.NodeID) []MetaRef {
 	t := r.tree(f)
 	var out []MetaRef
 	seen := map[string]bool{}
-	for _, item := range t.Children(meta) {
-		path := syntax.NodeID(t.Nodes[item].Lhs)
+	for item := range t.List(meta).IDs() {
+		mi := t.View(item).AsMetaItem()
+		path := mi.Path().ID()
 		head := r.resolveValueName(f, r.fileScopes[f], path)
-		key := pathText(t, path, ".")
+		key := mi.Path().Join(".")
 		// sigReady is false for field metadata; checkSchemas re-checks once
 		// signatures exist.
 		sigReady := head != 0 && r.Entities[head].Kind == EntFn && r.Fn(head).Sig != 0
@@ -91,7 +92,7 @@ func (r *Result) resolveMetadata(f FileID, fld, meta syntax.NodeID) []MetaRef {
 			}
 		}
 		ref := MetaRef{Head: head, Node: item}
-		for _, a := range t.Children(syntax.NodeID(t.Nodes[item].Rhs)) {
+		for a := range mi.Args().IDs() {
 			if v, ok := r.evalConst(f, a); ok {
 				lit, _ := v.literal()
 				ref.Args = append(ref.Args, lit)

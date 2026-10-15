@@ -80,7 +80,7 @@ func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) {
 			c.crossDirect(lhs, t)
 		}
 	case syntax.MemberExpr, syntax.BracketExpr:
-		base := syntax.NodeID(c.t.Nodes[lhs].Lhs)
+		base := c.t.View(lhs).Base().ID()
 		if bt := c.vars.resolve(c.info.Types[base]); c.lentPlace(base) || !c.r.DirectAgg(bt) || c.r.containsClosure(bt) {
 			c.crossDirect(lhs, t)
 			return
@@ -126,9 +126,7 @@ func (c *checker) crossBorrow(inner syntax.NodeID) {
 
 // A payload-free variant's boxed form is the one immortal every site reads, so lending it costs nothing.
 func (c *checker) nullaryValue(n syntax.NodeID) bool {
-	for c.t.Kind(n) == syntax.Paren {
-		n = syntax.NodeID(c.t.Nodes[n].Lhs)
-	}
+	n = c.t.Unparen(n)
 	v := c.info.Uses[n]
 	return v != 0 && c.r.Entities[v].Kind == EntVariant && len(c.r.variant(v).Payload) == 0
 }
@@ -140,7 +138,7 @@ func (c *checker) foreignChain(n syntax.NodeID) bool {
 		case syntax.BracketExpr:
 			return true
 		case syntax.MemberExpr:
-			n = syntax.NodeID(c.t.Nodes[n].Lhs)
+			n = c.t.View(n).AsMember().Base().ID()
 		case syntax.Ident:
 			_, static := c.staticRootOf(n)
 			return static || c.lentPlace(n) || c.sharedCellPlace(n)
@@ -156,7 +154,7 @@ func (c *checker) placeRootType(n syntax.NodeID) TypeID {
 	for i := 0; n != 0 && i < 64; i++ {
 		switch c.t.Kind(n) {
 		case syntax.MemberExpr, syntax.BracketExpr:
-			n = syntax.NodeID(c.t.Nodes[n].Lhs)
+			n = c.t.View(n).Base().ID()
 		default:
 			return c.vars.resolve(c.info.Types[n])
 		}

@@ -11,7 +11,7 @@ func (c *checker) checkReentrantCapture(base syntax.NodeID, args []syntax.NodeID
 	}
 	for _, a := range args {
 		if c.t.Kind(a) == syntax.NamedArg {
-			a = syntax.NodeID(c.t.Nodes[a].Lhs)
+			a = c.t.View(a).AsNamedArg().Value().ID()
 		}
 		c.checkReentrantCaptureArg(a, root)
 	}
@@ -19,9 +19,7 @@ func (c *checker) checkReentrantCapture(base syntax.NodeID, args []syntax.NodeID
 
 func (c *checker) checkReentrantCaptureArg(a syntax.NodeID, root EntityID) {
 	expr := a
-	for c.t.Kind(expr) == syntax.Paren {
-		expr = syntax.NodeID(c.t.Nodes[expr].Lhs)
-	}
+	expr = c.t.Unparen(expr)
 	t := c.vars.resolve(c.info.Types[expr])
 	tt := c.r.Types
 	if tt.Kind(t) == KClosure {
@@ -47,7 +45,7 @@ func (c *checker) opaqueFnOrigin(expr syntax.NodeID, seen map[syntax.NodeID]bool
 	seen[expr] = true
 	switch c.t.Kind(expr) {
 	case syntax.Paren:
-		return c.opaqueFnOrigin(syntax.NodeID(c.t.Nodes[expr].Lhs), seen)
+		return c.opaqueFnOrigin(c.t.View(expr).AsParen().Inner().ID(), seen)
 	case syntax.Ident:
 		ent := c.info.Uses[expr]
 		if init, ok := c.letInit[ent]; ok {

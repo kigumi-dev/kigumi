@@ -14,7 +14,7 @@ func (c *checker) checkSelfAliasArgs(base syntax.NodeID, recv RecvKind, async bo
 	}
 	for _, a := range args {
 		if c.t.Kind(a) == syntax.NamedArg {
-			a = syntax.NodeID(c.t.Nodes[a].Lhs)
+			a = c.t.View(a).AsNamedArg().Value().ID()
 		}
 		if cand, ok := c.mutAliasArgOf(a); ok && cand.root == root && mutAliasStepsOverlap(steps, cand.steps) {
 			c.errAt(cand.node, cMutAliasSelfArg)

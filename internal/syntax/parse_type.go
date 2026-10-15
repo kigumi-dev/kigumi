@@ -89,7 +89,7 @@ func (p *parser) typPrimary() NodeID {
 		if p.at(token.LBracket) && !p.tok().HasSpaceBefore() {
 			args = p.typeArgs()
 		}
-		return p.node2(TypePath, p.tree.Nodes[path].Tok, path, args)
+		return p.node2(TypePath, p.tree.nodes[path].Tok, path, args)
 	case p.at(token.Int), p.at(token.KwTrue), p.at(token.KwFalse):
 		// A const generic argument: `FixedArray[u8, 32]`.
 		return p.literal()

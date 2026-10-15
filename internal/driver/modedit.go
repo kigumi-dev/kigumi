@@ -75,12 +75,12 @@ func AppendScriptRequire(path string, r Require) error {
 	}
 	writeRecord(&sb, "Require", "name", r.Name, "version", r.Version, "url", r.URL)
 	at := len(src)
-	if stmts := t.Children(t.Root); len(stmts) > 0 {
+	if stmts := t.List(t.Root); stmts.Len() > 0 {
 		if n := leadingRecords(t); n > 0 {
-			recs, _ := recordsOf(t, stmts[:n], scriptFields)
+			recs, _ := recordsOf(t, stmts, n, scriptFields)
 			at = lineEnd(src, int(recs[n-1].Span.End))
 		} else {
-			at = lineStart(src, int(t.Span(stmts[0]).Start))
+			at = lineStart(src, int(stmts.At(0).Span().Start))
 			sb.WriteString("\n")
 		}
 	}

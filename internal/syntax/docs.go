@@ -15,8 +15,8 @@ func DeclHead(t *Tree, n NodeID) string {
 		return ""
 	}
 	sp := t.Span(n)
-	if body := t.Slot(n, "body"); body != 0 && t.Kind(n) == FnDecl {
-		sp.End = t.Span(NodeID(body)).Start
+	if body := declBody(t, n); body.Valid() {
+		sp.End = body.Span().Start
 	} else {
 		// A node span stops at its last child, so a trailing `]` or `}`
 		// can fall outside it; extend to the line that balances an open brace.
@@ -40,11 +40,18 @@ func DeclHead(t *Tree, n NodeID) string {
 
 const maxHeadLines = 40
 
+func declBody(t *Tree, n NodeID) BlockView {
+	if t.Kind(n) != FnDecl {
+		return BlockView{}
+	}
+	return t.View(n).AsFnDecl().Body()
+}
+
 // DocText joins the `///` lines attached to a declaration; the parser keeps
 // only the last one in the doc slot, so the earlier lines are read back
 // from the token stream.
 func DocText(t *Tree, n NodeID) string {
-	last := t.Slot(n, "doc")
+	last := t.View(n).AsDecl().Doc().Index()
 	if last == 0 {
 		return ""
 	}

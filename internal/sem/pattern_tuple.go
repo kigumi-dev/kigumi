@@ -7,7 +7,7 @@ import "kigumi/internal/syntax"
 // path to resolve, since a tuple's fields are named by position alone.
 func (c *checker) tuplePattern(p syntax.NodeID, scrutinee TypeID, seen map[string]syntax.NodeID) PatInfo {
 	tt := c.r.Types
-	subs := c.t.Children(p)
+	subs := c.t.List(p).AppendIDs(nil)
 	ent, ok := tt.tupleEntity(len(subs))
 	if !ok {
 		c.errAt(p, cTupleArity, len(subs))

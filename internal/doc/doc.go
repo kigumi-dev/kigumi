@@ -83,7 +83,7 @@ func Package(p *driver.Package, opts Options) string {
 		if strings.HasSuffix(t.File.Name, "_test.kg") {
 			continue
 		}
-		for _, d := range t.Children(t.Root) {
+		for d := range t.List(t.Root).IDs() {
 			e, ok := declEntry(t, d, opts.All)
 			if !ok {
 				continue
@@ -163,17 +163,20 @@ func declEntry(t *syntax.Tree, d syntax.NodeID, all bool) (entry, bool) {
 	default:
 		return entry{}, false
 	}
-	if !all && t.Slot(d, "vis") == 0 {
+	decl := t.View(d).AsDecl()
+	if !all && !decl.Vis().Valid() {
 		return entry{}, false
 	}
-	nameTok := t.Slot(d, "name")
-	if nameTok == 0 {
+	name := decl.Name()
+	if !name.Valid() {
 		return entry{}, false
 	}
-	e := entry{kind: kind, name: t.TokText(nameTok), head: syntax.DeclHead(t, d), doc: syntax.DocText(t, d)}
-	if recv := t.Slot(d, "recv"); recv != 0 && kind == syntax.FnDecl {
-		sp := t.Span(syntax.NodeID(recv))
-		e.recv = ownerName(string(t.File.Src[sp.Start:sp.End]))
+	e := entry{kind: kind, name: name.Text(), head: syntax.DeclHead(t, d), doc: syntax.DocText(t, d)}
+	if kind == syntax.FnDecl {
+		if recv := decl.AsFnDecl().Recv(); recv.Valid() {
+			sp := recv.Span()
+			e.recv = ownerName(string(t.File.Src[sp.Start:sp.End]))
+		}
 	}
 	return e, true
 }

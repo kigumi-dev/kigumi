@@ -38,9 +38,7 @@ func (c *checker) fixedPayload(args []syntax.NodeID) bool {
 }
 
 func (c *checker) fixedValue(n syntax.NodeID, t TypeID) bool {
-	for c.t.Kind(n) == syntax.Paren {
-		n = syntax.NodeID(c.t.Nodes[n].Lhs)
-	}
+	n = c.t.Unparen(n)
 	if v, ok := c.info.Literals[n]; ok {
 		return v.Kind == constInt || v.Kind == constFloat || v.Kind == constString || v.Kind == constChar
 	}

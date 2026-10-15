@@ -8,11 +8,11 @@ func (r *Result) checkSchemas(f FileID, refs []MetaRef) {
 	t := r.tree(f)
 	seen := map[string]bool{}
 	for _, m := range refs {
-		path := syntax.NodeID(t.Nodes[m.Node].Lhs)
-		key := pathText(t, path, ".")
+		path := t.View(m.Node).AsMetaItem().Path()
+		key := path.Join(".")
 		if m.Head != 0 {
 			if !r.isSchema(m.Head) {
-				r.errAt(f, path, cAttrNotSchema, key)
+				r.errAt(f, path.ID(), cAttrNotSchema, key)
 				continue
 			}
 			if seen[key] && !r.schemaRepeatable(m.Head) {
@@ -59,9 +59,9 @@ func (r *Result) schemaAttr(id EntityID, f FileID, a syntax.NodeID) {
 	}
 	info.Schema = true
 	t := r.tree(f)
-	args := t.Children(syntax.NodeID(t.Nodes[a].Rhs))
-	lits := make([]Literal, 0, len(args))
-	for _, arg := range args {
+	args := t.View(a).AsAttr().Args()
+	lits := make([]Literal, 0, args.Len())
+	for arg := range args.IDs() {
 		v, ok := r.evalConst(f, arg)
 		if !ok {
 			r.errAt(f, arg, cSchemaBadArg)

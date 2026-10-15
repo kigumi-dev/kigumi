@@ -7,80 +7,79 @@ import (
 
 func (p *printer) typeDecl(id syntax.NodeID) {
 	p.prefix(id)
-	s := p.t.Slots(id)
-	p.write("type " + p.tok(s[3]))
-	if s[4] != 0 {
-		p.genericParams(syntax.NodeID(s[4]))
+	d := p.t.View(id).AsTypeDecl()
+	p.write("type " + d.Name().Text())
+	if g := d.Generics(); g.Valid() {
+		p.genericParams(g.ID())
 	}
-	if s[5] != 0 {
+	if layout := d.Layout(); layout.Valid() {
 		p.write(" layout(")
-		p.layoutArgs(syntax.NodeID(p.node(syntax.NodeID(s[5])).Lhs))
+		p.layoutArgs(layout.Args())
 		p.write(")")
 	}
-	if s[6] == 0 {
+	body := d.Body()
+	if !body.Valid() {
 		return
 	}
 	p.write(" =")
-	body := syntax.NodeID(s[6])
-	switch p.t.Kind(body) {
+	switch body.Kind() {
 	case syntax.ResourceBody:
 		p.write(" resource ")
-		p.fields(body)
+		p.fields(body.AsResourceBody().ListView)
 	case syntax.RecordBody:
 		p.write(" ")
-		p.fields(body)
+		p.fields(body.AsRecordBody().ListView)
 	case syntax.AdtBody:
-		p.variants(body)
+		p.variants(body.ID())
 	case syntax.AliasBody:
 		p.write(" alias ")
-		p.typ(syntax.NodeID(p.node(body).Lhs))
+		p.typ(body.AsAliasBody().Type().ID())
 	case syntax.DefinedBody:
 		p.write(" ")
-		p.typ(syntax.NodeID(p.node(body).Lhs))
+		p.typ(body.AsDefinedBody().Type().ID())
 	}
 }
 
 // layoutArgs prints a `layout(...)` clause's arguments: bare names (`C`,
 // `packed`) and `name: value` args (`align: N`) alike.
-func (p *printer) layoutArgs(list syntax.NodeID) {
-	for i, a := range p.t.Children(list) {
+func (p *printer) layoutArgs(list syntax.ListView) {
+	for i, a := range list.Enumerate() {
 		if i > 0 {
 			p.write(", ")
 		}
-		if p.t.Kind(a) == syntax.FieldInit {
-			p.recordEntry(a)
+		if a.Kind() == syntax.FieldInit {
+			p.recordEntry(a.ID())
 			continue
 		}
-		p.expr(a)
+		p.expr(a.ID())
 	}
 }
 
-func (p *printer) fields(body syntax.NodeID) {
-	fields := p.t.Children(body)
-	if len(fields) == 0 {
+func (p *printer) fields(fields syntax.ListView) {
+	if fields.Len() == 0 {
 		p.write("{}")
 		return
 	}
 	p.write("{")
 	p.newline()
 	p.indent++
-	for i, f := range fields {
-		s := p.t.Slots(f)
-		if i > 0 && (s[3] != 0 || p.t.Slots(fields[i-1])[3] != 0) {
+	for i, fv := range fields.Enumerate() {
+		f := fv.AsField()
+		if i > 0 && (f.Metadata().Valid() || fields.At(i-1).AsField().Metadata().Valid()) {
 			p.blank()
 		}
-		p.flushComments(p.firstTok(f))
-		if s[0] != 0 {
-			p.visibility(syntax.NodeID(s[0]))
+		p.flushComments(p.firstTok(f.ID()))
+		if vis := f.Vis(); vis.Valid() {
+			p.visibility(vis)
 		}
-		if s[1]&syntax.FlagMut != 0 {
+		if f.Flags()&syntax.FlagMut != 0 {
 			p.write("mut ")
 		}
-		p.write(p.tok(p.node(f).Tok) + " ")
-		p.typ(syntax.NodeID(s[2]))
-		if s[3] != 0 {
+		p.write(f.Name().Text() + " ")
+		p.typ(f.Type().ID())
+		if meta := f.Metadata(); meta.Valid() {
 			p.write(" ")
-			p.metadata(syntax.NodeID(s[3]))
+			p.metadata(meta)
 		}
 		p.newline()
 	}
@@ -88,16 +87,16 @@ func (p *printer) fields(body syntax.NodeID) {
 	p.write("}")
 }
 
-func (p *printer) metadata(meta syntax.NodeID) {
+func (p *printer) metadata(meta syntax.MetadataView) {
 	p.write("{")
 	p.newline()
 	p.indent++
-	for _, item := range p.t.Children(meta) {
-		n := p.node(item)
-		p.write(p.pathText(syntax.NodeID(n.Lhs)))
-		if n.Rhs != 0 {
+	for iv := range meta.Views() {
+		item := iv.AsMetaItem()
+		p.write(item.Path().Join("."))
+		if args := item.Args(); args.Valid() {
 			p.write("(")
-			p.exprList(syntax.NodeID(n.Rhs))
+			p.exprList(args.ID())
 			p.write(")")
 		}
 		p.newline()
@@ -107,65 +106,68 @@ func (p *printer) metadata(meta syntax.NodeID) {
 }
 
 func (p *printer) typ(id syntax.NodeID) {
-	n := p.node(id)
-	switch n.Kind {
+	v := p.t.View(id)
+	switch v.Kind() {
 	case syntax.TypePath:
-		p.write(p.pathText(syntax.NodeID(n.Lhs)))
-		if n.Rhs != 0 {
+		tp := v.AsTypePath()
+		p.write(tp.Path().Join("."))
+		if args := tp.Args(); args.Valid() {
 			p.write("[")
-			for i, a := range p.t.Children(syntax.NodeID(n.Rhs)) {
+			for i, a := range args.Enumerate() {
 				if i > 0 {
 					p.write(", ")
 				}
-				switch p.t.Kind(a) {
+				switch a.Kind() {
 				case syntax.GenericParam:
-					p.genericParam(a)
+					p.genericParam(a.AsGenericParam())
 				case syntax.IntLit, syntax.BoolLit:
-					p.expr(a)
+					p.expr(a.ID())
 				case syntax.TypeLifetime:
-					p.write(p.tok(p.node(a).Tok))
+					p.write(a.Tok().Text())
 				default:
-					p.typ(a)
+					p.typ(a.ID())
 				}
 			}
 			p.write("]")
 		}
 	case syntax.TypeOptional:
-		p.typ(syntax.NodeID(n.Lhs))
+		p.typ(v.AsTypeOptional().Inner().ID())
 		p.write("?")
 	case syntax.TypeResult:
-		p.typ(syntax.NodeID(n.Lhs))
+		p.typ(v.AsTypeResult().Inner().ID())
 		p.write("!")
 	case syntax.TypePtr:
-		if n.Lhs&syntax.FlagMut != 0 {
+		ptr := v.AsTypePtr()
+		if ptr.Flags()&syntax.FlagMut != 0 {
 			p.write("*mut ")
 		} else {
 			p.write("*const ")
 		}
-		p.typ(syntax.NodeID(n.Rhs))
+		p.typ(ptr.Pointee().ID())
 	case syntax.TypeRef:
+		ref := v.AsTypeRef()
 		p.write("&")
-		if p.t.Toks[n.Tok].Kind == token.Lifetime {
-			p.write(p.tok(n.Tok) + " ")
+		if ref.Op().Kind() == token.Lifetime {
+			p.write(ref.Op().Text() + " ")
 		}
-		if n.Lhs&syntax.FlagMut != 0 {
+		if ref.Flags()&syntax.FlagMut != 0 {
 			p.write("mut ")
 		}
-		p.typ(syntax.NodeID(n.Rhs))
+		p.typ(ref.Pointee().ID())
 	case syntax.Paren:
 		p.write("(")
-		p.typ(syntax.NodeID(n.Lhs))
+		p.typ(v.AsParen().Inner().ID())
 		p.write(")")
 	case syntax.TypeTuple:
-		items := p.t.Children(id)
+		items := v.AsTypeTuple()
 		p.write("(")
-		for i, a := range items {
+		for i, a := range items.Enumerate() {
 			if i > 0 {
 				p.write(", ")
 			}
-			p.typ(a)
+			p.typ(a.ID())
 		}
-		if len(items) == 1 {
+		if items.Len() == 1 {
 			p.write(",")
 		}
 		p.write(")")

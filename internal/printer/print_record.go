@@ -3,19 +3,19 @@ package printer
 import "kigumi/internal/syntax"
 
 func (p *printer) recordLit(id syntax.NodeID) {
-	n := p.node(id)
-	p.expr(syntax.NodeID(n.Lhs))
-	entries := p.t.Children(syntax.NodeID(n.Rhs))
-	if len(entries) == 1 {
+	r := p.t.View(id).AsRecordLit()
+	p.expr(r.Head().ID())
+	entries := r.Fields()
+	if entries.Len() == 1 {
 		p.write(" { ")
-		p.recordEntry(entries[0])
+		p.recordEntry(entries.ItemID(0))
 		p.write(" }")
 		return
 	}
 	p.write(" {")
 	p.newline()
 	p.indent++
-	for _, e := range entries {
+	for e := range entries.IDs() {
 		p.withIndent(func() { p.recordEntry(e) })
 		p.newline()
 	}
@@ -24,31 +24,31 @@ func (p *printer) recordLit(id syntax.NodeID) {
 }
 
 func (p *printer) recordEntry(e syntax.NodeID) {
-	n := p.node(e)
-	if n.Kind == syntax.Spread {
+	v := p.t.View(e)
+	if v.Kind() == syntax.Spread {
 		p.write("..")
-		p.expr(syntax.NodeID(n.Lhs))
+		p.expr(v.AsSpread().Value().ID())
 		return
 	}
-	p.write(p.tok(n.Tok) + ": ")
-	p.expr(syntax.NodeID(n.Lhs))
+	f := v.AsFieldInit()
+	p.write(f.Name().Text() + ": ")
+	p.expr(f.Value().ID())
 }
 
 // tupleLit prints `(a, b, ...)`; a single element keeps its trailing comma
 // so it reparses as a tuple and not a grouped expression.
 func (p *printer) tupleLit(id syntax.NodeID) {
-	items := p.t.Children(id)
 	p.write("(")
 	p.exprList(id)
-	if len(items) == 1 {
+	if p.t.List(id).Len() == 1 {
 		p.write(",")
 	}
 	p.write(")")
 }
 
 func (p *printer) lambda(id syntax.NodeID) {
-	n := p.node(id)
-	p.params(syntax.NodeID(n.Lhs))
+	l := p.t.View(id).AsLambda()
+	p.params(l.Params().ID())
 	p.write(" => ")
-	p.expr(syntax.NodeID(n.Rhs))
+	p.expr(l.Body().ID())
 }

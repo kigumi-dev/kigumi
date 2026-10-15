@@ -67,8 +67,9 @@ func (r *Result) collectFile(f FileID) {
 			s := contextKeyDecl(t, d)
 			r.declareTop(f, d, s.Name, EntContextKey, r.resolveVis(f, s.Vis, r.packageOf(f)))
 		case syntax.TestDecl:
-			id := r.newEntity(Entity{Kind: EntTest, Name: t.TokText(t.Nodes[d].Lhs), Pkg: r.packageOf(f), File: f, Node: d, Tok: t.Nodes[d].Tok})
-			r.Entities[id].Detail = r.addFn(FnInfo{Body: syntax.NodeID(t.Nodes[d].Rhs)})
+			td := t.View(d).AsTestDecl()
+			id := r.newEntity(Entity{Kind: EntTest, Name: td.Name().Text(), Pkg: r.packageOf(f), File: f, Node: d, Tok: td.Tok().Index()})
+			r.Entities[id].Detail = r.addFn(FnInfo{Body: td.Body().ID()})
 			r.Files[f].Defs[d] = id
 		case syntax.AbiBlock:
 			r.collectAbi(f, d)
@@ -78,15 +79,20 @@ func (r *Result) collectFile(f FileID) {
 
 func (r *Result) collectAbi(f FileID, block syntax.NodeID) {
 	t := r.tree(f)
-	abiArgs := t.Children(syntax.NodeID(t.Nodes[block].Lhs))
-	abi := t.TokText(t.Nodes[abiArgs[0]].Tok)
-	export := t.Toks[t.Nodes[block].Tok].Kind != token.KwExtern
+	blk := t.View(block).AsAbiBlock()
+	abiArgs := blk.Abis()
+	abi := abiArgs.At(0).Tok().Text()
+	export := blk.Tok().Kind() != token.KwExtern
 	if abi == "interrupt" && !export {
-		r.errAt(f, abiArgs[0], cInterruptExtern)
+		r.errAt(f, abiArgs.ItemID(0), cInterruptExtern)
 	}
 	noalloc, naked := false, false
-	for _, a := range abiArgs[1:] {
-		switch t.TokText(t.Nodes[a].Tok) {
+	for i, av := range abiArgs.Enumerate() {
+		if i == 0 {
+			continue
+		}
+		a := av.ID()
+		switch av.Tok().Text() {
 		case "noalloc":
 			noalloc = true
 		case "naked":
@@ -96,7 +102,7 @@ func (r *Result) collectAbi(f FileID, block syntax.NodeID) {
 			}
 		}
 	}
-	for _, d := range t.Children(syntax.NodeID(t.Nodes[block].Rhs)) {
+	for d := range blk.Decls().IDs() {
 		switch t.Kind(d) {
 		case syntax.FnDecl:
 			if export {

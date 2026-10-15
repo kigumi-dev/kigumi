@@ -16,7 +16,7 @@ type refCellValue struct {
 func (c *checker) noteLentRefArg(a syntax.NodeID, param EntityID, async bool) {
 	// mir's peelNoOp sees through the same layer, and a coerced one stops both.
 	for c.t.Kind(a) == syntax.Paren && len(c.info.Coerce[a].Steps) == 0 {
-		a = syntax.NodeID(c.t.Nodes[a].Lhs)
+		a = c.t.View(a).AsParen().Inner().ID()
 	}
 	// An async call is already reported against the parameter by noteRefPlaceArg.
 	if async || c.t.Kind(a) == syntax.BorrowExpr {

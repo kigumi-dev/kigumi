@@ -1,10 +1,8 @@
 package sem
 
-import "kigumi/internal/syntax"
-
 func (r *Result) checkTestBody(id EntityID) {
 	e := &r.Entities[id]
-	body := syntax.NodeID(r.tree(e.File).Nodes[e.Node].Rhs)
+	body := r.tree(e.File).View(e.Node).AsTestDecl().Body().ID()
 	scope := r.newScope(ScopeFn, r.fileScopes[e.File], e.File, e.Node)
 	r.Scopes[scope].Fn = id
 	var edges []EffectEdge

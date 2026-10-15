@@ -5,9 +5,9 @@ import "kigumi/internal/syntax"
 // resolveCtorPath resolves the path of a constructor pattern to a variant,
 // or to a type for an existential type test.
 func (c *checker) resolveCtorPath(p, path syntax.NodeID, scrutinee TypeID) (EntityID, bool) {
-	segs := c.t.PathToks(path)
-	name := c.t.TokText(segs[len(segs)-1])
-	if len(segs) == 1 {
+	segs := c.t.View(path).AsPath()
+	name := segs.Last().Text()
+	if segs.Len() == 1 {
 		if b, _, ok := c.r.lookup(c.scope, name); ok {
 			ent := c.r.follow(b.Ent)
 			if b.Ent != 0 && (c.r.Entities[ent].Kind == EntVariant || c.r.Entities[ent].Kind == EntType || c.r.Entities[ent].Kind == EntAlias) {
@@ -85,19 +85,14 @@ func (c *checker) foreignVariantHint(p syntax.NodeID, name string, scrutinee Typ
 }
 
 func (c *checker) prefixPath(path syntax.NodeID) syntax.NodeID {
-	t := c.t
-	segs := t.PathToks(path)
-	start := uint32(len(t.Extra))
-	t.Extra = append(t.Extra, segs[:len(segs)-1]...)
-	id := syntax.NodeID(len(t.Nodes))
-	t.Nodes = append(t.Nodes, syntax.Node{Kind: syntax.Path, Tok: segs[0], Lhs: start, Rhs: uint32(len(t.Extra))})
+	id := c.t.AddPathPrefix(path)
 	c.growTables()
 	return id
 }
 
 // growTables extends side tables after a synthetic node is added.
 func (c *checker) growTables() {
-	for len(c.info.Types) < len(c.t.Nodes) {
+	for len(c.info.Types) < c.t.NodeCount() {
 		c.info.Types = append(c.info.Types, 0)
 		c.info.Uses = append(c.info.Uses, 0)
 		c.info.Defs = append(c.info.Defs, 0)
@@ -106,10 +101,10 @@ func (c *checker) growTables() {
 }
 
 func (c *checker) ctorPattern(p syntax.NodeID, scrutinee TypeID, seen map[string]syntax.NodeID) PatInfo {
-	node := c.t.Nodes[p]
+	ctor := c.t.View(p).AsPatCtor()
 	tt := c.r.Types
-	subs := c.t.Children(syntax.NodeID(node.Rhs))
-	ent, ok := c.resolveCtorPath(p, syntax.NodeID(node.Lhs), scrutinee)
+	subs := ctor.Args().AppendIDs(nil)
+	ent, ok := c.resolveCtorPath(p, ctor.Path().ID(), scrutinee)
 	if !ok || ent == 0 {
 		for _, s := range subs {
 			c.patternInner(s, TyPoison, false, seen)

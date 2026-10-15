@@ -4,12 +4,14 @@ import "kigumi/internal/syntax"
 
 // contextExpr lowers `context (providers...) { body }` to a block that binds
 // each provider expression to a hidden local once, ahead of the body.
-func (l *lowerer) contextExpr(n syntax.NodeID, node syntax.Node) *Expr {
-	providers := l.t.Children(syntax.NodeID(node.Lhs))
+func (l *lowerer) contextExpr(n syntax.NodeID) *Expr {
+	ctx := l.t.View(n).AsContext()
+	providers := ctx.Provides()
 	locals := l.info.CtxProviders[n]
-	body := l.block(syntax.NodeID(node.Rhs))
-	prelude := make([]*Stmt, 0, len(providers))
-	for i, p := range providers {
+	body := l.block(ctx.Body().ID())
+	prelude := make([]*Stmt, 0, providers.Len())
+	for i, pv := range providers.Enumerate() {
+		p := pv.ID()
 		if i >= len(locals) || locals[i] == 0 {
 			continue
 		}

@@ -10,13 +10,13 @@ import (
 // clearing it would lose a value still readable through it.
 func (l *lowerer) move(n, target syntax.NodeID) *Expr {
 	for l.t.Kind(target) == syntax.Paren {
-		target = syntax.NodeID(l.t.Nodes[target].Lhs)
+		target = l.t.View(target).AsParen().Inner().ID()
 	}
 	if l.t.Kind(target) != syntax.MemberExpr {
 		return l.expr(target)
 	}
 	fld := l.r.Field(l.info.Uses[target])
-	base := l.expr(syntax.NodeID(l.t.Nodes[target].Lhs))
+	base := l.expr(l.t.View(target).AsMember().Base().ID())
 	kind := FieldMove
 	if l.r.IsCopy(fld.Type) {
 		kind = Field
@@ -94,21 +94,21 @@ func (l *lowerer) ctxBindExpr(n syntax.NodeID, b sem.CtxBind) *Expr {
 }
 
 func (l *lowerer) member(n syntax.NodeID) *Expr {
-	node := l.t.Nodes[n]
+	base := l.t.View(n).AsMember().Base().ID()
 	ent := l.info.Uses[n]
 	if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallMethodValue {
 		out := l.node(n, MethodValue)
-		out.Ent, out.Witness, out.Passes, out.Args = call.Callee, call.Witness, call.Passes, []*Expr{l.expr(syntax.NodeID(node.Lhs))}
+		out.Ent, out.Witness, out.Passes, out.Args = call.Callee, call.Witness, call.Passes, []*Expr{l.expr(base)}
 		return out
 	}
 	switch l.r.Entity(ent).Kind {
 	case sem.EntField:
 		out := l.node(n, Field)
-		out.Args, out.Index = []*Expr{l.expr(syntax.NodeID(node.Lhs))}, l.r.Field(ent).Index
+		out.Args, out.Index = []*Expr{l.expr(base)}, l.r.Field(ent).Index
 		return out
 	case sem.EntType:
 		out := l.node(n, DefinedUnwrap)
-		out.Args = []*Expr{l.expr(syntax.NodeID(node.Lhs))}
+		out.Args = []*Expr{l.expr(base)}
 		return out
 	case sem.EntFn:
 		return l.fnItem(n, ent)
@@ -154,7 +154,7 @@ func (l *lowerer) stringLit(n syntax.NodeID) *Expr {
 
 func (l *lowerer) byteStringLit(n syntax.NodeID) *Expr {
 	out := l.node(n, Lit)
-	out.Type, out.Lit = sem.TyBytes, sem.Literal{Kind: sem.LitBytes, Str: string(syntax.DecodeByteString(l.t.TokText(l.t.Nodes[n].Tok)))}
+	out.Type, out.Lit = sem.TyBytes, sem.Literal{Kind: sem.LitBytes, Str: string(syntax.DecodeByteString(l.t.View(n).Tok().Text()))}
 	return out
 }
 

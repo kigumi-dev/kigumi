@@ -116,12 +116,12 @@ func (r *Result) writeLiteralFields(site methodFieldCallSite, owner EntityID, li
 	}
 	t := r.tree(site.file)
 	changed := false
-	for _, entry := range t.Children(syntax.NodeID(t.Nodes[lit].Rhs)) {
+	for entry := range t.View(lit).AsRecordLit().Fields().IDs() {
 		field := r.Files[site.file].Uses[entry]
 		if t.Kind(entry) == syntax.Spread || field == 0 || !r.holdsFn(r.Entities[field].Type, 0) || slices.Contains(skip, field) {
 			continue
 		}
-		init := stripParens(t, syntax.NodeID(t.Nodes[entry].Lhs))
+		init := stripParens(t, t.View(entry).AsFieldInit().Value().ID())
 		ft := r.Entities[field].Type
 		if r.fnTypedType(ft) || r.Types.Kind(ft) == KIface {
 			if r.applyFieldWriteExpr(site.file, fieldFnKey{Ent: owner, Field: field}, init, site.caller, site.node) {
@@ -145,19 +145,16 @@ func (r *Result) writeLiteralFields(site methodFieldCallSite, owner EntityID, li
 
 func (r *Result) literalInit(file FileID, lit syntax.NodeID, field EntityID) syntax.NodeID {
 	t := r.tree(file)
-	for _, entry := range t.Children(syntax.NodeID(t.Nodes[lit].Rhs)) {
+	for entry := range t.View(lit).AsRecordLit().Fields().IDs() {
 		if t.Kind(entry) != syntax.Spread && r.Files[file].Uses[entry] == field {
-			return syntax.NodeID(t.Nodes[entry].Lhs)
+			return t.View(entry).AsFieldInit().Value().ID()
 		}
 	}
 	return 0
 }
 
 func stripParens(t *syntax.Tree, n syntax.NodeID) syntax.NodeID {
-	for t.Kind(n) == syntax.Paren {
-		n = syntax.NodeID(t.Nodes[n].Lhs)
-	}
-	return n
+	return t.Unparen(n)
 }
 
 // The passes that apply result sites repeat, so a union is queued once per copy site.

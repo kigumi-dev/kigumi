@@ -53,14 +53,14 @@ func Lower(r *sem.Result, ent sem.EntityID) *Func {
 	case sem.EntImplicitMain:
 		out.Kind, out.Ret, out.Name = FuncMain, failing, "main"
 		out.Main = &Block{Type: sem.TyUnit, Node: l.t.Root}
-		for _, d := range l.t.Children(l.t.Root) {
+		for d := range l.t.List(l.t.Root).IDs() {
 			if isStatement(l.t.Kind(d)) {
 				out.Main.Stmts = append(out.Main.Stmts, l.stmt(d))
 			}
 		}
 	case sem.EntTest:
 		out.Kind, out.Ret, out.Name = FuncTest, failing, "test."+e.Name
-		out.Body = l.expr(syntax.NodeID(l.t.Nodes[e.Node].Rhs))
+		out.Body = l.expr(l.t.View(e.Node).AsTestDecl().Body().ID())
 	default:
 		return nil
 	}
@@ -132,35 +132,36 @@ func (l *lowerer) coercion(n syntax.NodeID) Coercion {
 // statement as the value.
 func (l *lowerer) block(n syntax.NodeID) *Block {
 	b := &Block{Type: l.typeOf(n), Node: n, Coercion: l.coercion(n)}
-	stmts := l.t.Children(n)
-	for i, s := range stmts {
-		if i == len(stmts)-1 && l.t.Kind(s) == syntax.ExprStmt {
-			b.Tail = l.expr(syntax.NodeID(l.t.Nodes[s].Lhs))
+	stmts := l.t.List(n)
+	for i, sv := range stmts.Enumerate() {
+		if i == stmts.Len()-1 && sv.Kind() == syntax.ExprStmt {
+			b.Tail = l.expr(sv.AsExprStmt().Expr().ID())
 			break
 		}
-		b.Stmts = append(b.Stmts, l.stmt(s))
+		b.Stmts = append(b.Stmts, l.stmt(sv.ID()))
 	}
 	return b
 }
 
 func (l *lowerer) stmt(n syntax.NodeID) *Stmt {
-	node := l.t.Nodes[n]
+	v := l.t.View(n)
 	out := &Stmt{Loc: l.loc(n), Node: n}
-	switch node.Kind {
+	switch v.Kind() {
 	case syntax.LetStmt:
+		let := v.AsLet()
 		out.Kind = LetStmt
-		out.Expr = l.expr(syntax.NodeID(l.t.Slot(n, "init")))
-		out.Pat = l.pattern(syntax.NodeID(l.t.Slot(n, "pattern")))
-		if els := syntax.NodeID(l.t.Slot(n, "else")); els != 0 {
-			out.Else = l.block(els)
+		out.Expr = l.expr(let.Init().ID())
+		out.Pat = l.pattern(let.Pattern().ID())
+		if els := let.Else(); els.Valid() {
+			out.Else = l.block(els.ID())
 		}
 	case syntax.AssignStmt:
 		return l.assign(n, out)
 	case syntax.ExprStmt:
-		out.Kind, out.Expr = ExprStmt, l.expr(syntax.NodeID(node.Lhs))
+		out.Kind, out.Expr = ExprStmt, l.expr(v.AsExprStmt().Expr().ID())
 	case syntax.DeferStmt, syntax.ErrdeferStmt:
-		out.Kind, out.Err = DeferStmt, node.Kind == syntax.ErrdeferStmt
-		body := syntax.NodeID(node.Lhs)
+		out.Kind, out.Err = DeferStmt, v.Kind() == syntax.ErrdeferStmt
+		body := l.deferBody(v)
 		if l.t.Kind(body) == syntax.Block {
 			out.Block = l.block(body)
 		} else {
@@ -172,10 +173,17 @@ func (l *lowerer) stmt(n syntax.NodeID) *Stmt {
 	return out
 }
 
+func (l *lowerer) deferBody(v syntax.View) syntax.NodeID {
+	if v.Kind() == syntax.ErrdeferStmt {
+		return v.AsErrdefer().Body().ID()
+	}
+	return v.AsDefer().Body().ID()
+}
+
 func (l *lowerer) assign(n syntax.NodeID, out *Stmt) *Stmt {
-	node := l.t.Nodes[n]
-	lhs, rhs := syntax.NodeID(node.Lhs), syntax.NodeID(node.Rhs)
-	if l.t.Kind(lhs) == syntax.Ident && l.t.TokText(l.t.Nodes[lhs].Tok) == "_" {
+	a := l.t.View(n).AsAssign()
+	lhs, rhs := a.Target().ID(), a.Value().ID()
+	if l.t.Kind(lhs) == syntax.Ident && l.t.View(lhs).Tok().Text() == "_" {
 		out.Kind, out.Expr = DiscardStmt, l.expr(rhs)
 		return out
 	}

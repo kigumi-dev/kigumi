@@ -17,7 +17,7 @@ func (c *checker) noteStrongFieldWrite(stmt, lhs syntax.NodeID) {
 	if c.fn == 0 || len(c.lambdas) > 0 {
 		return
 	}
-	if body := c.r.Fn(c.fn).Body; body == 0 || !slices.Contains(c.t.Children(body), stmt) {
+	if body := c.r.Fn(c.fn).Body; body == 0 || !slices.Contains(c.t.List(body).AppendIDs(nil), stmt) {
 		return
 	}
 	p, ok := c.buildPlace(lhs)

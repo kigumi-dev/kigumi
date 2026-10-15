@@ -112,7 +112,9 @@ func (c *checker) rejectLoopScalarMutBinds(p syntax.NodeID) {
 			}
 		}
 	}
-	c.t.EachChild(p, c.rejectLoopScalarMutBinds)
+	for ch := range c.t.View(p).Children() {
+		c.rejectLoopScalarMutBinds(ch.ID())
+	}
 }
 
 // Skips the lang-item mechanism's missing-package diagnostic: most programs
@@ -126,17 +128,17 @@ func (r *Result) mapEntity() EntityID {
 }
 
 func (c *checker) synthReturn(n syntax.NodeID) TypeID {
-	node := c.t.Nodes[n]
+	ret := c.t.View(n).AsReturn()
 	if c.cleanup > 0 {
 		c.errAt(n, cCleanupControlFlow, "`return`")
 	}
-	if node.Lhs == 0 {
+	if !ret.Value().Valid() {
 		if c.retType != TyUnit && c.retType != TyPoison && c.retType != c.r.unitResult() {
 			c.errAt(n, cReturnMissingValue, c.retType)
 		}
 		return TyNever
 	}
-	val := syntax.NodeID(node.Lhs)
+	val := ret.Value().ID()
 	c.check(val, c.retType)
 	if len(c.lambdas) == 0 {
 		c.retLeaves = append(c.retLeaves, val)
@@ -147,7 +149,7 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 }
 
 func (c *checker) synthBreak(n syntax.NodeID) TypeID {
-	kw := c.t.TokText(c.t.Nodes[n].Tok)
+	kw := c.t.View(n).Tok().Text()
 	if c.cleanup > 0 {
 		c.errAt(n, cCleanupControlFlow, "`"+kw+"`")
 	} else if c.loop == 0 {
@@ -156,7 +158,7 @@ func (c *checker) synthBreak(n syntax.NodeID) TypeID {
 	}
 	if kw == "break" {
 		c.brokeOut = true
-		val := syntax.NodeID(c.t.Nodes[n].Lhs)
+		val := c.t.View(n).AsBreak().Value().ID()
 		switch {
 		case c.breaks != nil:
 			t, node := TyUnit, n

@@ -4,11 +4,11 @@ import "kigumi/internal/syntax"
 
 // synthTuple checks a tuple literal `(a, b, ...)`.
 func (c *checker) synthTuple(n syntax.NodeID, want TypeID) TypeID {
-	items := c.t.Children(n)
-	ent, ok := c.r.Types.tupleEntity(len(items))
+	items := c.t.List(n)
+	ent, ok := c.r.Types.tupleEntity(items.Len())
 	if !ok {
-		c.errAt(n, cTupleArity, len(items))
-		for _, it := range items {
+		c.errAt(n, cTupleArity, items.Len())
+		for it := range items.IDs() {
 			c.synth(it)
 		}
 		return TyPoison
@@ -23,7 +23,7 @@ func (c *checker) synthTuple(n syntax.NodeID, want TypeID) TypeID {
 	for i, p := range info.Params {
 		subst[p] = typeArgs[i]
 	}
-	for i, it := range items {
+	for i, it := range items.EnumerateIDs() {
 		c.checkArg(it, c.r.Types.Subst(c.r.Entities[info.Fields[i]].Type, subst), 0, false)
 	}
 	c.buildEdge(n, result)

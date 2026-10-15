@@ -3,7 +3,7 @@ package sem
 import "kigumi/internal/syntax"
 
 func (c *checker) declareLocal(n syntax.NodeID, name string, typ TypeID, mut bool) EntityID {
-	e := Entity{Kind: EntLocal, Name: name, Pkg: c.pkg, File: c.f, Node: n, Tok: c.t.Nodes[n].Tok, Parent: c.fn, Type: typ}
+	e := Entity{Kind: EntLocal, Name: name, Pkg: c.pkg, File: c.f, Node: n, Tok: c.t.View(n).Tok().Index(), Parent: c.fn, Type: typ}
 	if mut {
 		e.Flags |= EfMut
 	}

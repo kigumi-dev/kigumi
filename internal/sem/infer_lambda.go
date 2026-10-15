@@ -16,16 +16,16 @@ type lambdaCtx struct {
 // synthLambda: want is a fn type, an Fn-constrained type parameter, or 0
 // (then every parameter needs an annotation).
 func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	params := c.t.Children(syntax.NodeID(node.Lhs))
-	body := syntax.NodeID(node.Rhs)
+	lam := c.t.View(n).AsLambda()
+	params := lam.Params().AppendIDs(nil)
+	body := lam.Body().ID()
 	tt := c.r.Types
 	target := c.lambdaTarget(want)
 	if target != 0 && len(tt.Node(target).Args) != len(params) {
 		c.errAt(n, cLambdaArity, len(params), plural(len(params)), target, len(tt.Node(target).Args))
 		return TyPoison
 	}
-	id := c.r.newEntity(Entity{Kind: EntClosure, Name: "closure", Pkg: c.pkg, File: c.f, Node: n, Tok: node.Tok, Parent: c.fn})
+	id := c.r.newEntity(Entity{Kind: EntClosure, Name: "closure", Pkg: c.pkg, File: c.f, Node: n, Tok: lam.Tok().Index(), Parent: c.fn})
 	c.r.Entities[id].Detail = c.r.addClosure(ClosureInfo{})
 	c.info.Defs[n] = id
 	saved := c.scope
@@ -108,7 +108,7 @@ func (c *checker) lambdaParams(closure EntityID, params []syntax.NodeID, target 
 	bad := false
 	for i, p := range params {
 		ps := param(c.t, p)
-		name := c.t.TokText(c.t.Nodes[p].Tok)
+		name := c.t.View(p).Tok().Text()
 		var pt TypeID
 		if target != 0 {
 			pt = c.vars.settleLiterals(tt.Node(target).Args[i])
@@ -126,7 +126,7 @@ func (c *checker) lambdaParams(closure EntityID, params []syntax.NodeID, target 
 			pt = TyPoison
 			bad = true
 		}
-		pe := Entity{Kind: EntParam, Name: name, Pkg: c.pkg, File: c.f, Node: p, Tok: c.t.Nodes[p].Tok, Parent: closure, Type: pt}
+		pe := Entity{Kind: EntParam, Name: name, Pkg: c.pkg, File: c.f, Node: p, Tok: c.t.View(p).Tok().Index(), Parent: closure, Type: pt}
 		if ps.Flags&syntax.FlagMut != 0 {
 			pe.Flags |= EfMut
 		}

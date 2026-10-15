@@ -7,19 +7,19 @@ import (
 )
 
 func (c *checker) synthUnary(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	op := c.t.Toks[node.Tok].Kind
+	u := c.t.View(n).AsUnary()
+	op := u.Op().Kind()
 	if isNumericLiteral(c.t, n) {
 		return c.synthLiteral(n, want)
 	}
-	operand := c.synth(syntax.NodeID(node.Lhs))
+	operand := c.synth(u.Operand().ID())
 	tt := c.r.Types
 	operand = c.readThrough(c.vars.resolve(operand))
 	if operand == TyPoison {
 		return TyPoison
 	}
 	if tt.Kind(operand) == KUntyped {
-		operand = c.adopt(c.literalNode(syntax.NodeID(node.Lhs)), defaultOf(operand))
+		operand = c.adopt(c.literalNode(u.Operand().ID()), defaultOf(operand))
 	}
 	switch op {
 	case token.Minus:
@@ -43,12 +43,12 @@ func (c *checker) synthUnary(n syntax.NodeID, want TypeID) TypeID {
 			return operand
 		}
 	}
-	return c.userOperator(n, c.t.TokText(node.Tok), []TypeID{operand}, []syntax.NodeID{syntax.NodeID(node.Lhs)})
+	return c.userOperator(n, u.Op().Text(), []TypeID{operand}, []syntax.NodeID{u.Operand().ID()})
 }
 
 func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	inner := syntax.NodeID(node.Rhs)
+	b := c.t.View(n).AsBorrow()
+	inner := b.Operand().ID()
 	t := c.synthPlace(inner)
 	if w := c.r.Types.Node(c.vars.resolve(want)); w.Kind == KRef && c.r.Types.Kind(c.vars.resolve(t)) == KUntyped {
 		target := c.vars.resolve(w.Elem)
@@ -57,7 +57,7 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 		}
 		t = c.adopt(c.literalNode(inner), target)
 	}
-	mut := node.Lhs&syntax.FlagMut != 0
+	mut := b.Flags()&syntax.FlagMut != 0
 	if staticEnt, ok := c.staticRootOf(inner); ok && c.r.Static(staticEnt).Mut {
 		name := c.r.Entities[staticEnt].Name
 		c.errAt(n, cStaticMutOrdinaryRef, name, name)

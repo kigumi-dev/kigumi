@@ -34,7 +34,7 @@ func Build(m ModuleScope, res *sem.Result, opt Options) (*Module, map[sem.Entity
 		path := p.Path
 		scope = append(scope, path)
 		for _, t := range p.Files {
-			for _, d := range t.Children(t.Root) {
+			for d := range t.List(t.Root).IDs() {
 				decl, ent, ok := buildDeclaration(res, t, d, path)
 				if !ok || (opt.Attr != "" && !hasMetadata(decl.Metadata, opt.Attr)) {
 					continue

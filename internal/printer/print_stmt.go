@@ -6,16 +6,17 @@ import (
 )
 
 func (p *printer) block(id syntax.NodeID) {
-	stmts := p.t.Children(id)
-	if len(stmts) == 0 {
+	stmts := p.t.List(id)
+	if stmts.Len() == 0 {
 		p.write("{}")
 		return
 	}
 	p.write("{")
 	p.newline()
 	p.indent++
-	for i, s := range stmts {
-		if i > 0 && p.blankBefore(int(p.firstTok(s))) {
+	for c := stmts.Cursor(); c.Next(); {
+		s := c.ID()
+		if c.Index() > 0 && p.blankBefore(int(p.firstTok(s))) {
 			p.blank()
 		}
 		p.flushComments(p.firstTok(s))
@@ -50,37 +51,38 @@ func (p *printer) lastTok(s syntax.NodeID) uint32 {
 }
 
 func (p *printer) stmt(id syntax.NodeID) {
-	n := p.node(id)
-	switch n.Kind {
+	v := p.t.View(id)
+	switch v.Kind() {
 	case syntax.LetStmt:
-		s := p.t.Slots(id)
+		s := v.AsLet()
 		p.write("let ")
-		if s[0]&syntax.FlagMut != 0 {
+		if s.Flags()&syntax.FlagMut != 0 {
 			p.write("mut ")
 		}
-		p.pattern(syntax.NodeID(s[1]))
-		if s[2] != 0 {
+		p.pattern(s.Pattern().ID())
+		if typ := s.Type(); typ.Valid() {
 			p.write(": ")
-			p.typ(syntax.NodeID(s[2]))
+			p.typ(typ.ID())
 		}
 		p.write(" = ")
-		p.expr(syntax.NodeID(s[3]))
-		if s[4] != 0 {
+		p.expr(s.Init().ID())
+		if els := s.Else(); els.Valid() {
 			p.write(" else ")
-			p.block(syntax.NodeID(s[4]))
+			p.block(els.ID())
 		}
 	case syntax.ExprStmt:
-		p.expr(syntax.NodeID(n.Lhs))
+		p.expr(v.AsExprStmt().Expr().ID())
 	case syntax.AssignStmt:
-		p.expr(syntax.NodeID(n.Lhs))
-		p.write(" " + p.tok(n.Tok) + " ")
-		p.expr(syntax.NodeID(n.Rhs))
+		s := v.AsAssign()
+		p.expr(s.Target().ID())
+		p.write(" " + s.Op().Text() + " ")
+		p.expr(s.Value().ID())
 	case syntax.DeferStmt:
 		p.write("defer ")
-		p.cleanup(syntax.NodeID(n.Lhs))
+		p.cleanup(v.AsDefer().Body().ID())
 	case syntax.ErrdeferStmt:
 		p.write("errdefer ")
-		p.cleanup(syntax.NodeID(n.Lhs))
+		p.cleanup(v.AsErrdefer().Body().ID())
 	default:
 		p.expr(id)
 	}
@@ -95,30 +97,30 @@ func (p *printer) cleanup(body syntax.NodeID) {
 }
 
 func (p *printer) ifExpr(id syntax.NodeID) {
-	s := p.t.Slots(id)
+	s := p.t.View(id).AsIf()
 	p.write("if ")
-	p.expr(syntax.NodeID(s[0]))
+	p.expr(s.Cond().ID())
 	p.write(" ")
-	p.block(syntax.NodeID(s[1]))
-	p.elseClause(syntax.NodeID(s[2]))
+	p.block(s.Then().ID())
+	p.elseClause(s.Else().ID())
 }
 
 func (p *printer) ifLet(id syntax.NodeID) {
-	s := p.t.Slots(id)
+	s := p.t.View(id).AsIfLet()
 	p.write("if let ")
-	if s[0]&syntax.FlagMut != 0 {
+	if s.Flags()&syntax.FlagMut != 0 {
 		p.write("mut ")
 	}
-	p.pattern(syntax.NodeID(s[1]))
+	p.pattern(s.Pattern().ID())
 	p.write(" = ")
-	p.expr(syntax.NodeID(s[2]))
-	if s[3] != 0 {
+	p.expr(s.Init().ID())
+	if guard := s.Guard(); guard.Valid() {
 		p.write("; ")
-		p.expr(syntax.NodeID(s[3]))
+		p.expr(guard.ID())
 	}
 	p.write(" ")
-	p.block(syntax.NodeID(s[4]))
-	p.elseClause(syntax.NodeID(s[5]))
+	p.block(s.Then().ID())
+	p.elseClause(s.Else().ID())
 }
 
 func (p *printer) elseClause(e syntax.NodeID) {
@@ -134,22 +136,22 @@ func (p *printer) elseClause(e syntax.NodeID) {
 }
 
 func (p *printer) matchExpr(id syntax.NodeID) {
-	n := p.node(id)
+	m := p.t.View(id).AsMatch()
 	p.write("match ")
-	p.expr(syntax.NodeID(n.Lhs))
+	p.expr(m.Scrutinee().ID())
 	p.write(" {")
 	p.newline()
 	p.indent++
-	for _, arm := range p.t.Children(syntax.NodeID(n.Rhs)) {
-		s := p.t.Slots(arm)
-		p.flushComments(p.firstTok(arm))
-		p.pattern(syntax.NodeID(s[0]))
-		if s[1] != 0 {
+	for v := range m.Arms().Views() {
+		arm := v.AsArm()
+		p.flushComments(p.firstTok(arm.ID()))
+		p.pattern(arm.Pattern().ID())
+		if guard := arm.Guard(); guard.Valid() {
 			p.write(" if ")
-			p.expr(syntax.NodeID(s[1]))
+			p.expr(guard.ID())
 		}
 		p.write(" -> ")
-		p.expr(syntax.NodeID(s[2]))
+		p.expr(arm.Body().ID())
 		p.newline()
 	}
 	p.indent--
@@ -157,15 +159,15 @@ func (p *printer) matchExpr(id syntax.NodeID) {
 }
 
 func (p *printer) forExpr(id syntax.NodeID) {
-	s := p.t.Slots(id)
+	f := p.t.View(id).AsFor()
 	p.write("for ")
-	if s[0] != 0 {
-		p.pattern(syntax.NodeID(s[0]))
+	if pat := f.Pattern(); pat.Valid() {
+		p.pattern(pat.ID())
 		p.write(" in ")
 	}
-	if s[1] != 0 {
-		p.expr(syntax.NodeID(s[1]))
+	if head := f.Head(); head.Valid() {
+		p.expr(head.ID())
 		p.write(" ")
 	}
-	p.block(syntax.NodeID(s[2]))
+	p.block(f.Body().ID())
 }

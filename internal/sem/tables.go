@@ -38,7 +38,7 @@ type FileInfo struct {
 }
 
 func newFileInfo(t *syntax.Tree, pkg PackageID) FileInfo {
-	n := len(t.Nodes)
+	n := t.NodeCount()
 	return FileInfo{
 		Tree: t, Pkg: pkg,
 		Types: make([]TypeID, n), Uses: make([]EntityID, n), Defs: make([]EntityID, n), Scopes: make([]ScopeID, n),

@@ -12,19 +12,19 @@ func (c *checker) tailLeaves(n syntax.NodeID, depth int) []syntax.NodeID {
 	}
 	switch c.t.Kind(n) {
 	case syntax.Paren:
-		return c.tailLeaves(syntax.NodeID(c.t.Nodes[n].Lhs), depth+1)
+		return c.tailLeaves(c.t.View(n).AsParen().Inner().ID(), depth+1)
 	case syntax.Block:
-		stmts := c.t.Children(n)
-		if len(stmts) == 0 || c.t.Kind(stmts[len(stmts)-1]) != syntax.ExprStmt {
+		tail := c.t.View(n).AsBlock().Tail()
+		if !tail.Valid() {
 			return nil
 		}
-		return c.tailLeaves(syntax.NodeID(c.t.Nodes[stmts[len(stmts)-1]].Lhs), depth+1)
+		return c.tailLeaves(tail.ID(), depth+1)
 	case syntax.IfExpr:
 		s := ifExpr(c.t, n)
 		return append(c.tailLeaves(s.Then, depth+1), c.tailLeaves(s.Else, depth+1)...)
 	case syntax.MatchExpr:
 		var out []syntax.NodeID
-		for _, arm := range c.t.Children(syntax.NodeID(c.t.Nodes[n].Rhs)) {
+		for arm := range c.t.View(n).AsMatch().Arms().IDs() {
 			out = append(out, c.tailLeaves(matchArm(c.t, arm).Body, depth+1)...)
 		}
 		return out
@@ -35,8 +35,5 @@ func (c *checker) tailLeaves(n syntax.NodeID, depth int) []syntax.NodeID {
 }
 
 func (c *checker) stripParen(n syntax.NodeID) syntax.NodeID {
-	for c.t.Kind(n) == syntax.Paren {
-		n = syntax.NodeID(c.t.Nodes[n].Lhs)
-	}
-	return n
+	return c.t.Unparen(n)
 }

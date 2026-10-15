@@ -35,8 +35,8 @@ func (r *Result) declareTypes() {
 		s := typeDecl(r.tree(e.File), e.Node)
 		if s.Generics != 0 {
 			r.aliasParams[id] = r.declareGenerics(e.File, id, s.Generics, r.declScope(id))
-			for _, g := range r.tree(e.File).Children(s.Generics) {
-				if r.tree(e.File).Nodes[g].Rhs != 0 {
+			for g := range r.tree(e.File).List(s.Generics).IDs() {
+				if r.tree(e.File).View(g).AsGenericParam().Bound().Valid() {
 					r.errAt(e.File, g, cAliasParamBound)
 				}
 			}
@@ -92,11 +92,12 @@ func (r *Result) declareFields(f FileID, owner EntityID, scope ScopeID, body syn
 	t := r.tree(f)
 	info := r.typeDecl(owner)
 	seen := map[string]bool{}
-	for i, fld := range t.Children(body) {
-		name := t.TokText(t.Nodes[fld].Tok)
+	for i, fld := range t.List(body).EnumerateIDs() {
+		ft := t.View(fld).Tok()
+		name := ft.Text()
 		s := field(t, fld)
 		vis := r.resolveVis(f, s.Vis, r.packageOf(f))
-		id := r.newEntity(Entity{Kind: EntField, Name: name, Pkg: r.packageOf(f), File: f, Node: fld, Tok: t.Nodes[fld].Tok, Parent: owner, Vis: vis})
+		id := r.newEntity(Entity{Kind: EntField, Name: name, Pkg: r.packageOf(f), File: f, Node: fld, Tok: ft.Index(), Parent: owner, Vis: vis})
 		if s.Flags&syntax.FlagMut != 0 {
 			r.Entities[id].Flags |= EfMut
 		}
@@ -122,18 +123,19 @@ func (r *Result) declareVariants(f FileID, owner EntityID, scope ScopeID, body s
 	info := r.typeDecl(owner)
 	seen := map[string]bool{}
 	pkg := r.packageOf(f)
-	for i, v := range t.Children(body) {
-		name := t.TokText(t.Nodes[v].Tok)
-		id := r.newEntity(Entity{Kind: EntVariant, Name: name, Pkg: pkg, File: f, Node: v, Tok: t.Nodes[v].Tok, Parent: owner, Vis: r.Entities[owner].Vis})
+	for i, v := range t.List(body).EnumerateIDs() {
+		variant := t.View(v).AsVariant()
+		name := variant.Name().Text()
+		id := r.newEntity(Entity{Kind: EntVariant, Name: name, Pkg: pkg, File: f, Node: v, Tok: variant.Name().Index(), Parent: owner, Vis: r.Entities[owner].Vis})
 		r.Files[f].Defs[v] = id
 		vi := VariantInfo{Index: i}
 		named, positional := 0, 0
-		if list := syntax.NodeID(t.Nodes[v].Lhs); list != 0 {
-			for _, vf := range t.Children(list) {
-				vn := t.Nodes[vf]
-				vi.Payload = append(vi.Payload, r.resolveType(f, scope, syntax.NodeID(vn.Rhs), posPayload))
-				if vn.Lhs&syntax.FlagNamed != 0 {
-					vi.Names = append(vi.Names, t.TokText(vn.Tok))
+		if list := variant.Fields(); list.Valid() {
+			for vfv := range list.Views() {
+				vn := vfv.AsVariantField()
+				vi.Payload = append(vi.Payload, r.resolveType(f, scope, vn.Type().ID(), posPayload))
+				if vn.Flags()&syntax.FlagNamed != 0 {
+					vi.Names = append(vi.Names, vn.Name().Text())
 					named++
 				} else {
 					vi.Names = append(vi.Names, "")

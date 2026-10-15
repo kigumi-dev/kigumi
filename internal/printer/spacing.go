@@ -16,15 +16,17 @@ func (p *printer) separateDecls(prev, next syntax.NodeID) {
 	p.blank()
 }
 
-func (p *printer) documented(id syntax.NodeID) bool { return p.t.Slot(id, "doc") != 0 }
+func (p *printer) documented(id syntax.NodeID) bool { return p.t.View(id).AsDecl().Doc().Valid() }
 
 func (p *printer) compact(id syntax.NodeID) bool {
 	switch p.t.Kind(id) {
 	case syntax.ImportDecl, syntax.ConstDecl, syntax.StaticDecl, syntax.ContextKeyDecl, syntax.LetStmt, syntax.ExprStmt,
 		syntax.AssignStmt, syntax.DeferStmt, syntax.ErrdeferStmt, syntax.InstantiateDecl:
 		return true
-	case syntax.FnDecl, syntax.TypeDecl:
-		return p.t.Slot(id, "body") == 0
+	case syntax.FnDecl:
+		return !p.t.View(id).AsFnDecl().Body().Valid()
+	case syntax.TypeDecl:
+		return !p.t.View(id).AsTypeDecl().Body().Valid()
 	}
 	return false
 }

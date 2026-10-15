@@ -46,7 +46,7 @@ func (p *parser) stmt() NodeID {
 		op := p.advance()
 		return p.node2(AssignStmt, op, e, p.expr())
 	}
-	return p.node1(ExprStmt, p.tree.Nodes[e].Tok, e)
+	return p.node1(ExprStmt, p.tree.nodes[e].Tok, e)
 }
 
 // cleanupBody is the rest of the line as one statement, or a block.
@@ -147,7 +147,7 @@ func (p *parser) matchExpr() NodeID {
 		p.expect(token.Arrow)
 		p.skipNewlines()
 		body := p.expr()
-		arms = append(arms, p.tree.addRec(MatchArm, p.tree.Nodes[pat].Tok, []uint32{uint32(pat), uint32(guard), uint32(body)}))
+		arms = append(arms, p.tree.addRec(MatchArm, p.tree.nodes[pat].Tok, []uint32{uint32(pat), uint32(guard), uint32(body)}))
 	})
 	return p.node2(MatchExpr, tok, scrutinee, p.tree.addList(List, tok, arms))
 }

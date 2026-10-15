@@ -2,7 +2,7 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// Typed readers over sRec nodes; slot order follows syntax/node_decl.go.
+// Slot structs filled from the syntax views, for the callers that want several slots of one node at once.
 
 type fnSlots struct {
 	Doc, Name                                     uint32
@@ -11,9 +11,9 @@ type fnSlots struct {
 }
 
 func fnDecl(t *syntax.Tree, n syntax.NodeID) fnSlots {
-	s := t.Slots(n)
-	return fnSlots{Doc: s[0], Attrs: syntax.NodeID(s[1]), Mods: s[2], Vis: syntax.NodeID(s[3]), Recv: syntax.NodeID(s[4]),
-		Name: s[5], Generics: syntax.NodeID(s[6]), Params: syntax.NodeID(s[7]), Ret: syntax.NodeID(s[8]), Body: syntax.NodeID(s[9])}
+	f := t.View(n).AsFnDecl()
+	return fnSlots{Doc: f.Doc().Index(), Attrs: f.Attrs().ID(), Mods: f.Mods(), Vis: f.Vis().ID(), Recv: f.Recv().ID(),
+		Name: f.Name().Index(), Generics: f.Generics().ID(), Params: f.Params().ID(), Ret: f.Ret().ID(), Body: f.Body().ID()}
 }
 
 type paramSlots struct {
@@ -22,8 +22,8 @@ type paramSlots struct {
 }
 
 func param(t *syntax.Tree, n syntax.NodeID) paramSlots {
-	s := t.Slots(n)
-	return paramSlots{Attrs: syntax.NodeID(s[0]), Flags: s[1], Type: syntax.NodeID(s[2])}
+	p := t.View(n).AsParam()
+	return paramSlots{Attrs: p.Attrs().ID(), Flags: p.Flags(), Type: p.Type().ID()}
 }
 
 type typeDeclSlots struct {
@@ -32,9 +32,9 @@ type typeDeclSlots struct {
 }
 
 func typeDecl(t *syntax.Tree, n syntax.NodeID) typeDeclSlots {
-	s := t.Slots(n)
-	return typeDeclSlots{Doc: s[0], Attrs: syntax.NodeID(s[1]), Vis: syntax.NodeID(s[2]), Name: s[3],
-		Generics: syntax.NodeID(s[4]), Layout: syntax.NodeID(s[5]), Body: syntax.NodeID(s[6])}
+	d := t.View(n).AsTypeDecl()
+	return typeDeclSlots{Doc: d.Doc().Index(), Attrs: d.Attrs().ID(), Vis: d.Vis().ID(), Name: d.Name().Index(),
+		Generics: d.Generics().ID(), Layout: d.Layout().ID(), Body: d.Body().ID()}
 }
 
 type fieldSlots struct {
@@ -43,8 +43,8 @@ type fieldSlots struct {
 }
 
 func field(t *syntax.Tree, n syntax.NodeID) fieldSlots {
-	s := t.Slots(n)
-	return fieldSlots{Vis: syntax.NodeID(s[0]), Flags: s[1], Type: syntax.NodeID(s[2]), Metadata: syntax.NodeID(s[3])}
+	f := t.View(n).AsField()
+	return fieldSlots{Vis: f.Vis().ID(), Flags: f.Flags(), Type: f.Type().ID(), Metadata: f.Metadata().ID()}
 }
 
 type ifaceSlots struct {
@@ -53,9 +53,9 @@ type ifaceSlots struct {
 }
 
 func ifaceDecl(t *syntax.Tree, n syntax.NodeID) ifaceSlots {
-	s := t.Slots(n)
-	return ifaceSlots{Doc: s[0], Attrs: syntax.NodeID(s[1]), Vis: syntax.NodeID(s[2]), Name: s[3],
-		Generics: syntax.NodeID(s[4]), Members: syntax.NodeID(s[5])}
+	d := t.View(n).AsInterfaceDecl()
+	return ifaceSlots{Doc: d.Doc().Index(), Attrs: d.Attrs().ID(), Vis: d.Vis().ID(), Name: d.Name().Index(),
+		Generics: d.Generics().ID(), Members: d.Members().ID()}
 }
 
 type constSlots struct {
@@ -64,9 +64,9 @@ type constSlots struct {
 }
 
 func constDecl(t *syntax.Tree, n syntax.NodeID) constSlots {
-	s := t.Slots(n)
-	return constSlots{Doc: s[0], Attrs: syntax.NodeID(s[1]), Vis: syntax.NodeID(s[2]), Name: s[3],
-		Type: syntax.NodeID(s[4]), Value: syntax.NodeID(s[5])}
+	d := t.View(n).AsConstDecl()
+	return constSlots{Doc: d.Doc().Index(), Attrs: d.Attrs().ID(), Vis: d.Vis().ID(), Name: d.Name().Index(),
+		Type: d.Type().ID(), Value: d.Value().ID()}
 }
 
 type staticSlots struct {
@@ -76,9 +76,9 @@ type staticSlots struct {
 }
 
 func staticDecl(t *syntax.Tree, n syntax.NodeID) staticSlots {
-	s := t.Slots(n)
-	return staticSlots{Doc: s[0], Attrs: syntax.NodeID(s[1]), Flags: s[2], Vis: syntax.NodeID(s[3]), Name: s[4],
-		Type: syntax.NodeID(s[5]), Value: syntax.NodeID(s[6])}
+	d := t.View(n).AsStaticDecl()
+	return staticSlots{Doc: d.Doc().Index(), Attrs: d.Attrs().ID(), Flags: d.Flags(), Vis: d.Vis().ID(), Name: d.Name().Index(),
+		Type: d.Type().ID(), Value: d.Value().ID()}
 }
 
 type contextKeyDeclSlots struct {
@@ -87,9 +87,9 @@ type contextKeyDeclSlots struct {
 }
 
 func contextKeyDecl(t *syntax.Tree, n syntax.NodeID) contextKeyDeclSlots {
-	s := t.Slots(n)
-	return contextKeyDeclSlots{Doc: s[0], Attrs: syntax.NodeID(s[1]), Vis: syntax.NodeID(s[2]), Name: s[3],
-		Type: syntax.NodeID(s[4])}
+	d := t.View(n).AsContextKeyDecl()
+	return contextKeyDeclSlots{Doc: d.Doc().Index(), Attrs: d.Attrs().ID(), Vis: d.Vis().ID(), Name: d.Name().Index(),
+		Type: d.Type().ID()}
 }
 
 type importSlots struct {
@@ -97,8 +97,8 @@ type importSlots struct {
 }
 
 func importDecl(t *syntax.Tree, n syntax.NodeID) importSlots {
-	s := t.Slots(n)
-	return importSlots{Vis: syntax.NodeID(s[0]), Binding: syntax.NodeID(s[1]), Path: syntax.NodeID(s[2])}
+	d := t.View(n).AsImportDecl()
+	return importSlots{Vis: d.Vis().ID(), Binding: d.Binding().ID(), Path: d.Path().ID()}
 }
 
 type letSlots struct {
@@ -107,8 +107,8 @@ type letSlots struct {
 }
 
 func letStmt(t *syntax.Tree, n syntax.NodeID) letSlots {
-	s := t.Slots(n)
-	return letSlots{Flags: s[0], Pattern: syntax.NodeID(s[1]), Type: syntax.NodeID(s[2]), Init: syntax.NodeID(s[3]), Else: syntax.NodeID(s[4])}
+	l := t.View(n).AsLet()
+	return letSlots{Flags: l.Flags(), Pattern: l.Pattern().ID(), Type: l.Type().ID(), Init: l.Init().ID(), Else: l.Else().ID()}
 }
 
 type ifSlots struct {
@@ -116,8 +116,8 @@ type ifSlots struct {
 }
 
 func ifExpr(t *syntax.Tree, n syntax.NodeID) ifSlots {
-	s := t.Slots(n)
-	return ifSlots{Cond: syntax.NodeID(s[0]), Then: syntax.NodeID(s[1]), Else: syntax.NodeID(s[2])}
+	i := t.View(n).AsIf()
+	return ifSlots{Cond: i.Cond().ID(), Then: i.Then().ID(), Else: i.Else().ID()}
 }
 
 type ifLetSlots struct {
@@ -126,9 +126,9 @@ type ifLetSlots struct {
 }
 
 func ifLet(t *syntax.Tree, n syntax.NodeID) ifLetSlots {
-	s := t.Slots(n)
-	return ifLetSlots{Flags: s[0], Pattern: syntax.NodeID(s[1]), Init: syntax.NodeID(s[2]), Guard: syntax.NodeID(s[3]),
-		Then: syntax.NodeID(s[4]), Else: syntax.NodeID(s[5])}
+	i := t.View(n).AsIfLet()
+	return ifLetSlots{Flags: i.Flags(), Pattern: i.Pattern().ID(), Init: i.Init().ID(), Guard: i.Guard().ID(),
+		Then: i.Then().ID(), Else: i.Else().ID()}
 }
 
 type armSlots struct {
@@ -136,8 +136,8 @@ type armSlots struct {
 }
 
 func matchArm(t *syntax.Tree, n syntax.NodeID) armSlots {
-	s := t.Slots(n)
-	return armSlots{Pattern: syntax.NodeID(s[0]), Guard: syntax.NodeID(s[1]), Body: syntax.NodeID(s[2])}
+	a := t.View(n).AsArm()
+	return armSlots{Pattern: a.Pattern().ID(), Guard: a.Guard().ID(), Body: a.Body().ID()}
 }
 
 type forSlots struct {
@@ -145,8 +145,8 @@ type forSlots struct {
 }
 
 func forExpr(t *syntax.Tree, n syntax.NodeID) forSlots {
-	s := t.Slots(n)
-	return forSlots{Pattern: syntax.NodeID(s[0]), Head: syntax.NodeID(s[1]), Body: syntax.NodeID(s[2])}
+	f := t.View(n).AsFor()
+	return forSlots{Pattern: f.Pattern().ID(), Head: f.Head().ID(), Body: f.Body().ID()}
 }
 
 type fnTypeSlots struct {
@@ -155,17 +155,10 @@ type fnTypeSlots struct {
 }
 
 func fnType(t *syntax.Tree, n syntax.NodeID) fnTypeSlots {
-	s := t.Slots(n)
-	return fnTypeSlots{Mods: s[0], Abi: s[1], Params: syntax.NodeID(s[2]), Flags: s[3], Ret: syntax.NodeID(s[4])}
+	f := t.View(n).AsTypeFn()
+	return fnTypeSlots{Mods: f.Mods(), Abi: f.Abi().Index(), Params: f.Params().ID(), Flags: f.Flags(), Ret: f.Ret().ID()}
 }
 
 func pathText(t *syntax.Tree, n syntax.NodeID, sep string) string {
-	out := ""
-	for i, tk := range t.PathToks(n) {
-		if i > 0 {
-			out += sep
-		}
-		out += t.TokText(tk)
-	}
-	return out
+	return t.View(n).AsPath().Join(sep)
 }

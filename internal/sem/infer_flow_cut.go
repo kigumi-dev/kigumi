@@ -71,9 +71,13 @@ func (r *Result) flowScanOf(file FileID, fnNode syntax.NodeID) *flowScan {
 			s.lambdas = append(s.lambdas, t.Span(n))
 		}
 		lc.visit(n)
-		t.EachChild(n, walk)
+		for ch := range t.View(n).Children() {
+			walk(ch.ID())
+		}
 	}
-	t.EachChild(fnNode, walk)
+	for ch := range t.View(fnNode).Children() {
+		walk(ch.ID())
+	}
 	lc.finish()
 	if r.flow.scans == nil {
 		r.flow.scans = map[scanKey]*flowScan{}

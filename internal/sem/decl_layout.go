@@ -14,14 +14,14 @@ func (r *Result) declareLayout(f FileID, id EntityID, clause syntax.NodeID) {
 		return
 	}
 	var hasC, hasPacked bool
-	for _, a := range t.Children(syntax.NodeID(t.Nodes[clause].Lhs)) {
+	for a := range t.View(clause).AsLayoutClause().Args().IDs() {
 		if t.Kind(a) == syntax.FieldInit {
 			r.declareLayoutAlign(f, info, a)
 			continue
 		}
 		text := ""
 		if t.Kind(a) == syntax.Ident {
-			text = t.TokText(t.Nodes[a].Tok)
+			text = t.View(a).Tok().Text()
 		}
 		switch text {
 		case "C":
@@ -46,11 +46,12 @@ func (r *Result) declareLayout(f FileID, id EntityID, clause syntax.NodeID) {
 // compile-time power of two within the target's max alignment.
 func (r *Result) declareLayoutAlign(f FileID, info *TypeDeclInfo, item syntax.NodeID) {
 	t := r.tree(f)
-	if t.TokText(t.Nodes[item].Tok) != "align" {
-		r.errAt(f, item, cLayoutUnknown, t.TokText(t.Nodes[item].Tok))
+	fi := t.View(item).AsFieldInit()
+	if fi.Name().Text() != "align" {
+		r.errAt(f, item, cLayoutUnknown, fi.Name().Text())
 		return
 	}
-	expr := syntax.NodeID(t.Nodes[item].Lhs)
+	expr := fi.Value().ID()
 	v, ok := r.evalConst(f, expr)
 	if !ok {
 		return

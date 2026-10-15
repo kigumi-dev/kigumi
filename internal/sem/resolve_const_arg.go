@@ -9,17 +9,17 @@ import (
 // a call's explicit type args, into a KConst value.
 func (r *Result) resolveConstLit(f FileID, n syntax.NodeID) TypeID {
 	t := r.tree(f)
-	node := t.Nodes[n]
-	if node.Kind == syntax.BoolLit {
+	node := t.View(n)
+	if node.Kind() == syntax.BoolLit {
 		v := int64(0)
-		if t.Toks[node.Tok].Kind == token.KwTrue {
+		if node.Tok().Kind() == token.KwTrue {
 			v = 1
 		}
 		return r.Types.ConstVal(v, TyBool)
 	}
-	v, ok := syntax.ParseInt(t.TokText(node.Tok))
+	v, ok := syntax.ParseInt(node.Tok().Text())
 	if !ok || !v.IsInt64() {
-		r.errAt(f, n, cLiteralOutOfRange, t.TokText(node.Tok), TyUsize)
+		r.errAt(f, n, cLiteralOutOfRange, node.Tok().Text(), TyUsize)
 		return TyPoison
 	}
 	return r.Types.ConstVal(v.Int64(), TyUsize)
@@ -30,13 +30,13 @@ func (r *Result) resolveConstArg(f FileID, scope ScopeID, n syntax.NodeID, want 
 	t := r.tree(f)
 	switch t.Kind(n) {
 	case syntax.Paren:
-		return r.resolveConstArg(f, scope, syntax.NodeID(t.Nodes[n].Lhs), want)
+		return r.resolveConstArg(f, scope, t.View(n).AsParen().Inner().ID(), want)
 	case syntax.IntLit, syntax.BoolLit:
 		return r.coerceConstLit(f, n, want)
 	case syntax.Unary:
-		node := t.Nodes[n]
-		lhs := syntax.NodeID(node.Lhs)
-		if t.Toks[node.Tok].Kind == token.Minus && t.Kind(lhs) == syntax.IntLit {
+		u := t.View(n).AsUnary()
+		lhs := u.Operand().ID()
+		if u.Op().Kind() == token.Minus && t.Kind(lhs) == syntax.IntLit {
 			return r.coerceNegConstLit(f, n, lhs, want)
 		}
 		r.errAt(f, n, cConstExprUnsupported)
@@ -44,12 +44,12 @@ func (r *Result) resolveConstArg(f FileID, scope ScopeID, n syntax.NodeID, want 
 	case syntax.Ident:
 		return r.constArgFromIdent(f, scope, n, n, want)
 	case syntax.TypePath:
-		node := t.Nodes[n]
-		if node.Rhs != 0 {
+		tp := t.View(n).AsTypePath()
+		if tp.Args().Valid() {
 			r.errAt(f, n, cConstExprUnsupported)
 			return TyPoison
 		}
-		return r.constArgFromIdent(f, scope, syntax.NodeID(node.Lhs), n, want)
+		return r.constArgFromIdent(f, scope, tp.Path().ID(), n, want)
 	}
 	r.errAt(f, n, cConstExprUnsupported)
 	return TyPoison
@@ -59,9 +59,9 @@ func (r *Result) constArgFromIdent(f FileID, scope ScopeID, path, n syntax.NodeI
 	t := r.tree(f)
 	var ent EntityID
 	if t.Kind(path) == syntax.Ident {
-		b, _, ok := r.lookup(scope, t.TokText(t.Nodes[path].Tok))
+		b, _, ok := r.lookup(scope, t.View(path).Tok().Text())
 		if !ok || b.Ent == 0 {
-			r.errAt(f, n, cUnresolvedName, t.TokText(t.Nodes[path].Tok))
+			r.errAt(f, n, cUnresolvedName, t.View(path).Tok().Text())
 			return TyPoison
 		}
 		ent = r.follow(b.Ent)

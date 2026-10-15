@@ -109,7 +109,7 @@ func (c *checker) deferToParam(p EntityID) {
 // polyParam excludes closure parameters, which keep the declared-type rule.
 func (c *checker) polyParam(expr syntax.NodeID) EntityID {
 	for c.t.Kind(expr) == syntax.CallExpr || c.t.Kind(expr) == syntax.WsCallExpr {
-		expr = syntax.NodeID(c.t.Nodes[expr].Lhs)
+		expr = c.t.View(expr).AsCallLike().Callee().ID()
 	}
 	p := c.info.Uses[expr]
 	if alias, ok := c.paramAlias[p]; ok {

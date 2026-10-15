@@ -4,16 +4,16 @@ import "kigumi/internal/syntax"
 
 // Output types for out/inout/lateout operands are settled later, by asmResult.
 func (c *checker) asmOperand(line syntax.NodeID, arch *asmArch, labels map[string]syntax.NodeID) AsmOperand {
-	s := c.t.Slots(line)
-	op := AsmOperand{Field: -1, Expr: syntax.NodeID(s[3]), Node: line}
-	if s[0] != 0 {
-		op.Label = c.t.TokText(s[0])
+	o := c.t.View(line).AsAsmOperand()
+	op := AsmOperand{Field: -1, Expr: o.Expr().ID(), Node: line}
+	if o.Label().Valid() {
+		op.Label = o.Label().Text()
 		if _, dup := labels[op.Label]; dup {
 			c.errAt(line, cAsmLabelDup, op.Label)
 		}
 		labels[op.Label] = line
 	}
-	switch kind := c.t.TokText(s[1]); kind {
+	switch kind := o.Dir().Text(); kind {
 	case "in":
 		op.Kind = AsmIn
 	case "out":
@@ -35,8 +35,8 @@ func (c *checker) asmOperand(line syntax.NodeID, arch *asmArch, labels map[strin
 		}
 		return op
 	}
-	if s[2] != 0 {
-		op.Reg = c.t.TokText(s[2])
+	if o.Reg().Valid() {
+		op.Reg = o.Reg().Text()
 	}
 	if op.Reg == "reg" || op.Reg == "freg" {
 		op.Class = true

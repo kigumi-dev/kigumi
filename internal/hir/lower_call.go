@@ -6,13 +6,13 @@ import (
 )
 
 func (l *lowerer) binary(n syntax.NodeID) *Expr {
-	node := l.t.Nodes[n]
-	lhs, rhs := syntax.NodeID(node.Lhs), syntax.NodeID(node.Rhs)
+	bin := l.t.View(n).AsBinary()
+	lhs, rhs := bin.Left().ID(), bin.Right().ID()
 	if lit, ok := l.r.LiteralOf(l.t, n); ok && (lit.Kind == sem.LitInt || lit.Kind == sem.LitFloat) {
 		return l.literal(n)
 	}
 	call := l.info.Calls[n]
-	op := l.t.TokText(node.Tok)
+	op := bin.Op().Text()
 	switch {
 	case call.Kind == sem.CallFallback:
 		out := l.node(n, Fallback)
@@ -20,9 +20,9 @@ func (l *lowerer) binary(n syntax.NodeID) *Expr {
 		out.Args = []*Expr{l.expr(lhs)}
 		// The miss side of `a || (x) => b` binds the miss value.
 		if l.t.Kind(rhs) == syntax.Lambda {
-			ln := l.t.Nodes[rhs]
-			out.Param = l.decl(l.info.Defs[l.t.Children(syntax.NodeID(ln.Lhs))[0]])
-			out.Args = append(out.Args, l.expr(syntax.NodeID(ln.Rhs)))
+			lam := l.t.View(rhs).AsLambda()
+			out.Param = l.decl(l.info.Defs[lam.Params().ItemID(0)])
+			out.Args = append(out.Args, l.expr(lam.Body().ID()))
 		} else {
 			out.Args = append(out.Args, l.expr(rhs))
 		}
@@ -59,7 +59,7 @@ func (l *lowerer) binary(n syntax.NodeID) *Expr {
 
 func (l *lowerer) call(n syntax.NodeID) *Expr {
 	call := l.info.Calls[n]
-	return l.callWith(n, syntax.NodeID(l.t.Nodes[n].Lhs), call)
+	return l.callWith(n, l.t.View(n).AsCallLike().Callee().ID(), call)
 }
 
 // callWith builds Args in parameter-slot order from the sem Plan and sets EvalOrder to replay it in source order.
@@ -82,7 +82,7 @@ func (l *lowerer) callWith(n, callee syntax.NodeID, call sem.CallInfo) *Expr {
 		out.Kind = DefinedWrap
 		out.EvalOrder = plan.Order
 	case sem.CallMethod:
-		base := syntax.NodeID(l.t.Nodes[memberNode(l.t, callee)].Lhs)
+		base := l.t.View(memberNode(l.t, callee)).AsMember().Base().ID()
 		out.Kind, out.Witness, out.Passes, out.ConstArgs = MethodCall, call.Witness, call.Passes, call.ConstArgs
 		out.Args = append([]*Expr{l.expr(base)}, args...)
 		out.EvalOrder = prefixEvalOrder(plan, call.Piped != 0)
@@ -126,47 +126,50 @@ func prefixEvalOrder(plan *sem.CallPlan, piped bool) []int {
 // explicit type arguments (`recv.get[T](...)`).
 func memberNode(t *syntax.Tree, callee syntax.NodeID) syntax.NodeID {
 	if t.Kind(callee) == syntax.BracketExpr {
-		return syntax.NodeID(t.Nodes[callee].Lhs)
+		return t.View(callee).AsBracket().Base().ID()
 	}
 	return callee
 }
 
 func (l *lowerer) control(n syntax.NodeID) *Expr {
-	node := l.t.Nodes[n]
-	slot := func(name string) syntax.NodeID { return syntax.NodeID(l.t.Slot(n, name)) }
-	switch node.Kind {
+	v := l.t.View(n)
+	switch v.Kind() {
 	case syntax.IfLetExpr:
+		s := v.AsIfLet()
 		out := l.node(n, IfLet)
-		out.Cond = l.expr(slot("init"))
-		out.Pat = l.pattern(slot("pattern"))
-		if g := slot("guard"); g != 0 {
-			out.Guard = l.expr(g)
+		out.Cond = l.expr(s.Init().ID())
+		out.Pat = l.pattern(s.Pattern().ID())
+		if g := s.Guard(); g.Valid() {
+			out.Guard = l.expr(g.ID())
 		}
-		out.Then = l.block(slot("then"))
-		if els := slot("else"); els != 0 {
-			out.Else = l.expr(els)
+		out.Then = l.block(s.Then().ID())
+		if els := s.Else(); els.Valid() {
+			out.Else = l.expr(els.ID())
 		}
 		return out
 	case syntax.MatchExpr:
+		m := v.AsMatch()
 		out := l.node(n, Match)
-		out.Args = []*Expr{l.expr(syntax.NodeID(node.Lhs))}
-		for _, arm := range l.t.Children(syntax.NodeID(node.Rhs)) {
-			a := &Arm{Pat: l.pattern(syntax.NodeID(l.t.Slot(arm, "pattern")))}
-			if g := syntax.NodeID(l.t.Slot(arm, "guard")); g != 0 {
-				a.Guard = l.expr(g)
+		out.Args = []*Expr{l.expr(m.Scrutinee().ID())}
+		for av := range m.Arms().Views() {
+			arm := av.AsArm()
+			a := &Arm{Pat: l.pattern(arm.Pattern().ID())}
+			if g := arm.Guard(); g.Valid() {
+				a.Guard = l.expr(g.ID())
 			}
-			a.Body = l.expr(syntax.NodeID(l.t.Slot(arm, "body")))
+			a.Body = l.expr(arm.Body().ID())
 			out.Arms = append(out.Arms, a)
 		}
 		return out
 	}
+	f := v.AsFor()
 	out := l.node(n, Loop)
-	if p := slot("pattern"); p != 0 {
-		out.Pat = l.pattern(p)
+	if p := f.Pattern(); p.Valid() {
+		out.Pat = l.pattern(p.ID())
 	}
-	if head := slot("head"); head != 0 {
-		out.Cond = l.expr(head)
+	if head := f.Head(); head.Valid() {
+		out.Cond = l.expr(head.ID())
 	}
-	out.Block = l.block(slot("body"))
+	out.Block = l.block(f.Body().ID())
 	return out
 }

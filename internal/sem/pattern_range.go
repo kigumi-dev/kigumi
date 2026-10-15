@@ -6,8 +6,8 @@ import "kigumi/internal/syntax"
 // are integer literals or named constants, adopted to the scrutinee's
 // integer type. Ranges never make an integer match exhaustive.
 func (c *checker) rangePattern(p syntax.NodeID, scrutinee TypeID) PatInfo {
-	node := c.t.Nodes[p]
-	lo, hi := syntax.NodeID(node.Lhs), syntax.NodeID(node.Rhs)
+	r := c.t.View(p).AsPatRange()
+	lo, hi := r.Lo().ID(), r.Hi().ID()
 	tt := c.r.Types
 	if scrutinee != TyPoison && !tt.IsInteger(scrutinee) {
 		c.errAt(p, cRangePatternType, scrutinee)
@@ -49,7 +49,7 @@ func (c *checker) rangeBoundValue(n syntax.NodeID, scrutinee TypeID) bool {
 		}
 		c.adopt(c.literalNode(n), scrutinee)
 	case got != scrutinee:
-		c.errAt(n, cPatternLiteralType, c.t.TokText(c.t.Nodes[c.literalNode(n)].Tok), scrutinee)
+		c.errAt(n, cPatternLiteralType, c.t.View(c.literalNode(n)).Tok().Text(), scrutinee)
 		c.setType(n, TyPoison)
 		return false
 	}

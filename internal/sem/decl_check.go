@@ -103,29 +103,29 @@ func (r *Result) checkMain(id EntityID) {
 // `pkg.name`), returning the entity or 0 after reporting.
 func (r *Result) resolveValueName(f FileID, scope ScopeID, path syntax.NodeID) EntityID {
 	t := r.tree(f)
-	segs := t.PathToks(path)
-	first := t.TokText(segs[0])
+	segs := t.View(path).AsPath()
+	first := segs.At(0).Text()
 	b, _, ok := r.lookup(scope, first)
 	if !ok {
 		r.errAt(f, path, cUnresolvedName, first)
 		return 0
 	}
 	cur := b
-	for i := 1; i < len(segs); i++ {
+	for i := 1; i < segs.Len(); i++ {
 		if cur.Ent == 0 {
-			r.errAt(f, path, cUnresolvedName, t.TokText(segs[i]))
+			r.errAt(f, path, cUnresolvedName, segs.At(i).Text())
 			return 0
 		}
 		e := &r.Entities[cur.Ent]
 		if e.Kind != EntImport || e.Target == 0 || r.Entities[e.Target].Kind != EntPackage {
-			r.errAt(f, path, cUnresolvedMember, e.Name, t.TokText(segs[i]))
+			r.errAt(f, path, cUnresolvedMember, e.Name, segs.At(i).Text())
 			return 0
 		}
 		e.Flags |= EfUsed
 		pkg := r.Entities[e.Target].Pkg
-		next, ok := r.Scopes[r.Packages[pkg].Scope].Names[t.TokText(segs[i])]
+		next, ok := r.Scopes[r.Packages[pkg].Scope].Names[segs.At(i).Text()]
 		if !ok {
-			r.errAt(f, path, cUnresolvedMember, r.Packages[pkg].Path, t.TokText(segs[i]))
+			r.errAt(f, path, cUnresolvedMember, r.Packages[pkg].Path, segs.At(i).Text())
 			return 0
 		}
 		cur = next

@@ -5,14 +5,16 @@ import "kigumi/internal/syntax"
 // Brackets are ambiguous: `obj.items[0](x)` indexes a field then calls the
 // element; otherwise they're a method's explicit type arguments.
 func (c *checker) callBracketMethod(n, callee syntax.NodeID, args []syntax.NodeID, want TypeID) (TypeID, bool) {
-	inner := syntax.NodeID(c.t.Nodes[callee].Lhs)
+	br := c.t.View(callee).AsBracket()
+	inner := br.Base().ID()
 	if c.t.Kind(inner) != syntax.MemberExpr || c.resolveHead(inner).kind != headValue {
 		return 0, false
 	}
 	tt := c.r.Types
-	base := syntax.NodeID(c.t.Nodes[inner].Lhs)
-	name := c.t.TokText(c.t.Nodes[inner].Tok)
-	items := c.t.Children(syntax.NodeID(c.t.Nodes[callee].Rhs))
+	member := c.t.View(inner).AsMember()
+	base := member.Base().ID()
+	name := member.Member().Text()
+	items := br.Args().AppendIDs(nil)
 	recv := c.vars.resolve(c.synth(base))
 	if recv == TyPoison {
 		c.synthArgs(args)

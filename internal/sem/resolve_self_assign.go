@@ -41,10 +41,10 @@ func (c *checker) noteSelfRecvCall(base syntax.NodeID, m EntityID, witness bool,
 type selfLentArg struct{ owner, param EntityID }
 
 func (c *checker) noteSelfLentArg(a syntax.NodeID, param EntityID) {
-	if param == 0 || c.t.Kind(a) != syntax.BorrowExpr || c.t.Nodes[a].Lhs&syntax.FlagMut == 0 {
+	if param == 0 || c.t.Kind(a) != syntax.BorrowExpr || c.t.View(a).AsBorrow().Flags()&syntax.FlagMut == 0 {
 		return
 	}
-	ent, ok := c.identPlaceEnt(syntax.NodeID(c.t.Nodes[a].Rhs))
+	ent, ok := c.identPlaceEnt(c.t.View(a).AsBorrow().Operand().ID())
 	if !ok || !c.r.wholeRefBinding(c.r.Entities[param].Type) {
 		return
 	}
@@ -120,7 +120,7 @@ func (c *checker) noteWitnessRecv(base syntax.NodeID, recv TypeID, req EntityID,
 // Paren peels the same way mir's peelNoOp does, so both see one shape.
 func (c *checker) recvRefShape(base syntax.NodeID) string {
 	for c.t.Kind(base) == syntax.Paren && len(c.info.Coerce[base].Steps) == 0 {
-		base = syntax.NodeID(c.t.Nodes[base].Lhs)
+		base = c.t.View(base).AsParen().Inner().ID()
 	}
 	return lentRefShape(c.t, base)
 }
@@ -135,9 +135,7 @@ func (c *checker) queueRefRecv(q refCellRecv) {
 
 // identPlaceEnt would reject a key outright, so the ident is resolved here.
 func (c *checker) leasedBinding(base syntax.NodeID) bool {
-	for c.t.Kind(base) == syntax.Paren {
-		base = syntax.NodeID(c.t.Nodes[base].Lhs)
-	}
+	base = c.t.Unparen(base)
 	if c.t.Kind(base) != syntax.Ident {
 		return false
 	}

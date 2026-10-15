@@ -46,8 +46,8 @@ func (p *parser) fnName() (recv NodeID, name uint32) {
 }
 
 func (p *parser) singlePath(tok uint32) NodeID {
-	path := p.tree.add(Node{Kind: Path, Tok: tok, Lhs: uint32(len(p.tree.Extra)), Rhs: uint32(len(p.tree.Extra)) + 1})
-	p.tree.Extra = append(p.tree.Extra, tok)
+	path := p.tree.add(rawNode{Kind: Path, Tok: tok, Lhs: uint32(len(p.tree.extra)), Rhs: uint32(len(p.tree.extra)) + 1})
+	p.tree.extra = append(p.tree.extra, tok)
 	return path
 }
 
@@ -150,7 +150,7 @@ func (p *parser) param() NodeID {
 	typ := p.escapableType()
 	var attrList NodeID
 	if len(attrs) > 0 {
-		attrList = p.tree.addList(List, p.tree.Nodes[attrs[0]].Tok, attrs)
+		attrList = p.tree.addList(List, p.tree.nodes[attrs[0]].Tok, attrs)
 	}
 	return p.tree.addRec(Param, name, []uint32{uint32(attrList), flags, uint32(typ)})
 }

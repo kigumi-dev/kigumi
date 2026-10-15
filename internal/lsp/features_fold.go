@@ -23,14 +23,13 @@ func (s *Server) FoldingRanges(ctx context.Context, p *protocol.FoldingRangePara
 	t := syntax.Parse(token.NewFile("", []byte(text)))
 	seen := map[[2]int]bool{}
 	out := []protocol.FoldingRange{}
-	for id := 1; id < len(t.Nodes); id++ {
-		n := syntax.NodeID(id)
-		switch t.Kind(n) {
+	for v := range t.All() {
+		switch v.Kind() {
 		case syntax.FnDecl, syntax.TypeDecl, syntax.Block, syntax.MatchExpr, syntax.Lambda, syntax.RecordLit:
 		default:
 			continue
 		}
-		sp := t.Span(n)
+		sp := v.Span()
 		// A node's span stops before its closing brace; fold through it.
 		close := sp.End
 		for int(close) < len(t.File.Src) && (t.File.Src[close] == ' ' || t.File.Src[close] == '\n' || t.File.Src[close] == '\t') {

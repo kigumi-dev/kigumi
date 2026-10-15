@@ -100,14 +100,14 @@ func (p *parser) recoverList(close token.Kind) {
 
 // path parses `a.b.c` and returns a Path node.
 func (p *parser) path() NodeID {
-	start := uint32(len(p.tree.Extra))
+	start := uint32(len(p.tree.extra))
 	first := p.pos
-	p.tree.Extra = append(p.tree.Extra, p.expect(token.Ident))
+	p.tree.extra = append(p.tree.extra, p.expect(token.Ident))
 	for p.at(token.Dot) && p.peek(1) == token.Ident {
 		p.advance()
-		p.tree.Extra = append(p.tree.Extra, p.advance())
+		p.tree.extra = append(p.tree.extra, p.advance())
 	}
-	return p.tree.add(Node{Kind: Path, Tok: first, Lhs: start, Rhs: uint32(len(p.tree.Extra))})
+	return p.tree.add(rawNode{Kind: Path, Tok: first, Lhs: start, Rhs: uint32(len(p.tree.extra))})
 }
 
 // isUpper reports whether an identifier token starts with an upper-case letter,

@@ -5,11 +5,11 @@ import "kigumi/internal/syntax"
 func (c *checker) knownFieldArgEdge(n, arg syntax.NodeID, fk fieldFnKey) {
 	dst := c.r.fieldParamEnt(fk)
 	if c.t.Kind(arg) == syntax.RecordLit {
-		for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[arg].Rhs)) {
+		for entry := range c.t.View(arg).AsRecordLit().Fields().IDs() {
 			if c.t.Kind(entry) == syntax.Spread || c.info.Uses[entry] != fk.Field {
 				continue
 			}
-			c.bindFieldArgValue(n, syntax.NodeID(c.t.Nodes[entry].Lhs), fk, dst)
+			c.bindFieldArgValue(n, c.t.View(entry).AsFieldInit().Value().ID(), fk, dst)
 			return
 		}
 		c.poisonFieldKey(fk)

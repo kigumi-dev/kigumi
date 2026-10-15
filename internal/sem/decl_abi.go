@@ -6,7 +6,7 @@ import "kigumi/internal/syntax"
 func (r *Result) checkAbiTypes(f FileID, s fnSlots, params []TypeID, ret TypeID) {
 	t := r.tree(f)
 	i := 0
-	for _, p := range t.Children(s.Params) {
+	for p := range t.List(s.Params).IDs() {
 		ps := param(t, p)
 		if ps.Flags&syntax.FlagSelf != 0 || ps.Type == 0 {
 			continue

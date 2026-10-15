@@ -76,15 +76,15 @@ func (c *checker) fallbackParts(n, lhs syntax.NodeID, l TypeID) (v, r TypeID, wi
 }
 
 func (c *checker) fallbackArm(lambda syntax.NodeID, r, want TypeID) {
-	node := c.t.Nodes[lambda]
-	params := c.t.Children(syntax.NodeID(node.Lhs))
-	body := syntax.NodeID(node.Rhs)
-	if len(params) != 1 {
+	lam := c.t.View(lambda).AsLambda()
+	params := lam.Params()
+	body := lam.Body().ID()
+	if params.Len() != 1 {
 		c.errAt(lambda, cFallbackArmArity)
 		c.setType(lambda, TyPoison)
 		return
 	}
-	p := params[0]
+	p := params.ItemID(0)
 	ps := param(c.t, p)
 	if ps.Type != 0 {
 		annotated := c.r.resolveType(c.f, c.scope, ps.Type, posLocal)
@@ -94,7 +94,7 @@ func (c *checker) fallbackArm(lambda syntax.NodeID, r, want TypeID) {
 	}
 	saved := c.scope
 	c.pushScope(ScopeArm, lambda)
-	c.declareLocal(p, c.t.TokText(c.t.Nodes[p].Tok), r, false)
+	c.declareLocal(p, c.t.View(p).Tok().Text(), r, false)
 	c.setType(p, r)
 	c.check(body, want)
 	c.popScope(saved)

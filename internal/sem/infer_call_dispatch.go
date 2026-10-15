@@ -4,9 +4,9 @@ import "kigumi/internal/syntax"
 
 // A call on the right of `|>` takes the left operand first.
 func (c *checker) synthCall(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	callee := syntax.NodeID(node.Lhs)
-	args := c.t.Children(syntax.NodeID(node.Rhs))
+	call := c.t.View(n).AsCallLike()
+	callee := call.Callee().ID()
+	args := call.Args().AppendIDs(nil)
 	if p := c.piped[n]; p != 0 {
 		args = append([]syntax.NodeID{p}, args...)
 	}

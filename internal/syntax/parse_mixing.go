@@ -53,7 +53,7 @@ func (p *parser) checkMixing(parentTok uint32, child NodeID) {
 	if child == 0 {
 		return
 	}
-	n := p.tree.Nodes[child]
+	n := p.tree.nodes[child]
 	if n.Kind != Binary && n.Kind != IsExpr {
 		return
 	}
@@ -88,9 +88,9 @@ func (p *parser) checkSpacedMinus(opTok uint32, lhs NodeID) {
 		return
 	}
 	p.errorAt(op.Span, "ambiguous `%s -%s`; write `%s - %s` for subtraction or `%s(-%s)` for a call",
-		p.tree.TokText(p.tree.Nodes[lhs].Tok), p.describeText(),
-		p.tree.TokText(p.tree.Nodes[lhs].Tok), p.describeText(),
-		p.tree.TokText(p.tree.Nodes[lhs].Tok), p.describeText())
+		p.tree.TokText(p.tree.nodes[lhs].Tok), p.describeText(),
+		p.tree.TokText(p.tree.nodes[lhs].Tok), p.describeText(),
+		p.tree.TokText(p.tree.nodes[lhs].Tok), p.describeText())
 }
 
 func (p *parser) describeText() string {

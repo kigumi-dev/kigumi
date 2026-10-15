@@ -105,9 +105,9 @@ func (c *checker) nestedArgBind(n, arg syntax.NodeID, path []EntityID, field, ds
 }
 
 func (c *checker) literalEntry(lit syntax.NodeID, field EntityID) syntax.NodeID {
-	for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[lit].Rhs)) {
+	for entry := range c.t.View(lit).AsRecordLit().Fields().IDs() {
 		if c.t.Kind(entry) != syntax.Spread && c.info.Uses[entry] == field {
-			return syntax.NodeID(c.t.Nodes[entry].Lhs)
+			return c.t.View(entry).AsFieldInit().Value().ID()
 		}
 	}
 	return 0

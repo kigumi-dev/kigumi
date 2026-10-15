@@ -31,7 +31,7 @@ func (c *checker) trackKnownFn(init syntax.NodeID, local EntityID) {
 }
 
 func (c *checker) recordKnownFieldFns(lit syntax.NodeID, local EntityID) {
-	for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[lit].Rhs)) {
+	for entry := range c.t.View(lit).AsRecordLit().Fields().IDs() {
 		if c.t.Kind(entry) == syntax.Spread {
 			continue
 		}
@@ -39,7 +39,7 @@ func (c *checker) recordKnownFieldFns(lit syntax.NodeID, local EntityID) {
 		if field == 0 {
 			continue
 		}
-		c.recordFieldWrite(local, field, syntax.NodeID(c.t.Nodes[entry].Lhs))
+		c.recordFieldWrite(local, field, c.t.View(entry).AsFieldInit().Value().ID())
 	}
 }
 
@@ -117,7 +117,7 @@ func (c *checker) knownFieldCallKey(callee syntax.NodeID) (fieldFnKey, bool) {
 	if field == 0 || c.r.Entities[field].Kind != EntField {
 		return fieldFnKey{}, false
 	}
-	base := syntax.NodeID(c.t.Nodes[callee].Lhs)
+	base := c.t.View(callee).AsMember().Base().ID()
 	switch c.t.Kind(base) {
 	case syntax.Ident, syntax.MemberExpr, syntax.CallExpr:
 		if baseEnt := c.r.fnChainEnt(c.f, base); baseEnt != 0 {

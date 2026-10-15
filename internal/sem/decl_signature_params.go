@@ -13,11 +13,12 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 	var params []TypeID
 	variadic := false
 	cvariadic := false
-	list := t.Children(s.Params)
-	for i, p := range list {
+	list := t.List(s.Params)
+	for i, p := range list.EnumerateIDs() {
 		ps := param(t, p)
-		name := t.TokText(t.Nodes[p].Tok)
-		pe := Entity{Kind: EntParam, Name: name, Pkg: e.Pkg, File: f, Node: p, Tok: t.Nodes[p].Tok, Parent: id}
+		pt := t.View(p).Tok()
+		name := pt.Text()
+		pe := Entity{Kind: EntParam, Name: name, Pkg: e.Pkg, File: f, Node: p, Tok: pt.Index(), Parent: id}
 		if ps.Flags&syntax.FlagSelf != 0 {
 			if i != 0 && s.Recv != 0 {
 				r.errAt(f, p, cSelfPosition)
@@ -57,7 +58,7 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 			pe.Flags |= EfEscaping
 		}
 		if ps.Flags&syntax.FlagVariadic != 0 {
-			if i != len(list)-1 {
+			if i != list.Len()-1 {
 				r.errAt(f, p, cVariadicNotLast)
 			}
 			variadic = true

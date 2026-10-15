@@ -3,29 +3,30 @@ package sem
 import "kigumi/internal/syntax"
 
 func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
+	m := c.t.View(n).AsMatch()
+	subject := m.Scrutinee().ID()
 	valuePos := c.stmtPos != n
-	scrutinee := c.synth(syntax.NodeID(node.Lhs))
+	scrutinee := c.synth(subject)
 	if c.r.Types.Kind(c.vars.resolve(scrutinee)) == KUntyped {
-		scrutinee = c.adopt(c.literalNode(syntax.NodeID(node.Lhs)), defaultOf(c.vars.resolve(scrutinee)))
+		scrutinee = c.adopt(c.literalNode(subject), defaultOf(c.vars.resolve(scrutinee)))
 	}
-	arms := c.t.Children(syntax.NodeID(node.Rhs))
+	arms := m.Arms().AppendIDs(nil)
 	var bodies []syntax.NodeID
 	var types []TypeID
 	entry := c.snapshotFacts()
 	c.info.Narrow[n] = entry
-	place := c.factPlace(syntax.NodeID(node.Lhs))
+	place := c.factPlace(subject)
 	var excluded []NarrowFact
 	var joined []NarrowFact
 	live := 0
-	scrutineeRp := c.restrictedAliasOf(syntax.NodeID(node.Lhs))
+	scrutineeRp := c.restrictedAliasOf(subject)
 	for _, arm := range arms {
 		s := matchArm(c.t, arm)
 		saved := c.scope
 		c.facts = append(c.snapshotFacts()[:0], entry...)
 		c.addFacts(excluded)
 		c.pushScope(ScopeArm, arm)
-		c.checkPatternOn(s.Pattern, syntax.NodeID(node.Lhs), scrutinee, false, c.scope)
+		c.checkPatternOn(s.Pattern, subject, scrutinee, false, c.scope)
 		c.taintPatternBindings(s.Pattern, scrutineeRp)
 		pos, neg := c.patternFacts(s.Pattern, place)
 		c.addFacts(pos)
@@ -49,7 +50,7 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 		types = append(types, t)
 	}
 	c.facts = entry
-	c.checkMatch(n, syntax.NodeID(node.Lhs), c.scrutineeOf(scrutinee), arms)
+	c.checkMatch(n, subject, c.scrutineeOf(scrutinee), arms)
 	if live > 0 && c.info.Matches[n].Exhaustive {
 		c.facts = joined
 	}

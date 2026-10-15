@@ -6,24 +6,24 @@ import "kigumi/internal/syntax"
 // constructor arguments or record fields, into the list of plain patterns
 // an arm stands for.
 func (c *checker) abstractAll(p syntax.NodeID) []pat {
-	node := c.t.Nodes[p]
+	v := c.t.View(p)
 	if c.info.Types[p] == TyPoison {
 		return []pat{{kind: pErr}}
 	}
-	switch node.Kind {
+	switch v.Kind() {
 	case syntax.PatOr:
 		var out []pat
-		for _, alt := range c.t.Children(p) {
+		for alt := range c.t.List(p).IDs() {
 			out = append(out, c.abstractAll(alt)...)
 		}
 		return out
 	case syntax.PatCtor:
 		ent := c.info.Uses[p]
-		if ent == 0 || c.r.Entities[ent].Kind != EntVariant || node.Rhs == 0 {
+		if ent == 0 || c.r.Entities[ent].Kind != EntVariant || !v.AsPatCtor().Args().Valid() {
 			return []pat{c.abstract(p)}
 		}
 		var columns [][]pat
-		for _, s := range c.t.Children(syntax.NodeID(node.Rhs)) {
+		for s := range v.AsPatCtor().Args().IDs() {
 			columns = append(columns, c.abstractAll(s))
 		}
 		var out []pat
@@ -41,11 +41,11 @@ func (c *checker) abstractAll(p syntax.NodeID) []pat {
 		}
 		var names []string
 		var columns [][]pat
-		for _, f := range c.t.Children(syntax.NodeID(node.Rhs)) {
-			fn := c.t.Nodes[f]
-			if fn.Lhs != 0 {
-				names = append(names, c.t.TokText(fn.Tok))
-				columns = append(columns, c.abstractAll(syntax.NodeID(fn.Lhs)))
+		for fv := range v.AsPatRecord().Fields().Views() {
+			f := fv.AsPatField()
+			if f.Sub().Valid() {
+				names = append(names, f.Name().Text())
+				columns = append(columns, c.abstractAll(f.Sub().ID()))
 			}
 		}
 		var out []pat
@@ -63,7 +63,7 @@ func (c *checker) abstractAll(p syntax.NodeID) []pat {
 			return []pat{{kind: pWild}}
 		}
 		var columns [][]pat
-		for _, s := range c.t.Children(p) {
+		for s := range c.t.List(p).IDs() {
 			columns = append(columns, c.abstractAll(s))
 		}
 		var out []pat

@@ -31,10 +31,10 @@ func FuzzParse(f *testing.F) {
 		case <-time.After(2 * time.Second):
 			t.Fatalf("parser did not terminate on %q", src)
 		}
-		for id := range tree.Nodes[1:] {
-			sp := tree.Span(syntax.NodeID(id + 1))
+		for n := range tree.All() {
+			sp := n.Span()
 			if int(sp.End) > len(src) || sp.Start > sp.End {
-				t.Fatalf("node %d span %v out of range", id+1, sp)
+				t.Fatalf("node %d span %v out of range", n.ID(), sp)
 			}
 		}
 	})

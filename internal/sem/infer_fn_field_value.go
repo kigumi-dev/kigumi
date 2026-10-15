@@ -5,7 +5,7 @@ import "kigumi/internal/syntax"
 func (c *checker) fnFieldSrcKey(expr syntax.NodeID) (fieldFnKey, bool) {
 	switch c.t.Kind(expr) {
 	case syntax.Paren:
-		return c.fnFieldSrcKey(syntax.NodeID(c.t.Nodes[expr].Lhs))
+		return c.fnFieldSrcKey(c.t.View(expr).AsParen().Inner().ID())
 	case syntax.Ident:
 		key, ok := c.r.fnLocalField[c.info.Uses[expr]]
 		return key, ok

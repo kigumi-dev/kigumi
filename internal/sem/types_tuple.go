@@ -34,17 +34,17 @@ func tupleFieldName(i int) string {
 // resolveTupleType resolves a syntax.TypeTuple node to `TupleN[A, B, ...]`.
 func (r *Result) resolveTupleType(f FileID, scope ScopeID, n syntax.NodeID, pos typePos) TypeID {
 	t := r.tree(f)
-	items := t.Children(n)
-	ent, ok := r.Types.tupleEntity(len(items))
+	items := t.List(n)
+	ent, ok := r.Types.tupleEntity(items.Len())
 	if !ok {
-		r.errAt(f, n, cTupleArity, len(items))
-		for _, it := range items {
+		r.errAt(f, n, cTupleArity, items.Len())
+		for it := range items.IDs() {
 			r.resolveType(f, scope, it, posTypeArg)
 		}
 		return TyPoison
 	}
-	args := make([]TypeID, len(items))
-	for i, it := range items {
+	args := make([]TypeID, items.Len())
+	for i, it := range items.EnumerateIDs() {
 		args[i] = r.resolveType(f, scope, it, posTypeArg)
 	}
 	return r.Types.Named(ent, args)

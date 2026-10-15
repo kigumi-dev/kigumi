@@ -85,8 +85,8 @@ func configureEntity(res *sem.Result) (sem.EntityID, error) {
 	if info.Recv != sem.RecvNone || len(info.TypeParams) != 0 || len(info.Params) != 1 || !isResult || ret != sem.TyUnit || res.TypeString(sig.Args[0]) != "Builder" {
 		return 0, fmt.Errorf("%s: configure must be `fn configure(b: build.Builder) -> Unit!`", BuildFileName)
 	}
-	for _, t := range res.Tree(res.Entity(fn).File).Children(res.Tree(res.Entity(fn).File).Root) {
-		if res.Tree(res.Entity(fn).File).Kind(t) != syntax.ImportDecl && res.Tree(res.Entity(fn).File).Kind(t) != syntax.FnDecl {
+	for d := range res.Tree(res.Entity(fn).File).List(res.Tree(res.Entity(fn).File).Root).Views() {
+		if !d.Is(syntax.ImportDecl, syntax.FnDecl) {
 			return 0, fmt.Errorf("%s holds only imports and functions; put other code in a package", BuildFileName)
 		}
 	}

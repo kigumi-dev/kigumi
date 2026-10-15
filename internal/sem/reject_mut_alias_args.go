@@ -24,7 +24,7 @@ func (c *checker) checkMutAliasArgs(args []syntax.NodeID) {
 	for _, a := range args {
 		arg := a
 		if c.t.Kind(arg) == syntax.NamedArg {
-			arg = syntax.NodeID(c.t.Nodes[arg].Lhs)
+			arg = c.t.View(arg).AsNamedArg().Value().ID()
 		}
 		cand, ok := c.mutAliasArgOf(arg)
 		if !ok {
@@ -43,10 +43,10 @@ func (c *checker) checkMutAliasArgs(args []syntax.NodeID) {
 // mutAliasArgOf reads the field/index chain of a scalar `&mut` argument, or
 // reports ok false otherwise (a bare local already aliases its own cell).
 func (c *checker) mutAliasArgOf(a syntax.NodeID) (mutAliasArg, bool) {
-	if c.t.Kind(a) != syntax.BorrowExpr || c.t.Nodes[a].Lhs&syntax.FlagMut == 0 {
+	if c.t.Kind(a) != syntax.BorrowExpr || c.t.View(a).AsBorrow().Flags()&syntax.FlagMut == 0 {
 		return mutAliasArg{}, false
 	}
-	inner := syntax.NodeID(c.t.Nodes[a].Rhs)
+	inner := c.t.View(a).AsBorrow().Operand().ID()
 	if _, ok := c.r.ScalarRefElem(c.vars.resolve(c.info.Types[a])); !ok {
 		return mutAliasArg{}, false
 	}
@@ -68,9 +68,9 @@ func (c *checker) mutAliasChain(n syntax.NodeID) (EntityID, []mutAliasStep, bool
 		}
 		return p.Root, nil, true
 	case syntax.Paren:
-		return c.mutAliasChain(syntax.NodeID(c.t.Nodes[n].Lhs))
+		return c.mutAliasChain(c.t.View(n).AsParen().Inner().ID())
 	case syntax.MemberExpr:
-		root, steps, ok := c.mutAliasChain(syntax.NodeID(c.t.Nodes[n].Lhs))
+		root, steps, ok := c.mutAliasChain(c.t.View(n).AsMember().Base().ID())
 		if !ok {
 			return 0, nil, false
 		}
@@ -80,12 +80,11 @@ func (c *checker) mutAliasChain(n syntax.NodeID) (EntityID, []mutAliasStep, bool
 		}
 		return root, append(steps, mutAliasStep{field: fld}), true
 	case syntax.BracketExpr:
-		root, steps, ok := c.mutAliasChain(syntax.NodeID(c.t.Nodes[n].Lhs))
+		root, steps, ok := c.mutAliasChain(c.t.View(n).AsBracket().Base().ID())
 		if !ok {
 			return 0, nil, false
 		}
-		items := c.t.Children(syntax.NodeID(c.t.Nodes[n].Rhs))
-		v, lit := c.info.Literals[items[0]]
+		v, lit := c.info.Literals[c.t.View(n).AsBracket().Args().ItemID(0)]
 		var iv int64
 		if lit && v.Kind == constInt && v.Int.IsInt64() {
 			iv = v.Int.Int64()

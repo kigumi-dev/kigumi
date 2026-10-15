@@ -5,7 +5,7 @@ import "kigumi/internal/syntax"
 // synthFail checks `fail e` against the enclosing function's error type;
 // the value never returns.
 func (c *checker) synthFail(n syntax.NodeID) TypeID {
-	operand := syntax.NodeID(c.t.Nodes[n].Lhs)
+	operand := c.t.View(n).AsFail().Value().ID()
 	if c.cleanup > 0 {
 		c.errAt(n, cCleanupControlFlow, "`fail`")
 	}
@@ -32,7 +32,7 @@ func (c *checker) synthFail(n syntax.NodeID) TypeID {
 
 // synthTry checks postfix `?`.
 func (c *checker) synthTry(n syntax.NodeID) TypeID {
-	operand := syntax.NodeID(c.t.Nodes[n].Lhs)
+	operand := c.t.View(n).AsTry().Operand().ID()
 	tt := c.r.Types
 	got := c.vars.resolve(c.synth(operand))
 	if c.cleanup > 0 {

@@ -15,7 +15,7 @@ func (p *parser) importDecl(pf prefix) NodeID {
 			name := p.leaf(Ident, p.expect(token.Ident))
 			if p.eatIdent("as") {
 				alias := p.leaf(Ident, p.expect(token.Ident))
-				names = append(names, p.node2(ImportAlias, p.tree.Nodes[alias].Tok, name, alias))
+				names = append(names, p.node2(ImportAlias, p.tree.nodes[alias].Tok, name, alias))
 				return
 			}
 			names = append(names, name)
@@ -35,7 +35,7 @@ func (p *parser) importDecl(pf prefix) NodeID {
 // `github.com` and `my-lib` into several tokens, so each segment becomes a
 // synthetic Ident token appended after the real ones.
 func (p *parser) importPath() NodeID {
-	start := uint32(len(p.tree.Extra))
+	start := uint32(len(p.tree.extra))
 	first := p.pos
 	src := p.tree.File.Src
 	from := int(p.tok().Start)
@@ -45,7 +45,7 @@ func (p *parser) importPath() NodeID {
 	}
 	if end == from {
 		p.errorf("expected an import path, found %s", p.describe())
-		return p.tree.add(Node{Kind: Path, Tok: first, Lhs: start, Rhs: start})
+		return p.tree.add(rawNode{Kind: Path, Tok: first, Lhs: start, Rhs: start})
 	}
 	pos := from
 	for _, seg := range strings.Split(string(src[from:end]), "/") {
@@ -58,14 +58,14 @@ func (p *parser) importPath() NodeID {
 		p.toks = append(p.toks, token.Token{Kind: token.Ident, Span: span})
 		p.tree.Toks = p.toks
 		p.closer = append(p.closer, 0)
-		p.tree.Extra = append(p.tree.Extra, uint32(len(p.toks)-1))
+		p.tree.extra = append(p.tree.extra, uint32(len(p.toks)-1))
 		pos += len(seg) + 1
 	}
 	for !p.at(token.EOF) && int(p.tok().Start) < end {
 		p.pos++
 	}
 	p.skipComments()
-	return p.tree.add(Node{Kind: Path, Tok: first, Lhs: start, Rhs: uint32(len(p.tree.Extra))})
+	return p.tree.add(rawNode{Kind: Path, Tok: first, Lhs: start, Rhs: uint32(len(p.tree.extra))})
 }
 
 func isPathEnd(c byte) bool { return c == ' ' || c == '\t' || c == '\r' || c == '\n' }
@@ -87,7 +87,7 @@ func (p *parser) testDecl(pf prefix) NodeID {
 	p.rejectDeclPrefix(pf, "test declarations")
 	tok := p.advance()
 	name := p.expect(token.String)
-	return p.tree.add(Node{Kind: TestDecl, Tok: tok, Lhs: name, Rhs: uint32(p.block())})
+	return p.tree.add(rawNode{Kind: TestDecl, Tok: tok, Lhs: name, Rhs: uint32(p.block())})
 }
 
 func (p *parser) contractBlock(pf prefix) NodeID {
@@ -131,5 +131,5 @@ func (p *parser) instantiate() NodeID {
 	tok := p.advance()
 	name := p.expect(token.Ident)
 	p.expect(token.Assign)
-	return p.tree.add(Node{Kind: InstantiateDecl, Tok: name, Lhs: tok, Rhs: uint32(p.typ())})
+	return p.tree.add(rawNode{Kind: InstantiateDecl, Tok: name, Lhs: tok, Rhs: uint32(p.typ())})
 }

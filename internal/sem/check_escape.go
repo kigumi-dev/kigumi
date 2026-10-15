@@ -31,7 +31,7 @@ func (c *checker) restrictedParam(expr syntax.NodeID) EntityID {
 func (c *checker) restrictedAliasOf(expr syntax.NodeID) EntityID {
 	switch c.t.Kind(expr) {
 	case syntax.Paren:
-		return c.restrictedAliasOf(syntax.NodeID(c.t.Nodes[expr].Lhs))
+		return c.restrictedAliasOf(c.t.View(expr).AsParen().Inner().ID())
 	case syntax.Block:
 		return c.blockTailAlias(expr)
 	case syntax.IfExpr:
@@ -53,14 +53,14 @@ func (c *checker) restrictedAliasOf(expr syntax.NodeID) EntityID {
 		}
 		return c.restrictedAliasOf(s.Else)
 	case syntax.MatchExpr:
-		for _, arm := range c.t.Children(syntax.NodeID(c.t.Nodes[expr].Rhs)) {
+		for arm := range c.t.View(expr).AsMatch().Arms().IDs() {
 			if p := c.restrictedAliasOf(matchArm(c.t, arm).Body); p != 0 {
 				return p
 			}
 		}
 		return 0
 	case syntax.TupleLit:
-		for _, elem := range c.t.Children(expr) {
+		for elem := range c.t.List(expr).IDs() {
 			if p := c.restrictedAliasOf(elem); p != 0 {
 				return p
 			}
@@ -79,11 +79,11 @@ func (c *checker) restrictedAliasOf(expr syntax.NodeID) EntityID {
 
 // blockTailAlias is restrictedAliasOf for a block's tail expression; 0 when the block has none.
 func (c *checker) blockTailAlias(body syntax.NodeID) EntityID {
-	stmts := c.t.Children(body)
-	if len(stmts) == 0 || c.t.Kind(stmts[len(stmts)-1]) != syntax.ExprStmt {
+	tail := c.t.View(body).AsBlock().Tail()
+	if !tail.Valid() {
 		return 0
 	}
-	return c.restrictedAliasOf(syntax.NodeID(c.t.Nodes[stmts[len(stmts)-1]].Lhs))
+	return c.restrictedAliasOf(tail.ID())
 }
 
 // taintPatternBindings taints every name a pattern binds, not only the one structurally holding rp,
@@ -95,5 +95,7 @@ func (c *checker) taintPatternBindings(p syntax.NodeID, rp EntityID) {
 	if ent := c.info.Defs[p]; ent != 0 {
 		c.escapeAlias[ent] = rp
 	}
-	c.t.EachChild(p, func(child syntax.NodeID) { c.taintPatternBindings(child, rp) })
+	for child := range c.t.View(p).Children() {
+		c.taintPatternBindings(child.ID(), rp)
+	}
 }

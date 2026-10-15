@@ -53,26 +53,26 @@ func (c *checker) patternFacts(p syntax.NodeID, place PlaceID) (pos, neg []Narro
 }
 
 func (c *checker) allBindings(p syntax.NodeID) bool {
-	node := c.t.Nodes[p]
-	switch node.Kind {
+	node := c.t.View(p)
+	switch node.Kind() {
 	case syntax.PatWildcard, syntax.PatBind:
 		return true
 	case syntax.PatCtor:
-		for _, s := range c.t.Children(syntax.NodeID(node.Rhs)) {
+		for s := range node.AsPatCtor().Args().IDs() {
 			if !c.allBindings(s) {
 				return false
 			}
 		}
 		return true
 	case syntax.PatRecord:
-		for _, f := range c.t.Children(syntax.NodeID(node.Rhs)) {
-			if sub := syntax.NodeID(c.t.Nodes[f].Lhs); sub != 0 && !c.allBindings(sub) {
+		for fv := range node.AsPatRecord().Fields().Views() {
+			if sub := fv.AsPatField().Sub().ID(); sub != 0 && !c.allBindings(sub) {
 				return false
 			}
 		}
 		return true
 	case syntax.PatTuple:
-		for _, s := range c.t.Children(p) {
+		for s := range c.t.List(p).IDs() {
 			if !c.allBindings(s) {
 				return false
 			}

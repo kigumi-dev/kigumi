@@ -68,13 +68,13 @@ func wildTypes(n int) []TypeID {
 
 // abstract turns a checked pattern node into a matrix pattern.
 func (c *checker) abstract(p syntax.NodeID) pat {
-	node := c.t.Nodes[p]
+	v := c.t.View(p)
 	if c.info.Types[p] == TyPoison {
 		return pat{kind: pErr}
 	}
-	switch node.Kind {
+	switch v.Kind() {
 	case syntax.PatLit:
-		return c.abstractLit(syntax.NodeID(node.Lhs))
+		return c.abstractLit(v.AsPatLit().Lit().ID())
 	case syntax.PatCtor:
 		ent := c.info.Uses[p]
 		if ent == 0 || c.r.Entities[ent].Kind != EntVariant {
@@ -85,7 +85,7 @@ func (c *checker) abstract(p syntax.NodeID) pat {
 		}
 		vi := c.r.variant(ent)
 		args := wilds(len(vi.Payload))
-		for i, s := range c.t.Children(syntax.NodeID(node.Rhs)) {
+		for i, s := range v.AsPatCtor().Args().EnumerateIDs() {
 			if i < len(args) {
 				args[i] = c.abstract(s)
 			}
@@ -113,8 +113,8 @@ func (c *checker) abstractTuple(p syntax.NodeID) pat {
 	if ent == 0 {
 		return pat{kind: pWild}
 	}
-	args := make([]pat, 0, len(c.t.Children(p)))
-	for _, s := range c.t.Children(p) {
+	args := make([]pat, 0, c.t.List(p).Len())
+	for s := range c.t.List(p).IDs() {
 		args = append(args, c.abstract(s))
 	}
 	return pat{kind: pCtor, key: recordKey(ent), name: c.r.Entities[ent].Name, args: args}
@@ -122,7 +122,7 @@ func (c *checker) abstractTuple(p syntax.NodeID) pat {
 
 func (c *checker) abstractLit(lit syntax.NodeID) pat {
 	lit = c.literalNode(lit)
-	text := c.t.TokText(c.t.Nodes[lit].Tok)
+	text := c.t.View(lit).Tok().Text()
 	if c.t.Kind(lit) == syntax.BoolLit {
 		return pat{kind: pCtor, key: text, name: text}
 	}
@@ -135,16 +135,15 @@ func (c *checker) abstractLit(lit syntax.NodeID) pat {
 // abstractRecord orders the field patterns by declaration (records) or by
 // payload position (named variants); unmentioned fields are wildcards.
 func (c *checker) abstractRecord(p syntax.NodeID) pat {
-	node := c.t.Nodes[p]
 	ent := c.info.Uses[p]
 	if ent == 0 {
 		return pat{kind: pWild}
 	}
 	subs := map[string]pat{}
-	for _, f := range c.t.Children(syntax.NodeID(node.Rhs)) {
-		fn := c.t.Nodes[f]
-		if fn.Lhs != 0 {
-			subs[c.t.TokText(fn.Tok)] = c.abstract(syntax.NodeID(fn.Lhs))
+	for fv := range c.t.View(p).AsPatRecord().Fields().Views() {
+		f := fv.AsPatField()
+		if f.Sub().Valid() {
+			subs[f.Name().Text()] = c.abstract(f.Sub().ID())
 		}
 	}
 	return c.recordPat(ent, subs)

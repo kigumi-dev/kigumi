@@ -110,7 +110,7 @@ func (p *parser) attr() NodeID {
 func (p *parser) visibility() NodeID {
 	tok := p.expect(token.KwPub)
 	if !p.at(token.LParen) || p.tok().HasSpaceBefore() {
-		return p.tree.add(Node{Kind: Visibility, Tok: tok})
+		return p.tree.add(rawNode{Kind: Visibility, Tok: tok})
 	}
 	p.advance()
 	kindTok := p.pos
@@ -128,7 +128,7 @@ func (p *parser) visibility() NodeID {
 		p.errorf("expected `self`, `module`, `super` or `in path` after `pub(`")
 	}
 	p.expect(token.RParen)
-	return p.tree.add(Node{Kind: Visibility, Tok: tok, Lhs: kindTok, Rhs: uint32(path)})
+	return p.tree.add(rawNode{Kind: Visibility, Tok: tok, Lhs: kindTok, Rhs: uint32(path)})
 }
 
 func (p *parser) decl() NodeID {

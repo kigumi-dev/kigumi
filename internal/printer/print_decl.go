@@ -6,46 +6,43 @@ import (
 )
 
 func (p *printer) prefix(id syntax.NodeID) {
-	s := p.t.Slots(id)
-	if doc := p.t.Slot(id, "doc"); doc != 0 {
-		for i := firstDocTok(p.t, doc); i <= doc; i++ {
+	d := p.t.View(id).AsDecl()
+	if doc := d.Doc(); doc.Valid() {
+		for i := firstDocTok(p.t, doc.Index()); i <= doc.Index(); i++ {
 			if p.t.Toks[i].Kind == token.DocComment {
 				p.write(p.tok(i))
 				p.newline()
 			}
 		}
-		p.skipTo(doc + 1)
+		p.skipTo(doc.Index() + 1)
 	}
-	if attrs := p.t.Slot(id, "attrs"); attrs != 0 {
-		p.attrs(syntax.NodeID(attrs))
+	if attrs := d.Attrs(); attrs.Valid() {
+		p.attrs(attrs)
 	}
-	if vis := p.t.Slot(id, "vis"); vis != 0 {
-		p.visibility(syntax.NodeID(vis))
+	if vis := d.Vis(); vis.Valid() {
+		p.visibility(vis)
 	}
-	if p.t.Kind(id) == syntax.FnDecl && s[2] != 0 {
-		p.write(modsText(s[2]) + " ")
+	if d.Kind() == syntax.FnDecl {
+		if mods := d.AsFnDecl().Mods(); mods != 0 {
+			p.write(modsText(mods) + " ")
+		}
 	}
 }
 
-func (p *printer) attrs(list syntax.NodeID) {
+func (p *printer) attrs(list syntax.ListView) {
 	var impls []syntax.NodeID
-	for _, a := range p.t.Children(list) {
-		if p.t.Kind(a) == syntax.UnsafeGuarantee {
-			p.unsafeGuarantee(a)
+	for a := range list.Views() {
+		if a.Kind() == syntax.UnsafeGuarantee {
+			p.unsafeGuarantee(a.ID())
 			p.newline()
 			continue
 		}
-		n := p.node(a)
-		if p.pathText(syntax.NodeID(n.Lhs)) == "impl" {
-			impls = append(impls, p.t.Children(syntax.NodeID(n.Rhs))...)
+		attr := a.AsAttr()
+		if attr.Path().Join(".") == "impl" {
+			impls = attr.Args().AppendIDs(impls)
 			continue
 		}
-		p.write("@" + p.pathText(syntax.NodeID(n.Lhs)))
-		if n.Rhs != 0 {
-			p.write("(")
-			p.exprList(syntax.NodeID(n.Rhs))
-			p.write(")")
-		}
+		p.attr(attr)
 		p.newline()
 	}
 	if len(impls) > 0 {
@@ -61,136 +58,124 @@ func (p *printer) attrs(list syntax.NodeID) {
 	}
 }
 
-func (p *printer) visibility(id syntax.NodeID) {
-	n := p.node(id)
-	if n.Lhs == 0 {
-		p.write("pub ")
-		return
-	}
-	switch p.tok(n.Lhs) {
-	case "self":
-		return
-	case "in":
-		p.write("pub(in " + p.pathText(syntax.NodeID(n.Rhs)) + ") ")
-	default:
-		p.write("pub(" + p.tok(n.Lhs) + ") ")
+func (p *printer) attr(a syntax.AttrView) {
+	p.write("@" + a.Path().Join("."))
+	if args := a.Args(); args.Valid() {
+		p.write("(")
+		p.exprList(args.ID())
+		p.write(")")
 	}
 }
 
-func (p *printer) pathText(id syntax.NodeID) string {
-	s := ""
-	for i, tk := range p.t.PathToks(id) {
-		if i > 0 {
-			s += "."
-		}
-		s += p.tok(tk)
+func (p *printer) visibility(v syntax.VisibilityView) {
+	q := v.Qualifier()
+	if !q.Valid() {
+		p.write("pub ")
+		return
 	}
-	return s
+	switch q.Text() {
+	case "self":
+		return
+	case "in":
+		p.write("pub(in " + v.Path().Join(".") + ") ")
+	default:
+		p.write("pub(" + q.Text() + ") ")
+	}
 }
 
 func (p *printer) fnDecl(id syntax.NodeID) {
 	p.prefix(id)
-	s := p.t.Slots(id)
+	f := p.t.View(id).AsFnDecl()
 	p.write("fn ")
-	if s[4] != 0 {
-		p.typ(syntax.NodeID(s[4]))
+	if recv := f.Recv(); recv.Valid() {
+		p.typ(recv.ID())
 		p.write(".")
 	}
-	p.write(p.tok(s[5]))
-	if s[6] != 0 {
-		p.genericParams(syntax.NodeID(s[6]))
+	p.write(f.Name().Text())
+	if g := f.Generics(); g.Valid() {
+		p.genericParams(g.ID())
 	}
-	p.params(syntax.NodeID(s[7]))
-	if s[8] != 0 {
+	p.params(f.Params().ID())
+	if ret := f.Ret(); ret.Valid() {
 		p.write(" -> ")
-		p.typ(syntax.NodeID(s[8]))
+		p.typ(ret.ID())
 	}
-	if s[9] != 0 {
+	if body := f.Body(); body.Valid() {
 		p.write(" ")
-		p.block(syntax.NodeID(s[9]))
+		p.block(body.ID())
 	}
 }
 
 func (p *printer) genericParams(list syntax.NodeID) {
 	p.write("[")
-	for i, g := range p.t.Children(list) {
+	for i, g := range p.t.List(list).Enumerate() {
 		if i > 0 {
 			p.write(", ")
 		}
-		p.genericParam(g)
+		p.genericParam(g.AsGenericParam())
 	}
 	p.write("]")
 }
 
 // genericParam prints `T`, `T: A + B`, or `const N: usize`.
-func (p *printer) genericParam(g syntax.NodeID) {
-	n := p.node(g)
-	if n.Lhs&syntax.FlagConst != 0 {
+func (p *printer) genericParam(g syntax.GenericParamView) {
+	if g.Flags()&syntax.FlagConst != 0 {
 		p.write("const ")
-		p.write(p.tok(n.Tok))
+		p.write(g.Name().Text())
 		p.write(": ")
-		p.typ(syntax.NodeID(n.Rhs))
+		p.typ(g.Bound().ID())
 		return
 	}
-	p.write(p.tok(n.Tok))
-	if n.Rhs != 0 {
+	p.write(g.Name().Text())
+	if bound := g.Bound(); bound.Valid() {
 		p.write(": ")
-		for j, b := range p.t.Children(syntax.NodeID(n.Rhs)) {
+		for j, b := range p.t.List(bound.ID()).Enumerate() {
 			if j > 0 {
 				p.write(" + ")
 			}
-			p.typ(b)
+			p.typ(b.ID())
 		}
 	}
 }
 
 func (p *printer) params(list syntax.NodeID) {
 	p.write("(")
-	for i, prm := range p.t.Children(list) {
+	for i, prm := range p.t.List(list).Enumerate() {
 		if i > 0 {
 			p.write(", ")
 		}
-		p.param(prm)
+		p.param(prm.AsParam())
 	}
 	p.write(")")
 }
 
-func (p *printer) param(id syntax.NodeID) {
-	n := p.node(id)
-	s := p.t.Slots(id)
-	if s[1]&syntax.FlagVariadic != 0 && s[2] == 0 {
+func (p *printer) param(prm syntax.ParamView) {
+	flags := prm.Flags()
+	if flags&syntax.FlagVariadic != 0 && !prm.Type().Valid() {
 		p.write("...")
 		return
 	}
-	if s[0] != 0 {
-		for _, a := range p.t.Children(syntax.NodeID(s[0])) {
-			if p.t.Kind(a) == syntax.UnsafeGuarantee {
-				p.unsafeGuarantee(a)
-				p.write(" ")
-				continue
-			}
-			an := p.node(a)
-			p.write("@" + p.pathText(syntax.NodeID(an.Lhs)))
-			if an.Rhs != 0 {
-				p.write("(")
-				p.exprList(syntax.NodeID(an.Rhs))
-				p.write(")")
-			}
+	for a := range prm.Attrs().Views() {
+		if a.Kind() == syntax.UnsafeGuarantee {
+			p.unsafeGuarantee(a.ID())
 			p.write(" ")
+			continue
 		}
+		p.attr(a.AsAttr())
+		p.write(" ")
 	}
-	if s[1]&syntax.FlagMut != 0 {
+	if flags&syntax.FlagMut != 0 {
 		p.write("mut ")
 	}
-	if s[1]&syntax.FlagMove != 0 {
+	if flags&syntax.FlagMove != 0 {
 		p.write("move ")
 	}
-	p.write(p.tok(n.Tok))
-	if s[2] != 0 {
+	p.write(prm.Name().Text())
+	if typ := prm.Type(); typ.Valid() {
 		p.write(": ")
-		if s[1]&syntax.FlagVariadic != 0 {
+		if flags&syntax.FlagVariadic != 0 {
 			p.write("...")
 		}
-		p.typ(syntax.NodeID(s[2]))
+		p.typ(typ.ID())
 	}
 }

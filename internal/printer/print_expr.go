@@ -6,11 +6,11 @@ import (
 )
 
 func (p *printer) exprList(list syntax.NodeID) {
-	for i, e := range p.t.Children(list) {
+	for i, e := range p.t.List(list).Enumerate() {
 		if i > 0 {
 			p.write(", ")
 		}
-		p.withIndent(func() { p.expr(e) })
+		p.withIndent(func() { p.expr(e.ID()) })
 	}
 }
 
@@ -18,60 +18,67 @@ func (p *printer) expr(id syntax.NodeID) {
 	if id == 0 {
 		return
 	}
-	n := p.node(id)
-	switch n.Kind {
+	v := p.t.View(id)
+	switch v.Kind() {
 	case syntax.Ident, syntax.IntLit, syntax.FloatLit, syntax.CharLit, syntax.BoolLit:
-		p.write(p.tok(n.Tok))
+		p.write(v.Tok().Text())
 	case syntax.StringLit, syntax.ByteStringLit:
-		p.write(p.tok(n.Tok))
+		p.write(v.Tok().Text())
 	case syntax.ShellLit:
-		p.write("$" + p.tok(n.Lhs))
+		p.write("$" + v.AsShellLit().Str().Text())
 	case syntax.Paren:
-		inner := syntax.NodeID(n.Lhs)
-		if p.t.Kind(inner) == syntax.Paren {
-			p.expr(inner)
+		inner := v.AsParen().Inner()
+		if inner.Kind() == syntax.Paren {
+			p.expr(inner.ID())
 			return
 		}
 		p.write("(")
-		p.expr(inner)
+		p.expr(inner.ID())
 		p.write(")")
 	case syntax.Unary:
-		p.write(p.tok(n.Tok))
-		p.expr(syntax.NodeID(n.Lhs))
+		u := v.AsUnary()
+		p.write(u.Op().Text())
+		p.expr(u.Operand().ID())
 	case syntax.Binary:
 		p.binary(id)
 	case syntax.IsExpr:
-		p.expr(syntax.NodeID(n.Lhs))
+		is := v.AsIs()
+		p.expr(is.Left().ID())
 		p.write(" is ")
-		p.pattern(syntax.NodeID(n.Rhs))
+		p.pattern(is.Pattern().ID())
 	case syntax.CallExpr:
-		p.expr(syntax.NodeID(n.Lhs))
+		c := v.AsCall()
+		p.expr(c.Callee().ID())
 		p.write("(")
-		p.exprList(syntax.NodeID(n.Rhs))
+		p.exprList(c.Args().ID())
 		p.write(")")
 	case syntax.WsCallExpr:
 		p.wsCall(id)
 	case syntax.BracketExpr:
-		p.expr(syntax.NodeID(n.Lhs))
+		b := v.AsBracket()
+		p.expr(b.Base().ID())
 		p.write("[")
-		p.exprList(syntax.NodeID(n.Rhs))
+		p.exprList(b.Args().ID())
 		p.write("]")
 	case syntax.TypeFn, syntax.TypePtr:
 		p.typ(id)
 	case syntax.MemberExpr:
-		p.expr(syntax.NodeID(n.Lhs))
-		p.member(n.Tok, ".")
+		m := v.AsMember()
+		p.expr(m.Base().ID())
+		p.member(m.Member(), ".")
 	case syntax.OptMemberExpr:
-		p.expr(syntax.NodeID(n.Lhs))
-		p.member(n.Tok, "?.")
+		m := v.AsOptMember()
+		p.expr(m.Base().ID())
+		p.member(m.Member(), "?.")
 	case syntax.Spread:
 		p.write("...")
-		p.expr(syntax.NodeID(n.Lhs))
+		p.expr(v.AsSpread().Value().ID())
 	case syntax.NamedArg:
-		p.write(p.tok(n.Tok) + ": ")
-		p.expr(syntax.NodeID(n.Lhs))
+		a := v.AsNamedArg()
+		p.write(a.Name().Text() + ": ")
+		p.expr(a.Value().ID())
 	case syntax.TryExpr:
-		p.expr(syntax.NodeID(n.Lhs))
+		p.expr(v.AsTry().Operand().ID())
 		p.write("?")
 	case syntax.RecordLit:
 		p.recordLit(id)
@@ -93,61 +100,87 @@ func (p *printer) expr(id syntax.NodeID) {
 		p.forExpr(id)
 	case syntax.ReturnExpr, syntax.FailExpr, syntax.BreakExpr, syntax.ContinueExpr,
 		syntax.AwaitExpr, syntax.ComptimeExpr, syntax.UnsafeExpr, syntax.MoveExpr:
-		p.write(p.tok(n.Tok))
-		if n.Lhs != 0 {
+		p.write(v.Tok().Text())
+		if operand := p.keywordOperand(v); operand.Valid() {
 			p.write(" ")
-			p.expr(syntax.NodeID(n.Lhs))
+			p.expr(operand.ID())
 		}
 	case syntax.AsmExpr:
 		p.asmBlock(id)
 	case syntax.AllocatorExpr:
+		a := v.AsAllocator()
 		p.write("allocator ")
-		p.expr(syntax.NodeID(n.Lhs))
+		p.expr(a.Scope().ID())
 		p.write(" ")
-		p.block(syntax.NodeID(n.Rhs))
+		p.block(a.Body().ID())
 	case syntax.ContextExpr:
+		c := v.AsContext()
 		p.write("context (")
-		p.exprList(syntax.NodeID(n.Lhs))
+		p.exprList(c.Provides().ID())
 		p.write(") ")
-		p.block(syntax.NodeID(n.Rhs))
+		p.block(c.Body().ID())
 	case syntax.ContractExpr:
-		p.write(modsText(n.Lhs) + " ")
-		p.block(syntax.NodeID(n.Rhs))
+		c := v.AsContract()
+		p.write(modsText(c.Mods()) + " ")
+		p.block(c.Body().ID())
 	case syntax.BorrowExpr:
+		b := v.AsBorrow()
 		p.write("&")
-		if n.Lhs&syntax.FlagMut != 0 {
+		if b.Flags()&syntax.FlagMut != 0 {
 			p.write("mut ")
 		}
-		p.expr(syntax.NodeID(n.Rhs))
+		p.expr(b.Operand().ID())
 	}
+}
+
+// keywordOperand is the optional operand of a keyword expression such as
+// `return x` or `await x`; `continue` has none.
+func (p *printer) keywordOperand(v syntax.View) syntax.View {
+	switch v.Kind() {
+	case syntax.ReturnExpr:
+		return v.AsReturn().Value().View
+	case syntax.FailExpr:
+		return v.AsFail().Value().View
+	case syntax.BreakExpr:
+		return v.AsBreak().Value().View
+	case syntax.AwaitExpr:
+		return v.AsAwait().Operand().View
+	case syntax.ComptimeExpr:
+		return v.AsComptime().Body().View
+	case syntax.UnsafeExpr:
+		return v.AsUnsafe().Body().View
+	case syntax.MoveExpr:
+		return v.AsMove().Operand().View
+	}
+	return syntax.View{}
 }
 
 // member prints a `.name` segment. A segment that started a new line in the
 // source keeps its own line, indented once for the whole chain.
-func (p *printer) member(nameTok uint32, dot string) {
-	if nameTok >= 2 && p.t.Toks[nameTok-2].Kind == token.Newline {
+func (p *printer) member(name syntax.TokenRef, dot string) {
+	if nameTok := name.Index(); nameTok >= 2 && p.t.Toks[nameTok-2].Kind == token.Newline {
 		p.newline()
 		if !p.chain {
 			p.indent++
 			p.chain = true
 		}
 	}
-	p.write(dot + p.tok(nameTok))
+	p.write(dot + name.Text())
 }
 
 // wsCall keeps `f x` only for a bare identifier callee; member callees
 // become ordinary calls.
 func (p *printer) wsCall(id syntax.NodeID) {
-	n := p.node(id)
-	callee := syntax.NodeID(n.Lhs)
-	if p.t.Kind(callee) == syntax.Ident {
-		p.expr(callee)
+	c := p.t.View(id).AsWsCall()
+	callee := c.Callee()
+	if callee.Kind() == syntax.Ident {
+		p.expr(callee.ID())
 		p.write(" ")
-		p.exprList(syntax.NodeID(n.Rhs))
+		p.exprList(c.Args().ID())
 		return
 	}
-	p.expr(callee)
+	p.expr(callee.ID())
 	p.write("(")
-	p.exprList(syntax.NodeID(n.Rhs))
+	p.exprList(c.Args().ID())
 	p.write(")")
 }

@@ -14,7 +14,7 @@ func (c *checker) recordEffectFacts(lit syntax.NodeID, base Place) {
 		return
 	}
 	var facts []NarrowFact
-	for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[lit].Rhs)) {
+	for entry := range c.t.View(lit).AsRecordLit().Fields().IDs() {
 		if c.t.Kind(entry) == syntax.Spread {
 			continue
 		}
@@ -22,7 +22,7 @@ func (c *checker) recordEffectFacts(lit syntax.NodeID, base Place) {
 		if fld == 0 || !c.r.isEffectPolyField(fld) {
 			continue
 		}
-		fact, ok := c.effectFact(syntax.NodeID(c.t.Nodes[entry].Lhs))
+		fact, ok := c.effectFact(c.t.View(entry).AsFieldInit().Value().ID())
 		if !ok {
 			continue
 		}

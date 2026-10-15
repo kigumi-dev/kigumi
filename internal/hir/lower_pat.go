@@ -7,41 +7,43 @@ import (
 )
 
 func (l *lowerer) pattern(p syntax.NodeID) *Pat {
-	node := l.t.Nodes[p]
+	v := l.t.View(p)
 	out := &Pat{Type: l.typeOf(p), Node: p, Borrow: l.info.Pats[p].Borrow, Mut: l.info.Pats[p].Mut}
-	switch node.Kind {
+	switch v.Kind() {
 	case syntax.PatWildcard:
 		out.Kind = PatWild
 	case syntax.PatBind:
 		out.Kind, out.Ent = PatBind, l.info.Defs[p]
 	case syntax.PatLit:
-		out.Kind, out.Lit = PatLit, l.expr(syntax.NodeID(node.Lhs))
+		out.Kind, out.Lit = PatLit, l.expr(v.AsPatLit().Lit().ID())
 	case syntax.PatCtor:
 		out.Kind, out.Ent = PatCtor, l.info.Uses[p]
 		out.IsType = l.r.Entity(out.Ent).Kind != sem.EntVariant
-		for _, s := range l.t.Children(syntax.NodeID(node.Rhs)) {
+		for s := range v.AsPatCtor().Args().IDs() {
 			out.Subs = append(out.Subs, l.pattern(s))
 		}
 	case syntax.PatRecord:
 		out.Kind, out.Ent = PatRecord, l.info.Uses[p]
 		out.Variant = l.r.Entity(out.Ent).Kind == sem.EntVariant
-		for _, f := range l.t.Children(syntax.NodeID(node.Rhs)) {
+		for f := range v.AsPatRecord().Fields().IDs() {
 			out.Fields = append(out.Fields, l.patField(f, out.Ent))
 		}
 	case syntax.PatTuple:
 		out.Kind, out.Ent = PatRecord, l.info.Uses[p]
-		for i, s := range l.t.Children(p) {
+		for i, sv := range v.AsPatTuple().Enumerate() {
+			s := sv.ID()
 			out.Fields = append(out.Fields, &PatField{Node: s, Type: l.typeOf(s), Index: i, Sub: l.pattern(s)})
 		}
 	case syntax.PatOr:
 		out.Kind = PatOr
-		for _, alt := range l.t.Children(p) {
+		for alt := range v.AsPatOr().IDs() {
 			out.Subs = append(out.Subs, l.pattern(alt))
 		}
 	case syntax.PatRange:
+		r := v.AsPatRange()
 		out.Kind = PatRange
-		out.Lo, out.Hi = l.expr(syntax.NodeID(node.Lhs)), l.expr(syntax.NodeID(node.Rhs))
-		out.Inclusive = l.t.Toks[node.Tok].Kind == token.DotDotEq
+		out.Lo, out.Hi = l.expr(r.Lo().ID()), l.expr(r.Hi().ID())
+		out.Inclusive = r.Op().Kind() == token.DotDotEq
 	default:
 		out.Kind = PatNever
 	}
@@ -51,11 +53,11 @@ func (l *lowerer) pattern(p syntax.NodeID) *Pat {
 // patField resolves the field a record-pattern entry names: a payload
 // position of a variant, or a field index of a record.
 func (l *lowerer) patField(f syntax.NodeID, owner sem.EntityID) *PatField {
-	fn := l.t.Nodes[f]
-	name := l.t.TokText(fn.Tok)
+	fv := l.t.View(f).AsPatField()
+	name := fv.Name().Text()
 	out := &PatField{Node: f, Type: l.typeOf(f)}
-	if fn.Lhs != 0 {
-		out.Sub = l.pattern(syntax.NodeID(fn.Lhs))
+	if sub := fv.Sub(); sub.Valid() {
+		out.Sub = l.pattern(sub.ID())
 	} else {
 		out.Bind = l.info.Defs[f]
 	}

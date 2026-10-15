@@ -4,9 +4,9 @@ import "kigumi/internal/syntax"
 
 // synthBracket implements `a[b]`.
 func (c *checker) synthBracket(n syntax.NodeID) TypeID {
-	node := c.t.Nodes[n]
-	base := syntax.NodeID(node.Lhs)
-	items := c.t.Children(syntax.NodeID(node.Rhs))
+	br := c.t.View(n).AsBracket()
+	base := br.Base().ID()
+	items := br.Args()
 	head := c.resolveHead(base)
 	switch head.kind {
 	case headFn:
@@ -17,7 +17,7 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 				return TyPoison
 			}
 			var typeArgs []TypeID
-			for i, a := range items {
+			for i, a := range items.EnumerateIDs() {
 				typeArgs = append(typeArgs, c.r.resolveExprGenericArg(c.f, c.scope, a, entAt(params, i)))
 			}
 			c.r.useEntity(c.f, n, head.ent)
@@ -47,12 +47,12 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 		return TyPoison
 	}
 	recv := c.vars.resolve(c.synthPlace(base))
-	if len(items) != 1 {
+	if items.Len() != 1 {
 		c.errAt(n, cIndexCount)
 		return TyPoison
 	}
-	index := c.vars.resolve(c.synth(items[0]))
-	return c.indexType(n, items[0], recv, index)
+	index := c.vars.resolve(c.synth(items.ItemID(0)))
+	return c.indexType(n, items.ItemID(0), recv, index)
 }
 
 // indexValueResult gates a by-value index read on T: Copy. n is exempt when it was
@@ -84,7 +84,7 @@ func (c *checker) indexRooted(n syntax.NodeID) bool {
 	for {
 		switch c.t.Kind(n) {
 		case syntax.Paren, syntax.MemberExpr, syntax.OptMemberExpr:
-			n = syntax.NodeID(c.t.Nodes[n].Lhs)
+			n = c.t.View(n).Base().ID()
 		case syntax.BracketExpr:
 			return true
 		default:

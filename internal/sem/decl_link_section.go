@@ -21,15 +21,15 @@ func (r *Result) resolveLinkSection(f FileID, attrs syntax.NodeID, allowLink, al
 	}
 	t := r.tree(f)
 	sawLink, sawSection := false, false
-	for _, a := range t.Children(attrs) {
+	for a := range t.List(attrs).IDs() {
 		if t.Kind(a) != syntax.Attr {
 			continue
 		}
-		path := syntax.NodeID(t.Nodes[a].Lhs)
-		if len(t.PathToks(path)) != 1 {
+		path := t.View(a).AsAttr().Path()
+		if path.Len() != 1 {
 			continue
 		}
-		switch pathText(t, path, ".") {
+		switch path.Join(".") {
 		case "linkName":
 			if !allowLink {
 				r.errAt(f, a, cLinkNameBadTarget)
@@ -61,12 +61,12 @@ func (r *Result) resolveLinkSection(f FileID, attrs syntax.NodeID, allowLink, al
 // literal argument, reporting code on anything else.
 func (r *Result) oneStringArg(f FileID, attr syntax.NodeID, code Code) string {
 	t := r.tree(f)
-	args := t.Children(syntax.NodeID(t.Nodes[attr].Rhs))
-	if len(args) != 1 || t.Kind(args[0]) != syntax.StringLit {
+	args := t.View(attr).AsAttr().Args()
+	if args.Len() != 1 || args.At(0).Kind() != syntax.StringLit {
 		r.errAt(f, attr, code)
 		return ""
 	}
-	v, ok := r.evalConst(f, args[0])
+	v, ok := r.evalConst(f, args.ItemID(0))
 	if !ok || v.Kind != constString || v.Str == "" || strings.ContainsRune(v.Str, 0) {
 		r.errAt(f, attr, code)
 		return ""

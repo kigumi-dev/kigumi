@@ -23,7 +23,7 @@ func (c *checker) staticRootOf(n syntax.NodeID) (EntityID, bool) {
 	for {
 		switch c.t.Kind(n) {
 		case syntax.Paren, syntax.MemberExpr, syntax.OptMemberExpr, syntax.BracketExpr:
-			n = syntax.NodeID(c.t.Nodes[n].Lhs)
+			n = c.t.View(n).Base().ID()
 			continue
 		case syntax.Ident:
 			ent := c.info.Uses[n]

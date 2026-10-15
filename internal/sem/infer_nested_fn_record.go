@@ -7,9 +7,7 @@ import (
 )
 
 func (c *checker) recordNestedFnFields(key fieldFnKey, init syntax.NodeID) {
-	for c.t.Kind(init) == syntax.Paren {
-		init = syntax.NodeID(c.t.Nodes[init].Lhs)
-	}
+	init = c.t.Unparen(init)
 	if c.t.Kind(init) == syntax.RecordLit {
 		c.recordNestedLiteral(key, init)
 		return
@@ -63,7 +61,7 @@ func (c *checker) recordNestedLiteral(key fieldFnKey, lit syntax.NodeID) {
 	owner := c.r.nestedFnOwner(key)
 	set := map[EntityID]bool{}
 	spread := false
-	for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[lit].Rhs)) {
+	for entry := range c.t.View(lit).AsRecordLit().Fields().IDs() {
 		if c.t.Kind(entry) == syntax.Spread {
 			spread = true
 			continue
@@ -74,7 +72,7 @@ func (c *checker) recordNestedLiteral(key fieldFnKey, lit syntax.NodeID) {
 		}
 		set[field] = true
 		if c.r.fnReachableType(c.r.Entities[field].Type) {
-			c.recordFieldWrite(owner, field, syntax.NodeID(c.t.Nodes[entry].Lhs))
+			c.recordFieldWrite(owner, field, c.t.View(entry).AsFieldInit().Value().ID())
 		}
 	}
 	if spread {

@@ -1,39 +1,42 @@
 package syntax
 
-import "kigumi/internal/token"
+import (
+	"iter"
 
-// EachChild calls f for every child node of id, in slot order.
-func (t *Tree) EachChild(id NodeID, f func(NodeID)) {
-	n := t.Nodes[id]
-	visit := func(c uint32) {
-		if c != 0 {
-			f(NodeID(c))
-		}
-	}
-	switch shapes[n.Kind] {
-	case sL:
-		visit(n.Lhs)
-	case sLR:
-		visit(n.Lhs)
-		visit(n.Rhs)
-	case sFlagR, sTokR:
-		visit(n.Rhs)
-	case sList:
-		for _, c := range t.Children(id) {
-			f(c)
-		}
-	case sRec:
-		for i, name := range recFields[n.Kind] {
-			if name[0] != '#' && name[0] != '@' {
-				visit(t.Extra[n.Lhs+uint32(i)])
+	"kigumi/internal/token"
+)
+
+// Children yields the child nodes of v in slot order; absent slots are skipped.
+func (v View) Children() iter.Seq[View] {
+	return func(yield func(View) bool) {
+		t := v.t
+		n := t.nodes[v.id]
+		info := &kindTable[n.Kind]
+		child := func(c uint32) bool { return c == 0 || yield(View{t, NodeID(c)}) }
+		switch info.layout {
+		case layL:
+			child(n.Lhs)
+		case layLR:
+			if child(n.Lhs) {
+				child(n.Rhs)
+			}
+		case layFlagR, layTokR:
+			child(n.Rhs)
+		case layList:
+			for _, c := range t.extra[n.Lhs:n.Rhs] {
+				if !yield(View{t, NodeID(c)}) {
+					return
+				}
+			}
+		case layRec:
+			for _, i := range info.children {
+				if !child(t.extra[n.Lhs+uint32(i)]) {
+					return
+				}
 			}
 		}
 	}
 }
-
-// SlotNames returns the record slot names of an sRec kind ("#x" flag slots,
-// "@x" token slots, others child nodes), or nil.
-func SlotNames(k NodeKind) []string { return recFields[k] }
 
 // HasErrors reports whether parsing produced at least one error.
 func (t *Tree) HasErrors() bool {
@@ -48,7 +51,7 @@ func (t *Tree) HasErrors() bool {
 // HasTopLevelStatements reports whether the file is an entry file candidate:
 // it has a bare statement or `let` at top level.
 func (t *Tree) HasTopLevelStatements() bool {
-	for _, d := range t.Children(t.Root) {
+	for d := range t.List(t.Root).IDs() {
 		switch t.Kind(d) {
 		case LetStmt, ExprStmt, AssignStmt, DeferStmt, ErrdeferStmt:
 			return true
@@ -60,11 +63,11 @@ func (t *Tree) HasTopLevelStatements() bool {
 // HasExplicitMain reports whether the file declares the other entry form:
 // a top-level, receiverless `fn main`.
 func (t *Tree) HasExplicitMain() bool {
-	for _, d := range t.Children(t.Root) {
-		if t.Kind(d) != FnDecl || t.Slot(d, "recv") != 0 {
+	for d := range t.List(t.Root).Views() {
+		if d.Kind() != FnDecl || d.AsFnDecl().Recv().Valid() {
 			continue
 		}
-		if name := t.Slot(d, "name"); name != 0 && t.TokText(name) == "main" {
+		if name := d.AsFnDecl().Name(); name.Valid() && name.Text() == "main" {
 			return true
 		}
 	}
@@ -74,7 +77,7 @@ func (t *Tree) HasExplicitMain() bool {
 // VisKind decodes a Visibility node: kind is "pub", "module", "super" or "in";
 // path is the ancestor Path for "in".
 func (t *Tree) VisKind(id NodeID) (kind string, path NodeID) {
-	n := t.Nodes[id]
+	n := t.nodes[id]
 	if n.Kind != Visibility {
 		return "", 0
 	}
@@ -93,20 +96,17 @@ type StringPart struct {
 
 // StringParts splits a StringLit into text spans and interpolation nodes.
 func (t *Tree) StringParts(id NodeID) []StringPart {
-	n := t.Nodes[id]
+	n := t.nodes[id]
 	tk := t.Toks[n.Tok]
-	var exprs []NodeID
-	if n.Lhs != 0 {
-		exprs = t.Children(NodeID(n.Lhs))
-	}
+	exprs := t.View(id).AsStringLit().Interps()
 	var parts []StringPart
 	pos := int(tk.Start) + 1
 	for i, r := range interpolationRanges(t.File.Src, int(tk.Start), int(tk.End), t.interp) {
 		if start := r[0] - 2; start > pos {
 			parts = append(parts, StringPart{Text: token.Span{Start: token.Pos(pos), End: token.Pos(start)}})
 		}
-		if i < len(exprs) {
-			parts = append(parts, StringPart{Expr: exprs[i]})
+		if i < exprs.Len() {
+			parts = append(parts, StringPart{Expr: exprs.ItemID(i)})
 		}
 		pos = r[1] + 1
 	}

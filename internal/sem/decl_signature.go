@@ -103,7 +103,7 @@ func (r *Result) declareFn(id EntityID) {
 		r.errAt(f, r.Entities[info.SelfParam].Node, cSelfOutsideMember)
 		info.Recv = RecvNone
 	}
-	if info.Owner != 0 && info.SelfParam != 0 && t.Nodes[s.Recv].Rhs == 0 && len(r.typeDecl(info.Owner).Params) > 0 {
+	if info.Owner != 0 && info.SelfParam != 0 && !t.View(s.Recv).AsTypePath().Args().Valid() && len(r.typeDecl(info.Owner).Params) > 0 {
 		owner := r.Entities[info.Owner].Name
 		r.errAt(f, s.Recv, cRecvGenericBinder, owner, owner, r.paramNames(r.typeDecl(info.Owner).Params), e.Name)
 	}

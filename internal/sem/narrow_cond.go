@@ -7,19 +7,21 @@ import (
 
 // condFacts extracts the true/false facts of a Bool condition.
 func (c *checker) condFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
-	node := c.t.Nodes[n]
-	switch node.Kind {
+	node := c.t.View(n)
+	switch node.Kind() {
 	case syntax.Paren:
-		pos, neg = c.condFacts(syntax.NodeID(node.Lhs))
-		c.setType(n, c.info.Types[syntax.NodeID(node.Lhs)])
+		inner := node.AsParen().Inner().ID()
+		pos, neg = c.condFacts(inner)
+		c.setType(n, c.info.Types[inner])
 		return pos, neg
 	case syntax.Binary:
-		switch c.t.Toks[node.Tok].Kind {
+		bin := node.AsBinary()
+		switch bin.Op().Kind() {
 		case token.AndAnd:
-			lp, _ := c.condFacts(syntax.NodeID(node.Lhs))
+			lp, _ := c.condFacts(bin.Left().ID())
 			saved := c.snapshotFacts()
 			c.addFacts(lp)
-			rp, _ := c.condFacts(syntax.NodeID(node.Rhs))
+			rp, _ := c.condFacts(bin.Right().ID())
 			c.facts = saved
 			c.setType(n, TyBool)
 			return append(lp, rp...), nil
@@ -28,9 +30,9 @@ func (c *checker) condFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
 			return c.noneFacts(n)
 		}
 	case syntax.Unary:
-		if c.t.Toks[node.Tok].Kind == token.Bang {
-			pos, neg = c.condFacts(syntax.NodeID(node.Lhs))
-			if c.vars.resolve(c.info.Types[syntax.NodeID(node.Lhs)]) == TyBool {
+		if operand := node.AsUnary().Operand().ID(); node.Tok().Kind() == token.Bang {
+			pos, neg = c.condFacts(operand)
+			if c.vars.resolve(c.info.Types[operand]) == TyBool {
 				c.setType(n, TyBool)
 				return neg, pos
 			}
@@ -66,24 +68,24 @@ func (c *checker) condLeaf(n syntax.NodeID) TypeID {
 // isFacts also flags `p is Pattern` as always-true/false when existing
 // facts already decide it.
 func (c *checker) isFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
-	node := c.t.Nodes[n]
-	place := c.factPlace(syntax.NodeID(node.Lhs))
-	pos, neg = c.patternFacts(syntax.NodeID(node.Rhs), place)
+	isExpr := c.t.View(n).AsIs()
+	place := c.factPlace(isExpr.Left().ID())
+	pos, neg = c.patternFacts(isExpr.Pattern().ID(), place)
 	if len(pos) == 0 {
 		return nil, nil
 	}
 	v := pos[0].Variant
 	if is, isNot := c.knownVariant(place, v); is {
-		c.errAt(n, cIsAlwaysTrue, c.placeName(syntax.NodeID(node.Lhs)), c.r.Entities[v].Name)
+		c.errAt(n, cIsAlwaysTrue, c.placeName(isExpr.Left().ID()), c.r.Entities[v].Name)
 	} else if isNot {
-		c.errAt(n, cIsAlwaysFalse, c.placeName(syntax.NodeID(node.Lhs)), c.r.Entities[v].Name)
+		c.errAt(n, cIsAlwaysFalse, c.placeName(isExpr.Left().ID()), c.r.Entities[v].Name)
 	}
 	return pos, neg
 }
 
 func (c *checker) noneFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
-	node := c.t.Nodes[n]
-	lhs, rhs := syntax.NodeID(node.Lhs), syntax.NodeID(node.Rhs)
+	bin := c.t.View(n).AsBinary()
+	lhs, rhs := bin.Left().ID(), bin.Right().ID()
 	var other syntax.NodeID
 	switch {
 	case c.isBareNone(rhs):
@@ -100,7 +102,7 @@ func (c *checker) noneFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
 	}
 	is := []NarrowFact{{Place: place, Kind: FactIs, Variant: none}}
 	isNot := []NarrowFact{{Place: place, Kind: FactIsNot, Variant: none}}
-	if c.t.Toks[node.Tok].Kind == token.EqEq {
+	if bin.Op().Kind() == token.EqEq {
 		return is, isNot
 	}
 	return isNot, is

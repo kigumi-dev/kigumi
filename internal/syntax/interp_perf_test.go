@@ -43,7 +43,7 @@ func measureUTF8ValidBytes(depth, padPerLevel int) (bytes, srcLen int) {
 // stringLitNodes returns every StringLit node id in the tree.
 func stringLitNodes(t *Tree) []NodeID {
 	var ids []NodeID
-	for id := NodeID(1); int(id) < len(t.Nodes); id++ {
+	for id := NodeID(1); int(id) < len(t.nodes); id++ {
 		if t.Kind(id) == StringLit {
 			ids = append(ids, id)
 		}

@@ -28,7 +28,7 @@ func (s *shellParser) word(tok uint32) NodeID {
 }
 
 func (s *shellParser) text(start, end int) NodeID {
-	return s.p.tree.add(Node{Kind: ShellText, Lhs: uint32(start), Rhs: uint32(end)})
+	return s.p.tree.add(rawNode{Kind: ShellText, Lhs: uint32(start), Rhs: uint32(end)})
 }
 
 func (s *shellParser) bareText() NodeID {

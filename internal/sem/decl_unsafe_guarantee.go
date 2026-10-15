@@ -63,7 +63,7 @@ func (r *Result) extractGuarantee(f FileID, list syntax.NodeID) syntax.NodeID {
 	}
 	t := r.tree(f)
 	var found syntax.NodeID
-	for _, a := range t.Children(list) {
+	for a := range t.List(list).IDs() {
 		if t.Kind(a) != syntax.UnsafeGuarantee {
 			continue
 		}
@@ -99,9 +99,9 @@ func (r *Result) declareGuarantee(id EntityID, node syntax.NodeID) {
 	t := r.tree(f)
 	g := &UnsafeGuarantee{}
 	trusted := false
-	for _, ruleNode := range t.Children(node) {
-		n := t.Node(ruleNode)
-		propName := t.TokText(n.Tok)
+	for ruleNode := range t.List(node).IDs() {
+		rule := t.View(ruleNode).AsUGRule()
+		propName := rule.Property().Text()
 		prop, ok := ugPropOf(propName)
 		if !ok {
 			r.errAt(f, ruleNode, cUnsafeGuaranteeUnknownProperty, propName)
@@ -116,7 +116,7 @@ func (r *Result) declareGuarantee(id EntityID, node syntax.NodeID) {
 			r.errAt(f, ruleNode, cUnsafeGuaranteeDuplicateProperty, propName)
 			continue
 		}
-		g.Rules[idx] = &ugRule{Conds: r.ugConds(f, info, e.Name, syntax.NodeID(n.Lhs))}
+		g.Rules[idx] = &ugRule{Conds: r.ugConds(f, info, e.Name, rule.Requirements().ID())}
 		trusted = true
 	}
 	info.Guarantee = g
@@ -131,9 +131,9 @@ func (r *Result) ugConds(f FileID, info *TypeDeclInfo, typeName string, reqs syn
 	}
 	t := r.tree(f)
 	var conds []ugCond
-	for _, reqNode := range t.Children(reqs) {
-		n := t.Node(reqNode)
-		paramName := t.TokText(n.Tok)
+	for reqNode := range t.List(reqs).IDs() {
+		req := t.View(reqNode).AsUGRequirement()
+		paramName := req.Param().Text()
 		pid := EntityID(0)
 		found := false
 		for _, p := range info.Params {
@@ -147,8 +147,8 @@ func (r *Result) ugConds(f FileID, info *TypeDeclInfo, typeName string, reqs syn
 			continue
 		}
 		var need ugProp
-		for _, propNode := range t.Children(syntax.NodeID(n.Lhs)) {
-			propName := t.TokText(t.Node(propNode).Tok)
+		for propNode := range req.Properties().IDs() {
+			propName := t.View(propNode).Tok().Text()
 			p, ok := ugPropOf(propName)
 			if !ok {
 				r.errAt(f, propNode, cUnsafeGuaranteeUnknownProperty, propName)

@@ -23,15 +23,7 @@ func metadataOf(res *sem.Result, t *syntax.Tree, refs []sem.MetaRef) []Metadata 
 }
 
 func dottedName(t *syntax.Tree, item syntax.NodeID) string {
-	path := syntax.NodeID(t.Nodes[item].Lhs)
-	var segs string
-	for _, tk := range t.PathToks(path) {
-		if segs != "" {
-			segs += "."
-		}
-		segs += t.TokText(tk)
-	}
-	return segs
+	return t.View(item).AsMetaItem().Path().Join(".")
 }
 
 func literalValue(lit sem.Literal) any {

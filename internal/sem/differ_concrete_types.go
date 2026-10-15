@@ -39,9 +39,7 @@ func (r *Result) literalArgDefinitelyMismatches(t *syntax.Tree, a syntax.NodeID,
 	if !r.typeFullyConcrete(target) {
 		return false
 	}
-	for t.Kind(a) == syntax.Paren {
-		a = syntax.NodeID(t.Nodes[a].Lhs)
-	}
+	a = t.Unparen(a)
 	switch {
 	case isNumericLiteral(t, a):
 		return !r.Types.IsNumeric(target)

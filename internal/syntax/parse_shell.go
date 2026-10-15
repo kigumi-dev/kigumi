@@ -21,7 +21,7 @@ func (p *parser) shellLit() NodeID {
 	t := p.toks[str]
 	sh := &shellParser{p: p, src: p.tree.File.Src, pos: int(t.Start) + 1, end: int(t.End) - 1}
 	plan := sh.plan(str)
-	return p.tree.add(Node{Kind: ShellLit, Tok: dollar, Lhs: str, Rhs: uint32(plan)})
+	return p.tree.add(rawNode{Kind: ShellLit, Tok: dollar, Lhs: str, Rhs: uint32(plan)})
 }
 
 type shellParser struct {

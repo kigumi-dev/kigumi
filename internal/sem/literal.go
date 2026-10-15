@@ -13,24 +13,24 @@ func (c *checker) literalValue(n syntax.NodeID) TypeID {
 	if v, ok := c.info.Literals[n]; ok {
 		return c.r.untypedOf(v)
 	}
-	node := c.t.Nodes[n]
+	node := c.t.View(n)
 	var v constValue
-	switch node.Kind {
+	switch node.Kind() {
 	case syntax.IntLit:
-		i, ok := syntax.ParseInt(c.t.TokText(node.Tok))
+		i, ok := syntax.ParseInt(node.Tok().Text())
 		if !ok {
 			return TyPoison
 		}
 		v = constValue{Kind: constInt, Int: i}
 	case syntax.FloatLit:
-		f, ok := syntax.ParseFloat(c.t.TokText(node.Tok))
+		f, ok := syntax.ParseFloat(node.Tok().Text())
 		if !ok {
 			return TyPoison
 		}
 		v = constValue{Kind: constFloat, Float: f}
 	case syntax.Unary:
-		inner := syntax.NodeID(node.Lhs)
-		if c.t.Toks[node.Tok].Kind != token.Minus || !isNumericLiteral(c.t, inner) {
+		inner := node.AsUnary().Operand().ID()
+		if node.Tok().Kind() != token.Minus || !isNumericLiteral(c.t, inner) {
 			return 0
 		}
 		c.literalValue(inner)
@@ -52,8 +52,8 @@ func isNumericLiteral(t *syntax.Tree, n syntax.NodeID) bool {
 	case syntax.IntLit, syntax.FloatLit:
 		return true
 	case syntax.Unary:
-		node := t.Nodes[n]
-		return t.Toks[node.Tok].Kind == token.Minus && isNumericLiteral(t, syntax.NodeID(node.Lhs))
+		u := t.View(n).AsUnary()
+		return u.Op().Kind() == token.Minus && isNumericLiteral(t, u.Operand().ID())
 	}
 	return false
 }
@@ -136,8 +136,5 @@ func (c *checker) adopt(n syntax.NodeID, target TypeID) TypeID {
 // literalNode finds the literal node behind an expression whose type is
 // untyped: the node itself or a parenthesized literal.
 func (c *checker) literalNode(n syntax.NodeID) syntax.NodeID {
-	for c.t.Kind(n) == syntax.Paren {
-		n = syntax.NodeID(c.t.Nodes[n].Lhs)
-	}
-	return n
+	return c.t.Unparen(n)
 }

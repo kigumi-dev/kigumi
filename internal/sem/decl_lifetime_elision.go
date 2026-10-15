@@ -11,11 +11,11 @@ func (r *Result) resolveReturnType(f FileID, scope ScopeID, id EntityID, selfTyp
 	cand := r.returnElisionCandidate(r.Fn(id), selfType, params)
 	t := r.tree(f)
 	if cand != 0 && t.Kind(n) == syntax.TypeRef {
-		node := t.Nodes[n]
-		if t.Toks[node.Tok].Kind != token.Lifetime {
+		ref := t.View(n).AsTypeRef()
+		if ref.Op().Kind() != token.Lifetime {
 			r.Fn(id).RetLifetime = cand
-			elem := r.resolveType(f, scope, syntax.NodeID(node.Rhs), posTypeArg)
-			return r.Types.Ref(elem, node.Lhs&syntax.FlagMut != 0)
+			elem := r.resolveType(f, scope, ref.Pointee().ID(), posTypeArg)
+			return r.Types.Ref(elem, ref.Flags()&syntax.FlagMut != 0)
 		}
 	}
 	ret := r.resolveType(f, scope, n, posReturn)

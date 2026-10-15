@@ -33,7 +33,7 @@ func (s *Server) entityLocation(snap *snapshot, ent sem.EntityID) *protocol.Loca
 // token of a member expression, the whole node otherwise.
 func nameSpan(t *syntax.Tree, n syntax.NodeID) token.Span {
 	if t.Kind(n) == syntax.MemberExpr {
-		return t.Toks[t.Nodes[n].Tok].Span
+		return t.View(n).Tok().Span()
 	}
 	return t.Span(n)
 }

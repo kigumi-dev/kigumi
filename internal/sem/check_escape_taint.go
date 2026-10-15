@@ -122,9 +122,7 @@ func (c *checker) taintCallResult(n syntax.NodeID, ret TypeID, args []syntax.Nod
 		return
 	}
 	for _, a := range args {
-		if c.t.Kind(a) == syntax.Spread || c.t.Kind(a) == syntax.NamedArg {
-			a = syntax.NodeID(c.t.Nodes[a].Lhs)
-		}
+		a = c.t.View(a).ArgValue().ID()
 		if rp := c.restrictedParam(a); rp != 0 {
 			c.taintedCall[n] = rp
 			return

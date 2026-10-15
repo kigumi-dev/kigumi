@@ -8,9 +8,8 @@ import (
 
 // stmt checks one statement and returns its type.
 func (c *checker) stmt(n syntax.NodeID) TypeID {
-	node := c.t.Nodes[n]
 	var t TypeID
-	switch node.Kind {
+	switch c.t.Kind(n) {
 	case syntax.LetStmt:
 		c.letStmt(n)
 		t = TyUnit
@@ -31,7 +30,7 @@ func (c *checker) stmt(n syntax.NodeID) TypeID {
 }
 
 func (c *checker) exprStmt(n syntax.NodeID) TypeID {
-	e := syntax.NodeID(c.t.Nodes[n].Lhs)
+	e := c.t.View(n).AsExprStmt().Expr().ID()
 	c.stmtPos = e
 	t := c.vars.resolve(c.synth(e))
 	if c.r.Types.Kind(t) == KUntyped {
@@ -82,7 +81,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 			typ, borrow = c.r.Types.Ref(c.vars.resolve(got), false), true
 		}
 		c.info.Pats[s.Pattern] = PatInfo{Kind: PatBinding, Type: got, Borrow: borrow}
-		c.declareLocal(s.Pattern, c.t.TokText(c.t.Nodes[s.Pattern].Tok), typ, mut)
+		c.declareLocal(s.Pattern, c.t.View(s.Pattern).Tok().Text(), typ, mut)
 		c.setType(s.Pattern, typ)
 		// `let g = f` keeps a callback parameter's polymorphism: calls of g
 		// count as calls of f.

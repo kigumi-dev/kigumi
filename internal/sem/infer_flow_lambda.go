@@ -31,8 +31,9 @@ func (lc *lambdaCalls) visit(n syntax.NodeID) {
 			}
 		}
 	case syntax.CallExpr, syntax.WsCallExpr:
-		lc.direct[syntax.NodeID(t.Nodes[n].Lhs)] = true
-		for _, a := range t.Children(syntax.NodeID(t.Nodes[n].Rhs)) {
+		call := t.View(n).AsCallLike()
+		lc.direct[call.Callee().ID()] = true
+		for a := range call.Args().IDs() {
 			lc.direct[a] = true
 		}
 	case syntax.Ident:

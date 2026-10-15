@@ -3,8 +3,8 @@ package syntax
 type NodeKind uint8
 
 // Expression, pattern and shell node kinds. Declaration, statement and type
-// kinds live in node_decl.go. The data layout of each kind is given by
-// shapes[] in tree.go.
+// kinds live in node_decl.go. The data layout of each kind is given by the
+// schema tables in schema*.go.
 const (
 	NoneKind NodeKind = iota
 

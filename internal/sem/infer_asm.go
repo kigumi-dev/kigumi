@@ -20,7 +20,7 @@ func (c *checker) synthAsm(n syntax.NodeID, want TypeID) TypeID {
 	var outputs []int
 	var templates []syntax.NodeID
 	labels := map[string]syntax.NodeID{}
-	for _, line := range c.t.Children(syntax.NodeID(c.t.Nodes[n].Lhs)) {
+	for line := range c.t.View(n).AsAsm().Lines().IDs() {
 		switch c.t.Kind(line) {
 		case syntax.AsmTemplate:
 			templates = append(templates, line)
@@ -69,7 +69,7 @@ func (c *checker) synthAsm(n syntax.NodeID, want TypeID) TypeID {
 }
 
 func (c *checker) asmTemplate(line syntax.NodeID, info *AsmInfo) {
-	lit := syntax.NodeID(c.t.Nodes[line].Lhs)
+	lit := c.t.View(line).AsAsmTemplate().Text().ID()
 	text := ""
 	for _, p := range c.t.StringParts(lit) {
 		if p.Expr != 0 {
@@ -102,8 +102,8 @@ func (c *checker) asmPlaceholders(templates []syntax.NodeID, info *AsmInfo) {
 }
 
 func (c *checker) asmClobbers(line syntax.NodeID, arch *asmArch, info *AsmInfo) {
-	for _, it := range c.t.Children(syntax.NodeID(c.t.Nodes[line].Lhs)) {
-		name := c.t.TokText(c.t.Nodes[it].Tok)
+	for it := range c.t.View(line).AsAsmClobber().Names().IDs() {
+		name := c.t.View(it).Tok().Text()
 		if c.t.Kind(it) == syntax.AsmAbi {
 			if name != "C" {
 				c.errAt(it, cAbiUnknown, name)
@@ -120,8 +120,8 @@ func (c *checker) asmClobbers(line syntax.NodeID, arch *asmArch, info *AsmInfo) 
 }
 
 func (c *checker) asmOptions(line syntax.NodeID, info *AsmInfo) {
-	for _, it := range c.t.Children(syntax.NodeID(c.t.Nodes[line].Lhs)) {
-		name := c.t.TokText(c.t.Nodes[it].Tok)
+	for it := range c.t.View(line).AsAsmOptions().Names().IDs() {
+		name := c.t.View(it).Tok().Text()
 		switch {
 		case !asmOptionNames[name]:
 			c.errAt(it, cAsmOption, name)

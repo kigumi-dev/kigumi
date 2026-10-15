@@ -3,9 +3,9 @@ package sem
 import "kigumi/internal/syntax"
 
 func (c *checker) synthMember(n syntax.NodeID) TypeID {
-	node := c.t.Nodes[n]
-	name := c.t.TokText(node.Tok)
-	base := syntax.NodeID(node.Lhs)
+	member := c.t.View(n).AsMember()
+	name := member.Member().Text()
+	base := member.Base().ID()
 	head := c.resolveHead(base)
 	switch head.kind {
 	case headPkg:

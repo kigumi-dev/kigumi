@@ -6,9 +6,9 @@ import (
 )
 
 func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	op := c.t.Toks[node.Tok].Kind
-	lhs, rhs := syntax.NodeID(node.Lhs), syntax.NodeID(node.Rhs)
+	bin := c.t.View(n).AsBinary()
+	op := bin.Op().Kind()
+	lhs, rhs := bin.Left().ID(), bin.Right().ID()
 	switch op {
 	case token.OrOr:
 		return c.synthFallback(n, lhs, rhs, want)
@@ -44,7 +44,7 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 		return c.ordering(n, rhs, l, r, op)
 	}
 	if op == token.Operator || tt.Kind(l) == KNamed || tt.Kind(r) == KNamed {
-		return c.userOperator(n, c.t.TokText(node.Tok), []TypeID{l, r}, []syntax.NodeID{lhs, rhs})
+		return c.userOperator(n, bin.Op().Text(), []TypeID{l, r}, []syntax.NodeID{lhs, rhs})
 	}
 	if (op == token.Shl || op == token.Shr) && tt.Kind(r) == KUntyped {
 		r = c.adopt(c.literalNode(rhs), TyUsize)
@@ -74,7 +74,7 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 			return c.builtinOp(n, op, l)
 		}
 	}
-	return c.operandMismatch(n, rhs, c.t.TokText(node.Tok), l, r)
+	return c.operandMismatch(n, rhs, bin.Op().Text(), l, r)
 }
 
 // traps reports whether op's native codegen can panic on result's operands (overflow, division by zero, out-of-range shift).

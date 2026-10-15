@@ -6,7 +6,7 @@ import "kigumi/internal/syntax"
 func (c *checker) synthPipe(n, lhs, rhs syntax.NodeID) TypeID {
 	target := rhs
 	if c.t.Kind(target) == syntax.TryExpr {
-		target = syntax.NodeID(c.t.Nodes[target].Lhs)
+		target = c.t.View(target).AsTry().Operand().ID()
 	}
 	switch c.t.Kind(target) {
 	case syntax.CallExpr, syntax.WsCallExpr:
@@ -67,7 +67,7 @@ func (c *checker) pathLike(n syntax.NodeID) bool {
 	case syntax.Ident:
 		return true
 	case syntax.MemberExpr, syntax.BracketExpr:
-		return c.pathLike(syntax.NodeID(c.t.Nodes[n].Lhs))
+		return c.pathLike(c.t.View(n).Base().ID())
 	}
 	return false
 }

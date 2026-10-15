@@ -12,7 +12,7 @@ func (r *Result) definedUnderlying(id EntityID) TypeID {
 	e := &r.Entities[id]
 	t := r.tree(e.File)
 	s := typeDecl(t, e.Node)
-	target := syntax.NodeID(t.Nodes[s.Body].Lhs)
+	target := t.View(s.Body).AsDefinedBody().Type().ID()
 	info.Underlying = r.resolveType(e.File, r.declScope(id), target, posDefined)
 	return info.Underlying
 }

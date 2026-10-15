@@ -4,8 +4,8 @@ import "kigumi/internal/syntax"
 
 func (r *Result) resolveTypeName(f FileID, scope ScopeID, path syntax.NodeID) EntityID {
 	t := r.tree(f)
-	segs := t.PathToks(path)
-	first := t.TokText(segs[0])
+	segs := t.View(path).AsPath()
+	first := segs.At(0).Text()
 	b, _, ok := r.lookup(scope, first)
 	if !ok {
 		if first == "Self" {
@@ -19,7 +19,7 @@ func (r *Result) resolveTypeName(f FileID, scope ScopeID, path syntax.NodeID) En
 		r.errAt(f, path, cNotAType, first, "a function")
 		return 0
 	}
-	if len(segs) == 1 {
+	if segs.Len() == 1 {
 		return r.follow(b.Ent)
 	}
 	e := &r.Entities[b.Ent]
@@ -29,7 +29,7 @@ func (r *Result) resolveTypeName(f FileID, scope ScopeID, path syntax.NodeID) En
 	}
 	e.Flags |= EfUsed
 	pkg := r.Entities[e.Target].Pkg
-	second := t.TokText(segs[1])
+	second := segs.At(1).Text()
 	member, ok := r.Scopes[r.Packages[pkg].Scope].Names[second]
 	if !ok {
 		r.errAt(f, path, cUnresolvedMember, r.Packages[pkg].Path, second)
@@ -39,7 +39,7 @@ func (r *Result) resolveTypeName(f FileID, scope ScopeID, path syntax.NodeID) En
 		r.errAt(f, path, cNotAType, second, "a function")
 		return 0
 	}
-	if len(segs) > 2 {
+	if segs.Len() > 2 {
 		r.errAt(f, path, cNotAType, pathText(t, path, "."), "not a type path")
 		return 0
 	}

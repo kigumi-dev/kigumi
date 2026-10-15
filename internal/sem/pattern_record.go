@@ -5,10 +5,10 @@ import "kigumi/internal/syntax"
 // recordPattern handles `T { a, b: p }` over a record or a variant with
 // named payload.
 func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[string]syntax.NodeID) PatInfo {
-	node := c.t.Nodes[p]
+	rec := c.t.View(p).AsPatRecord()
 	tt := c.r.Types
-	fields := c.t.Children(syntax.NodeID(node.Rhs))
-	ent, ok := c.resolveCtorPath(p, syntax.NodeID(node.Lhs), scrutinee)
+	fields := rec.Fields().AppendIDs(nil)
+	ent, ok := c.resolveCtorPath(p, rec.Path().ID(), scrutinee)
 	if !ok || ent == 0 {
 		c.skipFields(fields, seen)
 		c.setType(p, TyPoison)
@@ -77,14 +77,14 @@ func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[stri
 	}
 	used := map[string]bool{}
 	for _, f := range fields {
-		fn := c.t.Nodes[f]
-		name := c.t.TokText(fn.Tok)
+		fn := c.t.View(f).AsPatField()
+		name := fn.Name().Text()
 		ft, fld, ok := lookup(name)
 		if !ok {
 			c.errAt(f, cPatternUnknownField, e.Name, name)
 			c.info.Types[p] = TyPoison
-			if fn.Lhs != 0 {
-				c.patternInner(syntax.NodeID(fn.Lhs), TyPoison, false, seen)
+			if fn.Sub().Valid() {
+				c.patternInner(fn.Sub().ID(), TyPoison, false, seen)
 			}
 			continue
 		}
@@ -98,8 +98,8 @@ func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[stri
 			info.Fields = append(info.Fields, fld)
 		}
 		c.setType(f, ft)
-		if fn.Lhs != 0 {
-			if c.patternInner(syntax.NodeID(fn.Lhs), ft, false, seen).Moves {
+		if fn.Sub().Valid() {
+			if c.patternInner(fn.Sub().ID(), ft, false, seen).Moves {
 				info.Moves = true
 			}
 			continue
@@ -118,7 +118,7 @@ func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[stri
 
 func (c *checker) skipFields(fields []syntax.NodeID, seen map[string]syntax.NodeID) {
 	for _, f := range fields {
-		if sub := syntax.NodeID(c.t.Nodes[f].Lhs); sub != 0 {
+		if sub := c.t.View(f).AsPatField().Sub().ID(); sub != 0 {
 			c.patternInner(sub, TyPoison, false, seen)
 		}
 	}
@@ -127,24 +127,25 @@ func (c *checker) skipFields(fields []syntax.NodeID, seen map[string]syntax.Node
 // synthIs types `e is Pattern`: a Bool whose pattern bindings are
 // visible to the rest of the enclosing condition and then-block.
 func (c *checker) synthIs(n syntax.NodeID) TypeID {
-	node := c.t.Nodes[n]
-	scrutinee := c.vars.resolve(c.synth(syntax.NodeID(node.Lhs)))
+	is := c.t.View(n).AsIs()
+	subject, pat := is.Left().ID(), is.Pattern().ID()
+	scrutinee := c.vars.resolve(c.synth(subject))
 	if c.r.Types.Kind(scrutinee) == KUntyped {
-		scrutinee = c.adopt(c.literalNode(syntax.NodeID(node.Lhs)), defaultOf(scrutinee))
+		scrutinee = c.adopt(c.literalNode(subject), defaultOf(scrutinee))
 	}
-	rp := c.restrictedAliasOf(syntax.NodeID(node.Lhs))
+	rp := c.restrictedAliasOf(subject)
 	if c.inCond == 0 {
 		saved := c.scope
 		c.pushScope(ScopeArm, n)
-		c.checkPatternOn(syntax.NodeID(node.Rhs), syntax.NodeID(node.Lhs), scrutinee, false, c.scope)
-		c.taintPatternBindings(syntax.NodeID(node.Rhs), rp)
+		c.checkPatternOn(pat, subject, scrutinee, false, c.scope)
+		c.taintPatternBindings(pat, rp)
 		if len(c.r.Scopes[c.scope].Names) > 0 {
 			c.errAt(n, cIsBindingOutsideCond)
 		}
 		c.popScope(saved)
 	} else {
-		c.checkPatternOn(syntax.NodeID(node.Rhs), syntax.NodeID(node.Lhs), scrutinee, false, c.scope)
-		c.taintPatternBindings(syntax.NodeID(node.Rhs), rp)
+		c.checkPatternOn(pat, subject, scrutinee, false, c.scope)
+		c.taintPatternBindings(pat, rp)
 	}
 	c.info.Narrow[n] = c.snapshotFacts()
 	c.info.Matches[n] = MatchInfo{}

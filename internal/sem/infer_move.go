@@ -12,14 +12,11 @@ func (c *checker) isSharedEnt(ent EntityID) bool {
 // Forces an owned read of a field path that would otherwise bind as a borrow,
 // so the declared type comes back, not `&T`.
 func (c *checker) synthMove(n syntax.NodeID) TypeID {
-	target := syntax.NodeID(c.t.Nodes[n].Lhs)
-	for c.t.Kind(target) == syntax.Paren {
-		target = syntax.NodeID(c.t.Nodes[target].Lhs)
-	}
+	target := c.t.Unparen(c.t.View(n).AsMove().Operand().ID())
 	isField := c.t.Kind(target) == syntax.MemberExpr
 	var baseType TypeID
 	if isField {
-		base := syntax.NodeID(c.t.Nodes[target].Lhs)
+		base := c.t.View(target).AsMember().Base().ID()
 		baseType = c.readThrough(c.vars.resolve(c.synth(base)))
 		if bn := c.r.Types.Node(baseType); bn.Kind == KNamed && c.isSharedEnt(bn.Ent) {
 			c.errAt(target, cMoveShared, baseType)

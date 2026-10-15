@@ -43,7 +43,9 @@ func (c *checker) literalType(t TypeID) bool {
 
 func (c *checker) walkNodes(n syntax.NodeID, f func(syntax.NodeID)) {
 	f(n)
-	c.t.EachChild(n, func(ch syntax.NodeID) { c.walkNodes(ch, f) })
+	for ch := range c.t.View(n).Children() {
+		c.walkNodes(ch.ID(), f)
+	}
 }
 
 // SetLiteral records the evaluated value of a comptime block.

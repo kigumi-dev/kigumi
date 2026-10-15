@@ -16,7 +16,7 @@ func (c *checker) noteProtoSite(from int, call syntax.NodeID, typ TypeID, proto 
 	for _, a := range args {
 		nodes = append(nodes, a)
 		if c.t.Kind(a) == syntax.BorrowExpr {
-			nodes = append(nodes, syntax.NodeID(c.t.Nodes[a].Rhs))
+			nodes = append(nodes, c.t.View(a).AsBorrow().Operand().ID())
 		}
 	}
 	c.protoSites = append(c.protoSites, protoSite{edges: c.edges, from: from, nodes: nodes, typ: typ, proto: proto})

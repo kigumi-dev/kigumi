@@ -64,7 +64,7 @@ func (c *checker) layoutNamed(args []syntax.NodeID, names []string) namedLayout 
 			continue
 		}
 		seenNamed = true
-		name := c.t.TokText(c.t.Nodes[a].Tok)
+		name := c.t.View(a).Tok().Text()
 		switch idx := slices.Index(names, name); {
 		case idx < 0:
 			lay.unknown = append(lay.unknown, a)
@@ -104,7 +104,7 @@ func (c *checker) unwrapNamed(args []syntax.NodeID) []syntax.NodeID {
 	out := make([]syntax.NodeID, len(args))
 	for i, a := range args {
 		if c.t.Kind(a) == syntax.NamedArg {
-			out[i] = syntax.NodeID(c.t.Nodes[a].Lhs)
+			out[i] = c.t.View(a).AsNamedArg().Value().ID()
 		} else {
 			out[i] = a
 		}
@@ -117,9 +117,9 @@ func (c *checker) reportNamedLayout(fnName string, lay namedLayout) {
 		c.errAt(a, cPositionalAfterNamed)
 	}
 	for _, a := range lay.unknown {
-		c.errAt(a, cNamedArgUnknown, fnName, c.t.TokText(c.t.Nodes[a].Tok))
+		c.errAt(a, cNamedArgUnknown, fnName, c.t.View(a).Tok().Text())
 	}
 	for _, a := range lay.dup {
-		c.errAt(a, cNamedArgDuplicate, c.t.TokText(c.t.Nodes[a].Tok))
+		c.errAt(a, cNamedArgDuplicate, c.t.View(a).Tok().Text())
 	}
 }

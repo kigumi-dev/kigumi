@@ -31,15 +31,17 @@ func declSymbol(t *syntax.Tree, d syntax.NodeID) (name string, kind protocol.Sym
 	default:
 		return "", 0, 0, false
 	}
-	nameTok = slotTok(t, d, "name")
-	if nameTok == 0 {
+	decl := t.View(d).AsDecl()
+	if !decl.Name().Valid() {
 		return "", 0, 0, false
 	}
-	name = t.TokText(nameTok)
-	if recv := slotTok(t, d, "recv"); recv != 0 && t.Kind(d) == syntax.FnDecl {
-		sp := t.Span(syntax.NodeID(recv))
-		name = string(t.File.Src[sp.Start:sp.End]) + "." + name
-		kind = protocol.SymbolKindMethod
+	name, nameTok = decl.Name().Text(), decl.Name().Index()
+	if t.Kind(d) == syntax.FnDecl {
+		if recv := decl.AsFnDecl().Recv(); recv.Valid() {
+			sp := recv.Span()
+			name = string(t.File.Src[sp.Start:sp.End]) + "." + name
+			kind = protocol.SymbolKindMethod
+		}
 	}
 	return name, kind, nameTok, true
 }
@@ -55,21 +57,37 @@ type memberSymbol struct {
 // record type, which sit one list below the declaration.
 func memberSymbols(t *syntax.Tree, d syntax.NodeID) []memberSymbol {
 	var out []memberSymbol
-	for _, slot := range []string{"members", "body"} {
-		for _, m := range t.Children(syntax.NodeID(t.Slot(d, slot))) {
-			switch t.Kind(m) {
+	for _, members := range memberLists(t, d) {
+		for mv := range members.Views() {
+			switch mv.Kind() {
 			case syntax.FnDecl:
-				if tok := slotTok(t, m, "name"); tok != 0 {
-					out = append(out, memberSymbol{t.TokText(tok), protocol.SymbolKindMethod, m, tok})
+				if name := mv.AsDecl().Name(); name.Valid() {
+					out = append(out, memberSymbol{name.Text(), protocol.SymbolKindMethod, mv.ID(), name.Index()})
 				}
 			case syntax.Field:
-				if tok := t.Nodes[m].Tok; tok != 0 {
-					out = append(out, memberSymbol{t.TokText(tok), protocol.SymbolKindField, m, tok})
+				if tok := mv.Tok(); tok.Valid() {
+					out = append(out, memberSymbol{tok.Text(), protocol.SymbolKindField, mv.ID(), tok.Index()})
 				}
 			}
 		}
 	}
 	return out
+}
+
+// memberLists is the list one level below a declaration that holds its
+// members: an interface's requirements, a record or resource type's fields.
+func memberLists(t *syntax.Tree, d syntax.NodeID) []syntax.ListView {
+	v := t.View(d)
+	var lists []syntax.ListView
+	switch v.Kind() {
+	case syntax.InterfaceDecl:
+		lists = append(lists, v.AsInterfaceDecl().Members())
+	case syntax.TypeDecl:
+		if body := v.AsTypeDecl().Body(); body.Is(syntax.RecordBody, syntax.ResourceBody) {
+			lists = append(lists, body.AsList())
+		}
+	}
+	return lists
 }
 
 // Symbols searches the top-level declarations of every module in the
@@ -101,7 +119,7 @@ func (s *Server) Symbols(ctx context.Context, p *protocol.WorkspaceSymbolParams)
 					loc := protocol.Location{URI: uri.File(s.pathOfFile(snap, t.File.Name)), Range: spanRange(t.File, t.Toks[tok].Span)}
 					out = append(out, protocol.SymbolInformation{BaseSymbolInformation: protocol.BaseSymbolInformation{Name: name, Kind: kind, ContainerName: &container}, Location: loc})
 				}
-				for _, d := range t.Children(t.Root) {
+				for d := range t.List(t.Root).IDs() {
 					name, kind, tok, ok := declSymbol(t, d)
 					if !ok {
 						continue

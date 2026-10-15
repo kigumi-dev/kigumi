@@ -55,11 +55,11 @@ func (c *checker) ifaceFieldArgEdge(n, arg syntax.NodeID, path []EntityID, dst E
 		return
 	}
 	if c.t.Kind(arg) == syntax.RecordLit {
-		for _, entry := range c.t.Children(syntax.NodeID(c.t.Nodes[arg].Rhs)) {
+		for entry := range c.t.View(arg).AsRecordLit().Fields().IDs() {
 			if c.t.Kind(entry) == syntax.Spread || c.info.Uses[entry] != path[0] {
 				continue
 			}
-			init := syntax.NodeID(c.t.Nodes[entry].Lhs)
+			init := c.t.View(entry).AsFieldInit().Value().ID()
 			if len(path) == 1 {
 				if src := c.fieldChainEnt(init); src != 0 {
 					c.edge(EffectEdge{Kind: EdgeIfaceArg, Target: src, Param: dst, Node: n})

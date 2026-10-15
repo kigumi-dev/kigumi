@@ -16,12 +16,12 @@ func (c *checker) placeOf(n syntax.NodeID) PlaceID {
 }
 
 func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
-	node := c.t.Nodes[n]
-	switch node.Kind {
+	node := c.t.View(n)
+	switch node.Kind() {
 	case syntax.Ident:
 		ent := c.info.Uses[n]
 		if ent == 0 {
-			if b, _, ok := c.r.lookup(c.scope, c.t.TokText(node.Tok)); ok {
+			if b, _, ok := c.r.lookup(c.scope, node.Tok().Text()); ok {
 				ent = b.Ent
 			}
 		}
@@ -37,12 +37,12 @@ func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
 		}
 		return c.r.identPlace(ent), true
 	case syntax.Paren:
-		return c.buildPlace(syntax.NodeID(node.Lhs))
+		return c.buildPlace(node.AsParen().Inner().ID())
 	case syntax.MemberExpr:
 		if ent := c.info.Uses[n]; ent != 0 && c.r.Entities[ent].Kind == EntContextKey {
 			return c.ctxPlace(n)
 		}
-		base, ok := c.buildPlace(syntax.NodeID(node.Lhs))
+		base, ok := c.buildPlace(node.AsMember().Base().ID())
 		if !ok {
 			return Place{}, false
 		}
@@ -56,7 +56,7 @@ func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
 		}
 		return c.r.fieldPlace(base, fld), true
 	case syntax.BracketExpr:
-		base, ok := c.buildPlace(syntax.NodeID(node.Lhs))
+		base, ok := c.buildPlace(node.AsBracket().Base().ID())
 		if !ok {
 			return Place{}, false
 		}
@@ -69,9 +69,9 @@ func (c *checker) buildPlace(n syntax.NodeID) (Place, bool) {
 func (c *checker) indexAssignUnsupported(n syntax.NodeID) bool {
 	switch c.t.Kind(n) {
 	case syntax.Paren, syntax.MemberExpr:
-		return c.indexAssignUnsupported(syntax.NodeID(c.t.Nodes[n].Lhs))
+		return c.indexAssignUnsupported(c.t.View(n).Base().ID())
 	case syntax.BracketExpr:
-		base := syntax.NodeID(c.t.Nodes[n].Lhs)
+		base := c.t.View(n).AsBracket().Base().ID()
 		t := c.vars.resolve(c.info.Types[base])
 		if t == 0 || t == TyPoison {
 			return false
@@ -109,13 +109,13 @@ func (c *checker) identPlaceEnt(n syntax.NodeID) (EntityID, bool) {
 	for {
 		switch {
 		case c.t.Kind(n) == syntax.Paren:
-			n = syntax.NodeID(c.t.Nodes[n].Lhs)
+			n = c.t.View(n).AsParen().Inner().ID()
 			continue
 		case c.t.Kind(n) == syntax.MemberExpr:
 			// `.value` is the same storage as its receiver: peel through it
 			// the way Paren is peeled.
 			if use := c.info.Uses[n]; use != 0 && c.r.Entities[use].Kind == EntType {
-				n = syntax.NodeID(c.t.Nodes[n].Lhs)
+				n = c.t.View(n).AsMember().Base().ID()
 				continue
 			}
 		}
@@ -132,16 +132,16 @@ func (c *checker) identPlaceEnt(n syntax.NodeID) (EntityID, bool) {
 }
 
 func (c *checker) placeName(n syntax.NodeID) string {
-	node := c.t.Nodes[n]
-	switch node.Kind {
+	node := c.t.View(n)
+	switch node.Kind() {
 	case syntax.Ident:
-		return c.t.TokText(node.Tok)
+		return node.Tok().Text()
 	case syntax.MemberExpr:
-		return c.placeName(syntax.NodeID(node.Lhs)) + "." + c.t.TokText(node.Tok)
+		return c.placeName(node.AsMember().Base().ID()) + "." + node.Tok().Text()
 	case syntax.BracketExpr:
-		return c.placeName(syntax.NodeID(node.Lhs)) + "[..]"
+		return c.placeName(node.AsBracket().Base().ID()) + "[..]"
 	case syntax.Paren:
-		return c.placeName(syntax.NodeID(node.Lhs))
+		return c.placeName(node.AsParen().Inner().ID())
 	}
 	return "this expression"
 }

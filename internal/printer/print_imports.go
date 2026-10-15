@@ -46,7 +46,7 @@ func (p *printer) sortImports(decls []syntax.NodeID) ([]syntax.NodeID, map[synta
 }
 
 func (p *printer) importGroup(d syntax.NodeID) int {
-	if p.t.Slots(d)[0] != 0 {
+	if p.t.View(d).AsImportDecl().Vis().Valid() {
 		return 2
 	}
 	if strings.HasPrefix(p.importPath(d), "std/") || p.importPath(d) == "std" {
@@ -56,11 +56,7 @@ func (p *printer) importGroup(d syntax.NodeID) int {
 }
 
 func (p *printer) importPath(d syntax.NodeID) string {
-	var segs []string
-	for _, tk := range p.t.PathToks(syntax.NodeID(p.t.Slots(d)[2])) {
-		segs = append(segs, p.t.TokText(tk))
-	}
-	return strings.Join(segs, "/")
+	return p.t.View(d).AsImportDecl().Path().Join("/")
 }
 
 // commentWithin reports a comment token between the first token of a and
@@ -81,6 +77,6 @@ func (p *printer) commentWithin(a, b syntax.NodeID) bool {
 // sortedNames orders the `{a, b}` binding list of an import.
 func (p *printer) sortedNames(names []syntax.NodeID) []syntax.NodeID {
 	out := append([]syntax.NodeID{}, names...)
-	sort.SliceStable(out, func(i, j int) bool { return p.tok(p.node(out[i]).Tok) < p.tok(p.node(out[j]).Tok) })
+	sort.SliceStable(out, func(i, j int) bool { return p.t.View(out[i]).Tok().Text() < p.t.View(out[j]).Tok().Text() })
 	return out
 }

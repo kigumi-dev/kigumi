@@ -87,43 +87,43 @@ func (r *Result) intFits(v *big.Int, typ TypeID) bool {
 
 func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 	t := r.tree(f)
-	node := t.Nodes[n]
+	node := t.View(n)
 	fail := func(what string) (constValue, bool) {
 		r.errAt(f, n, cConstNotComptime, what)
 		return constValue{}, false
 	}
-	switch node.Kind {
+	switch node.Kind() {
 	case syntax.IntLit:
-		v, ok := syntax.ParseInt(t.TokText(node.Tok))
+		v, ok := syntax.ParseInt(node.Tok().Text())
 		if !ok {
 			return fail("this literal")
 		}
 		return constValue{Kind: constInt, Int: v}, true
 	case syntax.FloatLit:
-		v, ok := syntax.ParseFloat(t.TokText(node.Tok))
+		v, ok := syntax.ParseFloat(node.Tok().Text())
 		if !ok {
 			return fail("this literal")
 		}
 		return constValue{Kind: constFloat, Float: v}, true
 	case syntax.BoolLit:
-		return constValue{Kind: constBool, Bool: t.Toks[node.Tok].Kind == token.KwTrue}, true
+		return constValue{Kind: constBool, Bool: node.Tok().Kind() == token.KwTrue}, true
 	case syntax.CharLit:
-		c, ok := syntax.DecodeChar(t.TokText(node.Tok))
+		c, ok := syntax.DecodeChar(node.Tok().Text())
 		if !ok {
 			r.errAt(f, n, cCharInvalid)
 			return constValue{}, false
 		}
 		return constValue{Kind: constChar, Char: c}, true
 	case syntax.StringLit:
-		if node.Lhs != 0 {
+		if node.AsStringLit().Interps().Valid() {
 			return fail("string interpolation")
 		}
-		raw := t.TokText(node.Tok)
+		raw := node.Tok().Text()
 		return constValue{Kind: constString, Str: syntax.DecodeString(raw[1 : len(raw)-1])}, true
 	case syntax.ByteStringLit:
-		return constValue{Kind: constBytes, Str: string(syntax.DecodeByteString(t.TokText(node.Tok)))}, true
+		return constValue{Kind: constBytes, Str: string(syntax.DecodeByteString(node.Tok().Text()))}, true
 	case syntax.Paren:
-		return r.evalConst(f, syntax.NodeID(node.Lhs))
+		return r.evalConst(f, node.AsParen().Inner().ID())
 	case syntax.Ident:
 		ent := r.resolveValueName(f, r.fileScopes[f], r.identPath(f, n))
 		if ent == 0 {
@@ -136,21 +136,21 @@ func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 		v := r.evalConstDecl(ent)
 		return v, v.Kind != constNone
 	case syntax.Unary:
-		v, ok := r.evalConst(f, syntax.NodeID(node.Lhs))
+		v, ok := r.evalConst(f, node.AsUnary().Operand().ID())
 		if !ok {
 			return v, false
 		}
-		return r.constUnary(f, n, t.Toks[node.Tok].Kind, v)
+		return r.constUnary(f, n, node.Tok().Kind(), v)
 	case syntax.Binary:
-		a, ok := r.evalConst(f, syntax.NodeID(node.Lhs))
+		a, ok := r.evalConst(f, node.AsBinary().Left().ID())
 		if !ok {
 			return a, false
 		}
-		b, ok := r.evalConst(f, syntax.NodeID(node.Rhs))
+		b, ok := r.evalConst(f, node.AsBinary().Right().ID())
 		if !ok {
 			return b, false
 		}
-		return r.constBinary(f, n, t.Toks[node.Tok].Kind, a, b)
+		return r.constBinary(f, n, node.Tok().Kind(), a, b)
 	}
 	return fail("this expression")
 }
@@ -162,11 +162,8 @@ func (r *Result) identPath(f FileID, n syntax.NodeID) syntax.NodeID {
 	if p, ok := r.identPaths[t][n]; ok {
 		return p
 	}
-	tok := t.Nodes[n].Tok
-	start := uint32(len(t.Extra))
-	t.Extra = append(t.Extra, tok)
-	p := syntax.NodeID(len(t.Nodes))
-	t.Nodes = append(t.Nodes, syntax.Node{Kind: syntax.Path, Tok: tok, Lhs: start, Rhs: start + 1})
+	tok := t.View(n).Tok().Index()
+	p := t.AddPath(tok, []uint32{tok})
 	if r.identPaths[t] == nil {
 		r.identPaths[t] = map[syntax.NodeID]syntax.NodeID{}
 	}

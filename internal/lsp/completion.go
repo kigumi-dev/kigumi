@@ -92,19 +92,20 @@ func isIdentByte(b byte) bool {
 // `a.b.` names `a.b`.
 func receiverAt(t *syntax.Tree, pos token.Pos) syntax.NodeID {
 	best, bestLen := syntax.NodeID(0), -1
-	for id := 1; id < len(t.Nodes); id++ {
-		n := syntax.NodeID(id)
-		switch t.Kind(n) {
+	for v := range t.All() {
+		n := v.ID()
+		switch v.Kind() {
 		case syntax.Ident, syntax.MemberExpr, syntax.CallExpr, syntax.BracketExpr, syntax.Paren, syntax.StringLit, syntax.ByteStringLit, syntax.IntLit, syntax.FloatLit:
 		default:
 			continue
 		}
-		sp := t.Span(n)
-		if t.Kind(n) == syntax.MemberExpr {
+		sp := v.Span()
+		if v.Kind() == syntax.MemberExpr {
 			// A member node's span covers only its name token; the whole
 			// expression ends where the name does.
-			sp.Start = t.Span(syntax.NodeID(t.Nodes[n].Lhs)).Start
-			sp.End = t.Toks[t.Nodes[n].Tok].Span.End
+			m := v.AsMember()
+			sp.Start = m.Base().Span().Start
+			sp.End = m.Member().Span().End
 		}
 		if sp.End != pos || sp.End <= sp.Start {
 			continue
@@ -127,8 +128,8 @@ func (s *Server) scopeItems(snap *snapshot, p protocol.TextDocumentPositionParam
 	pos := offset(t.File, p.Position)
 	var scope sem.ScopeID
 	bestLen := -1
-	for id := 1; id < len(t.Nodes); id++ {
-		n := syntax.NodeID(id)
+	for v := range t.All() {
+		n := v.ID()
 		sc := info.Scopes[n]
 		if sc == 0 {
 			continue

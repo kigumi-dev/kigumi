@@ -53,17 +53,18 @@ func (r *Result) resolveImport(f FileID, d syntax.NodeID) {
 		vis = r.resolveVis(f, s.Vis, from)
 	}
 	if t.Kind(s.Binding) == syntax.List {
-		for _, n := range t.Children(s.Binding) {
+		for n := range t.List(s.Binding).IDs() {
 			if t.Kind(n) == syntax.ImportAlias {
-				orig, alias := syntax.NodeID(t.Nodes[n].Lhs), syntax.NodeID(t.Nodes[n].Rhs)
-				r.bindImport(f, alias, from, target, t.TokText(t.Nodes[alias].Tok), vis, reexport, true, t.TokText(t.Nodes[orig].Tok), orig)
+				ia := t.View(n).AsImportAlias()
+				orig, alias := ia.Name().ID(), ia.Alias().ID()
+				r.bindImport(f, alias, from, target, ia.Alias().Name().Text(), vis, reexport, true, ia.Name().Name().Text(), orig)
 				continue
 			}
-			r.bindImport(f, n, from, target, t.TokText(t.Nodes[n].Tok), vis, reexport, true, "", 0)
+			r.bindImport(f, n, from, target, t.View(n).Tok().Text(), vis, reexport, true, "", 0)
 		}
 		return
 	}
-	r.bindImport(f, s.Binding, from, target, t.TokText(t.Nodes[s.Binding].Tok), vis, reexport, false, "", 0)
+	r.bindImport(f, s.Binding, from, target, t.View(s.Binding).Tok().Text(), vis, reexport, false, "", 0)
 }
 
 // origName/origNode name the pre-`as` identifier of a renamed selected
@@ -73,7 +74,7 @@ func (r *Result) bindImport(f FileID, node syntax.NodeID, from, target PackageID
 		r.errAt(f, node, cImportPreludeName, name)
 		return
 	}
-	e := Entity{Kind: EntImport, Name: name, Pkg: from, File: f, Node: node, Tok: r.tree(f).Nodes[node].Tok, Vis: vis}
+	e := Entity{Kind: EntImport, Name: name, Pkg: from, File: f, Node: node, Tok: r.tree(f).View(node).Tok().Index(), Vis: vis}
 	if reexport {
 		e.Flags |= EfReexport
 	}

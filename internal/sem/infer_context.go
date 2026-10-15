@@ -9,11 +9,11 @@ import (
 
 // synthContext's bindings shadow any outer ones for the block's extent.
 func (c *checker) synthContext(n syntax.NodeID, want TypeID) TypeID {
-	node := c.t.Nodes[n]
-	items := c.t.Children(syntax.NodeID(node.Lhs))
+	ctx := c.t.View(n).AsContext()
+	items := ctx.Provides()
 	frame := ctxFrame{bind: map[EntityID]ctxBindSource{}, depth: len(c.lambdas)}
-	locals := make([]EntityID, len(items))
-	for i, item := range items {
+	locals := make([]EntityID, items.Len())
+	for i, item := range items.EnumerateIDs() {
 		pt := c.vars.resolve(c.synth(item))
 		if pt == TyPoison {
 			continue
@@ -38,7 +38,7 @@ func (c *checker) synthContext(n syntax.NodeID, want TypeID) TypeID {
 	}
 	c.info.CtxProviders[n] = locals
 	c.ctxStack = append(c.ctxStack, frame)
-	t := c.check(syntax.NodeID(node.Rhs), want)
+	t := c.check(ctx.Body().ID(), want)
 	c.ctxStack = c.ctxStack[:len(c.ctxStack)-1]
 	return t
 }

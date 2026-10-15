@@ -135,7 +135,7 @@ func (r *Result) checkFnBody(id EntityID) {
 	r.Bodies = append(r.Bodies, BodyRef{Fn: id, File: e.File, Node: info.Body})
 	if info.Naked {
 		c.naked = true
-		if stmts := c.t.Children(info.Body); len(stmts) != 1 || c.t.Kind(stmts[0]) != syntax.ExprStmt || c.t.Kind(syntax.NodeID(c.t.Nodes[stmts[0]].Lhs)) != syntax.AsmExpr {
+		if stmts := c.t.List(info.Body); stmts.Len() != 1 || stmts.At(0).Kind() != syntax.ExprStmt || stmts.At(0).AsExprStmt().Expr().Kind() != syntax.AsmExpr {
 			r.errAt(e.File, info.Body, cNakedBody)
 		}
 	}

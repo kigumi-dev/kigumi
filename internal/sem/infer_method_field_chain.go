@@ -25,7 +25,7 @@ func (r *Result) chainKnownFnRefs(file FileID, expr syntax.NodeID) []EntityID {
 		}
 		return nil
 	case syntax.Paren:
-		return r.chainKnownFnRefs(file, syntax.NodeID(t.Nodes[expr].Lhs))
+		return r.chainKnownFnRefs(file, t.View(expr).AsParen().Inner().ID())
 	case syntax.Ident:
 	default:
 		return nil
@@ -57,9 +57,9 @@ func (r *Result) chainFieldEnt(file FileID, expr syntax.NodeID) EntityID {
 	case syntax.MemberExpr:
 		return r.chainFieldWitnessRecvEnt(file, expr)
 	case syntax.BorrowExpr:
-		return r.chainFieldEnt(file, syntax.NodeID(t.Nodes[expr].Rhs))
+		return r.chainFieldEnt(file, t.View(expr).AsBorrow().Operand().ID())
 	case syntax.Paren:
-		return r.chainFieldEnt(file, syntax.NodeID(t.Nodes[expr].Lhs))
+		return r.chainFieldEnt(file, t.View(expr).AsParen().Inner().ID())
 	}
 	return r.literalFieldEnt(file, expr)
 }
@@ -96,7 +96,7 @@ func (r *Result) chainFieldWitnessRecvEnt(file FileID, base syntax.NodeID) Entit
 	if field == 0 {
 		return 0
 	}
-	baseEnt := r.chainFieldEnt(file, syntax.NodeID(r.tree(file).Nodes[base].Lhs))
+	baseEnt := r.chainFieldEnt(file, r.tree(file).View(base).AsMember().Base().ID())
 	if baseEnt == 0 {
 		return 0
 	}

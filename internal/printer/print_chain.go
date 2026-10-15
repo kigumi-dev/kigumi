@@ -10,19 +10,19 @@ import (
 // side is itself the same chain, goes one operand per line with the
 // operator leading.
 func (p *printer) binary(id syntax.NodeID) {
-	n := p.node(id)
-	if isLeadingOp(p.t.Toks[n.Tok].Kind) && p.multilineChain(id) {
-		p.opChain(id)
+	b := p.t.View(id).AsBinary()
+	if isLeadingOp(b.Op().Kind()) && p.multilineChain(b) {
+		p.opChain(b)
 		return
 	}
-	p.expr(syntax.NodeID(n.Lhs))
-	switch p.t.Toks[n.Tok].Kind {
+	p.expr(b.Left().ID())
+	switch b.Op().Kind() {
 	case token.DotDot, token.DotDotEq:
-		p.write(p.tok(n.Tok))
+		p.write(b.Op().Text())
 	default:
-		p.write(" " + p.tok(n.Tok) + " ")
+		p.write(" " + b.Op().Text() + " ")
 	}
-	p.expr(syntax.NodeID(n.Rhs))
+	p.expr(b.Right().ID())
 }
 
 // isLeadingOp reports whether k's canonical multiline form leads with the
@@ -38,14 +38,12 @@ func isLeadingOp(k token.Kind) bool {
 // multilineChain reports whether the chain rooted at id actually breaks
 // across lines in the source anywhere along its same-operator links — not
 // merely that it has 3+ terms, which a same-operator LHS also indicates.
-func (p *printer) multilineChain(id syntax.NodeID) bool {
-	n := p.node(id)
-	if p.opSplitsLine(n.Tok) {
+func (p *printer) multilineChain(b syntax.BinaryView) bool {
+	if p.opSplitsLine(b.Op().Index()) {
 		return true
 	}
-	lhs := syntax.NodeID(n.Lhs)
-	if p.t.Kind(lhs) == syntax.Binary && p.t.Toks[p.node(lhs).Tok].Kind == p.t.Toks[n.Tok].Kind {
-		return p.multilineChain(lhs)
+	if left := b.Left(); left.Kind() == syntax.Binary && left.AsBinary().Op().Kind() == b.Op().Kind() {
+		return p.multilineChain(left.AsBinary())
 	}
 	return false
 }
@@ -76,18 +74,16 @@ func (p *printer) opSplitsLine(opTok uint32) bool {
 	return false
 }
 
-func (p *printer) opChain(id syntax.NodeID) {
-	n := p.node(id)
-	lhs := syntax.NodeID(n.Lhs)
-	opKind := p.t.Toks[n.Tok].Kind
-	if p.t.Kind(lhs) == syntax.Binary && p.t.Toks[p.node(lhs).Tok].Kind == opKind {
-		p.opChain(lhs)
+func (p *printer) opChain(b syntax.BinaryView) {
+	left := b.Left()
+	if left.Kind() == syntax.Binary && left.AsBinary().Op().Kind() == b.Op().Kind() {
+		p.opChain(left.AsBinary())
 	} else {
-		p.expr(lhs)
+		p.expr(left.ID())
 	}
 	p.newline()
 	p.indent++
-	p.write(p.tok(n.Tok) + " ")
+	p.write(b.Op().Text() + " ")
 	p.indent--
-	p.expr(syntax.NodeID(n.Rhs))
+	p.expr(b.Right().ID())
 }
