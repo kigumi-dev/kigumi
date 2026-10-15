@@ -29,6 +29,8 @@ func TrackLive(on bool) {
 	liveFreed.Store(0)
 }
 
+func PauseLive(on bool) { liveTrack.Store(on) }
+
 func LiveObjects() int64 { return liveMade.Load() - liveFreed.Load() }
 
 // RunReleasing is Run that also gives back the entry's result, which a real

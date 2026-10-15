@@ -3,6 +3,7 @@ package mir_test
 import (
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"kigumi/internal/mir"
@@ -143,7 +144,6 @@ fn main() -> Unit! {
 
 // Covers every mir/run fixture; verifyDirect, run through Apply, is the actual crossing check.
 func TestPlanDirectCorpus(t *testing.T) {
-	std := testkit.LoadStd(t, "../../std")
 	var files []string
 	for _, glob := range []string{"../../testdata/mir/*.txtar", "../../testdata/run/*.txtar"} {
 		fs, _ := filepath.Glob(glob)
@@ -152,10 +152,22 @@ func TestPlanDirectCorpus(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no fixtures found")
 	}
-	sawBox, sawDirect := false, false
+	var sawBox, sawDirect atomic.Bool
+	t.Cleanup(func() {
+		if t.Failed() {
+			return
+		}
+		if !sawDirect.Load() {
+			t.Error("no fixture planned a single unboxed local")
+		}
+		if !sawBox.Load() {
+			t.Error("no fixture needed a single crossing, so the insertion step is dead")
+		}
+	})
 	for _, path := range files {
 		t.Run(filepath.Base(path), func(t *testing.T) {
-			res, _, _ := checkFixture(t, path, std)
+			t.Parallel()
+			res, _, _ := checkFixture(t, path, testkit.LoadStd(t, "../../std"))
 			prog := mir.Build(res)
 			if prog.HasErrors() {
 				t.Skip("fixture expects ownership diagnostics")
@@ -171,17 +183,15 @@ func TestPlanDirectCorpus(t *testing.T) {
 			checkNoallocBodies(t, res, prog)
 			for _, f := range prog.Funcs {
 				for i := range f.Locals {
-					sawDirect = sawDirect || f.IsDirect(mir.LocalID(i))
+					if f.IsDirect(mir.LocalID(i)) {
+						sawDirect.Store(true)
+					}
 				}
-				sawBox = sawBox || countOp(f, mir.OpBoxDirect) > 0
+				if countOp(f, mir.OpBoxDirect) > 0 {
+					sawBox.Store(true)
+				}
 			}
 		})
-	}
-	if !sawDirect {
-		t.Error("no fixture planned a single unboxed local")
-	}
-	if !sawBox {
-		t.Error("no fixture needed a single crossing, so the insertion step is dead")
 	}
 }
 

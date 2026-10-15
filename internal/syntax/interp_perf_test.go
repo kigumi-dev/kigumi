@@ -28,16 +28,16 @@ func nestedInterpSrc(depth, padPerLevel int) string {
 
 func measureScanOps(depth, padPerLevel int) (ops, srcLen int) {
 	src := []byte("let s = " + nestedInterpSrc(depth, padPerLevel) + "\n")
-	scanOps = 0
+	scanOps.Store(0)
 	Parse(&token.File{Src: src})
-	return scanOps, len(src)
+	return int(scanOps.Load()), len(src)
 }
 
 func measureUTF8ValidBytes(depth, padPerLevel int) (bytes, srcLen int) {
 	src := []byte("let s = " + nestedInterpSrc(depth, padPerLevel) + "\n")
-	utf8ValidBytes = 0
+	utf8ValidBytes.Store(0)
 	Parse(&token.File{Src: src})
-	return utf8ValidBytes, len(src)
+	return int(utf8ValidBytes.Load()), len(src)
 }
 
 // stringLitNodes returns every StringLit node id in the tree.
@@ -70,11 +70,12 @@ func measurePostParseConsumers(depth, padPerLevel, consumers int) (scanOpsDelta,
 	src := []byte("let s = " + nestedInterpSrc(depth, padPerLevel) + "\n")
 	tr := Parse(&token.File{Src: src})
 	ids := stringLitNodes(tr)
-	scanOps, spanComputeOps = 0, 0
+	scanOps.Store(0)
+	spanComputeOps.Store(0)
 	for range consumers {
 		visitAllStringParts(tr, ids)
 	}
-	return scanOps, spanComputeOps, len(src)
+	return int(scanOps.Load()), int(spanComputeOps.Load()), len(src)
 }
 
 // Counts scan operations instead of timing wall-clock, since wall-clock
@@ -132,18 +133,18 @@ func TestDeepInterpolationSpanIsMemoized(t *testing.T) {
 		tr := Parse(&token.File{Src: src})
 		ids := stringLitNodes(tr)
 
-		spanComputeOps = 0
+		spanComputeOps.Store(0)
 		visitAllStringParts(tr, ids)
-		firstPass := spanComputeOps
+		firstPass := int(spanComputeOps.Load())
 		if firstPass == 0 || firstPass > 3*depth+10 {
 			t.Fatalf("depth %d: first Span pass did %d cache misses; want roughly linear in depth (>0, <= %d)", depth, firstPass, 3*depth+10)
 		}
 
-		spanComputeOps = 0
+		spanComputeOps.Store(0)
 		visitAllStringParts(tr, ids)
 		visitAllStringParts(tr, ids)
-		if spanComputeOps != 0 {
-			t.Fatalf("depth %d: 2 more Span passes over the same nodes cost %d cache misses; want 0 (all cache hits)", depth, spanComputeOps)
+		if n := spanComputeOps.Load(); n != 0 {
+			t.Fatalf("depth %d: 2 more Span passes over the same nodes cost %d cache misses; want 0 (all cache hits)", depth, n)
 		}
 	}
 }

@@ -24,6 +24,7 @@ func TestSemCorpus(t *testing.T) {
 	}
 	for _, path := range files {
 		t.Run(filepath.Base(path), func(t *testing.T) {
+			t.Parallel()
 			fx := parseFixture(t, path)
 			if p := fx.opt("pending", ""); p != "" {
 				t.Skipf("pending: %s", p)

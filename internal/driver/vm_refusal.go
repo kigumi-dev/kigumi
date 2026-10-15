@@ -3,6 +3,8 @@ package driver
 import (
 	"fmt"
 	"strings"
+
+	"kigumi/internal/vm"
 )
 
 // nativeOnlyRefusal reports whether why is C ABI/asm/ffi/dl: `kigumi build` is the fix.
@@ -23,4 +25,12 @@ func vmRefusalError(why string) error {
 		return fmt.Errorf("%s is not supported by the VM: native-only, run `kigumi build` instead", why)
 	}
 	return fmt.Errorf("%s is not supported by the VM", why)
+}
+
+// VMRefusal is the error RunWith would return for a program the VM cannot run, or nil.
+func VMRefusal(a *Analysis) error {
+	if ok, why := vm.Supports(a.Prog); !ok {
+		return vmRefusalError(why)
+	}
+	return nil
 }

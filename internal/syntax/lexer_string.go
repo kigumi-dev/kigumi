@@ -18,7 +18,7 @@ func (lx *lexer) lexString() {
 	if !ok {
 		lx.errorf(start, lx.pos, "unterminated string literal")
 	} else if !hinted {
-		utf8ValidBytes += lx.pos - start
+		utf8ValidBytes.Add(int64(lx.pos - start))
 		if !utf8.Valid(lx.src[start:lx.pos]) {
 			lx.errorf(start, lx.pos, "string literal contains invalid UTF-8")
 		}
@@ -35,7 +35,7 @@ func (lx *lexer) scanString(pos int) (int, bool) {
 	}
 	pos++
 	for pos < lx.end {
-		scanOps++
+		scanOps.Add(1)
 		switch lx.src[pos] {
 		case '\\':
 			pos = lx.scanEscape(pos)

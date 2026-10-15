@@ -1,7 +1,6 @@
 package driver_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -9,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/driver"
 	"kigumi/internal/testtool"
 )
 
@@ -20,19 +18,30 @@ func TestManifestFresh(t *testing.T) {
 	fixtures = append(fixtures, staticFixtures(t, "sem", "check")...)
 	fixtures = append(fixtures, staticFixtures(t, "mir", "build")...)
 	fixtures = append(fixtures, staticFixtures(t, "fmt", "format")...)
-	fixtures = append(fixtures, runFixtures(t)...)
+	run := runFixtures(t)
+	t.Cleanup(func() {
+		fixtures = append(fixtures, run...)
+		compareManifest(t, fixtures)
+	})
+}
+
+func compareManifest(t *testing.T, fixtures []testtool.Fixture) {
+	if t.Failed() {
+		return
+	}
 	testtool.SortFixtures(fixtures)
 	m := &testtool.Manifest{Schema: testtool.SchemaVersion, Reasons: testtool.Reasons, Fixtures: fixtures}
 
 	if os.Getenv("UPDATE") == "1" {
 		if err := testtool.Save("../../testdata/manifest.json", m); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		return
 	}
 	want, err := testtool.Load("../../testdata/manifest.json")
 	if err != nil {
-		t.Fatalf("load testdata/manifest.json: %v (run with UPDATE=1 to generate it)", err)
+		t.Errorf("load testdata/manifest.json: %v (run with UPDATE=1 to generate it)", err)
+		return
 	}
 	gotJSON, _ := json.MarshalIndent(m, "", "  ")
 	wantJSON, _ := json.MarshalIndent(want, "", "  ")
@@ -62,15 +71,16 @@ func staticFixtures(t *testing.T, kind, mode string) []testtool.Fixture {
 	return out
 }
 
-// runFixtures classifies each run fixture's engine mode by probing the VM; panics get a regex stderr matcher since a native-only refusal reports a bare message with no location.
+// runFixtures classifies each run fixture's engine mode from the VM's static verdict; the slice is complete once the parallel subtests finish.
+// A native-only refusal reports a bare message with no location, so panics get a regex stderr matcher.
 func runFixtures(t *testing.T) []testtool.Fixture {
 	t.Helper()
 	files, err := filepath.Glob("../../testdata/run/*.txtar")
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := make([]testtool.Fixture, 0, len(files))
-	for _, path := range files {
+	out := make([]testtool.Fixture, len(files))
+	for i, path := range files {
 		base := strings.TrimSuffix(filepath.Base(path), ".txtar")
 		fx := testtool.Fixture{
 			ID:       "run/" + base,
@@ -82,33 +92,27 @@ func runFixtures(t *testing.T) []testtool.Fixture {
 			fx.Mode = []string{"native"}
 			fx.Requires = []string{"c-compiler"}
 			fx.Skip = map[string]string{"vm": "static-refusal"}
-			out = append(out, fx)
+			out[i] = fx
 			continue
 		}
 		t.Run(base, func(t *testing.T) {
-			root, _, wantErr, wantExit := loadRunFixture(t, path)
-			m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
-			if err != nil {
-				t.Fatalf("%v", err)
-			}
-			t.Chdir(t.TempDir())
-			var vmOut, vmErrOut bytes.Buffer
-			_, vmErr := driver.RunWith(m, driver.RunOptions{}, &vmOut, &vmErrOut, []string{"main/main.kg", "one", "two"})
+			t.Parallel()
+			c := checkedFixture(t, path)
 			fx.Requires = []string{"c-compiler"}
 			switch {
-			case vmErr == nil:
+			case c.refusal == nil:
 				fx.Mode = []string{"vm", "native"}
-			case strings.Contains(vmErr.Error(), "kigumi build"):
+			case strings.Contains(c.refusal.Error(), "kigumi build"):
 				fx.Mode = []string{"native"}
 				fx.Skip = map[string]string{"vm": "native-only"}
 			default:
-				t.Fatalf("vm: %v", vmErr)
+				t.Fatalf("vm: %v", c.refusal)
 			}
-			if wantExit == 2 && wantErr != "" {
-				fx.Stderr = &testtool.StderrMatch{Type: "regex", Pattern: regexp.QuoteMeta(strings.TrimSpace(wantErr))}
+			if c.wantExit == 2 && c.wantErr != "" {
+				fx.Stderr = &testtool.StderrMatch{Type: "regex", Pattern: regexp.QuoteMeta(strings.TrimSpace(c.wantErr))}
 			}
+			out[i] = fx
 		})
-		out = append(out, fx)
 	}
 	return out
 }

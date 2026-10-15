@@ -61,15 +61,21 @@ func (m *Machine) registerNet() {
 		return m.ok(mkInt(int64(sent), m.numKind(sem.TyUsize)))
 	}
 	h["net.Conn.close"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		netsock.Close(fdOf(a[0]))
 		return m.ok(unitObj)
 	}
-	h["net.Conn.drop"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		netsock.Close(fdOf(a[0]))
+	release := func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		releaseSocket(a[0])
 		return unitObj
 	}
-	h["net.Listener.drop"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		netsock.Close(fdOf(a[0]))
-		return unitObj
+	h["net.Conn.drop"] = release
+	h["net.Listener.drop"] = release
+}
+
+// releaseSocket closes the record's fd once; a repeat would close whatever another goroutine has since opened under the same number.
+func releaseSocket(v *obj) {
+	fd := deref(deref(v).fields[0])
+	if fd.i >= 0 {
+		netsock.Close(int(fd.i))
+		fd.i = -1
 	}
 }

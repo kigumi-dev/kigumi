@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 
 	"kigumi/internal/driver"
@@ -19,11 +20,17 @@ func TestAotCorpus(t *testing.T) {
 	}
 	manifest := loadManifest(t)
 	files, _ := filepath.Glob("../../testdata/run/*.txtar")
-	want, ran := 0, 0
+	var want, ran atomic.Int64
 	var live map[string]int64
 	if countsNativeLive() {
 		live = loadNativeLive(t)
 	}
+	t.Cleanup(func() {
+		if live != nil {
+			finishNativeLive(t, live)
+		}
+		t.Logf("native: expect %d, ran %d", want.Load(), ran.Load())
+	})
 	for _, path := range files {
 		id := fixtureID(path)
 		fx := manifest.ByID(id)
@@ -36,17 +43,17 @@ func TestAotCorpus(t *testing.T) {
 			})
 			continue
 		}
-		want++
-		if ok := t.Run(filepath.Base(path), func(t *testing.T) {
+		want.Add(1)
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			t.Parallel()
+			defer func() {
+				if !t.Failed() {
+					ran.Add(1)
+				}
+			}()
 			runAot(t, path, fx, live)
-		}); ok {
-			ran++
-		}
+		})
 	}
-	if live != nil {
-		finishNativeLive(t, live)
-	}
-	t.Logf("native: expect %d, ran %d", want, ran)
 }
 
 func runAot(t *testing.T, path string, fx *testtool.Fixture, live map[string]int64) {

@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -80,9 +82,45 @@ func runCounted(t *testing.T, name string, prog *mir.Program, known map[string]i
 		liveGot[name] = n
 	}
 	if n > known[name] && os.Getenv("UPDATE") == "" {
-		t.Errorf("%d objects live at exit, %d allowed", n, known[name])
+		t.Errorf("%s: %d objects live at exit, %d allowed", name, n, known[name])
 	}
 	return atExit, code, nil
+}
+
+// liveGate keeps comptime folding out of a tracking window: the fold takes the write side with counting paused, runs hold the read side.
+type liveGate struct {
+	mu sync.RWMutex
+	on bool
+}
+
+func (g *liveGate) fold(prog *mir.Program) []vm.ComptimeError {
+	if g == nil || len(prog.Comptime) == 0 {
+		return vm.FoldComptime(prog)
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	vm.PauseLive(false)
+	defer vm.PauseLive(g.on)
+	return vm.FoldComptime(prog)
+}
+
+func (g *liveGate) run(t *testing.T, prog *mir.Program) (string, int, error) {
+	if g != nil {
+		g.mu.RLock()
+		defer g.mu.RUnlock()
+	}
+	return runUncounted(t, prog)
+}
+
+// runUncounted is runCounted without the live accounting, safe to call from parallel subtests.
+func runUncounted(t *testing.T, prog *mir.Program) (string, int, error) {
+	var out, errOut bytes.Buffer
+	atExit, reached := "", false
+	code, err := vm.RunReleasing(prog, vm.Options{Cwd: t.TempDir(), Args: []string{"main", "one", "two"}}, &out, &errOut, func() { atExit, reached = out.String(), true })
+	if !reached {
+		atExit = out.String()
+	}
+	return atExit, code, err
 }
 
 func finishLive(t *testing.T, known map[string]int64) {
@@ -106,44 +144,112 @@ func finishLive(t *testing.T, known map[string]int64) {
 	}
 }
 
+// preparedProg checks, builds and plans a run fixture for the VM, skipping the test when it cannot run there.
+func preparedProg(t *testing.T, fx fixture, gate *liveGate, unsupported *atomic.Int64) *mir.Program {
+	res := checkSource(t, fx.src)
+	if res.HasErrors() {
+		t.Skip("check errors")
+	}
+	prog := mir.Build(res)
+	if prog.HasErrors() {
+		t.Skip("ownership errors")
+	}
+	plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "plan-direct", Run: mir.PlanDirect}}
+	if err := prog.Apply(plans...); err != nil {
+		t.Fatalf("plans: %v", err)
+	}
+	if errs := gate.fold(prog); len(errs) > 0 {
+		t.Fatalf("comptime: %v", errs[0].Err)
+	}
+	if ok, why := vm.Supports(prog); !ok {
+		unsupported.Add(1)
+		t.Skip(why)
+	}
+	return prog
+}
+
+func corpusFixtures(t *testing.T) (zero, nonzero []string) {
+	files, _ := filepath.Glob("../../testdata/run/*.txtar")
+	for _, path := range files {
+		if readFixture(t, path).exit == 0 {
+			zero = append(zero, path)
+		} else {
+			nonzero = append(nonzero, path)
+		}
+	}
+	return zero, nonzero
+}
+
+func runCorpusFixture(t *testing.T, path string, gate *liveGate, unsupported *atomic.Int64) {
+	fx := readFixture(t, path)
+	if !strings.Contains(fx.src, "/proc/self/fd") {
+		t.Parallel()
+	}
+	out, code, err := gate.run(t, preparedProg(t, fx, gate, unsupported))
+	if err != nil {
+		t.Fatalf("vm: %v", err)
+	}
+	if out != fx.stdout || code != fx.exit {
+		t.Errorf("mismatch (exit %d, want %d)\n--- got ---\n%s--- want ---\n%s", code, fx.exit, out, fx.stdout)
+	}
+}
+
+// liveSettled is true once TestRunCorpusOnVM has shown the exit-0 fixtures leave nothing live in total, so TestRunCorpusOnVMLive has nothing to attribute.
+var liveSettled bool
+
+// The live counters are process-wide, so the fixtures that exit 0 (the only ones counted) run in parallel under one tracking window and the total must come out zero.
 // This file sorts first so no earlier test leaves goroutines allocating into the live counters.
 func TestRunCorpusOnVM(t *testing.T) {
-	files, _ := filepath.Glob("../../testdata/run/*.txtar")
-	skipped := 0
+	zero, _ := corpusFixtures(t)
+	var unsupported atomic.Int64
 	known := loadLive(t)
 	quiesce()
-	for _, path := range files {
+	gate := &liveGate{on: true}
+	vm.TrackLive(true)
+	t.Cleanup(func() {
+		quiesce()
+		total := vm.LiveObjects()
+		vm.TrackLive(false)
+		t.Logf("%d fixtures skipped as unsupported", unsupported.Load())
+		var allowed int64
+		for _, n := range known {
+			allowed += n
+		}
+		if total > allowed && os.Getenv("UPDATE") == "" {
+			t.Errorf("%d objects live after the exit-0 fixtures, %d allowed (TestRunCorpusOnVMLive names the fixtures)", total, allowed)
+		}
+		liveSettled = total == 0 && len(known) == 0 && os.Getenv("UPDATE") == ""
+	})
+	for _, path := range zero {
+		t.Run(filepath.Base(path), func(t *testing.T) { runCorpusFixture(t, path, gate, &unsupported) })
+	}
+}
+
+// TestRunCorpusOnVMLive counts each exit-0 fixture alone when the combined total is nonzero, a fixture lists an allowance or UPDATE rewrites the list.
+func TestRunCorpusOnVMLive(t *testing.T) {
+	if liveSettled {
+		t.Skip("no fixture leaves objects live")
+	}
+	zero, _ := corpusFixtures(t)
+	known := loadLive(t)
+	quiesce()
+	for _, path := range zero {
 		name := filepath.Base(path)
 		t.Run(name, func(t *testing.T) {
-			fx := readFixture(t, path)
-			res := checkSource(t, fx.src)
-			if res.HasErrors() {
-				t.Skip("check errors")
-			}
-			prog := mir.Build(res)
-			if prog.HasErrors() {
-				t.Skip("ownership errors")
-			}
-			plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "plan-direct", Run: mir.PlanDirect}}
-			if err := prog.Apply(plans...); err != nil {
-				t.Fatalf("plans: %v", err)
-			}
-			if errs := vm.FoldComptime(prog); len(errs) > 0 {
-				t.Fatalf("comptime: %v", errs[0].Err)
-			}
-			if ok, why := vm.Supports(prog); !ok {
-				skipped++
-				t.Skip(why)
-			}
-			out, code, err := runCounted(t, name, prog, known)
-			if err != nil {
+			prog := preparedProg(t, readFixture(t, path), nil, new(atomic.Int64))
+			if _, _, err := runCounted(t, name, prog, known); err != nil {
 				t.Fatalf("vm: %v", err)
-			}
-			if out != fx.stdout || code != fx.exit {
-				t.Errorf("mismatch (exit %d, want %d)\n--- got ---\n%s--- want ---\n%s", code, fx.exit, out, fx.stdout)
 			}
 		})
 	}
 	finishLive(t, known)
-	t.Logf("%d fixtures skipped as unsupported", skipped)
+}
+
+// TestRunCorpusOnVMExitCodes runs the fixtures that exit nonzero, which leave objects live by design and so are never counted.
+func TestRunCorpusOnVMExitCodes(t *testing.T) {
+	_, nonzero := corpusFixtures(t)
+	var unsupported atomic.Int64
+	for _, path := range nonzero {
+		t.Run(filepath.Base(path), func(t *testing.T) { runCorpusFixture(t, path, nil, &unsupported) })
+	}
 }

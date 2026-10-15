@@ -1,10 +1,12 @@
 package syntax
 
+import "sync/atomic"
+
 import "kigumi/internal/token"
 
 // spanComputeOps counts Span cache misses; interp_perf_test.go asserts each
 // node's span is computed once, not once per query.
-var spanComputeOps int
+var spanComputeOps atomic.Int64
 
 func isShellInner(k NodeKind) bool {
 	return k >= ShellPlan && k <= ShellRedirect
@@ -33,7 +35,7 @@ func (t *Tree) Span(id NodeID) token.Span {
 }
 
 func (t *Tree) computeSpan(id NodeID) token.Span {
-	spanComputeOps++
+	spanComputeOps.Add(1)
 	n := t.Nodes[id]
 	var sp token.Span
 	if n.Kind == ShellText {

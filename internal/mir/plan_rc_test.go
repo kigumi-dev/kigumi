@@ -2,6 +2,7 @@ package mir_test
 
 import (
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 
 	"kigumi/internal/mir"
@@ -14,7 +15,6 @@ import (
 // at least one temporary) at least one OpRelease must appear somewhere in
 // the whole run, or the release-insertion step is dead.
 func TestPlanRCCorpus(t *testing.T) {
-	std := testkit.LoadStd(t, "../../std")
 	var files []string
 	for _, glob := range []string{"../../testdata/mir/*.txtar", "../../testdata/run/*.txtar"} {
 		fs, _ := filepath.Glob(glob)
@@ -23,10 +23,16 @@ func TestPlanRCCorpus(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no fixtures found")
 	}
-	sawRelease := false
+	var sawRelease atomic.Bool
+	t.Cleanup(func() {
+		if !t.Failed() && !sawRelease.Load() {
+			t.Error("plan-rc never inserted an OpRelease across the whole corpus")
+		}
+	})
 	for _, path := range files {
 		t.Run(filepath.Base(path), func(t *testing.T) {
-			res, _, _ := checkFixture(t, path, std)
+			t.Parallel()
+			res, _, _ := checkFixture(t, path, testkit.LoadStd(t, "../../std"))
 			prog := mir.Build(res)
 			if prog.HasErrors() {
 				t.Skip("fixture expects ownership diagnostics")
@@ -49,15 +55,12 @@ func TestPlanRCCorpus(t *testing.T) {
 							t.Errorf("%s: OpCopy survived plan-rc", f.Name)
 						}
 						if in.Op == mir.OpRelease {
-							sawRelease = true
+							sawRelease.Store(true)
 						}
 					}
 				}
 			}
 		})
-	}
-	if !sawRelease {
-		t.Error("plan-rc never inserted an OpRelease across the whole corpus")
 	}
 }
 

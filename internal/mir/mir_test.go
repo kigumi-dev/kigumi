@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"kigumi/internal/mir"
@@ -27,20 +28,23 @@ func TestMirCorpus(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no mir fixtures")
 	}
-	std := testkit.LoadStd(t, "../../std")
-	ran := 0
+	var ran atomic.Int64
+	t.Cleanup(func() { t.Logf("mir: %d/%d fixtures passed", ran.Load(), len(files)) })
 	for _, path := range files {
 		id := "mir/" + strings.TrimSuffix(filepath.Base(path), ".txtar")
 		if manifest.ByID(id) == nil {
 			t.Fatalf("%s: no manifest entry (run UPDATE=1 go test -run TestManifestFresh ./internal/driver/)", id)
 		}
-		if ok := t.Run(filepath.Base(path), func(t *testing.T) {
-			runFixture(t, path, std)
-		}); ok {
-			ran++
-		}
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			t.Parallel()
+			defer func() {
+				if !t.Failed() {
+					ran.Add(1)
+				}
+			}()
+			runFixture(t, path, testkit.LoadStd(t, "../../std"))
+		})
 	}
-	t.Logf("mir: %d/%d fixtures passed", ran, len(files))
 }
 
 type section struct{ name, body string }

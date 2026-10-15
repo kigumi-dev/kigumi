@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -15,6 +16,7 @@ const nativeLiveFile = "../../testdata/native_live.txt"
 
 var (
 	nativeLiveRe  = regexp.MustCompile(`(?m)^kigumi-live: (\d+)\n`)
+	nativeLiveMu  sync.Mutex
 	nativeLiveGot = map[string]int64{}
 	nativeLiveRan = map[string]bool{}
 )
@@ -53,16 +55,20 @@ func splitNativeLive(stderr string) (string, int64, bool) {
 }
 
 func noteNativeLive(t *testing.T, name string, n int64, known map[string]int64) {
+	nativeLiveMu.Lock()
 	nativeLiveRan[name] = true
 	if n != 0 {
 		nativeLiveGot[name] = n
 	}
+	nativeLiveMu.Unlock()
 	if n > known[name] && os.Getenv("UPDATE") == "" {
 		t.Errorf("%d objects live at exit, %d allowed", n, known[name])
 	}
 }
 
 func finishNativeLive(t *testing.T, known map[string]int64) {
+	nativeLiveMu.Lock()
+	defer nativeLiveMu.Unlock()
 	if os.Getenv("UPDATE") != "" {
 		merged := map[string]int64{}
 		for name, n := range known {

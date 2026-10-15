@@ -1,5 +1,7 @@
 package syntax
 
+import "sync/atomic"
+
 import "kigumi/internal/token"
 
 // stringLit parses a string token and its `${...}` interpolations. Each
@@ -38,12 +40,12 @@ type interpInfo struct {
 // scanOps counts bytes visited across interpolationRanges, matchBrace and
 // skipString; interp_perf_test.go asserts deep nesting scans linearly,
 // without timing wall-clock.
-var scanOps int
+var scanOps atomic.Int64
 
 // utf8ValidBytes counts bytes passed to utf8.Valid by lexString;
 // interp_perf_test.go asserts it grows with source size, not size*depth,
 // since a hint hit skips the recheck (see lexString).
-var utf8ValidBytes int
+var utf8ValidBytes atomic.Int64
 
 // interpolationRanges returns [start,end) ranges of expressions inside
 // `${...}` within one string literal src[start:end]. When out is non-nil it
@@ -58,7 +60,7 @@ func interpolationRanges(src []byte, start, end int, out map[int]interpInfo) [][
 	var ranges [][2]int
 	i := start + 1
 	for i < end-1 {
-		scanOps++
+		scanOps.Add(1)
 		switch src[i] {
 		case '\\':
 			i += 2
@@ -83,7 +85,7 @@ func interpolationRanges(src []byte, start, end int, out map[int]interpInfo) [][
 func matchBrace(src []byte, pos, end int, out map[int]interpInfo) int {
 	depth := 1
 	for pos < end {
-		scanOps++
+		scanOps.Add(1)
 		switch src[pos] {
 		case '{':
 			depth++
@@ -106,7 +108,7 @@ func skipString(src []byte, pos, end int, out map[int]interpInfo) int {
 	pos++
 	var ranges [][2]int
 	for pos < end {
-		scanOps++
+		scanOps.Add(1)
 		switch src[pos] {
 		case '\\':
 			pos += 2

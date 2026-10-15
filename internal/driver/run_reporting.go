@@ -3,7 +3,6 @@ package driver
 import (
 	"fmt"
 	"io"
-	"os"
 	"time"
 
 	"kigumi/internal/vm"
@@ -43,9 +42,8 @@ func RunTestsReportingWith(m *Module, opts TestRunOptions, stdout, stderr io.Wri
 	if ok, why := vm.SupportsTests(a.Prog); !ok {
 		return 1, vmRefusalError(why)
 	}
-	cwd, _ := os.Getwd()
 	failed, err := vm.RunTestsReporting(a.Prog, vm.TestRunOptions{
-		Options:        vm.Options{Stdin: opts.Stdin, Cwd: cwd, NoAccel: opts.NoAccel, DenySignals: true},
+		Options:        vm.Options{Stdin: opts.Stdin, Cwd: opts.cwd(), NoAccel: opts.NoAccel, DenySignals: true},
 		Module:         m.Name,
 		Filter:         opts.Filter,
 		List:           opts.List,

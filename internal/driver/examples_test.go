@@ -31,7 +31,10 @@ func TestExampleModules(t *testing.T) {
 			}
 			continue // driven by its build.kg: TestBuildProgramExample
 		}
-		t.Run(name, func(t *testing.T) { runExample(t, root, std, meta) })
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			runExample(t, root, std, meta)
+		})
 	}
 }
 
@@ -53,7 +56,7 @@ func runExample(t *testing.T, root, std string, meta driver.ExampleMeta) {
 	}
 	if hasTests(m) {
 		var out, errOut bytes.Buffer
-		if code, err := driver.RunTests(m, &out, &errOut); err != nil || code != 0 {
+		if code, err := driver.RunTestsWith(m, driver.RunOptions{Cwd: t.TempDir()}, &out, &errOut); err != nil || code != 0 {
 			t.Fatalf("tests: %v exit %d\n%s%s", err, code, out.String(), errOut.String())
 		}
 	}
@@ -85,10 +88,7 @@ func runExample(t *testing.T, root, std string, meta driver.ExampleMeta) {
 	}
 	if contains(meta.Backends, "vm") {
 		var out, errOut bytes.Buffer
-		cwd, _ := os.Getwd()
-		os.Chdir(t.TempDir())
-		code, err := driver.RunInput(plain, bytes.NewReader(stdin), &out, &errOut, args)
-		os.Chdir(cwd)
+		code, err := driver.RunWith(plain, driver.RunOptions{Stdin: bytes.NewReader(stdin), Cwd: t.TempDir()}, &out, &errOut, args)
 		if err != nil || code != 0 || out.String() != string(want) {
 			t.Errorf("vm: err %v exit %d\n--- got ---\n%s--- want ---\n%s--- stderr ---\n%s", err, code, out.String(), want, errOut.String())
 		}

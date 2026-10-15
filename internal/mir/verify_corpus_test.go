@@ -12,11 +12,11 @@ import (
 // std included: a program the builder produces without diagnostics has to
 // satisfy the contract, and ask for no conformance sem had not settled before sealing the witness table.
 func TestVerifyCorpus(t *testing.T) {
-	std := testkit.LoadStd(t, "../../std")
 	files, _ := filepath.Glob("../../testdata/run/*.txtar")
 	for _, path := range files {
 		t.Run(filepath.Base(path), func(t *testing.T) {
-			res, _, _ := checkFixture(t, path, std)
+			t.Parallel()
+			res, _, _ := checkFixture(t, path, testkit.LoadStd(t, "../../std"))
 			prog := mir.Build(res)
 			if prog.HasErrors() {
 				t.Skip("ownership diagnostics")
