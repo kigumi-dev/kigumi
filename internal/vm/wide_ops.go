@@ -11,7 +11,7 @@ func (m *Machine) overflow128(w wide, nk int, over bool) *obj {
 
 // binop128 is binop for 128-bit operands; a shift count is a usize, so it reads b.i.
 func (m *Machine) binop128(op string, a, b *obj) *obj {
-	x, nk := widen(a), a.nk
+	x, nk := widen(a), a.nkind()
 	sg := isSigned(nk)
 	if op == "<<" || op == ">>" {
 		if b.i < 0 || b.i >= 128 {
@@ -80,16 +80,16 @@ func (m *Machine) unop128(op byte, a *obj) *obj {
 	x := widen(a)
 	switch op {
 	case '-':
-		return m.overflow128(negW(x), a.nk, x == wide{0, 1 << 63})
+		return m.overflow128(negW(x), a.nkind(), x == wide{0, 1 << 63})
 	case '~':
-		return mkWide(notW(x), a.nk)
+		return mkWide(notW(x), a.nkind())
 	}
 	m.abort("unsupported unary " + string(op))
 	return nil
 }
 
 func cmp128(a, b *obj) int {
-	if isSigned(a.nk) {
+	if isSigned(a.nkind()) {
 		return cmpS(widen(a), widen(b))
 	}
 	return cmpU(widen(a), widen(b))
@@ -97,7 +97,7 @@ func cmp128(a, b *obj) int {
 
 // wrapping128 is prelude.<T>.wrapping* / rotate* at 128 bits; the count is masked to the width.
 func wrapping128(op string, a0, a1 *obj) *obj {
-	x, y, nk := widen(a0), widen(a1), a0.nk
+	x, y, nk := widen(a0), widen(a1), a0.nkind()
 	c := uint(y.lo & 127)
 	switch op {
 	case "wrappingAdd":

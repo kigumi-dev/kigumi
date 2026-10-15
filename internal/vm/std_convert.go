@@ -39,22 +39,22 @@ func (m *Machine) convert(a0 *obj) *obj {
 		dnk |= 256
 	}
 	if a0.k == kChar {
-		return mkInt(int64(a0.c), dnk)
+		return mkInt(int64(a0.ch()), dnk)
 	}
-	if is128(dnk) || a0.k == kInt && is128(a0.nk) {
+	if is128(dnk) || a0.k == kInt && is128(a0.nkind()) {
 		return m.convertWide(a0, dnk, checked)
 	}
 	if dnk&512 != 0 {
 		if a0.k == kFloat {
-			return mkFloat(a0.f, dnk)
+			return mkFloat(a0.fl(), dnk)
 		}
-		if isSigned(a0.nk) {
+		if isSigned(a0.nkind()) {
 			return mkFloat(float64(a0.i), dnk)
 		}
 		return mkFloat(float64(uint64(a0.i)), dnk)
 	}
 	if a0.k == kFloat {
-		x := math.Trunc(a0.f)
+		x := math.Trunc(a0.fl())
 		if math.IsNaN(x) || x < -9223372036854775808.0 || x >= 9223372036854775808.0 {
 			return m.none()
 		}
@@ -63,7 +63,7 @@ func (m *Machine) convert(a0 *obj) *obj {
 	if !checked {
 		return mkInt(a0.i, dnk)
 	}
-	if !inRange(a0.i, a0.nk, dnk) {
+	if !inRange(a0.i, a0.nkind(), dnk) {
 		return m.none()
 	}
 	return m.some(mkInt(a0.i, dnk))

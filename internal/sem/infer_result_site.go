@@ -42,24 +42,33 @@ func (r *Result) callResultEnt(file FileID, call syntax.NodeID, fn EntityID) Ent
 func (r *Result) isResultEnt(ent EntityID) bool { return r.Entities[ent].Flags&EfResult != 0 }
 
 // Replayed like a setter's writes, so the order the bodies are checked in never matters.
-func (c *checker) noteResultSite(n syntax.NodeID, fn EntityID, args []syntax.NodeID) {
+func (c *checker) noteResultSite(n syntax.NodeID, fn EntityID, args []syntax.NodeID, recvBase syntax.NodeID, ret TypeID) {
 	info := c.r.Fn(fn)
 	if info.Body == 0 || info.Declared&EffAsync != 0 {
 		return
 	}
-	owner := c.r.resultRecordEnt(c.r.Types.Node(info.Sig).Elem)
+	ret = c.vars.resolve(ret)
+	if c.r.holdsFnElem(ret) {
+		c.containerResultSite(n, fn, args, recvBase, ret)
+		return
+	}
+	owner := c.r.resultRecordEnt(ret)
 	if owner == 0 {
 		return
 	}
 	site := methodFieldCallSite{file: c.f, node: n, caller: c.fn, recv: c.r.callResultEnt(c.f, n, fn), callee: fn,
-		srcParam: c.r.fnResultEnt(fn), owner: owner, args: args}
+		srcParam: c.r.fnResultEnt(fn), owner: owner, args: args, recvNode: recvBase, retType: ret}
 	c.r.methodFieldCalls = append(c.r.methodFieldCalls, site)
 	c.r.applyMethodFieldWrites(site)
 }
 
 func (c *checker) recordResultLeaves(body syntax.NodeID) {
 	c.recordFnResultLeaves(body)
-	if c.r.resultRecordEnt(c.retType) == 0 {
+	if c.r.holdsFnElem(c.retType) {
+		c.recordContainerResult(body)
+		return
+	}
+	if c.r.resultRecordEnt(c.retType) == 0 && c.r.Types.Kind(c.retType) != KParam {
 		return
 	}
 	ret := c.r.fnResultEnt(c.fn)

@@ -34,10 +34,10 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 	case hir.Global:
 		return b.emit(Inst{Op: OpGlobalGet, Dst: b.temp(t), Ent: e.Ent, Node: n})
 	case hir.FnItem:
-		if len(e.Passes) > 0 {
-			return b.emit(Inst{Op: OpBind, Dst: b.temp(t), Ent: e.Ent, Args: b.witnessArgs(e.Passes, n), Node: n})
-		}
 		async := b.r.Fn(e.Ent).Declared&sem.EffAsync != 0
+		if len(e.Passes) > 0 {
+			return b.emit(Inst{Op: OpBind, Dst: b.temp(t), Ent: e.Ent, Args: b.witnessArgs(e.Passes, n), Async: async, Node: n})
+		}
 		return b.emit(Inst{Op: OpFnItem, Dst: b.temp(t), Ent: e.Ent, Async: async, Node: n})
 	case hir.Host:
 		return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: "host", Node: n})

@@ -8,14 +8,14 @@ func (m *Machine) index(base, idx *obj) *obj {
 			hi++
 		}
 		if base.k == kStr || base.k == kBytes {
-			if lo < 0 || hi > int64(len(base.s)) || lo > hi {
+			if lo < 0 || hi > int64(len(base.str())) || lo > hi {
 				m.abort("slice is not on character boundaries")
 			}
-			if base.k == kStr && (!boundary(base.s, lo) || !boundary(base.s, hi)) {
+			if base.k == kStr && (!boundary(base.str(), lo) || !boundary(base.str(), hi)) {
 				m.abort("slice is not on character boundaries")
 			}
 			out := newObj(base.k)
-			out.s = append([]byte{}, base.s[lo:hi]...)
+			out.setStr(append([]byte{}, base.str()[lo:hi]...))
 			m.chargeMemory(out)
 			return out
 		}
@@ -31,10 +31,10 @@ func (m *Machine) index(base, idx *obj) *obj {
 	}
 	i := idx.i
 	if base.k == kStr || base.k == kBytes {
-		if i < 0 || i >= int64(len(base.s)) {
+		if i < 0 || i >= int64(len(base.str())) {
 			m.abort("index out of range")
 		}
-		return mkInt(int64(base.s[i]), 8)
+		return mkInt(int64(base.str()[i]), 8)
 	}
 	if base.k != kArray || i < 0 || i >= int64(len(base.fields)) {
 		m.abort("index out of range")

@@ -19,7 +19,7 @@ func approxSize(v *obj) int64 {
 	}
 	switch v.k {
 	case kStr, kBytes:
-		return int64(len(v.s)) + objOverhead
+		return int64(len(v.str())) + objOverhead
 	case kArray, kRecord, kVariant, kClosure:
 		return int64(len(v.fields))*8 + objOverhead
 	case kCell, kBox, kOpaque:
@@ -38,11 +38,11 @@ func (m *Machine) chargeMemory(v *obj) {
 		return
 	}
 	size := approxSize(v)
-	delta := size - v.chg
+	delta := size - v.charged()
 	if delta == 0 {
 		return
 	}
-	v.chg = size
+	v.setCharged(size)
 	if live := m.sh.mem.Add(delta); live < 0 {
 		m.sh.mem.Store(0)
 	} else if delta > 0 && live > m.opts.MemoryLimit {
@@ -55,10 +55,10 @@ func (m *Machine) chargeMemory(v *obj) {
 // builds and immediately drops small values stays bounded instead of
 // tripping the limit on volume alone.
 func (m *Machine) unchargeMemory(v *obj) {
-	if !m.opts.Sandbox || m.opts.MemoryLimit <= 0 || v == nil || v.chg == 0 {
+	if !m.opts.Sandbox || m.opts.MemoryLimit <= 0 || v == nil || v.charged() == 0 {
 		return
 	}
-	if m.sh.mem.Add(-v.chg) < 0 {
+	if m.sh.mem.Add(-v.charged()) < 0 {
 		m.sh.mem.Store(0)
 	}
 }

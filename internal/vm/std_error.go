@@ -18,7 +18,7 @@ func (m *Machine) registerError() {
 			if cur.k != kBox {
 				break
 			}
-			et := m.typeEnt(cur.dyn)
+			et := m.typeEnt(cur.dynType())
 			if et == want {
 				v := m.copy(cur.inner)
 				if owned {

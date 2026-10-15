@@ -52,37 +52,37 @@ func (m *Machine) std(key string, a []*obj) *obj {
 	}
 	switch key {
 	case "prelude.String.len", "prelude.Bytes.len":
-		return mkInt(int64(len(a0.s)), 64)
+		return mkInt(int64(len(a0.str())), 64)
 	case "prelude.String.toBytes", "prelude.String.bytes":
-		return mkBytes(append([]byte{}, a0.s...))
+		return mkBytes(append([]byte{}, a0.str()...))
 	case "prelude.String.fromBytes":
-		if !utf8.Valid(a0.s) {
+		if !utf8.Valid(a0.str()) {
 			return m.errMsg("invalid UTF-8")
 		}
-		return m.ok(mkStr(append([]byte{}, a0.s...)))
+		return m.ok(mkStr(append([]byte{}, a0.str()...)))
 	case "prelude.String.tryFromBytes":
-		if !utf8.Valid(a0.s) {
+		if !utf8.Valid(a0.str()) {
 			return m.errMsg("invalid UTF-8")
 		}
 		if m.faultTick() {
 			return m.errMsg("out of memory")
 		}
-		return m.ok(mkStr(append([]byte{}, a0.s...)))
+		return m.ok(mkStr(append([]byte{}, a0.str()...)))
 	case "prelude.String.sliceBytes":
 		s, e := a1.i, a2.i
-		if s < 0 || s > e || e > int64(len(a0.s)) || !boundary(a0.s, s) || !boundary(a0.s, e) {
+		if s < 0 || s > e || e > int64(len(a0.str())) || !boundary(a0.str(), s) || !boundary(a0.str(), e) {
 			return m.none()
 		}
-		return m.some(mkStr(append([]byte{}, a0.s[s:e]...)))
+		return m.some(mkStr(append([]byte{}, a0.str()[s:e]...)))
 	// The VM has no timing guarantee to keep; this mirrors the algorithm
 	// for correctness only (subtle.kg's doc comment says so).
 	case "crypto/subtle.constantTimeEq":
-		if len(a0.s) != len(a1.s) {
+		if len(a0.str()) != len(a1.str()) {
 			return mkBool(false)
 		}
 		var diff byte
-		for i := range a0.s {
-			diff |= a0.s[i] ^ a1.s[i]
+		for i := range a0.str() {
+			diff |= a0.str()[i] ^ a1.str()[i]
 		}
 		return mkBool(diff == 0)
 	case "prelude.Char.fromInt":
@@ -92,9 +92,9 @@ func (m *Machine) std(key string, a []*obj) *obj {
 		}
 		return m.some(mkChar(rune(v)))
 	case "text.fromChar":
-		return mkStr([]byte(string(a0.c)))
+		return mkStr([]byte(string(a0.ch())))
 	case "text.parseFloat":
-		s := string(a0.s)
+		s := string(a0.str())
 		if s == "" || s[0] == ' ' || s[0] == '\t' || s[0] == '\n' || s[0] == '+' {
 			return m.none()
 		}
@@ -136,7 +136,7 @@ func (m *Machine) intFn(key string, a0, a1 *obj) *obj {
 	if !strings.HasPrefix(key, "prelude.") {
 		return nil
 	}
-	nk := a0.nk
+	nk := a0.nkind()
 	op := key[strings.LastIndex(key, ".")+1:]
 	if is128(nk) {
 		return wrapping128(op, a0, a1)

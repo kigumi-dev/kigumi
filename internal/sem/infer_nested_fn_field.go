@@ -62,9 +62,39 @@ func (r *Result) fnChainEnt(file FileID, expr syntax.NodeID) EntityID {
 	case syntax.Paren:
 		return r.fnChainEnt(file, t.View(expr).AsParen().Inner().ID())
 	case syntax.CallExpr:
-		return r.resultEnts[literalEntKey{File: file, Node: expr}]
+		if id := r.resultEnts[literalEntKey{File: file, Node: expr}]; id != 0 {
+			return id
+		}
+		if _, ok := r.containerLitElems(file, expr); ok {
+			return r.containerLitEnt(file, expr)
+		}
+	case syntax.TupleLit:
+		return r.containerLitEnt(file, expr)
+	case syntax.BracketExpr:
+		return r.elementEnt(file, expr)
 	}
 	return 0
+}
+
+func (r *Result) elementEnt(file FileID, expr syntax.NodeID) EntityID {
+	t := r.tree(file)
+	var base syntax.NodeID
+	for ch := range t.View(expr).Children() {
+		base = ch.ID()
+		break
+	}
+	bt := r.Files[file].Types[base]
+	if n := r.Types.Node(bt); n.Kind == KRef {
+		bt = n.Elem
+	}
+	if n := r.Types.Node(bt); n.Kind != KNamed || n.Ent != r.Types.arrayEnt || r.Types.arrayEnt == 0 {
+		return 0
+	}
+	owner := r.fnChainEnt(file, base)
+	if owner == 0 {
+		return 0
+	}
+	return r.nestedFnOwner(fieldFnKey{Ent: owner, Field: r.containerField(1)})
 }
 
 // A copy of a local still written later is merged at the copy, since an alias would see those writes.
@@ -79,11 +109,11 @@ func (c *checker) trackFnCopyAlias(init syntax.NodeID, local EntityID) {
 	if c.r.Types.Kind(t) == KRef {
 		t = c.r.Types.Node(t).Elem
 	}
-	if len(c.r.recordFieldsOf(t)) == 0 {
+	if len(c.r.recordFieldsOf(t)) == 0 && !c.r.holdsFnElem(t) {
 		return
 	}
 	src := c.r.fnChainEnt(c.f, init)
-	if src == 0 || src == local || c.r.isLiteralFieldEnt(src) {
+	if src == 0 || src == local || c.r.isLiteralFieldEnt(src) && !c.r.containerLits[src] {
 		return
 	}
 	if c.r.writableLocalPlace(src) {

@@ -134,6 +134,9 @@ type Result struct {
 	fnResults               map[EntityID]*fnResult
 	fnResultWrites          []fnResultWrite
 	resultEnts              map[literalEntKey]EntityID
+	containerEnts           map[literalEntKey]EntityID
+	containerLits           map[EntityID]bool
+	containerFields         [2]EntityID
 	fnResultEnts            map[EntityID]EntityID
 	identPaths              map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID
 	pendingWitnessCallbacks []pendingWitnessCallback

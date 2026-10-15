@@ -63,7 +63,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		return
 	case mir.OpIsType:
 		v := deref(args[0])
-		res = mkBool(v.k == kBox && m.typeEnt(v.dyn) == in.Ent)
+		res = mkBool(v.k == kBox && m.typeEnt(v.dynType()) == in.Ent)
 	case mir.OpUnbox:
 		v := args[0]
 		if v.k == kBox {
@@ -74,7 +74,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		v := args[0]
 		if v.k != kBox {
 			b := newObj(kBox)
-			b.dyn, b.inner = in.Type, v
+			b.i, b.inner = int64(in.Type), v
 			v = b
 			m.chargeMemory(b)
 		}

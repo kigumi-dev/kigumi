@@ -47,21 +47,21 @@ func utf8Width(lead byte) int {
 }
 
 func (m *Machine) splitPieces(s, sep *obj) []*obj {
-	if len(sep.s) == 0 {
+	if len(sep.str()) == 0 {
 		return []*obj{retain(s)}
 	}
 	var out []*obj
 	start := 0
-	for i := 0; i+len(sep.s) <= len(s.s); {
-		if !bytes.HasPrefix(s.s[i:], sep.s) {
+	for i := 0; i+len(sep.str()) <= len(s.str()); {
+		if !bytes.HasPrefix(s.str()[i:], sep.str()) {
 			i++
 			continue
 		}
-		out = append(out, mkStr(append([]byte{}, s.s[start:i]...)))
-		i += len(sep.s)
+		out = append(out, mkStr(append([]byte{}, s.str()[start:i]...)))
+		i += len(sep.str())
 		start = i
 	}
-	return append(out, mkStr(append([]byte{}, s.s[start:]...)))
+	return append(out, mkStr(append([]byte{}, s.str()[start:]...)))
 }
 
 func linePieces(s []byte) []*obj {

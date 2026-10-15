@@ -1593,6 +1593,23 @@
       ]
     },
     {
+      "id": "run/array_int128_elements",
+      "kind": "run",
+      "path": "testdata/run/array_int128_elements.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async",
       "kind": "run",
       "path": "testdata/run/async.txtar",
@@ -1753,6 +1770,23 @@
       "id": "run/async_method",
       "kind": "run",
       "path": "testdata/run/async_method.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_method_value_witness",
+      "kind": "run",
+      "path": "testdata/run/async_method_value_witness.txtar",
       "mode": [
         "vm",
         "native"
@@ -10999,6 +11033,17 @@
       "id": "sem/async_root_bridge_closure",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_closure.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_container",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_container.txtar",
       "mode": [
         "check"
       ],

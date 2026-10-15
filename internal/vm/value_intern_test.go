@@ -37,9 +37,7 @@ func TestRewriteIntLeavesSharedImmortalAlone(t *testing.T) {
 	}
 }
 
-func TestFreedScalarIsReusedAndCountsBalance(t *testing.T) {
-	TrackLive(true)
-	defer TrackLive(false)
+func TestFreedScalarIsReused(t *testing.T) {
 	m := &Machine{sh: newShared()}
 	v := m.newInt(1<<20, 64|256)
 	m.release(v)
@@ -50,6 +48,15 @@ func TestFreedScalarIsReusedAndCountsBalance(t *testing.T) {
 	if w != v || w.k != kInt || w.i != 2<<20 || w.rc != 1 {
 		t.Fatalf("freed scalar was not reused cleanly: %+v", w)
 	}
+}
+
+func TestFreedScalarCountsBalance(t *testing.T) {
+	TrackLive(true)
+	defer TrackLive(false)
+	m := &Machine{sh: newShared()}
+	v := m.newInt(1<<20, 64|256)
+	m.release(v)
+	w := m.newInt(2<<20, 64|256)
 	m.release(w)
 	if n := LiveObjects(); n != 0 {
 		t.Fatalf("%d objects live after balanced new and release", n)

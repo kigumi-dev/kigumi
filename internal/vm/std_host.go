@@ -34,7 +34,7 @@ func (m *Machine) registerHost() {
 		return m.some(mkStr([]byte(m.opts.Args[i])))
 	}
 	h["os.Host.env"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		if v, ok := os.LookupEnv(string(deref(a[1]).s)); ok && utf8.ValidString(v) {
+		if v, ok := os.LookupEnv(string(deref(a[1]).str())); ok && utf8.ValidString(v) {
 			return m.some(mkStr([]byte(v)))
 		}
 		return m.none()
@@ -65,7 +65,7 @@ func (m *Machine) registerHost() {
 	}
 	h["os.Host.stdout"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Stdout", nil) }
 	h["os.Stdout.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		n, err := m.writeOut(deref(a[1]).s)
+		n, err := m.writeOut(deref(a[1]).str())
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
@@ -73,7 +73,7 @@ func (m *Machine) registerHost() {
 	}
 	h["os.Host.stderr"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Stderr", nil) }
 	h["os.Stderr.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		n, err := m.writeErr(deref(a[1]).s)
+		n, err := m.writeErr(deref(a[1]).str())
 		if err != nil {
 			return m.errMsg(err.Error())
 		}

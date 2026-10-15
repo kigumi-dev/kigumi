@@ -16,7 +16,7 @@ func (m *Machine) registerNet() {
 	}
 	dialOrListen := func(dial func(string, int64) (int, error)) hostFn {
 		return func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-			host := string(deref(a[1]).s)
+			host := string(deref(a[1]).str())
 			port := deref(a[2]).i
 			fd, err := dial(host, port)
 			if err != nil {
@@ -54,7 +54,7 @@ func (m *Machine) registerNet() {
 		return m.ok(mkInt(int64(got), m.numKind(sem.TyUsize)))
 	}
 	h["net.Conn.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		sent, err := netsock.Write(fdOf(a[0]), deref(a[1]).s)
+		sent, err := netsock.Write(fdOf(a[0]), deref(a[1]).str())
 		if err != nil {
 			return m.errMsg(err.Error())
 		}

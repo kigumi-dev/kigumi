@@ -8,7 +8,7 @@ func (m *Machine) registerFFI() {
 	h := m.host
 	handleOf := func(v *obj) int64 { return deref(deref(v).fields[0]).i }
 	ptrHandle := func(m *Machine, v *obj) int64 {
-		hd, ok := deref(v).data.(int64)
+		hd, ok := deref(v).opaqueData().(int64)
 		if !ok {
 			m.abort("this pointer does not address a CValue; run the program with `kigumi build`")
 		}
@@ -20,7 +20,7 @@ func (m *Machine) registerFFI() {
 		return mkRecord(m.lookup("std/ffi", name), []*obj{mkInt(m.addCValue(v), m.numKind(sem.TyI64))})
 	}
 	h["ffi.null"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Ptr", nil) }
-	h["ffi.isNull"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkBool(deref(a[0]).data == nil) }
+	h["ffi.isNull"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkBool(deref(a[0]).opaqueData() == nil) }
 	for _, k := range []string{"ffi.toConst", "ffi.toMut", "ffi.cast"} {
 		h[k] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return retain(deref(a[0])) }
 	}
@@ -64,7 +64,7 @@ func (m *Machine) registerFFI() {
 		return unitObj
 	}
 	h["ffi.Pin.with"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		hd, ok := deref(a[0]).data.(int64)
+		hd, ok := deref(a[0]).opaqueData().(int64)
 		if !ok {
 			m.abort("this pointer does not address a Pin; run the program with `kigumi build`")
 		}
@@ -94,7 +94,7 @@ func (m *Machine) registerFFI() {
 		return unitObj
 	}
 	h["ffi.Pin.reclaim"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		hd, ok := deref(a[0]).data.(int64)
+		hd, ok := deref(a[0]).opaqueData().(int64)
 		if !ok {
 			m.abort("this pointer does not address a Pin; run the program with `kigumi build`")
 		}

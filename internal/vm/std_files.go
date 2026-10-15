@@ -9,10 +9,10 @@ import (
 	"kigumi/internal/sem"
 )
 
-func pathText(v *obj) string { return string(deref(deref(v).fields[0]).s) }
+func pathText(v *obj) string { return string(deref(deref(v).fields[0]).str()) }
 
 func fileOf(v *obj) *os.File {
-	fh, _ := deref(deref(v).fields[0]).data.(*os.File)
+	fh, _ := deref(deref(v).fields[0]).opaqueData().(*os.File)
 	return fh
 }
 
@@ -50,7 +50,7 @@ func (m *Machine) registerFiles() {
 		if fh == nil {
 			return m.errMsg("file is closed")
 		}
-		n, err := fh.Write(deref(a[1]).s)
+		n, err := fh.Write(deref(a[1]).str())
 		if err != nil {
 			return m.errMsg(err.Error())
 		}

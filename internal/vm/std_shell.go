@@ -70,14 +70,14 @@ func (m *Machine) planOf(v *obj) *hostshell.Plan {
 		rec := deref(sv)
 		var st hostshell.Stage
 		for _, a := range deref(rec.fields[0]).fields {
-			st.Argv = append(st.Argv, string(deref(a).s))
+			st.Argv = append(st.Argv, string(deref(a).str()))
 		}
 		for _, r := range deref(rec.fields[1]).fields {
 			rr := deref(r)
-			st.Redirs = append(st.Redirs, hostshell.Redirect{Op: uint32(deref(rr.fields[0]).i), Fd: int(deref(rr.fields[1]).i), Target: string(deref(rr.fields[2]).s)})
+			st.Redirs = append(st.Redirs, hostshell.Redirect{Op: uint32(deref(rr.fields[0]).i), Fd: int(deref(rr.fields[1]).i), Target: string(deref(rr.fields[2]).str())})
 		}
 		if g := deref(rec.fields[2]); len(g.fields) == 1 {
-			st.Filter = hostshell.GrepFilter(string(deref(g.fields[0]).s))
+			st.Filter = hostshell.GrepFilter(string(deref(g.fields[0]).str()))
 		}
 		p.Stages = append(p.Stages, st)
 	}

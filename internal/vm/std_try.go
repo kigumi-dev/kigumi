@@ -52,12 +52,12 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		if m.faultTick() {
 			return m.allocError()
 		}
-		return m.ok(m.copy(a0.data.(*sharedCtrl).cell.inner))
+		return m.ok(m.copy(a0.opaqueData().(*sharedCtrl).cell.inner))
 	case "alloc.Shared.tryDowngrade":
 		if m.faultTick() {
 			return m.allocError()
 		}
-		c := a0.data.(*sharedCtrl)
+		c := a0.opaqueData().(*sharedCtrl)
 		c.weak++
 		return m.ok(mkOpaque("Weak", c))
 	case "array.Array.tryClone", "array.Array.tryReverse":
@@ -71,25 +71,25 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		if m.faultTick() {
 			return m.allocError()
 		}
-		return m.ok(mkStr(append(append([]byte{}, a0.s...), a1.s...)))
+		return m.ok(mkStr(append(append([]byte{}, a0.str()...), a1.str()...)))
 	case "prelude.String.trySliceBytes":
 		s, e := a1.i, a2.i
-		if s < 0 || s > e || e > int64(len(a0.s)) || !boundary(a0.s, s) || !boundary(a0.s, e) {
+		if s < 0 || s > e || e > int64(len(a0.str())) || !boundary(a0.str(), s) || !boundary(a0.str(), e) {
 			return m.ok(m.none())
 		}
 		if m.faultTick() {
 			return m.allocError()
 		}
-		return m.ok(m.some(mkStr(append([]byte{}, a0.s[s:e]...))))
+		return m.ok(m.some(mkStr(append([]byte{}, a0.str()[s:e]...))))
 	case "prelude.Bytes.trySlice":
 		s, e := a1.i, a2.i
-		if s < 0 || s > e || e > int64(len(a0.s)) {
+		if s < 0 || s > e || e > int64(len(a0.str())) {
 			return m.ok(m.none())
 		}
 		if m.faultTick() {
 			return m.allocError()
 		}
-		return m.ok(m.some(mkBytes(append([]byte{}, a0.s[s:e]...))))
+		return m.ok(m.some(mkBytes(append([]byte{}, a0.str()[s:e]...))))
 	case "map.Map.tryClone":
 		if m.faultTick() {
 			return m.allocError()

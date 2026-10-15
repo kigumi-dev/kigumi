@@ -959,6 +959,13 @@ val rt_closure_async(adapter_fn fn, int n, val* caps) {
     return v;
 }
 
+// async 2 marks a bound async fn: its captured witnesses are the trailing parameters, after the call's arguments.
+val rt_closure_bind_async(adapter_fn fn, int n, val* caps) {
+    val v = rt_closure(fn, n, caps);
+    v->u.clo.async = 2;
+    return v;
+}
+
 val rt_copy(val v) {
     if (!v) return v;
     // An immortal is never written through, so a copy of it can be itself.
@@ -2318,8 +2325,12 @@ val rt_future_new(val callee, int n, val* args) {
     f->nargs = total;
     f->args = f->slots + d->nslots;
     int m = 0;
-    for (int i = 0; i < ne; i++) f->args[m++] = rt_retain(env->u.arr.items[i]);
+    int trailing = clo->u.clo.async == 2;
+    if (!trailing)
+        for (int i = 0; i < ne; i++) f->args[m++] = rt_retain(env->u.arr.items[i]);
     for (int i = 0; i < n; i++) f->args[m++] = rt_retain(args[i]);
+    if (trailing)
+        for (int i = 0; i < ne; i++) f->args[m++] = rt_retain(env->u.arr.items[i]);
     return opaque("Future", f);
 }
 #if defined(KG_CATCH) || defined(KIGUMI_CAP_TASK_EXECUTOR)

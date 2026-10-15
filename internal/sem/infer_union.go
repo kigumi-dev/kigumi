@@ -18,7 +18,7 @@ type fnUnion struct {
 
 func (r *Result) concretePlace(ent EntityID) bool {
 	root := r.rootOf(ent)
-	return r.Entities[root].Kind == EntLocal || r.isResultEnt(root)
+	return r.Entities[root].Kind == EntLocal || r.isResultEnt(root) || r.containerLits[root]
 }
 
 func (c *checker) unionInto(dst, src EntityID, t TypeID, node syntax.NodeID) {

@@ -48,15 +48,15 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 	case "alloc.Shared.clone", "alloc.Weak.clone":
 		return retain(a0)
 	case "alloc.Shared.get":
-		return m.copy(a0.data.(*sharedCtrl).cell.inner)
+		return m.copy(a0.opaqueData().(*sharedCtrl).cell.inner)
 	case "alloc.Shared.set":
-		cell := a0.data.(*sharedCtrl).cell
+		cell := a0.opaqueData().(*sharedCtrl).cell
 		old := cell.inner
 		cell.inner = retain(a1)
 		m.release(old)
 		return unitObj
 	case "alloc.Shared.with":
-		c := a0.data.(*sharedCtrl)
+		c := a0.opaqueData().(*sharedCtrl)
 		if c.borrow < 0 {
 			m.abort("Shared is exclusively borrowed")
 		}
@@ -64,7 +64,7 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		defer func() { c.borrow-- }()
 		return m.callValue(a1, []*obj{c.cell.inner})
 	case "alloc.Shared.withMut":
-		c := a0.data.(*sharedCtrl)
+		c := a0.opaqueData().(*sharedCtrl)
 		if c.borrow != 0 {
 			m.abort("Shared is already borrowed")
 		}
@@ -74,7 +74,7 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		// other &mut Cell store, instead of a snapshot of its content.
 		return m.callValue(a1, []*obj{c.cell})
 	case "alloc.Shared.downgrade":
-		c := a0.data.(*sharedCtrl)
+		c := a0.opaqueData().(*sharedCtrl)
 		c.weak++
 		return mkOpaque("Weak", c)
 	case "alloc.Box.new":
@@ -88,21 +88,21 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		}
 		return m.ok(mkOpaque("Box", mkCell(retain(a0))))
 	case "alloc.Box.get":
-		return m.copy(a0.data.(*obj).inner)
+		return m.copy(a0.opaqueData().(*obj).inner)
 	case "alloc.Box.set":
-		cell := a0.data.(*obj)
+		cell := a0.opaqueData().(*obj)
 		old := cell.inner
 		cell.inner = retain(a1)
 		m.release(old)
 		return unitObj
 	case "alloc.Box.with":
-		return m.callValue(a1, []*obj{a0.data.(*obj).inner})
+		return m.callValue(a1, []*obj{a0.opaqueData().(*obj).inner})
 	case "alloc.Box.withMut":
-		return m.callValue(a1, []*obj{a0.data.(*obj)})
+		return m.callValue(a1, []*obj{a0.opaqueData().(*obj)})
 	case "alloc.Box.into":
-		return retain(a0.data.(*obj).inner)
+		return retain(a0.opaqueData().(*obj).inner)
 	case "alloc.Weak.upgrade":
-		c := a0.data.(*sharedCtrl)
+		c := a0.opaqueData().(*sharedCtrl)
 		if c.alive {
 			return m.some(retain(c.shared))
 		}
@@ -113,21 +113,21 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 
 // freeOpaque releases what an opaque handle owns.
 func (m *Machine) freeOpaque(v *obj) {
-	switch v.op {
+	switch v.opaqueOp() {
 	case "Shared":
-		c := v.data.(*sharedCtrl)
+		c := v.opaqueData().(*sharedCtrl)
 		c.alive = false
 		m.release(c.cell)
 	case "Weak":
-		c := v.data.(*sharedCtrl)
+		c := v.opaqueData().(*sharedCtrl)
 		c.weak--
 	case "AllocatorScope", "UnsafeCell", "Box":
-		if h, ok := v.data.(*obj); ok {
+		if h, ok := v.opaqueData().(*obj); ok {
 			m.release(h)
 		}
 	case "Future":
-		m.freeFuture(v.data.(*future))
+		m.freeFuture(v.opaqueData().(*future))
 	case "Executor":
-		m.closeExecutor(v.data.(*executor))
+		m.closeExecutor(v.opaqueData().(*executor))
 	}
 }

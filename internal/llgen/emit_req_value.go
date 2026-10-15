@@ -21,15 +21,16 @@ func (e *emitter) appliedValue(sb *strings.Builder, in mir.Inst, args []string) 
 	info := e.r.Fn(in.Ent)
 	n := len(e.r.Types.Node(info.Sig).Args)
 	move := info.Recv == sem.RecvMove
-	sym := fmt.Sprintf("@\"applied$%d$%t\"", n, move)
+	async := info.Declared&sem.EffAsync != 0
+	sym := fmt.Sprintf("@\"applied$%d$%t$%t\"", n, move, async)
 	if !e.cio[sym] {
 		e.cio[sym] = true
-		e.helpers.WriteString(e.applyBoundAdapter(sym, n, move))
+		e.helpers.WriteString(e.applyBoundAdapter(sym, n, move, async))
 	}
 	return e.closureCtor(sb, sym, false, args, e.argArray(sb, args))
 }
 
-func (e *emitter) applyBoundAdapter(sym string, n int, move bool) string {
+func (e *emitter) applyBoundAdapter(sym string, n int, move, async bool) string {
 	hoisting := e.hoisting
 	e.hoisting = false
 	defer func() { e.hoisting = hoisting }()
@@ -46,6 +47,8 @@ func (e *emitter) applyBoundAdapter(sym string, n int, move bool) string {
 	if move {
 		e.irb(&sb).CallAs("%rc", rtCopy, vptr("%r"))
 		recv = "%rc"
+	} else if async {
+		e.irb(&sb).Call(rtRetain, vptr("%r"))
 	}
 	arr := e.argArray(&sb, append([]string{recv}, rest...))
 	e.irb(&sb).CallAs("%res", rtCallv, vptr("%w"), vi32(n+1), vptr(arr))

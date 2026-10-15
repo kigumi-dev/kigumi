@@ -119,7 +119,7 @@ func (c *checker) knownFieldCallKey(callee syntax.NodeID) (fieldFnKey, bool) {
 	}
 	base := c.t.View(callee).AsMember().Base().ID()
 	switch c.t.Kind(base) {
-	case syntax.Ident, syntax.MemberExpr, syntax.CallExpr:
+	case syntax.Ident, syntax.MemberExpr, syntax.CallExpr, syntax.BracketExpr:
 		if baseEnt := c.r.fnChainEnt(c.f, base); baseEnt != 0 {
 			return fieldFnKey{Ent: baseEnt, Field: field}, true
 		}

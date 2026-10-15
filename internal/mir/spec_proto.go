@@ -51,13 +51,22 @@ func (p *Program) intrinsify(f *Func, kind string, t sem.TypeID) {
 		if i < operands {
 			l.Type = t
 		}
-		l.Borrowed, l.Cell = true, false
+		l.Cell = false
+		if i < operands {
+			l.Borrowed = true
+		}
 		locals, params[i] = append(locals, l), LocalID(i)
 	}
 	res := LocalID(len(locals))
 	f.Locals, f.Params = append(locals, Local{Name: "r", Type: ret}), params
+	insts := []Inst{{Op: OpBuiltin, Str: name, Dst: res, Args: append([]LocalID(nil), params[:operands]...), Node: node}}
+	for _, prm := range params[operands:] {
+		if !f.Locals[prm].Borrowed {
+			insts = append(insts, Inst{Op: OpDrop, Args: []LocalID{prm}, Node: node})
+		}
+	}
 	f.Blocks = []Block{{
-		Insts: []Inst{{Op: OpBuiltin, Str: name, Dst: res, Args: append([]LocalID(nil), params[:operands]...), Node: node}},
+		Insts: insts,
 		Term:  Term{Op: TermReturn, Args: []LocalID{res}},
 	}}
 	f.Ret, f.PanicDrop, f.rcBase, f.Proto = ret, nil, len(f.Locals), kind

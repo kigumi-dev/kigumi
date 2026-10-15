@@ -9,9 +9,9 @@ func (m *Machine) dynType(v *obj) sem.TypeID {
 	case kRecord, kVariant:
 		return tt.Named(v.ent, nil)
 	case kInt:
-		return m.intType(v.nk)
+		return m.intType(v.nkind())
 	case kFloat:
-		if v.nk&255 == 32 {
+		if v.nkind()&255 == 32 {
 			return sem.TyF32
 		}
 		return sem.TyF64

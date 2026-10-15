@@ -16,10 +16,10 @@ func entryOf(f *mir.Func) *mir.Func {
 // callDirectValue calls an unboxed closure straight into its body, as native does.
 func (m *Machine) callDirectValue(fv *obj, args []*obj) *obj {
 	fv = deref(fv)
-	if fv.k != kClosure || fv.fn == nil || fv.req != nil || fv.async || fv.stdKey != "" {
+	if fv.k != kClosure || fv.cfn() == nil || fv.creq() != nil || fv.async || fv.cstd() != "" {
 		return m.callValue(fv, args)
 	}
-	return m.invokeAs(fv.fn, fv.fn, fv.env, fv.bind, args)
+	return m.invokeAs(fv.cfn(), fv.cfn(), fv.cenv(), fv.bind, args)
 }
 
 // invoke is the adapter convention: the callee takes a retained reference

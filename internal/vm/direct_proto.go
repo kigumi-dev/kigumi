@@ -13,11 +13,11 @@ func (m *Machine) directEq(a, b *obj) bool {
 	case kInt:
 		return a.i == b.i
 	case kFloat:
-		return hashkey.TotalEqualFloat64(a.f, b.f)
+		return hashkey.TotalEqualFloat64(a.fl(), b.fl())
 	case kBool:
 		return a.b == b.b
 	case kChar:
-		return a.c == b.c
+		return a.ch() == b.ch()
 	case kVariant:
 		if a.ent != b.ent {
 			return false

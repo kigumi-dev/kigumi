@@ -16,6 +16,9 @@ func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bo
 		scrutinee = c.vars.resolve(n.Elem)
 	}
 	info := c.patternInner(p, scrutinee, mut, seen)
+	if expr != 0 && !mut {
+		c.trackPatternPlaces(p, c.r.fnChainEnt(c.f, expr))
+	}
 	info.Borrow = c.patBorrow
 	info.Mut = c.patBorrowMut
 	c.patBorrow, c.patBorrowMut = saved, savedMut

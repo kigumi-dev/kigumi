@@ -1,0 +1,51 @@
+-- src --
+type Ring = {
+    pub mut slots FixedArray[u128, 4]
+    pub mut head usize
+}
+
+type Pair = {
+    pub a FixedArray[i128, 2]
+    pub tag Int
+}
+
+fn Ring.push(mut self, v: u128) -> Unit {
+    self.slots[self.head % 4] = v
+    self.head = self.head + 1
+}
+
+fn Ring.sum(self) -> u128 {
+    self.slots[0] + self.slots[1] + self.slots[2] + self.slots[3]
+}
+
+fn firstOf(p: Pair) -> i128 { p.a[0] * 3 + p.a[1] }
+
+fn grow(rounds: usize) -> u128 {
+    let mut xs: Array[u128] = Array.of(340282366920938463463374607431768211455)
+    for i in 0..rounds {
+        xs.push(xs[i] / 3 + 1000000000000000000000)
+    }
+    let mut t: u128 = 0
+    for x in &xs {
+        t = t ^ x
+    }
+    t
+}
+
+let mut r = Ring { slots: FixedArray.filled[u128, 4](0), head: 0 }
+for i in 0..6 {
+    let k: u128 = i
+    r.push(18446744073709551616 * (k + 1) + k)
+}
+print "${r.sum()} ${r.head}"
+let p = Pair { a: FixedArray.filled[i128, 2](-170141183460469231731687303715884105728), tag: 1 }
+let q = Pair { a: FixedArray.filled[i128, 2](5), tag: 2 }
+print "${firstOf(q)} ${q.tag} ${p.a[1] + 1}"
+print "${grow(40)}"
+let ys: Array[i128] = Array.of(-1, 2, -3)
+print "${ys[0] * 100000000000000000000 + ys[2]}"
+-- stdout --
+332041393326771929102 6
+20 2 -170141183460469231731687303715884105727
+252280210615268559241636915810800261906
+-100000000000000000003

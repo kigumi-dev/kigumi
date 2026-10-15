@@ -211,7 +211,7 @@ func TestRunCorpusOnVM(t *testing.T) {
 	vm.TrackLive(true)
 	t.Cleanup(func() {
 		quiesce()
-		total, strays := vm.LiveObjects(), vm.LiveStrays()
+		total, strays, freedUses := vm.LiveObjects(), vm.LiveStrays(), vm.LiveFreedUses()
 		vm.TrackLive(false)
 		t.Logf("%d fixtures skipped as unsupported", unsupported.Load())
 		var allowed int64
@@ -223,6 +223,9 @@ func TestRunCorpusOnVM(t *testing.T) {
 		}
 		if strays != 0 {
 			t.Errorf("%d objects freed that were made outside their run (TestRunCorpusOnVMLive names the fixtures)", strays)
+		}
+		if freedUses != 0 {
+			t.Errorf("%d releases reached an object that was already freed", freedUses)
 		}
 		liveSettled = total == 0 && strays == 0 && len(known) == 0 && os.Getenv("UPDATE") == ""
 	})

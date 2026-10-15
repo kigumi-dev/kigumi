@@ -41,32 +41,45 @@ type reqCall struct {
 
 // obj is one runtime value; rc < 0 marks a static object that is never freed,
 // and rc is the only field two lanes reach at once, so it moves atomically.
+// Kinds that need more than this 64-byte core embed it in a larger struct
+// (strObj, closureObj, opaqueObj) and are reached through the kind-checked accessors.
 type obj struct {
-	nk     int
-	i      int64
-	hi     int64
-	f      float64
-	s      []byte
+	rc    int32
+	ent   sem.EntityID
+	k     kind
+	b     bool
+	bind  bool
+	async bool
+	live  bool
+	numk  int16
+	// i holds an Int, the bits of a Float, a Char, or a Box's dynamic type.
+	i int64
+	// w holds the high half of a wide Int, or the bytes last charged for any other value.
+	w      int64
 	fields []*obj
+	inner  *obj
+}
+
+type strObj struct {
+	obj
+	s []byte
+}
+
+type closureObj struct {
+	obj
 	fn     *mir.Func
 	stdKey string
-	lent   int
 	env    *obj
 	req    *reqCall
-	inner  *obj
-	op     string
-	data   any
-	chg    int64
-	rc     int32
-	c      rune
-	ent    sem.EntityID
+	lent   int
 	prov   mir.ProviderOpId
 	dyn    sem.TypeID
-	k      kind
-	b      bool
-	bind   bool
-	async  bool
-	live   bool
+}
+
+type opaqueObj struct {
+	obj
+	op   string
+	data any
 }
 
 var (
@@ -76,6 +89,20 @@ var (
 )
 
 func newObj(k kind) *obj {
+	switch k {
+	case kStr, kBytes:
+		o := &strObj{}
+		o.k, o.rc = k, 1
+		return born(&o.obj)
+	case kClosure:
+		o := &closureObj{}
+		o.k, o.rc = k, 1
+		return born(&o.obj)
+	case kOpaque:
+		o := &opaqueObj{}
+		o.k, o.rc = k, 1
+		return born(&o.obj)
+	}
 	return born(&obj{k: k, rc: 1})
 }
 
@@ -97,7 +124,8 @@ func mkInt(i int64, nk int) *obj {
 		}
 	}
 	v := newObj(kInt)
-	v.i, v.nk = i, nk
+	v.i = i
+	v.setNk(nk)
 	return v
 }
 
@@ -106,7 +134,8 @@ func mkFloat(f float64, nk int) *obj {
 	if nk&255 == 32 {
 		f = float64(float32(f))
 	}
-	v.f, v.nk = f, nk
+	v.setFl(f)
+	v.setNk(nk)
 	return v
 }
 
@@ -117,9 +146,9 @@ func mkBool(b bool) *obj {
 	return falseObj
 }
 
-func mkStr(s []byte) *obj   { v := newObj(kStr); v.s = s; return v }
-func mkBytes(s []byte) *obj { v := newObj(kBytes); v.s = s; return v }
-func mkChar(c rune) *obj    { v := newObj(kChar); v.c = c; return v }
+func mkStr(s []byte) *obj   { v := newObj(kStr); v.setStr(s); return v }
+func mkBytes(s []byte) *obj { v := newObj(kBytes); v.setStr(s); return v }
+func mkChar(c rune) *obj    { v := newObj(kChar); v.setCh(c); return v }
 
 func mkArray(items []*obj) *obj { return withFields(kArray, 0, items) }
 
@@ -135,7 +164,12 @@ func payloadFree(v *obj) bool {
 	return v != nil && v.k == kVariant && len(v.fields) == 0
 }
 
-func mkOpaque(op string, data any) *obj { v := newObj(kOpaque); v.op, v.data = op, data; return v }
+func mkOpaque(op string, data any) *obj {
+	v := newObj(kOpaque)
+	o := v.opq()
+	o.op, o.data = op, data
+	return v
+}
 
 // deref follows cells, as every runtime entry point does.
 func deref(v *obj) *obj {

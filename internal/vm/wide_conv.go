@@ -34,7 +34,7 @@ func wideDecimal(w wide, signed bool) string {
 
 func signMag(o *obj) (bool, wide) {
 	w := widen(o)
-	if isSigned(o.nk) && w.neg() {
+	if isSigned(o.nkind()) && w.neg() {
 		return true, negW(w)
 	}
 	return false, w
@@ -130,7 +130,7 @@ func (m *Machine) convertWide(a0 *obj, dnk int, checked bool) *obj {
 		neg, mag := signMag(a0)
 		return mkFloat(wideToFloat(neg, mag, mant), dnk)
 	case a0.k == kFloat:
-		neg, mag, ok := floatToWide(a0.f)
+		neg, mag, ok := floatToWide(a0.fl())
 		if !ok || !fitsWide(neg, mag, dnk) {
 			return m.none()
 		}

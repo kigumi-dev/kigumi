@@ -28,6 +28,7 @@ func TrackLive(on bool) {
 	liveMade.Store(0)
 	liveFreed.Store(0)
 	liveStray.Store(0)
+	liveFreedUse.Store(0)
 }
 
 func PauseLive(on bool) { liveTrack.Store(on) }
@@ -35,6 +36,8 @@ func PauseLive(on bool) { liveTrack.Store(on) }
 func LiveObjects() int64 { return liveMade.Load() - liveFreed.Load() }
 
 func LiveStrays() int64 { return liveStray.Load() }
+
+func LiveFreedUses() int64 { return liveFreedUse.Load() }
 
 // RunReleasing is Run that also gives back the entry's result, which a real
 // run leaves to the process exit; atExit runs just before that.

@@ -57,7 +57,7 @@ func (m *Machine) unwindFutures(root *obj) {
 	var chain []*future
 	for v := root; v != nil; {
 		d := deref(v)
-		fu, ok := d.data.(*future)
+		fu, ok := d.opaqueData().(*future)
 		if d.k != kOpaque || !ok || fu.co == nil {
 			break
 		}
@@ -90,7 +90,7 @@ func (m *Machine) freeFuture(fu *future) {
 	}
 	fu.fn, fu.args = nil, nil
 	if fu.pool != nil {
-		fu.pool.data.(*blockingPool).inFlight.Add(-1)
+		fu.pool.opaqueData().(*blockingPool).inFlight.Add(-1)
 		m.release(fu.pool)
 		fu.pool = nil
 	}

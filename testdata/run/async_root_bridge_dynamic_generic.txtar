@@ -26,14 +26,14 @@ fn safeRoot() -> Int {
     9
 }
 
-fn armIt[S: Armable](mut s: S) -> S {
+fn armIt[S: Armable](mut s: S) -> Option[S] {
     s.arm()
-    s
+    Some(s)
 }
 
 async fn outer() -> Int {
     let h = Holder { cb: safeRoot }
-    let armed = armIt(h)
+    let armed = armIt(h).unwrap()
     armed.cb()
 }
 

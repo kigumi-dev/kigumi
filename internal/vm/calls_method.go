@@ -9,10 +9,10 @@ func (m *Machine) callMethod(recv *obj, name string, args []*obj, kind sem.RecvK
 	var box *obj
 	target, t := deref(recv), sem.TypeID(0)
 	if target.k == kBox {
-		t, box, target = target.dyn, target, target.inner
+		t, box, target = target.dynType(), target, target.inner
 	}
-	if target.k == kOpaque && target.op == "Error" && name == "message" {
-		return mkStr([]byte(target.data.(string)))
+	if target.k == kOpaque && target.opaqueOp() == "Error" && name == "message" {
+		return mkStr([]byte(target.opaqueData().(string)))
 	}
 	if t == 0 {
 		t = m.dynType(target)

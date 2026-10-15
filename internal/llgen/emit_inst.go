@@ -120,17 +120,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		}
 		res = e.cPtrCall(sb, args[0], in.Type, args[1:], types)
 	case mir.OpBind:
-		fn, own := e.p.ByEnt[in.Ent]
-		if !own && len(args) == 0 {
-			res = e.stdBindSlot(e.stdKey(in.Ent), mir.LentMask(e.r, in.Ent))
-			break
-		}
-		arr := e.argArray(sb, args)
-		if own {
-			res = e.closureCtor(sb, e.useBind(fn), false, args, arr)
-		} else {
-			res = e.irb(sb).Call(rtStdBind, vptr(e.cstr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)), vi32(len(args)), vptr(arr)).Text
-		}
+		res = e.bindValue(sb, in, args)
 	case mir.OpClosure, mir.OpFnItem:
 		if in.Op == mir.OpFnItem && (e.r.Fn(in.Ent).Abi != "" || e.r.Fn(in.Ent).Naked) {
 			res = e.cFnPtr(sb, in.Ent)

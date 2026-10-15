@@ -35,17 +35,17 @@ func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 		if m.faultTick() {
 			m.abort("out of memory")
 		}
-		out := make([]byte, 0, len(a0.s)+len(a1.s))
-		out = append(out, a0.s...)
-		out = append(out, a1.s...)
+		out := make([]byte, 0, len(a0.str())+len(a1.str()))
+		out = append(out, a0.str()...)
+		out = append(out, a1.str()...)
 		return mkBytes(out)
 	case "prelude.Bytes.tryConcat":
 		if m.faultTick() {
 			return m.allocError()
 		}
-		out := make([]byte, 0, len(a0.s)+len(a1.s))
-		out = append(out, a0.s...)
-		out = append(out, a1.s...)
+		out := make([]byte, 0, len(a0.str())+len(a1.str()))
+		out = append(out, a0.str()...)
+		out = append(out, a1.str()...)
 		return m.ok(mkBytes(out))
 	case "prelude.Option.take":
 		if m.r.Entity(a0.ent).Name != "Some" {
@@ -57,7 +57,7 @@ func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 	}
 	if strings.HasSuffix(key, ".equals") {
 		if a0.k == kFloat {
-			return mkBool(hashkey.TotalEqualFloat64(a0.f, a1.f))
+			return mkBool(hashkey.TotalEqualFloat64(a0.fl(), a1.fl()))
 		}
 		return mkBool(m.equal(a0, a1))
 	}
@@ -65,7 +65,7 @@ func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 		ord := m.lookup("std/prelude", "Ordering")
 		c := compare(a0, a1)
 		if a0.k == kFloat {
-			c = hashkey.TotalCompareFloat64(a0.f, a1.f)
+			c = hashkey.TotalCompareFloat64(a0.fl(), a1.fl())
 		}
 		name := "Equal"
 		if c < 0 {

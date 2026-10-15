@@ -57,17 +57,17 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		case kArray:
 			return mkInt(int64(len(it.fields)), 64)
 		case kBytes, kStr:
-			return mkInt(int64(len(it.s)), 64)
+			return mkInt(int64(len(it.str())), 64)
 		case kRecord:
 			if it.ent == m.r.MapEntity() {
 				return mkInt(int64(len(it.fields[0].fields)), 64)
 			}
 		}
 		lo, hi := deref(it.fields[0]), deref(it.fields[1])
-		if is128(lo.nk) {
+		if is128(lo.nkind()) {
 			return mkInt(rangeLen128(lo, hi, deref(it.fields[2]).b), 64)
 		}
-		if reversed := lo.nk&256 != 0 && lo.i > hi.i || lo.nk&256 == 0 && uint64(lo.i) > uint64(hi.i); reversed {
+		if reversed := lo.nkind()&256 != 0 && lo.i > hi.i || lo.nkind()&256 == 0 && uint64(lo.i) > uint64(hi.i); reversed {
 			return mkInt(0, 64)
 		}
 		n := int64(uint64(hi.i) - uint64(lo.i))
@@ -103,7 +103,7 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 			}
 			return retain(it.fields[i])
 		case kBytes, kStr:
-			return mkInt(int64(it.s[i]), 8)
+			return mkInt(int64(it.str()[i]), 8)
 		case kRecord:
 			if it.ent == m.r.MapEntity() {
 				tup, _ := m.r.Types.TupleEntity(2)
@@ -129,10 +129,10 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 			}
 		}
 		lo := deref(it.fields[0])
-		if is128(lo.nk) {
-			return mkWide(addW(widen(lo), wide{lo: uint64(i)}), lo.nk)
+		if is128(lo.nkind()) {
+			return mkWide(addW(widen(lo), wide{lo: uint64(i)}), lo.nkind())
 		}
-		return mkInt(lo.i+i, lo.nk)
+		return mkInt(lo.i+i, lo.nkind())
 	}
 	panic(&Unsupported{What: "builtin " + name})
 }

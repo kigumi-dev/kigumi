@@ -29,29 +29,29 @@ func (m *Machine) displayIntoCanon(sb *strings.Builder, v *obj, canon bool) {
 	v = deref(v)
 	switch v.k {
 	case kInt:
-		if is128(v.nk) {
-			sb.WriteString(wideDecimal(widen(v), isSigned(v.nk)))
-		} else if v.nk&256 != 0 {
+		if is128(v.nkind()) {
+			sb.WriteString(wideDecimal(widen(v), isSigned(v.nkind())))
+		} else if v.nkind()&256 != 0 {
 			sb.WriteString(strconv.FormatInt(v.i, 10))
 		} else {
 			sb.WriteString(strconv.FormatUint(uint64(v.i), 10))
 		}
 	case kFloat:
-		f := v.f
+		f := v.fl()
 		if canon {
 			f = hashkey.CanonicalFloat64(f)
 		}
 		bits := 64
-		if v.nk&255 == 32 {
+		if v.nkind()&255 == 32 {
 			bits = 32
 		}
 		sb.WriteString(strconv.FormatFloat(f, 'g', -1, bits))
 	case kBool:
 		sb.WriteString(strconv.FormatBool(v.b))
 	case kChar:
-		sb.WriteRune(v.c)
+		sb.WriteRune(v.ch())
 	case kStr, kBytes:
-		sb.Write(v.s)
+		sb.Write(v.str())
 	case kUnit:
 		sb.WriteString("()")
 	case kVariant:
@@ -89,12 +89,12 @@ func (m *Machine) displayIntoCanon(sb *strings.Builder, v *obj, canon bool) {
 	case kBox:
 		m.displayIntoCanon(sb, v.inner, canon)
 	case kOpaque:
-		if v.op == "Box" {
-			m.displayIntoCanon(sb, v.data.(*obj).inner, canon)
-		} else if v.op == "Error" || v.op == "Path" {
-			sb.WriteString(v.data.(string))
+		if v.opaqueOp() == "Box" {
+			m.displayIntoCanon(sb, v.opaqueData().(*obj).inner, canon)
+		} else if v.opaqueOp() == "Error" || v.opaqueOp() == "Path" {
+			sb.WriteString(v.opaqueData().(string))
 		} else {
-			sb.WriteString("<" + v.op + ">")
+			sb.WriteString("<" + v.opaqueOp() + ">")
 		}
 	default:
 		sb.WriteString("<value>")
@@ -108,17 +108,17 @@ func (m *Machine) equal(a, b *obj) bool {
 	}
 	switch a.k {
 	case kInt:
-		return a.i == b.i && a.hi == b.hi
+		return a.i == b.i && a.hiWord() == b.hiWord()
 	case kFloat:
-		return a.f == b.f
+		return a.fl() == b.fl()
 	case kBool:
 		return a.b == b.b
 	case kChar:
-		return a.c == b.c
+		return a.ch() == b.ch()
 	case kUnit:
 		return true
 	case kStr, kBytes:
-		return string(a.s) == string(b.s)
+		return string(a.str()) == string(b.str())
 	}
 	// Records, ADTs and arrays compare through their `equals`.
 	return a == b
@@ -129,21 +129,21 @@ func compare(a, b *obj) int {
 	a, b = deref(a), deref(b)
 	switch a.k {
 	case kInt:
-		if is128(a.nk) {
+		if is128(a.nkind()) {
 			return cmp128(a, b)
 		}
-		if a.nk&256 != 0 {
+		if a.nkind()&256 != 0 {
 			return cmp3(a.i < b.i, a.i > b.i)
 		}
 		return cmp3(uint64(a.i) < uint64(b.i), uint64(a.i) > uint64(b.i))
 	case kFloat:
-		return cmp3(a.f < b.f, a.f > b.f)
+		return cmp3(a.fl() < b.fl(), a.fl() > b.fl())
 	case kChar:
-		return cmp3(a.c < b.c, a.c > b.c)
+		return cmp3(a.ch() < b.ch(), a.ch() > b.ch())
 	case kBool:
 		return cmp3(!a.b && b.b, a.b && !b.b)
 	case kStr, kBytes:
-		return strings.Compare(string(a.s), string(b.s))
+		return strings.Compare(string(a.str()), string(b.str()))
 	}
 	return 0
 }

@@ -58,20 +58,20 @@ func EvalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, err
 	}
 	switch v.k {
 	case kInt:
-		if is128(v.nk) {
-			return sem.Literal{Kind: sem.LitInt, Int: bigOfWide(widen(v), isSigned(v.nk))}, nil
+		if is128(v.nkind()) {
+			return sem.Literal{Kind: sem.LitInt, Int: bigOfWide(widen(v), isSigned(v.nkind()))}, nil
 		}
 		return sem.Literal{Kind: sem.LitInt, Int: big.NewInt(v.i)}, nil
 	case kFloat:
-		return sem.Literal{Kind: sem.LitFloat, Float: big.NewFloat(v.f)}, nil
+		return sem.Literal{Kind: sem.LitFloat, Float: big.NewFloat(v.fl())}, nil
 	case kBool:
 		return sem.Literal{Kind: sem.LitBool, Bool: v.b}, nil
 	case kChar:
-		return sem.Literal{Kind: sem.LitChar, Char: v.c}, nil
+		return sem.Literal{Kind: sem.LitChar, Char: v.ch()}, nil
 	case kStr:
-		return sem.Literal{Kind: sem.LitString, Str: string(v.s)}, nil
+		return sem.Literal{Kind: sem.LitString, Str: string(v.str())}, nil
 	case kBytes:
-		return sem.Literal{Kind: sem.LitBytes, Str: string(v.s)}, nil
+		return sem.Literal{Kind: sem.LitBytes, Str: string(v.str())}, nil
 	}
 	return lit, fmt.Errorf("comptime value %s cannot be embedded as a literal", m.display(v))
 }

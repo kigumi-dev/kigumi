@@ -65,7 +65,7 @@ func (p *Program) verifyEntities(f *Func) *Error {
 					return fail("entities", bid, i, "%s index %d", in.Op, in.Index)
 				}
 			}
-			if want == "" && (in.Op == OpFnItem || in.Op == OpClosure) && in.Async != p.asyncValue(in.Ent) {
+			if want == "" && (in.Op == OpFnItem || in.Op == OpClosure || in.Op == OpBind && in.Async) && in.Async != p.asyncValue(in.Ent) {
 				return fail("entities", bid, i, "%s of %s is marked async %v, which its declaration says %v", in.Op, p.R.Entity(in.Ent).Name, in.Async, !in.Async)
 			}
 			if want != "" {

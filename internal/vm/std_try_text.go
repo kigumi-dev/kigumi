@@ -31,40 +31,40 @@ func (m *Machine) tryText(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		}
 		return m.ok(mkStr(raw))
 	case "prelude.String.tryTrim":
-		return m.ok(mkStr(append([]byte{}, bytes.Trim(a0.s, " \t\r\n")...)))
+		return m.ok(mkStr(append([]byte{}, bytes.Trim(a0.str(), " \t\r\n")...)))
 	case "prelude.String.tryToUpper":
-		return m.ok(mkStr(shiftAscii(a0.s, 'a', 'z', -32)))
+		return m.ok(mkStr(shiftAscii(a0.str(), 'a', 'z', -32)))
 	case "prelude.String.tryToLower":
-		return m.ok(mkStr(shiftAscii(a0.s, 'A', 'Z', 32)))
+		return m.ok(mkStr(shiftAscii(a0.str(), 'A', 'Z', 32)))
 	case "prelude.String.tryChars":
-		return m.ok(m.sized(mkArray(charObjs(a0.s))))
+		return m.ok(m.sized(mkArray(charObjs(a0.str()))))
 	case "prelude.String.trySplit":
 		return m.ok(m.sized(mkArray(m.splitPieces(a0, a1))))
 	case "text.tryLines":
-		return m.ok(m.sized(mkArray(linePieces(a0.s))))
+		return m.ok(m.sized(mkArray(linePieces(a0.str()))))
 	case "text.tryGraphemes":
-		return m.ok(m.sized(mkArray(graphemePieces(a0.s))))
+		return m.ok(m.sized(mkArray(graphemePieces(a0.str()))))
 	case "text.tryReplace":
-		if len(a1.s) == 0 {
+		if len(a1.str()) == 0 {
 			return m.ok(retain(a0))
 		}
-		return m.ok(mkStr(bytes.ReplaceAll(a0.s, a1.s, a2.s)))
+		return m.ok(mkStr(bytes.ReplaceAll(a0.str(), a1.str(), a2.str())))
 	case "text.tryTrimPrefix":
-		if len(a1.s) == 0 || !bytes.HasPrefix(a0.s, a1.s) {
+		if len(a1.str()) == 0 || !bytes.HasPrefix(a0.str(), a1.str()) {
 			return m.ok(retain(a0))
 		}
-		return m.ok(mkStr(append([]byte{}, a0.s[len(a1.s):]...)))
+		return m.ok(mkStr(append([]byte{}, a0.str()[len(a1.str()):]...)))
 	case "text.tryTrimSuffix":
-		if len(a1.s) == 0 || !bytes.HasSuffix(a0.s, a1.s) {
+		if len(a1.str()) == 0 || !bytes.HasSuffix(a0.str(), a1.str()) {
 			return m.ok(retain(a0))
 		}
-		return m.ok(mkStr(append([]byte{}, a0.s[:len(a0.s)-len(a1.s)]...)))
+		return m.ok(mkStr(append([]byte{}, a0.str()[:len(a0.str())-len(a1.str())]...)))
 	case "array.tryJoin":
 		parts := make([][]byte, len(a0.fields))
 		for i, x := range a0.fields {
-			parts[i] = deref(x).s
+			parts[i] = deref(x).str()
 		}
-		return m.ok(mkStr(bytes.Join(parts, a1.s)))
+		return m.ok(mkStr(bytes.Join(parts, a1.str())))
 	case "array.trySortedBy":
 		out := copyItems(m, a0, 0, int64(len(a0.fields)), false)
 		m.mergeSort(a1, out.fields, make([]*obj, len(out.fields)))
@@ -76,7 +76,7 @@ func (m *Machine) tryText(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		return m.ok(unitObj)
 	case "text.StringBuilder.tryPush":
 		arr := deref(a0.fields[0])
-		for _, b := range a1.s {
+		for _, b := range a1.str() {
 			arr.fields = append(arr.fields, mkInt(int64(b), 8))
 		}
 		m.chargeMemory(arr)

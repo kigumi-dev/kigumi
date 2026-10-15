@@ -140,6 +140,7 @@ func (r *Result) checkFnBody(id EntityID) {
 		}
 	}
 	c.checkBodyBlock(info.Body)
+	c.registerContainerFlows(info.Body)
 	c.recordResultLeaves(info.Body)
 	c.settleInlineAt(true)
 	c.flushFieldWrites()

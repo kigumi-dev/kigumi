@@ -17,10 +17,10 @@ func boxTicks(v *obj) int {
 		}
 		return 2 + leafTicks(v.fields)
 	case kClosure:
-		if v.env == nil || len(v.env.fields) == 0 {
+		if v.cenv() == nil || len(v.cenv().fields) == 0 {
 			return 2
 		}
-		return 3 + leafTicks(v.env.fields)
+		return 3 + leafTicks(v.cenv().fields)
 	case kArray:
 		if len(v.fields) == 0 {
 			return 1

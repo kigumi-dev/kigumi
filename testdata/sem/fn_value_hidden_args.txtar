@@ -37,10 +37,10 @@ pub fn use() -> Unit {
     let f = arr.len //~ ERROR `len` has const generic parameters
     let box = Box { v: 1 }
     let g: fn(Int, Int) -> Bool = box.eqv //~ TYPE g : fn(Int, Int) -> Bool
-    let h = sameLater[Int] //~ ERROR `sameLater` has interface-bounded type parameters
+    let h = sameLater[Int] //~ TYPE h : fn(Int, Int) -> Future[Bool]
     let t = Ticket { id: 1 }
     let tv: fn(Int, Int) -> Bool = t.same //~ ERROR cannot form a method value on move-only
-    let lv: fn(Int, Int) -> Future[Bool] = box.laterEq //~ ERROR `laterEq` has interface-bounded type parameters
+    let lv: fn(Int, Int) -> Future[Bool] = box.laterEq //~ TYPE lv : fn(Int, Int) -> Future[Bool]
 }
 -- expect --
 error[E1217]: `say` requires context key `token` and can't be used as a plain function value
@@ -78,24 +78,10 @@ error[E1731]: `len` has const generic parameters, which a function value cannot 
    |             ^^^^^^^
    = help: call it directly or wrap the call in a closure
 
-error[E1730]: `sameLater` has interface-bounded type parameters, which a function value cannot carry
-  --> lib/fv.kg:39:13
-   |
-39 |     let h = sameLater[Int] //~ ERROR `sameLater` has interface-bounded type parameters
-   |             ^^^^^^^^^^^^^
-   = help: call it directly or wrap the call in a closure
-
 error[E416]: cannot form a method value on move-only `Ticket`
   --> lib/fv.kg:41:36
    |
 41 |     let tv: fn(Int, Int) -> Bool = t.same //~ ERROR cannot form a method value on move-only
    |                                    ^^^^^^
    = help: write a lambda
-
-error[E1730]: `laterEq` has interface-bounded type parameters, which a function value cannot carry
-  --> lib/fv.kg:42:44
-   |
-42 |     let lv: fn(Int, Int) -> Future[Bool] = box.laterEq //~ ERROR `laterEq` has interface-bounded type parameters
-   |                                            ^^^^^^^^^^^
-   = help: call it directly or wrap the call in a closure
 

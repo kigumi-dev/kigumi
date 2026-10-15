@@ -11,7 +11,7 @@ import (
 
 func (m *Machine) registerBuildFiles() {
 	h := m.host
-	str := func(v *obj) string { return string(deref(v).s) }
+	str := func(v *obj) string { return string(deref(v).str()) }
 	h["build.Builder.file"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		g := m.graphOf(a[0])
 		path := str(a[1])
@@ -80,7 +80,7 @@ func (m *Machine) registerBuildFiles() {
 // produced by stepID, shared by runTool and runArtifact.
 func (m *Machine) recordToolOutputs(g *buildgraph.Graph, stepID int, names *obj) (outs []*obj, ids []int, errObj *obj) {
 	for _, e := range deref(names).fields {
-		name := string(deref(e).s)
+		name := string(deref(e).str())
 		if !bareOutputName(name) {
 			return nil, nil, m.errMsg("tool outputs are bare file names, not " + name)
 		}

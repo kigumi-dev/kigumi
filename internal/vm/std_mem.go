@@ -7,21 +7,21 @@ func (m *Machine) memStd(key string, a []*obj, a0, a1 *obj) *obj {
 	case "mem.UnsafeCell.new":
 		return mkOpaque("UnsafeCell", mkCell(retain(a0)))
 	case "mem.UnsafeCell.get":
-		return m.copy(a0.data.(*obj).inner)
+		return m.copy(a0.opaqueData().(*obj).inner)
 	case "mem.UnsafeCell.set":
-		cell := a0.data.(*obj)
+		cell := a0.opaqueData().(*obj)
 		old := cell.inner
 		cell.inner = retain(a1)
 		m.release(old)
 		return unitObj
 	case "mem.secureErase":
-		for i := range a0.s {
-			a0.s[i] = 0
+		for i := range a0.str() {
+			a0.str()[i] = 0
 		}
 		return unitObj
 	case "mem.trySecureErase":
-		for i := range a0.s {
-			a0.s[i] = 0
+		for i := range a0.str() {
+			a0.str()[i] = 0
 		}
 		return m.ok(unitObj)
 	}

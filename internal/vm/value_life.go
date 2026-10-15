@@ -15,7 +15,13 @@ func (m *Machine) cellSet(c *obj, v *obj) {
 // release drops one reference; the machine runs the drop hook and frees
 // the children when it was the last.
 func (m *Machine) release(v *obj) {
-	if v == nil || atomic.LoadInt32(&v.rc) <= 0 {
+	if v == nil {
+		return
+	}
+	if rc := atomic.LoadInt32(&v.rc); rc <= 0 {
+		if rc == 0 && v.k == kFree {
+			noteFreedRelease()
+		}
 		return
 	}
 	if atomic.AddInt32(&v.rc, -1) == 0 {
@@ -33,9 +39,10 @@ func (m *Machine) free(v *obj) {
 	switch v.k {
 	case kInt, kFloat, kChar:
 		tracked := v.live
-		*v = obj{k: kFree}
+		*v = obj{k: kFree, i: freedWord}
 		if liveTrack.Load() {
 			liveDropped(tracked)
+			return
 		}
 		if len(m.pool) < scalarPoolMax {
 			m.pool = append(m.pool, v)
@@ -65,10 +72,11 @@ func (m *Machine) free(v *obj) {
 	case kBox, kCell:
 		fault = m.releaseChild(v.inner, fault)
 	case kClosure:
-		fault = m.releaseChild(v.env, fault)
+		fault = m.releaseChild(v.cenv(), fault)
 	case kOpaque:
 		m.freeOpaque(v)
 	}
+	dropExtension(v)
 	// A freed object is poisoned so a later use is caught, like -DKIGUMI_RC_CHECK.
 	tracked := v.live
 	*v = obj{k: kFree}
@@ -116,12 +124,12 @@ func (m *Machine) copy(v *obj) *obj {
 	case kBytes:
 		// A fresh backing array, not just a retain: secureErase mutates
 		// in place, and a shared slice would let it zero another copy too.
-		c := mkBytes(append([]byte(nil), v.s...))
+		c := mkBytes(append([]byte(nil), v.str()...))
 		m.chargeMemory(c)
 		return c
 	case kBox:
 		c := newObj(kBox)
-		c.dyn, c.inner = v.dyn, m.copy(v.inner)
+		c.i, c.inner = v.i, m.copy(v.inner)
 		m.chargeMemory(c)
 		return c
 	}

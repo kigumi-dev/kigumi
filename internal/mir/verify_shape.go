@@ -141,8 +141,8 @@ func flagMisplaced(in Inst) string {
 		return "is marked as a copy, which only a share is"
 	case in.Share && in.Op != OpCopy:
 		return "is marked shared, which only a copy is"
-	case in.Async && in.Op != OpFnItem && in.Op != OpClosure:
-		return "is marked async, which only a function item or closure is"
+	case in.Async && in.Op != OpFnItem && in.Op != OpClosure && in.Op != OpBind:
+		return "is marked async, which only a function item, bind or closure is"
 	case in.EndScope && in.Op != OpDrop:
 		return "is marked as a scope exit, which only a drop is"
 	case in.Scoped && in.Op != OpNewCell && in.Op != OpDrop:

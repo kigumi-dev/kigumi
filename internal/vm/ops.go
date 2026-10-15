@@ -38,7 +38,7 @@ func (m *Machine) binopAs(c bop, op string, a, b *obj) *obj {
 		}
 	}
 	if a.k == kFloat {
-		x, y := a.f, b.f
+		x, y := a.fl(), b.fl()
 		switch c {
 		case bopLt:
 			return mkBool(x < y)
@@ -49,13 +49,13 @@ func (m *Machine) binopAs(c bop, op string, a, b *obj) *obj {
 		case bopGe:
 			return mkBool(x >= y)
 		case bopAdd:
-			return m.newFloat(x+y, a.nk)
+			return m.newFloat(x+y, a.nkind())
 		case bopSub:
-			return m.newFloat(x-y, a.nk)
+			return m.newFloat(x-y, a.nkind())
 		case bopMul:
-			return m.newFloat(x*y, a.nk)
+			return m.newFloat(x*y, a.nkind())
 		case bopDiv:
-			return m.newFloat(x/y, a.nk)
+			return m.newFloat(x/y, a.nkind())
 		}
 	}
 	switch c {
@@ -71,10 +71,10 @@ func (m *Machine) binopAs(c bop, op string, a, b *obj) *obj {
 	if a.k != kInt {
 		m.abort("unsupported operands")
 	}
-	if is128(a.nk) {
+	if is128(a.nkind()) {
 		return m.binop128(op, a, b)
 	}
-	x, y, nk := a.i, b.i, a.nk
+	x, y, nk := a.i, b.i, a.nkind()
 	sg := isSigned(nk)
 	switch c {
 	case bopAdd:

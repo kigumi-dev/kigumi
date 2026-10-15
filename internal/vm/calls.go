@@ -79,23 +79,24 @@ func (m *Machine) stdKey(fn sem.EntityID) string { return mir.StdKey(m.r, fn, tr
 // host accelerator wins over a real body when both exist.
 func (m *Machine) closure(in *mir.Inst, ic *instCode, caps []*obj) *obj {
 	c := newObj(kClosure)
+	cl := c.clo()
 	c.async = in.Async
 	for _, x := range caps {
 		retain(x)
 	}
-	c.env = mkArray(caps)
+	cl.env = mkArray(caps)
 	p := m.closurePlanFor(in, ic, len(caps))
-	if c.req = p.req; c.req != nil {
+	if cl.req = p.req; cl.req != nil {
 		return c
 	}
 	if p.deny != "" {
 		m.abort(p.deny)
 	}
 	if p.useLowered {
-		c.fn = p.f
+		cl.fn = p.f
 		c.bind = in.Op == mir.OpBind
 	} else {
-		c.stdKey, c.ent, c.prov, c.lent, c.dyn = p.key, in.Ent, in.Prov, p.lent, p.dyn
+		cl.stdKey, c.ent, cl.prov, cl.lent, cl.dyn = p.key, in.Ent, in.Prov, p.lent, p.dyn
 	}
 	return c
 }
@@ -106,36 +107,36 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 	if fv.k != kClosure {
 		m.abort("value is not callable")
 	}
-	if fv.req != nil {
+	if fv.creq() != nil {
 		return m.callRequirementValue(fv, args)
 	}
 	if fv.async {
 		return m.asyncValueCall(fv, args)
 	}
-	if fv.stdKey != "" {
-		all := append(append([]*obj{}, fv.env.fields...), args...)
+	if fv.cstd() != "" {
+		all := append(append([]*obj{}, fv.cenv().fields...), args...)
 		// A primitive whose meaning depends on its declaration (a numeric
 		// conversion) is dispatched as if called directly.
 		site, siteFn := m.site, m.siteFn
-		m.site, m.siteFn = m.valueSite(fv, len(fv.env.fields))
+		m.site, m.siteFn = m.valueSite(fv, len(fv.cenv().fields))
 		var r *obj
-		if h, ok := m.hostFor(fv.prov, fv.stdKey); ok {
+		if h, ok := m.hostFor(fv.cprov(), fv.cstd()); ok {
 			r = h(m, fv.ent, all)
 		} else {
-			r = m.std(fv.stdKey, all)
+			r = m.std(fv.cstd(), all)
 		}
 		m.chargeMemory(r)
 		m.site, m.siteFn = site, siteFn
 		// A bound primitive lends its receiver and borrowed parameters
 		// (rt_std_bind).
 		for i, a := range args {
-			if fv.lent>>i&1 == 0 {
+			if fv.clent()>>i&1 == 0 {
 				m.release(a)
 			}
 		}
 		return r
 	}
-	return m.invoke(fv.fn, fv.env, fv.bind, args)
+	return m.invoke(fv.cfn(), fv.cenv(), fv.bind, args)
 }
 
 // asyncValueCall is rt_callv on an async fn/method value: it builds the
@@ -145,7 +146,9 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 // already dedicated to this call and move into the Future unchanged.
 func (m *Machine) asyncValueCall(fv *obj, args []*obj) *obj {
 	raw := newObj(kClosure)
-	raw.fn, raw.stdKey, raw.ent, raw.bind, raw.lent, raw.prov, raw.dyn = fv.fn, fv.stdKey, fv.ent, fv.bind, fv.lent, fv.prov, fv.dyn
-	raw.env = retain(fv.env)
+	rc, src := raw.clo(), fv.clo()
+	rc.fn, rc.stdKey, rc.lent, rc.prov, rc.dyn = src.fn, src.stdKey, src.lent, src.prov, src.dyn
+	raw.ent, raw.bind = fv.ent, fv.bind
+	rc.env = retain(src.env)
 	return mkOpaque("Future", &future{fn: raw, args: args})
 }

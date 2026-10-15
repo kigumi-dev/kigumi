@@ -11,7 +11,7 @@ import (
 // std/build primitives record into the graph behind the Builder value.
 func (m *Machine) registerBuild() {
 	h := m.host
-	str := func(v *obj) string { return string(deref(v).s) }
+	str := func(v *obj) string { return string(deref(v).str()) }
 	h["build.Builder.request"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		return mkOpaque("build.Request", m.graphOf(a[0]))
 	}
@@ -129,7 +129,7 @@ func (m *Machine) registerBuild() {
 
 func (m *Machine) declareArtifact(a []*obj, kind string) *obj {
 	g := m.graphOf(a[0])
-	name, dir := string(deref(a[1]).s), filepath.ToSlash(string(deref(a[2]).s))
+	name, dir := string(deref(a[1]).str()), filepath.ToSlash(string(deref(a[2]).str()))
 	for _, art := range g.Artifacts {
 		if art.Name == name {
 			return m.errMsg("artifact " + name + " is declared twice")
@@ -138,7 +138,7 @@ func (m *Machine) declareArtifact(a []*obj, kind string) *obj {
 	if !bareOutputName(name) || dir == ".." || strings.HasPrefix(dir, "../") || filepath.IsAbs(dir) || hasReservedPathComponent(dir) {
 		return m.errMsg("artifact needs a bare name and a root-relative directory")
 	}
-	target, _ := deref(a[3]).data.(buildgraph.Target)
+	target, _ := deref(a[3]).opaqueData().(buildgraph.Target)
 	physical := name
 	if kind == "library" {
 		physical += ".a"

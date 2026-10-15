@@ -20,10 +20,9 @@ func (c *checker) rejectHiddenArgs(n syntax.NodeID, fn EntityID) {
 	}
 }
 
-// bindableMethodValue: a method whose type parameters carry the bounds can bind their witnesses; an async one or a requirement has no slot for them.
+// bindableMethodValue: a method whose type parameters carry the bounds can bind their witnesses; a requirement has no slot for them.
 func (c *checker) bindableMethodValue(fn EntityID) bool {
-	info := c.r.Fn(fn)
-	return info.Declared&EffAsync == 0 && c.r.Entities[c.r.Entities[fn].Parent].Kind != EntInterface
+	return c.r.Entities[c.r.Entities[fn].Parent].Kind != EntInterface
 }
 
 // copyableBoundValue rejects a witness-bound method value on a move-only receiver before instantiating, which would only add an inference error.
@@ -52,17 +51,13 @@ func (c *checker) bindMethodWitnesses(n syntax.NodeID, fn EntityID, recv TypeID,
 	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Target: fn, Why: whyBind})
 }
 
-// fnItemHidden binds the witnesses of a constrained generic into its function value; an async fn has no slot for them.
+// fnItemHidden binds the witnesses of a constrained generic into its function value.
 func (c *checker) fnItemHidden(n syntax.NodeID, fn EntityID, inst []TypeID) {
 	info := c.r.Fn(fn)
 	if len(info.ConstParams) > 0 {
 		c.errAt(n, cConstFnValue, c.r.Entities[fn].Name)
 	}
-	switch {
-	case len(info.Witnesses) == 0:
-	case info.Declared&EffAsync != 0:
-		c.errAt(n, cWitnessFnValue, c.r.Entities[fn].Name)
-	default:
+	if len(info.Witnesses) > 0 {
 		c.info.Calls[n] = CallInfo{Kind: CallFnItem, Callee: fn, Inst: inst}
 		c.deferWitnesses(n, fn, 0, inst)
 		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Target: fn, Why: whyBind})

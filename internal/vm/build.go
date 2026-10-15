@@ -62,7 +62,7 @@ func (m *Machine) currentGraph() *buildgraph.Graph {
 // graphOf checks that a Builder value is this build program's capability.
 func (m *Machine) graphOf(v *obj) *buildgraph.Graph {
 	g := m.currentGraph()
-	if d := deref(v); d.k != kOpaque || d.data != any(g) {
+	if d := deref(v); d.k != kOpaque || d.opaqueData() != any(g) {
 		m.abort("not the build capability of this build program")
 	}
 	return g
@@ -70,8 +70,8 @@ func (m *Machine) graphOf(v *obj) *buildgraph.Graph {
 
 func (m *Machine) handleOf(v *obj, kind string) int {
 	d := deref(v)
-	if d.k != kOpaque || d.op != kind {
+	if d.k != kOpaque || d.opaqueOp() != kind {
 		m.abort(fmt.Sprintf("expected a %s handle, got %s", kind, m.display(d)))
 	}
-	return d.data.(int)
+	return d.opaqueData().(int)
 }

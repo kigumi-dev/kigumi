@@ -6,10 +6,10 @@ func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 	switch key {
 	case "prelude.Bytes.slice":
 		s, e := a1.i, a2.i
-		if s < 0 || s > e || e > int64(len(a0.s)) {
+		if s < 0 || s > e || e > int64(len(a0.str())) {
 			return m.none()
 		}
-		return m.some(mkBytes(append([]byte{}, a0.s[s:e]...)))
+		return m.some(mkBytes(append([]byte{}, a0.str()[s:e]...)))
 	case "prelude.Bytes.zeros":
 		if uint64(a0.i) >= maxVMAlloc || m.faultTick() {
 			m.abort("out of memory")
@@ -59,10 +59,10 @@ func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 		}
 		return m.ok(mkBytes(out))
 	case "prelude.Bytes.get":
-		if a1.i < 0 || a1.i >= int64(len(a0.s)) {
+		if a1.i < 0 || a1.i >= int64(len(a0.str())) {
 			return m.none()
 		}
-		return m.some(mkInt(int64(a0.s[a1.i]), 8))
+		return m.some(mkInt(int64(a0.str()[a1.i]), 8))
 	}
 	return nil
 }

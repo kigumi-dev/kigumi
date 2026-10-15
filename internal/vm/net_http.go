@@ -21,7 +21,7 @@ func (m *Machine) registerNetHTTP() {
 	h := m.host
 	h["net.Net.http"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Http", nil) }
 	h["net.Http.post"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		status, err := httpPost(string(deref(a[1]).s), deref(a[2]).s)
+		status, err := httpPost(string(deref(a[1]).str()), deref(a[2]).str())
 		if err != nil {
 			return m.errMsg(err.Error())
 		}

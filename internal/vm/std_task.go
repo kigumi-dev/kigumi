@@ -4,7 +4,7 @@ import "kigumi/internal/sem"
 
 func (m *Machine) executorOf(v *obj) *executor {
 	d := deref(v)
-	ex, ok := d.data.(*executor)
+	ex, ok := d.opaqueData().(*executor)
 	if d.k != kOpaque || !ok {
 		m.abort("value is not an Executor")
 	}
@@ -13,7 +13,7 @@ func (m *Machine) executorOf(v *obj) *executor {
 
 func (m *Machine) taskOf(v *obj) *task {
 	d := deref(v)
-	t, ok := d.data.(*task)
+	t, ok := d.opaqueData().(*task)
 	if d.k != kOpaque || !ok {
 		m.abort("value is not a Task")
 	}

@@ -19,7 +19,7 @@ func (m *Machine) registerBlocking() {
 		return mkOpaque("BlockingPool", &blockingPool{capacity: int(deref(a[0]).i)})
 	}
 	h["task.BlockingPool.run"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		pool := deref(a[0]).data.(*blockingPool)
+		pool := deref(a[0]).opaqueData().(*blockingPool)
 		if pool.inFlight.Load() >= int64(pool.capacity) {
 			return m.blockingCapacityExhausted()
 		}

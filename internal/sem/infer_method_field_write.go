@@ -17,6 +17,8 @@ type methodFieldCallSite struct {
 	srcParam EntityID
 	owner    EntityID
 	args     []syntax.NodeID
+	recvNode syntax.NodeID
+	retType  TypeID
 }
 
 func (c *checker) recordMethodFieldCallSite(n syntax.NodeID, m EntityID, base syntax.NodeID, args []syntax.NodeID) {
@@ -96,6 +98,9 @@ func (r *Result) applyMethodFieldWrites(site methodFieldCallSite) bool {
 			if r.applyFieldWriteSummary(site, field, site.callee, site.srcParam) {
 				changed = true
 			}
+		}
+		if site.owner == 0 && r.holdsFnElem(site.retType) && r.applyComponentSummary(site, site.retType, site.srcParam, 0) {
+			changed = true
 		}
 		return changed
 	}

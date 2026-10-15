@@ -40,7 +40,7 @@ func (m *Machine) newFuture(args []*obj) *obj {
 }
 
 func (m *Machine) futureOf(v *obj) *future {
-	f, ok := v.data.(*future)
+	f, ok := v.opaqueData().(*future)
 	if v.k != kOpaque || !ok {
 		m.abort("await on a value that is not a Future")
 	}
@@ -51,25 +51,25 @@ func (m *Machine) futureOf(v *obj) *future {
 // no mobility summary, so it stays on the lane that created it.
 func (m *Machine) futureMobile(v *obj) bool {
 	d := deref(v)
-	if d.k != kOpaque || d.op != "Future" {
+	if d.k != kOpaque || d.opaqueOp() != "Future" {
 		return false
 	}
-	fu, ok := d.data.(*future)
+	fu, ok := d.opaqueData().(*future)
 	if !ok || fu.fn == nil {
 		return false
 	}
 	fv := deref(fu.fn)
-	if fv.k != kClosure || fv.fn == nil {
+	if fv.k != kClosure || fv.cfn() == nil {
 		return false
 	}
-	ent := fv.fn.Ent
+	ent := fv.cfn().Ent
 	return m.r.Entity(ent).Kind == sem.EntFn && m.r.Fn(ent).Mobility == sem.MobilityMigratable
 }
 
 func (m *Machine) pollValue(v *obj) (*obj, polled) {
 	d := deref(v)
-	if d.k == kOpaque && d.op == "Task" {
-		return m.pollTask(d.data.(*task))
+	if d.k == kOpaque && d.opaqueOp() == "Task" {
+		return m.pollTask(d.opaqueData().(*task))
 	}
 	return m.pollFuture(m.futureOf(d))
 }
@@ -92,7 +92,7 @@ func (m *Machine) pollFuture(fu *future) (*obj, polled) {
 func (m *Machine) takeReady(fu *future) *obj {
 	fu.done = true
 	if fu.pool != nil {
-		fu.pool.data.(*blockingPool).inFlight.Add(-1)
+		fu.pool.opaqueData().(*blockingPool).inFlight.Add(-1)
 		m.release(fu.pool)
 		fu.pool = nil
 	}
@@ -105,24 +105,24 @@ func (m *Machine) takeReady(fu *future) *obj {
 // captured leading parameters and the Future's arguments the rest, moved.
 func (m *Machine) startCoro(fu *future) *coro {
 	fv := deref(fu.fn)
-	if fv.k != kClosure || fv.fn == nil {
+	if fv.k != kClosure || fv.cfn() == nil {
 		m.abort("this Future has no async body to run")
 	}
 	var params []*obj
 	nenv := 0
-	if fv.env != nil {
-		nenv = len(fv.env.fields)
+	if fv.cenv() != nil {
+		nenv = len(fv.cenv().fields)
 	}
 	if fv.bind {
 		params = append(params, fu.args...)
 	}
 	for i := 0; i < nenv; i++ {
-		params = append(params, retain(fv.env.fields[i]))
+		params = append(params, retain(fv.cenv().fields[i]))
 	}
 	if !fv.bind {
 		params = append(params, fu.args...)
 	}
-	body := fv.fn
+	body := fv.cfn()
 	co := &coro{fr: frame{f: body, code: m.codeFor(body), locals: make([]*obj, len(body.Locals))}}
 	for i, p := range body.Params {
 		if i < len(params) {

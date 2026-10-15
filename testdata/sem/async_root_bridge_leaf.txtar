@@ -253,9 +253,13 @@ fn viaTuple(h: Holder, c: Int) -> (Holder, Int) {
     (h, c)
 }
 
-// Tuple fields are generic, so the field tracker does not follow them; only the runtime guard stops the risky call.
-async fn tupleRiskyNotTracked() -> Int {
+async fn tupleRisky() -> Int {
     let (h, n) = viaTuple(Holder { cb: syncRoot }, 1)
+    h.cb() + n //~ ERROR cannot run inside an `async fn`
+}
+
+async fn tupleSafe() -> Int {
+    let (h, n) = viaTuple(Holder { cb: safeFn }, 1)
     h.cb() + n
 }
 -- expect --
@@ -508,6 +512,23 @@ note: `syncRoot` is stored in the field here
     |
 247 |     let r = reassignedLocal(Holder { cb: safeFn }, Holder { cb: syncRoot })
     |                                                                 ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:257:5
+    |
+257 |     h.cb() + n //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:256:40
+    |
+256 |     let (h, n) = viaTuple(Holder { cb: syncRoot }, 1)
+    |                                        ^^^^^^^^
 note: drives a new root task here
    --> app/t/t.kg:9:5
     |

@@ -9,10 +9,10 @@ func is128(nk int) bool { return nk&255 == 128 }
 
 // widen reads an integer of any width as a 128-bit value, extending by the source's sign.
 func widen(o *obj) wide {
-	if is128(o.nk) {
-		return wide{uint64(o.i), uint64(o.hi)}
+	if is128(o.nkind()) {
+		return wide{uint64(o.i), uint64(o.hiWord())}
 	}
-	if isSigned(o.nk) && o.i < 0 {
+	if isSigned(o.nkind()) && o.i < 0 {
 		return wide{uint64(o.i), ^uint64(0)}
 	}
 	return wide{lo: uint64(o.i)}
@@ -20,7 +20,7 @@ func widen(o *obj) wide {
 
 func mkWide(w wide, nk int) *obj {
 	v := mkInt(int64(w.lo), nk)
-	v.hi = int64(w.hi)
+	v.setHi(int64(w.hi))
 	return v
 }
 

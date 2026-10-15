@@ -69,7 +69,7 @@ func (p *Program) bindMismatch(f *Func, in Inst) string {
 			return "yields " + p.R.TypeString(dst) + " for " + p.R.Entity(in.Ent).Name + ", whose parameter " + itoa(k) + " is " + p.R.TypeString(want)
 		}
 	}
-	if !p.compatibleGeneric(ret, node.Elem) {
+	if !in.Async && !p.compatibleGeneric(ret, node.Elem) {
 		return "yields " + p.R.TypeString(dst) + " for " + p.R.Entity(in.Ent).Name + ", which returns " + p.R.TypeString(ret)
 	}
 	return ""
