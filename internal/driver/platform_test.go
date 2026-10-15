@@ -227,7 +227,10 @@ func checkFreestandingSymbolSet(t *testing.T, triple string) {
 		"print \"roundtrip=${json.encode(report)?}\"\n" +
 		"let f = text.parseFloat(\"3.14\") || 0.0\n" +
 		"let r = math.sqrt(2.0) + math.pow(2.0, 3.0) + math.floor(1.5) + math.ceil(1.5) + math.round(1.5)\n" +
-		"print \"${f} ${r}\"\n"
+		"print \"${f} ${r}\"\n" +
+		"fn mix(a: f32, b: f32, c: f32) -> f32 { a * b + c / a - b }\n" +
+		"let g: f32 = 0.1\n" +
+		"print \"${mix(g, 0.2, 0.3)} ${g == 0.1} ${g != 0.1} ${g < 0.2} ${g > 0.05} ${g <= 0.3} ${g >= 0.0} ${-g}\"\n"
 	checkFreestandingSymbols(t, triple, src)
 }
 

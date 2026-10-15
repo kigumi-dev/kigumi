@@ -2,17 +2,23 @@ package mir
 
 import (
 	"kigumi/internal/hir"
+	"kigumi/internal/sem"
 )
 
 // Assigning self as a whole lands back in the caller's storage, but only
 // when sync; async (sync false) cannot write back.
-func (b *builder) recvCell(base *hir.Expr, sync bool) LocalID {
+func (b *builder) recvCell(base *hir.Expr, sync, inPlace bool) LocalID {
 	if id, ok := b.refCellBase(base); ok {
 		return id
 	}
 	n, inner := base.Node, peelNoOp(base)
 	rt := b.r.Types.Ref(base.Type, true)
 	p, hasPlace := b.exprPlace(base, inner, sync)
+	if inPlace && sync && hasPlace {
+		if cell, ok := b.lentRecvCell(p, base, inner, rt); ok {
+			return cell
+		}
+	}
 	var v LocalID
 	if hasPlace {
 		v = b.retagTo(b.loadPlace(p), inner.Type, base.Type, n)
@@ -24,4 +30,24 @@ func (b *builder) recvCell(base *hir.Expr, sync bool) LocalID {
 		b.argFixups = append(b.argFixups, argFixup{recv: &p, elemType: base.Type, retag: inner.Type, cell: cell, node: n, depth: len(b.scopes)})
 	}
 	return cell
+}
+
+// A callee that leaves the receiver as it found it needs a view over the place, not a cell it hands back.
+func (b *builder) lentRecvCell(p place, base, inner *hir.Expr, rt sem.TypeID) (LocalID, bool) {
+	var v LocalID
+	switch p.src.Kind {
+	case hir.PlaceField, hir.PlaceIndex, hir.PlaceGlobal:
+		v = b.loadPlace(p)
+	default:
+		if l := b.fn.Locals[p.id]; b.cellLocal(p.id) || l.Borrowed || b.r.Types.Kind(l.Type) == sem.KRef {
+			return 0, false
+		}
+		v = p.id
+	}
+	n := base.Node
+	v = b.retagTo(v, inner.Type, base.Type, n)
+	ref := b.emit(Inst{Op: OpBorrow, Dst: b.temp(rt), Args: []LocalID{v}, Index: 1, Node: n})
+	cell := b.emit(Inst{Op: OpNewCell, Dst: b.temp(rt), Args: []LocalID{ref}, Node: n, Scoped: true, Lent: true})
+	b.argFixups = append(b.argFixups, argFixup{cell: cell, node: n, depth: len(b.scopes), lent: true})
+	return cell, true
 }

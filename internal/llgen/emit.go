@@ -55,6 +55,7 @@ type emitter struct {
 	boxTmp       map[mir.LocalID]bool
 	crossSrc     map[mir.LocalID]mir.LocalID
 	nameAlias    map[mir.LocalID]bool
+	lentCells    map[mir.LocalID]bool
 	sigs         map[*mir.Func]*aggSig
 	sig          *aggSig
 	ssigs        map[*mir.Func]*scalarSig
@@ -152,6 +153,7 @@ func (e *emitter) function(f *mir.Func) string {
 	e.crossSrc = crossSources(f)
 	e.scalar = e.classifyScalars(f)
 	e.nameAlias = nameAliases(f)
+	e.lentCells = nil
 	e.scalarAliasBoxes(f)
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)

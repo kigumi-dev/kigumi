@@ -108,7 +108,7 @@ func checkBorrowedMoves(p *Program, f *Func) {
 					report(in.Node, in.Args[0])
 				}
 			case OpSetField, OpSetIndex, OpNewCell:
-				if v := in.Args[len(in.Args)-1]; moveOnly(v) {
+				if v := in.Args[len(in.Args)-1]; moveOnly(v) && !in.Lent {
 					report(in.Node, v)
 				}
 			case OpCall, OpCallValue, OpBuiltin, OpFutureNew:

@@ -22,6 +22,7 @@ const (
 	TI8
 	TI16
 	TI128
+	TFloat
 )
 
 func (t Type) String() string {
@@ -46,6 +47,8 @@ func (t Type) String() string {
 		return "i16"
 	case TI128:
 		return "i128"
+	case TFloat:
+		return "float"
 	default:
 		panic(fmt.Sprintf("irb: unknown type %d", t))
 	}

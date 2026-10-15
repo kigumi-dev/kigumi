@@ -131,13 +131,14 @@ func (e *emitter) leafEq(sb *strings.Builder, f aggField, pa, pb string) string 
 		return r
 	}
 	x, y := e.loadLeafScalar(sb, f, pa), e.loadLeafScalar(sb, f, pb)
-	if f.Ty != TDouble {
+	if f.Ty != TDouble && f.Ty != TFloat {
 		fmt.Fprintf(sb, "  %s = icmp eq %s %s, %s\n", r, f.Ty, x, y)
 		return r
 	}
 	// The Eq protocol treats every NaN as equal and -0.0 as 0.0, unlike IEEE `==`.
 	ordered, xn, yn, both := e.newTmp(), e.newTmp(), e.newTmp(), e.newTmp()
-	fmt.Fprintf(sb, "  %s = fcmp oeq double %s, %s\n  %s = fcmp uno double %s, %s\n  %s = fcmp uno double %s, %s\n  %s = and i1 %s, %s\n  %s = or i1 %s, %s\n",
+	ty := f.Ty.String()
+	fmt.Fprintf(sb, "  %s = fcmp oeq "+ty+" %s, %s\n  %s = fcmp uno "+ty+" %s, %s\n  %s = fcmp uno "+ty+" %s, %s\n  %s = and i1 %s, %s\n  %s = or i1 %s, %s\n",
 		ordered, x, y, xn, x, x, yn, y, y, both, xn, yn, r, ordered, both)
 	return r
 }
@@ -158,6 +159,8 @@ func (e *emitter) leafHash(sb *strings.Builder, f aggField, p string) string {
 		return b.Call(rtDHashBool, vi32text(w)).Text
 	case TDouble:
 		return b.Call(rtDHashFloat, vdouble(v), vi32(f.Nk)).Text
+	case TFloat:
+		return b.Call(rtDHashFloat, vdouble(e.extendFloat(sb, v)), vi32(f.Nk)).Text
 	}
 	return b.Call(rtDHashChar, Value{TI32, v}).Text
 }

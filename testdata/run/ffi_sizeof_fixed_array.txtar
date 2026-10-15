@@ -1,0 +1,28 @@
+-- src --
+import ffi from std/ffi
+
+type A layout(C) = {
+    pub tag u8
+    pub arr FixedArray[i32, 3]
+}
+
+type B layout(C) = {
+    pub tag u8
+    pub arr FixedArray[f32, 3]
+}
+
+type C layout(C) = {
+    pub head u16
+    pub inner FixedArray[u8, 5]
+}
+
+let a = A { tag: 1, arr: FixedArray.filled[i32, 3](1) }
+let b = B { tag: 1, arr: FixedArray.filled[f32, 3](1.5) }
+let c = C { head: 2, inner: FixedArray.filled[u8, 5](7) }
+print "${ffi.sizeOf(&a)} ${ffi.alignOf(&a)}"
+print "${ffi.sizeOf(&b)} ${ffi.alignOf(&b)}"
+print "${ffi.sizeOf(&c)} ${ffi.alignOf(&c)}"
+-- stdout --
+16 4
+16 4
+8 2

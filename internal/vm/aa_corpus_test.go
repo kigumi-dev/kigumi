@@ -157,7 +157,7 @@ func preparedProg(t *testing.T, fx fixture, gate *liveGate, unsupported *atomic.
 	if prog.HasErrors() {
 		t.Skip("ownership errors")
 	}
-	plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "plan-direct", Run: mir.PlanDirect}}
+	plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "elide-rc", Run: mir.ElideRC}, {Name: "plan-direct", Run: mir.PlanDirect}}
 	if err := prog.Apply(plans...); err != nil {
 		t.Fatalf("plans: %v", err)
 	}

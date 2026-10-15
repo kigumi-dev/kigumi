@@ -115,6 +115,11 @@ fn keep(xs: Array[String], s: String) -> Array[String] {
     out
 }
 
+fn grab(o: String?) -> String? {
+    let mut m = o
+    m.take()
+}
+
 fn Point.total(self) -> Int { self.x + self.y }
 
 type Named = {

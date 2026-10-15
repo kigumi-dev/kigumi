@@ -1,0 +1,9 @@
+Module {
+    name: "cheader-float-sample"
+    kigumi: "0.1"
+}
+
+Header {
+    path: "single.h"
+    package: "single"
+}

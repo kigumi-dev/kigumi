@@ -121,7 +121,7 @@ func (e *emitter) nativeArg(sb *strings.Builder, in mir.Inst, i int, l mir.Local
 	p := e.load(sb, l)
 	v := e.unboxScalar(sb, info.Ty, p)
 	if !e.p.ParamLent(in.Ent, i) || e.boxTmp[l] {
-		e.irb(sb).Call(rtRelease, vptr(p))
+		e.releaseScalarBox(sb, info.Ty, p)
 	}
 	return v.render()
 }
@@ -148,7 +148,7 @@ func (e *emitter) callNativeBoxed(sb *strings.Builder, f *mir.Func, s *scalarSig
 		}
 		args[i] = e.unboxScalar(sb, info.Ty, v).render()
 		if !e.p.ParamLent(f.Ent, i) {
-			e.irb(sb).Call(rtRelease, vptr(v))
+			e.releaseScalarBox(sb, info.Ty, v)
 		}
 	}
 	t := e.newTmp()

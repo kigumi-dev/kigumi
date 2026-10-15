@@ -105,7 +105,7 @@ func evalOrder(n int, order []int, eval func(i int) LocalID) []LocalID {
 func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
 	full := evalOrder(len(e.Args), e.EvalOrder, func(i int) LocalID {
 		if i == 0 {
-			return b.receiver(e.Args[0], e.Ent, !e.Async)
+			return b.receiver(e.Args[0], e.Ent, !e.Async, e.Witness == 0 && !b.r.ReplacesSelf(e.Ent))
 		}
 		return b.argValue(e.Args[i], i-1, e.Ent, true, !e.Async)
 	})
@@ -159,13 +159,13 @@ func (b *builder) declaredRef(ent sem.EntityID, idx int) bool {
 	return b.r.Types.Kind(b.r.Entity(params[idx]).Type) == sem.KRef
 }
 
-// `mut self` takes a cell over the place, `move self` moves the value, `self` shares it.
-func (b *builder) receiver(base *hir.Expr, m sem.EntityID, sync bool) LocalID {
+// `mut self` takes a cell over the place, `move self` moves the value, `self` shares it; inPlace says the callee leaves the cell's content as it found it.
+func (b *builder) receiver(base *hir.Expr, m sem.EntityID, sync, inPlace bool) LocalID {
 	switch b.r.Fn(m).Recv {
 	case sem.RecvMove:
 		return b.exprMoved(base)
 	case sem.RecvMut:
-		return b.recvCell(base, sync)
+		return b.recvCell(base, sync, inPlace)
 	}
 	return b.expr(base)
 }

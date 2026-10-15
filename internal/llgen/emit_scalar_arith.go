@@ -47,8 +47,8 @@ func (e *emitter) scalarUnary(sb *strings.Builder, f *mir.Func, in mir.Inst) boo
 		res = Value{TI64, e.irb(sb).Call(rtIneg, v, vi32(nk)).Text}
 	case ty == TI64 && in.Str == "~":
 		res = Value{TI64, e.irb(sb).Call(rtInot, v, vi32(nk)).Text}
-	case ty == TDouble && in.Str == "-":
-		res = Value{TDouble, e.fneg(sb, v.Text)}
+	case (ty == TDouble || ty == TFloat) && in.Str == "-":
+		res = Value{ty, e.fneg(sb, ty, v.Text)}
 	default:
 		return false
 	}
@@ -59,8 +59,8 @@ func (e *emitter) scalarUnary(sb *strings.Builder, f *mir.Func, in mir.Inst) boo
 // nativeBinaryOp mirrors rt_binop's dispatch: "==" and "!=" work on every
 // scalar kind, the rest need TI64 (mirrored by rt_i*) or TDouble.
 func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int, l, r Value) (Value, bool) {
-	if ty == TDouble {
-		return e.nativeFloatOp(sb, op, l, r)
+	if ty == TDouble || ty == TFloat {
+		return e.nativeFloatOp(sb, op, ty, l, r)
 	}
 	switch op {
 	case "==":
@@ -104,30 +104,30 @@ func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int
 
 // nativeFloatOp: rt_binop never checks a float result's bounds, so these
 // are plain IEEE double instructions with no call at all.
-func (e *emitter) nativeFloatOp(sb *strings.Builder, op string, l, r Value) (Value, bool) {
+func (e *emitter) nativeFloatOp(sb *strings.Builder, op string, ty Type, l, r Value) (Value, bool) {
 	switch op {
 	case "==":
-		return Value{TI1, e.fcmp(sb, "oeq", l, r)}, true
+		return Value{TI1, e.fcmp(sb, "oeq", ty, l, r)}, true
 	case "!=":
 		// rt_binop's "!=" is !(a==b) in C, true for NaN; "une" (not "one")
 		// matches that since it treats unordered as not-equal.
-		return Value{TI1, e.fcmp(sb, "une", l, r)}, true
+		return Value{TI1, e.fcmp(sb, "une", ty, l, r)}, true
 	case "<":
-		return Value{TI1, e.fcmp(sb, "olt", l, r)}, true
+		return Value{TI1, e.fcmp(sb, "olt", ty, l, r)}, true
 	case "<=":
-		return Value{TI1, e.fcmp(sb, "ole", l, r)}, true
+		return Value{TI1, e.fcmp(sb, "ole", ty, l, r)}, true
 	case ">":
-		return Value{TI1, e.fcmp(sb, "ogt", l, r)}, true
+		return Value{TI1, e.fcmp(sb, "ogt", ty, l, r)}, true
 	case ">=":
-		return Value{TI1, e.fcmp(sb, "oge", l, r)}, true
+		return Value{TI1, e.fcmp(sb, "oge", ty, l, r)}, true
 	case "+":
-		return Value{TDouble, e.binOpT(sb, "fadd", TDouble, l, r)}, true
+		return Value{ty, e.binOpT(sb, "fadd", ty, l, r)}, true
 	case "-":
-		return Value{TDouble, e.binOpT(sb, "fsub", TDouble, l, r)}, true
+		return Value{ty, e.binOpT(sb, "fsub", ty, l, r)}, true
 	case "*":
-		return Value{TDouble, e.binOpT(sb, "fmul", TDouble, l, r)}, true
+		return Value{ty, e.binOpT(sb, "fmul", ty, l, r)}, true
 	case "/":
-		return Value{TDouble, e.binOpT(sb, "fdiv", TDouble, l, r)}, true
+		return Value{ty, e.binOpT(sb, "fdiv", ty, l, r)}, true
 	}
 	return Value{}, false
 }
@@ -155,9 +155,9 @@ func (e *emitter) xorI1(sb *strings.Builder, x string) string {
 	return t
 }
 
-func (e *emitter) fneg(sb *strings.Builder, x string) string {
+func (e *emitter) fneg(sb *strings.Builder, ty Type, x string) string {
 	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = fneg double %s\n", t, x)
+	fmt.Fprintf(sb, "  %s = fneg %s %s\n", t, ty, x)
 	return t
 }
 
@@ -177,8 +177,21 @@ func (e *emitter) icmp(sb *strings.Builder, cc string, ty Type, l, r Value) stri
 	return t
 }
 
-func (e *emitter) fcmp(sb *strings.Builder, cc string, l, r Value) string {
+func (e *emitter) fcmp(sb *strings.Builder, cc string, ty Type, l, r Value) string {
 	t := e.newTmp()
-	fmt.Fprintf(sb, "  %s = fcmp %s double %s, %s\n", t, cc, l.Text, r.Text)
+	fmt.Fprintf(sb, "  %s = fcmp %s %s %s, %s\n", t, cc, ty, l.Text, r.Text)
+	return t
+}
+
+// A boxed f32 holds the double nearest its single value, so widening and narrowing lose nothing.
+func (e *emitter) extendFloat(sb *strings.Builder, x string) string {
+	t := e.newTmp()
+	fmt.Fprintf(sb, "  %s = fpext float %s to double\n", t, x)
+	return t
+}
+
+func (e *emitter) narrowFloat(sb *strings.Builder, x string) string {
+	t := e.newTmp()
+	fmt.Fprintf(sb, "  %s = fptrunc double %s to float\n", t, x)
 	return t
 }

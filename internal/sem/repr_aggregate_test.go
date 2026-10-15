@@ -28,7 +28,7 @@ let t = (1, 2)
 
 func TestDirectAggAcceptsScalarRecordsAndTuples(t *testing.T) {
 	res := checkRepr(t, aggSrc)
-	for _, name := range []string{"Point", "Box", "Shape", "Wrap"} {
+	for _, name := range []string{"Point", "Box", "Shape", "Wrap", "Thin"} {
 		if !res.DirectAgg(mainType(t, res, name)) {
 			t.Errorf("%s is not a direct aggregate", name)
 		}
@@ -47,7 +47,7 @@ func TestDirectAggAcceptsScalarRecordsAndTuples(t *testing.T) {
 
 func TestDirectAggRejectsCarriersAndLayoutContracts(t *testing.T) {
 	res := checkRepr(t, aggSrc)
-	for _, name := range []string{"Named", "Thin", "Empty", "CHeader", "Tagged"} {
+	for _, name := range []string{"Named", "Empty", "CHeader", "Tagged"} {
 		if res.DirectAgg(mainType(t, res, name)) {
 			t.Errorf("%s must not be a direct aggregate", name)
 		}
@@ -79,12 +79,12 @@ func TestDirectAdtNamesItsVariantsAndPayloads(t *testing.T) {
 
 func TestRegScalarMatchesTheRegisterSet(t *testing.T) {
 	res := checkRepr(t, aggSrc)
-	for _, ty := range []sem.TypeID{sem.TyBool, sem.TyChar, sem.TyF64, sem.TyI64, sem.TyU8, sem.TyIsize} {
+	for _, ty := range []sem.TypeID{sem.TyBool, sem.TyChar, sem.TyF32, sem.TyF64, sem.TyI64, sem.TyU8, sem.TyIsize} {
 		if !res.RegScalar(ty) {
 			t.Errorf("%s should be a register scalar", res.TypeString(ty))
 		}
 	}
-	for _, ty := range []sem.TypeID{sem.TyF32, sem.TyString, sem.TyUnit} {
+	for _, ty := range []sem.TypeID{sem.TyString, sem.TyUnit} {
 		if res.RegScalar(ty) {
 			t.Errorf("%s should not be a register scalar", res.TypeString(ty))
 		}

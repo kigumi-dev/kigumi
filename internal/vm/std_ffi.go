@@ -127,6 +127,10 @@ func (m *Machine) cLayout(t sem.TypeID) (size, align int64) {
 		p := int64(tt.PtrBits() / 8)
 		return p, p
 	}
+	if elem, n, ok := m.r.FixedElem(t); ok {
+		es, ea := m.cLayout(elem)
+		return es * n, ea
+	}
 	if u := m.underlyingRepr(t); u != t {
 		return m.cLayout(u)
 	}

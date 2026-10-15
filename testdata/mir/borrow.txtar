@@ -56,17 +56,13 @@ fn lib.sharedThenMutate(%b: Buf) -> Int {
     %t1 = borrow 0(%b)
     %r = copy(%t1)
     %t3 = borrow 1(%b)
-    %t4 = share retain(%t3)
-    %t5 = newcell(%t4)
-    %t6 = call lib.Buf.push(%t5)
-    %t7 = celltake(%t5)
+    %t4 = newcell(%t3)
+    %t5 = call lib.Buf.push(%t4)
+    drop(%t4)
     drop(%t5)
+    %t6 = call lib.Buf.len(%r)
     drop(%b)
-    %b = copy(%t7)
-    drop(%t6)
-    %t8 = call lib.Buf.len(%r)
-    drop(%b)
-    return %t8
+    return %t6
 }
 fn lib.exclusiveThenRead(%b: Buf) -> Int {
   b0:
@@ -94,19 +90,15 @@ fn lib.fine(%b: Buf) -> Int {
     %t3 = call lib.Buf.len(%r)
     %n = copy(%t3)
     %t5 = borrow 1(%b)
-    %t6 = share retain(%t5)
-    %t7 = newcell(%t6)
-    %t8 = call lib.Buf.push(%t7)
-    %t9 = celltake(%t7)
+    %t6 = newcell(%t5)
+    %t7 = call lib.Buf.push(%t6)
+    drop(%t6)
     drop(%t7)
-    drop(%b)
-    %b = copy(%t9)
-    drop(%t8)
-    %t10 = call lib.Buf.len(%b)
-    %t11 = bin +(%t10, %n)
+    %t8 = call lib.Buf.len(%b)
+    %t9 = bin +(%t8, %n)
     drop(%n)
     drop(%b)
-    return %t11
+    return %t9
 }
 fn lib.escape(%b: Buf) -> Unit {
   b0:

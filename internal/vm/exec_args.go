@@ -84,6 +84,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		m.chargeMemory(res)
 	case mir.OpNewCell:
 		res = mkCell(args[0])
+		res.b = in.Lent
 		m.chargeMemory(res)
 	case mir.OpCellTake:
 		res = args[0].inner

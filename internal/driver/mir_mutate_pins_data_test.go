@@ -37,7 +37,7 @@ func "main.Point.hash" b0/0 builtin | i3 l+0
 term-operand "main.lendsCapture" b0/0 alias | l"t2"
 `},
 	{"direct_closure", "types", `
-entity "main.main.closure3" b2/3 alias | i0
+entity "main.main.closure3" b2/2 alias | i0
 term-operand "main.lendsCapture" b0/1 share | l"t1"
 `},
 	{"iface_static", "refs", `
@@ -51,7 +51,7 @@ type "main.Point.equals" b0/0 builtin | i0
 operand "main.growGeneric" b0/18 callv | i1 l"t4"
 `},
 	{"generics", "refs", `
-insert "main.tally" b7/24 drop | i0 l"t5"
+insert "main.tally" b7/21 drop | i0 l"t5"
 `},
 	{"async", "types", `
 operand "main.total" b0/12 bin | i0 l"t9"
@@ -123,7 +123,7 @@ local-flag "main" b14/3 alias | i25 i3
 local-flag "main" b2/6 interp | i25 i3
 `},
 	{"mut_self_dispatch", "shape", `
-opcode-arity "main" b0/245 release | i3
+opcode-arity "main" b0/241 release | i3
 `},
 	{"iface_static", "calls", `
 arg-drop "main" b4/25 call | i0

@@ -5141,6 +5141,59 @@
       ]
     },
     {
+      "id": "run/f32_native_c_call",
+      "kind": "run",
+      "path": "testdata/run/f32_native_c_call.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
+      "id": "run/f32_native_containers",
+      "kind": "run",
+      "path": "testdata/run/f32_native_containers.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/f32_native_register",
+      "kind": "run",
+      "path": "testdata/run/f32_native_register.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/f32_rounding",
       "kind": "run",
       "path": "testdata/run/f32_rounding.txtar",
@@ -5195,6 +5248,23 @@
       "id": "run/ffi_nested_packed",
       "kind": "run",
       "path": "testdata/run/ffi_nested_packed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/ffi_sizeof_fixed_array",
+      "kind": "run",
+      "path": "testdata/run/ffi_sizeof_fixed_array.txtar",
       "mode": [
         "vm",
         "native"
@@ -8922,6 +8992,23 @@
       ]
     },
     {
+      "id": "run/mut_self_lent_receiver",
+      "kind": "run",
+      "path": "testdata/run/mut_self_lent_receiver.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/mut_self_option",
       "kind": "run",
       "path": "testdata/run/mut_self_option.txtar",
@@ -10626,6 +10713,23 @@
       "id": "run/unsafe_guarantee_copy",
       "kind": "run",
       "path": "testdata/run/unsafe_guarantee_copy.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/untyped_branch_operand",
+      "kind": "run",
+      "path": "testdata/run/untyped_branch_operand.txtar",
       "mode": [
         "vm",
         "native"

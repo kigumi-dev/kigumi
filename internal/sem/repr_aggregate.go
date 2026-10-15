@@ -1,10 +1,10 @@
 package sem
 
-// RegScalar is the leaf set the native backend keeps in a register: i128 and
-// u128 outgrow the boxed payload and f32 rounds on construction.
+// RegScalar is the leaf set the native backend keeps in a register; i128 and
+// u128 outgrow the boxed payload.
 func (r *Result) RegScalar(t TypeID) bool {
 	switch {
-	case t == TyBool, t == TyChar, t == TyF64:
+	case t == TyBool, t == TyChar, t == TyF64, t == TyF32:
 		return true
 	case r.Types.IsInteger(t) && t != TyI128 && t != TyU128:
 		return true

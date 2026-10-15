@@ -96,7 +96,7 @@ func (p *Program) leafOf(t sem.TypeID) sem.TypeID {
 }
 
 func (p *Program) numericOrChar(t sem.TypeID) bool {
-	return p.R.RegScalar(t) && (t == sem.TyChar || p.R.Types.IsNumeric(t))
+	return p.R.RegScalar(t) && t != sem.TyF32 && (t == sem.TyChar || p.R.Types.IsNumeric(t))
 }
 
 func (p *Program) isConversion(fn sem.EntityID) bool {

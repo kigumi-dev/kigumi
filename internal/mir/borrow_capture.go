@@ -25,7 +25,7 @@ func (c *borrowCheck) checkCapture(in Inst) {
 			}
 		}
 	case OpNewCell:
-		if _, ok := c.holders[in.Args[0]]; ok {
+		if _, ok := c.holders[in.Args[0]]; ok && !in.Lent {
 			c.report(in.Node, in.Args[0], "borrow-escape", "a borrow cannot be stored")
 		}
 	case OpVariant:

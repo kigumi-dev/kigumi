@@ -86,6 +86,9 @@ func (e *emitter) boxLeafAt(sb *strings.Builder, f aggField, p string) string {
 			fmt.Fprintf(sb, "  %s = zext i1 %s to i32\n", w, v)
 			v = w
 		}
+		if f.Ty == TFloat {
+			v = e.extendFloat(sb, v)
+		}
 		fmt.Fprintf(sb, "  %s = call ptr @%s\n", b, boxCallText(f, v))
 	}
 	return b
@@ -101,6 +104,9 @@ func (e *emitter) unboxLeafAt(sb *strings.Builder, f aggField, p, box string) {
 	default:
 		v := e.newTmp()
 		fmt.Fprintf(sb, "  %s = call %s\n", v, unboxCallText(f, box))
+		if f.Ty == TFloat {
+			v = e.narrowFloat(sb, v)
+		}
 		e.storeLeafScalar(sb, f, p, v)
 	}
 	fmt.Fprintf(sb, "  call void @rt_release(ptr %s)\n", box)
@@ -110,7 +116,7 @@ func boxCallText(f aggField, v string) string {
 	switch f.Ty {
 	case TI64:
 		return fmt.Sprintf("rt_int(i64 %s, i32 %d)", v, f.Nk)
-	case TDouble:
+	case TDouble, TFloat:
 		return fmt.Sprintf("rt_float(double %s, i32 %d)", v, f.Nk)
 	case TI1:
 		return fmt.Sprintf("rt_bool(i32 %s)", v)
@@ -122,7 +128,7 @@ func unboxCallText(f aggField, v string) string {
 	switch f.Ty {
 	case TI64:
 		return fmt.Sprintf("i64 @rt_int_val(ptr %s)", v)
-	case TDouble:
+	case TDouble, TFloat:
 		return fmt.Sprintf("double @rt_float_val(ptr %s)", v)
 	case TI1:
 		return fmt.Sprintf("i1 @rt_truth(ptr %s)", v)

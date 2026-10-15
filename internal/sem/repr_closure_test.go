@@ -79,7 +79,7 @@ let a = FixedArray.filled[Int, 4](0)
 		{mk(mk(sem.TyI64, 16), 33), false},
 		{mk(mk(sem.TyI64, 1024), 64), false},
 		{mk(sem.TyString, 2), false},
-		{mk(sem.TyF32, 2), false},
+		{mk(sem.TyF32, 2), true},
 	}
 	for _, c := range cases {
 		if got := res.DirectAgg(c.t); got != c.want {

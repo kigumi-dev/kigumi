@@ -114,6 +114,9 @@ func (e *emitter) fromBits(sb *strings.Builder, ty Type, bits string) string {
 	switch ty {
 	case TDouble:
 		fmt.Fprintf(sb, "  %s = bitcast i64 %s to double\n", t, bits)
+	case TFloat:
+		d := e.newTmp()
+		fmt.Fprintf(sb, "  %s = bitcast i64 %s to double\n  %s = fptrunc double %s to float\n", d, bits, t, d)
 	case TI1:
 		fmt.Fprintf(sb, "  %s = icmp ne i64 %s, 0\n", t, bits)
 	case TI32:

@@ -21,6 +21,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	e.boxTmp = boxTemps(f)
 	e.crossSrc = crossSources(f)
 	e.nameAlias = nameAliases(f)
+	e.lentCells = nil
 	e.scalarAliasBoxes(f)
 	e.constOwned = map[mir.LocalID]bool{}
 	e.constKey = e.constLocals(f)

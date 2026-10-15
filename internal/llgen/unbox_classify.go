@@ -7,16 +7,14 @@ import (
 
 // scalarInfo is a local materialized in a native register: Ty is the
 // register type, Nk the numeric-kind tag rt_int/rt_iadd/... expect
-// (meaningless for TDouble, TI1 and TI32).
+// (meaningless for TDouble, TFloat, TI1 and TI32).
 type scalarInfo struct {
 	Ty Type
 	Nk int
 }
 
-// scalarType covers Bool, Char, f64/Int and every integer width; a 128-bit
-// integer is an LLVM i128 in a register and a two-word slot in a direct aggregate. f32 stays boxed:
-// every boxed float rounds to single precision on construction (rt_float),
-// which native ops don't replicate.
+// scalarType covers Bool, Char, f32 (an LLVM float), f64 and every integer width;
+// a 128-bit integer is an i128 in a register and a two-word slot in a direct aggregate.
 func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {
 	tt := e.r.Types
 	switch {
@@ -26,6 +24,8 @@ func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {
 		return TI32, true
 	case t == sem.TyF64:
 		return TDouble, true
+	case t == sem.TyF32:
+		return TFloat, true
 	case t == sem.TyI128 || t == sem.TyU128:
 		return TI128, true
 	case tt.IsInteger(t):

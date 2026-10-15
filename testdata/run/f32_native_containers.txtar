@@ -1,0 +1,91 @@
+-- src --
+import map from std/map
+import task from std/task
+
+
+type Mixed = {
+    pub tag u8
+    pub a f32
+    pub n Int
+    pub b f32
+    pub ok Bool
+}
+
+type Pay = One(v: f32) | Two(a: f32, n: Int) | Three(x: f32, y: f32, z: f32)
+
+type Acc = {
+    pub mut total f32
+    pub mut count Int
+}
+
+fn Acc.add(mut self, x: f32) -> Unit {
+    self.total = self.total + x
+    self.count = self.count + 1
+}
+
+fn payload(p: Pay) -> f32 {
+    match p {
+        One(v) -> v
+        Two(a, n) -> a * n.toF32()
+        Three(x, y, z) -> x + y + z
+    }
+}
+
+fn firstOr(xs: &Array[f32], d: f32) -> f32 {
+    xs.get(0) || d
+}
+
+fn maybe(x: f32) -> f32? {
+    if x > 1 { Some(x * 2) } else { None }
+}
+
+fn pass[T](x: T) -> T {
+    x
+}
+
+async fn inner(x: f32) -> f32 {
+    x * 2
+}
+
+async fn slow(x: f32) -> f32 {
+    let y = x * 2
+    let z = await inner(y)
+    z + x
+}
+
+fn main() -> Unit! {
+    let m = Mixed { tag: 7, a: 0.1, n: 5, b: 0.2, ok: true }
+    print "${m.tag} ${m.a} ${m.n} ${m.b} ${m.ok} ${m.a + m.b}"
+    print "${payload(One(0.1))} ${payload(Two(0.3, 3))} ${payload(Three(0.1, 0.2, 0.3))}"
+    let mut acc = Acc { total: 0, count: 0 }
+    for i in 0..5 {
+        acc.add(0.1)
+    }
+    print "${acc.total} ${acc.count}"
+    let mut xs: Array[f32] = Array.empty()
+    xs.push(0.5)
+    xs.push(0.25)
+    print "${firstOr(&xs, 9)} ${firstOr(&Array.empty(), 9)} ${xs.len()}"
+    print "${debug(maybe(0.5))} ${debug(maybe(3))} ${pass(0.7)} ${debug(pass(Some(0.7.toF32())))}"
+    let mut table = map.empty[Int, f32]()
+    table.set(1, 0.1)
+    table.set(2, 0.2)
+    print "${debug(table.get(1))} ${debug(table.get(3))}"
+    let mut counter: f32 = 0
+    let bump = () => { counter = counter + 0.1 }
+    bump()
+    bump()
+    bump()
+    print "${counter}"
+    let ex = task.currentThreadExecutor()
+    print "${ex.runToCompletion(slow(1.1))}"
+}
+-- stdout --
+7 0.1 5 0.2 true 0.3
+0.1 0.90000004 0.6
+0.5 5
+0.5 9 2
+None Some(6) 0.7 Some(0.7)
+Some(0.1) None
+0.3
+5.5

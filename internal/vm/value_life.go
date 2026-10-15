@@ -70,7 +70,9 @@ func (m *Machine) free(v *obj) {
 			fault = m.releaseChild(v.fields[i], fault)
 		}
 	case kBox, kCell:
-		fault = m.releaseChild(v.inner, fault)
+		if v.k != kCell || !v.b {
+			fault = m.releaseChild(v.inner, fault)
+		}
 	case kClosure:
 		fault = m.releaseChild(v.cenv(), fault)
 	case kOpaque:

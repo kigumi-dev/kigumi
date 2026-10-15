@@ -39,3 +39,18 @@ func (e *emitter) argArray(sb *strings.Builder, vals []string) string {
 func framed(f *mir.Func, l mir.LocalID) bool {
 	return int(l) < len(f.Slot) && f.Slot[l] >= 0
 }
+
+// A lent receiver cell in frame storage owns nothing and is never freed, so dropping it does nothing.
+func (e *emitter) lentFrameCell(f *mir.Func, l mir.LocalID) bool {
+	if e.lentCells == nil {
+		e.lentCells = map[mir.LocalID]bool{}
+		for _, blk := range f.Blocks {
+			for _, in := range blk.Insts {
+				if in.Op == mir.OpNewCell && in.Lent && in.Scoped && !framed(f, in.Dst) {
+					e.lentCells[in.Dst] = true
+				}
+			}
+		}
+	}
+	return e.lentCells[l]
+}

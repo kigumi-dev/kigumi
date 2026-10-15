@@ -30,7 +30,7 @@ func leafLayout(r *sem.Result, t sem.TypeID, element bool) (int64, int64) {
 		return 0, 1
 	case t == sem.TyBool:
 		return 1, 1
-	case t == sem.TyChar:
+	case t == sem.TyChar, t == sem.TyF32:
 		return 4, 4
 	case r.DirectAgg(t):
 		return AggLayout(r, t)

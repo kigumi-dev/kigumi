@@ -17,19 +17,15 @@ fn main.n1() -> Array[String]! {
     %t0 = call std/array.Array.empty
     %names = copy(%t0)
     %t2 = borrow 1(%names)
-    %t3 = share retain(%t2)
-    %t4 = newcell(%t3)
-    %t5 = const "b": String
-    %t6 = call std/array.Array.push(%t4, %t5)
-    %t7 = celltake(%t4)
-    drop(%t4)
-    drop(%names)
-    %names = copy(%t7)
-    drop(%t6)
-    %t8 = move(%names)
-    %t9 = variant Result.Ok(%t8)
+    %t3 = newcell(%t2)
+    %t4 = const "b": String
+    %t5 = call std/array.Array.push(%t3, %t4)
+    drop(%t3)
+    drop(%t5)
+    %t6 = move(%names)
+    %t7 = variant Result.Ok(%t6)
     nop
-    return %t9
+    return %t7
 }
 fn main.s(%xs: Array[String]) -> usize {
   b0:

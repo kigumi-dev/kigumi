@@ -109,6 +109,9 @@ func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState, w *sha
 	case OpBorrow:
 		st.borrowed[in.Dst] = true
 		return
+	case OpNewCell:
+		st.borrowed[in.Dst] = in.Lent
+		return
 	case OpAlias:
 		// A defined-type wrap/unwrap emits this instead of an OpCopy PlanRC
 		// rewrites, but its chain must still be recorded for origin() to work.

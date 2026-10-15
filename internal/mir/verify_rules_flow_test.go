@@ -80,7 +80,7 @@ func TestVerifyVariantsFlow(t *testing.T) {
 				}
 			}
 		}},
-		{"cell read after it was emptied", "main.keep", "variants", "after celltake emptied it", func(t *testing.T, p *mir.Program, f *mir.Func) {
+		{"cell read after it was emptied", "main.grab", "variants", "after celltake emptied it", func(t *testing.T, p *mir.Program, f *mir.Func) {
 			take := nth(t, f, mir.OpCellTake, 0)
 			appendInst(f, mir.Inst{Op: mir.OpCellGet, Dst: addLocal(f, "x", f.Locals[take.Dst].Type), Args: []mir.LocalID{take.Args[0]}})
 		}},

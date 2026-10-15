@@ -145,7 +145,7 @@ func benchProgram(tb testing.TB, src string) *mir.Program {
 		tb.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mir.Build(res)
-	plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "plan-direct", Run: mir.PlanDirect}}
+	plans := []mir.Transform{{Name: "plan-rc", Run: mir.PlanRC}, {Name: "specialize", Run: mir.Specialize}, {Name: "elide-rc", Run: mir.ElideRC}, {Name: "plan-direct", Run: mir.PlanDirect}}
 	if err := prog.Apply(plans...); err != nil {
 		tb.Fatalf("plans: %v", err)
 	}

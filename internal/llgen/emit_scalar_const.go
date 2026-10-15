@@ -38,6 +38,9 @@ func scalarConstText(tt *sem.TypeTable, in mir.Inst) string {
 		} else if lit.Int != nil {
 			f, _ = new(big.Float).SetInt(lit.Int).Float64()
 		}
+		if in.Type == sem.TyF32 {
+			f = float64(float32(f))
+		}
 		return fmt.Sprintf("0x%X", math.Float64bits(f))
 	case lit.Kind == sem.LitInt:
 		if lit.Int == nil {

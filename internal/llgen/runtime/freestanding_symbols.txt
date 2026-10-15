@@ -21,6 +21,16 @@ __aeabi_ddiv
 __aeabi_dmul
 __aeabi_dsub
 __aeabi_f2d
+__aeabi_fadd
+__aeabi_fcmpeq
+__aeabi_fcmpge
+__aeabi_fcmpgt
+__aeabi_fcmple
+__aeabi_fcmplt
+__aeabi_fcmpun
+__aeabi_fdiv
+__aeabi_fmul
+__aeabi_fsub
 __aeabi_l2d
 __aeabi_ldivmod
 __aeabi_memclr

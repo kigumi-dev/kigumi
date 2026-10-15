@@ -159,6 +159,9 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			res = slot
 			break
 		}
+		if in.Lent {
+			e.irb(sb).Call(rtRetain, vptr(args[0]))
+		}
 		res = e.irb(sb).Call(rtCell, vptr(args[0])).Text
 	case mir.OpCellGet:
 		res = e.irb(sb).Call(rtCellget, vptr(args[0])).Text
@@ -172,6 +175,9 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpShell:
 		res = e.shell(sb, in, args)
 	case mir.OpDrop:
+		if e.lentFrameCell(f, in.Args[0]) {
+			return
+		}
 		// Null first so a panicking drop never runs twice on the next scope exit.
 		if f.Locals[in.Args[0]].Ent != 0 {
 			e.store(sb, in.Args[0], "null")

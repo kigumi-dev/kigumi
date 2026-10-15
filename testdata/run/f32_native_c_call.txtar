@@ -1,0 +1,25 @@
+-- engines --
+native
+-- src --
+extern(C) {
+    fn sqrtf(x: f32) -> f32
+    fn fabsf(x: f32) -> f32
+    fn fmaf(x: f32, y: f32, z: f32) -> f32
+}
+
+type Pair = {
+    pub a f32
+    pub b f32
+}
+
+fn hyp(p: Pair) -> f32 {
+    unsafe { sqrtf(p.a * p.a + p.b * p.b) }
+}
+
+let x: f32 = 0.1
+let y: f32 = 0.7
+print "${unsafe { sqrtf(2) }} ${unsafe { fabsf(-x) }} ${unsafe { fmaf(x, y, 1) }}"
+print "${hyp(Pair { a: 3, b: 4 })} ${hyp(Pair { a: x, b: y })}"
+-- stdout --
+1.4142135 0.1 1.07
+5 0.70710677

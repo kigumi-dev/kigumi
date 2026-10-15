@@ -118,7 +118,9 @@ func (p *Program) takesForGood(f *Func, in *Inst, k int) bool {
 		return k == 1
 	case OpSetIndex:
 		return k == 2
-	case OpGlobalSet, OpNewCell, OpBox, OpAwait:
+	case OpNewCell:
+		return k == 0 && !in.Lent
+	case OpGlobalSet, OpBox, OpAwait:
 		return k == 0
 	case OpBoxDirect, OpUnboxDirect:
 		return !f.Locals[in.Dst].Cross

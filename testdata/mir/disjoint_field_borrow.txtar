@@ -163,14 +163,11 @@ fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
     drop(%t14)
     %t16 = field 0(%s)
     %t17 = borrow 1(%t16)
-    %t18 = share retain(%t17)
-    %t19 = newcell(%t18)
-    %t20 = const 2: u8
-    %t21 = call std/array.Array.push(%t19, %t20)
-    %t22 = celltake(%t19)
-    drop(%t19)
-    setfield 0(%s, %t22)
-    return %t21
+    %t18 = newcell(%t17)
+    %t19 = const 2: u8
+    %t20 = call std/array.Array.push(%t18, %t19)
+    drop(%t18)
+    return %t20
 }
 fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Unit {
   b0:
@@ -238,23 +235,20 @@ fn lib.Bag.indexStaysConservative(%self: Bag) -> Unit {
     %t7 = cellget(%self)
     %t8 = field 1(%t7)
     %t9 = borrow 1(%t8)
-    %t10 = share retain(%t9)
-    %t11 = newcell(%t10)
-    %t12 = const 1: u8
-    %t13 = call std/array.Array.push(%t11, %t12)
-    %t14 = celltake(%t11)
-    drop(%t11)
-    setfield 1(%t7, %t14)
-    drop(%t13)
-    %t15 = borrow 1(%r)
-    %t16 = share retain(%t15)
-    %t17 = newcell(%t16)
-    %t18 = const 2: u8
-    %t19 = call std/array.Array.push(%t17, %t18)
-    %t20 = celltake(%t17)
-    drop(%t17)
-    drop(%t20)
-    return %t19
+    %t10 = newcell(%t9)
+    %t11 = const 1: u8
+    %t12 = call std/array.Array.push(%t10, %t11)
+    drop(%t10)
+    drop(%t12)
+    %t13 = borrow 1(%r)
+    %t14 = share retain(%t13)
+    %t15 = newcell(%t14)
+    %t16 = const 2: u8
+    %t17 = call std/array.Array.push(%t15, %t16)
+    %t18 = celltake(%t15)
+    drop(%t15)
+    drop(%t18)
+    return %t17
 }
 error[borrow-conflict]: `self` is exclusively borrowed and cannot be used here
   --> lib/disjoint.kg:15:13

@@ -6,7 +6,7 @@ func scalarBytes(t Type) int64 {
 		return 1
 	case TI16:
 		return 2
-	case TI32:
+	case TI32, TFloat:
 		return 4
 	case TI128:
 		return 16

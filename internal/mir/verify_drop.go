@@ -14,7 +14,7 @@ func (p *Program) verifyDropOwned(f *Func) *Error {
 	}
 	for bid, blk := range f.Blocks {
 		for i, in := range blk.Insts {
-			if in.Op == OpNewCell && f.rcBase != 0 && lent[in.Args[0]] {
+			if in.Op == OpNewCell && !in.Lent && f.rcBase != 0 && lent[in.Args[0]] {
 				return fail("droplent", BlockID(bid), i, "wraps %%%s, a reference this frame does not own, in a cell that releases it", f.Locals[in.Args[0]].Name)
 			}
 			if in.Op != OpDrop && in.Op != OpRelease {

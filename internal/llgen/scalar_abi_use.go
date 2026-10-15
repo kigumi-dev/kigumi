@@ -53,7 +53,7 @@ func (e *emitter) unboxedUse(f *mir.Func, in mir.Inst, i int) bool {
 		return (ty == rty || wideShiftOperands(in.Str, ty, rty)) && nativeBinary(in.Str, ty)
 	case mir.OpUnary:
 		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
-		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TI128 || ty == TDouble) || in.Str == "~" && (ty == TI64 || ty == TI128)
+		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TI128 || ty == TDouble || ty == TFloat) || in.Str == "~" && (ty == TI64 || ty == TI128)
 	case mir.OpCall:
 		_, ok := e.calleeScalarSig(in).param(i)
 		return in.DPrim != mir.DPNone || ok || e.wideCallOp(f, in) != ""
@@ -73,7 +73,7 @@ func nativeBinary(op string, ty Type) bool {
 	case "==", "!=":
 		return ty != TVoid
 	case "<", "<=", ">", ">=", "+", "-", "*", "/":
-		return ty == TI64 || ty == TI128 || ty == TDouble
+		return ty == TI64 || ty == TI128 || ty == TDouble || ty == TFloat
 	case "%", "&", "|", "^", "<<", ">>":
 		return ty == TI64 || ty == TI128
 	}

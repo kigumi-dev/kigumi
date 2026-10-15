@@ -1,0 +1,136 @@
+-- src --
+import text from std/text
+import map from std/map
+
+type Vec = {
+    pub mut x f32
+    pub mut y f32
+}
+
+type Key = {
+    x f32
+    y f32
+}
+
+type Shape = Dot(v: f32) | Seg(a: f32, b: f32)
+
+type Grid = {
+    pub mut cells FixedArray[f32, 3]
+    pub tag Bool
+}
+
+fn mix(a: f32, b: f32) -> f32 {
+    a * b + a / b - 1.5
+}
+
+fn dot(v: Vec, w: Vec) -> f32 {
+    v.x * w.x + v.y * w.y
+}
+
+fn len2(s: Shape) -> f32 {
+    match s {
+        Dot(v) -> v * v
+        Seg(a, b) -> a * a + b * b
+    }
+}
+
+fn accumulate(n: Int) -> f32 {
+    let mut s: f32 = 0
+    for i in 0..n {
+        s = s + 0.1
+    }
+    s
+}
+
+fn grow(v: Vec) -> Vec {
+    let mut out = v
+    out.x = out.x + 0.1
+    out.y = out.y * 3
+    out
+}
+
+fn sumGrid(g: Grid) -> f32 {
+    let mut s: f32 = 0
+    for c in g.cells {
+        s = s + c
+    }
+    s
+}
+
+fn apply(f: fn(f32) -> f32, v: f32) -> f32 {
+    f(v)
+}
+
+fn identity[T](x: T) -> T {
+    x
+}
+
+fn main() -> Unit! {
+    let a: f32 = 0.1
+    let b: f32 = 0.2
+    let one: f32 = 1
+    let three: f32 = 3
+    let big: f32 = 16777216
+    print "${a + b} ${one / three} ${big + one} ${-a} ${a * b} ${a - b} ${mix(a, three)}"
+    print "${accumulate(10)} ${accumulate(1000)}"
+
+    let zero: f32 = 0
+    let inf = one / zero
+    let nan = inf - inf
+    print "${inf} ${-inf} ${nan} ${inf > big} ${nan == nan} ${nan != nan} ${nan < one} ${nan >= one}"
+    let r1: f32 = 7.5
+    let r2: f32 = 2
+    let mut acc2: f32 = 1
+    acc2 += r1
+    acc2 *= 3
+    acc2 -= 0.1
+    acc2 /= 7
+    print "${r1 - r2} ${-r1 * r2} ${acc2}"
+    print "${a < b} ${a <= a} ${a > b} ${a >= b} ${a == a} ${a != b} ${-zero == zero}"
+
+    let v = Vec { x: 1.5, y: 2.25 }
+    let w = grow(v)
+    print "${dot(v, w)} ${w.x} ${w.y} ${v.x}"
+    print "${len2(Dot(0.1))} ${len2(Seg(0.3, 0.7))}"
+
+    let g = Grid { cells: FixedArray.filled[f32, 3](0.1), tag: true }
+    print "${sumGrid(g)}"
+
+    let k: f32 = 0.25
+    let scale = (x: f32) => x * k + a
+    print "${apply(scale, 3)} ${apply(scale, nan)} ${identity(a + b)}"
+
+    let narrow = 0.1.toF32()
+    let wide = narrow.toF64()
+    print "${narrow} ${wide} ${wide == 0.1} ${narrow.toInt() || -1} ${(2.75.toF32() * 4).toInt() || -1}"
+    let n: Int = 16777217
+    let m3: Float = -3.0
+    print "${n.toF32()} ${(n + 1).toF32()} ${m3.toF32()}"
+    let parsed = (text.parseFloat("3.14159265358979") || 0.0).toF32()
+    let tiny = (text.parseFloat("1e-50") || 1.0).toF32()
+    print "${parsed} ${tiny} ${parsed == 3.1415927} ${(text.parseFloat("1e50") || 0.0).toF32()}"
+    let k1 = Key { x: 1.5, y: 2.25 }
+    let k2 = Key { x: nan, y: 0 }
+    let k3 = Key { x: nan, y: -zero }
+    print "${k1.equals(&Key { x: 1.5, y: 2.25 })} ${k1.hash() == Key { x: 1.5, y: 2.25 }.hash()} ${k2.equals(&k3)} ${k2.hash() == k3.hash()}"
+    let mut m = map.empty[Key, i64]()
+    m.set(k2, 1)
+    m.set(k3, 2)
+    m.set(k1, 3)
+    print "${m.len()} ${debug(m.get(k3))}"
+}
+-- stdout --
+0.3 0.33333334 1.6777216e+07 -0.1 0.020000001 -0.1 -1.1666666
+1.0000001 99.99905
++Inf -Inf NaN true false true false false
+5.5 -15 3.6285713
+true true false false true true true
+17.5875 1.6 6.75 1.5
+0.010000001 0.58
+0.3
+0.85 NaN 0.3
+0.1 0.10000000149011612 false 0 11
+1.6777216e+07 1.6777218e+07 -3
+3.1415927 0 true +Inf
+true true true true
+2 Some(2)

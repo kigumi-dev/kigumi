@@ -61,6 +61,8 @@ func (e *emitter) boxNative(sb *strings.Builder, info scalarInfo, v Value) strin
 		return e.irb(sb).Call(rtBoxInt128, lo, hi, vi32(info.Nk)).Text
 	case TDouble:
 		return e.irb(sb).Call(rtFloat, v, vi32(info.Nk)).Text
+	case TFloat:
+		return e.irb(sb).Call(rtFloat, vdouble(e.extendFloat(sb, v.Text)), vi32(info.Nk)).Text
 	case TI1:
 		return e.boolBox(sb, v.Text)
 	case TI32:
@@ -87,6 +89,8 @@ func (e *emitter) unboxScalar(sb *strings.Builder, ty Type, ptrVal string) Value
 		return e.joinWide(sb, Value{TI64, e.irb(sb).Call(rtInt128Lo, vptr(ptrVal)).Text}, Value{TI64, e.irb(sb).Call(rtInt128Hi, vptr(ptrVal)).Text})
 	case TDouble:
 		return Value{TDouble, e.irb(sb).Call(rtFloatVal, vptr(ptrVal)).Text}
+	case TFloat:
+		return Value{TFloat, e.narrowFloat(sb, e.irb(sb).Call(rtFloatVal, vptr(ptrVal)).Text)}
 	case TI1:
 		return Value{TI1, e.irb(sb).Call(rtTruth, vptr(ptrVal)).Text}
 	case TI32:
@@ -114,7 +118,7 @@ func (e *emitter) scalarOperand(sb *strings.Builder, f *mir.Func, l mir.LocalID)
 func (e *emitter) storeMaybeScalar(sb *strings.Builder, dst mir.LocalID, res string) {
 	if info, ok := e.scalar[dst]; ok {
 		v := e.unboxScalar(sb, info.Ty, res)
-		e.irb(sb).Call(rtRelease, vptr(res))
+		e.releaseScalarBox(sb, info.Ty, res)
 		e.storeNative(sb, dst, v)
 		return
 	}
@@ -156,15 +160,22 @@ func (e *emitter) litSlot(l mir.LocalID) (string, bool) {
 func (e *emitter) releaseScalarArgs(sb *strings.Builder, in mir.Inst, args []string) {
 	for i, a := range in.Args {
 		if e.isScalar(a) {
-			e.irb(sb).Call(rtRelease, vptr(args[i]))
+			e.releaseScalarBox(sb, e.scalar[a].Ty, args[i])
 		}
+	}
+}
+
+// releaseScalarBox skips a Bool box: rt_bool hands out two immortals.
+func (e *emitter) releaseScalarBox(sb *strings.Builder, ty Type, box string) {
+	if ty != TI1 {
+		e.irb(sb).Call(rtRelease, vptr(box))
 	}
 }
 
 // zeroOf initializes a scalar local's alloca the way every other local
 // starts out null.
 func zeroOf(t Type) string {
-	if t == TDouble {
+	if t == TDouble || t == TFloat {
 		return "0.0"
 	}
 	return "0"

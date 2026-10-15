@@ -54,7 +54,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 			if _, used := last[in.Dst]; !used {
 				last[in.Dst] = use{b, k}
 			}
-			if in.Op == OpBorrow && len(in.Args) == 1 && isTemp(in.Args[0]) {
+			if (in.Op == OpBorrow || in.Op == OpNewCell && in.Lent) && len(in.Args) == 1 && isTemp(in.Args[0]) {
 				borrowed[in.Dst] = in.Args[0]
 			}
 		}

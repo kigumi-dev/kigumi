@@ -20,6 +20,8 @@ func (e *emitter) scalarFrameBox(sb *strings.Builder, l mir.LocalID) string {
 		return e.boolBox(sb, v.Text)
 	case TDouble:
 		f, kind = v, kFloat
+	case TFloat:
+		f, kind = vdouble(e.extendFloat(sb, v.Text)), kFloat
 	case TI32:
 		t := e.newTmp()
 		fmt.Fprintf(sb, "  %s = zext i32 %s to i64\n", t, v.Text)

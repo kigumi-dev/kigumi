@@ -19,6 +19,8 @@ type argFixup struct {
 	cell     LocalID
 	node     syntax.NodeID
 	depth    int
+	// lent: the cell only views the place, so nothing is taken out of it or stored back.
+	lent bool
 }
 
 // placeArg boxes a scalar `&mut` argument for applyArgFixups to write back; skipped for async calls since their future can outlive this frame.
@@ -77,6 +79,10 @@ func (b *builder) abandonFixups(depth int) {
 		if fx.depth <= depth {
 			continue
 		}
+		if fx.lent {
+			b.emit(Inst{Op: OpDrop, Args: []LocalID{fx.cell}, Scoped: true, Node: fx.node})
+			continue
+		}
 		v := b.emit(Inst{Op: OpCellTake, Dst: b.temp(fx.elemType), Args: []LocalID{fx.cell}, Node: fx.node})
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{fx.cell}, Scoped: true, Node: fx.node})
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Scoped: true, Node: fx.node})
@@ -90,6 +96,10 @@ func (b *builder) applyArgFixups(mark int) {
 	b.argFixups = b.argFixups[:mark]
 	for _, fx := range fixups {
 		drop := Inst{Op: OpDrop, Args: []LocalID{fx.cell}, Scoped: true, Node: fx.node}
+		if fx.lent {
+			b.emit(drop)
+			continue
+		}
 		if fx.recv != nil {
 			v := b.emit(Inst{Op: OpCellTake, Dst: b.temp(fx.elemType), Args: []LocalID{fx.cell}, Node: fx.node})
 			b.emit(drop)

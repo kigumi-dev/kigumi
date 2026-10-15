@@ -1,0 +1,169 @@
+-- src --
+import task from std/task
+
+type Counter = {
+    pub mut n Int
+}
+
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Inner = {
+    pub mut c Counter
+    pub tag Int
+}
+
+type Outer = {
+    pub mut inner Inner
+    pub mut items FixedArray[Counter, 2]
+    pub mut log Array[Counter]
+}
+
+type Slot = Empty | Full(v: Int)
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Holder = {
+    pub mut r Res
+    pub mut n Int
+}
+
+fn Counter.bump(mut self, by: Int) -> Int {
+    self.n = self.n + by
+    self.n
+}
+
+fn Counter.reset(mut self) -> Unit {
+    self = Counter { n: 0 }
+}
+
+fn Pt.shift(mut self, dx: Int) -> Unit {
+    self.x = self.x + dx
+}
+
+fn Slot.fill(mut self, v: Int) -> Unit {
+    self = Full(v)
+}
+
+fn Holder.swap(mut self, id: Int) -> Res {
+    let old = move self.r
+    self.r = Res { id: id }
+    self.n = self.n + 1
+    old
+}
+
+fn bumpTwice(w: &mut Outer) -> Int {
+    let _ = w.inner.c.bump(1)
+    let _ = w.items[1].bump(10)
+    let _ = w.log[0].bump(100)
+    w.inner.c.bump(2) + w.items[1].n + w.log[0].n
+}
+
+fn viaArgs(c: Counter) -> Int {
+    let mut m = c
+    m.bump(m.n + 1)
+}
+
+fn viaClosure() -> Int {
+    let mut c = Counter { n: 5 }
+    let go = () => c.bump(3)
+    let _ = go()
+    let _ = go()
+    c.n
+}
+
+async fn later(c: Counter) -> Int {
+    let mut m = c
+    let a = m.bump(1)
+    let b = await inner(a)
+    m.bump(b)
+}
+
+type Boom = {
+    pub text String
+}
+
+fn Boom.message(self) -> String {
+    self.text
+}
+
+fn risky(n: Int) -> Int! {
+    if n > 2 {
+        fail Boom { text: "too big ${n}" }
+    }
+    n
+}
+
+fn viaTry(n: Int) -> Int! {
+    let mut c = Counter { n: 1 }
+    let r = c.bump(risky(n)?)
+    r + c.n
+}
+
+fn viaLoop(limit: Int) -> Int {
+    let mut c = Counter { n: 0 }
+    let mut total = 0
+    for i in 0..10 {
+        if i == limit {
+            break
+        }
+        total = total + c.bump(i)
+    }
+    total + c.n
+}
+
+async fn inner(x: Int) -> Int {
+    x * 2
+}
+
+fn main() -> Unit! {
+    let mut c = Counter { n: 1 }
+    print "${c.bump(2)} ${c.bump(3)} ${c.n}"
+    c.reset()
+    print "${c.n}"
+
+    let mut p = Pt { x: 1, y: 2 }
+    p.shift(5)
+    let q = p
+    p.shift(5)
+    print "${p.x} ${q.x} ${p.y}"
+
+    let mut s = Empty
+    s.fill(4)
+    print "${debug(s)}"
+
+    let mut o = Outer { inner: Inner { c: Counter { n: 0 }, tag: 7 }, items: FixedArray.filled(Counter { n: 1 }), log: Array.of(Counter { n: 9 }) }
+    print "${bumpTwice(&mut o)} ${o.inner.c.n} ${o.items[1].n} ${o.items[0].n} ${o.log[0].n}"
+    print "${viaArgs(Counter { n: 4 })} ${viaClosure()}"
+
+    let mut h = Holder { r: Res { id: 1 }, n: 0 }
+    let old = h.swap(2)
+    let older = h.swap(3)
+    print "${old.id} ${older.id} ${h.n}"
+
+    print "${viaTry(2) || -1} ${viaTry(5) || -1} ${viaLoop(4)} ${viaLoop(0)}"
+
+    let ex = task.currentThreadExecutor()
+    print "${ex.runToCompletion(later(Counter { n: 10 }))}"
+}
+-- stdout --
+3 6 6
+0
+11 6 2
+Full(4)
+123 3 11 1 109
+9 11
+1 2 2
+6 -1 16 0
+33
+drop 2
+drop 1
+drop 3

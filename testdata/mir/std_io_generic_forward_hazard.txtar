@@ -40,43 +40,40 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     %t6 = cellget(%self)
     %t7 = field 0(%t6)
     %t8 = borrow 1(%t7)
-    %t9 = share retain(%t8)
-    %t10 = newcell(%t9)
-    %t11 = copy(%i)
-    %t12 = call std/prelude.Bytes.get(%data, %t11)
-    %t14 = isvariant Option.Some(%t12)
-    branch %t14 ? b5 : b6
+    %t9 = newcell(%t8)
+    %t10 = copy(%i)
+    %t11 = call std/prelude.Bytes.get(%data, %t10)
+    %t13 = isvariant Option.Some(%t11)
+    branch %t13 ? b5 : b6
   b3:
     jump b1
   b4:
-    %t23 = unit
-    drop(%t23)
-    %t24 = call std/prelude.Bytes.len(%data)
-    %t25 = variant Result.Ok(%t24)
+    %t21 = unit
+    drop(%t21)
+    %t22 = call std/prelude.Bytes.len(%data)
+    %t23 = variant Result.Ok(%t22)
     drop(%i)
     drop(%data)
-    return %t25
+    return %t23
   b5:
-    %t15 = payload 0(%t12)
-    %t13 = copy(%t15)
+    %t14 = payload 0(%t11)
+    %t12 = copy(%t14)
     jump b7
   b6:
-    %t16 = unit
-    %t17 = const 0: u8
-    %t13 = copy(%t17)
+    %t15 = unit
+    %t16 = const 0: u8
+    %t12 = copy(%t16)
     jump b7
   b7:
-    drop(%t12)
-    %t18 = call std/array.Array.push(%t10, %t13)
-    %t19 = celltake(%t10)
-    drop(%t10)
-    setfield 0(%t6, %t19)
-    drop(%t18)
-    %t20 = const 1: usize
-    %t21 = bin +(%i, %t20)
+    drop(%t11)
+    %t17 = call std/array.Array.push(%t9, %t12)
+    drop(%t9)
+    drop(%t17)
+    %t18 = const 1: usize
+    %t19 = bin +(%i, %t18)
     drop(%i)
-    %i = copy(%t21)
-    %t22 = unit
+    %i = copy(%t19)
+    %t20 = unit
     jump b3
 }
 fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) -> Unit! {

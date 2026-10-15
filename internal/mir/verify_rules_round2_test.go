@@ -238,7 +238,7 @@ fn count(n: Int) -> Int {
 }
 let _ = count(3)
 `, true, []ruleCase{
-		{"outer value dropped inside the loop", "main.count", "refs", "already released", func(t *testing.T, p *mir.Program, f *mir.Func) {
+		{"outer value dropped inside the loop", "main.count", "refs", "after its value was released", func(t *testing.T, p *mir.Program, f *mir.Func) {
 			made := nth(t, f, mir.OpCall, 0).Dst
 			last := len(f.Blocks) - 1
 			for bi := range f.Blocks {
