@@ -22,7 +22,10 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	} else if root := c.rootOf(lhs); root != 0 {
 		c.noteCaptureWrite(lhs, root)
 	}
-	c.crossStore(lhs, target)
+	deferred := !op.IsCompoundAssign() && c.t.Kind(lhs) == syntax.BracketExpr && c.t.Kind(c.stripParen(rhs)) == syntax.BracketExpr
+	if !deferred {
+		c.crossStore(lhs, target)
+	}
 	c.invalidatePlace(lhs)
 	c.rejectAsyncSelfAssign(lhs)
 	c.noteWholeSelfAssign(lhs)
@@ -35,6 +38,9 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		target = elem
 	}
 	c.check(rhs, target)
+	if deferred && !c.elementCopy(lhs, rhs, target) {
+		c.crossStore(lhs, target)
+	}
 	c.applyFieldWrite(lhs, rhs)
 	if c.t.Kind(lhs) != syntax.Ident {
 		c.checkEscapeStore(rhs)

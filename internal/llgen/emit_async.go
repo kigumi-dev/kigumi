@@ -38,9 +38,10 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	}
 	var body strings.Builder
 	e.entryAllocas, e.hoisting = nil, true
+	stores := e.p.CopyStores(f)
 	for bid, blk := range f.Blocks {
 		fmt.Fprintf(&body, "b%d:\n", bid)
-		for _, in := range blk.Insts {
+		for _, in := range copyStoreInsts(&blk, bid, stores) {
 			e.inst(&body, f, in)
 		}
 		e.term(&body, blk.Term)

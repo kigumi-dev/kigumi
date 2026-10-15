@@ -1,0 +1,29 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import ffi from std/ffi
+import {AllocatorHandle} from std/alloc
+
+fn probe(h: AllocatorHandle) -> Int {
+    allocator h.scope() {
+        let table = ffi.HandleTable.new[Int]()
+        let handle = table.insert(7)
+        table.with(&handle, (v) => 1)
+    }
+}
+
+fn main() -> Unit! {
+    let h: AllocatorHandle? = None
+    if h is Some(handle) {
+        let r = probe(handle)
+    }
+}
+-- expect --
+error[E1370]: `HANDLE_TABLE_NEW` reaches the `ffi.handle-table` capability, which this target does not provide: its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)
+ --> main.kg:6:21
+  |
+6 |         let table = ffi.HandleTable.new[Int]()
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: reached through: main -> probe
+

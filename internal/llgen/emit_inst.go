@@ -96,7 +96,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpIndex:
 		res = e.irb(sb).Call(rtIndex, vptr(args[0]), vptr(args[1])).Text
 	case mir.OpSetIndex:
-		e.irb(sb).Call(rtSetindex, vptr(args[0]), vptr(args[1]), vptr(args[2]))
+		e.setIndex(sb, in, args)
 		e.releaseScalarArgs(sb, in, args)
 		return
 	case mir.OpPayload:

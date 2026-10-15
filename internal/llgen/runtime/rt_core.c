@@ -740,6 +740,45 @@ void rt_setindex(val base, val idx, val v) {
     base->u.arr.items[i] = v;
     rt_release(old);
 }
+// Fields of a record built only from scalar boxes and such records can be taken over where they stand.
+static int fields_fit(val dst, val src) {
+    if (dst == src) return 1;
+    if (dst->rc != 1 || dst->kind != K_RECORD || src->kind != K_RECORD) return 0;
+    if (dst->u.rec.type != src->u.rec.type || dst->u.rec.type->kind == 1 || dst->u.rec.type->borrow_fields) return 0;
+    for (int64_t i = 0; i < dst->u.rec.n; i++) {
+        val d = dst->u.rec.fields[i], s = src->u.rec.fields[i];
+        if (d == s) continue;
+        if (!d || !s || d->kind != s->kind) return 0;
+        if (d->kind == K_RECORD ? !fields_fit(d, s) : d->kind != K_INT && d->kind != K_FLOAT && d->kind != K_BOOL && d->kind != K_CHAR && d->kind != K_UNIT) return 0;
+    }
+    return 1;
+}
+static void take_fields(val dst, val src) {
+    if (dst == src) return;
+    for (int64_t i = 0; i < dst->u.rec.n; i++) {
+        val d = dst->u.rec.fields[i], s = src->u.rec.fields[i];
+        if (d == s) continue;
+        if (d->kind == K_RECORD) {
+            take_fields(d, s);
+        } else {
+            dst->u.rec.fields[i] = rt_retain(s);
+            rt_release(d);
+        }
+    }
+}
+// base[idx] = copy of src; the slot keeps its own box when src's fields fit into it.
+void rt_setindex_copy(val base, val idx, val src) {
+    base = deref(base);
+    int64_t i = deref(idx)->u.i;
+    if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic("index out of range");
+    val old = base->u.arr.items[i];
+    if (old && fields_fit(old, src)) {
+        take_fields(old, src);
+        return;
+    }
+    base->u.arr.items[i] = rt_copy(src);
+    rt_release(old);
+}
 int64_t rt_int_val(val v) {
     v = deref(v);
     return v->kind == K_INT ? v->u.i : 0;

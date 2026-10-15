@@ -41,6 +41,7 @@ type Result struct {
 	// Comptime lists the blocks the driver must evaluate before lowering.
 	Comptime []ComptimeSite
 
+	parseFailed     bool
 	target          Target
 	noDefault       bool
 	recoverableOnly bool

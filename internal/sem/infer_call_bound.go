@@ -21,12 +21,12 @@ func (c *checker) fnBoundContract(a syntax.NodeID, target EntityID, need Effects
 	}
 }
 
-// A forwarded type parameter keeps its own deferral, so only a plain fn type is judged here.
 func (c *checker) fnBoundValue(a syntax.NodeID, at TypeID, bound TypeID, need Effects) {
-	if need == 0 || c.r.Types.Kind(at) != KFn {
+	shape := c.r.fnShapeOf(at)
+	if need == 0 || shape == 0 {
 		return
 	}
-	if missing := need &^ Effects(c.r.Types.Node(at).Flags); missing != 0 {
+	if missing := need &^ Effects(c.r.Types.Node(shape).Flags); missing != 0 {
 		c.errAt(a, cFnValueEffects, at, bound, effectsText(missing))
 	}
 }

@@ -1,0 +1,40 @@
+-- src --
+interface Sized {
+    fn len(self) -> Int
+    fn get(self, i: Int) -> Int
+    fn push(mut self, x: Int) -> Unit
+    fn first(self) -> Int
+    fn trim(self) -> Int
+    fn contains(self, x: Int) -> Bool
+    fn toString(self) -> String
+}
+
+type Box = {
+    pub mut n Int
+}
+
+fn Box.len(self) -> Int { self.n }
+fn Box.get(self, i: Int) -> Int { self.n + i }
+fn Box.push(mut self, x: Int) -> Unit { self.n = self.n + x }
+fn Box.first(self) -> Int { self.n * 10 }
+fn Box.trim(self) -> Int { self.n * 100 }
+fn Box.contains(self, x: Int) -> Bool { self.n == x }
+fn Box.toString(self) -> String { "box${self.n}" }
+
+fn drive(s: Sized) -> Int {
+    s.len() + s.get(1) + s.first() + s.trim() + (if s.contains(4) { 1000 } else { 0 })
+}
+
+fn driveParam[T: Sized](s: T) -> String {
+    "${s.len()} ${s.get(2)} ${s.first()} ${s.toString()}"
+}
+
+fn main() -> Unit! {
+    let mut b = Box { n: 4 }
+    print "d=${drive(b)} ${driveParam(b)}"
+    b.push(1)
+    print "${b.len()} ${b.toString()}"
+}
+-- stdout --
+d=1449 4 6 40 box4
+5 box5

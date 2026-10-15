@@ -54,6 +54,7 @@ var (
 	rtArray        = RuntimeFn{"rt_array", []Type{TI64, TPtr}, TPtr}
 	rtIndex        = RuntimeFn{"rt_index", []Type{TPtr, TPtr}, TPtr}
 	rtSetindex     = RuntimeFn{"rt_setindex", []Type{TPtr, TPtr, TPtr}, TVoid}
+	rtSetindexCopy = RuntimeFn{"rt_setindex_copy", []Type{TPtr, TPtr, TPtr}, TVoid}
 	rtPayload      = RuntimeFn{"rt_payload", []Type{TPtr, TI64}, TPtr}
 	rtIsvariant    = RuntimeFn{"rt_isvariant", []Type{TPtr, TPtr}, TPtr}
 	rtVariantIndex = RuntimeFn{"rt_variant_index", []Type{TPtr}, TI32}
@@ -106,7 +107,7 @@ var runtimeFns = []RuntimeFn{
 	rtTruth, rtAt, rtCallv, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
 	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstNum, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
-	rtIndex, rtSetindex, rtPayload, rtIsvariant, rtVariantIndex, rtIstype, rtUnbox, rtBox,
+	rtIndex, rtSetindex, rtSetindexCopy, rtPayload, rtIsvariant, rtVariantIndex, rtIstype, rtUnbox, rtBox,
 	rtClosure, rtClosureAsync, rtClosureEnv, rtArrayPush, rtFnItemInit, rtStdItemInit, rtCell, rtCellInit, rtCellget, rtCellTake, rtCellset, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,

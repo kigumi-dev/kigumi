@@ -1,0 +1,21 @@
+-- module --
+mir: planned
+-- src --
+type Named = {
+    pub mut name String
+    pub mut n Int
+}
+
+noalloc fn copyNamed(xs: &mut FixedArray[Named, 2]) -> Unit {
+    xs[0] = xs[1] //~ ERROR copying `Named`
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E1700]: copying `Named` here allocates a box of its own for the copy
+ --> main.kg:7:5
+  |
+7 |     xs[0] = xs[1] //~ ERROR copying `Named`
+  |     ^^^^
+  = help: use the original instead of a copy, or drop the declaration
+

@@ -1,0 +1,21 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import ffi from std/ffi
+import {AllocatorHandle} from std/alloc
+
+fn probe(h: AllocatorHandle) -> Int {
+    allocator h.scope() {
+        let pin = ffi.Pin.new(5)
+        if ffi.isNull(ffi.toConst(pin.ptr())) { 1 } else { 0 }
+    }
+}
+
+fn main() -> Unit! {
+    let h: AllocatorHandle? = None
+    if h is Some(handle) {
+        let r = probe(handle)
+    }
+}
+-- expect --

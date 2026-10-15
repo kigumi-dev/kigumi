@@ -9,7 +9,7 @@ func (p *Program) allocCopy(f *Func, in Inst) bool {
 	if _, ok := p.elemCopy(f, in); ok {
 		return true
 	}
-	if in.Op != OpShare || !in.Copy || !f.DirectPlanned() || f.IsDirect(in.Args[0]) {
+	if in.Op != OpShare || !in.Copy || !f.DirectPlanned() || f.IsDirect(in.Args[0]) || p.copiesInPlace(f, in) {
 		return false
 	}
 	return in.Own || !f.Locals[in.Args[0]].Cell && p.R.CopyAllocates(f.Locals[in.Args[0]].Type)

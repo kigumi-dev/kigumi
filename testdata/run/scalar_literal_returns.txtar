@@ -1,0 +1,53 @@
+-- src --
+noalloc fn lit(a: Int) -> Int {
+    if a <= 0 { 0 } else { a + 1 }
+}
+
+noalloc fn multi(a: Int) -> Int {
+    if a < 0 { return 5 }
+    if a == 0 { return a }
+    a + 1
+}
+
+noalloc fn down(a: Int) -> Int {
+    if a <= 0 { 0 } else { down(a - 1) + 1 }
+}
+
+noalloc fn flag(a: Int) -> Bool {
+    if a > 3 { true } else { a == 2 }
+}
+
+noalloc fn mixedFloat(a: Float) -> Float {
+    if a > 1.0 { a / 2.0 } else { 0.5 }
+}
+
+noalloc fn onlyLiteral(a: Int) -> Int {
+    if a > 0 { 7 } else { 8 }
+}
+
+fn inferred(a: Int) -> Int {
+    if a <= 0 { -1 } else { a * 2 }
+}
+
+fn viaBox(xs: &Array[Int]) -> Int {
+    if xs.len() == 0 { 0 } else { xs[0] + 1 }
+}
+
+fn main() -> Unit! {
+    let xs = Array.of(10, 20)
+    print "${lit(-3)} ${lit(0)} ${lit(4)} ${multi(-1)} ${multi(0)} ${multi(9)}"
+    print "${down(0)} ${down(5)} ${flag(1)} ${flag(2)} ${flag(9)}"
+    print "${mixedFloat(0.0)} ${mixedFloat(5.0)} ${onlyLiteral(1)} ${onlyLiteral(0)}"
+    print "${inferred(-2)} ${inferred(6)} ${viaBox(&xs)} ${viaBox(&Array.empty[Int]())}"
+    let mut s = 0
+    for i in 0..6 {
+        s = s + lit(i) + multi(i - 2) + down(i)
+    }
+    print "${s}"
+}
+-- stdout --
+0 0 5 5 0 10
+0 5 false true true
+0.5 2.5 7 8
+-1 12 11 0
+54

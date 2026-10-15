@@ -1,0 +1,104 @@
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+fn mkn(x: Int) -> Nm { Nm { name: "b", n: x } }
+
+fn plainFn(x: Int) -> Int { mkn(x).n }
+
+noalloc fn cheap(x: Int) -> Int { x + 1 }
+
+pure fn spotless(x: Int) -> Int { x * 2 }
+
+noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+pure fn applyPure[F: Fn[pure fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+noalloc pure fn applyBoth[F: Fn[noalloc pure fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+fn okNoalloc[G: Fn[noalloc fn(Int) -> Int]](g: G) -> Int { applyGen(g, 1) }
+
+fn okPure[G: Fn[pure fn(Int) -> Int]](g: G) -> Int { applyPure(g, 1) }
+
+fn okBoth[G: Fn[noalloc pure fn(Int) -> Int]](g: G) -> Int {
+    applyGen(g, 1) + applyPure(g, 1) + applyBoth(g, 1)
+}
+
+fn okWider[G: Fn[noalloc pure fn(Int) -> Int]](g: G) -> Int { applyGen(g, 1) }
+
+fn badNoalloc[G: Fn[fn(Int) -> Int]](g: G) -> Int { applyGen(g, 1) } //~ ERROR `G` cannot be used as `noalloc fn(Int) -> Int`
+
+fn badPure[G: Fn[fn(Int) -> Int]](g: G) -> Int { applyPure(g, 1) } //~ ERROR `G` cannot be used as `pure fn(Int) -> Int`
+
+fn badOnlyPure[G: Fn[pure fn(Int) -> Int]](g: G) -> Int { applyGen(g, 1) } //~ ERROR `G` cannot be used as `noalloc fn(Int) -> Int`
+
+fn badOnlyNoalloc[G: Fn[noalloc fn(Int) -> Int]](g: G) -> Int { applyPure(g, 1) } //~ ERROR `G` cannot be used as `pure fn(Int) -> Int`
+
+fn badBoth[G: Fn[noalloc fn(Int) -> Int]](g: G) -> Int { applyBoth(g, 1) } //~ ERROR `G` cannot be used as `pure noalloc fn(Int) -> Int`
+
+fn badChain[G: Fn[fn(Int) -> Int]](g: G) -> Int { okNoalloc(g) } //~ ERROR `G` cannot be used as `noalloc fn(Int) -> Int`
+
+fn useItems() -> Int {
+    okNoalloc(cheap) + okNoalloc((x: Int) => x + 2) + okPure(spotless)
+}
+
+fn badItem() -> Int { okNoalloc(plainFn) } //~ ERROR `plainFn` is not `noalloc`
+
+fn badClosure() -> Int { okNoalloc((x: Int) => mkn(x).n) } //~ ERROR closure is not `noalloc`
+-- expect --
+error[E421]: `G` cannot be used as `noalloc fn(Int) -> Int`: it is not declared `noalloc`
+  --> main/main.kg:36:62
+   |
+36 | fn badNoalloc[G: Fn[fn(Int) -> Int]](g: G) -> Int { applyGen(g, 1) } //~ ERROR `G` cannot be used as `noalloc fn(Int) -> Int`
+   |                                                              ^
+
+error[E421]: `G` cannot be used as `pure fn(Int) -> Int`: it is not declared `pure`
+  --> main/main.kg:38:60
+   |
+38 | fn badPure[G: Fn[fn(Int) -> Int]](g: G) -> Int { applyPure(g, 1) } //~ ERROR `G` cannot be used as `pure fn(Int) -> Int`
+   |                                                            ^
+
+error[E421]: `G` cannot be used as `noalloc fn(Int) -> Int`: it is not declared `noalloc`
+  --> main/main.kg:40:68
+   |
+40 | fn badOnlyPure[G: Fn[pure fn(Int) -> Int]](g: G) -> Int { applyGen(g, 1) } //~ ERROR `G` cannot be used as `noalloc fn(Int) -> Int`
+   |                                                                    ^
+
+error[E421]: `G` cannot be used as `pure fn(Int) -> Int`: it is not declared `pure`
+  --> main/main.kg:42:75
+   |
+42 | fn badOnlyNoalloc[G: Fn[noalloc fn(Int) -> Int]](g: G) -> Int { applyPure(g, 1) } //~ ERROR `G` cannot be used as `pure fn(Int) -> Int`
+   |                                                                           ^
+
+error[E421]: `G` cannot be used as `pure noalloc fn(Int) -> Int`: it is not declared `pure`
+  --> main/main.kg:44:68
+   |
+44 | fn badBoth[G: Fn[noalloc fn(Int) -> Int]](g: G) -> Int { applyBoth(g, 1) } //~ ERROR `G` cannot be used as `pure noalloc fn(Int) -> Int`
+   |                                                                    ^
+
+error[E421]: `G` cannot be used as `noalloc fn(Int) -> Int`: it is not declared `noalloc`
+  --> main/main.kg:46:61
+   |
+46 | fn badChain[G: Fn[fn(Int) -> Int]](g: G) -> Int { okNoalloc(g) } //~ ERROR `G` cannot be used as `noalloc fn(Int) -> Int`
+   |                                                             ^
+
+error[E423]: `plainFn` is not `noalloc` (calls `mkn`)
+  --> main/main.kg:52:33
+   |
+52 | fn badItem() -> Int { okNoalloc(plainFn) } //~ ERROR `plainFn` is not `noalloc`
+   |                                 ^^^^^^^
+
+error[E422]: closure is not `noalloc` (calls `mkn`)
+  --> main/main.kg:54:36
+   |
+54 | fn badClosure() -> Int { okNoalloc((x: Int) => mkn(x).n) } //~ ERROR closure is not `noalloc`
+   |                                    ^^^^^^^^^^^^^^^^^^^^
+

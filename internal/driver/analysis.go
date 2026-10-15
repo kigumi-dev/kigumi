@@ -43,6 +43,9 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 		gen = schema.GenerateDerive
 	}
 	res := sem.CheckWith(mod, gen)
+	if m.HasParseErrors() {
+		res.FailParse()
+	}
 	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
 	m.lastAnalysis = a
 	if res.HasErrors() {

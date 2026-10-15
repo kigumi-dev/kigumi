@@ -1,0 +1,74 @@
+-- src --
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Cell = {
+    pub mut at Pt
+    pub mut on Bool
+    pub mut w Float
+    pub mut c Char
+}
+
+noalloc fn copyPt(xs: &mut FixedArray[Pt, 3], to: usize, from: usize) -> Unit {
+    xs[to] = xs[from]
+}
+
+noalloc fn firstFromLast(xs: &mut FixedArray[Pt, 3]) -> Unit {
+    xs[0] = xs[2]
+}
+
+noalloc fn copyCell(xs: &mut FixedArray[Cell, 2]) -> Unit {
+    xs[0] = xs[1]
+}
+
+noalloc fn between(dst: &mut FixedArray[Pt, 3], src: &FixedArray[Pt, 3]) -> Unit {
+    dst[1] = src[2]
+}
+
+fn show(xs: &FixedArray[Pt, 3]) -> String {
+    "${xs[0].x},${xs[0].y} ${xs[1].x},${xs[1].y} ${xs[2].x},${xs[2].y}"
+}
+
+fn main() -> Unit! {
+    let mut a = FixedArray.filled[Pt, 3](Pt { x: 1, y: 2 })
+    a[1] = Pt { x: 3, y: 4 }
+    a[2] = Pt { x: 5, y: 6 }
+    copyPt(&mut a, 0, 1)
+    print show(&a)
+    a[0].x = 90
+    print show(&a)
+    a[1].y = 91
+    print show(&a)
+    copyPt(&mut a, 2, 2)
+    firstFromLast(&mut a)
+    print show(&a)
+    a[2].x = 7
+    print show(&a)
+    let kept = a[0]
+    firstFromLast(&mut a)
+    a[2].y = 8
+    print "${kept.x},${kept.y} ${show(&a)}"
+
+    let mut b = FixedArray.filled[Pt, 3](Pt { x: 0, y: 0 })
+    between(&mut b, &a)
+    a[2].x = 100
+    print "${show(&b)} ${show(&a)}"
+
+    let mut cells = FixedArray.filled[Cell, 2](Cell { at: Pt { x: 1, y: 1 }, on: false, w: 0.5, c: 'a' })
+    cells[1] = Cell { at: Pt { x: 7, y: 8 }, on: true, w: 2.5, c: 'z' }
+    copyCell(&mut cells)
+    cells[1].at.x = 70
+    cells[0].w = 9.5
+    print "${cells[0].at.x},${cells[0].at.y} ${cells[0].on} ${cells[0].w} ${cells[0].c} | ${cells[1].at.x} ${cells[1].w}"
+}
+-- stdout --
+3,4 3,4 5,6
+90,4 3,4 5,6
+90,4 3,91 5,6
+5,6 3,91 5,6
+5,6 3,91 7,6
+5,6 7,6 3,91 7,8
+0,0 7,8 0,0 7,6 3,91 100,8
+7,8 true 9.5 z | 70 2.5

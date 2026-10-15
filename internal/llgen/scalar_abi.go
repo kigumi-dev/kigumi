@@ -97,27 +97,10 @@ func (e *emitter) narrowScalarSig(f *mir.Func) bool {
 			s.Params[i], changed = nil, true
 		}
 	}
-	for _, blk := range f.Blocks {
-		if blk.Term.Op != mir.TermReturn || s.Ret == nil {
-			continue
-		}
-		// A value that already has a box, a literal's immortal included, is returned boxed for free.
-		if _, ok := regs[blk.Term.Args[0]]; !ok || !e.onlyRaw(f, blk.Term.Args[0]) {
-			s.Ret, changed = nil, true
-		}
+	if s.Ret != nil && !e.returnsInRegister(f, regs) {
+		s.Ret, changed = nil, true
 	}
 	return changed
-}
-
-func (e *emitter) onlyRaw(f *mir.Func, l mir.LocalID) bool {
-	for _, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			if in.Op.Yields() && in.Dst == l && !e.rawDef(in, e.raw) {
-				return false
-			}
-		}
-	}
-	return e.raw[l]
 }
 
 func (e *emitter) calleeScalarSig(in mir.Inst) *scalarSig {

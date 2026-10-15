@@ -161,10 +161,11 @@ func (e *emitter) function(f *mir.Func) string {
 	}
 	var body strings.Builder
 	e.entryAllocas, e.hoisting = nil, true
+	stores := e.p.CopyStores(f)
 	for bid, blk := range f.Blocks {
 		fmt.Fprintf(&body, "b%d:\n", bid)
 		e.unwindBlock()
-		for pc, in := range blk.Insts {
+		for pc, in := range copyStoreInsts(&blk, bid, stores) {
 			e.unwindSite(&body, mir.BlockID(bid), pc)
 			e.inst(&body, f, in)
 		}

@@ -1,0 +1,78 @@
+-- src --
+noalloc fn pick(n: Int) -> u8? {
+    if n > 2 { n.toU8() } else { None }
+}
+
+fn pickC(n: Int) -> Char? {
+    if n > 2 { Char.fromInt(n + 60) } else { None }
+}
+
+fn pickF(n: Int) -> Float? {
+    if n > 2 { Some(n.toFloat()) } else { None }
+}
+
+fn pickG[T](o: T) -> T? {
+    Some(o)
+}
+
+fn viaUser(n: Int) -> Int {
+    let mut x: u8? = None
+    let g = () => {
+        x = pick(n)
+    }
+    g()
+    (x || 3).toInt()
+}
+
+fn viaUserArg(n: Int) -> u8 {
+    let mut x: u8? = None
+    let set = (v: Int) => {
+        x = pick(v)
+    }
+    set(n)
+    set(n + 1)
+    x || 4
+}
+
+fn viaLoop(n: Int) -> Int {
+    let mut acc: u8? = None
+    let mut total = 0
+    let step = (i: Int) => {
+        acc = pick(i)
+    }
+    for i in 0..n {
+        step(i)
+        total = total + (acc || 0).toInt()
+    }
+    total
+}
+
+let mut counter: u8? = None
+let bump = (n: Int) => {
+    counter = pick(n)
+}
+
+let mut ch: Char? = None
+let setCh = (n: Int) => {
+    ch = pickC(n)
+}
+
+let mut fl: Float? = None
+let setFl = (n: Int) => {
+    fl = pickF(n)
+}
+
+let mut gen: u8? = None
+let setGen = (n: Int) => {
+    gen = pickG(n.toU8() || 0)
+}
+
+bump(9)
+setCh(5)
+setFl(4)
+setGen(3)
+print "${viaUser(5)} ${viaUser(1)} ${viaUserArg(7)} ${viaUserArg(0)} ${viaLoop(6)}"
+print "${counter || 0} ${ch || 'z'} ${fl || 0.0} ${gen || 0}"
+-- stdout --
+5 3 8 4 12
+9 A 4 3

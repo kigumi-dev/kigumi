@@ -1,0 +1,31 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import ffi from std/ffi
+import {AllocatorHandle} from std/alloc
+
+fn probe(h: AllocatorHandle) -> Int {
+    allocator h.scope() {
+        let text = "hi"
+        match ffi.CString.new(&text) {
+            Ok(c) -> if ffi.isNull(c.ptr()) { 1 } else { 0 }
+            Err(_) -> 2
+        }
+    }
+}
+
+fn main() -> Unit! {
+    let h: AllocatorHandle? = None
+    if h is Some(handle) {
+        let r = probe(handle)
+    }
+}
+-- expect --
+error[E1370]: `CSTRING_NEW` reaches the `ffi.cstring` capability, which this target does not provide: its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)
+ --> main.kg:7:15
+  |
+7 |         match ffi.CString.new(&text) {
+  |               ^^^^^^^^^^^^^^^^^^^^^
+  = help: reached through: main -> probe
+

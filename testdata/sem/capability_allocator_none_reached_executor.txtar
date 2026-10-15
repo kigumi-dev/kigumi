@@ -1,0 +1,32 @@
+-- module --
+stage: driver
+allocator: none
+-- src --
+import task from std/task
+import {AllocatorHandle} from std/alloc
+
+async fn leaf() -> Int {
+    1
+}
+
+fn probe(h: AllocatorHandle) -> Int {
+    allocator h.scope() {
+        let ex = task.currentThreadExecutor()
+        ex.runToCompletion(leaf())
+    }
+}
+
+fn main() -> Unit! {
+    let h: AllocatorHandle? = None
+    if h is Some(handle) {
+        let r = probe(handle)
+    }
+}
+-- expect --
+error[E1370]: `TASK_CURRENT_EXECUTOR` reaches the `task.executor` capability, which this target does not provide: its runtime state is heap-allocated outside any allocator block, and this build has no default allocator (--allocator none)
+  --> main.kg:10:18
+   |
+10 |         let ex = task.currentThreadExecutor()
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: reached through: main -> probe
+

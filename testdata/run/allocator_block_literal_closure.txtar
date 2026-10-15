@@ -1,0 +1,51 @@
+-- src --
+import {Arena, AllocatorHandle} from std/alloc
+
+fn literal(h: &AllocatorHandle) -> Int {
+    allocator h.scope() {
+        7
+    }
+}
+
+fn viaClosure(h: &AllocatorHandle) -> Int {
+    allocator h.scope() {
+        let f = () => 7
+        f()
+    }
+}
+
+fn viaBlockClosure(h: &AllocatorHandle) -> Int {
+    allocator h.scope() {
+        let f = () => { 8 }
+        f() + 1
+    }
+}
+
+fn viaCapture(h: &AllocatorHandle, k: Int) -> Int {
+    allocator h.scope() {
+        let f = () => k
+        f() + 1
+    }
+}
+
+fn viaMapped(h: &AllocatorHandle) -> Int {
+    allocator h.scope() {
+        Array.of(1, 2, 3).map((x: &Int) => 5).len().toInt() || 0
+    }
+}
+
+fn run() -> Unit! {
+    let arena = Arena.create()?
+    let outer = () => {
+        allocator arena.scope() {
+            7
+        }
+    }
+    print "${outer()} ${literal(&arena)} ${viaClosure(&arena)} ${viaBlockClosure(&arena)} ${viaCapture(&arena, 4)} ${viaMapped(&arena)}"
+}
+
+fn main() -> Unit! {
+    run()?
+}
+-- stdout --
+7 7 7 9 5 3

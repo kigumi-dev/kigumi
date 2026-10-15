@@ -39,7 +39,13 @@ func (r *Result) Diagnostics(t *syntax.Tree) []diag.Diagnostic {
 	return slices.Clone(f.Diags)
 }
 
+// FailParse makes the result an error for a build whose source did not parse, so no pass after the checker sees a missing node.
+func (r *Result) FailParse() { r.parseFailed = true }
+
 func (r *Result) HasErrors() bool {
+	if r.parseFailed {
+		return true
+	}
 	for i := range r.Files {
 		for _, d := range r.Files[i].Diags {
 			if d.Severity == diag.Error {
@@ -54,6 +60,9 @@ func (r *Result) HasErrors() bool {
 func (r *Result) Render() string {
 	var sb strings.Builder
 	for i := 1; i < len(r.Files); i++ {
+		if t := r.Files[i].Tree; r.parseFailed && t != nil {
+			sb.WriteString(diag.RenderAll(r, slices.DeleteFunc(slices.Clone(t.Diags), func(d diag.Diagnostic) bool { return d.Severity != diag.Error })))
+		}
 		sb.WriteString(diag.RenderAll(r, r.Files[i].Diags))
 	}
 	return sb.String()

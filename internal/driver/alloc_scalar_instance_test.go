@@ -57,6 +57,18 @@ noalloc fn pick[T: Copy](on: Bool, a: T, b: T) -> T { if on { a } else { b } }
 
 noalloc fn half(x: Float) -> Float { x / 2.0 }
 
+noalloc fn lit(a: Int) -> Int { if a <= 0 { 0 } else { a + 100000 } }
+
+noalloc fn multi(a: Int) -> Int {
+    if a < 0 { return 5 }
+    if a == 0 { return a }
+    a + 100000
+}
+
+noalloc fn down(a: Int) -> Int { if a <= 0 { 100000 } else { down(a - 1) + 1 } }
+
+fn inferred(a: Int) -> Int { if a <= 0 { 0 } else { a + 100000 } }
+
 fn run(rounds: Int) -> Int {
     let mut s = 0
     for i in 0..rounds {
@@ -79,7 +91,7 @@ func TestScalarArgumentsCrossCallsUnboxed(t *testing.T) {
 		return count(t, src(expr, 6)) - count(t, src(expr, 2))
 	}
 	base := perRounds(nativeAllocs, "(i + 100000)")
-	for _, expr := range []string{"keep(i + 100000)", "keepInt(i + 100000)", "pick(i > 2, i + 100000, i)", "(if half((i + 100000).toFloat()) > 1.0 { 1 } else { 0 })"} {
+	for _, expr := range []string{"keep(i + 100000)", "keepInt(i + 100000)", "pick(i > 2, i + 100000, i)", "(if half((i + 100000).toFloat()) > 1.0 { 1 } else { 0 })", "lit(i)", "multi(i)", "inferred(i)", "down(i)"} {
 		t.Run(expr, func(t *testing.T) {
 			t.Parallel()
 			if got := perRounds(nativeAllocs, expr); got != base {

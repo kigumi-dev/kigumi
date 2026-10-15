@@ -1537,6 +1537,23 @@
       ]
     },
     {
+      "id": "run/allocator_block_literal_closure",
+      "kind": "run",
+      "path": "testdata/run/allocator_block_literal_closure.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/array_bulk",
       "kind": "run",
       "path": "testdata/run/array_bulk.txtar",
@@ -3119,6 +3136,23 @@
       "id": "run/call_plan_order",
       "kind": "run",
       "path": "testdata/run/call_plan_order.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/captured_cell_user_option",
+      "kind": "run",
+      "path": "testdata/run/captured_cell_user_option.txtar",
       "mode": [
         "vm",
         "native"
@@ -5570,6 +5604,23 @@
       "id": "run/fixed_array_recursive",
       "kind": "run",
       "path": "testdata/run/fixed_array_recursive.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fixed_element_copy_in_place",
+      "kind": "run",
+      "path": "testdata/run/fixed_element_copy_in_place.txtar",
       "mode": [
         "vm",
         "native"
@@ -8246,6 +8297,40 @@
       ]
     },
     {
+      "id": "run/requirement_name_std_direct",
+      "kind": "run",
+      "path": "testdata/run/requirement_name_std_direct.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/scalar_literal_returns",
+      "kind": "run",
+      "path": "testdata/run/scalar_literal_returns.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/scalar_register_calls",
       "kind": "run",
       "path": "testdata/run/scalar_register_calls.txtar",
@@ -8387,6 +8472,23 @@
       "id": "run/self_whole_reassign",
       "kind": "run",
       "path": "testdata/run/self_whole_reassign.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/shared_fixed_array_whole_element",
+      "kind": "run",
+      "path": "testdata/run/shared_fixed_array_whole_element.txtar",
       "mode": [
         "vm",
         "native"
@@ -9657,9 +9759,9 @@
       ]
     },
     {
-      "id": "sem/capability_allocator_none_cstring",
+      "id": "sem/capability_allocator_none_export_cstring",
       "kind": "sem",
-      "path": "testdata/sem/capability_allocator_none_cstring.txtar",
+      "path": "testdata/sem/capability_allocator_none_export_cstring.txtar",
       "mode": [
         "check"
       ],
@@ -9668,9 +9770,9 @@
       ]
     },
     {
-      "id": "sem/capability_allocator_none_executor",
+      "id": "sem/capability_allocator_none_export_executor",
       "kind": "sem",
-      "path": "testdata/sem/capability_allocator_none_executor.txtar",
+      "path": "testdata/sem/capability_allocator_none_export_executor.txtar",
       "mode": [
         "check"
       ],
@@ -9679,9 +9781,9 @@
       ]
     },
     {
-      "id": "sem/capability_allocator_none_handle_table",
+      "id": "sem/capability_allocator_none_export_handle_table",
       "kind": "sem",
-      "path": "testdata/sem/capability_allocator_none_handle_table.txtar",
+      "path": "testdata/sem/capability_allocator_none_export_handle_table.txtar",
       "mode": [
         "check"
       ],
@@ -9690,9 +9792,53 @@
       ]
     },
     {
-      "id": "sem/capability_allocator_none_pin_provided",
+      "id": "sem/capability_allocator_none_export_pin",
       "kind": "sem",
-      "path": "testdata/sem/capability_allocator_none_pin_provided.txtar",
+      "path": "testdata/sem/capability_allocator_none_export_pin.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_allocator_none_reached_cstring",
+      "kind": "sem",
+      "path": "testdata/sem/capability_allocator_none_reached_cstring.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_allocator_none_reached_executor",
+      "kind": "sem",
+      "path": "testdata/sem/capability_allocator_none_reached_executor.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_allocator_none_reached_handle_table",
+      "kind": "sem",
+      "path": "testdata/sem/capability_allocator_none_reached_handle_table.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/capability_allocator_none_reached_pin_provided",
+      "kind": "sem",
+      "path": "testdata/sem/capability_allocator_none_reached_pin_provided.txtar",
       "mode": [
         "check"
       ],
@@ -10251,6 +10397,39 @@
       ]
     },
     {
+      "id": "sem/effects_noalloc_fixed_element_boxed",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fixed_element_boxed.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_fixed_element_copy",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fixed_element_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_fixed_element_store",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fixed_element_store.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/effects_noalloc_fn_bind",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_fn_bind.txtar",
@@ -10276,6 +10455,17 @@
       "id": "sem/effects_noalloc_fn_bound_copy",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_fn_bound_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_fn_bound_forward",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fn_bound_forward.txtar",
       "mode": [
         "check"
       ],
