@@ -73,9 +73,9 @@ func (m *Machine) registerNet() {
 
 // releaseSocket closes the record's fd once; a repeat would close whatever another goroutine has since opened under the same number.
 func releaseSocket(v *obj) {
-	fd := deref(deref(v).fields[0])
-	if fd.i >= 0 {
+	r := deref(v)
+	if fd := deref(r.fields[0]); fd.i >= 0 {
 		netsock.Close(int(fd.i))
-		fd.i = -1
+		rewriteInt(r, 0, -1)
 	}
 }

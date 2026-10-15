@@ -46,7 +46,7 @@ func (m *Machine) registerFFI() {
 	// addressing the same live value.
 	h["ffi.Pin.release"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		hd := handleOf(a[0])
-		deref(a[0]).fields[0].i = 0
+		rewriteInt(deref(a[0]), 0, 0)
 		return mkOpaque("Ptr", hd)
 	}
 	h["ffi.CValue.get"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return m.copy(m.cvalue(handleOf(a[0]))) }

@@ -5,6 +5,25 @@ import (
 	"kigumi/internal/sem"
 )
 
+// callPlanned runs an OpCall through its cached plan; a call with no plan resolves in callEntity each time.
+func (m *Machine) callPlanned(in *mir.Inst, ic *instCode, args []*obj) *obj {
+	p := m.planFor(in, ic)
+	switch p.kind {
+	case planHost:
+		r := p.host(m, p.ent, args)
+		m.chargeMemory(r)
+		if p.lowered {
+			m.releaseOwned(p.ent, args)
+		}
+		return r
+	case planStd:
+		r := m.std(p.key, args)
+		m.chargeMemory(r)
+		return r
+	}
+	return m.callEntity(in, args)
+}
+
 // callEntity runs a named callee: a lowered body, a std primitive, or an
 // interface requirement dispatched on the receiver's dynamic type.
 func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
@@ -58,38 +77,25 @@ func (m *Machine) stdKey(fn sem.EntityID) string { return mir.StdKey(m.r, fn, tr
 // bound witnesses) in the environment, or a std primitive by key. A witness
 // bound to a std function (rt_std_bind) follows callEntity's priority: the
 // host accelerator wins over a real body when both exist.
-func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
+func (m *Machine) closure(in *mir.Inst, ic *instCode, caps []*obj) *obj {
 	c := newObj(kClosure)
 	c.async = in.Async
 	for _, x := range caps {
 		retain(x)
 	}
 	c.env = mkArray(caps)
-	if e := m.r.Entity(in.Ent); in.Op == mir.OpClosure && e.Kind == sem.EntFn && m.r.Entity(e.Parent).Kind == sem.EntInterface {
-		c.req = &reqCall{name: e.Name, witness: in.Str == "witness", move: m.r.Fn(in.Ent).Recv == sem.RecvMove}
+	p := m.closurePlanFor(in, ic, len(caps))
+	if c.req = p.req; c.req != nil {
 		return c
 	}
-	f, lowered := m.lowered(in.Ent)
-	useLowered := lowered
-	if e := m.r.Entity(in.Ent); e.Kind == sem.EntFn && e.Flags&sem.EfStd != 0 {
-		key := m.stdKey(in.Ent)
-		if m.opts.Sandbox && hostEffect(key) {
-			m.abort("`" + key + "` is not available at compile time")
-		}
-		if _, ok := m.hostFor(in.Prov, key); ok && m.hostWins(lowered) {
-			useLowered = false
-		}
+	if p.deny != "" {
+		m.abort(p.deny)
 	}
-	if useLowered {
-		c.fn = f
+	if p.useLowered {
+		c.fn = p.f
 		c.bind = in.Op == mir.OpBind
 	} else {
-		c.stdKey, c.ent, c.prov = m.stdKey(in.Ent), in.Ent, in.Prov
-		c.lent = mir.LentMask(m.r, in.Ent)
-		if in.Op == mir.OpClosure {
-			c.lent >>= len(caps)
-		}
-		c.dyn = m.curFn.Locals[in.Dst].Type
+		c.stdKey, c.ent, c.prov, c.lent, c.dyn = p.key, in.Ent, in.Prov, p.lent, p.dyn
 	}
 	return c
 }

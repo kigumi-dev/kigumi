@@ -27,6 +27,7 @@ type shared struct {
 	stdinSrc io.Reader
 	// derived covers the tables the lanes fill in lazily from the program.
 	derived    sync.Mutex
+	codes      sync.Map
 	drops      map[sem.EntityID]*mir.Func
 	named      map[string]sem.EntityID
 	borrowMask map[sem.EntityID]uint64
@@ -58,7 +59,7 @@ func newShared() *shared {
 
 func (m *Machine) lane() *Machine {
 	w := *m
-	w.stack, w.pending = nil, nil
+	w.stack, w.pending, w.spare, w.pool, w.slab = nil, nil, nil, nil, nil
 	w.stepsLeft, w.depth = 0, 0
 	w.site, w.siteFn, w.curFn, w.curInst, w.valueSites = nil, nil, nil, nil, nil
 	w.cur, w.curLane = nil, 0

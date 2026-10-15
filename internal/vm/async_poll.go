@@ -123,7 +123,7 @@ func (m *Machine) startCoro(fu *future) *coro {
 		params = append(params, fu.args...)
 	}
 	body := fv.fn
-	co := &coro{fr: frame{f: body, locals: make([]*obj, len(body.Locals))}}
+	co := &coro{fr: frame{f: body, code: m.codeFor(body), locals: make([]*obj, len(body.Locals))}}
 	for i, p := range body.Params {
 		if i < len(params) {
 			co.fr.locals[p] = params[i]
@@ -170,7 +170,7 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 			}
 			m.chargeStep()
 			co.fr.blk, co.fr.pc = co.bid, co.pc
-			m.exec(&co.fr, in)
+			m.exec(&co.fr, in, &co.fr.code.blocks[co.bid][co.pc])
 			if len(co.fr.pending) > 0 {
 				m.settle(&co.fr, in)
 			}

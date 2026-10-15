@@ -37,7 +37,7 @@ func (m *Machine) registerFFIHandle() {
 	}
 	// remove/drop zero this (0 is never a real 1-based table) so the
 	// scope-exit FfiHandle.drop a primitive call still lends h to is a no-op (see Pin.release).
-	clearHandle := func(v *obj) { deref(v).fields[0].i = 0 }
+	clearHandle := func(v *obj) { rewriteInt(deref(v), 0, 0) }
 	free := func(t *handleTableState, slot int64) *obj {
 		v := t.slots[slot].value
 		t.slots[slot] = handleSlot{generation: t.slots[slot].generation + 1}

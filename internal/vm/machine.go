@@ -74,6 +74,9 @@ type Machine struct {
 	stack []*mir.Func
 	// frames stay on a panic, for the task boundary to sweep.
 	frames           []*frame
+	spare            []*frame
+	pool             []*obj
+	slab             []*obj
 	sweepFault       *Panic
 	outerDepth       int
 	stepsLeft, depth int

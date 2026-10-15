@@ -10,9 +10,9 @@ import (
 func TestStoreGlobalReleasesPreviousValue(t *testing.T) {
 	m := &Machine{sh: newShared()}
 	const ent sem.EntityID = 1
-	old := mkInt(1, 0)
+	old := mkInt(1<<20, 0)
 	m.sh.globals[ent] = old
-	next := mkInt(2, 0)
+	next := mkInt(2<<20, 0)
 
 	m.storeGlobal(ent, next)
 

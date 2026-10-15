@@ -30,6 +30,17 @@ func (m *Machine) hostWins(lowered bool) bool {
 }
 
 func (m *Machine) free(v *obj) {
+	switch v.k {
+	case kInt, kFloat, kChar:
+		*v = obj{k: kFree}
+		if liveTrack.Load() {
+			liveFreed.Add(1)
+		}
+		if len(m.pool) < scalarPoolMax {
+			m.pool = append(m.pool, v)
+		}
+		return
+	}
 	m.unchargeMemory(v)
 	var fault *Panic
 	switch v.k {

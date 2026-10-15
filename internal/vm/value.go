@@ -75,15 +75,24 @@ var (
 )
 
 func newObj(k kind) *obj {
+	return born(&obj{k: k, rc: 1})
+}
+
+func born(v *obj) *obj {
 	if liveTrack.Load() {
 		liveMade.Add(1)
 	}
-	return &obj{k: k, rc: 1}
+	return v
 }
 
 func mkInt(i int64, nk int) *obj {
 	if nk == 0 {
 		nk = 64 | 256
+	}
+	if uint64(i-internMin) < internN {
+		if v := internInt(i, nk); v != nil {
+			return v
+		}
 	}
 	v := newObj(kInt)
 	v.i, v.nk = i, nk
@@ -110,23 +119,11 @@ func mkStr(s []byte) *obj   { v := newObj(kStr); v.s = s; return v }
 func mkBytes(s []byte) *obj { v := newObj(kBytes); v.s = s; return v }
 func mkChar(c rune) *obj    { v := newObj(kChar); v.c = c; return v }
 
-func mkArray(items []*obj) *obj {
-	v := newObj(kArray)
-	v.fields = append([]*obj{}, items...)
-	return v
-}
+func mkArray(items []*obj) *obj { return withFields(kArray, 0, items) }
 
-func mkRecord(ent sem.EntityID, fields []*obj) *obj {
-	v := newObj(kRecord)
-	v.ent, v.fields = ent, append([]*obj{}, fields...)
-	return v
-}
+func mkRecord(ent sem.EntityID, fields []*obj) *obj { return withFields(kRecord, ent, fields) }
 
-func mkVariant(ent sem.EntityID, payload []*obj) *obj {
-	v := newObj(kVariant)
-	v.ent, v.fields = ent, append([]*obj{}, payload...)
-	return v
-}
+func mkVariant(ent sem.EntityID, payload []*obj) *obj { return withFields(kVariant, ent, payload) }
 
 func mkCell(x *obj) *obj { v := newObj(kCell); v.inner = x; return v }
 

@@ -32,11 +32,11 @@ func (m *Machine) invoke(f *mir.Func, env *obj, bind bool, args []*obj) *obj {
 
 // invokeAs runs body, f itself or f's entry, under invoke's convention.
 func (m *Machine) invokeAs(f, body *mir.Func, env *obj, bind bool, args []*obj) *obj {
-	var params []*obj
 	nenv := 0
 	if env != nil {
 		nenv = len(env.fields)
 	}
+	params := m.argSlice(nenv + len(args))[:0]
 	if bind {
 		for _, a := range args {
 			params = append(params, retain(a))

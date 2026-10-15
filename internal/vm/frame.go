@@ -5,6 +5,7 @@ import "kigumi/internal/mir"
 // frame is one activation: its locals.
 type frame struct {
 	f       *mir.Func
+	code    *funcCode
 	locals  []*obj
 	pending []crossing
 	blk     mir.BlockID
@@ -13,12 +14,53 @@ type frame struct {
 
 // call runs a MIR function on arguments handed over (owned) or lent.
 func (m *Machine) call(f *mir.Func, args []*obj) *obj {
-	fr := &frame{f: f, locals: make([]*obj, len(f.Locals))}
+	fr := m.newFrame(f, m.codeFor(f))
 	for i, p := range f.Params {
 		if i < len(args) {
 			fr.locals[p] = args[i]
 		}
 	}
+	return m.run(fr)
+}
+
+// callFrom is call with the arguments read straight from the caller's locals.
+func (m *Machine) callFrom(f *mir.Func, code *funcCode, caller []*obj, args []mir.LocalID) *obj {
+	fr := m.newFrame(f, code)
+	for i, p := range f.Params {
+		if i < len(args) {
+			fr.locals[p] = caller[args[i]]
+		}
+	}
+	return m.run(fr)
+}
+
+func (m *Machine) newFrame(f *mir.Func, code *funcCode) *frame {
+	var fr *frame
+	if n := len(m.spare); n > 0 {
+		fr = m.spare[n-1]
+		m.spare = m.spare[:n-1]
+	} else {
+		fr = new(frame)
+	}
+	if n := len(f.Locals); cap(fr.locals) >= n {
+		fr.locals = fr.locals[:n]
+	} else {
+		fr.locals = make([]*obj, n)
+	}
+	fr.f, fr.code = f, code
+	return fr
+}
+
+// recycle keeps a returned frame for the next call; every slot of its capacity is nil again.
+func (m *Machine) recycle(fr *frame) {
+	clear(fr.locals)
+	fr.pending = fr.pending[:0]
+	fr.f, fr.code, fr.blk, fr.pc = nil, nil, 0, 0
+	m.spare = append(m.spare, fr)
+}
+
+func (m *Machine) run(fr *frame) *obj {
+	f := fr.f
 	m.stack = append(m.stack, f)
 	m.frames = append(m.frames, fr)
 	m.depth++
@@ -32,6 +74,7 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 	bid := mir.BlockID(0)
 	for {
 		blk := &f.Blocks[bid]
+		ics := fr.code.blocks[bid]
 		// An empty loop still has to run into the step limit.
 		if len(blk.Insts) == 0 {
 			m.chargeStep()
@@ -39,7 +82,7 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 		for k := range blk.Insts {
 			m.chargeStep()
 			fr.blk, fr.pc = bid, k
-			m.exec(fr, &blk.Insts[k])
+			m.exec(fr, &blk.Insts[k], &ics[k])
 			if len(fr.pending) > 0 {
 				m.settle(fr, &blk.Insts[k])
 			}
@@ -59,7 +102,9 @@ func (m *Machine) call(f *mir.Func, args []*obj) *obj {
 				m.settleReturn(fr, blk.Term.Args[0])
 			}
 			m.frames = m.frames[:len(m.frames)-1]
-			return fr.locals[blk.Term.Args[0]]
+			res := fr.locals[blk.Term.Args[0]]
+			m.recycle(fr)
+			return res
 		default:
 			m.abort("unreachable code in " + f.Name)
 		}

@@ -1,173 +1,93 @@
 package vm
 
 import (
-	"strings"
+	"sync/atomic"
 
 	"kigumi/internal/mir"
 )
 
-// exec runs one instruction the way llgen lowers it: arguments a consumer
-// takes from a still-owned local are duplicated first, then the operation
-// follows the C runtime's retain rules.
-func (m *Machine) exec(fr *frame, in *mir.Inst) {
+// exec runs one instruction the way llgen lowers it; the forms below read their locals directly and the rest go through execArgs.
+func (m *Machine) exec(fr *frame, in *mir.Inst, ic *instCode) {
 	f := fr.f
 	m.curFn, m.curInst = f, in
-	args := make([]*obj, len(in.Args))
-	for i, a := range in.Args {
-		args[i] = fr.locals[a]
-	}
-	var res *obj
+	loc := fr.locals
 	switch in.Op {
 	case mir.OpNop:
 		return
 	case mir.OpConst:
-		res = m.constant(in)
-		m.chargeMemory(res)
-	case mir.OpUnit:
-		res = unitObj
-	case mir.OpGlobalGet:
-		res = m.loadGlobal(in.Ent)
-	case mir.OpGlobalSet:
-		m.storeGlobal(in.Ent, args[0])
-		return
-	case mir.OpAlias:
-		res = args[0]
-	case mir.OpBoxDirect, mir.OpUnboxDirect:
-		res = m.cross(fr, in, args[0])
-	case mir.OpShare:
-		if in.Copy && (!in.IfWritable || m.writableInside(args[0])) {
-			res = m.copy(args[0])
-			m.chargeMemory(res)
-		} else {
-			res = retain(args[0])
+		if ic.konst != nil {
+			loc[in.Dst] = ic.konst
+			return
 		}
-	case mir.OpRelease:
-		m.dropChecked(fr, args[0])
+	case mir.OpUnit:
+		loc[in.Dst] = unitObj
+		return
+	case mir.OpAlias, mir.OpBorrow:
+		loc[in.Dst] = loc[in.Args[0]]
 		return
 	case mir.OpMove:
-		res = args[0]
+		res := loc[in.Args[0]]
 		if f.Locals[in.Args[0]].Ent != 0 {
-			fr.locals[in.Args[0]] = nil
+			loc[in.Args[0]] = nil
 		}
-	case mir.OpCall:
-		m.site, m.siteFn = in, f
-		res = m.callEntity(in, args)
-	case mir.OpCallValue, mir.OpCallC:
-		if f.IsDirect(in.Args[0]) {
-			res = m.callDirectValue(args[0], args[1:])
-			break
+		loc[in.Dst] = res
+		return
+	case mir.OpShare:
+		v := loc[in.Args[0]]
+		if in.Copy && (!in.IfWritable || m.writableInside(v)) {
+			v = m.copy(v)
+			m.chargeMemory(v)
+		} else {
+			v = retain(v)
 		}
-		res = m.callValue(args[0], args[1:])
-	case mir.OpBuiltin:
-		res = m.builtin(in.Str, args)
-		m.chargeMemory(res)
-	case mir.OpFutureNew:
-		res = m.newFuture(args)
-		m.chargeMemory(res)
-	case mir.OpAwait:
-		m.abort("`await` outside an async body")
-	case mir.OpFutureDone:
+		loc[in.Dst] = v
+		return
+	case mir.OpRelease:
+		if v := loc[in.Args[0]]; v != nil && atomic.LoadInt32(&v.rc) > 0 {
+			m.dropChecked(fr, v)
+		}
+		return
+	case mir.OpDrop:
+		v := loc[in.Args[0]]
+		if f.Locals[in.Args[0]].Ent != 0 {
+			loc[in.Args[0]] = nil
+		}
+		if v != nil && atomic.LoadInt32(&v.rc) > 0 {
+			m.dropChecked(fr, v)
+		}
 		return
 	case mir.OpBinary:
-		res = m.binop(in.Str, args[0], args[1])
+		loc[in.Dst] = m.binopAs(ic.bin, in.Str, loc[in.Args[0]], loc[in.Args[1]])
+		return
 	case mir.OpUnary:
 		if in.Str == "cast" {
-			res = m.cast(args[0], m.numKind(in.Type))
-		} else {
-			res = m.unop(in.Str, args[0])
+			loc[in.Dst] = m.cast(loc[in.Args[0]], ic.nk)
+			return
 		}
-	case mir.OpRecord:
-		res = mkRecord(in.Ent, args)
-		m.chargeMemory(res)
-	case mir.OpVariant:
-		res = mkVariant(in.Ent, args)
-		m.chargeMemory(res)
-	case mir.OpField:
-		res = m.field(args[0], in.Index)
-	case mir.OpFieldMove:
-		res = m.fieldMove(args[0], in.Index)
-	case mir.OpSetField:
-		r := deref(m.ownDirect(fr, in.Args[0], args[0]))
-		old := r.fields[in.Index]
-		r.fields[in.Index] = args[1]
-		if !m.borrowField(r, in.Index) {
-			m.dropChecked(fr, old)
-		}
+		loc[in.Dst] = m.unop(in.Str, loc[in.Args[0]])
 		return
-	case mir.OpArray:
-		res = mkArray(args)
-		m.chargeMemory(res)
-	case mir.OpIndex:
-		res = m.index(args[0], args[1])
-	case mir.OpSetIndex:
-		m.dropChecked(fr, m.setIndex(m.ownDirect(fr, in.Args[0], args[0]), args[1], args[2]))
+	case mir.OpField:
+		loc[in.Dst] = m.field(loc[in.Args[0]], in.Index)
+		return
+	case mir.OpIsVariant:
+		v := deref(loc[in.Args[0]])
+		loc[in.Dst] = mkBool(v.k == kVariant && v.ent == in.Ent)
 		return
 	case mir.OpPayload:
-		res = retain(deref(args[0]).fields[in.Index])
-	case mir.OpIsVariant:
-		v := deref(args[0])
-		res = mkBool(v.k == kVariant && v.ent == in.Ent)
-	case mir.OpIsType:
-		v := deref(args[0])
-		res = mkBool(v.k == kBox && m.typeEnt(v.dyn) == in.Ent)
-	case mir.OpUnbox:
-		v := args[0]
-		if v.k == kBox {
-			v = retain(v.inner)
-		}
-		res = v
-	case mir.OpBox:
-		v := args[0]
-		if v.k != kBox {
-			b := newObj(kBox)
-			b.dyn, b.inner = in.Type, v
-			v = b
-			m.chargeMemory(b)
-		}
-		res = v
-	case mir.OpClosure, mir.OpFnItem, mir.OpBind, mir.OpCFnPtr:
-		res = m.closure(in, args)
-		m.chargeMemory(res)
-	case mir.OpBorrow:
-		res = args[0]
-	case mir.OpNewCell:
-		res = mkCell(args[0])
-		m.chargeMemory(res)
+		loc[in.Dst] = retain(deref(loc[in.Args[0]]).fields[in.Index])
+		return
+	case mir.OpIndex:
+		loc[in.Dst] = m.index(loc[in.Args[0]], loc[in.Args[1]])
+		return
 	case mir.OpCellGet:
-		res = retain(args[0].inner)
-	case mir.OpCellTake:
-		res = args[0].inner
-		args[0].inner = nil
-	case mir.OpCellSet:
-		old := args[0].inner
-		args[0].inner = args[1]
-		m.dropChecked(fr, old)
+		loc[in.Dst] = retain(loc[in.Args[0]].inner)
 		return
-	case mir.OpInterp:
-		var sb strings.Builder
-		ai := 0
-		for _, piece := range in.Strs {
-			if piece == "" {
-				m.displayInto(&sb, args[ai])
-				ai++
-				continue
-			}
-			sb.WriteString(piece)
+	case mir.OpCall:
+		m.site, m.siteFn = in, f
+		if p := m.planFor(in, ic); p.kind == planLowered {
+			loc[in.Dst] = m.callFrom(p.f, p.code, loc, in.Args)
+			return
 		}
-		res = mkStr([]byte(sb.String()))
-		m.chargeMemory(res)
-	case mir.OpShell:
-		res = m.shellPlan(in, args)
-	case mir.OpDrop:
-		if f.Locals[in.Args[0]].Ent != 0 {
-			fr.locals[in.Args[0]] = nil
-		}
-		m.dropChecked(fr, args[0])
-		return
-	case mir.OpPanic:
-		m.abort(in.Str)
-	default:
-		panic(&Unsupported{What: in.Op.String()})
 	}
-	fr.locals[in.Dst] = res
+	m.execArgs(fr, in, ic)
 }
