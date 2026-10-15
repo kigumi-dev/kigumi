@@ -27,8 +27,8 @@ func (m *Machine) closurePlanFor(in *mir.Inst, ic *instCode, ncaps int) *closure
 
 func (m *Machine) planClosure(in *mir.Inst, ncaps int) *closurePlan {
 	e := m.r.Entity(in.Ent)
-	if in.Op == mir.OpClosure && e.Kind == sem.EntFn && m.r.Entity(e.Parent).Kind == sem.EntInterface {
-		return &closurePlan{req: &reqCall{name: e.Name, witness: in.Str == "witness", move: m.r.Fn(in.Ent).Recv == sem.RecvMove}}
+	if in.Op == mir.OpClosure && e.Kind == sem.EntFn && (m.r.Entity(e.Parent).Kind == sem.EntInterface || in.Str == "applied") {
+		return &closurePlan{req: &reqCall{name: e.Name, witness: in.Str == "witness" || in.Str == "applied", move: m.r.Fn(in.Ent).Recv == sem.RecvMove}}
 	}
 	f, lowered := m.lowered(in.Ent)
 	p := &closurePlan{useLowered: lowered}

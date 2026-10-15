@@ -72,15 +72,27 @@ var generators = map[string]Generator{
 // GenerateDerive matches sem.DeriveGenerator, for sem.CheckWith/driver.AnalyzeWith.
 // It runs the generator twice and fails closed if the two runs disagree.
 func GenerateDerive(res *sem.Result, req sem.DeriveRequest) (string, error) {
+	d, gen, err := deriveInput(res, req)
+	if err != nil {
+		return "", err
+	}
+	return runTwice(gen, d)
+}
+
+func deriveInput(res *sem.Result, req sem.DeriveRequest) (*Declaration, Generator, error) {
 	iface := req.Interface
 	d := BuildOne(res, req.Decl)
 	if d == nil {
-		return "", &GenError{Generator: GeneratorID("derive." + iface), Decl: &DeclRef{}, Kind: "failed", Reason: "the entity has no declaring source node"}
+		return nil, nil, &GenError{Generator: GeneratorID("derive." + iface), Decl: &DeclRef{}, Kind: "failed", Reason: "the entity has no declaring source node"}
 	}
 	gen, ok := generators[iface]
 	if !ok {
-		return "", &GenError{Generator: GeneratorID("derive." + iface), Decl: declRef(d), Kind: "unsupported", Reason: "no generator is registered for this interface"}
+		return nil, nil, &GenError{Generator: GeneratorID("derive." + iface), Decl: declRef(d), Kind: "unsupported", Reason: "no generator is registered for this interface"}
 	}
+	return d, gen, nil
+}
+
+func runTwice(gen Generator, d *Declaration) (string, error) {
 	first, err := gen.Generate(d)
 	if err != nil {
 		return "", err

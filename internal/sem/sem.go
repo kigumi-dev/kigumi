@@ -149,6 +149,9 @@ type Result struct {
 	refCellSites, refCellArgs []refCellSite
 	refCellValues             []refCellValue
 	refCellParams             map[EntityID]bool
+	refCellHard               map[EntityID]bool
+	refCellEdgeList           []refCellEdge
+	selfLentArgs              []selfLentArg
 	selfRecvCalls             []selfRecvCall
 	witnessPairs              []witnessPair
 	witnessSeen               map[witnessPair]bool

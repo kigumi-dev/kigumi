@@ -13,6 +13,10 @@ import (
 // PlanStats counts how many artifact analyses a plan ran and how many it reused.
 type PlanStats struct {
 	Analyses, Reused int
+	// DeriveHits and DeriveMisses count derive generator runs served from or missed by the on-disk derive cache.
+	DeriveHits, DeriveMisses int
+	// Provisions and ProvisionReused count capability provision tables built or shared across targets of one OS class.
+	Provisions, ProvisionReused int
 }
 
 // planFacts is what a plan reads from one artifact's analysis; reach is nil when the checker rejected the module.
@@ -23,11 +27,46 @@ type planFacts struct {
 }
 
 type planCache struct {
-	facts map[string]*planFacts
-	stats PlanStats
+	facts      map[string]*planFacts
+	provisions map[string][]CapabilityVerdict
+	derive     *schema.DeriveCache
+	stats      PlanStats
 }
 
-func newPlanCache() *planCache { return &planCache{facts: map[string]*planFacts{}} }
+func newPlanCache() *planCache {
+	c := &planCache{facts: map[string]*planFacts{}, provisions: map[string][]CapabilityVerdict{}}
+	if dir, err := DeriveCacheDir(); err == nil {
+		c.derive = &schema.DeriveCache{Dir: dir}
+	}
+	return c
+}
+
+func (c *planCache) generator() sem.DeriveGenerator {
+	if c.derive == nil {
+		return nil
+	}
+	return c.derive.Generate
+}
+
+func (c *planCache) finish() PlanStats {
+	if c.derive != nil {
+		c.stats.DeriveHits, c.stats.DeriveMisses = c.derive.Hits(), c.derive.Misses()
+	}
+	return c.stats
+}
+
+// provision shares the verdict table between targets whose platforms differ only in an OS the rules treat alike.
+func (c *planCache) provision(t Target) []CapabilityVerdict {
+	key := t.CapabilityPlatform().ProvisionKey()
+	if v, ok := c.provisions[key]; ok {
+		c.stats.ProvisionReused++
+		return v
+	}
+	c.stats.Provisions++
+	v := ProvidedCapabilities(t)
+	c.provisions[key] = v
+	return v
+}
 
 // artifactFacts scopes to a's own entry set so a sibling artifact's usage never leaks in.
 func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t Target) *planFacts {
@@ -51,7 +90,7 @@ func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t Tar
 		return f
 	}
 	c.stats.Analyses++
-	an, err := m.analyze(mod, nil)
+	an, err := m.analyze(mod, c.generator())
 	if err != nil {
 		return nil
 	}

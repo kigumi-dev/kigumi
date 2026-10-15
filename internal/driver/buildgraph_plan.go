@@ -61,7 +61,7 @@ func PlanJSONWithStats(rg *ResolvedGraph, p *BuildProgram) (string, PlanStats) {
 			facts = cache.artifactFacts(p, a, rg.Targets[i])
 		}
 		fp := CurrentFingerprint(rg.Targets[i], zigVersion)
-		fp.CapabilityProvision, fp.CapabilityReasons = ProvidedCapabilities(rg.Targets[i]), facts.reasons(rg.Targets[i])
+		fp.CapabilityProvision, fp.CapabilityReasons = cache.provision(rg.Targets[i]), facts.reasons(rg.Targets[i])
 		var prov []schema.GeneratedArtifact
 		if facts != nil {
 			prov = facts.provenance
@@ -69,5 +69,5 @@ func PlanJSONWithStats(rg *ResolvedGraph, p *BuildProgram) (string, PlanStats) {
 		plan.Artifacts = append(plan.Artifacts, artifact{a, rg.Targets[i], fp, prov})
 	}
 	out, _ := json.MarshalIndent(plan, "", "  ")
-	return string(out) + "\n", cache.stats
+	return string(out) + "\n", cache.finish()
 }

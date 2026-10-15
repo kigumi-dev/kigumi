@@ -34,7 +34,7 @@ func (p *Program) callMismatch(f *Func, in Inst) string {
 	case OpAsm:
 		return p.asmMismatch(f, in)
 	case OpClosure:
-		if callee := p.ByEnt[in.Ent]; callee != nil {
+		if callee := p.ByEnt[in.Ent]; callee != nil && in.Str != "applied" {
 			if msg := p.captureMismatch(f, in, callee); msg != "" {
 				return msg
 			}

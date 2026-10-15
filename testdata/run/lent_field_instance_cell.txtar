@@ -1,0 +1,63 @@
+-- src --
+import a from lib/a
+import b from lib/b
+
+fn viaField['x](h: a.Holder['x]) -> Int {
+    b.growVia(h.r, 2)
+}
+
+fn viaFieldAgain['x](h: a.Holder['x]) -> Int {
+    b.growVia(h.r, 5)
+}
+
+let mut pad = a.Pad { n: 1 }
+print "field ${viaField(a.Holder { r: &mut pad })}"
+print "field again ${viaFieldAgain(a.Holder { r: &mut pad })}"
+print "pad ${pad.n}"
+print "guard ${a.run()}"
+-- lib/a/a.kg --
+import b from lib/b
+
+pub type Guard = {
+    pub mut amount Int
+}
+
+fn Guard.grow(mut self, k: Int) -> Unit {
+    self = Guard { amount: self.amount + k }
+}
+
+fn Guard.size(self) -> Int { self.amount }
+
+pub type Pad = {
+    pub mut n Int
+}
+
+pub fn Pad.grow(mut self, k: Int) -> Unit {
+    self.n = self.n + k
+}
+
+pub fn Pad.size(self) -> Int { self.n }
+
+pub type Holder['a] = {
+    pub mut r &'a mut Pad
+}
+
+pub fn run() -> Int {
+    let mut g = Guard { amount: 1 }
+    b.growVia(&mut g, 3)
+}
+-- lib/b/b.kg --
+pub interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+    fn size(self) -> Int
+}
+
+pub fn growVia[G: Grower](g: &mut G, k: Int) -> Int {
+    g.grow(k)
+    g.size()
+}
+-- stdout --
+field 3
+field again 8
+pad 8
+guard 4

@@ -136,7 +136,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			res = e.cFnPtr(sb, in.Ent)
 			break
 		}
-		if e.r.Entity(e.r.Entity(in.Ent).Parent).Kind == sem.EntInterface && in.Op == mir.OpClosure {
+		if in.Op == mir.OpClosure && (in.Str == "applied" || e.r.Entity(e.r.Entity(in.Ent).Parent).Kind == sem.EntInterface) {
 			res = e.requirementValue(sb, in, args)
 			break
 		}

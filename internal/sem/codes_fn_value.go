@@ -12,12 +12,44 @@ var (
 func (c *checker) rejectHiddenArgs(n syntax.NodeID, fn EntityID) {
 	info := c.r.Fn(fn)
 	name := c.r.Entities[fn].Name
-	if len(info.Witnesses) > 0 {
+	if len(info.Witnesses) > 0 && !c.bindableMethodValue(fn) {
 		c.errAt(n, cWitnessFnValue, name)
 	}
 	if len(info.ConstParams) > 0 {
 		c.errAt(n, cConstFnValue, name)
 	}
+}
+
+// bindableMethodValue: a method whose type parameters carry the bounds can bind their witnesses; an async one or a requirement has no slot for them.
+func (c *checker) bindableMethodValue(fn EntityID) bool {
+	info := c.r.Fn(fn)
+	return info.Declared&EffAsync == 0 && c.r.Entities[c.r.Entities[fn].Parent].Kind != EntInterface
+}
+
+// copyableBoundValue rejects a witness-bound method value on a move-only receiver before instantiating, which would only add an inference error.
+func (c *checker) copyableBoundValue(n syntax.NodeID, fn EntityID, recv TypeID) bool {
+	if len(c.r.Fn(fn).Witnesses) == 0 || !c.bindableMethodValue(fn) || c.r.isCopy(recv) {
+		return true
+	}
+	c.errAt(n, cMethodValueMoveOnly, recv)
+	return false
+}
+
+// bindOwnerBoundValue binds the witnesses a method takes from its owner type's bounds, which the receiver type already fixes.
+func (c *checker) bindOwnerBoundValue(n syntax.NodeID, fn EntityID, recv TypeID) bool {
+	if !c.copyableBoundValue(n, fn, recv) {
+		return false
+	}
+	c.bindMethodWitnesses(n, fn, recv, nil)
+	return true
+}
+
+func (c *checker) bindMethodWitnesses(n syntax.NodeID, fn EntityID, recv TypeID, inst []TypeID) {
+	if len(c.r.Fn(fn).Witnesses) == 0 || !c.bindableMethodValue(fn) {
+		return
+	}
+	c.deferWitnesses(n, fn, recv, inst)
+	c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Target: fn, Why: whyBind})
 }
 
 // fnItemHidden binds the witnesses of a constrained generic into its function value; an async fn has no slot for them.

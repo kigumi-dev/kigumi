@@ -72,3 +72,9 @@ func (b *builder) requirementValue(e *hir.Expr, recv LocalID) LocalID {
 	}
 	return b.emit(Inst{Op: OpClosure, Dst: b.temp(e.Type), Ent: e.Ent, Args: []LocalID{b.witnessLocal(e.Witness), recv}, Str: "witness", Node: e.Node})
 }
+
+// A method value over a constrained generic holds the method bound to its witnesses and the receiver, applied at each call.
+func (b *builder) appliedValue(e *hir.Expr, recv LocalID) LocalID {
+	bound := b.emit(Inst{Op: OpBind, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Args: b.witnessArgs(e.Passes, e.Node), Node: e.Node})
+	return b.emit(Inst{Op: OpClosure, Dst: b.temp(e.Type), Ent: e.Ent, Args: []LocalID{bound, recv}, Str: "applied", Node: e.Node})
+}

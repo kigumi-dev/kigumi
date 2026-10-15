@@ -1,0 +1,101 @@
+-- lib/mv.kg --
+interface Show {
+    fn show(self) -> String
+}
+
+type Tag = { pub s String }
+
+fn Tag.show(self) -> String { "<${self.s}>" }
+
+type Tally = { pub mut n Int }
+
+fn Tally.bump[U: Show](mut self, v: U) -> String {
+    self.n = self.n + 1
+    "${self.n}:${v.show()}"
+}
+
+fn Tally.step(mut self, k: Int) -> Int {
+    self.n = self.n + k
+    self.n
+}
+
+fn viaRef(t: &mut Tally) -> String {
+    let b: fn(Tag) -> String = t.bump
+    b(Tag { s: "r" })
+}
+
+fn viaRefPlain(t: &mut Tally) -> Int {
+    let s: fn(Int) -> Int = t.step
+    s(1)
+}
+-- expect --
+fn lib.Tag.show(%self: Tag) -> String {
+  b0:
+    %t2 = field 0(%self)
+    %t1 = interp "<\x00\x00>"(%t2)
+    return %t1
+}
+fn lib.Tally.bump(%self: Tally, %v: U, %$w:U:show: fn() -> String) -> String {
+  b0:
+    %t3 = cellget(%self)
+    %t4 = cellget(%self)
+    %t5 = field 0(%t4)
+    %t6 = const 1: Int
+    %t7 = bin +(%t5, %t6)
+    setfield 0(%t3, %t7)
+    %t9 = cellget(%self)
+    %t10 = field 0(%t9)
+    %t12 = copy(%$w:U:show)
+    %t11 = callv(%t12, %v)
+    %t8 = interp "\x00:\x00"(%t10, %t11)
+    drop(%$w:U:show)
+    drop(%v)
+    return %t8
+}
+fn lib.Tally.step(%self: Tally, %k: Int) -> Int {
+  b0:
+    %t2 = cellget(%self)
+    %t3 = cellget(%self)
+    %t4 = field 0(%t3)
+    %t5 = bin +(%t4, %k)
+    setfield 0(%t2, %t5)
+    %t6 = cellget(%self)
+    %t7 = field 0(%t6)
+    drop(%k)
+    return %t7
+}
+fn lib.viaRef(%t: &mut Tally) -> String {
+  b0:
+    %t1 = newcell(%t)
+    %t3 = bind show
+    %t2 = bind bump(%t3)
+    %t4 = closure bump applied(%t2, %t1)
+    %b = copy(%t4)
+    %t6 = const "r": String
+    %t7 = record Tag(%t6)
+    %t8 = callv(%b, %t7)
+    drop(%b)
+    return %t8
+}
+fn lib.viaRefPlain(%t: &mut Tally) -> Int {
+  b0:
+    %t1 = newcell(%t)
+    %t2 = closure step method(%t1)
+    %s = copy(%t2)
+    %t4 = const 1: Int
+    %t5 = callv(%s, %t4)
+    drop(%s)
+    return %t5
+}
+error[borrow-escape]: a borrow cannot be stored
+  --> lib/mv.kg:22:32
+   |
+22 |     let b: fn(Tag) -> String = t.bump
+   |                                ^^^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+  --> lib/mv.kg:27:29
+   |
+27 |     let s: fn(Int) -> Int = t.step
+   |                             ^^^^^^
+

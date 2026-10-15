@@ -1,0 +1,89 @@
+-- src --
+interface Show {
+    fn show(self) -> String
+}
+
+type Tag = {
+    pub s String
+}
+
+pub fn Tag.show(self) -> String { "<${self.s}>" }
+
+type Pt = {
+    pub x Int
+}
+
+pub fn Pt.same[U: Eq](self, a: U, b: U) -> Bool { a == b }
+
+pub fn Pt.label[U: Show](self, v: U) -> String {
+    "${self.x}:${v.show()}"
+}
+
+type Box[T] = {
+    pub v T
+}
+
+pub fn Box[T: Show].shw(self, pre: String) -> String { "${pre}${self.v.show()}" }
+
+pub fn Box[T].eqv[U: Eq](self, a: U, b: U) -> Bool { a == b }
+
+type Tally = {
+    pub mut n Int
+}
+
+pub fn Tally.bump[U: Show](mut self, v: U) -> String {
+    self.n = self.n + 1
+    "${self.n}:${v.show()}"
+}
+
+pub fn Pt.shift[U: Show](move self, v: U) -> String {
+    "${self.x + 1}:${v.show()}"
+}
+
+fn twice(f: fn(Tag) -> String, t: Tag) -> String {
+    "${f(t)}|${f(t)}"
+}
+
+fn pick(p: Pt) -> fn(Int, Int) -> Bool {
+    p.same
+}
+
+let p = Pt { x: 7 }
+let same: fn(String, String) -> Bool = p.same
+print "${same("a", "b")} ${same("c", "c")}"
+let ints: fn(Int, Int) -> Bool = p.same
+print "${ints(3, 3)}"
+let label: fn(Tag) -> String = p.label
+print label(Tag { s: "q" })
+print twice(p.label, Tag { s: "z" })
+let box = Box { v: "boxed" }
+let boxEq: fn(Int, Int) -> Bool = box.eqv
+print "${boxEq(1, 1)} ${boxEq(1, 2)}"
+let shown = Box { v: Tag { s: "owner" } }
+let shw: fn(String) -> String = shown.shw
+print shw("> ")
+print shw(">> ")
+let escaped = pick(Pt { x: 1 })
+print "${escaped(4, 4)} ${escaped(4, 5)}"
+let mut t = Tally { n: 0 }
+let bump: fn(Tag) -> String = t.bump
+print bump(Tag { s: "a" })
+print bump(Tag { s: "b" })
+let shifted: fn(Tag) -> String = p.shift
+print shifted(Tag { s: "c" })
+print shifted(Tag { s: "d" })
+print "${p.x}"
+-- stdout --
+false true
+true
+7:<q>
+7:<z>|7:<z>
+true false
+> <owner>
+>> <owner>
+true false
+1:<a>
+2:<b>
+8:<c>
+8:<d>
+7

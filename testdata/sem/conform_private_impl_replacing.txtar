@@ -18,6 +18,33 @@ pub fn Pad.grow(mut self, k: Int) -> Unit {
 pub type Holder['a] = {
     pub mut r &'a mut Pad
 }
+
+pub type Swap = {
+    pub mut amount Int
+}
+
+pub fn Swap.grow(mut self, k: Int) -> Unit {
+    self = Swap { amount: k }
+}
+
+pub type SwapHolder['a] = {
+    pub mut r &'a mut Swap
+}
+fn reset(p: &mut Rebound, k: Int) -> Unit {
+    p = Rebound { n: k }
+}
+
+pub type Rebound = {
+    pub mut n Int
+}
+
+pub fn Rebound.grow(mut self, k: Int) -> Unit {
+    reset(&mut self, k)
+}
+
+pub type ReboundHolder['a] = {
+    pub mut r &'a mut Rebound
+}
 -- app/b/b.kg --
 pub interface Grower {
     fn grow(mut self, k: Int) -> Unit
@@ -31,6 +58,14 @@ import a from app/a
 import b from app/b
 
 pub fn viaField['x](h: a.Holder['x]) -> Unit {
+    b.growAny(h.r, 1)
+}
+
+pub fn viaSwapField['x](h: a.SwapHolder['x]) -> Unit {
+    b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
+}
+
+pub fn viaReborrow['x](h: a.ReboundHolder['x]) -> Unit {
     b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
 }
 
@@ -39,15 +74,22 @@ pub fn viaGuard(g: &mut a.Guard) -> Unit {
 }
 -- expect --
 error[E1503]: a `&mut` held in a field is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
- --> app/c/c.kg:5:15
+ --> app/c/c.kg:9:15
   |
-5 |     b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
+9 |     b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
   |               ^^^
   = help: borrow the place at the call with `&mut`, or pass the value itself
 
+error[E1503]: a `&mut` held in a field is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+  --> app/c/c.kg:13:15
+   |
+13 |     b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
+   |               ^^^
+   = help: borrow the place at the call with `&mut`, or pass the value itself
+
 error[E300]: `Guard` does not satisfy `Grower`: `grow` is private in package `app/a`
- --> app/c/c.kg:9:5
-  |
-9 |     b.growAny(g, 1) //~ ERROR `Guard` does not satisfy `Grower`
-  |     ^^^^^^^^^^^^^^
+  --> app/c/c.kg:17:5
+   |
+17 |     b.growAny(g, 1) //~ ERROR `Guard` does not satisfy `Grower`
+   |     ^^^^^^^^^^^^^^
 

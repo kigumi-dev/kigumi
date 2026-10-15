@@ -19,6 +19,14 @@ pub fn Box[T].eqv[U: Eq](self, o: U, p: U) -> Bool { o == p }
 
 pub async fn sameLater[T: Eq](a: T, b: T) -> Bool { a == b }
 
+pub type Ticket = resource {
+    pub id Int
+}
+
+pub fn Ticket.same[U: Eq](self, a: U, b: U) -> Bool { a == b }
+
+pub async fn Box[T].laterEq[U: Eq](self, a: U, b: U) -> Bool { a == b }
+
 pub fn use() -> Unit {
     let a = say[Int] //~ ERROR `say` requires context key `token`
     let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
@@ -28,56 +36,66 @@ pub fn use() -> Unit {
     let arr = FixedArray.filled[Int, 3](1)
     let f = arr.len //~ ERROR `len` has const generic parameters
     let box = Box { v: 1 }
-    let g: fn(Int, Int) -> Bool = box.eqv //~ ERROR `eqv` has interface-bounded type parameters
+    let g: fn(Int, Int) -> Bool = box.eqv //~ TYPE g : fn(Int, Int) -> Bool
     let h = sameLater[Int] //~ ERROR `sameLater` has interface-bounded type parameters
+    let t = Ticket { id: 1 }
+    let tv: fn(Int, Int) -> Bool = t.same //~ ERROR cannot form a method value on move-only
+    let lv: fn(Int, Int) -> Future[Bool] = box.laterEq //~ ERROR `laterEq` has interface-bounded type parameters
 }
 -- expect --
 error[E1217]: `say` requires context key `token` and can't be used as a plain function value
-  --> lib/fv.kg:22:13
+  --> lib/fv.kg:30:13
    |
-22 |     let a = say[Int] //~ ERROR `say` requires context key `token`
+30 |     let a = say[Int] //~ ERROR `say` requires context key `token`
    |             ^^^^^^^
    = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
 
 error[E1731]: `zeroLen` has const generic parameters, which a function value cannot carry
-  --> lib/fv.kg:23:13
+  --> lib/fv.kg:31:13
    |
-23 |     let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
+31 |     let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
    |             ^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 
 error[E1731]: `lenOf` has const generic parameters, which a function value cannot carry
-  --> lib/fv.kg:24:13
+  --> lib/fv.kg:32:13
    |
-24 |     let c = lenOf[Int, 3] //~ ERROR `lenOf` has const generic parameters
+32 |     let c = lenOf[Int, 3] //~ ERROR `lenOf` has const generic parameters
    |             ^^^^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 
 error[E1731]: `filled` has const generic parameters, which a function value cannot carry
-  --> lib/fv.kg:25:13
+  --> lib/fv.kg:33:13
    |
-25 |     let d = FixedArray.filled[Int, 3] //~ ERROR `filled` has const generic parameters
+33 |     let d = FixedArray.filled[Int, 3] //~ ERROR `filled` has const generic parameters
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 
 error[E1731]: `len` has const generic parameters, which a function value cannot carry
-  --> lib/fv.kg:28:13
+  --> lib/fv.kg:36:13
    |
-28 |     let f = arr.len //~ ERROR `len` has const generic parameters
+36 |     let f = arr.len //~ ERROR `len` has const generic parameters
    |             ^^^^^^^
    = help: call it directly or wrap the call in a closure
 
-error[E1730]: `eqv` has interface-bounded type parameters, which a function value cannot carry
-  --> lib/fv.kg:30:35
+error[E1730]: `sameLater` has interface-bounded type parameters, which a function value cannot carry
+  --> lib/fv.kg:39:13
    |
-30 |     let g: fn(Int, Int) -> Bool = box.eqv //~ ERROR `eqv` has interface-bounded type parameters
-   |                                   ^^^^^^^
+39 |     let h = sameLater[Int] //~ ERROR `sameLater` has interface-bounded type parameters
+   |             ^^^^^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 
-error[E1730]: `sameLater` has interface-bounded type parameters, which a function value cannot carry
-  --> lib/fv.kg:31:13
+error[E416]: cannot form a method value on move-only `Ticket`
+  --> lib/fv.kg:41:36
    |
-31 |     let h = sameLater[Int] //~ ERROR `sameLater` has interface-bounded type parameters
-   |             ^^^^^^^^^^^^^
+41 |     let tv: fn(Int, Int) -> Bool = t.same //~ ERROR cannot form a method value on move-only
+   |                                    ^^^^^^
+   = help: write a lambda
+
+error[E1730]: `laterEq` has interface-bounded type parameters, which a function value cannot carry
+  --> lib/fv.kg:42:44
+   |
+42 |     let lv: fn(Int, Int) -> Future[Bool] = box.laterEq //~ ERROR `laterEq` has interface-bounded type parameters
+   |                                            ^^^^^^^^^^^
    = help: call it directly or wrap the call in a closure
 

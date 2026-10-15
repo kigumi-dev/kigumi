@@ -11,7 +11,7 @@ func (p *Program) verifyCellCaptures(f *Func) *Error {
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
-			if in.Op != OpClosure {
+			if in.Op != OpClosure || in.Str == "applied" {
 				continue
 			}
 			callee := p.ByEnt[in.Ent]

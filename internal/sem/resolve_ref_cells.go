@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/syntax"
+)
 
 // A `&mut T` binding gets a cell only via one the caller lends over the place, decided per binding so both sides agree on shape.
 
@@ -54,6 +58,7 @@ func (c *checker) noteWholeRefAssign(lhs syntax.NodeID) {
 
 // param 0 means no declaration to read, so the binding is taken as needing a cell.
 func (c *checker) noteRefArg(a syntax.NodeID, param EntityID, async bool) {
+	c.noteSelfLentArg(a, param)
 	ent, ok := c.refBinding(a)
 	if !ok {
 		return
@@ -84,37 +89,63 @@ func (r *Result) RefCellParam(ent EntityID) bool { return r.refCellParams[ent] }
 
 func (r *Result) resolveRefCells() {
 	r.refCellParams = map[EntityID]bool{}
-	r.closeSelfWholeAssign()
+	r.closeSelfReplacement()
+	var soft []EntityID
 	for _, q := range r.refCellRecvs {
-		replacing := r.replacesSelf(q.callee)
-		if q.witness {
-			replacing = r.witnessReplacesSelf(q.callee, q.iface)
-		}
 		switch {
-		case !replacing:
+		case !r.recvReplaces(q):
 		case q.ent == 0 && q.what != "":
 			r.errAt(q.file, q.node, cRecvRefNoPlace, q.what, r.Entities[q.callee].Name)
 		case q.ent == 0:
 			r.errAt(q.file, q.node, cRefCellLentRecv, r.Entities[q.callee].Name)
+		case q.witness:
+			soft = append(soft, q.ent)
 		default:
 			r.refCellSeeds = append(r.refCellSeeds, q.ent)
 		}
 	}
 	edges := append(r.refCellEdges, r.requirementRefEdges()...)
-	for _, ent := range r.refCellSeeds {
-		r.refCellParams[ent] = true
+	r.refCellEdgeList = edges
+	r.refCellHard = closeRefCells(r.refCellSeeds, edges, map[EntityID]bool{})
+	closeRefCells(r.refCellSeeds, edges, r.refCellParams)
+	closeRefCells(soft, edges, r.refCellParams)
+	r.reportRefCellSites()
+	r.reportLentRefArgs()
+	r.conformSealed = len(r.conformMemo)
+}
+
+func (r *Result) recvReplaces(q refCellRecv) bool {
+	if q.witness {
+		return r.witnessReplacesSelf(q.callee, q.iface)
+	}
+	return r.replacesSelf(q.callee)
+}
+
+// The cells decided so far, without reporting; the final pass in resolveRefCells reads the settled replacements.
+func (r *Result) provisionalRefCells() map[EntityID]bool {
+	seeds := slices.Clone(r.refCellSeeds)
+	for _, q := range r.refCellRecvs {
+		if q.ent != 0 && r.recvReplaces(q) {
+			seeds = append(seeds, q.ent)
+		}
+	}
+	return closeRefCells(seeds, append(slices.Clone(r.refCellEdges), r.requirementRefEdges()...), map[EntityID]bool{})
+}
+
+// A cell at `to` forces one at `from`.
+func closeRefCells(seeds []EntityID, edges []refCellEdge, into map[EntityID]bool) map[EntityID]bool {
+	for _, ent := range seeds {
+		into[ent] = true
 	}
 	for changed := true; changed; {
 		changed = false
 		for _, e := range edges {
-			if r.refCellParams[e.to] && !r.refCellParams[e.from] {
-				r.refCellParams[e.from], changed = true, true
+			if into[e.to] && !into[e.from] {
+				into[e.from], changed = true, true
 			}
 		}
 	}
-	r.reportRefCellSites()
-	r.reportLentRefArgs()
-	r.conformSealed = len(r.conformMemo)
+	return into
 }
 
 // Only ties parameters when both the requirement's and witness's are `&mut T`.

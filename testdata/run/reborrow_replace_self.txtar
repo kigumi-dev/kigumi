@@ -1,0 +1,69 @@
+-- src --
+import a from lib/a
+import b from lib/b
+
+let mut direct = a.Rebound { n: 1 }
+b.growAny(&mut direct, 2)
+print "direct ${direct.n}"
+let mut chained = a.Chained { n: 1 }
+b.growAny(&mut chained, 3)
+print "chained ${chained.n}"
+let mut kept = a.Kept { n: 1 }
+b.growAny(&mut kept, 4)
+print "kept ${kept.n}"
+let mut plain = a.Rebound { n: 1 }
+plain.grow(5)
+print "plain ${plain.n}"
+-- lib/a/a.kg --
+fn reset(p: &mut Rebound, k: Int) -> Unit {
+    p = Rebound { n: k }
+}
+
+pub type Rebound = {
+    pub mut n Int
+}
+
+pub fn Rebound.grow(mut self, k: Int) -> Unit {
+    reset(&mut self, k)
+}
+
+fn forward(p: &mut Chained, k: Int) -> Unit {
+    swap(p, k)
+}
+
+fn swap(p: &mut Chained, k: Int) -> Unit {
+    p = Chained { n: k }
+}
+
+pub type Chained = {
+    pub mut n Int
+}
+
+pub fn Chained.grow(mut self, k: Int) -> Unit {
+    forward(&mut self, k)
+}
+
+fn bump(p: &mut Kept, k: Int) -> Unit {
+    p.n = p.n + k
+}
+
+pub type Kept = {
+    pub mut n Int
+}
+
+pub fn Kept.grow(mut self, k: Int) -> Unit {
+    bump(&mut self, k)
+}
+-- lib/b/b.kg --
+pub interface Grower {
+    fn grow(mut self, k: Int) -> Unit
+}
+
+pub fn growAny[G: Grower](x: &mut G, k: Int) -> Unit {
+    x.grow(k)
+}
+-- stdout --
+direct 2
+chained 3
+kept 5
+plain 5

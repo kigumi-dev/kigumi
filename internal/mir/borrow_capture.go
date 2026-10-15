@@ -24,6 +24,10 @@ func (c *borrowCheck) checkCapture(in Inst) {
 				c.report(in.Node, a, "borrow-escape", "a borrow cannot be stored")
 			}
 		}
+	case OpNewCell:
+		if _, ok := c.holders[in.Args[0]]; ok {
+			c.report(in.Node, in.Args[0], "borrow-escape", "a borrow cannot be stored")
+		}
 	case OpVariant:
 		// A variant with its own ['a] routes a payload through it, same as OpRecord.
 		if _, ok := c.holders[in.Dst]; ok {

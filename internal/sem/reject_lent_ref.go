@@ -8,6 +8,8 @@ type refCellValue struct {
 	what  string
 	file  FileID
 	node  syntax.NodeID
+	// referent is the lent value's type, the instantiation a witness call in the callee resolves against.
+	referent TypeID
 }
 
 // Whether the callee replaces the referent as a whole settles later, in the fixpoint.
@@ -23,10 +25,12 @@ func (c *checker) noteLentRefArg(a syntax.NodeID, param EntityID, async bool) {
 	if _, ok := c.refBinding(a); ok {
 		return
 	}
-	if !c.r.wholeRefBinding(c.vars.resolve(c.info.Types[a])) {
+	t := c.vars.resolve(c.info.Types[a])
+	if !c.r.wholeRefBinding(t) {
 		return
 	}
-	c.r.refCellValues = append(c.r.refCellValues, refCellValue{param: param, what: lentRefShape(c.t, a), file: c.f, node: a})
+	referent, _ := c.r.MutRefElem(t)
+	c.r.refCellValues = append(c.r.refCellValues, refCellValue{param: param, what: lentRefShape(c.t, a), file: c.f, node: a, referent: referent})
 }
 
 func lentRefShape(t *syntax.Tree, a syntax.NodeID) string {
@@ -44,7 +48,7 @@ func lentRefShape(t *syntax.Tree, a syntax.NodeID) string {
 // param 0 means the callee is unknown through a value call, so the argument is lent as a cell whatever its body does.
 func (r *Result) reportLentRefArgs() {
 	for _, v := range r.refCellValues {
-		if v.param == 0 || r.refCellParams[v.param] {
+		if v.param == 0 || r.refCellParams[v.param] && !r.lentInstanceKeepsValue(v) {
 			r.errAt(v.file, v.node, cRefCellLentValue, v.what)
 		}
 	}

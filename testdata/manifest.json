@@ -908,6 +908,17 @@
       ]
     },
     {
+      "id": "mir/method_value_mut_ref_escape_err",
+      "kind": "mir",
+      "path": "testdata/mir/method_value_mut_ref_escape_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/mut_ref_recv_field",
       "kind": "mir",
       "path": "testdata/mir/mut_ref_recv_field.txtar",
@@ -7610,6 +7621,23 @@
       ]
     },
     {
+      "id": "run/lent_field_instance_cell",
+      "kind": "run",
+      "path": "testdata/run/lent_field_instance_cell.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/let_wildcard_drop",
       "kind": "run",
       "path": "testdata/run/let_wildcard_drop.txtar",
@@ -8313,6 +8341,23 @@
       "id": "run/method_typeargs",
       "kind": "run",
       "path": "testdata/run/method_typeargs.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/method_value_witness",
+      "kind": "run",
+      "path": "testdata/run/method_value_witness.txtar",
       "mode": [
         "vm",
         "native"
@@ -9113,6 +9158,23 @@
       "id": "run/reborrow_call_arg_paren",
       "kind": "run",
       "path": "testdata/run/reborrow_call_arg_paren.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/reborrow_replace_self",
+      "kind": "run",
+      "path": "testdata/run/reborrow_replace_self.txtar",
       "mode": [
         "vm",
         "native"

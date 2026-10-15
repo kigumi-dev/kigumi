@@ -85,6 +85,9 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		if b.r.Fn(e.Ent).Recv == sem.RecvMut {
 			recv = b.emit(Inst{Op: OpNewCell, Dst: b.temp(b.fn.Locals[recv].Type), Args: []LocalID{recv}, Node: n})
 		}
+		if len(e.Passes) > 0 {
+			return b.appliedValue(e, recv)
+		}
 		async := b.r.Fn(e.Ent).Declared&sem.EffAsync != 0
 		return b.emit(Inst{Op: OpClosure, Dst: b.temp(t), Ent: e.Ent, Args: []LocalID{recv}, Str: "method", Async: async, Node: n})
 	case hir.OptField:

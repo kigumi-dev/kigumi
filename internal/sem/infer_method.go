@@ -116,8 +116,16 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 		c.errAt(n, cVariadicNoValue, name, name)
 		return TyPoison
 	case len(c.ownGenerics(m)) > 0:
+		if !c.copyableBoundValue(n, m, valueType) {
+			return TyPoison
+		}
 		sig, inst, _ = c.instantiateFn(n, m, nil, valueType)
 		c.touched = append(c.touched, n)
+		c.bindMethodWitnesses(n, m, valueType, inst)
+	case len(info.Witnesses) > 0 && c.bindableMethodValue(m):
+		if !c.bindOwnerBoundValue(n, m, valueType) {
+			return TyPoison
+		}
 	case !c.r.isCopy(valueType):
 		c.errAt(n, cMethodValueMoveOnly, valueType)
 		return TyPoison
