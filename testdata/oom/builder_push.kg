@@ -4,6 +4,7 @@ fn run() -> Unit {
     let mut b = text.StringBuilder.tryNew().unwrap()
     b.push("ab")
     let before = b.len()
+    eprint "go"
     let r = b.tryPush("cdefgh")
     if r is Err(_) {
         if b.len() == before {

@@ -1,0 +1,19 @@
+fn run() -> Unit {
+    let mut a = Array.of(1, 2, 3, 4)
+    let x1 = Array.of(4, 5, 6, 7)
+    let x2 = Array.of(8, 9)
+    let before = a.len()
+    eprint "go"
+    let r1 = a.tryAppendAll(x1)
+    let mid = a.len()
+    let r = a.tryAppendAll(x2)
+    if r is Err(_) || r1 is Err(_) {
+        if ((r1 is Err(_) && mid == before) || (r1 is Ok(_) && mid == before + 4)) && ((r is Err(_) && a.len() == mid) || (r is Ok(_) && a.len() == mid + 2)) && (a.first() || 0) == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

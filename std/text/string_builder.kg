@@ -15,19 +15,11 @@ pub pure fn StringBuilder.tryNew() -> Result[StringBuilder, AllocError]
 
 /// Appends s; panics when memory runs out (tryPush reports it instead).
 pub pure fn StringBuilder.push(mut self, s: String) -> Unit {
-    let bs = s.bytes()
-    let mut i: usize = 0
-    for i < bs.len() {
-        self.bytes.push(bs.get(i) || 0)
-        i = i + 1
-    }
+    self.tryPush(s) || panic("out of memory")
 }
 
-/// Appends s, or returns AllocError when memory runs out.
-pub pure fn StringBuilder.tryPush(mut self, s: String) -> Result[Unit, AllocError] {
-    self.bytes.tryReserve(s.len())?
-    self.push(s)
-}
+/// Appends s, or returns AllocError when memory runs out; the builder is unchanged then.
+pub pure fn StringBuilder.tryPush(mut self, s: String) -> Result[Unit, AllocError]
 
 /// Appends a single byte; panics when memory runs out. Unlike push, this
 /// does not preserve UTF-8 validity, so a byte that breaks it makes freeze fail.
@@ -36,9 +28,7 @@ pub pure fn StringBuilder.pushByte(mut self, b: u8) -> Unit {
 }
 
 /// Appends a single byte, or returns AllocError when memory runs out.
-pub pure fn StringBuilder.tryPushByte(mut self, b: u8) -> Result[Unit, AllocError] {
-    self.bytes.tryPush(b)
-}
+pub pure fn StringBuilder.tryPushByte(mut self, b: u8) -> Result[Unit, AllocError]
 
 /// Number of bytes appended so far.
 pub pure noalloc fn StringBuilder.len(self) -> usize {
@@ -55,3 +45,6 @@ pub pure noalloc fn StringBuilder.isEmpty(self) -> Bool {
 pub pure fn StringBuilder.freeze(move self) -> String! {
     String.fromBytes(Bytes.fromArray(&self.bytes))
 }
+
+/// Same as freeze, but an allocator refusal is an error too (freeze panics instead).
+pub pure fn StringBuilder.tryFreeze(move self) -> String!

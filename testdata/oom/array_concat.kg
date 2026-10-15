@@ -1,7 +1,9 @@
 fn run() -> Unit {
     let a = Array.of(1, 2, 3)
     let before = a.len()
-    let r = a.tryConcat(Array.of(7, 8))
+    let other = Array.of(7, 8)
+    eprint "go"
+    let r = a.tryConcat(other)
     if r is Err(_) {
         if true {
             print "err"

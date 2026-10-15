@@ -1,6 +1,7 @@
 fn run() -> Unit {
     let a = Array.of("x", "yy", "zzz")
     let before = a.len()
+    eprint "go"
     let r = a.tryClone()
     if r is Err(_) {
         if a.len() == before {

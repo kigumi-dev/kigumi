@@ -1,0 +1,14 @@
+fn run() -> Unit {
+    let v = Array.of(1, 2, 3)
+    eprint "go"
+    let r = tryDebug(&v)
+    if r is Err(_) {
+        if v.len() == 3 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

@@ -1,0 +1,23 @@
+import map from std/map
+
+fn run() -> Unit {
+    let mut m = map.tryEmpty[String, Int]().unwrap()
+    m.set("a", 1)
+    m.set("b", 2)
+    let k1 = "c"
+    let k2 = "d"
+    let before = m.len()
+    eprint "go"
+    let r1 = m.trySet(k1, 3)
+    let mid = m.len()
+    let r = m.trySet(k2, 4)
+    if r is Err(_) || r1 is Err(_) {
+        if ((r1 is Err(_) && mid == before) || (r1 is Ok(_) && mid == before + 1)) && ((r is Err(_) && m.len() == mid) || (r is Ok(_) && m.len() == mid + 1)) && m.contains(&"a") && m.contains(&"b") {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

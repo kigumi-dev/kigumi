@@ -2,6 +2,7 @@ import {Shared} from std/alloc
 
 fn run() -> Unit {
     let s = Shared.new("abc")
+    eprint "go"
     let r = s.tryGet()
     if r is Err(_) {
         if s.get() == "abc" {

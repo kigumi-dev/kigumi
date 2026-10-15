@@ -1,6 +1,7 @@
 fn run() -> Unit {
     let b = Bytes.zeros(6)
     let before = b.len()
+    eprint "go"
     let r = b.tryConcat(b)
     if r is Err(_) {
         if b.len() == before {

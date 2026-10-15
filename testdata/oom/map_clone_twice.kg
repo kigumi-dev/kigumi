@@ -1,0 +1,20 @@
+import map from std/map
+
+fn run() -> Unit {
+    let mut m = map.tryEmpty[Int, Int]().unwrap()
+    m.set(1, 10)
+    m.set(2, 20)
+    let before = m.len()
+    eprint "go"
+    let r1 = m.tryClone()
+    let r = m.tryClone()
+    if r is Err(_) || r1 is Err(_) {
+        if m.len() == before && m.contains(&1) && m.contains(&2) {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

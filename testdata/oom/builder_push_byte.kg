@@ -1,0 +1,17 @@
+import text from std/text
+
+fn run() -> Unit {
+    let mut b = text.StringBuilder.tryNew().unwrap()
+    b.push("ab")
+    eprint "go"
+    let r = b.tryPushByte(65)
+    if r is Err(_) {
+        if b.len() == 2 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

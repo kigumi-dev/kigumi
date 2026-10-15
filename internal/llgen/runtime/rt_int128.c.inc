@@ -15,7 +15,7 @@ static w128 w_of(val v) {
     return w_new((uint64_t)v->u.i, 0);
 }
 static val w_box(w128 w, int nk) {
-    val v = alloc(K_INT);
+    val v = alloc_scalar(K_INT);
     v->u.w.lo = (int64_t)w.lo;
     v->u.w.hi = (int64_t)w.hi;
     v->nk = nk;

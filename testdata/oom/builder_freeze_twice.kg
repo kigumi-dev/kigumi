@@ -1,0 +1,20 @@
+import text from std/text
+
+fn run() -> Unit {
+    let mut b = text.StringBuilder.tryNew().unwrap()
+    b.push("ab")
+    let mut c = text.StringBuilder.tryNew().unwrap()
+    c.push("cd")
+    eprint "go"
+    let r1 = b.tryFreeze()
+    let r = c.tryFreeze()
+    if r is Err(_) || r1 is Err(_) {
+        if true {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

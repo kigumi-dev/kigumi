@@ -1,0 +1,15 @@
+fn run() -> Unit {
+    let n = 1
+    eprint "go"
+    let r1 = Bytes.tryFill(1, 8)
+    let r = Bytes.tryFill(1, 8)
+    if r is Err(_) || r1 is Err(_) {
+        if n == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

@@ -1,0 +1,16 @@
+fn run() -> Unit {
+    let before = 0
+    let a = Array.of(1)
+    eprint "go"
+    let r1 = Array.tryFill(3, 4)
+    let r = Array.tryFill(3, 4)
+    if r is Err(_) || r1 is Err(_) {
+        if a.len() == 1 && before == 0 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

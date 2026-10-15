@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -84,7 +85,7 @@ func TestRuntimeFingerprintTracksFlagsOnly(t *testing.T) {
 }
 
 // A registry that differs in one op yields another fingerprint, another generated header and so another runtime to compile.
-func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
+func TestRegistryFingerprintTracksEdits(t *testing.T) {
 	t.Parallel()
 	layout, err := llgen.RuntimeLayout()
 	if err != nil {
@@ -114,6 +115,124 @@ func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
 	}
 	if llgen.AbiFingerprint(commented, layout, version.AbiRevision, flags) != llgen.AbiFingerprint(mir.Registry, layout, version.AbiRevision, flags) {
 		t.Error("a comment moved the fingerprint")
+	}
+}
+
+func embeddedFingerprints(t *testing.T, exe string) []string {
+	t.Helper()
+	bin, err := os.ReadFile(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found []string
+	for _, m := range regexp.MustCompile(`kgabi1:[0-9a-f]{32}`).FindAll(bin, -1) {
+		if !slices.Contains(found, string(m)) {
+			found = append(found, string(m))
+		}
+	}
+	return found
+}
+
+// A registry edit changes the fingerprint the runtime is compiled under, so the binary carries the new one and a bare archive built over the old one reads as stale.
+// A zig shim on PATH logs every compile of the runtime source. It swaps the package registry and PATH, so it is not parallel.
+func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	run := func(exe string) {
+		t.Helper()
+		if out, err := exec.Command(exe).Output(); err != nil || string(out) != "single\n" {
+			t.Fatalf("run: %q, %v", out, err)
+		}
+	}
+	runtimeCompiles := logRuntimeCompiles(t)
+	first := buildProgram(t, singleThreadSrc)
+	compiled := runtimeCompiles()
+	again := buildProgram(t, singleThreadSrc)
+	before := embeddedFingerprints(t, first)
+	if cached := runtimeCompiles()[len(compiled):]; len(compiled) != 1 || len(cached) != 1 || cached[0] != compiled[0] || compiled[0] != before[0] {
+		t.Fatalf("the runtime was compiled as %v then %v, want one compile under %v each time", compiled, cached, before)
+	}
+	if len(before) != 1 || !slices.Equal(before, embeddedFingerprints(t, again)) {
+		t.Fatalf("two builds of one program disagree: %v vs %v", before, embeddedFingerprints(t, again))
+	}
+	archive := filepath.Join(t.TempDir(), "rt.a")
+	bareBuild := func() (string, driver.ArtifactFingerprint) {
+		t.Helper()
+		target, err := driver.ParseTarget("x86_64-freestanding", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		root := t.TempDir()
+		os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"abi\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+		os.WriteFile(filepath.Join(root, "main.kg"), []byte(singleThreadSrc), 0o644)
+		std, _ := filepath.Abs("../../std")
+		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var stderr bytes.Buffer
+		ok, err := driver.BuildWith(m, archive, &stderr, driver.BuildOptions{Target: target})
+		if err != nil || !ok {
+			t.Fatalf("bare build: %v\n%s", err, stderr.String())
+		}
+		fp, _, err := driver.ReadFingerprintSidecar(archive)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return stderr.String(), fp
+	}
+	_, bareBefore := bareBuild()
+	alt, err := mir.ParseStdOpRegistry(mirRegistryText(t) + fmt.Sprintf("op %d", len(mir.Registry.Ops)) + " ZZ_NEW primitive () -> unit\nkey zz.new\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved := mir.Registry
+	mir.Registry = alt
+	defer func() { mir.Registry = saved }()
+	seen := len(runtimeCompiles())
+	edited := buildProgram(t, singleThreadSrc)
+	run(edited)
+	after := embeddedFingerprints(t, edited)
+	if len(after) != 1 || after[0] == before[0] {
+		t.Errorf("the build after a registry edit carries %v, want a fingerprint other than %v", after, before)
+	}
+	if recompiled := runtimeCompiles()[seen:]; len(recompiled) != 1 || recompiled[0] == before[0] || recompiled[0] != after[0] {
+		t.Errorf("the build after a registry edit compiled the runtime as %v, want one compile under %v and not %v", recompiled, after, before)
+	}
+	note, bareAfter := bareBuild()
+	if !strings.Contains(note, "note: rebuilding") || !strings.Contains(note, "runtime ABI") {
+		t.Errorf("a bare archive rebuilt after a registry edit did not report the stale one:\n%s", note)
+	}
+	if bareAfter.RuntimeAbi == bareBefore.RuntimeAbi || bareAfter.AbiBase == bareBefore.AbiBase {
+		t.Errorf("the archive sidecar kept its runtime fingerprint across a registry edit: %+v", bareAfter)
+	}
+}
+
+// logRuntimeCompiles puts a zig shim first on PATH; the returned func lists the fingerprint every compile of the runtime source so far was given.
+func logRuntimeCompiles(t *testing.T) func() []string {
+	t.Helper()
+	real, err := exec.LookPath("zig")
+	if err != nil {
+		t.Skip("no zig on PATH")
+	}
+	dir := t.TempDir()
+	log := filepath.Join(dir, "calls.log")
+	shim := "#!/bin/sh\necho \"$*\" >> '" + log + "'\nexec '" + real + "' \"$@\"\n"
+	if err := os.WriteFile(filepath.Join(dir, "zig"), []byte(shim), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	fingerprint := regexp.MustCompile(`kgabi1:[0-9a-f]{32}`)
+	return func() []string {
+		data, _ := os.ReadFile(log)
+		var out []string
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.Contains(line, "rt_core.c") {
+				out = append(out, fingerprint.FindString(line))
+			}
+		}
+		return out
 	}
 }
 

@@ -12,6 +12,7 @@ fn run() -> Unit {
         s: "b"
     })
     let before = a.len()
+    eprint "go"
     let r = a.tryClone()
     if r is Err(_) {
         if a.len() == before {

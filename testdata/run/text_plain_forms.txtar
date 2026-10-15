@@ -1,0 +1,67 @@
+-- src --
+import array from std/array
+import text from std/text
+
+fn run() -> Unit {
+    for s in Array.of("a,b,,c", "", ",", "x", ",,", "é,ü", "abc") {
+        print "split ${array.join(&s.split(","), "|")} ${s.split(",").len()} ${s.split("").len()} ${s.split(",,").len()}"
+        print "chars ${s.chars().len()} ${array.join(&text.graphemes(s), "/")} ${text.lines(s).len()} ${text.lines("${s}\n").len()} ${text.lines("\n${s}").len()} ${array.join(&text.lines("${s}\nz"), "+")}"
+        print "case ${s.toUpper()} ${s.toLower()} [${s.trim()}] [${" \t${s}\r\n ".trim()}]"
+        print "replace ${text.replace(s, ",", "::")} ${text.replace(s, "b", "")} ${text.replace(s, "", "q")} ${text.replace(s, "a,", "xyz")}"
+        print "edges ${text.trimPrefix(s, "a")} ${text.trimSuffix(s, "c")} ${text.trimPrefix(s, s)} ${text.trimSuffix(s, "")}"
+        print "join ${array.join(&Array.of(s, s, ""), ", ")} ${array.join(&Array.of(s), "--")}"
+    }
+    print "sorted ${array.join(&array.sortedBy(&Array.of("b", "c", "a", "b"), (a, b) => a.compareTo(b)), "")}"
+    let mut sb = text.StringBuilder.new()
+    sb.push("é")
+    sb.push("")
+    sb.pushByte(33)
+    print "builder ${sb.len()} ${sb.freeze().unwrap()}"
+}
+
+run()
+-- stdout --
+split a|b||c 4 1 2
+chars 6 a/,/b/,/,/c 1 1 2 a,b,,c+z
+case A,B,,C a,b,,c [a,b,,c] [a,b,,c]
+replace a::b::::c a,,,c a,b,,c xyzb,,c
+edges ,b,,c a,b,,  a,b,,c
+join a,b,,c, a,b,,c,  a,b,,c
+split  1 1 1
+chars 0  0 0 0 +z
+case   [] []
+replace    
+edges    
+join , ,  
+split | 2 1 1
+chars 1 , 1 1 2 ,+z
+case , , [,] [,]
+replace :: , , ,
+edges , ,  ,
+join ,, ,,  ,
+split x 1 1 1
+chars 1 x 1 1 2 x+z
+case X x [x] [x]
+replace x x x x
+edges x x  x
+join x, x,  x
+split || 3 1 2
+chars 2 ,/, 1 1 2 ,,+z
+case ,, ,, [,,] [,,]
+replace :::: ,, ,, ,,
+edges ,, ,,  ,,
+join ,,, ,,,  ,,
+split é|ü 2 1 1
+chars 3 é/,/ü 1 1 2 é,ü+z
+case é,ü é,ü [é,ü] [é,ü]
+replace é::ü é,ü é,ü é,ü
+edges é,ü é,ü  é,ü
+join é,ü, é,ü,  é,ü
+split abc 1 1 1
+chars 3 a/b/c 1 1 2 abc+z
+case ABC abc [abc] [abc]
+replace abc ac abc abc
+edges bc ab  abc
+join abc, abc,  abc
+sorted abbc
+builder 3 é!

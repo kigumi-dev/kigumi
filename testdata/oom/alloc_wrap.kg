@@ -1,5 +1,6 @@
 fn run() -> Unit {
     let before = 1
+    eprint "go"
     let r = AllocError.wrap(before)
     if r is Err(_) {
         if before == 1 {

@@ -1,0 +1,17 @@
+import text from std/text
+
+fn run() -> Unit {
+    let s = "abcb"
+    eprint "go"
+    let r1 = text.tryReplace(s, "b", "xy")
+    let r = text.tryReplace(s, "b", "xy")
+    if r is Err(_) || r1 is Err(_) {
+        if s.len() == 4 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

@@ -1,0 +1,27 @@
+type P = {
+    pub x Int
+    pub s String
+}
+
+fn run() -> Unit {
+    let a = Array.of(P {
+        x: 1
+        s: "a"
+    }, P {
+        x: 2
+        s: "b"
+    })
+    let before = a.len()
+    eprint "go"
+    let r1 = a.tryClone()
+    let r = a.tryClone()
+    if r is Err(_) || r1 is Err(_) {
+        if a.len() == before {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

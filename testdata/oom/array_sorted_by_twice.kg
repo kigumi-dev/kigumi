@@ -1,0 +1,17 @@
+import array from std/array
+
+fn run() -> Unit {
+    let items = Array.of(3, 1, 2)
+    eprint "go"
+    let r1 = array.trySortedBy(&items, (a, b) => a.compareTo(b))
+    let r = array.trySortedBy(&items, (a, b) => a.compareTo(b))
+    if r is Err(_) || r1 is Err(_) {
+        if items.len() == 3 && (items.first() || 0) == 3 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

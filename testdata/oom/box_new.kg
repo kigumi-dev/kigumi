@@ -1,0 +1,16 @@
+import {Box} from std/alloc
+
+fn run() -> Unit {
+    let n = 41
+    eprint "go"
+    let r = Box.tryNew(n)
+    if r is Err(_) {
+        if n == 41 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

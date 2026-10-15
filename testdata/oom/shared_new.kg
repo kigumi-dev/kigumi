@@ -2,6 +2,7 @@ import {Shared} from std/alloc
 
 fn run() -> Unit {
     let before = 1
+    eprint "go"
     let r = Shared.tryNew(before)
     if r is Err(_) {
         if before == 1 {

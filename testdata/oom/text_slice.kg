@@ -1,0 +1,16 @@
+import text from std/text
+
+fn run() -> Unit {
+    let s = "foobar"
+    eprint "go"
+    let r = text.trySlice(s, 1, 3)
+    if r is Err(_) {
+        if s.len() == 6 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

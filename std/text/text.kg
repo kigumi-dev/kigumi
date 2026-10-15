@@ -1,5 +1,3 @@
-import array from std/array
-
 /// Byte offset of the first occurrence of c in s, or None.
 pub pure fn indexOf(s: String, c: Char) -> usize? {
     let needle = fromChar(c)
@@ -18,34 +16,19 @@ pub pure fn indexOf(s: String, c: Char) -> usize? {
 
 /// Lines of s without their newline characters; a trailing newline adds no empty line.
 pub pure fn lines(s: String) -> Array[String] {
-    let mut out = Array.empty[String]()
-    let mut end = s.len()
-    if end > 0 && s[end - 1] == 10 {
-        end = end - 1
-    }
-    if end == 0 {
-        return out
-    }
-    let mut start: usize = 0
-    let mut i: usize = 0
-    for i <= end {
-        if i == end || s[i] == 10 {
-            out.push(s.sliceBytes(start, i) || "")
-            start = i + 1
-        }
-        i = i + 1
-    }
-    out
+    tryLines(s) || panic("out of memory")
 }
+
+/// Same as lines, or AllocError when the allocator refuses (lines panics instead).
+pub pure fn tryLines(s: String) -> Result[Array[String], AllocError]
 
 /// One string per Unicode scalar value of s.
 pub pure fn graphemes(s: String) -> Array[String] {
-    let mut out = Array.empty[String]()
-    for c in &s.chars() {
-        out.push(fromChar(c))
-    }
-    out
+    tryGraphemes(s) || panic("out of memory")
 }
+
+/// Same as graphemes, or AllocError when the allocator refuses (graphemes panics instead).
+pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError]
 
 /// Parses a decimal floating-point literal (JSON / C `strtod` grammar); None unless the whole text is a number.
 pub pure fn parseFloat(s: String) -> Float?
@@ -198,27 +181,18 @@ pub pure fn slice(s: String, start: usize, end: usize) -> String? {
     s.sliceBytes(start, end)
 }
 
+/// Same as slice, or AllocError when the allocator refuses (slice panics instead).
+pub pure fn trySlice(s: String, start: usize, end: usize) -> Result[String?, AllocError] {
+    s.trySliceBytes(start, end)
+}
+
 /// s with every occurrence of old replaced by new; an empty old leaves s unchanged.
 pub pure fn replace(s: String, old: String, new: String) -> String {
-    if old.len() == 0 {
-        return s
-    }
-    let mut pieces = Array.empty[String]()
-    let mut start: usize = 0
-    let mut i: usize = 0
-    for i < s.len() {
-        if s.matchesAt(old, i) {
-            pieces.push(s.sliceBytes(start, i) || "")
-            pieces.push(new)
-            i = i + old.len()
-            start = i
-        } else {
-            i = i + 1
-        }
-    }
-    pieces.push(s.sliceBytes(start, s.len()) || "")
-    array.join(&pieces, "")
+    tryReplace(s, old, new) || panic("out of memory")
 }
+
+/// Same as replace, or AllocError when the allocator refuses (replace panics instead).
+pub pure fn tryReplace(s: String, old: String, new: String) -> Result[String, AllocError]
 
 /// Byte offset of the first `sub` in `s`, or None. The empty `sub` is at 0.
 /// Offsets are byte offsets, the same as `slice` takes.
@@ -275,19 +249,19 @@ pure noalloc fn foldAscii(b: u8) -> u8 {
 
 /// `s` without a leading `prefix`; `s` unchanged when it does not start with one.
 pub pure fn trimPrefix(s: String, prefix: String) -> String {
-    if prefix.len() == 0 || !s.startsWith(prefix) {
-        return s
-    }
-    s.sliceBytes(prefix.len(), s.len()) || s
+    tryTrimPrefix(s, prefix) || panic("out of memory")
 }
+
+/// Same as trimPrefix, or AllocError when the allocator refuses (trimPrefix panics instead).
+pub pure fn tryTrimPrefix(s: String, prefix: String) -> Result[String, AllocError]
 
 /// `s` without a trailing `suffix`; `s` unchanged when it does not end with one.
 pub pure fn trimSuffix(s: String, suffix: String) -> String {
-    if suffix.len() == 0 || !s.endsWith(suffix) {
-        return s
-    }
-    s.sliceBytes(0, s.len() - suffix.len()) || s
+    tryTrimSuffix(s, suffix) || panic("out of memory")
 }
+
+/// Same as trimSuffix, or AllocError when the allocator refuses (trimSuffix panics instead).
+pub pure fn tryTrimSuffix(s: String, suffix: String) -> Result[String, AllocError]
 
 /// `s` as an unsigned integer in `base` (2 to 36, letters either case), or None
 /// when it is empty, has a stray character, or does not fit in a u64.

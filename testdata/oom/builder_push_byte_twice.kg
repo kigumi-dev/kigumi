@@ -1,0 +1,20 @@
+import text from std/text
+
+fn run() -> Unit {
+    let mut b = text.StringBuilder.tryNew().unwrap()
+    b.push("ab")
+    let before = b.len()
+    eprint "go"
+    let r1 = b.tryPushByte(65)
+    let mid = b.len()
+    let r = b.tryPushByte(66)
+    if r is Err(_) || r1 is Err(_) {
+        if ((r1 is Err(_) && mid == before) || (r1 is Ok(_) && mid == before + 1)) && ((r is Err(_) && b.len() == mid) || (r is Ok(_) && b.len() == mid + 1)) {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

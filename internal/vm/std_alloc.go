@@ -22,6 +22,11 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 			return m.allocError()
 		}
 		return m.ok(mkOpaque("AllocatorHandle", nil))
+	case "alloc.Arena.tryCreate":
+		if m.faultTick() {
+			return m.allocError()
+		}
+		return m.ok(mkOpaque("AllocatorHandle", nil))
 	case "alloc.AllocatorHandle.scope":
 		return mkOpaque("AllocatorScope", retain(a0))
 	case "alloc.AllocatorHandle.allocated":

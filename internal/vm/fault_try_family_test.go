@@ -39,7 +39,7 @@ func TestFaultInjectionTryFamilyLeavesNothingLive(t *testing.T) {
 				var out, errOut bytes.Buffer
 				vm.TrackLive(true)
 				defer vm.TrackLive(false)
-				if _, err := vm.RunReleasing(prog, vm.Options{FaultInjectAt: failAt, Cwd: t.TempDir()}, &out, &errOut, func() {}); err != nil {
+				if _, err := vm.RunReleasing(prog, vm.Options{FaultInjectAt: failAt, FaultArmOnEprint: true, Cwd: t.TempDir()}, &out, &errOut, func() {}); err != nil {
 					t.Fatalf("N=%d: %v", failAt, err)
 				}
 				return out.String(), vm.LiveObjects()
@@ -59,9 +59,12 @@ func TestFaultInjectionTryFamilyLeavesNothingLive(t *testing.T) {
 					t.Errorf("N=%d: %d objects live after the Err return, %d without a fault", n, live, baseLive)
 				}
 			}
-			if !sawErr {
+			if !sawErr && !tryFamilyNoAlloc[name] {
 				t.Error("no fault tick produced an Err")
 			}
 		})
 	}
 }
+
+// tryFamilyNoAlloc names the fixtures whose success path allocates nothing on the VM, so no tick can refuse.
+var tryFamilyNoAlloc = map[string]bool{"map_set_existing_key": true, "map_set_existing_key_twice": true}

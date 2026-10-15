@@ -1,0 +1,17 @@
+fn run() -> Unit {
+    let mut a = Array.of(1, 2, 3, 4)
+    let before = a.len()
+    eprint "go"
+    let r1 = a.tryInsertAt(1, 9)
+    let mid = a.len()
+    let r = a.tryInsertAt(2, 8)
+    if r is Err(_) || r1 is Err(_) {
+        if ((r1 is Err(_) && mid == before) || (r1 is Ok(_) && mid == before + 1)) && ((r is Err(_) && a.len() == mid) || (r is Ok(_) && a.len() == mid + 1)) && (a.first() || 0) == 1 && (a.last() || 0) == 4 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

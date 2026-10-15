@@ -1,0 +1,15 @@
+fn run() -> Unit {
+    let b = Bytes.tryZeros(4).unwrap()
+    eprint "go"
+    let r1 = String.tryFromBytes(b)
+    let r = String.tryFromBytes(b)
+    if r is Err(_) || r1 is Err(_) {
+        if b.len() == 4 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

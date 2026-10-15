@@ -16,13 +16,8 @@ import (
 
 const oomDir = "../../testdata/oom"
 
-// Printing only on the Err path keeps the success path allocation-free, so a refused tick lands inside the call.
-var tryFamilyWindow = regexp.MustCompile(`^P*E+O{3,}$`)
-
-// tryFamilyLoose are the Kigumi-bodied calls whose index loops allocate boxed scalar temporaries before the fallible call.
-var tryFamilyLoose = map[string]bool{"map_set_new_key": true, "builder_push": true}
-
-var tryFamilyLooseWindow = regexp.MustCompile(`^[PE]*E[PE]*O{3,}$`)
+// The fixtures eprint once after their setup, which arms the tick counter, so a refused tick lands inside the call and nowhere else.
+var tryFamilyWindow = regexp.MustCompile(`^E+O{3,}$`)
 
 const tryFamilySweep = 160
 
@@ -77,7 +72,7 @@ func TestFaultInjectionTryFamilyNative(t *testing.T) {
 			run := func(failAt int, report bool) (byte, int64) {
 				cmd := exec.Command(exe)
 				cmd.Dir = t.TempDir()
-				cmd.Env = os.Environ()
+				cmd.Env = append(os.Environ(), "KIGUMI_FAIL_ALLOC_ARM=1")
 				if report {
 					cmd.Env = append(cmd.Env, "KIGUMI_LIVE_REPORT=1")
 				}
@@ -114,14 +109,19 @@ func TestFaultInjectionTryFamilyNative(t *testing.T) {
 	}
 }
 
+// tryFamilyNoAlloc are the fixtures on a path that allocates nothing, so no tick can be refused inside the call.
+var tryFamilyNoAlloc = map[string]bool{"map_set_existing_key": true, "map_set_existing_key_twice": true}
+
+var tryFamilyNoAllocWindow = regexp.MustCompile(`^O+$`)
+
 func checkTryFamilyWindow(t *testing.T, name string, classes []byte) {
 	t.Helper()
 	window := tryFamilyWindow
-	if tryFamilyLoose[name] {
-		window = tryFamilyLooseWindow
+	if tryFamilyNoAlloc[name] {
+		window = tryFamilyNoAllocWindow
 	}
 	if !window.Match(classes) {
-		t.Errorf("fault sweep outcomes %s do not match %s", classes, window)
+		t.Errorf("%s: fault sweep outcomes %s do not match %s", name, classes, window)
 	}
 }
 
@@ -137,7 +137,7 @@ func TestFaultInjectionTryFamilyVM(t *testing.T) {
 			var classes []byte
 			for n := 1; n <= tryFamilySweep/2; n++ {
 				var out, errOut bytes.Buffer
-				code, err := vm.Run(a.Prog, vm.Options{FaultInjectAt: int64(n)}, &out, &errOut)
+				code, err := vm.Run(a.Prog, vm.Options{FaultInjectAt: int64(n), FaultArmOnEprint: true}, &out, &errOut)
 				if err != nil {
 					t.Fatalf("N=%d: %v", n, err)
 				}

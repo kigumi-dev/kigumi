@@ -1,0 +1,17 @@
+fn run() -> Unit {
+    let a = Array.of(1, 2, 3)
+    let o1 = Array.of(7, 8)
+    let o2 = Array.of(9)
+    eprint "go"
+    let r1 = a.tryConcat(o1)
+    let r = a.tryConcat(o2)
+    if r is Err(_) || r1 is Err(_) {
+        if a.len() == 3 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

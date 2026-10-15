@@ -52,7 +52,10 @@ var capFiles = []RuntimeFile{
 }
 
 // coreFragments are rt_core.c's other #include fragments, built only when a program needs them.
-var coreFragments = []RuntimeFile{{"rt_int128.c.inc", runtimeInt128}}
+var coreFragments = []RuntimeFile{{"rt_int128.c.inc", runtimeInt128}, {"rt_try_text.c.inc", runtimeTryText}}
+
+//go:embed runtime/rt_try_text.c.inc
+var runtimeTryText string
 
 //go:embed runtime/rt_int128.c.inc
 var runtimeInt128 string

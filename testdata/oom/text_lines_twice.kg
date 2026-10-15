@@ -1,0 +1,17 @@
+import text from std/text
+
+fn run() -> Unit {
+    let s = "a\nb\nc\n"
+    eprint "go"
+    let r1 = text.tryLines(s)
+    let r = text.tryLines(s)
+    if r is Err(_) || r1 is Err(_) {
+        if s.len() == 6 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

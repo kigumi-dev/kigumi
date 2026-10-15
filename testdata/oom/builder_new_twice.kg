@@ -1,0 +1,17 @@
+import text from std/text
+
+fn run() -> Unit {
+    let before = 1
+    eprint "go"
+    let r1 = text.StringBuilder.tryNew()
+    let r = text.StringBuilder.tryNew()
+    if r is Err(_) || r1 is Err(_) {
+        if before == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

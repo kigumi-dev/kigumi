@@ -148,6 +148,9 @@ pub pure fn Result[T, E].andThen[U](move self, f: fn(T) -> Result[U, E]) -> Resu
 /// A readable rendering of any value, for diagnostics; not a stable format.
 pub pure fn debug[T](value: &T) -> String
 
+/// Same as debug, or AllocError when the allocator refuses (debug panics instead).
+pub pure fn tryDebug[T](value: &T) -> Result[String, AllocError]
+
 /// Sum modulo 2^bits; `+` panics on overflow instead.
 pub pure noalloc fn i32.wrappingAdd(self, other: i32) -> i32
 
@@ -413,33 +416,11 @@ pub pure noalloc fn String.bytes(self) -> Bytes
 
 /// The Unicode scalar values of the string, in order.
 pub pure fn String.chars(self) -> Array[Char] {
-    let mut out = Array.empty[Char]()
-    let n = self.len()
-    let mut i: usize = 0
-    for i < n {
-        let lead = self[i].toInt()
-        let mut width = 1
-        let mut point = lead
-        if lead >= 240 {
-            width = 4
-            point = lead & 7
-        } else if lead >= 224 {
-            width = 3
-            point = lead & 15
-        } else if lead >= 192 {
-            width = 2
-            point = lead & 31
-        }
-        let mut k = 1
-        for k < width {
-            point = (point << 6) | (self[i + (k.toUsize() || 0)].toInt() & 63)
-            k = k + 1
-        }
-        out.push(Char.fromInt(point) || '?')
-        i = i + (width.toUsize() || 0)
-    }
-    out
+    self.tryChars() || panic("out of memory")
 }
+
+/// Same as chars, or AllocError when the allocator refuses (chars panics instead).
+pub pure fn String.tryChars(self) -> Result[Array[Char], AllocError]
 
 /// Whether sub occurs in the string; the empty string occurs in every string.
 pub pure noalloc fn String.contains(self, sub: String) -> Bool {
@@ -487,53 +468,21 @@ pub pure fn String.sliceBytes(self, start: usize, end: usize) -> String?
 /// Same as sliceBytes, or AllocError when the allocator refuses (sliceBytes panics instead).
 pub pure fn String.trySliceBytes(self, start: usize, end: usize) -> Result[String?, AllocError]
 
-/// Whether b is an ASCII space, tab, carriage return or newline.
-pure noalloc fn isAsciiSpace(b: u8) -> Bool {
-    b == 32 || b == 9 || b == 13 || b == 10
-}
-
 /// Copy without leading and trailing ASCII whitespace (space, tab, CR, LF).
 pub pure fn String.trim(self) -> String {
     self.tryTrim() || panic("out of memory")
 }
 
 /// Copy without leading and trailing ASCII whitespace, or AllocError when the allocator refuses (trim panics instead).
-pub pure fn String.tryTrim(self) -> Result[String, AllocError] {
-    let mut lo: usize = 0
-    let mut hi = self.len()
-    for lo < hi && isAsciiSpace(self[lo]) {
-        lo = lo + 1
-    }
-    for hi > lo && isAsciiSpace(self[hi - 1]) {
-        hi = hi - 1
-    }
-    match self.trySliceBytes(lo, hi)? {
-        Some(trimmed) -> AllocError.wrap(trimmed)
-        None -> AllocError.wrap("")
-    }
-}
+pub pure fn String.tryTrim(self) -> Result[String, AllocError]
 
 /// Pieces between occurrences of sep, empty pieces included; an empty sep yields the whole string as one piece.
 pub pure fn String.split(self, sep: String) -> Array[String] {
-    let mut out = Array.empty[String]()
-    if sep.len() == 0 {
-        out.push(self)
-        return out
-    }
-    let mut start: usize = 0
-    let mut i: usize = 0
-    for i + sep.len() <= self.len() {
-        if self.matchesAt(sep, i) {
-            out.push(self.sliceBytes(start, i) || "")
-            i = i + sep.len()
-            start = i
-        } else {
-            i = i + 1
-        }
-    }
-    out.push(self.sliceBytes(start, self.len()) || "")
-    out
+    self.trySplit(sep) || panic("out of memory")
 }
+
+/// Same as split, or AllocError when the allocator refuses (split panics instead).
+pub pure fn String.trySplit(self, sep: String) -> Result[Array[String], AllocError]
 
 /// self followed by other.
 pub pure fn String.concat(self, other: String) -> String {
@@ -545,34 +494,19 @@ pub pure fn String.tryConcat(self, other: String) -> Result[String, AllocError]
 
 /// Copy with ASCII letters upper-cased; other bytes are kept.
 pub pure fn String.toUpper(self) -> String {
-    self.shiftAscii(97, 122, false)
+    self.tryToUpper() || panic("out of memory")
 }
+
+/// Same as toUpper, or AllocError when the allocator refuses (toUpper panics instead).
+pub pure fn String.tryToUpper(self) -> Result[String, AllocError]
 
 /// Copy with ASCII letters lower-cased; other bytes are kept.
 pub pure fn String.toLower(self) -> String {
-    self.shiftAscii(65, 90, true)
+    self.tryToLower() || panic("out of memory")
 }
 
-/// Copy with every byte in lo..=hi moved 32 places down (upper case) or up (lower case); the
-/// callers keep lo..=hi inside the ASCII letters, so the shifted byte stays a valid UTF-8 unit.
-pure fn String.shiftAscii(self, lo: u8, hi: u8, down: Bool) -> String {
-    let mut bytes = Array.empty[u8]()
-    let mut i: usize = 0
-    for i < self.len() {
-        let b = self[i]
-        if b >= lo && b <= hi {
-            if down {
-                bytes.push(b + 32)
-            } else {
-                bytes.push(b - 32)
-            }
-        } else {
-            bytes.push(b)
-        }
-        i = i + 1
-    }
-    String.fromBytes(Bytes.fromArray(&bytes)) || self
-}
+/// Same as toLower, or AllocError when the allocator refuses (toLower panics instead).
+pub pure fn String.tryToLower(self) -> Result[String, AllocError]
 
 /// The string repeated count times.
 pub pure fn String.repeat(self, count: usize) -> String {

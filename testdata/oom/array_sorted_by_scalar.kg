@@ -1,0 +1,16 @@
+import array from std/array
+
+fn run() -> Unit {
+    let items = Array.of(3, 1, 2, 6, 5, 4)
+    eprint "go"
+    let r = array.trySortedBy(&items, (a, b) => (a * 3 - 1).compareTo(b * 3 - 1))
+    if r is Err(_) {
+        if items.len() == 6 && (items.first() || 0) == 3 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

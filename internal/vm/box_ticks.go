@@ -10,7 +10,7 @@ func boxTicks(v *obj) int {
 	}
 	switch v.k {
 	case kInt, kFloat, kChar:
-		return 1
+		return 0
 	case kRecord, kVariant:
 		if len(v.fields) == 0 && v.k == kVariant {
 			return 0

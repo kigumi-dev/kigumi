@@ -1,0 +1,14 @@
+fn run() -> Unit {
+    let s = "héllo"
+    eprint "go"
+    let r = s.tryChars()
+    if r is Err(_) {
+        if s.len() == 6 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

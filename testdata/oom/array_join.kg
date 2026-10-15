@@ -1,0 +1,16 @@
+import array from std/array
+
+fn run() -> Unit {
+    let items = Array.of("a", "b", "c")
+    eprint "go"
+    let r = array.tryJoin(&items, ", ")
+    if r is Err(_) {
+        if items.len() == 3 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

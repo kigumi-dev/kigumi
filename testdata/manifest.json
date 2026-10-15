@@ -10147,6 +10147,23 @@
       ]
     },
     {
+      "id": "run/text_plain_forms",
+      "kind": "run",
+      "path": "testdata/run/text_plain_forms.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/time_monotonic",
       "kind": "run",
       "path": "testdata/run/time_monotonic.txtar",
@@ -10184,6 +10201,23 @@
       "id": "run/try_family_map",
       "kind": "run",
       "path": "testdata/run/try_family_map.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/try_family_more",
+      "kind": "run",
+      "path": "testdata/run/try_family_more.txtar",
       "mode": [
         "vm",
         "native"
@@ -11686,6 +11720,17 @@
       "id": "sem/effects_noalloc_closure_fn_param",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_closure_fn_param.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_closure_variant",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_closure_variant.txtar",
       "mode": [
         "check"
       ],

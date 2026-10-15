@@ -1,0 +1,15 @@
+fn run() -> Unit {
+    let a: Array[u8] = Array.of(1, 2, 3)
+    eprint "go"
+    let r1 = Bytes.tryFromArray(&a)
+    let r = Bytes.tryFromArray(&a)
+    if r is Err(_) || r1 is Err(_) {
+        if a.len() == 3 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

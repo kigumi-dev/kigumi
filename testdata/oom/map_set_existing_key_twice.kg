@@ -1,0 +1,19 @@
+import map from std/map
+
+fn run() -> Unit {
+    let mut m = map.tryEmpty[Int, Int]().unwrap()
+    m.set(1, 10)
+    m.set(2, 20)
+    eprint "go"
+    let r1 = m.trySet(2, 21)
+    let r = m.trySet(1, 11)
+    if r is Err(_) || r1 is Err(_) {
+        if m.len() == 2 && (m.get(&2) || 0) >= 20 && (m.get(&1) || 0) >= 10 && ((r1 is Err(_) && (m.get(&2) || 0) == 20) || (r1 is Ok(_) && (m.get(&2) || 0) == 21)) && ((r is Err(_) && (m.get(&1) || 0) == 10) || (r is Ok(_) && (m.get(&1) || 0) == 11)) {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

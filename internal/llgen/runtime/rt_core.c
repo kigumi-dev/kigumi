@@ -124,14 +124,25 @@ static int arena_fault_injected(void) {
 }
 // fault_tick counts allocation attempts and reports whether this is the one
 // KIGUMI_FAIL_ALLOC_AT names (1-based); the env var is read once and cached.
+static int64_t g_fault_at = -2, g_fault_n = 0;
+// With KIGUMI_FAIL_ALLOC_ARM set, nothing counts until the first eprint returns.
+static int g_fault_waiting;
+static void fault_init(void) {
+    if (g_fault_at != -2) return;
+    const char* e = getenv("KIGUMI_FAIL_ALLOC_AT");
+    g_fault_at = e ? strtoll(e, NULL, 10) : -1;
+    g_fault_waiting = getenv("KIGUMI_FAIL_ALLOC_ARM") != NULL;
+}
 static int fault_tick(void) {
-    static int64_t at = -2, n = 0;
-    if (at == -2) {
-        const char* e = getenv("KIGUMI_FAIL_ALLOC_AT");
-        at = e ? strtoll(e, NULL, 10) : -1;
-    }
-    if (at <= 0) return 0;
-    return ++n == at;
+    fault_init();
+    if (g_fault_at <= 0 || g_fault_waiting) return 0;
+    return ++g_fault_n == g_fault_at;
+}
+static void fault_arm(void) {
+    fault_init();
+    if (!g_fault_waiting) return;
+    g_fault_waiting = 0;
+    g_fault_n = 0;
 }
 #else
 static int arena_fault_injected(void) {
@@ -140,6 +151,7 @@ static int arena_fault_injected(void) {
 static int fault_tick(void) {
     return 0;
 }
+static void fault_arm(void) {}
 #endif
 static rt_allocator g_general = {.alloc = gen_alloc, .free = gen_free};
 static KG_TLS rt_allocator* g_alloc_stack[64] = {&g_general};
@@ -232,6 +244,18 @@ static val alloc_in(rt_allocator* a, int kind) {
 }
 static val alloc(int kind) {
     return alloc_in(cur_alloc(), kind);
+}
+// A scalar box is runtime representation, not an allocation request: the VM never refuses one, so neither does a fault tick.
+static val alloc_scalar(int kind) {
+    rt_allocator* a = cur_alloc();
+    KG_ADD(a->bytes, (int64_t)sizeof(struct obj));
+    val v = a->alloc(a, sizeof(struct obj));
+    if (!v) rt_panic("out of memory");
+    LIVE_OBJ(kind, 1);
+    v->kind = kind;
+    v->rc = 1;
+    v->al = a;
+    return v;
 }
 // An allocator's own bookkeeping objects come from that allocator, so an
 // `allocator` block needs no ambient allocator (`allocator = none`).
@@ -466,7 +490,7 @@ val rt_unit(void) {
     return &u;
 }
 val rt_int(int64_t i, int nk) {
-    val v = alloc(K_INT);
+    val v = alloc_scalar(K_INT);
     v->u.i = i;
     v->nk = nk ? nk : (64 | 256);
     return v;
@@ -474,7 +498,7 @@ val rt_int(int64_t i, int nk) {
 // An f32 value is stored as the double nearest to its single-precision
 // rounding, so every operation on it rounds the way IEEE single does.
 val rt_float(double f, int nk) {
-    val v = alloc(K_FLOAT);
+    val v = alloc_scalar(K_FLOAT);
     v->u.f = (nk & 255) == 32 ? (double)(float)f : f;
     v->nk = nk;
     return v;
@@ -484,7 +508,7 @@ val rt_bool(int b) {
     return b ? &t : &f;
 }
 val rt_char(uint32_t c) {
-    val v = alloc(K_CHAR);
+    val v = alloc_scalar(K_CHAR);
     v->u.c = c;
     return v;
 }
@@ -1082,13 +1106,23 @@ int equal(val a, val b) {
 }
 
 // ---- strings and display ----
+static KG_TLS int g_buf_try, g_buf_failed;
 void bput(buf* b, const char* s, size_t n) {
+    if (g_buf_try && g_buf_failed) return;
     if (b->len + n + 1 > b->cap) {
+        if (g_buf_try && fault_tick()) {
+            g_buf_failed = 1;
+            return;
+        }
         if (n > SIZE_MAX - 1 || b->len > SIZE_MAX - 1 - n) rt_panic("out of memory");
         size_t need = b->len + n + 1;
         if (need > (SIZE_MAX - 16) / 2) rt_panic("out of memory");
         size_t cap = need * 2 + 16;
         char* p = realloc(b->p, cap);
+        if (!p && g_buf_try) {
+            g_buf_failed = 1;
+            return;
+        }
         if (!p) rt_panic("out of memory");
         b->p = p;
         b->cap = cap;
@@ -1716,6 +1750,9 @@ static rt_vdesc* find_variant(rt_type* t, const char* name) {
 // a failed allocation must not need one of its own, nor race a half-built one.
 static struct obj g_alloc_error;
 static val g_alloc_error_payload[1];
+// The same refusal as a plain Error, for results typed `T!`.
+static struct obj g_oom_text, g_oom_box, g_oom_error;
+static val g_oom_error_payload[1];
 #ifndef KIGUMI_ABI_FINGERPRINT
 #define KIGUMI_ABI_FINGERPRINT "kgabi1:unbound"
 #endif
@@ -1747,6 +1784,17 @@ void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
         g_alloc_error_payload[0] = rt_nullary(oom);
         rt_const_variant(&g_alloc_error, g_alloc_error_payload, V_Err, 1);
     }
+    g_oom_text.kind = K_OPAQUE;
+    g_oom_text.rc = -1;
+    g_oom_text.u.op.kind = "Error";
+    g_oom_text.u.op.data = (void*)"out of memory";
+    g_oom_box.kind = K_BOX;
+    g_oom_box.rc = -1;
+    g_oom_box.u.box.dyn = &T_Error;
+    g_oom_box.u.box.v = &g_oom_text;
+    g_oom_box.u.box.vt = T_Error_vt;
+    g_oom_error_payload[0] = &g_oom_box;
+    if (V_Err) rt_const_variant(&g_oom_error, g_oom_error_payload, V_Err, 1);
 }
 val some(val v) {
     return rt_variant(V_Some, 1, &v);
@@ -1767,6 +1815,9 @@ val err_msg(const char* msg) {
 static val alloc_error(void) {
     if (g_alloc_error.kind == 0) return err_msg("out of memory");
     return &g_alloc_error;
+}
+static val oom_error(void) {
+    return g_oom_error.kind == 0 ? err_msg("out of memory") : &g_oom_error;
 }
 // NULL-on-refusal counterparts to alloc_in/rt_str_take/opaque/rt_cell/rt_variant;
 // callers release/free what they already hold on a NULL return.
@@ -2819,6 +2870,7 @@ val rt_builtin(const char* name, int n, val* args) {
         val s = display(args[0]);
         write_line(2, "", 0, s->u.s.data, s->u.s.len);
         rt_release(s);
+        fault_arm();
         return rt_unit();
     }
     if (!strcmp(name, "panic")) rt_panic(n > 0 ? cstr(args[0]) : "explicit panic");
@@ -2945,6 +2997,7 @@ static int subtle_constant_time_eq(val a, val b) {
 #ifdef KIGUMI_CAP_HOST_STDIO
 #include "rt_cap_host_stdio.c.inc"
 #endif
+#include "rt_try_text.c.inc"
 // A constructor keeps its argument as is: an interface value must stay a witness-carrying box inside the cell.
 static int op_stores_a0(int op) {
     return op == OP_BOX_NEW || op == OP_BOX_TRY_NEW || op == OP_SHARED_NEW || op == OP_SHARED_TRY_NEW || op == OP_UCELL_NEW;
@@ -2965,16 +3018,16 @@ val rt_std_id(int op, int n, val* a) {
     case OP_STRING_TRY_FROM_BYTES: {
         if (!utf8_valid(a0->u.s.data, a0->u.s.len)) return err_msg("invalid UTF-8");
         char* d = strdup_or_null(a0->u.s.data, a0->u.s.len);
-        if (!d) return err_msg("out of memory");
+        if (!d) return oom_error();
         val v = rt_str_take_try(d, a0->u.s.len);
         if (!v) {
             free(d);
-            return err_msg("out of memory");
+            return oom_error();
         }
         val r = rt_variant_try(V_Ok, 1, &v);
         if (!r) {
             rt_release(v);
-            return err_msg("out of memory");
+            return oom_error();
         }
         return r;
     }
@@ -3251,6 +3304,22 @@ val rt_std_id(int op, int n, val* a) {
     }
     case OP_MAP_TRY_EMPTY: return empty_record_try(find_type("std/map.Map"), 3);
     case OP_STRING_BUILDER_TRY_NEW: return empty_record_try(find_type("std/text.StringBuilder"), 1);
+    case OP_STRING_TRY_TRIM: return try_string_trim(a0);
+    case OP_STRING_TRY_TO_UPPER: return try_string_shift(a0, 97, 122, 0);
+    case OP_STRING_TRY_TO_LOWER: return try_string_shift(a0, 65, 90, 1);
+    case OP_STRING_TRY_CHARS: return try_string_chars(a0);
+    case OP_STRING_TRY_SPLIT: return try_string_split(a0, a1);
+    case OP_TEXT_TRY_LINES: return try_text_lines(a0);
+    case OP_TEXT_TRY_GRAPHEMES: return try_text_graphemes(a0);
+    case OP_TEXT_TRY_REPLACE: return try_text_replace(a0, a1, a2);
+    case OP_TEXT_TRY_TRIM_PREFIX: return try_text_trim_edge(a0, a1, 0);
+    case OP_TEXT_TRY_TRIM_SUFFIX: return try_text_trim_edge(a0, a1, 1);
+    case OP_ARRAY_TRY_JOIN: return try_array_join(a0, a1);
+    case OP_ARRAY_TRY_SORTED_BY: return try_array_sorted_by(a0, a1);
+    case OP_STRING_BUILDER_TRY_PUSH: return try_builder_push(a0, a1);
+    case OP_STRING_BUILDER_TRY_PUSH_BYTE: return try_builder_push_byte(a0, a1);
+    case OP_STRING_BUILDER_TRY_FREEZE: return try_builder_freeze(a0);
+    case OP_DEBUG_TRY: return try_debug(a0);
     // array
     case OP_ARRAY_EMPTY: return rt_array(0, NULL);
     case OP_ARRAY_OF: return rt_retain(a0);
@@ -3497,6 +3566,18 @@ val rt_std_id(int op, int n, val* a) {
         ar->a.alloc = arena_alloc;
         ar->a.free = arena_free;
         return ok(opaque("AllocatorHandle", ar));
+    }
+    case OP_ARENA_TRY_CREATE: {
+        arena* ar = (arena_fault_injected() || fault_tick()) ? NULL : calloc(1, sizeof *ar);
+        if (!ar) return alloc_error();
+        ar->a.alloc = arena_alloc;
+        ar->a.free = arena_free;
+        val h = opaque_try("AllocatorHandle", ar);
+        if (!h) {
+            free(ar);
+            return alloc_error();
+        }
+        return try_ok(h);
     }
     case OP_ALLOCATOR_SCOPE: return opaque_in(&((arena*)a0->u.op.data)->a, "AllocatorScope", rt_retain(a0));
     case OP_ALLOCATOR_ALLOCATED: return rt_int((int64_t)((arena*)a0->u.op.data)->a.bytes, 64 | 256);

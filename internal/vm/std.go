@@ -22,6 +22,9 @@ func (m *Machine) std(key string, a []*obj) *obj {
 	if r := m.tryFamily(key, a, a0, a1, a2); r != nil {
 		return r
 	}
+	if r := m.tryText(key, a, a0, a1, a2); r != nil {
+		return r
+	}
 	if r := m.prelude(key, a, a0, a1); r != nil {
 		return r
 	}
@@ -58,9 +61,11 @@ func (m *Machine) std(key string, a []*obj) *obj {
 		}
 		return m.ok(mkStr(append([]byte{}, a0.s...)))
 	case "prelude.String.tryFromBytes":
-		// Same check as fromBytes; Go's allocator has no refusal to simulate here.
 		if !utf8.Valid(a0.s) {
 			return m.errMsg("invalid UTF-8")
+		}
+		if m.faultTick() {
+			return m.errMsg("out of memory")
 		}
 		return m.ok(mkStr(append([]byte{}, a0.s...)))
 	case "prelude.String.sliceBytes":

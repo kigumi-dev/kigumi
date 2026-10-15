@@ -70,12 +70,12 @@ pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
     }
     let mut i = hash(key).toUsize() & (n - 1)
     for {
-        let s = self.slots.get(i) || 0
+        let s = self.slots[i]
         if s == 0 {
             return None
         }
         let pos = s - 1
-        if self.keyList.with(pos, (k: &K) => k == key) is Some(true) {
+        if &self.keyList[pos] == key {
             return Some(pos)
         }
         i = (i + 1) & (n - 1)
@@ -86,22 +86,10 @@ pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
 pure noalloc fn Map[K: Eq + Hash, V].fileSlot(mut self, h: u64, pos: usize) -> Unit {
     let n = self.slots.len()
     let mut i = h.toUsize() & (n - 1)
-    for (self.slots.get(i) || 0) != 0 {
+    for self.slots[i] != 0 {
         i = (i + 1) & (n - 1)
     }
     self.slots[i] = pos + 1
-}
-
-/// A fresh index of size zeroed slots, or AllocError when the allocator refuses.
-pure fn tryBuildSlots(size: usize) -> Result[Array[usize], AllocError] {
-    let mut slots = Array.empty[usize]()
-    slots.tryReserve(size)?
-    let mut i: usize = 0
-    for i < size {
-        slots.push(0)
-        i = i + 1
-    }
-    Ok(slots)
 }
 
 /// Files every entry into the (already right-sized) index; used after the
@@ -109,7 +97,7 @@ pure fn tryBuildSlots(size: usize) -> Result[Array[usize], AllocError] {
 pure fn Map[K: Eq + Hash, V].refileAll(mut self) -> Unit {
     let mut pos: usize = 0
     for pos < self.keyList.len() {
-        let h = self.keyList.with(pos, (k: &K) => hash(k)) || 0
+        let h = hash(&self.keyList[pos])
         self.fileSlot(h, pos)
         pos = pos + 1
     }
@@ -117,7 +105,7 @@ pure fn Map[K: Eq + Hash, V].refileAll(mut self) -> Unit {
 
 /// Rebuilds the index with size slots; entries keep their positions.
 pure fn Map[K: Eq + Hash, V].reindex(mut self, size: usize) -> Unit {
-    self.slots = tryBuildSlots(size) || panic("out of memory")
+    self.slots = Array.tryFill[usize](0, size) || panic("out of memory")
     self.refileAll()
 }
 
@@ -159,7 +147,7 @@ pub pure fn Map[K: Eq + Hash, V].trySet(mut self, key: K, value: V) -> Result[Un
             }
             // Build the bigger index before committing key/value, so a
             // refused allocation here still leaves the map untouched.
-            let slots = tryBuildSlots(size)?
+            let slots = Array.tryFill[usize](0, size)?
             self.keyList.push(key)
             self.valueList.push(value)
             self.slots = slots

@@ -47,6 +47,23 @@ var familyCases = []struct{ name, setup, try, plain string }{
 	{"Arena.create", "import alloc from std/alloc\n\n", "_ = alloc.Arena.tryCreate()", "_ = alloc.Arena.create()"},
 	{"StringBuilder.push", "import text from std/text\n\nlet mut b = text.StringBuilder.tryNew().unwrap()\n", "_ = b.tryPush(\"x\")", "b.push(\"x\")"},
 	{"StringBuilder.pushByte", "import text from std/text\n\nlet mut b = text.StringBuilder.tryNew().unwrap()\n", "_ = b.tryPushByte(1)", "b.pushByte(1)"},
+	{"String.split", "let s = \"x\"\n", "_ = s.trySplit(\",\")", "_ = s.split(\",\")"},
+	{"String.chars", "let s = \"x\"\n", "_ = s.tryChars()", "_ = s.chars()"},
+	{"String.toUpper", "let s = \"x\"\n", "_ = s.tryToUpper()", "_ = s.toUpper()"},
+	{"String.toLower", "let s = \"x\"\n", "_ = s.tryToLower()", "_ = s.toLower()"},
+	{"text.lines", "import text from std/text\n\n", "_ = text.tryLines(\"x\")", "_ = text.lines(\"x\")"},
+	{"text.graphemes", "import text from std/text\n\n", "_ = text.tryGraphemes(\"x\")", "_ = text.graphemes(\"x\")"},
+	{"text.replace", "import text from std/text\n\n", "_ = text.tryReplace(\"x\", \"a\", \"b\")", "_ = text.replace(\"x\", \"a\", \"b\")"},
+	{"text.trimPrefix", "import text from std/text\n\n", "_ = text.tryTrimPrefix(\"x\", \"a\")", "_ = text.trimPrefix(\"x\", \"a\")"},
+	{"text.trimSuffix", "import text from std/text\n\n", "_ = text.tryTrimSuffix(\"x\", \"a\")", "_ = text.trimSuffix(\"x\", \"a\")"},
+	{"text.slice", "import text from std/text\n\n", "_ = text.trySlice(\"x\", 0, 1)", "_ = text.slice(\"x\", 0, 1)"},
+	{"array.join", "import array from std/array\n\nlet items = Array.empty[String]()\n", "_ = array.tryJoin(&items, \",\")", "_ = array.join(&items, \",\")"},
+	{"array.sortedBy", "import array from std/array\n\nlet items = Array.empty[Int]()\n", "_ = array.trySortedBy(&items, (a, b) => a.compareTo(b))", "_ = array.sortedBy(&items, (a, b) => a.compareTo(b))"},
+	{"StringBuilder.freeze", "import text from std/text\n\nlet b = text.StringBuilder.tryNew().unwrap()\n", "_ = b.tryFreeze()", "_ = b.freeze()"},
+	{"Array.map scalar closure", "let mut a = Array.empty[Int]()\n", "_ = a.tryMap((x: &Int) => x * 2 + 1)", "_ = a.map((x: &Int) => x * 2 + 1)"},
+	{"Array.filter scalar closure", "let mut a = Array.empty[Int]()\n", "_ = a.tryFilter((x: &Int) => x * 2 > 7)", "_ = a.filter((x: &Int) => x * 2 > 7)"},
+	{"array.sortedBy scalar closure", "import array from std/array\n\nlet items = Array.empty[Int]()\n", "_ = array.trySortedBy(&items, (a, b) => (a * 3 - 1).compareTo(b * 3 - 1))", "_ = array.sortedBy(&items, (a, b) => (a * 3 - 1).compareTo(b * 3 - 1))"},
+	{"debug", "let v = 1\n", "_ = tryDebug(&v)", "_ = debug(&v)"},
 	{"mem.secureErase", "import mem from std/mem\n\nlet mut b = Bytes.tryZeros(1).unwrap()\n", "_ = mem.trySecureErase(&mut b)", "mem.secureErase(&mut b)"},
 }
 
@@ -68,7 +85,7 @@ func TestRecoverableOnlyFamilyIsUniform(t *testing.T) {
 // standaloneTry are fallible std functions with no plain sibling: building blocks the plain forms are written with.
 var standaloneTry = map[string]bool{
 	"array.Array.tryReserve": true, "array.Array.tryWithCapacity": true, "array.Array.tryCopyRange": true,
-	"prelude.AllocError.wrap": true, "map.tryBuildSlots": true,
+	"prelude.AllocError.wrap": true,
 }
 
 // A new try* function must come with its plain form (or be listed above), so the family stays uniform.
@@ -96,5 +113,24 @@ func TestEveryTryFunctionHasAPlainForm(t *testing.T) {
 		if !names[plain] && !standaloneTry[key] {
 			t.Errorf("%s has no plain form %s", key, plain)
 		}
+	}
+}
+
+// A closure handing back a payload-free variant boxes an immortal, so it passes the profile; one with a payload allocates its box.
+func TestRecoverableOnlyClosureResultBox(t *testing.T) {
+	setup := "let a = Array.empty[Int]()\n"
+	if got := checkRecoverableOnly(t, setup+"_ = a.tryMap((x: &Int) => Ordering.Equal)\n"); got.HasErrors() {
+		t.Errorf("a closure returning a payload-free variant is rejected:\n%s", got.Render())
+	}
+	if got := checkRecoverableOnly(t, setup+"_ = a.tryMap((x: &Int) => Some(1))\n"); !strings.Contains(got.Render(), "recoverable-only") {
+		t.Errorf("a closure returning a variant with a payload passes:\n%s", got.Render())
+	}
+}
+
+// The help line names the try sibling of the std convenience that was called.
+func TestRecoverableOnlyHelpNamesTrySibling(t *testing.T) {
+	got := checkRecoverableOnly(t, "let mut a = Array.empty[Int]()\na.push(1)\n").Render()
+	if !strings.Contains(got, "use the fallible form `tryPush` instead") {
+		t.Errorf("the help does not name tryPush:\n%s", got)
 	}
 }

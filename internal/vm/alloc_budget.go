@@ -66,7 +66,7 @@ func (m *Machine) unchargeMemory(v *obj) {
 // faultTick counts one allocation attempt and reports whether this is the
 // one FaultInjectAt names (1-based); disabled (0) never fires.
 func (m *Machine) faultTick() bool {
-	if m.opts.FaultInjectAt <= 0 {
+	if m.opts.FaultInjectAt <= 0 || (m.opts.FaultArmOnEprint && !m.sh.faultArmed.Load()) {
 		return false
 	}
 	return m.sh.faultN.Add(1) == m.opts.FaultInjectAt

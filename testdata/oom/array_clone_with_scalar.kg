@@ -1,0 +1,14 @@
+fn run() -> Unit {
+    let a = Array.of(1, 2, 3, 4, 5, 6)
+    eprint "go"
+    let r = a.tryCloneWith((x: &Int) => x * 2 + 1)
+    if r is Err(_) {
+        if a.len() == 6 && (a.first() || 0) == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

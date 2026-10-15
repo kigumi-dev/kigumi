@@ -1,0 +1,17 @@
+import text from std/text
+
+fn run() -> Unit {
+    let s = "foobar"
+    eprint "go"
+    let r1 = text.tryTrimSuffix(s, "bar")
+    let r = text.tryTrimSuffix(s, "bar")
+    if r is Err(_) || r1 is Err(_) {
+        if s.len() == 6 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

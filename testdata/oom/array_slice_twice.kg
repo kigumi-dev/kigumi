@@ -1,5 +1,6 @@
 fn run() -> Unit {
     let a = Array.of(1, 2, 3)
+    eprint "go"
     let first = a.trySlice(0, 2)
     let second = a.trySlice(0, 2)
     if first is Err(_) || second is Err(_) {

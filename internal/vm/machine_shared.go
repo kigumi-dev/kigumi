@@ -41,6 +41,7 @@ type shared struct {
 	sigWatch     map[string]chan os.Signal
 	mem          atomic.Int64
 	faultN       atomic.Int64
+	faultArmed   atomic.Bool
 	// steps is shared by all lanes so a thread pool has one StepLimit.
 	steps atomic.Int64
 	// graph is written before the run starts and only read after.

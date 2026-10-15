@@ -1,6 +1,7 @@
 fn run() -> Unit {
     let a = Array.of(1, 2, 3)
     let before = a.len()
+    eprint "go"
     let r = a.tryTake(2)
     if r is Err(_) {
         if a.len() == before && (a.first() || 0) == 1 {

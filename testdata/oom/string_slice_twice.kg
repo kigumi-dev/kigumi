@@ -1,0 +1,16 @@
+fn run() -> Unit {
+    let s = "  héllo  "
+    let before = s.len()
+    eprint "go"
+    let r1 = s.trySliceBytes(2, 5)
+    let r = s.trySliceBytes(2, 5)
+    if r is Err(_) || r1 is Err(_) {
+        if s.len() == before {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

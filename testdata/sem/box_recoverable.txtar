@@ -32,5 +32,5 @@ error[E1280]: `new` may terminate on a refused allocation instead of returning i
    |
 19 |         let b = Box.new(n) //~ ERROR `new`
    |                 ^^^^^^^^^
-   = help: use the fallible (`try`-prefixed) form instead
+   = help: use the fallible form `tryNew` instead
 

@@ -425,3 +425,37 @@ callback 1
 key alloc.Box.withMut
 op 142 BOX_INTO primitive (named) -> any
 key alloc.Box.into
+op 143 STRING_TRY_TRIM primitive (string) -> result
+key prelude.String.tryTrim
+op 144 STRING_TRY_TO_UPPER primitive (string) -> result
+key prelude.String.tryToUpper
+op 145 STRING_TRY_TO_LOWER primitive (string) -> result
+key prelude.String.tryToLower
+op 146 STRING_TRY_CHARS primitive (string) -> result
+key prelude.String.tryChars
+op 147 STRING_TRY_SPLIT primitive (string, string) -> result
+key prelude.String.trySplit
+op 148 TEXT_TRY_LINES primitive (string) -> result
+key text.tryLines
+op 149 TEXT_TRY_GRAPHEMES primitive (string) -> result
+key text.tryGraphemes
+op 150 TEXT_TRY_REPLACE primitive (string, string, string) -> result
+key text.tryReplace
+op 151 TEXT_TRY_TRIM_PREFIX primitive (string, string) -> result
+key text.tryTrimPrefix
+op 152 TEXT_TRY_TRIM_SUFFIX primitive (string, string) -> result
+key text.tryTrimSuffix
+op 153 ARRAY_TRY_JOIN primitive (array, string) -> result
+key array.tryJoin
+op 154 ARRAY_TRY_SORTED_BY primitive (array, fn) -> result
+key array.trySortedBy
+op 155 STRING_BUILDER_TRY_PUSH primitive (named, string) -> result
+key text.StringBuilder.tryPush
+op 156 DEBUG_TRY primitive (any) -> result
+key prelude.tryDebug
+op 157 STRING_BUILDER_TRY_PUSH_BYTE primitive (named, int) -> result
+key text.StringBuilder.tryPushByte
+op 158 ARENA_TRY_CREATE primitive () -> result
+key alloc.Arena.tryCreate
+op 159 STRING_BUILDER_TRY_FREEZE primitive (named) -> result
+key text.StringBuilder.tryFreeze

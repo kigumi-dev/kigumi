@@ -27,12 +27,7 @@ pub type Box[T]
 pub fn Arena.create() -> AllocatorHandle!
 
 /// Creates an arena, reporting a refused allocation as AllocError.
-pub fn Arena.tryCreate() -> Result[AllocatorHandle, AllocError] {
-    if Arena.create() is Ok(handle) {
-        return AllocError.wrap(handle)
-    }
-    Err(AllocError.OutOfMemory)
-}
+pub fn Arena.tryCreate() -> Result[AllocatorHandle, AllocError]
 
 /// Scope that makes this allocator current inside an `allocator` block; its
 /// bookkeeping lives in this allocator, so no ambient allocator is needed.

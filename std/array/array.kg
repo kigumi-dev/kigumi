@@ -120,56 +120,11 @@ pub pure fn Array[T].tryMap[U](self, f: fn(&T) -> U) -> Result[Array[U], AllocEr
 
 /// Sorted copy of items; order decides which of two elements comes first.
 pub pure fn sortedBy[T: Copy](items: &Array[T], order: fn(&T, &T) -> Ordering) -> Array[T] {
-    let mut src = Array.empty[T]()
-    for item in items {
-        src.push(item)
-    }
-    mergeSortedBy(src, order)
+    trySortedBy(items, order) || panic("out of memory")
 }
 
-/// Stable merge sort over an owned array: order compares by borrow, so
-/// halves split and merge without ever holding an element across a loop
-/// that might also skip consuming it (own.go rejects that join).
-fn mergeSortedBy[T](arr: Array[T], order: fn(&T, &T) -> Ordering) -> Array[T] {
-    let n = arr.len()
-    if n <= 1 {
-        return arr
-    }
-    let mid = n / 2
-    let mut left = Array.empty[T]()
-    let mut right = Array.empty[T]()
-    let mut i: usize = 0
-    for item in arr {
-        if i < mid {
-            left.push(item)
-        } else {
-            right.push(item)
-        }
-        i += 1
-    }
-    mergeSortedHalves(mergeSortedBy(left, order), mergeSortedBy(right, order), order)
-}
-
-/// Merges two already-sorted arrays; ties keep the left element first, so
-/// the sort is stable.
-fn mergeSortedHalves[T](mut left: Array[T], mut right: Array[T], order: fn(&T, &T) -> Ordering) -> Array[T] {
-    let mut out = Array.empty[T]()
-    for left.len() > 0 && right.len() > 0 {
-        let rightFirst = left.with(0, (a: &T) => right.with(0, (b: &T) => order(b, a) is Ordering.Less) is Some(true)) is Some(true)
-        if rightFirst {
-            out.push(right.takeAt(0).unwrap())
-        } else {
-            out.push(left.takeAt(0).unwrap())
-        }
-    }
-    for item in left {
-        out.push(item)
-    }
-    for item in right {
-        out.push(item)
-    }
-    out
-}
+/// Same as sortedBy, or AllocError when the allocator refuses (sortedBy panics instead).
+pub pure fn trySortedBy[T: Copy](items: &Array[T], order: fn(&T, &T) -> Ordering) -> Result[Array[T], AllocError]
 
 /// Elements for which keep returns true, in the original order.
 pub pure fn Array[T].filter(self, keep: fn(&T) -> Bool) -> Array[T] {
@@ -260,23 +215,8 @@ pub pure fn Array[T].tryConcat(self, other: Array[T]) -> Result[Array[T], AllocE
 
 /// Concatenates items with sep between consecutive elements.
 pub pure fn join(items: &Array[String], sep: String) -> String {
-    // Collecting bytes keeps the join linear; concatenating strings would copy the prefix per item.
-    let mut bytes = Array.empty[u8]()
-    let mut first = true
-    for item in items {
-        if !first {
-            pushBytes(&mut bytes, sep)
-        }
-        pushBytes(&mut bytes, item)
-        first = false
-    }
-    String.fromBytes(Bytes.fromArray(&bytes)) || ""
+    tryJoin(items, sep) || panic("out of memory")
 }
 
-pure fn pushBytes(bytes: &mut Array[u8], s: String) -> Unit {
-    let mut i: usize = 0
-    for i < s.len() {
-        bytes.push(s[i])
-        i = i + 1
-    }
-}
+/// Same as join, or AllocError when the allocator refuses (join panics instead).
+pub pure fn tryJoin(items: &Array[String], sep: String) -> Result[String, AllocError]

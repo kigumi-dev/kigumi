@@ -27,11 +27,17 @@ func (r *Result) fatalConveniences() map[string]bool {
 	return family
 }
 
-// isTrustedTry marks a bodied std fn named try*: std reserves or wraps its
-// allocations through fallible primitives, which the fault sweeps check.
+// reservedTry lists the bodied std try functions inference cannot prove: a push after a reserve,
+// a callback forwarded to a fallible primitive. A two-call fault sweep fixture covers each.
+var reservedTry = map[string]bool{
+	"array.Array.tryFill": true, "array.Array.tryPush": true, "array.Array.tryCloneWith": true,
+	"map.Map.trySet": true,
+}
+
+// isTrustedTry marks a bodied std fn on the reservedTry list; any other bodied try* is inferred like user code.
 func (r *Result) isTrustedTry(id EntityID) bool {
 	e := &r.Entities[id]
-	return e.Flags&EfStd != 0 && isTryName(e.Name)
+	return e.Flags&EfStd != 0 && isTryName(e.Name) && reservedTry[r.stdKey(id)]
 }
 
 func (r *Result) fatalAllocKey(id EntityID) string { return r.stdKey(id) }
@@ -135,11 +141,15 @@ func (r *Result) checkRecoverableOnly(nodes []EntityID) {
 			if r.recoverableEdgeSafe(e, safe) {
 				continue
 			}
-			what := "this allocation"
+			what, fix := "this allocation", "the fallible (`try`-prefixed) form"
 			if (e.Kind == EdgeCall || e.Kind == EdgeCallback) && e.Target != 0 {
-				what = "`" + r.Entities[e.Target].Name + "`"
+				name := r.Entities[e.Target].Name
+				what = "`" + name + "`"
+				if r.Entities[e.Target].Flags&EfStd != 0 && r.fatalConveniences()[r.fatalAllocKey(e.Target)] {
+					fix = "the fallible form `try" + strings.ToUpper(name[:1]) + name[1:] + "`"
+				}
 			}
-			r.errAt(e.File, e.Node, cRecoverableOnlyFatalAlloc, what)
+			r.errAt(e.File, e.Node, cRecoverableOnlyFatalAlloc, what, fix)
 			break
 		}
 	}

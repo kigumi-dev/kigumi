@@ -1,0 +1,48 @@
+-- src --
+import array from std/array
+import text from std/text
+
+type Item = {
+    pub name String
+    pub rank Int
+}
+
+fn run() -> Unit {
+    let s = "a,b,,c"
+    print "split ${s.trySplit(",").unwrap().len()} ${array.join(&s.split(","), "|")} ${"abc".trySplit("").unwrap().len()} ${"".split(",").len()}"
+    print "chars ${"héllo".tryChars().unwrap().len()} ${"".chars().len()} ${array.join(&text.graphemes("hé!"), "/")} ${text.tryGraphemes("日本").unwrap().len()}"
+    print "case ${"aBc-é".tryToUpper().unwrap()} ${"aBc-É".tryToLower().unwrap()} ${"xyz".toUpper()} ${"XYZ".toLower()}"
+    print "lines ${text.tryLines("a\nb\n\nc\n").unwrap().len()} ${text.lines("").len()} ${text.lines("\n").len()} ${array.join(&text.tryLines("one\ntwo").unwrap(), "+")}"
+    print "replace ${text.tryReplace("a-b-c", "-", "::").unwrap()} ${text.replace("aaa", "a", "bb")} ${text.replace("abc", "", "x")} ${text.tryReplace("abc", "z", "q").unwrap()}"
+    print "prefix ${text.tryTrimPrefix("foobar", "foo").unwrap()} ${text.trimPrefix("foobar", "bar")} ${text.tryTrimSuffix("foobar", "bar").unwrap()} ${text.trimSuffix("foobar", "")}"
+    print "slice ${text.trySlice("foobar", 1, 4).unwrap() || "none"} ${text.trySlice("foobar", 4, 99).unwrap() is None}"
+    print "join ${array.tryJoin(&Array.of("x", "y", "z"), ", ").unwrap()} [${array.join(&Array.empty[String](), ",")}] ${array.join(&Array.of("solo"), "--")}"
+    let ranked = array.trySortedBy(&Array.of(3, 1, 2, 1), (a, b) => a.compareTo(b)).unwrap()
+    print "sorted ${array.join(&ranked.map((x: &Int) => "${x}"), "")} ${array.sortedBy(&Array.of("b", "c", "a"), (a, b) => a.compareTo(b)).len()}"
+    let people = array.sortedBy(&Array.of(Item { name: "x", rank: 2 }, Item { name: "y", rank: 1 }, Item { name: "z", rank: 2 }), (a, b) => a.rank.compareTo(b.rank))
+    print "stable ${people[0].name}${people[1].name}${people[2].name}"
+    let mut sb = text.StringBuilder.tryNew().unwrap()
+    _ = sb.tryPush("é")
+    _ = sb.tryPushByte(33)
+    print "builder ${sb.len()} ${sb.tryFreeze().unwrap()}"
+    let mut broken = text.StringBuilder.new()
+    broken.pushByte(255)
+    print "invalid ${broken.tryFreeze() is Err(_)}"
+    print "debug ${tryDebug(&Array.of(1, 2)).unwrap()} ${debug(&"s")}"
+}
+
+run()
+-- stdout --
+split 4 a|b||c 1 1
+chars 5 0 h/é/! 2
+case ABC-é abc-É XYZ xyz
+lines 4 0 0 one+two
+replace a::b::c bbbbbb abc abc
+prefix bar foobar foo foobar
+slice oob true
+join x, y, z [] solo
+sorted 1123 3
+stable yxz
+builder 3 é!
+invalid true
+debug [1, 2] s

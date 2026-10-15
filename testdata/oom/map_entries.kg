@@ -5,6 +5,7 @@ fn run() -> Unit {
     m.set(1, 10)
     m.set(2, 20)
     let before = m.len()
+    eprint "go"
     let r = m.tryEntries()
     if r is Err(_) {
         if m.len() == before && m.contains(&1) && m.contains(&2) {

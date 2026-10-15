@@ -2,6 +2,7 @@ import text from std/text
 
 fn run() -> Unit {
     let before = 1
+    eprint "go"
     let r = text.StringBuilder.tryNew()
     if r is Err(_) {
         if before == 1 {

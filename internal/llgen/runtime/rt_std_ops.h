@@ -145,6 +145,23 @@ enum std_op {
     OP_BOX_WITH = 140,
     OP_BOX_WITH_MUT = 141,
     OP_BOX_INTO = 142,
+    OP_STRING_TRY_TRIM = 143,
+    OP_STRING_TRY_TO_UPPER = 144,
+    OP_STRING_TRY_TO_LOWER = 145,
+    OP_STRING_TRY_CHARS = 146,
+    OP_STRING_TRY_SPLIT = 147,
+    OP_TEXT_TRY_LINES = 148,
+    OP_TEXT_TRY_GRAPHEMES = 149,
+    OP_TEXT_TRY_REPLACE = 150,
+    OP_TEXT_TRY_TRIM_PREFIX = 151,
+    OP_TEXT_TRY_TRIM_SUFFIX = 152,
+    OP_ARRAY_TRY_JOIN = 153,
+    OP_ARRAY_TRY_SORTED_BY = 154,
+    OP_STRING_BUILDER_TRY_PUSH = 155,
+    OP_DEBUG_TRY = 156,
+    OP_STRING_BUILDER_TRY_PUSH_BYTE = 157,
+    OP_ARENA_TRY_CREATE = 158,
+    OP_STRING_BUILDER_TRY_FREEZE = 159,
 };
 static int rt_std_op_of(const char* key) {
     const char* k = key;
@@ -281,6 +298,23 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "alloc.Box.with")) return OP_BOX_WITH;
     if (!strcmp(k, "alloc.Box.withMut")) return OP_BOX_WITH_MUT;
     if (!strcmp(k, "alloc.Box.into")) return OP_BOX_INTO;
+    if (!strcmp(k, "prelude.String.tryTrim")) return OP_STRING_TRY_TRIM;
+    if (!strcmp(k, "prelude.String.tryToUpper")) return OP_STRING_TRY_TO_UPPER;
+    if (!strcmp(k, "prelude.String.tryToLower")) return OP_STRING_TRY_TO_LOWER;
+    if (!strcmp(k, "prelude.String.tryChars")) return OP_STRING_TRY_CHARS;
+    if (!strcmp(k, "prelude.String.trySplit")) return OP_STRING_TRY_SPLIT;
+    if (!strcmp(k, "text.tryLines")) return OP_TEXT_TRY_LINES;
+    if (!strcmp(k, "text.tryGraphemes")) return OP_TEXT_TRY_GRAPHEMES;
+    if (!strcmp(k, "text.tryReplace")) return OP_TEXT_TRY_REPLACE;
+    if (!strcmp(k, "text.tryTrimPrefix")) return OP_TEXT_TRY_TRIM_PREFIX;
+    if (!strcmp(k, "text.tryTrimSuffix")) return OP_TEXT_TRY_TRIM_SUFFIX;
+    if (!strcmp(k, "array.tryJoin")) return OP_ARRAY_TRY_JOIN;
+    if (!strcmp(k, "array.trySortedBy")) return OP_ARRAY_TRY_SORTED_BY;
+    if (!strcmp(k, "text.StringBuilder.tryPush")) return OP_STRING_BUILDER_TRY_PUSH;
+    if (!strcmp(k, "prelude.tryDebug")) return OP_DEBUG_TRY;
+    if (!strcmp(k, "text.StringBuilder.tryPushByte")) return OP_STRING_BUILDER_TRY_PUSH_BYTE;
+    if (!strcmp(k, "alloc.Arena.tryCreate")) return OP_ARENA_TRY_CREATE;
+    if (!strcmp(k, "text.StringBuilder.tryFreeze")) return OP_STRING_BUILDER_TRY_FREEZE;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;

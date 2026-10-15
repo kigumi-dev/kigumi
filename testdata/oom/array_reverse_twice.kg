@@ -1,5 +1,6 @@
 fn run() -> Unit {
     let a = Array.of(1, 2, 3)
+    eprint "go"
     let first = a.tryReverse()
     let second = a.tryReverse()
     if first is Err(_) || second is Err(_) {

@@ -1,0 +1,16 @@
+import alloc from std/alloc
+
+fn run() -> Unit {
+    let n = 1
+    eprint "go"
+    let r = alloc.Arena.tryCreate()
+    if r is Err(_) {
+        if n == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

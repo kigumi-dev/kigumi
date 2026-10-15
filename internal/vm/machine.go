@@ -49,6 +49,8 @@ type Options struct {
 	// FaultInjectAt mirrors rt_core.c's KIGUMI_FAIL_ALLOC_AT: the Nth
 	// allocation attempt refuses instead of succeeding; 0 disables it.
 	FaultInjectAt int64
+	// FaultArmOnEprint mirrors KIGUMI_FAIL_ALLOC_ARM: no tick counts until the first eprint returns.
+	FaultArmOnEprint bool
 }
 
 // Machine is one lane of a run: the interpreter state below belongs to the

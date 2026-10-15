@@ -32,10 +32,10 @@
   {
     "key": "alloc.Arena.tryCreate",
     "signature": "fn() -\u003e Result[AllocatorHandle, AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -700,42 +700,32 @@
     "status": "ok"
   },
   {
-    "key": "array.mergeSortedBy",
-    "signature": "fn(Array[T], fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e Array[T]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "array.mergeSortedHalves",
-    "signature": "fn(Array[T], Array[T], fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e Array[T]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
-    "key": "array.pushBytes",
-    "signature": "pure fn(\u0026mut Array[u8], String) -\u003e Unit",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "array.sortedBy",
     "signature": "pure fn(\u0026Array[T], fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e Array[T]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.tryJoin",
+    "signature": "pure fn(\u0026Array[String], String) -\u003e Result[String, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.trySortedBy",
+    "signature": "pure fn(\u0026Array[T], fn(\u0026T, \u0026T) -\u003e Ordering) -\u003e Result[Array[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -3771,16 +3761,6 @@
     "status": "ok"
   },
   {
-    "key": "map.tryBuildSlots",
-    "signature": "pure fn(usize) -\u003e Result[Array[usize], AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "map.tryEmpty",
     "signature": "pure fn() -\u003e Result[Map[K, V], AllocError]",
     "has_body": false,
@@ -5632,16 +5612,6 @@
     "status": "ok"
   },
   {
-    "key": "prelude.String.shiftAscii",
-    "signature": "pure fn(u8, u8, Bool) -\u003e String",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "prelude.String.sliceBytes",
     "signature": "pure fn(usize, usize) -\u003e String?",
     "has_body": false,
@@ -5712,6 +5682,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.String.tryChars",
+    "signature": "pure fn() -\u003e Result[Array[Char], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.String.tryConcat",
     "signature": "pure fn(String) -\u003e Result[String, AllocError]",
     "has_body": false,
@@ -5752,12 +5732,42 @@
     "status": "ok"
   },
   {
+    "key": "prelude.String.trySplit",
+    "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.String.tryToLower",
+    "signature": "pure fn() -\u003e Result[String, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.String.tryToUpper",
+    "signature": "pure fn() -\u003e Result[String, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.String.tryTrim",
     "signature": "pure fn() -\u003e Result[String, AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -7472,16 +7482,6 @@
     "status": "ok"
   },
   {
-    "key": "prelude.isAsciiSpace",
-    "signature": "pure noalloc fn(u8) -\u003e Bool",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
-    "accelerated": false,
-    "status": "ok"
-  },
-  {
     "key": "prelude.isize.addWithOverflow",
     "signature": "pure fn(isize) -\u003e Overflow[isize]",
     "has_body": true,
@@ -7798,6 +7798,16 @@
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.tryDebug",
+    "signature": "pure fn(\u0026T) -\u003e Result[String, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -10162,6 +10172,16 @@
     "status": "ok"
   },
   {
+    "key": "text.StringBuilder.tryFreeze",
+    "signature": "pure fn() -\u003e String!",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.StringBuilder.tryNew",
     "signature": "pure fn() -\u003e Result[StringBuilder, AllocError]",
     "has_body": false,
@@ -10174,20 +10194,20 @@
   {
     "key": "text.StringBuilder.tryPush",
     "signature": "pure fn(String) -\u003e Result[Unit, AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
   {
     "key": "text.StringBuilder.tryPushByte",
     "signature": "pure fn(u8) -\u003e Result[Unit, AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -10378,6 +10398,66 @@
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.tryGraphemes",
+    "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.tryLines",
+    "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.tryReplace",
+    "signature": "pure fn(String, String, String) -\u003e Result[String, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.trySlice",
+    "signature": "pure fn(String, usize, usize) -\u003e Result[String?, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.tryTrimPrefix",
+    "signature": "pure fn(String, String) -\u003e Result[String, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.tryTrimSuffix",
+    "signature": "pure fn(String, String) -\u003e Result[String, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },

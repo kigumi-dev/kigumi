@@ -1,0 +1,15 @@
+fn run() -> Unit {
+    let s = "abc"
+    eprint "go"
+    let r1 = s.tryToUpper()
+    let r = s.tryToUpper()
+    if r is Err(_) || r1 is Err(_) {
+        if s.len() == 3 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()
