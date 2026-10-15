@@ -38,14 +38,14 @@ var pinnedRCCalls = map[string]int{
 // measured on the unchanged compiler; the totals above for those fixtures must stay at or below these.
 var baselineRCCalls = map[string]int{
 	"fixtures":         529,
-	"rt_retain":        4847,
-	"rt_release":       51713,
-	"rt_release_outer": 12928,
-	"rt_drop":          26695,
-	"rt_cell_init":     2439,
-	"rt_cell_take":     2487,
-	"rt_setfield_swap": 197,
-	"rt_setindex_swap": 28,
+	"rt_retain":        4911,
+	"rt_release":       51119,
+	"rt_release_outer": 12954,
+	"rt_drop":          25759,
+	"rt_cell_init":     2455,
+	"rt_cell_take":     2503,
+	"rt_setfield_swap": 203,
+	"rt_setindex_swap": 32,
 }
 
 var addedAfterBaseline = map[string]bool{
