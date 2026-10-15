@@ -56,6 +56,7 @@ func (c *checker) applyFieldWrite(lhs, rhs syntax.NodeID) {
 	}
 	switch len(p.Fields) {
 	case 0:
+		c.noteParamReassign(p.Root, rhs)
 		if c.t.Kind(rhs) == syntax.RecordLit {
 			c.reassignRecordFields(p.Root, rhs)
 			return

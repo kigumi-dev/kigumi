@@ -66,6 +66,7 @@ type obj struct {
 	b      bool
 	bind   bool
 	async  bool
+	live   bool
 }
 
 var (
@@ -81,6 +82,7 @@ func newObj(k kind) *obj {
 func born(v *obj) *obj {
 	if liveTrack.Load() {
 		liveMade.Add(1)
+		v.live = true
 	}
 	return v
 }

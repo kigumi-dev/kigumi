@@ -858,6 +858,20 @@ val rt_setindex_copy_swap(val base, val idx, val src) {
 void rt_setindex_copy(val base, val idx, val src) {
     rt_release(rt_setindex_copy_swap(base, idx, src));
 }
+// r.fields[i] = copy of src; the field keeps its own box when src's fields fit into it.
+val rt_setfield_copy_swap(val r, int64_t i, val src) {
+    r = deref(r);
+    val old = r->u.rec.fields[i];
+    if (old && !borrow_field(r, i) && fields_fit(old, src)) {
+        take_fields(old, src);
+        return NULL;
+    }
+    r->u.rec.fields[i] = rt_copy(src);
+    return borrow_field(r, i) ? NULL : old;
+}
+void rt_setfield_copy(val r, int64_t i, val src) {
+    rt_release(rt_setfield_copy_swap(r, i, src));
+}
 int64_t rt_int_val(val v) {
     v = deref(v);
     return v->kind == K_INT ? v->u.i : 0;

@@ -30,9 +30,36 @@ fn undeclaredFieldCopy(o: &mut Outer) -> Unit { o.segs[0].a = o.segs[1].b }
 
 fn undeclaredLiteral(w: &mut Wrap) -> Unit { w.a[0] = Pt { x: 1, y: 2 } }
 
-noalloc fn fieldCopy(o: &mut Outer) -> Unit { o.segs[0].a = o.segs[1].b } //~ ERROR allocates a box
+noalloc fn fieldCopy(o: &mut Outer) -> Unit { o.segs[0].a = o.segs[1].b }
 
-noalloc fn slotFromField(o: &mut Outer) -> Unit { o.w.a[1] = o.segs[1].a } //~ ERROR allocates a box
+noalloc fn slotFromField(o: &mut Outer) -> Unit { o.w.a[1] = o.segs[1].a }
+
+noalloc fn fieldFromSlot(o: &mut Outer) -> Unit { o.segs[0].b = o.w.a[2] }
+
+noalloc fn Outer.shift(mut self) -> Unit { self.segs[1].a = self.segs[0].b }
+
+noalloc fn fieldFromOwnedLocal(o: &mut Outer, s: &Seg) -> Unit { o.segs[0].a = s.b } //~ ERROR allocates a box
+
+noalloc fn byValueSlots(mut w: Wrap) -> Unit { w.a[0] = w.a[1] } //~ ERROR allocates a box
+
+noalloc fn byValueFields(mut o: Outer) -> Unit { o.segs[0].a = o.segs[1].b } //~ ERROR allocates a box
+
+noalloc fn localSlots() -> Int {
+    let mut w = Wrap { a: FixedArray.filled[Pt, 3](Pt { x: 0, y: 0 }) }
+    w.a[0] = w.a[1] //~ ERROR allocates a box
+    w.a[0].x
+}
+
+fn undeclaredByValue(mut w: Wrap) -> Unit { w.a[0] = w.a[1] }
+
+fn undeclaredByValueFields(mut o: Outer) -> Unit { o.segs[0].a = o.segs[1].b }
+
+fn undeclaredLocal(p: Pt) -> Int {
+    let mut w = Wrap { a: FixedArray.filled[Pt, 3](p) }
+    w.a[0] = w.a[2]
+    w.a[1] = w.a[0]
+    w.a[1].x
+}
 
 noalloc fn viaLocal(w: &mut Wrap) -> Unit {
     let t = w.a[0]
@@ -42,39 +69,95 @@ noalloc fn viaLocal(w: &mut Wrap) -> Unit {
 noalloc fn literalStore(w: &mut Wrap) -> Unit { w.a[0] = Pt { x: 1, y: 2 } } //~ ERROR allocates a box
 
 noalloc fn valueStore(w: &mut Wrap, p: Pt) -> Unit { w.a[0] = p } //~ ERROR allocates a box
+
+type Tw = {
+    pub mut ws Array[Int]
+    pub mut w Wrap
+}
+
+fn undeclaredTwLiteral(mut t: Tw) -> Int {
+    t.w.a[0] = Pt { x: 1, y: 2 }
+    t.w.a[0].x
+}
+
+fn undeclaredTwSwap(mut t: Tw) -> Int {
+    let tmp = t.w.a[0]
+    t.w.a[1] = tmp
+    t.w.a[1].x
+}
+
+fn undeclaredTwOwn(mut t: Tw) -> Tw {
+    t.w.a[2] = Pt { x: 9, y: 9 }
+    t
+}
+
+noalloc fn twLiteral(mut t: Tw) -> Unit { t.w.a[0] = Pt { x: 1, y: 2 } } //~ ERROR allocates a box
+
+noalloc fn twSwap(mut t: Tw) -> Unit {
+    let tmp = t.w.a[0]
+    t.w.a[1] = tmp //~ ERROR allocates a box
+}
 -- expect --
 error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
-  --> main/main.kg:32:47
+  --> main/main.kg:40:66
    |
-32 | noalloc fn fieldCopy(o: &mut Outer) -> Unit { o.segs[0].a = o.segs[1].b } //~ ERROR allocates a box
-   |                                               ^^^^^^^^^^^
+40 | noalloc fn fieldFromOwnedLocal(o: &mut Outer, s: &Seg) -> Unit { o.segs[0].a = s.b } //~ ERROR allocates a box
+   |                                                                  ^^^^^^^^^^^
    = help: keep it in a value of its own, or drop the declaration
 
-error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
-  --> main/main.kg:34:51
+error[E1610]: handing `Wrap` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:42:48
    |
-34 | noalloc fn slotFromField(o: &mut Outer) -> Unit { o.w.a[1] = o.segs[1].a } //~ ERROR allocates a box
-   |                                                   ^^^^^^^
+42 | noalloc fn byValueSlots(mut w: Wrap) -> Unit { w.a[0] = w.a[1] } //~ ERROR allocates a box
+   |                                                ^^^^^
    = help: keep it in a value of its own, or drop the declaration
 
-error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
-  --> main/main.kg:38:5
+error[E1610]: handing `Outer` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:44:50
    |
-38 |     w.a[1] = t //~ ERROR allocates a box
+44 | noalloc fn byValueFields(mut o: Outer) -> Unit { o.segs[0].a = o.segs[1].b } //~ ERROR allocates a box
+   |                                                  ^^^^^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Wrap` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:48:5
+   |
+48 |     w.a[0] = w.a[1] //~ ERROR allocates a box
    |     ^^^^^
    = help: keep it in a value of its own, or drop the declaration
 
 error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
-  --> main/main.kg:41:49
+  --> main/main.kg:65:5
    |
-41 | noalloc fn literalStore(w: &mut Wrap) -> Unit { w.a[0] = Pt { x: 1, y: 2 } } //~ ERROR allocates a box
+65 |     w.a[1] = t //~ ERROR allocates a box
+   |     ^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:68:49
+   |
+68 | noalloc fn literalStore(w: &mut Wrap) -> Unit { w.a[0] = Pt { x: 1, y: 2 } } //~ ERROR allocates a box
    |                                                 ^^^^^
    = help: keep it in a value of its own, or drop the declaration
 
 error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
-  --> main/main.kg:43:54
+  --> main/main.kg:70:54
    |
-43 | noalloc fn valueStore(w: &mut Wrap, p: Pt) -> Unit { w.a[0] = p } //~ ERROR allocates a box
+70 | noalloc fn valueStore(w: &mut Wrap, p: Pt) -> Unit { w.a[0] = p } //~ ERROR allocates a box
    |                                                      ^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:93:43
+   |
+93 | noalloc fn twLiteral(mut t: Tw) -> Unit { t.w.a[0] = Pt { x: 1, y: 2 } } //~ ERROR allocates a box
+   |                                           ^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:97:5
+   |
+97 |     t.w.a[1] = tmp //~ ERROR allocates a box
+   |     ^^^^^^^
    = help: keep it in a value of its own, or drop the declaration
 

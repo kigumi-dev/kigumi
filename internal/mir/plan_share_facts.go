@@ -29,6 +29,7 @@ type shareFacts struct {
 	viewers map[LocalID][]LocalID
 	reach   [][]bool
 	live    *liveness
+	foreign []bool
 }
 
 type argUse struct {

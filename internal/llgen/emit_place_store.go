@@ -7,11 +7,15 @@ import (
 )
 
 func (e *emitter) setField(sb *strings.Builder, f *mir.Func, in mir.Inst, args []string) {
+	fn, swap := rtSetfield, rtSetfieldSwap
+	if in.Copy {
+		fn, swap = rtSetfieldCopy, rtSetfieldCopySwap
+	}
 	if e.outer != nil {
-		e.dropCall(sb, f, rtRelease, e.irb(sb).Call(rtSetfieldSwap, vptr(args[0]), vi64(in.Index), vptr(args[1])).Text)
+		e.dropCall(sb, f, rtRelease, e.irb(sb).Call(swap, vptr(args[0]), vi64(in.Index), vptr(args[1])).Text)
 		return
 	}
-	e.irb(sb).Call(rtSetfield, vptr(args[0]), vi64(in.Index), vptr(args[1]))
+	e.irb(sb).Call(fn, vptr(args[0]), vi64(in.Index), vptr(args[1]))
 }
 
 func (e *emitter) setIndex(sb *strings.Builder, f *mir.Func, in mir.Inst, args []string) {

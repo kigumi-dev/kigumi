@@ -76,6 +76,8 @@ type checker struct {
 	paramAlias map[EntityID]EntityID
 	// letInit: a local's `let` initializer, so an fn value can be traced through alias chains.
 	letInit map[EntityID]syntax.NodeID
+	// paramReassign: the values a param is wholly reassigned to, which a returned param may hold instead of its argument.
+	paramReassign map[EntityID][]syntax.NodeID
 	// escapeAlias: a non-escaping parameter a local may hold; any binding or branch taints it and `mut` does not clear it.
 	escapeAlias map[EntityID]EntityID
 	// taintedCall: callValue nodes whose result may hold a non-escaping parameter (opaque callee).

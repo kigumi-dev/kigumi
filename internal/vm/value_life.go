@@ -32,9 +32,10 @@ func (m *Machine) hostWins(lowered bool) bool {
 func (m *Machine) free(v *obj) {
 	switch v.k {
 	case kInt, kFloat, kChar:
+		tracked := v.live
 		*v = obj{k: kFree}
 		if liveTrack.Load() {
-			liveFreed.Add(1)
+			liveDropped(tracked)
 		}
 		if len(m.pool) < scalarPoolMax {
 			m.pool = append(m.pool, v)
@@ -69,9 +70,10 @@ func (m *Machine) free(v *obj) {
 		m.freeOpaque(v)
 	}
 	// A freed object is poisoned so a later use is caught, like -DKIGUMI_RC_CHECK.
+	tracked := v.live
 	*v = obj{k: kFree}
 	if liveTrack.Load() {
-		liveFreed.Add(1)
+		liveDropped(tracked)
 	}
 	m.raiseJoined(fault)
 }

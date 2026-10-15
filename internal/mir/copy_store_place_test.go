@@ -63,3 +63,59 @@ func TestCopyStoreThroughAPlaceFillsTheSlotInPlace(t *testing.T) {
 		t.Error("no closure planned")
 	}
 }
+
+const copyStoreFieldSrc = `
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Seg = {
+    pub mut a Pt
+    pub mut b Pt
+}
+
+type Wrap = {
+    pub mut a FixedArray[Pt, 3]
+}
+
+type Outer = {
+    pub mut segs FixedArray[Seg, 2]
+    pub mut w Wrap
+}
+
+noalloc fn fieldFromField(o: &mut Outer) -> Unit {
+    o.segs[0].a = o.segs[1].b
+}
+
+noalloc fn slotFromField(o: &mut Outer) -> Unit {
+    o.w.a[1] = o.segs[1].a
+}
+
+fn Outer.shift(mut self) -> Unit {
+    self.segs[1].a = self.segs[0].b
+}
+
+fn byValueFields(mut o: Outer) -> Unit {
+    o.segs[0].a = o.segs[1].b
+}
+
+fn byValueSlots(mut w: Wrap) -> Unit {
+    w.a[0] = w.a[2]
+}
+
+fn main() -> Unit! {}
+`
+
+func TestCopyStoreBetweenFieldsFillsTheDestinationInPlace(t *testing.T) {
+	p := planned(t, copyStoreFieldSrc)
+	for _, name := range []string{"main.fieldFromField", "main.slotFromField", "main.Outer.shift", "main.byValueFields", "main.byValueSlots"} {
+		f := funcNamed(t, p, name)
+		if got := countOp(f, mir.OpBoxDirect); got != 0 {
+			t.Errorf("%s boxes %d times:\n%s", name, got, p.Dump())
+		}
+		if got := len(p.CopyStores(f)); got != 1 {
+			t.Errorf("%s has %d in-place copy stores, want 1:\n%s", name, got, p.Dump())
+		}
+	}
+}

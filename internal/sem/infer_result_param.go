@@ -9,37 +9,45 @@ import (
 type resultParam struct {
 	index int
 	path  []EntityID
+	// into is the field of the result the param place is stored in; empty when it is the whole result.
+	into []EntityID
 	// overwritten lists the param's fields every return of it has rewritten, so the caller's own binding does not reach the result.
 	overwritten []EntityID
 }
 
 func (c *checker) noteResultParam(src EntityID, leaf syntax.NodeID) {
+	c.noteResultParamAt(nil, src, leaf)
+}
+
+// noteResultParamAt reports whether src is a place of a param of this fn, now recorded as the value of the result's field into.
+func (c *checker) noteResultParamAt(into []EntityID, src EntityID, leaf syntax.NodeID) bool {
 	if len(c.lambdas) > 0 {
-		return
+		return false
 	}
 	root, path := c.r.nestedPath(src)
 	e := &c.r.Entities[root]
 	if e.Kind != EntParam || e.Parent != c.fn {
-		return
+		return false
 	}
 	i := slices.Index(c.r.Fn(c.fn).Params, root)
 	if i < 0 {
-		return
+		return false
 	}
 	var over []EntityID
-	if len(path) == 0 && c.info.Uses[c.stripParen(leaf)] == root {
+	if len(path) == 0 && len(into) == 0 && c.info.Uses[c.stripParen(leaf)] == root {
 		over = c.overwrittenBefore(root, leaf)
 	}
 	for k, rp := range c.r.flow.resultParams[c.fn] {
-		if rp.index == i && slices.Equal(rp.path, path) {
+		if rp.index == i && slices.Equal(rp.path, path) && slices.Equal(rp.into, into) {
 			c.r.flow.resultParams[c.fn][k].overwritten = slices.DeleteFunc(slices.Clone(rp.overwritten), func(f EntityID) bool { return !slices.Contains(over, f) })
-			return
+			return true
 		}
 	}
 	if c.r.flow.resultParams == nil {
 		c.r.flow.resultParams = map[EntityID][]resultParam{}
 	}
-	c.r.flow.resultParams[c.fn] = append(c.r.flow.resultParams[c.fn], resultParam{index: i, path: path, overwritten: over})
+	c.r.flow.resultParams[c.fn] = append(c.r.flow.resultParams[c.fn], resultParam{index: i, path: path, into: slices.Clone(into), overwritten: over})
+	return true
 }
 
 func (r *Result) applyResultParams(site methodFieldCallSite) bool {
@@ -54,11 +62,13 @@ func (r *Result) applyResultParams(site methodFieldCallSite) bool {
 		typ := retType
 		if len(rp.path) > 0 {
 			typ = r.Entities[rp.path[len(rp.path)-1]].Type
+		} else if len(rp.into) > 0 {
+			typ = r.Entities[rp.into[len(rp.into)-1]].Type
 		}
 		if r.forwardResultArg(site, rp, typ) {
 			changed = true
 		}
-		if len(rp.path) > 0 || rp.index >= len(info.Params) {
+		if len(rp.path) > 0 || len(rp.into) > 0 || rp.index >= len(info.Params) {
 			continue
 		}
 		for _, f := range r.recordFieldsOf(typ) {
@@ -72,6 +82,10 @@ func (r *Result) applyResultParams(site methodFieldCallSite) bool {
 
 func (r *Result) forwardResultArg(site methodFieldCallSite, rp resultParam, typ TypeID) bool {
 	t := r.tree(site.file)
+	dst := site.recv
+	for _, f := range rp.into {
+		dst = r.nestedFnOwner(fieldFnKey{Ent: dst, Field: f})
+	}
 	expr := stripParens(t, site.args[rp.index])
 	for _, f := range rp.path {
 		if t.Kind(expr) != syntax.RecordLit {
@@ -84,7 +98,7 @@ func (r *Result) forwardResultArg(site methodFieldCallSite, rp resultParam, typ 
 		return false
 	}
 	if t.Kind(expr) == syntax.RecordLit {
-		return len(rp.path) == 0 && r.writeLiteralFields(site, site.recv, expr, typ, 0, rp.overwritten)
+		return len(rp.path) == 0 && r.writeLiteralFields(site, dst, expr, typ, 0, rp.overwritten)
 	}
 	src := r.fnChainEnt(site.file, expr)
 	if src == 0 || !r.concretePlace(src) {
@@ -93,7 +107,7 @@ func (r *Result) forwardResultArg(site methodFieldCallSite, rp resultParam, typ 
 	for _, f := range rp.path {
 		src = r.nestedFnOwner(fieldFnKey{Ent: src, Field: f})
 	}
-	return r.addFnUnion(fnUnion{dst: site.recv, src: src, typ: typ, file: site.file, node: site.node, skip: r.skipSetID(rp.overwritten)})
+	return r.addFnUnion(fnUnion{dst: dst, src: src, typ: typ, file: site.file, node: site.node, skip: r.skipSetID(rp.overwritten)})
 }
 
 func (r *Result) writeLiteralFields(site methodFieldCallSite, owner EntityID, lit syntax.NodeID, typ TypeID, depth int, skip []EntityID) bool {

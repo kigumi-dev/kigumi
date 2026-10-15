@@ -22,7 +22,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	} else if root := c.rootOf(lhs); root != 0 {
 		c.noteCaptureWrite(lhs, root)
 	}
-	deferred := !op.IsCompoundAssign() && c.t.Kind(lhs) == syntax.BracketExpr && c.t.Kind(c.stripParen(rhs)) == syntax.BracketExpr
+	deferred := !op.IsCompoundAssign() && c.copyShape(lhs, rhs)
 	if !deferred {
 		c.crossStore(lhs, target)
 	}
@@ -38,8 +38,15 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		target = elem
 	}
 	c.check(rhs, target)
-	if deferred && !c.elementCopy(lhs, rhs, target) {
-		c.crossStore(lhs, target)
+	if deferred {
+		if c.elementCopy(lhs, rhs, target) || c.fieldCopy(lhs, rhs, target) {
+			c.crossOwnedRoot(lhs)
+			if src := c.stripParen(rhs); c.rootOf(src) != c.rootOf(lhs) {
+				c.crossOwnedRoot(src)
+			}
+		} else {
+			c.crossStore(lhs, target)
+		}
 	}
 	c.applyFieldWrite(lhs, rhs)
 	c.noteStrongFieldWrite(n, lhs)

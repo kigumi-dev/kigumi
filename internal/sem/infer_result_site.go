@@ -63,13 +63,19 @@ func (c *checker) recordResultLeaves(body syntax.NodeID) {
 		return
 	}
 	ret := c.r.fnResultEnt(c.fn)
-	for _, leaf := range c.resultLeaves(body) {
-		if lit := c.stripParen(leaf); c.t.Kind(lit) == syntax.RecordLit {
-			c.recordKnownFieldFns(lit, ret)
-		} else if src := c.r.fnChainEnt(c.f, leaf); src != 0 && c.r.concretePlace(src) {
-			c.unionInto(ret, src, c.retType, leaf)
-		} else if src != 0 {
-			c.noteResultParam(src, leaf)
-		}
+	for _, leaf := range c.expandLetLeaves(c.resultLeaves(body), 0) {
+		c.recordResultLeaf(ret, leaf, 0)
+	}
+}
+
+func (c *checker) recordResultLeaf(ret EntityID, leaf syntax.NodeID, depth int) {
+	if lit := c.stripParen(leaf); c.t.Kind(lit) == syntax.RecordLit {
+		c.recordKnownFieldFns(lit, ret)
+	} else if src := c.r.fnChainEnt(c.f, leaf); src != 0 && c.r.concretePlace(src) {
+		c.unionInto(ret, src, c.retType, leaf)
+		c.noteLocalResultParams(src, c.retType, nil, leaf, 0)
+	} else if src != 0 {
+		c.noteResultParam(src, leaf)
+		c.recordParamReassigns(ret, src, depth)
 	}
 }

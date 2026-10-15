@@ -1,0 +1,197 @@
+-- src --
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Seg = {
+    pub mut a Pt
+    pub mut b Pt
+}
+
+type Wrap = {
+    pub mut a FixedArray[Pt, 3]
+    pub mut p Pt
+}
+
+type Grid = {
+    pub mut rows FixedArray[FixedArray[Pt, 2], 2]
+}
+
+type Outer = {
+    pub mut segs FixedArray[Seg, 2]
+    pub mut w Wrap
+}
+
+fn mk() -> Outer {
+    let p = Pt { x: 0, y: 0 }
+    Outer { segs: FixedArray.filled[Seg, 2](Seg { a: p, b: p }), w: Wrap { a: FixedArray.filled[Pt, 3](p), p: p } }
+}
+
+noalloc fn fieldFromField(o: &mut Outer) -> Unit {
+    o.segs[0].a = o.segs[1].b
+}
+
+noalloc fn slotFromField(o: &mut Outer) -> Unit {
+    o.w.a[1] = o.segs[1].a
+}
+
+noalloc fn fieldFromSlot(o: &mut Outer) -> Unit {
+    o.segs[0].b = o.w.a[2]
+}
+
+noalloc fn nestedField(o: &mut Outer) -> Unit {
+    o.w.p = o.segs[1].a
+}
+
+fn Outer.shift(mut self) -> Unit {
+    self.segs[1].a = self.segs[0].b
+    self.w.a[0] = self.segs[1].b
+}
+
+fn byValue(mut o: Outer) -> Int {
+    o.segs[0].a = o.segs[1].b
+    o.w.a[1] = o.segs[1].a
+    o.segs[0].a.x = 100
+    o.segs[0].a.x + o.w.a[1].x
+}
+
+fn byValueSlots(mut w: Wrap, i: usize, j: usize) -> Wrap {
+    w.a[i] = w.a[j]
+    w
+}
+
+fn byValueSeg(mut o: Outer) -> Outer {
+    o.segs[0] = o.segs[1]
+    o
+}
+
+fn byValueGrid(mut g: Grid) -> Grid {
+    g.rows[0][1] = g.rows[1][0]
+    g
+}
+
+fn local(p: Pt) -> Int {
+    let mut o = mk()
+    o.segs[1].b = p
+    o.segs[0].a = o.segs[1].b
+    o.segs[1].b.x = 55
+    o.segs[0].a.x
+}
+
+fn closure(p: Pt) -> Int {
+    let mut o = mk()
+    o.segs[1].b = p
+    let f = () => {
+        o.segs[0].a = o.segs[1].b
+        o.w.a[0] = o.segs[0].a
+    }
+    f()
+    o.segs[1].b.y = 66
+    o.segs[0].a.y + o.w.a[0].y
+}
+
+fn variableIndex(o: &mut Outer, i: usize, j: usize) -> Unit {
+    o.segs[i].a = o.segs[j].b
+    o.w.a[j] = o.segs[i].a
+}
+
+fn swapSlots(w: &mut Wrap) -> Unit {
+    let t = w.a[0]
+    w.a[0] = w.a[1]
+    w.a[1] = t
+}
+
+fn adjacentLiterals(w: &mut Wrap) -> Unit {
+    w.a[0] = Pt { x: 1, y: 2 }
+    w.a[1] = Pt { x: 3, y: 4 }
+    w.a[2] = Pt { x: w.a[0].x + w.a[1].x, y: 6 }
+}
+
+type Tw = {
+    pub mut ws Array[Int]
+    pub mut w Wrap
+}
+
+fn mkTw() -> Tw {
+    Tw { ws: Array.of(1), w: mk().w }
+}
+
+fn twLiteral(mut t: Tw) -> Int {
+    t.w.a[0] = Pt { x: 1, y: 2 }
+    t.w.a[0].x
+}
+
+fn twSwap(mut t: Tw) -> Int {
+    let tmp = t.w.a[0]
+    t.w.a[1] = tmp
+    t.w.a[1].x
+}
+
+fn twOwn(mut t: Tw) -> Tw {
+    t.w.a[2] = Pt { x: 9, y: 9 }
+    t
+}
+
+fn twCopy(mut t: Tw) -> Int {
+    t.w.a[0] = Pt { x: 4, y: 5 }
+    t.w.a[1] = t.w.a[0]
+    t.w.a[0].x = 40
+    t.w.a[1].x + t.w.a[0].x
+}
+
+fn show(o: &Outer) -> String {
+    "${o.segs[0].a.x},${o.segs[0].a.y} ${o.segs[0].b.x},${o.segs[0].b.y} ${o.segs[1].a.x},${o.segs[1].a.y} ${o.segs[1].b.x},${o.segs[1].b.y} | ${o.w.a[0].x} ${o.w.a[1].x} ${o.w.a[2].x} ${o.w.p.x}"
+}
+
+fn main() -> Unit! {
+    let mut o = mk()
+    o.segs[1].b = Pt { x: 7, y: 8 }
+    o.segs[1].a = Pt { x: 5, y: 6 }
+    o.w.a[2] = Pt { x: 9, y: 9 }
+    fieldFromField(&mut o)
+    slotFromField(&mut o)
+    fieldFromSlot(&mut o)
+    nestedField(&mut o)
+    print show(&o)
+    o.segs[1].b.x = 70
+    o.segs[1].a.x = 50
+    o.w.a[2].x = 90
+    print show(&o)
+    o.shift()
+    print show(&o)
+    o.segs[0].b.x = 11
+    print show(&o)
+    print "${byValue(o)} ${show(&o)}"
+    let w = byValueSlots(o.w, 0, 2)
+    print "${w.a[0].x} ${w.a[1].x} ${w.a[2].x} ${o.w.a[0].x}"
+    let s = byValueSeg(o)
+    print "${s.segs[0].a.x},${s.segs[0].b.x} ${s.segs[1].a.x},${s.segs[1].b.x}"
+    let mut g = Grid { rows: FixedArray.filled(FixedArray.filled(Pt { x: 0, y: 0 })) }
+    g.rows[1][0] = Pt { x: 4, y: 3 }
+    let g2 = byValueGrid(g)
+    print "${g2.rows[0][1].x},${g2.rows[0][1].y} ${g.rows[0][1].x}"
+    print "${local(Pt { x: 3, y: 4 })} ${closure(Pt { x: 1, y: 2 })}"
+    variableIndex(&mut o, 1, 0)
+    print show(&o)
+    swapSlots(&mut o.w)
+    adjacentLiterals(&mut o.w)
+    print show(&o)
+    o.w.a[0].x = 10
+    print "${o.w.a[0].x} ${o.w.a[2].x}"
+    print "${twLiteral(mkTw())} ${twSwap(mkTw())} ${twOwn(mkTw()).w.a[2].x} ${twCopy(mkTw())}"
+}
+-- stdout --
+7,8 9,9 5,6 7,8 | 0 5 9 5
+7,8 9,9 50,6 70,8 | 0 5 90 5
+7,8 9,9 9,9 70,8 | 70 5 90 5
+7,8 11,9 9,9 70,8 | 70 5 90 5
+109 7,8 11,9 9,9 70,8 | 70 5 90 5
+90 5 90 70
+9,70 9,70
+4,3 0
+3 4
+7,8 11,9 11,9 70,8 | 11 5 90 5
+7,8 11,9 11,9 70,8 | 1 3 4 5
+10 4
+1 0 9 44

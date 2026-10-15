@@ -86,8 +86,9 @@ func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) {
 			return
 		}
 		if c.t.Kind(base) != syntax.Ident {
-			c.crossDirect(lhs, c.placeRootType(lhs))
-			if c.foreignChain(base) {
+			root := c.placeRootType(lhs)
+			c.crossDirect(lhs, root)
+			if c.foreignChain(base) || !c.r.DirectAgg(root) {
 				c.crossDirect(lhs, t)
 			}
 		}

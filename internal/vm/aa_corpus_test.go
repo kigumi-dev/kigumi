@@ -68,7 +68,7 @@ func runCounted(t *testing.T, name string, prog *mir.Program, known map[string]i
 	for i := 0; i < 300 && runtime.NumGoroutine() > base; i++ {
 		time.Sleep(10 * time.Millisecond)
 	}
-	n := vm.LiveObjects()
+	n, strays := vm.LiveObjects(), vm.LiveStrays()
 	settled := runtime.NumGoroutine() <= base
 	vm.TrackLive(false)
 	if !reached {
@@ -78,6 +78,9 @@ func runCounted(t *testing.T, name string, prog *mir.Program, known map[string]i
 		return atExit, code, err
 	}
 	liveRan[name] = true
+	if strays != 0 {
+		t.Errorf("%s: %d objects freed that were made outside the run", name, strays)
+	}
 	if n != 0 {
 		liveGot[name] = n
 	}
@@ -194,10 +197,10 @@ func runCorpusFixture(t *testing.T, path string, gate *liveGate, unsupported *at
 	}
 }
 
-// liveSettled is true once TestRunCorpusOnVM has shown the exit-0 fixtures leave nothing live in total, so TestRunCorpusOnVMLive has nothing to attribute.
+// liveSettled is true once TestRunCorpusOnVM saw the exit-0 fixtures leave nothing live and free no stray, so the per-fixture pass has nothing to attribute.
 var liveSettled bool
 
-// The live counters are process-wide, so the fixtures that exit 0 (the only ones counted) run in parallel under one tracking window and the total must come out zero.
+// The live counters are process-wide, so exit-0 fixtures share one window; a free of an object made outside it is counted apart.
 // This file sorts first so no earlier test leaves goroutines allocating into the live counters.
 func TestRunCorpusOnVM(t *testing.T) {
 	zero, _ := corpusFixtures(t)
@@ -208,7 +211,7 @@ func TestRunCorpusOnVM(t *testing.T) {
 	vm.TrackLive(true)
 	t.Cleanup(func() {
 		quiesce()
-		total := vm.LiveObjects()
+		total, strays := vm.LiveObjects(), vm.LiveStrays()
 		vm.TrackLive(false)
 		t.Logf("%d fixtures skipped as unsupported", unsupported.Load())
 		var allowed int64
@@ -218,7 +221,10 @@ func TestRunCorpusOnVM(t *testing.T) {
 		if total > allowed && os.Getenv("UPDATE") == "" {
 			t.Errorf("%d objects live after the exit-0 fixtures, %d allowed (TestRunCorpusOnVMLive names the fixtures)", total, allowed)
 		}
-		liveSettled = total == 0 && len(known) == 0 && os.Getenv("UPDATE") == ""
+		if strays != 0 {
+			t.Errorf("%d objects freed that were made outside their run (TestRunCorpusOnVMLive names the fixtures)", strays)
+		}
+		liveSettled = total == 0 && strays == 0 && len(known) == 0 && os.Getenv("UPDATE") == ""
 	})
 	for _, path := range zero {
 		t.Run(filepath.Base(path), func(t *testing.T) { runCorpusFixture(t, path, gate, &unsupported) })

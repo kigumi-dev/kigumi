@@ -19,7 +19,7 @@ func (p *Program) shareArgs(f *Func, in *Inst, st *rcState, out *[]Inst, w *shar
 			if !p.consumes(f, *in, i) {
 				back = append(back, args[i])
 			}
-		case kind == takesArg && w.sinkShared(*in, i, at), w.heldAcrossWrite(*in, i):
+		case kind == takesArg && w.sinkShared(*in, i, at), w.heldAcrossWrite(*in, i), w.storesPlaceCopy(*in, i):
 			t := p.copyArg(f, in, a, &args[i], out)
 			switch {
 			case !p.consumes(f, *in, i):

@@ -1,0 +1,56 @@
+-- app/t/t.kg --
+import json from std/json
+import {Box, Shared} from std/alloc
+
+type Item = {
+    pub n Box[Int]
+}
+
+type Tree = Leaf(v: Int) | Node(kid: Box[Tree])
+
+type Aliased = {
+    pub cell Shared[Int]
+}
+
+type Handler = {
+    pub run Box[fn(Int) -> Int]
+}
+
+fn useIt() -> Unit! {
+    let item = Item { n: Box.new(1) }
+    let text = json.encode(item)?
+    _ = text
+    let back = json.decode[Item]("{}")?
+    _ = back
+    let tree = json.decode[Tree]("{}")?
+    _ = json.encode(tree)?
+    let a = Aliased { cell: Shared.new(1) }
+    let bad = json.encode(a)? //~ ERROR `Aliased` does not satisfy `Encode`
+    _ = bad
+    let badBack = json.decode[Aliased]("{}")? //~ ERROR `Aliased` does not satisfy `Decode`
+    _ = badBack
+}
+
+fn useHandler(h: Handler) -> Unit! {
+    let badFn = json.encode(h)? //~ ERROR `Handler` does not satisfy `Encode`
+    _ = badFn
+}
+-- expect --
+error[E300]: `Aliased` does not satisfy `Encode`: missing `fn toJson(self) -> Value`
+  --> app/t/t.kg:27:15
+   |
+27 |     let bad = json.encode(a)? //~ ERROR `Aliased` does not satisfy `Encode`
+   |               ^^^^^^^^^^^^^
+
+error[E300]: `Aliased` does not satisfy `Decode`: missing `fn fromJson(Value) -> Aliased!`
+  --> app/t/t.kg:29:19
+   |
+29 |     let badBack = json.decode[Aliased]("{}")? //~ ERROR `Aliased` does not satisfy `Decode`
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `Handler` does not satisfy `Encode`: missing `fn toJson(self) -> Value`
+  --> app/t/t.kg:34:17
+   |
+34 |     let badFn = json.encode(h)? //~ ERROR `Handler` does not satisfy `Encode`
+   |                 ^^^^^^^^^^^^^
+

@@ -62,6 +62,7 @@ var (
 	rtIndex        = RuntimeFn{"rt_index", []Type{TPtr, TPtr}, TPtr}
 	rtSetindex     = RuntimeFn{"rt_setindex", []Type{TPtr, TPtr, TPtr}, TVoid}
 	rtSetindexCopy = RuntimeFn{"rt_setindex_copy", []Type{TPtr, TPtr, TPtr}, TVoid}
+	rtSetfieldCopy = RuntimeFn{"rt_setfield_copy", []Type{TPtr, TI64, TPtr}, TVoid}
 	rtPayload      = RuntimeFn{"rt_payload", []Type{TPtr, TI64}, TPtr}
 	rtIsvariant    = RuntimeFn{"rt_isvariant", []Type{TPtr, TPtr}, TPtr}
 	rtVariantIndex = RuntimeFn{"rt_variant_index", []Type{TPtr}, TI32}
@@ -114,6 +115,7 @@ var (
 	rtSetfieldSwap     = RuntimeFn{"rt_setfield_swap", []Type{TPtr, TI64, TPtr}, TPtr}
 	rtSetindexSwap     = RuntimeFn{"rt_setindex_swap", []Type{TPtr, TPtr, TPtr}, TPtr}
 	rtSetindexCopySwap = RuntimeFn{"rt_setindex_copy_swap", []Type{TPtr, TPtr, TPtr}, TPtr}
+	rtSetfieldCopySwap = RuntimeFn{"rt_setfield_copy_swap", []Type{TPtr, TI64, TPtr}, TPtr}
 	rtCellsetSwap      = RuntimeFn{"rt_cellset_swap", []Type{TPtr, TPtr}, TPtr}
 )
 
@@ -124,14 +126,14 @@ var runtimeFns = []RuntimeFn{
 	rtTruth, rtAt, rtCallv, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
 	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstNum, rtConstInt128, rtBoxInt128, rtInt128Lo, rtInt128Hi, rtI128Mul, rtI128Div, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
-	rtIndex, rtSetindex, rtSetindexCopy, rtPayload, rtIsvariant, rtVariantIndex, rtIstype, rtUnbox, rtBox,
+	rtIndex, rtSetindex, rtSetindexCopy, rtSetfieldCopy, rtPayload, rtIsvariant, rtVariantIndex, rtIstype, rtUnbox, rtBox,
 	rtClosure, rtClosureAsync, rtClosureEnv, rtArrayPush, rtFnItemInit, rtStdItemInit, rtCell, rtCellInit, rtCellget, rtCellTake, rtCellset, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,
 	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtUnwindEnter, rtUnwindEnterSlots, rtUnwindLeave,
 	rtDropOuter, rtReleaseOuter, rtSweepRelease, rtOuterFatal,
-	rtSetfieldSwap, rtSetindexSwap, rtSetindexCopySwap, rtCellsetSwap,
+	rtSetfieldSwap, rtSetindexSwap, rtSetindexCopySwap, rtSetfieldCopySwap, rtCellsetSwap,
 	rtDLen, rtDArrayLen, rtDBytesGet, rtDArrayGet, rtDCharFromInt, rtDParseFloat, rtDConvertInt, rtDConvertFloat,
 	rtDWrapping, rtDSqrt, rtDFloor, rtDCeil, rtDRound, rtDPow,
 	rtDHashInt, rtDHashBool, rtDHashChar, rtDHashFloat,

@@ -6056,6 +6056,23 @@
       ]
     },
     {
+      "id": "run/fixed_field_copy_shapes",
+      "kind": "run",
+      "path": "testdata/run/fixed_field_copy_shapes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/float_nan",
       "kind": "run",
       "path": "testdata/run/float_nan.txtar",
@@ -7477,6 +7494,23 @@
       "id": "run/json_derive",
       "kind": "run",
       "path": "testdata/run/json_derive.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/json_derive_box",
+      "kind": "run",
+      "path": "testdata/run/json_derive_box.txtar",
       "mode": [
         "vm",
         "native"
@@ -10671,6 +10705,17 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_leaf",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_leaf.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge_nested",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_nested.txtar",
@@ -12357,6 +12402,17 @@
       "id": "sem/json_derive",
       "kind": "sem",
       "path": "testdata/sem/json_derive.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/json_derive_box",
+      "kind": "sem",
+      "path": "testdata/sem/json_derive_box.txtar",
       "mode": [
         "check"
       ],

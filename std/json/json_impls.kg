@@ -1,3 +1,4 @@
+import {Box} from std/alloc
 import {Map, empty} from std/map
 import math from std/math
 import text from std/text
@@ -208,6 +209,19 @@ pub fn Option[T: Decode].fromJson(value: Value) -> Option[T]! {
         return Ok(None)
     }
     Ok(Some(T.fromJson(value)?))
+}
+
+/// A Box encodes as its content.
+pub fn Box[T: Encode].toJson(self) -> Value {
+    self.with((x: &T) => x.toJson())
+}
+
+pub fn Box[T: Decode].fromJson(value: Value) -> Box[T]! {
+    let item = T.fromJson(value)?
+    match Box.tryNew(item) {
+        Ok(box) -> Ok(box)
+        Err(_) -> fail Error { text: "out of memory while decoding" }
+    }
 }
 
 pub fn Array[T: Encode].toJson(self) -> Value {

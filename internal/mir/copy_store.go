@@ -2,7 +2,7 @@ package mir
 
 import "slices"
 
-// CopyStore is a `t = share copy s` whose only use is the `setindex` after it in the same block.
+// CopyStore is a `t = share copy s` whose only use is the `setindex` or `setfield` after it in the same block.
 type CopyStore struct {
 	Block      BlockID
 	Share, Set int
@@ -48,7 +48,7 @@ func (p *Program) storeAfter(f *Func, insts []Inst, i int) int {
 	src, dst := insts[i].Args[0], insts[i].Dst
 	for j := i + 1; j < len(insts); j++ {
 		in := insts[j]
-		if in.Op == OpSetIndex && in.Args[2] == dst {
+		if v, ok := storedValue(in); ok && v == dst {
 			if f.IsDirect(in.Args[0]) || in.Args[0] == dst || in.Args[0] == src {
 				return 0
 			}
@@ -59,6 +59,17 @@ func (p *Program) storeAfter(f *Func, insts []Inst, i int) int {
 		}
 	}
 	return 0
+}
+
+// storedValue is the value a setindex or setfield stores.
+func storedValue(in Inst) (LocalID, bool) {
+	switch in.Op {
+	case OpSetIndex:
+		return in.Args[2], true
+	case OpSetField:
+		return in.Args[1], true
+	}
+	return 0, false
 }
 
 func (p *Program) copiesInPlace(f *Func, in Inst) bool {

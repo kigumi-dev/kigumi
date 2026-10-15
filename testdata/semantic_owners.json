@@ -2491,6 +2491,26 @@
     "status": "ok"
   },
   {
+    "key": "json.Box.fromJson",
+    "signature": "fn(Value) -\u003e Box[T]!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "json.Box.toJson",
+    "signature": "fn() -\u003e Value",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.Buffer.byte",
     "signature": "fn(u8) -\u003e Unit",
     "has_body": true,

@@ -82,6 +82,7 @@ func (m *Machine) newInt(i int64, nk int) *obj {
 		m.pool = m.pool[:n-1]
 		if liveTrack.Load() {
 			liveMade.Add(1)
+			v.live = true
 		}
 		v.k, v.rc, v.i, v.nk = kInt, 1, i, nk
 		return v
@@ -95,6 +96,7 @@ func (m *Machine) newFloat(f float64, nk int) *obj {
 		m.pool = m.pool[:n-1]
 		if liveTrack.Load() {
 			liveMade.Add(1)
+			v.live = true
 		}
 		if nk&255 == 32 {
 			f = float64(float32(f))

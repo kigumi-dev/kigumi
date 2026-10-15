@@ -1,0 +1,69 @@
+-- src --
+import json from std/json
+import {Box} from std/alloc
+
+type Holder = {
+    pub n Box[Int]
+    pub label Box[String]
+    pub extra Box[Array[Int]]?
+}
+
+type Node = Leaf(v: Int) | Wrap(kid: Box[Node]) | Pair(left: Box[Node], right: Box[Node])
+
+type Gen[T] = {
+    pub inner Box[T]
+}
+
+fn total(n: &Node) -> Int {
+    match n {
+        Leaf(v) -> v
+        Wrap(kid) -> kid.with((k: &Node) => total(k))
+        Pair(l, r) -> l.with((k: &Node) => total(k)) + r.with((k: &Node) => total(k))
+    }
+}
+
+let h = Holder { n: Box.new(5), label: Box.new("hi"), extra: Some(Box.new(Array.of(1, 2, 3))) }
+let text = json.encode(h)?
+print text
+let back = json.decode[Holder](text)?
+print "${back.n.get()} ${back.label.with((s: &String) => s.len())} ${back.extra is Some(_)}"
+let sparse = json.decode[Holder]("{\"n\": 1, \"label\": \"x\"}")?
+print "${sparse.n.get()} ${sparse.extra is None}"
+
+let tree = Node.Pair(Box.new(Node.Leaf(1)), Box.new(Node.Wrap(Box.new(Node.Leaf(2)))))
+let treeText = json.encode(tree)?
+print treeText
+let treeBack = json.decode[Node](treeText)?
+print "${total(&treeBack)} ${json.encode(treeBack)? == treeText}"
+
+let g = Gen { inner: Box.new(7) }
+let gText = json.encode(g)?
+print gText
+let gBack = json.decode[Gen[Int]](gText)?
+print "${gBack.inner.get()}"
+
+let boxes = Array.of(Box.new(1), Box.new(2))
+let boxesText = json.encode(boxes)?
+print boxesText
+print "${(json.decode[Array[Box[Int]]](boxesText)?).len()}"
+
+match json.decode[Holder]("{\"n\": \"no\", \"label\": \"x\"}") {
+    Ok(_) -> print "unexpected"
+    Err(e) -> print "error: ${e.message()}"
+}
+match json.decode[Node]("{\"Wrap\": [{\"Blob\": []}]}") {
+    Ok(_) -> print "unexpected"
+    Err(e) -> print "error: ${e.message()}"
+}
+-- stdout --
+{"n":5,"label":"hi","extra":[1,2,3]}
+5 2 true
+1 true
+{"Pair":[{"Leaf":[1]},{"Wrap":[{"Leaf":[2]}]}]}
+3 true
+{"inner":7}
+7
+[1,2]
+2
+error: expected integer, found string
+error: `Blob` is not a variant of Node
