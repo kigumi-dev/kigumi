@@ -1356,15 +1356,16 @@ static val checked(int64_t v, int nk, int over) {
 int64_t rt_iadd(int64_t x, int64_t y, int nk) {
     int sg = is_signed(nk);
     int64_t r;
-    int over = sg ? __builtin_add_overflow(x, y, &r) : (bits_of(nk) == 64 && (uint64_t)(x + y) < (uint64_t)x);
-    if (!sg) r = x + y;
+    uint64_t u = (uint64_t)x + (uint64_t)y;
+    int over = sg ? __builtin_add_overflow(x, y, &r) : (bits_of(nk) == 64 && u < (uint64_t)x);
+    if (!sg) r = (int64_t)u;
     return checked_i64(r, nk, over);
 }
 int64_t rt_isub(int64_t x, int64_t y, int nk) {
     int sg = is_signed(nk);
     int64_t r;
     int over = sg ? __builtin_sub_overflow(x, y, &r) : ((uint64_t)x < (uint64_t)y);
-    if (!sg) r = x - y;
+    if (!sg) r = (int64_t)((uint64_t)x - (uint64_t)y);
     return checked_i64(r, nk, over);
 }
 int64_t rt_imul(int64_t x, int64_t y, int nk) {
