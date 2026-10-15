@@ -15,7 +15,7 @@ func (e *emitter) rawScalars(f *mir.Func) map[mir.LocalID]bool {
 		changed = false
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if !in.Op.Yields() || out[in.Dst] || !e.rawDef(in, out) {
+				if !in.Op.Yields() || out[in.Dst] || !e.rawDef(f, in, out) {
 					continue
 				}
 				out[in.Dst], changed = true, true
@@ -25,7 +25,7 @@ func (e *emitter) rawScalars(f *mir.Func) map[mir.LocalID]bool {
 	return out
 }
 
-func (e *emitter) rawDef(in mir.Inst, raw map[mir.LocalID]bool) bool {
+func (e *emitter) rawDef(f *mir.Func, in mir.Inst, raw map[mir.LocalID]bool) bool {
 	switch in.Op {
 	case mir.OpPayload, mir.OpField, mir.OpFieldMove, mir.OpIndex:
 		return e.isDirect(in.Args[0])
@@ -33,7 +33,7 @@ func (e *emitter) rawDef(in mir.Inst, raw map[mir.LocalID]bool) bool {
 		return true
 	case mir.OpCall:
 		_, native := e.calleeScalarSig(in).ret()
-		return in.DPrim != mir.DPNone || native
+		return in.DPrim != mir.DPNone || native || e.wideCallOp(f, in) != ""
 	case mir.OpAlias, mir.OpMove, mir.OpShare:
 		return raw[in.Args[0]]
 	}

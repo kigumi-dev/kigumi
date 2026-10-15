@@ -18,7 +18,11 @@ func (e *emitter) scalarConst(sb *strings.Builder, in mir.Inst) bool {
 	if !ok {
 		return false
 	}
-	e.storeNative(sb, in.Dst, Value{info.Ty, scalarConstText(e.r.Types, in)})
+	text := scalarConstText(e.r.Types, in)
+	if info.Ty == TI128 {
+		text = wideConstText(in)
+	}
+	e.storeNative(sb, in.Dst, Value{info.Ty, text})
 	return true
 }
 

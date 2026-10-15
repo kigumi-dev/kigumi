@@ -63,6 +63,29 @@ func TestComptimeSandbox(t *testing.T) {
 	}
 }
 
+// TestComptimeLiteralRange rejects a comptime literal its binding type cannot hold.
+func TestComptimeLiteralRange(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ct\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("let a: u8 = comptime { 256 }\nlet b: i128 = comptime { 340282366920938463463374607431768211455 }\nlet c: u128 = comptime { -1 }\nprint \"${a} ${b} ${c}\"\n"), 0o644)
+	std, _ := filepath.Abs("../../std")
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := driver.Check(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := res.Render()
+	for _, want := range []string{"`256` does not fit `u8`", "`340282366920938463463374607431768211455` does not fit `i128`", "`-1` does not fit `u128`"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
 // TestArenaAllocates checks the native runtime really routes allocations
 // through an arena; the VM reports 0 so this cannot be a shared fixture.
 func TestArenaAllocates(t *testing.T) {
@@ -196,15 +219,6 @@ func TestBuildFreestandingSymbolSet(t *testing.T) {
 
 func checkFreestandingSymbolSet(t *testing.T, triple string) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
-	nmPath, err := exec.LookPath("nm")
-	if err != nil {
-		t.Skip("no nm")
-	}
-	root := t.TempDir()
-	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"symset\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	src := "import json from std/json\nimport map from std/map\nimport text from std/text\n" +
 		"import math from std/math\n\ntype Report = {\n    pub total Int\n    pub ratio Float\n" +
 		"    pub tags map.Map[String, Int]\n}\n\n" +
@@ -214,6 +228,35 @@ func checkFreestandingSymbolSet(t *testing.T, triple string) {
 		"let f = text.parseFloat(\"3.14\") || 0.0\n" +
 		"let r = math.sqrt(2.0) + math.pow(2.0, 3.0) + math.floor(1.5) + math.ceil(1.5) + math.round(1.5)\n" +
 		"print \"${f} ${r}\"\n"
+	checkFreestandingSymbols(t, triple, src)
+}
+
+// A 128-bit multiply, divide, shift, conversion and parse must not lean on compiler-rt's __multi3 or __udivti3.
+func TestBuildFreestandingInt128SymbolSet(t *testing.T) {
+	t.Parallel()
+	src := "import text from std/text\n\n" +
+		"let a: u128 = 340282366920938463463374607431768211455\n" +
+		"let b: i128 = -170141183460469231731687303715884105728\n" +
+		"let n: usize = 7\n" +
+		"let c = a.toU64() || 0\n" +
+		"let p = text.parseU128(\"123456789012345678901234567890\") || 0\n" +
+		"print \"${a / (p + 1)} ${a % (p + 1)} ${b / 3} ${b % 7} ${p * 3} ${b * 1} ${a >> n} ${b << n} ${a.wrappingMul(p)} ${b.toFloat()} ${a.toF32()} ${c}\"\n" +
+		"let f: Float = 1.5e30\n" +
+		"print \"${(f.toI128() || 0) + b} ${(f.toU128() || 0) / 7}\"\n"
+	checkFreestandingSymbols(t, "x86_64-freestanding", src)
+}
+
+func checkFreestandingSymbols(t *testing.T, triple, src string) {
+	t.Helper()
+	if driver.CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	nmPath, err := exec.LookPath("nm")
+	if err != nil {
+		t.Skip("no nm")
+	}
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"symset\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	target, err := driver.ParseTarget(triple, "")
 	if err != nil {

@@ -85,7 +85,7 @@ func (c *checker) ffiAddressLeaseCheck(n syntax.NodeID, fn EntityID, inst []Type
 	}
 	t := c.vars.resolve(inst[0])
 	if t != TyPoison && t != 0 && !c.cValueScalar(t) {
-		c.errAt(n, cAddressLeaseType, c.r.TypeString(t), e.Name)
+		c.errAt(n, c.r.abiCode(t, cAddressLeaseType), c.r.TypeString(t), e.Name)
 		return
 	}
 	ret := c.vars.resolve(inst[1])
@@ -98,7 +98,7 @@ func (c *checker) ffiAddressLeaseCheck(n syntax.NodeID, fn EntityID, inst []Type
 // Int and Float are aliases already covered by IsNumeric; no separate check needed.
 func (c *checker) cValueScalar(t TypeID) bool {
 	tt := c.r.Types
-	if tt.IsNumeric(t) || t == TyBool || t == TyChar || tt.Kind(t) == KPtr || tt.IsCFn(t) {
+	if c.r.cNumeric(t) || t == TyBool || t == TyChar || tt.Kind(t) == KPtr || tt.IsCFn(t) {
 		return true
 	}
 	if n := tt.Node(t); n.Kind == KNamed && c.r.typeDecl(n.Ent).Form == FormDefined {

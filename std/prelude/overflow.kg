@@ -787,3 +787,155 @@ pub pure fn usize.saturatingMul(self, other: usize) -> usize {
         r.value
     }
 }
+
+/// Sum and whether it overflowed i128's range.
+pub pure fn i128.addWithOverflow(self, other: i128) -> Overflow[i128] {
+    let wrapped = self.wrappingAdd(other)
+    let ovf = (self >= 0 && other >= 0 && wrapped < 0) || (self < 0 && other < 0 && wrapped >= 0)
+    Overflow {
+        value: wrapped
+        overflowed: ovf
+    }
+}
+
+/// Difference and whether it overflowed i128's range.
+pub pure fn i128.subWithOverflow(self, other: i128) -> Overflow[i128] {
+    let wrapped = self.wrappingSub(other)
+    let ovf = (self >= 0 && other < 0 && wrapped < 0) || (self < 0 && other >= 0 && wrapped >= 0)
+    Overflow {
+        value: wrapped
+        overflowed: ovf
+    }
+}
+
+/// Product and whether it overflowed i128's range.
+pub pure fn i128.mulWithOverflow(self, other: i128) -> Overflow[i128] {
+    if self == 0 || other == 0 {
+        return Overflow {
+            value: 0
+            overflowed: false
+        }
+    }
+    if other == -1 {
+        if self == -170141183460469231731687303715884105728 {
+            return Overflow {
+                value: -170141183460469231731687303715884105728
+                overflowed: true
+            }
+        }
+        return Overflow {
+            value: self.wrappingMul(other)
+            overflowed: false
+        }
+    }
+    let wrapped = self.wrappingMul(other)
+    Overflow {
+        value: wrapped
+        overflowed: wrapped / other != self
+    }
+}
+
+/// Sum clamped to i128's range instead of overflowing.
+pub pure fn i128.saturatingAdd(self, other: i128) -> i128 {
+    let r = self.addWithOverflow(other)
+    if r.overflowed {
+        if self >= 0 {
+            170141183460469231731687303715884105727
+        } else {
+            -170141183460469231731687303715884105728
+        }
+    } else {
+        r.value
+    }
+}
+
+/// Difference clamped to i128's range instead of overflowing.
+pub pure fn i128.saturatingSub(self, other: i128) -> i128 {
+    let r = self.subWithOverflow(other)
+    if r.overflowed {
+        if self >= 0 {
+            170141183460469231731687303715884105727
+        } else {
+            -170141183460469231731687303715884105728
+        }
+    } else {
+        r.value
+    }
+}
+
+/// Product clamped to i128's range instead of overflowing.
+pub pure fn i128.saturatingMul(self, other: i128) -> i128 {
+    let r = self.mulWithOverflow(other)
+    if r.overflowed {
+        if (self < 0 && other >= 0) || (self >= 0 && other < 0) {
+            -170141183460469231731687303715884105728
+        } else {
+            170141183460469231731687303715884105727
+        }
+    } else {
+        r.value
+    }
+}
+
+/// Sum and whether it overflowed u128's range.
+pub pure fn u128.addWithOverflow(self, other: u128) -> Overflow[u128] {
+    let wrapped = self.wrappingAdd(other)
+    Overflow {
+        value: wrapped
+        overflowed: wrapped < self
+    }
+}
+
+/// Difference and whether it overflowed u128's range.
+pub pure fn u128.subWithOverflow(self, other: u128) -> Overflow[u128] {
+    let wrapped = self.wrappingSub(other)
+    Overflow {
+        value: wrapped
+        overflowed: wrapped > self
+    }
+}
+
+/// Product and whether it overflowed u128's range.
+pub pure fn u128.mulWithOverflow(self, other: u128) -> Overflow[u128] {
+    let wrapped = self.wrappingMul(other)
+    if self == 0 {
+        return Overflow {
+            value: wrapped
+            overflowed: false
+        }
+    }
+    Overflow {
+        value: wrapped
+        overflowed: wrapped / self != other
+    }
+}
+
+/// Sum clamped to u128's range instead of overflowing.
+pub pure fn u128.saturatingAdd(self, other: u128) -> u128 {
+    let r = self.addWithOverflow(other)
+    if r.overflowed {
+        340282366920938463463374607431768211455
+    } else {
+        r.value
+    }
+}
+
+/// Difference clamped to zero instead of underflowing.
+pub pure fn u128.saturatingSub(self, other: u128) -> u128 {
+    let r = self.subWithOverflow(other)
+    if r.overflowed {
+        0
+    } else {
+        r.value
+    }
+}
+
+/// Product clamped to u128's range instead of overflowing.
+pub pure fn u128.saturatingMul(self, other: u128) -> u128 {
+    let r = self.mulWithOverflow(other)
+    if r.overflowed {
+        340282366920938463463374607431768211455
+    } else {
+        r.value
+    }
+}

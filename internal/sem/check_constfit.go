@@ -27,3 +27,11 @@ func (r *Result) constFits(f FileID, n syntax.NodeID, v constValue, typ TypeID) 
 	}
 	return true
 }
+
+// LiteralFits reports whether an integer literal is in the range of the integer type typ.
+func (r *Result) LiteralFits(lit Literal, typ TypeID) bool {
+	if lit.Kind != LitInt || lit.Int == nil || !r.Types.IsInteger(typ) {
+		return true
+	}
+	return r.intFits(lit.Int, typ)
+}

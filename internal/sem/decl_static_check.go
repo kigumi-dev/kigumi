@@ -25,12 +25,12 @@ func (r *Result) declareStatic(id EntityID) {
 			r.errAt(e.File, s.Value, cStaticExternInit)
 		}
 		if typ != TyPoison && !r.abiSafe(typ) {
-			r.errAt(e.File, s.Type, cStaticExternAbiType, typ)
+			r.errAt(e.File, s.Type, r.abiCode(typ, cStaticExternAbiType), typ)
 		}
 		return
 	case StaticExport:
 		if typ != TyPoison && !r.abiSafe(typ) {
-			r.errAt(e.File, s.Type, cStaticExternAbiType, typ)
+			r.errAt(e.File, s.Type, r.abiCode(typ, cStaticExternAbiType), typ)
 		}
 	}
 

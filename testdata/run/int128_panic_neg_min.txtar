@@ -1,0 +1,11 @@
+-- src --
+let a: i128 = -170141183460469231731687303715884105728
+print "start"
+let c = -a
+print "unreachable ${c}"
+-- stdout --
+start
+-- stderr --
+panic: integer overflow
+-- exit --
+2

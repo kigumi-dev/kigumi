@@ -1,38 +1,90 @@
 -- app/t/t.kg --
-fn wide(a: u128) -> Unit { //~ ERROR `u128` is not supported by this toolchain yet
-    _ = a
+type Halves layout(C) = {
+    pub lo u64
+    pub hi u64
 }
 
-fn use() -> Unit {
-    let x: i128 = 1 //~ ERROR `i128` is not supported by this toolchain yet
-    _ = x
+type Wide layout(C) = {
+    pub v u128 //~ ERROR `u128` has no C or register representation here
 }
 
-fn same[T](x: T) -> T { x }
+type Id = i128
 
-fn explicit() -> Unit {
-    _ = same[i128](1) //~ ERROR `i128` is not supported by this toolchain yet
+extern(C) {
+    fn takes(x: i128) -> i32 //~ ERROR `i128` has no C or register representation here
+    fn gives() -> u128 //~ ERROR `u128` has no C or register representation here
+    fn viaPtr(f: extern(C) fn(Id) -> i32) -> i32 //~ ERROR `Id` has no C or register representation here
+}
+
+export(C) {
+    pub fn echo(x: u128) -> u64 { //~ ERROR `u128` has no C or register representation here
+        0
+    }
+}
+
+fn counted[const N: i128]() -> Unit {} //~ ERROR `i128` has no C or register representation here
+
+fn ok(a: u128, b: i128) -> u128 {
+    _ = b
+    a
+}
+
+fn operand(x: u128) -> Unit {
+    unsafe {
+        asm {
+            "nop"
+            in(reg) x //~ ERROR `u128` has no C or register representation here
+        }
+    }
 }
 
 -- expect --
-error[E960]: `u128` is not supported by this toolchain yet: integers are held in 64 bits, so a value would be truncated
- --> app/t/t.kg:1:12
+error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
+ --> app/t/t.kg:7:5
   |
-1 | fn wide(a: u128) -> Unit { //~ ERROR `u128` is not supported by this toolchain yet
-  |            ^^^^
-  = help: use i64 or u64
+7 |     pub v u128 //~ ERROR `u128` has no C or register representation here
+  |     ^^^^^^^^^^
+  = help: pass it as two u64 halves
 
-error[E960]: `i128` is not supported by this toolchain yet: integers are held in 64 bits, so a value would be truncated
- --> app/t/t.kg:6:12
-  |
-6 |     let x: i128 = 1 //~ ERROR `i128` is not supported by this toolchain yet
-  |            ^^^^
-  = help: use i64 or u64
-
-error[E960]: `i128` is not supported by this toolchain yet: integers are held in 64 bits, so a value would be truncated
-  --> app/t/t.kg:13:14
+error[E960]: `i128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
+  --> app/t/t.kg:13:17
    |
-13 |     _ = same[i128](1) //~ ERROR `i128` is not supported by this toolchain yet
-   |              ^^^^
-   = help: use i64 or u64
+13 |     fn takes(x: i128) -> i32 //~ ERROR `i128` has no C or register representation here
+   |                 ^^^^
+   = help: pass it as two u64 halves
+
+error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
+  --> app/t/t.kg:14:19
+   |
+14 |     fn gives() -> u128 //~ ERROR `u128` has no C or register representation here
+   |                   ^^^^
+   = help: pass it as two u64 halves
+
+error[E960]: `Id` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
+  --> app/t/t.kg:15:31
+   |
+15 |     fn viaPtr(f: extern(C) fn(Id) -> i32) -> i32 //~ ERROR `Id` has no C or register representation here
+   |                               ^^
+   = help: pass it as two u64 halves
+
+error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
+  --> app/t/t.kg:19:20
+   |
+19 |     pub fn echo(x: u128) -> u64 { //~ ERROR `u128` has no C or register representation here
+   |                    ^^^^
+   = help: pass it as two u64 halves
+
+error[E960]: `i128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
+  --> app/t/t.kg:24:18
+   |
+24 | fn counted[const N: i128]() -> Unit {} //~ ERROR `i128` has no C or register representation here
+   |                  ^^^^^^^
+   = help: pass it as two u64 halves
+
+error[E960]: `u128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
+  --> app/t/t.kg:35:13
+   |
+35 |             in(reg) x //~ ERROR `u128` has no C or register representation here
+   |             ^^^^^^^^^
+   = help: pass it as two u64 halves
 

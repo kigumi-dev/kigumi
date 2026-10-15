@@ -120,6 +120,76 @@ pub pure fn parseUint(s: String) -> u64? {
     Some(acc)
 }
 
+/// Parses s (surrounding spaces and tabs allowed) as a base-10 i128 with an optional sign, or None.
+pub pure fn parseI128(s: String) -> i128? {
+    let n = s.len()
+    let mut i: usize = 0
+    for i < n && (s[i] == 32 || s[i] == 9) {
+        i = i + 1
+    }
+    let mut negative = false
+    if i < n && (s[i] == 43 || s[i] == 45) {
+        negative = s[i] == 45
+        i = i + 1
+    }
+    let min: i128 = -170141183460469231731687303715884105727 - 1
+    let mut acc: i128 = 0
+    let mut digits = 0
+    for i < n && s[i] >= 48 && s[i] <= 57 {
+        let d = (s[i] - 48).toI128()
+        if acc < (min + d) / 10 {
+            return None
+        }
+        acc = acc * 10 - d
+        digits = digits + 1
+        i = i + 1
+    }
+    for i < n && (s[i] == 32 || s[i] == 9) {
+        i = i + 1
+    }
+    if digits == 0 || i != n {
+        return None
+    }
+    if negative {
+        return Some(acc)
+    }
+    if acc == min {
+        return None
+    }
+    Some(-acc)
+}
+
+/// Parses s (surrounding spaces and tabs allowed) as a base-10 unsigned integer with an optional leading `+`, or None. The full u128 range.
+pub pure fn parseU128(s: String) -> u128? {
+    let n = s.len()
+    let mut i: usize = 0
+    for i < n && (s[i] == 32 || s[i] == 9) {
+        i = i + 1
+    }
+    if i < n && s[i] == 43 {
+        i = i + 1
+    }
+    let max: u128 = 340282366920938463463374607431768211455
+    let mut acc: u128 = 0
+    let mut digits = 0
+    for i < n && s[i] >= 48 && s[i] <= 57 {
+        let d = (s[i] - 48).toU128()
+        if acc > (max - d) / 10 {
+            return None
+        }
+        acc = acc * 10 + d
+        digits = digits + 1
+        i = i + 1
+    }
+    for i < n && (s[i] == 32 || s[i] == 9) {
+        i = i + 1
+    }
+    if digits == 0 || i != n {
+        return None
+    }
+    Some(acc)
+}
+
 /// String holding just c.
 pub pure fn fromChar(c: Char) -> String
 

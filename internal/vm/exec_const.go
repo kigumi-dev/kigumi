@@ -23,6 +23,8 @@ func (m *Machine) constant(in *mir.Inst) *obj {
 			f, _ = lit.Int.Float64()
 		}
 		return mkFloat(f, m.numKind(in.Type))
+	case lit.Kind == sem.LitInt && lit.Int != nil && is128(m.numKind(in.Type)):
+		return mkWide(wideOfBig(lit.Int), m.numKind(in.Type))
 	case lit.Kind == sem.LitInt:
 		var i int64
 		if lit.Int != nil {

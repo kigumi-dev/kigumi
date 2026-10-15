@@ -159,9 +159,7 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 			out.Lit = lit
 			return out
 		}
-		out := l.node(n, Comptime)
-		out.Args = []*Expr{l.expr(lhs)}
-		return out
+		return l.comptime(n, lhs)
 	case syntax.ContractExpr:
 		out := l.node(n, BlockExpr)
 		out.Block = l.block(syntax.NodeID(node.Rhs))

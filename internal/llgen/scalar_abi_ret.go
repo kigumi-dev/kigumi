@@ -32,7 +32,7 @@ func (e *emitter) rawOrLiteral(f *mir.Func, l mir.LocalID, seen map[mir.LocalID]
 	}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if !in.Op.Yields() || in.Dst != l || in.Op == mir.OpConst || e.rawDef(in, e.raw) {
+			if !in.Op.Yields() || in.Dst != l || in.Op == mir.OpConst || e.rawDef(f, in, e.raw) {
 				continue
 			}
 			if !copyLike(in.Op) || !e.rawOrLiteral(f, in.Args[0], seen) {

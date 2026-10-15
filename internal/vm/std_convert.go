@@ -41,6 +41,9 @@ func (m *Machine) convert(a0 *obj) *obj {
 	if a0.k == kChar {
 		return mkInt(int64(a0.c), dnk)
 	}
+	if is128(dnk) || a0.k == kInt && is128(a0.nk) {
+		return m.convertWide(a0, dnk, checked)
+	}
 	if dnk&512 != 0 {
 		if a0.k == kFloat {
 			return mkFloat(a0.f, dnk)

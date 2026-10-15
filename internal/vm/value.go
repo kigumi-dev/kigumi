@@ -42,29 +42,30 @@ type reqCall struct {
 // obj is one runtime value; rc < 0 marks a static object that is never freed,
 // and rc is the only field two lanes reach at once, so it moves atomically.
 type obj struct {
-	k      kind
-	rc     int32
 	nk     int
 	i      int64
+	hi     int64
 	f      float64
-	b      bool
 	s      []byte
-	c      rune
-	ent    sem.EntityID
 	fields []*obj
 	fn     *mir.Func
 	stdKey string
-	prov   mir.ProviderOpId
-	bind   bool
 	lent   int
 	env    *obj
 	req    *reqCall
-	async  bool
-	dyn    sem.TypeID
 	inner  *obj
 	op     string
 	data   any
 	chg    int64
+	rc     int32
+	c      rune
+	ent    sem.EntityID
+	prov   mir.ProviderOpId
+	dyn    sem.TypeID
+	k      kind
+	b      bool
+	bind   bool
+	async  bool
 }
 
 var (

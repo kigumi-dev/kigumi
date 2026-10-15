@@ -49,6 +49,14 @@ pub pure fn u64.zero() -> u64 {
     0
 }
 
+pub pure fn i128.zero() -> i128 {
+    0
+}
+
+pub pure fn u128.zero() -> u128 {
+    0
+}
+
 pub pure fn isize.zero() -> isize {
     0
 }

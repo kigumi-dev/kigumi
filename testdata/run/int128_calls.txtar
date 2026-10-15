@@ -1,0 +1,93 @@
+-- src --
+import task from std/task
+
+fn fib(n: u32) -> u128 {
+    if n < 2 {
+        return n.toU128()
+    }
+    let mut a: u128 = 0
+    let mut b: u128 = 1
+    let mut i: u32 = 1
+    for i < n {
+        let c = a + b
+        a = b
+        b = c
+        i = i + 1
+    }
+    b
+}
+
+fn rec(n: u32) -> u128 {
+    if n < 2 {
+        return n.toU128()
+    }
+    rec(n - 1) + rec(n - 2)
+}
+
+fn fact(n: u128) -> u128 {
+    if n <= 1 {
+        1
+    } else {
+        n * fact(n - 1)
+    }
+}
+
+noalloc fn mix(a: u128, b: u128, c: i128) -> u128 {
+    let x = a.wrappingMul(b)
+    let y = x ^ (a >> 3)
+    if c < 0 {
+        y + a
+    } else {
+        y | b
+    }
+}
+
+fn gen[T: Copy](x: T) -> T { x }
+
+fn apply(f: fn(u128) -> u128, v: u128) -> u128 { f(v) }
+
+async fn twice(a: u128) -> u128 {
+    a * 2
+}
+
+async fn slow(a: u128) -> u128 {
+    let b = a * 3
+    let c = await twice(b)
+    c + a
+}
+
+async fn root() -> u128 {
+    await slow(1000000000000000000000000000000)
+}
+
+type Acc = {
+    mut total u128
+    mut sign i128
+}
+
+fn Acc.add(mut self, v: u128) -> Unit {
+    self.total = self.total + v
+    self.sign = self.sign - 1
+}
+
+print "${fib(150)} ${rec(20)}"
+print "${fact(34)}"
+print "${mix(12345678901234567890123456789, 98765432109876543210, -5)} ${mix(1, 2, 7)}"
+let big: u128 = 340282366920938463463374607431768211455
+print "${gen(big)}"
+let k: u128 = 1000000007
+print "${apply((v: u128) => v * k + 1, 123456789012345678901234567890)}"
+let mut acc = Acc { total: 0, sign: 0 }
+acc.add(5)
+acc.add(340282366920938463463374607431768211000)
+print "${acc.total} ${acc.sign}"
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(root())}"
+-- stdout --
+9969216677189303386214405760200 6765
+295232799039604140847618609643520000000
+20985855962852140692808812057718350885 2
+340282366920938463463374607431768211455
+123456789876543201987654320198641975231
+340282366920938463463374607431768211005 -2
+7000000000000000000000000000000

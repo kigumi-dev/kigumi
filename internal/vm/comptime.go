@@ -45,6 +45,9 @@ func hostEffect(key string) bool {
 // EvalComptime runs one comptime block in the sandbox and returns the
 // literal it produced.
 func EvalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, err error) {
+	if err := checkComptimeLiterals(prog, cf.Func); err != nil {
+		return lit, err
+	}
 	m := newMachine(prog, Options{Sandbox: true, StepLimit: comptimeStepLimit, DepthLimit: comptimeDepthLimit, MemoryLimit: comptimeMemoryLimit}, io.Discard, io.Discard)
 	var v *obj
 	if cerr := m.catch(func() { v = deref(m.call(cf.Func, nil)) }); cerr != nil {
@@ -55,6 +58,9 @@ func EvalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, err
 	}
 	switch v.k {
 	case kInt:
+		if is128(v.nk) {
+			return sem.Literal{Kind: sem.LitInt, Int: bigOfWide(widen(v), isSigned(v.nk))}, nil
+		}
 		return sem.Literal{Kind: sem.LitInt, Int: big.NewInt(v.i)}, nil
 	case kFloat:
 		return sem.Literal{Kind: sem.LitFloat, Float: big.NewFloat(v.f)}, nil

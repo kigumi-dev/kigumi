@@ -29,7 +29,9 @@ func (m *Machine) displayIntoCanon(sb *strings.Builder, v *obj, canon bool) {
 	v = deref(v)
 	switch v.k {
 	case kInt:
-		if v.nk&256 != 0 {
+		if is128(v.nk) {
+			sb.WriteString(wideDecimal(widen(v), isSigned(v.nk)))
+		} else if v.nk&256 != 0 {
 			sb.WriteString(strconv.FormatInt(v.i, 10))
 		} else {
 			sb.WriteString(strconv.FormatUint(uint64(v.i), 10))
@@ -106,7 +108,7 @@ func (m *Machine) equal(a, b *obj) bool {
 	}
 	switch a.k {
 	case kInt:
-		return a.i == b.i
+		return a.i == b.i && a.hi == b.hi
 	case kFloat:
 		return a.f == b.f
 	case kBool:
@@ -127,6 +129,9 @@ func compare(a, b *obj) int {
 	a, b = deref(a), deref(b)
 	switch a.k {
 	case kInt:
+		if is128(a.nk) {
+			return cmp128(a, b)
+		}
 		if a.nk&256 != 0 {
 			return cmp3(a.i < b.i, a.i > b.i)
 		}

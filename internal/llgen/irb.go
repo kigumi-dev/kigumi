@@ -21,6 +21,7 @@ const (
 	TObjSlot
 	TI8
 	TI16
+	TI128
 )
 
 func (t Type) String() string {
@@ -43,6 +44,8 @@ func (t Type) String() string {
 		return "i8"
 	case TI16:
 		return "i16"
+	case TI128:
+		return "i128"
 	default:
 		panic(fmt.Sprintf("irb: unknown type %d", t))
 	}

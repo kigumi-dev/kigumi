@@ -13,8 +13,8 @@ type scalarInfo struct {
 	Nk int
 }
 
-// scalarType covers Bool, Char, f64/Int and integers except i128/u128 (the
-// boxed model carries only 64 bits of payload for those). f32 stays boxed:
+// scalarType covers Bool, Char, f64/Int and every integer width; a 128-bit
+// integer is an LLVM i128 here but never a field of a direct aggregate. f32 stays boxed:
 // every boxed float rounds to single precision on construction (rt_float),
 // which native ops don't replicate.
 func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {
@@ -26,7 +26,9 @@ func (e *emitter) scalarType(t sem.TypeID) (Type, bool) {
 		return TI32, true
 	case t == sem.TyF64:
 		return TDouble, true
-	case tt.IsInteger(t) && t != sem.TyI128 && t != sem.TyU128:
+	case t == sem.TyI128 || t == sem.TyU128:
+		return TI128, true
+	case tt.IsInteger(t):
 		return TI64, true
 	}
 	return TVoid, false
@@ -55,7 +57,7 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 		if isParam[i] || l.Cell || (l.Borrowed && !inReg[i]) {
 			continue
 		}
-		if ty, ok := e.scalarType(l.Type); ok {
+		if ty, ok := e.scalarType(l.Type); ok && (ty != TI128 || !framed(f, mir.LocalID(i))) {
 			out[mir.LocalID(i)] = scalarInfo{Ty: ty, Nk: e.numKind(l.Type)}
 		}
 	}
@@ -63,8 +65,8 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 	e.raw = e.rawScalars(f)
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			e.classifyDst(in, disqualify)
-			e.classifyArgs(in, disqualify)
+			e.classifyDst(f, in, disqualify)
+			e.classifyArgs(f, in, disqualify)
 			// A wrap/unwrap alias from a reference keeps its source's boxed
 			// pointer bits, so its result can't live in a native register.
 			if in.Op == mir.OpAlias && e.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KRef {
@@ -79,7 +81,7 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 
 // classifyDst disqualifies in.Dst unless in.Op is one the scalar codegen
 // computes without ever creating a box for its result.
-func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
+func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.LocalID)) {
 	if !in.Op.Yields() {
 		return
 	}
@@ -98,7 +100,7 @@ func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 			disqualify(in.Dst)
 		}
 	case mir.OpCall:
-		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok {
+		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok && e.wideCallOp(f, in) == "" {
 			disqualify(in.Dst)
 		}
 	default:
@@ -109,7 +111,7 @@ func (e *emitter) classifyDst(in mir.Inst, disqualify func(mir.LocalID)) {
 // classifyArgs disqualifies locals an instruction can't read natively.
 // OpIndex/OpSetIndex allow the index arg boxed-on-demand; OpDrop/OpRelease
 // become no-ops instead of disqualifying; everything else needs a real box.
-func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
+func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.LocalID)) {
 	switch in.Op {
 	case mir.OpRecord, mir.OpVariant, mir.OpClosure:
 		if !e.isDirect(in.Dst) {
@@ -151,7 +153,7 @@ func (e *emitter) classifyArgs(in mir.Inst, disqualify func(mir.LocalID)) {
 		}
 	case mir.OpDrop, mir.OpRelease:
 	case mir.OpCall:
-		if in.DPrim == mir.DPNone {
+		if in.DPrim == mir.DPNone && e.wideCallOp(f, in) == "" {
 			sig := e.calleeScalarSig(in)
 			for i, a := range in.Args {
 				if _, ok := sig.param(i); !ok {

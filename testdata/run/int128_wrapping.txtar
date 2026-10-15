@@ -1,0 +1,722 @@
+-- src --
+let wi1280: i128 = 0
+let xi1280: i128 = 0
+print "i128 0 0: ${wi1280.wrappingAdd(xi1280)} ${wi1280.wrappingSub(xi1280)} ${wi1280.wrappingMul(xi1280)} ${wi1280.wrappingShiftLeft(xi1280)} ${wi1280.wrappingShiftRight(xi1280)} ${wi1280.rotateLeft(xi1280)} ${wi1280.rotateRight(xi1280)}"
+let wi1281: i128 = 0
+let xi1281: i128 = 1
+print "i128 0 1: ${wi1281.wrappingAdd(xi1281)} ${wi1281.wrappingSub(xi1281)} ${wi1281.wrappingMul(xi1281)} ${wi1281.wrappingShiftLeft(xi1281)} ${wi1281.wrappingShiftRight(xi1281)} ${wi1281.rotateLeft(xi1281)} ${wi1281.rotateRight(xi1281)}"
+let wi1282: i128 = 0
+let xi1282: i128 = -1
+print "i128 0 -1: ${wi1282.wrappingAdd(xi1282)} ${wi1282.wrappingSub(xi1282)} ${wi1282.wrappingMul(xi1282)} ${wi1282.wrappingShiftLeft(xi1282)} ${wi1282.wrappingShiftRight(xi1282)} ${wi1282.rotateLeft(xi1282)} ${wi1282.rotateRight(xi1282)}"
+let wi1283: i128 = 0
+let xi1283: i128 = 2
+print "i128 0 2: ${wi1283.wrappingAdd(xi1283)} ${wi1283.wrappingSub(xi1283)} ${wi1283.wrappingMul(xi1283)} ${wi1283.wrappingShiftLeft(xi1283)} ${wi1283.wrappingShiftRight(xi1283)} ${wi1283.rotateLeft(xi1283)} ${wi1283.rotateRight(xi1283)}"
+let wi1284: i128 = 0
+let xi1284: i128 = -2
+print "i128 0 -2: ${wi1284.wrappingAdd(xi1284)} ${wi1284.wrappingSub(xi1284)} ${wi1284.wrappingMul(xi1284)} ${wi1284.wrappingShiftLeft(xi1284)} ${wi1284.wrappingShiftRight(xi1284)} ${wi1284.rotateLeft(xi1284)} ${wi1284.rotateRight(xi1284)}"
+let wi1285: i128 = 0
+let xi1285: i128 = 7
+print "i128 0 7: ${wi1285.wrappingAdd(xi1285)} ${wi1285.wrappingSub(xi1285)} ${wi1285.wrappingMul(xi1285)} ${wi1285.wrappingShiftLeft(xi1285)} ${wi1285.wrappingShiftRight(xi1285)} ${wi1285.rotateLeft(xi1285)} ${wi1285.rotateRight(xi1285)}"
+let wi1286: i128 = 0
+let xi1286: i128 = -7
+print "i128 0 -7: ${wi1286.wrappingAdd(xi1286)} ${wi1286.wrappingSub(xi1286)} ${wi1286.wrappingMul(xi1286)} ${wi1286.wrappingShiftLeft(xi1286)} ${wi1286.wrappingShiftRight(xi1286)} ${wi1286.rotateLeft(xi1286)} ${wi1286.rotateRight(xi1286)}"
+let wi1287: i128 = 0
+let xi1287: i128 = 255
+print "i128 0 255: ${wi1287.wrappingAdd(xi1287)} ${wi1287.wrappingSub(xi1287)} ${wi1287.wrappingMul(xi1287)} ${wi1287.wrappingShiftLeft(xi1287)} ${wi1287.wrappingShiftRight(xi1287)} ${wi1287.rotateLeft(xi1287)} ${wi1287.rotateRight(xi1287)}"
+let wi1288: i128 = 0
+let xi1288: i128 = 256
+print "i128 0 256: ${wi1288.wrappingAdd(xi1288)} ${wi1288.wrappingSub(xi1288)} ${wi1288.wrappingMul(xi1288)} ${wi1288.wrappingShiftLeft(xi1288)} ${wi1288.wrappingShiftRight(xi1288)} ${wi1288.rotateLeft(xi1288)} ${wi1288.rotateRight(xi1288)}"
+let wi1289: i128 = 0
+let xi1289: i128 = -256
+print "i128 0 -256: ${wi1289.wrappingAdd(xi1289)} ${wi1289.wrappingSub(xi1289)} ${wi1289.wrappingMul(xi1289)} ${wi1289.wrappingShiftLeft(xi1289)} ${wi1289.wrappingShiftRight(xi1289)} ${wi1289.rotateLeft(xi1289)} ${wi1289.rotateRight(xi1289)}"
+let wi12810: i128 = 0
+let xi12810: i128 = 2147483647
+print "i128 0 2147483647: ${wi12810.wrappingAdd(xi12810)} ${wi12810.wrappingSub(xi12810)} ${wi12810.wrappingMul(xi12810)} ${wi12810.wrappingShiftLeft(xi12810)} ${wi12810.wrappingShiftRight(xi12810)} ${wi12810.rotateLeft(xi12810)} ${wi12810.rotateRight(xi12810)}"
+let wi12811: i128 = 0
+let xi12811: i128 = 2147483648
+print "i128 0 2147483648: ${wi12811.wrappingAdd(xi12811)} ${wi12811.wrappingSub(xi12811)} ${wi12811.wrappingMul(xi12811)} ${wi12811.wrappingShiftLeft(xi12811)} ${wi12811.wrappingShiftRight(xi12811)} ${wi12811.rotateLeft(xi12811)} ${wi12811.rotateRight(xi12811)}"
+let wi12812: i128 = 1
+let xi12812: i128 = 0
+print "i128 1 0: ${wi12812.wrappingAdd(xi12812)} ${wi12812.wrappingSub(xi12812)} ${wi12812.wrappingMul(xi12812)} ${wi12812.wrappingShiftLeft(xi12812)} ${wi12812.wrappingShiftRight(xi12812)} ${wi12812.rotateLeft(xi12812)} ${wi12812.rotateRight(xi12812)}"
+let wi12813: i128 = 1
+let xi12813: i128 = 1
+print "i128 1 1: ${wi12813.wrappingAdd(xi12813)} ${wi12813.wrappingSub(xi12813)} ${wi12813.wrappingMul(xi12813)} ${wi12813.wrappingShiftLeft(xi12813)} ${wi12813.wrappingShiftRight(xi12813)} ${wi12813.rotateLeft(xi12813)} ${wi12813.rotateRight(xi12813)}"
+let wi12814: i128 = 1
+let xi12814: i128 = -1
+print "i128 1 -1: ${wi12814.wrappingAdd(xi12814)} ${wi12814.wrappingSub(xi12814)} ${wi12814.wrappingMul(xi12814)} ${wi12814.wrappingShiftLeft(xi12814)} ${wi12814.wrappingShiftRight(xi12814)} ${wi12814.rotateLeft(xi12814)} ${wi12814.rotateRight(xi12814)}"
+let wi12815: i128 = 1
+let xi12815: i128 = 2
+print "i128 1 2: ${wi12815.wrappingAdd(xi12815)} ${wi12815.wrappingSub(xi12815)} ${wi12815.wrappingMul(xi12815)} ${wi12815.wrappingShiftLeft(xi12815)} ${wi12815.wrappingShiftRight(xi12815)} ${wi12815.rotateLeft(xi12815)} ${wi12815.rotateRight(xi12815)}"
+let wi12816: i128 = 1
+let xi12816: i128 = -2
+print "i128 1 -2: ${wi12816.wrappingAdd(xi12816)} ${wi12816.wrappingSub(xi12816)} ${wi12816.wrappingMul(xi12816)} ${wi12816.wrappingShiftLeft(xi12816)} ${wi12816.wrappingShiftRight(xi12816)} ${wi12816.rotateLeft(xi12816)} ${wi12816.rotateRight(xi12816)}"
+let wi12817: i128 = 1
+let xi12817: i128 = 7
+print "i128 1 7: ${wi12817.wrappingAdd(xi12817)} ${wi12817.wrappingSub(xi12817)} ${wi12817.wrappingMul(xi12817)} ${wi12817.wrappingShiftLeft(xi12817)} ${wi12817.wrappingShiftRight(xi12817)} ${wi12817.rotateLeft(xi12817)} ${wi12817.rotateRight(xi12817)}"
+let wi12818: i128 = 1
+let xi12818: i128 = -7
+print "i128 1 -7: ${wi12818.wrappingAdd(xi12818)} ${wi12818.wrappingSub(xi12818)} ${wi12818.wrappingMul(xi12818)} ${wi12818.wrappingShiftLeft(xi12818)} ${wi12818.wrappingShiftRight(xi12818)} ${wi12818.rotateLeft(xi12818)} ${wi12818.rotateRight(xi12818)}"
+let wi12819: i128 = 1
+let xi12819: i128 = 255
+print "i128 1 255: ${wi12819.wrappingAdd(xi12819)} ${wi12819.wrappingSub(xi12819)} ${wi12819.wrappingMul(xi12819)} ${wi12819.wrappingShiftLeft(xi12819)} ${wi12819.wrappingShiftRight(xi12819)} ${wi12819.rotateLeft(xi12819)} ${wi12819.rotateRight(xi12819)}"
+let wi12820: i128 = 1
+let xi12820: i128 = 256
+print "i128 1 256: ${wi12820.wrappingAdd(xi12820)} ${wi12820.wrappingSub(xi12820)} ${wi12820.wrappingMul(xi12820)} ${wi12820.wrappingShiftLeft(xi12820)} ${wi12820.wrappingShiftRight(xi12820)} ${wi12820.rotateLeft(xi12820)} ${wi12820.rotateRight(xi12820)}"
+let wi12821: i128 = 1
+let xi12821: i128 = -256
+print "i128 1 -256: ${wi12821.wrappingAdd(xi12821)} ${wi12821.wrappingSub(xi12821)} ${wi12821.wrappingMul(xi12821)} ${wi12821.wrappingShiftLeft(xi12821)} ${wi12821.wrappingShiftRight(xi12821)} ${wi12821.rotateLeft(xi12821)} ${wi12821.rotateRight(xi12821)}"
+let wi12822: i128 = 1
+let xi12822: i128 = 2147483647
+print "i128 1 2147483647: ${wi12822.wrappingAdd(xi12822)} ${wi12822.wrappingSub(xi12822)} ${wi12822.wrappingMul(xi12822)} ${wi12822.wrappingShiftLeft(xi12822)} ${wi12822.wrappingShiftRight(xi12822)} ${wi12822.rotateLeft(xi12822)} ${wi12822.rotateRight(xi12822)}"
+let wi12823: i128 = 1
+let xi12823: i128 = 2147483648
+print "i128 1 2147483648: ${wi12823.wrappingAdd(xi12823)} ${wi12823.wrappingSub(xi12823)} ${wi12823.wrappingMul(xi12823)} ${wi12823.wrappingShiftLeft(xi12823)} ${wi12823.wrappingShiftRight(xi12823)} ${wi12823.rotateLeft(xi12823)} ${wi12823.rotateRight(xi12823)}"
+let wi12824: i128 = -1
+let xi12824: i128 = 0
+print "i128 -1 0: ${wi12824.wrappingAdd(xi12824)} ${wi12824.wrappingSub(xi12824)} ${wi12824.wrappingMul(xi12824)} ${wi12824.wrappingShiftLeft(xi12824)} ${wi12824.wrappingShiftRight(xi12824)} ${wi12824.rotateLeft(xi12824)} ${wi12824.rotateRight(xi12824)}"
+let wi12825: i128 = -1
+let xi12825: i128 = 1
+print "i128 -1 1: ${wi12825.wrappingAdd(xi12825)} ${wi12825.wrappingSub(xi12825)} ${wi12825.wrappingMul(xi12825)} ${wi12825.wrappingShiftLeft(xi12825)} ${wi12825.wrappingShiftRight(xi12825)} ${wi12825.rotateLeft(xi12825)} ${wi12825.rotateRight(xi12825)}"
+let wi12826: i128 = -1
+let xi12826: i128 = -1
+print "i128 -1 -1: ${wi12826.wrappingAdd(xi12826)} ${wi12826.wrappingSub(xi12826)} ${wi12826.wrappingMul(xi12826)} ${wi12826.wrappingShiftLeft(xi12826)} ${wi12826.wrappingShiftRight(xi12826)} ${wi12826.rotateLeft(xi12826)} ${wi12826.rotateRight(xi12826)}"
+let wi12827: i128 = -1
+let xi12827: i128 = 2
+print "i128 -1 2: ${wi12827.wrappingAdd(xi12827)} ${wi12827.wrappingSub(xi12827)} ${wi12827.wrappingMul(xi12827)} ${wi12827.wrappingShiftLeft(xi12827)} ${wi12827.wrappingShiftRight(xi12827)} ${wi12827.rotateLeft(xi12827)} ${wi12827.rotateRight(xi12827)}"
+let wi12828: i128 = -1
+let xi12828: i128 = -2
+print "i128 -1 -2: ${wi12828.wrappingAdd(xi12828)} ${wi12828.wrappingSub(xi12828)} ${wi12828.wrappingMul(xi12828)} ${wi12828.wrappingShiftLeft(xi12828)} ${wi12828.wrappingShiftRight(xi12828)} ${wi12828.rotateLeft(xi12828)} ${wi12828.rotateRight(xi12828)}"
+let wi12829: i128 = -1
+let xi12829: i128 = 7
+print "i128 -1 7: ${wi12829.wrappingAdd(xi12829)} ${wi12829.wrappingSub(xi12829)} ${wi12829.wrappingMul(xi12829)} ${wi12829.wrappingShiftLeft(xi12829)} ${wi12829.wrappingShiftRight(xi12829)} ${wi12829.rotateLeft(xi12829)} ${wi12829.rotateRight(xi12829)}"
+let wi12830: i128 = -1
+let xi12830: i128 = -7
+print "i128 -1 -7: ${wi12830.wrappingAdd(xi12830)} ${wi12830.wrappingSub(xi12830)} ${wi12830.wrappingMul(xi12830)} ${wi12830.wrappingShiftLeft(xi12830)} ${wi12830.wrappingShiftRight(xi12830)} ${wi12830.rotateLeft(xi12830)} ${wi12830.rotateRight(xi12830)}"
+let wi12831: i128 = -1
+let xi12831: i128 = 255
+print "i128 -1 255: ${wi12831.wrappingAdd(xi12831)} ${wi12831.wrappingSub(xi12831)} ${wi12831.wrappingMul(xi12831)} ${wi12831.wrappingShiftLeft(xi12831)} ${wi12831.wrappingShiftRight(xi12831)} ${wi12831.rotateLeft(xi12831)} ${wi12831.rotateRight(xi12831)}"
+let wi12832: i128 = -1
+let xi12832: i128 = 256
+print "i128 -1 256: ${wi12832.wrappingAdd(xi12832)} ${wi12832.wrappingSub(xi12832)} ${wi12832.wrappingMul(xi12832)} ${wi12832.wrappingShiftLeft(xi12832)} ${wi12832.wrappingShiftRight(xi12832)} ${wi12832.rotateLeft(xi12832)} ${wi12832.rotateRight(xi12832)}"
+let wi12833: i128 = -1
+let xi12833: i128 = -256
+print "i128 -1 -256: ${wi12833.wrappingAdd(xi12833)} ${wi12833.wrappingSub(xi12833)} ${wi12833.wrappingMul(xi12833)} ${wi12833.wrappingShiftLeft(xi12833)} ${wi12833.wrappingShiftRight(xi12833)} ${wi12833.rotateLeft(xi12833)} ${wi12833.rotateRight(xi12833)}"
+let wi12834: i128 = -1
+let xi12834: i128 = 2147483647
+print "i128 -1 2147483647: ${wi12834.wrappingAdd(xi12834)} ${wi12834.wrappingSub(xi12834)} ${wi12834.wrappingMul(xi12834)} ${wi12834.wrappingShiftLeft(xi12834)} ${wi12834.wrappingShiftRight(xi12834)} ${wi12834.rotateLeft(xi12834)} ${wi12834.rotateRight(xi12834)}"
+let wi12835: i128 = -1
+let xi12835: i128 = 2147483648
+print "i128 -1 2147483648: ${wi12835.wrappingAdd(xi12835)} ${wi12835.wrappingSub(xi12835)} ${wi12835.wrappingMul(xi12835)} ${wi12835.wrappingShiftLeft(xi12835)} ${wi12835.wrappingShiftRight(xi12835)} ${wi12835.rotateLeft(xi12835)} ${wi12835.rotateRight(xi12835)}"
+let wi12836: i128 = 2
+let xi12836: i128 = 0
+print "i128 2 0: ${wi12836.wrappingAdd(xi12836)} ${wi12836.wrappingSub(xi12836)} ${wi12836.wrappingMul(xi12836)} ${wi12836.wrappingShiftLeft(xi12836)} ${wi12836.wrappingShiftRight(xi12836)} ${wi12836.rotateLeft(xi12836)} ${wi12836.rotateRight(xi12836)}"
+let wi12837: i128 = 2
+let xi12837: i128 = 1
+print "i128 2 1: ${wi12837.wrappingAdd(xi12837)} ${wi12837.wrappingSub(xi12837)} ${wi12837.wrappingMul(xi12837)} ${wi12837.wrappingShiftLeft(xi12837)} ${wi12837.wrappingShiftRight(xi12837)} ${wi12837.rotateLeft(xi12837)} ${wi12837.rotateRight(xi12837)}"
+let wi12838: i128 = 2
+let xi12838: i128 = -1
+print "i128 2 -1: ${wi12838.wrappingAdd(xi12838)} ${wi12838.wrappingSub(xi12838)} ${wi12838.wrappingMul(xi12838)} ${wi12838.wrappingShiftLeft(xi12838)} ${wi12838.wrappingShiftRight(xi12838)} ${wi12838.rotateLeft(xi12838)} ${wi12838.rotateRight(xi12838)}"
+let wi12839: i128 = 2
+let xi12839: i128 = 2
+print "i128 2 2: ${wi12839.wrappingAdd(xi12839)} ${wi12839.wrappingSub(xi12839)} ${wi12839.wrappingMul(xi12839)} ${wi12839.wrappingShiftLeft(xi12839)} ${wi12839.wrappingShiftRight(xi12839)} ${wi12839.rotateLeft(xi12839)} ${wi12839.rotateRight(xi12839)}"
+let wi12840: i128 = 2
+let xi12840: i128 = -2
+print "i128 2 -2: ${wi12840.wrappingAdd(xi12840)} ${wi12840.wrappingSub(xi12840)} ${wi12840.wrappingMul(xi12840)} ${wi12840.wrappingShiftLeft(xi12840)} ${wi12840.wrappingShiftRight(xi12840)} ${wi12840.rotateLeft(xi12840)} ${wi12840.rotateRight(xi12840)}"
+let wi12841: i128 = 2
+let xi12841: i128 = 7
+print "i128 2 7: ${wi12841.wrappingAdd(xi12841)} ${wi12841.wrappingSub(xi12841)} ${wi12841.wrappingMul(xi12841)} ${wi12841.wrappingShiftLeft(xi12841)} ${wi12841.wrappingShiftRight(xi12841)} ${wi12841.rotateLeft(xi12841)} ${wi12841.rotateRight(xi12841)}"
+let wi12842: i128 = 2
+let xi12842: i128 = -7
+print "i128 2 -7: ${wi12842.wrappingAdd(xi12842)} ${wi12842.wrappingSub(xi12842)} ${wi12842.wrappingMul(xi12842)} ${wi12842.wrappingShiftLeft(xi12842)} ${wi12842.wrappingShiftRight(xi12842)} ${wi12842.rotateLeft(xi12842)} ${wi12842.rotateRight(xi12842)}"
+let wi12843: i128 = 2
+let xi12843: i128 = 255
+print "i128 2 255: ${wi12843.wrappingAdd(xi12843)} ${wi12843.wrappingSub(xi12843)} ${wi12843.wrappingMul(xi12843)} ${wi12843.wrappingShiftLeft(xi12843)} ${wi12843.wrappingShiftRight(xi12843)} ${wi12843.rotateLeft(xi12843)} ${wi12843.rotateRight(xi12843)}"
+let wi12844: i128 = 2
+let xi12844: i128 = 256
+print "i128 2 256: ${wi12844.wrappingAdd(xi12844)} ${wi12844.wrappingSub(xi12844)} ${wi12844.wrappingMul(xi12844)} ${wi12844.wrappingShiftLeft(xi12844)} ${wi12844.wrappingShiftRight(xi12844)} ${wi12844.rotateLeft(xi12844)} ${wi12844.rotateRight(xi12844)}"
+let wi12845: i128 = 2
+let xi12845: i128 = -256
+print "i128 2 -256: ${wi12845.wrappingAdd(xi12845)} ${wi12845.wrappingSub(xi12845)} ${wi12845.wrappingMul(xi12845)} ${wi12845.wrappingShiftLeft(xi12845)} ${wi12845.wrappingShiftRight(xi12845)} ${wi12845.rotateLeft(xi12845)} ${wi12845.rotateRight(xi12845)}"
+let wi12846: i128 = 2
+let xi12846: i128 = 2147483647
+print "i128 2 2147483647: ${wi12846.wrappingAdd(xi12846)} ${wi12846.wrappingSub(xi12846)} ${wi12846.wrappingMul(xi12846)} ${wi12846.wrappingShiftLeft(xi12846)} ${wi12846.wrappingShiftRight(xi12846)} ${wi12846.rotateLeft(xi12846)} ${wi12846.rotateRight(xi12846)}"
+let wi12847: i128 = 2
+let xi12847: i128 = 2147483648
+print "i128 2 2147483648: ${wi12847.wrappingAdd(xi12847)} ${wi12847.wrappingSub(xi12847)} ${wi12847.wrappingMul(xi12847)} ${wi12847.wrappingShiftLeft(xi12847)} ${wi12847.wrappingShiftRight(xi12847)} ${wi12847.rotateLeft(xi12847)} ${wi12847.rotateRight(xi12847)}"
+let wi12848: i128 = -2
+let xi12848: i128 = 0
+print "i128 -2 0: ${wi12848.wrappingAdd(xi12848)} ${wi12848.wrappingSub(xi12848)} ${wi12848.wrappingMul(xi12848)} ${wi12848.wrappingShiftLeft(xi12848)} ${wi12848.wrappingShiftRight(xi12848)} ${wi12848.rotateLeft(xi12848)} ${wi12848.rotateRight(xi12848)}"
+let wi12849: i128 = -2
+let xi12849: i128 = 1
+print "i128 -2 1: ${wi12849.wrappingAdd(xi12849)} ${wi12849.wrappingSub(xi12849)} ${wi12849.wrappingMul(xi12849)} ${wi12849.wrappingShiftLeft(xi12849)} ${wi12849.wrappingShiftRight(xi12849)} ${wi12849.rotateLeft(xi12849)} ${wi12849.rotateRight(xi12849)}"
+let wi12850: i128 = -2
+let xi12850: i128 = -1
+print "i128 -2 -1: ${wi12850.wrappingAdd(xi12850)} ${wi12850.wrappingSub(xi12850)} ${wi12850.wrappingMul(xi12850)} ${wi12850.wrappingShiftLeft(xi12850)} ${wi12850.wrappingShiftRight(xi12850)} ${wi12850.rotateLeft(xi12850)} ${wi12850.rotateRight(xi12850)}"
+let wi12851: i128 = -2
+let xi12851: i128 = 2
+print "i128 -2 2: ${wi12851.wrappingAdd(xi12851)} ${wi12851.wrappingSub(xi12851)} ${wi12851.wrappingMul(xi12851)} ${wi12851.wrappingShiftLeft(xi12851)} ${wi12851.wrappingShiftRight(xi12851)} ${wi12851.rotateLeft(xi12851)} ${wi12851.rotateRight(xi12851)}"
+let wi12852: i128 = -2
+let xi12852: i128 = -2
+print "i128 -2 -2: ${wi12852.wrappingAdd(xi12852)} ${wi12852.wrappingSub(xi12852)} ${wi12852.wrappingMul(xi12852)} ${wi12852.wrappingShiftLeft(xi12852)} ${wi12852.wrappingShiftRight(xi12852)} ${wi12852.rotateLeft(xi12852)} ${wi12852.rotateRight(xi12852)}"
+let wi12853: i128 = -2
+let xi12853: i128 = 7
+print "i128 -2 7: ${wi12853.wrappingAdd(xi12853)} ${wi12853.wrappingSub(xi12853)} ${wi12853.wrappingMul(xi12853)} ${wi12853.wrappingShiftLeft(xi12853)} ${wi12853.wrappingShiftRight(xi12853)} ${wi12853.rotateLeft(xi12853)} ${wi12853.rotateRight(xi12853)}"
+let wi12854: i128 = -2
+let xi12854: i128 = -7
+print "i128 -2 -7: ${wi12854.wrappingAdd(xi12854)} ${wi12854.wrappingSub(xi12854)} ${wi12854.wrappingMul(xi12854)} ${wi12854.wrappingShiftLeft(xi12854)} ${wi12854.wrappingShiftRight(xi12854)} ${wi12854.rotateLeft(xi12854)} ${wi12854.rotateRight(xi12854)}"
+let wi12855: i128 = -2
+let xi12855: i128 = 255
+print "i128 -2 255: ${wi12855.wrappingAdd(xi12855)} ${wi12855.wrappingSub(xi12855)} ${wi12855.wrappingMul(xi12855)} ${wi12855.wrappingShiftLeft(xi12855)} ${wi12855.wrappingShiftRight(xi12855)} ${wi12855.rotateLeft(xi12855)} ${wi12855.rotateRight(xi12855)}"
+let wi12856: i128 = -2
+let xi12856: i128 = 256
+print "i128 -2 256: ${wi12856.wrappingAdd(xi12856)} ${wi12856.wrappingSub(xi12856)} ${wi12856.wrappingMul(xi12856)} ${wi12856.wrappingShiftLeft(xi12856)} ${wi12856.wrappingShiftRight(xi12856)} ${wi12856.rotateLeft(xi12856)} ${wi12856.rotateRight(xi12856)}"
+let wi12857: i128 = -2
+let xi12857: i128 = -256
+print "i128 -2 -256: ${wi12857.wrappingAdd(xi12857)} ${wi12857.wrappingSub(xi12857)} ${wi12857.wrappingMul(xi12857)} ${wi12857.wrappingShiftLeft(xi12857)} ${wi12857.wrappingShiftRight(xi12857)} ${wi12857.rotateLeft(xi12857)} ${wi12857.rotateRight(xi12857)}"
+let wi12858: i128 = -2
+let xi12858: i128 = 2147483647
+print "i128 -2 2147483647: ${wi12858.wrappingAdd(xi12858)} ${wi12858.wrappingSub(xi12858)} ${wi12858.wrappingMul(xi12858)} ${wi12858.wrappingShiftLeft(xi12858)} ${wi12858.wrappingShiftRight(xi12858)} ${wi12858.rotateLeft(xi12858)} ${wi12858.rotateRight(xi12858)}"
+let wi12859: i128 = -2
+let xi12859: i128 = 2147483648
+print "i128 -2 2147483648: ${wi12859.wrappingAdd(xi12859)} ${wi12859.wrappingSub(xi12859)} ${wi12859.wrappingMul(xi12859)} ${wi12859.wrappingShiftLeft(xi12859)} ${wi12859.wrappingShiftRight(xi12859)} ${wi12859.rotateLeft(xi12859)} ${wi12859.rotateRight(xi12859)}"
+let wi12860: i128 = 7
+let xi12860: i128 = 0
+print "i128 7 0: ${wi12860.wrappingAdd(xi12860)} ${wi12860.wrappingSub(xi12860)} ${wi12860.wrappingMul(xi12860)} ${wi12860.wrappingShiftLeft(xi12860)} ${wi12860.wrappingShiftRight(xi12860)} ${wi12860.rotateLeft(xi12860)} ${wi12860.rotateRight(xi12860)}"
+let wi12861: i128 = 7
+let xi12861: i128 = 1
+print "i128 7 1: ${wi12861.wrappingAdd(xi12861)} ${wi12861.wrappingSub(xi12861)} ${wi12861.wrappingMul(xi12861)} ${wi12861.wrappingShiftLeft(xi12861)} ${wi12861.wrappingShiftRight(xi12861)} ${wi12861.rotateLeft(xi12861)} ${wi12861.rotateRight(xi12861)}"
+let wi12862: i128 = 7
+let xi12862: i128 = -1
+print "i128 7 -1: ${wi12862.wrappingAdd(xi12862)} ${wi12862.wrappingSub(xi12862)} ${wi12862.wrappingMul(xi12862)} ${wi12862.wrappingShiftLeft(xi12862)} ${wi12862.wrappingShiftRight(xi12862)} ${wi12862.rotateLeft(xi12862)} ${wi12862.rotateRight(xi12862)}"
+let wi12863: i128 = 7
+let xi12863: i128 = 2
+print "i128 7 2: ${wi12863.wrappingAdd(xi12863)} ${wi12863.wrappingSub(xi12863)} ${wi12863.wrappingMul(xi12863)} ${wi12863.wrappingShiftLeft(xi12863)} ${wi12863.wrappingShiftRight(xi12863)} ${wi12863.rotateLeft(xi12863)} ${wi12863.rotateRight(xi12863)}"
+let wi12864: i128 = 7
+let xi12864: i128 = -2
+print "i128 7 -2: ${wi12864.wrappingAdd(xi12864)} ${wi12864.wrappingSub(xi12864)} ${wi12864.wrappingMul(xi12864)} ${wi12864.wrappingShiftLeft(xi12864)} ${wi12864.wrappingShiftRight(xi12864)} ${wi12864.rotateLeft(xi12864)} ${wi12864.rotateRight(xi12864)}"
+let wi12865: i128 = 7
+let xi12865: i128 = 7
+print "i128 7 7: ${wi12865.wrappingAdd(xi12865)} ${wi12865.wrappingSub(xi12865)} ${wi12865.wrappingMul(xi12865)} ${wi12865.wrappingShiftLeft(xi12865)} ${wi12865.wrappingShiftRight(xi12865)} ${wi12865.rotateLeft(xi12865)} ${wi12865.rotateRight(xi12865)}"
+let wi12866: i128 = 7
+let xi12866: i128 = -7
+print "i128 7 -7: ${wi12866.wrappingAdd(xi12866)} ${wi12866.wrappingSub(xi12866)} ${wi12866.wrappingMul(xi12866)} ${wi12866.wrappingShiftLeft(xi12866)} ${wi12866.wrappingShiftRight(xi12866)} ${wi12866.rotateLeft(xi12866)} ${wi12866.rotateRight(xi12866)}"
+let wi12867: i128 = 7
+let xi12867: i128 = 255
+print "i128 7 255: ${wi12867.wrappingAdd(xi12867)} ${wi12867.wrappingSub(xi12867)} ${wi12867.wrappingMul(xi12867)} ${wi12867.wrappingShiftLeft(xi12867)} ${wi12867.wrappingShiftRight(xi12867)} ${wi12867.rotateLeft(xi12867)} ${wi12867.rotateRight(xi12867)}"
+let wi12868: i128 = 7
+let xi12868: i128 = 256
+print "i128 7 256: ${wi12868.wrappingAdd(xi12868)} ${wi12868.wrappingSub(xi12868)} ${wi12868.wrappingMul(xi12868)} ${wi12868.wrappingShiftLeft(xi12868)} ${wi12868.wrappingShiftRight(xi12868)} ${wi12868.rotateLeft(xi12868)} ${wi12868.rotateRight(xi12868)}"
+let wi12869: i128 = 7
+let xi12869: i128 = -256
+print "i128 7 -256: ${wi12869.wrappingAdd(xi12869)} ${wi12869.wrappingSub(xi12869)} ${wi12869.wrappingMul(xi12869)} ${wi12869.wrappingShiftLeft(xi12869)} ${wi12869.wrappingShiftRight(xi12869)} ${wi12869.rotateLeft(xi12869)} ${wi12869.rotateRight(xi12869)}"
+let wi12870: i128 = 7
+let xi12870: i128 = 2147483647
+print "i128 7 2147483647: ${wi12870.wrappingAdd(xi12870)} ${wi12870.wrappingSub(xi12870)} ${wi12870.wrappingMul(xi12870)} ${wi12870.wrappingShiftLeft(xi12870)} ${wi12870.wrappingShiftRight(xi12870)} ${wi12870.rotateLeft(xi12870)} ${wi12870.rotateRight(xi12870)}"
+let wi12871: i128 = 7
+let xi12871: i128 = 2147483648
+print "i128 7 2147483648: ${wi12871.wrappingAdd(xi12871)} ${wi12871.wrappingSub(xi12871)} ${wi12871.wrappingMul(xi12871)} ${wi12871.wrappingShiftLeft(xi12871)} ${wi12871.wrappingShiftRight(xi12871)} ${wi12871.rotateLeft(xi12871)} ${wi12871.rotateRight(xi12871)}"
+let wi12872: i128 = -7
+let xi12872: i128 = 0
+print "i128 -7 0: ${wi12872.wrappingAdd(xi12872)} ${wi12872.wrappingSub(xi12872)} ${wi12872.wrappingMul(xi12872)} ${wi12872.wrappingShiftLeft(xi12872)} ${wi12872.wrappingShiftRight(xi12872)} ${wi12872.rotateLeft(xi12872)} ${wi12872.rotateRight(xi12872)}"
+let wi12873: i128 = -7
+let xi12873: i128 = 1
+print "i128 -7 1: ${wi12873.wrappingAdd(xi12873)} ${wi12873.wrappingSub(xi12873)} ${wi12873.wrappingMul(xi12873)} ${wi12873.wrappingShiftLeft(xi12873)} ${wi12873.wrappingShiftRight(xi12873)} ${wi12873.rotateLeft(xi12873)} ${wi12873.rotateRight(xi12873)}"
+let wi12874: i128 = -7
+let xi12874: i128 = -1
+print "i128 -7 -1: ${wi12874.wrappingAdd(xi12874)} ${wi12874.wrappingSub(xi12874)} ${wi12874.wrappingMul(xi12874)} ${wi12874.wrappingShiftLeft(xi12874)} ${wi12874.wrappingShiftRight(xi12874)} ${wi12874.rotateLeft(xi12874)} ${wi12874.rotateRight(xi12874)}"
+let wi12875: i128 = -7
+let xi12875: i128 = 2
+print "i128 -7 2: ${wi12875.wrappingAdd(xi12875)} ${wi12875.wrappingSub(xi12875)} ${wi12875.wrappingMul(xi12875)} ${wi12875.wrappingShiftLeft(xi12875)} ${wi12875.wrappingShiftRight(xi12875)} ${wi12875.rotateLeft(xi12875)} ${wi12875.rotateRight(xi12875)}"
+let wi12876: i128 = -7
+let xi12876: i128 = -2
+print "i128 -7 -2: ${wi12876.wrappingAdd(xi12876)} ${wi12876.wrappingSub(xi12876)} ${wi12876.wrappingMul(xi12876)} ${wi12876.wrappingShiftLeft(xi12876)} ${wi12876.wrappingShiftRight(xi12876)} ${wi12876.rotateLeft(xi12876)} ${wi12876.rotateRight(xi12876)}"
+let wi12877: i128 = -7
+let xi12877: i128 = 7
+print "i128 -7 7: ${wi12877.wrappingAdd(xi12877)} ${wi12877.wrappingSub(xi12877)} ${wi12877.wrappingMul(xi12877)} ${wi12877.wrappingShiftLeft(xi12877)} ${wi12877.wrappingShiftRight(xi12877)} ${wi12877.rotateLeft(xi12877)} ${wi12877.rotateRight(xi12877)}"
+let wi12878: i128 = -7
+let xi12878: i128 = -7
+print "i128 -7 -7: ${wi12878.wrappingAdd(xi12878)} ${wi12878.wrappingSub(xi12878)} ${wi12878.wrappingMul(xi12878)} ${wi12878.wrappingShiftLeft(xi12878)} ${wi12878.wrappingShiftRight(xi12878)} ${wi12878.rotateLeft(xi12878)} ${wi12878.rotateRight(xi12878)}"
+let wi12879: i128 = -7
+let xi12879: i128 = 255
+print "i128 -7 255: ${wi12879.wrappingAdd(xi12879)} ${wi12879.wrappingSub(xi12879)} ${wi12879.wrappingMul(xi12879)} ${wi12879.wrappingShiftLeft(xi12879)} ${wi12879.wrappingShiftRight(xi12879)} ${wi12879.rotateLeft(xi12879)} ${wi12879.rotateRight(xi12879)}"
+let wi12880: i128 = -7
+let xi12880: i128 = 256
+print "i128 -7 256: ${wi12880.wrappingAdd(xi12880)} ${wi12880.wrappingSub(xi12880)} ${wi12880.wrappingMul(xi12880)} ${wi12880.wrappingShiftLeft(xi12880)} ${wi12880.wrappingShiftRight(xi12880)} ${wi12880.rotateLeft(xi12880)} ${wi12880.rotateRight(xi12880)}"
+let wi12881: i128 = -7
+let xi12881: i128 = -256
+print "i128 -7 -256: ${wi12881.wrappingAdd(xi12881)} ${wi12881.wrappingSub(xi12881)} ${wi12881.wrappingMul(xi12881)} ${wi12881.wrappingShiftLeft(xi12881)} ${wi12881.wrappingShiftRight(xi12881)} ${wi12881.rotateLeft(xi12881)} ${wi12881.rotateRight(xi12881)}"
+let wi12882: i128 = -7
+let xi12882: i128 = 2147483647
+print "i128 -7 2147483647: ${wi12882.wrappingAdd(xi12882)} ${wi12882.wrappingSub(xi12882)} ${wi12882.wrappingMul(xi12882)} ${wi12882.wrappingShiftLeft(xi12882)} ${wi12882.wrappingShiftRight(xi12882)} ${wi12882.rotateLeft(xi12882)} ${wi12882.rotateRight(xi12882)}"
+let wi12883: i128 = -7
+let xi12883: i128 = 2147483648
+print "i128 -7 2147483648: ${wi12883.wrappingAdd(xi12883)} ${wi12883.wrappingSub(xi12883)} ${wi12883.wrappingMul(xi12883)} ${wi12883.wrappingShiftLeft(xi12883)} ${wi12883.wrappingShiftRight(xi12883)} ${wi12883.rotateLeft(xi12883)} ${wi12883.rotateRight(xi12883)}"
+let wi12884: i128 = 255
+let xi12884: i128 = 0
+print "i128 255 0: ${wi12884.wrappingAdd(xi12884)} ${wi12884.wrappingSub(xi12884)} ${wi12884.wrappingMul(xi12884)} ${wi12884.wrappingShiftLeft(xi12884)} ${wi12884.wrappingShiftRight(xi12884)} ${wi12884.rotateLeft(xi12884)} ${wi12884.rotateRight(xi12884)}"
+let wi12885: i128 = 255
+let xi12885: i128 = 1
+print "i128 255 1: ${wi12885.wrappingAdd(xi12885)} ${wi12885.wrappingSub(xi12885)} ${wi12885.wrappingMul(xi12885)} ${wi12885.wrappingShiftLeft(xi12885)} ${wi12885.wrappingShiftRight(xi12885)} ${wi12885.rotateLeft(xi12885)} ${wi12885.rotateRight(xi12885)}"
+let wi12886: i128 = 255
+let xi12886: i128 = -1
+print "i128 255 -1: ${wi12886.wrappingAdd(xi12886)} ${wi12886.wrappingSub(xi12886)} ${wi12886.wrappingMul(xi12886)} ${wi12886.wrappingShiftLeft(xi12886)} ${wi12886.wrappingShiftRight(xi12886)} ${wi12886.rotateLeft(xi12886)} ${wi12886.rotateRight(xi12886)}"
+let wi12887: i128 = 255
+let xi12887: i128 = 2
+print "i128 255 2: ${wi12887.wrappingAdd(xi12887)} ${wi12887.wrappingSub(xi12887)} ${wi12887.wrappingMul(xi12887)} ${wi12887.wrappingShiftLeft(xi12887)} ${wi12887.wrappingShiftRight(xi12887)} ${wi12887.rotateLeft(xi12887)} ${wi12887.rotateRight(xi12887)}"
+let wi12888: i128 = 255
+let xi12888: i128 = -2
+print "i128 255 -2: ${wi12888.wrappingAdd(xi12888)} ${wi12888.wrappingSub(xi12888)} ${wi12888.wrappingMul(xi12888)} ${wi12888.wrappingShiftLeft(xi12888)} ${wi12888.wrappingShiftRight(xi12888)} ${wi12888.rotateLeft(xi12888)} ${wi12888.rotateRight(xi12888)}"
+let wi12889: i128 = 255
+let xi12889: i128 = 7
+print "i128 255 7: ${wi12889.wrappingAdd(xi12889)} ${wi12889.wrappingSub(xi12889)} ${wi12889.wrappingMul(xi12889)} ${wi12889.wrappingShiftLeft(xi12889)} ${wi12889.wrappingShiftRight(xi12889)} ${wi12889.rotateLeft(xi12889)} ${wi12889.rotateRight(xi12889)}"
+let wu1280: u128 = 0
+let xu1280: u128 = 0
+print "u128 0 0: ${wu1280.wrappingAdd(xu1280)} ${wu1280.wrappingSub(xu1280)} ${wu1280.wrappingMul(xu1280)} ${wu1280.wrappingShiftLeft(xu1280)} ${wu1280.wrappingShiftRight(xu1280)} ${wu1280.rotateLeft(xu1280)} ${wu1280.rotateRight(xu1280)}"
+let wu1281: u128 = 0
+let xu1281: u128 = 1
+print "u128 0 1: ${wu1281.wrappingAdd(xu1281)} ${wu1281.wrappingSub(xu1281)} ${wu1281.wrappingMul(xu1281)} ${wu1281.wrappingShiftLeft(xu1281)} ${wu1281.wrappingShiftRight(xu1281)} ${wu1281.rotateLeft(xu1281)} ${wu1281.rotateRight(xu1281)}"
+let wu1282: u128 = 0
+let xu1282: u128 = 2
+print "u128 0 2: ${wu1282.wrappingAdd(xu1282)} ${wu1282.wrappingSub(xu1282)} ${wu1282.wrappingMul(xu1282)} ${wu1282.wrappingShiftLeft(xu1282)} ${wu1282.wrappingShiftRight(xu1282)} ${wu1282.rotateLeft(xu1282)} ${wu1282.rotateRight(xu1282)}"
+let wu1283: u128 = 0
+let xu1283: u128 = 7
+print "u128 0 7: ${wu1283.wrappingAdd(xu1283)} ${wu1283.wrappingSub(xu1283)} ${wu1283.wrappingMul(xu1283)} ${wu1283.wrappingShiftLeft(xu1283)} ${wu1283.wrappingShiftRight(xu1283)} ${wu1283.rotateLeft(xu1283)} ${wu1283.rotateRight(xu1283)}"
+let wu1284: u128 = 0
+let xu1284: u128 = 255
+print "u128 0 255: ${wu1284.wrappingAdd(xu1284)} ${wu1284.wrappingSub(xu1284)} ${wu1284.wrappingMul(xu1284)} ${wu1284.wrappingShiftLeft(xu1284)} ${wu1284.wrappingShiftRight(xu1284)} ${wu1284.rotateLeft(xu1284)} ${wu1284.rotateRight(xu1284)}"
+let wu1285: u128 = 0
+let xu1285: u128 = 256
+print "u128 0 256: ${wu1285.wrappingAdd(xu1285)} ${wu1285.wrappingSub(xu1285)} ${wu1285.wrappingMul(xu1285)} ${wu1285.wrappingShiftLeft(xu1285)} ${wu1285.wrappingShiftRight(xu1285)} ${wu1285.rotateLeft(xu1285)} ${wu1285.rotateRight(xu1285)}"
+let wu1286: u128 = 0
+let xu1286: u128 = 4294967295
+print "u128 0 4294967295: ${wu1286.wrappingAdd(xu1286)} ${wu1286.wrappingSub(xu1286)} ${wu1286.wrappingMul(xu1286)} ${wu1286.wrappingShiftLeft(xu1286)} ${wu1286.wrappingShiftRight(xu1286)} ${wu1286.rotateLeft(xu1286)} ${wu1286.rotateRight(xu1286)}"
+let wu1287: u128 = 0
+let xu1287: u128 = 4294967296
+print "u128 0 4294967296: ${wu1287.wrappingAdd(xu1287)} ${wu1287.wrappingSub(xu1287)} ${wu1287.wrappingMul(xu1287)} ${wu1287.wrappingShiftLeft(xu1287)} ${wu1287.wrappingShiftRight(xu1287)} ${wu1287.rotateLeft(xu1287)} ${wu1287.rotateRight(xu1287)}"
+let wu1288: u128 = 0
+let xu1288: u128 = 9223372036854775807
+print "u128 0 9223372036854775807: ${wu1288.wrappingAdd(xu1288)} ${wu1288.wrappingSub(xu1288)} ${wu1288.wrappingMul(xu1288)} ${wu1288.wrappingShiftLeft(xu1288)} ${wu1288.wrappingShiftRight(xu1288)} ${wu1288.rotateLeft(xu1288)} ${wu1288.rotateRight(xu1288)}"
+let wu1289: u128 = 0
+let xu1289: u128 = 9223372036854775808
+print "u128 0 9223372036854775808: ${wu1289.wrappingAdd(xu1289)} ${wu1289.wrappingSub(xu1289)} ${wu1289.wrappingMul(xu1289)} ${wu1289.wrappingShiftLeft(xu1289)} ${wu1289.wrappingShiftRight(xu1289)} ${wu1289.rotateLeft(xu1289)} ${wu1289.rotateRight(xu1289)}"
+let wu12810: u128 = 0
+let xu12810: u128 = 18446744073709551615
+print "u128 0 18446744073709551615: ${wu12810.wrappingAdd(xu12810)} ${wu12810.wrappingSub(xu12810)} ${wu12810.wrappingMul(xu12810)} ${wu12810.wrappingShiftLeft(xu12810)} ${wu12810.wrappingShiftRight(xu12810)} ${wu12810.rotateLeft(xu12810)} ${wu12810.rotateRight(xu12810)}"
+let wu12811: u128 = 0
+let xu12811: u128 = 18446744073709551616
+print "u128 0 18446744073709551616: ${wu12811.wrappingAdd(xu12811)} ${wu12811.wrappingSub(xu12811)} ${wu12811.wrappingMul(xu12811)} ${wu12811.wrappingShiftLeft(xu12811)} ${wu12811.wrappingShiftRight(xu12811)} ${wu12811.rotateLeft(xu12811)} ${wu12811.rotateRight(xu12811)}"
+let wu12812: u128 = 1
+let xu12812: u128 = 0
+print "u128 1 0: ${wu12812.wrappingAdd(xu12812)} ${wu12812.wrappingSub(xu12812)} ${wu12812.wrappingMul(xu12812)} ${wu12812.wrappingShiftLeft(xu12812)} ${wu12812.wrappingShiftRight(xu12812)} ${wu12812.rotateLeft(xu12812)} ${wu12812.rotateRight(xu12812)}"
+let wu12813: u128 = 1
+let xu12813: u128 = 1
+print "u128 1 1: ${wu12813.wrappingAdd(xu12813)} ${wu12813.wrappingSub(xu12813)} ${wu12813.wrappingMul(xu12813)} ${wu12813.wrappingShiftLeft(xu12813)} ${wu12813.wrappingShiftRight(xu12813)} ${wu12813.rotateLeft(xu12813)} ${wu12813.rotateRight(xu12813)}"
+let wu12814: u128 = 1
+let xu12814: u128 = 2
+print "u128 1 2: ${wu12814.wrappingAdd(xu12814)} ${wu12814.wrappingSub(xu12814)} ${wu12814.wrappingMul(xu12814)} ${wu12814.wrappingShiftLeft(xu12814)} ${wu12814.wrappingShiftRight(xu12814)} ${wu12814.rotateLeft(xu12814)} ${wu12814.rotateRight(xu12814)}"
+let wu12815: u128 = 1
+let xu12815: u128 = 7
+print "u128 1 7: ${wu12815.wrappingAdd(xu12815)} ${wu12815.wrappingSub(xu12815)} ${wu12815.wrappingMul(xu12815)} ${wu12815.wrappingShiftLeft(xu12815)} ${wu12815.wrappingShiftRight(xu12815)} ${wu12815.rotateLeft(xu12815)} ${wu12815.rotateRight(xu12815)}"
+let wu12816: u128 = 1
+let xu12816: u128 = 255
+print "u128 1 255: ${wu12816.wrappingAdd(xu12816)} ${wu12816.wrappingSub(xu12816)} ${wu12816.wrappingMul(xu12816)} ${wu12816.wrappingShiftLeft(xu12816)} ${wu12816.wrappingShiftRight(xu12816)} ${wu12816.rotateLeft(xu12816)} ${wu12816.rotateRight(xu12816)}"
+let wu12817: u128 = 1
+let xu12817: u128 = 256
+print "u128 1 256: ${wu12817.wrappingAdd(xu12817)} ${wu12817.wrappingSub(xu12817)} ${wu12817.wrappingMul(xu12817)} ${wu12817.wrappingShiftLeft(xu12817)} ${wu12817.wrappingShiftRight(xu12817)} ${wu12817.rotateLeft(xu12817)} ${wu12817.rotateRight(xu12817)}"
+let wu12818: u128 = 1
+let xu12818: u128 = 4294967295
+print "u128 1 4294967295: ${wu12818.wrappingAdd(xu12818)} ${wu12818.wrappingSub(xu12818)} ${wu12818.wrappingMul(xu12818)} ${wu12818.wrappingShiftLeft(xu12818)} ${wu12818.wrappingShiftRight(xu12818)} ${wu12818.rotateLeft(xu12818)} ${wu12818.rotateRight(xu12818)}"
+let wu12819: u128 = 1
+let xu12819: u128 = 4294967296
+print "u128 1 4294967296: ${wu12819.wrappingAdd(xu12819)} ${wu12819.wrappingSub(xu12819)} ${wu12819.wrappingMul(xu12819)} ${wu12819.wrappingShiftLeft(xu12819)} ${wu12819.wrappingShiftRight(xu12819)} ${wu12819.rotateLeft(xu12819)} ${wu12819.rotateRight(xu12819)}"
+let wu12820: u128 = 1
+let xu12820: u128 = 9223372036854775807
+print "u128 1 9223372036854775807: ${wu12820.wrappingAdd(xu12820)} ${wu12820.wrappingSub(xu12820)} ${wu12820.wrappingMul(xu12820)} ${wu12820.wrappingShiftLeft(xu12820)} ${wu12820.wrappingShiftRight(xu12820)} ${wu12820.rotateLeft(xu12820)} ${wu12820.rotateRight(xu12820)}"
+let wu12821: u128 = 1
+let xu12821: u128 = 9223372036854775808
+print "u128 1 9223372036854775808: ${wu12821.wrappingAdd(xu12821)} ${wu12821.wrappingSub(xu12821)} ${wu12821.wrappingMul(xu12821)} ${wu12821.wrappingShiftLeft(xu12821)} ${wu12821.wrappingShiftRight(xu12821)} ${wu12821.rotateLeft(xu12821)} ${wu12821.rotateRight(xu12821)}"
+let wu12822: u128 = 1
+let xu12822: u128 = 18446744073709551615
+print "u128 1 18446744073709551615: ${wu12822.wrappingAdd(xu12822)} ${wu12822.wrappingSub(xu12822)} ${wu12822.wrappingMul(xu12822)} ${wu12822.wrappingShiftLeft(xu12822)} ${wu12822.wrappingShiftRight(xu12822)} ${wu12822.rotateLeft(xu12822)} ${wu12822.rotateRight(xu12822)}"
+let wu12823: u128 = 1
+let xu12823: u128 = 18446744073709551616
+print "u128 1 18446744073709551616: ${wu12823.wrappingAdd(xu12823)} ${wu12823.wrappingSub(xu12823)} ${wu12823.wrappingMul(xu12823)} ${wu12823.wrappingShiftLeft(xu12823)} ${wu12823.wrappingShiftRight(xu12823)} ${wu12823.rotateLeft(xu12823)} ${wu12823.rotateRight(xu12823)}"
+let wu12824: u128 = 2
+let xu12824: u128 = 0
+print "u128 2 0: ${wu12824.wrappingAdd(xu12824)} ${wu12824.wrappingSub(xu12824)} ${wu12824.wrappingMul(xu12824)} ${wu12824.wrappingShiftLeft(xu12824)} ${wu12824.wrappingShiftRight(xu12824)} ${wu12824.rotateLeft(xu12824)} ${wu12824.rotateRight(xu12824)}"
+let wu12825: u128 = 2
+let xu12825: u128 = 1
+print "u128 2 1: ${wu12825.wrappingAdd(xu12825)} ${wu12825.wrappingSub(xu12825)} ${wu12825.wrappingMul(xu12825)} ${wu12825.wrappingShiftLeft(xu12825)} ${wu12825.wrappingShiftRight(xu12825)} ${wu12825.rotateLeft(xu12825)} ${wu12825.rotateRight(xu12825)}"
+let wu12826: u128 = 2
+let xu12826: u128 = 2
+print "u128 2 2: ${wu12826.wrappingAdd(xu12826)} ${wu12826.wrappingSub(xu12826)} ${wu12826.wrappingMul(xu12826)} ${wu12826.wrappingShiftLeft(xu12826)} ${wu12826.wrappingShiftRight(xu12826)} ${wu12826.rotateLeft(xu12826)} ${wu12826.rotateRight(xu12826)}"
+let wu12827: u128 = 2
+let xu12827: u128 = 7
+print "u128 2 7: ${wu12827.wrappingAdd(xu12827)} ${wu12827.wrappingSub(xu12827)} ${wu12827.wrappingMul(xu12827)} ${wu12827.wrappingShiftLeft(xu12827)} ${wu12827.wrappingShiftRight(xu12827)} ${wu12827.rotateLeft(xu12827)} ${wu12827.rotateRight(xu12827)}"
+let wu12828: u128 = 2
+let xu12828: u128 = 255
+print "u128 2 255: ${wu12828.wrappingAdd(xu12828)} ${wu12828.wrappingSub(xu12828)} ${wu12828.wrappingMul(xu12828)} ${wu12828.wrappingShiftLeft(xu12828)} ${wu12828.wrappingShiftRight(xu12828)} ${wu12828.rotateLeft(xu12828)} ${wu12828.rotateRight(xu12828)}"
+let wu12829: u128 = 2
+let xu12829: u128 = 256
+print "u128 2 256: ${wu12829.wrappingAdd(xu12829)} ${wu12829.wrappingSub(xu12829)} ${wu12829.wrappingMul(xu12829)} ${wu12829.wrappingShiftLeft(xu12829)} ${wu12829.wrappingShiftRight(xu12829)} ${wu12829.rotateLeft(xu12829)} ${wu12829.rotateRight(xu12829)}"
+let wu12830: u128 = 2
+let xu12830: u128 = 4294967295
+print "u128 2 4294967295: ${wu12830.wrappingAdd(xu12830)} ${wu12830.wrappingSub(xu12830)} ${wu12830.wrappingMul(xu12830)} ${wu12830.wrappingShiftLeft(xu12830)} ${wu12830.wrappingShiftRight(xu12830)} ${wu12830.rotateLeft(xu12830)} ${wu12830.rotateRight(xu12830)}"
+let wu12831: u128 = 2
+let xu12831: u128 = 4294967296
+print "u128 2 4294967296: ${wu12831.wrappingAdd(xu12831)} ${wu12831.wrappingSub(xu12831)} ${wu12831.wrappingMul(xu12831)} ${wu12831.wrappingShiftLeft(xu12831)} ${wu12831.wrappingShiftRight(xu12831)} ${wu12831.rotateLeft(xu12831)} ${wu12831.rotateRight(xu12831)}"
+let wu12832: u128 = 2
+let xu12832: u128 = 9223372036854775807
+print "u128 2 9223372036854775807: ${wu12832.wrappingAdd(xu12832)} ${wu12832.wrappingSub(xu12832)} ${wu12832.wrappingMul(xu12832)} ${wu12832.wrappingShiftLeft(xu12832)} ${wu12832.wrappingShiftRight(xu12832)} ${wu12832.rotateLeft(xu12832)} ${wu12832.rotateRight(xu12832)}"
+let wu12833: u128 = 2
+let xu12833: u128 = 9223372036854775808
+print "u128 2 9223372036854775808: ${wu12833.wrappingAdd(xu12833)} ${wu12833.wrappingSub(xu12833)} ${wu12833.wrappingMul(xu12833)} ${wu12833.wrappingShiftLeft(xu12833)} ${wu12833.wrappingShiftRight(xu12833)} ${wu12833.rotateLeft(xu12833)} ${wu12833.rotateRight(xu12833)}"
+let wu12834: u128 = 2
+let xu12834: u128 = 18446744073709551615
+print "u128 2 18446744073709551615: ${wu12834.wrappingAdd(xu12834)} ${wu12834.wrappingSub(xu12834)} ${wu12834.wrappingMul(xu12834)} ${wu12834.wrappingShiftLeft(xu12834)} ${wu12834.wrappingShiftRight(xu12834)} ${wu12834.rotateLeft(xu12834)} ${wu12834.rotateRight(xu12834)}"
+let wu12835: u128 = 2
+let xu12835: u128 = 18446744073709551616
+print "u128 2 18446744073709551616: ${wu12835.wrappingAdd(xu12835)} ${wu12835.wrappingSub(xu12835)} ${wu12835.wrappingMul(xu12835)} ${wu12835.wrappingShiftLeft(xu12835)} ${wu12835.wrappingShiftRight(xu12835)} ${wu12835.rotateLeft(xu12835)} ${wu12835.rotateRight(xu12835)}"
+let wu12836: u128 = 7
+let xu12836: u128 = 0
+print "u128 7 0: ${wu12836.wrappingAdd(xu12836)} ${wu12836.wrappingSub(xu12836)} ${wu12836.wrappingMul(xu12836)} ${wu12836.wrappingShiftLeft(xu12836)} ${wu12836.wrappingShiftRight(xu12836)} ${wu12836.rotateLeft(xu12836)} ${wu12836.rotateRight(xu12836)}"
+let wu12837: u128 = 7
+let xu12837: u128 = 1
+print "u128 7 1: ${wu12837.wrappingAdd(xu12837)} ${wu12837.wrappingSub(xu12837)} ${wu12837.wrappingMul(xu12837)} ${wu12837.wrappingShiftLeft(xu12837)} ${wu12837.wrappingShiftRight(xu12837)} ${wu12837.rotateLeft(xu12837)} ${wu12837.rotateRight(xu12837)}"
+let wu12838: u128 = 7
+let xu12838: u128 = 2
+print "u128 7 2: ${wu12838.wrappingAdd(xu12838)} ${wu12838.wrappingSub(xu12838)} ${wu12838.wrappingMul(xu12838)} ${wu12838.wrappingShiftLeft(xu12838)} ${wu12838.wrappingShiftRight(xu12838)} ${wu12838.rotateLeft(xu12838)} ${wu12838.rotateRight(xu12838)}"
+let wu12839: u128 = 7
+let xu12839: u128 = 7
+print "u128 7 7: ${wu12839.wrappingAdd(xu12839)} ${wu12839.wrappingSub(xu12839)} ${wu12839.wrappingMul(xu12839)} ${wu12839.wrappingShiftLeft(xu12839)} ${wu12839.wrappingShiftRight(xu12839)} ${wu12839.rotateLeft(xu12839)} ${wu12839.rotateRight(xu12839)}"
+let wu12840: u128 = 7
+let xu12840: u128 = 255
+print "u128 7 255: ${wu12840.wrappingAdd(xu12840)} ${wu12840.wrappingSub(xu12840)} ${wu12840.wrappingMul(xu12840)} ${wu12840.wrappingShiftLeft(xu12840)} ${wu12840.wrappingShiftRight(xu12840)} ${wu12840.rotateLeft(xu12840)} ${wu12840.rotateRight(xu12840)}"
+let wu12841: u128 = 7
+let xu12841: u128 = 256
+print "u128 7 256: ${wu12841.wrappingAdd(xu12841)} ${wu12841.wrappingSub(xu12841)} ${wu12841.wrappingMul(xu12841)} ${wu12841.wrappingShiftLeft(xu12841)} ${wu12841.wrappingShiftRight(xu12841)} ${wu12841.rotateLeft(xu12841)} ${wu12841.rotateRight(xu12841)}"
+let wu12842: u128 = 7
+let xu12842: u128 = 4294967295
+print "u128 7 4294967295: ${wu12842.wrappingAdd(xu12842)} ${wu12842.wrappingSub(xu12842)} ${wu12842.wrappingMul(xu12842)} ${wu12842.wrappingShiftLeft(xu12842)} ${wu12842.wrappingShiftRight(xu12842)} ${wu12842.rotateLeft(xu12842)} ${wu12842.rotateRight(xu12842)}"
+let wu12843: u128 = 7
+let xu12843: u128 = 4294967296
+print "u128 7 4294967296: ${wu12843.wrappingAdd(xu12843)} ${wu12843.wrappingSub(xu12843)} ${wu12843.wrappingMul(xu12843)} ${wu12843.wrappingShiftLeft(xu12843)} ${wu12843.wrappingShiftRight(xu12843)} ${wu12843.rotateLeft(xu12843)} ${wu12843.rotateRight(xu12843)}"
+let wu12844: u128 = 7
+let xu12844: u128 = 9223372036854775807
+print "u128 7 9223372036854775807: ${wu12844.wrappingAdd(xu12844)} ${wu12844.wrappingSub(xu12844)} ${wu12844.wrappingMul(xu12844)} ${wu12844.wrappingShiftLeft(xu12844)} ${wu12844.wrappingShiftRight(xu12844)} ${wu12844.rotateLeft(xu12844)} ${wu12844.rotateRight(xu12844)}"
+let wu12845: u128 = 7
+let xu12845: u128 = 9223372036854775808
+print "u128 7 9223372036854775808: ${wu12845.wrappingAdd(xu12845)} ${wu12845.wrappingSub(xu12845)} ${wu12845.wrappingMul(xu12845)} ${wu12845.wrappingShiftLeft(xu12845)} ${wu12845.wrappingShiftRight(xu12845)} ${wu12845.rotateLeft(xu12845)} ${wu12845.rotateRight(xu12845)}"
+let wu12846: u128 = 7
+let xu12846: u128 = 18446744073709551615
+print "u128 7 18446744073709551615: ${wu12846.wrappingAdd(xu12846)} ${wu12846.wrappingSub(xu12846)} ${wu12846.wrappingMul(xu12846)} ${wu12846.wrappingShiftLeft(xu12846)} ${wu12846.wrappingShiftRight(xu12846)} ${wu12846.rotateLeft(xu12846)} ${wu12846.rotateRight(xu12846)}"
+let wu12847: u128 = 7
+let xu12847: u128 = 18446744073709551616
+print "u128 7 18446744073709551616: ${wu12847.wrappingAdd(xu12847)} ${wu12847.wrappingSub(xu12847)} ${wu12847.wrappingMul(xu12847)} ${wu12847.wrappingShiftLeft(xu12847)} ${wu12847.wrappingShiftRight(xu12847)} ${wu12847.rotateLeft(xu12847)} ${wu12847.rotateRight(xu12847)}"
+let wu12848: u128 = 255
+let xu12848: u128 = 0
+print "u128 255 0: ${wu12848.wrappingAdd(xu12848)} ${wu12848.wrappingSub(xu12848)} ${wu12848.wrappingMul(xu12848)} ${wu12848.wrappingShiftLeft(xu12848)} ${wu12848.wrappingShiftRight(xu12848)} ${wu12848.rotateLeft(xu12848)} ${wu12848.rotateRight(xu12848)}"
+let wu12849: u128 = 255
+let xu12849: u128 = 1
+print "u128 255 1: ${wu12849.wrappingAdd(xu12849)} ${wu12849.wrappingSub(xu12849)} ${wu12849.wrappingMul(xu12849)} ${wu12849.wrappingShiftLeft(xu12849)} ${wu12849.wrappingShiftRight(xu12849)} ${wu12849.rotateLeft(xu12849)} ${wu12849.rotateRight(xu12849)}"
+let wu12850: u128 = 255
+let xu12850: u128 = 2
+print "u128 255 2: ${wu12850.wrappingAdd(xu12850)} ${wu12850.wrappingSub(xu12850)} ${wu12850.wrappingMul(xu12850)} ${wu12850.wrappingShiftLeft(xu12850)} ${wu12850.wrappingShiftRight(xu12850)} ${wu12850.rotateLeft(xu12850)} ${wu12850.rotateRight(xu12850)}"
+let wu12851: u128 = 255
+let xu12851: u128 = 7
+print "u128 255 7: ${wu12851.wrappingAdd(xu12851)} ${wu12851.wrappingSub(xu12851)} ${wu12851.wrappingMul(xu12851)} ${wu12851.wrappingShiftLeft(xu12851)} ${wu12851.wrappingShiftRight(xu12851)} ${wu12851.rotateLeft(xu12851)} ${wu12851.rotateRight(xu12851)}"
+let wu12852: u128 = 255
+let xu12852: u128 = 255
+print "u128 255 255: ${wu12852.wrappingAdd(xu12852)} ${wu12852.wrappingSub(xu12852)} ${wu12852.wrappingMul(xu12852)} ${wu12852.wrappingShiftLeft(xu12852)} ${wu12852.wrappingShiftRight(xu12852)} ${wu12852.rotateLeft(xu12852)} ${wu12852.rotateRight(xu12852)}"
+let wu12853: u128 = 255
+let xu12853: u128 = 256
+print "u128 255 256: ${wu12853.wrappingAdd(xu12853)} ${wu12853.wrappingSub(xu12853)} ${wu12853.wrappingMul(xu12853)} ${wu12853.wrappingShiftLeft(xu12853)} ${wu12853.wrappingShiftRight(xu12853)} ${wu12853.rotateLeft(xu12853)} ${wu12853.rotateRight(xu12853)}"
+let wu12854: u128 = 255
+let xu12854: u128 = 4294967295
+print "u128 255 4294967295: ${wu12854.wrappingAdd(xu12854)} ${wu12854.wrappingSub(xu12854)} ${wu12854.wrappingMul(xu12854)} ${wu12854.wrappingShiftLeft(xu12854)} ${wu12854.wrappingShiftRight(xu12854)} ${wu12854.rotateLeft(xu12854)} ${wu12854.rotateRight(xu12854)}"
+let wu12855: u128 = 255
+let xu12855: u128 = 4294967296
+print "u128 255 4294967296: ${wu12855.wrappingAdd(xu12855)} ${wu12855.wrappingSub(xu12855)} ${wu12855.wrappingMul(xu12855)} ${wu12855.wrappingShiftLeft(xu12855)} ${wu12855.wrappingShiftRight(xu12855)} ${wu12855.rotateLeft(xu12855)} ${wu12855.rotateRight(xu12855)}"
+let wu12856: u128 = 255
+let xu12856: u128 = 9223372036854775807
+print "u128 255 9223372036854775807: ${wu12856.wrappingAdd(xu12856)} ${wu12856.wrappingSub(xu12856)} ${wu12856.wrappingMul(xu12856)} ${wu12856.wrappingShiftLeft(xu12856)} ${wu12856.wrappingShiftRight(xu12856)} ${wu12856.rotateLeft(xu12856)} ${wu12856.rotateRight(xu12856)}"
+let wu12857: u128 = 255
+let xu12857: u128 = 9223372036854775808
+print "u128 255 9223372036854775808: ${wu12857.wrappingAdd(xu12857)} ${wu12857.wrappingSub(xu12857)} ${wu12857.wrappingMul(xu12857)} ${wu12857.wrappingShiftLeft(xu12857)} ${wu12857.wrappingShiftRight(xu12857)} ${wu12857.rotateLeft(xu12857)} ${wu12857.rotateRight(xu12857)}"
+let wu12858: u128 = 255
+let xu12858: u128 = 18446744073709551615
+print "u128 255 18446744073709551615: ${wu12858.wrappingAdd(xu12858)} ${wu12858.wrappingSub(xu12858)} ${wu12858.wrappingMul(xu12858)} ${wu12858.wrappingShiftLeft(xu12858)} ${wu12858.wrappingShiftRight(xu12858)} ${wu12858.rotateLeft(xu12858)} ${wu12858.rotateRight(xu12858)}"
+let wu12859: u128 = 255
+let xu12859: u128 = 18446744073709551616
+print "u128 255 18446744073709551616: ${wu12859.wrappingAdd(xu12859)} ${wu12859.wrappingSub(xu12859)} ${wu12859.wrappingMul(xu12859)} ${wu12859.wrappingShiftLeft(xu12859)} ${wu12859.wrappingShiftRight(xu12859)} ${wu12859.rotateLeft(xu12859)} ${wu12859.rotateRight(xu12859)}"
+let wu12860: u128 = 256
+let xu12860: u128 = 0
+print "u128 256 0: ${wu12860.wrappingAdd(xu12860)} ${wu12860.wrappingSub(xu12860)} ${wu12860.wrappingMul(xu12860)} ${wu12860.wrappingShiftLeft(xu12860)} ${wu12860.wrappingShiftRight(xu12860)} ${wu12860.rotateLeft(xu12860)} ${wu12860.rotateRight(xu12860)}"
+let wu12861: u128 = 256
+let xu12861: u128 = 1
+print "u128 256 1: ${wu12861.wrappingAdd(xu12861)} ${wu12861.wrappingSub(xu12861)} ${wu12861.wrappingMul(xu12861)} ${wu12861.wrappingShiftLeft(xu12861)} ${wu12861.wrappingShiftRight(xu12861)} ${wu12861.rotateLeft(xu12861)} ${wu12861.rotateRight(xu12861)}"
+let wu12862: u128 = 256
+let xu12862: u128 = 2
+print "u128 256 2: ${wu12862.wrappingAdd(xu12862)} ${wu12862.wrappingSub(xu12862)} ${wu12862.wrappingMul(xu12862)} ${wu12862.wrappingShiftLeft(xu12862)} ${wu12862.wrappingShiftRight(xu12862)} ${wu12862.rotateLeft(xu12862)} ${wu12862.rotateRight(xu12862)}"
+let wu12863: u128 = 256
+let xu12863: u128 = 7
+print "u128 256 7: ${wu12863.wrappingAdd(xu12863)} ${wu12863.wrappingSub(xu12863)} ${wu12863.wrappingMul(xu12863)} ${wu12863.wrappingShiftLeft(xu12863)} ${wu12863.wrappingShiftRight(xu12863)} ${wu12863.rotateLeft(xu12863)} ${wu12863.rotateRight(xu12863)}"
+let wu12864: u128 = 256
+let xu12864: u128 = 255
+print "u128 256 255: ${wu12864.wrappingAdd(xu12864)} ${wu12864.wrappingSub(xu12864)} ${wu12864.wrappingMul(xu12864)} ${wu12864.wrappingShiftLeft(xu12864)} ${wu12864.wrappingShiftRight(xu12864)} ${wu12864.rotateLeft(xu12864)} ${wu12864.rotateRight(xu12864)}"
+let wu12865: u128 = 256
+let xu12865: u128 = 256
+print "u128 256 256: ${wu12865.wrappingAdd(xu12865)} ${wu12865.wrappingSub(xu12865)} ${wu12865.wrappingMul(xu12865)} ${wu12865.wrappingShiftLeft(xu12865)} ${wu12865.wrappingShiftRight(xu12865)} ${wu12865.rotateLeft(xu12865)} ${wu12865.rotateRight(xu12865)}"
+let wu12866: u128 = 256
+let xu12866: u128 = 4294967295
+print "u128 256 4294967295: ${wu12866.wrappingAdd(xu12866)} ${wu12866.wrappingSub(xu12866)} ${wu12866.wrappingMul(xu12866)} ${wu12866.wrappingShiftLeft(xu12866)} ${wu12866.wrappingShiftRight(xu12866)} ${wu12866.rotateLeft(xu12866)} ${wu12866.rotateRight(xu12866)}"
+let wu12867: u128 = 256
+let xu12867: u128 = 4294967296
+print "u128 256 4294967296: ${wu12867.wrappingAdd(xu12867)} ${wu12867.wrappingSub(xu12867)} ${wu12867.wrappingMul(xu12867)} ${wu12867.wrappingShiftLeft(xu12867)} ${wu12867.wrappingShiftRight(xu12867)} ${wu12867.rotateLeft(xu12867)} ${wu12867.rotateRight(xu12867)}"
+let wu12868: u128 = 256
+let xu12868: u128 = 9223372036854775807
+print "u128 256 9223372036854775807: ${wu12868.wrappingAdd(xu12868)} ${wu12868.wrappingSub(xu12868)} ${wu12868.wrappingMul(xu12868)} ${wu12868.wrappingShiftLeft(xu12868)} ${wu12868.wrappingShiftRight(xu12868)} ${wu12868.rotateLeft(xu12868)} ${wu12868.rotateRight(xu12868)}"
+let wu12869: u128 = 256
+let xu12869: u128 = 9223372036854775808
+print "u128 256 9223372036854775808: ${wu12869.wrappingAdd(xu12869)} ${wu12869.wrappingSub(xu12869)} ${wu12869.wrappingMul(xu12869)} ${wu12869.wrappingShiftLeft(xu12869)} ${wu12869.wrappingShiftRight(xu12869)} ${wu12869.rotateLeft(xu12869)} ${wu12869.rotateRight(xu12869)}"
+let wu12870: u128 = 256
+let xu12870: u128 = 18446744073709551615
+print "u128 256 18446744073709551615: ${wu12870.wrappingAdd(xu12870)} ${wu12870.wrappingSub(xu12870)} ${wu12870.wrappingMul(xu12870)} ${wu12870.wrappingShiftLeft(xu12870)} ${wu12870.wrappingShiftRight(xu12870)} ${wu12870.rotateLeft(xu12870)} ${wu12870.rotateRight(xu12870)}"
+let wu12871: u128 = 256
+let xu12871: u128 = 18446744073709551616
+print "u128 256 18446744073709551616: ${wu12871.wrappingAdd(xu12871)} ${wu12871.wrappingSub(xu12871)} ${wu12871.wrappingMul(xu12871)} ${wu12871.wrappingShiftLeft(xu12871)} ${wu12871.wrappingShiftRight(xu12871)} ${wu12871.rotateLeft(xu12871)} ${wu12871.rotateRight(xu12871)}"
+let wu12872: u128 = 4294967295
+let xu12872: u128 = 0
+print "u128 4294967295 0: ${wu12872.wrappingAdd(xu12872)} ${wu12872.wrappingSub(xu12872)} ${wu12872.wrappingMul(xu12872)} ${wu12872.wrappingShiftLeft(xu12872)} ${wu12872.wrappingShiftRight(xu12872)} ${wu12872.rotateLeft(xu12872)} ${wu12872.rotateRight(xu12872)}"
+let wu12873: u128 = 4294967295
+let xu12873: u128 = 1
+print "u128 4294967295 1: ${wu12873.wrappingAdd(xu12873)} ${wu12873.wrappingSub(xu12873)} ${wu12873.wrappingMul(xu12873)} ${wu12873.wrappingShiftLeft(xu12873)} ${wu12873.wrappingShiftRight(xu12873)} ${wu12873.rotateLeft(xu12873)} ${wu12873.rotateRight(xu12873)}"
+let wu12874: u128 = 4294967295
+let xu12874: u128 = 2
+print "u128 4294967295 2: ${wu12874.wrappingAdd(xu12874)} ${wu12874.wrappingSub(xu12874)} ${wu12874.wrappingMul(xu12874)} ${wu12874.wrappingShiftLeft(xu12874)} ${wu12874.wrappingShiftRight(xu12874)} ${wu12874.rotateLeft(xu12874)} ${wu12874.rotateRight(xu12874)}"
+let wu12875: u128 = 4294967295
+let xu12875: u128 = 7
+print "u128 4294967295 7: ${wu12875.wrappingAdd(xu12875)} ${wu12875.wrappingSub(xu12875)} ${wu12875.wrappingMul(xu12875)} ${wu12875.wrappingShiftLeft(xu12875)} ${wu12875.wrappingShiftRight(xu12875)} ${wu12875.rotateLeft(xu12875)} ${wu12875.rotateRight(xu12875)}"
+let wu12876: u128 = 4294967295
+let xu12876: u128 = 255
+print "u128 4294967295 255: ${wu12876.wrappingAdd(xu12876)} ${wu12876.wrappingSub(xu12876)} ${wu12876.wrappingMul(xu12876)} ${wu12876.wrappingShiftLeft(xu12876)} ${wu12876.wrappingShiftRight(xu12876)} ${wu12876.rotateLeft(xu12876)} ${wu12876.rotateRight(xu12876)}"
+let wu12877: u128 = 4294967295
+let xu12877: u128 = 256
+print "u128 4294967295 256: ${wu12877.wrappingAdd(xu12877)} ${wu12877.wrappingSub(xu12877)} ${wu12877.wrappingMul(xu12877)} ${wu12877.wrappingShiftLeft(xu12877)} ${wu12877.wrappingShiftRight(xu12877)} ${wu12877.rotateLeft(xu12877)} ${wu12877.rotateRight(xu12877)}"
+let wu12878: u128 = 4294967295
+let xu12878: u128 = 4294967295
+print "u128 4294967295 4294967295: ${wu12878.wrappingAdd(xu12878)} ${wu12878.wrappingSub(xu12878)} ${wu12878.wrappingMul(xu12878)} ${wu12878.wrappingShiftLeft(xu12878)} ${wu12878.wrappingShiftRight(xu12878)} ${wu12878.rotateLeft(xu12878)} ${wu12878.rotateRight(xu12878)}"
+let wu12879: u128 = 4294967295
+let xu12879: u128 = 4294967296
+print "u128 4294967295 4294967296: ${wu12879.wrappingAdd(xu12879)} ${wu12879.wrappingSub(xu12879)} ${wu12879.wrappingMul(xu12879)} ${wu12879.wrappingShiftLeft(xu12879)} ${wu12879.wrappingShiftRight(xu12879)} ${wu12879.rotateLeft(xu12879)} ${wu12879.rotateRight(xu12879)}"
+let wu12880: u128 = 4294967295
+let xu12880: u128 = 9223372036854775807
+print "u128 4294967295 9223372036854775807: ${wu12880.wrappingAdd(xu12880)} ${wu12880.wrappingSub(xu12880)} ${wu12880.wrappingMul(xu12880)} ${wu12880.wrappingShiftLeft(xu12880)} ${wu12880.wrappingShiftRight(xu12880)} ${wu12880.rotateLeft(xu12880)} ${wu12880.rotateRight(xu12880)}"
+let wu12881: u128 = 4294967295
+let xu12881: u128 = 9223372036854775808
+print "u128 4294967295 9223372036854775808: ${wu12881.wrappingAdd(xu12881)} ${wu12881.wrappingSub(xu12881)} ${wu12881.wrappingMul(xu12881)} ${wu12881.wrappingShiftLeft(xu12881)} ${wu12881.wrappingShiftRight(xu12881)} ${wu12881.rotateLeft(xu12881)} ${wu12881.rotateRight(xu12881)}"
+let wu12882: u128 = 4294967295
+let xu12882: u128 = 18446744073709551615
+print "u128 4294967295 18446744073709551615: ${wu12882.wrappingAdd(xu12882)} ${wu12882.wrappingSub(xu12882)} ${wu12882.wrappingMul(xu12882)} ${wu12882.wrappingShiftLeft(xu12882)} ${wu12882.wrappingShiftRight(xu12882)} ${wu12882.rotateLeft(xu12882)} ${wu12882.rotateRight(xu12882)}"
+let wu12883: u128 = 4294967295
+let xu12883: u128 = 18446744073709551616
+print "u128 4294967295 18446744073709551616: ${wu12883.wrappingAdd(xu12883)} ${wu12883.wrappingSub(xu12883)} ${wu12883.wrappingMul(xu12883)} ${wu12883.wrappingShiftLeft(xu12883)} ${wu12883.wrappingShiftRight(xu12883)} ${wu12883.rotateLeft(xu12883)} ${wu12883.rotateRight(xu12883)}"
+let wu12884: u128 = 4294967296
+let xu12884: u128 = 0
+print "u128 4294967296 0: ${wu12884.wrappingAdd(xu12884)} ${wu12884.wrappingSub(xu12884)} ${wu12884.wrappingMul(xu12884)} ${wu12884.wrappingShiftLeft(xu12884)} ${wu12884.wrappingShiftRight(xu12884)} ${wu12884.rotateLeft(xu12884)} ${wu12884.rotateRight(xu12884)}"
+let wu12885: u128 = 4294967296
+let xu12885: u128 = 1
+print "u128 4294967296 1: ${wu12885.wrappingAdd(xu12885)} ${wu12885.wrappingSub(xu12885)} ${wu12885.wrappingMul(xu12885)} ${wu12885.wrappingShiftLeft(xu12885)} ${wu12885.wrappingShiftRight(xu12885)} ${wu12885.rotateLeft(xu12885)} ${wu12885.rotateRight(xu12885)}"
+let wu12886: u128 = 4294967296
+let xu12886: u128 = 2
+print "u128 4294967296 2: ${wu12886.wrappingAdd(xu12886)} ${wu12886.wrappingSub(xu12886)} ${wu12886.wrappingMul(xu12886)} ${wu12886.wrappingShiftLeft(xu12886)} ${wu12886.wrappingShiftRight(xu12886)} ${wu12886.rotateLeft(xu12886)} ${wu12886.rotateRight(xu12886)}"
+let wu12887: u128 = 4294967296
+let xu12887: u128 = 7
+print "u128 4294967296 7: ${wu12887.wrappingAdd(xu12887)} ${wu12887.wrappingSub(xu12887)} ${wu12887.wrappingMul(xu12887)} ${wu12887.wrappingShiftLeft(xu12887)} ${wu12887.wrappingShiftRight(xu12887)} ${wu12887.rotateLeft(xu12887)} ${wu12887.rotateRight(xu12887)}"
+let wu12888: u128 = 4294967296
+let xu12888: u128 = 255
+print "u128 4294967296 255: ${wu12888.wrappingAdd(xu12888)} ${wu12888.wrappingSub(xu12888)} ${wu12888.wrappingMul(xu12888)} ${wu12888.wrappingShiftLeft(xu12888)} ${wu12888.wrappingShiftRight(xu12888)} ${wu12888.rotateLeft(xu12888)} ${wu12888.rotateRight(xu12888)}"
+let wu12889: u128 = 4294967296
+let xu12889: u128 = 256
+print "u128 4294967296 256: ${wu12889.wrappingAdd(xu12889)} ${wu12889.wrappingSub(xu12889)} ${wu12889.wrappingMul(xu12889)} ${wu12889.wrappingShiftLeft(xu12889)} ${wu12889.wrappingShiftRight(xu12889)} ${wu12889.rotateLeft(xu12889)} ${wu12889.rotateRight(xu12889)}"
+-- stdout --
+i128 0 0: 0 0 0 0 0 0 0
+i128 0 1: 1 -1 0 0 0 0 0
+i128 0 -1: -1 1 0 0 0 0 0
+i128 0 2: 2 -2 0 0 0 0 0
+i128 0 -2: -2 2 0 0 0 0 0
+i128 0 7: 7 -7 0 0 0 0 0
+i128 0 -7: -7 7 0 0 0 0 0
+i128 0 255: 255 -255 0 0 0 0 0
+i128 0 256: 256 -256 0 0 0 0 0
+i128 0 -256: -256 256 0 0 0 0 0
+i128 0 2147483647: 2147483647 -2147483647 0 0 0 0 0
+i128 0 2147483648: 2147483648 -2147483648 0 0 0 0 0
+i128 1 0: 1 1 0 1 1 1 1
+i128 1 1: 2 0 1 2 0 2 -170141183460469231731687303715884105728
+i128 1 -1: 0 2 -1 -170141183460469231731687303715884105728 0 -170141183460469231731687303715884105728 2
+i128 1 2: 3 -1 2 4 0 4 85070591730234615865843651857942052864
+i128 1 -2: -1 3 -2 85070591730234615865843651857942052864 0 85070591730234615865843651857942052864 4
+i128 1 7: 8 -6 7 128 0 128 2658455991569831745807614120560689152
+i128 1 -7: -6 8 -7 2658455991569831745807614120560689152 0 2658455991569831745807614120560689152 128
+i128 1 255: 256 -254 255 -170141183460469231731687303715884105728 0 -170141183460469231731687303715884105728 2
+i128 1 256: 257 -255 256 1 1 1 1
+i128 1 -256: -255 257 -256 1 1 1 1
+i128 1 2147483647: 2147483648 -2147483646 2147483647 -170141183460469231731687303715884105728 0 -170141183460469231731687303715884105728 2
+i128 1 2147483648: 2147483649 -2147483647 2147483648 1 1 1 1
+i128 -1 0: -1 -1 0 -1 -1 -1 -1
+i128 -1 1: 0 -2 -1 -2 -1 -1 -1
+i128 -1 -1: -2 0 1 -170141183460469231731687303715884105728 -1 -1 -1
+i128 -1 2: 1 -3 -2 -4 -1 -1 -1
+i128 -1 -2: -3 1 2 -85070591730234615865843651857942052864 -1 -1 -1
+i128 -1 7: 6 -8 -7 -128 -1 -1 -1
+i128 -1 -7: -8 6 7 -2658455991569831745807614120560689152 -1 -1 -1
+i128 -1 255: 254 -256 -255 -170141183460469231731687303715884105728 -1 -1 -1
+i128 -1 256: 255 -257 -256 -1 -1 -1 -1
+i128 -1 -256: -257 255 256 -1 -1 -1 -1
+i128 -1 2147483647: 2147483646 -2147483648 -2147483647 -170141183460469231731687303715884105728 -1 -1 -1
+i128 -1 2147483648: 2147483647 -2147483649 -2147483648 -1 -1 -1 -1
+i128 2 0: 2 2 0 2 2 2 2
+i128 2 1: 3 1 2 4 1 4 1
+i128 2 -1: 1 3 -2 0 0 1 4
+i128 2 2: 4 0 4 8 0 8 -170141183460469231731687303715884105728
+i128 2 -2: 0 4 -4 -170141183460469231731687303715884105728 0 -170141183460469231731687303715884105728 8
+i128 2 7: 9 -5 14 256 0 256 5316911983139663491615228241121378304
+i128 2 -7: -5 9 -14 5316911983139663491615228241121378304 0 5316911983139663491615228241121378304 256
+i128 2 255: 257 -253 510 0 0 1 4
+i128 2 256: 258 -254 512 2 2 2 2
+i128 2 -256: -254 258 -512 2 2 2 2
+i128 2 2147483647: 2147483649 -2147483645 4294967294 0 0 1 4
+i128 2 2147483648: 2147483650 -2147483646 4294967296 2 2 2 2
+i128 -2 0: -2 -2 0 -2 -2 -2 -2
+i128 -2 1: -1 -3 -2 -4 -1 -3 170141183460469231731687303715884105727
+i128 -2 -1: -3 -1 2 0 -1 170141183460469231731687303715884105727 -3
+i128 -2 2: 0 -4 -4 -8 -1 -5 -85070591730234615865843651857942052865
+i128 -2 -2: -4 0 4 -170141183460469231731687303715884105728 -1 -85070591730234615865843651857942052865 -5
+i128 -2 7: 5 -9 -14 -256 -1 -129 -2658455991569831745807614120560689153
+i128 -2 -7: -9 5 14 -5316911983139663491615228241121378304 -1 -2658455991569831745807614120560689153 -129
+i128 -2 255: 253 -257 -510 0 -1 170141183460469231731687303715884105727 -3
+i128 -2 256: 254 -258 -512 -2 -2 -2 -2
+i128 -2 -256: -258 254 512 -2 -2 -2 -2
+i128 -2 2147483647: 2147483645 -2147483649 -4294967294 0 -1 170141183460469231731687303715884105727 -3
+i128 -2 2147483648: 2147483646 -2147483650 -4294967296 -2 -2 -2 -2
+i128 7 0: 7 7 0 7 7 7 7
+i128 7 1: 8 6 7 14 3 14 -170141183460469231731687303715884105725
+i128 7 -1: 6 8 -7 -170141183460469231731687303715884105728 0 -170141183460469231731687303715884105725 14
+i128 7 2: 9 5 14 28 1 28 -85070591730234615865843651857942052863
+i128 7 -2: 5 9 -14 -85070591730234615865843651857942052864 0 -85070591730234615865843651857942052863 28
+i128 7 7: 14 0 49 896 0 896 18609191940988822220653298843924824064
+i128 7 -7: 0 14 -49 18609191940988822220653298843924824064 0 18609191940988822220653298843924824064 896
+i128 7 255: 262 -248 1785 -170141183460469231731687303715884105728 0 -170141183460469231731687303715884105725 14
+i128 7 256: 263 -249 1792 7 7 7 7
+i128 7 -256: -249 263 -1792 7 7 7 7
+i128 7 2147483647: 2147483654 -2147483640 15032385529 -170141183460469231731687303715884105728 0 -170141183460469231731687303715884105725 14
+i128 7 2147483648: 2147483655 -2147483641 15032385536 7 7 7 7
+i128 -7 0: -7 -7 0 -7 -7 -7 -7
+i128 -7 1: -6 -8 -7 -14 -4 -13 -4
+i128 -7 -1: -8 -6 7 -170141183460469231731687303715884105728 -1 -4 -13
+i128 -7 2: -5 -9 -14 -28 -2 -25 170141183460469231731687303715884105726
+i128 -7 -2: -9 -5 14 85070591730234615865843651857942052864 -1 170141183460469231731687303715884105726 -25
+i128 -7 7: 0 -14 -49 -896 -1 -769 -15950735949418990474845684723364134913
+i128 -7 -7: -14 0 49 -18609191940988822220653298843924824064 -1 -15950735949418990474845684723364134913 -769
+i128 -7 255: 248 -262 -1785 -170141183460469231731687303715884105728 -1 -4 -13
+i128 -7 256: 249 -263 -1792 -7 -7 -7 -7
+i128 -7 -256: -263 249 1792 -7 -7 -7 -7
+i128 -7 2147483647: 2147483640 -2147483654 -15032385529 -170141183460469231731687303715884105728 -1 -4 -13
+i128 -7 2147483648: 2147483641 -2147483655 -15032385536 -7 -7 -7 -7
+i128 255 0: 255 255 0 255 255 255 255
+i128 255 1: 256 254 255 510 127 510 -170141183460469231731687303715884105601
+i128 255 -1: 254 256 -255 -170141183460469231731687303715884105728 0 -170141183460469231731687303715884105601 510
+i128 255 2: 257 253 510 1020 63 1020 -85070591730234615865843651857942052801
+i128 255 -2: 253 257 -510 -85070591730234615865843651857942052864 0 -85070591730234615865843651857942052801 1020
+i128 255 7: 262 248 1785 32640 1 32640 -2658455991569831745807614120560689151
+u128 0 0: 0 0 0 0 0 0 0
+u128 0 1: 1 340282366920938463463374607431768211455 0 0 0 0 0
+u128 0 2: 2 340282366920938463463374607431768211454 0 0 0 0 0
+u128 0 7: 7 340282366920938463463374607431768211449 0 0 0 0 0
+u128 0 255: 255 340282366920938463463374607431768211201 0 0 0 0 0
+u128 0 256: 256 340282366920938463463374607431768211200 0 0 0 0 0
+u128 0 4294967295: 4294967295 340282366920938463463374607427473244161 0 0 0 0 0
+u128 0 4294967296: 4294967296 340282366920938463463374607427473244160 0 0 0 0 0
+u128 0 9223372036854775807: 9223372036854775807 340282366920938463454151235394913435649 0 0 0 0 0
+u128 0 9223372036854775808: 9223372036854775808 340282366920938463454151235394913435648 0 0 0 0 0
+u128 0 18446744073709551615: 18446744073709551615 340282366920938463444927863358058659841 0 0 0 0 0
+u128 0 18446744073709551616: 18446744073709551616 340282366920938463444927863358058659840 0 0 0 0 0
+u128 1 0: 1 1 0 1 1 1 1
+u128 1 1: 2 0 1 2 0 2 170141183460469231731687303715884105728
+u128 1 2: 3 340282366920938463463374607431768211455 2 4 0 4 85070591730234615865843651857942052864
+u128 1 7: 8 340282366920938463463374607431768211450 7 128 0 128 2658455991569831745807614120560689152
+u128 1 255: 256 340282366920938463463374607431768211202 255 170141183460469231731687303715884105728 0 170141183460469231731687303715884105728 2
+u128 1 256: 257 340282366920938463463374607431768211201 256 1 1 1 1
+u128 1 4294967295: 4294967296 340282366920938463463374607427473244162 4294967295 170141183460469231731687303715884105728 0 170141183460469231731687303715884105728 2
+u128 1 4294967296: 4294967297 340282366920938463463374607427473244161 4294967296 1 1 1 1
+u128 1 9223372036854775807: 9223372036854775808 340282366920938463454151235394913435650 9223372036854775807 170141183460469231731687303715884105728 0 170141183460469231731687303715884105728 2
+u128 1 9223372036854775808: 9223372036854775809 340282366920938463454151235394913435649 9223372036854775808 1 1 1 1
+u128 1 18446744073709551615: 18446744073709551616 340282366920938463444927863358058659842 18446744073709551615 170141183460469231731687303715884105728 0 170141183460469231731687303715884105728 2
+u128 1 18446744073709551616: 18446744073709551617 340282366920938463444927863358058659841 18446744073709551616 1 1 1 1
+u128 2 0: 2 2 0 2 2 2 2
+u128 2 1: 3 1 2 4 1 4 1
+u128 2 2: 4 0 4 8 0 8 170141183460469231731687303715884105728
+u128 2 7: 9 340282366920938463463374607431768211451 14 256 0 256 5316911983139663491615228241121378304
+u128 2 255: 257 340282366920938463463374607431768211203 510 0 0 1 4
+u128 2 256: 258 340282366920938463463374607431768211202 512 2 2 2 2
+u128 2 4294967295: 4294967297 340282366920938463463374607427473244163 8589934590 0 0 1 4
+u128 2 4294967296: 4294967298 340282366920938463463374607427473244162 8589934592 2 2 2 2
+u128 2 9223372036854775807: 9223372036854775809 340282366920938463454151235394913435651 18446744073709551614 0 0 1 4
+u128 2 9223372036854775808: 9223372036854775810 340282366920938463454151235394913435650 18446744073709551616 2 2 2 2
+u128 2 18446744073709551615: 18446744073709551617 340282366920938463444927863358058659843 36893488147419103230 0 0 1 4
+u128 2 18446744073709551616: 18446744073709551618 340282366920938463444927863358058659842 36893488147419103232 2 2 2 2
+u128 7 0: 7 7 0 7 7 7 7
+u128 7 1: 8 6 7 14 3 14 170141183460469231731687303715884105731
+u128 7 2: 9 5 14 28 1 28 255211775190703847597530955573826158593
+u128 7 7: 14 0 49 896 0 896 18609191940988822220653298843924824064
+u128 7 255: 262 340282366920938463463374607431768211208 1785 170141183460469231731687303715884105728 0 170141183460469231731687303715884105731 14
+u128 7 256: 263 340282366920938463463374607431768211207 1792 7 7 7 7
+u128 7 4294967295: 4294967302 340282366920938463463374607427473244168 30064771065 170141183460469231731687303715884105728 0 170141183460469231731687303715884105731 14
+u128 7 4294967296: 4294967303 340282366920938463463374607427473244167 30064771072 7 7 7 7
+u128 7 9223372036854775807: 9223372036854775814 340282366920938463454151235394913435656 64563604257983430649 170141183460469231731687303715884105728 0 170141183460469231731687303715884105731 14
+u128 7 9223372036854775808: 9223372036854775815 340282366920938463454151235394913435655 64563604257983430656 7 7 7 7
+u128 7 18446744073709551615: 18446744073709551622 340282366920938463444927863358058659848 129127208515966861305 170141183460469231731687303715884105728 0 170141183460469231731687303715884105731 14
+u128 7 18446744073709551616: 18446744073709551623 340282366920938463444927863358058659847 129127208515966861312 7 7 7 7
+u128 255 0: 255 255 0 255 255 255 255
+u128 255 1: 256 254 255 510 127 510 170141183460469231731687303715884105855
+u128 255 2: 257 253 510 1020 63 1020 255211775190703847597530955573826158655
+u128 255 7: 262 248 1785 32640 1 32640 337623910929368631717566993311207522305
+u128 255 255: 510 0 65025 170141183460469231731687303715884105728 0 170141183460469231731687303715884105855 510
+u128 255 256: 511 340282366920938463463374607431768211455 65280 255 255 255 255
+u128 255 4294967295: 4294967550 340282366920938463463374607427473244416 1095216660225 170141183460469231731687303715884105728 0 170141183460469231731687303715884105855 510
+u128 255 4294967296: 4294967551 340282366920938463463374607427473244415 1095216660480 255 255 255 255
+u128 255 9223372036854775807: 9223372036854776062 340282366920938463454151235394913435904 2351959869397967830785 170141183460469231731687303715884105728 0 170141183460469231731687303715884105855 510
+u128 255 9223372036854775808: 9223372036854776063 340282366920938463454151235394913435903 2351959869397967831040 255 255 255 255
+u128 255 18446744073709551615: 18446744073709551870 340282366920938463444927863358058660096 4703919738795935661825 170141183460469231731687303715884105728 0 170141183460469231731687303715884105855 510
+u128 255 18446744073709551616: 18446744073709551871 340282366920938463444927863358058660095 4703919738795935662080 255 255 255 255
+u128 256 0: 256 256 0 256 256 256 256
+u128 256 1: 257 255 256 512 128 512 128
+u128 256 2: 258 254 512 1024 64 1024 64
+u128 256 7: 263 249 1792 32768 2 32768 2
+u128 256 255: 511 1 65280 0 0 128 512
+u128 256 256: 512 0 65536 256 256 256 256
+u128 256 4294967295: 4294967551 340282366920938463463374607427473244417 1099511627520 0 0 128 512
+u128 256 4294967296: 4294967552 340282366920938463463374607427473244416 1099511627776 256 256 256 256
+u128 256 9223372036854775807: 9223372036854776063 340282366920938463454151235394913435905 2361183241434822606592 0 0 128 512
+u128 256 9223372036854775808: 9223372036854776064 340282366920938463454151235394913435904 2361183241434822606848 256 256 256 256
+u128 256 18446744073709551615: 18446744073709551871 340282366920938463444927863358058660097 4722366482869645213440 0 0 128 512
+u128 256 18446744073709551616: 18446744073709551872 340282366920938463444927863358058660096 4722366482869645213696 256 256 256 256
+u128 4294967295 0: 4294967295 4294967295 0 4294967295 4294967295 4294967295 4294967295
+u128 4294967295 1: 4294967296 4294967294 4294967295 8589934590 2147483647 8589934590 170141183460469231731687303718031589375
+u128 4294967295 2: 4294967297 4294967293 8589934590 17179869180 1073741823 17179869180 255211775190703847597530955574899900415
+u128 4294967295 7: 4294967302 4294967288 30064771065 549755813760 33554431 549755813760 337623910929368631717566993311241076735
+u128 4294967295 255: 4294967550 4294967040 1095216660225 170141183460469231731687303715884105728 0 170141183460469231731687303718031589375 8589934590
+u128 4294967295 256: 4294967551 4294967039 1099511627520 4294967295 4294967295 4294967295 4294967295
+u128 4294967295 4294967295: 8589934590 0 18446744065119617025 170141183460469231731687303715884105728 0 170141183460469231731687303718031589375 8589934590
+u128 4294967295 4294967296: 8589934591 340282366920938463463374607431768211455 18446744069414584320 4294967295 4294967295 4294967295 4294967295
+u128 4294967295 9223372036854775807: 9223372041149743102 340282366920938463454151235399208402944 39614081247908796755622232065 170141183460469231731687303715884105728 0 170141183460469231731687303718031589375 8589934590
+u128 4294967295 9223372036854775808: 9223372041149743103 340282366920938463454151235399208402943 39614081247908796759917199360 4294967295 4294967295 4294967295 4294967295
+u128 4294967295 18446744073709551615: 18446744078004518910 340282366920938463444927863362353627136 79228162495817593515539431425 170141183460469231731687303715884105728 0 170141183460469231731687303718031589375 8589934590
+u128 4294967295 18446744073709551616: 18446744078004518911 340282366920938463444927863362353627135 79228162495817593519834398720 4294967295 4294967295 4294967295 4294967295
+u128 4294967296 0: 4294967296 4294967296 0 4294967296 4294967296 4294967296 4294967296
+u128 4294967296 1: 4294967297 4294967295 4294967296 8589934592 2147483648 8589934592 2147483648
+u128 4294967296 2: 4294967298 4294967294 8589934592 17179869184 1073741824 17179869184 1073741824
+u128 4294967296 7: 4294967303 4294967289 30064771072 549755813888 33554432 549755813888 33554432
+u128 4294967296 255: 4294967551 4294967041 1095216660480 0 0 2147483648 8589934592
+u128 4294967296 256: 4294967552 4294967040 1099511627776 4294967296 4294967296 4294967296 4294967296

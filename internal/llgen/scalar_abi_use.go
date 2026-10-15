@@ -50,13 +50,13 @@ func (e *emitter) unboxedUse(f *mir.Func, in mir.Inst, i int) bool {
 	case mir.OpBinary:
 		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
 		rty, _ := e.scalarType(f.Locals[in.Args[1]].Type)
-		return ty == rty && nativeBinary(in.Str, ty)
+		return (ty == rty || wideShiftOperands(in.Str, ty, rty)) && nativeBinary(in.Str, ty)
 	case mir.OpUnary:
 		ty, _ := e.scalarType(f.Locals[in.Args[0]].Type)
-		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TDouble) || in.Str == "~" && ty == TI64
+		return in.Str == "!" && ty == TI1 || in.Str == "-" && (ty == TI64 || ty == TI128 || ty == TDouble) || in.Str == "~" && (ty == TI64 || ty == TI128)
 	case mir.OpCall:
 		_, ok := e.calleeScalarSig(in).param(i)
-		return in.DPrim != mir.DPNone || ok
+		return in.DPrim != mir.DPNone || ok || e.wideCallOp(f, in) != ""
 	case mir.OpRecord, mir.OpVariant, mir.OpClosure:
 		return e.isDirect(in.Dst)
 	case mir.OpSetField, mir.OpIndex, mir.OpSetIndex:
@@ -73,9 +73,14 @@ func nativeBinary(op string, ty Type) bool {
 	case "==", "!=":
 		return ty != TVoid
 	case "<", "<=", ">", ">=", "+", "-", "*", "/":
-		return ty == TI64 || ty == TDouble
+		return ty == TI64 || ty == TI128 || ty == TDouble
 	case "%", "&", "|", "^", "<<", ">>":
-		return ty == TI64
+		return ty == TI64 || ty == TI128
 	}
 	return false
+}
+
+// wideShiftOperands: a 128-bit integer is shifted by a usize, which is the one binary operator whose operands differ in kind.
+func wideShiftOperands(op string, l, r Type) bool {
+	return (op == "<<" || op == ">>") && l == TI128 && r == TI64
 }

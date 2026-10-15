@@ -43,6 +43,12 @@ struct obj {
     struct rt_allocator* al;
     union rt_value {
         int64_t i;
+#ifdef KIGUMI_INT128
+        // 128-bit integers: lo aliases i.
+        struct {
+            int64_t lo, hi;
+        } w;
+#endif
         double f;
         int b;
         uint32_t c;

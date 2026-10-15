@@ -1,0 +1,982 @@
+-- src --
+let oi1280: i128 = 0
+let qi1280: i128 = 0
+let ri1280a = oi1280.addWithOverflow(qi1280)
+let ri1280s = oi1280.subWithOverflow(qi1280)
+let ri1280m = oi1280.mulWithOverflow(qi1280)
+print "i128 0 0: ${ri1280a.value} ${ri1280a.overflowed} ${ri1280s.value} ${ri1280s.overflowed} ${ri1280m.value} ${ri1280m.overflowed} ${oi1280.saturatingAdd(qi1280)} ${oi1280.saturatingSub(qi1280)} ${oi1280.saturatingMul(qi1280)}"
+let oi1281: i128 = 0
+let qi1281: i128 = 1
+let ri1281a = oi1281.addWithOverflow(qi1281)
+let ri1281s = oi1281.subWithOverflow(qi1281)
+let ri1281m = oi1281.mulWithOverflow(qi1281)
+print "i128 0 1: ${ri1281a.value} ${ri1281a.overflowed} ${ri1281s.value} ${ri1281s.overflowed} ${ri1281m.value} ${ri1281m.overflowed} ${oi1281.saturatingAdd(qi1281)} ${oi1281.saturatingSub(qi1281)} ${oi1281.saturatingMul(qi1281)}"
+let oi1282: i128 = 0
+let qi1282: i128 = -1
+let ri1282a = oi1282.addWithOverflow(qi1282)
+let ri1282s = oi1282.subWithOverflow(qi1282)
+let ri1282m = oi1282.mulWithOverflow(qi1282)
+print "i128 0 -1: ${ri1282a.value} ${ri1282a.overflowed} ${ri1282s.value} ${ri1282s.overflowed} ${ri1282m.value} ${ri1282m.overflowed} ${oi1282.saturatingAdd(qi1282)} ${oi1282.saturatingSub(qi1282)} ${oi1282.saturatingMul(qi1282)}"
+let oi1283: i128 = 0
+let qi1283: i128 = 2
+let ri1283a = oi1283.addWithOverflow(qi1283)
+let ri1283s = oi1283.subWithOverflow(qi1283)
+let ri1283m = oi1283.mulWithOverflow(qi1283)
+print "i128 0 2: ${ri1283a.value} ${ri1283a.overflowed} ${ri1283s.value} ${ri1283s.overflowed} ${ri1283m.value} ${ri1283m.overflowed} ${oi1283.saturatingAdd(qi1283)} ${oi1283.saturatingSub(qi1283)} ${oi1283.saturatingMul(qi1283)}"
+let oi1284: i128 = 0
+let qi1284: i128 = -2
+let ri1284a = oi1284.addWithOverflow(qi1284)
+let ri1284s = oi1284.subWithOverflow(qi1284)
+let ri1284m = oi1284.mulWithOverflow(qi1284)
+print "i128 0 -2: ${ri1284a.value} ${ri1284a.overflowed} ${ri1284s.value} ${ri1284s.overflowed} ${ri1284m.value} ${ri1284m.overflowed} ${oi1284.saturatingAdd(qi1284)} ${oi1284.saturatingSub(qi1284)} ${oi1284.saturatingMul(qi1284)}"
+let oi1285: i128 = 0
+let qi1285: i128 = 7
+let ri1285a = oi1285.addWithOverflow(qi1285)
+let ri1285s = oi1285.subWithOverflow(qi1285)
+let ri1285m = oi1285.mulWithOverflow(qi1285)
+print "i128 0 7: ${ri1285a.value} ${ri1285a.overflowed} ${ri1285s.value} ${ri1285s.overflowed} ${ri1285m.value} ${ri1285m.overflowed} ${oi1285.saturatingAdd(qi1285)} ${oi1285.saturatingSub(qi1285)} ${oi1285.saturatingMul(qi1285)}"
+let oi1286: i128 = 0
+let qi1286: i128 = -7
+let ri1286a = oi1286.addWithOverflow(qi1286)
+let ri1286s = oi1286.subWithOverflow(qi1286)
+let ri1286m = oi1286.mulWithOverflow(qi1286)
+print "i128 0 -7: ${ri1286a.value} ${ri1286a.overflowed} ${ri1286s.value} ${ri1286s.overflowed} ${ri1286m.value} ${ri1286m.overflowed} ${oi1286.saturatingAdd(qi1286)} ${oi1286.saturatingSub(qi1286)} ${oi1286.saturatingMul(qi1286)}"
+let oi1287: i128 = 0
+let qi1287: i128 = 255
+let ri1287a = oi1287.addWithOverflow(qi1287)
+let ri1287s = oi1287.subWithOverflow(qi1287)
+let ri1287m = oi1287.mulWithOverflow(qi1287)
+print "i128 0 255: ${ri1287a.value} ${ri1287a.overflowed} ${ri1287s.value} ${ri1287s.overflowed} ${ri1287m.value} ${ri1287m.overflowed} ${oi1287.saturatingAdd(qi1287)} ${oi1287.saturatingSub(qi1287)} ${oi1287.saturatingMul(qi1287)}"
+let oi1288: i128 = 0
+let qi1288: i128 = 256
+let ri1288a = oi1288.addWithOverflow(qi1288)
+let ri1288s = oi1288.subWithOverflow(qi1288)
+let ri1288m = oi1288.mulWithOverflow(qi1288)
+print "i128 0 256: ${ri1288a.value} ${ri1288a.overflowed} ${ri1288s.value} ${ri1288s.overflowed} ${ri1288m.value} ${ri1288m.overflowed} ${oi1288.saturatingAdd(qi1288)} ${oi1288.saturatingSub(qi1288)} ${oi1288.saturatingMul(qi1288)}"
+let oi1289: i128 = 0
+let qi1289: i128 = -256
+let ri1289a = oi1289.addWithOverflow(qi1289)
+let ri1289s = oi1289.subWithOverflow(qi1289)
+let ri1289m = oi1289.mulWithOverflow(qi1289)
+print "i128 0 -256: ${ri1289a.value} ${ri1289a.overflowed} ${ri1289s.value} ${ri1289s.overflowed} ${ri1289m.value} ${ri1289m.overflowed} ${oi1289.saturatingAdd(qi1289)} ${oi1289.saturatingSub(qi1289)} ${oi1289.saturatingMul(qi1289)}"
+let oi12810: i128 = 0
+let qi12810: i128 = 2147483647
+let ri12810a = oi12810.addWithOverflow(qi12810)
+let ri12810s = oi12810.subWithOverflow(qi12810)
+let ri12810m = oi12810.mulWithOverflow(qi12810)
+print "i128 0 2147483647: ${ri12810a.value} ${ri12810a.overflowed} ${ri12810s.value} ${ri12810s.overflowed} ${ri12810m.value} ${ri12810m.overflowed} ${oi12810.saturatingAdd(qi12810)} ${oi12810.saturatingSub(qi12810)} ${oi12810.saturatingMul(qi12810)}"
+let oi12811: i128 = 0
+let qi12811: i128 = 2147483648
+let ri12811a = oi12811.addWithOverflow(qi12811)
+let ri12811s = oi12811.subWithOverflow(qi12811)
+let ri12811m = oi12811.mulWithOverflow(qi12811)
+print "i128 0 2147483648: ${ri12811a.value} ${ri12811a.overflowed} ${ri12811s.value} ${ri12811s.overflowed} ${ri12811m.value} ${ri12811m.overflowed} ${oi12811.saturatingAdd(qi12811)} ${oi12811.saturatingSub(qi12811)} ${oi12811.saturatingMul(qi12811)}"
+let oi12812: i128 = 1
+let qi12812: i128 = 0
+let ri12812a = oi12812.addWithOverflow(qi12812)
+let ri12812s = oi12812.subWithOverflow(qi12812)
+let ri12812m = oi12812.mulWithOverflow(qi12812)
+print "i128 1 0: ${ri12812a.value} ${ri12812a.overflowed} ${ri12812s.value} ${ri12812s.overflowed} ${ri12812m.value} ${ri12812m.overflowed} ${oi12812.saturatingAdd(qi12812)} ${oi12812.saturatingSub(qi12812)} ${oi12812.saturatingMul(qi12812)}"
+let oi12813: i128 = 1
+let qi12813: i128 = 1
+let ri12813a = oi12813.addWithOverflow(qi12813)
+let ri12813s = oi12813.subWithOverflow(qi12813)
+let ri12813m = oi12813.mulWithOverflow(qi12813)
+print "i128 1 1: ${ri12813a.value} ${ri12813a.overflowed} ${ri12813s.value} ${ri12813s.overflowed} ${ri12813m.value} ${ri12813m.overflowed} ${oi12813.saturatingAdd(qi12813)} ${oi12813.saturatingSub(qi12813)} ${oi12813.saturatingMul(qi12813)}"
+let oi12814: i128 = 1
+let qi12814: i128 = -1
+let ri12814a = oi12814.addWithOverflow(qi12814)
+let ri12814s = oi12814.subWithOverflow(qi12814)
+let ri12814m = oi12814.mulWithOverflow(qi12814)
+print "i128 1 -1: ${ri12814a.value} ${ri12814a.overflowed} ${ri12814s.value} ${ri12814s.overflowed} ${ri12814m.value} ${ri12814m.overflowed} ${oi12814.saturatingAdd(qi12814)} ${oi12814.saturatingSub(qi12814)} ${oi12814.saturatingMul(qi12814)}"
+let oi12815: i128 = 1
+let qi12815: i128 = 2
+let ri12815a = oi12815.addWithOverflow(qi12815)
+let ri12815s = oi12815.subWithOverflow(qi12815)
+let ri12815m = oi12815.mulWithOverflow(qi12815)
+print "i128 1 2: ${ri12815a.value} ${ri12815a.overflowed} ${ri12815s.value} ${ri12815s.overflowed} ${ri12815m.value} ${ri12815m.overflowed} ${oi12815.saturatingAdd(qi12815)} ${oi12815.saturatingSub(qi12815)} ${oi12815.saturatingMul(qi12815)}"
+let oi12816: i128 = 1
+let qi12816: i128 = -2
+let ri12816a = oi12816.addWithOverflow(qi12816)
+let ri12816s = oi12816.subWithOverflow(qi12816)
+let ri12816m = oi12816.mulWithOverflow(qi12816)
+print "i128 1 -2: ${ri12816a.value} ${ri12816a.overflowed} ${ri12816s.value} ${ri12816s.overflowed} ${ri12816m.value} ${ri12816m.overflowed} ${oi12816.saturatingAdd(qi12816)} ${oi12816.saturatingSub(qi12816)} ${oi12816.saturatingMul(qi12816)}"
+let oi12817: i128 = 1
+let qi12817: i128 = 7
+let ri12817a = oi12817.addWithOverflow(qi12817)
+let ri12817s = oi12817.subWithOverflow(qi12817)
+let ri12817m = oi12817.mulWithOverflow(qi12817)
+print "i128 1 7: ${ri12817a.value} ${ri12817a.overflowed} ${ri12817s.value} ${ri12817s.overflowed} ${ri12817m.value} ${ri12817m.overflowed} ${oi12817.saturatingAdd(qi12817)} ${oi12817.saturatingSub(qi12817)} ${oi12817.saturatingMul(qi12817)}"
+let oi12818: i128 = 1
+let qi12818: i128 = -7
+let ri12818a = oi12818.addWithOverflow(qi12818)
+let ri12818s = oi12818.subWithOverflow(qi12818)
+let ri12818m = oi12818.mulWithOverflow(qi12818)
+print "i128 1 -7: ${ri12818a.value} ${ri12818a.overflowed} ${ri12818s.value} ${ri12818s.overflowed} ${ri12818m.value} ${ri12818m.overflowed} ${oi12818.saturatingAdd(qi12818)} ${oi12818.saturatingSub(qi12818)} ${oi12818.saturatingMul(qi12818)}"
+let oi12819: i128 = 1
+let qi12819: i128 = 255
+let ri12819a = oi12819.addWithOverflow(qi12819)
+let ri12819s = oi12819.subWithOverflow(qi12819)
+let ri12819m = oi12819.mulWithOverflow(qi12819)
+print "i128 1 255: ${ri12819a.value} ${ri12819a.overflowed} ${ri12819s.value} ${ri12819s.overflowed} ${ri12819m.value} ${ri12819m.overflowed} ${oi12819.saturatingAdd(qi12819)} ${oi12819.saturatingSub(qi12819)} ${oi12819.saturatingMul(qi12819)}"
+let oi12820: i128 = 1
+let qi12820: i128 = 256
+let ri12820a = oi12820.addWithOverflow(qi12820)
+let ri12820s = oi12820.subWithOverflow(qi12820)
+let ri12820m = oi12820.mulWithOverflow(qi12820)
+print "i128 1 256: ${ri12820a.value} ${ri12820a.overflowed} ${ri12820s.value} ${ri12820s.overflowed} ${ri12820m.value} ${ri12820m.overflowed} ${oi12820.saturatingAdd(qi12820)} ${oi12820.saturatingSub(qi12820)} ${oi12820.saturatingMul(qi12820)}"
+let oi12821: i128 = 1
+let qi12821: i128 = -256
+let ri12821a = oi12821.addWithOverflow(qi12821)
+let ri12821s = oi12821.subWithOverflow(qi12821)
+let ri12821m = oi12821.mulWithOverflow(qi12821)
+print "i128 1 -256: ${ri12821a.value} ${ri12821a.overflowed} ${ri12821s.value} ${ri12821s.overflowed} ${ri12821m.value} ${ri12821m.overflowed} ${oi12821.saturatingAdd(qi12821)} ${oi12821.saturatingSub(qi12821)} ${oi12821.saturatingMul(qi12821)}"
+let oi12822: i128 = 1
+let qi12822: i128 = 2147483647
+let ri12822a = oi12822.addWithOverflow(qi12822)
+let ri12822s = oi12822.subWithOverflow(qi12822)
+let ri12822m = oi12822.mulWithOverflow(qi12822)
+print "i128 1 2147483647: ${ri12822a.value} ${ri12822a.overflowed} ${ri12822s.value} ${ri12822s.overflowed} ${ri12822m.value} ${ri12822m.overflowed} ${oi12822.saturatingAdd(qi12822)} ${oi12822.saturatingSub(qi12822)} ${oi12822.saturatingMul(qi12822)}"
+let oi12823: i128 = 1
+let qi12823: i128 = 2147483648
+let ri12823a = oi12823.addWithOverflow(qi12823)
+let ri12823s = oi12823.subWithOverflow(qi12823)
+let ri12823m = oi12823.mulWithOverflow(qi12823)
+print "i128 1 2147483648: ${ri12823a.value} ${ri12823a.overflowed} ${ri12823s.value} ${ri12823s.overflowed} ${ri12823m.value} ${ri12823m.overflowed} ${oi12823.saturatingAdd(qi12823)} ${oi12823.saturatingSub(qi12823)} ${oi12823.saturatingMul(qi12823)}"
+let oi12824: i128 = -1
+let qi12824: i128 = 0
+let ri12824a = oi12824.addWithOverflow(qi12824)
+let ri12824s = oi12824.subWithOverflow(qi12824)
+let ri12824m = oi12824.mulWithOverflow(qi12824)
+print "i128 -1 0: ${ri12824a.value} ${ri12824a.overflowed} ${ri12824s.value} ${ri12824s.overflowed} ${ri12824m.value} ${ri12824m.overflowed} ${oi12824.saturatingAdd(qi12824)} ${oi12824.saturatingSub(qi12824)} ${oi12824.saturatingMul(qi12824)}"
+let oi12825: i128 = -1
+let qi12825: i128 = 1
+let ri12825a = oi12825.addWithOverflow(qi12825)
+let ri12825s = oi12825.subWithOverflow(qi12825)
+let ri12825m = oi12825.mulWithOverflow(qi12825)
+print "i128 -1 1: ${ri12825a.value} ${ri12825a.overflowed} ${ri12825s.value} ${ri12825s.overflowed} ${ri12825m.value} ${ri12825m.overflowed} ${oi12825.saturatingAdd(qi12825)} ${oi12825.saturatingSub(qi12825)} ${oi12825.saturatingMul(qi12825)}"
+let oi12826: i128 = -1
+let qi12826: i128 = -1
+let ri12826a = oi12826.addWithOverflow(qi12826)
+let ri12826s = oi12826.subWithOverflow(qi12826)
+let ri12826m = oi12826.mulWithOverflow(qi12826)
+print "i128 -1 -1: ${ri12826a.value} ${ri12826a.overflowed} ${ri12826s.value} ${ri12826s.overflowed} ${ri12826m.value} ${ri12826m.overflowed} ${oi12826.saturatingAdd(qi12826)} ${oi12826.saturatingSub(qi12826)} ${oi12826.saturatingMul(qi12826)}"
+let oi12827: i128 = -1
+let qi12827: i128 = 2
+let ri12827a = oi12827.addWithOverflow(qi12827)
+let ri12827s = oi12827.subWithOverflow(qi12827)
+let ri12827m = oi12827.mulWithOverflow(qi12827)
+print "i128 -1 2: ${ri12827a.value} ${ri12827a.overflowed} ${ri12827s.value} ${ri12827s.overflowed} ${ri12827m.value} ${ri12827m.overflowed} ${oi12827.saturatingAdd(qi12827)} ${oi12827.saturatingSub(qi12827)} ${oi12827.saturatingMul(qi12827)}"
+let oi12828: i128 = -1
+let qi12828: i128 = -2
+let ri12828a = oi12828.addWithOverflow(qi12828)
+let ri12828s = oi12828.subWithOverflow(qi12828)
+let ri12828m = oi12828.mulWithOverflow(qi12828)
+print "i128 -1 -2: ${ri12828a.value} ${ri12828a.overflowed} ${ri12828s.value} ${ri12828s.overflowed} ${ri12828m.value} ${ri12828m.overflowed} ${oi12828.saturatingAdd(qi12828)} ${oi12828.saturatingSub(qi12828)} ${oi12828.saturatingMul(qi12828)}"
+let oi12829: i128 = -1
+let qi12829: i128 = 7
+let ri12829a = oi12829.addWithOverflow(qi12829)
+let ri12829s = oi12829.subWithOverflow(qi12829)
+let ri12829m = oi12829.mulWithOverflow(qi12829)
+print "i128 -1 7: ${ri12829a.value} ${ri12829a.overflowed} ${ri12829s.value} ${ri12829s.overflowed} ${ri12829m.value} ${ri12829m.overflowed} ${oi12829.saturatingAdd(qi12829)} ${oi12829.saturatingSub(qi12829)} ${oi12829.saturatingMul(qi12829)}"
+let oi12830: i128 = -1
+let qi12830: i128 = -7
+let ri12830a = oi12830.addWithOverflow(qi12830)
+let ri12830s = oi12830.subWithOverflow(qi12830)
+let ri12830m = oi12830.mulWithOverflow(qi12830)
+print "i128 -1 -7: ${ri12830a.value} ${ri12830a.overflowed} ${ri12830s.value} ${ri12830s.overflowed} ${ri12830m.value} ${ri12830m.overflowed} ${oi12830.saturatingAdd(qi12830)} ${oi12830.saturatingSub(qi12830)} ${oi12830.saturatingMul(qi12830)}"
+let oi12831: i128 = -1
+let qi12831: i128 = 255
+let ri12831a = oi12831.addWithOverflow(qi12831)
+let ri12831s = oi12831.subWithOverflow(qi12831)
+let ri12831m = oi12831.mulWithOverflow(qi12831)
+print "i128 -1 255: ${ri12831a.value} ${ri12831a.overflowed} ${ri12831s.value} ${ri12831s.overflowed} ${ri12831m.value} ${ri12831m.overflowed} ${oi12831.saturatingAdd(qi12831)} ${oi12831.saturatingSub(qi12831)} ${oi12831.saturatingMul(qi12831)}"
+let oi12832: i128 = -1
+let qi12832: i128 = 256
+let ri12832a = oi12832.addWithOverflow(qi12832)
+let ri12832s = oi12832.subWithOverflow(qi12832)
+let ri12832m = oi12832.mulWithOverflow(qi12832)
+print "i128 -1 256: ${ri12832a.value} ${ri12832a.overflowed} ${ri12832s.value} ${ri12832s.overflowed} ${ri12832m.value} ${ri12832m.overflowed} ${oi12832.saturatingAdd(qi12832)} ${oi12832.saturatingSub(qi12832)} ${oi12832.saturatingMul(qi12832)}"
+let oi12833: i128 = -1
+let qi12833: i128 = -256
+let ri12833a = oi12833.addWithOverflow(qi12833)
+let ri12833s = oi12833.subWithOverflow(qi12833)
+let ri12833m = oi12833.mulWithOverflow(qi12833)
+print "i128 -1 -256: ${ri12833a.value} ${ri12833a.overflowed} ${ri12833s.value} ${ri12833s.overflowed} ${ri12833m.value} ${ri12833m.overflowed} ${oi12833.saturatingAdd(qi12833)} ${oi12833.saturatingSub(qi12833)} ${oi12833.saturatingMul(qi12833)}"
+let oi12834: i128 = -1
+let qi12834: i128 = 2147483647
+let ri12834a = oi12834.addWithOverflow(qi12834)
+let ri12834s = oi12834.subWithOverflow(qi12834)
+let ri12834m = oi12834.mulWithOverflow(qi12834)
+print "i128 -1 2147483647: ${ri12834a.value} ${ri12834a.overflowed} ${ri12834s.value} ${ri12834s.overflowed} ${ri12834m.value} ${ri12834m.overflowed} ${oi12834.saturatingAdd(qi12834)} ${oi12834.saturatingSub(qi12834)} ${oi12834.saturatingMul(qi12834)}"
+let oi12835: i128 = -1
+let qi12835: i128 = 2147483648
+let ri12835a = oi12835.addWithOverflow(qi12835)
+let ri12835s = oi12835.subWithOverflow(qi12835)
+let ri12835m = oi12835.mulWithOverflow(qi12835)
+print "i128 -1 2147483648: ${ri12835a.value} ${ri12835a.overflowed} ${ri12835s.value} ${ri12835s.overflowed} ${ri12835m.value} ${ri12835m.overflowed} ${oi12835.saturatingAdd(qi12835)} ${oi12835.saturatingSub(qi12835)} ${oi12835.saturatingMul(qi12835)}"
+let oi12836: i128 = 2
+let qi12836: i128 = 0
+let ri12836a = oi12836.addWithOverflow(qi12836)
+let ri12836s = oi12836.subWithOverflow(qi12836)
+let ri12836m = oi12836.mulWithOverflow(qi12836)
+print "i128 2 0: ${ri12836a.value} ${ri12836a.overflowed} ${ri12836s.value} ${ri12836s.overflowed} ${ri12836m.value} ${ri12836m.overflowed} ${oi12836.saturatingAdd(qi12836)} ${oi12836.saturatingSub(qi12836)} ${oi12836.saturatingMul(qi12836)}"
+let oi12837: i128 = 2
+let qi12837: i128 = 1
+let ri12837a = oi12837.addWithOverflow(qi12837)
+let ri12837s = oi12837.subWithOverflow(qi12837)
+let ri12837m = oi12837.mulWithOverflow(qi12837)
+print "i128 2 1: ${ri12837a.value} ${ri12837a.overflowed} ${ri12837s.value} ${ri12837s.overflowed} ${ri12837m.value} ${ri12837m.overflowed} ${oi12837.saturatingAdd(qi12837)} ${oi12837.saturatingSub(qi12837)} ${oi12837.saturatingMul(qi12837)}"
+let oi12838: i128 = 2
+let qi12838: i128 = -1
+let ri12838a = oi12838.addWithOverflow(qi12838)
+let ri12838s = oi12838.subWithOverflow(qi12838)
+let ri12838m = oi12838.mulWithOverflow(qi12838)
+print "i128 2 -1: ${ri12838a.value} ${ri12838a.overflowed} ${ri12838s.value} ${ri12838s.overflowed} ${ri12838m.value} ${ri12838m.overflowed} ${oi12838.saturatingAdd(qi12838)} ${oi12838.saturatingSub(qi12838)} ${oi12838.saturatingMul(qi12838)}"
+let oi12839: i128 = 2
+let qi12839: i128 = 2
+let ri12839a = oi12839.addWithOverflow(qi12839)
+let ri12839s = oi12839.subWithOverflow(qi12839)
+let ri12839m = oi12839.mulWithOverflow(qi12839)
+print "i128 2 2: ${ri12839a.value} ${ri12839a.overflowed} ${ri12839s.value} ${ri12839s.overflowed} ${ri12839m.value} ${ri12839m.overflowed} ${oi12839.saturatingAdd(qi12839)} ${oi12839.saturatingSub(qi12839)} ${oi12839.saturatingMul(qi12839)}"
+let oi12840: i128 = 2
+let qi12840: i128 = -2
+let ri12840a = oi12840.addWithOverflow(qi12840)
+let ri12840s = oi12840.subWithOverflow(qi12840)
+let ri12840m = oi12840.mulWithOverflow(qi12840)
+print "i128 2 -2: ${ri12840a.value} ${ri12840a.overflowed} ${ri12840s.value} ${ri12840s.overflowed} ${ri12840m.value} ${ri12840m.overflowed} ${oi12840.saturatingAdd(qi12840)} ${oi12840.saturatingSub(qi12840)} ${oi12840.saturatingMul(qi12840)}"
+let oi12841: i128 = 2
+let qi12841: i128 = 7
+let ri12841a = oi12841.addWithOverflow(qi12841)
+let ri12841s = oi12841.subWithOverflow(qi12841)
+let ri12841m = oi12841.mulWithOverflow(qi12841)
+print "i128 2 7: ${ri12841a.value} ${ri12841a.overflowed} ${ri12841s.value} ${ri12841s.overflowed} ${ri12841m.value} ${ri12841m.overflowed} ${oi12841.saturatingAdd(qi12841)} ${oi12841.saturatingSub(qi12841)} ${oi12841.saturatingMul(qi12841)}"
+let oi12842: i128 = 2
+let qi12842: i128 = -7
+let ri12842a = oi12842.addWithOverflow(qi12842)
+let ri12842s = oi12842.subWithOverflow(qi12842)
+let ri12842m = oi12842.mulWithOverflow(qi12842)
+print "i128 2 -7: ${ri12842a.value} ${ri12842a.overflowed} ${ri12842s.value} ${ri12842s.overflowed} ${ri12842m.value} ${ri12842m.overflowed} ${oi12842.saturatingAdd(qi12842)} ${oi12842.saturatingSub(qi12842)} ${oi12842.saturatingMul(qi12842)}"
+let oi12843: i128 = 2
+let qi12843: i128 = 255
+let ri12843a = oi12843.addWithOverflow(qi12843)
+let ri12843s = oi12843.subWithOverflow(qi12843)
+let ri12843m = oi12843.mulWithOverflow(qi12843)
+print "i128 2 255: ${ri12843a.value} ${ri12843a.overflowed} ${ri12843s.value} ${ri12843s.overflowed} ${ri12843m.value} ${ri12843m.overflowed} ${oi12843.saturatingAdd(qi12843)} ${oi12843.saturatingSub(qi12843)} ${oi12843.saturatingMul(qi12843)}"
+let oi12844: i128 = 2
+let qi12844: i128 = 256
+let ri12844a = oi12844.addWithOverflow(qi12844)
+let ri12844s = oi12844.subWithOverflow(qi12844)
+let ri12844m = oi12844.mulWithOverflow(qi12844)
+print "i128 2 256: ${ri12844a.value} ${ri12844a.overflowed} ${ri12844s.value} ${ri12844s.overflowed} ${ri12844m.value} ${ri12844m.overflowed} ${oi12844.saturatingAdd(qi12844)} ${oi12844.saturatingSub(qi12844)} ${oi12844.saturatingMul(qi12844)}"
+let oi12845: i128 = 2
+let qi12845: i128 = -256
+let ri12845a = oi12845.addWithOverflow(qi12845)
+let ri12845s = oi12845.subWithOverflow(qi12845)
+let ri12845m = oi12845.mulWithOverflow(qi12845)
+print "i128 2 -256: ${ri12845a.value} ${ri12845a.overflowed} ${ri12845s.value} ${ri12845s.overflowed} ${ri12845m.value} ${ri12845m.overflowed} ${oi12845.saturatingAdd(qi12845)} ${oi12845.saturatingSub(qi12845)} ${oi12845.saturatingMul(qi12845)}"
+let oi12846: i128 = 2
+let qi12846: i128 = 2147483647
+let ri12846a = oi12846.addWithOverflow(qi12846)
+let ri12846s = oi12846.subWithOverflow(qi12846)
+let ri12846m = oi12846.mulWithOverflow(qi12846)
+print "i128 2 2147483647: ${ri12846a.value} ${ri12846a.overflowed} ${ri12846s.value} ${ri12846s.overflowed} ${ri12846m.value} ${ri12846m.overflowed} ${oi12846.saturatingAdd(qi12846)} ${oi12846.saturatingSub(qi12846)} ${oi12846.saturatingMul(qi12846)}"
+let oi12847: i128 = 2
+let qi12847: i128 = 2147483648
+let ri12847a = oi12847.addWithOverflow(qi12847)
+let ri12847s = oi12847.subWithOverflow(qi12847)
+let ri12847m = oi12847.mulWithOverflow(qi12847)
+print "i128 2 2147483648: ${ri12847a.value} ${ri12847a.overflowed} ${ri12847s.value} ${ri12847s.overflowed} ${ri12847m.value} ${ri12847m.overflowed} ${oi12847.saturatingAdd(qi12847)} ${oi12847.saturatingSub(qi12847)} ${oi12847.saturatingMul(qi12847)}"
+let oi12848: i128 = -2
+let qi12848: i128 = 0
+let ri12848a = oi12848.addWithOverflow(qi12848)
+let ri12848s = oi12848.subWithOverflow(qi12848)
+let ri12848m = oi12848.mulWithOverflow(qi12848)
+print "i128 -2 0: ${ri12848a.value} ${ri12848a.overflowed} ${ri12848s.value} ${ri12848s.overflowed} ${ri12848m.value} ${ri12848m.overflowed} ${oi12848.saturatingAdd(qi12848)} ${oi12848.saturatingSub(qi12848)} ${oi12848.saturatingMul(qi12848)}"
+let oi12849: i128 = -2
+let qi12849: i128 = 1
+let ri12849a = oi12849.addWithOverflow(qi12849)
+let ri12849s = oi12849.subWithOverflow(qi12849)
+let ri12849m = oi12849.mulWithOverflow(qi12849)
+print "i128 -2 1: ${ri12849a.value} ${ri12849a.overflowed} ${ri12849s.value} ${ri12849s.overflowed} ${ri12849m.value} ${ri12849m.overflowed} ${oi12849.saturatingAdd(qi12849)} ${oi12849.saturatingSub(qi12849)} ${oi12849.saturatingMul(qi12849)}"
+let oi12850: i128 = -2
+let qi12850: i128 = -1
+let ri12850a = oi12850.addWithOverflow(qi12850)
+let ri12850s = oi12850.subWithOverflow(qi12850)
+let ri12850m = oi12850.mulWithOverflow(qi12850)
+print "i128 -2 -1: ${ri12850a.value} ${ri12850a.overflowed} ${ri12850s.value} ${ri12850s.overflowed} ${ri12850m.value} ${ri12850m.overflowed} ${oi12850.saturatingAdd(qi12850)} ${oi12850.saturatingSub(qi12850)} ${oi12850.saturatingMul(qi12850)}"
+let oi12851: i128 = -2
+let qi12851: i128 = 2
+let ri12851a = oi12851.addWithOverflow(qi12851)
+let ri12851s = oi12851.subWithOverflow(qi12851)
+let ri12851m = oi12851.mulWithOverflow(qi12851)
+print "i128 -2 2: ${ri12851a.value} ${ri12851a.overflowed} ${ri12851s.value} ${ri12851s.overflowed} ${ri12851m.value} ${ri12851m.overflowed} ${oi12851.saturatingAdd(qi12851)} ${oi12851.saturatingSub(qi12851)} ${oi12851.saturatingMul(qi12851)}"
+let oi12852: i128 = -2
+let qi12852: i128 = -2
+let ri12852a = oi12852.addWithOverflow(qi12852)
+let ri12852s = oi12852.subWithOverflow(qi12852)
+let ri12852m = oi12852.mulWithOverflow(qi12852)
+print "i128 -2 -2: ${ri12852a.value} ${ri12852a.overflowed} ${ri12852s.value} ${ri12852s.overflowed} ${ri12852m.value} ${ri12852m.overflowed} ${oi12852.saturatingAdd(qi12852)} ${oi12852.saturatingSub(qi12852)} ${oi12852.saturatingMul(qi12852)}"
+let oi12853: i128 = -2
+let qi12853: i128 = 7
+let ri12853a = oi12853.addWithOverflow(qi12853)
+let ri12853s = oi12853.subWithOverflow(qi12853)
+let ri12853m = oi12853.mulWithOverflow(qi12853)
+print "i128 -2 7: ${ri12853a.value} ${ri12853a.overflowed} ${ri12853s.value} ${ri12853s.overflowed} ${ri12853m.value} ${ri12853m.overflowed} ${oi12853.saturatingAdd(qi12853)} ${oi12853.saturatingSub(qi12853)} ${oi12853.saturatingMul(qi12853)}"
+let oi12854: i128 = -2
+let qi12854: i128 = -7
+let ri12854a = oi12854.addWithOverflow(qi12854)
+let ri12854s = oi12854.subWithOverflow(qi12854)
+let ri12854m = oi12854.mulWithOverflow(qi12854)
+print "i128 -2 -7: ${ri12854a.value} ${ri12854a.overflowed} ${ri12854s.value} ${ri12854s.overflowed} ${ri12854m.value} ${ri12854m.overflowed} ${oi12854.saturatingAdd(qi12854)} ${oi12854.saturatingSub(qi12854)} ${oi12854.saturatingMul(qi12854)}"
+let oi12855: i128 = -2
+let qi12855: i128 = 255
+let ri12855a = oi12855.addWithOverflow(qi12855)
+let ri12855s = oi12855.subWithOverflow(qi12855)
+let ri12855m = oi12855.mulWithOverflow(qi12855)
+print "i128 -2 255: ${ri12855a.value} ${ri12855a.overflowed} ${ri12855s.value} ${ri12855s.overflowed} ${ri12855m.value} ${ri12855m.overflowed} ${oi12855.saturatingAdd(qi12855)} ${oi12855.saturatingSub(qi12855)} ${oi12855.saturatingMul(qi12855)}"
+let oi12856: i128 = -2
+let qi12856: i128 = 256
+let ri12856a = oi12856.addWithOverflow(qi12856)
+let ri12856s = oi12856.subWithOverflow(qi12856)
+let ri12856m = oi12856.mulWithOverflow(qi12856)
+print "i128 -2 256: ${ri12856a.value} ${ri12856a.overflowed} ${ri12856s.value} ${ri12856s.overflowed} ${ri12856m.value} ${ri12856m.overflowed} ${oi12856.saturatingAdd(qi12856)} ${oi12856.saturatingSub(qi12856)} ${oi12856.saturatingMul(qi12856)}"
+let oi12857: i128 = -2
+let qi12857: i128 = -256
+let ri12857a = oi12857.addWithOverflow(qi12857)
+let ri12857s = oi12857.subWithOverflow(qi12857)
+let ri12857m = oi12857.mulWithOverflow(qi12857)
+print "i128 -2 -256: ${ri12857a.value} ${ri12857a.overflowed} ${ri12857s.value} ${ri12857s.overflowed} ${ri12857m.value} ${ri12857m.overflowed} ${oi12857.saturatingAdd(qi12857)} ${oi12857.saturatingSub(qi12857)} ${oi12857.saturatingMul(qi12857)}"
+let oi12858: i128 = -2
+let qi12858: i128 = 2147483647
+let ri12858a = oi12858.addWithOverflow(qi12858)
+let ri12858s = oi12858.subWithOverflow(qi12858)
+let ri12858m = oi12858.mulWithOverflow(qi12858)
+print "i128 -2 2147483647: ${ri12858a.value} ${ri12858a.overflowed} ${ri12858s.value} ${ri12858s.overflowed} ${ri12858m.value} ${ri12858m.overflowed} ${oi12858.saturatingAdd(qi12858)} ${oi12858.saturatingSub(qi12858)} ${oi12858.saturatingMul(qi12858)}"
+let oi12859: i128 = -2
+let qi12859: i128 = 2147483648
+let ri12859a = oi12859.addWithOverflow(qi12859)
+let ri12859s = oi12859.subWithOverflow(qi12859)
+let ri12859m = oi12859.mulWithOverflow(qi12859)
+print "i128 -2 2147483648: ${ri12859a.value} ${ri12859a.overflowed} ${ri12859s.value} ${ri12859s.overflowed} ${ri12859m.value} ${ri12859m.overflowed} ${oi12859.saturatingAdd(qi12859)} ${oi12859.saturatingSub(qi12859)} ${oi12859.saturatingMul(qi12859)}"
+let oi12860: i128 = 7
+let qi12860: i128 = 0
+let ri12860a = oi12860.addWithOverflow(qi12860)
+let ri12860s = oi12860.subWithOverflow(qi12860)
+let ri12860m = oi12860.mulWithOverflow(qi12860)
+print "i128 7 0: ${ri12860a.value} ${ri12860a.overflowed} ${ri12860s.value} ${ri12860s.overflowed} ${ri12860m.value} ${ri12860m.overflowed} ${oi12860.saturatingAdd(qi12860)} ${oi12860.saturatingSub(qi12860)} ${oi12860.saturatingMul(qi12860)}"
+let oi12861: i128 = 7
+let qi12861: i128 = 1
+let ri12861a = oi12861.addWithOverflow(qi12861)
+let ri12861s = oi12861.subWithOverflow(qi12861)
+let ri12861m = oi12861.mulWithOverflow(qi12861)
+print "i128 7 1: ${ri12861a.value} ${ri12861a.overflowed} ${ri12861s.value} ${ri12861s.overflowed} ${ri12861m.value} ${ri12861m.overflowed} ${oi12861.saturatingAdd(qi12861)} ${oi12861.saturatingSub(qi12861)} ${oi12861.saturatingMul(qi12861)}"
+let oi12862: i128 = 7
+let qi12862: i128 = -1
+let ri12862a = oi12862.addWithOverflow(qi12862)
+let ri12862s = oi12862.subWithOverflow(qi12862)
+let ri12862m = oi12862.mulWithOverflow(qi12862)
+print "i128 7 -1: ${ri12862a.value} ${ri12862a.overflowed} ${ri12862s.value} ${ri12862s.overflowed} ${ri12862m.value} ${ri12862m.overflowed} ${oi12862.saturatingAdd(qi12862)} ${oi12862.saturatingSub(qi12862)} ${oi12862.saturatingMul(qi12862)}"
+let oi12863: i128 = 7
+let qi12863: i128 = 2
+let ri12863a = oi12863.addWithOverflow(qi12863)
+let ri12863s = oi12863.subWithOverflow(qi12863)
+let ri12863m = oi12863.mulWithOverflow(qi12863)
+print "i128 7 2: ${ri12863a.value} ${ri12863a.overflowed} ${ri12863s.value} ${ri12863s.overflowed} ${ri12863m.value} ${ri12863m.overflowed} ${oi12863.saturatingAdd(qi12863)} ${oi12863.saturatingSub(qi12863)} ${oi12863.saturatingMul(qi12863)}"
+let oi12864: i128 = 7
+let qi12864: i128 = -2
+let ri12864a = oi12864.addWithOverflow(qi12864)
+let ri12864s = oi12864.subWithOverflow(qi12864)
+let ri12864m = oi12864.mulWithOverflow(qi12864)
+print "i128 7 -2: ${ri12864a.value} ${ri12864a.overflowed} ${ri12864s.value} ${ri12864s.overflowed} ${ri12864m.value} ${ri12864m.overflowed} ${oi12864.saturatingAdd(qi12864)} ${oi12864.saturatingSub(qi12864)} ${oi12864.saturatingMul(qi12864)}"
+let oi12865: i128 = 7
+let qi12865: i128 = 7
+let ri12865a = oi12865.addWithOverflow(qi12865)
+let ri12865s = oi12865.subWithOverflow(qi12865)
+let ri12865m = oi12865.mulWithOverflow(qi12865)
+print "i128 7 7: ${ri12865a.value} ${ri12865a.overflowed} ${ri12865s.value} ${ri12865s.overflowed} ${ri12865m.value} ${ri12865m.overflowed} ${oi12865.saturatingAdd(qi12865)} ${oi12865.saturatingSub(qi12865)} ${oi12865.saturatingMul(qi12865)}"
+let oi12866: i128 = 7
+let qi12866: i128 = -7
+let ri12866a = oi12866.addWithOverflow(qi12866)
+let ri12866s = oi12866.subWithOverflow(qi12866)
+let ri12866m = oi12866.mulWithOverflow(qi12866)
+print "i128 7 -7: ${ri12866a.value} ${ri12866a.overflowed} ${ri12866s.value} ${ri12866s.overflowed} ${ri12866m.value} ${ri12866m.overflowed} ${oi12866.saturatingAdd(qi12866)} ${oi12866.saturatingSub(qi12866)} ${oi12866.saturatingMul(qi12866)}"
+let oi12867: i128 = 7
+let qi12867: i128 = 255
+let ri12867a = oi12867.addWithOverflow(qi12867)
+let ri12867s = oi12867.subWithOverflow(qi12867)
+let ri12867m = oi12867.mulWithOverflow(qi12867)
+print "i128 7 255: ${ri12867a.value} ${ri12867a.overflowed} ${ri12867s.value} ${ri12867s.overflowed} ${ri12867m.value} ${ri12867m.overflowed} ${oi12867.saturatingAdd(qi12867)} ${oi12867.saturatingSub(qi12867)} ${oi12867.saturatingMul(qi12867)}"
+let oi12868: i128 = 7
+let qi12868: i128 = 256
+let ri12868a = oi12868.addWithOverflow(qi12868)
+let ri12868s = oi12868.subWithOverflow(qi12868)
+let ri12868m = oi12868.mulWithOverflow(qi12868)
+print "i128 7 256: ${ri12868a.value} ${ri12868a.overflowed} ${ri12868s.value} ${ri12868s.overflowed} ${ri12868m.value} ${ri12868m.overflowed} ${oi12868.saturatingAdd(qi12868)} ${oi12868.saturatingSub(qi12868)} ${oi12868.saturatingMul(qi12868)}"
+let oi12869: i128 = 7
+let qi12869: i128 = -256
+let ri12869a = oi12869.addWithOverflow(qi12869)
+let ri12869s = oi12869.subWithOverflow(qi12869)
+let ri12869m = oi12869.mulWithOverflow(qi12869)
+print "i128 7 -256: ${ri12869a.value} ${ri12869a.overflowed} ${ri12869s.value} ${ri12869s.overflowed} ${ri12869m.value} ${ri12869m.overflowed} ${oi12869.saturatingAdd(qi12869)} ${oi12869.saturatingSub(qi12869)} ${oi12869.saturatingMul(qi12869)}"
+let ou1280: u128 = 0
+let qu1280: u128 = 0
+let ru1280a = ou1280.addWithOverflow(qu1280)
+let ru1280s = ou1280.subWithOverflow(qu1280)
+let ru1280m = ou1280.mulWithOverflow(qu1280)
+print "u128 0 0: ${ru1280a.value} ${ru1280a.overflowed} ${ru1280s.value} ${ru1280s.overflowed} ${ru1280m.value} ${ru1280m.overflowed} ${ou1280.saturatingAdd(qu1280)} ${ou1280.saturatingSub(qu1280)} ${ou1280.saturatingMul(qu1280)}"
+let ou1281: u128 = 0
+let qu1281: u128 = 1
+let ru1281a = ou1281.addWithOverflow(qu1281)
+let ru1281s = ou1281.subWithOverflow(qu1281)
+let ru1281m = ou1281.mulWithOverflow(qu1281)
+print "u128 0 1: ${ru1281a.value} ${ru1281a.overflowed} ${ru1281s.value} ${ru1281s.overflowed} ${ru1281m.value} ${ru1281m.overflowed} ${ou1281.saturatingAdd(qu1281)} ${ou1281.saturatingSub(qu1281)} ${ou1281.saturatingMul(qu1281)}"
+let ou1282: u128 = 0
+let qu1282: u128 = 2
+let ru1282a = ou1282.addWithOverflow(qu1282)
+let ru1282s = ou1282.subWithOverflow(qu1282)
+let ru1282m = ou1282.mulWithOverflow(qu1282)
+print "u128 0 2: ${ru1282a.value} ${ru1282a.overflowed} ${ru1282s.value} ${ru1282s.overflowed} ${ru1282m.value} ${ru1282m.overflowed} ${ou1282.saturatingAdd(qu1282)} ${ou1282.saturatingSub(qu1282)} ${ou1282.saturatingMul(qu1282)}"
+let ou1283: u128 = 0
+let qu1283: u128 = 7
+let ru1283a = ou1283.addWithOverflow(qu1283)
+let ru1283s = ou1283.subWithOverflow(qu1283)
+let ru1283m = ou1283.mulWithOverflow(qu1283)
+print "u128 0 7: ${ru1283a.value} ${ru1283a.overflowed} ${ru1283s.value} ${ru1283s.overflowed} ${ru1283m.value} ${ru1283m.overflowed} ${ou1283.saturatingAdd(qu1283)} ${ou1283.saturatingSub(qu1283)} ${ou1283.saturatingMul(qu1283)}"
+let ou1284: u128 = 0
+let qu1284: u128 = 255
+let ru1284a = ou1284.addWithOverflow(qu1284)
+let ru1284s = ou1284.subWithOverflow(qu1284)
+let ru1284m = ou1284.mulWithOverflow(qu1284)
+print "u128 0 255: ${ru1284a.value} ${ru1284a.overflowed} ${ru1284s.value} ${ru1284s.overflowed} ${ru1284m.value} ${ru1284m.overflowed} ${ou1284.saturatingAdd(qu1284)} ${ou1284.saturatingSub(qu1284)} ${ou1284.saturatingMul(qu1284)}"
+let ou1285: u128 = 0
+let qu1285: u128 = 256
+let ru1285a = ou1285.addWithOverflow(qu1285)
+let ru1285s = ou1285.subWithOverflow(qu1285)
+let ru1285m = ou1285.mulWithOverflow(qu1285)
+print "u128 0 256: ${ru1285a.value} ${ru1285a.overflowed} ${ru1285s.value} ${ru1285s.overflowed} ${ru1285m.value} ${ru1285m.overflowed} ${ou1285.saturatingAdd(qu1285)} ${ou1285.saturatingSub(qu1285)} ${ou1285.saturatingMul(qu1285)}"
+let ou1286: u128 = 0
+let qu1286: u128 = 4294967295
+let ru1286a = ou1286.addWithOverflow(qu1286)
+let ru1286s = ou1286.subWithOverflow(qu1286)
+let ru1286m = ou1286.mulWithOverflow(qu1286)
+print "u128 0 4294967295: ${ru1286a.value} ${ru1286a.overflowed} ${ru1286s.value} ${ru1286s.overflowed} ${ru1286m.value} ${ru1286m.overflowed} ${ou1286.saturatingAdd(qu1286)} ${ou1286.saturatingSub(qu1286)} ${ou1286.saturatingMul(qu1286)}"
+let ou1287: u128 = 0
+let qu1287: u128 = 4294967296
+let ru1287a = ou1287.addWithOverflow(qu1287)
+let ru1287s = ou1287.subWithOverflow(qu1287)
+let ru1287m = ou1287.mulWithOverflow(qu1287)
+print "u128 0 4294967296: ${ru1287a.value} ${ru1287a.overflowed} ${ru1287s.value} ${ru1287s.overflowed} ${ru1287m.value} ${ru1287m.overflowed} ${ou1287.saturatingAdd(qu1287)} ${ou1287.saturatingSub(qu1287)} ${ou1287.saturatingMul(qu1287)}"
+let ou1288: u128 = 0
+let qu1288: u128 = 9223372036854775807
+let ru1288a = ou1288.addWithOverflow(qu1288)
+let ru1288s = ou1288.subWithOverflow(qu1288)
+let ru1288m = ou1288.mulWithOverflow(qu1288)
+print "u128 0 9223372036854775807: ${ru1288a.value} ${ru1288a.overflowed} ${ru1288s.value} ${ru1288s.overflowed} ${ru1288m.value} ${ru1288m.overflowed} ${ou1288.saturatingAdd(qu1288)} ${ou1288.saturatingSub(qu1288)} ${ou1288.saturatingMul(qu1288)}"
+let ou1289: u128 = 0
+let qu1289: u128 = 9223372036854775808
+let ru1289a = ou1289.addWithOverflow(qu1289)
+let ru1289s = ou1289.subWithOverflow(qu1289)
+let ru1289m = ou1289.mulWithOverflow(qu1289)
+print "u128 0 9223372036854775808: ${ru1289a.value} ${ru1289a.overflowed} ${ru1289s.value} ${ru1289s.overflowed} ${ru1289m.value} ${ru1289m.overflowed} ${ou1289.saturatingAdd(qu1289)} ${ou1289.saturatingSub(qu1289)} ${ou1289.saturatingMul(qu1289)}"
+let ou12810: u128 = 0
+let qu12810: u128 = 18446744073709551615
+let ru12810a = ou12810.addWithOverflow(qu12810)
+let ru12810s = ou12810.subWithOverflow(qu12810)
+let ru12810m = ou12810.mulWithOverflow(qu12810)
+print "u128 0 18446744073709551615: ${ru12810a.value} ${ru12810a.overflowed} ${ru12810s.value} ${ru12810s.overflowed} ${ru12810m.value} ${ru12810m.overflowed} ${ou12810.saturatingAdd(qu12810)} ${ou12810.saturatingSub(qu12810)} ${ou12810.saturatingMul(qu12810)}"
+let ou12811: u128 = 0
+let qu12811: u128 = 18446744073709551616
+let ru12811a = ou12811.addWithOverflow(qu12811)
+let ru12811s = ou12811.subWithOverflow(qu12811)
+let ru12811m = ou12811.mulWithOverflow(qu12811)
+print "u128 0 18446744073709551616: ${ru12811a.value} ${ru12811a.overflowed} ${ru12811s.value} ${ru12811s.overflowed} ${ru12811m.value} ${ru12811m.overflowed} ${ou12811.saturatingAdd(qu12811)} ${ou12811.saturatingSub(qu12811)} ${ou12811.saturatingMul(qu12811)}"
+let ou12812: u128 = 1
+let qu12812: u128 = 0
+let ru12812a = ou12812.addWithOverflow(qu12812)
+let ru12812s = ou12812.subWithOverflow(qu12812)
+let ru12812m = ou12812.mulWithOverflow(qu12812)
+print "u128 1 0: ${ru12812a.value} ${ru12812a.overflowed} ${ru12812s.value} ${ru12812s.overflowed} ${ru12812m.value} ${ru12812m.overflowed} ${ou12812.saturatingAdd(qu12812)} ${ou12812.saturatingSub(qu12812)} ${ou12812.saturatingMul(qu12812)}"
+let ou12813: u128 = 1
+let qu12813: u128 = 1
+let ru12813a = ou12813.addWithOverflow(qu12813)
+let ru12813s = ou12813.subWithOverflow(qu12813)
+let ru12813m = ou12813.mulWithOverflow(qu12813)
+print "u128 1 1: ${ru12813a.value} ${ru12813a.overflowed} ${ru12813s.value} ${ru12813s.overflowed} ${ru12813m.value} ${ru12813m.overflowed} ${ou12813.saturatingAdd(qu12813)} ${ou12813.saturatingSub(qu12813)} ${ou12813.saturatingMul(qu12813)}"
+let ou12814: u128 = 1
+let qu12814: u128 = 2
+let ru12814a = ou12814.addWithOverflow(qu12814)
+let ru12814s = ou12814.subWithOverflow(qu12814)
+let ru12814m = ou12814.mulWithOverflow(qu12814)
+print "u128 1 2: ${ru12814a.value} ${ru12814a.overflowed} ${ru12814s.value} ${ru12814s.overflowed} ${ru12814m.value} ${ru12814m.overflowed} ${ou12814.saturatingAdd(qu12814)} ${ou12814.saturatingSub(qu12814)} ${ou12814.saturatingMul(qu12814)}"
+let ou12815: u128 = 1
+let qu12815: u128 = 7
+let ru12815a = ou12815.addWithOverflow(qu12815)
+let ru12815s = ou12815.subWithOverflow(qu12815)
+let ru12815m = ou12815.mulWithOverflow(qu12815)
+print "u128 1 7: ${ru12815a.value} ${ru12815a.overflowed} ${ru12815s.value} ${ru12815s.overflowed} ${ru12815m.value} ${ru12815m.overflowed} ${ou12815.saturatingAdd(qu12815)} ${ou12815.saturatingSub(qu12815)} ${ou12815.saturatingMul(qu12815)}"
+let ou12816: u128 = 1
+let qu12816: u128 = 255
+let ru12816a = ou12816.addWithOverflow(qu12816)
+let ru12816s = ou12816.subWithOverflow(qu12816)
+let ru12816m = ou12816.mulWithOverflow(qu12816)
+print "u128 1 255: ${ru12816a.value} ${ru12816a.overflowed} ${ru12816s.value} ${ru12816s.overflowed} ${ru12816m.value} ${ru12816m.overflowed} ${ou12816.saturatingAdd(qu12816)} ${ou12816.saturatingSub(qu12816)} ${ou12816.saturatingMul(qu12816)}"
+let ou12817: u128 = 1
+let qu12817: u128 = 256
+let ru12817a = ou12817.addWithOverflow(qu12817)
+let ru12817s = ou12817.subWithOverflow(qu12817)
+let ru12817m = ou12817.mulWithOverflow(qu12817)
+print "u128 1 256: ${ru12817a.value} ${ru12817a.overflowed} ${ru12817s.value} ${ru12817s.overflowed} ${ru12817m.value} ${ru12817m.overflowed} ${ou12817.saturatingAdd(qu12817)} ${ou12817.saturatingSub(qu12817)} ${ou12817.saturatingMul(qu12817)}"
+let ou12818: u128 = 1
+let qu12818: u128 = 4294967295
+let ru12818a = ou12818.addWithOverflow(qu12818)
+let ru12818s = ou12818.subWithOverflow(qu12818)
+let ru12818m = ou12818.mulWithOverflow(qu12818)
+print "u128 1 4294967295: ${ru12818a.value} ${ru12818a.overflowed} ${ru12818s.value} ${ru12818s.overflowed} ${ru12818m.value} ${ru12818m.overflowed} ${ou12818.saturatingAdd(qu12818)} ${ou12818.saturatingSub(qu12818)} ${ou12818.saturatingMul(qu12818)}"
+let ou12819: u128 = 1
+let qu12819: u128 = 4294967296
+let ru12819a = ou12819.addWithOverflow(qu12819)
+let ru12819s = ou12819.subWithOverflow(qu12819)
+let ru12819m = ou12819.mulWithOverflow(qu12819)
+print "u128 1 4294967296: ${ru12819a.value} ${ru12819a.overflowed} ${ru12819s.value} ${ru12819s.overflowed} ${ru12819m.value} ${ru12819m.overflowed} ${ou12819.saturatingAdd(qu12819)} ${ou12819.saturatingSub(qu12819)} ${ou12819.saturatingMul(qu12819)}"
+let ou12820: u128 = 1
+let qu12820: u128 = 9223372036854775807
+let ru12820a = ou12820.addWithOverflow(qu12820)
+let ru12820s = ou12820.subWithOverflow(qu12820)
+let ru12820m = ou12820.mulWithOverflow(qu12820)
+print "u128 1 9223372036854775807: ${ru12820a.value} ${ru12820a.overflowed} ${ru12820s.value} ${ru12820s.overflowed} ${ru12820m.value} ${ru12820m.overflowed} ${ou12820.saturatingAdd(qu12820)} ${ou12820.saturatingSub(qu12820)} ${ou12820.saturatingMul(qu12820)}"
+let ou12821: u128 = 1
+let qu12821: u128 = 9223372036854775808
+let ru12821a = ou12821.addWithOverflow(qu12821)
+let ru12821s = ou12821.subWithOverflow(qu12821)
+let ru12821m = ou12821.mulWithOverflow(qu12821)
+print "u128 1 9223372036854775808: ${ru12821a.value} ${ru12821a.overflowed} ${ru12821s.value} ${ru12821s.overflowed} ${ru12821m.value} ${ru12821m.overflowed} ${ou12821.saturatingAdd(qu12821)} ${ou12821.saturatingSub(qu12821)} ${ou12821.saturatingMul(qu12821)}"
+let ou12822: u128 = 1
+let qu12822: u128 = 18446744073709551615
+let ru12822a = ou12822.addWithOverflow(qu12822)
+let ru12822s = ou12822.subWithOverflow(qu12822)
+let ru12822m = ou12822.mulWithOverflow(qu12822)
+print "u128 1 18446744073709551615: ${ru12822a.value} ${ru12822a.overflowed} ${ru12822s.value} ${ru12822s.overflowed} ${ru12822m.value} ${ru12822m.overflowed} ${ou12822.saturatingAdd(qu12822)} ${ou12822.saturatingSub(qu12822)} ${ou12822.saturatingMul(qu12822)}"
+let ou12823: u128 = 1
+let qu12823: u128 = 18446744073709551616
+let ru12823a = ou12823.addWithOverflow(qu12823)
+let ru12823s = ou12823.subWithOverflow(qu12823)
+let ru12823m = ou12823.mulWithOverflow(qu12823)
+print "u128 1 18446744073709551616: ${ru12823a.value} ${ru12823a.overflowed} ${ru12823s.value} ${ru12823s.overflowed} ${ru12823m.value} ${ru12823m.overflowed} ${ou12823.saturatingAdd(qu12823)} ${ou12823.saturatingSub(qu12823)} ${ou12823.saturatingMul(qu12823)}"
+let ou12824: u128 = 2
+let qu12824: u128 = 0
+let ru12824a = ou12824.addWithOverflow(qu12824)
+let ru12824s = ou12824.subWithOverflow(qu12824)
+let ru12824m = ou12824.mulWithOverflow(qu12824)
+print "u128 2 0: ${ru12824a.value} ${ru12824a.overflowed} ${ru12824s.value} ${ru12824s.overflowed} ${ru12824m.value} ${ru12824m.overflowed} ${ou12824.saturatingAdd(qu12824)} ${ou12824.saturatingSub(qu12824)} ${ou12824.saturatingMul(qu12824)}"
+let ou12825: u128 = 2
+let qu12825: u128 = 1
+let ru12825a = ou12825.addWithOverflow(qu12825)
+let ru12825s = ou12825.subWithOverflow(qu12825)
+let ru12825m = ou12825.mulWithOverflow(qu12825)
+print "u128 2 1: ${ru12825a.value} ${ru12825a.overflowed} ${ru12825s.value} ${ru12825s.overflowed} ${ru12825m.value} ${ru12825m.overflowed} ${ou12825.saturatingAdd(qu12825)} ${ou12825.saturatingSub(qu12825)} ${ou12825.saturatingMul(qu12825)}"
+let ou12826: u128 = 2
+let qu12826: u128 = 2
+let ru12826a = ou12826.addWithOverflow(qu12826)
+let ru12826s = ou12826.subWithOverflow(qu12826)
+let ru12826m = ou12826.mulWithOverflow(qu12826)
+print "u128 2 2: ${ru12826a.value} ${ru12826a.overflowed} ${ru12826s.value} ${ru12826s.overflowed} ${ru12826m.value} ${ru12826m.overflowed} ${ou12826.saturatingAdd(qu12826)} ${ou12826.saturatingSub(qu12826)} ${ou12826.saturatingMul(qu12826)}"
+let ou12827: u128 = 2
+let qu12827: u128 = 7
+let ru12827a = ou12827.addWithOverflow(qu12827)
+let ru12827s = ou12827.subWithOverflow(qu12827)
+let ru12827m = ou12827.mulWithOverflow(qu12827)
+print "u128 2 7: ${ru12827a.value} ${ru12827a.overflowed} ${ru12827s.value} ${ru12827s.overflowed} ${ru12827m.value} ${ru12827m.overflowed} ${ou12827.saturatingAdd(qu12827)} ${ou12827.saturatingSub(qu12827)} ${ou12827.saturatingMul(qu12827)}"
+let ou12828: u128 = 2
+let qu12828: u128 = 255
+let ru12828a = ou12828.addWithOverflow(qu12828)
+let ru12828s = ou12828.subWithOverflow(qu12828)
+let ru12828m = ou12828.mulWithOverflow(qu12828)
+print "u128 2 255: ${ru12828a.value} ${ru12828a.overflowed} ${ru12828s.value} ${ru12828s.overflowed} ${ru12828m.value} ${ru12828m.overflowed} ${ou12828.saturatingAdd(qu12828)} ${ou12828.saturatingSub(qu12828)} ${ou12828.saturatingMul(qu12828)}"
+let ou12829: u128 = 2
+let qu12829: u128 = 256
+let ru12829a = ou12829.addWithOverflow(qu12829)
+let ru12829s = ou12829.subWithOverflow(qu12829)
+let ru12829m = ou12829.mulWithOverflow(qu12829)
+print "u128 2 256: ${ru12829a.value} ${ru12829a.overflowed} ${ru12829s.value} ${ru12829s.overflowed} ${ru12829m.value} ${ru12829m.overflowed} ${ou12829.saturatingAdd(qu12829)} ${ou12829.saturatingSub(qu12829)} ${ou12829.saturatingMul(qu12829)}"
+let ou12830: u128 = 2
+let qu12830: u128 = 4294967295
+let ru12830a = ou12830.addWithOverflow(qu12830)
+let ru12830s = ou12830.subWithOverflow(qu12830)
+let ru12830m = ou12830.mulWithOverflow(qu12830)
+print "u128 2 4294967295: ${ru12830a.value} ${ru12830a.overflowed} ${ru12830s.value} ${ru12830s.overflowed} ${ru12830m.value} ${ru12830m.overflowed} ${ou12830.saturatingAdd(qu12830)} ${ou12830.saturatingSub(qu12830)} ${ou12830.saturatingMul(qu12830)}"
+let ou12831: u128 = 2
+let qu12831: u128 = 4294967296
+let ru12831a = ou12831.addWithOverflow(qu12831)
+let ru12831s = ou12831.subWithOverflow(qu12831)
+let ru12831m = ou12831.mulWithOverflow(qu12831)
+print "u128 2 4294967296: ${ru12831a.value} ${ru12831a.overflowed} ${ru12831s.value} ${ru12831s.overflowed} ${ru12831m.value} ${ru12831m.overflowed} ${ou12831.saturatingAdd(qu12831)} ${ou12831.saturatingSub(qu12831)} ${ou12831.saturatingMul(qu12831)}"
+let ou12832: u128 = 2
+let qu12832: u128 = 9223372036854775807
+let ru12832a = ou12832.addWithOverflow(qu12832)
+let ru12832s = ou12832.subWithOverflow(qu12832)
+let ru12832m = ou12832.mulWithOverflow(qu12832)
+print "u128 2 9223372036854775807: ${ru12832a.value} ${ru12832a.overflowed} ${ru12832s.value} ${ru12832s.overflowed} ${ru12832m.value} ${ru12832m.overflowed} ${ou12832.saturatingAdd(qu12832)} ${ou12832.saturatingSub(qu12832)} ${ou12832.saturatingMul(qu12832)}"
+let ou12833: u128 = 2
+let qu12833: u128 = 9223372036854775808
+let ru12833a = ou12833.addWithOverflow(qu12833)
+let ru12833s = ou12833.subWithOverflow(qu12833)
+let ru12833m = ou12833.mulWithOverflow(qu12833)
+print "u128 2 9223372036854775808: ${ru12833a.value} ${ru12833a.overflowed} ${ru12833s.value} ${ru12833s.overflowed} ${ru12833m.value} ${ru12833m.overflowed} ${ou12833.saturatingAdd(qu12833)} ${ou12833.saturatingSub(qu12833)} ${ou12833.saturatingMul(qu12833)}"
+let ou12834: u128 = 2
+let qu12834: u128 = 18446744073709551615
+let ru12834a = ou12834.addWithOverflow(qu12834)
+let ru12834s = ou12834.subWithOverflow(qu12834)
+let ru12834m = ou12834.mulWithOverflow(qu12834)
+print "u128 2 18446744073709551615: ${ru12834a.value} ${ru12834a.overflowed} ${ru12834s.value} ${ru12834s.overflowed} ${ru12834m.value} ${ru12834m.overflowed} ${ou12834.saturatingAdd(qu12834)} ${ou12834.saturatingSub(qu12834)} ${ou12834.saturatingMul(qu12834)}"
+let ou12835: u128 = 2
+let qu12835: u128 = 18446744073709551616
+let ru12835a = ou12835.addWithOverflow(qu12835)
+let ru12835s = ou12835.subWithOverflow(qu12835)
+let ru12835m = ou12835.mulWithOverflow(qu12835)
+print "u128 2 18446744073709551616: ${ru12835a.value} ${ru12835a.overflowed} ${ru12835s.value} ${ru12835s.overflowed} ${ru12835m.value} ${ru12835m.overflowed} ${ou12835.saturatingAdd(qu12835)} ${ou12835.saturatingSub(qu12835)} ${ou12835.saturatingMul(qu12835)}"
+let ou12836: u128 = 7
+let qu12836: u128 = 0
+let ru12836a = ou12836.addWithOverflow(qu12836)
+let ru12836s = ou12836.subWithOverflow(qu12836)
+let ru12836m = ou12836.mulWithOverflow(qu12836)
+print "u128 7 0: ${ru12836a.value} ${ru12836a.overflowed} ${ru12836s.value} ${ru12836s.overflowed} ${ru12836m.value} ${ru12836m.overflowed} ${ou12836.saturatingAdd(qu12836)} ${ou12836.saturatingSub(qu12836)} ${ou12836.saturatingMul(qu12836)}"
+let ou12837: u128 = 7
+let qu12837: u128 = 1
+let ru12837a = ou12837.addWithOverflow(qu12837)
+let ru12837s = ou12837.subWithOverflow(qu12837)
+let ru12837m = ou12837.mulWithOverflow(qu12837)
+print "u128 7 1: ${ru12837a.value} ${ru12837a.overflowed} ${ru12837s.value} ${ru12837s.overflowed} ${ru12837m.value} ${ru12837m.overflowed} ${ou12837.saturatingAdd(qu12837)} ${ou12837.saturatingSub(qu12837)} ${ou12837.saturatingMul(qu12837)}"
+let ou12838: u128 = 7
+let qu12838: u128 = 2
+let ru12838a = ou12838.addWithOverflow(qu12838)
+let ru12838s = ou12838.subWithOverflow(qu12838)
+let ru12838m = ou12838.mulWithOverflow(qu12838)
+print "u128 7 2: ${ru12838a.value} ${ru12838a.overflowed} ${ru12838s.value} ${ru12838s.overflowed} ${ru12838m.value} ${ru12838m.overflowed} ${ou12838.saturatingAdd(qu12838)} ${ou12838.saturatingSub(qu12838)} ${ou12838.saturatingMul(qu12838)}"
+let ou12839: u128 = 7
+let qu12839: u128 = 7
+let ru12839a = ou12839.addWithOverflow(qu12839)
+let ru12839s = ou12839.subWithOverflow(qu12839)
+let ru12839m = ou12839.mulWithOverflow(qu12839)
+print "u128 7 7: ${ru12839a.value} ${ru12839a.overflowed} ${ru12839s.value} ${ru12839s.overflowed} ${ru12839m.value} ${ru12839m.overflowed} ${ou12839.saturatingAdd(qu12839)} ${ou12839.saturatingSub(qu12839)} ${ou12839.saturatingMul(qu12839)}"
+let ou12840: u128 = 7
+let qu12840: u128 = 255
+let ru12840a = ou12840.addWithOverflow(qu12840)
+let ru12840s = ou12840.subWithOverflow(qu12840)
+let ru12840m = ou12840.mulWithOverflow(qu12840)
+print "u128 7 255: ${ru12840a.value} ${ru12840a.overflowed} ${ru12840s.value} ${ru12840s.overflowed} ${ru12840m.value} ${ru12840m.overflowed} ${ou12840.saturatingAdd(qu12840)} ${ou12840.saturatingSub(qu12840)} ${ou12840.saturatingMul(qu12840)}"
+let ou12841: u128 = 7
+let qu12841: u128 = 256
+let ru12841a = ou12841.addWithOverflow(qu12841)
+let ru12841s = ou12841.subWithOverflow(qu12841)
+let ru12841m = ou12841.mulWithOverflow(qu12841)
+print "u128 7 256: ${ru12841a.value} ${ru12841a.overflowed} ${ru12841s.value} ${ru12841s.overflowed} ${ru12841m.value} ${ru12841m.overflowed} ${ou12841.saturatingAdd(qu12841)} ${ou12841.saturatingSub(qu12841)} ${ou12841.saturatingMul(qu12841)}"
+let ou12842: u128 = 7
+let qu12842: u128 = 4294967295
+let ru12842a = ou12842.addWithOverflow(qu12842)
+let ru12842s = ou12842.subWithOverflow(qu12842)
+let ru12842m = ou12842.mulWithOverflow(qu12842)
+print "u128 7 4294967295: ${ru12842a.value} ${ru12842a.overflowed} ${ru12842s.value} ${ru12842s.overflowed} ${ru12842m.value} ${ru12842m.overflowed} ${ou12842.saturatingAdd(qu12842)} ${ou12842.saturatingSub(qu12842)} ${ou12842.saturatingMul(qu12842)}"
+let ou12843: u128 = 7
+let qu12843: u128 = 4294967296
+let ru12843a = ou12843.addWithOverflow(qu12843)
+let ru12843s = ou12843.subWithOverflow(qu12843)
+let ru12843m = ou12843.mulWithOverflow(qu12843)
+print "u128 7 4294967296: ${ru12843a.value} ${ru12843a.overflowed} ${ru12843s.value} ${ru12843s.overflowed} ${ru12843m.value} ${ru12843m.overflowed} ${ou12843.saturatingAdd(qu12843)} ${ou12843.saturatingSub(qu12843)} ${ou12843.saturatingMul(qu12843)}"
+let ou12844: u128 = 7
+let qu12844: u128 = 9223372036854775807
+let ru12844a = ou12844.addWithOverflow(qu12844)
+let ru12844s = ou12844.subWithOverflow(qu12844)
+let ru12844m = ou12844.mulWithOverflow(qu12844)
+print "u128 7 9223372036854775807: ${ru12844a.value} ${ru12844a.overflowed} ${ru12844s.value} ${ru12844s.overflowed} ${ru12844m.value} ${ru12844m.overflowed} ${ou12844.saturatingAdd(qu12844)} ${ou12844.saturatingSub(qu12844)} ${ou12844.saturatingMul(qu12844)}"
+let ou12845: u128 = 7
+let qu12845: u128 = 9223372036854775808
+let ru12845a = ou12845.addWithOverflow(qu12845)
+let ru12845s = ou12845.subWithOverflow(qu12845)
+let ru12845m = ou12845.mulWithOverflow(qu12845)
+print "u128 7 9223372036854775808: ${ru12845a.value} ${ru12845a.overflowed} ${ru12845s.value} ${ru12845s.overflowed} ${ru12845m.value} ${ru12845m.overflowed} ${ou12845.saturatingAdd(qu12845)} ${ou12845.saturatingSub(qu12845)} ${ou12845.saturatingMul(qu12845)}"
+let ou12846: u128 = 7
+let qu12846: u128 = 18446744073709551615
+let ru12846a = ou12846.addWithOverflow(qu12846)
+let ru12846s = ou12846.subWithOverflow(qu12846)
+let ru12846m = ou12846.mulWithOverflow(qu12846)
+print "u128 7 18446744073709551615: ${ru12846a.value} ${ru12846a.overflowed} ${ru12846s.value} ${ru12846s.overflowed} ${ru12846m.value} ${ru12846m.overflowed} ${ou12846.saturatingAdd(qu12846)} ${ou12846.saturatingSub(qu12846)} ${ou12846.saturatingMul(qu12846)}"
+let ou12847: u128 = 7
+let qu12847: u128 = 18446744073709551616
+let ru12847a = ou12847.addWithOverflow(qu12847)
+let ru12847s = ou12847.subWithOverflow(qu12847)
+let ru12847m = ou12847.mulWithOverflow(qu12847)
+print "u128 7 18446744073709551616: ${ru12847a.value} ${ru12847a.overflowed} ${ru12847s.value} ${ru12847s.overflowed} ${ru12847m.value} ${ru12847m.overflowed} ${ou12847.saturatingAdd(qu12847)} ${ou12847.saturatingSub(qu12847)} ${ou12847.saturatingMul(qu12847)}"
+let ou12848: u128 = 255
+let qu12848: u128 = 0
+let ru12848a = ou12848.addWithOverflow(qu12848)
+let ru12848s = ou12848.subWithOverflow(qu12848)
+let ru12848m = ou12848.mulWithOverflow(qu12848)
+print "u128 255 0: ${ru12848a.value} ${ru12848a.overflowed} ${ru12848s.value} ${ru12848s.overflowed} ${ru12848m.value} ${ru12848m.overflowed} ${ou12848.saturatingAdd(qu12848)} ${ou12848.saturatingSub(qu12848)} ${ou12848.saturatingMul(qu12848)}"
+let ou12849: u128 = 255
+let qu12849: u128 = 1
+let ru12849a = ou12849.addWithOverflow(qu12849)
+let ru12849s = ou12849.subWithOverflow(qu12849)
+let ru12849m = ou12849.mulWithOverflow(qu12849)
+print "u128 255 1: ${ru12849a.value} ${ru12849a.overflowed} ${ru12849s.value} ${ru12849s.overflowed} ${ru12849m.value} ${ru12849m.overflowed} ${ou12849.saturatingAdd(qu12849)} ${ou12849.saturatingSub(qu12849)} ${ou12849.saturatingMul(qu12849)}"
+let ou12850: u128 = 255
+let qu12850: u128 = 2
+let ru12850a = ou12850.addWithOverflow(qu12850)
+let ru12850s = ou12850.subWithOverflow(qu12850)
+let ru12850m = ou12850.mulWithOverflow(qu12850)
+print "u128 255 2: ${ru12850a.value} ${ru12850a.overflowed} ${ru12850s.value} ${ru12850s.overflowed} ${ru12850m.value} ${ru12850m.overflowed} ${ou12850.saturatingAdd(qu12850)} ${ou12850.saturatingSub(qu12850)} ${ou12850.saturatingMul(qu12850)}"
+let ou12851: u128 = 255
+let qu12851: u128 = 7
+let ru12851a = ou12851.addWithOverflow(qu12851)
+let ru12851s = ou12851.subWithOverflow(qu12851)
+let ru12851m = ou12851.mulWithOverflow(qu12851)
+print "u128 255 7: ${ru12851a.value} ${ru12851a.overflowed} ${ru12851s.value} ${ru12851s.overflowed} ${ru12851m.value} ${ru12851m.overflowed} ${ou12851.saturatingAdd(qu12851)} ${ou12851.saturatingSub(qu12851)} ${ou12851.saturatingMul(qu12851)}"
+let ou12852: u128 = 255
+let qu12852: u128 = 255
+let ru12852a = ou12852.addWithOverflow(qu12852)
+let ru12852s = ou12852.subWithOverflow(qu12852)
+let ru12852m = ou12852.mulWithOverflow(qu12852)
+print "u128 255 255: ${ru12852a.value} ${ru12852a.overflowed} ${ru12852s.value} ${ru12852s.overflowed} ${ru12852m.value} ${ru12852m.overflowed} ${ou12852.saturatingAdd(qu12852)} ${ou12852.saturatingSub(qu12852)} ${ou12852.saturatingMul(qu12852)}"
+let ou12853: u128 = 255
+let qu12853: u128 = 256
+let ru12853a = ou12853.addWithOverflow(qu12853)
+let ru12853s = ou12853.subWithOverflow(qu12853)
+let ru12853m = ou12853.mulWithOverflow(qu12853)
+print "u128 255 256: ${ru12853a.value} ${ru12853a.overflowed} ${ru12853s.value} ${ru12853s.overflowed} ${ru12853m.value} ${ru12853m.overflowed} ${ou12853.saturatingAdd(qu12853)} ${ou12853.saturatingSub(qu12853)} ${ou12853.saturatingMul(qu12853)}"
+let ou12854: u128 = 255
+let qu12854: u128 = 4294967295
+let ru12854a = ou12854.addWithOverflow(qu12854)
+let ru12854s = ou12854.subWithOverflow(qu12854)
+let ru12854m = ou12854.mulWithOverflow(qu12854)
+print "u128 255 4294967295: ${ru12854a.value} ${ru12854a.overflowed} ${ru12854s.value} ${ru12854s.overflowed} ${ru12854m.value} ${ru12854m.overflowed} ${ou12854.saturatingAdd(qu12854)} ${ou12854.saturatingSub(qu12854)} ${ou12854.saturatingMul(qu12854)}"
+let ou12855: u128 = 255
+let qu12855: u128 = 4294967296
+let ru12855a = ou12855.addWithOverflow(qu12855)
+let ru12855s = ou12855.subWithOverflow(qu12855)
+let ru12855m = ou12855.mulWithOverflow(qu12855)
+print "u128 255 4294967296: ${ru12855a.value} ${ru12855a.overflowed} ${ru12855s.value} ${ru12855s.overflowed} ${ru12855m.value} ${ru12855m.overflowed} ${ou12855.saturatingAdd(qu12855)} ${ou12855.saturatingSub(qu12855)} ${ou12855.saturatingMul(qu12855)}"
+let ou12856: u128 = 255
+let qu12856: u128 = 9223372036854775807
+let ru12856a = ou12856.addWithOverflow(qu12856)
+let ru12856s = ou12856.subWithOverflow(qu12856)
+let ru12856m = ou12856.mulWithOverflow(qu12856)
+print "u128 255 9223372036854775807: ${ru12856a.value} ${ru12856a.overflowed} ${ru12856s.value} ${ru12856s.overflowed} ${ru12856m.value} ${ru12856m.overflowed} ${ou12856.saturatingAdd(qu12856)} ${ou12856.saturatingSub(qu12856)} ${ou12856.saturatingMul(qu12856)}"
+let ou12857: u128 = 255
+let qu12857: u128 = 9223372036854775808
+let ru12857a = ou12857.addWithOverflow(qu12857)
+let ru12857s = ou12857.subWithOverflow(qu12857)
+let ru12857m = ou12857.mulWithOverflow(qu12857)
+print "u128 255 9223372036854775808: ${ru12857a.value} ${ru12857a.overflowed} ${ru12857s.value} ${ru12857s.overflowed} ${ru12857m.value} ${ru12857m.overflowed} ${ou12857.saturatingAdd(qu12857)} ${ou12857.saturatingSub(qu12857)} ${ou12857.saturatingMul(qu12857)}"
+let ou12858: u128 = 255
+let qu12858: u128 = 18446744073709551615
+let ru12858a = ou12858.addWithOverflow(qu12858)
+let ru12858s = ou12858.subWithOverflow(qu12858)
+let ru12858m = ou12858.mulWithOverflow(qu12858)
+print "u128 255 18446744073709551615: ${ru12858a.value} ${ru12858a.overflowed} ${ru12858s.value} ${ru12858s.overflowed} ${ru12858m.value} ${ru12858m.overflowed} ${ou12858.saturatingAdd(qu12858)} ${ou12858.saturatingSub(qu12858)} ${ou12858.saturatingMul(qu12858)}"
+let ou12859: u128 = 255
+let qu12859: u128 = 18446744073709551616
+let ru12859a = ou12859.addWithOverflow(qu12859)
+let ru12859s = ou12859.subWithOverflow(qu12859)
+let ru12859m = ou12859.mulWithOverflow(qu12859)
+print "u128 255 18446744073709551616: ${ru12859a.value} ${ru12859a.overflowed} ${ru12859s.value} ${ru12859s.overflowed} ${ru12859m.value} ${ru12859m.overflowed} ${ou12859.saturatingAdd(qu12859)} ${ou12859.saturatingSub(qu12859)} ${ou12859.saturatingMul(qu12859)}"
+let ou12860: u128 = 256
+let qu12860: u128 = 0
+let ru12860a = ou12860.addWithOverflow(qu12860)
+let ru12860s = ou12860.subWithOverflow(qu12860)
+let ru12860m = ou12860.mulWithOverflow(qu12860)
+print "u128 256 0: ${ru12860a.value} ${ru12860a.overflowed} ${ru12860s.value} ${ru12860s.overflowed} ${ru12860m.value} ${ru12860m.overflowed} ${ou12860.saturatingAdd(qu12860)} ${ou12860.saturatingSub(qu12860)} ${ou12860.saturatingMul(qu12860)}"
+let ou12861: u128 = 256
+let qu12861: u128 = 1
+let ru12861a = ou12861.addWithOverflow(qu12861)
+let ru12861s = ou12861.subWithOverflow(qu12861)
+let ru12861m = ou12861.mulWithOverflow(qu12861)
+print "u128 256 1: ${ru12861a.value} ${ru12861a.overflowed} ${ru12861s.value} ${ru12861s.overflowed} ${ru12861m.value} ${ru12861m.overflowed} ${ou12861.saturatingAdd(qu12861)} ${ou12861.saturatingSub(qu12861)} ${ou12861.saturatingMul(qu12861)}"
+let ou12862: u128 = 256
+let qu12862: u128 = 2
+let ru12862a = ou12862.addWithOverflow(qu12862)
+let ru12862s = ou12862.subWithOverflow(qu12862)
+let ru12862m = ou12862.mulWithOverflow(qu12862)
+print "u128 256 2: ${ru12862a.value} ${ru12862a.overflowed} ${ru12862s.value} ${ru12862s.overflowed} ${ru12862m.value} ${ru12862m.overflowed} ${ou12862.saturatingAdd(qu12862)} ${ou12862.saturatingSub(qu12862)} ${ou12862.saturatingMul(qu12862)}"
+let ou12863: u128 = 256
+let qu12863: u128 = 7
+let ru12863a = ou12863.addWithOverflow(qu12863)
+let ru12863s = ou12863.subWithOverflow(qu12863)
+let ru12863m = ou12863.mulWithOverflow(qu12863)
+print "u128 256 7: ${ru12863a.value} ${ru12863a.overflowed} ${ru12863s.value} ${ru12863s.overflowed} ${ru12863m.value} ${ru12863m.overflowed} ${ou12863.saturatingAdd(qu12863)} ${ou12863.saturatingSub(qu12863)} ${ou12863.saturatingMul(qu12863)}"
+let ou12864: u128 = 256
+let qu12864: u128 = 255
+let ru12864a = ou12864.addWithOverflow(qu12864)
+let ru12864s = ou12864.subWithOverflow(qu12864)
+let ru12864m = ou12864.mulWithOverflow(qu12864)
+print "u128 256 255: ${ru12864a.value} ${ru12864a.overflowed} ${ru12864s.value} ${ru12864s.overflowed} ${ru12864m.value} ${ru12864m.overflowed} ${ou12864.saturatingAdd(qu12864)} ${ou12864.saturatingSub(qu12864)} ${ou12864.saturatingMul(qu12864)}"
+let ou12865: u128 = 256
+let qu12865: u128 = 256
+let ru12865a = ou12865.addWithOverflow(qu12865)
+let ru12865s = ou12865.subWithOverflow(qu12865)
+let ru12865m = ou12865.mulWithOverflow(qu12865)
+print "u128 256 256: ${ru12865a.value} ${ru12865a.overflowed} ${ru12865s.value} ${ru12865s.overflowed} ${ru12865m.value} ${ru12865m.overflowed} ${ou12865.saturatingAdd(qu12865)} ${ou12865.saturatingSub(qu12865)} ${ou12865.saturatingMul(qu12865)}"
+let ou12866: u128 = 256
+let qu12866: u128 = 4294967295
+let ru12866a = ou12866.addWithOverflow(qu12866)
+let ru12866s = ou12866.subWithOverflow(qu12866)
+let ru12866m = ou12866.mulWithOverflow(qu12866)
+print "u128 256 4294967295: ${ru12866a.value} ${ru12866a.overflowed} ${ru12866s.value} ${ru12866s.overflowed} ${ru12866m.value} ${ru12866m.overflowed} ${ou12866.saturatingAdd(qu12866)} ${ou12866.saturatingSub(qu12866)} ${ou12866.saturatingMul(qu12866)}"
+let ou12867: u128 = 256
+let qu12867: u128 = 4294967296
+let ru12867a = ou12867.addWithOverflow(qu12867)
+let ru12867s = ou12867.subWithOverflow(qu12867)
+let ru12867m = ou12867.mulWithOverflow(qu12867)
+print "u128 256 4294967296: ${ru12867a.value} ${ru12867a.overflowed} ${ru12867s.value} ${ru12867s.overflowed} ${ru12867m.value} ${ru12867m.overflowed} ${ou12867.saturatingAdd(qu12867)} ${ou12867.saturatingSub(qu12867)} ${ou12867.saturatingMul(qu12867)}"
+let ou12868: u128 = 256
+let qu12868: u128 = 9223372036854775807
+let ru12868a = ou12868.addWithOverflow(qu12868)
+let ru12868s = ou12868.subWithOverflow(qu12868)
+let ru12868m = ou12868.mulWithOverflow(qu12868)
+print "u128 256 9223372036854775807: ${ru12868a.value} ${ru12868a.overflowed} ${ru12868s.value} ${ru12868s.overflowed} ${ru12868m.value} ${ru12868m.overflowed} ${ou12868.saturatingAdd(qu12868)} ${ou12868.saturatingSub(qu12868)} ${ou12868.saturatingMul(qu12868)}"
+let ou12869: u128 = 256
+let qu12869: u128 = 9223372036854775808
+let ru12869a = ou12869.addWithOverflow(qu12869)
+let ru12869s = ou12869.subWithOverflow(qu12869)
+let ru12869m = ou12869.mulWithOverflow(qu12869)
+print "u128 256 9223372036854775808: ${ru12869a.value} ${ru12869a.overflowed} ${ru12869s.value} ${ru12869s.overflowed} ${ru12869m.value} ${ru12869m.overflowed} ${ou12869.saturatingAdd(qu12869)} ${ou12869.saturatingSub(qu12869)} ${ou12869.saturatingMul(qu12869)}"
+-- stdout --
+i128 0 0: 0 false 0 false 0 false 0 0 0
+i128 0 1: 1 false -1 false 0 false 1 -1 0
+i128 0 -1: -1 false 1 false 0 false -1 1 0
+i128 0 2: 2 false -2 false 0 false 2 -2 0
+i128 0 -2: -2 false 2 false 0 false -2 2 0
+i128 0 7: 7 false -7 false 0 false 7 -7 0
+i128 0 -7: -7 false 7 false 0 false -7 7 0
+i128 0 255: 255 false -255 false 0 false 255 -255 0
+i128 0 256: 256 false -256 false 0 false 256 -256 0
+i128 0 -256: -256 false 256 false 0 false -256 256 0
+i128 0 2147483647: 2147483647 false -2147483647 false 0 false 2147483647 -2147483647 0
+i128 0 2147483648: 2147483648 false -2147483648 false 0 false 2147483648 -2147483648 0
+i128 1 0: 1 false 1 false 0 false 1 1 0
+i128 1 1: 2 false 0 false 1 false 2 0 1
+i128 1 -1: 0 false 2 false -1 false 0 2 -1
+i128 1 2: 3 false -1 false 2 false 3 -1 2
+i128 1 -2: -1 false 3 false -2 false -1 3 -2
+i128 1 7: 8 false -6 false 7 false 8 -6 7
+i128 1 -7: -6 false 8 false -7 false -6 8 -7
+i128 1 255: 256 false -254 false 255 false 256 -254 255
+i128 1 256: 257 false -255 false 256 false 257 -255 256
+i128 1 -256: -255 false 257 false -256 false -255 257 -256
+i128 1 2147483647: 2147483648 false -2147483646 false 2147483647 false 2147483648 -2147483646 2147483647
+i128 1 2147483648: 2147483649 false -2147483647 false 2147483648 false 2147483649 -2147483647 2147483648
+i128 -1 0: -1 false -1 false 0 false -1 -1 0
+i128 -1 1: 0 false -2 false -1 false 0 -2 -1
+i128 -1 -1: -2 false 0 false 1 false -2 0 1
+i128 -1 2: 1 false -3 false -2 false 1 -3 -2
+i128 -1 -2: -3 false 1 false 2 false -3 1 2
+i128 -1 7: 6 false -8 false -7 false 6 -8 -7
+i128 -1 -7: -8 false 6 false 7 false -8 6 7
+i128 -1 255: 254 false -256 false -255 false 254 -256 -255
+i128 -1 256: 255 false -257 false -256 false 255 -257 -256
+i128 -1 -256: -257 false 255 false 256 false -257 255 256
+i128 -1 2147483647: 2147483646 false -2147483648 false -2147483647 false 2147483646 -2147483648 -2147483647
+i128 -1 2147483648: 2147483647 false -2147483649 false -2147483648 false 2147483647 -2147483649 -2147483648
+i128 2 0: 2 false 2 false 0 false 2 2 0
+i128 2 1: 3 false 1 false 2 false 3 1 2
+i128 2 -1: 1 false 3 false -2 false 1 3 -2
+i128 2 2: 4 false 0 false 4 false 4 0 4
+i128 2 -2: 0 false 4 false -4 false 0 4 -4
+i128 2 7: 9 false -5 false 14 false 9 -5 14
+i128 2 -7: -5 false 9 false -14 false -5 9 -14
+i128 2 255: 257 false -253 false 510 false 257 -253 510
+i128 2 256: 258 false -254 false 512 false 258 -254 512
+i128 2 -256: -254 false 258 false -512 false -254 258 -512
+i128 2 2147483647: 2147483649 false -2147483645 false 4294967294 false 2147483649 -2147483645 4294967294
+i128 2 2147483648: 2147483650 false -2147483646 false 4294967296 false 2147483650 -2147483646 4294967296
+i128 -2 0: -2 false -2 false 0 false -2 -2 0
+i128 -2 1: -1 false -3 false -2 false -1 -3 -2
+i128 -2 -1: -3 false -1 false 2 false -3 -1 2
+i128 -2 2: 0 false -4 false -4 false 0 -4 -4
+i128 -2 -2: -4 false 0 false 4 false -4 0 4
+i128 -2 7: 5 false -9 false -14 false 5 -9 -14
+i128 -2 -7: -9 false 5 false 14 false -9 5 14
+i128 -2 255: 253 false -257 false -510 false 253 -257 -510
+i128 -2 256: 254 false -258 false -512 false 254 -258 -512
+i128 -2 -256: -258 false 254 false 512 false -258 254 512
+i128 -2 2147483647: 2147483645 false -2147483649 false -4294967294 false 2147483645 -2147483649 -4294967294
+i128 -2 2147483648: 2147483646 false -2147483650 false -4294967296 false 2147483646 -2147483650 -4294967296
+i128 7 0: 7 false 7 false 0 false 7 7 0
+i128 7 1: 8 false 6 false 7 false 8 6 7
+i128 7 -1: 6 false 8 false -7 false 6 8 -7
+i128 7 2: 9 false 5 false 14 false 9 5 14
+i128 7 -2: 5 false 9 false -14 false 5 9 -14
+i128 7 7: 14 false 0 false 49 false 14 0 49
+i128 7 -7: 0 false 14 false -49 false 0 14 -49
+i128 7 255: 262 false -248 false 1785 false 262 -248 1785
+i128 7 256: 263 false -249 false 1792 false 263 -249 1792
+i128 7 -256: -249 false 263 false -1792 false -249 263 -1792
+u128 0 0: 0 false 0 false 0 false 0 0 0
+u128 0 1: 1 false 340282366920938463463374607431768211455 true 0 false 1 0 0
+u128 0 2: 2 false 340282366920938463463374607431768211454 true 0 false 2 0 0
+u128 0 7: 7 false 340282366920938463463374607431768211449 true 0 false 7 0 0
+u128 0 255: 255 false 340282366920938463463374607431768211201 true 0 false 255 0 0
+u128 0 256: 256 false 340282366920938463463374607431768211200 true 0 false 256 0 0
+u128 0 4294967295: 4294967295 false 340282366920938463463374607427473244161 true 0 false 4294967295 0 0
+u128 0 4294967296: 4294967296 false 340282366920938463463374607427473244160 true 0 false 4294967296 0 0
+u128 0 9223372036854775807: 9223372036854775807 false 340282366920938463454151235394913435649 true 0 false 9223372036854775807 0 0
+u128 0 9223372036854775808: 9223372036854775808 false 340282366920938463454151235394913435648 true 0 false 9223372036854775808 0 0
+u128 0 18446744073709551615: 18446744073709551615 false 340282366920938463444927863358058659841 true 0 false 18446744073709551615 0 0
+u128 0 18446744073709551616: 18446744073709551616 false 340282366920938463444927863358058659840 true 0 false 18446744073709551616 0 0
+u128 1 0: 1 false 1 false 0 false 1 1 0
+u128 1 1: 2 false 0 false 1 false 2 0 1
+u128 1 2: 3 false 340282366920938463463374607431768211455 true 2 false 3 0 2
+u128 1 7: 8 false 340282366920938463463374607431768211450 true 7 false 8 0 7
+u128 1 255: 256 false 340282366920938463463374607431768211202 true 255 false 256 0 255
+u128 1 256: 257 false 340282366920938463463374607431768211201 true 256 false 257 0 256
+u128 1 4294967295: 4294967296 false 340282366920938463463374607427473244162 true 4294967295 false 4294967296 0 4294967295
+u128 1 4294967296: 4294967297 false 340282366920938463463374607427473244161 true 4294967296 false 4294967297 0 4294967296
+u128 1 9223372036854775807: 9223372036854775808 false 340282366920938463454151235394913435650 true 9223372036854775807 false 9223372036854775808 0 9223372036854775807
+u128 1 9223372036854775808: 9223372036854775809 false 340282366920938463454151235394913435649 true 9223372036854775808 false 9223372036854775809 0 9223372036854775808
+u128 1 18446744073709551615: 18446744073709551616 false 340282366920938463444927863358058659842 true 18446744073709551615 false 18446744073709551616 0 18446744073709551615
+u128 1 18446744073709551616: 18446744073709551617 false 340282366920938463444927863358058659841 true 18446744073709551616 false 18446744073709551617 0 18446744073709551616
+u128 2 0: 2 false 2 false 0 false 2 2 0
+u128 2 1: 3 false 1 false 2 false 3 1 2
+u128 2 2: 4 false 0 false 4 false 4 0 4
+u128 2 7: 9 false 340282366920938463463374607431768211451 true 14 false 9 0 14
+u128 2 255: 257 false 340282366920938463463374607431768211203 true 510 false 257 0 510
+u128 2 256: 258 false 340282366920938463463374607431768211202 true 512 false 258 0 512
+u128 2 4294967295: 4294967297 false 340282366920938463463374607427473244163 true 8589934590 false 4294967297 0 8589934590
+u128 2 4294967296: 4294967298 false 340282366920938463463374607427473244162 true 8589934592 false 4294967298 0 8589934592
+u128 2 9223372036854775807: 9223372036854775809 false 340282366920938463454151235394913435651 true 18446744073709551614 false 9223372036854775809 0 18446744073709551614
+u128 2 9223372036854775808: 9223372036854775810 false 340282366920938463454151235394913435650 true 18446744073709551616 false 9223372036854775810 0 18446744073709551616
+u128 2 18446744073709551615: 18446744073709551617 false 340282366920938463444927863358058659843 true 36893488147419103230 false 18446744073709551617 0 36893488147419103230
+u128 2 18446744073709551616: 18446744073709551618 false 340282366920938463444927863358058659842 true 36893488147419103232 false 18446744073709551618 0 36893488147419103232
+u128 7 0: 7 false 7 false 0 false 7 7 0
+u128 7 1: 8 false 6 false 7 false 8 6 7
+u128 7 2: 9 false 5 false 14 false 9 5 14
+u128 7 7: 14 false 0 false 49 false 14 0 49
+u128 7 255: 262 false 340282366920938463463374607431768211208 true 1785 false 262 0 1785
+u128 7 256: 263 false 340282366920938463463374607431768211207 true 1792 false 263 0 1792
+u128 7 4294967295: 4294967302 false 340282366920938463463374607427473244168 true 30064771065 false 4294967302 0 30064771065
+u128 7 4294967296: 4294967303 false 340282366920938463463374607427473244167 true 30064771072 false 4294967303 0 30064771072
+u128 7 9223372036854775807: 9223372036854775814 false 340282366920938463454151235394913435656 true 64563604257983430649 false 9223372036854775814 0 64563604257983430649
+u128 7 9223372036854775808: 9223372036854775815 false 340282366920938463454151235394913435655 true 64563604257983430656 false 9223372036854775815 0 64563604257983430656
+u128 7 18446744073709551615: 18446744073709551622 false 340282366920938463444927863358058659848 true 129127208515966861305 false 18446744073709551622 0 129127208515966861305
+u128 7 18446744073709551616: 18446744073709551623 false 340282366920938463444927863358058659847 true 129127208515966861312 false 18446744073709551623 0 129127208515966861312
+u128 255 0: 255 false 255 false 0 false 255 255 0
+u128 255 1: 256 false 254 false 255 false 256 254 255
+u128 255 2: 257 false 253 false 510 false 257 253 510
+u128 255 7: 262 false 248 false 1785 false 262 248 1785
+u128 255 255: 510 false 0 false 65025 false 510 0 65025
+u128 255 256: 511 false 340282366920938463463374607431768211455 true 65280 false 511 0 65280
+u128 255 4294967295: 4294967550 false 340282366920938463463374607427473244416 true 1095216660225 false 4294967550 0 1095216660225
+u128 255 4294967296: 4294967551 false 340282366920938463463374607427473244415 true 1095216660480 false 4294967551 0 1095216660480
+u128 255 9223372036854775807: 9223372036854776062 false 340282366920938463454151235394913435904 true 2351959869397967830785 false 9223372036854776062 0 2351959869397967830785
+u128 255 9223372036854775808: 9223372036854776063 false 340282366920938463454151235394913435903 true 2351959869397967831040 false 9223372036854776063 0 2351959869397967831040
+u128 255 18446744073709551615: 18446744073709551870 false 340282366920938463444927863358058660096 true 4703919738795935661825 false 18446744073709551870 0 4703919738795935661825
+u128 255 18446744073709551616: 18446744073709551871 false 340282366920938463444927863358058660095 true 4703919738795935662080 false 18446744073709551871 0 4703919738795935662080
+u128 256 0: 256 false 256 false 0 false 256 256 0
+u128 256 1: 257 false 255 false 256 false 257 255 256
+u128 256 2: 258 false 254 false 512 false 258 254 512
+u128 256 7: 263 false 249 false 1792 false 263 249 1792
+u128 256 255: 511 false 1 false 65280 false 511 1 65280
+u128 256 256: 512 false 0 false 65536 false 512 0 65536
+u128 256 4294967295: 4294967551 false 340282366920938463463374607427473244417 true 1099511627520 false 4294967551 0 1099511627520
+u128 256 4294967296: 4294967552 false 340282366920938463463374607427473244416 true 1099511627776 false 4294967552 0 1099511627776
+u128 256 9223372036854775807: 9223372036854776063 false 340282366920938463454151235394913435905 true 2361183241434822606592 false 9223372036854776063 0 2361183241434822606592
+u128 256 9223372036854775808: 9223372036854776064 false 340282366920938463454151235394913435904 true 2361183241434822606848 false 9223372036854776064 0 2361183241434822606848

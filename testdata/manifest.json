@@ -6827,6 +6827,500 @@
       ]
     },
     {
+      "id": "run/int128_arith_signed",
+      "kind": "run",
+      "path": "testdata/run/int128_arith_signed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_arith_unsigned",
+      "kind": "run",
+      "path": "testdata/run/int128_arith_unsigned.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_calls",
+      "kind": "run",
+      "path": "testdata/run/int128_calls.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_comptime",
+      "kind": "run",
+      "path": "testdata/run/int128_comptime.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_convert_float",
+      "kind": "run",
+      "path": "testdata/run/int128_convert_float.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_convert_int",
+      "kind": "run",
+      "path": "testdata/run/int128_convert_int.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_literals",
+      "kind": "run",
+      "path": "testdata/run/int128_literals.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_loop",
+      "kind": "run",
+      "path": "testdata/run/int128_loop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_overflow_ops",
+      "kind": "run",
+      "path": "testdata/run/int128_overflow_ops.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_panic_add_signed",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_add_signed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_panic_add_unsigned",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_add_unsigned.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_panic_div_min_neg1",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_div_min_neg1.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_panic_div_zero",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_div_zero.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: division by zero"
+      }
+    },
+    {
+      "id": "run/int128_panic_mod_zero",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_mod_zero.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: division by zero"
+      }
+    },
+    {
+      "id": "run/int128_panic_mul_signed",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_mul_signed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_panic_mul_signed_neg",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_mul_signed_neg.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_panic_mul_unsigned",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_mul_unsigned.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_panic_neg_min",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_neg_min.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_panic_shl_range",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_shl_range.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: shift count out of range"
+      }
+    },
+    {
+      "id": "run/int128_panic_shr_range",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_shr_range.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: shift count out of range"
+      }
+    },
+    {
+      "id": "run/int128_panic_sub_signed",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_sub_signed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_panic_sub_unsigned",
+      "kind": "run",
+      "path": "testdata/run/int128_panic_sub_unsigned.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: integer overflow"
+      }
+    },
+    {
+      "id": "run/int128_shift",
+      "kind": "run",
+      "path": "testdata/run/int128_shift.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_text_hash",
+      "kind": "run",
+      "path": "testdata/run/int128_text_hash.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_values",
+      "kind": "run",
+      "path": "testdata/run/int128_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int128_wrapping",
+      "kind": "run",
+      "path": "testdata/run/int128_wrapping.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/int_overflow_flag",
       "kind": "run",
       "path": "testdata/run/int_overflow_flag.txtar",
@@ -8534,6 +9028,23 @@
       "id": "run/range_literal_element",
       "kind": "run",
       "path": "testdata/run/range_literal_element.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/range_reversed",
+      "kind": "run",
+      "path": "testdata/run/range_reversed.txtar",
       "mode": [
         "vm",
         "native"

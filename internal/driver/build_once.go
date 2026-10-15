@@ -89,6 +89,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if code.Unwind {
 		args = append(args, "-DKIGUMI_UNWIND")
 	}
+	if code.Int128 {
+		args = append(args, "-DKIGUMI_INT128")
+	}
 	if bareJumpTarget(t) {
 		args = append(args, "-DKIGUMI_TASK_CATCH_BUILTIN")
 	}

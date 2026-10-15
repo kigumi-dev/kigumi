@@ -136,3 +136,58 @@ pub pure noalloc fn Char.toInt(self) -> Int
 pub pure noalloc fn Char.fromInt(value: Int) -> Char?
 
 pub pure noalloc fn u8.toChar(self) -> Char
+
+// 128-bit conversions follow the same rule: a target that always holds the value is returned as is, one that can lose it as an Option.
+pub pure noalloc fn i8.toI128(self) -> i128
+pub pure noalloc fn i8.toU128(self) -> u128?
+pub pure noalloc fn i16.toI128(self) -> i128
+pub pure noalloc fn i16.toU128(self) -> u128?
+pub pure noalloc fn i32.toI128(self) -> i128
+pub pure noalloc fn i32.toU128(self) -> u128?
+pub pure noalloc fn i64.toI128(self) -> i128
+pub pure noalloc fn i64.toU128(self) -> u128?
+pub pure noalloc fn isize.toI128(self) -> i128
+pub pure noalloc fn isize.toU128(self) -> u128?
+pub pure noalloc fn u8.toI128(self) -> i128
+pub pure noalloc fn u8.toU128(self) -> u128
+pub pure noalloc fn u16.toI128(self) -> i128
+pub pure noalloc fn u16.toU128(self) -> u128
+pub pure noalloc fn u32.toI128(self) -> i128
+pub pure noalloc fn u32.toU128(self) -> u128
+pub pure noalloc fn u64.toI128(self) -> i128
+pub pure noalloc fn u64.toU128(self) -> u128
+pub pure noalloc fn usize.toI128(self) -> i128
+pub pure noalloc fn usize.toU128(self) -> u128
+
+pub pure noalloc fn i128.toI8(self) -> i8?
+pub pure noalloc fn i128.toI16(self) -> i16?
+pub pure noalloc fn i128.toI32(self) -> i32?
+pub pure noalloc fn i128.toInt(self) -> i64?
+pub pure noalloc fn i128.toIsize(self) -> isize?
+pub pure noalloc fn i128.toU8(self) -> u8?
+pub pure noalloc fn i128.toU16(self) -> u16?
+pub pure noalloc fn i128.toU32(self) -> u32?
+pub pure noalloc fn i128.toU64(self) -> u64?
+pub pure noalloc fn i128.toUsize(self) -> usize?
+pub pure noalloc fn i128.toU128(self) -> u128?
+pub pure noalloc fn i128.toFloat(self) -> Float
+pub pure noalloc fn i128.toF32(self) -> f32
+
+pub pure noalloc fn u128.toI8(self) -> i8?
+pub pure noalloc fn u128.toI16(self) -> i16?
+pub pure noalloc fn u128.toI32(self) -> i32?
+pub pure noalloc fn u128.toInt(self) -> i64?
+pub pure noalloc fn u128.toIsize(self) -> isize?
+pub pure noalloc fn u128.toU8(self) -> u8?
+pub pure noalloc fn u128.toU16(self) -> u16?
+pub pure noalloc fn u128.toU32(self) -> u32?
+pub pure noalloc fn u128.toU64(self) -> u64?
+pub pure noalloc fn u128.toUsize(self) -> usize?
+pub pure noalloc fn u128.toI128(self) -> i128?
+pub pure noalloc fn u128.toFloat(self) -> Float
+pub pure noalloc fn u128.toF32(self) -> f32
+
+pub pure noalloc fn f64.toI128(self) -> i128?
+pub pure noalloc fn f64.toU128(self) -> u128?
+pub pure noalloc fn f32.toI128(self) -> i128?
+pub pure noalloc fn f32.toU128(self) -> u128?

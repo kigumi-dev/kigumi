@@ -61,7 +61,13 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 			}
 		}
 		lo, hi := deref(it.fields[0]), deref(it.fields[1])
-		n := hi.i - lo.i
+		if is128(lo.nk) {
+			return mkInt(rangeLen128(lo, hi, deref(it.fields[2]).b), 64)
+		}
+		if reversed := lo.nk&256 != 0 && lo.i > hi.i || lo.nk&256 == 0 && uint64(lo.i) > uint64(hi.i); reversed {
+			return mkInt(0, 64)
+		}
+		n := int64(uint64(hi.i) - uint64(lo.i))
 		if deref(it.fields[2]).b {
 			n++
 		}
@@ -120,6 +126,9 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 			}
 		}
 		lo := deref(it.fields[0])
+		if is128(lo.nk) {
+			return mkWide(addW(widen(lo), wide{lo: uint64(i)}), lo.nk)
+		}
 		return mkInt(lo.i+i, lo.nk)
 	}
 	panic(&Unsupported{What: "builtin " + name})

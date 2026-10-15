@@ -22,6 +22,11 @@ func (e *emitter) tryScalarInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 		return e.scalarUnary(sb, f, in)
 	case mir.OpAlias, mir.OpShare, mir.OpMove:
 		return e.scalarCopyLike(sb, f, in)
+	case mir.OpCall:
+		if op := e.wideCallOp(f, in); op != "" {
+			return e.wideCall(sb, f, in, op)
+		}
+		return false
 	case mir.OpDrop, mir.OpRelease:
 		// A value this pass never boxed has no refcount to manage.
 		return e.isScalar(in.Args[0])
@@ -51,6 +56,9 @@ func (e *emitter) boxNative(sb *strings.Builder, info scalarInfo, v Value) strin
 	switch info.Ty {
 	case TI64:
 		return e.irb(sb).Call(rtInt, v, vi32(info.Nk)).Text
+	case TI128:
+		lo, hi := e.splitWide(sb, v.Text)
+		return e.irb(sb).Call(rtBoxInt128, lo, hi, vi32(info.Nk)).Text
 	case TDouble:
 		return e.irb(sb).Call(rtFloat, v, vi32(info.Nk)).Text
 	case TI1:
@@ -75,6 +83,8 @@ func (e *emitter) unboxScalar(sb *strings.Builder, ty Type, ptrVal string) Value
 	switch ty {
 	case TI64:
 		return Value{TI64, e.irb(sb).Call(rtIntVal, vptr(ptrVal)).Text}
+	case TI128:
+		return e.joinWide(sb, Value{TI64, e.irb(sb).Call(rtInt128Lo, vptr(ptrVal)).Text}, Value{TI64, e.irb(sb).Call(rtInt128Hi, vptr(ptrVal)).Text})
 	case TDouble:
 		return Value{TDouble, e.irb(sb).Call(rtFloatVal, vptr(ptrVal)).Text}
 	case TI1:
@@ -129,31 +139,6 @@ func (e *emitter) scalarBoxOnDemand(sb *strings.Builder, l mir.LocalID) string {
 	}
 	info := e.scalar[l]
 	return e.boxNative(sb, info, e.loadNative(sb, l))
-}
-
-// scalarFrameBox boxes a scalar for a reader that never keeps it, in an immortal the frame holds.
-func (e *emitter) scalarFrameBox(sb *strings.Builder, l mir.LocalID) string {
-	if slot, ok := e.litSlot(l); ok {
-		return slot
-	}
-	info := e.scalar[l]
-	v := e.loadNative(sb, l)
-	num, f, kind := vi64(0), vdouble("0.0"), kInt
-	switch info.Ty {
-	case TI1:
-		return e.boolBox(sb, v.Text)
-	case TDouble:
-		f, kind = v, kFloat
-	case TI32:
-		t := e.newTmp()
-		fmt.Fprintf(sb, "  %s = zext i32 %s to i64\n", t, v.Text)
-		num, kind = vi64text(t), kChar
-	default:
-		num = v
-	}
-	slot := e.stackSlot(sb, objSlotType()+", align 16")
-	e.irb(sb).Call(rtConstNum, vptr(slot), vi32(kind), vi32(info.Nk), num, f)
-	return slot
 }
 
 // litSlot names the immortal a local holding a literal was given, so the

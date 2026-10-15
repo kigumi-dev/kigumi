@@ -15,8 +15,8 @@ func (c *checker) checkCArgs(n syntax.NodeID, name string, sn typeNode, args []s
 		if c.r.Types.Kind(t) == KUntyped {
 			t = c.adopt(c.literalNode(a), defaultOf(t))
 		}
-		if t != TyPoison && !c.r.Types.IsNumeric(t) && c.r.Types.Kind(t) != KPtr {
-			c.errAt(a, cAbiType, c.r.TypeString(t))
+		if t != TyPoison && !c.r.cNumeric(t) && c.r.Types.Kind(t) != KPtr {
+			c.errAt(a, c.r.abiCode(t, cAbiType), c.r.TypeString(t))
 		}
 	}
 	return c.vars.resolve(sn.Elem)

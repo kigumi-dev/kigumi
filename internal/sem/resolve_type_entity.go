@@ -85,12 +85,6 @@ func (r *Result) instantiateTypeEntity(f FileID, n syntax.NodeID, ent EntityID, 
 	case EntType:
 		info := r.typeDecl(ent)
 		if e.Type != 0 && len(info.Params) == 0 {
-			// Both backends hold integers in 64 bits; refused
-			// here rather than truncated downstream.
-			if e.Type == TyI128 || e.Type == TyU128 {
-				r.errAt(f, n, cInt128Unsupported, e.Name)
-				return TyPoison
-			}
 			if len(args) > 0 {
 				r.errAt(f, n, cTypeNotGeneric, e.Name)
 			}

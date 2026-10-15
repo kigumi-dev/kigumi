@@ -130,6 +130,9 @@ func (m *Machine) intFn(key string, a0, a1 *obj) *obj {
 	}
 	nk := a0.nk
 	op := key[strings.LastIndex(key, ".")+1:]
+	if is128(nk) {
+		return wrapping128(op, a0, a1)
+	}
 	b := bitsOf(nk)
 	x, y := uint64(a0.i), uint64(a1.i)
 	switch op {

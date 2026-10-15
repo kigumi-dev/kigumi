@@ -12,7 +12,7 @@ import (
 func (e *emitter) scalarBinary(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
 	lty, lok := e.scalarType(f.Locals[in.Args[0]].Type)
 	rty, rok := e.scalarType(f.Locals[in.Args[1]].Type)
-	if !lok || !rok || lty != rty {
+	if !lok || !rok || lty != rty && !wideShiftOperands(in.Str, lty, rty) {
 		return false
 	}
 	l, _ := e.scalarOperand(sb, f, in.Args[0])
@@ -38,6 +38,11 @@ func (e *emitter) scalarUnary(sb *strings.Builder, f *mir.Func, in mir.Inst) boo
 	switch {
 	case ty == TI1 && in.Str == "!":
 		res = Value{TI1, e.xorI1(sb, v.Text)}
+	case ty == TI128:
+		var ok bool
+		if res, ok = e.wideUnary(sb, in.Str, nk, v); !ok {
+			return false
+		}
 	case ty == TI64 && in.Str == "-":
 		res = Value{TI64, e.irb(sb).Call(rtIneg, v, vi32(nk)).Text}
 	case ty == TI64 && in.Str == "~":
@@ -62,6 +67,9 @@ func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int
 		return Value{TI1, e.icmp(sb, "eq", ty, l, r)}, true
 	case "!=":
 		return Value{TI1, e.icmp(sb, "ne", ty, l, r)}, true
+	}
+	if ty == TI128 {
+		return e.wideBinaryOp(sb, op, nk, l, r)
 	}
 	if ty != TI64 {
 		return Value{}, false

@@ -90,7 +90,7 @@ var (
 	cCSymbolReserved         = defineCode("E957", "c-symbol-reserved", "`{name}`: names starting with `kg_export_`, `kg_byval_` or `kg_call_` are reserved for generated C symbols")
 	cTypeExprAsValue         = defineCode("E958", "type-expr-as-value", "a type cannot be used as a value here")
 	cNoDefaultAllocator      = defineCode("E959", "no-default-allocator", "{what} needs the default allocator, but this build has none (--allocator none); allocate inside an `allocator` block")
-	cInt128Unsupported       = defineCode("E960", "int128-unsupported", "`{name}` is not supported by this toolchain yet: integers are held in 64 bits, so a value would be truncated; use i64 or u64")
+	cInt128Unsupported       = defineCode("E960", "int128-unsupported", "`{name}` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits; pass it as two u64 halves")
 	cUserOperatorReserved    = defineCode("E962", "user-operator-reserved", "`{type}.{op}` cannot be defined: the comparison operators call the `{proto}` protocol; implement that instead")
 	cWitnessMissing          = defineCode("E964", "witness-missing", "`{type}` has no `{name}` to pass for `{iface}` and none could be generated")
 	cProtocolMismatch        = defineCode("E965", "protocol-mismatch", "`{type}` defines `{name}` but it does not satisfy `{iface}`: {why}; nothing is derived over it")

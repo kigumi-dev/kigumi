@@ -1000,12 +1000,54 @@ val rt_copy_mut(val v) {
     return rt_retain(v);
 }
 
+#ifdef KIGUMI_INT128
+static int64_t truncate_to(int64_t v, int nk);
+#include "rt_int128.c.inc"
+void rt_const_int128(void* slot, int nk, int64_t lo, int64_t hi) {
+    val v = (val)slot;
+    v->kind = K_INT;
+    v->rc = -1;
+    v->u.w.lo = lo;
+    v->u.w.hi = hi;
+    v->nk = nk;
+}
+// Entry points for llgen's register code: the 128-bit operands come in as word pairs and results go back through out[0] (low) and out[1].
+val rt_box_int128(int64_t lo, int64_t hi, int nk) {
+    return w_box(w_new((uint64_t)lo, (uint64_t)hi), nk);
+}
+int64_t rt_int128_lo(val v) {
+    return deref(v)->u.w.lo;
+}
+int64_t rt_int128_hi(val v) {
+    return deref(v)->u.w.hi;
+}
+// nk carries bit 16 for a wrapping product.
+void rt_i128_mul(int64_t alo, int64_t ahi, int64_t blo, int64_t bhi, int nk, int64_t* out) {
+    w128 a = w_new((uint64_t)alo, (uint64_t)ahi), b = w_new((uint64_t)blo, (uint64_t)bhi);
+    int over;
+    w128 r = W_SIGNED(nk) && !(nk & (1 << 16)) ? w_mul_s(a, b, &over) : w_mul_u(a, b, &over);
+    if (over && !(nk & (1 << 16))) rt_panic("integer overflow");
+    w_store(r, out);
+}
+// nk carries bit 17 for the remainder.
+void rt_i128_div(int64_t alo, int64_t ahi, int64_t blo, int64_t bhi, int nk, int64_t* out) {
+    w128 a = w_new((uint64_t)alo, (uint64_t)ahi), b = w_new((uint64_t)blo, (uint64_t)bhi), rem;
+    if (w_zero(b)) rt_panic("division by zero");
+    int sg = W_SIGNED(nk);
+    if (sg && b.lo == ~(uint64_t)0 && b.hi == ~(uint64_t)0 && a.lo == 0 && a.hi == (uint64_t)1 << 63) rt_panic("integer overflow");
+    w128 q = sg ? w_divmod_s(a, b, &rem) : w_divmod_u(a, b, &rem);
+    w_store(nk & (1 << 17) ? rem : q, out);
+}
+#endif
 int equal(val a, val b) {
     a = deref(a);
     b = deref(b);
     if (a->kind != b->kind) return 0;
     switch (a->kind) {
     case K_INT:
+#ifdef KIGUMI_INT128
+        if (W_IS(a->nk)) return w_equal(a, b);
+#endif
         return a->u.i == b->u.i;
     case K_FLOAT:
         return a->u.f == b->u.f;
@@ -1107,6 +1149,14 @@ void display_into(buf* b, val v, int canon) {
     v = deref(v);
     switch (v->kind) {
     case K_INT:
+#ifdef KIGUMI_INT128
+        if (W_IS(v->nk)) {
+            char wide[48];
+            w_dec(w_of(v), W_SIGNED(v->nk), wide);
+            bputs(b, wide);
+            break;
+        }
+#endif
         if (v->nk & 256) i64_dec(v->u.i, tmp);
         else u64_dec((uint64_t)v->u.i, tmp);
         bputs(b, tmp);
@@ -1332,6 +1382,9 @@ int64_t rt_d_wrapping(int op, int64_t xs, int64_t ys, int nk) {
 static val int_fn(const char* k, val a0, val a1) {
     const char* op = strrchr(k, '.');
     if (!op++) return NULL;
+#ifdef KIGUMI_INT128
+    if (W_IS(a0->nk)) return w_wrapping(op, a0, a1);
+#endif
     for (int i = 0; i < 7; i++)
         if (!strcmp(op, wrapping_names[i])) return rt_int(rt_d_wrapping(i, a0->u.i, a1->u.i, a0->nk), a0->nk);
     return NULL;
@@ -1341,6 +1394,9 @@ static int cmp_vals(val a, val b) {
     b = deref(b);
     switch (a->kind) {
     case K_INT:
+#ifdef KIGUMI_INT128
+        if (W_IS(a->nk)) return w_compare(a, b);
+#endif
         if (is_signed(a->nk)) return (a->u.i > b->u.i) - (a->u.i < b->u.i);
         return ((uint64_t)a->u.i > (uint64_t)b->u.i) - ((uint64_t)a->u.i < (uint64_t)b->u.i);
     case K_FLOAT:
@@ -1391,6 +1447,9 @@ val rt_convert(val a0, int dnk, int checked) {
     if (a0->kind == K_BOX) a0 = a0->u.box.v;
     if (dnk & 1024) return rt_char((uint32_t)a0->u.i);
     if (a0->kind == K_CHAR) return rt_int(a0->u.c, dnk);
+#ifdef KIGUMI_INT128
+    if (W_IS(dnk) || (a0->kind == K_INT && W_IS(a0->nk))) return w_convert(a0, dnk, checked);
+#endif
     if (dnk & 512) {
         if (a0->kind == K_FLOAT) return rt_float(a0->u.f, dnk);
         return rt_float(is_signed(a0->nk) ? (double)a0->u.i : (double)(uint64_t)a0->u.i, dnk);
@@ -1571,6 +1630,9 @@ val rt_binop(const char* op, val a, val b) {
         }
     }
     if (a->kind != K_INT) rt_panic("unsupported operands");
+#ifdef KIGUMI_INT128
+    if (W_IS(a->nk)) return w_binop(op, a, b);
+#endif
     int64_t x = a->u.i, y = b->u.i;
     int nk = a->nk;
     switch (op[0]) {
@@ -1603,14 +1665,23 @@ val rt_unop(const char* op, val a) {
     if (op[0] == '!') return rt_bool(!a->u.b);
     if (op[0] == '-') {
         if (a->kind == K_FLOAT) return rt_float(-a->u.f, a->nk);
+#ifdef KIGUMI_INT128
+        if (W_IS(a->nk)) return w_unop('-', a);
+#endif
         return rt_int(rt_ineg(a->u.i, a->nk), a->nk);
     }
+#ifdef KIGUMI_INT128
+    if (op[0] == '~' && W_IS(a->nk)) return w_unop('~', a);
+#endif
     if (op[0] == '~') return rt_int(rt_inot(a->u.i, a->nk), a->nk);
     panicf("unsupported unary %s", op);
     return NULL;
 }
 val rt_cast(val a, int nk) {
     a = deref(a);
+#ifdef KIGUMI_INT128
+    if (a->kind == K_INT && (W_IS(a->nk) || W_IS(nk))) return w_convert(a, nk, 0);
+#endif
     if (nk & 512) return rt_float(a->kind == K_FLOAT ? a->u.f : (double)a->u.i, nk);
     return rt_int(a->u.i, nk);
 }
@@ -2489,7 +2560,13 @@ static val iter_len(val it) {
     if (it->kind == K_RECORD && it->u.rec.type == map_type()) {
         return rt_int(it->u.rec.fields[0]->u.arr.len, 64);
     }
-    int64_t n = it->u.rec.fields[1]->u.i - it->u.rec.fields[0]->u.i;
+#ifdef KIGUMI_INT128
+    if (W_IS(it->u.rec.fields[0]->nk)) return rt_int(w_range_len(it->u.rec.fields[0], it->u.rec.fields[1], it->u.rec.fields[2]->u.b), 64);
+#endif
+    int64_t lo = it->u.rec.fields[0]->u.i, hi = it->u.rec.fields[1]->u.i;
+    int reversed = (it->u.rec.fields[0]->nk & 256) ? lo > hi : (uint64_t)lo > (uint64_t)hi;
+    if (reversed) return rt_int(0, 64);
+    int64_t n = (int64_t)((uint64_t)hi - (uint64_t)lo);
     if (it->u.rec.fields[2]->u.b) n++;
     return rt_int(n, 64);
 }
@@ -2545,6 +2622,9 @@ static val iter_at(val it, val i, int mode) {
         return rt_record(tup, 2, f);
     }
     val lo = it->u.rec.fields[0];
+#ifdef KIGUMI_INT128
+    if (W_IS(lo->nk)) return w_box(w_add(w_of(lo), w_new((uint64_t)i->u.i, 0)), lo->nk);
+#endif
     return rt_int(lo->u.i + i->u.i, lo->nk);
 }
 val rt_builtin(const char* name, int n, val* args) {

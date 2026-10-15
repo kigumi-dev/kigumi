@@ -100,11 +100,11 @@ func (r *Result) resolveCFnType(f FileID, n syntax.NodeID, s fnTypeSlots, params
 	}
 	for i, p := range t.Children(s.Params) {
 		if !r.abiSafe(params[i]) {
-			r.errAt(f, p, cAbiType, r.TypeString(params[i]))
+			r.errAt(f, p, r.abiCode(params[i], cAbiType), r.TypeString(params[i]))
 		}
 	}
 	if ret != TyUnit && !r.abiSafe(ret) {
-		r.errAt(f, s.Ret, cAbiType, r.TypeString(ret))
+		r.errAt(f, s.Ret, r.abiCode(ret, cAbiType), r.TypeString(ret))
 	}
 	return r.Types.FnCPtr(params, ret, s.Flags&syntax.FlagVariadic != 0)
 }

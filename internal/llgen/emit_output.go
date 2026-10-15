@@ -15,6 +15,8 @@ type Output struct {
 	Capabilities []string
 	// Unwind asks for the runtime built with KIGUMI_UNWIND: the generated code registers unwind records and sweeps after a faulting drop.
 	Unwind bool
+	// Int128 asks for the runtime built with KIGUMI_INT128: some reachable function holds a 128-bit integer.
+	Int128 bool
 }
 
 // EmitOptions selects the entry point: a hosted `main`, or `kigumi_main`

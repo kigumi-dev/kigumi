@@ -5502,8 +5502,28 @@
     "status": "ok"
   },
   {
+    "key": "prelude.f32.toI128",
+    "signature": "pure noalloc fn() -\u003e i128?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.f32.toInt",
     "signature": "pure noalloc fn() -\u003e Int?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.f32.toU128",
+    "signature": "pure noalloc fn() -\u003e u128?",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -5562,8 +5582,28 @@
     "status": "ok"
   },
   {
+    "key": "prelude.f64.toI128",
+    "signature": "pure noalloc fn() -\u003e i128?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.f64.toInt",
     "signature": "pure noalloc fn() -\u003e Int?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.f64.toU128",
+    "signature": "pure noalloc fn() -\u003e u128?",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -5589,6 +5629,306 @@
     "vm": "implemented",
     "native": "implemented",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.addWithOverflow",
+    "signature": "pure fn(i128) -\u003e Overflow[i128]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.compareTo",
+    "signature": "pure noalloc fn(\u0026i128) -\u003e Ordering",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.equals",
+    "signature": "pure noalloc fn(\u0026i128) -\u003e Bool",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.hash",
+    "signature": "pure noalloc fn() -\u003e u64",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.mulWithOverflow",
+    "signature": "pure fn(i128) -\u003e Overflow[i128]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.rotateLeft",
+    "signature": "pure noalloc fn(i128) -\u003e i128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.rotateRight",
+    "signature": "pure noalloc fn(i128) -\u003e i128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.saturatingAdd",
+    "signature": "pure fn(i128) -\u003e i128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.saturatingMul",
+    "signature": "pure fn(i128) -\u003e i128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.saturatingSub",
+    "signature": "pure fn(i128) -\u003e i128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.subWithOverflow",
+    "signature": "pure fn(i128) -\u003e Overflow[i128]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toF32",
+    "signature": "pure noalloc fn() -\u003e f32",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toFloat",
+    "signature": "pure noalloc fn() -\u003e Float",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toI16",
+    "signature": "pure noalloc fn() -\u003e i16?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toI32",
+    "signature": "pure noalloc fn() -\u003e i32?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toI8",
+    "signature": "pure noalloc fn() -\u003e i8?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toInt",
+    "signature": "pure noalloc fn() -\u003e Int?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toIsize",
+    "signature": "pure noalloc fn() -\u003e isize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toU128",
+    "signature": "pure noalloc fn() -\u003e u128?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toU16",
+    "signature": "pure noalloc fn() -\u003e u16?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toU32",
+    "signature": "pure noalloc fn() -\u003e u32?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toU64",
+    "signature": "pure noalloc fn() -\u003e u64?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toU8",
+    "signature": "pure noalloc fn() -\u003e u8?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.toUsize",
+    "signature": "pure noalloc fn() -\u003e usize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.wrappingAdd",
+    "signature": "pure noalloc fn(i128) -\u003e i128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.wrappingMul",
+    "signature": "pure noalloc fn(i128) -\u003e i128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.wrappingShiftLeft",
+    "signature": "pure noalloc fn(i128) -\u003e i128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.wrappingShiftRight",
+    "signature": "pure noalloc fn(i128) -\u003e i128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.wrappingSub",
+    "signature": "pure noalloc fn(i128) -\u003e i128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i128.zero",
+    "signature": "pure fn() -\u003e i128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   },
   {
@@ -5722,6 +6062,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.i16.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.i16.toI32",
     "signature": "pure noalloc fn() -\u003e i32",
     "has_body": false,
@@ -5754,6 +6104,16 @@
   {
     "key": "prelude.i16.toIsize",
     "signature": "pure noalloc fn() -\u003e isize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i16.toU128",
+    "signature": "pure noalloc fn() -\u003e u128?",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -6002,6 +6362,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.i32.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.i32.toI16",
     "signature": "pure noalloc fn() -\u003e i16?",
     "has_body": false,
@@ -6034,6 +6404,16 @@
   {
     "key": "prelude.i32.toIsize",
     "signature": "pure noalloc fn() -\u003e isize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i32.toU128",
+    "signature": "pure noalloc fn() -\u003e u128?",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -6282,6 +6662,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.i64.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.i64.toI16",
     "signature": "pure noalloc fn() -\u003e i16?",
     "has_body": false,
@@ -6314,6 +6704,16 @@
   {
     "key": "prelude.i64.toIsize",
     "signature": "pure noalloc fn() -\u003e isize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i64.toU128",
+    "signature": "pure noalloc fn() -\u003e u128?",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -6562,6 +6962,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.i8.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.i8.toI16",
     "signature": "pure noalloc fn() -\u003e i16",
     "has_body": false,
@@ -6594,6 +7004,16 @@
   {
     "key": "prelude.i8.toIsize",
     "signature": "pure noalloc fn() -\u003e isize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i8.toU128",
+    "signature": "pure noalloc fn() -\u003e u128?",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -6852,6 +7272,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.isize.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.isize.toI16",
     "signature": "pure noalloc fn() -\u003e i16?",
     "has_body": false,
@@ -6884,6 +7314,16 @@
   {
     "key": "prelude.isize.toInt",
     "signature": "pure noalloc fn() -\u003e Int",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.isize.toU128",
+    "signature": "pure noalloc fn() -\u003e u128?",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -7022,6 +7462,306 @@
     "status": "ok"
   },
   {
+    "key": "prelude.u128.addWithOverflow",
+    "signature": "pure fn(u128) -\u003e Overflow[u128]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.compareTo",
+    "signature": "pure noalloc fn(\u0026u128) -\u003e Ordering",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.equals",
+    "signature": "pure noalloc fn(\u0026u128) -\u003e Bool",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.hash",
+    "signature": "pure noalloc fn() -\u003e u64",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.mulWithOverflow",
+    "signature": "pure fn(u128) -\u003e Overflow[u128]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.rotateLeft",
+    "signature": "pure noalloc fn(u128) -\u003e u128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.rotateRight",
+    "signature": "pure noalloc fn(u128) -\u003e u128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.saturatingAdd",
+    "signature": "pure fn(u128) -\u003e u128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.saturatingMul",
+    "signature": "pure fn(u128) -\u003e u128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.saturatingSub",
+    "signature": "pure fn(u128) -\u003e u128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.subWithOverflow",
+    "signature": "pure fn(u128) -\u003e Overflow[u128]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toF32",
+    "signature": "pure noalloc fn() -\u003e f32",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toFloat",
+    "signature": "pure noalloc fn() -\u003e Float",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toI128",
+    "signature": "pure noalloc fn() -\u003e i128?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toI16",
+    "signature": "pure noalloc fn() -\u003e i16?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toI32",
+    "signature": "pure noalloc fn() -\u003e i32?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toI8",
+    "signature": "pure noalloc fn() -\u003e i8?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toInt",
+    "signature": "pure noalloc fn() -\u003e Int?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toIsize",
+    "signature": "pure noalloc fn() -\u003e isize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toU16",
+    "signature": "pure noalloc fn() -\u003e u16?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toU32",
+    "signature": "pure noalloc fn() -\u003e u32?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toU64",
+    "signature": "pure noalloc fn() -\u003e u64?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toU8",
+    "signature": "pure noalloc fn() -\u003e u8?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.toUsize",
+    "signature": "pure noalloc fn() -\u003e usize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.wrappingAdd",
+    "signature": "pure noalloc fn(u128) -\u003e u128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.wrappingMul",
+    "signature": "pure noalloc fn(u128) -\u003e u128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.wrappingShiftLeft",
+    "signature": "pure noalloc fn(u128) -\u003e u128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.wrappingShiftRight",
+    "signature": "pure noalloc fn(u128) -\u003e u128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.wrappingSub",
+    "signature": "pure noalloc fn(u128) -\u003e u128",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u128.zero",
+    "signature": "pure fn() -\u003e u128",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.u16.addWithOverflow",
     "signature": "pure fn(u16) -\u003e Overflow[u16]",
     "has_body": true,
@@ -7152,6 +7892,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.u16.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.u16.toI16",
     "signature": "pure noalloc fn() -\u003e i16?",
     "has_body": false,
@@ -7194,6 +7944,16 @@
   {
     "key": "prelude.u16.toIsize",
     "signature": "pure noalloc fn() -\u003e isize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u16.toU128",
+    "signature": "pure noalloc fn() -\u003e u128",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -7432,6 +8192,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.u32.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.u32.toI16",
     "signature": "pure noalloc fn() -\u003e i16?",
     "has_body": false,
@@ -7474,6 +8244,16 @@
   {
     "key": "prelude.u32.toIsize",
     "signature": "pure noalloc fn() -\u003e isize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u32.toU128",
+    "signature": "pure noalloc fn() -\u003e u128",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -7712,6 +8492,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.u64.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.u64.toI16",
     "signature": "pure noalloc fn() -\u003e i16?",
     "has_body": false,
@@ -7754,6 +8544,16 @@
   {
     "key": "prelude.u64.toIsize",
     "signature": "pure noalloc fn() -\u003e isize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u64.toU128",
+    "signature": "pure noalloc fn() -\u003e u128",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -8002,6 +8802,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.u8.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.u8.toI16",
     "signature": "pure noalloc fn() -\u003e i16",
     "has_body": false,
@@ -8044,6 +8854,16 @@
   {
     "key": "prelude.u8.toIsize",
     "signature": "pure noalloc fn() -\u003e isize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u8.toU128",
+    "signature": "pure noalloc fn() -\u003e u128",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -8282,6 +9102,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.usize.toI128",
+    "signature": "pure noalloc fn() -\u003e i128",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.usize.toI16",
     "signature": "pure noalloc fn() -\u003e i16?",
     "has_body": false,
@@ -8324,6 +9154,16 @@
   {
     "key": "prelude.usize.toIsize",
     "signature": "pure noalloc fn() -\u003e isize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.usize.toU128",
+    "signature": "pure noalloc fn() -\u003e u128",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -9092,8 +9932,28 @@
     "status": "ok"
   },
   {
+    "key": "text.parseI128",
+    "signature": "pure fn(String) -\u003e i128?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "text.parseInt",
     "signature": "pure fn(String) -\u003e Int?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.parseU128",
+    "signature": "pure fn(String) -\u003e u128?",
     "has_body": true,
     "kind": "",
     "vm": "gap",

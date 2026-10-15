@@ -275,6 +275,48 @@ pub pure noalloc fn u8.rotateLeft(self, count: u8) -> u8
 pub pure noalloc fn u8.rotateRight(self, count: u8) -> u8
 
 /// Sum modulo 2^bits; `+` panics on overflow instead.
+pub pure noalloc fn i128.wrappingAdd(self, other: i128) -> i128
+
+/// Difference modulo 2^bits.
+pub pure noalloc fn i128.wrappingSub(self, other: i128) -> i128
+
+/// Product modulo 2^bits.
+pub pure noalloc fn i128.wrappingMul(self, other: i128) -> i128
+
+/// Left shift by count masked to the width.
+pub pure noalloc fn i128.wrappingShiftLeft(self, count: i128) -> i128
+
+/// Right shift by count masked to the width; arithmetic for signed types.
+pub pure noalloc fn i128.wrappingShiftRight(self, count: i128) -> i128
+
+/// Bits rotated left by count masked to the width.
+pub pure noalloc fn i128.rotateLeft(self, count: i128) -> i128
+
+/// Bits rotated right by count masked to the width.
+pub pure noalloc fn i128.rotateRight(self, count: i128) -> i128
+
+/// Sum modulo 2^bits; `+` panics on overflow instead.
+pub pure noalloc fn u128.wrappingAdd(self, other: u128) -> u128
+
+/// Difference modulo 2^bits.
+pub pure noalloc fn u128.wrappingSub(self, other: u128) -> u128
+
+/// Product modulo 2^bits.
+pub pure noalloc fn u128.wrappingMul(self, other: u128) -> u128
+
+/// Left shift by count masked to the width.
+pub pure noalloc fn u128.wrappingShiftLeft(self, count: u128) -> u128
+
+/// Right shift by count masked to the width; arithmetic for signed types.
+pub pure noalloc fn u128.wrappingShiftRight(self, count: u128) -> u128
+
+/// Bits rotated left by count masked to the width.
+pub pure noalloc fn u128.rotateLeft(self, count: u128) -> u128
+
+/// Bits rotated right by count masked to the width.
+pub pure noalloc fn u128.rotateRight(self, count: u128) -> u128
+
+/// Sum modulo 2^bits; `+` panics on overflow instead.
 pub pure noalloc fn i8.wrappingAdd(self, other: i8) -> i8
 
 /// Difference modulo 2^bits.
@@ -717,6 +759,18 @@ pub pure noalloc fn u64.equals(self, other: &u64) -> Bool
 pub pure noalloc fn u64.hash(self) -> u64
 
 pub pure noalloc fn u64.compareTo(self, other: &u64) -> Ordering
+
+pub pure noalloc fn i128.equals(self, other: &i128) -> Bool
+
+pub pure noalloc fn i128.hash(self) -> u64
+
+pub pure noalloc fn i128.compareTo(self, other: &i128) -> Ordering
+
+pub pure noalloc fn u128.equals(self, other: &u128) -> Bool
+
+pub pure noalloc fn u128.hash(self) -> u64
+
+pub pure noalloc fn u128.compareTo(self, other: &u128) -> Ordering
 
 pub pure noalloc fn f64.equals(self, other: &f64) -> Bool
 

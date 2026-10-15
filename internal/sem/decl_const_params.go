@@ -88,5 +88,5 @@ func (c *checker) constArgFromType(n syntax.NodeID, t TypeID) ConstArg {
 // usize, a fixed-width integer, Int or Bool.
 func (r *Result) allowedConstType(t TypeID) bool {
 	tt := r.Types
-	return t == TyBool || tt.IsInteger(t)
+	return t == TyBool || tt.IsInteger(t) && t != TyI128 && t != TyU128
 }

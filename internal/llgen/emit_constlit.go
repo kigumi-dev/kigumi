@@ -2,6 +2,9 @@ package llgen
 
 import (
 	"fmt"
+	"math"
+	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -50,5 +53,18 @@ func (e *emitter) initLit(sb *strings.Builder, slot string, lit *constLit) {
 	if lit.kind == kFloat {
 		num, f = vi64(0), vdouble(lit.num)
 	}
+	if lit.kind == kInt && lit.nk&255 == 128 {
+		lo, hi := int128Words(lit.num)
+		e.irb(sb).Call(rtConstInt128, vptr(slot), vi32(lit.nk), vi64text(lo), vi64text(hi))
+		return
+	}
 	e.irb(sb).Call(rtConstNum, vptr(slot), vi32(lit.kind), vi32(lit.nk), num, f)
+}
+
+// int128Words splits a decimal literal into the low and high words, in two's complement.
+func int128Words(text string) (lo, hi string) {
+	x, _ := new(big.Int).SetString(text, 10)
+	m := new(big.Int).And(x, new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1)))
+	low := new(big.Int).And(m, new(big.Int).SetUint64(math.MaxUint64)).Uint64()
+	return strconv.FormatInt(int64(low), 10), strconv.FormatInt(int64(new(big.Int).Rsh(m, 64).Uint64()), 10)
 }

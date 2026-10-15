@@ -87,8 +87,8 @@ func (c *checker) asmOperandType(op *AsmOperand, arch *asmArch) {
 		return
 	}
 	isPtr := tt.Kind(t) == KPtr || tt.IsCFn(t)
-	if !tt.IsNumeric(t) && !isPtr {
-		c.errAt(op.Node, cAsmOperandType, c.r.TypeString(t))
+	if !c.r.cNumeric(t) && !isPtr {
+		c.errAt(op.Node, c.r.abiCode(t, cAsmOperandType), c.r.TypeString(t))
 		return
 	}
 	bits := arch.PtrBits

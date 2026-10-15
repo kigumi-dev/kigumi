@@ -1,0 +1,25 @@
+-- src --
+let mut c = 0
+for k in 5..3 {
+    c = c + 1
+}
+for k in 5..=3 {
+    c = c + 10
+}
+for k in 5..5 {
+    c = c + 100
+}
+for k in 5..=5 {
+    c = c + 1000
+}
+for k in 5..=6 {
+    c = c + 10000
+}
+let lo: i128 = 5
+let hi: i128 = 3
+for k in lo..hi {
+    c = c + 100000
+}
+print "${c}"
+-- stdout --
+21000

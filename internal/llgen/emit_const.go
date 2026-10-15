@@ -45,6 +45,8 @@ func (e *emitter) litKey(in mir.Inst) (string, bool) {
 			f, _ = new(big.Float).SetInt(lit.Int).Float64()
 		}
 		return e.constNum(kFloat, e.numKind(in.Type), fmt.Sprintf("0x%X", math.Float64bits(f))), true
+	case lit.Kind == sem.LitInt && lit.Int != nil && tt.IsInteger(e.r.UnderlyingRepr(in.Type)) && tt.Width(e.r.UnderlyingRepr(in.Type)) == 128:
+		return e.constNum(kInt, e.numKind(in.Type), lit.Int.String()), true
 	case lit.Kind == sem.LitInt:
 		v := "0"
 		if lit.Int != nil {

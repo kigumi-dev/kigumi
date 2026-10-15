@@ -2,6 +2,7 @@ package llgen
 
 import (
 	_ "embed"
+	"slices"
 
 	"kigumi/internal/mir"
 )
@@ -46,6 +47,12 @@ var capFiles = []RuntimeFile{
 	{"rt_cap_task_blocking_pool.c.inc", runtimeCapTaskBlockingPool},
 	{"rt_cap_task_executor.c.inc", runtimeCapTaskExecutor},
 }
+
+// coreFragments are rt_core.c's other #include fragments, built only when a program needs them.
+var coreFragments = []RuntimeFile{{"rt_int128.c.inc", runtimeInt128}}
+
+//go:embed runtime/rt_int128.c.inc
+var runtimeInt128 string
 
 //go:embed runtime/rt_cap_host_shell.c.inc
 var runtimeCapHostShell string
@@ -107,6 +114,7 @@ var freestandingOS = map[string]bool{"freestanding": true, "uefi": true}
 func RuntimeFiles(sys, os string) []RuntimeFile {
 	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys.c", runtimeSys}}
 	files = append(files, capFiles...)
+	files = append(files, coreFragments...)
 	if sys != "none" && mir.PosixSignalOS(os) {
 		files = append(files, RuntimeFile{"rt_signal.c", runtimeSignal})
 	}
@@ -119,7 +127,7 @@ func RuntimeFiles(sys, os string) []RuntimeFile {
 // RuntimeSource is the whole runtime as one text, for tests that scan it.
 func RuntimeSource() string {
 	out := runtimeHeader + runtimeInternalHeader + runtimeCore + runtimeFloat + runtimeSys
-	for _, f := range capFiles {
+	for _, f := range append(slices.Clone(capFiles), coreFragments...) {
 		out += f.Src
 	}
 	return out

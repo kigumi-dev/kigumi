@@ -86,6 +86,10 @@ func (r *Result) checkLayoutFields(id EntityID) {
 	for _, fld := range info.Fields {
 		t := r.Entities[fld].Type
 		if !r.cRepresentable(t) {
+			if r.wideInt(t) {
+				r.errAt(e.File, r.Entities[fld].Node, cInt128Unsupported, r.TypeString(t))
+				continue
+			}
 			r.errAt(e.File, r.Entities[fld].Node, cLayoutFieldType, r.Entities[fld].Name, r.TypeString(t))
 		}
 	}
@@ -93,14 +97,14 @@ func (r *Result) checkLayoutFields(id EntityID) {
 
 func (r *Result) cRepresentable(t TypeID) bool {
 	tt := r.Types
-	if t == TyPoison || tt.IsNumeric(t) || tt.Kind(t) == KPtr || tt.IsCFn(t) || r.cRecord(t) {
+	if t == TyPoison || r.cNumeric(t) || tt.Kind(t) == KPtr || tt.IsCFn(t) || r.cRecord(t) {
 		return true
 	}
 	if n := tt.Node(t); n.Kind == KNamed && r.typeDecl(n.Ent).Form == FormDefined {
 		return r.cRepresentable(r.underlyingRepr(t))
 	}
 	elem, _, ok := r.fixedArrayShape(t)
-	return ok && tt.IsNumeric(elem)
+	return ok && r.cNumeric(elem)
 }
 
 // fixedArrayShape recognizes FixedArray[elem, N] with N a literal length:

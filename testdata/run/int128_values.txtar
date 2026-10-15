@@ -1,0 +1,76 @@
+-- src --
+import map from std/map
+
+type Wide = {
+    pub id u128
+    pub delta i128
+}
+
+type Tagged = Big(v: u128) | Small(v: u8) | Nothing
+
+fn classify(x: i128) -> String {
+    match x {
+        0 -> "zero"
+        170141183460469231731687303715884105727 -> "max"
+        -170141183460469231731687303715884105728 -> "min"
+        1..=1000 -> "small"
+        18446744073709551616..=36893488147419103232 -> "around 2^64"
+        _ -> "other"
+    }
+}
+
+fn pick(t: Tagged) -> u128 {
+    match t {
+        Big(v) -> v
+        Small(v) -> v.toU128()
+        Nothing -> 0
+    }
+}
+
+fn ord(o: Ordering) -> String {
+    match o {
+        Ordering.Less -> "<"
+        Ordering.Equal -> "="
+        Ordering.Greater -> ">"
+    }
+}
+
+fn gsum[T: Eq](a: T, b: T) -> Bool { a == b }
+
+let w1 = Wide { id: 340282366920938463463374607431768211455, delta: -170141183460469231731687303715884105728 }
+let w2 = Wide { id: 340282366920938463463374607431768211455, delta: -170141183460469231731687303715884105728 }
+let w3 = Wide { id: 1, delta: 2 }
+print "${w1 == w2} ${w1 == w3} ${w1.id} ${w1.delta} ${hash(&w1) == hash(&w2)} ${hash(&w1) == hash(&w3)} ${gsum(w1, w2)}"
+let xs: Array[u128] = Array.of(5, 340282366920938463463374607431768211455, 18446744073709551616)
+let mut total: u128 = 0
+for v in &xs {
+    total = total.wrappingAdd(v)
+}
+print "${xs.len()} ${total} ${xs[1]} ${xs.get(2) || 0}"
+let mut m = map.empty[u128, String]()
+m.set(340282366920938463463374607431768211455, "max")
+m.set(18446744073709551616, "2^64")
+m.set(1, "one")
+let k1: u128 = 340282366920938463463374607431768211455
+let k2: u128 = 18446744073709551616
+let k3: u128 = 2
+print "${m.get(&k1) || "?"} ${m.get(&k2) || "?"} ${m.get(&k3) || "?"} ${m.len()}"
+let a: i128 = 170141183460469231731687303715884105727
+let b: i128 = 3
+let c: i128 = 18446744073709551617
+print "${classify(0)} ${classify(a)} ${classify(-a - 1)} ${classify(500)} ${classify(c)} ${classify(b * 1000000)}"
+print "${pick(Big(340282366920938463463374607431768211455))} ${pick(Small(7))} ${pick(Nothing)}"
+print "${ord(a.compareTo(&b))} ${ord(b.compareTo(&a))} ${ord(a.compareTo(&a))}"
+let f = (x: u128) => x * 3
+print "${f(113427455640312821154458202477256070485)}"
+let arr = FixedArray.filled[u128, 3](7)
+print "${arr[0]}"
+-- stdout --
+true false 340282366920938463463374607431768211455 -170141183460469231731687303715884105728 true false true
+3 18446744073709551620 340282366920938463463374607431768211455 18446744073709551616
+max 2^64 ? 3
+zero max min small around 2^64 other
+340282366920938463463374607431768211455 7 0
+> < =
+340282366920938463463374607431768211455
+7

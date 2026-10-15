@@ -106,6 +106,9 @@ func (m *Machine) binop(op string, a, b *obj) *obj {
 	if a.k != kInt {
 		m.abort("unsupported operands")
 	}
+	if is128(a.nk) {
+		return m.binop128(op, a, b)
+	}
 	x, y, nk := a.i, b.i, a.nk
 	sg := isSigned(nk)
 	switch op {
@@ -166,32 +169,4 @@ func (m *Machine) binop(op string, a, b *obj) *obj {
 	}
 	m.abort("unsupported operator " + op)
 	return nil
-}
-
-func (m *Machine) unop(op string, a *obj) *obj {
-	a = deref(a)
-	switch op[0] {
-	case '!':
-		return mkBool(!a.b)
-	case '-':
-		if a.k == kFloat {
-			return mkFloat(-a.f, a.nk)
-		}
-		return m.checked(-a.i, a.nk, a.i == minOf(a.nk))
-	case '~':
-		return mkInt(truncateTo(^a.i, a.nk), a.nk)
-	}
-	m.abort("unsupported unary " + op)
-	return nil
-}
-
-func (m *Machine) cast(a *obj, nk int) *obj {
-	a = deref(a)
-	if nk&512 != 0 {
-		if a.k == kFloat {
-			return mkFloat(a.f, nk)
-		}
-		return mkFloat(float64(a.i), nk)
-	}
-	return mkInt(a.i, nk)
 }
