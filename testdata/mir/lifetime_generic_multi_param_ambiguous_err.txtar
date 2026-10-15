@@ -35,7 +35,7 @@ fn lib.pickData(%cond: Bool, %v: View['a], %other: View['b]) -> &Bytes {
     %t3 = copy(%cond)
     %t4 = field 0(%v)
     %t5 = field 0(%other)
-    %t6 = call pickEither(%t3, %t4, %t5)
+    %t6 = call lib.pickEither(%t3, %t4, %t5)
     drop(%other)
     drop(%v)
     drop(%cond)

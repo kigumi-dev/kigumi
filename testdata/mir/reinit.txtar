@@ -21,19 +21,19 @@ fn lib.make(%v: Int) -> Box {
   b0:
     %t1 = copy(%v)
     %t2 = array(%t1)
-    %t3 = call of(%t2)
-    %t4 = record Box(%t3)
+    %t3 = call std/array.Array.of(%t2)
+    %t4 = record lib.Box(%t3)
     drop(%v)
     return %t4
 }
 fn lib.reinit(%x: Int) -> Box {
   b0:
     %t1 = copy(%x)
-    %t2 = call make(%t1)
+    %t2 = call lib.make(%t1)
     %b = copy(%t2)
     %t4 = const 1: Int
     %t5 = bin +(%x, %t4)
-    %t6 = call make(%t5)
+    %t6 = call lib.make(%t5)
     drop(%b)
     %b = copy(%t6)
     %t7 = move(%b)
@@ -44,7 +44,7 @@ fn lib.reinit(%x: Int) -> Box {
 fn lib.genuine(%x: Int) -> Box {
   b0:
     %t1 = copy(%x)
-    %t2 = call make(%t1)
+    %t2 = call lib.make(%t1)
     %b = copy(%t2)
     %t4 = move(%b)
     %c = copy(%t4)

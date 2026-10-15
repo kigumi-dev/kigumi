@@ -29,7 +29,7 @@ func bareJumpTarget(t Target) bool {
 func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool, error) {
 	t := opts.Target
 	if t.OS == "" {
-		t = HostTarget()
+		t = m.compiler.HostOrAmbient()
 	}
 	code, ok, err := compile(m, stderr, t, emitOptionsFor(t))
 	if err != nil || !ok {

@@ -61,7 +61,7 @@ func (e *emitter) agg(t sem.TypeID) (*aggInfo, bool) {
 	adt := e.r.DirectAdt(t)
 	ent := e.r.Types.Node(t).Ent
 	a := &aggInfo{T: t, Ent: ent, Align: 1}
-	spelling, prefix := e.r.TypeString(t), "agg"
+	spelling, prefix := string(e.r.TypeKey(t)), "agg"
 	switch {
 	case adt:
 		prefix = "adt"

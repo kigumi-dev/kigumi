@@ -12,7 +12,7 @@ import (
 
 func putManifest(t *testing.T, name, version, rest string) {
 	t.Helper()
-	dir, err := driver.CacheDir(driver.Require{Name: name, Version: version})
+	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: name, Version: version})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,11 +47,11 @@ func TestSelectVersionsOrderIndependent(t *testing.T) {
 		{Name: "p", Version: "v1.0.0"},
 	}}
 
-	selA, err := driver.SelectVersions(pFirst, driver.Local{})
+	selA, err := driver.SelectVersions(driver.CompilerOptions{}, pFirst, driver.Local{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	selB, err := driver.SelectVersions(qFirst, driver.Local{})
+	selB, err := driver.SelectVersions(driver.CompilerOptions{}, qFirst, driver.Local{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestSelectVersionsBuildMetadataConflict(t *testing.T) {
 		{Name: "b", Version: "v1.0.0+buildA"},
 		{Name: "b", Version: "v1.0.0+buildB"},
 	}}
-	_, err := driver.SelectVersions(root, driver.Local{})
+	_, err := driver.SelectVersions(driver.CompilerOptions{}, root, driver.Local{})
 	if err == nil || !strings.Contains(err.Error(), "v1.0.0+buildA") || !strings.Contains(err.Error(), "v1.0.0+buildB") {
 		t.Fatalf("build-metadata-only-different tags should conflict, naming both: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestSelectVersionsPrunesSupersededOnlyDep(t *testing.T) {
 		{Name: "a", Version: "v1.0.0"},
 		{Name: "c", Version: "v1.0.0"},
 	}}
-	sel, err := driver.SelectVersions(root, driver.Local{})
+	sel, err := driver.SelectVersions(driver.CompilerOptions{}, root, driver.Local{})
 	if err != nil {
 		t.Fatal(err)
 	}

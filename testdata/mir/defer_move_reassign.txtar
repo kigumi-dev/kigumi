@@ -32,15 +32,15 @@ fn main.Handle.close(%self: Handle) -> Unit {
 fn main.main() -> Unit! {
   b0:
     %t0 = const 1: Int
-    %t1 = record Handle(%t0)
+    %t1 = record main.Handle(%t0)
     %h = copy(%t1)
     %t3 = const 2: Int
-    %t4 = record Handle(%t3)
+    %t4 = record main.Handle(%t3)
     drop(%h)
     %h = copy(%t4)
     %t5 = move(%h)
-    %t6 = call close(%t5)
+    %t6 = call main.Handle.close(%t5)
     %t7 = unit
-    %t8 = variant Ok(%t7)
+    %t8 = variant Result.Ok(%t7)
     return %t8
 }

@@ -39,7 +39,7 @@ func TestBuildFreestandingTargetsPassAudit(t *testing.T) {
 				root := t.TempDir()
 				os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"audit\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 				os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
-				target, err := driver.ParseTarget(triple, "")
+				target, err := driver.ParseTarget(driver.CompilerOptions{}, triple, "")
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -37,13 +37,13 @@ fn lib.Inner.drop(%self: Inner) -> Unit {
 fn lib.record(%o: &Outer) -> Wrap {
   b0:
     %t1 = field 0(%o)
-    %t2 = record Wrap(%t1)
+    %t2 = record lib.Wrap(%t1)
     return %t2
 }
 fn lib.variant(%o: &Outer) -> Box {
   b0:
     %t1 = field 0(%o)
-    %t2 = variant Wrapped(%t1)
+    %t2 = variant lib.Box.Wrapped(%t1)
     return %t2
 }
 error[move-from-borrow]: a value borrowed here cannot be moved out; clone it

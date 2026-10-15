@@ -31,7 +31,7 @@ fn lib.relay(%cond: Bool, %a: &Bytes, %b: &Bytes) -> &Bytes {
     %t3 = copy(%cond)
     %t4 = copy(%a)
     %t5 = copy(%b)
-    %t6 = call pickOne(%t3, %t4, %t5)
+    %t6 = call lib.pickOne(%t3, %t4, %t5)
     drop(%cond)
     return %t6
 }

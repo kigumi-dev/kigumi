@@ -17,11 +17,11 @@ fn lib.View.peek(%self: View['a]) -> &Bytes {
 }
 fn lib.take(%v: View['a]) -> Unit {
   b0:
-    %t1 = call peek(%v)
+    %t1 = call lib.View.peek(%v)
     %r = copy(%t1)
     %t3 = copy(%r)
     %t4 = array(%t3)
-    %t5 = call of(%t4)
+    %t5 = call std/array.Array.of(%t4)
     %xs = copy(%t5)
     drop(%xs)
     drop(%r)

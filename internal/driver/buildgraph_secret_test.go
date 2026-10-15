@@ -45,7 +45,7 @@ func TestToolStepFailureRedactsSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, descriptors)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestGeneratedFileWriteFailsCleanlyOnReadOnlyDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestGeneratedFileWriteAtomicKeepsOldContentOnFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

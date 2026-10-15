@@ -29,7 +29,7 @@ func TestPlanJSONPerArtifactProvenance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestPlanJSONPerArtifactProvenanceScoped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -21,7 +21,7 @@ fn main.pick(%flag: Bool, %x: Int?) -> Int {
   b0:
     branch %flag ? b1 : b2
   b1:
-    %t4 = isvariant Some(%x)
+    %t4 = isvariant Option.Some(%x)
     branch %t4 ? b4 : b5
   b2:
     %t8 = const 1: Int
@@ -48,7 +48,7 @@ fn main() -> Unit! {
   b0:
     %t0 = const 1: Int
     %t1 = const 2: Int
-    %t2 = call add(%t0, %t1)
+    %t2 = call main.add(%t0, %t1)
     %total = copy(%t2)
     %t4 = interp "total=\x00"(%total)
     %t5 = builtin print(%t4)

@@ -68,10 +68,10 @@ fn lib.lend(%x: &T) -> Unit {
 fn lib.wrapped() -> Unit {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record lib.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 0(%b)
-    %t4 = record Wrap(%t3)
+    %t4 = record lib.Wrap(%t3)
     %w = copy(%t4)
     drop(%w)
     drop(%b)
@@ -81,11 +81,11 @@ fn lib.wrapped() -> Unit {
 fn lib.nested() -> Unit {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record lib.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 0(%b)
-    %t4 = record Wrap(%t3)
-    %t5 = record Wrap(%t4)
+    %t4 = record lib.Wrap(%t3)
+    %t5 = record lib.Wrap(%t4)
     %w = copy(%t5)
     drop(%w)
     drop(%b)
@@ -95,7 +95,7 @@ fn lib.nested() -> Unit {
 fn lib.tupled() -> Unit {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record lib.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 0(%b)
     %t4 = const 1: Int
@@ -109,10 +109,10 @@ fn lib.tupled() -> Unit {
 fn lib.variant() -> Unit {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record lib.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 0(%b)
-    %t4 = variant Some(%t3)
+    %t4 = variant Option.Some(%t3)
     %o = copy(%t4)
     drop(%o)
     drop(%b)
@@ -122,11 +122,11 @@ fn lib.variant() -> Unit {
 fn lib.element() -> Unit {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record lib.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 0(%b)
     %t4 = array(%t3)
-    %t5 = call of(%t4)
+    %t5 = call std/array.Array.of(%t4)
     %a = copy(%t5)
     drop(%a)
     drop(%b)
@@ -136,32 +136,32 @@ fn lib.element() -> Unit {
 fn lib.handed() -> Unit {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record lib.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 0(%b)
-    %t4 = call own(%t3)
+    %t4 = call lib.own(%t3)
     drop(%b)
     return %t4
 }
 fn lib.forwarded(%r: &Box) -> Unit {
   b0:
     %t1 = copy(%r)
-    %t2 = call own(%t1)
+    %t2 = call lib.own(%t1)
     return %t2
 }
 fn lib.viewed() -> Unit {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record lib.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 0(%b)
-    %t4 = record View(%t3)
+    %t4 = record lib.View(%t3)
     %v = copy(%t4)
     %t6 = field 0(%v)
-    %t7 = call lend(%t6)
+    %t7 = call lib.lend(%t6)
     drop(%t7)
     %t8 = field 0(%v)
-    %t9 = call own(%t8)
+    %t9 = call lib.own(%t8)
     drop(%v)
     drop(%b)
     return %t9

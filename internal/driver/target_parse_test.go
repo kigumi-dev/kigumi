@@ -11,7 +11,7 @@ import (
 // TestParseTargetUnverifiedABI checks that an unrecognized ABI suffix is marked Unverified rather than rejected outright or silently accepted.
 func TestParseTargetUnverifiedABI(t *testing.T) {
 	t.Parallel()
-	got, err := driver.ParseTarget("x86_64-linux-nonsense", "")
+	got, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-linux-nonsense", "")
 	if err != nil {
 		t.Fatalf("unknown ABI must build, not error: %v", err)
 	}
@@ -24,7 +24,7 @@ func TestParseTargetUnverifiedABI(t *testing.T) {
 func TestParseTargetKnownABI(t *testing.T) {
 	t.Parallel()
 	for _, triple := range []string{"x86-linux-musl", "aarch64-linux-gnu", "x86_64-linux", "x86_64-windows-msvc"} {
-		got, err := driver.ParseTarget(triple, "")
+		got, err := driver.ParseTarget(driver.CompilerOptions{}, triple, "")
 		if err != nil {
 			t.Fatalf("%s: %v", triple, err)
 		}
@@ -41,7 +41,7 @@ func TestUnverifiedTargetFailsRelease(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"u\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	target, err := driver.ParseTarget("x86_64-linux-nonsense", "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-linux-nonsense", "")
 	if err != nil {
 		t.Fatal(err)
 	}

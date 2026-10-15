@@ -91,7 +91,7 @@ func (e *emitter) loweredStd(fn sem.EntityID) bool {
 
 // stdBound has one adapter per value type: a generic primitive expands per instantiation.
 func (e *emitter) stdBound(fn sem.EntityID, bound int, value sem.TypeID) string {
-	sym := fmt.Sprintf("@\"%s$stdbound%d$%s#%d\"", e.stdKey(fn), bound, e.r.TypeString(value), value)
+	sym := fmt.Sprintf("@\"%s$stdbound%d$%s\"", e.stdKey(fn), bound, e.r.TypeKey(value))
 	if !e.cio[sym] {
 		e.cio[sym] = true
 		e.helpers.WriteString(e.stdAdapterWith(fn, sym, bound, value))

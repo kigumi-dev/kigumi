@@ -43,7 +43,7 @@ func runArtifactAvailability(t *testing.T, root, out string) (stderr string, err
 	if runErr != nil {
 		t.Fatal(runErr)
 	}
-	rg, resolveErr := driver.ResolveGraph(g, nil)
+	rg, resolveErr := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if resolveErr != nil {
 		t.Fatal(resolveErr)
 	}

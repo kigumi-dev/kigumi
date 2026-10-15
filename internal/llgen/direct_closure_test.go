@@ -36,7 +36,7 @@ func TestDirectClosureLoopAllocatesNothing(t *testing.T) {
 	if strings.Contains(body, "@rt_callv(") || !strings.Contains(body, `call ptr @"main.run.closure1"(ptr %l`) {
 		t.Errorf("the closure must be called directly on its environment:\n%s", body)
 	}
-	if !strings.Contains(ir, `%"kg.clo.main.run.closure1" = type { i1, i64, %"kg.agg.Point", %"kg.adt.Int?" }`) {
+	if !strings.Contains(ir, `%"kg.clo.main.run.closure1" = type { i1, i64, %"kg.agg.main.Point", %"kg.adt.Option[Int]" }`) {
 		t.Errorf("the environment is not laid out inline:\n%s", ir)
 	}
 }

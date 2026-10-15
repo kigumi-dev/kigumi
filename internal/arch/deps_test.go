@@ -52,7 +52,7 @@ var allowed = map[string][]string{
 	"cli/doctor":              {"cli/shared", "cliutil", "driver", "errors", "version", "zigtool", "zigtool/store"},
 	"cli/explain":             {"cli/shared", "cliutil", "driver", "errors", "sem"},
 	"cli/get":                 {"cli/shared", "cliutil", "driver", "errors"},
-	"cli/mod":                 {"cliutil", "driver", "errors", "version"},
+	"cli/mod":                 {"cli/shared", "cliutil", "driver", "errors", "version"},
 	"cli/zig":                 {"cli/shared", "cliutil", "driver", "errors", "version", "sem", "zigtool", "zigtool/store", "zigtool/fetch", "zigtool/source"},
 	"schema":                  {"token", "diag", "syntax", "sem", "version", "platform"},
 	"doc":                     {"token", "diag", "syntax", "sem", "driver", "errors", "version", "schema"},

@@ -8,9 +8,6 @@ import (
 
 // The runtime keeps a task panic fatal there; this only says so.
 func (a *Analysis) warnTaskPanicFatal(t Target, reach *mir.Reachability) {
-	if t.OS == "" {
-		t = HostTarget()
-	}
 	if wantsTaskCatch(t) {
 		return
 	}

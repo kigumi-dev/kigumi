@@ -16,8 +16,8 @@ fn lib.reuse(%b: Box[Int]) -> Int {
   b0:
     %t1 = move(%b)
     %c = copy(%t1)
-    %t3 = call get(%b)
-    %t4 = call get(%c)
+    %t3 = call std/alloc.Box.get(%b)
+    %t4 = call std/alloc.Box.get(%c)
     %t5 = bin +(%t3, %t4)
     drop(%c)
     nop
@@ -26,10 +26,10 @@ fn lib.reuse(%b: Box[Int]) -> Int {
 fn lib.twice(%b: Box[Int]) -> Int {
   b0:
     %t1 = move(%b)
-    %t2 = call into(%t1)
+    %t2 = call std/alloc.Box.into(%t1)
     %x = copy(%t2)
     %t4 = move(%b)
-    %t5 = call into(%t4)
+    %t5 = call std/alloc.Box.into(%t4)
     %y = copy(%t5)
     %t7 = bin +(%x, %y)
     drop(%y)

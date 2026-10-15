@@ -52,7 +52,7 @@ fn main.spin(%n: Int) -> Int {
 fn main() -> Unit! {
   b0:
     %t1 = const 3: Int
-    %t2 = call spin(%t1)
+    %t2 = call main.spin(%t1)
     %t0 = interp ""(%t2)
     %t3 = builtin print(%t0)
     drop(%t3)

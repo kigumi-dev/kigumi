@@ -38,7 +38,7 @@ func TestBuildProgramToolchain(t *testing.T) {
 		t.Fatal(err)
 	}
 	// No kigumi.framework.kg anywhere: "toolchain" resolves without one.
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestToolchainUnregisteredTool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := driver.ResolveGraph(g, nil); err == nil || !strings.Contains(err.Error(), "not registered by framework toolchain") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "not registered by framework toolchain") {
 		t.Fatalf("expected an unregistered-tool error, got %v", err)
 	}
 }

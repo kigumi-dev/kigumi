@@ -31,7 +31,7 @@ fn lib.Point.withX(%self: Point, %x: Int) -> Point {
     %t2 = field 0(%self)
     %t3 = field 1(%self)
     %t4 = copy(%x)
-    %t5 = record Point(%t4, %t3)
+    %t5 = record lib.Point(%t4, %t3)
     drop(%x)
     return %t5
 }
@@ -49,7 +49,7 @@ fn lib.Handle.retag(%self: Handle, %tag: Int) -> Handle {
     %t4 = move(%self)
     drop(%t4)
     %t5 = copy(%tag)
-    %t6 = record Handle(%t5, %t3)
+    %t6 = record lib.Handle(%t5, %t3)
     drop(%tag)
     return %t6
 }

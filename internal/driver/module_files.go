@@ -36,6 +36,9 @@ func (m *Module) loadPackage(dir, pkgPath, fileRel string, std, test bool) error
 		sorted = append(sorted, name)
 	}
 	sort.Strings(sorted)
+	if m.fileOrder != nil {
+		m.fileOrder(sorted)
+	}
 	for _, name := range sorted {
 		if strings.HasSuffix(name, "_test.kg") && !test {
 			continue

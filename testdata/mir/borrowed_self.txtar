@@ -39,8 +39,8 @@ fn lib.Nat.shl(%self: Nat, %bits: Int) -> Nat {
   b3:
     drop(%t4)
     %t8 = field 0(%self)
-    %t9 = call clone(%t8)
-    %t10 = record Nat(%t9)
+    %t9 = call std/array.Array.clone(%t8)
+    %t10 = record lib.Nat(%t9)
     drop(%bits)
     return %t10
   b4:
@@ -50,8 +50,8 @@ fn lib.Nat.shl(%self: Nat, %bits: Int) -> Nat {
 fn lib.Nat.keep(%self: Nat) -> Nat {
   b0:
     %t1 = field 0(%self)
-    %t2 = call clone(%t1)
-    %t3 = record Nat(%t2)
+    %t2 = call std/array.Array.clone(%t1)
+    %t3 = record lib.Nat(%t2)
     return %t3
 }
 fn lib.Counter.bump(%self: Counter) -> Unit {

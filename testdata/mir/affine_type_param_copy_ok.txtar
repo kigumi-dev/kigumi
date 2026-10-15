@@ -19,10 +19,10 @@ fn lib.consume(%x: T) -> Unit {
 fn lib.twice(%w: T) -> Unit {
   b0:
     %t1 = copy(%w)
-    %t2 = call consume(%t1)
+    %t2 = call lib.consume(%t1)
     drop(%t2)
     %t3 = copy(%w)
-    %t4 = call consume(%t3)
+    %t4 = call lib.consume(%t3)
     drop(%w)
     return %t4
 }

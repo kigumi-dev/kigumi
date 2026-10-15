@@ -67,12 +67,12 @@ fn lib.Tally.step(%self: Tally, %k: Int) -> Int {
 fn lib.viaRef(%t: &mut Tally) -> String {
   b0:
     %t1 = newcell(%t)
-    %t3 = bind show
-    %t2 = bind bump(%t3)
-    %t4 = closure bump applied(%t2, %t1)
+    %t3 = bind lib.Tag.show
+    %t2 = bind lib.Tally.bump(%t3)
+    %t4 = closure lib.Tally.bump applied(%t2, %t1)
     %b = copy(%t4)
     %t6 = const "r": String
-    %t7 = record Tag(%t6)
+    %t7 = record lib.Tag(%t6)
     %t8 = callv(%b, %t7)
     drop(%b)
     return %t8
@@ -80,7 +80,7 @@ fn lib.viaRef(%t: &mut Tally) -> String {
 fn lib.viaRefPlain(%t: &mut Tally) -> Int {
   b0:
     %t1 = newcell(%t)
-    %t2 = closure step method(%t1)
+    %t2 = closure lib.Tally.step method(%t1)
     %s = copy(%t2)
     %t4 = const 1: Int
     %t5 = callv(%s, %t4)

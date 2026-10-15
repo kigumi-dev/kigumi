@@ -45,7 +45,7 @@ func TestBuildProgramAllocatorNoneRejected(t *testing.T) {
 	if g.Artifacts[0].Target.Allocator != "none" {
 		t.Fatalf("artifact target lost the root allocator policy: %+v", g.Artifacts[0].Target)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestBuildProgramAllocatorNoneSurvivesHostTarget(t *testing.T) {
 	if g.Artifacts[0].Target.Allocator != "none" {
 		t.Fatalf("Builder.hostTarget() lost the root allocator policy: %+v", g.Artifacts[0].Target)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

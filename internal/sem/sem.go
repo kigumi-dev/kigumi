@@ -1,6 +1,8 @@
 package sem
 
 import (
+	"sync"
+
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
 )
@@ -159,6 +161,8 @@ type Result struct {
 	instances                 map[EntityID]InstanceInfo
 	instanceKeys              map[string]EntityID
 	closureOrigins            map[EntityID]EntityID
+	ordinalMu                 sync.Mutex
+	closureOrdinals           map[EntityID]int
 	deferredClaims            bool
 	allocBlocks               []allocBlock
 }

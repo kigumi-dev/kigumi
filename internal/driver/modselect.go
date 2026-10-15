@@ -31,7 +31,7 @@ type verKey struct{ name, version string }
 // every reachable (name, version) manifest so the maximum per name does not
 // depend on discovery order; pass 2 rebuilds the edges from the winning
 // manifests only, so dependencies reachable only through a loser drop out.
-func SelectVersions(root ModFile, local Local) (*Selection, error) {
+func SelectVersions(o CompilerOptions, root ModFile, local Local) (*Selection, error) {
 	max := map[string]Require{}
 	by := map[string]string{}
 	manifests := map[verKey]ModFile{}
@@ -79,7 +79,7 @@ func SelectVersions(root ModFile, local Local) (*Selection, error) {
 	for len(queue) > 0 {
 		r := queue[0]
 		queue = queue[1:]
-		dir, missing, err := DepDir(local, r, true)
+		dir, missing, err := DepDir(o, local, r, true)
 		if err != nil {
 			return nil, err
 		}

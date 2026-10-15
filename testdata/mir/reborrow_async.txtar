@@ -15,7 +15,7 @@ async fn lib.addOne(%out: &mut Array[u8]) -> Unit {
     %t2 = share retain(%t1)
     %t3 = newcell(%t2)
     %t4 = const 99: u8
-    %t5 = call push(%t3, %t4)
+    %t5 = call std/array.Array.push(%t3, %t4)
     %t6 = celltake(%t3)
     drop(%t3)
     drop(%t6)
@@ -24,14 +24,14 @@ async fn lib.addOne(%out: &mut Array[u8]) -> Unit {
 async fn lib.scenario(%out: &mut Array[u8]) -> Unit {
   b0:
     %t1 = move(%out)
-    %t2 = fnitem addOne async
+    %t2 = fnitem lib.addOne async
     %t3 = future(%t2, %t1)
     %f = copy(%t3)
     %t5 = borrow 1(%out)
     %t6 = share retain(%t5)
     %t7 = newcell(%t6)
     %t8 = const 1: u8
-    %t9 = call push(%t7, %t8)
+    %t9 = call std/array.Array.push(%t7, %t8)
     %t10 = celltake(%t7)
     drop(%t7)
     drop(%t10)

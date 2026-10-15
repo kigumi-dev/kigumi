@@ -32,7 +32,7 @@ fn main() -> Unit! { print "${marked(3)}" }
 // An alias renames the crossing's box instead of consuming it, so releasing at the alias would free the binding's object.
 func TestDirectAdtCrossingAtAnAliasIsReleasedByItsBinding(t *testing.T) {
 	body := bodyOf(t, emitIR(t, definedOverAdtSrc), `@"main.marked"(`)
-	box := regexp.MustCompile(`(%v\d+) = call ptr @"kg\.box\.Tick"\(`).FindStringSubmatch(body)
+	box := regexp.MustCompile(`(%v\d+) = call ptr @"kg\.box\.main\.Tick"\(`).FindStringSubmatch(body)
 	if box == nil {
 		t.Fatalf("marked never crosses into the boxed form:\n%s", body)
 	}
@@ -71,7 +71,7 @@ func TestFixedCrossingReadsTheImmortal(t *testing.T) {
 	if strings.Contains(fixed, `@"kg.box.`) || !strings.Contains(fixed, `@".constval.`) {
 		t.Errorf("a fixed crossing does not read the immortal:\n%s", fixed)
 	}
-	if fresh := bodyOf(t, ir, `@"main.fresh"(`); !strings.Contains(fresh, `call ptr @"kg.box.Int?"(`) {
+	if fresh := bodyOf(t, ir, `@"main.fresh"(`); !strings.Contains(fresh, `call ptr @"kg.box.Option[Int]"(`) {
 		t.Errorf("a crossing built at run time does not box:\n%s", fresh)
 	}
 }

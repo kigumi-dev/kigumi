@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"kigumi/internal/cli/shared"
 	"kigumi/internal/cliutil"
 	"kigumi/internal/driver"
 	"kigumi/internal/errors"
@@ -99,7 +100,7 @@ func verifyCmd(root *string) *cobra.Command {
 			bad := 0
 			for _, name := range sortedNames(lock) {
 				e := lock.Entries[name]
-				dir, err := driver.CacheDir(driver.Require{Name: name, Version: e.Version})
+				dir, err := driver.CacheDir(shared.CompilerOptions(), driver.Require{Name: name, Version: e.Version})
 				if err != nil {
 					return err
 				}

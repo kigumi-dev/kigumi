@@ -2,6 +2,8 @@ package llgen
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 
@@ -50,15 +52,10 @@ func (e *emitter) descOfType(t sem.TypeID) string {
 	if n.Kind == sem.KNamed {
 		return e.desc(n.Ent)
 	}
-	return e.desc(e.primEnt(t))
-}
-
-func (e *emitter) primEnt(t sem.TypeID) sem.EntityID {
-	name := e.r.TypeString(t)
-	if ent := e.r.EntityOfName(name); ent != 0 {
-		return ent
+	if ent := e.r.EntityOfName(e.r.TypeString(t)); ent != 0 {
+		return e.desc(ent)
 	}
-	return sem.EntityID(1<<20 + int(t))
+	return e.primDesc(t)
 }
 
 func (e *emitter) typeCount() int { return e.ntypes }
@@ -143,13 +140,12 @@ func (e *emitter) data() string {
 	sort.Ints(descEnts)
 	for _, id := range descEnts {
 		ent, name := sem.EntityID(id), e.descs[sem.EntityID(id)]
-		if e.r.Entity(ent).Kind != sem.EntType || int(ent) >= len(e.r.Entities) {
-			label := e.r.Entity(ent).Name
-			if int(ent) >= len(e.r.Entities) {
-				label = "prim"
-			}
-			e.irb(&sb).GlobalStruct(name, rtTypeStruct, vptr(e.cstr(label)), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0))
+		if e.r.Entity(ent).Kind != sem.EntType {
+			e.irb(&sb).GlobalStruct(name, rtTypeStruct, vptr(e.cstr(e.r.Entity(ent).Name)), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0))
 		}
+	}
+	for _, key := range slices.Sorted(maps.Keys(e.primDescs)) {
+		e.irb(&sb).GlobalStruct(e.primDescs[key], rtTypeStruct, vptr(e.cstr("prim")), vi32(0), vi32(0), vptr("null"), vi32(0), vptr("null"), vptr("null"), vi64(0))
 	}
 	drops := make([]int, 0, len(e.stdDrops))
 	for ent := range e.stdDrops {

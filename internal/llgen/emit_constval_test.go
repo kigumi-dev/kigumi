@@ -47,7 +47,7 @@ fn wrap(n: Int) -> Result[Unit, AllocError] {
 
 fn main() -> Unit! {}
 `)
-	body := bodyOf(t, ir, `define %"kg.adt.Result[Unit, AllocError]" @"main.wrap"(`)
+	body := bodyOf(t, ir, `define %"kg.adt.Result[Unit,std/prelude.AllocError]" @"main.wrap"(`)
 	checkNoHeap(t, "main.wrap", body)
 	if strings.Contains(body, `@".constval.`) {
 		t.Errorf("an inline result must not read a shared slot:\n%s", body)
@@ -64,7 +64,7 @@ fn fails(bad: Bool) -> Result[Unit, AllocError] {
 
 fn main() -> Unit! {}
 `)
-	body := bodyOf(t, ir, `define %"kg.adt.Result[Unit, AllocError]" @"main.fails"(`)
+	body := bodyOf(t, ir, `define %"kg.adt.Result[Unit,std/prelude.AllocError]" @"main.fails"(`)
 	checkNoHeap(t, "main.fails", body)
 	if strings.Contains(body, "@rt_nullary(") || strings.Contains(body, `@".constval.`) {
 		t.Errorf("an inline AllocError must not come from an immortal:\n%s", body)

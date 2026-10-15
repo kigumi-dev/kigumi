@@ -7,11 +7,11 @@ import (
 )
 
 // DepDir resolves a required module's directory: a local override (root only) or the fetched cache copy; missing is true when uncached.
-func DepDir(local Local, r Require, isRoot bool) (dir string, missing bool, err error) {
+func DepDir(o CompilerOptions, local Local, r Require, isRoot bool) (dir string, missing bool, err error) {
 	if p, ok := local.Replaces[r.Name]; ok && isRoot {
 		return p, false, nil
 	}
-	dir, err = CacheDir(r)
+	dir, err = CacheDir(o, r)
 	if err != nil {
 		return "", false, err
 	}
@@ -26,7 +26,7 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 			return fmt.Errorf("dependency %s overlaps this module's name %s", r.Name, m.Name)
 		}
 	}
-	sel, err := SelectVersions(m.Manifest, m.local)
+	sel, err := SelectVersions(m.compiler, m.Manifest, m.local)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 	}
 	for _, name := range sel.Names() {
 		r := sel.Requires[name]
-		depDir, _, err := DepDir(m.local, r, true)
+		depDir, _, err := DepDir(m.compiler, m.local, r, true)
 		if err != nil {
 			return err
 		}

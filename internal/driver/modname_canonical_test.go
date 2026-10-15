@@ -42,7 +42,7 @@ func TestValidModuleNameLocalNameCaseSensitive(t *testing.T) {
 // TestCacheDirReservedComponent checks that a Windows-reserved device name (legal under ValidModuleName) doesn't come out as a bare reserved name.
 func TestCacheDirReservedComponent(t *testing.T) {
 	t.Parallel()
-	dir, err := driver.CacheDir(driver.Require{Name: "example.com/con", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "example.com/con", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestCacheDirCaseInjective(t *testing.T) {
 	names := []string{"example.com/Acme/Lib", "example.com/acme/lib", "example.com/ACME/LIB", "example.com/con", "example.com/Con", "example.com/CON.ini"}
 	seen := map[string]string{}
 	for _, n := range names {
-		dir, err := driver.CacheDir(driver.Require{Name: n, Version: "v1.0.0"})
+		dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: n, Version: "v1.0.0"})
 		if err != nil {
 			t.Fatalf("%s: %v", n, err)
 		}

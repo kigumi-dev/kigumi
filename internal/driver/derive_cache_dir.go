@@ -1,13 +1,12 @@
 package driver
 
 import (
-	"os"
 	"path/filepath"
 )
 
 // DeriveCacheDir is where `--plan` caches generated derive source, separate from CacheDir's fetched-module tree.
-func DeriveCacheDir() (string, error) {
-	dir, err := os.UserCacheDir()
+func DeriveCacheDir(o CompilerOptions) (string, error) {
+	dir, err := o.cacheRoot()
 	if err != nil {
 		return "", err
 	}

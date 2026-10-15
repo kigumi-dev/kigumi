@@ -44,7 +44,7 @@ fn lib.take(%p: Pair) -> Res {
     %t1 = fieldmove 0(%p)
     %taken = copy(%t1)
     %t3 = const 9: Int
-    %t4 = record Res(%t3)
+    %t4 = record lib.Res(%t3)
     setfield 0(%p, %t4)
     %t5 = move(%taken)
     nop
@@ -68,7 +68,7 @@ fn lib.useWhole(%p: Pair) -> Unit {
     %t1 = fieldmove 0(%p)
     %taken = copy(%t1)
     %t3 = move(%p)
-    %t4 = call consume(%t3)
+    %t4 = call lib.consume(%t3)
     drop(%taken)
     nop
     return %t4

@@ -24,7 +24,7 @@ func artifactOut(outDir string, a *buildgraph.Artifact) string {
 func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(int) string, outDir string, opts ExecOptions, stderr io.Writer) error {
 	g := rg.Graph
 	a, t := g.Artifacts[idx], rg.Targets[idx]
-	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses})
+	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses, Compiler: p.Module.compiler})
 	if err != nil {
 		return fmt.Errorf("artifact %s: %w", a.Name, err)
 	}

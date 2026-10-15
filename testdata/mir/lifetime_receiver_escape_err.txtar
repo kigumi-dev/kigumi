@@ -19,7 +19,7 @@ fn lib.head(%b: &Bytes) -> View['a] {
   b0:
     %t1 = copy(%b)
     %t2 = const 0: usize
-    %t3 = record View(%t1, %t2)
+    %t3 = record lib.View(%t1, %t2)
     return %t3
 }
 fn lib.View.peek(%self: View['a]) -> &Bytes {
@@ -30,13 +30,13 @@ fn lib.View.peek(%self: View['a]) -> &Bytes {
 fn lib.escapeRecv(%buf: &Bytes) -> Unit {
   b0:
     %t1 = copy(%buf)
-    %t2 = call head(%t1)
+    %t2 = call lib.head(%t1)
     %v = copy(%t2)
-    %t4 = call peek(%v)
+    %t4 = call lib.View.peek(%v)
     %r = copy(%t4)
     %t6 = copy(%r)
     %t7 = array(%t6)
-    %t8 = call of(%t7)
+    %t8 = call std/array.Array.of(%t7)
     %xs = copy(%t8)
     drop(%xs)
     drop(%r)

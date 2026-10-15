@@ -46,7 +46,7 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 	if err != nil {
 		return err
 	}
-	rg, err := driver.ResolveGraph(g, descriptors)
+	rg, err := driver.ResolveGraph(shared.CompilerOptions(), g, descriptors)
 	if err != nil {
 		cmd.PrintErrln(driver.BuildFileName + ": " + err.Error())
 		return cliutil.Exit(1)

@@ -42,16 +42,16 @@ fn lib.head(%b: &Res) -> View['a] {
   b0:
     %t1 = copy(%b)
     %t2 = const 0: usize
-    %t3 = record View(%t1, %t2)
+    %t3 = record lib.View(%t1, %t2)
     return %t3
 }
 fn lib.mutateWhileViewed(%buf: Bytes) -> u8 {
   b0:
     %t1 = borrow 0(%buf)
-    %t2 = call headBytes(%t1)
+    %t2 = call lib.headBytes(%t1)
     %v = copy(%t2)
     %t4 = const 8: usize
-    %t5 = call zeros(%t4)
+    %t5 = call std/prelude.Bytes.zeros(%t4)
     drop(%buf)
     %buf = copy(%t5)
     %t6 = field 0(%v)
@@ -65,13 +65,13 @@ fn lib.headBytes(%b: &Bytes) -> ViewBytes['a] {
   b0:
     %t1 = copy(%b)
     %t2 = const 0: usize
-    %t3 = record ViewBytes(%t1, %t2)
+    %t3 = record lib.ViewBytes(%t1, %t2)
     return %t3
 }
 fn lib.moveWhileViewed(%buf: Res) -> Int {
   b0:
     %t1 = borrow 0(%buf)
-    %t2 = call head(%t1)
+    %t2 = call lib.head(%t1)
     %v = copy(%t2)
     %t4 = move(%buf)
     %taken = copy(%t4)
@@ -93,11 +93,11 @@ fn lib.identity(%v: ViewBytes['a]) -> ViewBytes['a] {
 fn lib.mutateWhileIdentityViewed(%buf: Bytes) -> u8 {
   b0:
     %t1 = borrow 0(%buf)
-    %t2 = call headBytes(%t1)
-    %t3 = call identity(%t2)
+    %t2 = call lib.headBytes(%t1)
+    %t3 = call lib.identity(%t2)
     %v = copy(%t3)
     %t5 = const 8: usize
-    %t6 = call zeros(%t5)
+    %t6 = call std/prelude.Bytes.zeros(%t5)
     drop(%buf)
     %buf = copy(%t6)
     %t7 = field 0(%v)

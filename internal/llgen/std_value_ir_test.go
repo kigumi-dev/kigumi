@@ -37,7 +37,7 @@ func TestStdFunctionValueAdaptersOwnTheirStackSlots(t *testing.T) {
 
 func TestGenericStdFunctionValueIsExpandedPerInstantiation(t *testing.T) {
 	ir := specializedIR(t, stdValueProbe)
-	if !strings.Contains(ir, `define ptr @"std/ffi.sizeOf$stdbound0$pure fn(&Int) -> usize#`) {
+	if !strings.Contains(ir, `define ptr @"std/ffi.sizeOf$stdbound0$pure fn(&Int)->usize`) {
 		t.Errorf("sizeOf[i64] as a value has no adapter of its own instantiation:\n%s", ir)
 	}
 }

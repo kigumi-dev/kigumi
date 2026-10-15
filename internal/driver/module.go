@@ -77,14 +77,16 @@ type Module struct {
 	zigNotice    io.Writer
 	verifyPasses bool
 	lowerAll     bool
+	fileOrder    func(names []string)
+	compiler     CompilerOptions
 }
 
 // LoadModule parses every package under root and, when configured, the std
 // stubs. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
 func LoadModule(root string, opts LoadOptions) (*Module, error) {
-	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses}
+	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, fileOrder: opts.FileOrder, compiler: opts.Compiler}
 	if m.target.OS == "" {
-		m.target = HostTarget()
+		m.target = m.compiler.HostOrAmbient()
 	}
 	if m.target.Unverified() {
 		m.Violations = append(m.Violations, unverifiedTargetViolation(m.target.Triple))
@@ -150,5 +152,8 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 		m.Order = append(m.Order, p)
 	}
 	sort.Strings(m.Order)
+	if m.fileOrder != nil {
+		m.fileOrder(m.Order)
+	}
 	return m, nil
 }

@@ -50,7 +50,7 @@ func TestCapabilitiesAndReasonGraphNameCString(t *testing.T) {
 
 func TestCapabilityReasonsNameWithheldCapabilityPerTarget(t *testing.T) {
 	a := loadForCapabilities(t, "let args = host.args()\nprint \"${args.len()}\"\n")
-	wasi, err := driver.ParseTarget("wasm32-wasi", "")
+	wasi, err := driver.ParseTarget(driver.CompilerOptions{}, "wasm32-wasi", "")
 	if err != nil {
 		t.Fatal(err)
 	}

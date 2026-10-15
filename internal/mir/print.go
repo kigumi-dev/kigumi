@@ -69,7 +69,7 @@ func (p *Program) inst(f *Func, in Inst) string {
 	case OpConst:
 		body += " " + litText(in) + ": " + p.R.TypeString(in.Type)
 	case OpCall, OpVariant, OpRecord, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpIsVariant, OpIsType, OpGlobalGet, OpGlobalSet:
-		body += " " + p.R.Entity(in.Ent).Name
+		body += " " + p.declName(in.Ent)
 		if in.Str != "" {
 			body += " " + in.Str
 		}

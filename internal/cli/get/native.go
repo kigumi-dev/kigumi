@@ -3,6 +3,7 @@ package get
 import (
 	"sort"
 
+	"kigumi/internal/cli/shared"
 	"kigumi/internal/driver"
 )
 
@@ -48,7 +49,7 @@ type nativeChange struct {
 func snapshotNative(lock driver.Lock) map[string]driver.ModFile {
 	out := map[string]driver.ModFile{}
 	for name, entry := range lock.Entries {
-		dir, err := driver.CacheDir(driver.Require{Name: name, Version: entry.Version})
+		dir, err := driver.CacheDir(shared.CompilerOptions(), driver.Require{Name: name, Version: entry.Version})
 		if err != nil {
 			continue
 		}

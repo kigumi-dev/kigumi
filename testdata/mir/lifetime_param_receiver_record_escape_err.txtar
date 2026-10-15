@@ -18,10 +18,10 @@ fn lib.View.peek(%self: View['a]) -> &Bytes {
 }
 fn lib.take(%v: View['a], %other: View['b]) -> Box['a] {
   b0:
-    %t2 = call peek(%other)
+    %t2 = call lib.View.peek(%other)
     %r = copy(%t2)
     %t4 = copy(%r)
-    %t5 = record Box(%t4)
+    %t5 = record lib.Box(%t4)
     drop(%r)
     drop(%other)
     drop(%v)

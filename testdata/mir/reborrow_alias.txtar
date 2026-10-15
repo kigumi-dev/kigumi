@@ -14,7 +14,7 @@ fn lib.combine(%a: &mut Array[u8], %b: &mut Array[u8]) -> Unit {
     %t3 = share retain(%t2)
     %t4 = newcell(%t3)
     %t5 = const 1: u8
-    %t6 = call push(%t4, %t5)
+    %t6 = call std/array.Array.push(%t4, %t5)
     %t7 = celltake(%t4)
     drop(%t4)
     drop(%t7)
@@ -23,7 +23,7 @@ fn lib.combine(%a: &mut Array[u8], %b: &mut Array[u8]) -> Unit {
     %t9 = share retain(%t8)
     %t10 = newcell(%t9)
     %t11 = const 2: u8
-    %t12 = call push(%t10, %t11)
+    %t12 = call std/array.Array.push(%t10, %t11)
     %t13 = celltake(%t10)
     drop(%t10)
     drop(%t13)
@@ -31,7 +31,7 @@ fn lib.combine(%a: &mut Array[u8], %b: &mut Array[u8]) -> Unit {
 }
 fn lib.outer(%out: &mut Array[u8]) -> Unit {
   b0:
-    %t1 = call combine(%out, %out)
+    %t1 = call lib.combine(%out, %out)
     return %t1
 }
 error[borrow-conflict]: `out` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value

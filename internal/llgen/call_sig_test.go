@@ -29,7 +29,7 @@ fn firstLive(fs: &Array[Flag]) -> Bool {
 fn main() -> Unit! {}
 `
 
-// Keeps a quoted type name whole: %"kg.agg.(Int, Int)" is one token with a
+// Keeps a quoted type name whole: %"kg.agg.Tuple2[Int,Int]" is one token with a
 // space in it.
 func cutLLToken(s string) (string, string) {
 	s = strings.TrimLeft(s, " ")
@@ -222,7 +222,7 @@ func TestDirectAggregateBoxWidensBool(t *testing.T) {
 	if strings.Contains(ir, "@rt_bool(i1 ") {
 		t.Error("a Bool reaches rt_bool as an i1")
 	}
-	body := bodyOf(t, ir, `define internal ptr @"kg.box.Flag"(`)
+	body := bodyOf(t, ir, `define internal ptr @"kg.box.main.Flag"(`)
 	if !regexp.MustCompile(`zext i1 %v\d+ to i32`).MatchString(body) || !strings.Contains(body, "@rt_bool(i32 ") {
 		t.Errorf("the boxing helper does not widen its Bool field:\n%s", body)
 	}

@@ -21,16 +21,16 @@ fn main.copy(%c: Bool) -> Unit {
     %t1 = const "abc": String
     %text = copy(%t1)
     %t3 = borrow 0(%text)
-    %t4 = call new(%t3)
-    %t5 = call unwrap(%t4)
+    %t4 = call std/ffi.CString.new(%t3)
+    %t5 = call std/prelude.Result.unwrap(%t4)
     %buf = copy(%t5)
     branch %c ? b1 : b2
   b1:
-    %t8 = call ptr(%buf)
-    %t9 = call toMut(%t8)
-    %t10 = call ptr(%buf)
+    %t8 = call std/ffi.CString.ptr(%buf)
+    %t9 = call std/ffi.toMut(%t8)
+    %t10 = call std/ffi.CString.ptr(%buf)
     %t11 = const 1: usize
-    %t12 = call memcpy(%t9, %t10, %t11)
+    %t12 = call main.memcpy(%t9, %t10, %t11)
     drop(%t12)
     %t13 = unit
     %t7 = copy(%t13)
@@ -48,7 +48,7 @@ fn main.copy(%c: Bool) -> Unit {
 fn main() -> Unit! {
   b0:
     %t0 = const true: Bool
-    %t1 = call copy(%t0)
+    %t1 = call main.copy(%t0)
     drop(%t1)
     %t2 = const "done": String
     %t3 = builtin print(%t2)

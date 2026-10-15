@@ -96,7 +96,7 @@ func TestIndirectPoolRejectedByProfile(t *testing.T) {
 
 func TestIndirectPoolRejectedByTarget(t *testing.T) {
 	t.Parallel()
-	target, err := driver.ParseTarget("x86_64-freestanding", "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

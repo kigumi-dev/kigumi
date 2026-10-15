@@ -24,7 +24,7 @@ fn main.useAfterOwnedLoop() -> Unit {
     %t1 = const 2: Int
     %t2 = const 3: Int
     %t3 = array(%t0, %t1, %t2)
-    %t4 = call of(%t3)
+    %t4 = call std/array.Array.of(%t3)
     %items = copy(%t4)
     %t6 = move(%items)
     %t7 = const 0: usize
@@ -52,7 +52,7 @@ fn main.useAfterOwnedLoop() -> Unit {
     drop(%t6)
     %t16 = unit
     drop(%t16)
-    %t18 = call len(%items)
+    %t18 = call std/array.Array.len(%items)
     %t17 = interp ""(%t18)
     %t19 = builtin print(%t17)
     nop
@@ -64,7 +64,7 @@ fn main.mutateInsideBorrowLoop() -> Unit {
     %t1 = const 2: Int
     %t2 = const 3: Int
     %t3 = array(%t0, %t1, %t2)
-    %t4 = call of(%t3)
+    %t4 = call std/array.Array.of(%t3)
     %items = copy(%t4)
     %t6 = borrow 0(%items)
     %t7 = const 0: usize
@@ -80,7 +80,7 @@ fn main.mutateInsideBorrowLoop() -> Unit {
     %t13 = share retain(%t12)
     %t14 = newcell(%t13)
     %t15 = const 4: Int
-    %t16 = call push(%t14, %t15)
+    %t16 = call std/array.Array.push(%t14, %t15)
     %t17 = celltake(%t14)
     drop(%t14)
     drop(%items)

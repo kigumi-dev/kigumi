@@ -22,22 +22,22 @@ fn makeLoose() -> Unit {
 fn lib.make(%b: &Box) -> Holder['a] {
   b0:
     %t1 = copy(%b)
-    %t2 = record View(%t1)
+    %t2 = record lib.View(%t1)
     %v = copy(%t2)
     %t4 = copy(%v)
-    %t5 = variant Has(%t4)
+    %t5 = variant lib.Holder.Has(%t4)
     drop(%v)
     return %t5
 }
 fn lib.makeLoose() -> Unit {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record lib.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 0(%b)
     %r = copy(%t3)
     %t5 = copy(%r)
-    %t6 = variant Wrap2(%t5)
+    %t6 = variant lib.Loose.Wrap2(%t5)
     %l = copy(%t6)
     drop(%l)
     drop(%b)

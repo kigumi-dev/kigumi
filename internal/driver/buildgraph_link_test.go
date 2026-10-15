@@ -50,7 +50,7 @@ func TestBuildProgramLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,12 +95,12 @@ func TestLinkOptionsNeedHostedTarget(t *testing.T) {
 		Target:       buildgraph.Target{Triple: "x86_64-freestanding"},
 		LinkerScript: &script,
 	}}}
-	if _, err := driver.ResolveGraph(g, nil); err == nil || !strings.Contains(err.Error(), "hosted target") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "hosted target") {
 		t.Fatalf("bare target with a linker script should be rejected: %v", err)
 	}
 	g.Artifacts[0].LinkerScript = nil
 	g.Artifacts[0].Entry = "_start"
-	if _, err := driver.ResolveGraph(g, nil); err == nil || !strings.Contains(err.Error(), "hosted target") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "hosted target") {
 		t.Fatalf("bare target with an entry symbol should be rejected: %v", err)
 	}
 }

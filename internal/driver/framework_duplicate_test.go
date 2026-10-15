@@ -18,7 +18,7 @@ func TestResolveGraphRejectsAmbiguousFrameworkProvider(t *testing.T) {
 		{Name: "acme/sdk", Version: "1.0", Dir: "/root", Tools: map[string]driver.ToolProgram{}},
 		{Name: "acme/sdk", Version: "1.0", Dir: "/dep", Tools: map[string]driver.ToolProgram{}},
 	}
-	_, err := driver.ResolveGraph(g, descriptors)
+	_, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors)
 	if err == nil {
 		t.Fatal("two same-identity descriptors must be rejected")
 	}
@@ -35,7 +35,7 @@ func TestResolveGraphAcceptsUniqueFrameworkProvider(t *testing.T) {
 	descriptors := []driver.FrameworkDescriptor{
 		{Name: "acme/sdk", Version: "1.0", Dir: "/root", Tools: map[string]driver.ToolProgram{}},
 	}
-	rg, err := driver.ResolveGraph(g, descriptors)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -330,7 +330,7 @@ func TestVersionSelection(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", cache)
 	lock := driver.Lock{Entries: map[string]driver.LockEntry{}}
 	put := func(name, version, rest string, files map[string]string) {
-		dir, _ := driver.CacheDir(driver.Require{Name: name, Version: version})
+		dir, _ := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: name, Version: version})
 		os.MkdirAll(dir, 0o755)
 		os.WriteFile(filepath.Join(dir, "mod.kg"), manifest(name, rest), 0o644)
 		os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("cafebabe\n"), 0o644)

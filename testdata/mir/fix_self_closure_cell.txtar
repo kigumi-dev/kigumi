@@ -32,7 +32,7 @@ fn main.Counter.bump.closure1(%self: Counter) -> Unit {
 }
 fn main.Counter.bump(%self: Counter) -> Unit {
   b0:
-    %t1 = closure closure(%self)
+    %t1 = closure main.Counter.bump.closure1(%self)
     %step = copy(%t1)
     %t3 = callv(%step)
     drop(%step)
@@ -41,7 +41,7 @@ fn main.Counter.bump(%self: Counter) -> Unit {
 fn main.Counter.resetDirect(%self: Counter) -> Unit {
   b0:
     %t1 = const 99: Int
-    %t2 = record Counter(%t1)
+    %t2 = record main.Counter(%t1)
     cellset(%self, %t2)
     %t3 = unit
     return %t3
@@ -49,12 +49,12 @@ fn main.Counter.resetDirect(%self: Counter) -> Unit {
 fn main() -> Unit! {
   b0:
     %t0 = const 0: Int
-    %t1 = record Counter(%t0)
+    %t1 = record main.Counter(%t0)
     %c = copy(%t1)
     %t3 = borrow 1(%c)
     %t4 = share retain(%t3)
     %t5 = newcell(%t4)
-    %t6 = call bump(%t5)
+    %t6 = call main.Counter.bump(%t5)
     %t7 = celltake(%t5)
     drop(%t5)
     drop(%c)
@@ -63,7 +63,7 @@ fn main() -> Unit! {
     %t8 = borrow 1(%c)
     %t9 = share retain(%t8)
     %t10 = newcell(%t9)
-    %t11 = call resetDirect(%t10)
+    %t11 = call main.Counter.resetDirect(%t10)
     %t12 = celltake(%t10)
     drop(%t10)
     drop(%c)

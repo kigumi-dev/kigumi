@@ -30,7 +30,7 @@ func compileFor(t *testing.T, target driver.Target, src string) (out string, ok 
 
 func mustTarget(t *testing.T, triple, sys string) driver.Target {
 	t.Helper()
-	tgt, err := driver.ParseTarget(triple, sys)
+	tgt, err := driver.ParseTarget(driver.CompilerOptions{}, triple, sys)
 	if err != nil {
 		t.Fatal(err)
 	}

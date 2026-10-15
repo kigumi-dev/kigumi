@@ -41,7 +41,7 @@ fn main.bumpField(%h: Holder['a]) -> Unit {
     %t3 = share retain(%t2)
     %t4 = newcell(%t3)
     %t5 = const 2: Int
-    %t6 = call bump(%t4, %t5)
+    %t6 = call main.Box.bump(%t4, %t5)
     %t7 = celltake(%t4)
     drop(%t4)
     drop(%t7)
@@ -58,11 +58,11 @@ fn main.readField(%h: Holder['a]) -> Int {
 fn main() -> Unit! {
   b0:
     %t0 = const 1: Int
-    %t1 = record Box(%t0)
+    %t1 = record main.Box(%t0)
     %b = copy(%t1)
     %t3 = borrow 1(%b)
-    %t4 = record Holder(%t3)
-    %t5 = call bumpField(%t4)
+    %t4 = record main.Holder(%t3)
+    %t5 = call main.bumpField(%t4)
     drop(%t5)
     %t7 = field 0(%b)
     %t6 = interp ""(%t7)

@@ -18,16 +18,16 @@ fn leak['a]() -> &'a u32 {
 -- expect --
 fn lib.port() -> u32 {
   b0:
-    %t0 = globalget config
+    %t0 = globalget lib.config
     return %t0
 }
 fn lib.show() -> Unit {
   b0:
-    %t0 = globalget config
+    %t0 = globalget lib.config
     %t1 = borrow 0(%t0)
     %v = copy(%t1)
     %t3 = copy(%v)
-    %t4 = call reader(%t3)
+    %t4 = call lib.reader(%t3)
     return %t4
 }
 fn lib.reader(%v: &u32) -> Unit {
@@ -37,7 +37,7 @@ fn lib.reader(%v: &u32) -> Unit {
 }
 fn lib.leak() -> &u32 {
   b0:
-    %t0 = globalget config
+    %t0 = globalget lib.config
     %t1 = borrow 0(%t0)
     return %t1
   b1:

@@ -69,15 +69,11 @@ func (p *Program) verifyEntities(f *Func) *Error {
 				return fail("entities", bid, i, "%s of %s is marked async %v, which its declaration says %v", in.Op, p.R.Entity(in.Ent).Name, in.Async, !in.Async)
 			}
 			if want != "" {
-				name := ""
+				name := "entity " + itoa(int(in.Ent)) + " (out of range)"
 				if int(in.Ent) < len(p.R.Entities) {
-					e := p.R.Entity(in.Ent)
-					name = " (" + p.R.Packages[e.Pkg].Path + "." + e.Name + ")"
-					if e.Kind == sem.EntFn && p.R.Fn(in.Ent).Owner != 0 {
-						name = " (" + p.R.Packages[e.Pkg].Path + "." + p.R.Entity(p.R.Fn(in.Ent).Owner).Name + "." + e.Name + ")"
-					}
+					name = p.declName(in.Ent)
 				}
-				return fail("entities", bid, i, "%s names entity %d%s, which is not %s", in.Op, in.Ent, name, want)
+				return fail("entities", bid, i, "%s names %s, which is not %s", in.Op, name, want)
 			}
 		}
 	}

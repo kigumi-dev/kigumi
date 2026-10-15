@@ -32,7 +32,7 @@ type specializer struct {
 	byFunc   map[*Func]*spec
 	all      []*spec
 	work     []*spec
-	names    map[string]bool
+	names    map[string]*nameHolder
 	noSpec   map[sem.EntityID]bool
 	reported map[string]bool
 	scanned  map[*Func]bool
@@ -41,9 +41,9 @@ type specializer struct {
 
 // Specialize runs after plan-rc and fold-comptime and before plan-direct, so comptime executes the shared body.
 func Specialize(p *Program) error {
-	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*Func]*spec{}, names: map[string]bool{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*Func]bool{}}
+	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*Func]bool{}}
 	for _, f := range p.Funcs {
-		s.names[f.Name] = true
+		s.names[f.Name] = nil
 	}
 	s.intrinsifyOwned()
 	for _, f := range append([]*Func(nil), p.Funcs...) {
@@ -108,7 +108,9 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 		return nil
 	}
 	ent := s.p.R.Instantiate(gen, args, key)
-	fn := s.p.cloneFor(g, ent, s.name(gen, args), sub, ents)
+	name, holder := s.name(gen, args, wit)
+	fn := s.p.cloneFor(g, ent, name, sub, ents)
+	holder.fn = fn
 	if kind := s.p.R.ProtoKind(gen); kind != "" {
 		if t, ok := s.p.protoSubject(fn); ok && s.p.R.ProtocolDirect(t, kind) {
 			s.p.intrinsify(fn, kind, t)
@@ -124,7 +126,9 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 	s.p.ByEnt[ent] = fn
 	s.byKey[key], s.byEnt[ent], s.byFunc[fn] = sp, sp, sp
 	for _, c := range clones {
-		c.fn.Name = s.instanceName(c.gen.Name, args)
+		var h *nameHolder
+		c.fn.Name, h = s.instanceName(c.gen.Name, args, wit)
+		h.fn = c.fn
 		s.p.Funcs = append(s.p.Funcs, c.fn)
 		s.p.ByEnt[c.fn.Ent] = c.fn
 		s.byFunc[c.fn] = sp

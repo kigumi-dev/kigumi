@@ -49,7 +49,7 @@ func TestLoadRejectsTamperedCache(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestLoadRejectsMissingLockEntry(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestLoadRejectsStaleLockVersion(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestScriptRunsWithoutLockFile(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}

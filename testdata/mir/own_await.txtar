@@ -55,7 +55,7 @@ async fn lib.work() -> Int {
 }
 async fn lib.awaitOnce() -> Int {
   b0:
-    %t0 = fnitem work async
+    %t0 = fnitem lib.work async
     %t1 = future(%t0)
     %f = copy(%t1)
     %t3 = move(%f)
@@ -65,7 +65,7 @@ async fn lib.awaitOnce() -> Int {
 }
 async fn lib.awaitTwice() -> Int {
   b0:
-    %t0 = fnitem work async
+    %t0 = fnitem lib.work async
     %t1 = future(%t0)
     %f = copy(%t1)
     %t3 = move(%f)
@@ -82,7 +82,7 @@ async fn lib.awaitTwice() -> Int {
 }
 async fn lib.awaitValueTwice() -> Int {
   b0:
-    %t0 = fnitem work async
+    %t0 = fnitem lib.work async
     %g = copy(%t0)
     %t2 = callv(%g)
     %f = copy(%t2)
@@ -129,7 +129,7 @@ async fn lib.awaitParam(%f: Future[Int]) -> Int {
 }
 async fn lib.awaitLoop() -> Int {
   b0:
-    %t0 = fnitem work async
+    %t0 = fnitem lib.work async
     %t1 = future(%t0)
     %f = copy(%t1)
     %t3 = const 0: Int

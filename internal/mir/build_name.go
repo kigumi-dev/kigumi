@@ -14,12 +14,21 @@ func (p *Program) funcName(ent sem.EntityID) string {
 	case sem.EntTest:
 		return "test." + e.Name
 	case sem.EntClosure:
-		ent = p.R.ClosureOrigin(ent)
-		return fmt.Sprintf("%s.closure%d", p.funcName(e.Parent), p.closureOrdinal(ent))
+		return fmt.Sprintf("%s.closure%d", p.funcName(e.Parent), p.R.ClosureOrdinal(ent))
 	}
-	name := p.R.Packages[e.Pkg].Path + "." + e.Name
-	if owner := p.R.Fn(ent).Owner; owner != 0 {
-		name = p.R.Packages[e.Pkg].Path + "." + p.R.Entity(owner).Name + "." + e.Name
+	if id := p.R.DeclID(ent); !id.IsZero() {
+		return id.String()
 	}
-	return name
+	return p.R.Packages[e.Pkg].Path + "." + e.Name
+}
+
+// declName spells the declaration an instruction names; a closure uses its function name.
+func (p *Program) declName(ent sem.EntityID) string {
+	if p.R.Entity(ent).Kind == sem.EntClosure {
+		return p.funcName(ent)
+	}
+	if id := p.R.DeclID(ent); !id.IsZero() {
+		return id.String()
+	}
+	return p.R.Entity(ent).Name
 }

@@ -75,7 +75,7 @@ fn lib.Pair.disjointOk(%self: Pair) -> Unit {
     %t10 = share retain(%t9)
     %t11 = newcell(%t10)
     %t12 = const 1: u8
-    %t13 = call push(%t11, %t12)
+    %t13 = call std/array.Array.push(%t11, %t12)
     %t14 = celltake(%t11)
     drop(%t11)
     drop(%t14)
@@ -84,7 +84,7 @@ fn lib.Pair.disjointOk(%self: Pair) -> Unit {
     %t16 = share retain(%t15)
     %t17 = newcell(%t16)
     %t18 = const 2: u8
-    %t19 = call push(%t17, %t18)
+    %t19 = call std/array.Array.push(%t17, %t18)
     %t20 = celltake(%t17)
     drop(%t17)
     drop(%t20)
@@ -104,7 +104,7 @@ fn lib.Pair.sameFieldConflict(%self: Pair) -> Unit {
     %t10 = share retain(%t9)
     %t11 = newcell(%t10)
     %t12 = const 1: u8
-    %t13 = call push(%t11, %t12)
+    %t13 = call std/array.Array.push(%t11, %t12)
     %t14 = celltake(%t11)
     drop(%t11)
     drop(%t14)
@@ -113,7 +113,7 @@ fn lib.Pair.sameFieldConflict(%self: Pair) -> Unit {
     %t16 = share retain(%t15)
     %t17 = newcell(%t16)
     %t18 = const 2: u8
-    %t19 = call push(%t17, %t18)
+    %t19 = call std/array.Array.push(%t17, %t18)
     %t20 = celltake(%t17)
     drop(%t17)
     drop(%t20)
@@ -129,13 +129,13 @@ fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Unit {
     %t6 = field 0(%t5)
     %t7 = borrow 1(%t6)
     %r = copy(%t7)
-    %t9 = call len(%s)
+    %t9 = call std/array.Array.len(%s)
     drop(%t9)
     %t10 = borrow 1(%r)
     %t11 = share retain(%t10)
     %t12 = newcell(%t11)
     %t13 = const 1: u8
-    %t14 = call push(%t12, %t13)
+    %t14 = call std/array.Array.push(%t12, %t13)
     %t15 = celltake(%t12)
     drop(%t12)
     drop(%t15)
@@ -156,7 +156,7 @@ fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
     %t11 = share retain(%t10)
     %t12 = newcell(%t11)
     %t13 = const 1: u8
-    %t14 = call push(%t12, %t13)
+    %t14 = call std/array.Array.push(%t12, %t13)
     %t15 = celltake(%t12)
     drop(%t12)
     drop(%t15)
@@ -166,7 +166,7 @@ fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
     %t18 = share retain(%t17)
     %t19 = newcell(%t18)
     %t20 = const 2: u8
-    %t21 = call push(%t19, %t20)
+    %t21 = call std/array.Array.push(%t19, %t20)
     %t22 = celltake(%t19)
     drop(%t19)
     setfield 0(%s, %t22)
@@ -184,13 +184,13 @@ fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Unit {
     %t8 = borrow 1(%t7)
     %r = copy(%t8)
     %t10 = field 0(%s)
-    %t11 = call len(%t10)
+    %t11 = call std/array.Array.len(%t10)
     drop(%t11)
     %t12 = borrow 1(%r)
     %t13 = share retain(%t12)
     %t14 = newcell(%t13)
     %t15 = const 1: u8
-    %t16 = call push(%t14, %t15)
+    %t16 = call std/array.Array.push(%t14, %t15)
     %t17 = celltake(%t14)
     drop(%t14)
     drop(%t17)
@@ -212,7 +212,7 @@ fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Unit {
     %t12 = share retain(%t11)
     %t13 = newcell(%t12)
     %t14 = const 1: u8
-    %t15 = call push(%t13, %t14)
+    %t15 = call std/array.Array.push(%t13, %t14)
     %t16 = celltake(%t13)
     drop(%t13)
     drop(%t16)
@@ -221,7 +221,7 @@ fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Unit {
     %t18 = share retain(%t17)
     %t19 = newcell(%t18)
     %t20 = const 2: u8
-    %t21 = call push(%t19, %t20)
+    %t21 = call std/array.Array.push(%t19, %t20)
     %t22 = celltake(%t19)
     drop(%t19)
     drop(%t22)
@@ -241,7 +241,7 @@ fn lib.Bag.indexStaysConservative(%self: Bag) -> Unit {
     %t10 = share retain(%t9)
     %t11 = newcell(%t10)
     %t12 = const 1: u8
-    %t13 = call push(%t11, %t12)
+    %t13 = call std/array.Array.push(%t11, %t12)
     %t14 = celltake(%t11)
     drop(%t11)
     setfield 1(%t7, %t14)
@@ -250,7 +250,7 @@ fn lib.Bag.indexStaysConservative(%self: Bag) -> Unit {
     %t16 = share retain(%t15)
     %t17 = newcell(%t16)
     %t18 = const 2: u8
-    %t19 = call push(%t17, %t18)
+    %t19 = call std/array.Array.push(%t17, %t18)
     %t20 = celltake(%t17)
     drop(%t17)
     drop(%t20)

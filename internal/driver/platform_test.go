@@ -126,7 +126,7 @@ func TestBuildFreestanding(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "greet"), 0o755)
 	os.WriteFile(filepath.Join(root, "greet", "greet_freestanding.kg"), []byte("pub fn hello() -> String {\n    \"bare metal\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "greet", "greet_linux.kg"), []byte("pub fn hello() -> String {\n    \"linux\"\n}\n"), 0o644)
-	target, err := driver.ParseTarget("x86_64-freestanding", "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
 	if err != nil || !target.Freestanding() || target.Sys != "none" || target.OS != "freestanding" || target.Arch != "amd64" {
 		t.Fatalf("target: %+v %v", target, err)
 	}
@@ -155,7 +155,7 @@ func TestBuildFreestanding(t *testing.T) {
 			t.Errorf("freestanding archive must not reference %s", bad)
 		}
 	}
-	if _, err := driver.ParseTarget("sparc-linux", ""); err == nil {
+	if _, err := driver.ParseTarget(driver.CompilerOptions{}, "sparc-linux", ""); err == nil {
 		t.Error("unknown architectures should be rejected")
 	}
 }
@@ -178,7 +178,7 @@ func TestBuildFreestandingNoCloseSymbol(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	target, err := driver.ParseTarget("x86_64-freestanding", "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func checkFreestandingSymbols(t *testing.T, triple, src string) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"symset\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
-	target, err := driver.ParseTarget(triple, "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, triple, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +328,7 @@ func TestBuildHostBare(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "greet"), 0o755)
 	os.WriteFile(filepath.Join(root, "greet", "greet_bare.kg"), []byte("pub fn hello() -> String {\n    \"bare on linux\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "greet", "greet_linux.kg"), []byte("pub fn hello() -> String {\n    \"linux\"\n}\n"), 0o644)
-	target, err := driver.ParseTarget("x86_64-linux", "none")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-linux", "none")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,7 +363,7 @@ func TestBuildHostBare(t *testing.T) {
 func TestBuildHostBareRejectsPlatform(t *testing.T) {
 	t.Parallel()
 	root := writePlatformModule(t, "hostbaretime")
-	target, err := driver.ParseTarget("x86_64-linux", "none")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-linux", "none")
 	if err != nil {
 		t.Fatal(err)
 	}

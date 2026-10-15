@@ -51,7 +51,7 @@ print "${run(3)}"
 
 func TestIdentityOfARecordNeverBoxes(t *testing.T) {
 	ir := specializedIR(t, identityProbe)
-	spec := bodyOf(t, ir, `define %"kg.agg.Point" @"main.identity[main.Point]"(%"kg.agg.Point" %p0)`)
+	spec := bodyOf(t, ir, `define %"kg.agg.main.Point" @"main.identity[main.Point]"(%"kg.agg.main.Point" %p0)`)
 	run := fnBody(t, ir, "main.run")
 	for what, body := range map[string]string{"main.identity[main.Point]": spec, "main.run": run} {
 		for _, bad := range []string{`@"kg.box.`, `@"kg.unbox.`, "@rt_record("} {
@@ -60,7 +60,7 @@ func TestIdentityOfARecordNeverBoxes(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(run, `call %"kg.agg.Point" @"main.identity[main.Point]"(%"kg.agg.Point" `) {
+	if !strings.Contains(run, `call %"kg.agg.main.Point" @"main.identity[main.Point]"(%"kg.agg.main.Point" `) {
 		t.Errorf("main.run does not pass the record by value:\n%s", run)
 	}
 	if strings.Contains(ir, `@"main.identity"(`) {
@@ -84,8 +84,8 @@ fn measure[T: Measured](x: T) -> Int { x.size() * 2 }
 
 print "${measure(Point { x: 1, y: 2 })}"
 `)
-	body := bodyOf(t, ir, `define i64 @"main.measure[main.Point]"(%"kg.agg.Point" %p0`)
-	if !strings.Contains(body, `call i64 @"main.Point.size"(%"kg.agg.Point" `) {
+	body := bodyOf(t, ir, `define i64 @"main.measure[main.Point]"(%"kg.agg.main.Point" %p0`)
+	if !strings.Contains(body, `call i64 @"main.Point.size"(%"kg.agg.main.Point" `) {
 		t.Errorf("size is not called directly:\n%s", body)
 	}
 	for _, bad := range []string{`@"kg.box.`, "@rt_callv("} {

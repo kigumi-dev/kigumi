@@ -21,13 +21,13 @@ fn lib.identity(%x: T) -> T {
 fn lib.outer(%out: &mut Array[u8]) -> Unit {
   b0:
     %t1 = move(%out)
-    %t2 = call identity(%t1)
+    %t2 = call lib.identity(%t1)
     %r = copy(%t2)
     %t4 = borrow 1(%out)
     %t5 = share retain(%t4)
     %t6 = newcell(%t5)
     %t7 = const 1: u8
-    %t8 = call push(%t6, %t7)
+    %t8 = call std/array.Array.push(%t6, %t7)
     %t9 = celltake(%t6)
     drop(%t6)
     drop(%t9)
@@ -36,7 +36,7 @@ fn lib.outer(%out: &mut Array[u8]) -> Unit {
     %t11 = share retain(%t10)
     %t12 = newcell(%t11)
     %t13 = const 2: u8
-    %t14 = call push(%t12, %t13)
+    %t14 = call std/array.Array.push(%t12, %t13)
     %t15 = celltake(%t12)
     drop(%t12)
     drop(%t15)

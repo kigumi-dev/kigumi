@@ -19,7 +19,7 @@ fn lib.inner(%out: &mut Array[u8], %v: usize) -> Unit {
     %t6 = share retain(%t5)
     %t7 = newcell(%t6)
     %t8 = const 1: u8
-    %t9 = call push(%t7, %t8)
+    %t9 = call std/array.Array.push(%t7, %t8)
     %t10 = celltake(%t7)
     drop(%t7)
     drop(%t10)
@@ -35,12 +35,12 @@ fn lib.inner(%out: &mut Array[u8], %v: usize) -> Unit {
 }
 fn lib.outer() -> Unit {
   b0:
-    %t0 = call empty
+    %t0 = call std/array.Array.empty
     %xs = copy(%t0)
     %t2 = borrow 1(%xs)
     %r = copy(%t2)
-    %t4 = call len(%xs)
-    %t5 = call inner(%r, %t4)
+    %t4 = call std/array.Array.len(%xs)
+    %t5 = call lib.inner(%r, %t4)
     drop(%xs)
     return %t5
 }

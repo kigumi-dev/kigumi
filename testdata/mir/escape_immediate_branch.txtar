@@ -55,21 +55,21 @@ fn lib.twoArgs(%cb: fn() -> Unit, %flag: Bool) -> Unit {
 }
 fn lib.danger.closure1(%r: Res) -> Unit {
   b0:
-    %t1 = call touch(%r)
+    %t1 = call lib.Res.touch(%r)
     drop(%r)
     return %t1
 }
 fn lib.danger(%flag: Bool) -> Unit {
   b0:
     %t1 = const 42: Int
-    %t2 = record Res(%t1)
+    %t2 = record lib.Res(%t1)
     %r = copy(%t2)
     %t4 = copy(%r)
-    %t5 = closure closure(%t4)
+    %t5 = closure lib.danger.closure1(%t4)
     branch %flag ? b1 : b2
   b1:
     %t7 = move(%r)
-    %t8 = call sink(%t7)
+    %t8 = call lib.sink(%t7)
     drop(%t8)
     %t9 = const true: Bool
     %t6 = copy(%t9)
@@ -79,7 +79,7 @@ fn lib.danger(%flag: Bool) -> Unit {
     %t6 = copy(%t10)
     jump b3
   b3:
-    %t11 = call twoArgs(%t5, %t6)
+    %t11 = call lib.twoArgs(%t5, %t6)
     drop(%r)
     drop(%flag)
     return %t11

@@ -38,17 +38,17 @@ fn lib.Handle.close(%self: Handle) -> Unit {
 fn lib.consume(%x: Handle) -> Unit {
   b0:
     %t1 = move(%x)
-    %t2 = call close(%t1)
+    %t2 = call lib.Handle.close(%t1)
     nop
     return %t2
 }
 fn lib.twiceField(%b: Box) -> Unit {
   b0:
     %t1 = field 0(%b)
-    %t2 = call consume(%t1)
+    %t2 = call lib.consume(%t1)
     drop(%t2)
     %t3 = field 0(%b)
-    %t4 = call consume(%t3)
+    %t4 = call lib.consume(%t3)
     drop(%b)
     return %t4
 }
@@ -64,12 +64,12 @@ fn lib.plainOverwrite(%b: Box, %fresh: Handle) -> Unit {
 fn lib.onceThenRestored(%b: Box, %fresh: Handle) -> Unit {
   b0:
     %t2 = field 0(%b)
-    %t3 = call consume(%t2)
+    %t3 = call lib.consume(%t2)
     drop(%t3)
     %t4 = move(%fresh)
     setfield 0(%b, %t4)
     %t5 = field 0(%b)
-    %t6 = call consume(%t5)
+    %t6 = call lib.consume(%t5)
     nop
     drop(%b)
     return %t6

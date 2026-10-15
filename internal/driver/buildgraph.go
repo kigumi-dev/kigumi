@@ -14,15 +14,16 @@ type ResolvedGraph struct {
 	Targets    []Target
 	Frameworks []FrameworkDescriptor
 	// Order interleaves artifacts ("a<i>") and tool steps ("t<j>").
-	Order []string
+	Order   []string
+	options CompilerOptions
 }
 
 // ResolveGraph validates a graph before anything runs: every target parses, every framework/tool is registered, and the edges form a DAG.
-func ResolveGraph(g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*ResolvedGraph, error) {
-	rg := &ResolvedGraph{Graph: g}
-	host := HostTarget()
+func ResolveGraph(o CompilerOptions, g *buildgraph.Graph, descriptors []FrameworkDescriptor) (*ResolvedGraph, error) {
+	rg := &ResolvedGraph{Graph: g, options: o}
+	host := o.HostOrAmbient()
 	for _, a := range g.Artifacts {
-		t, err := ParseTarget(a.Target.Triple, a.Target.Sys)
+		t, err := ParseTarget(o, a.Target.Triple, a.Target.Sys)
 		if err != nil {
 			return nil, fmt.Errorf("artifact %s: %w", a.Name, err)
 		}

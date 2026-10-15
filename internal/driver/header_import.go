@@ -2,7 +2,6 @@ package driver
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -19,8 +18,8 @@ type HeaderImport struct {
 
 // HeaderCacheDir is where imported headers' generated packages are cached
 // (cheader.Import), separate from CacheDir's fetched-module tree.
-func HeaderCacheDir() (string, error) {
-	dir, err := os.UserCacheDir()
+func HeaderCacheDir(o CompilerOptions) (string, error) {
+	dir, err := o.cacheRoot()
 	if err != nil {
 		return "", err
 	}
@@ -40,7 +39,7 @@ func (m *Module) addHeaders(dir string, mf ModFile) error {
 	if zigPath == "" {
 		return fmt.Errorf("zig not found (needed to import %s's Header records); install zig or remove them", byName(mf))
 	}
-	cacheDir, err := HeaderCacheDir()
+	cacheDir, err := HeaderCacheDir(m.compiler)
 	if err != nil {
 		return err
 	}

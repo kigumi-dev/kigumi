@@ -67,7 +67,7 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"fp\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	target, err := driver.ParseTarget("x86_64-freestanding", "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

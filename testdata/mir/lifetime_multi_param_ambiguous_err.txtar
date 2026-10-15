@@ -19,13 +19,13 @@ fn lib.make3(%a: &Bytes) -> &Bytes {
     %t2 = const 9: u8
     %t3 = const 9: u8
     %t4 = array(%t1, %t2, %t3)
-    %t5 = call of(%t4)
+    %t5 = call std/array.Array.of(%t4)
     %t6 = borrow 0(%t5)
-    %t7 = call fromArray(%t6)
+    %t7 = call std/prelude.Bytes.fromArray(%t6)
     %buf2 = copy(%t7)
     %t9 = copy(%a)
     %t10 = borrow 0(%buf2)
-    %t11 = call second(%t9, %t10)
+    %t11 = call lib.second(%t9, %t10)
     drop(%buf2)
     return %t11
 }

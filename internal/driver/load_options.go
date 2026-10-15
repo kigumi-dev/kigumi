@@ -50,4 +50,8 @@ type LoadOptions struct {
 	ZigNotice io.Writer
 	// VerifyPasses verifies the MIR before the passes and after each one, not only after the last.
 	VerifyPasses bool
+	// FileOrder reorders each directory's files and the package list after the name sort; tests only.
+	FileOrder func(names []string)
+	// Compiler carries the process facts the compiler consults; internal/cli fills it in.
+	Compiler CompilerOptions
 }

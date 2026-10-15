@@ -159,7 +159,7 @@ func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
 	archive := filepath.Join(t.TempDir(), "rt.a")
 	bareBuild := func() (string, driver.ArtifactFingerprint) {
 		t.Helper()
-		target, err := driver.ParseTarget("x86_64-freestanding", "")
+		target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
 		if err != nil {
 			t.Fatal(err)
 		}

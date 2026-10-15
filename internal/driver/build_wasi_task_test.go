@@ -27,7 +27,7 @@ func TestBuildWasiTaskProgram(t *testing.T) {
 	if driver.CCompiler() == nil {
 		t.Skip("needs a C compiler")
 	}
-	target, err := driver.ParseTarget("wasm32-wasi", "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "wasm32-wasi", "")
 	if err != nil {
 		t.Fatal(err)
 	}

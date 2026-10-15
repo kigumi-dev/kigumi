@@ -35,7 +35,7 @@ func TestBuildIgnoresSiblingCmdEntry(t *testing.T) {
 		"cmd/app/main.kg":     "let out = host.args().get(1) || \"missing\"\nprint out\n",
 		"cmd/enclave/main.kg": "print \"hello from the enclave\"\n",
 	})
-	target, err := driver.ParseTarget("x86_64-freestanding", "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestBuildIgnoresSiblingCmdEntryParseError(t *testing.T) {
 		"cmd/app/main.kg":     "let args = host.args(\n",
 		"cmd/enclave/main.kg": "print \"hello from the enclave\"\n",
 	})
-	target, err := driver.ParseTarget("x86_64-freestanding", "")
+	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

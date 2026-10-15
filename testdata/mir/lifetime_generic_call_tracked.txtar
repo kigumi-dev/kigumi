@@ -18,7 +18,7 @@ fn lib.identity(%x: T) -> T {
 fn lib.pickData(%v: View['a], %other: View['b]) -> &Bytes {
   b0:
     %t2 = field 0(%v)
-    %t3 = call identity(%t2)
+    %t3 = call lib.identity(%t2)
     drop(%other)
     drop(%v)
     return %t3

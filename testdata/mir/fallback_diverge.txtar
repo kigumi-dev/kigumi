@@ -42,20 +42,20 @@ fn main.Inner.message(%self: Inner) -> String {
 }
 fn main.Outer.message(%self: Outer) -> String {
   b0:
-    %t2 = isvariant Wrapped(%self)
+    %t2 = isvariant main.Outer.Wrapped(%self)
     branch %t2 ? b2 : b3
   b1:
     return %t1
   b2:
     %t3 = payload 0(%self)
     %i = copy(%t3)
-    %t6 = call message(%i)
+    %t6 = call main.Inner.message(%i)
     %t5 = interp "wrapped: \x00"(%t6)
     %t1 = copy(%t5)
     drop(%i)
     jump b1
   b3:
-    %t7 = isvariant Plain(%self)
+    %t7 = isvariant main.Outer.Plain(%self)
     branch %t7 ? b4 : b5
   b4:
     %t8 = const "plain": String
@@ -70,7 +70,7 @@ fn main.source(%ok: Bool) -> Result[Int, Inner] {
     branch %ok ? b1 : b2
   b1:
     %t2 = const 1: Int
-    %t3 = variant Ok(%t2)
+    %t3 = variant Result.Ok(%t2)
     drop(%ok)
     return %t3
   b2:
@@ -80,8 +80,8 @@ fn main.source(%ok: Bool) -> Result[Int, Inner] {
   b3:
     drop(%t1)
     %t6 = const "boom": String
-    %t7 = record Inner(%t6)
-    %t8 = variant Err(%t7)
+    %t7 = record main.Inner(%t6)
+    %t8 = variant Result.Err(%t7)
     drop(%ok)
     return %t8
   b4:
@@ -91,8 +91,8 @@ fn main.source(%ok: Bool) -> Result[Int, Inner] {
 fn main.relay(%ok: Bool) -> Int! {
   b0:
     %t1 = copy(%ok)
-    %t2 = call source(%t1)
-    %t4 = isvariant Ok(%t2)
+    %t2 = call main.source(%t1)
+    %t4 = isvariant Result.Ok(%t2)
     branch %t4 ? b1 : b2
   b1:
     %t5 = payload 0(%t2)
@@ -102,19 +102,19 @@ fn main.relay(%ok: Bool) -> Int! {
     %t6 = payload 0(%t2)
     %e = copy(%t6)
     %t8 = copy(%e)
-    %t9 = variant Wrapped(%t8)
+    %t9 = variant main.Outer.Wrapped(%t8)
     %t10 = box Outer(%t9)
     drop(%e)
     drop(%t2)
     drop(%ok)
-    %t11 = variant Err(%t10)
+    %t11 = variant Result.Err(%t10)
     return %t11
   b3:
     drop(%t2)
     %v = copy(%t3)
     %t14 = const 1: Int
     %t15 = bin +(%v, %t14)
-    %t16 = variant Ok(%t15)
+    %t16 = variant Result.Ok(%t15)
     drop(%v)
     drop(%ok)
     return %t16
@@ -126,8 +126,8 @@ fn main.relay(%ok: Bool) -> Int! {
 fn main.relay2(%ok: Bool) -> Int! {
   b0:
     %t1 = copy(%ok)
-    %t2 = call source(%t1)
-    %t4 = isvariant Ok(%t2)
+    %t2 = call main.source(%t1)
+    %t4 = isvariant Result.Ok(%t2)
     branch %t4 ? b1 : b2
   b1:
     %t5 = payload 0(%t2)
@@ -136,19 +136,19 @@ fn main.relay2(%ok: Bool) -> Int! {
   b2:
     %t6 = payload 0(%t2)
     %e = copy(%t6)
-    %t8 = variant Plain
+    %t8 = variant main.Outer.Plain
     %t9 = box Outer(%t8)
     drop(%e)
     drop(%t2)
     drop(%ok)
-    %t10 = variant Err(%t9)
+    %t10 = variant Result.Err(%t9)
     return %t10
   b3:
     drop(%t2)
     %v = copy(%t3)
     %t13 = const 1: Int
     %t14 = bin +(%v, %t13)
-    %t15 = variant Ok(%t14)
+    %t15 = variant Result.Ok(%t14)
     drop(%v)
     drop(%ok)
     return %t15
@@ -160,8 +160,8 @@ fn main.relay2(%ok: Bool) -> Int! {
 fn main() -> Unit! {
   b0:
     %t1 = const true: Bool
-    %t2 = call relay(%t1)
-    %t4 = isvariant Ok(%t2)
+    %t2 = call main.relay(%t1)
+    %t4 = isvariant Result.Ok(%t2)
     branch %t4 ? b1 : b2
   b1:
     %t5 = payload 0(%t2)
@@ -175,8 +175,8 @@ fn main() -> Unit! {
   b3:
     drop(%t2)
     %t8 = const false: Bool
-    %t9 = call relay(%t8)
-    %t11 = isvariant Ok(%t9)
+    %t9 = call main.relay(%t8)
+    %t11 = isvariant Result.Ok(%t9)
     branch %t11 ? b4 : b5
   b4:
     %t12 = payload 0(%t9)
@@ -190,8 +190,8 @@ fn main() -> Unit! {
   b6:
     drop(%t9)
     %t15 = const false: Bool
-    %t16 = call relay2(%t15)
-    %t18 = isvariant Ok(%t16)
+    %t16 = call main.relay2(%t15)
+    %t18 = isvariant Result.Ok(%t16)
     branch %t18 ? b7 : b8
   b7:
     %t19 = payload 0(%t16)

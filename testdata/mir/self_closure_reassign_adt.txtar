@@ -11,14 +11,14 @@ fn Shape.grow(mut self) -> Unit {
 fn main.Shape.grow.closure1(%self: Shape) -> Unit {
   b0:
     %t1 = const 99: Float
-    %t2 = variant Circle(%t1)
+    %t2 = variant main.Shape.Circle(%t1)
     cellset(%self, %t2)
     %t3 = unit
     return %t3
 }
 fn main.Shape.grow(%self: Shape) -> Unit {
   b0:
-    %t1 = closure closure(%self)
+    %t1 = closure main.Shape.grow.closure1(%self)
     %step = copy(%t1)
     %t3 = callv(%step)
     drop(%step)

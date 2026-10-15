@@ -30,7 +30,7 @@ func buildWith(t *testing.T, root, out, program string) error {
 	if err != nil {
 		return err
 	}
-	rg, err := driver.ResolveGraph(g, descriptors)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors)
 	if err != nil {
 		return err
 	}

@@ -104,7 +104,7 @@ func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*build
 	for _, f := range flags {
 		req.Flags = append(req.Flags, strings.TrimLeft(f, "-"))
 	}
-	host := HostTarget()
+	host := p.Module.compiler.HostOrAmbient()
 	if p.prog == nil {
 		prog, err := buildProgram(p.Res, progOptions{verifyEach: p.Module.verifyPasses})
 		if err != nil {
@@ -142,7 +142,7 @@ func (p *BuildProgram) Roots(outDir string) ([]string, error) {
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		dir, _, err := DepDir(p.Module.local, p.Module.Selected[name], true)
+		dir, _, err := DepDir(p.Module.compiler, p.Module.local, p.Module.Selected[name], true)
 		if err != nil {
 			return nil, err
 		}

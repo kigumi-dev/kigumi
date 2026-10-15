@@ -23,12 +23,12 @@ async fn lib.run() -> u8 {
     %t1 = const 2: u8
     %t2 = const 3: u8
     %t3 = array(%t0, %t1, %t2)
-    %t4 = call of(%t3)
+    %t4 = call std/array.Array.of(%t3)
     %t5 = borrow 0(%t4)
-    %t6 = call fromArray(%t5)
+    %t6 = call std/prelude.Bytes.fromArray(%t5)
     %buf = copy(%t6)
     %t8 = borrow 0(%buf)
-    %t9 = fnitem readFirst async
+    %t9 = fnitem lib.readFirst async
     %t10 = future(%t9, %t8)
     drop(%buf)
     %r = copy(%t10)

@@ -52,7 +52,7 @@ fn lib.Res.drop(%self: Res) -> Unit {
 fn lib.steal(%h: &mut Holder) -> String {
   b0:
     %t1 = field 0(%h)
-    %t2 = isvariant Some(%t1)
+    %t2 = isvariant Option.Some(%t1)
     branch %t2 ? b1 : b2
   b1:
     %t3 = payload 0(%t1)
@@ -62,7 +62,7 @@ fn lib.steal(%h: &mut Holder) -> String {
     drop(%t1)
     branch %t2 ? b3 : b4
   b3:
-    %t6 = variant None
+    %t6 = variant Option.None
     setfield 0(%h, %t6)
     %t7 = field 0(%r)
     return %t7
@@ -84,8 +84,8 @@ fn lib.stealOuter(%o: &mut Outer) -> String {
     %t2 = field 0(%t1)
     %slot = borrow 0(%t2)
     %t4 = const "r": String
-    %t5 = record Res(%t4)
-    %t6 = record Full(%t5)
+    %t5 = record lib.Res(%t4)
+    %t6 = record lib.Full(%t5)
     setfield 0(%o, %t6)
     %t7 = field 0(%slot)
     drop(%t1)
@@ -94,7 +94,7 @@ fn lib.stealOuter(%o: &mut Outer) -> String {
 fn lib.peek(%h: &mut Holder) -> String {
   b0:
     %t1 = field 0(%h)
-    %t2 = isvariant Some(%t1)
+    %t2 = isvariant Option.Some(%t1)
     branch %t2 ? b1 : b2
   b1:
     %t3 = payload 0(%t1)
@@ -106,7 +106,7 @@ fn lib.peek(%h: &mut Holder) -> String {
   b3:
     %t6 = field 0(%r)
     %s = copy(%t6)
-    %t8 = variant None
+    %t8 = variant Option.None
     setfield 0(%h, %t8)
     %t9 = copy(%s)
     drop(%s)

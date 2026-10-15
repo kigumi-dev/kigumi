@@ -8,6 +8,15 @@ func declID(pkg, kind, name string) string {
 	return pkg + "#" + kind + ":" + name
 }
 
+// entityID is declID plus the overload signature, so overloads of one name differ.
+func entityID(res *sem.Result, ent sem.EntityID, pkg, kind, name string) string {
+	id := declID(pkg, kind, name)
+	if sig := res.DeclID(ent).Sig; sig != "" {
+		id += "#" + sig
+	}
+	return id
+}
+
 // memberID extends a declaration's stable ID to one of its params, fields
 // or variants.
 func memberID(decl string, name string) string {
@@ -48,7 +57,7 @@ func declRefOf(res *sem.Result, ent sem.EntityID) *DeclRef {
 	if name == "" {
 		name = e.Name
 	}
-	return &DeclRef{ID: declID(pkg, string(entKindTag(res, ent)), name), Package: pkg, Name: name}
+	return &DeclRef{ID: entityID(res, ent, pkg, string(entKindTag(res, ent)), name), Package: pkg, Name: name}
 }
 
 func entKindTag(res *sem.Result, ent sem.EntityID) Kind {

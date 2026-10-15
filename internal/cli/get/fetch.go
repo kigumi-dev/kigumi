@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"kigumi/internal/cli/shared"
 	"kigumi/internal/driver"
 	"kigumi/internal/errors"
 )
@@ -32,7 +33,7 @@ func (f *fetcher) module(mf driver.ModFile) error {
 	var sel *driver.Selection
 	for {
 		var err error
-		sel, err = driver.SelectVersions(mf, f.local)
+		sel, err = driver.SelectVersions(shared.CompilerOptions(), mf, f.local)
 		if err == nil {
 			break
 		}
@@ -40,7 +41,7 @@ func (f *fetcher) module(mf driver.ModFile) error {
 		if !stderrors.As(err, &missing) {
 			return err
 		}
-		dir, _, err := driver.DepDir(f.local, missing.Require, true)
+		dir, _, err := driver.DepDir(shared.CompilerOptions(), f.local, missing.Require, true)
 		if err != nil {
 			return err
 		}
@@ -50,7 +51,7 @@ func (f *fetcher) module(mf driver.ModFile) error {
 	}
 	for _, name := range sel.Names() {
 		r := sel.Requires[name]
-		dir, missing, err := driver.DepDir(f.local, r, true)
+		dir, missing, err := driver.DepDir(shared.CompilerOptions(), f.local, r, true)
 		if err != nil {
 			return errors.WrapErr(err, "resolve dependency")
 		}

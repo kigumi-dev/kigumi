@@ -60,7 +60,7 @@ func TestDirectAggregateNeverAllocates(t *testing.T) {
 
 func TestCarrierFieldRecordStaysBoxed(t *testing.T) {
 	ir := emitIR(t, directAggSrc)
-	if strings.Contains(ir, `%"kg.agg.Named"`) {
+	if strings.Contains(ir, `%"kg.agg.main.Named"`) {
 		t.Error("a record with a String field was laid out as a direct aggregate")
 	}
 	if !strings.Contains(bodyOf(t, ir, `@"main.named"(`), "@rt_field(") {
@@ -72,16 +72,16 @@ func TestCarrierFieldRecordStaysBoxed(t *testing.T) {
 // caller storage, so the frame is the only place a big one lives.
 func TestDirectAggregateCallingConvention(t *testing.T) {
 	ir := emitIR(t, directAggSrc)
-	if !strings.Contains(ir, `define %"kg.agg.Point" @"main.mk"(`) {
+	if !strings.Contains(ir, `define %"kg.agg.main.Point" @"main.mk"(`) {
 		t.Error("a 16-byte result is not returned in registers")
 	}
 	if !strings.Contains(ir, `define void @"main.grow"(ptr %sret, ptr %p0, i64 %p1)`) {
 		t.Error("a result over the by-value threshold is not returned through caller storage")
 	}
-	if !strings.Contains(ir, `define %"kg.agg.(Int, Int)" @"main.swap"(%"kg.agg.(Int, Int)" %p0)`) {
+	if !strings.Contains(ir, `define %"kg.agg.Tuple2[Int,Int]" @"main.swap"(%"kg.agg.Tuple2[Int,Int]" %p0)`) {
 		t.Error("a small tuple is not passed and returned in registers")
 	}
-	if !strings.Contains(ir, `%"kg.agg.Box" = type { %"kg.agg.Point", %"kg.agg.Point", i1 }`) {
+	if !strings.Contains(ir, `%"kg.agg.main.Box" = type { %"kg.agg.main.Point", %"kg.agg.main.Point", i1 }`) {
 		t.Error("the nested aggregate layout is not the explicit struct type")
 	}
 }
@@ -101,7 +101,7 @@ fn stash(x: Int) -> Array[Point] {
 fn main() -> Unit! {}
 `)
 	body := bodyOf(t, ir, `@"main.stash"(`)
-	if !strings.Contains(body, `call ptr @"kg.box.Point"(`) {
+	if !strings.Contains(body, `call ptr @"kg.box.main.Point"(`) {
 		t.Errorf("storing a direct aggregate into an Array does not go through the boxing helper:\n%s", body)
 	}
 }
@@ -128,12 +128,12 @@ fn main() -> Unit! {
 // signature covers it like any other by-value parameter.
 func TestPlainReceiverCrossesNothing(t *testing.T) {
 	ir := emitIR(t, lentReceiverSrc)
-	want := `@"main.Point.combine"(%"kg.agg.Point" %p0, %"kg.agg.Point" %p1)`
+	want := `@"main.Point.combine"(%"kg.agg.main.Point" %p0, %"kg.agg.main.Point" %p1)`
 	if !strings.Contains(ir, want) {
 		t.Fatalf("the receiver is not carried as a value:\n%s", ir)
 	}
 	body := bodyOf(t, ir, `@"main.touch"(`)
-	for _, call := range []string{`@"kg.box.Point"`, "@rt_record"} {
+	for _, call := range []string{`@"kg.box.main.Point"`, "@rt_record"} {
 		if strings.Contains(body, call) {
 			t.Errorf("a call that crosses nothing still reaches %s:\n%s", call, body)
 		}
@@ -168,7 +168,7 @@ fn main() -> Unit! {
 
 func TestDirectAdtBuildsAndMatchesInline(t *testing.T) {
 	ir := emitIR(t, directAdtIRSrc)
-	if !strings.Contains(ir, `%"kg.adt.Point?" = type { i32, [2 x i64] }`) {
+	if !strings.Contains(ir, `%"kg.adt.Option[main.Point]" = type { i32, [2 x i64] }`) {
 		t.Fatalf("no inline type for an Option of a direct record:\n%s", ir)
 	}
 	for _, fn := range []string{`@"main.find"(`, `@"main.readBack"(`} {
@@ -191,7 +191,7 @@ func TestDirectAdtFollowsTheSizeThreshold(t *testing.T) {
 
 func TestDirectAdtCrossesIntoAnArray(t *testing.T) {
 	body := bodyOf(t, emitIR(t, directAdtIRSrc), `@"main.stash"(`)
-	if !strings.Contains(body, `call ptr @"kg.box.Point?"(`) {
+	if !strings.Contains(body, `call ptr @"kg.box.Option[main.Point]"(`) {
 		t.Errorf("storing an inline ADT into an Array does not go through the boxing helper:\n%s", body)
 	}
 }

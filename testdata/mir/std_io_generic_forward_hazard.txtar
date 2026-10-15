@@ -33,7 +33,7 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     %i = copy(%t2)
     jump b1
   b1:
-    %t4 = call len(%data)
+    %t4 = call std/prelude.Bytes.len(%data)
     %t5 = bin <(%i, %t4)
     branch %t5 ? b2 : b4
   b2:
@@ -43,16 +43,16 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     %t9 = share retain(%t8)
     %t10 = newcell(%t9)
     %t11 = copy(%i)
-    %t12 = call get(%data, %t11)
-    %t14 = isvariant Some(%t12)
+    %t12 = call std/prelude.Bytes.get(%data, %t11)
+    %t14 = isvariant Option.Some(%t12)
     branch %t14 ? b5 : b6
   b3:
     jump b1
   b4:
     %t23 = unit
     drop(%t23)
-    %t24 = call len(%data)
-    %t25 = variant Ok(%t24)
+    %t24 = call std/prelude.Bytes.len(%data)
+    %t25 = variant Result.Ok(%t24)
     drop(%i)
     drop(%data)
     return %t25
@@ -67,7 +67,7 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     jump b7
   b7:
     drop(%t12)
-    %t18 = call push(%t10, %t13)
+    %t18 = call std/array.Array.push(%t10, %t13)
     %t19 = celltake(%t10)
     drop(%t10)
     setfield 0(%t6, %t19)
@@ -84,8 +84,8 @@ fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) 
     %t4 = move(%w)
     %t5 = copy(%a)
     %t6 = copy(%$w:W:write)
-    %t7 = call writeAll(%t4, %t5, %t6)
-    %t8 = isvariant Ok(%t7)
+    %t7 = call std/io.writeAll(%t4, %t5, %t6)
+    %t8 = isvariant Result.Ok(%t7)
     branch %t8 ? b1 : b2
   b1:
     %t9 = payload 0(%t7)
@@ -94,8 +94,8 @@ fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) 
     %t10 = move(%w)
     %t11 = copy(%b)
     %t12 = copy(%$w:W:write)
-    %t13 = call writeAll(%t10, %t11, %t12)
-    %t14 = isvariant Ok(%t13)
+    %t13 = call std/io.writeAll(%t10, %t11, %t12)
+    %t14 = isvariant Result.Ok(%t13)
     branch %t14 ? b3 : b4
   b2:
     drop(%$w:W:write)
@@ -106,7 +106,7 @@ fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) 
   b3:
     %t15 = payload 0(%t13)
     drop(%t13)
-    %t16 = variant Ok(%t15)
+    %t16 = variant Result.Ok(%t15)
     drop(%$w:W:write)
     drop(%b)
     drop(%a)

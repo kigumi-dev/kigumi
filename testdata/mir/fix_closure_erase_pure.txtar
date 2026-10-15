@@ -28,11 +28,11 @@ fn main() -> Unit! {
   b0:
     %t0 = const 0: Int
     %n = newcell(%t0)
-    %t2 = closure closure(%n)
+    %t2 = closure main.closure1(%n)
     %k = copy(%t2)
     %t4 = copy(%k)
     %m = copy(%t4)
-    %t6 = closure closure(%n)
+    %t6 = closure main.closure2(%n)
     %inc = copy(%t6)
     %t8 = callv(%inc)
     drop(%t8)

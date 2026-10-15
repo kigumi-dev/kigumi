@@ -27,7 +27,7 @@ fn main.twice(%items: Array[Item]) -> Unit {
     %t5 = builtin iter.at_ref(%t1, %t2)
     %it = borrow 0(%t5)
     %t8 = field 0(%it)
-    %t9 = call len(%t8)
+    %t9 = call std/array.Array.len(%t8)
     %t7 = interp ""(%t9)
     %t10 = builtin print(%t7)
     jump b3
@@ -53,7 +53,7 @@ fn main.twice(%items: Array[Item]) -> Unit {
     %t18 = builtin iter.at_move(%t14, %t15)
     %it = copy(%t18)
     %t21 = field 0(%it)
-    %t22 = call len(%t21)
+    %t22 = call std/array.Array.len(%t21)
     %t20 = interp ""(%t22)
     %t23 = builtin print(%t20)
     drop(%it)
@@ -76,11 +76,11 @@ fn main() -> Unit! {
   b0:
     %t0 = const "a": String
     %t1 = array(%t0)
-    %t2 = call of(%t1)
-    %t3 = record Item(%t2)
+    %t2 = call std/array.Array.of(%t1)
+    %t3 = record main.Item(%t2)
     %t4 = array(%t3)
-    %t5 = call of(%t4)
-    %t6 = call twice(%t5)
+    %t5 = call std/array.Array.of(%t4)
+    %t6 = call main.twice(%t5)
     drop(%t6)
     %t7 = unit
     return %t7

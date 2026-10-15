@@ -20,7 +20,7 @@ fn lib.pickData(%v: View['a], %other: View['b]) -> &Bytes {
   b0:
     %t2 = field 0(%v)
     %t3 = field 0(%other)
-    %t4 = call pick2(%t2, %t3)
+    %t4 = call lib.pick2(%t2, %t3)
     drop(%other)
     drop(%v)
     return %t4

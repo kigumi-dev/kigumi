@@ -13,14 +13,14 @@ fn Handle.replace(mut self) -> Unit {
 fn main.Handle.replace.closure1(%self: Handle) -> Unit {
   b0:
     %t1 = const 99: Int
-    %t2 = record Handle(%t1)
+    %t2 = record main.Handle(%t1)
     cellset(%self, %t2)
     %t3 = unit
     return %t3
 }
 fn main.Handle.replace(%self: Handle) -> Unit {
   b0:
-    %t1 = closure closure(%self)
+    %t1 = closure main.Handle.replace.closure1(%self)
     %step = copy(%t1)
     %t3 = callv(%step)
     drop(%step)

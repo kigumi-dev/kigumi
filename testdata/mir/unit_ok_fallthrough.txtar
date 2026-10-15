@@ -9,6 +9,6 @@ fn main.helper() -> Unit! {
     %x = copy(%t0)
     drop(%x)
     %t2 = unit
-    %t3 = variant Ok(%t2)
+    %t3 = variant Result.Ok(%t2)
     return %t3
 }

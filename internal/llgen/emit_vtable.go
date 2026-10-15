@@ -10,7 +10,8 @@ import (
 // vtable is one adapter per requirement, in requirement order; a boxed
 // value carries it so a dynamic call is a slot load.
 func (e *emitter) vtable(t, iface sem.TypeID, from sem.PackageID) string {
-	name := "@\"vt$" + strings.Trim(strings.TrimPrefix(e.descOfType(t), "@"), "\"") + "$" + e.r.TypeString(iface) + "\""
+	e.descOfType(t)
+	name := "@\"vt$" + string(e.r.WitnessID(t, iface)) + "\""
 	if e.cio[name] {
 		return name
 	}

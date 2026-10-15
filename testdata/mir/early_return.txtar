@@ -38,9 +38,9 @@ fn main.g(%n: Int) -> String {
 fn main() -> Unit! {
   b0:
     %t1 = const 5: Int
-    %t2 = call g(%t1)
+    %t2 = call main.g(%t1)
     %t3 = const 20: Int
-    %t4 = call g(%t3)
+    %t4 = call main.g(%t3)
     %t0 = interp "\x00 \x00"(%t2, %t4)
     %t5 = builtin print(%t0)
     drop(%t5)

@@ -42,7 +42,7 @@ func TestBuildProgramRunArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,15 +80,15 @@ func TestRunArtifactValidation(t *testing.T) {
 		{ID: 0, Name: "lib", Kind: "library", Target: buildgraph.Target{Triple: "x86_64-freestanding"}},
 		{ID: 1, Name: "cross", Kind: "executable", Target: buildgraph.Target{Triple: crossArch + "-linux"}},
 	}, ToolSteps: []buildgraph.ToolStep{{ID: 0, Kind: "artifact", Artifact: 0, Outputs: []int{}}}}
-	if _, err := driver.ResolveGraph(g, nil); err == nil || !strings.Contains(err.Error(), "not an executable") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "not an executable") {
 		t.Fatalf("runArtifact on a library should be rejected: %v", err)
 	}
 	g.ToolSteps[0].Artifact = 1
-	if _, err := driver.ResolveGraph(g, nil); err == nil || !strings.Contains(err.Error(), "not built for the host") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "not built for the host") {
 		t.Fatalf("runArtifact on a cross-compiled executable should be rejected: %v", err)
 	}
 	g.ToolSteps[0].Artifact = 2
-	if _, err := driver.ResolveGraph(g, nil); err == nil || !strings.Contains(err.Error(), "does not exist") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "does not exist") {
 		t.Fatalf("runArtifact on a nonexistent artifact should be rejected: %v", err)
 	}
 }
@@ -107,12 +107,12 @@ func TestResolveGraphHostBareLibrary(t *testing.T) {
 	g := &buildgraph.Graph{Artifacts: []*buildgraph.Artifact{
 		{ID: 0, Name: "enclave", Kind: "library", Target: buildgraph.Target{Sys: "none"}},
 	}}
-	if _, err := driver.ResolveGraph(g, nil); err != nil {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err != nil {
 		t.Fatalf("a host target + --sys none library should resolve: %v", err)
 	}
 	g.Artifacts[0].Kind = "executable"
 	g.ToolSteps = []buildgraph.ToolStep{{ID: 0, Kind: "artifact", Artifact: 0, Outputs: []int{}}}
-	if _, err := driver.ResolveGraph(g, nil); err == nil || !strings.Contains(err.Error(), "not built for the host") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "not built for the host") {
 		t.Fatalf("runArtifact on a --sys none archive should be rejected even on the host OS/arch: %v", err)
 	}
 }

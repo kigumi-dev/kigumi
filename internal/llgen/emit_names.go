@@ -1,7 +1,6 @@
 package llgen
 
 import (
-	"fmt"
 	"strings"
 
 	"kigumi/internal/sem"
@@ -13,11 +12,22 @@ func (e *emitter) desc(ent sem.EntityID) string {
 	if name, ok := e.descs[ent]; ok {
 		return name
 	}
-	name := fmt.Sprintf("@\".type.prim%d\"", ent)
-	if int(ent) < len(e.r.Entities) {
-		name = "@\".type." + e.qualifiedName(ent) + "\""
-	}
+	name := "@\".type." + e.qualifiedName(ent) + "\""
 	e.descs[ent] = name
+	return name
+}
+
+// primDesc names the descriptor of a type with no declaration after its key.
+func (e *emitter) primDesc(t sem.TypeID) string {
+	key := string(e.r.TypeKey(t))
+	if name, ok := e.primDescs[key]; ok {
+		return name
+	}
+	if e.primDescs == nil {
+		e.primDescs = map[string]string{}
+	}
+	name := "@\".type.prim." + key + "\""
+	e.primDescs[key] = name
 	return name
 }
 
@@ -33,11 +43,10 @@ func (e *emitter) vdesc(v sem.EntityID) string {
 // qualifiedName is `<package path>.<name>` for a declaration; universe
 // declarations (Option, String) have no package.
 func (e *emitter) qualifiedName(ent sem.EntityID) string {
-	x := e.r.Entity(ent)
-	if path := e.r.Packages[x.Pkg].Path; path != "" {
-		return path + "." + x.Name
+	if id := e.r.DeclID(ent); !id.IsZero() && id.Package != "" {
+		return id.String()
 	}
-	return "universe." + x.Name
+	return "universe." + e.r.Entity(ent).Name
 }
 
 // subSymbol derives a companion global (`.fields`, `.methods`) from a

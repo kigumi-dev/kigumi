@@ -40,7 +40,7 @@ func buildDeclaration(res *sem.Result, t *syntax.Tree, d syntax.NodeID, pkg stri
 		return nil, 0, false
 	}
 	kind, name := declKind(res, ent)
-	decl.Name, decl.ID = name, declID(decl.Package, string(kind), name)
+	decl.Name, decl.ID = name, entityID(res, ent, decl.Package, string(kind), name)
 	return decl, ent, true
 }
 

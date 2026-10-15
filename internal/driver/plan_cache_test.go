@@ -28,7 +28,7 @@ func planModule(t *testing.T, root string, targets ...string) (string, driver.Pl
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, nil)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -36,8 +36,8 @@ fn lib.each(%xs: &Array[Int], %f: fn(&Int) -> Int) -> Int {
   b0:
     %t2 = const 0: usize
     %t3 = copy(%f)
-    %t4 = call with(%xs, %t2, %t3)
-    %t6 = isvariant Some(%t4)
+    %t4 = call std/array.Array.with(%xs, %t2, %t3)
+    %t6 = isvariant Option.Some(%t4)
     branch %t6 ? b1 : b2
   b1:
     %t7 = payload 0(%t4)
@@ -56,7 +56,7 @@ fn lib.each(%xs: &Array[Int], %f: fn(&Int) -> Int) -> Int {
 fn lib.moveOut.closure1(%r: Res, %x: &Int) -> Int {
   b0:
     %t2 = move(%r)
-    %t3 = call keep(%t2)
+    %t3 = call lib.keep(%t2)
     nop
     return %t3
 }
@@ -64,8 +64,8 @@ fn lib.moveOut(%xs: &Array[Int], %r: Res) -> Int {
   b0:
     %t2 = copy(%xs)
     %t3 = copy(%r)
-    %t4 = closure closure(%t3)
-    %t5 = call each(%t2, %t4)
+    %t4 = closure lib.moveOut.closure1(%t3)
+    %t5 = call lib.each(%t2, %t4)
     drop(%r)
     return %t5
 }

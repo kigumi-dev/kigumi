@@ -33,9 +33,9 @@ type planCache struct {
 	stats      PlanStats
 }
 
-func newPlanCache() *planCache {
+func newPlanCache(o CompilerOptions) *planCache {
 	c := &planCache{facts: map[string]*planFacts{}, provisions: map[string][]CapabilityVerdict{}}
-	if dir, err := DeriveCacheDir(); err == nil {
+	if dir, err := DeriveCacheDir(o); err == nil {
 		c.derive = &schema.DeriveCache{Dir: dir}
 	}
 	return c
@@ -70,7 +70,7 @@ func (c *planCache) provision(t Target) []CapabilityVerdict {
 
 // artifactFacts scopes to a's own entry set so a sibling artifact's usage never leaks in.
 func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t Target) *planFacts {
-	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses})
+	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses, Compiler: p.Module.compiler})
 	if err != nil {
 		return nil
 	}

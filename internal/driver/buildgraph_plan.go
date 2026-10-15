@@ -41,7 +41,7 @@ func PlanJSONWithStats(rg *ResolvedGraph, p *BuildProgram) (string, PlanStats) {
 		DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
 	}{FormatVersion: version.BuildPlanFormatVersion, Toolchain: version.Current(), NativeToolchain: CCompiler(), Request: rg.Graph.Request, Secrets: rg.Graph.Secrets, Files: rg.Graph.Files, ToolSteps: rg.Graph.ToolSteps, Artifacts: []artifact{}, Order: rg.Order}
 	zigVersion := ""
-	cache := newPlanCache()
+	cache := newPlanCache(rg.options)
 	if p != nil {
 		plan.DeriveProvenance = schema.BuildProvenance(p.Res, nil)
 		if cc, err := CCompilerFor(p.Module); err == nil {

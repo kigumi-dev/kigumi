@@ -2,7 +2,6 @@ package driver
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 
 	"kigumi/internal/target"
@@ -44,11 +43,6 @@ var targetOS = map[string]string{"linux": "linux", "macos": "darwin", "windows":
 var knownABI = map[string]map[string]bool{
 	"linux":   {"musl": true, "gnu": true},
 	"windows": {"gnu": true, "msvc": true},
-}
-
-// HostTarget is the machine kigumi runs on.
-func HostTarget() Target {
-	return Target{OS: runtime.GOOS, Arch: runtime.GOARCH, Sys: "posix"}
 }
 
 // Unverified reports a triple whose ABI ParseTarget could not check against
@@ -107,9 +101,9 @@ func resolveSys(t Target, sys, triple string) (Target, error) {
 	return t, nil
 }
 
-// ParseTarget reads a triple; "" is the host.
-func ParseTarget(triple, sys string) (Target, error) {
-	t := HostTarget()
+// ParseTarget reads a triple; "" is o's host.
+func ParseTarget(o CompilerOptions, triple, sys string) (Target, error) {
+	t := o.HostOrAmbient()
 	if triple != "" {
 		p, err := parseTripleStructure(triple)
 		if err != nil {

@@ -2,11 +2,7 @@ package driver
 
 import "kigumi/internal/mir"
 
-// The zero Target resolves as the host.
 func (t Target) CapabilityPlatform() mir.Platform {
-	if t.OS == "" {
-		t = HostTarget()
-	}
 	p := mir.Platform{OS: t.OS, Bare: t.Bare(), NoLibc: t.Freestanding(), Allocator: t.Allocator, RecoverableOnly: t.RecoverableOnly()}
 	if t.StrictBlocking() {
 		p.ThreadProfile = t.BlockingExecutor

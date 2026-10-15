@@ -35,7 +35,7 @@ fn lib.reentrant.closure2(%y: &mut Item) -> Unit {
     %t2 = share retain(%t1)
     %t3 = newcell(%t2)
     %t4 = const 100: Int
-    %t5 = call update(%t3, %t4)
+    %t5 = call lib.Item.update(%t3, %t4)
     %t6 = celltake(%t3)
     drop(%t3)
     drop(%t6)
@@ -43,14 +43,14 @@ fn lib.reentrant.closure2(%y: &mut Item) -> Unit {
 }
 fn lib.reentrant.closure1(%cell: Shared[Item], %x: &mut Item) -> Unit {
   b0:
-    %t2 = closure closure
-    %t3 = call withMut(%cell, %t2)
+    %t2 = closure lib.reentrant.closure2
+    %t3 = call std/alloc.Shared.withMut(%cell, %t2)
     drop(%t3)
     %t4 = borrow 1(%x)
     %t5 = share retain(%t4)
     %t6 = newcell(%t5)
     %t7 = const 1: Int
-    %t8 = call update(%t6, %t7)
+    %t8 = call lib.Item.update(%t6, %t7)
     %t9 = celltake(%t6)
     drop(%t6)
     drop(%t9)
@@ -60,8 +60,8 @@ fn lib.reentrant.closure1(%cell: Shared[Item], %x: &mut Item) -> Unit {
 fn lib.reentrant(%cell: Shared[Item]) -> Unit {
   b0:
     %t1 = copy(%cell)
-    %t2 = closure closure(%t1)
-    %t3 = call withMut(%cell, %t2)
+    %t2 = closure lib.reentrant.closure1(%t1)
+    %t3 = call std/alloc.Shared.withMut(%cell, %t2)
     drop(%cell)
     return %t3
 }

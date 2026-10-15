@@ -8,7 +8,7 @@ print "ok"
 fn main.f() -> Unit! {
   b0:
     %t0 = unit
-    %t1 = variant Ok(%t0)
+    %t1 = variant Result.Ok(%t0)
     return %t1
   b1:
     %t2 = unit
@@ -16,8 +16,8 @@ fn main.f() -> Unit! {
 }
 fn main() -> Unit! {
   b0:
-    %t0 = call f
-    %t1 = isvariant Ok(%t0)
+    %t0 = call main.f
+    %t1 = isvariant Result.Ok(%t0)
     branch %t1 ? b1 : b2
   b1:
     %t2 = payload 0(%t0)

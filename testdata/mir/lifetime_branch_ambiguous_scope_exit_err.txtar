@@ -37,22 +37,22 @@ fn lib.peek() -> u8 {
     %t1 = const 2: u8
     %t2 = const 3: u8
     %t3 = array(%t0, %t1, %t2)
-    %t4 = call of(%t3)
+    %t4 = call std/array.Array.of(%t3)
     %t5 = borrow 0(%t4)
-    %t6 = call fromArray(%t5)
+    %t6 = call std/prelude.Bytes.fromArray(%t5)
     %buf1 = copy(%t6)
     %t8 = const 4: u8
     %t9 = const 5: u8
     %t10 = const 6: u8
     %t11 = array(%t8, %t9, %t10)
-    %t12 = call of(%t11)
+    %t12 = call std/array.Array.of(%t11)
     %t13 = borrow 0(%t12)
-    %t14 = call fromArray(%t13)
+    %t14 = call std/prelude.Bytes.fromArray(%t13)
     %buf2 = copy(%t14)
     %t16 = const false: Bool
     %t17 = borrow 0(%buf1)
     %t18 = borrow 0(%buf2)
-    %t19 = call pickOne(%t16, %t17, %t18)
+    %t19 = call lib.pickOne(%t16, %t17, %t18)
     drop(%buf2)
     %r = copy(%t19)
     %t21 = const 0: usize

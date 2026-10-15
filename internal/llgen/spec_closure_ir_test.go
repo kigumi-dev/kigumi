@@ -24,8 +24,8 @@ print "${run(3)}"
 
 func TestClosureOverARecordInAGenericBodyKeepsItInline(t *testing.T) {
 	ir := specializedIR(t, closureProbe)
-	hold := bodyOf(t, ir, `define %"kg.agg.Point" @"main.hold[main.Point]"(%"kg.agg.Point" %p0)`)
-	clo := bodyOf(t, ir, `define %"kg.agg.Point" @"main.hold.closure1[main.Point]"(ptr %env)`)
+	hold := bodyOf(t, ir, `define %"kg.agg.main.Point" @"main.hold[main.Point]"(%"kg.agg.main.Point" %p0)`)
+	clo := bodyOf(t, ir, `define %"kg.agg.main.Point" @"main.hold.closure1[main.Point]"(ptr %env)`)
 	for what, body := range map[string]string{"main.hold[main.Point]": hold, "main.hold.closure1[main.Point]": clo} {
 		for _, bad := range []string{`@"kg.box.`, `@"kg.unbox.`, "@rt_record(", "@rt_closure(", "@rt_callv("} {
 			if strings.Contains(body, bad) {
@@ -33,7 +33,7 @@ func TestClosureOverARecordInAGenericBodyKeepsItInline(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(hold, `call %"kg.agg.Point" @"main.hold.closure1[main.Point]"(ptr `) {
+	if !strings.Contains(hold, `call %"kg.agg.main.Point" @"main.hold.closure1[main.Point]"(ptr `) {
 		t.Errorf("the body does not call the closure by name:\n%s", hold)
 	}
 	if strings.Contains(ir, `@"main.hold.closure1"(`) {

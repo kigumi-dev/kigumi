@@ -34,7 +34,7 @@ func TestBuildProgramExample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(g, descriptors)
+	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +60,12 @@ func TestBuildProgramExample(t *testing.T) {
 	}
 
 	g.ToolSteps[0].Tool = "rm"
-	if _, err := driver.ResolveGraph(g, descriptors); err == nil || !strings.Contains(err.Error(), "not registered") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors); err == nil || !strings.Contains(err.Error(), "not registered") {
 		t.Fatalf("unregistered tool should be rejected before running: %v", err)
 	}
 	g.ToolSteps[0].Tool = "gen"
 	g.Artifacts[0].Target.Triple = ""
-	if _, err := driver.ResolveGraph(g, descriptors); err == nil || !strings.Contains(err.Error(), "freestanding") {
+	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors); err == nil || !strings.Contains(err.Error(), "freestanding") {
 		t.Fatalf("host-target library should be rejected: %v", err)
 	}
 }

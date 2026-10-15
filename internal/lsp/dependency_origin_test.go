@@ -18,7 +18,7 @@ import (
 func TestDependencyCacheOrigin(t *testing.T) {
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	depDir, err := driver.CacheDir(driver.Require{Name: "example.com/greet", Version: "v1.0.0"})
+	depDir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "example.com/greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}

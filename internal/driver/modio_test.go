@@ -11,7 +11,7 @@ import (
 
 func cacheEntry(t *testing.T, name, version string, ready bool) string {
 	t.Helper()
-	dir, err := driver.CacheDir(driver.Require{Name: name, Version: version})
+	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: name, Version: version})
 	if err != nil {
 		t.Fatal(err)
 	}

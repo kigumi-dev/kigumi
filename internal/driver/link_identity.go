@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
 // LinkIdentity is what a Link record actually resolved to on this host,
@@ -18,8 +17,8 @@ type LinkIdentity struct {
 	Digest string
 }
 
-func candidateLibraryNames(name string) []string {
-	switch runtime.GOOS {
+func candidateLibraryNames(hostOS, name string) []string {
+	switch hostOS {
 	case "darwin":
 		return []string{"lib" + name + ".dylib", "lib" + name + ".a"}
 	case "windows":
@@ -30,8 +29,8 @@ func candidateLibraryNames(name string) []string {
 }
 
 // defaultLibraryDirs is searched after a Link's own Search path.
-func defaultLibraryDirs() []string {
-	switch runtime.GOOS {
+func defaultLibraryDirs(hostOS string) []string {
+	switch hostOS {
 	case "darwin":
 		return []string{"/usr/lib", "/usr/local/lib", "/opt/homebrew/lib"}
 	case "windows":
@@ -43,24 +42,25 @@ func defaultLibraryDirs() []string {
 
 // IsHostTarget reports whether t names no cross-compilation: ResolveLinkIdentity's
 // search list is the running host's own, which does not apply to a different target.
-func IsHostTarget(t Target) bool {
-	h := HostTarget()
+func IsHostTarget(o CompilerOptions, t Target) bool {
+	h := o.HostOrAmbient()
 	return t.Triple == "" && (t.OS == "" || t.OS == h.OS) && (t.Arch == "" || t.Arch == h.Arch)
 }
 
 // ResolveLinkIdentity locates and digests the actual library file a
 // Link{library: ...} names; ok is false when nothing on t's search list resolves it.
-func ResolveLinkIdentity(l Link, t Target) (LinkIdentity, bool) {
+func ResolveLinkIdentity(o CompilerOptions, l Link, t Target) (LinkIdentity, bool) {
 	id := LinkIdentity{Library: l.Library}
-	if l.Library == "" || !IsHostTarget(t) {
+	if l.Library == "" || !IsHostTarget(o, t) {
 		return id, false
 	}
-	dirs := defaultLibraryDirs()
+	hostOS := o.HostOrAmbient().OS
+	dirs := defaultLibraryDirs(hostOS)
 	if l.Search != "" {
 		dirs = append([]string{l.Search}, dirs...)
 	}
 	for _, dir := range dirs {
-		for _, name := range candidateLibraryNames(l.Library) {
+		for _, name := range candidateLibraryNames(hostOS, l.Library) {
 			p := filepath.Join(dir, name)
 			digest, err := digestFile(p)
 			if err != nil {
@@ -106,7 +106,7 @@ func LinkIdentityViolations(m *Module, t Target) []Violation {
 		if l.Library == "" {
 			continue
 		}
-		if _, ok := ResolveLinkIdentity(l, t); !ok {
+		if _, ok := ResolveLinkIdentity(m.compiler, l, t); !ok {
 			vs = append(vs, linkIdentityUnknownViolation(m.Name, l.Library))
 		}
 	}

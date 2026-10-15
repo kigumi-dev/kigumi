@@ -25,9 +25,9 @@ fn lib.useStatic(%x: T, %a: &Bytes, %$w:T:make: fn(&Bytes, &Bytes) -> &Bytes) ->
     %t4 = const 2: u8
     %t5 = const 3: u8
     %t6 = array(%t3, %t4, %t5)
-    %t7 = call of(%t6)
+    %t7 = call std/array.Array.of(%t6)
     %t8 = borrow 0(%t7)
-    %t9 = call fromArray(%t8)
+    %t9 = call std/prelude.Bytes.fromArray(%t8)
     %buf2 = copy(%t9)
     %t11 = copy(%a)
     %t12 = borrow 0(%buf2)

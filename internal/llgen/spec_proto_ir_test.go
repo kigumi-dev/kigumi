@@ -26,10 +26,10 @@ print "${same(Point { x: 1, y: 2.5 }, Point { x: 1, y: 2.5 })} ${fingerprint(Poi
 func TestDirectComparisonAndHashNeverBox(t *testing.T) {
 	ir := specializedIR(t, protoProbe)
 	for _, c := range []struct{ fn, call string }{
-		{"main.same", `call i1 @"kg.eq.Point"(`},
-		{"main.fingerprint", `call i64 @"kg.hash.Point"(`},
-		{"main.sameTag", `call i1 @"kg.eq.Tag"(`},
-		{"main.tagHash", `call i64 @"kg.hash.Tag"(`},
+		{"main.same", `call i1 @"kg.eq.main.Point"(`},
+		{"main.fingerprint", `call i64 @"kg.hash.main.Point"(`},
+		{"main.sameTag", `call i1 @"kg.eq.main.Tag"(`},
+		{"main.tagHash", `call i64 @"kg.hash.main.Tag"(`},
 	} {
 		body := fnBody(t, ir, c.fn)
 		if !strings.Contains(body, c.call) {
@@ -41,7 +41,7 @@ func TestDirectComparisonAndHashNeverBox(t *testing.T) {
 			}
 		}
 	}
-	for _, fn := range []string{`define internal i1 @"kg.eq.Point"(`, `define internal i1 @"kg.eq.Tag"(`, `define internal i64 @"kg.hash.Point"(`, `define internal i64 @"kg.hash.Tag"(`} {
+	for _, fn := range []string{`define internal i1 @"kg.eq.main.Point"(`, `define internal i1 @"kg.eq.main.Tag"(`, `define internal i64 @"kg.hash.main.Point"(`, `define internal i64 @"kg.hash.main.Tag"(`} {
 		body := bodyOf(t, ir, fn)
 		for _, bad := range []string{"@rt_int(", "@rt_float(", "@rt_record(", "@rt_variant(", "@rt_field(", "@rt_std_id("} {
 			if strings.Contains(body, bad) {
@@ -49,7 +49,7 @@ func TestDirectComparisonAndHashNeverBox(t *testing.T) {
 			}
 		}
 	}
-	if !strings.Contains(bodyOf(t, ir, `define internal i64 @"kg.hash.Point"(`), "@rt_d_hash_float(") {
+	if !strings.Contains(bodyOf(t, ir, `define internal i64 @"kg.hash.main.Point"(`), "@rt_d_hash_float(") {
 		t.Error("the hash of a Float leaf does not use the runtime's text hash")
 	}
 }

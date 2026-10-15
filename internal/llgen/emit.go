@@ -24,6 +24,7 @@ type emitter struct {
 	strList      []string
 	descs        map[sem.EntityID]string
 	vdescs       map[sem.EntityID]string
+	primDescs    map[string]string
 	tables       strings.Builder
 	foreign      map[string]string
 	helpers      strings.Builder

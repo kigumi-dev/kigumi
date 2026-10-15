@@ -10,9 +10,8 @@ import (
 	"kigumi/internal/sem"
 )
 
-// globalSym mangles by entity id since two packages may declare a static of the same name.
 func (e *emitter) globalSym(ent sem.EntityID) string {
-	return fmt.Sprintf("@\"kg.static.%d\"", uint32(ent))
+	return "@\"kg.static." + e.r.DeclID(ent).String() + "\""
 }
 
 // staticGlobals: extern/export statics get a real C-layout global; owned ones keep the ordinary boxed-ptr representation.

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"kigumi/internal/vm"
-	"os"
 )
 
 // RunOptions is what the CLI resolved for one run.
@@ -17,14 +16,6 @@ type RunOptions struct {
 	FaultInjectAt int64
 	// Cwd is the directory relative paths resolve against; empty means the process directory.
 	Cwd string
-}
-
-func (o RunOptions) cwd() string {
-	if o.Cwd != "" {
-		return o.Cwd
-	}
-	cwd, _ := os.Getwd()
-	return cwd
 }
 
 // Run type-checks a loaded module and runs its entry file on the VM.
@@ -51,11 +42,11 @@ func RunWith(m *Module, opts RunOptions, stdout, stderr io.Writer, args []string
 	if err := VMRefusal(a); err != nil {
 		return 1, err
 	}
-	return runVM(a, opts, stdout, stderr, args)
+	return runVM(m, a, opts, stdout, stderr, args)
 }
 
-func runVM(a *Analysis, opts RunOptions, stdout, stderr io.Writer, args []string) (int, error) {
-	code, err := vm.Run(a.Prog, vm.Options{Args: args, Stdin: opts.Stdin, Cwd: opts.cwd(), NoAccel: opts.NoAccel, FaultInjectAt: opts.FaultInjectAt}, stdout, stderr)
+func runVM(m *Module, a *Analysis, opts RunOptions, stdout, stderr io.Writer, args []string) (int, error) {
+	code, err := vm.Run(a.Prog, vm.Options{Args: args, Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, FaultInjectAt: opts.FaultInjectAt}, stdout, stderr)
 	if err != nil {
 		return 1, fmt.Errorf("%w", err)
 	}
@@ -80,7 +71,7 @@ func RunTestsWith(m *Module, opts RunOptions, stdout, stderr io.Writer) (int, er
 	if ok, why := vm.SupportsTests(a.Prog); !ok {
 		return 1, vmRefusalError(why)
 	}
-	failed, err := vm.RunTests(a.Prog, vm.Options{Stdin: opts.Stdin, Cwd: opts.cwd(), NoAccel: opts.NoAccel, DenySignals: true}, stdout, stderr)
+	failed, err := vm.RunTests(a.Prog, vm.Options{Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, DenySignals: true}, stdout, stderr)
 	if err != nil {
 		return 1, fmt.Errorf("%w", err)
 	}

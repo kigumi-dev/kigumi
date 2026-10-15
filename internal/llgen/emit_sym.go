@@ -25,8 +25,7 @@ func (e *emitter) entryFile(ent sem.EntityID) string {
 	return e.r.Tree(e.r.Entity(ent).File).File.Name
 }
 
-// symName tells overloads apart by position in the overload set, not
-// entity number, so symbols don't move when unrelated code changes.
+// symName is the function's name, which already carries its overload signature.
 func (e *emitter) symName(f *mir.Func) string {
 	if f.Wraps != nil {
 		return e.symName(f.Wraps) + "$boxed"
@@ -38,13 +37,6 @@ func (e *emitter) symName(f *mir.Func) string {
 		// The bare name is the C symbol of an exported function's wrapper.
 		if e.r.Fn(f.Ent).Export != "" {
 			return f.Name + "$kg"
-		}
-		if set := e.r.Fn(f.Ent).Set; set != 0 && len(e.r.Overloads[set].Members) > 1 {
-			for i, m := range e.r.Overloads[set].Members {
-				if m == f.Ent {
-					return fmt.Sprintf("%s#%d", f.Name, i)
-				}
-			}
 		}
 	}
 	return f.Name

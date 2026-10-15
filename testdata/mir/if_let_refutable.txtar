@@ -11,7 +11,7 @@ print "${take(Some(2))} ${take(None)}"
 -- expect --
 fn main.take(%x: Int?) -> Int {
   b0:
-    %t2 = isvariant Some(%x)
+    %t2 = isvariant Option.Some(%x)
     branch %t2 ? b4 : b2
   b1:
     %t7 = copy(%v)
@@ -38,10 +38,10 @@ fn main.take(%x: Int?) -> Int {
 fn main() -> Unit! {
   b0:
     %t1 = const 2: Int
-    %t2 = variant Some(%t1)
-    %t3 = call take(%t2)
-    %t4 = variant None
-    %t5 = call take(%t4)
+    %t2 = variant Option.Some(%t1)
+    %t3 = call main.take(%t2)
+    %t4 = variant Option.None
+    %t5 = call main.take(%t4)
     %t0 = interp "\x00 \x00"(%t3, %t5)
     %t6 = builtin print(%t0)
     drop(%t6)
