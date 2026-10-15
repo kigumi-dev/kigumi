@@ -11,6 +11,9 @@ import (
 // own "duplicate modifier"); build.go's compile and cli/shared's Load print
 // every diagnostic Diagnostics returns but stop only when this is true.
 func (m *Module) HasParseErrors() bool {
+	if m.settled != nil {
+		return false
+	}
 	scope := m.buildScope()
 	for _, p := range m.Order {
 		pkg := m.Packages[p]

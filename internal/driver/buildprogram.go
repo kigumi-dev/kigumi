@@ -31,6 +31,8 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 	if err != nil || !ok {
 		return nil, ok, err
 	}
+	// The build program sees dependencies and std only, so the module's own packages are never roots; what build.kg imports is.
+	opts.RootDirs, opts.RootImports = []string{}, importPaths(tree)
 	m, err := LoadModule(root, opts)
 	if err != nil {
 		return nil, true, err
@@ -48,7 +50,7 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 		mod.Packages = append(mod.Packages, sp)
 	}
 	for _, path := range importPaths(tree) {
-		if p, ok := m.Packages[path]; ok && !p.Std && p.Module == "" {
+		if ip, ok := m.index.pkgs[path]; ok && !ip.std && ip.module == "" {
 			return nil, true, fmt.Errorf("%s cannot import %s, a package of the module it builds; call a helper a dependency exports or select a Framework", BuildFileName, path)
 		}
 	}

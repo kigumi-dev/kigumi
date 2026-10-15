@@ -48,6 +48,18 @@ type LoadOptions struct {
 	// ZigNotice receives ResolveZig's one-line on-demand-fetch notice; nil
 	// means os.Stderr.
 	ZigNotice io.Writer
+	// RootDirs, when non-nil, makes the own packages at or under these root-relative directories ("" is the whole module) the roots of the package graph instead of every own package.
+	RootDirs []string
+	// RootImports add packages, by import path, to the roots; the build program starts from what build.kg imports.
+	RootImports []string
+	// AllOwnPackages keeps every own package a root even when Entry names one, for tools that describe the whole module (doc, schema).
+	AllOwnPackages bool
+	// AllPackages makes every indexed package a root, dependencies and unimported ones included, as the editor's auto-import needs.
+	AllPackages bool
+	// DeferParse stops the load after the package index and root set: nothing is parsed until a call needs the trees, so a settled module can answer from the package cache without reading sources.
+	DeferParse bool
+	// PackageCache is the directory holding the index memo, package API artifacts and settled check results; "" turns persistence off.
+	PackageCache string
 	// VerifyPasses verifies the MIR before the passes and after each one, not only after the last.
 	VerifyPasses bool
 	// FileOrder reorders each directory's files and the package list after the name sort; tests only.

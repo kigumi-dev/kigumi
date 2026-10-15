@@ -32,8 +32,8 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 	}
 	m.Selected = sel.Requires
 	// The root's own packages carry Module=="" too; snapshotting them here keeps a dependency name that prefixes the root's own from claiming them.
-	rootOwned := make(map[string]bool, len(m.Packages))
-	for p := range m.Packages {
+	rootOwned := make(map[string]bool, len(m.index.pkgs))
+	for p := range m.index.pkgs {
 		rootOwned[p] = true
 	}
 	for _, name := range sel.Names() {
@@ -79,12 +79,12 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 		if overlap := m.dependencyOverlap(depDir, r.Name, skip); overlap != "" {
 			return fmt.Errorf("dependency %s overlaps this module's name %s", r.Name, m.Name)
 		}
-		if err := m.loadTree(depDir, r.Name, false, false, skip); err != nil {
+		if err := m.indexTree(depDir, r.Name, false, false, skip); err != nil {
 			return err
 		}
-		for _, p := range m.Packages {
-			if p.Module == "" && !p.Std && !rootOwned[p.Path] && ownerOf(p.Path, []string{r.Name}) != "" {
-				p.Module = r.Name
+		for path, ip := range m.index.pkgs {
+			if ip.module == "" && !ip.std && !rootOwned[path] && ownerOf(path, []string{r.Name}) != "" {
+				ip.module = r.Name
 			}
 		}
 	}
@@ -160,6 +160,7 @@ func byName(mf ModFile) string {
 // ImportedModules lists the Requires that the module's own packages
 // import, matching import paths to the longest Require name.
 func (m *Module) ImportedModules(mf ModFile) map[string]bool {
+	m.ensureParsed()
 	names := make([]string, 0, len(mf.Requires))
 	for _, r := range mf.Requires {
 		names = append(names, r.Name)

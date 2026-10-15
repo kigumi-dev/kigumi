@@ -44,6 +44,20 @@ func StdRoot(cmd *cobra.Command) string {
 // policy is Development when omitted; only `kigumi build`/`check` pass
 // Release, through the --release flag.
 func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer, policy ...driver.BuildPolicy) (*driver.Module, error) {
+	return load(cmd, target, test, false, false, errOut, policy)
+}
+
+// LoadWhole is Load for a command that describes the whole module even when the target names one entry file (doc, schema).
+func LoadWhole(cmd *cobra.Command, target string, test bool, errOut io.Writer) (*driver.Module, error) {
+	return load(cmd, target, test, false, true, errOut, nil)
+}
+
+// LoadSettled is Load for a command that only needs the check outcome: an unchanged module answers from the package cache without parsing a source.
+func LoadSettled(cmd *cobra.Command, target string, test bool, errOut io.Writer, policy ...driver.BuildPolicy) (*driver.Module, error) {
+	return load(cmd, target, test, true, false, errOut, policy)
+}
+
+func load(cmd *cobra.Command, target string, test, deferParse, whole bool, errOut io.Writer, policy []driver.BuildPolicy) (*driver.Module, error) {
 	root, entry := target, ""
 	if strings.HasSuffix(target, ".kg") {
 		if _, err := os.Stat(target); err != nil {
@@ -69,7 +83,7 @@ func Load(cmd *cobra.Command, target string, test bool, errOut io.Writer, policy
 	if len(policy) > 0 {
 		pol = policy[0]
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: StdRoot(cmd), Test: test, Entry: entry, NoLocal: noLocal || LocalOff(), Target: tgt, Policy: pol, ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: Offline(cmd), VerifyPasses: VerifyPasses(), Compiler: CompilerOptions()})
+	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: StdRoot(cmd), Test: test, Entry: entry, NoLocal: noLocal || LocalOff(), Target: tgt, Policy: pol, ZigPath: ZigPath(), ZigHome: ZigHome(), Offline: Offline(cmd), VerifyPasses: VerifyPasses(), Compiler: CompilerOptions(), PackageCache: PackageCache(), DeferParse: deferParse, AllOwnPackages: whole})
 	if err != nil {
 		return nil, errors.WrapErrf(err, "load module %s", root)
 	}

@@ -43,6 +43,9 @@ func (r *Result) Diagnostics(t *syntax.Tree) []diag.Diagnostic {
 func (r *Result) FailParse() { r.parseFailed = true }
 
 func (r *Result) HasErrors() bool {
+	if r.replay != nil {
+		return r.replay.hasErrors
+	}
 	if r.parseFailed {
 		return true
 	}
@@ -58,6 +61,9 @@ func (r *Result) HasErrors() bool {
 
 // Render renders all diagnostics in file order; "" when clean.
 func (r *Result) Render() string {
+	if r.replay != nil {
+		return r.replay.text
+	}
 	var sb strings.Builder
 	for i := 1; i < len(r.Files); i++ {
 		if t := r.Files[i].Tree; r.parseFailed && t != nil {

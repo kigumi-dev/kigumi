@@ -11,12 +11,18 @@ import (
 
 // Check runs the semantic checker over a loaded module, adding a build's E1370.
 func Check(m *Module) (*sem.Result, error) {
+	if m.settled != nil {
+		return sem.ReplayResult(m.settled.Render, false), nil
+	}
 	a, err := Analyze(m)
 	if err != nil {
 		return nil, err
 	}
 	if a.Prog != nil && !a.Res.HasErrors() {
 		a.checkProvision(m.target)
+	}
+	if !a.Res.HasErrors() {
+		m.storeSettled(a, a.Res.Render())
 	}
 	return a.Res, nil
 }
@@ -30,7 +36,9 @@ func CheckOnly(m *Module) (*sem.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return sem.CheckWith(mod, schema.GenerateDerive), nil
+	res := sem.CheckWith(mod, schema.GenerateDerive)
+	m.recordPackages(res)
+	return res, nil
 }
 
 // Diagnostics renders every parse diagnostic in the module, skipping
@@ -38,6 +46,9 @@ func CheckOnly(m *Module) (*sem.Result, error) {
 // Header package stays in scope regardless, like Std: an unimported one
 // still owes its E994 skip warning, or it would silently disappear.
 func (m *Module) Diagnostics() string {
+	if m.settled != nil {
+		return m.settled.ParseDiags
+	}
 	scope := m.buildScope()
 	var sb strings.Builder
 	for _, p := range m.Order {
@@ -59,6 +70,7 @@ func renderTree(t *syntax.Tree) string {
 // buildScope is the entry's transitive import closure; nil (no explicit
 // entry) keeps every package in scope. Std is implicit, never imported.
 func (m *Module) buildScope() map[string]bool {
+	m.ensureParsed()
 	if !m.ExplicitEntry {
 		return nil
 	}
@@ -88,29 +100,16 @@ func (m *Module) buildScope() map[string]bool {
 	return scope
 }
 
-// entryPackage finds the package holding m.Entry, the root-relative file
-// name an explicit entry selected.
-func (m *Module) entryPackage() string {
-	for _, path := range m.Order {
-		p := m.Packages[path]
-		if p.Std || p.Module != "" {
-			continue
-		}
-		for _, t := range p.Files {
-			if t.File.Name == m.Entry {
-				return path
-			}
-		}
-	}
-	return ""
-}
-
 // semModule maps packages to the checker's view: std stubs form the "std"
 // module, everything else the main module, and the entry file is the one
 // script-shaped file of a package under cmd/, or the only script-shaped
 // file of a module without cmd/. A package an explicit entry's build scope
 // leaves out (a sibling cmd/* program, say) is dropped entirely.
 func (m *Module) semModule() (*sem.Module, error) {
+	m.ensureParsed()
+	if m.loadErr != nil {
+		return nil, m.loadErr
+	}
 	mod := &sem.Module{Sources: m.fileStore()}
 	if m.target.Freestanding() {
 		mod.Target = sem.Freestanding
@@ -157,28 +156,4 @@ func (m *Module) semModule() (*sem.Module, error) {
 		mod.Packages = append(mod.Packages, sp)
 	}
 	return mod, nil
-}
-
-// defaultEntry names the single script-shaped file of a module that has no
-// cmd/ packages; "" leaves the choice to the cmd/ rule.
-func (m *Module) defaultEntry() string {
-	var scripts []string
-	for _, path := range m.Order {
-		p := m.Packages[path]
-		if p.Std || p.Module != "" {
-			continue
-		}
-		if strings.HasPrefix(m.Rel(path), "cmd/") {
-			return ""
-		}
-		for _, t := range p.Files {
-			if t.HasTopLevelStatements() || t.HasExplicitMain() {
-				scripts = append(scripts, t.File.Name)
-			}
-		}
-	}
-	if len(scripts) == 1 {
-		return scripts[0]
-	}
-	return ""
 }

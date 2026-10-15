@@ -8,6 +8,9 @@ var colors bool
 // UseColor switches colored rendering on or off.
 func UseColor(on bool) { colors = on }
 
+// Colored reports whether rendering currently carries colors.
+func Colored() bool { return colors }
+
 // The palette follows rustc: the severity word in its own color, the
 // location arrow and gutter in blue, help in cyan, everything bold that a
 // reader scans for.

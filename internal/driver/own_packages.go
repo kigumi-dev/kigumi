@@ -9,6 +9,7 @@ import (
 // OwnPackages satisfies schema.ModuleScope: m's own packages (never std or
 // a dependency), in Order.
 func (m *Module) OwnPackages() []schema.OwnPackage {
+	m.ensureParsed()
 	var out []schema.OwnPackage
 	for _, path := range m.Order {
 		p := m.Packages[path]

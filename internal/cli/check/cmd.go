@@ -21,7 +21,7 @@ func Cmd() *cobra.Command {
 	shared.ReleaseFlag(cmd)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		policy := shared.Policy(cmd)
-		m, err := shared.Load(cmd, args[0], false, cmd.ErrOrStderr(), policy)
+		m, err := shared.LoadSettled(cmd, args[0], false, cmd.ErrOrStderr(), policy)
 		if err != nil {
 			return err
 		}

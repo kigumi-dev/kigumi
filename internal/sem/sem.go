@@ -44,6 +44,7 @@ type Result struct {
 	Comptime []ComptimeSite
 
 	parseFailed     bool
+	replay          *replayedCheck
 	target          Target
 	noDefault       bool
 	recoverableOnly bool

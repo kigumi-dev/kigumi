@@ -2,6 +2,7 @@ package driver
 
 import (
 	"os"
+	"path/filepath"
 	"runtime"
 )
 
@@ -44,4 +45,19 @@ func (m *Module) cwdFor(own string) string {
 	}
 	cwd, _ := os.Getwd()
 	return cwd
+}
+
+// absPath resolves p against the options' Cwd, or the process directory only when none was given.
+func (o CompilerOptions) absPath(p string) (string, error) {
+	if filepath.IsAbs(p) {
+		return filepath.Clean(p), nil
+	}
+	cwd := o.Cwd
+	if cwd == "" {
+		var err error
+		if cwd, err = os.Getwd(); err != nil {
+			return "", err
+		}
+	}
+	return filepath.Join(cwd, p), nil
 }

@@ -36,7 +36,7 @@ func (m *Module) dependencyOverlap(depDir, prefix string, skip func(string) bool
 		if prefix != "" {
 			pkgPath = strings.TrimSuffix(prefix+"/"+pkgPath, "/")
 		}
-		if _, exists := m.Packages[pkgPath]; !exists || !m.definesPackage(path) {
+		if _, exists := m.index.pkgs[pkgPath]; !exists || !m.definesPackage(path) {
 			return nil
 		}
 		found = pkgPath

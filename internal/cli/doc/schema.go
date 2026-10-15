@@ -23,7 +23,7 @@ func SchemaCmd() *cobra.Command {
 		Short: "List declarations and their metadata attributes as JSON",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m, err := shared.Load(cmd, args[0], true, cmd.ErrOrStderr())
+			m, err := shared.LoadWhole(cmd, args[0], true, cmd.ErrOrStderr())
 			if err != nil {
 				return err
 			}

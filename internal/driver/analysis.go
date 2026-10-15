@@ -49,6 +49,7 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
 	m.lastAnalysis = a
 	if res.HasErrors() {
+		m.recordPackages(res)
 		return a, nil
 	}
 	m.stats.MIR++
@@ -65,6 +66,7 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 			}
 		}
 	}
+	m.recordPackages(res)
 	return a, nil
 }
 

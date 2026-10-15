@@ -11,12 +11,12 @@ import (
 	"kigumi/internal/token"
 )
 
-func (m *Module) loadPackage(dir, pkgPath, fileRel string, std, test bool) error {
+// indexPackage records the files of one directory as a package header, without reading them.
+func (m *Module) indexPackage(dir, pkgPath, fileRel string, std, test bool) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
-	var files []*syntax.Tree
 	names := map[string]bool{}
 	// build.kg is the build program only at the module root; a package may
 	// still have a file of that name (std/build does).
@@ -39,6 +39,7 @@ func (m *Module) loadPackage(dir, pkgPath, fileRel string, std, test bool) error
 	if m.fileOrder != nil {
 		m.fileOrder(sorted)
 	}
+	var files []*indexedFile
 	for _, name := range sorted {
 		if strings.HasSuffix(name, "_test.kg") && !test {
 			continue
@@ -47,21 +48,22 @@ func (m *Module) loadPackage(dir, pkgPath, fileRel string, std, test bool) error
 			continue
 		}
 		full := filepath.Join(dir, name)
-		src, ok := m.overlay[full]
-		if !ok {
-			var err error
-			if src, err = os.ReadFile(full); err != nil {
+		// Root-relative names keep golden output independent of the checkout path.
+		display := name
+		if fileRel != "" {
+			display = fileRel + "/" + name
+		}
+		f := &indexedFile{name: name, display: display, abs: full}
+		if src, ok := m.overlay[full]; ok {
+			f.src, f.loaded, f.overlay, f.size = src, true, true, int64(len(src))
+		} else {
+			st, err := os.Stat(full)
+			if err != nil {
 				return err
 			}
+			f.size, f.mtime, f.ctime = st.Size(), st.ModTime().UnixNano(), changeTime(st)
 		}
-		// Root-relative names keep golden output independent of the checkout path.
-		fileName := name
-		if fileRel != "" {
-			fileName = fileRel + "/" + name
-		}
-		f := token.NewFile(fileName, src)
-		m.fileStore().Add(f)
-		files = append(files, syntax.Parse(f))
+		files = append(files, f)
 	}
 	if len(files) == 0 {
 		return nil
@@ -71,11 +73,45 @@ func (m *Module) loadPackage(dir, pkgPath, fileRel string, std, test bool) error
 	if pkgPath == "" {
 		pkgPath = "main"
 	}
-	if _, dup := m.Packages[pkgPath]; dup {
+	if _, dup := m.index.pkgs[pkgPath]; dup {
 		return fmt.Errorf("package %q is defined by two directories", pkgPath)
 	}
-	m.Packages[pkgPath] = &Package{Path: pkgPath, Dir: dir, Files: files, Std: std}
+	m.index.pkgs[pkgPath] = &indexedPackage{path: pkgPath, dir: dir, std: std, files: files}
+	m.index.order = append(m.index.order, pkgPath)
+	m.idxStats.PackagesIndexed++
 	return nil
 }
 
-// Diagnostics renders every parse diagnostic in the module, in package order.
+// parsePackage parses an indexed package and publishes it in m.Packages.
+func (m *Module) parsePackage(ip *indexedPackage) error {
+	if ip.parsed {
+		return nil
+	}
+	var trees []*syntax.Tree
+	for _, f := range ip.files {
+		src, err := m.source(f)
+		if err != nil {
+			return err
+		}
+		file := token.NewFile(f.display, src)
+		m.fileStore().Add(file)
+		trees = append(trees, syntax.Parse(file))
+	}
+	ip.parsed = true
+	m.idxStats.PackagesParsed++
+	m.idxStats.FilesParsed += len(trees)
+	m.Packages[ip.path] = &Package{Path: ip.path, Dir: ip.dir, Files: trees, Std: ip.std, Module: ip.module}
+	return nil
+}
+
+// loadPackage indexes and parses one directory at once, for packages nothing demands lazily (generated headers).
+func (m *Module) loadPackage(dir, pkgPath, fileRel string, std, test bool) error {
+	before := len(m.index.order)
+	if err := m.indexPackage(dir, pkgPath, fileRel, std, test); err != nil {
+		return err
+	}
+	if len(m.index.order) == before {
+		return nil
+	}
+	return m.parsePackage(m.index.pkgs[m.index.order[before]])
+}

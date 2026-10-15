@@ -8,9 +8,9 @@ import (
 	"kigumi/internal/token"
 )
 
-// loadTree reads every directory under root as a package; skip prunes
-// subtrees that belong to another module.
-func (m *Module) loadTree(root, prefix string, std, test bool, skip func(string) bool) error {
+// indexTree records every directory under root as a package header; skip
+// prunes subtrees that belong to another module.
+func (m *Module) indexTree(root, prefix string, std, test bool, skip func(string) bool) error {
 	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -38,7 +38,7 @@ func (m *Module) loadTree(root, prefix string, std, test bool, skip func(string)
 		if root != m.Root {
 			fileRel = pkgPath
 		}
-		return m.loadPackage(path, pkgPath, fileRel, std, test)
+		return m.indexPackage(path, pkgPath, fileRel, std, test)
 	})
 }
 

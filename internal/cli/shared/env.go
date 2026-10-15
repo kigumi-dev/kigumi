@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"kigumi/internal/driver"
 	"kigumi/internal/zigtool/store"
 )
 
@@ -17,6 +18,19 @@ func CFlags() []string { return strings.Fields(os.Getenv("KIGUMI_CFLAGS")) }
 
 // LocalOff reports KIGUMI_LOCAL=off, which ignores mod.local.kg.
 func LocalOff() bool { return os.Getenv("KIGUMI_LOCAL") == "off" }
+
+// PackageCache is KIGUMI_PKG_CACHE: a directory for the package cache, "off" to turn it off, else the default under the user cache dir.
+func PackageCache() string {
+	switch v := os.Getenv("KIGUMI_PKG_CACHE"); v {
+	case "off":
+		return ""
+	case "":
+		dir, _ := driver.DefaultPackageCache(CompilerOptions())
+		return dir
+	default:
+		return v
+	}
+}
 
 // NoAccel reports KIGUMI_NO_ACCEL, which runs std bodies in Kigumi.
 func NoAccel() bool { return os.Getenv("KIGUMI_NO_ACCEL") != "" }

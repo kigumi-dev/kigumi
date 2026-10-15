@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"time"
 
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
@@ -79,12 +79,29 @@ type Module struct {
 	lowerAll     bool
 	fileOrder    func(names []string)
 	compiler     CompilerOptions
+	index        *pkgIndex
+	idxStats     IndexStats
+	rootDirs     []string
+	rootImports  []string
+	allPackages  bool
+	allOwn       bool
+	// deferred marks a load whose reachable packages are not parsed yet (ensureParsed).
+	deferred bool
+	loadErr  error
+	pkgCache *packageCache
+	test     bool
+	settled  *settledCheck
+	// keyEntry and keyExplicit are the entry as loaded; semModule may fill m.Entry in later.
+	keyEntry    string
+	keyExplicit bool
+	pkgStatus   []PackageStatus
 }
 
-// LoadModule parses every package under root and, when configured, the std
-// stubs. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
+// LoadModule indexes every package under root and the std stubs, then parses the packages the root set reaches. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
 func LoadModule(root string, opts LoadOptions) (*Module, error) {
-	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, fileOrder: opts.FileOrder, compiler: opts.Compiler}
+	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, rootDirs: opts.RootDirs, rootImports: opts.RootImports, allPackages: opts.AllPackages, allOwn: opts.AllOwnPackages, deferred: opts.DeferParse, test: opts.Test, keyEntry: opts.Entry, keyExplicit: opts.Entry != "", fileOrder: opts.FileOrder, compiler: opts.Compiler}
+	m.index = newPkgIndex(opts.PackageCache, root, opts.Compiler, time.Now)
+	m.pkgCache = newPackageCache(opts.PackageCache)
 	if m.target.OS == "" {
 		m.target = m.compiler.HostOrAmbient()
 	}
@@ -97,11 +114,17 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 	}
 	m.Name, m.Manifest = mf.Name, mf
 	skip := func(dir string) bool { return skipDir(dir, opts.StdRoot) || IsModuleRoot(dir) }
-	if err := m.loadTree(root, m.Name, false, opts.Test, skip); err != nil {
+	if err := m.indexTree(root, m.Name, false, opts.Test, skip); err != nil {
 		return nil, err
 	}
-	if err := m.scriptManifest(hasMod); err != nil {
-		return nil, err
+	// A script's manifest records live in a parsed file; a module's manifest is mod.kg.
+	if !m.deferred || !hasMod {
+		if err := m.parseReachable(); err != nil {
+			return nil, err
+		}
+		if err := m.scriptManifest(hasMod); err != nil {
+			return nil, err
+		}
 	}
 	if err := m.addNative(root, m.Manifest); err != nil {
 		return nil, err
@@ -143,15 +166,23 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 		}
 	}
 	if opts.StdRoot != "" {
-		if err := m.loadTree(opts.StdRoot, "std", true, false, nil); err != nil {
+		if err := m.indexTree(opts.StdRoot, "std", true, false, nil); err != nil {
 			return nil, err
 		}
 	}
-	m.Order = make([]string, 0, len(m.Packages))
-	for p := range m.Packages {
-		m.Order = append(m.Order, p)
+	if m.deferred {
+		if m.trySettle(); m.settled == nil {
+			m.ensureParsed()
+		}
+	} else if err := m.parseReachable(); err != nil {
+		return nil, err
+	} else {
+		m.setOrder()
 	}
-	sort.Strings(m.Order)
+	m.saveMemo()
+	if m.loadErr != nil {
+		return nil, m.loadErr
+	}
 	if m.fileOrder != nil {
 		m.fileOrder(m.Order)
 	}

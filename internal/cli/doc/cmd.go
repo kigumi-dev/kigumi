@@ -33,7 +33,7 @@ func Cmd() *cobra.Command {
 					err = errors.WrapErr(err, "load std")
 				}
 			} else {
-				m, err = shared.Load(cmd, args[0], false, cmd.ErrOrStderr())
+				m, err = shared.LoadWhole(cmd, args[0], false, cmd.ErrOrStderr())
 			}
 			if err != nil {
 				return err
