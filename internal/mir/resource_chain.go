@@ -8,11 +8,15 @@ const trustedStdFrame = 2
 
 // hoCallbackArg maps a std op that natively calls a user closure
 // (invisible to the call graph otherwise) to that closure's Args index.
-var hoCallbackArg = map[string]int{
-	"ARRAY_WITH": 2, "ARRAY_WITH_MUT": 2,
-	"PIN_WITH": 1, "WITH_ADDRESS": 1, "SHARED_WITH": 1, "SHARED_WITH_MUT": 1,
-	"BOX_WITH": 1, "BOX_WITH_MUT": 1,
-}
+var hoCallbackArg = func() map[string]int {
+	m := map[string]int{}
+	for _, op := range Registry.Ops {
+		if op.Callback >= 0 {
+			m[op.Name] = op.Callback
+		}
+	}
+	return m
+}()
 
 // ComputeResourceSummaries computes every lowered function's ResourceSummary
 // to a fixpoint over the program's static call graph.

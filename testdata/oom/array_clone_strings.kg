@@ -1,0 +1,14 @@
+fn run() -> Unit {
+    let a = Array.of("x", "yy", "zzz")
+    let before = a.len()
+    let r = a.tryClone()
+    if r is Err(_) {
+        if a.len() == before {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

@@ -13,6 +13,9 @@ var runtimeHeader string
 //go:embed runtime/rt_internal.h
 var runtimeInternalHeader string
 
+//go:embed runtime/rt_std_ops.h
+var runtimeStdOps string
+
 //go:embed runtime/rt_core.c
 var runtimeCore string
 
@@ -112,7 +115,7 @@ var freestandingOS = map[string]bool{"freestanding": true, "uefi": true}
 // needs a POSIX <signal.h>, which freestanding/"--sys none" and
 // Windows/WASI lack.
 func RuntimeFiles(sys, os string) []RuntimeFile {
-	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys.c", runtimeSys}}
+	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_std_ops.h", runtimeStdOps}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys.c", runtimeSys}}
 	files = append(files, capFiles...)
 	files = append(files, coreFragments...)
 	if sys != "none" && mir.PosixSignalOS(os) {
@@ -126,7 +129,7 @@ func RuntimeFiles(sys, os string) []RuntimeFile {
 
 // RuntimeSource is the whole runtime as one text, for tests that scan it.
 func RuntimeSource() string {
-	out := runtimeHeader + runtimeInternalHeader + runtimeCore + runtimeFloat + runtimeSys
+	out := runtimeHeader + runtimeInternalHeader + runtimeStdOps + runtimeCore + runtimeFloat + runtimeSys
 	for _, f := range append(slices.Clone(capFiles), coreFragments...) {
 		out += f.Src
 	}

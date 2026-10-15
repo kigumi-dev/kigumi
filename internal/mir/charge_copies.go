@@ -19,7 +19,13 @@ func (p *Program) allocCopy(f *Func, in Inst) bool {
 }
 
 // elemOps are the std ops that hand out a copy of an array element inside an Option.
-var elemOps = map[string]bool{"ARRAY_GET": true, "ARRAY_FIRST": true, "ARRAY_LAST": true}
+var elemOps = func() map[string]bool {
+	m := map[string]bool{}
+	for _, op := range Registry.Ops {
+		m[op.Name] = op.Elem
+	}
+	return m
+}()
 
 func (p *Program) elemCopy(f *Func, in Inst) (sem.TypeID, bool) {
 	if in.Op != OpCall || in.DPrim != DPNone || !f.DirectPlanned() || !p.IsStdPrimitive(in.Ent) {

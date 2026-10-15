@@ -35,6 +35,10 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if err != nil || !ok {
 		return ok, err
 	}
+	code = withRuntimeABI(t, code, opts.CFlags)
+	if err := checkLinkedRuntimeABI(m, opts, code.Abi); err != nil {
+		return false, err
+	}
 	cc, err := CCompilerFor(m)
 	if err != nil {
 		return false, err
@@ -78,34 +82,24 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		args = append(args, "-target", t.compileTriple())
 	}
 	if t.Freestanding() {
-		args = append(args, "-DKIGUMI_FREESTANDING", "-nostdlib")
+		args = append(args, "-nostdlib")
 	}
 	if t.Bare() && t.Arch == "arm" {
 		args = append(args, "-fno-unwind-tables", "-fno-asynchronous-unwind-tables")
 	}
-	if wantsTaskCatch(t) {
-		args = append(args, "-DKIGUMI_TASK_CATCH")
+	for _, def := range runtimeDefines(t, code) {
+		args = append(args, "-D"+def)
 	}
-	if code.Unwind {
-		args = append(args, "-DKIGUMI_UNWIND")
-	}
-	if code.Int128 {
-		args = append(args, "-DKIGUMI_INT128")
-	}
-	if bareJumpTarget(t) {
-		args = append(args, "-DKIGUMI_TASK_CATCH_BUILTIN")
-	}
-	for _, cap := range code.Capabilities {
-		args = append(args, "-D"+cap)
-	}
+	args = append(args, abiDefine(code.Abi))
 	if t.COFF() {
 		// No CRT to supply __chkstk; raise its threshold out of reach instead.
-		args = append(args, "-DKIGUMI_COFF", "-mstack-probe-size=1048576")
+		args = append(args, "-mstack-probe-size=1048576")
 	}
 	if t.Bare() {
 		compileFlags, _ := splitArchiveCFlags(opts.CFlags)
 		args = append(args, compileFlags...)
 		fp := CurrentFingerprint(t, ZigVersionOf(cc))
+		fp.RuntimeAbi = code.Abi
 		reportStaleFingerprint(out, fp, stderr)
 		ok, err := buildArchive(cc, args, inputs, dir, out, opts.ccEnv, stderr)
 		if err != nil || !ok {

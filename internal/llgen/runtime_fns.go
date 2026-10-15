@@ -9,6 +9,7 @@ import (
 // decided; runtime_fns_test.go checks them against the C definitions.
 var (
 	rtInit         = RuntimeFn{"rt_init", []Type{TI32, TPtr, TI32, TPtr}, TVoid}
+	rtAbiCheck     = RuntimeFn{"rt_abi_check", []Type{TPtr}, TVoid}
 	rtExitCode     = RuntimeFn{"rt_exit_code", []Type{TPtr}, TI32}
 	rtUnit         = RuntimeFn{"rt_unit", nil, TPtr}
 	rtInt          = RuntimeFn{"rt_int", []Type{TI64, TI32}, TPtr}
@@ -119,7 +120,7 @@ var (
 // runtimeFns lists every RuntimeFn above in `declare` order: the single
 // source renderExterns and runtime_fns_test.go both read.
 var runtimeFns = []RuntimeFn{
-	rtInit, rtExitCode, rtUnit, rtInt, rtFloat, rtBool, rtChar, rtStr, rtBytes, rtCopy, rtCopyMut,
+	rtInit, rtAbiCheck, rtExitCode, rtUnit, rtInt, rtFloat, rtBool, rtChar, rtStr, rtBytes, rtCopy, rtCopyMut,
 	rtTruth, rtAt, rtCallv, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
 	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstNum, rtConstInt128, rtBoxInt128, rtInt128Lo, rtInt128Hi, rtI128Mul, rtI128Div, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,

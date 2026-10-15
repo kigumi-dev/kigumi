@@ -1,28 +1,37 @@
 package sem
 
-// fatalAllocPrimitives lists bodiless std fns with no fallible sibling
-// whose native/VM body terminates on refused allocation, keyed like mir.StdKey.
-var fatalAllocPrimitives = map[string]bool{
-	"array.Array.push":         true,
-	"prelude.Bytes.zeros":      true,
-	"prelude.Bytes.fill":       true,
-	"prelude.Bytes.fromArray":  true,
-	"prelude.Bytes.concat":     true,
-	"prelude.String.fromBytes": true,
-	"alloc.Shared.new":         true,
-	"alloc.Box.new":            true,
-	"mem.secureErase":          true,
+import "strings"
+
+// isTryName reports a name in the fallible family: try followed by an upper-case letter.
+func isTryName(name string) bool {
+	return len(name) > 3 && strings.HasPrefix(name, "try") && name[3] >= 'A' && name[3] <= 'Z'
 }
 
-// trustedFallibleWrappers lists bodied std fns proven safe by a preceding
-// reservation — a manual stand-in for edge-graph path-sensitivity.
-var trustedFallibleWrappers = map[string]bool{
-	"array.Array.tryPush":        true,
-	"array.Array.tryReserve":     true,
-	"array.Array.tryAppendAll":   true,
-	"array.Array.tryFill":        true,
-	"map.Map.trySet":             true,
-	"text.StringBuilder.tryPush": true,
+// fatalConveniences keys, like stdKey, the std functions with a try sibling in
+// the same package and owner (push beside tryPush); they end the program on refusal.
+func (r *Result) fatalConveniences() map[string]bool {
+	if r.fatalFamily != nil {
+		return r.fatalFamily
+	}
+	family := map[string]bool{}
+	for id := range r.Entities {
+		e := &r.Entities[id]
+		if e.Kind != EntFn || e.Flags&EfStd == 0 || !isTryName(e.Name) {
+			continue
+		}
+		plain := strings.ToLower(e.Name[3:4]) + e.Name[4:]
+		key := r.stdKey(EntityID(id))
+		family[strings.TrimSuffix(key, e.Name)+plain] = true
+	}
+	r.fatalFamily = family
+	return family
+}
+
+// isTrustedTry marks a bodied std fn named try*: std reserves or wraps its
+// allocations through fallible primitives, which the fault sweeps check.
+func (r *Result) isTrustedTry(id EntityID) bool {
+	e := &r.Entities[id]
+	return e.Flags&EfStd != 0 && isTryName(e.Name)
 }
 
 func (r *Result) fatalAllocKey(id EntityID) string { return r.stdKey(id) }
@@ -69,13 +78,16 @@ func (r *Result) recoverableFixed(id EntityID) (bool, bool) {
 	if e.Kind != EntFn && e.Kind != EntContract && e.Kind != EntImplicitMain && e.Kind != EntTest {
 		return true, true
 	}
+	if e.Flags&EfStd != 0 && r.fatalConveniences()[r.fatalAllocKey(id)] {
+		return false, true
+	}
 	if r.Fn(id).Body != 0 {
-		if trustedFallibleWrappers[r.fatalAllocKey(id)] {
+		if r.isTrustedTry(id) {
 			return true, true
 		}
 		return false, false
 	}
-	return !fatalAllocPrimitives[r.fatalAllocKey(id)], true
+	return true, true
 }
 
 func (r *Result) recoverableTargetSafe(target EntityID, safe map[EntityID]bool) bool {

@@ -1,0 +1,14 @@
+fn run() -> Unit {
+    let s = "  héllo  "
+    let before = s.len()
+    let r = s.tryConcat(s)
+    if r is Err(_) {
+        if s.len() == before {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

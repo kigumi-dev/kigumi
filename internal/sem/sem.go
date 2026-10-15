@@ -70,6 +70,7 @@ type Result struct {
 	langItemMissing map[string]bool
 	dropMemo        map[TypeID]EffectSummary
 	opDropMemo      map[TypeID]OpSummary
+	fatalFamily     map[string]bool
 	threadOpen      map[threadKey]int
 	threadLow       int
 	pkgEntity       []EntityID

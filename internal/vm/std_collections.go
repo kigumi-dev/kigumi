@@ -61,6 +61,9 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		m.chargeMemory(a0)
 		return m.some(x)
 	case "array.Array.clone":
+		if m.faultTick() {
+			m.abort("out of memory")
+		}
 		return m.copy(a0)
 	}
 	return nil

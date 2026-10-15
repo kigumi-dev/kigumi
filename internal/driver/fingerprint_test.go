@@ -2,6 +2,7 @@ package driver_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -9,6 +10,9 @@ import (
 	"testing"
 
 	"kigumi/internal/driver"
+	"kigumi/internal/llgen"
+	"kigumi/internal/mir"
+	"kigumi/internal/version"
 )
 
 func TestFingerprintMismatch(t *testing.T) {
@@ -89,6 +93,10 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 		t.Error("expected the sidecar to record what the target provides")
 	}
 	got.CapabilityProvision, got.CapabilityReasons = nil, nil
+	if !strings.HasPrefix(got.RuntimeAbi, "kgabi1:") {
+		t.Errorf("the sidecar records no runtime fingerprint: %q", got.RuntimeAbi)
+	}
+	want.RuntimeAbi = got.RuntimeAbi
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
@@ -116,5 +124,53 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	got2.CapabilityProvision, got2.CapabilityReasons = nil, nil
 	if !reflect.DeepEqual(got2, want) {
 		t.Errorf("sidecar after rebuild = %+v, want the current fingerprint %+v", got2, want)
+	}
+
+	layout, err := llgen.RuntimeLayout()
+	if err != nil {
+		t.Fatal(err)
+	}
+	grown, err := mir.ParseStdOpRegistry(mirRegistryText(t) + fmt.Sprintf("op %d ZZ_NEW primitive () -> unit\nkey zz.new\n", len(mir.Registry.Ops)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := want
+	old.AbiBase = llgen.AbiFingerprint(grown, layout, version.AbiRevision, nil)
+	old.RuntimeAbi = llgen.AbiFingerprint(grown, layout, version.AbiRevision, []string{"KIGUMI_UNWIND"})
+	if err := driver.WriteFingerprintSidecar(archive, old); err != nil {
+		t.Fatal(err)
+	}
+	m3, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	if err != nil {
+		t.Fatal(err)
+	}
+	buildErr.Reset()
+	if ok, err := driver.BuildWith(m3, archive, &buildErr, driver.BuildOptions{Target: target}); err != nil || !ok {
+		t.Fatalf("rebuild after a registry change: %v\n%s", err, buildErr.String())
+	}
+	if !strings.Contains(buildErr.String(), "rebuilding") || !strings.Contains(buildErr.String(), "runtime ABI") {
+		t.Errorf("a registry change was not reported as a rebuild, got:\n%s", buildErr.String())
+	}
+}
+
+func TestFingerprintMismatchRuntimeAbi(t *testing.T) {
+	base := driver.ArtifactFingerprint{CompilerRelease: "0.1.0", Target: "x86_64-linux", AbiBase: "kgabi1:a", RuntimeAbi: "kgabi1:b"}
+	if r := driver.FingerprintMismatch(base, base); len(r) != 0 {
+		t.Fatalf("equal fingerprints reported %v", r)
+	}
+	otherBase := base
+	otherBase.AbiBase = "kgabi1:c"
+	if r := driver.FingerprintMismatch(otherBase, base); len(r) != 1 || !strings.Contains(r[0], "runtime ABI") {
+		t.Errorf("a changed registry or layout digest reported %v", r)
+	}
+	otherFlags := base
+	otherFlags.RuntimeAbi = "kgabi1:d"
+	if r := driver.FingerprintMismatch(otherFlags, base); len(r) != 1 || !strings.Contains(r[0], "runtime fingerprint") {
+		t.Errorf("a changed runtime flag set reported %v", r)
+	}
+	plan := base
+	plan.RuntimeAbi = ""
+	if r := driver.FingerprintMismatch(otherFlags, plan); len(r) != 0 {
+		t.Errorf("a plan fingerprint with no runtime flags compared them anyway: %v", r)
 	}
 }

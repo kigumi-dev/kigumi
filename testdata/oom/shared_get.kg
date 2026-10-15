@@ -1,0 +1,15 @@
+import {Shared} from std/alloc
+
+fn run() -> Unit {
+    let s = Shared.new("abc")
+    let r = s.tryGet()
+    if r is Err(_) {
+        if s.get() == "abc" {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

@@ -25,26 +25,50 @@ type PrimitiveId int32
 type ProviderOpId int32
 
 var (
-	stdOpID       = map[string]StdOpId{}
-	stdOpKind     = map[StdOpId]OpKind{}
-	stdOpByKey    = map[string]StdOpId{}
-	stdOpBySuffix = map[string]StdOpId{}
+	stdOpID = func() map[string]StdOpId {
+		m := make(map[string]StdOpId, len(StdOpNames))
+		for i, name := range StdOpNames {
+			m[name] = StdOpId(i)
+		}
+		return m
+	}()
+	stdOpKind = func() map[StdOpId]OpKind {
+		m := map[StdOpId]OpKind{}
+		for name := range providerOps {
+			m[stdOpID[name]] = KindProvider
+		}
+		return m
+	}()
+	stdOpByKey = func() map[string]StdOpId {
+		m := make(map[string]StdOpId, len(stdOpKeys))
+		for key, name := range stdOpKeys {
+			m[key] = stdOpID[name]
+		}
+		return m
+	}()
+	stdOpBySuffix = func() map[string]StdOpId {
+		m := make(map[string]StdOpId, len(stdOpSuffixes))
+		for method, name := range stdOpSuffixes {
+			m[method] = stdOpID[name]
+		}
+		return m
+	}()
 )
 
-func init() {
-	for i, name := range StdOpNames {
-		stdOpID[name] = StdOpId(i)
-		if providerOps[name] {
-			stdOpKind[StdOpId(i)] = KindProvider
+type stdOpPrefix struct {
+	prefix string
+	id     StdOpId
+}
+
+var stdOpPrefixes = func() []stdOpPrefix {
+	var out []stdOpPrefix
+	for _, op := range Registry.Ops {
+		for _, p := range op.Prefixes {
+			out = append(out, stdOpPrefix{p, StdOpId(op.ID)})
 		}
 	}
-	for key, name := range stdOpKeys {
-		stdOpByKey[key] = stdOpID[name]
-	}
-	for method, name := range stdOpSuffixes {
-		stdOpBySuffix[method] = stdOpID[name]
-	}
-}
+	return out
+}()
 
 // Kind reports whether id is a compiler-known primitive or a host/provider
 // operation.
@@ -68,8 +92,10 @@ func StdOpFor(key string) (StdOpId, bool) {
 			return id, true
 		}
 	}
-	if strings.HasPrefix(key, "build.") {
-		return stdOpID["BUILD_ONLY"], true
+	for _, p := range stdOpPrefixes {
+		if strings.HasPrefix(key, p.prefix) {
+			return p.id, true
+		}
 	}
 	return 0, false
 }

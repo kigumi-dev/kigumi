@@ -4,15 +4,17 @@ pub type Array[T]
 /// A copy of the array; the elements are Copy, so nothing is shared.
 pub pure fn Array[T: Copy].clone(self) -> Array[T]
 
+/// A copy of the array, or AllocError when the allocator refuses (clone panics instead).
+pub pure fn Array[T: Copy].tryClone(self) -> Result[Array[T], AllocError]
+
 /// A copy of the array whose elements f builds from a borrow of each original.
 pub pure fn Array[T].cloneWith(self, f: fn(&T) -> T) -> Array[T] {
-    let mut out = Array.empty[T]()
-    let mut i: usize = 0
-    for i < self.len() {
-        out.push(self.with(i, f) || panic())
-        i = i + 1
-    }
-    out
+    self.map(f)
+}
+
+/// A copy whose elements f builds from a borrow of each original, or AllocError when the allocator refuses (cloneWith panics instead).
+pub pure fn Array[T].tryCloneWith(self, f: fn(&T) -> T) -> Result[Array[T], AllocError] {
+    self.tryMap(f)
 }
 
 /// Creates an empty array.
@@ -23,26 +25,28 @@ pub pure fn Array.of[T](items: ...T) -> Array[T]
 
 /// n copies of value.
 pub pure fn Array.fill[T: Copy](value: T, n: usize) -> Array[T] {
-    let mut out = Array.empty[T]()
-    let mut i: usize = 0
-    for i < n {
-        out.push(value)
-        i = i + 1
-    }
-    out
+    Array.tryFill(value, n) || panic("out of memory")
 }
 
 /// n copies of value, or AllocError when the allocator refuses (fill panics instead).
 pub pure fn Array.tryFill[T: Copy](value: T, n: usize) -> Result[Array[T], AllocError] {
-    let mut out = Array.empty[T]()
-    out.tryReserve(n)?
+    let mut out = Array.tryWithCapacity[T](n)?
     let mut i: usize = 0
     for i < n {
         out.push(value)
         i = i + 1
     }
-    Ok(out)
+    AllocError.wrap(out)
 }
+
+/// An empty array with room for capacity elements, or AllocError when the allocator refuses.
+pub pure fn Array.tryWithCapacity[T](capacity: usize) -> Result[Array[T], AllocError]
+
+/// Copies of self[start..end], the range clamped to the array; AllocError when the allocator refuses.
+pure fn Array[T: Copy].tryCopyRange(self, start: usize, end: usize) -> Result[Array[T], AllocError]
+
+/// Copy with the elements in reverse order, or AllocError when the allocator refuses (reverse panics instead).
+pub pure fn Array[T: Copy].tryReverse(self) -> Result[Array[T], AllocError]
 
 /// Appends item at the end; panics when memory runs out (tryPush reports it instead).
 pub pure fn Array[T].push(mut self, item: T) -> Unit
@@ -67,18 +71,19 @@ pub pure fn Array[T].tryReserve(mut self, extra: usize) -> Result[Unit, AllocErr
 
 /// Moves the elements of other into self.
 pub pure fn Array[T].appendAll(mut self, other: Array[T]) -> Unit {
-    for item in other {
-        self.push(item)
-    }
+    self.tryAppendAll(other) || panic("out of memory")
 }
 
 /// Moves the elements of other into self, or AllocError when the allocator refuses.
-pub pure fn Array[T].tryAppendAll(mut self, other: Array[T]) -> Result[Unit, AllocError] {
-    self.tryReserve(other.len())?
-    for item in other {
-        self.push(item)
-    }
+pub pure fn Array[T].tryAppendAll(mut self, other: Array[T]) -> Result[Unit, AllocError]
+
+/// Inserts item before the element at index, shifting the later ones up; false when index is past the end. Panics when memory runs out (tryInsertAt reports it instead).
+pub pure fn Array[T].insertAt(mut self, index: usize, item: T) -> Bool {
+    self.tryInsertAt(index, item) || panic("out of memory")
 }
+
+/// Same as insertAt, or AllocError when the allocator refuses; the array is unchanged then.
+pub pure fn Array[T].tryInsertAt(mut self, index: usize, item: T) -> Result[Bool, AllocError]
 
 /// Number of elements.
 pub pure noalloc fn Array[T].len(self) -> usize
@@ -97,26 +102,21 @@ pub pure fn Array[T].takeAt(mut self, index: usize) -> T?
 
 /// The first count elements, or all of them when the array is shorter.
 pub pure fn Array[T: Copy].take(self, count: usize) -> Array[T] {
-    let mut out = Array.empty[T]()
-    let mut i: usize = 0
-    for item in self {
-        if i >= count {
-            break
-        }
-        out.push(item)
-        i += 1
-    }
-    out
+    self.tryTake(count) || panic("out of memory")
+}
+
+/// The first count elements, or all of them when the array is shorter; AllocError when the allocator refuses (take panics instead).
+pub pure fn Array[T: Copy].tryTake(self, count: usize) -> Result[Array[T], AllocError] {
+    self.tryCopyRange(0, count)
 }
 
 /// Applies f to a borrow of every element and collects the results in order; f cannot move an element out (use `for` to consume them) and is not kept.
 pub pure fn Array[T].map[U](self, f: fn(&T) -> U) -> Array[U] {
-    let mut out = Array.empty[U]()
-    for item in &self {
-        out.push(f(item))
-    }
-    out
+    self.tryMap(f) || panic("out of memory")
 }
+
+/// Applies f to every element and collects the results in order, or AllocError when the allocator refuses (map panics instead).
+pub pure fn Array[T].tryMap[U](self, f: fn(&T) -> U) -> Result[Array[U], AllocError]
 
 /// Sorted copy of items; order decides which of two elements comes first.
 pub pure fn sortedBy[T: Copy](items: &Array[T], order: fn(&T, &T) -> Ordering) -> Array[T] {
@@ -173,14 +173,11 @@ fn mergeSortedHalves[T](mut left: Array[T], mut right: Array[T], order: fn(&T, &
 
 /// Elements for which keep returns true, in the original order.
 pub pure fn Array[T].filter(self, keep: fn(&T) -> Bool) -> Array[T] {
-    let mut out = Array.empty[T]()
-    for item in self {
-        if keep(&item) {
-            out.push(item)
-        }
-    }
-    out
+    self.tryFilter(keep) || panic("out of memory")
 }
+
+/// Elements for which keep returns true, in the original order, or AllocError when the allocator refuses (filter panics instead).
+pub pure fn Array[T].tryFilter(self, keep: fn(&T) -> Bool) -> Result[Array[T], AllocError]
 
 /// Reduces the array left to right, starting from init.
 pub pure fn Array[T].fold[A](self, init: A, step: fn(A, T) -> A) -> A {
@@ -231,13 +228,7 @@ pub pure fn Array[T: Eq].contains(self, item: T) -> Bool {
 
 /// Copy with the elements in reverse order.
 pub pure fn Array[T: Copy].reverse(self) -> Array[T] {
-    let mut out = Array.empty[T]()
-    let mut i = self.len()
-    for _ in self {
-        i -= 1
-        out.push(self.get(i).unwrap())
-    }
-    out
+    self.tryReverse() || panic("out of memory")
 }
 
 /// The first element, or None when the array is empty.
@@ -253,29 +244,19 @@ pub pure noalloc fn Array[T].isEmpty(self) -> Bool {
 
 /// Copies of self[start..end]; None unless start <= end <= self.len().
 pub pure fn Array[T: Copy].slice(self, start: usize, end: usize) -> Array[T]? {
-    if start > end || end > self.len() {
-        return None
-    }
-    let mut out = Array.empty[T]()
-    let mut i = start
-    for i < end {
-        out.push(self.get(i).unwrap())
-        i = i + 1
-    }
-    Some(out)
+    self.trySlice(start, end) || panic("out of memory")
 }
+
+/// Copies of self[start..end]; Ok(None) unless start <= end <= self.len(), AllocError when the allocator refuses (slice panics instead).
+pub pure fn Array[T: Copy].trySlice(self, start: usize, end: usize) -> Result[Array[T]?, AllocError]
 
 /// New array holding the elements of self followed by those of other.
 pub pure fn Array[T].concat(self, other: Array[T]) -> Array[T] {
-    let mut out = Array.empty[T]()
-    for item in self {
-        out.push(item)
-    }
-    for item in other {
-        out.push(item)
-    }
-    out
+    self.tryConcat(other) || panic("out of memory")
 }
+
+/// New array holding the elements of self followed by those of other, or AllocError when the allocator refuses (concat panics instead).
+pub pure fn Array[T].tryConcat(self, other: Array[T]) -> Result[Array[T], AllocError]
 
 /// Concatenates items with sep between consecutive elements.
 pub pure fn join(items: &Array[String], sep: String) -> String {

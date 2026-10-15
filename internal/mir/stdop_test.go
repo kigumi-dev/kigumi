@@ -62,3 +62,17 @@ func TestResolveStdOpKind(t *testing.T) {
 		}
 	}
 }
+
+// The per-op tables are built from the registry at package init, in dependency order, so each one is populated before anything reads it.
+func TestRegistryTablesArePopulated(t *testing.T) {
+	run, _ := StdOpIdOf("BLOCKING_POOL_RUN")
+	if refs := nativeRecordTypesForOp[run]; len(refs) != 1 || refs[0].name != "BlockingError" {
+		t.Errorf("BLOCKING_POOL_RUN builds %v by name, want BlockingError", refs)
+	}
+	if !RuntimeNamedTypes()["Entry"] || !RuntimeNamedTypes()["StringBuilder"] {
+		t.Error("the types the try primitives build by name are missing from RuntimeNamedTypes")
+	}
+	if len(directResultOps) != 20 || len(hoCallbackArg) != 8 || len(elemOps) < 3 {
+		t.Errorf("tables hold %d direct ops, %d callbacks, %d element ops", len(directResultOps), len(hoCallbackArg), len(elemOps))
+	}
+}

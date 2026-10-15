@@ -31,6 +31,8 @@ type EmitOptions struct {
 	// Reachable, when set, skips a Func this reachability result does not
 	// keep; nil emits every lowered function, as every direct llgen test does.
 	Reachable *mir.Reachability
+	// AbiCheck makes the entry verify, before anything else runs, that the linked runtime reports the fingerprint BindAbi installs.
+	AbiCheck bool
 	// Catch lets the build unwind on a panic; it also needs the runtime built with KIGUMI_TASK_CATCH.
 	Catch bool
 }

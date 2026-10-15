@@ -1,0 +1,15 @@
+import {Shared} from std/alloc
+
+fn run() -> Unit {
+    let s = Shared.new(7)
+    let r = s.tryDowngrade()
+    if r is Err(_) {
+        if (s.get() == 7) {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

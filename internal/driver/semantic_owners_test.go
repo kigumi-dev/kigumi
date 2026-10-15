@@ -3,8 +3,6 @@ package driver_test
 import (
 	"encoding/json"
 	"os"
-	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -60,7 +58,6 @@ func TestSemanticOwnersFresh(t *testing.T) {
 		t.Fatalf("check errors:\n%s", res.Render())
 	}
 	prog := mir.Build(res)
-	native := nativeText(t)
 
 	var entries []ownerEntry
 	for id := 1; id < len(res.Entities); id++ {
@@ -83,7 +80,7 @@ func TestSemanticOwnersFresh(t *testing.T) {
 			}
 		}
 		vmOK := vm.Implements(prog, fn)
-		nativeOK := nativeCovers(key, native)
+		nativeOK := nativeCovers(key)
 		status, reason := "ok", ""
 		if !hasBody {
 			if !vmOK && vmFFIGap[key] {
@@ -136,54 +133,16 @@ func gapOrOK(ok bool) string {
 	return "gap"
 }
 
-var (
-	exactKeyRe   = regexp.MustCompile(`strcmp\(k, "([^"]+)"\)`)
-	patternKeyRe = regexp.MustCompile(`strstr\(k, "([^"]+)"\)`)
-	methodKeyRe  = regexp.MustCompile(`strcmp\(m, "([^"]+)"\)`)
-)
-
 // isConversion matches a numeric `toX` method, lowered to rt_convert
 // instead of a runtime table entry.
 func isConversion(key string) bool {
 	return strings.HasPrefix(key, "prelude.") && strings.Contains(key, ".to") && !strings.HasPrefix(key, "prelude.String")
 }
 
-// nativeCovers is covered if the registry resolves it, llgen lowers it,
-// it is a numeric conversion, or rt_core.c/rt_sys.c match it by string.
-func nativeCovers(key string, native string) bool {
+// nativeCovers is covered if the registry resolves it, llgen lowers it, or it is a numeric conversion.
+func nativeCovers(key string) bool {
 	if _, ok := mir.StdOpFor(key); ok {
 		return true
 	}
-	if nativeLowered[key] || isConversion(key) {
-		return true
-	}
-	for _, m := range exactKeyRe.FindAllStringSubmatch(native, -1) {
-		if m[1] == key {
-			return true
-		}
-	}
-	for _, m := range patternKeyRe.FindAllStringSubmatch(native, -1) {
-		if strings.Contains(key, m[1]) {
-			return true
-		}
-	}
-	for _, m := range methodKeyRe.FindAllStringSubmatch(native, -1) {
-		if strings.HasSuffix(key, "."+m[1]) {
-			return true
-		}
-	}
-	return false
-}
-
-func nativeText(t *testing.T) string {
-	t.Helper()
-	var out []byte
-	for _, name := range []string{"rt_core.c", "rt_sys.c"} {
-		b, err := os.ReadFile(filepath.Join("../../internal/llgen/runtime", name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		out = append(out, b...)
-	}
-	return string(out)
+	return nativeLowered[key] || isConversion(key)
 }

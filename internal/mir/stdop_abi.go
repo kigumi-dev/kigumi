@@ -34,29 +34,23 @@ const (
 	DPPow
 )
 
-// A call takes the direct form only when its result type is a register scalar or an Option of one.
-var directResultOps = map[string]DirectPrim{
-	"LEN":              DPLen,
-	"ARRAY_LEN":        DPArrayLen,
-	"BYTES_GET":        DPBytesGet,
-	"ARRAY_GET":        DPArrayGet,
-	"ARRAY_FIRST":      DPArrayFirst,
-	"ARRAY_LAST":       DPArrayLast,
-	"CHAR_FROM_INT":    DPCharFromInt,
-	"TEXT_PARSE_FLOAT": DPParseFloat,
-	"WRAPPING_ADD":     DPWrapAdd,
-	"WRAPPING_SUB":     DPWrapSub,
-	"WRAPPING_MUL":     DPWrapMul,
-	"WRAPPING_SHL":     DPWrapShl,
-	"WRAPPING_SHR":     DPWrapShr,
-	"ROTATE_LEFT":      DPRotl,
-	"ROTATE_RIGHT":     DPRotr,
-	"MATH_SQRT":        DPSqrt,
-	"MATH_FLOOR":       DPFloor,
-	"MATH_CEIL":        DPCeil,
-	"MATH_ROUND":       DPRound,
-	"MATH_POW":         DPPow,
+var directPrimByName = map[string]DirectPrim{
+	"Len": DPLen, "ArrayLen": DPArrayLen, "BytesGet": DPBytesGet, "ArrayGet": DPArrayGet,
+	"ArrayFirst": DPArrayFirst, "ArrayLast": DPArrayLast, "CharFromInt": DPCharFromInt, "ParseFloat": DPParseFloat,
+	"WrapAdd": DPWrapAdd, "WrapSub": DPWrapSub, "WrapMul": DPWrapMul, "WrapShl": DPWrapShl, "WrapShr": DPWrapShr,
+	"Rotl": DPRotl, "Rotr": DPRotr, "Sqrt": DPSqrt, "Floor": DPFloor, "Ceil": DPCeil, "Round": DPRound, "Pow": DPPow,
 }
+
+// A call takes the direct form only when its result type is a register scalar or an Option of one.
+var directResultOps = func() map[string]DirectPrim {
+	m := map[string]DirectPrim{}
+	for _, op := range Registry.Ops {
+		if op.Direct != "" {
+			m[op.Name] = directPrimByName[op.Direct]
+		}
+	}
+	return m
+}()
 
 // The numeric conversions are not registry ops; isConversion finds them by key.
 func (id StdOpId) ResultABI() ResultABI {

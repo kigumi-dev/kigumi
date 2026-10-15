@@ -43,13 +43,13 @@ func (p *Program) builtinMismatch(f *Func, in Inst) string {
 	return ""
 }
 
-func (p *Program) builtinArgMismatch(name string, k int, want builtinArg, got sem.TypeID) string {
+func (p *Program) builtinArgMismatch(name string, k int, want ClassSet, got sem.TypeID) string {
 	got = p.R.UnderlyingRepr(p.derefAll(got))
 	switch {
 	case p.looseType(got):
-	case want == argString && !p.compatible(sem.TyString, got):
+	case want == classBit(ClassString) && !p.compatible(sem.TyString, got):
 		return name + " takes " + p.R.TypeString(got) + " as argument " + itoa(k) + ", not a String"
-	case want == argInt && !p.R.Types.IsInteger(got) && got != sem.TyUntypedInt:
+	case want == classBit(ClassInt) && !p.R.Types.IsInteger(got) && got != sem.TyUntypedInt:
 		return name + " indexes with " + p.R.TypeString(got)
 	}
 	return ""
@@ -58,11 +58,11 @@ func (p *Program) builtinArgMismatch(name string, k int, want builtinArg, got se
 func (p *Program) builtinResultMismatch(spec *BuiltinSpec, got sem.TypeID) string {
 	var want sem.TypeID
 	switch spec.Result {
-	case resUnit:
+	case classBit(ClassUnit):
 		want = sem.TyUnit
-	case resBool:
+	case classBit(ClassBool):
 		want = sem.TyBool
-	case resInt:
+	case classBit(ClassInt):
 		if t := p.R.UnderlyingRepr(p.derefAll(got)); !p.looseType(t) && !p.R.Types.IsInteger(t) {
 			return "yields " + p.R.TypeString(got) + ", not an integer"
 		}

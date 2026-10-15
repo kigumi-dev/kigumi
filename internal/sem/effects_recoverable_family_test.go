@@ -1,0 +1,100 @@
+package sem_test
+
+import (
+	"strings"
+	"testing"
+
+	"kigumi/internal/mir"
+	"kigumi/internal/schema"
+	"kigumi/internal/sem"
+	"kigumi/internal/testkit"
+)
+
+// familyCases pair every fallible std function with the plain form it came from: the try form passes the recoverable-only profile, the plain form is rejected.
+var familyCases = []struct{ name, setup, try, plain string }{
+	{"Array.clone", "let mut a = Array.empty[Int]()\n", "_ = a.tryClone()", "_ = a.clone()"},
+	{"Array.cloneWith", "let mut a = Array.empty[Int]()\n", "_ = a.tryCloneWith((x: &Int) => 1)", "_ = a.cloneWith((x: &Int) => 1)"},
+	{"Map.empty", "import map from std/map\n\n", "_ = map.tryEmpty[Int, Int]()", "_ = map.empty[Int, Int]()"},
+	{"StringBuilder.new", "import text from std/text\n\n", "_ = text.StringBuilder.tryNew()", "_ = text.StringBuilder.new()"},
+	{"Array.fill", "", "_ = Array.tryFill(1, 2)", "_ = Array.fill(1, 2)"},
+	{"Array.insertAt", "let mut a = Array.empty[Int]()\n", "_ = a.tryInsertAt(0, 1)", "_ = a.insertAt(0, 1)"},
+	{"Array.push", "let mut a = Array.empty[Int]()\n", "_ = a.tryPush(1)", "a.push(1)"},
+	{"Array.appendAll", "let mut a = Array.empty[Int]()\n", "_ = a.tryAppendAll(Array.empty[Int]())", "a.appendAll(Array.empty[Int]())"},
+	{"Array.take", "let mut a = Array.empty[Int]()\n", "_ = a.tryTake(1)", "_ = a.take(1)"},
+	{"Array.map", "let mut a = Array.empty[Int]()\n", "_ = a.tryMap((x: &Int) => 1)", "_ = a.map((x: &Int) => 1)"},
+	{"Array.filter", "let mut a = Array.empty[Int]()\n", "_ = a.tryFilter((x: &Int) => true)", "_ = a.filter((x: &Int) => true)"},
+	{"Array.reverse", "let mut a = Array.empty[Int]()\n", "_ = a.tryReverse()", "_ = a.reverse()"},
+	{"Array.slice", "let mut a = Array.empty[Int]()\n", "_ = a.trySlice(0, 0)", "_ = a.slice(0, 0)"},
+	{"Array.concat", "let mut a = Array.empty[Int]()\n", "_ = a.tryConcat(Array.empty[Int]())", "_ = a.concat(Array.empty[Int]())"},
+	{"Map.clone", "import map from std/map\n\nlet m = map.tryEmpty[Int, Int]().unwrap()\n", "_ = m.tryClone()", "_ = m.clone()"},
+	{"Map.entries", "import map from std/map\n\nlet m = map.tryEmpty[Int, Int]().unwrap()\n", "_ = m.tryEntries()", "_ = m.entries()"},
+	{"Map.keys", "import map from std/map\n\nlet m = map.tryEmpty[Int, Int]().unwrap()\n", "_ = m.tryKeys()", "_ = m.keys()"},
+	{"Map.values", "import map from std/map\n\nlet m = map.tryEmpty[Int, Int]().unwrap()\n", "_ = m.tryValues()", "_ = m.values()"},
+	{"Map.set", "import map from std/map\n\nlet mut m = map.tryEmpty[Int, Int]().unwrap()\n", "_ = m.trySet(1, 2)", "m.set(1, 2)"},
+	{"String.concat", "let s = \"x\"\n", "_ = s.tryConcat(s)", "_ = s.concat(s)"},
+	{"String.repeat", "let s = \"x\"\n", "_ = s.tryRepeat(2)", "_ = s.repeat(2)"},
+	{"String.sliceBytes", "let s = \"x\"\n", "_ = s.trySliceBytes(0, 1)", "_ = s.sliceBytes(0, 1)"},
+	{"String.trim", "let s = \"x\"\n", "_ = s.tryTrim()", "_ = s.trim()"},
+	{"String.fromBytes", "let b = Bytes.tryZeros(1).unwrap()\n", "_ = String.tryFromBytes(b)", "_ = String.fromBytes(b)"},
+	{"Bytes.zeros", "", "_ = Bytes.tryZeros(1)", "_ = Bytes.zeros(1)"},
+	{"Bytes.fill", "", "_ = Bytes.tryFill(1, 1)", "_ = Bytes.fill(1, 1)"},
+	{"Bytes.concat", "let b = Bytes.tryZeros(1).unwrap()\n", "_ = b.tryConcat(b)", "_ = b.concat(b)"},
+	{"Bytes.slice", "let b = Bytes.tryZeros(1).unwrap()\n", "_ = b.trySlice(0, 1)", "_ = b.slice(0, 1)"},
+	{"Bytes.fromArray", "let a = Array.empty[u8]()\n", "_ = Bytes.tryFromArray(&a)", "_ = Bytes.fromArray(&a)"},
+	{"Shared.new", "import {Shared} from std/alloc\n\n", "_ = Shared.tryNew(1)", "_ = Shared.new(1)"},
+	{"Shared.get", "import {Shared} from std/alloc\n\nlet s = Shared.tryNew(1).unwrap()\n", "_ = s.tryGet()", "_ = s.get()"},
+	{"Shared.downgrade", "import {Shared} from std/alloc\n\nlet s = Shared.tryNew(1).unwrap()\n", "_ = s.tryDowngrade()", "_ = s.downgrade()"},
+	{"Arena.create", "import alloc from std/alloc\n\n", "_ = alloc.Arena.tryCreate()", "_ = alloc.Arena.create()"},
+	{"StringBuilder.push", "import text from std/text\n\nlet mut b = text.StringBuilder.tryNew().unwrap()\n", "_ = b.tryPush(\"x\")", "b.push(\"x\")"},
+	{"StringBuilder.pushByte", "import text from std/text\n\nlet mut b = text.StringBuilder.tryNew().unwrap()\n", "_ = b.tryPushByte(1)", "b.pushByte(1)"},
+	{"mem.secureErase", "import mem from std/mem\n\nlet mut b = Bytes.tryZeros(1).unwrap()\n", "_ = mem.trySecureErase(&mut b)", "mem.secureErase(&mut b)"},
+}
+
+func TestRecoverableOnlyFamilyIsUniform(t *testing.T) {
+	for _, c := range familyCases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := checkRecoverableOnly(t, c.setup+c.try+"\n"); strings.Contains(got.Render(), "recoverable-only") {
+				t.Errorf("the try form is rejected under recoverable-only:\n%s", got.Render())
+			} else if got.HasErrors() {
+				t.Errorf("the try form does not check:\n%s", got.Render())
+			}
+			if got := checkRecoverableOnly(t, c.setup+c.plain+"\n"); !strings.Contains(got.Render(), "recoverable-only") {
+				t.Errorf("the plain form passes under recoverable-only:\n%s", got.Render())
+			}
+		})
+	}
+}
+
+// standaloneTry are fallible std functions with no plain sibling: building blocks the plain forms are written with.
+var standaloneTry = map[string]bool{
+	"array.Array.tryReserve": true, "array.Array.tryWithCapacity": true, "array.Array.tryCopyRange": true,
+	"prelude.AllocError.wrap": true, "map.tryBuildSlots": true,
+}
+
+// A new try* function must come with its plain form (or be listed above), so the family stays uniform.
+func TestEveryTryFunctionHasAPlainForm(t *testing.T) {
+	res := sem.CheckWith(&sem.Module{Packages: testkit.LoadStd(t, "../../std")}, schema.GenerateDerive)
+	names := map[string]bool{}
+	var tries []string
+	for id := range res.Entities {
+		e := &res.Entities[id]
+		if e.Kind != sem.EntFn || e.Flags&sem.EfStd == 0 {
+			continue
+		}
+		key := mir.StdKey(res, sem.EntityID(id), true)
+		names[key] = true
+		if len(e.Name) > 3 && strings.HasPrefix(e.Name, "try") && e.Name[3] >= 'A' && e.Name[3] <= 'Z' {
+			tries = append(tries, key)
+		}
+	}
+	if len(tries) < 30 {
+		t.Fatalf("found only %d try functions; std not loaded?", len(tries))
+	}
+	for _, key := range tries {
+		i := strings.LastIndexByte(key, '.')
+		plain := key[:i+1] + strings.ToLower(key[i+4:i+5]) + key[i+5:]
+		if !names[plain] && !standaloneTry[key] {
+			t.Errorf("%s has no plain form %s", key, plain)
+		}
+	}
+}

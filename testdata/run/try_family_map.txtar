@@ -1,0 +1,45 @@
+-- src --
+import map from std/map
+
+fn show(a: Array[Int]) -> String {
+    let mut out = ""
+    for x in &a {
+        out = "${out}${x},"
+    }
+    out
+}
+
+fn run() -> Unit {
+    let mut m = map.tryEmpty[Int, Int]().unwrap()
+    print "empty ${m.len()} ${m.tryClone().unwrap().len()}"
+    _ = m.trySet(1, 10)
+    _ = m.trySet(2, 20)
+    _ = m.trySet(1, 11)
+    let c = m.tryClone().unwrap()
+    m.set(3, 30)
+    print "clone ${c.len()} ${m.len()} ${c.get(1) || 0} ${c.contains(&3)}"
+    print "keys ${show(m.tryKeys().unwrap())} ${show(m.keys())}"
+    print "values ${show(m.tryValues().unwrap())} ${show(m.values())}"
+    let es = m.tryEntries().unwrap()
+    print "entries ${es.len()} ${m.entries().len()}"
+    let mut total = 0
+    for e in &es {
+        total = total + e.key * 100 + e.value
+    }
+    print "total ${total}"
+    let mut names = map.tryEmpty[Int, String]().unwrap()
+    names.set(1, "one")
+    let copy = names.clone()
+    names.set(1, "uno")
+    print "strings ${copy.get(1) || "?"} ${names.get(1) || "?"} ${names.tryEntries().unwrap().len()}"
+}
+
+run()
+-- stdout --
+empty 0 0
+clone 2 3 11 false
+keys 1,2,3, 1,2,3,
+values 11,20,30, 11,20,30,
+entries 3 3
+total 661
+strings one uno 1

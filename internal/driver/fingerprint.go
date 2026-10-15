@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"kigumi/internal/llgen"
 	"kigumi/internal/mir"
 	"kigumi/internal/schema"
 	"kigumi/internal/version"
@@ -21,6 +22,10 @@ type ArtifactFingerprint struct {
 	AbiRevision     int    `json:"abiRevision"`
 	// ZigVersion is "" for a clang build, or a zig build with no pin to check.
 	ZigVersion string `json:"zigVersion,omitempty"`
+	// AbiBase hashes the op registry and value layout, so it moves when an old runtime object stops fitting this compiler's code.
+	AbiBase string `json:"abiBase"`
+	// RuntimeAbi adds the runtime flag set (thread profile, unwind, capabilities, user -D); empty where no build ran, as in a plan.
+	RuntimeAbi string `json:"runtimeAbi,omitempty"`
 	// FingerprintMismatch never compares DeriveProvenance, CapabilityProvision or CapabilityReasons.
 	DeriveProvenance    []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
 	CapabilityProvision []CapabilityVerdict        `json:"capabilityProvision,omitempty"`
@@ -47,7 +52,7 @@ func targetIdentity(t Target) string {
 // targeting t; zigVersion comes from ZigVersionOf.
 func CurrentFingerprint(t Target, zigVersion string) ArtifactFingerprint {
 	p := version.Current()
-	return ArtifactFingerprint{CompilerRelease: p.Release, CompilerCommit: p.Commit, CompilerDirty: p.Dirty, Target: targetIdentity(t), AbiRevision: version.AbiRevision, ZigVersion: zigVersion}
+	return ArtifactFingerprint{CompilerRelease: p.Release, CompilerCommit: p.Commit, CompilerDirty: p.Dirty, Target: targetIdentity(t), AbiRevision: version.AbiRevision, ZigVersion: zigVersion, AbiBase: llgen.CurrentAbiFingerprint(version.AbiRevision, nil)}
 }
 
 // FingerprintMismatch lists, one reason per differing axis, why got was not
@@ -62,6 +67,12 @@ func FingerprintMismatch(got, want ArtifactFingerprint) []string {
 	}
 	if got.AbiRevision != want.AbiRevision {
 		reasons = append(reasons, fmt.Sprintf("native ABI revision %d, this toolchain uses revision %d", got.AbiRevision, want.AbiRevision))
+	}
+	if got.AbiBase != want.AbiBase {
+		reasons = append(reasons, fmt.Sprintf("runtime ABI %s, this toolchain emits %s", orNone(got.AbiBase), orNone(want.AbiBase)))
+	}
+	if want.RuntimeAbi != "" && got.RuntimeAbi != want.RuntimeAbi {
+		reasons = append(reasons, fmt.Sprintf("runtime fingerprint %s, this build links %s", orNone(got.RuntimeAbi), want.RuntimeAbi))
 	}
 	if got.ZigVersion != want.ZigVersion {
 		reasons = append(reasons, fmt.Sprintf("built with zig %s, this build resolves zig %s", orNone(got.ZigVersion), orNone(want.ZigVersion)))
@@ -138,4 +149,5 @@ func withProvenance(fp *ArtifactFingerprint, m *Module, t Target, code compiled)
 	}
 	fp.CapabilityProvision = ProvidedCapabilities(t)
 	fp.CapabilityReasons = code.Reasons
+	fp.RuntimeAbi = code.Abi
 }

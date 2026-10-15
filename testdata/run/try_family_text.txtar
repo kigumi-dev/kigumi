@@ -1,0 +1,27 @@
+-- src --
+import text from std/text
+
+fn run() -> Unit {
+    let s = "  héllo  "
+    print "concat ${"ab".tryConcat("cd").unwrap()} ${"ab".concat("")} ${"".tryConcat("").unwrap().len()}"
+    print "repeat ${"ab".tryRepeat(3).unwrap()} ${"x".repeat(0).len()} ${"xy".repeat(5)}"
+    print "trim [${s.tryTrim().unwrap()}] [${s.trim()}] [${"   ".tryTrim().unwrap()}]"
+    print "slice ${s.trySliceBytes(2, 5).unwrap() || "none"} ${s.trySliceBytes(0, 99).unwrap() is None} ${"héllo".trySliceBytes(2, 3).unwrap() is None}"
+    let b = Bytes.zeros(6)
+    print "bytes ${b.trySlice(1, 4).unwrap().unwrap().len()} ${b.trySlice(4, 9).unwrap() is None} ${b.trySlice(6, 6).unwrap().unwrap().len()}"
+    print "wrap ${AllocError.wrap(5).unwrap()} ${AllocError.wrap("s").unwrap()}"
+    let mut sb = text.StringBuilder.tryNew().unwrap()
+    _ = sb.tryPush("ab")
+    sb.push("cd")
+    print "builder ${sb.len()} ${sb.freeze().unwrap()}"
+}
+
+run()
+-- stdout --
+concat abcd ab 0
+repeat ababab 0 xyxyxyxyxy
+trim [héllo] [héllo] []
+slice hé true true
+bytes 3 true 0
+wrap 5 s
+builder 4 abcd

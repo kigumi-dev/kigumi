@@ -9966,6 +9966,74 @@
       ]
     },
     {
+      "id": "run/try_family_array",
+      "kind": "run",
+      "path": "testdata/run/try_family_array.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/try_family_map",
+      "kind": "run",
+      "path": "testdata/run/try_family_map.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/try_family_shared",
+      "kind": "run",
+      "path": "testdata/run/try_family_shared.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/try_family_text",
+      "kind": "run",
+      "path": "testdata/run/try_family_text.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/try_forward_err",
       "kind": "run",
       "path": "testdata/run/try_forward_err.txtar",

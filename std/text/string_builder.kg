@@ -7,8 +7,11 @@ pub type StringBuilder = {
 
 /// Creates an empty builder.
 pub pure fn StringBuilder.new() -> StringBuilder {
-    StringBuilder { bytes: Array.empty[u8]() }
+    StringBuilder.tryNew() || panic("out of memory")
 }
+
+/// Creates an empty builder, or AllocError when the allocator refuses (new panics instead).
+pub pure fn StringBuilder.tryNew() -> Result[StringBuilder, AllocError]
 
 /// Appends s; panics when memory runs out (tryPush reports it instead).
 pub pure fn StringBuilder.push(mut self, s: String) -> Unit {

@@ -1,0 +1,21 @@
+-- src --
+import {Shared} from std/alloc
+
+fn run() -> Unit {
+    let s = Shared.tryNew(41).unwrap()
+    print "get ${s.tryGet().unwrap()} ${s.get()}"
+    let w = s.tryDowngrade().unwrap()
+    print "upgrade ${w.upgrade() is Some(_)}"
+    s.set(42)
+    let other = s.clone()
+    print "set ${s.tryGet().unwrap()} ${other.tryGet().unwrap()}"
+    let words = Shared.new("abc")
+    print "text ${words.tryGet().unwrap()} ${words.tryDowngrade().unwrap().upgrade() is Some(_)}"
+}
+
+run()
+-- stdout --
+get 41 41
+upgrade true
+set 42 42
+text abc true

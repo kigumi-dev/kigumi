@@ -48,21 +48,19 @@ pub type Entry[K, V] = {
 
 /// A copy of the map; keys and values are Copy, so nothing is shared.
 pub pure fn Map[K: Copy, V: Copy].clone(self) -> Map[K, V] {
-    Map {
-        keyList: self.keyList.clone()
-        valueList: self.valueList.clone()
-        slots: self.slots.clone()
-    }
+    self.tryClone() || panic("out of memory")
 }
+
+/// A copy of the map, or AllocError when the allocator refuses (clone panics instead); the original is untouched either way.
+pub pure fn Map[K: Copy, V: Copy].tryClone(self) -> Result[Map[K, V], AllocError]
 
 /// Creates an empty map.
 pub pure fn empty[K: Eq + Hash, V]() -> Map[K, V] {
-    Map {
-        keyList: Array.empty[K]()
-        valueList: Array.empty[V]()
-        slots: Array.empty[usize]()
-    }
+    tryEmpty() || panic("out of memory")
 }
+
+/// Creates an empty map, or AllocError when the allocator refuses (empty panics instead).
+pub pure fn tryEmpty[K: Eq + Hash, V]() -> Result[Map[K, V], AllocError]
 
 /// The position of key among the entries, or None.
 pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
@@ -210,21 +208,11 @@ pub pure noalloc fn Map[K, V].len(self) -> usize {
 
 /// Copies of all entries in insertion order.
 pub pure fn Map[K: Copy, V: Copy].entries(self) -> Array[Entry[K, V]] {
-    let mut out = Array.empty[Entry[K, V]]()
-    let mut i: usize = 0
-    for i < self.keyList.len() {
-        if self.keyList.get(i) is Some(key) {
-            if self.valueList.get(i) is Some(value) {
-                out.push(Entry {
-                    key: key
-                    value: value
-                })
-            }
-        }
-        i = i + 1
-    }
-    out
+    self.tryEntries() || panic("out of memory")
 }
+
+/// Copies of all entries in insertion order, or AllocError when the allocator refuses (entries panics instead).
+pub pure fn Map[K: Copy, V: Copy].tryEntries(self) -> Result[Array[Entry[K, V]], AllocError]
 
 /// Whether key is present.
 pub pure fn Map[K: Eq + Hash, V].contains(self, key: &K) -> Bool {
@@ -241,7 +229,17 @@ pub pure fn Map[K: Copy, V].keys(self) -> Array[K] {
     self.keyList.clone()
 }
 
+/// Copies of all keys in insertion order, or AllocError when the allocator refuses (keys panics instead).
+pub pure fn Map[K: Copy, V].tryKeys(self) -> Result[Array[K], AllocError] {
+    self.keyList.tryClone()
+}
+
 /// Copies of all values in insertion order.
 pub pure fn Map[K: Copy, V: Copy].values(self) -> Array[V] {
     self.valueList.clone()
+}
+
+/// Copies of all values in insertion order, or AllocError when the allocator refuses (values panics instead).
+pub pure fn Map[K: Copy, V: Copy].tryValues(self) -> Result[Array[V], AllocError] {
+    self.valueList.tryClone()
 }

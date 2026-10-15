@@ -515,7 +515,7 @@ val strdup_val(const char* s, int64_t len) {
 }
 // NULL on refusal instead of strdup_val's panic, for the fallible primitives.
 static char* strdup_or_null(const char* s, int64_t len) {
-    if (len < 0) return NULL;
+    if (len < 0 || fault_tick()) return NULL;
     char* d = malloc((uint64_t)len + 1);
     if (!d) return NULL;
     memcpy(d, s, len);
@@ -1702,6 +1702,19 @@ static rt_vdesc* find_variant(rt_type* t, const char* name) {
 // a failed allocation must not need one of its own, nor race a half-built one.
 static struct obj g_alloc_error;
 static val g_alloc_error_payload[1];
+#ifndef KIGUMI_ABI_FINGERPRINT
+#define KIGUMI_ABI_FINGERPRINT "kgabi1:unbound"
+#endif
+const char kg_abi_fingerprint[] = KIGUMI_ABI_FINGERPRINT;
+void rt_abi_check(const char* expected) {
+    if (!strcmp(expected, kg_abi_fingerprint)) return;
+    rt_sys_write(2, "fatal: runtime ABI mismatch (E1880): this program expects ", 58);
+    rt_sys_write(2, expected, strlen(expected));
+    rt_sys_write(2, ", the linked runtime is ", 24);
+    rt_sys_write(2, kg_abi_fingerprint, strlen(kg_abi_fingerprint));
+    rt_sys_write(2, "; rebuild both with one toolchain\n", 34);
+    rt_sys_exit(2);
+}
 void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
     g_argc = argc;
     g_argv = argv;
@@ -1800,6 +1813,160 @@ static val try_ok(val v) {
         return alloc_error();
     }
     return r;
+}
+// Fallible deep copy and constructors behind the try* primitives: NULL means
+// the allocator refused, and nothing built so far stays live.
+static char* try_dup(const char* s, int64_t len) {
+    if (len < 0 || fault_tick()) return NULL;
+    char* d = malloc((uint64_t)len + 1);
+    if (!d) return NULL;
+    memcpy(d, s, len);
+    d[len] = 0;
+    return d;
+}
+static void discard_header(val v) {
+    LIVE_OBJ(v->kind, -1);
+    afree(v->al, v);
+}
+static val array_try_new(int64_t cap) {
+    if (cap < 0 || (uint64_t)cap > SIZE_MAX / sizeof(val) / 2) return NULL;
+    val v = alloc_try(K_ARRAY);
+    if (!v) return NULL;
+    if (cap > 0) {
+        v->u.arr.items = amalloc(v->al, (size_t)cap * sizeof(val));
+        if (!v->u.arr.items) {
+            discard_header(v);
+            return NULL;
+        }
+        v->u.arr.cap = cap;
+    }
+    return v;
+}
+static val record_try_new(rt_type* t, int64_t n) {
+    val v = alloc_try(K_RECORD);
+    if (!v) return NULL;
+    v->u.rec.type = t;
+    v->u.rec.fields = amalloc(v->al, (size_t)(n ? n : 1) * sizeof(val));
+    if (!v->u.rec.fields) {
+        discard_header(v);
+        return NULL;
+    }
+    v->u.rec.n = n;
+    return v;
+}
+static val copy_try(val v);
+static int copy_slot_try(val* dst, val src) {
+    *dst = copy_try(src);
+    return *dst != NULL || src == NULL;
+}
+static val copy_try(val v) {
+    if (!v || v->rc < 0) return v;
+    switch (v->kind) {
+    case K_RECORD: {
+        if (v->u.rec.type->kind == 1) return rt_retain(v);
+        val c = record_try_new(v->u.rec.type, v->u.rec.n);
+        if (!c) return NULL;
+        for (int64_t i = 0; i < v->u.rec.n; i++) {
+            if ((v->u.rec.type->borrow_fields >> i) & 1) {
+                c->u.rec.fields[i] = v->u.rec.fields[i];
+            } else if (!copy_slot_try(&c->u.rec.fields[i], v->u.rec.fields[i])) {
+                rt_release(c);
+                return NULL;
+            }
+        }
+        return c;
+    }
+    case K_VARIANT: {
+        val c = rt_variant_try(v->u.var.v, v->u.var.n, v->u.var.payload);
+        if (!c) return NULL;
+        for (int64_t i = 0; i < c->u.var.n; i++) {
+            if (!copy_slot_try(&c->u.var.payload[i], v->u.var.payload[i])) {
+                for (int64_t j = i; j < c->u.var.n; j++) c->u.var.payload[j] = NULL;
+                rt_release(c);
+                return NULL;
+            }
+        }
+        return c;
+    }
+    case K_ARRAY: {
+        val c = array_try_new(v->u.arr.len);
+        if (!c) return NULL;
+        for (int64_t i = 0; i < v->u.arr.len; i++) {
+            if (!copy_slot_try(&c->u.arr.items[i], v->u.arr.items[i])) {
+                rt_release(c);
+                return NULL;
+            }
+            c->u.arr.len++;
+        }
+        return c;
+    }
+    case K_BYTES: {
+        val c = alloc_try(K_BYTES);
+        if (!c) return NULL;
+        c->u.s.len = v->u.s.len;
+        if (!v->owned) {
+            c->u.s.data = v->u.s.data;
+            return c;
+        }
+        char* d = try_dup(v->u.s.data, v->u.s.len);
+        if (!d) {
+            discard_header(c);
+            return NULL;
+        }
+        c->u.s.data = d;
+        c->owned = 1;
+        return c;
+    }
+    case K_BOX: {
+        val c = alloc_try(K_BOX);
+        if (!c) return NULL;
+        c->u.box.dyn = v->u.box.dyn;
+        c->u.box.vt = v->u.box.vt;
+        if (!copy_slot_try(&c->u.box.v, v->u.box.v)) {
+            discard_header(c);
+            return NULL;
+        }
+        return c;
+    }
+    }
+    return rt_retain(v);
+}
+// array_try_copy copies items s..e, back to front when reverse is set.
+static val array_try_copy(val src, int64_t s, int64_t e, int reverse) {
+    val out = array_try_new(e - s);
+    if (!out) return NULL;
+    for (int64_t i = 0; i < e - s; i++) {
+        val x = src->u.arr.items[reverse ? e - 1 - i : s + i];
+        if (!copy_slot_try(&out->u.arr.items[i], x)) {
+            rt_release(out);
+            return NULL;
+        }
+        out->u.arr.len++;
+    }
+    return out;
+}
+// empty_record_try builds a std record whose n fields are all empty arrays.
+static val empty_record_try(rt_type* t, int64_t n) {
+    if (!t) rt_panic("a runtime-named type was dropped by reachability");
+    val rec = record_try_new(t, n);
+    if (!rec) return alloc_error();
+    for (int64_t i = 0; i < n; i++) {
+        rec->u.rec.fields[i] = array_try_new(0);
+        if (!rec->u.rec.fields[i]) {
+            rt_release(rec);
+            return alloc_error();
+        }
+    }
+    return try_ok(rec);
+}
+// try_ok_some wraps v as Ok(Some(v)).
+static val try_ok_some(val v) {
+    val s = rt_variant_try(V_Some, 1, &v);
+    if (!s) {
+        rt_release(v);
+        return alloc_error();
+    }
+    return try_ok(s);
 }
 static val ordering(int c) {
     return rt_variant(c < 0 ? V_Less : c > 0 ? V_Greater
@@ -2247,6 +2414,9 @@ static void unwind_borrow_release(kg_unwind* u) {
 }
 static void unwind_borrow_free(kg_unwind* u) {
     ((sctrl*)u->p)->borrow = 0;
+}
+static void unwind_release_out(kg_unwind* u) {
+    rt_release(u->v);
 }
 static void unwind_lend_back(kg_unwind* u) {
     ((val)u->p)->u.arr.items[u->i] = u->v->u.cell.v;
@@ -2724,269 +2894,7 @@ static int subtle_constant_time_eq(val a, val b) {
     }
     return diff == 0;
 }
-// Stable small ids for std primitives: llgen resolves a call's std key to
-// one of these at compile time and
-// emits rt_std_id directly, skipping the string compares below. Order
-// matches internal/mir/stdop.go's StdOpNames (TestStdOpsMatchC checks it).
-enum std_op {
-    OP_LEN,
-    OP_STRING_TO_BYTES,
-    OP_STRING_FROM_BYTES,
-    OP_STRING_TRY_FROM_BYTES,
-    OP_EQUALS,
-    OP_COMPARE_TO,
-    OP_HASH,
-    OP_DISPLAY,
-    OP_STRING_BYTES,
-    OP_BYTES_SLICE,
-    OP_BYTES_ZEROS,
-    OP_BYTES_FILL,
-    OP_BYTES_FROM_ARRAY,
-    OP_BYTES_TRY_FROM_ARRAY,
-    OP_BYTES_CONCAT,
-    OP_BYTES_TRY_CONCAT,
-    OP_ARRAY_EMPTY,
-    OP_ARRAY_OF,
-    OP_ARRAY_PUSH,
-    OP_ARRAY_GROW_BY,
-    OP_ARRAY_LEN,
-    OP_ARRAY_GET,
-    OP_ARRAY_WITH,
-    OP_ARRAY_WITH_MUT,
-    OP_ARRAY_TAKE_AT,
-    OP_OPTION_TAKE,
-    OP_TEXT_PARSE_FLOAT,
-    OP_HOST_SHELL,
-    OP_HOST_ARGS,
-    OP_HOST_FILES,
-    OP_HOST_NET,
-    OP_HOST_DL,
-    OP_HOST_ENTROPY,
-    OP_HOST_SIGNALS,
-    OP_ARGS_GET,
-    OP_CSTRING_NEW,
-    OP_CSTRING_PTR,
-    OP_CSTRING_DROP,
-    OP_FFI_BYTES_FROM,
-    OP_FFI_BYTES_PTR,
-    OP_BYTES_GET,
-    OP_SUBTLE_CT_EQ,
-    OP_DL_SYMBOL_CALL,
-    OP_HOST_STDIN,
-    OP_HOST_STDOUT,
-    OP_PIN_NEW,
-    OP_PIN_PTR,
-    OP_PIN_WITH,
-    OP_PIN_DROP,
-    OP_PIN_RELEASE,
-    OP_PIN_RECLAIM,
-    OP_FFI_STRING,
-    OP_FFI_STRING_CHECKED,
-    OP_TASK_CURRENT_EXECUTOR,
-    OP_EXECUTOR_RUN_TO_COMPLETION,
-    OP_TASK_SPAWN,
-    OP_TASK_CANCEL,
-    OP_ARENA_CREATE,
-    OP_ALLOCATOR_SCOPE,
-    OP_ALLOCATOR_ALLOCATED,
-    OP_SHARED_NEW,
-    OP_SHARED_CLONE,
-    OP_SHARED_GET,
-    OP_SHARED_SET,
-    OP_SHARED_WITH,
-    OP_SHARED_WITH_MUT,
-    OP_SHARED_DOWNGRADE,
-    OP_WEAK_UPGRADE,
-    OP_NET_HTTP,
-    OP_NET_CONN_DROP,
-    OP_NET_LISTENER_DROP,
-    OP_BUILD_ONLY,
-    OP_ARGS_LEN,
-    OP_MATH_SQRT,
-    OP_MATH_FLOOR,
-    OP_MATH_CEIL,
-    OP_MATH_ROUND,
-    OP_MATH_POW,
-    OP_STRING_SLICE_BYTES,
-    OP_ARRAY_CLONE,
-    OP_WRAPPING_ADD,
-    OP_WRAPPING_SUB,
-    OP_WRAPPING_MUL,
-    OP_WRAPPING_SHL,
-    OP_WRAPPING_SHR,
-    OP_ROTATE_LEFT,
-    OP_ROTATE_RIGHT,
-    OP_CHAR_FROM_INT,
-    OP_FFI_STRING_LOSSY,
-    OP_UCELL_NEW,
-    OP_UCELL_GET,
-    OP_UCELL_SET,
-    OP_HOST_STDERR,
-    OP_BYTES_TRY_ZEROS,
-    OP_BYTES_TRY_FILL,
-    OP_SHARED_TRY_NEW,
-    OP_BLOCKING_POOL_NEW,
-    OP_BLOCKING_POOL_RUN,
-    OP_HANDLE_TABLE_NEW,
-    OP_HANDLE_TABLE_INSERT,
-    OP_HANDLE_TABLE_WITH,
-    OP_HANDLE_TABLE_REMOVE,
-    OP_HANDLE_TABLE_RECLAIM,
-    OP_HANDLE_TABLE_CLOSE,
-    OP_HANDLE_TABLE_DROP,
-    OP_HANDLE_RAW,
-    OP_HANDLE_DROP,
-    OP_WITH_ADDRESS,
-    OP_TASK_CANCEL_REQUESTED,
-    OP_SECURE_ERASE,
-    OP_SECURE_ERASE_RAW,
-    OP_SECURE_ERASE_TRY,
-    OP_TASK_THREAD_POOL_EXECUTOR,
-    OP_TASK_HANDOFF,
-    OP_ARRAY_FIRST,
-    OP_ARRAY_LAST,
-    OP_BOX_NEW,
-    OP_BOX_TRY_NEW,
-    OP_BOX_GET,
-    OP_BOX_SET,
-    OP_BOX_WITH,
-    OP_BOX_WITH_MUT,
-    OP_BOX_INTO,
-};
-// rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
-// trailing method name, then the std/build package prefix. Returns -1 for
-// a key none of those resolve.
-static int rt_std_op_of(const char* key) {
-    const char* k = key;
-    if (!strncmp(k, "std/", 4)) k += 4;
-    if (!strcmp(k, "prelude.String.len") || !strcmp(k, "prelude.Bytes.len")) return OP_LEN;
-    if (!strcmp(k, "prelude.String.toBytes")) return OP_STRING_TO_BYTES;
-    if (!strcmp(k, "prelude.String.fromBytes")) return OP_STRING_FROM_BYTES;
-    if (!strcmp(k, "prelude.String.tryFromBytes")) return OP_STRING_TRY_FROM_BYTES;
-    if (!strcmp(k, "prelude.debug") || !strcmp(k, "text.fromChar")) return OP_DISPLAY;
-    if (!strcmp(k, "prelude.String.bytes")) return OP_STRING_BYTES;
-    if (!strcmp(k, "prelude.Bytes.slice")) return OP_BYTES_SLICE;
-    if (!strcmp(k, "prelude.Bytes.zeros")) return OP_BYTES_ZEROS;
-    if (!strcmp(k, "prelude.Bytes.fill")) return OP_BYTES_FILL;
-    if (!strcmp(k, "prelude.Bytes.fromArray")) return OP_BYTES_FROM_ARRAY;
-    if (!strcmp(k, "prelude.Bytes.tryFromArray")) return OP_BYTES_TRY_FROM_ARRAY;
-    if (!strcmp(k, "prelude.Bytes.concat")) return OP_BYTES_CONCAT;
-    if (!strcmp(k, "prelude.Bytes.tryConcat")) return OP_BYTES_TRY_CONCAT;
-    if (!strcmp(k, "array.Array.empty")) return OP_ARRAY_EMPTY;
-    if (!strcmp(k, "array.Array.of") || !strcmp(k, "prelude.FixedArray.adopt")) return OP_ARRAY_OF;
-    if (!strcmp(k, "array.Array.push")) return OP_ARRAY_PUSH;
-    if (!strcmp(k, "array.Array.growBy")) return OP_ARRAY_GROW_BY;
-    if (!strcmp(k, "array.Array.len")) return OP_ARRAY_LEN;
-    if (!strcmp(k, "array.Array.get")) return OP_ARRAY_GET;
-    if (!strcmp(k, "array.Array.first")) return OP_ARRAY_FIRST;
-    if (!strcmp(k, "array.Array.last")) return OP_ARRAY_LAST;
-    if (!strcmp(k, "array.Array.with")) return OP_ARRAY_WITH;
-    if (!strcmp(k, "array.Array.withMut") || !strcmp(k, "prelude.FixedArray.withMut")) return OP_ARRAY_WITH_MUT;
-    if (!strcmp(k, "array.Array.takeAt")) return OP_ARRAY_TAKE_AT;
-    if (!strcmp(k, "prelude.Option.take")) return OP_OPTION_TAKE;
-    if (!strcmp(k, "text.parseFloat")) return OP_TEXT_PARSE_FLOAT;
-    if (!strcmp(k, "os.Host.shell")) return OP_HOST_SHELL;
-    if (!strcmp(k, "os.Host.args")) return OP_HOST_ARGS;
-    if (!strcmp(k, "os.Host.files")) return OP_HOST_FILES;
-    if (!strcmp(k, "os.Host.net")) return OP_HOST_NET;
-    if (!strcmp(k, "os.Host.dl")) return OP_HOST_DL;
-    if (!strcmp(k, "os.Host.entropy")) return OP_HOST_ENTROPY;
-    if (!strcmp(k, "os.Host.signals")) return OP_HOST_SIGNALS;
-    if (!strcmp(k, "os.Args.get")) return OP_ARGS_GET;
-    if (!strcmp(k, "ffi.CString.new")) return OP_CSTRING_NEW;
-    if (!strcmp(k, "ffi.CString.ptr")) return OP_CSTRING_PTR;
-    if (!strcmp(k, "ffi.CString.drop")) return OP_CSTRING_DROP;
-    if (!strcmp(k, "ffi.bytesFrom")) return OP_FFI_BYTES_FROM;
-    if (!strcmp(k, "ffi.bytesPtr")) return OP_FFI_BYTES_PTR;
-    if (!strcmp(k, "prelude.Bytes.get")) return OP_BYTES_GET;
-    if (!strcmp(k, "crypto/subtle.constantTimeEq")) return OP_SUBTLE_CT_EQ;
-    if (!strcmp(k, "dl.Symbol.call")) return OP_DL_SYMBOL_CALL;
-    if (!strcmp(k, "os.Host.stdin")) return OP_HOST_STDIN;
-    if (!strcmp(k, "os.Host.stdout")) return OP_HOST_STDOUT;
-    if (!strcmp(k, "os.Host.stderr")) return OP_HOST_STDERR;
-    if (!strcmp(k, "ffi.Pin.new")) return OP_PIN_NEW;
-    if (!strcmp(k, "ffi.Pin.ptr")) return OP_PIN_PTR;
-    if (!strcmp(k, "ffi.Pin.with")) return OP_PIN_WITH;
-    if (!strcmp(k, "ffi.Pin.drop")) return OP_PIN_DROP;
-    if (!strcmp(k, "ffi.Pin.release")) return OP_PIN_RELEASE;
-    if (!strcmp(k, "ffi.Pin.reclaim")) return OP_PIN_RECLAIM;
-    if (!strcmp(k, "ffi.HandleTable.new")) return OP_HANDLE_TABLE_NEW;
-    if (!strcmp(k, "ffi.HandleTable.insert")) return OP_HANDLE_TABLE_INSERT;
-    if (!strcmp(k, "ffi.HandleTable.with")) return OP_HANDLE_TABLE_WITH;
-    if (!strcmp(k, "ffi.HandleTable.remove")) return OP_HANDLE_TABLE_REMOVE;
-    if (!strcmp(k, "ffi.HandleTable.reclaim")) return OP_HANDLE_TABLE_RECLAIM;
-    if (!strcmp(k, "ffi.HandleTable.close")) return OP_HANDLE_TABLE_CLOSE;
-    if (!strcmp(k, "ffi.HandleTable.drop")) return OP_HANDLE_TABLE_DROP;
-    if (!strcmp(k, "ffi.FfiHandle.raw")) return OP_HANDLE_RAW;
-    if (!strcmp(k, "ffi.FfiHandle.drop")) return OP_HANDLE_DROP;
-    if (!strcmp(k, "mem.secureErase")) return OP_SECURE_ERASE;
-    if (!strcmp(k, "mem.trySecureErase")) return OP_SECURE_ERASE_TRY;
-    if (!strcmp(k, "ffi.secureEraseRaw")) return OP_SECURE_ERASE_RAW;
-    if (!strcmp(k, "ffi.string")) return OP_FFI_STRING;
-    if (!strcmp(k, "ffi.stringChecked")) return OP_FFI_STRING_CHECKED;
-    if (!strcmp(k, "ffi.stringLossy")) return OP_FFI_STRING_LOSSY;
-    if (!strcmp(k, "task.currentThreadExecutor")) return OP_TASK_CURRENT_EXECUTOR;
-    if (!strcmp(k, "task.Executor.runToCompletion")) return OP_EXECUTOR_RUN_TO_COMPLETION;
-    if (!strcmp(k, "task.spawn")) return OP_TASK_SPAWN;
-    if (!strcmp(k, "task.Task.cancel")) return OP_TASK_CANCEL;
-    if (!strcmp(k, "task.cancelRequested")) return OP_TASK_CANCEL_REQUESTED;
-    if (!strcmp(k, "task.threadPoolExecutor")) return OP_TASK_THREAD_POOL_EXECUTOR;
-    if (!strcmp(k, "task.Executor.handoff")) return OP_TASK_HANDOFF;
-    if (!strcmp(k, "alloc.Arena.create")) return OP_ARENA_CREATE;
-    if (!strcmp(k, "alloc.AllocatorHandle.scope")) return OP_ALLOCATOR_SCOPE;
-    if (!strcmp(k, "alloc.AllocatorHandle.allocated")) return OP_ALLOCATOR_ALLOCATED;
-    if (!strcmp(k, "alloc.Shared.new")) return OP_SHARED_NEW;
-    if (!strcmp(k, "alloc.Shared.clone") || !strcmp(k, "alloc.Weak.clone")) return OP_SHARED_CLONE;
-    if (!strcmp(k, "alloc.Shared.get")) return OP_SHARED_GET;
-    if (!strcmp(k, "alloc.Shared.set")) return OP_SHARED_SET;
-    if (!strcmp(k, "alloc.Shared.with")) return OP_SHARED_WITH;
-    if (!strcmp(k, "alloc.Shared.withMut")) return OP_SHARED_WITH_MUT;
-    if (!strcmp(k, "alloc.Shared.downgrade")) return OP_SHARED_DOWNGRADE;
-    if (!strcmp(k, "alloc.Weak.upgrade")) return OP_WEAK_UPGRADE;
-    if (!strcmp(k, "alloc.Box.new")) return OP_BOX_NEW;
-    if (!strcmp(k, "alloc.Box.tryNew")) return OP_BOX_TRY_NEW;
-    if (!strcmp(k, "alloc.Box.get")) return OP_BOX_GET;
-    if (!strcmp(k, "alloc.Box.set")) return OP_BOX_SET;
-    if (!strcmp(k, "alloc.Box.with")) return OP_BOX_WITH;
-    if (!strcmp(k, "alloc.Box.withMut")) return OP_BOX_WITH_MUT;
-    if (!strcmp(k, "alloc.Box.into")) return OP_BOX_INTO;
-    if (!strcmp(k, "net.Net.http")) return OP_NET_HTTP;
-    if (!strcmp(k, "net.Conn.drop")) return OP_NET_CONN_DROP;
-    if (!strcmp(k, "net.Listener.drop")) return OP_NET_LISTENER_DROP;
-    if (!strcmp(k, "os.Args.len")) return OP_ARGS_LEN;
-    if (!strcmp(k, "math.sqrt")) return OP_MATH_SQRT;
-    if (!strcmp(k, "math.floor")) return OP_MATH_FLOOR;
-    if (!strcmp(k, "math.ceil")) return OP_MATH_CEIL;
-    if (!strcmp(k, "math.round")) return OP_MATH_ROUND;
-    if (!strcmp(k, "math.pow")) return OP_MATH_POW;
-    if (!strcmp(k, "prelude.String.sliceBytes")) return OP_STRING_SLICE_BYTES;
-    if (!strcmp(k, "array.Array.clone")) return OP_ARRAY_CLONE;
-    if (!strcmp(k, "prelude.Char.fromInt")) return OP_CHAR_FROM_INT;
-    if (!strcmp(k, "mem.UnsafeCell.new")) return OP_UCELL_NEW;
-    if (!strcmp(k, "mem.UnsafeCell.get")) return OP_UCELL_GET;
-    if (!strcmp(k, "mem.UnsafeCell.set")) return OP_UCELL_SET;
-    if (!strcmp(k, "prelude.Bytes.tryZeros")) return OP_BYTES_TRY_ZEROS;
-    if (!strcmp(k, "prelude.Bytes.tryFill")) return OP_BYTES_TRY_FILL;
-    if (!strcmp(k, "alloc.Shared.tryNew")) return OP_SHARED_TRY_NEW;
-    if (!strcmp(k, "task.BlockingPool.new")) return OP_BLOCKING_POOL_NEW;
-    if (!strcmp(k, "task.BlockingPool.run")) return OP_BLOCKING_POOL_RUN;
-    if (!strcmp(k, "ffi.withAddress")) return OP_WITH_ADDRESS;
-    if (!strcmp(k, "ffi.withAddressConst")) return OP_WITH_ADDRESS;
-    const char* dot = strrchr(k, '.');
-    const char* m = dot ? dot + 1 : k;
-    if (!strcmp(m, "equals")) return OP_EQUALS;
-    if (!strcmp(m, "compareTo")) return OP_COMPARE_TO;
-    if (!strcmp(m, "hash")) return OP_HASH;
-    if (!strcmp(m, "wrappingAdd")) return OP_WRAPPING_ADD;
-    if (!strcmp(m, "wrappingSub")) return OP_WRAPPING_SUB;
-    if (!strcmp(m, "wrappingMul")) return OP_WRAPPING_MUL;
-    if (!strcmp(m, "wrappingShiftLeft")) return OP_WRAPPING_SHL;
-    if (!strcmp(m, "wrappingShiftRight")) return OP_WRAPPING_SHR;
-    if (!strcmp(m, "rotateLeft")) return OP_ROTATE_LEFT;
-    if (!strcmp(m, "rotateRight")) return OP_ROTATE_RIGHT;
-    if (strstr(k, "build.")) return OP_BUILD_ONLY;
-    return -1;
-}
+#include "rt_std_ops.h"
 #ifdef KIGUMI_CAP_FFI_CSTRING
 #include "rt_cap_ffi_cstring.c.inc"
 #endif
@@ -3167,6 +3075,171 @@ val rt_std_id(int op, int n, val* a) {
         v->kind = K_BYTES;
         return try_ok(v);
     }
+    case OP_ARRAY_TRY_MAP: {
+        val out = array_try_new(a0->u.arr.len);
+        if (!out) return alloc_error();
+        UNWIND_PUSH(u, unwind_release_out, NULL, out, 0);
+        for (int64_t i = 0; i < a0->u.arr.len; i++) {
+            val arg[1] = {a0->u.arr.items[i]};
+            out->u.arr.items[out->u.arr.len++] = rt_callv(a1, 1, arg);
+        }
+        UNWIND_POP(u);
+        return try_ok(out);
+    }
+    case OP_ARRAY_TRY_FILTER: {
+        val out = array_try_new(0);
+        if (!out) return alloc_error();
+        UNWIND_PUSH(u, unwind_release_out, NULL, out, 0);
+        for (int64_t i = 0; i < a0->u.arr.len; i++) {
+            val arg[1] = {a0->u.arr.items[i]};
+            val keep = rt_callv(a1, 1, arg);
+            int kept = deref(keep)->u.b;
+            rt_release(keep);
+            if (!kept) continue;
+            if (!try_grow(out, 1)) {
+                UNWIND_POP(u);
+                rt_release(out);
+                return alloc_error();
+            }
+            out->u.arr.items[out->u.arr.len++] = rt_retain(a0->u.arr.items[i]);
+        }
+        UNWIND_POP(u);
+        return try_ok(out);
+    }
+    case OP_ARRAY_TRY_CONCAT: {
+        val out = array_try_new(a0->u.arr.len + a1->u.arr.len);
+        if (!out) return alloc_error();
+        for (int64_t i = 0; i < a0->u.arr.len; i++) out->u.arr.items[out->u.arr.len++] = rt_retain(a0->u.arr.items[i]);
+        for (int64_t i = 0; i < a1->u.arr.len; i++) out->u.arr.items[out->u.arr.len++] = rt_retain(a1->u.arr.items[i]);
+        return try_ok(out);
+    }
+    case OP_ARRAY_TRY_APPEND_ALL: {
+        // The Ok wrapper comes first: once the items are in, nothing may fail and leave them there.
+        val unit = rt_unit();
+        val done = rt_variant_try(V_Ok, 1, &unit);
+        if (!done) return alloc_error();
+        if (!try_grow(a0, (uint64_t)a1->u.arr.len)) {
+            rt_release(done);
+            return alloc_error();
+        }
+        for (int64_t i = 0; i < a1->u.arr.len; i++) a0->u.arr.items[a0->u.arr.len++] = rt_retain(a1->u.arr.items[i]);
+        return done;
+    }
+    case OP_ARRAY_TRY_INSERT_AT: {
+        // As with append_all, the Ok wrapper is built before the array changes.
+        uint64_t at = (uint64_t)a1->u.i, len = (uint64_t)a0->u.arr.len;
+        val fits = rt_bool(at <= len);
+        val done = rt_variant_try(V_Ok, 1, &fits);
+        if (!done) return alloc_error();
+        if (at > len) return done;
+        if (!try_grow(a0, 1)) {
+            rt_release(done);
+            return alloc_error();
+        }
+        for (uint64_t k = len; k > at; k--) a0->u.arr.items[k] = a0->u.arr.items[k - 1];
+        a0->u.arr.items[at] = rt_retain(a[2]);
+        a0->u.arr.len++;
+        return done;
+    }
+    case OP_ARRAY_TRY_WITH_CAPACITY: {
+        val out = array_try_new(a0->u.i);
+        return out ? try_ok(out) : alloc_error();
+    }
+    case OP_ARRAY_TRY_COPY_RANGE: {
+        uint64_t len = (uint64_t)a0->u.arr.len, lo = (uint64_t)a1->u.i, hi = (uint64_t)a2->u.i;
+        if (lo > len) lo = len;
+        if (hi > len) hi = len;
+        val out = array_try_copy(a0, (int64_t)lo, (int64_t)(hi < lo ? lo : hi), 0);
+        return out ? try_ok(out) : alloc_error();
+    }
+    case OP_ARRAY_TRY_CLONE: {
+        val out = array_try_copy(a0, 0, a0->u.arr.len, 0);
+        return out ? try_ok(out) : alloc_error();
+    }
+    case OP_ARRAY_TRY_SLICE: {
+        int64_t s = a1->u.i, e = a2->u.i;
+        if (s < 0 || s > e || e > a0->u.arr.len) return try_ok(none());
+        val out = array_try_copy(a0, s, e, 0);
+        return out ? try_ok_some(out) : alloc_error();
+    }
+    case OP_ARRAY_TRY_REVERSE: {
+        val out = array_try_copy(a0, 0, a0->u.arr.len, 1);
+        return out ? try_ok(out) : alloc_error();
+    }
+    case OP_ALLOC_WRAP: return try_ok(rt_retain(a[0]));
+    case OP_STRING_TRY_CONCAT: {
+        int64_t l0 = a0->u.s.len, l1 = a1->u.s.len;
+        char* d = fault_tick() ? NULL : malloc(l0 + l1 + 1);
+        if (!d) return alloc_error();
+        memcpy(d, a0->u.s.data, l0);
+        memcpy(d + l0, a1->u.s.data, l1);
+        d[l0 + l1] = 0;
+        val v = rt_str_take_try(d, l0 + l1);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        return try_ok(v);
+    }
+    case OP_STRING_TRY_SLICE_BYTES: {
+        int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
+        if (s < 0 || s > e || e > len || !boundary(a0->u.s.data, len, s) || !boundary(a0->u.s.data, len, e)) return try_ok(none());
+        char* d = try_dup(a0->u.s.data + s, e - s);
+        if (!d) return alloc_error();
+        val v = rt_str_take_try(d, e - s);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        return try_ok_some(v);
+    }
+    case OP_BYTES_TRY_SLICE: {
+        int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
+        if (s < 0 || s > e || e > len) return try_ok(none());
+        char* d = try_dup(a0->u.s.data + s, e - s);
+        if (!d) return alloc_error();
+        val v = rt_str_take_try(d, e - s);
+        if (!v) {
+            free(d);
+            return alloc_error();
+        }
+        v->kind = K_BYTES;
+        return try_ok_some(v);
+    }
+    case OP_MAP_TRY_CLONE: {
+        val out = record_try_new(a0->u.rec.type, a0->u.rec.n);
+        if (!out) return alloc_error();
+        for (int64_t i = 0; i < a0->u.rec.n; i++) {
+            if (!copy_slot_try(&out->u.rec.fields[i], a0->u.rec.fields[i])) {
+                rt_release(out);
+                return alloc_error();
+            }
+        }
+        return try_ok(out);
+    }
+    case OP_MAP_TRY_ENTRIES: {
+        val keys = deref(a0->u.rec.fields[0]), values = deref(a0->u.rec.fields[1]);
+        rt_type* entry = find_type("std/map.Entry");
+        if (!entry) rt_panic("a runtime-named type was dropped by reachability");
+        val out = array_try_new(keys->u.arr.len);
+        if (!out) return alloc_error();
+        for (int64_t i = 0; i < keys->u.arr.len; i++) {
+            val rec = record_try_new(entry, 2);
+            if (!rec) {
+                rt_release(out);
+                return alloc_error();
+            }
+            out->u.arr.items[i] = rec;
+            out->u.arr.len++;
+            if (!copy_slot_try(&rec->u.rec.fields[0], keys->u.arr.items[i]) || !copy_slot_try(&rec->u.rec.fields[1], values->u.arr.items[i])) {
+                rt_release(out);
+                return alloc_error();
+            }
+        }
+        return try_ok(out);
+    }
+    case OP_MAP_TRY_EMPTY: return empty_record_try(find_type("std/map.Map"), 3);
+    case OP_STRING_BUILDER_TRY_NEW: return empty_record_try(find_type("std/text.StringBuilder"), 1);
     // array
     case OP_ARRAY_EMPTY: return rt_array(0, NULL);
     case OP_ARRAY_OF: return rt_retain(a0);
@@ -3477,6 +3550,19 @@ val rt_std_id(int op, int n, val* a) {
         c->borrow = 0;
         return r;
     }
+    case OP_SHARED_TRY_GET: {
+        val content = ((sctrl*)a0->u.op.data)->cell->u.cell.v;
+        val copy = NULL;
+        if (!copy_slot_try(&copy, content)) return alloc_error();
+        return try_ok(copy);
+    }
+    case OP_SHARED_TRY_DOWNGRADE: {
+        sctrl* c = a0->u.op.data;
+        val weak = opaque_try("Weak", c);
+        if (!weak) return alloc_error();
+        c->weak++;
+        return try_ok(weak);
+    }
     case OP_SHARED_DOWNGRADE: {
         sctrl* c = a0->u.op.data;
         c->weak++;
@@ -3548,7 +3634,11 @@ val rt_std_id(int op, int n, val* a) {
         if (s < 0 || s > e || e > len || !boundary(a0->u.s.data, len, s) || !boundary(a0->u.s.data, len, e)) return none();
         return some(strdup_val(a0->u.s.data + s, e - s));
     }
-    case OP_ARRAY_CLONE: return rt_copy(a0);
+    case OP_ARRAY_CLONE: {
+        val out = array_try_copy(a0, 0, a0->u.arr.len, 0);
+        if (!out) rt_panic("out of memory");
+        return out;
+    }
     // int_fn reads the op name after the key's last '.', so a leading dot
     // is enough; reusing it keeps the wrapping/rotate math in one place.
     case OP_WRAPPING_ADD: return int_fn(".wrappingAdd", a0, a1);

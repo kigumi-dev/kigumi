@@ -41,7 +41,11 @@ func (p *Program) verifyPrimCalls(f *Func) *Error {
 			if in.Op != OpCall || !p.IsStdPrimitive(in.Ent) {
 				continue
 			}
-			if msg := p.primMismatch(f, in); msg != "" {
+			msg := p.primMismatch(f, in)
+			if msg == "" {
+				msg = p.opDescMismatch(f, in)
+			}
+			if msg != "" {
 				return fail("types", BlockID(bid), i, "call of %s: %s", p.R.Entity(in.Ent).Name, msg)
 			}
 		}

@@ -1,0 +1,50 @@
+-- src --
+type P = {
+    pub x Int
+    pub s String
+}
+
+fn show(a: Array[Int]) -> String {
+    let mut out = ""
+    for x in &a {
+        out = "${out}${x},"
+    }
+    out
+}
+
+fn run() -> Unit {
+    let a = Array.of(1, 2, 3, 4, 5)
+    print "clone ${show(a.tryClone().unwrap())} ${show(a.clone())}"
+    print "take ${show(a.tryTake(2).unwrap())} ${show(a.take(9))} ${show(a.tryTake(0).unwrap())} ${a.tryTake(18446744073709551615).unwrap().len()}"
+    print "reverse ${show(a.tryReverse().unwrap())} ${show(a.reverse())}"
+    print "slice ${show(a.trySlice(1, 3).unwrap().unwrap())} ${a.trySlice(3, 9).unwrap() is None} ${a.trySlice(4, 2).unwrap() is None} ${show(a.slice(0, 5).unwrap())}"
+    print "map ${show(a.tryMap((x: &Int) => x * 2).unwrap())} ${show(a.map((x: &Int) => x + 1))}"
+    print "filter ${show(a.tryFilter((x: &Int) => x % 2 == 1).unwrap())} ${show(a.filter((x: &Int) => x > 3))}"
+    print "concat ${show(a.tryConcat(Array.of(9, 8)).unwrap())} ${show(a.concat(Array.empty[Int]()))}"
+    print "cloneWith ${show(a.tryCloneWith((x: &Int) => x * x).unwrap())} ${show(a.cloneWith((x: &Int) => x + 0))}"
+    print "fill ${show(Array.tryFill(7, 3).unwrap())} ${show(Array.fill(1, 2))} ${Array.tryFill(0, 0).unwrap().len()}"
+    let mut spliced = Array.of(1, 4)
+    print "insert ${spliced.insertAt(1, 2)} ${spliced.tryInsertAt(2, 3).unwrap()} ${spliced.tryInsertAt(9, 5).unwrap()} ${spliced.insertAt(4, 5)} ${show(spliced)}"
+    let mut grown = Array.tryWithCapacity[Int](2).unwrap()
+    grown.push(1)
+    _ = grown.tryAppendAll(Array.of(2, 3))
+    print "grown ${show(grown)}"
+    let ps = Array.of(P { x: 1, s: "a" }, P { x: 2, s: "b" })
+    let copy = ps.tryClone().unwrap()
+    print "records ${copy.len()} ${copy.with(1, (p: &P) => p.s) || "?"} ${ps.tryReverse().unwrap().with(0, (p: &P) => p.x) || 0}"
+}
+
+run()
+-- stdout --
+clone 1,2,3,4,5, 1,2,3,4,5,
+take 1,2, 1,2,3,4,5,  5
+reverse 5,4,3,2,1, 5,4,3,2,1,
+slice 2,3, true true 1,2,3,4,5,
+map 2,4,6,8,10, 2,3,4,5,6,
+filter 1,3,5, 4,5,
+concat 1,2,3,4,5,9,8, 1,2,3,4,5,
+cloneWith 1,4,9,16,25, 1,2,3,4,5,
+fill 7,7,7, 1,1, 0
+insert true true false true 1,2,3,4,5,
+grown 1,2,3,
+records 2 b 2

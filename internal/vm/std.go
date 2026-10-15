@@ -19,6 +19,9 @@ func (m *Machine) std(key string, a []*obj) *obj {
 	if r := m.collection(key, a, a0, a1, a2); r != nil {
 		return r
 	}
+	if r := m.tryFamily(key, a, a0, a1, a2); r != nil {
+		return r
+	}
 	if r := m.prelude(key, a, a0, a1); r != nil {
 		return r
 	}

@@ -484,6 +484,9 @@ pub pure noalloc fn String.endsWith(self, suffix: String) -> Bool {
 /// Bytes start..end of the string; None unless both offsets are within it and on character boundaries.
 pub pure fn String.sliceBytes(self, start: usize, end: usize) -> String?
 
+/// Same as sliceBytes, or AllocError when the allocator refuses (sliceBytes panics instead).
+pub pure fn String.trySliceBytes(self, start: usize, end: usize) -> Result[String?, AllocError]
+
 /// Whether b is an ASCII space, tab, carriage return or newline.
 pure noalloc fn isAsciiSpace(b: u8) -> Bool {
     b == 32 || b == 9 || b == 13 || b == 10
@@ -491,6 +494,11 @@ pure noalloc fn isAsciiSpace(b: u8) -> Bool {
 
 /// Copy without leading and trailing ASCII whitespace (space, tab, CR, LF).
 pub pure fn String.trim(self) -> String {
+    self.tryTrim() || panic("out of memory")
+}
+
+/// Copy without leading and trailing ASCII whitespace, or AllocError when the allocator refuses (trim panics instead).
+pub pure fn String.tryTrim(self) -> Result[String, AllocError] {
     let mut lo: usize = 0
     let mut hi = self.len()
     for lo < hi && isAsciiSpace(self[lo]) {
@@ -499,7 +507,10 @@ pub pure fn String.trim(self) -> String {
     for hi > lo && isAsciiSpace(self[hi - 1]) {
         hi = hi - 1
     }
-    self.sliceBytes(lo, hi) || ""
+    match self.trySliceBytes(lo, hi)? {
+        Some(trimmed) -> AllocError.wrap(trimmed)
+        None -> AllocError.wrap("")
+    }
 }
 
 /// Pieces between occurrences of sep, empty pieces included; an empty sep yields the whole string as one piece.
@@ -526,8 +537,11 @@ pub pure fn String.split(self, sep: String) -> Array[String] {
 
 /// self followed by other.
 pub pure fn String.concat(self, other: String) -> String {
-    "${self}${other}"
+    self.tryConcat(other) || panic("out of memory")
 }
+
+/// self followed by other, or AllocError when the allocator refuses (concat panics instead).
+pub pure fn String.tryConcat(self, other: String) -> Result[String, AllocError]
 
 /// Copy with ASCII letters upper-cased; other bytes are kept.
 pub pure fn String.toUpper(self) -> String {
@@ -562,24 +576,32 @@ pure fn String.shiftAscii(self, lo: u8, hi: u8, down: Bool) -> String {
 
 /// The string repeated count times.
 pub pure fn String.repeat(self, count: usize) -> String {
+    self.tryRepeat(count) || panic("out of memory")
+}
+
+/// The string repeated count times, or AllocError when the allocator refuses (repeat panics instead).
+pub pure fn String.tryRepeat(self, count: usize) -> Result[String, AllocError] {
     // Doubling keeps the copying linear in the result instead of quadratic.
     let mut out = ""
     let mut base = self
     let mut left = count
     for left > 0 {
         if left % 2 == 1 {
-            out = "${out}${base}"
+            out = out.tryConcat(base)?
         }
         left = left / 2
         if left > 0 {
-            base = "${base}${base}"
+            base = base.tryConcat(base)?
         }
     }
-    out
+    AllocError.wrap(out)
 }
 
 /// Why an allocation was refused; carries no allocation itself.
 pub type AllocError = | OutOfMemory
+
+/// Ok(value), or AllocError when the allocator refuses the Result itself; the try* functions return through it so even their last allocation can fail.
+pub pure fn AllocError.wrap[T](value: T) -> Result[T, AllocError]
 
 /// Bytes holding the items in order.
 pub pure fn Bytes.fromArray(items: &Array[u8]) -> Bytes
@@ -620,6 +642,9 @@ pub pure noalloc fn Bytes.get(self, index: usize) -> u8?
 
 /// Bytes start..end of self; None unless start <= end <= self.len().
 pub pure fn Bytes.slice(self, start: usize, end: usize) -> Bytes?
+
+/// Same as slice, or AllocError when the allocator refuses (slice panics instead).
+pub pure fn Bytes.trySlice(self, start: usize, end: usize) -> Result[Bytes?, AllocError]
 
 /// Byte-wise position of the first occurrence of sub in self; the empty sub matches at 0.
 pub pure fn Bytes.indexOf(self, sub: Bytes) -> usize? {

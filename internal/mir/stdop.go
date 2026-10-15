@@ -1,188 +1,58 @@
 package mir
 
 // StdOpNames names, in id order, every op a bodiless std function can
-// resolve to; order matches the native runtime's `enum std_op`.
-var StdOpNames = []string{
-	"LEN", "STRING_TO_BYTES", "STRING_FROM_BYTES", "STRING_TRY_FROM_BYTES",
-	"EQUALS", "COMPARE_TO", "HASH", "DISPLAY", "STRING_BYTES",
-	"BYTES_SLICE", "BYTES_ZEROS", "BYTES_FILL", "BYTES_FROM_ARRAY",
-	"BYTES_TRY_FROM_ARRAY", "BYTES_CONCAT", "BYTES_TRY_CONCAT",
-	"ARRAY_EMPTY", "ARRAY_OF", "ARRAY_PUSH", "ARRAY_GROW_BY", "ARRAY_LEN",
-	"ARRAY_GET", "ARRAY_WITH", "ARRAY_WITH_MUT", "ARRAY_TAKE_AT",
-	"OPTION_TAKE", "TEXT_PARSE_FLOAT",
-	"HOST_SHELL", "HOST_ARGS", "HOST_FILES", "HOST_NET", "HOST_DL",
-	"HOST_ENTROPY", "HOST_SIGNALS", "ARGS_GET",
-	"CSTRING_NEW", "CSTRING_PTR", "CSTRING_DROP",
-	"FFI_BYTES_FROM", "FFI_BYTES_PTR", "BYTES_GET",
-	"SUBTLE_CT_EQ", "DL_SYMBOL_CALL", "HOST_STDIN", "HOST_STDOUT",
-	"PIN_NEW", "PIN_PTR", "PIN_WITH", "PIN_DROP", "PIN_RELEASE", "PIN_RECLAIM",
-	"FFI_STRING", "FFI_STRING_CHECKED",
-	"TASK_CURRENT_EXECUTOR", "EXECUTOR_RUN_TO_COMPLETION", "TASK_SPAWN", "TASK_CANCEL",
-	"ARENA_CREATE", "ALLOCATOR_SCOPE", "ALLOCATOR_ALLOCATED",
-	"SHARED_NEW", "SHARED_CLONE", "SHARED_GET", "SHARED_SET",
-	"SHARED_WITH", "SHARED_WITH_MUT", "SHARED_DOWNGRADE", "WEAK_UPGRADE",
-	"NET_HTTP", "NET_CONN_DROP", "NET_LISTENER_DROP", "BUILD_ONLY",
-	"ARGS_LEN", "MATH_SQRT", "MATH_FLOOR", "MATH_CEIL", "MATH_ROUND", "MATH_POW",
-	"STRING_SLICE_BYTES", "ARRAY_CLONE",
-	"WRAPPING_ADD", "WRAPPING_SUB", "WRAPPING_MUL", "WRAPPING_SHL", "WRAPPING_SHR",
-	"ROTATE_LEFT", "ROTATE_RIGHT", "CHAR_FROM_INT",
-	"FFI_STRING_LOSSY",
-	"UCELL_NEW", "UCELL_GET", "UCELL_SET",
-	"HOST_STDERR",
-	"BYTES_TRY_ZEROS", "BYTES_TRY_FILL", "SHARED_TRY_NEW",
-	"BLOCKING_POOL_NEW", "BLOCKING_POOL_RUN",
-	"HANDLE_TABLE_NEW", "HANDLE_TABLE_INSERT", "HANDLE_TABLE_WITH",
-	"HANDLE_TABLE_REMOVE", "HANDLE_TABLE_RECLAIM", "HANDLE_TABLE_CLOSE",
-	"HANDLE_TABLE_DROP", "HANDLE_RAW", "HANDLE_DROP",
-	"WITH_ADDRESS",
-	"TASK_CANCEL_REQUESTED",
-	"SECURE_ERASE", "SECURE_ERASE_RAW", "SECURE_ERASE_TRY",
-	"TASK_THREAD_POOL_EXECUTOR", "TASK_HANDOFF",
-	"ARRAY_FIRST", "ARRAY_LAST",
-	"BOX_NEW", "BOX_TRY_NEW", "BOX_GET", "BOX_SET", "BOX_WITH", "BOX_WITH_MUT", "BOX_INTO",
-}
+// resolve to; the order is the registry's and the native runtime's `enum std_op`.
+var StdOpNames = func() []string {
+	names := make([]string, len(Registry.Ops))
+	for i, op := range Registry.Ops {
+		names[i] = op.Name
+	}
+	return names
+}()
 
-// providerOps lists the StdOpNames entries needing a Target/Capability
-// (m.host); every other entry is a PrimitiveId, the same on every backend.
-var providerOps = map[string]bool{
-	"HOST_SHELL": true, "HOST_ARGS": true, "HOST_FILES": true, "HOST_NET": true,
-	"HOST_DL": true, "HOST_ENTROPY": true, "HOST_SIGNALS": true, "ARGS_GET": true,
-	"CSTRING_NEW": true, "CSTRING_PTR": true, "CSTRING_DROP": true,
-	"FFI_BYTES_FROM": true, "FFI_BYTES_PTR": true,
-	"DL_SYMBOL_CALL": true, "HOST_STDIN": true, "HOST_STDOUT": true, "HOST_STDERR": true,
-	"PIN_NEW": true, "PIN_PTR": true, "PIN_WITH": true, "PIN_DROP": true,
-	"PIN_RELEASE": true, "PIN_RECLAIM": true,
-	"FFI_STRING": true, "FFI_STRING_CHECKED": true, "FFI_STRING_LOSSY": true,
-	"TASK_CURRENT_EXECUTOR": true, "EXECUTOR_RUN_TO_COMPLETION": true, "TASK_SPAWN": true,
-	"TASK_CANCEL": true, "TASK_CANCEL_REQUESTED": true,
-	"TASK_THREAD_POOL_EXECUTOR": true, "TASK_HANDOFF": true,
-	"NET_HTTP": true, "NET_CONN_DROP": true, "NET_LISTENER_DROP": true, "BUILD_ONLY": true, "ARGS_LEN": true,
-	"BLOCKING_POOL_NEW": true, "BLOCKING_POOL_RUN": true,
-	"HANDLE_TABLE_NEW": true, "HANDLE_TABLE_INSERT": true, "HANDLE_TABLE_WITH": true,
-	"HANDLE_TABLE_REMOVE": true, "HANDLE_TABLE_RECLAIM": true, "HANDLE_TABLE_CLOSE": true,
-	"HANDLE_TABLE_DROP": true, "HANDLE_RAW": true, "HANDLE_DROP": true,
-	"SECURE_ERASE_RAW": true,
-}
+// providerOps lists the ops needing a Target/Capability (m.host); every
+// other op is a PrimitiveId, the same on every backend.
+var providerOps = func() map[string]bool {
+	m := map[string]bool{}
+	for _, op := range Registry.Ops {
+		if op.Provider {
+			m[op.Name] = true
+		}
+	}
+	return m
+}()
 
-// stdOpKeys maps a std key ("std/"-stripped) to the StdOpNames entry
-// answering it; keys sharing a name share a runtime case.
-var stdOpKeys = map[string]string{
-	"prelude.String.len":              "LEN",
-	"prelude.Bytes.len":               "LEN",
-	"prelude.String.toBytes":          "STRING_TO_BYTES",
-	"prelude.String.fromBytes":        "STRING_FROM_BYTES",
-	"prelude.String.tryFromBytes":     "STRING_TRY_FROM_BYTES",
-	"prelude.debug":                   "DISPLAY",
-	"text.fromChar":                   "DISPLAY",
-	"prelude.String.bytes":            "STRING_BYTES",
-	"prelude.Bytes.slice":             "BYTES_SLICE",
-	"prelude.Bytes.zeros":             "BYTES_ZEROS",
-	"prelude.Bytes.fill":              "BYTES_FILL",
-	"prelude.Bytes.fromArray":         "BYTES_FROM_ARRAY",
-	"prelude.Bytes.tryFromArray":      "BYTES_TRY_FROM_ARRAY",
-	"prelude.Bytes.concat":            "BYTES_CONCAT",
-	"prelude.Bytes.tryConcat":         "BYTES_TRY_CONCAT",
-	"array.Array.empty":               "ARRAY_EMPTY",
-	"array.Array.of":                  "ARRAY_OF",
-	"array.Array.push":                "ARRAY_PUSH",
-	"array.Array.growBy":              "ARRAY_GROW_BY",
-	"array.Array.len":                 "ARRAY_LEN",
-	"array.Array.get":                 "ARRAY_GET",
-	"array.Array.first":               "ARRAY_FIRST",
-	"array.Array.last":                "ARRAY_LAST",
-	"array.Array.with":                "ARRAY_WITH",
-	"array.Array.withMut":             "ARRAY_WITH_MUT",
-	"array.Array.takeAt":              "ARRAY_TAKE_AT",
-	"prelude.FixedArray.withMut":      "ARRAY_WITH_MUT",
-	"prelude.FixedArray.adopt":        "ARRAY_OF",
-	"prelude.Option.take":             "OPTION_TAKE",
-	"text.parseFloat":                 "TEXT_PARSE_FLOAT",
-	"os.Host.shell":                   "HOST_SHELL",
-	"os.Host.args":                    "HOST_ARGS",
-	"os.Host.files":                   "HOST_FILES",
-	"os.Host.net":                     "HOST_NET",
-	"os.Host.dl":                      "HOST_DL",
-	"os.Host.entropy":                 "HOST_ENTROPY",
-	"os.Host.signals":                 "HOST_SIGNALS",
-	"os.Args.get":                     "ARGS_GET",
-	"ffi.CString.new":                 "CSTRING_NEW",
-	"ffi.CString.ptr":                 "CSTRING_PTR",
-	"ffi.CString.drop":                "CSTRING_DROP",
-	"ffi.bytesFrom":                   "FFI_BYTES_FROM",
-	"ffi.bytesPtr":                    "FFI_BYTES_PTR",
-	"prelude.Bytes.get":               "BYTES_GET",
-	"crypto/subtle.constantTimeEq":    "SUBTLE_CT_EQ",
-	"dl.Symbol.call":                  "DL_SYMBOL_CALL",
-	"os.Host.stdin":                   "HOST_STDIN",
-	"os.Host.stdout":                  "HOST_STDOUT",
-	"os.Host.stderr":                  "HOST_STDERR",
-	"ffi.Pin.new":                     "PIN_NEW",
-	"ffi.Pin.ptr":                     "PIN_PTR",
-	"ffi.Pin.with":                    "PIN_WITH",
-	"ffi.Pin.drop":                    "PIN_DROP",
-	"ffi.Pin.release":                 "PIN_RELEASE",
-	"ffi.Pin.reclaim":                 "PIN_RECLAIM",
-	"ffi.string":                      "FFI_STRING",
-	"ffi.stringChecked":               "FFI_STRING_CHECKED",
-	"ffi.stringLossy":                 "FFI_STRING_LOSSY",
-	"task.currentThreadExecutor":      "TASK_CURRENT_EXECUTOR",
-	"task.Executor.runToCompletion":   "EXECUTOR_RUN_TO_COMPLETION",
-	"task.spawn":                      "TASK_SPAWN",
-	"task.Task.cancel":                "TASK_CANCEL",
-	"task.cancelRequested":            "TASK_CANCEL_REQUESTED",
-	"task.threadPoolExecutor":         "TASK_THREAD_POOL_EXECUTOR",
-	"task.Executor.handoff":           "TASK_HANDOFF",
-	"alloc.Arena.create":              "ARENA_CREATE",
-	"alloc.AllocatorHandle.scope":     "ALLOCATOR_SCOPE",
-	"alloc.AllocatorHandle.allocated": "ALLOCATOR_ALLOCATED",
-	"alloc.Shared.new":                "SHARED_NEW",
-	"alloc.Shared.clone":              "SHARED_CLONE",
-	"alloc.Weak.clone":                "SHARED_CLONE",
-	"alloc.Shared.get":                "SHARED_GET",
-	"alloc.Shared.set":                "SHARED_SET",
-	"alloc.Shared.with":               "SHARED_WITH",
-	"alloc.Shared.withMut":            "SHARED_WITH_MUT",
-	"alloc.Shared.downgrade":          "SHARED_DOWNGRADE",
-	"alloc.Weak.upgrade":              "WEAK_UPGRADE",
-	"net.Net.http":                    "NET_HTTP",
-	"net.Conn.drop":                   "NET_CONN_DROP",
-	"net.Listener.drop":               "NET_LISTENER_DROP",
-	"os.Args.len":                     "ARGS_LEN",
-	"math.sqrt":                       "MATH_SQRT",
-	"math.floor":                      "MATH_FLOOR",
-	"math.ceil":                       "MATH_CEIL",
-	"math.round":                      "MATH_ROUND",
-	"math.pow":                        "MATH_POW",
-	"prelude.String.sliceBytes":       "STRING_SLICE_BYTES",
-	"array.Array.clone":               "ARRAY_CLONE",
-	"prelude.Char.fromInt":            "CHAR_FROM_INT",
-	"mem.UnsafeCell.new":              "UCELL_NEW",
-	"mem.UnsafeCell.get":              "UCELL_GET",
-	"mem.UnsafeCell.set":              "UCELL_SET",
-	"prelude.Bytes.tryZeros":          "BYTES_TRY_ZEROS",
-	"prelude.Bytes.tryFill":           "BYTES_TRY_FILL",
-	"alloc.Shared.tryNew":             "SHARED_TRY_NEW",
-	"task.BlockingPool.new":           "BLOCKING_POOL_NEW",
-	"task.BlockingPool.run":           "BLOCKING_POOL_RUN",
-	"ffi.HandleTable.new":             "HANDLE_TABLE_NEW",
-	"ffi.HandleTable.insert":          "HANDLE_TABLE_INSERT",
-	"ffi.HandleTable.with":            "HANDLE_TABLE_WITH",
-	"ffi.HandleTable.remove":          "HANDLE_TABLE_REMOVE",
-	"ffi.HandleTable.reclaim":         "HANDLE_TABLE_RECLAIM",
-	"ffi.HandleTable.close":           "HANDLE_TABLE_CLOSE",
-	"ffi.HandleTable.drop":            "HANDLE_TABLE_DROP",
-	"ffi.FfiHandle.raw":               "HANDLE_RAW",
-	"ffi.FfiHandle.drop":              "HANDLE_DROP",
-	"ffi.withAddress":                 "WITH_ADDRESS",
-	"ffi.withAddressConst":            "WITH_ADDRESS",
-	"mem.secureErase":                 "SECURE_ERASE",
-	"mem.trySecureErase":              "SECURE_ERASE_TRY",
-	"ffi.secureEraseRaw":              "SECURE_ERASE_RAW",
-	"alloc.Box.new":                   "BOX_NEW",
-	"alloc.Box.tryNew":                "BOX_TRY_NEW",
-	"alloc.Box.get":                   "BOX_GET",
-	"alloc.Box.set":                   "BOX_SET",
-	"alloc.Box.with":                  "BOX_WITH",
-	"alloc.Box.withMut":               "BOX_WITH_MUT",
-	"alloc.Box.into":                  "BOX_INTO",
-}
+// stdOpKeys maps a std key ("std/"-stripped) to the op answering it; keys
+// sharing an op share a runtime case.
+var stdOpKeys = func() map[string]string {
+	m := map[string]string{}
+	for _, op := range Registry.Ops {
+		for _, key := range op.Keys {
+			m[key] = op.Name
+		}
+	}
+	return m
+}()
+
+// stdOpSuffixes maps a trailing method name to its op, for primitives
+// every eligible type defines the same way (Int8/u64.wrappingAdd, ...).
+var stdOpSuffixes = func() map[string]string {
+	m := map[string]string{}
+	for _, op := range Registry.Ops {
+		for _, s := range op.Suffixes {
+			m[s] = op.Name
+		}
+	}
+	return m
+}()
+
+// opCapability omits ops every target provides without a capability.
+var opCapability = func() map[string]Capability {
+	m := map[string]Capability{}
+	for _, op := range Registry.Ops {
+		if op.Cap != "" {
+			m[op.Name] = op.Cap
+		}
+	}
+	return m
+}()

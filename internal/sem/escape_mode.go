@@ -74,6 +74,9 @@ var nonEscapingIntrinsics = map[string]bool{
 	// calls f once with a borrow of the element at index.
 	"std/array:Array.with":    true,
 	"std/array:Array.withMut": true,
+	// calls f once per element with a borrow of it, and keeps only f's results.
+	"std/array:Array.tryMap":    true,
+	"std/array:Array.tryFilter": true,
 }
 
 // nonEscapingParam reports whether p is a declared parameter verified non-escaping, the only shape

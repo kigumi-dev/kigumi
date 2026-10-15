@@ -200,6 +200,26 @@
     "status": "ok"
   },
   {
+    "key": "alloc.Shared.tryDowngrade",
+    "signature": "fn() -\u003e Result[Weak[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Shared.tryGet",
+    "signature": "fn() -\u003e Result[T, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "alloc.Shared.tryNew",
     "signature": "fn(T) -\u003e Result[Shared[T], AllocError]",
     "has_body": false,
@@ -390,6 +410,16 @@
     "status": "ok"
   },
   {
+    "key": "array.Array.insertAt",
+    "signature": "pure fn(usize, T) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "array.Array.isEmpty",
     "signature": "pure noalloc fn() -\u003e Bool",
     "has_body": true,
@@ -492,10 +522,50 @@
   {
     "key": "array.Array.tryAppendAll",
     "signature": "pure fn(Array[T]) -\u003e Result[Unit, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryClone",
+    "signature": "pure fn() -\u003e Result[Array[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryCloneWith",
+    "signature": "pure fn(fn(\u0026T) -\u003e T) -\u003e Result[Array[T], AllocError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryConcat",
+    "signature": "pure fn(Array[T]) -\u003e Result[Array[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryCopyRange",
+    "signature": "pure fn(usize, usize) -\u003e Result[Array[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -506,6 +576,36 @@
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryFilter",
+    "signature": "pure fn(fn(\u0026T) -\u003e Bool) -\u003e Result[Array[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryInsertAt",
+    "signature": "pure fn(usize, T) -\u003e Result[Bool, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryMap",
+    "signature": "pure fn(fn(\u0026T) -\u003e U) -\u003e Result[Array[U], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -526,6 +626,46 @@
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryReverse",
+    "signature": "pure fn() -\u003e Result[Array[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.trySlice",
+    "signature": "pure fn(usize, usize) -\u003e Result[Array[T]?, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryTake",
+    "signature": "pure fn(usize) -\u003e Result[Array[T], AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "array.Array.tryWithCapacity",
+    "signature": "pure fn(usize) -\u003e Result[Array[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -3461,8 +3601,48 @@
     "status": "ok"
   },
   {
+    "key": "map.Map.tryClone",
+    "signature": "pure fn() -\u003e Result[Map[K, V], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "map.Map.tryEntries",
+    "signature": "pure fn() -\u003e Result[Array[Entry[K, V]], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "map.Map.tryKeys",
+    "signature": "pure fn() -\u003e Result[Array[K], AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "map.Map.trySet",
     "signature": "pure fn(K, V) -\u003e Result[Unit, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "map.Map.tryValues",
+    "signature": "pure fn() -\u003e Result[Array[V], AllocError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3507,6 +3687,16 @@
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "map.tryEmpty",
+    "signature": "pure fn() -\u003e Result[Map[K, V], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
@@ -4652,6 +4842,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.AllocError.wrap",
+    "signature": "pure fn(T) -\u003e Result[T, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.Bool.compareTo",
     "signature": "pure noalloc fn(\u0026Bool) -\u003e Ordering",
     "has_body": false,
@@ -4864,6 +5064,16 @@
   {
     "key": "prelude.Bytes.tryFromArray",
     "signature": "pure fn(\u0026Array[u8]) -\u003e Result[Bytes, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.Bytes.trySlice",
+    "signature": "pure fn(usize, usize) -\u003e Result[Bytes?, AllocError]",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -5412,12 +5622,52 @@
     "status": "ok"
   },
   {
+    "key": "prelude.String.tryConcat",
+    "signature": "pure fn(String) -\u003e Result[String, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.String.tryFromBytes",
     "signature": "pure fn(Bytes) -\u003e String!",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.String.tryRepeat",
+    "signature": "pure fn(usize) -\u003e Result[String, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.String.trySliceBytes",
+    "signature": "pure fn(usize, usize) -\u003e Result[String?, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.String.tryTrim",
+    "signature": "pure fn() -\u003e Result[String, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -9818,6 +10068,16 @@
     "kind": "",
     "vm": "gap",
     "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.StringBuilder.tryNew",
+    "signature": "pure fn() -\u003e Result[StringBuilder, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },

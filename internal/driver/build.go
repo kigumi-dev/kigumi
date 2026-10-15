@@ -10,13 +10,17 @@ import (
 // Compile type-checks and lowers m to MIR, returning LLVM IR for its own resolved target so --emit-llvm matches what BuildWith would link.
 func Compile(m *Module, stderr io.Writer) (string, bool, error) {
 	out, ok, err := compile(m, stderr, m.target, emitOptionsFor(m.target))
+	if !ok || err != nil {
+		return out.IR, ok, err
+	}
+	out = withRuntimeABI(m.target, out, nil)
 	return out.IR, ok, err
 }
 
 // emitOptionsFor is the one Target -> llgen.EmitOptions mapping shared by
 // IR dump (Compile), a normal build and the build graph (buildOnce).
 func emitOptionsFor(t Target) llgen.EmitOptions {
-	opts := llgen.EmitOptions{Freestanding: t.Bare(), Catch: wantsTaskCatch(t)}
+	opts := llgen.EmitOptions{Freestanding: t.Bare(), Catch: wantsTaskCatch(t), AbiCheck: true}
 	if t.OS == "darwin" {
 		opts.SymbolPrefix = "_"
 	}
@@ -29,6 +33,8 @@ func emitOptionsFor(t Target) llgen.EmitOptions {
 type compiled struct {
 	llgen.Output
 	Reasons []mir.CapabilityReason
+	// Abi is the runtime fingerprint bound into the IR; empty until withRuntimeABI runs.
+	Abi string
 }
 
 func compile(m *Module, stderr io.Writer, t Target, opts llgen.EmitOptions) (compiled, bool, error) {
@@ -51,7 +57,7 @@ func compile(m *Module, stderr io.Writer, t Target, opts llgen.EmitOptions) (com
 	io.WriteString(stderr, a.Res.RenderTaskPanicWarning())
 	opts.Reachable = reach
 	m.stats.Emit++
-	return compiled{llgen.EmitProgram(a.Prog, opts), reach.CapabilityReasons(a.Res, t.CapabilityPlatform())}, true, nil
+	return compiled{Output: llgen.EmitProgram(a.Prog, opts), Reasons: reach.CapabilityReasons(a.Res, t.CapabilityPlatform())}, true, nil
 }
 
 // BuildOptions selects the target; the zero value builds for the host.

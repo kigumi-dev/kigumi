@@ -1,6 +1,7 @@
 package llgen
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -62,24 +63,27 @@ func exclusive(a, b []ppFrame) bool {
 	return false
 }
 
-// TestStdOpsMatchC checks rt_core.c's `enum std_op` matches mir.StdOpNames,
-// and that rt_std_id has one case per op (real, or a capability-guarded panic stub) across every runtime file.
+// TestStdOpsMatchC checks the generated `enum std_op` carries the registry's
+// ids in order, and that rt_std_id has one case per op (real, or a capability-guarded panic stub) across every runtime file.
 func TestStdOpsMatchC(t *testing.T) {
 	src := []byte(RuntimeSource())
 	block := enumBlockRe.FindSubmatch(src)
 	if block == nil {
-		t.Fatal("enum std_op { ... } not found in rt_core.c")
+		t.Fatal("enum std_op { ... } not found in the runtime")
 	}
 	var enumNames []string
-	for _, m := range enumEntryRe.FindAllSubmatch(block[1], -1) {
+	for i, m := range enumEntryRe.FindAllSubmatch(block[1], -1) {
 		enumNames = append(enumNames, string(m[1]))
+		if want := fmt.Sprintf("OP_%s = %d,", m[1], i); !strings.Contains(string(block[1]), want) {
+			t.Errorf("enum std_op: %s is not at id %d", m[1], i)
+		}
 	}
 	if len(enumNames) != len(mir.StdOpNames) {
-		t.Fatalf("enum std_op has %d entries, mir.StdOpNames has %d", len(enumNames), len(mir.StdOpNames))
+		t.Fatalf("enum std_op has %d entries, the registry has %d", len(enumNames), len(mir.StdOpNames))
 	}
 	for i, name := range mir.StdOpNames {
 		if enumNames[i] != name {
-			t.Errorf("id %d: Go has %s, C's enum std_op has %s at the same position", i, name, enumNames[i])
+			t.Errorf("id %d: the registry has %s, C's enum std_op has %s at the same position", i, name, enumNames[i])
 		}
 	}
 	cases := caseSites(src)

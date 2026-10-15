@@ -17,6 +17,9 @@ func (e *emitter) mainWrapper() string {
 	}
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "define i32 @%s(i32 %%argc, ptr %%argv) {\n", name)
+	if e.abiSym != "" {
+		e.irb(&sb).Call(rtAbiCheck, vptr(e.abiSym))
+	}
 	sb.WriteString("  call void @kg_init_immortals()\n")
 	e.irb(&sb).Call(rtInit, vi32text("%argc"), vptr("%argv"), vi32(e.typeCount()), vptr("@rt_types"))
 	sb.WriteString("  call void @kg_init_statics()\n")

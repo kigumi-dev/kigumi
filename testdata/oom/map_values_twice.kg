@@ -1,0 +1,18 @@
+import map from std/map
+
+fn run() -> Unit {
+    let mut m = map.tryEmpty[Int, Int]().unwrap()
+    m.set(1, 10)
+    m.set(2, 20)
+    let first = m.tryValues()
+    let second = m.tryValues()
+    if first is Err(_) || second is Err(_) {
+        if m.len() == 2 && m.contains(&1) && m.contains(&2) {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

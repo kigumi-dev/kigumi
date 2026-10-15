@@ -1,0 +1,14 @@
+fn run() -> Unit {
+    let b = Bytes.zeros(6)
+    let before = b.len()
+    let r = b.tryConcat(b)
+    if r is Err(_) {
+        if b.len() == before {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

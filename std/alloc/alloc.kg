@@ -29,7 +29,7 @@ pub fn Arena.create() -> AllocatorHandle!
 /// Creates an arena, reporting a refused allocation as AllocError.
 pub fn Arena.tryCreate() -> Result[AllocatorHandle, AllocError] {
     if Arena.create() is Ok(handle) {
-        return Ok(handle)
+        return AllocError.wrap(handle)
     }
     Err(AllocError.OutOfMemory)
 }
@@ -53,6 +53,9 @@ pub fn Shared[T].clone(self) -> Shared[T]
 /// A copy of the current content.
 pub fn Shared[T: Copy].get(self) -> T
 
+/// A copy of the current content, or AllocError when the allocator refuses (get panics instead).
+pub fn Shared[T: Copy].tryGet(self) -> Result[T, AllocError]
+
 /// Replaces the content; the old value is dropped.
 pub fn Shared[T].set(self, value: T) -> Unit
 
@@ -66,6 +69,9 @@ pub fn Shared[T].withMut[R](self, f: fn(&mut T) -> R) -> R
 
 /// A weak handle to the same cell.
 pub fn Shared[T].downgrade(self) -> Weak[T]
+
+/// A weak handle to the same cell, or AllocError when the allocator refuses (downgrade panics instead).
+pub fn Shared[T].tryDowngrade(self) -> Result[Weak[T], AllocError]
 
 /// The cell as a Shared while some Shared still owns it; None once the last one was dropped.
 pub fn Weak[T].upgrade(self) -> Shared[T]?

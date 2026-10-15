@@ -1,0 +1,14 @@
+fn run() -> Unit {
+    let a = Array.of(1, 2, 3)
+    let first = a.tryTake(2)
+    let second = a.tryTake(2)
+    if first is Err(_) || second is Err(_) {
+        if a.len() == 3 && (a.first() || 0) == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()
