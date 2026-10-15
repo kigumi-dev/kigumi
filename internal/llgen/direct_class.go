@@ -84,7 +84,7 @@ func (e *emitter) aggConsumes(in mir.Inst, i int) bool {
 	case mir.OpCallValue:
 		return i > 0
 	case mir.OpCall:
-		return !e.p.ArgLent(in, i)
+		return !e.p.ParamLent(in.Ent, i)
 	}
 	return false
 }
