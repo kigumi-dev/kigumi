@@ -1,0 +1,34 @@
+-- module --
+mir: planned
+-- src --
+import {Box} from std/alloc
+
+noalloc fn wrap(n: Int) -> Unit {
+    let b = Box.new(n) //~ ERROR `new` is not `noalloc`
+    _ = b
+}
+
+noalloc fn wrapFallible(n: Int) -> Unit {
+    let r = Box.tryNew(n) //~ ERROR `tryNew` is not `noalloc`
+    _ = r
+}
+
+fn fine(n: Int) -> Int {
+    let b = Box.new(n)
+    b.into()
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E907]: `new` is not `noalloc`
+ --> main.kg:4:13
+  |
+4 |     let b = Box.new(n) //~ ERROR `new` is not `noalloc`
+  |             ^^^^^^^^^
+
+error[E907]: `tryNew` is not `noalloc`
+ --> main.kg:9:13
+  |
+9 |     let r = Box.tryNew(n) //~ ERROR `tryNew` is not `noalloc`
+  |             ^^^^^^^^^^^^
+

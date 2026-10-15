@@ -1160,7 +1160,8 @@ void display_into(buf* b, val v, int canon) {
         display_into(b, v->u.box.v, canon);
         break;
     case K_OPAQUE:
-        if (strcmp(v->u.op.kind, "Error") == 0 || strcmp(v->u.op.kind, "Path") == 0) bputs(b, (const char*)v->u.op.data);
+        if (strcmp(v->u.op.kind, "Box") == 0) display_into(b, ((val)v->u.op.data)->u.cell.v, canon);
+        else if (strcmp(v->u.op.kind, "Error") == 0 || strcmp(v->u.op.kind, "Path") == 0) bputs(b, (const char*)v->u.op.data);
         else {
             bputs(b, "<");
             bputs(b, v->u.op.kind);
@@ -2195,7 +2196,7 @@ static void free_opaque(val v) {
         sched_flush();
     } else if (!strcmp(kind, "Executor")) exec_drop((kgexec*)d);
 #endif
-    else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "UnsafeCell")) rt_release((val)d);
+    else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "UnsafeCell") || !strcmp(kind, "Box")) rt_release((val)d);
     else if (!strcmp(kind, "AllocGuard")) {
         g_alloc_sp--;
         rt_release((val)d);
@@ -2653,6 +2654,13 @@ enum std_op {
     OP_TASK_HANDOFF,
     OP_ARRAY_FIRST,
     OP_ARRAY_LAST,
+    OP_BOX_NEW,
+    OP_BOX_TRY_NEW,
+    OP_BOX_GET,
+    OP_BOX_SET,
+    OP_BOX_WITH,
+    OP_BOX_WITH_MUT,
+    OP_BOX_INTO,
 };
 // rt_std_op_of mirrors stdop.go's StdOpFor: an exact key first, then its
 // trailing method name, then the std/build package prefix. Returns -1 for
@@ -2744,6 +2752,13 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "alloc.Shared.withMut")) return OP_SHARED_WITH_MUT;
     if (!strcmp(k, "alloc.Shared.downgrade")) return OP_SHARED_DOWNGRADE;
     if (!strcmp(k, "alloc.Weak.upgrade")) return OP_WEAK_UPGRADE;
+    if (!strcmp(k, "alloc.Box.new")) return OP_BOX_NEW;
+    if (!strcmp(k, "alloc.Box.tryNew")) return OP_BOX_TRY_NEW;
+    if (!strcmp(k, "alloc.Box.get")) return OP_BOX_GET;
+    if (!strcmp(k, "alloc.Box.set")) return OP_BOX_SET;
+    if (!strcmp(k, "alloc.Box.with")) return OP_BOX_WITH;
+    if (!strcmp(k, "alloc.Box.withMut")) return OP_BOX_WITH_MUT;
+    if (!strcmp(k, "alloc.Box.into")) return OP_BOX_INTO;
     if (!strcmp(k, "net.Net.http")) return OP_NET_HTTP;
     if (!strcmp(k, "net.Conn.drop")) return OP_NET_CONN_DROP;
     if (!strcmp(k, "net.Listener.drop")) return OP_NET_LISTENER_DROP;
@@ -3276,6 +3291,37 @@ val rt_std_id(int op, int n, val* a) {
         sctrl* c = a0->u.op.data;
         return c->alive ? some(rt_retain(c->shared)) : none();
     }
+    case OP_BOX_NEW: return opaque("Box", rt_cell(rt_retain(a0)));
+    case OP_BOX_TRY_NEW: {
+        val cell = rt_cell_try(rt_retain(a0));
+        if (!cell) {
+            rt_release(a0);
+            return alloc_error();
+        }
+        val box = opaque_try("Box", cell);
+        if (!box) {
+            rt_release(cell);
+            return alloc_error();
+        }
+        return try_ok(box);
+    }
+    case OP_BOX_GET: return rt_copy(((val)a0->u.op.data)->u.cell.v);
+    case OP_BOX_SET: {
+        val cell = (val)a0->u.op.data;
+        val old = cell->u.cell.v;
+        cell->u.cell.v = rt_retain(a1);
+        rt_release(old);
+        return rt_unit();
+    }
+    case OP_BOX_WITH: {
+        val arg[1] = {((val)a0->u.op.data)->u.cell.v};
+        return rt_callv(a1, 1, arg);
+    }
+    case OP_BOX_WITH_MUT: {
+        val arg[1] = {(val)a0->u.op.data};
+        return rt_callv(a1, 1, arg);
+    }
+    case OP_BOX_INTO: return rt_retain(((val)a0->u.op.data)->u.cell.v);
 #ifdef KIGUMI_CAP_HOST_NET
     case OP_NET_HTTP: return cap_net_http();
     case OP_NET_LISTENER_DROP:

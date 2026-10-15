@@ -128,7 +128,7 @@ func (r *Result) isrDropSafeMemo(t TypeID, safe map[EntityID]bool, memo map[Type
 		memo[t] = false
 		return false
 	}
-	if r.isSharedCell(n.Ent) {
+	if r.isHeapCell(n.Ent) {
 		memo[t] = false
 		return false
 	}

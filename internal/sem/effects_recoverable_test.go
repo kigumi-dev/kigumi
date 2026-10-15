@@ -42,6 +42,17 @@ func TestRecoverableOnlyRejectsSharedNew(t *testing.T) {
 	}
 }
 
+func TestRecoverableOnlyRejectsBoxNew(t *testing.T) {
+	bad := checkRecoverableOnly(t, "import {Box} from std/alloc\n\nlet c = Box.new(1)\n")
+	if !bad.HasErrors() || !strings.Contains(bad.Render(), "recoverable-only") {
+		t.Fatalf("Box.new must be rejected under recoverable-only:\n%s", bad.Render())
+	}
+	good := checkRecoverableOnly(t, "import {Box} from std/alloc\n\nlet c = Box.tryNew(1)\n")
+	if good.HasErrors() {
+		t.Fatalf("Box.tryNew must pass under recoverable-only:\n%s", good.Render())
+	}
+}
+
 func TestRecoverableOnlyAcceptsTrustedWrapper(t *testing.T) {
 	good := checkRecoverableOnly(t, "let mut xs = Array.empty[Int]()\n_ = xs.tryPush(1)\n_ = xs.tryReserve(4)\nlet n = xs.len()\n")
 	if good.HasErrors() {

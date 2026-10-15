@@ -39,6 +39,7 @@ var StdOpNames = []string{
 	"SECURE_ERASE", "SECURE_ERASE_RAW", "SECURE_ERASE_TRY",
 	"TASK_THREAD_POOL_EXECUTOR", "TASK_HANDOFF",
 	"ARRAY_FIRST", "ARRAY_LAST",
+	"BOX_NEW", "BOX_TRY_NEW", "BOX_GET", "BOX_SET", "BOX_WITH", "BOX_WITH_MUT", "BOX_INTO",
 }
 
 // providerOps lists the StdOpNames entries needing a Target/Capability
@@ -177,19 +178,11 @@ var stdOpKeys = map[string]string{
 	"mem.secureErase":                 "SECURE_ERASE",
 	"mem.trySecureErase":              "SECURE_ERASE_TRY",
 	"ffi.secureEraseRaw":              "SECURE_ERASE_RAW",
-}
-
-// stdOpSuffixes maps a trailing method name to its op, for primitives
-// every eligible type defines the same way (Int8/u64.wrappingAdd, ...).
-var stdOpSuffixes = map[string]string{
-	"equals":             "EQUALS",
-	"compareTo":          "COMPARE_TO",
-	"hash":               "HASH",
-	"wrappingAdd":        "WRAPPING_ADD",
-	"wrappingSub":        "WRAPPING_SUB",
-	"wrappingMul":        "WRAPPING_MUL",
-	"wrappingShiftLeft":  "WRAPPING_SHL",
-	"wrappingShiftRight": "WRAPPING_SHR",
-	"rotateLeft":         "ROTATE_LEFT",
-	"rotateRight":        "ROTATE_RIGHT",
+	"alloc.Box.new":                   "BOX_NEW",
+	"alloc.Box.tryNew":                "BOX_TRY_NEW",
+	"alloc.Box.get":                   "BOX_GET",
+	"alloc.Box.set":                   "BOX_SET",
+	"alloc.Box.with":                  "BOX_WITH",
+	"alloc.Box.withMut":               "BOX_WITH_MUT",
+	"alloc.Box.into":                  "BOX_INTO",
 }

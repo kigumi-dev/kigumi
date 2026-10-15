@@ -1,0 +1,73 @@
+-- src --
+import {Box} from std/alloc
+import fmt from std/fmt
+
+type Node = Text(s: String) | Wrap(kid: Box[Node]) | Pair(left: Box[Node], right: Box[Node])
+
+pure fn render[T: fmt.Display](v: &T) -> String {
+    v.display()
+}
+
+fn depth(n: &Node) -> Int {
+    match n {
+        Text(_) -> 0
+        Wrap(kid) -> 1 + kid.with((k: &Node) => depth(k))
+        Pair(l, r) -> {
+            let a = l.with((k: &Node) => depth(k))
+            let b = r.with((k: &Node) => depth(k))
+            1 + if a > b { a } else { b }
+        }
+    }
+}
+
+fn label(n: &Node) -> String {
+    match n {
+        Text(s) -> s
+        Wrap(kid) -> "(${kid.with((k: &Node) => label(k))})"
+        Pair(l, r) -> "<${l.with((k: &Node) => label(k))} ${r.with((k: &Node) => label(k))}>"
+    }
+}
+
+fn chain(n: Int) -> Node {
+    let mut node = Text("leaf")
+    let mut i = 0
+    for i < n {
+        node = Wrap(Box.new(node))
+        i = i + 1
+    }
+    node
+}
+
+fn peel(n: Node) -> Int {
+    let mut cur = n
+    let mut count = 0
+    for true {
+        match cur {
+            Wrap(kid) -> {
+                cur = kid.into()
+                count = count + 1
+            }
+            Pair(_, _) -> break
+            Text(_) -> break
+        }
+    }
+    count
+}
+
+fn small() -> Node {
+    Pair(Box.new(Wrap(Box.new(Text("a")))), Box.new(Text("b")))
+}
+
+let t = small()
+print "depth=${depth(&t)} label=${label(&t)}"
+print "eq=${t == small()} neq=${t == Wrap(Box.new(Text("a")))}"
+print "display=${render(&t)}"
+let long = chain(1000)
+print "long depth=${depth(&long)}"
+print "peeled=${peel(long)}"
+-- stdout --
+depth=2 label=<(a) b>
+eq=true neq=false
+display=Pair(Wrap(Text(a)), Text(b))
+long depth=1000
+peeled=1000

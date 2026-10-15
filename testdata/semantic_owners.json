@@ -40,6 +40,116 @@
     "status": "ok"
   },
   {
+    "key": "alloc.Box.compareTo",
+    "signature": "pure fn(\u0026Box[T]) -\u003e Ordering",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.display",
+    "signature": "pure fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.equals",
+    "signature": "pure fn(\u0026Box[T]) -\u003e Bool",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.get",
+    "signature": "pure fn() -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.hash",
+    "signature": "pure fn() -\u003e u64",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.into",
+    "signature": "pure fn() -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.new",
+    "signature": "pure fn(T) -\u003e Box[T]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.set",
+    "signature": "pure fn(T) -\u003e Unit",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.tryNew",
+    "signature": "pure fn(T) -\u003e Result[Box[T], AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.with",
+    "signature": "pure fn(fn(\u0026T) -\u003e R) -\u003e R",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "alloc.Box.withMut",
+    "signature": "pure fn(fn(\u0026mut T) -\u003e R) -\u003e R",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "alloc.Shared.clone",
     "signature": "fn() -\u003e Shared[T]",
     "has_body": false,

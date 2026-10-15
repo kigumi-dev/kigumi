@@ -64,6 +64,9 @@ var nonEscapingIntrinsics = map[string]bool{
 	// calls f once with a borrow of the receiver's value.
 	"std/alloc:Shared.with":    true,
 	"std/alloc:Shared.withMut": true,
+	// calls f once with a borrow of the box's content.
+	"std/alloc:Box.with":    true,
+	"std/alloc:Box.withMut": true,
 	// calls f once with a borrow over the pinned pointer.
 	"std/ffi:Pin.with": true,
 	// calls f once with a borrow of the handle's slot value.

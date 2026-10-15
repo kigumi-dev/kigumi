@@ -1,0 +1,90 @@
+-- src --
+import {Box} from std/alloc
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.id}"
+}
+
+type Holder = resource {
+    pub label String
+    pub inner Box[Res]
+}
+
+fn Holder.drop(move self) -> Unit {
+    print "drop holder ${self.label}"
+}
+
+type Point = {
+    pub mut x Int
+    pub mut y Int
+}
+
+fn scalars() -> Unit {
+    let mut b = Box.new(41)
+    print "get ${b.get()}"
+    b.set(b.get() + 1)
+    print "set ${b.get()}"
+    b.withMut((n: &mut Int) => {
+        n = n + 100
+    })
+    print "withMut ${b.with((n: &Int) => n + 0)}"
+    print "into ${b.into()}"
+}
+
+fn points() -> Unit {
+    let mut p = Box.new(Point { x: 1, y: 2 })
+    p.withMut((q: &mut Point) => {
+        q.x = 10
+    })
+    print "point ${p.get().x} ${p.get().y}"
+    p.set(Point { x: 7, y: 8 })
+    let q = p.into()
+    print "into ${q.x} ${q.y}"
+}
+
+fn resources() -> Unit {
+    let mut b = Box.new(Res { id: 1 })
+    print "before set"
+    b.set(Res { id: 2 })
+    print "after set"
+    let r = b.into()
+    print "taken ${r.id}"
+    let h = Holder { label: "h", inner: Box.new(Res { id: 3 }) }
+    print "holder ${h.inner.with((r: &Res) => r.id)}"
+    print "end of resources"
+}
+
+fn tryNew() -> Unit {
+    match Box.tryNew("hello") {
+        Ok(b) -> print "tryNew ${b.with((s: &String) => s.len())}"
+        Err(_) -> print "tryNew failed"
+    }
+}
+
+scalars()
+points()
+resources()
+tryNew()
+print "done"
+-- stdout --
+get 41
+set 42
+withMut 142
+into 142
+point 10 2
+into 7 8
+before set
+drop res 1
+after set
+taken 2
+holder 3
+end of resources
+drop holder h
+drop res 3
+drop res 2
+tryNew 5
+done

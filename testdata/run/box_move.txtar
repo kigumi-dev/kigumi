@@ -1,0 +1,77 @@
+-- src --
+import {Box} from std/alloc
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.id}"
+}
+
+type Slot = {
+    pub name String
+    pub item Box[Res]
+}
+
+fn take(b: Box[Res]) -> Int {
+    print "take ${b.with((r: &Res) => r.id)}"
+    b.with((r: &Res) => r.id)
+}
+
+fn pass(b: Box[Res]) -> Box[Res] {
+    b
+}
+
+fn rebox(b: Box[Int]) -> Box[Int] {
+    let v = b.into()
+    Box.new(v + 1)
+}
+
+let a = Box.new(Res { id: 1 })
+let moved = a
+print "moved ${moved.with((r: &Res) => r.id)}"
+let back = pass(moved)
+print "back ${back.with((r: &Res) => r.id)}"
+print "took ${take(back)}"
+
+let slot = Slot { name: "s", item: Box.new(Res { id: 2 }) }
+let inner = slot.item
+print "inner ${inner.with((r: &Res) => r.id)}"
+
+let mut boxes = Array.empty[Box[Res]]()
+boxes.push(Box.new(Res { id: 3 }))
+boxes.push(Box.new(Res { id: 4 }))
+if boxes.takeAt(0) is Some(first) {
+    print "first ${first.with((r: &Res) => r.id)}"
+}
+print "left ${boxes.len()}"
+
+let mut counter = Box.new(0)
+let mut i = 0
+for i < 3 {
+    counter = rebox(counter)
+    i = i + 1
+}
+print "counter ${counter.get()}"
+
+let c = Box.new(10)
+let n = c.into()
+let c2 = Box.new(n * 2)
+print "again ${c2.get()}"
+print "end"
+-- stdout --
+moved 1
+back 1
+take 1
+drop res 1
+took 1
+inner 2
+first 3
+left 1
+counter 3
+again 20
+end
+drop res 3
+drop res 4
+drop res 2

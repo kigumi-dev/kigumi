@@ -1,0 +1,104 @@
+-- src --
+import {Box} from std/alloc
+import fmt from std/fmt
+import task from std/task
+
+type Shape = Circle(r: Int) | Dot
+
+interface Sized {
+    fn area(self) -> Int
+}
+
+type Square = {
+    pub side Box[Int]
+}
+
+type Ring = {
+    pub inner Box[Square]
+}
+
+fn Square.area(self) -> Int {
+    self.side.get() * self.side.get()
+}
+
+fn Ring.area(self) -> Int {
+    self.inner.with((s: &Square) => s.area()) + 1
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.id}"
+}
+
+fn wrapIt[T](x: T) -> Box[T] {
+    Box.new(x)
+}
+
+fn unwrapIt[T](b: Box[T]) -> T {
+    b.into()
+}
+
+fn peek[T: Copy](b: &Box[T]) -> T {
+    b.get()
+}
+
+async fn hold(b: Box[Res]) -> Int {
+    print "before await"
+    let n = await step(1)
+    print "after await ${b.with((r: &Res) => r.id)}"
+    n
+}
+
+async fn step(x: Int) -> Int {
+    x + 1
+}
+
+pure fn render[T: fmt.Display](v: &T) -> String {
+    v.display()
+}
+
+fn consume(b: Box[Res]) -> Int {
+    b.with((r: &Res) => r.id)
+}
+
+let w = wrapIt(Res { id: 5 })
+let r = unwrapIt(w)
+print "r ${r.id}"
+let bi = wrapIt(41)
+print "peek ${peek(&bi)}"
+let items = Array.of[Sized](Square { side: Box.new(3) }, Ring { inner: Box.new(Square { side: Box.new(2) }) })
+for it in items {
+    print "area ${it.area()}"
+}
+print render(&Box.new(Shape.Circle(3)))
+let ex = task.currentThreadExecutor()
+print "async ${ex.runToCompletion(hold(Box.new(Res { id: 9 })))}"
+print "consume ${consume(Box.new(Res { id: 11 }))}"
+let moved = Box.new(Res { id: 12 })
+let again = moved
+print "again ${again.with((r: &Res) => r.id)}"
+match Box.new(Shape.Circle(2)).into() {
+    Circle(n) -> print "circle ${n}"
+    Dot -> print "dot"
+}
+print "end"
+-- stdout --
+r 5
+peek 41
+area 9
+area 5
+Circle(3)
+before await
+after await 9
+drop res 9
+async 2
+drop res 11
+consume 11
+again 12
+circle 2
+end
+drop res 12
+drop res 5

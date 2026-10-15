@@ -10,6 +10,7 @@ var fatalAllocPrimitives = map[string]bool{
 	"prelude.Bytes.concat":     true,
 	"prelude.String.fromBytes": true,
 	"alloc.Shared.new":         true,
+	"alloc.Box.new":            true,
 	"mem.secureErase":          true,
 }
 

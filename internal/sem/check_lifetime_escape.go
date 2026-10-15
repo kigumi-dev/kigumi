@@ -31,7 +31,7 @@ type lifetimeEscapeKey struct {
 	arg TypeID
 }
 
-// checkLifetimeEscapeArgs rejects a lifetime-carrying type argument to `Shared[T]` or `Future[T]`,
+// checkLifetimeEscapeArgs rejects a lifetime-carrying type argument to `Shared[T]`, `Box[T]` or `Future[T]`,
 // written as a type or found in an expression's inferred type (checkLifetimeEscapeType).
 func (r *Result) checkLifetimeEscapeArgs(f FileID, n syntax.NodeID, ent EntityID, args []TypeID) {
 	a, ok := r.lifetimeEscapeArg(ent, args)
@@ -66,12 +66,10 @@ func (r *Result) checkLifetimeEscapeType(f FileID, n syntax.NodeID, t TypeID, se
 	}
 }
 
-// lifetimeEscapeArg returns the first of args carrying a lifetime, for `Shared`
-// or `Future`; matched by name, not Result.langItem, to avoid a false lang-item-missing.
+// lifetimeEscapeArg returns the first of args carrying a lifetime, for `Shared`,
+// `Box` or `Future`; matched by name, not Result.langItem, to avoid a false lang-item-missing.
 func (r *Result) lifetimeEscapeArg(ent EntityID, args []TypeID) (TypeID, bool) {
-	alloc, hasAlloc := r.pathIndex["std/alloc"]
-	isShared := hasAlloc && r.Entities[ent].Name == "Shared" && r.Entities[ent].Pkg == alloc
-	if !isShared && ent != r.Types.FutureEnt() {
+	if !r.isAllocType(ent, "Shared", "Box") && ent != r.Types.FutureEnt() {
 		return 0, false
 	}
 	for _, a := range args {

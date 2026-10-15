@@ -11,6 +11,7 @@ const trustedStdFrame = 2
 var hoCallbackArg = map[string]int{
 	"ARRAY_WITH": 2, "ARRAY_WITH_MUT": 2,
 	"PIN_WITH": 1, "WITH_ADDRESS": 1, "SHARED_WITH": 1, "SHARED_WITH_MUT": 1,
+	"BOX_WITH": 1, "BOX_WITH_MUT": 1,
 }
 
 // ComputeResourceSummaries computes every lowered function's ResourceSummary

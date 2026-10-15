@@ -72,6 +72,30 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		c := a0.data.(*sharedCtrl)
 		c.weak++
 		return mkOpaque("Weak", c)
+	case "alloc.Box.new":
+		if m.faultTick() {
+			m.abort("out of memory")
+		}
+		return mkOpaque("Box", mkCell(retain(a0)))
+	case "alloc.Box.tryNew":
+		if m.faultTick() {
+			return m.allocError()
+		}
+		return m.ok(mkOpaque("Box", mkCell(retain(a0))))
+	case "alloc.Box.get":
+		return m.copy(a0.data.(*obj).inner)
+	case "alloc.Box.set":
+		cell := a0.data.(*obj)
+		old := cell.inner
+		cell.inner = retain(a1)
+		m.release(old)
+		return unitObj
+	case "alloc.Box.with":
+		return m.callValue(a1, []*obj{a0.data.(*obj).inner})
+	case "alloc.Box.withMut":
+		return m.callValue(a1, []*obj{a0.data.(*obj)})
+	case "alloc.Box.into":
+		return retain(a0.data.(*obj).inner)
 	case "alloc.Weak.upgrade":
 		c := a0.data.(*sharedCtrl)
 		if c.alive {
@@ -92,7 +116,7 @@ func (m *Machine) freeOpaque(v *obj) {
 	case "Weak":
 		c := v.data.(*sharedCtrl)
 		c.weak--
-	case "AllocatorScope", "UnsafeCell":
+	case "AllocatorScope", "UnsafeCell", "Box":
 		if h, ok := v.data.(*obj); ok {
 			m.release(h)
 		}

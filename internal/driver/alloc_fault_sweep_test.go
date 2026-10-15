@@ -208,6 +208,8 @@ var tryConstructorCases = []tryConstructorCase{
 	{"Bytes.tryFromArray", "fn run() -> Unit {\n    let a: Array[u8] = Array.of(1, 2, 3)\n    _ = Bytes.tryFromArray(&a)\n}\nrun()\n", 6},
 	{"String.tryFromBytes", "fn run() -> Unit {\n    match Bytes.tryZeros(4) {\n        Ok(z) -> { _ = String.tryFromBytes(z) }\n        Err(_) -> {}\n    }\n}\nrun()\n", 2},
 	{"Shared.tryNew", "import {Shared} from std/alloc\n\nfn run() -> Unit {\n    _ = Shared.tryNew(41)\n}\nrun()\n", 2},
+	{"Box.tryNew", "import {Box} from std/alloc\n\nfn run() -> Unit {\n    _ = Box.tryNew(41)\n}\nrun()\n", 2},
+	{"Box.tryNew record", "import {Box} from std/alloc\n\ntype Point = {\n    pub x Int\n    pub y Int\n}\n\nfn run() -> Unit {\n    _ = Box.tryNew(Point { x: 1, y: 2 })\n}\nrun()\n", 5},
 }
 
 // tryConstructorSweepWidth covers each case's own allocation points (a

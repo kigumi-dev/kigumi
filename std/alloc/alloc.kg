@@ -1,3 +1,5 @@
+import {Display} from std/fmt
+
 /// Arena allocator: everything allocated in its scope is freed together when the scope ends.
 pub type Arena
 
@@ -14,6 +16,12 @@ pub type Shared[T]
 
 /// Non-owning handle to a Shared cell; it breaks reference cycles.
 pub type Weak[T]
+
+/// Owned heap cell holding one T: exactly one owner, and dropping the Box drops the content. It is never copied
+/// or cloned implicitly, and it is the way a type refers to itself (`Wrap(kid: Box[Node])`).
+/// Safety: a Box is the only owner of its T, so sending it moves T and sharing it only shares T.
+@unsafeGuarantee(Send when T: Send, Sync when T: Sync)
+pub type Box[T]
 
 /// Creates an arena; fails when the host cannot provide memory.
 pub fn Arena.create() -> AllocatorHandle!
@@ -64,3 +72,44 @@ pub fn Weak[T].upgrade(self) -> Shared[T]?
 
 /// Another weak handle to the same cell.
 pub fn Weak[T].clone(self) -> Weak[T]
+
+/// Moves value onto the heap.
+pub pure fn Box.new[T](value: T) -> Box[T]
+
+/// Moves value onto the heap, or AllocError when the allocator refuses (new panics instead).
+pub pure fn Box.tryNew[T](value: T) -> Result[Box[T], AllocError]
+
+/// A copy of the current content.
+pub pure fn Box[T: Copy].get(self) -> T
+
+/// Replaces the content; the old value is dropped.
+pub pure fn Box[T].set(mut self, value: T) -> Unit
+
+/// Calls f once with a borrow of the content and returns what it returns; f is not kept (non-escaping).
+pub pure fn Box[T].with[R](self, f: fn(&T) -> R) -> R
+
+/// Calls f once with an exclusive borrow of the content, so f can mutate it in place; f is not kept.
+pub pure fn Box[T].withMut[R](mut self, f: fn(&mut T) -> R) -> R
+
+/// Moves the content out and frees the cell; the only way to take ownership of the content back.
+pub pure fn Box[T].into(move self) -> T
+
+/// Equality of the contents; satisfies `Eq` when T does.
+pub pure fn Box[T: Eq].equals(self, other: &Box[T]) -> Bool {
+    self.with((a: &T) => other.with((b: &T) => a == b))
+}
+
+/// The hash of the content; satisfies `Hash` when T does.
+pub pure fn Box[T: Hash].hash(self) -> u64 {
+    self.with((a: &T) => a.hash())
+}
+
+/// Order of the contents; satisfies `Ord` when T does.
+pub pure fn Box[T: Ord].compareTo(self, other: &Box[T]) -> Ordering {
+    self.with((a: &T) => other.with((b: &T) => a.compareTo(b)))
+}
+
+/// The text of the content; satisfies `Display` when T does.
+pub pure fn Box[T: Display].display(self) -> String {
+    self.with((a: &T) => a.display())
+}

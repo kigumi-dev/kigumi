@@ -87,7 +87,9 @@ func (m *Machine) displayIntoCanon(sb *strings.Builder, v *obj, canon bool) {
 	case kBox:
 		m.displayIntoCanon(sb, v.inner, canon)
 	case kOpaque:
-		if v.op == "Error" || v.op == "Path" {
+		if v.op == "Box" {
+			m.displayIntoCanon(sb, v.data.(*obj).inner, canon)
+		} else if v.op == "Error" || v.op == "Path" {
 			sb.WriteString(v.data.(string))
 		} else {
 			sb.WriteString("<" + v.op + ">")

@@ -1,0 +1,53 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+import {AllocatorHandle} from std/alloc
+import {Box} from std/alloc
+
+fn scoped(h: AllocatorHandle, n: Int) -> Int {
+    allocator h.scope() {
+        let b = Box.new(n)
+        b.into()
+    }
+}
+
+fn scopedTry(h: AllocatorHandle, n: Int) -> Int {
+    allocator h.scope() {
+        match Box.tryNew(n) {
+            Ok(b) -> b.into()
+            Err(_) -> 0
+        }
+    }
+}
+
+export(C) {
+    pub fn lib_try(n: i64) -> i64 {
+        match Box.tryNew(n) { //~ ERROR needs the default allocator
+            Ok(b) -> b.into()
+            Err(_) -> 0
+        }
+    }
+
+    pub fn lib_direct(n: i64) -> i64 {
+        let b = Box.new(n) //~ ERROR needs the default allocator
+        b.into()
+    }
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E959]: `tryNew` needs the default allocator, but this build has none (--allocator none)
+  --> main.kg:22:15
+   |
+22 |         match Box.tryNew(n) { //~ ERROR needs the default allocator
+   |               ^^^^^^^^^^^^
+   = help: allocate inside an `allocator` block
+
+error[E959]: `new` needs the default allocator, but this build has none (--allocator none)
+  --> main.kg:29:17
+   |
+29 |         let b = Box.new(n) //~ ERROR needs the default allocator
+   |                 ^^^^^^^^^
+   = help: allocate inside an `allocator` block
+

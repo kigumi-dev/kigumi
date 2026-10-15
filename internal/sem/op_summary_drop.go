@@ -1,5 +1,7 @@
 package sem
 
+import "slices"
+
 // dropOpSummary is dropEffect's generalization to all facts; it keeps its
 // own memo so neither system's cache affects the other.
 func (r *Result) dropOpSummary(t TypeID) OpSummary {
@@ -48,7 +50,7 @@ func (r *Result) computeDropOp(t TypeID) OpSummary {
 	if info.Form == FormResource && info.Drop != 0 {
 		s = mergeOp(s, r.opSummary(info.Drop))
 	}
-	if r.isSharedCell(n.Ent) {
+	if r.isHeapCell(n.Ent) {
 		s.Facts[FactRelease] = OpFactState{Maybe: true}
 	}
 	subst := map[EntityID]TypeID{}
@@ -71,11 +73,14 @@ func (r *Result) computeDropOp(t TypeID) OpSummary {
 	return s
 }
 
-// isSharedCell matches by name+package: "Shared" has no langItemTable entry.
-func (r *Result) isSharedCell(ent EntityID) bool {
+// isAllocType matches by name+package: these std/alloc types have no langItemTable entry.
+func (r *Result) isAllocType(ent EntityID, names ...string) bool {
 	alloc, ok := r.pathIndex["std/alloc"]
-	return ok && r.Entities[ent].Name == "Shared" && r.Entities[ent].Pkg == alloc
+	return ok && r.Entities[ent].Pkg == alloc && slices.Contains(names, r.Entities[ent].Name)
 }
+
+// isHeapCell reports whether dropping a value of this type frees a heap cell.
+func (r *Result) isHeapCell(ent EntityID) bool { return r.isAllocType(ent, "Shared", "Box") }
 
 // mergeOp ORs two summaries; the first state found wins as the cause, same
 // rule applyOpEdge uses, so drop composition stays deterministic too.

@@ -1,0 +1,36 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+import {Box} from std/alloc
+
+fn fallible(n: Int) -> Int {
+    match Box.tryNew(n) {
+        Ok(b) -> b.into()
+        Err(_) -> 0
+    }
+}
+
+export(C) {
+    pub fn lib_fallible(n: i64) -> i64 {
+        match Box.tryNew(n) {
+            Ok(b) -> b.into()
+            Err(_) -> 0
+        }
+    }
+
+    pub fn lib_fatal(n: i64) -> i64 {
+        let b = Box.new(n) //~ ERROR `new`
+        b.into()
+    }
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E1280]: `new` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:19:17
+   |
+19 |         let b = Box.new(n) //~ ERROR `new`
+   |                 ^^^^^^^^^
+   = help: use the fallible (`try`-prefixed) form instead
+

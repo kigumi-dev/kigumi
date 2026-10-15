@@ -1,0 +1,77 @@
+-- src --
+import {Box} from std/alloc
+import fmt from std/fmt
+import {empty} from std/map
+
+type Node = Text(s: String) | Wrap(kid: Box[Node])
+type List = {
+    pub v Int
+    pub next Option[Box[List]]
+}
+type Link = {
+    pub v Int
+    pub next Box[Link]?
+}
+
+type Shape = Circle(r: Int) | Dot
+
+type Pair = {
+    pub a Box[Int]
+    pub b Box[String]
+}
+
+fn id[T](b: Box[T]) -> Box[T] {
+    b
+}
+
+fn depth(n: &Node) -> Int {
+    match n {
+        Text(_) -> 0
+        Wrap(kid) -> 1 + kid.with((k: &Node) => depth(k))
+    }
+}
+
+pure fn render[T: fmt.Display](v: &T) -> String {
+    v.display()
+}
+
+let a = Box.new(3)
+let b = Box.new(3)
+let c = Box.new(9)
+print "eq ${a == b} ${a != c}"
+print "hash ${a.hash() == 3.hash()}"
+print "cmp ${a < c} ${c.compareTo(&a) == Ordering.Greater}"
+let s = Box.new(Shape.Circle(4))
+print "display ${render(&s)} ${render(&Shape.Circle(4))}"
+let p = Pair { a: Box.new(1), b: Box.new("x") }
+let q = Pair { a: Box.new(1), b: Box.new("x") }
+print "pair eq ${p == q}"
+print "pair display ${render(&p)}"
+print "debug ${debug(&p)}"
+let g = id(Box.new("gen"))
+print "gen ${g.with((s: &String) => s.len())}"
+let mut arr = Array.empty[Box[Int]]()
+arr.push(Box.new(5))
+arr.push(Box.new(6))
+print "arr ${arr.with(1, (x: &Box[Int]) => x.get()) || 0}"
+let mut m = empty[Int, Box[Int]]()
+m.set(1, Box.new(10))
+print "map ${m.with(1, (x: &Box[Int]) => x.get()) || 0}"
+let cap = Box.new(7)
+let f = () => cap.get()
+print "closure ${f()}"
+let n = Wrap(Box.new(Wrap(Box.new(Text("a")))))
+print "depth ${depth(&n)}"
+-- stdout --
+eq true true
+hash true
+cmp true true
+display Circle(4) Circle(4)
+pair eq true
+pair display Pair { 1, x }
+debug Pair { 1, x }
+gen 3
+arr 6
+map 10
+closure 7
+depth 2

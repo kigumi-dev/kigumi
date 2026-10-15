@@ -156,8 +156,8 @@ func (r *Result) isrTraceDropInto(t TypeID, file FileID, node syntax.NodeID, saf
 		hops, _ := r.isrTraceCall(info.Drop, file, node, safe, visited, find)
 		return hops
 	}
-	if r.isSharedCell(n.Ent) {
-		return []isrHop{{file, node, "drops a `Shared` value, which may free its contents"}}
+	if r.isHeapCell(n.Ent) {
+		return []isrHop{{file, node, "drops a `" + r.Entities[n.Ent].Name + "` value, which may free its contents"}}
 	}
 	subst := map[EntityID]TypeID{}
 	for i, p := range info.Params {

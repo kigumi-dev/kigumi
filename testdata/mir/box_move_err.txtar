@@ -1,0 +1,51 @@
+-- lib/moves.kg --
+import {Box} from std/alloc
+
+fn reuse(b: Box[Int]) -> Int {
+    let c = b
+    b.get() + c.get()
+}
+
+fn twice(b: Box[Int]) -> Int {
+    let x = b.into()
+    let y = b.into()
+    x + y
+}
+-- expect --
+fn lib.reuse(%b: Box[Int]) -> Int {
+  b0:
+    %t1 = move(%b)
+    %c = copy(%t1)
+    %t3 = call get(%b)
+    %t4 = call get(%c)
+    %t5 = bin +(%t3, %t4)
+    drop(%c)
+    nop
+    return %t5
+}
+fn lib.twice(%b: Box[Int]) -> Int {
+  b0:
+    %t1 = move(%b)
+    %t2 = call into(%t1)
+    %x = copy(%t2)
+    %t4 = move(%b)
+    %t5 = call into(%t4)
+    %y = copy(%t5)
+    %t7 = bin +(%x, %y)
+    drop(%y)
+    drop(%x)
+    nop
+    return %t7
+}
+error[use-after-move]: `b` was moved; it cannot be used again
+ --> lib/moves.kg:5:5
+  |
+5 |     b.get() + c.get()
+  |     ^^^^^^
+
+error[use-after-move]: `b` was moved; it cannot be used again
+  --> lib/moves.kg:10:13
+   |
+10 |     let y = b.into()
+   |             ^
+

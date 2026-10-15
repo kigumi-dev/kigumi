@@ -37,6 +37,8 @@ func TestResolveStdOpKind(t *testing.T) {
 		{"math.sqrt", KindPrimitive},
 		{"alloc.Arena.create", KindPrimitive},
 		{"alloc.Shared.new", KindPrimitive},
+		{"alloc.Box.new", KindPrimitive},
+		{"alloc.Box.into", KindPrimitive},
 		{"crypto/subtle.constantTimeEq", KindPrimitive},
 		{"os.Host.files", KindProvider},
 		{"net.Net.http", KindProvider},

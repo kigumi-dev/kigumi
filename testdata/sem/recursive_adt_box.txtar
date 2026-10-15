@@ -1,0 +1,34 @@
+-- app/t/t.kg --
+import {Box} from std/alloc
+
+type Node = Text(s: String) | Wrap(kid: Box[Node])
+
+type List = {
+    pub v Int
+    pub next Box[List]
+}
+
+type Link = {
+    pub v Int
+    pub next Option[Box[Link]]
+}
+
+type Tree = {
+    pub label String
+    pub kids Array[Box[Tree]]
+}
+
+type Mutual = Base | Cont(other: Box[OtherAdt])
+
+type OtherAdt = Stop | Back(m: Mutual)
+
+type Generic[M] = Leaf(v: M) | Nest(kid: Box[Generic[M]])
+
+type Tuple = LeafT(v: Int) | BranchT(kid: Box[(Int, Tuple)])
+
+type Direct = Node2(kid: Box[Direct2])
+
+type Direct2 = Leaf2 | Hold(inner: Direct)
+
+fn use(n: Node, l: List, k: Link, t: Tree, m: Mutual, g: Generic[Int], s: Tuple, d: Direct) -> Unit {}
+-- expect --

@@ -402,6 +402,17 @@
       ]
     },
     {
+      "id": "mir/box_move_err",
+      "kind": "mir",
+      "path": "testdata/mir/box_move_err.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/comptime_multi_block",
       "kind": "mir",
       "path": "testdata/mir/comptime_multi_block.txtar",
@@ -2835,6 +2846,91 @@
       "id": "run/borrow_match",
       "kind": "run",
       "path": "testdata/run/borrow_match.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/box_basic",
+      "kind": "run",
+      "path": "testdata/run/box_basic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/box_containers",
+      "kind": "run",
+      "path": "testdata/run/box_containers.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/box_generic",
+      "kind": "run",
+      "path": "testdata/run/box_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/box_move",
+      "kind": "run",
+      "path": "testdata/run/box_move.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/box_tree",
+      "kind": "run",
+      "path": "testdata/run/box_tree.txtar",
       "mode": [
         "vm",
         "native"
@@ -9907,6 +10003,50 @@
       ]
     },
     {
+      "id": "sem/box_allocator_none",
+      "kind": "sem",
+      "path": "testdata/sem/box_allocator_none.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/box_escape",
+      "kind": "sem",
+      "path": "testdata/sem/box_escape.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/box_noalloc",
+      "kind": "sem",
+      "path": "testdata/sem/box_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/box_recoverable",
+      "kind": "sem",
+      "path": "testdata/sem/box_recoverable.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/break_value_err",
       "kind": "sem",
       "path": "testdata/sem/break_value_err.txtar",
@@ -11879,6 +12019,17 @@
       "id": "sem/recursive_adt",
       "kind": "sem",
       "path": "testdata/sem/recursive_adt.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recursive_adt_box",
+      "kind": "sem",
+      "path": "testdata/sem/recursive_adt_box.txtar",
       "mode": [
         "check"
       ],
