@@ -59,17 +59,22 @@ func (p *Program) lowerRoots(all bool) []sem.EntityID {
 	for _, site := range r.Comptime {
 		comptime[p.topOf(site.Fn)] = true
 	}
+	main := r.MainFn()
 	var roots []sem.EntityID
 	for i := 1; i < len(r.Entities); i++ {
 		id := sem.EntityID(i)
-		if p.lowerable(id) && (all || comptime[id] || p.alwaysLowered(id)) {
+		if p.lowerable(id) && (all || comptime[id] || p.alwaysLowered(id, main) && p.keepsRoot(id)) {
 			roots = append(roots, id)
 		}
 	}
 	return roots
 }
 
-func (p *Program) alwaysLowered(id sem.EntityID) bool {
+func (p *Program) keepsRoot(id sem.EntityID) bool {
+	return p.rootKeep == nil || p.rootKeep(p.R.Packages[p.R.Entity(id).Pkg].Path)
+}
+
+func (p *Program) alwaysLowered(id, main sem.EntityID) bool {
 	r := p.R
 	e := r.Entity(id)
 	if pkg := r.Packages[e.Pkg]; !pkg.Std && pkg.Module == "" {
@@ -79,7 +84,7 @@ func (p *Program) alwaysLowered(id sem.EntityID) bool {
 	case sem.EntTest, sem.EntImplicitMain:
 		return true
 	}
-	return id == r.MainFn() || r.Fn(id).Export != ""
+	return id == main || r.Fn(id).Export != ""
 }
 
 func (p *Program) topOf(id sem.EntityID) sem.EntityID {

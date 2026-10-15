@@ -66,6 +66,14 @@ func (m *Module) storeSettled(a *Analysis, render string) {
 	if m.pkgCache == nil || m.HasParseErrors() || a.Prog == nil || len(a.Prog.Comptime) > 0 {
 		return
 	}
+	m.putSettled(render)
+}
+
+// putSettled stores the render under the module key, when every reached package has a record.
+func (m *Module) putSettled(render string) {
+	if m.pkgCache == nil {
+		return
+	}
 	key, ok := m.settledKey()
 	if !ok {
 		return

@@ -37,7 +37,7 @@ func CheckOnly(m *Module) (*sem.Result, error) {
 		return nil, err
 	}
 	res := sem.CheckWith(mod, schema.GenerateDerive)
-	m.recordPackages(res)
+	m.recordPackages(res, false)
 	return res, nil
 }
 
@@ -105,7 +105,10 @@ func (m *Module) buildScope() map[string]bool {
 // script-shaped file of a package under cmd/, or the only script-shaped
 // file of a module without cmd/. A package an explicit entry's build scope
 // leaves out (a sibling cmd/* program, say) is dropped entirely.
-func (m *Module) semModule() (*sem.Module, error) {
+func (m *Module) semModule() (*sem.Module, error) { return m.semModuleOf(nil) }
+
+// semModuleOf is semModule restricted to the own packages keep accepts; std always stays.
+func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 	m.ensureParsed()
 	if m.loadErr != nil {
 		return nil, m.loadErr
@@ -130,6 +133,9 @@ func (m *Module) semModule() (*sem.Module, error) {
 	for _, path := range m.Order {
 		p := m.Packages[path]
 		if scope != nil && !p.Std && !scope[path] {
+			continue
+		}
+		if keep != nil && !p.Std && !keep(path) {
 			continue
 		}
 		sp := &sem.Package{Path: p.Path, Files: p.Files, Std: p.Std, Module: p.Module}

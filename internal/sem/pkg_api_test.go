@@ -90,3 +90,25 @@ func TestPackageAPIEffectSummary(t *testing.T) {
 		t.Fatal("a body that starts allocating changes the exported effect summary")
 	}
 }
+
+func TestPackageAPIIgnoresInstancesMintedByImporters(t *testing.T) {
+	t.Parallel()
+	const lib = "pub interface Shape {\n    fn area(self) -> Int\n}\n\npub type Square = {\n    pub n Int\n}\n\npub fn Square.area(self) -> Int {\n    self.n\n}\n\npub fn measure[S: Shape](s: S) -> Int {\n    s.area()\n}\n"
+	const app = "import lib from lib\n\nfn use() -> Int {\n    lib.measure(lib.Square { n: 1 })\n}\n"
+	api := func(withApp bool) string {
+		pkgs := append(testkit.LoadStd(t, "../../std"), &sem.Package{Path: "lib", Files: []*syntax.Tree{syntax.Parse(token.NewFile("lib/lib.kg", []byte(lib)))}})
+		if withApp {
+			pkgs = append(pkgs, &sem.Package{Path: "app", Files: []*syntax.Tree{syntax.Parse(token.NewFile("app/app.kg", []byte(app)))}})
+		}
+		res := sem.CheckWith(&sem.Module{Packages: pkgs}, schema.GenerateDerive)
+		if res.HasErrors() {
+			t.Fatalf("fixture does not check:\n%s", res.Render())
+		}
+		a, _ := res.PackageAPIOf("lib")
+		b, _ := json.Marshal(a)
+		return string(b)
+	}
+	if alone, used := api(false), api(true); alone != used {
+		t.Errorf("an importer instantiating a generic must not move the exporter's API:\n%s\n%s", alone, used)
+	}
+}

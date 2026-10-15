@@ -15,8 +15,15 @@ func Build(r *sem.Result) *Program { return build(r, false) }
 // BuildAll lowers every body, reachable or not.
 func BuildAll(r *sem.Result) *Program { return build(r, true) }
 
-func build(r *sem.Result, all bool) *Program {
-	p := &Program{R: r, ByEnt: map[sem.EntityID]*Func{}}
+// BuildFor is Build that lowers up front only the own-module bodies of the packages keep accepts.
+func BuildFor(r *sem.Result, keep func(path string) bool) *Program {
+	return buildFor(r, false, keep)
+}
+
+func build(r *sem.Result, all bool) *Program { return buildFor(r, all, nil) }
+
+func buildFor(r *sem.Result, all bool, keep func(path string) bool) *Program {
+	p := &Program{R: r, ByEnt: map[sem.EntityID]*Func{}, rootKeep: keep}
 	p.lowerReachable(all)
 	p.Entry = p.ByEnt[r.MainFn()]
 	resolveStdOps(p)

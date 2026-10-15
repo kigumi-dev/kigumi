@@ -31,7 +31,7 @@ func Cmd() *cobra.Command {
 		if report.HasErrors() {
 			return cliutil.Exit(1)
 		}
-		res, err := driver.Check(m)
+		res, err := driver.CheckUnits(m)
 		if err != nil {
 			return errors.WrapErr(err, "check module")
 		}

@@ -58,6 +58,8 @@ type LoadOptions struct {
 	AllPackages bool
 	// DeferParse stops the load after the package index and root set: nothing is parsed until a call needs the trees, so a settled module can answer from the package cache without reading sources.
 	DeferParse bool
+	// UnitCheck lets CheckUnits skip packages whose cached outcome is clean; it needs PackageCache.
+	UnitCheck bool
 	// PackageCache is the directory holding the index memo, package API artifacts and settled check results; "" turns persistence off.
 	PackageCache string
 	// VerifyPasses verifies the MIR before the passes and after each one, not only after the last.

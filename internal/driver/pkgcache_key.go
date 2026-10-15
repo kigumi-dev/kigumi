@@ -15,7 +15,7 @@ import (
 )
 
 // keyVersion moves when the key or artifact encoding changes, so older entries stop matching.
-const keyVersion = 1
+const keyVersion = 2
 
 // pkgGraph is the import graph of the packages a key covers: own and dependency packages reachable from the roots, with same-module cycles collapsed into one component each.
 type pkgGraph struct {
@@ -121,6 +121,9 @@ func (m *Module) packageKey(g *pkgGraph, path, env, std string, digests map[stri
 		if err := m.writeFiles(h, m.index.pkgs[member]); err != nil {
 			return "", err
 		}
+		if m.keyExplicit && m.holdsFile(member, m.keyEntry) {
+			fmt.Fprintf(h, "entry=%s\n", m.keyEntry)
+		}
 	}
 	for _, dep := range g.closure(path) {
 		fmt.Fprintf(h, "dep=%s:%s\n", dep, digests[dep])
@@ -131,6 +134,11 @@ func (m *Module) packageKey(g *pkgGraph, path, env, std string, digests map[stri
 		}
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// holdsFile says whether the indexed package has the file with this display name; the explicit entry is the one script file its package may hold outside cmd/.
+func (m *Module) holdsFile(path, display string) bool {
+	return slices.ContainsFunc(m.index.pkgs[path].files, func(f *indexedFile) bool { return f.display == display })
 }
 
 // closure lists every package path reaches through imports: a distant public type can decide a layout that flows through an intermediate package.

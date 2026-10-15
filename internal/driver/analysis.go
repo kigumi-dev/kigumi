@@ -38,6 +38,15 @@ func AnalyzeWith(m *Module, gen sem.DeriveGenerator) (*Analysis, error) {
 }
 
 func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, error) {
+	a, err := m.analyzeCore(mod, gen, nil)
+	if a != nil {
+		m.recordPackages(a.Res, a.Prog != nil)
+	}
+	return a, err
+}
+
+// analyzeCore is analyze without recording artifacts; keep, when set, limits which own packages are lowered up front.
+func (m *Module) analyzeCore(mod *sem.Module, gen sem.DeriveGenerator, keep func(path string) bool) (*Analysis, error) {
 	m.stats.Check++
 	if gen == nil {
 		gen = schema.GenerateDerive
@@ -49,12 +58,11 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 	a := &Analysis{Res: res, Provenance: schema.BuildProvenance(res, nil)}
 	m.lastAnalysis = a
 	if res.HasErrors() {
-		m.recordPackages(res)
 		return a, nil
 	}
 	m.stats.MIR++
 	var err error
-	if a.Prog, err = buildProgram(res, progOptions{strict: m.target.StrictStack, budgetKiB: m.target.StackBudgetKiB, verifyEach: m.verifyPasses, lowerAll: m.lowerAll}); err != nil {
+	if a.Prog, err = buildProgram(res, progOptions{strict: m.target.StrictStack, budgetKiB: m.target.StackBudgetKiB, verifyEach: m.verifyPasses, lowerAll: m.lowerAll, rootKeep: keep}); err != nil {
 		return nil, err
 	}
 	// Several cmd/ scripts each have an implicit main; the module's entry
@@ -66,7 +74,6 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 			}
 		}
 	}
-	m.recordPackages(res)
 	return a, nil
 }
 
@@ -77,11 +84,13 @@ type progOptions struct {
 	budgetKiB  int
 	verifyEach bool
 	lowerAll   bool
+	// rootKeep limits the own packages lowered up front.
+	rootKeep func(path string) bool
 }
 
 // buildProgram returns a program with diagnostics unverified.
 func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
-	prog := lowerProgram(res, o.lowerAll)
+	prog := lowerProgram(res, o.lowerAll, o.rootKeep)
 	if res.HasErrors() {
 		return prog, nil
 	}
@@ -101,12 +110,16 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	return prog, nil
 }
 
-func lowerProgram(res *sem.Result, all bool) *mir.Program {
-	build := mir.Build
-	if all {
-		build = mir.BuildAll
+func lowerProgram(res *sem.Result, all bool, keep func(path string) bool) *mir.Program {
+	var prog *mir.Program
+	switch {
+	case all:
+		prog = mir.BuildAll(res)
+	case keep != nil:
+		prog = mir.BuildFor(res, keep)
+	default:
+		prog = mir.Build(res)
 	}
-	prog := build(res)
 	for _, f := range prog.Funcs {
 		res.Files[f.File].Diags = append(res.Files[f.File].Diags, f.Diags...)
 	}

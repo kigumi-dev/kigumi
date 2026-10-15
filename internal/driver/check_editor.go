@@ -32,7 +32,7 @@ func editorDiags(m *Module) (*sem.Result, []mir.FileDiag) {
 	if res.HasErrors() {
 		return res, nil
 	}
-	prog := lowerProgram(res, false)
+	prog := lowerProgram(res, false, nil)
 	if res.HasErrors() {
 		return res, nil
 	}

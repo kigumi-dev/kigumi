@@ -96,6 +96,8 @@ func (c *packageCache) getSealed(kind, name string, v any) bool {
 type keyRecord struct {
 	Path   string `json:"path"`
 	Digest string `json:"digest"`
+	// Clean marks a package that checked with no diagnostic, so a later run may skip it while its key holds.
+	Clean bool `json:"clean,omitempty"`
 }
 
 func (c *packageCache) lookup(key string) (keyRecord, bool) {

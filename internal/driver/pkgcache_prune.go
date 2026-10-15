@@ -37,7 +37,7 @@ func (c *packageCache) prune() {
 	}
 	var files []cachedFile
 	var total int64
-	for _, kind := range []string{"pkg", "api", "check"} {
+	for _, kind := range []string{"pkg", "api", "check", "unit"} {
 		filepath.WalkDir(filepath.Join(c.dir, kind), func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return nil

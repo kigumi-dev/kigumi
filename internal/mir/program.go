@@ -21,6 +21,8 @@ type Program struct {
 	VerifyEach bool
 	lowering   *lowering
 	unlowered  []bool
+	// rootKeep, when set, limits the up-front lowering to the packages it accepts.
+	rootKeep func(path string) bool
 }
 
 // Unlowered reports whether ent has a body Build left out because nothing reaches it.

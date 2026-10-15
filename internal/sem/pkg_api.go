@@ -49,6 +49,9 @@ func (r *Result) PackageAPIOf(path string) (PackageAPI, bool) {
 		if e.Pkg != pkg || e.File == 0 || e.Flags&EfPoison != 0 || e.Vis.Level == VisPrivate {
 			continue
 		}
+		if _, minted := r.instances[EntityID(id)]; minted {
+			continue
+		}
 		if d, ok := r.apiDecl(EntityID(id)); ok {
 			api.Decls = append(api.Decls, d)
 		}
