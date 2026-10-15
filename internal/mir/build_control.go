@@ -106,37 +106,16 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	// loop) live in a scope of their own, so break, return and the normal
 	// exit all release them.
 	b.pushScope()
-	var iter, idx, length LocalID
-	var refHead bool
+	var cur forCursor
 	var headBound []LocalID
 	if pattern != nil {
-		// A borrowed head (its own type, `&Array[T]`/`&mut Array[T]`, or a
-		// fresh `&`/`&mut` written at the head) is never moved nor owned by
-		// the loop: only a plain owned head is, and a lent
-		// `self`/`mut self` is excluded the same way declare() excludes it.
-		refHead = b.r.Types.Kind(head.Type) == sem.KRef
-		if lid, ok := b.locals[head.Ent]; !refHead && head.Kind == hir.Local && ok && !b.fn.Locals[lid].Borrowed {
-			iter = b.exprMoved(head)
-			b.markRetain(iter)
-		} else {
-			iter = b.expr(head)
-		}
-		if b.fn.Locals[iter].Ent == 0 {
-			if refHead {
-				b.ownBorrowedSource(iter)
-			} else {
-				b.own(iter)
-			}
-		}
-		idx = b.own(b.emit(Inst{Op: OpConst, Dst: b.temp(sem.TyUsize), Lit: sem.Literal{Kind: sem.LitInt}, Type: sem.TyUsize, Str: "0", Node: n}))
-		length = b.own(b.emit(Inst{Op: OpBuiltin, Dst: b.temp(sem.TyUsize), Str: "iter.len", Args: []LocalID{iter}, Node: n}))
+		cur = b.forCursorFor(e)
 	}
 	b.jump(cond)
 	b.cur = cond
 	switch {
 	case pattern != nil:
-		c := b.emit(Inst{Op: OpBinary, Dst: b.temp(sem.TyBool), Str: "<", Args: []LocalID{idx, length}, Node: n})
-		b.term(Term{Op: TermBranch, Args: []LocalID{c}, Targets: []BlockID{loop, exit}})
+		b.term(Term{Op: TermBranch, Args: []LocalID{cur.test(n)}, Targets: []BlockID{loop, exit}})
 	case head != nil:
 		var c LocalID
 		c, headBound = b.loopHead(head)
@@ -148,20 +127,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.loops = append(b.loops, &loopCtx{cont: next, exit: exit, depth: len(b.scopes), valued: valued, result: result})
 	b.pushScope()
 	if pattern != nil {
-		// Copy keeps the retain-in-place iter.at (some std loops re-read
-		// by index, e.g. Array.reverse); a borrowed head binds through
-		// iter.at_ref instead of retaining; an owned element moves once
-		// via iter.at_move.
-		at := "iter.at"
-		switch {
-		case b.r.IsCopy(pattern.Type):
-		case refHead:
-			at = "iter.at_ref"
-		default:
-			at = "iter.at_move"
-		}
-		elem := b.emit(Inst{Op: OpBuiltin, Dst: b.temp(pattern.Type), Str: at, Args: []LocalID{iter, idx}, Node: n})
-		b.bindPattern(pattern, elem)
+		b.bindPattern(pattern, cur.elem(n))
 	}
 	b.blockExpr(e.Block)
 	b.exitScope()
@@ -170,10 +136,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.cur = next
 	b.dropLoopBound(headBound)
 	if pattern != nil {
-		one := b.emit(Inst{Op: OpConst, Dst: b.temp(sem.TyUsize), Lit: sem.Literal{Kind: sem.LitInt}, Type: sem.TyUsize, Str: "1", Node: n})
-		sum := b.emit(Inst{Op: OpBinary, Dst: b.temp(sem.TyUsize), Str: "+", Args: []LocalID{idx, one}, Node: n})
-		b.emit(Inst{Op: OpDrop, Args: []LocalID{idx}, Node: n})
-		b.emit(Inst{Op: OpCopy, Dst: idx, Args: []LocalID{sum}, Node: n})
+		cur.advance(n, cond, exit)
 	}
 	b.jump(cond)
 	b.cur = exit

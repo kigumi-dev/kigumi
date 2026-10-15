@@ -137,7 +137,7 @@ type Result struct {
 	resultEnts              map[literalEntKey]EntityID
 	containerEnts           map[literalEntKey]EntityID
 	containerLits           map[EntityID]bool
-	containerFields         [2]EntityID
+	containerFields         [4]EntityID
 	fnResultEnts            map[EntityID]EntityID
 	identPaths              map[*syntax.Tree]map[syntax.NodeID]syntax.NodeID
 	pendingWitnessCallbacks []pendingWitnessCallback
@@ -170,5 +170,6 @@ type Result struct {
 	closureOrdinals           map[EntityID]int
 	lifetimeStandIns          []EntityID
 	deferredClaims            bool
+	lendSites                 map[lendSite]bool
 	allocBlocks               []allocBlock
 }

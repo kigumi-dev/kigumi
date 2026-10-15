@@ -21,7 +21,7 @@ func (r *Result) recordFieldsOf(t TypeID) []EntityID {
 }
 
 func (r *Result) nestedFnOwner(key fieldFnKey) EntityID {
-	if r.Entities[key.Ent].Kind == EntLocal && r.Entities[key.Ent].Flags&EfMut == 0 {
+	if e := &r.Entities[key.Ent]; e.Kind == EntLocal && e.Flags&EfMut == 0 || r.isResultEnt(key.Ent) {
 		if src := r.fieldWitnessOf[key]; src != 0 {
 			return src
 		}
@@ -72,6 +72,8 @@ func (r *Result) fnChainEnt(file FileID, expr syntax.NodeID) EntityID {
 		return r.containerLitEnt(file, expr)
 	case syntax.BracketExpr:
 		return r.elementEnt(file, expr)
+	case syntax.TryExpr:
+		return r.tryPayloadEnt(file, expr)
 	}
 	return 0
 }
@@ -87,14 +89,14 @@ func (r *Result) elementEnt(file FileID, expr syntax.NodeID) EntityID {
 	if n := r.Types.Node(bt); n.Kind == KRef {
 		bt = n.Elem
 	}
-	if n := r.Types.Node(bt); n.Kind != KNamed || n.Ent != r.Types.arrayEnt || r.Types.arrayEnt == 0 {
+	if n := r.Types.Node(bt); n.Kind != KNamed || (n.Ent != r.Types.arrayEnt || r.Types.arrayEnt == 0) && !r.isFixedArray(bt) {
 		return 0
 	}
 	owner := r.fnChainEnt(file, base)
 	if owner == 0 {
 		return 0
 	}
-	return r.nestedFnOwner(fieldFnKey{Ent: owner, Field: r.containerField(1)})
+	return r.nestedFnOwner(fieldFnKey{Ent: owner, Field: r.containerField(fieldElement)})
 }
 
 // A copy of a local still written later is merged at the copy, since an alias would see those writes.
@@ -149,4 +151,25 @@ func (c *checker) aliasedParam(n syntax.NodeID) EntityID {
 func (c *checker) writableParamPlace(ent EntityID) bool {
 	root := &c.r.Entities[c.r.rootOf(ent)]
 	return len(c.lambdas) == 0 && root.Kind == EntParam && root.Parent == c.fn && root.Flags&EfMut == 0 && c.r.Types.RefMut(c.vars.resolve(root.Type))
+}
+
+func (r *Result) tryPayloadEnt(file FileID, expr syntax.NodeID) EntityID {
+	operand := r.tree(file).View(expr).AsTry().Operand().ID()
+	owner := r.fnChainEnt(file, operand)
+	if owner == 0 {
+		return 0
+	}
+	t := r.Files[file].Types[operand]
+	if n := r.Types.Node(t); n.Kind == KRef {
+		t = n.Elem
+	}
+	switch n := r.Types.Node(t); {
+	case n.Kind != KNamed:
+		return 0
+	case n.Ent == r.Types.optionEnt:
+		return r.nestedFnOwner(fieldFnKey{Ent: owner, Field: r.containerField(fieldPayload)})
+	case n.Ent == r.Types.resultEnt && n.Ent != 0:
+		return r.nestedFnOwner(fieldFnKey{Ent: owner, Field: r.containerField(fieldOk)})
+	}
+	return 0
 }

@@ -44,7 +44,7 @@ func (r *Result) isResultEnt(ent EntityID) bool { return r.Entities[ent].Flags&E
 // Replayed like a setter's writes, so the order the bodies are checked in never matters.
 func (c *checker) noteResultSite(n syntax.NodeID, fn EntityID, args []syntax.NodeID, recvBase syntax.NodeID, ret TypeID) {
 	info := c.r.Fn(fn)
-	if info.Body == 0 || info.Declared&EffAsync != 0 {
+	if info.Body == 0 || info.Declared&EffAsync != 0 || c.r.fixedFilled(fn) {
 		return
 	}
 	ret = c.vars.resolve(ret)

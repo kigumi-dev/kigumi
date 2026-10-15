@@ -1,5 +1,6 @@
 -- src --
 import task from std/task
+import map from std/map
 
 type Holder = {
     pub cb fn() -> Int
@@ -19,7 +20,9 @@ fn syncRoot() -> Int {
 }
 
 fn maybe() -> Option[Holder] {
-    Some(Holder { cb: syncRoot })
+    let mut m = map.empty[Int, Holder]()
+    m.set(0, Holder { cb: syncRoot })
+    m.get(&0)
 }
 
 async fn outer() -> Int {

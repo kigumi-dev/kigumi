@@ -1,5 +1,6 @@
 -- src --
 import task from std/task
+import map from std/map
 
 type Holder = {
     pub mut cb fn() -> Int
@@ -33,8 +34,9 @@ fn callIt(h: Holder) -> Int {
 async fn outer() -> Int {
     let mut w = Holder { cb: safeFn }
     w.cb = opaqueSel(true)
-    let hs = Array.of(w)
-    callIt(hs.get(0).unwrap())
+    let mut hs = map.empty[Int, Holder]()
+    hs.set(0, w)
+    callIt(hs.get(&0).unwrap())
 }
 
 print "start"

@@ -50,17 +50,10 @@ noalloc fn named(a: Named, b: Named) -> Bool {
 }
 
 noalloc fn borrowed(a: Pt) -> Int {
-    size(&a) //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
+    size(&a)
 }
 
 fn size(p: &Pt) -> Int {
     p.x
 }
 -- expect --
-error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
-  --> lib/np.kg:52:11
-   |
-52 |     size(&a) //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
-   |           ^
-   = help: keep it in a value of its own, or drop the declaration
-

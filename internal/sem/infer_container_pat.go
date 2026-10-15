@@ -27,22 +27,33 @@ func (c *checker) trackPatternPlaces(p syntax.NodeID, place EntityID) {
 			c.r.fnCopyAlias[local] = place
 		}
 	case syntax.PatTuple:
-		c.trackComponentPlaces(t, slices.Collect(c.t.List(p).IDs()), place)
+		c.trackComponentPlaces(t, 0, slices.Collect(c.t.List(p).IDs()), place)
 	case syntax.PatCtor:
-		if v := c.info.Uses[p]; v != 0 && c.r.Entities[v].Kind == EntVariant && c.r.Entities[v].Parent == c.r.Types.optionEnt {
-			c.trackComponentPlaces(t, slices.Collect(c.t.View(p).AsPatCtor().Args().IDs()), place)
+		v := c.info.Uses[p]
+		if v == 0 || c.r.Entities[v].Kind != EntVariant {
+			return
+		}
+		switch parent := c.r.Entities[v].Parent; {
+		case parent == c.r.Types.optionEnt:
+			c.trackComponentPlaces(t, 0, slices.Collect(c.t.View(p).AsPatCtor().Args().IDs()), place)
+		case parent == c.r.Types.resultEnt && c.r.Types.resultEnt != 0:
+			first := 0
+			if c.r.Entities[v].Name == "Err" {
+				first = 1
+			}
+			c.trackComponentPlaces(t, first, slices.Collect(c.t.View(p).AsPatCtor().Args().IDs()), place)
 		}
 	}
 }
 
-func (c *checker) trackComponentPlaces(t TypeID, subs []syntax.NodeID, place EntityID) {
+func (c *checker) trackComponentPlaces(t TypeID, first int, subs []syntax.NodeID, place EntityID) {
 	fields, _, ok := c.r.containerShape(t)
 	if !ok {
 		return
 	}
 	for i, s := range subs {
-		if i < len(fields) {
-			c.trackPatternPlaces(s, c.r.nestedFnOwner(fieldFnKey{Ent: place, Field: fields[i]}))
+		if first+i < len(fields) {
+			c.trackPatternPlaces(s, c.r.nestedFnOwner(fieldFnKey{Ent: place, Field: fields[first+i]}))
 		}
 	}
 }

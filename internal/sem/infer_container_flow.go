@@ -27,7 +27,7 @@ func (c *checker) fillContainerLit(n syntax.NodeID) {
 	}
 	ent := c.r.containerLitEnt(c.f, n)
 	for i, e := range elems {
-		k := min(i, len(fields)-1)
+		k := c.r.containerLitSlot(c.f, n, i, len(fields))
 		if c.r.holdsFn(types[k], 0) || c.r.holdsFnElem(types[k]) {
 			c.flowComponent(c.r.nestedFnOwner(fieldFnKey{Ent: ent, Field: fields[k]}), types[k], e)
 		}
@@ -75,7 +75,7 @@ func (c *checker) recordResultElems(ret EntityID, path []EntityID, t TypeID, lit
 		return
 	}
 	for i, e := range elems {
-		k := min(i, len(fields)-1)
+		k := c.r.containerLitSlot(c.f, lit, i, len(fields))
 		here := append(append([]EntityID(nil), path...), fields[k])
 		e = c.stripParen(e)
 		if _, _, nested := c.r.containerShape(types[k]); nested {
@@ -131,4 +131,13 @@ func (r *Result) applyComponentSummary(site methodFieldCallSite, t TypeID, srcPa
 		}
 	}
 	return changed
+}
+
+func (c *checker) flowContainerField(key fieldFnKey, t TypeID, init syntax.NodeID) bool {
+	src := c.r.fnChainEnt(c.f, init)
+	if src == 0 || !c.r.concretePlace(src) {
+		return false
+	}
+	c.flowPlace(c.r.nestedFnOwner(key), src, t, init)
+	return true
 }

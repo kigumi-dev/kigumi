@@ -53,6 +53,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	c.knownFieldCallEdges(n, fn, effArgs)
 	c.ifaceFieldArgEdges(n, fn, effArgs)
 	c.recordBorrowFieldCallSites(n, fn, effArgs)
+	c.noteContainerIntrinsic(n, fn, effArgs, recvBase, ret)
 	c.noteResultSite(n, fn, effArgs, recvBase, ret)
 	if info.Recv == RecvMut && recvBase != 0 {
 		c.recordMethodFieldCallSite(n, fn, recvBase, effArgs)
@@ -147,8 +148,10 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			if pass == 1 {
 				c.markImmediate(a, c.r.nonEscapingParam(entAt(declParams, pi)))
 			}
+			from := len(*c.edges)
 			c.checkArg(a, param, entAt(declParams, pi), async)
 			c.crossArg(a, entAt(declParams, pi))
+			c.retagLendCross(from, a, entAt(declParams, pi), async)
 			c.noteLentRefArg(a, entAt(declParams, pi), async)
 			if pass == 0 {
 				c.checkEscapeArg(a, entAt(declParams, pi), param, name)

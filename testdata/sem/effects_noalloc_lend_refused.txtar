@@ -1,0 +1,68 @@
+-- module --
+mir: planned
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Big = {
+    pub a Int
+    pub b Int
+    pub c Int
+    pub d Int
+    pub e Int
+    pub f Int
+    pub g Int
+    pub h Int
+    pub i Int
+    pub j Int
+    pub k Int
+    pub l Int
+    pub m Int
+    pub n Int
+    pub o Int
+    pub p Int
+    pub q Int
+}
+
+noalloc fn keep['a](p: &'a Point) -> &'a Point { p }
+
+noalloc fn peekBig(b: &Big) -> Int { b.a + b.q }
+
+noalloc fn viaKeep() -> Int {
+    let p = Point { x: 1, y: 2 }
+    keep(&p).x //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it here
+}
+
+noalloc fn viaBig() -> Int {
+    let b = Big { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9, j: 10, k: 11, l: 12, m: 13, n: 14, o: 15, p: 16, q: 17 }
+    peekBig(&b) //~ ERROR handing `Big` to a slot that holds a reference allocates a box for it here
+}
+
+noalloc fn viaCoerced(p: Point) -> Int {
+    keep(p).y //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it here
+}
+
+fn main() -> Unit! {
+    let n = viaKeep() + viaBig()
+}
+-- expect --
+error[E1570]: `viaKeep` is declared `noalloc`, and handing `Point` to a slot that holds a reference allocates a box for it here; pass it by reference, or drop the declaration
+  --> main.kg:32:10
+   |
+32 |     keep(&p).x //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it here
+   |          ^^
+
+error[E1570]: `viaBig` is declared `noalloc`, and handing `Big` to a slot that holds a reference allocates a box for it here; pass it by reference, or drop the declaration
+  --> main.kg:37:13
+   |
+37 |     peekBig(&b) //~ ERROR handing `Big` to a slot that holds a reference allocates a box for it here
+   |             ^^
+
+error[E1570]: `viaCoerced` is declared `noalloc`, and handing `Point` to a slot that holds a reference allocates a box for it here; pass it by reference, or drop the declaration
+  --> main.kg:41:10
+   |
+41 |     keep(p).y //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it here
+   |          ^
+

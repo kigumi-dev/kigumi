@@ -15,8 +15,8 @@ func (r *Result) checkContracts(id EntityID) {
 			r.checkContractEdge(e)
 			continue
 		}
-		// The built program's alloc-claim check answers for a crossing an instantiation takes unboxed.
-		if e.Kind == EdgeAlloc && (r.takenUnboxed(e) || witnessWhy(e.Why)) {
+		// The built program's alloc-claim check answers for a crossing an instantiation takes unboxed or a callee takes by value.
+		if e.Kind == EdgeAlloc && (r.takenUnboxed(e) || witnessWhy(e.Why) || e.Why == whyLendCross) {
 			r.deferredClaims = r.deferredClaims || declared&EffNoalloc != 0
 			continue
 		}

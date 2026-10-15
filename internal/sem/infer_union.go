@@ -26,7 +26,7 @@ func (c *checker) unionInto(dst, src EntityID, t TypeID, node syntax.NodeID) {
 	if r := c.r; r.Types.Kind(t) == KRef {
 		t = r.Types.Node(t).Elem
 	}
-	if dst == src || len(c.r.recordFieldsOf(t)) == 0 || !c.r.holdsFn(t, 0) {
+	if fields, _ := c.r.placeShape(t); dst == src || len(fields) == 0 || !c.r.holdsFnPlace(t) {
 		return
 	}
 	c.r.fnUnions = append(c.r.fnUnions, fnUnion{dst: dst, src: src, typ: t, file: c.f, node: node})
@@ -58,11 +58,12 @@ func (r *Result) mergePlace(dst, src EntityID, t TypeID, u fnUnion, depth int) b
 		return false
 	}
 	changed := false
-	for _, f := range r.recordFieldsOf(t) {
+	fields, types := r.placeShape(t)
+	for i, f := range fields {
 		if depth == 0 && u.skip > 0 && slices.Contains(r.flow.skipSets[u.skip-1], f) {
 			continue
 		}
-		ft := r.Entities[f].Type
+		ft := types[i]
 		from, to := fieldFnKey{Ent: src, Field: f}, fieldFnKey{Ent: dst, Field: f}
 		if r.fnTypedType(ft) {
 			if r.mergeFnField(from, to, u) {
@@ -70,7 +71,7 @@ func (r *Result) mergePlace(dst, src EntityID, t TypeID, u fnUnion, depth int) b
 			}
 			continue
 		}
-		if r.holdsFn(ft, 0) && r.mergePlace(r.nestedFnOwner(to), r.fnAliasOf(r.nestedFnOwner(from)), ft, u, depth+1) {
+		if r.holdsFnPlace(ft) && r.mergePlace(r.nestedFnOwner(to), r.fnAliasOf(r.nestedFnOwner(from)), ft, u, depth+1) {
 			changed = true
 		}
 	}

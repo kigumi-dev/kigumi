@@ -1,0 +1,44 @@
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Prio = Low | Mid(n: Int) | High
+
+noalloc fn peek(p: &Point) -> Int { p.x * 10 + p.y }
+
+noalloc fn forward(p: &Point) -> Int { peek(p) + 1 }
+
+pure noalloc fn Prio.rank(self) -> Int {
+    match self {
+        Low -> 0
+        Mid(n) -> 1 + n
+        High -> 100
+    }
+}
+
+pure noalloc fn Prio.compareTo(self, other: &Prio) -> Ordering {
+    let a = self.rank()
+    let b = other.rank()
+    if a < b { Ordering.Less } else if a > b { Ordering.Greater } else { Ordering.Equal }
+}
+
+noalloc fn written(i: Int) -> Int {
+    let p = Point { x: i, y: 2 }
+    peek(&p) + forward(&p)
+}
+
+noalloc fn coerced(p: Point) -> Int { peek(p) }
+
+noalloc fn compared(a: Prio, b: Prio) -> Int { if a < b { 1 } else { 0 } }
+
+noalloc fn same(a: Point, b: Point) -> Bool { a.equals(&b) && a == b }
+
+print "${written(3)} ${coerced(Point { x: 4, y: 5 })}"
+print "${compared(Low, High)} ${compared(Mid(3), Mid(2))} ${compared(High, Low)}"
+print "${same(Point { x: 1, y: 2 }, Point { x: 1, y: 2 })} ${same(Point { x: 1, y: 2 }, Point { x: 2, y: 2 })}"
+-- stdout --
+65 45
+1 0 0
+true false

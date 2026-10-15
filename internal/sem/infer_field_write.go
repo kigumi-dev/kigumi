@@ -37,6 +37,9 @@ func (c *checker) recordFieldWrite(ent, field EntityID, init syntax.NodeID) {
 	case KIface:
 		c.recordWitnessFieldWrite(key, init)
 	case KNamed:
+		if c.r.holdsFnElem(t) && c.flowContainerField(key, t, init) {
+			return
+		}
 		c.recordNestedFieldWrite(key, init)
 	}
 }

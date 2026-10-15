@@ -1,0 +1,119 @@
+-- src --
+fn sumTo(n: Int) -> Int {
+    let mut s = 0
+    for k in 0..n { s = s + k }
+    s
+}
+
+fn reversed(a: Int, b: Int) -> Int {
+    let mut c = 0
+    for _ in a..b { c = c + 1 }
+    for _ in a..=b { c = c + 10 }
+    c
+}
+
+fn shrinkingBound() -> Int {
+    let mut n = 5
+    let mut c = 0
+    for _ in 0..n {
+        n = 1
+        c = c + 1
+    }
+    c
+}
+
+fn mutableBinding() -> Int {
+    let mut s = 0
+    for i in 0..4 {
+        let mut j = i
+        j = j * 10
+        s = s + j
+    }
+    s
+}
+
+fn withBreak() -> Int {
+    let mut last = 0
+    for i in 0..=100 {
+        if i == 3 { continue }
+        if i == 7 { break }
+        last = i
+    }
+    last
+}
+
+fn inclusiveContinue() -> Int {
+    let mut s = 0
+    let lo: u8 = 250
+    let hi: u8 = 255
+    for i in lo..=hi {
+        if i % 2 == 0 { continue }
+        s = s + 1
+    }
+    s
+}
+
+fn captured() -> Int {
+    let mut s = 0
+    for i in 0..3 {
+        let f = () => i * 100
+        s = s + f()
+    }
+    s
+}
+
+fn nested() -> Int {
+    let mut s = 0
+    let four: Int = 4
+    let lim: Int = 4
+    for i in 0..lim {
+        for j in i..=four { s = s + i * j }
+    }
+    s
+}
+
+fn wide() -> i128 {
+    let mut s: i128 = 0
+    let lo: i128 = 170141183460469231731687303715884105720
+    let hi: i128 = 170141183460469231731687303715884105727
+    for _ in lo..=hi { s = s + 1 }
+    s
+}
+
+fn negative() -> Int {
+    let mut s = 0
+    for i in -3..3 { s = s + i }
+    s
+}
+
+fn valued(xs: &Array[Int]) -> Int {
+    let mut s = 0
+    for i in 0..xs.len() { s = s + xs[i] }
+    s
+}
+
+print "${sumTo(5)} ${sumTo(0)} ${sumTo(-3)}"
+print "${reversed(5, 2)} ${reversed(2, 5)} ${reversed(3, 3)}"
+print "${shrinkingBound()} ${mutableBinding()} ${withBreak()} ${inclusiveContinue()}"
+print "${captured()} ${nested()} ${wide()} ${negative()}"
+fn longNamed(lo: Int, hi: Int) -> Int {
+    let mut s = 0
+    for i in lo..hi { s = s + i }
+    s
+}
+
+fn longInclusive(lo: Int) -> Int {
+    let mut s = 0
+    for i in lo..=(lo + 200000) { s = s + 1 }
+    s
+}
+
+print "${valued(&Array.of(4, 5, 6))}"
+print "${sumTo(300000)} ${longNamed(100000, 400000)} ${longInclusive(5000000)}"
+-- stdout --
+10 0 0
+0 43 10
+5 60 6 3
+300 49 8 -3
+15
+44999850000 74999850000 200001

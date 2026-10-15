@@ -49,7 +49,7 @@ func (p *Program) lendCandidates() map[lendParam]bool {
 }
 
 func (p *Program) lendableParam(f *Func, i int) bool {
-	if f.Async || f.Ent == 0 || p.R.Entity(f.Ent).Kind != sem.EntFn || p.R.Fn(f.Ent).Body == 0 {
+	if f.Async || f.Ent == 0 {
 		return false
 	}
 	prm := f.Params[i]
@@ -61,7 +61,7 @@ func (p *Program) lendableParam(f *Func, i int) bool {
 	if size, _ := AggLayout(p.R, tt.Node(l.Type).Elem); size > maxLendBytes {
 		return false
 	}
-	return p.R.DirectParamSlot(f.Ent, l.Ent) && !p.pinnedByPanic(f, prm)
+	return p.R.LendableParamSlot(f.Ent, l.Ent) && !p.pinnedByPanic(f, prm)
 }
 
 func (p *Program) pinnedByPanic(f *Func, l LocalID) bool {

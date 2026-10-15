@@ -1,0 +1,45 @@
+-- module --
+mir: planned
+-- src --
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Prio = Low | Mid(n: Int) | High
+
+noalloc fn peek(p: &Point) -> Int { p.x + p.y }
+
+noalloc fn forward(p: &Point) -> Int { peek(p) }
+
+fn lentInferred(p: &Point) -> Int { p.x }
+
+pure noalloc fn Prio.rank(self) -> Int {
+    match self {
+        Low -> 0
+        Mid(n) -> 1 + n
+        High -> 100
+    }
+}
+
+pure noalloc fn Prio.compareTo(self, other: &Prio) -> Ordering {
+    let a = self.rank()
+    let b = other.rank()
+    if a < b { Ordering.Less } else if a > b { Ordering.Greater } else { Ordering.Equal }
+}
+
+noalloc fn written() -> Int {
+    let p = Point { x: 1, y: 2 }
+    peek(&p) + forward(&p) + lentInferred(&p)
+}
+
+noalloc fn coerced(p: Point) -> Int { peek(p) }
+
+noalloc fn compared(a: Prio, b: Prio) -> Bool { a < b }
+
+noalloc fn same(a: Point, b: Point) -> Bool { a.equals(&b) && a == b }
+
+fn main() -> Unit! {
+    let n = written() + coerced(Point { x: 1, y: 2 })
+}
+-- expect --

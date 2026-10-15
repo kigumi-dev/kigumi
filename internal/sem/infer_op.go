@@ -140,6 +140,7 @@ func (c *checker) equality(n, lhs, rhs syntax.NodeID, l, r TypeID, op token.Kind
 	from := len(*c.edges)
 	if !c.primitiveCompare(l) && c.protoCall(n, l, "Eq", "equals", op) {
 		c.borrowOperand(rhs, r)
+		c.retagLendOperand(from, n, rhs)
 		c.noteProtoSite(from, n, l, "equals", rhs)
 		return TyBool
 	}
@@ -154,8 +155,10 @@ func (c *checker) ordering(n, rhs syntax.NodeID, l, r TypeID, op token.Kind) Typ
 		c.errAt(n, cOrdUnsupported, op.String(), l)
 		return TyPoison
 	}
+	from := len(*c.edges)
 	if !c.primitiveCompare(l) && c.protoCall(n, l, "Ord", "compareTo", op) {
 		c.borrowOperand(rhs, r)
+		c.retagLendOperand(from, n, rhs)
 		return TyBool
 	}
 	return c.builtinOp(n, op, TyBool)

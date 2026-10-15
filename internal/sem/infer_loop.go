@@ -18,6 +18,7 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 		iter := c.vars.resolve(c.synthPlace(s.Head))
 		elem := c.iterElement(n, s.Head, iter)
 		c.checkPattern(s.Pattern, elem, false, c.scope)
+		c.trackLoopPlaces(s.Pattern, s.Head)
 		c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Head))
 		if !c.irrefutable(s.Pattern, elem) {
 			c.errAt(s.Pattern, cPatternRefutable, c.witnessText(s.Pattern, elem))

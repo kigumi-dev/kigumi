@@ -20,7 +20,8 @@ fn syncRoot() -> Int {
 
 async fn outer() -> Int {
     let xs = Array.of(Holder { cb: syncRoot })
-    let h = xs.get(0).unwrap()
+    let ys = xs.map((h) => Holder { cb: h.cb })
+    let h = ys.get(0).unwrap()
     h.cb()
 }
 

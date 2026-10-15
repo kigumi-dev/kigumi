@@ -8,7 +8,12 @@ const whyDirectCross = 5
 
 const whyGenericCross = 7
 
-func directCrossWhy(why uint8) bool { return why == whyDirectCross || why == whyGenericCross }
+// whyLendCross is left to the built program, which finds out whether the callee takes the value.
+const whyLendCross = 19
+
+func directCrossWhy(why uint8) bool {
+	return why == whyDirectCross || why == whyGenericCross || why == whyLendCross
+}
 
 func (c *checker) crossDirect(n syntax.NodeID, t TypeID) { c.crossDirectBut(n, t, 0, nil) }
 

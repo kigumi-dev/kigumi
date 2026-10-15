@@ -136,40 +136,38 @@ async fn lib.awaitLoop() -> Int {
     %total = copy(%t3)
     %t5 = const 0: Int
     %t6 = const 3: Int
-    %t7 = bin ..(%t5, %t6)
-    %t8 = const 0: usize
-    %t9 = builtin iter.len(%t7)
+    %t7 = copy(%t5)
+    %t8 = copy(%t6)
     jump b1
   b1:
-    %t10 = bin <(%t8, %t9)
-    branch %t10 ? b2 : b4
+    %t9 = bin <(%t7, %t8)
+    branch %t9 ? b2 : b4
   b2:
-    %t11 = builtin iter.at(%t7, %t8)
-    %i = copy(%t11)
-    %t13 = move(%f)
-    %t14 = await(%t13)
-    %t15 = bin +(%total, %t14)
+    %t10 = copy(%t7)
+    %i = copy(%t10)
+    %t12 = move(%f)
+    %t13 = await(%t12)
+    %t14 = bin +(%total, %t13)
     drop(%total)
-    %total = copy(%t15)
-    %t16 = unit
+    %total = copy(%t14)
+    %t15 = unit
     drop(%i)
     jump b3
   b3:
-    %t17 = const 1: usize
-    %t18 = bin +(%t8, %t17)
-    drop(%t8)
-    %t8 = copy(%t18)
+    %t16 = const 1: Int
+    %t17 = bin +(%t7, %t16)
+    drop(%t7)
+    %t7 = copy(%t17)
     jump b1
   b4:
-    drop(%t9)
     drop(%t8)
     drop(%t7)
-    %t19 = unit
-    drop(%t19)
-    %t20 = copy(%total)
+    %t18 = unit
+    drop(%t18)
+    %t19 = copy(%total)
     drop(%total)
     drop(%f)
-    return %t20
+    return %t19
 }
 error[use-after-move]: `f` was moved; it cannot be used again
   --> lib/own_await.kg:13:19

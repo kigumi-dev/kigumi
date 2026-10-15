@@ -13,10 +13,10 @@ async fn twice(n: Int) -> Int {
     n * 2
 }
 
-fn work(n: Int) -> Int {
+fn work(xs: Array[Int]) -> Int {
     let mut total = 0
     let ex = task.currentThreadExecutor()
-    for i in 0..n {
+    for i in xs {
         total = total + ex.runToCompletion(twice(i))
     }
     total

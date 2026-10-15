@@ -27,7 +27,7 @@ func (r *Result) nestedPath(place EntityID) (EntityID, []EntityID) {
 }
 
 func (c *checker) nestedParamPlace(base syntax.NodeID) (EntityID, bool) {
-	if len(c.lambdas) > 0 || (c.t.Kind(base) != syntax.MemberExpr && c.t.Kind(base) != syntax.Ident) {
+	if k := c.t.Kind(base); len(c.lambdas) > 0 || k != syntax.MemberExpr && k != syntax.Ident && k != syntax.BracketExpr {
 		return 0, false
 	}
 	ent := c.r.fnChainEnt(c.f, base)
@@ -95,7 +95,7 @@ func (c *checker) nestedArgBind(n, arg syntax.NodeID, path []EntityID, field, ds
 		return
 	}
 	owner := c.r.fnChainEnt(c.f, arg)
-	if owner == 0 || c.r.isLiteralFieldEnt(owner) {
+	if owner == 0 || c.r.isLiteralFieldEnt(owner) && !c.r.containerLits[owner] {
 		return
 	}
 	for _, f := range path {

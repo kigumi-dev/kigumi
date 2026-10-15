@@ -59,10 +59,9 @@ func (p *Program) boxClaims(f *Func, code string) []AllocClaim {
 	var out []AllocClaim
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op != OpBoxDirect {
-				continue
+			if typ := p.boxedType(f, in); typ != 0 {
+				out = append(out, p.claimAt(f, c, in.Node, typ))
 			}
-			out = append(out, p.claimAt(f, c, in.Node, in.Type))
 		}
 	}
 	return out

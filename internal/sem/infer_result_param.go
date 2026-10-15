@@ -69,6 +69,9 @@ func (r *Result) applyResultParams(site methodFieldCallSite) bool {
 		typ := retType
 		if len(rp.path) > 0 {
 			typ = r.Entities[rp.path[len(rp.path)-1]].Type
+			if len(rp.into) == 0 && r.holdsFnPlace(retType) {
+				typ = retType
+			}
 		} else if len(rp.into) > 0 {
 			typ = r.Entities[rp.into[len(rp.into)-1]].Type
 			if et, ok := r.componentPathType(retType, rp.into); ok {
