@@ -88,7 +88,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpFieldMove:
 		res = e.irb(sb).Call(rtFieldMove, vptr(args[0]), vi64(in.Index)).Text
 	case mir.OpSetField:
-		e.irb(sb).Call(rtSetfield, vptr(args[0]), vi64(in.Index), vptr(args[1]))
+		e.setField(sb, f, in, args)
 		return
 	case mir.OpArray:
 		arr := e.argArray(sb, args)
@@ -96,7 +96,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpIndex:
 		res = e.irb(sb).Call(rtIndex, vptr(args[0]), vptr(args[1])).Text
 	case mir.OpSetIndex:
-		e.setIndex(sb, in, args)
+		e.setIndex(sb, f, in, args)
 		e.releaseScalarArgs(sb, in, args)
 		return
 	case mir.OpPayload:
@@ -175,7 +175,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpCellTake:
 		res = e.irb(sb).Call(rtCellTake, vptr(args[0])).Text
 	case mir.OpCellSet:
-		e.irb(sb).Call(rtCellset, vptr(args[0]), vptr(args[1]))
+		e.cellSet(sb, f, args)
 		return
 	case mir.OpInterp:
 		res = e.interp(sb, in, args)

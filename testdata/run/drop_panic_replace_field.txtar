@@ -1,0 +1,41 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Bad = resource {
+    pub id Int
+}
+
+fn Bad.drop(move self) -> Unit {
+    print "bad ${self.id}"
+    panic("drop failed: ${self.id}")
+}
+
+type Holder = {
+    pub mut b Bad
+}
+
+fn scope() -> Unit {
+    let a = Res { id: 1 }
+    let mut p = Holder { b: Bad { id: 2 } }
+    p.b = Bad { id: 4 }
+    let c = Res { id: 3 }
+    print "body"
+}
+
+scope()
+print "unreachable"
+-- stdout --
+bad 2
+bad 4
+drop 1
+-- stderr --
+panic: drop failed: 2
+panic: drop failed: 4
+-- exit --
+2

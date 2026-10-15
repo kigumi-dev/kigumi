@@ -1,0 +1,74 @@
+-- src --
+import {Box, Shared} from std/alloc
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Node = Leaf(n: Int) | Wrap(kid: Box[Node]) | Many(kids: Array[Node]) | Sh(s: Shared[Node])
+
+fn boxChain(depth: Int) -> Node {
+    let mut cur = Node.Leaf(0)
+    let mut i = 0
+    for i < depth {
+        cur = Node.Wrap(Box.new(cur))
+        i = i + 1
+    }
+    cur
+}
+
+fn arrayChain(depth: Int) -> Node {
+    let mut cur = Node.Leaf(0)
+    let mut i = 0
+    for i < depth {
+        cur = Node.Many(Array.of(Node.Leaf(i), cur))
+        i = i + 1
+    }
+    cur
+}
+
+fn sharedChain(depth: Int) -> Node {
+    let mut cur = Node.Leaf(0)
+    let mut i = 0
+    for i < depth {
+        cur = Node.Sh(Shared.new(cur))
+        i = i + 1
+    }
+    cur
+}
+
+fn leftArrayChain(depth: Int) -> Node {
+    let mut cur = Node.Leaf(0)
+    let mut i = 0
+    for i < depth {
+        cur = Node.Many(Array.of(cur, Node.Leaf(i)))
+        i = i + 1
+    }
+    cur
+}
+
+fn drops(depth: Int) -> Unit {
+    let r = Res { id: 7 }
+    let a = boxChain(depth)
+    print "box ${depth}"
+    let b = arrayChain(depth)
+    print "array ${depth}"
+    let c = sharedChain(depth)
+    print "shared ${depth}"
+    let d = leftArrayChain(depth)
+    print "left array ${depth}"
+}
+
+drops(200000)
+print "done"
+-- stdout --
+box 200000
+array 200000
+shared 200000
+left array 200000
+drop 7
+done

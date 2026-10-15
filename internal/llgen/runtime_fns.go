@@ -103,6 +103,11 @@ var (
 	rtUnwindEnter      = RuntimeFn{"rt_unwind_enter", []Type{TPtr, TI64}, TVoid}
 	rtUnwindEnterSlots = RuntimeFn{"rt_unwind_enter_slots", []Type{TPtr, TPtr, TPtr, TI64}, TVoid}
 	rtUnwindLeave      = RuntimeFn{"rt_unwind_leave", []Type{TPtr}, TVoid}
+
+	rtSetfieldSwap     = RuntimeFn{"rt_setfield_swap", []Type{TPtr, TI64, TPtr}, TPtr}
+	rtSetindexSwap     = RuntimeFn{"rt_setindex_swap", []Type{TPtr, TPtr, TPtr}, TPtr}
+	rtSetindexCopySwap = RuntimeFn{"rt_setindex_copy_swap", []Type{TPtr, TPtr, TPtr}, TPtr}
+	rtCellsetSwap      = RuntimeFn{"rt_cellset_swap", []Type{TPtr, TPtr}, TPtr}
 )
 
 // runtimeFns lists every RuntimeFn above in `declare` order: the single
@@ -119,6 +124,7 @@ var runtimeFns = []RuntimeFn{
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,
 	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtUnwindEnter, rtUnwindEnterSlots, rtUnwindLeave,
 	rtDropOuter, rtReleaseOuter, rtSweepRelease, rtOuterFatal,
+	rtSetfieldSwap, rtSetindexSwap, rtSetindexCopySwap, rtCellsetSwap,
 	rtDLen, rtDArrayLen, rtDBytesGet, rtDArrayGet, rtDCharFromInt, rtDParseFloat, rtDConvertInt, rtDConvertFloat,
 	rtDWrapping, rtDSqrt, rtDFloor, rtDCeil, rtDRound, rtDPow,
 	rtDHashInt, rtDHashBool, rtDHashChar, rtDHashFloat,

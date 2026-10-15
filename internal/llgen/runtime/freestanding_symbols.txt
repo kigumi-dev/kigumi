@@ -4,8 +4,44 @@
 # boundary points (rt.h) an embedder may override with real ones. A new
 # runtime libc call or a changed rt_sys_* boundary must land here too, or
 # internal/driver's TestBuildFreestandingSymbolSet fails naming it.
+# memcpy, memmove, memset and memcmp are also what the compiler itself calls for a large copy or compare.
+# The __aeabi_*, __*di3 and _GLOBAL_OFFSET_TABLE_ entries are the compiler-rt and linker symbols a 32-bit x86 or ARM target needs.
 # docs/build_targets_v1.md documents this file as the contract.
+_GLOBAL_OFFSET_TABLE_
+__aeabi_d2f
+__aeabi_d2lz
+__aeabi_dadd
+__aeabi_dcmpeq
+__aeabi_dcmpge
+__aeabi_dcmpgt
+__aeabi_dcmple
+__aeabi_dcmplt
+__aeabi_dcmpun
+__aeabi_ddiv
+__aeabi_dmul
+__aeabi_dsub
+__aeabi_f2d
+__aeabi_l2d
+__aeabi_ldivmod
+__aeabi_memclr
+__aeabi_memclr4
+__aeabi_memclr8
+__aeabi_memcpy
+__aeabi_memcpy4
+__aeabi_memcpy8
+__aeabi_memmove
+__aeabi_memmove4
+__aeabi_memmove8
+__aeabi_memset
+__aeabi_memset4
+__aeabi_memset8
+__aeabi_ul2d
+__aeabi_uldivmod
+__divdi3
 __errno_location
+__moddi3
+__udivdi3
+__umoddi3
 calloc
 ceil
 floor
@@ -13,6 +49,7 @@ free
 malloc
 memcmp
 memcpy
+memmove
 memset
 pow
 realloc

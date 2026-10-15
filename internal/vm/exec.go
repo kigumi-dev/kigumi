@@ -91,7 +91,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 		old := r.fields[in.Index]
 		r.fields[in.Index] = args[1]
 		if !m.borrowField(r, in.Index) {
-			m.release(old)
+			m.dropChecked(fr, old)
 		}
 		return
 	case mir.OpArray:
@@ -100,7 +100,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpIndex:
 		res = m.index(args[0], args[1])
 	case mir.OpSetIndex:
-		m.setIndex(m.ownDirect(fr, in.Args[0], args[0]), args[1], args[2])
+		m.dropChecked(fr, m.setIndex(m.ownDirect(fr, in.Args[0], args[0]), args[1], args[2]))
 		return
 	case mir.OpPayload:
 		res = retain(deref(args[0]).fields[in.Index])
@@ -141,7 +141,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst) {
 	case mir.OpCellSet:
 		old := args[0].inner
 		args[0].inner = args[1]
-		m.release(old)
+		m.dropChecked(fr, old)
 		return
 	case mir.OpInterp:
 		var sb strings.Builder

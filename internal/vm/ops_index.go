@@ -42,7 +42,7 @@ func (m *Machine) index(base, idx *obj) *obj {
 	return retain(base.fields[i])
 }
 
-func (m *Machine) setIndex(base, idx, v *obj) {
+func (m *Machine) setIndex(base, idx, v *obj) *obj {
 	base = deref(base)
 	i := deref(idx).i
 	if base.k != kArray || i < 0 || i >= int64(len(base.fields)) {
@@ -50,5 +50,5 @@ func (m *Machine) setIndex(base, idx, v *obj) {
 	}
 	old := base.fields[i]
 	base.fields[i] = v
-	m.release(old)
+	return old
 }

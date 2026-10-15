@@ -1,10 +1,6 @@
 package llgen
 
-import (
-	"strings"
-
-	"kigumi/internal/mir"
-)
+import "kigumi/internal/mir"
 
 // copyStoreInsts merges each `t = copy s; setindex b, i, t` into one in-place store: no box is built for t.
 func copyStoreInsts(blk *mir.Block, bid int, stores []mir.CopyStore) []mir.Inst {
@@ -24,12 +20,4 @@ func copyStoreInsts(blk *mir.Block, bid int, stores []mir.CopyStore) []mir.Inst 
 		out[cs.Set], out[cs.Share] = set, mir.Inst{Op: mir.OpNop}
 	}
 	return out
-}
-
-func (e *emitter) setIndex(sb *strings.Builder, in mir.Inst, args []string) {
-	fn := rtSetindex
-	if in.Copy {
-		fn = rtSetindexCopy
-	}
-	e.irb(sb).Call(fn, vptr(args[0]), vptr(args[1]), vptr(args[2]))
 }

@@ -1,0 +1,64 @@
+-- src --
+import {Box, Shared} from std/alloc
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Pair = resource {
+    pub tag Int
+    pub left Res
+    pub right Res
+}
+
+fn Pair.drop(move self) -> Unit {
+    print "drop pair ${self.tag}"
+}
+
+type Tree = Leaf(r: Res) | Node(kid: Box[Tree], r: Res) | Many(kids: Array[Tree], r: Res) | Sh(s: Shared[Tree], r: Res)
+
+fn chain(depth: Int) -> Tree {
+    let mut cur = Tree.Leaf(Res { id: 0 })
+    let mut i = 1
+    for i <= depth {
+        let r = Res { id: i * 10 }
+        cur = if i % 3 == 0 {
+            Tree.Many(Array.of(cur, Tree.Leaf(Res { id: i * 10 + 1 })), r)
+        } else if i % 3 == 1 {
+            Tree.Node(Box.new(cur), r)
+        } else {
+            Tree.Sh(Shared.new(cur), r)
+        }
+        i = i + 1
+    }
+    cur
+}
+
+fn scope() -> Unit {
+    let t = chain(7)
+    let p = Pair { tag: 1, left: Res { id: 100 }, right: Res { id: 200 } }
+    print "built"
+}
+
+scope()
+print "done"
+-- stdout --
+built
+drop pair 1
+drop 200
+drop 100
+drop 61
+drop 31
+drop 0
+drop 10
+drop 20
+drop 30
+drop 40
+drop 50
+drop 60
+drop 70
+done

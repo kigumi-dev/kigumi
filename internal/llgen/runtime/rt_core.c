@@ -273,23 +273,25 @@ val rt_retain(val v) {
 }
 static void free_obj(val v);
 val rt_future_new(val callee, int n, val* args);
-void rt_release(val v) {
+static int release_dec(val v) {
     CHK(v);
-    if (!v) return;
+    if (!v) return 0;
 #ifdef KIGUMI_THREADS
-    if (atomic_load_explicit(&v->rc, memory_order_relaxed) <= 0) return;
+    if (atomic_load_explicit(&v->rc, memory_order_relaxed) <= 0) return 0;
 #ifdef __SANITIZE_THREAD__
-    // TSan does not model a standalone fence, so the last decrement carries the acquire itself.
-    if (atomic_fetch_sub_explicit(&v->rc, 1, memory_order_acq_rel) != 1) return;
+    return atomic_fetch_sub_explicit(&v->rc, 1, memory_order_acq_rel) == 1;
 #else
-    if (atomic_fetch_sub_explicit(&v->rc, 1, memory_order_release) != 1) return;
+    if (atomic_fetch_sub_explicit(&v->rc, 1, memory_order_release) != 1) return 0;
     atomic_thread_fence(memory_order_acquire);
+    return 1;
 #endif
-    free_obj(v);
 #else
-    if (v->rc <= 0) return;
-    if (--v->rc == 0) free_obj(v);
+    if (v->rc <= 0) return 0;
+    return --v->rc == 0;
 #endif
+}
+void rt_release(val v) {
+    if (release_dec(v)) free_obj(v);
 }
 #ifdef KIGUMI_LEAK_CHECK
 // Test-only: how many allocations are still live at a fatal exit.
@@ -548,10 +550,13 @@ val rt_cell_take(val c) {
     c->u.cell.v = NULL;
     return v;
 }
-void rt_cellset(val c, val x) {
+val rt_cellset_swap(val c, val x) {
     val old = c->u.cell.v;
     c->u.cell.v = x;
-    rt_release(old);
+    return old;
+}
+void rt_cellset(val c, val x) {
+    rt_release(rt_cellset_swap(c, x));
 }
 val deref(val v);
 val rt_ptr(void* p) {
@@ -715,11 +720,14 @@ val rt_field_move(val r, int64_t i) {
 }
 // Storing into a place releases what it held: the caller hands over an owned
 // reference, so without this the overwritten value is never dropped.
-void rt_setfield(val r, int64_t i, val x) {
+val rt_setfield_swap(val r, int64_t i, val x) {
     r = deref(r);
     val old = r->u.rec.fields[i];
     r->u.rec.fields[i] = x;
-    if (!borrow_field(r, i)) rt_release(old);
+    return borrow_field(r, i) ? NULL : old;
+}
+void rt_setfield(val r, int64_t i, val x) {
+    rt_release(rt_setfield_swap(r, i, x));
 }
 val rt_payload(val v, int64_t i) {
     v = deref(v);
@@ -797,13 +805,16 @@ val rt_index(val base, val idx) {
     if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic("index out of range");
     return rt_retain(base->u.arr.items[i]);
 }
-void rt_setindex(val base, val idx, val v) {
+val rt_setindex_swap(val base, val idx, val v) {
     base = deref(base);
     int64_t i = deref(idx)->u.i;
     if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic("index out of range");
     val old = base->u.arr.items[i];
     base->u.arr.items[i] = v;
-    rt_release(old);
+    return old;
+}
+void rt_setindex(val base, val idx, val v) {
+    rt_release(rt_setindex_swap(base, idx, v));
 }
 // Fields of a record built only from scalar boxes and such records can be taken over where they stand.
 static int fields_fit(val dst, val src) {
@@ -832,17 +843,20 @@ static void take_fields(val dst, val src) {
     }
 }
 // base[idx] = copy of src; the slot keeps its own box when src's fields fit into it.
-void rt_setindex_copy(val base, val idx, val src) {
+val rt_setindex_copy_swap(val base, val idx, val src) {
     base = deref(base);
     int64_t i = deref(idx)->u.i;
     if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic("index out of range");
     val old = base->u.arr.items[i];
     if (old && fields_fit(old, src)) {
         take_fields(old, src);
-        return;
+        return NULL;
     }
     base->u.arr.items[i] = rt_copy(src);
-    rt_release(old);
+    return old;
+}
+void rt_setindex_copy(val base, val idx, val src) {
+    rt_release(rt_setindex_copy_swap(base, idx, src));
 }
 int64_t rt_int_val(val v) {
     v = deref(v);
@@ -2169,19 +2183,12 @@ static void unwind_lend_back(kg_unwind* u) {
     rt_release(u->v);
 }
 #endif
-// Opaque values that own runtime state: an arena handle closes its arena, a
-// scope keeps its handle alive, a guard pops the allocator it pushed, and a
-// Shared cell releases its content.
+// Opaque values that own runtime state; Box, UnsafeCell, AllocatorScope, AllocGuard and Shared hand their content to the drain as a child slot.
 static void free_opaque(val v) {
     const char* kind = v->u.op.kind;
     void* d = v->u.op.data;
     if (!strcmp(kind, "AllocatorHandle")) arena_close((arena*)d);
-    else if (!strcmp(kind, "Shared")) {
-        sctrl* c = d;
-        c->alive = 0;
-        rt_release(c->cell);
-        if (c->weak == 0) free(c);
-    } else if (!strcmp(kind, "Weak")) {
+    else if (!strcmp(kind, "Weak")) {
         sctrl* c = d;
         if (--c->weak == 0 && !c->alive) free(c);
     } else if (!strcmp(kind, "Future")) {
@@ -2196,11 +2203,6 @@ static void free_opaque(val v) {
         sched_flush();
     } else if (!strcmp(kind, "Executor")) exec_drop((kgexec*)d);
 #endif
-    else if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "UnsafeCell") || !strcmp(kind, "Box")) rt_release((val)d);
-    else if (!strcmp(kind, "AllocGuard")) {
-        g_alloc_sp--;
-        rt_release((val)d);
-    }
 #if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
     else if (!strcmp(kind, "BlockingFuture")) {
         blocking_future* f = d;
@@ -2213,38 +2215,16 @@ static void free_opaque(val v) {
     } else if (!strcmp(kind, "BlockingPool")) free(d);
 #endif
 }
-#ifdef KG_CATCH
-// A slot is cleared first so a retry after a contained panic resumes at the next child.
-static void release_slot(val* p) {
-    val c = *p;
-    *p = NULL;
-    rt_release(c);
+enum { OPAQUE_PLAIN, OPAQUE_SLOT, OPAQUE_SHARED };
+static int opaque_class(val v) {
+    const char* kind = v->u.op.kind;
+    if (!strcmp(kind, "Shared")) return OPAQUE_SHARED;
+    if (!strcmp(kind, "AllocatorScope") || !strcmp(kind, "UnsafeCell") || !strcmp(kind, "Box") || !strcmp(kind, "AllocGuard")) return OPAQUE_SLOT;
+    return OPAQUE_PLAIN;
 }
-static void free_children(val v) {
-    switch (v->kind) {
-    case K_RECORD: {
-        rt_type* t = v->u.rec.type;
-        for (int64_t i = v->u.rec.n - 1; i >= 0; i--) {
-            if (!((t->borrow_fields >> i) & 1)) release_slot(&v->u.rec.fields[i]);
-        }
-        break;
-    }
-    case K_VARIANT:
-        for (int64_t i = 0; i < v->u.var.n; i++) release_slot(&v->u.var.payload[i]);
-        break;
-    case K_ARRAY:
-        for (int64_t i = v->u.arr.len - 1; i >= 0; i--) release_slot(&v->u.arr.items[i]);
-        break;
-    case K_BOX:
-        release_slot(&v->u.box.v);
-        break;
-    case K_CLOSURE:
-        release_slot(&v->u.clo.env);
-        break;
-    case K_CELL:
-        release_slot(&v->u.cell.v);
-        break;
-    }
+#ifdef KG_CATCH
+static void free_opaque_cb(val v) {
+    free_opaque(v);
 }
 static void run_drop_hook(val v) {
     val a[1] = {v};
@@ -2283,73 +2263,63 @@ static int free_runs_user_code(val v) {
     }
     return 0;
 }
-// Returns whether the joined fault is still to be raised once the object is freed.
-static int free_contained(val v) {
-    uint64_t seen = g_fault_count;
-    g_drop_depth++;
-    if (has_drop_hook(v)) {
-        v->rc = -1;
-        contained(run_drop_hook, v);
-        v->rc = 0;
-    }
-    while (!contained(free_children, v)) {
-    }
-    g_drop_depth--;
-    return g_fault_count != seen && !g_drop_depth && !g_faulting;
+#endif
+typedef struct dframe {
+    val v;
+    int64_t i, pend;
+    uint64_t seen;
+    unsigned char guarded, outer, opaque;
+} dframe;
+enum { DSTACK_INL = 16 };
+typedef struct dstack {
+    dframe* f;
+    int64_t n, cap;
+    int base;
+    dframe inl[DSTACK_INL];
+} dstack;
+static int is_borrow_slot(rt_type* t, int64_t i) {
+    return i < 64 && ((t->borrow_fields >> i) & 1);
 }
-#endif
-static void free_obj(val v) {
-    int guarded = 0, raise = 0;
-#ifdef KG_CATCH
-    guarded = (g_task_catch || g_outer_drop) && free_runs_user_code(v);
-    if (guarded) raise = free_contained(v);
-#endif
+// The next child slot of d, or NULL when none is left; advance moves the cursor past it.
+static val* child_slot(dframe* d, int advance) {
+    val v = d->v;
+    val* slot = NULL;
+    switch (v->kind) {
+    case K_RECORD:
+        while (d->i >= 0 && is_borrow_slot(v->u.rec.type, d->i)) d->i--;
+        if (d->i < 0) return NULL;
+        slot = &v->u.rec.fields[d->i];
+        if (advance) d->i--;
+        return slot;
+    case K_VARIANT:
+        if (d->i >= v->u.var.n) return NULL;
+        slot = &v->u.var.payload[d->i];
+        if (advance) d->i++;
+        return slot;
+    case K_ARRAY:
+        if (d->i < 0) return NULL;
+        slot = &v->u.arr.items[d->i];
+        if (advance) d->i--;
+        return slot;
+    case K_BOX: slot = &v->u.box.v; break;
+    case K_CLOSURE: slot = &v->u.clo.env; break;
+    case K_CELL: slot = &v->u.cell.v; break;
+    case K_OPAQUE: slot = d->opaque == OPAQUE_SHARED ? &((sctrl*)v->u.op.data)->cell : (val*)&v->u.op.data; break;
+    default: return NULL;
+    }
+    if (d->i) return NULL;
+    if (advance) d->i = 1;
+    return slot;
+}
+static void free_storage(val v) {
     switch (v->kind) {
     case K_STR:
     case K_BYTES:
         if (v->owned) free((char*)v->u.s.data);
         break;
-    case K_RECORD: {
-        rt_type* t = v->u.rec.type;
-        if (!guarded) {
-            if (t->kind == 1 && t->drop) {
-                v->rc = -1;
-                val a[1] = {v};
-                invoke((adapter_fn)t->drop, NULL, 1, a);
-                v->rc = 0;
-            }
-            for (int64_t i = v->u.rec.n - 1; i >= 0; i--) {
-                if ((t->borrow_fields >> i) & 1) continue;
-                rt_release(v->u.rec.fields[i]);
-            }
-        }
-        afree(v->al, v->u.rec.fields);
-        break;
-    }
-    case K_VARIANT:
-        if (!guarded) {
-            for (int64_t i = 0; i < v->u.var.n; i++) rt_release(v->u.var.payload[i]);
-        }
-        afree(v->al, v->u.var.payload);
-        break;
-    case K_ARRAY:
-        if (!guarded) {
-            for (int64_t i = v->u.arr.len - 1; i >= 0; i--) rt_release(v->u.arr.items[i]);
-        }
-        afree(v->al, v->u.arr.items);
-        break;
-    case K_BOX:
-        if (!guarded) rt_release(v->u.box.v);
-        break;
-    case K_CLOSURE:
-        if (!guarded) rt_release(v->u.clo.env);
-        break;
-    case K_CELL:
-        if (!guarded) rt_release(v->u.cell.v);
-        break;
-    case K_OPAQUE:
-        free_opaque(v);
-        break;
+    case K_RECORD: afree(v->al, v->u.rec.fields); break;
+    case K_VARIANT: afree(v->al, v->u.var.payload); break;
+    case K_ARRAY: afree(v->al, v->u.arr.items); break;
     }
     LIVE_OBJ(v->kind, -1);
 #ifdef KIGUMI_RC_CHECK
@@ -2357,10 +2327,151 @@ static void free_obj(val v) {
 #else
     afree(v->al, v);
 #endif
+}
 #ifdef KG_CATCH
-    if (raise && g_task_catch) task_raise();
+#define DEPTH_NOW() g_drop_depth
+#define DEPTH_SUB(n) (g_drop_depth -= (n))
+#else
+#define DEPTH_NOW() 0
+#define DEPTH_SUB(n) ((void)(n))
 #endif
-    (void)raise;
+static int drain_push(dstack* st, dframe* fr) {
+    if (st->n == st->cap) {
+        int64_t cap = st->cap * 2;
+        dframe* f = st->f == st->inl ? malloc((size_t)cap * sizeof *f) : realloc(st->f, (size_t)cap * sizeof *f);
+        if (!f) return 0;
+        if (st->f == st->inl) memcpy(f, st->inl, (size_t)st->n * sizeof *f);
+        st->f = f;
+        st->cap = cap;
+    }
+    st->f[st->n++] = *fr;
+    return 1;
+}
+static void drain_discard(dstack* st) {
+    if (st->f != st->inl) free(st->f);
+}
+// Frees the storage of a frame whose children are gone; returns whether a joined fault is still to be raised.
+static int drain_close(dframe* fr) {
+    int raise = 0;
+    if (fr->opaque == OPAQUE_SHARED) {
+        sctrl* c = fr->v->u.op.data;
+        if (c->weak == 0) free(c);
+    }
+    free_storage(fr->v);
+    DEPTH_SUB(fr->guarded + fr->pend);
+#ifdef KG_CATCH
+    if (fr->guarded) raise = g_fault_count != fr->seen && !g_drop_depth && !g_faulting;
+#endif
+    return raise;
+}
+static void raise_drop_fault(dstack* st) {
+#ifdef KG_CATCH
+    if (g_task_catch) {
+        drain_discard(st);
+        task_raise();
+    }
+#else
+    (void)st;
+#endif
+}
+// Starts freeing v, whose last reference is gone: runs its drop hook and, when it owns children, pushes a frame for them.
+static void drain_open(dstack* st, val v, int64_t pend) {
+    dframe fr = {v, 0, pend, 0, 0, 0, 0};
+    int guarded = 0;
+#ifdef KG_CATCH
+    guarded = (g_task_catch || g_outer_drop) && free_runs_user_code(v);
+    if (guarded) {
+        fr.guarded = 1;
+        fr.outer = g_drop_depth == 0;
+        fr.seen = g_fault_count;
+        g_drop_depth++;
+        if (has_drop_hook(v)) {
+            v->rc = -1;
+            contained(run_drop_hook, v);
+            v->rc = 0;
+        }
+    }
+#endif
+    switch (v->kind) {
+    case K_RECORD: {
+        rt_type* t = v->u.rec.type;
+        if (!guarded && t->kind == 1 && t->drop) {
+            v->rc = -1;
+            val a[1] = {v};
+            invoke((adapter_fn)t->drop, NULL, 1, a);
+            v->rc = 0;
+        }
+        fr.i = v->u.rec.n - 1;
+        break;
+    }
+    case K_ARRAY:
+        fr.i = v->u.arr.len - 1;
+        break;
+    case K_VARIANT:
+    case K_BOX:
+    case K_CLOSURE:
+    case K_CELL:
+        break;
+    case K_OPAQUE:
+        fr.opaque = (unsigned char)opaque_class(v);
+        if (fr.opaque == OPAQUE_SHARED) {
+            ((sctrl*)v->u.op.data)->alive = 0;
+        } else if (fr.opaque == OPAQUE_SLOT) {
+            if (!strcmp(v->u.op.kind, "AllocGuard")) g_alloc_sp--;
+        } else {
+#ifdef KG_CATCH
+            if (g_drop_depth > st->base) contained(free_opaque_cb, v);
+            else
+#endif
+                free_opaque(v);
+            free_storage(v);
+            DEPTH_SUB(pend);
+            return;
+        }
+        break;
+    default:
+        free_storage(v);
+        DEPTH_SUB(pend);
+        return;
+    }
+    if (drain_push(st, &fr)) return;
+    val* slot;
+    while ((slot = child_slot(&fr, 1))) {
+        val c = *slot;
+        if (guarded) *slot = NULL;
+        if (release_dec(c)) free_obj(c);
+    }
+    if (drain_close(&fr)) raise_drop_fault(st);
+}
+// Children are released from an explicit stack, in the order a recursive release would visit them, so any ownership depth drops in constant C stack.
+static void free_obj(val root) {
+    dstack st;
+    st.f = st.inl;
+    st.n = 0;
+    st.cap = DSTACK_INL;
+    st.base = DEPTH_NOW();
+    drain_open(&st, root, 0);
+    while (st.n > 0) {
+        dframe* fr = &st.f[st.n - 1];
+        val* slot = child_slot(fr, 1);
+        if (!slot) {
+            int raise = drain_close(fr);
+            st.n--;
+            if (raise) raise_drop_fault(&st);
+            continue;
+        }
+        val c = *slot;
+        if (fr->guarded) *slot = NULL;
+        if (!release_dec(c)) continue;
+        int64_t pend = 0;
+        if (!child_slot(fr, 0) && fr->opaque != OPAQUE_SHARED && !(fr->guarded && fr->outer)) {
+            pend = fr->pend + fr->guarded;
+            free_storage(fr->v);
+            st.n--;
+        }
+        drain_open(&st, c, pend);
+    }
+    drain_discard(&st);
 }
 static rt_type* map_type(void) {
     static rt_type* t;
@@ -2835,12 +2946,16 @@ static int rt_std_op_of(const char* key) {
 #ifdef KIGUMI_CAP_HOST_STDIO
 #include "rt_cap_host_stdio.c.inc"
 #endif
+// A constructor keeps its argument as is: an interface value must stay a witness-carrying box inside the cell.
+static int op_stores_a0(int op) {
+    return op == OP_BOX_NEW || op == OP_BOX_TRY_NEW || op == OP_SHARED_NEW || op == OP_SHARED_TRY_NEW || op == OP_UCELL_NEW;
+}
 // rt_std_id never compares key strings: llgen resolves a call's std key to
 // an enum std_op at compile time (rt_std_op_of does the same resolution
 // for rt_std's few dynamic callers).
 val rt_std_id(int op, int n, val* a) {
     val a0 = n > 0 ? deref(a[0]) : NULL, a1 = n > 1 ? deref(a[1]) : NULL, a2 = n > 2 ? deref(a[2]) : NULL;
-    if (a0 && a0->kind == K_BOX) a0 = a0->u.box.v;
+    if (a0 && a0->kind == K_BOX && !op_stores_a0(op)) a0 = a0->u.box.v;
     switch ((enum std_op)op) {
     // prelude
     case OP_LEN: return rt_int(a0->u.s.len, 64);

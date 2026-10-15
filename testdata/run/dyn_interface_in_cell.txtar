@@ -1,0 +1,95 @@
+-- src --
+import {Box, Shared} from std/alloc
+
+interface Shape {
+    fn area(self) -> Int
+}
+
+@impl(Shape)
+type Sq = {
+    pub s Int
+}
+
+fn Sq.area(self) -> Int {
+    self.s * self.s
+}
+
+@impl(Shape)
+type Rect = {
+    pub w Int
+    pub h Int
+}
+
+fn Rect.area(self) -> Int {
+    self.w * self.h
+}
+
+type Holder = {
+    pub sh Shape
+}
+
+type Pair = {
+    pub a Box[Shape]
+    pub b Shared[Shape]
+}
+
+fn boxed() -> Unit {
+    let sh: Shape = Sq { s: 5 }
+    let b = Box.new(sh)
+    print "box ${b.with((x: &Shape) => x.area())}"
+    let b2 = Box.new[Shape](Rect { w: 2, h: 3 })
+    print "box typed ${b2.with((x: &Shape) => x.area())}"
+    let mut b3 = Box.new[Shape](Sq { s: 1 })
+    b3.set(Rect { w: 4, h: 5 })
+    print "box set ${b3.with((x: &Shape) => x.area())}"
+    print "box into ${b3.into().area()}"
+}
+
+fn shared() -> Unit {
+    let sh2: Shape = Sq { s: 6 }
+    let s = Shared.new(sh2)
+    print "shared ${s.with((x: &Shape) => x.area())}"
+    let s3 = Shared.new[Shape](Sq { s: 7 })
+    let s4 = s3.clone()
+    print "shared typed ${s3.with((x: &Shape) => x.area())} ${s4.with((x: &Shape) => x.area())}"
+    match Shared.tryNew[Shape](Rect { w: 3, h: 3 }) {
+        Ok(t) -> print "shared try ${t.with((x: &Shape) => x.area())}"
+        Err(_) -> print "shared try failed"
+    }
+    match Box.tryNew[Shape](Rect { w: 3, h: 4 }) {
+        Ok(t) -> print "box try ${t.with((x: &Shape) => x.area())}"
+        Err(_) -> print "box try failed"
+    }
+}
+
+fn containers() -> Unit {
+    let shapes = Array.of[Shape](Sq { s: 2 }, Rect { w: 2, h: 5 })
+    let mut total = 0
+    for s in &shapes {
+        total = total + s.area()
+    }
+    print "array ${total} ${shapes[1].area()}"
+    let h = Holder { sh: Rect { w: 6, h: 7 } }
+    print "field ${h.sh.area()}"
+    let p = Pair { a: Box.new[Shape](Sq { s: 3 }), b: Shared.new[Shape](Rect { w: 1, h: 9 }) }
+    print "pair ${p.a.with((x: &Shape) => x.area())} ${p.b.with((x: &Shape) => x.area())}"
+    let hb = Box.new(Holder { sh: Sq { s: 8 } })
+    print "holder in box ${hb.with((x: &Holder) => x.sh.area())}"
+}
+
+boxed()
+shared()
+containers()
+-- stdout --
+box 25
+box typed 6
+box set 20
+box into 20
+shared 36
+shared typed 49 49
+shared try 9
+box try 12
+array 14 10
+field 42
+pair 9 9
+holder in box 64

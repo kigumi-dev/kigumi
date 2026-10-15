@@ -80,6 +80,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if t.Freestanding() {
 		args = append(args, "-DKIGUMI_FREESTANDING", "-nostdlib")
 	}
+	if t.Bare() && t.Arch == "arm" {
+		args = append(args, "-fno-unwind-tables", "-fno-asynchronous-unwind-tables")
+	}
 	if wantsTaskCatch(t) {
 		args = append(args, "-DKIGUMI_TASK_CATCH")
 	}

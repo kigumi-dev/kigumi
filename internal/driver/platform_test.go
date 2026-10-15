@@ -189,6 +189,12 @@ func TestBuildFreestandingNoCloseSymbol(t *testing.T) {
 // own objects resolve each other (rt_core.c calling into rt_sys.c, say),
 // and checks every one is in internal/llgen/runtime/freestanding_symbols.txt.
 func TestBuildFreestandingSymbolSet(t *testing.T) {
+	for _, triple := range []string{"x86_64-freestanding", "x86-freestanding", "arm-freestanding"} {
+		t.Run(triple, func(t *testing.T) { checkFreestandingSymbolSet(t, triple) })
+	}
+}
+
+func checkFreestandingSymbolSet(t *testing.T, triple string) {
 	t.Parallel()
 	if driver.CCompiler() == nil {
 		t.Skip("no C compiler")
@@ -209,7 +215,7 @@ func TestBuildFreestandingSymbolSet(t *testing.T) {
 		"let r = math.sqrt(2.0) + math.pow(2.0, 3.0) + math.floor(1.5) + math.ceil(1.5) + math.round(1.5)\n" +
 		"print \"${f} ${r}\"\n"
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
-	target, err := driver.ParseTarget("x86_64-freestanding", "")
+	target, err := driver.ParseTarget(triple, "")
 	if err != nil {
 		t.Fatal(err)
 	}

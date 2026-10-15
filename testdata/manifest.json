@@ -4410,6 +4410,57 @@
       ]
     },
     {
+      "id": "run/drop_deep_chain",
+      "kind": "run",
+      "path": "testdata/run/drop_deep_chain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/drop_deep_chain_hook",
+      "kind": "run",
+      "path": "testdata/run/drop_deep_chain_hook.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/drop_order_nested_chain",
+      "kind": "run",
+      "path": "testdata/run/drop_order_nested_chain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/drop_panic_hard_fault",
       "kind": "run",
       "path": "testdata/run/drop_panic_hard_fault.txtar",
@@ -4555,6 +4606,86 @@
         "type": "regex",
         "pattern": "panic: outer 11"
       }
+    },
+    {
+      "id": "run/drop_panic_replace_array",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_replace_array.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop failed: 2\npanic: drop failed: 5\npanic: drop failed: 4"
+      }
+    },
+    {
+      "id": "run/drop_panic_replace_cell",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_replace_cell.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop failed: 2\npanic: drop failed: 4"
+      }
+    },
+    {
+      "id": "run/drop_panic_replace_field",
+      "kind": "run",
+      "path": "testdata/run/drop_panic_replace_field.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop failed: 2\npanic: drop failed: 4"
+      }
+    },
+    {
+      "id": "run/dyn_interface_in_cell",
+      "kind": "run",
+      "path": "testdata/run/dyn_interface_in_cell.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
     },
     {
       "id": "run/effect_poly_args_closures",
