@@ -76,7 +76,7 @@ arg-swap "main.bumpForwarded" b0/6 call | i3 i0
 	{"iface_static", "shape", `
 flag "main.showAll" b0/6 drop | i2
 `},
-	{"direct_closure", "droplent", `
+	{"direct_closure", "refs", `
 insert "main.peek" b0/0 field | i0 l"p"
 `},
 	{"mut_self_dispatch", "cellops", `
@@ -108,7 +108,7 @@ operand "main.bumpForwarded" b0/6 call | i0 l"t6"
 operand "main.bumpBorrowed" b0/6 callv | i1 l"t4"
 `},
 	{"direct_closure", "entities", `
-entity "main.lendsCapture.closure1" b0/2 call | i2 i3 eclosure:"main|main|closure"
+entity "main.lendsCapture.closure1" b0/1 call | i2 i3 eclosure:"main|main|closure"
 `},
 	{"iface_static", "aggregates", `
 opcode-any "main.Pair.show" b0/2 callv | i15

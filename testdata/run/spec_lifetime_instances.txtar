@@ -1,0 +1,21 @@
+-- src --
+// Two functions generic over different lifetimes hand a lifetime-carrying direct record to one generic helper.
+type Tag['a] = {
+    pub n Int
+    pub m Int
+}
+
+fn keep[T: Copy](x: T) -> T { x }
+
+fn viaA['a](v: Tag['a]) -> Int { keep(v).n }
+
+fn viaB['b](v: Tag['b]) -> Int { keep(v).n + keep(v).m }
+
+fn run(n: Int) -> Int {
+    let v = Tag { n: n, m: 1 }
+    viaA(v) * 10 + viaB(v)
+}
+
+print "lifetimes ${run(4)}"
+-- stdout --
+lifetimes 45

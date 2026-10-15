@@ -20,6 +20,7 @@ func (s *specializer) instance(f *Func, ctx *spec, in Inst) ([]sem.TypeID, []sem
 			return nil, nil, false
 		}
 	}
+	args = r.EraseLifetimes(args)
 	if !r.SpecializeArgs(args) && !s.protoInstance(gen, args) && !s.scalarArgs(args) || s.grows(ctx, args) {
 		return nil, nil, false
 	}

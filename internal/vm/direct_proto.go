@@ -54,7 +54,7 @@ func unboxed(v *obj) *obj {
 }
 
 func (m *Machine) leafHash(v *obj) uint64 {
-	if v = deref(v); v.k == kRecord || v.k == kVariant {
+	if v = deref(v); v.k == kRecord || v.k == kVariant || v.k == kArray {
 		return m.directHash(v)
 	}
 	return hashkey.Sum64([]byte(m.hashDisplay(v)))

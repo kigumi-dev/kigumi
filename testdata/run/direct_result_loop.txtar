@@ -1,0 +1,58 @@
+-- src --
+// A function returning Result of direct payloads hands it back unboxed; `?` and match read it in place.
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Fault = Bad(n: Int) | Worse
+
+fn half(n: Int) -> Result[Int, Int] {
+    if n % 2 == 0 { Ok(n / 2) } else { Err(n) }
+}
+
+fn step(n: Int) -> Result[Int, Int] {
+    let a = half(n)?
+    Ok(a + 1)
+}
+
+fn spot(i: Int) -> Result[Point, Fault] {
+    if i % 3 == 2 { Err(Bad(i)) } else if i % 3 == 1 { Err(Worse) } else { Ok(Point { x: i, y: 1 }) }
+}
+
+fn spotted(i: Int) -> Result[Point, Fault] {
+    let p = spot(i)?
+    Ok(Point { x: p.x + 1, y: p.y + 1 })
+}
+
+fn flag(i: Int) -> Result[Bool, Float] {
+    if i > 4 { Ok(i % 2 == 0) } else { Err(1.5) }
+}
+
+fn run(n: Int) -> Int {
+    let mut s = 0
+    for i in 0..n {
+        match step(i * 2) {
+            Ok(v) -> { s = s + v }
+            Err(e) -> { s = s - e }
+        }
+        match step(i) {
+            Ok(v) -> { s = s + v }
+            Err(e) -> { s = s - e }
+        }
+        match spotted(i) {
+            Ok(p) -> { s = s + p.x * 10 + p.y }
+            Err(Bad(k)) -> { s = s + k * 100 }
+            Err(Worse) -> { s = s + 1000 }
+        }
+        match flag(i) {
+            Ok(b) -> { if b { s = s + 7 } }
+            Err(f) -> { if f > 1.0 { s = s + 3 } }
+        }
+    }
+    s
+}
+
+print "result ${run(12)} ${run(0)}"
+-- stdout --
+result 6927 0

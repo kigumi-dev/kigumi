@@ -7,6 +7,7 @@ func (p *Program) pinned(f *Func) []bool {
 		out[i] = f.Locals[i].Cell
 	}
 	foreign := foreignLocals(f)
+	defs, count := defCounts(f)
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			switch in.Op {
@@ -15,7 +16,7 @@ func (p *Program) pinned(f *Func) []bool {
 				// OpNewCell's result keeps the content's type while holding a cell.
 				out[in.Args[0]], out[in.Dst] = true, true
 			case OpSetField, OpSetIndex:
-				if foreign[in.Args[0]] {
+				if foreign[in.Args[0]] && !detachedPayload(f, defs, count, in.Args[0]) {
 					out[in.Args[0]] = true
 				}
 			}
@@ -52,4 +53,18 @@ func storageSource(in Inst) (LocalID, bool) {
 		return in.Args[0], !in.Copy
 	}
 	return 0, false
+}
+
+func defCounts(f *Func) (map[LocalID]Inst, map[LocalID]int) {
+	defs := map[LocalID]Inst{}
+	count := map[LocalID]int{}
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if in.Op.Yields() {
+				defs[in.Dst] = in
+				count[in.Dst]++
+			}
+		}
+	}
+	return defs, count
 }

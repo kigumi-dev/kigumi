@@ -98,7 +98,7 @@ func (s *specializer) recursive(sp *spec) bool {
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
 				g := s.p.ByEnt[in.Ent]
-				if in.Op != OpCall || g == nil || seen[g] {
+				if !namesBody(in.Op) || g == nil || seen[g] {
 					continue
 				}
 				if g == sp.fn {
@@ -108,6 +108,15 @@ func (s *specializer) recursive(sp *spec) bool {
 				work = append(work, g)
 			}
 		}
+	}
+	return false
+}
+
+// A body is reached by a call, and by the function value, closure or method value that names it.
+func namesBody(op Opcode) bool {
+	switch op {
+	case OpCall, OpFnItem, OpClosure, OpBind:
+		return true
 	}
 	return false
 }

@@ -1,5 +1,7 @@
 package sem
 
+import "slices"
+
 func (r *Result) OwnerParams(fn EntityID) []EntityID { return r.ownerParams(fn) }
 
 func (r *Result) IsLifetimeParam(p EntityID) bool {
@@ -53,4 +55,39 @@ func (tt *TypeTable) BindParams(pat, act TypeID, want map[EntityID]bool, out map
 		}
 	}
 	return true
+}
+
+// EraseLifetimes renames the lifetime parameters in args to shared stand-ins in order of appearance,
+// so instantiations that differ only in lifetime names are one.
+func (r *Result) EraseLifetimes(args []TypeID) []TypeID {
+	var seen []EntityID
+	for _, a := range args {
+		for _, p := range r.Types.Params(a) {
+			if r.IsLifetimeParam(p) && !slices.Contains(seen, p) {
+				seen = append(seen, p)
+			}
+		}
+	}
+	if len(seen) == 0 {
+		return args
+	}
+	sub := map[EntityID]TypeID{}
+	for k, p := range seen {
+		sub[p] = r.Types.Param(r.standInLifetime(k, p))
+	}
+	out := make([]TypeID, len(args))
+	for i, a := range args {
+		out[i] = r.Types.Subst(a, sub)
+	}
+	return out
+}
+
+func (r *Result) standInLifetime(k int, like EntityID) EntityID {
+	for len(r.lifetimeStandIns) <= k {
+		e := r.Entities[like]
+		e.Detail = r.addTypeParam(TypeParamInfo{IsLifetime: true})
+		e.Name = "'_"
+		r.lifetimeStandIns = append(r.lifetimeStandIns, r.newEntity(e))
+	}
+	return r.lifetimeStandIns[k]
 }

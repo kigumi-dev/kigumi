@@ -164,6 +164,7 @@ type Result struct {
 	closureOrigins            map[EntityID]EntityID
 	ordinalMu                 sync.Mutex
 	closureOrdinals           map[EntityID]int
+	lifetimeStandIns          []EntityID
 	deferredClaims            bool
 	allocBlocks               []allocBlock
 }

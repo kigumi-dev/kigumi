@@ -1,0 +1,52 @@
+-- src --
+// A direct record or ADT holding a FixedArray compares and hashes in place, folding the elements as FixedArray's own methods do.
+type Cell = {
+    pub a Int
+    pub b Bool
+}
+
+type Grid = {
+    pub tag u8
+    pub cells FixedArray[Cell, 3]
+    pub w FixedArray[i16, 4]
+}
+
+type Seen = Hit(g: Grid) | Miss
+
+fn make(i: Int) -> Grid {
+    let mut c = FixedArray.filled[Cell, 3](Cell { a: 0, b: false })
+    c[1] = Cell { a: i, b: true }
+    let mut w = FixedArray.filled[i16, 4](2)
+    w[3] = 7
+    Grid { tag: 9, cells: c, w: w }
+}
+
+fn manual(g: &Grid) -> u64 {
+    let mut h: u64 = 14695981039346656037
+    h = (h ^ hash(&g.tag)).wrappingMul(1099511628211)
+    h = (h ^ g.cells.hash()).wrappingMul(1099511628211)
+    h = (h ^ g.w.hash()).wrappingMul(1099511628211)
+    h
+}
+
+fn run(n: Int) -> Int {
+    let mut s = 0
+    for i in 0..n {
+        let g = make(i % 3)
+        let h = make(1)
+        if g == h { s = s + 1 }
+        if hash(&g) == hash(&h) { s = s + 2 }
+        if Hit(g) == Hit(h) { s = s + 4 }
+        if Hit(g) == Miss { s = s + 8 }
+    }
+    s
+}
+
+let g = make(2)
+print "loop=${run(9)}"
+print "eq=${make(1) == make(1)} ${make(1) == make(2)} ${Hit(make(1)) == Hit(make(1))} ${Hit(make(1)) == Hit(make(2))}"
+print "hash=${hash(&g) == manual(&g)} ${hash(&make(1)) == hash(&make(1))} ${hash(&make(1)) == hash(&make(2))} ${hash(&g)}"
+-- stdout --
+loop=21
+eq=true false true false
+hash=true true false 6530718160060741847

@@ -57,6 +57,8 @@ func (e *emitter) protoHelper(a *aggInfo, hash bool) {
 		fmt.Fprintf(&sb, "define internal i1 %s(ptr %%a, ptr %%b) {\nentry:\n", e.protoSym(a, false))
 	}
 	switch {
+	case a.Arr != nil:
+		e.protoFixed(&sb, a, hash)
 	case a.isAdt():
 		e.protoAdt(&sb, a, hash)
 	case hash:

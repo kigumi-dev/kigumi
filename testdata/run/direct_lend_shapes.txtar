@@ -1,0 +1,85 @@
+-- src --
+// More shapes of lent direct values: swapped chains, snapshots of a mutated local, inline arrays, function values and interfaces.
+type Point = {
+    pub mut x Int
+    pub y Int
+}
+
+type Line = {
+    pub a Point
+    pub b Point
+}
+
+type Strip = {
+    pub tag Int
+    pub cells FixedArray[Int, 4]
+}
+
+type Big = {
+    pub a Int
+    pub b Int
+    pub c Int
+    pub d Int
+    pub e Int
+    pub f Int
+    pub g Int
+    pub h Int
+    pub i Int
+    pub j Int
+    pub k Int
+    pub l Int
+    pub m Int
+    pub n Int
+    pub o Int
+    pub p Int
+    pub q Int
+}
+
+interface Measure {
+    fn gap(self, other: &Self) -> Int
+}
+
+fn Point.gap(self, other: &Point) -> Int { self.x - other.x + self.y * other.y }
+
+fn left(p: &Point, q: &Point) -> Int { p.x * 100 + q.x }
+
+fn swapped(p: &Point, q: &Point) -> Int { left(q, p) }
+
+fn span(l: &Line) -> Int { l.b.x - l.a.x }
+
+fn sumStrip(s: &Strip) -> Int { s.tag + s.cells[0] + s.cells[3] }
+
+fn bigSum(b: &Big) -> Int { b.a + b.q }
+
+fn gapOf[T: Measure](a: T, b: &T) -> Int { a.gap(b) }
+
+fn make(i: Int) -> Point { Point { x: i, y: i + 1 } }
+
+fn run(n: Int) -> Int {
+    let mut s = 0
+    let mut moving = Point { x: 0, y: 1 }
+    let fns: Array[fn(&Point, &Point) -> Int] = Array.of(left, swapped)
+    for i in 0..n {
+        let p = Point { x: i, y: 2 }
+        moving.x = i * 3
+        s = s + left(&p, &moving) + swapped(&p, &moving)
+        moving.x = moving.x + 1
+        s = s + left(&moving, &p)
+        let line = Line { a: p, b: moving }
+        s = s + span(&line)
+        let mut cells = FixedArray.filled[Int, 4](i)
+        cells[3] = 9
+        let strip = Strip { tag: 1, cells: cells }
+        s = s + sumStrip(&strip)
+        let big = Big { a: i, b: 0, c: 0, d: 0, e: 0, f: 0, g: 0, h: 0, i: 0, j: 0, k: 0, l: 0, m: 0, n: 0, o: 0, p: 0, q: 5 }
+        s = s + bigSum(&big)
+        s = s + gapOf(p, &moving) + p.gap(&moving)
+        s = s + fns[0](&p, &moving) + fns[1](&p, &moving)
+        s = s + left(&make(i), &make(i + 1))
+    }
+    s
+}
+
+print "shapes ${run(7)} ${run(1)}"
+-- stdout --
+shapes 26950 220

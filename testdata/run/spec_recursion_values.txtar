@@ -1,0 +1,34 @@
+-- src --
+// Recursion that goes through a function value or a closure keeps its wide record on the shared body.
+type Wide = {
+    pub a Int
+    pub b Int
+    pub c Int
+}
+
+fn viaValue[T](x: T, n: Int) -> T {
+    if n == 0 { x } else {
+        let f = viaValue[T]
+        f(x, n - 1)
+    }
+}
+
+fn viaClosure[T: Copy](x: T, n: Int) -> T {
+    if n == 0 { x } else {
+        let next = () => viaClosure(x, n - 1)
+        next()
+    }
+}
+
+fn down[T](x: T, n: Int) -> T {
+    if n == 0 { x } else { down(x, n - 1) }
+}
+
+fn run(n: Int) -> Int {
+    let w = Wide { a: n, b: n + 1, c: n + 2 }
+    viaValue(w, n).c * 100 + viaClosure(w, n).b * 10 + down(w, n).a
+}
+
+print "values ${run(5)} ${run(0)}"
+-- stdout --
+values 765 210

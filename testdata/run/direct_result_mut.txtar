@@ -1,0 +1,58 @@
+-- src --
+// `let mut x = f()?` over a direct payload mutates a private copy; a named Result keeps its payload.
+type In = {
+    pub mut a Int
+    pub mut b Int
+}
+
+fn try1(i: In) -> Result[In, Int] {
+    if i.a > 0 { Ok(In { a: i.a + 1, b: i.b }) } else { Err(i.b) }
+}
+
+fn trio(n: Int) -> Result[FixedArray[Int, 3], Int] {
+    if n > 0 { Ok(FixedArray.filled[Int, 3](n)) } else { Err(n) }
+}
+
+fn chain(i: In) -> Result[Int, Int] {
+    let mut x = try1(i)?
+    x.a = x.a * 10
+    x.b = x.b + 1
+    Ok(x.a + x.b)
+}
+
+fn arr(n: Int) -> Result[Int, Int] {
+    let mut v = trio(n)?
+    v[1] = v[1] + 5
+    Ok(v[0] + v[1] + v[2])
+}
+
+fn named(i: In) -> Result[Int, Int] {
+    let r = try1(i)
+    let mut x = r?
+    x.a = 100
+    match r {
+        Ok(p) -> { Ok(p.a + x.a) }
+        Err(e) -> { Err(e) }
+    }
+}
+
+fn val(r: Result[Int, Int], d: Int) -> Int {
+    match r {
+        Ok(v) -> v
+        Err(_) -> d
+    }
+}
+
+fn run(n: Int) -> Int {
+    let mut s = 0
+    for i in 0..n {
+        s = s + val(chain(In { a: i, b: 2 }), -1)
+        s = s + val(arr(i - 1), -2)
+        s = s + val(named(In { a: i, b: 3 }), -3)
+    }
+    s
+}
+
+print "mut ${run(6)} ${run(0)}"
+-- stdout --
+mut 777 0

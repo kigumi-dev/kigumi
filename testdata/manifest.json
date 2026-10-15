@@ -3444,6 +3444,23 @@
       ]
     },
     {
+      "id": "run/comptime_direct_generic",
+      "kind": "run",
+      "path": "testdata/run/comptime_direct_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/comptime_multi_block",
       "kind": "run",
       "path": "testdata/run/comptime_multi_block.txtar",
@@ -4056,6 +4073,23 @@
       ]
     },
     {
+      "id": "run/direct_adt_payload_slots",
+      "kind": "run",
+      "path": "testdata/run/direct_adt_payload_slots.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/direct_adt_widths",
       "kind": "run",
       "path": "testdata/run/direct_adt_widths.txtar",
@@ -4319,6 +4353,74 @@
       ]
     },
     {
+      "id": "run/direct_fixed_protocol",
+      "kind": "run",
+      "path": "testdata/run/direct_fixed_protocol.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_fixed_protocol_narrow",
+      "kind": "run",
+      "path": "testdata/run/direct_fixed_protocol_narrow.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_lend_ref",
+      "kind": "run",
+      "path": "testdata/run/direct_lend_ref.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_lend_shapes",
+      "kind": "run",
+      "path": "testdata/run/direct_lend_shapes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/direct_prim_captured",
       "kind": "run",
       "path": "testdata/run/direct_prim_captured.txtar",
@@ -4356,6 +4458,40 @@
       "id": "run/direct_protocol_values",
       "kind": "run",
       "path": "testdata/run/direct_protocol_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_result_loop",
+      "kind": "run",
+      "path": "testdata/run/direct_result_loop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_result_mut",
+      "kind": "run",
+      "path": "testdata/run/direct_result_mut.txtar",
       "mode": [
         "vm",
         "native"
@@ -9667,6 +9803,40 @@
       ]
     },
     {
+      "id": "run/spec_lifetime_instances",
+      "kind": "run",
+      "path": "testdata/run/spec_lifetime_instances.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/spec_recursion_values",
+      "kind": "run",
+      "path": "testdata/run/spec_recursion_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/spread_borrow_copy",
       "kind": "run",
       "path": "testdata/run/spread_borrow_copy.txtar",
@@ -12501,6 +12671,17 @@
       "id": "sem/handle_table_borrow_escape",
       "kind": "sem",
       "path": "testdata/sem/handle_table_borrow_escape.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/hash_holder_refused",
+      "kind": "sem",
+      "path": "testdata/sem/hash_holder_refused.txtar",
       "mode": [
         "check"
       ],

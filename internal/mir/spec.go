@@ -14,6 +14,8 @@ type spec struct {
 	root    *spec
 	brought int
 	capped  bool
+	key     string
+	refused bool
 	sites   []*callSite
 	dead    bool
 	scalar  bool
@@ -37,24 +39,50 @@ type specializer struct {
 	reported map[string]bool
 	scanned  map[*Func]bool
 	scalars  bool
+	bonus    map[string]int
+	lent     map[lendParam]bool
+	edits    []siteEdit
 }
 
-// Specialize runs after plan-rc and fold-comptime and before plan-direct, so comptime executes the shared body.
+type siteEdit struct {
+	f        *Func
+	blk, idx int
+	was      sem.EntityID
+}
+
+// Specialize runs after plan-rc and before plan-direct, and comptime folds after plan-direct.
 func Specialize(p *Program) error {
-	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*Func]bool{}}
+	mark := len(p.Diags)
+	newSpecializer(p, nil).intrinsifyOwned()
+	bonus := map[string]int{}
+	for attempt := 0; ; attempt++ {
+		s := newSpecializer(p, bonus)
+		s.run()
+		if attempt == maxReclaims || !s.reclaim(bonus) {
+			break
+		}
+		s.rollback(mark)
+	}
+	p.inlineProtoCalls()
+	return nil
+}
+
+func newSpecializer(p *Program, bonus map[string]int) *specializer {
+	s := &specializer{p: p, byKey: map[string]*spec{}, byEnt: map[sem.EntityID]*spec{}, byFunc: map[*Func]*spec{}, names: map[string]*nameHolder{}, noSpec: map[sem.EntityID]bool{}, reported: map[string]bool{}, scanned: map[*Func]bool{}, bonus: bonus}
 	for _, f := range p.Funcs {
 		s.names[f.Name] = nil
 	}
-	s.intrinsifyOwned()
-	for _, f := range append([]*Func(nil), p.Funcs...) {
+	return s
+}
+
+func (s *specializer) run() {
+	for _, f := range append([]*Func(nil), s.p.Funcs...) {
 		s.scan(f, nil)
 	}
 	s.drain()
 	s.scalarPhase()
 	s.settle()
 	s.prune()
-	p.inlineProtoCalls()
-	return nil
 }
 
 func (s *specializer) scan(f *Func, ctx *spec) {
@@ -77,6 +105,7 @@ func (s *specializer) scan(f *Func, ctx *spec) {
 			}
 			if sp := s.get(f, ctx, insts[i], args, wit); sp != nil {
 				sp.sites = append(sp.sites, &callSite{f: f, blk: bid, idx: i})
+				s.edits = append(s.edits, siteEdit{f, bid, i, insts[i].Ent})
 				insts[i].Ent = sp.ent
 			}
 		}
@@ -120,7 +149,7 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 		s.noSpec[gen] = true
 		return nil
 	}
-	sp := &spec{ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones, scalar: s.scalars}
+	sp := &spec{key: key, ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones, scalar: s.scalars}
 	charge(sp, ctx)
 	s.p.Funcs = append(s.p.Funcs, fn)
 	s.p.ByEnt[ent] = fn

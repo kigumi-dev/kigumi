@@ -1,0 +1,48 @@
+-- src --
+// Payload slots are shared by position: slot 0 is as wide as the widest first payload of any variant, and scalars read back as registers.
+type Point = {
+    pub x Int
+    pub y Int
+}
+
+type Mixed = A(a: u8, b: Int) | B(x: Float) | C(r: Point, flag: Bool) | D
+
+fn twice(n: Int) -> Int { n * 2 }
+
+fn keep[T: Copy](x: T) -> T { x }
+
+fn describe(m: Mixed) -> Int {
+    match m {
+        A(a, b) -> twice(b) + keep(a).toInt()
+        B(x) -> if x > 1.0 { 7 } else { 8 }
+        C(r, flag) -> r.x * 10 + r.y + (if flag { 100 } else { 0 })
+        D -> 0 - 1
+    }
+}
+
+fn collect(m: Mixed, out: &mut Array[Int]) -> Unit {
+    match m {
+        A(a, b) -> {
+            out.push(b)
+            out.push(b)
+            out.push(a.toInt())
+        }
+        C(r, _) -> { out.push(r.x) }
+        _ -> {}
+    }
+}
+
+fn run(n: Int) -> Int {
+    let mut s = 0
+    let mut out: Array[Int] = Array.empty()
+    for i in 0..n {
+        let m = if i % 4 == 0 { A(7, i) } else if i % 4 == 1 { B(0.5 + 1.0 * 1.0) } else if i % 4 == 2 { C(Point { x: i, y: 2 }, i > 5) } else { D }
+        s = s + describe(m)
+        collect(m, &mut out)
+    }
+    s + ((out.len().toInt() || 0) * 1000)
+}
+
+print "mixed ${run(9)} ${run(0)}"
+-- stdout --
+mixed 11241 0

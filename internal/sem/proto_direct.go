@@ -54,7 +54,16 @@ func (r *Result) protocolLeaf(t TypeID, proto string, depth int) bool {
 	if r.RegScalar(t) {
 		return true
 	}
+	if r.IsFixedArray(t) {
+		return r.protocolFixed(t, proto, depth)
+	}
 	return r.protocolDirect(t, proto, depth)
+}
+
+// An inline FixedArray folds its elements in order, the way its own `equals` and `hash` do.
+func (r *Result) protocolFixed(t TypeID, proto string, depth int) bool {
+	elem, _, ok := r.FixedElem(t)
+	return ok && depth <= 8 && r.DirectAgg(t) && elem != TyUnit && r.protocolLeaf(elem, proto, depth+1)
 }
 
 // The member must be the generated one: a method the author wrote keeps its own meaning.

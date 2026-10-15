@@ -8,6 +8,9 @@ import (
 
 const maxSpecRepeats = 64
 
+// A run that capped a root while discarding some of its instantiations repeats with a larger limit.
+const maxReclaims = 2
+
 // specsPerRoot bounds what one call from ordinary code brings in, since nested calls can multiply the count.
 const specsPerRoot = 256
 
@@ -57,9 +60,10 @@ func charge(sp, ctx *spec) {
 
 // The warning goes once to the call that brought the root in, where the caller can act on it.
 func (s *specializer) overBudget(ctx *spec) bool {
-	if ctx == nil || ctx.root.brought < specsPerRoot {
+	if ctx == nil || ctx.root.brought < specsPerRoot+s.bonus[ctx.root.key] {
 		return false
 	}
+	ctx.refused = true
 	root := ctx.root
 	if root.scalar {
 		return true
@@ -83,4 +87,62 @@ func (s *specializer) warn(f *Func, node syntax.NodeID, code string, args ...any
 	}
 	t := s.p.R.Tree(f.File)
 	s.p.Diags = append(s.p.Diags, FileDiag{File: f.File, Diag: diag.Diagnostic{Severity: diag.Warning, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num}})
+}
+
+// reclaim reports whether a capped root held instantiations that went unused for another reason; each raises its limit.
+func (s *specializer) reclaim(bonus map[string]int) bool {
+	reached := map[*spec]bool{}
+	for _, sp := range s.live() {
+		reached[sp] = true
+	}
+	hit := s.capAffected()
+	again := false
+	for _, sp := range s.all {
+		if root := sp.root; !reached[sp] && !hit[sp] && root != sp && root.capped {
+			bonus[root.key]++
+			again = true
+		}
+	}
+	return again
+}
+
+// A refused call leaves its caller boxing, and the caller's discarding passes up to the callers above it.
+func (s *specializer) capAffected() map[*spec]bool {
+	hit := map[*spec]bool{}
+	var work []*spec
+	for _, sp := range s.all {
+		if sp.refused {
+			hit[sp] = true
+			work = append(work, sp)
+		}
+	}
+	for len(work) > 0 {
+		sp := work[len(work)-1]
+		work = work[:len(work)-1]
+		for _, site := range sp.sites {
+			if caller := s.byFunc[site.f]; caller != nil && !hit[caller] {
+				hit[caller] = true
+				work = append(work, caller)
+			}
+		}
+	}
+	return hit
+}
+
+// rollback undoes the run; entities the semantic result minted stay, unused.
+func (s *specializer) rollback(mark int) {
+	for i := len(s.edits) - 1; i >= 0; i-- {
+		e := s.edits[i]
+		e.f.Blocks[e.blk].Insts[e.idx].Ent = e.was
+	}
+	out := s.p.Funcs[:0]
+	for _, f := range s.p.Funcs {
+		if s.byFunc[f] == nil {
+			out = append(out, f)
+			continue
+		}
+		delete(s.p.ByEnt, f.Ent)
+	}
+	s.p.Funcs = out
+	s.p.Diags = s.p.Diags[:mark]
 }

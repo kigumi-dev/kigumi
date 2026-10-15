@@ -62,3 +62,38 @@ func TestFixedArrayCrossesIntoAGenericBody(t *testing.T) {
 		t.Errorf("the boxed form must be an Array of exactly N elements:\n%s", helper)
 	}
 }
+
+const fixedProtoSrc = `
+type Cell = {
+    pub a Int
+    pub b Bool
+}
+
+type Grid = {
+    pub tag u8
+    pub cells FixedArray[Cell, 3]
+}
+
+fn same(g: Grid, h: Grid) -> Bool { g == h && hash(&g) == hash(&h) }
+
+fn main() -> Unit! {
+    let g = Grid { tag: 1, cells: FixedArray.filled[Cell, 3](Cell { a: 1, b: true }) }
+    if same(g, g) {}
+}
+`
+
+func TestFixedArrayFieldComparesAndHashesInPlace(t *testing.T) {
+	ir := specializedIR(t, fixedProtoSrc)
+	body := fnBody(t, ir, "main.same")
+	checkNoHeap(t, "main.same", body)
+	for _, bad := range []string{`@"kg.box.`, "@rt_builtin(", "@rt_binop(", "@rt_std_id(", `@"main.Grid.equals"`} {
+		if strings.Contains(body, bad) {
+			t.Errorf("main.same calls %s:\n%s", bad, body)
+		}
+	}
+	for _, want := range []string{`call i1 @"kg.eq.main.Grid"(`, `call i64 @"kg.hash.main.Grid"(`, `define internal i1 @"kg.eq.std/prelude.FixedArray[main.Cell,3]"(ptr %a, ptr %b)`, `define internal i64 @"kg.hash.std/prelude.FixedArray[main.Cell,3]"(ptr %a)`} {
+		if !strings.Contains(ir, want) {
+			t.Errorf("no %s:\n%s", want, ir)
+		}
+	}
+}

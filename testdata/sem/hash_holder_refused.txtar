@@ -1,0 +1,19 @@
+-- app/t/t.kg --
+type Cb = {
+    pub f fn(Int) -> Int
+    pub n Int
+}
+
+fn fingerprint[T: Hash](a: &T) -> u64 { hash(a) }
+
+fn run(n: Int) -> u64 {
+    fingerprint(&Cb { f: (x) => x, n: n }) //~ ERROR `Cb` does not satisfy `Hash`
+}
+
+-- expect --
+error[E300]: `Cb` does not satisfy `Hash`: it cannot be derived
+ --> app/t/t.kg:9:5
+  |
+9 |     fingerprint(&Cb { f: (x) => x, n: n }) //~ ERROR `Cb` does not satisfy `Hash`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

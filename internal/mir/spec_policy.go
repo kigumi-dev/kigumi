@@ -12,6 +12,7 @@ func (s *specializer) settle() {
 		pins[f] = s.p.pinned(f)
 		f.DSig = s.p.directSig(f, pins[f])
 	}
+	s.lent = s.p.lendCandidates()
 	for len(live) > 0 && s.dryRun(live, pins) {
 		live = s.live()
 	}
@@ -85,7 +86,7 @@ func (s *specializer) pays(sp *spec) bool {
 		f, g := pr.fn, pr.gen
 		derived := func(l LocalID) bool { return int(l) < len(g.Locals) && g.Locals[l].Type != f.Locals[l].Type }
 		for i, prm := range f.Params {
-			gains = gains || f.DSig.Param(i) != 0 && derived(prm)
+			gains = gains || (f.DSig.Param(i) != 0 || s.lent[lendParam{f, i}]) && derived(prm)
 		}
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {

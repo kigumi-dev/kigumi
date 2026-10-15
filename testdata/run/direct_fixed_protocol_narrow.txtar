@@ -1,0 +1,42 @@
+-- src --
+// Narrow integer, Bool, Char and Float elements fold the way FixedArray's own hash and equals do, NaN and -0.0 included.
+type Narrow = {
+    pub f FixedArray[Float, 2]
+    pub c FixedArray[Char, 2]
+    pub b FixedArray[Bool, 3]
+    pub u FixedArray[u8, 3]
+    pub w FixedArray[u64, 2]
+}
+
+fn make(x: Float, flag: Bool) -> Narrow {
+    let mut f = FixedArray.filled[Float, 2](1.5)
+    f[1] = x
+    let mut b = FixedArray.filled[Bool, 3](false)
+    b[2] = flag
+    Narrow { f: f, c: FixedArray.filled[Char, 2]('é'), b: b, u: FixedArray.filled[u8, 3](255), w: FixedArray.filled[u64, 2](18446744073709551615) }
+}
+
+fn manual(n: &Narrow) -> u64 {
+    let mut h: u64 = 14695981039346656037
+    h = (h ^ n.f.hash()).wrappingMul(1099511628211)
+    h = (h ^ n.c.hash()).wrappingMul(1099511628211)
+    h = (h ^ n.b.hash()).wrappingMul(1099511628211)
+    h = (h ^ n.u.hash()).wrappingMul(1099511628211)
+    h = (h ^ n.w.hash()).wrappingMul(1099511628211)
+    h
+}
+
+let zero = 0.0
+let nan = zero / zero
+let a = make(2.5, true)
+let b = make(2.5, true)
+let c = make(2.5, false)
+let n1 = make(nan, true)
+let n2 = make(nan, true)
+let z1 = make(0.0, true)
+let z2 = make(-0.0, true)
+print "eq ${a == b} ${a == c} ${n1 == n2} ${z1 == z2}"
+print "hash ${hash(&a) == manual(&a)} ${hash(&n1) == manual(&n1)} ${hash(&z1) == hash(&z2)} ${hash(&a) == hash(&c)} ${hash(&a)}"
+-- stdout --
+eq true false true true
+hash true true true false 18005244267282779091

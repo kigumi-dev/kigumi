@@ -5,6 +5,7 @@ import "kigumi/internal/sem"
 // PlanDirect, not the backend, decides every crossing between the unboxed and boxed forms.
 func PlanDirect(p *Program) error {
 	p.Entries = nil
+	p.lendByValue()
 	fs := p.allFuncs()
 	pins := make([][]bool, len(fs))
 	for i, f := range fs {
