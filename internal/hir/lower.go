@@ -16,10 +16,10 @@ type lowerer struct {
 // Lower turns a checked function, implicit main or test into HIR, or nil
 // when the function has no body.
 func Lower(r *sem.Result, ent sem.EntityID) *Func {
-	e := r.Entity(ent)
-	if e.File == 0 {
+	if !Lowerable(r, ent) {
 		return nil
 	}
+	e := r.Entity(ent)
 	l := &lowerer{r: r, f: e.File, t: r.Tree(e.File)}
 	l.info = r.File(l.t)
 	out := &Func{Ent: ent, File: e.File, Name: r.Packages[e.Pkg].Path + "." + e.Name}
@@ -27,9 +27,6 @@ func Lower(r *sem.Result, ent sem.EntityID) *Func {
 	switch e.Kind {
 	case sem.EntFn:
 		info := r.Fn(ent)
-		if info.Body == 0 || r.Entity(e.Parent).Kind == sem.EntInterface {
-			return nil
-		}
 		out.Kind = FuncFn
 		if info.SelfParam != 0 {
 			out.Self = l.decl(info.SelfParam)
@@ -68,6 +65,21 @@ func Lower(r *sem.Result, ent sem.EntityID) *Func {
 		return nil
 	}
 	return out
+}
+
+// Lowerable reports whether Lower returns a body for ent.
+func Lowerable(r *sem.Result, ent sem.EntityID) bool {
+	e := r.Entity(ent)
+	if e.File == 0 {
+		return false
+	}
+	switch e.Kind {
+	case sem.EntFn:
+		return r.Fn(ent).Body != 0 && r.Entity(e.Parent).Kind != sem.EntInterface
+	case sem.EntImplicitMain, sem.EntTest:
+		return true
+	}
+	return false
 }
 
 func isStatement(k syntax.NodeKind) bool {

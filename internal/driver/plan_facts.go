@@ -31,7 +31,7 @@ func newPlanCache() *planCache { return &planCache{facts: map[string]*planFacts{
 
 // artifactFacts scopes to a's own entry set so a sibling artifact's usage never leaks in.
 func (c *planCache) artifactFacts(p *BuildProgram, a *buildgraph.Artifact, t Target) *planFacts {
-	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name})
+	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses})
 	if err != nil {
 		return nil
 	}

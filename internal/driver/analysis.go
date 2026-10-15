@@ -53,7 +53,7 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 	}
 	m.stats.MIR++
 	var err error
-	if a.Prog, err = buildProgram(res, m.target.StrictStack, m.target.StackBudgetKiB); err != nil {
+	if a.Prog, err = buildProgram(res, progOptions{strict: m.target.StrictStack, budgetKiB: m.target.StackBudgetKiB, verifyEach: m.verifyPasses, lowerAll: m.lowerAll}); err != nil {
 		return nil, err
 	}
 	// Several cmd/ scripts each have an implicit main; the module's entry
@@ -68,19 +68,28 @@ func (m *Module) analyze(mod *sem.Module, gen sem.DeriveGenerator) (*Analysis, e
 	return a, nil
 }
 
-// buildProgram returns a program with diagnostics unverified; strict and
-// budgetKiB gate its resource summary (the build program itself always passes hosted-growable).
-func buildProgram(res *sem.Result, strict bool, budgetKiB int) (*mir.Program, error) {
-	prog := lowerProgram(res)
+// progOptions shape buildProgram: strict and budgetKiB gate the resource summary (the build program
+// itself always passes hosted-growable), and lowerAll lowers bodies nothing reaches as well.
+type progOptions struct {
+	strict     bool
+	budgetKiB  int
+	verifyEach bool
+	lowerAll   bool
+}
+
+// buildProgram returns a program with diagnostics unverified.
+func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
+	prog := lowerProgram(res, o.lowerAll)
 	if res.HasErrors() {
 		return prog, nil
 	}
+	prog.VerifyEach = o.verifyEach
 	if err := prog.Apply(planPasses(true)...); err != nil {
 		return prog, err
 	}
 	prog.Resources = mir.ComputeResourceSummaries(prog)
 	mir.SettleAsyncBounds(prog)
-	mir.CheckResourceBudget(prog, prog.Resources, mir.ResourceOptions{Strict: strict, BudgetKiB: budgetKiB})
+	mir.CheckResourceBudget(prog, prog.Resources, mir.ResourceOptions{Strict: o.strict, BudgetKiB: o.budgetKiB})
 	for _, d := range prog.Diags {
 		res.Files[d.File].Diags = append(res.Files[d.File].Diags, d.Diag)
 	}
@@ -90,8 +99,12 @@ func buildProgram(res *sem.Result, strict bool, budgetKiB int) (*mir.Program, er
 	return prog, nil
 }
 
-func lowerProgram(res *sem.Result) *mir.Program {
-	prog := mir.Build(res)
+func lowerProgram(res *sem.Result, all bool) *mir.Program {
+	build := mir.Build
+	if all {
+		build = mir.BuildAll
+	}
+	prog := build(res)
 	for _, f := range prog.Funcs {
 		res.Files[f.File].Diags = append(res.Files[f.File].Diags, f.Diags...)
 	}

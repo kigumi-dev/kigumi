@@ -45,7 +45,7 @@ func (m *Machine) callMethod(recv *obj, name string, args []*obj, kind sem.RecvK
 
 // all leads with the receiver, which stays lent.
 func (m *Machine) dispatch(fn sem.EntityID, all []*obj) *obj {
-	f, lowered := m.p.ByEnt[fn]
+	f, lowered := m.lowered(fn)
 	if e := m.r.Entity(fn); e.Kind == sem.EntFn && e.Flags&sem.EfStd != 0 {
 		key := m.stdKey(fn)
 		if m.opts.Sandbox && hostEffect(key) {

@@ -53,7 +53,7 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 		}
 	}
 	mod.Packages = append(mod.Packages, &sem.Package{Path: "build", Files: []*syntax.Tree{tree}})
-	a, err := (&Module{}).analyze(mod, nil)
+	a, err := (&Module{verifyPasses: opts.VerifyPasses}).analyze(mod, nil)
 	if err != nil {
 		return nil, true, err
 	}
@@ -106,7 +106,7 @@ func (p *BuildProgram) Run(target Target, flags []string, outDir string) (*build
 	}
 	host := HostTarget()
 	if p.prog == nil {
-		prog, err := buildProgram(p.Res, false, 0)
+		prog, err := buildProgram(p.Res, progOptions{verifyEach: p.Module.verifyPasses})
 		if err != nil {
 			return nil, err
 		}

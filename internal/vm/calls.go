@@ -19,7 +19,7 @@ func (m *Machine) callEntity(in *mir.Inst, args []*obj) *obj {
 			return m.callMethod(args[0], e.Name, args[1:], info.Recv)
 		}
 	}
-	f, lowered := m.p.ByEnt[ent]
+	f, lowered := m.lowered(ent)
 	if e.Kind == sem.EntFn && e.Flags&sem.EfStd != 0 {
 		key := m.stdKey(ent)
 		if m.opts.Sandbox && hostEffect(key) {
@@ -69,7 +69,7 @@ func (m *Machine) closure(in *mir.Inst, caps []*obj) *obj {
 		c.req = &reqCall{name: e.Name, witness: in.Str == "witness", move: m.r.Fn(in.Ent).Recv == sem.RecvMove}
 		return c
 	}
-	f, lowered := m.p.ByEnt[in.Ent]
+	f, lowered := m.lowered(in.Ent)
 	useLowered := lowered
 	if e := m.r.Entity(in.Ent); e.Kind == sem.EntFn && e.Flags&sem.EfStd != 0 {
 		key := m.stdKey(in.Ent)

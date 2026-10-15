@@ -16,7 +16,7 @@ func (m *Machine) stdFn(pkg, name string) sem.EntityID {
 // callStd runs a std function with a Kigumi body on lent arguments.
 func (m *Machine) callStd(pkg, name string, args []*obj) *obj {
 	fn := m.stdFn(pkg, name)
-	if f, ok := m.p.ByEnt[fn]; ok {
+	if f, ok := m.lowered(fn); ok {
 		return m.call(f, args)
 	}
 	return m.std(m.stdKey(fn), args)

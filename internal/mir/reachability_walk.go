@@ -6,7 +6,9 @@ import (
 )
 
 type reachWalk struct {
-	p         *Program
+	p *Program
+	// lower makes the walk lower each body it reaches instead of only following lowered ones.
+	lower     bool
 	r         *sem.Result
 	rs        *Reachability
 	worklist  []sem.EntityID
@@ -58,7 +60,7 @@ func (w *reachWalk) noteOp(op StdOpId, caller sem.EntityID, node syntax.NodeID) 
 
 // A function value naming a bodiless std function still reaches its op.
 func (w *reachWalk) mentionedOp(ent sem.EntityID) (StdOpId, bool) {
-	if ent == 0 || w.p.ByEnt[ent] != nil {
+	if ent == 0 || w.hasBody(ent) {
 		return 0, false
 	}
 	e := w.r.Entity(ent)
@@ -69,7 +71,7 @@ func (w *reachWalk) mentionedOp(ent sem.EntityID) (StdOpId, bool) {
 }
 
 func (w *reachWalk) visit(caller, target sem.EntityID, via string) {
-	if target == 0 || w.p.ByEnt[target] == nil {
+	if target == 0 || !w.hasBody(target) {
 		return
 	}
 	if w.rs.add(target, Reason{Via: via, Caller: caller}) {
@@ -77,7 +79,19 @@ func (w *reachWalk) visit(caller, target sem.EntityID, via string) {
 	}
 }
 
-func (w *reachWalk) inst(f *Func, id sem.EntityID, in *Inst) {
+func (w *reachWalk) stdOp(in *Inst) (StdOpId, bool) {
+	if w.lower {
+		return stdOpOf(w.r, in)
+	}
+	return in.StdOp()
+}
+
+func (w *reachWalk) hasBody(ent sem.EntityID) bool {
+	return w.p.ByEnt[ent] != nil || w.lower && w.p.lowerable(ent)
+}
+
+// inst follows one instruction of f; pkg is the package f's code belongs to.
+func (w *reachWalk) inst(f *Func, id sem.EntityID, pkg sem.PackageID, in *Inst) {
 	w.visit(id, in.Ent, "call")
 	w.walkType(in.Type)
 	switch in.Op {
@@ -94,20 +108,25 @@ func (w *reachWalk) inst(f *Func, id sem.EntityID, in *Inst) {
 	}
 	if in.Op == OpBox {
 		dstT := f.Locals[in.Dst].Type
-		for _, wit := range w.r.Witnesses(in.Type, dstT, w.r.Entity(f.Ent).Pkg) {
+		for _, wit := range w.r.Witnesses(in.Type, dstT, pkg) {
 			w.visit(id, wit, "witness")
 		}
 	}
-	if op, ok := in.StdOp(); ok {
+	if op, ok := w.stdOp(in); ok {
 		w.noteOp(op, id, in.Node)
 	} else if op, ok := w.mentionedOp(in.Ent); ok {
 		w.noteOp(op, id, in.Node)
 	}
 }
 
-func Reachable(p *Program) *Reachability {
-	w := &reachWalk{p: p, r: p.R, seenTypes: map[sem.TypeID]bool{}, opSeen: map[StdOpId]bool{}}
+func newReachWalk(p *Program, lower bool) *reachWalk {
+	w := &reachWalk{p: p, r: p.R, lower: lower, seenTypes: map[sem.TypeID]bool{}, opSeen: map[StdOpId]bool{}}
 	w.rs = &Reachability{Funcs: map[sem.EntityID]bool{}, Reason: map[sem.EntityID]Reason{}, OpSites: map[StdOpId]OpSite{}, AllOpSites: map[StdOpId][]OpSite{}, Types: map[sem.EntityID]bool{}}
+	return w
+}
+
+func Reachable(p *Program) *Reachability {
+	w := newReachWalk(p, false)
 	if p.Entry != nil {
 		w.root(p.Entry.Ent, RootEntry)
 	}
@@ -120,22 +139,31 @@ func Reachable(p *Program) *Reachability {
 			w.root(f.Ent, RootExport)
 		}
 	}
+	w.drain()
+	return w.rs
+}
+
+func (w *reachWalk) drain() {
 	for len(w.worklist) > 0 {
 		id := w.worklist[len(w.worklist)-1]
 		w.worklist = w.worklist[:len(w.worklist)-1]
-		f := p.ByEnt[id]
-		if f == nil {
-			continue
+		if w.lower {
+			w.p.lowerTop(id)
 		}
-		w.walkType(f.Ret)
-		for _, l := range f.Locals {
-			w.walkType(l.Type)
-		}
-		for _, blk := range f.Blocks {
-			for i := range blk.Insts {
-				w.inst(f, id, &blk.Insts[i])
-			}
+		if f := w.p.ByEnt[id]; f != nil {
+			w.scan(f, id, w.r.Entity(id).Pkg)
 		}
 	}
-	return w.rs
+}
+
+func (w *reachWalk) scan(f *Func, id sem.EntityID, pkg sem.PackageID) {
+	w.walkType(f.Ret)
+	for _, l := range f.Locals {
+		w.walkType(l.Type)
+	}
+	for _, blk := range f.Blocks {
+		for i := range blk.Insts {
+			w.inst(f, id, pkg, &blk.Insts[i])
+		}
+	}
 }

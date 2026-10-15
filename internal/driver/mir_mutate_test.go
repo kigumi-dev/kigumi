@@ -36,6 +36,7 @@ func analyzeFixture(t testing.TB, name string) *mir.Program {
 	if err != nil {
 		t.Fatal(err)
 	}
+	driver.LowerAll(m)
 	a, err := driver.Analyze(m)
 	if err != nil || a.Res.HasErrors() {
 		t.Fatalf("analyze: %v", err)

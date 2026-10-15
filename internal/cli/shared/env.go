@@ -21,6 +21,9 @@ func LocalOff() bool { return os.Getenv("KIGUMI_LOCAL") == "off" }
 // NoAccel reports KIGUMI_NO_ACCEL, which runs std bodies in Kigumi.
 func NoAccel() bool { return os.Getenv("KIGUMI_NO_ACCEL") != "" }
 
+// VerifyPasses reports KIGUMI_VERIFY=all, which verifies the MIR after every pass instead of only the last.
+func VerifyPasses() bool { return os.Getenv("KIGUMI_VERIFY") == "all" }
+
 // ZigPath returns KIGUMI_ZIG, an explicit zig binary resolved before PATH.
 func ZigPath() string { return os.Getenv("KIGUMI_ZIG") }
 

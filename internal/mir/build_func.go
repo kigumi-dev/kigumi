@@ -67,6 +67,9 @@ func (p *Program) build(hf *hir.Func) *Func {
 	}
 	p.Funcs = append(p.Funcs, f)
 	p.ByEnt[hf.Ent] = f
+	if p.lowering != nil {
+		p.lowering.top[f] = p.lowering.cur
+	}
 	analyzeOwnership(p, f)
 	analyzeBorrows(p, f)
 	checkBorrowedMoves(p, f)

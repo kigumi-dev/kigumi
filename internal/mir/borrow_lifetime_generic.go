@@ -52,7 +52,7 @@ func (c *borrowCheck) resolveLifetimeCandidate(ent sem.EntityID, candidates []li
 	case 1:
 		return candidates[0].arg, true
 	}
-	callee, ok := c.p.ByEnt[ent]
+	callee, ok := c.p.calleeBody(ent)
 	if !ok {
 		return 0, false
 	}

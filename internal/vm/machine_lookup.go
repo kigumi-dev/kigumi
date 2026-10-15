@@ -67,7 +67,7 @@ func (m *Machine) dropFn(ent sem.EntityID) *mir.Func {
 	}
 	if m.isResource(ent) {
 		if drop := m.r.TypeDecl(ent).Drop; drop != 0 {
-			f = m.p.ByEnt[drop]
+			f, _ = m.lowered(drop)
 		}
 	}
 	m.sh.derived.Lock()

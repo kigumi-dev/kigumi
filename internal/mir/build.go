@@ -8,21 +8,16 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// Build lowers every body of a checked module through HIR.
-func Build(r *sem.Result) *Program {
+// Build lowers what the program can run: every body of the module being
+// checked, its comptime blocks, and the std and dependency bodies they reach.
+func Build(r *sem.Result) *Program { return build(r, false) }
+
+// BuildAll lowers every body, reachable or not.
+func BuildAll(r *sem.Result) *Program { return build(r, true) }
+
+func build(r *sem.Result, all bool) *Program {
 	p := &Program{R: r, ByEnt: map[sem.EntityID]*Func{}}
-	for id := 1; id < len(r.Entities); id++ {
-		// A minted instantiation has no body of its own to lower.
-		if _, minted := r.InstanceOf(sem.EntityID(id)); minted {
-			continue
-		}
-		switch r.Entity(sem.EntityID(id)).Kind {
-		case sem.EntFn, sem.EntImplicitMain, sem.EntTest:
-			if hf := hir.Lower(r, sem.EntityID(id)); hf != nil {
-				p.build(hf)
-			}
-		}
-	}
+	p.lowerReachable(all)
 	p.Entry = p.ByEnt[r.MainFn()]
 	resolveStdOps(p)
 	for _, f := range p.allFuncs() {
