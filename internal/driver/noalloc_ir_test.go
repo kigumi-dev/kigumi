@@ -12,7 +12,9 @@ import (
 	"kigumi/internal/sem"
 )
 
-const noallocIRPrelude = `type Nm = {
+const noallocIRPrelude = `import {Box} from std/alloc
+
+type Nm = {
     pub name String
     pub mut n Int
 }
@@ -136,6 +138,19 @@ var noallocProbes = []noallocProbe{
 	{"noalloc fn s5(xs: &mut Array[Pt]) -> Unit { if xs.get(0) is Some(v) { xs.withMut(0, (e) => { e.x = v.y }) } }", "E907"},
 	{"noalloc fn s6(w: &mut W, q: Pt) -> Int { let a = q\n let b = a\n a.x + b.y }", ""},
 	{"noalloc fn s7(t: Tree) -> Int { match t { Leaf(v) -> v, Node(kids) -> { let a = kids[0]\n 0 } } }", ""},
+	{"noalloc fn b0(b: &Box[Int]) -> Int { b.get() }", ""},
+	{"noalloc fn b1(b: &Box[Pt]) -> Int { b.get().x }", "E1700"},
+	{"noalloc fn b2(b: &Box[Nm]) -> Int { b.with((n: &Nm) => n.n) }", ""},
+	{"noalloc fn b3(b: &mut Box[Pt]) -> Int { b.withMut((p: &mut Pt) => { p.x = p.x + 1\n p.x }) }", ""},
+	{"noalloc fn b4(b: Box[Nm]) -> Int { b.into().n }", ""},
+	{"noalloc fn b5(b: Box[Pt]) -> Pt { b.into() }", ""},
+	{"noalloc fn b6(b: &Box[Pt]) -> Pt { b.get() }", "E1700"},
+	{"noalloc fn b11(b: &Box[Pt], k: Int) -> Int { b.with((p: &Pt) => p.x + k) }", "E910"},
+	{"noalloc fn b12(b: &mut Box[Pt], k: Int) -> Int { b.withMut((p: &mut Pt) => { p.x = k\n p.x }) }", "E910"},
+	{"noalloc fn b10(b: &Box[Float]) -> Float { b.get() + 1.0 }", ""},
+	{"noalloc fn b7(n: Int) -> Int { let b = Box.new(n)\n b.into() }", "E907"},
+	{"noalloc fn b8(n: Int) -> Int { match Box.tryNew(n) { Ok(b) -> b.into(), Err(e) -> 0 } }", "E907"},
+	{"noalloc fn b9(b: &Box[Nm]) -> Int { b.with((n: &Nm) => mk().n) }", "E422"},
 	{"fn q0(n: Nm) -> Int { applyGen((x: Int) => take(n) + x, 1) }", "E422"},
 	{"fn q1(n: Nm) -> Int { applyDyn((x: Int) => take(n) + x, 1) }", "E422"},
 	{"fn q2(w: W) -> Int { applyGen((x: Int) => w.nm.n + x, 1) }", ""},

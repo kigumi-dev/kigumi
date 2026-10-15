@@ -9,9 +9,11 @@ import (
 type resultParam struct {
 	index int
 	path  []EntityID
+	// overwritten lists the param's fields every return of it has rewritten, so the caller's own binding does not reach the result.
+	overwritten []EntityID
 }
 
-func (c *checker) noteResultParam(src EntityID) {
+func (c *checker) noteResultParam(src EntityID, leaf syntax.NodeID) {
 	if len(c.lambdas) > 0 {
 		return
 	}
@@ -24,15 +26,20 @@ func (c *checker) noteResultParam(src EntityID) {
 	if i < 0 {
 		return
 	}
-	for _, rp := range c.r.flow.resultParams[c.fn] {
+	var over []EntityID
+	if len(path) == 0 && c.info.Uses[c.stripParen(leaf)] == root {
+		over = c.overwrittenBefore(root, leaf)
+	}
+	for k, rp := range c.r.flow.resultParams[c.fn] {
 		if rp.index == i && slices.Equal(rp.path, path) {
+			c.r.flow.resultParams[c.fn][k].overwritten = slices.DeleteFunc(slices.Clone(rp.overwritten), func(f EntityID) bool { return !slices.Contains(over, f) })
 			return
 		}
 	}
 	if c.r.flow.resultParams == nil {
 		c.r.flow.resultParams = map[EntityID][]resultParam{}
 	}
-	c.r.flow.resultParams[c.fn] = append(c.r.flow.resultParams[c.fn], resultParam{index: i, path: path})
+	c.r.flow.resultParams[c.fn] = append(c.r.flow.resultParams[c.fn], resultParam{index: i, path: path, overwritten: over})
 }
 
 func (r *Result) applyResultParams(site methodFieldCallSite) bool {
@@ -77,7 +84,7 @@ func (r *Result) forwardResultArg(site methodFieldCallSite, rp resultParam, typ 
 		return false
 	}
 	if t.Kind(expr) == syntax.RecordLit {
-		return len(rp.path) == 0 && r.writeLiteralFields(site, site.recv, expr, typ, 0)
+		return len(rp.path) == 0 && r.writeLiteralFields(site, site.recv, expr, typ, 0, rp.overwritten)
 	}
 	src := r.fnChainEnt(site.file, expr)
 	if src == 0 || !r.concretePlace(src) {
@@ -86,10 +93,10 @@ func (r *Result) forwardResultArg(site methodFieldCallSite, rp resultParam, typ 
 	for _, f := range rp.path {
 		src = r.nestedFnOwner(fieldFnKey{Ent: src, Field: f})
 	}
-	return r.addFnUnion(fnUnion{dst: site.recv, src: src, typ: typ, file: site.file, node: site.node})
+	return r.addFnUnion(fnUnion{dst: site.recv, src: src, typ: typ, file: site.file, node: site.node, skip: r.skipSetID(rp.overwritten)})
 }
 
-func (r *Result) writeLiteralFields(site methodFieldCallSite, owner EntityID, lit syntax.NodeID, typ TypeID, depth int) bool {
+func (r *Result) writeLiteralFields(site methodFieldCallSite, owner EntityID, lit syntax.NodeID, typ TypeID, depth int, skip []EntityID) bool {
 	if depth >= maxNestedFnDepth {
 		return false
 	}
@@ -97,7 +104,7 @@ func (r *Result) writeLiteralFields(site methodFieldCallSite, owner EntityID, li
 	changed := false
 	for _, entry := range t.Children(syntax.NodeID(t.Nodes[lit].Rhs)) {
 		field := r.Files[site.file].Uses[entry]
-		if t.Kind(entry) == syntax.Spread || field == 0 || !r.holdsFn(r.Entities[field].Type, 0) {
+		if t.Kind(entry) == syntax.Spread || field == 0 || !r.holdsFn(r.Entities[field].Type, 0) || slices.Contains(skip, field) {
 			continue
 		}
 		init := stripParens(t, syntax.NodeID(t.Nodes[entry].Lhs))
@@ -110,7 +117,7 @@ func (r *Result) writeLiteralFields(site methodFieldCallSite, owner EntityID, li
 		}
 		nested := r.nestedFnOwner(fieldFnKey{Ent: owner, Field: field})
 		if t.Kind(init) == syntax.RecordLit {
-			if r.writeLiteralFields(site, nested, init, ft, depth+1) {
+			if r.writeLiteralFields(site, nested, init, ft, depth+1, nil) {
 				changed = true
 			}
 		} else if src := r.fnChainEnt(site.file, init); src != 0 && r.concretePlace(src) {

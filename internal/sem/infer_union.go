@@ -12,6 +12,8 @@ type fnUnion struct {
 	typ      TypeID
 	file     FileID
 	node     syntax.NodeID
+	// skip is a skipSets index plus one: fields of dst the merge leaves alone.
+	skip int
 }
 
 func (r *Result) concretePlace(ent EntityID) bool {
@@ -57,6 +59,9 @@ func (r *Result) mergePlace(dst, src EntityID, t TypeID, u fnUnion, depth int) b
 	}
 	changed := false
 	for _, f := range r.recordFieldsOf(t) {
+		if depth == 0 && u.skip > 0 && slices.Contains(r.flow.skipSets[u.skip-1], f) {
+			continue
+		}
 		ft := r.Entities[f].Type
 		from, to := fieldFnKey{Ent: src, Field: f}, fieldFnKey{Ent: dst, Field: f}
 		if r.fnTypedType(ft) {

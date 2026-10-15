@@ -1,0 +1,279 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn work() -> Int {
+    0
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(work())
+}
+
+fn safeFn() -> Int {
+    9
+}
+
+type Holder = {
+    pub mut cb fn() -> Int
+}
+
+type Wrap = {
+    pub mut inner Holder
+}
+
+fn mutate(w: &mut Wrap) -> Unit {
+    w.inner.cb = syncRoot
+}
+
+fn copyThenWrite(w: &mut Wrap) -> Int {
+    let h = w.inner
+    w.inner.cb = syncRoot
+    h.cb()
+}
+
+fn copyThenCallee(w: &mut Wrap) -> Int {
+    let h = w.inner
+    mutate(w)
+    h.cb()
+}
+
+fn copyThenRestore(w: &mut Wrap) -> Int {
+    let h = w.inner
+    w.inner.cb = safeFn
+    h.cb()
+}
+
+fn writeThenCopy(w: &mut Wrap) -> Int {
+    w.inner.cb = syncRoot
+    let h = w.inner
+    h.cb()
+}
+
+fn calleeThenCopy(w: &mut Wrap) -> Int {
+    mutate(w)
+    let h = w.inner
+    h.cb()
+}
+
+fn copyInLoop(w: &mut Wrap, n: Int) -> Int {
+    let mut total = 0
+    for i in 0..n {
+        let h = w.inner
+        total = total + h.cb()
+        w.inner.cb = syncRoot
+    }
+    total
+}
+
+fn copyOnly(w: &mut Wrap) -> Int {
+    let h = w.inner
+    h.cb()
+}
+
+async fn okCopyThenWrite() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    copyThenWrite(&mut w)
+}
+
+async fn okCopyThenCallee() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    copyThenCallee(&mut w)
+}
+
+async fn okCallerWritesAfter() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    let r = copyThenWrite(&mut w)
+    w.inner.cb = syncRoot
+    r
+}
+
+async fn riskBoundBeforeRestore() -> Int {
+    let mut w = Wrap { inner: Holder { cb: syncRoot } }
+    copyThenRestore(&mut w) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskWriteThenCopy() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    writeThenCopy(&mut w) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskCalleeThenCopy() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    calleeThenCopy(&mut w) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskCopyInLoop() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    copyInLoop(&mut w, 2) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskCopyOnlyBoundSync() -> Int {
+    let mut w = Wrap { inner: Holder { cb: syncRoot } }
+    copyOnly(&mut w) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskCallerWroteBefore() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    w.inner.cb = syncRoot
+    copyThenWrite(&mut w) //~ ERROR cannot run inside an `async fn`
+}
+
+async fn okDeclaredLater() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    laterCopy(&mut w)
+}
+
+fn laterCopy(w: &mut Wrap) -> Int {
+    let h = w.inner
+    w.inner.cb = syncRoot
+    h.cb()
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:92:5
+   |
+92 |     copyThenRestore(&mut w) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+   = help: `await` the future instead
+note: calls `w.inner.cb`
+  --> app/t/t.kg:43:5
+   |
+43 |     h.cb()
+   |     ^^^^^
+note: `syncRoot` is bound to `w.inner.cb` here
+  --> app/t/t.kg:92:5
+   |
+92 |     copyThenRestore(&mut w) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:91:44
+   |
+91 |     let mut w = Wrap { inner: Holder { cb: syncRoot } }
+   |                                            ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:97:5
+   |
+97 |     writeThenCopy(&mut w) //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^
+   = help: `await` the future instead
+note: calls `syncRoot`
+  --> app/t/t.kg:49:5
+   |
+49 |     h.cb()
+   |     ^^^^^
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:47:18
+   |
+47 |     w.inner.cb = syncRoot
+   |                  ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:102:5
+    |
+102 |     calleeThenCopy(&mut w) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `syncRoot`
+   --> app/t/t.kg:55:5
+    |
+ 55 |     h.cb()
+    |     ^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:25:18
+    |
+ 25 |     w.inner.cb = syncRoot
+    |                  ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:107:5
+    |
+107 |     copyInLoop(&mut w, 2) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `syncRoot`
+   --> app/t/t.kg:62:25
+    |
+ 62 |         total = total + h.cb()
+    |                         ^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:63:22
+    |
+ 63 |         w.inner.cb = syncRoot
+    |                      ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:112:5
+    |
+112 |     copyOnly(&mut w) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `w.inner.cb`
+   --> app/t/t.kg:70:5
+    |
+ 70 |     h.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `w.inner.cb` here
+   --> app/t/t.kg:112:5
+    |
+112 |     copyOnly(&mut w) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:111:44
+    |
+111 |     let mut w = Wrap { inner: Holder { cb: syncRoot } }
+    |                                            ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:118:5
+    |
+118 |     copyThenWrite(&mut w) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^
+    = help: `await` the future instead
+note: calls `w.inner.cb`
+   --> app/t/t.kg:31:5
+    |
+ 31 |     h.cb()
+    |     ^^^^^
+note: `syncRoot` is bound to `w.inner.cb` here
+   --> app/t/t.kg:118:5
+    |
+118 |     copyThenWrite(&mut w) //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^^^^^^^^^^^^^
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:117:18
+    |
+117 |     w.inner.cb = syncRoot
+    |                  ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+

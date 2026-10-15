@@ -1,0 +1,242 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn work() -> Int {
+    0
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(work())
+}
+
+fn safeFn() -> Int {
+    9
+}
+
+type Holder = {
+    pub mut cb fn() -> Int
+}
+
+type Pair = {
+    pub mut left fn() -> Int
+    pub mut right fn() -> Int
+}
+
+fn bump(mut h: Holder) -> Holder {
+    h.cb = safeFn
+    h
+}
+
+fn bumpNested(mut h: Holder, flag: Bool) -> Holder {
+    h.cb = safeFn
+    if flag {
+        return h
+    }
+    h
+}
+
+fn bumpTwice(mut h: Holder, flag: Bool) -> Holder {
+    h.cb = safeFn
+    if flag {
+        h.cb = safeFn
+    }
+    h
+}
+
+fn bumpPoisoned(mut h: Holder) -> Holder {
+    h.cb = syncRoot
+    h
+}
+
+fn bumpIf(mut h: Holder, flag: Bool) -> Holder {
+    if flag {
+        h.cb = safeFn
+    }
+    h
+}
+
+fn bumpEarly(mut h: Holder, flag: Bool) -> Holder {
+    if flag {
+        return h
+    }
+    h.cb = safeFn
+    h
+}
+
+fn bumpLoop(mut h: Holder, n: Int) -> Holder {
+    for i in 0..n {
+        h.cb = safeFn
+    }
+    h
+}
+
+fn bumpLeft(mut p: Pair) -> Pair {
+    p.left = safeFn
+    p
+}
+
+fn bumpAfterCopy(mut h: Holder) -> Holder {
+    let c = h
+    h.cb = safeFn
+    c
+}
+
+async fn literalOverwritten() -> Int {
+    let h = bump(Holder { cb: syncRoot })
+    h.cb()
+}
+
+async fn placeOverwritten() -> Int {
+    let src = Holder { cb: syncRoot }
+    let h = bump(src)
+    h.cb()
+}
+
+async fn nestedReturnOverwritten() -> Int {
+    let h = bumpNested(Holder { cb: syncRoot }, true)
+    h.cb()
+}
+
+async fn twiceOverwritten() -> Int {
+    let h = bumpTwice(Holder { cb: syncRoot }, true)
+    h.cb()
+}
+
+async fn otherFieldOverwritten() -> Int {
+    let p = bumpLeft(Pair { left: syncRoot, right: safeFn })
+    p.left() + p.right()
+}
+
+async fn riskWrittenSyncRoot() -> Int {
+    let h = bumpPoisoned(Holder { cb: safeFn })
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskConditionalWrite() -> Int {
+    let h = bumpIf(Holder { cb: syncRoot }, true)
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskEarlyReturn() -> Int {
+    let h = bumpEarly(Holder { cb: syncRoot }, true)
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskLoopWrite() -> Int {
+    let h = bumpLoop(Holder { cb: syncRoot }, 2)
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskOtherField() -> Int {
+    let p = bumpLeft(Pair { left: safeFn, right: syncRoot })
+    p.right() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskCopyBeforeWrite() -> Int {
+    let h = bumpAfterCopy(Holder { cb: syncRoot })
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:112:5
+    |
+112 |     h.cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:47:12
+    |
+ 47 |     h.cb = syncRoot
+    |            ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:117:5
+    |
+117 |     h.cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:116:33
+    |
+116 |     let h = bumpIf(Holder { cb: syncRoot }, true)
+    |                                 ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:122:5
+    |
+122 |     h.cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:121:36
+    |
+121 |     let h = bumpEarly(Holder { cb: syncRoot }, true)
+    |                                    ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:127:5
+    |
+127 |     h.cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:126:35
+    |
+126 |     let h = bumpLoop(Holder { cb: syncRoot }, 2)
+    |                                   ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:132:5
+    |
+132 |     p.right() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:131:50
+    |
+131 |     let p = bumpLeft(Pair { left: safeFn, right: syncRoot })
+    |                                                  ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+   --> app/t/t.kg:137:5
+    |
+137 |     h.cb() //~ ERROR cannot run inside an `async fn`
+    |     ^^^^^
+    = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+   --> app/t/t.kg:136:40
+    |
+136 |     let h = bumpAfterCopy(Holder { cb: syncRoot })
+    |                                        ^^^^^^^^
+note: drives a new root task here
+   --> app/t/t.kg:9:5
+    |
+  9 |     ex.runToCompletion(work())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+

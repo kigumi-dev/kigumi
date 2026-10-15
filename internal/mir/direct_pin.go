@@ -21,6 +21,7 @@ func (p *Program) pinned(f *Func) []bool {
 			}
 		}
 	}
+	pinCopyStoreSources(f, out, foreign)
 	spreadPins(f, out)
 	return out
 }

@@ -1,0 +1,164 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn work() -> Int {
+    0
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(work())
+}
+
+fn safeFn() -> Int {
+    9
+}
+
+type Holder = {
+    pub mut cb fn() -> Int
+}
+
+type Wrap = {
+    pub mut inner Holder
+}
+
+fn runMut[F: FnMut[fn() -> Unit]](f: F) -> Unit {
+    f()
+}
+
+async fn passedAfterCopy() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    let setIt = () => {
+        w.inner.cb = syncRoot
+    }
+    let h = w.inner
+    runMut(setIt)
+    h.cb()
+}
+
+async fn calledAfterCopy() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    let setIt = () => {
+        w.inner.cb = syncRoot
+    }
+    let h = w.inner
+    setIt()
+    h.cb()
+}
+
+async fn riskCalledBeforeCopy() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    let setIt = () => {
+        w.inner.cb = syncRoot
+    }
+    setIt()
+    let h = w.inner
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskCalledOnBothSides() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    let setIt = () => {
+        w.inner.cb = syncRoot
+    }
+    setIt()
+    let h = w.inner
+    setIt()
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn riskCalledInLoop() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    let setIt = () => {
+        w.inner.cb = syncRoot
+    }
+    let mut total = 0
+    let mut n = 0
+    for n < 2 {
+        let h = w.inner
+        total = total + h.cb() //~ ERROR cannot run inside an `async fn`
+        setIt()
+        n = n + 1
+    }
+    total
+}
+
+async fn riskRebound() -> Int {
+    let mut w = Wrap { inner: Holder { cb: safeFn } }
+    let setIt = () => {
+        w.inner.cb = syncRoot
+    }
+    let h = w.inner
+    let again = setIt
+    again()
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:55:5
+   |
+55 |     h.cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:51:22
+   |
+51 |         w.inner.cb = syncRoot
+   |                      ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:66:5
+   |
+66 |     h.cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:61:22
+   |
+61 |         w.inner.cb = syncRoot
+   |                      ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:78:25
+   |
+78 |         total = total + h.cb() //~ ERROR cannot run inside an `async fn`
+   |                         ^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:72:22
+   |
+72 |         w.inner.cb = syncRoot
+   |                      ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:93:5
+   |
+93 |     h.cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:88:22
+   |
+88 |         w.inner.cb = syncRoot
+   |                      ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+

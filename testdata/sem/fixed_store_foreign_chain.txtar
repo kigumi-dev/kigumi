@@ -1,0 +1,80 @@
+-- src --
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Seg = {
+    pub mut a Pt
+    pub mut b Pt
+}
+
+type Wrap = {
+    pub mut a FixedArray[Pt, 3]
+}
+
+type Outer = {
+    pub mut segs FixedArray[Seg, 2]
+    pub mut w Wrap
+}
+
+type Grid = {
+    pub mut rows FixedArray[FixedArray[Pt, 2], 2]
+}
+
+noalloc fn okSlotCopy(w: &mut Wrap) -> Unit { w.a[0] = w.a[1] }
+
+noalloc fn okNestedCopy(g: &mut Grid) -> Unit { g.rows[0][1] = g.rows[1][0] }
+
+fn undeclaredFieldCopy(o: &mut Outer) -> Unit { o.segs[0].a = o.segs[1].b }
+
+fn undeclaredLiteral(w: &mut Wrap) -> Unit { w.a[0] = Pt { x: 1, y: 2 } }
+
+noalloc fn fieldCopy(o: &mut Outer) -> Unit { o.segs[0].a = o.segs[1].b } //~ ERROR allocates a box
+
+noalloc fn slotFromField(o: &mut Outer) -> Unit { o.w.a[1] = o.segs[1].a } //~ ERROR allocates a box
+
+noalloc fn viaLocal(w: &mut Wrap) -> Unit {
+    let t = w.a[0]
+    w.a[1] = t //~ ERROR allocates a box
+}
+
+noalloc fn literalStore(w: &mut Wrap) -> Unit { w.a[0] = Pt { x: 1, y: 2 } } //~ ERROR allocates a box
+
+noalloc fn valueStore(w: &mut Wrap, p: Pt) -> Unit { w.a[0] = p } //~ ERROR allocates a box
+-- expect --
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:32:47
+   |
+32 | noalloc fn fieldCopy(o: &mut Outer) -> Unit { o.segs[0].a = o.segs[1].b } //~ ERROR allocates a box
+   |                                               ^^^^^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:34:51
+   |
+34 | noalloc fn slotFromField(o: &mut Outer) -> Unit { o.w.a[1] = o.segs[1].a } //~ ERROR allocates a box
+   |                                                   ^^^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:38:5
+   |
+38 |     w.a[1] = t //~ ERROR allocates a box
+   |     ^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:41:49
+   |
+41 | noalloc fn literalStore(w: &mut Wrap) -> Unit { w.a[0] = Pt { x: 1, y: 2 } } //~ ERROR allocates a box
+   |                                                 ^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
+  --> main/main.kg:43:54
+   |
+43 | noalloc fn valueStore(w: &mut Wrap, p: Pt) -> Unit { w.a[0] = p } //~ ERROR allocates a box
+   |                                                      ^^^^^
+   = help: keep it in a value of its own, or drop the declaration
+

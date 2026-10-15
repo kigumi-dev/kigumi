@@ -31,6 +31,7 @@ func (r *Result) closeLateFieldEdges() {
 	next:
 		for _, tgt := range r.knownFieldFn[late.src] {
 			r.noteEdgeSite(late.src, late.file, late.node, tgt, late.param)
+			r.noteBindSrc(late.file, late.node, tgt, late.param, late.src)
 			for _, e := range info.Edges {
 				if e.Kind == late.kind && e.Target == tgt && e.Param == late.param && e.Node == late.node && e.File == late.file {
 					continue next

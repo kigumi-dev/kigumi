@@ -8,11 +8,12 @@ import (
 
 // EdgeAlloc whys the MIR adds after checking: a copy that ends sharing with another name, and one that keeps a local's value.
 const (
-	whyCopy     = 8
-	whyCopyHeld = 9
-	whyCopyElem = 10
-	whyCopyBox  = 11
-	whyCopyInst = 12
+	whyCopy        = 8
+	whyCopyHeld    = 9
+	whyCopyElem    = 10
+	whyCopyBox     = 11
+	whyCopyInst    = 12
+	whyCopyContent = 18
 )
 
 type CopySite struct {
@@ -23,8 +24,9 @@ type CopySite struct {
 	Held  bool
 	Elem  bool
 	// Boxed is an element handed out in its own box; Inst is a call whose generic callee copies a type argument.
-	Boxed bool
-	Inst  bool
+	Boxed   bool
+	Inst    bool
+	Content bool
 }
 
 func (r *Result) ChargeCopies(sites []CopySite) {
@@ -50,6 +52,8 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 			e.Why = whyCopyBox
 		case s.Inst:
 			e.Why = whyCopyInst
+		case s.Content:
+			e.Why = whyCopyContent
 		}
 		if _, node := before[s.Owner]; !node || slices.Contains(r.edgesOf(s.Owner), e) {
 			continue
@@ -135,7 +139,9 @@ func (r *Result) reportNoallocBreaks(id EntityID, before []bool) {
 	}
 }
 
-func copyWhy(why uint8) bool { return why >= whyCopy && why <= whyCopyInst }
+func copyWhy(why uint8) bool {
+	return why >= whyCopy && why <= whyCopyInst || why == whyCopyContent
+}
 
 func (r *Result) copyHop(e EffectEdge) string {
 	text := "copies `" + r.TypeString(e.Type) + "` into a box of its own here"
@@ -144,6 +150,8 @@ func (r *Result) copyHop(e EffectEdge) string {
 		return text + ", because the local keeps its own value"
 	case whyCopyElem:
 		return text + ", because the element is handed out as a copy"
+	case whyCopyContent:
+		return text + ", because the content is handed out as a copy"
 	case whyCopyBox:
 		return "boxes `" + r.TypeString(e.Type) + "` for the result here, because the element is not a scalar the call can return directly"
 	case whyCopyInst:

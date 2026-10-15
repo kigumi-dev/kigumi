@@ -2928,6 +2928,23 @@
       ]
     },
     {
+      "id": "run/box_noalloc_accessors",
+      "kind": "run",
+      "path": "testdata/run/box_noalloc_accessors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/box_tree",
       "kind": "run",
       "path": "testdata/run/box_tree.txtar",
@@ -5974,6 +5991,57 @@
       "id": "run/fixed_element_copy_in_place",
       "kind": "run",
       "path": "testdata/run/fixed_element_copy_in_place.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fixed_element_copy_place",
+      "kind": "run",
+      "path": "testdata/run/fixed_element_copy_place.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fixed_element_copy_place_more",
+      "kind": "run",
+      "path": "testdata/run/fixed_element_copy_place_more.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fixed_element_store_shapes",
+      "kind": "run",
+      "path": "testdata/run/fixed_element_store_shapes.txtar",
       "mode": [
         "vm",
         "native"
@@ -10002,6 +10070,17 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_lambda",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_lambda.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge_late",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_late.txtar",
@@ -10046,6 +10125,17 @@
       ]
     },
     {
+      "id": "sem/async_root_bridge_param_place",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_param_place.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_root_bridge_result",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_result.txtar",
@@ -10060,6 +10150,17 @@
       "id": "sem/async_root_bridge_scope",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge_scope.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_strong",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_strong.txtar",
       "mode": [
         "check"
       ],
@@ -10159,6 +10260,17 @@
       "id": "sem/box_noalloc",
       "kind": "sem",
       "path": "testdata/sem/box_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/box_noalloc_accessors",
+      "kind": "sem",
+      "path": "testdata/sem/box_noalloc_accessors.txtar",
       "mode": [
         "check"
       ],
@@ -10783,6 +10895,17 @@
       ]
     },
     {
+      "id": "sem/effects_noalloc_closure_fn_param",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_closure_fn_param.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/effects_noalloc_derived",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_derived.txtar",
@@ -11325,6 +11448,17 @@
       "id": "sem/fix_lead_main_signature",
       "kind": "sem",
       "path": "testdata/sem/fix_lead_main_signature.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/fixed_store_foreign_chain",
+      "kind": "sem",
+      "path": "testdata/sem/fixed_store_foreign_chain.txtar",
       "mode": [
         "check"
       ],

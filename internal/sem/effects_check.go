@@ -41,7 +41,13 @@ func (r *Result) checkContractEdge(e EffectEdge) {
 	deferred := fn &&
 		(len(info.CalledFieldParams) > 0 || len(info.CalledWitnessReqs) > 0 || len(info.CalledParams) > 0)
 	for _, mod := range []Effects{EffPure, EffNoalloc} {
-		if e.Mods&mod == 0 || (allows(s, mod) && !deferred) {
+		if e.Mods&mod == 0 {
+			continue
+		}
+		if !fn && allows(s, mod) && r.closureCalledParam(target, mod) == 0 {
+			continue
+		}
+		if fn && allows(s, mod) && !deferred {
 			continue
 		}
 		if fn && allows(s, mod) && len(info.CalledParams) > 0 && len(info.CalledFieldParams) == 0 && len(info.CalledWitnessReqs) == 0 {
@@ -66,6 +72,9 @@ func (r *Result) reportDeferredParam(e EffectEdge, target, param EntityID, mod E
 }
 
 func (r *Result) violationText(target EntityID, mod Effects) string {
+	if why, ok := r.closureParamViolation(target, mod); ok {
+		return why
+	}
 	for _, e := range r.edgesOf(target) {
 		if e.Kind == EdgeContract || r.edgeAllows(e, mod) {
 			continue

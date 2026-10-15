@@ -7,7 +7,7 @@ func TestAllocReasonsAreDistinct(t *testing.T) {
 	for name, why := range map[string]uint8{
 		"build": whyBuild, "sharedValue": whySharedValue, "directCross": whyDirectCross,
 		"inlined": whyInlined, "genericCross": whyGenericCross, "copy": whyCopy,
-		"copyHeld": whyCopyHeld, "copyElem": whyCopyElem, "copyBox": whyCopyBox, "copyInst": whyCopyInst, "bind": whyBind,
+		"copyHeld": whyCopyHeld, "copyElem": whyCopyElem, "copyBox": whyCopyBox, "copyInst": whyCopyInst, "copyContent": whyCopyContent, "bind": whyBind,
 		"entryBox": whyEntryBox, "dynamicResult": whyDynamicResult, "witnessCross": whyWitnessCross, "witnessResult": whyWitnessResult,
 	} {
 		if other, dup := seen[why]; dup {

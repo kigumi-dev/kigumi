@@ -1,0 +1,75 @@
+-- src --
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Seg = {
+    pub mut a Pt
+    pub mut b Pt
+}
+
+type Wrap = {
+    pub mut a FixedArray[Pt, 3]
+}
+
+type Outer = {
+    pub mut segs FixedArray[Seg, 2]
+    pub mut w Wrap
+}
+
+type Grid = {
+    pub mut rows FixedArray[FixedArray[Pt, 2], 2]
+}
+
+fn fieldFromField(o: &mut Outer) -> Unit {
+    o.segs[0].a = o.segs[1].b
+}
+
+fn slotFromField(o: &mut Outer) -> Unit {
+    o.w.a[1] = o.segs[1].a
+}
+
+noalloc fn nested(g: &mut Grid) -> Unit {
+    g.rows[0][1] = g.rows[1][0]
+}
+
+fn swapThroughLocal(w: &mut Wrap) -> Unit {
+    let t = w.a[0]
+    w.a[1] = t
+}
+
+fn literalStore(w: &mut Wrap) -> Unit {
+    w.a[0] = Pt { x: 1, y: 2 }
+}
+
+fn valueStore(w: &mut Wrap, p: Pt) -> Unit {
+    w.a[2] = p
+}
+
+fn main() -> Unit! {
+    let zero = Pt { x: 0, y: 0 }
+    let mut o = Outer { segs: FixedArray.filled[Seg, 2](Seg { a: zero, b: zero }), w: Wrap { a: FixedArray.filled[Pt, 3](zero) } }
+    o.segs[1].b = Pt { x: 7, y: 8 }
+    o.segs[1].a = Pt { x: 5, y: 6 }
+    fieldFromField(&mut o)
+    slotFromField(&mut o)
+    print "${o.segs[0].a.x},${o.segs[0].a.y} ${o.w.a[1].x},${o.w.a[1].y}"
+    o.segs[1].b.x = 70
+    print "${o.segs[0].a.x}"
+    let mut g = Grid { rows: FixedArray.filled(FixedArray.filled(zero)) }
+    g.rows[1][0] = Pt { x: 4, y: 3 }
+    nested(&mut g)
+    g.rows[1][0].x = 40
+    print "${g.rows[0][1].x},${g.rows[0][1].y} ${g.rows[1][0].x}"
+    literalStore(&mut o.w)
+    valueStore(&mut o.w, Pt { x: 9, y: 9 })
+    swapThroughLocal(&mut o.w)
+    o.w.a[0].x = 10
+    print "${o.w.a[0].x},${o.w.a[0].y} ${o.w.a[1].x},${o.w.a[1].y} ${o.w.a[2].x}"
+}
+-- stdout --
+7,8 5,6
+7
+4,3 40
+10,2 1,2 9

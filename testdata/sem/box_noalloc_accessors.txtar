@@ -1,0 +1,118 @@
+-- module --
+mir: planned
+-- src --
+import {Box} from std/alloc
+
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+fn mkn(x: Int) -> Named { Named { name: "b", n: x } }
+
+noalloc fn readInt(b: &Box[Int]) -> Int {
+    b.get()
+}
+
+noalloc fn readPt(b: &Box[Pt]) -> Int {
+    let p = b.get()
+    p.x + p.y
+}
+
+noalloc fn peek(b: &Box[Pt]) -> Int {
+    b.with((p: &Pt) => p.x * 2)
+}
+
+noalloc fn bump(b: &mut Box[Pt]) -> Int {
+    b.withMut((p: &mut Pt) => {
+        p.x = p.x + 1
+        p.x
+    })
+}
+
+noalloc fn drain(b: Box[Int]) -> Int {
+    b.into()
+}
+
+noalloc fn drainPt(b: Box[Pt]) -> Pt {
+    b.into()
+}
+
+noalloc fn replace(b: &mut Box[Int], n: Int) -> Unit {
+    b.set(n) //~ ERROR `set` is not `noalloc`
+}
+
+noalloc fn viaAllocatingCallback(b: &Box[Int]) -> Int {
+    b.with((n: &Int) => mkn(*n).n) //~ ERROR closure is not `noalloc`
+}
+
+noalloc fn wrap(n: Int) -> Unit {
+    let b = Box.new(n) //~ ERROR `new` is not `noalloc`
+    _ = b
+}
+
+noalloc fn wrapFallible(n: Int) -> Unit {
+    let r = Box.tryNew(n) //~ ERROR `tryNew` is not `noalloc`
+    _ = r
+}
+
+fn allocatingPeek(p: &Pt) -> Int {
+    let n = mkn(p.x)
+    n.n
+}
+
+noalloc fn forwardCallback(b: &Box[Pt], f: fn(&Pt) -> Int) -> Int {
+    b.with(f)
+}
+
+noalloc fn passAllocatingFn(b: &Box[Pt]) -> Int {
+    b.with(allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc`
+}
+
+noalloc fn forwardToCaller(b: &Box[Pt]) -> Int {
+    forwardCallback(b, allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc`
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E907]: `set` is not `noalloc`
+  --> main.kg:44:5
+   |
+44 |     b.set(n) //~ ERROR `set` is not `noalloc`
+   |     ^^^^^^^
+
+error[E422]: closure is not `noalloc` (calls `mkn`)
+  --> main.kg:48:12
+   |
+48 |     b.with((n: &Int) => mkn(*n).n) //~ ERROR closure is not `noalloc`
+   |            ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E907]: `new` is not `noalloc`
+  --> main.kg:52:13
+   |
+52 |     let b = Box.new(n) //~ ERROR `new` is not `noalloc`
+   |             ^^^^^^^^^
+
+error[E907]: `tryNew` is not `noalloc`
+  --> main.kg:57:13
+   |
+57 |     let r = Box.tryNew(n) //~ ERROR `tryNew` is not `noalloc`
+   |             ^^^^^^^^^^^^
+
+error[E423]: `allocatingPeek` is not `noalloc` (calls `mkn`)
+  --> main.kg:71:12
+   |
+71 |     b.with(allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc`
+   |            ^^^^^^^^^^^^^^
+
+error[E423]: `allocatingPeek` is not `noalloc` (calls `mkn`)
+  --> main.kg:75:24
+   |
+75 |     forwardCallback(b, allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc`
+   |                        ^^^^^^^^^^^^^^
+

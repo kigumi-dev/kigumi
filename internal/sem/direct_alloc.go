@@ -87,6 +87,9 @@ func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) {
 		}
 		if c.t.Kind(base) != syntax.Ident {
 			c.crossDirect(lhs, c.placeRootType(lhs))
+			if c.foreignChain(base) {
+				c.crossDirect(lhs, t)
+			}
 		}
 	default:
 		c.crossDirect(lhs, t)
@@ -127,6 +130,24 @@ func (c *checker) nullaryValue(n syntax.NodeID) bool {
 	}
 	v := c.info.Uses[n]
 	return v != 0 && c.r.Entities[v].Kind == EntVariant && len(c.r.variant(v).Payload) == 0
+}
+
+// foreignChain reports whether a projection chain reaches into storage a caller or a container owns, where a field or slot holds a reference.
+func (c *checker) foreignChain(n syntax.NodeID) bool {
+	for i := 0; n != 0 && i < 64; i++ {
+		switch c.t.Kind(n) {
+		case syntax.BracketExpr:
+			return true
+		case syntax.MemberExpr:
+			n = syntax.NodeID(c.t.Nodes[n].Lhs)
+		case syntax.Ident:
+			_, static := c.staticRootOf(n)
+			return static || c.lentPlace(n) || c.sharedCellPlace(n)
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 // placeRootType is the type of the value a projection chain starts from.

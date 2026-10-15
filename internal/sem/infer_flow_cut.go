@@ -14,11 +14,16 @@ type flowState struct {
 	unresolved EntityID
 	paramCopy  map[EntityID][]EntityID
 	// fwdCalled is kept apart from CalledFieldParams, which the effect checks read.
-	fwdCalled    map[EntityID][]FieldParamKey
-	resultParams map[EntityID][]resultParam
-	unionSeen    map[fnUnion]bool
-	order        map[fieldSiteKey]fieldPoisonSiteInfo
-	poisonAt     map[fieldFnKey]fieldPoisonSiteInfo
+	fwdCalled      map[EntityID][]FieldParamKey
+	resultParams   map[EntityID][]resultParam
+	strongWrites   map[EntityID][]strongWrite
+	copyDeferred   map[EntityID]bool
+	directDeferred map[EntityID]bool
+	bindSrc        map[edgeSiteKey]fieldFnKey
+	skipSets       [][]EntityID
+	unionSeen      map[fnUnion]bool
+	order          map[fieldSiteKey]fieldPoisonSiteInfo
+	poisonAt       map[fieldFnKey]fieldPoisonSiteInfo
 }
 
 type histBind struct {
@@ -34,6 +39,8 @@ type scanKey struct {
 type flowScan struct {
 	loops   []token.Span
 	lambdas []token.Span
+	// calls maps a lambda bound by `let` to the spans where the binding is called or passed on; absent when the binding is used any other way.
+	calls map[token.Span][]token.Span
 }
 
 // copyCut is where a copy of a local was made.
@@ -54,6 +61,7 @@ func (r *Result) flowScanOf(file FileID, fnNode syntax.NodeID) *flowScan {
 	}
 	t := r.Files[file].Tree
 	s := &flowScan{}
+	lc := lambdaCalls{r: r, file: file, tree: t, scan: s, bound: map[EntityID]token.Span{}, direct: map[syntax.NodeID]bool{}, bad: map[token.Span]bool{}}
 	var walk func(n syntax.NodeID)
 	walk = func(n syntax.NodeID) {
 		switch t.Kind(n) {
@@ -62,9 +70,11 @@ func (r *Result) flowScanOf(file FileID, fnNode syntax.NodeID) *flowScan {
 		case syntax.Lambda:
 			s.lambdas = append(s.lambdas, t.Span(n))
 		}
+		lc.visit(n)
 		t.EachChild(n, walk)
 	}
 	t.EachChild(fnNode, walk)
+	lc.finish()
 	if r.flow.scans == nil {
 		r.flow.scans = map[scanKey]*flowScan{}
 	}
@@ -78,7 +88,7 @@ func (r *Result) writeMayPrecede(site fieldPoisonSiteInfo, cut copyCut) bool {
 		return true
 	}
 	root := &r.Entities[cut.root]
-	if root.Kind != EntLocal || root.Parent == 0 || root.File != cut.file {
+	if (root.Kind != EntLocal && root.Kind != EntParam) || root.Parent == 0 || root.File != cut.file {
 		return true
 	}
 	fn := &r.Entities[root.Parent]
@@ -98,12 +108,14 @@ func (r *Result) writeMayPrecede(site fieldPoisonSiteInfo, cut copyCut) bool {
 			return true
 		}
 	}
-	if siteSpan.Start < cutSpan.Start {
-		return true
-	}
-	for _, lp := range scan.loops {
-		if within(lp, cutSpan) && within(lp, siteSpan) && !holdsDecl(lp) {
+	for _, at := range scan.runSpans(siteSpan, cutSpan) {
+		if at.Start < cutSpan.Start {
 			return true
+		}
+		for _, lp := range scan.loops {
+			if within(lp, cutSpan) && within(lp, at) && !holdsDecl(lp) {
+				return true
+			}
 		}
 	}
 	return false

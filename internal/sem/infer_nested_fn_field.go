@@ -90,6 +90,11 @@ func (c *checker) trackFnCopyAlias(init syntax.NodeID, local EntityID) {
 		c.unionInto(local, src, t, init)
 		return
 	}
+	if c.writableParamPlace(src) {
+		c.unionInto(local, src, t, init)
+		c.notePlaceCopy(local, src)
+		return
+	}
 	if c.r.fnCopyAlias == nil {
 		c.r.fnCopyAlias = map[EntityID]EntityID{}
 	}
@@ -108,4 +113,10 @@ func (c *checker) aliasedParam(n syntax.NodeID) EntityID {
 		return 0
 	}
 	return src
+}
+
+// A copy of a `&mut` parameter's place holds what the callers bound plus the writes before the copy, so it merges at the copy and keeps the callers' binding.
+func (c *checker) writableParamPlace(ent EntityID) bool {
+	root := &c.r.Entities[c.r.rootOf(ent)]
+	return len(c.lambdas) == 0 && root.Kind == EntParam && root.Parent == c.fn && root.Flags&EfMut == 0 && c.r.Types.RefMut(c.vars.resolve(root.Type))
 }

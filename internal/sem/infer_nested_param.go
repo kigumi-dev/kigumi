@@ -43,6 +43,7 @@ func (c *checker) nestedParamPlace(base syntax.NodeID) (EntityID, bool) {
 }
 
 func (c *checker) registerNestedCalled(place, field EntityID) {
+	c.r.markDeferred(c.r.fieldParamEnt(fieldFnKey{Ent: place, Field: field}), c.viaCopy)
 	param, path := c.r.nestedPath(place)
 	key := nestedFieldKey{Param: param, Path: path, Field: field}
 	for _, k := range c.r.nestedCalled[c.fn] {

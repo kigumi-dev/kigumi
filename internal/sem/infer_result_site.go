@@ -69,7 +69,7 @@ func (c *checker) recordResultLeaves(body syntax.NodeID) {
 		} else if src := c.r.fnChainEnt(c.f, leaf); src != 0 && c.r.concretePlace(src) {
 			c.unionInto(ret, src, c.retType, leaf)
 		} else if src != 0 {
-			c.noteResultParam(src)
+			c.noteResultParam(src, leaf)
 		}
 	}
 }

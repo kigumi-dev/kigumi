@@ -1,0 +1,72 @@
+-- src --
+import {Box} from std/alloc
+
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.id}"
+}
+
+noalloc fn readInt(b: &Box[Int]) -> Int {
+    b.get()
+}
+
+noalloc fn readFlag(b: &Box[Bool]) -> Bool {
+    b.get()
+}
+
+noalloc fn sumPt(b: &Box[Pt]) -> Int {
+    b.with((p: &Pt) => p.x + p.y)
+}
+
+noalloc fn bumpPt(b: &mut Box[Pt]) -> Unit {
+    b.withMut((p: &mut Pt) => {
+        p.x = p.x + 1
+        p.y = p.y * 2
+    })
+}
+
+noalloc fn takeInt(b: Box[Int]) -> Int {
+    b.into()
+}
+
+noalloc fn takePt(b: Box[Pt]) -> Pt {
+    b.into()
+}
+
+noalloc fn takeRes(b: Box[Res]) -> Res {
+    b.into()
+}
+
+fn main() -> Unit! {
+    let n = Box.new(41)
+    print "get ${readInt(&n)} ${readInt(&n) + 1}"
+    let f = Box.new(true)
+    print "flag ${readFlag(&f)}"
+    let mut p = Box.new(Pt { x: 1, y: 2 })
+    print "sum ${sumPt(&p)}"
+    bumpPt(&mut p)
+    bumpPt(&mut p)
+    print "sum ${sumPt(&p)}"
+    let q = takePt(p)
+    print "into ${q.x},${q.y}"
+    print "take ${takeInt(n)}"
+    let r = takeRes(Box.new(Res { id: 7 }))
+    print "res ${r.id}"
+}
+-- stdout --
+get 41 42
+flag true
+sum 3
+sum 11
+into 3,8
+take 41
+res 7
+drop res 7

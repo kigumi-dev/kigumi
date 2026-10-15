@@ -1,0 +1,41 @@
+-- src --
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+type Wrap = {
+    pub mut a FixedArray[Pt, 3]
+    pub mut b FixedArray[Pt, 3]
+}
+
+fn shiftAll(w: &mut Wrap) -> Unit {
+    for i in 0..2 {
+        w.a[i] = w.a[i + 1]
+    }
+}
+
+fn Wrap.pull(mut self, i: usize, j: usize) -> Unit {
+    self.a[i] = self.a[j]
+}
+
+fn Wrap.across(mut self) -> Unit {
+    self.a[0] = self.b[1]
+}
+
+noalloc fn Wrap.acrossNa(mut self, other: &Wrap) -> Unit {
+    self.a[0] = other.b[1]
+}
+
+fn main() -> Unit! {
+    let mut w = Wrap { a: FixedArray.filled[Pt, 3](Pt { x: 1, y: 2 }), b: FixedArray.filled[Pt, 3](Pt { x: 3, y: 4 }) }
+    w.a[2] = Pt { x: 9, y: 9 }
+    shiftAll(&mut w)
+    w.pull(0, 2)
+    w.across()
+    let o = Wrap { a: FixedArray.filled[Pt, 3](Pt { x: 0, y: 0 }), b: FixedArray.filled[Pt, 3](Pt { x: 7, y: 8 }) }
+    w.acrossNa(&o)
+    print "${w.a[0].x} ${w.a[0].y} ${w.a[1].x} ${w.a[2].x}"
+}
+-- stdout --
+7 8 9 9

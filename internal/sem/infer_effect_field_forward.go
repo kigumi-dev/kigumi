@@ -38,6 +38,7 @@ func (r *Result) closeFieldParamForwarding() {
 func (r *Result) addCalledFieldParam(fn, param, field EntityID) bool {
 	info := r.Fn(fn)
 	key := FieldParamKey{Param: param, Field: field}
+	r.markDeferred(r.fieldParamEnt(fieldFnKey{Ent: param, Field: field}), false)
 	for _, k := range info.CalledFieldParams {
 		if k == key {
 			return false

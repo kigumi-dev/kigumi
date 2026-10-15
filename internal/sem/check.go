@@ -63,6 +63,7 @@ type checker struct {
 	captureSites map[EntityID][]captureSite
 	facts        []NarrowFact
 	inCond       int
+	viaCopy      bool
 	unsafe       int
 	naked        bool
 	closures     []EntityID

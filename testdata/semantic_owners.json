@@ -71,7 +71,7 @@
   },
   {
     "key": "alloc.Box.get",
-    "signature": "pure fn() -\u003e T",
+    "signature": "pure noalloc fn() -\u003e T",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -91,7 +91,7 @@
   },
   {
     "key": "alloc.Box.into",
-    "signature": "pure fn() -\u003e T",
+    "signature": "pure noalloc fn() -\u003e T",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -131,7 +131,7 @@
   },
   {
     "key": "alloc.Box.with",
-    "signature": "pure fn(fn(\u0026T) -\u003e R) -\u003e R",
+    "signature": "pure noalloc fn(fn(\u0026T) -\u003e R) -\u003e R",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -141,7 +141,7 @@
   },
   {
     "key": "alloc.Box.withMut",
-    "signature": "pure fn(fn(\u0026mut T) -\u003e R) -\u003e R",
+    "signature": "pure noalloc fn(fn(\u0026mut T) -\u003e R) -\u003e R",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",

@@ -49,6 +49,8 @@ func (c *checker) copiedPlaceCalls(n, base syntax.NodeID, field EntityID) {
 	if base == 0 || c.t.Kind(base) != syntax.Ident && c.t.Kind(base) != syntax.MemberExpr {
 		return
 	}
+	c.viaCopy = true
+	defer func() { c.viaCopy = false }()
 	for _, place := range c.r.paramPlacesOf(c.r.fnChainEnt(c.f, base)) {
 		if c.r.Entities[place].Kind == EntParam {
 			c.deferToFieldParam(place, field)
@@ -61,6 +63,7 @@ func (c *checker) copiedPlaceCalls(n, base syntax.NodeID, field EntityID) {
 
 // c.fn hands its parameter's field to a callee that calls it, so its callers must bind that field.
 func (c *checker) noteFwdCalled(param, field EntityID) {
+	c.r.markDeferred(c.r.fieldParamEnt(fieldFnKey{Ent: param, Field: field}), false)
 	if c.fn == 0 || len(c.lambdas) > 0 || c.r.Entities[param].Parent != c.fn || c.r.Entities[param].Flags&EfMut != 0 {
 		return
 	}

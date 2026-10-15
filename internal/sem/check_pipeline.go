@@ -34,6 +34,7 @@ func check(mod *Module) *Result {
 	r.checkThreadPool()
 	r.closeMethodFieldWrites()
 	r.closeLateFieldEdges()
+	r.pruneEntryBinds()
 	r.retractPoisonedBindings()
 	r.checkRootBridges()
 	r.checkForeignWake()

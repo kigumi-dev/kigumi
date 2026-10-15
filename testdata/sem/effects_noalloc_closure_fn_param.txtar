@@ -1,0 +1,91 @@
+-- src --
+type Nm = {
+    pub name String
+    pub mut n Int
+}
+
+fn mkn(x: Int) -> Nm { Nm { name: "b", n: x } }
+
+noalloc fn cheap(x: Int) -> Int { x + 1 }
+
+pure fn spotless(x: Int) -> Int { x * 2 }
+
+noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+pure fn applyPure[F: Fn[pure fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+fn badWrap[G: Fn[fn(Int) -> Int]](g: G) -> Int { applyGen((x: Int) => g(x), 1) } //~ ERROR closure is not `noalloc`
+
+fn viaFn(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => f(x), 1) } //~ ERROR closure is not `noalloc`
+
+fn viaPure(f: noalloc fn(Int) -> Int) -> Int { applyPure((x: Int) => f(x), 1) } //~ ERROR closure is not `pure`
+
+fn okBound[G: Fn[noalloc fn(Int) -> Int]](g: G) -> Int { applyGen((x: Int) => g(x), 1) }
+
+fn okFn(f: noalloc fn(Int) -> Int) -> Int { applyGen((x: Int) => f(x) + 1, 1) }
+
+fn okBoth(f: noalloc pure fn(Int) -> Int) -> Int { applyGen((x: Int) => f(x), 1) + applyPure((x: Int) => f(x), 1) }
+
+fn okConcrete() -> Int { applyGen((x: Int) => cheap(x) + 1, 1) + applyPure((x: Int) => spotless(x), 1) }
+
+fn okCaptured(n: Int) -> Int { applyGen((x: Int) => x + n, 1) }
+fn callFn(f: fn(Int) -> Int, v: Int) -> Int { f(v) }
+
+fn callIt[F: Fn[fn(Int) -> Int]](f: F, v: Int) -> Int { f(v) }
+
+fn callTwice(f: fn(Int) -> Int, v: Int) -> Int { callFn(f, v) }
+
+fn callCheap(f: noalloc fn(Int) -> Int, v: Int) -> Int { f(v) }
+
+fn ignores(f: fn(Int) -> Int, v: Int) -> Int { v }
+
+fn fwdFn(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => callFn(f, x), 1) } //~ ERROR closure is not `noalloc`
+
+fn fwdGen(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => callIt(f, x), 1) } //~ ERROR closure is not `noalloc`
+
+fn fwdTwice(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => callTwice(f, x), 1) } //~ ERROR closure is not `noalloc`
+
+fn okFwd(f: noalloc fn(Int) -> Int) -> Int { applyGen((x: Int) => callFn(f, x) + callCheap(f, x), 1) }
+
+fn okNeverCalled(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => ignores(f, x), 1) }
+-- expect --
+error[E422]: closure is not `noalloc` (calls `g`, which is not declared `noalloc`)
+  --> main/main.kg:20:59
+   |
+20 | fn badWrap[G: Fn[fn(Int) -> Int]](g: G) -> Int { applyGen((x: Int) => g(x), 1) } //~ ERROR closure is not `noalloc`
+   |                                                           ^^^^^^^^^^^^^^^
+
+error[E422]: closure is not `noalloc` (calls `f`, which is not declared `noalloc`)
+  --> main/main.kg:22:47
+   |
+22 | fn viaFn(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => f(x), 1) } //~ ERROR closure is not `noalloc`
+   |                                               ^^^^^^^^^^^^^^^
+
+error[E422]: closure is not `pure` (calls `f`, which is not declared `pure`)
+  --> main/main.kg:24:58
+   |
+24 | fn viaPure(f: noalloc fn(Int) -> Int) -> Int { applyPure((x: Int) => f(x), 1) } //~ ERROR closure is not `pure`
+   |                                                          ^^^^^^^^^^^^^^^
+
+error[E422]: closure is not `noalloc` (calls `f`, which is not declared `noalloc`)
+  --> main/main.kg:45:47
+   |
+45 | fn fwdFn(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => callFn(f, x), 1) } //~ ERROR closure is not `noalloc`
+   |                                               ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E422]: closure is not `noalloc` (calls `f`, which is not declared `noalloc`)
+  --> main/main.kg:47:48
+   |
+47 | fn fwdGen(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => callIt(f, x), 1) } //~ ERROR closure is not `noalloc`
+   |                                                ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E422]: closure is not `noalloc` (calls `f`, which is not declared `noalloc`)
+  --> main/main.kg:49:50
+   |
+49 | fn fwdTwice(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => callTwice(f, x), 1) } //~ ERROR closure is not `noalloc`
+   |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+

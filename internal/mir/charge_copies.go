@@ -9,6 +9,9 @@ func (p *Program) allocCopy(f *Func, in Inst) bool {
 	if _, ok := p.elemCopy(f, in); ok {
 		return true
 	}
+	if _, ok := p.contentCopy(f, in); ok {
+		return true
+	}
 	if in.Op != OpShare || !in.Copy || !f.DirectPlanned() || f.IsDirect(in.Args[0]) || p.copiesInPlace(f, in) {
 		return false
 	}
@@ -30,6 +33,9 @@ func (p *Program) elemCopy(f *Func, in Inst) (sem.TypeID, bool) {
 }
 
 func (p *Program) copiedType(f *Func, in Inst) sem.TypeID {
+	if t, ok := p.contentCopy(f, in); ok {
+		return t
+	}
 	if elem, ok := p.elemCopy(f, in); ok {
 		if p.R.CopyAllocates(elem) {
 			return elem
@@ -73,6 +79,9 @@ func (p *Program) chargeCopies() {
 }
 
 func (p *Program) copySite(f *Func, in Inst) sem.CopySite {
+	if t, ok := p.contentCopy(f, in); ok {
+		return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.siteNode(f, in), Type: t, Content: true}
+	}
 	elem, isElem := p.elemCopy(f, in)
 	copies := !isElem || p.R.CopyAllocates(elem)
 	return sem.CopySite{Owner: f.Ent, File: f.File, Node: p.siteNode(f, in), Type: p.copiedType(f, in), Held: !in.Own && !isElem, Elem: isElem && copies, Boxed: isElem && !copies}

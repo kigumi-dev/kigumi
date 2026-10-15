@@ -34,6 +34,7 @@ func (c *checker) identParam(n syntax.NodeID) EntityID {
 func (c *checker) deferToFieldParam(p, field EntityID) {
 	info := c.r.Fn(c.fn)
 	key := FieldParamKey{Param: p, Field: field}
+	c.r.markDeferred(c.r.fieldParamEnt(fieldFnKey{Ent: p, Field: field}), c.viaCopy)
 	if !slices.Contains(info.CalledFieldParams, key) {
 		info.CalledFieldParams = append(info.CalledFieldParams, key)
 	}

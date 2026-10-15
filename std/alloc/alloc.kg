@@ -80,19 +80,19 @@ pub pure fn Box.new[T](value: T) -> Box[T]
 pub pure fn Box.tryNew[T](value: T) -> Result[Box[T], AllocError]
 
 /// A copy of the current content.
-pub pure fn Box[T: Copy].get(self) -> T
+pub pure noalloc fn Box[T: Copy].get(self) -> T
 
 /// Replaces the content; the old value is dropped.
 pub pure fn Box[T].set(mut self, value: T) -> Unit
 
 /// Calls f once with a borrow of the content and returns what it returns; f is not kept (non-escaping).
-pub pure fn Box[T].with[R](self, f: fn(&T) -> R) -> R
+pub pure noalloc fn Box[T].with[R](self, f: fn(&T) -> R) -> R
 
 /// Calls f once with an exclusive borrow of the content, so f can mutate it in place; f is not kept.
-pub pure fn Box[T].withMut[R](mut self, f: fn(&mut T) -> R) -> R
+pub pure noalloc fn Box[T].withMut[R](mut self, f: fn(&mut T) -> R) -> R
 
 /// Moves the content out and frees the cell; the only way to take ownership of the content back.
-pub pure fn Box[T].into(move self) -> T
+pub pure noalloc fn Box[T].into(move self) -> T
 
 /// Equality of the contents; satisfies `Eq` when T does.
 pub pure fn Box[T: Eq].equals(self, other: &Box[T]) -> Bool {
