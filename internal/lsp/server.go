@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"time"
 
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
@@ -34,6 +35,23 @@ type Server struct {
 	// document or the disk changes, so hover, completion and the rest do
 	// not each re-check the module.
 	snaps map[string]*snapshot
+	// last is each root's most recent complete snapshot; requests answer
+	// from it while a newer analysis is pending or running.
+	last   map[string]*snapshot
+	states map[string]*rootState
+	// pending lists the roots to analyze when the debounce timer fires,
+	// with the document to publish for even when it has no diagnostics.
+	pending  map[string]uri.URI
+	timer    *time.Timer
+	bg       context.Context
+	debounce time.Duration
+	work     sync.WaitGroup
+	counts   counters
+	cache    string
+	compiler driver.CompilerOptions
+	docSyms  map[uri.URI]docSymbols
+	pkgSyms  map[string]pkgSymbols
+	hook     func(stage string, in *analysisInput)
 	// depIndex maps a package directory to every root whose last snapshot
 	// read it, for invalidateFile's reverse-dependency lookup.
 	depIndex map[string]map[string]bool
@@ -41,8 +59,21 @@ type Server struct {
 	documentChanges bool
 }
 
+const DefaultDebounce = 150 * time.Millisecond
+
 func New(stdRoot string) *Server {
-	return &Server{stdRoot: stdRoot, docs: map[uri.URI]string{}, docVersions: map[uri.URI]int32{}, published: map[string]map[uri.URI]bool{}, snaps: map[string]*snapshot{}, depIndex: map[string]map[string]bool{}}
+	return &Server{stdRoot: stdRoot, docs: map[uri.URI]string{}, docVersions: map[uri.URI]int32{}, published: map[string]map[uri.URI]bool{}, snaps: map[string]*snapshot{}, last: map[string]*snapshot{}, states: map[string]*rootState{}, pending: map[string]uri.URI{}, debounce: DefaultDebounce, depIndex: map[string]map[string]bool{}, docSyms: map[uri.URI]docSymbols{}, pkgSyms: map[string]pkgSymbols{}}
+}
+
+// WithDebounce sets the edit coalescing window; zero analyzes inside DidChange.
+func (s *Server) WithDebounce(d time.Duration) *Server {
+	s.debounce = d
+	return s
+}
+
+func (s *Server) WithPackageCache(dir string, o driver.CompilerOptions) *Server {
+	s.cache, s.compiler = dir, o
+	return s
 }
 
 type stdio struct{}
@@ -58,8 +89,8 @@ func (s *Server) WithTarget(t driver.Target) *Server {
 }
 
 // Serve speaks the protocol on stdin/stdout until the client hangs up.
-func Serve(stdRoot string, target driver.Target) error {
-	_, conn, _ := protocol.NewServer(context.Background(), New(stdRoot).WithTarget(target), jsonrpc2.NewStream(stdio{}))
+func Serve(stdRoot string, target driver.Target, cache string, o driver.CompilerOptions) error {
+	_, conn, _ := protocol.NewServer(context.Background(), New(stdRoot).WithTarget(target).WithPackageCache(cache, o), jsonrpc2.NewStream(stdio{}))
 	<-conn.Done()
 	if err := conn.Err(); err != nil && err != io.EOF {
 		return err
@@ -67,6 +98,18 @@ func Serve(stdRoot string, target driver.Target) error {
 	return nil
 }
 
-func (s *Server) Shutdown(context.Context) error                           { return nil }
+func (s *Server) Shutdown(context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.timer != nil && s.timer.Stop() {
+		s.work.Done()
+	}
+	for _, st := range s.states {
+		if st.cancel != nil {
+			st.cancel()
+		}
+	}
+	return nil
+}
 func (s *Server) Exit(context.Context) error                               { return nil }
 func (s *Server) SetTrace(context.Context, *protocol.SetTraceParams) error { return nil }

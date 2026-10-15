@@ -43,6 +43,7 @@ func TestPublishDiagnosticsVersion(t *testing.T) {
 	}
 	change(2, "fn double(x: Int) -> Int {\n    x * 3\n}\n")
 	change(3, "fn double(x: Int) -> Int {\n    x * 4\n}\n")
+	s.WaitIdle()
 
 	var last *protocol.PublishDiagnosticsParams
 	for _, p := range rec.published {

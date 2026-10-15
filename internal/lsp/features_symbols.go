@@ -18,20 +18,12 @@ func (s *Server) DocumentSymbol(ctx context.Context, p *protocol.DocumentSymbolP
 	if !ok {
 		return nil, nil
 	}
-	t := syntax.Parse(token.NewFile(uriToPath(p.TextDocument.URI), []byte(text)))
-	out := protocol.DocumentSymbolSlice{}
-	for d := range t.List(t.Root).IDs() {
-		name, kind, tok, ok := declSymbol(t, d)
-		if !ok {
-			continue
-		}
-		sym := protocol.DocumentSymbol{Name: name, Kind: kind, Range: declRange(t, d, tok), SelectionRange: spanRange(t.File, t.Toks[tok].Span)}
-		for _, m := range memberSymbols(t, d) {
-			sym.Children = append(sym.Children, protocol.DocumentSymbol{Name: m.name, Kind: m.kind, Range: declRange(t, m.node, m.tok), SelectionRange: spanRange(t.File, t.Toks[m.tok].Span)})
-		}
-		out = append(out, sym)
+	if cached, ok := s.docSyms[p.TextDocument.URI]; ok && cached.text == text {
+		return cached.syms, nil
 	}
-	return out, nil
+	syms := documentSymbols(syntax.Parse(token.NewFile(uriToPath(p.TextDocument.URI), []byte(text))))
+	s.docSyms[p.TextDocument.URI] = docSymbols{text, syms}
+	return syms, nil
 }
 
 var keywords = []string{"fn", "let", "mut", "pub", "type", "interface", "const", "import", "from", "match", "if", "else", "for", "in",
@@ -63,7 +55,7 @@ func (s *Server) Completion(ctx context.Context, p *protocol.CompletionParams) (
 	for _, k := range keywords {
 		add(k, protocol.CompletionItemKindKeyword, "")
 	}
-	snap := s.loadDoc(ctx, p.TextDocument.URI)
+	snap := s.loadDocFresh(ctx, p.TextDocument.URI)
 	// Scope items are already deduped by the checker; a file it could not
 	// see falls back to raw package declarations, then plain identifiers.
 	if snap.res != nil {

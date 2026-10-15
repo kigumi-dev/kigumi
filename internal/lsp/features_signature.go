@@ -16,7 +16,7 @@ import (
 func (s *Server) SignatureHelp(ctx context.Context, p *protocol.SignatureHelpParams) (*protocol.SignatureHelp, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snap := s.loadDoc(ctx, p.TextDocument.URI)
+	snap := s.loadDocFresh(ctx, p.TextDocument.URI)
 	if snap.mod == nil || snap.res == nil {
 		return nil, nil
 	}
@@ -143,7 +143,7 @@ func unclosedAt(src []byte, open, pos token.Pos) bool {
 func (s *Server) DocumentHighlight(ctx context.Context, p *protocol.DocumentHighlightParams) ([]protocol.DocumentHighlight, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snap, t, _, ent := s.entityAt(ctx, p.TextDocumentPositionParams)
+	snap, t, _, ent := s.entityAt(ctx, p.TextDocumentPositionParams, true)
 	if t == nil || ent == 0 {
 		return nil, nil
 	}

@@ -84,6 +84,7 @@ type Result struct {
 	pendingImports  []pendingImport
 	order           []PackageID
 	bodiesChecked   bool
+	cancelled       bool
 	declScopes      map[EntityID]ScopeID
 	aliasState      map[EntityID]uint8
 	aliasParams     map[EntityID][]EntityID

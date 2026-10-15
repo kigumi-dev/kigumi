@@ -113,7 +113,7 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 	if m.loadErr != nil {
 		return nil, m.loadErr
 	}
-	mod := &sem.Module{Sources: m.fileStore()}
+	mod := &sem.Module{Sources: m.fileStore(), Cancel: m.cancel}
 	if m.target.Freestanding() {
 		mod.Target = sem.Freestanding
 	}

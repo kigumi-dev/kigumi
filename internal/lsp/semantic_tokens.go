@@ -36,7 +36,7 @@ type semanticToken struct {
 func (s *Server) SemanticTokensFull(ctx context.Context, p *protocol.SemanticTokensParams) (*protocol.SemanticTokens, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snap := s.loadDoc(ctx, p.TextDocument.URI)
+	snap := s.loadDocFresh(ctx, p.TextDocument.URI)
 	if snap.res == nil {
 		return &protocol.SemanticTokens{Data: []uint32{}}, nil
 	}

@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"context"
 	"fmt"
 
 	"kigumi/internal/mir"
@@ -9,7 +10,17 @@ import (
 )
 
 func CheckForEditor(m *Module) (*sem.Result, error) {
+	return CheckForEditorContext(context.Background(), m)
+}
+
+// CheckForEditorContext is CheckForEditor that stops once ctx is done and returns its error.
+func CheckForEditorContext(ctx context.Context, m *Module) (*sem.Result, error) {
+	m.cancel = func() bool { return ctx.Err() != nil }
+	defer func() { m.cancel = nil }()
 	res, err := CheckOnly(m)
+	if err == nil && res.Cancelled() {
+		return nil, ctx.Err()
+	}
 	if err != nil || res.HasErrors() || !res.DefersAllocClaims() && !res.DeclaresNoalloc() && !res.SpecializesCalls() && !m.target.RestrictsAllocation() {
 		return res, err
 	}
@@ -29,7 +40,7 @@ func editorDiags(m *Module) (*sem.Result, []mir.FileDiag) {
 		return nil, nil
 	}
 	res := sem.CheckWith(mod, schema.GenerateDerive)
-	if res.HasErrors() {
+	if res.HasErrors() || res.Cancelled() {
 		return res, nil
 	}
 	prog := lowerProgram(res, false, nil)

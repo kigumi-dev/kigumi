@@ -150,3 +150,9 @@ func (m *Module) setOrder() {
 	}
 	sort.Strings(m.Order)
 }
+
+// EnsureParsed finishes a DeferParse load: it parses what the root set reaches and reports an I/O failure.
+func (m *Module) EnsureParsed() error {
+	m.ensureParsed()
+	return m.loadErr
+}

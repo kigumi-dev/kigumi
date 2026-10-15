@@ -24,7 +24,7 @@ func (s *Server) memberCompletion(ctx context.Context, p protocol.TextDocumentPo
 	if dot < 0 {
 		return nil, false
 	}
-	snap := s.loadDoc(ctx, p.TextDocument.URI)
+	snap := s.loadDocFresh(ctx, p.TextDocument.URI)
 	if snap.mod == nil || snap.res == nil {
 		return nil, false
 	}

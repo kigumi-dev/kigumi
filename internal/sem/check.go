@@ -108,6 +108,9 @@ func (r *Result) checkBodies() {
 		if e.File == 0 || e.Flags&EfPoison != 0 {
 			continue
 		}
+		if r.Cancelled() {
+			return
+		}
 		switch e.Kind {
 		case EntFn:
 			info := r.Fn(EntityID(id))

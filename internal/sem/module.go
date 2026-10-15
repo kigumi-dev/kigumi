@@ -56,4 +56,6 @@ type Module struct {
 	Deny         []string
 	LayerCeiling string
 	ArtifactName string
+	// Cancel is polled between phases and before each body; true stops the check.
+	Cancel func() bool
 }

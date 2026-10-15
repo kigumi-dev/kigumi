@@ -11,30 +11,13 @@ import (
 	"kigumi/internal/token"
 )
 
-// nodeAt finds the innermost name-bearing node covering a byte offset.
-func nodeAt(t *syntax.Tree, pos token.Pos) syntax.NodeID {
-	best, bestLen := syntax.NodeID(0), -1
-	for v := range t.All() {
-		n := v.ID()
-		switch v.Kind() {
-		case syntax.Ident, syntax.MemberExpr, syntax.PatBind, syntax.Param, syntax.PatCtor, syntax.TypePath, syntax.FieldInit, syntax.PatField:
-		default:
-			continue
-		}
-		sp := v.Span()
-		if v.Kind() == syntax.MemberExpr {
-			sp = v.Tok().Span()
-		}
-		if pos >= sp.Start && pos <= sp.End && (bestLen < 0 || sp.Len() < bestLen) {
-			best, bestLen = n, sp.Len()
-		}
+// entityAt resolves the entity at a position; a stale snapshot answers unless fresh is set.
+func (s *Server) entityAt(ctx context.Context, p protocol.TextDocumentPositionParams, fresh bool) (*snapshot, *syntax.Tree, syntax.NodeID, sem.EntityID) {
+	load := s.loadDoc
+	if fresh {
+		load = s.loadDocFresh
 	}
-	return best
-}
-
-// entityAt resolves the entity a position refers to or declares.
-func (s *Server) entityAt(ctx context.Context, p protocol.TextDocumentPositionParams) (*snapshot, *syntax.Tree, syntax.NodeID, sem.EntityID) {
-	snap := s.loadDoc(ctx, p.TextDocument.URI)
+	snap := load(ctx, p.TextDocument.URI)
 	if snap.mod == nil || snap.res == nil {
 		return snap, nil, 0, 0
 	}
@@ -42,10 +25,13 @@ func (s *Server) entityAt(ctx context.Context, p protocol.TextDocumentPositionPa
 	if t == nil {
 		return snap, nil, 0, 0
 	}
-	pos := offset(t.File, p.Position)
-	n := nodeAt(t, pos)
+	pos, ok := s.offsetIn(snap, t.File, p.Position)
+	if !ok {
+		return snap, nil, 0, 0
+	}
+	n := snap.posIndexOf(t).nodeAt(pos)
 	if n == 0 {
-		return snap, t, 0, declaredAt(snap.res, t, pos)
+		return snap, t, 0, snap.semIndex().declaredAt(t, pos)
 	}
 	info := snap.res.File(t)
 	ent := info.Uses[n]
@@ -55,25 +41,10 @@ func (s *Server) entityAt(ctx context.Context, p protocol.TextDocumentPositionPa
 	return snap, t, n, ent
 }
 
-// declaredAt finds the entity whose declaring name token covers pos;
-// declaration names are tokens, not nodes, so nodeAt cannot see them.
-func declaredAt(res *sem.Result, t *syntax.Tree, pos token.Pos) sem.EntityID {
-	for i := range res.Entities {
-		e := &res.Entities[i]
-		if e.File == 0 || e.Tok == 0 || res.Tree(e.File) != t {
-			continue
-		}
-		if sp := t.Toks[e.Tok].Span; pos >= sp.Start && pos <= sp.End {
-			return sem.EntityID(i)
-		}
-	}
-	return 0
-}
-
 func (s *Server) Hover(ctx context.Context, p *protocol.HoverParams) (*protocol.Hover, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snap, t, n, ent := s.entityAt(ctx, p.TextDocumentPositionParams)
+	snap, t, n, ent := s.entityAt(ctx, p.TextDocumentPositionParams, false)
 	if t == nil || n == 0 && ent == 0 {
 		return nil, nil
 	}
@@ -94,14 +65,14 @@ func (s *Server) Hover(ctx context.Context, p *protocol.HoverParams) (*protocol.
 	if n == 0 {
 		sp = t.Toks[snap.res.Entity(ent).Tok].Span
 	}
-	r := spanRange(t.File, sp)
+	r := s.rng(snap, t.File, sp)
 	return &protocol.Hover{Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: text}, Range: &r}, nil
 }
 
 func (s *Server) Definition(ctx context.Context, p *protocol.DefinitionParams) (protocol.DefinitionResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snap, t, _, ent := s.entityAt(ctx, p.TextDocumentPositionParams)
+	snap, t, _, ent := s.entityAt(ctx, p.TextDocumentPositionParams, false)
 	if t == nil || ent == 0 {
 		return nil, nil
 	}

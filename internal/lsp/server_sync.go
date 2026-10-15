@@ -27,7 +27,7 @@ func (s *Server) DidChangeWatchedFiles(ctx context.Context, p *protocol.DidChang
 		}
 	}
 	for root := range roots {
-		s.analyzeModule(ctx, root, "")
+		s.analyzeModule(ctx, root, "", true)
 	}
 	return nil
 }
@@ -37,7 +37,7 @@ func (s *Server) analyzeWorkspace(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
-		s.analyzeModule(ctx, root, "")
+		s.analyzeModule(ctx, root, "", false)
 	}
 }
 
@@ -66,7 +66,7 @@ func (s *Server) DidChange(ctx context.Context, p *protocol.DidChangeTextDocumen
 			s.docs[u] = text[:start] + c.Text + text[end:]
 		}
 	}
-	s.analyze(ctx, u)
+	s.afterEdit(ctx, u)
 	return nil
 }
 

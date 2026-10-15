@@ -124,7 +124,7 @@ func Check(mod *Module) *Result {
 func CheckWith(mod *Module, gen DeriveGenerator) *Result {
 	mod.deriveGen = gen
 	r := check(mod)
-	if len(r.derives) == 0 || mod.derived {
+	if r.Cancelled() || len(r.derives) == 0 || mod.derived {
 		return r
 	}
 	mod.derived = true
@@ -140,6 +140,9 @@ func CheckWith(mod *Module, gen DeriveGenerator) *Result {
 		mod.Packages[g.pkg].Files = append(mod.Packages[g.pkg].Files, syntax.Parse(f))
 	}
 	r2 := check(mod)
+	if r2.Cancelled() {
+		return r2
+	}
 	// The rerun's own r2.derives is empty (requestDerive no-ops once
 	// mod.derived is set), so provenance carries the first pass's answer.
 	r2.derives, r2.generated = r.derives, generated

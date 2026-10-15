@@ -110,24 +110,14 @@ func (s *Server) Symbols(ctx context.Context, p *protocol.WorkspaceSymbolParams)
 			if pkg.Std {
 				continue
 			}
-			for _, t := range pkg.Files {
-				add := func(name string, kind protocol.SymbolKind, tok uint32) {
-					if !fuzzyMatch(p.Query, name) {
-						return
-					}
-					container := path
-					loc := protocol.Location{URI: uri.File(s.pathOfFile(snap, t.File.Name)), Range: spanRange(t.File, t.Toks[tok].Span)}
-					out = append(out, protocol.SymbolInformation{BaseSymbolInformation: protocol.BaseSymbolInformation{Name: name, Kind: kind, ContainerName: &container}, Location: loc})
-				}
-				for d := range t.List(t.Root).IDs() {
-					name, kind, tok, ok := declSymbol(t, d)
-					if !ok {
+			for _, fs := range s.packageSymbols(snap, path).files {
+				u := uri.File(s.pathOfFile(snap, fs.file))
+				for _, it := range fs.items {
+					if !fuzzyMatch(p.Query, it.name) {
 						continue
 					}
-					add(name, kind, tok)
-					for _, m := range memberSymbols(t, d) {
-						add(name+"."+m.name, m.kind, m.tok)
-					}
+					container := path
+					out = append(out, protocol.SymbolInformation{BaseSymbolInformation: protocol.BaseSymbolInformation{Name: it.name, Kind: it.kind, ContainerName: &container}, Location: protocol.Location{URI: u, Range: it.rng}})
 				}
 			}
 		}

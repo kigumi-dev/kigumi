@@ -94,6 +94,7 @@ type Module struct {
 	// keyEntry and keyExplicit are the entry as loaded; semModule may fill m.Entry in later.
 	keyEntry    string
 	keyExplicit bool
+	cancel      func() bool
 	pkgStatus   []PackageStatus
 	unitCheck   bool
 	unitStats   UnitStats

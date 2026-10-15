@@ -2,67 +2,18 @@ package lsp
 
 import (
 	"context"
+	"fmt"
 	"regexp"
+	"slices"
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/diag"
 	"kigumi/internal/errors"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
 )
-
-// CodeAction offers the fixes the checker attached to diagnostics that
-// overlap the requested range.
-func (s *Server) CodeAction(ctx context.Context, p *protocol.CodeActionParams) ([]protocol.CommandOrCodeAction, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	out := []protocol.CommandOrCodeAction{}
-	snap := s.loadDoc(ctx, p.TextDocument.URI)
-	if snap.mod == nil {
-		return out, nil
-	}
-	t := snap.fileOf(uriToPath(p.TextDocument.URI))
-	if t == nil {
-		return out, nil
-	}
-	var all []diag.Diagnostic
-	all = append(all, t.Diags...)
-	if snap.res != nil {
-		all = append(all, snap.res.Diagnostics(t)...)
-	}
-	from, to := offset(t.File, p.Range.Start), offset(t.File, p.Range.End)
-	kind := protocol.CodeActionKindQuickFix
-	for _, d := range all {
-		if d.Loc.Span.End < from || d.Loc.Span.Start > to {
-			continue
-		}
-		fixes := d.Fixes
-		for _, f := range autoImportFixes(snap, t, d) {
-			fixes = append(fixes, f)
-		}
-		for _, fix := range fixes {
-			target := s.fileOf(snap, t.File, fix.Loc)
-			if o, ok := snap.originOf(target.Name); ok && !o.editable {
-				continue
-			}
-			edit := protocol.TextEdit{Range: spanRange(target, fix.Loc.Span), NewText: fix.NewText}
-			editURI := p.TextDocument.URI
-			if target != t.File {
-				editURI = uri.File(s.pathOfFile(snap, target.Name))
-			}
-			out = append(out, &protocol.CodeAction{
-				Title:       fix.Title,
-				Kind:        &kind,
-				Diagnostics: []protocol.Diagnostic{s.toDiagnostic(snap, t.File, d)},
-				Edit:        s.workspaceEdit(map[uri.URI][]protocol.TextEdit{editURI: {edit}}),
-			})
-		}
-	}
-	return out, nil
-}
 
 var identRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
@@ -71,7 +22,7 @@ var identRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 func (s *Server) PrepareRename(ctx context.Context, p *protocol.PrepareRenameParams) (protocol.PrepareRenameResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snap, t, n, ent := s.entityAt(ctx, p.TextDocumentPositionParams)
+	snap, t, n, ent := s.entityAt(ctx, p.TextDocumentPositionParams, true)
 	if t == nil || !renamable(snap, ent) {
 		return nil, nil
 	}
@@ -91,7 +42,7 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 	if !identRE.MatchString(p.NewName) {
 		return nil, errors.NewErrf("%q is not a valid identifier", p.NewName)
 	}
-	snap, t, _, ent := s.entityAt(ctx, p.TextDocumentPositionParams)
+	snap, t, _, ent := s.entityAt(ctx, p.TextDocumentPositionParams, true)
 	if t == nil || ent == 0 {
 		return nil, nil
 	}
@@ -102,37 +53,69 @@ func (s *Server) Rename(ctx context.Context, p *protocol.RenameParams) (*protoco
 		pkgPath := snap.res.Packages[snap.res.Entity(ent).Pkg].Path
 		return nil, errors.NewErrf("%q already declares a member named %q", pkgPath, p.NewName)
 	}
-	targets := map[sem.EntityID]bool{ent: true}
+	targets := []sem.EntityID{ent}
 	if isMethod(snap.res, ent) {
-		for _, m := range implementations(snap.res, ent) {
+		for _, m := range snap.implementations(ent) {
 			if renamable(snap, m) {
-				targets[m] = true
+				targets = append(targets, m)
 			}
 		}
 	}
+	slices.Sort(targets)
+	targets = slices.Compact(targets)
 	changes := map[uri.URI][]protocol.TextEdit{}
-	add := func(f *token.File, name string, sp token.Span) {
-		if o, ok := snap.originOf(name); ok && !o.editable {
-			s.logf(ctx, protocol.MessageTypeWarning, "rename: skipping non-editable %s source %s", o.kind, name)
+	seen := map[string]bool{}
+	add := func(f *token.File, sp token.Span) {
+		key := fmt.Sprint(f.Name, sp)
+		if seen[key] {
 			return
 		}
-		u := uri.File(s.pathOfFile(snap, name))
+		seen[key] = true
+		if o, ok := snap.originOf(f.Name); ok && !o.editable {
+			s.logf(ctx, protocol.MessageTypeWarning, "rename: skipping non-editable %s source %s", o.kind, f.Name)
+			return
+		}
+		u := uri.File(s.pathOfFile(snap, f.Name))
 		changes[u] = append(changes[u], protocol.TextEdit{Range: spanRange(f, sp), NewText: p.NewName})
 	}
-	for id := range targets {
+	for _, id := range targets {
 		e := snap.res.Entity(id)
 		decl := snap.res.Tree(e.File)
-		add(decl.File, decl.File.Name, decl.Toks[e.Tok].Span)
+		add(decl.File, decl.Toks[e.Tok].Span)
 	}
-	for i := 1; i < len(snap.res.Files); i++ {
-		f := &snap.res.Files[i]
-		for n, use := range f.Uses {
-			if targets[use] {
-				add(f.Tree.File, f.Tree.File.Name, nameSpan(f.Tree, syntax.NodeID(n)))
+	old := snap.res.Entity(ent).Name
+	for _, u := range snap.semIndex().usesOf(targets) {
+		sp := nameSpan(u.tree, u.node)
+		if text := string(u.tree.File.Src[sp.Start:sp.End]); text != old && identRE.MatchString(text) {
+			continue
+		}
+		add(u.tree.File, sp)
+	}
+	for _, id := range targets {
+		for _, imp := range snap.semIndex().imports[id] {
+			if f, sp, ok := importedName(snap.res, imp, old); ok {
+				add(f, sp)
 			}
 		}
 	}
 	return s.workspaceEdit(changes), nil
+}
+
+// importedName is the span of the name an import binding takes from its
+// package: the binding itself, or the name before `as` of a renamed import.
+func importedName(res *sem.Result, imp sem.EntityID, name string) (*token.File, token.Span, bool) {
+	e := res.Entity(imp)
+	t := res.Tree(e.File)
+	if e.Name == name {
+		return t.File, t.Toks[e.Tok].Span, true
+	}
+	for v := range t.All() {
+		if v.Kind() == syntax.ImportAlias && v.AsImportAlias().Alias().ID() == e.Node {
+			orig := v.AsImportAlias().Name()
+			return t.File, t.Span(orig.ID()), true
+		}
+	}
+	return nil, token.Span{}, false
 }
 
 // renamable excludes std, predeclared, unnamed and any entity declared

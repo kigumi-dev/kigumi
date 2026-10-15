@@ -9,11 +9,9 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"kigumi/internal/diag"
 	"kigumi/internal/driver"
 )
 
-// Analysis runs synchronously under s.mu, so publish needs no staleness check.
 func (s *Server) publish(ctx context.Context, u uri.URI, ds []protocol.Diagnostic) {
 	if ds == nil {
 		ds = []protocol.Diagnostic{}
@@ -38,39 +36,41 @@ func (s *Server) analyze(ctx context.Context, u uri.URI) {
 		if root == own {
 			hint = u
 		}
-		s.analyzeModule(ctx, root, hint)
+		s.analyzeModule(ctx, root, hint, true)
 	}
 }
 
-func (s *Server) analyzeModule(ctx context.Context, root string, u uri.URI) {
-	snap := s.load(ctx, root, u)
+// analyzeModule publishes root's diagnostics; force re-analyzes instead of
+// reusing a cached snapshot.
+func (s *Server) analyzeModule(ctx context.Context, root string, u uri.URI, force bool) {
+	delete(s.pending, root)
+	var snap *snapshot
+	if force {
+		snap = s.refresh(ctx, root, u, false)
+	} else {
+		snap = s.load(ctx, root, u)
+	}
+	s.publishSnapshot(ctx, snap, u)
+}
+
+// publishSnapshot sends the diagnostics of every own file of snap's module;
+// a file that had diagnostics before and has none now gets an empty list.
+func (s *Server) publishSnapshot(ctx context.Context, snap *snapshot, u uri.URI) {
+	root := snap.root
 	if snap.mod == nil {
 		if u != "" && !driver.IsManifest(filepath.Base(uriToPath(u))) {
 			s.publish(ctx, u, []protocol.Diagnostic{{Message: protocol.String(snap.err.Error()), Severity: protocol.DiagnosticSeverityError}})
 		}
 		return
 	}
+	byFile := s.diagnosticsByURI(snap)
 	fresh, stale := map[uri.URI]bool{}, s.published[root]
-	for _, p := range snap.mod.Order {
-		pkg := snap.mod.Packages[p]
-		if pkg.Std {
-			continue
+	for _, fileURI := range byFile.order {
+		ds := byFile.diags[fileURI]
+		if len(ds) > 0 || stale[fileURI] || fileURI == u {
+			s.publish(ctx, fileURI, ds)
 		}
-		for _, t := range pkg.Files {
-			fileURI := uri.File(s.pathOfFile(snap, t.File.Name))
-			all := append([]diag.Diagnostic{}, t.Diags...)
-			if snap.res != nil {
-				all = append(all, snap.res.Diagnostics(t)...)
-			}
-			var ds []protocol.Diagnostic
-			for _, d := range all {
-				ds = append(ds, s.toDiagnostic(snap, t.File, d))
-			}
-			if len(ds) > 0 || stale[fileURI] || fileURI == u {
-				s.publish(ctx, fileURI, ds)
-			}
-			fresh[fileURI] = len(ds) > 0
-		}
+		fresh[fileURI] = len(ds) > 0
 	}
 	for d := range stale {
 		if !fresh[d] {

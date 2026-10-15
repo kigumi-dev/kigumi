@@ -9,39 +9,58 @@ import (
 
 func check(mod *Module) *Result {
 	r := newResult(mod)
-	r.prepareProgram()
-	r.collect()
-	r.resolveImports()
-	r.declareTypes()
-	r.declareSignatures()
-	r.declareConsts()
-	r.declareStatics()
-	r.declareContextKeys()
-	r.checkContextProviders()
-	r.checkImpls()
-	r.closeFieldParamForwarding()
-	r.checkBodies()
-	r.bindLateFieldCalls()
-	r.resolveRefCells()
-	r.checkAccelKeys()
-	r.resolvePendingWitnessCallbacks()
-	// Must precede checkEffects: it appends hidden provider captures to
-	// ClosureInfo.Captures, which computeDrop/computeDropOp read.
-	r.checkContextRequirements()
-	r.checkEffects()
-	r.checkInterruptHandlers()
-	r.checkAsyncDirectBlocking()
-	r.checkThreadPool()
-	r.closeMethodFieldWrites()
-	r.closeLateFieldEdges()
-	r.pruneEntryBinds()
-	r.retractPoisonedBindings()
-	r.checkRootBridges()
-	r.checkForeignWake()
-	r.checkNomono()
-	r.reportUnused()
-	r.emit()
+	for _, phase := range r.phases() {
+		if r.Cancelled() {
+			return r
+		}
+		phase()
+	}
 	return r
+}
+
+func (r *Result) phases() []func() {
+	return []func(){
+		r.prepareProgram,
+		r.collect,
+		r.resolveImports,
+		r.declareTypes,
+		r.declareSignatures,
+		r.declareConsts,
+		r.declareStatics,
+		r.declareContextKeys,
+		r.checkContextProviders,
+		r.checkImpls,
+		r.closeFieldParamForwarding,
+		r.checkBodies,
+		r.bindLateFieldCalls,
+		r.resolveRefCells,
+		r.checkAccelKeys,
+		r.resolvePendingWitnessCallbacks,
+		// Must precede checkEffects: it appends hidden provider captures to
+		// ClosureInfo.Captures, which computeDrop/computeDropOp read.
+		r.checkContextRequirements,
+		r.checkEffects,
+		r.checkInterruptHandlers,
+		r.checkAsyncDirectBlocking,
+		r.checkThreadPool,
+		r.closeMethodFieldWrites,
+		r.closeLateFieldEdges,
+		r.pruneEntryBinds,
+		r.retractPoisonedBindings,
+		r.checkRootBridges,
+		r.checkForeignWake,
+		r.checkNomono,
+		r.reportUnused,
+		r.emit,
+	}
+}
+
+// Cancelled reports that the check stopped early, so the Result is partial.
+func (r *Result) Cancelled() bool {
+	if !r.cancelled && r.mod.Cancel != nil && r.mod.Cancel() {
+		r.cancelled = true
+	}
+	return r.cancelled
 }
 
 func newResult(mod *Module) *Result {
