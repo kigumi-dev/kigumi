@@ -1,0 +1,216 @@
+-- app/t/t.kg --
+type Item = {
+    pub mut count Int
+}
+
+fn Item.update(mut self, d: Int) -> Unit {
+    self.count = self.count + d
+}
+
+fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+    f()
+}
+
+fn bump(x: &mut Item) -> Unit {
+    x.count = x.count + 1
+}
+
+fn withRef[F: FnMut[fn() -> Unit]](x: &mut Item, f: F) -> Unit {
+    x.count = x.count + 1
+    f()
+}
+
+interface Cb {
+    fn call(mut self) -> Unit
+}
+
+@impl(Cb)
+type Box[F: FnMut[fn() -> Unit]] = {
+    pub cb F
+}
+
+fn Box[F].call(mut self) -> Unit {
+    self.cb()
+}
+
+type Holder = {
+    pub mut n Int
+    pub mut cb Cb
+}
+
+type Res = resource {
+    pub mut n Int
+    pub mut cb Cb
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.fire(mut self) -> Int {
+    self.n = 7
+    self.cb.call()
+    self.n
+}
+
+type Pair = {
+    pub mut a Item
+    pub mut b Item
+}
+
+fn nop() -> Unit {}
+
+fn go(h: &mut Holder) -> Int {
+    h.n = 7
+    h.cb.call()
+    h.n
+}
+
+fn storedWriterViaRef() -> Int {
+    let mut h0 = Holder { n: 0, cb: Box { cb: nop } }
+    h0.cb = Box { cb: () => { h0.n = 99 } }
+    go(&mut h0) //~ ERROR `&mut h0` conflicts with a closure that shares its identity cell
+}
+
+fn storedReaderOfResource() -> Int {
+    let mut r = Res { n: 1, cb: Box { cb: nop } }
+    r.cb = Box { cb: () => { let seen = r.n } }
+    r.fire() //~ ERROR `r` may hold a closure that captures it
+}
+
+fn readerWithoutCallableField() -> Int {
+    let mut it = Item { count: 0 }
+    let peek = () => it.count
+    it.update(1)
+    peek()
+}
+
+fn mutRefInsideClosure() -> Int {
+    let mut v = Item { count: 0 }
+    v.run(() => bump(&mut v)) //~ ERROR a closure argument cannot capture `v`
+    v.count
+}
+
+fn disjointFieldRef() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    withRef(&mut p.a, () => { p.b.update(1) })
+    p.a.count + p.b.count
+}
+
+fn disjointFieldAlias() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let r = &mut p.a
+    r.run(() => { p.b.update(1) })
+    p.b.count
+}
+
+fn sameFieldRef() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    withRef(&mut p.a, () => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    p.a.count
+}
+
+fn wholeRootInClosure() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    withRef(&mut p.a, () => { bump(&mut p.a) }) //~ ERROR a closure argument cannot capture `p`
+    p.a.count
+}
+
+fn disjointWriteBefore() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let touch = () => { p.b.update(1) }
+    withRef(&mut p.a, nop)
+    touch()
+    p.b.count
+}
+
+fn sameFieldWriteBefore() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let touch = () => { p.a.update(1) }
+    withRef(&mut p.a, nop) //~ ERROR `&mut p` conflicts with a closure that shares its identity cell
+    touch()
+    p.a.count
+}
+-- expect --
+error[E2113]: `&mut h0` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:69:8
+   |
+69 |     go(&mut h0) //~ ERROR `&mut h0` conflicts with a closure that shares its identity cell
+   |        ^^^^^^^
+   = help: end the closure's use before the borrow, or capture a copy
+note: `h0` is shared with a closure that writes it here
+  --> app/t/t.kg:68:31
+   |
+68 |     h0.cb = Box { cb: () => { h0.n = 99 } }
+   |                               ^^^^
+
+error[E2112]: `r` may hold a closure that captures it, but this call exclusively borrows it
+  --> app/t/t.kg:75:5
+   |
+75 |     r.fire() //~ ERROR `r` may hold a closure that captures it
+   |     ^
+   = help: end the closure's use before the call, capture a copy, or keep callables out of its fields
+note: this closure captures `r`
+  --> app/t/t.kg:74:22
+   |
+74 |     r.cb = Box { cb: () => { let seen = r.n } }
+   |                      ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> app/t/t.kg:87:11
+   |
+87 |     v.run(() => bump(&mut v)) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^
+note: `v` is exclusively borrowed by this call
+  --> app/t/t.kg:87:5
+   |
+87 |     v.run(() => bump(&mut v)) //~ ERROR a closure argument cannot capture `v`
+   |     ^
+note: this closure captures `v`
+  --> app/t/t.kg:87:11
+   |
+87 |     v.run(() => bump(&mut v)) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `p` while this call exclusively borrows it
+   --> app/t/t.kg:106:23
+    |
+106 |     withRef(&mut p.a, () => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |                       ^^^^^^^^^^^^^^^^^^^^
+note: `p` is exclusively borrowed by this call
+   --> app/t/t.kg:106:13
+    |
+106 |     withRef(&mut p.a, () => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |             ^^^^^^^^
+note: this closure captures `p`
+   --> app/t/t.kg:106:23
+    |
+106 |     withRef(&mut p.a, () => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |                       ^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `p` while this call exclusively borrows it
+   --> app/t/t.kg:112:23
+    |
+112 |     withRef(&mut p.a, () => { bump(&mut p.a) }) //~ ERROR a closure argument cannot capture `p`
+    |                       ^^^^^^^^^^^^^^^^^^^^^
+note: `p` is exclusively borrowed by this call
+   --> app/t/t.kg:112:13
+    |
+112 |     withRef(&mut p.a, () => { bump(&mut p.a) }) //~ ERROR a closure argument cannot capture `p`
+    |             ^^^^^^^^
+note: this closure captures `p`
+   --> app/t/t.kg:112:23
+    |
+112 |     withRef(&mut p.a, () => { bump(&mut p.a) }) //~ ERROR a closure argument cannot capture `p`
+    |                       ^^^^^^^^^^^^^^^^^^^^^
+
+error[E2113]: `&mut p` conflicts with a closure that shares its identity cell
+   --> app/t/t.kg:127:13
+    |
+127 |     withRef(&mut p.a, nop) //~ ERROR `&mut p` conflicts with a closure that shares its identity cell
+    |             ^^^^^^^^
+    = help: end the closure's use before the borrow, or capture a copy
+note: `p` is shared with a closure that writes it here
+   --> app/t/t.kg:126:25
+    |
+126 |     let touch = () => { p.a.update(1) }
+    |                         ^^^
+

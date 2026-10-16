@@ -46,10 +46,20 @@ error[E980]: a `mut self` call on `item` conflicts with a closure that shares it
    |
 12 |     item.update(1) //~ ERROR a `mut self` call on `item` conflicts
    |     ^^^^
+note: `item` is shared with a closure that writes it here
+  --> app/t/t.kg:11:25
+   |
+11 |     let touch = () => { item.update(1) }
+   |                         ^^^^
 
 error[E980]: a `mut self` call on `item` conflicts with a closure that shares its identity cell
   --> app/t/t.kg:19:5
    |
 19 |     item.update(1) //~ ERROR a `mut self` call on `item` conflicts
    |     ^^^^
+note: `item` is shared with a closure that writes it here
+  --> app/t/t.kg:18:25
+   |
+18 |     let reset = () => { item = Item { count: 0 } }
+   |                         ^^^^
 

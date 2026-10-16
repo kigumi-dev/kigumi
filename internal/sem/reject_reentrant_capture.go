@@ -2,37 +2,46 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// checkReentrantCapture rejects aliasing a `mut self` call's exclusive receiver via a
-// mutably-capturing closure, or a fn-shaped argument unless opaqueFnOrigin proves it capture-free.
+// Judged in settleExclusive, once every closure's capture mode is final.
 func (c *checker) checkReentrantCapture(base syntax.NodeID, args []syntax.NodeID) {
 	root := c.rootOf(base)
 	if root == 0 {
 		return
 	}
-	for _, a := range args {
+	roots, lent := c.exclusiveRoots(root, 0)
+	c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: base, args: args, root: root, roots: roots, lent: lent, fnArgs: true})
+}
+
+func (c *checker) settleExclusiveSite(s exclusiveSite) {
+	for _, a := range s.args {
 		if c.t.Kind(a) == syntax.NamedArg {
 			a = c.t.View(a).AsNamedArg().Value().ID()
 		}
-		c.checkReentrantCaptureArg(a, root)
+		c.checkReentrantCaptureArg(a, s)
 	}
 }
 
-func (c *checker) checkReentrantCaptureArg(a syntax.NodeID, root EntityID) {
-	expr := a
-	expr = c.t.Unparen(expr)
+func (c *checker) checkReentrantCaptureArg(a syntax.NodeID, s exclusiveSite) {
+	expr := c.t.Unparen(a)
 	t := c.vars.resolve(c.info.Types[expr])
-	tt := c.r.Types
-	if tt.Kind(t) == KClosure {
-		if c.closureCapturesRoot(tt.Node(t).Ent, root, map[EntityID]bool{}) {
-			c.errAt(a, cReentrantMutCapture, c.r.Entities[root].Name)
+	if s.fnArgs && c.fnShaped(t) {
+		if c.opaqueFnOrigin(expr, map[syntax.NodeID]bool{}) {
+			c.errUnknownCapture(a, s)
 		}
 		return
 	}
-	if !c.fnShaped(t) {
+	if !c.rootsHeldByClosure(s.roots) {
 		return
 	}
-	if c.opaqueFnOrigin(expr, map[syntax.NodeID]bool{}) {
-		c.errAt(a, cReentrantCaptureUnknown, c.r.Entities[root].Name)
+	h := newHeldResult(s.roots, s.lent)
+	c.heldOf(expr, h, map[syntax.NodeID]bool{})
+	switch {
+	case h.conflict != 0 && c.r.Types.Kind(t) == KClosure:
+		c.errConflictCapture(a, s, h, true)
+	case h.conflict != 0:
+		c.errConflictCapture(a, s, h, false)
+	case h.lost:
+		c.errHiddenCapture(a, s, h)
 	}
 }
 
@@ -68,28 +77,6 @@ func (c *checker) fnShaped(t TypeID) bool {
 			if con.Kind == CFn || con.Kind == CFnMut || con.Kind == CFnOnce {
 				return true
 			}
-		}
-	}
-	return false
-}
-
-// closureCapturesRoot walks a closure's own captures and, for any captured local
-// that is itself a closure, that closure's captures too.
-func (c *checker) closureCapturesRoot(closure, root EntityID, seen map[EntityID]bool) bool {
-	if seen[closure] {
-		return false
-	}
-	seen[closure] = true
-	for _, cap := range c.r.closure(closure).Captures {
-		if cap.Local == root {
-			if cap.Mode != capCopy {
-				return true
-			}
-			continue
-		}
-		ct := c.r.Entities[cap.Local].Type
-		if c.r.Types.Kind(ct) == KClosure && c.closureCapturesRoot(c.r.Types.Node(ct).Ent, root, seen) {
-			return true
 		}
 	}
 	return false

@@ -75,6 +75,7 @@ func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
 		return
 	}
 	c.r.Entities[ent].Flags |= EfCapturedMut
+	c.noteMutCapture(n, ent)
 	// Every closure that captured ent needs a shared cell, even ones already
 	// closed: ctx.list aliases the backing array copied into ClosureInfo.
 	for _, site := range sites {

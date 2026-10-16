@@ -9,6 +9,7 @@ func (r *Result) checkTestBody(id EntityID) {
 	c := r.newChecker(e.File, id, scope, r.unitResult(), &edges)
 	r.Bodies = append(r.Bodies, BodyRef{Fn: id, File: e.File, Node: body})
 	c.checkBodyBlock(body)
+	c.settleExclusive()
 	c.settleInlineAt(true)
 	c.flushFieldWrites()
 	c.dropsAtScopeExit(nil)

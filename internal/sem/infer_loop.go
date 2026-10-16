@@ -10,6 +10,7 @@ type loopBreaks struct {
 
 func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	s := forExpr(c.t, n)
+	c.loopSpans = append(c.loopSpans, c.t.Span(n))
 	bare := s.Pattern == 0 && s.Head == 0
 	saved := c.scope
 	c.pushScope(ScopeArm, n)
@@ -19,6 +20,7 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 		elem := c.iterElement(n, s.Head, iter)
 		c.checkPattern(s.Pattern, elem, false, c.scope)
 		c.trackLoopPlaces(s.Pattern, s.Head)
+		c.noteLoopAlias(s.Pattern, s.Head)
 		c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Head))
 		if !c.irrefutable(s.Pattern, elem) {
 			c.errAt(s.Pattern, cPatternRefutable, c.witnessText(s.Pattern, elem))

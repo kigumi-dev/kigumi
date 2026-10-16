@@ -159,6 +159,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 		}
 	}
 	c.checkMutAliasArgs(args)
+	c.noteMutBorrowSites(args)
 	tailSpread := len(args) > 0 && c.t.Kind(args[len(args)-1]) == syntax.Spread
 	if variadic && !tailSpread {
 		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Why: 2})

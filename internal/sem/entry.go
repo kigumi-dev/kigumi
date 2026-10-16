@@ -20,6 +20,7 @@ func (r *Result) checkImplicitMain(id EntityID) {
 			c.stmt(d)
 		}
 	}
+	c.settleExclusive()
 	c.settleInlineAt(true)
 	c.flushFieldWrites()
 	c.dropsAtScopeExit(nil)

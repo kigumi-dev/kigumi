@@ -117,7 +117,7 @@ fn wrapped() -> Unit {
     let mut a = mkw()
     let r = viaShared(&a, () => { a.nm.n = 4 })
     let mut b = mkw()
-    let r2 = viaMut(&mut b, () => { b.nm.n = 6 })
+    let r2 = viaMut(&mut b, () => { a.nm.n = 6 })
     print "wrapped ${r} ${a.nm.n} ${r2} ${b.nm.n}"
 }
 
@@ -162,6 +162,6 @@ fn main() -> Unit! {
 -- stdout --
 captures 1 9 1 8 1 9 1 9 1 2 7
 nestedCaptures 1 31 105 1 21
-wrapped 1 4 1 6
+wrapped 1 6 1 1
 handOver b 50 a 60 70 3 5 8
 lastUse 40 1 1 1 2 3 9

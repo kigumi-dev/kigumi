@@ -1,0 +1,238 @@
+-- src --
+import alloc from std/alloc
+
+type Item = {
+    pub mut count Int
+}
+
+fn Item.update(mut self, d: Int) -> Unit {
+    self.count = self.count + d
+}
+
+fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+    f()
+}
+
+interface Cb {
+    fn call(mut self) -> Unit
+}
+
+@impl(Cb)
+type Box[F: FnMut[fn() -> Unit]] = {
+    pub cb F
+}
+
+fn Box[F].call(mut self) -> Unit {
+    self.cb()
+}
+
+fn Item.runBox[F: FnMut[fn() -> Unit]](mut self, b: Box[F]) -> Unit {
+    let mut b2 = b
+    b2.call()
+}
+
+fn Item.runT[T: Cb](mut self, t: T) -> Unit {
+    let mut t2 = t
+    t2.call()
+}
+
+fn Item.runDyn(mut self, t: Cb) -> Unit {
+    let mut t2 = t
+    t2.call()
+}
+
+type Holder = {
+    pub c Cb
+}
+
+fn Item.runHolder(mut self, h: Holder) -> Unit {
+    let mut c2 = h.c
+    c2.call()
+}
+
+fn nop() -> Unit {}
+
+fn consecutive() -> Int {
+    let mut v = Item { count: 0 }
+    v.update(1)
+    v.update(2)
+    v.run(() => {})
+    v.count
+}
+
+fn captureFree() -> Int {
+    let mut v = Item { count: 1 }
+    v.run(nop)
+    v.run(() => {})
+    v.count
+}
+
+fn unrelatedBinding() -> Int {
+    let mut a = Item { count: 0 }
+    let mut b = Item { count: 0 }
+    a.run(() => { b.update(5) })
+    a.update(1)
+    a.count * 100 + b.count
+}
+
+fn callBeforeClosure() -> Int {
+    let mut v = Item { count: 0 }
+    v.update(1)
+    let touch = () => { v.update(10) }
+    touch()
+    touch()
+    v.count
+}
+
+fn recordUnrelated() -> Int {
+    let mut a = Item { count: 0 }
+    let mut b = Item { count: 0 }
+    a.runBox(Box { cb: () => { b.update(2) } })
+    b.count
+}
+
+fn witnessUnrelated() -> Int {
+    let mut a = Item { count: 0 }
+    let mut b = Item { count: 0 }
+    a.runT(Box { cb: () => { b.update(3) } })
+    b.count
+}
+
+fn existentialUnrelated() -> Int {
+    let mut a = Item { count: 0 }
+    let mut b = Item { count: 0 }
+    a.runDyn(Box { cb: () => { b.update(4) } })
+    b.count
+}
+
+fn existentialLet() -> Int {
+    let mut a = Item { count: 0 }
+    let mut b = Item { count: 0 }
+    let c: Cb = Box { cb: () => { b.update(6) } }
+    a.runDyn(c)
+    b.count
+}
+
+fn holderUnrelated() -> Int {
+    let mut a = Item { count: 0 }
+    let mut b = Item { count: 0 }
+    let touch = () => { b.update(8) }
+    let c: Cb = Box { cb: touch }
+    a.runHolder(Holder { c: c })
+    b.count
+}
+
+fn applyOther(x: &mut Item, f: fn() -> Unit) -> Unit {
+    x.update(1)
+    f()
+}
+
+fn mutRefUnrelated() -> Int {
+    let mut a = Item { count: 0 }
+    applyOther(&mut a, nop)
+    a.count
+}
+
+fn forwardRef(x: &mut Item, f: fn() -> Unit) -> Unit {
+    applyOther(x, f)
+}
+
+fn mutRefForward() -> Int {
+    let mut a = Item { count: 0 }
+    forwardRef(&mut a, nop)
+    a.count
+}
+
+fn sharedHandle(cell: alloc.Shared[Item]) -> Int {
+    cell.withMut((x: &mut Item) => {
+        x.update(7)
+        x.count
+    })
+}
+
+fn withMutOk(xs: &mut Array[Item]) -> Int {
+    xs.withMut(0, (x: &mut Item) => {
+        x.update(1)
+        x.count
+    }) || 0
+}
+
+fn closureOnly() -> Int {
+    let mut v = Item { count: 0 }
+    let touch = () => { v.update(1) }
+    touch()
+    touch()
+    v.count
+}
+
+type Pair = {
+    pub mut a Item
+    pub mut b Item
+}
+
+fn bump(x: &mut Item) -> Unit {
+    x.count = x.count + 1
+}
+
+fn withRef[F: FnMut[fn() -> Unit]](x: &mut Item, f: F) -> Unit {
+    x.count = x.count + 1
+    f()
+}
+
+fn disjointFieldRef() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    withRef(&mut p.a, () => { p.b.update(1) })
+    p.a.count * 10 + p.b.count
+}
+
+fn disjointFieldAlias() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let r = &mut p.a
+    r.run(() => { p.b.update(1) })
+    p.b.count
+}
+
+fn mutRefInClosure() -> Int {
+    let mut v = Item { count: 0 }
+    let f = () => { bump(&mut v) }
+    f()
+    f()
+    v.count
+}
+
+print "consecutive=${consecutive()}"
+print "captureFree=${captureFree()}"
+print "unrelatedBinding=${unrelatedBinding()}"
+print "callBeforeClosure=${callBeforeClosure()}"
+print "recordUnrelated=${recordUnrelated()}"
+print "witnessUnrelated=${witnessUnrelated()}"
+print "existentialUnrelated=${existentialUnrelated()}"
+print "existentialLet=${existentialLet()}"
+print "holderUnrelated=${holderUnrelated()}"
+print "mutRefUnrelated=${mutRefUnrelated()}"
+print "mutRefForward=${mutRefForward()}"
+print "sharedHandle=${sharedHandle(alloc.Shared.new(Item { count: 1 }))}"
+let mut arr = Array.of(Item { count: 10 })
+print "withMutOk=${withMutOk(&mut arr)}"
+print "closureOnly=${closureOnly()}"
+print "disjointFieldRef=${disjointFieldRef()}"
+print "disjointFieldAlias=${disjointFieldAlias()}"
+print "mutRefInClosure=${mutRefInClosure()}"
+-- stdout --
+consecutive=3
+captureFree=1
+unrelatedBinding=105
+callBeforeClosure=21
+recordUnrelated=2
+witnessUnrelated=3
+existentialUnrelated=4
+existentialLet=6
+holderUnrelated=8
+mutRefUnrelated=1
+mutRefForward=1
+sharedHandle=8
+withMutOk=11
+closureOnly=2
+disjointFieldRef=11
+disjointFieldAlias=1
+mutRefInClosure=2

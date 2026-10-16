@@ -23,13 +23,13 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         541,
-	"rt_retain":        3461,
-	"rt_release":       40995,
+	"fixtures":         542,
+	"rt_retain":        3480,
+	"rt_release":       41098,
 	"rt_release_outer": 11473,
-	"rt_drop":          24031,
-	"rt_cell_init":     2497,
-	"rt_cell_take":     1056,
+	"rt_drop":          24158,
+	"rt_cell_init":     2529,
+	"rt_cell_take":     1073,
 	"rt_setfield_swap": 132,
 	"rt_setindex_swap": 33,
 }
@@ -49,19 +49,20 @@ var baselineRCCalls = map[string]int{
 }
 
 var addedAfterBaseline = map[string]bool{
-	"f32_native_register.txtar":    true,
-	"f32_native_containers.txtar":  true,
-	"f32_native_c_call.txtar":      true,
-	"mut_self_lent_receiver.txtar": true,
-	"ffi_sizeof_fixed_array.txtar": true,
-	"untyped_branch_operand.txtar": true,
-	"range_loop_scalar.txtar":      true,
-	"range_loop_wide.txtar":        true,
-	"shift_context.txtar":          true,
-	"noalloc_lend_calls.txtar":     true,
-	"defer_reads_latest.txtar":     true,
-	"defer_reserved_paths.txtar":   true,
-	"defer_second_binding.txtar":   true,
+	"f32_native_register.txtar":       true,
+	"f32_native_containers.txtar":     true,
+	"f32_native_c_call.txtar":         true,
+	"mut_self_lent_receiver.txtar":    true,
+	"ffi_sizeof_fixed_array.txtar":    true,
+	"untyped_branch_operand.txtar":    true,
+	"range_loop_scalar.txtar":         true,
+	"range_loop_wide.txtar":           true,
+	"shift_context.txtar":             true,
+	"noalloc_lend_calls.txtar":        true,
+	"defer_reads_latest.txtar":        true,
+	"defer_reserved_paths.txtar":      true,
+	"defer_second_binding.txtar":      true,
+	"exclusive_access_accepted.txtar": true,
 }
 
 func TestRCCallCounts(t *testing.T) {

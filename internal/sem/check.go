@@ -2,6 +2,7 @@ package sem
 
 import (
 	"kigumi/internal/syntax"
+	"kigumi/internal/token"
 )
 
 type checker struct {
@@ -98,6 +99,12 @@ type checker struct {
 	// pendingFieldEdges are field writes' root-bridge edges, held back for
 	// flushFieldWrites; see pendingFieldEdge.
 	pendingFieldEdges []pendingFieldEdge
+	exclusiveSites    []exclusiveSite
+	outsideCalls      []outsideMutCall
+	mutCaptures       map[EntityID][]syntax.NodeID
+	loopSpans         []token.Span
+	// lentFrom maps a `for` binding over a `&mut` head to the head's root.
+	lentFrom map[EntityID]EntityID
 }
 
 // checkBodies (pass 7) type-checks every function, test and implicit main
@@ -146,6 +153,7 @@ func (r *Result) checkFnBody(id EntityID) {
 		}
 	}
 	c.checkBodyBlock(info.Body)
+	c.settleExclusive()
 	c.registerContainerFlows(info.Body)
 	c.recordResultLeaves(info.Body)
 	c.settleInlineAt(true)

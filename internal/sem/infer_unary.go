@@ -70,6 +70,9 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 	}
 	if mut {
 		c.invalidatePlace(inner)
+		if root := c.rootOf(inner); root != 0 && c.capturedHere(root) {
+			c.noteCaptureWrite(inner, root)
+		}
 	}
 	c.crossBorrow(inner)
 	refT := c.r.Types.Ref(t, mut)
