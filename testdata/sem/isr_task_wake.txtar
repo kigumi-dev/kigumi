@@ -27,8 +27,9 @@ error[E1082]: export(interrupt) handler `tick` may block or reach unverified cod
    |
 16 |     pub fn tick() -> Unit { //~ ERROR export(interrupt) handler `tick` may block or reach unverified code
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = help: mark the callee `noalloc` or give it a body the compiler can check
-note: calls `currentThreadExecutor`, which is not declared `noalloc` and has no body the compiler can check
+   = help: give the callee a body the compiler can check: `noalloc` alone is no interrupt contract, and an extern(C) declaration cannot carry one yet
+   = help: `tick` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
+note: calls `currentThreadExecutor`, which has no body the compiler can check and no reviewed interrupt contract
   --> app/t/t.kg:17:18
    |
 17 |         let ex = task.currentThreadExecutor()

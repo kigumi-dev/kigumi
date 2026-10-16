@@ -125,6 +125,8 @@ const (
 	// EdgeFnBoundArg carries a Fn-bound argument's known fn/closure (Target,
 	// or a forwarded param) to the parameter (Param) it binds; root-bridge only.
 	EdgeFnBoundArg
+	// EdgeAsm is an asm block (Param 0) or a function one of its `sym` operands names (Param); op summary only.
+	EdgeAsm
 )
 
 // fieldFnKey names one record field of a value held by Ent (a local or a parameter).

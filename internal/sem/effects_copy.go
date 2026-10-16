@@ -36,10 +36,7 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 	nodes := r.effectNodes()
 	before := r.noallocVerdicts(nodes)
 	handlers := r.interruptHandlers()
-	var safe map[EntityID]bool
-	if len(handlers) > 0 {
-		safe = r.inferIsrSafe(nodes)
-	}
+	isrBefore := r.isrScopes(handlers, nodes, false)
 	added := false
 	for _, s := range sites {
 		e := EffectEdge{Kind: EdgeAlloc, Type: s.Type, File: s.File, Node: s.Node, Why: whyCopy, Scoped: r.InAllocatorBlock(s.File, s.Node)}
@@ -70,12 +67,9 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 	}
 	r.inferOpSummaries(nodes)
 	r.recheckProfiles(nodes)
-	if len(handlers) > 0 {
-		now := r.inferIsrSafe(nodes)
-		for _, id := range handlers {
-			if safe[id] && !now[id] && !r.Fn(id).Naked {
-				r.reportIsrPath(id, now)
-			}
+	for i, sc := range r.isrScopes(handlers, nodes, false) {
+		if isrBefore[i].safe[sc.handler] && !sc.safe[sc.handler] {
+			r.reportIsrPath(sc)
 		}
 	}
 	r.emit()

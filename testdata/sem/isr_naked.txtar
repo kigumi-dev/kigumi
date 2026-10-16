@@ -1,0 +1,82 @@
+-- src --
+extern(C) {
+    fn raw() -> Unit
+}
+
+export(interrupt) {
+    pub fn inner() -> Unit {}
+}
+
+export(interrupt, naked) {
+    pub fn saved() -> Unit {
+        asm {
+            "push rbx"
+            "xor ebx, ebx"
+            "call {f}"
+            "pop rbx"
+            "ret"
+            f: sym inner
+        }
+    }
+    pub fn trap() -> Unit { //~ ERROR export(interrupt) handler `trap` reaches assembly the compiler cannot verify
+        asm {
+            "ud2"
+        }
+    }
+    pub fn foreign() -> Unit { //~ ERROR export(interrupt) handler `foreign` may block or reach unverified code
+        asm {
+            "push rbx"
+            "call {f}"
+            "pop rbx"
+            "ret"
+            f: sym raw
+        }
+    }
+    pub fn device() -> Unit { //~ ERROR export(interrupt) handler `device` reaches assembly the compiler cannot verify
+        asm {
+            "mov eax, [rdi]"
+            "ret"
+        }
+    }
+}
+
+-- expect --
+error[E1089]: export(interrupt) handler `trap` reaches assembly the compiler cannot verify
+  --> main/main.kg:20:5
+   |
+20 |     pub fn trap() -> Unit { //~ ERROR export(interrupt) handler `trap` reaches assembly the compiler cannot verify
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: a reviewed trusted summary is required and none can be declared yet, so keep to register arithmetic, balanced push/pop and `call`/`jmp` to a checked `sym` operand
+   = help: `trap` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
+note: `ud2` cannot be classified as ordinary computation
+  --> main/main.kg:21:9
+   |
+21 |         asm {
+   |         ^^^^^
+
+error[E1082]: export(interrupt) handler `foreign` may block or reach unverified code
+  --> main/main.kg:25:5
+   |
+25 |     pub fn foreign() -> Unit { //~ ERROR export(interrupt) handler `foreign` may block or reach unverified code
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: give the callee a body the compiler can check: `noalloc` alone is no interrupt contract, and an extern(C) declaration cannot carry one yet
+   = help: `foreign` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
+note: calls `raw`, which has no body the compiler can check and no reviewed interrupt contract
+  --> main/main.kg:31:16
+   |
+31 |             f: sym raw
+   |                ^^^^^^^
+
+error[E1089]: export(interrupt) handler `device` reaches assembly the compiler cannot verify
+  --> main/main.kg:34:5
+   |
+34 |     pub fn device() -> Unit { //~ ERROR export(interrupt) handler `device` reaches assembly the compiler cannot verify
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: a reviewed trusted summary is required and none can be declared yet, so keep to register arithmetic, balanced push/pop and `call`/`jmp` to a checked `sym` operand
+   = help: `device` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
+note: `mov eax, [rdi]` accesses memory, which may be MMIO no configuration names
+  --> main/main.kg:35:9
+   |
+35 |         asm {
+   |         ^^^^^
+

@@ -32,7 +32,7 @@ func (f OpFact) String() string {
 
 // OpSummarySchemaVersion bumps when the artifact encoding changes shape; an
 // unrecognized version reads back as fully unknown, not as "no operations".
-const OpSummarySchemaVersion = 2
+const OpSummarySchemaVersion = 3
 
 // Mobility says whether a Future's state may move between workers: all
 // Send is migratable, anything else stays on its task's executor.
@@ -68,6 +68,8 @@ type OpFactState struct {
 	Cause           OpCause
 	InterruptUnsafe bool
 	Offloaded       bool
+	// Contract is set when every cause of this fact is a reviewed sync/MMIO contract; a plain cause outranks it.
+	Contract bool
 }
 
 // OpSummary is a node's closed operation summary. Unresolved marks a body
@@ -76,6 +78,10 @@ type OpSummary struct {
 	Known      bool
 	Unresolved bool
 	Facts      [numOpFacts]OpFactState
+	// Untrusted marks a reach into a bodiless callee or an asm block with no reviewed contract behind it.
+	Untrusted bool
+	// Contracts is the sorted, `;`-joined set of reviewed sync/MMIO contract identities reached.
+	Contracts string
 }
 
 // opSummary is the public entry point: a fixed node resolves immediately,
@@ -92,38 +98,6 @@ func (r *Result) opSummaryPtr(id EntityID) *OpSummary {
 		return &r.closure(id).Ops
 	}
 	return &r.Fn(id).Ops
-}
-
-// opFixedSummary is OpSummary's analogue of fixedSummary: a bodiless
-// function trusts only its declared `noalloc`, same as isrFixed's rule.
-func (r *Result) opFixedSummary(id EntityID) (OpSummary, bool) {
-	e := &r.Entities[id]
-	if e.Kind == EntClosure {
-		return OpSummary{}, false
-	}
-	if e.Kind != EntFn && e.Kind != EntContract && e.Kind != EntImplicitMain && e.Kind != EntTest {
-		return OpSummary{Known: true}, true
-	}
-	info := r.Fn(id)
-	if info.Body != 0 {
-		return OpSummary{}, false
-	}
-	if s, ok := trustedOpSummaries[r.stdKey(id)]; ok {
-		return s, true
-	}
-	s := OpSummary{Known: true}
-	trusted := info.Declared&EffNoalloc != 0
-	s.Facts[FactAlloc] = OpFactState{Maybe: !trusted}
-	for f := OpFact(0); f < numOpFacts; f++ {
-		if f == FactAlloc || trusted {
-			continue
-		}
-		s.Facts[f] = OpFactState{Maybe: true, Cause: OpCause{Unknown: true}}
-	}
-	if directBlockingPrimitives[r.stdKey(id)] {
-		s.Facts[FactBlock] = OpFactState{Maybe: true}
-	}
-	return s, true
 }
 
 // stdKey names a bodiless std function the way the runtime's dispatch tables key it (mir.StdKey's format);

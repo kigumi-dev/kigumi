@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"kigumi/internal/sem"
 )
 
 //go:embed stdops.reg
@@ -25,12 +27,25 @@ type StdOpEntry struct {
 	Direct   string
 	Elem     bool
 	Callback int
+	// Isr is the reviewed interrupt contract (`isr` line); IsrNone when the op has none.
+	Isr sem.IsrContract
 }
 
-// StdOpRegistry is the parsed registry: ops in id order, plus the builtins.
+// BodilessGroup is a `bodiless` entry: std functions lowered without an op that still carry a reviewed contract.
+type BodilessGroup struct {
+	Name     string
+	Keys     []string
+	Prefixes []string
+	Isr      sem.IsrContract
+}
+
+// StdOpRegistry is the parsed registry: ops in id order, plus the builtins and the bodiless groups.
 type StdOpRegistry struct {
 	Ops      []StdOpEntry
 	Builtins []BuiltinSpec
+	Bodiless []BodilessGroup
+	// inGroup routes key/prefix/isr lines to the last bodiless group instead of the last op.
+	inGroup bool
 }
 
 // ParseStdOpRegistry parses registry text; an error names the offending line.
@@ -87,10 +102,24 @@ func (reg *StdOpRegistry) addLine(line string) error {
 	rest = strings.TrimSpace(rest)
 	switch word {
 	case "op":
+		reg.inGroup = false
 		return reg.addOp(rest)
 	case "builtin":
+		reg.inGroup = false
 		return reg.addBuiltin(rest)
-	case "cap", "key", "suffix", "prefix", "type", "direct", "elem", "callback":
+	case "bodiless":
+		if rest == "" {
+			return fmt.Errorf("bodiless needs a name")
+		}
+		reg.inGroup = true
+		reg.Bodiless = append(reg.Bodiless, BodilessGroup{Name: rest})
+		return nil
+	}
+	if reg.inGroup {
+		return reg.attachGroup(&reg.Bodiless[len(reg.Bodiless)-1], word, rest)
+	}
+	switch word {
+	case "cap", "key", "suffix", "prefix", "type", "direct", "elem", "callback", "isr":
 		if len(reg.Ops) == 0 || (rest == "" && word != "elem") {
 			return fmt.Errorf("%s needs an op above it and a value", word)
 		}

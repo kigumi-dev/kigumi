@@ -14,7 +14,11 @@
 
 # builtin NAME (arg classes) -> result [min=N] [iter] [vm] [native=runtime|inline]
 
+# isr inert|mmio DEVICE.OP|sync OP width=W impl=I [nest=C] is the reviewed interrupt contract;
+# a `bodiless NAME` group gives it to key/prefix-matched std functions lowered without an op.
+
 op 0 LEN primitive (string|bytes) -> int
+isr inert
 direct Len
 key prelude.Bytes.len
 key prelude.String.len
@@ -59,6 +63,7 @@ key array.Array.push
 op 19 ARRAY_GROW_BY primitive (array, int) -> bool
 key array.Array.growBy
 op 20 ARRAY_LEN primitive (array) -> int
+isr inert
 direct ArrayLen
 key array.Array.len
 op 21 ARRAY_GET primitive (array, int) -> option
@@ -237,27 +242,35 @@ key prelude.String.sliceBytes
 op 79 ARRAY_CLONE primitive (array) -> array
 key array.Array.clone
 op 80 WRAPPING_ADD primitive (int, int) -> int
+isr inert
 direct WrapAdd
 suffix wrappingAdd
 op 81 WRAPPING_SUB primitive (int, int) -> int
+isr inert
 direct WrapSub
 suffix wrappingSub
 op 82 WRAPPING_MUL primitive (int, int) -> int
+isr inert
 direct WrapMul
 suffix wrappingMul
 op 83 WRAPPING_SHL primitive (int, int) -> int
+isr inert
 direct WrapShl
 suffix wrappingShiftLeft
 op 84 WRAPPING_SHR primitive (int, int) -> int
+isr inert
 direct WrapShr
 suffix wrappingShiftRight
 op 85 ROTATE_LEFT primitive (int, int) -> int
+isr inert
 direct Rotl
 suffix rotateLeft
 op 86 ROTATE_RIGHT primitive (int, int) -> int
+isr inert
 direct Rotr
 suffix rotateRight
 op 87 CHAR_FROM_INT primitive (int) -> option
+isr inert
 direct CharFromInt
 key prelude.Char.fromInt
 op 88 FFI_STRING_LOSSY provider (ptr) -> string
@@ -459,3 +472,21 @@ op 158 ARENA_TRY_CREATE primitive () -> result
 key alloc.Arena.tryCreate
 op 159 STRING_BUILDER_TRY_FREEZE primitive (named) -> result
 key text.StringBuilder.tryFreeze
+
+bodiless NUMERIC_CONVERSIONS
+prefix prelude.i8.to
+prefix prelude.i16.to
+prefix prelude.i32.to
+prefix prelude.i64.to
+prefix prelude.i128.to
+prefix prelude.isize.to
+prefix prelude.u8.to
+prefix prelude.u16.to
+prefix prelude.u32.to
+prefix prelude.u64.to
+prefix prelude.u128.to
+prefix prelude.usize.to
+prefix prelude.f32.to
+prefix prelude.f64.to
+prefix prelude.Char.to
+isr inert

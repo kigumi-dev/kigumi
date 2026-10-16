@@ -1,15 +1,15 @@
 package sem
 
-// checkInterruptHandlers uses inferSummaries' own fixpoint shape over the edge graph, so mutual recursion settles without a cycle-aware DFS.
+// checkInterruptHandlers judges each handler, naked or not, from the shared OpSummary under its own resolved permissions.
 func (r *Result) checkInterruptHandlers() {
 	handlers := r.interruptHandlers()
+	r.checkInterruptConfigKeys(handlers)
 	if len(handlers) == 0 {
 		return
 	}
-	safe := r.inferIsrSafe(r.effectNodes())
-	for _, id := range handlers {
-		if info := r.Fn(id); !info.Naked && !safe[id] {
-			r.reportIsrPath(id, safe)
+	for _, sc := range r.isrScopes(handlers, r.effectNodes(), true) {
+		if !sc.safe[sc.handler] {
+			r.reportIsrPath(sc)
 		}
 	}
 }
@@ -25,14 +25,12 @@ func (r *Result) interruptHandlers() []EntityID {
 	return handlers
 }
 
-// isrFacts are the operations every strict boundary rejects outright;
-// FactSync is checked separately since a verified-safe primitive is allowed.
-var isrFacts = [...]OpFact{FactAlloc, FactRelease, FactBlock, FactSuspend, FactPanic, FactIO, FactSpawn}
+// isrFacts are the operations no configuration can permit; FactIO and FactSync pass only as permitted contracts.
+var isrFacts = [...]OpFact{FactAlloc, FactRelease, FactBlock, FactSuspend, FactPanic, FactSpawn}
 
-// isrSafeOp reads the already-converged shared OpSummary instead of walking
-// the edge graph again; Unresolved has no caller here, so it is unsafe.
-func (r *Result) isrSafeOp(s OpSummary) bool {
-	if s.Unresolved {
+// summaryOK reads the converged shared OpSummary; Unresolved has no caller here, so it is unsafe.
+func (sc *isrScope) summaryOK(s OpSummary) bool {
+	if s.Unresolved || s.Untrusted {
 		return false
 	}
 	for _, f := range isrFacts {
@@ -40,24 +38,37 @@ func (r *Result) isrSafeOp(s OpSummary) bool {
 			return false
 		}
 	}
-	sy := s.Facts[FactSync]
-	return !sy.Maybe || !sy.InterruptUnsafe
+	for _, f := range [...]OpFact{FactIO, FactSync} {
+		if st := s.Facts[f]; st.Maybe && (!st.Contract || st.Cause.Unknown) {
+			return false
+		}
+	}
+	return sc.permitsAll(s.Contracts)
 }
 
-func (r *Result) inferIsrSafe(nodes []EntityID) map[EntityID]bool {
+func (sc *isrScope) permitsAll(contracts string) bool {
+	for _, id := range splitContracts(contracts) {
+		if !sc.permits[id] {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Result) inferIsrSafe(nodes []EntityID, sc *isrScope) map[EntityID]bool {
 	safe := make(map[EntityID]bool, len(nodes))
 	for _, id := range nodes {
-		if fixed, ok := r.isrFixed(id); ok {
+		if fixed, ok := r.isrFixed(id, sc); ok {
 			safe[id] = fixed
 			continue
 		}
-		safe[id] = r.isrSafeOp(r.opSummary(id))
+		safe[id] = sc.summaryOK(r.opSummary(id))
 	}
 	return safe
 }
 
-// isrFixed reports fixpoint-free ISR safety: non-bodied entities are inert, a bodiless fn only when declared noalloc.
-func (r *Result) isrFixed(id EntityID) (bool, bool) {
+// isrFixed reports fixpoint-free ISR safety: non-bodied entities are inert, a bodiless fn is judged by its fixed summary.
+func (r *Result) isrFixed(id EntityID, sc *isrScope) (bool, bool) {
 	e := &r.Entities[id]
 	if e.Kind == EntClosure {
 		return false, false
@@ -68,29 +79,30 @@ func (r *Result) isrFixed(id EntityID) (bool, bool) {
 	if r.Fn(id).Body != 0 {
 		return false, false
 	}
-	return r.Fn(id).Declared&EffNoalloc != 0, true
+	s, _ := r.opFixedSummary(id)
+	return sc.summaryOK(s), true
 }
 
 // isrTargetSafe is isrFixed/safe for a call's resolved target; 0 means unresolved.
-func (r *Result) isrTargetSafe(target EntityID, safe map[EntityID]bool) bool {
+func (r *Result) isrTargetSafe(target EntityID, sc *isrScope) bool {
 	if target == 0 {
 		return false
 	}
-	if v, ok := safe[target]; ok {
+	if v, ok := sc.safe[target]; ok {
 		return v
 	}
-	if fixed, ok := r.isrFixed(target); ok {
+	if fixed, ok := r.isrFixed(target, sc); ok {
 		return fixed
 	}
 	return false
 }
 
 // isrDropSafe mirrors computeDrop's shape for the ISR dimension; memo breaks self-referential cycles.
-func (r *Result) isrDropSafe(t TypeID, safe map[EntityID]bool) bool {
-	return r.isrDropSafeMemo(t, safe, map[TypeID]bool{})
+func (r *Result) isrDropSafe(t TypeID, sc *isrScope) bool {
+	return r.isrDropSafeMemo(t, sc, map[TypeID]bool{})
 }
 
-func (r *Result) isrDropSafeMemo(t TypeID, safe map[EntityID]bool, memo map[TypeID]bool) bool {
+func (r *Result) isrDropSafeMemo(t TypeID, sc *isrScope, memo map[TypeID]bool) bool {
 	if t == 0 {
 		return true
 	}
@@ -109,7 +121,7 @@ func (r *Result) isrDropSafeMemo(t TypeID, safe map[EntityID]bool, memo map[Type
 			return true
 		}
 		for _, cap := range r.closure(n.Ent).Captures {
-			if !r.isrDropSafeMemo(r.Entities[cap.Local].Type, safe, memo) {
+			if !r.isrDropSafeMemo(r.Entities[cap.Local].Type, sc, memo) {
 				memo[t] = false
 				return false
 			}
@@ -124,7 +136,7 @@ func (r *Result) isrDropSafeMemo(t TypeID, safe map[EntityID]bool, memo map[Type
 		return true
 	}
 	info := r.typeDecl(n.Ent)
-	if info.Form == FormResource && info.Drop != 0 && !r.isrTargetSafe(info.Drop, safe) {
+	if info.Form == FormResource && info.Drop != 0 && !r.isrTargetSafe(info.Drop, sc) {
 		memo[t] = false
 		return false
 	}
@@ -139,20 +151,20 @@ func (r *Result) isrDropSafeMemo(t TypeID, safe map[EntityID]bool, memo map[Type
 		}
 	}
 	for _, a := range n.Args {
-		if !r.isrDropSafeMemo(a, safe, memo) {
+		if !r.isrDropSafeMemo(a, sc, memo) {
 			memo[t] = false
 			return false
 		}
 	}
 	for _, f := range info.Fields {
-		if !r.isrDropSafeMemo(tt.Subst(r.Entities[f].Type, subst), safe, memo) {
+		if !r.isrDropSafeMemo(tt.Subst(r.Entities[f].Type, subst), sc, memo) {
 			memo[t] = false
 			return false
 		}
 	}
 	for _, v := range info.Variants {
 		for _, p := range r.variant(v).Payload {
-			if !r.isrDropSafeMemo(tt.Subst(p, subst), safe, memo) {
+			if !r.isrDropSafeMemo(tt.Subst(p, subst), sc, memo) {
 				memo[t] = false
 				return false
 			}

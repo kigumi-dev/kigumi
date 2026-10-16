@@ -20,11 +20,14 @@ type OpSummaryJSON struct {
 	Mobility string `json:"mobility,omitempty"`
 	Executor string `json:"executor,omitempty"`
 	BoundBy  string `json:"boundBy,omitempty"`
+	// Untrusted and Contracts carry the interrupt-relevant trust: unreviewed code reached, and the sync/MMIO contracts reached.
+	Untrusted bool     `json:"untrusted,omitempty"`
+	Contracts []string `json:"contracts,omitempty"`
 }
 
 func (r *Result) opSummaryArtifact(id EntityID) OpSummaryJSON {
 	s := r.opSummary(id)
-	out := OpSummaryJSON{Schema: OpSummarySchemaVersion, Unresolved: s.Unresolved}
+	out := OpSummaryJSON{Schema: OpSummarySchemaVersion, Unresolved: s.Unresolved, Untrusted: s.Untrusted, Contracts: splitContracts(s.Contracts)}
 	for f := OpFact(0); f < numOpFacts; f++ {
 		st := s.Facts[f]
 		if !st.Maybe {

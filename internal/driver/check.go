@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"kigumi/internal/mir"
 	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
@@ -123,6 +124,9 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 	mod.RecoverableOnly = m.target.RecoverableOnly()
 	mod.NoPlatform = m.target.Sys == "none"
 	mod.BlockingProfile = m.target.BlockingExecutor
+	mod.OS = m.target.OS
+	mod.IsrContracts = mir.IsrContracts
+	mod.Interrupt = m.Manifest.Interrupt
 	mod.Deny = m.deny
 	mod.LayerCeiling = m.ceiling
 	mod.ArtifactName = m.artifactName

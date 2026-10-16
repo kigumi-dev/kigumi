@@ -62,6 +62,8 @@ func (r *Result) applyOpEdge(s *OpSummary, e EffectEdge) {
 		// Deferred to whichever call site resolves the parameter/witness
 		// with a concrete argument; see OpSummary's Unresolved doc.
 		s.Unresolved = true
+	case EdgeAsm:
+		r.applyAsmOpEdge(s, e)
 	}
 }
 
@@ -99,25 +101,29 @@ func mergeInto(s *OpSummary, from OpSummary, e EffectEdge, offloaded bool) {
 	if from.Unresolved {
 		s.Unresolved = true
 	}
+	s.Untrusted = s.Untrusted || from.Untrusted
+	s.Contracts = unionContracts(s.Contracts, from.Contracts)
 	for f := OpFact(0); f < numOpFacts; f++ {
-		if from.Facts[f].Maybe {
-			takeCause(&s.Facts[f], OpFactState{Maybe: true, Cause: OpCause{Edge: e, Unknown: from.Facts[f].Cause.Unknown}, InterruptUnsafe: from.Facts[f].InterruptUnsafe, Offloaded: offloaded || from.Facts[f].Offloaded})
+		if st := from.Facts[f]; st.Maybe {
+			takeCause(&s.Facts[f], OpFactState{Maybe: true, Cause: OpCause{Edge: e, Unknown: st.Cause.Unknown}, InterruptUnsafe: st.InterruptUnsafe, Offloaded: offloaded || st.Offloaded, Contract: st.Contract})
 		}
 	}
 }
 
-// causeRank orders a fact's possible causes (unset < unknown < offloaded < direct) so a genuine direct cause
-// can never be shadowed by an offloaded one reached first, regardless of edge processing order.
+// causeRank orders a fact's possible causes (unset < contracted < unknown < offloaded < direct) so a genuine
+// direct cause can never be shadowed by an offloaded or contracted one reached first, whatever the edge order.
 func causeRank(s OpFactState) int {
 	switch {
 	case !s.Maybe:
 		return 0
 	case s.Cause.Unknown:
-		return 1
-	case s.Offloaded:
 		return 2
-	default:
+	case s.Offloaded:
 		return 3
+	case s.Contract:
+		return 1
+	default:
+		return 4
 	}
 }
 

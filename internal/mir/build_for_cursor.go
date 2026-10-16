@@ -73,7 +73,7 @@ func (c *indexCursor) advance(n syntax.NodeID, _, _ BlockID) {
 
 func (b *builder) stepCounter(counter LocalID, t sem.TypeID, n syntax.NodeID) {
 	one := b.emit(Inst{Op: OpConst, Dst: b.temp(t), Lit: sem.Literal{Kind: sem.LitInt}, Type: t, Str: "1", Node: n})
-	sum := b.emit(Inst{Op: OpBinary, Dst: b.temp(t), Str: "+", Args: []LocalID{counter, one}, Node: n})
+	sum := b.emit(Inst{Op: OpBinary, Dst: b.temp(t), Str: "+", Args: []LocalID{counter, one}, Node: n, NoTrap: true})
 	b.emit(Inst{Op: OpDrop, Args: []LocalID{counter}, Node: n})
 	b.emit(Inst{Op: OpCopy, Dst: counter, Args: []LocalID{sum}, Node: n})
 }

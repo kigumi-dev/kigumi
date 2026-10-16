@@ -33,6 +33,7 @@ error[E1080]: export(interrupt) handler `tick` may allocate or deallocate memory
 17 |     pub fn tick() -> Unit { //~ ERROR export(interrupt) handler `tick` may allocate or deallocate memory
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: interrupt handlers must never touch the allocator
+   = help: `tick` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
 note: allocates or deallocates here
   --> main/main.kg:18:18
    |

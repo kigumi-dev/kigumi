@@ -63,6 +63,8 @@ func modFileOf(recs []record, module bool) (ModFile, []diag.Diagnostic) {
 				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Source paths stay inside the module"))
 			}
 			mf.Sources = append(mf.Sources, NativeSource{Path: c + asm, Asm: asm != ""})
+		case "Interrupt":
+			ds = append(ds, mf.addInterrupt(r)...)
 		case "Header":
 			ds = append(ds, headerDiags(r)...)
 			mf.Headers = append(mf.Headers, HeaderImport{Path: r.Fields["path"], Package: r.Fields["package"]})

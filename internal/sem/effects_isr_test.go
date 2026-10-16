@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"kigumi/internal/mir"
 	"kigumi/internal/schema"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
@@ -16,11 +17,43 @@ func checkIsr(t *testing.T, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main)}, schema.GenerateDerive)
+	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), main), IsrContracts: mir.IsrContracts}, schema.GenerateDerive)
 }
 
-// checkIsrWithSource is checkIsr plus a trusted bodiless Std package, letting a test isolate a drop-only path.
+// checkIsrWithSource is checkIsr plus a bodiless Std package whose functions carry an inert contract, isolating a drop-only path.
 func checkIsrWithSource(t *testing.T, source, src string) *sem.Result {
+	t.Helper()
+	return checkIsrWith(t, source, src, isrTestContracts{inert: true}, sem.InterruptConfig{})
+}
+
+// isrTestContracts trusts buflib's bodiless functions: inert when inert is set, else by the contracts map.
+type isrTestContracts struct {
+	inert     bool
+	contracts map[string]sem.IsrContract
+}
+
+func (c isrTestContracts) IsrContract(key string) (sem.IsrContract, bool) {
+	if !strings.HasPrefix(key, "buflib.") {
+		return mir.IsrContracts.IsrContract(key)
+	}
+	if got, ok := c.contracts[key]; ok {
+		return got, true
+	}
+	return sem.IsrContract{Kind: sem.IsrInert}, c.inert
+}
+
+func (c isrTestContracts) IsrKnown(id string) bool {
+	for _, got := range c.contracts {
+		if got.ID == id {
+			return true
+		}
+	}
+	return mir.IsrContracts.IsrKnown(id)
+}
+
+func (isrTestContracts) IsrVersion() string { return "test" }
+
+func checkIsrWith(t *testing.T, source, src string, contracts sem.IsrContracts, cfg sem.InterruptConfig) *sem.Result {
 	t.Helper()
 	lib := &sem.Package{Path: "buflib", Std: true}
 	lib.Entry = syntax.Parse(token.NewFile("buflib/buflib.kg", []byte(source)))
@@ -28,7 +61,7 @@ func checkIsrWithSource(t *testing.T, source, src string) *sem.Result {
 	main := &sem.Package{Path: "main"}
 	main.Entry = syntax.Parse(token.NewFile("main/main.kg", []byte(src)))
 	main.Files = []*syntax.Tree{main.Entry}
-	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), lib, main)}, schema.GenerateDerive)
+	return sem.CheckWith(&sem.Module{Packages: append(testkit.LoadStd(t, "../../std"), lib, main), IsrContracts: contracts, Interrupt: cfg}, schema.GenerateDerive)
 }
 
 func TestInterruptHandlerOK(t *testing.T) {
@@ -352,7 +385,7 @@ export(interrupt) {
 }
 `)
 	out := res.Render()
-	if !res.HasErrors() || !strings.Contains(out, "E1082") || !strings.Contains(out, "not declared `noalloc`") {
+	if !res.HasErrors() || !strings.Contains(out, "E1082") || !strings.Contains(out, "no reviewed interrupt contract") {
 		t.Fatalf("a handler calling an unmarked extern fn must be rejected:\n%s", out)
 	}
 }
@@ -897,8 +930,9 @@ export(interrupt, naked) {
     }
 }
 `)
-	if ok.HasErrors() {
-		t.Fatalf("a naked interrupt handler bypasses the Kigumi-level check:\n%s", ok.Render())
+	out := ok.Render()
+	if !strings.Contains(out, "E1089") || !strings.Contains(out, "`ud2` cannot be classified") {
+		t.Fatalf("a naked interrupt handler must not bypass the check:\n%s", out)
 	}
 }
 
@@ -914,11 +948,12 @@ extern(interrupt) {
 	}
 }
 
-// isrFixed's full-trust rule: a bodiless noalloc declaration stays ISR-safe outright.
+// A bodiless noalloc declaration is no interrupt contract on its own; only a reviewed one makes it callable.
 func TestInterruptHandlerBodilessNoallocCallee(t *testing.T) {
-	res := checkIsrWithSource(t, `
+	const lib = `
 pub noalloc fn raw_op() -> Unit
-`, `
+`
+	const src = `
 import {raw_op} from buflib
 
 export(interrupt) {
@@ -926,14 +961,18 @@ export(interrupt) {
         raw_op()
     }
 }
-`)
-	if res.HasErrors() {
-		t.Fatalf("a bodiless noalloc callee must stay fully ISR-trusted:\n%s", res.Render())
+`
+	res := checkIsrWith(t, lib, src, isrTestContracts{}, sem.InterruptConfig{})
+	if out := res.Render(); !strings.Contains(out, "E1082") || !strings.Contains(out, "calls `raw_op`, which has no body the compiler can check and no reviewed interrupt contract") {
+		t.Fatalf("a bodiless noalloc callee without a contract must be rejected:\n%s", out)
+	}
+	if res := checkIsrWithSource(t, lib, src); res.HasErrors() {
+		t.Fatalf("a bodiless callee with an inert contract must pass:\n%s", res.Render())
 	}
 }
 
 func TestInterruptHandlerBodilessPureNoallocCallee(t *testing.T) {
-	res := checkIsrWithSource(t, `
+	res := checkIsrWith(t, `
 pub pure noalloc fn raw_op() -> Unit
 `, `
 import {raw_op} from buflib
@@ -943,8 +982,8 @@ export(interrupt) {
         raw_op()
     }
 }
-`)
-	if res.HasErrors() {
-		t.Fatalf("a bodiless pure noalloc callee must stay fully ISR-trusted:\n%s", res.Render())
+`, isrTestContracts{}, sem.InterruptConfig{})
+	if out := res.Render(); !strings.Contains(out, "E1082") {
+		t.Fatalf("`pure noalloc` alone is no interrupt contract either:\n%s", out)
 	}
 }

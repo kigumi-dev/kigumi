@@ -54,6 +54,14 @@ fn quiet() -> Unit {}
 		t.Fatalf("explain --fn on a quiet function: exit %d\n%s%s", code, out, errOut)
 	}
 
+	isr := filepath.Join(dir, "isr", "main.kg")
+	os.MkdirAll(filepath.Dir(isr), 0o755)
+	os.WriteFile(isr, []byte("export(interrupt) {\n    pub fn tick() -> Unit {}\n}\n"), 0o644)
+	code, out, errOut = execute(t, "--std", std, "explain", "--fn", "main.tick", isr)
+	if code != 0 || !strings.Contains(out, "interrupt handler, checked under the root common configuration") || !strings.Contains(out, "permits: no MMIO or synchronization operation") || !strings.Contains(out, "root limit: no MMIO") {
+		t.Fatalf("explain --fn on a handler must show its resolved permissions: exit %d\n%s%s", code, out, errOut)
+	}
+
 	code, errOut = executeReal(t, "--std", std, "explain", "--fn", "main.missing", file)
 	if code == 0 || !strings.Contains(errOut, "no function") {
 		t.Fatalf("explain --fn on an unknown name must fail: exit %d\n%s", code, errOut)

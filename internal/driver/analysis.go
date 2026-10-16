@@ -109,7 +109,7 @@ func buildProgram(res *sem.Result, o progOptions) (*mir.Program, error) {
 	for _, d := range prog.Diags {
 		res.Files[d.File].Diags = append(res.Files[d.File].Diags, d.Diag)
 	}
-	for _, c := range mir.CheckAllocClaims(prog) {
+	for _, c := range append(mir.CheckAllocClaims(prog), mir.CheckInterruptLowering(prog)...) {
 		res.Files[c.File].Diags = append(res.Files[c.File].Diags, c.Diag)
 	}
 	return prog, nil

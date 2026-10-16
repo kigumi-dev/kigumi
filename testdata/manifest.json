@@ -13178,6 +13178,17 @@
       ]
     },
     {
+      "id": "sem/isr_naked",
+      "kind": "sem",
+      "path": "testdata/sem/isr_naked.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/isr_task_wake",
       "kind": "sem",
       "path": "testdata/sem/isr_task_wake.txtar",

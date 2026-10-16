@@ -77,7 +77,7 @@ func editorDiagsWith(m *Module, lazy bool) (*sem.Result, []mir.FileDiag, bool) {
 		return res, nil, true
 	}
 	out := append([]mir.FileDiag(nil), prog.Diags...)
-	for _, c := range mir.CheckAllocClaims(prog) {
+	for _, c := range append(mir.CheckAllocClaims(prog), mir.CheckInterruptLowering(prog)...) {
 		out = append(out, mir.FileDiag(c))
 	}
 	for id := range res.Files {

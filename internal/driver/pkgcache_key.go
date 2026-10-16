@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"kigumi/internal/llgen"
+	"kigumi/internal/mir"
 	"kigumi/internal/version"
 )
 
@@ -82,6 +83,7 @@ func (m *Module) cacheEnv() string {
 	}
 	fmt.Fprintf(h, "%s|%+v|", targetIdentity(m.target), m.target)
 	fmt.Fprintf(h, "deny=%s|ceil=%s|art=%s|test=%v|verify=%v|", strings.Join(slices.Sorted(slices.Values(m.deny)), ","), m.ceiling, m.artifactName, m.test, m.verifyPasses)
+	fmt.Fprintf(h, "isr=%s|%s|", m.Manifest.Interrupt.Canonical(), mir.IsrContracts.IsrVersion())
 	fmt.Fprintf(h, "abi=%s", runtimeAbi())
 	return hex.EncodeToString(h.Sum(nil))
 }

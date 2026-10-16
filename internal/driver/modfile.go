@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kigumi/internal/diag"
+	"kigumi/internal/sem"
 	"kigumi/internal/token"
 )
 
@@ -55,6 +56,8 @@ type ModFile struct {
 	// ZigSpan is where Zig was declared (the Module record's `zig` field,
 	// or a standalone Zig record), for a build-time resolution diagnostic.
 	ZigSpan token.Span
+	// Interrupt is the interrupt configuration of `Interrupt` records; only the root module's is consulted.
+	Interrupt sem.InterruptConfig
 }
 
 // NativeSource is a `Source { c }` or `Source { asm }` record: a C or assembly
@@ -76,13 +79,14 @@ type Require struct {
 }
 
 var manifestFields = map[string][]string{
-	"Module":  {"name", "kigumi", "zig"},
-	"Require": {"name", "version", "url"},
-	"Replace": {"name", "path"},
-	"Link":    {"library", "search"},
-	"Source":  {"c", "asm"},
-	"Header":  {"path", "package"},
-	"Zig":     {"version"},
+	"Module":    {"name", "kigumi", "zig"},
+	"Require":   {"name", "version", "url"},
+	"Replace":   {"name", "path"},
+	"Link":      {"library", "search"},
+	"Source":    {"c", "asm"},
+	"Header":    {"path", "package"},
+	"Zig":       {"version"},
+	"Interrupt": {"handler", "allow"},
 }
 
 // ReadModFile parses root/mod.kg; ok is false when there is none.

@@ -60,4 +60,10 @@ type Module struct {
 	Cancel func() bool
 	// LazyBodies names the packages whose bodies are checked only when an eagerly checked body names them.
 	LazyBodies func(path string) bool
+	// OS names the target operating system ("" means a SysV host) for verifying a handler's asm.
+	OS string
+	// IsrContracts are the reviewed contracts of bodiless std functions; nil trusts none.
+	IsrContracts IsrContracts
+	// Interrupt is the root module's interrupt configuration.
+	Interrupt InterruptConfig
 }

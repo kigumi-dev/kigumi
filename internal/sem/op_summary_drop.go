@@ -85,10 +85,10 @@ func (r *Result) isHeapCell(ent EntityID) bool { return r.isAllocType(ent, "Shar
 // mergeOp ORs two summaries; the first state found wins as the cause, same
 // rule applyOpEdge uses, so drop composition stays deterministic too.
 func mergeOp(a, b OpSummary) OpSummary {
-	out := OpSummary{Known: true, Unresolved: a.Unresolved || b.Unresolved}
+	out := OpSummary{Known: true, Unresolved: a.Unresolved || b.Unresolved, Untrusted: a.Untrusted || b.Untrusted, Contracts: unionContracts(a.Contracts, b.Contracts)}
 	for f := OpFact(0); f < numOpFacts; f++ {
 		switch {
-		case a.Facts[f].Maybe:
+		case a.Facts[f].Maybe && !(a.Facts[f].Contract && b.Facts[f].Maybe && !b.Facts[f].Contract):
 			out.Facts[f] = a.Facts[f]
 		case b.Facts[f].Maybe:
 			out.Facts[f] = b.Facts[f]

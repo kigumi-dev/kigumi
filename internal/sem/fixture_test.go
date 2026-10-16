@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"kigumi/internal/mir"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/testkit"
@@ -157,7 +158,7 @@ func buildModule(t *testing.T, fx fixture) *sem.Module {
 			p.Entry = tree
 		}
 	}
-	mod := &sem.Module{BlockingProfile: fx.opt("blocking", "")}
+	mod := &sem.Module{BlockingProfile: fx.opt("blocking", ""), IsrContracts: mir.IsrContracts}
 	if fx.opt("target", "hosted") == "freestanding" {
 		mod.Target = sem.Freestanding
 	}

@@ -36,7 +36,7 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 		b.jump(join)
 		b.cur = next
 	}
-	b.emit(Inst{Op: OpPanic, Str: "no match arm matched", Node: e.Node})
+	b.emit(Inst{Op: OpPanic, Str: "no match arm matched", Node: e.Node, NoTrap: true})
 	b.term(Term{Op: TermUnreachable})
 	b.cur = join
 	b.exitScope()

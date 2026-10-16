@@ -101,6 +101,8 @@ type Inst struct {
 	Scoped bool
 	// Fixed marks an OpBoxDirect of a compile-time value: both backends hand over its one immortal.
 	Fixed bool
+	// NoTrap marks a checked op or panic that cannot fire: a loop counter step under its guard, a match's fall-through.
+	NoTrap bool
 	// Prim/Prov are zero unless Ent is a registry-covered std call.
 	Prim  PrimitiveId
 	Prov  ProviderOpId
