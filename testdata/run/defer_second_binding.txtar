@@ -12,11 +12,15 @@ fn Handle.close(move self) -> Unit {
 }
 
 fn main() -> Unit! {
-    let mut h = Handle { id: 1 }
-    defer { h.close() }
-    h = Handle { id: 2 }
+    let old = Handle { id: 1 }
+    defer { old.close() }
+    let current = Handle { id: 2 }
+    defer { current.close() }
+    print "both live ${old.id + current.id}"
 }
 -- stdout --
-drop 1
+both live 3
 close 2
 drop 2
+close 1
+drop 1

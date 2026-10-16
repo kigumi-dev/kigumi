@@ -1,6 +1,8 @@
 package mir
 
 import (
+	"slices"
+
 	"kigumi/internal/hir"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
@@ -26,6 +28,7 @@ func (b *builder) unwindScope(s *scope, failing bool) {
 		if d.Err && !failing {
 			continue
 		}
+		b.noteCleanup(d.Node)
 		fromBlock, fromInst := b.cur, len(b.block().Insts)
 		if d.Block != nil {
 			b.blockExpr(d.Block)
@@ -40,6 +43,12 @@ func (b *builder) unwindScope(s *scope, failing bool) {
 		}
 		l := s.owned[i]
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{l}, Node: b.dropNode(l), EndScope: true})
+	}
+}
+
+func (b *builder) noteCleanup(n syntax.NodeID) {
+	if !slices.Contains(b.fn.Cleanups, n) {
+		b.fn.Cleanups = append(b.fn.Cleanups, n)
 	}
 }
 

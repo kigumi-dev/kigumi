@@ -14,6 +14,7 @@ type owner struct {
 	in       []*dstate
 	reported map[syntax.NodeID]bool
 	defNode  map[LocalID]syntax.NodeID
+	cur      *dstate
 }
 
 func cloneState(s map[LocalID]ownState) map[LocalID]ownState {
@@ -34,6 +35,11 @@ func (a *owner) merge(bid BlockID, out *dstate) bool {
 	}
 	c1 := mergeMap(cur.val, out.val)
 	c2 := mergeMap(cur.field, out.field)
+	for l, n := range out.at {
+		if cur.at[l] == 0 {
+			cur.at[l] = n
+		}
+	}
 	return c1 || c2
 }
 
@@ -59,6 +65,9 @@ func (a *owner) check(in *Inst, l LocalID, st map[LocalID]ownState, report bool)
 	name := a.f.Locals[l].Name
 	if n, ok := a.pl.name[l]; ok {
 		name = n
+	}
+	if s := st[l]; (s == ownMoved || s == ownConflict) && a.reportCleanupRead(in.Node, l, name) {
+		return
 	}
 	switch st[l] {
 	case ownMoved:

@@ -1,0 +1,235 @@
+-- lib/reserved.kg --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn take(h: Handle) -> Unit {}
+
+fn reassign() -> Unit! {
+    let mut h = Handle { id: 1 }
+    defer { h.close() }
+    h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+}
+
+fn reassignErrdefer() -> Unit! {
+    let mut h = Handle { id: 1 }
+    errdefer { h.close() }
+    h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+}
+
+fn moveByCall() -> Unit! {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+}
+
+fn moveByLet() -> Unit! {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    let g = h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    take(g)
+}
+
+fn moveByClose() -> Unit! {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    h.close() //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+}
+
+fn moveIntoRecord() -> Unit! {
+    let h = Handle { id: 1 }
+    defer { take(h) }
+    let b = Wrapper { inner: h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    _ = b.inner.peek()
+}
+
+type Wrapper = {
+    pub inner Handle
+}
+
+fn secondCleanupSameScope() -> Unit! {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    defer { take(h) } //~ ERROR `h` is already consumed by an earlier cleanup
+}
+
+fn secondCleanupNestedScope() -> Unit! {
+    let h = Handle { id: 1 }
+    errdefer { h.close() }
+    if h.peek() > 0 {
+        defer { take(h) } //~ ERROR `h` is already consumed by an earlier cleanup
+    }
+}
+
+fn reservedInsideConditionalScope(flag: Bool) -> Unit! {
+    let mut h = Handle { id: 1 }
+    if flag {
+        errdefer { h.close() }
+        h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+    }
+}
+
+fn parameterIsReserved(h: Handle) -> Unit {
+    defer { h.close() }
+    take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+}
+
+fn peekingCleanupDoesNotReserve() -> Unit! {
+    let mut h = Handle { id: 1 }
+    defer { _ = h.peek() }
+    h = Handle { id: 2 }
+}
+
+fn reservationEndsWithItsScope(flag: Bool) -> Unit! {
+    let mut h = Handle { id: 1 }
+    if flag {
+        errdefer { h.close() }
+    }
+    h = Handle { id: 2 }
+    take(h)
+}
+
+fn localInsideCleanupIsNotReserved() -> Unit! {
+    defer {
+        let t = Handle { id: 9 }
+        t.close()
+    }
+    let t = Handle { id: 1 }
+    take(t)
+}
+
+fn borrowsStayLegal() -> Unit! {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    let n = h.peek()
+    _ = n
+}
+-- expect --
+error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/reserved.kg:18:5
+   |
+18 |     h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+   |     ^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:17:5
+   |
+17 |     defer { h.close() }
+   |     ^^^^^^^^^^^^^^^^
+
+error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/reserved.kg:24:5
+   |
+24 |     h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+   |     ^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:23:5
+   |
+23 |     errdefer { h.close() }
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> lib/reserved.kg:30:10
+   |
+30 |     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+   |          ^
+   = help: move it after the scope, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:29:5
+   |
+29 |     defer { h.close() }
+   |     ^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> lib/reserved.kg:36:13
+   |
+36 |     let g = h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+   |             ^
+   = help: move it after the scope, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:35:5
+   |
+35 |     defer { h.close() }
+   |     ^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> lib/reserved.kg:43:5
+   |
+43 |     h.close() //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+   |     ^
+   = help: move it after the scope, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:42:5
+   |
+42 |     defer { h.close() }
+   |     ^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> lib/reserved.kg:49:30
+   |
+49 |     let b = Wrapper { inner: h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+   |                              ^
+   = help: move it after the scope, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:48:5
+   |
+48 |     defer { take(h) }
+   |     ^^^^^^^^^^^^^^
+
+error[E2102]: `h` is already consumed by an earlier cleanup
+  --> lib/reserved.kg:60:18
+   |
+60 |     defer { take(h) } //~ ERROR `h` is already consumed by an earlier cleanup
+   |                  ^
+   = help: only one cleanup in scope may consume a binding
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:59:5
+   |
+59 |     defer { h.close() }
+   |     ^^^^^^^^^^^^^^^^
+
+error[E2102]: `h` is already consumed by an earlier cleanup
+  --> lib/reserved.kg:67:22
+   |
+67 |         defer { take(h) } //~ ERROR `h` is already consumed by an earlier cleanup
+   |                      ^
+   = help: only one cleanup in scope may consume a binding
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:65:5
+   |
+65 |     errdefer { h.close() }
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/reserved.kg:75:9
+   |
+75 |         h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+   |         ^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:74:9
+   |
+74 |         errdefer { h.close() }
+   |         ^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> lib/reserved.kg:81:10
+   |
+81 |     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+   |          ^
+   = help: move it after the scope, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> lib/reserved.kg:80:5
+   |
+80 |     defer { h.close() }
+   |     ^^^^^^^^^^^^^^^^
+

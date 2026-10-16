@@ -1,0 +1,137 @@
+-- module --
+mir: planned
+-- src --
+import test from std/test
+
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn take(h: Handle) -> Unit {}
+
+fn movedAfterRegistration() -> Unit {
+    let h = Handle { id: 1 }
+    defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    take(h)
+}
+
+fn movedOnOnePath(flag: Bool) -> Unit {
+    let h = Handle { id: 1 }
+    defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    if flag {
+        take(h)
+    }
+}
+
+fn discardedBeforeExit() -> Unit! {
+    let h = Handle { id: 1 }
+    errdefer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    _ = h
+    fail test.failure("late")
+}
+
+fn consumedInEveryIteration() -> Unit {
+    let h = Handle { id: 1 }
+    for i in 0..2 {
+        defer { h.close() } //~ ERROR a cleanup reads `h`
+        print "iteration ${i}"
+    }
+}
+
+fn movedIntoRecord() -> Unit {
+    let h = Handle { id: 1 }
+    defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    let w = Wrapper { inner: h }
+    print "wrapped ${w.inner.id}"
+}
+
+type Wrapper = {
+    pub inner Handle
+}
+
+fn readsCopyAfterMove() -> Unit {
+    let mut n = 1
+    let h = Handle { id: 1 }
+    defer { print "n=${n}" }
+    take(h)
+    n = 2
+}
+
+fn movedBeforeRegistration() -> Unit {
+    let h = Handle { id: 1 }
+    take(h)
+    let g = Handle { id: 2 }
+    defer { print "peek ${g.peek()}" }
+}
+
+readsCopyAfterMove()
+movedBeforeRegistration()
+-- expect --
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:19:27
+   |
+19 |     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                           ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:20:10
+   |
+20 |     take(h)
+   |          ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:25:27
+   |
+25 |     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                           ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:27:14
+   |
+27 |         take(h)
+   |              ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:33:30
+   |
+33 |     errdefer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                              ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:34:9
+   |
+34 |     _ = h
+   |         ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:41:17
+   |
+41 |         defer { h.close() } //~ ERROR a cleanup reads `h`
+   |                 ^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:41:17
+   |
+41 |         defer { h.close() } //~ ERROR a cleanup reads `h`
+   |                 ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:48:27
+   |
+48 |     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                           ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:49:30
+   |
+49 |     let w = Wrapper { inner: h }
+   |                              ^
+

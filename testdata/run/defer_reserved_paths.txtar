@@ -1,0 +1,176 @@
+-- src --
+import test from std/test
+
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn Handle.bump(mut self) -> Unit {
+    self.id = self.id + 1
+}
+
+fn show(h: &Handle) -> Unit {
+    print "show ${h.id}"
+}
+
+fn tweak(h: &mut Handle) -> Unit {
+    h.id = h.id + 10
+}
+
+fn take(h: Handle) -> Unit {
+    print "take ${h.id}"
+}
+
+fn normal() -> Unit! {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    print "normal body ${h.peek()}"
+}
+
+fn typedErr(failIt: Bool) -> Unit! {
+    let h = Handle { id: 2 }
+    errdefer { h.close() }
+    print "typed body"
+    if failIt {
+        fail test.failure("boom")
+    }
+}
+
+fn early(skip: Bool) -> Unit! {
+    if skip {
+        return
+    }
+    let h = Handle { id: 3 }
+    defer { h.close() }
+    print "early body"
+}
+
+fn loops() -> Unit {
+    for i in 0..4 {
+        let h = Handle { id: 10 + i }
+        defer { h.close() }
+        if i == 1 { continue }
+        if i == 2 { break }
+        print "iter ${i}"
+    }
+}
+
+fn loopErr(failAt: Int) -> Unit! {
+    for i in 0..3 {
+        let h = Handle { id: 20 + i }
+        errdefer { h.close() }
+        if i == failAt {
+            fail test.failure("loop")
+        }
+    }
+}
+
+fn param(h: Handle) -> Unit {
+    defer { h.close() }
+    print "param body ${h.peek()}"
+}
+
+fn conditional(flag: Bool, failIt: Bool) -> Unit! {
+    let h = Handle { id: 5 }
+    if flag {
+        errdefer { h.close() }
+        print "in if"
+        if failIt {
+            fail test.failure("inside")
+        }
+    }
+    take(h)
+}
+
+fn twoBindings() -> Unit! {
+    let first = Handle { id: 40 }
+    defer { first.close() }
+    let second = Handle { id: 41 }
+    defer { second.close() }
+    print "both open ${first.peek() + second.peek()}"
+}
+
+fn borrowsAllowed() -> Unit! {
+    let mut h = Handle { id: 50 }
+    defer { h.close() }
+    h.bump()
+    h.id = h.id + 100
+    show(&h)
+    tweak(&mut h)
+    print "body ${h.id}"
+}
+
+normal() || (e) => print "err ${e.message()}"
+typedErr(false) || (e) => print "err ${e.message()}"
+typedErr(true) || (e) => print "err ${e.message()}"
+early(true) || (e) => print "err ${e.message()}"
+early(false) || (e) => print "err ${e.message()}"
+loops()
+loopErr(5) || (e) => print "err ${e.message()}"
+loopErr(1) || (e) => print "err ${e.message()}"
+param(Handle { id: 30 })
+conditional(false, false) || (e) => print "err ${e.message()}"
+conditional(true, false) || (e) => print "err ${e.message()}"
+conditional(true, true) || (e) => print "err ${e.message()}"
+twoBindings() || (e) => print "err ${e.message()}"
+borrowsAllowed() || (e) => print "err ${e.message()}"
+-- stdout --
+normal body 1
+close 1
+drop 1
+typed body
+drop 2
+typed body
+close 2
+drop 2
+err boom
+early body
+close 3
+drop 3
+iter 0
+close 10
+drop 10
+close 11
+drop 11
+close 12
+drop 12
+drop 20
+drop 21
+drop 22
+drop 20
+close 21
+drop 21
+err loop
+param body 30
+close 30
+drop 30
+take 5
+drop 5
+in if
+take 5
+drop 5
+in if
+close 5
+drop 5
+err inside
+both open 81
+close 41
+drop 41
+close 40
+drop 40
+show 151
+body 161
+close 161
+drop 161

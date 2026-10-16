@@ -9,9 +9,10 @@ fn Handle.close(move self) -> Unit {
     print "close ${self.id}"
 }
 fn main() -> Unit! {
-    let mut h = Handle { id: 1 }
-    defer { h.close() }
-    h = Handle { id: 2 }
+    let old = Handle { id: 1 }
+    defer { old.close() }
+    let current = Handle { id: 2 }
+    defer { current.close() }
 }
 -- expect --
 fn main.Handle.drop(%self: Handle) -> Unit {
@@ -33,14 +34,15 @@ fn main.main() -> Unit! {
   b0:
     %t0 = const 1: Int
     %t1 = record main.Handle(%t0)
-    %h = copy(%t1)
+    %old = copy(%t1)
     %t3 = const 2: Int
     %t4 = record main.Handle(%t3)
-    drop(%h)
-    %h = copy(%t4)
-    %t5 = move(%h)
-    %t6 = call main.Handle.close(%t5)
-    %t7 = unit
-    %t8 = variant Result.Ok(%t7)
-    return %t8
+    %current = copy(%t4)
+    %t6 = move(%current)
+    %t7 = call main.Handle.close(%t6)
+    %t8 = move(%old)
+    %t9 = call main.Handle.close(%t8)
+    %t10 = unit
+    %t11 = variant Result.Ok(%t10)
+    return %t11
 }

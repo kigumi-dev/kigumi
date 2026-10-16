@@ -13,6 +13,9 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		return
 	}
 	target := c.synthPlace(lhs)
+	if !op.IsCompoundAssign() {
+		c.reserveAssign(lhs)
+	}
 	if staticEnt, ok := c.staticRootOf(lhs); ok {
 		c.checkStaticAssign(lhs, staticEnt)
 	} else if c.indexAssignUnsupported(lhs) {

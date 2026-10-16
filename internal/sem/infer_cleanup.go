@@ -6,6 +6,8 @@ func (c *checker) cleanupStmt(n syntax.NodeID) {
 	if c.t.Kind(n) == syntax.ErrdeferStmt && !c.isResultFn() {
 		c.errAt(n, cErrdeferOutsideResult)
 	}
+	outerNode, outerPending := c.cleanupNode, c.pendingReserve
+	c.cleanupNode, c.pendingReserve = n, nil
 	c.cleanup++
 	body := c.cleanupBody(n)
 	if c.t.Kind(body) == syntax.Block {
@@ -14,6 +16,9 @@ func (c *checker) cleanupStmt(n syntax.NodeID) {
 		c.stmt(body)
 	}
 	c.cleanup--
+	consumed := c.pendingReserve
+	c.cleanupNode, c.pendingReserve = outerNode, outerPending
+	c.holdReservations(n, consumed)
 }
 
 func (c *checker) cleanupBody(n syntax.NodeID) syntax.NodeID {

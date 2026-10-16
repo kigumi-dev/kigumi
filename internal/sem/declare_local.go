@@ -49,6 +49,7 @@ func (c *checker) implicitDrop(id EntityID) {
 
 // consumeWhole marks a bare local/param identifier consumed on an unconditional whole-value use; callers decide what counts as consuming.
 func (c *checker) consumeWhole(a syntax.NodeID) {
+	c.reserveUse(a)
 	if c.branch != 0 || c.loop != 0 || c.t.Kind(a) != syntax.Ident {
 		return
 	}

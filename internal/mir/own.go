@@ -1,6 +1,8 @@
 package mir
 
 import (
+	"maps"
+
 	"kigumi/internal/syntax"
 )
 
@@ -34,14 +36,15 @@ func joinOwn(a, b ownState) ownState {
 // moved-out field's temporary stays valid in val until consumed.
 type dstate struct {
 	val, field map[LocalID]ownState
+	at         map[LocalID]syntax.NodeID
 }
 
 func newDstate() *dstate {
-	return &dstate{val: map[LocalID]ownState{}, field: map[LocalID]ownState{}}
+	return &dstate{val: map[LocalID]ownState{}, field: map[LocalID]ownState{}, at: map[LocalID]syntax.NodeID{}}
 }
 
 func cloneD(s *dstate) *dstate {
-	return &dstate{val: cloneState(s.val), field: cloneState(s.field)}
+	return &dstate{val: cloneState(s.val), field: cloneState(s.field), at: maps.Clone(s.at)}
 }
 
 // analyzeOwnership runs a forward dataflow over the CFG: every use needs a
@@ -101,6 +104,7 @@ func analyzeOwnership(p *Program, f *Func) {
 // into drops of the fields still there.
 func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 	blk := &a.f.Blocks[bid]
+	a.cur = st
 	for i := range blk.Insts {
 		in := &blk.Insts[i]
 		if in.Dst != 0 {
@@ -134,7 +138,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			if a.tracked[src] {
 				a.check(in, src, st.val, report)
 				a.checkWhole(in.Node, src, st, report)
-				st.val[src] = ownMoved
+				st.val[src], st.at[src] = ownMoved, in.Node
 			}
 		default:
 			for argi, arg := range in.Args {
@@ -145,7 +149,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 				a.check(in, l, st.val, report)
 				if a.pl.isPlace(arg) && a.p.consumesArg(in, argi) {
 					a.checkWhole(in.Node, l, st, report)
-					st.val[l] = ownMoved
+					st.val[l], st.at[l] = ownMoved, in.Node
 				}
 			}
 		}

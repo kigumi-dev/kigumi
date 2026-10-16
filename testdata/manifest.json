@@ -424,9 +424,9 @@
       ]
     },
     {
-      "id": "mir/defer_move_reassign",
+      "id": "mir/defer_second_binding",
       "kind": "mir",
-      "path": "testdata/mir/defer_move_reassign.txtar",
+      "path": "testdata/mir/defer_second_binding.txtar",
       "mode": [
         "build"
       ],
@@ -3937,9 +3937,43 @@
       ]
     },
     {
-      "id": "run/defer_move_reassign",
+      "id": "run/defer_reads_latest",
       "kind": "run",
-      "path": "testdata/run/defer_move_reassign.txtar",
+      "path": "testdata/run/defer_reads_latest.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_reserved_paths",
+      "kind": "run",
+      "path": "testdata/run/defer_reserved_paths.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_second_binding",
+      "kind": "run",
+      "path": "testdata/run/defer_second_binding.txtar",
       "mode": [
         "vm",
         "native"
@@ -12019,6 +12053,28 @@
       "id": "sem/decl_variant_prelude_fn_const_collision",
       "kind": "sem",
       "path": "testdata/sem/decl_variant_prelude_fn_const_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_reads_moved",
+      "kind": "sem",
+      "path": "testdata/sem/defer_reads_moved.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_reserved_resource",
+      "kind": "sem",
+      "path": "testdata/sem/defer_reserved_resource.txtar",
       "mode": [
         "check"
       ],

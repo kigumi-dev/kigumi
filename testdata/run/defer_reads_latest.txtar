@@ -1,0 +1,85 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Counter = {
+    mut n Int
+}
+
+fn copyValue() -> Unit {
+    let mut count = 1
+    let saved = count
+    defer { print "saved=${saved}, current=${count}" }
+    count = 2
+}
+
+fn shadowing() -> Unit {
+    let mut count = 1
+    defer { print "shadow count=${count}" }
+    count = 5
+    let count = 100
+    print "shadowed ${count}"
+}
+
+fn lifo() -> Unit {
+    let mut total = 0
+    defer { print "outer sees ${total}" }
+    defer { total += 10 }
+    defer { total += 1 }
+    print "body total ${total}"
+}
+
+fn textAndRecord() -> Unit {
+    let mut label = "first"
+    let mut c = Counter { n: 1 }
+    defer { print "label=${label} n=${c.n}" }
+    label = "second"
+    c.n = 7
+}
+
+fn loopCopy() -> Unit {
+    let mut last = 0
+    for i in 1..4 {
+        defer { last = i }
+        print "iter ${i} last ${last}"
+    }
+    print "last ${last}"
+}
+
+fn resourceReassign() -> Unit {
+    let mut h = Handle { id: 1 }
+    defer { print "cleanup peeks ${h.peek()}" }
+    h = Handle { id: 2 }
+    print "body peeks ${h.peek()}"
+}
+
+copyValue()
+shadowing()
+lifo()
+textAndRecord()
+loopCopy()
+resourceReassign()
+-- stdout --
+saved=1, current=2
+shadowed 100
+shadow count=5
+body total 0
+outer sees 11
+label=second n=7
+iter 1 last 0
+iter 2 last 1
+iter 3 last 2
+last 3
+drop 1
+body peeks 2
+cleanup peeks 2
+drop 2

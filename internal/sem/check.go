@@ -26,6 +26,9 @@ type checker struct {
 	wantAliasFile   FileID
 	wantAliasNode   syntax.NodeID
 	cleanup         int
+	cleanupNode     syntax.NodeID
+	pendingReserve  []EntityID
+	reserved        map[EntityID]reservation
 	edges           *[]EffectEdge
 	// locals is the current edge scope's EntLocal list for dropsAtScopeExit.
 	locals []EntityID
@@ -171,7 +174,12 @@ func (c *checker) pushScope(kind ScopeKind, node syntax.NodeID) ScopeID {
 	return s
 }
 
-func (c *checker) popScope(saved ScopeID) { c.scope = saved }
+func (c *checker) popScope(saved ScopeID) {
+	if len(c.reserved) > 0 {
+		c.releaseReservations(c.scope)
+	}
+	c.scope = saved
+}
 
 func (c *checker) setType(n syntax.NodeID, t TypeID) TypeID {
 	c.info.Types[n] = t
