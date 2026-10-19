@@ -7,7 +7,7 @@ type Bad = resource {
 
 fn Bad.drop(move self) -> Unit {
     print "bad ${self.id}"
-    panic("drop ${self.id}")
+    let _: Unit = None.expect("drop ${self.id}")
 }
 
 type Res = resource {

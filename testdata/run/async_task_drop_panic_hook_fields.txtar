@@ -16,7 +16,7 @@ type Outer = resource {
 
 fn Outer.drop(move self) -> Unit {
     print "outer ${self.id}"
-    panic("outer ${self.id}")
+    let _: Unit = None.expect("outer ${self.id}")
 }
 
 // The destructor of a record panics, and its fields still drop afterwards.

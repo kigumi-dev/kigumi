@@ -9,7 +9,7 @@ fn Res.drop(move self) -> Unit {
 
 fn inner() -> Unit {
     let r = Res { id: 2 }
-    panic("sync")
+    let _: Unit = None.expect("sync")
 }
 
 fn work() -> Unit {

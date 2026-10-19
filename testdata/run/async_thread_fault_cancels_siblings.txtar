@@ -28,7 +28,7 @@ async fn parks(r: Res) -> Int {
 }
 
 async fn boom() -> Int {
-    panic("boom")
+    None.expect("boom")
 }
 
 // The root faults through its await; the tasks still running are cancelled

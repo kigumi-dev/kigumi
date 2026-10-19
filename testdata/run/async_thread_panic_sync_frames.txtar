@@ -10,7 +10,7 @@ fn Res.drop(move self) -> Unit {
 }
 
 fn explode() -> Int {
-    panic("worker boom")
+    None.expect("worker boom")
 }
 
 fn inner() -> Int {

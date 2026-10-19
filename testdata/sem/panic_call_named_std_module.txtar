@@ -1,0 +1,19 @@
+-- module --
+stage: driver
+-- mod.kg --
+Module {
+    name: "std"
+    kigumi: "0.1"
+}
+-- src --
+fn main() -> Unit! {
+    panic("named std")
+}
+-- expect --
+error[E2123]: `panic` is reserved for the std runtime and cannot be called from application code
+ --> main.kg:2:5
+  |
+2 |     panic("named std")
+  |     ^^^^^^^^^^^^^^^^^
+  = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or a failing assertion
+

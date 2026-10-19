@@ -9302,6 +9302,27 @@
       }
     },
     {
+      "id": "run/panic_array_index_read",
+      "kind": "run",
+      "path": "testdata/run/panic_array_index_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: index out of range"
+      }
+    },
+    {
       "id": "run/panic_deep_recursion",
       "kind": "run",
       "path": "testdata/run/panic_deep_recursion.txtar",
@@ -9320,6 +9341,48 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: deep"
+      }
+    },
+    {
+      "id": "run/panic_int_div_zero",
+      "kind": "run",
+      "path": "testdata/run/panic_int_div_zero.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: division by zero"
+      }
+    },
+    {
+      "id": "run/panic_int_mod_zero",
+      "kind": "run",
+      "path": "testdata/run/panic_int_mod_zero.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: division by zero"
       }
     },
     {
@@ -13677,6 +13740,28 @@
       "id": "sem/overload_ok",
       "kind": "sem",
       "path": "testdata/sem/overload_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/panic_call_named_std_module",
+      "kind": "sem",
+      "path": "testdata/sem/panic_call_named_std_module.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/panic_call_rejected",
+      "kind": "sem",
+      "path": "testdata/sem/panic_call_rejected.txtar",
       "mode": [
         "check"
       ],

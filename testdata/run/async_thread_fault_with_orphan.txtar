@@ -22,7 +22,7 @@ async fn chain(n: Int) -> Int {
 }
 
 async fn boom() -> Int {
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn quiet() -> Int {

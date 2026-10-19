@@ -49,6 +49,7 @@ var (
 	cRecvNotMutable      = defineCode("E515", "recv-not-mutable", "`{name}` takes `mut self` but `{place}` is immutable; {fix}")
 	cRecvTemporary       = defineCode("E516", "recv-temporary", "`{name}` takes `mut self` but the receiver is a temporary")
 	cMoveOutOfBorrow     = defineCode("E517", "move-out-of-borrow", "cannot move `{type}` out of a borrow")
+	cPanicCall           = defineCode("E2123", "panic-call", "`panic` is reserved for the std runtime and cannot be called from application code; report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or a failing assertion")
 	cPanicArgs           = defineCode("E518", "panic-args", "`panic` takes at most one argument, a `String` message")
 	cPrintArg            = defineCode("E519", "print-arg", "`{name}` takes one `String` argument")
 	cOptMemberNotOption  = defineCode("E520", "opt-member-not-option", "`?.` needs an `Option` operand, found `{type}`")

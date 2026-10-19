@@ -38,7 +38,7 @@ fn letpat(o: Int?) -> Int {
     let Some(v) = o else { return 0 }
     let Some(w) = o //~ ERROR refutable pattern needs `else` (`None` is not covered)
     let x = o else { return 1 } //~ WARNING pattern is irrefutable
-    let Some(y) = o else { let q = 1 } //~ ERROR `else` block must end with `return`, `fail`, `break`, `continue` or `panic()`
+    let Some(y) = o else { let q = 1 } //~ ERROR `else` block must end with `return`, `fail`, `break`, `continue` or a call that does not return
     v
 }
 
@@ -116,9 +116,9 @@ warning[W800]: pattern is irrefutable
    |         ^
    = help: `else` is never taken
 
-error[E802]: `else` block must end with `return`, `fail`, `break`, `continue` or `panic()`
+error[E802]: `else` block must end with `return`, `fail`, `break`, `continue` or a call that does not return
   --> lib/pat.kg:40:26
    |
-40 |     let Some(y) = o else { let q = 1 } //~ ERROR `else` block must end with `return`, `fail`, `break`, `continue` or `panic()`
+40 |     let Some(y) = o else { let q = 1 } //~ ERROR `else` block must end with `return`, `fail`, `break`, `continue` or a call that does not return
    |                          ^^^^^^^^^^^
 

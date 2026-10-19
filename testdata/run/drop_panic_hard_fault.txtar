@@ -4,7 +4,7 @@ type Guard = resource {
 }
 
 fn Guard.drop(move self) -> Unit {
-    panic("drop panicked: ${self.id}")
+    let _: Unit = None.expect("drop panicked: ${self.id}")
 }
 
 fn scope() -> Unit {

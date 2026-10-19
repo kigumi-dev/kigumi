@@ -29,7 +29,7 @@ fn shape(h: Option[Holder]) -> String {
 }
 
 fn pick(xs: &Array[fn(Int) -> Int], n: Int) -> Int {
-    (xs.get(0) || panic())(n)
+    (xs.get(0).unwrap())(n)
 }
 
 fn firstLarge(xs: &Array[Int]) -> Int {

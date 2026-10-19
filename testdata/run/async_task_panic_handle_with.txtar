@@ -11,7 +11,7 @@ type Slot = {
 async fn boom(s: Shared[Slot]) -> Int {
     s.with((p: &Slot) => p.table.with(&p.h, (v: &Int) => {
         if v == 41 {
-            panic("inside")
+            let _: Unit = None.expect("inside")
         }
         0
     }))

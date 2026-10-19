@@ -154,7 +154,7 @@ fn unwrapH(o: Option[Holder]) -> Holder {
 fn unwrapG[T](o: Option[T]) -> T {
     match o {
         Some(v) -> v
-        None -> panic("empty")
+        None -> None.expect("empty")
     }
 }
 

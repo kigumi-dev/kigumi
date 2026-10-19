@@ -10,7 +10,7 @@ fn Handle.drop(move self) -> Unit {
 let mut ok = Array.empty[Handle]()
 ok.push(Handle { id: 1 })
 ok.push(Handle { id: 2 })
-let fa = FixedArray.fromArrayMove[Handle, 2](ok) || panic()
+let fa = FixedArray.fromArrayMove[Handle, 2](ok).unwrap()
 print "at0 ${fa.at(0, (h: &Handle) => h.id) || 0}"
 print "len ${fa.len()}"
 

@@ -27,7 +27,7 @@ async fn inner(n: Int) -> Int {
     let v = await task.spawn(tick())
     p.x = p.x + v + grid[4]
     print "inner ${p.x}"
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn boom() -> Int {

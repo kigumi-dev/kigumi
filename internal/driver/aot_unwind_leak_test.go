@@ -36,7 +36,7 @@ fn build(n: Int) -> Array[String] {
 }
 
 fn explode() -> Int {
-    panic("deep")
+    None.expect("deep")
 }
 
 fn f0() -> Unit {

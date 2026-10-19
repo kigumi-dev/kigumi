@@ -23,7 +23,7 @@ func TestAotExportPanicAborts(t *testing.T) {
 
 export(C) {
     pub fn kg_boundary_panic(x: i32) -> i32 {
-        panic("boundary panic: ${x}")
+        None.expect("boundary panic: ${x}")
     }
 }
 

@@ -4,7 +4,7 @@ import task from std/task
 // A panic faults only its own task: the siblings still finish, and the
 // panic surfaces with its own text once the root awaits it.
 async fn boom() -> Int {
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn leaf(n: Int) -> Int {

@@ -15,7 +15,7 @@ type Bad = resource {
 
 fn Bad.drop(move self) -> Unit {
     print "bad ${self.id}"
-    panic("drop failed: ${self.id}")
+    let _: Unit = None.expect("drop failed: ${self.id}")
 }
 
 async fn tick() -> Int {

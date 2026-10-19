@@ -15,7 +15,7 @@ type Outer = resource {
 fn Outer.drop(move self) -> Unit {
     let local = Res { id: 90 + self.id }
     print "outer ${self.id}"
-    panic("outer ${self.id}")
+    let _: Unit = None.expect("outer ${self.id}")
 }
 
 fn helper(n: Int) -> Int {

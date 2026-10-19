@@ -8,8 +8,8 @@ type Point = {
 let p = Point { x: 3, y: 4 }
 let byRecord = (d: Int) => p.x * d + p.y
 let stored = Array.of(byRecord, byRecord)
-print "${(stored.get(1) || panic())(1)}"
-let again = (stored.get(0) || panic())
+print "${(stored.get(1).unwrap())(1)}"
+let again = (stored.get(0).unwrap())
 print "${again(2)}"
 -- stdout --
 7

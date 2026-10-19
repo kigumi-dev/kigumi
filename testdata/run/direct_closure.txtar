@@ -99,7 +99,7 @@ fn main() -> Unit! {
     print "record ${byRecord(10)} adt ${byAdt(1)} option ${byOption(1)} mixed ${byMixed(1)}"
     print "known ${apply(byRecord, 2)} generic ${applyGen(byAdt, 3)}"
     let stored = Array.of(byRecord, byRecord)
-    print "stored ${(stored.get(1) || panic())(1)}"
+    print "stored ${(stored.get(1).unwrap())(1)}"
     let h = Holder { f: byOption, tag: 9 }
     let hf = h.f
     print "holder ${hf(1)} ${h.tag}"

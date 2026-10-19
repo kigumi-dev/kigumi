@@ -12,7 +12,7 @@ import (
 const wasiTaskProgram = `import task from std/task
 
 async fn boom() -> Int {
-    panic("x")
+    None.expect("x")
 }
 
 async fn root() -> Int {

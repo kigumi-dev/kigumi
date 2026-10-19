@@ -6,7 +6,7 @@ type Res = resource {
 fn Res.drop(move self) -> Unit {
     print "drop ${self.id}"
     if self.id % 2 == 0 {
-        panic("drop ${self.id}")
+        let _: Unit = None.expect("drop ${self.id}")
     }
 }
 

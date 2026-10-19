@@ -14,7 +14,7 @@ async fn tick() -> Int {
 }
 
 fn explode() -> Int {
-    panic("deep")
+    None.expect("deep")
 }
 
 fn c() -> Unit {

@@ -52,7 +52,7 @@ func TestWorkerPanicFaultsOnlyThatTask(t *testing.T) {
 	src := `import task from std/task
 
 async fn boom() -> Int {
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn leaf(n: Int) -> Int {
@@ -101,7 +101,7 @@ fn Res.drop(move self) -> Unit {
 
 async fn boom() -> Int {
     let r = Res { id: 1 }
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn leaf(n: Int) -> Int {
@@ -191,7 +191,7 @@ async fn chain(n: Int) -> Int {
 }
 
 async fn boom() -> Int {
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn quiet() -> Int {
@@ -230,7 +230,7 @@ async fn leaf() -> Int {
 async fn root() -> Int {
     let t = task.spawn(leaf())
     let v = await t
-    panic("root boom ${v}")
+    None.expect("root boom ${v}")
 }
 
 let ex = task.threadPoolExecutor(3)
@@ -336,7 +336,7 @@ print "total ${ex.runToCompletion(root())}"
 func TestDeepPanicUnwindsInOnePass(t *testing.T) {
 	src := `fn rec(n: Int) -> Int {
     if n == 0 {
-        panic("deep")
+        let _: Unit = None.expect("deep")
     }
     1 + rec(n - 1)
 }
@@ -385,7 +385,7 @@ func TestFaultedRootCancelsSiblingsAndJoinsHeldPool(t *testing.T) {
 	before := goroutinesSettle(t)
 	src := heldPoolPrelude + `
 async fn boom() -> Int {
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn root() -> Int {

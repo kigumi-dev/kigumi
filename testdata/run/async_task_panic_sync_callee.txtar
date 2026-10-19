@@ -15,7 +15,7 @@ async fn tick() -> Int {
 
 fn inner() -> Unit {
     let r = Res { id: 2 }
-    panic("sync")
+    let _: Unit = None.expect("sync")
 }
 
 // A faulted task releases what its sync callee frames own before its async frames.

@@ -3,7 +3,7 @@ import task from std/task
 
 // Nothing awaits this panic, yet it is not lost: it ends `mid` faulted.
 async fn boom() -> Int {
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn leaf(n: Int) -> Int {

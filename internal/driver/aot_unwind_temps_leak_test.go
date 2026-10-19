@@ -27,7 +27,7 @@ type Bad = resource {
 }
 
 fn Bad.drop(move self) -> Unit {
-    panic("bad drop")
+    let _: Unit = None.expect("bad drop")
 }
 
 fn make(n: Int) -> Res {
@@ -35,7 +35,7 @@ fn make(n: Int) -> Res {
 }
 
 fn explode() -> Int {
-    panic("explode")
+    None.expect("explode")
 }
 
 fn consume(rs: Array[Res], n: Int) -> Int {

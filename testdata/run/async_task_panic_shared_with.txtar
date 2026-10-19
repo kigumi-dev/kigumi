@@ -5,7 +5,7 @@ import {Shared} from std/alloc
 async fn boom(s: Shared[Int]) -> Int {
     s.with((v: &Int) => {
         if v == 1 {
-            panic("inside")
+            let _: Unit = None.expect("inside")
         }
         0
     })

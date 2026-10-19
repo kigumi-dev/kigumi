@@ -1,0 +1,12 @@
+-- src --
+let xs = Array.of(0, 7)
+let zero = xs[0]
+print "start"
+let q = xs[1] / zero
+print "unreachable ${q}"
+-- stdout --
+start
+-- stderr --
+panic: division by zero
+-- exit --
+2

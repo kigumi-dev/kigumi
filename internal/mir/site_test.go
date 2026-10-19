@@ -16,7 +16,7 @@ func TestSiteAtResolvesFileAndLine(t *testing.T) {
 	src := "-- src --\n" +
 		"fn main() -> Unit! {\n" +
 		"    let x = 1\n" +
-		"    panic(\"boom\")\n" +
+		"    let y = 10 / (x - 1)\n" +
 		"}\n"
 	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
 		t.Fatal(err)
@@ -42,16 +42,16 @@ func TestSiteAtResolvesFileAndLine(t *testing.T) {
 
 	for _, blk := range mainFn.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpPanic || (in.Op == mir.OpBuiltin && in.Str == "panic") {
+			if in.Op == mir.OpBinary {
 				s := prog.SiteAt(mainFn, in.Node)
 				if s.Line != 3 {
-					t.Errorf("panic site line = %d, want 3", s.Line)
+					t.Errorf("division site line = %d, want 3", s.Line)
 				}
 				return
 			}
 		}
 	}
-	t.Fatal("no panic instruction found to resolve a site for")
+	t.Fatal("no division instruction found to resolve a site for")
 }
 
 func TestSiteAtUnknownNode(t *testing.T) {

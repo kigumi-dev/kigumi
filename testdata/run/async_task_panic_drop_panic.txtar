@@ -8,7 +8,7 @@ type Res = resource {
 fn Res.drop(move self) -> Unit {
     print "drop ${self.id}"
     if self.id == 1 {
-        panic("drop panic 1")
+        let _: Unit = None.expect("drop panic 1")
     }
 }
 
@@ -19,7 +19,7 @@ async fn tick() -> Int {
 async fn inner() -> Int {
     let r = Res { id: 1 }
     let v = await tick()
-    panic("first")
+    None.expect("first")
 }
 
 // A panic raised while the fault is swept joins it, and the rest of the sweep still runs.

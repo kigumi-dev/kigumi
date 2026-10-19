@@ -15,7 +15,7 @@ async fn tick() -> Int {
 
 fn inner() -> Unit {
     let r = Res { id: 2 }
-    panic("sync")
+    let _: Unit = None.expect("sync")
 }
 
 // The root keeps its frames, sync callees included.

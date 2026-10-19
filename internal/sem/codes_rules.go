@@ -4,7 +4,7 @@ package sem
 // effects/unsafe/entry/unsupported, and warnings.
 var (
 	cPatternRefutable        = defineCode("E800", "pattern-refutable", "refutable pattern needs `else` (`{witness}` is not covered)")
-	cLetElseMustDiverge      = defineCode("E802", "let-else-must-diverge", "`else` block must end with `return`, `fail`, `break`, `continue` or `panic()`")
+	cLetElseMustDiverge      = defineCode("E802", "let-else-must-diverge", "`else` block must end with `return`, `fail`, `break`, `continue` or a call that does not return")
 	cPatternArity            = defineCode("E803", "pattern-arity", "`{name}` has {n} payload{s}, {m} pattern{s} given")
 	cPatternWrongType        = defineCode("E804", "pattern-wrong-type", "`{name}` is not a variant of `{type}`")
 	cPatternLiteralType      = defineCode("E805", "pattern-literal-type", "literal pattern `{lit}` does not fit `{type}`")

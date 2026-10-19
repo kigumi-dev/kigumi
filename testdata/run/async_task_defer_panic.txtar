@@ -18,7 +18,7 @@ async fn child() -> Int {
     defer print "cleanup a"
     defer {
         print "cleanup b"
-        panic("in defer")
+        let _: Unit = None.expect("in defer")
     }
     let v = await tick()
     v

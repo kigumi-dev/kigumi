@@ -123,7 +123,7 @@ pure fn hofImpure(xs: Array[Int], files: fs.Files, p: fs.Path) -> Array[Int] {
 }
 
 pure fn panics() -> Int {
-    panic()
+    None.unwrap()
 }
 
 pure fn mutParam(mut c: Counter) -> Int {

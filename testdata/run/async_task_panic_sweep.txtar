@@ -28,7 +28,7 @@ async fn partial() -> Int {
     let p = Pair { a: Res { id: 10 }, b: Res { id: 11 } }
     let _ = await tick()
     eat(p.a)
-    panic("partial")
+    None.expect("partial")
 }
 
 async fn cond(flag: Bool) -> Int {
@@ -37,7 +37,7 @@ async fn cond(flag: Bool) -> Int {
         eat(r)
     }
     let _ = await tick()
-    panic("cond")
+    None.expect("cond")
 }
 
 async fn looped() -> Int {
@@ -48,11 +48,11 @@ async fn looped() -> Int {
         i = i + 1
     }
     let last = Res { id: 40 }
-    panic("looped")
+    None.expect("looped")
 }
 
 async fn param(r: Res) -> Int {
-    panic("param")
+    None.expect("param")
 }
 
 async fn strings(n: Int) -> Int {
@@ -60,7 +60,7 @@ async fn strings(n: Int) -> Int {
     let arr = Array.of[Int](n, n + 1)
     let _ = await tick()
     let r = Res { id: 50 }
-    panic("strings ${s} ${arr.len()}")
+    None.expect("strings ${s} ${arr.len()}")
 }
 
 async fn oob() -> Int {

@@ -73,7 +73,7 @@ fn consume(a: Res, n: Int) -> Int {
 }
 
 fn explode() -> Int {
-    panic("explode")
+    None.expect("explode")
 }
 
 async fn tick() -> Int {

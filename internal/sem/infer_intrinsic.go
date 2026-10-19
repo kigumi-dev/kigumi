@@ -6,6 +6,9 @@ func (c *checker) callIntrinsic(n syntax.NodeID, ent EntityID, args []syntax.Nod
 	name := c.r.Entities[ent].Name
 	switch name {
 	case "panic":
+		if !c.r.Packages[c.r.packageOf(c.f)].Std {
+			c.errAt(n, cPanicCall)
+		}
 		if len(args) > 1 {
 			c.errAt(n, cPanicArgs)
 			c.synthArgs(args)

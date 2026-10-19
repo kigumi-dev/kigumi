@@ -19,7 +19,7 @@ async fn inner(n: Int) -> Int {
     let r = Res { id: n + 10 }
     let t = task.spawn(tick())
     let v = await t
-    panic("boom")
+    None.expect("boom")
 }
 
 async fn boom() -> Int {

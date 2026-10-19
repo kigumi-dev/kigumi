@@ -8,7 +8,7 @@ let fzeros = FixedArray.zeroed[f64, 2]()
 print "${fzeros.get(0) || 9.0} ${fzeros.get(1) || 9.0}"
 
 let src: Array[i32] = Array.of(10, 20, 30)
-let fromOk = FixedArray.fromArray[i32, 3](&src) || panic()
+let fromOk = FixedArray.fromArray[i32, 3](&src).unwrap()
 print "${fromOk.toArray().get(1) || 0}"
 print "${(FixedArray.fromArray[i32, 4](&src)) is None}"
 
@@ -43,7 +43,7 @@ print "${(pts.get(0) || Point{x:0,y:0}).x} ${(pts.get(1) || Point{x:0,y:0}).y}"
 let bytes = Bytes.fromArray(&Array.of(1, 2, 3))
 let ok3: FixedArray[u8, 3]? = bytes.toFixed()
 let bad4: FixedArray[u8, 4]? = bytes.toFixed()
-let back = FixedArray.toBytes(ok3 || panic())
+let back = FixedArray.toBytes(ok3.unwrap())
 print "${bad4 is None} ${back.len()} ${back.get(2) || 0}"
 -- stdout --
 4 0 0 9

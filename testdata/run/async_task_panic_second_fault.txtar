@@ -7,7 +7,7 @@ type Bad = resource {
 
 fn Bad.drop(move self) -> Unit {
     print "bad ${self.id}"
-    panic("drop ${self.id}")
+    let _: Unit = None.expect("drop ${self.id}")
 }
 
 type Res = resource {
@@ -27,7 +27,7 @@ fn inner() -> Unit {
     let b = Bad { id: 12 }
     let c = Bad { id: 13 }
     let d = Res { id: 14 }
-    panic("first")
+    let _: Unit = None.expect("first")
 }
 
 fn outer() -> Unit {
