@@ -1,0 +1,41 @@
+-- src --
+import shell from std/shell
+
+type Tag = {
+    pub n Int
+}
+
+fn Tag.flag(self) -> String {
+    "--n=${self.n}"
+}
+
+fn show(plan: &shell.Plan) -> Unit {
+    for s in shell.stages(plan) {
+        let mut line = "argc=${s.argv.len()}"
+        for a in s.argv {
+            line = "${line} [${a}]"
+        }
+        print line
+    }
+}
+
+let empty = ""
+let spaced = "a b  c"
+let tricky = "it's \"q\" | > $HOME; &&"
+let n: i64 = 42
+let small: u8 = 255
+let tag = Tag { n: 7 }
+show(&$"cmd ${empty} end")
+show(&$"cmd ${spaced}")
+show(&$"cmd ${tricky}")
+show(&$"cmd ${n} ${-5} ${small}")
+show(&$"cmd pre${spaced}post ${empty}${empty} x${n}y")
+show(&$"cmd ${tag.flag()} | tail ${tricky}")
+-- stdout --
+argc=3 [cmd] [] [end]
+argc=2 [cmd] [a b  c]
+argc=2 [cmd] [it's "q" | > $HOME; &&]
+argc=4 [cmd] [42] [-5] [255]
+argc=4 [cmd] [prea b  cpost] [] [x42y]
+argc=2 [cmd] [--n=7]
+argc=2 [tail] [it's "q" | > $HOME; &&]

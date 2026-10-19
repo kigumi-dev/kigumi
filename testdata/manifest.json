@@ -10043,6 +10043,23 @@
       ]
     },
     {
+      "id": "run/shell_interp_argv",
+      "kind": "run",
+      "path": "testdata/run/shell_interp_argv.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/shift_context",
       "kind": "run",
       "path": "testdata/run/shift_context.txtar",
@@ -13935,6 +13952,17 @@
       "id": "sem/send_sync_future",
       "kind": "sem",
       "path": "testdata/sem/send_sync_future.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/shell_interp_user_types",
+      "kind": "sem",
+      "path": "testdata/sem/shell_interp_user_types.txtar",
       "mode": [
         "check"
       ],

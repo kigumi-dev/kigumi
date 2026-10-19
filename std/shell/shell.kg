@@ -16,9 +16,6 @@ pub type Plan = {
     mut items Array[Item]
 }
 
-/// One command argument inside a `$"..."` literal; `${...}` always yields exactly one Arg.
-pub type Arg
-
 /// Exit statuses of every stage of a pipeline that was run.
 pub type PipelineResult = {
     statuses Array[Int]

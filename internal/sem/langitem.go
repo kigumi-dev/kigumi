@@ -13,7 +13,6 @@ var langItemTable = map[string]string{
 	"Hash":           "std/prelude",
 	"Ord":            "std/prelude",
 	"Plan":           "std/shell",
-	"Arg":            "std/shell",
 	"AllocatorScope": "std/alloc",
 	"Host":           "std/os",
 	"Context":        "std/error",

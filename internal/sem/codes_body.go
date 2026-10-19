@@ -12,7 +12,7 @@ var (
 	cNumericMixed        = defineCode("E405", "numeric-mixed", "`{a}` and `{b}` cannot be mixed; convert explicitly")
 	cCharInvalid         = defineCode("E406", "char-invalid", "invalid character literal")
 	cInterpolationType   = defineCode("E407", "interpolation-type", "cannot interpolate `{type}`; call `.display()`")
-	cShellInterpType     = defineCode("E408", "shell-interp-type", "`{type}` cannot be a shell argument")
+	cShellInterpType     = defineCode("E408", "shell-interp-type", "`{type}` cannot be a shell argument; convert it to a `String` first")
 	cLambdaArity         = defineCode("E409", "lambda-arity", "lambda takes {n} parameter{s}, `{type}` expects {m}")
 	cLambdaParamAnnot    = defineCode("E410", "lambda-param-annotation", "parameter `{name}` needs a type annotation")
 	cLambdaParamMismatch = defineCode("E411", "lambda-param-mismatch", "parameter `{name}` is `{a}`, expected `{b}`")

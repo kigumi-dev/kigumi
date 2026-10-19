@@ -48,7 +48,6 @@ func (c *checker) shellInterps(n syntax.NodeID) {
 		case t == TyPoison, t == TyString, tt.IsInteger(t):
 		case tt.Kind(t) == KUntyped && t == TyUntypedInt:
 			c.adopt(c.literalNode(e), TyI64)
-		case c.r.memberSet(t, "shellArg") != 0:
 		default:
 			c.errAt(e, cShellInterpType, t)
 		}
