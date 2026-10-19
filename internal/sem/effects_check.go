@@ -2,9 +2,8 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// checkContracts reports every edge of a declared `pure`/`noalloc` node
-// that breaks the contract, and every closure or fn item coerced to a
-// contracted fn type whose summary falls short.
+// checkContracts reports every edge of a declared `pure`/`noalloc` node that breaks the contract,
+// and every closure or fn item coerced to a contracted fn type whose summary falls short.
 func (r *Result) checkContracts(id EntityID) {
 	var declared Effects
 	if r.Entities[id].Kind != EntClosure {

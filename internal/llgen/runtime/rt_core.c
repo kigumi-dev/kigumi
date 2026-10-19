@@ -515,7 +515,7 @@ static void fill_small(int s) {
     SMALL_UNLOCK();
 }
 static val small_int(int64_t i, int nk) {
-    if ((uint64_t)(i - SMALL_INT_MIN) >= SMALL_INT_N) return NULL;
+    if (i < SMALL_INT_MIN || i >= SMALL_INT_MIN + SMALL_INT_N) return NULL;
     int s = small_int_slot(nk);
     if (s < 0) return NULL;
     fill_small(s);
