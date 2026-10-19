@@ -72,7 +72,7 @@ func TestRegistryTablesArePopulated(t *testing.T) {
 	if !RuntimeNamedTypes()["Entry"] || !RuntimeNamedTypes()["StringBuilder"] {
 		t.Error("the types the try primitives build by name are missing from RuntimeNamedTypes")
 	}
-	if len(directResultOps) != 20 || len(hoCallbackArg) != 8 || len(elemOps) < 3 {
+	if len(directResultOps) != 20 || len(hoCallbackArg) != 12 || len(elemOps) < 3 {
 		t.Errorf("tables hold %d direct ops, %d callbacks, %d element ops", len(directResultOps), len(hoCallbackArg), len(elemOps))
 	}
 }

@@ -1,0 +1,50 @@
+-- src --
+import {Shared} from std/alloc
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+type Cell = {
+    pub mut count Int
+}
+
+fn readOnce(s: &Shared[Cell], calls: &mut Int, r: Res) -> Int {
+    let v = s.with((c: &Cell) => {
+        calls = calls + 1
+        c.count + r.n
+    })
+    print "with returned ${v}"
+    v
+}
+
+fn bumpOnce(s: &Shared[Cell], calls: &mut Int, r: Res) -> Int {
+    let v = s.withMut((c: &mut Cell) => {
+        calls = calls + 1
+        c.count = c.count + r.n
+        c.count
+    })
+    print "withMut returned ${v}"
+    v
+}
+
+let mut calls = 0
+let cell = Shared.new(Cell { count: 1 })
+let other = cell.clone()
+let a = readOnce(&cell, &mut calls, Res { n: 10 })
+print "after with ${a} calls ${calls}"
+let b = bumpOnce(&cell, &mut calls, Res { n: 20 })
+print "after withMut ${b} calls ${calls}"
+print "mutation visible ${other.with((c: &Cell) => c.count)}"
+-- stdout --
+with returned 11
+drop res 10
+after with 11 calls 1
+withMut returned 21
+drop res 20
+after withMut 21 calls 2
+mutation visible 21

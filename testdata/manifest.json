@@ -2423,6 +2423,27 @@
       }
     },
     {
+      "id": "run/async_task_panic_try_map",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_try_map.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: mid-map"
+      }
+    },
+    {
       "id": "run/async_task_panic_unwind",
       "kind": "run",
       "path": "testdata/run/async_task_panic_unwind.txtar",
@@ -3306,6 +3327,93 @@
         "stderr",
         "exit"
       ]
+    },
+    {
+      "id": "run/callback_contract_array",
+      "kind": "run",
+      "path": "testdata/run/callback_contract_array.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/callback_contract_box",
+      "kind": "run",
+      "path": "testdata/run/callback_contract_box.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/callback_contract_ffi",
+      "kind": "run",
+      "path": "testdata/run/callback_contract_ffi.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/callback_contract_shared",
+      "kind": "run",
+      "path": "testdata/run/callback_contract_shared.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/callback_contract_with_address",
+      "kind": "run",
+      "path": "testdata/run/callback_contract_with_address.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
     },
     {
       "id": "run/captured_cell_user_option",
@@ -11672,6 +11780,17 @@
       "id": "sem/break_value_err",
       "kind": "sem",
       "path": "testdata/sem/break_value_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/callback_noalloc_box",
+      "kind": "sem",
+      "path": "testdata/sem/callback_noalloc_box.txtar",
       "mode": [
         "check"
       ],

@@ -1,0 +1,88 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn readAt(xs: &Array[Int], i: usize, calls: &mut Int, r: Res) -> Int? {
+    let v = xs.with(i, (x: &Int) => {
+        calls = calls + 1
+        x + r.n
+    })
+    print "with returned ${v || -1}"
+    v
+}
+
+fn bumpAt(xs: &mut Array[Int], i: usize, calls: &mut Int, r: Res) -> Int? {
+    let v = xs.withMut(i, (x: &mut Int) => {
+        calls = calls + 1
+        x = x + r.n
+        x + 0
+    })
+    print "withMut returned ${v || -1}"
+    v
+}
+
+fn mapAll(xs: &Array[Int], calls: &mut Int, r: Res) -> Array[Int] {
+    let out = xs.map((x: &Int) => {
+        calls = calls + 1
+        x * r.n
+    })
+    print "map returned"
+    out
+}
+
+fn keepAll(xs: &Array[Int], calls: &mut Int, r: Res) -> Array[Int] {
+    let out = xs.filter((x: &Int) => {
+        calls = calls + 1
+        x > r.n
+    })
+    print "filter returned"
+    out
+}
+
+let mut calls = 0
+let mut xs = Array.of(1, 2, 3)
+let a = readAt(&xs, 1, &mut calls, Res { n: 10 })
+print "after with ${a || -1} calls ${calls}"
+let miss = readAt(&xs, 9, &mut calls, Res { n: 11 })
+print "miss ${miss is None} calls ${calls}"
+let b = bumpAt(&mut xs, 2, &mut calls, Res { n: 20 })
+print "after withMut ${b || -1} calls ${calls} xs ${xs[2]}"
+let m = mapAll(&xs, &mut calls, Res { n: 2 })
+print "mapped ${m[0]} ${m[1]} ${m[2]} calls ${calls}"
+let k = keepAll(&xs, &mut calls, Res { n: 2 })
+print "kept ${k.len()} calls ${calls}"
+
+fn fixedBump(a: &mut FixedArray[Int, 4], calls: &mut Int) -> Int? {
+    a.withMut(2, (x: &mut Int) => {
+        calls = calls + 1
+        x = x + 1
+        x + 0
+    })
+}
+
+let mut fixed = FixedArray.filled[Int, 4](5)
+let mut fixedCalls = 0
+let f = fixedBump(&mut fixed, &mut fixedCalls)
+print "fixed ${f || -1} ${fixed[2]} calls ${fixedCalls}"
+-- stdout --
+with returned 12
+drop res 10
+after with 12 calls 1
+with returned -1
+drop res 11
+miss true calls 1
+withMut returned 23
+drop res 20
+after withMut 23 calls 2 xs 23
+map returned
+drop res 2
+mapped 2 4 46 calls 5
+filter returned
+drop res 2
+kept 1 calls 8
+fixed 6 6 calls 1

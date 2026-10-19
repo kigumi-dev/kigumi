@@ -17,6 +17,9 @@ func (r *Result) opFixedSummary(id EntityID) (OpSummary, bool) {
 	if s, ok := trustedOpSummaries[r.stdKey(id)]; ok {
 		return s, true
 	}
+	if s, ok := callbackOpSummaries[r.stdKey(id)]; ok {
+		return s, true
+	}
 	if c, ok := r.isrContractOf(id); ok {
 		return contractSummary(c), true
 	}

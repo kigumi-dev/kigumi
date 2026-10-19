@@ -1,0 +1,54 @@
+-- src --
+import ffi from std/ffi
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+type Counter = {
+    pub mut base Int
+}
+
+fn pinned(p: *mut u8, calls: &mut Int, r: Res) -> Int {
+    let v = unsafe {
+        ffi.Pin.with(p, (c: &Counter) => {
+            calls = calls + 1
+            c.base + r.n
+        })
+    }
+    print "pin returned ${v}"
+    v
+}
+
+fn handled(table: &ffi.HandleTable[Int], h: &ffi.FfiHandle[Int], calls: &mut Int, r: Res) -> Int {
+    let v = table.with(h, (x: &Int) => {
+        calls = calls + 1
+        x + r.n
+    })
+    print "table returned ${v}"
+    v
+}
+
+let mut calls = 0
+let pin = ffi.Pin.new(Counter { base: 100 })
+let a = pinned(pin.ptr(), &mut calls, Res { n: 1 })
+print "after pin ${a} calls ${calls}"
+
+let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let h = table.insert(40)
+let b = handled(&table, &h, &mut calls, Res { n: 2 })
+print "after table ${b} calls ${calls}"
+let removed = table.remove(h)
+print "removed ${removed}"
+-- stdout --
+pin returned 101
+drop res 1
+after pin 101 calls 1
+table returned 42
+drop res 2
+after table 42 calls 2
+removed 40

@@ -1,0 +1,24 @@
+-- module --
+mir: planned
+-- src --
+import {Box} from std/alloc
+
+noalloc fn pureCallback(b: &Box[Int]) -> Bool {
+    b.with((x: &Int) => x == 1)
+}
+
+noalloc fn allocatingCallback(b: &Box[Int]) -> Bool {
+    b.with((x: &Int) => { //~ ERROR closure is not `noalloc`
+        let c = Box.new(x)
+        true
+    })
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E422]: closure is not `noalloc` (calls `new`)
+ --> main.kg:8:12
+  |
+8 |     b.with((x: &Int) => { //~ ERROR closure is not `noalloc`
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

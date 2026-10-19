@@ -1,0 +1,45 @@
+-- engines --
+native
+-- src --
+import ffi from std/ffi
+
+type Res = resource {
+    pub n i32
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn bump(x: &mut i32, calls: &mut Int, r: Res) -> i32 {
+    let v = ffi.withAddress(x, (p: *mut i32) => unsafe {
+        calls = calls + 1
+        ffi.writeI32(p, ffi.readI32(ffi.toConst(p)) + 1)
+        ffi.readI32(ffi.toConst(p)) + r.n
+    })
+    print "withAddress returned ${v}"
+    v
+}
+
+fn peek(x: &i32, calls: &mut Int, r: Res) -> i32 {
+    let v = ffi.withAddressConst(x, (p: *const i32) => unsafe {
+        calls = calls + 1
+        ffi.readI32(p) + r.n
+    })
+    print "withAddressConst returned ${v}"
+    v
+}
+
+let mut calls = 0
+let mut x: i32 = 41
+let a = bump(&mut x, &mut calls, Res { n: 100 })
+print "after bump ${a} x ${x} calls ${calls}"
+let b = peek(&x, &mut calls, Res { n: 200 })
+print "after peek ${b} calls ${calls}"
+-- stdout --
+withAddress returned 142
+drop res 100
+after bump 142 x 42 calls 1
+withAddressConst returned 242
+drop res 200
+after peek 242 calls 2

@@ -1,0 +1,35 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn nothing() -> Int? {
+    None
+}
+
+fn mk(x: &Int) -> Res {
+    if x == 2 {
+        let _z = nothing().expect("mid-map")
+    }
+    Res { n: x + 100 }
+}
+
+async fn mapBoom(a: Array[Int]) -> Int {
+    let r = a.tryMap((x: &Int) => mk(x))
+    0
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(mapBoom(Array.of(1, 2, 3)))}"
+-- stdout --
+drop res 101
+-- stderr --
+panic: mid-map
+-- exit --
+2

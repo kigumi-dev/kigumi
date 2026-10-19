@@ -172,28 +172,3 @@ func (m *Machine) sized(v *obj) *obj {
 	m.chargeMemory(v)
 	return v
 }
-
-func (m *Machine) tryMapItems(src, f *obj) *obj {
-	if m.faultTick() {
-		return m.allocError()
-	}
-	out := make([]*obj, len(src.fields))
-	for i, x := range src.fields {
-		out[i] = m.callValue(f, []*obj{x})
-	}
-	return m.ok(m.sized(mkArray(out)))
-}
-
-func (m *Machine) tryFilterItems(src, keep *obj) *obj {
-	if m.faultTick() {
-		return m.allocError()
-	}
-	var out []*obj
-	for _, x := range src.fields {
-		r := deref(m.callValue(keep, []*obj{x}))
-		if r.b {
-			out = append(out, retain(x))
-		}
-	}
-	return m.ok(m.sized(mkArray(out)))
-}

@@ -1897,7 +1897,7 @@
   },
   {
     "key": "ffi.withAddress",
-    "signature": "fn(\u0026mut T, escaping fn(*mut T) -\u003e R) -\u003e R",
+    "signature": "fn(\u0026mut T, fn(*mut T) -\u003e R) -\u003e R",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -1907,7 +1907,7 @@
   },
   {
     "key": "ffi.withAddressConst",
-    "signature": "fn(\u0026T, escaping fn(*const T) -\u003e R) -\u003e R",
+    "signature": "fn(\u0026T, fn(*const T) -\u003e R) -\u003e R",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -5343,7 +5343,7 @@
   },
   {
     "key": "prelude.FixedArray.withMut",
-    "signature": "pure fn(usize, escaping fn(\u0026mut T) -\u003e R) -\u003e R?",
+    "signature": "pure fn(usize, fn(\u0026mut T) -\u003e R) -\u003e R?",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",

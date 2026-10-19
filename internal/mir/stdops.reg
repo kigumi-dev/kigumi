@@ -308,6 +308,7 @@ cap ffi.handle-table
 key ffi.HandleTable.insert
 type std/ffi FfiHandle
 op 100 HANDLE_TABLE_WITH provider (named, named, fn) -> any
+callback 2
 cap ffi.handle-table
 key ffi.HandleTable.with
 type std/ffi HandleTable
@@ -394,8 +395,10 @@ op 127 STRING_BUILDER_TRY_NEW primitive () -> result
 key text.StringBuilder.tryNew
 type std/text StringBuilder
 op 128 ARRAY_TRY_MAP primitive (array, fn) -> result
+callback 1
 key array.Array.tryMap
 op 129 ARRAY_TRY_FILTER primitive (array, fn) -> result
+callback 1
 key array.Array.tryFilter
 op 130 ARRAY_TRY_CONCAT primitive (array, array) -> result
 key array.Array.tryConcat
@@ -461,6 +464,7 @@ key text.tryTrimSuffix
 op 153 ARRAY_TRY_JOIN primitive (array, string) -> result
 key array.tryJoin
 op 154 ARRAY_TRY_SORTED_BY primitive (array, fn) -> result
+callback 1
 key array.trySortedBy
 op 155 STRING_BUILDER_TRY_PUSH primitive (named, string) -> result
 key text.StringBuilder.tryPush

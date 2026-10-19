@@ -77,6 +77,11 @@ var nonEscapingIntrinsics = map[string]bool{
 	// calls f once per element with a borrow of it, and keeps only f's results.
 	"std/array:Array.tryMap":    true,
 	"std/array:Array.tryFilter": true,
+	// calls f once with a borrow of the fixed array's element at index.
+	"std/prelude:FixedArray.withMut": true,
+	// calls f once with a pointer valid only for the call.
+	"std/ffi:withAddress":      true,
+	"std/ffi:withAddressConst": true,
 	// calls order with borrows of two elements and keeps only the sorted copy.
 	"std/array:trySortedBy": true,
 }

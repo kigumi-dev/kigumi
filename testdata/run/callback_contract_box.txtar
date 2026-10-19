@@ -1,0 +1,53 @@
+-- src --
+import {Box} from std/alloc
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+fn readTwice(b: &Box[Pt], calls: &mut Int, r: Res) -> Int {
+    let v = b.with((p: &Pt) => {
+        calls = calls + 1
+        p.x + p.y + r.n
+    })
+    print "with returned ${v}"
+    v
+}
+
+fn bumpTwice(b: &mut Box[Pt], calls: &mut Int, r: Res) -> Unit {
+    b.withMut((p: &mut Pt) => {
+        calls = calls + 1
+        p.x = p.x + 1
+        p.y = p.y * 2
+    })
+    print "withMut returned"
+}
+
+let mut calls = 0
+let mut b = Box.new(Pt { x: 1, y: 2 })
+let first = readTwice(&b, &mut calls, Res { n: 100 })
+print "after with ${first} calls ${calls}"
+bumpTwice(&mut b, &mut calls, Res { n: 200 })
+print "after withMut calls ${calls}"
+let second = b.with((p: &Pt) => p.x * 10 + p.y)
+print "mutation visible ${second}"
+let unit = b.withMut((p: &mut Pt) => { p.x = 7 })
+print "unit result ${unit == ()} ${b.with((p: &Pt) => p.x)}"
+-- stdout --
+with returned 103
+drop res 100
+after with 103 calls 1
+withMut returned
+drop res 200
+after withMut calls 2
+mutation visible 24
+unit result true 7

@@ -62,10 +62,23 @@ func TestRegistryAttributesMatchTheirUses(t *testing.T) {
 		if op.Elem != want[op.Name] {
 			t.Errorf("op %s: elem = %v", op.Name, op.Elem)
 		}
-		if (op.Callback >= 0) != (op.Name == "ARRAY_WITH" || op.Name == "ARRAY_WITH_MUT" || op.Name == "PIN_WITH" || op.Name == "WITH_ADDRESS" || op.Name == "SHARED_WITH" || op.Name == "SHARED_WITH_MUT" || op.Name == "BOX_WITH" || op.Name == "BOX_WITH_MUT") {
-			t.Errorf("op %s: callback = %d", op.Name, op.Callback)
+		if got := op.Callback; got != wantCallback(op) {
+			t.Errorf("op %s: callback = %d, want %d", op.Name, got, wantCallback(op))
 		}
 	}
+}
+
+// wantCallback is the index of the op's fn argument; the blocking pool's work runs on its own worker, so it has none.
+func wantCallback(op mir.StdOpEntry) int {
+	if op.Name == "BLOCKING_POOL_RUN" {
+		return -1
+	}
+	for i, a := range op.Desc.Args {
+		if a == 1<<mir.ClassFn {
+			return i
+		}
+	}
+	return -1
 }
 
 func TestRegistryIdsFollowNames(t *testing.T) {
