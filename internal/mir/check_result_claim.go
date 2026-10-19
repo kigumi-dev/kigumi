@@ -44,6 +44,16 @@ func (p *Program) boxedResult(f *Func, in Inst) sem.TypeID {
 	return 0
 }
 
+func (p *Program) ResultBoxed(f *Func, in Inst) bool {
+	switch in.Op {
+	case OpCallValue:
+		return !f.IsDirect(in.Args[0])
+	case OpCall:
+		return p.R.Entity(p.R.Entity(in.Ent).Parent).Kind == sem.EntInterface
+	}
+	return false
+}
+
 // entryBox is the type g's entry allocates a box for, 0 when it allocates none.
 func (p *Program) entryBox(g *Func) sem.TypeID {
 	if g.Entry == nil {

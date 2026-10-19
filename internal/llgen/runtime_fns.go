@@ -23,6 +23,10 @@ var (
 	rtTruth            = RuntimeFn{"rt_truth", []Type{TPtr}, TI1}
 	rtAt               = RuntimeFn{"rt_at", []Type{TPtr, TI64}, TPtr}
 	rtCallv            = RuntimeFn{"rt_callv", []Type{TPtr, TI32, TPtr}, TPtr}
+	rtCallvI64         = RuntimeFn{"rt_callv_i64", []Type{TPtr, TI32, TPtr}, TI64}
+	rtIterCount        = RuntimeFn{"rt_iter_count", []Type{TPtr}, TI64}
+	rtIterAt           = RuntimeFn{"rt_iter_at", []Type{TPtr, TI64, TI32}, TPtr}
+	rtIterAtInt        = RuntimeFn{"rt_iter_at_int", []Type{TPtr, TI64}, TI64}
 	rtBuiltin          = RuntimeFn{"rt_builtin", []Type{TPtr, TI32, TPtr}, TPtr}
 	rtStd              = RuntimeFn{"rt_std", []Type{TPtr, TI32, TPtr}, TPtr}
 	rtStdId            = RuntimeFn{"rt_std_id", []Type{TI32, TI32, TPtr}, TPtr}
@@ -124,7 +128,7 @@ var (
 // source renderExterns and runtime_fns_test.go both read.
 var runtimeFns = []RuntimeFn{
 	rtInit, rtAbiCheck, rtExitCode, rtUnit, rtInt, rtFloat, rtBool, rtChar, rtStr, rtBytes, rtCopy, rtCopyMut,
-	rtTruth, rtAt, rtCallv, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
+	rtTruth, rtAt, rtCallv, rtCallvI64, rtIterCount, rtIterAt, rtIterAtInt, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast, rtIadd, rtIsub, rtImul, rtIdiv, rtImod, rtIxor, rtIshl, rtIshr, rtIneg, rtInot,
 	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstNum, rtConstInt128, rtBoxInt128, rtInt128Lo, rtInt128Hi, rtI128Mul, rtI128Div, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
 	rtIndex, rtSetindex, rtSetindexCopy, rtSetfieldCopy, rtPayload, rtIsvariant, rtVariantIndex, rtIstype, rtUnbox, rtBox,

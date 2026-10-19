@@ -82,6 +82,9 @@ func (c *checker) settleInlineAt(bodyDone bool) {
 				e.Why = whyInlined
 			}
 		}
+		for _, a := range p.args {
+			c.r.inlineCallback(c.info.Defs[c.t.Unparen(a)])
+		}
 		c.chargeFixedResidue(p, op, t)
 	}
 	c.inlinePending = kept

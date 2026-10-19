@@ -44,9 +44,10 @@ func TestLaneStartsCleanAndKeepsSharedState(t *testing.T) {
 	m.stack = []*mir.Func{{Name: "caller"}}
 	m.depth, m.stepsLeft = 3, 9
 	m.cur, m.curLane = &task{}, 2
+	m.valueSites, m.boxFacts = map[valueSiteKey]valueSite{}, map[*mir.Func]localFacts{}
 
 	w := m.lane()
-	if w.stack != nil || w.depth != 0 || w.stepsLeft != 0 || w.cur != nil || w.curLane != 0 {
+	if w.stack != nil || w.depth != 0 || w.stepsLeft != 0 || w.cur != nil || w.curLane != 0 || w.valueSites != nil || w.boxFacts != nil {
 		t.Fatal("a lane inherited the interpreter state of the one that started it")
 	}
 	if w.sh != m.sh {

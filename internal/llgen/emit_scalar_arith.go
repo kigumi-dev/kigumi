@@ -10,14 +10,15 @@ import (
 // scalarBinary checks both operands are scalar-eligible; the MIR type
 // checker never mixes register kinds within one binary op.
 func (e *emitter) scalarBinary(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
-	lty, lok := e.scalarType(f.Locals[in.Args[0]].Type)
-	rty, rok := e.scalarType(f.Locals[in.Args[1]].Type)
+	lt := e.operandType(f.Locals[in.Args[0]].Type)
+	lty, lok := e.scalarType(lt)
+	rty, rok := e.scalarType(e.operandType(f.Locals[in.Args[1]].Type))
 	if !lok || !rok || lty != rty && !wideShiftOperands(in.Str, lty, rty) {
 		return false
 	}
 	l, _ := e.scalarOperand(sb, f, in.Args[0])
 	r, _ := e.scalarOperand(sb, f, in.Args[1])
-	res, ok := e.nativeBinaryOp(sb, in.Str, lty, e.numKind(f.Locals[in.Args[0]].Type), l, r)
+	res, ok := e.nativeBinaryOp(sb, in.Str, lty, e.numKind(lt), l, r)
 	if !ok {
 		return false
 	}
@@ -28,12 +29,13 @@ func (e *emitter) scalarBinary(sb *strings.Builder, f *mir.Func, in mir.Inst) bo
 // scalarUnary computes OpUnary's non-"cast" operators (!, -, ~) natively;
 // cast is excluded upstream (classifyArgs and tryScalarInst).
 func (e *emitter) scalarUnary(sb *strings.Builder, f *mir.Func, in mir.Inst) bool {
-	ty, ok := e.scalarType(f.Locals[in.Args[0]].Type)
+	t := e.operandType(f.Locals[in.Args[0]].Type)
+	ty, ok := e.scalarType(t)
 	if !ok {
 		return false
 	}
 	v, _ := e.scalarOperand(sb, f, in.Args[0])
-	nk := e.numKind(f.Locals[in.Args[0]].Type)
+	nk := e.numKind(t)
 	var res Value
 	switch {
 	case ty == TI1 && in.Str == "!":

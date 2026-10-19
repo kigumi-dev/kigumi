@@ -15,7 +15,7 @@ fn plainFn(x: Int) -> Int { mkn(x).n }
 noalloc fn cheap(x: Int) -> Int { x + 1 }
 
 noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
-    f(v)
+    f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
 }
 
 pure fn applyPure[F: Fn[pure fn(Int) -> Int]](f: F, v: Int) -> Int {
@@ -26,7 +26,7 @@ fn okItem() -> Int { applyGen(cheap, 1) }
 
 fn okClosure(n: Int) -> Int {
     let k = n + 1
-    applyGen((x: Int) => x + k, 1)
+    applyGen((x: Int) => x + k, 1) //~ ERROR closure is not `noalloc` (allocates)
 }
 
 fn okForwarded(f: noalloc fn(Int) -> Int) -> Int { applyGen(f, 1) }
@@ -51,6 +51,19 @@ fn badPure() -> Int {
     }, 1)
 }
 -- expect --
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main/main.kg:17:7
+   |
+17 |     f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
+   |       ^
+   = help: pass a constant, call the function directly, or drop the declaration
+
+error[E422]: closure is not `noalloc` (allocates)
+  --> main/main.kg:28:14
+   |
+28 |     applyGen((x: Int) => x + k, 1) //~ ERROR closure is not `noalloc` (allocates)
+   |              ^^^^^^^^^^^^^^^^^
+
 error[E423]: `plainFn` is not `noalloc` (calls `mkn`)
   --> main/main.kg:33:32
    |

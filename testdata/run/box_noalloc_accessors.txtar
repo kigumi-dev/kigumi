@@ -22,11 +22,11 @@ noalloc fn readFlag(b: &Box[Bool]) -> Bool {
     b.get()
 }
 
-noalloc fn sumPt(b: &Box[Pt]) -> Int {
+fn sumPt(b: &Box[Pt]) -> Int {
     b.with((p: &Pt) => p.x + p.y)
 }
 
-noalloc fn bumpPt(b: &mut Box[Pt]) -> Unit {
+fn bumpPt(b: &mut Box[Pt]) -> Unit {
     b.withMut((p: &mut Pt) => {
         p.x = p.x + 1
         p.y = p.y * 2

@@ -9991,6 +9991,23 @@
       ]
     },
     {
+      "id": "run/scalar_box_values",
+      "kind": "run",
+      "path": "testdata/run/scalar_box_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/scalar_literal_returns",
       "kind": "run",
       "path": "testdata/run/scalar_literal_returns.txtar",
@@ -12660,6 +12677,28 @@
       "id": "sem/effects_noalloc_protocol",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_protocol.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_scalar_box",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_scalar_box.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_scalar_store",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_scalar_store.txtar",
       "mode": [
         "check"
       ],

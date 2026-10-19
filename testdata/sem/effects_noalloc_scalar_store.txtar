@@ -1,0 +1,91 @@
+-- src --
+type P = {
+    pub mut a Int
+    pub mut b Float
+}
+
+const BIG: Int = 5000
+
+// A constant argument is handed over as its immortal, folded or negated alike.
+noalloc fn constantArguments(f: noalloc fn(Int) -> Bool, g: noalloc fn(Float) -> Bool) -> Bool {
+    f(-1) && f(-5000) && f(1 + 2) && f(BIG) && g(-1.5) && g((2.5))
+}
+
+noalloc fn throughRef(r: &mut Int, i: Int) -> Unit {
+    r = r + i //~ ERROR storing a computed `Int` in it allocates a box
+    r = 7
+}
+
+noalloc fn intoRecord(p: &mut P, i: Int) -> Unit {
+    p.a = i + 2000 //~ ERROR storing a computed `Int` in it allocates a box
+    p.b = 1.5
+    p.a += i //~ ERROR storing a computed `Int` in it allocates a box
+}
+
+noalloc fn intoArray(xs: &mut Array[Int], i: Int) -> Unit {
+    xs[0] = i + 2000 //~ ERROR storing a computed `Int` in it allocates a box
+    xs[1] = xs[0]
+    xs[2] = 9
+}
+
+// A local record of its own holds the value unboxed.
+noalloc fn intoLocal(i: Int) -> Int {
+    let mut p = P { a: 0, b: 0.0 }
+    p.a = i + 2000
+    p.a
+}
+
+noalloc fn knownClosure(n: Int) -> Int {
+    let k = n + 1
+    let f = (x: Int) => x + k
+    f(n) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
+}
+
+noalloc fn constantClosure() -> Bool {
+    let f = (x: Int) => x > 2
+    f(3)
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E2125]: this place holds its value boxed, so storing a computed `Int` in it allocates a box
+  --> main/main.kg:14:9
+   |
+14 |     r = r + i //~ ERROR storing a computed `Int` in it allocates a box
+   |         ^^^^^
+   = help: store a constant, keep the value in a local, or drop the declaration
+
+error[E2125]: this place holds its value boxed, so storing a computed `Int` in it allocates a box
+  --> main/main.kg:19:11
+   |
+19 |     p.a = i + 2000 //~ ERROR storing a computed `Int` in it allocates a box
+   |           ^^^^^^^^
+   = help: store a constant, keep the value in a local, or drop the declaration
+
+error[E2125]: this place holds its value boxed, so storing a computed `Int` in it allocates a box
+  --> main/main.kg:21:5
+   |
+21 |     p.a += i //~ ERROR storing a computed `Int` in it allocates a box
+   |     ^^^^^^^^
+   = help: store a constant, keep the value in a local, or drop the declaration
+
+error[E2125]: this place holds its value boxed, so storing a computed `Int` in it allocates a box
+  --> main/main.kg:25:13
+   |
+25 |     xs[0] = i + 2000 //~ ERROR storing a computed `Int` in it allocates a box
+   |             ^^^^^^^^
+   = help: store a constant, keep the value in a local, or drop the declaration
+
+error[E907]: `f` is not `noalloc`
+  --> main/main.kg:40:5
+   |
+40 |     f(n) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
+   |     ^^^
+
+error[E2126]: a closure takes and returns `Int` in a box, so this call allocates one for it
+  --> main/main.kg:40:7
+   |
+40 |     f(n) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
+   |       ^
+   = help: use a named function, or drop the declaration
+

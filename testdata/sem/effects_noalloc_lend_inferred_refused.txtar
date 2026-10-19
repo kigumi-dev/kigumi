@@ -48,9 +48,11 @@ noalloc fn viaBig() -> Int { boxedBig(3) } //~ ERROR `boxedBig` is not `noalloc`
 
 noalloc fn viaChain() -> Int { chained(3) } //~ ERROR `chained` is not `noalloc`
 
+fn keepsBoxed(i: Int) -> Bool { boxedKeep(i) > 0 }
+
 noalloc fn viaClosure() -> Int {
-    let f: noalloc fn(Int) -> Int = boxedKeep //~ ERROR `boxedKeep` is not `noalloc`
-    f(2)
+    let f: noalloc fn(Int) -> Bool = keepsBoxed //~ ERROR `keepsBoxed` is not `noalloc`
+    if f(2) { 1 } else { 0 }
 }
 
 fn main() -> Unit! {
@@ -75,9 +77,9 @@ error[E907]: `chained` is not `noalloc`
 46 | noalloc fn viaChain() -> Int { chained(3) } //~ ERROR `chained` is not `noalloc`
    |                                ^^^^^^^^^
 
-error[E423]: `boxedKeep` is not `noalloc` (allocates)
-  --> main.kg:49:37
+error[E423]: `keepsBoxed` is not `noalloc` (calls `boxedKeep`)
+  --> main.kg:51:38
    |
-49 |     let f: noalloc fn(Int) -> Int = boxedKeep //~ ERROR `boxedKeep` is not `noalloc`
-   |                                     ^^^^^^^^^
+51 |     let f: noalloc fn(Int) -> Bool = keepsBoxed //~ ERROR `keepsBoxed` is not `noalloc`
+   |                                      ^^^^^^^^^^
 

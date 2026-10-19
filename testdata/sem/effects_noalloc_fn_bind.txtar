@@ -2,41 +2,41 @@
 mir: planned
 -- src --
 interface Sz {
-    noalloc fn sz(self) -> Int
+    noalloc fn sz(self) -> Bool
 }
 
-noalloc fn i64.sz(self) -> Int { self }
+noalloc fn i64.sz(self) -> Bool { self > 0 }
 
-noalloc fn total[T: Sz](x: T) -> Int {
+noalloc fn total[T: Sz](x: T) -> Bool {
     x.sz()
 }
 
-noalloc fn takes(f: noalloc fn(Int) -> Int, p: Int) -> Int {
-    f(p)
+noalloc fn takes(f: noalloc fn(Int) -> Bool, p: Int) -> Bool {
+    f(p) //~ ERROR a call through a function value receives this `Int` in a box
 }
 
-noalloc fn direct(p: Int) -> Int {
+noalloc fn direct(p: Int) -> Bool {
     total(p)
 }
 
-noalloc fn viaParam(p: Int) -> Int {
+noalloc fn viaParam(p: Int) -> Bool {
     takes(total[Int], p) //~ ERROR binding the witnesses of `total`
 }
 
-noalloc fn viaLocal(p: Int) -> Int {
+noalloc fn viaLocal(p: Int) -> Bool {
     let f = total[Int] //~ ERROR binding the witnesses of `total`
-    f(p)
+    f(p) //~ ERROR a call through a function value receives this `Int` in a box
 }
 
-fn inferred(p: Int) -> Int {
+fn inferred(p: Int) -> Bool {
     takes(total[Int], p)
 }
 
-noalloc fn callsInferred(p: Int) -> Int {
+noalloc fn callsInferred(p: Int) -> Bool {
     inferred(p) //~ ERROR `inferred` is not `noalloc`
 }
 
-fn plain(p: Int) -> Int {
+fn plain(p: Int) -> Bool {
     let f = total[Int]
     f(p)
 }
@@ -45,6 +45,13 @@ fn main() -> Unit! {
     print "${direct(1)} ${viaParam(2)} ${viaLocal(3)} ${callsInferred(4)} ${plain(5)}"
 }
 -- expect --
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main.kg:12:7
+   |
+12 |     f(p) //~ ERROR a call through a function value receives this `Int` in a box
+   |       ^
+   = help: pass a constant, call the function directly, or drop the declaration
+
 error[E1820]: binding the witnesses of `total` into a function value allocates
   --> main.kg:20:11
    |
@@ -58,6 +65,13 @@ error[E1820]: binding the witnesses of `total` into a function value allocates
 24 |     let f = total[Int] //~ ERROR binding the witnesses of `total`
    |             ^^^^^^^^^
    = help: call it directly or bind it outside the `noalloc` body
+
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main.kg:25:7
+   |
+25 |     f(p) //~ ERROR a call through a function value receives this `Int` in a box
+   |       ^
+   = help: pass a constant, call the function directly, or drop the declaration
 
 error[E907]: `inferred` is not `noalloc`
   --> main.kg:33:5

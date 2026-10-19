@@ -35,6 +35,9 @@ func (r *Result) BoxAllocates(t TypeID) bool {
 
 // EntryBoxes is the type fn's entry boxes when it returns ret, 0 when that allocates nothing.
 func (r *Result) EntryBoxes(fn EntityID, ret TypeID) TypeID {
+	if r.ScalarBoxes(ret) {
+		return ret
+	}
 	if t := r.DirectResultType(fn, ret); t != 0 && r.BoxAllocates(t) {
 		return t
 	}
@@ -65,7 +68,7 @@ func (c *checker) boxEdge(n syntax.NodeID, t TypeID, why uint8) {
 		c.allocPending = append(c.allocPending, pendingAlloc{edges: c.edges, at: len(*c.edges) - 1})
 		return
 	}
-	if c.r.BoxAllocates(t) {
+	if c.r.boxCharged(why, t) {
 		c.edge(e)
 	}
 }

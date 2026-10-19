@@ -13,7 +13,7 @@ noalloc fn cheap(x: Int) -> Int { x + 1 }
 pure fn spotless(x: Int) -> Int { x * 2 }
 
 noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
-    f(v)
+    f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
 }
 
 pure fn applyPure[F: Fn[pure fn(Int) -> Int]](f: F, v: Int) -> Int {
@@ -21,7 +21,7 @@ pure fn applyPure[F: Fn[pure fn(Int) -> Int]](f: F, v: Int) -> Int {
 }
 
 noalloc pure fn applyBoth[F: Fn[noalloc pure fn(Int) -> Int]](f: F, v: Int) -> Int {
-    f(v)
+    f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
 }
 
 fn okNoalloc[G: Fn[noalloc fn(Int) -> Int]](g: G) -> Int { applyGen(g, 1) }
@@ -47,13 +47,27 @@ fn badBoth[G: Fn[noalloc fn(Int) -> Int]](g: G) -> Int { applyBoth(g, 1) } //~ E
 fn badChain[G: Fn[fn(Int) -> Int]](g: G) -> Int { okNoalloc(g) } //~ ERROR `G` cannot be used as `noalloc fn(Int) -> Int`
 
 fn useItems() -> Int {
-    okNoalloc(cheap) + okNoalloc((x: Int) => x + 2) + okPure(spotless)
+    okNoalloc(cheap) + okNoalloc((x: Int) => x + 2) + okPure(spotless) //~ ERROR closure is not `noalloc` (allocates)
 }
 
 fn badItem() -> Int { okNoalloc(plainFn) } //~ ERROR `plainFn` is not `noalloc`
 
 fn badClosure() -> Int { okNoalloc((x: Int) => mkn(x).n) } //~ ERROR closure is not `noalloc`
 -- expect --
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main/main.kg:15:7
+   |
+15 |     f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
+   |       ^
+   = help: pass a constant, call the function directly, or drop the declaration
+
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main/main.kg:23:7
+   |
+23 |     f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
+   |       ^
+   = help: pass a constant, call the function directly, or drop the declaration
+
 error[E421]: `G` cannot be used as `noalloc fn(Int) -> Int`: it is not declared `noalloc`
   --> main/main.kg:36:62
    |
@@ -89,6 +103,12 @@ error[E421]: `G` cannot be used as `noalloc fn(Int) -> Int`: it is not declared 
    |
 46 | fn badChain[G: Fn[fn(Int) -> Int]](g: G) -> Int { okNoalloc(g) } //~ ERROR `G` cannot be used as `noalloc fn(Int) -> Int`
    |                                                             ^
+
+error[E422]: closure is not `noalloc` (allocates)
+  --> main/main.kg:49:34
+   |
+49 |     okNoalloc(cheap) + okNoalloc((x: Int) => x + 2) + okPure(spotless) //~ ERROR closure is not `noalloc` (allocates)
+   |                                  ^^^^^^^^^^^^^^^^^
 
 error[E423]: `plainFn` is not `noalloc` (calls `mkn`)
   --> main/main.kg:52:33

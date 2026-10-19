@@ -39,17 +39,17 @@ noalloc fn takeW(w: W) -> Int { w.k }
 noalloc fn takeT(t: Tag) -> Int { match t { A -> 0, B(v) -> v, C(c) -> c.n } }
 noalloc fn takeP(p: Pt) -> Int { p.x }
 
-noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
-    f(v)
+noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Bool]](f: F) -> Bool {
+    f(1)
 }
 
-noalloc fn applyDyn(f: noalloc fn(Int) -> Int, v: Int) -> Int {
-    f(v)
+noalloc fn applyDyn(f: noalloc fn(Int) -> Bool) -> Bool {
+    f(1)
 }
 
 `
 
-var allocatingCall = regexp.MustCompile(`call [^@\n]*@(rt_copy|rt_copy_mut|rt_record|rt_variant|rt_array|rt_closure|rt_future_new|malloc|calloc)\(`)
+var allocatingCall = regexp.MustCompile(`call [^@\n]*@(rt_copy|rt_copy_mut|rt_record|rt_variant|rt_array|rt_closure|rt_future_new|malloc|calloc|rt_float|rt_box_int128)\(|call [^@\n]*@(rt_int|rt_char)\([a-z0-9]+ %`)
 
 // noallocBodies compiles src and returns the allocating runtime calls found in the body of every function declared noalloc and every closure.
 func noallocBodies(t *testing.T, src string) (rejected string, checked int, holes []string) {
@@ -91,7 +91,7 @@ func noallocBodies(t *testing.T, src string) (rejected string, checked int, hole
 		}
 		checked++
 		for _, mm := range allocatingCall.FindAllStringSubmatch(head, -1) {
-			holes = append(holes, name+" -> "+mm[1])
+			holes = append(holes, name+" -> "+mm[1]+mm[2])
 		}
 	}
 	return "", checked, holes
@@ -126,7 +126,7 @@ var noallocProbes = []noallocProbe{
 	{"noalloc fn p20(t: Tree) -> Int { match t { Leaf(v) -> v, Node(kids) -> { let k = kids\n 0 } } }", "E1700"},
 	{"noalloc fn p21(w: &W) -> Int { let mut n = w.nm\n n.n = 4\n w.nm.n }", "E1700"},
 	{"noalloc fn p22(n: Nm) -> Nm { let m = n\n m }", "E1700"},
-	{"noalloc fn p23(w: &mut W) -> Int { let a = w.nm\n w.nm.n = a.n + 1\n w.nm.n }", ""},
+	{"noalloc fn p23(w: &mut W) -> Int { let a = w.nm\n w.nm.n = a.n + 1\n w.nm.n }", "E2125"},
 	{"noalloc fn p24(xs: &Array[Nm]) -> Int { if xs.first() is Some(v) { v.n } else { 0 } }", "E1700"},
 	{"noalloc fn p25(n: Nm) -> Int { let mut t = 0\n let mut i = 0\n for i < 3 { t = t + take(n)\n i = i + 1 }\n t }", ""},
 	{"noalloc fn p26(a: Nm) -> Int { let r = if a.n > 0 { a } else { mk() }\n r.n }", "E907"},
@@ -134,14 +134,14 @@ var noallocProbes = []noallocProbe{
 	{"noalloc fn s1(b: &Bytes, sub: Bytes) -> Bool { b.startsWith(sub) }", "E1700"},
 	{"noalloc fn s2(b: &Bytes, sub: Bytes) -> Bool { b.endsWith(sub) }", "E1700"},
 	{"noalloc fn s3(b: Bytes, c: Bytes) -> usize { b.len() + c.len() }", ""},
-	{"noalloc fn s4(p: &mut Pt, q: Pt) -> Unit { let t = p.x\n p.x = q.x\n p.y = t }", ""},
+	{"noalloc fn s4(p: &mut Pt, q: Pt) -> Unit { let t = p.x\n p.x = q.x\n p.y = t }", "E2125"},
 	{"noalloc fn s5(xs: &mut Array[Pt]) -> Unit { if xs.get(0) is Some(v) { xs.withMut(0, (e) => { e.x = v.y }) } }", "E907"},
 	{"noalloc fn s6(w: &mut W, q: Pt) -> Int { let a = q\n let b = a\n a.x + b.y }", ""},
 	{"noalloc fn s7(t: Tree) -> Int { match t { Leaf(v) -> v, Node(kids) -> { let a = kids[0]\n 0 } } }", ""},
 	{"noalloc fn b0(b: &Box[Int]) -> Int { b.get() }", ""},
 	{"noalloc fn b1(b: &Box[Pt]) -> Int { b.get().x }", "E1700"},
 	{"noalloc fn b2(b: &Box[Nm]) -> Int { b.with((n: &Nm) => n.n) }", ""},
-	{"noalloc fn b3(b: &mut Box[Pt]) -> Int { b.withMut((p: &mut Pt) => { p.x = p.x + 1\n p.x }) }", ""},
+	{"noalloc fn b3(b: &mut Box[Pt]) -> Int { b.withMut((p: &mut Pt) => { p.x = p.x + 1\n p.x }) }", "E422"},
 	{"noalloc fn b4(b: Box[Nm]) -> Int { b.into().n }", ""},
 	{"noalloc fn b5(b: Box[Pt]) -> Pt { b.into() }", ""},
 	{"noalloc fn b6(b: &Box[Pt]) -> Pt { b.get() }", "E1700"},
@@ -151,12 +151,18 @@ var noallocProbes = []noallocProbe{
 	{"noalloc fn b7(n: Int) -> Int { let b = Box.new(n)\n b.into() }", "E907"},
 	{"noalloc fn b8(n: Int) -> Int { match Box.tryNew(n) { Ok(b) -> b.into(), Err(e) -> 0 } }", "E907"},
 	{"noalloc fn b9(b: &Box[Nm]) -> Int { b.with((n: &Nm) => mk().n) }", "E422"},
-	{"fn q0(n: Nm) -> Int { applyGen((x: Int) => take(n) + x, 1) }", "E422"},
-	{"fn q1(n: Nm) -> Int { applyDyn((x: Int) => take(n) + x, 1) }", "E422"},
-	{"fn q2(w: W) -> Int { applyGen((x: Int) => w.nm.n + x, 1) }", ""},
-	{"fn q3(w: W) -> Int { applyGen((x: Int) => { let a = w.nm\n a.n + x }, 1) }", ""},
-	{"fn q4(w: &mut W) -> Int { applyGen((x: Int) => { w.nm = Nm { name: \"b\", n: x }\n x }, 1) }", "E422"},
-	{"fn q5(w: &mut W) -> Int { applyDyn((x: Int) => { w.nm = Nm { name: \"b\", n: x }\n x }, 1) }", "E422"},
+	{"fn c1(n: Int) -> Int { let mut c = 0\n let f = () => { c = n }\n f()\n c }", ""},
+	{"noalloc fn c2(n: Int) -> Bool { let f = (x: Int) => x > n\n f(3) }", ""},
+	{"noalloc fn c3(xs: &mut Array[Int], k: Int) -> Unit { xs[1] = xs[0]\n xs[2] = 5 }", ""},
+	{"noalloc fn c4(xs: &Array[Int]) -> Int { let mut t = 0\n for x in xs { t = t + x }\n t }", ""},
+	{"noalloc fn c5(n: Int) -> Int { let f = (x: Int) => x + n\n f(n) }", "E2126"},
+	{"noalloc fn c6(r: &mut Int, n: Int) -> Unit { r = r + n }", "E2125"},
+	{"fn q0(n: Nm) -> Bool { applyGen((x: Int) => take(n) + x > 0) }", "E422"},
+	{"fn q1(n: Nm) -> Bool { applyDyn((x: Int) => take(n) + x > 0) }", "E422"},
+	{"fn q2(w: W) -> Bool { applyGen((x: Int) => w.nm.n + x > 0) }", ""},
+	{"fn q3(w: W) -> Bool { applyGen((x: Int) => { let a = w.nm\n a.n + x > 0 }) }", ""},
+	{"fn q4(w: &mut W) -> Bool { applyGen((x: Int) => { w.nm = Nm { name: \"b\", n: x }\n x > 0 }) }", "E422"},
+	{"fn q5(w: &mut W) -> Bool { applyDyn((x: Int) => { w.nm = Nm { name: \"b\", n: x }\n x > 0 }) }", "E422"},
 }
 
 func TestDeclaredNoallocBodiesCallNoAllocator(t *testing.T) {

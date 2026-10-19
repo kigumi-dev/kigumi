@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/sem"
 )
 
 // tryScalarInst emits in on native registers when e.scalar allows it with
@@ -105,11 +106,19 @@ func (e *emitter) scalarOperand(sb *strings.Builder, f *mir.Func, l mir.LocalID)
 	if _, ok := e.scalar[l]; ok {
 		return e.loadNative(sb, l), true
 	}
-	ty, ok := e.scalarType(f.Locals[l].Type)
+	ty, ok := e.scalarType(e.operandType(f.Locals[l].Type))
 	if !ok {
 		return Value{}, false
 	}
 	return e.unboxScalar(sb, ty, e.load(sb, l)), true
+}
+
+// operandType reads a reference to a scalar as the scalar: the unbox helpers follow it to the box.
+func (e *emitter) operandType(t sem.TypeID) sem.TypeID {
+	if e.r.Types.Kind(t) == sem.KRef {
+		return e.r.Types.Node(t).Elem
+	}
+	return t
 }
 
 // storeMaybeScalar is the fallback half of classifyDst's contract: dst can

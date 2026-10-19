@@ -60,7 +60,6 @@ var familyCases = []struct{ name, setup, try, plain string }{
 	{"array.join", "import array from std/array\n\nlet items = Array.empty[String]()\n", "_ = array.tryJoin(&items, \",\")", "_ = array.join(&items, \",\")"},
 	{"array.sortedBy", "import array from std/array\n\nlet items = Array.empty[Int]()\n", "_ = array.trySortedBy(&items, (a, b) => a.compareTo(b))", "_ = array.sortedBy(&items, (a, b) => a.compareTo(b))"},
 	{"StringBuilder.freeze", "import text from std/text\n\nlet b = text.StringBuilder.tryNew().unwrap()\n", "_ = b.tryFreeze()", "_ = b.freeze()"},
-	{"Array.map scalar closure", "let mut a = Array.empty[Int]()\n", "_ = a.tryMap((x: &Int) => x * 2 + 1)", "_ = a.map((x: &Int) => x * 2 + 1)"},
 	{"Array.filter scalar closure", "let mut a = Array.empty[Int]()\n", "_ = a.tryFilter((x: &Int) => x * 2 > 7)", "_ = a.filter((x: &Int) => x * 2 > 7)"},
 	{"array.sortedBy scalar closure", "import array from std/array\n\nlet items = Array.empty[Int]()\n", "_ = array.trySortedBy(&items, (a, b) => (a * 3 - 1).compareTo(b * 3 - 1))", "_ = array.sortedBy(&items, (a, b) => (a * 3 - 1).compareTo(b * 3 - 1))"},
 	{"debug", "let v = 1\n", "_ = tryDebug(&v)", "_ = debug(&v)"},
@@ -79,6 +78,18 @@ func TestRecoverableOnlyFamilyIsUniform(t *testing.T) {
 				t.Errorf("the plain form passes under recoverable-only:\n%s", got.Render())
 			}
 		})
+	}
+}
+
+// A callback handing back a computed scalar boxes it on native, so its tryMap can still die on a refused allocation.
+func TestRecoverableOnlyRejectsBoxedScalarCallbackResult(t *testing.T) {
+	got := checkRecoverableOnly(t, "let mut a = Array.empty[Int]()\n_ = a.tryMap((x: &Int) => x * 2 + 1)\n")
+	if !strings.Contains(got.Render(), "recoverable-only") {
+		t.Fatalf("a scalar-boxing callback must be rejected under recoverable-only:\n%s", got.Render())
+	}
+	ok := checkRecoverableOnly(t, "let mut a = Array.empty[Int]()\n_ = a.tryMap((x: &Int) => 1)\n")
+	if ok.HasErrors() {
+		t.Fatalf("a constant-returning callback must pass:\n%s", ok.Render())
 	}
 }
 

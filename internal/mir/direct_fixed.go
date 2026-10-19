@@ -14,6 +14,9 @@ func (p *Program) markFixed(f *Func) {
 	}
 }
 
+// FixedLocals marks the locals holding a compile-time value, which both backends hand over as one immortal.
+func (p *Program) FixedLocals(f *Func) []bool { return p.fixedLocals(f) }
+
 func (p *Program) fixedLocals(f *Func) []bool {
 	defs := make([]int, len(f.Locals))
 	for _, prm := range f.Params {

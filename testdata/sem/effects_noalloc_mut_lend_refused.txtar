@@ -16,7 +16,7 @@ fn setX(p: &mut Point) -> Unit {
 
 noalloc fn viaReceiver() -> Int {
     let mut p = Point { x: 1, y: 2 }
-    p.bump() //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+    p.bump() //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it //~ ERROR `bump` is not `noalloc`
     p.x
 }
 
@@ -30,10 +30,16 @@ fn main() -> Unit! {
     let n = viaReceiver() + viaMutBorrow()
 }
 -- expect --
+error[E907]: `bump` is not `noalloc`
+  --> main.kg:16:5
+   |
+16 |     p.bump() //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it //~ ERROR `bump` is not `noalloc`
+   |     ^^^^^^^
+
 error[E1610]: handing `Point` to a slot that holds a reference allocates a box for it
   --> main.kg:16:5
    |
-16 |     p.bump() //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+16 |     p.bump() //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it //~ ERROR `bump` is not `noalloc`
    |     ^^^^^^^
    = help: keep it in a value of its own, or drop the declaration
 

@@ -103,8 +103,8 @@ fn lambda() -> Int { apply((x: Int) => x + 1) }
 
 fn main() -> Unit! {}
 `)
-	for _, fn := range []string{`define ptr @"main.named"(`, `define ptr @"main.lambda"(`} {
-		body := bodyOf(t, ir, fn)
+	for _, fn := range []string{"main.named", "main.lambda"} {
+		body := fnBody(t, ir, fn)
 		checkNoHeap(t, fn, body)
 		if !strings.Contains(body, `$adapter.fnitem"`) {
 			t.Errorf("%s does not take its function value from a reserved immortal slot:\n%s", fn, body)
@@ -181,7 +181,7 @@ fn capturing(n: Int) -> Int { apply((x: Int) => x + n) }
 
 fn main() -> Unit! {}
 `)
-	body := bodyOf(t, ir, `define ptr @"main.capturing"(`)
+	body := fnBody(t, ir, "main.capturing")
 	if strings.Contains(body, "@rt_closure(") || !strings.Contains(body, `@"kg.box.main.capturing.closure1"(`) {
 		t.Errorf("the closure must be built inline and boxed only at the crossing:\n%s", body)
 	}

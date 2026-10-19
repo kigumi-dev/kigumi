@@ -26,14 +26,16 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		c.noteCaptureWrite(lhs, root)
 	}
 	deferred := !op.IsCompoundAssign() && c.copyShape(lhs, rhs)
-	if !deferred {
-		c.crossStore(lhs, target)
-	}
+	_, refTarget := c.r.MutRefElem(c.vars.resolve(target))
+	boxedSlot := !deferred && c.crossStore(lhs, target) || refTarget && c.isIdentPlace(lhs)
 	c.invalidatePlace(lhs)
 	c.rejectAsyncSelfAssign(lhs)
 	c.noteWholeSelfAssign(lhs)
 	if op.IsCompoundAssign() {
 		c.compoundAssign(n, lhs, rhs, target)
+		if boxedSlot {
+			c.scalarStore(n, lhs, target, c.storeRef(lhs, refTarget))
+		}
 		return
 	}
 	c.noteWholeRefAssign(lhs)
@@ -48,8 +50,11 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 				c.crossOwnedRoot(src)
 			}
 		} else {
-			c.crossStore(lhs, target)
+			boxedSlot = c.crossStore(lhs, target) || boxedSlot
 		}
+	}
+	if boxedSlot && !c.constScalar(rhs) {
+		c.scalarStore(rhs, lhs, target, c.storeRef(lhs, refTarget))
 	}
 	c.applyFieldWrite(lhs, rhs)
 	c.noteStrongFieldWrite(n, lhs)

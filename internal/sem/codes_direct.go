@@ -9,4 +9,7 @@ var (
 	cResultBoxInNoalloc   = defineCode("E1842", "result-box-in-noalloc", "`{name}` is declared `noalloc`, and the `{type}` this call returns through a function value or an interface arrives in a box allocated for it; call the function directly, or drop the declaration")
 	cInferredResultBox    = defineCode("E1843", "inferred-result-box-in-noalloc", "`{name}` is inferred `noalloc`, yet the `{type}` this call returns through a function value or an interface arrives in a box allocated for it; the summary callers rely on is wrong, so report this")
 	cAllocCopy            = defineCode("E1700", "alloc-copy", "copying `{type}` here allocates a box of its own for the copy; use the original instead of a copy, or drop the declaration")
+	cAllocScalarArg       = defineCode("E2124", "alloc-scalar-arg-box", "a call through a function value receives this `{type}` in a box allocated for it; pass a constant, call the function directly, or drop the declaration")
+	cAllocScalarStore     = defineCode("E2125", "alloc-scalar-store-box", "this place holds its value boxed, so storing a computed `{type}` in it allocates a box; store a constant, keep the value in a local, or drop the declaration")
+	cAllocClosureScalar   = defineCode("E2126", "alloc-closure-scalar-box", "a closure takes and returns `{type}` in a box, so this call allocates one for it; use a named function, or drop the declaration")
 )

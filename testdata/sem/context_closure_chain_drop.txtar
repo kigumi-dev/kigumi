@@ -26,7 +26,7 @@ noalloc fn useClosure(t: Trivial) -> Int {
             let _held = t
             needsTok()
         }
-        f()
+        f() //~ ERROR `f` is not `noalloc`
     }
 }
 
@@ -55,4 +55,10 @@ error[E961]: constructing `closure fn() -> Int` allocates
    |
 24 |         let f = () => { //~ ERROR dropping `closure fn() -> Int` may allocate or deallocate //~ ERROR constructing `closure fn() -> Int` allocates
    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E907]: `f` is not `noalloc`
+  --> main/main.kg:28:9
+   |
+28 |         f() //~ ERROR `f` is not `noalloc`
+   |         ^^
 

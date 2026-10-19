@@ -31,3 +31,33 @@ func (e *emitter) keepReturnedBoxes(f *mir.Func, disqualify func(mir.LocalID)) {
 		}
 	}
 }
+
+// An alias of a boxed parameter names that box; unboxing it into a register would make a later boxed use allocate a fresh one.
+func (e *emitter) keepAliasedBoxes(f *mir.Func, out map[mir.LocalID]scalarInfo, disqualify func(mir.LocalID)) {
+	defs := map[mir.LocalID]int{}
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if in.Op.Yields() {
+				defs[in.Dst]++
+			}
+		}
+	}
+	boxed := map[mir.LocalID]bool{}
+	for _, prm := range f.Params {
+		if _, reg := out[prm]; !reg && !e.raw[prm] {
+			boxed[prm] = true
+		}
+	}
+	for changed := true; changed; {
+		changed = false
+		for _, blk := range f.Blocks {
+			for _, in := range blk.Insts {
+				if in.Op != mir.OpAlias || defs[in.Dst] != 1 || !boxed[in.Args[0]] || boxed[in.Dst] {
+					continue
+				}
+				disqualify(in.Dst)
+				boxed[in.Dst], changed = true, true
+			}
+		}
+	}
+}

@@ -27,9 +27,8 @@ fn main() -> Unit! {}
 
 func TestNativeScalarReleasesTheBoxesItReplaces(t *testing.T) {
 	body := fnBody(t, emitIR(t, scalarBoxesSrc), "main.work")
-	elem := regexp.MustCompile(`= call ptr @rt_builtin\([^\n]*\n\s+store ptr %v\d+, ptr %l\d+\n\s+(%v\d+) = load ptr, ptr %l\d+\n\s+%v\d+ = call i64 @rt_int_val\(ptr %v\d+\)\n([^\n]*)`).FindStringSubmatch(body)
-	if elem == nil || !strings.Contains(elem[2], "@rt_release(ptr "+elem[1]+")") {
-		t.Fatalf("the element box read into the loop variable is not released after unboxing:\n%s", body)
+	if !strings.Contains(body, "@rt_iter_at_int(") || strings.Contains(body, "@rt_builtin(") {
+		t.Fatalf("the loop variable should be read into a register without an element box:\n%s", body)
 	}
 	boxed := regexp.MustCompile(`(%v\d+) = call ptr @rt_int\(i64 %v\d+, i32 \d+\)\n\s+store ptr %v\d+, ptr (%l\d+)`).FindStringSubmatch(body)
 	if boxed == nil {

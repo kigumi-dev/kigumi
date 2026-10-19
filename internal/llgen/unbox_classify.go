@@ -76,6 +76,7 @@ func (e *emitter) classifyScalars(f *mir.Func) map[mir.LocalID]scalarInfo {
 		classifyTerm(blk.Term, out, disqualify)
 	}
 	e.keepReturnedBoxes(f, disqualify)
+	e.keepAliasedBoxes(f, out, disqualify)
 	return out
 }
 
@@ -91,7 +92,7 @@ func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.Loca
 			disqualify(in.Dst)
 		}
 	case mir.OpBuiltin:
-		if !e.inPlaceBuiltin(in) || in.Str == "fixed.fill" {
+		if (!e.inPlaceBuiltin(in) || in.Str == "fixed.fill") && !e.iterRaw(f, in) {
 			disqualify(in.Dst)
 		}
 	case mir.OpConst, mir.OpBinary, mir.OpAlias, mir.OpShare, mir.OpMove:
@@ -101,6 +102,10 @@ func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.Loca
 		}
 	case mir.OpCall:
 		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok && e.wideCallOp(f, in) == "" {
+			disqualify(in.Dst)
+		}
+	case mir.OpCallValue:
+		if !e.callvI64(f, in) {
 			disqualify(in.Dst)
 		}
 	default:
@@ -127,8 +132,10 @@ func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.Loc
 		}
 	case mir.OpBuiltin:
 		if !e.inPlaceBuiltin(in) {
-			for _, a := range in.Args {
-				disqualify(a)
+			for i, a := range in.Args {
+				if i != 1 || iterModes[in.Str] == 0 {
+					disqualify(a)
+				}
 			}
 		}
 	case mir.OpBorrow:

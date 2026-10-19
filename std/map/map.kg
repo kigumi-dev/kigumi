@@ -83,7 +83,7 @@ pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
 }
 
 /// Records entry pos in the first free slot of its probe sequence.
-pure noalloc fn Map[K: Eq + Hash, V].fileSlot(mut self, h: u64, pos: usize) -> Unit {
+pure fn Map[K: Eq + Hash, V].fileSlot(mut self, h: u64, pos: usize) -> Unit {
     let n = self.slots.len()
     let mut i = h.toUsize() & (n - 1)
     for self.slots[i] != 0 {

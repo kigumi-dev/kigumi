@@ -169,6 +169,8 @@ func (r *Result) reportEdge(e EffectEdge, mod Effects) {
 			r.errAt(e.File, e.Node, cAllocCallResultBox, r.TypeString(e.Type))
 		case directCrossWhy(e.Why) || e.Why == whyWitnessCross:
 			r.errAt(e.File, e.Node, cAllocDirectCross, r.TypeString(e.Type))
+		case scalarCodes[e.Why].Num != "":
+			r.errAt(e.File, e.Node, scalarCodes[e.Why], r.TypeString(e.Type))
 		case copyWhy(e.Why):
 			r.errAt(e.File, e.Node, cAllocCopy, r.TypeString(e.Type))
 		case e.Type != 0:

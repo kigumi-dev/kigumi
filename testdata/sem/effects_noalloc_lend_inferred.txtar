@@ -21,9 +21,11 @@ fn lendsTwice(i: Int) -> Int {
 
 noalloc fn direct() -> Int { lendsOnce(3) + lendsTwice(4) }
 
+fn lendsOnceOk(i: Int) -> Bool { lendsOnce(i) > 0 }
+
 noalloc fn throughClosure() -> Int {
-    let f: noalloc fn(Int) -> Int = lendsOnce
-    f(2)
+    let f: noalloc fn(Int) -> Bool = lendsOnceOk
+    if f(2) { 1 } else { 0 }
 }
 
 fn main() -> Unit! {

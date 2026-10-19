@@ -11,7 +11,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	if e.tryScalarInst(sb, f, in) {
 		return
 	}
-	if e.tryDirectInst(sb, f, in) {
+	if e.tryDirectInst(sb, f, in) || e.iterBuiltin(sb, f, in) {
 		return
 	}
 	if in.Op == mir.OpNop {
@@ -57,6 +57,11 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		res = e.callEntity(sb, f, in, args, f.Locals[in.Dst].Type)
 	case mir.OpCallValue:
 		arr := e.argArray(sb, args[1:])
+		if e.isScalar(in.Dst) {
+			e.storeNative(sb, in.Dst, e.irb(sb).Call(rtCallvI64, vptr(args[0]), vi32(len(args)-1), vptr(arr)))
+			e.releaseScalarArgs(sb, in, args)
+			return
+		}
 		res = e.irb(sb).Call(rtCallv, vptr(args[0]), vi32(len(args)-1), vptr(arr)).Text
 	case mir.OpBuiltin:
 		arr := e.argArray(sb, args)

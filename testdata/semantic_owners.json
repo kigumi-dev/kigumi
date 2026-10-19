@@ -3572,7 +3572,7 @@
   },
   {
     "key": "map.Map.fileSlot",
-    "signature": "pure noalloc fn(u64, usize) -\u003e Unit",
+    "signature": "pure fn(u64, usize) -\u003e Unit",
     "has_body": true,
     "kind": "",
     "vm": "gap",

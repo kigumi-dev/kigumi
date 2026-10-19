@@ -70,6 +70,12 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 	if plan != nil {
 		effArgs = plan.placed()
 	}
+	switch {
+	case closure != 0:
+		c.crossScalarArgs(effArgs, whyClosureScalar)
+	case node.Flags&fnCAbi == 0:
+		c.crossScalarArgs(effArgs, whyScalarCross)
+	}
 	c.info.Calls[n] = CallInfo{Kind: CallFnValue, Variadic: c.variadicForm(effArgs, ft), Plan: plan}
 	for _, tgt := range c.knownCallTargets(callee) {
 		if c.r.Entities[tgt].Kind == EntFn {

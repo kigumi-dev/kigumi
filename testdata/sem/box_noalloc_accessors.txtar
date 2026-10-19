@@ -25,11 +25,11 @@ noalloc fn readPt(b: &Box[Pt]) -> Int {
 }
 
 noalloc fn peek(b: &Box[Pt]) -> Int {
-    b.with((p: &Pt) => p.x * 2)
+    b.with((p: &Pt) => p.x * 2) //~ ERROR closure is not `noalloc` (allocates)
 }
 
 noalloc fn bump(b: &mut Box[Pt]) -> Int {
-    b.withMut((p: &mut Pt) => {
+    b.withMut((p: &mut Pt) => { //~ ERROR closure is not `noalloc` (allocates)
         p.x = p.x + 1
         p.x
     })
@@ -71,15 +71,27 @@ noalloc fn forwardCallback(b: &Box[Pt], f: fn(&Pt) -> Int) -> Int {
 }
 
 noalloc fn passAllocatingFn(b: &Box[Pt]) -> Int {
-    b.with(allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc`
+    b.with(allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc` //~ ERROR `allocatingPeek` returns `Int` unboxed
 }
 
 noalloc fn forwardToCaller(b: &Box[Pt]) -> Int {
-    forwardCallback(b, allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc`
+    forwardCallback(b, allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc` //~ ERROR `allocatingPeek` returns `Int` unboxed
 }
 
 fn main() -> Unit! {}
 -- expect --
+error[E422]: closure is not `noalloc` (allocates)
+  --> main.kg:25:12
+   |
+25 |     b.with((p: &Pt) => p.x * 2) //~ ERROR closure is not `noalloc` (allocates)
+   |            ^^^^^^^^^^^^^^^^^^^
+
+error[E422]: closure is not `noalloc` (allocates)
+  --> main.kg:29:15
+   |
+29 |     b.withMut((p: &mut Pt) => { //~ ERROR closure is not `noalloc` (allocates)
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 error[E907]: `set` is not `noalloc`
   --> main.kg:44:5
    |
@@ -104,15 +116,29 @@ error[E907]: `tryNew` is not `noalloc`
 57 |     let r = Box.tryNew(n) //~ ERROR `tryNew` is not `noalloc`
    |             ^^^^^^^^^^^^
 
+error[E1840]: `allocatingPeek` returns `Int` unboxed, so every call through this function value allocates a box for the result
+  --> main.kg:71:12
+   |
+71 |     b.with(allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc` //~ ERROR `allocatingPeek` returns `Int` unboxed
+   |            ^^^^^^^^^^^^^^
+   = help: call `allocatingPeek` directly, or drop the declaration
+
 error[E423]: `allocatingPeek` is not `noalloc` (calls `mkn`)
   --> main.kg:71:12
    |
-71 |     b.with(allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc`
+71 |     b.with(allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc` //~ ERROR `allocatingPeek` returns `Int` unboxed
    |            ^^^^^^^^^^^^^^
+
+error[E1840]: `allocatingPeek` returns `Int` unboxed, so every call through this function value allocates a box for the result
+  --> main.kg:75:24
+   |
+75 |     forwardCallback(b, allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc` //~ ERROR `allocatingPeek` returns `Int` unboxed
+   |                        ^^^^^^^^^^^^^^
+   = help: call `allocatingPeek` directly, or drop the declaration
 
 error[E423]: `allocatingPeek` is not `noalloc` (calls `mkn`)
   --> main.kg:75:24
    |
-75 |     forwardCallback(b, allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc`
+75 |     forwardCallback(b, allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc` //~ ERROR `allocatingPeek` returns `Int` unboxed
    |                        ^^^^^^^^^^^^^^
 

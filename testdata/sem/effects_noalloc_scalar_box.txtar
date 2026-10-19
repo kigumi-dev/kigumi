@@ -1,0 +1,108 @@
+-- src --
+fn twice(x: Int) -> Int { x * 2 }
+
+fn even(x: Int) -> Bool { x % 2 == 0 }
+
+noalloc fn intResult(f: noalloc fn() -> Int) -> Int {
+    f() //~ ERROR the `Int` it returns arrives in a box
+}
+
+noalloc fn floatResult(f: noalloc fn() -> Float) -> Float {
+    f() //~ ERROR the `Float` it returns arrives in a box
+}
+
+noalloc fn charResult(f: noalloc fn() -> Char) -> Char {
+    f() //~ ERROR the `Char` it returns arrives in a box
+}
+
+noalloc fn byteResult(f: noalloc fn() -> u8) -> u8 {
+    f() //~ ERROR the `u8` it returns arrives in a box
+}
+
+// Bool and Unit boxes are immortals.
+noalloc fn boolResult(f: noalloc fn() -> Bool) -> Bool {
+    f()
+}
+
+noalloc fn unitResult(f: noalloc fn() -> Unit) -> Unit {
+    f()
+}
+
+noalloc fn intArgument(f: noalloc fn(Int) -> Bool, x: Int) -> Bool {
+    f(x) //~ ERROR a call through a function value receives this `Int` in a box
+}
+
+// A literal argument is handed over as its immortal.
+noalloc fn literalArgument(f: noalloc fn(Int) -> Bool) -> Bool {
+    f(7)
+}
+
+noalloc fn itemValue() -> Bool {
+    let f = twice //~ ERROR `twice` returns `Int` unboxed
+    let g: noalloc fn(Int) -> Bool = even
+    g(4)
+}
+
+fn inferred(f: fn(Int) -> Int, x: Int) -> Int { f(x) }
+
+noalloc fn callsInferred() -> Int {
+    inferred(twice, 3) //~ ERROR `inferred` is not `noalloc` //~ ERROR `twice` returns `Int` unboxed
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E1841]: this call goes through a function value or an interface, so the `Int` it returns arrives in a box the callee allocates
+ --> main/main.kg:6:5
+  |
+6 |     f() //~ ERROR the `Int` it returns arrives in a box
+  |     ^^
+  = help: call the function directly, or drop the declaration
+
+error[E1841]: this call goes through a function value or an interface, so the `Float` it returns arrives in a box the callee allocates
+  --> main/main.kg:10:5
+   |
+10 |     f() //~ ERROR the `Float` it returns arrives in a box
+   |     ^^
+   = help: call the function directly, or drop the declaration
+
+error[E1841]: this call goes through a function value or an interface, so the `Char` it returns arrives in a box the callee allocates
+  --> main/main.kg:14:5
+   |
+14 |     f() //~ ERROR the `Char` it returns arrives in a box
+   |     ^^
+   = help: call the function directly, or drop the declaration
+
+error[E1841]: this call goes through a function value or an interface, so the `u8` it returns arrives in a box the callee allocates
+  --> main/main.kg:18:5
+   |
+18 |     f() //~ ERROR the `u8` it returns arrives in a box
+   |     ^^
+   = help: call the function directly, or drop the declaration
+
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main/main.kg:31:7
+   |
+31 |     f(x) //~ ERROR a call through a function value receives this `Int` in a box
+   |       ^
+   = help: pass a constant, call the function directly, or drop the declaration
+
+error[E1840]: `twice` returns `Int` unboxed, so every call through this function value allocates a box for the result
+  --> main/main.kg:40:13
+   |
+40 |     let f = twice //~ ERROR `twice` returns `Int` unboxed
+   |             ^^^^^
+   = help: call `twice` directly, or drop the declaration
+
+error[E907]: `inferred` is not `noalloc`
+  --> main/main.kg:48:5
+   |
+48 |     inferred(twice, 3) //~ ERROR `inferred` is not `noalloc` //~ ERROR `twice` returns `Int` unboxed
+   |     ^^^^^^^^^^^^^^^^^
+
+error[E1840]: `twice` returns `Int` unboxed, so every call through this function value allocates a box for the result
+  --> main/main.kg:48:14
+   |
+48 |     inferred(twice, 3) //~ ERROR `inferred` is not `noalloc` //~ ERROR `twice` returns `Int` unboxed
+   |              ^^^^^
+   = help: call `twice` directly, or drop the declaration
+

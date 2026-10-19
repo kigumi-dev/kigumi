@@ -49,6 +49,9 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	if res := c.vars.resolve(ret); c.r.Types.ContainsVar(res) || c.r.containsClosure(res) || c.r.BoxAllocates(res) {
 		c.crossDirect(body, res)
 	}
+	if !c.constScalar(body) && !c.readsBox(body) {
+		c.scalarEdge(n, ret, whyClosureScalar)
+	}
 	c.dropsAtScopeExit(pents)
 	c.edges = savedEdges
 	c.locals = savedLocals

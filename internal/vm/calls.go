@@ -127,6 +127,9 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 		}
 		m.chargeMemory(r)
 		m.site, m.siteFn = site, siteFn
+		if !stdHash(fv) {
+			m.scalarTick(r)
+		}
 		// A bound primitive lends its receiver and borrowed parameters
 		// (rt_std_bind).
 		for i, a := range args {
@@ -136,7 +139,9 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 		}
 		return r
 	}
-	return m.invoke(fv.cfn(), fv.cenv(), fv.bind, args)
+	r := m.invoke(fv.cfn(), fv.cenv(), fv.bind, args)
+	m.resultTick(r, args)
+	return r
 }
 
 // asyncValueCall is rt_callv on an async fn/method value: it builds the

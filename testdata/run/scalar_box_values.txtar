@@ -1,0 +1,82 @@
+-- src --
+interface Scale {
+    fn scale(self, k: Int) -> Int
+}
+
+type Meter = {
+    pub v Int
+}
+
+fn Meter.scale(self, k: Int) -> Int {
+    self.v * k
+}
+
+fn twice(x: Int) -> Int {
+    x * 2
+}
+
+fn half(x: Float) -> Float {
+    x / 2.0
+}
+
+fn shift(c: Char) -> Char {
+    Char.fromInt(c.toInt() + 1) || c
+}
+
+fn apply[T](f: fn(T) -> T, x: T) -> T {
+    f(x)
+}
+
+fn fold(xs: &Array[Int], f: fn(Int, Int) -> Int) -> Int {
+    let mut acc = 0
+    for x in xs {
+        acc = f(acc, x)
+    }
+    acc
+}
+
+fn viaInterface(s: Scale, k: Int) -> Int {
+    s.scale(k)
+}
+
+fn main() -> Unit! {
+    let ints: fn(Int) -> Int = twice
+    for x in Array.of(-129, -128, 0, 511, 1023, 1024, 5000, 9223372036854775807 / 4) {
+        print "int ${x} -> ${ints(x)} ${apply(twice, x)}"
+    }
+    let floats: fn(Float) -> Float = half
+    for x in Array.of(0.0, 1.5, -3.25, 1e300) {
+        print "float ${x} -> ${floats(x)} ${apply(half, x)}"
+    }
+    for c in Array.of('a', Char.fromInt(127) || 'a', 'é', '木') {
+        print "char ${c.toInt()} -> ${shift(c).toInt()} ${apply(shift, c).toInt()}"
+    }
+    let small: fn(u8) -> u8 = (b: u8) => b + 1
+    let wide: fn(u64) -> u64 = (w: u64) => w * 3
+    print "u8 ${small(200)} u64 ${wide(4000000000)}"
+    let xs = Array.of(1, 2000, 3, 40000)
+    print "fold ${fold(&xs, (a: Int, b: Int) => a + b * 1000)}"
+    print "callback ${fold(&xs, (a: Int, b: Int) => if b > 1000 { a } else { a + b })}"
+    print "interface ${viaInterface(Meter { v: 3 }, 400)} ${viaInterface(Meter { v: 3 }, 4000)}"
+}
+-- stdout --
+int -129 -> -258 -258
+int -128 -> -256 -256
+int 0 -> 0 0
+int 511 -> 1022 1022
+int 1023 -> 2046 2046
+int 1024 -> 2048 2048
+int 5000 -> 10000 10000
+int 2305843009213693951 -> 4611686018427387902 4611686018427387902
+float 0 -> 0 0
+float 1.5 -> 0.75 0.75
+float -3.25 -> -1.625 -1.625
+float 1e+300 -> 5e+299 5e+299
+char 97 -> 98 98
+char 127 -> 128 128
+char 233 -> 234 234
+char 26408 -> 26409 26409
+u8 201 u64 12000000000
+fold 42004000
+callback 4
+interface 1200 12000

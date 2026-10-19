@@ -245,18 +245,6 @@ static val alloc_in(rt_allocator* a, int kind) {
 static val alloc(int kind) {
     return alloc_in(cur_alloc(), kind);
 }
-// A scalar box is runtime representation, not an allocation request: the VM never refuses one, so neither does a fault tick.
-static val alloc_scalar(int kind) {
-    rt_allocator* a = cur_alloc();
-    KG_ADD(a->bytes, (int64_t)sizeof(struct obj));
-    val v = a->alloc(a, sizeof(struct obj));
-    if (!v) rt_panic("out of memory");
-    LIVE_OBJ(kind, 1);
-    v->kind = kind;
-    v->rc = 1;
-    v->al = a;
-    return v;
-}
 // An allocator's own bookkeeping objects come from that allocator, so an
 // `allocator` block needs no ambient allocator (`allocator = none`).
 static val opaque_in(rt_allocator* a, const char* kind, void* data) {
@@ -489,16 +477,63 @@ val rt_unit(void) {
     static struct obj u = {.kind = K_UNIT, .rc = -1};
     return &u;
 }
+// Integers in [-128, 1024) at widths 8 to 64 (the range the VM interns) and ASCII chars are static immortals, so boxing one allocates nothing.
+#define SMALL_INT_MIN (-128)
+#define SMALL_INT_N 1152
+static struct obj g_small_int[8][SMALL_INT_N];
+static struct obj g_small_char[128];
+static KG_AINT g_small_filled[9];
+#ifdef KIGUMI_THREADS
+static pthread_mutex_t g_small_lock = PTHREAD_MUTEX_INITIALIZER;
+#define SMALL_LOCK() pthread_mutex_lock(&g_small_lock)
+#define SMALL_UNLOCK() pthread_mutex_unlock(&g_small_lock)
+#else
+#define SMALL_LOCK() ((void)0)
+#define SMALL_UNLOCK() ((void)0)
+#endif
+static int small_int_slot(int nk) {
+    int w = nk & 255;
+    if ((nk & ~(255 | 256)) || (w != 8 && w != 16 && w != 32 && w != 64)) return -1;
+    int s = w == 8 ? 0 : w == 16 ? 1 : w == 32 ? 2 : 3;
+    return nk & 256 ? s + 4 : s;
+}
+static void fill_small(int s) {
+    if (KG_ALOAD(g_small_filled[s])) return;
+    SMALL_LOCK();
+    if (KG_ALOAD(g_small_filled[s])) {
+        SMALL_UNLOCK();
+        return;
+    }
+    if (s == 8) {
+        for (int c = 0; c < 128; c++) g_small_char[c] = (struct obj){.kind = K_CHAR, .rc = -1, .u.c = (uint32_t)c};
+    } else {
+        int nk = (8 << (s & 3)) | (s >= 4 ? 256 : 0);
+        for (int n = 0; n < SMALL_INT_N; n++)
+            g_small_int[s][n] = (struct obj){.kind = K_INT, .nk = nk, .rc = -1, .u.i = n + SMALL_INT_MIN};
+    }
+    KG_ASTORE(g_small_filled[s], 1);
+    SMALL_UNLOCK();
+}
+static val small_int(int64_t i, int nk) {
+    if ((uint64_t)(i - SMALL_INT_MIN) >= SMALL_INT_N) return NULL;
+    int s = small_int_slot(nk);
+    if (s < 0) return NULL;
+    fill_small(s);
+    return &g_small_int[s][i - SMALL_INT_MIN];
+}
 val rt_int(int64_t i, int nk) {
-    val v = alloc_scalar(K_INT);
+    if (!nk) nk = 64 | 256;
+    val p = small_int(i, nk);
+    if (p) return p;
+    val v = alloc(K_INT);
     v->u.i = i;
-    v->nk = nk ? nk : (64 | 256);
+    v->nk = nk;
     return v;
 }
 // An f32 value is stored as the double nearest to its single-precision
 // rounding, so every operation on it rounds the way IEEE single does.
 val rt_float(double f, int nk) {
-    val v = alloc_scalar(K_FLOAT);
+    val v = alloc(K_FLOAT);
     v->u.f = (nk & 255) == 32 ? (double)(float)f : f;
     v->nk = nk;
     return v;
@@ -508,7 +543,11 @@ val rt_bool(int b) {
     return b ? &t : &f;
 }
 val rt_char(uint32_t c) {
-    val v = alloc_scalar(K_CHAR);
+    if (c < 128) {
+        fill_small(8);
+        return &g_small_char[c];
+    }
+    val v = alloc(K_CHAR);
     v->u.c = c;
     return v;
 }
@@ -2803,19 +2842,20 @@ static rt_type* map_type(void) {
     }
     return t;
 }
-static val iter_len(val it) {
+int64_t rt_iter_count(val it) {
     it = deref(it);
-    if (it->kind == K_ARRAY) return rt_int(it->u.arr.len, 64);
-    if (it->kind == K_BYTES) return rt_int(it->u.s.len, 64);
-    if (it->kind == K_RECORD && it->u.rec.type == map_type()) {
-        return rt_int(it->u.rec.fields[0]->u.arr.len, 64);
-    }
+    if (it->kind == K_ARRAY) return it->u.arr.len;
+    if (it->kind == K_BYTES) return it->u.s.len;
+    if (it->kind == K_RECORD && it->u.rec.type == map_type()) return it->u.rec.fields[0]->u.arr.len;
 #ifdef KIGUMI_INT128
-    if (W_IS(it->u.rec.fields[0]->nk)) return rt_int(w_range_len(it->u.rec.fields[0], it->u.rec.fields[1], it->u.rec.fields[2]->u.b), 64);
+    if (W_IS(it->u.rec.fields[0]->nk)) return w_range_len(it->u.rec.fields[0], it->u.rec.fields[1], it->u.rec.fields[2]->u.b);
 #endif
     int64_t lo = it->u.rec.fields[0]->u.i, hi = it->u.rec.fields[1]->u.i;
     int reversed = (it->u.rec.fields[0]->nk & 256) ? lo > hi : (uint64_t)lo > (uint64_t)hi;
-    return rt_int(reversed ? 0 : (int64_t)((uint64_t)hi - (uint64_t)lo + it->u.rec.fields[2]->u.b), 64);
+    return reversed ? 0 : (int64_t)((uint64_t)hi - (uint64_t)lo + it->u.rec.fields[2]->u.b);
+}
+static val iter_len(val it) {
+    return rt_int(rt_iter_count(it), 64);
 }
 /* A trivial scalar has no drop hook of its own: sharing it needs no
  * ownership transfer, only a retain. */
@@ -2846,33 +2886,40 @@ static val fixed_fill(val v, int64_t n) {
 }
 /* mode: 0 = iter.at (retains in place), 1 = iter.at_ref (borrowed, no
  * retain), 2 = iter.at_move (owned, transfers non-Copy elements). */
-static val iter_at(val it, val i, int mode) {
+val rt_iter_at(val it, int64_t i, int mode) {
     it = deref(it);
     if (it->kind == K_ARRAY) {
-        if (mode == 1) return it->u.arr.items[i->u.i];
-        if (mode == 2) return take_or_retain(&it->u.arr.items[i->u.i]);
-        return rt_retain(it->u.arr.items[i->u.i]);
+        if (mode == 1) return it->u.arr.items[i];
+        if (mode == 2) return take_or_retain(&it->u.arr.items[i]);
+        return rt_retain(it->u.arr.items[i]);
     }
-    if (it->kind == K_BYTES) return rt_int((unsigned char)it->u.s.data[i->u.i], 8);
+    if (it->kind == K_BYTES) return rt_int((unsigned char)it->u.s.data[i], 8);
     if (it->kind == K_RECORD && it->u.rec.type == map_type()) {
         val keys = it->u.rec.fields[0], vals = it->u.rec.fields[1];
         rt_type* tup = find_type("Tuple2");
         if (mode == 1) {
-            val f[2] = {keys->u.arr.items[i->u.i], vals->u.arr.items[i->u.i]};
+            val f[2] = {keys->u.arr.items[i], vals->u.arr.items[i]};
             return rt_record(tup, 2, f);
         }
         if (mode == 2) {
-            val f[2] = {take_or_retain(&keys->u.arr.items[i->u.i]), take_or_retain(&vals->u.arr.items[i->u.i])};
+            val f[2] = {take_or_retain(&keys->u.arr.items[i]), take_or_retain(&vals->u.arr.items[i])};
             return rt_record(tup, 2, f);
         }
-        val f[2] = {rt_retain(keys->u.arr.items[i->u.i]), rt_retain(vals->u.arr.items[i->u.i])};
+        val f[2] = {rt_retain(keys->u.arr.items[i]), rt_retain(vals->u.arr.items[i])};
         return rt_record(tup, 2, f);
     }
     val lo = it->u.rec.fields[0];
 #ifdef KIGUMI_INT128
-    if (W_IS(lo->nk)) return w_box(w_add(w_of(lo), w_new((uint64_t)i->u.i, 0)), lo->nk);
+    if (W_IS(lo->nk)) return w_box(w_add(w_of(lo), w_new((uint64_t)i, 0)), lo->nk);
 #endif
-    return rt_int(lo->u.i + i->u.i, lo->nk);
+    return rt_int(lo->u.i + i, lo->nk);
+}
+// An integer element read straight into a register takes no box of its own.
+int64_t rt_iter_at_int(val it, int64_t i) {
+    it = deref(it);
+    if (it->kind == K_ARRAY) return deref(it->u.arr.items[i])->u.i;
+    if (it->kind == K_BYTES) return (unsigned char)it->u.s.data[i];
+    return it->u.rec.fields[0]->u.i + i;
 }
 val rt_builtin(const char* name, int n, val* args) {
     if (!strcmp(name, "print")) {
@@ -2892,9 +2939,9 @@ val rt_builtin(const char* name, int n, val* args) {
     if (!strcmp(name, "host")) return opaque("Host", NULL);
     if (!strcmp(name, "fixed.fill")) return fixed_fill(args[0], deref(args[1])->u.i);
     if (!strcmp(name, "iter.len")) return iter_len(args[0]);
-    if (!strcmp(name, "iter.at")) return iter_at(args[0], deref(args[1]), 0);
-    if (!strcmp(name, "iter.at_ref")) return iter_at(args[0], deref(args[1]), 1);
-    if (!strcmp(name, "iter.at_move")) return iter_at(args[0], deref(args[1]), 2);
+    if (!strcmp(name, "iter.at")) return rt_iter_at(args[0], deref(args[1])->u.i, 0);
+    if (!strcmp(name, "iter.at_ref")) return rt_iter_at(args[0], deref(args[1])->u.i, 1);
+    if (!strcmp(name, "iter.at_move")) return rt_iter_at(args[0], deref(args[1])->u.i, 2);
     if (!strcmp(name, "alloc.push")) {
         val scope = deref(args[0]);
         if (g_alloc_sp + 1 >= 64) rt_panic("allocator blocks nested too deeply");
@@ -3799,4 +3846,20 @@ val rt_std(const char* key, int n, val* a) {
     if (r) return r;
     panicf("no runtime for %s", key);
     return NULL;
+}
+// A std hash reached through a function value needs no box when the caller keeps the result in a register.
+int64_t rt_callv_i64(val f, int n, val* args) {
+    val g = deref(f);
+    if (g->kind == K_CLOSURE && g->u.clo.key && !g->u.clo.async && n == 1 && g->u.clo.env->u.arr.len == 0 &&
+        rt_std_op_of(g->u.clo.key) == OP_HASH) {
+        val a0 = deref(args[0]);
+        if (a0->kind == K_BOX) a0 = a0->u.box.v;
+        int64_t h = (int64_t)hash_of(a0);
+        if (!(g->u.clo.lent & 1)) rt_release(args[0]);
+        return h;
+    }
+    val r = rt_callv(f, n, args);
+    int64_t x = rt_int_val(r);
+    rt_release(r);
+    return x;
 }

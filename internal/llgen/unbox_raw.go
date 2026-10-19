@@ -31,6 +31,10 @@ func (e *emitter) rawDef(f *mir.Func, in mir.Inst, raw map[mir.LocalID]bool) boo
 		return e.isDirect(in.Args[0])
 	case mir.OpBinary, mir.OpUnary:
 		return true
+	case mir.OpBuiltin:
+		return in.Str == "direct.hash" || in.Str == "direct.eq"
+	case mir.OpCallValue:
+		return e.callvI64(f, in)
 	case mir.OpCall:
 		_, native := e.calleeScalarSig(in).ret()
 		return in.DPrim != mir.DPNone || native || e.wideCallOp(f, in) != ""
@@ -38,4 +42,12 @@ func (e *emitter) rawDef(f *mir.Func, in mir.Inst, raw map[mir.LocalID]bool) boo
 		return raw[in.Args[0]]
 	}
 	return false
+}
+
+func (e *emitter) callvI64(f *mir.Func, in mir.Inst) bool {
+	if _, ok := e.direct[in.Args[0]]; ok {
+		return false
+	}
+	ty, ok := e.scalarType(f.Locals[in.Dst].Type)
+	return ok && ty == TI64
 }

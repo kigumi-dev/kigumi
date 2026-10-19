@@ -120,7 +120,7 @@ fn ident[T](v: T) -> Int { 0 }
 
 fn Point.keep[T](self, v: T) -> T { v }
 
-noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int { f(v) }
+noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Bool]](f: F) -> Bool { f(1) }
 
 noalloc fn literals() -> Int {
     ident(Some(1)) + ident((1, 2))
@@ -130,8 +130,8 @@ noalloc fn method(p: Point) -> Point {
     p.keep(p)
 }
 
-noalloc fn closure(n: Int) -> Int {
-    applyGen((x: Int) => x + n, 1)
+noalloc fn closure(n: Int) -> Bool {
+    applyGen((x: Int) => x + n > 0)
 }
 
 fn main() -> Unit! {

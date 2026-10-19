@@ -65,7 +65,7 @@ func (r *Result) dropDirectBuildAllocs(nodes []EntityID) {
 			case directCrossWhy(e.Why):
 				return !r.DirectAgg(e.Type)
 			case boxWhy(e.Why):
-				return !r.BoxAllocates(e.Type)
+				return !r.boxCharged(e.Why, e.Type)
 			}
 			return e.Why == whyBuild && r.DirectAgg(e.Type)
 		})

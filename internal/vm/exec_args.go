@@ -23,11 +23,22 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		res = m.cross(fr, in, args[0])
 	case mir.OpCall:
 		res = m.callPlanned(in, ic, args)
+		if m.p.ResultBoxed(f, *in) {
+			m.scalarTick(res)
+		}
 	case mir.OpCallValue, mir.OpCallC:
 		if f.IsDirect(in.Args[0]) {
+			closure := m.closureCall(f, in)
+			if closure {
+				m.argTicks(f, in, args)
+			}
 			res = m.callDirectValue(args[0], args[1:])
+			if closure {
+				m.resultTick(res, args[1:])
+			}
 			break
 		}
+		m.argTicks(f, in, args)
 		res = m.callValue(args[0], args[1:])
 	case mir.OpBuiltin:
 		res = m.builtin(in.Str, args)
@@ -48,6 +59,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 	case mir.OpFieldMove:
 		res = m.fieldMove(args[0], in.Index)
 	case mir.OpSetField:
+		m.storeTick(f, in, in.Args[1], args[1])
 		r := deref(m.ownDirect(fr, in.Args[0], args[0]))
 		old := r.fields[in.Index]
 		r.fields[in.Index] = args[1]
@@ -59,6 +71,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		res = mkArray(args)
 		m.chargeMemory(res)
 	case mir.OpSetIndex:
+		m.storeTick(f, in, in.Args[2], args[2])
 		m.dropChecked(fr, m.setIndex(m.ownDirect(fr, in.Args[0], args[0]), args[1], args[2]))
 		return
 	case mir.OpIsType:
@@ -90,6 +103,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		res = args[0].inner
 		args[0].inner = nil
 	case mir.OpCellSet:
+		m.storeTick(f, in, in.Args[1], args[1])
 		old := args[0].inner
 		args[0].inner = args[1]
 		m.dropChecked(fr, old)

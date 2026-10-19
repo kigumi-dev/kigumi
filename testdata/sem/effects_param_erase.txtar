@@ -17,7 +17,7 @@ fn erasedPure() -> Int {
 }
 
 fn erasedNoalloc() -> Int {
-    let g: noalloc fn(fn(Int) -> Int, Int) -> Int = relayDirect //~ ERROR `relayDirect` is not `noalloc` (calls `f`, whose effect is not fixed)
+    let g: noalloc fn(fn(Int) -> Int, Int) -> Int = relayDirect //~ ERROR `relayDirect` is not `noalloc` (allocates)
     g(impureAdd, 1)
 }
 
@@ -88,12 +88,11 @@ error[E1060]: `relayDirect` is not `pure` (calls `f`, whose effect is not fixed)
    |                                                  ^^^^^^^^^^^
    = help: declare `f` as `pure fn(...)`, or call `relayDirect` directly instead of using it as a value
 
-error[E1060]: `relayDirect` is not `noalloc` (calls `f`, whose effect is not fixed)
+error[E423]: `relayDirect` is not `noalloc` (allocates)
   --> lib/param.kg:19:53
    |
-19 |     let g: noalloc fn(fn(Int) -> Int, Int) -> Int = relayDirect //~ ERROR `relayDirect` is not `noalloc` (calls `f`, whose effect is not fixed)
+19 |     let g: noalloc fn(fn(Int) -> Int, Int) -> Int = relayDirect //~ ERROR `relayDirect` is not `noalloc` (allocates)
    |                                                     ^^^^^^^^^^^
-   = help: declare `f` as `noalloc fn(...)`, or call `relayDirect` directly instead of using it as a value
 
 error[E423]: `impureAdd` is not `pure` (contains `unsafe`)
   --> lib/param.kg:28:17

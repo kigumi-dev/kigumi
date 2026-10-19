@@ -81,9 +81,9 @@ fn aggregates(k: Int) -> String {
 
 noalloc fn quiet(n: Int) -> Int {
     let k = n + 1
-    let f = (x: Int) => x == k
+    let f = (x: Bool) => x == (k > n)
     let g = f
-    if g(n + 1) { 1 } else { 0 }
+    if g(n < k) { 1 } else { 0 }
 }
 
 fn main() -> Unit! {

@@ -45,7 +45,7 @@ noalloc fn formValue() -> Int {
 }
 
 noalloc fn passValue() -> Int {
-    apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result
+    apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result //~ ERROR `apply` is not `noalloc`
 }
 
 noalloc fn callValue(f: noalloc fn(Int) -> Point) -> Int {
@@ -69,7 +69,7 @@ noalloc fn methodValue(p: Pm) -> Int {
 
 // A method table passes everything boxed.
 noalloc fn viaTable(m: &Maker, p: Point) -> Int {
-    m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+    m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
 }
 
 fn inferredTable(m: &Maker, p: Point) -> Int {
@@ -96,10 +96,16 @@ error[E1841]: this call goes through a function value or an interface, so the `P
    |     ^^^
    = help: call the function directly, or drop the declaration
 
+error[E907]: `apply` is not `noalloc`
+  --> main/main.kg:47:5
+   |
+47 |     apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result //~ ERROR `apply` is not `noalloc`
+   |     ^^^^^^^^^^^
+
 error[E1840]: `mk` returns `Point` unboxed, so every call through this function value allocates a box for the result
   --> main/main.kg:47:11
    |
-47 |     apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result
+47 |     apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result //~ ERROR `apply` is not `noalloc`
    |           ^^
    = help: call `mk` directly, or drop the declaration
 
@@ -133,14 +139,21 @@ error[E1841]: this call goes through a function value or an interface, so the `P
 error[E1841]: this call goes through a function value or an interface, so the `Point` it returns arrives in a box the callee allocates
   --> main/main.kg:71:5
    |
-71 |     m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+71 |     m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
    |     ^^^^^^^^
+   = help: call the function directly, or drop the declaration
+
+error[E1841]: this call goes through a function value or an interface, so the `Int` it returns arrives in a box the callee allocates
+  --> main/main.kg:71:19
+   |
+71 |     m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
+   |                   ^^^^^^^^
    = help: call the function directly, or drop the declaration
 
 error[E1610]: handing `Point` to a slot that holds a reference allocates a box for it
   --> main/main.kg:71:26
    |
-71 |     m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it
+71 |     m.make(1).y + m.take(p) //~ ERROR the `Point` it returns arrives in a box the callee allocates //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
    |                          ^
    = help: keep it in a value of its own, or drop the declaration
 
