@@ -22,12 +22,14 @@ func Sum64(data []byte) uint64 {
 	return h
 }
 
-// CanonicalFloat64 maps -0.0 to 0.0 so a Float's hash agrees with its Eq
-// (0.0 == -0.0); NaN is left alone, since Eq already treats it as unequal
-// to everything, including itself.
+// CanonicalFloat64 maps -0.0 to 0.0 and every NaN to one NaN so a Float's
+// hash agrees with its total Eq.
 func CanonicalFloat64(f float64) float64 {
 	if f == 0 {
 		return 0
+	}
+	if f != f {
+		return math.NaN()
 	}
 	return f
 }

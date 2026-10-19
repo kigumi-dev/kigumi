@@ -1196,9 +1196,12 @@ static void char_utf8(uint32_t c, char u[5]) {
         u[3] = 0x80 | (c & 0x3F);
     }
 }
-// canon collapses -0.0 to 0.0 when rendering K_FLOAT, so hash_of's digest
-// agrees with equal()'s 0.0 == -0.0; display()
-// and rt_interp() render normally with canon 0.
+static double canon_float(double f) {
+    if (f == 0.0) return 0.0;
+    if (f != f) return __builtin_nan("");
+    return f;
+}
+// canon folds -0.0 and every NaN so hashing matches total float equality.
 void display_into(buf* b, val v, int canon) {
     char tmp[64];
     v = deref(v);
@@ -1219,7 +1222,7 @@ void display_into(buf* b, val v, int canon) {
     case K_FLOAT: {
         char text[64];
         double f = v->u.f;
-        if (canon && f == 0.0) f = 0.0;
+        if (canon) f = canon_float(f);
         rt_format_float(f, (v->nk & 255) == 32, text, sizeof text);
         bputs(b, text);
         break;
@@ -1649,7 +1652,7 @@ int64_t rt_d_hash_char(int c) {
 }
 int64_t rt_d_hash_float(double f, int nk) {
     char text[64];
-    if (f == 0.0) f = 0.0;
+    f = canon_float(f);
     rt_format_float(f, (nk & 255) == 32, text, sizeof text);
     return fnv_text(text);
 }

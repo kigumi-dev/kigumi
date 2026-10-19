@@ -18,7 +18,7 @@ func (m *Machine) displayInto(sb *strings.Builder, v *obj) {
 }
 
 // hashDisplay renders v the way displayInto does, except Float canonicalizes
-// -0.0 to 0.0 so hash() agrees with Eq.
+// -0.0 to 0.0 and every NaN to one NaN so hash() agrees with Eq.
 func (m *Machine) hashDisplay(v *obj) string {
 	var sb strings.Builder
 	m.displayIntoCanon(&sb, v, true)

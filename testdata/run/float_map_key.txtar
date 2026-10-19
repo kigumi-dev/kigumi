@@ -1,0 +1,134 @@
+-- src --
+import map from std/map
+
+fn check(name: String, ok: Bool) -> Unit {
+    print "${name}: ${ok}"
+}
+
+fn run64() -> Unit {
+    let z: f64 = 0.0
+    let negz: f64 = -0.0
+    let one: f64 = 1.0
+    let inf = one / z
+    let n1 = z / z
+    let n2 = -n1
+    let n3 = inf - inf
+    let n4 = -n3
+    let n5 = inf * z
+
+    check("f64 0.0 == -0.0", z == negz)
+    check("f64 nan == nan", n1 == n1)
+    check("f64 zero hash eq", hash(&z) == hash(&negz))
+    check("f64 nan hash eq 1-2", hash(&n1) == hash(&n2))
+    check("f64 nan hash eq 1-3", hash(&n1) == hash(&n3))
+    check("f64 nan hash eq 1-4", hash(&n1) == hash(&n4))
+    check("f64 nan hash eq 1-5", hash(&n1) == hash(&n5))
+
+    let mut m = map.empty[f64, Int]()
+    m.set(z, 1)
+    m.set(negz, 2)
+    check("f64 zeros one key", m.len() == 1)
+    check("f64 get +0 replaced", m.get(&z) == Some(2))
+    check("f64 get -0", m.get(&negz) == Some(2))
+
+    m.set(n1, 10)
+    m.set(n2, 11)
+    m.set(n3, 12)
+    m.set(n4, 13)
+    m.set(n5, 14)
+    check("f64 nan one key", m.len() == 2)
+    check("f64 get nan 1", m.get(&n1) == Some(14))
+    check("f64 get nan 4", m.get(&n4) == Some(14))
+
+    m.set(one, 5)
+    m.set(inf, 6)
+    check("f64 numbers distinct", m.len() == 4)
+    check("f64 get one", m.get(&one) == Some(5))
+    check("f64 get inf", m.get(&inf) == Some(6))
+
+    m.remove(&negz)
+    check("f64 delete -0", m.get(&negz) is None)
+    check("f64 +0 gone", m.get(&z) is None)
+    m.remove(&n3)
+    check("f64 delete nan via other", m.get(&n3) is None)
+    check("f64 nan gone", m.get(&n2) is None)
+    check("f64 len after delete", m.len() == 2)
+}
+
+fn run32() -> Unit {
+    let z: f32 = 0.0
+    let negz: f32 = -0.0
+    let one: f32 = 1.0
+    let inf = one / z
+    let n1 = z / z
+    let n2 = -n1
+    let n3 = inf - inf
+    let n4 = -n3
+
+    check("f32 0.0 == -0.0", z == negz)
+    check("f32 nan == nan", n1 == n1)
+    check("f32 zero hash eq", hash(&z) == hash(&negz))
+    check("f32 nan hash eq 1-2", hash(&n1) == hash(&n2))
+    check("f32 nan hash eq 1-3", hash(&n1) == hash(&n3))
+    check("f32 nan hash eq 1-4", hash(&n1) == hash(&n4))
+
+    let mut m = map.empty[f32, Int]()
+    m.set(z, 1)
+    m.set(negz, 2)
+    check("f32 zeros one key", m.len() == 1)
+    check("f32 get +0", m.get(&z) == Some(2))
+    m.set(n1, 10)
+    m.set(n2, 11)
+    m.set(n3, 12)
+    m.set(n4, 13)
+    check("f32 nan one key", m.len() == 2)
+    check("f32 get nan", m.get(&n2) == Some(13))
+    m.set(one, 5)
+    check("f32 numbers distinct", m.len() == 3)
+    m.remove(&n1)
+    check("f32 delete nan", m.get(&n1) is None)
+    m.remove(&negz)
+    check("f32 delete -0", m.get(&negz) is None)
+    check("f32 len after delete", m.len() == 1)
+}
+
+fn main() -> Unit! {
+    run64()
+    run32()
+}
+-- stdout --
+f64 0.0 == -0.0: true
+f64 nan == nan: false
+f64 zero hash eq: true
+f64 nan hash eq 1-2: true
+f64 nan hash eq 1-3: true
+f64 nan hash eq 1-4: true
+f64 nan hash eq 1-5: true
+f64 zeros one key: true
+f64 get +0 replaced: true
+f64 get -0: true
+f64 nan one key: true
+f64 get nan 1: true
+f64 get nan 4: true
+f64 numbers distinct: true
+f64 get one: true
+f64 get inf: true
+f64 delete -0: true
+f64 +0 gone: true
+f64 delete nan via other: true
+f64 nan gone: true
+f64 len after delete: true
+f32 0.0 == -0.0: true
+f32 nan == nan: false
+f32 zero hash eq: true
+f32 nan hash eq 1-2: true
+f32 nan hash eq 1-3: true
+f32 nan hash eq 1-4: true
+f32 zeros one key: true
+f32 get +0: true
+f32 nan one key: true
+f32 get nan: true
+f32 numbers distinct: true
+f32 delete nan: true
+f32 delete -0: true
+f32 len after delete: true
