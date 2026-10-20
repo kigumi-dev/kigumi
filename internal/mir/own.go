@@ -81,20 +81,25 @@ func analyzeOwnership(p *Program, f *Func) {
 		}
 	}
 	a.in[0] = entry
-	work := []BlockID{0}
+	a.solve(0)
+	a.solveGhosts()
+	for bid := range f.Blocks {
+		if a.in[bid] != nil {
+			a.transfer(BlockID(bid), cloneD(a.in[bid]), true)
+		}
+	}
+}
+
+func (a *owner) solve(start BlockID) {
+	work := []BlockID{start}
 	for len(work) > 0 {
 		bid := work[0]
 		work = work[1:]
 		out := a.transfer(bid, cloneD(a.in[bid]), false)
-		for _, succ := range f.Blocks[bid].Term.Targets {
+		for _, succ := range a.f.Blocks[bid].Term.Targets {
 			if a.merge(succ, out) {
 				work = append(work, succ)
 			}
-		}
-	}
-	for bid := range f.Blocks {
-		if a.in[bid] != nil {
-			a.transfer(BlockID(bid), cloneD(a.in[bid]), true)
 		}
 	}
 }

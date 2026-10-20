@@ -158,6 +158,7 @@ type Func struct {
 	Diags  []diag.Diagnostic
 	// Cleanups lists the defer / defer(fail) statements lowered into the body, so a diagnostic can tell a cleanup's own reads apart.
 	Cleanups []syntax.NodeID
+	ghosts   ghostSet
 	// ImplicitOk marks a script's implicit main: falling off its statement
 	// list returns a bare Unit standing for Ok(()), unlike every other
 	// return of a fallible-Unit function, which must carry a real Ok.

@@ -109,6 +109,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 	case hir.Loop:
 		return b.forExpr(e)
 	case hir.Return:
+		b.markExit(0)
 		var v LocalID
 		if len(e.Args) == 0 {
 			v = b.unit(n)
@@ -132,6 +133,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return b.never(n)
 	case hir.Break, hir.Continue:
 		l := b.loops[len(b.loops)-1]
+		b.markExit(l.depth)
 		var v LocalID
 		if e.Kind == hir.Break && len(e.Args) > 0 {
 			v = b.exprMoved(e.Args[0])

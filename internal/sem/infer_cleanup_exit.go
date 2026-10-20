@@ -16,7 +16,6 @@ type exitSite struct {
 
 type exitMove struct {
 	use  syntax.NodeID
-	ent  EntityID
 	res  reservation
 	exit syntax.NodeID
 }
@@ -29,7 +28,7 @@ func (c *checker) bodyTail(body syntax.NodeID) syntax.NodeID {
 }
 
 // exitMoveCandidate records a move of a defer(fail)-reserved binding inside a success exit's value; checkExitMoves decides it.
-func (c *checker) exitMoveCandidate(a syntax.NodeID, ent EntityID, r reservation) bool {
+func (c *checker) exitMoveCandidate(a syntax.NodeID, r reservation) bool {
 	if c.cleanup > 0 || !r.fail || r.lambdas != len(c.lambdas) {
 		return false
 	}
@@ -42,7 +41,7 @@ func (c *checker) exitMoveCandidate(a syntax.NodeID, ent EntityID, r reservation
 	if exit == 0 {
 		return false
 	}
-	c.exitCheck.moves = append(c.exitCheck.moves, exitMove{use: a, ent: ent, res: r, exit: exit})
+	c.exitCheck.moves = append(c.exitCheck.moves, exitMove{use: a, res: r, exit: exit})
 	return true
 }
 
@@ -54,7 +53,7 @@ func (c *checker) within(inner, outer syntax.NodeID) bool {
 func (c *checker) checkExitMoves() {
 	for _, m := range c.exitCheck.moves {
 		if !c.staticOk(m.exit) || !c.noFailureAfter(m.exit, m.use) {
-			c.reservedErrorAt(m.use, cCleanupReservedMove, m.ent, m.res)
+			c.reservedError(m.use, cCleanupReservedMove, m.res)
 		}
 	}
 	c.exitCheck.moves = nil

@@ -53,12 +53,16 @@ type builder struct {
 	// unowned tracks which locals hold no count of their own: a borrow, or anything that only forwards one.
 	unowned map[LocalID]bool
 	body    *hir.Block
+	ghosts  []pendingGhost
 }
 
 // scope tracks the owned locals and deferred statements of one block.
 type scope struct {
 	owned  []LocalID
 	defers []*hir.Stmt
+	// lowered marks the defer(fail) statements some failing exit emitted.
+	lowered map[*hir.Stmt]bool
+	marks   []exitMark
 }
 
 type loopCtx struct {

@@ -73,7 +73,9 @@ func (p *Program) build(hf *hir.Func) *Func {
 	if p.lowering != nil {
 		p.lowering.top[f] = p.lowering.cur
 	}
+	b.lowerGhosts()
 	analyzeOwnership(p, f)
+	f.dropGhosts()
 	analyzeBorrows(p, f)
 	checkBorrowedMoves(p, f)
 	checkImmediateCaptures(p, f)

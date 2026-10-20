@@ -28,8 +28,8 @@ type checker struct {
 	wantAliasNode   syntax.NodeID
 	cleanup         int
 	cleanupNode     syntax.NodeID
-	pendingReserve  []EntityID
-	reserved        map[EntityID]reservation
+	pendingReserve  []reservedPlace
+	reserved        map[EntityID][]reservation
 	exitCheck       exitMoveState
 	edges           *[]EffectEdge
 	// locals is the current edge scope's EntLocal list for dropsAtScopeExit.

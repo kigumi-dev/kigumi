@@ -6,19 +6,26 @@ import (
 	"kigumi/internal/syntax"
 )
 
-func (a *owner) inCleanup(n syntax.NodeID) bool {
+func (a *owner) cleanupAround(n syntax.NodeID) syntax.NodeID {
 	if n == 0 {
-		return false
+		return 0
 	}
 	t := a.p.R.Tree(a.f.File)
 	sp := t.Span(n)
+	var best syntax.NodeID
 	for _, c := range a.f.Cleanups {
-		if cs := t.Span(c); sp.Start >= cs.Start && sp.End <= cs.End {
-			return true
+		cs := t.Span(c)
+		if sp.Start < cs.Start || sp.End > cs.End {
+			continue
+		}
+		if best == 0 || cs.End-cs.Start < t.Span(best).End-t.Span(best).Start {
+			best = c
 		}
 	}
-	return false
+	return best
 }
+
+func (a *owner) inCleanup(n syntax.NodeID) bool { return a.cleanupAround(n) != 0 }
 
 func (a *owner) reportCleanupRead(n syntax.NodeID, l LocalID, name string) bool {
 	if !a.inCleanup(n) {
@@ -31,12 +38,22 @@ func (a *owner) reportCleanupRead(n syntax.NodeID, l LocalID, name string) bool 
 	code, _ := sem.CodeByName("cleanup-reads-moved")
 	msg, help := sem.FillCode(code, name)
 	t := a.p.R.Tree(a.f.File)
-	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: code.Num}
+	at := a.cur.at[l]
+	selfMove := at != 0 && at == n
+	loc := n
+	if selfMove {
+		loc = a.cleanupAround(n)
+	}
+	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(loc)), Msg: msg, Code: code.Num}
 	if help != "" {
 		d.Help = []string{help}
 	}
-	if at := a.cur.at[l]; at != 0 {
-		d = d.WithNote(diag.At(t.File, t.Span(at)), "`"+name+"` is moved here")
+	if at != 0 {
+		note := "`" + name + "` is moved here"
+		if selfMove {
+			note += " by the previous run of this cleanup"
+		}
+		d = d.WithNote(diag.At(t.File, t.Span(at)), note)
 	}
 	a.f.Diags = append(a.f.Diags, d)
 	return true

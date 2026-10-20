@@ -11,6 +11,7 @@ func (b *builder) blockExpr(blk *hir.Block) LocalID {
 	for _, s := range blk.Stmts {
 		b.stmt(s)
 	}
+	b.markExit(len(b.scopes) - 1)
 	var result LocalID
 	if blk.Tail != nil {
 		result = b.detach(b.exprMoved(blk.Tail))

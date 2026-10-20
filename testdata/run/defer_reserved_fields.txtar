@@ -1,0 +1,83 @@
+-- src --
+import test from std/test
+
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+type Pack = {
+    pub inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+fn mk(base: Int) -> Pack {
+    Pack { inner: Handle { id: base }, other: Handle { id: base + 1 }, n: 0 }
+}
+
+fn siblingField() -> Unit {
+    let mut b = mk(10)
+    defer { b.inner.close() }
+    b.other.close()
+    b.other = Handle { id: 99 }
+    b.n = 3
+    print "n=${b.n} other=${b.other.id}"
+}
+
+fn siblingCleanups() -> Unit {
+    let b = mk(20)
+    defer { b.inner.close() }
+    defer { b.other.close() }
+    print "both reserved"
+}
+
+fn siblingFailCleanup(ok: Bool) -> Unit! {
+    let b = mk(30)
+    defer(fail) { b.inner.close() }
+    b.other.close()
+    if !ok {
+        fail test.failure("late")
+    }
+    print "ok path"
+}
+
+fn reassignAfterBorrowOnlyCleanup() -> Unit {
+    let mut b = mk(40)
+    defer { print "inner=${b.inner.id}" }
+    b.other = Handle { id: 50 }
+    print "reassigned"
+}
+
+fn report(label: String, r: Unit!) -> Unit {
+    match r {
+        Ok(_) -> print "${label}: ok"
+        Err(e) -> print "${label}: err ${e.message()}"
+    }
+}
+
+siblingField()
+siblingCleanups()
+report("fail cleanup, ok", siblingFailCleanup(true))
+report("fail cleanup, fails", siblingFailCleanup(false))
+reassignAfterBorrowOnlyCleanup()
+-- stdout --
+close 11
+n=3 other=99
+close 10
+both reserved
+close 21
+close 20
+close 31
+ok path
+fail cleanup, ok: ok
+close 31
+close 30
+fail cleanup, fails: err late
+reassigned
+inner=40

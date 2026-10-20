@@ -164,6 +164,9 @@ func (c *checker) synthBreak(n syntax.NodeID) TypeID {
 	if kw == "break" {
 		c.brokeOut = true
 		val := c.t.View(n).AsBreak().Value().ID()
+		if val != 0 && c.cleanup == 0 {
+			c.reserveUse(val)
+		}
 		switch {
 		case c.breaks != nil:
 			t, node := TyUnit, n

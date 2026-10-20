@@ -140,7 +140,7 @@ func (b *builder) argValue(a *hir.Expr, idx int, ent sem.EntityID, reborrow, syn
 	if v, ok := b.mutRefArg(a, idx, ent, sync); ok {
 		return v
 	}
-	if reborrow && a.Kind == hir.Local && b.r.Types.Kind(a.Type) == sem.KRef && !b.r.IsCopy(a.Type) && b.declaredRef(ent, idx) {
+	if inner := b.unparen(a); reborrow && inner.Kind == hir.Local && b.r.Types.Kind(inner.Type) == sem.KRef && !b.r.IsCopy(inner.Type) && b.declaredRef(ent, idx) {
 		return b.expr(a)
 	}
 	return b.exprMoved(a)

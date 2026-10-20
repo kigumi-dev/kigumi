@@ -1040,6 +1040,17 @@
       ]
     },
     {
+      "id": "mir/result_paren_tail",
+      "kind": "mir",
+      "path": "testdata/mir/result_paren_tail.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/self_closure_reassign_adt",
       "kind": "mir",
       "path": "testdata/mir/self_closure_reassign_adt.txtar",
@@ -4351,6 +4362,23 @@
       "id": "run/defer_reads_latest",
       "kind": "run",
       "path": "testdata/run/defer_reads_latest.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_reserved_fields",
+      "kind": "run",
+      "path": "testdata/run/defer_reserved_fields.txtar",
       "mode": [
         "vm",
         "native"
@@ -10328,6 +10356,23 @@
       ]
     },
     {
+      "id": "run/result_paren_tail",
+      "kind": "run",
+      "path": "testdata/run/result_paren_tail.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/scalar_box_values",
       "kind": "run",
       "path": "testdata/run/scalar_box_values.txtar",
@@ -12687,9 +12732,31 @@
       ]
     },
     {
+      "id": "sem/defer_fail_unlowered",
+      "kind": "sem",
+      "path": "testdata/sem/defer_fail_unlowered.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/defer_reads_moved",
       "kind": "sem",
       "path": "testdata/sem/defer_reads_moved.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_reserved_fields",
+      "kind": "sem",
+      "path": "testdata/sem/defer_reserved_fields.txtar",
       "mode": [
         "check"
       ],

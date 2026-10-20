@@ -112,12 +112,12 @@ note: `h` is moved here
    |         ^
 
 error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
-  --> main.kg:41:17
+  --> main.kg:41:9
    |
 41 |         defer { h.close() } //~ ERROR a cleanup reads `h`
-   |                 ^
+   |         ^^^^^^^^^^^^^^^^
    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `h` is moved here
+note: `h` is moved here by the previous run of this cleanup
   --> main.kg:41:17
    |
 41 |         defer { h.close() } //~ ERROR a cleanup reads `h`

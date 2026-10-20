@@ -1,0 +1,60 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn plain() -> Handle {
+    let h = Handle { id: 1 }
+    (h)
+}
+
+fn parenTail() -> Handle! {
+    let h = Handle { id: 2 }
+    (h)
+}
+
+fn parenBranch(first: Bool) -> Handle! {
+    let h = Handle { id: 3 }
+    if first { (h) } else { h }
+}
+
+fn parenReturn() -> Handle! {
+    let h = Handle { id: 4 }
+    return (h)
+}
+
+fn nested() -> Handle! {
+    let h = Handle { id: 5 }
+    ((h))
+}
+
+fn show(label: String, r: Handle!) -> Unit {
+    match r {
+        Ok(h) -> print "${label}: got ${h.id}"
+        Err(e) -> print "${label}: err ${e.message()}"
+    }
+}
+
+print "plain ${plain().id}"
+show("tail", parenTail())
+show("branch first", parenBranch(true))
+show("branch else", parenBranch(false))
+show("return", parenReturn())
+show("nested", nested())
+-- stdout --
+drop 1
+plain 1
+tail: got 2
+drop 2
+branch first: got 3
+drop 3
+branch else: got 3
+drop 3
+return: got 4
+drop 4
+nested: got 5
+drop 5

@@ -1,0 +1,177 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn take(h: Handle) -> Unit {}
+
+fn step() -> Unit! {}
+
+fn movedBeforeTheEnd() -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    take(h)
+    print "done"
+}
+
+fn movedOnOnePath(flag: Bool) -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    if flag {
+        take(h)
+    }
+    print "done"
+}
+
+fn movedBeforeReturn(flag: Bool) -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    take(h)
+    if flag {
+        return Ok(())
+    }
+    print "done"
+}
+
+fn movedInInnerBlock() -> Unit! {
+    let h = Handle { id: 1 }
+    if h.peek() > 0 {
+        defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+        take(h)
+        print "inner"
+    }
+}
+
+fn movedAndTailIsPlain() -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    take(h)
+    print "done"
+    ()
+}
+
+fn movedByTail() -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" }
+    take(h)
+}
+
+fn movedByReturnOperand() -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" }
+    return Ok(take(h))
+}
+
+fn returnedAsValue() -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" }
+    print "ready"
+    h
+}
+
+fn readsCopyOnly() -> Unit! {
+    let h = Handle { id: 1 }
+    let n = h.peek()
+    defer(fail) { print "n=${n}" }
+    take(h)
+    print "done"
+}
+
+fn failingExitStillChecked() -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    take(h)
+    step()?
+}
+
+fn failingExitWithoutMove() -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { print "peek ${h.peek()}" }
+    step()?
+    take(h)
+}
+
+print "ok"
+-- expect --
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:19:33
+   |
+19 |     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                                 ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:20:10
+   |
+20 |     take(h)
+   |          ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:26:33
+   |
+26 |     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                                 ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:28:14
+   |
+28 |         take(h)
+   |              ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:35:33
+   |
+35 |     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                                 ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:36:10
+   |
+36 |     take(h)
+   |          ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:46:37
+   |
+46 |         defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                                     ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:47:14
+   |
+47 |         take(h)
+   |              ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:54:33
+   |
+54 |     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                                 ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:55:10
+   |
+55 |     take(h)
+   |          ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:89:33
+   |
+89 |     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                                 ^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+  --> main.kg:90:10
+   |
+90 |     take(h)
+   |          ^
+

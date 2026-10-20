@@ -39,6 +39,9 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 		case c.restrictedEntity(ent):
 			c.errAt(n, cEscapingCaptured, c.r.Entities[c.aliasChase(ent)].Name)
 		}
+		if mode == capMove {
+			c.reserveCapture(n, ent)
+		}
 		// Start shared rather than waiting for a write this checker
 		// won't see again once ctx is off c.lambdas.
 		if mode == capCopy && e.Flags&EfCapturedMut != 0 {

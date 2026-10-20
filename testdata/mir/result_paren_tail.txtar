@@ -1,0 +1,46 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+fn Handle.drop(move self) -> Unit {}
+fn paren() -> Handle! {
+    let h = Handle { id: 8 }
+    (h)
+}
+fn main() -> Unit! {
+    _ = paren()?
+}
+-- expect --
+fn main.Handle.drop(%self: Handle) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn main.paren() -> Handle! {
+  b0:
+    %t0 = const 8: Int
+    %t1 = record main.Handle(%t0)
+    %h = copy(%t1)
+    %t3 = move(%h)
+    %t4 = variant Result.Ok(%t3)
+    nop
+    return %t4
+}
+fn main.main() -> Unit! {
+  b0:
+    %t0 = call main.paren
+    %t1 = isvariant Result.Ok(%t0)
+    branch %t1 ? b1 : b2
+  b1:
+    %t4 = payload 0(%t0)
+    drop(%t0)
+    drop(%t4)
+    %t5 = unit
+    %t6 = variant Result.Ok(%t5)
+    return %t6
+  b2:
+    %t2 = payload 0(%t0)
+    drop(%t0)
+    %t3 = variant Result.Err(%t2)
+    return %t3
+}

@@ -1,0 +1,365 @@
+-- lib/fields.kg --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn take(h: Handle) -> Unit {}
+
+fn takePack(p: Pack) -> Unit {}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+type Outer = {
+    pub mut pack Pack
+}
+
+fn mk() -> Pack {
+    Pack { inner: Handle { id: 1 }, other: Handle { id: 2 }, n: 0 }
+}
+
+fn reassignWhole() -> Unit {
+    let mut b = mk()
+    defer { take(b.inner) }
+    b = mk() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
+}
+
+fn reassignField() -> Unit {
+    let mut b = mk()
+    defer { take(b.inner) }
+    b.inner = Handle { id: 3 } //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
+}
+
+fn reassignFailField() -> Unit! {
+    let mut b = mk()
+    defer(fail) { take(b.inner) }
+    b.inner = Handle { id: 3 } //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
+}
+
+fn reassignNestedField() -> Unit {
+    let mut o = Outer { pack: mk() }
+    defer { take(o.pack.inner) }
+    o.pack = mk() //~ ERROR `o.pack.inner` is reserved by a cleanup that consumes it and cannot be assigned
+}
+
+fn moveWhole() -> Unit {
+    let b = mk()
+    defer { take(b.inner) }
+    let c = b //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
+    _ = c.n
+}
+
+fn moveField() -> Unit {
+    let b = mk()
+    defer { take(b.inner) }
+    take(b.inner) //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
+}
+
+fn moveFieldByClose() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    b.inner.close() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
+}
+
+fn secondCleanupSameField() -> Unit {
+    let b = mk()
+    defer { take(b.inner) }
+    defer { take(b.inner) } //~ ERROR `b.inner` is already consumed by an earlier cleanup
+}
+
+fn secondCleanupWholeBinding() -> Unit {
+    let b = mk()
+    defer { take(b.inner) }
+    defer { takePack(b) } //~ ERROR `b.inner` is already consumed by an earlier cleanup
+}
+
+fn outerBindingAssignedAfterConsume() -> Unit {
+    let mut h = Handle { id: 1 }
+    defer {
+        h.close()
+        h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+    }
+}
+
+fn outerFieldAssignedAfterConsume() -> Unit {
+    let mut b = mk()
+    defer {
+        take(b.inner)
+        b.inner = Handle { id: 2 } //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
+    }
+}
+
+fn lambdaMovesReserved() -> Unit {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    let f = () => h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    _ = f
+}
+
+fn lambdaMovesFailReserved() -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    let f = () => h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    _ = f
+}
+
+fn lambdaMovesWholeOfFieldReserved() -> Unit {
+    let b = mk()
+    defer { take(b.inner) }
+    let f = () => b //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
+    _ = f
+}
+
+fn breakMovesReserved() -> Unit {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    let r = for { break h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    _ = r
+}
+
+fn breakMovesFailReserved() -> Unit! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    let r = for { break h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    _ = r
+}
+
+fn siblingFieldStaysUsable() -> Unit {
+    let mut b = mk()
+    defer { take(b.inner) }
+    take(b.other)
+    b.other = Handle { id: 5 }
+    b.n = 3
+    _ = b.inner.peek()
+}
+
+fn siblingCleanups() -> Unit {
+    let b = mk()
+    defer { take(b.inner) }
+    defer { take(b.other) }
+}
+
+fn siblingAfterFailCleanup() -> Unit! {
+    let b = mk()
+    defer(fail) { take(b.inner) }
+    take(b.other)
+}
+
+fn closureBorrowsReservedBinding() -> Unit {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    let n = h.peek()
+    _ = n
+}
+
+fn assignBeforeConsumeInCleanup() -> Unit {
+    let mut h = Handle { id: 1 }
+    defer {
+        h = Handle { id: 2 }
+        h.close()
+    }
+}
+-- expect --
+error[E2100]: `b.inner` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/fields.kg:34:5
+   |
+34 |     b = mk() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
+   |     ^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:33:5
+   |
+33 |     defer { take(b.inner) }
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `b.inner` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/fields.kg:40:5
+   |
+40 |     b.inner = Handle { id: 3 } //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
+   |     ^^^^^^^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:39:5
+   |
+39 |     defer { take(b.inner) }
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `b.inner` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/fields.kg:46:5
+   |
+46 |     b.inner = Handle { id: 3 } //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
+   |     ^^^^^^^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:45:5
+   |
+45 |     defer(fail) { take(b.inner) }
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `o.pack.inner` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/fields.kg:52:5
+   |
+52 |     o.pack = mk() //~ ERROR `o.pack.inner` is reserved by a cleanup that consumes it and cannot be assigned
+   |     ^^^^^^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `o.pack.inner` is reserved by this cleanup
+  --> lib/fields.kg:51:5
+   |
+51 |     defer { take(o.pack.inner) }
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> lib/fields.kg:58:13
+   |
+58 |     let c = b //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
+   |             ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:57:5
+   |
+57 |     defer { take(b.inner) }
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> lib/fields.kg:65:10
+   |
+65 |     take(b.inner) //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
+   |          ^^^^^^^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:64:5
+   |
+64 |     defer { take(b.inner) }
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> lib/fields.kg:71:5
+   |
+71 |     b.inner.close() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
+   |     ^^^^^^^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:70:5
+   |
+70 |     defer { b.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2102]: `b.inner` is already consumed by an earlier cleanup
+  --> lib/fields.kg:77:18
+   |
+77 |     defer { take(b.inner) } //~ ERROR `b.inner` is already consumed by an earlier cleanup
+   |                  ^^^^^^^
+   = help: only one cleanup in scope may consume a binding
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:76:5
+   |
+76 |     defer { take(b.inner) }
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2102]: `b.inner` is already consumed by an earlier cleanup
+  --> lib/fields.kg:83:22
+   |
+83 |     defer { takePack(b) } //~ ERROR `b.inner` is already consumed by an earlier cleanup
+   |                      ^
+   = help: only one cleanup in scope may consume a binding
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:82:5
+   |
+82 |     defer { take(b.inner) }
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/fields.kg:90:9
+   |
+90 |         h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+   |         ^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `h` is reserved by this cleanup
+  --> lib/fields.kg:88:5
+   |
+88 |     defer {
+   |     ^^^^^^^
+
+error[E2100]: `b.inner` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> lib/fields.kg:98:9
+   |
+98 |         b.inner = Handle { id: 2 } //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
+   |         ^^^^^^^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b.inner` is reserved by this cleanup
+  --> lib/fields.kg:96:5
+   |
+96 |     defer {
+   |     ^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> lib/fields.kg:105:19
+    |
+105 |     let f = () => h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+   --> lib/fields.kg:104:5
+    |
+104 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> lib/fields.kg:112:19
+    |
+112 |     let f = () => h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+   --> lib/fields.kg:111:5
+    |
+111 |     defer(fail) { h.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> lib/fields.kg:119:19
+    |
+119 |     let f = () => b //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> lib/fields.kg:118:5
+    |
+118 |     defer { take(b.inner) }
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> lib/fields.kg:126:25
+    |
+126 |     let r = for { break h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    |                         ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+   --> lib/fields.kg:125:5
+    |
+125 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> lib/fields.kg:133:25
+    |
+133 |     let r = for { break h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+    |                         ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+   --> lib/fields.kg:132:5
+    |
+132 |     defer(fail) { h.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+

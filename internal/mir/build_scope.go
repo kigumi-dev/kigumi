@@ -15,6 +15,7 @@ func (b *builder) exitScope() {
 	s := b.scopes[len(b.scopes)-1]
 	b.scopes = b.scopes[:len(b.scopes)-1]
 	b.unwindScope(s, false)
+	b.queueGhosts(s)
 }
 
 // unwindScope emits the cleanup of one scope: defers in reverse, then the
@@ -27,6 +28,12 @@ func (b *builder) unwindScope(s *scope, failing bool) {
 		d := s.defers[i]
 		if d.Err && !failing {
 			continue
+		}
+		if d.Err {
+			if s.lowered == nil {
+				s.lowered = map[*hir.Stmt]bool{}
+			}
+			s.lowered[d] = true
 		}
 		b.noteCleanup(d.Node)
 		fromBlock, fromInst := b.cur, len(b.block().Insts)

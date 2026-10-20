@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/hir"
+import (
+	"kigumi/internal/hir"
+	"kigumi/internal/syntax"
+)
 
 func (b *builder) stmt(s *hir.Stmt) {
 	switch s.Kind {
@@ -45,10 +48,24 @@ func (b *builder) letStmt(s *hir.Stmt) {
 	b.bindPattern(s.Pat, v)
 }
 
+func (b *builder) isParen(e *hir.Expr) bool {
+	return e.Kind == hir.Wrap && len(e.Args) == 1 && b.r.Tree(b.fn.File).Kind(e.Node) == syntax.Paren
+}
+
+func (b *builder) unparen(e *hir.Expr) *hir.Expr {
+	for b.isParen(e) {
+		e = e.Args[0]
+	}
+	return e
+}
+
 // exprMoved lowers an expression whose value leaves the current scope: a
 // named local is copied or moved into a temporary before any coercion
 // wraps it, so the scope's drop of the local stays balanced.
 func (b *builder) exprMoved(e *hir.Expr) LocalID {
+	if b.isParen(e) {
+		return b.coerce(e.Coercion, e.Node, b.exprMoved(e.Args[0]))
+	}
 	v := b.transfer(e, b.exprRaw(e))
 	if e.Kind == hir.Fallback {
 		return v
