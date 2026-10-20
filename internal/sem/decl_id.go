@@ -63,6 +63,9 @@ func (r *Result) declPath(ent EntityID) (string, bool) {
 	case EntImplicitMain:
 		return "main." + r.Tree(e.File).File.Name, true
 	case EntClosure:
+		if r.closure(ent).IsMethodValue() {
+			return "", false
+		}
 		parent, _ := r.declPath(e.Parent)
 		if parent != "" {
 			parent += "."

@@ -1,0 +1,246 @@
+-- lib/mv.kg --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.get(self, k: Int) -> Int { self.n + k }
+
+fn Res.bump(mut self) -> Unit {}
+
+fn Res.take(move self) -> Int { self.n }
+
+async fn Res.later(self) -> Int { self.n }
+
+async fn Res.laterWith[U](self, u: U) -> U { u }
+
+fn Res.peek[U](self, f: fn(Int) -> U) -> U { f(self.n) }
+
+fn Res.inner(self) -> Int {
+    let f = self.get //~ ERROR this receiver is borrowed here
+    f(1)
+}
+
+fn Res.owned(move self) -> Int {
+    let f = self.get //~ TYPE f : closure fn(Int) -> Int
+    f(1)
+}
+
+type Pt = {
+    pub x Int
+}
+
+fn Pt.get(self, k: Int) -> Int { self.x + k }
+
+type Holder = resource {
+    pub r Res
+}
+
+type Keep[F] = {
+    pub f F
+}
+
+interface Getter {
+    fn get(self, k: Int) -> Int
+}
+
+interface Bumper {
+    fn bump(mut self) -> Unit
+}
+
+interface Taker {
+    fn take(move self) -> Int
+}
+
+fn apply[F: Fn[fn(Int) -> Int]](f: F, k: Int) -> Int { f(k) }
+
+fn applyPeek[F: Fn[fn(fn(Int) -> Int) -> Int]](f: F) -> Int { f((k) => k + 1) }
+
+fn useKeep[F: Fn[fn(Int) -> Int]](k: Keep[F]) -> Int { k.f(1) }
+
+fn concrete(w: Res) -> Int {
+    let f = w.get //~ TYPE f : closure fn(Int) -> Int
+    f(1) + f(2)
+}
+
+fn viaParam[T: Getter](t: T) -> Int {
+    let f = t.get //~ TYPE f : closure fn(Int) -> Int
+    f(1) + f(2)
+}
+
+fn viaCopyParam[T: Getter + Copy](t: T) -> fn(Int) -> Int {
+    t.get
+}
+
+fn viaExistential(g: Getter) -> Int {
+    let f = g.get //~ TYPE f : closure fn(Int) -> Int
+    apply(f, 3)
+}
+
+fn ownGeneric(w: Res) -> Int {
+    applyPeek(w.peek)
+}
+
+fn copied(p: Pt) -> Int {
+    let f: fn(Int) -> Int = p.get //~ TYPE f : fn(Int) -> Int
+    let g: fn(Int) -> Int = p.get
+    f(1) + g(2) + p.x
+}
+
+fn passed(w: Res) -> Int {
+    apply(w.get, 4)
+}
+
+fn temporary() -> Int {
+    apply(Res { n: 1 }.get, 4)
+}
+
+fn stored(w: Res) -> Int {
+    useKeep(Keep { f: w.get })
+}
+
+fn borrowed(r: &Res) -> Int {
+    let f = r.get //~ ERROR this receiver is borrowed here
+    f(1)
+}
+
+fn borrowedParam[T: Getter](t: &T) -> Int {
+    let f = t.get //~ ERROR this receiver is borrowed here
+    f(1)
+}
+
+fn borrowedField(h: &Holder) -> Int {
+    let f = h.r.get //~ ERROR this receiver is borrowed here
+    f(1)
+}
+
+fn ownedField(h: Holder) -> Int {
+    let f = h.r.get //~ ERROR cannot be moved out of a field, element or static
+    f(1)
+}
+
+fn optional(o: Res?) -> Int? {
+    let f = o?.get //~ ERROR cannot be moved out of a field, element or static
+    f?(1)
+}
+
+fn plain(w: Res) -> fn(Int) -> Int {
+    w.get //~ ERROR closure captures `w` (move-only) and cannot be a plain `fn`
+}
+
+fn plainParam[T: Getter](t: T) -> Int {
+    let f: fn(Int) -> Int = t.get //~ ERROR closure captures `t` (move-only) and cannot be a plain `fn`
+    f(1)
+}
+
+fn unchanged(mut w: Res, v: Res, x: Res, y: Res) -> Unit {
+    let a = w.bump //~ ERROR cannot form a method value on move-only `Res`
+    let b = v.take //~ ERROR cannot form a method value on move-only `Res`
+    let c = x.later //~ ERROR cannot form a method value on move-only `Res`
+    let d = y.laterWith //~ ERROR cannot take its move-only `Res` receiver
+}
+
+fn unchangedReq[B: Bumper, T: Taker](mut b: B, t: T) -> Unit {
+    let a = b.bump //~ ERROR is an interface requirement with no single implementation
+    let c = t.take //~ ERROR consumes its receiver
+}
+-- expect --
+error[E2163]: a method value on move-only `Res` takes its receiver, but this receiver is borrowed here
+  --> lib/mv.kg:20:13
+   |
+20 |     let f = self.get //~ ERROR this receiver is borrowed here
+   |             ^^^^^^^^
+   = help: call the method directly, or write a lambda
+
+error[E2163]: a method value on move-only `Res` takes its receiver, but this receiver is borrowed here
+   --> lib/mv.kg:103:13
+    |
+103 |     let f = r.get //~ ERROR this receiver is borrowed here
+    |             ^^^^^
+    = help: call the method directly, or write a lambda
+
+error[E2163]: a method value on move-only `T` takes its receiver, but this receiver is borrowed here
+   --> lib/mv.kg:108:13
+    |
+108 |     let f = t.get //~ ERROR this receiver is borrowed here
+    |             ^^^^^
+    = help: call the method directly, or write a lambda
+
+error[E2163]: a method value on move-only `Res` takes its receiver, but this receiver is borrowed here
+   --> lib/mv.kg:113:13
+    |
+113 |     let f = h.r.get //~ ERROR this receiver is borrowed here
+    |             ^^^^^^^
+    = help: call the method directly, or write a lambda
+
+error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field, element or static
+   --> lib/mv.kg:118:13
+    |
+118 |     let f = h.r.get //~ ERROR cannot be moved out of a field, element or static
+    |             ^^^^^^^
+    = help: bind the value to a local first, or call the method directly
+
+error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field, element or static
+   --> lib/mv.kg:123:13
+    |
+123 |     let f = o?.get //~ ERROR cannot be moved out of a field, element or static
+    |             ^^^^^^
+    = help: bind the value to a local first, or call the method directly
+
+error[E413]: closure captures `w` (move-only) and cannot be a plain `fn`
+   --> lib/mv.kg:128:5
+    |
+128 |     w.get //~ ERROR closure captures `w` (move-only) and cannot be a plain `fn`
+    |     ^^^^^
+    = help: use `F: Fn[...]`
+
+error[E413]: closure captures `t` (move-only) and cannot be a plain `fn`
+   --> lib/mv.kg:132:29
+    |
+132 |     let f: fn(Int) -> Int = t.get //~ ERROR closure captures `t` (move-only) and cannot be a plain `fn`
+    |                             ^^^^^
+    = help: use `F: Fn[...]`
+
+error[E416]: cannot form a method value on move-only `Res`
+   --> lib/mv.kg:137:13
+    |
+137 |     let a = w.bump //~ ERROR cannot form a method value on move-only `Res`
+    |             ^^^^^^
+    = help: write a lambda
+
+error[E416]: cannot form a method value on move-only `Res`
+   --> lib/mv.kg:138:13
+    |
+138 |     let b = v.take //~ ERROR cannot form a method value on move-only `Res`
+    |             ^^^^^^
+    = help: write a lambda
+
+error[E416]: cannot form a method value on move-only `Res`
+   --> lib/mv.kg:139:13
+    |
+139 |     let c = x.later //~ ERROR cannot form a method value on move-only `Res`
+    |             ^^^^^^^
+    = help: write a lambda
+
+error[E2165]: an `async` method value cannot take its move-only `Res` receiver
+   --> lib/mv.kg:140:13
+    |
+140 |     let d = y.laterWith //~ ERROR cannot take its move-only `Res` receiver
+    |             ^^^^^^^^^^^
+    = help: call the method directly, or write a lambda
+
+error[E1520]: `bump` is an interface requirement with no single implementation
+   --> lib/mv.kg:144:13
+    |
+144 |     let a = b.bump //~ ERROR is an interface requirement with no single implementation
+    |             ^^^^^^
+    = help: call it directly instead of taking a method value
+
+error[E1800]: `take` consumes its receiver, so a method value on `T` could consume it twice
+   --> lib/mv.kg:145:13
+    |
+145 |     let c = t.take //~ ERROR consumes its receiver
+    |             ^^^^^^
+    = help: call it directly instead
+

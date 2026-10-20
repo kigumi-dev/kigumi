@@ -11,6 +11,10 @@ import ffi from std/ffi
 fn explode() -> Int {
     None.expect("boom")
 }
+
+fn callW[F: Fn[fn(&ffi.FfiHandle[Int], fn(&Int) -> Int) -> Int]](w: F, h: &ffi.FfiHandle[Int], k: Int) -> Int {
+    w(h, (v: &Int) => if v == 41 { explode() } else { v + k })
+}
 `
 
 const boxLeakTail = `
@@ -30,7 +34,6 @@ const (
 	boxLeakTable = `    let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
     let h = table.insert(41)
     let k = 7
-    let w: fn(&ffi.FfiHandle[Int], fn(&Int) -> Int) -> Int = table.with
 `
 )
 
@@ -40,7 +43,7 @@ type boxLeakShape struct {
 
 var boxLeakShapes = []boxLeakShape{
 	{"direct", boxLeakArray, `xs.tryMap((x: &Int) => if x == 2 { explode() } else { x + k })`, `explode()`},
-	{"method value", boxLeakTable, `w(&h, (v: &Int) => if v == 41 { explode() } else { v + k })`, `explode()`},
+	{"method value", boxLeakTable, `callW(table.with, &h, k)`, `explode()`},
 }
 
 func boxLeakSrc(s boxLeakShape, call string, async bool) string {

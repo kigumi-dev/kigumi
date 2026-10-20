@@ -65,6 +65,7 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 		}
 	}
 	got := c.synth(n)
+	c.hintMethodValue(got, want)
 	return c.coerce(n, got, want)
 }
 

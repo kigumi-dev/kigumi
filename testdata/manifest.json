@@ -941,6 +941,17 @@
       ]
     },
     {
+      "id": "mir/method_value_owned_move",
+      "kind": "mir",
+      "path": "testdata/mir/method_value_owned_move.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/mut_ref_recv_field",
       "kind": "mir",
       "path": "testdata/mir/mut_ref_recv_field.txtar",
@@ -2606,6 +2617,27 @@
       "id": "run/async_task_panic_method_value_map",
       "kind": "run",
       "path": "testdata/run/async_task_panic_method_value_map.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
+      }
+    },
+    {
+      "id": "run/async_task_panic_owned_method_value",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_owned_method_value.txtar",
       "mode": [
         "vm",
         "native"
@@ -9450,6 +9482,23 @@
       ]
     },
     {
+      "id": "run/method_value_owned_receiver",
+      "kind": "run",
+      "path": "testdata/run/method_value_owned_receiver.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/method_value_witness",
       "kind": "run",
       "path": "testdata/run/method_value_witness.txtar",
@@ -14623,6 +14672,17 @@
       "id": "sem/method_value_generic_move_only",
       "kind": "sem",
       "path": "testdata/sem/method_value_generic_move_only.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_value_owned_receiver",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_owned_receiver.txtar",
       "mode": [
         "check"
       ],

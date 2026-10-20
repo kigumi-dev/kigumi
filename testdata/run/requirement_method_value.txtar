@@ -51,7 +51,7 @@ fn viaExistRef(s: Shower) -> Int {
     f(5, "q")
 }
 
-fn apply(f: fn(String) -> String, a: String) -> String { f(a) }
+fn apply[F: Fn[fn(String) -> String]](f: F, a: String) -> String { f(a) }
 
 fn viaPass[T: Shower](t: T) -> String {
     apply(t.show, "p:")

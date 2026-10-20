@@ -6,7 +6,7 @@ type funcPair struct{ fn, gen *Func }
 
 // The copies' closure types join sub, which the copy of the outer body reads.
 func (s *specializer) closureClones(g *Func, sub map[sem.EntityID]sem.TypeID) ([]funcPair, map[sem.EntityID]sem.EntityID, bool) {
-	all := s.closuresBuilt(g)
+	all := s.withMethodValues(s.closuresBuilt(g), g)
 	needs := map[sem.EntityID]bool{}
 	for changed := true; changed; {
 		changed = false
@@ -23,7 +23,7 @@ func (s *specializer) closureClones(g *Func, sub map[sem.EntityID]sem.TypeID) ([
 			if _, done := ents[c]; done || !needs[c] || !s.depsMinted(c, needs, ents) {
 				continue
 			}
-			if body := s.p.ByEnt[c]; body.Async || body.Suspends > 0 {
+			if body := s.p.ByEnt[c]; body != nil && (body.Async || body.Suspends > 0) {
 				return nil, nil, false
 			}
 			c2 := s.p.R.InstantiateClosure(c, sub)
@@ -36,7 +36,7 @@ func (s *specializer) closureClones(g *Func, sub map[sem.EntityID]sem.TypeID) ([
 	}
 	var out []funcPair
 	for _, c := range all {
-		if c2, ok := ents[c]; ok {
+		if c2, ok := ents[c]; ok && s.p.ByEnt[c] != nil {
 			body := s.p.ByEnt[c]
 			out = append(out, funcPair{fn: s.p.cloneFor(body, c2, s.p.funcName(c), sub, ents), gen: body})
 		}
@@ -76,7 +76,7 @@ func (s *specializer) closureTouches(c sem.EntityID, sub map[sem.EntityID]sem.Ty
 			return true
 		}
 	}
-	for _, l := range s.p.ByEnt[c].Locals {
+	for _, l := range s.bodyLocals(c) {
 		if s.touches(l.Type, sub, needs, 0) {
 			return true
 		}
@@ -106,7 +106,7 @@ func (s *specializer) touches(t sem.TypeID, sub map[sem.EntityID]sem.TypeID, nee
 }
 
 func (s *specializer) depsMinted(c sem.EntityID, needs map[sem.EntityID]bool, ents map[sem.EntityID]sem.EntityID) bool {
-	for _, l := range s.p.ByEnt[c].Locals {
+	for _, l := range s.envLocals(c) {
 		for _, x := range s.closureTypes(l.Type, nil, 0) {
 			if _, done := ents[x]; x != c && needs[x] && !done {
 				return false

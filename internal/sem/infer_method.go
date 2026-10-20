@@ -102,47 +102,6 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	return ret
 }
 
-// Types `v.m` without a call: a fn value that copies its receiver.
-func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityID) TypeID {
-	info := c.r.Fn(m)
-	name := c.r.Entities[m].Name
-	c.info.Uses[n] = m
-	c.info.Calls[n] = CallInfo{Kind: CallMethodValue, Callee: m, Recv: info.Recv}
-	sig := c.r.memberSig(valueType, m)
-	c.rejectHiddenArgs(n, m)
-	var inst []TypeID
-	switch {
-	case c.r.Types.Node(sig).Flags&fnVariadic != 0:
-		c.errAt(n, cVariadicNoValue, name, name)
-		return TyPoison
-	case len(c.ownGenerics(m)) > 0:
-		if !c.copyableBoundValue(n, m, valueType) {
-			return TyPoison
-		}
-		sig, inst, _ = c.instantiateFn(n, m, nil, valueType)
-		c.touched = append(c.touched, n)
-		c.bindMethodWitnesses(n, m, valueType, inst)
-	case len(info.Witnesses) > 0 && c.bindableMethodValue(m):
-		if !c.bindOwnerBoundValue(n, m, valueType) {
-			return TyPoison
-		}
-	case !c.r.isCopy(valueType):
-		c.errAt(n, cMethodValueMoveOnly, valueType)
-		return TyPoison
-	}
-	c.deferFFIValueCheck(n, m, inst, valueType)
-	if info.Declared&EffAsync != 0 {
-		sig = c.asyncValueFn(sig)
-	} else {
-		c.valueEntry(n, m, sig)
-	}
-	// The value is a closure holding the receiver.
-	c.buildEdge(n, sig)
-	c.edge(EffectEdge{Kind: EdgeCall, Target: m, Node: n})
-	c.recordCtxValueRef(n, m)
-	return sig
-}
-
 func (c *checker) isMethodValue(n syntax.NodeID) bool {
 	call, ok := c.info.Calls[c.literalNode(n)]
 	return ok && call.Kind == CallMethodValue

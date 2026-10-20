@@ -174,7 +174,7 @@ func (c *checker) mismatch(n syntax.NodeID, want, got TypeID) {
 		c.errAt(n, cErrorNotConform, got)
 		return
 	}
-	if call, ok := c.info.Calls[n]; ok && call.Kind == CallMethodValue && tt.Kind(want) != KFn {
+	if call, ok := c.info.Calls[n]; ok && call.Kind == CallMethodValue && tt.Kind(want) != KFn && tt.Kind(want) != KClosure {
 		c.errAt(n, cMethodNeedsCall, c.r.Entities[call.Callee].Name, c.r.Entities[call.Callee].Name)
 		return
 	}

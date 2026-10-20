@@ -149,7 +149,7 @@ fn Big.runWith(mut self, f: fn(Int) -> Unit) -> Unit {
 
 fn methodValueOfMoveOnly() -> Int {
     let mut v = Big { count: 0, items: Array.of(1) }
-    v.runWith(v.tickWith) //~ ERROR cannot see what this closure captures
+    v.runWith(v.tickWith) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
     v.count
 }
 -- expect --
@@ -262,20 +262,10 @@ note: this method value holds `xs[..]`, which it may share
 132 |     xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
     |                 ^^^^
 
-error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+error[E413]: closure captures `v` (move-only) and cannot be a plain `fn`
    --> app/t/t.kg:151:15
     |
-151 |     v.runWith(v.tickWith) //~ ERROR cannot see what this closure captures
+151 |     v.runWith(v.tickWith) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
     |               ^^^^^^^^^^
-    = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
-note: `v` is exclusively borrowed by this call
-   --> app/t/t.kg:151:5
-    |
-151 |     v.runWith(v.tickWith) //~ ERROR cannot see what this closure captures
-    |     ^
-note: this method value holds `v`, which it may share
-   --> app/t/t.kg:151:15
-    |
-151 |     v.runWith(v.tickWith) //~ ERROR cannot see what this closure captures
-    |               ^
+    = help: use `F: Fn[...]`
 

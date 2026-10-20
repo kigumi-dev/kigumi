@@ -18,41 +18,60 @@ fn R.peek[U](self, f: fn(Int) -> U) -> U {
     f(self.n)
 }
 
-fn use(o: R?, mut r: R, mut xs: Array[Int], ys: Array[Int], c: Int?) -> Unit {
+fn applyPeek[F: Fn[fn(fn(Int) -> Int) -> Int]](f: F) -> Int {
+    f((k) => k + 1)
+}
+
+fn use(o: R?, mut r: R, mut xs: Array[Int], ys: Array[Int], c: Int?, q: R) -> Unit {
     let a: fn(fn(R) -> Int) -> Int? = o.map //~ ERROR cannot form a method value on move-only `R?`
     let b: fn(fn(Int) -> Int) -> Int = r.take //~ ERROR cannot form a method value on move-only `R`
     let d: fn(fn(&mut Int) -> Int) -> Int = r.upd //~ ERROR cannot form a method value on move-only `R`
     let e: fn(usize, fn(&mut Int) -> Int) -> Int? = xs.withMut //~ ERROR cannot form a method value on move-only `Array[Int]`
-    let g: fn(fn(Int) -> Int) -> Int = r.peek //~ TYPE g : fn(fn(Int) -> Int) -> Int
-    let h: fn(fn(&Int) -> Int) -> Array[Int] = ys.map //~ TYPE h : fn(fn(&Int) -> Int) -> Array[Int]
+    let g = applyPeek(r.peek) //~ TYPE g : Int
+    let h: fn(fn(&Int) -> Int) -> Array[Int] = ys.map //~ ERROR closure captures `ys` (move-only) and cannot be a plain `fn`
     let i: fn(fn(Int) -> Int) -> Int? = c.map //~ TYPE i : fn(fn(Int) -> Int) -> Int?
+    let j: fn(fn(Int) -> Int) -> Int = q.peek //~ ERROR closure captures `q` (move-only) and cannot be a plain `fn`
 }
 -- expect --
 error[E416]: cannot form a method value on move-only `R?`
-  --> lib/mv.kg:21:39
+  --> lib/mv.kg:25:39
    |
-21 |     let a: fn(fn(R) -> Int) -> Int? = o.map //~ ERROR cannot form a method value on move-only `R?`
+25 |     let a: fn(fn(R) -> Int) -> Int? = o.map //~ ERROR cannot form a method value on move-only `R?`
    |                                       ^^^^^
    = help: write a lambda
 
 error[E416]: cannot form a method value on move-only `R`
-  --> lib/mv.kg:22:40
+  --> lib/mv.kg:26:40
    |
-22 |     let b: fn(fn(Int) -> Int) -> Int = r.take //~ ERROR cannot form a method value on move-only `R`
+26 |     let b: fn(fn(Int) -> Int) -> Int = r.take //~ ERROR cannot form a method value on move-only `R`
    |                                        ^^^^^^
    = help: write a lambda
 
 error[E416]: cannot form a method value on move-only `R`
-  --> lib/mv.kg:23:45
+  --> lib/mv.kg:27:45
    |
-23 |     let d: fn(fn(&mut Int) -> Int) -> Int = r.upd //~ ERROR cannot form a method value on move-only `R`
+27 |     let d: fn(fn(&mut Int) -> Int) -> Int = r.upd //~ ERROR cannot form a method value on move-only `R`
    |                                             ^^^^^
    = help: write a lambda
 
 error[E416]: cannot form a method value on move-only `Array[Int]`
-  --> lib/mv.kg:24:53
+  --> lib/mv.kg:28:53
    |
-24 |     let e: fn(usize, fn(&mut Int) -> Int) -> Int? = xs.withMut //~ ERROR cannot form a method value on move-only `Array[Int]`
+28 |     let e: fn(usize, fn(&mut Int) -> Int) -> Int? = xs.withMut //~ ERROR cannot form a method value on move-only `Array[Int]`
    |                                                     ^^^^^^^^^^
    = help: write a lambda
+
+error[E413]: closure captures `ys` (move-only) and cannot be a plain `fn`
+  --> lib/mv.kg:30:48
+   |
+30 |     let h: fn(fn(&Int) -> Int) -> Array[Int] = ys.map //~ ERROR closure captures `ys` (move-only) and cannot be a plain `fn`
+   |                                                ^^^^^^
+   = help: use `F: Fn[...]`
+
+error[E413]: closure captures `q` (move-only) and cannot be a plain `fn`
+  --> lib/mv.kg:32:40
+   |
+32 |     let j: fn(fn(Int) -> Int) -> Int = q.peek //~ ERROR closure captures `q` (move-only) and cannot be a plain `fn`
+   |                                        ^^^^^^
+   = help: use `F: Fn[...]`
 

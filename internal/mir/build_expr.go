@@ -78,7 +78,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		base := b.expr(e.Args[0])
 		return b.emit(Inst{Op: OpFieldMove, Dst: b.temp(t), Args: []LocalID{base}, Index: e.Index, Node: n})
 	case hir.MethodValue:
-		recv := b.expr(e.Args[0])
+		recv := b.methodReceiver(e)
 		if b.r.Entity(b.r.Entity(e.Ent).Parent).Kind == sem.EntInterface {
 			return b.requirementValue(e, recv)
 		}

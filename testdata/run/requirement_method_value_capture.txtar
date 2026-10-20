@@ -37,7 +37,31 @@ fn viaExistLambda(t: Fetcher) -> String {
     g(1)
 }
 
-fn returned[T: Getter](t: T) -> fn(Int) -> String {
+type Keep[F] = {
+    pub f F
+}
+
+fn callKept[F: Fn[fn(Int) -> String]](k: Keep[F], x: Int) -> String {
+    k.f(x + 1)
+}
+
+fn apply[F: Fn[fn(Int) -> String]](f: F, x: Int) -> String {
+    f(x + 1)
+}
+
+fn returned[T: Getter](t: T) -> Unit {
+    let f = t.get
+    print apply(f, 4)
+    print "after apply"
+}
+
+fn carried[T: Getter](t: T) -> Unit {
+    let k = Keep { f: t.get }
+    print callKept(k, 1)
+    print "after callKept"
+}
+
+fn returnedCopy[T: Getter + Copy](t: T) -> fn(Int) -> String {
     let m = t.get
     (k: Int) => m(k + 1)
 }
@@ -58,9 +82,12 @@ print viaLambda(Res { n: 1 })
 print "after 1"
 print viaExistLambda(Res { n: 2 })
 print "after 2"
-let f = returned(Res { n: 3 })
-print f(5)
+returned(Res { n: 3 })
 print "after 3"
+carried(Res { n: 7 })
+print "after 7"
+let f = returnedCopy(Plain { n: 8 })
+print f(5)
 print twice(Res { n: 4 })
 print "after 4"
 print plainName(Plain { n: 5 })
@@ -73,8 +100,15 @@ after 1
 drop res 2
 fres2/2
 after 2
-res3/6
+drop res 3
+res3/5
+after apply
 after 3
+drop res 7
+res7/2
+after callKept
+after 7
+plain8/6
 drop res 4
 res4/11
 after 4
@@ -82,4 +116,3 @@ plain5/3
 drop res 6
 res6/3
 done
-drop res 3

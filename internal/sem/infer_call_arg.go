@@ -37,6 +37,7 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 		got = c.vars.resolve(c.setType(a, c.synthBorrow(a, param)))
 	} else {
 		got = c.vars.resolve(c.synth(a))
+		c.hintMethodValue(got, param)
 	}
 	if got == TyPoison {
 		c.vars.poison(param)

@@ -1,0 +1,81 @@
+-- lib/mv.kg --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.get(self, k: Int) -> Int { self.n + k }
+
+interface Getter {
+    fn get(self, k: Int) -> Int
+}
+
+fn sourceAfterMove(w: Res) -> Int {
+    let f = w.get
+    w.get(2) + f(1)
+}
+
+fn valueAfterMove[T: Getter](t: T) -> Int {
+    let f = t.get
+    let g = f
+    f(1) + g(1)
+}
+-- expect --
+fn lib.Res.drop(%self: Res) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.Res.get(%self: Res, %k: Int) -> Int {
+  b0:
+    %t2 = field 0(%self)
+    %t3 = bin +(%t2, %k)
+    drop(%k)
+    return %t3
+}
+fn lib.sourceAfterMove(%w: Res) -> Int {
+  b0:
+    %t1 = move(%w)
+    %t2 = closure lib.Res.get method(%t1)
+    %f = copy(%t2)
+    %t4 = const 2: Int
+    %t5 = call lib.Res.get(%w, %t4)
+    %t6 = const 1: Int
+    %t7 = callv(%f, %t6)
+    %t8 = bin +(%t5, %t7)
+    drop(%f)
+    nop
+    return %t8
+}
+fn lib.valueAfterMove(%t: T, %$w:T:get: fn(Int) -> Int) -> Int {
+  b0:
+    %t2 = move(%t)
+    %t4 = copy(%$w:T:get)
+    %t3 = closure lib.Getter.get witness(%t4, %t2)
+    %f = copy(%t3)
+    %t6 = move(%f)
+    %g = copy(%t6)
+    %t8 = const 1: Int
+    %t9 = callv(%f, %t8)
+    %t10 = const 1: Int
+    %t11 = callv(%g, %t10)
+    %t12 = bin +(%t9, %t11)
+    drop(%g)
+    nop
+    drop(%$w:T:get)
+    nop
+    return %t12
+}
+error[use-after-move]: `w` was moved; it cannot be used again
+  --> lib/mv.kg:15:5
+   |
+15 |     w.get(2) + f(1)
+   |     ^^^^^^^
+
+error[use-after-move]: `f` was moved; it cannot be used again
+  --> lib/mv.kg:21:5
+   |
+21 |     f(1) + g(1)
+   |     ^^^
+

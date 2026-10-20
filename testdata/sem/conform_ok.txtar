@@ -30,8 +30,8 @@ fn use(p: P) -> Unit {
     let n: Named[Int] = p
     let v = n.name() //~ TYPE v : Int
     let xs: Array[Display] = Array.of[Display](p, p)
-    let f = d.display //~ TYPE f : fn() -> String
     let back = d is P //~ TYPE back : Bool
     if d is P { }
+    let f = d.display //~ TYPE f : closure fn() -> String
 }
 -- expect --

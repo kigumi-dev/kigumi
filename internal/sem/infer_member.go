@@ -55,7 +55,8 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 		return TyPoison
 	}
 	node := tt.Node(recv)
-	if node.Kind == KRef {
+	viaRef := node.Kind == KRef
+	if viaRef {
 		recv = node.Elem
 		node = tt.Node(recv)
 	}
@@ -86,7 +87,7 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 			c.errAt(n, cMethodAsAssoc, name, c.r.Entities[node.Ent].Name, name)
 			return TyPoison
 		}
-		return c.methodValue(n, base, recv, m)
+		return c.methodValue(n, base, recv, m, viaRef)
 	}
 	if req, sig, _, ambiguous := c.ifaceMember(n, recv, name); req != 0 {
 		c.info.Uses[n] = req
@@ -103,10 +104,18 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 			c.errAt(n, cRequirementMoveValue, name, recv)
 			return TyPoison
 		}
+		owned := call.Recv == RecvSelf && !c.r.isCopy(recv)
+		if owned && (!c.ownedSync(n, c.r.Fn(req).Declared&EffAsync != 0, recv) || !c.takeReceiver(n, base, recv, viaRef)) {
+			c.info.Calls[n] = call
+			return TyPoison
+		}
 		if node.Kind == KParam {
 			call.Witness = c.witnessLocal(n, node.Ent, req)
 		}
 		c.info.Calls[n] = call
+		if owned {
+			return c.ownedMethodValue(n, base, recv, sig, req)
+		}
 		return sig
 	} else if ambiguous {
 		return TyPoison

@@ -12,6 +12,10 @@ fn explode() -> Int {
     None.expect("boom")
 }
 
+fn callW[F: Fn[fn(&ffi.FfiHandle[Int], fn(&Int) -> Int) -> Int]](w: F, h: &ffi.FfiHandle[Int], k: Int) -> Int {
+    w(h, (v: &Int) => if v == 41 { explode() } else { v + k })
+}
+
 async fn boom() -> Int {
 `
 
@@ -33,7 +37,6 @@ const (
 	stdCallLeakTable = `    let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
     let h = table.insert(41)
     let k = 7
-    let w: fn(&ffi.FfiHandle[Int], fn(&Int) -> Int) -> Int = table.with
 `
 )
 
@@ -42,7 +45,7 @@ func TestUnwoundStdCallReleasesNothingTwice(t *testing.T) {
 	quiesce()
 	for _, s := range []struct{ name, setup, call string }{
 		{"direct", stdCallLeakArray, `xs.tryMap((x: &Int) => if x == 2 { explode() } else { x + k })`},
-		{"method value", stdCallLeakTable, `w(&h, (v: &Int) => if v == 41 { explode() } else { v + k })`},
+		{"method value", stdCallLeakTable, `callW(table.with, &h, k)`},
 	} {
 		t.Run(s.name, func(t *testing.T) {
 			src := fmt.Sprintf("%s%s    let r = %s\n    0\n%s", stdCallLeakHead, s.setup, s.call, stdCallLeakTail)

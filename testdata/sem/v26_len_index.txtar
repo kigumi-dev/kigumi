@@ -7,7 +7,7 @@ let b = s[0] //~ TYPE b : u8
 let sub = s[0..2] //~ TYPE sub : String
 let bad = xs["a"] //~ ERROR index must be `usize` or `Range[usize]`, found `String`
 let bad2 = n[0] //~ ERROR `usize` is not indexable
-let m = xs.len //~ ERROR cannot form a method value on move-only `Array[Int]`
+let m: fn() -> usize = xs.len //~ ERROR closure captures `xs` (move-only) and cannot be a plain `fn`
 let two = xs.map((x) => x * 2) //~ TYPE two : Array[Int]
 let three = xs.map((x) => x > 1) //~ TYPE three : Array[Bool]
 let r = 0..n //~ TYPE r : Range[usize]
@@ -28,12 +28,12 @@ error[E614]: `usize` is not indexable
 8 | let bad2 = n[0] //~ ERROR `usize` is not indexable
   |            ^^^
 
-error[E416]: cannot form a method value on move-only `Array[Int]`
- --> main/main.kg:9:9
+error[E413]: closure captures `xs` (move-only) and cannot be a plain `fn`
+ --> main/main.kg:9:24
   |
-9 | let m = xs.len //~ ERROR cannot form a method value on move-only `Array[Int]`
-  |         ^^^^^^
-  = help: write a lambda
+9 | let m: fn() -> usize = xs.len //~ ERROR closure captures `xs` (move-only) and cannot be a plain `fn`
+  |                        ^^^^^^
+  = help: use `F: Fn[...]`
 
 error[E613]: range operands must be the same integer type
   --> main/main.kg:13:12

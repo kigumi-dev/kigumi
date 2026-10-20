@@ -40,7 +40,7 @@ fn use(b: Buf, mut m: Buf, r: &Buf, w: &mut Buf, res: Res) -> Unit {
     let q = Buf.make().take() //~ TYPE q : Int
     let v = b.peek //~ TYPE v : fn() -> Int
     let z = v() //~ TYPE z : Int
-    let id = res.id //~ ERROR cannot form a method value on move-only `Res`
+    let id: fn() -> Int = res.id //~ ERROR closure captures `res` (move-only) and cannot be a plain `fn`
     let lam = () => res.id()
     let n = b.n
     b.n = 1 //~ ERROR `b` is immutable
@@ -92,12 +92,12 @@ error[E517]: cannot move `Buf` out of a borrow
 37 |     let u = r.take() //~ ERROR cannot move `Buf` out of a borrow
    |             ^
 
-error[E416]: cannot form a method value on move-only `Res`
-  --> lib/recv.kg:42:14
+error[E413]: closure captures `res` (move-only) and cannot be a plain `fn`
+  --> lib/recv.kg:42:27
    |
-42 |     let id = res.id //~ ERROR cannot form a method value on move-only `Res`
-   |              ^^^^^^
-   = help: write a lambda
+42 |     let id: fn() -> Int = res.id //~ ERROR closure captures `res` (move-only) and cannot be a plain `fn`
+   |                           ^^^^^^
+   = help: use `F: Fn[...]`
 
 error[E701]: `b` is immutable
   --> lib/recv.kg:45:5

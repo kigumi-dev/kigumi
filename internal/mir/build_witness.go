@@ -79,3 +79,11 @@ func (b *builder) appliedValue(e *hir.Expr, recv LocalID) LocalID {
 	bound := b.emit(Inst{Op: OpBind, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Args: b.witnessArgs(e.Passes, e.Node), Async: async, Node: e.Node})
 	return b.emit(Inst{Op: OpClosure, Dst: b.temp(e.Type), Ent: e.Ent, Args: []LocalID{bound, recv}, Str: "applied", Async: async, Node: e.Node})
 }
+
+// A closure-typed method value owns its receiver, so the binding moves into it.
+func (b *builder) methodReceiver(e *hir.Expr) LocalID {
+	if b.r.Types.Kind(e.Type) == sem.KClosure {
+		return b.exprMoved(e.Args[0])
+	}
+	return b.expr(e.Args[0])
+}

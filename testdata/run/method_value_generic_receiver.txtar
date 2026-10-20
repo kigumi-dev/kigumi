@@ -29,10 +29,17 @@ fn viaParam[T: Copy](o: T?) -> T {
     e("none")
 }
 
-fn viaArray[T: Copy](xs: Array[T]) -> Int {
-    let m: fn(fn(&T) -> Int) -> Array[Int] = xs.map
+fn countMapped[T, F: Fn[fn(fn(&T) -> Int) -> Array[Int]]](m: F) -> Int {
     let ys = m((x: &T) => 1)
     ys.len().toInt() || 0
+}
+
+fn viaArray[T: Copy](xs: Array[T]) -> Int {
+    countMapped(xs.map)
+}
+
+fn mapRes[F: Fn[fn(fn(&Int) -> Res) -> Array[Res]]](m: F) -> Array[Res] {
+    m((x: &Int) => Res { id: x + 10 })
 }
 
 let o: Int? = Some(3)
@@ -48,8 +55,7 @@ let pick: fn(fn(Int) -> String) -> String = p.pick
 print "pick ${pick((n: Int) => "n${n}")}"
 
 let names = Array.of(1, 2, 3)
-let mapped: fn(fn(&Int) -> Res) -> Array[Res] = names.map
-let rs = mapped((x: &Int) => Res { id: x + 10 })
+let rs = mapRes(names.map)
 print "mapped ${rs.len().toInt() || 0}"
 
 let r: Result[Int, String] = Ok(4)
@@ -59,7 +65,7 @@ print "result ${rm((x: Int) => x * 2) || 0}"
 let om: fn(fn(Int) -> Int) -> Int? = o.map
 print "optmap ${om((x: Int) => x + 1) || 0}"
 print "param ${viaParam(o)}"
-print "array ${viaArray(names)}"
+print "array ${viaArray(Array.of(1, 2, 3))}"
 -- stdout --
 expect 3
 count 2

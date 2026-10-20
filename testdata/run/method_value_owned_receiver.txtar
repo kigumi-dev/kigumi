@@ -1,0 +1,120 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.n}"
+}
+
+fn Res.get(self, k: Int) -> Int { self.n * 10 + k }
+
+fn Res.peek[U](self, f: fn(Int) -> U) -> U { f(self.n) }
+
+fn Res.owned(move self) -> Int {
+    let f = self.get
+    f(1)
+}
+
+type Pt = {
+    pub mut x Int
+}
+
+fn Pt.get(self, k: Int) -> Int { self.x * 10 + k }
+
+type Keep[F] = {
+    pub f F
+}
+
+interface Getter {
+    fn get(self, k: Int) -> Int
+}
+
+fn apply[F: Fn[fn(Int) -> Int]](f: F, k: Int) -> Int { f(k) }
+
+fn applyPeek[F: Fn[fn(fn(Int) -> Int) -> Int]](f: F) -> Int { f((k) => k + 1) }
+
+fn useKeep[F: Fn[fn(Int) -> Int]](k: Keep[F]) -> Int { k.f(1) + k.f(2) }
+
+fn concrete() -> Unit {
+    let w = Res { n: 1 }
+    let f = w.get
+    print "${f(1)} ${f(2)}"
+    print "concrete end"
+}
+
+fn viaParam[T: Getter](t: T) -> Unit {
+    let f = t.get
+    print "${f(1)} ${f(2)}"
+    print "param end"
+}
+
+fn viaExistential(g: Getter) -> Unit {
+    let f = g.get
+    print "${apply(f, 3)}"
+    print "existential end"
+}
+
+fn ownGeneric(w: Res) -> Unit {
+    print "${applyPeek(w.peek)}"
+    print "own generic end"
+}
+
+fn stored(w: Res) -> Unit {
+    let k = Keep { f: w.get }
+    print "${useKeep(k)}"
+    print "stored end"
+}
+
+fn copied() -> Unit {
+    let mut p = Pt { x: 7 }
+    let f = p.get
+    p.x = 8
+    let g = p.get
+    print "${f(1)} ${g(1)}"
+}
+
+fn scoped() -> Unit {
+    let w = Res { n: 8 }
+    if true {
+        let f = w.get
+        print "${f(1)}"
+    }
+    print "scoped end"
+}
+
+concrete()
+viaParam(Res { n: 2 })
+viaExistential(Res { n: 3 })
+ownGeneric(Res { n: 4 })
+stored(Res { n: 5 })
+print "${apply(Res { n: 6 }.get, 2)}"
+print "${Res { n: 7 }.owned()}"
+copied()
+scoped()
+print "done"
+-- stdout --
+11 12
+concrete end
+drop 1
+21 22
+param end
+drop 2
+drop 3
+33
+existential end
+drop 4
+5
+own generic end
+drop 5
+103
+stored end
+drop 6
+62
+drop 7
+71
+71 81
+81
+drop 8
+scoped end
+done

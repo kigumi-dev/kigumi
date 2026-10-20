@@ -28,11 +28,13 @@ print "${f()}"
 
 const stdAdapterOwnedArgSrc = `import ffi from std/ffi
 
+fn callW[F: Fn[fn(&ffi.FfiHandle[Int], fn(&Int) -> Int) -> Int]](w: F, h: &ffi.FfiHandle[Int]) -> Int {
+    w(h, (v: &Int) => v + 1)
+}
+
 let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
 let h = table.insert(1)
-let w: fn(&ffi.FfiHandle[Int], fn(&Int) -> Int) -> Int = table.with
-print "${w(&h, (v: &Int) => v + 1)}"
-let _ = table.remove(h)
+print "${callW(table.with, &h)}"
 `
 
 func TestStdAdapterRegistersItsOwnedArgumentsForAPanic(t *testing.T) {

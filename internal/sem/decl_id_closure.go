@@ -21,7 +21,7 @@ func (r *Result) numberClosures() map[EntityID]int {
 	groups := map[group][]EntityID{}
 	for id := range r.Entities {
 		e := &r.Entities[id]
-		if _, copied := r.closureOrigins[EntityID(id)]; e.Kind != EntClosure || copied {
+		if _, copied := r.closureOrigins[EntityID(id)]; e.Kind != EntClosure || copied || r.closure(EntityID(id)).IsMethodValue() {
 			continue
 		}
 		g := group{e.Parent, e.Pkg}

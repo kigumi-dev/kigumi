@@ -163,38 +163,3 @@ type LocalInfo struct {
 	// 0 for an untagged reference or a non-reference parameter.
 	Lifetime EntityID
 }
-
-type CaptureMode uint8
-
-const (
-	capCopy CaptureMode = iota
-	capRetain
-	capMove
-	capCell
-	// capBorrow lends a move-only local to a lambda passed straight to a
-	// call whose target parameter's escape mode is verified non-escaping.
-	capBorrow
-)
-
-type Capture struct {
-	Local EntityID
-	Mode  CaptureMode
-}
-
-type ClosureInfo struct {
-	Params   []EntityID
-	Ret      TypeID
-	Sig      TypeID
-	Captures []Capture
-	Summary  EffectSummary
-	Ops      OpSummary
-	Edges    []EffectEdge
-	Copy     bool
-	// Immediate marks a lambda written as a call argument: its borrowed
-	// captures live only for that call.
-	Immediate bool
-	// Creator held this closure's edges, for a late construction alloc.
-	Creator EntityID
-	// Scoped mirrors c.allocDepth > 0 at the closure's creation site.
-	Scoped bool
-}

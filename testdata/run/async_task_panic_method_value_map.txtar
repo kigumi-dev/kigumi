@@ -20,12 +20,15 @@ fn mk(x: &Int, k: Int) -> Res {
     Res { id: x + k }
 }
 
+fn mapWith[F: Fn[fn(fn(&Int) -> Res) -> Array[Res]]](map: F, k: Int) -> Array[Res] {
+    map((x: &Int) => mk(x, k))
+}
+
 async fn boom() -> Int {
     let keep = Res { id: 0 }
     let xs = Array.of(1, 2, 3, 4)
     let k = 100
-    let map: fn(fn(&Int) -> Res) -> Array[Res] = xs.map
-    let ys = map((x: &Int) => mk(x, k))
+    let ys = mapWith(xs.map, k)
     ys.len().toInt() || 0
 }
 

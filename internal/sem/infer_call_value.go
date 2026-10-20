@@ -12,7 +12,10 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 	why := uint8(whyDynamicResult)
 	var closure EntityID
 	if node.Kind == KClosure {
-		closure = node.Ent
+		// A method value runs the method through the same adapter as a plain fn value.
+		if !c.r.closure(node.Ent).IsMethodValue() {
+			closure = node.Ent
+		}
 		ft = c.vars.resolve(c.r.closure(node.Ent).Sig)
 		node = tt.Node(ft)
 	}
