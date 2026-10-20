@@ -112,6 +112,10 @@ func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want 
 		c.vars.rollback(mark)
 		return false
 	}
+	if i, ok := c.firstEscapeMismatch(got, want); ok {
+		c.errAt(n, cEscapingCoerce, got, i+1, want)
+		return true
+	}
 	if need := Effects(w.Flags) & (EffPure | EffNoalloc); Effects(g.Flags)&need != need {
 		c.edge(EffectEdge{Kind: EdgeContract, Target: item, Mods: need, Node: n})
 	}

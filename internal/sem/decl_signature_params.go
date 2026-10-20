@@ -11,6 +11,7 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 	s := fnDecl(t, e.Node)
 	info := r.Fn(id)
 	var params []TypeID
+	var granted []bool
 	variadic := false
 	cvariadic := false
 	list := t.List(s.Params)
@@ -53,8 +54,12 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 			continue
 		}
 		typ := r.resolveType(f, scope, ps.Type, posParam)
+		grant := false
+		if ps.Flags&syntax.FlagEscaping != 0 {
+			typ, grant = r.escapingParamType(f, p, typ)
+		}
 		typ = r.paramEscapeType(id, info, typ)
-		if r.paramIsEscaping(id, info, typ) {
+		if grant || r.paramIsEscaping(id, info, typ) {
 			pe.Flags |= EfEscaping
 		}
 		if ps.Flags&syntax.FlagVariadic != 0 {
@@ -80,6 +85,7 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 		}
 		info.Params = append(info.Params, pid)
 		params = append(params, typ)
+		granted = append(granted, pe.Flags&EfEscaping != 0)
 	}
 	ret := TyPoison
 	if s.Ret != 0 {
@@ -93,6 +99,9 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 		info.Sig = r.Types.FnEffectPoly(params, ret, info.Declared&(EffPure|EffNoalloc|EffUnsafe), variadic)
 	default:
 		info.Sig = r.Types.Fn(params, ret, info.Declared&(EffPure|EffNoalloc|EffUnsafe), variadic)
+	}
+	if info.Abi == "" && !info.Naked {
+		info.Sig = r.Types.WithEscParams(info.Sig, r.escapingMarks(params, granted))
 	}
 	r.Entities[id].Type = info.Sig
 	if info.Abi != "" || info.Export != "" {

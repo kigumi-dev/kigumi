@@ -90,7 +90,7 @@ func declaration(res *sem.Result, t *syntax.Tree, d syntax.NodeID) (Declaration,
 		decl.Attributes = attributes(res, t, info.Metadata)
 		for _, p := range info.Params {
 			pe := res.Entity(p)
-			decl.Params = append(decl.Params, Member{Name: pe.Name, Type: res.TypeString(pe.Type), Attributes: attributes(res, t, res.Local(p).Metadata)})
+			decl.Params = append(decl.Params, Member{Name: pe.Name, Type: res.ParamTypeString(p), Attributes: attributes(res, t, res.Local(p).Metadata)})
 		}
 	case sem.EntType:
 		info := res.TypeDecl(ent)

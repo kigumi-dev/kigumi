@@ -109,6 +109,8 @@ type TypeTable struct {
 	// first-seen order; constIndex dedups them to a stable index.
 	constVals  []int64
 	constIndex map[int64]uint32
+	escSets    []string
+	escIndex   map[string]uint32
 	// tupleEnt holds Tuple2..Tuple8 at indices 2..8; 0 and 1 are unused (a
 	// 1-tuple is a parenthesized expression, not a type of its own).
 	tupleEnt [9]EntityID

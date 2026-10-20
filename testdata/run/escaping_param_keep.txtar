@@ -1,0 +1,99 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+type Counter = {
+    pub base Int
+}
+
+fn Counter.next(self) -> Int { self.base + 1 }
+
+type Handler[F] = { pub callback F }
+
+fn runNow[F: Fn[fn() -> Int]](callback: F) -> Int {
+    callback()
+}
+
+fn keep[F: Fn[fn() -> Int]](callback: escaping F) -> Handler[F] {
+    print "keep"
+    Handler { callback: callback }
+}
+
+fn later[F: Fn[fn() -> Int]](h: Handler[F]) -> Int {
+    print "later"
+    (h.callback)()
+}
+
+fn viaMethod() -> Unit {
+    let c = Counter { base: 10 }
+    let h = keep(c.next)
+    print "kept method"
+    print "method result ${later(h)}"
+}
+
+fn plain() -> Int { 100 }
+
+fn viaFnItem() -> Unit {
+    let h = keep(plain)
+    print "fn item result ${later(h)}"
+}
+
+fn viaLambda() -> Unit {
+    let a = Res { n: 2 }
+    let b = Res { n: 3 }
+    let first = keep(() => a.n * 2)
+    let second = keep(() => b.n * 3)
+    print "kept lambdas"
+    print "now ${runNow(() => 7)}"
+    print "second ${later(second)}"
+    print "first ${later(first)}"
+    print "lambda end"
+}
+
+fn pinned() -> fn(escaping fn() -> Int) -> Handler[fn() -> Int] { keep }
+
+fn forwarded(callback: escaping fn() -> Int) -> Handler[fn() -> Int] { keep(callback) }
+
+fn viaAnnotation() -> Unit {
+    let ks: fn(escaping fn() -> Int) -> Handler[fn() -> Int] = keep
+    print "annotated ${(ks(plain).callback)()}"
+    print "returned ${(pinned()(plain).callback)()}"
+    print "forwarded ${(forwarded(plain).callback)()}"
+}
+
+viaMethod()
+viaFnItem()
+viaLambda()
+viaAnnotation()
+print "end"
+-- stdout --
+keep
+kept method
+later
+method result 11
+keep
+later
+fn item result 100
+keep
+keep
+kept lambdas
+now 7
+later
+second 9
+later
+first 4
+lambda end
+drop res 3
+drop res 2
+keep
+annotated 100
+keep
+returned 100
+keep
+forwarded 100
+end

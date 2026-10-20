@@ -38,7 +38,7 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 			// borrow-carrying value would outlive its owner.
 			c.errAt(n, cLifetimeEscapes, c.r.TypeString(e.Type), "a closure")
 		case c.restrictedEntity(ent):
-			c.errAt(n, cEscapingCaptured, c.r.Entities[c.aliasChase(ent)].Name)
+			c.errAt(n, cEscapingCaptured, c.r.Entities[c.aliasChase(ent)].Name, c.r.escapingForm(c.aliasChase(ent)))
 		}
 		if mode == capMove {
 			c.deferCaptureReserve(ctx, n, ent)

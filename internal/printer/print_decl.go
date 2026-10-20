@@ -176,6 +176,9 @@ func (p *printer) param(prm syntax.ParamView) {
 		if flags&syntax.FlagVariadic != 0 {
 			p.write("...")
 		}
+		if flags&syntax.FlagEscaping != 0 {
+			p.write("escaping ")
+		}
 		p.typ(typ.ID())
 	}
 }

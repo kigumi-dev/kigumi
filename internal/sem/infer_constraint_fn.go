@@ -59,11 +59,21 @@ func (c *checker) fnEscapeMismatch(got, want TypeID) string {
 // got may be more escaping than want at a parameter, never less. Reports the first mismatch index.
 func (c *checker) firstEscapeMismatch(got, want TypeID) (int, bool) {
 	tt := c.r.Types
-	g, w := tt.Node(c.vars.resolve(got)), tt.Node(c.vars.resolve(want))
+	got, want = c.vars.resolve(got), c.vars.resolve(want)
+	g := tt.Node(got)
 	for i := range g.Args {
-		if tt.Kind(w.Args[i]) == KFn && tt.Kind(g.Args[i]) == KFn && !tt.FnIsEscaping(w.Args[i]) && tt.FnIsEscaping(g.Args[i]) {
+		if c.paramEscapes(got, i) && !c.paramEscapes(want, i) {
 			return i, true
 		}
 	}
 	return 0, false
+}
+
+func (c *checker) paramEscapes(fn TypeID, i int) bool {
+	tt := c.r.Types
+	n := tt.Node(fn)
+	if n.Kind != KFn || i >= len(n.Args) {
+		return false
+	}
+	return tt.FnParamEscapes(fn, i) || tt.FnIsEscaping(c.vars.resolve(n.Args[i]))
 }

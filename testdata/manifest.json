@@ -171,6 +171,17 @@
       ]
     },
     {
+      "id": "fmt/escaping_type_param",
+      "kind": "fmt",
+      "path": "testdata/fmt/escaping_type_param.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/import_rename",
       "kind": "fmt",
       "path": "testdata/fmt/import_rename.txtar",
@@ -1230,6 +1241,17 @@
       "id": "parser/decl_context",
       "kind": "parser",
       "path": "testdata/parser/decl_context.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/decl_escaping_param",
+      "kind": "parser",
+      "path": "testdata/parser/decl_escaping_param.txtar",
       "mode": [
         "parse"
       ],
@@ -5793,6 +5815,23 @@
       "id": "run/escape_capborrow",
       "kind": "run",
       "path": "testdata/run/escape_capborrow.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/escaping_param_keep",
+      "kind": "run",
+      "path": "testdata/run/escaping_param_keep.txtar",
       "mode": [
         "vm",
         "native"
@@ -13814,6 +13853,39 @@
       "id": "sem/escape_contract_err",
       "kind": "sem",
       "path": "testdata/sem/escape_contract_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_escaping_param",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_escaping_param.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_escaping_param_err",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_escaping_param_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_escaping_param_wide_err",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_escaping_param_wide_err.txtar",
       "mode": [
         "check"
       ],

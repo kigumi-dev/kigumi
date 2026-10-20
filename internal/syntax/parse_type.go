@@ -29,27 +29,6 @@ func (p *parser) typPostfix(t NodeID) NodeID {
 	}
 }
 
-// escapableType parses a parameter type, where `escaping` is a contextual keyword before a fn type.
-func (p *parser) escapableType() NodeID {
-	if !p.enterDepth() {
-		return 0
-	}
-	defer p.exitDepth()
-	if p.atIdent("escaping") && isFnTypeStart(p.peek(1)) {
-		p.advance()
-		return p.typPostfix(p.fnType(true))
-	}
-	return p.typPostfix(p.typPrimary())
-}
-
-func isFnTypeStart(k token.Kind) bool {
-	switch k {
-	case token.KwPure, token.KwNoalloc, token.KwUnsafe, token.KwFn, token.KwAsync, token.KwExtern:
-		return true
-	}
-	return false
-}
-
 func (p *parser) typPrimary() NodeID {
 	switch {
 	case p.at(token.KwPure), p.at(token.KwNoalloc), p.at(token.KwUnsafe), p.at(token.KwFn),
@@ -131,67 +110,4 @@ func (p *parser) typeArgs() NodeID {
 		items = append(items, p.typ())
 	})
 	return p.tree.addList(List, tok, items)
-}
-
-// fnType parses `pure noalloc unsafe fn(A, B) -> R`, `pure? fn(A) -> R`
-// (effect polymorphism) and `extern(C) fn(A, ...) -> R`.
-func (p *parser) fnType(escaping bool) NodeID {
-	start := p.pos
-	var mods uint32
-	var abi uint32
-	for {
-		switch {
-		case p.at(token.KwPure):
-			tok := p.tok()
-			p.advance()
-			bit := ModPure
-			if p.at(token.Question) && !p.tok().HasSpaceBefore() {
-				p.advance()
-				bit = ModPureVar
-			}
-			if mods&(ModPure|ModPureVar) != 0 {
-				p.warnAt(tok.Span, "duplicate modifier")
-			}
-			mods |= bit
-			continue
-		case p.at(token.KwNoalloc), p.at(token.KwUnsafe):
-			bit := modBit(p.tok().Kind)
-			if mods&bit != 0 {
-				p.warnAt(p.tok().Span, "duplicate modifier")
-			}
-			mods |= bit
-			p.advance()
-			continue
-		case p.at(token.KwAsync):
-			p.errorf("`async fn(...)` is not a first-class function type; call async declarations directly")
-			p.advance()
-			continue
-		case p.at(token.KwExtern):
-			p.advance()
-			p.expect(token.LParen)
-			abi = p.expect(token.Ident)
-			p.expect(token.RParen)
-			continue
-		}
-		break
-	}
-	p.expect(token.KwFn)
-	var params []NodeID
-	var flags uint32
-	if escaping {
-		flags |= FlagEscaping
-	}
-	p.layoutList(token.LParen, token.RParen, func() {
-		if p.at(token.Ellipsis) {
-			flags |= FlagVariadic
-			p.advance()
-			if p.at(token.RParen) {
-				return
-			}
-		}
-		params = append(params, p.escapableType())
-	})
-	p.expect(token.Arrow)
-	ret := p.typ()
-	return p.tree.addRec(TypeFn, start, []uint32{mods, abi, uint32(p.tree.addList(List, start, params)), flags, uint32(ret)})
 }

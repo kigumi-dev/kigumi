@@ -74,6 +74,9 @@ func describe(res *sem.Result, ent sem.EntityID, at sem.TypeID) string {
 	case sem.EntField:
 		return "field " + e.Name + ": " + res.TypeString(e.Type)
 	}
+	if at == 0 && e.Kind == sem.EntParam && e.Type != 0 {
+		return e.Kind.String() + " " + e.Name + ": " + res.ParamTypeString(ent)
+	}
 	if at == 0 {
 		at = e.Type
 	}

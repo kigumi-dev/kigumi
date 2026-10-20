@@ -94,7 +94,7 @@ func (v *varStore) resolve(t TypeID) TypeID {
 	for i, a := range n.Args {
 		args[i] = v.resolve(a)
 	}
-	return tt.Intern(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: v.resolve(n.Elem), Var: n.Var, Args: args})
+	return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: v.resolve(n.Elem), Var: n.Var, Args: args}))
 }
 
 func (v *varStore) bind(i uint32, t TypeID) { v.trail = append(v.trail, i); v.binding[i] = t }

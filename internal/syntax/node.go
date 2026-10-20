@@ -104,8 +104,15 @@ const (
 	// FlagLifetime marks a GenericParam declared as `'a`.
 	FlagLifetime
 	// FlagEscaping marks a TypeFn written `escaping fn(...)...` in parameter
-	// position.
+	// position, or a Param written `name: escaping F`.
 	FlagEscaping
+)
+
+// FlagEscapingParam0 is the first of MaxEscapingParams TypeFn flag bits; bit
+// FlagEscapingParam0<<i marks parameter i written `escaping F`.
+const (
+	FlagEscapingParam0 uint32 = 1 << 8
+	MaxEscapingParams         = 24
 )
 
 // Shell redirect operators stored in ShellRedirect "#op".

@@ -44,10 +44,11 @@ func (v *varStore) unifyInner(a, b TypeID, ignoreEscaping bool) bool {
 		return false
 	}
 	fa, fb := na.Flags, nb.Flags
+	va, vb := na.Var, nb.Var
 	if ignoreEscaping && na.Kind == KFn && nb.Kind == KFn {
-		fa, fb = fa&^fnEscaping, fb&^fnEscaping
+		fa, fb, va, vb = fa&^fnEscaping, fb&^fnEscaping, 0, 0
 	}
-	if na.Kind != nb.Kind || fa != fb || na.Ent != nb.Ent || na.Var != nb.Var || len(na.Args) != len(nb.Args) {
+	if na.Kind != nb.Kind || fa != fb || na.Ent != nb.Ent || va != vb || len(na.Args) != len(nb.Args) {
 		return false
 	}
 	if !v.unifyInner(na.Elem, nb.Elem, ignoreEscaping) {
@@ -63,6 +64,7 @@ func (v *varStore) unifyInner(a, b TypeID, ignoreEscaping bool) bool {
 
 func (v *varStore) bindVar(i uint32, t TypeID, n typeNode) bool {
 	tt := v.r.Types
+	t = tt.WithoutEscaping(t)
 	switch {
 	case n.Kind == KVar:
 		if v.pending[i] != 0 && v.pending[n.Var] == 0 {

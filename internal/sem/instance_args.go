@@ -40,10 +40,11 @@ func (tt *TypeTable) BindParams(pat, act TypeID, want map[EntityID]bool, out map
 		return true
 	}
 	pf, af := pn.Flags, an.Flags
+	pv, av := pn.Var, an.Var
 	if pn.Kind == KFn {
-		pf, af = pf&^fnEscaping, af&^fnEscaping
+		pf, af, pv, av = pf&^fnEscaping, af&^fnEscaping, 0, 0
 	}
-	if pn.Kind != an.Kind || pn.Ent != an.Ent || pn.Var != an.Var || pf != af || len(pn.Args) != len(an.Args) {
+	if pn.Kind != an.Kind || pn.Ent != an.Ent || pv != av || pf != af || len(pn.Args) != len(an.Args) {
 		return false
 	}
 	if (pn.Elem != 0 || an.Elem != 0) && !tt.BindParams(pn.Elem, an.Elem, want, out) {

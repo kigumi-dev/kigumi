@@ -61,8 +61,15 @@ func (r *Result) resolveFnType(f FileID, scope ScopeID, n syntax.NodeID) TypeID 
 	t := r.tree(f)
 	s := fnType(t, n)
 	var params []TypeID
-	for p := range t.List(s.Params).IDs() {
-		params = append(params, r.resolveType(f, scope, p, posParam))
+	var marked []bool
+	for i, p := range t.List(s.Params).EnumerateIDs() {
+		pt := r.resolveType(f, scope, p, posParam)
+		ok := false
+		if s.Flags&(syntax.FlagEscapingParam0<<i) != 0 {
+			pt, ok = r.escapingParamType(f, p, pt)
+		}
+		params = append(params, pt)
+		marked = append(marked, ok)
 	}
 	ret := r.resolveType(f, scope, s.Ret, posReturn)
 	if s.Abi != 0 {
@@ -71,6 +78,13 @@ func (r *Result) resolveFnType(f FileID, scope ScopeID, n syntax.NodeID) TypeID 
 	if s.Flags&syntax.FlagVariadic != 0 {
 		r.errAt(f, n, cFnTypeVariadic)
 	}
+	if mask := r.escapingMarks(params, marked); mask != "" {
+		return r.Types.WithEscParams(r.resolveFnShape(s, params, ret), mask)
+	}
+	return r.resolveFnShape(s, params, ret)
+}
+
+func (r *Result) resolveFnShape(s fnTypeSlots, params []TypeID, ret TypeID) TypeID {
 	eff := Effects(s.Mods) & (EffPure | EffNoalloc | EffUnsafe)
 	escaping := s.Flags&syntax.FlagEscaping != 0
 	switch {

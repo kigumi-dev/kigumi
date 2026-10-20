@@ -1,0 +1,205 @@
+-- src --
+fn runNow[F: Fn[fn() -> Unit]](callback: F) -> Unit { callback() }
+fn keep[F: Fn[fn() -> Unit]](callback: escaping F) -> Handler[F] { Handler { callback: callback } }
+fn both[F: Fn[fn() -> Unit]](a: escaping fn() -> Unit, b: escaping F, c: F) -> Unit {}
+fn viaType[F: Fn[fn() -> Unit]](register: fn(escaping F, Int) -> Unit, cb: F) -> Unit { register(cb, 1) }
+fn many[F: Fn[fn() -> Unit]](cbs: ...escaping F) -> Unit {}
+interface Registry {
+    fn add[F: Fn[fn() -> Unit]](self, callback: escaping F) -> Unit
+}
+fn bad(x: escaping Int) -> Unit {}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: runNow
+    generics: List
+      GenericParam F
+        List
+          TypePath
+            Path Fn
+            List
+              TypeFn
+                params: List
+                ret: TypePath
+                  Path Unit
+    params: List
+      Param callback
+        type: TypePath
+          Path F
+    ret: TypePath
+      Path Unit
+    body: Block
+      ExprStmt
+        Call
+          Ident callback
+          List
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: keep
+    generics: List
+      GenericParam F
+        List
+          TypePath
+            Path Fn
+            List
+              TypeFn
+                params: List
+                ret: TypePath
+                  Path Unit
+    params: List
+      Param callback
+        flags: escaping
+        type: TypePath
+          Path F
+    ret: TypePath
+      Path Handler
+      List
+        TypePath
+          Path F
+    body: Block
+      ExprStmt
+        RecordLit
+          Ident Handler
+          List
+            FieldInit callback
+              Ident callback
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: both
+    generics: List
+      GenericParam F
+        List
+          TypePath
+            Path Fn
+            List
+              TypeFn
+                params: List
+                ret: TypePath
+                  Path Unit
+    params: List
+      Param a
+        type: TypeFn
+          params: List
+          flags: escaping
+          ret: TypePath
+            Path Unit
+      Param b
+        flags: escaping
+        type: TypePath
+          Path F
+      Param c
+        type: TypePath
+          Path F
+    ret: TypePath
+      Path Unit
+    body: Block
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: viaType
+    generics: List
+      GenericParam F
+        List
+          TypePath
+            Path Fn
+            List
+              TypeFn
+                params: List
+                ret: TypePath
+                  Path Unit
+    params: List
+      Param register
+        type: TypeFn
+          params: List
+            TypePath
+              Path F
+            TypePath
+              Path Int
+          flags: escaping#0
+          ret: TypePath
+            Path Unit
+      Param cb
+        type: TypePath
+          Path F
+    ret: TypePath
+      Path Unit
+    body: Block
+      ExprStmt
+        Call
+          Ident register
+          List
+            Ident cb
+            IntLit 1
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: many
+    generics: List
+      GenericParam F
+        List
+          TypePath
+            Path Fn
+            List
+              TypeFn
+                params: List
+                ret: TypePath
+                  Path Unit
+    params: List
+      Param cbs
+        flags: variadic escaping
+        type: TypePath
+          Path F
+    ret: TypePath
+      Path Unit
+    body: Block
+  InterfaceDecl
+    name: Registry
+    members: List
+      FnDecl
+        attrs: -
+        vis: -
+        recv: -
+        name: add
+        generics: List
+          GenericParam F
+            List
+              TypePath
+                Path Fn
+                List
+                  TypeFn
+                    params: List
+                    ret: TypePath
+                      Path Unit
+        params: List
+          Param self
+            flags: self
+          Param callback
+            flags: escaping
+            type: TypePath
+              Path F
+        ret: TypePath
+          Path Unit
+        body: -
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: bad
+    generics: -
+    params: List
+      Param x
+        flags: escaping
+        type: TypePath
+          Path Int
+    ret: TypePath
+      Path Unit
+    body: Block

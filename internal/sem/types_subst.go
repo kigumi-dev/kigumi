@@ -32,7 +32,7 @@ func (tt *TypeTable) Subst(t TypeID, s map[EntityID]TypeID) TypeID {
 		if !changed {
 			args = n.Args
 		}
-		return tt.Intern(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Var: n.Var, Args: args})
+		return tt.Intern(tt.absorbEscMarks(typeNode{Kind: n.Kind, Flags: n.Flags, Ent: n.Ent, Elem: elem, Var: n.Var, Args: args}))
 	case KClosure:
 		if r, ok := s[n.Ent]; ok {
 			return r

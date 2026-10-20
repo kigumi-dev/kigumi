@@ -147,7 +147,10 @@ func (p *parser) param() NodeID {
 	if p.eat(token.Ellipsis) {
 		flags |= FlagVariadic
 	}
-	typ := p.escapableType()
+	typ, esc := p.escapableType()
+	if esc {
+		flags |= FlagEscaping
+	}
 	var attrList NodeID
 	if len(attrs) > 0 {
 		attrList = p.tree.addList(List, p.tree.nodes[attrs[0]].Tok, attrs)

@@ -1,0 +1,21 @@
+-- src --
+fn keep[F: Fn[fn() -> Unit]](callback:   escaping   F) -> Handler[F] { Handler { callback: callback } }
+fn viaType[F: Fn[fn() -> Unit]](register: fn(escaping   F, Int) -> Unit, cb: F) -> Unit { register(cb, 1) }
+fn direct(a: escaping   fn() -> Unit, rest: ...escaping   Int) -> Unit {}
+interface Registry {
+    fn add[F: Fn[fn() -> Unit]](self, callback:   escaping F) -> Unit
+}
+-- expect --
+fn keep[F: Fn[fn() -> Unit]](callback: escaping F) -> Handler[F] {
+    Handler { callback: callback }
+}
+
+fn viaType[F: Fn[fn() -> Unit]](register: fn(escaping F, Int) -> Unit, cb: F) -> Unit {
+    register(cb, 1)
+}
+
+fn direct(a: escaping fn() -> Unit, rest: ...escaping Int) -> Unit {}
+
+interface Registry {
+    fn add[F: Fn[fn() -> Unit]](self, callback: escaping F) -> Unit
+}

@@ -2,9 +2,9 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// checkEscapeArg rejects passing a tainted callback as argument a unless the target is verified
-// non-escaping. targetType backs the check when target has no entity, since only an explicit `escaping` there can mark it unsafe.
-func (c *checker) checkEscapeArg(a syntax.NodeID, target EntityID, targetType TypeID, calleeName string) {
+// checkEscapeArg rejects passing a tainted callback as argument a unless the target is verified non-escaping.
+// targetType backs the check when target has no entity; marked is the callee fn type's `escaping F` mark.
+func (c *checker) checkEscapeArg(a syntax.NodeID, target EntityID, targetType TypeID, marked bool, calleeName string) {
 	rp := c.restrictedParam(a)
 	if rp == 0 {
 		return
@@ -18,19 +18,19 @@ func (c *checker) checkEscapeArg(a syntax.NodeID, target EntityID, targetType Ty
 			c.errAt(a, cEscapingForwardedOpaque, c.r.Entities[rp].Name, calleeName)
 			return
 		}
-		c.errAt(a, cEscapingForwarded, c.r.Entities[rp].Name, calleeName)
+		c.errAt(a, cEscapingForwarded, c.r.Entities[rp].Name, calleeName, c.r.escapingForm(rp))
 		return
 	}
 	rt := c.vars.resolve(targetType)
-	if c.r.Types.Kind(rt) == KFn && !c.r.Types.FnIsEscaping(rt) {
+	if !marked && c.r.fnShapeOf(rt) != 0 && !c.r.Types.FnIsEscaping(rt) {
 		return
 	}
-	c.errAt(a, cEscapingForwarded, c.r.Entities[rp].Name, calleeName)
+	c.errAt(a, cEscapingForwarded, c.r.Entities[rp].Name, calleeName, c.r.escapingForm(rp))
 }
 
 func (c *checker) checkEscapeReturn(n syntax.NodeID) {
 	if rp := c.restrictedParam(n); rp != 0 {
-		c.errAt(n, cEscapingReturned, c.r.Entities[rp].Name)
+		c.errAt(n, cEscapingReturned, c.r.Entities[rp].Name, c.r.escapingForm(rp))
 	}
 }
 
@@ -52,6 +52,6 @@ func (c *checker) checkEscapeTailReturn(body syntax.NodeID) {
 // literal's field, or a variant's payload — all outlive the call.
 func (c *checker) checkEscapeStore(n syntax.NodeID) {
 	if rp := c.restrictedParam(n); rp != 0 {
-		c.errAt(n, cEscapingStored, c.r.Entities[rp].Name)
+		c.errAt(n, cEscapingStored, c.r.Entities[rp].Name, c.r.escapingForm(rp))
 	}
 }

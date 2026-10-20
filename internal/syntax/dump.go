@@ -185,9 +185,14 @@ func flagsString(f uint32) string {
 	for _, e := range []struct {
 		bit  uint32
 		name string
-	}{{FlagMut, "mut"}, {FlagMove, "move"}, {FlagSelf, "self"}, {FlagVariadic, "variadic"}} {
+	}{{FlagMut, "mut"}, {FlagMove, "move"}, {FlagSelf, "self"}, {FlagVariadic, "variadic"}, {FlagEscaping, "escaping"}} {
 		if f&e.bit != 0 {
 			parts = append(parts, e.name)
+		}
+	}
+	for i := range MaxEscapingParams {
+		if f&(FlagEscapingParam0<<i) != 0 {
+			parts = append(parts, fmt.Sprintf("escaping#%d", i))
 		}
 	}
 	return strings.Join(parts, " ")

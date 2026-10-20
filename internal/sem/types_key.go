@@ -1,6 +1,9 @@
 package sem
 
-import "strings"
+import (
+	"encoding/hex"
+	"strings"
+)
 
 // TypeKey spells a type with the DeclID of every named type in it.
 type TypeKey string
@@ -54,6 +57,9 @@ func (r *Result) writeKey(sb *strings.Builder, t TypeID, positional bool) {
 		r.writeKey(sb, n.Elem, positional)
 	case KFn:
 		sb.WriteString(fnKeyPrefix(n.Flags))
+		if n.Var != 0 {
+			sb.WriteString("escaping#" + hex.EncodeToString([]byte(r.Types.escSets[n.Var-1])) + " ")
+		}
 		sb.WriteString("fn(")
 		r.writeKeys(sb, n.Args, positional)
 		if n.Flags&fnCVariadic != 0 {

@@ -20,6 +20,9 @@ func (p *printer) fnType(id syntax.NodeID) {
 		if i > 0 {
 			p.write(", ")
 		}
+		if flags&(syntax.FlagEscapingParam0<<i) != 0 {
+			p.write("escaping ")
+		}
 		p.typ(a.ID())
 	}
 	if flags&syntax.FlagVariadic != 0 {

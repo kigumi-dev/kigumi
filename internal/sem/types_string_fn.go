@@ -27,6 +27,9 @@ func (r *Result) writeFn(sb *strings.Builder, n typeNode) {
 		if i > 0 {
 			sb.WriteString(", ")
 		}
+		if r.Types.escMarked(n.Var, i) {
+			sb.WriteString("escaping ")
+		}
 		if i == len(n.Args)-1 && n.Flags&fnVariadic != 0 {
 			sb.WriteString("...")
 			if elem, ok := r.arrayElem(a); ok {

@@ -155,7 +155,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			c.retagLendCross(from, a, entAt(declParams, pi), async)
 			c.noteLentRefArg(a, entAt(declParams, pi), async)
 			if pass == 0 {
-				c.checkEscapeArg(a, entAt(declParams, pi), param, name)
+				c.checkEscapeArg(a, entAt(declParams, pi), param, pi < 32 && sn.Var&(1<<pi) != 0, name)
 			}
 		}
 	}
