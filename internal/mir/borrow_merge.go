@@ -16,11 +16,14 @@ func mergeInto(dst, src *borrowInfo) bool {
 	}
 	if dst.empty {
 		dst.empty = false
-		dst.hasOwner, dst.lifetime, dst.fromStatic = src.hasOwner, src.lifetime, src.fromStatic
+		dst.hasOwner, dst.lifetime, dst.fromStatic, dst.multi = src.hasOwner, src.lifetime, src.fromStatic, src.multi
 		dst.owners = append([]ownerRef(nil), src.owners...)
 		return true
 	}
 	changed := false
+	if dst.multi == 0 && src.multi != 0 {
+		dst.multi, changed = src.multi, true
+	}
 	switch {
 	case src.hasOwner:
 		if !dst.hasOwner {
@@ -77,6 +80,21 @@ func (c *borrowCheck) soleLifetime(t sem.TypeID) sem.EntityID {
 	return sole
 }
 
+// multiLifetime reports whether t names more than one distinct lifetime.
+func (c *borrowCheck) multiLifetime(t sem.TypeID) bool {
+	var first sem.EntityID
+	for _, p := range c.p.R.Types.Params(t) {
+		if !c.p.R.TypeParam(p).IsLifetime || p == first {
+			continue
+		}
+		if first != 0 {
+			return true
+		}
+		first = p
+	}
+	return false
+}
+
 // elementHolder reports whether a value of type t may sit in a tracked
 // container: it names a lifetime and is not itself a bare reference.
 func (c *borrowCheck) elementHolder(t sem.TypeID) bool {
@@ -84,7 +102,7 @@ func (c *borrowCheck) elementHolder(t sem.TypeID) bool {
 }
 
 // trackedContainer reports whether collect follows t's element sources: an array, fixed array,
-// Option, Result, tuple, or a record or variant declared outside std (so not Map or Set).
+// Option, Result, tuple, std Map, or a record or variant declared outside std.
 func (c *borrowCheck) trackedContainer(t sem.TypeID) bool {
 	if c.p.R.Types.Kind(t) != sem.KNamed {
 		return false
@@ -94,8 +112,8 @@ func (c *borrowCheck) trackedContainer(t sem.TypeID) bool {
 	if ent == tt.ArrayEnt() || ent == tt.OptionEnt() || ent == tt.ResultEnt() || tt.IsTupleEnt(ent) || c.p.R.IsFixedArray(t) {
 		return true
 	}
-	if strings.HasPrefix(c.p.R.Packages[c.p.R.Entity(ent).Pkg].Path, "std/") {
-		return false
+	if path := c.p.R.Packages[c.p.R.Entity(ent).Pkg].Path; strings.HasPrefix(path, "std/") {
+		return path == "std/map" && c.p.R.Entity(ent).Name == "Map"
 	}
 	switch c.p.R.TypeDecl(ent).Form {
 	case sem.FormRecord, sem.FormAdt, sem.FormDefined:

@@ -121,13 +121,13 @@ func (c *checker) lambdaParams(closure EntityID, params []syntax.NodeID, target 
 		}
 		switch {
 		case ps.Type != 0:
-			annotated := c.r.resolveType(c.f, c.scope, ps.Type, posLocal)
+			annotated := c.resolveLocalType(ps.Type)
 			if pt != 0 && annotated != pt && !c.vars.unify(annotated, pt) {
 				c.errAt(p, cLambdaParamMismatch, name, annotated, pt)
 				bad = true
 			}
 			pt = annotated
-		case pt == 0 || tt.ContainsVar(pt):
+		case pt == 0 || !c.vars.onlyLifetimeVars(pt):
 			c.errAt(p, cLambdaParamAnnot, name)
 			pt = TyPoison
 			bad = true

@@ -1,0 +1,90 @@
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn View['a].byte(self) -> u8 {
+    self.data[self.off]
+}
+
+fn head['a](b: &'a Bytes) -> View['a] {
+    View { data: b, off: 0 }
+}
+
+fn pick['a](b: &'a Bytes, i: usize) -> Result[View['a], String] {
+    if i < b.len() { Ok(View { data: b, off: i }) } else { Err("out of range") }
+}
+
+fn views['a](b: &'a Bytes) -> Array[View['a]] {
+    let mut out: Array[View['a]] = Array.empty()
+    let mut i: usize = 0
+    for i < b.len() {
+        out.push(View { data: b, off: i })
+        i = i + 1
+    }
+    out
+}
+
+fn first['a](b: &'a Bytes) -> View['a] {
+    let v = head(b)
+    v
+}
+
+fn all['a](b: &'a Bytes) -> Array[View['a]] {
+    let vs = views(b)
+    vs
+}
+
+fn second['a](b: &'a Bytes) -> Result[View['a], String] {
+    let v = pick(b, 1)?
+    Ok(v)
+}
+
+fn fromField['a](v: View['a]) -> View['a] {
+    let w = head(v.data)
+    w
+}
+
+fn largest['a](b: &'a Bytes) -> View['a] {
+    let vs = views(b)
+    vs.fold(head(b), (acc: View['a], v: View['a]) => if v.byte() > acc.byte() { v } else { acc })
+}
+
+fn smallest['a](b: &'a Bytes) -> View['a] {
+    let vs = views(b)
+    vs.fold(head(b), (acc, v) => if v.byte() < acc.byte() { v } else { acc })
+}
+
+fn localSum() -> Int {
+    let buf = Bytes.fromArray(&Array.of(4, 9, 2))
+    let mut vs: Array[View['a]] = Array.empty()
+    vs.push(View { data: &buf, off: 2 })
+    let more = views(&buf)
+    for v in more {
+        vs.push(v)
+    }
+    let mut s = 0
+    for v in vs {
+        s = s + v.byte().toInt()
+    }
+    s
+}
+
+fn run() -> Unit {
+    let buf = Bytes.fromArray(&Array.of(3, 7, 1, 5))
+    print "first ${first(&buf).byte()} all ${all(&buf).len()}"
+    if second(&buf) is Ok(v) {
+        print "second ${v.byte()}"
+    }
+    print "field ${fromField(View { data: &buf, off: 3 }).byte()}"
+    print "largest ${largest(&buf).off} smallest ${smallest(&buf).off}"
+    print "local ${localSum()}"
+    print "buf ${buf.len()}"
+}
+
+run()
+-- stdout --
+first 3 all 4
+second 7
+field 3
+largest 1 smallest 2
+local 17
+buf 4

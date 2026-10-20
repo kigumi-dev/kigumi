@@ -32,6 +32,8 @@ type borrowInfo struct {
 	// checkLifetimeEscape can report it with its own wording.
 	fromStatic bool
 	empty      bool
+	// multi is the type naming several lifetimes that left lifetime unnamed.
+	multi sem.TypeID
 }
 
 type borrowCheck struct {

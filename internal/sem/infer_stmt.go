@@ -56,7 +56,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 	s := letStmt(c.t, n)
 	var annotated TypeID
 	if s.Type != 0 {
-		annotated = c.r.resolveType(c.f, c.scope, s.Type, posLocal)
+		annotated = c.resolveLocalType(s.Type)
 	}
 	var got TypeID
 	if annotated != 0 {

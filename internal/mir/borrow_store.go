@@ -68,6 +68,9 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, c
 		place = c.p.R.Types.Node(place).Elem
 	}
 	root, _, _, ok = c.projectionPlace(l)
+	if ok && c.f.Locals[root].Ent != 0 && !slices.Contains(c.f.Params, root) && c.p.R.Types.Kind(c.f.Locals[root].Type) == sem.KRef {
+		root, ok = c.refRoot(root)
+	}
 	if !ok {
 		return 0, 0, false, false
 	}

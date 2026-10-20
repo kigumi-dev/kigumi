@@ -33,6 +33,9 @@ func (r *Result) resolveLifetimeName(f FileID, scope ScopeID, n syntax.NodeID, n
 		return 0
 	}
 	b, _, ok := r.lookup(scope, name)
+	if (!ok || b.Ent == 0) && r.localLifetimeFn != 0 && r.Scopes[scope].Fn == r.localLifetimeFn {
+		return r.localLifetime(r.localLifetimeFn, name)
+	}
 	if !ok || b.Ent == 0 {
 		r.errAt(f, n, cLifetimeUnresolved, name)
 		return 0

@@ -57,20 +57,14 @@ func (r *Result) returnElisionCandidate(info *FnInfo, selfType TypeID, params []
 
 // adtArgs instantiates unspecified generic arguments with fresh inference
 // variables (for lifetimes too: a spread with its own lifetime
-// unifies structurally, like instantiateFn). An untouched lifetime var
-// falls back to the function's sole lifetime, or the type's own parameter
-// if there is none, so it is at least self-consistent within the literal.
+// unifies structurally, like instantiateFn); an untouched one takes lifetimeFallback.
 func (c *checker) adtArgs(n syntax.NodeID, adt EntityID, args []TypeID) []TypeID {
 	params := c.r.typeDecl(adt).Params
 	if len(args) != len(params) {
 		args = make([]TypeID, len(params))
 		for i := range params {
 			if c.r.typeParam(params[i]).IsLifetime {
-				fallback := c.r.soleLifetimeParam(c.fn)
-				if fallback == 0 {
-					fallback = params[i]
-				}
-				args[i] = c.vars.freshLifetime(n, params[i], fallback)
+				args[i] = c.vars.freshLifetime(n, params[i], c.lifetimeFallback(params[i]))
 				continue
 			}
 			args[i] = c.vars.fresh(n, c.r.Entities[params[i]].Name)

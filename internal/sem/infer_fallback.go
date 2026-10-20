@@ -87,7 +87,7 @@ func (c *checker) fallbackArm(lambda syntax.NodeID, r, want TypeID) {
 	p := params.ItemID(0)
 	ps := param(c.t, p)
 	if ps.Type != 0 {
-		annotated := c.r.resolveType(c.f, c.scope, ps.Type, posLocal)
+		annotated := c.resolveLocalType(ps.Type)
 		if annotated != r && annotated != TyPoison {
 			c.errAt(ps.Type, cFallbackArmParamType, r, annotated)
 		}

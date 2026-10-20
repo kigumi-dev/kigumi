@@ -1,0 +1,110 @@
+-- module --
+stage: driver
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn View['a].byte(self) -> u8 { self.data[self.off] }
+
+fn head['a](b: &'a Bytes) -> View['a] { View { data: b, off: 0 } }
+
+fn views['a](b: &'a Bytes) -> Array[View['a]] {
+    let mut out: Array[View['a]] = Array.empty()
+    out.push(View { data: b, off: 0 })
+    out
+}
+
+fn bytes() -> Bytes {
+    Bytes.fromArray(&Array.of(1, 2, 3))
+}
+
+fn localReturned['a](b: &'a Bytes) -> View['a] {
+    let local = bytes()
+    let v = head(&local)
+    v
+}
+
+fn pushedShorter['a](b: &'a Bytes) -> usize {
+    let mut vs = views(b)
+    {
+        let local = bytes()
+        let w = head(&local)
+        vs.push(w)
+    }
+    vs.len()
+}
+
+fn localContainer() -> usize {
+    let mut vs: Array[View['a]] = Array.empty()
+    {
+        let local = bytes()
+        vs.push(View { data: &local, off: 0 })
+    }
+    vs.len()
+}
+
+fn foldedLocal['a](b: &'a Bytes) -> View['a] {
+    let vs = views(b)
+    let local = bytes()
+    vs.fold(head(&local), (acc, v) => acc)
+}
+
+fn sourceMutated() -> u8 {
+    let mut buf = bytes()
+    let mut vs: Array[View['a]] = Array.empty()
+    vs.push(View { data: &buf, off: 1 })
+    let w = views(&buf)
+    vs = w
+    buf = bytes()
+    vs[0].byte()
+}
+
+let n = localContainer()
+-- expect --
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:19:18
+   |
+19 |     let v = head(&local)
+   |                  ^^^^^^
+
+error[move-while-borrowed]: `local` is still borrowed when its scope ends here
+  --> main.kg:18:9
+   |
+18 |     let local = bytes()
+   |         ^^^^^
+
+error[move-while-borrowed]: `local` is still borrowed when its scope ends here
+  --> main.kg:26:13
+   |
+26 |         let local = bytes()
+   |             ^^^^^
+
+error[move-while-borrowed]: `local` is still borrowed when its scope ends here
+  --> main.kg:36:13
+   |
+36 |         let local = bytes()
+   |             ^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:45:5
+   |
+45 |     vs.fold(head(&local), (acc, v) => acc)
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `local` is still borrowed when its scope ends here
+  --> main.kg:44:9
+   |
+44 |     let local = bytes()
+   |         ^^^^^
+
+error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> main.kg:54:5
+   |
+54 |     buf = bytes()
+   |     ^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
+  --> main.kg:54:5
+   |
+54 |     buf = bytes()
+   |     ^^^
+

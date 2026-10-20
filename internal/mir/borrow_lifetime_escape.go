@@ -94,6 +94,10 @@ func (c *borrowCheck) checkLifetimeEscape(a LocalID, b *borrowInfo) {
 	if def := c.definition(a); def != nil {
 		node = def.Node
 	}
+	if b.multi != 0 && !b.hasOwner && !b.fromStatic {
+		c.reportCode(node, a, "borrow-multi-lifetime", c.p.R.TypeString(c.stripRef(b.multi)))
+		return
+	}
 	name := "lifetime-untracked-return"
 	if b.fromStatic {
 		name = "static-borrow-escape"

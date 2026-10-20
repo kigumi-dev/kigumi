@@ -1,0 +1,90 @@
+-- module --
+stage: driver
+-- src --
+import {Map} from std/map
+import map from std/map
+
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn View['a].byte(self) -> u8 { self.data[self.off] }
+
+fn bytes() -> Bytes {
+    Bytes.fromArray(&Array.of(1, 2, 3))
+}
+
+fn dies() -> usize {
+    let mut m: Map[String, View['a]] = map.empty()
+    {
+        let buf = bytes()
+        m.set("x", View { data: &buf, off: 0 })
+    }
+    m.len()
+}
+
+fn mutated() -> u8 {
+    let mut buf = bytes()
+    let mut m: Map[String, View['a]] = map.empty()
+    m.set("x", View { data: &buf, off: 0 })
+    let v = m.get(&"x")
+    buf = bytes()
+    if v is Some(w) { w.byte() } else { 0 }
+}
+
+fn returned['a](b: &'a Bytes) -> Map[String, View['a]] {
+    let local = bytes()
+    let mut m: Map[String, View['a]] = map.empty()
+    m.set("b", View { data: b, off: 0 })
+    m.set("local", View { data: &local, off: 0 })
+    m
+}
+
+fn intoCaller['a](m: &mut Map[String, View['a]]) -> Unit {
+    let local = bytes()
+    m.set("local", View { data: &local, off: 0 })
+}
+
+fn fine() -> usize {
+    let buf = bytes()
+    let mut m: Map[String, View['a]] = map.empty()
+    m.set("x", View { data: &buf, off: 0 })
+    m.len()
+}
+
+let n = dies() + fine()
+-- expect --
+error[move-while-borrowed]: `buf` is still borrowed when its scope ends here
+  --> main.kg:15:13
+   |
+15 |         let buf = bytes()
+   |             ^^^
+
+error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> main.kg:26:5
+   |
+26 |     buf = bytes()
+   |     ^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
+  --> main.kg:26:5
+   |
+26 |     buf = bytes()
+   |     ^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:32:40
+   |
+32 |     let mut m: Map[String, View['a]] = map.empty()
+   |                                        ^^^^^^^^^^
+
+error[move-while-borrowed]: `local` is still borrowed when its scope ends here
+  --> main.kg:31:9
+   |
+31 |     let local = bytes()
+   |         ^^^^^
+
+error[E2159]: a borrow cannot be stored into `m` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:40:5
+   |
+40 |     m.set("local", View { data: &local, off: 0 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

@@ -1,0 +1,46 @@
+-- module --
+stage: driver
+-- src --
+import {Shared} from std/alloc
+
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn bytes() -> Bytes {
+    Bytes.fromArray(&Array.of(1, 2, 3))
+}
+
+fn shared() -> usize {
+    let buf = bytes()
+    let mut vs: Array[View['a]] = Array.empty()
+    vs.push(View { data: &buf, off: 0 })
+    let s = Shared.new(vs)
+    0
+}
+
+fn returned() -> Array[View['a]] {
+    Array.empty()
+}
+
+fn declared['a](b: &'a Bytes) -> usize {
+    let vs: Array[View['b]] = Array.empty()
+    vs.len()
+}
+-- expect --
+error[E1020]: `Array[View['a]]` carries a borrow and cannot be stored in `Shared`
+  --> main.kg:13:13
+   |
+13 |     let s = Shared.new(vs)
+   |             ^^^^^^^^^^^^^
+
+error[E1019]: undefined lifetime `'a`
+  --> main.kg:17:29
+   |
+17 | fn returned() -> Array[View['a]] {
+   |                             ^^
+
+error[E1019]: undefined lifetime `'b`
+  --> main.kg:22:24
+   |
+22 |     let vs: Array[View['b]] = Array.empty()
+   |                        ^^
+

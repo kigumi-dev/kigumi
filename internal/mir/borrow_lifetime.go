@@ -116,6 +116,10 @@ func (c *borrowCheck) callValueLifetimeSource(in Inst) (*borrowInfo, bool) {
 // be traced to an owner: silence is only safe when it could never carry a lifetime.
 func (c *borrowCheck) rejectUntrackedResult(in Inst) (*borrowInfo, bool) {
 	if c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type) {
+		if t := c.multiLifetimeArg(in); t != 0 {
+			c.reportCode(in.Node, in.Dst, "borrow-multi-lifetime", c.p.R.TypeString(t))
+			return nil, false
+		}
 		code, msg := lifetimeUntrackedDiag("lifetime-untracked-call")
 		c.report(in.Node, in.Dst, code, msg)
 	}

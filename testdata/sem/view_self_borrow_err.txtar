@@ -66,6 +66,17 @@ fn via_temp() -> Int {
     e.views[1].at()
 }
 
+fn via_container() -> Int {
+    let z = Array.of(0)
+    let mut d = Doc2 { src: Array.of(5, 6), views: Array.of(View { data: &z, off: 0 }) }
+    let mut vs = Array.of(View { data: &z, off: 0 })
+    vs.push(View { data: &d.src, off: 1 })
+    d.views = vs
+    let mut e = d
+    e.src = Array.of(9, 9, 9)
+    e.views[1].at()
+}
+
 fn literal() -> Int {
     let a = Array.of(5, 6)
     let d = Doc3 { src: Array.of(1), v: View { data: &a, off: 1 } }
@@ -111,5 +122,11 @@ error[borrow-escape]: a borrow of `d` cannot be stored back into `d`
   --> main.kg:60:5
    |
 60 |     d.views = Array.of(View { data: &z, off: 0 }, View { data: &d.src, off: 1 })
+   |     ^^^^^^^
+
+error[borrow-escape]: a borrow of `d` cannot be stored back into `d`
+  --> main.kg:71:5
+   |
+71 |     d.views = vs
    |     ^^^^^^^
 

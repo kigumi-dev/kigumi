@@ -51,10 +51,7 @@ func (c *checker) instantiateFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID,
 		case i < len(typeArgs):
 			t = typeArgs[i]
 		case c.r.typeParam(p).IsLifetime:
-			// A fresh var lets a lifetime unify from an
-			// argument that already carries one; the own-entity fallback
-			// covers a return-only `'a` that occurs in no argument.
-			t = c.vars.freshLifetime(n, p, p)
+			t = c.vars.freshLifetime(n, p, c.lifetimeFallback(p))
 		default:
 			t = c.vars.fresh(n, c.r.Entities[p].Name)
 		}

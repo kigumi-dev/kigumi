@@ -1,0 +1,56 @@
+-- src --
+type View['a] = { pub data &'a Array[Int], pub off usize }
+
+fn View['a].at(self) -> Int {
+    self.data[self.off]
+}
+
+type Doc['a] = { pub mut views Array[View['a]] }
+
+fn Doc['a].add(mut self, v: View['a]) -> Unit {
+    self.views.push(v)
+}
+
+fn total['a](vs: &Array[View['a]]) -> Int {
+    let mut s = 0
+    for v in vs {
+        s = s + v.at()
+    }
+    s
+}
+
+fn named() -> Int {
+    let a = Array.of(1, 2, 3)
+    let mut o = Array.of(View { data: &a, off: 0 })
+    let r = &mut o
+    r.push(View { data: &a, off: 1 })
+    r[0] = View { data: &a, off: 2 }
+    total(&o)
+}
+
+fn binding() -> Int {
+    let a = Array.of(10, 20, 30)
+    let mut opt = Some(Doc { views: Array.of(View { data: &a, off: 0 }) })
+    if let Some(d) = &mut opt {
+        d.add(View { data: &a, off: 2 })
+        d.views.push(View { data: &a, off: 1 })
+    }
+    if let Some(d) = &opt { total(&d.views) } else { 0 }
+}
+
+fn inner() -> Int {
+    let a = Array.of(5, 6)
+    let mut doc = Doc { views: Array.empty() }
+    let d = &mut doc
+    let vs = &mut d.views
+    vs.push(View { data: &a, off: 1 })
+    total(&doc.views)
+}
+
+fn run() -> Unit {
+    print "named ${named()} binding ${binding()} inner ${inner()}"
+}
+
+run()
+-- stdout --
+named 5 binding 60 inner 6

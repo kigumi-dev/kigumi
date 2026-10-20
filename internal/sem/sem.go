@@ -174,6 +174,8 @@ type Result struct {
 	ordinalMu                 sync.Mutex
 	closureOrdinals           map[EntityID]int
 	lifetimeStandIns          []EntityID
+	localLifetimes            map[localLifetimeKey]EntityID
+	localLifetimeFn           EntityID
 	deferredClaims            bool
 	boxedParams               map[EntityID]bool
 	boxedForwards             []boxedForward

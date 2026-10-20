@@ -19,6 +19,9 @@ func (c *borrowCheck) checkCapture(in Inst) {
 				return
 			}
 		}
+		if in.Op == OpRecord && c.checkMultiLifetimeBuild(in) {
+			return
+		}
 		for _, a := range in.Args {
 			if _, ok := c.holders[a]; ok {
 				c.report(in.Node, a, "borrow-escape", "a borrow cannot be stored")
@@ -32,6 +35,9 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		// A variant with its own ['a] routes a payload through it, same as OpRecord.
 		if _, ok := c.holders[in.Dst]; ok {
 			c.checkHolderPayloads(in)
+			return
+		}
+		if c.checkMultiLifetimeBuild(in) {
 			return
 		}
 		c.checkPayloadBorrows(in)

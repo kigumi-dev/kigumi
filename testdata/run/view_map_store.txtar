@@ -1,0 +1,52 @@
+-- src --
+import {Map} from std/map
+import map from std/map
+
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn View['a].byte(self) -> u8 {
+    self.data[self.off]
+}
+
+fn index['a](b: &'a Bytes) -> Map[String, View['a]] {
+    let mut m: Map[String, View['a]] = map.empty()
+    m.set("first", View { data: b, off: 0 })
+    m.set("last", View { data: b, off: b.len() - 1 })
+    m
+}
+
+fn lookup['a](m: &Map[String, View['a]], key: String) -> View['a]? {
+    m.get(&key)
+}
+
+fn run() -> Unit {
+    let buf = Bytes.fromArray(&Array.of(11, 22, 33, 44))
+    {
+        let mut m = index(&buf)
+        m.set("mid", View { data: &buf, off: 1 })
+        if lookup(&m, "last") is Some(v) {
+            print "last ${v.byte()}"
+        }
+        if m.get(&"mid") is Some(v) {
+            print "mid ${v.byte()}"
+        }
+        let taken = m.take(&"first")
+        m.remove(&"mid")
+        let n = m.with(&"last", (v: &View['a]) => v.off) || 0
+        let mut s = 0
+        for v in m.values() {
+            s = s + v.byte().toInt()
+        }
+        if taken is Some(t) {
+            print "taken ${t.byte()} off ${n} sum ${s} len ${m.len()}"
+        }
+    }
+    print "buf ${buf.len()}"
+}
+
+run()
+-- stdout --
+last 44
+mid 22
+taken 11 off 3 sum 44 len 1
+buf 4

@@ -1,0 +1,86 @@
+-- module --
+stage: driver
+-- src --
+type P['a, 'b] = { pub x &'a Bytes, pub y &'b Bytes }
+
+fn P['a, 'b].size(self) -> usize { self.x.len() + self.y.len() }
+
+fn pairs['a, 'b](x: &'a Bytes, y: &'b Bytes) -> Array[P['a, 'b]] {
+    let mut out: Array[P['a, 'b]] = Array.empty()
+    out.push(P { x: x, y: y })
+    out
+}
+
+fn firstX['a, 'b](ps: &Array[P['a, 'b]]) -> &'a Bytes {
+    ps[0].x
+}
+
+fn firstXv['a, 'b](ps: Array[P['a, 'b]]) -> &'a Bytes {
+    ps[0].x
+}
+
+fn count['a, 'b](ps: &Array[P['a, 'b]]) -> usize {
+    ps.len()
+}
+
+fn caller() -> usize {
+    let a = Bytes.fromArray(&Array.of(1, 2, 3))
+    let b = Bytes.fromArray(&Array.of(4))
+    let mut qs: Array[P['a, 'b]] = Array.empty()
+    qs.push(P { x: &a, y: &b })
+    let ps = pairs(&a, &b)
+    let n = count(&qs) + ps.len()
+    let x = firstXv(qs)
+    x.len() + n
+}
+
+fn local() -> usize {
+    let a = Bytes.fromArray(&Array.of(1, 2, 3))
+    let mut qs: Array[P['a, 'b]] = Array.empty()
+    {
+        let b = Bytes.fromArray(&Array.of(4))
+        qs.push(P { x: &a, y: &b })
+    }
+    count(&qs)
+}
+
+fn fine() -> usize {
+    let a = Bytes.fromArray(&Array.of(1, 2, 3))
+    let b = Bytes.fromArray(&Array.of(4))
+    let mut qs: Array[P['a, 'b]] = Array.empty()
+    qs.push(P { x: &a, y: &b })
+    qs[0].size() + count(&qs)
+}
+
+let n = fine()
+-- expect --
+error[E2162]: a borrow inside `P['a, 'b]` cannot be traced here: that type names more than one lifetime, and a borrow is traced across calls under a single one; give the element type a single `'a` of its own, or keep each lifetime in a separate value
+ --> main.kg:7:14
+  |
+7 |     out.push(P { x: x, y: y })
+  |              ^^^^^^^^^^^^^^
+
+error[E2162]: a borrow inside `Array[P['a, 'b]]` cannot be traced here: that type names more than one lifetime, and a borrow is traced across calls under a single one; give the element type a single `'a` of its own, or keep each lifetime in a separate value
+  --> main.kg:12:5
+   |
+12 |     ps[0].x
+   |     ^^^^^^^
+
+error[E2162]: a borrow inside `Array[P['a, 'b]]` cannot be traced here: that type names more than one lifetime, and a borrow is traced across calls under a single one; give the element type a single `'a` of its own, or keep each lifetime in a separate value
+  --> main.kg:28:14
+   |
+28 |     let ps = pairs(&a, &b)
+   |              ^^^^^^^^^^^^
+
+error[E2162]: a borrow inside `Array[P['a, 'b]]` cannot be traced here: that type names more than one lifetime, and a borrow is traced across calls under a single one; give the element type a single `'a` of its own, or keep each lifetime in a separate value
+  --> main.kg:30:13
+   |
+30 |     let x = firstXv(qs)
+   |             ^^^^^^^^^^
+
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:38:13
+   |
+38 |         let b = Bytes.fromArray(&Array.of(4))
+   |             ^
+

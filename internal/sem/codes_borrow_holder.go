@@ -10,6 +10,7 @@ var (
 
 var (
 	cBorrowStoreOutlives  = defineCode("E2159", "borrow-store-outlives", "a borrow cannot be stored into `{name}` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead")
-	cBorrowStoreUntracked = defineCode("E2160", "borrow-store-untracked", "a borrow cannot be stored into {type}: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, record or variant held in a local or a `&mut` parameter, not through a named reference or a pattern binding, so write through that local or store a value it can own")
+	cBorrowStoreUntracked = defineCode("E2160", "borrow-store-untracked", "a borrow cannot be stored into {type}: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, map, record or variant held in a local, a `&mut` parameter, or a reference bound once to one of those, so write through that local or store a value it can own")
 	cBorrowStoreOpaque    = defineCode("E2161", "borrow-store-opaque-call", "a call through a function value may store a borrow into `{name}`, and that write cannot be tracked; call the function by name, or pass a value it can own")
+	cBorrowMultiLifetime  = defineCode("E2162", "borrow-multi-lifetime", "a borrow inside `{type}` cannot be traced here: that type names more than one lifetime, and a borrow is traced across calls under a single one; give the element type a single `'a` of its own, or keep each lifetime in a separate value")
 )

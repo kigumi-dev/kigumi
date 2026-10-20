@@ -41,3 +41,26 @@ func TestMergeIntoContainerSources(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeIntoKeepsMultiLifetimeCause(t *testing.T) {
+	const multi = sem.TypeID(42)
+	for _, tc := range []struct {
+		name     string
+		dst, src borrowInfo
+	}{
+		{"empty takes it", borrowInfo{empty: true}, borrowInfo{multi: multi}},
+		{"a parameter's borrow takes it", borrowInfo{lifetime: 7}, borrowInfo{multi: multi}},
+		{"kept against a later source", borrowInfo{multi: multi}, borrowInfo{lifetime: 7}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dst, src := tc.dst, tc.src
+			mergeInto(&dst, &src)
+			if dst.multi != multi {
+				t.Fatalf("got %+v", dst)
+			}
+			if mergeInto(&dst, &src) {
+				t.Fatal("a second merge of the same source grew again")
+			}
+		})
+	}
+}

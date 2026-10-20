@@ -124,7 +124,7 @@ func (c *checker) argShapes(args []syntax.NodeID) ([]TypeID, []TypeID) {
 		case syntax.Lambda:
 			var ps []TypeID
 			for p := range c.t.View(a).AsLambda().Params().IDs() {
-				ps = append(ps, c.r.resolveType(c.f, c.scope, param(c.t, p).Type, posLocal))
+				ps = append(ps, c.resolveLocalType(param(c.t, p).Type))
 			}
 			ret := c.vars.fresh(a, "return")
 			trial = append(trial, ret)

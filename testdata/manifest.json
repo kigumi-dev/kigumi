@@ -11660,6 +11660,57 @@
       ]
     },
     {
+      "id": "run/view_infer_fold",
+      "kind": "run",
+      "path": "testdata/run/view_infer_fold.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/view_map_store",
+      "kind": "run",
+      "path": "testdata/run/view_map_store.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/view_ref_store",
+      "kind": "run",
+      "path": "testdata/run/view_ref_store.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/weak",
       "kind": "run",
       "path": "testdata/run/weak.txtar",
@@ -15407,6 +15458,50 @@
       "id": "sem/view_holder_reassign_err",
       "kind": "sem",
       "path": "testdata/sem/view_holder_reassign_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_infer_escape_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_infer_escape_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_local_lifetime_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_local_lifetime_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_map_outlives_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_map_outlives_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_multi_lifetime_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_multi_lifetime_err.txtar",
       "mode": [
         "check"
       ],

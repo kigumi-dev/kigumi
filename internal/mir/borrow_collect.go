@@ -36,6 +36,9 @@ func (c *borrowCheck) collectParams() {
 			continue
 		}
 		b := &borrowInfo{lifetime: lt, node: node}
+		if lt == 0 && c.multiLifetime(typ) {
+			b.multi = typ
+		}
 		if c.targets[prm] && !c.callerPlace(prm) {
 			c.merge(c.sink(prm, node), b)
 			continue
