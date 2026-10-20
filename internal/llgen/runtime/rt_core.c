@@ -394,9 +394,12 @@ typedef struct {
     val* args;
     int64_t n;
     uint64_t lent;
+    val* heap;
 } kg_stdargs;
 static void unwind_std_args(kg_unwind* u) {
     kg_stdargs* s = (kg_stdargs*)u->p;
+    if (s->heap) gen_free(&g_general, s->heap);
+    s->heap = NULL;
     while (u->i < s->n) {
         int64_t k = u->i++;
         if (k >= 64 || !((s->lent >> k) & 1)) rt_release(s->args[k]);
@@ -428,6 +431,7 @@ void rt_unwind_enter_std(void* rec, val* args, int64_t n, int64_t lent) {
     s->args = args;
     s->n = n;
     s->lent = (uint64_t)lent;
+    s->heap = NULL;
     u->prev = g_unwind;
     u->run = unwind_std_args;
     u->p = s;
@@ -2221,19 +2225,19 @@ val rt_callv(val f, int n, val* args) {
         int64_t envlen = f->u.clo.env->u.arr.len;
         int64_t total = envlen + n;
         val stackbuf[STACK_ARGS];
-        val* all = total <= STACK_ARGS ? stackbuf : malloc(total * sizeof(val));
+        val* all = total <= STACK_ARGS ? stackbuf : gen_alloc(&g_general, total * sizeof(val));
         int m = 0;
         for (int64_t i = 0; i < envlen; i++) all[m++] = f->u.clo.env->u.arr.items[i];
         for (int i = 0; i < n; i++) all[m++] = args[i];
 #ifdef KG_CATCH
-        kg_stdargs held = {args, n, f->u.clo.lent};
+        kg_stdargs held = {args, n, f->u.clo.lent, all == stackbuf ? NULL : all};
         UNWIND_PUSH(u, unwind_std_args, &held, NULL, 0);
 #endif
         val r = rt_std(f->u.clo.key, m, all);
         UNWIND_POP(u);
         for (int i = 0; i < n; i++)
             if (i >= 32 || !((f->u.clo.lent >> i) & 1)) rt_release(args[i]);
-        if (all != stackbuf) free(all);
+        if (all != stackbuf) gen_free(&g_general, all);
         return r;
     }
     return invoke(f->u.clo.fn, f->u.clo.env, n, args);

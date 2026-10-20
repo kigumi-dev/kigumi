@@ -60,7 +60,7 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 	guarded := e.catch && e.stdArgsOwned(lent, bound, n)
 	if guarded {
 		arr = e.argArray(&sb, vals)
-		sb.WriteString("  %urec = alloca [9 x i64], align 8\n")
+		sb.WriteString("  %urec = alloca [10 x i64], align 8\n")
 		e.irb(&sb).Call(rtUnwindEnterStd, vptr("%urec"), vptr(arr), vi64(n), vi64(lent|(1<<bound-1)))
 	}
 	finish := func(res string) string {

@@ -5,6 +5,9 @@ import "kigumi/internal/sem"
 // isrCheckedOps are the integer operators whose overflow or zero divisor traps.
 var isrCheckedOps = map[string]bool{"+": true, "-": true, "*": true, "/": true, "%": true, "<<": true, ">>": true, "neg": true}
 
+// isrPureBuiltins read their operands only: no allocation, release, panic or blocking; the witness call between them is judged on its own.
+var isrPureBuiltins = map[string]bool{"direct.eq": true, "direct.hash": true, builtinCmpUnordered: true, builtinCmpGuard: true}
+
 // isrForbidden names what in does that no interrupt handler may, "" when it is fine; releases selects the release pass.
 func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) string {
 	if in.Op == OpDrop || in.Op == OpRelease {
@@ -38,7 +41,7 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 			return "may panic on integer overflow or a zero divisor"
 		}
 	case OpBuiltin:
-		if in.Str != "direct.eq" && in.Str != "direct.hash" {
+		if !isrPureBuiltins[in.Str] {
 			return "calls the runtime helper `" + in.Str + "`"
 		}
 	case OpShell, OpInterp:

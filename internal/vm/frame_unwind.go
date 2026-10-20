@@ -64,6 +64,9 @@ func (m *Machine) sweepFrames(base int) {
 			fr.locals[l] = nil
 			m.sweepRelease(v)
 		}
+		if len(fr.pending) > 0 {
+			m.sweepCrossings(fr)
+		}
 	}
 }
 
