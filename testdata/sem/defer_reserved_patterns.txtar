@@ -314,10 +314,10 @@ note: `s` is reserved by this cleanup
    |     ^^^^^^^
 
 error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main.kg:76:42
+  --> main.kg:76:9
    |
 76 |     let Pack { inner, other: _, n: _ } = b //~ ERROR
-   |                                          ^
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `b.inner` is reserved by this cleanup
   --> main.kg:75:5

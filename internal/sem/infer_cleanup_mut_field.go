@@ -5,7 +5,7 @@ import "kigumi/internal/syntax"
 func (s *selfScan) selfFieldType(t *syntax.Tree, n syntax.NodeID) (TypeID, int, bool) {
 	switch t.Kind(n) {
 	case syntax.Ident:
-		return 0, 0, t.View(n).Tok().Text() == "self"
+		return 0, 0, t.View(n).Tok().Text() == s.root
 	case syntax.Paren:
 		return s.selfFieldType(t, t.View(n).AsParen().Inner().ID())
 	case syntax.MemberExpr:
@@ -65,7 +65,7 @@ func (s *selfScan) fieldMethodMayReplace(t *syntax.Tree, v syntax.View) bool {
 		switch s.c.r.Fn(mm).Recv {
 		case RecvSelf:
 		case RecvMut:
-			sub := selfScan{c: s.c, owner: s.c.r.Fn(mm).Owner, seen: s.seen}
+			sub := selfScan{c: s.c, owner: s.c.r.Fn(mm).Owner, root: "self", seen: s.seen}
 			if sub.mayReplace(mm) {
 				return true
 			}

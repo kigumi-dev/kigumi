@@ -24,11 +24,27 @@ func (b *builder) isExpr(p *hir.Pat, v LocalID) LocalID {
 	if b.fn.Locals[v].Ent == 0 {
 		b.shared[v] = true
 	}
-	b.bindPattern(p, v)
+	if p != nil && b.condIs == p {
+		b.condIs = nil
+		b.isMoves = b.bindGuarded(p, v, true)
+	} else {
+		b.bindPattern(p, v)
+	}
 	b.jump(join)
 	b.cur = join
 	if b.fn.Locals[v].Ent == 0 {
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: p.Node})
 	}
 	return cond
+}
+
+func (b *builder) cond(e *hir.Expr) (LocalID, []guardMove) {
+	if e.Kind != hir.Is {
+		return b.expr(e), nil
+	}
+	b.condIs = e.Pat
+	c := b.expr(e)
+	moves := b.isMoves
+	b.condIs, b.isMoves = nil, nil
+	return c, moves
 }

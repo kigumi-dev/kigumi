@@ -31,20 +31,19 @@ func joinOwn(a, b ownState) ownState {
 	return ownMaybe
 }
 
-// dstate: val is whether the local still holds its value; field is whether
-// a field read out of a root is still in the root. They are independent: a
-// moved-out field's temporary stays valid in val until consumed.
+// val and field are independent: a moved-out field's temporary stays valid in val until consumed.
+// called is whether a once-only callable has run.
 type dstate struct {
-	val, field map[LocalID]ownState
-	at         map[LocalID]syntax.NodeID
+	val, field, called map[LocalID]ownState
+	at                 map[LocalID]syntax.NodeID
 }
 
 func newDstate() *dstate {
-	return &dstate{val: map[LocalID]ownState{}, field: map[LocalID]ownState{}, at: map[LocalID]syntax.NodeID{}}
+	return &dstate{val: map[LocalID]ownState{}, field: map[LocalID]ownState{}, called: map[LocalID]ownState{}, at: map[LocalID]syntax.NodeID{}}
 }
 
 func cloneD(s *dstate) *dstate {
-	return &dstate{val: cloneState(s.val), field: cloneState(s.field), at: maps.Clone(s.at)}
+	return &dstate{val: cloneState(s.val), field: cloneState(s.field), called: cloneState(s.called), at: maps.Clone(s.at)}
 }
 
 // analyzeOwnership runs a forward dataflow over the CFG: every use needs a
@@ -54,6 +53,7 @@ func cloneD(s *dstate) *dstate {
 // using that place as a whole while one of its fields is gone is also an
 // error, and a drop of it becomes a drop of the fields still there.
 func analyzeOwnership(p *Program, f *Func) {
+	defer clearGuardMarks(f)
 	moveOnly := func(l Local) bool {
 		return !p.R.IsCopy(l.Type) && !l.Cell
 	}
@@ -145,10 +145,14 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 				a.checkWhole(in.Node, src, st, report)
 				st.val[src], st.at[src] = ownMoved, in.Node
 			}
+		case OpNop:
+			a.guardedMove(in, st, report)
+			continue
 		default:
+			a.onceCall(in, st, report)
 			a.useArgs(in, st, report)
 		}
-		if in.Op == OpField || in.Op == OpFieldMove {
+		if in.Op == OpField || in.Op == OpFieldMove || in.Op == OpPayload {
 			if l := a.pl.canon(in.Dst); a.tracked[l] {
 				a.check(in, l, st.val, report)
 				a.check(in, l, st.field, report)
@@ -160,6 +164,8 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 		if in.Op == OpSetField {
 			if l, ok := a.pl.stored(a.f, *in); ok {
 				st.val[l], st.field[l] = ownValid, ownValid
+				delete(st.called, l)
+				a.pl.resetFields(l, st)
 			}
 		}
 		if a.pl.isPlace(in.Dst) {
@@ -170,6 +176,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 		}
 		if in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone && a.tracked[in.Dst] {
 			st.val[in.Dst] = ownValid
+			delete(st.called, in.Dst)
 			a.pl.resetFields(in.Dst, st)
 		}
 	}

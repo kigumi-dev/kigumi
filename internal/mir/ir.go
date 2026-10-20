@@ -86,6 +86,8 @@ type Inst struct {
 	Copy bool
 	// IfWritable narrows Copy to a value a write could change, in its box or one inside it; any other is retained.
 	IfWritable bool
+	// Guarded marks a guarded arm's binding: on an OpCopy the binding does not move its source, on an OpNop at the start of the arm's body Args[0] is the place it takes, moved only once the guard passed (ownership analysis clears the arguments).
+	Guarded bool
 	// Own marks a Copy the share analysis adds so a value stops sharing a box with another name.
 	Own bool
 	// Last marks a Copy of a named local nothing reads again, which a boxed one hands over by move instead.

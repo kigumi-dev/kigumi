@@ -20,7 +20,7 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 		b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{body, next}})
 		b.cur = body
 		b.pushScope()
-		b.bindPattern(arm.Pat, scrutinee)
+		moves := b.bindGuarded(arm.Pat, scrutinee, arm.Guard != nil)
 		if arm.Guard != nil {
 			gv := b.expr(arm.Guard)
 			run, fail := b.newBlockAt(), b.newBlockAt()
@@ -30,6 +30,7 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 			b.unwindScope(b.scopes[len(b.scopes)-1], false)
 			b.jump(next)
 			b.cur = run
+			b.markGuardMoves(moves)
 		}
 		b.assign(result, b.exprMoved(arm.Body))
 		b.exitScope()
@@ -112,5 +113,28 @@ func (b *builder) bindLocal(id, v LocalID, n syntax.NodeID) {
 		b.emit(Inst{Op: OpBorrow, Dst: id, Args: []LocalID{v}, Index: mut, Node: n})
 		return
 	}
-	b.emit(Inst{Op: OpCopy, Dst: id, Args: []LocalID{v}, Node: n, Share: b.shared[v]})
+	b.emit(Inst{Op: OpCopy, Dst: id, Args: []LocalID{v}, Node: n, Share: b.shared[v], Guarded: b.guardedArm})
+	if b.guardedArm && !b.shared[v] && !b.r.IsCopy(b.fn.Locals[v].Type) {
+		b.guardMoves = append(b.guardMoves, guardMove{v, n})
+	}
+}
+
+type guardMove struct {
+	place LocalID
+	node  syntax.NodeID
+}
+
+func (b *builder) bindGuarded(p *hir.Pat, v LocalID, guarded bool) []guardMove {
+	b.guardedArm = guarded
+	b.bindPattern(p, v)
+	b.guardedArm = false
+	moves := b.guardMoves
+	b.guardMoves = nil
+	return moves
+}
+
+func (b *builder) markGuardMoves(moves []guardMove) {
+	for _, m := range moves {
+		b.emit(Inst{Op: OpNop, Args: []LocalID{m.place}, Node: m.node, Guarded: true})
+	}
 }

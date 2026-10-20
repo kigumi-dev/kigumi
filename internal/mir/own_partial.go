@@ -51,7 +51,7 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 		}
 		a.check(in, l, st.val, report)
 		switch {
-		case a.pl.isPlace(arg) && a.p.consumesArg(in, argi):
+		case a.pl.isPlace(arg) && (a.p.consumesArg(in, argi) || constructs(in.Op)):
 			a.checkWhole(in.Node, l, st, report)
 			st.val[l], st.at[l] = ownMoved, in.Node
 		case in.Op == OpCall || in.Op == OpCallValue || in.Op == OpBuiltin || in.Op == OpBorrow:
@@ -60,8 +60,34 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 	}
 }
 
+// constructs is an aggregate literal: a field place among its elements moves into it.
+func constructs(op Opcode) bool {
+	return op == OpRecord || op == OpVariant || op == OpArray
+}
+
+func (a *owner) guardedMove(in *Inst, st *dstate, report bool) {
+	if !in.Guarded || len(in.Args) == 0 {
+		return
+	}
+	arg := in.Args[0]
+	if l := a.pl.canon(arg); a.pl.isPlace(arg) && a.tracked[l] {
+		a.checkWhole(in.Node, l, st, report)
+		st.val[l], st.at[l] = ownMoved, in.Node
+	}
+}
+
+func clearGuardMarks(f *Func) {
+	for bi := range f.Blocks {
+		for i := range f.Blocks[bi].Insts {
+			if in := &f.Blocks[bi].Insts[i]; in.Op == OpNop && in.Guarded {
+				in.Args, in.Guarded = nil, false
+			}
+		}
+	}
+}
+
 // movesIntoBinding is a named binding taking a field place by value; the field read just before it already checked the place.
 func (a *owner) movesIntoBinding(in *Inst) bool {
-	return in.Op == OpCopy && !in.Share && a.f.Locals[in.Dst].Ent != 0 && a.tracked[in.Dst] &&
+	return in.Op == OpCopy && !in.Share && !in.Guarded && a.f.Locals[in.Dst].Ent != 0 && a.tracked[in.Dst] &&
 		a.pl.isPlace(in.Args[0]) && a.tracked[a.pl.canon(in.Args[0])]
 }

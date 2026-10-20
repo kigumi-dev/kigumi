@@ -18,7 +18,7 @@ func (c *checker) reserveMutBorrow(at, operand syntax.NodeID) {
 	if !ok {
 		return
 	}
-	if i, held := c.reservedWithin(p.Root, p.Fields); held {
+	if i, held := c.reservedWithin(p.Root, p.Fields); held && !c.mutBorrowKeeps(at, c.reserved[p.Root][i], p.Fields) {
 		c.reservedError(at, cCleanupReservedBorrowMut, c.reserved[p.Root][i])
 	}
 }
@@ -46,7 +46,7 @@ func (c *checker) reserveMutRecv(base syntax.NodeID, m EntityID) {
 }
 
 func (c *checker) mutRecvKeepsPlace(m EntityID, field string) bool {
-	s := selfScan{c: c, owner: c.r.Fn(m).Owner, field: field, seen: map[selfScanKey]bool{}}
+	s := selfScan{c: c, owner: c.r.Fn(m).Owner, field: field, root: "self", seen: map[selfScanKey]bool{}}
 	return !s.mayReplace(m)
 }
 
@@ -59,6 +59,8 @@ type selfScan struct {
 	c     *checker
 	owner EntityID
 	field string
+	root  string
+	fn    EntityID
 	seen  map[selfScanKey]bool
 }
 
@@ -79,23 +81,29 @@ func (s *selfScan) mayReplace(m EntityID) bool {
 	if info.Owner == 0 {
 		return true
 	}
-	return s.scan(s.c.r.tree(s.c.r.Entities[m].File), info.Body)
+	sub := *s
+	sub.root, sub.fn = "self", m
+	return sub.scan(s.c.r.tree(s.c.r.Entities[m].File), info.Body)
 }
 
 func (s *selfScan) scan(t *syntax.Tree, n syntax.NodeID) bool {
 	v := t.View(n)
 	switch v.Kind() {
 	case syntax.Ident:
-		return v.Tok().Text() == "self"
+		return v.Tok().Text() == s.root
+	case syntax.CallExpr:
+		if handled, replaced := s.scanCall(t, v); handled {
+			return replaced
+		}
 	case syntax.MemberExpr:
-		if base := v.AsMember().Base().ID(); t.Kind(base) == syntax.Ident && t.View(base).Tok().Text() == "self" {
+		if base := v.AsMember().Base().ID(); t.Kind(base) == syntax.Ident && t.View(base).Tok().Text() == s.root {
 			return s.selfMember(v.Tok().Text())
 		}
 		if s.field == "" && s.fieldMethodMayReplace(t, v) {
 			return true
 		}
 	case syntax.AssignStmt:
-		if rootedAtSelf(t, v.AsAssign().Target().ID(), false) || s.field == "" && s.ownsFieldPlace(t, v.AsAssign().Target().ID()) {
+		if rootedAtSelf(t, v.AsAssign().Target().ID(), s.root, false) || s.field == "" && s.ownsFieldPlace(t, v.AsAssign().Target().ID()) {
 			return true
 		}
 	case syntax.BorrowExpr:
@@ -112,6 +120,9 @@ func (s *selfScan) scan(t *syntax.Tree, n syntax.NodeID) bool {
 }
 
 func (s *selfScan) selfMember(name string) bool {
+	if s.owner == 0 {
+		return true
+	}
 	d := s.c.r.typeDecl(s.owner)
 	if f := s.c.r.findField(s.owner, name); f != 0 {
 		return name == s.field
@@ -134,16 +145,16 @@ func (s *selfScan) selfMember(name string) bool {
 	return false
 }
 
-func rootedAtSelf(t *syntax.Tree, n syntax.NodeID, indexed bool) bool {
+func rootedAtSelf(t *syntax.Tree, n syntax.NodeID, root string, indexed bool) bool {
 	switch t.Kind(n) {
 	case syntax.Ident:
-		return indexed && t.View(n).Tok().Text() == "self"
+		return indexed && t.View(n).Tok().Text() == root
 	case syntax.Paren:
-		return rootedAtSelf(t, t.View(n).AsParen().Inner().ID(), indexed)
+		return rootedAtSelf(t, t.View(n).AsParen().Inner().ID(), root, indexed)
 	case syntax.MemberExpr:
-		return rootedAtSelf(t, t.View(n).AsMember().Base().ID(), indexed)
+		return rootedAtSelf(t, t.View(n).AsMember().Base().ID(), root, indexed)
 	case syntax.BracketExpr:
-		return rootedAtSelf(t, t.View(n).AsBracket().Base().ID(), true)
+		return rootedAtSelf(t, t.View(n).AsBracket().Base().ID(), root, true)
 	}
 	return false
 }

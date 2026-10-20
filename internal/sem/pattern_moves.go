@@ -39,3 +39,10 @@ func (c *checker) reservePatternMoves(scrutinee syntax.NodeID, moved [][]EntityI
 		c.reservePlace(scrutinee, reservedPlace{ent: p.ent, fields: slices.Concat(p.fields, path)})
 	}
 }
+
+// reserveWhole is a `let` destructure: lowering moves the whole initializer before binding from it.
+func (c *checker) reserveWhole(at, init syntax.NodeID) {
+	if p, ok := c.consumedPlace(init); ok {
+		c.reservePlace(at, p)
+	}
+}

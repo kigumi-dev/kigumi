@@ -371,10 +371,10 @@ note: `t` is reserved by this cleanup
     |     ^^^^^^^^^^^^^^
 
 error[E2101]: `t._1` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:198:18
+   --> main.kg:198:9
     |
 198 |     let (_, y) = t //~ ERROR
-    |                  ^
+    |         ^^^^^
     = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `t._1` is reserved by this cleanup
    --> main.kg:197:5

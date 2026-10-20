@@ -7,6 +7,8 @@ import "kigumi/internal/syntax"
 // become `&U`.
 func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bool, scope ScopeID) PatInfo {
 	seen := map[string]syntax.NodeID{}
+	whole := c.held.patWhole
+	c.held.patWhole = false
 	saved, savedMut := c.patBorrow, c.patBorrowMut
 	c.patBorrow, c.patBorrowMut = expr != 0 && c.borrowedPlace(expr), false
 	scrutinee = c.vars.resolve(scrutinee)
@@ -20,7 +22,11 @@ func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bo
 	c.patMoved = patMoveLog{}
 	info := c.patternInner(p, scrutinee, mut, seen)
 	if expr != 0 {
-		c.reservePatternMoves(expr, c.patMoved.moved)
+		if whole && !c.patBorrow {
+			c.reserveWhole(p, expr)
+		} else {
+			c.reservePatternMoves(expr, c.patMoved.moved)
+		}
 	}
 	c.patMoved = savedMoved
 	if expr != 0 && c.patBorrowMut {

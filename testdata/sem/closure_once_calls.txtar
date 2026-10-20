@@ -1,0 +1,552 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
+}
+
+fn take(h: Handle) -> Unit {}
+
+fn sink(n: Int) -> Unit {}
+
+fn callOnceBranches[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+    if c {
+        f()
+    } else {
+        f()
+    }
+}
+
+fn fieldInLoop() -> Unit {
+    let b = mk(1)
+    let f = () => { b.other.close() }
+    for i in 0..2 {
+        f() //~ ERROR consumes `b.other`
+    }
+}
+
+fn wholeTwice() -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    f()
+    f() //~ ERROR consumes `h`
+}
+
+fn returnedTwice() -> Unit {
+    let h = mkh(1)
+    let f = () => h
+    let a = f()
+    let b = f() //~ ERROR consumes `h`
+}
+
+fn passedOn() -> Unit {
+    let h = mkh(1)
+    let f = () => { take(h) }
+    f()
+    f() //~ ERROR consumes `h`
+}
+
+fn consumedViaNested() -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    let g = () => { f() }
+    g()
+    g() //~ ERROR consumes `f`
+}
+
+fn deferInLoop() -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    for i in 0..2 {
+        defer { f() } //~ ERROR consumes `h`
+    }
+}
+
+fn onceCalledOnce() -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    f()
+}
+
+fn onceInBranches(c: Bool) -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    if c {
+        f()
+    } else {
+        f()
+    }
+}
+
+fn borrowedManyTimes() -> Unit {
+    let h = mkh(1)
+    let f = () => h.peek()
+    sink(f())
+    sink(f())
+}
+
+fn borrowedField() -> Unit {
+    let b = mk(1)
+    let f = () => b.other.peek()
+    for i in 0..2 {
+        sink(f())
+    }
+}
+
+fn copyCaptureManyTimes() -> Unit {
+    let n = 5
+    let f = () => n + 1
+    sink(f())
+    sink(f())
+}
+
+fn perIterationClosure() -> Unit {
+    for i in 0..2 {
+        let h = mkh(i)
+        let f = () => { h.close() }
+        f()
+    }
+}
+
+type Slot = {
+    pub mut opt Handle?
+}
+
+fn refillClosure() -> Unit {
+    let mut h = mkh(1)
+    let f = () => {
+        h.close()
+        h = mkh(2)
+    }
+    f()
+    f()
+    h.close()
+}
+
+fn refillFieldClosure() -> Unit {
+    let mut p = mk(10)
+    let f = () => {
+        p.other.close()
+        p.other = mkh(11)
+    }
+    f()
+    f()
+}
+
+fn refillPayloadClosure() -> Unit {
+    let mut s = Slot { opt: Some(mkh(20)) }
+    let f = () => {
+        match s.opt {
+            Some(h) -> h.close()
+            None -> {}
+        }
+        s.opt = None
+    }
+    f()
+    f()
+}
+
+fn assignedBeforeConsume() -> Unit {
+    let mut h = mkh(1)
+    let f = () => {
+        h = mkh(2)
+        h.close()
+    }
+    f()
+    f() //~ ERROR can be called only once
+}
+
+fn conditionalRefill(c: Bool) -> Unit {
+    let mut h = mkh(1)
+    let f = () => {
+        h.close()
+        if c {
+            h = mkh(2)
+        }
+    }
+    f()
+    f() //~ ERROR can be called only once
+}
+
+fn sumOf(xs: Array[Int]) -> Int {
+    xs[0]
+}
+
+fn ownedArrayTwice() -> Int {
+    let xs = Array.of(1, 2)
+    let f = () => sumOf(xs)
+    f() + f() //~ ERROR can be called only once
+}
+
+type Holder[F] = {
+    pub f F
+}
+
+fn storedInFieldOnce() -> Unit {
+    let p = mk(30)
+    let f = () => { p.other.close() }
+    let s = Holder { f: f }
+    (s.f)()
+}
+
+fn storedInFieldTwice() -> Unit {
+    let p = mk(40)
+    let f = () => { p.other.close() }
+    let s = Holder { f: f }
+    (s.f)()
+    (s.f)() //~ ERROR can be called only once
+}
+
+fn storedInFieldInLoop() -> Unit {
+    let p = mk(50)
+    let f = () => { p.other.close() }
+    let s = Holder { f: f }
+    for i in 0..2 {
+        (s.f)() //~ ERROR can be called only once
+    }
+}
+
+fn returnBeforeRefill(c: Bool) -> Unit {
+    let mut h = mkh(1)
+    let f = () => {
+        h.close()
+        if c {
+            return ()
+        }
+        h = mkh(2)
+    }
+    f()
+    f() //~ ERROR can be called only once
+}
+
+fn matchReturnBeforeRefill() -> Unit {
+    let mut h = mkh(1)
+    let f = (x: Int) => {
+        h.close()
+        match x > 0 {
+            true -> { return 0 }
+            false -> {}
+        }
+        h = mkh(2)
+        1
+    }
+    sink(f(1))
+    sink(f(1)) //~ ERROR can be called only once
+}
+
+fn continueBeforeRefill(c: Bool) -> Unit {
+    let mut h = mkh(1)
+    let f = () => {
+        for i in 0..1 {
+            h.close()
+            if c {
+                continue
+            }
+            h = mkh(2)
+        }
+    }
+    f()
+    f() //~ ERROR can be called only once
+}
+
+fn innerLoopBreakKeepsRefill(xs: Array[Int]) -> Unit {
+    let mut h = mkh(1)
+    let f = () => {
+        h.close()
+        for x in &xs {
+            if x > 0 {
+                break
+            }
+        }
+        h = mkh(2)
+    }
+    f()
+    f()
+}
+
+type S[F] = {
+    pub f F
+}
+
+fn S[F: FnOnce[fn() -> Unit]].run(self) -> Unit {
+    (self.f)() //~ ERROR reached through a borrow
+}
+
+fn S[F: FnOnce[fn() -> Unit]].runOwned(move self) -> Unit {
+    (self.f)()
+}
+
+fn runS[F: FnOnce[fn() -> Unit]](s: &S[F]) -> Unit {
+    (s.f)() //~ ERROR reached through a borrow
+}
+
+fn runOwnedOnce() -> Unit {
+    let p = mk(60)
+    let s = S { f: () => { p.other.close() } }
+    s.runOwned()
+}
+
+fn innerOnceThenOuter() -> Unit {
+    let h = mkh(1)
+    let g = () => { h.close() }
+    let k = () => { g() }
+    k()
+    g() //~ ERROR can be called only once
+}
+
+fn outerAfterInner() -> Unit {
+    let h = mkh(1)
+    let g = () => { h.close() }
+    g()
+    let k = () => { g() } //~ ERROR can be called only once
+    k()
+}
+
+fn innerDeferredAndOuter() -> Unit {
+    let h = mkh(1)
+    let g = () => { h.close() }
+    defer { g() } //~ ERROR can be called only once
+    let k = () => { g() }
+    k()
+}
+-- expect --
+error[E2151]: `f` consumes `b.other` when called and can be called only once
+  --> main.kg:43:9
+   |
+43 |         f() //~ ERROR consumes `b.other`
+   |         ^^
+   = help: call it a single time, or have the closure borrow `b.other` instead of consuming it
+note: `f` may already be called here
+  --> main.kg:43:9
+   |
+43 |         f() //~ ERROR consumes `b.other`
+   |         ^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+  --> main.kg:51:5
+   |
+51 |     f() //~ ERROR consumes `h`
+   |     ^^
+   = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+  --> main.kg:50:5
+   |
+50 |     f()
+   |     ^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+  --> main.kg:58:13
+   |
+58 |     let b = f() //~ ERROR consumes `h`
+   |             ^^
+   = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+  --> main.kg:57:13
+   |
+57 |     let a = f()
+   |             ^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+  --> main.kg:65:5
+   |
+65 |     f() //~ ERROR consumes `h`
+   |     ^^
+   = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+  --> main.kg:64:5
+   |
+64 |     f()
+   |     ^^
+
+error[E2151]: `g` consumes `f` when called and can be called only once
+  --> main.kg:73:5
+   |
+73 |     g() //~ ERROR consumes `f`
+   |     ^^
+   = help: call it a single time, or have the closure borrow `f` instead of consuming it
+note: `g` may already be called here
+  --> main.kg:72:5
+   |
+72 |     g()
+   |     ^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+  --> main.kg:80:17
+   |
+80 |         defer { f() } //~ ERROR consumes `h`
+   |                 ^^
+   = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+  --> main.kg:80:17
+   |
+80 |         defer { f() } //~ ERROR consumes `h`
+   |                 ^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+   --> main.kg:175:5
+    |
+175 |     f() //~ ERROR can be called only once
+    |     ^^
+    = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+   --> main.kg:174:5
+    |
+174 |     f()
+    |     ^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+   --> main.kg:187:5
+    |
+187 |     f() //~ ERROR can be called only once
+    |     ^^
+    = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+   --> main.kg:186:5
+    |
+186 |     f()
+    |     ^^
+
+error[E2151]: `f` consumes `xs` when called and can be called only once
+   --> main.kg:197:11
+    |
+197 |     f() + f() //~ ERROR can be called only once
+    |           ^^
+    = help: call it a single time, or have the closure borrow `xs` instead of consuming it
+note: `f` may already be called here
+   --> main.kg:197:5
+    |
+197 |     f() + f() //~ ERROR can be called only once
+    |     ^^
+
+error[E2151]: `s.f` consumes `p.other` when called and can be called only once
+   --> main.kg:216:5
+    |
+216 |     (s.f)() //~ ERROR can be called only once
+    |     ^^^^^^
+    = help: call it a single time, or have the closure borrow `p.other` instead of consuming it
+note: `s.f` may already be called here
+   --> main.kg:215:5
+    |
+215 |     (s.f)()
+    |     ^^^^^^
+
+error[E2151]: `s.f` consumes `p.other` when called and can be called only once
+   --> main.kg:224:9
+    |
+224 |         (s.f)() //~ ERROR can be called only once
+    |         ^^^^^^
+    = help: call it a single time, or have the closure borrow `p.other` instead of consuming it
+note: `s.f` may already be called here
+   --> main.kg:224:9
+    |
+224 |         (s.f)() //~ ERROR can be called only once
+    |         ^^^^^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+   --> main.kg:238:5
+    |
+238 |     f() //~ ERROR can be called only once
+    |     ^^
+    = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+   --> main.kg:237:5
+    |
+237 |     f()
+    |     ^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+   --> main.kg:253:10
+    |
+253 |     sink(f(1)) //~ ERROR can be called only once
+    |          ^^^
+    = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+   --> main.kg:252:10
+    |
+252 |     sink(f(1))
+    |          ^^^
+
+error[E2151]: `f` consumes `h` when called and can be called only once
+   --> main.kg:268:5
+    |
+268 |     f() //~ ERROR can be called only once
+    |     ^^
+    = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `f` may already be called here
+   --> main.kg:267:5
+    |
+267 |     f()
+    |     ^^
+
+error[E2180]: `self.f` can be called only once but is reached through a borrow, so every call of this function would call it again
+   --> main.kg:291:5
+    |
+291 |     (self.f)() //~ ERROR reached through a borrow
+    |     ^^^^^^^^^
+    = help: take the value by move (`move self` or a by-value parameter) before calling it
+
+error[E2180]: `s.f` can be called only once but is reached through a borrow, so every call of this function would call it again
+   --> main.kg:299:5
+    |
+299 |     (s.f)() //~ ERROR reached through a borrow
+    |     ^^^^^^
+    = help: take the value by move (`move self` or a by-value parameter) before calling it
+
+error[E2151]: `g` consumes `h` when called and can be called only once
+   --> main.kg:313:5
+    |
+313 |     g() //~ ERROR can be called only once
+    |     ^^
+    = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `g` may already be called here
+   --> main.kg:311:13
+    |
+311 |     let k = () => { g() }
+    |             ^^^^^^^^^^
+
+error[E2151]: `g` consumes `h` when called and can be called only once
+   --> main.kg:320:13
+    |
+320 |     let k = () => { g() } //~ ERROR can be called only once
+    |             ^^^^^^^^^^
+    = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `g` may already be called here
+   --> main.kg:319:5
+    |
+319 |     g()
+    |     ^^
+
+error[E2151]: `g` consumes `h` when called and can be called only once
+   --> main.kg:327:13
+    |
+327 |     defer { g() } //~ ERROR can be called only once
+    |             ^^
+    = help: call it a single time, or have the closure borrow `h` instead of consuming it
+note: `g` may already be called here
+   --> main.kg:328:13
+    |
+328 |     let k = () => { g() }
+    |             ^^^^^^^^^^
+

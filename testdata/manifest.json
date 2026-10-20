@@ -1073,6 +1073,17 @@
       ]
     },
     {
+      "id": "mir/pattern_move_variant",
+      "kind": "mir",
+      "path": "testdata/mir/pattern_move_variant.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/reborrow_alias",
       "kind": "mir",
       "path": "testdata/mir/reborrow_alias.txtar",
@@ -4000,6 +4011,23 @@
       ]
     },
     {
+      "id": "run/closure_once",
+      "kind": "run",
+      "path": "testdata/run/closure_once.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/closure_ref_capture_counts",
       "kind": "run",
       "path": "testdata/run/closure_ref_capture_counts.txtar",
@@ -4615,6 +4643,23 @@
       "id": "run/defer_reserved_fields",
       "kind": "run",
       "path": "testdata/run/defer_reserved_fields.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_reserved_helpers",
+      "kind": "run",
+      "path": "testdata/run/defer_reserved_helpers.txtar",
       "mode": [
         "vm",
         "native"
@@ -10392,6 +10437,23 @@
       ]
     },
     {
+      "id": "run/pattern_move_variant",
+      "kind": "run",
+      "path": "testdata/run/pattern_move_variant.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/pattern_or",
       "kind": "run",
       "path": "testdata/run/pattern_or.txtar",
@@ -12904,6 +12966,50 @@
       ]
     },
     {
+      "id": "sem/closure_once",
+      "kind": "sem",
+      "path": "testdata/sem/closure_once.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/closure_once_calls",
+      "kind": "sem",
+      "path": "testdata/sem/closure_once_calls.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/closure_once_fnonce_generic",
+      "kind": "sem",
+      "path": "testdata/sem/closure_once_fnonce_generic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/closure_once_reserve",
+      "kind": "sem",
+      "path": "testdata/sem/closure_once_reserve.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/collection_copy",
       "kind": "sem",
       "path": "testdata/sem/collection_copy.txtar",
@@ -13303,6 +13409,17 @@
       "id": "sem/defer_reserved_fields",
       "kind": "sem",
       "path": "testdata/sem/defer_reserved_fields.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_reserved_helpers",
+      "kind": "sem",
+      "path": "testdata/sem/defer_reserved_helpers.txtar",
       "mode": [
         "check"
       ],
@@ -15217,6 +15334,17 @@
       "id": "sem/pattern_move_loop",
       "kind": "sem",
       "path": "testdata/sem/pattern_move_loop.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pattern_move_variant",
+      "kind": "sem",
+      "path": "testdata/sem/pattern_move_variant.txtar",
       "mode": [
         "check"
       ],

@@ -157,6 +157,7 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 			c.checkCapturedMutConflict(base, root)
 		}
 		c.reserveMutRecv(base, m)
+		c.reserveMutDrain(base, m)
 		c.invalidatePlace(base)
 	case RecvMove:
 		if tt.Kind(recv) == KRef {

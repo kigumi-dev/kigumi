@@ -26,6 +26,8 @@ type ClosureInfo struct {
 	Ops      OpSummary
 	Edges    []EffectEdge
 	Copy     bool
+	// Once names a captured place the body consumes, so the closure can be called only once.
+	Once string
 	// Immediate marks a lambda written as a call argument: its borrowed
 	// captures live only for that call.
 	Immediate bool

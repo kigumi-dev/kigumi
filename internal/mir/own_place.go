@@ -43,14 +43,14 @@ func findPlaces(p *Program, f *Func) *places {
 		changed = false
 		for bi := range f.Blocks {
 			for _, in := range f.Blocks[bi].Insts {
-				if (in.Op != OpField && in.Op != OpFieldMove) || in.Dst == 0 || pl.key[in.Dst] != "" {
+				if !pl.projects(t, in) || in.Dst == 0 || pl.key[in.Dst] != "" {
 					continue
 				}
 				base, ok := pl.base(f, in)
 				if !ok {
 					continue
 				}
-				key := base + "." + strconv.Itoa(in.Index)
+				key := base + "." + pl.step(in)
 				pl.key[in.Dst] = key
 				if _, seen := pl.rep[key]; !seen {
 					pl.rep[key] = in.Dst
@@ -62,7 +62,7 @@ func findPlaces(p *Program, f *Func) *places {
 	}
 	for bi := range f.Blocks {
 		for _, in := range f.Blocks[bi].Insts {
-			if (in.Op != OpField && in.Op != OpFieldMove) || pl.canon(in.Dst) != in.Dst {
+			if !pl.projects(t, in) || pl.canon(in.Dst) != in.Dst {
 				continue
 			}
 			root := pl.canon(in.Args[0])
@@ -169,6 +169,7 @@ func (pl *places) resetFields(root LocalID, st *dstate) {
 	for _, rep := range pl.children[root] {
 		delete(st.val, rep)
 		delete(st.field, rep)
+		delete(st.called, rep)
 		delete(st.at, rep)
 		pl.resetFields(rep, st)
 	}

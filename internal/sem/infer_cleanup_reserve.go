@@ -99,7 +99,7 @@ func (c *checker) reservedWhere(ent EntityID, match func(a, b []EntityID) bool, 
 func (c *checker) reservedError(n syntax.NodeID, code Code, r reservation) {
 	d, ok := c.r.diagAt(c.f, n, code, r.name)
 	if ok {
-		c.r.emitDiag(c.f, d.WithNote(c.loc(r.cleanup), "`"+r.name+"` is reserved by this cleanup"))
+		c.r.emitDiag(c.f, d.WithNote(c.loc(r.cleanup), c.reserverNote(r)))
 	}
 }
 

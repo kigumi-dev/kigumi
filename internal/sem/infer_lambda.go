@@ -14,6 +14,7 @@ type lambdaCtx struct {
 	// reserveUses are uses of cleanup-reserved bindings, judged when the lambda closes.
 	reserveUses []captureUse
 	writes      []EntityID
+	consumes    []lambdaConsume
 }
 
 // synthLambda: want is a fn type, an Fn-constrained type parameter, or 0
@@ -71,6 +72,8 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info.Sig = tt.WithEscParams(tt.Fn(ptypes, ret, 0, false), c.r.escapingMarks(ptypes, c.escapingFlags(pents)))
 	info.Captures = ctx.list
 	info.Copy = closureCopy(ctx.list)
+	info.Once = c.lambdaOnce(ctx)
+	c.holdLambdaConsumes(n, ctx)
 	info.Immediate = ctx.immediate
 	info.Edges = edges
 	c.closures = append(c.closures, id)
@@ -134,6 +137,7 @@ func (c *checker) lambdaBody(body syntax.NodeID, ret TypeID) TypeID {
 		}
 	}
 	c.checkEscapeTailReturn(body)
+	c.noteLambdaTail(body)
 	c.retType, c.loop, c.cleanup, c.stmtPos = savedRet, savedLoop, savedCleanup, savedStmt
 	c.breaks = savedBreaks
 	c.vars.first = savedFirst

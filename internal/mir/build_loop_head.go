@@ -7,10 +7,10 @@ import (
 )
 
 // loopHead also returns what the head bound in the loop scope, which each pass has to drop before the next binds.
-func (b *builder) loopHead(head *hir.Expr) (LocalID, []LocalID) {
+func (b *builder) loopHead(head *hir.Expr) (LocalID, []LocalID, []guardMove) {
 	before := len(b.scopes[len(b.scopes)-1].owned)
-	c := b.expr(head)
-	return c, slices.Clone(b.scopes[len(b.scopes)-1].owned[before:])
+	c, moves := b.cond(head)
+	return c, slices.Clone(b.scopes[len(b.scopes)-1].owned[before:]), moves
 }
 
 func (b *builder) dropLoopBound(bound []LocalID) {

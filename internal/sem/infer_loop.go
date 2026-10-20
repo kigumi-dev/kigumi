@@ -23,6 +23,7 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	case s.Pattern != 0:
 		iter := c.vars.resolve(c.synthPlace(s.Head))
 		elem := c.iterElement(n, s.Head, iter)
+		c.reserveUse(s.Head)
 		c.checkPattern(s.Pattern, elem, false, c.scope)
 		c.trackLoopPlaces(s.Pattern, s.Head)
 		c.noteLoopAlias(s.Pattern, s.Head)

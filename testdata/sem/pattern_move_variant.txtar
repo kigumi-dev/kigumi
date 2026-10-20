@@ -1,0 +1,446 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub inner Handle
+    pub other Handle
+    pub n Int
+}
+
+type Bag = {
+    pub opt Handle?
+    pub pack Pack?
+    pub other Handle
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
+}
+
+fn mkBag(n: Int) -> Bag {
+    Bag { opt: Some(mkh(n)), pack: Some(mk(n)), other: mkh(n + 1) }
+}
+
+fn sink(n: Int) -> Unit {}
+
+fn payloadInLoop() -> Unit {
+    let b = mkBag(1)
+    for i in 0..2 {
+        match b.opt {
+            Some(h) -> h.close() //~ ERROR `b.opt` was moved
+            None -> {}
+        }
+    }
+}
+
+fn payloadInLoopParam(b: Bag) -> Unit {
+    for i in 0..2 {
+        match b.opt {
+            Some(h) -> h.close() //~ ERROR `b.opt` was moved
+            None -> {}
+        }
+    }
+}
+
+fn payloadIsInLoop(b: Bag) -> Unit {
+    for i in 0..2 {
+        if b.opt is Some(h) { //~ ERROR `b.opt` is moved on some paths
+            h.close()
+        }
+    }
+}
+
+fn payloadNestedInLoop(b: Bag) -> Unit {
+    for i in 0..2 {
+        match b.pack {
+            Some(Pack { other, inner: _, n: _ }) -> other.close() //~ ERROR `b.pack.other` was moved
+            None -> {}
+        }
+    }
+}
+
+fn payloadLocalInLoop(o: Handle?) -> Unit {
+    for i in 0..2 {
+        match o {
+            Some(h) -> h.close() //~ ERROR `o` was moved
+            None -> {}
+        }
+    }
+}
+
+fn payloadTwice(b: Bag) -> Unit {
+    match b.opt {
+        Some(h) -> h.close()
+        None -> {}
+    }
+    match b.opt {
+        Some(g) -> g.close() //~ ERROR `b.opt` was moved
+        None -> {}
+    }
+}
+
+fn payloadOnce(b: Bag) -> Unit {
+    match b.opt {
+        Some(h) -> h.close()
+        None -> {}
+    }
+}
+
+fn payloadPerIteration() -> Unit {
+    for i in 0..2 {
+        let b = mkBag(i)
+        match b.opt {
+            Some(h) -> h.close()
+            None -> {}
+        }
+    }
+}
+
+fn payloadForElement(bs: Array[Bag]) -> Unit {
+    for b in bs {
+        match b.opt {
+            Some(h) -> h.close()
+            None -> {}
+        }
+    }
+}
+
+fn payloadReference(b: Bag) -> Unit {
+    for i in 0..2 {
+        match &b.opt {
+            Some(h) -> sink(h.peek())
+            None -> {}
+        }
+    }
+}
+
+fn payloadCopy(o: Int?) -> Unit {
+    for i in 0..2 {
+        match o {
+            Some(n) -> sink(n)
+            None -> {}
+        }
+    }
+}
+
+fn payloadGuarded(b: Bag) -> Unit {
+    match b.opt {
+        Some(h) if h.peek() > 100 -> h.close()
+        Some(h) -> h.close()
+        None -> {}
+    }
+}
+
+fn payloadGuardedLoop(b: Bag) -> Unit {
+    match b.pack {
+        Some(Pack { other, inner: _, n: _ }) if other.peek() > 100 -> other.close()
+        Some(Pack { other, inner: _, n: _ }) -> other.close()
+        None -> {}
+    }
+}
+
+fn payloadReassigned(b: Bag) -> Unit {
+    let mut o = b.opt
+    for i in 0..2 {
+        match o {
+            Some(h) -> h.close()
+            None -> {}
+        }
+        o = Some(mkh(i))
+    }
+}
+
+type Cell = {
+    pub mut opt Handle?
+    pub mut other Handle
+}
+
+type Wrap = {
+    pub o Handle?
+}
+
+fn mkCell(n: Int) -> Cell {
+    Cell { opt: Some(mkh(n)), other: mkh(n + 1) }
+}
+
+fn takeOpt(o: Handle?) -> Unit {}
+
+fn ok(h: &Handle) -> Bool {
+    true
+}
+
+fn guardedInLoop() -> Unit {
+    let mut b = mkCell(110)
+    for i in 0..2 {
+        match b.opt {
+            Some(h) if ok(&h) -> h.close() //~ ERROR `b.opt` is moved on some paths
+            _ -> {}
+        }
+    }
+}
+
+fn guardedPerIteration() -> Unit {
+    for i in 0..2 {
+        let b = mkCell(120 + 10 * i)
+        match b.opt {
+            Some(h) if ok(&h) -> h.close()
+            _ -> {}
+        }
+        b.other.close()
+    }
+}
+
+fn takeAndRefill() -> Unit {
+    let mut b = mkCell(30)
+    for i in 0..3 {
+        match b.opt {
+            Some(h) -> {
+                h.close()
+                b.opt = None
+            }
+            None -> {}
+        }
+    }
+    b.other.close()
+}
+
+fn ifLetTakeAndRefill() -> Unit {
+    let mut b = mkCell(40)
+    for i in 0..3 {
+        if let Some(h) = b.opt {
+            h.close()
+            b.opt = None
+        }
+    }
+    b.other.close()
+}
+
+fn putBack() -> Unit {
+    let mut b = mkCell(50)
+    for i in 0..2 {
+        match b.opt {
+            Some(h) -> {
+                b.opt = Some(h)
+            }
+            None -> {}
+        }
+    }
+    b.other.close()
+}
+
+fn tupleMovesField() -> Unit {
+    let b = mkCell(60)
+    let t = (b.other, 1)
+    b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+}
+
+fn tupleInLoop() -> Unit {
+    let b = mkCell(70)
+    for i in 0..2 {
+        let t = (b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+        let (o, _) = t
+        match o {
+            Some(h) -> h.close()
+            None -> {}
+        }
+    }
+}
+
+fn recordMovesField() -> Unit {
+    let b = mkCell(80)
+    let w = Wrap { o: b.opt }
+    takeOpt(b.opt) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+}
+
+fn variantMovesField() -> Unit {
+    let b = mkCell(90)
+    let o = Some(b.other)
+    b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+}
+
+fn arrayMovesField() -> Unit {
+    let b = mkCell(100)
+    let xs = Array.of(b.other)
+    b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+}
+
+fn literalOfOtherField() -> Unit {
+    let b = mkCell(130)
+    let t = (b.other, 1)
+    match b.opt {
+        Some(h) -> h.close()
+        None -> {}
+    }
+}
+
+fn isTakeAndClear() -> Unit {
+    let mut o = Some(mkh(5))
+    if o is Some(h) {
+        h.close()
+        o = None
+    }
+    if o is Some(h) {
+        h.close()
+    }
+}
+
+fn isTakeAndClearInLoop() -> Unit {
+    let mut o = Some(mkh(6))
+    for i in 0..3 {
+        if o is Some(h) {
+            h.close()
+            o = None
+        }
+        if i == 1 {
+            o = Some(mkh(9))
+        }
+    }
+}
+
+type Box1 = {
+    pub mut opt Handle?
+}
+
+fn isTakeAndClearField() -> Unit {
+    let mut g = Box1 { opt: Some(mkh(7)) }
+    for i in 0..3 {
+        if g.opt is Some(h) {
+            h.close()
+            g.opt = None
+        }
+    }
+}
+
+fn isTakeNoClearInLoop() -> Unit {
+    let o = Some(mkh(8))
+    for i in 0..2 {
+        if o is Some(h) { //~ ERROR `o` is moved on some paths
+            h.close()
+        }
+    }
+}
+-- expect --
+error[use-after-move]: `b.opt` was moved; it cannot be used again
+  --> main.kg:43:18
+   |
+43 |             Some(h) -> h.close() //~ ERROR `b.opt` was moved
+   |                  ^
+
+error[use-after-move]: `b.opt` was moved; it cannot be used again
+  --> main.kg:52:18
+   |
+52 |             Some(h) -> h.close() //~ ERROR `b.opt` was moved
+   |                  ^
+
+error[move-join-mismatch]: `b.opt` is moved on some paths but not others
+  --> main.kg:60:26
+   |
+60 |         if b.opt is Some(h) { //~ ERROR `b.opt` is moved on some paths
+   |                          ^
+
+error[use-after-move]: `b.pack.other` was moved; it cannot be used again
+  --> main.kg:69:25
+   |
+69 |             Some(Pack { other, inner: _, n: _ }) -> other.close() //~ ERROR `b.pack.other` was moved
+   |                         ^^^^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> main.kg:78:18
+   |
+78 |             Some(h) -> h.close() //~ ERROR `o` was moved
+   |                  ^
+
+error[use-after-move]: `b.opt` was moved; it cannot be used again
+  --> main.kg:90:14
+   |
+90 |         Some(g) -> g.close() //~ ERROR `b.opt` was moved
+   |              ^
+
+error[move-join-mismatch]: `b.opt` is moved on some paths but not others
+   --> main.kg:189:18
+    |
+189 |             Some(h) if ok(&h) -> h.close() //~ ERROR `b.opt` is moved on some paths
+    |                  ^
+
+error[use-after-move]: `b.other` was moved; it cannot be used again
+   --> main.kg:247:5
+    |
+247 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+    |     ^^^^^^^
+
+error[use-after-move]: `b.other` was moved; it cannot be used again
+   --> main.kg:247:5
+    |
+247 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+    |     ^^^^^^^^^^^^^^
+
+error[use-after-move]: `b.opt` was moved; it cannot be used again
+   --> main.kg:253:18
+    |
+253 |         let t = (b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+    |                  ^^^^^
+
+error[use-after-move]: `b.opt` was moved; it cannot be used again
+   --> main.kg:253:17
+    |
+253 |         let t = (b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+    |                 ^^^^^^^^^
+
+error[use-after-move]: `b.opt` was moved; it cannot be used again
+   --> main.kg:265:13
+    |
+265 |     takeOpt(b.opt) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+    |             ^^^^^
+
+error[use-after-move]: `b.opt` was moved; it cannot be used again
+   --> main.kg:265:5
+    |
+265 |     takeOpt(b.opt) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+    |     ^^^^^^^^^^^^^
+
+error[use-after-move]: `b.other` was moved; it cannot be used again
+   --> main.kg:271:5
+    |
+271 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+    |     ^^^^^^^
+
+error[use-after-move]: `b.other` was moved; it cannot be used again
+   --> main.kg:271:5
+    |
+271 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+    |     ^^^^^^^^^^^^^^
+
+error[use-after-move]: `b.other` was moved; it cannot be used again
+   --> main.kg:277:5
+    |
+277 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+    |     ^^^^^^^
+
+error[use-after-move]: `b.other` was moved; it cannot be used again
+   --> main.kg:277:5
+    |
+277 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
+    |     ^^^^^^^^^^^^^^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+   --> main.kg:330:22
+    |
+330 |         if o is Some(h) { //~ ERROR `o` is moved on some paths
+    |                      ^
+

@@ -28,11 +28,12 @@ func (b *builder) blockExpr(blk *hir.Block) LocalID {
 }
 
 func (b *builder) ifExpr(e *hir.Expr) LocalID {
-	cond := b.expr(e.Cond)
+	cond, moves := b.cond(e.Cond)
 	result := b.temp(e.Type)
 	then, els, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()
 	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{then, els}})
 	b.cur = then
+	b.markGuardMoves(moves)
 	b.assignValue(result, b.blockExpr(e.Then), e.Node)
 	b.jump(join)
 	b.cur = els
@@ -71,7 +72,7 @@ func (b *builder) ifLet(e *hir.Expr) LocalID {
 	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{matched, els}})
 	b.cur = matched
 	b.pushScope()
-	b.bindPattern(e.Pat, init)
+	moves := b.bindGuarded(e.Pat, init, e.Guard != nil)
 	if e.Guard != nil {
 		gv := b.expr(e.Guard)
 		fail := b.newBlockAt()
@@ -83,6 +84,7 @@ func (b *builder) ifLet(e *hir.Expr) LocalID {
 		b.jump(then)
 	}
 	b.cur = then
+	b.markGuardMoves(moves)
 	b.assignValue(result, b.blockExpr(e.Then), e.Node)
 	b.exitScope()
 	b.jump(join)
@@ -113,6 +115,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.pushScope()
 	var cur forCursor
 	var headBound []LocalID
+	var headMoves []guardMove
 	if pattern != nil {
 		cur = b.forCursorFor(e)
 	}
@@ -123,7 +126,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 		b.term(Term{Op: TermBranch, Args: []LocalID{cur.test(n)}, Targets: []BlockID{loop, exit}})
 	case head != nil:
 		var c LocalID
-		c, headBound = b.loopHead(head)
+		c, headBound, headMoves = b.loopHead(head)
 		b.term(Term{Op: TermBranch, Args: []LocalID{c}, Targets: []BlockID{loop, exit}})
 	default:
 		b.jump(loop)
@@ -131,6 +134,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	b.cur = loop
 	b.loops = append(b.loops, &loopCtx{cont: next, exit: exit, depth: len(b.scopes), valued: valued, result: result})
 	b.pushScope()
+	b.markGuardMoves(headMoves)
 	if pattern != nil && pattern.Kind != hir.PatWild {
 		b.bindPattern(pattern, cur.elem(n))
 	}

@@ -1,0 +1,1062 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn Handle.bump(mut self) -> Unit {
+    self.id = self.id + 1
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
+}
+
+fn closeAll(xs: Array[Handle]) -> Unit {}
+
+fn closePacks(xs: Array[Pack]) -> Unit {}
+
+fn takePack(b: Pack) -> Unit {}
+
+fn tweak(p: &mut Handle) -> Unit {
+    p.id = p.id + 10
+}
+
+fn tweakTwice(p: &mut Handle) -> Unit {
+    tweak(p)
+    tweak(p)
+}
+
+fn tweakViaMethod(p: &mut Handle) -> Unit {
+    p.bump()
+}
+
+fn tweakRecursive(p: &mut Handle, n: Int) -> Unit {
+    if n > 0 {
+        tweakRecursive(p, n - 1)
+    }
+    p.id = p.id + 1
+}
+
+fn tweakShared(p: &mut Handle) -> Unit {
+    p.id = p.peek()
+}
+
+fn replace(p: &mut Handle) -> Unit {
+    p = mkh(9)
+}
+
+fn replaceViaHelper(p: &mut Handle) -> Unit {
+    replace(p)
+}
+
+fn replaceViaMethod(p: &mut Handle) -> Unit {
+    p.rebind()
+}
+
+fn Handle.rebind(mut self) -> Unit {
+    replace(&mut self)
+}
+
+fn bumpN(p: &mut Pack) -> Unit {
+    p.n = p.n + 1
+}
+
+fn replaceInner(p: &mut Pack) -> Unit {
+    p.inner = mkh(7)
+}
+
+fn mutual(p: &mut Handle, n: Int) -> Unit {
+    if n > 0 {
+        mutualBack(p, n - 1)
+    }
+}
+
+fn mutualBack(p: &mut Handle, n: Int) -> Unit {
+    p.id = n
+    mutual(p, n)
+}
+
+fn helperWholeAccept() -> Unit {
+    let mut h = mkh(1)
+    defer { h.close() }
+    tweak(&mut h)
+    tweakTwice(&mut h)
+    tweakViaMethod(&mut h)
+    tweakRecursive(&mut h, 2)
+    tweakShared(&mut h)
+    mutual(&mut h, 3)
+}
+
+fn helperFieldAccept() -> Unit {
+    let mut b = mk(1)
+    defer { b.inner.close() }
+    bumpN(&mut b)
+    tweak(&mut b.other)
+}
+
+fn helperWholeReject() -> Unit {
+    let mut h = mkh(1)
+    defer { h.close() }
+    replace(&mut h) //~ ERROR cannot be borrowed mutably
+    replaceViaHelper(&mut h) //~ ERROR cannot be borrowed mutably
+    replaceViaMethod(&mut h) //~ ERROR cannot be borrowed mutably
+}
+
+fn helperFieldReject() -> Unit {
+    let mut b = mk(1)
+    defer { b.inner.close() }
+    replaceInner(&mut b) //~ ERROR cannot be borrowed mutably
+}
+
+fn helperBeforeCleanup() -> Unit {
+    let mut h = mkh(1)
+    replace(&mut h)
+    defer { h.close() }
+}
+
+fn forConsumes() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer {
+        for h in xs {
+            h.close()
+        }
+    }
+    xs = Array.of(mkh(2)) //~ ERROR cannot be assigned
+}
+
+type Bag = {
+    pub mut items Array[Handle]
+    pub mut n Int
+}
+
+fn forConsumesField() -> Unit {
+    let mut b = Bag { items: Array.of(mkh(1)), n: 5 }
+    defer {
+        for h in b.items {
+            h.close()
+        }
+    }
+    b.items = Array.of(mkh(2)) //~ ERROR cannot be assigned
+}
+
+fn forConsumesTwice() -> Unit {
+    let xs = Array.of(mkh(1))
+    defer { closeAll(xs) }
+    for h in xs { //~ ERROR cannot be moved
+        h.close()
+    }
+}
+
+fn forConsumesTwoCleanups() -> Unit {
+    let xs = Array.of(mkh(1))
+    defer {
+        for h in xs {
+            h.close()
+        }
+    }
+    defer { closeAll(xs) } //~ ERROR already consumed
+}
+
+fn forBorrows() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer { closeAll(xs) }
+    for h in &xs {
+        sink(h.peek())
+    }
+    xs.push(mkh(2))
+}
+
+fn forBorrowsInCleanup() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer {
+        for h in &xs {
+            sink(h.peek())
+        }
+    }
+    xs = Array.of(mkh(2))
+}
+
+fn sink(n: Int) -> Unit {}
+
+fn refill(p: &mut Array[Handle]) -> Unit {
+    p = Array.of(mkh(9))
+}
+
+fn append(p: &mut Array[Handle]) -> Unit {
+    p.push(mkh(9))
+}
+
+fn forConsumesMutBorrow() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer {
+        for h in xs {
+            h.close()
+        }
+    }
+    append(&mut xs)
+    refill(&mut xs) //~ ERROR cannot be borrowed mutably
+}
+
+fn forInLoopCleanup() -> Unit {
+    let xs = Array.of(mkh(1))
+    for i in 0..2 {
+        defer { //~ ERROR reads `xs`
+            for h in xs {
+                h.close()
+            }
+        }
+    }
+}
+
+fn indexCopyFieldWrite() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer { closeAll(xs) }
+    xs[0].id = 55
+    xs[0].id = xs[0].id + 1
+}
+
+fn indexCopyFieldNested() -> Unit {
+    let mut ps = Array.of(mk(1))
+    defer { closePacks(ps) }
+    ps[0].n = 5
+}
+
+fn indexNonCopyReject() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer { closeAll(xs) }
+    xs[0] = mkh(2) //~ ERROR cannot be assigned
+}
+
+fn indexNonCopyFieldReject() -> Unit {
+    let mut ps = Array.of(mk(1))
+    defer { closePacks(ps) }
+    ps[0].inner = mkh(5) //~ ERROR cannot be assigned
+}
+
+fn letDestructureReserved() -> Unit {
+    let b = mk(1)
+    defer { b.inner.close() }
+    let Pack { other, inner: _, n: _ } = b //~ ERROR cannot be moved
+    other.close()
+}
+
+fn letDestructureWhole() -> Unit {
+    let b = mk(1)
+    defer { takePack(b) }
+    let Pack { n, inner: _, other: _ } = b //~ ERROR cannot be moved
+    sink(n)
+}
+
+fn letDestructureTuple() -> Unit {
+    let t = (mkh(1), mkh(2))
+    defer { t._0.close() }
+    let (_, y) = t //~ ERROR cannot be moved
+    y.close()
+}
+
+fn letDestructureUnreserved() -> Unit {
+    let b = mk(1)
+    let Pack { inner, other, n: _ } = b
+    inner.close()
+    other.close()
+}
+
+fn letDestructureBorrowed() -> Unit {
+    let b = mk(1)
+    defer { b.inner.close() }
+    let Pack { n, inner: _, other: _ } = &b
+    sink(n)
+}
+
+fn loopReassignThenDefer() -> Unit {
+    let mut h = mkh(0)
+    for i in 0..2 {
+        h = mkh(i + 10)
+        defer { h.close() }
+    }
+}
+
+fn loopReassignNested() -> Unit {
+    let mut h = mkh(0)
+    for i in 0..2 {
+        h = mkh(i + 10)
+        if i > 5 {
+            sink(i)
+        }
+        defer { h.close() }
+    }
+}
+
+fn loopReassignField() -> Unit {
+    let mut b = mk(1)
+    for i in 0..2 {
+        b = mk(i)
+        defer { b.inner.close() }
+    }
+}
+
+fn loopReassignInner() -> Unit {
+    let mut h = mkh(0)
+    for i in 0..2 {
+        for j in 0..2 {
+            h = mkh(j)
+            defer { h.close() }
+        }
+    }
+}
+
+fn loopConditionalReassign() -> Unit {
+    let mut h = mkh(0)
+    for i in 0..2 {
+        if i > 0 {
+            h = mkh(i)
+        }
+        defer { h.close() } //~ ERROR reads `h`
+    }
+}
+
+fn loopReassignAfterDefer() -> Unit {
+    let mut h = mkh(0)
+    for i in 0..2 {
+        defer { h.close() } //~ ERROR reads `h`
+        h = mkh(i) //~ ERROR cannot be assigned
+    }
+}
+
+fn loopReassignOtherBinding() -> Unit {
+    let mut h = mkh(0)
+    let mut g = mkh(1)
+    for i in 0..2 {
+        g = mkh(i)
+        defer { h.close() } //~ ERROR reads `h`
+    }
+}
+
+fn loopReassignDescendant() -> Unit {
+    let mut b = mk(1)
+    for i in 0..2 {
+        b.n = i
+        defer { b.inner.close() } //~ ERROR reads `b.inner`
+    }
+}
+
+fn gen[T](p: &mut T) -> Unit {}
+
+fn setIt(p: &mut Handle, v: Handle) -> Unit {
+    p = v
+}
+
+fn genSet[T](p: &mut T, v: T) -> Unit {
+    p = v
+}
+
+fn over(p: &mut Handle) -> Unit {
+    p.id = 1
+}
+
+fn over(p: &mut Handle, n: Int) -> Unit {
+    p = mkh(n)
+}
+
+fn overT(p: &mut Handle) -> Unit {
+    p.id = 1
+}
+
+fn overT(p: &mut Pack) -> Unit {
+    p.n = 1
+}
+
+fn helperShapesAccept() -> Unit {
+    let mut h = mkh(1)
+    let mut b = mk(2)
+    defer { h.close() }
+    defer { b.inner.close() }
+    gen(&mut h)
+    over(&mut h)
+}
+
+fn helperShapesReject() -> Unit {
+    let mut h = mkh(1)
+    defer { h.close() }
+    setIt(&mut h, mkh(2)) //~ ERROR cannot be borrowed mutably
+    genSet(&mut h, mkh(3)) //~ ERROR cannot be borrowed mutably
+    over(&mut h, 4) //~ ERROR cannot be borrowed mutably
+    overT(&mut h) //~ ERROR cannot be borrowed mutably
+}
+
+type Slot = {
+    pub mut o Handle?
+}
+
+fn Slot.empty(mut self) -> Unit {
+    match self.o.take() {
+        Some(h) -> h.close()
+        None -> {}
+    }
+}
+
+fn drainArray() -> Unit {
+    let mut xs = Array.of(mkh(1), mkh(2))
+    defer {
+        for xs.len() > 0 {
+            match xs.takeAt(0) {
+                Some(h) -> h.close()
+                None -> {}
+            }
+        }
+    }
+    xs.push(mkh(3))
+    xs = Array.of(mkh(4)) //~ ERROR reserved by a cleanup
+}
+
+fn drainViaMethod() -> Unit {
+    let mut s = Slot { o: Some(mkh(1)) }
+    defer { s.empty() }
+    s = Slot { o: None } //~ ERROR reserved by a cleanup
+}
+
+fn drainOption() -> Unit {
+    let mut o = Some(mkh(1))
+    defer {
+        match o.take() {
+            Some(h) -> h.close()
+            None -> {}
+        }
+    }
+    o = None //~ ERROR reserved by a cleanup
+}
+
+fn drainField() -> Unit {
+    let mut s = Slot { o: Some(mkh(1)) }
+    defer {
+        match s.o.take() {
+            Some(h) -> h.close()
+            None -> {}
+        }
+    }
+    s.o = None //~ ERROR reserved by a cleanup
+}
+
+fn pushInCleanupKeeps() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer { xs.push(mkh(2)) }
+    xs = Array.of(mkh(3))
+}
+
+fn drainHelper(xs: &mut Array[Handle]) -> Unit {
+    for xs.len() > 0 {
+        match xs.takeAt(0) {
+            Some(h) -> h.close()
+            None -> {}
+        }
+    }
+}
+
+fn drainForward(ys: &mut Array[Handle]) -> Unit {
+    drainHelper(ys)
+}
+
+fn drainThroughHelper() -> Unit {
+    let mut xs = Array.of(mkh(1), mkh(2))
+    defer { drainHelper(&mut xs) }
+    xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+}
+
+fn drainThroughForward() -> Unit {
+    let mut xs = Array.of(mkh(1), mkh(2))
+    defer { drainForward(&mut xs) }
+    xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+}
+
+fn drainThroughHelperKeeps() -> Unit {
+    let mut xs = Array.of(mkh(1), mkh(2))
+    defer { drainHelper(&mut xs) }
+    xs.push(mkh(3))
+}
+
+fn addOne(p: &mut Pack) -> Unit {
+    p.n = p.n + 1
+}
+
+fn viaShadowLocal(p: &mut Pack) -> Unit {
+    let addOne = (q: &mut Pack) => { q.inner = mkh(1) }
+    addOne(p)
+}
+
+fn viaShadowParam(addOne: fn(&mut Pack) -> Unit, p: &mut Pack) -> Unit {
+    addOne(p)
+}
+
+fn replaceInnerOf(q: &mut Pack) -> Unit {
+    q.inner = mkh(2)
+}
+
+fn viaBumpN(p: &mut Pack) -> Unit {
+    addOne(p)
+}
+
+fn shadowedCallee() -> Unit {
+    let mut b = mk(10)
+    defer { b.inner.close() }
+    viaShadowLocal(&mut b) //~ ERROR cannot be borrowed mutably
+    viaShadowParam(replaceInnerOf, &mut b) //~ ERROR cannot be borrowed mutably
+    viaBumpN(&mut b)
+}
+
+fn reassignInBareBlock() -> Unit {
+    let mut h = mkh(0)
+    for i in 0..2 {
+        {
+            h = mkh(i + 10)
+        }
+        defer { h.close() }
+    }
+}
+
+type ArrBox = {
+    pub mut xs Array[Handle]
+    pub mut n Int
+}
+
+type OuterBox = {
+    pub mut b ArrBox
+}
+
+fn ArrBox.closeAll(move self) -> Unit {
+    for h in self.xs {
+        h.close()
+    }
+}
+
+fn drainArrBox(b: &mut ArrBox) -> Unit {
+    drainHelper(&mut b.xs)
+}
+
+fn mkBox(n: Int) -> ArrBox {
+    ArrBox { xs: Array.of(mkh(n), mkh(n + 1)), n: 0 }
+}
+
+fn drainFieldThroughHelper() -> Unit {
+    let mut b = mkBox(1)
+    defer { drainHelper(&mut b.xs) }
+    b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+}
+
+fn drainWholeThenAssignField() -> Unit {
+    let mut b = mkBox(1)
+    defer { drainArrBox(&mut b) }
+    b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+}
+
+fn drainNestedThenAssignField() -> Unit {
+    let mut o = OuterBox { b: mkBox(1) }
+    defer { drainArrBox(&mut o.b) }
+    o.b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+}
+
+fn consumeWholeThenAssignField() -> Unit {
+    let mut b = mkBox(1)
+    defer { b.closeAll() }
+    b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+}
+
+fn consumeWholeThenWriteCopyField() -> Unit {
+    let mut b = mkBox(1)
+    defer { b.closeAll() }
+    b.n = 5
+}
+
+fn drainFieldKeepsPush() -> Unit {
+    let mut b = mkBox(1)
+    defer { drainHelper(&mut b.xs) }
+    b.xs.push(mkh(3))
+}
+
+type Conn = resource {
+    pub mut id Int
+    pub mut name String
+    pub mut log Array[Int]
+    pub mut sub Handle?
+}
+
+fn Conn.drop(move self) -> Unit {}
+
+fn Conn.close(move self) -> Unit {}
+
+fn plainFieldUnderReservedResource() -> Unit {
+    let mut c = Conn { id: 1, name: "a", log: Array.of(1), sub: None }
+    defer { c.close() }
+    c.log = Array.of(2, 3)
+    c.name = "b"
+}
+
+fn resourceFieldUnderReservedResource() -> Unit {
+    let mut c = Conn { id: 1, name: "a", log: Array.of(1), sub: None }
+    defer { c.close() }
+    c.sub = Some(mkh(3)) //~ ERROR reserved by a cleanup
+}
+-- expect --
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:117:13
+    |
+117 |     replace(&mut h) //~ ERROR cannot be borrowed mutably
+    |             ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:116:5
+    |
+116 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:118:22
+    |
+118 |     replaceViaHelper(&mut h) //~ ERROR cannot be borrowed mutably
+    |                      ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:116:5
+    |
+116 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:119:22
+    |
+119 |     replaceViaMethod(&mut h) //~ ERROR cannot be borrowed mutably
+    |                      ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:116:5
+    |
+116 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:125:18
+    |
+125 |     replaceInner(&mut b) //~ ERROR cannot be borrowed mutably
+    |                  ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:124:5
+    |
+124 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `xs` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:141:5
+    |
+141 |     xs = Array.of(mkh(2)) //~ ERROR cannot be assigned
+    |     ^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `xs` is reserved by this cleanup
+   --> main.kg:136:5
+    |
+136 |     defer {
+    |     ^^^^^^^
+
+error[E2100]: `b.items` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:156:5
+    |
+156 |     b.items = Array.of(mkh(2)) //~ ERROR cannot be assigned
+    |     ^^^^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b.items` is reserved by this cleanup
+   --> main.kg:151:5
+    |
+151 |     defer {
+    |     ^^^^^^^
+
+error[E2101]: `xs` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:162:14
+    |
+162 |     for h in xs { //~ ERROR cannot be moved
+    |              ^^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `xs` is reserved by this cleanup
+   --> main.kg:161:5
+    |
+161 |     defer { closeAll(xs) }
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2102]: `xs` is already consumed by an earlier cleanup
+   --> main.kg:174:22
+    |
+174 |     defer { closeAll(xs) } //~ ERROR already consumed
+    |                      ^^
+    = help: only one cleanup in scope may consume a binding
+note: `xs` is reserved by this cleanup
+   --> main.kg:169:5
+    |
+169 |     defer {
+    |     ^^^^^^^
+
+error[E2150]: `xs` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:214:12
+    |
+214 |     refill(&mut xs) //~ ERROR cannot be borrowed mutably
+    |            ^^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `xs` is reserved by this cleanup
+   --> main.kg:208:5
+    |
+208 |     defer {
+    |     ^^^^^^^
+
+error[E2103]: a cleanup reads `xs`, which can already be moved when the cleanup runs
+   --> main.kg:220:9
+    |
+220 |         defer { //~ ERROR reads `xs`
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `xs` is moved here by the previous run of this cleanup
+   --> main.kg:221:22
+    |
+221 |             for h in xs {
+    |                      ^^
+
+error[E2100]: `xs` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:244:5
+    |
+244 |     xs[0] = mkh(2) //~ ERROR cannot be assigned
+    |     ^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `xs` is reserved by this cleanup
+   --> main.kg:243:5
+    |
+243 |     defer { closeAll(xs) }
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `ps` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:250:5
+    |
+250 |     ps[0].inner = mkh(5) //~ ERROR cannot be assigned
+    |     ^^^^^^^^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `ps` is reserved by this cleanup
+   --> main.kg:249:5
+    |
+249 |     defer { closePacks(ps) }
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:256:9
+    |
+256 |     let Pack { other, inner: _, n: _ } = b //~ ERROR cannot be moved
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:255:5
+    |
+255 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:263:9
+    |
+263 |     let Pack { n, inner: _, other: _ } = b //~ ERROR cannot be moved
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b` is reserved by this cleanup
+   --> main.kg:262:5
+    |
+262 |     defer { takePack(b) }
+    |     ^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `t._0` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:270:9
+    |
+270 |     let (_, y) = t //~ ERROR cannot be moved
+    |         ^^^^^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `t._0` is reserved by this cleanup
+   --> main.kg:269:5
+    |
+269 |     defer { t._0.close() }
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+   --> main.kg:331:9
+    |
+331 |         defer { h.close() } //~ ERROR reads `h`
+    |         ^^^^^^^^^^^^^^^^
+    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here by the previous run of this cleanup
+   --> main.kg:331:17
+    |
+331 |         defer { h.close() } //~ ERROR reads `h`
+    |                 ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+   --> main.kg:338:9
+    |
+338 |         defer { h.close() } //~ ERROR reads `h`
+    |         ^^^^^^^^^^^^^^^^
+    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here by the previous run of this cleanup
+   --> main.kg:338:17
+    |
+338 |         defer { h.close() } //~ ERROR reads `h`
+    |                 ^
+
+error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:339:9
+    |
+339 |         h = mkh(i) //~ ERROR cannot be assigned
+    |         ^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `h` is reserved by this cleanup
+   --> main.kg:338:9
+    |
+338 |         defer { h.close() } //~ ERROR reads `h`
+    |         ^^^^^^^^^^^^^^^^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+   --> main.kg:348:9
+    |
+348 |         defer { h.close() } //~ ERROR reads `h`
+    |         ^^^^^^^^^^^^^^^^
+    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here by the previous run of this cleanup
+   --> main.kg:348:17
+    |
+348 |         defer { h.close() } //~ ERROR reads `h`
+    |                 ^
+
+error[E2103]: a cleanup reads `b.inner`, which can already be moved when the cleanup runs
+   --> main.kg:356:9
+    |
+356 |         defer { b.inner.close() } //~ ERROR reads `b.inner`
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `b.inner` is moved here by the previous run of this cleanup
+   --> main.kg:356:17
+    |
+356 |         defer { b.inner.close() } //~ ERROR reads `b.inner`
+    |                 ^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:398:11
+    |
+398 |     setIt(&mut h, mkh(2)) //~ ERROR cannot be borrowed mutably
+    |           ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:397:5
+    |
+397 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:399:12
+    |
+399 |     genSet(&mut h, mkh(3)) //~ ERROR cannot be borrowed mutably
+    |            ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:397:5
+    |
+397 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:400:10
+    |
+400 |     over(&mut h, 4) //~ ERROR cannot be borrowed mutably
+    |          ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:397:5
+    |
+397 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:401:11
+    |
+401 |     overT(&mut h) //~ ERROR cannot be borrowed mutably
+    |           ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:397:5
+    |
+397 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2100]: `xs` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:426:5
+    |
+426 |     xs = Array.of(mkh(4)) //~ ERROR reserved by a cleanup
+    |     ^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `xs` is reserved by this cleanup
+   --> main.kg:417:5
+    |
+417 |     defer {
+    |     ^^^^^^^
+
+error[E2100]: `s` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:432:5
+    |
+432 |     s = Slot { o: None } //~ ERROR reserved by a cleanup
+    |     ^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `s` is reserved by this cleanup
+   --> main.kg:431:5
+    |
+431 |     defer { s.empty() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2100]: `o` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:443:5
+    |
+443 |     o = None //~ ERROR reserved by a cleanup
+    |     ^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `o` is reserved by this cleanup
+   --> main.kg:437:5
+    |
+437 |     defer {
+    |     ^^^^^^^
+
+error[E2100]: `s.o` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:454:5
+    |
+454 |     s.o = None //~ ERROR reserved by a cleanup
+    |     ^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `s.o` is reserved by this cleanup
+   --> main.kg:448:5
+    |
+448 |     defer {
+    |     ^^^^^^^
+
+error[E2100]: `xs` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:479:5
+    |
+479 |     xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+    |     ^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `xs` is reserved by this cleanup
+   --> main.kg:478:5
+    |
+478 |     defer { drainHelper(&mut xs) }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `xs` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:485:5
+    |
+485 |     xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+    |     ^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `xs` is reserved by this cleanup
+   --> main.kg:484:5
+    |
+484 |     defer { drainForward(&mut xs) }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:518:20
+    |
+518 |     viaShadowLocal(&mut b) //~ ERROR cannot be borrowed mutably
+    |                    ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:517:5
+    |
+517 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:519:36
+    |
+519 |     viaShadowParam(replaceInnerOf, &mut b) //~ ERROR cannot be borrowed mutably
+    |                                    ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:517:5
+    |
+517 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `b.xs` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:559:5
+    |
+559 |     b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+    |     ^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b.xs` is reserved by this cleanup
+   --> main.kg:558:5
+    |
+558 |     defer { drainHelper(&mut b.xs) }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `b` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:565:5
+    |
+565 |     b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+    |     ^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b` is reserved by this cleanup
+   --> main.kg:564:5
+    |
+564 |     defer { drainArrBox(&mut b) }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `o.b` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:571:5
+    |
+571 |     o.b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+    |     ^^^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `o.b` is reserved by this cleanup
+   --> main.kg:570:5
+    |
+570 |     defer { drainArrBox(&mut o.b) }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `b` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:577:5
+    |
+577 |     b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
+    |     ^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b` is reserved by this cleanup
+   --> main.kg:576:5
+    |
+576 |     defer { b.closeAll() }
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `c` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:613:5
+    |
+613 |     c.sub = Some(mkh(3)) //~ ERROR reserved by a cleanup
+    |     ^^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `c` is reserved by this cleanup
+   --> main.kg:612:5
+    |
+612 |     defer { c.close() }
+    |     ^^^^^^^^^^^^^^^^
+

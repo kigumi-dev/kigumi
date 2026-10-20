@@ -1,0 +1,72 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
+}
+
+fn take(h: Handle) -> Unit {}
+
+fn sink(n: Int) -> Unit {}
+
+fn callOnceTwice[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    f()
+    f() //~ ERROR cannot be called
+}
+
+fn callOnceInLoop[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    for i in 0..2 {
+        f() //~ ERROR cannot be called
+    }
+}
+
+fn callOnceMaybeTwice[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+    if c {
+        f()
+    }
+    f() //~ ERROR cannot be called
+}
+-- expect --
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+  --> main.kg:33:5
+   |
+33 |     f() //~ ERROR cannot be called
+   |     ^^
+   = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2176]: `f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+  --> main.kg:38:9
+   |
+38 |         f() //~ ERROR cannot be called
+   |         ^^
+   = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+  --> main.kg:46:5
+   |
+46 |     f() //~ ERROR cannot be called
+   |     ^^
+   = help: bind it with `FnMut` or `Fn` to call it more than once
+

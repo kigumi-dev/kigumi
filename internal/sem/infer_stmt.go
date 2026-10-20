@@ -136,6 +136,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 		c.consumeWhole(s.Init)
 		return
 	}
+	c.held.patWhole = true
 	pi := c.checkPatternOn(s.Pattern, s.Init, got, mut, c.scope)
 	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
 	c.notePatternAliases(s.Pattern, s.Init, false)
@@ -156,6 +157,7 @@ func (c *checker) letElse(n syntax.NodeID, s letSlots, got TypeID) {
 		c.errAt(s.Else, cLetElseMustDiverge)
 	}
 	c.scope = saved
+	c.held.patWhole = true
 	c.checkPatternOn(s.Pattern, s.Init, got, s.Flags&syntax.FlagMut != 0, c.scope)
 	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
 	c.notePatternAliases(s.Pattern, s.Init, false)

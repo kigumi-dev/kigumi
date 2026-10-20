@@ -1,0 +1,247 @@
+-- src --
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub inner Handle
+    pub other Handle
+}
+
+type Bag = {
+    pub opt Handle?
+    pub pack Pack?
+    pub other Handle
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mkBag(n: Int) -> Bag {
+    Bag { opt: Some(mkh(n)), pack: Some(Pack { inner: mkh(n + 1), other: mkh(n + 2) }), other: mkh(n + 3) }
+}
+
+fn payloadOnce() -> Unit {
+    let b = mkBag(10)
+    match b.opt {
+        Some(h) -> h.close()
+        None -> {}
+    }
+    b.other.close()
+}
+
+fn payloadPerIteration() -> Unit {
+    for i in 0..2 {
+        let b = mkBag(20 + 10 * i)
+        match b.opt {
+            Some(h) -> h.close()
+            None -> {}
+        }
+        b.other.close()
+    }
+}
+
+fn payloadReference() -> Unit {
+    let b = mkBag(50)
+    for i in 0..2 {
+        match &b.opt {
+            Some(h) -> print "peek ${h.peek()}"
+            None -> {}
+        }
+    }
+    b.other.close()
+}
+
+fn payloadNested() -> Unit {
+    let b = mkBag(60)
+    match b.pack {
+        Some(Pack { other, inner: _ }) -> other.close()
+        None -> {}
+    }
+    b.other.close()
+}
+
+fn payloadGuarded() -> Unit {
+    let b = mkBag(70)
+    match b.opt {
+        Some(h) if h.peek() > 100 -> h.close()
+        Some(h) -> h.close()
+        None -> {}
+    }
+    b.other.close()
+}
+
+type Slot = {
+    pub mut opt Handle?
+    pub mut other Handle
+}
+
+fn mkSlot(n: Int) -> Slot {
+    Slot { opt: Some(mkh(n)), other: mkh(n + 1) }
+}
+
+fn takeAndRefill() -> Unit {
+    let mut b = mkSlot(80)
+    for i in 0..3 {
+        match b.opt {
+            Some(h) -> {
+                h.close()
+                b.opt = None
+            }
+            None -> print "empty ${i}"
+        }
+    }
+    b.other.close()
+}
+
+fn ifLetTakeAndRefill() -> Unit {
+    let mut b = mkSlot(90)
+    for i in 0..3 {
+        if let Some(h) = b.opt {
+            h.close()
+            b.opt = None
+        }
+    }
+    b.other.close()
+}
+
+fn putBack() -> Unit {
+    let mut b = mkSlot(100)
+    for i in 0..2 {
+        match b.opt {
+            Some(h) -> {
+                b.opt = Some(h)
+            }
+            None -> {}
+        }
+    }
+    b.opt = None
+    b.other.close()
+}
+
+fn guardedTakeAndRefill() -> Unit {
+    let mut b = mkSlot(110)
+    for i in 0..2 {
+        match b.opt {
+            Some(h) if h.peek() > 0 -> {
+                h.close()
+                b.opt = None
+            }
+            _ -> print "kept ${i}"
+        }
+    }
+    b.other.close()
+}
+
+fn guardedPerIteration() -> Unit {
+    for i in 0..2 {
+        let b = mkSlot(120 + 10 * i)
+        match b.opt {
+            Some(h) if h.peek() > 125 -> h.close()
+            Some(h) -> print "skipped ${h.peek()}"
+            None -> {}
+        }
+        b.other.close()
+    }
+}
+
+type Slot1 = {
+    pub mut opt Handle?
+}
+
+fn isTakeAndClear() -> Unit {
+    let mut o = Some(mkh(400))
+    if o is Some(h) {
+        h.close()
+        o = None
+    }
+    print "mid"
+    if o is Some(h) {
+        h.close()
+    }
+}
+
+fn isTakeAndClearInLoop() -> Unit {
+    let mut o = Some(mkh(410))
+    for i in 0..3 {
+        if o is Some(h) {
+            h.close()
+            o = None
+        }
+        if i == 1 {
+            o = Some(mkh(411))
+        }
+    }
+}
+
+fn isTakeAndClearField() -> Unit {
+    let mut g = Slot1 { opt: Some(mkh(420)) }
+    for i in 0..3 {
+        if g.opt is Some(h) {
+            h.close()
+            g.opt = None
+        }
+        if i == 1 {
+            g.opt = Some(mkh(421))
+        }
+    }
+}
+
+payloadOnce()
+payloadPerIteration()
+payloadReference()
+payloadNested()
+payloadGuarded()
+takeAndRefill()
+ifLetTakeAndRefill()
+putBack()
+guardedTakeAndRefill()
+guardedPerIteration()
+isTakeAndClear()
+isTakeAndClearInLoop()
+isTakeAndClearField()
+-- stdout --
+close 10
+close 13
+close 20
+close 23
+close 30
+close 33
+peek 50
+peek 50
+close 53
+close 62
+close 63
+close 70
+close 73
+close 80
+empty 1
+empty 2
+close 81
+close 90
+close 91
+close 101
+close 110
+kept 1
+close 111
+skipped 120
+close 121
+close 130
+close 131
+close 400
+mid
+close 410
+close 411
+close 420
+close 421

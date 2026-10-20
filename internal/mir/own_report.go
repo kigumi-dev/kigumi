@@ -15,6 +15,7 @@ type owner struct {
 	reported map[syntax.NodeID]bool
 	defNode  map[LocalID]syntax.NodeID
 	cur      *dstate
+	capSrc   map[LocalID]LocalID
 }
 
 func cloneState(s map[LocalID]ownState) map[LocalID]ownState {
@@ -40,7 +41,8 @@ func (a *owner) merge(bid BlockID, out *dstate) bool {
 			cur.at[l] = n
 		}
 	}
-	return c1 || c2
+	c3 := mergeMap(cur.called, out.called)
+	return c1 || c2 || c3
 }
 
 // mergeMap joins one dstate map's predecessor exit into a block's entry.

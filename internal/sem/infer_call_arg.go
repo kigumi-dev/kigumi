@@ -18,6 +18,8 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 			c.argPlace[a] = true
 		}
 	}
+	c.noteMutArg(a, paramEnt)
+	defer c.reserveDrainArg(a, paramEnt)
 	// After the argument is synthesized: refBinding reads info.Uses.
 	defer c.noteRefArg(a, paramEnt, async)
 	c.noteRefPlaceArg(a, paramEnt, async)

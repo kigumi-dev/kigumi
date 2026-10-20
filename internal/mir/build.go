@@ -40,14 +40,20 @@ func buildFor(r *sem.Result, all bool, keep func(path string) bool) *Program {
 // builder holds the state of one function under construction.
 type builder struct {
 	shared map[LocalID]bool
-	p      *Program
-	r      *sem.Result
-	fn     *Func
-	cur    BlockID
-	locals map[sem.EntityID]LocalID
-	scopes []*scope
-	loops  []*loopCtx
-	ret    sem.TypeID
+	// guardedArm is set while the bindings of an arm with a guard are declared; guardMoves collects the places they take by value.
+	guardedArm bool
+	guardMoves []guardMove
+	// condIs is the pattern of an `is` that is a whole condition; isMoves holds the places its bindings take, moved on the true branch only.
+	condIs  *hir.Pat
+	isMoves []guardMove
+	p       *Program
+	r       *sem.Result
+	fn      *Func
+	cur     BlockID
+	locals  map[sem.EntityID]LocalID
+	scopes  []*scope
+	loops   []*loopCtx
+	ret     sem.TypeID
 	// argFixups holds pending scalar &mut write-backs for the call being built.
 	argFixups []argFixup
 	// unowned tracks which locals hold no count of their own: a borrow, or anything that only forwards one.

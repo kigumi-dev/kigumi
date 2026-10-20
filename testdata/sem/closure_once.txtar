@@ -1,0 +1,77 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
+}
+
+fn take(h: Handle) -> Unit {}
+
+fn sink(n: Int) -> Unit {}
+
+fn callTwiceFn[F: Fn[fn() -> Unit]](f: F) -> Unit {
+    f()
+    f()
+}
+
+fn callTwiceMut[F: FnMut[fn() -> Unit]](f: F) -> Unit {
+    f()
+    f()
+}
+
+fn callOnce[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    f()
+}
+
+fn satisfiesFn() -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    callTwiceFn(f) //~ ERROR consumes `h`
+}
+
+fn satisfiesFnMut() -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    callTwiceMut(f) //~ ERROR consumes `h`
+}
+
+fn satisfiesOnce() -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    callOnce(f)
+}
+-- expect --
+error[E300]: `closure fn() -> Unit` does not satisfy `Fn[fn() -> Unit]`: the closure consumes `h`; it is `FnOnce`
+  --> main.kg:48:5
+   |
+48 |     callTwiceFn(f) //~ ERROR consumes `h`
+   |     ^^^^^^^^^^^^^
+
+error[E300]: `closure fn() -> Unit` does not satisfy `FnMut[fn() -> Unit]`: the closure consumes `h`; it is `FnOnce`
+  --> main.kg:54:5
+   |
+54 |     callTwiceMut(f) //~ ERROR consumes `h`
+   |     ^^^^^^^^^^^^^^
+

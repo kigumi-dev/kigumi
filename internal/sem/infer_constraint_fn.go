@@ -16,6 +16,9 @@ func (c *checker) fnUnsatisfied(arg TypeID, con Constraint) string {
 		if why := c.fnEscapeMismatch(info.Sig, con.Type); why != "" {
 			return why
 		}
+		if con.Kind != CFnOnce && info.Once != "" {
+			return "the closure consumes `" + info.Once + "`; it is `FnOnce`"
+		}
 		if con.Kind == CFn {
 			for _, cap := range info.Captures {
 				if cap.Mode == capCell {

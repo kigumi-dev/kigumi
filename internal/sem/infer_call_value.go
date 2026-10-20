@@ -36,6 +36,11 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		return TyPoison
 	}
 	c.callInvalidates()
+	if closure != 0 && c.r.closure(closure).Once != "" {
+		if p, ok := c.consumedPlace(callee); ok {
+			c.noteLambdaConsume(callee, p)
+		}
+	}
 	if fact, ok := c.fieldFact[n]; ok {
 		delete(c.fieldFact, n)
 		c.applyFieldFact(n, fact)

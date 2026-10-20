@@ -2,18 +2,22 @@ package sem
 
 import "kigumi/internal/syntax"
 
-func (c *checker) reserveUse(a syntax.NodeID) {
+func (c *checker) consumedPlace(a syntax.NodeID) (reservedPlace, bool) {
 	p, ok := c.placeUnder(a)
 	if !ok || !c.ownsValue(p.ent) {
-		return
+		return p, false
 	}
-	if len(p.fields) > 0 && !c.ownsType(c.info.Types[c.stripParen(a)]) {
-		return
+	return p, len(p.fields) == 0 || c.ownsType(c.info.Types[c.stripParen(a)])
+}
+
+func (c *checker) reserveUse(a syntax.NodeID) {
+	if p, ok := c.consumedPlace(a); ok {
+		c.reservePlace(a, p)
 	}
-	c.reservePlace(a, p)
 }
 
 func (c *checker) reservePlace(a syntax.NodeID, p reservedPlace) {
+	c.noteLambdaConsume(a, p)
 	if c.conflictUse(a, p, true) {
 		return
 	}
@@ -51,33 +55,41 @@ func (c *checker) conflictUse(a syntax.NodeID, p reservedPlace, exitOK bool) boo
 	return true
 }
 
-func (c *checker) reserveAssign(lhs syntax.NodeID) {
+func (c *checker) reserveAssign(lhs syntax.NodeID, target TypeID) {
+	p, ok := c.placeUnder(lhs)
+	if ok && c.ownsValue(p.ent) {
+		c.held.plainAssigns = append(c.held.plainAssigns, assignSite{place: p, node: lhs})
+	}
 	if len(c.reserved) == 0 && len(c.cleanupLog.consumed) == 0 && c.cleanup == 0 {
 		return
 	}
-	p, ok := c.placeUnder(lhs)
 	if !ok {
-		c.reserveIndexAssign(lhs)
+		c.reserveIndexAssign(lhs, target)
 		return
 	}
 	if c.cleanup > 0 && c.ownsValue(p.ent) && !c.declaredIn(p.ent, c.cleanupNode) {
 		c.cleanupLog.assigned = append(c.cleanupLog.assigned, assignSite{place: p, node: lhs})
 	}
-	if i, held := c.reservedWithin(p.ent, p.fields); held {
+	holds := c.r.mayHoldResource(c.vars.resolve(target), map[TypeID]bool{})
+	match := c.reservedWithin
+	if holds {
+		match = c.reservedOver
+	}
+	if i, held := match(p.ent, p.fields); held {
 		c.reservedError(lhs, cCleanupReservedAssign, c.reserved[p.ent][i])
 		return
 	}
 	for _, q := range c.cleanupLog.consumed {
-		if q.ent == p.ent && isFieldPrefix(p.fields, q.fields) {
+		if q.ent == p.ent && (isFieldPrefix(p.fields, q.fields) || holds && isFieldPrefix(q.fields, p.fields)) {
 			c.reservedError(lhs, cCleanupReservedAssign, reservation{cleanup: c.cleanupNode, name: c.placeLabel(q)})
 			return
 		}
 	}
 }
 
-func (c *checker) reserveIndexAssign(lhs syntax.NodeID) {
+func (c *checker) reserveIndexAssign(lhs syntax.NodeID, target TypeID) {
 	owner, ok := c.indexOwner(lhs)
-	if !ok || owner.Root == 0 || owner.Deref {
+	if !ok || owner.Root == 0 || owner.Deref || c.r.isCopy(c.vars.resolve(target)) {
 		return
 	}
 	if i, held := c.reservedOver(owner.Root, owner.Fields); held {

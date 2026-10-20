@@ -9,6 +9,10 @@ import (
 type heldMuts struct {
 	holders       map[EntityID][]mutHolder
 	closureWrites map[EntityID][]EntityID
+	plainAssigns  []assignSite
+	// patWhole is set for the pattern of a `let`, which moves its whole initializer.
+	patWhole    bool
+	mutArgParam map[syntax.NodeID]EntityID
 }
 
 type mutHolder struct {
@@ -60,7 +64,7 @@ func (c *checker) reserveHolderUse(n syntax.NodeID, local EntityID) {
 		if i, held := c.reservedWithin(h.root, h.fields); held {
 			r := c.reserved[h.root][i]
 			if d, ok := c.r.diagAt(c.f, n, cCleanupReservedBorrowMut, r.name); ok {
-				c.r.emitDiag(c.f, d.WithNote(c.loc(r.cleanup), "`"+r.name+"` is reserved by this cleanup").WithNote(c.loc(h.node), "it was made here, before the cleanup"))
+				c.r.emitDiag(c.f, d.WithNote(c.loc(r.cleanup), c.reserverNote(r)).WithNote(c.loc(h.node), "it was made here, before the cleanup"))
 			}
 			return
 		}

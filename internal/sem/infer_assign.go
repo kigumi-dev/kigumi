@@ -14,7 +14,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	}
 	target := c.synthPlace(lhs)
 	if !op.IsCompoundAssign() {
-		c.reserveAssign(lhs)
+		c.reserveAssign(lhs, target)
 	}
 	if staticEnt, ok := c.staticRootOf(lhs); ok {
 		c.checkStaticAssign(lhs, staticEnt)

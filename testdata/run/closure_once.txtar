@@ -1,0 +1,246 @@
+-- src --
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1) }
+}
+
+fn take(h: Handle) -> Unit {
+    print "take ${h.id}"
+}
+
+fn callOnce[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    f()
+}
+
+fn callTwice[F: Fn[fn() -> Int]](f: F) -> Int {
+    f() + f()
+}
+
+fn calledOnce() -> Unit {
+    let h = mkh(1)
+    let f = () => { h.close() }
+    f()
+}
+
+fn calledInBranches(c: Bool) -> Unit {
+    let h = mkh(2)
+    let f = () => { h.close() }
+    if c {
+        f()
+    } else {
+        print "skipped"
+    }
+}
+
+fn consumesField() -> Unit {
+    let b = mk(10)
+    let f = () => { b.other.close() }
+    f()
+    b.inner.close()
+}
+
+fn passedToOnce() -> Unit {
+    let h = mkh(20)
+    let f = () => { take(h) }
+    callOnce(f)
+}
+
+fn perIteration() -> Unit {
+    for i in 0..2 {
+        let h = mkh(30 + i)
+        let f = () => { h.close() }
+        f()
+    }
+}
+
+fn nestedOnce() -> Unit {
+    let h = mkh(40)
+    let f = () => { h.close() }
+    let g = () => { f() }
+    g()
+}
+
+fn deferredOnce() -> Unit {
+    let h = mkh(50)
+    let f = () => { h.close() }
+    defer { f() }
+    print "body"
+}
+
+fn borrowingClosure() -> Int {
+    let h = mkh(60)
+    let f = () => h.peek()
+    let total = f() + f()
+    h.close()
+    total
+}
+
+fn borrowingGeneric() -> Int {
+    let h = mkh(70)
+    let f = () => h.peek()
+    let total = callTwice(f)
+    h.close()
+    total
+}
+
+type Slot = {
+    pub mut opt Handle?
+}
+
+fn refillTwice() -> Unit {
+    let mut h = mkh(80)
+    let f = () => {
+        h.close()
+        h = mkh(81)
+    }
+    f()
+    f()
+    h.close()
+}
+
+fn refillField() -> Unit {
+    let mut p = mk(90)
+    let f = () => {
+        p.other.close()
+        p.other = mkh(99)
+    }
+    f()
+    f()
+    p.other.close()
+    p.inner.close()
+}
+
+fn refillPayload() -> Unit {
+    let mut s = Slot { opt: Some(mkh(100)) }
+    let f = () => {
+        match s.opt {
+            Some(h) -> h.close()
+            None -> print "empty"
+        }
+        s.opt = None
+    }
+    f()
+    f()
+}
+
+type Holder[F] = {
+    pub f F
+}
+
+fn storedInField() -> Unit {
+    let p = mk(110)
+    let f = () => { p.other.close() }
+    let s = Holder { f: f }
+    (s.f)()
+    p.inner.close()
+}
+
+fn innerBreakThenRefill(xs: Array[Int]) -> Unit {
+    let mut h = mkh(120)
+    let f = () => {
+        h.close()
+        for x in &xs {
+            if x > 0 {
+                break
+            }
+        }
+        h = mkh(121)
+    }
+    f()
+    f()
+    h.close()
+}
+
+type Runner[F] = {
+    pub f F
+}
+
+fn Runner[F: FnOnce[fn() -> Unit]].runOwned(move self) -> Unit {
+    (self.f)()
+}
+
+fn runOwnedOnce() -> Unit {
+    let p = mk(130)
+    let s = Runner { f: () => { p.other.close() } }
+    s.runOwned()
+}
+
+fn readAfterMaking() -> Unit {
+    let h = mkh(140)
+    let f = () => { h.close() }
+    print "peek ${h.peek()}"
+    f()
+}
+
+calledOnce()
+calledInBranches(true)
+calledInBranches(false)
+consumesField()
+passedToOnce()
+perIteration()
+nestedOnce()
+deferredOnce()
+print "total ${borrowingClosure()}"
+print "total ${borrowingGeneric()}"
+refillTwice()
+refillField()
+refillPayload()
+storedInField()
+innerBreakThenRefill(Array.of(1, 2))
+runOwnedOnce()
+readAfterMaking()
+-- stdout --
+close 1
+close 2
+skipped
+close 11
+close 10
+take 20
+close 30
+close 31
+close 40
+body
+close 50
+close 60
+total 120
+close 70
+total 140
+close 80
+close 81
+close 81
+close 91
+close 99
+close 99
+close 90
+close 100
+empty
+close 111
+close 110
+close 120
+close 121
+close 121
+close 131
+peek 140
+close 140

@@ -1,0 +1,405 @@
+-- lib/loop.kg --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+type Bag = {
+    pub opt Handle?
+    pub other Handle
+}
+
+fn payloadInLoop(b: Bag) -> Unit {
+    for i in 0..2 {
+        match b.opt {
+            Some(h) -> h.close()
+            None -> {}
+        }
+    }
+}
+
+fn payloadOnce(b: Bag) -> Unit {
+    match b.opt {
+        Some(h) -> h.close()
+        None -> {}
+    }
+}
+
+fn payloadGuarded(b: Bag) -> Unit {
+    match b.opt {
+        Some(h) if true -> h.close()
+        Some(h) -> h.close()
+        None -> {}
+    }
+}
+
+type Slot = {
+    pub mut opt Handle?
+}
+
+fn ok(h: &Handle) -> Bool {
+    true
+}
+
+fn payloadGuardedLoop(b: Slot) -> Unit {
+    for i in 0..2 {
+        match b.opt {
+            Some(h) if ok(&h) -> h.close()
+            _ -> {}
+        }
+    }
+}
+
+fn payloadRefill(s: Slot) -> Unit {
+    let mut b = s
+    for i in 0..2 {
+        match b.opt {
+            Some(h) -> {
+                h.close()
+                b.opt = None
+            }
+            None -> {}
+        }
+    }
+}
+
+fn isTakeAndClear(s: Slot) -> Unit {
+    let mut b = s
+    for i in 0..2 {
+        if b.opt is Some(h) {
+            h.close()
+            b.opt = None
+        }
+    }
+}
+-- expect --
+fn lib.Handle.drop(%self: Handle) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.Handle.close(%self: Handle) -> Unit {
+  b0:
+    %t1 = unit
+    drop(%self)
+    return %t1
+}
+fn lib.payloadInLoop(%b: Bag) -> Unit {
+  b0:
+    %t1 = const 0: Int
+    %t2 = const 2: Int
+    %t3 = copy(%t1)
+    %t4 = copy(%t2)
+    jump b1
+  b1:
+    %t5 = bin <(%t3, %t4)
+    branch %t5 ? b2 : b4
+  b2:
+    %t6 = copy(%t3)
+    %i = copy(%t6)
+    %t8 = field 0(%b)
+    %t10 = isvariant Option.Some(%t8)
+    branch %t10 ? b6 : b7
+  b3:
+    %t17 = const 1: Int
+    %t18 = bin +(%t3, %t17)
+    drop(%t3)
+    %t3 = copy(%t18)
+    jump b1
+  b4:
+    drop(%t4)
+    drop(%t3)
+    %t19 = unit
+    drop(%b)
+    return %t19
+  b5:
+    drop(%t8)
+    drop(%i)
+    jump b3
+  b6:
+    %t11 = payload 0(%t8)
+    %h = copy(%t11)
+    %t13 = move(%h)
+    %t14 = call lib.Handle.close(%t13)
+    %t9 = copy(%t14)
+    nop
+    jump b5
+  b7:
+    %t15 = isvariant Option.None(%t8)
+    branch %t15 ? b8 : b9
+  b8:
+    %t16 = unit
+    %t9 = copy(%t16)
+    jump b5
+  b9:
+    panic "no match arm matched"
+    unreachable
+}
+fn lib.payloadOnce(%b: Bag) -> Unit {
+  b0:
+    %t1 = field 0(%b)
+    %t3 = isvariant Option.Some(%t1)
+    branch %t3 ? b2 : b3
+  b1:
+    drop(%t1)
+    drop(%b)
+    return %t2
+  b2:
+    %t4 = payload 0(%t1)
+    %h = copy(%t4)
+    %t6 = move(%h)
+    %t7 = call lib.Handle.close(%t6)
+    %t2 = copy(%t7)
+    nop
+    jump b1
+  b3:
+    %t8 = isvariant Option.None(%t1)
+    branch %t8 ? b4 : b5
+  b4:
+    %t9 = unit
+    %t2 = copy(%t9)
+    jump b1
+  b5:
+    panic "no match arm matched"
+    unreachable
+}
+fn lib.payloadGuarded(%b: Bag) -> Unit {
+  b0:
+    %t1 = field 0(%b)
+    %t3 = isvariant Option.Some(%t1)
+    branch %t3 ? b2 : b3
+  b1:
+    drop(%t1)
+    drop(%b)
+    return %t2
+  b2:
+    %t4 = payload 0(%t1)
+    %h = copy(%t4)
+    %t6 = const true: Bool
+    branch %t6 ? b4 : b5
+  b3:
+    %t9 = isvariant Option.Some(%t1)
+    branch %t9 ? b6 : b7
+  b4:
+    nop
+    %t7 = move(%h)
+    %t8 = call lib.Handle.close(%t7)
+    %t2 = copy(%t8)
+    nop
+    jump b1
+  b5:
+    drop(%h)
+    jump b3
+  b6:
+    %t10 = payload 0(%t1)
+    %h = copy(%t10)
+    %t12 = move(%h)
+    %t13 = call lib.Handle.close(%t12)
+    %t2 = copy(%t13)
+    nop
+    jump b1
+  b7:
+    %t14 = isvariant Option.None(%t1)
+    branch %t14 ? b8 : b9
+  b8:
+    %t15 = unit
+    %t2 = copy(%t15)
+    jump b1
+  b9:
+    panic "no match arm matched"
+    unreachable
+}
+fn lib.ok(%h: &Handle) -> Bool {
+  b0:
+    %t1 = const true: Bool
+    return %t1
+}
+fn lib.payloadGuardedLoop(%b: Slot) -> Unit {
+  b0:
+    %t1 = const 0: Int
+    %t2 = const 2: Int
+    %t3 = copy(%t1)
+    %t4 = copy(%t2)
+    jump b1
+  b1:
+    %t5 = bin <(%t3, %t4)
+    branch %t5 ? b2 : b4
+  b2:
+    %t6 = copy(%t3)
+    %i = copy(%t6)
+    %t8 = field 0(%b)
+    %t10 = isvariant Option.Some(%t8)
+    branch %t10 ? b6 : b7
+  b3:
+    %t19 = const 1: Int
+    %t20 = bin +(%t3, %t19)
+    drop(%t3)
+    %t3 = copy(%t20)
+    jump b1
+  b4:
+    drop(%t4)
+    drop(%t3)
+    %t21 = unit
+    drop(%b)
+    return %t21
+  b5:
+    drop(%t8)
+    drop(%i)
+    jump b3
+  b6:
+    %t11 = payload 0(%t8)
+    %h = copy(%t11)
+    %t13 = borrow 0(%h)
+    %t14 = call lib.ok(%t13)
+    branch %t14 ? b8 : b9
+  b7:
+    %t17 = const true: Bool
+    branch %t17 ? b10 : b11
+  b8:
+    nop
+    %t15 = move(%h)
+    %t16 = call lib.Handle.close(%t15)
+    %t9 = copy(%t16)
+    nop
+    jump b5
+  b9:
+    drop(%h)
+    jump b7
+  b10:
+    %t18 = unit
+    %t9 = copy(%t18)
+    jump b5
+  b11:
+    panic "no match arm matched"
+    unreachable
+}
+fn lib.payloadRefill(%s: Slot) -> Unit {
+  b0:
+    %t1 = move(%s)
+    %b = copy(%t1)
+    %t3 = const 0: Int
+    %t4 = const 2: Int
+    %t5 = copy(%t3)
+    %t6 = copy(%t4)
+    jump b1
+  b1:
+    %t7 = bin <(%t5, %t6)
+    branch %t7 ? b2 : b4
+  b2:
+    %t8 = copy(%t5)
+    %i = copy(%t8)
+    %t10 = field 0(%b)
+    %t12 = isvariant Option.Some(%t10)
+    branch %t12 ? b6 : b7
+  b3:
+    %t21 = const 1: Int
+    %t22 = bin +(%t5, %t21)
+    drop(%t5)
+    %t5 = copy(%t22)
+    jump b1
+  b4:
+    drop(%t6)
+    drop(%t5)
+    %t23 = unit
+    drop(%b)
+    nop
+    return %t23
+  b5:
+    drop(%t10)
+    drop(%i)
+    jump b3
+  b6:
+    %t13 = payload 0(%t10)
+    %h = copy(%t13)
+    %t15 = move(%h)
+    %t16 = call lib.Handle.close(%t15)
+    drop(%t16)
+    %t17 = variant Option.None
+    setfield 0(%b, %t17)
+    %t18 = unit
+    %t11 = copy(%t18)
+    nop
+    jump b5
+  b7:
+    %t19 = isvariant Option.None(%t10)
+    branch %t19 ? b8 : b9
+  b8:
+    %t20 = unit
+    %t11 = copy(%t20)
+    jump b5
+  b9:
+    panic "no match arm matched"
+    unreachable
+}
+fn lib.isTakeAndClear(%s: Slot) -> Unit {
+  b0:
+    %t1 = move(%s)
+    %b = copy(%t1)
+    %t3 = const 0: Int
+    %t4 = const 2: Int
+    %t5 = copy(%t3)
+    %t6 = copy(%t4)
+    jump b1
+  b1:
+    %t7 = bin <(%t5, %t6)
+    branch %t7 ? b2 : b4
+  b2:
+    %t8 = copy(%t5)
+    %i = copy(%t8)
+    %t10 = field 0(%b)
+    %t11 = isvariant Option.Some(%t10)
+    branch %t11 ? b5 : b6
+  b3:
+    %t20 = const 1: Int
+    %t21 = bin +(%t5, %t20)
+    drop(%t5)
+    %t5 = copy(%t21)
+    jump b1
+  b4:
+    drop(%t6)
+    drop(%t5)
+    %t22 = unit
+    drop(%b)
+    nop
+    return %t22
+  b5:
+    %t12 = payload 0(%t10)
+    %h = copy(%t12)
+    jump b6
+  b6:
+    drop(%t10)
+    branch %t11 ? b7 : b8
+  b7:
+    nop
+    %t15 = move(%h)
+    %t16 = call lib.Handle.close(%t15)
+    drop(%t16)
+    %t17 = variant Option.None
+    setfield 0(%b, %t17)
+    %t18 = unit
+    %t14 = copy(%t18)
+    jump b9
+  b8:
+    %t19 = unit
+    %t14 = copy(%t19)
+    jump b9
+  b9:
+    drop(%h)
+    drop(%i)
+    jump b3
+}
+error[use-after-move]: `b.opt` was moved; it cannot be used again
+  --> lib/loop.kg:17:18
+   |
+17 |             Some(h) -> h.close()
+   |                  ^
+
+error[move-join-mismatch]: `b.opt` is moved on some paths but not others
+  --> lib/loop.kg:49:18
+   |
+49 |             Some(h) if ok(&h) -> h.close()
+   |                  ^
+
