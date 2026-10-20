@@ -39,7 +39,7 @@ func PlanJSONWithStats(rg *ResolvedGraph, p *BuildProgram) (string, PlanStats) {
 		Artifacts        []artifact                 `json:"artifacts"`
 		Order            []string                   `json:"order"`
 		DeriveProvenance []schema.GeneratedArtifact `json:"deriveProvenance,omitempty"`
-	}{FormatVersion: version.BuildPlanFormatVersion, Toolchain: version.Current(), NativeToolchain: CCompiler(), Request: rg.Graph.Request, Secrets: rg.Graph.Secrets, Files: rg.Graph.Files, ToolSteps: rg.Graph.ToolSteps, Artifacts: []artifact{}, Order: rg.Order}
+	}{FormatVersion: version.BuildPlanFormatVersion, Toolchain: version.Current(), NativeToolchain: rg.options.CCompiler(), Request: rg.Graph.Request, Secrets: rg.Graph.Secrets, Files: rg.Graph.Files, ToolSteps: rg.Graph.ToolSteps, Artifacts: []artifact{}, Order: rg.Order}
 	zigVersion := ""
 	cache := newPlanCache(rg.options)
 	if p != nil {

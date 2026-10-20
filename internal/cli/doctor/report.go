@@ -74,7 +74,7 @@ func targetField(cmd *cobra.Command) Field {
 }
 
 func ccompilerField() Field {
-	argv := driver.CCompiler()
+	argv := shared.CompilerOptions().CCompiler()
 	if len(argv) == 0 {
 		return Field{Source: "PATH (zig cc, then clang)", Status: "missing"}
 	}
@@ -92,7 +92,7 @@ func zigField() Field {
 	if err != nil {
 		root = ""
 	}
-	r := zigtool.ForModule(root, shared.ZigPath(), mf.Zig)
+	r := zigtool.ForModule(shared.CompilerOptions().ToolLookup(), root, shared.ZigPath(), mf.Zig)
 	switch {
 	case r.Path == "":
 		status := "missing"

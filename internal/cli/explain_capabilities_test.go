@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -35,7 +36,7 @@ func TestExplainCapabilitiesResolvesAgainstTarget(t *testing.T) {
 }
 
 func TestExplainCapabilitiesReadsBuiltArtifact(t *testing.T) {
-	if _, _, ok := testtool.CCompiler(); !ok {
+	if _, _, ok := testtool.CCompiler(exec.LookPath); !ok {
 		t.Skip("no C toolchain (zig or clang) on PATH")
 	}
 	std, _ := filepath.Abs("../../std")

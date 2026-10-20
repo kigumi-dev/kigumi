@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"kigumi/internal/cli/shared"
 	"kigumi/internal/cliutil"
 	"kigumi/internal/driver"
 	"kigumi/internal/errors"
@@ -55,7 +56,7 @@ func jsonCmd(root *string) *cobra.Command {
 			if err != nil {
 				return errors.WrapErr(err, "read lock")
 			}
-			local, err := driver.ReadLocal(*root)
+			local, err := driver.ReadLocal(shared.CompilerOptions(), *root)
 			if err != nil {
 				return errors.WrapErr(err, "read local overrides")
 			}

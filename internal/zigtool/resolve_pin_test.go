@@ -36,7 +36,7 @@ func TestForModulePrefersStoreOverExplicitAndPATH(t *testing.T) {
 	installFake(t, root, "0.17.0")
 	explicit := fakeZig(t, "0.16.0")
 
-	r := zigtool.ForModule(root, explicit, "0.17.0")
+	r := zigtool.ForModule(nil, root, explicit, "0.17.0")
 	if r.Source != "managed store" || r.Path != filepath.Join(root, "0.17.0", store.BinaryName()) {
 		t.Fatalf("%+v", r)
 	}
@@ -46,7 +46,7 @@ func TestForModuleFallsBackToExplicitWhenStoreLacksThePin(t *testing.T) {
 	root := t.TempDir()
 	explicit := fakeZig(t, "0.17.0")
 
-	r := zigtool.ForModule(root, explicit, "0.17.0")
+	r := zigtool.ForModule(nil, root, explicit, "0.17.0")
 	if r.Source != "$KIGUMI_ZIG" || r.Path != explicit || r.Mismatch {
 		t.Fatalf("%+v", r)
 	}
@@ -57,7 +57,7 @@ func TestForModuleUnpinnedSkipsStore(t *testing.T) {
 	installFake(t, root, "0.17.0")
 	explicit := fakeZig(t, "9.9.9")
 
-	r := zigtool.ForModule(root, explicit, "")
+	r := zigtool.ForModule(nil, root, explicit, "")
 	if r.Source != "$KIGUMI_ZIG" || r.Path != explicit {
 		t.Fatalf("an unpinned module must not be redirected into the store: %+v", r)
 	}

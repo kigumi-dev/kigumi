@@ -17,7 +17,7 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 	if err != nil {
 		return &cliutil.UsageError{Err: err}
 	}
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: shared.StdRoot(cmd), Policy: policy, ZigPath: shared.ZigPath(), VerifyPasses: shared.VerifyPasses()})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: shared.StdRoot(cmd), Policy: policy, ZigPath: shared.ZigPath(), VerifyPasses: shared.VerifyPasses(), Compiler: shared.CompilerOptions()})
 	if err != nil {
 		cmd.PrintErr(err.Error())
 		if !strings.HasSuffix(err.Error(), "\n") {

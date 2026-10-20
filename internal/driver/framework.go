@@ -2,7 +2,6 @@ package driver
 
 import (
 	"fmt"
-	"os/exec"
 	"path/filepath"
 
 	"kigumi/internal/diag"
@@ -27,9 +26,9 @@ type ToolProgram struct {
 const builtinToolchainName = "toolchain"
 
 // toolchainDescriptor exposes BuildWith's C compiler as tool "cc" and, for zig, its LLD wrapper as "ld"; its cache dir goes under the build's own output dir since the tool env allowlist has no HOME.
-func toolchainDescriptor(cacheDir string) FrameworkDescriptor {
+func toolchainDescriptor(o CompilerOptions, cacheDir string) FrameworkDescriptor {
 	fd := FrameworkDescriptor{Name: builtinToolchainName, Tools: map[string]ToolProgram{}}
-	cc := CCompiler()
+	cc := o.CCompiler()
 	if len(cc) == 0 {
 		return fd
 	}
@@ -40,9 +39,9 @@ func toolchainDescriptor(cacheDir string) FrameworkDescriptor {
 	fd.Tools["cc"] = ToolProgram{Path: cc[0], Args: cc[1:], Env: env}
 	if filepath.Base(cc[0]) == "zig" {
 		fd.Tools["ld"] = ToolProgram{Path: cc[0], Args: []string{"ld.lld"}, Env: env}
-	} else if ld, err := exec.LookPath("ld.lld"); err == nil {
+	} else if ld, err := o.LookTool("ld.lld"); err == nil {
 		fd.Tools["ld"] = ToolProgram{Path: ld}
-	} else if ld, err := exec.LookPath("ld"); err == nil {
+	} else if ld, err := o.LookTool("ld"); err == nil {
 		fd.Tools["ld"] = ToolProgram{Path: ld}
 	}
 	return fd

@@ -5,27 +5,32 @@ import (
 	"strings"
 )
 
+// Lookup finds an executable by name; the caller supplies the search (internal/cli passes its PATH).
+type Lookup func(name string) (string, error)
+
 // Toolchain records which optional build tools this host has on PATH.
 type Toolchain struct {
 	Zig   bool `json:"zig"`
 	Clang bool `json:"clang"`
 }
 
-// DiscoverToolchain probes PATH the same way internal/driver picks a C
+// DiscoverToolchain probes look the same way internal/driver picks a C
 // compiler (zig cc, falling back to clang), without importing it.
-func DiscoverToolchain() Toolchain {
-	_, zig := exec.LookPath("zig")
-	_, clang := exec.LookPath("clang")
+func DiscoverToolchain(look Lookup) Toolchain {
+	_, zig := look("zig")
+	_, clang := look("clang")
 	return Toolchain{Zig: zig == nil, Clang: clang == nil}
 }
 
 // CCompiler names and versions whichever of zig or clang DiscoverToolchain found; ok is false with neither on PATH.
-func CCompiler() (name, version string, ok bool) {
-	switch t := DiscoverToolchain(); {
+func CCompiler(look Lookup) (name, version string, ok bool) {
+	switch t := DiscoverToolchain(look); {
 	case t.Zig:
-		return "zig", runVersion("zig", "version"), true
+		p, _ := look("zig")
+		return "zig", runVersion(p, "version"), true
 	case t.Clang:
-		return "clang", runVersion("clang", "--version"), true
+		p, _ := look("clang")
+		return "clang", runVersion(p, "--version"), true
 	default:
 		return "", "", false
 	}

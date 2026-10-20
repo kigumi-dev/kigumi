@@ -28,7 +28,7 @@ func Cmd() *cobra.Command {
 			var err error
 			if opts.Std {
 				stdRoot := shared.StdRoot(cmd)
-				m, err = driver.LoadModule(stdRoot, driver.LoadOptions{StdRoot: stdRoot})
+				m, err = driver.LoadModule(stdRoot, driver.LoadOptions{StdRoot: stdRoot, Compiler: shared.CompilerOptions()})
 				if err != nil {
 					err = errors.WrapErr(err, "load std")
 				}

@@ -105,7 +105,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		fp := CurrentFingerprint(t, ZigVersionOf(cc))
 		fp.RuntimeAbi = code.Abi
 		reportStaleFingerprint(out, fp, stderr)
-		ok, err := buildArchive(cc, args, inputs, dir, out, opts.ccEnv, stderr)
+		ok, err := buildArchive(m.compiler, cc, args, inputs, dir, out, opts.ccEnv, stderr)
 		if err != nil || !ok {
 			return ok, err
 		}
@@ -113,11 +113,11 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		if err := WriteFingerprintSidecar(out, fp); err != nil {
 			return false, err
 		}
-		err = auditBareArchive(cc, out)
+		err = auditBareArchive(m.compiler, cc, out)
 		return err == nil, err
 	}
 	ok, err = publishBuildOutput(out, func(staged string) error {
-		linkOut, linkInputsList, err := linkInputs(opts.pinCompDir, dir, staged, inputs)
+		linkOut, linkInputsList, err := linkInputs(m.compiler, opts.pinCompDir, dir, staged, inputs)
 		if err != nil {
 			return err
 		}
@@ -132,9 +132,9 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		}
 		for _, l := range m.Links {
 			if l.Search != "" {
-				// l.Search may be relative to the process cwd; resolve now since -L is read against cmd.Dir, which pinCompDir moves to dir.
+				// l.Search may be relative to the compiler Cwd; resolve now since -L is read against cmd.Dir, which pinCompDir moves to dir.
 				search := l.Search
-				if abs, err := filepath.Abs(search); err == nil {
+				if abs, err := m.compiler.Abs(search); err == nil {
 					search = abs
 				}
 				linkArgs = append(linkArgs, "-L"+search)
@@ -144,7 +144,11 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 			}
 		}
 		if opts.LinkerScript != "" {
-			linkArgs = append(linkArgs, "-T", opts.LinkerScript)
+			script := opts.LinkerScript
+			if abs, err := m.compiler.Abs(script); err == nil {
+				script = abs
+			}
+			linkArgs = append(linkArgs, "-T", script)
 		}
 		if opts.Entry != "" {
 			linkArgs = append(linkArgs, "-Wl,--entry="+opts.Entry)

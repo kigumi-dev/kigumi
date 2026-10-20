@@ -18,7 +18,7 @@ func whichCmd() *cobra.Command {
 				return err
 			}
 			want := modulePin()
-			r := zigtool.ForModule(root, shared.ZigPath(), want)
+			r := zigtool.ForModule(shared.CompilerOptions().ToolLookup(), root, shared.ZigPath(), want)
 			switch {
 			case r.Path == "" && want == "":
 				cmd.Println("no zig found, and this module is unpinned (a native build falls back to clang)")

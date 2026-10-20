@@ -12,7 +12,7 @@ type Resolved struct {
 
 // ForModule resolves zig in kigumi's own order: the managed store's exact
 // pin, then explicit (KIGUMI_ZIG), then PATH; "" storeRoot or want skips the store.
-func ForModule(storeRoot, explicit, want string) Resolved {
+func ForModule(look Lookup, storeRoot, explicit, want string) Resolved {
 	if want != "" && storeRoot != "" {
 		if path, ok := store.Installed(storeRoot, want); ok {
 			return Resolved{Path: path, Source: "managed store", Check: Check{Path: path, Version: want, Want: want}}
@@ -22,6 +22,6 @@ func ForModule(storeRoot, explicit, want string) Resolved {
 	if explicit != "" {
 		source = "$KIGUMI_ZIG"
 	}
-	c := CheckZig(explicit, want)
+	c := CheckZig(look, explicit, want)
 	return Resolved{Path: c.Path, Source: source, Check: c}
 }

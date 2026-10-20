@@ -14,6 +14,10 @@ type CompilerOptions struct {
 	CacheDir string
 	// Cwd is the directory a running program's relative paths resolve against.
 	Cwd string
+	// PathDirs is the tool search path (zig, clang, ld); nil falls back to the process PATH, empty finds nothing.
+	PathDirs []string
+	// Home is the user's home directory, the base of the managed zig store.
+	Home string
 }
 
 // HostTarget is the machine kigumi runs on, the fallback for CompilerOptions.Host.
@@ -47,8 +51,8 @@ func (m *Module) cwdFor(own string) string {
 	return cwd
 }
 
-// absPath resolves p against the options' Cwd, or the process directory only when none was given.
-func (o CompilerOptions) absPath(p string) (string, error) {
+// Abs resolves p against the options' Cwd, or the process directory only when none was given.
+func (o CompilerOptions) Abs(p string) (string, error) {
 	if filepath.IsAbs(p) {
 		return filepath.Clean(p), nil
 	}

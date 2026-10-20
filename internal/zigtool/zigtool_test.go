@@ -25,7 +25,7 @@ func fakeZig(t *testing.T, version string) string {
 
 func TestCheckZigMatch(t *testing.T) {
 	zig := fakeZig(t, "0.17.0")
-	c := zigtool.CheckZig(zig, "0.17.0")
+	c := zigtool.CheckZig(nil, zig, "0.17.0")
 	if c.Path != zig || c.Version != "0.17.0" || c.Mismatch || c.Err != nil {
 		t.Fatalf("%+v", c)
 	}
@@ -33,7 +33,7 @@ func TestCheckZigMatch(t *testing.T) {
 
 func TestCheckZigMismatch(t *testing.T) {
 	zig := fakeZig(t, "0.16.0-dev.2287+eb3f16db5")
-	c := zigtool.CheckZig(zig, "0.17.0")
+	c := zigtool.CheckZig(nil, zig, "0.17.0")
 	if !c.Mismatch || c.Version != "0.16.0-dev.2287+eb3f16db5" || c.Want != "0.17.0" || c.Err != nil {
 		t.Fatalf("%+v", c)
 	}
@@ -41,7 +41,7 @@ func TestCheckZigMismatch(t *testing.T) {
 
 func TestCheckZigUnpinnedSkipsVersion(t *testing.T) {
 	zig := fakeZig(t, "0.17.0")
-	c := zigtool.CheckZig(zig, "")
+	c := zigtool.CheckZig(nil, zig, "")
 	if c.Path != zig || c.Version != "" || c.Mismatch || c.Err != nil {
 		t.Fatalf("an unpinned check must not even run `zig version`: %+v", c)
 	}
@@ -49,7 +49,7 @@ func TestCheckZigUnpinnedSkipsVersion(t *testing.T) {
 
 func TestCheckZigMissingNoPin(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
-	c := zigtool.CheckZig("", "")
+	c := zigtool.CheckZig(nil, "", "")
 	if c != (zigtool.Check{}) {
 		t.Fatalf("no override, no pin, no zig on PATH: the zero Check, got %+v", c)
 	}
@@ -57,7 +57,7 @@ func TestCheckZigMissingNoPin(t *testing.T) {
 
 func TestCheckZigMissingWithPin(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "does-not-exist")
-	c := zigtool.CheckZig(missing, "0.17.0")
+	c := zigtool.CheckZig(nil, missing, "0.17.0")
 	if c.Path != "" || c.Err == nil || c.Want != "0.17.0" {
 		t.Fatalf("%+v", c)
 	}
@@ -66,7 +66,7 @@ func TestCheckZigMissingWithPin(t *testing.T) {
 func TestCheckZigExplicitOverrideWins(t *testing.T) {
 	zig := fakeZig(t, "0.17.0")
 	// PATH is left untouched; an explicit path must still be the one used.
-	c := zigtool.CheckZig(zig, "0.17.0")
+	c := zigtool.CheckZig(nil, zig, "0.17.0")
 	if c.Path != zig {
 		t.Fatalf("explicit override was not used: %+v", c)
 	}
@@ -74,7 +74,7 @@ func TestCheckZigExplicitOverrideWins(t *testing.T) {
 
 func TestCheckZigExplicitInvalidErrorsEvenUnpinned(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "does-not-exist")
-	c := zigtool.CheckZig(missing, "")
+	c := zigtool.CheckZig(nil, missing, "")
 	if c.Err == nil {
 		t.Fatal("an explicit KIGUMI_ZIG that does not resolve must error even with no pin")
 	}
@@ -111,5 +111,17 @@ func TestFingerprintDiffersByMtime(t *testing.T) {
 	}
 	if fp1 == fp2 {
 		t.Fatal("fingerprint must change when mtime changes")
+	}
+}
+
+func TestInDirsSkipsRelativeEntries(t *testing.T) {
+	d := t.TempDir()
+	os.WriteFile(filepath.Join(d, "zig"), []byte("#!/bin/sh\n"), 0o755)
+	t.Chdir(filepath.Dir(d))
+	if p, err := zigtool.InDirs([]string{filepath.Base(d)})("zig"); err == nil {
+		t.Fatalf("relative entry found %s", p)
+	}
+	if _, err := zigtool.InDirs([]string{d})("zig"); err != nil {
+		t.Fatal(err)
 	}
 }

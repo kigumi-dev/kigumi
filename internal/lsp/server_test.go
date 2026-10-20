@@ -10,6 +10,7 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
+	"kigumi/internal/driver"
 	"kigumi/internal/lsp"
 )
 
@@ -44,7 +45,8 @@ func TestServer(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New("../../std")
+	wd, _ := os.Getwd()
+	s := lsp.New("../../std").WithPackageCache("", driver.CompilerOptions{Cwd: wd})
 	doc := uri.File(path)
 	rootURI := uri.File(root)
 

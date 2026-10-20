@@ -10,7 +10,7 @@ import (
 )
 
 // ambientGlobals are what the driver may only touch in compiler_options.go,
-// where a zero CompilerOptions field falls back to the process.
+// where a zero CompilerOptions field falls back to the process (with compiler_tools.go).
 var ambientGlobals = map[string]bool{
 	"os.UserCacheDir": true, "os.UserHomeDir": true, "os.Getwd": true, "os.TempDir": true,
 	"runtime.GOOS": true, "runtime.GOARCH": true,
@@ -36,7 +36,7 @@ func parseDriver(t *testing.T) map[string]*ast.File {
 
 func TestDriverReadsNoAmbientPlatform(t *testing.T) {
 	for name, f := range parseDriver(t) {
-		if name == "compiler_options.go" {
+		if name == "compiler_options.go" || name == "compiler_tools.go" {
 			continue
 		}
 		ast.Inspect(f, func(n ast.Node) bool {

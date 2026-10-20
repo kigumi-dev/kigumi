@@ -86,6 +86,10 @@ func Build(m *Module, exe string, stderr io.Writer) (bool, error) {
 
 // BuildWith writes the IR and runtime into a work directory and produces out: an executable, or for freestanding a kigumi_main static archive.
 func BuildWith(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool, error) {
+	out, err := m.compiler.Abs(out)
+	if err != nil {
+		return false, err
+	}
 	if opts.Reproducible {
 		return buildReproducible(m, out, stderr, opts)
 	}

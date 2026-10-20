@@ -25,14 +25,14 @@ type ExecOptions struct {
 }
 
 func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOptions, stderr io.Writer) error {
-	outDir, err := filepath.Abs(outDir)
+	outDir, err := p.Module.compiler.Abs(outDir)
 	if err != nil {
 		return err
 	}
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return err
 	}
-	root, _ := filepath.Abs(p.Module.Root)
+	root, _ := p.Module.compiler.Abs(p.Module.Root)
 	roots, err := p.Roots(outDir)
 	if err != nil {
 		return err

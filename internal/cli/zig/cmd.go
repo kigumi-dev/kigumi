@@ -7,7 +7,6 @@ import (
 
 	"kigumi/internal/cli/shared"
 	"kigumi/internal/driver"
-	"kigumi/internal/zigtool/store"
 )
 
 // Cmd builds the `kigumi zig` command tree.
@@ -24,7 +23,7 @@ func Cmd() *cobra.Command {
 // storeRoot resolves the managed store's directory: --zig-home, else shared.ZigStoreRoot's default.
 func storeRoot(cmd *cobra.Command) (string, error) {
 	if home, _ := cmd.Flags().GetString("zig-home"); home != "" {
-		return store.Root(home)
+		return shared.CompilerOptions().ZigStoreRoot(home)
 	}
 	return shared.ZigStoreRoot()
 }

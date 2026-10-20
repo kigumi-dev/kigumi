@@ -16,8 +16,8 @@ import (
 // ResolveZig resolves zig per zigtool.ForModule's order (store, explicit,
 // PATH); an unsatisfied pin fetches it on demand unless m.offline (E1563).
 func (m *Module) ResolveZig() (string, error) {
-	storeRoot, _ := store.Root(m.zigHome)
-	r := zigtool.ForModule(storeRoot, m.explicitZig, m.Manifest.Zig)
+	storeRoot, _ := m.compiler.ZigStoreRoot(m.zigHome)
+	r := zigtool.ForModule(m.compiler.ToolLookup(), storeRoot, m.explicitZig, m.Manifest.Zig)
 	switch {
 	case r.Want == "":
 		return r.Path, r.Err
@@ -79,7 +79,7 @@ func CCompilerFor(m *Module) ([]string, error) {
 	if path != "" {
 		return []string{path, "cc"}, nil
 	}
-	return CCompiler(), nil
+	return m.compiler.CCompiler(), nil
 }
 
 // ZigVersionOf is "" unless cc is a zig invocation, for ArtifactFingerprint

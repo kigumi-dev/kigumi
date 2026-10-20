@@ -1,0 +1,32 @@
+package driver
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
+// resolveRoot keeps a relative root as given when it names the same directory under Cwd, so process-cwd callers see unchanged paths.
+func (o CompilerOptions) resolveRoot(root string) (string, error) {
+	if o.Cwd == "" || filepath.IsAbs(root) {
+		return root, nil
+	}
+	abs := filepath.Join(o.Cwd, root)
+	st, err := os.Stat(abs)
+	if err != nil {
+		return "", fmt.Errorf("module root %s not found under %s", root, o.Cwd)
+	}
+	if here, err := os.Stat(root); err == nil && os.SameFile(here, st) {
+		return root, nil
+	}
+	return abs, nil
+}
+
+// LoadModule indexes every package under root, resolving a relative root against the options' Cwd.
+func LoadModule(root string, opts LoadOptions) (*Module, error) {
+	root, err := opts.Compiler.resolveRoot(root)
+	if err != nil {
+		return nil, err
+	}
+	return loadModule(root, opts)
+}

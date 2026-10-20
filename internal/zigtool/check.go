@@ -19,8 +19,8 @@ type Check struct {
 
 // CheckZig resolves zig (explicit, then PATH) and, when want is pinned,
 // verifies the resolved version matches it exactly; want is "" when unpinned.
-func CheckZig(explicit, want string) Check {
-	path, err := Resolve(explicit)
+func CheckZig(look Lookup, explicit, want string) Check {
+	path, err := Resolve(look, explicit)
 	if path == "" {
 		if explicit == "" && want == "" {
 			return Check{}

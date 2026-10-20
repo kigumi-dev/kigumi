@@ -4,21 +4,19 @@ package store
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 )
 
-// Root is the managed store's root directory: override when non-empty
-// (internal/cli resolves env vars into this; this package reads none itself), otherwise ~/.local/share/kigumi/zig.
-func Root(override string) (string, error) {
+// Root is the managed store's root directory: override when non-empty,
+// otherwise home/.local/share/kigumi/zig; the caller supplies both.
+func Root(override, home string) (string, error) {
 	if override != "" {
 		return override, nil
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve the zig store directory: %w", err)
+	if home == "" {
+		return "", fmt.Errorf("resolve the zig store directory: no home directory given")
 	}
 	return filepath.Join(home, ".local", "share", "kigumi", "zig"), nil
 }

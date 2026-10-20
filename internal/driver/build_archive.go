@@ -30,11 +30,11 @@ func arTool(cc []string) []string {
 }
 
 // buildArchive compiles each input to an object for the embedder to link (freestanding has no libc); dir/comp-dir is pinned so two builds don't diverge, and -ffunction/data-sections keeps the embedder's --gc-sections effective.
-func buildArchive(cc, args, inputs []string, dir, out string, env []string, stderr io.Writer) (bool, error) {
+func buildArchive(o CompilerOptions, cc, args, inputs []string, dir, out string, env []string, stderr io.Writer) (bool, error) {
 	var objs []string
 	for i, in := range inputs {
 		// in may be relative; filepath.Rel errors if only one argument is absolute, and dir always is.
-		absIn, err := filepath.Abs(in)
+		absIn, err := o.Abs(in)
 		if err != nil {
 			return false, err
 		}
@@ -57,7 +57,7 @@ func buildArchive(cc, args, inputs []string, dir, out string, env []string, stde
 	}
 	ar := arTool(cc)
 	return publishBuildOutput(out, func(staged string) error {
-		absStaged, err := filepath.Abs(staged)
+		absStaged, err := o.Abs(staged)
 		if err != nil {
 			return err
 		}

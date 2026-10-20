@@ -17,19 +17,13 @@ var residueSymbols = map[string]bool{
 
 // residueAllowed freezes the ambient reads still outside CompilerOptions; a new one must go through the options instead.
 var residueAllowed = map[string]bool{
-	"driver/buildgraph_exec.go filepath.Abs": true, "driver/buildprogram.go filepath.Abs": true,
-	"driver/build_once.go filepath.Abs": true, "driver/modlocal.go filepath.Abs": true,
-	"driver/roots.go filepath.Abs": true, "driver/buildgraph_artifact.go filepath.Abs": true,
-	"driver/link_inputs.go filepath.Abs": true, "driver/build_archive.go filepath.Abs": true,
-	"driver/audit_freestanding.go filepath.Abs": true,
-	"driver/find_ccompiler.go exec.LookPath":    true, "driver/framework.go exec.LookPath": true,
 	"driver/compiler_options.go os.Getwd": true, "driver/compiler_options.go runtime.GOOS": true,
 	"driver/compiler_options.go runtime.GOARCH": true,
-	"zigtool/resolve.go exec.LookPath":          true,
+	"driver/compiler_tools.go exec.LookPath":    true, "driver/compiler_tools.go os.UserHomeDir": true,
 	"zigtool/fetch/host_triple.go runtime.GOOS": true, "zigtool/fetch/host_triple.go runtime.GOARCH": true,
 	"zigtool/fetch/install_release.go runtime.GOOS": true, "zigtool/fetch/install_release.go runtime.GOARCH": true,
-	"zigtool/store/root_dir.go os.UserHomeDir": true, "zigtool/store/root_dir.go runtime.GOOS": true,
-	"zigtool/source/build.go runtime.GOOS": true, "zigtool/source/build.go runtime.GOARCH": true,
+	"zigtool/store/root_dir.go runtime.GOOS": true,
+	"zigtool/source/build.go runtime.GOOS":   true, "zigtool/source/build.go runtime.GOARCH": true,
 	"platform/platform.go runtime.GOOS": true, "platform/platform.go runtime.GOARCH": true,
 	"target/target.go runtime.GOOS": true, "target/target.go runtime.GOARCH": true,
 }

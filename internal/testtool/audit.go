@@ -21,7 +21,7 @@ type AuditTotals struct {
 }
 
 // BuildAudit runs every counter in this package and assembles the report.
-func BuildAudit(repoRoot string) (*Audit, error) {
+func BuildAudit(repoRoot string, look Lookup) (*Audit, error) {
 	pkgs, err := CountGoTests(repoRoot, "testdata", "node_modules", ".git")
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func BuildAudit(repoRoot string) (*Audit, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &Audit{Packages: pkgs, Fixtures: fixtures, Toolchain: DiscoverToolchain()}
+	a := &Audit{Packages: pkgs, Fixtures: fixtures, Toolchain: DiscoverToolchain(look)}
 	for _, p := range pkgs {
 		a.Totals.Tests += p.Tests
 		a.Totals.Benchmarks += p.Benchmarks

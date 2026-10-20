@@ -132,7 +132,7 @@ func (t *target) fetch(cmd *cobra.Command, update, diffJSON bool) error {
 			return errors.WrapErr(err, "read lock")
 		}
 	}
-	local, err := driver.ReadLocal(t.dir)
+	local, err := driver.ReadLocal(shared.CompilerOptions(), t.dir)
 	if err != nil {
 		return errors.WrapErr(err, "read local overrides")
 	}

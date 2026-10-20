@@ -10,18 +10,18 @@ import (
 )
 
 func TestRootOverrideWins(t *testing.T) {
-	got, err := store.Root("/some/dir")
+	got, err := store.Root("/some/dir", "")
 	if err != nil || got != "/some/dir" {
 		t.Fatalf("got %q, %v", got, err)
 	}
 }
 
 func TestRootDefaultsUnderHome(t *testing.T) {
-	got, err := store.Root("")
+	home := t.TempDir()
+	got, err := store.Root("", home)
 	if err != nil {
 		t.Fatal(err)
 	}
-	home, _ := os.UserHomeDir()
 	if want := filepath.Join(home, ".local", "share", "kigumi", "zig"); got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

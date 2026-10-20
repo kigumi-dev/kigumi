@@ -33,9 +33,9 @@ func (m *Module) LocalReplaceDir(name string) (string, bool) {
 }
 
 // ReadLocal finds the nearest mod.local.kg at or above dir.
-func ReadLocal(dir string) (Local, error) {
+func ReadLocal(o CompilerOptions, dir string) (Local, error) {
 	// A relative dir would stop the walk at "." before reaching any parent.
-	if abs, err := filepath.Abs(dir); err == nil {
+	if abs, err := o.Abs(dir); err == nil {
 		dir = abs
 	}
 	for d := filepath.Clean(dir); ; d = filepath.Dir(d) {

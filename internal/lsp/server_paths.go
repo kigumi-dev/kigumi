@@ -40,7 +40,7 @@ func (s *Server) allModuleRoots() []string {
 	seen := map[string]bool{}
 	var roots []string
 	for _, workspace := range s.roots {
-		for _, root := range driver.ModuleRoots(workspace, s.stdRoot) {
+		for _, root := range driver.ModuleRoots(s.compiler, workspace, s.stdRoot) {
 			root = filepath.Clean(root)
 			if seen[root] {
 				continue

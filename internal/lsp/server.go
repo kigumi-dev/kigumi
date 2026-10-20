@@ -5,6 +5,7 @@ package lsp
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"sync"
@@ -97,6 +98,9 @@ func (s *Server) WithTarget(t driver.Target) *Server {
 
 // Serve speaks the protocol on stdin/stdout until the client hangs up.
 func Serve(stdRoot string, target driver.Target, cache string, o driver.CompilerOptions, lazyStd bool) error {
+	if o.Cwd == "" {
+		return errors.New("lsp: CompilerOptions.Cwd is required; the caller fills it from the process")
+	}
 	_, conn, _ := protocol.NewServer(context.Background(), New(stdRoot).WithTarget(target).WithPackageCache(cache, o).WithLazyStd(lazyStd), jsonrpc2.NewStream(stdio{}))
 	<-conn.Done()
 	if err := conn.Err(); err != nil && err != io.EOF {

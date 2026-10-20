@@ -2,6 +2,7 @@ package testtool_test
 
 import (
 	"encoding/json"
+	"os/exec"
 	"testing"
 
 	"kigumi/internal/testtool"
@@ -10,7 +11,7 @@ import (
 // TestBuildAudit is a smoke test: the counters must run cleanly over the
 // real repository and find a plausible, non-empty inventory.
 func TestBuildAudit(t *testing.T) {
-	a, err := testtool.BuildAudit("../..")
+	a, err := testtool.BuildAudit("../..", exec.LookPath)
 	if err != nil {
 		t.Fatal(err)
 	}

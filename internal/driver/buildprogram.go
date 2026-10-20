@@ -3,7 +3,6 @@ package driver
 import (
 	"fmt"
 	"kigumi/internal/buildgraph"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -27,6 +26,10 @@ type BuildProgram struct {
 // LoadBuildProgram loads root's module and checks its build.kg as a package named
 // build; ok is false when the module has no build program.
 func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error) {
+	root, err := opts.Compiler.resolveRoot(root)
+	if err != nil {
+		return nil, false, nil
+	}
 	tree, ok, err := ReadBuildFile(root)
 	if err != nil || !ok {
 		return nil, ok, err
@@ -133,7 +136,7 @@ func (p *BuildProgram) DescriptorRoots() ([]string, error) {
 // Roots lists the directories a build program may name files in: the module root,
 // then every selected dependency, then the output directory.
 func (p *BuildProgram) Roots(outDir string) ([]string, error) {
-	root, err := filepath.Abs(p.Module.Root)
+	root, err := p.Module.compiler.Abs(p.Module.Root)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +153,7 @@ func (p *BuildProgram) Roots(outDir string) ([]string, error) {
 		}
 		roots = append(roots, dir)
 	}
-	out, err := filepath.Abs(outDir)
+	out, err := p.Module.compiler.Abs(outDir)
 	if err != nil {
 		return nil, err
 	}

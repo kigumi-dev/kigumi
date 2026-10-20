@@ -13,6 +13,16 @@ import (
 // intrinsic (the VM) that exposes the environment to Kigumi programs.
 var envAllowed = []string{"internal/cli/", "internal/vm/std_host.go"}
 
+// processAllowed lists the exact files that may resolve a path against the process cwd, search PATH or ask for the home directory.
+// The two driver files are the single fallback for a zero CompilerOptions field.
+var processAllowed = map[string]bool{
+	"internal/driver/compiler_options.go": true,
+	"internal/driver/compiler_tools.go":   true,
+	"cmd/testaudit/main.go":               true,
+}
+
+var processCalls = []string{"filepath.Abs", "os.Getwd", "exec.LookPath", "os.UserHomeDir"}
+
 func TestNoEnvReads(t *testing.T) {
 	err := filepath.WalkDir("../..", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -25,7 +35,7 @@ func TestNoEnvReads(t *testing.T) {
 			return nil
 		}
 		rel := filepath.ToSlash(strings.TrimPrefix(p, "../../"))
-		if !strings.HasSuffix(rel, ".go") || strings.HasSuffix(rel, "_test.go") || !strings.HasPrefix(rel, "internal/") {
+		if !strings.HasSuffix(rel, ".go") || strings.HasSuffix(rel, "_test.go") || !(strings.HasPrefix(rel, "internal/") || strings.HasPrefix(rel, "cmd/")) {
 			return nil
 		}
 		for _, ok := range envAllowed {
@@ -36,6 +46,13 @@ func TestNoEnvReads(t *testing.T) {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			return err
+		}
+		if !processAllowed[rel] && !strings.HasPrefix(rel, "internal/cli/") && rel != "internal/vm/std_host.go" {
+			for _, call := range processCalls {
+				if strings.Contains(string(b), call) {
+					t.Errorf("%s: %s を参照している (関数値も含む)。cwd・PATH・home は CompilerOptions 経由で受け取れ", rel, call)
+				}
+			}
 		}
 		for _, call := range []string{"os.Getenv(", "os.LookupEnv(", "os.Environ(", "os.ExpandEnv("} {
 			if strings.Contains(string(b), call) {

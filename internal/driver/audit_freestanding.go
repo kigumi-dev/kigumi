@@ -13,14 +13,14 @@ import (
 
 // auditBareArchive checks a `--sys none` archive's embedder contract: every undefined
 // symbol must be one freestanding_symbols.txt names, and nothing is thread-local.
-func auditBareArchive(cc []string, archive string) error {
+func auditBareArchive(o CompilerOptions, cc []string, archive string) error {
 	dir, err := os.MkdirTemp("", "kigumi-audit")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(dir)
 	ar := arTool(cc)
-	absArchive, err := filepath.Abs(archive)
+	absArchive, err := o.Abs(archive)
 	if err != nil {
 		return err
 	}

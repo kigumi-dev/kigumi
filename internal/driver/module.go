@@ -104,8 +104,8 @@ type Module struct {
 	unitStats   UnitStats
 }
 
-// LoadModule indexes every package under root and the std stubs, then parses the packages the root set reaches. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
-func LoadModule(root string, opts LoadOptions) (*Module, error) {
+// loadModule indexes every package under root and the std stubs, then parses the packages the root set reaches. Parse diagnostics stay on each Tree; loading itself only fails on I/O.
+func loadModule(root string, opts LoadOptions) (*Module, error) {
 	m := &Module{Root: root, Entry: opts.Entry, ExplicitEntry: opts.Entry != "", overlay: opts.Overlay, Packages: map[string]*Package{}, local: Local{Replaces: map[string]string{}}, target: opts.Target, deny: opts.Deny, ceiling: opts.Ceiling, artifactName: opts.ArtifactName, explicitZig: opts.ZigPath, zigHome: opts.ZigHome, zigIndexURL: opts.ZigIndexURL, zigPublicKey: opts.ZigPublicKey, offline: opts.Offline, zigNotice: opts.ZigNotice, verifyPasses: opts.VerifyPasses, rootDirs: opts.RootDirs, rootImports: opts.RootImports, allPackages: opts.AllPackages, allOwn: opts.AllOwnPackages, deferred: opts.DeferParse, unitCheck: opts.UnitCheck, lazyStd: opts.LazyStd, test: opts.Test, keyEntry: opts.Entry, keyExplicit: opts.Entry != "", fileOrder: opts.FileOrder, compiler: opts.Compiler}
 	m.index = newPkgIndex(opts.PackageCache, root, opts.Compiler, time.Now)
 	m.pkgCache = newPackageCache(opts.PackageCache)
@@ -120,7 +120,7 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 		return nil, err
 	}
 	m.Name, m.Manifest = mf.Name, mf
-	skip := func(dir string) bool { return skipDir(dir, opts.StdRoot) || IsModuleRoot(dir) }
+	skip := func(dir string) bool { return skipDir(opts.Compiler, dir, opts.StdRoot) || IsModuleRoot(dir) }
 	if err := m.indexTree(root, m.Name, false, opts.Test, skip); err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func LoadModule(root string, opts LoadOptions) (*Module, error) {
 		return nil, err
 	}
 	if !opts.NoLocal {
-		if m.local, err = ReadLocal(root); err != nil {
+		if m.local, err = ReadLocal(opts.Compiler, root); err != nil {
 			return nil, err
 		}
 		if err := m.checkLocalReplace(opts.Policy); err != nil {

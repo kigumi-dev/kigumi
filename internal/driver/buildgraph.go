@@ -43,7 +43,7 @@ func ResolveGraph(o CompilerOptions, g *buildgraph.Graph, descriptors []Framewor
 	}
 	for _, f := range g.Frameworks {
 		if f.Name == builtinToolchainName && f.Version == "" {
-			rg.Frameworks = append(rg.Frameworks, toolchainDescriptor(zigCacheDir(g)))
+			rg.Frameworks = append(rg.Frameworks, toolchainDescriptor(o, zigCacheDir(g)))
 			continue
 		}
 		var matches []FrameworkDescriptor

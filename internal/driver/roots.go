@@ -31,13 +31,13 @@ func FindModuleRoot(dir string) (string, bool) {
 }
 
 // ModuleRoots lists workspace and every nested module root below it.
-func ModuleRoots(workspace, stdRoot string) []string {
+func ModuleRoots(o CompilerOptions, workspace, stdRoot string) []string {
 	roots := []string{workspace}
 	filepath.WalkDir(workspace, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || !d.IsDir() || path == workspace {
 			return nil
 		}
-		if skipDir(path, stdRoot) {
+		if skipDir(o, path, stdRoot) {
 			return fs.SkipDir
 		}
 		if IsModuleRoot(path) {
@@ -50,16 +50,16 @@ func ModuleRoots(workspace, stdRoot string) []string {
 
 // skipDir excludes hidden directories, node_modules and the std root from
 // a module walk.
-func skipDir(path, stdRoot string) bool {
+func skipDir(o CompilerOptions, path, stdRoot string) bool {
 	name := filepath.Base(path)
-	return strings.HasPrefix(name, ".") || name == "node_modules" || sameDir(path, stdRoot)
+	return strings.HasPrefix(name, ".") || name == "node_modules" || sameDir(o, path, stdRoot)
 }
 
-func sameDir(a, b string) bool {
+func sameDir(o CompilerOptions, a, b string) bool {
 	if b == "" {
 		return false
 	}
-	aa, _ := filepath.Abs(a)
-	bb, _ := filepath.Abs(b)
+	aa, _ := o.Abs(a)
+	bb, _ := o.Abs(b)
 	return aa == bb
 }

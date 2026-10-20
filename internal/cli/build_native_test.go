@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -10,7 +11,7 @@ import (
 
 // Split out from TestBuildRejectsBuildProgramFlagsWithoutOne so that one stays hermetic.
 func TestBuildPlainBuildNative(t *testing.T) {
-	name, version, ok := testtool.CCompiler()
+	name, version, ok := testtool.CCompiler(exec.LookPath)
 	if !ok {
 		t.Skip("no C toolchain (zig or clang) on PATH")
 	}

@@ -5,14 +5,13 @@ package zigtool
 import (
 	"fmt"
 	"os"
-	"os/exec"
 )
 
 // Resolve finds the zig binary: explicit (a caller-supplied path, such as
-// $KIGUMI_ZIG threaded in by internal/cli) first, then PATH.
-func Resolve(explicit string) (string, error) {
+// $KIGUMI_ZIG threaded in by internal/cli) first, then the lookup.
+func Resolve(look Lookup, explicit string) (string, error) {
 	if explicit == "" {
-		return exec.LookPath("zig")
+		return look.find("zig")
 	}
 	if st, err := os.Stat(explicit); err != nil {
 		return "", fmt.Errorf("KIGUMI_ZIG=%s: %w", explicit, err)

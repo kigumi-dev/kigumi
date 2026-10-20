@@ -34,7 +34,7 @@ func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(in
 	}
 	m.Entry = entry
 	m.ExplicitEntry = true
-	root, _ := filepath.Abs(p.Module.Root)
+	root, _ := p.Module.compiler.Abs(p.Module.Root)
 	seen := map[int]bool{}
 	var merge func(id int)
 	merge = func(id int) {

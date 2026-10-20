@@ -40,7 +40,7 @@ func loadIndexMemo(cacheDir, root string, o CompilerOptions, now func() time.Tim
 	if cacheDir == "" {
 		return nil
 	}
-	abs, err := o.absPath(root)
+	abs, err := o.Abs(root)
 	if err != nil {
 		return nil
 	}

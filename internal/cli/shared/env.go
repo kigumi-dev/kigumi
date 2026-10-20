@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"kigumi/internal/driver"
-	"kigumi/internal/zigtool/store"
 )
 
 // The KIGUMI_* variables are read here, once, and handed to the compiler
@@ -58,7 +57,7 @@ func ZigHome() string {
 
 // ZigStoreRoot is the managed zig store's directory, ZigHome resolved
 // against zigtool/store's default.
-func ZigStoreRoot() (string, error) { return store.Root(ZigHome()) }
+func ZigStoreRoot() (string, error) { return CompilerOptions().ZigStoreRoot(ZigHome()) }
 
 // Color decides whether output to f gets ANSI colors: --color always or
 // never settle it, otherwise NO_COLOR (no-color.org) turns it off,

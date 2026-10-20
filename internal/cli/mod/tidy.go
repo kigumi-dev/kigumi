@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"kigumi/internal/cli/shared"
 	"kigumi/internal/cliutil"
 	"kigumi/internal/driver"
 	"kigumi/internal/errors"
@@ -24,7 +25,7 @@ func tidyCmd(root *string) *cobra.Command {
 			if !ok {
 				return &cliutil.UsageError{Err: errors.NewErrf("%s has no %s", *root, driver.ManifestName)}
 			}
-			m, err := driver.LoadModule(*root, driver.LoadOptions{Test: true, NoDeps: true})
+			m, err := driver.LoadModule(*root, driver.LoadOptions{Test: true, NoDeps: true, Compiler: shared.CompilerOptions()})
 			if err != nil {
 				return errors.WrapErr(err, "load module")
 			}

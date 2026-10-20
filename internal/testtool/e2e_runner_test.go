@@ -3,13 +3,14 @@ package testtool
 import (
 	"bytes"
 	"encoding/json"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func TestRunE2ESmoke(t *testing.T) {
-	if _, _, ok := CCompiler(); !ok {
+	if _, _, ok := CCompiler(exec.LookPath); !ok {
 		t.Skip("no C toolchain (zig or clang) on PATH")
 	}
 	repoRoot, _ := filepath.Abs("../..")

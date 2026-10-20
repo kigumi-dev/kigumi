@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"kigumi/internal/driver"
 	"kigumi/internal/version"
-	"path/filepath"
 
 	"go.lsp.dev/protocol"
 )
@@ -38,8 +37,10 @@ func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (
 	}
 	// Locations are file URIs, so a std root given relative to the cwd
 	// (`kigumi lsp` finds ./std) must become absolute.
-	if abs, err := filepath.Abs(s.stdRoot); s.stdRoot != "" && err == nil {
-		s.stdRoot = abs
+	if s.stdRoot != "" && s.compiler.Cwd != "" {
+		if abs, err := s.compiler.Abs(s.stdRoot); err == nil {
+			s.stdRoot = abs
+		}
 	}
 	if ws := p.Capabilities.Workspace; ws != nil && ws.WorkspaceEdit != nil && ws.WorkspaceEdit.DocumentChanges != nil {
 		s.documentChanges = *ws.WorkspaceEdit.DocumentChanges

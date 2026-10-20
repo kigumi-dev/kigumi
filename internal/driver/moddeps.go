@@ -78,7 +78,9 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 		}
 		// A dependency's cmd/ holds its own scripts and tools: entries of that module, not packages of ours.
 		depCmd := filepath.Join(depDir, "cmd")
-		skip := func(d string) bool { return skipDir(d, opts.StdRoot) || IsModuleRoot(d) || sameDir(d, depCmd) }
+		skip := func(d string) bool {
+			return skipDir(opts.Compiler, d, opts.StdRoot) || IsModuleRoot(d) || sameDir(opts.Compiler, d, depCmd)
+		}
 		// A name-prefix relation alone is not an overlap; only an
 		// actual package-path collision is.
 		if overlap := m.dependencyOverlap(depDir, r.Name, skip); overlap != "" {
