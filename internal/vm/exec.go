@@ -85,6 +85,9 @@ func (m *Machine) exec(fr *frame, in *mir.Inst, ic *instCode) {
 	case mir.OpCall:
 		m.site, m.siteFn = in, f
 		if p := m.planFor(in, ic); p.kind == planLowered {
+			if m.opts.FaultInjectAt > 0 {
+				m.callTicks(f, in, loc)
+			}
 			loc[in.Dst] = m.callFrom(p.f, p.code, loc, in.Args)
 			return
 		}

@@ -38,7 +38,7 @@ noalloc fn intoLocal(i: Int) -> Int {
 noalloc fn knownClosure(n: Int) -> Int {
     let k = n + 1
     let f = (x: Int) => x + k
-    f(n) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
+    f(n + 1) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
 }
 
 noalloc fn constantClosure() -> Bool {
@@ -79,13 +79,13 @@ error[E2125]: this place holds its value boxed, so storing a computed `Int` in i
 error[E907]: `f` is not `noalloc`
   --> main/main.kg:40:5
    |
-40 |     f(n) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
-   |     ^^^
+40 |     f(n + 1) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
+   |     ^^^^^^^
 
 error[E2126]: a closure takes and returns `Int` in a box, so this call allocates one for it
   --> main/main.kg:40:7
    |
-40 |     f(n) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
-   |       ^
+40 |     f(n + 1) //~ ERROR a closure takes and returns `Int` in a box //~ ERROR `f` is not `noalloc`
+   |       ^^^^^
    = help: use a named function, or drop the declaration
 

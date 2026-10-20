@@ -175,6 +175,8 @@ type Result struct {
 	closureOrdinals           map[EntityID]int
 	lifetimeStandIns          []EntityID
 	deferredClaims            bool
+	boxedParams               map[EntityID]bool
+	boxedForwards             []boxedForward
 	lendSites                 map[lendSite]lendSite
 	boxedLends                map[lendSite]bool
 	pendingLends              []lendSite

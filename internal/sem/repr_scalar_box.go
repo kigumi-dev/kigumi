@@ -28,14 +28,19 @@ const (
 	whyClosureScalar = 22
 )
 
-var scalarCodes = map[uint8]Code{whyScalarCross: cAllocScalarArg, whyScalarStore: cAllocScalarStore, whyClosureScalar: cAllocClosureScalar}
+var scalarCodes = map[uint8]Code{whyScalarCross: cAllocScalarArg, whyScalarStore: cAllocScalarStore, whyClosureScalar: cAllocClosureScalar, whyBoxedArg: cAllocBoxedArg}
 
 // A constant argument is handed over as its immortal, so it needs no box.
 func (c *checker) crossScalarArgs(args []syntax.NodeID, why uint8) {
 	for _, a := range args {
-		if !c.constScalar(a) {
-			c.scalarEdge(a, c.argType(a), why)
+		if c.constScalar(a) {
+			continue
 		}
+		if p := c.paramRead(a); p != 0 {
+			c.noteBoxedParam(p)
+			continue
+		}
+		c.scalarEdge(a, c.argType(a), why)
 	}
 }
 
@@ -44,7 +49,11 @@ func (c *checker) scalarStore(n, lhs syntax.NodeID, t TypeID, ref EntityID) {
 	if elem, ok := c.r.MutRefElem(c.vars.resolve(t)); ok {
 		t = elem
 	}
-	if n != lhs && (c.sharesBox(lhs, n) || c.capturedRead(n)) {
+	if n != lhs && c.sharesBox(lhs, n) {
+		return
+	}
+	if p := c.paramRead(n); n != lhs && p != 0 {
+		c.noteBoxedParam(p)
 		return
 	}
 	c.scalarEdgeAt(n, t, whyScalarStore, ref)
@@ -59,15 +68,23 @@ func (c *checker) sharesBox(lhs, rhs syntax.NodeID) bool {
 	if root := c.rootOf(rhs); root != 0 && root == c.rootOf(lhs) {
 		return true
 	}
-	bt := c.vars.resolve(c.info.Types[c.t.View(rhs).Base().ID()])
-	return c.r.Types.Kind(bt) != KRef && !c.r.DirectAgg(bt)
+	return c.inContainerSlot(rhs)
+}
+
+// A field or element of a direct aggregate is a register read, even through a reference.
+func (c *checker) inContainerSlot(n syntax.NodeID) bool {
+	bt := c.vars.resolve(c.info.Types[c.t.View(n).Base().ID()])
+	if c.r.Types.Kind(bt) == KRef {
+		bt = c.r.Types.Node(bt).Elem
+	}
+	return !c.r.DirectAgg(bt)
 }
 
 func (c *checker) scalarEdge(n syntax.NodeID, t TypeID, why uint8) { c.scalarEdgeAt(n, t, why, 0) }
 
 func (c *checker) scalarEdgeAt(n syntax.NodeID, t TypeID, why uint8, target EntityID) {
 	if t = c.vars.resolve(t); !c.r.Types.ContainsVar(t) && c.r.ScalarBoxes(t) {
-		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: why, Target: target})
+		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: why, Target: target, Captured: c.capturedRead(n)})
 	}
 }
 
@@ -106,10 +123,9 @@ func (c *checker) readsBox(n syntax.NodeID) bool {
 	n = c.t.Unparen(n)
 	switch c.t.Kind(n) {
 	case syntax.Ident:
-		return c.r.Types.Kind(c.vars.resolve(c.info.Types[n])) == KRef
+		return c.r.Types.Kind(c.vars.resolve(c.info.Types[n])) == KRef || c.paramRead(n) != 0
 	case syntax.MemberExpr, syntax.BracketExpr:
-		bt := c.vars.resolve(c.info.Types[c.t.View(n).Base().ID()])
-		return c.r.Types.Kind(bt) == KRef || !c.r.DirectAgg(bt)
+		return c.inContainerSlot(n)
 	}
 	return false
 }

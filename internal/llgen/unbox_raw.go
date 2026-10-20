@@ -37,7 +37,7 @@ func (e *emitter) rawDef(f *mir.Func, in mir.Inst, raw map[mir.LocalID]bool) boo
 		return e.callvI64(f, in)
 	case mir.OpCall:
 		_, native := e.calleeScalarSig(in).ret()
-		return in.DPrim != mir.DPNone || native || e.wideCallOp(f, in) != ""
+		return in.DPrim != mir.DPNone || native || e.wideCallOp(f, in) != "" || e.rawConvert(f, in)
 	case mir.OpAlias, mir.OpMove, mir.OpShare:
 		return raw[in.Args[0]]
 	}

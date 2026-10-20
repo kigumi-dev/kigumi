@@ -69,6 +69,7 @@ type Machine struct {
 	siteFn     *mir.Func
 	valueSites map[valueSiteKey]valueSite
 	boxFacts   map[*mir.Func]localFacts
+	boxParams  *mir.BoxedParams
 	// curFn/curInst track every instruction (not just calls, unlike site/siteFn), for Panic's Site.
 	curFn   *mir.Func
 	curInst *mir.Inst

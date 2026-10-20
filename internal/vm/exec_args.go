@@ -22,6 +22,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 	case mir.OpBoxDirect, mir.OpUnboxDirect:
 		res = m.cross(fr, in, args[0])
 	case mir.OpCall:
+		m.callTicks(f, in, fr.locals)
 		res = m.callPlanned(in, ic, args)
 		if m.p.ResultBoxed(f, *in) {
 			m.scalarTick(res)
@@ -54,6 +55,9 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		res = mkRecord(in.Ent, args)
 		m.chargeMemory(res)
 	case mir.OpVariant:
+		if len(args) > 0 {
+			m.aggTicks(f, in, args, 2)
+		}
 		res = mkVariant(in.Ent, args)
 		m.chargeMemory(res)
 	case mir.OpFieldMove:
@@ -68,6 +72,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		}
 		return
 	case mir.OpArray:
+		m.aggTicks(f, in, args, min(2, 1+len(args)))
 		res = mkArray(args)
 		m.chargeMemory(res)
 	case mir.OpSetIndex:

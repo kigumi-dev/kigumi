@@ -29,7 +29,7 @@ noalloc fn unitResult(f: noalloc fn() -> Unit) -> Unit {
 }
 
 noalloc fn intArgument(f: noalloc fn(Int) -> Bool, x: Int) -> Bool {
-    f(x) //~ ERROR a call through a function value receives this `Int` in a box
+    f(x)
 }
 
 // A literal argument is handed over as its immortal.
@@ -78,13 +78,6 @@ error[E1841]: this call goes through a function value or an interface, so the `u
 18 |     f() //~ ERROR the `u8` it returns arrives in a box
    |     ^^
    = help: call the function directly, or drop the declaration
-
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
-  --> main/main.kg:31:7
-   |
-31 |     f(x) //~ ERROR a call through a function value receives this `Int` in a box
-   |       ^
-   = help: pass a constant, call the function directly, or drop the declaration
 
 error[E1840]: `twice` returns `Int` unboxed, so every call through this function value allocates a box for the result
   --> main/main.kg:40:13

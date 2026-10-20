@@ -47,6 +47,11 @@ noalloc fn applyDyn(f: noalloc fn(Int) -> Bool) -> Bool {
     f(1)
 }
 
+noalloc fn putI(r: &mut Int, i: Int) -> Unit { r = i }
+noalloc fn putF(p: &mut Pt, f: Float) -> Unit { p.x = 1 }
+noalloc fn callI(f: noalloc fn(Int) -> Bool, x: Int) -> Bool { f(x) }
+noalloc fn fwdI(r: &mut Int, i: Int) -> Unit { putI(r, i) }
+
 `
 
 var allocatingCall = regexp.MustCompile(`call [^@\n]*@(rt_copy|rt_copy_mut|rt_record|rt_variant|rt_array|rt_closure|rt_future_new|malloc|calloc|rt_float|rt_box_int128)\(|call [^@\n]*@(rt_int|rt_char)\([a-z0-9]+ %`)
@@ -155,7 +160,18 @@ var noallocProbes = []noallocProbe{
 	{"noalloc fn c2(n: Int) -> Bool { let f = (x: Int) => x > n\n f(3) }", ""},
 	{"noalloc fn c3(xs: &mut Array[Int], k: Int) -> Unit { xs[1] = xs[0]\n xs[2] = 5 }", ""},
 	{"noalloc fn c4(xs: &Array[Int]) -> Int { let mut t = 0\n for x in xs { t = t + x }\n t }", ""},
-	{"noalloc fn c5(n: Int) -> Int { let f = (x: Int) => x + n\n f(n) }", "E2126"},
+	{"noalloc fn c5(n: Int) -> Int { let f = (x: Int) => x + n\n f(n + 1) }", "E2126"},
+	{"noalloc fn c7(n: Int) -> Int { let f = (x: Int) => x + n\n f(n) }", "E907"},
+	{"noalloc fn d0(r: &mut Int, i: Int) -> Unit { putI(r, i) }", ""},
+	{"noalloc fn d1(r: &mut Int) -> Unit { putI(r, 5000)\n putI(r, 7) }", ""},
+	{"noalloc fn d2(f: noalloc fn(Int) -> Bool, i: Int) -> Bool { callI(f, i) }", ""},
+	{"noalloc fn d3(r: &mut Int, i: Int) -> Unit { fwdI(r, i)\n fwdI(r, 3000) }", ""},
+	{"noalloc fn d4(r: &mut Int, xs: &mut Array[Int]) -> Unit { putI(r, xs[0]) }", ""},
+	{"noalloc fn d5(r: &mut Int, i: Int) -> Unit { putI(r, i + 1) }", "E2147"},
+	{"noalloc fn d6(r: &mut Int, i: Int) -> Unit { fwdI(r, i * 2) }", "E2147"},
+	{"noalloc fn d7(f: noalloc fn(Int) -> Bool, i: Int) -> Bool { callI(f, i + 1) }", "E2147"},
+	{"noalloc fn d8(r: &mut Int, mut i: Int) -> Unit { i = i + 1\n putI(r, i) }", "E2147"},
+	{"noalloc fn d9(p: &mut Pt, i: Int) -> Unit { putF(p, i.toFloat()) }", ""},
 	{"noalloc fn c6(r: &mut Int, n: Int) -> Unit { r = r + n }", "E2125"},
 	{"fn q0(n: Nm) -> Bool { applyGen((x: Int) => take(n) + x > 0) }", "E422"},
 	{"fn q1(n: Nm) -> Bool { applyDyn((x: Int) => take(n) + x > 0) }", "E422"},

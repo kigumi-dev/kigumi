@@ -1,8 +1,9 @@
 package sem
 
 // A closure's captures can still grow while context requirements settle, so the answer is never memoized.
-func (r *Result) directClosure(t TypeID) bool {
-	ent := r.Types.Node(t).Ent
+func (r *Result) directClosure(t TypeID) bool { return r.directClosureEnt(r.Types.Node(t).Ent) }
+
+func (r *Result) directClosureEnt(ent EntityID) bool {
 	if ent == 0 || r.Entities[ent].Kind != EntClosure {
 		return false
 	}

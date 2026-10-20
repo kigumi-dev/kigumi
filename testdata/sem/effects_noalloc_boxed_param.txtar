@@ -1,0 +1,150 @@
+-- src --
+type P = {
+    pub mut a Int
+    pub mut b Float
+}
+
+noalloc fn put(r: &mut Int, i: Int) -> Unit {
+    r = i
+}
+
+noalloc fn putAt(xs: &mut Array[Int], i: Int) -> Unit {
+    xs[0] = i
+}
+
+noalloc fn putField(p: &mut P, i: Int, f: Float) -> Unit {
+    p.a = i
+    p.b = f
+}
+
+noalloc fn call(f: noalloc fn(Int) -> Bool, x: Int) -> Bool {
+    f(x)
+}
+
+noalloc fn forward(r: &mut Int, i: Int) -> Unit {
+    put(r, i)
+}
+
+noalloc fn forwardTwice(r: &mut Int, i: Int) -> Unit {
+    forward(r, i)
+}
+
+noalloc fn copyFrom(xs: &mut Array[Int], ys: &Array[Int]) -> Unit {
+    xs[0] = ys[1]
+}
+
+// A constant, or a value that is already boxed, goes to a boxed parameter for free.
+noalloc fn constants(r: &mut Int, p: &mut P, f: noalloc fn(Int) -> Bool) -> Bool {
+    put(r, 5000)
+    putField(p, -3, 2.5)
+    call(f, 7000)
+}
+
+noalloc fn passedOn(r: &mut Int, i: Int, f: noalloc fn(Int) -> Bool) -> Bool {
+    forwardTwice(r, i)
+    call(f, i)
+}
+
+noalloc fn fromSlots(r: &mut Int, xs: &mut Array[Int]) -> Unit {
+    put(r, xs[0])
+    putAt(xs, xs[1])
+}
+
+noalloc fn computed(r: &mut Int, i: Int) -> Unit {
+    put(r, i + 1) //~ ERROR goes to a parameter its callee keeps in a box
+}
+
+noalloc fn computedField(p: &mut P, f: Float) -> Unit {
+    putField(p, 1, f * 2.0) //~ ERROR goes to a parameter its callee keeps in a box
+}
+
+noalloc fn computedForward(r: &mut Int, i: Int) -> Unit {
+    forwardTwice(r, i * 2) //~ ERROR goes to a parameter its callee keeps in a box
+}
+
+noalloc fn computedValue(f: noalloc fn(Int) -> Bool, i: Int) -> Bool {
+    f(i + 1) //~ ERROR a call through a function value receives this `Int` in a box
+}
+
+noalloc fn forwardedGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v)
+}
+
+noalloc fn computedGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v + 1) //~ ERROR a call through a function value receives this `Int` in a box
+}
+
+noalloc fn callsGen[G: Fn[noalloc fn(Int) -> Int]](g: G, i: Int) -> Int {
+    forwardedGen(g, i) + forwardedGen(g, 3)
+}
+
+noalloc fn callsGenComputed[G: Fn[noalloc fn(Int) -> Int]](g: G, i: Int) -> Int {
+    forwardedGen(g, i - 1) //~ ERROR goes to a parameter its callee keeps in a box
+}
+
+// A reassigned parameter no longer holds the box its caller made.
+noalloc fn reassigned(r: &mut Int, mut i: Int) -> Unit {
+    i = i + 1
+    r = i //~ ERROR storing a computed `Int` in it allocates a box
+}
+
+// A function nothing stores or hands on takes its parameter in a register.
+noalloc fn plain(i: Int) -> Int {
+    i + 1
+}
+
+noalloc fn callsPlain(i: Int) -> Int {
+    plain(i * 3)
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E2147]: this computed `Int` goes to a parameter its callee keeps in a box, so the call allocates one for it
+  --> main/main.kg:53:12
+   |
+53 |     put(r, i + 1) //~ ERROR goes to a parameter its callee keeps in a box
+   |            ^^^^^
+   = help: pass a constant or a value that is already boxed, or drop the declaration
+
+error[E2147]: this computed `Float` goes to a parameter its callee keeps in a box, so the call allocates one for it
+  --> main/main.kg:57:20
+   |
+57 |     putField(p, 1, f * 2.0) //~ ERROR goes to a parameter its callee keeps in a box
+   |                    ^^^^^^^
+   = help: pass a constant or a value that is already boxed, or drop the declaration
+
+error[E2147]: this computed `Int` goes to a parameter its callee keeps in a box, so the call allocates one for it
+  --> main/main.kg:61:21
+   |
+61 |     forwardTwice(r, i * 2) //~ ERROR goes to a parameter its callee keeps in a box
+   |                     ^^^^^
+   = help: pass a constant or a value that is already boxed, or drop the declaration
+
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main/main.kg:65:7
+   |
+65 |     f(i + 1) //~ ERROR a call through a function value receives this `Int` in a box
+   |       ^^^^^
+   = help: pass a constant, call the function directly, or drop the declaration
+
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main/main.kg:73:7
+   |
+73 |     f(v + 1) //~ ERROR a call through a function value receives this `Int` in a box
+   |       ^^^^^
+   = help: pass a constant, call the function directly, or drop the declaration
+
+error[E2147]: this computed `Int` goes to a parameter its callee keeps in a box, so the call allocates one for it
+  --> main/main.kg:81:21
+   |
+81 |     forwardedGen(g, i - 1) //~ ERROR goes to a parameter its callee keeps in a box
+   |                     ^^^^^
+   = help: pass a constant or a value that is already boxed, or drop the declaration
+
+error[E2125]: this place holds its value boxed, so storing a computed `Int` in it allocates a box
+  --> main/main.kg:87:9
+   |
+87 |     r = i //~ ERROR storing a computed `Int` in it allocates a box
+   |         ^
+   = help: store a constant, keep the value in a local, or drop the declaration
+

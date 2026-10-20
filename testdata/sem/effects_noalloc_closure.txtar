@@ -5,11 +5,11 @@ type Point = {
 }
 
 noalloc fn apply(f: noalloc fn(Int) -> Int, v: Int) -> Int {
-    f(v) //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box //~ ERROR a call through a function value receives this `Int` in a box
+    f(v) //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
 }
 
 noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
-    f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
+    f(v)
 }
 
 // A closure over register-wide values keeps its environment inline, so
@@ -57,23 +57,9 @@ noalloc fn mutCapture() -> Int {
 error[E1841]: this call goes through a function value or an interface, so the `Int` it returns arrives in a box the callee allocates
  --> lib/clo.kg:7:5
   |
-7 |     f(v) //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box //~ ERROR a call through a function value receives this `Int` in a box
+7 |     f(v) //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box
   |     ^^^
   = help: call the function directly, or drop the declaration
-
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
- --> lib/clo.kg:7:7
-  |
-7 |     f(v) //~ ERROR this call goes through a function value or an interface, so the `Int` it returns arrives in a box //~ ERROR a call through a function value receives this `Int` in a box
-  |       ^
-  = help: pass a constant, call the function directly, or drop the declaration
-
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
-  --> lib/clo.kg:11:7
-   |
-11 |     f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
-   |       ^
-   = help: pass a constant, call the function directly, or drop the declaration
 
 error[E907]: `g` is not `noalloc`
   --> lib/clo.kg:21:5

@@ -8,6 +8,7 @@ import "slices"
 
 func (r *Result) checkEffects() {
 	nodes := r.effectNodes()
+	r.settleBoxedParams()
 	r.dropSharedValueAllocs(nodes)
 	r.dropDirectBuildAllocs(nodes)
 	r.inferSummaries(nodes)
@@ -58,8 +59,12 @@ func (r *Result) dropDirectBuildAllocs(nodes []EntityID) {
 		edges := r.edgesPtr(id)
 		*edges = slices.DeleteFunc(*edges, func(e EffectEdge) bool {
 			switch {
+			case e.Captured && !r.directClosureEnt(id):
+				return true
 			case e.Why == whyInlined:
 				return true
+			case e.Why == whyBoxedArg:
+				return !r.boxedParams[e.Param]
 			case e.Kind != EdgeAlloc:
 				return false
 			case directCrossWhy(e.Why):

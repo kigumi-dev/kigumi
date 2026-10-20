@@ -11,7 +11,7 @@ noalloc fn cheap(x: Int) -> Int { x + 1 }
 pure fn spotless(x: Int) -> Int { x * 2 }
 
 noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
-    f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
+    f(v)
 }
 
 pure fn applyPure[F: Fn[pure fn(Int) -> Int]](f: F, v: Int) -> Int {
@@ -53,13 +53,6 @@ fn boxedFwd(f: noalloc fn(Int) -> Int) -> Int { applyGen((x: Int) => callFn(f, x
 
 fn okNeverCalled(f: fn(Int) -> Int) -> Int { applyGen((x: Int) => ignores(f, x), 1) } //~ ERROR closure is not `noalloc` (allocates)
 -- expect --
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
-  --> main/main.kg:13:7
-   |
-13 |     f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
-   |       ^
-   = help: pass a constant, call the function directly, or drop the declaration
-
 error[E422]: closure is not `noalloc` (calls `g`, which is not declared `noalloc`)
   --> main/main.kg:20:59
    |

@@ -2,7 +2,7 @@
 mir: planned
 -- src --
 noalloc fn apply(f: noalloc fn(Int) -> Ordering, v: Int) -> Ordering {
-    f(v) //~ ERROR a call through a function value receives this `Int` in a box
+    f(v)
 }
 
 // A payload-free variant is an immortal, so handing it back through a closure allocates nothing.
@@ -11,7 +11,7 @@ noalloc fn rank(n: Int) -> Ordering {
 }
 
 noalloc fn applyOpt(f: noalloc fn(Int) -> Int?, v: Int) -> Int? {
-    f(v) //~ ERROR arrives in a box //~ ERROR a call through a function value receives this `Int` in a box
+    f(v) //~ ERROR arrives in a box
 }
 
 noalloc fn payload(n: Int) -> Int? {
@@ -20,26 +20,12 @@ noalloc fn payload(n: Int) -> Int? {
 
 fn main() -> Unit! {}
 -- expect --
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
- --> main.kg:2:7
-  |
-2 |     f(v) //~ ERROR a call through a function value receives this `Int` in a box
-  |       ^
-  = help: pass a constant, call the function directly, or drop the declaration
-
 error[E1841]: this call goes through a function value or an interface, so the `Int?` it returns arrives in a box the callee allocates
   --> main.kg:11:5
    |
-11 |     f(v) //~ ERROR arrives in a box //~ ERROR a call through a function value receives this `Int` in a box
+11 |     f(v) //~ ERROR arrives in a box
    |     ^^^
    = help: call the function directly, or drop the declaration
-
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
-  --> main.kg:11:7
-   |
-11 |     f(v) //~ ERROR arrives in a box //~ ERROR a call through a function value receives this `Int` in a box
-   |       ^
-   = help: pass a constant, call the function directly, or drop the declaration
 
 error[E422]: closure is not `noalloc` (allocates)
   --> main.kg:15:14

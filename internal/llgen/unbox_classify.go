@@ -101,7 +101,7 @@ func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.Loca
 			disqualify(in.Dst)
 		}
 	case mir.OpCall:
-		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok && e.wideCallOp(f, in) == "" {
+		if _, ok := e.calleeScalarSig(in).ret(); in.DPrim == mir.DPNone && !ok && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
 			disqualify(in.Dst)
 		}
 	case mir.OpCallValue:
@@ -160,7 +160,7 @@ func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.Loc
 		}
 	case mir.OpDrop, mir.OpRelease:
 	case mir.OpCall:
-		if in.DPrim == mir.DPNone && e.wideCallOp(f, in) == "" {
+		if in.DPrim == mir.DPNone && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
 			sig := e.calleeScalarSig(in)
 			for i, a := range in.Args {
 				if _, ok := sig.param(i); !ok {

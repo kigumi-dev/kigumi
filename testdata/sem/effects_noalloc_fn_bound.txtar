@@ -15,7 +15,7 @@ fn plainFn(x: Int) -> Int { mkn(x).n }
 noalloc fn cheap(x: Int) -> Int { x + 1 }
 
 noalloc fn applyGen[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
-    f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
+    f(v)
 }
 
 pure fn applyPure[F: Fn[pure fn(Int) -> Int]](f: F, v: Int) -> Int {
@@ -51,13 +51,6 @@ fn badPure() -> Int {
     }, 1)
 }
 -- expect --
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
-  --> main/main.kg:17:7
-   |
-17 |     f(v) //~ ERROR a call through a function value receives this `Int` in a box allocated for it
-   |       ^
-   = help: pass a constant, call the function directly, or drop the declaration
-
 error[E422]: closure is not `noalloc` (allocates)
   --> main/main.kg:28:14
    |

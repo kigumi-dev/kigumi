@@ -12,7 +12,7 @@ noalloc fn total[T: Sz](x: T) -> Bool {
 }
 
 noalloc fn takes(f: noalloc fn(Int) -> Bool, p: Int) -> Bool {
-    f(p) //~ ERROR a call through a function value receives this `Int` in a box
+    f(p)
 }
 
 noalloc fn direct(p: Int) -> Bool {
@@ -25,7 +25,7 @@ noalloc fn viaParam(p: Int) -> Bool {
 
 noalloc fn viaLocal(p: Int) -> Bool {
     let f = total[Int] //~ ERROR binding the witnesses of `total`
-    f(p) //~ ERROR a call through a function value receives this `Int` in a box
+    f(p)
 }
 
 fn inferred(p: Int) -> Bool {
@@ -45,13 +45,6 @@ fn main() -> Unit! {
     print "${direct(1)} ${viaParam(2)} ${viaLocal(3)} ${callsInferred(4)} ${plain(5)}"
 }
 -- expect --
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
-  --> main.kg:12:7
-   |
-12 |     f(p) //~ ERROR a call through a function value receives this `Int` in a box
-   |       ^
-   = help: pass a constant, call the function directly, or drop the declaration
-
 error[E1820]: binding the witnesses of `total` into a function value allocates
   --> main.kg:20:11
    |
@@ -65,13 +58,6 @@ error[E1820]: binding the witnesses of `total` into a function value allocates
 24 |     let f = total[Int] //~ ERROR binding the witnesses of `total`
    |             ^^^^^^^^^
    = help: call it directly or bind it outside the `noalloc` body
-
-error[E2124]: a call through a function value receives this `Int` in a box allocated for it
-  --> main.kg:25:7
-   |
-25 |     f(p) //~ ERROR a call through a function value receives this `Int` in a box
-   |       ^
-   = help: pass a constant, call the function directly, or drop the declaration
 
 error[E907]: `inferred` is not `noalloc`
   --> main.kg:33:5

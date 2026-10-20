@@ -145,6 +145,8 @@ type EffectEdge struct {
 	File   FileID
 	Node   syntax.NodeID
 	Why    uint8
+	// Captured marks a read of a capture, which is raw when the closure keeps its environment inline.
+	Captured bool
 	// Scoped edges sit inside an `allocator` block, which supplies the
 	// current allocator for their dynamic extent.
 	Scoped bool

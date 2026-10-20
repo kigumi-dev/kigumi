@@ -79,14 +79,14 @@ func (m *Machine) resultTick(v *obj, args []*obj) {
 	m.scalarTick(v)
 }
 
-// closureCall reports a call native makes straight into an unboxed closure, which still takes and returns scalars boxed.
+// closureCall reports a call native makes straight into an unboxed closure, which still takes and returns scalars boxed; an entry body passes its own boxes on.
 func (m *Machine) closureCall(f *mir.Func, in *mir.Inst) bool {
-	return in.Op == mir.OpCallValue && m.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KClosure
+	return f.Wraps == nil && in.Op == mir.OpCallValue && m.r.Types.Kind(f.Locals[in.Args[0]].Type) == sem.KClosure
 }
 
 // A local computed here is boxed by native on its way into a boxed slot; a compile-time value is an immortal on both backends.
 type localFacts struct {
-	fixed, computed []bool
+	fixed, computed, boxed, param []bool
 }
 
 func (m *Machine) factsOf(f *mir.Func) localFacts {
@@ -97,36 +97,27 @@ func (m *Machine) factsOf(f *mir.Func) localFacts {
 	if m.boxFacts == nil {
 		m.boxFacts = map[*mir.Func]localFacts{}
 	}
-	lf = localFacts{fixed: m.p.FixedLocals(f), computed: computedLocals(f)}
+	if m.boxParams == nil {
+		m.boxParams = mir.NewBoxedParams(m.p)
+	}
+	param := make([]bool, len(f.Locals))
+	for _, prm := range f.Params {
+		param[prm] = true
+	}
+	fixed, boxed := m.p.FixedLocals(f), m.boxParams.Locals(f)
+	lf = localFacts{fixed: fixed, computed: m.computedLocals(f, fixed, param, boxed), boxed: boxed, param: param}
 	m.boxFacts[f] = lf
 	return lf
 }
 
-func computedLocals(f *mir.Func) []bool {
-	defs := make([]int, len(f.Locals))
-	out := make([]bool, len(f.Locals))
-	for _, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			if in.Op.Yields() {
-				defs[in.Dst]++
-				out[in.Dst] = in.Op == mir.OpBinary || in.Op == mir.OpUnary
-			}
-		}
-	}
-	for i := range out {
-		out[i] = out[i] && defs[i] == 1
-	}
-	return out
-}
-
-// A literal argument is an immortal on native, so it takes no tick.
+// A literal argument is an immortal on native, and a boxed parameter is passed on in the box it arrived in, so neither takes a tick.
 func (m *Machine) argTicks(f *mir.Func, in *mir.Inst, args []*obj) {
 	if m.opts.FaultInjectAt <= 0 || in.Op != mir.OpCallValue || in.Ent != 0 {
 		return
 	}
-	fixed := m.factsOf(f).fixed
+	lf := m.factsOf(f)
 	for i, a := range in.Args[1:] {
-		if fixed[a] || !m.r.ScalarBoxes(f.Locals[a].Type) || !scalarBoxes(args[i+1]) {
+		if lf.fixed[a] || lf.boxed[a] || !m.r.ScalarBoxes(f.Locals[a].Type) || !scalarBoxes(args[i+1]) {
 			continue
 		}
 		if m.faultTick() {

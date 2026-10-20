@@ -1,0 +1,27 @@
+-- src --
+noalloc fn cheap(x: Int) -> Int { x + 1 }
+
+// An undeclared body is judged by its summary, which charges the argument.
+fn inferred[F: Fn[noalloc fn(Int) -> Int]](f: F, v: Int) -> Int {
+    f(v + 1)
+}
+
+noalloc fn viaInferred(n: Int) -> Int {
+    inferred(cheap, n) //~ ERROR `inferred` is not `noalloc` //~ ERROR `cheap` returns `Int` unboxed
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E907]: `inferred` is not `noalloc`
+ --> main/main.kg:9:5
+  |
+9 |     inferred(cheap, n) //~ ERROR `inferred` is not `noalloc` //~ ERROR `cheap` returns `Int` unboxed
+  |     ^^^^^^^^^^^^^^^^^
+
+error[E1840]: `cheap` returns `Int` unboxed, so every call through this function value allocates a box for the result
+ --> main/main.kg:9:14
+  |
+9 |     inferred(cheap, n) //~ ERROR `inferred` is not `noalloc` //~ ERROR `cheap` returns `Int` unboxed
+  |              ^^^^^
+  = help: call `cheap` directly, or drop the declaration
+

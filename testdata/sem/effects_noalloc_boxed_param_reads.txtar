@@ -1,0 +1,73 @@
+-- src --
+type Pt = {
+    pub mut x Int
+    pub mut y Int
+}
+
+fn putI(r: &mut Int, i: Int) -> Unit {
+    r = i
+}
+
+noalloc fn callI(f: noalloc fn(Int) -> Bool, x: Int) -> Bool {
+    f(x)
+}
+
+noalloc fn pos(x: Int) -> Bool {
+    x > 0
+}
+
+noalloc fn viaRef(r: &mut Int, p: &Pt) -> Unit {
+    putI(r, p.x) //~ ERROR goes to a parameter its callee keeps in a box
+}
+
+noalloc fn viaTuple(r: &mut Int, t: &(Int, Int)) -> Unit {
+    putI(r, t._0) //~ ERROR goes to a parameter its callee keeps in a box
+}
+
+noalloc fn viaOwned(r: &mut Int, p: Pt) -> Unit {
+    putI(r, p.y) //~ ERROR goes to a parameter its callee keeps in a box
+}
+
+noalloc fn viaSlot(r: &mut Int, xs: &Array[Int]) -> Unit {
+    putI(r, xs[0])
+}
+
+noalloc fn ap[F: Fn[noalloc fn(Int) -> Bool]](f: F, n: Int) -> Bool {
+    f(n)
+}
+
+// A closure over register-wide values keeps them raw in its environment.
+fn captured(n: Int) -> Bool {
+    let k = n + 1
+    ap((x: Int) => callI(pos, k), 1) //~ ERROR closure is not `noalloc` (allocates)
+}
+
+fn main() -> Unit! {}
+-- expect --
+error[E2147]: this computed `Int` goes to a parameter its callee keeps in a box, so the call allocates one for it
+  --> main/main.kg:19:13
+   |
+19 |     putI(r, p.x) //~ ERROR goes to a parameter its callee keeps in a box
+   |             ^^^
+   = help: pass a constant or a value that is already boxed, or drop the declaration
+
+error[E2147]: this computed `Int` goes to a parameter its callee keeps in a box, so the call allocates one for it
+  --> main/main.kg:23:13
+   |
+23 |     putI(r, t._0) //~ ERROR goes to a parameter its callee keeps in a box
+   |             ^^^^
+   = help: pass a constant or a value that is already boxed, or drop the declaration
+
+error[E2147]: this computed `Int` goes to a parameter its callee keeps in a box, so the call allocates one for it
+  --> main/main.kg:27:13
+   |
+27 |     putI(r, p.y) //~ ERROR goes to a parameter its callee keeps in a box
+   |             ^^^
+   = help: pass a constant or a value that is already boxed, or drop the declaration
+
+error[E422]: closure is not `noalloc` (allocates)
+  --> main/main.kg:41:8
+   |
+41 |     ap((x: Int) => callI(pos, k), 1) //~ ERROR closure is not `noalloc` (allocates)
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+

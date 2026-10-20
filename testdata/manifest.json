@@ -11024,6 +11024,23 @@
       ]
     },
     {
+      "id": "run/to_float_callback",
+      "kind": "run",
+      "path": "testdata/run/to_float_callback.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/try_family_array",
       "kind": "run",
       "path": "testdata/run/try_family_array.txtar",
@@ -12654,6 +12671,28 @@
       ]
     },
     {
+      "id": "sem/effects_noalloc_boxed_param",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_boxed_param.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_boxed_param_reads",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_boxed_param_reads.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/effects_noalloc_closure",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_closure.txtar",
@@ -12800,6 +12839,17 @@
       "id": "sem/effects_noalloc_fn_bound_forward",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_fn_bound_forward.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_fn_bound_inferred",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_fn_bound_inferred.txtar",
       "mode": [
         "check"
       ],

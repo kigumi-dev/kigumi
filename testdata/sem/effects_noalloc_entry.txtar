@@ -45,7 +45,7 @@ noalloc fn formValue() -> Int {
 }
 
 noalloc fn passValue() -> Int {
-    apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result //~ ERROR `apply` is not `noalloc`
+    apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result
 }
 
 noalloc fn callValue(f: noalloc fn(Int) -> Point) -> Int {
@@ -96,16 +96,10 @@ error[E1841]: this call goes through a function value or an interface, so the `P
    |     ^^^
    = help: call the function directly, or drop the declaration
 
-error[E907]: `apply` is not `noalloc`
-  --> main/main.kg:47:5
-   |
-47 |     apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result //~ ERROR `apply` is not `noalloc`
-   |     ^^^^^^^^^^^
-
 error[E1840]: `mk` returns `Point` unboxed, so every call through this function value allocates a box for the result
   --> main/main.kg:47:11
    |
-47 |     apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result //~ ERROR `apply` is not `noalloc`
+47 |     apply(mk, 2).y //~ ERROR every call through this function value allocates a box for the result
    |           ^^
    = help: call `mk` directly, or drop the declaration
 

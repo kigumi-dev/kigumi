@@ -151,6 +151,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			from := len(*c.edges)
 			c.checkArg(a, param, entAt(declParams, pi), async)
 			c.crossArg(a, entAt(declParams, pi))
+			c.boxedArg(a, entAt(declParams, pi))
 			c.retagLendCross(from, a, entAt(declParams, pi), async)
 			c.noteLentRefArg(a, entAt(declParams, pi), async)
 			if pass == 0 {

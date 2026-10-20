@@ -27,6 +27,9 @@ func (e *emitter) tryScalarInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 		if op := e.wideCallOp(f, in); op != "" {
 			return e.wideCall(sb, f, in, op)
 		}
+		if e.rawConvert(f, in) {
+			return e.rawConvertInst(sb, f, in)
+		}
 		return false
 	case mir.OpDrop, mir.OpRelease:
 		// A value this pass never boxed has no refcount to manage.
