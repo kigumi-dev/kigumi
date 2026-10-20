@@ -1,4 +1,5 @@
 import ffi from std/ffi
+import os from std/os
 
 /// File system access, obtained from `host.files()`.
 /// Safety: a stateless capability marker; every call it makes is independent, so sharing or duplicating it is free.
@@ -27,6 +28,18 @@ pub pure fn Path.fromString(s: String) -> Path! {
         }
     }
     Path { text: s }
+}
+
+/// Parses an OS string as a path; fails when it contains a NUL byte, and
+/// when it is not valid UTF-8 because a Path holds text.
+pub pure fn Path.fromOsString(s: &os.OsString) -> Path! {
+    match s.checkedString() {
+        Some(text) -> Path.fromString(text)
+        None -> fail ffi.CError {
+            code: 0
+            text: "path is not valid UTF-8"
+        }
+    }
 }
 
 /// The path as text.

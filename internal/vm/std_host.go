@@ -39,6 +39,19 @@ func (m *Machine) registerHost() {
 		}
 		return m.none()
 	}
+	h["os.Args.getBytes"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		i := deref(a[1]).i
+		if i < 0 || i >= int64(len(m.opts.Args)) {
+			return m.none()
+		}
+		return m.some(mkBytes([]byte(m.opts.Args[i])))
+	}
+	h["os.Host.envBytes"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		if v, ok := os.LookupEnv(string(deref(a[1]).str())); ok {
+			return m.some(mkBytes([]byte(v)))
+		}
+		return m.none()
+	}
 	h["os.Stdin.readAll"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		out, err := m.stdinAll()
 		if err != nil {

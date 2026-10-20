@@ -1,0 +1,155 @@
+/// An owned OS string: on Unix any byte sequence, NUL and invalid UTF-8 included; the encoding is not a contract.
+/// Not Copy (duplicate with `clone`); reaches `String` only through `intoString`, `checkedString` or `toStringLossy`.
+pub type OsString = resource {
+    units Bytes
+}
+
+/// The OS string holding exactly the text of s.
+pub pure fn OsString.fromString(s: String) -> OsString {
+    OsString { units: s.toBytes() }
+}
+
+/// The OS string holding exactly these bytes; this form exists on Unix targets only.
+pub pure fn OsString.fromUnixBytes(bytes: Bytes) -> OsString {
+    OsString { units: bytes }
+}
+
+/// The bytes of the OS string, a copy; this form exists on Unix targets only.
+pub pure fn OsString.toUnixBytes(self) -> Bytes {
+    self.units.tryConcat(b"") || panic("out of memory")
+}
+
+/// Length in native units: bytes on Unix.
+pub pure noalloc fn OsString.len(self) -> usize {
+    self.units.len()
+}
+
+/// Whether the OS string has no units.
+pub pure noalloc fn OsString.isEmpty(self) -> Bool {
+    self.units.len() == 0
+}
+
+/// An independent copy.
+pub pure fn OsString.clone(self) -> OsString {
+    self.tryClone() || panic("out of memory")
+}
+
+/// An independent copy, or AllocError when the allocator refuses (clone panics instead).
+pub pure fn OsString.tryClone(self) -> Result[OsString, AllocError] {
+    let copy = self.units.tryConcat(b"")?
+    AllocError.wrap(OsString { units: copy })
+}
+
+/// Byte-wise equality; satisfies `Eq`.
+pub pure noalloc fn OsString.equals(self, other: &OsString) -> Bool {
+    self.units.equals(&other.units)
+}
+
+/// Hash of the units; satisfies `Hash`.
+pub pure noalloc fn OsString.hash(self) -> u64 {
+    self.units.hash()
+}
+
+/// Byte-wise lexicographic comparison, a total order that is not a text collation.
+pub pure noalloc fn OsString.compareTo(self, other: &OsString) -> Ordering {
+    self.units.compareTo(&other.units)
+}
+
+/// Whether the units are valid UTF-8, so that `checkedString` and `intoString` succeed.
+pub pure noalloc fn OsString.isUnicode(self) -> Bool {
+    let mut i: usize = 0
+    for i < self.units.len() {
+        let n = self.sequenceAt(i)
+        if n == 0 {
+            return false
+        }
+        i += n
+    }
+    true
+}
+
+/// The text, or None when the units are not valid UTF-8; self stays usable.
+pub pure fn OsString.checkedString(self) -> String? {
+    if !self.isUnicode() {
+        return None
+    }
+    String.fromBytes(self.units) || None
+}
+
+/// The text, or the unchanged OS string when the units are not valid UTF-8.
+pub pure fn OsString.intoString(move self) -> Result[String, OsString] {
+    if !self.isUnicode() {
+        return Err(self)
+    }
+    Ok(String.fromBytes(self.units) || panic("out of memory"))
+}
+
+/// Text for display with U+FFFD in place of every byte that does not start a valid UTF-8 sequence; the result cannot be converted back.
+pub pure fn OsString.toStringLossy(self) -> String {
+    self.tryToStringLossy() || panic("out of memory")
+}
+
+/// Same as toStringLossy, or AllocError when the allocator refuses (toStringLossy panics instead).
+pub pure fn OsString.tryToStringLossy(self) -> Result[String, AllocError] {
+    let mut out = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < self.units.len() {
+        let n = self.sequenceAt(i)
+        if n == 0 {
+            out.tryPush(0xEF)?
+            out.tryPush(0xBF)?
+            out.tryPush(0xBD)?
+            i += 1
+        } else {
+            for k in 0..n {
+                out.tryPush(self.units.get(i + k) || 0)?
+            }
+            i += n
+        }
+    }
+    let bytes = Bytes.tryFromArray(&out)?
+    AllocError.wrap(String.tryFromBytes(bytes) || panic("out of memory"))
+}
+
+pure noalloc fn OsString.sequenceAt(self, i: usize) -> usize {
+    let lead = self.units.get(i) || 0
+    if lead < 0x80 {
+        return 1
+    }
+    let mut want: usize = 0
+    let mut lo: u8 = 0x80
+    let mut hi: u8 = 0xBF
+    if lead >= 0xC2 && lead <= 0xDF {
+        want = 2
+    } else if lead >= 0xE0 && lead <= 0xEF {
+        want = 3
+        if lead == 0xE0 {
+            lo = 0xA0
+        } else if lead == 0xED {
+            hi = 0x9F
+        }
+    } else if lead >= 0xF0 && lead <= 0xF4 {
+        want = 4
+        if lead == 0xF0 {
+            lo = 0x90
+        } else if lead == 0xF4 {
+            hi = 0x8F
+        }
+    } else {
+        return 0
+    }
+    if i + want > self.units.len() {
+        return 0
+    }
+    let second = self.units.get(i + 1) || 0
+    if second < lo || second > hi {
+        return 0
+    }
+    for k in 2..want {
+        let c = self.units.get(i + k) || 0
+        if c < 0x80 || c > 0xBF {
+            return 0
+        }
+    }
+    want
+}

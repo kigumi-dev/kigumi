@@ -9966,6 +9966,40 @@
       ]
     },
     {
+      "id": "run/os_string_host",
+      "kind": "run",
+      "path": "testdata/run/os_string_host.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/os_string_values",
+      "kind": "run",
+      "path": "testdata/run/os_string_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/panic",
       "kind": "run",
       "path": "testdata/run/panic.txtar",

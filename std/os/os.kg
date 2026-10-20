@@ -18,9 +18,29 @@ pub fn Host.shell(self) -> shell.Shell
 /// Command line arguments of the process.
 pub fn Host.args(self) -> Args
 
-/// Argument at index, or None when there are fewer arguments or the
-/// argument is not valid UTF-8 (argv is an arbitrary byte string on Unix).
+/// Argument at index, or None when there are fewer arguments or it is not valid UTF-8;
+/// `getOsString` keeps every argument and tells the two cases apart.
 pub pure noalloc fn Args.get(self, index: usize) -> String?
+
+pure fn Args.getBytes(self, index: usize) -> Bytes?
+
+/// Argument at index exactly as the OS passed it, valid UTF-8 or not; None only when
+/// there are fewer arguments. A native argv cannot hold NUL, so the value never does there.
+pub pure fn Args.getOsString(self, index: usize) -> OsString? {
+    match self.getBytes(index) {
+        Some(bytes) -> Some(OsString.fromUnixBytes(bytes))
+        None -> None
+    }
+}
+
+/// Value of the environment variable name exactly as the OS holds it,
+/// valid UTF-8 or not; None only when it is unset or name contains NUL.
+pub fn Host.envOsString(self, name: String) -> OsString? {
+    match self.envBytes(name) {
+        Some(bytes) -> Some(OsString.fromUnixBytes(bytes))
+        None -> None
+    }
+}
 
 /// File system access.
 pub fn Host.files(self) -> fs.Files

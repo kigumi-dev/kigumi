@@ -8,6 +8,11 @@ static val cap_args_get(val a1) {
     if (!utf8_valid(g_argv[i], len)) return none();
     return some(rt_str(g_argv[i], len));
 }
+static val cap_args_get_bytes(val a1) {
+    int64_t i = a1->u.i;
+    if (i < 0 || i >= g_argc) return none();
+    return some(bytes_val(g_argv[i], (int64_t)strlen(g_argv[i])));
+}
 static val cap_args_len(void) {
     return rt_int(g_argc, 64);
 }

@@ -15,6 +15,7 @@ extern(C) {
     fn close(fd: i32) -> i32
     fn exit(code: i32) -> Never
     fn getenv(name: *const u8) -> *const u8
+    fn strlen(s: *const u8) -> usize
     fn malloc(n: usize) -> *mut u8
     fn free(p: *mut u8) -> Unit
 }
@@ -301,9 +302,8 @@ pub fn Stderr.write(mut self, data: Bytes) -> usize! {
     w.toUsize() || 0
 }
 
-/// Value of the environment variable name, or None when it is unset or not
-/// valid UTF-8 (an environment variable is an arbitrary byte string on
-/// Unix).
+/// Value of the environment variable name, or None when it is unset or not valid UTF-8;
+/// `envOsString` keeps every value and tells the two cases apart.
 pub fn Host.env(self, name: String) -> String? {
     let c = ffi.CString.new(&name) || (_) => return None
     let p = unsafe {
@@ -315,4 +315,17 @@ pub fn Host.env(self, name: String) -> String? {
     unsafe {
         ffi.stringChecked(p)
     }
+}
+
+fn Host.envBytes(self, name: String) -> Bytes? {
+    let c = ffi.CString.new(&name) || (_) => return None
+    let p = unsafe {
+        getenv(c.ptr())
+    }
+    if ffi.isNull(p) {
+        return None
+    }
+    Some(unsafe {
+        ffi.bytesFrom(p, strlen(p))
+    })
 }

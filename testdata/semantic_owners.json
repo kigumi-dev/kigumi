@@ -2171,6 +2171,16 @@
     "status": "ok"
   },
   {
+    "key": "fs.Path.fromOsString",
+    "signature": "pure fn(\u0026OsString) -\u003e Path!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "fs.Path.fromString",
     "signature": "pure fn(String) -\u003e Path!",
     "has_body": true,
@@ -4661,6 +4671,26 @@
     "status": "ok"
   },
   {
+    "key": "os.Args.getBytes",
+    "signature": "pure fn(usize) -\u003e Bytes?",
+    "has_body": false,
+    "kind": "provider",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.Args.getOsString",
+    "signature": "pure fn(usize) -\u003e OsString?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "os.Args.len",
     "signature": "pure noalloc fn() -\u003e usize",
     "has_body": false,
@@ -4709,6 +4739,26 @@
     "vm": "implemented",
     "native": "gap",
     "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "os.Host.envBytes",
+    "signature": "fn(String) -\u003e Bytes?",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "os.Host.envOsString",
+    "signature": "fn(String) -\u003e OsString?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
     "status": "ok"
   },
   {
@@ -4778,6 +4828,166 @@
     "kind": "provider",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.checkedString",
+    "signature": "pure fn() -\u003e String?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.clone",
+    "signature": "pure fn() -\u003e OsString",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.compareTo",
+    "signature": "pure noalloc fn(\u0026OsString) -\u003e Ordering",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.equals",
+    "signature": "pure noalloc fn(\u0026OsString) -\u003e Bool",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.fromString",
+    "signature": "pure fn(String) -\u003e OsString",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.fromUnixBytes",
+    "signature": "pure fn(Bytes) -\u003e OsString",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.hash",
+    "signature": "pure noalloc fn() -\u003e u64",
+    "has_body": true,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.intoString",
+    "signature": "pure fn() -\u003e Result[String, OsString]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.isEmpty",
+    "signature": "pure noalloc fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.isUnicode",
+    "signature": "pure noalloc fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.len",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.sequenceAt",
+    "signature": "pure noalloc fn(usize) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.toStringLossy",
+    "signature": "pure fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.toUnixBytes",
+    "signature": "pure fn() -\u003e Bytes",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.tryClone",
+    "signature": "pure fn() -\u003e Result[OsString, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.OsString.tryToStringLossy",
+    "signature": "pure fn() -\u003e Result[String, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },

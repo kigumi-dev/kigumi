@@ -1,0 +1,29 @@
+-- src --
+import os from std/os
+
+let args = host.args()
+print "count=${args.len()}"
+match args.getOsString(1) {
+    Some(o) -> print "arg1 ${o.checkedString() || "?"} unicode=${o.isUnicode()}"
+    None -> print "arg1 none"
+}
+match args.getOsString(2) {
+    Some(o) -> print "arg2 ${o.intoString() || "?"}"
+    None -> print "arg2 none"
+}
+match args.getOsString(args.len()) {
+    Some(_) -> print "past the end: some"
+    None -> print "past the end: none"
+}
+print "get agrees: ${args.get(1) || "?"} ${args.get(args.len()) || "none"}"
+match host.envOsString("KIGUMI_SURELY_UNSET_VARIABLE") {
+    Some(_) -> print "env: some"
+    None -> print "env: none"
+}
+-- stdout --
+count=3
+arg1 one unicode=true
+arg2 two
+past the end: none
+get agrees: one none
+env: none

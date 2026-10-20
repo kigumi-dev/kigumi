@@ -1,0 +1,74 @@
+-- src --
+import map from std/map
+import os from std/os
+import fs from std/fs
+
+fn show(label: String, o: &os.OsString) -> Unit {
+    print "${label}: len=${o.len()} unicode=${o.isUnicode()} lossy=${o.toStringLossy().bytes().len()}"
+}
+
+let text = os.OsString.fromString("héllo")
+print "round trip: ${text.clone().intoString() || "failed"}"
+print "checked: ${text.checkedString() || "none"} len=${text.len()}"
+
+let raw = os.OsString.fromUnixBytes(b"ab\xffc\xe3\x81")
+show("raw", &raw)
+print "raw checked: ${raw.checkedString() || "none"}"
+print "raw bytes: ${raw.toUnixBytes().len()}"
+let lossy = raw.toStringLossy()
+print "lossy: ${lossy} bytes=${lossy.bytes().len()}"
+match raw.clone().intoString() {
+    Ok(s) -> print "strict ok ${s}"
+    Err(back) -> print "strict gave back ${back.equals(&raw)} len=${back.len()}"
+}
+
+let a = os.OsString.fromString("same")
+let b = a.clone()
+let c = os.OsString.fromString("sama")
+print "equals: ${a.equals(&b)} ${a.equals(&c)} hash=${a.hash() == b.hash()} ${a.hash() == c.hash()}"
+print "order: ${a.compareTo(&b) == Ordering.Equal} ${c.compareTo(&a) == Ordering.Less} ${a.compareTo(&c) == Ordering.Greater}"
+print "bytewise: ${os.OsString.fromUnixBytes(b"\xff").compareTo(&os.OsString.fromString("z")) == Ordering.Greater}"
+print "empty: ${os.OsString.fromString("").isEmpty()} ${a.isEmpty()}"
+
+let mut seen = map.empty[os.OsString, Int]()
+seen.set(a, 1)
+seen.set(c, 2)
+seen.set(b, 3)
+print "map: ${seen.len()} ${seen.get(&os.OsString.fromString("same")) || 0} ${seen.get(&os.OsString.fromString("sama")) || 0}"
+
+let nul = os.OsString.fromUnixBytes(b"a\x00b")
+show("nul", &nul)
+print "nul text: ${nul.checkedString().unwrap().bytes().len()}"
+print "nul clone: ${nul.clone().equals(&nul)}"
+
+match fs.Path.fromOsString(&nul) {
+    Ok(p) -> print "path ok ${p.toString()}"
+    Err(e) -> print "path nul: ${e.message()}"
+}
+match fs.Path.fromOsString(&raw) {
+    Ok(p) -> print "path ok ${p.toString()}"
+    Err(e) -> print "path raw: ${e.message()}"
+}
+match fs.Path.fromOsString(&text) {
+    Ok(p) -> print "path ok ${p.toString()}"
+    Err(e) -> print "path text: ${e.message()}"
+}
+-- stdout --
+round trip: héllo
+checked: héllo len=6
+raw: len=6 unicode=false lossy=12
+raw checked: none
+raw bytes: 6
+lossy: ab�c�� bytes=12
+strict gave back true len=6
+equals: true false hash=true false
+order: true true true
+bytewise: true
+empty: true false
+map: 2 3 2
+nul: len=3 unicode=true lossy=3
+nul text: 3
+nul clone: true
+path nul: path contains NUL
+path raw: path is not valid UTF-8
+path ok héllo

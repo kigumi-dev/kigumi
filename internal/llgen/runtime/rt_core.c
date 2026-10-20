@@ -3584,8 +3584,10 @@ val rt_std_id(int op, int n, val* a) {
 #endif
 #ifdef KIGUMI_CAP_HOST_ARGS
     case OP_ARGS_GET: return cap_args_get(a1);
+    case OP_ARGS_GET_BYTES: return cap_args_get_bytes(a1);
 #else
     case OP_ARGS_GET: rt_panic("this build has no host.args capability"); return NULL;
+    case OP_ARGS_GET_BYTES: rt_panic("this build has no host.args capability"); return NULL;
 #endif
     // ffi / crypto / dl
 #ifdef KIGUMI_CAP_FFI_CSTRING

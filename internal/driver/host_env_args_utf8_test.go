@@ -103,3 +103,78 @@ func TestHostEnvArgsRejectInvalidUtf8(t *testing.T) {
 		})
 	})
 }
+
+const hostOsStringSrc = `fn report(label: String, found: os.OsString?, text: String?) -> Unit {
+    match found {
+        Some(o) -> {
+            let lossy = o.toStringLossy()
+            let unicode = o.isUnicode()
+            let len = o.len()
+            let strict = match o.intoString() {
+                Ok(_) -> "ok"
+                Err(back) -> "back=${back.len()}"
+            }
+            print "${label} len=${len} unicode=${unicode} get=${text is Some(_)} lossy=${lossy} strict=${strict}"
+        }
+        None -> print "${label} none"
+    }
+}
+report("arg", host.args().getOsString(1), host.args().get(1))
+report("env", host.envOsString("KIGUMI_UTF8_TEST_VAR"), host.env("KIGUMI_UTF8_TEST_VAR"))
+report("missing", host.args().getOsString(2), host.args().get(2))
+`
+
+func TestHostEnvArgsLosslessOsString(t *testing.T) {
+	std, _ := filepath.Abs("../../std")
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, "main"), 0o755)
+	os.WriteFile(filepath.Join(root, "main/main.kg"), []byte("import os from std/os\n"+hostOsStringSrc), 0o644)
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct{ name, value, want string }{
+		{"invalid", "\xff\xfe\xfd", "arg len=3 unicode=false get=false lossy=��� strict=back=3\n" +
+			"env len=3 unicode=false get=false lossy=��� strict=back=3\nmissing none\n"},
+		{"mixed", "a\xffb\xe3\x81", "arg len=5 unicode=false get=false lossy=a�b�� strict=back=5\n" +
+			"env len=5 unicode=false get=false lossy=a�b�� strict=back=5\nmissing none\n"},
+		{"valid", "héllo", "arg len=6 unicode=true get=true lossy=héllo strict=ok\n" +
+			"env len=6 unicode=true get=true lossy=héllo strict=ok\nmissing none\n"},
+	}
+	for _, tc := range cases {
+		t.Run("vm/"+tc.name, func(t *testing.T) {
+			t.Setenv("KIGUMI_UTF8_TEST_VAR", tc.value)
+			var out, errOut bytes.Buffer
+			code, err := driver.RunWith(m, driver.RunOptions{}, &out, &errOut, []string{"main/main.kg", tc.value})
+			if err != nil || code != 0 {
+				t.Fatalf("vm: err %v exit %d\nstderr: %s", err, code, errOut.String())
+			}
+			if out.String() != tc.want {
+				t.Errorf("vm stdout = %q, want %q", out.String(), tc.want)
+			}
+		})
+	}
+	if testCompiler().CCompiler() == nil {
+		t.Skip("no C compiler")
+	}
+	exe := filepath.Join(t.TempDir(), "prog")
+	var buildErr bytes.Buffer
+	if ok, err := testBuild(m, exe, &buildErr); err != nil || !ok {
+		t.Fatalf("build: %v\n%s", err, buildErr.String())
+	}
+	for _, tc := range cases {
+		t.Run("native/"+tc.name, func(t *testing.T) {
+			cmd := exec.Command(exe, tc.value)
+			cmd.Dir = t.TempDir()
+			cmd.Env = append(os.Environ(), "KIGUMI_UTF8_TEST_VAR="+tc.value)
+			var out, errOut bytes.Buffer
+			cmd.Stdout, cmd.Stderr = &out, &errOut
+			if err := cmd.Run(); err != nil {
+				t.Fatalf("run: %v\nstderr: %s", err, errOut.String())
+			}
+			if out.String() != tc.want {
+				t.Errorf("native stdout = %q, want %q", out.String(), tc.want)
+			}
+		})
+	}
+}
