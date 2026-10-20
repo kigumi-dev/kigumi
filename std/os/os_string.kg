@@ -35,10 +35,7 @@ pub pure fn OsString.clone(self) -> OsString {
 }
 
 /// An independent copy, or AllocError when the allocator refuses (clone panics instead).
-pub pure fn OsString.tryClone(self) -> Result[OsString, AllocError] {
-    let copy = self.units.tryConcat(b"")?
-    AllocError.wrap(OsString { units: copy })
-}
+pub pure fn OsString.tryClone(self) -> Result[OsString, AllocError]
 
 /// Byte-wise equality; satisfies `Eq`.
 pub pure noalloc fn OsString.equals(self, other: &OsString) -> Bool {
@@ -91,7 +88,7 @@ pub pure fn OsString.toStringLossy(self) -> String {
 
 /// Same as toStringLossy, or AllocError when the allocator refuses (toStringLossy panics instead).
 pub pure fn OsString.tryToStringLossy(self) -> Result[String, AllocError] {
-    let mut out = Array.empty[u8]()
+    let mut out = Array.tryWithCapacity[u8](self.units.len())?
     let mut i: usize = 0
     for i < self.units.len() {
         let n = self.sequenceAt(i)
@@ -108,7 +105,8 @@ pub pure fn OsString.tryToStringLossy(self) -> Result[String, AllocError] {
         }
     }
     let bytes = Bytes.tryFromArray(&out)?
-    AllocError.wrap(String.tryFromBytes(bytes) || panic("out of memory"))
+    let text = String.tryFromBytes(bytes) || return Err(AllocError.OutOfMemory)
+    AllocError.wrap(text)
 }
 
 pure noalloc fn OsString.sequenceAt(self, i: usize) -> usize {

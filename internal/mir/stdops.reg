@@ -483,6 +483,8 @@ key text.StringBuilder.tryFreeze
 op 160 ARGS_GET_BYTES provider (named, int) -> option
 cap host.args
 key os.Args.getBytes
+op 161 OS_STRING_TRY_CLONE primitive (named) -> result
+key os.OsString.tryClone
 
 bodiless NUMERIC_CONVERSIONS
 prefix prelude.i8.to

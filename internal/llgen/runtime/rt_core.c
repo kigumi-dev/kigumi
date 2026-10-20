@@ -3444,6 +3444,10 @@ val rt_std_id(int op, int n, val* a) {
         }
         return try_ok(out);
     }
+    case OP_OS_STRING_TRY_CLONE: {
+        val out = copy_try(a0);
+        return out ? try_ok(out) : alloc_error();
+    }
     case OP_MAP_TRY_ENTRIES: {
         val keys = deref(a0->u.rec.fields[0]), values = deref(a0->u.rec.fields[1]);
         rt_type* entry = find_type("std/map.Entry");

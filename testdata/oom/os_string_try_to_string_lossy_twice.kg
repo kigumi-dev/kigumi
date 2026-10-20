@@ -1,0 +1,17 @@
+import os from std/os
+
+fn run() -> Unit {
+    let s = os.OsString.fromUnixBytes(Bytes.zeros(3))
+    eprint "go"
+    let r1 = s.tryToStringLossy()
+    let r = s.tryToStringLossy()
+    if r is Err(_) || r1 is Err(_) {
+        if s.len() == 3 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

@@ -90,7 +90,7 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 			return m.allocError()
 		}
 		return m.ok(m.some(mkBytes(append([]byte{}, a0.str()[s:e]...))))
-	case "map.Map.tryClone":
+	case "map.Map.tryClone", "os.OsString.tryClone":
 		if m.faultTick() {
 			return m.allocError()
 		}

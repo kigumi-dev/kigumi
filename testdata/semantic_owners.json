@@ -4974,10 +4974,10 @@
   {
     "key": "os.OsString.tryClone",
     "signature": "pure fn() -\u003e Result[OsString, AllocError]",
-    "has_body": true,
-    "kind": "",
-    "vm": "gap",
-    "native": "gap",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
     "accelerated": false,
     "status": "ok"
   },
