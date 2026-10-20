@@ -38,7 +38,7 @@ func (p *Program) UnwindPlanOf(f *Func) *UnwindPlan {
 	if p.unwind.plans == nil {
 		p.unwind.plans = map[*Func]*UnwindPlan{}
 	}
-	plan := planUnwind(f, p.R, false, p.lentParamLocals(f))
+	plan := planUnwind(f, p.R, false, p.lentParamLocals(f), p.heldBoxes(f))
 	p.unwind.plans[f] = plan
 	return plan
 }
@@ -60,7 +60,7 @@ func (b bitset) set(l LocalID)      { b[l/64] |= 1 << (l % 64) }
 func (b bitset) clear(l LocalID)    { b[l/64] &^= 1 << (l % 64) }
 
 // candidates ignores frame slots, since the plan decides which temporaries get one.
-func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool) *UnwindPlan {
+func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool, held func(in *Inst, i int) bool) *UnwindPlan {
 	plan := &UnwindPlan{Sets: [][]LocalID{nil}, At: make([][]int32, len(f.Blocks))}
 	for i := range f.Blocks {
 		plan.At[i] = make([]int32, len(f.Blocks[i].Insts))
@@ -124,6 +124,9 @@ func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool) 
 				return
 			}
 			plan.At[bid][i] = 0
+			if held != nil {
+				live = withHeld(live, in, owned, held)
+			}
 			var set []LocalID
 			for l := len(f.Locals) - 1; l >= 0; l-- {
 				id := LocalID(l)
@@ -149,6 +152,20 @@ func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool) 
 		})
 	}
 	return plan
+}
+
+// withHeld adds the boxes in's call site still releases, which the walk counted as handed over.
+func withHeld(live bitset, in *Inst, owned map[LocalID]bool, held func(in *Inst, i int) bool) bitset {
+	out := live
+	for i, a := range in.Args {
+		if owned[a] && !live.has(a) && held(in, i) {
+			if &out[0] == &live[0] {
+				out = slices.Clone(live)
+			}
+			out.set(a)
+		}
+	}
+	return out
 }
 
 func keyOf(set []LocalID) string {

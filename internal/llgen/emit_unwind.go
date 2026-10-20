@@ -97,6 +97,16 @@ func (e *emitter) slotAddr(sb *strings.Builder, l mir.LocalID) bool {
 	return true
 }
 
+// A box the call site is about to release stops being a sweep's to release, in case its drop hook panics.
+func (e *emitter) unslot(sb *strings.Builder, l mir.LocalID) {
+	if e.unwind == nil {
+		return
+	}
+	if _, ok := e.unwind.slot[l]; ok {
+		e.store(sb, l, "null")
+	}
+}
+
 func (e *emitter) unwindEnter(sb *strings.Builder) {
 	switch {
 	case e.unwind == nil:

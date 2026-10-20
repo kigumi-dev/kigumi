@@ -421,6 +421,21 @@ void rt_unwind_enter_slots(void* rec, void* slots, uint64_t* mask, int64_t n) {
     u->m = mask;
     g_unwind = u;
 }
+// The record is a kg_unwind followed by the kg_stdargs it points at.
+void rt_unwind_enter_std(void* rec, val* args, int64_t n, int64_t lent) {
+    kg_unwind* u = (kg_unwind*)rec;
+    kg_stdargs* s = (kg_stdargs*)(u + 1);
+    s->args = args;
+    s->n = n;
+    s->lent = (uint64_t)lent;
+    u->prev = g_unwind;
+    u->run = unwind_std_args;
+    u->p = s;
+    u->v = NULL;
+    u->i = 0;
+    u->m = NULL;
+    g_unwind = u;
+}
 void rt_unwind_leave(void* rec) {
     g_unwind = ((kg_unwind*)rec)->prev;
 }
@@ -470,6 +485,12 @@ void rt_unwind_enter_slots(void* rec, void* slots, uint64_t* mask, int64_t n) {
     (void)slots;
     (void)mask;
     (void)n;
+}
+void rt_unwind_enter_std(void* rec, val* args, int64_t n, int64_t lent) {
+    (void)rec;
+    (void)args;
+    (void)n;
+    (void)lent;
 }
 void rt_unwind_leave(void* rec) {
     (void)rec;
@@ -1002,7 +1023,7 @@ void rt_fnitem_init(void* slot, adapter_fn fn, int async) {
 
 // slot gets a capture-free std primitive used as a witness, so the
 // dictionary a generic call passes is a constant, not a per-call closure.
-void rt_stditem_init(void* slot, const char* key, int lent) {
+void rt_stditem_init(void* slot, const char* key, uint32_t lent) {
     rt_fnitem_init(slot, NULL, 0);
     val v = (val)slot;
     v->u.clo.key = key;
@@ -2205,13 +2226,13 @@ val rt_callv(val f, int n, val* args) {
         for (int64_t i = 0; i < envlen; i++) all[m++] = f->u.clo.env->u.arr.items[i];
         for (int i = 0; i < n; i++) all[m++] = args[i];
 #ifdef KG_CATCH
-        kg_stdargs held = {args, n, (uint32_t)f->u.clo.lent};
+        kg_stdargs held = {args, n, f->u.clo.lent};
         UNWIND_PUSH(u, unwind_std_args, &held, NULL, 0);
 #endif
         val r = rt_std(f->u.clo.key, m, all);
         UNWIND_POP(u);
         for (int i = 0; i < n; i++)
-            if (!((f->u.clo.lent >> i) & 1)) rt_release(args[i]);
+            if (i >= 32 || !((f->u.clo.lent >> i) & 1)) rt_release(args[i]);
         if (all != stackbuf) free(all);
         return r;
     }
@@ -2257,7 +2278,7 @@ val rt_std_closure(const char* key, int n, val* caps) {
 // rt_std_bind is a primitive used as a witness: lent (bit i for argument
 // i) marks the receiver and the borrowed parameters, which rt_callv must
 // leave alone as a direct call would.
-val rt_std_bind(const char* key, int lent, int n, val* caps) {
+val rt_std_bind(const char* key, uint32_t lent, int n, val* caps) {
     val v = rt_std_closure(key, n, caps);
     v->u.clo.lent = lent;
     return v;

@@ -1,0 +1,58 @@
+-- lib/mv.kg --
+type R = resource {
+    pub n Int
+}
+
+fn R.drop(move self) -> Unit {}
+
+fn R.take[U](move self, f: fn(Int) -> U) -> U {
+    f(self.n)
+}
+
+fn R.upd[U](mut self, f: fn(&mut Int) -> U) -> U {
+    let mut k = 0
+    f(&mut k)
+}
+
+fn R.peek[U](self, f: fn(Int) -> U) -> U {
+    f(self.n)
+}
+
+fn use(o: R?, mut r: R, mut xs: Array[Int], ys: Array[Int], c: Int?) -> Unit {
+    let a: fn(fn(R) -> Int) -> Int? = o.map //~ ERROR cannot form a method value on move-only `R?`
+    let b: fn(fn(Int) -> Int) -> Int = r.take //~ ERROR cannot form a method value on move-only `R`
+    let d: fn(fn(&mut Int) -> Int) -> Int = r.upd //~ ERROR cannot form a method value on move-only `R`
+    let e: fn(usize, fn(&mut Int) -> Int) -> Int? = xs.withMut //~ ERROR cannot form a method value on move-only `Array[Int]`
+    let g: fn(fn(Int) -> Int) -> Int = r.peek //~ TYPE g : fn(fn(Int) -> Int) -> Int
+    let h: fn(fn(&Int) -> Int) -> Array[Int] = ys.map //~ TYPE h : fn(fn(&Int) -> Int) -> Array[Int]
+    let i: fn(fn(Int) -> Int) -> Int? = c.map //~ TYPE i : fn(fn(Int) -> Int) -> Int?
+}
+-- expect --
+error[E416]: cannot form a method value on move-only `R?`
+  --> lib/mv.kg:21:39
+   |
+21 |     let a: fn(fn(R) -> Int) -> Int? = o.map //~ ERROR cannot form a method value on move-only `R?`
+   |                                       ^^^^^
+   = help: write a lambda
+
+error[E416]: cannot form a method value on move-only `R`
+  --> lib/mv.kg:22:40
+   |
+22 |     let b: fn(fn(Int) -> Int) -> Int = r.take //~ ERROR cannot form a method value on move-only `R`
+   |                                        ^^^^^^
+   = help: write a lambda
+
+error[E416]: cannot form a method value on move-only `R`
+  --> lib/mv.kg:23:45
+   |
+23 |     let d: fn(fn(&mut Int) -> Int) -> Int = r.upd //~ ERROR cannot form a method value on move-only `R`
+   |                                             ^^^^^
+   = help: write a lambda
+
+error[E416]: cannot form a method value on move-only `Array[Int]`
+  --> lib/mv.kg:24:53
+   |
+24 |     let e: fn(usize, fn(&mut Int) -> Int) -> Int? = xs.withMut //~ ERROR cannot form a method value on move-only `Array[Int]`
+   |                                                     ^^^^^^^^^^
+   = help: write a lambda
+

@@ -2445,6 +2445,27 @@
       }
     },
     {
+      "id": "run/async_task_panic_direct_try_map_capture",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_direct_try_map_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
+      }
+    },
+    {
       "id": "run/async_task_panic_drop_panic",
       "kind": "run",
       "path": "testdata/run/async_task_panic_drop_panic.txtar",
@@ -2568,6 +2589,27 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: mid-map"
+      }
+    },
+    {
+      "id": "run/async_task_panic_method_value_map",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_method_value_map.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
       }
     },
     {
@@ -9329,6 +9371,23 @@
       ]
     },
     {
+      "id": "run/method_value_generic_receiver",
+      "kind": "run",
+      "path": "testdata/run/method_value_generic_receiver.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/method_value_witness",
       "kind": "run",
       "path": "testdata/run/method_value_witness.txtar",
@@ -14424,6 +14483,17 @@
       "id": "sem/match_patterns",
       "kind": "sem",
       "path": "testdata/sem/match_patterns.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_value_generic_move_only",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_generic_move_only.txtar",
       "mode": [
         "check"
       ],

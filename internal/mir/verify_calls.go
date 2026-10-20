@@ -108,8 +108,9 @@ func (p *Program) captureMismatch(f *Func, in Inst, callee *Func) string {
 	if in.Op == OpBind {
 		first = len(callee.Params) - len(in.Args)
 	}
+	open := in.Op == OpBind || in.Str == "method"
 	for k, a := range in.Args {
-		if want := callee.Locals[callee.Params[first+k]].Type; !p.compat(want, f.Locals[a].Type, in.Op == OpBind) {
+		if want := callee.Locals[callee.Params[first+k]].Type; !p.compat(want, f.Locals[a].Type, open) {
 			return "captures " + p.R.TypeString(f.Locals[a].Type) + " for a parameter of " + p.R.TypeString(want) + " of " + callee.Name
 		}
 	}

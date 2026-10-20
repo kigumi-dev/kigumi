@@ -12,7 +12,7 @@ func planAsync(p *Program) error {
 			continue
 		}
 		p.completeReturns(f)
-		planFrame(f, p.R)
+		planFrame(f, p)
 		classifyMobility(f, p.R)
 	}
 	refineMobility(p)
@@ -24,7 +24,8 @@ func (p *Program) isAsyncBody(ent sem.EntityID) bool {
 	return e.Kind == sem.EntFn && p.R.Fn(ent).Declared&sem.EffAsync != 0
 }
 
-func planFrame(f *Func, r *sem.Result) {
+func planFrame(f *Func, p *Program) {
+	r := p.R
 	live := liveAtSuspends(f)
 	owned := owningLocals(f, r)
 	parent := aliasParents(f)
@@ -50,7 +51,7 @@ func planFrame(f *Func, r *sem.Result) {
 		slices.Reverse(clean)
 		f.Cleanup[k] = clean
 	}
-	for _, set := range planUnwind(f, r, true, nil).Sets[1:] {
+	for _, set := range planUnwind(f, r, true, nil, p.heldBoxes(f)).Sets[1:] {
 		for _, l := range set {
 			inFrame[l] = true
 		}

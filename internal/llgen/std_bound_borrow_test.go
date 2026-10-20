@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"kigumi/internal/llgen"
 )
 
 func TestStdAdapterReadsBoundValuesInPlace(t *testing.T) {
@@ -21,5 +23,40 @@ print "${f()}"
 	}
 	if strings.Contains(adapter, "@rt_at(ptr %env") || strings.Contains(adapter, "@rt_release") {
 		t.Errorf("the adapter takes a reference to the bound value and must give it back:\n%s", adapter)
+	}
+}
+
+const stdAdapterOwnedArgSrc = `import ffi from std/ffi
+
+let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let h = table.insert(1)
+let w: fn(&ffi.FfiHandle[Int], fn(&Int) -> Int) -> Int = table.with
+print "${w(&h, (v: &Int) => v + 1)}"
+let _ = table.remove(h)
+`
+
+func TestStdAdapterRegistersItsOwnedArgumentsForAPanic(t *testing.T) {
+	adapterBody := func(ir string) string {
+		header := regexp.MustCompile(`define ptr @"[^"]*\$stdbound1\$[^"]*"`).FindString(ir)
+		if header == "" {
+			t.Fatalf("no adapter with one bound value in:\n%s", ir)
+		}
+		return bodyOf(t, ir, header)
+	}
+	p := plannedProgram(t, stdAdapterOwnedArgSrc)
+	body := adapterBody(llgen.EmitWith(p, llgen.EmitOptions{Catch: true}))
+	enter := "@rt_unwind_enter_std(ptr %urec, ptr "
+	at := strings.Index(body, enter)
+	if at < 0 {
+		t.Fatalf("the adapter registers no record for the callback it retained:\n%s", body)
+	}
+	if !strings.Contains(body[at:], ", i64 3, i64 3)") {
+		t.Errorf("want three arguments with the receiver and the borrowed handle lent:\n%s", body)
+	}
+	if leave, release := strings.Index(body, "@rt_unwind_leave("), strings.Index(body, "@rt_release("); leave < 0 || release < leave {
+		t.Errorf("the record is not left before the retained arguments are released:\n%s", body)
+	}
+	if body := adapterBody(llgen.EmitWith(plannedProgram(t, stdAdapterOwnedArgSrc), llgen.EmitOptions{})); strings.Contains(body, "@rt_unwind_enter_std(") {
+		t.Errorf("a build that catches nothing registers a record:\n%s", body)
 	}
 }

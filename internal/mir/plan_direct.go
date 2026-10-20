@@ -22,6 +22,7 @@ func PlanDirect(p *Program) error {
 		p.crossFunc(f)
 		p.markFixed(f)
 		if f.Async {
+			p.slotHeldBoxes(f)
 			p.layoutFrame(f)
 		}
 	}

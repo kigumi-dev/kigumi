@@ -68,30 +68,10 @@ func (e *emitter) releaseCrossSources(sb *strings.Builder, f *mir.Func, in mir.I
 	}
 }
 
-// A box made for a direct local at a consuming position is not released again.
-func (e *emitter) aggConsumes(in mir.Inst, i int) bool {
-	switch in.Op {
-	case mir.OpRecord, mir.OpVariant, mir.OpArray, mir.OpBox, mir.OpGlobalSet, mir.OpNewCell,
-		mir.OpDrop, mir.OpRelease, mir.OpAwait:
-		return true
-	case mir.OpAlias, mir.OpMove:
-		// The result is the same reference under another name, so the crossing's box is dropped through the result.
-		return true
-	case mir.OpSetField, mir.OpCellSet:
-		return i == 1
-	case mir.OpSetIndex:
-		return i == 2
-	case mir.OpCallValue:
-		return i > 0
-	case mir.OpCall:
-		return !e.p.ParamLent(in.Ent, i)
-	}
-	return false
-}
-
 func (e *emitter) releaseAggArgs(sb *strings.Builder, in mir.Inst, args []string, boxed []bool) {
 	for i := range in.Args {
-		if boxed[i] && !e.aggConsumes(in, i) {
+		if boxed[i] && !e.p.BoxConsumed(in, i) {
+			e.unslot(sb, in.Args[i])
 			e.irb(sb).Call(rtRelease, vptr(args[i]))
 		}
 	}

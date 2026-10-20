@@ -139,8 +139,8 @@ type Big = {
     pub mut items Array[Int]
 }
 
-fn Big.tickWith[T](mut self, d: T) -> Unit {
-    self.count = self.count + 1
+fn Big.tickWith[T](self, d: T) -> Unit {
+    let n = self.count
 }
 
 fn Big.runWith(mut self, f: fn(Int) -> Unit) -> Unit {

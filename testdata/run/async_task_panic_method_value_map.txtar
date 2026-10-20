@@ -1,0 +1,46 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn explode() -> Int {
+    None.expect("boom")
+}
+
+fn mk(x: &Int, k: Int) -> Res {
+    if x == 3 {
+        let _z = explode()
+    }
+    Res { id: x + k }
+}
+
+async fn boom() -> Int {
+    let keep = Res { id: 0 }
+    let xs = Array.of(1, 2, 3, 4)
+    let k = 100
+    let map: fn(fn(&Int) -> Res) -> Array[Res] = xs.map
+    let ys = map((x: &Int) => mk(x, k))
+    ys.len().toInt() || 0
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 102
+drop 101
+drop 0
+-- stderr --
+panic: boom
+-- exit --
+2

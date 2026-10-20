@@ -1,0 +1,75 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+type Pair[T] = {
+    pub a T
+    pub b T
+}
+
+fn Pair[T].count(self) -> Int {
+    2
+}
+
+fn Pair[T: Copy].swapped(self) -> Pair[T] {
+    Pair { a: self.b, b: self.a }
+}
+
+fn Pair[T: Copy].pick[U](self, f: fn(T) -> U) -> U {
+    f(self.a)
+}
+
+fn viaParam[T: Copy](o: T?) -> T {
+    let e = o.expect
+    e("none")
+}
+
+fn viaArray[T: Copy](xs: Array[T]) -> Int {
+    let m: fn(fn(&T) -> Int) -> Array[Int] = xs.map
+    let ys = m((x: &T) => 1)
+    ys.len().toInt() || 0
+}
+
+let o: Int? = Some(3)
+let ex = o.expect
+print "expect ${ex("none")}"
+
+let p = Pair { a: 1, b: 2 }
+let cnt = p.count
+print "count ${cnt()}"
+let sw = p.swapped
+print "swapped ${sw().a}"
+let pick: fn(fn(Int) -> String) -> String = p.pick
+print "pick ${pick((n: Int) => "n${n}")}"
+
+let names = Array.of(1, 2, 3)
+let mapped: fn(fn(&Int) -> Res) -> Array[Res] = names.map
+let rs = mapped((x: &Int) => Res { id: x + 10 })
+print "mapped ${rs.len().toInt() || 0}"
+
+let r: Result[Int, String] = Ok(4)
+let rm: fn(fn(Int) -> Int) -> Result[Int, String] = r.map
+print "result ${rm((x: Int) => x * 2) || 0}"
+
+let om: fn(fn(Int) -> Int) -> Int? = o.map
+print "optmap ${om((x: Int) => x + 1) || 0}"
+print "param ${viaParam(o)}"
+print "array ${viaArray(names)}"
+-- stdout --
+expect 3
+count 2
+swapped 2
+pick n1
+mapped 3
+result 8
+optmap 4
+param 3
+array 3
+drop 13
+drop 12
+drop 11

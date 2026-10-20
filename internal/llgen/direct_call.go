@@ -27,6 +27,11 @@ func (e *emitter) directCall(sb *strings.Builder, f *mir.Func, in mir.Inst, fn *
 		}
 		e.callInto(sb, in.Dst, e.sym(fn), args, ret, out)
 	}
+	for i, v := range lent {
+		if v != "" {
+			e.unslot(sb, in.Args[i])
+		}
+	}
 	e.releaseBoxed(sb, lent)
 }
 
@@ -73,7 +78,7 @@ func (e *emitter) directCallArgs(sb *strings.Builder, in mir.Inst, s *aggSig, ss
 			continue
 		}
 		v := e.load(sb, l)
-		if e.boxTmp[l] && !e.aggConsumes(in, i) {
+		if e.boxTmp[l] && !e.p.BoxConsumed(in, i) {
 			lent[i] = v
 		}
 		args = append(args, "ptr "+v)

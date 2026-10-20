@@ -115,6 +115,7 @@ var (
 	rtFutureComplete   = RuntimeFn{"rt_future_complete", []Type{TPtr, TPtr}, TPtr}
 	rtUnwindEnter      = RuntimeFn{"rt_unwind_enter", []Type{TPtr, TI64}, TVoid}
 	rtUnwindEnterSlots = RuntimeFn{"rt_unwind_enter_slots", []Type{TPtr, TPtr, TPtr, TI64}, TVoid}
+	rtUnwindEnterStd   = RuntimeFn{"rt_unwind_enter_std", []Type{TPtr, TPtr, TI64, TI64}, TVoid}
 	rtUnwindLeave      = RuntimeFn{"rt_unwind_leave", []Type{TPtr}, TVoid}
 
 	rtSetfieldSwap     = RuntimeFn{"rt_setfield_swap", []Type{TPtr, TI64, TPtr}, TPtr}
@@ -136,7 +137,7 @@ var runtimeFns = []RuntimeFn{
 	rtRetain, rtRelease, rtPanic, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,
-	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtUnwindEnter, rtUnwindEnterSlots, rtUnwindLeave,
+	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtUnwindEnter, rtUnwindEnterSlots, rtUnwindEnterStd, rtUnwindLeave,
 	rtDropOuter, rtReleaseOuter, rtSweepRelease, rtOuterFatal,
 	rtSetfieldSwap, rtSetindexSwap, rtSetindexCopySwap, rtSetfieldCopySwap, rtCellsetSwap,
 	rtDLen, rtDArrayLen, rtDBytesGet, rtDArrayGet, rtDCharFromInt, rtDParseFloat, rtDConvertInt, rtDConvertFloat,

@@ -74,7 +74,7 @@ struct obj {
             adapter_fn fn;
             val env;
             const char* key;
-            int lent;
+            uint32_t lent;
             int async;
         } clo;
         struct {
@@ -158,7 +158,7 @@ void rt_const_num(void* slot, int kind, int nk, int64_t i, double f);
 void rt_const_text(void* slot, int kind, const char* data, int64_t len);
 void rt_init_nullary(int ntypes, rt_type** types);
 void rt_fnitem_init(void* slot, adapter_fn fn, int async);
-void rt_stditem_init(void* slot, const char* key, int lent);
+void rt_stditem_init(void* slot, const char* key, uint32_t lent);
 void rt_cell_init(void* slot, val x);
 val rt_cell_take(val c);
 val rt_copy(val v);
