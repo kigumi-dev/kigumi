@@ -1,0 +1,43 @@
+-- module --
+stage: driver
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn views['a](b: &'a Bytes) -> Array[View['a]] {
+    Array.of(View { data: b, off: 0 })
+}
+
+fn bytes() -> Bytes {
+    Bytes.fromArray(&Array.of(1, 2, 3))
+}
+
+fn fromLocal['a](keep: &'a Bytes) -> Array[View['a]] {
+    let mine = bytes()
+    Array.of(View { data: keep, off: 0 }, View { data: &mine, off: 0 })
+}
+
+fn untagged['a](keep: &'a Bytes, b: &Bytes) -> Array[View['a]] {
+    let mut vs: Array[View['a]] = views(keep)
+    let w: View['a] = View { data: b, off: 1 }
+    vs.push(w)
+    vs
+}
+-- expect --
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:13:5
+   |
+13 |     Array.of(View { data: keep, off: 0 }, View { data: &mine, off: 0 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `mine` is still borrowed when its scope ends here
+  --> main.kg:12:9
+   |
+12 |     let mine = bytes()
+   |         ^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+  --> main.kg:18:23
+   |
+18 |     let w: View['a] = View { data: b, off: 1 }
+   |                       ^^^^^^^^^^^^^^^^^^^^^^
+

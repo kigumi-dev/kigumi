@@ -59,7 +59,10 @@ func (c *borrowCheck) paramLifetimeOf(info *sem.FnInfo, prm sem.EntityID) sem.En
 	if lt := c.p.R.Local(prm).Lifetime; lt != 0 {
 		return lt
 	}
-	return c.witnessBoundLifetime(info, c.p.R.Entity(prm).Type)
+	if lt := c.witnessBoundLifetime(info, c.p.R.Entity(prm).Type); lt != 0 {
+		return lt
+	}
+	return c.soleLifetime(c.p.R.Entity(prm).Type)
 }
 
 // selfLifetime is the current function's own receiver's sole lifetime
@@ -81,6 +84,9 @@ func (c *borrowCheck) selfLifetime() sem.EntityID {
 // checkLifetimeEscape rejects returning a param-inherited holder under a lifetime
 // it cannot prove matches the function's own declared return lifetime.
 func (c *borrowCheck) checkLifetimeEscape(a LocalID, b *borrowInfo) {
+	if b.empty || c.closureLifetime(b) && c.retLifetime() != 0 {
+		return
+	}
 	if ret := c.retLifetime(); ret != 0 && b.lifetime == ret {
 		return
 	}
@@ -107,11 +113,20 @@ func lifetimeUntrackedDiag(name string) (string, string) {
 	return c.Num, msg
 }
 
-// retLifetime is the current function's own declared return lifetime, 0
-// when it has none (or is not an ordinary named function, e.g. a closure).
+// retLifetime is the current function's own return lifetime: the declared
+// one, else the sole lifetime its non-reference return type names inside.
 func (c *borrowCheck) retLifetime() sem.EntityID {
-	if c.p.R.Entity(c.f.Ent).Kind != sem.EntFn {
+	if c.p.R.Entity(c.f.Ent).Kind == sem.EntFn && c.p.R.Fn(c.f.Ent).RetLifetime != 0 {
+		return c.p.R.Fn(c.f.Ent).RetLifetime
+	}
+	if c.p.R.Types.Kind(c.f.Ret) == sem.KRef {
 		return 0
 	}
-	return c.p.R.Fn(c.f.Ent).RetLifetime
+	return c.soleLifetime(c.f.Ret)
+}
+
+// closureLifetime reports a closure's holder read through a parameter's referent: a closure's
+// lifetimes are inference defaults, and its caller ties the results to what it was given.
+func (c *borrowCheck) closureLifetime(b *borrowInfo) bool {
+	return !b.hasOwner && b.lifetime != 0 && c.p.R.Entity(c.f.Ent).Kind == sem.EntClosure
 }

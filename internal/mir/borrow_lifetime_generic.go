@@ -22,8 +22,16 @@ func (c *borrowCheck) genericParamLifetimeSource(ent sem.EntityID, info *sem.FnI
 // lifetimeCandidate pairs a caller-side argument with its matching local in
 // the callee's own body, for resolveLifetimeCandidate's body trace.
 type lifetimeCandidate struct {
-	arg    int
-	callee int
+	arg      int
+	callee   int
+	contents bool
+}
+
+func (c *borrowCheck) candidateInfo(args []LocalID, cand lifetimeCandidate) (*borrowInfo, bool) {
+	if cand.arg >= len(args) {
+		return nil, false
+	}
+	return c.flowInfo(flowArg{arg: args[cand.arg], contents: cand.contents})
 }
 
 // resolveLifetimeHolder drops candidates whose argument is a phantom lifetime
@@ -31,40 +39,38 @@ type lifetimeCandidate struct {
 func (c *borrowCheck) resolveLifetimeHolder(ent sem.EntityID, args []LocalID, candidates []lifetimeCandidate) (*borrowInfo, bool) {
 	var tracked []lifetimeCandidate
 	for _, cand := range candidates {
-		if cand.arg < len(args) {
-			if _, ok := c.holders[args[cand.arg]]; ok {
-				tracked = append(tracked, cand)
-			}
+		if _, ok := c.candidateInfo(args, cand); ok {
+			tracked = append(tracked, cand)
 		}
 	}
 	if i, ok := c.resolveLifetimeCandidate(ent, tracked); ok {
-		return c.holders[args[i]], true
+		return c.candidateInfo(args, tracked[i])
 	}
 	return c.sameKindCandidate(args, tracked)
 }
 
-// resolveLifetimeCandidate picks the sole candidate the callee's own body provably
-// returns; a witness call has no body and falls through to sameKindCandidate.
+// resolveLifetimeCandidate picks the index of the sole candidate the callee's own body
+// provably returns; a witness call has no body and falls through to sameKindCandidate.
 func (c *borrowCheck) resolveLifetimeCandidate(ent sem.EntityID, candidates []lifetimeCandidate) (int, bool) {
 	switch len(candidates) {
 	case 0:
 		return 0, false
 	case 1:
-		return candidates[0].arg, true
+		return 0, true
 	}
 	callee, ok := c.p.calleeBody(ent)
 	if !ok {
 		return 0, false
 	}
 	match, found := -1, false
-	for _, cand := range candidates {
+	for i, cand := range candidates {
 		if cand.callee >= len(callee.Params) || !calleeReturnsParam(callee, callee.Params[cand.callee]) {
 			continue
 		}
 		if found {
 			return 0, false
 		}
-		match, found = cand.arg, true
+		match, found = i, true
 	}
 	return match, found
 }
@@ -75,14 +81,14 @@ func (c *borrowCheck) sameKindCandidate(args []LocalID, candidates []lifetimeCan
 	if len(candidates) == 0 {
 		return nil, false
 	}
-	first, ok := c.holders[args[candidates[0].arg]]
+	first, ok := c.candidateInfo(args, candidates[0])
 	if !ok {
 		return nil, false
 	}
 	merged := &borrowInfo{hasOwner: first.hasOwner, lifetime: first.lifetime, node: first.node}
 	merged.owners = append(merged.owners, first.owners...)
 	for _, cand := range candidates[1:] {
-		b, ok := c.holders[args[cand.arg]]
+		b, ok := c.candidateInfo(args, cand)
 		if !ok || b.hasOwner != first.hasOwner || (!first.hasOwner && b.lifetime != first.lifetime) {
 			return nil, false
 		}

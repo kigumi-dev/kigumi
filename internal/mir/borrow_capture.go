@@ -36,6 +36,9 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		}
 		c.checkPayloadBorrows(in)
 	case OpArray:
+		if _, ok := c.holders[in.Dst]; ok {
+			return
+		}
 		c.checkElementBorrows(in)
 	case OpFutureNew:
 		// Same holder-record exception, for a future's own captures.
@@ -49,7 +52,15 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		}
 	case OpCall, OpCallValue:
 		c.checkOwningArgs(in)
+		for _, fl := range c.storeFlows(in) {
+			c.checkFlow(fl, in)
+		}
+		c.checkOpaqueStores(in)
 	case OpSetField, OpSetIndex:
+		if fls := c.storeFlows(in); fls != nil {
+			c.checkFlow(fls[0], in)
+			return
+		}
 		if _, ok := c.holders[in.Args[len(in.Args)-1]]; ok {
 			c.report(in.Node, in.Args[len(in.Args)-1], "borrow-escape", "a borrow cannot be stored")
 		}

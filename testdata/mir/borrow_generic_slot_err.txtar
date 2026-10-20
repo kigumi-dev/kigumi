@@ -190,7 +190,7 @@ error[E1582]: a borrow cannot go in payload 0, a payload of `Option`: a payload 
 32 |     let o = Option.Some(&b)
    |             ^^^^^^^^^^^^^^
 
-error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array cannot take a `['a]` of its own, so store a value it can own
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
   --> lib/slot.kg:37:13
    |
 37 |     let a = Array.of(&b)

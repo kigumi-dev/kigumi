@@ -1,0 +1,31 @@
+-- module --
+stage: driver
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn views['a](b: &'a Bytes) -> Array[View['a]] {
+    Array.of(View { data: b, off: 0 })
+}
+
+fn bytes() -> Bytes {
+    Bytes.fromArray(&Array.of(1, 2, 3))
+}
+
+fn outlives() -> usize {
+    let outer = bytes()
+    let mut vs = views(&outer)
+    {
+        let inner = bytes()
+        vs = views(&inner)
+    }
+    vs.len()
+}
+
+let n = outlives()
+-- expect --
+error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
+  --> main.kg:15:13
+   |
+15 |         let inner = bytes()
+   |             ^^^^^
+

@@ -125,7 +125,7 @@ error[borrow-conflict]: `b` is exclusively borrowed and cannot be used here
 21 |     let k = b.len()
    |             ^^^^^^
 
-error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array cannot take a `['a]` of its own, so store a value it can own
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
   --> lib/bw.kg:35:14
    |
 35 |     let xs = Array.of(r)

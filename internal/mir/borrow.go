@@ -31,6 +31,7 @@ type borrowInfo struct {
 	// fromStatic marks a holder traced to a static's storage, so
 	// checkLifetimeEscape can report it with its own wording.
 	fromStatic bool
+	empty      bool
 }
 
 type borrowCheck struct {
@@ -51,6 +52,17 @@ type borrowCheck struct {
 	chainOnly map[LocalID]bool
 	// unowned caches unownedRefs, built on first use.
 	unowned []bool
+	// sinks are the holders collect re-merges on every round: containers
+	// whose element sources are the union of every write.
+	sinks       map[LocalID]*borrowInfo
+	targets     map[LocalID]bool
+	contents    map[LocalID]*borrowInfo
+	caps        map[LocalID]*borrowInfo
+	grew        bool
+	borrowedIn  []map[LocalID]bool
+	firstBorrow map[LocalID]int
+	curBlock    BlockID
+	curIdx      int
 }
 
 func analyzeBorrows(p *Program, f *Func) {
@@ -61,66 +73,9 @@ func analyzeBorrows(p *Program, f *Func) {
 	}
 	c.liveness()
 	c.definitions()
+	c.borrowReach()
 	for bid := range f.Blocks {
 		c.checkBlock(BlockID(bid))
-	}
-}
-
-// collect finds the locals holding borrows: borrow results, copies and field reads
-// of them, reference-typed parameters, and by-value params of a named-lifetime-generic type.
-func (c *borrowCheck) collect() {
-	for _, prm := range c.f.Params {
-		typ := c.f.Locals[prm].Type
-		lt, node := c.paramLifetime(prm)
-		switch {
-		case c.p.R.Types.Kind(typ) == sem.KRef:
-			c.holders[prm] = &borrowInfo{lifetime: lt, node: node}
-		case lt != 0:
-			c.holders[prm] = &borrowInfo{lifetime: lt, node: node}
-		}
-	}
-	for changed := true; changed; {
-		changed = false
-		for _, blk := range c.f.Blocks {
-			for _, in := range blk.Insts {
-				switch in.Op {
-				case OpBorrow:
-					if _, ok := c.holders[in.Dst]; !ok {
-						if root, path, exact, ok := c.projectionPlace(in.Args[0]); ok {
-							ref := ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact}
-							c.holders[in.Dst] = &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}
-							changed = true
-						} else if def := c.definition(in.Args[0]); def != nil && def.Op == OpGlobalGet {
-							// A static-origin borrow has no local owner to touch-check
-							// against, but still has to reject escape like any other.
-							c.holders[in.Dst] = &borrowInfo{node: in.Node, fromStatic: true}
-							changed = true
-						}
-					}
-				case OpCopy, OpMove:
-					if src, ok := c.holders[in.Args[0]]; ok {
-						if _, has := c.holders[in.Dst]; !has {
-							c.holders[in.Dst] = src
-							changed = true
-						}
-					}
-				case OpRecord, OpVariant, OpCall, OpCallValue, OpBuiltin, OpFutureNew:
-					if _, has := c.holders[in.Dst]; !has {
-						if src, ok := c.lifetimeSource(in); ok {
-							c.holders[in.Dst] = src
-							changed = true
-						}
-					}
-				case OpField:
-					if _, has := c.holders[in.Dst]; !has && c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type) {
-						if src, ok := c.holders[in.Args[0]]; ok {
-							c.holders[in.Dst] = src
-							changed = true
-						}
-					}
-				}
-			}
-		}
 	}
 }
 
@@ -148,8 +103,10 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 		}
 	}
 	before := c.definedBefore(bid)
+	c.enterBlock(bid)
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		in := blk.Insts[i]
+		c.curIdx = i
 		c.checkInst(in, intersect(live, before[i]))
 		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone {
 			delete(live, in.Dst)
@@ -178,6 +135,9 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 			continue
 		}
 		for _, o := range b.owners {
+			if !c.mayBeBorrowed(o.owner, c.curIdx) {
+				continue
+			}
 			touched, path, exact := c.touch(in, o.owner)
 			if !touched || !fieldPathsOverlap(path, o.path, exact, o.exact) {
 				continue

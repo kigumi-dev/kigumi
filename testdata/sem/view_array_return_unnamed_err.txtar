@@ -1,0 +1,34 @@
+-- module --
+stage: driver
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+type Loose = { pub views Array[View['a]] }
+
+fn firstData['a](vs: &Array[View['a]]) -> &Bytes {
+    vs[0].data
+}
+
+fn wrap(b: &Bytes) -> Array[View['a]] {
+    Array.empty()
+}
+-- expect --
+error[E1019]: undefined lifetime `'a`
+ --> main.kg:3:37
+  |
+3 | type Loose = { pub views Array[View['a]] }
+  |                                     ^^
+
+error[E1016]: a returned borrow needs a lifetime
+ --> main.kg:5:43
+  |
+5 | fn firstData['a](vs: &Array[View['a]]) -> &Bytes {
+  |                                           ^^^^^^
+  = help: annotate `&'a` here, or give the function exactly one `&'a` parameter to elide it
+
+error[E1019]: undefined lifetime `'a`
+ --> main.kg:9:34
+  |
+9 | fn wrap(b: &Bytes) -> Array[View['a]] {
+  |                                  ^^
+

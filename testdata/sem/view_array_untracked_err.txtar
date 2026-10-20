@@ -1,0 +1,57 @@
+-- module --
+stage: driver
+-- src --
+import map from std/map
+
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn views['a](b: &'a Bytes) -> Array[View['a]] {
+    Array.of(View { data: b, off: 0 })
+}
+
+fn bytes() -> Bytes {
+    Bytes.fromArray(&Array.of(1, 2, 3))
+}
+
+fn mapped['a](b: &'a Bytes) -> Unit {
+    let mut m: map.Map[Int, View['a]] = map.empty()
+    m.set(1, View { data: b, off: 0 })
+}
+
+fn viaFnValue() -> usize {
+    let buf = bytes()
+    let f = views
+    let vs = f(&buf)
+    vs.len()
+}
+
+fn bareRefs() -> usize {
+    let buf = bytes()
+    let xs = Array.of(&buf)
+    xs.len()
+}
+-- expect --
+error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+  --> main.kg:14:41
+   |
+14 |     let mut m: map.Map[Int, View['a]] = map.empty()
+   |                                         ^^^^^^^^^^
+
+error[E2160]: a borrow cannot be stored into `Map[Int, View['a]]`: the checker does not track where its contents borrow from; it follows writes only into an array, fixed array, record or variant held in a local or a `&mut` parameter, not through a named reference or a pattern binding, so write through that local or store a value it can own
+  --> main.kg:15:5
+   |
+15 |     m.set(1, View { data: b, off: 0 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+  --> main.kg:21:14
+   |
+21 |     let vs = f(&buf)
+   |              ^^^^^^
+
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
+  --> main.kg:27:14
+   |
+27 |     let xs = Array.of(&buf)
+   |              ^^^^^^^^^^^^^
+

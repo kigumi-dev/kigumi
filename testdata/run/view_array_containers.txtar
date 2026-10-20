@@ -1,0 +1,77 @@
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+type Doc['a] = { pub mut views Array[View['a]], pub name String }
+
+type Found['a] = Hit(Array[View['a]]) | Miss
+
+type Page['a] = { pub mut views Array[View['a]], pub mut head View['a] }
+
+fn View['a].byte(self) -> u8 {
+    self.data[self.off]
+}
+
+fn Doc['a].add(mut self, v: View['a]) -> Unit {
+    self.views.push(v)
+}
+
+fn fill['a](vs: &mut Array[View['a]], b: &'a Bytes) -> Unit {
+    vs.push(View { data: b, off: 1 })
+    vs[0] = View { data: b, off: 2 }
+}
+
+fn fixed['a](b: &'a Bytes) -> FixedArray[View['a], 2] {
+    FixedArray.filled(View { data: b, off: 3 })
+}
+
+fn find['a](b: &'a Bytes, want: u8) -> Result[View['a], String] {
+    if b[0] == want {
+        return Ok(View { data: b, off: 0 })
+    }
+    Err("missing")
+}
+
+fn search['a](b: &'a Bytes) -> Found['a] {
+    if b.len() > 2 {
+        return Hit(Array.of(View { data: b, off: 2 }))
+    }
+    Miss
+}
+
+fn run() -> Unit {
+    let buf = Bytes.fromArray(&Array.of(5, 6, 7, 8))
+    let mut vs = Array.of(View { data: &buf, off: 0 })
+    fill(&mut vs, &buf)
+    print "fill ${vs[0].byte()} ${vs[1].byte()}"
+    let mut d = Doc { views: vs, name: "doc" }
+    d.add(View { data: &buf, off: 0 })
+    print "${d.name} ${d.views.len()} ${d.views[2].byte()}"
+    let shifted = d.views.map((v) => View { data: v.data, off: v.off + 1 })
+    print "shifted ${shifted[0].byte()} ${shifted[1].byte()}"
+    let fx = fixed(&buf)
+    print "fixed ${fx[1].byte()}"
+    match find(&buf, 5) {
+        Ok(v) -> print "found ${v.byte()}"
+        Err(e) -> print e
+    }
+    match search(&buf) {
+        Hit(hs) -> print "hit ${hs[0].byte()}"
+        Miss -> print "miss"
+    }
+    let mut page = Page { views: Array.of(View { data: &buf, off: 1 }), head: View { data: &buf, off: 3 } }
+    print "page ${page.views[0].byte()} ${page.head.byte()}"
+    page.head = View { data: &buf, off: 2 }
+    page.views = Array.of(page.head, page.head)
+    print "page ${page.views.len()} ${page.views[1].byte()} ${page.head.byte()}"
+}
+
+run()
+-- stdout --
+fill 7 6
+doc 3 5
+shifted 8 7
+fixed 8
+found 5
+hit 7
+page 6 8
+page 2 7 7

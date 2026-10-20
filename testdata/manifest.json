@@ -11609,6 +11609,57 @@
       ]
     },
     {
+      "id": "run/view_array_containers",
+      "kind": "run",
+      "path": "testdata/run/view_array_containers.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/view_array_store_read",
+      "kind": "run",
+      "path": "testdata/run/view_array_store_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/view_holder_reassign",
+      "kind": "run",
+      "path": "testdata/run/view_holder_reassign.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/weak",
       "kind": "run",
       "path": "testdata/run/weak.txtar",
@@ -15224,6 +15275,149 @@
       "id": "sem/variadic_empty_alloc",
       "kind": "sem",
       "path": "testdata/sem/variadic_empty_alloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_caller_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_caller_store_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_closure_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_closure_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_outlives_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_outlives_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_push_shorter_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_push_shorter_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_ref_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_ref_store_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_return_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_return_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_return_unnamed_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_return_unnamed_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_shared_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_shared_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_source_mutated_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_source_mutated_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_spawn_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_spawn_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_array_untracked_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_array_untracked_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_holder_reassign_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_holder_reassign_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/view_self_borrow_err",
+      "kind": "sem",
+      "path": "testdata/sem/view_self_borrow_err.txtar",
       "mode": [
         "check"
       ],

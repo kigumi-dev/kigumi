@@ -1,0 +1,68 @@
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn View['a].byte(self) -> u8 {
+    self.data[self.off]
+}
+
+fn views['a](b: &'a Bytes) -> Array[View['a]] {
+    let mut out: Array[View['a]] = Array.empty()
+    out.push(View { data: b, off: 0 })
+    out.push(View { data: b, off: 2 })
+    out
+}
+
+fn total['a](vs: &Array[View['a]]) -> Int {
+    let mut s = 0
+    for v in vs {
+        s = s + v.byte().toInt()
+    }
+    s
+}
+
+fn firstOf['a](vs: &Array[View['a]]) -> View['a] {
+    vs[0]
+}
+
+fn firstData['a](vs: &Array[View['a]]) -> &'a Bytes {
+    vs[0].data
+}
+
+fn last['a](vs: Array[View['a]]) -> View['a]? {
+    vs.get(vs.len() - 1)
+}
+
+fn make() -> Bytes {
+    Bytes.fromArray(&Array.of(10, 20, 30, 40))
+}
+
+fn run() -> Unit {
+    let buf = make()
+    let mut vs = views(&buf)
+    print "len ${vs.len()} total ${total(&vs)}"
+    vs[1] = View { data: &buf, off: 3 }
+    vs.push(View { data: &buf, off: 1 })
+    print "updated ${vs[1].byte()} pushed ${vs[2].byte()} total ${total(&vs)}"
+    let head = firstOf(&vs)
+    print "head ${head.byte()} data ${firstData(&vs).len()}"
+    if let Some(v) = last(vs) {
+        print "last ${v.byte()}"
+    }
+    {
+        let lit = Array.of(View { data: &buf, off: 3 }, View { data: &buf, off: 0 })
+        for v in lit {
+            print "lit ${v.byte()}"
+        }
+    }
+    print "buf ${buf.len()}"
+}
+
+run()
+-- stdout --
+len 2 total 40
+updated 40 pushed 20 total 70
+head 10 data 4
+last 20
+lit 40
+lit 10
+buf 4

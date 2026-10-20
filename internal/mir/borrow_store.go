@@ -1,0 +1,173 @@
+package mir
+
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
+
+type storeFlow struct {
+	target LocalID
+	values []flowArg
+	ref    bool
+}
+
+// storeTargets finds, before any holder is known, the locals some store may
+// write a borrow-carrying value into, so collect keeps their sources widening.
+func (c *borrowCheck) storeTargets() map[LocalID]bool {
+	out := map[LocalID]bool{}
+	for _, blk := range c.f.Blocks {
+		for _, in := range blk.Insts {
+			for _, fl := range c.storeFlows(in) {
+				if root, _, caller, ok := c.storeRoot(fl); ok && !caller {
+					out[root] = true
+				}
+			}
+		}
+	}
+	return out
+}
+
+func (c *borrowCheck) storeFlows(in Inst) []storeFlow {
+	switch in.Op {
+	case OpSetIndex, OpSetField:
+		v := in.Args[len(in.Args)-1]
+		if !c.elementHolder(c.f.Locals[v].Type) {
+			return nil
+		}
+		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}}}
+	case OpCall, OpCallValue:
+		return c.callFlows(in)
+	}
+	return nil
+}
+
+// storeRoot resolves where a flow writes: the named local owning the place,
+// the place's type, and whether that local is the caller's (a lent parameter).
+func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, caller, ok bool) {
+	l := fl.target
+	place = c.f.Locals[l].Type
+	if fl.ref {
+		for c.f.Locals[l].Ent == 0 {
+			in := c.definition(l)
+			if in == nil || len(in.Args) == 0 {
+				return 0, 0, false, false
+			}
+			if in.Op == OpBorrow {
+				l = in.Args[0]
+				place = c.f.Locals[l].Type
+				break
+			}
+			if in.Op != OpNewCell && in.Op != OpShare && in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
+				return 0, 0, false, false
+			}
+			l = in.Args[0]
+		}
+	}
+	if c.p.R.Types.Kind(place) == sem.KRef {
+		place = c.p.R.Types.Node(place).Elem
+	}
+	root, _, _, ok = c.projectionPlace(l)
+	if !ok {
+		return 0, 0, false, false
+	}
+	if c.callerPlace(root) {
+		return root, place, true, true
+	}
+	if c.p.R.Types.Kind(c.f.Locals[root].Type) == sem.KRef {
+		return 0, 0, false, false
+	}
+	return root, place, false, true
+}
+
+// callerPlace reports whether l is a parameter aliasing the caller's value:
+// a reference, or a `self` / `mut self` receiver.
+func (c *borrowCheck) callerPlace(l LocalID) bool {
+	if !slices.Contains(c.f.Params, l) {
+		return false
+	}
+	return c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef || c.f.Locals[l].Borrowed
+}
+
+// collectFlows widens each local target's sources with every value written
+// into it; a caller's place is left to checkFlow, which only validates.
+func (c *borrowCheck) collectFlows(in Inst) {
+	for _, fl := range c.storeFlows(in) {
+		c.collectFlow(fl, in)
+	}
+}
+
+func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
+	root, _, caller, ok := c.storeRoot(fl)
+	if !ok || caller || !c.targets[root] {
+		return
+	}
+	for _, v := range fl.values {
+		if b, ok := c.flowInfo(v); ok {
+			c.merge(c.sink(root, in.Node), b)
+		}
+	}
+}
+
+// checkFlow rejects a write into a place whose type keeps no sources, or into the caller's
+// place unless the value carries this function's own lifetime that the place names.
+func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
+	root, place, caller, ok := c.storeRoot(fl)
+	for _, v := range fl.values {
+		b, has := c.flowInfo(v)
+		if !has || b.empty {
+			continue
+		}
+		switch {
+		case !ok:
+			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.untrackedPlace(fl))
+		case !c.trackedContainer(place):
+			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.typeName(place))
+		case !caller && c.borrowsFrom(b, root):
+			name := c.f.Locals[root].Name
+			c.report(in.Node, v.arg, "borrow-escape", "a borrow of `"+name+"` cannot be stored back into `"+name+"`")
+		case caller && !c.fitsOwnLifetime(b, place):
+			c.reportCode(in.Node, v.arg, "borrow-store-outlives", c.f.Locals[root].Name)
+		}
+	}
+}
+
+func (c *borrowCheck) untrackedPlace(fl storeFlow) string {
+	l := fl.target
+	for c.f.Locals[l].Ent == 0 {
+		in := c.definition(l)
+		if in == nil || len(in.Args) == 0 || in.Op != OpBorrow && in.Op != OpNewCell && in.Op != OpShare && in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
+			break
+		}
+		l = in.Args[0]
+	}
+	t := c.f.Locals[l].Type
+	for c.p.R.Types.Kind(t) == sem.KRef {
+		t = c.p.R.Types.Node(t).Elem
+	}
+	if c.f.Locals[l].Ent == 0 || c.f.Locals[l].Name == "" {
+		return c.typeName(t)
+	}
+	return c.typeName(t) + " behind `" + c.f.Locals[l].Name + "`"
+}
+
+func (c *borrowCheck) typeName(t sem.TypeID) string {
+	if t == 0 {
+		return "this place"
+	}
+	return "`" + c.p.R.TypeString(t) + "`"
+}
+
+func (c *borrowCheck) fitsOwnLifetime(b *borrowInfo, place sem.TypeID) bool {
+	if b.hasOwner {
+		return false
+	}
+	if b.fromStatic {
+		return true
+	}
+	if b.lifetime == 0 || b.lifetime != c.soleLifetime(place) || c.p.R.Entity(c.f.Ent).Kind != sem.EntFn {
+		return false
+	}
+	info := c.p.R.Fn(c.f.Ent)
+	return slices.Contains(info.TypeParams, b.lifetime) || slices.Contains(c.recvLifetimeParams(info), b.lifetime)
+}

@@ -1,0 +1,126 @@
+-- module --
+stage: driver
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+type Doc['a] = { pub views Array[View['a]] }
+
+fn views['a](b: &'a Bytes) -> Array[View['a]] {
+    Array.of(View { data: b, off: 0 })
+}
+
+fn bytes() -> Bytes {
+    Bytes.fromArray(&Array.of(1, 2, 3))
+}
+
+fn elem() -> usize {
+    let mut buf = bytes()
+    let v = views(&buf)[0]
+    buf = bytes()
+    v.off
+}
+
+fn got() -> usize {
+    let mut buf = bytes()
+    let vs = views(&buf)
+    let o = vs.get(0)
+    buf = bytes()
+    match o {
+        Some(v) -> v.off
+        None -> 0
+    }
+}
+
+fn mapped() -> usize {
+    let mut buf = bytes()
+    let vs = views(&buf)
+    let ws = vs.map((v) => View { data: v.data, off: 1 })
+    buf = bytes()
+    ws.len()
+}
+
+fn field() -> usize {
+    let mut buf = bytes()
+    let d = Doc { views: views(&buf) }
+    let w = d.views[0]
+    buf = bytes()
+    w.off
+}
+
+fn captured() -> usize {
+    let mut buf = bytes()
+    let keep = View { data: &buf, off: 2 }
+    let src = bytes()
+    let vs = views(&src)
+    let ws = vs.map((v) => keep)
+    buf = bytes()
+    ws.len()
+}
+
+fn fine() -> usize {
+    let mut buf = bytes()
+    let n = views(&buf).len()
+    buf = bytes()
+    n + buf.len()
+}
+-- expect --
+error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> main.kg:16:5
+   |
+16 |     buf = bytes()
+   |     ^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
+  --> main.kg:16:5
+   |
+16 |     buf = bytes()
+   |     ^^^
+
+error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> main.kg:24:5
+   |
+24 |     buf = bytes()
+   |     ^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
+  --> main.kg:24:5
+   |
+24 |     buf = bytes()
+   |     ^^^
+
+error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> main.kg:35:5
+   |
+35 |     buf = bytes()
+   |     ^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
+  --> main.kg:35:5
+   |
+35 |     buf = bytes()
+   |     ^^^
+
+error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> main.kg:43:5
+   |
+43 |     buf = bytes()
+   |     ^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
+  --> main.kg:43:5
+   |
+43 |     buf = bytes()
+   |     ^^^
+
+error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+  --> main.kg:53:5
+   |
+53 |     buf = bytes()
+   |     ^^^
+
+error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
+  --> main.kg:53:5
+   |
+53 |     buf = bytes()
+   |     ^^^
+

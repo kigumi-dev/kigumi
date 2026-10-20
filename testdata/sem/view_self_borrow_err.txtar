@@ -1,0 +1,115 @@
+-- module --
+stage: driver
+-- src --
+type View['a] = { pub data &'a Array[Int], pub off usize }
+type Doc2['a] = { pub mut src Array[Int], pub mut views Array[View['a]] }
+type Doc3['a] = { pub mut src Array[Int], pub mut v View['a] }
+
+fn View['a].at(self) -> Int { self.data[self.off] }
+
+fn pass['a](d: Doc2['a]) -> Doc2['a] { d }
+
+fn put['a](vs: &mut Array[View['a]], v: View['a]) -> Unit { vs.push(v) }
+
+fn field() -> Int {
+    let z = Array.of(0)
+    let mut d = Doc3 { src: Array.of(5, 6), v: View { data: &z, off: 0 } }
+    d.v = View { data: &d.src, off: 1 }
+    let mut e = d
+    e.src = Array.of(9, 9, 9)
+    e.v.at()
+}
+
+fn through_ref() -> Int {
+    let z = Array.of(0)
+    let mut d = Doc3 { src: Array.of(5, 6), v: View { data: &z, off: 0 } }
+    let r = &d
+    d.v = View { data: &r.src, off: 1 }
+    let mut e = d
+    e.src = Array.of(9, 9, 9)
+    e.v.at()
+}
+
+fn push() -> Int {
+    let z = Array.of(0)
+    let mut d = Doc2 { src: Array.of(5, 6), views: Array.of(View { data: &z, off: 0 }) }
+    d.views.push(View { data: &d.src, off: 1 })
+    let mut e = d
+    e.src = Array.of(9, 9, 9)
+    e.views[1].at()
+}
+
+fn passed() -> Int {
+    let z = Array.of(0)
+    let mut d = Doc2 { src: Array.of(5, 6), views: Array.of(View { data: &z, off: 0 }) }
+    d.views.push(View { data: &d.src, off: 1 })
+    let mut e = pass(d)
+    e.src = Array.of(9, 9, 9)
+    e.views[1].at()
+}
+
+fn helper() -> Int {
+    let z = Array.of(0)
+    let mut d = Doc2 { src: Array.of(5, 6), views: Array.of(View { data: &z, off: 0 }) }
+    put(&mut d.views, View { data: &d.src, off: 1 })
+    let mut e = d
+    e.src = Array.of(9, 9, 9)
+    e.views[1].at()
+}
+
+fn via_temp() -> Int {
+    let z = Array.of(0)
+    let mut d = Doc2 { src: Array.of(5, 6), views: Array.of(View { data: &z, off: 0 }) }
+    d.views = Array.of(View { data: &z, off: 0 }, View { data: &d.src, off: 1 })
+    let mut e = d
+    e.src = Array.of(9, 9, 9)
+    e.views[1].at()
+}
+
+fn literal() -> Int {
+    let a = Array.of(5, 6)
+    let d = Doc3 { src: Array.of(1), v: View { data: &a, off: 1 } }
+    let e = d
+    let g = Doc2 { src: Array.of(1), views: Array.of(View { data: &a, off: 0 }) }
+    let h = pass(g)
+    e.v.at() + h.views[0].at()
+}
+
+print "${field()} ${through_ref()} ${push()} ${passed()} ${helper()} ${via_temp()} ${literal()}"
+-- expect --
+error[borrow-escape]: a borrow of `d` cannot be stored back into `d`
+  --> main.kg:14:5
+   |
+14 |     d.v = View { data: &d.src, off: 1 }
+   |     ^^^
+
+error[borrow-escape]: a borrow of `d` cannot be stored back into `d`
+  --> main.kg:24:5
+   |
+24 |     d.v = View { data: &r.src, off: 1 }
+   |     ^^^
+
+error[borrow-escape]: a borrow of `d` cannot be stored back into `d`
+  --> main.kg:33:5
+   |
+33 |     d.views.push(View { data: &d.src, off: 1 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow of `d` cannot be stored back into `d`
+  --> main.kg:42:5
+   |
+42 |     d.views.push(View { data: &d.src, off: 1 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow of `d` cannot be stored back into `d`
+  --> main.kg:51:5
+   |
+51 |     put(&mut d.views, View { data: &d.src, off: 1 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow of `d` cannot be stored back into `d`
+  --> main.kg:60:5
+   |
+60 |     d.views = Array.of(View { data: &z, off: 0 }, View { data: &d.src, off: 1 })
+   |     ^^^^^^^
+

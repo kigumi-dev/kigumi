@@ -1,0 +1,39 @@
+-- module --
+stage: driver
+-- src --
+type View['a] = { pub data &'a Bytes, pub off usize }
+
+fn views['a](b: &'a Bytes) -> Array[View['a]] {
+    Array.of(View { data: b, off: 0 })
+}
+
+fn bytes() -> Bytes {
+    Bytes.fromArray(&Array.of(1, 2, 3))
+}
+
+fn into['a](vs: &mut Array[View['a]]) -> Unit {
+    let mine = bytes()
+    vs.push(View { data: &mine, off: 0 })
+}
+
+fn add['a](vs: &mut Array[View['a]], v: View['a]) -> Unit {
+    vs.push(v)
+}
+
+fn viaValue['a](b: &'a Bytes, vs: &mut Array[View['a]]) -> Unit {
+    let f: fn(&mut Array[View['a]], View['a]) -> Unit = add
+    f(vs, View { data: b, off: 0 })
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `vs` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:13:5
+   |
+13 |     vs.push(View { data: &mine, off: 0 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2161]: a call through a function value may store a borrow into `vs`, and that write cannot be tracked; call the function by name, or pass a value it can own
+  --> main.kg:22:5
+   |
+22 |     f(vs, View { data: b, off: 0 })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

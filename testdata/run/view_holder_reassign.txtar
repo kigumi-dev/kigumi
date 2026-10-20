@@ -1,0 +1,42 @@
+-- src --
+import task from std/task
+
+type View['a] = { pub data &'a Array[Int], pub off usize }
+
+fn View['a].at(self) -> Int { self.data[self.off] }
+
+async fn sum['a](vs: Array[View['a]]) -> Int { vs[0].data[vs[0].off] }
+
+fn cursor() -> Unit {
+    let a = Array.of(1, 2, 3)
+    let b = Array.of(7, 8)
+    let mut cur = View { data: &a, off: 0 }
+    for i in 0..2 {
+        cur = View { data: &a, off: cur.off + 1 }
+    }
+    print "cur ${cur.at()}"
+    let mut o = Some(View { data: &a, off: 0 })
+    o = None
+    o = Some(View { data: &b, off: 1 })
+    if let Some(v) = o { print "o ${v.at()}" }
+    let c = cur
+    cur = View { data: &b, off: 0 }
+    print "c ${c.at()} cur ${cur.at()} a ${a.len()} b ${b.len()}"
+}
+
+async fn spawned() -> Int {
+    let a = Array.of(5, 6, 7)
+    let vs = Array.of(View { data: &a, off: 2 })
+    let t = task.spawn(sum(vs))
+    let x = await t
+    x + a[0]
+}
+
+cursor()
+let ex = task.currentThreadExecutor()
+print "spawned ${ex.runToCompletion(spawned())}"
+-- stdout --
+cur 3
+o 8
+c 3 cur 7 a 3 b 2
+spawned 12

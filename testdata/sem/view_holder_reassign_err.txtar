@@ -1,0 +1,124 @@
+-- module --
+stage: driver
+-- src --
+type View['a] = { pub data &'a Array[Int], pub off usize }
+type Slot['a] = Empty | Full(View['a])
+
+fn View['a].at(self) -> Int { self.data[self.off] }
+
+fn eat(a: Array[Int]) -> Unit { print "eat ${a.len()}" }
+
+fn okv['a](v: View['a]) -> Result[View['a], String] { Ok(v) }
+
+fn moved() -> usize {
+    let a = Array.of(1, 2, 3)
+    let vs = Array.of(View { data: &a, off: 0 })
+    eat(a)
+    vs.len()
+}
+
+fn option() -> Unit {
+    let b = Array.of(4)
+    let a = Array.of(1, 2, 3)
+    let mut cur = Some(View { data: &b, off: 0 })
+    cur = Some(View { data: &a, off: 1 })
+    eat(a)
+    if let Some(v) = cur { print "cur ${v.at()}" }
+}
+
+fn result() -> Unit {
+    let b = Array.of(4)
+    let a = Array.of(1, 2, 3)
+    let mut cur = okv(View { data: &b, off: 0 })
+    cur = okv(View { data: &a, off: 1 })
+    eat(a)
+    if let Ok(v) = cur { print "cur ${v.at()}" }
+}
+
+fn tuple() -> Unit {
+    let b = Array.of(4)
+    let a = Array.of(1, 2, 3)
+    let mut cur = (View { data: &b, off: 0 }, 1)
+    cur = (View { data: &a, off: 1 }, 2)
+    eat(a)
+    match cur { (v, _) -> print "cur ${v.at()}" }
+}
+
+fn slot() -> Unit {
+    let b = Array.of(4)
+    let a = Array.of(1, 2, 3)
+    let mut cur = Full(View { data: &b, off: 0 })
+    cur = Full(View { data: &a, off: 1 })
+    eat(a)
+    if let Full(v) = cur { print "cur ${v.at()}" }
+}
+
+fn plain() -> Unit {
+    let b = Array.of(4)
+    let a = Array.of(1, 2, 3)
+    let mut cur = View { data: &b, off: 0 }
+    cur = View { data: &a, off: 1 }
+    eat(a)
+    print "cur ${cur.at()}"
+}
+
+fn copied() -> Unit {
+    let b = Array.of(4)
+    let a = Array.of(1, 2, 3)
+    let other = Some(View { data: &a, off: 1 })
+    let mut cur = Some(View { data: &b, off: 0 })
+    cur = other
+    eat(a)
+    if let Some(v) = cur { print "cur ${v.at()}" }
+}
+
+let n = moved()
+option()
+result()
+tuple()
+slot()
+plain()
+copied()
+-- expect --
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:13:9
+   |
+13 |     eat(a)
+   |         ^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:22:9
+   |
+22 |     eat(a)
+   |         ^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:31:9
+   |
+31 |     eat(a)
+   |         ^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:40:9
+   |
+40 |     eat(a)
+   |         ^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:49:9
+   |
+49 |     eat(a)
+   |         ^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:58:9
+   |
+58 |     eat(a)
+   |         ^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:68:9
+   |
+68 |     eat(a)
+   |         ^
+

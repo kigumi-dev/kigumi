@@ -1,0 +1,56 @@
+-- module --
+stage: driver
+-- src --
+import task from std/task
+
+type View['a] = { pub data &'a Array[Int], pub off usize }
+
+async fn sum['a](vs: Array[View['a]]) -> Int { vs[0].data[vs[0].off] }
+
+async fn one['a](v: View['a]) -> Int { v.data[v.off] }
+
+fn array() -> task.Task[Int] {
+    let a = Array.of(1, 2, 3)
+    let vs = Array.of(View { data: &a, off: 0 })
+    task.spawn(sum(vs))
+}
+
+fn single() -> task.Task[Int] {
+    let a = Array.of(1, 2, 3)
+    task.spawn(one(View { data: &a, off: 0 }))
+}
+
+async fn run() -> Int {
+    let t = array()
+    let u = single()
+    let x = await t
+    x + await u
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(run())}"
+-- expect --
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:11:14
+   |
+11 |     let vs = Array.of(View { data: &a, off: 0 })
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `a` is still borrowed when its scope ends here
+  --> main.kg:10:9
+   |
+10 |     let a = Array.of(1, 2, 3)
+   |         ^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:17:33
+   |
+17 |     task.spawn(one(View { data: &a, off: 0 }))
+   |                                 ^^
+
+error[move-while-borrowed]: `a` is still borrowed when its scope ends here
+  --> main.kg:16:9
+   |
+16 |     let a = Array.of(1, 2, 3)
+   |         ^
+
