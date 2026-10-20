@@ -52,6 +52,7 @@ type builder struct {
 	argFixups []argFixup
 	// unowned tracks which locals hold no count of their own: a borrow, or anything that only forwards one.
 	unowned map[LocalID]bool
+	body    *hir.Block
 }
 
 // scope tracks the owned locals and deferred statements of one block.

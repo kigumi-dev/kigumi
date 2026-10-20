@@ -30,6 +30,7 @@ type checker struct {
 	cleanupNode     syntax.NodeID
 	pendingReserve  []EntityID
 	reserved        map[EntityID]reservation
+	exitCheck       exitMoveState
 	edges           *[]EffectEdge
 	// locals is the current edge scope's EntLocal list for dropsAtScopeExit.
 	locals []EntityID
@@ -168,8 +169,9 @@ func (r *Result) checkFnBody(id EntityID) {
 // checkBodyBlock checks a function body against the return type: the block's
 // tail value must coerce to it, and a missing tail needs Unit or Never.
 func (c *checker) checkBodyBlock(body syntax.NodeID) {
-	got := c.check(body, c.retType)
-	_ = got
+	c.exitCheck.tail = c.bodyTail(body)
+	c.check(body, c.retType)
+	c.checkExitMoves()
 	c.checkEscapeTailReturn(body)
 	c.finish()
 }

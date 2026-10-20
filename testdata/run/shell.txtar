@@ -25,7 +25,7 @@ shell.check(status)?
 let files = host.files()
 let path = fs.Path.fromString("out.txt")?
 let mut f = files.create(path)?
-errdefer _ = files.remove(path)
+defer(fail) _ = files.remove(path)
 _ = f.write("written".toBytes())?
 f.close()?
 files.remove(path)?

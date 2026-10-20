@@ -1,0 +1,16 @@
+-- src --
+fn f() -> Unit! {
+    defer ( fail )   h.close()
+    defer(fail){
+        a()
+    }
+    defer (x).close()
+}
+-- expect --
+fn f() -> Unit! {
+    defer(fail) h.close()
+    defer(fail) {
+        a()
+    }
+    defer (x).close()
+}

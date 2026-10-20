@@ -1,0 +1,161 @@
+-- src --
+import test from std/test
+
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn open(id: Int) -> Handle! {
+    print "open ${id}"
+    Handle { id: id }
+}
+
+fn bad(n: Int) -> Int! {
+    if n < 0 {
+        fail test.failure("bad ${n}")
+    }
+    n
+}
+
+fn okTail(n: Int) -> Handle! {
+    let h = open(1)?
+    defer(fail) { h.close() }
+    let _ = bad(n)?
+    Ok(h)
+}
+
+fn okReturn(n: Int) -> Handle! {
+    let h = open(2)?
+    defer(fail) { h.close() }
+    let _ = bad(n)?
+    return Ok(h)
+}
+
+fn blockTail(n: Int) -> Handle! {
+    let h = open(3)?
+    defer(fail) { h.close() }
+    let _ = bad(n)?
+    { h }
+}
+
+fn ifTail(n: Int) -> Handle! {
+    let h = open(4)?
+    defer(fail) { h.close() }
+    let _ = bad(n)?
+    if n > 0 { h } else { h }
+}
+
+fn matchTail(n: Int) -> Handle! {
+    let h = open(5)?
+    defer(fail) { h.close() }
+    let _ = bad(n)?
+    match n {
+        1 -> h
+        _ -> h
+    }
+}
+
+fn failFirst(n: Int) -> Handle! {
+    let h = open(6)?
+    defer(fail) { h.close() }
+    if n < 0 { fail test.failure("first ${n}") } else { Ok(h) }
+}
+
+fn ifLetTail(o: Int?) -> Handle! {
+    let h = open(7)?
+    defer(fail) { h.close() }
+    let _ = bad(o || 0)?
+    if let Some(k) = o { h } else { h }
+}
+
+fn show(label: String, r: Handle!) -> Unit {
+    match r {
+        Ok(h) -> print "${label}: got ${h.id}"
+        Err(e) -> print "${label}: err ${e.message()}"
+    }
+}
+
+show("ok", okTail(1))
+show("ok", okTail(-1))
+show("okr", okReturn(1))
+show("okr", okReturn(-1))
+show("blk", blockTail(1))
+show("blk", blockTail(-1))
+show("if", ifTail(1))
+show("if", ifTail(0))
+show("if", ifTail(-1))
+show("match", matchTail(1))
+show("match", matchTail(2))
+show("match", matchTail(-1))
+show("first", failFirst(1))
+show("first", failFirst(-1))
+show("iflet", ifLetTail(Some(1)))
+show("iflet", ifLetTail(None))
+show("iflet", ifLetTail(Some(-1)))
+-- stdout --
+open 1
+ok: got 1
+drop 1
+open 1
+close 1
+drop 1
+ok: err bad -1
+open 2
+okr: got 2
+drop 2
+open 2
+close 2
+drop 2
+okr: err bad -1
+open 3
+blk: got 3
+drop 3
+open 3
+close 3
+drop 3
+blk: err bad -1
+open 4
+if: got 4
+drop 4
+open 4
+if: got 4
+drop 4
+open 4
+close 4
+drop 4
+if: err bad -1
+open 5
+match: got 5
+drop 5
+open 5
+match: got 5
+drop 5
+open 5
+close 5
+drop 5
+match: err bad -1
+open 6
+first: got 6
+drop 6
+open 6
+close 6
+drop 6
+first: err first -1
+open 7
+iflet: got 7
+drop 7
+open 7
+iflet: got 7
+drop 7
+open 7
+close 7
+drop 7
+iflet: err bad -1

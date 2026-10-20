@@ -31,7 +31,7 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 			b.jump(next)
 			b.cur = run
 		}
-		b.assign(result, b.expr(arm.Body))
+		b.assign(result, b.exprMoved(arm.Body))
 		b.exitScope()
 		b.jump(join)
 		b.cur = next

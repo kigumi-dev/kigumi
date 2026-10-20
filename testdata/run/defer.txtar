@@ -3,7 +3,7 @@ import test from std/test
 
 fn work(fail_it: Bool) -> Unit! {
     defer print "defer 1"
-    errdefer print "errdefer"
+    defer(fail) print "defer(fail)"
     defer {
         print "defer 2"
     }
@@ -30,7 +30,7 @@ body done
 defer 2
 defer 1
 defer 2
-errdefer
+defer(fail)
 defer 1
 err boom
 nested=3

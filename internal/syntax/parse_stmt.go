@@ -34,9 +34,9 @@ func (p *parser) stmt() NodeID {
 	case p.at(token.KwLet):
 		return p.letStmt()
 	case p.at(token.KwDefer):
-		return p.node1(DeferStmt, p.advance(), p.cleanupBody())
-	case p.at(token.KwErrdefer):
-		return p.node1(ErrdeferStmt, p.advance(), p.cleanupBody())
+		return p.deferStmt()
+	case p.atIdent("errdefer") && p.errdeferAhead():
+		return p.oldErrdefer()
 	}
 	e := p.expr()
 	if e == 0 {
@@ -47,14 +47,6 @@ func (p *parser) stmt() NodeID {
 		return p.node2(AssignStmt, op, e, p.expr())
 	}
 	return p.node1(ExprStmt, p.tree.nodes[e].Tok, e)
-}
-
-// cleanupBody is the rest of the line as one statement, or a block.
-func (p *parser) cleanupBody() NodeID {
-	if p.at(token.LBrace) {
-		return p.block()
-	}
-	return p.stmt()
 }
 
 func (p *parser) letStmt() NodeID {

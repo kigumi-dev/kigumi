@@ -27,7 +27,7 @@ func (s *Server) DocumentSymbol(ctx context.Context, p *protocol.DocumentSymbolP
 }
 
 var keywords = []string{"fn", "let", "mut", "pub", "type", "interface", "const", "import", "from", "match", "if", "else", "for", "in",
-	"return", "fail", "defer", "errdefer", "break", "continue", "is", "pure", "noalloc", "unsafe", "async", "await", "comptime",
+	"return", "fail", "defer", "break", "continue", "is", "pure", "noalloc", "unsafe", "async", "await", "comptime",
 	"allocator", "asm", "extern", "export", "test", "resource", "move", "self", "static", "true", "false", "None", "Some", "Ok", "Err"}
 
 // Completion offers keywords, names in scope, and then import candidates

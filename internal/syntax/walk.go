@@ -53,7 +53,7 @@ func (t *Tree) HasErrors() bool {
 func (t *Tree) HasTopLevelStatements() bool {
 	for d := range t.List(t.Root).IDs() {
 		switch t.Kind(d) {
-		case LetStmt, ExprStmt, AssignStmt, DeferStmt, ErrdeferStmt:
+		case LetStmt, ExprStmt, AssignStmt, DeferStmt, DeferFailStmt:
 			return true
 		}
 	}

@@ -1,0 +1,47 @@
+-- src --
+fn f() -> Unit! {
+    errdefer h.close()
+    errdefer {
+        a()
+    }
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: f
+    generics: -
+    params: List
+    ret: TypeResult
+      TypePath
+        Path Unit
+    body: Block
+      DeferFail
+        ExprStmt
+          Call
+            Member close
+              Ident h
+            List
+      DeferFail
+        Block
+          ExprStmt
+            Call
+              Ident a
+              List
+-- diagnostics --
+error: `errdefer` is no longer a keyword
+ --> errors_errdefer.txtar:2:5
+  |
+2 |     errdefer h.close()
+  |     ^^^^^^^^
+  = help: write `defer(fail)` for a cleanup that runs only when the scope exits with an error
+
+error: `errdefer` is no longer a keyword
+ --> errors_errdefer.txtar:3:5
+  |
+3 |     errdefer {
+  |     ^^^^^^^^
+  = help: write `defer(fail)` for a cleanup that runs only when the scope exits with an error
+

@@ -3,8 +3,8 @@ package sem
 import "kigumi/internal/syntax"
 
 func (c *checker) cleanupStmt(n syntax.NodeID) {
-	if c.t.Kind(n) == syntax.ErrdeferStmt && !c.isResultFn() {
-		c.errAt(n, cErrdeferOutsideResult)
+	if c.t.Kind(n) == syntax.DeferFailStmt && !c.isResultFn() {
+		c.errAt(n, cDeferFailNoResult)
 	}
 	outerNode, outerPending := c.cleanupNode, c.pendingReserve
 	c.cleanupNode, c.pendingReserve = n, nil
@@ -22,8 +22,8 @@ func (c *checker) cleanupStmt(n syntax.NodeID) {
 }
 
 func (c *checker) cleanupBody(n syntax.NodeID) syntax.NodeID {
-	if c.t.Kind(n) == syntax.ErrdeferStmt {
-		return c.t.View(n).AsErrdefer().Body().ID()
+	if c.t.Kind(n) == syntax.DeferFailStmt {
+		return c.t.View(n).AsDeferFail().Body().ID()
 	}
 	return c.t.View(n).AsDefer().Body().ID()
 }

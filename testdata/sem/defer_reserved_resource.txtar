@@ -21,7 +21,7 @@ fn reassign() -> Unit! {
 
 fn reassignErrdefer() -> Unit! {
     let mut h = Handle { id: 1 }
-    errdefer { h.close() }
+    defer(fail) { h.close() }
     h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
 }
 
@@ -63,7 +63,7 @@ fn secondCleanupSameScope() -> Unit! {
 
 fn secondCleanupNestedScope() -> Unit! {
     let h = Handle { id: 1 }
-    errdefer { h.close() }
+    defer(fail) { h.close() }
     if h.peek() > 0 {
         defer { take(h) } //~ ERROR `h` is already consumed by an earlier cleanup
     }
@@ -72,7 +72,7 @@ fn secondCleanupNestedScope() -> Unit! {
 fn reservedInsideConditionalScope(flag: Bool) -> Unit! {
     let mut h = Handle { id: 1 }
     if flag {
-        errdefer { h.close() }
+        defer(fail) { h.close() }
         h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
     }
 }
@@ -91,7 +91,7 @@ fn peekingCleanupDoesNotReserve() -> Unit! {
 fn reservationEndsWithItsScope(flag: Bool) -> Unit! {
     let mut h = Handle { id: 1 }
     if flag {
-        errdefer { h.close() }
+        defer(fail) { h.close() }
     }
     h = Handle { id: 2 }
     take(h)
@@ -134,15 +134,15 @@ error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assign
 note: `h` is reserved by this cleanup
   --> lib/reserved.kg:23:5
    |
-23 |     errdefer { h.close() }
-   |     ^^^^^^^^^^^^^^^^^^^
+23 |     defer(fail) { h.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
   --> lib/reserved.kg:30:10
    |
 30 |     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |          ^
-   = help: move it after the scope, or drop the cleanup and consume it yourself
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
   --> lib/reserved.kg:29:5
    |
@@ -154,7 +154,7 @@ error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved 
    |
 36 |     let g = h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |             ^
-   = help: move it after the scope, or drop the cleanup and consume it yourself
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
   --> lib/reserved.kg:35:5
    |
@@ -166,7 +166,7 @@ error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved 
    |
 43 |     h.close() //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |     ^
-   = help: move it after the scope, or drop the cleanup and consume it yourself
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
   --> lib/reserved.kg:42:5
    |
@@ -178,7 +178,7 @@ error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved 
    |
 49 |     let b = Wrapper { inner: h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |                              ^
-   = help: move it after the scope, or drop the cleanup and consume it yourself
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
   --> lib/reserved.kg:48:5
    |
@@ -206,8 +206,8 @@ error[E2102]: `h` is already consumed by an earlier cleanup
 note: `h` is reserved by this cleanup
   --> lib/reserved.kg:65:5
    |
-65 |     errdefer { h.close() }
-   |     ^^^^^^^^^^^^^^^^^^^
+65 |     defer(fail) { h.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
   --> lib/reserved.kg:75:9
@@ -218,15 +218,15 @@ error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assign
 note: `h` is reserved by this cleanup
   --> lib/reserved.kg:74:9
    |
-74 |         errdefer { h.close() }
-   |         ^^^^^^^^^^^^^^^^^^^
+74 |         defer(fail) { h.close() }
+   |         ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
   --> lib/reserved.kg:81:10
    |
 81 |     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |          ^
-   = help: move it after the scope, or drop the cleanup and consume it yourself
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
   --> lib/reserved.kg:80:5
    |

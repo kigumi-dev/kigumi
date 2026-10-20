@@ -84,7 +84,7 @@ func Lowerable(r *sem.Result, ent sem.EntityID) bool {
 
 func isStatement(k syntax.NodeKind) bool {
 	switch k {
-	case syntax.LetStmt, syntax.AssignStmt, syntax.ExprStmt, syntax.DeferStmt, syntax.ErrdeferStmt:
+	case syntax.LetStmt, syntax.AssignStmt, syntax.ExprStmt, syntax.DeferStmt, syntax.DeferFailStmt:
 		return true
 	}
 	return false
@@ -159,8 +159,8 @@ func (l *lowerer) stmt(n syntax.NodeID) *Stmt {
 		return l.assign(n, out)
 	case syntax.ExprStmt:
 		out.Kind, out.Expr = ExprStmt, l.expr(v.AsExprStmt().Expr().ID())
-	case syntax.DeferStmt, syntax.ErrdeferStmt:
-		out.Kind, out.Err = DeferStmt, v.Kind() == syntax.ErrdeferStmt
+	case syntax.DeferStmt, syntax.DeferFailStmt:
+		out.Kind, out.Err = DeferStmt, v.Kind() == syntax.DeferFailStmt
 		body := l.deferBody(v)
 		if l.t.Kind(body) == syntax.Block {
 			out.Block = l.block(body)
@@ -174,8 +174,8 @@ func (l *lowerer) stmt(n syntax.NodeID) *Stmt {
 }
 
 func (l *lowerer) deferBody(v syntax.View) syntax.NodeID {
-	if v.Kind() == syntax.ErrdeferStmt {
-		return v.AsErrdefer().Body().ID()
+	if v.Kind() == syntax.DeferFailStmt {
+		return v.AsDeferFail().Body().ID()
 	}
 	return v.AsDefer().Body().ID()
 }

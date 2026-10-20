@@ -23,7 +23,7 @@ fn Connection.drop(move self) -> Unit {
 fn transfer(fail_it: Bool) -> Unit! {
     let a = open(1)
     defer print "transfer finished"
-    errdefer print "rolling back"
+    defer(fail) print "rolling back"
     let b = open(2)
     if fail_it {
         fail test.failure("network down")

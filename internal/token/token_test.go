@@ -18,6 +18,7 @@ func TestLookup(t *testing.T) {
 		{"allocator", token.Ident},
 		{"with", token.Ident},
 		{"weak", token.Ident},
+		{"errdefer", token.Ident},
 	}
 	for _, tt := range tests {
 		if got := token.Lookup(tt.in); got != tt.want {
@@ -30,8 +31,8 @@ func TestKindString(t *testing.T) {
 	if token.PipeGt.String() != "|>" {
 		t.Errorf("PipeGt.String() = %q", token.PipeGt.String())
 	}
-	if token.KwErrdefer.String() != "errdefer" {
-		t.Errorf("KwErrdefer.String() = %q", token.KwErrdefer.String())
+	if token.KwDefer.String() != "defer" {
+		t.Errorf("KwDefer.String() = %q", token.KwDefer.String())
 	}
 	if !token.KwFalse.IsKeyword() || token.Ident.IsKeyword() {
 		t.Error("IsKeyword boundary is wrong")

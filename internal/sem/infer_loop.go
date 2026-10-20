@@ -142,6 +142,8 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 		return TyNever
 	}
 	val := ret.Value().ID()
+	c.exitCheck.returning = append(c.exitCheck.returning, exitSite{value: val, lambdas: len(c.lambdas)})
+	defer func() { c.exitCheck.returning = c.exitCheck.returning[:len(c.exitCheck.returning)-1] }()
 	c.check(val, c.retType)
 	if len(c.lambdas) == 0 {
 		c.retLeaves = append(c.retLeaves, val)

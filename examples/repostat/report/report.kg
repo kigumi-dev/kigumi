@@ -83,7 +83,7 @@ pub fn writeJson(files: fs.Files, path: fs.Path, r: &Report) -> Unit! {
     let body = json.encode(published)? // metadata駆動
 
     let mut f = files.create(path)? // Result[File, _]からFileを消費分解
-    errdefer _ = files.remove(path)
+    defer(fail) _ = files.remove(path)
     // 失敗経路では書きかけを残さない。write(mut self)は短い書き込みを
     // 許すので、fを消費するio.writeAllではなくここでループする
     let data = body.toBytes()

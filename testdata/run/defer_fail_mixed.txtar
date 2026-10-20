@@ -1,0 +1,79 @@
+-- src --
+import test from std/test
+
+fn step(label: String, ok: Bool) -> Unit! {
+    if !ok {
+        fail test.failure(label)
+    }
+}
+
+fn mixed(ok: Bool) -> Unit! {
+    defer print "plain 1"
+    defer(fail) print "fail 1"
+    defer {
+        print "plain 2"
+    }
+    defer(fail) {
+        print "fail 2"
+    }
+    step("mixed", ok)?
+    print "mixed body done"
+}
+
+fn loop(failAt: Int) -> Int! {
+    let mut seen = 0
+    for i in 0..4 {
+        defer print "plain ${i}"
+        defer(fail) print "fail ${i}"
+        if i == 1 {
+            continue
+        }
+        if i == failAt {
+            step("loop ${i}", false)?
+        }
+        if i == 2 {
+            break
+        }
+        seen += 1
+    }
+    seen
+}
+
+fn nested(ok: Bool) -> Unit! {
+    defer(fail) print "outer fail"
+    {
+        defer(fail) print "inner fail"
+        defer print "inner plain"
+        print "inner body"
+    }
+    step("nested", ok)?
+}
+
+mixed(true) || (e) => print "err ${e.message()}"
+mixed(false) || (e) => print "err ${e.message()}"
+print "seen ${loop(9) || -1}"
+print "seen ${loop(0) || -1}"
+nested(true) || (e) => print "err ${e.message()}"
+nested(false) || (e) => print "err ${e.message()}"
+-- stdout --
+mixed body done
+plain 2
+plain 1
+fail 2
+plain 2
+fail 1
+plain 1
+err mixed
+plain 0
+plain 1
+plain 2
+seen 1
+fail 0
+plain 0
+seen -1
+inner body
+inner plain
+inner body
+inner plain
+outer fail
+err nested

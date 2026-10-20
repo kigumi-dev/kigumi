@@ -41,7 +41,7 @@ fn normal() -> Unit! {
 
 fn typedErr(failIt: Bool) -> Unit! {
     let h = Handle { id: 2 }
-    errdefer { h.close() }
+    defer(fail) { h.close() }
     print "typed body"
     if failIt {
         fail test.failure("boom")
@@ -70,7 +70,7 @@ fn loops() -> Unit {
 fn loopErr(failAt: Int) -> Unit! {
     for i in 0..3 {
         let h = Handle { id: 20 + i }
-        errdefer { h.close() }
+        defer(fail) { h.close() }
         if i == failAt {
             fail test.failure("loop")
         }
@@ -85,7 +85,7 @@ fn param(h: Handle) -> Unit {
 fn conditional(flag: Bool, failIt: Bool) -> Unit! {
     let h = Handle { id: 5 }
     if flag {
-        errdefer { h.close() }
+        defer(fail) { h.close() }
         print "in if"
         if failIt {
             fail test.failure("inside")

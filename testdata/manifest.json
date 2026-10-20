@@ -127,6 +127,17 @@
       ]
     },
     {
+      "id": "fmt/defer_fail",
+      "kind": "fmt",
+      "path": "testdata/fmt/defer_fail.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/defined_type",
       "kind": "fmt",
       "path": "testdata/fmt/defined_type.txtar",
@@ -1238,6 +1249,17 @@
       ]
     },
     {
+      "id": "parser/errors_errdefer",
+      "kind": "parser",
+      "path": "testdata/parser/errors_errdefer.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "parser/errors_leading_andor",
       "kind": "parser",
       "path": "testdata/parser/errors_leading_andor.txtar",
@@ -1461,6 +1483,17 @@
       "id": "parser/stmt_control",
       "kind": "parser",
       "path": "testdata/parser/stmt_control.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/stmt_defer_fail",
+      "kind": "parser",
+      "path": "testdata/parser/stmt_defer_fail.txtar",
       "mode": [
         "parse"
       ],
@@ -4031,6 +4064,57 @@
       "id": "run/defer",
       "kind": "run",
       "path": "testdata/run/defer.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_fail_compound_exit",
+      "kind": "run",
+      "path": "testdata/run/defer_fail_compound_exit.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_fail_mixed",
+      "kind": "run",
+      "path": "testdata/run/defer_fail_mixed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_fail_return",
+      "kind": "run",
+      "path": "testdata/run/defer_fail_return.txtar",
       "mode": [
         "vm",
         "native"
@@ -12303,6 +12387,28 @@
       "id": "sem/decl_variant_prelude_fn_const_collision",
       "kind": "sem",
       "path": "testdata/sem/decl_variant_prelude_fn_const_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_fail_exit_rejected",
+      "kind": "sem",
+      "path": "testdata/sem/defer_fail_exit_rejected.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_fail_success_exit",
+      "kind": "sem",
+      "path": "testdata/sem/defer_fail_success_exit.txtar",
       "mode": [
         "check"
       ],

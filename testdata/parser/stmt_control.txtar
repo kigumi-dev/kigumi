@@ -34,7 +34,7 @@ fn f() -> Unit! {
     for i in 0..xs.len() { continue }
     let mut f = files.create(path)?
     defer f.close()
-    errdefer files.remove(path)
+    defer(fail) files.remove(path)
     defer {
         a()
         b()
@@ -294,7 +294,7 @@ File
             Member close
               Ident f
             List
-      Errdefer
+      DeferFail
         ExprStmt
           Call
             Member remove

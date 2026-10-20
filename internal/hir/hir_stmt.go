@@ -64,7 +64,7 @@ const (
 	DiscardStmt                     // _ = Expr
 	ExprStmt                        // Expr, dropped
 	EvalStmt                        // Expr evaluated for its effect only
-	DeferStmt                       // defer / errdefer of Body or Block
+	DeferStmt                       // defer / defer(fail) of Body or Block
 )
 
 type Stmt struct {
@@ -81,7 +81,7 @@ type Stmt struct {
 	Compound bool
 	OpText   string
 	OpEnt    sem.EntityID
-	// Err marks errdefer; Body or Block is what runs on unwind.
+	// Err marks defer(fail); Body or Block is what runs on unwind.
 	Err   bool
 	Body  *Stmt
 	Block *Block

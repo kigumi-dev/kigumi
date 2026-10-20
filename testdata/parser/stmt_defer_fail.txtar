@@ -1,0 +1,70 @@
+-- src --
+fn f() -> Unit! {
+    defer(fail) h.close()
+    defer(fail) {
+        a()
+        b()
+    }
+    defer ( fail ) c()
+    defer (x).close()
+    defer (y)
+    let errdefer = 1
+    errdefer.show()
+    errdefer = 2
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: f
+    generics: -
+    params: List
+    ret: TypeResult
+      TypePath
+        Path Unit
+    body: Block
+      DeferFail
+        ExprStmt
+          Call
+            Member close
+              Ident h
+            List
+      DeferFail
+        Block
+          ExprStmt
+            Call
+              Ident a
+              List
+          ExprStmt
+            Call
+              Ident b
+              List
+      DeferFail
+        ExprStmt
+          Call
+            Ident c
+            List
+      Defer
+        ExprStmt
+          Call
+            Member close
+              Paren
+                Ident x
+            List
+      Defer
+        ExprStmt
+          Paren
+            Ident y
+      Let
+        pattern: PatBind errdefer
+        init: IntLit 1
+      ExprStmt
+        Call
+          Member show
+            Ident errdefer
+          List
+      Assign =
+        Ident errdefer
+        IntLit 2

@@ -94,7 +94,6 @@ const (
 	KwBreak
 	KwContinue
 	KwDefer
-	KwErrdefer
 	KwFail
 	KwPure
 	KwNoalloc
@@ -128,7 +127,7 @@ var kindNames = [...]string{
 	KwFn: "fn", KwLet: "let", KwConst: "const", KwMut: "mut", KwType: "type",
 	KwInterface: "interface", KwPub: "pub", KwImport: "import", KwIf: "if", KwElse: "else",
 	KwMatch: "match", KwIs: "is", KwFor: "for", KwIn: "in", KwReturn: "return",
-	KwBreak: "break", KwContinue: "continue", KwDefer: "defer", KwErrdefer: "errdefer",
+	KwBreak: "break", KwContinue: "continue", KwDefer: "defer",
 	KwFail: "fail", KwPure: "pure", KwNoalloc: "noalloc", KwAsync: "async", KwAwait: "await",
 	KwUnsafe: "unsafe", KwMove: "move", KwExtern: "extern", KwComptime: "comptime",
 	KwTrue: "true", KwFalse: "false",

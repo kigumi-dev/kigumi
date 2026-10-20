@@ -7,7 +7,7 @@ async fn fetch() -> Int {
 
 async fn bad() -> Unit! {
     defer { _ = await fetch() } //~ ERROR `await` is not allowed in a cleanup body
-    errdefer _ = await fetch() //~ ERROR `await` is not allowed in a cleanup body
+    defer(fail) _ = await fetch() //~ ERROR `await` is not allowed in a cleanup body
     fail test.failure("boom")
 }
 -- expect --
@@ -18,8 +18,8 @@ error[E1026]: `await` is not allowed in a cleanup body
   |                 ^^^^^^^^^^^^
 
 error[E1026]: `await` is not allowed in a cleanup body
- --> app/t/t.kg:9:18
+ --> app/t/t.kg:9:21
   |
-9 |     errdefer _ = await fetch() //~ ERROR `await` is not allowed in a cleanup body
-  |                  ^^^^^^^^^^^^
+9 |     defer(fail) _ = await fetch() //~ ERROR `await` is not allowed in a cleanup body
+  |                     ^^^^^^^^^^^^
 

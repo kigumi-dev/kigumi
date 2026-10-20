@@ -161,10 +161,10 @@ func (v View) AsDefer() DeferView { return DeferView{v} }
 func (v DeferView) Kw() TokenRef  { return v.Tok() }
 func (v DeferView) Body() View    { return v.at(v.lhs()) }
 
-type ErrdeferView struct{ View }
+type DeferFailView struct{ View }
 
-func (v View) AsErrdefer() ErrdeferView { return ErrdeferView{v} }
-func (v ErrdeferView) Kw() TokenRef     { return v.Tok() }
-func (v ErrdeferView) Body() View       { return v.at(v.lhs()) }
+func (v View) AsDeferFail() DeferFailView { return DeferFailView{v} }
+func (v DeferFailView) Kw() TokenRef      { return v.Tok() }
+func (v DeferFailView) Body() View        { return v.at(v.lhs()) }
 
 func (v ListView) Open() TokenRef { return v.Tok() }

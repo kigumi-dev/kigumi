@@ -80,9 +80,9 @@ func (p *printer) stmt(id syntax.NodeID) {
 	case syntax.DeferStmt:
 		p.write("defer ")
 		p.cleanup(v.AsDefer().Body().ID())
-	case syntax.ErrdeferStmt:
-		p.write("errdefer ")
-		p.cleanup(v.AsErrdefer().Body().ID())
+	case syntax.DeferFailStmt:
+		p.write("defer(fail) ")
+		p.cleanup(v.AsDeferFail().Body().ID())
 	default:
 		p.expr(id)
 	}

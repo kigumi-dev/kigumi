@@ -5,7 +5,7 @@ var keywords = map[string]Kind{
 	"interface": KwInterface, "pub": KwPub, "import": KwImport, "if": KwIf,
 	"else": KwElse, "match": KwMatch, "is": KwIs, "for": KwFor, "in": KwIn,
 	"return": KwReturn, "break": KwBreak, "continue": KwContinue, "defer": KwDefer,
-	"errdefer": KwErrdefer, "fail": KwFail, "pure": KwPure, "noalloc": KwNoalloc,
+	"fail": KwFail, "pure": KwPure, "noalloc": KwNoalloc,
 	"async": KwAsync, "await": KwAwait, "unsafe": KwUnsafe, "move": KwMove,
 	"extern": KwExtern, "comptime": KwComptime, "true": KwTrue, "false": KwFalse,
 }

@@ -94,7 +94,7 @@ var (
 	cTryErrorMismatch      = defineCode("E713", "try-error-mismatch", "cannot propagate `{e}` from a function returning `Result[_, {e2}]`")
 	cTryInLambdaUnknownRet = defineCode("E714", "try-in-lambda-unknown-return", "`?` in a lambda needs a known return type")
 	cCleanupControlFlow    = defineCode("E715", "cleanup-control-flow", "{what} is not allowed in a cleanup body")
-	cErrdeferOutsideResult = defineCode("E716", "errdefer-outside-result", "`errdefer` in a function that cannot fail")
+	cDeferFailNoResult     = defineCode("E716", "errdefer-outside-result", "`defer(fail)` in a function that cannot fail; it would never run, so use a plain `defer` or make the function return `T!`")
 	cForLoopScalarMut      = defineCode("E717", "for-loop-scalar-mut", "cannot bind a mutable `{type}` element in a `for` loop; index the collection instead")
 
 	// break-with-value.

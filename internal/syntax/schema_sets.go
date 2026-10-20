@@ -17,7 +17,7 @@ var (
 
 	patSet = set(PatWildcard, PatBind, PatLit, PatCtor, PatRecord, PatOr, PatTuple, PatRange)
 
-	stmtSet = set(LetStmt, ExprStmt, AssignStmt, DeferStmt, ErrdeferStmt)
+	stmtSet = set(LetStmt, ExprStmt, AssignStmt, DeferStmt, DeferFailStmt)
 
 	declSet = set(FnDecl, TypeDecl, InterfaceDecl, ConstDecl, StaticDecl, ContextKeyDecl,
 		ImportDecl, TestDecl, AbiBlock, ContractBlock, InstantiateDecl)

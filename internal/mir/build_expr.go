@@ -118,11 +118,11 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 			if val, _, ok := b.r.Types.IsResult(b.ret); ok && val == sem.TyUnit {
 				v = b.emit(Inst{Op: OpVariant, Dst: b.temp(b.ret), Ent: b.variantNamed(b.r.Types.ResultEnt(), "Ok"), Type: b.ret, Args: []LocalID{v}, Node: n})
 			}
+			b.returnUnwinding(v, nil, n)
 		} else {
 			v = b.exprMoved(e.Args[0])
+			b.returnUnwinding(v, e.Args[0], n)
 		}
-		b.unwindTo(0, false)
-		b.returnValue(v)
 		return b.never(n)
 	case hir.Fail:
 		// The error leaves every scope, so a named local travels in a

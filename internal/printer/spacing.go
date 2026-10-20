@@ -21,7 +21,7 @@ func (p *printer) documented(id syntax.NodeID) bool { return p.t.View(id).AsDecl
 func (p *printer) compact(id syntax.NodeID) bool {
 	switch p.t.Kind(id) {
 	case syntax.ImportDecl, syntax.ConstDecl, syntax.StaticDecl, syntax.ContextKeyDecl, syntax.LetStmt, syntax.ExprStmt,
-		syntax.AssignStmt, syntax.DeferStmt, syntax.ErrdeferStmt, syntax.InstantiateDecl:
+		syntax.AssignStmt, syntax.DeferStmt, syntax.DeferFailStmt, syntax.InstantiateDecl:
 		return true
 	case syntax.FnDecl:
 		return !p.t.View(id).AsFnDecl().Body().Valid()

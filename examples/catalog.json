@@ -8,7 +8,7 @@
     {"name": "closures", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Lambdas, captures, map/filter/fold, generic function composition."},
     {"name": "generics", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Interfaces, generic functions with bounds, boxed interface values, Map."},
     {"name": "errors", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Error variants, ?, || fallbacks, fail, error.context."},
-    {"name": "resources", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Resource types with drop/close, defer and errdefer."},
+    {"name": "resources", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Resource types with drop/close, defer and defer(fail)."},
     {"name": "sorting", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "sortedBy with comparison closures, compareTo."},
     {"name": "cli_args", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Reading command line arguments (args.txt)."},
     {"name": "word_count", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Reading stdin, Map tallies, sorting entries (stdin.txt)."},

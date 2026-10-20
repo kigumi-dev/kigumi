@@ -132,7 +132,7 @@ var kigumiKeywords = map[string]bool{
 	"fn": true, "let": true, "const": true, "mut": true, "type": true,
 	"interface": true, "pub": true, "import": true, "if": true, "else": true,
 	"match": true, "is": true, "for": true, "in": true, "return": true,
-	"break": true, "continue": true, "defer": true, "errdefer": true,
+	"break": true, "continue": true, "defer": true,
 	"fail": true, "pure": true, "noalloc": true, "async": true, "await": true,
 	"unsafe": true, "move": true, "extern": true, "comptime": true,
 	"true": true, "false": true, "self": true, "resource": true,

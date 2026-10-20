@@ -58,7 +58,7 @@ func (r *Result) topDecls(f FileID) []syntax.NodeID {
 
 func isStatementKind(k syntax.NodeKind) bool {
 	switch k {
-	case syntax.LetStmt, syntax.ExprStmt, syntax.AssignStmt, syntax.DeferStmt, syntax.ErrdeferStmt:
+	case syntax.LetStmt, syntax.ExprStmt, syntax.AssignStmt, syntax.DeferStmt, syntax.DeferFailStmt:
 		return true
 	}
 	return false

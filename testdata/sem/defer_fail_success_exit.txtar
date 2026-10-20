@@ -1,0 +1,132 @@
+-- module --
+mir: planned
+-- src --
+import test from std/test
+
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn take(h: Handle) -> Unit {}
+
+fn step() -> Unit! {}
+
+fn num() -> Int! {
+    1
+}
+
+fn wrapR(h: Handle) -> Handle! {
+    h
+}
+
+type Pair = {
+    pub h Handle
+    pub n Int
+}
+
+fn tailMove() -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    step()?
+    h
+}
+
+fn returnMove(flag: Bool) -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    if flag {
+        return h
+    }
+    step()?
+    h
+}
+
+fn tailRecord() -> Pair! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    step()?
+    Pair { h: h, n: 1 }
+}
+
+fn returnInsideLoop(n: Int) -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    for i in 0..n {
+        if i == 1 {
+            return h
+        }
+    }
+    fail test.failure("short")
+}
+
+fn okTail() -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    step()?
+    Ok(h)
+}
+
+fn okReturn(flag: Bool) -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    if flag {
+        return Ok(h)
+    }
+    step()?
+    Ok(h)
+}
+
+fn blockTail() -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    { h }
+}
+
+fn branchTail(flag: Bool, o: Int?) -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    step()?
+    if flag { h } else if let Some(k) = o { Ok(h) } else { h }
+}
+
+fn matchTail(n: Int) -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    match n {
+        1 -> h
+        2 -> { h }
+        _ -> Ok(h)
+    }
+}
+
+fn failBeforeMove(n: Int) -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    if n < 0 { fail test.failure("neg") } else { h }
+}
+
+fn plainDeferReadsReturned() -> Handle! {
+    let h = Handle { id: 1 }
+    defer { print "id ${h.id}" } //~ ERROR a cleanup reads `h`
+    defer(fail) { h.close() }
+    h
+}
+
+_ = tailMove()
+-- expect --
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+   --> main.kg:111:25
+    |
+111 |     defer { print "id ${h.id}" } //~ ERROR a cleanup reads `h`
+    |                         ^^^^
+    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here
+   --> main.kg:113:5
+    |
+113 |     h
+    |     ^
+

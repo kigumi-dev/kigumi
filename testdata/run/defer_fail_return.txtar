@@ -1,0 +1,128 @@
+-- src --
+import test from std/test
+
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn open(id: Int) -> Handle! {
+    if id < 0 {
+        fail test.failure("open ${id}")
+    }
+    print "open ${id}"
+    Handle { id: id }
+}
+
+fn prepare(h: &Handle, ok: Bool) -> Unit! {
+    print "prepare ${h.id}"
+    if !ok {
+        fail test.failure("prepare ${h.id}")
+    }
+}
+
+fn create(id: Int, ok: Bool) -> Handle! {
+    let h = open(id)?
+    defer(fail) { h.close() }
+    prepare(&h, ok)?
+    h
+}
+
+fn createEarly(id: Int, early: Bool, ok: Bool) -> Handle! {
+    let h = open(id)?
+    defer(fail) { h.close() }
+    if early {
+        return h
+    }
+    prepare(&h, ok)?
+    h
+}
+
+fn createFail(id: Int, ok: Bool) -> Handle! {
+    let h = open(id)?
+    defer(fail) { h.close() }
+    if !ok {
+        fail test.failure("explicit ${id}")
+    }
+    h
+}
+
+fn check(n: Int) -> Int! {
+    if n < 0 {
+        fail test.failure("negative")
+    }
+    n
+}
+
+fn passTail(n: Int) -> Int! {
+    defer(fail) print "cleanup tail ${n}"
+    check(n)
+}
+
+fn passReturn(n: Int) -> Int! {
+    defer(fail) print "cleanup return ${n}"
+    return check(n)
+}
+
+fn use(label: String, r: Handle!) -> Unit {
+    match r {
+        Ok(h) -> print "${label}: got ${h.id}"
+        Err(e) -> print "${label}: err ${e.message()}"
+    }
+}
+
+use("ok", create(1, true))
+use("prepare fails", create(2, false))
+use("open fails", create(-3, true))
+use("early", createEarly(4, true, false))
+use("late ok", createEarly(5, false, true))
+use("late fails", createEarly(6, false, false))
+use("fail ok", createFail(7, true))
+use("fail", createFail(8, false))
+print "tail ${passTail(1) || -1}"
+print "tail ${passTail(-1) || -1}"
+print "return ${passReturn(2) || -1}"
+print "return ${passReturn(-2) || -1}"
+-- stdout --
+open 1
+prepare 1
+ok: got 1
+drop 1
+open 2
+prepare 2
+close 2
+drop 2
+prepare fails: err prepare 2
+open fails: err open -3
+open 4
+early: got 4
+drop 4
+open 5
+prepare 5
+late ok: got 5
+drop 5
+open 6
+prepare 6
+close 6
+drop 6
+late fails: err prepare 6
+open 7
+fail ok: got 7
+drop 7
+open 8
+close 8
+drop 8
+fail: err explicit 8
+tail 1
+cleanup tail -1
+tail -1
+return 2
+cleanup return -2
+return -1

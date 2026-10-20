@@ -5,6 +5,8 @@ import "kigumi/internal/syntax"
 type reservation struct {
 	cleanup syntax.NodeID
 	scope   ScopeID
+	fail    bool
+	lambdas int
 }
 
 func (c *checker) ownsValue(ent EntityID) bool {
@@ -26,7 +28,10 @@ func (c *checker) declaredIn(ent EntityID, n syntax.NodeID) bool {
 }
 
 func (c *checker) reservedError(n syntax.NodeID, code Code, ent EntityID) {
-	r := c.reserved[ent]
+	c.reservedErrorAt(n, code, ent, c.reserved[ent])
+}
+
+func (c *checker) reservedErrorAt(n syntax.NodeID, code Code, ent EntityID, r reservation) {
 	d, ok := c.r.diagAt(c.f, n, code, c.r.Entities[ent].Name)
 	if ok {
 		c.r.emitDiag(c.f, d.WithNote(c.loc(r.cleanup), "`"+c.r.Entities[ent].Name+"` is reserved by this cleanup"))
@@ -41,10 +46,15 @@ func (c *checker) reserveUse(a syntax.NodeID) {
 	if ent == 0 || !c.ownsValue(ent) {
 		return
 	}
-	if _, held := c.reserved[ent]; held {
+	if r, held := c.reserved[ent]; held {
+		if c.exitMoveCandidate(a, ent, r) {
+			return
+		}
 		code := cCleanupReservedMove
 		if c.cleanup > 0 {
 			code = cCleanupReservedTwice
+			r.fail = false
+			c.reserved[ent] = r
 		}
 		c.reservedError(a, code, ent)
 		return
@@ -73,7 +83,7 @@ func (c *checker) holdReservations(n syntax.NodeID, ents []EntityID) {
 		if c.reserved == nil {
 			c.reserved = map[EntityID]reservation{}
 		}
-		c.reserved[ent] = reservation{cleanup: n, scope: c.scope}
+		c.reserved[ent] = reservation{cleanup: n, scope: c.scope, fail: c.t.Kind(n) == syntax.DeferFailStmt, lambdas: len(c.lambdas)}
 	}
 }
 

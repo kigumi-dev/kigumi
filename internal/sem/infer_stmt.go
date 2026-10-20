@@ -19,7 +19,7 @@ func (c *checker) stmt(n syntax.NodeID) TypeID {
 		t = TyUnit
 	case syntax.ExprStmt:
 		t = c.exprStmt(n)
-	case syntax.DeferStmt, syntax.ErrdeferStmt:
+	case syntax.DeferStmt, syntax.DeferFailStmt:
 		c.cleanupStmt(n)
 		t = TyUnit
 	default:
@@ -155,5 +155,5 @@ func (c *checker) letElse(n syntax.NodeID, s letSlots, got TypeID) {
 	c.info.Matches[n] = MatchInfo{Exhaustive: false}
 }
 
-// cleanupStmt checks a defer/errdefer body as a Unit statement with
+// cleanupStmt checks a defer / defer(fail) body as a Unit statement with
 // control flow forbidden inside.

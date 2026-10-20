@@ -44,7 +44,7 @@ const (
 	ExprStmt
 	AssignStmt
 	DeferStmt
-	ErrdeferStmt
+	DeferFailStmt
 
 	List
 
@@ -69,7 +69,7 @@ var declKindNames = [...]string{
 	"Metadata", "MetaItem", "InterfaceDecl", "ConstDecl", "StaticDecl", "ContextKeyDecl", "ImportDecl", "ImportAlias", "TestDecl",
 	"AbiBlock", "ContractBlock", "Instantiate", "Layout", "Attr",
 	"UnsafeGuarantee", "UGRule", "UGRequirement", "Visibility",
-	"Let", "ExprStmt", "Assign", "Defer", "Errdefer",
+	"Let", "ExprStmt", "Assign", "Defer", "DeferFail",
 	"List",
 	"TypePath", "TypeLifetime", "TypeOptional", "TypeResult", "TypeFn", "TypePtr", "TypeRef", "TypeTuple", "Path",
 }

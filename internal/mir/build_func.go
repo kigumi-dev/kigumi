@@ -61,6 +61,9 @@ func (p *Program) build(hf *hir.Func) *Func {
 		f.ImplicitOk = true
 		b.returnValue(b.unit(hf.Main.Node))
 	} else {
+		if hf.Body.Kind == hir.BlockExpr {
+			b.body = hf.Body.Block
+		}
 		v := b.detach(b.expr(hf.Body))
 		b.exitScope()
 		b.returnValue(v)

@@ -33,7 +33,7 @@ fn movedOnOnePath(flag: Bool) -> Unit {
 
 fn discardedBeforeExit() -> Unit! {
     let h = Handle { id: 1 }
-    errdefer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+    defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     _ = h
     fail test.failure("late")
 }
@@ -100,10 +100,10 @@ note: `h` is moved here
    |              ^
 
 error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
-  --> main.kg:33:30
+  --> main.kg:33:33
    |
-33 |     errdefer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
-   |                              ^^^^^^^
+33 |     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+   |                                 ^^^^^^^
    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
 note: `h` is moved here
   --> main.kg:34:9

@@ -70,7 +70,7 @@ func (d *dumper) stmt(s *Stmt, depth int) {
 	case DeferStmt:
 		kw := "defer"
 		if s.Err {
-			kw = "errdefer"
+			kw = "defer(fail)"
 		}
 		d.line(depth, "%s", kw)
 		if s.Body != nil {

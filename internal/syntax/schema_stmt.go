@@ -7,6 +7,6 @@ var stmtSchema = []kindSchema{
 	{ExprStmt, "ExprStmt", layL, "Head", []slot{ch("Expr", exprSet)}},
 	{AssignStmt, "Assign", layLR, "Op", []slot{ch("Target", exprSet), ch("Value", exprSet)}},
 	{DeferStmt, "Defer", layL, "Kw", []slot{ch("Body", stmtSet.or(blk))}},
-	{ErrdeferStmt, "Errdefer", layL, "Kw", []slot{ch("Body", stmtSet.or(blk))}},
+	{DeferFailStmt, "DeferFail", layL, "Kw", []slot{ch("Body", stmtSet.or(blk))}},
 	{List, "List", layList, "Open", []slot{items(anyKind)}},
 }

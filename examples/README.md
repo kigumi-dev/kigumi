@@ -34,7 +34,7 @@ Start at the top and read down.
 | [closures](closures/) | Lambdas, captures, `map`/`filter`/`fold`, generic function composition. |
 | [generics](generics/) | Interfaces, generic functions with bounds, boxed interface values, `Map`. |
 | [errors](errors/) | Error variants, `?`, `||` fallbacks, `fail`, `error.context`. |
-| [resources](resources/) | Resource types with `drop`/`close`, `defer` and `errdefer`. |
+| [resources](resources/) | Resource types with `drop`/`close`, `defer` and `defer(fail)`. |
 | [sorting](sorting/) | `sortedBy` with comparison closures, `compareTo`. |
 | [cli_args](cli_args/) | Reading command line arguments (`args.txt`). |
 | [word_count](word_count/) | Reading stdin, `Map` tallies, sorting entries (`stdin.txt`). |
