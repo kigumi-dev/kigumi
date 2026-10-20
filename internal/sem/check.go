@@ -104,8 +104,10 @@ type checker struct {
 	outsideCalls      []outsideMutCall
 	mutCaptures       map[EntityID][]syntax.NodeID
 	loopSpans         []token.Span
-	// lentFrom maps a `for` binding over a `&mut` head to the head's root.
-	lentFrom map[EntityID]EntityID
+	// lentFrom maps a `for` or pattern binding over a `&mut` head to the head's root place.
+	lentFrom map[EntityID]lentRef
+	// mutAliasInit: the initializer of a `let mut` borrow, which cannot be rebound to another place.
+	mutAliasInit map[EntityID]syntax.NodeID
 }
 
 // checkBodies (pass 7) type-checks every function, test and implicit main

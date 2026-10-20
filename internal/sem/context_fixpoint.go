@@ -67,6 +67,7 @@ func (r *Result) checkContextRequirements() {
 	for _, id := range nodes {
 		r.resolveCtxFn(id)
 	}
+	r.settleCtxExclusive()
 	r.checkCtxRoots(nodes, sets, real)
 	r.checkCtxVisibility(nodes)
 	r.checkCtxValueRefs()

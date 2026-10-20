@@ -1,0 +1,245 @@
+-- src --
+type Item = {
+    pub mut count Int
+    pub mut items Array[Int]
+}
+
+fn Item.update(mut self, d: Int) -> Unit {
+    self.count = self.count + d
+}
+
+fn Item.tick(mut self) -> Unit {
+    self.count = self.count + 1
+}
+
+fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+    f()
+}
+
+fn Item.runFn(mut self, f: fn() -> Unit) -> Unit {
+    f()
+}
+
+fn item() -> Item {
+    Item { count: 0, items: Array.of(1) }
+}
+
+context acc: Item
+context other: Item
+
+@provides(acc, other)
+type Both = {
+    pub mut acc Item
+    pub mut other Item
+}
+
+fn fresh() -> Both {
+    Both { acc: item(), other: item() }
+}
+
+fn pokeOther() -> Unit {
+    other.update(1)
+}
+
+fn ctxOtherImplicit() -> Int {
+    context (fresh()) {
+        acc.run(() => { pokeOther() })
+        acc.count * 10 + other.count
+    }
+}
+
+fn ctxOtherExplicit() -> Int {
+    context (fresh()) {
+        acc.run(() => { other.update(2) })
+        acc.count * 10 + other.count
+    }
+}
+
+type Pair = {
+    pub mut a Item
+    pub mut b Item
+}
+
+fn Pair.bumpB(mut self) -> Unit {
+    self.b.run(() => { self.a.update(1) })
+}
+
+fn pair() -> Pair {
+    Pair { a: item(), b: item() }
+}
+
+fn fieldDisjoint() -> Int {
+    let mut p = pair()
+    p.a.run(() => { p.b.update(1) })
+    p.a.count * 10 + p.b.count
+}
+
+fn fieldSelf() -> Int {
+    let mut p = pair()
+    p.bumpB()
+    p.a.count * 10 + p.b.count
+}
+
+fn closureBeforeCall() -> Int {
+    let mut p = pair()
+    let touch = () => { p.b.update(1) }
+    p.a.tick()
+    touch()
+    p.a.count * 10 + p.b.count
+}
+
+fn aliasOtherField() -> Int {
+    let mut p = pair()
+    let mut r = &mut p.a
+    p.b.run(() => { r.update(1) })
+    p.a.count * 10 + p.b.count
+}
+
+type Slot = {
+    pub mut found Option[Item]
+    pub mut other Item
+}
+
+fn patternOtherField() -> Int {
+    let mut s = Slot { found: Some(item()), other: item() }
+    if let Some(r) = &mut s.found {
+        r.run(() => { s.other.update(2) })
+    }
+    s.other.count
+}
+
+type Cnt = {
+    pub mut n Int
+}
+
+fn Cnt.tick(mut self) -> Unit {
+    self.n = self.n + 1
+}
+
+fn Cnt.runFn(mut self, f: fn() -> Unit) -> Unit {
+    f()
+}
+
+type CntPair = {
+    pub mut a Cnt
+    pub mut b Cnt
+}
+
+fn methodValueSnapshot() -> Int {
+    let mut v = Cnt { n: 0 }
+    v.runFn(v.tick)
+    v.n
+}
+
+fn methodValueSibling() -> Int {
+    let mut p = CntPair { a: Cnt { n: 0 }, b: Cnt { n: 0 } }
+    p.a.runFn(p.b.tick)
+    p.a.n
+}
+
+fn methodValueLet() -> Int {
+    let mut v = Cnt { n: 0 }
+    let f = v.tick
+    v.runFn(f)
+    f()
+    v.n
+}
+
+type Hub = {
+    pub mut count Int
+    pub mut log Array[Int]
+}
+
+fn Hub.bump(mut self) -> Unit {
+    self.count = self.count + 1
+}
+
+type Wrap = {
+    pub cb fn() -> Unit
+}
+
+fn Hub.fireWrap(mut self, w: Wrap) -> Unit {
+    w.cb()
+}
+
+context hub: Hub
+
+@provides(hub)
+type HubProvider = {
+    pub mut hub Hub
+}
+
+fn idle() -> Unit {}
+
+fn wrappedFnItem() -> Int {
+    context (HubProvider { hub: Hub { count: 5, log: Array.of(1) } }) {
+        hub.fireWrap(Wrap { cb: idle })
+        hub.fireWrap(Wrap { cb: () => {} })
+        hub.bump()
+        hub.count
+    }
+}
+
+fn patternSiblings() -> Int {
+    let mut p = pair()
+    match &mut p {
+        Pair { a, b } -> b.run(() => { a.update(1) })
+    }
+    p.a.count * 10 + p.b.count
+}
+
+fn patternSiblingsReversed() -> Int {
+    let mut p = pair()
+    match &mut p {
+        Pair { a, b } -> a.run(() => { b.update(2) })
+    }
+    p.a.count * 10 + p.b.count
+}
+
+fn rootAliasFieldCall() -> Int {
+    let mut p = pair()
+    let r = &mut p
+    r.a.run(() => { p.b.update(1) })
+    p.a.count * 10 + p.b.count
+}
+
+fn branchAliasUnrelated() -> Int {
+    let mut a = item()
+    let mut b = item()
+    let mut z = item()
+    let r = if a.count == 0 { &mut a } else { &mut b }
+    r.run(() => { z.update(3) })
+    z.count
+}
+
+print "ctxOtherImplicit=${ctxOtherImplicit()}"
+print "ctxOtherExplicit=${ctxOtherExplicit()}"
+print "fieldDisjoint=${fieldDisjoint()}"
+print "fieldSelf=${fieldSelf()}"
+print "closureBeforeCall=${closureBeforeCall()}"
+print "aliasOtherField=${aliasOtherField()}"
+print "patternOtherField=${patternOtherField()}"
+print "methodValueSnapshot=${methodValueSnapshot()}"
+print "methodValueSibling=${methodValueSibling()}"
+print "methodValueLet=${methodValueLet()}"
+print "wrappedFnItem=${wrappedFnItem()}"
+print "patternSiblings=${patternSiblings()}"
+print "patternSiblingsReversed=${patternSiblingsReversed()}"
+print "rootAliasFieldCall=${rootAliasFieldCall()}"
+print "branchAliasUnrelated=${branchAliasUnrelated()}"
+-- stdout --
+ctxOtherImplicit=1
+ctxOtherExplicit=2
+fieldDisjoint=1
+fieldSelf=10
+closureBeforeCall=11
+aliasOtherField=10
+patternOtherField=2
+methodValueSnapshot=0
+methodValueSibling=0
+methodValueLet=0
+wrappedFnItem=6
+patternSiblings=10
+patternSiblingsReversed=2
+rootAliasFieldCall=1
+branchAliasUnrelated=3

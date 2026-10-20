@@ -465,7 +465,7 @@ error[E979]: a closure argument cannot capture `v` while this call exclusively b
     |
 154 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
     |           ^^^^^^^^^^^^^^^^^^
-note: `v` is exclusively borrowed by this call
+note: `r` is exclusively borrowed by this call
    --> app/t/t.kg:154:5
     |
 154 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
@@ -504,7 +504,7 @@ error[E979]: a closure argument cannot capture `xs` while this call exclusively 
     |
 168 |         x.run(() => { xs.push(Item { count: 1 }) }) //~ ERROR a closure argument cannot capture `xs`
     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: `xs` is exclusively borrowed by this call
+note: `x` is exclusively borrowed by this call
    --> app/t/t.kg:168:9
     |
 168 |         x.run(() => { xs.push(Item { count: 1 }) }) //~ ERROR a closure argument cannot capture `xs`

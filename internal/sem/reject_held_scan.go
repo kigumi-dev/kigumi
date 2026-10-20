@@ -15,15 +15,17 @@ type heldResult struct {
 	lostNode syntax.NodeID
 	lostWhat string
 	opaque   bool
+	// fnOpaque: a plain `fn` may hide a closure holding a provider, whose implicit captures no erasure check saw.
+	fnOpaque bool
 	seen     map[TypeID]bool
 }
 
-func newHeldResult(roots []EntityID, lent map[EntityID]EntityID) *heldResult {
-	return &heldResult{roots: roots, lent: lent, seen: map[TypeID]bool{}}
+func (c *checker) newHeldResult(roots []EntityID, lent map[EntityID]EntityID) *heldResult {
+	return &heldResult{roots: roots, lent: lent, seen: map[TypeID]bool{}, fnOpaque: c.deferredToContext(roots)}
 }
 
 func (h *heldResult) sub() *heldResult {
-	return &heldResult{roots: h.roots, lent: h.lent, seen: h.seen}
+	return &heldResult{roots: h.roots, lent: h.lent, seen: h.seen, fnOpaque: h.fnOpaque}
 }
 
 func (h *heldResult) lose(n syntax.NodeID, what string) {
@@ -69,6 +71,8 @@ func (c *checker) scanHeld(t TypeID, h *heldResult) {
 		}
 	case KIface, KVar:
 		h.opaque = true
+	case KFn:
+		h.opaque = h.opaque || h.fnOpaque
 	case KParam:
 		if c.r.paramCanCall(n.Ent) {
 			h.opaque = true
@@ -111,6 +115,10 @@ func (c *checker) closureHolds(closure EntityID, h *heldResult) {
 			}
 			continue
 		}
+		if cap.Mode != capCopy && c.borrowsRoot(cap.Local, h) {
+			h.conflict, h.hit = closure, cap.Local
+			return
+		}
 		sub := h.sub()
 		c.scanHeld(c.r.Entities[cap.Local].Type, sub)
 		if sub.conflict != 0 {
@@ -131,4 +139,22 @@ func (c *checker) traceLocal(ent EntityID, h *heldResult) {
 	if e := &c.r.Entities[ent]; e.Kind == EntLocal {
 		h.lose(e.Node, "`"+e.Name+"`")
 	}
+}
+
+// borrowsRoot: a captured borrow traced to one of h's roots, unless the two sides name different fields.
+func (c *checker) borrowsRoot(local EntityID, h *heldResult) bool {
+	if c.r.Types.Kind(c.vars.resolve(c.r.Entities[local].Type)) != KRef {
+		return false
+	}
+	roots, lent := c.exclusiveRoots(local, 0)
+	return placesOverlap(roots[1:], lent, h.roots, h.lent)
+}
+
+func placesOverlap(a []EntityID, lentA map[EntityID]EntityID, b []EntityID, lentB map[EntityID]EntityID) bool {
+	for _, r := range a {
+		if slices.Contains(b, r) && (lentA[r] == 0 || lentB[r] == 0 || lentA[r] == lentB[r]) {
+			return true
+		}
+	}
+	return false
 }

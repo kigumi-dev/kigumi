@@ -1,0 +1,527 @@
+-- app/t/t.kg --
+type Item = {
+    pub mut count Int
+}
+
+fn Item.update(mut self, d: Int) -> Unit {
+    self.count = self.count + d
+}
+
+fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+    f()
+}
+
+fn nop() -> Unit {}
+
+type Pair = {
+    pub mut a Item
+    pub mut b Item
+}
+
+type Slot = {
+    pub mut found Option[Item]
+    pub mut other Item
+}
+
+fn immutableAlias() -> Int {
+    let mut v = Item { count: 0 }
+    let r = &mut v
+    r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+    v.count
+}
+
+fn mutAlias() -> Int {
+    let mut v = Item { count: 0 }
+    let mut r = &mut v
+    r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+    v.count
+}
+
+fn mutAliasCapturedByClosure() -> Int {
+    let mut v = Item { count: 0 }
+    let mut r = &mut v
+    v.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+    v.count
+}
+
+fn aliasOfAlias() -> Int {
+    let mut v = Item { count: 0 }
+    let mut r = &mut v
+    let mut s = r
+    s.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+    v.count
+}
+
+fn matchAlias() -> Int {
+    let mut o = Some(Item { count: 0 })
+    match &mut o {
+        Some(r) -> r.run(() => { o = None }) //~ ERROR a closure argument cannot capture `o`
+        None -> {}
+    }
+    0
+}
+
+fn ifLetAlias() -> Int {
+    let mut o = Some(Item { count: 0 })
+    if let Some(r) = &mut o {
+        r.run(() => { o = None }) //~ ERROR a closure argument cannot capture `o`
+    }
+    0
+}
+
+fn recordPatternAlias() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    match &mut p {
+        Pair { a, b } -> a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    }
+    p.a.count
+}
+
+fn mutAliasQuiet() -> Int {
+    let mut v = Item { count: 0 }
+    let mut r = &mut v
+    r.run(nop)
+    r.update(1)
+    v.run(() => { v.count = 3 }) //~ ERROR a closure argument cannot capture `v`
+    v.count
+}
+
+fn aliasOfOtherField() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let mut r = &mut p.a
+    p.b.run(() => { r.update(1) })
+    p.a.count
+}
+
+fn aliasOfSameField() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let mut r = &mut p.a
+    p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+    p.a.count
+}
+
+fn patternAliasOfOtherField() -> Int {
+    let mut s = Slot { found: Some(Item { count: 0 }), other: Item { count: 0 } }
+    if let Some(r) = &mut s.found {
+        r.run(() => { s.other.update(1) })
+    }
+    s.other.count
+}
+
+fn patternAliasOfSameField() -> Int {
+    let mut s = Slot { found: Some(Item { count: 0 }), other: Item { count: 0 } }
+    if let Some(r) = &mut s.found {
+        r.run(() => { s.found = None }) //~ ERROR a closure argument cannot capture `s`
+    }
+    s.other.count
+}
+
+fn matchByValueIsNotAlias() -> Int {
+    let mut o = Some(Item { count: 0 })
+    match o {
+        Some(r) -> {
+            let mut c = r
+            c.run(() => { o = None })
+        }
+        None -> {}
+    }
+    0
+}
+
+fn mk() -> Item {
+    Item { count: 0 }
+}
+
+fn ifBranchAlias() -> Int {
+    let mut a = mk()
+    let mut b = mk()
+    let c = a.count == 0
+    let r = if c { &mut a } else { &mut b }
+    r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    a.count
+}
+
+fn ifBranchOtherBranch() -> Int {
+    let mut a = mk()
+    let mut b = mk()
+    let c = a.count == 0
+    let r = if c { &mut a } else { &mut b }
+    r.run(() => { b.update(1) }) //~ ERROR a closure argument cannot capture `b`
+    b.count
+}
+
+fn matchBranchAlias() -> Int {
+    let mut a = mk()
+    let r = match a.count {
+        _ -> &mut a
+    }
+    r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    a.count
+}
+
+fn blockAlias() -> Int {
+    let mut a = mk()
+    let r = { &mut a }
+    r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    a.count
+}
+
+fn branchAliasUnrelated() -> Int {
+    let mut a = mk()
+    let mut b = mk()
+    let mut z = mk()
+    let c = a.count == 0
+    let r = if c { &mut a } else { &mut b }
+    r.run(() => { z.update(1) })
+    z.count
+}
+
+fn siblingPatternFields() -> Int {
+    let mut p = Pair { a: mk(), b: mk() }
+    match &mut p {
+        Pair { a, b } -> b.run(() => { a.update(1) })
+    }
+    p.a.count
+}
+
+fn siblingPatternFieldsReversed() -> Int {
+    let mut p = Pair { a: mk(), b: mk() }
+    match &mut p {
+        Pair { a, b } -> a.run(() => { b.update(1) })
+    }
+    p.b.count
+}
+
+fn samePatternField() -> Int {
+    let mut p = Pair { a: mk(), b: mk() }
+    match &mut p {
+        Pair { a, b } -> a.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    }
+    p.a.count
+}
+
+fn patternFieldVsRoot() -> Int {
+    let mut p = Pair { a: mk(), b: mk() }
+    match &mut p {
+        Pair { a, b } -> a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    }
+    p.a.count
+}
+
+fn aliasOfFieldCapturedByFieldCall() -> Unit {
+    let mut p = Pair { a: mk(), b: mk() }
+    match &mut p.a {
+        r -> p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+    }
+}
+
+fn aliasOfRootThenFieldCall() -> Int {
+    let mut p = Pair { a: mk(), b: mk() }
+    let r = &mut p
+    r.a.run(() => { p.b.update(1) })
+    p.b.count
+}
+
+fn aliasOfRootThenSameFieldCall() -> Int {
+    let mut p = Pair { a: mk(), b: mk() }
+    let r = &mut p
+    r.a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    p.a.count
+}
+
+fn aliasOfRootFieldCallVsOtherAlias() -> Int {
+    let mut p = Pair { a: mk(), b: mk() }
+    let r = &mut p
+    let s = &mut p.b
+    r.a.run(() => { s.update(1) })
+    p.b.count
+}
+-- expect --
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> app/t/t.kg:28:11
+   |
+28 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> app/t/t.kg:28:5
+   |
+28 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |     ^
+note: this closure captures `v`
+  --> app/t/t.kg:28:11
+   |
+28 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> app/t/t.kg:35:11
+   |
+35 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> app/t/t.kg:35:5
+   |
+35 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |     ^
+note: this closure captures `v`
+  --> app/t/t.kg:35:11
+   |
+35 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `r` while this call exclusively borrows it
+  --> app/t/t.kg:42:11
+   |
+42 |     v.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+   |           ^^^^^^^^^^^^^^^^^^
+note: `v` is exclusively borrowed by this call
+  --> app/t/t.kg:42:5
+   |
+42 |     v.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+   |     ^
+note: this closure captures `r`
+  --> app/t/t.kg:42:11
+   |
+42 |     v.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> app/t/t.kg:50:11
+   |
+50 |     s.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^^
+note: `s` is exclusively borrowed by this call
+  --> app/t/t.kg:50:5
+   |
+50 |     s.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |     ^
+note: this closure captures `v`
+  --> app/t/t.kg:50:11
+   |
+50 |     s.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `o` while this call exclusively borrows it
+  --> app/t/t.kg:57:26
+   |
+57 |         Some(r) -> r.run(() => { o = None }) //~ ERROR a closure argument cannot capture `o`
+   |                          ^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> app/t/t.kg:57:20
+   |
+57 |         Some(r) -> r.run(() => { o = None }) //~ ERROR a closure argument cannot capture `o`
+   |                    ^
+note: this closure captures `o`
+  --> app/t/t.kg:57:26
+   |
+57 |         Some(r) -> r.run(() => { o = None }) //~ ERROR a closure argument cannot capture `o`
+   |                          ^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `o` while this call exclusively borrows it
+  --> app/t/t.kg:66:15
+   |
+66 |         r.run(() => { o = None }) //~ ERROR a closure argument cannot capture `o`
+   |               ^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> app/t/t.kg:66:9
+   |
+66 |         r.run(() => { o = None }) //~ ERROR a closure argument cannot capture `o`
+   |         ^
+note: this closure captures `o`
+  --> app/t/t.kg:66:15
+   |
+66 |         r.run(() => { o = None }) //~ ERROR a closure argument cannot capture `o`
+   |               ^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `p` while this call exclusively borrows it
+  --> app/t/t.kg:74:32
+   |
+74 |         Pair { a, b } -> a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+   |                                ^^^^^^^^^^^^^^^^^^^^
+note: `a` is exclusively borrowed by this call
+  --> app/t/t.kg:74:26
+   |
+74 |         Pair { a, b } -> a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+   |                          ^
+note: this closure captures `p`
+  --> app/t/t.kg:74:32
+   |
+74 |         Pair { a, b } -> a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+   |                                ^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> app/t/t.kg:84:11
+   |
+84 |     v.run(() => { v.count = 3 }) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^^^
+note: `v` is exclusively borrowed by this call
+  --> app/t/t.kg:84:5
+   |
+84 |     v.run(() => { v.count = 3 }) //~ ERROR a closure argument cannot capture `v`
+   |     ^
+note: this closure captures `v`
+  --> app/t/t.kg:84:11
+   |
+84 |     v.run(() => { v.count = 3 }) //~ ERROR a closure argument cannot capture `v`
+   |           ^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `r` while this call exclusively borrows it
+  --> app/t/t.kg:98:13
+   |
+98 |     p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+   |             ^^^^^^^^^^^^^^^^^^
+note: `p` is exclusively borrowed by this call
+  --> app/t/t.kg:98:5
+   |
+98 |     p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+   |     ^^^
+note: this closure captures `r`
+  --> app/t/t.kg:98:13
+   |
+98 |     p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+   |             ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `s` while this call exclusively borrows it
+   --> app/t/t.kg:113:15
+    |
+113 |         r.run(() => { s.found = None }) //~ ERROR a closure argument cannot capture `s`
+    |               ^^^^^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> app/t/t.kg:113:9
+    |
+113 |         r.run(() => { s.found = None }) //~ ERROR a closure argument cannot capture `s`
+    |         ^
+note: this closure captures `s`
+   --> app/t/t.kg:113:15
+    |
+113 |         r.run(() => { s.found = None }) //~ ERROR a closure argument cannot capture `s`
+    |               ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `a` while this call exclusively borrows it
+   --> app/t/t.kg:139:11
+    |
+139 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> app/t/t.kg:139:5
+    |
+139 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |     ^
+note: this closure captures `a`
+   --> app/t/t.kg:139:11
+    |
+139 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `b` while this call exclusively borrows it
+   --> app/t/t.kg:148:11
+    |
+148 |     r.run(() => { b.update(1) }) //~ ERROR a closure argument cannot capture `b`
+    |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> app/t/t.kg:148:5
+    |
+148 |     r.run(() => { b.update(1) }) //~ ERROR a closure argument cannot capture `b`
+    |     ^
+note: this closure captures `b`
+   --> app/t/t.kg:148:11
+    |
+148 |     r.run(() => { b.update(1) }) //~ ERROR a closure argument cannot capture `b`
+    |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `a` while this call exclusively borrows it
+   --> app/t/t.kg:157:11
+    |
+157 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> app/t/t.kg:157:5
+    |
+157 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |     ^
+note: this closure captures `a`
+   --> app/t/t.kg:157:11
+    |
+157 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `a` while this call exclusively borrows it
+   --> app/t/t.kg:164:11
+    |
+164 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> app/t/t.kg:164:5
+    |
+164 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |     ^
+note: this closure captures `a`
+   --> app/t/t.kg:164:11
+    |
+164 |     r.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `a` while this call exclusively borrows it
+   --> app/t/t.kg:197:32
+    |
+197 |         Pair { a, b } -> a.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |                                ^^^^^^^^^^^^^^^^^^
+note: `a` is exclusively borrowed by this call
+   --> app/t/t.kg:197:26
+    |
+197 |         Pair { a, b } -> a.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |                          ^
+note: this closure captures `a`
+   --> app/t/t.kg:197:32
+    |
+197 |         Pair { a, b } -> a.run(() => { a.update(1) }) //~ ERROR a closure argument cannot capture `a`
+    |                                ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `p` while this call exclusively borrows it
+   --> app/t/t.kg:205:32
+    |
+205 |         Pair { a, b } -> a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |                                ^^^^^^^^^^^^^^^^^^^^
+note: `a` is exclusively borrowed by this call
+   --> app/t/t.kg:205:26
+    |
+205 |         Pair { a, b } -> a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |                          ^
+note: this closure captures `p`
+   --> app/t/t.kg:205:32
+    |
+205 |         Pair { a, b } -> a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |                                ^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `r` while this call exclusively borrows it
+   --> app/t/t.kg:213:22
+    |
+213 |         r -> p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+    |                      ^^^^^^^^^^^^^^^^^^
+note: `p` is exclusively borrowed by this call
+   --> app/t/t.kg:213:14
+    |
+213 |         r -> p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+    |              ^^^
+note: this closure captures `r`
+   --> app/t/t.kg:213:22
+    |
+213 |         r -> p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`
+    |                      ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `p` while this call exclusively borrows it
+   --> app/t/t.kg:227:13
+    |
+227 |     r.a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |             ^^^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> app/t/t.kg:227:5
+    |
+227 |     r.a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |     ^^^
+note: this closure captures `p`
+   --> app/t/t.kg:227:13
+    |
+227 |     r.a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    |             ^^^^^^^^^^^^^^^^^^^^
+

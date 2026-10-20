@@ -1,8 +1,6 @@
 package sem
 
 import (
-	"slices"
-
 	"kigumi/internal/syntax"
 )
 
@@ -34,58 +32,18 @@ func (c *checker) noteMutCapture(n syntax.NodeID, root EntityID) {
 
 func (c *checker) rootsHeldByClosure(roots []EntityID) bool {
 	for _, root := range roots {
-		for _, site := range c.captureSites[root] {
-			if site.ctx.list[site.idx].Mode != capCopy {
+		for _, h := range c.holders(root) {
+			if h.mode != capCopy {
 				return true
 			}
 		}
 	}
+	for local := range c.captureSites {
+		if c.borrowsRoot(local, &heldResult{roots: roots}) {
+			return true
+		}
+	}
 	return false
-}
-
-// exclusiveRoots follows `let r = &mut place` and `let r = x` aliases; lent maps a root reached
-// through a field place to that first field, the only part of it the access owns.
-func (c *checker) exclusiveRoots(root, field EntityID) ([]EntityID, map[EntityID]EntityID) {
-	roots := []EntityID{root}
-	var lent map[EntityID]EntityID
-	if field != 0 {
-		lent = map[EntityID]EntityID{root: field}
-	}
-	for ent := root; len(roots) < 8; {
-		next, nextField := c.lentFrom[ent], EntityID(0)
-		if init, ok := c.letInit[ent]; ok && next == 0 {
-			init = c.t.Unparen(init)
-			switch c.t.Kind(init) {
-			case syntax.BorrowExpr:
-				next, nextField = c.placeRoot(c.t.View(init).AsBorrow().Operand().ID())
-			case syntax.Ident:
-				next = c.info.Uses[init]
-			}
-		}
-		if next == 0 || slices.Contains(roots, next) || c.r.Entities[next].Kind != EntLocal && c.r.Entities[next].Kind != EntParam {
-			break
-		}
-		if nextField != 0 {
-			if lent == nil {
-				lent = map[EntityID]EntityID{}
-			}
-			lent[next] = nextField
-		}
-		roots = append(roots, next)
-		ent = next
-	}
-	return roots, lent
-}
-
-func (c *checker) placeRoot(n syntax.NodeID) (EntityID, EntityID) {
-	p, ok := c.buildPlace(n)
-	if !ok {
-		return 0, 0
-	}
-	if len(p.Fields) == 0 {
-		return p.Root, 0
-	}
-	return p.Root, p.Fields[0]
 }
 
 func (c *checker) sharesLoop(a, b syntax.NodeID) bool {
@@ -100,12 +58,20 @@ func (c *checker) sharesLoop(a, b syntax.NodeID) bool {
 
 func (c *checker) settleExclusive() {
 	for _, call := range c.outsideCalls {
-		c.settleOutsideCall(call)
+		c.settleOrDefer(call.roots, func() { c.settleOutsideCall(call) })
 	}
 	for _, s := range c.exclusiveSites {
-		c.settleExclusiveSite(s)
+		c.settleOrDefer(s.roots, func() { c.settleExclusiveSite(s) })
 	}
 	c.outsideCalls, c.exclusiveSites = nil, nil
+}
+
+func (c *checker) settleOrDefer(roots []EntityID, settle func()) {
+	if c.deferredToContext(roots) {
+		c.r.ctxDeferred = append(c.r.ctxDeferred, settle)
+		return
+	}
+	settle()
 }
 
 func (c *checker) noteMutBorrowSites(args []syntax.NodeID) {
@@ -150,9 +116,13 @@ func (c *checker) noteLoopAlias(pat, head syntax.NodeID) {
 		return
 	}
 	if root := c.rootOf(c.t.View(head).AsBorrow().Operand().ID()); root != 0 {
-		if c.lentFrom == nil {
-			c.lentFrom = map[EntityID]EntityID{}
-		}
-		c.lentFrom[c.info.Defs[pat]] = root
+		c.setLentFrom(c.info.Defs[pat], lentRef{root: root})
 	}
+}
+
+func (c *checker) setLentFrom(ent EntityID, from lentRef) {
+	if c.lentFrom == nil {
+		c.lentFrom = map[EntityID]lentRef{}
+	}
+	c.lentFrom[ent] = from
 }

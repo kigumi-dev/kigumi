@@ -33,6 +33,7 @@ func (r *Result) ctxCaptureChain(chain []EntityID, local EntityID) {
 			mode = capCell
 		}
 		info.Captures = append(info.Captures, Capture{Local: local, Mode: mode})
+		r.noteImplicitCapture(local, cl)
 		if mode != capCopy {
 			info.Copy = false
 		}

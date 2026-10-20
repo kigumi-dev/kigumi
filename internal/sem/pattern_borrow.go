@@ -15,7 +15,11 @@ func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bo
 		c.patBorrowMut = n.Flags&flagMut != 0
 		scrutinee = c.vars.resolve(n.Elem)
 	}
+	bound := len(c.locals)
 	info := c.patternInner(p, scrutinee, mut, seen)
+	if expr != 0 && c.patBorrowMut {
+		c.noteLentBindings(p, expr, info, c.locals[bound:])
+	}
 	if expr != 0 && !mut {
 		c.trackPatternPlaces(p, c.r.fnChainEnt(c.f, expr))
 	}

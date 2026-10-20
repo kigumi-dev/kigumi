@@ -148,7 +148,11 @@ type Result struct {
 	// fields supply, declared by `@provides(...)`.
 	provides map[EntityID][]ProvideBinding
 	// ctxValueRefs are fn-value refs pending a post-fixpoint CtxReal check.
-	ctxValueRefs    []ctxValueRef
+	ctxValueRefs []ctxValueRef
+	// ctxImplicit: closures that capture a provider local only through a call's hidden argument.
+	ctxImplicit map[EntityID][]EntityID
+	// ctxDeferred: exclusive-access judgements on a provider, run once ctxImplicit is complete.
+	ctxDeferred     []func()
 	selfWholeAssign map[EntityID]bool
 	// refCell* decide `&mut` cell lowering (resolve_ref_cells.go); the fixpoint runs once every body is checked.
 	refCellRecvs              []refCellRecv

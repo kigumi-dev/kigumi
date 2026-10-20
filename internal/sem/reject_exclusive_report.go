@@ -18,11 +18,11 @@ func (c *checker) captureNote(d diag.Diagnostic, closure EntityID, name string) 
 
 func (c *checker) errConflictCapture(arg syntax.NodeID, s exclusiveSite, h *heldResult, direct bool) {
 	closure := h.conflict
-	name := c.r.Entities[h.hit].Name
+	name := c.displayName(h.hit)
 	if direct {
 		d, ok := c.r.diagAt(c.f, arg, cReentrantMutCapture, name)
 		if ok {
-			c.r.emitDiag(c.f, c.captureNote(c.accessNote(d, s, name), closure, name))
+			c.r.emitDiag(c.f, c.captureNote(c.accessNote(d, s, c.displayName(s.root)), closure, name))
 		}
 		return
 	}
@@ -33,15 +33,22 @@ func (c *checker) errConflictCapture(arg syntax.NodeID, s exclusiveSite, h *held
 	}
 }
 
-func (c *checker) errUnknownCapture(arg syntax.NodeID, s exclusiveSite) {
-	name := c.r.Entities[s.root].Name
-	if d, ok := c.r.diagAt(c.f, arg, cReentrantCaptureUnknown, name); ok {
-		c.r.emitDiag(c.f, c.accessNote(d, s, name))
+func (c *checker) errUnknownCapture(arg syntax.NodeID, s exclusiveSite, hidden syntax.NodeID) {
+	name := c.displayName(s.root)
+	d, ok := c.r.diagAt(c.f, arg, cReentrantCaptureUnknown, name)
+	if !ok {
+		return
 	}
+	d = c.accessNote(d, s, name)
+	if c.isMethodValue(hidden) {
+		recv := c.t.View(hidden).AsMember().Base().ID()
+		d = d.WithNote(c.loc(recv), "this method value holds `"+c.placeName(recv)+"`, which it may share")
+	}
+	c.r.emitDiag(c.f, d)
 }
 
 func (c *checker) errHiddenCapture(arg syntax.NodeID, s exclusiveSite, h *heldResult) {
-	name := c.r.Entities[s.root].Name
+	name := c.displayName(s.root)
 	d, ok := c.r.diagAt(c.f, arg, cReentrantHiddenCapture, h.lostWhat, name)
 	if !ok {
 		return
@@ -54,7 +61,7 @@ func (c *checker) errHiddenCapture(arg syntax.NodeID, s exclusiveSite, h *heldRe
 }
 
 func (c *checker) errCapturedMutConflict(call outsideMutCall, root EntityID, w syntax.NodeID) {
-	name := c.r.Entities[root].Name
+	name := c.displayName(root)
 	code := cCapturedMutSelfConflict
 	if call.byRef {
 		code = cCapturedMutBorrowConflict
@@ -65,7 +72,7 @@ func (c *checker) errCapturedMutConflict(call outsideMutCall, root EntityID, w s
 }
 
 func (c *checker) errStoredCapture(call outsideMutCall, root, closure EntityID) {
-	name := c.r.Entities[root].Name
+	name := c.displayName(root)
 	if d, ok := c.r.diagAt(c.f, call.base, cReentrantStoredCapture, name); ok {
 		c.r.emitDiag(c.f, c.captureNote(d, closure, name))
 	}

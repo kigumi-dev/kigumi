@@ -9,6 +9,7 @@ func (c *checker) checkCapturedMutConflict(base syntax.NodeID, root EntityID) {
 		c.noteCaptureWrite(base, root)
 		return
 	}
-	roots, lent := c.exclusiveRoots(root, 0)
+	_, field := c.placeRoot(base)
+	roots, lent := c.exclusiveRoots(root, field)
 	c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: base, root: root, roots: roots, lent: lent})
 }

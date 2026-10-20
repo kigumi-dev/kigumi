@@ -1,0 +1,281 @@
+-- app/t/t.kg --
+type Item = {
+    pub mut count Int
+}
+
+fn Item.update(mut self, d: Int) -> Unit {
+    self.count = self.count + d
+}
+
+fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+    f()
+}
+
+fn Item.runFn(mut self, f: fn() -> Unit) -> Unit {
+    f()
+}
+
+fn Item.tick(mut self) -> Unit {
+    self.count = self.count + 1
+}
+
+type Pair = {
+    pub mut a Item
+    pub mut b Item
+}
+
+fn Pair.bumpB(mut self) -> Unit {
+    self.b.run(() => { self.a.update(1) })
+}
+
+fn Pair.bumpA(mut self) -> Unit {
+    self.a.run(() => { self.a.update(1) }) //~ ERROR a closure argument cannot capture `self`
+}
+
+fn disjointWrite() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.run(() => { p.b.update(1) })
+    p.a.count + p.b.count
+}
+
+fn disjointRead() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let mut seen = 0
+    p.a.run(() => { seen = p.b.count })
+    seen
+}
+
+fn sameFieldWrite() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+    p.a.count
+}
+
+fn wholeRootWrite() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.run(() => { p = Pair { a: Item { count: 1 }, b: Item { count: 1 } } }) //~ ERROR a closure argument cannot capture `p`
+    p.a.count
+}
+
+fn touchPair(x: &mut Pair) -> Unit {
+    x.b.count = 1
+}
+
+fn wholeRootBorrow() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.run(() => { touchPair(&mut p) }) //~ ERROR a closure argument cannot capture `p`
+    p.a.count
+}
+
+fn disjointNamedClosure() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let touch = () => { p.b.update(1) }
+    p.a.run(touch)
+    p.a.count
+}
+
+fn disjointClosureBeforeCall() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let touch = () => { p.b.update(1) }
+    p.a.tick()
+    touch()
+    p.a.count + p.b.count
+}
+
+fn sameFieldClosureBeforeCall() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    let touch = () => { p.a.update(1) }
+    p.a.tick() //~ ERROR a `mut self` call on `p` conflicts
+    touch()
+    p.a.count
+}
+
+fn methodValueOfCopy() -> Int {
+    let mut v = Item { count: 0 }
+    v.run(v.tick)
+    v.count
+}
+
+fn methodValueIntoFn() -> Int {
+    let mut v = Item { count: 0 }
+    v.runFn(v.tick)
+    v.count
+}
+
+fn methodValueOfOtherPlace() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 0 }
+    w.runFn(v.tick)
+    v.count + w.count
+}
+
+fn methodValueOfSiblingField() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.runFn(p.b.tick)
+    p.a.count
+}
+
+fn methodValueThroughLet() -> Int {
+    let mut v = Item { count: 0 }
+    let f = v.tick
+    v.runFn(f)
+    v.count
+}
+
+fn methodValueOfSameField() -> Int {
+    let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
+    p.a.runFn(p.a.tick) //~ ERROR cannot see what this closure captures
+    p.a.count
+}
+
+fn methodValueOfElement() -> Int {
+    let mut xs = Array.of(Item { count: 0 }, Item { count: 0 })
+    xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
+    xs[0].count
+}
+
+type Big = {
+    pub mut count Int
+    pub mut items Array[Int]
+}
+
+fn Big.tickWith[T](mut self, d: T) -> Unit {
+    self.count = self.count + 1
+}
+
+fn Big.runWith(mut self, f: fn(Int) -> Unit) -> Unit {
+    f(1)
+}
+
+fn methodValueOfMoveOnly() -> Int {
+    let mut v = Big { count: 0, items: Array.of(1) }
+    v.runWith(v.tickWith) //~ ERROR cannot see what this closure captures
+    v.count
+}
+-- expect --
+error[E979]: a closure argument cannot capture `self` while this call exclusively borrows it
+  --> app/t/t.kg:31:16
+   |
+31 |     self.a.run(() => { self.a.update(1) }) //~ ERROR a closure argument cannot capture `self`
+   |                ^^^^^^^^^^^^^^^^^^^^^^^
+note: `self` is exclusively borrowed by this call
+  --> app/t/t.kg:31:5
+   |
+31 |     self.a.run(() => { self.a.update(1) }) //~ ERROR a closure argument cannot capture `self`
+   |     ^^^^^^
+note: this closure captures `self`
+  --> app/t/t.kg:31:16
+   |
+31 |     self.a.run(() => { self.a.update(1) }) //~ ERROR a closure argument cannot capture `self`
+   |                ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `p` while this call exclusively borrows it
+  --> app/t/t.kg:49:13
+   |
+49 |     p.a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+   |             ^^^^^^^^^^^^^^^^^^^^
+note: `p` is exclusively borrowed by this call
+  --> app/t/t.kg:49:5
+   |
+49 |     p.a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+   |     ^^^
+note: this closure captures `p`
+  --> app/t/t.kg:49:13
+   |
+49 |     p.a.run(() => { p.a.update(1) }) //~ ERROR a closure argument cannot capture `p`
+   |             ^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `p` while this call exclusively borrows it
+  --> app/t/t.kg:55:13
+   |
+55 |     p.a.run(() => { p = Pair { a: Item { count: 1 }, b: Item { count: 1 } } }) //~ ERROR a closure argument cannot capture `p`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `p` is exclusively borrowed by this call
+  --> app/t/t.kg:55:5
+   |
+55 |     p.a.run(() => { p = Pair { a: Item { count: 1 }, b: Item { count: 1 } } }) //~ ERROR a closure argument cannot capture `p`
+   |     ^^^
+note: this closure captures `p`
+  --> app/t/t.kg:55:13
+   |
+55 |     p.a.run(() => { p = Pair { a: Item { count: 1 }, b: Item { count: 1 } } }) //~ ERROR a closure argument cannot capture `p`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `p` while this call exclusively borrows it
+  --> app/t/t.kg:65:13
+   |
+65 |     p.a.run(() => { touchPair(&mut p) }) //~ ERROR a closure argument cannot capture `p`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^
+note: `p` is exclusively borrowed by this call
+  --> app/t/t.kg:65:5
+   |
+65 |     p.a.run(() => { touchPair(&mut p) }) //~ ERROR a closure argument cannot capture `p`
+   |     ^^^
+note: this closure captures `p`
+  --> app/t/t.kg:65:13
+   |
+65 |     p.a.run(() => { touchPair(&mut p) }) //~ ERROR a closure argument cannot capture `p`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E980]: a `mut self` call on `p` conflicts with a closure that shares its identity cell
+  --> app/t/t.kg:87:5
+   |
+87 |     p.a.tick() //~ ERROR a `mut self` call on `p` conflicts
+   |     ^^^
+note: `p` is shared with a closure that writes it here
+  --> app/t/t.kg:86:25
+   |
+86 |     let touch = () => { p.a.update(1) }
+   |                         ^^^
+
+error[E1051]: cannot see what this closure captures while `p` is exclusively borrowed by this call
+   --> app/t/t.kg:126:15
+    |
+126 |     p.a.runFn(p.a.tick) //~ ERROR cannot see what this closure captures
+    |               ^^^^^^^^
+    = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+note: `p` is exclusively borrowed by this call
+   --> app/t/t.kg:126:5
+    |
+126 |     p.a.runFn(p.a.tick) //~ ERROR cannot see what this closure captures
+    |     ^^^
+note: this method value holds `p.a`, which it may share
+   --> app/t/t.kg:126:15
+    |
+126 |     p.a.runFn(p.a.tick) //~ ERROR cannot see what this closure captures
+    |               ^^^
+
+error[E1051]: cannot see what this closure captures while `xs` is exclusively borrowed by this call
+   --> app/t/t.kg:132:17
+    |
+132 |     xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
+    |                 ^^^^^^^^^^
+    = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+note: `xs` is exclusively borrowed by this call
+   --> app/t/t.kg:132:5
+    |
+132 |     xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
+    |     ^^^^
+note: this method value holds `xs[..]`, which it may share
+   --> app/t/t.kg:132:17
+    |
+132 |     xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
+    |                 ^^^^
+
+error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
+   --> app/t/t.kg:151:15
+    |
+151 |     v.runWith(v.tickWith) //~ ERROR cannot see what this closure captures
+    |               ^^^^^^^^^^
+    = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+note: `v` is exclusively borrowed by this call
+   --> app/t/t.kg:151:5
+    |
+151 |     v.runWith(v.tickWith) //~ ERROR cannot see what this closure captures
+    |     ^
+note: this method value holds `v`, which it may share
+   --> app/t/t.kg:151:15
+    |
+151 |     v.runWith(v.tickWith) //~ ERROR cannot see what this closure captures
+    |               ^
+

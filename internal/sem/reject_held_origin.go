@@ -29,6 +29,8 @@ func (c *checker) heldOf(expr syntax.NodeID, h *heldResult, seen map[syntax.Node
 		return
 	}
 	switch c.t.Kind(expr) {
+	case syntax.Lambda:
+		c.closureHolds(c.info.Defs[expr], h)
 	case syntax.Ident:
 		c.heldOfLocal(c.info.Uses[expr], expr, h, seen)
 	case syntax.MemberExpr:
@@ -81,7 +83,7 @@ func (c *checker) heldOfCall(call syntax.NodeID, h *heldResult, seen map[syntax.
 	case syntax.MemberExpr:
 		c.heldOf(c.t.View(callee).AsMember().Base().ID(), h, seen)
 	case syntax.Ident:
-		if ent := c.info.Uses[callee]; ent == 0 || c.r.Entities[ent].Kind != EntFn {
+		if ent := c.info.Uses[callee]; ent == 0 || c.r.Entities[ent].Kind != EntFn && c.r.Entities[ent].Kind != EntVariant {
 			h.lose(call, "this call's result")
 			return
 		}

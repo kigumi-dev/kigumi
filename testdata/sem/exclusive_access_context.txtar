@@ -1,0 +1,390 @@
+-- app/t/t.kg --
+type Item = {
+    pub mut count Int
+    pub mut items Array[Int]
+}
+
+fn Item.update(mut self, d: Int) -> Unit {
+    self.count = self.count + d
+}
+
+fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+    f()
+}
+
+fn bump(x: &mut Item) -> Unit {
+    x.count = x.count + 1
+}
+
+fn nop() -> Unit {}
+
+context acc: Item
+context other: Item
+
+@provides(acc, other)
+type Both = {
+    pub mut acc Item
+    pub mut other Item
+}
+
+fn fresh() -> Both {
+    Both { acc: Item { count: 0, items: Array.of(1) }, other: Item { count: 0, items: Array.of(1) } }
+}
+
+fn pokeAcc() -> Unit {
+    acc.update(1)
+}
+
+fn peekAcc() -> Int {
+    acc.count
+}
+
+fn pokeOther() -> Unit {
+    other.update(1)
+}
+
+fn implicitWrite() -> Int {
+    context (fresh()) {
+        acc.run(() => { pokeAcc() }) //~ ERROR a closure argument cannot capture
+        acc.count
+    }
+}
+
+fn implicitRead() -> Int {
+    context (fresh()) {
+        acc.run(() => { let seen = peekAcc() }) //~ ERROR a closure argument cannot capture
+        acc.count
+    }
+}
+
+fn implicitThroughNamedClosure() -> Int {
+    context (fresh()) {
+        let g = () => { pokeAcc() }
+        acc.run(g) //~ ERROR a closure argument cannot capture
+        acc.count
+    }
+}
+
+fn implicitInsideNestedClosure() -> Int {
+    context (fresh()) {
+        acc.run(() => { let inner = () => { pokeAcc() } }) //~ ERROR a closure argument cannot capture
+        acc.count
+    }
+}
+
+fn explicitBareInClosure() -> Int {
+    context (fresh()) {
+        acc.run(() => { bump(&mut acc) }) //~ ERROR a closure argument cannot capture
+        acc.count
+    }
+}
+
+fn otherKeyImplicit() -> Int {
+    context (fresh()) {
+        acc.run(() => { pokeOther() })
+        acc.count + other.count
+    }
+}
+
+fn otherKeyExplicit() -> Int {
+    context (fresh()) {
+        acc.run(() => { other.update(1) })
+        acc.count + other.count
+    }
+}
+
+fn otherKeyBare() -> Int {
+    context (fresh()) {
+        acc.run(() => { bump(&mut other) })
+        acc.count + other.count
+    }
+}
+
+fn closureNotPassed() -> Int {
+    context (fresh()) {
+        let g = () => { pokeAcc() }
+        acc.run(nop)
+        g()
+        acc.count
+    }
+}
+
+fn createdAfter() -> Int {
+    context (fresh()) {
+        acc.run(nop)
+        let g = () => { pokeAcc() }
+        g()
+        acc.count
+    }
+}
+
+type Hub = {
+    pub mut count Int
+    pub mut log Array[Int]
+    pub mut cb Option[fn() -> Unit]
+}
+
+fn Hub.bump(mut self) -> Unit {
+    self.count = self.count + 1
+}
+
+fn Hub.fire(mut self) -> Unit {
+    match self.cb {
+        Some(f) -> f()
+        None -> {}
+    }
+}
+
+type Wrap = {
+    pub cb fn() -> Unit
+}
+
+fn Hub.fireWrap(mut self, w: Wrap) -> Unit {
+    w.cb()
+}
+
+fn Hub.fireOpt(mut self, o: Option[fn() -> Unit]) -> Unit {
+    match o {
+        Some(f) -> f()
+        None -> {}
+    }
+}
+
+context hub: Hub
+
+@provides(hub)
+type HubProvider = {
+    pub mut hub Hub
+}
+
+fn freshHub() -> HubProvider {
+    HubProvider { hub: Hub { count: 0, log: Array.of(1), cb: None } }
+}
+
+fn pokeHub() -> Unit {
+    hub.bump()
+}
+
+fn idle() -> Unit {}
+
+fn implicitInWrappedRecord() -> Int {
+    context (freshHub()) {
+        hub.fireWrap(Wrap { cb: () => { pokeHub() } }) //~ ERROR an argument of this call holds a closure
+        hub.count
+    }
+}
+
+fn implicitInNamedThenWrapped() -> Int {
+    context (freshHub()) {
+        let g = () => { pokeHub() }
+        hub.fireWrap(Wrap { cb: g }) //~ ERROR an argument of this call holds a closure //~ ERROR may hold a closure that captures it
+        hub.count
+    }
+}
+
+fn implicitInOption() -> Int {
+    context (freshHub()) {
+        hub.fireOpt(Some(() => { pokeHub() })) //~ ERROR an argument of this call holds a closure
+        hub.count
+    }
+}
+
+fn implicitStoredInProvider() -> Int {
+    context (freshHub()) {
+        hub.cb = Some(() => { pokeHub() })
+        hub.fire() //~ ERROR may hold a closure that captures it
+        hub.count
+    }
+}
+
+fn wrappedPlainFnItem() -> Int {
+    context (freshHub()) {
+        hub.fireWrap(Wrap { cb: idle })
+        let keep = () => { pokeHub() }
+        hub.count
+    }
+}
+
+fn wrappedCaptureFreeClosure() -> Int {
+    context (freshHub()) {
+        hub.fireWrap(Wrap { cb: () => {} })
+        let keep = () => { pokeHub() }
+        hub.count
+    }
+}
+
+fn implicitStoredThenOtherMutCall() -> Int {
+    context (freshHub()) {
+        hub.cb = Some(() => { pokeHub() })
+        hub.bump() //~ ERROR may hold a closure that captures it
+        hub.count
+    }
+}
+-- expect --
+error[E979]: a closure argument cannot capture `Both` while this call exclusively borrows it
+  --> app/t/t.kg:47:17
+   |
+47 |         acc.run(() => { pokeAcc() }) //~ ERROR a closure argument cannot capture
+   |                 ^^^^^^^^^^^^^^^^
+note: `Both` is exclusively borrowed by this call
+  --> app/t/t.kg:47:9
+   |
+47 |         acc.run(() => { pokeAcc() }) //~ ERROR a closure argument cannot capture
+   |         ^^^
+note: this closure captures `Both`
+  --> app/t/t.kg:47:17
+   |
+47 |         acc.run(() => { pokeAcc() }) //~ ERROR a closure argument cannot capture
+   |                 ^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `Both` while this call exclusively borrows it
+  --> app/t/t.kg:54:17
+   |
+54 |         acc.run(() => { let seen = peekAcc() }) //~ ERROR a closure argument cannot capture
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `Both` is exclusively borrowed by this call
+  --> app/t/t.kg:54:9
+   |
+54 |         acc.run(() => { let seen = peekAcc() }) //~ ERROR a closure argument cannot capture
+   |         ^^^
+note: this closure captures `Both`
+  --> app/t/t.kg:54:17
+   |
+54 |         acc.run(() => { let seen = peekAcc() }) //~ ERROR a closure argument cannot capture
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `Both` while this call exclusively borrows it
+  --> app/t/t.kg:62:17
+   |
+62 |         acc.run(g) //~ ERROR a closure argument cannot capture
+   |                 ^
+note: `Both` is exclusively borrowed by this call
+  --> app/t/t.kg:62:9
+   |
+62 |         acc.run(g) //~ ERROR a closure argument cannot capture
+   |         ^^^
+note: this closure captures `Both`
+  --> app/t/t.kg:61:17
+   |
+61 |         let g = () => { pokeAcc() }
+   |                 ^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `Both` while this call exclusively borrows it
+  --> app/t/t.kg:69:17
+   |
+69 |         acc.run(() => { let inner = () => { pokeAcc() } }) //~ ERROR a closure argument cannot capture
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `Both` is exclusively borrowed by this call
+  --> app/t/t.kg:69:9
+   |
+69 |         acc.run(() => { let inner = () => { pokeAcc() } }) //~ ERROR a closure argument cannot capture
+   |         ^^^
+note: this closure captures `Both`
+  --> app/t/t.kg:69:17
+   |
+69 |         acc.run(() => { let inner = () => { pokeAcc() } }) //~ ERROR a closure argument cannot capture
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `Both` while this call exclusively borrows it
+  --> app/t/t.kg:76:17
+   |
+76 |         acc.run(() => { bump(&mut acc) }) //~ ERROR a closure argument cannot capture
+   |                 ^^^^^^^^^^^^^^^^^^^^^
+note: `Both` is exclusively borrowed by this call
+  --> app/t/t.kg:76:9
+   |
+76 |         acc.run(() => { bump(&mut acc) }) //~ ERROR a closure argument cannot capture
+   |         ^^^
+note: this closure captures `Both`
+  --> app/t/t.kg:76:17
+   |
+76 |         acc.run(() => { bump(&mut acc) }) //~ ERROR a closure argument cannot capture
+   |                 ^^^^^^^^^^^^^^^^^^^^^
+
+error[E2110]: an argument of this call holds a closure that captures `HubProvider`, which the call exclusively borrows
+   --> app/t/t.kg:171:9
+    |
+171 |         hub.fireWrap(Wrap { cb: () => { pokeHub() } }) //~ ERROR an argument of this call holds a closure
+    |         ^^^
+    = help: capture a copy in a separate binding, or end the call before the closure runs
+note: this argument holds a closure
+   --> app/t/t.kg:171:22
+    |
+171 |         hub.fireWrap(Wrap { cb: () => { pokeHub() } }) //~ ERROR an argument of this call holds a closure
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: this closure captures `HubProvider`
+   --> app/t/t.kg:171:33
+    |
+171 |         hub.fireWrap(Wrap { cb: () => { pokeHub() } }) //~ ERROR an argument of this call holds a closure
+    |                                 ^^^^^^^^^^^^^^^^
+
+error[E2112]: `HubProvider` may hold a closure that captures it, but this call exclusively borrows it
+   --> app/t/t.kg:179:9
+    |
+179 |         hub.fireWrap(Wrap { cb: g }) //~ ERROR an argument of this call holds a closure //~ ERROR may hold a closure that captures it
+    |         ^^^
+    = help: end the closure's use before the call, capture a copy, or keep callables out of its fields
+note: this closure captures `HubProvider`
+   --> app/t/t.kg:178:17
+    |
+178 |         let g = () => { pokeHub() }
+    |                 ^^^^^^^^^^^^^^^^
+
+error[E2110]: an argument of this call holds a closure that captures `HubProvider`, which the call exclusively borrows
+   --> app/t/t.kg:179:9
+    |
+179 |         hub.fireWrap(Wrap { cb: g }) //~ ERROR an argument of this call holds a closure //~ ERROR may hold a closure that captures it
+    |         ^^^
+    = help: capture a copy in a separate binding, or end the call before the closure runs
+note: this argument holds a closure
+   --> app/t/t.kg:179:22
+    |
+179 |         hub.fireWrap(Wrap { cb: g }) //~ ERROR an argument of this call holds a closure //~ ERROR may hold a closure that captures it
+    |                      ^^^^^^^^^^^^
+note: this closure captures `HubProvider`
+   --> app/t/t.kg:178:17
+    |
+178 |         let g = () => { pokeHub() }
+    |                 ^^^^^^^^^^^^^^^^
+
+error[E2110]: an argument of this call holds a closure that captures `HubProvider`, which the call exclusively borrows
+   --> app/t/t.kg:186:9
+    |
+186 |         hub.fireOpt(Some(() => { pokeHub() })) //~ ERROR an argument of this call holds a closure
+    |         ^^^
+    = help: capture a copy in a separate binding, or end the call before the closure runs
+note: this argument holds a closure
+   --> app/t/t.kg:186:21
+    |
+186 |         hub.fireOpt(Some(() => { pokeHub() })) //~ ERROR an argument of this call holds a closure
+    |                     ^^^^^^^^^^^^^^^^^^^^^
+note: this closure captures `HubProvider`
+   --> app/t/t.kg:186:26
+    |
+186 |         hub.fireOpt(Some(() => { pokeHub() })) //~ ERROR an argument of this call holds a closure
+    |                          ^^^^^^^^^^^^^^^^
+
+error[E2112]: `HubProvider` may hold a closure that captures it, but this call exclusively borrows it
+   --> app/t/t.kg:194:9
+    |
+194 |         hub.fire() //~ ERROR may hold a closure that captures it
+    |         ^^^
+    = help: end the closure's use before the call, capture a copy, or keep callables out of its fields
+note: this closure captures `HubProvider`
+   --> app/t/t.kg:193:23
+    |
+193 |         hub.cb = Some(() => { pokeHub() })
+    |                       ^^^^^^^^^^^^^^^^
+
+error[E2112]: `HubProvider` may hold a closure that captures it, but this call exclusively borrows it
+   --> app/t/t.kg:218:9
+    |
+218 |         hub.bump() //~ ERROR may hold a closure that captures it
+    |         ^^^
+    = help: end the closure's use before the call, capture a copy, or keep callables out of its fields
+note: this closure captures `HubProvider`
+   --> app/t/t.kg:217:23
+    |
+217 |         hub.cb = Some(() => { pokeHub() })
+    |                       ^^^^^^^^^^^^^^^^
+

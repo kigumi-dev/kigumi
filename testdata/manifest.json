@@ -5460,6 +5460,23 @@
       ]
     },
     {
+      "id": "run/exclusive_access_places",
+      "kind": "run",
+      "path": "testdata/run/exclusive_access_places.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/explicit_main_http_fallback",
       "kind": "run",
       "path": "testdata/run/explicit_main_http_fallback.txtar",
@@ -13206,6 +13223,39 @@
       "id": "sem/escape_contract_type_escaping",
       "kind": "sem",
       "path": "testdata/sem/escape_contract_type_escaping.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/exclusive_access_alias",
+      "kind": "sem",
+      "path": "testdata/sem/exclusive_access_alias.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/exclusive_access_context",
+      "kind": "sem",
+      "path": "testdata/sem/exclusive_access_context.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/exclusive_access_fields",
+      "kind": "sem",
+      "path": "testdata/sem/exclusive_access_fields.txtar",
       "mode": [
         "check"
       ],
