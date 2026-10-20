@@ -103,7 +103,7 @@ func checkFixture(t *testing.T, path string, std []*sem.Package) (*sem.Result, s
 		}
 		head += "-- " + s.name + " --\n" + s.body
 	}
-	mod := &sem.Module{}
+	mod := &sem.Module{IsrContracts: mir.IsrContracts}
 	var paths []string
 	for p := range pkgs {
 		paths = append(paths, p)

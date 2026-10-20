@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/sem"
 )
 
 const isrPairSrc = `
@@ -87,5 +88,56 @@ func TestInterruptLoweringParamFromCaller(t *testing.T) {
 	claims := mir.CheckInterruptLowering(prog)
 	if len(claims) != 1 || !strings.Contains(claims[0].Diag.Msg, "releases a `String`") {
 		t.Fatalf("a non-immortal argument must make the release forbidden: %+v", claims)
+	}
+}
+
+const isrOwnerSrc = `
+type Pt = { pub x Int, pub y Int }
+type Wrap = { pub p Pt, pub ok Bool }
+type Shape = | Dot(Pt) | Line(Pt, Pt)
+type Named = { pub name String }
+type Handle = resource { pub id Int }
+
+fn Handle.drop(move self) -> Unit {}
+
+fn probe(pt Pt, wrap Wrap, shape Shape, grid FixedArray[Int, 100000], opt Option[Int], names FixedArray[String, 4], named Named, items Array[Int], text String, handle Handle, view &Named, edit &mut Named) -> Unit {}
+
+export(interrupt) {
+    pub fn tick() -> Unit {}
+}
+`
+
+// A release of a type that cannot hold anything is inert; one that may own a heap value or a resource stays forbidden.
+func TestInterruptLoweringReleaseByType(t *testing.T) {
+	cases := []struct {
+		param  string
+		reject bool
+	}{
+		{"pt", false}, {"wrap", false}, {"shape", false}, {"grid", false}, {"opt", false}, {"view", false}, {"edit", false},
+		{"names", true}, {"named", true}, {"items", true}, {"text", true}, {"handle", true},
+	}
+	for _, c := range cases {
+		prog := planned(t, isrOwnerSrc)
+		probe, tick := funcNamed(t, prog, "main.probe"), funcNamed(t, prog, "main.tick")
+		var typ sem.TypeID
+		for _, p := range probe.Params {
+			if probe.Locals[p].Name == c.param {
+				typ = probe.Locals[p].Type
+			}
+		}
+		if typ == 0 {
+			t.Fatalf("no parameter %s in probe", c.param)
+		}
+		tick.Locals = append(tick.Locals, mir.Local{Name: "held", Type: typ})
+		held := mir.LocalID(len(tick.Locals) - 1)
+		blk := &tick.Blocks[0]
+		blk.Insts = append(blk.Insts, mir.Inst{Op: mir.OpDrop, Args: []mir.LocalID{held}})
+		claims := mir.CheckInterruptLowering(prog)
+		switch {
+		case c.reject && (len(claims) != 1 || !strings.Contains(claims[0].Diag.Msg, "releases a `"+prog.R.TypeString(typ)+"`")):
+			t.Errorf("%s: a release that may free memory must be rejected: %+v", c.param, claims)
+		case !c.reject && len(claims) != 0:
+			t.Errorf("%s: a release of a type that owns nothing must pass: %s", c.param, claims[0].Diag.Msg)
+		}
 	}
 }

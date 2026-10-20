@@ -87,7 +87,7 @@ func TestInterruptPermissionKeepsFacts(t *testing.T) {
 func TestInterruptPermissionRootLimit(t *testing.T) {
 	cfg := sem.InterruptConfig{Handlers: map[string][]string{"main.uart": {isrNotify}, "main.gone": nil}}
 	out := checkIsrWith(t, isrDeviceLib, isrTwoHandlers, isrDeviceContracts, cfg).Render()
-	for _, want := range []string{"E1091", "the handler interrupt configuration names `" + isrNotify + "`, which is outside the root limit", "E1092", "names handler `main.gone`", "handler `uart` reaches `" + isrNotify + "`"} {
+	for _, want := range []string{"E1091", "the `Interrupt` record for handler `main.uart` names `" + isrNotify + "`, which is outside the root limit", "E1092", "names handler `main.gone`", "handler `uart` reaches `" + isrNotify + "`"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("a handler record must not widen the root limit (missing %q):\n%s", want, out)
 		}

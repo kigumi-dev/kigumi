@@ -3,8 +3,6 @@ package sem
 import (
 	"slices"
 	"strings"
-
-	"kigumi/internal/syntax"
 )
 
 // isrScope is one handler's resolved permission set and every node's verdict under it.
@@ -45,33 +43,19 @@ func (r *Result) isrKnown(id string) bool {
 	return c != nil && c.IsrKnown(id)
 }
 
-// resolveIsrPerms narrows the root limit by the handler's own record; report gates the E1091 findings.
-func (r *Result) resolveIsrPerms(h EntityID, report bool) (bool, []string, []string) {
+// resolveIsrPerms narrows the root limit by the handler's own record and by the records of the module that owns it.
+func (r *Result) resolveIsrPerms(h EntityID) (bool, []string, []string) {
 	cfg := r.interruptConfig()
-	e := &r.Entities[h]
-	root := map[string]bool{}
-	for _, id := range cfg.Root {
-		root[id] = true
-		if !r.isrKnown(id) && report {
-			r.errAt(e.File, e.Node, cInterruptConfig, e.Name, "root", id, "matches no reviewed contract")
-		}
-	}
-	names, own := cfg.Handlers[r.handlerKey(h)]
+	root := idSet(cfg.Root)
+	key := r.handlerKey(h)
+	names, own := cfg.Handlers[key]
 	if !own {
 		names = cfg.Root
 	}
+	deps := r.depRecords(key)
 	var out []string
 	for _, id := range names {
-		switch {
-		case !r.isrKnown(id):
-			if own && report {
-				r.errAt(e.File, e.Node, cInterruptConfig, e.Name, "handler", id, "matches no reviewed contract")
-			}
-		case !root[id]:
-			if report {
-				r.errAt(e.File, e.Node, cInterruptConfig, e.Name, "handler", id, "is outside the root limit")
-			}
-		default:
+		if r.isrKnown(id) && root[id] && inEvery(deps, id) {
 			out = append(out, id)
 		}
 	}
@@ -79,7 +63,24 @@ func (r *Result) resolveIsrPerms(h EntityID, report bool) (bool, []string, []str
 	out = slices.Compact(out)
 	limit := slices.Clone(cfg.Root)
 	slices.Sort(limit)
-	return own, out, limit
+	return own || len(deps) > 0, out, limit
+}
+
+func idSet(ids []string) map[string]bool {
+	m := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		m[id] = true
+	}
+	return m
+}
+
+func inEvery(sets []map[string]bool, id string) bool {
+	for _, s := range sets {
+		if !s[id] {
+			return false
+		}
+	}
+	return true
 }
 
 func (r *Result) InterruptPermissionsOf(id EntityID) (InterruptPermissions, bool) {
@@ -87,17 +88,17 @@ func (r *Result) InterruptPermissionsOf(id EntityID) (InterruptPermissions, bool
 	if e.Kind != EntFn || r.Fn(id).Export != "interrupt" {
 		return InterruptPermissions{}, false
 	}
-	own, list, limit := r.resolveIsrPerms(id, false)
+	own, list, limit := r.resolveIsrPerms(id)
 	s := r.opSummary(id)
 	return InterruptPermissions{Own: own, Permits: list, RootLimit: limit, Reached: splitContracts(s.Contracts), Unverified: s.Untrusted}, true
 }
 
 // isrScopes resolves every handler's permissions, sharing one verdict map per distinct set.
-func (r *Result) isrScopes(handlers, nodes []EntityID, report bool) []*isrScope {
+func (r *Result) isrScopes(handlers, nodes []EntityID) []*isrScope {
 	bySet := map[string]map[EntityID]bool{}
 	var out []*isrScope
 	for _, h := range handlers {
-		own, list, limit := r.resolveIsrPerms(h, report)
+		own, list, limit := r.resolveIsrPerms(h)
 		sc := &isrScope{handler: h, own: own, list: list, limit: limit, permits: map[string]bool{}}
 		for _, id := range list {
 			sc.permits[id] = true
@@ -110,53 +111,6 @@ func (r *Result) isrScopes(handlers, nodes []EntityID, report bool) []*isrScope 
 		out = append(out, sc)
 	}
 	return out
-}
-
-// checkInterruptConfigKeys rejects a handler record naming no export(interrupt) function of a package this build loaded.
-func (r *Result) checkInterruptConfigKeys(handlers []EntityID) {
-	known := map[string]bool{}
-	for _, h := range handlers {
-		known[r.handlerKey(h)] = true
-	}
-	loaded := map[string]bool{}
-	for _, p := range r.Packages {
-		loaded[p.Path] = true
-	}
-	var keys []string
-	for k := range r.interruptConfig().Handlers {
-		if i := strings.LastIndexByte(k, '.'); !known[k] && i > 0 && loaded[k[:i]] {
-			keys = append(keys, k)
-		}
-	}
-	if len(keys) == 0 {
-		return
-	}
-	slices.Sort(keys)
-	f, n, ok := r.interruptConfigSite(handlers)
-	if !ok {
-		return
-	}
-	for _, k := range keys {
-		r.errAt(f, n, cInterruptConfigHandler, k)
-	}
-}
-
-// interruptConfigSite is where a configuration finding is reported: the first handler, else the main module's first file.
-func (r *Result) interruptConfigSite(handlers []EntityID) (FileID, syntax.NodeID, bool) {
-	if len(handlers) > 0 {
-		e := &r.Entities[handlers[0]]
-		return e.File, e.Node, true
-	}
-	for _, p := range r.Packages {
-		if p.Module == "" && !p.Std && len(p.Files) > 0 {
-			f := p.Files[0]
-			if p.HasScript {
-				f = p.Entry
-			}
-			return f, r.tree(f).Root, true
-		}
-	}
-	return 0, 0, false
 }
 
 // configHelp names the configuration origin and the root limit for a handler diagnostic.

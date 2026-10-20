@@ -18,7 +18,7 @@ func (e *emitter) scalarBinary(sb *strings.Builder, f *mir.Func, in mir.Inst) bo
 	}
 	l, _ := e.scalarOperand(sb, f, in.Args[0])
 	r, _ := e.scalarOperand(sb, f, in.Args[1])
-	res, ok := e.nativeBinaryOp(sb, in.Str, lty, e.numKind(lt), l, r)
+	res, ok := e.scalarBinaryOp(sb, in, lty, e.numKind(lt), l, r)
 	if !ok {
 		return false
 	}

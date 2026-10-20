@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
 )
@@ -59,8 +60,10 @@ type Module struct {
 	// Violations are release-policy findings from loading (a local replacement,
 	// an unresolved native Link); EvaluateRelease classifies each under a BuildPolicy.
 	Violations []Violation
-	local      Local
-	target     Target
+	// depInterrupt are the dependencies' Interrupt records, in the order the dependencies were loaded.
+	depInterrupt []sem.DepInterrupt
+	local        Local
+	target       Target
 	// deny, ceiling and artifactName carry an artifact's declared
 	// availability (LoadOptions) through to semModule (check.go).
 	deny         []string

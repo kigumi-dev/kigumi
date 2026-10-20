@@ -435,9 +435,11 @@ op 139 BOX_SET primitive (named, any) -> unit
 key alloc.Box.set
 op 140 BOX_WITH primitive (named, fn) -> any
 callback 1
+isr inert
 key alloc.Box.with
 op 141 BOX_WITH_MUT primitive (named, fn) -> any
 callback 1
+isr inert
 key alloc.Box.withMut
 op 142 BOX_INTO primitive (named) -> any
 key alloc.Box.into

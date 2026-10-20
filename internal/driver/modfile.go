@@ -56,7 +56,7 @@ type ModFile struct {
 	// ZigSpan is where Zig was declared (the Module record's `zig` field,
 	// or a standalone Zig record), for a build-time resolution diagnostic.
 	ZigSpan token.Span
-	// Interrupt is the interrupt configuration of `Interrupt` records; only the root module's is consulted.
+	// Interrupt is the interrupt configuration of `Interrupt` records; the root module's is the limit, a dependency's only narrows its own handlers.
 	Interrupt sem.InterruptConfig
 }
 

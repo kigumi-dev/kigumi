@@ -23,11 +23,11 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         563,
-	"rt_retain":        3928,
-	"rt_release":       41808,
+	"fixtures":         564,
+	"rt_retain":        3929,
+	"rt_release":       41824,
 	"rt_release_outer": 12034,
-	"rt_drop":          24458,
+	"rt_drop":          24473,
 	"rt_cell_init":     2604,
 	"rt_cell_take":     1092,
 	"rt_setfield_swap": 136,
@@ -63,6 +63,7 @@ var addedAfterBaseline = map[string]bool{
 	"defer_reserved_paths.txtar":           true,
 	"defer_second_binding.txtar":           true,
 	"exclusive_access_accepted.txtar":      true,
+	"isr_notrap.txtar":                     true,
 	"exclusive_access_places.txtar":        true,
 	"async_cancel_defer_positions.txtar":   true,
 	"async_cancel_defer_panic.txtar":       true,

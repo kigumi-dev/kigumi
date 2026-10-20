@@ -30,7 +30,7 @@ type IsrContracts interface {
 }
 
 // InterruptConfigVersion moves when the meaning of InterruptConfig or of a contract identity changes.
-const InterruptConfigVersion = 1
+const InterruptConfigVersion = 2
 
 // InterruptConfig is the root module's resolved interrupt configuration: Root is both the root
 // limit and the common configuration; Handlers narrows it for the handler keyed "pkg/path.name".
@@ -49,6 +49,22 @@ func (c InterruptConfig) Canonical() string {
 	slices.Sort(keys)
 	for _, k := range keys {
 		fmt.Fprintf(&sb, " %s=%s", k, strings.Join(c.Handlers[k], ";"))
+	}
+	return sb.String()
+}
+
+// DepInterrupt is one dependency module's Interrupt records.
+type DepInterrupt struct {
+	Module string
+	Config InterruptConfig
+}
+
+// InterruptKey is the cache identity of the root configuration together with the dependencies' records.
+func InterruptKey(root InterruptConfig, deps []DepInterrupt) string {
+	var sb strings.Builder
+	sb.WriteString(root.Canonical())
+	for _, d := range deps {
+		fmt.Fprintf(&sb, " dep %s {%s}", d.Module, d.Config.Canonical())
 	}
 	return sb.String()
 }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"kigumi/internal/sem"
 )
 
 // DepDir resolves a required module's directory: a local override (root only) or the fetched cache copy; missing is true when uncached.
@@ -64,6 +66,9 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 		depMod, _, err := ReadModFile(depDir)
 		if err != nil {
 			return err
+		}
+		if len(depMod.Interrupt.Handlers) > 0 {
+			m.depInterrupt = append(m.depInterrupt, sem.DepInterrupt{Module: r.Name, Config: sem.InterruptConfig{Handlers: depMod.Interrupt.Handlers}})
 		}
 		if err := m.addNative(depDir, depMod); err != nil {
 			return err

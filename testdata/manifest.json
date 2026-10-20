@@ -8180,6 +8180,23 @@
       ]
     },
     {
+      "id": "run/isr_notrap",
+      "kind": "run",
+      "path": "testdata/run/isr_notrap.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/json_decode",
       "kind": "run",
       "path": "testdata/run/json_decode.txtar",

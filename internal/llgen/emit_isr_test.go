@@ -47,3 +47,59 @@ func checkNoAlloc(t *testing.T, what, body string) {
 		}
 	}
 }
+
+const isrNoTrapSrc = `type Mode = | Idle | Busy(Int)
+
+fn pick(m: Mode) -> Int {
+    match m {
+        Idle -> 0
+        Busy(n) -> n
+    }
+}
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let b = true
+        let r = match b {
+            true -> 1
+            false -> 2
+        }
+        let mut n = 0
+        for i in 0..4 {
+            n = n.wrappingAdd(i)
+        }
+        for i in 0..=r {
+            n = n.wrappingAdd(i)
+        }
+        let mut m: u8 = 0
+        let hi8: u8 = 3
+        for j in m..hi8 {
+            m = m.wrappingAdd(j)
+        }
+        let mut w: i128 = 0
+        let hi128: i128 = 3
+        for k in w..hi128 {
+            w = w.wrappingAdd(k)
+        }
+        _ = n.wrappingAdd(pick(Idle))
+    }
+}
+`
+
+// TestExportInterruptNoTrapLeavesNoPanicPath checks the unreachable match fall-through and the guarded counter step compile to nothing.
+func TestExportInterruptNoTrapLeavesNoPanicPath(t *testing.T) {
+	ir := emitIR(t, isrNoTrapSrc)
+	handler := bodyOf(t, ir, `define ptr @"main.tick$kg"(`)
+	for name, body := range map[string]string{"handler": handler, "pick": fnBody(t, ir, "main.pick")} {
+		for _, bad := range []string{"@rt_panic", "@rt_iadd", "with.overflow", "@llvm.trap", "@llvm.debugtrap"} {
+			if strings.Contains(body, bad) {
+				t.Errorf("%s reaches %s, a trap path the interrupt contract forbids:\n%s", name, bad, body)
+			}
+		}
+	}
+	for _, want := range []string{"add i64", "add i128"} {
+		if !strings.Contains(handler, want) {
+			t.Errorf("the guarded counter step must be a plain `%s`:\n%s", want, handler)
+		}
+	}
+}

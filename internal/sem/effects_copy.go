@@ -36,7 +36,7 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 	nodes := r.effectNodes()
 	before := r.noallocVerdicts(nodes)
 	handlers := r.interruptHandlers()
-	isrBefore := r.isrScopes(handlers, nodes, false)
+	isrBefore := r.isrScopes(handlers, nodes)
 	added := false
 	for _, s := range sites {
 		e := EffectEdge{Kind: EdgeAlloc, Type: s.Type, File: s.File, Node: s.Node, Why: whyCopy, Scoped: r.InAllocatorBlock(s.File, s.Node)}
@@ -67,7 +67,7 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 	}
 	r.inferOpSummaries(nodes)
 	r.recheckProfiles(nodes)
-	for i, sc := range r.isrScopes(handlers, nodes, false) {
+	for i, sc := range r.isrScopes(handlers, nodes) {
 		if isrBefore[i].safe[sc.handler] && !sc.safe[sc.handler] {
 			r.reportIsrPath(sc)
 		}

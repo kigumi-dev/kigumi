@@ -127,6 +127,7 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 	mod.OS = m.target.OS
 	mod.IsrContracts = mir.IsrContracts
 	mod.Interrupt = m.Manifest.Interrupt
+	mod.DepInterrupt = m.depInterrupt
 	mod.Deny = m.deny
 	mod.LayerCeiling = m.ceiling
 	mod.ArtifactName = m.artifactName

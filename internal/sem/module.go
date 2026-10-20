@@ -66,4 +66,6 @@ type Module struct {
 	IsrContracts IsrContracts
 	// Interrupt is the root module's interrupt configuration.
 	Interrupt InterruptConfig
+	// DepInterrupt are the dependencies' Interrupt records: they only narrow their own handlers within the root limit.
+	DepInterrupt []DepInterrupt
 }

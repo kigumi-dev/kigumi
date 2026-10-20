@@ -78,6 +78,11 @@ func (p *Program) isrCallees(f *Func, in Inst) []*Func {
 		if g := p.ByEnt[in.Ent]; g != nil && !p.IsStdPrimitive(in.Ent) {
 			return []*Func{g}
 		}
+		if cb, ok := p.isrCallbackArg(in); ok {
+			if g := p.isrValueTarget(f, in.Args[cb]); g != nil {
+				return []*Func{g}
+			}
+		}
 	case OpCallValue:
 		if g := p.isrValueTarget(f, in.Args[0]); g != nil {
 			return []*Func{g}
@@ -94,46 +99,6 @@ func (p *Program) isrCallees(f *Func, in Inst) []*Func {
 		return out
 	}
 	return nil
-}
-
-// isrValueTarget follows aliases of l back to the closure or function item that made it, nil when it cannot.
-func (p *Program) isrValueTarget(f *Func, l LocalID) *Func {
-	for range 16 {
-		def, ok := isrDef(f, l)
-		if !ok {
-			return nil
-		}
-		switch def.Op {
-		case OpAlias, OpCopy, OpMove, OpShare:
-			l = def.Args[0]
-		case OpClosure, OpFnItem:
-			return p.ByEnt[def.Ent]
-		default:
-			return nil
-		}
-	}
-	return nil
-}
-
-// isrDef is l's one defining instruction; a local with none or several has no single source.
-func isrDef(f *Func, l LocalID) (Inst, bool) {
-	defs := isrDefs(f, l)
-	if len(defs) != 1 {
-		return Inst{}, false
-	}
-	return defs[0], true
-}
-
-func isrDefs(f *Func, l LocalID) []Inst {
-	var out []Inst
-	for _, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			if in.Op.Yields() && in.Dst == l {
-				out = append(out, in)
-			}
-		}
-	}
-	return out
 }
 
 // isrImmortal reports a value whose release never frees: a literal, a unit, a payload-free variant,

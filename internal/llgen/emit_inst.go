@@ -190,7 +190,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		e.dropCall(sb, f, rtDrop, args[0])
 		return
 	case mir.OpPanic:
-		e.irb(sb).Call(rtPanic, vptr(e.cstr(in.Str)))
+		e.emitPanic(sb, in)
 		return
 	default:
 		return

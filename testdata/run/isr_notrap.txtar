@@ -1,0 +1,34 @@
+-- src --
+type Mode = | Idle | Busy(Int)
+
+fn weight(m: Mode) -> Int {
+    match m {
+        Idle -> 1
+        Busy(n) -> n
+    }
+}
+
+export(interrupt) {
+    pub fn tick() -> Unit {
+        let mut sum = 0
+        for i in 0..4 {
+            sum = sum.wrappingAdd(i)
+        }
+        let top = 3
+        for i in 0..=top {
+            sum = sum.wrappingAdd(weight(Busy(i)))
+        }
+        let b = sum == 12
+        let flag = match b {
+            true -> 1
+            false -> 2
+        }
+        sum = sum.wrappingAdd(flag).wrappingAdd(weight(Idle))
+    }
+}
+
+tick()
+tick()
+print "tick ok"
+-- stdout --
+tick ok

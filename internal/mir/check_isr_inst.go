@@ -25,7 +25,7 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 	if p.allocCopy(f, in) {
 		return "copies a value into a fresh allocation"
 	}
-	if in.NoTrap && (in.Op == OpPanic || in.Op == OpBinary) {
+	if in.NoTrap && (in.Op == OpPanic || in.Op == OpBinary || in.Op == OpIndex || in.Op == OpSetIndex) {
 		return ""
 	}
 	switch in.Op {
@@ -71,12 +71,12 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 
 func (p *Program) isrInertDrop(f *Func, l LocalID, inert []bool) bool {
 	t := f.Locals[l].Type
-	return t == sem.TyUnit || p.R.RegScalar(t) || f.IsDirect(l) || p.isrImmortal(f, l, inert)
+	return p.R.CannotOwn(t) || f.IsDirect(l) || p.isrImmortal(f, l, inert)
 }
 
-// isrInertArgs marks the parameters of g that the call in passes an immortal value.
+// isrInertArgs marks the parameters of g that the call in passes an immortal value; a callback reached through a primitive has no positional mapping.
 func (p *Program) isrInertArgs(f *Func, in Inst, g *Func, inert []bool) []bool {
-	if in.Op != OpCall || len(in.Args) != len(g.Params) {
+	if in.Op != OpCall || p.ByEnt[in.Ent] != g || len(in.Args) != len(g.Params) {
 		return nil
 	}
 	var out []bool
@@ -132,6 +132,9 @@ func (p *Program) isrCallForbidden(f *Func, in Inst) string {
 			return "calls `" + name + "`, whose lowered body is not available to verify"
 		}
 		return ""
+	}
+	if cb, ok := p.isrCallbackArg(in); ok && p.isrValueTarget(f, in.Args[cb]) == nil {
+		return "passes `" + name + "` a callback the lowering cannot see"
 	}
 	if in.DPrim != DPNone {
 		return ""

@@ -74,7 +74,7 @@ func TestInterruptManifestConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := res.Render()
-	for _, want := range []string{"E1091", "the root interrupt configuration names `mmio uart.ack`, which matches no reviewed contract", "E1092", "names handler `isr.gone`"} {
+	for _, want := range []string{"E1091", "the root `Interrupt` record names `mmio uart.ack`, which matches no reviewed contract", "E1092", "names handler `isr.gone`"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("mod.kg's Interrupt records must reach the checker (missing %q):\n%s", want, out)
 		}

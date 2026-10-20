@@ -37,7 +37,7 @@ func (b *builder) option(dst LocalID, e *hir.Expr, variant string, args ...Local
 // elemCopy is a value apart from the slot, so a borrow or cell pins it without pinning the whole array.
 func (b *builder) elemCopy(e *hir.Expr, fa, idx LocalID) LocalID {
 	elem, _, _ := b.r.FixedElem(e.Args[0].Type)
-	el := b.emit(Inst{Op: OpIndex, Dst: b.temp(elem), Args: []LocalID{fa, idx}, Node: e.Node})
+	el := b.emit(Inst{Op: OpIndex, Dst: b.temp(elem), Args: []LocalID{fa, idx}, Node: e.Node, NoTrap: true})
 	return b.emit(Inst{Op: OpShare, Dst: b.temp(elem), Args: []LocalID{el}, Copy: true, Node: e.Node})
 }
 
@@ -52,7 +52,7 @@ func (b *builder) fixedGet(e *hir.Expr) (LocalID, bool) {
 	elem, _, _ := b.r.FixedElem(e.Args[0].Type)
 	result := b.temp(e.Type)
 	br := b.branchInBounds(e, args[1])
-	b.option(result, e, "Some", b.emit(Inst{Op: OpIndex, Dst: b.temp(elem), Args: []LocalID{args[0], args[1]}, Node: e.Node}))
+	b.option(result, e, "Some", b.emit(Inst{Op: OpIndex, Dst: b.temp(elem), Args: []LocalID{args[0], args[1]}, Node: e.Node, NoTrap: true}))
 	return b.otherwise(br, result, e, func() { b.option(result, e, "None") }), true
 }
 
@@ -78,7 +78,7 @@ func (b *builder) fixedSet(e *hir.Expr) (LocalID, bool) {
 	}
 	result := b.temp(sem.TyBool)
 	br := b.branchInBounds(e, args[1])
-	b.emit(Inst{Op: OpSetIndex, Args: []LocalID{args[0], args[1], args[2]}, Node: e.Node})
+	b.emit(Inst{Op: OpSetIndex, Args: []LocalID{args[0], args[1], args[2]}, Node: e.Node, NoTrap: true})
 	b.emit(Inst{Op: OpConst, Dst: result, Lit: sem.Literal{Kind: sem.LitBool, Bool: true}, Type: sem.TyBool, Node: e.Node})
 	return b.otherwise(br, result, e, func() {
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{args[2]}, Node: e.Node})
@@ -98,7 +98,7 @@ func (b *builder) fixedWithMut(e *hir.Expr) (LocalID, bool) {
 	cell := b.lendCell(b.elemCopy(e, args[0], args[1]), b.r.Types.Ref(elem, true), e.Node, true)
 	r := b.emit(Inst{Op: OpCallValue, Dst: b.temp(b.r.Types.Node(e.Type).Args[0]), Args: []LocalID{args[2], cell}, Node: e.Node})
 	v := b.emit(Inst{Op: OpCellTake, Dst: b.temp(elem), Args: []LocalID{cell}, Node: e.Node})
-	b.emit(Inst{Op: OpSetIndex, Args: []LocalID{args[0], args[1], v}, Node: e.Node})
+	b.emit(Inst{Op: OpSetIndex, Args: []LocalID{args[0], args[1], v}, Node: e.Node, NoTrap: true})
 	b.option(result, e, "Some", r)
 	return b.otherwise(br, result, e, func() { b.option(result, e, "None") }), true
 }

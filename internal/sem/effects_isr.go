@@ -3,11 +3,11 @@ package sem
 // checkInterruptHandlers judges each handler, naked or not, from the shared OpSummary under its own resolved permissions.
 func (r *Result) checkInterruptHandlers() {
 	handlers := r.interruptHandlers()
-	r.checkInterruptConfigKeys(handlers)
+	r.checkInterruptConfig(handlers)
 	if len(handlers) == 0 {
 		return
 	}
-	for _, sc := range r.isrScopes(handlers, r.effectNodes(), true) {
+	for _, sc := range r.isrScopes(handlers, r.effectNodes()) {
 		if !sc.safe[sc.handler] {
 			r.reportIsrPath(sc)
 		}

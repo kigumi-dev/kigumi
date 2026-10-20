@@ -29,9 +29,9 @@ func (e *emitter) tryFixedInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bo
 	}
 	switch {
 	case in.Op == mir.OpIndex:
-		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, a, in.Args[0], in.Args[1], true), in.Dst)
+		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, a, in.Args[0], in.Args[1], !in.NoTrap), in.Dst)
 	case in.Op == mir.OpSetIndex:
-		e.storeLeaf(sb, *a.Arr, e.elemPtr(sb, f, a, in.Args[0], in.Args[1], true), in.Args[2])
+		e.storeLeaf(sb, *a.Arr, e.elemPtr(sb, f, a, in.Args[0], in.Args[1], !in.NoTrap), in.Args[2])
 	case in.Op == mir.OpBuiltin && in.Str == "iter.len":
 		e.storeScalarResult(sb, f, in.Dst, Value{TI64, fmt.Sprint(a.Len)})
 	case in.Op == mir.OpBuiltin && strings.HasPrefix(in.Str, "iter.at"):

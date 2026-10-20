@@ -23,3 +23,14 @@ func TestInterruptConfigEntersKeys(t *testing.T) {
 		t.Fatal("a handler's own record must enter the cache and analysis keys")
 	}
 }
+
+func TestDependencyInterruptEntersKeys(t *testing.T) {
+	m := &Module{target: HostTarget()}
+	mod := &sem.Module{}
+	env, analysis := m.cacheEnv(), analysisKey(m, mod)
+	m.depInterrupt = []sem.DepInterrupt{{Module: "lib", Config: sem.InterruptConfig{Handlers: map[string][]string{"lib.tick": nil}}}}
+	mod.DepInterrupt = m.depInterrupt
+	if m.cacheEnv() == env || analysisKey(m, mod) == analysis {
+		t.Fatal("a dependency's interrupt record must enter the cache and analysis keys")
+	}
+}
