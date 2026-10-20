@@ -59,3 +59,25 @@ fn main() -> Unit! {}
 		t.Fatalf("the pushed type parameter should go through rt_copy_mut alone:\n%s", body)
 	}
 }
+
+func TestNativeScalarBorrowKeepsItsBoxUntilTheCall(t *testing.T) {
+	body := fnBody(t, emitIR(t, `
+fn same[T: Eq](a: &T, b: &T) -> Bool {
+    a.equals(b)
+}
+
+fn main() -> Unit! {
+    let z: f64 = 0.0
+    let k = z / z
+    print "${same(k, k)}"
+}
+`), "main.main")
+	box := strings.Index(body, "@rt_float(")
+	call := strings.Index(body, `@"main.same`)
+	if box < 0 || call < box {
+		t.Fatalf("no boxed borrow passed to same:\n%s", body)
+	}
+	if strings.Contains(body[box:call], "@rt_release(") {
+		t.Fatalf("a box behind a borrow is released before the call reads it:\n%s", body)
+	}
+}
