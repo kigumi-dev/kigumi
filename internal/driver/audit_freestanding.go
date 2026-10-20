@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"kigumi/internal/llgen"
 )
@@ -46,19 +48,24 @@ func auditBareArchive(cc []string, archive string) error {
 		allSyms = append(allSyms, syms...)
 	}
 	allowed := llgen.FreestandingSymbols()
+	var missing []string
+	seen := map[string]bool{}
 	for _, s := range allSyms {
 		if s.TLS {
 			return fmt.Errorf("auditing %s: %q is thread-local; freestanding has no TLS runtime", archive, s.Name)
 		}
-		if s.Defined || defined[s.Name] {
+		if s.Defined || defined[s.Name] || allowed[s.Name] || seen[s.Name] {
 			continue
 		}
-		if !allowed[s.Name] {
-			if cat := classifySymbol(s.Name); cat != "" {
-				return fmt.Errorf("auditing %s: references undefined symbol %q (%s), which is not in internal/llgen/runtime/freestanding_symbols.txt", archive, s.Name, cat)
-			}
-			return fmt.Errorf("auditing %s: references undefined symbol %q, which is not in internal/llgen/runtime/freestanding_symbols.txt", archive, s.Name)
-		}
+		seen[s.Name] = true
+		missing = append(missing, s.Name)
 	}
-	return nil
+	if len(missing) == 0 {
+		return nil
+	}
+	sort.Strings(missing)
+	if cat := classifySymbol(missing[0]); cat != "" {
+		return fmt.Errorf("auditing %s: references undefined symbol %q (%s), which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s)", archive, missing[0], cat, strings.Join(missing, ", "))
+	}
+	return fmt.Errorf("auditing %s: references undefined symbol %q, which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s)", archive, missing[0], strings.Join(missing, ", "))
 }

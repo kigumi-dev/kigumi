@@ -70,6 +70,9 @@ func parseTripleStructure(triple string) (parsedTriple, error) {
 	if !ok {
 		return parsedTriple{}, fmt.Errorf("target %q: unknown OS %s", triple, parts[1])
 	}
+	if os == "uefi" && arch == "wasm32" {
+		return parsedTriple{}, fmt.Errorf("target %q: wasm32 has no UEFI ABI", triple)
+	}
 	p := parsedTriple{arch: arch, os: os, abiKnown: true}
 	if len(parts) >= 3 {
 		p.abiKnown = len(parts) == 3 && knownABI[parts[1]][parts[2]]
@@ -152,5 +155,18 @@ var strictBlockingProfiles = map[string]bool{
 // StrictBlocking reports a `--blocking-executor` profile that rejects direct blocking inside an async body instead of warning.
 func (t Target) StrictBlocking() bool { return strictBlockingProfiles[t.BlockingExecutor] }
 
-// compileTriple is the triple as given; build.go supplies rt_freestanding.h's own declarations for freestanding/UEFI since compileTriple no longer substitutes a musl triple.
-func (t Target) compileTriple() string { return t.Triple }
+// compileTriple is the triple handed to the C compiler: as given, except that zig names the OS-less "none" OS "freestanding"
+// and has no 32-bit ARM Windows ABI in ARM mode, which UEFI on arm needs as thumb.
+func (t Target) compileTriple() string {
+	parts := strings.Split(t.Triple, "-")
+	if len(parts) < 2 {
+		return t.Triple
+	}
+	if parts[1] == "none" {
+		parts[1] = "freestanding"
+	}
+	if t.OS == "uefi" && t.Arch == "arm" {
+		parts[0] = "thumb"
+	}
+	return strings.Join(parts, "-")
+}

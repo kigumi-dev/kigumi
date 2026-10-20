@@ -5,7 +5,7 @@
 # runtime libc call or a changed rt_sys_* boundary must land here too, or
 # internal/driver's TestBuildFreestandingSymbolSet fails naming it.
 # memcpy, memmove, memset and memcmp are also what the compiler itself calls for a large copy or compare.
-# The __aeabi_*, __*di3 and _GLOBAL_OFFSET_TABLE_ entries are the compiler-rt and linker symbols a 32-bit x86 or ARM target needs.
+# The __aeabi_*, __*di3, __multi3, _all*, _aull*, __rt_*, __dtoi64, __i64tod and __u64tod entries are compiler-rt (or MSVC runtime) helpers; _GLOBAL_OFFSET_TABLE_, __stack_pointer and __indirect_function_table are linker-provided.
 # docs/build_targets_v1.md documents this file as the contract.
 _GLOBAL_OFFSET_TABLE_
 __aeabi_d2f
@@ -48,10 +48,22 @@ __aeabi_memset8
 __aeabi_ul2d
 __aeabi_uldivmod
 __divdi3
+__dtoi64
 __errno_location
+__i64tod
+__indirect_function_table
 __moddi3
+__multi3
+__rt_sdiv64
+__rt_udiv64
+__stack_pointer
+__u64tod
 __udivdi3
 __umoddi3
+_alldiv
+_allrem
+_aulldiv
+_aullrem
 calloc
 ceil
 floor

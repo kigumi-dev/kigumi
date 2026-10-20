@@ -98,6 +98,10 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 	if t.Bare() {
 		compileFlags, _ := splitArchiveCFlags(opts.CFlags)
 		args = append(args, compileFlags...)
+		if t.Arch != "wasm32" {
+			// A wasm object compiled position-independent imports __memory_base and __table_base from the linker.
+			args = append(args, "-fPIE")
+		}
 		fp := CurrentFingerprint(t, ZigVersionOf(cc))
 		fp.RuntimeAbi = code.Abi
 		reportStaleFingerprint(out, fp, stderr)

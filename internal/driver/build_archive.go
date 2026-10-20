@@ -43,7 +43,7 @@ func buildArchive(cc, args, inputs []string, dir, out string, env []string, stde
 			return false, err
 		}
 		obj := fmt.Sprintf("obj%d.o", i)
-		cargs := append(append([]string{}, args...), "-ffreestanding", "-fno-stack-protector", "-fPIE", "-ffunction-sections", "-fdata-sections", "-fdebug-compilation-dir=.", "-c", "-o", obj, rel)
+		cargs := append(append([]string{}, args...), "-ffreestanding", "-fno-stack-protector", "-ffunction-sections", "-fdata-sections", "-fdebug-compilation-dir=.", "-c", "-o", obj, rel)
 		cmd := exec.Command(cc[0], cargs...)
 		cmd.Dir = dir
 		cmd.Stderr = stderr
