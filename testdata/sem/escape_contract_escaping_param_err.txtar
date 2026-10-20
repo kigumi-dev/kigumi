@@ -165,21 +165,21 @@ error[E305]: `Slots` does not implement `Registry[F]` for every `F`: `add` may k
 47 | @impl(Registry[F]) //~ ERROR `Slots` does not implement `Registry[F]`
    |       ^^^^^^^^^^
 
-error[E1034]: `fn(&mut Slot[_], escaping _) -> Unit` may keep its callback at parameter 2, but `fn(&mut Slot[F], F) -> Unit` declares it non-escaping
+error[E1034]: `fn(&mut Slot[F], escaping F) -> Unit` may keep its callback at parameter 2, but `fn(&mut Slot[F], F) -> Unit` declares it non-escaping
   --> lib/esc.kg:60:42
    |
 60 |     let k: fn(&mut Slot[F], F) -> Unit = setG //~ ERROR may keep its callback
    |                                          ^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 
-error[E1034]: `fn(escaping _) -> Unit` may keep its callback at parameter 1, but `fn(_) -> Unit` declares it non-escaping
+error[E1034]: `fn(escaping F) -> Unit` may keep its callback at parameter 1, but `fn(F) -> Unit` declares it non-escaping
   --> lib/esc.kg:71:16
    |
 71 |     needPlainF(eager, f) //~ ERROR may keep its callback
    |                ^^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 
-error[E1034]: `fn(escaping _) -> Handler[_]` may keep its callback at parameter 1, but `fn(fn() -> Unit) -> Handler[fn() -> Unit]` declares it non-escaping
+error[E1034]: `fn(escaping fn() -> Unit) -> Handler[fn() -> Unit]` may keep its callback at parameter 1, but `fn(fn() -> Unit) -> Handler[fn() -> Unit]` declares it non-escaping
   --> lib/esc.kg:81:56
    |
 81 |     let k: fn(fn() -> Unit) -> Handler[fn() -> Unit] = r.add //~ ERROR may keep its callback

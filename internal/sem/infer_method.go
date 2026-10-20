@@ -83,6 +83,7 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	}
 	from := len(*c.edges)
 	ret, plan := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params, false, c.r.Fn(req).Declared&EffAsync != 0)
+	c.taintRecvResult(n, ret, base)
 	c.requirementResult(n, ret, from, args, paramEnt != 0, c.r.Fn(req).Declared&EffAsync != 0)
 	effArgs := args
 	if plan != nil {

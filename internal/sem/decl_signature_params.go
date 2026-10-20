@@ -68,7 +68,7 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 			}
 			variadic = true
 			pe.Flags |= EfVariadic
-			typ = r.Types.Named(r.Types.arrayEnt, []TypeID{typ})
+			typ = r.Types.Named(r.Types.arrayEnt, []TypeID{r.Types.WithoutEscaping(typ)})
 		}
 		if ps.Flags&syntax.FlagMut != 0 {
 			pe.Flags |= EfMut

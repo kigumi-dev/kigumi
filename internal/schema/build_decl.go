@@ -77,7 +77,8 @@ func buildType(res *sem.Result, t *syntax.Tree, ent sem.EntityID, decl *Declarat
 
 func buildMember(res *sem.Result, t *syntax.Tree, ent sem.EntityID, meta []sem.MetaRef) *Member {
 	e := res.Entity(ent)
-	return &Member{ID: memberID(declRefOf(res, e.Parent).ID, e.Name), Name: e.Name, Type: typeRef(res, e.Type), Metadata: metadataOf(res, t, meta)}
+	return &Member{ID: memberID(declRefOf(res, e.Parent).ID, e.Name), Name: e.Name, Type: typeRef(res, e.Type), Metadata: metadataOf(res, t, meta),
+		Escaping: e.Kind == sem.EntParam && e.Flags&sem.EfEscaping != 0}
 }
 
 func buildVariant(res *sem.Result, t *syntax.Tree, v sem.EntityID) *Variant {

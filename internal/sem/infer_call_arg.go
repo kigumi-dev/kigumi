@@ -61,6 +61,7 @@ func (c *checker) consumeArg(a syntax.NodeID, param TypeID) {
 	if c.r.Types.Kind(param) == KRef {
 		return
 	}
+	c.noteOnceUse(a, a, c.info.Types[a])
 	c.consumeWhole(a)
 }
 

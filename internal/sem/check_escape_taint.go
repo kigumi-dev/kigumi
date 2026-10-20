@@ -129,3 +129,12 @@ func (c *checker) taintCallResult(n syntax.NodeID, ret TypeID, args []syntax.Nod
 		}
 	}
 }
+
+func (c *checker) taintRecvResult(n syntax.NodeID, ret TypeID, recvBase syntax.NodeID) {
+	if recvBase == 0 || c.taintedCall[n] != 0 || !c.r.mayContainFn(c.vars.resolve(ret), map[TypeID]bool{}) {
+		return
+	}
+	if rp := c.restrictedParam(recvBase); rp != 0 {
+		c.taintedCall[n] = rp
+	}
+}

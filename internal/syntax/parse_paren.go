@@ -53,10 +53,14 @@ func (p *parser) lambda() NodeID {
 	tok := p.layoutList(token.LParen, token.RParen, func() {
 		name := p.expect(token.Ident)
 		var typ NodeID
+		var flags uint32
 		if p.eat(token.Colon) {
-			typ = p.typ()
+			var esc bool
+			if typ, esc = p.escapableType(); esc {
+				flags |= FlagEscaping
+			}
 		}
-		params = append(params, p.tree.addRec(Param, name, []uint32{0, 0, uint32(typ)}))
+		params = append(params, p.tree.addRec(Param, name, []uint32{0, flags, uint32(typ)}))
 	})
 	p.expect(token.FatArrow)
 	p.skipNewlines()

@@ -1,0 +1,310 @@
+-- lib/esc.kg --
+fn twice[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    f()
+    f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+}
+
+fn inLoop[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+    for x in xs {
+        f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
+    }
+}
+
+fn afterBranch[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+    if c {
+        f()
+    }
+    f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+}
+
+fn afterMatch[F: FnOnce[fn() -> Unit]](f: F, n: Int) -> Unit {
+    match n {
+        0 -> f()
+        _ -> {}
+    }
+    f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+}
+
+fn run(g: fn() -> Unit) -> Unit { g() }
+
+fn afterLambda[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    f()
+    run(() => f()) //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
+}
+
+fn parenthesized[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    (f)()
+    f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+}
+
+// Accepted: one call on each path, and bounds that allow repeating.
+fn once[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    f()
+}
+
+fn eachBranch[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+    if c {
+        f()
+    } else {
+        f()
+    }
+}
+
+fn eachArm[F: FnOnce[fn() -> Unit]](f: F, n: Int) -> Unit {
+    match n {
+        0 -> f()
+        _ -> f()
+    }
+}
+
+fn eachIfLet[F: FnOnce[fn() -> Unit]](f: F, o: Int?) -> Unit {
+    if let x = o {
+        f()
+    } else {
+        f()
+    }
+}
+
+fn divergingBranch[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+    if c {
+        f()
+        return
+    }
+    f()
+}
+
+fn withArgument[F: FnOnce[fn(Int) -> Int]](f: F) -> Int {
+    f(1)
+}
+
+fn repeatable[F: FnMut[fn() -> Unit]](f: F) -> Unit {
+    f()
+    f()
+    for i in 0..3 {
+        f()
+    }
+}
+
+fn repeatableFn[F: Fn[fn() -> Unit]](f: F) -> Unit {
+    f()
+    f()
+}
+
+fn plain(f: fn() -> Unit) -> Unit {
+    f()
+    f()
+}
+
+fn continueLoop[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+    for x in xs {
+        if x > 0 {
+            f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
+            continue
+        }
+    }
+}
+
+fn nestedLoop[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+    for x in xs {
+        for y in xs {
+            f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
+            break
+        }
+    }
+}
+
+fn afterBreakCall[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+    for x in xs {
+        if x > 0 {
+            f()
+            break
+        }
+    }
+    f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+}
+
+// Accepted: the call is the last thing its path does, so no later iteration or statement repeats it.
+fn returnInLoop[F: FnOnce[fn() -> Int]](f: F, xs: Array[Int]) -> Int {
+    for x in xs {
+        if x > 0 {
+            return f()
+        }
+    }
+    0
+}
+
+fn returnInLoopThenCall[F: FnOnce[fn() -> Int]](f: F, xs: Array[Int]) -> Int {
+    for x in xs {
+        if x > 0 {
+            return f()
+        }
+    }
+    f()
+}
+
+fn bareLoopReturn[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+    for {
+        f()
+        return
+    }
+}
+
+fn breakAfterCall[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+    for x in xs {
+        if x > 0 {
+            f()
+            break
+        }
+    }
+}
+
+fn elseReturnsCall[F: FnOnce[fn() -> Int]](f: F, o: Int?) -> Int {
+    let Some(x) = o else {
+        return f()
+    }
+    x + f()
+}
+
+fn elseDivergesThenCall[F: FnOnce[fn() -> Unit]](f: F, o: Int?) -> Unit {
+    let Some(x) = o else {
+        f()
+        return
+    }
+    f()
+}
+
+fn run2[F: FnOnce[fn() -> Int]](f: F) -> Int { f() }
+
+fn runFn[G: Fn[fn() -> Int]](g: G) -> Int { g() + g() }
+
+fn mapWrapped[F: FnOnce[fn() -> Int]](f: F) -> Int {
+    Array.of(1, 2, 3).map((x: &Int) => f()).len().toInt() || 0 //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
+}
+
+fn fnWrapped[F: FnOnce[fn() -> Int]](f: F) -> Int {
+    runFn(() => f()) //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
+}
+
+fn passedTwice[F: FnOnce[fn() -> Int]](f: F) -> Int {
+    run2(f) + run2(f) //~ ERROR `f` is bound by `FnOnce` and may already have been called
+}
+
+fn calledThenPassed[F: FnOnce[fn() -> Int]](f: F) -> Int {
+    let a = f()
+    run2(f) + a //~ ERROR `f` is bound by `FnOnce` and may already have been called
+}
+
+fn passedInLoop[F: FnOnce[fn() -> Int]](f: F, xs: Array[Int]) -> Int {
+    for x in xs {
+        _ = run2(f) //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
+    }
+    0
+}
+
+fn reassigned[F: FnOnce[fn() -> Int]](mk: fn() -> F) -> Int {
+    let mut f = mk()
+    let a = f()
+    f = mk()
+    a + f()
+}
+
+fn passedOnce[F: FnOnce[fn() -> Int]](f: F) -> Int { run2(f) }
+-- expect --
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+ --> lib/esc.kg:3:5
+  |
+3 |     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+  |     ^^
+  = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2176]: `f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+ --> lib/esc.kg:8:9
+  |
+8 |         f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
+  |         ^^
+  = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+  --> lib/esc.kg:16:5
+   |
+16 |     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+   |     ^^
+   = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+  --> lib/esc.kg:24:5
+   |
+24 |     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+   |     ^^
+   = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2176]: `f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+  --> lib/esc.kg:31:15
+   |
+31 |     run(() => f()) //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
+   |               ^^
+   = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+  --> lib/esc.kg:36:5
+   |
+36 |     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+   |     ^^
+   = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2176]: `f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+   --> lib/esc.kg:100:13
+    |
+100 |             f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
+    |             ^^
+    = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2176]: `f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+   --> lib/esc.kg:109:13
+    |
+109 |             f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
+    |             ^^
+    = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+   --> lib/esc.kg:122:5
+    |
+122 |     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
+    |     ^^
+    = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2176]: `f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+   --> lib/esc.kg:180:40
+    |
+180 |     Array.of(1, 2, 3).map((x: &Int) => f()).len().toInt() || 0 //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
+    |                                        ^^
+    = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2176]: `f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+   --> lib/esc.kg:184:17
+    |
+184 |     runFn(() => f()) //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
+    |                 ^^
+    = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+   --> lib/esc.kg:188:20
+    |
+188 |     run2(f) + run2(f) //~ ERROR `f` is bound by `FnOnce` and may already have been called
+    |                    ^
+    = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2175]: `f` is bound by `FnOnce` and may already have been called, so it cannot be called again
+   --> lib/esc.kg:193:10
+    |
+193 |     run2(f) + a //~ ERROR `f` is bound by `FnOnce` and may already have been called
+    |          ^
+    = help: bind it with `FnMut` or `Fn` to call it more than once
+
+error[E2176]: `f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+   --> lib/esc.kg:198:18
+    |
+198 |         _ = run2(f) //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
+    |                  ^
+    = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+

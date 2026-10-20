@@ -67,11 +67,14 @@ func (c *checker) synthIf(n syntax.NodeID, want TypeID) TypeID {
 	c.pushScope(ScopeArm, n)
 	pos, neg := c.condFacts(s.Cond)
 	c.addFacts(pos)
+	once := c.onceBegin()
 	then := c.checkBranch(n, s.Then, want, valuePos)
+	c.onceArm(once, then)
 	thenFacts := c.snapshotFacts()
 	c.popScope(saved)
 	c.facts = append(entry, neg...)
 	if s.Else == 0 {
+		c.onceEnd(once, true)
 		c.joinBranches(then, thenFacts, TyUnit, c.facts)
 		if want != TyUnit && (want != 0 || valuePos) {
 			c.errAt(n, cIfValueNeedsElse)
@@ -80,6 +83,8 @@ func (c *checker) synthIf(n syntax.NodeID, want TypeID) TypeID {
 		return TyUnit
 	}
 	els := c.checkBranch(n, s.Else, want, valuePos)
+	c.onceArm(once, els)
+	c.onceEnd(once, false)
 	c.joinBranches(then, thenFacts, els, c.snapshotFacts())
 	return c.branchResult(want, valuePos, []syntax.NodeID{s.Then, s.Else}, []TypeID{then, els})
 }
@@ -133,11 +138,14 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 		c.addFacts(gp)
 		neg = nil
 	}
+	once := c.onceBegin()
 	then := c.checkBranch(n, s.Then, want, valuePos)
+	c.onceArm(once, then)
 	thenFacts := c.snapshotFacts()
 	c.popScope(saved)
 	c.facts = append(entry, neg...)
 	if s.Else == 0 {
+		c.onceEnd(once, true)
 		c.joinBranches(then, thenFacts, TyUnit, c.facts)
 		if want != TyUnit && (want != 0 || valuePos) {
 			c.errAt(n, cIfValueNeedsElse)
@@ -146,6 +154,8 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 		return TyUnit
 	}
 	els := c.checkBranch(n, s.Else, want, valuePos)
+	c.onceArm(once, els)
+	c.onceEnd(once, false)
 	c.joinBranches(then, thenFacts, els, c.snapshotFacts())
 	return c.branchResult(want, valuePos, []syntax.NodeID{s.Then, s.Else}, []TypeID{then, els})
 }

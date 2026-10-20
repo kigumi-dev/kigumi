@@ -27,7 +27,7 @@ func TestPackageAPITracksEscapingTypeParam(t *testing.T) {
 
 func TestParamTypeStringKeepsEscaping(t *testing.T) {
 	t.Parallel()
-	const src = "pub fn keep[F: Fn[fn() -> Unit]](callback: escaping F, other: F) -> Unit {}\n"
+	const src = "pub fn keep[F: Fn[fn() -> Unit]](callback: escaping F, other: F) -> Unit {}\npub fn keepV[F: Fn[fn() -> Unit]](cbs: ...escaping F) -> Unit {}\npub fn plainV[F: Fn[fn() -> Unit]](cbs: ...F) -> Unit {}\n"
 	pkgs := append(testkit.LoadStd(t, "../../std"), &sem.Package{Path: "lib", Files: []*syntax.Tree{syntax.Parse(token.NewFile("lib/lib.kg", []byte(src)))}})
 	res := sem.CheckWith(&sem.Module{Packages: pkgs}, schema.GenerateDerive)
 	for _, d := range res.Files[len(res.Files)-1].Diags {
@@ -38,6 +38,13 @@ func TestParamTypeStringKeepsEscaping(t *testing.T) {
 	for i := range res.Entities {
 		id := sem.EntityID(i)
 		e := res.Entity(id)
+		if e.Kind == sem.EntFn && (e.Name == "keepV" || e.Name == "plainV") {
+			want := map[string]string{"keepV": "...escaping F", "plainV": "Array[F]"}[e.Name]
+			if got := res.ParamTypeString(res.Fn(id).Params[0]); got != want {
+				t.Errorf("%s variadic printed as %q, want %q", e.Name, got, want)
+			}
+			continue
+		}
 		if e.Kind != sem.EntFn || e.Name != "keep" {
 			continue
 		}
@@ -48,7 +55,5 @@ func TestParamTypeStringKeepsEscaping(t *testing.T) {
 		if got := res.ParamTypeString(params[1]); got != "F" {
 			t.Errorf("plain parameter printed as %q", got)
 		}
-		return
 	}
-	t.Fatal("keep not found")
 }

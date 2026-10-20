@@ -8,6 +8,7 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		c.synthArgs(args)
 		return TyPoison
 	}
+	c.noteOnceUse(n, callee, ft)
 	node := tt.Node(ft)
 	why := uint8(whyDynamicResult)
 	var closure EntityID

@@ -113,7 +113,7 @@ func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want 
 		return false
 	}
 	if i, ok := c.firstEscapeMismatch(got, want); ok {
-		c.errAt(n, cEscapingCoerce, got, i+1, want)
+		c.errAt(n, cEscapingCoerce, c.typeText(got), i+1, c.typeText(want))
 		return true
 	}
 	if need := Effects(w.Flags) & (EffPure | EffNoalloc); Effects(g.Flags)&need != need {

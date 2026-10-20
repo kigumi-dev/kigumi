@@ -119,14 +119,11 @@ func (p *Program) returnable(f *Func, t sem.TypeID) bool {
 	return false
 }
 
-// sameType is type identity, with a closure counted as its signature (every
-// back end treats a closure as a function value of that type) and, failing
-// that, two fn types compared ignoring `pure`/`noalloc`: closure erasure and a
-// plain fn item both carry those qualifiers only for the checker's effects
-// pass (an EdgeContract), never in the value's runtime representation.
+// sameType counts a closure as its signature and ignores `pure`/`noalloc`/escaping on fn types:
+// every back end treats a closure as a function value, and those qualifiers never reach the runtime representation.
 func (p *Program) sameType(a, b sem.TypeID) bool {
 	a, b = p.fnType(a), p.fnType(b)
-	if a == b || p.sameFnRepr(a, b) {
+	if a == b || p.sameFnRepr(a, b) || p.R.Types.SameIgnoringEscaping(a, b) {
 		return true
 	}
 	// A defined type and its underlying chain share one representation, so

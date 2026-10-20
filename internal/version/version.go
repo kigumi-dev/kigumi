@@ -24,7 +24,7 @@ const (
 	// SchemaIRFormatMajor/Minor version internal/schema's envelope; a minor
 	// bump only adds fields or node kinds an older reader can ignore.
 	SchemaIRFormatMajor = 1
-	SchemaIRFormatMinor = 0
+	SchemaIRFormatMinor = 1
 )
 
 // AbiRevision names the native Kigumi ABI generation this compiler emits

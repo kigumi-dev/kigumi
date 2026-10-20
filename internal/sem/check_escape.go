@@ -4,7 +4,19 @@ import "kigumi/internal/syntax"
 
 func (c *checker) restrictedEntity(ent EntityID) bool {
 	ent = c.aliasChase(ent)
-	return ent != 0 && c.r.Entities[ent].Kind == EntParam && c.r.Entities[ent].Parent == c.fn && c.r.nonEscapingParam(ent)
+	return ent != 0 && c.r.Entities[ent].Kind == EntParam && c.ownParam(c.r.Entities[ent].Parent) && c.r.nonEscapingParam(ent)
+}
+
+func (c *checker) ownParam(owner EntityID) bool {
+	if owner == c.fn {
+		return true
+	}
+	for _, ctx := range c.lambdas {
+		if ctx.ent == owner {
+			return true
+		}
+	}
+	return false
 }
 
 // aliasChase follows paramAlias/escapeAlias chains to the root entity, ent itself if neither has one.
@@ -68,9 +80,11 @@ func (c *checker) restrictedAliasOf(expr syntax.NodeID) EntityID {
 		return 0
 	case syntax.CallExpr, syntax.WsCallExpr:
 		return c.taintedCall[expr]
+	case syntax.MemberExpr, syntax.OptMemberExpr, syntax.BracketExpr, syntax.Unary, syntax.BorrowExpr, syntax.MoveExpr, syntax.TryExpr:
+		return c.projectionAlias(expr)
 	default:
 		p := c.aliasChase(c.info.Uses[expr])
-		if !c.restrictedEntity(p) {
+		if !c.restrictedEntity(p) || !c.holdsFn(expr, p) {
 			return 0
 		}
 		return p
@@ -92,7 +106,7 @@ func (c *checker) taintPatternBindings(p syntax.NodeID, rp EntityID) {
 	if rp == 0 || p == 0 {
 		return
 	}
-	if ent := c.info.Defs[p]; ent != 0 {
+	if ent := c.info.Defs[p]; ent != 0 && c.r.mayContainFn(c.vars.resolve(c.r.Entities[ent].Type), map[TypeID]bool{}) {
 		c.escapeAlias[ent] = rp
 	}
 	for child := range c.t.View(p).Children() {

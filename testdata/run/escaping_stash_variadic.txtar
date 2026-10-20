@@ -1,0 +1,143 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn Res.show(self) -> Unit {
+    print "show res ${self.n}"
+}
+
+fn stash(cb: escaping fn() -> Unit) -> fn() -> Unit {
+    cb
+}
+
+fn stashViaLet(cb: escaping fn() -> Unit) -> fn() -> Unit {
+    let kept = cb
+    kept
+}
+
+fn callAll(cbs: ...fn() -> Unit) -> Int {
+    let mut n = 0
+    for cb in cbs {
+        cb()
+        n += 1
+    }
+    n
+}
+
+fn callBound[F: Fn[fn() -> Unit]](cbs: ...F) -> Int {
+    let mut n = 0
+    for cb in cbs {
+        cb()
+        n += 1
+    }
+    n
+}
+
+fn keepAll(cbs: ...escaping fn() -> Unit) -> Array[fn() -> Unit] {
+    cbs
+}
+
+fn keepGeneric[F: Fn[fn() -> Unit]](cbs: ...escaping F) -> Array[F] {
+    cbs
+}
+
+fn once[F: FnOnce[fn() -> Unit]](f: F, first: Bool) -> Unit {
+    if first {
+        print "first branch"
+        f()
+    } else {
+        print "second branch"
+        f()
+    }
+}
+
+fn identity() -> fn(escaping fn() -> Unit) -> fn() -> Unit {
+    (cb: escaping fn() -> Unit) => cb
+}
+
+fn viaStash() -> Unit {
+    let a = Res { n: 1 }
+    let n = a.n
+    let kept = stash(() => print "stash ${n}")
+    print "stashed"
+    kept()
+    kept()
+    let again = stashViaLet(() => print "again ${n}")
+    again()
+    print "stash end"
+}
+
+fn viaVariadic() -> Unit {
+    let a = Res { n: 2 }
+    let b = Res { n: 3 }
+    print "called ${callAll(() => a.show(), () => b.show())}"
+    print "bound ${callBound(() => b.show())}"
+    let n = a.n
+    let kept = keepAll(() => print "k1", () => print "k2 ${n}")
+    print "kept ${kept.len()}"
+    for k in kept {
+        k()
+    }
+    let held = keepGeneric(() => b.show())
+    print "held ${held.len()}"
+    for h in held {
+        h()
+    }
+    print "variadic end"
+}
+
+fn viaOnce() -> Unit {
+    let a = Res { n: 4 }
+    once(() => a.show(), true)
+    once(() => a.show(), false)
+    print "once end"
+}
+
+fn viaLambda() -> Unit {
+    let a = Res { n: 5 }
+    let n = a.n
+    let f = identity()(() => print "lambda ${n}")
+    f()
+    print "lambda end"
+}
+
+viaStash()
+viaVariadic()
+viaOnce()
+viaLambda()
+print "end"
+-- stdout --
+stashed
+stash 1
+stash 1
+again 1
+stash end
+drop res 1
+show res 2
+show res 3
+called 2
+show res 3
+bound 1
+kept 2
+k1
+k2 2
+held 1
+show res 3
+variadic end
+drop res 3
+drop res 2
+first branch
+show res 4
+second branch
+show res 4
+once end
+drop res 4
+lambda 5
+lambda end
+drop res 5
+end

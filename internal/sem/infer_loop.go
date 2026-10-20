@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/syntax"
+import (
+	"maps"
+
+	"kigumi/internal/syntax"
+)
 
 // loopBreaks is nil outside a bare `for { }` loop, where a valued break is an error.
 type loopBreaks struct {
@@ -14,6 +18,7 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	bare := s.Pattern == 0 && s.Head == 0
 	saved := c.scope
 	c.pushScope(ScopeArm, n)
+	once := c.onceLoopBegin()
 	switch {
 	case s.Pattern != 0:
 		iter := c.vars.resolve(c.synthPlace(s.Head))
@@ -22,6 +27,7 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 		c.trackLoopPlaces(s.Pattern, s.Head)
 		c.noteLoopAlias(s.Pattern, s.Head)
 		c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Head))
+		once.entry = maps.Clone(c.once.called)
 		if !c.irrefutable(s.Pattern, elem) {
 			c.errAt(s.Pattern, cPatternRefutable, c.witnessText(s.Pattern, elem))
 		}
@@ -40,7 +46,8 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	}
 	c.breaks = mine
 	c.loop++
-	c.check(s.Body, TyUnit)
+	c.onceLoopBody(once)
+	c.onceLoopEnd(once, c.check(s.Body, TyUnit), bare)
 	c.loop--
 	c.breaks = savedBreaks
 	c.popScope(saved)
@@ -180,5 +187,6 @@ func (c *checker) synthBreak(n syntax.NodeID) TypeID {
 			c.errAt(n, cBreakValueLoopKind)
 		}
 	}
+	c.onceLeave(kw == "break")
 	return TyNever
 }

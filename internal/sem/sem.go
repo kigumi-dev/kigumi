@@ -172,6 +172,7 @@ type Result struct {
 	instanceKeys              map[string]EntityID
 	closureOrigins            map[EntityID]EntityID
 	ordinalMu                 sync.Mutex
+	varNames                  []string
 	closureOrdinals           map[EntityID]int
 	lifetimeStandIns          []EntityID
 	localLifetimes            map[localLifetimeKey]EntityID

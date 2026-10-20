@@ -1,6 +1,8 @@
 package sem
 
 import (
+	"maps"
+
 	"kigumi/internal/diag"
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
@@ -144,7 +146,9 @@ func (c *checker) letStmt(n syntax.NodeID) {
 // statement and the else block must diverge.
 func (c *checker) letElse(n syntax.NodeID, s letSlots, got TypeID) {
 	saved := c.scope
+	onceEntry := maps.Clone(c.once.called)
 	elseType := c.check(s.Else, 0)
+	c.once.called = onceEntry
 	if c.vars.resolve(elseType) != TyNever {
 		c.errAt(s.Else, cLetElseMustDiverge)
 	}

@@ -1,0 +1,79 @@
+-- lib/esc.kg --
+pub type Handler[F] = { pub callback F }
+
+fn keepF[F: Fn[fn() -> Int]](cb: escaping F) -> Handler[F] {
+    Handler { callback: cb }
+}
+
+fn keepP(cb: escaping fn() -> Int) -> Handler[fn() -> Int] {
+    Handler { callback: cb }
+}
+
+fn plainArray() -> Unit {
+    let a: Array[fn(fn() -> Int) -> Handler[fn() -> Int]] = Array.of(keepP) //~ ERROR differs from `Array[fn(fn() -> Int) -> Handler[fn() -> Int]]` only in which callback parameters
+}
+
+fn genericArray() -> Unit {
+    let a: Array[fn(fn() -> Int) -> Handler[fn() -> Int]] = Array.of(keepF) //~ ERROR `Array[fn(escaping F) -> Handler[F]]` differs
+}
+
+fn plainLet() -> Unit {
+    let a: fn(fn() -> Int) -> Handler[fn() -> Int] = keepF //~ ERROR `fn(escaping fn() -> Int) -> Handler[fn() -> Int]` may keep its callback at parameter 1
+}
+
+fn escapingArray() -> Unit {
+    let a: Array[fn(escaping fn() -> Int) -> Handler[fn() -> Int]] = Array.of(keepP)
+}
+
+pub fn indirect[F: Fn[fn() -> Unit]](first: fn(escaping F, Int, Int) -> Unit, second: fn(Int, escaping F, Int) -> Unit, third: fn(Int, Int, escaping F) -> Unit, cb: F) -> Unit {
+    first(cb, 0, 0) //~ ERROR cannot be passed to `this function`
+    second(0, cb, 0) //~ ERROR cannot be passed to `this function`
+    third(0, 0, cb) //~ ERROR cannot be passed to `this function`
+}
+
+pub fn indirectPlain[F: Fn[fn() -> Unit]](reg: fn(Int, Int, F) -> Unit, cb: F) -> Unit {
+    reg(0, 0, cb)
+}
+-- expect --
+error[E2168]: `Array[fn(escaping fn() -> Int) -> Handler[fn() -> Int]]` differs from `Array[fn(fn() -> Int) -> Handler[fn() -> Int]]` only in which callback parameters may be kept, and a value cannot move between them inside another type
+  --> lib/esc.kg:12:61
+   |
+12 |     let a: Array[fn(fn() -> Int) -> Handler[fn() -> Int]] = Array.of(keepP) //~ ERROR differs from `Array[fn(fn() -> Int) -> Handler[fn() -> Int]]` only in which callback parameters
+   |                                                             ^^^^^^^^^^^^^^
+   = help: write the escaping marks of the target to match, or keep the value in its own type
+
+error[E2168]: `Array[fn(escaping F) -> Handler[F]]` differs from `Array[fn(fn() -> Int) -> Handler[fn() -> Int]]` only in which callback parameters may be kept, and a value cannot move between them inside another type
+  --> lib/esc.kg:16:61
+   |
+16 |     let a: Array[fn(fn() -> Int) -> Handler[fn() -> Int]] = Array.of(keepF) //~ ERROR `Array[fn(escaping F) -> Handler[F]]` differs
+   |                                                             ^^^^^^^^^^^^^^
+   = help: write the escaping marks of the target to match, or keep the value in its own type
+
+error[E1034]: `fn(escaping fn() -> Int) -> Handler[fn() -> Int]` may keep its callback at parameter 1, but `fn(fn() -> Int) -> Handler[fn() -> Int]` declares it non-escaping
+  --> lib/esc.kg:20:54
+   |
+20 |     let a: fn(fn() -> Int) -> Handler[fn() -> Int] = keepF //~ ERROR `fn(escaping fn() -> Int) -> Handler[fn() -> Int]` may keep its callback at parameter 1
+   |                                                      ^^^^^
+   = help: declare the target's parameter `escaping` too, or keep the value in its own type
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+  --> lib/esc.kg:28:11
+   |
+28 |     first(cb, 0, 0) //~ ERROR cannot be passed to `this function`
+   |           ^^
+   = help: declare the parameter `escaping F`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+  --> lib/esc.kg:29:15
+   |
+29 |     second(0, cb, 0) //~ ERROR cannot be passed to `this function`
+   |               ^^
+   = help: declare the parameter `escaping F`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+  --> lib/esc.kg:30:17
+   |
+30 |     third(0, 0, cb) //~ ERROR cannot be passed to `this function`
+   |                 ^^
+   = help: declare the parameter `escaping F`
+

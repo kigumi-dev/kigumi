@@ -1,0 +1,110 @@
+-- lib/esc.kg --
+pub type Handler[F] = { pub callback F }
+
+fn keepF[F: Fn[fn() -> Int]](cb: escaping F) -> Handler[F] {
+    Handler { callback: cb }
+}
+
+fn keepP(cb: escaping fn() -> Int) -> Handler[fn() -> Int] {
+    Handler { callback: cb }
+}
+
+fn takes(f: fn(fn() -> Int) -> Handler[fn() -> Int]) -> Int { 0 }
+
+fn takesEscaping(f: fn(escaping fn() -> Int) -> Handler[fn() -> Int]) -> Int { 0 }
+
+fn takesGeneric[G: Fn[fn(fn() -> Int) -> Handler[fn() -> Int]]](f: G) -> Int { 0 }
+
+fn run(g: fn() -> Int) -> Int { g() }
+
+// A lambda parameter typed from a non-escaping position is a non-escaping callback itself.
+fn retained() -> fn(fn() -> Int) -> Handler[fn() -> Int] {
+    (cb) => keepF(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepF`
+}
+
+fn retainedArg() -> Int {
+    takes((cb) => keepP(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+}
+
+fn retainedBound() -> Int {
+    takesGeneric((cb) => keepP(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+}
+
+fn retainedAnnotated() -> Int {
+    let f = (cb: fn() -> Int) => keepP(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+    0
+}
+
+fn returned() -> fn(fn() -> Int) -> fn() -> Int {
+    (cb) => cb //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn captured() -> fn(fn() -> Int) -> fn() -> Int {
+    (cb) => () => cb() //~ ERROR `cb` is a non-escaping callback and cannot be captured
+}
+
+// Accepted: the lambda only calls its callback, or the target allows keeping it.
+fn callsOnly() -> fn(fn() -> Int) -> Int {
+    (cb) => cb() + 1
+}
+
+fn immediateCapture() -> fn(fn() -> Int) -> Int {
+    (cb) => run(() => cb())
+}
+
+fn escapingTarget() -> Int {
+    takesEscaping((cb) => keepP(cb))
+}
+
+fn escapingAnnotation() -> Int {
+    let f = (cb: escaping fn() -> Int) => keepP(cb)
+    takesEscaping(f)
+}
+
+fn escapingAnnotatedReturn() -> Int {
+    let id = (cb: escaping fn() -> Int) => cb
+    id(() => 1)()
+}
+-- expect --
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepF`, which may keep it
+  --> lib/esc.kg:21:19
+   |
+21 |     (cb) => keepF(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepF`
+   |                   ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:25:25
+   |
+25 |     takes((cb) => keepP(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+   |                         ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:29:32
+   |
+29 |     takesGeneric((cb) => keepP(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+   |                                ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:33:40
+   |
+33 |     let f = (cb: fn() -> Int) => keepP(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+   |                                        ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:38:13
+   |
+38 |     (cb) => cb //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |             ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1032]: `cb` is a non-escaping callback and cannot be captured by a closure that escapes
+  --> lib/esc.kg:42:19
+   |
+42 |     (cb) => () => cb() //~ ERROR `cb` is a non-escaping callback and cannot be captured
+   |                   ^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+

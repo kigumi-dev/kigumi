@@ -1,0 +1,158 @@
+-- lib/esc.kg --
+fn keepP(cb: escaping fn() -> Unit) -> fn() -> Unit {
+    cb
+}
+
+fn keepEach(cbs: ...escaping fn() -> Unit) -> Int { 0 }
+
+fn keepArray(cbs: Array[fn() -> Unit]) -> Int { 0 }
+
+fn callAll(cbs: ...fn() -> Unit) -> Int { 0 }
+
+fn returnedBound[F: Fn[fn() -> Unit]](cbs: ...F) -> Array[F] {
+    cbs //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+}
+
+fn returnedPlain(cbs: ...fn() -> Unit) -> Array[fn() -> Unit] {
+    cbs //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+}
+
+fn returnedElement(cbs: ...fn() -> Unit) -> fn() -> Unit {
+    cbs[0] //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+}
+
+fn returnedFromLoop(cbs: ...fn() -> Unit) -> fn() -> Unit {
+    for cb in cbs {
+        return cb //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+    }
+    keepP(cbs[0]) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepP`
+}
+
+fn forwardedElement(cbs: ...fn() -> Unit) -> Int {
+    keepEach(cbs[0]) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepEach`
+}
+
+fn forwardedArray(cbs: ...fn() -> Unit) -> Int {
+    keepArray(cbs) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepArray`
+}
+
+fn captured(cbs: ...fn() -> Unit) -> Unit {
+    let k = () => cbs[0]() //~ ERROR `cbs` is a non-escaping callback and cannot be captured
+}
+
+// Accepted: variadic callbacks that are only called, or declared `...escaping`.
+fn callsInLoop(cbs: ...fn() -> Unit) -> Int {
+    let mut n = 0
+    for cb in cbs {
+        cb()
+        n += 1
+    }
+    n
+}
+
+fn callsBound[F: Fn[fn() -> Unit]](cbs: ...F) -> Int {
+    let mut n = 0
+    for cb in cbs {
+        cb()
+        n += 1
+    }
+    n
+}
+
+fn forwardedToNonEscaping(cbs: ...fn() -> Unit) -> Int {
+    callAll(cbs[0])
+}
+
+fn immediateCapture(cbs: ...fn() -> Unit) -> Int {
+    callAll(() => cbs[0]())
+}
+
+fn keepsBound[F: Fn[fn() -> Unit]](cbs: ...escaping F) -> Array[F] {
+    cbs
+}
+
+fn keepsPlain(cbs: ...escaping fn() -> Unit) -> Array[fn() -> Unit] {
+    cbs
+}
+
+fn forwardsKept(cbs: ...escaping fn() -> Unit) -> Int {
+    keepEach(cbs[0])
+}
+
+fn keepAll(cbs: ...escaping fn() -> Unit) -> Array[fn() -> Unit] { cbs }
+
+fn spreadIntoEscaping(cbs: ...fn() -> Unit) -> Array[fn() -> Unit] {
+    keepAll(...cbs) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepAll`
+}
+
+fn spreadIntoPlain(cbs: ...fn() -> Unit) -> Int {
+    callAll(...cbs)
+}
+
+fn spreadEscaping(cbs: ...escaping fn() -> Unit) -> Array[fn() -> Unit] {
+    keepAll(...cbs)
+}
+-- expect --
+error[E1030]: `cbs` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:12:5
+   |
+12 |     cbs //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+   |     ^^^
+   = help: declare the parameter `...escaping F`
+
+error[E1030]: `cbs` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:16:5
+   |
+16 |     cbs //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+   |     ^^^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1030]: `cbs` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:20:5
+   |
+20 |     cbs[0] //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+   |     ^^^^^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1030]: `cbs` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:25:16
+   |
+25 |         return cb //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+   |                ^^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1033]: `cbs` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:27:11
+   |
+27 |     keepP(cbs[0]) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepP`
+   |           ^^^^^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1033]: `cbs` is a non-escaping callback and cannot be passed to `keepEach`, which may keep it
+  --> lib/esc.kg:31:14
+   |
+31 |     keepEach(cbs[0]) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepEach`
+   |              ^^^^^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1036]: `cbs` is a non-escaping callback and cannot be passed to `keepArray`, whose parameter type cannot be verified not to keep it
+  --> lib/esc.kg:35:15
+   |
+35 |     keepArray(cbs) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepArray`
+   |               ^^^
+   = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
+
+error[E1032]: `cbs` is a non-escaping callback and cannot be captured by a closure that escapes
+  --> lib/esc.kg:39:19
+   |
+39 |     let k = () => cbs[0]() //~ ERROR `cbs` is a non-escaping callback and cannot be captured
+   |                   ^^^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1033]: `cbs` is a non-escaping callback and cannot be passed to `keepAll`, which may keep it
+  --> lib/esc.kg:84:16
+   |
+84 |     keepAll(...cbs) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepAll`
+   |                ^^^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+

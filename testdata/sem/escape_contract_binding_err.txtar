@@ -39,8 +39,7 @@ fn isBindReturn(cb: fn() -> Unit) -> fn() -> Unit {
     noop
 }
 
-fn closureParamLaundering(cb: fn() -> Unit) -> fn() -> Unit {
-    let identity = (x: fn() -> Unit) => x
+fn closureParamLaundering(cb: fn() -> Unit, identity: fn(fn() -> Unit) -> fn() -> Unit) -> fn() -> Unit {
     identity(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
@@ -103,30 +102,30 @@ error[E1030]: `cb` is a non-escaping callback and cannot be returned
    = help: declare the parameter `escaping fn(...) -> ...`
 
 error[E1030]: `cb` is a non-escaping callback and cannot be returned
-  --> lib/esc.kg:43:5
+  --> lib/esc.kg:42:5
    |
-43 |     identity(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+42 |     identity(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
    |     ^^^^^^^^^^^
    = help: declare the parameter `escaping fn(...) -> ...`
 
 error[E1031]: `cb` is a non-escaping callback and cannot be stored
-  --> lib/esc.kg:49:11
+  --> lib/esc.kg:48:11
    |
-49 |     Boxed(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
+48 |     Boxed(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
    |           ^^
    = help: declare the parameter `escaping fn(...) -> ...`
 
 error[E1031]: `cb` is a non-escaping callback and cannot be stored
-  --> lib/esc.kg:53:18
+  --> lib/esc.kg:52:18
    |
-53 |     let o = Some(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
+52 |     let o = Some(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
    |                  ^^
    = help: declare the parameter `escaping fn(...) -> ...`
 
 error[E1036]: `cb` is a non-escaping callback and cannot be passed to `of`, whose parameter type cannot be verified not to keep it
-  --> lib/esc.kg:58:24
+  --> lib/esc.kg:57:24
    |
-58 |     let arr = Array.of(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `of`, whose parameter type cannot be verified not to keep it
+57 |     let arr = Array.of(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `of`, whose parameter type cannot be verified not to keep it
    |                        ^^
    = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
 

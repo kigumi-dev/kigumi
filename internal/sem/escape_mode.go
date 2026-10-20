@@ -93,5 +93,14 @@ func (r *Result) nonEscapingParam(p EntityID) bool {
 		return false
 	}
 	e := &r.Entities[p]
-	return r.fnShapeOf(e.Type) != 0 && e.Flags&EfEscaping == 0
+	return r.fnShapeOf(r.callbackType(e)) != 0 && e.Flags&EfEscaping == 0
+}
+
+func (r *Result) callbackType(e *Entity) TypeID {
+	if e.Flags&EfVariadic != 0 && r.Types.Kind(e.Type) == KNamed {
+		if args := r.Types.Node(e.Type).Args; len(args) == 1 {
+			return args[0]
+		}
+	}
+	return e.Type
 }

@@ -116,7 +116,7 @@ func (c *checker) coerceToFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool)
 		return nil, false
 	}
 	if i, ok := c.firstEscapeMismatch(got, want); ok {
-		c.errAt(n, cEscapingCoerce, got, i+1, want)
+		c.errAt(n, cEscapingCoerce, c.typeText(got), i+1, c.typeText(want))
 		return nil, true
 	}
 	need := Effects(w.Flags) & (EffPure | EffNoalloc)
@@ -148,6 +148,11 @@ func (c *checker) mismatch(n syntax.NodeID, want, got TypeID) {
 		}
 	}
 	if want == TyPoison || got == TyPoison {
+		return
+	}
+	if want != got && c.sameButEscaping(want, got) {
+		c.errAt(n, cEscapingNested, c.typeText(got), c.typeText(want))
+		c.vars.poison(got)
 		return
 	}
 	if tt.Kind(got) == KUntyped && !tt.IsNumeric(want) {

@@ -1,0 +1,15 @@
+-- src --
+let id = (cb: escaping fn() -> Unit) => cb
+-- expect --
+File
+  Let
+    pattern: PatBind id
+    init: Lambda
+      List
+        Param cb
+          type: TypeFn
+            params: List
+            flags: escaping
+            ret: TypePath
+              Path Unit
+      Ident cb

@@ -27,10 +27,11 @@ func (r *Result) escapingParamType(f FileID, node syntax.NodeID, typ TypeID) (Ty
 	return typ, false
 }
 
+// A granted `escaping` is marked on a type parameter or, for a variadic parameter, on its array.
 func (r *Result) escapingMarks(types []TypeID, escaping []bool) string {
 	set := make([]byte, (len(types)+7)/8)
 	for i, t := range types {
-		if escaping[i] && r.Types.Kind(t) == KParam {
+		if k := r.Types.Kind(t); escaping[i] && (k == KParam || k == KNamed) {
 			set[i/8] |= 1 << (i % 8)
 		}
 	}
@@ -40,15 +41,36 @@ func (r *Result) escapingMarks(types []TypeID, escaping []bool) string {
 // Keeps a written `escaping` on a bounded type parameter, which the type itself does not carry.
 func (r *Result) ParamTypeString(p EntityID) string {
 	e := &r.Entities[p]
+	if e.Flags&EfEscaping != 0 && e.Flags&EfVariadic != 0 {
+		return "...escaping " + r.TypeString(r.callbackType(e))
+	}
 	if e.Flags&EfEscaping != 0 && r.Types.Kind(e.Type) == KParam {
 		return "escaping " + r.TypeString(e.Type)
 	}
 	return r.TypeString(e.Type)
 }
 
+func (c *checker) sameButEscaping(a, b TypeID) bool {
+	mark := c.vars.mark()
+	ok := c.vars.unifyIgnoringEscaping(a, b)
+	c.vars.rollback(mark)
+	return ok
+}
+
+func (c *checker) typeText(t TypeID) string {
+	c.r.varNames = c.vars.names
+	defer func() { c.r.varNames = nil }()
+	return c.r.TypeString(c.vars.resolve(t))
+}
+
 func (r *Result) escapingForm(p EntityID) string {
-	if t := r.Entities[p].Type; r.Types.Kind(t) == KParam {
-		return "`escaping " + r.TypeString(t) + "`"
+	e := &r.Entities[p]
+	dots := ""
+	if e.Flags&EfVariadic != 0 {
+		dots = "..."
 	}
-	return "`escaping fn(...) -> ...`"
+	if t := r.callbackType(e); r.Types.Kind(t) == KParam {
+		return "`" + dots + "escaping " + r.TypeString(t) + "`"
+	}
+	return "`" + dots + "escaping fn(...) -> ...`"
 }

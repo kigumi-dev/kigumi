@@ -1,0 +1,66 @@
+-- lib/esc.kg --
+pub type Handler[F] = { pub callback F }
+
+fn keepP(cb: escaping fn() -> Int) -> Handler[fn() -> Int] {
+    Handler { callback: cb }
+}
+
+fn methodGet(cbs: ...fn() -> Int) -> Option[fn() -> Int] {
+    cbs.get(0) //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+}
+
+fn methodClone(cbs: ...fn() -> Int) -> Array[fn() -> Int] {
+    cbs.clone() //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+}
+
+fn methodMatch(cbs: ...fn() -> Int) -> Handler[fn() -> Int] {
+    match cbs.get(0) {
+        Some(f) -> keepP(f) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepP`
+        None -> keepP(() => 1)
+    }
+}
+
+fn methodGeneric[F: FnMut[fn() -> Int]](cbs: ...F) -> Array[F] {
+    cbs.concat(Array.empty()) //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+}
+
+// Accepted: a method result that holds no callback, or one that is only called.
+fn methodLen(cbs: ...fn() -> Int) -> Bool {
+    cbs.len() > 0
+}
+
+fn methodCalled(cbs: ...fn() -> Int) -> Int {
+    match cbs.get(0) {
+        Some(f) -> f()
+        None -> 0
+    }
+}
+-- expect --
+error[E1030]: `cbs` is a non-escaping callback and cannot be returned
+ --> lib/esc.kg:8:5
+  |
+8 |     cbs.get(0) //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+  |     ^^^^^^^^^
+  = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1030]: `cbs` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:12:5
+   |
+12 |     cbs.clone() //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+   |     ^^^^^^^^^^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1033]: `cbs` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:17:26
+   |
+17 |         Some(f) -> keepP(f) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepP`
+   |                          ^
+   = help: declare the parameter `...escaping fn(...) -> ...`
+
+error[E1030]: `cbs` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:23:5
+   |
+23 |     cbs.concat(Array.empty()) //~ ERROR `cbs` is a non-escaping callback and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+   = help: declare the parameter `...escaping F`
+

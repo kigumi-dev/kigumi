@@ -1,0 +1,11 @@
+-- src --
+let id = (cb:   escaping   fn() -> Unit) => cb
+fn wrap[F: Fn[fn() -> Unit]]() -> Unit {
+    let k = (f:   escaping F, n: Int) => f
+}
+-- expect --
+let id = (cb: escaping fn() -> Unit) => cb
+
+fn wrap[F: Fn[fn() -> Unit]]() -> Unit {
+    let k = (f: escaping F, n: Int) => f
+}

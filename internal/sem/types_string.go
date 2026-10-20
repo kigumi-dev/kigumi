@@ -68,6 +68,10 @@ func (r *Result) writeType(sb *strings.Builder, t TypeID) {
 		}
 		sb.WriteString(itoa64(v))
 	case KVar:
+		if i := int(n.Var); i < len(r.varNames) && r.varNames[i] != "" {
+			sb.WriteString(r.varNames[i])
+			return
+		}
 		sb.WriteString("_")
 	case KFn:
 		r.writeFn(sb, n)

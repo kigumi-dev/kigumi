@@ -1,0 +1,127 @@
+-- lib/esc.kg --
+type Pair = { pub first fn() -> Int, pub n Int }
+
+fn keepP(cb: escaping fn() -> Int) -> fn() -> Int {
+    cb
+}
+
+fn useInt(n: Int) -> Int { n }
+
+fn projection(cb: fn() -> Int) -> fn() -> Int {
+    let t = (cb, 1)
+    keepP(t._0) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+}
+
+fn nested(cb: fn() -> Int) -> fn() -> Int {
+    let t = ((cb, 1), 2)
+    keepP(t._0._0) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+}
+
+fn projectionReturned(cb: fn() -> Int) -> fn() -> Int {
+    let t = (cb, 1)
+    t._0 //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn copiedAggregate(cb: fn() -> Int) -> fn() -> Int {
+    let t = (cb, 1)
+    let u = t
+    u._0 //~ ERROR `cb` is a non-escaping callback and cannot be returned
+}
+
+fn parenthesized(cb: fn() -> Int) -> fn() -> Int {
+    let t = (cb, 1)
+    keepP((t)._0) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+}
+
+fn borrowed(cb: fn() -> Int) -> fn() -> Int {
+    let t = (cb, 1)
+    let r = &t
+    keepP(r._0) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+}
+
+fn destructured(cb: fn() -> Int) -> fn() -> Int {
+    let t = (cb, 1)
+    let (a, _) = t
+    keepP(a) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+}
+
+fn matched(cb: fn() -> Int) -> fn() -> Int {
+    match (cb, 1) { //~ ERROR `cb` is a non-escaping callback and cannot be returned
+        (a, _) -> a
+    }
+}
+
+// Accepted: the tuple stays local, or the projection cannot hold the callback.
+fn callsProjection(cb: fn() -> Int) -> Int {
+    let t = (cb, 1)
+    t._0() + t._1
+}
+
+fn intNextToCallback(cb: fn() -> Int) -> Int {
+    let t = (cb, 1)
+    let (a, n) = t
+    useInt(n) + useInt(t._1) + a()
+}
+
+fn freshCallback(cb: fn() -> Int) -> fn() -> Int {
+    _ = cb()
+    let t = (() => 2, 1)
+    keepP(t._0)
+}
+-- expect --
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:11:11
+   |
+11 |     keepP(t._0) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+   |           ^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:16:11
+   |
+16 |     keepP(t._0._0) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+   |           ^^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:21:5
+   |
+21 |     t._0 //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:27:5
+   |
+27 |     u._0 //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:32:11
+   |
+32 |     keepP((t)._0) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+   |           ^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:38:11
+   |
+38 |     keepP(r._0) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+   |           ^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1033]: `cb` is a non-escaping callback and cannot be passed to `keepP`, which may keep it
+  --> lib/esc.kg:44:11
+   |
+44 |     keepP(a) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `keepP`
+   |           ^
+   = help: declare the parameter `escaping fn(...) -> ...`
+
+error[E1030]: `cb` is a non-escaping callback and cannot be returned
+  --> lib/esc.kg:48:5
+   |
+48 |     match (cb, 1) { //~ ERROR `cb` is a non-escaping callback and cannot be returned
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: declare the parameter `escaping fn(...) -> ...`
+

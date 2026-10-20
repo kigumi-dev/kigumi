@@ -13,7 +13,7 @@ func (c *checker) checkEscapeArg(a syntax.NodeID, target EntityID, targetType Ty
 		if c.r.nonEscapingParam(target) {
 			return
 		}
-		if c.r.fnShapeOf(c.r.Entities[target].Type) == 0 {
+		if c.r.fnShapeOf(c.r.callbackType(&c.r.Entities[target])) == 0 {
 			// Rejected, not unverified: a generic body is checked once for abstract T, with no per-call-site tracking.
 			c.errAt(a, cEscapingForwardedOpaque, c.r.Entities[rp].Name, calleeName)
 			return

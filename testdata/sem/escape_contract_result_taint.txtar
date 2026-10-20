@@ -7,17 +7,15 @@ fn Handle.touch(self) -> Unit {}
 
 fn noop() -> Unit {}
 
-// A call-value's result, structurally a tuple holding a fn slot, must still be tainted: identity's
-// own tail check can't catch this, since x's Parent is the closure, not pairIdentity.
-fn pairIdentity(cb: fn() -> Unit) -> (fn() -> Unit, Int) {
-    let f = (x: fn() -> Unit) => (x, 0)
+// A call-value's result, structurally a tuple holding a fn slot, must still be tainted: nothing
+// here shows what f does with its argument.
+fn pairIdentity(cb: fn() -> Unit, f: fn(fn() -> Unit) -> (fn() -> Unit, Int)) -> (fn() -> Unit, Int) {
     f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
 // Same shape, untainted: must stay clean.
-fn pairIdentityOk(cb: fn() -> Unit) -> (fn() -> Unit, Int) {
+fn pairIdentityOk(cb: fn() -> Unit, f: fn(fn() -> Unit) -> (fn() -> Unit, Int)) -> (fn() -> Unit, Int) {
     cb()
-    let f = (x: fn() -> Unit) => (x, 0)
     f(noop)
 }
 
@@ -45,16 +43,16 @@ fn makeTask(ex: task.Executor) -> task.Task[Unit] {
 }
 -- expect --
 error[E1030]: `cb` is a non-escaping callback and cannot be returned
-  --> lib/esc.kg:13:5
+  --> lib/esc.kg:12:5
    |
-13 |     f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
+12 |     f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
    |     ^^^^
    = help: declare the parameter `escaping fn(...) -> ...`
 
 error[E1033]: `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
-  --> lib/esc.kg:38:18
+  --> lib/esc.kg:36:18
    |
-38 |     task.spawn(f(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
+36 |     task.spawn(f(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
    |                  ^^
    = help: declare the parameter `escaping fn(...) -> ...`
 

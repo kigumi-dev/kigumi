@@ -36,6 +36,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 		kind = CallAssoc
 	}
 	ret, plan := c.checkArgs(n, name, sig, args, inst, want, info.Params, info.Body != 0, async)
+	c.taintRecvResult(n, ret, recvBase)
 	c.crossRecv(n, fn, recv, recvBase)
 	c.ffiCValueCheck(n, fn, inst, recv)
 	c.ffiAddressLeaseCheck(n, fn, inst)
@@ -137,6 +138,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 				inner := c.t.View(a).AsSpread().Value().ID()
 				c.checkArg(inner, params[fixed], entAt(declParams, fixed), async)
 				c.crossArg(inner, entAt(declParams, fixed))
+				c.checkEscapeArg(inner, entAt(declParams, fixed), params[fixed], tt.escMarked(sn.Var, fixed), name)
 				continue
 			}
 			pi := min(i, len(params)-1)
@@ -155,7 +157,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			c.retagLendCross(from, a, entAt(declParams, pi), async)
 			c.noteLentRefArg(a, entAt(declParams, pi), async)
 			if pass == 0 {
-				c.checkEscapeArg(a, entAt(declParams, pi), param, pi < 32 && sn.Var&(1<<pi) != 0, name)
+				c.checkEscapeArg(a, entAt(declParams, pi), param, tt.escMarked(sn.Var, pi), name)
 			}
 		}
 	}

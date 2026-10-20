@@ -160,6 +160,17 @@
       ]
     },
     {
+      "id": "fmt/escaping_lambda_param",
+      "kind": "fmt",
+      "path": "testdata/fmt/escaping_lambda_param.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/escaping_param",
       "kind": "fmt",
       "path": "testdata/fmt/escaping_param.txtar",
@@ -1428,6 +1439,17 @@
       "id": "parser/import_rename",
       "kind": "parser",
       "path": "testdata/parser/import_rename.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/lambda_escaping_param",
+      "kind": "parser",
+      "path": "testdata/parser/lambda_escaping_param.txtar",
       "mode": [
         "parse"
       ],
@@ -5832,6 +5854,23 @@
       "id": "run/escaping_param_keep",
       "kind": "run",
       "path": "testdata/run/escaping_param_keep.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/escaping_stash_variadic",
+      "kind": "run",
+      "path": "testdata/run/escaping_stash_variadic.txtar",
       "mode": [
         "vm",
         "native"
@@ -13817,6 +13856,17 @@
       ]
     },
     {
+      "id": "sem/escape_contract_aggregate_taint",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_aggregate_taint.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/escape_contract_async",
       "kind": "sem",
       "path": "testdata/sem/escape_contract_async.txtar",
@@ -13861,6 +13911,17 @@
       ]
     },
     {
+      "id": "sem/escape_contract_escaping_nested",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_escaping_nested.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/escape_contract_escaping_param",
       "kind": "sem",
       "path": "testdata/sem/escape_contract_escaping_param.txtar",
@@ -13886,6 +13947,28 @@
       "id": "sem/escape_contract_escaping_param_wide_err",
       "kind": "sem",
       "path": "testdata/sem/escape_contract_escaping_param_wide_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_escaping_stash",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_escaping_stash.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_fnonce",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_fnonce.txtar",
       "mode": [
         "check"
       ],
@@ -13930,6 +14013,28 @@
       "id": "sem/escape_contract_intrinsic",
       "kind": "sem",
       "path": "testdata/sem/escape_contract_intrinsic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_lambda_erase",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_lambda_erase.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_lambda_param",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_lambda_param.txtar",
       "mode": [
         "check"
       ],
@@ -13996,6 +14101,28 @@
       "id": "sem/escape_contract_type_escaping",
       "kind": "sem",
       "path": "testdata/sem/escape_contract_type_escaping.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_variadic",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_variadic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/escape_contract_variadic_method",
+      "kind": "sem",
+      "path": "testdata/sem/escape_contract_variadic_method.txtar",
       "mode": [
         "check"
       ],

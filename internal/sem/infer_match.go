@@ -20,6 +20,7 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 	var joined []NarrowFact
 	live := 0
 	scrutineeRp := c.restrictedAliasOf(subject)
+	once := c.onceBegin()
 	for _, arm := range arms {
 		s := matchArm(c.t, arm)
 		saved := c.scope
@@ -37,6 +38,7 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 			excluded = append(excluded, neg...)
 		}
 		t := c.checkBranch(n, s.Body, want, valuePos)
+		c.onceArm(once, t)
 		c.popScope(saved)
 		if c.vars.resolve(t) != TyNever {
 			if live == 0 {
@@ -49,6 +51,7 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 		bodies = append(bodies, s.Body)
 		types = append(types, t)
 	}
+	c.onceEnd(once, false)
 	c.facts = entry
 	c.checkMatch(n, subject, c.scrutineeOf(scrutinee), arms)
 	if live > 0 && c.info.Matches[n].Exhaustive {

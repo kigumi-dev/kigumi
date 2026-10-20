@@ -66,6 +66,9 @@ type Member struct {
 	// Const marks a `const N: T` type parameter: a derive generator's
 	// generic binder gives it no protocol bound, unlike a type parameter.
 	Const bool `json:"const,omitempty"`
+	// Escaping marks a callback parameter the callee may keep after it returns:
+	// declared `escaping`, or implied by async, extern or a bodiless std function.
+	Escaping bool `json:"escaping,omitempty"`
 	// Copy mirrors sem's Copy classification for a variant payload slot; a
 	// derive generator uses it to pick a pattern binding's mode (value vs reference).
 	Copy bool `json:"copy,omitempty"`

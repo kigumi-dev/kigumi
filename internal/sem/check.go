@@ -76,8 +76,7 @@ type checker struct {
 	witnessTasks []witnessTask
 	ffiValues    []ffiValueCheck
 	unsatIface   map[unsatKey]bool
-	// paramAlias maps an immutable local bound to a fn-typed parameter
-	// (`let g = f`) back to that parameter for callback polymorphism.
+	// paramAlias maps an immutable local bound to a fn-typed parameter (`let g = f`) back to it for callback polymorphism.
 	paramAlias map[EntityID]EntityID
 	// letInit: a local's `let` initializer, so an fn value can be traced through alias chains.
 	letInit map[EntityID]syntax.NodeID
@@ -87,6 +86,7 @@ type checker struct {
 	escapeAlias map[EntityID]EntityID
 	// taintedCall: callValue nodes whose result may hold a non-escaping parameter (opaque callee).
 	taintedCall map[syntax.NodeID]EntityID
+	once        onceFlow
 	// fieldFact stashes a resolved `pure?` field-call's FactPureField
 	// between callMethod finding it and callValue adding
 	// the matching effect edge.

@@ -126,6 +126,10 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 	if !c.sameFnShape(info.Sig, want) {
 		return nil, false
 	}
+	if i, ok := c.firstEscapeMismatch(info.Sig, want); ok {
+		c.errAt(n, cEscapingCoerce, c.typeText(info.Sig), i+1, c.typeText(want))
+		return nil, true
+	}
 	for _, cap := range info.Captures {
 		name := c.r.Entities[cap.Local].Name
 		switch cap.Mode {

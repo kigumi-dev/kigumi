@@ -43,6 +43,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		target = elem
 	}
 	c.check(rhs, target)
+	c.onceReassign(lhs)
 	if deferred {
 		if c.elementCopy(lhs, rhs, target) || c.fieldCopy(lhs, rhs, target) {
 			c.crossOwnedRoot(lhs)
