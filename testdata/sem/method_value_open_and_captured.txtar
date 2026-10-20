@@ -1,0 +1,164 @@
+-- lib/mv.kg --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.get(self, k: Int) -> Int { self.n + k }
+
+fn Res.peek[U](self, f: fn(Int) -> U) -> U { f(self.n) }
+
+fn Res.label[U: Show](self, u: U) -> String { u.show() }
+
+interface Show {
+    fn show(self) -> String
+}
+
+type Tag = {
+    pub s String
+}
+
+pub fn Tag.show(self) -> String { self.s }
+
+type Pair = {
+    pub tag Int
+    pub mut left Res
+}
+
+fn id[T](x: T) -> T { x }
+
+fn twice[F: Fn[fn() -> Int]](f: F) -> Int { f() + f() }
+
+fn reassignOpen(r: Res, s: Res) -> String {
+    let mut a = r.peek
+    let x = a((k: Int) => "${k}")
+    a = s.peek
+    "${x}${a((k: Int) => "${k}")}"
+}
+
+fn branchesOpen(c: Bool, r: Res, s: Res) -> Int {
+    let a = if c { r.peek } else { s.peek } //~ TYPE a : closure fn(fn(Int) -> Int) -> Int
+    a((k: Int) => k)
+}
+
+fn innerBlockOpen(c: Bool, r: Res, s: Res) -> String {
+    let mut a = r.peek
+    if c {
+        a = s.peek
+    }
+    a((k: Int) => "${k}")
+}
+
+fn witnessLater(r: Res) -> String {
+    let f = r.label
+    f(Tag { s: "a" }) //~ TYPE f : closure fn(Tag) -> String
+}
+
+fn witnessNeverFixed(r: Res) -> Unit {
+    let f = r.label //~ ERROR cannot infer type parameter `U`
+}
+
+fn lambdaParamField() -> Int {
+    let h = (p: Pair) => p.left.get
+    h(Pair { tag: 1, left: Res { n: 1 } })(2)
+}
+
+fn capturedField(p: Pair) -> Int {
+    let h = () => {
+        let g = p.left.get //~ ERROR which this closure captured and may run again
+        g(1)
+    }
+    h() + h()
+}
+
+fn capturedFieldImmediate(p: Pair) -> Int {
+    twice(() => {
+        let g = p.left.get //~ ERROR which this closure captured and may run again
+        g(1)
+    })
+}
+
+fn capturedMove(p: Pair) -> Int {
+    let h = () => {
+        let g = move p.left //~ ERROR cannot move `p.left` out of `p`, which this closure captured
+        g.n
+    }
+    h()
+}
+
+fn throughCall(r: Res, s: Res) -> Int {
+    let mut a = r.peek
+    a = id(s.peek) //~ ERROR expected `closure fn(fn(Int) -> _) -> _`
+    a((k: Int) => k)
+}
+
+fn lambdaCreator(r: Res, s: Res) -> Int {
+    let mut a = r.get
+    let h = () => {
+        a = s.get //~ ERROR expected `closure fn(Int) -> Int`
+        0
+    }
+    a(1)
+}
+-- expect --
+error[E301]: cannot infer type parameter `U`
+  --> lib/mv.kg:58:13
+   |
+58 |     let f = r.label //~ ERROR cannot infer type parameter `U`
+   |             ^^^^^^^
+   = help: write a call with arguments in this block, or pass it to a parameter bound like `F: Fn[fn(U) -> String]`
+
+error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `p`, which this closure captured and may run again
+  --> lib/mv.kg:68:17
+   |
+68 |         let g = p.left.get //~ ERROR which this closure captured and may run again
+   |                 ^^^^^^^^^^
+   = help: move the field into a local before the closure, or call the method directly
+
+error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `p`, which this closure captured and may run again
+  --> lib/mv.kg:76:17
+   |
+76 |         let g = p.left.get //~ ERROR which this closure captured and may run again
+   |                 ^^^^^^^^^^
+   = help: move the field into a local before the closure, or call the method directly
+
+error[E2178]: cannot move `p.left` out of `p`, which this closure captured and may run again
+  --> lib/mv.kg:83:22
+   |
+83 |         let g = move p.left //~ ERROR cannot move `p.left` out of `p`, which this closure captured
+   |                      ^^^^^^
+   = help: move the field into a local before the closure, or capture that local instead
+
+error[E400]: expected `closure fn(fn(Int) -> _) -> _`, found `closure fn(fn(Int) -> _) -> _`
+  --> lib/mv.kg:91:9
+   |
+91 |     a = id(s.peek) //~ ERROR expected `closure fn(fn(Int) -> _) -> _`
+   |         ^^^^^^^^^
+note: one closure type is the method value `peek` holding a `Res` receiver, created while its type arguments were still open; fix them with a call or an `F: Fn[...]` parameter before the two meet
+  --> lib/mv.kg:90:17
+   |
+90 |     let mut a = r.peek
+   |                 ^^^^^^
+note: one closure type is the method value `peek` holding a `Res` receiver, created while its type arguments were still open; fix them with a call or an `F: Fn[...]` parameter before the two meet
+  --> lib/mv.kg:91:12
+   |
+91 |     a = id(s.peek) //~ ERROR expected `closure fn(fn(Int) -> _) -> _`
+   |            ^^^^^^
+
+error[E400]: expected `closure fn(Int) -> Int`, found `closure fn(Int) -> Int`
+  --> lib/mv.kg:98:13
+   |
+98 |         a = s.get //~ ERROR expected `closure fn(Int) -> Int`
+   |             ^^^^^
+note: one closure type is the method value `get` holding a `Res` receiver, created in `lambdaCreator` outside the lambda
+  --> lib/mv.kg:96:17
+   |
+96 |     let mut a = r.get
+   |                 ^^^^^
+note: one closure type is the method value `get` holding a `Res` receiver, created inside a lambda, which gives it its own type
+  --> lib/mv.kg:98:13
+   |
+98 |         a = s.get //~ ERROR expected `closure fn(Int) -> Int`
+   |             ^^^^^
+

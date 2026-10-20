@@ -90,8 +90,8 @@ type checker struct {
 	// fieldFact stashes a resolved `pure?` field-call's FactPureField
 	// between callMethod finding it and callValue adding
 	// the matching effect edge.
-	fieldFact map[syntax.NodeID]NarrowFact
-	// wantIndexPlace/indexAsPlace: see synthPlace.
+	fieldFact      map[syntax.NodeID]NarrowFact
+	methodValues   methodValueState
 	wantIndexPlace bool
 	indexAsPlace   map[syntax.NodeID]bool
 	// ctxStack is the lexical stack of `context (...) { }` bindings open at

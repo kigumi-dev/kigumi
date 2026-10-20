@@ -17,7 +17,7 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 		if root, p, ex, ok := c.projectionPlace(in.Dst); ok && root == owner {
 			return true, p, ex
 		}
-	case OpSetField:
+	case OpSetField, OpFieldMove:
 		if root, p, ex, ok := c.projectionPlace(in.Args[0]); ok && root == owner {
 			return true, append(p, in.Index), ex
 		}

@@ -1,0 +1,68 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.n}"
+}
+
+fn explode() -> Int {
+    None.expect("boom")
+}
+
+fn Res.get(self, k: Int) -> Int {
+    if k == 2 {
+        let _z = explode()
+    }
+    self.n + k
+}
+
+type Pair = {
+    pub tag Int
+    pub left Res
+    pub right Res
+}
+
+fn mk(n: Int) -> Res? { Res { n: n } }
+
+fn apply[F: Fn[fn(Int) -> Int]](f: F, k: Int) -> Int { f(k) }
+
+async fn step(x: Int) -> Int {
+    x + 1
+}
+
+async fn boom(p: Pair) -> Int {
+    let keep = Res { n: 0 }
+    let f = p.left.get
+    print "first ${f(1)}"
+    let n = await task.spawn(step(f(3)))
+    print "stepped ${n}"
+    if let Some(g) = mk(30)?.get {
+        print "temp ${g(1)}"
+        print "temp panics ${apply(g, 2)}"
+    }
+    p.tag
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom(Pair { tag: 1, left: Res { n: 10 }, right: Res { n: 20 } }))
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+first 11
+stepped 14
+temp 31
+drop 30
+drop 10
+drop 0
+drop 20
+-- stderr --
+panic: boom
+-- exit --
+2

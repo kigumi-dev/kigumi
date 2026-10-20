@@ -7,7 +7,13 @@ import (
 
 func (b *builder) optField(e *hir.Expr) LocalID {
 	n, t := e.Node, e.Type
-	base := b.expr(e.Args[0])
+	inner := b.r.Types.Node(t).Args[0]
+	var base LocalID
+	if e.Ent != 0 {
+		base = b.methodReceiver(e, inner)
+	} else {
+		base = b.expr(e.Args[0])
+	}
 	some := b.variantNamed(b.r.Types.OptionEnt(), "Some")
 	isSome := b.emit(Inst{Op: OpIsVariant, Dst: b.temp(sem.TyBool), Ent: some, Args: []LocalID{base}, Node: n})
 	result := b.temp(t)
@@ -15,8 +21,13 @@ func (b *builder) optField(e *hir.Expr) LocalID {
 	b.term(Term{Op: TermBranch, Args: []LocalID{isSome}, Targets: []BlockID{yes, no}})
 	b.cur = yes
 	payload := b.emit(Inst{Op: OpPayload, Dst: b.temp(b.r.Types.Node(e.Args[0].Type).Args[0]), Args: []LocalID{base}, Node: n})
-	inner := b.emit(Inst{Op: OpField, Dst: b.temp(b.r.Types.Node(t).Args[0]), Args: []LocalID{payload}, Index: e.Index, Node: n})
-	b.emit(Inst{Op: OpVariant, Dst: result, Ent: some, Type: t, Args: []LocalID{inner}, Node: n})
+	var val LocalID
+	if e.Ent != 0 {
+		val = b.methodValue(e, payload, inner)
+	} else {
+		val = b.emit(Inst{Op: OpField, Dst: b.temp(inner), Args: []LocalID{payload}, Index: e.Index, Node: n})
+	}
+	b.emit(Inst{Op: OpVariant, Dst: result, Ent: some, Type: t, Args: []LocalID{val}, Node: n})
 	b.jump(join)
 	b.cur = no
 	b.emit(Inst{Op: OpVariant, Dst: result, Ent: b.variantNamed(b.r.Types.OptionEnt(), "None"), Type: t, Node: n})

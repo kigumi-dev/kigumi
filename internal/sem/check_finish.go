@@ -1,5 +1,7 @@
 package sem
 
+import "kigumi/internal/syntax"
+
 // finish closes a full expression: every type recorded since the last
 // boundary is substituted to its final, defaulted form.
 func (c *checker) finish() {
@@ -8,13 +10,24 @@ func (c *checker) finish() {
 	c.settleInline()
 	c.checkConstraints()
 	c.runFFIValueChecks()
-	for _, id := range c.closures {
+	c.resolveClosures(c.closures)
+	c.resolveTouched(c.touched)
+	c.keepUnsettled()
+	c.closures = c.closures[:0]
+	c.touched = c.touched[:0]
+	c.vars.boundary()
+}
+
+func (c *checker) resolveClosures(ids []EntityID) {
+	for _, id := range ids {
 		info := c.r.closure(id)
 		info.Ret = c.vars.resolve(info.Ret)
 		info.Sig = c.vars.resolve(info.Sig)
 	}
-	c.closures = c.closures[:0]
-	for _, n := range c.touched {
+}
+
+func (c *checker) resolveTouched(nodes []syntax.NodeID) {
+	for _, n := range nodes {
 		c.info.Types[n] = c.vars.resolve(c.info.Types[n])
 		// Bindings keep the resolved type too; the backends read it from
 		// the entity, not from the node.
@@ -40,6 +53,4 @@ func (c *checker) finish() {
 			c.r.checkLifetimeEscapeType(c.f, n, c.info.Types[n], map[TypeID]bool{})
 		}
 	}
-	c.touched = c.touched[:0]
-	c.vars.boundary()
 }

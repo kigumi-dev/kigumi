@@ -42,6 +42,17 @@ func (c *checker) synthMove(n syntax.NodeID) TypeID {
 	if !isField {
 		return t
 	}
+	if root, ok := c.capturedFieldRoot(target); ok {
+		c.errAt(target, cMoveCapturedField, c.placeName(target), c.r.Entities[root].Name)
+		return t
+	}
+	if b := c.fieldRoot(target); b != 0 {
+		if src, aliased := c.methodValues.aliases[b]; aliased {
+			c.errAt(target, cMoveAliasedField, c.placeName(target), c.r.Entities[b].Name, c.r.Entities[src].Name)
+			return t
+		}
+		c.noteFieldMoveSite(b, target, target, 0)
+	}
 	if bn := c.r.Types.Node(baseType); bn.Kind == KNamed {
 		if info := c.r.typeDecl(bn.Ent); info.Drop != 0 {
 			name := c.placeName(target)
@@ -49,4 +60,24 @@ func (c *checker) synthMove(n syntax.NodeID) TypeID {
 		}
 	}
 	return t
+}
+
+func (c *checker) capturedFieldRoot(field syntax.NodeID) (EntityID, bool) {
+	ent := c.fieldRoot(field)
+	return ent, ent != 0 && !lentReceiver(&c.r.Entities[ent]) && c.capturedHere(ent)
+}
+
+func (c *checker) fieldRoot(field syntax.NodeID) EntityID {
+	for b := field; ; {
+		switch c.t.Kind(b) {
+		case syntax.Paren:
+			b = c.t.View(b).AsParen().Inner().ID()
+		case syntax.MemberExpr:
+			b = c.t.View(b).Base().ID()
+		case syntax.Ident:
+			return c.info.Uses[b]
+		default:
+			return 0
+		}
+	}
 }

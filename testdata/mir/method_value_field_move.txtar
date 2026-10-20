@@ -1,0 +1,177 @@
+-- lib/mv.kg --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.get(self, k: Int) -> Int { self.n + k }
+
+type Pair = {
+    pub tag Int
+    pub left Res
+}
+
+fn take(p: Pair) -> Unit {}
+
+fn moved(p: Pair) -> Int {
+    let f = p.left.get
+    f(1) + p.tag
+}
+
+fn wholeAfter(p: Pair) -> Unit {
+    let f = p.left.get
+    take(p)
+}
+
+fn twice(p: Pair) -> Unit {
+    let f = p.left.get
+    let g = p.left.get
+}
+
+fn show(r: &Res) -> Unit {}
+
+fn reserved(p: Pair) -> Unit {
+    defer show(&p.left)
+    let f = p.left.get
+}
+
+fn optional(o: Res?) -> Unit {
+    let f = o?.get
+    let g = o?.get
+}
+-- expect --
+fn lib.Res.drop(%self: Res) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.Res.get(%self: Res, %k: Int) -> Int {
+  b0:
+    %t2 = field 0(%self)
+    %t3 = bin +(%t2, %k)
+    drop(%k)
+    return %t3
+}
+fn lib.take(%p: Pair) -> Unit {
+  b0:
+    %t1 = unit
+    drop(%p)
+    return %t1
+}
+fn lib.moved(%p: Pair) -> Int {
+  b0:
+    %t1 = fieldmove 1(%p)
+    %t2 = closure lib.Res.get method(%t1)
+    %f = copy(%t2)
+    %t4 = const 1: Int
+    %t5 = callv(%f, %t4)
+    %t6 = field 0(%p)
+    %t7 = bin +(%t5, %t6)
+    drop(%f)
+    drop(%p)
+    return %t7
+}
+fn lib.wholeAfter(%p: Pair) -> Unit {
+  b0:
+    %t1 = fieldmove 1(%p)
+    %t2 = closure lib.Res.get method(%t1)
+    %f = copy(%t2)
+    %t4 = move(%p)
+    %t5 = call lib.take(%t4)
+    drop(%f)
+    nop
+    return %t5
+}
+fn lib.twice(%p: Pair) -> Unit {
+  b0:
+    %t1 = fieldmove 1(%p)
+    %t2 = closure lib.Res.get method(%t1)
+    %f = copy(%t2)
+    %t4 = fieldmove 1(%p)
+    %t5 = closure lib.Res.get method(%t4)
+    %g = copy(%t5)
+    drop(%g)
+    drop(%f)
+    %t7 = unit
+    drop(%p)
+    return %t7
+}
+fn lib.show(%r: &Res) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.reserved(%p: Pair) -> Unit {
+  b0:
+    %t1 = fieldmove 1(%p)
+    %t2 = closure lib.Res.get method(%t1)
+    %f = copy(%t2)
+    %t4 = field 1(%p)
+    %t5 = borrow 0(%t4)
+    %t6 = call lib.show(%t5)
+    drop(%t6)
+    drop(%f)
+    %t7 = unit
+    drop(%p)
+    return %t7
+}
+fn lib.optional(%o: Res?) -> Unit {
+  b0:
+    %t1 = move(%o)
+    %t2 = isvariant Option.Some(%t1)
+    branch %t2 ? b1 : b2
+  b1:
+    %t4 = payload 0(%t1)
+    %t5 = closure lib.Res.get method(%t4)
+    %t3 = variant Option.Some(%t5)
+    jump b3
+  b2:
+    %t3 = variant Option.None
+    jump b3
+  b3:
+    %f = copy(%t3)
+    %t7 = move(%o)
+    %t8 = isvariant Option.Some(%t7)
+    branch %t8 ? b4 : b5
+  b4:
+    %t10 = payload 0(%t7)
+    %t11 = closure lib.Res.get method(%t10)
+    %t9 = variant Option.Some(%t11)
+    jump b6
+  b5:
+    %t9 = variant Option.None
+    jump b6
+  b6:
+    %g = copy(%t9)
+    drop(%g)
+    drop(%f)
+    %t13 = unit
+    nop
+    return %t13
+}
+error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
+  --> lib/mv.kg:23:10
+   |
+23 |     take(p)
+   |          ^
+
+error[use-after-move]: `p.left` was moved; it cannot be used again
+  --> lib/mv.kg:28:13
+   |
+28 |     let g = p.left.get
+   |             ^^^^^^
+
+error[E2103]: a cleanup reads `p.left`, which can already be moved when the cleanup runs
+  --> lib/mv.kg:34:17
+   |
+34 |     defer show(&p.left)
+   |                 ^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> lib/mv.kg:40:13
+   |
+40 |     let g = o?.get
+   |             ^
+

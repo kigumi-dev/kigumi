@@ -25,11 +25,9 @@ func (c *checker) bindableMethodValue(fn EntityID) bool {
 	return c.r.Entities[c.r.Entities[fn].Parent].Kind != EntInterface
 }
 
-// copyableBoundValue rejects a method value that would copy a move-only receiver: witness-bound, or consuming or mutating it.
+// copyableBoundValue rejects a method value that would copy a move-only receiver it consumes or mutates.
 func (c *checker) copyableBoundValue(n syntax.NodeID, fn EntityID, recv TypeID) bool {
-	info := c.r.Fn(fn)
-	bound := len(info.Witnesses) > 0 && c.bindableMethodValue(fn)
-	if c.r.isCopy(recv) || (!bound && info.Recv == RecvSelf) {
+	if c.r.isCopy(recv) || c.r.Fn(fn).Recv == RecvSelf {
 		return true
 	}
 	c.errAt(n, cMethodValueMoveOnly, recv)

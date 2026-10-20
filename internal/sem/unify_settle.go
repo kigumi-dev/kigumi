@@ -17,6 +17,7 @@ func (v *varStore) settle(c *checker) {
 			v.binding[i] = TyF64
 		case v.lifetimeDefault[i] != 0:
 			v.binding[i] = v.lifetimeDefault[i]
+		case c.deferInference(uint32(i)):
 		default:
 			c.errAt(v.origin[i], cInferUnresolved, v.names[i], "explicit type arguments or an annotation")
 			v.binding[i] = TyPoison

@@ -5,6 +5,7 @@ import "kigumi/internal/syntax"
 func (c *checker) synthBlock(n syntax.NodeID, want TypeID) TypeID {
 	saved := c.scope
 	c.pushScope(ScopeBlock, n)
+	c.openBlock()
 	stmts := c.t.List(n)
 	result := TyUnit
 	dead := false
@@ -31,6 +32,7 @@ func (c *checker) synthBlock(n syntax.NodeID, want TypeID) TypeID {
 			result = TyNever
 		}
 	}
+	c.closeBlock()
 	c.popScope(saved)
 	if want != 0 && !tailValue && result != TyNever {
 		result = c.coerce(n, TyUnit, want)
@@ -131,6 +133,7 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 	c.pushScope(ScopeArm, n)
 	c.checkPatternOn(s.Pattern, s.Init, init, s.Flags&syntax.FlagMut != 0, c.scope)
 	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
+	c.notePatternAliases(s.Pattern, s.Init, true)
 	pos, neg := c.patternFacts(s.Pattern, place)
 	c.addFacts(pos)
 	if s.Guard != 0 {

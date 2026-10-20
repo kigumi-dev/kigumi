@@ -39,7 +39,7 @@ pub fn use() -> Unit {
     let g: fn(Int, Int) -> Bool = box.eqv //~ TYPE g : fn(Int, Int) -> Bool
     let h = sameLater[Int] //~ TYPE h : fn(Int, Int) -> Future[Bool]
     let t = Ticket { id: 1 }
-    let tv: fn(Int, Int) -> Bool = t.same //~ ERROR cannot form a method value on move-only
+    let tv: fn(Int, Int) -> Bool = t.same //~ ERROR closure captures `t` (move-only) and cannot be a plain `fn`
     let lv: fn(Int, Int) -> Future[Bool] = box.laterEq //~ TYPE lv : fn(Int, Int) -> Future[Bool]
 }
 -- expect --
@@ -78,10 +78,10 @@ error[E1731]: `len` has const generic parameters, which a function value cannot 
    |             ^^^^^^^
    = help: call it directly or wrap the call in a closure
 
-error[E416]: cannot form a method value on move-only `Ticket`
+error[E413]: closure captures `t` (move-only) and cannot be a plain `fn`
   --> lib/fv.kg:41:36
    |
-41 |     let tv: fn(Int, Int) -> Bool = t.same //~ ERROR cannot form a method value on move-only
+41 |     let tv: fn(Int, Int) -> Bool = t.same //~ ERROR closure captures `t` (move-only) and cannot be a plain `fn`
    |                                    ^^^^^^
-   = help: write a lambda
+   = help: use `F: Fn[...]`
 

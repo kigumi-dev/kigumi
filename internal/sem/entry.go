@@ -15,11 +15,13 @@ func (r *Result) checkImplicitMain(id EntityID) {
 	var edges []EffectEdge
 	c := r.newChecker(f, id, scope, r.unitResult(), &edges)
 	r.Bodies = append(r.Bodies, BodyRef{Fn: id, File: f, Node: t.Root})
+	c.openBlock()
 	for _, d := range r.topDecls(f) {
 		if isStatementKind(t.Kind(d)) {
 			c.stmt(d)
 		}
 	}
+	c.closeBlock()
 	c.settleExclusive()
 	c.settleInlineAt(true)
 	c.flushFieldWrites()

@@ -116,13 +116,13 @@ fn borrowedField(h: &Holder) -> Int {
 }
 
 fn ownedField(h: Holder) -> Int {
-    let f = h.r.get //~ ERROR cannot be moved out of a field, element or static
+    let f = h.r.get //~ TYPE f : closure fn(Int) -> Int
     f(1)
 }
 
-fn optional(o: Res?) -> Int? {
-    let f = o?.get //~ ERROR cannot be moved out of a field, element or static
-    f?(1)
+fn optional(o: Res?) -> Int {
+    let f = o?.get //~ TYPE f : closure fn(Int) -> Int?
+    if let Some(g) = f { g(1) } else { 0 }
 }
 
 fn plain(w: Res) -> fn(Int) -> Int {
@@ -173,20 +173,6 @@ error[E2163]: a method value on move-only `Res` takes its receiver, but this rec
 113 |     let f = h.r.get //~ ERROR this receiver is borrowed here
     |             ^^^^^^^
     = help: call the method directly, or write a lambda
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field, element or static
-   --> lib/mv.kg:118:13
-    |
-118 |     let f = h.r.get //~ ERROR cannot be moved out of a field, element or static
-    |             ^^^^^^^
-    = help: bind the value to a local first, or call the method directly
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field, element or static
-   --> lib/mv.kg:123:13
-    |
-123 |     let f = o?.get //~ ERROR cannot be moved out of a field, element or static
-    |             ^^^^^^
-    = help: bind the value to a local first, or call the method directly
 
 error[E413]: closure captures `w` (move-only) and cannot be a plain `fn`
    --> lib/mv.kg:128:5

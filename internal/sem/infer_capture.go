@@ -131,7 +131,7 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 		return nil, true
 	}
 	for _, cap := range info.Captures {
-		name := c.r.Entities[cap.Local].Name
+		name := c.capturedName(n, info, cap.Local)
 		switch cap.Mode {
 		case capCell:
 			c.errAt(n, cClosureNotPlainFn, name, c.r.cellCaptureWhy(cap.Local))

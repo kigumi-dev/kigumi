@@ -18,6 +18,7 @@ func (c *checker) stmt(n syntax.NodeID) TypeID {
 		t = TyUnit
 	case syntax.AssignStmt:
 		c.assignStmt(n)
+		c.noteAssignAlias(n)
 		t = TyUnit
 	case syntax.ExprStmt:
 		t = c.exprStmt(n)
@@ -125,6 +126,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 		if c.t.Kind(s.Init) == syntax.RecordLit {
 			c.recordEffectFacts(s.Init, c.r.identPlace(c.info.Defs[s.Pattern]))
 		}
+		c.notePatternAliases(s.Pattern, s.Init, false)
 		c.consumeWhole(s.Init)
 		return
 	}
@@ -136,6 +138,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 	}
 	pi := c.checkPatternOn(s.Pattern, s.Init, got, mut, c.scope)
 	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
+	c.notePatternAliases(s.Pattern, s.Init, false)
 	if !c.irrefutable(s.Pattern, got) {
 		c.errAt(s.Pattern, cPatternRefutable, c.witnessText(s.Pattern, got))
 	}
@@ -155,6 +158,7 @@ func (c *checker) letElse(n syntax.NodeID, s letSlots, got TypeID) {
 	c.scope = saved
 	c.checkPatternOn(s.Pattern, s.Init, got, s.Flags&syntax.FlagMut != 0, c.scope)
 	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
+	c.notePatternAliases(s.Pattern, s.Init, false)
 	if c.irrefutable(s.Pattern, got) {
 		c.errAt(s.Pattern, cLetElseIrrefutable)
 	}

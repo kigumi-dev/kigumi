@@ -33,7 +33,7 @@ const (
 	Field                           // Args[0].Index
 	FieldMove                       // move Args[0].Index; clears the field's slot in Args[0]
 	MethodValue                     // Args[0].Ent as a closure
-	OptField                        // Args[0]?.Index
+	OptField                        // Args[0]?.Index, or a method value Args[0]?.Ent when Ent is set
 	Try                             // Args[0]?; BoxType boxes the error
 	Record                          // Ent { Entries }
 	Lambda                          // closure Ent with body Fn

@@ -952,6 +952,39 @@
       ]
     },
     {
+      "id": "mir/method_value_field_borrowed",
+      "kind": "mir",
+      "path": "testdata/mir/method_value_field_borrowed.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/method_value_field_move",
+      "kind": "mir",
+      "path": "testdata/mir/method_value_field_move.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/method_value_field_reinit",
+      "kind": "mir",
+      "path": "testdata/mir/method_value_field_reinit.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/method_value_mut_ref_escape_err",
       "kind": "mir",
       "path": "testdata/mir/method_value_mut_ref_escape_err.txtar",
@@ -9560,6 +9593,44 @@
       ]
     },
     {
+      "id": "run/method_value_owned_places",
+      "kind": "run",
+      "path": "testdata/run/method_value_owned_places.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/method_value_owned_places_panic",
+      "kind": "run",
+      "path": "testdata/run/method_value_owned_places_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
+      }
+    },
+    {
       "id": "run/method_value_owned_receiver",
       "kind": "run",
       "path": "testdata/run/method_value_owned_receiver.txtar",
@@ -14868,6 +14939,17 @@
       ]
     },
     {
+      "id": "sem/method_value_aliased_field",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_aliased_field.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/method_value_generic_move_only",
       "kind": "sem",
       "path": "testdata/sem/method_value_generic_move_only.txtar",
@@ -14879,9 +14961,31 @@
       ]
     },
     {
+      "id": "sem/method_value_open_and_captured",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_open_and_captured.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/method_value_owned_receiver",
       "kind": "sem",
       "path": "testdata/sem/method_value_owned_receiver.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_value_place_receiver",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_place_receiver.txtar",
       "mode": [
         "check"
       ],

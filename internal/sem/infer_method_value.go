@@ -21,11 +21,13 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 		if !c.copyableBoundValue(n, m, valueType) || !c.ownedSync(n, owned && async, valueType) {
 			return TyPoison
 		}
+		shape := sig
 		sig, inst, _ = c.instantiateFn(n, m, nil, valueType)
+		c.markDeferrable(inst, shape)
 		c.touched = append(c.touched, n)
 		c.bindMethodWitnesses(n, m, valueType, inst)
 	case len(info.Witnesses) > 0 && c.bindableMethodValue(m):
-		if !c.bindOwnerBoundValue(n, m, valueType) {
+		if !c.ownedSync(n, owned && async, valueType) || !c.bindOwnerBoundValue(n, m, valueType) {
 			return TyPoison
 		}
 	case !c.r.isCopy(valueType) && (!owned || async):
@@ -59,30 +61,35 @@ func (c *checker) ownedSync(n syntax.NodeID, asyncOwned bool, recv TypeID) bool 
 
 func (c *checker) ownedMethodValue(n, base syntax.NodeID, recv, sig TypeID, m EntityID) TypeID {
 	tt := c.r.Types
-	tok := c.t.View(n).Tok().Index()
-	id := c.r.newEntity(Entity{Kind: EntClosure, Name: "closure", Pkg: c.pkg, File: c.f, Node: n, Tok: tok, Parent: c.fn})
-	name := "receiver"
-	if b := c.t.Unparen(base); c.t.Kind(b) == syntax.Ident {
-		name = c.t.View(b).Tok().Text()
-	}
-	local := c.r.newEntity(Entity{Kind: EntLocal, Name: name, Pkg: c.pkg, File: c.f, Node: base, Tok: tok, Parent: id, Type: recv})
-	c.r.Entities[local].Detail = c.r.addLocal(LocalInfo{Scope: c.scope})
+	c.consumeWhole(base)
 	creator := c.fn
 	if depth := len(c.lambdas); depth > 0 {
 		creator = c.lambdas[depth-1].ent
 	}
-	call := EffectEdge{Kind: EdgeCall, Target: m, Node: n, File: c.f, Scoped: c.allocDepth > 0}
+	key := methodClosureKey{method: m, creator: creator, recv: c.vars.resolve(recv), scoped: c.allocDepth > 0}
+	name := c.receiverName(base)
+	if id := c.sharedMethodClosure(key, sig, name); id != 0 {
+		return tt.Closure(id)
+	}
+	tok := c.t.View(n).Tok().Index()
+	id := c.r.newEntity(Entity{Kind: EntClosure, Name: "closure", Pkg: c.pkg, File: c.f, Node: n, Tok: tok, Parent: c.fn})
+	local := c.r.newEntity(Entity{Kind: EntLocal, Name: name, Pkg: c.pkg, File: c.f, Node: base, Tok: tok, Parent: id, Type: recv})
+	c.r.Entities[local].Detail = c.r.addLocal(LocalInfo{Scope: c.scope})
+	call := EffectEdge{Kind: EdgeCall, Target: m, Node: n, File: c.f, Scoped: key.scoped}
 	c.r.Entities[id].Detail = c.r.addClosure(ClosureInfo{
 		Ret:      tt.Node(sig).Elem,
 		Sig:      sig,
 		Captures: []Capture{{Local: local, Mode: capMove}},
 		Edges:    []EffectEdge{call},
 		Creator:  creator,
-		Scoped:   c.allocDepth > 0,
+		Scoped:   key.scoped,
 		Method:   m,
 	})
 	c.closures = append(c.closures, id)
-	c.consumeWhole(base)
+	if c.methodValues.shared == nil {
+		c.methodValues.shared = map[methodClosureKey][]EntityID{}
+	}
+	c.methodValues.shared[key] = append(c.methodValues.shared[key], id)
 	return tt.Closure(id)
 }
 

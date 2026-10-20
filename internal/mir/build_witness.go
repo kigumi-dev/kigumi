@@ -3,7 +3,6 @@ package mir
 import (
 	"fmt"
 
-	"kigumi/internal/hir"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
 )
@@ -64,26 +63,4 @@ func LentMask(r *sem.Result, fn sem.EntityID) int {
 		i++
 	}
 	return mask
-}
-
-func (b *builder) requirementValue(e *hir.Expr, recv LocalID) LocalID {
-	if e.Witness == 0 {
-		return b.emit(Inst{Op: OpClosure, Dst: b.temp(e.Type), Ent: e.Ent, Args: []LocalID{recv}, Str: "method", Node: e.Node})
-	}
-	return b.emit(Inst{Op: OpClosure, Dst: b.temp(e.Type), Ent: e.Ent, Args: []LocalID{b.witnessLocal(e.Witness), recv}, Str: "witness", Node: e.Node})
-}
-
-// A method value over a constrained generic holds the method bound to its witnesses and the receiver, applied at each call.
-func (b *builder) appliedValue(e *hir.Expr, recv LocalID) LocalID {
-	async := b.r.Fn(e.Ent).Declared&sem.EffAsync != 0
-	bound := b.emit(Inst{Op: OpBind, Dst: b.temp(b.r.Fn(e.Ent).Sig), Ent: e.Ent, Args: b.witnessArgs(e.Passes, e.Node), Async: async, Node: e.Node})
-	return b.emit(Inst{Op: OpClosure, Dst: b.temp(e.Type), Ent: e.Ent, Args: []LocalID{bound, recv}, Str: "applied", Async: async, Node: e.Node})
-}
-
-// A closure-typed method value owns its receiver, so the binding moves into it.
-func (b *builder) methodReceiver(e *hir.Expr) LocalID {
-	if b.r.Types.Kind(e.Type) == sem.KClosure {
-		return b.exprMoved(e.Args[0])
-	}
-	return b.expr(e.Args[0])
 }

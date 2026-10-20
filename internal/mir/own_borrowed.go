@@ -11,6 +11,7 @@ import (
 // two owners. A borrow is a `self` receiver or a `&T` local, and anything
 // projected out of one (a field, an element, a payload) stays borrowed.
 func checkBorrowedMoves(p *Program, f *Func) {
+	checkCapturedFieldMoves(p, f)
 	unowned := p.unownedRefs(f)
 	borrowed := make([]bool, len(f.Locals))
 	defNode := make([]syntax.NodeID, len(f.Locals))

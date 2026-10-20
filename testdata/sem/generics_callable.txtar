@@ -51,7 +51,7 @@ error[E301]: cannot infer type parameter `U`
    |
 34 |     let mv = b.map //~ ERROR cannot infer type parameter `U`
    |              ^^^^^
-   = help: write explicit type arguments or an annotation
+   = help: write a call with arguments in this block, or pass it to a parameter bound like `F: Fn[fn(fn(Int) -> U) -> Box[U]]`
 
 error[E420]: `h` is overloaded
   --> lib/gc.kg:36:13

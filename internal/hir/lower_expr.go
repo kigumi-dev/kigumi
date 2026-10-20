@@ -94,7 +94,12 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 		return l.member(n)
 	case syntax.OptMemberExpr:
 		out := l.node(n, OptField)
-		out.Args, out.Index = []*Expr{l.expr(v.AsOptMember().Base().ID())}, l.r.Field(l.info.Uses[n]).Index
+		out.Args = []*Expr{l.expr(v.AsOptMember().Base().ID())}
+		if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallMethodValue {
+			out.Ent, out.Witness, out.Passes = call.Callee, call.Witness, call.Passes
+			return out
+		}
+		out.Index = l.r.Field(l.info.Uses[n]).Index
 		return out
 	case syntax.TryExpr:
 		out := l.node(n, Try)

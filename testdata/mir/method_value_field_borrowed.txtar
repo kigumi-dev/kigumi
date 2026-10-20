@@ -1,0 +1,381 @@
+-- lib/mv.kg --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.get(self, k: Int) -> Int { self.n + k }
+
+type Pair = {
+    pub tag Int
+    pub mut left Res
+    pub mut right Res
+}
+
+fn Pair.sum(self) -> Int { self.left.n + self.right.n }
+
+fn show(r: &Res) -> Unit {}
+
+fn two[F: Fn[fn(Int) -> Int]](p: &Pair, f: F) -> Int { p.left.n + f(1) }
+
+fn wholeMethodAfter() -> Int {
+    let p = Pair { tag: 1, left: Res { n: 1 }, right: Res { n: 2 } }
+    let f = p.left.get
+    p.sum()
+}
+
+fn wholeMethodAfterMove() -> Int {
+    let p = Pair { tag: 1, left: Res { n: 1 }, right: Res { n: 2 } }
+    let g = move p.left
+    p.sum()
+}
+
+fn borrowedArgument() -> Int {
+    let p = Pair { tag: 1, left: Res { n: 1 }, right: Res { n: 2 } }
+    two(&p, p.left.get)
+}
+
+fn borrowedHolder() -> Unit {
+    let p = Pair { tag: 1, left: Res { n: 1 }, right: Res { n: 2 } }
+    let b = &p
+    let f = p.left.get
+    show(&b.left)
+}
+
+fn siblingStillUsable() -> Int {
+    let p = Pair { tag: 1, left: Res { n: 1 }, right: Res { n: 2 } }
+    let f = p.left.get
+    show(&p.right)
+    f(p.tag) + p.right.n
+}
+
+fn mkp() -> Pair { Pair { tag: 1, left: Res { n: 1 }, right: Res { n: 2 } } }
+
+fn capturedThenCalled() -> Int {
+    let p = mkp()
+    let c = () => p.left.n
+    let f = p.left.get
+    c() + f(1)
+}
+
+fn capturedThenMoved() -> Int {
+    let p = mkp()
+    let c = () => p.left.n
+    let x = move p.left
+    c() + x.n
+}
+
+fn capturedPassedOn() -> Int {
+    let p = mkp()
+    let c = () => p.tag
+    let d = () => c() + 1
+    let f = p.left.get
+    d() + f(1)
+}
+
+fn capturedCalledBefore() -> Int {
+    let p = mkp()
+    let c = () => p.tag
+    let x = c()
+    let f = p.left.get
+    x + f(1)
+}
+-- expect --
+fn lib.Res.drop(%self: Res) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.Res.get(%self: Res, %k: Int) -> Int {
+  b0:
+    %t2 = field 0(%self)
+    %t3 = bin +(%t2, %k)
+    drop(%k)
+    return %t3
+}
+fn lib.Pair.sum(%self: Pair) -> Int {
+  b0:
+    %t1 = field 1(%self)
+    %t2 = field 0(%t1)
+    %t3 = field 2(%self)
+    %t4 = field 0(%t3)
+    %t5 = bin +(%t2, %t4)
+    return %t5
+}
+fn lib.show(%r: &Res) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.two(%p: &Pair, %f: F) -> Int {
+  b0:
+    %t2 = field 1(%p)
+    %t3 = field 0(%t2)
+    %t4 = const 1: Int
+    %t5 = callv(%f, %t4)
+    %t6 = bin +(%t3, %t5)
+    drop(%f)
+    return %t6
+}
+fn lib.wholeMethodAfter() -> Int {
+  b0:
+    %t0 = const 1: Int
+    %t1 = const 1: Int
+    %t2 = record lib.Res(%t1)
+    %t3 = const 2: Int
+    %t4 = record lib.Res(%t3)
+    %t5 = record lib.Pair(%t0, %t2, %t4)
+    %p = copy(%t5)
+    %t7 = fieldmove 1(%p)
+    %t8 = closure lib.Res.get method(%t7)
+    %f = copy(%t8)
+    %t10 = call lib.Pair.sum(%p)
+    drop(%f)
+    drop(%p)
+    return %t10
+}
+fn lib.wholeMethodAfterMove() -> Int {
+  b0:
+    %t0 = const 1: Int
+    %t1 = const 1: Int
+    %t2 = record lib.Res(%t1)
+    %t3 = const 2: Int
+    %t4 = record lib.Res(%t3)
+    %t5 = record lib.Pair(%t0, %t2, %t4)
+    %p = copy(%t5)
+    %t7 = fieldmove 1(%p)
+    %g = copy(%t7)
+    %t9 = call lib.Pair.sum(%p)
+    drop(%g)
+    drop(%p)
+    return %t9
+}
+fn lib.borrowedArgument() -> Int {
+  b0:
+    %t0 = const 1: Int
+    %t1 = const 1: Int
+    %t2 = record lib.Res(%t1)
+    %t3 = const 2: Int
+    %t4 = record lib.Res(%t3)
+    %t5 = record lib.Pair(%t0, %t2, %t4)
+    %p = copy(%t5)
+    %t7 = borrow 0(%p)
+    %t8 = fieldmove 1(%p)
+    %t9 = closure lib.Res.get method(%t8)
+    %t10 = call lib.two(%t7, %t9)
+    drop(%p)
+    return %t10
+}
+fn lib.borrowedHolder() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = const 1: Int
+    %t2 = record lib.Res(%t1)
+    %t3 = const 2: Int
+    %t4 = record lib.Res(%t3)
+    %t5 = record lib.Pair(%t0, %t2, %t4)
+    %p = copy(%t5)
+    %t7 = borrow 0(%p)
+    %b = copy(%t7)
+    %t9 = fieldmove 1(%p)
+    %t10 = closure lib.Res.get method(%t9)
+    %f = copy(%t10)
+    %t12 = field 1(%b)
+    %t13 = borrow 0(%t12)
+    %t14 = call lib.show(%t13)
+    drop(%f)
+    drop(%p)
+    return %t14
+}
+fn lib.siblingStillUsable() -> Int {
+  b0:
+    %t0 = const 1: Int
+    %t1 = const 1: Int
+    %t2 = record lib.Res(%t1)
+    %t3 = const 2: Int
+    %t4 = record lib.Res(%t3)
+    %t5 = record lib.Pair(%t0, %t2, %t4)
+    %p = copy(%t5)
+    %t7 = fieldmove 1(%p)
+    %t8 = closure lib.Res.get method(%t7)
+    %f = copy(%t8)
+    %t10 = field 2(%p)
+    %t11 = borrow 0(%t10)
+    %t12 = call lib.show(%t11)
+    drop(%t12)
+    %t13 = field 0(%p)
+    %t14 = callv(%f, %t13)
+    %t15 = field 2(%p)
+    %t16 = field 0(%t15)
+    %t17 = bin +(%t14, %t16)
+    drop(%f)
+    drop(%p)
+    return %t17
+}
+fn lib.mkp() -> Pair {
+  b0:
+    %t0 = const 1: Int
+    %t1 = const 1: Int
+    %t2 = record lib.Res(%t1)
+    %t3 = const 2: Int
+    %t4 = record lib.Res(%t3)
+    %t5 = record lib.Pair(%t0, %t2, %t4)
+    return %t5
+}
+fn lib.capturedThenCalled.closure1(%p: Pair) -> Int {
+  b0:
+    %t1 = field 1(%p)
+    %t2 = field 0(%t1)
+    drop(%p)
+    return %t2
+}
+fn lib.capturedThenCalled() -> Int {
+  b0:
+    %t0 = call lib.mkp
+    %p = copy(%t0)
+    %t2 = copy(%p)
+    %t3 = closure lib.capturedThenCalled.closure1(%t2)
+    %c = copy(%t3)
+    %t5 = fieldmove 1(%p)
+    %t6 = closure lib.Res.get method(%t5)
+    %f = copy(%t6)
+    %t8 = callv(%c)
+    %t9 = const 1: Int
+    %t10 = callv(%f, %t9)
+    %t11 = bin +(%t8, %t10)
+    drop(%f)
+    drop(%c)
+    drop(%p)
+    return %t11
+}
+fn lib.capturedThenMoved.closure1(%p: Pair) -> Int {
+  b0:
+    %t1 = field 1(%p)
+    %t2 = field 0(%t1)
+    drop(%p)
+    return %t2
+}
+fn lib.capturedThenMoved() -> Int {
+  b0:
+    %t0 = call lib.mkp
+    %p = copy(%t0)
+    %t2 = copy(%p)
+    %t3 = closure lib.capturedThenMoved.closure1(%t2)
+    %c = copy(%t3)
+    %t5 = fieldmove 1(%p)
+    %x = copy(%t5)
+    %t7 = callv(%c)
+    %t8 = field 0(%x)
+    %t9 = bin +(%t7, %t8)
+    drop(%x)
+    drop(%c)
+    drop(%p)
+    return %t9
+}
+fn lib.capturedPassedOn.closure1(%p: Pair) -> Int {
+  b0:
+    %t1 = field 0(%p)
+    drop(%p)
+    return %t1
+}
+fn lib.capturedPassedOn.closure2(%c: closure fn() -> Int) -> Int {
+  b0:
+    %t1 = callv(%c)
+    %t2 = const 1: Int
+    %t3 = bin +(%t1, %t2)
+    drop(%c)
+    return %t3
+}
+fn lib.capturedPassedOn() -> Int {
+  b0:
+    %t0 = call lib.mkp
+    %p = copy(%t0)
+    %t2 = copy(%p)
+    %t3 = closure lib.capturedPassedOn.closure1(%t2)
+    %c = copy(%t3)
+    %t5 = copy(%c)
+    %t6 = closure lib.capturedPassedOn.closure2(%t5)
+    %d = copy(%t6)
+    %t8 = fieldmove 1(%p)
+    %t9 = closure lib.Res.get method(%t8)
+    %f = copy(%t9)
+    %t11 = callv(%d)
+    %t12 = const 1: Int
+    %t13 = callv(%f, %t12)
+    %t14 = bin +(%t11, %t13)
+    drop(%f)
+    drop(%d)
+    drop(%c)
+    drop(%p)
+    return %t14
+}
+fn lib.capturedCalledBefore.closure1(%p: Pair) -> Int {
+  b0:
+    %t1 = field 0(%p)
+    drop(%p)
+    return %t1
+}
+fn lib.capturedCalledBefore() -> Int {
+  b0:
+    %t0 = call lib.mkp
+    %p = copy(%t0)
+    %t2 = copy(%p)
+    %t3 = closure lib.capturedCalledBefore.closure1(%t2)
+    %c = copy(%t3)
+    %t5 = callv(%c)
+    %x = copy(%t5)
+    %t7 = fieldmove 1(%p)
+    %t8 = closure lib.Res.get method(%t7)
+    %f = copy(%t8)
+    %t10 = const 1: Int
+    %t11 = callv(%f, %t10)
+    %t12 = bin +(%x, %t11)
+    drop(%f)
+    drop(%x)
+    drop(%c)
+    drop(%p)
+    return %t12
+}
+error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
+  --> lib/mv.kg:24:5
+   |
+24 |     p.sum()
+   |     ^^^^^^
+
+error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
+  --> lib/mv.kg:30:5
+   |
+30 |     p.sum()
+   |     ^^^^^^
+
+error[move-while-borrowed]: `p` is borrowed and cannot be moved or dropped here
+  --> lib/mv.kg:35:13
+   |
+35 |     two(&p, p.left.get)
+   |             ^^^^^^
+
+error[move-while-borrowed]: `p` is borrowed and cannot be moved or dropped here
+  --> lib/mv.kg:41:13
+   |
+41 |     let f = p.left.get
+   |             ^^^^^^
+
+error[move-while-borrowed]: `p` is shared with a closure that runs later, so a field cannot be moved out of it here
+  --> lib/mv.kg:57:13
+   |
+57 |     let f = p.left.get
+   |             ^^^^^^
+
+error[move-while-borrowed]: `p` is shared with a closure that runs later, so a field cannot be moved out of it here
+  --> lib/mv.kg:64:18
+   |
+64 |     let x = move p.left
+   |                  ^^^^^^
+
+error[move-while-borrowed]: `p` is shared with a closure that runs later, so a field cannot be moved out of it here
+  --> lib/mv.kg:72:13
+   |
+72 |     let f = p.left.get
+   |             ^^^^^^
+

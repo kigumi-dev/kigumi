@@ -2,12 +2,12 @@ package mir
 
 import "sort"
 
-// movedFields lists, in field order, root's own direct fields currently
-// moved out of it.
+// movedFields lists, in field order, root's own direct fields moved out of
+// it on some path into here.
 func (a *owner) movedFields(root LocalID, st *dstate) []int {
 	var out []int
 	for idx, rep := range a.pl.children[root] {
-		if st.field[rep] == ownMoved {
+		if s := st.field[rep]; s == ownMoved || s == ownConflict {
 			out = append(out, idx)
 		}
 	}
@@ -50,9 +50,12 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 			continue
 		}
 		a.check(in, l, st.val, report)
-		if a.pl.isPlace(arg) && a.p.consumesArg(in, argi) {
+		switch {
+		case a.pl.isPlace(arg) && a.p.consumesArg(in, argi):
 			a.checkWhole(in.Node, l, st, report)
 			st.val[l], st.at[l] = ownMoved, in.Node
+		case in.Op == OpCall || in.Op == OpCallValue || in.Op == OpBuiltin || in.Op == OpBorrow:
+			a.checkWhole(in.Node, l, st, report)
 		}
 	}
 }

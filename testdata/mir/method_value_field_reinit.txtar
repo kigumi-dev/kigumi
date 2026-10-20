@@ -1,0 +1,170 @@
+-- lib/mv.kg --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.get(self, k: Int) -> Int { self.n + k }
+
+type Pair = {
+    pub tag Int
+    pub mut left Res
+}
+
+fn take(p: Pair) -> Unit {}
+
+fn reinitBoth(c: Bool) -> Unit {
+    let mut p = Pair { tag: 1, left: Res { n: 1 } }
+    let f = p.left.get
+    if c {
+        p.left = Res { n: 2 }
+    } else {
+        p.left = Res { n: 3 }
+    }
+    take(p)
+}
+
+fn reinitOneBranch(c: Bool) -> Unit {
+    let mut p = Pair { tag: 1, left: Res { n: 1 } }
+    let f = p.left.get
+    if c {
+        p.left = Res { n: 9 }
+    }
+    take(p)
+}
+
+fn moveReinitOneBranch(c: Bool) -> Unit {
+    let mut p = Pair { tag: 1, left: Res { n: 1 } }
+    let g = move p.left
+    if c {
+        p.left = Res { n: 9 }
+    }
+    take(p)
+}
+-- expect --
+fn lib.Res.drop(%self: Res) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.Res.get(%self: Res, %k: Int) -> Int {
+  b0:
+    %t2 = field 0(%self)
+    %t3 = bin +(%t2, %k)
+    drop(%k)
+    return %t3
+}
+fn lib.take(%p: Pair) -> Unit {
+  b0:
+    %t1 = unit
+    drop(%p)
+    return %t1
+}
+fn lib.reinitBoth(%c: Bool) -> Unit {
+  b0:
+    %t1 = const 1: Int
+    %t2 = const 1: Int
+    %t3 = record lib.Res(%t2)
+    %t4 = record lib.Pair(%t1, %t3)
+    %p = copy(%t4)
+    %t6 = fieldmove 1(%p)
+    %t7 = closure lib.Res.get method(%t6)
+    %f = copy(%t7)
+    branch %c ? b1 : b2
+  b1:
+    %t10 = const 2: Int
+    %t11 = record lib.Res(%t10)
+    setfield 1(%p, %t11)
+    %t12 = unit
+    %t9 = copy(%t12)
+    jump b3
+  b2:
+    %t13 = const 3: Int
+    %t14 = record lib.Res(%t13)
+    setfield 1(%p, %t14)
+    %t15 = unit
+    %t9 = copy(%t15)
+    jump b3
+  b3:
+    drop(%t9)
+    %t16 = move(%p)
+    %t17 = call lib.take(%t16)
+    drop(%f)
+    nop
+    drop(%c)
+    return %t17
+}
+fn lib.reinitOneBranch(%c: Bool) -> Unit {
+  b0:
+    %t1 = const 1: Int
+    %t2 = const 1: Int
+    %t3 = record lib.Res(%t2)
+    %t4 = record lib.Pair(%t1, %t3)
+    %p = copy(%t4)
+    %t6 = fieldmove 1(%p)
+    %t7 = closure lib.Res.get method(%t6)
+    %f = copy(%t7)
+    branch %c ? b1 : b2
+  b1:
+    %t10 = const 9: Int
+    %t11 = record lib.Res(%t10)
+    setfield 1(%p, %t11)
+    %t12 = unit
+    %t9 = copy(%t12)
+    jump b3
+  b2:
+    %t13 = unit
+    %t9 = copy(%t13)
+    jump b3
+  b3:
+    drop(%t9)
+    %t14 = move(%p)
+    %t15 = call lib.take(%t14)
+    drop(%f)
+    nop
+    drop(%c)
+    return %t15
+}
+fn lib.moveReinitOneBranch(%c: Bool) -> Unit {
+  b0:
+    %t1 = const 1: Int
+    %t2 = const 1: Int
+    %t3 = record lib.Res(%t2)
+    %t4 = record lib.Pair(%t1, %t3)
+    %p = copy(%t4)
+    %t6 = fieldmove 1(%p)
+    %g = copy(%t6)
+    branch %c ? b1 : b2
+  b1:
+    %t9 = const 9: Int
+    %t10 = record lib.Res(%t9)
+    setfield 1(%p, %t10)
+    %t11 = unit
+    %t8 = copy(%t11)
+    jump b3
+  b2:
+    %t12 = unit
+    %t8 = copy(%t12)
+    jump b3
+  b3:
+    drop(%t8)
+    %t13 = move(%p)
+    %t14 = call lib.take(%t13)
+    drop(%g)
+    nop
+    drop(%c)
+    return %t14
+}
+error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
+  --> lib/mv.kg:33:10
+   |
+33 |     take(p)
+   |          ^
+
+error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
+  --> lib/mv.kg:42:10
+   |
+42 |     take(p)
+   |          ^
+

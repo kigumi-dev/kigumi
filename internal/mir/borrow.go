@@ -144,13 +144,14 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 			if !touched || !fieldPathsOverlap(path, o.path, exact, o.exact) {
 				continue
 			}
-			mutates := in.Op == OpMove || in.Op == OpDrop || (in.Op == OpBorrow && in.Index == 1) ||
+			moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove
+			mutates := moves || (in.Op == OpBorrow && in.Index == 1) ||
 				in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet
 			name := c.f.Locals[o.owner].Name
 			switch {
 			case in.Op == OpDrop && in.EndScope:
 				c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is still borrowed when its scope ends here")
-			case in.Op == OpMove || in.Op == OpDrop:
+			case moves:
 				c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
 			case o.mut:
 				c.report(in.Node, o.owner, "borrow-conflict", "`"+name+"` is exclusively borrowed and cannot be used here")

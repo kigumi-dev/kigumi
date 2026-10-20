@@ -1,0 +1,303 @@
+-- src --
+interface Show {
+    fn show(self) -> String
+}
+
+type Tag = {
+    pub s String
+}
+
+pub fn Tag.show(self) -> String { "<${self.s}>" }
+
+type Num = {
+    pub k Int
+}
+
+pub fn Num.show(self) -> String { "#${self.k}" }
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.n}"
+}
+
+fn Res.get(self, k: Int) -> Int { self.n * 10 + k }
+
+fn Res.peek[U](self, f: fn(Int) -> U) -> U { f(self.n) }
+
+pub fn Res.label[U: Show](self, v: U) -> String { "${self.n}:${v.show()}" }
+
+type Pair = {
+    pub tag Int
+    pub mut left Res
+    pub right Res
+}
+
+type Outer = {
+    pub inner Pair
+}
+
+type Shown[T] = resource {
+    pub v T
+    pub n Int
+}
+
+fn Shown[T].drop(move self) -> Unit {
+    print "drop shown ${self.n}"
+}
+
+pub fn Shown[T: Show].say(self, pre: String) -> String { "${pre}${self.v.show()}" }
+
+fn mk(n: Int) -> Res? { Res { n: n } }
+
+fn none() -> Res? { None }
+
+fn apply[F: Fn[fn(Int) -> Int]](f: F, k: Int) -> Int { f(k) }
+
+fn both[F: Fn[fn(Int) -> Int]](f: F, g: F) -> Int { f(1) + g(2) }
+
+fn useLabel[F: Fn[fn(Tag) -> String]](f: F) -> String { "${f(Tag { s: "a" })}|${f(Tag { s: "b" })}" }
+
+fn fieldOfParam(p: Pair) -> Unit {
+    let f = p.left.get
+    print "${f(1)} ${f(2)} ${p.tag}"
+    print "fieldOfParam end"
+}
+
+fn fieldInBlock() -> Unit {
+    let p = Pair { tag: 7, left: Res { n: 3 }, right: Res { n: 4 } }
+    if true {
+        let f = p.right.get
+        print "${f(1)}"
+    }
+    print "after block ${p.tag} ${p.left.n}"
+}
+
+fn deepField(o: Outer) -> Unit {
+    print "${apply(o.inner.left.get, 5)}"
+    print "deepField end"
+}
+
+fn temporaries() -> Unit {
+    let f = mk(5)?.get
+    if let Some(g) = f {
+        print "${g(1)} ${g(2)}"
+    }
+    if let Some(h) = none()?.get {
+        print "${h(1)}"
+    } else {
+        print "none"
+    }
+    let b = { Res { n: 9 } }.get
+    print "${b(1)}"
+    print "${apply(Res { n: 8 }.get, 2)}"
+    print "temporaries end"
+}
+
+fn optionalLocal() -> Unit {
+    let o = mk(6)
+    let f = o?.get
+    if let Some(g) = f {
+        print "${g(2)}"
+    }
+    print "optionalLocal end"
+}
+
+fn reassign(c: Bool) -> Unit {
+    let a = Res { n: 11 }
+    let b = Res { n: 12 }
+    let mut f = a.get
+    print "${f(0)}"
+    if c {
+        f = b.get
+    }
+    print "${f(1)}"
+    print "reassign end"
+}
+
+fn branches(c: Bool) -> Unit {
+    let a = Res { n: 13 }
+    let b = Res { n: 14 }
+    let f = if c { a.get } else { b.get }
+    print "${f(5)}"
+    print "branches end"
+}
+
+fn twoForOneF() -> Unit {
+    let a = Res { n: 15 }
+    let b = Res { n: 16 }
+    print "${both(a.get, b.get)}"
+    print "twoForOneF end"
+}
+
+fn witnessBound() -> Unit {
+    let r = Res { n: 17 }
+    print useLabel(r.label)
+    print "witnessBound end"
+}
+
+fn ownerBound[T: Show](s: Shown[T]) -> Unit {
+    let g = s.say
+    print "${g("p1")} ${g("p2")}"
+    print "ownerBound end"
+}
+
+fn inferredLater() -> Unit {
+    let r = Res { n: 18 }
+    let p = r.peek
+    let s = p((k: Int) => "k${k}")
+    print s
+    print p((k: Int) => "again${k}")
+    let xs = Array.of(1, 2, 3)
+    let m = xs.map
+    let ys = m((x: &Int) => true)
+    print "${ys.len()}"
+    print "inferredLater end"
+}
+
+fn openShared(c: Bool) -> Unit {
+    let r = Res { n: 31 }
+    let s = Res { n: 32 }
+    let t = Res { n: 33 }
+    let mut a = r.peek
+    print a((k: Int) => "a${k}")
+    if c {
+        a = s.peek
+    }
+    print a((k: Int) => "b${k}")
+    let g = if c { a } else { t.peek }
+    print g((k: Int) => "c${k}")
+    print "openShared end"
+}
+
+fn witnessLater() -> Unit {
+    let r = Res { n: 34 }
+    let f = r.label
+    print f(Tag { s: "w" })
+    print f(Tag { s: "v" })
+    print "witnessLater end"
+}
+
+fn reinitBoth(c: Bool) -> Unit {
+    let mut p = Pair { tag: 3, left: Res { n: 35 }, right: Res { n: 36 } }
+    let f = p.left.get
+    if c {
+        p.left = Res { n: 37 }
+    } else {
+        p.left = Res { n: 38 }
+    }
+    let q = p
+    print "${f(1)} ${q.left.n}"
+    print "reinitBoth end"
+}
+
+fn lambdaParamField() -> Unit {
+    let h = (p: Pair) => p.left.get
+    let f = h(Pair { tag: 4, left: Res { n: 39 }, right: Res { n: 40 } })
+    print "${f(1)} ${f(2)}"
+    print "lambdaParamField end"
+}
+
+fieldOfParam(Pair { tag: 2, left: Res { n: 1 }, right: Res { n: 2 } })
+fieldInBlock()
+deepField(Outer { inner: Pair { tag: 0, left: Res { n: 21 }, right: Res { n: 22 } } })
+temporaries()
+optionalLocal()
+reassign(true)
+reassign(false)
+branches(false)
+twoForOneF()
+witnessBound()
+ownerBound(Shown { v: Tag { s: "x" }, n: 19 })
+ownerBound(Shown { v: Num { k: 5 }, n: 23 })
+inferredLater()
+openShared(true)
+openShared(false)
+witnessLater()
+reinitBoth(true)
+lambdaParamField()
+-- stdout --
+11 12 2
+fieldOfParam end
+drop 1
+drop 2
+41
+drop 4
+after block 7 3
+drop 3
+drop 21
+215
+deepField end
+drop 22
+51 52
+none
+91
+drop 8
+82
+temporaries end
+drop 9
+drop 5
+62
+optionalLocal end
+drop 6
+110
+drop 11
+121
+reassign end
+drop 12
+110
+111
+reassign end
+drop 11
+drop 12
+145
+branches end
+drop 14
+drop 13
+drop 16
+drop 15
+313
+twoForOneF end
+drop 17
+17:<a>|17:<b>
+witnessBound end
+p1<x> p2<x>
+ownerBound end
+drop shown 19
+p1#5 p2#5
+ownerBound end
+drop shown 23
+k18
+again18
+3
+inferredLater end
+drop 18
+a31
+drop 31
+b32
+c32
+openShared end
+drop 32
+drop 33
+a31
+b31
+c33
+openShared end
+drop 33
+drop 31
+drop 32
+34:<w>
+34:<v>
+witnessLater end
+drop 34
+351 37
+reinitBoth end
+drop 36
+drop 37
+drop 35
+drop 40
+391 392
+lambdaParamField end
+drop 39
