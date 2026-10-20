@@ -8,8 +8,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 func contains(outer, inner protocol.Range) bool {
@@ -23,7 +21,7 @@ func contains(outer, inner protocol.Range) bool {
 // whole response otherwise).
 func TestSymbolRanges(t *testing.T) {
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New("")
+	s := newServer("")
 	for _, dir := range []string{"../../std", "../../testdata"} {
 		filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 			if err != nil || d.IsDir() || filepath.Ext(path) != ".kg" {

@@ -17,7 +17,7 @@ func irFor(t *testing.T, target driver.Target, src string) string {
 	root := t.TempDir()
 	writeBaseTypesModule(t, root, src)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

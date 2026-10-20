@@ -29,7 +29,7 @@ func TestReplaceIgnoredBeyondRoot(t *testing.T) {
 	os.WriteFile(filepath.Join(app, "mod.local.kg"), []byte("Replace { name: \"mid\", path: \""+filepath.ToSlash(mid)+"\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {key} from secret\nprint key\n"), 0o644)
 
-	_, err := driver.LoadModule(app, driver.LoadOptions{})
+	_, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()})
 	if err == nil {
 		t.Fatal("a non-root Replace should be rejected, not honored")
 	}
@@ -49,7 +49,7 @@ func TestLoadRejectsTamperedCache(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,13 +68,13 @@ func TestLoadRejectsTamperedCache(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := driver.LoadModule(app, driver.LoadOptions{}); err != nil {
+	if _, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()}); err != nil {
 		t.Fatalf("cache matches the lock, should load: %v", err)
 	}
 
 	os.WriteFile(filepath.Join(dir, "greet.kg"), []byte("pub fn greeting() -> String {\n    \"TAMPERED\"\n}\n"), 0o644)
 
-	_, err = driver.LoadModule(app, driver.LoadOptions{})
+	_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()})
 	if err == nil {
 		t.Fatal("a cache diverged from mod.lock.kg should be rejected")
 	}
@@ -95,7 +95,7 @@ func TestLoadRejectsMissingLockEntry(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestLoadRejectsMissingLockEntry(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "greet.kg"), []byte("pub fn greeting() -> String {\n    \"hello\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("deadbeef\n"), 0o644)
 
-	_, err = driver.LoadModule(app, driver.LoadOptions{})
+	_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()})
 	if err == nil {
 		t.Fatal("a dependency absent from mod.lock.kg should be rejected")
 	}
@@ -125,7 +125,7 @@ func TestLoadRejectsStaleLockVersion(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestLoadRejectsStaleLockVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = driver.LoadModule(app, driver.LoadOptions{})
+	_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()})
 	if err == nil {
 		t.Fatal("a lock entry for a different version should not cover the requirement")
 	}
@@ -159,7 +159,7 @@ func TestScriptRunsWithoutLockFile(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestScriptRunsWithoutLockFile(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "greet.kg"), []byte("pub fn greeting() -> String {\n    \"hello\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("deadbeef\n"), 0o644)
 
-	if _, err := driver.LoadModule(root, driver.LoadOptions{}); err != nil {
+	if _, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler()}); err != nil {
 		t.Fatalf("a script with no lock file should still load from the cache: %v", err)
 	}
 
@@ -177,7 +177,7 @@ func TestScriptRunsWithoutLockFile(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	_, err = driver.LoadModule(root, driver.LoadOptions{})
+	_, err = driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler()})
 	if err == nil {
 		t.Fatal("once a script.lock.kg exists, a stale entry should still be rejected")
 	}
@@ -190,7 +190,7 @@ func TestScriptRunsWithoutLockFile(t *testing.T) {
 // through KIGUMI_CFLAGS should surface a real diagnostic, not a mystery
 // link failure.
 func TestBuildSurfacesCCompilerDiagnostics(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -201,7 +201,7 @@ func TestBuildSurfacesCCompilerDiagnostics(t *testing.T) {
 	t.Setenv("KIGUMI_CFLAGS", helper)
 
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestNativeSymlinkEscapeRejected(t *testing.T) {
 			os.WriteFile(filepath.Join(app, "mod.local.kg"), []byte("Replace { name: \"dep\", path: \""+filepath.ToSlash(dep)+"\" }\n"), 0o644)
 			os.WriteFile(filepath.Join(app, "main.kg"), []byte("import dep from dep\nprint \"${dep.greet()}\"\n"), 0o644)
 
-			_, err := driver.LoadModule(app, driver.LoadOptions{})
+			_, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()})
 			if err == nil || !strings.Contains(err.Error(), "resolves outside the module") {
 				t.Fatalf("a Source escaping through a symlink should be rejected, got %v", err)
 			}

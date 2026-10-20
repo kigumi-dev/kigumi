@@ -15,7 +15,7 @@ func loadForCapabilities(t *testing.T, main string) *driver.Analysis {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"caps\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(main), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestCapabilitiesAndReasonGraphNameCString(t *testing.T) {
 
 func TestCapabilityReasonsNameWithheldCapabilityPerTarget(t *testing.T) {
 	a := loadForCapabilities(t, "let args = host.args()\nprint \"${args.len()}\"\n")
-	wasi, err := driver.ParseTarget(driver.CompilerOptions{}, "wasm32-wasi", "")
+	wasi, err := driver.ParseTarget(testCompiler(), "wasm32-wasi", "")
 	if err != nil {
 		t.Fatal(err)
 	}

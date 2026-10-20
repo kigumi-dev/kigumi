@@ -13,7 +13,7 @@ import (
 // TestAotExportPanicAborts: a panic reaching an export(C) frame must abort
 // before returning to the C caller; the C helper prints before and after, only "before" must reach stdout.
 func TestAotExportPanicAborts(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -49,7 +49,7 @@ print "unreachable ${r}"
 	}
 	t.Setenv("KIGUMI_CFLAGS", helper)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

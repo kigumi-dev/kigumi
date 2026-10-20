@@ -98,7 +98,7 @@ func buildShellFdSafetyProg(t *testing.T, src string) string {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestShellRedirectFailureLeavesNoFd(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("uses /proc/self/fd")
 	}
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	exe := buildShellFdSafetyProg(t, shellFdSafetyBadRedirect)
@@ -149,7 +149,7 @@ func TestShellDevnullOpenFailure(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("uses /proc/self/fd and a bash ulimit wrapper")
 	}
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if _, err := exec.LookPath("bash"); err != nil {
@@ -196,7 +196,7 @@ func TestShellPipeSetupFailureLeavesNoFd(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("uses /proc/self/fd and a bash ulimit wrapper")
 	}
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if _, err := exec.LookPath("bash"); err != nil {

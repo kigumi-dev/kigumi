@@ -106,7 +106,7 @@ func TestInstallReleaseDownloadsVerifiesAndInstalls(t *testing.T) {
 	defer cleanup()
 
 	root := t.TempDir()
-	m, err := fetch.InstallRelease(fetch.Options{IndexURL: indexURL, StoreRoot: root, Version: "9.9.9", PublicKey: pubKey})
+	m, err := fetch.InstallRelease(fetch.Options{Lookup: exec.LookPath, IndexURL: indexURL, StoreRoot: root, Version: "9.9.9", PublicKey: pubKey})
 	if err != nil {
 		t.Fatalf("InstallRelease: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestInstallReleaseRejectsChecksumMismatch(t *testing.T) {
 	defer cleanup()
 
 	root := t.TempDir()
-	if _, err := fetch.InstallRelease(fetch.Options{IndexURL: indexURL, StoreRoot: root, Version: "9.9.8", PublicKey: pubKey}); err == nil {
+	if _, err := fetch.InstallRelease(fetch.Options{Lookup: exec.LookPath, IndexURL: indexURL, StoreRoot: root, Version: "9.9.8", PublicKey: pubKey}); err == nil {
 		t.Fatal("expected a checksum mismatch error")
 	}
 	if _, ok := store.Installed(root, "9.9.8"); ok {
@@ -151,7 +151,7 @@ func TestInstallReleaseRejectsBadSignature(t *testing.T) {
 	defer cleanup()
 
 	root := t.TempDir()
-	if _, err := fetch.InstallRelease(fetch.Options{IndexURL: indexURL, StoreRoot: root, Version: "9.9.7", PublicKey: pubKey}); err == nil {
+	if _, err := fetch.InstallRelease(fetch.Options{Lookup: exec.LookPath, IndexURL: indexURL, StoreRoot: root, Version: "9.9.7", PublicKey: pubKey}); err == nil {
 		t.Fatal("expected a signature verification error")
 	}
 	if _, ok := store.Installed(root, "9.9.7"); ok {
@@ -163,7 +163,7 @@ func TestInstallReleaseNoPrebuiltForDevSnapshot(t *testing.T) {
 	indexURL, pubKey, cleanup := fakeServer(t, "9.9.6", "x86_64-linux", []byte("unused"), false, false)
 	defer cleanup()
 	root := t.TempDir()
-	_, err := fetch.InstallRelease(fetch.Options{IndexURL: indexURL, StoreRoot: root, Version: "0.16.0-dev.2287+eb3f16db5", GOOS: "linux", GOARCH: "amd64", PublicKey: pubKey})
+	_, err := fetch.InstallRelease(fetch.Options{Lookup: exec.LookPath, IndexURL: indexURL, StoreRoot: root, Version: "0.16.0-dev.2287+eb3f16db5", GOOS: "linux", GOARCH: "amd64", PublicKey: pubKey})
 	if err == nil {
 		t.Fatal("expected ErrNoPrebuilt")
 	}

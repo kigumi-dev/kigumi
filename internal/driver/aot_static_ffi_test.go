@@ -13,7 +13,7 @@ import (
 // TestAotExportStaticReadByC: an `export(C)` static is a genuine C ABI
 // object; a C shim reads and writes it directly by its linked symbol.
 func TestAotExportStaticReadByC(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -47,7 +47,7 @@ print "bump2=${bump2}"
 	os.WriteFile(helper, []byte(cHelper), 0o644)
 	t.Setenv("KIGUMI_CFLAGS", helper)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ print "bump2=${bump2}"
 // TestAotExternStaticFromC: an `extern(C)` static imports storage a C file
 // defines; Kigumi reads it under `unsafe` without owning or initializing it.
 func TestAotExternStaticFromC(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -101,7 +101,7 @@ print "vendor2=${bumpVendor()}"
 	os.WriteFile(helper, []byte(cHelper), 0o644)
 	t.Setenv("KIGUMI_CFLAGS", helper)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -17,7 +17,7 @@ func TestRunE2ESmoke(t *testing.T) {
 	work := t.TempDir()
 
 	var out bytes.Buffer
-	if err := RunE2E(E2EOptions{RepoRoot: repoRoot, Module: "examples/hello", StdRoot: "std", WorkDir: work}, &out); err != nil {
+	if err := RunE2E(E2EOptions{Lookup: exec.LookPath, RepoRoot: repoRoot, Module: "examples/hello", StdRoot: "std", WorkDir: work}, &out); err != nil {
 		t.Fatalf("RunE2E: %v\n%s", err, out.String())
 	}
 

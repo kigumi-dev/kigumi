@@ -60,18 +60,18 @@ func TestFingerprintSidecarRoundTrip(t *testing.T) {
 // TestBuildArchiveFingerprint: a bare build writes a matching sidecar, and a
 // stale one from a different ABI revision is reported, never silently overwritten.
 func TestBuildArchiveFingerprint(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"fp\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if err := driver.WriteFingerprintSidecar(archive, stale); err != nil {
 		t.Fatal(err)
 	}
-	m2, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m2, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestBuildArchiveFingerprint(t *testing.T) {
 	if err := driver.WriteFingerprintSidecar(archive, old); err != nil {
 		t.Fatal(err)
 	}
-	m3, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m3, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

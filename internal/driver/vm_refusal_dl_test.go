@@ -21,7 +21,7 @@ print "opened"
 `
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

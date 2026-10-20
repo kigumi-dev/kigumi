@@ -234,17 +234,17 @@ func TestDependencyConflict(t *testing.T) {
 	write("app", "main.kg", []byte("import {two} from github.com/acme/mid\nprint \"${two()}\"\n"))
 	// Minimal version selection reconciles v1.0.0 (app) with v1.1.0 (mid);
 	// a different major (no major suffix) is refused instead.
-	m0, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{})
+	m0, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil || m0.Selected["github.com/acme/lib"].Version != "v1.1.0" {
 		t.Fatalf("selection: %v %+v", err, m0.Selected)
 	}
 	write("mid", "mod.kg", manifest("github.com/acme/mid", "Require { name: \"github.com/acme/lib\", version: \"v2.0.0\" }\n"))
-	if _, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{}); err == nil || !strings.Contains(err.Error(), "different major versions cannot be mixed") {
+	if _, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler()}); err == nil || !strings.Contains(err.Error(), "different major versions cannot be mixed") {
 		t.Fatalf("major mix not reported: %v", err)
 	}
 	// A required name nested under the root's own name must not be rejected as an overlap by name alone.
 	write("app", "mod.kg", manifest("github.com/acme/app", "Require { name: \"github.com/acme/app/sub\", version: \"v1.0.0\" }\n"))
-	m, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{NoDeps: true})
+	m, err := driver.LoadModule(filepath.Join(root, "app"), driver.LoadOptions{Compiler: testCompiler(), NoDeps: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +271,7 @@ func TestModuleNamePrefixNotOverlap(t *testing.T) {
 	write(demo, "mod.kg", manifest("example.com/lib/examples/demo", "Require { name: \"example.com/lib\", version: \"v1.0.0\" }\n"))
 	write(demo, "mod.local.kg", []byte("Replace { name: \"example.com/lib\", path: \"../..\" }\n"))
 	write(demo, "main.kg", []byte("import {helper} from example.com/lib\nprint \"${helper()}\"\n"))
-	m, err := driver.LoadModule(filepath.Join(root, demo), driver.LoadOptions{})
+	m, err := driver.LoadModule(filepath.Join(root, demo), driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil {
 		t.Fatalf("example nested under its own library should load: %v", err)
 	}
@@ -287,7 +287,7 @@ func TestModuleNamePrefixNotOverlap(t *testing.T) {
 	write("dup/sub", "sub.kg", []byte("pub fn x() -> Int {\n    1\n}\n"))
 	write("dup", "mod.local.kg", []byte("Replace { name: \"example.com/dup/sub\", path: \"../othersub\" }\n"))
 	write("othersub", "othersub.kg", []byte("pub fn y() -> Int {\n    2\n}\n"))
-	if _, err := driver.LoadModule(filepath.Join(root, "dup"), driver.LoadOptions{}); err == nil || !strings.Contains(err.Error(), "overlaps this module's name") {
+	if _, err := driver.LoadModule(filepath.Join(root, "dup"), driver.LoadOptions{Compiler: testCompiler()}); err == nil || !strings.Contains(err.Error(), "overlaps this module's name") {
 		t.Fatalf("real overlap not reported: %v", err)
 	}
 }
@@ -306,7 +306,7 @@ func TestDependencyEmptyRootNotOverlap(t *testing.T) {
 	write("lib", "main.kg", []byte("import {deep} from example.com/lib/app/deep\nprint \"${deep()}\"\n"))
 	write("dep", "mod.kg", manifest("example.com/lib/app", ""))
 	write("dep/deep", "deep.kg", []byte("pub fn deep() -> Int {\n    2\n}\n"))
-	m, err := driver.LoadModule(filepath.Join(root, "lib"), driver.LoadOptions{})
+	m, err := driver.LoadModule(filepath.Join(root, "lib"), driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil {
 		t.Fatalf("dependency with an empty root directory should not overlap: %v", err)
 	}
@@ -329,7 +329,7 @@ func TestVersionSelection(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", cache)
 	lock := driver.Lock{Entries: map[string]driver.LockEntry{}}
 	put := func(name, version, rest string, files map[string]string) {
-		dir, _ := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: name, Version: version})
+		dir, _ := driver.CacheDir(testCompiler(), driver.Require{Name: name, Version: version})
 		os.MkdirAll(dir, 0o755)
 		os.WriteFile(filepath.Join(dir, "mod.kg"), manifest(name, rest), 0o644)
 		os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("cafebabe\n"), 0o644)
@@ -352,7 +352,7 @@ func TestVersionSelection(t *testing.T) {
 	}
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import {one} from github.com/acme/lib\nimport {two} from github.com/acme/mid\nprint \"${one()} ${two()}\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +371,7 @@ func TestVersionSelection(t *testing.T) {
 	}
 	put("github.com/acme/lib", "abc1234", "", map[string]string{"lib.kg": "pub fn one() -> Int {\n    3\n}\n"})
 	os.WriteFile(filepath.Join(root, "mod.kg"), manifest("app", "Require { name: \"github.com/acme/lib\", version: \"abc1234\" }\nRequire { name: \"github.com/acme/mid\", version: \"v0.1.0\" }\n"), 0o644)
-	if _, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std}); err == nil || !strings.Contains(err.Error(), "commit hash cannot be reconciled") {
+	if _, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err == nil || !strings.Contains(err.Error(), "commit hash cannot be reconciled") {
 		t.Fatalf("hash versus tag should be an error: %v", err)
 	}
 }

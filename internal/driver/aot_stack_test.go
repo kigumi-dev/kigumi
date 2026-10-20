@@ -14,7 +14,7 @@ import (
 // argument buffers of its calls were allocated per iteration.
 func TestAotLoopStack(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -40,7 +40,7 @@ print "${total(&data, 300000)} ${total(&data, 300000)}"
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"loopstack\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

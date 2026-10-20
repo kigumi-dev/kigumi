@@ -83,7 +83,7 @@ func loadFaultSweepModule(t *testing.T) *driver.Module {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"faultsweep\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(faultSweepSrc), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func checkFaultOutcome(t *testing.T, n int, exit int, out, errOut string) {
 
 func TestFaultInjectionSweepNative(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	m := loadFaultSweepModule(t)
@@ -222,7 +222,7 @@ func loadTryConstructorModule(t *testing.T, src string) *driver.Module {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"tryctor\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func loadTryConstructorModule(t *testing.T, src string) *driver.Module {
 
 func TestFaultInjectionTryConstructorsNative(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range tryConstructorCases {

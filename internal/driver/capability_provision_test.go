@@ -16,7 +16,7 @@ func compileFor(t *testing.T, target driver.Target, src string) (out string, ok 
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"prov\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func compileFor(t *testing.T, target driver.Target, src string) (out string, ok 
 
 func mustTarget(t *testing.T, triple, sys string) driver.Target {
 	t.Helper()
-	tgt, err := driver.ParseTarget(driver.CompilerOptions{}, triple, sys)
+	tgt, err := driver.ParseTarget(testCompiler(), triple, sys)
 	if err != nil {
 		t.Fatal(err)
 	}

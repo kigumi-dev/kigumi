@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 // entryCase returns RES from a callee only a boxed caller reaches; MK(v) builds one from v.
@@ -91,7 +89,7 @@ func (c entryCase) src(boxed bool, rounds int) string {
 // A Flags of two Bools boxes as a header and a slot array; a Bool is an immortal.
 func TestFaultInjectionEntryBoxesCountTheSameOnBothBackends(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range entryCases {

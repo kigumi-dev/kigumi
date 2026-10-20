@@ -14,11 +14,10 @@ import (
 var envAllowed = []string{"internal/cli/", "internal/vm/std_host.go"}
 
 // processAllowed lists the exact files that may resolve a path against the process cwd, search PATH or ask for the home directory.
-// The two driver files are the single fallback for a zero CompilerOptions field.
+// Beyond internal/cli and the VM host intrinsic only the two dev command mains, which are process boundaries of their own; no library file falls back to the process.
 var processAllowed = map[string]bool{
-	"internal/driver/compiler_options.go": true,
-	"internal/driver/compiler_tools.go":   true,
-	"cmd/testaudit/main.go":               true,
+	"cmd/testaudit/main.go": true,
+	"cmd/e2ebench/main.go":  true,
 }
 
 var processCalls = []string{"filepath.Abs", "os.Getwd", "exec.LookPath", "os.UserHomeDir"}

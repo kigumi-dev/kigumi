@@ -17,7 +17,7 @@ func TestRunExplicitMainNoExplicitEntry(t *testing.T) {
 		"main.kg": "fn main() -> Unit! {\n    print(\"hello\")\n}\n",
 	})
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestCheckExplicitMainCmdPackage(t *testing.T) {
 		"cmd/explicit/main.kg": "fn main() -> Unit! {\n    print(\"from explicit\")\n}\n",
 	})
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

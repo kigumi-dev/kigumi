@@ -18,7 +18,7 @@ func TestInvalidateFileIsRootGrained(t *testing.T) {
 	os.WriteFile(filepath.Join(a, "main", "main.kg"), []byte("fn f() -> Int {\n    1\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(b, "main", "main.kg"), []byte("fn g() -> Int {\n    2\n}\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	s := New(std)
+	s := newServer(std)
 	s.roots = []string{a, b}
 	ctx := context.Background()
 
@@ -58,7 +58,7 @@ func TestInvalidateFileFollowsLocalReplace(t *testing.T) {
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {one} from the-lib\nprint \"${one()}\"\n"), 0o644)
 
 	std, _ := filepath.Abs("../../std")
-	s := New(std)
+	s := newServer(std)
 	s.roots = []string{lib, app}
 	ctx := context.Background()
 	s.load(ctx, app, "")

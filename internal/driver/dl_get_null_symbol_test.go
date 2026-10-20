@@ -18,7 +18,7 @@ func TestDLGetNullValuedSymbol(t *testing.T) {
 	if _, err := exec.LookPath("cc"); err != nil {
 		t.Skip("no cc")
 	}
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -45,7 +45,7 @@ run() || (e) => print "failed: ${e.message()}"
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"dlnull\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

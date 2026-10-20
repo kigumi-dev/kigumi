@@ -28,7 +28,7 @@ func loadExamples(b *testing.B, only string) []*driver.Module {
 		if !d.IsDir() || only != "" && d.Name() != only {
 			continue
 		}
-		m, err := driver.LoadModule(filepath.Join("../../examples", d.Name()), driver.LoadOptions{StdRoot: "../../std"})
+		m, err := driver.LoadModule(filepath.Join("../../examples", d.Name()), driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std"})
 		if err != nil {
 			continue
 		}

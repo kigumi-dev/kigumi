@@ -10,8 +10,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 func lastPublished(t *testing.T, src string) *protocol.PublishDiagnosticsParams {
@@ -23,7 +21,7 @@ func lastPublished(t *testing.T, src string) *protocol.PublishDiagnosticsParams 
 	std, _ := filepath.Abs("../../std")
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New(std)
+	s := newServer(std)
 	doc := uri.File(path)
 	if _, err := s.Initialize(ctx, initParams(uri.File(root))); err != nil {
 		t.Fatal(err)

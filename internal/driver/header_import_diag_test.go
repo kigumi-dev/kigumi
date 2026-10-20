@@ -25,7 +25,7 @@ func TestHeaderImportUnsupportedOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestHeaderImportUnsupportedOnlyUnreachable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestBuildDiagnosticsNotDuplicated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}

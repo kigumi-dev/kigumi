@@ -12,7 +12,7 @@ import (
 
 func TestSpecializationKeepsAWideRecursionOnTheSharedBody(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	src := `type R = {
@@ -36,7 +36,7 @@ print "${r.f}"
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	load := func() *driver.Module {
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 		if err != nil {
 			t.Fatal(err)
 		}

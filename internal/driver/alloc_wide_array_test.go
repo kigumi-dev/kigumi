@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const wideArraySrc = `type Ring = {
@@ -34,7 +32,7 @@ print "ok=${run(%[2]d)}"
 // A 128-bit element is a two-word slot like the narrower widths, so a loop that rebuilds a record holding a fixed array of them costs the same.
 func TestWideArrayElementsAllocateLikeNarrowOnes(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	src := func(ty string, rounds int) string { return fmt.Sprintf(wideArraySrc, ty, rounds) }

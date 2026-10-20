@@ -48,7 +48,7 @@ func TestLocalReplaceReleasePolicy(t *testing.T) {
 	os.WriteFile(filepath.Join(app, "mod.local.kg"), []byte("Replace { name: \"greet\", path: \""+filepath.ToSlash(dep)+"\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {greeting} from greet\nprint greeting()\n"), 0o644)
 
-	m, err := driver.LoadModule(app, driver.LoadOptions{Policy: driver.Development()})
+	m, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: driver.Development()})
 	if err != nil {
 		t.Fatalf("development must still load from the replacement: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestLocalReplaceReleasePolicy(t *testing.T) {
 		t.Fatal("development must not error on a local replacement")
 	}
 
-	_, err = driver.LoadModule(app, driver.LoadOptions{Policy: driver.Release()})
+	_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: driver.Release()})
 	if err == nil {
 		t.Fatal("release must refuse a local replacement")
 	}
@@ -77,7 +77,7 @@ func TestUnlockedScriptReleasePolicy(t *testing.T) {
 	writeDepModule(t, dep, "greet")
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestUnlockedScriptReleasePolicy(t *testing.T) {
 	script := filepath.Join(root, "main.kg")
 	os.WriteFile(script, []byte("Kigumi { version: \"0.1\" }\nRequire { name: \"greet\", version: \"v1.0.0\" }\n\nimport {greeting} from greet\nprint greeting()\n"), 0o644)
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{Policy: driver.Development()})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), Policy: driver.Development()})
 	if err != nil {
 		t.Fatalf("development must load an unlocked script: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestUnlockedScriptReleasePolicy(t *testing.T) {
 		t.Fatalf("want one release-unlocked-script warning, got %+v", report)
 	}
 
-	_, err = driver.LoadModule(root, driver.LoadOptions{Policy: driver.Release()})
+	_, err = driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), Policy: driver.Release()})
 	if err == nil {
 		t.Fatal("release must refuse a script with no sidecar lock")
 	}
@@ -112,7 +112,7 @@ func TestNativeLinkUnresolvedReleasePolicy(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\nLink { library: \"foo\", search: \"libs\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestLoadRejectsTamperedNativeDeclaration(t *testing.T) {
 
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "greet", Version: "v1.0.0"})
+	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +193,7 @@ func TestLoadRejectsTamperedNativeDeclaration(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := driver.LoadModule(app, driver.LoadOptions{}); err != nil {
+	if _, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()}); err != nil {
 		t.Fatalf("cache matches the lock, should load: %v", err)
 	}
 
@@ -202,7 +202,7 @@ func TestLoadRejectsTamperedNativeDeclaration(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "mod.kg"), []byte("Module {\n    name: \"greet\"\n    kigumi: \"0.1\"\n}\nLink { library: \"m\" }\n"), 0o644)
 
 	for _, policy := range []driver.BuildPolicy{driver.Development(), driver.Release()} {
-		_, err = driver.LoadModule(app, driver.LoadOptions{Policy: policy})
+		_, err = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), Policy: policy})
 		if err == nil {
 			t.Fatalf("%s: a tampered native declaration should be rejected", policy)
 		}

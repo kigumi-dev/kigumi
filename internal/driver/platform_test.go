@@ -30,7 +30,7 @@ func TestPlatformFiles(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"plat\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import sys from plat/sys\nprint \"${sys.name()} ${sys.arch()}\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestComptimeSandbox(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ct\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import random from std/random\nlet n = comptime {\n    let mut r = random.fromClock()\n    r.nextInt(6)\n}\nprint \"${n}\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestComptimeLiteralRange(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ct\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("let a: u8 = comptime { 256 }\nlet b: i128 = comptime { 340282366920938463463374607431768211455 }\nlet c: u128 = comptime { -1 }\nprint \"${a} ${b} ${c}\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestComptimeLiteralRange(t *testing.T) {
 // through an arena; the VM reports 0 so this cannot be a shared fixture.
 func TestArenaAllocates(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -98,7 +98,7 @@ func TestArenaAllocates(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"arena\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestArenaAllocates(t *testing.T) {
 // POSIX layer, and selects platform files by the requested target.
 func TestBuildFreestanding(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -126,12 +126,12 @@ func TestBuildFreestanding(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "greet"), 0o755)
 	os.WriteFile(filepath.Join(root, "greet", "greet_freestanding.kg"), []byte("pub fn hello() -> String {\n    \"bare metal\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "greet", "greet_linux.kg"), []byte("pub fn hello() -> String {\n    \"linux\"\n}\n"), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil || !target.Freestanding() || target.Sys != "none" || target.OS != "freestanding" || target.Arch != "amd64" {
 		t.Fatalf("target: %+v %v", target, err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestBuildFreestanding(t *testing.T) {
 			t.Errorf("freestanding archive must not reference %s", bad)
 		}
 	}
-	if _, err := driver.ParseTarget(driver.CompilerOptions{}, "sparc-linux", ""); err == nil {
+	if _, err := driver.ParseTarget(testCompiler(), "sparc-linux", ""); err == nil {
 		t.Error("unknown architectures should be rejected")
 	}
 }
@@ -168,7 +168,7 @@ func TestBuildFreestanding(t *testing.T) {
 // "close" is also a substring of File.close and rt_sys_close.
 func TestBuildFreestandingNoCloseSymbol(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	nmPath, err := exec.LookPath("nm")
@@ -178,12 +178,12 @@ func TestBuildFreestandingNoCloseSymbol(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func TestBuildFreestandingInt128AggregateSymbolSet(t *testing.T) {
 
 func checkFreestandingSymbols(t *testing.T, triple, src string) {
 	t.Helper()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	nmPath, err := exec.LookPath("nm")
@@ -275,12 +275,12 @@ func checkFreestandingSymbols(t *testing.T, triple, src string) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"symset\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, triple, "")
+	target, err := driver.ParseTarget(testCompiler(), triple, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +322,7 @@ func checkFreestandingSymbols(t *testing.T, triple, src string) {
 // (Target.compileTriple stays keyed on Freestanding alone).
 func TestBuildHostBare(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -331,7 +331,7 @@ func TestBuildHostBare(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "greet"), 0o755)
 	os.WriteFile(filepath.Join(root, "greet", "greet_bare.kg"), []byte("pub fn hello() -> String {\n    \"bare on linux\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "greet", "greet_linux.kg"), []byte("pub fn hello() -> String {\n    \"linux\"\n}\n"), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-linux", "none")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-linux", "none")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,7 +339,7 @@ func TestBuildHostBare(t *testing.T) {
 		t.Fatalf("target: %+v", target)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,12 +366,12 @@ func TestBuildHostBare(t *testing.T) {
 func TestBuildHostBareRejectsPlatform(t *testing.T) {
 	t.Parallel()
 	root := writePlatformModule(t, "hostbaretime")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-linux", "none")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-linux", "none")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -388,7 +388,7 @@ func TestBuildHostBareRejectsPlatform(t *testing.T) {
 // still links a normal executable that runs std/time, not an archive.
 func TestBuildHostedUnchanged(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -396,7 +396,7 @@ func TestBuildHostedUnchanged(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"hosted\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

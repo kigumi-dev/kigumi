@@ -11,14 +11,20 @@ import (
 
 // linkedArtifacts lists the files this link pulls in that a Kigumi build
 // may have produced: libraries named by the manifest and archive or object paths given as flags.
-func linkedArtifacts(m *Module, opts BuildOptions) []string {
+func linkedArtifacts(m *Module, cflags, lflags []string) []string {
 	var paths []string
 	for _, l := range m.Links {
 		if l.Library != "" && l.Search != "" {
-			paths = append(paths, filepath.Join(l.Search, "lib"+l.Library+".a"))
+			search := l.Search
+			if !filepath.IsAbs(search) {
+				if abs, err := m.compiler.Abs(search); err == nil {
+					search = abs
+				}
+			}
+			paths = append(paths, filepath.Join(search, "lib"+l.Library+".a"))
 		}
 	}
-	for _, f := range append(append([]string{}, opts.CFlags...), opts.LinkFlags...) {
+	for _, f := range append(append([]string{}, cflags...), lflags...) {
 		if strings.HasSuffix(f, ".a") || strings.HasSuffix(f, ".o") {
 			paths = append(paths, f)
 		}
@@ -28,8 +34,8 @@ func linkedArtifacts(m *Module, opts BuildOptions) []string {
 
 // checkLinkedRuntimeABI refuses to link a Kigumi-built archive or object
 // whose sidecar records a runtime other than the one this build compiles: the two would disagree on layout and op ids.
-func checkLinkedRuntimeABI(m *Module, opts BuildOptions, want string) error {
-	for _, path := range linkedArtifacts(m, opts) {
+func checkLinkedRuntimeABI(m *Module, cflags, lflags []string, want string) error {
+	for _, path := range linkedArtifacts(m, cflags, lflags) {
 		if _, err := os.Stat(path); err != nil {
 			continue
 		}

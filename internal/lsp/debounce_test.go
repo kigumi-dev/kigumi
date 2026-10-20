@@ -136,7 +136,7 @@ func TestTypingNeverEvaluatesComptime(t *testing.T) {
 	src := "fn boom(n: usize) -> Int {\n    let xs = Array.of(1, 2)\n    xs[n]\n}\n\nlet a = comptime {\n    boom(9)\n}\nprint \"${a}\"\n"
 	root := writeModule(t, map[string]string{"main/main.kg": src})
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Test: true})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: internalTestCompiler(), StdRoot: "../../std", Test: true})
 	if err != nil {
 		t.Fatal(err)
 	}

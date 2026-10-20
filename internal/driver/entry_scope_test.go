@@ -35,12 +35,12 @@ func TestBuildIgnoresSiblingCmdEntry(t *testing.T) {
 		"cmd/app/main.kg":     "let out = host.args().get(1) || \"missing\"\nprint out\n",
 		"cmd/enclave/main.kg": "print \"hello from the enclave\"\n",
 	})
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "cmd/enclave/main.kg", Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "cmd/enclave/main.kg", Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestBuildIgnoresSiblingCmdEntry(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("cmd/enclave should build clean of the sibling's host use:\n%s", res.Render())
 	}
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	out := filepath.Join(root, "enclave.a")
@@ -80,12 +80,12 @@ func TestBuildIgnoresSiblingCmdEntryParseError(t *testing.T) {
 		"cmd/app/main.kg":     "let args = host.args(\n",
 		"cmd/enclave/main.kg": "print \"hello from the enclave\"\n",
 	})
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "cmd/enclave/main.kg", Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "cmd/enclave/main.kg", Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestBuildIgnoresSiblingCmdEntryParseError(t *testing.T) {
 	if res.HasErrors() {
 		t.Fatalf("cmd/enclave should check clean:\n%s", res.Render())
 	}
-	whole, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	whole, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestCheckWholeModuleChecksEveryCmdEntry(t *testing.T) {
 		"cmd/enclave/main.kg": "let y = onlyInEnclave\n",
 	})
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

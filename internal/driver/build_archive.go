@@ -22,11 +22,15 @@ func splitArchiveCFlags(flags []string) (compile, linkerLike []string) {
 
 // arTool is the archiver for cc: zig's own, since a plain system `ar`
 // cannot read object files zig cc produced for some targets.
-func arTool(cc []string) []string {
+func arTool(o CompilerOptions, cc []string) ([]string, error) {
 	if strings.HasSuffix(cc[0], "zig") || filepath.Base(cc[0]) == "zig" {
-		return []string{cc[0], "ar"}
+		return []string{cc[0], "ar"}, nil
 	}
-	return []string{"ar"}
+	ar, err := o.LookTool("ar")
+	if err != nil {
+		return nil, err
+	}
+	return []string{ar}, nil
 }
 
 // buildArchive compiles each input to an object for the embedder to link (freestanding has no libc); dir/comp-dir is pinned so two builds don't diverge, and -ffunction/data-sections keeps the embedder's --gc-sections effective.
@@ -55,7 +59,10 @@ func buildArchive(o CompilerOptions, cc, args, inputs []string, dir, out string,
 		}
 		objs = append(objs, obj)
 	}
-	ar := arTool(cc)
+	ar, err := arTool(o, cc)
+	if err != nil {
+		return false, err
+	}
 	return publishBuildOutput(out, func(staged string) error {
 		absStaged, err := o.Abs(staged)
 		if err != nil {

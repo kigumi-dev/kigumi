@@ -49,7 +49,11 @@ func Build(req Request, storeRoot string, stderr func(string)) (store.Manifest, 
 		if stderr != nil {
 			stderr("kigumi: " + strings.Join(step.Argv, " "))
 		}
-		cmd := exec.Command(step.Argv[0], step.Argv[1:]...)
+		prog, err := lookup(req.Lookup, step.Argv[0])
+		if err != nil {
+			return store.Manifest{}, err
+		}
+		cmd := exec.Command(prog, step.Argv[1:]...)
 		cmd.Dir = step.Dir
 		var out bytes.Buffer
 		cmd.Stdout, cmd.Stderr = &out, &out
@@ -67,7 +71,7 @@ func Build(req Request, storeRoot string, stderr func(string)) (store.Manifest, 
 		return store.Manifest{}, &VersionMismatch{Got: version, Want: req.Want}
 	}
 
-	commit, dirty := gitState(req.Checkout)
+	commit, dirty := gitState(req.Lookup, req.Checkout)
 	m := store.Manifest{
 		Version:     req.Want,
 		OS:          runtime.GOOS,
@@ -86,12 +90,23 @@ func Build(req Request, storeRoot string, stderr func(string)) (store.Manifest, 
 	return m, nil
 }
 
-func gitState(checkout string) (commit string, dirty bool) {
-	out, err := exec.Command("git", "-C", checkout, "rev-parse", "HEAD").Output()
+func gitState(look func(name string) (string, error), checkout string) (commit string, dirty bool) {
+	git, err := lookup(look, "git")
+	if err != nil {
+		return "", false
+	}
+	out, err := exec.Command(git, "-C", checkout, "rev-parse", "HEAD").Output()
 	if err != nil {
 		return "", false
 	}
 	commit = strings.TrimSpace(string(out))
-	status, err := exec.Command("git", "-C", checkout, "status", "--porcelain").Output()
+	status, err := exec.Command(git, "-C", checkout, "status", "--porcelain").Output()
 	return commit, err == nil && len(bytes.TrimSpace(status)) > 0
+}
+
+func lookup(look func(name string) (string, error), name string) (string, error) {
+	if look == nil {
+		return "", fmt.Errorf("%s not found: no tool search path given", name)
+	}
+	return look(name)
 }

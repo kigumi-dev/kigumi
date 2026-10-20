@@ -29,11 +29,11 @@ int main(int argc, char** argv) { return kigumi_main(argc, argv); }
 
 // A bare build jumps with the compiler's own setjmp, so a task panic still faults only the task.
 func TestBareBuildContainsTaskPanic(t *testing.T) {
-	cc := driver.CCompiler()
+	cc := testCompiler().CCompiler()
 	if cc == nil || runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
 		t.Skip("needs a C compiler on linux/amd64")
 	}
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "", "none")
+	target, err := driver.ParseTarget(testCompiler(), "", "none")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestBareBuildContainsTaskPanic(t *testing.T) {
 	} {
 		t.Run(fixture, func(t *testing.T) {
 			root, wantOut, wantErr, wantExit := loadRunFixture(t, "../../testdata/run/"+fixture+".txtar")
-			m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg", Target: target})
+			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg", Target: target})
 			if err != nil {
 				t.Fatal(err)
 			}

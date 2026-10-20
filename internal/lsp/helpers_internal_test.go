@@ -67,7 +67,7 @@ func startServer(t *testing.T, root string, debounce time.Duration) (*Server, co
 	std, _ := filepath.Abs("../../std")
 	c := &memClient{}
 	ctx := protocol.WithClient(context.Background(), c)
-	s := New(std).WithDebounce(debounce)
+	s := newServer(std).WithDebounce(debounce)
 	p := &protocol.InitializeParams{}
 	p.WorkspaceFolders = protocol.NewNullable([]protocol.WorkspaceFolder{{URI: uri.File(root), Name: "root"}})
 	if _, err := s.Initialize(ctx, p); err != nil {

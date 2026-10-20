@@ -15,7 +15,7 @@ import (
 func TestFloatTotalEqOrd(t *testing.T) {
 	path := "../../testdata/run/float_total_eq_ord.txtar"
 	root, wantOut, _, _ := loadRunFixture(t, path)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestFloatTotalEqOrd(t *testing.T) {
 		t.Errorf("vm stdout mismatch\n--- got ---\n%s--- want ---\n%s", out.String(), wantOut)
 	}
 
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler for the native build")
 	}
 	exe := filepath.Join(t.TempDir(), "prog")

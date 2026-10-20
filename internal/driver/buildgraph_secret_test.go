@@ -32,7 +32,7 @@ func TestToolStepFailureRedactsSecret(t *testing.T) {
 	os.WriteFile(secretFile, []byte("super-secret-value"), 0o600)
 
 	std, _ := filepath.Abs("../../std")
-	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestToolStepFailureRedactsSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors)
+	rg, err := driver.ResolveGraph(testCompiler(), g, descriptors)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestGeneratedFileWriteFailsCleanlyOnReadOnlyDir(t *testing.T) {
 		"}\n"), 0o644)
 
 	std, _ := filepath.Abs("../../std")
-	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestGeneratedFileWriteFailsCleanlyOnReadOnlyDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestGeneratedFileWriteAtomicKeepsOldContentOnFailure(t *testing.T) {
 	os.WriteFile(filepath.Join(out, "gen.txt"), []byte("original content\n"), 0o644)
 
 	std, _ := filepath.Abs("../../std")
-	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestGeneratedFileWriteAtomicKeepsOldContentOnFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

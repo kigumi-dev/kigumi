@@ -23,7 +23,7 @@ func TestHttpPostEngineMatrix(t *testing.T) {
 
 	runProbe := func(t *testing.T, url string) string {
 		t.Helper()
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 		if err != nil {
 			t.Fatal(err)
 		}

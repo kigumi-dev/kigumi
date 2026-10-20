@@ -13,7 +13,7 @@ func TestCancelDeferRunsAreDeterministic(t *testing.T) {
 			root, want, _, wantExit := loadRunFixture(t, "../../testdata/run/"+name+".txtar")
 			var first string
 			for i := 0; i < 2; i++ {
-				m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+				m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 				if err != nil {
 					t.Fatal(err)
 				}

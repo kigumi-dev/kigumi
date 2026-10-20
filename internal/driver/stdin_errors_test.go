@@ -29,7 +29,7 @@ func TestStdinReadAllReportsRealError(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "main"), 0o755)
 	os.WriteFile(filepath.Join(root, "main/main.kg"), []byte(stdinReadAllSrc), 0o644)
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestStdinReadAllReportsRealError(t *testing.T) {
 	})
 
 	t.Run("build", func(t *testing.T) {
-		if driver.CCompiler() == nil {
+		if testCompiler().CCompiler() == nil {
 			t.Skip("no C compiler")
 		}
 		exe := filepath.Join(t.TempDir(), "prog")
@@ -95,7 +95,7 @@ func TestStdinReadLineUTF8AndEOF(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "main"), 0o755)
 	os.WriteFile(filepath.Join(root, "main/main.kg"), []byte(stdinReadLineSrc), 0o644)
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestStdinReadLineUTF8AndEOF(t *testing.T) {
 	}
 
 	t.Run("build", func(t *testing.T) {
-		if driver.CCompiler() == nil {
+		if testCompiler().CCompiler() == nil {
 			t.Skip("no C compiler")
 		}
 		exe := filepath.Join(t.TempDir(), "prog")
@@ -260,7 +260,7 @@ fn main() -> Unit! {
 // blocking read(2) on a FIFO with a delayed writer; the VM has no FFI and
 // its accelerators never call raw read(2), so it needs no coverage here.
 func TestStdinNativeEINTRRetried(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
@@ -269,7 +269,7 @@ func TestStdinNativeEINTRRetried(t *testing.T) {
 		root := t.TempDir()
 		os.MkdirAll(filepath.Join(root, "main"), 0o755)
 		os.WriteFile(filepath.Join(root, "main/main.kg"), []byte(src), 0o644)
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main/main.kg"})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
 		if err != nil {
 			t.Fatal(err)
 		}

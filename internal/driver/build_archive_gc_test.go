@@ -60,7 +60,7 @@ void _start(void) {
 // -ffunction-sections/-fdata-sections still matters for symbols reachability itself cannot prune.
 func TestBuildArchiveFunctionSections(t *testing.T) {
 	t.Parallel()
-	cc := driver.CCompiler()
+	cc := testCompiler().CCompiler()
 	if cc == nil {
 		t.Skip("no C compiler")
 	}
@@ -73,11 +73,11 @@ func TestBuildArchiveFunctionSections(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"fsects\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestBuildArchiveFunctionSections(t *testing.T) {
 // An unused import contributes no symbols at all, with no embedder --gc-sections needed.
 func TestBuildArchiveReachabilityPrunesUnusedImport(t *testing.T) {
 	t.Parallel()
-	cc := driver.CCompiler()
+	cc := testCompiler().CCompiler()
 	if cc == nil {
 		t.Skip("no C compiler")
 	}
@@ -117,11 +117,11 @@ func TestBuildArchiveReachabilityPrunesUnusedImport(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"unused\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import json from std/json\nprint \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func codeSymbolsOf(nmOut, substr string) int {
 // compile step, since zig cc silently corrupts the object otherwise.
 func TestBuildArchiveCFlagsLinkerFlagsIgnored(t *testing.T) {
 	t.Parallel()
-	cc := driver.CCompiler()
+	cc := testCompiler().CCompiler()
 	if cc == nil {
 		t.Skip("no C compiler")
 	}
@@ -184,11 +184,11 @@ func TestBuildArchiveCFlagsLinkerFlagsIgnored(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"cflags\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hello\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

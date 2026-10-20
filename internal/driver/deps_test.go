@@ -24,7 +24,7 @@ func TestDependencies(t *testing.T) {
 	os.WriteFile(filepath.Join(app, "mod.local.kg"), []byte("Replace { name: \"lib\", path: \"../lib\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {twice} from lib\nimport util from lib/util\nprint \"${twice(2)} ${util.thrice(2)}\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(app, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestDependencies(t *testing.T) {
 	}
 
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {hidden} from lib\nprint \"${hidden()}\"\n"), 0o644)
-	m, _ = driver.LoadModule(app, driver.LoadOptions{StdRoot: std})
+	m, _ = driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	res, _ := driver.Check(m)
 	if !res.HasErrors() || !strings.Contains(res.Render(), "hidden") {
 		t.Fatalf("private dependency function should be rejected:\n%s", res.Render())
@@ -45,7 +45,7 @@ func TestDependencies(t *testing.T) {
 
 	os.Remove(filepath.Join(app, "mod.local.kg"))
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	if _, err := driver.LoadModule(app, driver.LoadOptions{StdRoot: std}); err == nil || !strings.Contains(err.Error(), "kigumi get") {
+	if _, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err == nil || !strings.Contains(err.Error(), "kigumi get") {
 		t.Fatalf("missing dependency should ask for kigumi get: %v", err)
 	}
 }

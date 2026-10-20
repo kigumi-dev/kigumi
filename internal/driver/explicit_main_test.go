@@ -16,7 +16,7 @@ func TestRunExplicitMain(t *testing.T) {
 		"main/main.kg": "fn main() -> Unit! {\n    print(\"hello\")\n}\n",
 	})
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestRunExplicitMainWithHost(t *testing.T) {
 			"}\n",
 	})
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}

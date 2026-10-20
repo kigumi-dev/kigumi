@@ -78,7 +78,7 @@ func TestResolveZigFetchesOnDemand(t *testing.T) {
 	indexURL, pubKey, cleanup := fakeZigIndexServer(t, "9.5.1")
 	defer cleanup()
 
-	m, err := loadPinnedOpts(t, "9.5.1", "", driver.LoadOptions{ZigIndexURL: indexURL, ZigPublicKey: pubKey})
+	m, err := loadPinnedOpts(t, "9.5.1", "", driver.LoadOptions{Compiler: testCompiler(), ZigIndexURL: indexURL, ZigPublicKey: pubKey})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestResolveZigFetchFailureReportsE1564(t *testing.T) {
 	deadServer := httptest.NewServer(http.NotFoundHandler())
 	deadServer.Close()
 
-	m, err := loadPinnedOpts(t, "9.5.2", "", driver.LoadOptions{ZigIndexURL: deadServer.URL + "/index.json"})
+	m, err := loadPinnedOpts(t, "9.5.2", "", driver.LoadOptions{Compiler: testCompiler(), ZigIndexURL: deadServer.URL + "/index.json"})
 	if err != nil {
 		t.Fatal(err)
 	}

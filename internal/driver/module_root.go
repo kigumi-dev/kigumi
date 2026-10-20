@@ -8,8 +8,11 @@ import (
 
 // resolveRoot keeps a relative root as given when it names the same directory under Cwd, so process-cwd callers see unchanged paths.
 func (o CompilerOptions) resolveRoot(root string) (string, error) {
-	if o.Cwd == "" || filepath.IsAbs(root) {
+	if filepath.IsAbs(root) {
 		return root, nil
+	}
+	if o.Cwd == "" {
+		return "", fmt.Errorf("module root %s is relative and CompilerOptions.Cwd is empty", root)
 	}
 	abs := filepath.Join(o.Cwd, root)
 	st, err := os.Stat(abs)

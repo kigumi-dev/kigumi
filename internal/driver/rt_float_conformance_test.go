@@ -12,8 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 // rtFloatHarness drives internal/llgen/runtime/rt_float.c directly (it
@@ -76,7 +74,7 @@ int main(void) {
 
 func compileRtFloatHarness(t *testing.T) string {
 	t.Helper()
-	cc := driver.CCompiler()
+	cc := testCompiler().CCompiler()
 	if cc == nil {
 		t.Skip("no C compiler")
 	}

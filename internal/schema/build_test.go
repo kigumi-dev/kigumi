@@ -20,7 +20,7 @@ func loadModule(t *testing.T, src string) (*driver.Module, *sem.Result) {
 	if err := os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func loadWebModule(t *testing.T) (*driver.Module, *sem.Result) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "web", "web.kg"), []byte(webPkgSrc), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(schemaSrc), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func loadTwoPackageModule(t *testing.T) (*driver.Module, *sem.Result) {
 	os.WriteFile(filepath.Join(root, "a", "a.kg"), []byte("pub pure fn widget() -> Int {\n    1\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "b", "b.kg"), []byte("pub pure fn widget() -> Int {\n    2\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import a from app/a\nimport b from app/b\n\nprint \"${a.widget()} ${b.widget()}\"\n"), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestBuildAvailability(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main_hosted.kg"), []byte("pub pure fn tagged() -> Int {\n    1\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("pub pure fn untagged() -> Int {\n    1\n}\n\nprint \"${tagged()} ${untagged()}\"\n"), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

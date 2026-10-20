@@ -28,7 +28,7 @@ func loadSchemaIRProbe(t *testing.T, src string) *driver.Module {
 	if err := os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil {
 		t.Fatal(err)
 	}

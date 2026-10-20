@@ -29,7 +29,7 @@ func buildHTTPProbe(t *testing.T) string {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"httpprobe\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(httpPostProbeSrc), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func buildHTTPProbe(t *testing.T) string {
 // TestHttpPostRequestLine checks the request line and Host header Http.post's native body sends, for a plain URL and an IPv6 literal.
 func TestHttpPostRequestLine(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	exe := buildHTTPProbe(t)
@@ -111,7 +111,7 @@ func TestHttpPostRequestLine(t *testing.T) {
 // TestHttpPostInvalidUTF8StatusLine checks invalid UTF-8 in the status line fails clearly instead of readLine silently swallowing the bad bytes into "".
 func TestHttpPostInvalidUTF8StatusLine(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	exe := buildHTTPProbe(t)
@@ -147,7 +147,7 @@ func TestHttpPostInvalidUTF8StatusLine(t *testing.T) {
 // TestHttpPostTimeout checks that Http.post gives up against a peer that
 // accepts the connection but never answers, instead of hanging forever.
 func TestHttpPostTimeout(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	t.Parallel() // ~10s of its own blocked recv(); let it overlap other tests
@@ -187,7 +187,7 @@ func TestHttpPostTimeout(t *testing.T) {
 
 // TestHttpPostConnectTimeout checks Http.post bounds connect() itself: a full accept queue drops the SYN, which a plain blocking connect() wouldn't catch for over a minute.
 func TestHttpPostConnectTimeout(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	t.Parallel() // ~10s of its own blocked connect(); let it overlap other tests
@@ -245,7 +245,7 @@ func runEmulatedEngine(t *testing.T, url string) string {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"httpprobe\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(httpPostProbeSrc), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func runEmulatedEngine(t *testing.T, url string) string {
 
 // TestHttpPostSlowDripSucceeds checks the 10s timeout is re-armed per read, not an overall deadline: a byte-at-a-time peer clears 10s total but the VM still succeeds.
 func TestHttpPostSlowDripSucceeds(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	t.Parallel()
@@ -309,7 +309,7 @@ func TestHttpPostSlowDripSucceeds(t *testing.T) {
 
 // TestHttpPostGracefulCloseBeforeStatusLine checks a peer that drains the request then closes without writing: an orderly EOF must end the read loop like native's got==0, not surface as a raw "EOF".
 func TestHttpPostGracefulCloseBeforeStatusLine(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	t.Parallel()
@@ -362,7 +362,7 @@ func TestHttpPostGracefulCloseBeforeStatusLine(t *testing.T) {
 
 // TestHttpPostResetAfterRequestSent checks a peer that closes with SO_LINGER{0} after reading (a deterministic TCP RST): the VM must report native's ECONNRESET strerror text, not a raw Go error.
 func TestHttpPostResetAfterRequestSent(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	t.Parallel()
@@ -411,7 +411,7 @@ func TestHttpPostResetAfterRequestSent(t *testing.T) {
 
 // TestHttpPostStalledTimeoutMessage checks a peer that never answers fails at ~10s with the same wording (native's EAGAIN strerror text) on the VM too.
 func TestHttpPostStalledTimeoutMessage(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	t.Parallel()

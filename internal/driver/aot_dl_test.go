@@ -15,7 +15,7 @@ import (
 // Symbol values and sees a missing symbol as an error.
 func TestAotDL(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if _, err := os.Stat("/lib/x86_64-linux-gnu/libm.so.6"); err != nil {
@@ -42,7 +42,7 @@ run() || (e) => print "failed: ${e.message()}"
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"dltest\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,9 +67,9 @@ func TestDLFreestanding(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import dl from std/dl\n\nfn f(loader: dl.Loader) -> Unit {\n    _ = loader.open(\"x\")\n}\n"), 0o644)
-	target, _ := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -32,6 +32,8 @@ type Options struct {
 	// PublicKey overrides the pinned Zig signing key; tests only, a fake
 	// server can't be verified against the real one.
 	PublicKey string
+	// Lookup finds tar; nil finds nothing.
+	Lookup func(name string) (string, error)
 }
 
 // InstallRelease verifies version's tarball (sha256 and minisign) and
@@ -94,7 +96,7 @@ func InstallRelease(opts Options) (store.Manifest, error) {
 		return store.Manifest{}, err
 	}
 	defer st.Discard()
-	if err := extractTarball(tarPath, st.Dir); err != nil {
+	if err := extractTarball(opts.Lookup, tarPath, st.Dir); err != nil {
 		return store.Manifest{}, err
 	}
 	m := store.Manifest{

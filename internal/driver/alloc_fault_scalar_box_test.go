@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 type scalarBoxCase struct {
@@ -41,7 +39,7 @@ func (c scalarBoxCase) source(rounds int) string {
 
 func TestFaultInjectionScalarBoxesCountTheSameOnBothBackends(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range scalarBoxCases {

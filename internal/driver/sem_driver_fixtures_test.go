@@ -80,7 +80,7 @@ func TestSemDriverFixtures(t *testing.T) {
 				os.WriteFile(filepath.Join(root, name), []byte(body), 0o644)
 			}
 			std, _ := filepath.Abs("../../std")
-			m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 			if err != nil {
 				t.Fatal(err)
 			}

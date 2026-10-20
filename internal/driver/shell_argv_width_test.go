@@ -44,7 +44,7 @@ func funcBody(t *testing.T, ir, name string) string {
 // runChild must size the execvp() argv array off the target's real pointer
 // width (4 bytes on a 32-bit target), not a hardcoded 8-byte stride.
 func TestShellArgvUsesTargetPointerWidth(t *testing.T) {
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86-linux-musl", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86-linux-musl", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestShellArgvUsesTargetPointerWidth(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"argvwidth\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(shellArgvWidthSrc), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

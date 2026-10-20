@@ -16,7 +16,7 @@ import (
 // any Framework-registered tool.
 func TestBuildProgramToolchain(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root, out := t.TempDir(), t.TempDir()
@@ -29,7 +29,7 @@ func TestBuildProgramToolchain(t *testing.T) {
 		"}\n"
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte(program), 0o644)
 	std, _ := filepath.Abs("../../std")
-	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestBuildProgramToolchain(t *testing.T) {
 		t.Fatal(err)
 	}
 	// No kigumi.framework.kg anywhere: "toolchain" resolves without one.
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestToolchainUnregisteredTool(t *testing.T) {
 		"}\n"
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte(program), 0o644)
 	std, _ := filepath.Abs("../../std")
-	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestToolchainUnregisteredTool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "not registered by framework toolchain") {
+	if _, err := driver.ResolveGraph(testCompiler(), g, nil); err == nil || !strings.Contains(err.Error(), "not registered by framework toolchain") {
 		t.Fatalf("expected an unregistered-tool error, got %v", err)
 	}
 }

@@ -24,7 +24,7 @@ func TestReadSomeNegativeTimeoutClamped(t *testing.T) {
 		"print \"a=${a.len()}\"\n"
 	os.WriteFile(filepath.Join(root, "main/main.kg"), []byte(src), 0o644)
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestReadSomeNegativeTimeoutClamped(t *testing.T) {
 	})
 
 	t.Run("build", func(t *testing.T) {
-		if driver.CCompiler() == nil {
+		if testCompiler().CCompiler() == nil {
 			t.Skip("no C compiler")
 		}
 		exe := filepath.Join(t.TempDir(), "prog")

@@ -15,7 +15,7 @@ func checkAllocClaim(t *testing.T, main string) string {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"allocclaim\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(main), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

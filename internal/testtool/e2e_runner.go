@@ -25,6 +25,8 @@ type E2EOptions struct {
 	// WorkDir holds the built compiler and the build artifact; the caller
 	// owns its lifetime.
 	WorkDir string
+	// Lookup finds the go tool; nil finds nothing.
+	Lookup Lookup
 }
 
 // RunE2E builds the compiler once, measures each phase, and writes one
@@ -50,7 +52,14 @@ func RunE2E(opts E2EOptions, w io.Writer) error {
 
 	exe := filepath.Join(opts.WorkDir, "kigumi-e2e")
 	start := time.Now()
-	build := exec.Command("go", "build", "-o", exe, ".")
+	if opts.Lookup == nil {
+		return fail("compiler-build", time.Since(start), fmt.Errorf("go not found: no tool search path given"))
+	}
+	goTool, err := opts.Lookup("go")
+	if err != nil {
+		return fail("compiler-build", time.Since(start), err)
+	}
+	build := exec.Command(goTool, "build", "-o", exe, ".")
 	build.Dir = opts.RepoRoot
 	if out, err := build.CombinedOutput(); err != nil {
 		return fail("compiler-build", time.Since(start), fmt.Errorf("%w\n%s", err, out))

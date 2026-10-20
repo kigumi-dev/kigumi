@@ -8,8 +8,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 // A note that points into another file reaches the editor as related
@@ -25,7 +23,7 @@ func TestRelatedInformationAcrossFiles(t *testing.T) {
 	os.WriteFile(bPath, []byte(bSrc), 0o644)
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New("../../std")
+	s := newServer("../../std")
 	if _, err := s.Initialize(ctx, initParams(uri.File(root))); err != nil {
 		t.Fatal(err)
 	}

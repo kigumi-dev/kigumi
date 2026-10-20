@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const wideFieldSrc = `type Acc = {
@@ -30,7 +28,7 @@ print "ok=${run(%[2]d)}"
 // A 128-bit field is a direct slot like the narrower widths, so a loop that rebuilds a record of them costs the same.
 func TestWideRecordFieldsAllocateLikeNarrowOnes(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	src := func(ty string, rounds int) string { return fmt.Sprintf(wideFieldSrc, ty, rounds) }

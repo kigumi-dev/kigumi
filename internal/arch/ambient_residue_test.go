@@ -17,9 +17,7 @@ var residueSymbols = map[string]bool{
 
 // residueAllowed freezes the ambient reads still outside CompilerOptions; a new one must go through the options instead.
 var residueAllowed = map[string]bool{
-	"driver/compiler_options.go os.Getwd": true, "driver/compiler_options.go runtime.GOOS": true,
-	"driver/compiler_options.go runtime.GOARCH": true,
-	"driver/compiler_tools.go exec.LookPath":    true, "driver/compiler_tools.go os.UserHomeDir": true,
+	"driver/compiler_options.go runtime.GOOS": true, "driver/compiler_options.go runtime.GOARCH": true,
 	"zigtool/fetch/host_triple.go runtime.GOOS": true, "zigtool/fetch/host_triple.go runtime.GOARCH": true,
 	"zigtool/fetch/install_release.go runtime.GOOS": true, "zigtool/fetch/install_release.go runtime.GOARCH": true,
 	"zigtool/store/root_dir.go runtime.GOOS": true,

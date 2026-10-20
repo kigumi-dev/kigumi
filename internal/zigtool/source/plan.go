@@ -9,6 +9,8 @@ import (
 
 // Request describes one source build.
 type Request struct {
+	// Lookup finds git and cmake; nil finds nothing.
+	Lookup func(name string) (string, error)
 	// URL is a git remote to clone; "" builds Checkout in place instead.
 	URL string
 	// Ref is the branch, tag or commit to build; "" uses the checkout's

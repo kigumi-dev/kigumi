@@ -16,7 +16,7 @@ func loadForEmit(t *testing.T, target driver.Target) *driver.Module {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"e\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func loadForEmit(t *testing.T, target driver.Target) *driver.Module {
 // TestEmitLLVMMatchesFreestandingBuild checks that --emit-llvm for a freestanding target uses kigumi_main, the same entry a real build would link.
 func TestEmitLLVMMatchesFreestandingBuild(t *testing.T) {
 	t.Parallel()
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}

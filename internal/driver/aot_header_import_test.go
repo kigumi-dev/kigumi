@@ -17,7 +17,7 @@ import (
 // definitions. Native is the only engine that can link it, so unlike
 // testdata/run this is a Go test rather than a txtar fixture.
 func TestAotHeaderImport(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if _, err := exec.LookPath("zig"); err != nil {
@@ -32,7 +32,7 @@ func TestAotHeaderImport(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("KIGUMI_CFLAGS", filepath.Join(root, "helper.c"))
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

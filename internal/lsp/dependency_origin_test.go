@@ -10,7 +10,6 @@ import (
 	"go.lsp.dev/uri"
 
 	"kigumi/internal/driver"
-	"kigumi/internal/lsp"
 )
 
 // TestDependencyCacheOrigin: a definition inside a module-cache dependency
@@ -18,7 +17,7 @@ import (
 func TestDependencyCacheOrigin(t *testing.T) {
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	depDir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "example.com/greet", Version: "v1.0.0"})
+	depDir, err := driver.CacheDir(testCompiler(), driver.Require{Name: "example.com/greet", Version: "v1.0.0"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +42,7 @@ func TestDependencyCacheOrigin(t *testing.T) {
 
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	s.Initialize(ctx, initParams(uri.File(root)))
 	doc := uri.File(path)
 	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Text: src}})
@@ -79,7 +78,7 @@ func TestDependencyLocalReplaceOrigin(t *testing.T) {
 
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	s.Initialize(ctx, initParams(uri.File(app)))
 	doc := uri.File(path)
 	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Text: src}})

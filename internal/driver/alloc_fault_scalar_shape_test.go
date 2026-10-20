@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 type scalarShapeCase struct {
@@ -75,7 +73,7 @@ print "${cs.len()}"`, 1},
 
 func TestFaultInjectionScalarShapesCountTheSameOnBothBackends(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range scalarShapeCases {

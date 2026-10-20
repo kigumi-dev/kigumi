@@ -19,7 +19,7 @@ import (
 // -static-pie produces a real static binary anywhere zig runs.
 func TestBuildProgramLink(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root, out := t.TempDir(), t.TempDir()
@@ -42,7 +42,7 @@ func TestBuildProgramLink(t *testing.T) {
 		"}\n"
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte(program), 0o644)
 	std, _ := filepath.Abs("../../std")
-	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestBuildProgramLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,12 +95,12 @@ func TestLinkOptionsNeedHostedTarget(t *testing.T) {
 		Target:       buildgraph.Target{Triple: "x86_64-freestanding"},
 		LinkerScript: &script,
 	}}}
-	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "hosted target") {
+	if _, err := driver.ResolveGraph(testCompiler(), g, nil); err == nil || !strings.Contains(err.Error(), "hosted target") {
 		t.Fatalf("bare target with a linker script should be rejected: %v", err)
 	}
 	g.Artifacts[0].LinkerScript = nil
 	g.Artifacts[0].Entry = "_start"
-	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil); err == nil || !strings.Contains(err.Error(), "hosted target") {
+	if _, err := driver.ResolveGraph(testCompiler(), g, nil); err == nil || !strings.Contains(err.Error(), "hosted target") {
 		t.Fatalf("bare target with an entry symbol should be rejected: %v", err)
 	}
 }

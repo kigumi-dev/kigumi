@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"kigumi/internal/testtool"
 )
@@ -40,7 +41,7 @@ func main() {
 		w = f
 	}
 
-	err := testtool.RunE2E(testtool.E2EOptions{RepoRoot: *repoRoot, Module: *module, StdRoot: *std, WorkDir: dir}, w)
+	err := testtool.RunE2E(testtool.E2EOptions{RepoRoot: *repoRoot, Module: *module, StdRoot: *std, WorkDir: dir, Lookup: exec.LookPath}, w)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "e2ebench:", err)
 		os.Exit(1)

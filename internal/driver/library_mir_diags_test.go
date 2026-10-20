@@ -33,7 +33,7 @@ func TestLibraryCheckKeepsMIRDiagnostics(t *testing.T) {
 				}
 				target := driver.HostTarget()
 				target.Allocator = c.allocator
-				m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Target: target, Test: c.test != ""})
+				m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Target: target, Test: c.test != ""})
 				if err != nil {
 					t.Fatal(err)
 				}

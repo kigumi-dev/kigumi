@@ -17,7 +17,7 @@ func exampleSnapshot(t *testing.T) (*Server, *snapshot) {
 	t.Helper()
 	root, _ := filepath.Abs("../../examples/repostat")
 	std, _ := filepath.Abs("../../std")
-	s := New(std).WithDebounce(0)
+	s := newServer(std).WithDebounce(0)
 	s.roots = []string{root}
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -64,7 +64,7 @@ func TestHeaderImportCache(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std}); err != nil {
+	if _, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err != nil {
 		t.Fatalf("first load: %v", err)
 	}
 	first := countSubcommand(t, countFile, "translate-c")
@@ -72,7 +72,7 @@ func TestHeaderImportCache(t *testing.T) {
 		t.Fatal("first import should have invoked translate-c")
 	}
 
-	if _, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std}); err != nil {
+	if _, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err != nil {
 		t.Fatalf("second load: %v", err)
 	}
 	second := countSubcommand(t, countFile, "translate-c")

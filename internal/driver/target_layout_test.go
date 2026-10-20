@@ -16,11 +16,11 @@ func load386(t *testing.T, src string) *driver.Module {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"w\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86-linux-musl", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86-linux-musl", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

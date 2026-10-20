@@ -27,7 +27,7 @@ test "bad one" {
     fail test.failure("boom")
 }
 `), 0o644)
-	m, err := driver.LoadModule(dir, driver.LoadOptions{StdRoot: std, Test: true})
+	m, err := driver.LoadModule(dir, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Test: true})
 	if err != nil {
 		t.Fatal(err)
 	}

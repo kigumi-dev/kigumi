@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const lendCallSrc = `type Point = {
@@ -64,7 +62,7 @@ var lendCallBodies = map[string]string{
 // A borrow the callee only reads is passed as the value, so a noalloc caller that lends allocates nothing.
 func TestLentCallsInNoallocCodeAllocateNothing(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for name, body := range lendCallBodies {

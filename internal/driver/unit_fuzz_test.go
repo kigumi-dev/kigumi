@@ -154,7 +154,7 @@ func TestUnitArtifactsMatchWholeCheck(t *testing.T) {
 	root := t.TempDir()
 	writeGraph(t, root, richFiles())
 	digests := func(units bool) map[string]string {
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: t.TempDir(), DeferParse: true, UnitCheck: units})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: t.TempDir(), DeferParse: true, UnitCheck: units})
 		if err != nil {
 			t.Fatal(err)
 		}

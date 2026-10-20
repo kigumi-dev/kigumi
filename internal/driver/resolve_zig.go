@@ -36,12 +36,15 @@ func (m *Module) ResolveZig() (string, error) {
 // fetchZigOnDemand installs want into storeRoot via internal/zigtool/fetch,
 // noting it on m.zigNotice (os.Stderr by default) first.
 func (m *Module) fetchZigOnDemand(storeRoot, want string) (string, error) {
+	if storeRoot == "" {
+		return "", fmt.Errorf("no zig store directory: CompilerOptions.Home is empty")
+	}
 	notice := m.zigNotice
 	if notice == nil {
 		notice = os.Stderr
 	}
 	fmt.Fprintf(notice, "kigumi: zig %s is pinned but not installed; fetching it now (run `kigumi zig install` to do this ahead of time)\n", want)
-	if _, err := fetch.InstallRelease(fetch.Options{IndexURL: m.zigIndexURL, StoreRoot: storeRoot, Version: want, Stderr: notice, PublicKey: m.zigPublicKey}); err != nil {
+	if _, err := fetch.InstallRelease(fetch.Options{IndexURL: m.zigIndexURL, StoreRoot: storeRoot, Version: want, Stderr: notice, PublicKey: m.zigPublicKey, Lookup: m.compiler.ToolLookup()}); err != nil {
 		return "", err
 	}
 	path, ok := store.Installed(storeRoot, want)

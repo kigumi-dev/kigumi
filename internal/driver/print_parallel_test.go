@@ -56,7 +56,7 @@ func printParallelModule(t *testing.T, lineLen string) *driver.Module {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"printpar\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(strings.Replace(printParallelSrc, "LEN", lineLen, 1)), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestParallelPrintsStayWhole(t *testing.T) {
 				}
 				checkPrintedLines(t, "vm", out.String(), errOut.String(), want)
 			}
-			if driver.CCompiler() == nil {
+			if testCompiler().CCompiler() == nil {
 				return
 			}
 			exe := filepath.Join(t.TempDir(), "prog")

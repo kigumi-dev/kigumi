@@ -15,7 +15,7 @@ import (
 // bare-statement script: buildArtifact's scriptUnder must find it, like
 // Module.defaultEntry does.
 func TestBuildProgramExplicitMainArtifact(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root, out := t.TempDir(), t.TempDir()
@@ -29,7 +29,7 @@ func TestBuildProgramExplicitMainArtifact(t *testing.T) {
 		"    let app = b.executable(\"app\", \"cmd/app\", b.request().target())?\n"+
 		"}\n")
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -37,7 +37,7 @@ func TestBuildProgramExplicitMainArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

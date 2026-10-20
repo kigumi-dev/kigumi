@@ -56,7 +56,7 @@ func handoffModule(t *testing.T, call string) string {
 func handoffDiagnostics(t *testing.T, call string) string {
 	t.Helper()
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(handoffModule(t, call), driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(handoffModule(t, call), driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

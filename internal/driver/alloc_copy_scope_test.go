@@ -55,7 +55,7 @@ func TestPlannedCopyInAnAllocatorBlockNeedsNoDefaultAllocator(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	target := driver.HostTarget()
 	target.Allocator = "none"
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

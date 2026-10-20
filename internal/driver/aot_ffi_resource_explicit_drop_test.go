@@ -16,7 +16,7 @@ import (
 // KIGUMI_RC_CHECK makes glibc's tcache detector fatal instead of merely
 // likely.
 func TestAotFFIResourceExplicitDrop(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	t.Setenv("KIGUMI_CFLAGS", "-DKIGUMI_RC_CHECK")
@@ -32,7 +32,7 @@ print "done"
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"cstringdrop\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

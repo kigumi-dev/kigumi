@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const rangeLoopSrc = `fn count(xs: &Array[Int], n: Int, small: u8) -> Int {
@@ -39,7 +37,7 @@ var rangeLoopBodies = map[string]string{
 // A counted loop over a written range keeps its bounds in registers: the callee allocates nothing per call.
 func TestRangeLoopInCalleeAllocatesNothing(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for name, body := range rangeLoopBodies {
@@ -59,7 +57,7 @@ func TestRangeLoopInCalleeAllocatesNothing(t *testing.T) {
 // A range that is a value of its own still allocates its record, so the loop reading it keeps iter.len and iter.at.
 func TestRangeValueLoopStillBuildsTheRange(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	src := func(rounds int) string {

@@ -23,16 +23,16 @@ func writeAuditModule(t *testing.T, name, extraC string) string {
 // TestAuditRejectsDisallowedSymbol fails the build when it reaches an undeclared symbol like printf, instead of shipping the archive.
 func TestAuditRejectsDisallowedSymbol(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := writeAuditModule(t, "leaky", "extern int printf(const char *fmt, ...);\nint leak(void) { return printf(\"hi\\n\"); }\n")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,19 +50,19 @@ func TestAuditRejectsDisallowedSymbol(t *testing.T) {
 // TestAuditAllowsAllocatorNoneArchive: --allocator none (E959) is checker-only, since the runtime still needs malloc for strings and arenas.
 func TestAuditAllowsAllocatorNoneArchive(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"allocnone\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	target.Allocator = "none"
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,16 +76,16 @@ func TestAuditAllowsAllocatorNoneArchive(t *testing.T) {
 // TestAuditRejectsTLS: a thread-local compiles fine but needs a TLS runtime freestanding does not have.
 func TestAuditRejectsTLS(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := writeAuditModule(t, "tlsleak", "_Thread_local int counter;\nint bump(void) { return ++counter; }\n")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,18 +103,18 @@ func TestAuditRejectsTLS(t *testing.T) {
 // TestBuildUEFITrivialProgram builds for x86_64-uefi without the embedder supplying COFF's compiler-inserted symbols (_fltused, __chkstk).
 func TestBuildUEFITrivialProgram(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"uefitrivial\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("let x = 1\n"), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-uefi", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-uefi", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,16 +128,16 @@ func TestBuildUEFITrivialProgram(t *testing.T) {
 // TestAuditRejectsDisallowedSymbolUEFI is TestAuditRejectsDisallowedSymbol on the COFF/UEFI path, which carries extra compiler-inserted symbols.
 func TestAuditRejectsDisallowedSymbolUEFI(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := writeAuditModule(t, "leakyuefi", "extern int printf(const char *fmt, ...);\nint leak(void) { return printf(\"hi\\n\"); }\n")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-uefi", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-uefi", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,16 +155,16 @@ func TestAuditRejectsDisallowedSymbolUEFI(t *testing.T) {
 // TestAuditRejectsTLSUEFI is TestAuditRejectsTLS on COFF/UEFI, where TLS is read from the defining section's name, not a per-symbol type.
 func TestAuditRejectsTLSUEFI(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := writeAuditModule(t, "tlsleakuefi", "_Thread_local int counter;\nint bump(void) { return ++counter; }\n")
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-uefi", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-uefi", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,14 +183,14 @@ func TestAuditRejectsTLSUEFI(t *testing.T) {
 func TestParseTargetFreestandingSysContradiction(t *testing.T) {
 	t.Parallel()
 	for _, triple := range []string{"x86_64-freestanding", "x86_64-uefi"} {
-		if _, err := driver.ParseTarget(driver.CompilerOptions{}, triple, "posix"); err == nil {
+		if _, err := driver.ParseTarget(testCompiler(), triple, "posix"); err == nil {
 			t.Errorf("%s: expected --sys posix to conflict with a freestanding target", triple)
 		}
 	}
-	if _, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "none"); err != nil {
+	if _, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "none"); err != nil {
 		t.Fatalf("explicit --sys none should still work: %v", err)
 	}
-	if _, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-linux", "posix"); err != nil {
+	if _, err := driver.ParseTarget(testCompiler(), "x86_64-linux", "posix"); err != nil {
 		t.Fatalf("explicit --sys posix on a hosted target should still work: %v", err)
 	}
 }

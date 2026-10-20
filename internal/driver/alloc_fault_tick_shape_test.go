@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 // Each source takes the round count for %[1]d.
@@ -148,7 +146,7 @@ print "${c > 0}"`, 1},
 
 func TestFaultInjectionTickShapesCountTheSameOnBothBackends(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range tickShapeCases {
@@ -193,7 +191,7 @@ func (c tickPairCase) source(body string, rounds int) string {
 
 func TestFaultInjectionTickPairsCountTheSameOnBothBackends(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range tickPairCases {
@@ -219,7 +217,7 @@ var tickAggregateCases = []tickPairCase{
 
 func TestFaultInjectionBuiltAggregatesCountTheSameOnBothBackends(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range tickAggregateCases {

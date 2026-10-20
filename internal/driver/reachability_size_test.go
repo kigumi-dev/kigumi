@@ -18,7 +18,7 @@ func buildObs(t *testing.T, src string) string {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"sizeobs\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func wideRuntimeSymbols(t *testing.T, exe string) []string {
 
 // Never fails on a byte count; this only records what pruning an unused import saves, as JSON.
 func TestHostedBinarySizeReachabilityObservation(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	withoutJSON := sizeOfBuild(t, "print \"hello\"\n")
@@ -81,7 +81,7 @@ func TestHostedBinarySizeReachabilityObservation(t *testing.T) {
 // A program that never reaches task.spawn/currentThreadExecutor must not
 // pay for rt_core.c's executor/worker-thread machinery.
 func TestHostedBinarySizeOmitsUnreachableCapability(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	plain := sizeOfBuild(t, "print \"hello\"\n")
@@ -93,7 +93,7 @@ func TestHostedBinarySizeOmitsUnreachableCapability(t *testing.T) {
 
 // A program without 128-bit integers must link none of the w128 runtime.
 func TestHostedBinaryOmitsInt128Runtime(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	plain := buildObs(t, "let n = 1 << 5\nlet mut s = 0\nfor i in 3..9 {\n    s = s + i\n}\nprint \"${n} ${s}\"\n")

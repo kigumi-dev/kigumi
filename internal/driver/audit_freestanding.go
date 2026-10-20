@@ -19,7 +19,10 @@ func auditBareArchive(o CompilerOptions, cc []string, archive string) error {
 		return err
 	}
 	defer os.RemoveAll(dir)
-	ar := arTool(cc)
+	ar, err := arTool(o, cc)
+	if err != nil {
+		return err
+	}
 	absArchive, err := o.Abs(archive)
 	if err != nil {
 		return err

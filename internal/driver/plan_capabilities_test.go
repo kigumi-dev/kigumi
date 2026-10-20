@@ -49,7 +49,7 @@ func planFor(t *testing.T) (string, driver.PlanStats) {
 	write("cmd/app/main.kg", planCapabilityApp)
 	write("cmd/tool/main.kg", "print \"tool\"\n")
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -57,7 +57,7 @@ func planFor(t *testing.T) (string, driver.PlanStats) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

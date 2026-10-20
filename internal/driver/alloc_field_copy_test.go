@@ -78,7 +78,7 @@ var fieldCopyBodies = []string{
 // A copy between record fields, or between a field and a slot, fills the destination's own box like the slot-to-slot form.
 func TestRecordFieldCopyAllocatesNothing(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, sh := range fieldCopyShapes {

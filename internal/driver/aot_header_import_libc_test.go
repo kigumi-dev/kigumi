@@ -13,7 +13,7 @@ import (
 // `strlen` through the generated declaration; native
 // only, per the same FFI convention as TestAotFFI.
 func TestAotHeaderImportLibc(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if _, err := exec.LookPath("zig"); err != nil {
@@ -27,7 +27,7 @@ func TestAotHeaderImportLibc(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

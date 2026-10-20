@@ -108,7 +108,7 @@ struct frame frame_make(int seed) {
 `
 
 func TestAotFixedArrayCLayout(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -118,7 +118,7 @@ func TestAotFixedArrayCLayout(t *testing.T) {
 	os.WriteFile(helper, []byte(fixedArrayCHelper), 0o644)
 	t.Setenv("KIGUMI_CFLAGS", helper)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

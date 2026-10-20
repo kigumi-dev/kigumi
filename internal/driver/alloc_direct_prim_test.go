@@ -26,7 +26,7 @@ print "total=${run("hello".bytes(), &xs)}"
 
 func TestDirectPrimitiveResultsDoNotAllocate(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	m := loadTryConstructorModule(t, directPrimLoopSrc)

@@ -35,6 +35,39 @@ func TestCompilerOptionsHostDecidesTheDefaultTarget(t *testing.T) {
 	}
 }
 
+func TestZeroCompilerOptionsReadsNothingFromTheProcess(t *testing.T) {
+	var zero driver.CompilerOptions
+	if _, err := zero.Abs("rel"); err == nil {
+		t.Error("Abs of a relative path with an empty Cwd must fail")
+	}
+	if p, err := zero.Abs("/abs/x"); err != nil || p != "/abs/x" {
+		t.Errorf("Abs of an absolute path = %q, %v", p, err)
+	}
+	for _, o := range []driver.CompilerOptions{zero, {PathDirs: []string{}}} {
+		if p, err := o.ToolLookup()("sh"); err == nil {
+			t.Errorf("an empty search path found sh at %s", p)
+		}
+		if o.CCompiler() != nil {
+			t.Error("an empty search path found a C compiler")
+		}
+	}
+	if _, err := zero.ZigStoreRoot(""); err == nil {
+		t.Error("ZigStoreRoot with no Home and no override must fail")
+	}
+	if got, err := zero.ZigStoreRoot("/store"); err != nil || got != "/store" {
+		t.Errorf("ZigStoreRoot override = %q, %v", got, err)
+	}
+	if _, err := driver.CacheDir(zero, driver.Require{Name: "example.com/a", Version: "v1.0.0"}); err == nil {
+		t.Error("CacheDir with an empty CacheDir must fail")
+	}
+	if _, err := driver.HeaderCacheDir(zero); err == nil {
+		t.Error("HeaderCacheDir with an empty CacheDir must fail")
+	}
+	if _, err := driver.LoadModule("relative", driver.LoadOptions{}); err == nil {
+		t.Error("a relative module root with an empty Cwd must fail")
+	}
+}
+
 func TestCompilerOptionsCacheDirIsExplicit(t *testing.T) {
 	cache := t.TempDir()
 	got, err := driver.CacheDir(driver.CompilerOptions{CacheDir: cache}, driver.Require{Name: "example.com/a", Version: "v1.0.0"})

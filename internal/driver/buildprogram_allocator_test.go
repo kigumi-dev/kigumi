@@ -31,7 +31,7 @@ func TestBuildProgramAllocatorNoneRejected(t *testing.T) {
 	root := t.TempDir()
 	writeAllocatorFixture(t, root)
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -45,7 +45,7 @@ func TestBuildProgramAllocatorNoneRejected(t *testing.T) {
 	if g.Artifacts[0].Target.Allocator != "none" {
 		t.Fatalf("artifact target lost the root allocator policy: %+v", g.Artifacts[0].Target)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestBuildProgramAllocatorNoneSurvivesHostTarget(t *testing.T) {
 	}, "\n")+"\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("let xs = Array.of(1)\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -90,7 +90,7 @@ func TestBuildProgramAllocatorNoneSurvivesHostTarget(t *testing.T) {
 	if g.Artifacts[0].Target.Allocator != "none" {
 		t.Fatalf("Builder.hostTarget() lost the root allocator policy: %+v", g.Artifacts[0].Target)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestBuildProgramAllocatorNoneSurvivesExplicitTarget(t *testing.T) {
 	}, "\n")+"\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("let xs = Array.of(1)\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}

@@ -26,7 +26,7 @@ func isrDepModule(t *testing.T, rootManifest, depManifest string) *driver.Module
 	os.WriteFile(filepath.Join(app, "mod.local.kg"), []byte("Replace { name: \"lib\", path: \"../lib\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {tick} from lib\n\nfn main() -> Unit! {\n    tick()\n}\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(app, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

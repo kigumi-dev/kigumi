@@ -73,7 +73,7 @@ func TestFaultInjectionJSONBoxDecodeVM(t *testing.T) {
 
 func TestFaultInjectionJSONBoxDecodeNative(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	exe := filepath.Join(t.TempDir(), "prog")

@@ -2,8 +2,6 @@ package lsp
 
 import (
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 // The server loads through the driver's package index and cache like the
@@ -15,7 +13,7 @@ func TestServerUsesThePackageCache(t *testing.T) {
 		"cmd/app/main.kg": "import {one} from app/lib\nprint \"${one()}\"\n",
 	})
 	s, ctx, _ := startServer(t, root, 0)
-	s.WithPackageCache(t.TempDir(), driver.CompilerOptions{})
+	s.WithPackageCache(t.TempDir(), internalTestCompiler())
 	s.mu.Lock()
 	first := s.refresh(ctx, root, "", true)
 	second := s.refresh(ctx, root, "", true)

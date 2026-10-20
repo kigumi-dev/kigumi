@@ -73,11 +73,11 @@ func TestSelectionRejectsCycleAndMajorMix(t *testing.T) {
 		"example.com/c": filepath.Join(root, "c"), "example.com/x": filepath.Join(root, "x"),
 	}}
 	app := driver.ModFile{Name: "example.com/app", Requires: []driver.Require{{Name: "example.com/a", Version: "v1.0.0"}}}
-	if _, err := driver.SelectVersions(driver.CompilerOptions{}, app, local); err == nil || !strings.Contains(err.Error(), "dependency cycle: example.com/a -> example.com/b -> example.com/a") {
+	if _, err := driver.SelectVersions(testCompiler(), app, local); err == nil || !strings.Contains(err.Error(), "dependency cycle: example.com/a -> example.com/b -> example.com/a") {
 		t.Fatalf("cycle: %v", err)
 	}
 	mixed := driver.ModFile{Name: "example.com/app", Requires: []driver.Require{{Name: "example.com/x", Version: "v1.2.0"}, {Name: "example.com/c", Version: "v1.0.0"}}}
-	if _, err := driver.SelectVersions(driver.CompilerOptions{}, mixed, local); err == nil || !strings.Contains(err.Error(), "different major versions cannot be mixed") {
+	if _, err := driver.SelectVersions(testCompiler(), mixed, local); err == nil || !strings.Contains(err.Error(), "different major versions cannot be mixed") {
 		t.Fatalf("major mix: %v", err)
 	}
 }

@@ -64,7 +64,7 @@ func noallocBodies(t *testing.T, src string) (rejected string, checked int, hole
 	os.MkdirAll(filepath.Join(root, "main"), 0o755)
 	os.WriteFile(filepath.Join(root, "main", "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}

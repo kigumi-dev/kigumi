@@ -39,7 +39,7 @@ func fakeZigFailing(t *testing.T) string {
 // real managed install; Offline defaults to true to avoid the real network.
 func loadPinned(t *testing.T, zigPin, zigPath string) (*driver.Module, error) {
 	t.Helper()
-	return loadPinnedOpts(t, zigPin, zigPath, driver.LoadOptions{Offline: true})
+	return loadPinnedOpts(t, zigPin, zigPath, driver.LoadOptions{Compiler: testCompiler(), Offline: true})
 }
 
 func loadPinnedOpts(t *testing.T, zigPin, zigPath string, extra driver.LoadOptions) (*driver.Module, error) {

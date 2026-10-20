@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 type resultCase struct {
@@ -85,7 +83,7 @@ func splitUse(s string) []string {
 
 func TestFaultInjectionDirectResultLoopsAllocateNothingPerRound(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range resultCases {
@@ -136,7 +134,7 @@ print "ok=${run(%d)}"
 
 func TestFaultInjectionFixedArrayProtocolsAllocateNothingPerRound(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	short, long := fmt.Sprintf(fixedProtocolTemplate, 4), fmt.Sprintf(fixedProtocolTemplate, 12)

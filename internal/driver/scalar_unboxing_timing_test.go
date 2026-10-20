@@ -16,7 +16,7 @@ import (
 // instead of boxing a fresh heap value per intermediate.
 func TestScalarUnboxingTiming(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -40,7 +40,7 @@ func TestScalarUnboxingTiming(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}

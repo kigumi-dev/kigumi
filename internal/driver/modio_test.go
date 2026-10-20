@@ -11,7 +11,7 @@ import (
 
 func cacheEntry(t *testing.T, name, version string, ready bool) string {
 	t.Helper()
-	dir, err := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: name, Version: version})
+	dir, err := driver.CacheDir(testCompiler(), driver.Require{Name: name, Version: version})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestCacheEntryChecks(t *testing.T) {
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {v} from greet\nprint \"${v()}\"\n"), 0o644)
 
 	cacheEntry(t, "greet", "v1.0.0", false)
-	if _, err := driver.LoadModule(app, driver.LoadOptions{}); err == nil || !strings.Contains(err.Error(), "is not fetched") {
+	if _, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()}); err == nil || !strings.Contains(err.Error(), "is not fetched") {
 		t.Fatalf("an entry without the origin marker must count as not fetched: %v", err)
 	}
 	dir := cacheEntry(t, "greet", "v1.0.0", true)
@@ -47,13 +47,13 @@ func TestCacheEntryChecks(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := driver.LoadModule(app, driver.LoadOptions{}); err != nil {
+	if _, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()}); err != nil {
 		t.Fatalf("a complete entry must load: %v", err)
 	}
 	if err := os.Symlink("/etc/hostname", filepath.Join(dir, "extra.kg")); err != nil {
 		t.Skip(err)
 	}
-	if _, err := driver.LoadModule(app, driver.LoadOptions{}); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+	if _, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler()}); err == nil || !strings.Contains(err.Error(), "not a regular file") {
 		t.Fatalf("a symlink in the cache must be refused: %v", err)
 	}
 }

@@ -20,7 +20,7 @@ print "${f(&pa.Rec { a: 1 })} ${g(&pb.Rec { a: 1, b: 2 })}"
 `
 
 func TestAotStdValueSameNamedTypesKeepTheirOwnAdapters(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -36,7 +36,7 @@ func TestAotStdValueSameNamedTypesKeepTheirOwnAdapters(t *testing.T) {
 		os.WriteFile(path, []byte(body), 0o644)
 	}
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const protocolRounds = 4
@@ -67,7 +65,7 @@ func TestDirectEqualsAndHashAllocateNothingOnTheVM(t *testing.T) {
 
 func TestDirectEqualsAndHashAllocateNothingNatively(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	direct, base := fmt.Sprintf(protocolDirect, protocolRounds), fmt.Sprintf(protocolBaseline, protocolRounds)

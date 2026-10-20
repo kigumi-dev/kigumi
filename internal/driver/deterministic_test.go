@@ -16,14 +16,14 @@ import (
 // dir must never leak into the objects (via unnamed-type names or
 // DW_AT_comp_dir) or into the archive (via member metadata).
 func TestDeterministicArchive(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"bare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func TestDeterministicArchive(t *testing.T) {
 	for i := range 2 {
 		t.Setenv("ZIG_GLOBAL_CACHE_DIR", filepath.Join(t.TempDir(), "zig-global"))
 		t.Setenv("ZIG_LOCAL_CACHE_DIR", filepath.Join(t.TempDir(), "zig-local"))
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -88,7 +88,7 @@ print "${describe(Shape.Box(2, 3))} ${describe(4)} ${f(1)}"
 		os.MkdirAll(root, 0o755)
 		os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"det\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 		os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 		if err != nil {
 			t.Fatal(err)
 		}

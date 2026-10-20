@@ -9,7 +9,7 @@ import (
 
 func unitLoad(t *testing.T, root, cache, entry string) *driver.Module {
 	t.Helper()
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: entry, PackageCache: cache, DeferParse: true, UnitCheck: true})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: entry, PackageCache: cache, DeferParse: true, UnitCheck: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func unitCheck(t *testing.T, root, cache, entry string) (*driver.Module, string,
 
 func wholeCheck(t *testing.T, root, entry string) (string, bool) {
 	t.Helper()
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: entry})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: entry})
 	if err != nil {
 		t.Fatal(err)
 	}

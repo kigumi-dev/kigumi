@@ -15,7 +15,7 @@ import (
 // A fixture whose manifest mode excludes native is skipped with that
 // reason instead of being built anyway.
 func TestAotCorpus(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	manifest := loadManifest(t)
@@ -58,7 +58,7 @@ func TestAotCorpus(t *testing.T) {
 
 func runAot(t *testing.T, path string, fx *testtool.Fixture, live map[string]int64) {
 	root, wantOut, wantErr, wantExit := loadRunFixture(t, path)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func runAot(t *testing.T, path string, fx *testtool.Fixture, live map[string]int
 // pointers through std/ffi, a library from the manifest's Link record, and
 // an export(C) function called back from a C helper linked via KIGUMI_CFLAGS.
 func TestAotFFI(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -232,7 +232,7 @@ print "${unsafe { with_userdata(kg_cb, pin.ptr(), 5) }}"
 	os.WriteFile(helper, []byte(cHelper), 0o644)
 	t.Setenv("KIGUMI_CFLAGS", helper)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -26,7 +26,7 @@ func TestSourceDirectoryPermissionErrorFailsLoad(t *testing.T) {
 	defer os.Chmod(nativeDir, 0o755)
 
 	std, _ := filepath.Abs("../../std")
-	_, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	_, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err == nil {
 		t.Fatal("an unreadable Source directory must fail the load, not silently contribute zero sources")
 	}
@@ -44,7 +44,7 @@ func TestSourceEmptyDirectoryIsZeroSources(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "empty"), 0o755)
 
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

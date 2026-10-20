@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const chainPrelude = `type Pt = {
@@ -94,7 +92,7 @@ print "ok=${run(%d)}"
 // The element copy through a field, a receiver or a captured cell fills the slot's own box like the plain array form.
 func TestFixedElementCopyThroughPlaceAllocatesNothing(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, sh := range chainShapes {
@@ -148,7 +146,7 @@ print "ok=${run(%d)}"
 // A copy between slots of nested fixed arrays fills the slot's own box too.
 func TestFixedNestedElementCopyAllocatesNothing(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	src := func(body string, rounds int) string { return fmt.Sprintf(nestedCopySrc, body, rounds) }

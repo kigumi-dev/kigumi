@@ -8,8 +8,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 // An explicit-main cmd/ package is still the process entry and must not be
@@ -26,7 +24,7 @@ func TestAutoImportSkipsExplicitMainPackage(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	rootURI := uri.File(root)
 	s.Initialize(ctx, initParams(rootURI))
 	doc := uri.File(path)
@@ -55,7 +53,7 @@ func TestDiagnosticsExplicitMainNoScript(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New(std)
+	s := newServer(std)
 	doc := uri.File(path)
 	s.Initialize(ctx, initParams(uri.File(root)))
 	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Version: 1, Text: src}})

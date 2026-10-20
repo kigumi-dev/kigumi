@@ -12,7 +12,7 @@ import (
 // no diagnostics at all.
 func TestRepostatChecks(t *testing.T) {
 	t.Parallel()
-	m, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{Test: true, StdRoot: "../../std"})
+	m, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{Compiler: testCompiler(), Test: true, StdRoot: "../../std"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestRepostatChecks(t *testing.T) {
 // TestRepostatTests runs the example's `test` blocks on the VM.
 func TestRepostatTests(t *testing.T) {
 	t.Parallel()
-	m, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{Test: true, StdRoot: "../../std"})
+	m, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{Compiler: testCompiler(), Test: true, StdRoot: "../../std"})
 	if err != nil {
 		t.Fatal(err)
 	}

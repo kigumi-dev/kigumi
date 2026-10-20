@@ -51,7 +51,7 @@ var freestandingTargets = []string{
 
 // The backend lowers a large aggregate copy to memmove, and a 32-bit or wasm target calls compiler-rt helpers; the audit must accept both.
 func TestBuildFreestandingTargetsPassAudit(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, triple := range freestandingTargets {
@@ -61,12 +61,12 @@ func TestBuildFreestandingTargetsPassAudit(t *testing.T) {
 				root := t.TempDir()
 				os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"audit\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 				os.WriteFile(filepath.Join(root, "main.kg"), []byte(p.src), 0o644)
-				target, err := driver.ParseTarget(driver.CompilerOptions{}, triple, "")
+				target, err := driver.ParseTarget(testCompiler(), triple, "")
 				if err != nil {
 					t.Fatal(err)
 				}
 				std, _ := filepath.Abs("../../std")
-				m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+				m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -80,26 +80,26 @@ func TestBuildFreestandingTargetsPassAudit(t *testing.T) {
 }
 
 func TestParseTargetRejectsWasmUEFI(t *testing.T) {
-	if _, err := driver.ParseTarget(driver.CompilerOptions{}, "wasm32-uefi", ""); err == nil || !strings.Contains(err.Error(), "wasm32 has no UEFI") {
+	if _, err := driver.ParseTarget(testCompiler(), "wasm32-uefi", ""); err == nil || !strings.Contains(err.Error(), "wasm32 has no UEFI") {
 		t.Fatalf("want a wasm32 UEFI rejection, got %v", err)
 	}
 }
 
 // The audit reads wasm and 32-bit COFF objects too, so an undeclared libc call is named on them as it is on ELF.
 func TestAuditRejectsDisallowedSymbolOnObjectFormats(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, triple := range []string{"wasm32-freestanding", "x86-uefi", "arm-freestanding"} {
 		t.Run(triple, func(t *testing.T) {
 			t.Parallel()
 			root := writeAuditModule(t, "leaky", "extern int printf(const char *fmt, ...);\nint leak(void) { return printf(\"hi\\n\"); }\n")
-			target, err := driver.ParseTarget(driver.CompilerOptions{}, triple, "")
+			target, err := driver.ParseTarget(testCompiler(), triple, "")
 			if err != nil {
 				t.Fatal(err)
 			}
 			std, _ := filepath.Abs("../../std")
-			m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 			if err != nil {
 				t.Fatal(err)
 			}

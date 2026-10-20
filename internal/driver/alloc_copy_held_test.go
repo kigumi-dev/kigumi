@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/driver"
 	"kigumi/internal/sem"
 )
 
@@ -77,7 +76,7 @@ print "ok=${run()}"
 
 func TestSwapStoresMoveTheirValue(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	swapped := nativeAllocs(t, strings.Replace(swapSrc, "%s", "swap(&mut w)\n    swap(&mut w)", 1))

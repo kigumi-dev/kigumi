@@ -40,7 +40,7 @@ func TestExampleModules(t *testing.T) {
 
 func runExample(t *testing.T, root, std string, meta driver.ExampleMeta) {
 	zigPath := os.Getenv("KIGUMI_ZIG")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Test: true, ZigPath: zigPath})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Test: true, ZigPath: zigPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func runExample(t *testing.T, root, std string, meta driver.ExampleMeta) {
 	}
 	stdin, _ := os.ReadFile(filepath.Join(root, "stdin.txt"))
 
-	plain, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, ZigPath: zigPath})
+	plain, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, ZigPath: zigPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func runExample(t *testing.T, root, std string, meta driver.ExampleMeta) {
 	if !contains(meta.Backends, "native") {
 		return
 	}
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler: the native half of this example needs zig or clang")
 	}
 	exe := filepath.Join(t.TempDir(), "prog")

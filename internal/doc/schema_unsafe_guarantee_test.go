@@ -20,7 +20,7 @@ func TestSchemaShowsUnsafeGuarantee(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(root, "sock", "sock.kg"), []byte(src), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		m, err := driver.LoadModule(root, driver.LoadOptions{})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler()})
 		if err != nil {
 			t.Fatal(err)
 		}

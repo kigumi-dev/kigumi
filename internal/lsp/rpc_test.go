@@ -13,8 +13,6 @@ import (
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 // liveClient is the editor side of a JSON-RPC connection.
@@ -55,7 +53,7 @@ func TestJSONRPCEditsPublishOnlyTheLatestGeneration(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	doc := uri.File(path)
 
-	srv := lsp.New("../../std").WithDebounce(60 * time.Millisecond)
+	srv := newServer("../../std").WithDebounce(60 * time.Millisecond)
 	a, b := net.Pipe()
 	ctx := context.Background()
 	protocol.NewServer(ctx, srv, jsonrpc2.NewStream(a))

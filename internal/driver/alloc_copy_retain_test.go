@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"kigumi/internal/driver"
 	"kigumi/internal/sem"
 )
 
@@ -93,7 +92,7 @@ func genericCopyAllocs(t *testing.T, call string) int {
 
 func TestGenericCopyAllocatesOnlyForABoxedArgument(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if copied, kept := genericCopyAllocs(t, "id(i)"), genericCopyAllocs(t, "keep(i)"); copied != kept {
@@ -238,7 +237,7 @@ const getLoopSrc = `fn main() -> Unit! {
 
 func TestArrayGetBoxesItsOptionUnlessDirect(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	count := func(elems, body string) int { return nativeAllocs(t, fmt.Sprintf(getLoopSrc, elems, body)) }

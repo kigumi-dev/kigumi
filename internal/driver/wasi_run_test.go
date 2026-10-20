@@ -84,7 +84,7 @@ func wasiRuntime(t *testing.T) string {
 }
 
 func TestWasiProvidedSetRuns(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	node := wasiRuntime(t)
@@ -129,7 +129,7 @@ func runWasiProbe(t *testing.T, node, runner string, target driver.Target, probe
 	} else {
 		os.WriteFile(filepath.Join(root, "main.kg"), []byte(probe.src), 0o644)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -24,9 +24,9 @@ func TestSourceCandidates(t *testing.T) {
 	for _, f := range []string{"native/x.c", "native/x_linux.c", "native/x_windows.c", "native/x_freestanding.c", "native/notes.txt", "boot/start_amd64.s", "boot/start_arm64.s", "boot/common.S", "boot/x.c"} {
 		os.WriteFile(filepath.Join(root, f), nil, 0o644)
 	}
-	target, _ := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-linux", "")
+	target, _ := driver.ParseTarget(testCompiler(), "x86_64-linux", "")
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

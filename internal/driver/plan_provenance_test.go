@@ -21,7 +21,7 @@ func TestPlanJSONPerArtifactProvenance(t *testing.T) {
 	write("cmd/app/main.kg", "type Point = {\n    pub x Int\n}\n\nfn useEq(a: Point, b: Point) -> Bool {\n    a == b\n}\n\nprint \"${useEq(Point { x: 1 }, Point { x: 1 })}\"\n")
 	write("build.kg", "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n    let app = b.executable(\"app\", \"cmd/app\", b.request().target())?\n}\n")
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -29,7 +29,7 @@ func TestPlanJSONPerArtifactProvenance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestPlanJSONPerArtifactProvenanceScoped(t *testing.T) {
 	write("cmd/b/main.kg", "print \"no eq here\"\n")
 	write("build.kg", "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n    let a = b.executable(\"a\", \"cmd/a\", b.request().target())?\n    let bb = b.executable(\"b\", \"cmd/b\", b.request().target())?\n}\n")
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -79,7 +79,7 @@ func TestPlanJSONPerArtifactProvenanceScoped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

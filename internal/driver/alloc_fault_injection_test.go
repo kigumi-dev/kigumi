@@ -13,14 +13,14 @@ import (
 // Builds with -DKIGUMI_FAULT_INJECT (rt_core.c's test-only fault-injection hook) and checks Arena.tryCreate reports a refused calloc instead of crashing.
 func TestArenaCreateReportsAllocFailureNatively(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"allocfault\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import alloc from std/alloc\n\nprint \"${alloc.Arena.tryCreate() is Ok(_)}\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

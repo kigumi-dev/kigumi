@@ -117,7 +117,7 @@ func timedCheck(b *testing.B, root, cache string, units bool) (load, check time.
 	b.Helper()
 	std, _ := filepath.Abs("../../std")
 	start := time.Now()
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true, UnitCheck: units})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true, UnitCheck: units})
 	if err != nil {
 		b.Fatal(err)
 	}

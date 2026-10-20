@@ -12,7 +12,7 @@ import (
 // A tool sees only the allowlisted environment and the target, not the
 // driver's own variables.
 func TestToolEnvAllowlist(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	t.Setenv("HOME", "/leaked/home")

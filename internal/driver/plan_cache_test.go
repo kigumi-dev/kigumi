@@ -20,7 +20,7 @@ func planModule(t *testing.T, root string, targets ...string) (string, driver.Pl
 		t.Fatal(err)
 	}
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -28,7 +28,7 @@ func planModule(t *testing.T, root string, targets ...string) (string, driver.Pl
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, err := driver.ResolveGraph(testCompiler(), g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"kigumi/internal/cli/shared"
 	"kigumi/internal/errors"
 	"kigumi/internal/sem"
 	"kigumi/internal/version"
@@ -36,7 +37,7 @@ func installCmd() *cobra.Command {
 				cmd.Printf("zig %s already installed\n", want)
 				return nil
 			}
-			m, err := fetch.InstallRelease(fetch.Options{IndexURL: baseURL, StoreRoot: root, Version: want, Stderr: cmd.ErrOrStderr()})
+			m, err := fetch.InstallRelease(fetch.Options{IndexURL: baseURL, StoreRoot: root, Version: want, Stderr: cmd.ErrOrStderr(), Lookup: shared.CompilerOptions().ToolLookup()})
 			if err != nil {
 				if errors.Is(err, fetch.ErrNoPrebuilt) {
 					return errors.WrapErrf(err, "no official tarball for %s; build it instead with --source <git url or local checkout>", want)
@@ -74,7 +75,7 @@ func installFromSource(cmd *cobra.Command, root, want, sourceArg string) error {
 		cleanup = func() { os.RemoveAll(tmp) }
 	}
 	defer cleanup()
-	req := source.Request{Checkout: checkout, Want: want, Ref: ref}
+	req := source.Request{Checkout: checkout, Want: want, Ref: ref, Lookup: shared.CompilerOptions().ToolLookup()}
 	if looksLikeURL(url) {
 		req.URL = url
 	}

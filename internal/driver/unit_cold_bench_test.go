@@ -19,7 +19,7 @@ func BenchmarkColdCheck(b *testing.B) {
 					root, cache := b.TempDir(), b.TempDir()
 					writeBench(b, root, synthFiles(10, size))
 					b.StartTimer()
-					opts := driver.LoadOptions{StdRoot: std, Entry: "cmd/app/main.kg"}
+					opts := driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "cmd/app/main.kg"}
 					var err error
 					switch mode {
 					case "whole":

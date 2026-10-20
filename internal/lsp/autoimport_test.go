@@ -9,8 +9,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 // Offers imports for an unresolved qualifier and name as quick fixes, and
@@ -25,7 +23,7 @@ func TestAutoImport(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	rootURI := uri.File(root)
 	s.Initialize(ctx, initParams(rootURI))
 	doc := uri.File(path)

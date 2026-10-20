@@ -8,8 +8,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 // TestSymbolsDedupsOverlappingWorkspaceFolders: adding both a folder and a
@@ -23,7 +21,7 @@ func TestSymbolsDedupsOverlappingWorkspaceFolders(t *testing.T) {
 
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	p := &protocol.InitializeParams{}
 	p.WorkspaceFolders = protocol.NewNullable([]protocol.WorkspaceFolder{{URI: uri.File(outer), Name: "outer"}, {URI: uri.File(inner), Name: "inner"}})
 	s.Initialize(ctx, p)

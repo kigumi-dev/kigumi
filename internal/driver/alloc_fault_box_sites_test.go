@@ -99,7 +99,7 @@ func vmAllocs(t *testing.T, src string) int {
 
 func TestFaultInjectionBoxSitesCountTheSameOnBothBackends(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range boxSiteCases {
@@ -144,7 +144,7 @@ print "ok=${run(%d)}"
 
 func TestFaultInjectionErasedClosureCountsTheSameOnBothBackends(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	erased, kept := fmt.Sprintf(erasedClosureSrc, boxSiteRounds), fmt.Sprintf(keptClosureSrc, boxSiteRounds)

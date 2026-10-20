@@ -12,7 +12,7 @@ import (
 func fixtureIR(t *testing.T, path string) string {
 	t.Helper()
 	root, _, _, _ := loadRunFixture(t, path)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}

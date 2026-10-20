@@ -8,8 +8,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 func decodeSemanticTokens(data []uint32) [][5]uint32 {
@@ -38,7 +36,7 @@ func TestSemanticTokens(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	s.Initialize(ctx, initParams(uri.File(root)))
 	doc := uri.File(path)
 	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Text: src}})

@@ -96,7 +96,7 @@ func stableOutputs(t *testing.T, root string, files map[string]string, reverse b
 	t.Helper()
 	writeStable(t, root, files)
 	std, _ := filepath.Abs("../../std")
-	opts := driver.LoadOptions{StdRoot: std}
+	opts := driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}
 	if reverse {
 		opts.FileOrder = slices.Reverse[[]string]
 	}

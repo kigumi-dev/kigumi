@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const scalarInstanceSrc = `fn wrap[T](x: T) -> T? { Some(x) }
@@ -30,7 +28,7 @@ print "ok=${run(%d)}"
 // A scalar instantiation that returns an aggregate gets a body of its own, so it costs what a plain function does.
 func TestScalarInstancesAllocateLikeAPlainFunction(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range []struct{ generic, plain string }{{"wrap(i)", "wrapInt(i)"}, {"firstOf(&xs)", "firstInt(&xs)"}} {
@@ -83,7 +81,7 @@ print "ok=${run(%d)}"
 // A scalar crosses a call, generic or not, in a register: nothing is boxed beyond what the loop itself costs.
 func TestScalarArgumentsCrossCallsUnboxed(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	src := func(expr string, rounds int) string { return fmt.Sprintf(scalarCallSrc, expr, rounds) }

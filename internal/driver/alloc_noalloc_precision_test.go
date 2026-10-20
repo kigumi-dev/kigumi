@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const precisionProgram = `type Named = {
@@ -60,7 +58,7 @@ func precisionSrc(body string, rounds int) string {
 
 func TestNoallocPrecisionCasesAllocateLikeAConstant(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range precisionCases {

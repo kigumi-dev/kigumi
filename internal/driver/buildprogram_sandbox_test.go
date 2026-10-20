@@ -17,7 +17,7 @@ func buildWith(t *testing.T, root, out, program string) error {
 	t.Helper()
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte(program), 0o644)
 	std, _ := filepath.Abs("../../std")
-	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func buildWith(t *testing.T, root, out, program string) error {
 	if err != nil {
 		return err
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors)
+	rg, err := driver.ResolveGraph(testCompiler(), g, descriptors)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func buildWith(t *testing.T, root, out, program string) error {
 // entries for several executables.
 func TestBuildProgramSandbox(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root, out, outside := t.TempDir(), t.TempDir(), t.TempDir()

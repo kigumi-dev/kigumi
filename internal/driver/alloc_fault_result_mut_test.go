@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const resultMutTemplate = `type In = {
@@ -43,7 +41,7 @@ var resultMutCases = []struct{ name, typ, val, write, read string }{
 
 func TestFaultInjectionMutableUnwrappedResultPayloadsAllocateNothingPerRound(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range resultMutCases {

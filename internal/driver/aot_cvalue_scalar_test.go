@@ -16,7 +16,7 @@ import (
 // writing through the pointer as an out parameter (and reading one
 // `.set()` by Kigumi wrote) sees the same bytes `.get()` does.
 func TestAotCValueScalar(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
@@ -93,7 +93,7 @@ print "${seenBool} ${afterSetBool} ${seenBool2}"
 	os.WriteFile(helper, []byte(cHelper), 0o644)
 	t.Setenv("KIGUMI_CFLAGS", helper)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

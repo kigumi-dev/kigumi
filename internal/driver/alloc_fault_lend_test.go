@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const lendDecls = `type Point = {
@@ -52,7 +50,7 @@ func lendSource(body string, rounds int) string {
 
 func TestFaultInjectionLentDirectValuesAllocateNothingPerRound(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range lendCases {

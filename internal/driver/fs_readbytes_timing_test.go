@@ -18,7 +18,7 @@ import (
 // must not corrupt the data.
 func TestReadBytesNativeTiming(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	dataPath := filepath.Join(t.TempDir(), "data.bin")
@@ -45,7 +45,7 @@ print "len=${data.len()} first=${data.get(0) || 0} mid=${data.get(mid) || 0} las
 		t.Fatal(err)
 	}
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}

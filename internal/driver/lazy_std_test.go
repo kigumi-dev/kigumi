@@ -46,7 +46,7 @@ func TestLazyStdCheckMatchesEager(t *testing.T) {
 						return fmt.Sprintf("errors=%v\n%s", res.HasErrors(), res.Render())
 					}
 					check := func(lazyStd bool) (string, string) {
-						opts := driver.LoadOptions{StdRoot: stdRoot(t), Test: fx.test, Entry: fx.entry, UnitCheck: lazyStd, LazyStd: lazyStd}
+						opts := driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Test: fx.test, Entry: fx.entry, UnitCheck: lazyStd, LazyStd: lazyStd}
 						editor := ""
 						if em, err := driver.LoadModule(root, opts); err == nil {
 							editor = outcome(driver.CheckForEditor(em))
@@ -100,7 +100,7 @@ func TestLazyStdBuildMatchesEager(t *testing.T) {
 					outputs := func(lazyStd bool) string {
 						var sb strings.Builder
 						load := func() *driver.Module {
-							m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: entry, LazyStd: lazyStd})
+							m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: entry, LazyStd: lazyStd})
 							if err != nil {
 								t.Fatal(err)
 							}
@@ -155,7 +155,7 @@ func TestLazyStdExamplesMatchEager(t *testing.T) {
 			}
 			outputs := func(lazyStd bool) (string, int) {
 				load := func() *driver.Module {
-					m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: entry, LazyStd: lazyStd})
+					m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: entry, LazyStd: lazyStd})
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -177,7 +177,7 @@ func TestLazyStdExamplesMatchEager(t *testing.T) {
 			}
 			if tests, _ := filepath.Glob(filepath.Join(root, "*", "*_test.kg")); len(tests) > 0 {
 				run := func(lazyStd bool) string {
-					m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: entry, Test: true, LazyStd: lazyStd})
+					m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: entry, Test: true, LazyStd: lazyStd})
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -216,7 +216,7 @@ func TestNoopAnalyzeWritesNothing(t *testing.T) {
 	root, cache := t.TempDir(), t.TempDir()
 	writeGraph(t, root, graphFiles())
 	analyze := func() *driver.Module {
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, LazyStd: true})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, LazyStd: true})
 		if err != nil {
 			t.Fatal(err)
 		}

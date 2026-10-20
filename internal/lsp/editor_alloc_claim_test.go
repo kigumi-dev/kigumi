@@ -8,8 +8,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 func TestEditorReportsABoxOnlyTheBuildFinds(t *testing.T) {
@@ -27,7 +25,7 @@ func editorReportsABox(t *testing.T, lazyStd bool) {
 	std, _ := filepath.Abs("../../std")
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New(std).WithLazyStd(lazyStd)
+	s := newServer(std).WithLazyStd(lazyStd)
 	doc := uri.File(path)
 	if _, err := s.Initialize(ctx, initParams(uri.File(root))); err != nil {
 		t.Fatal(err)

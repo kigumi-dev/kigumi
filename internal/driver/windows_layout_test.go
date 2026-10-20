@@ -87,11 +87,11 @@ func TestWindowsPlatformFilesCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-windows", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-windows", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

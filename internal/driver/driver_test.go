@@ -65,7 +65,7 @@ func TestExamples(t *testing.T) {
 
 func TestLoadModule(t *testing.T) {
 	t.Parallel()
-	m, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{Test: true})
+	m, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{Compiler: testCompiler(), Test: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestLoadModule(t *testing.T) {
 	if d := m.Diagnostics(); d != "" {
 		t.Errorf("unexpected diagnostics:\n%s", d)
 	}
-	noTest, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{})
+	noTest, err := driver.LoadModule("../../examples/repostat", driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil {
 		t.Fatal(err)
 	}

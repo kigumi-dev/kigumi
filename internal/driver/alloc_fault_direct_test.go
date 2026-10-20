@@ -69,7 +69,7 @@ func checkBoxOutcome(t *testing.T, backend string, n, exit int, out, errOut stri
 
 func TestFaultInjectionDirectBoxNative(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	m := loadTryConstructorModule(t, directBoxSrc)
@@ -129,7 +129,7 @@ func TestFaultInjectionGenericDirectVM(t *testing.T) {
 
 func TestFaultInjectionGenericDirectNative(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if generic, plain := nativeAllocs(t, genericSrc), nativeAllocs(t, plainSrc); generic != plain {
@@ -233,7 +233,7 @@ func nativeAllocs(t *testing.T, src string) int {
 
 func TestFaultInjectionFixedBoxNative(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if crossed, inFrame := nativeAllocs(t, crossProgram(true, "4")), nativeAllocs(t, crossProgram(false, "4")); crossed != inFrame {

@@ -16,18 +16,18 @@ import (
 // its own fresh build dirs and compiler caches and still produces the
 // archive at out.
 func TestReproducibleFreestandingArchive(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"repro\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,14 +50,14 @@ func TestReproducibleFreestandingArchive(t *testing.T) {
 // executable: the two-build check must pass, and the resulting binary must
 // still run correctly.
 func TestReproducibleHostedExecutable(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"repro\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hello from repro\"\n"), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,14 +86,14 @@ func TestReproducibleHostedExecutable(t *testing.T) {
 // timing, and checks that BuildWith reports the mismatch and never writes
 // to out.
 func TestReproducibleFailureLeavesNoOutput(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"repro\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,14 +116,14 @@ func TestReproducibleFailureLeavesNoOutput(t *testing.T) {
 // buildReproducible's own final write: a symlink pre-planted at out must
 // not be followed to write the compiled artifact outside the sandbox.
 func TestReproducibleOutputSymlinkEscape(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"repro\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi\"\n"), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func chdir(t *testing.T, dir string) {
 // not crash trying to make m.Sources' relative path relative to the build
 // dir's own absolute os.MkdirTemp path.
 func TestReproducibleHostedSourceRelativeRoot(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
@@ -175,7 +175,7 @@ func TestReproducibleHostedSourceRelativeRoot(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi from native\"\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "native.c"), []byte("int kigumi_repro_native(void) { return 0; }\n"), 0o644)
 	chdir(t, root)
-	m, err := driver.LoadModule(".", driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(".", driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +193,7 @@ func TestReproducibleHostedSourceRelativeRoot(t *testing.T) {
 // (buildArchive) and has the same crash for a
 // relative module root.
 func TestReproducibleFreestandingSourceRelativeRoot(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
@@ -201,12 +201,12 @@ func TestReproducibleFreestandingSourceRelativeRoot(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"repro\"\n    kigumi: \"0.1\"\n}\nSource { c: \"native.c\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("print \"hi from native\"\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "native.c"), []byte("int kigumi_repro_native(void) { return 0; }\n"), 0o644)
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+	target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	chdir(t, root)
-	m, err := driver.LoadModule(".", driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(".", driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestReproducibleFreestandingSourceRelativeRoot(t *testing.T) {
 // against the process cwd, not the hosted-link pinCompDir build dir that
 // cmd.Dir points at.
 func TestReproducibleHostedLinkSearchRelativeRoot(t *testing.T) {
-	cc := driver.CCompiler()
+	cc := testCompiler().CCompiler()
 	if cc == nil {
 		t.Skip("no C compiler")
 	}
@@ -242,7 +242,7 @@ func TestReproducibleHostedLinkSearchRelativeRoot(t *testing.T) {
 		t.Fatalf("build libreprofoo.so: %v\n%s", err, out)
 	}
 	chdir(t, root)
-	m, err := driver.LoadModule(".", driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(".", driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

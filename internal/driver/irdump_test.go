@@ -34,7 +34,7 @@ func TestIRDump(t *testing.T) {
 		root := t.TempDir()
 		os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ir\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 		os.WriteFile(filepath.Join(root, "main.kg"), []byte(rest), 0o644)
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 		if err != nil {
 			continue
 		}

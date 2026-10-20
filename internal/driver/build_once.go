@@ -36,7 +36,15 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		return ok, err
 	}
 	code = withRuntimeABI(t, code, opts.CFlags)
-	if err := checkLinkedRuntimeABI(m, opts, code.Abi); err != nil {
+	cflags, err := resolveFlagPaths(m.compiler, opts.CFlags)
+	if err != nil {
+		return false, err
+	}
+	lflags, err := resolveFlagPaths(m.compiler, opts.LinkFlags)
+	if err != nil {
+		return false, err
+	}
+	if err := checkLinkedRuntimeABI(m, cflags, lflags, code.Abi); err != nil {
 		return false, err
 	}
 	cc, err := CCompilerFor(m)
@@ -96,7 +104,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		args = append(args, "-mstack-probe-size=1048576")
 	}
 	if t.Bare() {
-		compileFlags, _ := splitArchiveCFlags(opts.CFlags)
+		compileFlags, _ := splitArchiveCFlags(cflags)
 		args = append(args, compileFlags...)
 		if t.Arch != "wasm32" {
 			// A wasm object compiled position-independent imports __memory_base and __table_base from the linker.
@@ -153,8 +161,8 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		if opts.Entry != "" {
 			linkArgs = append(linkArgs, "-Wl,--entry="+opts.Entry)
 		}
-		linkArgs = append(linkArgs, opts.LinkFlags...)
-		linkArgs = append(linkArgs, opts.CFlags...)
+		linkArgs = append(linkArgs, lflags...)
+		linkArgs = append(linkArgs, cflags...)
 		cmd := exec.Command(cc[0], linkArgs...)
 		cmd.Stderr = stderr
 		if opts.pinCompDir {

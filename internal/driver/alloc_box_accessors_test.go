@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const boxAccessorSrc = `import {Box} from std/alloc
@@ -55,7 +53,7 @@ print "ok=${run(%d)}"
 // get, with, withMut and into add no allocation over a body that leaves the box alone.
 func TestBoxAccessorsAllocateNothing(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	cases := []struct{ name, tmpl, elem, init, body, base string }{

@@ -63,7 +63,7 @@ func TestIndexParsesOnlyReachablePackages(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeGraph(t, root, graphFiles())
-	m, err := driver.LoadModule(root, driver.LoadOptions{Entry: "cmd/app/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), Entry: "cmd/app/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestIndexParsesOnlyReachablePackages(t *testing.T) {
 	if d := m.Diagnostics(); d != "" {
 		t.Fatalf("the unreachable broken package must not report: %s", d)
 	}
-	whole, err := driver.LoadModule(root, driver.LoadOptions{})
+	whole, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,14 +89,14 @@ func TestIndexRootDirsAndImports(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeGraph(t, root, graphFiles())
-	m, err := driver.LoadModule(root, driver.LoadOptions{RootDirs: []string{"cmd/app"}})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), RootDirs: []string{"cmd/app"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(m.Order, []string{"graphmod/cmd/app", "graphmod/leaf", "graphmod/mid"}) {
 		t.Fatalf("RootDirs roots the packages under the directory and what they import, got %v", m.Order)
 	}
-	m, err = driver.LoadModule(root, driver.LoadOptions{RootDirs: []string{}, RootImports: []string{"graphmod/other"}})
+	m, err = driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), RootDirs: []string{}, RootImports: []string{"graphmod/other"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestBrokenUnreachablePackageDoesNotStopCheck(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	writeGraph(t, root, graphFiles())
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: "cmd/app/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestDeferredLoadParsesNothing(t *testing.T) {
 	root := t.TempDir()
 	writeGraph(t, root, graphFiles())
 	cache := t.TempDir()
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestDeferredLoadParsesNothing(t *testing.T) {
 	if first.ArtifactWrites != 3 || first.SettledWrites != 1 {
 		t.Fatalf("first check should write 3 artifacts and settle once, got %+v", first)
 	}
-	again, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
+	again, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestDeferredLoadParsesNothing(t *testing.T) {
 
 func recordStatuses(t *testing.T, root, cache string, entry string) map[string]driver.PackageStatus {
 	t.Helper()
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: entry, PackageCache: cache})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: entry, PackageCache: cache})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestCacheKeyCoversTargetAndFeatureFlags(t *testing.T) {
 	root, cache := t.TempDir(), t.TempDir()
 	writeGraph(t, root, graphFiles())
 	recordStatuses(t, root, cache, "cmd/app/main.kg")
-	other, err := driver.ParseTarget(driver.CompilerOptions{}, "aarch64-linux", "")
+	other, err := driver.ParseTarget(testCompiler(), "aarch64-linux", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestCacheKeyCoversTargetAndFeatureFlags(t *testing.T) {
 		"ceiling": {Ceiling: "core"},
 		"deny":    {Deny: []string{"std/net"}},
 	} {
-		opts.StdRoot, opts.Entry, opts.PackageCache = stdRoot(t), "cmd/app/main.kg", cache
+		opts.Compiler, opts.StdRoot, opts.Entry, opts.PackageCache = testCompiler(), stdRoot(t), "cmd/app/main.kg", cache
 		m, err := driver.LoadModule(root, opts)
 		if err != nil {
 			t.Fatal(err)
@@ -270,7 +270,7 @@ func TestEditorPathSharesIndexAndCache(t *testing.T) {
 	files := graphFiles()
 	delete(files, "broken/broken.kg")
 	writeGraph(t, root, files)
-	m, err := driver.LoadModule(root, driver.LoadOptions{Test: true, StdRoot: stdRoot(t), PackageCache: cache, AllPackages: true})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), Test: true, StdRoot: stdRoot(t), PackageCache: cache, AllPackages: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestEditedModuleIsNotSettled(t *testing.T) {
 	writeGraph(t, root, graphFiles())
 	recordStatuses(t, root, cache, "cmd/app/main.kg")
 	writeGraph(t, root, map[string]string{"mid/mid.kg": "import leaf from graphmod/leaf\n\npub fn twice() -> Int {\n    leaf.value() + leaf.value()\n}\n"})
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +314,7 @@ func TestUnreachableEditDoesNotUnsettle(t *testing.T) {
 	writeGraph(t, root, graphFiles())
 	recordStatuses(t, root, cache, "cmd/app/main.kg")
 	writeGraph(t, root, map[string]string{"broken/broken.kg": "pub fn still_broken( {\n"})
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,8 +3,6 @@ package driver_test
 import (
 	"fmt"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 const fixedCopySrc = `type Pt = {
@@ -38,7 +36,7 @@ print "ok=${run(%d)}"
 // Filling a slot from another element reuses the slot's box: the call costs what a body without the copy does.
 func TestFixedElementCopyAllocatesNothing(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	cases := []struct{ name, elem, init, copy, base string }{

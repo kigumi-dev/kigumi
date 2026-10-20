@@ -11,7 +11,6 @@ import (
 	"go.lsp.dev/uri"
 
 	"kigumi/internal/driver"
-	"kigumi/internal/lsp"
 )
 
 // recorder is the client side: it keeps every published diagnostic and
@@ -46,7 +45,7 @@ func TestServer(t *testing.T) {
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
 	wd, _ := os.Getwd()
-	s := lsp.New("../../std").WithPackageCache("", driver.CompilerOptions{Cwd: wd})
+	s := newServer("../../std").WithPackageCache("", driver.CompilerOptions{Cwd: wd})
 	doc := uri.File(path)
 	rootURI := uri.File(root)
 
@@ -125,7 +124,7 @@ func TestImplementation(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	rootURI := uri.File(root)
 	s.Initialize(ctx, initParams(rootURI))
 	doc := uri.File(path)
@@ -167,7 +166,7 @@ func TestHoverDocs(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	rootURI := uri.File(root)
 	s.Initialize(ctx, initParams(rootURI))
 	doc := uri.File(path)
@@ -205,7 +204,7 @@ func TestHoverConstParam(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	s.Initialize(ctx, initParams(uri.File(root)))
 	doc := uri.File(path)
 	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Text: src}})

@@ -109,7 +109,7 @@ func writeSweep(t *testing.T, root string, files map[string]string) {
 
 func sweepLoad(t *testing.T, fx sweepFixture, root, cache string) *driver.Module {
 	t.Helper()
-	opts := driver.LoadOptions{StdRoot: stdRoot(t), Test: fx.test, Entry: fx.entry}
+	opts := driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Test: fx.test, Entry: fx.entry}
 	if cache != "" {
 		opts.PackageCache, opts.DeferParse, opts.UnitCheck = cache, true, true
 	}

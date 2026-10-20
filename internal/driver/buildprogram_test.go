@@ -16,11 +16,11 @@ import (
 // the host executable that links the result.
 func TestBuildProgramExample(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram("../../examples/build_program", driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram("../../examples/build_program", driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -34,7 +34,7 @@ func TestBuildProgramExample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rg, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors)
+	rg, err := driver.ResolveGraph(testCompiler(), g, descriptors)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +60,12 @@ func TestBuildProgramExample(t *testing.T) {
 	}
 
 	g.ToolSteps[0].Tool = "rm"
-	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors); err == nil || !strings.Contains(err.Error(), "not registered") {
+	if _, err := driver.ResolveGraph(testCompiler(), g, descriptors); err == nil || !strings.Contains(err.Error(), "not registered") {
 		t.Fatalf("unregistered tool should be rejected before running: %v", err)
 	}
 	g.ToolSteps[0].Tool = "gen"
 	g.Artifacts[0].Target.Triple = ""
-	if _, err := driver.ResolveGraph(driver.CompilerOptions{}, g, descriptors); err == nil || !strings.Contains(err.Error(), "freestanding") {
+	if _, err := driver.ResolveGraph(testCompiler(), g, descriptors); err == nil || !strings.Contains(err.Error(), "freestanding") {
 		t.Fatalf("host-target library should be rejected: %v", err)
 	}
 }
@@ -77,11 +77,11 @@ func TestBuildProgramShape(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"shape\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder, extra: Int) -> Unit! {\n    let a = b.executable(\"x\", \"\", b.request().target())?\n}\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	if _, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std}); err == nil || !strings.Contains(err.Error(), "configure must be") {
+	if _, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err == nil || !strings.Contains(err.Error(), "configure must be") {
 		t.Fatalf("expected the shape error, got %v", err)
 	}
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nlet x = 1\n\nfn configure(b: build.Builder) -> Unit! {\n    let a = b.executable(\"x\", \"\", b.request().target())?\n}\n"), 0o644)
-	if _, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std}); err == nil {
+	if _, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err == nil {
 		t.Fatal("top-level statements in build.kg should be rejected")
 	}
 }

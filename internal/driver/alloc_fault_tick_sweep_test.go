@@ -122,7 +122,7 @@ func nativeRefusedRuns(t *testing.T, src string, count int) []refusedRun {
 
 func TestFaultInjectionRefusedTickEndsBothBackendsTheSameWay(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for _, c := range tickSweepCases {

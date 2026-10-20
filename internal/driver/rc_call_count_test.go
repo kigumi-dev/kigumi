@@ -116,7 +116,7 @@ func TestRCCallCounts(t *testing.T) {
 			t.Run(filepath.Base(path), func(t *testing.T) {
 				t.Parallel()
 				root, _, _, _ := loadRunFixture(t, path)
-				m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+				m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -18,7 +18,7 @@ func TestBuildProgramRootsFollowSelection(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", cache)
 	lock := driver.Lock{Entries: map[string]driver.LockEntry{}}
 	put := func(name, version, rest string) {
-		dir, _ := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: name, Version: version})
+		dir, _ := driver.CacheDir(testCompiler(), driver.Require{Name: name, Version: version})
 		os.MkdirAll(dir, 0o755)
 		os.WriteFile(filepath.Join(dir, "mod.kg"), manifest(name, rest), 0o644)
 		os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("cafebabe\n"), 0o644)
@@ -40,7 +40,7 @@ func TestBuildProgramRootsFollowSelection(t *testing.T) {
 	}
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {}\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {
 		t.Fatalf("load: %v %v", ok, err)
 	}
@@ -53,9 +53,9 @@ func TestBuildProgramRootsFollowSelection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	selectedC, _ := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "github.com/acme/c", Version: "v1.1.0"})
-	staleC, _ := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "github.com/acme/c", Version: "v1.0.0"})
-	transitiveD, _ := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "github.com/acme/d", Version: "v1.0.0"})
+	selectedC, _ := driver.CacheDir(testCompiler(), driver.Require{Name: "github.com/acme/c", Version: "v1.1.0"})
+	staleC, _ := driver.CacheDir(testCompiler(), driver.Require{Name: "github.com/acme/c", Version: "v1.0.0"})
+	transitiveD, _ := driver.CacheDir(testCompiler(), driver.Require{Name: "github.com/acme/d", Version: "v1.0.0"})
 	var hasSelectedC, hasStaleC, hasD bool
 	for _, r := range roots {
 		switch r {
@@ -83,7 +83,7 @@ func TestBuildProgramRootsFollowSelection(t *testing.T) {
 func TestSelectVersionsOriginConflict(t *testing.T) {
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
-	dir, _ := driver.CacheDir(driver.CompilerOptions{}, driver.Require{Name: "foo", Version: "v1.0.0"})
+	dir, _ := driver.CacheDir(testCompiler(), driver.Require{Name: "foo", Version: "v1.0.0"})
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, "mod.kg"), manifest("foo", ""), 0o644)
 	os.WriteFile(filepath.Join(dir, driver.OriginFileName), []byte("cafebabe\n"), 0o644)
@@ -92,7 +92,7 @@ func TestSelectVersionsOriginConflict(t *testing.T) {
 		{Name: "foo", Version: "v1.0.0", URL: "https://origin-a.example/foo.git"},
 		{Name: "foo", Version: "v1.0.0", URL: "https://origin-b.example/foo.git"},
 	}}
-	if _, err := driver.SelectVersions(driver.CompilerOptions{}, conflicting, driver.Local{}); err == nil || !strings.Contains(err.Error(), "origin-a.example") || !strings.Contains(err.Error(), "origin-b.example") {
+	if _, err := driver.SelectVersions(testCompiler(), conflicting, driver.Local{}); err == nil || !strings.Contains(err.Error(), "origin-a.example") || !strings.Contains(err.Error(), "origin-b.example") {
 		t.Fatalf("same name+version from different origins should conflict: %v", err)
 	}
 
@@ -100,7 +100,7 @@ func TestSelectVersionsOriginConflict(t *testing.T) {
 		{Name: "foo", Version: "v1.0.0", URL: "https://origin-a.example/foo.git"},
 		{Name: "foo", Version: "v1.0.0", URL: "https://origin-a.example/foo.git"},
 	}}
-	sel, err := driver.SelectVersions(driver.CompilerOptions{}, same, driver.Local{})
+	sel, err := driver.SelectVersions(testCompiler(), same, driver.Local{})
 	if err != nil || sel.Requires["foo"].URL != "https://origin-a.example/foo.git" {
 		t.Fatalf("identical origins should not conflict: %+v %v", sel, err)
 	}

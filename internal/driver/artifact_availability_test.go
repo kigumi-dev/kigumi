@@ -35,7 +35,7 @@ func artifactAvailabilityModule(t *testing.T, entryBody, deny, ceiling string) (
 func runArtifactAvailability(t *testing.T, root, out string) (stderr string, err error) {
 	t.Helper()
 	std, _ := filepath.Abs("../../std")
-	p, _, loadErr := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, loadErr := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if loadErr != nil {
 		t.Fatal(loadErr)
 	}
@@ -43,7 +43,7 @@ func runArtifactAvailability(t *testing.T, root, out string) (stderr string, err
 	if runErr != nil {
 		t.Fatal(runErr)
 	}
-	rg, resolveErr := driver.ResolveGraph(driver.CompilerOptions{}, g, nil)
+	rg, resolveErr := driver.ResolveGraph(testCompiler(), g, nil)
 	if resolveErr != nil {
 		t.Fatal(resolveErr)
 	}
@@ -76,7 +76,7 @@ func TestArtifactAvailabilityDeniesImport(t *testing.T) {
 // that never imports a denied path still builds.
 func TestArtifactAvailabilityAllowsUndenied(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	root, out := artifactAvailabilityModule(t, "print \"hi\"\n", `Array.of("std/time")`, `""`)
@@ -99,7 +99,7 @@ func TestArtifactAvailabilityDenyRejectsUnknownPath(t *testing.T) {
 		"import time from std/time\n\nprint \"hi\"\n",
 		`Array.of("std/tiem")`, `""`)
 	std, _ := filepath.Abs("../../std")
-	p, _, loadErr := driver.LoadBuildProgram(root, driver.LoadOptions{StdRoot: std})
+	p, _, loadErr := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if loadErr != nil {
 		t.Fatal(loadErr)
 	}

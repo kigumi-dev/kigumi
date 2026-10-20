@@ -28,7 +28,7 @@ func checkPlanned(t *testing.T, fx fixture) *sem.Result {
 	target := driver.HostTarget()
 	target.Allocator = fx.opt("allocator", "")
 	target.Profile = fx.opt("profile", "")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

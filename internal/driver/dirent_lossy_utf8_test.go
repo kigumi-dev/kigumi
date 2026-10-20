@@ -46,7 +46,7 @@ func TestDirentLossyUtf8(t *testing.T) {
 	}
 	os.WriteFile(filepath.Join(root, "main/main.kg"), []byte(direntLossyUtf8Src), 0o644)
 
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompilerAt(filepath.Join(root, "main")), StdRoot: std, Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestDirentLossyUtf8(t *testing.T) {
 	})
 
 	t.Run("native", func(t *testing.T) {
-		if driver.CCompiler() == nil {
+		if testCompiler().CCompiler() == nil {
 			t.Skip("no C compiler")
 		}
 		exe := filepath.Join(t.TempDir(), "prog")

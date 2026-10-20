@@ -9,13 +9,13 @@ import (
 )
 
 func TestIsHostTarget(t *testing.T) {
-	if !driver.IsHostTarget(driver.CompilerOptions{}, driver.Target{}) {
+	if !driver.IsHostTarget(testCompiler(), driver.Target{}) {
 		t.Error("the zero Target should count as host")
 	}
-	if !driver.IsHostTarget(driver.CompilerOptions{}, driver.HostTarget()) {
+	if !driver.IsHostTarget(testCompiler(), driver.HostTarget()) {
 		t.Error("HostTarget() should count as host")
 	}
-	if driver.IsHostTarget(driver.CompilerOptions{}, driver.Target{Triple: "x86_64-freestanding"}) {
+	if driver.IsHostTarget(testCompiler(), driver.Target{Triple: "x86_64-freestanding"}) {
 		t.Error("an explicit Triple should not count as host")
 	}
 }
@@ -26,7 +26,7 @@ func TestResolveLinkIdentitySearchPath(t *testing.T) {
 	if err := os.WriteFile(lib, []byte("one"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	id, ok := driver.ResolveLinkIdentity(driver.CompilerOptions{}, driver.Link{Library: "foo", Search: dir}, driver.Target{})
+	id, ok := driver.ResolveLinkIdentity(testCompiler(), driver.Link{Library: "foo", Search: dir}, driver.Target{})
 	if !ok {
 		t.Fatalf("expected foo to resolve from %s", dir)
 	}
@@ -38,17 +38,17 @@ func TestResolveLinkIdentitySearchPath(t *testing.T) {
 	}
 
 	os.WriteFile(lib, []byte("two"), 0o644)
-	id2, ok := driver.ResolveLinkIdentity(driver.CompilerOptions{}, driver.Link{Library: "foo", Search: dir}, driver.Target{})
+	id2, ok := driver.ResolveLinkIdentity(testCompiler(), driver.Link{Library: "foo", Search: dir}, driver.Target{})
 	if !ok || id2.Digest == id.Digest {
 		t.Errorf("changing the library's bytes should change its digest: before=%s after=%s", id.Digest, id2.Digest)
 	}
 }
 
 func TestResolveLinkIdentityUnresolved(t *testing.T) {
-	if _, ok := driver.ResolveLinkIdentity(driver.CompilerOptions{}, driver.Link{Library: "kigumi_test_definitely_missing_xyz"}, driver.Target{}); ok {
+	if _, ok := driver.ResolveLinkIdentity(testCompiler(), driver.Link{Library: "kigumi_test_definitely_missing_xyz"}, driver.Target{}); ok {
 		t.Error("a library absent from every search directory should not resolve")
 	}
-	if _, ok := driver.ResolveLinkIdentity(driver.CompilerOptions{}, driver.Link{Library: "m"}, driver.Target{Triple: "x86_64-freestanding"}); ok {
+	if _, ok := driver.ResolveLinkIdentity(testCompiler(), driver.Link{Library: "m"}, driver.Target{Triple: "x86_64-freestanding"}); ok {
 		t.Error("a non-host Target should not resolve against this host's search list")
 	}
 }

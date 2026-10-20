@@ -9,8 +9,6 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-
-	"kigumi/internal/lsp"
 )
 
 // TestCapabilitiesMatchImplementation: a capability is advertised only
@@ -18,7 +16,7 @@ import (
 func TestCapabilitiesMatchImplementation(t *testing.T) {
 	root := t.TempDir()
 	std, _ := filepath.Abs("../../std")
-	s := lsp.New(std)
+	s := newServer(std)
 	res, err := s.Initialize(protocol.WithClient(context.Background(), &recorder{}), initParams(uri.File(root)))
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +42,7 @@ func TestInitializeRootURIFallback(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New(std)
+	s := newServer(std)
 	p := &protocol.InitializeParams{}
 	rootURI := uri.File(root)
 	p.RootURI = &rootURI
@@ -66,7 +64,7 @@ func TestInitializeRootPathFallback(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New(std)
+	s := newServer(std)
 	p := &protocol.InitializeParams{}
 	p.RootPath = protocol.NewNullable(root)
 	if _, err := s.Initialize(ctx, p); err != nil {
@@ -88,7 +86,7 @@ func TestMultiRootWorkspace(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New(std)
+	s := newServer(std)
 	p := &protocol.InitializeParams{}
 	p.WorkspaceFolders = protocol.NewNullable([]protocol.WorkspaceFolder{{URI: uri.File(a), Name: "a"}, {URI: uri.File(b), Name: "b"}})
 	s.Initialize(ctx, p)
@@ -115,7 +113,7 @@ func TestRenameVersionedDocumentChanges(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	p := initParams(uri.File(root))
 	docChanges := true
 	p.Capabilities.Workspace = &protocol.WorkspaceClientCapabilities{WorkspaceEdit: &protocol.WorkspaceEditClientCapabilities{DocumentChanges: &docChanges}}
@@ -155,7 +153,7 @@ func TestRenameCollision(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	s.Initialize(ctx, initParams(uri.File(root)))
 	doc := uri.File(path)
 	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Text: src}})
@@ -175,7 +173,7 @@ func TestFormattingError(t *testing.T) {
 	os.WriteFile(path, []byte(broken), 0o644)
 	std, _ := filepath.Abs("../../std")
 	ctx := protocol.WithClient(context.Background(), &recorder{})
-	s := lsp.New(std)
+	s := newServer(std)
 	s.Initialize(ctx, initParams(uri.File(root)))
 	doc := uri.File(path)
 	s.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{TextDocument: protocol.TextDocumentItem{URI: doc, Text: broken}})

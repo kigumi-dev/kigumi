@@ -136,7 +136,7 @@ func embeddedFingerprints(t *testing.T, exe string) []string {
 // A registry edit changes the fingerprint the runtime is compiled under, so the binary carries the new one and a bare archive built over the old one reads as stale.
 // A zig shim on PATH logs every compile of the runtime source. It swaps the package registry and PATH, so it is not parallel.
 func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	run := func(exe string) {
@@ -159,7 +159,7 @@ func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
 	archive := filepath.Join(t.TempDir(), "rt.a")
 	bareBuild := func() (string, driver.ArtifactFingerprint) {
 		t.Helper()
-		target, err := driver.ParseTarget(driver.CompilerOptions{}, "x86_64-freestanding", "")
+		target, err := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -167,7 +167,7 @@ func TestRegistryChangeInvalidatesRuntime(t *testing.T) {
 		os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"abi\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 		os.WriteFile(filepath.Join(root, "main.kg"), []byte(singleThreadSrc), 0o644)
 		std, _ := filepath.Abs("../../std")
-		m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+		m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -247,7 +247,7 @@ func mirRegistryText(t *testing.T) string {
 
 func buildProgram(t *testing.T, src string, cflags ...string) string {
 	t.Helper()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	exe := filepath.Join(t.TempDir(), "prog")

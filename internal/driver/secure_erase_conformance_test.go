@@ -8,8 +8,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-
-	"kigumi/internal/driver"
 )
 
 // Compiling the shipped text, not a copy, keeps the probe from drifting from the runtime.
@@ -25,7 +23,7 @@ func extractCFunc(t *testing.T, src, name string) string {
 
 func compileToAsm(t *testing.T, dir, name, src string) string {
 	t.Helper()
-	cc := driver.CCompiler()
+	cc := testCompiler().CCompiler()
 	cPath := filepath.Join(dir, name+".c")
 	sPath := filepath.Join(dir, name+".s")
 	if err := os.WriteFile(cPath, []byte(src), 0o644); err != nil {
@@ -59,7 +57,7 @@ func asmFunc(asm, label string) string {
 // Compiles rt_secure_zero into a dead-store-shaped probe and checks -O2
 // keeps its stores; a non-volatile control confirms -O2 would elide an unprotected one.
 func TestSecureEraseSurvivesO2DeadStoreElimination(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if runtime.GOARCH != "amd64" || runtime.GOOS != "linux" {
@@ -131,7 +129,7 @@ func branchAfterSecretLoad(asm string) bool {
 // Compiles the real subtle_constant_time_eq and checks -O2 kept it branch-free
 // on a loaded secret byte; a naive early-exit comparison is the control.
 func TestSubtleConstantTimeEqHasNoSecretDependentBranch(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if runtime.GOARCH != "amd64" || runtime.GOOS != "linux" {

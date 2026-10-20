@@ -67,7 +67,7 @@ func TestBuildInstallsAndRecordsCommit(t *testing.T) {
 	root := t.TempDir()
 
 	var notices []string
-	m, err := source.Build(source.Request{Checkout: checkout, Want: "0.17.0"}, root, func(s string) { notices = append(notices, s) })
+	m, err := source.Build(source.Request{Lookup: exec.LookPath, Checkout: checkout, Want: "0.17.0"}, root, func(s string) { notices = append(notices, s) })
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestBuildRecordsDirtyCheckout(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
-	m, err := source.Build(source.Request{Checkout: checkout, Want: "0.17.0"}, root, nil)
+	m, err := source.Build(source.Request{Lookup: exec.LookPath, Checkout: checkout, Want: "0.17.0"}, root, nil)
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestBuildRejectsWrongVersion(t *testing.T) {
 	fakeCmake(t, "0.17.0")
 	checkout := localCheckout(t)
 	root := t.TempDir()
-	_, err := source.Build(source.Request{Checkout: checkout, Want: "0.18.0"}, root, nil)
+	_, err := source.Build(source.Request{Lookup: exec.LookPath, Checkout: checkout, Want: "0.18.0"}, root, nil)
 	if !errors.Is(err, source.ErrVersionMismatch) {
 		t.Fatalf("expected ErrVersionMismatch, got %v", err)
 	}

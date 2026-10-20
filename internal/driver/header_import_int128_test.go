@@ -11,7 +11,7 @@ import (
 
 // A C struct with __int128 members imports as a layout(C) record with i128 / u128 fields; C and the shim agree on its size, alignment and offsets.
 func TestAotHeaderImportInt128Fields(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	if _, err := exec.LookPath("zig"); err != nil {
@@ -29,7 +29,7 @@ func TestAotHeaderImportInt128Fields(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("KIGUMI_CFLAGS", filepath.Join(root, "helper.c"))
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -24,17 +24,17 @@ print "${ex.runToCompletion(root())}"
 `
 
 func TestBuildWasiTaskProgram(t *testing.T) {
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("needs a C compiler")
 	}
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "wasm32-wasi", "")
+	target, err := driver.ParseTarget(testCompiler(), "wasm32-wasi", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"w\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(wasiTaskProgram), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

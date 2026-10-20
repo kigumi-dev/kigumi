@@ -30,7 +30,7 @@ print "ok"
 `
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: driver.HostTarget()})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: driver.HostTarget()})
 	if err != nil {
 		t.Fatal(err)
 	}

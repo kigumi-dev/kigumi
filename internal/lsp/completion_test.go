@@ -35,7 +35,7 @@ func TestMemberCompletion(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	rec := &recorder{}
 	ctx := protocol.WithClient(context.Background(), rec)
-	s := lsp.New("../../std")
+	s := newServer("../../std")
 	doc := uri.File(path)
 	if _, err := s.Initialize(ctx, initParams(uri.File(root))); err != nil {
 		t.Fatal(err)

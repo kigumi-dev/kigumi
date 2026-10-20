@@ -14,7 +14,7 @@ import (
 
 // A worker left running at exit is a thread leak under ThreadSanitizer.
 func TestAotAbortedRootJoinsOrphanedPool(t *testing.T) {
-	if driver.CCompiler() == nil || runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
+	if testCompiler().CCompiler() == nil || runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
 		t.Skip("needs a C compiler and ThreadSanitizer on linux/amd64")
 	}
 	for fixture, panicText := range map[string]string{
@@ -29,7 +29,7 @@ func TestAotAbortedRootJoinsOrphanedPool(t *testing.T) {
 
 func runJoinCheck(t *testing.T, fixture, panicText string) {
 	root, _, _, _ := loadRunFixture(t, "../../testdata/run/"+fixture+".txtar")
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ static inline int kg_counted_join(pthread_t t, void** r) {
 `
 
 func TestAotAbortedRootJoinsEveryWorker(t *testing.T) {
-	if driver.CCompiler() == nil || runtime.GOOS != "linux" {
+	if testCompiler().CCompiler() == nil || runtime.GOOS != "linux" {
 		t.Skip("needs a C compiler and pthreads")
 	}
 	for _, c := range []struct {
@@ -81,7 +81,7 @@ func TestAotAbortedRootJoinsEveryWorker(t *testing.T) {
 			if err := os.WriteFile(hook, []byte(joinCountHook), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+			m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 			if err != nil {
 				t.Fatal(err)
 			}

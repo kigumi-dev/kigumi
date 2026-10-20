@@ -59,7 +59,7 @@ func sameDir(o CompilerOptions, a, b string) bool {
 	if b == "" {
 		return false
 	}
-	aa, _ := o.Abs(a)
-	bb, _ := o.Abs(b)
-	return aa == bb
+	aa, errA := o.Abs(a)
+	bb, errB := o.Abs(b)
+	return errA == nil && errB == nil && aa == bb
 }

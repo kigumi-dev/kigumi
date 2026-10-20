@@ -16,7 +16,7 @@ func TestFoldComptimeRefusesAnUnplannedBlock(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"order\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte("type Point = {\n    pub mut x Int\n    pub y Int\n}\n\nlet n = comptime {\n    let mut p = Point { x: 1, y: 2 }\n    let mut ps: Array[Point] = Array.empty()\n    ps.push(p)\n    p.x = 9\n    ps[0].x\n}\nprint \"${n}\"\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
-	m, err := LoadModule(root, LoadOptions{StdRoot: std})
+	m, err := LoadModule(root, LoadOptions{Compiler: internalTestCompiler(), StdRoot: std})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"kigumi/internal/driver"
 	"kigumi/internal/version"
 
@@ -10,6 +11,9 @@ import (
 )
 
 func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (*protocol.InitializeResult, error) {
+	if s.compiler.Cwd == "" {
+		return nil, errors.New("lsp: CompilerOptions.Cwd is required; build the server with WithPackageCache")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.roots = workspaceRoots(p)
@@ -37,7 +41,7 @@ func (s *Server) Initialize(ctx context.Context, p *protocol.InitializeParams) (
 	}
 	// Locations are file URIs, so a std root given relative to the cwd
 	// (`kigumi lsp` finds ./std) must become absolute.
-	if s.stdRoot != "" && s.compiler.Cwd != "" {
+	if s.stdRoot != "" {
 		if abs, err := s.compiler.Abs(s.stdRoot); err == nil {
 			s.stdRoot = abs
 		}

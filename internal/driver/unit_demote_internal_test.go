@@ -33,7 +33,7 @@ func TestUnitDemotesAWronglyCleanPackage(t *testing.T) {
 	}
 	writeUnitFiles(t, root, files)
 	load := func() *Module {
-		m, err := LoadModule(root, LoadOptions{StdRoot: std, Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true, UnitCheck: true})
+		m, err := LoadModule(root, LoadOptions{Compiler: internalTestCompiler(), StdRoot: std, Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true, UnitCheck: true})
 		if err != nil {
 			t.Fatal(err)
 		}

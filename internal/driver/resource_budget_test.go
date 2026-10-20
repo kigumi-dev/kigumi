@@ -19,7 +19,7 @@ func checkStrict(t *testing.T, main string, strict bool, budgetKiB int) string {
 	target := driver.HostTarget()
 	target.StrictStack = strict
 	target.StackBudgetKiB = budgetKiB
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func analyzeModule(t *testing.T, main string, strict bool, budgetKiB int) *drive
 	target := driver.HostTarget()
 	target.StrictStack = strict
 	target.StackBudgetKiB = budgetKiB
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

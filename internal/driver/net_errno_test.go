@@ -73,11 +73,11 @@ match n.connect("127.0.0.1", %d) {
 	}
 
 	t.Run("native", func(t *testing.T) {
-		if driver.CCompiler() == nil {
+		if testCompiler().CCompiler() == nil {
 			t.Skip("no C compiler")
 		}
 		connectRefusedProbe(t, func(port int) (string, error) {
-			m, err := driver.LoadModule(writeMain(t, port), driver.LoadOptions{StdRoot: std})
+			m, err := driver.LoadModule(writeMain(t, port), driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 			if err != nil {
 				return "", err
 			}
@@ -99,7 +99,7 @@ match n.connect("127.0.0.1", %d) {
 
 	t.Run("vm", func(t *testing.T) {
 		connectRefusedProbe(t, func(port int) (string, error) {
-			m, err := driver.LoadModule(writeMain(t, port), driver.LoadOptions{StdRoot: std})
+			m, err := driver.LoadModule(writeMain(t, port), driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 			if err != nil {
 				return "", err
 			}

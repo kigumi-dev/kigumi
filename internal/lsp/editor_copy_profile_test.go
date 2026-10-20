@@ -59,10 +59,10 @@ func TestEditorReportsAProfileCopy(t *testing.T) {
 		opts   string
 		code   string
 	}{
-		{"allocator flag", lsp.New(std).WithTarget(withProfile("none", "")), "", "E959"},
-		{"allocator option", lsp.New(std), `{"allocator":"none"}`, "E959"},
-		{"profile flag", lsp.New(std).WithTarget(withProfile("", "recoverable-only")), "", "E1280"},
-		{"profile option", lsp.New(std), `{"profile":"recoverable-only"}`, "E1280"},
+		{"allocator flag", newServer(std).WithTarget(withProfile("none", "")), "", "E959"},
+		{"allocator option", newServer(std), `{"allocator":"none"}`, "E959"},
+		{"profile flag", newServer(std).WithTarget(withProfile("", "recoverable-only")), "", "E1280"},
+		{"profile option", newServer(std), `{"profile":"recoverable-only"}`, "E1280"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			diags := profileDiagnostics(t, tc.server, tc.opts)
@@ -72,7 +72,7 @@ func TestEditorReportsAProfileCopy(t *testing.T) {
 		})
 	}
 	t.Run("default", func(t *testing.T) {
-		if diags := profileDiagnostics(t, lsp.New(std), ""); len(diags) != 0 {
+		if diags := profileDiagnostics(t, newServer(std), ""); len(diags) != 0 {
 			t.Fatalf("the default profile allows the copy, got %+v", diags)
 		}
 	})

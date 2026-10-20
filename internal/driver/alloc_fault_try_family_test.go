@@ -57,7 +57,7 @@ var liveLine = regexp.MustCompile(`(?m)^kigumi-live: (\d+)$`)
 
 func TestFaultInjectionTryFamilyNative(t *testing.T) {
 	t.Parallel()
-	if driver.CCompiler() == nil {
+	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	for name, src := range oomSources(t) {

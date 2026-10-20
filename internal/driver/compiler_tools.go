@@ -1,19 +1,11 @@
 package driver
 
 import (
-	"os"
-	"os/exec"
-
 	"kigumi/internal/zigtool"
 	"kigumi/internal/zigtool/store"
 )
 
-func (o CompilerOptions) ToolLookup() zigtool.Lookup {
-	if o.PathDirs != nil {
-		return zigtool.InDirs(o.PathDirs)
-	}
-	return exec.LookPath
-}
+func (o CompilerOptions) ToolLookup() zigtool.Lookup { return zigtool.InDirs(o.PathDirs) }
 
 // CCompiler finds a C compiler able to consume LLVM IR: zig cc or clang.
 func (o CompilerOptions) CCompiler() []string {
@@ -27,16 +19,9 @@ func (o CompilerOptions) CCompiler() []string {
 	return nil
 }
 
-// CCompiler is CompilerOptions{}.CCompiler: the process PATH decides.
-func CCompiler() []string { return CompilerOptions{}.CCompiler() }
-
 func (o CompilerOptions) LookTool(name string) (string, error) { return o.ToolLookup()(name) }
 
-// ZigStoreRoot is the managed zig store: override, else under the options' Home.
+// ZigStoreRoot is the managed zig store: override, else under the options' Home; neither is an error.
 func (o CompilerOptions) ZigStoreRoot(override string) (string, error) {
-	home := o.Home
-	if home == "" && override == "" {
-		home, _ = os.UserHomeDir()
-	}
-	return store.Root(override, home)
+	return store.Root(override, o.Home)
 }

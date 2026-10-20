@@ -234,11 +234,11 @@ func TestWasi32PlatformFilesCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target, err := driver.ParseTarget(driver.CompilerOptions{}, "wasm32-wasi", "")
+	target, err := driver.ParseTarget(testCompiler(), "wasm32-wasi", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: std, Target: target})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
 	if err != nil {
 		t.Fatal(err)
 	}

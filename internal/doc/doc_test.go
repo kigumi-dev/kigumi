@@ -15,7 +15,7 @@ func TestPackageMarkdown(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "shapes"), 0o755)
 	src := "/// A shape with an area.\npub interface Shape {\n    fn area(self) -> Int\n}\n\n/// Axis-aligned square.\npub type Square = {\n    pub side Int\n}\n\n/// Area of the square.\npub fn Square.area(self) -> Int {\n    self.side * self.side\n}\n\nfn hidden() -> Int {\n    1\n}\n\n/// Unit square.\npub const unit = 1\n"
 	os.WriteFile(filepath.Join(root, "shapes", "shapes.kg"), []byte(src), 0o644)
-	m, err := driver.LoadModule(root, driver.LoadOptions{})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler()})
 	if err != nil {
 		t.Fatal(err)
 	}

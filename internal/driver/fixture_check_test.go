@@ -41,7 +41,7 @@ func checkedFixture(t testing.TB, path string) fixtureCheck {
 
 func analyzeRunFixture(t testing.TB, path string) fixtureCheck {
 	root, _, wantErr, wantExit := loadRunFixture(t, path)
-	m, err := driver.LoadModule(root, driver.LoadOptions{StdRoot: "../../std", Entry: "main/main.kg"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: "../../std", Entry: "main/main.kg"})
 	if err != nil {
 		return fixtureCheck{err: err}
 	}
