@@ -42,7 +42,7 @@ func TestGenericStdFunctionValueIsExpandedPerInstantiation(t *testing.T) {
 	}
 }
 
-func TestMethodValueAdapterReleasesALentReceiver(t *testing.T) {
+func TestMethodValueAdapterBorrowsALentReceiver(t *testing.T) {
 	ir := specializedIR(t, `type P = {
     a Int
 }
@@ -54,7 +54,11 @@ let g = p.get
 print "${g()}"
 `)
 	adapter := bodyOf(t, ir, `define ptr @"main.P.get$methodvalue"`)
-	if !strings.Contains(adapter, "@rt_release") {
+	borrowed := strings.Contains(adapter, "@rt_iter_at(ptr %env, i64 0, i32 1)")
+	if !borrowed && !strings.Contains(adapter, "@rt_release") {
 		t.Errorf("the adapter never drops the receiver reference it took from the environment:\n%s", adapter)
+	}
+	if borrowed && strings.Contains(adapter, "@rt_release") {
+		t.Errorf("the adapter releases a receiver it only borrowed:\n%s", adapter)
 	}
 }

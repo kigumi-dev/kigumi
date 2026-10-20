@@ -85,3 +85,15 @@ func TestUnwindPlanSkipsLocalsThatOwnNothing(t *testing.T) {
 		}
 	}
 }
+
+func TestUnwindPlanLeavesALentReceiverToItsCaller(t *testing.T) {
+	p := analyzeFixture(t, "async_task_panic_lent_receiver.txtar")
+	got := callSets(p, asyncFunc(t, p, "main.Bag.scan"))["explode"]
+	if !slices.Contains(got, "mine") || slices.Contains(got, "self") {
+		t.Errorf("scan's call to explode leaves %v owned, want its own local mine and not the receiver it only borrows", got)
+	}
+	via := callSets(p, asyncFunc(t, p, "main.viaScan"))["scan"]
+	if !slices.Contains(via, "bag") {
+		t.Errorf("viaScan's call to scan leaves %v owned, want the bag it lent", via)
+	}
+}

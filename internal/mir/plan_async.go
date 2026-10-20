@@ -50,7 +50,7 @@ func planFrame(f *Func, r *sem.Result) {
 		slices.Reverse(clean)
 		f.Cleanup[k] = clean
 	}
-	for _, set := range planUnwind(f, r, true).Sets[1:] {
+	for _, set := range planUnwind(f, r, true, nil).Sets[1:] {
 		for _, l := range set {
 			inFrame[l] = true
 		}

@@ -1,0 +1,42 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn explode() -> Int {
+    None.expect("boom")
+}
+
+// fold lends the array to a step that takes each element by value; the element in flight and the rest drop once.
+fn total() -> Int {
+    let guard = Res { id: 9 }
+    let xs = Array.of(Res { id: 1 }, Res { id: 2 }, Res { id: 3 })
+    xs.fold(0, (acc: Int, x: Res) => if x.id == 2 { explode() } else { acc + x.id })
+}
+
+async fn boom() -> Int {
+    total()
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 1
+drop 2
+drop 3
+drop 9
+-- stderr --
+panic: boom
+-- exit --
+2

@@ -1,0 +1,50 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn explode() -> Int {
+    None.expect("boom")
+}
+
+// The array is lent to the callback that faults on its second element, so the owner and the elements all drop once.
+fn scan() -> Int {
+    let owner = Res { id: 9 }
+    let xs = Array.of(Res { id: 1 }, Res { id: 2 }, Res { id: 3 })
+    let ys = xs.map((x: &Res) => if x.id == 2 { explode() } else { x.id })
+    ys.len().toInt() || 0
+}
+
+async fn tick() -> Int {
+    1
+}
+
+async fn boom() -> Int {
+    let keep = Res { id: 0 }
+    let v = await tick()
+    scan() + v
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 3
+drop 2
+drop 1
+drop 9
+drop 0
+-- stderr --
+panic: boom
+-- exit --
+2

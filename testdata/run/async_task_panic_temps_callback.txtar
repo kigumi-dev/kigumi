@@ -1,0 +1,52 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn make(n: Int) -> Res {
+    Res { id: n }
+}
+
+fn consume(a: Res, b: Res, c: Int) -> Int {
+    a.id + b.id + c
+}
+
+fn explode() -> Int {
+    None.expect("boom")
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// Arguments already built and an array lent to a faulting callback are all released with the async frame.
+async fn boom() -> Int {
+    let keep = Res { id: 0 }
+    let xs = Array.of(Res { id: 1 }, Res { id: 2 })
+    let v = consume(make(10), make(11), (await tick()) + (xs.map((x: &Res) => explode()).len().toInt() || 0))
+    v
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 11
+drop 10
+drop 2
+drop 1
+drop 0
+-- stderr --
+panic: boom
+-- exit --
+2

@@ -2,7 +2,6 @@ package vm
 
 import (
 	"kigumi/internal/mir"
-	"kigumi/internal/sem"
 )
 
 // entryOf is what a boxed call runs: the all-boxed entry of a function with a direct signature.
@@ -52,31 +51,13 @@ func (m *Machine) invokeAs(f, body *mir.Func, env *obj, bind bool, args []*obj) 
 			params = append(params, retain(a))
 		}
 	}
+	if !m.sweepsPanics() {
+		r := m.call(body, params)
+		m.releaseInvoke(f, body, params, args, bind)
+		return r
+	}
+	rec := m.holdInflight(f, body, params, args, bind)
 	r := m.call(body, params)
-	if body == f || m.r.Entity(f.Ent).Kind != sem.EntClosure {
-		m.releaseLentEnv(f, params, len(args), bind)
-	}
-	// Reverse, as a direct call's arguments drop and rt_core.c's invoke releases them.
-	for i := len(args) - 1; i >= 0; i-- {
-		m.release(args[i])
-	}
+	m.raiseJoined(m.settleInflight(rec))
 	return r
-}
-
-// releaseLentEnv drops the references invoke took for captured parameters the
-// callee only borrows, so the callee has nothing to release them.
-func (m *Machine) releaseLentEnv(f *mir.Func, params []*obj, nargs int, bind bool) {
-	kind := m.r.Entity(f.Ent).Kind
-	if len(params) == nargs || kind != sem.EntFn && kind != sem.EntClosure {
-		return
-	}
-	first, end := 0, len(params)-nargs
-	if bind {
-		first, end = nargs, len(params)
-	}
-	for i := first; i < end; i++ {
-		if kind == sem.EntClosure && m.p.CaptureLent(f, i) || kind == sem.EntFn && m.p.ParamLent(f.Ent, i) {
-			m.release(params[i])
-		}
-	}
 }

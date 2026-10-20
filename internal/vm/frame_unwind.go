@@ -20,11 +20,11 @@ func (m *Machine) dropOwnedLocals(f *mir.Func, locals []*obj) {
 	}
 }
 
-// IsCopy memoizes into the checker's shared table, so this locks derived.
+// A fn value is Copy yet its environment can own a resource, so Copy alone is not enough; CannotOwn can intern types, so this locks derived.
 func (m *Machine) ownsNothing(t sem.TypeID) bool {
 	m.sh.derived.Lock()
 	defer m.sh.derived.Unlock()
-	return m.r.IsCopy(t) || m.r.Types.Kind(t) == sem.KRef
+	return m.r.CannotOwn(t) || m.r.Types.Kind(t) == sem.KRef
 }
 
 func joinPanic(first, second *Panic) *Panic {
@@ -52,6 +52,10 @@ func (m *Machine) sweepFrames(base int) {
 	for len(m.frames) > base {
 		fr := m.frames[len(m.frames)-1]
 		m.frames = m.frames[:len(m.frames)-1]
+		if fr.f == nil {
+			m.sweepHeld(fr)
+			continue
+		}
 		for _, l := range m.unwindSet(fr) {
 			v := fr.locals[l]
 			if v == nil || m.ownsNothing(fr.f.Locals[l].Type) {

@@ -2213,6 +2213,27 @@
       }
     },
     {
+      "id": "run/async_task_drop_panic_callback_args",
+      "kind": "run",
+      "path": "testdata/run/async_task_drop_panic_callback_args.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: drop 4\npanic: drop 2"
+      }
+    },
+    {
       "id": "run/async_task_drop_panic_elements",
       "kind": "run",
       "path": "testdata/run/async_task_drop_panic_elements.txtar",
@@ -2318,6 +2339,48 @@
       }
     },
     {
+      "id": "run/async_task_panic_callback_capture",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_callback_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
+      }
+    },
+    {
+      "id": "run/async_task_panic_callback_lent",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_callback_lent.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
+      }
+    },
+    {
       "id": "run/async_task_panic_drop_panic",
       "kind": "run",
       "path": "testdata/run/async_task_panic_drop_panic.txtar",
@@ -2339,6 +2402,27 @@
       }
     },
     {
+      "id": "run/async_task_panic_fold_owned_items",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_fold_owned_items.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
+      }
+    },
+    {
       "id": "run/async_task_panic_handle_with",
       "kind": "run",
       "path": "testdata/run/async_task_panic_handle_with.txtar",
@@ -2357,6 +2441,27 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: inside"
+      }
+    },
+    {
+      "id": "run/async_task_panic_lent_receiver",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_lent_receiver.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
       }
     },
     {
@@ -2546,6 +2651,27 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: explode 1"
+      }
+    },
+    {
+      "id": "run/async_task_panic_temps_callback",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_temps_callback.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom"
       }
     },
     {

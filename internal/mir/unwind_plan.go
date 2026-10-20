@@ -38,7 +38,7 @@ func (p *Program) UnwindPlanOf(f *Func) *UnwindPlan {
 	if p.unwind.plans == nil {
 		p.unwind.plans = map[*Func]*UnwindPlan{}
 	}
-	plan := planUnwind(f, p.R, false)
+	plan := planUnwind(f, p.R, false, p.lentParamLocals(f))
 	p.unwind.plans[f] = plan
 	return plan
 }
@@ -60,7 +60,7 @@ func (b bitset) set(l LocalID)      { b[l/64] |= 1 << (l % 64) }
 func (b bitset) clear(l LocalID)    { b[l/64] &^= 1 << (l % 64) }
 
 // candidates ignores frame slots, since the plan decides which temporaries get one.
-func planUnwind(f *Func, r *sem.Result, candidates bool) *UnwindPlan {
+func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool) *UnwindPlan {
 	plan := &UnwindPlan{Sets: [][]LocalID{nil}, At: make([][]int32, len(f.Blocks))}
 	for i := range f.Blocks {
 		plan.At[i] = make([]int32, len(f.Blocks[i].Insts))
@@ -69,6 +69,9 @@ func planUnwind(f *Func, r *sem.Result, candidates bool) *UnwindPlan {
 		}
 	}
 	owned := unwindOwned(f, r, candidates)
+	for l := range lent {
+		owned[l] = false
+	}
 	words := (len(f.Locals) + 63) / 64
 	liveIn := make([]bitset, len(f.Blocks))
 	for i := range liveIn {

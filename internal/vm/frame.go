@@ -10,6 +10,8 @@ type frame struct {
 	pending []crossing
 	blk     mir.BlockID
 	pc      int
+	// A frame with no f stands for a call's references: a sweep releases them where the call sat on the stack.
+	held []*obj
 }
 
 // call runs a MIR function on arguments handed over (owned) or lent.

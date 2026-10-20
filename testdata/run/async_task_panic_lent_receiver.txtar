@@ -1,0 +1,82 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn explode() -> Int {
+    None.expect("boom")
+}
+
+type Bag = resource {
+    pub head Res
+    pub rest Array[Res]
+}
+
+fn Bag.drop(move self) -> Unit {
+    print "drop bag"
+}
+
+// `self` is lent and still used after the panicking call; only the caller releases it.
+fn Bag.scan(self) -> Int {
+    let mine = Res { id: 40 }
+    let mut total = 0
+    let mut i = 0
+    for i < 3 {
+        total = total + explode() + self.head.id
+        i = i + 1
+    }
+    total
+}
+
+fn Bag.sum(self, step: fn(Int) -> Int) -> Int {
+    let mine = Res { id: 50 }
+    step(self.head.id) + self.head.id
+}
+
+fn viaScan() -> Int {
+    let bag = Bag { head: Res { id: 1 }, rest: Array.of(Res { id: 2 }, Res { id: 3 }) }
+    bag.scan()
+}
+
+fn viaCallback() -> Int {
+    let bag = Bag { head: Res { id: 10 }, rest: Array.of(Res { id: 20 }) }
+    bag.sum((n: Int) => n + explode())
+}
+
+async fn first() -> Int {
+    viaScan()
+}
+
+async fn second() -> Int {
+    viaCallback()
+}
+
+async fn root() -> Int {
+    let a = task.spawn(first())
+    let b = task.spawn(second())
+    let x = await a
+    x + (await b)
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 40
+drop bag
+drop 3
+drop 2
+drop 1
+drop 50
+drop bag
+drop 20
+drop 10
+-- stderr --
+panic: boom
+-- exit --
+2

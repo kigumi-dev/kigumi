@@ -11,11 +11,7 @@ func (a *Analysis) warnTaskPanicFatal(t Target, reach *mir.Reachability) {
 	if wantsTaskCatch(t) {
 		return
 	}
-	spawn, ok := mir.StdOpIdOf("TASK_SPAWN")
-	if !ok {
-		return
-	}
-	site, ok := reach.OpSites[spawn]
+	site, ok := firstTaskSite(reach)
 	if !ok {
 		return
 	}
@@ -31,4 +27,15 @@ func targetLabel(t Target) string {
 		return t.Triple
 	}
 	return fmt.Sprintf("%s-%s", t.Arch, t.OS)
+}
+
+func firstTaskSite(reach *mir.Reachability) (mir.OpSite, bool) {
+	for _, name := range []string{"TASK_SPAWN", "TASK_HANDOFF"} {
+		if op, ok := mir.StdOpIdOf(name); ok {
+			if site, ok := reach.OpSites[op]; ok {
+				return site, true
+			}
+		}
+	}
+	return mir.OpSite{}, false
 }

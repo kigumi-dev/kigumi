@@ -58,3 +58,18 @@ func unwindOwned(f *Func, r *sem.Result, candidates bool) map[LocalID]bool {
 	}
 	return owned
 }
+
+// A parameter the body only borrows stays with the caller, whose own frame releases it.
+func (p *Program) lentParamLocals(f *Func) map[LocalID]bool {
+	if f.Async {
+		return nil
+	}
+	lent := map[LocalID]bool{}
+	isFn := f.Ent != 0 && p.R.Entity(f.Ent).Kind == sem.EntFn
+	for i, prm := range f.Params {
+		if isFn && p.ParamLent(f.Ent, i) || p.CaptureLent(f, i) {
+			lent[prm] = true
+		}
+	}
+	return lent
+}

@@ -135,23 +135,21 @@ func (e *emitter) adapter(f *mir.Func) string {
 	}
 	fmt.Fprintf(&sb, "define ptr %s(ptr %%env, ptr %%args) {\n", e.adapterSym(f))
 	var vals []string
+	boxedBody := e.directSig(f) == nil
 	for i := range f.Params {
 		v := fmt.Sprintf("%%a%d", i)
-		if i < ncaps {
+		switch {
+		case i < ncaps && boxedBody && e.p.CaptureLent(f, i):
+			// Borrowed in place, so a panic in the callee leaves no reference to give back.
+			e.irb(&sb).CallAs(v, rtIterAt, vptr("%env"), vi64(i), vi32(1))
+		case i < ncaps:
 			e.irb(&sb).CallAs(v, rtAt, vptr("%env"), vi64(i))
-		} else {
+		default:
 			e.irb(&sb).CallAs(v, rtAt, vptr("%args"), vi64(i-ncaps))
 		}
 		vals = append(vals, v)
 	}
 	res := e.callBoxed(&sb, f, vals)
-	if e.directSig(f) == nil {
-		for i := 0; i < ncaps && i < len(vals); i++ {
-			if e.p.CaptureLent(f, i) {
-				e.irb(&sb).Call(rtRelease, vptr(vals[i]))
-			}
-		}
-	}
 	fmt.Fprintf(&sb, "  ret ptr %s\n}\n\n", res)
 	return sb.String()
 }

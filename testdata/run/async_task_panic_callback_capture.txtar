@@ -1,0 +1,52 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn explode() -> Int {
+    None.expect("boom")
+}
+
+fn run(f: fn(Int) -> Int) -> Int {
+    let inside = Res { id: 60 }
+    f(1) + inside.id
+}
+
+// One callback captures a borrowed parameter and an owner of the frame that calls it.
+fn viaBorrow(x: &Res) -> Int {
+    let own = Res { id: 6 }
+    run((n: Int) => x.id + own.id + n + explode())
+}
+
+fn scan() -> Int {
+    let r = Res { id: 5 }
+    let spare = Res { id: 7 }
+    viaBorrow(&r)
+}
+
+async fn boom() -> Int {
+    scan()
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 60
+drop 6
+drop 7
+drop 5
+-- stderr --
+panic: boom
+-- exit --
+2

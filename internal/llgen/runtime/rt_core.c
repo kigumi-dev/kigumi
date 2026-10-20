@@ -384,7 +384,12 @@ static void unwind_frame(kg_unwind* u) {
 static void unwind_frame_slots(kg_unwind* u) {
     unwind_slots((val*)u->p, u->m, u->i);
 }
-#define IS_FRAME_REC(u) ((u)->run == unwind_frame || (u)->run == unwind_frame_slots)
+// The arguments invoke still owes a release; u->i counts the ones left, so a release that panics resumes with the rest.
+static void unwind_args(kg_unwind* u) {
+    val* args = (val*)u->p;
+    while (u->i > 0) rt_release(args[--u->i]);
+}
+#define IS_FRAME_REC(u) ((u)->run == unwind_frame || (u)->run == unwind_frame_slots || (u)->run == unwind_args)
 void rt_unwind_enter(void* rec, int64_t n) {
     kg_uframe* f = (kg_uframe*)rec;
     f->prev = g_unwind;
@@ -2153,8 +2158,15 @@ int rt_exit_code(val r) {
 // and it is immortal so none can free it. args are consumed here, as before.
 val invoke(adapter_fn fn, val env, int n, val* args) {
     struct obj arr = {.kind = K_ARRAY, .rc = -1, .u.arr = {.items = args, .len = n, .cap = n}};
+#ifdef KG_CATCH
+    UNWIND_PUSH(u, unwind_args, args, NULL, n);
+    val r = fn(env, &arr);
+    unwind_args(&u);
+    UNWIND_POP(u);
+#else
     val r = fn(env, &arr);
     for (int i = n - 1; i >= 0; i--) rt_release(args[i]);
+#endif
     return r;
 }
 // A call's argument count has no compile-time cap, and a variable-length

@@ -1,0 +1,40 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+    if self.id % 2 == 0 {
+        let _: Unit = None.expect("drop ${self.id}")
+    }
+}
+
+fn three(a: Res, b: Res, c: Res) -> Int {
+    a.id + b.id + c.id
+}
+
+// The callee consumes all three arguments; the drops that panic do not skip the ones after them.
+async fn boom() -> Int {
+    let f = three
+    f(Res { id: 1 }, Res { id: 2 }, Res { id: 4 })
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 4
+drop 2
+drop 1
+-- stderr --
+panic: drop 4
+panic: drop 2
+-- exit --
+2
