@@ -16,20 +16,22 @@ const (
 // fn nil marks a BlockingPool.run result: its value was computed eagerly,
 // and pool is the admission to release on take or drop.
 type future struct {
-	fn      *obj
-	args    []*obj
-	co      *coro
-	awaited *obj
-	at      int
-	done    bool
-	result  *obj
-	pool    *obj
+	fn          *obj
+	args        []*obj
+	co          *coro
+	awaited     *obj
+	at          int
+	done        bool
+	forceCancel bool
+	result      *obj
+	pool        *obj
 }
 
 type coro struct {
-	fr  frame
-	bid mir.BlockID
-	pc  int
+	fr        frame
+	bid       mir.BlockID
+	pc        int
+	cancelled bool
 }
 
 func (m *Machine) newFuture(args []*obj) *obj {
@@ -85,20 +87,6 @@ func (m *Machine) pollFuture(fu *future) (*obj, polled) {
 		fu.co = m.startCoro(fu)
 	}
 	return m.resume(fu)
-}
-
-// takeReady completes a BlockingPool.run Future: its result was computed
-// eagerly at run time, so the first poll only releases the pool's admission.
-func (m *Machine) takeReady(fu *future) *obj {
-	fu.done = true
-	if fu.pool != nil {
-		fu.pool.opaqueData().(*blockingPool).inFlight.Add(-1)
-		m.release(fu.pool)
-		fu.pool = nil
-	}
-	r := fu.result
-	fu.result = nil
-	return r
 }
 
 // startCoro lays out an async body's frame: the environment supplies the
@@ -157,15 +145,12 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 		}
 		for co.pc < len(blk.Insts) {
 			in := &blk.Insts[co.pc]
-			if in.Op == mir.OpAwait {
-				co.fr.blk, co.fr.pc = co.bid, co.pc
-				v, st := m.suspendPoint(fu, in)
-				if st != ready {
+			switch in.Op {
+			case mir.OpAwait, mir.OpCancelled, mir.OpCancelDone:
+				if st, stop := m.stepAsync(fu, in); stop {
 					leave()
 					return nil, st
 				}
-				co.fr.locals[in.Dst] = v
-				co.pc++
 				continue
 			}
 			m.chargeStep()

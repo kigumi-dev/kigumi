@@ -60,6 +60,13 @@ async fn lib.awaitOnce() -> Int {
     %f = copy(%t1)
     %t3 = move(%f)
     %t4 = await(%t3)
+    %t5 = cancelled
+    branch %t5 ? b1 : b2
+  b1:
+    nop
+    cancel
+    unreachable
+  b2:
     nop
     return %t4
 }
@@ -70,15 +77,30 @@ async fn lib.awaitTwice() -> Int {
     %f = copy(%t1)
     %t3 = move(%f)
     %t4 = await(%t3)
+    %t5 = cancelled
+    branch %t5 ? b1 : b2
+  b1:
+    nop
+    cancel
+    unreachable
+  b2:
     %a = copy(%t4)
-    %t6 = move(%f)
-    %t7 = await(%t6)
-    %b = copy(%t7)
-    %t9 = bin +(%a, %b)
+    %t7 = move(%f)
+    %t8 = await(%t7)
+    %t9 = cancelled
+    branch %t9 ? b3 : b4
+  b3:
+    drop(%a)
+    nop
+    cancel
+    unreachable
+  b4:
+    %b = copy(%t8)
+    %t11 = bin +(%a, %b)
     drop(%b)
     drop(%a)
     nop
-    return %t9
+    return %t11
 }
 async fn lib.awaitValueTwice() -> Int {
   b0:
@@ -88,44 +110,91 @@ async fn lib.awaitValueTwice() -> Int {
     %f = copy(%t2)
     %t4 = move(%f)
     %t5 = await(%t4)
+    %t6 = cancelled
+    branch %t6 ? b1 : b2
+  b1:
+    nop
+    drop(%g)
+    cancel
+    unreachable
+  b2:
     %a = copy(%t5)
-    %t7 = move(%f)
-    %t8 = await(%t7)
-    %b = copy(%t8)
-    %t10 = bin +(%a, %b)
+    %t8 = move(%f)
+    %t9 = await(%t8)
+    %t10 = cancelled
+    branch %t10 ? b3 : b4
+  b3:
+    drop(%a)
+    nop
+    drop(%g)
+    cancel
+    unreachable
+  b4:
+    %b = copy(%t9)
+    %t12 = bin +(%a, %b)
     drop(%b)
     drop(%a)
     nop
     drop(%g)
-    return %t10
+    return %t12
 }
 async fn lib.awaitField(%b: Box) -> Int {
   b0:
     %t1 = field 0(%b)
     %t2 = await(%t1)
+    %t3 = cancelled
+    branch %t3 ? b1 : b2
+  b1:
+    drop(%b)
+    cancel
+    unreachable
+  b2:
     %x = copy(%t2)
-    %t4 = field 0(%b)
-    %t5 = await(%t4)
-    %y = copy(%t5)
-    %t7 = bin +(%x, %y)
+    %t5 = field 0(%b)
+    %t6 = await(%t5)
+    %t7 = cancelled
+    branch %t7 ? b3 : b4
+  b3:
+    drop(%x)
+    drop(%b)
+    cancel
+    unreachable
+  b4:
+    %y = copy(%t6)
+    %t9 = bin +(%x, %y)
     drop(%y)
     drop(%x)
     drop(%b)
-    return %t7
+    return %t9
 }
 async fn lib.awaitParam(%f: Future[Int]) -> Int {
   b0:
     %t1 = move(%f)
     %t2 = await(%t1)
+    %t3 = cancelled
+    branch %t3 ? b1 : b2
+  b1:
+    nop
+    cancel
+    unreachable
+  b2:
     %a = copy(%t2)
-    %t4 = move(%f)
-    %t5 = await(%t4)
-    %b = copy(%t5)
-    %t7 = bin +(%a, %b)
+    %t5 = move(%f)
+    %t6 = await(%t5)
+    %t7 = cancelled
+    branch %t7 ? b3 : b4
+  b3:
+    drop(%a)
+    nop
+    cancel
+    unreachable
+  b4:
+    %b = copy(%t6)
+    %t9 = bin +(%a, %b)
     drop(%b)
     drop(%a)
     nop
-    return %t7
+    return %t9
 }
 async fn lib.awaitLoop() -> Int {
   b0:
@@ -147,27 +216,38 @@ async fn lib.awaitLoop() -> Int {
     %i = copy(%t10)
     %t12 = move(%f)
     %t13 = await(%t12)
-    %t14 = bin +(%total, %t13)
-    drop(%total)
-    %total = copy(%t14)
-    %t15 = unit
-    drop(%i)
-    jump b3
+    %t14 = cancelled
+    branch %t14 ? b5 : b6
   b3:
-    %t16 = const 1: Int
-    %t17 = bin +(%t7, %t16)
+    %t17 = const 1: Int
+    %t18 = bin +(%t7, %t17)
     drop(%t7)
-    %t7 = copy(%t17)
+    %t7 = copy(%t18)
     jump b1
   b4:
     drop(%t8)
     drop(%t7)
-    %t18 = unit
-    drop(%t18)
-    %t19 = copy(%total)
+    %t19 = unit
+    drop(%t19)
+    %t20 = copy(%total)
     drop(%total)
     drop(%f)
-    return %t19
+    return %t20
+  b5:
+    drop(%i)
+    drop(%t8)
+    drop(%t7)
+    drop(%total)
+    nop
+    cancel
+    unreachable
+  b6:
+    %t15 = bin +(%total, %t13)
+    drop(%total)
+    %total = copy(%t15)
+    %t16 = unit
+    drop(%i)
+    jump b3
 }
 error[use-after-move]: `f` was moved; it cannot be used again
   --> lib/own_await.kg:13:19

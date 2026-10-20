@@ -1,0 +1,99 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn stall() -> Int {
+    print "stall runs"
+    0
+}
+
+async fn park() -> Int {
+    let t = task.spawn(stall())
+    await t
+}
+
+async fn kid() -> Int {
+    let r = Res { id: 9 }
+    defer print "kid defer"
+    await park()
+}
+
+async fn worker() -> Int {
+    let a = Res { id: 1 }
+    defer print "defer A"
+    let k = task.spawn(kid())
+    let b = Res { id: 2 }
+    {
+        defer print "block defer (already exited)"
+        print "block ran"
+    }
+    defer print "defer B"
+    print "worker parked"
+    let v = await park()
+    print "resumed ${v}"
+    v
+}
+
+async fn tick() -> Int {
+    0
+}
+
+async fn explicitCancel() -> Int {
+    let w = task.spawn(worker())
+    let t = task.spawn(tick())
+    let _ = await t
+    print "requesting cancel"
+    w.cancel()
+    print "root done"
+    7
+}
+
+async fn parentExit() -> Int {
+    let w = task.spawn(worker())
+    let t = task.spawn(tick())
+    let _ = await t
+    print "root returning"
+    7
+}
+
+let ex = task.currentThreadExecutor()
+print "result ${ex.runToCompletion(explicitCancel())}"
+print "result ${ex.runToCompletion(parentExit())}"
+let lazy = worker()
+print "lazy built"
+-- stdout --
+block ran
+block defer (already exited)
+worker parked
+stall runs
+requesting cancel
+root done
+stall runs
+kid defer
+drop 9
+defer B
+defer A
+drop 2
+drop 1
+result 7
+block ran
+block defer (already exited)
+worker parked
+stall runs
+root returning
+stall runs
+kid defer
+drop 9
+defer B
+defer A
+drop 2
+drop 1
+result 7
+lazy built

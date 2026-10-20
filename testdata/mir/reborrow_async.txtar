@@ -38,6 +38,13 @@ async fn lib.scenario(%out: &mut Array[u8]) -> Unit {
     drop(%t9)
     %t11 = move(%f)
     %t12 = await(%t11)
+    %t13 = cancelled
+    branch %t13 ? b1 : b2
+  b1:
+    nop
+    cancel
+    unreachable
+  b2:
     nop
     return %t12
 }

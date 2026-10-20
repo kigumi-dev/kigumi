@@ -138,7 +138,7 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 			return ""
 		}
 		return "primitive " + key
-	case mir.OpFutureNew, mir.OpAwait, mir.OpFutureDone:
+	case mir.OpFutureNew, mir.OpAwait, mir.OpFutureDone, mir.OpCancelled, mir.OpCancelDone:
 		return ""
 	case mir.OpBuiltin:
 		if spec, ok := mir.BuiltinFor(in.Str); ok && spec.VM {

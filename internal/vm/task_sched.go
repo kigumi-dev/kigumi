@@ -33,6 +33,7 @@ type task struct {
 	notified bool
 	queued   bool
 	draining bool
+	waitKids bool
 	fault    *Panic
 	// cancelReq is read at every suspension point by the lane running the
 	// task and set by whichever lane asks, so it stays outside sched.

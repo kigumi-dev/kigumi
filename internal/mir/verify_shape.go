@@ -64,6 +64,8 @@ var shapes = map[Opcode]shape{
 	OpFutureNew:   {1, -1, true, false, false, false},
 	OpAwait:       {1, 1, true, false, false, false},
 	OpFutureDone:  {1, 1, false, false, false, false},
+	OpCancelled:   {0, 0, true, false, false, false},
+	OpCancelDone:  {0, 0, false, false, false, false},
 	OpBoxDirect:   {1, 1, true, false, true, false},
 	OpUnboxDirect: {1, 1, true, false, true, false},
 }

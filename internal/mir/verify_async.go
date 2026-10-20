@@ -20,6 +20,14 @@ func verifyAsync(f *Func) *Error {
 				if !f.Async {
 					return fail("async", bid, i, "completion of a function that is not async")
 				}
+			case OpCancelled:
+				if !awaitBefore(blk.Insts[:i]) || blk.Term.Op != TermBranch {
+					return fail("async", bid, i, "the cancelled flag must follow an await in a block ending in a branch")
+				}
+			case OpCancelDone:
+				if !f.Async {
+					return fail("async", bid, i, "cancellation of a function that is not async")
+				}
 			}
 		}
 	}
@@ -66,4 +74,13 @@ func verifyFrame(f *Func) *Error {
 		}
 	}
 	return check("panic cleanup", f.PanicDrop)
+}
+
+func awaitBefore(insts []Inst) bool {
+	for _, in := range insts {
+		if in.Op == OpAwait {
+			return true
+		}
+	}
+	return false
 }

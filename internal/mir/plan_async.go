@@ -24,22 +24,6 @@ func (p *Program) isAsyncBody(ent sem.EntityID) bool {
 	return e.Kind == sem.EntFn && p.R.Fn(ent).Declared&sem.EffAsync != 0
 }
 
-// The Future holds a reference to every argument, so the body returns the borrowed ones when it finishes.
-func (p *Program) completeReturns(f *Func) {
-	for bid := range f.Blocks {
-		blk := &f.Blocks[bid]
-		if blk.Term.Op != TermReturn {
-			continue
-		}
-		for i, prm := range f.Params {
-			if p.CaptureLent(f, i) {
-				blk.Insts = append(blk.Insts, Inst{Op: OpRelease, Args: []LocalID{prm}})
-			}
-		}
-		blk.Insts = append(blk.Insts, Inst{Op: OpFutureDone, Args: []LocalID{blk.Term.Args[0]}})
-	}
-}
-
 func planFrame(f *Func, r *sem.Result) {
 	live := liveAtSuspends(f)
 	owned := owningLocals(f, r)

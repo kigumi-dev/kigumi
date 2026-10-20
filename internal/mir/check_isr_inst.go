@@ -43,7 +43,7 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 		}
 	case OpShell, OpInterp:
 		return "allocates a new value"
-	case OpAwait, OpFutureNew, OpFutureDone:
+	case OpAwait, OpFutureNew, OpFutureDone, OpCancelled, OpCancelDone:
 		return "suspends or builds a future"
 	case OpCallC:
 		return "calls through a C function pointer no contract covers"

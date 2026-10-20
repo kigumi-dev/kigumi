@@ -51,6 +51,10 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 			e.unwindSite(&body, e.at.blk, pc)
 			e.inst(&body, f, in)
 		}
+		if endsCancelled(blk) {
+			e.cancelExit(&body)
+			continue
+		}
 		e.term(&body, blk.Term)
 	}
 	e.hoisting = false
@@ -96,10 +100,27 @@ func (e *emitter) await(sb *strings.Builder, in mir.Inst, operand string) {
 	c := e.newTmp()
 	fmt.Fprintf(sb, "  %s = icmp eq ptr %s, @kg_cancel_marker\n", c, r)
 	fmt.Fprintf(sb, "  br i1 %s, label %%can%d, label %%cont%d\n", c, k, k)
-	fmt.Fprintf(sb, "can%d:\n", k)
-	e.unwindLeave(sb)
-	fmt.Fprintf(sb, "  ret ptr @kg_cancel_marker\ncont%d:\n", k)
+	fmt.Fprintf(sb, "can%d:\n  store ptr null, ptr %%l%d\n  br label %%join%d\n", k, in.Dst, k)
+	fmt.Fprintf(sb, "cont%d:\n", k)
 	e.store(sb, in.Dst, r)
+	fmt.Fprintf(sb, "  br label %%join%d\njoin%d:\n", k, k)
+	e.cancelFlag = fmt.Sprintf("%%cf%d", k)
+	fmt.Fprintf(sb, "  %s = phi i1 [ true, %%can%d ], [ false, %%cont%d ]\n", e.cancelFlag, k, k)
+}
+
+func (e *emitter) asyncOp(sb *strings.Builder, in mir.Inst, args []string) {
+	switch in.Op {
+	case mir.OpAwait:
+		e.await(sb, in, args[0])
+	case mir.OpCancelled:
+		e.store(sb, in.Dst, e.boolBox(sb, e.cancelFlag))
+	}
+}
+
+func (e *emitter) cancelExit(sb *strings.Builder) {
+	e.irb(sb).Call(rtFutureComplete, vptr("%fut"), vptr("null"))
+	e.unwindLeave(sb)
+	sb.WriteString("  ret ptr @kg_cancel_marker\n")
 }
 
 // framePanicked must match KG_FRAME_PANICKED in rt_core.c.
@@ -157,4 +178,9 @@ func (e *emitter) asyncDesc(f *mir.Func) string {
 	}
 	return fmt.Sprintf("%s = internal global { ptr, ptr, i32, i32 } { ptr %s, ptr %s, i32 %d, i32 %d }, align 8\n",
 		e.asyncDescSym(f), e.sym(f), e.frameDropSym(f), f.Frame, mobile)
+}
+
+func endsCancelled(blk mir.Block) bool {
+	n := len(blk.Insts)
+	return n > 0 && blk.Insts[n-1].Op == mir.OpCancelDone
 }

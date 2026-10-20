@@ -2247,6 +2247,7 @@ typedef struct kgframe {
     val awaited;
     int32_t state;
     int32_t nargs;
+    int32_t force;
     val* args;
     _Alignas(8) val slots[];
 } kgframe;
@@ -2265,7 +2266,7 @@ struct kgtask {
     kgtask** kids;
     char* fault;
     int nkids, capkids;
-    int state, ending, notified, queued, draining;
+    int state, ending, notified, queued, draining, wait_kids;
     // refs and cancel are read outside the scheduler lock: a Task handle can
     // be dropped on any lane, and a poll checks cancellation as it runs.
     KG_AINT refs, cancel;
@@ -2375,6 +2376,19 @@ val rt_future_new(val callee, int n, val* args) {
         for (int i = 0; i < ne; i++) f->args[m++] = rt_retain(env->u.arr.items[i]);
     return opaque("Future", f);
 }
+#ifdef KG_CATCH
+#define KG_FAULTING g_faulting
+#else
+#define KG_FAULTING 0
+#endif
+// Dropping a parked Future cancels it first, so its cleanups run once.
+static int frame_cancel_run(val fut) {
+    kgframe* f = frame_of(fut);
+    if (f->state <= 0 || f->state >= KG_FRAME_PANICKED || !g_cur_task || KG_FAULTING) return 0;
+    f->force = 1;
+    if (f->desc->poll(fut) != KG_CANCELLED) rt_fatal("a cancelled Future did not finish as cancelled");
+    return 1;
+}
 #if defined(KG_CATCH) || defined(KIGUMI_CAP_TASK_EXECUTOR)
 static char* dup_msg(const char* m) {
     size_t n = strlen(m) + 1;
@@ -2446,9 +2460,24 @@ static void frame_slots_drop(val fut) {
 static void frame_release(val fut) {
     rt_release(fut);
 }
+static void frame_release_awaited(val fut) {
+    kgframe* f = frame_of(fut);
+    val a = f->awaited;
+    f->awaited = NULL;
+    if (!g_task_catch || !a) {
+        rt_release(a);
+        return;
+    }
+    uint64_t seen = g_fault_count;
+    g_drop_depth++;
+    contained(frame_release, a);
+    g_drop_depth--;
+    if (g_fault_count != seen && !g_drop_depth && !g_faulting) task_raise();
+}
 // Inside a task a drop that panics joins the fault and the rest of the frame still drops; the outermost frame then raises it.
 static void frame_abandon(val fut) {
     kgframe* f = frame_of(fut);
+    if (frame_cancel_run(fut)) return;
     if (!g_task_catch) {
         val a = f->awaited;
         f->awaited = NULL;
@@ -2470,8 +2499,15 @@ static void frame_abandon(val fut) {
     if (g_fault_count != seen && !g_drop_depth && !g_faulting) task_raise();
 }
 #else
+static void frame_release_awaited(val fut) {
+    kgframe* f = frame_of(fut);
+    val a = f->awaited;
+    f->awaited = NULL;
+    rt_release(a);
+}
 static void frame_abandon(val fut) {
     kgframe* f = frame_of(fut);
+    if (frame_cancel_run(fut)) return;
     val a = f->awaited;
     f->awaited = NULL;
     rt_release(a);
@@ -2485,18 +2521,23 @@ static val poll_future(val fut) {
     if (f->state < 0) rt_panic("a Future that already completed cannot be polled again");
     return f->desc->poll(fut);
 }
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
+static int task_close_kids(kgtask* t);
+#endif
+// The children close before this body's cleanups run.
+static val future_cancel(val fut) {
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
+    if (!frame_of(fut)->force && g_cur_task && task_close_kids(g_cur_task)) return NULL;
+#endif
+    frame_release_awaited(fut);
+    return KG_CANCELLED;
+}
 val rt_future_resume(val fut) {
     kgframe* f = frame_of(fut);
-    if (g_cur_task && KG_ALOAD(g_cur_task->cancel)) {
-        frame_abandon(fut);
-        return KG_CANCELLED;
-    }
+    if (f->force || (g_cur_task && KG_ALOAD(g_cur_task->cancel))) return future_cancel(fut);
     val r = poll_value(f->awaited);
     if (!r) return NULL;
-    if (r == KG_CANCELLED) {
-        frame_abandon(fut);
-        return KG_CANCELLED;
-    }
+    if (r == KG_CANCELLED) return future_cancel(fut);
     val a = f->awaited;
     f->awaited = NULL;
     rt_release(a);

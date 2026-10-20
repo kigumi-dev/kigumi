@@ -1,0 +1,128 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn bump(n: &mut Int, by: Int) -> Int {
+    n = n + by
+    by
+}
+
+fn pick(a: Res, b: Int) -> Int {
+    a.id + b
+}
+
+async fn stall() -> Int {
+    0
+}
+
+async fn park() -> Int {
+    let t = task.spawn(stall())
+    await t
+}
+
+async fn inMatch() -> Int {
+    defer print "match defer"
+    let r = Res { id: 1 }
+    match await park() {
+        0 -> 1
+        _ -> 2
+    }
+}
+
+async fn inForHead() -> Int {
+    defer print "for-head defer"
+    let mut total = 0
+    for x in 1..4 {
+        defer print "elem defer ${x}"
+        total += x + await park()
+    }
+    total
+}
+
+async fn inInterp() -> Int {
+    defer print "interp defer"
+    let r = Res { id: 3 }
+    let s = "value ${await park()} and ${r.id}"
+    print s
+    0
+}
+
+async fn inAnd() -> Int {
+    defer print "and defer"
+    let r = Res { id: 4 }
+    if r.id > 0 && await park() == 0 {
+        1
+    } else {
+        2
+    }
+}
+
+async fn inBreak() -> Int {
+    defer print "outer break defer"
+    let r = Res { id: 5 }
+    let mut n = 0
+    for _ in 0..5 {
+        defer print "loop defer ${n}"
+        n += 1
+        if n > 1 { break }
+        let _ = await park()
+    }
+    n
+}
+
+async fn inArgs() -> Int {
+    defer print "args defer"
+    pick(Res { id: 6 }, await park())
+}
+
+async fn cancelling[T](f: Future[T], ticks: Int) -> Int {
+    let w = task.spawn(f)
+    for i in 0..ticks {
+        let t = task.spawn(stall())
+        let _ = await t
+    }
+    w.cancel()
+    0
+}
+
+let ex = task.currentThreadExecutor()
+print "case: match"
+let _ = ex.runToCompletion(cancelling(inMatch(), 1))
+print "case: for head"
+let _ = ex.runToCompletion(cancelling(inForHead(), 2))
+print "case: interp"
+let _ = ex.runToCompletion(cancelling(inInterp(), 1))
+print "case: and"
+let _ = ex.runToCompletion(cancelling(inAnd(), 1))
+print "case: break"
+let _ = ex.runToCompletion(cancelling(inBreak(), 1))
+print "case: args"
+let _ = ex.runToCompletion(cancelling(inArgs(), 1))
+-- stdout --
+case: match
+match defer
+drop 1
+case: for head
+elem defer 1
+elem defer 2
+for-head defer
+case: interp
+interp defer
+drop 3
+case: and
+and defer
+drop 4
+case: break
+loop defer 1
+outer break defer
+drop 5
+case: args
+drop 6
+args defer

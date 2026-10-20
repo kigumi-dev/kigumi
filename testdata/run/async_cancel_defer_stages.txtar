@@ -1,0 +1,157 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Res.finish(move self) -> Unit {
+    print "finish ${self.id}"
+}
+
+fn keep(a: Res, b: Int) -> Int {
+    print "keep ${a.id} ${b}"
+    b
+}
+
+async fn stall() -> Int {
+    0
+}
+
+async fn park() -> Int {
+    let t = task.spawn(stall())
+    await t
+}
+
+async fn inner() -> Int {
+    defer print "inner defer"
+    let r = Res { id: 30 }
+    await park()
+}
+
+async fn outer() -> Int {
+    defer print "outer defer"
+    let r = Res { id: 31 }
+    await inner()
+}
+
+async fn stages() -> Int {
+    defer print "stage defer 0"
+    let first = await park()
+    defer print "stage defer 1"
+    let second = await park()
+    defer print "stage defer 2"
+    first + second
+}
+
+async fn inflight() -> Int {
+    let r = Res { id: 40 }
+    keep(Res { id: 41 }, await park())
+}
+
+async fn latest() -> Int {
+    let mut n = 1
+    defer print "latest n=${n}"
+    n = 2
+    await park()
+}
+
+async fn consume() -> Int {
+    let r = Res { id: 50 }
+    defer r.finish()
+    let s = Res { id: 51 }
+    await park()
+}
+
+async fn looped() -> Int {
+    let mut total = 0
+    for i in 0..3 {
+        defer print "loop defer ${i}"
+        let r = Res { id: 60 + i }
+        total += await park()
+    }
+    total
+}
+
+async fn failing() -> Int! {
+    defer print "failing defer"
+    defer(fail) print "failing defer(fail)"
+    await park()
+}
+
+async fn cancelling[T](f: Future[T], ticks: Int) -> Int {
+    let w = task.spawn(f)
+    for i in 0..ticks {
+        let t = task.spawn(stall())
+        let _ = await t
+    }
+    print "requesting cancel"
+    w.cancel()
+    print "cancel returned"
+    0
+}
+
+let ex = task.currentThreadExecutor()
+print "case: nested"
+ex.runToCompletion(cancelling(outer(), 1))
+print "case: stages early"
+ex.runToCompletion(cancelling(stages(), 1))
+print "case: stages late"
+ex.runToCompletion(cancelling(stages(), 2))
+print "case: inflight"
+ex.runToCompletion(cancelling(inflight(), 1))
+print "case: latest"
+ex.runToCompletion(cancelling(latest(), 1))
+print "case: consume"
+ex.runToCompletion(cancelling(consume(), 1))
+print "case: looped"
+ex.runToCompletion(cancelling(looped(), 2))
+print "case: failing"
+ex.runToCompletion(cancelling(failing(), 1))
+-- stdout --
+case: nested
+requesting cancel
+cancel returned
+inner defer
+drop 30
+outer defer
+drop 31
+case: stages early
+requesting cancel
+cancel returned
+stage defer 0
+case: stages late
+requesting cancel
+cancel returned
+stage defer 1
+stage defer 0
+case: inflight
+requesting cancel
+cancel returned
+drop 41
+drop 40
+case: latest
+requesting cancel
+cancel returned
+latest n=2
+case: consume
+requesting cancel
+cancel returned
+finish 50
+drop 50
+drop 51
+case: looped
+loop defer 0
+drop 60
+requesting cancel
+cancel returned
+loop defer 1
+drop 61
+case: failing
+requesting cancel
+cancel returned
+failing defer

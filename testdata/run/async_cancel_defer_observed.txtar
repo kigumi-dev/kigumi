@@ -1,0 +1,60 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn stall() -> Int {
+    0
+}
+
+async fn park() -> Int {
+    let t = task.spawn(stall())
+    await t
+}
+
+async fn worker() -> Int {
+    let r = Res { id: 1 }
+    defer print "worker defer"
+    print "worker parked"
+    await park()
+}
+
+async fn owner() -> Int {
+    let r = Res { id: 2 }
+    defer print "owner defer"
+    let w = task.spawn(worker())
+    let t = task.spawn(stall())
+    let _ = await t
+    w.cancel()
+    print "owner awaits the cancelled worker"
+    let v = await w
+    print "owner resumed ${v}"
+    v
+}
+
+async fn root() -> Int {
+    defer print "root defer"
+    let o = task.spawn(owner())
+    await o
+}
+
+let ex = task.currentThreadExecutor()
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+worker parked
+owner awaits the cancelled worker
+worker defer
+drop 1
+owner defer
+drop 2
+root defer
+-- stderr --
+panic: the root task was cancelled
+-- exit --
+2

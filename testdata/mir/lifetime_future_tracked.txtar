@@ -31,6 +31,14 @@ async fn lib.run() -> u8 {
     %r = copy(%t10)
     %t12 = move(%r)
     %t13 = await(%t12)
+    %t14 = cancelled
+    branch %t14 ? b1 : b2
+  b1:
+    nop
+    drop(%buf)
+    cancel
+    unreachable
+  b2:
     nop
     drop(%buf)
     return %t13

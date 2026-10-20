@@ -69,8 +69,8 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpFutureNew:
 		arr := e.argArray(sb, args[1:])
 		res = e.irb(sb).Call(rtFutureNew, vptr(args[0]), vi32(len(args)-1), vptr(arr)).Text
-	case mir.OpAwait:
-		e.await(sb, in, args[0])
+	case mir.OpAwait, mir.OpCancelled, mir.OpCancelDone:
+		e.asyncOp(sb, in, args)
 		return
 	case mir.OpFutureDone:
 		e.irb(sb).Call(rtFutureComplete, vptr("%fut"), vptr(args[0]))

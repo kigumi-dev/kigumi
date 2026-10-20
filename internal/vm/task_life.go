@@ -141,9 +141,23 @@ func (m *Machine) finishDrain(t *task) {
 		t.waiter = nil
 		m.wake(w)
 	}
-	if t.parent != nil && t.parent.draining {
+	if t.parent != nil && (t.parent.draining || t.parent.waitKids) {
 		m.wake(t.parent)
 	}
+}
+
+// closeKids cancels the kids and reports whether any still runs; the last one to end wakes t.
+func (m *Machine) closeKids(t *task) bool {
+	m.sh.sched.Lock()
+	defer m.sh.sched.Unlock()
+	t.cancelReq.Store(true)
+	open := false
+	for _, k := range t.kids {
+		m.cancelLocked(k)
+		open = open || !k.terminal()
+	}
+	t.waitKids = open
+	return open
 }
 
 func (m *Machine) endTask(t *task) {

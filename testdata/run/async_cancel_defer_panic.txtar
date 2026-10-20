@@ -1,0 +1,49 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+async fn stall() -> Int {
+    0
+}
+
+async fn park() -> Int {
+    let t = task.spawn(stall())
+    await t
+}
+
+async fn child() -> Int {
+    let r = Res { id: 1 }
+    defer print "cleanup a"
+    defer {
+        print "cleanup b"
+        let _: Unit = None.expect("in cancel defer")
+    }
+    await park()
+}
+
+async fn root() -> Int {
+    let c = task.spawn(child())
+    let t = task.spawn(stall())
+    let _ = await t
+    c.cancel()
+    print "root done"
+    1
+}
+
+let ex = task.currentThreadExecutor()
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+root done
+cleanup b
+drop 1
+-- stderr --
+panic: in cancel defer
+-- exit --
+2

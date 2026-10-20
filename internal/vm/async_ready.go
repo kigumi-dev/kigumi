@@ -1,0 +1,15 @@
+package vm
+
+// takeReady completes a BlockingPool.run Future: its result was computed
+// eagerly at run time, so the first poll only releases the pool's admission.
+func (m *Machine) takeReady(fu *future) *obj {
+	fu.done = true
+	if fu.pool != nil {
+		fu.pool.opaqueData().(*blockingPool).inFlight.Add(-1)
+		m.release(fu.pool)
+		fu.pool = nil
+	}
+	r := fu.result
+	fu.result = nil
+	return r
+}

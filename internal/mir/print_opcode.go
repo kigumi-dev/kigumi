@@ -11,6 +11,7 @@ var opNames = [...]string{
 	OpShell: "shell", OpDrop: "drop", OpAlias: "alias", OpShare: "share", OpRelease: "release", OpPanic: "panic", OpNop: "nop",
 	OpGlobalGet: "globalget", OpGlobalSet: "globalset",
 	OpFutureNew: "future", OpAwait: "await", OpFutureDone: "complete",
+	OpCancelled: "cancelled", OpCancelDone: "cancel",
 	OpBoxDirect: "boxdirect", OpUnboxDirect: "unboxdirect",
 }
 

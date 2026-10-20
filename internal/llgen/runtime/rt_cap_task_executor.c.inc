@@ -62,6 +62,20 @@ static void task_request_cancel(kgtask* t) {
     for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
     task_wake(t);
 }
+// The last kid to end wakes a task that is waiting on them.
+static int task_close_kids(kgtask* t) {
+    SCHED_LOCK();
+    KG_ASTORE(t->cancel, 1);
+    int open = 0;
+    for (int i = 0; i < t->nkids; i++) {
+        task_request_cancel(t->kids[i]);
+        if (!task_terminal(t->kids[i])) open = 1;
+    }
+    t->wait_kids = open;
+    SCHED_UNLOCK();
+    sched_flush();
+    return open;
+}
 static void task_inherit_fault(kgtask* t) {
     if (t->ending == T_FAULTED) return;
     for (int i = 0; i < t->nkids; i++)
@@ -100,7 +114,7 @@ static void task_finish_drain(kgtask* t) {
         t->waiter = NULL;
         task_wake(w);
     }
-    if (t->parent && t->parent->draining) task_wake(t->parent);
+    if (t->parent && (t->parent->draining || t->parent->wait_kids)) task_wake(t->parent);
 }
 // task_begin_finish cancels still-running kids; the terminal transition waits for all of them.
 static void task_begin_finish(kgtask* t, int end) {

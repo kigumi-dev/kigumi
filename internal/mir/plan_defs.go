@@ -6,7 +6,7 @@ func definesTemp(in Inst, isTemp func(LocalID) bool) bool {
 		return false
 	}
 	switch in.Op {
-	case OpNop, OpPanic, OpDrop, OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpFutureDone:
+	case OpNop, OpPanic, OpDrop, OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpFutureDone, OpCancelDone:
 		return false
 	}
 	return true

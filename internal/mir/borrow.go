@@ -151,7 +151,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		in := blk.Insts[i]
 		c.checkInst(in, intersect(live, before[i]))
-		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone {
+		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone {
 			delete(live, in.Dst)
 		}
 		for _, a := range uses(in) {

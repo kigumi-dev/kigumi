@@ -62,6 +62,8 @@ const (
 	OpFutureNew                     // Dst = Future running async callee Args[0] on Args[1:]
 	OpAwait                         // Dst = result of Args[0]; Index is the suspension point
 	OpFutureDone                    // Args[0] completes the enclosing async body
+	OpCancelled                     // Dst = whether the preceding await was cancelled
+	OpCancelDone                    // the async body finishes as cancelled
 	OpBoxDirect                     // Dst = a carrier holding the direct aggregate Args[0] (Type: its type)
 	OpUnboxDirect                   // Dst = the direct aggregate in carrier Args[0] (Type: its type)
 )

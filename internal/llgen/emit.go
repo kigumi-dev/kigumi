@@ -14,6 +14,7 @@ import (
 type emitter struct {
 	p            *mir.Program
 	entryAllocas []string
+	cancelFlag   string
 	hoisting     bool
 	freestanding bool
 	entrySymbol  string

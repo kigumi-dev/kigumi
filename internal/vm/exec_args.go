@@ -46,7 +46,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 	case mir.OpFutureNew:
 		res = m.newFuture(args)
 		m.chargeMemory(res)
-	case mir.OpAwait:
+	case mir.OpAwait, mir.OpCancelled, mir.OpCancelDone:
 		m.abort("`await` outside an async body")
 	case mir.OpFutureDone:
 		return

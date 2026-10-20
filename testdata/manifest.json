@@ -1728,6 +1728,99 @@
       ]
     },
     {
+      "id": "run/async_cancel_defer",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_defer.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_cancel_defer_observed",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_defer_observed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: the root task was cancelled"
+      }
+    },
+    {
+      "id": "run/async_cancel_defer_panic",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_defer_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: in cancel defer"
+      }
+    },
+    {
+      "id": "run/async_cancel_defer_positions",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_defer_positions.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_cancel_defer_stages",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_defer_stages.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_const_key",
       "kind": "run",
       "path": "testdata/run/async_const_key.txtar",
