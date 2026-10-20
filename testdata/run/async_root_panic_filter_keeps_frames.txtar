@@ -1,0 +1,37 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn nothing() -> Int? {
+    None
+}
+
+fn keep(x: &Int) -> Bool {
+    if x == 3 {
+        let local = Res { n: 900 }
+        let _z = nothing().expect("mid-filter")
+    }
+    x > 1
+}
+
+// The root task keeps its own frames, so the callback's local is not dropped.
+async fn filterBoom(a: Array[Int]) -> Int {
+    let local = Res { n: 800 }
+    let r = a.filter((x: &Int) => keep(x))
+    0
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(filterBoom(Array.of(1, 2, 3, 4, 5)))}"
+-- stdout --
+-- stderr --
+panic: mid-filter
+-- exit --
+2

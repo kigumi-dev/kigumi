@@ -1,6 +1,6 @@
 package vm
 
-// Runs after the callback's own frames are swept, matching the native unwind order.
+// Runs after the callback's own frames are swept; a root task keeps its frames, so only the produced items go.
 func (m *Machine) releaseProducedOnPanic(base int, items func() []*obj) {
 	r := recover()
 	if r == nil {
@@ -10,9 +10,12 @@ func (m *Machine) releaseProducedOnPanic(base int, items func() []*obj) {
 	if !ok || p.Sandbox || !m.containing() {
 		panic(r)
 	}
-	p = m.recoverJoined(r, nil, base)
-	for _, x := range items() {
-		p = m.releaseJoined(x, p)
+	if m.sweepsPanics() {
+		p = m.recoverJoined(r, nil, base)
+	}
+	produced := items()
+	for i := len(produced) - 1; i >= 0; i-- {
+		p = m.releaseJoined(produced[i], p)
 	}
 	panic(p)
 }

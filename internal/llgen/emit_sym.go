@@ -54,8 +54,8 @@ func (e *emitter) stdAdapter(fn sem.EntityID) string {
 	return e.stdAdapterWith(fn, e.stdAdapterSym(fn), 0, 0)
 }
 
-// stdAdapterWith reads the first bound values from the environment (a
-// method value's receiver) and the rest from the call's arguments.
+// stdAdapterWith borrows the first bound values from the environment (a
+// method value's receiver) and takes the rest from the call's arguments.
 func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value sem.TypeID) string {
 	defer func(h bool) { e.hoisting = h }(e.hoisting)
 	e.hoisting = false
@@ -69,7 +69,7 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 	for i := range n {
 		v := fmt.Sprintf("%%a%d", i)
 		if i < bound {
-			e.irb(&sb).CallAs(v, rtAt, vptr("%env"), vi64(i))
+			e.irb(&sb).CallAs(v, rtIterAt, vptr("%env"), vi64(i), vi32(1))
 		} else {
 			e.irb(&sb).CallAs(v, rtAt, vptr("%args"), vi64(i-bound))
 		}
@@ -94,7 +94,7 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 	lent := mir.LentMask(e.r, fn)
 	finish := func(res string) string {
 		for i, v := range vals {
-			if i < bound || lent>>i&1 == 0 {
+			if i >= bound && lent>>i&1 == 0 {
 				e.irb(&sb).Call(rtRelease, vptr(v))
 			}
 		}

@@ -10,7 +10,7 @@ func (m *Machine) sweepsPanics() bool {
 	return m.containing() && (m.cur == nil || m.cur.parent != nil)
 }
 
-func (m *Machine) holdInflight(f, body *mir.Func, params, args []*obj, bind bool) *frame {
+func (m *Machine) heldFrame() *frame {
 	var fr *frame
 	if n := len(m.spare); n > 0 {
 		fr = m.spare[n-1]
@@ -18,6 +18,12 @@ func (m *Machine) holdInflight(f, body *mir.Func, params, args []*obj, bind bool
 	} else {
 		fr = new(frame)
 	}
+	m.frames = append(m.frames, fr)
+	return fr
+}
+
+func (m *Machine) holdInflight(f, body *mir.Func, params, args []*obj, bind bool) *frame {
+	fr := m.heldFrame()
 	if m.ownsLentEnv(f, body) {
 		first, end := m.envSpan(f, len(params), len(args), bind)
 		for i := first; i < end; i++ {
@@ -29,7 +35,6 @@ func (m *Machine) holdInflight(f, body *mir.Func, params, args []*obj, bind bool
 	for i := len(args) - 1; i >= 0; i-- {
 		fr.held = append(fr.held, args[i])
 	}
-	m.frames = append(m.frames, fr)
 	return fr
 }
 

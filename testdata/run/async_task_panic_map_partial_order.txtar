@@ -1,0 +1,52 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn nothing() -> Int? {
+    None
+}
+
+fn mk(x: &Int) -> Res {
+    if x == 4 {
+        let _z = nothing().expect("mid-map")
+    }
+    Res { n: x + 100 }
+}
+
+fn whole() -> Int {
+    let xs = Array.of(Res { n: 1 }, Res { n: 2 }, Res { n: 3 })
+    xs.len().toInt() || 0
+}
+
+// The elements built before the fault go in the order a whole array drops them.
+async fn mapBoom(a: Array[Int]) -> Int {
+    let r = a.map((x: &Int) => mk(x))
+    0
+}
+
+async fn root() -> Int {
+    let n = whole()
+    let h = task.spawn(mapBoom(Array.of(1, 2, 3, 4, 5)))
+    n + (await h)
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop res 3
+drop res 2
+drop res 1
+drop res 103
+drop res 102
+drop res 101
+-- stderr --
+panic: mid-map
+-- exit --
+2

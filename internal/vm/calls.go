@@ -114,30 +114,7 @@ func (m *Machine) callValue(fv *obj, args []*obj) *obj {
 		return m.asyncValueCall(fv, args)
 	}
 	if fv.cstd() != "" {
-		all := append(append([]*obj{}, fv.cenv().fields...), args...)
-		// A primitive whose meaning depends on its declaration (a numeric
-		// conversion) is dispatched as if called directly.
-		site, siteFn := m.site, m.siteFn
-		m.site, m.siteFn = m.valueSite(fv, len(fv.cenv().fields))
-		var r *obj
-		if h, ok := m.hostFor(fv.cprov(), fv.cstd()); ok {
-			r = h(m, fv.ent, all)
-		} else {
-			r = m.std(fv.cstd(), all)
-		}
-		m.chargeMemory(r)
-		m.site, m.siteFn = site, siteFn
-		if !stdHash(fv) {
-			m.scalarTick(r)
-		}
-		// A bound primitive lends its receiver and borrowed parameters
-		// (rt_std_bind).
-		for i, a := range args {
-			if fv.clent()>>i&1 == 0 {
-				m.release(a)
-			}
-		}
-		return r
+		return m.callStdValue(fv, args)
 	}
 	r := m.invoke(fv.cfn(), fv.cenv(), fv.bind, args)
 	m.resultTick(r, args)

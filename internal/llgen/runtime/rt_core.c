@@ -389,7 +389,21 @@ static void unwind_args(kg_unwind* u) {
     val* args = (val*)u->p;
     while (u->i > 0) rt_release(args[--u->i]);
 }
-#define IS_FRAME_REC(u) ((u)->run == unwind_frame || (u)->run == unwind_frame_slots || (u)->run == unwind_args)
+// The arguments of a std function value, released in order; u->i is the next one, so a release that panics resumes with the rest.
+typedef struct {
+    val* args;
+    int64_t n;
+    uint64_t lent;
+} kg_stdargs;
+static void unwind_std_args(kg_unwind* u) {
+    kg_stdargs* s = (kg_stdargs*)u->p;
+    while (u->i < s->n) {
+        int64_t k = u->i++;
+        if (k >= 64 || !((s->lent >> k) & 1)) rt_release(s->args[k]);
+    }
+}
+#define IS_FRAME_REC(u) \
+    ((u)->run == unwind_frame || (u)->run == unwind_frame_slots || (u)->run == unwind_args || (u)->run == unwind_std_args)
 void rt_unwind_enter(void* rec, int64_t n) {
     kg_uframe* f = (kg_uframe*)rec;
     f->prev = g_unwind;
@@ -2190,7 +2204,12 @@ val rt_callv(val f, int n, val* args) {
         int m = 0;
         for (int64_t i = 0; i < envlen; i++) all[m++] = f->u.clo.env->u.arr.items[i];
         for (int i = 0; i < n; i++) all[m++] = args[i];
+#ifdef KG_CATCH
+        kg_stdargs held = {args, n, (uint32_t)f->u.clo.lent};
+        UNWIND_PUSH(u, unwind_std_args, &held, NULL, 0);
+#endif
         val r = rt_std(f->u.clo.key, m, all);
+        UNWIND_POP(u);
         for (int i = 0; i < n; i++)
             if (!((f->u.clo.lent >> i) & 1)) rt_release(args[i]);
         if (all != stackbuf) free(all);

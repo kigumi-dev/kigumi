@@ -42,6 +42,7 @@ func TestUnwoundInFlightCallsDropEachOwnerOnce(t *testing.T) {
 		"async_task_panic_temps_callback",
 		"async_task_drop_panic_callback_args",
 		"async_task_panic_sync_deep",
+		"async_task_panic_map_partial_order",
 	} {
 		t.Run(name, func(t *testing.T) {
 			fx := readFixture(t, "../../testdata/run/"+name+".txtar")
