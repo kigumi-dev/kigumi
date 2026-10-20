@@ -1,0 +1,471 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+type Outer = {
+    pub pack Pack
+    pub tag Int
+}
+
+type Shape = Boxed(Handle) | Empty
+
+fn sink(n: Int) -> Unit {}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk() -> Pack {
+    Pack { inner: mkh(1), other: mkh(2), n: 0 }
+}
+
+fn matchField() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    match b { //~ ERROR
+        Pack { inner, other: _, n: _ } -> inner.close()
+    }
+}
+
+fn matchFieldRenamed() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    match b { //~ ERROR
+        Pack { inner: taken, other: _, n: _ } -> taken.close()
+    }
+}
+
+fn ifLetField() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    if let Pack { inner, other: _, n: _ } = b { //~ ERROR
+        inner.close()
+    }
+}
+
+fn isPattern() -> Unit {
+    let s = Boxed(mkh(1))
+    defer {
+        match s {
+            Boxed(h) -> h.close()
+            Empty -> {}
+        }
+    }
+    if s is Boxed(h) { //~ ERROR
+        h.close()
+    }
+}
+
+fn letDestructure() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let Pack { inner, other: _, n: _ } = b //~ ERROR
+    inner.close()
+}
+
+fn matchWholeBinding() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    match b { //~ ERROR
+        whole -> whole.other.close()
+    }
+}
+
+fn matchWholeHandle() -> Unit {
+    let h = mkh(1)
+    defer { h.close() }
+    match h { //~ ERROR
+        taken -> taken.close()
+    }
+}
+
+fn nestedPattern() -> Unit {
+    let o = Outer { pack: mk(), tag: 0 }
+    defer { o.pack.inner.close() }
+    match o { //~ ERROR
+        Outer { pack: Pack { inner, other: _, n: _ }, tag: _ } -> inner.close()
+    }
+}
+
+fn nestedBindsParent() -> Unit {
+    let o = Outer { pack: mk(), tag: 0 }
+    defer { o.pack.inner.close() }
+    match o { //~ ERROR
+        Outer { pack, tag: _ } -> pack.other.close()
+    }
+}
+
+fn variantPayload() -> Unit {
+    let s = Boxed(mkh(1))
+    defer {
+        match s {
+            Boxed(h) -> h.close()
+            Empty -> {}
+        }
+    }
+    match s { //~ ERROR
+        Boxed(h) -> h.close()
+        Empty -> {}
+    }
+}
+
+fn failMatchField() -> Unit! {
+    let b = mk()
+    defer(fail) { b.inner.close() }
+    match b { //~ ERROR
+        Pack { inner, other: _, n: _ } -> inner.close()
+    }
+    sink(0)
+}
+
+fn failMatchFieldAsSuccessExit() -> Unit! {
+    let b = mk()
+    defer(fail) { b.inner.close() }
+    match b {
+        Pack { inner, other: _, n: _ } -> inner.close()
+    }
+}
+
+fn cleanupDestructuresThenMoves() -> Unit {
+    let b = mk()
+    defer {
+        match b {
+            Pack { inner, other: _, n: _ } -> inner.close()
+        }
+    }
+    b.inner.close() //~ ERROR
+}
+
+fn assignerBeforeConsumer() -> Unit {
+    let mut h = mkh(1)
+    defer { h = mkh(2) } //~ ERROR
+    defer { h.close() }
+}
+
+fn failAssignerBeforeConsumer() -> Unit! {
+    let mut h = mkh(1)
+    defer(fail) { h = mkh(2) } //~ ERROR
+    defer { h.close() }
+}
+
+fn assignerOfWholeBeforeFieldConsumer() -> Unit {
+    let mut b = mk()
+    defer { b = mk() } //~ ERROR
+    defer { b.inner.close() }
+}
+
+fn siblingFieldDestructure() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    match b {
+        Pack { other, inner: _, n: _ } -> other.close()
+    }
+}
+
+fn copyFieldDestructure() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    match b {
+        Pack { n, inner: _, other: _ } -> sink(n)
+    }
+}
+
+fn borrowedScrutinee() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    match &b {
+        Pack { inner, other: _, n: _ } -> sink(inner.peek())
+    }
+}
+
+fn borrowedParam(b: &Pack) -> Unit {
+    match b {
+        Pack { inner, other: _, n: _ } -> sink(inner.peek())
+    }
+}
+
+fn wildcardArm() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    match b {
+        Pack { inner: _, other: _, n: _ } -> {}
+    }
+}
+
+fn lambdaReadsReservedField() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.inner.peek() //~ ERROR
+    sink(f())
+}
+
+fn lambdaReadsSiblingThenReturnsReserved() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => {
+        sink(b.other.peek())
+        b.inner //~ ERROR
+    }
+    _ = f
+}
+
+fn lambdaReadsSiblingField() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.other.peek()
+    sink(f())
+}
+
+fn lambdaReadsSiblingTwice() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.other.peek() + b.n
+    sink(f())
+}
+
+fn failLambdaReadsSiblingField() -> Unit! {
+    let b = mk()
+    defer(fail) { b.inner.close() }
+    let f = () => b.other.peek()
+    sink(f())
+}
+
+fn assignerWithoutConsumer() -> Unit {
+    let mut h = mkh(1)
+    defer { h = mkh(2) }
+    sink(h.peek())
+}
+
+fn assignerOfSiblingField() -> Unit {
+    let mut b = mk()
+    defer { b.other = mkh(5) }
+    defer { b.inner.close() }
+}
+
+fn assignerAfterBorrowOnlyConsumer() -> Unit {
+    let mut h = mkh(1)
+    defer { sink(h.peek()) }
+    defer { h = mkh(2) }
+}
+-- expect --
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main.kg:39:11
+   |
+39 |     match b { //~ ERROR
+   |           ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+  --> main.kg:38:5
+   |
+38 |     defer { b.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main.kg:47:11
+   |
+47 |     match b { //~ ERROR
+   |           ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+  --> main.kg:46:5
+   |
+46 |     defer { b.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main.kg:55:45
+   |
+55 |     if let Pack { inner, other: _, n: _ } = b { //~ ERROR
+   |                                             ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+  --> main.kg:54:5
+   |
+54 |     defer { b.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `s` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main.kg:68:8
+   |
+68 |     if s is Boxed(h) { //~ ERROR
+   |        ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `s` is reserved by this cleanup
+  --> main.kg:62:5
+   |
+62 |     defer {
+   |     ^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main.kg:76:42
+   |
+76 |     let Pack { inner, other: _, n: _ } = b //~ ERROR
+   |                                          ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+  --> main.kg:75:5
+   |
+75 |     defer { b.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main.kg:83:11
+   |
+83 |     match b { //~ ERROR
+   |           ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+  --> main.kg:82:5
+   |
+82 |     defer { b.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main.kg:91:11
+   |
+91 |     match h { //~ ERROR
+   |           ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> main.kg:90:5
+   |
+90 |     defer { h.close() }
+   |     ^^^^^^^^^^^^^^^^
+
+error[E2101]: `o.pack.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main.kg:99:11
+   |
+99 |     match o { //~ ERROR
+   |           ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `o.pack.inner` is reserved by this cleanup
+  --> main.kg:98:5
+   |
+98 |     defer { o.pack.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `o.pack.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:107:11
+    |
+107 |     match o { //~ ERROR
+    |           ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `o.pack.inner` is reserved by this cleanup
+   --> main.kg:106:5
+    |
+106 |     defer { o.pack.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `s` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:120:11
+    |
+120 |     match s { //~ ERROR
+    |           ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `s` is reserved by this cleanup
+   --> main.kg:114:5
+    |
+114 |     defer {
+    |     ^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:129:11
+    |
+129 |     match b { //~ ERROR
+    |           ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:128:5
+    |
+128 |     defer(fail) { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:150:5
+    |
+150 |     b.inner.close() //~ ERROR
+    |     ^^^^^^^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:145:5
+    |
+145 |     defer {
+    |     ^^^^^^^
+
+error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:155:13
+    |
+155 |     defer { h = mkh(2) } //~ ERROR
+    |             ^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `h` is reserved by this cleanup
+   --> main.kg:156:5
+    |
+156 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:161:19
+    |
+161 |     defer(fail) { h = mkh(2) } //~ ERROR
+    |                   ^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `h` is reserved by this cleanup
+   --> main.kg:162:5
+    |
+162 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2100]: `b.inner` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:167:13
+    |
+167 |     defer { b = mk() } //~ ERROR
+    |             ^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:168:5
+    |
+168 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:212:19
+    |
+212 |     let f = () => b.inner.peek() //~ ERROR
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:211:5
+    |
+211 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:221:9
+    |
+221 |         b.inner //~ ERROR
+    |         ^^^^^^^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:218:5
+    |
+218 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+

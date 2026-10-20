@@ -1,0 +1,61 @@
+package sem
+
+import "kigumi/internal/syntax"
+
+type captureUse struct {
+	node syntax.NodeID
+	ent  EntityID
+}
+
+// deferCaptureReserve queues a use of a reserved binding inside a lambda that keeps it; settleCaptureReserves judges it once the whole body is typed.
+func (c *checker) deferCaptureReserve(ctx *lambdaCtx, n syntax.NodeID, ent EntityID) {
+	if len(c.reserved[ent]) == 0 || ctx.immediate || c.r.isCopy(c.r.Entities[ent].Type) {
+		return
+	}
+	ctx.reserveUses = append(ctx.reserveUses, captureUse{node: n, ent: ent})
+}
+
+func (c *checker) settleCaptureReserves(ctx *lambdaCtx) {
+	lambda := c.r.Entities[ctx.ent].Node
+	for _, u := range ctx.reserveUses {
+		c.conflictUse(u.node, c.capturedPlace(lambda, u), false)
+	}
+}
+
+func (c *checker) capturedPlace(lambda syntax.NodeID, u captureUse) reservedPlace {
+	p := reservedPlace{ent: u.ent}
+	path := c.pathTo(lambda, u.node)
+	cur := u.node
+	for i := len(path) - 1; i >= 0; i-- {
+		par := path[i]
+		if c.t.Kind(par) == syntax.Paren {
+			cur = par
+			continue
+		}
+		if c.t.Kind(par) != syntax.MemberExpr || c.t.View(par).AsMember().Base().ID() != cur {
+			break
+		}
+		fld := c.info.Uses[par]
+		if fld == 0 || c.r.Entities[fld].Kind != EntField {
+			break
+		}
+		p.fields = append(p.fields, fld)
+		cur = par
+	}
+	return p
+}
+
+func (c *checker) pathTo(root, target syntax.NodeID) []syntax.NodeID {
+	if root == target || !c.within(target, root) {
+		return nil
+	}
+	for ch := range c.t.View(root).Children() {
+		if ch.ID() == target {
+			return []syntax.NodeID{root}
+		}
+		if sub := c.pathTo(ch.ID(), target); sub != nil {
+			return append([]syntax.NodeID{root}, sub...)
+		}
+	}
+	return nil
+}

@@ -99,9 +99,11 @@ func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[stri
 		}
 		c.setType(f, ft)
 		if fn.Sub().Valid() {
-			if c.patternInner(fn.Sub().ID(), ft, false, seen).Moves {
-				info.Moves = true
-			}
+			c.patternInField(fld, func() {
+				if c.patternInner(fn.Sub().ID(), ft, false, seen).Moves {
+					info.Moves = true
+				}
+			})
 			continue
 		}
 		if prev, dup := seen[name]; dup && prev != f {
@@ -109,6 +111,7 @@ func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[stri
 		}
 		seen[name] = f
 		c.declareLocal(f, name, c.bindingType(ft), false)
+		c.patternInField(fld, func() { c.notePatternMove(ft) })
 		if !c.patBorrow && !c.r.isCopy(ft) {
 			info.Moves = true
 		}

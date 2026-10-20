@@ -1,0 +1,142 @@
+-- src --
+import test from std/test
+
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+fn mk(base: Int) -> Pack {
+    Pack { inner: Handle { id: base }, other: Handle { id: base + 1 }, n: base }
+}
+
+fn siblingMatch() -> Unit {
+    let b = mk(10)
+    defer { b.inner.close() }
+    match b {
+        Pack { other, inner: _, n: _ } -> other.close()
+    }
+    print "after match"
+}
+
+fn siblingIfLet() -> Unit {
+    let b = mk(20)
+    defer { b.inner.close() }
+    if let Pack { other, inner: _, n } = b {
+        print "n=${n}"
+        other.close()
+    }
+    print "after if let"
+}
+
+fn borrowedMatch() -> Unit {
+    let b = mk(30)
+    defer { b.inner.close() }
+    match &b {
+        Pack { inner, other: _, n: _ } -> print "peek ${inner.peek()}"
+    }
+    print "after borrow"
+}
+
+fn failTailMatch(ok: Bool) -> Unit! {
+    let b = mk(40)
+    defer(fail) { b.inner.close() }
+    if !ok {
+        fail test.failure("early")
+    }
+    match b {
+        Pack { inner, other: _, n: _ } -> inner.close()
+    }
+}
+
+fn cleanupDestructures() -> Unit {
+    let b = mk(50)
+    defer {
+        match b {
+            Pack { inner, other: _, n: _ } -> inner.close()
+        }
+    }
+    print "other ${b.other.peek()}"
+}
+
+fn assignsSiblingInEarlierCleanup() -> Unit {
+    let mut b = mk(60)
+    defer {
+        b.other = Handle { id: 99 }
+        print "reassigned other"
+    }
+    defer { b.inner.close() }
+    print "body"
+}
+
+fn assignsWithoutConsumer() -> Unit {
+    let mut h = Handle { id: 70 }
+    defer {
+        h = Handle { id: 71 }
+        print "reassigned ${h.id}"
+    }
+    print "body ${h.peek()}"
+}
+
+fn lambdaReadsSibling() -> Unit {
+    let b = mk(80)
+    defer { b.inner.close() }
+    let f = () => b.other.peek() + b.n
+    print "f ${f()}"
+}
+
+fn report(label: String, r: Unit!) -> Unit {
+    match r {
+        Ok(_) -> print "${label}: ok"
+        Err(e) -> print "${label}: err ${e.message()}"
+    }
+}
+
+siblingMatch()
+siblingIfLet()
+borrowedMatch()
+report("fail tail, ok", failTailMatch(true))
+report("fail tail, fails", failTailMatch(false))
+cleanupDestructures()
+assignsSiblingInEarlierCleanup()
+assignsWithoutConsumer()
+lambdaReadsSibling()
+-- stdout --
+close 11
+after match
+close 10
+n=20
+close 21
+after if let
+close 20
+peek 30
+after borrow
+close 30
+close 40
+fail tail, ok: ok
+close 40
+fail tail, fails: err early
+other 51
+close 50
+body
+close 60
+reassigned other
+body 70
+reassigned 71
+f 161
+close 80

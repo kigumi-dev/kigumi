@@ -1,0 +1,75 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+fn Handle.drop(move self) -> Unit {}
+fn Handle.close(move self) -> Unit {}
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+}
+fn assignOnly() -> Unit {
+    let mut h = Handle { id: 1 }
+    defer { h = Handle { id: 2 } }
+}
+fn assignSiblingOfConsumed() -> Unit {
+    let mut b = Pack { inner: Handle { id: 1 }, other: Handle { id: 2 } }
+    defer { b.other = Handle { id: 3 } }
+    defer { b.inner.close() }
+}
+fn main() -> Unit! {
+    assignOnly()
+    assignSiblingOfConsumed()
+}
+-- expect --
+fn main.Handle.drop(%self: Handle) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn main.Handle.close(%self: Handle) -> Unit {
+  b0:
+    %t1 = unit
+    drop(%self)
+    return %t1
+}
+fn main.assignOnly() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record main.Handle(%t0)
+    %h = copy(%t1)
+    %t3 = const 2: Int
+    %t4 = record main.Handle(%t3)
+    drop(%h)
+    %h = copy(%t4)
+    %t5 = unit
+    drop(%h)
+    %t6 = unit
+    return %t6
+}
+fn main.assignSiblingOfConsumed() -> Unit {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record main.Handle(%t0)
+    %t2 = const 2: Int
+    %t3 = record main.Handle(%t2)
+    %t4 = record main.Pack(%t1, %t3)
+    %b = copy(%t4)
+    %t6 = field 0(%b)
+    %t7 = call main.Handle.close(%t6)
+    %t8 = const 3: Int
+    %t9 = record main.Handle(%t8)
+    setfield 1(%b, %t9)
+    %t10 = unit
+    drop(%b)
+    %t11 = unit
+    return %t11
+}
+fn main.main() -> Unit! {
+  b0:
+    %t0 = call main.assignOnly
+    drop(%t0)
+    %t1 = call main.assignSiblingOfConsumed
+    %t2 = variant Result.Ok(%t1)
+    return %t2
+}

@@ -22,6 +22,18 @@ type reservedPlace struct {
 	fields []EntityID
 }
 
+type cleanupLog struct {
+	consumed []reservedPlace
+	assigned []assignSite
+	earlier  []assignSite
+}
+
+type assignSite struct {
+	place reservedPlace
+	node  syntax.NodeID
+	scope ScopeID
+}
+
 func (c *checker) ownsType(t TypeID) bool {
 	t = c.vars.resolve(t)
 	return t != TyPoison && c.r.Types.Kind(t) != KRef && !c.r.isCopy(t)
@@ -106,6 +118,7 @@ func (c *checker) holdReservations(n syntax.NodeID, places []reservedPlace) {
 }
 
 func (c *checker) releaseReservations(scope ScopeID) {
+	c.cleanupLog.earlier = slices.DeleteFunc(c.cleanupLog.earlier, func(a assignSite) bool { return a.scope == scope })
 	for ent, rs := range c.reserved {
 		kept := rs[:0]
 		for _, r := range rs {

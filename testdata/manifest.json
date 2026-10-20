@@ -435,6 +435,17 @@
       ]
     },
     {
+      "id": "mir/defer_assign_cleanup",
+      "kind": "mir",
+      "path": "testdata/mir/defer_assign_cleanup.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/defer_second_binding",
       "kind": "mir",
       "path": "testdata/mir/defer_second_binding.txtar",
@@ -4396,6 +4407,23 @@
       "id": "run/defer_reserved_paths",
       "kind": "run",
       "path": "testdata/run/defer_reserved_paths.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_reserved_patterns",
+      "kind": "run",
+      "path": "testdata/run/defer_reserved_patterns.txtar",
       "mode": [
         "vm",
         "native"
@@ -12757,6 +12785,17 @@
       "id": "sem/defer_reserved_fields",
       "kind": "sem",
       "path": "testdata/sem/defer_reserved_fields.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_reserved_patterns",
+      "kind": "sem",
+      "path": "testdata/sem/defer_reserved_patterns.txtar",
       "mode": [
         "check"
       ],

@@ -16,6 +16,7 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 			return
 		}
 		if _, ok := ctx.captured[ent]; ok {
+			c.deferCaptureReserve(ctx, n, ent)
 			continue
 		}
 		e := &c.r.Entities[ent]
@@ -40,7 +41,7 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 			c.errAt(n, cEscapingCaptured, c.r.Entities[c.aliasChase(ent)].Name)
 		}
 		if mode == capMove {
-			c.reserveCapture(n, ent)
+			c.deferCaptureReserve(ctx, n, ent)
 		}
 		// Start shared rather than waiting for a write this checker
 		// won't see again once ctx is off c.lambdas.

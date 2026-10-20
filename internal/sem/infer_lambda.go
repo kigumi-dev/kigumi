@@ -11,6 +11,8 @@ type lambdaCtx struct {
 	// refCapture: an E412 (borrow captured) already explains a borrow-typed body.
 	refCapture bool
 	immediate  bool
+	// reserveUses are uses of cleanup-reserved bindings, judged when the lambda closes.
+	reserveUses []captureUse
 }
 
 // synthLambda: want is a fn type, an Fn-constrained type parameter, or 0
@@ -57,6 +59,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	c.locals = savedLocals
 	c.consumed, c.branch = savedConsumed, savedBranch
 	c.lambdas = c.lambdas[:len(c.lambdas)-1]
+	c.settleCaptureReserves(ctx)
 	c.popScope(saved)
 	if bad {
 		return TyPoison

@@ -16,7 +16,13 @@ func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bo
 		scrutinee = c.vars.resolve(n.Elem)
 	}
 	bound := len(c.locals)
+	savedMoved := c.patMoved
+	c.patMoved = patMoveLog{}
 	info := c.patternInner(p, scrutinee, mut, seen)
+	if expr != 0 {
+		c.reservePatternMoves(expr, c.patMoved.moved)
+	}
+	c.patMoved = savedMoved
 	if expr != 0 && c.patBorrowMut {
 		c.noteLentBindings(p, expr, info, c.locals[bound:])
 	}

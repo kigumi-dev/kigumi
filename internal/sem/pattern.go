@@ -29,6 +29,7 @@ func (c *checker) patternInner(p syntax.NodeID, scrutinee TypeID, mut bool, seen
 			c.errAt(p, cBindingShadowsVariant, name, c.r.entityName(tt.Node(scrutinee).Ent), name)
 		}
 		c.declareLocal(p, name, c.bindingType(scrutinee), mut)
+		c.notePatternMove(scrutinee)
 		return PatInfo{Kind: PatBinding, Type: scrutinee, Moves: !c.patBorrow && !c.r.isCopy(scrutinee)}
 	case syntax.PatLit:
 		lit := node.AsPatLit().Lit().ID()

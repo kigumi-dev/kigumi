@@ -19,16 +19,14 @@ type checker struct {
 	breaks     *loopBreaks
 	allocDepth int
 	stmtPos    syntax.NodeID
-	// wantAliasTarget/File/Node name the declared type-annotation node
-	// for a mismatch reported on wantAliasTarget; the target check
-	// keeps a stale hint from a still-open outer check() leaking into an
-	// unrelated mismatch that a nested check() reports first.
+	// wantAliasTarget/File/Node name the declared type-annotation node for a mismatch reported on
+	// wantAliasTarget; the target check keeps a stale hint from an open outer check() out of a nested mismatch.
 	wantAliasTarget syntax.NodeID
 	wantAliasFile   FileID
 	wantAliasNode   syntax.NodeID
 	cleanup         int
 	cleanupNode     syntax.NodeID
-	pendingReserve  []reservedPlace
+	cleanupLog      cleanupLog
 	reserved        map[EntityID][]reservation
 	exitCheck       exitMoveState
 	edges           *[]EffectEdge
@@ -59,6 +57,7 @@ type checker struct {
 	// patBorrowMut is patBorrow's mutability, meaningful only when patBorrow
 	// is set (a `for` head can borrow mutably, unlike match).
 	patBorrowMut bool
+	patMoved     patMoveLog
 	contracts    []Effects
 	lambdas      []*lambdaCtx
 	retLeaves    []syntax.NodeID
@@ -187,7 +186,7 @@ func (c *checker) pushScope(kind ScopeKind, node syntax.NodeID) ScopeID {
 }
 
 func (c *checker) popScope(saved ScopeID) {
-	if len(c.reserved) > 0 {
+	if len(c.reserved) > 0 || len(c.cleanupLog.earlier) > 0 {
 		c.releaseReservations(c.scope)
 	}
 	c.scope = saved
