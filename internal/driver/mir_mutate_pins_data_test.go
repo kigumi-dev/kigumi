@@ -54,10 +54,10 @@ operand "main.growGeneric" b0/18 callv | i1 l"t4"
 insert "main.tally" b7/21 drop | i0 l"t5"
 `},
 	{"async", "types", `
-operand "main.total" b0/12 bin | i0 l"t9"
+operand "main.total" b4/1 bin | i0 l"t10"
 `},
 	{"async_method", "", `
-operand "main.root" b0/36 release | i0 l"y"
+operand "main.root" b4/3 release | i0 l"y"
 `},
 	{"iface_static", "stdop", `
 prim "main.showAll" b0/1 share | i1 v"HOST_STDERR"
