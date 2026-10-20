@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"kigumi/internal/zigtool/source"
@@ -120,5 +121,16 @@ func TestBuildRejectsWrongVersion(t *testing.T) {
 	}
 	if _, ok := store.Installed(root, "0.18.0"); ok {
 		t.Fatal("a rejected build must not leave a partial install")
+	}
+}
+
+func TestBuildWithoutLookupFails(t *testing.T) {
+	root := t.TempDir()
+	_, err := source.Build(source.Request{Checkout: t.TempDir(), Want: "0.17.0"}, root, nil)
+	if err == nil || !strings.Contains(err.Error(), "no tool search path given") {
+		t.Fatalf("Build with a nil Lookup = %v, want the no tool search path error", err)
+	}
+	if _, ok := store.Installed(root, "0.17.0"); ok {
+		t.Fatal("a failed build must not leave an install")
 	}
 }

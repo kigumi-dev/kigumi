@@ -133,6 +133,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		linkArgs = append(linkArgs, linkInputsList...)
 		if opts.pinCompDir {
 			linkArgs = append(linkArgs, "-fdebug-compilation-dir=.")
+			linkArgs = append(linkArgs, prefixMapFlag(m.compiler)...)
 		}
 		linkArgs = append(linkArgs, "-lm")
 		if _, ok := m.Packages["std/dl"]; ok {

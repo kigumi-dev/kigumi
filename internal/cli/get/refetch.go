@@ -2,7 +2,6 @@ package get
 
 import (
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -20,7 +19,11 @@ func remoteTagCommit(r driver.Require) (string, error) {
 	}
 	tag := driver.TagOf(subdir, r.Version)
 	ref := "refs/tags/" + tag
-	out, err := exec.Command("git", "ls-remote", "--tags", url, ref, ref+"^{}").Output()
+	ls, err := gitCommand("ls-remote", "--tags", url, ref, ref+"^{}")
+	if err != nil {
+		return "", err
+	}
+	out, err := ls.Output()
 	if err != nil {
 		return "", errors.WrapErrf(err, "git ls-remote %s", url)
 	}

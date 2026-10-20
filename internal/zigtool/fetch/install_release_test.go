@@ -168,3 +168,22 @@ func TestInstallReleaseNoPrebuiltForDevSnapshot(t *testing.T) {
 		t.Fatal("expected ErrNoPrebuilt")
 	}
 }
+
+func TestInstallReleaseWithoutLookupFailsToExtract(t *testing.T) {
+	triple, err := fetch.HostTriple()
+	if err != nil {
+		t.Skip(err)
+	}
+	tarball := fakeTarball(t, triple, "9.9.5", "#!/bin/sh\necho 9.9.5\n")
+	indexURL, pubKey, cleanup := fakeServer(t, "9.9.5", triple, tarball, false, false)
+	defer cleanup()
+
+	root := t.TempDir()
+	_, err = fetch.InstallRelease(fetch.Options{IndexURL: indexURL, StoreRoot: root, Version: "9.9.5", PublicKey: pubKey})
+	if err == nil || !strings.Contains(err.Error(), "no tool search path given") {
+		t.Fatalf("InstallRelease with a nil Lookup = %v, want the no tool search path error", err)
+	}
+	if _, ok := store.Installed(root, "9.9.5"); ok {
+		t.Fatal("a failed extraction must not leave an install")
+	}
+}

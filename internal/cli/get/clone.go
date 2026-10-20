@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -64,7 +63,10 @@ func clone(cmd *cobra.Command, r driver.Require, dir string) (string, error) {
 }
 
 func git(cmd *cobra.Command, dir string, args ...string) (string, error) {
-	g := exec.Command("git", args...)
+	g, err := gitCommand(args...)
+	if err != nil {
+		return "", err
+	}
 	g.Dir = dir
 	g.Stderr = cmd.ErrOrStderr()
 	out, err := g.Output()
@@ -165,7 +167,11 @@ func dropNestedModules(src string) error {
 // version of the module's subdirectory (prereleases excluded).
 func latestTag(r driver.Require) (string, error) {
 	url, subdir, _ := driver.RepoOf(r)
-	out, err := exec.Command("git", "ls-remote", "--tags", "--refs", url).Output()
+	ls, err := gitCommand("ls-remote", "--tags", "--refs", url)
+	if err != nil {
+		return "", err
+	}
+	out, err := ls.Output()
 	if err != nil {
 		return "", errors.WrapErrf(err, "git ls-remote %s", url)
 	}

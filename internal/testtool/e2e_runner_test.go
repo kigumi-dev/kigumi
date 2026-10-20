@@ -52,3 +52,11 @@ func TestRunE2ESmoke(t *testing.T) {
 		}
 	}
 }
+
+func TestRunE2EWithoutLookupFails(t *testing.T) {
+	var out bytes.Buffer
+	err := RunE2E(E2EOptions{RepoRoot: t.TempDir(), Module: "examples/hello", StdRoot: "std", WorkDir: t.TempDir()}, &out)
+	if err == nil || !strings.Contains(err.Error(), "no tool search path given") {
+		t.Fatalf("RunE2E with a nil Lookup = %v, want the no tool search path error", err)
+	}
+}

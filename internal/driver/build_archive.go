@@ -37,17 +37,13 @@ func arTool(o CompilerOptions, cc []string) ([]string, error) {
 func buildArchive(o CompilerOptions, cc, args, inputs []string, dir, out string, env []string, stderr io.Writer) (bool, error) {
 	var objs []string
 	for i, in := range inputs {
-		// in may be relative; filepath.Rel errors if only one argument is absolute, and dir always is.
-		absIn, err := o.Abs(in)
-		if err != nil {
-			return false, err
-		}
-		rel, err := filepath.Rel(dir, absIn)
+		rel, err := pinnedInput(o, dir, in)
 		if err != nil {
 			return false, err
 		}
 		obj := fmt.Sprintf("obj%d.o", i)
-		cargs := append(append([]string{}, args...), "-ffreestanding", "-fno-stack-protector", "-ffunction-sections", "-fdata-sections", "-fdebug-compilation-dir=.", "-c", "-o", obj, rel)
+		cargs := append(append([]string{}, args...), "-ffreestanding", "-fno-stack-protector", "-ffunction-sections", "-fdata-sections", "-fdebug-compilation-dir=.")
+		cargs = append(append(cargs, prefixMapFlag(o)...), "-c", "-o", obj, rel)
 		cmd := exec.Command(cc[0], cargs...)
 		cmd.Dir = dir
 		cmd.Stderr = stderr

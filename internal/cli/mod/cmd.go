@@ -35,7 +35,7 @@ func initCmd(root *string) *cobra.Command {
 			if len(args) == 1 {
 				name = args[0]
 			} else {
-				abs, err := filepath.Abs(*root)
+				abs, err := shared.CompilerOptions().Abs(*root)
 				if err != nil {
 					return err
 				}
