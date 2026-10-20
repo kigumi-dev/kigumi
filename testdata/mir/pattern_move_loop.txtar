@@ -1,0 +1,140 @@
+-- lib/loop.kg --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+type Pack = {
+    pub inner Handle
+    pub other Handle
+}
+
+fn tupleInLoop(t: (Handle, Handle)) -> Unit {
+    for i in 0..2 {
+        match t {
+            (_, b) -> b.close()
+        }
+    }
+}
+
+fn recordInLoop(p: Pack) -> Unit {
+    for i in 0..2 {
+        match p {
+            Pack { other, inner: _ } -> other.close()
+        }
+    }
+}
+
+-- expect --
+fn lib.Handle.drop(%self: Handle) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.Handle.close(%self: Handle) -> Unit {
+  b0:
+    %t1 = unit
+    drop(%self)
+    return %t1
+}
+fn lib.tupleInLoop(%t: (Handle, Handle)) -> Unit {
+  b0:
+    %t1 = const 0: Int
+    %t2 = const 2: Int
+    %t3 = copy(%t1)
+    %t4 = copy(%t2)
+    jump b1
+  b1:
+    %t5 = bin <(%t3, %t4)
+    branch %t5 ? b2 : b4
+  b2:
+    %t6 = copy(%t3)
+    %i = copy(%t6)
+    %t9 = const true: Bool
+    branch %t9 ? b6 : b7
+  b3:
+    %t15 = const 1: Int
+    %t16 = bin +(%t3, %t15)
+    drop(%t3)
+    %t3 = copy(%t16)
+    jump b1
+  b4:
+    drop(%t4)
+    drop(%t3)
+    %t17 = unit
+    drop(%t)
+    return %t17
+  b5:
+    drop(%i)
+    jump b3
+  b6:
+    %t10 = field 0(%t)
+    %t11 = field 1(%t)
+    %b = copy(%t11)
+    %t13 = move(%b)
+    %t14 = call lib.Handle.close(%t13)
+    %t8 = copy(%t14)
+    nop
+    jump b5
+  b7:
+    panic "no match arm matched"
+    unreachable
+}
+fn lib.recordInLoop(%p: Pack) -> Unit {
+  b0:
+    %t1 = const 0: Int
+    %t2 = const 2: Int
+    %t3 = copy(%t1)
+    %t4 = copy(%t2)
+    jump b1
+  b1:
+    %t5 = bin <(%t3, %t4)
+    branch %t5 ? b2 : b4
+  b2:
+    %t6 = copy(%t3)
+    %i = copy(%t6)
+    %t9 = const true: Bool
+    branch %t9 ? b6 : b7
+  b3:
+    %t15 = const 1: Int
+    %t16 = bin +(%t3, %t15)
+    drop(%t3)
+    %t3 = copy(%t16)
+    jump b1
+  b4:
+    drop(%t4)
+    drop(%t3)
+    %t17 = unit
+    drop(%p)
+    return %t17
+  b5:
+    drop(%i)
+    jump b3
+  b6:
+    %t10 = field 1(%p)
+    %other = copy(%t10)
+    %t12 = field 0(%p)
+    %t13 = move(%other)
+    %t14 = call lib.Handle.close(%t13)
+    %t8 = copy(%t14)
+    nop
+    jump b5
+  b7:
+    panic "no match arm matched"
+    unreachable
+}
+error[use-after-move]: `t._1` was moved; it cannot be used again
+  --> lib/loop.kg:17:17
+   |
+17 |             (_, b) -> b.close()
+   |                 ^
+
+error[use-after-move]: `p.other` was moved; it cannot be used again
+  --> lib/loop.kg:25:20
+   |
+25 |             Pack { other, inner: _ } -> other.close()
+   |                    ^^^^^
+

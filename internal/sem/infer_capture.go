@@ -71,6 +71,7 @@ func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
 	if c.r.Types.Kind(c.r.Entities[ent].Type) == KRef {
 		return
 	}
+	c.noteLambdaWrite(ent)
 	if c.capturedHere(ent) {
 		c.edge(EffectEdge{Kind: EdgeMutateCaller, Target: ent, Node: n})
 	}

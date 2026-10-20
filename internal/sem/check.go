@@ -28,6 +28,7 @@ type checker struct {
 	cleanupNode     syntax.NodeID
 	cleanupLog      cleanupLog
 	reserved        map[EntityID][]reservation
+	held            heldMuts
 	exitCheck       exitMoveState
 	edges           *[]EffectEdge
 	// locals is the current edge scope's EntLocal list for dropsAtScopeExit.

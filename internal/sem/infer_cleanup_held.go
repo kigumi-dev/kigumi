@@ -1,0 +1,78 @@
+package sem
+
+import (
+	"slices"
+
+	"kigumi/internal/syntax"
+)
+
+type heldMuts struct {
+	holders       map[EntityID][]mutHolder
+	closureWrites map[EntityID][]EntityID
+}
+
+type mutHolder struct {
+	root   EntityID
+	fields []EntityID
+	node   syntax.NodeID
+}
+
+func (c *checker) noteMutHolder(local EntityID, init syntax.NodeID) {
+	init = c.stripParen(init)
+	var held []mutHolder
+	switch c.t.Kind(init) {
+	case syntax.BorrowExpr:
+		b := c.t.View(init).AsBorrow()
+		if b.Flags()&syntax.FlagMut == 0 {
+			return
+		}
+		if p, ok := c.buildPlace(b.Operand().ID()); ok && p.Root != 0 && !p.Deref {
+			held = append(held, mutHolder{root: p.Root, fields: p.Fields, node: init})
+		}
+	case syntax.Lambda:
+		for _, ent := range c.held.closureWrites[c.info.Defs[init]] {
+			held = append(held, mutHolder{root: ent, node: init})
+		}
+	}
+	held = slices.DeleteFunc(held, func(h mutHolder) bool { return len(c.reserved[h.root]) > 0 })
+	if len(held) == 0 {
+		return
+	}
+	if c.held.holders == nil {
+		c.held.holders = map[EntityID][]mutHolder{}
+	}
+	c.held.holders[local] = held
+}
+
+func (c *checker) noteLambdaWrite(ent EntityID) {
+	for _, ctx := range c.lambdas {
+		if _, ok := ctx.captured[ent]; ok && !slices.Contains(ctx.writes, ent) {
+			ctx.writes = append(ctx.writes, ent)
+		}
+	}
+}
+
+func (c *checker) reserveHolderUse(n syntax.NodeID, local EntityID) {
+	if len(c.reserved) == 0 {
+		return
+	}
+	for _, h := range c.held.holders[local] {
+		if i, held := c.reservedWithin(h.root, h.fields); held {
+			r := c.reserved[h.root][i]
+			if d, ok := c.r.diagAt(c.f, n, cCleanupReservedBorrowMut, r.name); ok {
+				c.r.emitDiag(c.f, d.WithNote(c.loc(r.cleanup), "`"+r.name+"` is reserved by this cleanup").WithNote(c.loc(h.node), "it was made here, before the cleanup"))
+			}
+			return
+		}
+	}
+}
+
+func (c *checker) noteClosureWrites(ctx *lambdaCtx) {
+	if len(ctx.writes) == 0 {
+		return
+	}
+	if c.held.closureWrites == nil {
+		c.held.closureWrites = map[EntityID][]EntityID{}
+	}
+	c.held.closureWrites[ctx.ent] = ctx.writes
+}

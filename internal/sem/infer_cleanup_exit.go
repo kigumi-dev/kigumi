@@ -7,6 +7,7 @@ type exitMoveState struct {
 	tail      syntax.NodeID
 	returning []exitSite
 	moves     []exitMove
+	lambdas   []heldLambda
 }
 
 type exitSite struct {
@@ -51,6 +52,7 @@ func (c *checker) within(inner, outer syntax.NodeID) bool {
 }
 
 func (c *checker) checkExitMoves() {
+	c.settleHeldLambdas()
 	for _, m := range c.exitCheck.moves {
 		if !c.staticOk(m.exit) || !c.noFailureAfter(m.exit, m.use) {
 			c.reservedError(m.use, cCleanupReservedMove, m.res)

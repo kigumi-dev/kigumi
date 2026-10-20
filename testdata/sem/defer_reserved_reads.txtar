@@ -1,0 +1,403 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn Handle.bump(mut self) -> Unit {
+    self.id = self.id + 1
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+type Slot = {
+    pub keep fn() -> Int
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk() -> Pack {
+    Pack { inner: mkh(1), other: mkh(2), n: 0 }
+}
+
+fn pair() -> (Handle, Handle) {
+    (mkh(1), mkh(2))
+}
+
+fn show(h: &Handle) -> Unit {}
+
+fn sink(n: Int) -> Unit {}
+
+fn take[T](x: T) -> Unit {}
+
+fn reset(p: &mut Handle) -> Unit {
+    p = mkh(9)
+}
+
+fn apply(f: fn() -> Int) -> Int {
+    f()
+}
+
+fn store(f: escaping fn() -> Int) -> Unit {}
+
+fn keep[T](x: T) -> Unit {}
+
+fn borrowLambdaCalled() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.inner.peek()
+    sink(f())
+    sink(f())
+}
+
+fn borrowLambdaShared() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => show(&b.inner)
+    f()
+}
+
+fn borrowLambdaWholeReserved() -> Unit {
+    let b = mk()
+    defer { take(b) }
+    let f = () => b.n
+    sink(f())
+    let g = () => show(&b.other)
+    g()
+}
+
+fn borrowLambdaDirect() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    sink((() => b.inner.peek())())
+}
+
+fn borrowLambdaImmediate() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    sink(apply(() => b.inner.peek()))
+}
+
+fn borrowLambdaSibling() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.other.peek()
+    sink(f())
+}
+
+fn lambdaEscapesToStore() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    store(() => b.inner.peek()) //~ ERROR closure captures //~ ERROR is reserved
+}
+
+fn lambdaEscapesThroughLocal() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.inner.peek() //~ ERROR
+    keep(f)
+}
+
+fn lambdaEscapesThroughAlias() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.inner.peek() //~ ERROR
+    let g = f
+    sink(g())
+}
+
+fn lambdaEscapesIntoLambda() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.inner.peek() //~ ERROR
+    let g = () => f()
+    sink(g())
+}
+
+fn lambdaInRecord() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let s = Slot { keep: () => b.inner.peek() } //~ ERROR closure captures //~ ERROR is reserved
+}
+
+fn lambdaMoves() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => take(b.inner) //~ ERROR
+    f()
+}
+
+fn lambdaReturnsReserved() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    let f = () => b.inner //~ ERROR
+    take(f())
+}
+
+fn lambdaBorrowsMutably() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    let f = () => reset(&mut b.inner) //~ ERROR
+    f()
+}
+
+fn lambdaCallsMutSelf() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    let f = () => b.inner.bump() //~ ERROR
+    f()
+}
+
+fn tupleSecondElement() -> Unit {
+    let t = pair()
+    defer { take(t._0) }
+    match t {
+        (_, y) -> y.close()
+    }
+}
+
+fn tupleReservedElement() -> Unit {
+    let t = pair()
+    defer { take(t._0) }
+    match t { //~ ERROR
+        (x, _) -> x.close()
+    }
+}
+
+fn tupleReservedBoth() -> Unit {
+    let t = pair()
+    defer { take(t) }
+    match t { //~ ERROR
+        (_, y) -> y.close()
+    }
+}
+
+fn tupleNestedSibling() -> Unit {
+    let t = ((mkh(1), mkh(2)), mkh(3))
+    defer { take(t._1) }
+    match t {
+        ((a, _), _) -> a.close()
+    }
+}
+
+fn tupleReservedLet() -> Unit {
+    let t = pair()
+    defer { take(t._1) }
+    let (_, y) = t //~ ERROR
+    y.close()
+}
+
+fn tupleNested() -> Unit {
+    let t = ((mkh(1), mkh(2)), mkh(3))
+    defer { take(t._0) }
+    match t { //~ ERROR
+        ((a, _), _) -> a.close()
+    }
+}
+
+fn indexScrutinee() -> Unit {
+    let xs = Array.of(mk())
+    defer { take(xs) }
+    match xs[0] { //~ ERROR
+        Pack { inner, other: _, n: _ } -> inner.close()
+    }
+}
+
+fn refScrutinee(p: &Pack) -> Unit {
+    match p {
+        Pack { inner, other: _, n: _ } -> show(inner)
+    }
+}
+-- expect --
+error[E413]: closure captures `b` (move-only) and cannot be a plain `fn`
+   --> main.kg:103:11
+    |
+103 |     store(() => b.inner.peek()) //~ ERROR closure captures //~ ERROR is reserved
+    |           ^^^^^^^^^^^^^^^^^^^
+    = help: use `F: Fn[...]`
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:103:17
+    |
+103 |     store(() => b.inner.peek()) //~ ERROR closure captures //~ ERROR is reserved
+    |                 ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:102:5
+    |
+102 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:109:19
+    |
+109 |     let f = () => b.inner.peek() //~ ERROR
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:108:5
+    |
+108 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:116:19
+    |
+116 |     let f = () => b.inner.peek() //~ ERROR
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:115:5
+    |
+115 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:124:19
+    |
+124 |     let f = () => b.inner.peek() //~ ERROR
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:123:5
+    |
+123 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `b` (move-only) and cannot be a plain `fn`
+   --> main.kg:132:26
+    |
+132 |     let s = Slot { keep: () => b.inner.peek() } //~ ERROR closure captures //~ ERROR is reserved
+    |                          ^^^^^^^^^^^^^^^^^^^
+    = help: use `F: Fn[...]`
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:132:32
+    |
+132 |     let s = Slot { keep: () => b.inner.peek() } //~ ERROR closure captures //~ ERROR is reserved
+    |                                ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:131:5
+    |
+131 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:138:24
+    |
+138 |     let f = () => take(b.inner) //~ ERROR
+    |                        ^^^^^^^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:137:5
+    |
+137 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:145:19
+    |
+145 |     let f = () => b.inner //~ ERROR
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:144:5
+    |
+144 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:152:25
+    |
+152 |     let f = () => reset(&mut b.inner) //~ ERROR
+    |                         ^^^^^^^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:151:5
+    |
+151 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:159:19
+    |
+159 |     let f = () => b.inner.bump() //~ ERROR
+    |                   ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:158:5
+    |
+158 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `t._0` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:174:11
+    |
+174 |     match t { //~ ERROR
+    |           ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `t._0` is reserved by this cleanup
+   --> main.kg:173:5
+    |
+173 |     defer { take(t._0) }
+    |     ^^^^^^^^^^^^^^^^^
+
+error[E2101]: `t` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:182:11
+    |
+182 |     match t { //~ ERROR
+    |           ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `t` is reserved by this cleanup
+   --> main.kg:181:5
+    |
+181 |     defer { take(t) }
+    |     ^^^^^^^^^^^^^^
+
+error[E2101]: `t._1` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:198:18
+    |
+198 |     let (_, y) = t //~ ERROR
+    |                  ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `t._1` is reserved by this cleanup
+   --> main.kg:197:5
+    |
+197 |     defer { take(t._1) }
+    |     ^^^^^^^^^^^^^^^^^
+
+error[E2101]: `t._0` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+   --> main.kg:205:11
+    |
+205 |     match t { //~ ERROR
+    |           ^
+    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `t._0` is reserved by this cleanup
+   --> main.kg:204:5
+    |
+204 |     defer { take(t._0) }
+    |     ^^^^^^^^^^^^^^^^^
+
+error[E1050]: reading `Pack` out of an index by value needs `Copy`
+   --> main.kg:213:11
+    |
+213 |     match xs[0] { //~ ERROR
+    |           ^^^^
+    = help: borrow it with `&`, clone it, or take it with `.takeAt`
+

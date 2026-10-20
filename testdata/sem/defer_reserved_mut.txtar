@@ -1,0 +1,905 @@
+-- module --
+mir: planned
+-- src --
+import {Box} from std/alloc
+import fs from std/fs
+import {BytesWriter} from std/io
+import map from std/map
+
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn Handle.bump(mut self) -> Unit {
+    self.id = self.id + 1
+}
+
+fn Handle.rebind(mut self) -> Unit {
+    reset(&mut self)
+}
+
+fn Handle.again(mut self) -> Unit {
+    self.bump()
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+fn Pack.reset(mut self) -> Unit {
+    self.inner = mkh(8)
+}
+
+fn Pack.setN(mut self, n: Int) -> Unit {
+    self.n = n
+}
+
+fn Pack.refill(mut self) -> Unit {
+    self.setN(0)
+}
+
+fn Pack.ping(mut self) -> Unit {
+    self.pong()
+}
+
+fn Pack.pong(mut self) -> Unit {
+    self.n = self.n + 1
+    self.ping()
+}
+
+fn Pack.resetViaHelper(mut self) -> Unit {
+    self.reset()
+}
+
+type Bag = {
+    pub mut inner Handle
+    pub mut items Array[Handle]
+    pub mut spare Array[Handle]
+}
+
+fn Bag.swapFirst(mut self, h: Handle) -> Unit {
+    self.items[0] = h
+}
+
+fn mkBag() -> Bag {
+    Bag { inner: mkh(1), items: Array.of(mkh(2)), spare: Array.of(mkh(3)) }
+}
+
+fn closeAll(xs: Array[Handle]) -> Unit {}
+
+fn closePacks(xs: Array[Pack]) -> Unit {}
+
+fn closeBag(b: Bag) -> Unit {}
+
+type Outer = {
+    pub mut pack Pack
+    pub mut tag Int
+}
+
+fn Outer.replace(mut self) -> Unit {
+    self.pack = mk()
+}
+
+fn Outer.retag(mut self, tag: Int) -> Unit {
+    self.tag = tag
+}
+
+interface Resettable {
+    fn rewind(mut self) -> Unit
+}
+
+type Journal = {
+    pub mut out BytesWriter
+    pub mut lines Int
+}
+
+fn Journal.append(mut self, line: String) -> Unit! {
+    _ = self.out.write(line.toBytes())?
+    self.lines = self.lines + 1
+}
+
+fn closeJournal(j: Journal) -> Unit {}
+
+fn closeMap(m: map.Map[Int, Handle]) -> Unit {}
+
+type W = {
+    pub mut h Handle
+    pub mut k Int
+}
+
+fn W.close(move self) -> Unit {
+    self.h.close()
+}
+
+fn W.reset(mut self) -> Unit {
+    self.h = mkh(9)
+}
+
+fn W.viaHelper(mut self) -> Unit {
+    swapIn(&mut self.h)
+}
+
+fn W.bumpK(mut self) -> Unit {
+    self.k = self.k + self.h.peek()
+}
+
+fn swapIn(p: &mut Handle) -> Unit {
+    p = mkh(8)
+}
+
+type Boxed = {
+    pub mut b Box[Handle]
+}
+
+fn Boxed.close(move self) -> Unit {
+    self.b.into().close()
+}
+
+fn Boxed.refill(mut self) -> Unit {
+    self.b.set(mkh(7))
+}
+
+type Nest = {
+    pub mut w W
+}
+
+fn Nest.close(move self) -> Unit {
+    self.w.close()
+}
+
+fn Nest.deep(mut self) -> Unit {
+    self.w.h = mkh(6)
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk() -> Pack {
+    Pack { inner: mkh(1), other: mkh(2), n: 0 }
+}
+
+fn mkOuter() -> Outer {
+    Outer { pack: mk(), tag: 0 }
+}
+
+fn reset(p: &mut Handle) -> Unit {
+    p = mkh(9)
+}
+
+fn resetPack(p: &mut Pack) -> Unit {
+    p.inner = mkh(9)
+}
+
+fn show(h: &Handle) -> Unit {}
+
+fn showPack(p: &Pack) -> Unit {}
+
+fn takeAll(xs: Array[Handle]) -> Unit {}
+
+fn take[T](x: T) -> Unit {}
+
+fn sink(n: Int) -> Unit {}
+
+fn incr(n: &mut Int) -> Unit {
+    n = n + 1
+}
+
+fn borrowWhole() -> Unit {
+    let mut h = mkh(1)
+    defer { h.close() }
+    reset(&mut h) //~ ERROR
+}
+
+fn borrowAncestor() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    resetPack(&mut b) //~ ERROR
+}
+
+fn borrowSameField() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    reset(&mut b.inner) //~ ERROR
+}
+
+fn borrowNamed() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    let r = &mut b //~ ERROR
+    r.inner = mkh(7)
+}
+
+fn borrowNestedAncestor() -> Unit {
+    let mut o = mkOuter()
+    defer { o.pack.inner.close() }
+    let r = &mut o.pack //~ ERROR
+    r.inner = mkh(7)
+}
+
+fn borrowFailCleanup() -> Unit! {
+    let mut h = mkh(1)
+    defer(fail) { h.close() }
+    reset(&mut h) //~ ERROR
+}
+
+fn borrowAfterWholeCleanup() -> Unit {
+    let mut b = mk()
+    defer { take(b) }
+    resetPack(&mut b) //~ ERROR
+}
+
+fn borrowFromLaterCleanup() -> Unit {
+    let mut h = mkh(1)
+    defer { h.close() }
+    defer { reset(&mut h) } //~ ERROR
+}
+
+fn borrowArray() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer { takeAll(xs) }
+    let r = &mut xs //~ ERROR
+}
+
+fn recvAssignsReserved() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    b.reset() //~ ERROR
+}
+
+fn recvOfAncestor() -> Unit {
+    let mut o = mkOuter()
+    defer { o.pack.inner.close() }
+    o.replace() //~ ERROR
+}
+
+fn recvRebindsSelf() -> Unit {
+    let mut h = mkh(1)
+    defer { h.close() }
+    h.rebind() //~ ERROR
+}
+
+fn recvCallsReplacingMethod() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    b.resetViaHelper() //~ ERROR
+}
+
+fn recvIndexWrite() -> Unit {
+    let mut b = mkBag()
+    defer { closeAll(b.items) }
+    b.swapFirst(mkh(4)) //~ ERROR
+}
+
+fn recvBoxSet() -> Unit {
+    let mut bx = Box.new(mkh(1))
+    defer { bx.into().close() }
+    bx.set(mkh(2)) //~ ERROR
+}
+
+fn recvArrayWithMut() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer { closeAll(xs) }
+    let r = xs.withMut(0, (h: &mut Handle) => { h = mkh(2) }) //~ ERROR
+}
+
+fn recvMapSet() -> Unit {
+    let mut m = map.empty[Int, Handle]()
+    defer { closeMap(m) }
+    m.set(1, mkh(2)) //~ ERROR
+}
+
+fn recvMapRemove() -> Unit {
+    let mut m = map.empty[Int, Handle]()
+    defer { closeMap(m) }
+    m.remove(&1) //~ ERROR
+}
+
+fn recvBoxWithMut() -> Unit {
+    let mut bx = Box.new(mkh(1))
+    defer { bx.into().close() }
+    let r = bx.withMut((h: &mut Handle) => { h = mkh(2) }) //~ ERROR
+}
+
+fn recvWholeFieldAssign() -> Unit {
+    let mut w = W { h: mkh(1), k: 0 }
+    defer { w.close() }
+    w.reset() //~ ERROR
+}
+
+fn recvWholeFieldBorrowMut() -> Unit {
+    let mut w = W { h: mkh(2), k: 0 }
+    defer { w.close() }
+    w.viaHelper() //~ ERROR
+}
+
+fn recvWholeBoxFieldSet() -> Unit {
+    let mut x = Boxed { b: Box.new(mkh(3)) }
+    defer { x.close() }
+    x.refill() //~ ERROR
+}
+
+fn recvWholeNestedAssign() -> Unit {
+    let mut n = Nest { w: W { h: mkh(4), k: 0 } }
+    defer { n.close() }
+    n.deep() //~ ERROR
+}
+
+fn indexAssignWhole() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer { closeAll(xs) }
+    xs[0] = mkh(2) //~ ERROR
+}
+
+fn indexAssignField() -> Unit {
+    let mut b = mkBag()
+    defer { closeAll(b.items) }
+    b.items[0] = mkh(2) //~ ERROR
+}
+
+fn indexAssignUnderAncestor() -> Unit {
+    let mut b = mkBag()
+    defer { closeBag(b) }
+    b.items[0] = mkh(2) //~ ERROR
+}
+
+fn indexAssignElementField() -> Unit {
+    let mut xs = Array.of(mk())
+    defer { closePacks(xs) }
+    xs[0].inner = mkh(2) //~ ERROR
+}
+
+fn borrowedBeforeCleanup() -> Unit {
+    let mut b = mk()
+    let r = &mut b
+    defer { b.inner.close() }
+    r.inner = mkh(7) //~ ERROR
+}
+
+fn closureBeforeCleanup() -> Unit {
+    let mut h = mkh(1)
+    let f = () => { h = mkh(2) }
+    defer { h.close() }
+    f() //~ ERROR
+}
+
+fn closureFieldBeforeCleanup() -> Unit {
+    let mut b = mk()
+    let f = () => { b.inner = mkh(2) }
+    defer { b.inner.close() }
+    f() //~ ERROR
+}
+
+fn recvWitness[T: Resettable](mut x: T) -> Unit {
+    defer { take(x) }
+    x.rewind() //~ ERROR
+}
+
+fn sharedBorrow() -> Unit {
+    let b = mk()
+    defer { b.inner.close() }
+    showPack(&b)
+    show(&b.inner)
+    sink(b.inner.peek())
+}
+
+fn siblingBorrow() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    reset(&mut b.other)
+    incr(&mut b.n)
+}
+
+fn siblingRecv() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    b.other.bump()
+    b.setN(3)
+}
+
+fn siblingOfAncestor() -> Unit {
+    let mut o = mkOuter()
+    defer { o.pack.inner.close() }
+    o.retag(2)
+    o.pack.setN(1)
+}
+
+fn recvHelperMethod() -> Unit {
+    let mut h = mkh(1)
+    defer { h.close() }
+    h.again()
+}
+
+fn recvBodyCallsMethod() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    b.refill()
+}
+
+fn recvMutualMethods() -> Unit {
+    let mut b = mk()
+    defer { b.inner.close() }
+    b.ping()
+}
+
+fn recvOnReservedChildFields() -> Unit {
+    let mut h = mkh(1)
+    defer { h.close() }
+    h.bump()
+}
+
+fn recvStdMethod() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    defer { takeAll(xs) }
+    xs.push(mkh(2))
+}
+
+fn recvStdFileWrite(files: fs.Files) -> Unit! {
+    let mut file = files.create(fs.Path.fromString("/tmp/x.txt")?)?
+    defer { _ = file.close() }
+    let n = file.write("hi".toBytes())?
+    sink(n.toInt() || 0)
+}
+
+fn recvStdBytesWriter() -> Unit! {
+    let mut w = BytesWriter.new()
+    defer { take(w) }
+    _ = w.write("hi".toBytes())?
+}
+
+fn recvUserOverStd() -> Unit! {
+    let mut j = Journal { out: BytesWriter.new(), lines: 0 }
+    defer { closeJournal(j) }
+    j.append("hi")?
+}
+
+fn recvWholeCopyWrite() -> Unit {
+    let mut w = W { h: mkh(5), k: 0 }
+    defer { w.close() }
+    w.bumpK()
+}
+
+fn indexAssignSibling() -> Unit {
+    let mut b = mkBag()
+    defer { closeAll(b.items) }
+    b.spare[0] = mkh(5)
+}
+
+fn indexAssignBeforeCleanup() -> Unit {
+    let mut xs = Array.of(mkh(1))
+    xs[0] = mkh(2)
+    defer { closeAll(xs) }
+}
+
+fn borrowHeldButUnused() -> Unit {
+    let mut b = mk()
+    let r = &mut b
+    r.inner = mkh(7)
+    defer { b.inner.close() }
+}
+
+fn closureBeforeCleanupUnused() -> Unit {
+    let mut h = mkh(1)
+    let f = () => { h = mkh(2) }
+    f()
+    defer { h.close() }
+}
+
+fn closureWritesSibling() -> Unit {
+    let mut b = mk()
+    let f = () => { b.n = 3 }
+    defer { b.inner.close() }
+    show(&b.inner)
+}
+
+fn borrowBeforeCleanup() -> Unit {
+    let mut h = mkh(1)
+    reset(&mut h)
+    defer { h.close() }
+}
+
+fn borrowOtherBinding() -> Unit {
+    let mut h = mkh(1)
+    let mut g = mkh(2)
+    defer { h.close() }
+    reset(&mut g)
+    g.bump()
+}
+-- expect --
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:198:11
+    |
+198 |     reset(&mut h) //~ ERROR
+    |           ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:197:5
+    |
+197 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:204:15
+    |
+204 |     resetPack(&mut b) //~ ERROR
+    |               ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:203:5
+    |
+203 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:210:11
+    |
+210 |     reset(&mut b.inner) //~ ERROR
+    |           ^^^^^^^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:209:5
+    |
+209 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:216:13
+    |
+216 |     let r = &mut b //~ ERROR
+    |             ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:215:5
+    |
+215 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `o.pack.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:223:13
+    |
+223 |     let r = &mut o.pack //~ ERROR
+    |             ^^^^^^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `o.pack.inner` is reserved by this cleanup
+   --> main.kg:222:5
+    |
+222 |     defer { o.pack.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:230:11
+    |
+230 |     reset(&mut h) //~ ERROR
+    |           ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:229:5
+    |
+229 |     defer(fail) { h.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:236:15
+    |
+236 |     resetPack(&mut b) //~ ERROR
+    |               ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b` is reserved by this cleanup
+   --> main.kg:235:5
+    |
+235 |     defer { take(b) }
+    |     ^^^^^^^^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:242:19
+    |
+242 |     defer { reset(&mut h) } //~ ERROR
+    |                   ^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:241:5
+    |
+241 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `xs` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:248:13
+    |
+248 |     let r = &mut xs //~ ERROR
+    |             ^^^^^^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `xs` is reserved by this cleanup
+   --> main.kg:247:5
+    |
+247 |     defer { takeAll(xs) }
+    |     ^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:254:5
+    |
+254 |     b.reset() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:253:5
+    |
+253 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `o.pack.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:260:5
+    |
+260 |     o.replace() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `o.pack.inner` is reserved by this cleanup
+   --> main.kg:259:5
+    |
+259 |     defer { o.pack.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:266:5
+    |
+266 |     h.rebind() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:265:5
+    |
+265 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:272:5
+    |
+272 |     b.resetViaHelper() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:271:5
+    |
+271 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.items` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:278:5
+    |
+278 |     b.swapFirst(mkh(4)) //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.items` is reserved by this cleanup
+   --> main.kg:277:5
+    |
+277 |     defer { closeAll(b.items) }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `bx` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:284:5
+    |
+284 |     bx.set(mkh(2)) //~ ERROR
+    |     ^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `bx` is reserved by this cleanup
+   --> main.kg:283:5
+    |
+283 |     defer { bx.into().close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `xs` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:290:13
+    |
+290 |     let r = xs.withMut(0, (h: &mut Handle) => { h = mkh(2) }) //~ ERROR
+    |             ^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `xs` is reserved by this cleanup
+   --> main.kg:289:5
+    |
+289 |     defer { closeAll(xs) }
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `m` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:296:5
+    |
+296 |     m.set(1, mkh(2)) //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `m` is reserved by this cleanup
+   --> main.kg:295:5
+    |
+295 |     defer { closeMap(m) }
+    |     ^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `m` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:302:5
+    |
+302 |     m.remove(&1) //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `m` is reserved by this cleanup
+   --> main.kg:301:5
+    |
+301 |     defer { closeMap(m) }
+    |     ^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `bx` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:308:13
+    |
+308 |     let r = bx.withMut((h: &mut Handle) => { h = mkh(2) }) //~ ERROR
+    |             ^^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `bx` is reserved by this cleanup
+   --> main.kg:307:5
+    |
+307 |     defer { bx.into().close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `w` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:314:5
+    |
+314 |     w.reset() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `w` is reserved by this cleanup
+   --> main.kg:313:5
+    |
+313 |     defer { w.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `w` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:320:5
+    |
+320 |     w.viaHelper() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `w` is reserved by this cleanup
+   --> main.kg:319:5
+    |
+319 |     defer { w.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `x` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:326:5
+    |
+326 |     x.refill() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `x` is reserved by this cleanup
+   --> main.kg:325:5
+    |
+325 |     defer { x.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2150]: `n` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:332:5
+    |
+332 |     n.deep() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `n` is reserved by this cleanup
+   --> main.kg:331:5
+    |
+331 |     defer { n.close() }
+    |     ^^^^^^^^^^^^^^^^
+
+error[E2100]: `xs` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:338:5
+    |
+338 |     xs[0] = mkh(2) //~ ERROR
+    |     ^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `xs` is reserved by this cleanup
+   --> main.kg:337:5
+    |
+337 |     defer { closeAll(xs) }
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `b.items` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:344:5
+    |
+344 |     b.items[0] = mkh(2) //~ ERROR
+    |     ^^^^^^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b.items` is reserved by this cleanup
+   --> main.kg:343:5
+    |
+343 |     defer { closeAll(b.items) }
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `b` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:350:5
+    |
+350 |     b.items[0] = mkh(2) //~ ERROR
+    |     ^^^^^^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `b` is reserved by this cleanup
+   --> main.kg:349:5
+    |
+349 |     defer { closeBag(b) }
+    |     ^^^^^^^^^^^^^^^^^^
+
+error[E2100]: `xs` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+   --> main.kg:356:5
+    |
+356 |     xs[0].inner = mkh(2) //~ ERROR
+    |     ^^^^^^^^^^^
+    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `xs` is reserved by this cleanup
+   --> main.kg:355:5
+    |
+355 |     defer { closePacks(xs) }
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:363:5
+    |
+363 |     r.inner = mkh(7) //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:362:5
+    |
+362 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+note: it was made here, before the cleanup
+   --> main.kg:361:13
+    |
+361 |     let r = &mut b
+    |             ^^^^^^
+
+error[E2150]: `h` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:370:5
+    |
+370 |     f() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `h` is reserved by this cleanup
+   --> main.kg:369:5
+    |
+369 |     defer { h.close() }
+    |     ^^^^^^^^^^^^^^^^
+note: it was made here, before the cleanup
+   --> main.kg:368:13
+    |
+368 |     let f = () => { h = mkh(2) }
+    |             ^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:377:5
+    |
+377 |     f() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+   --> main.kg:376:5
+    |
+376 |     defer { b.inner.close() }
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+note: it was made here, before the cleanup
+   --> main.kg:375:13
+    |
+375 |     let f = () => { b.inner = mkh(2) }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `x` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+   --> main.kg:382:5
+    |
+382 |     x.rewind() //~ ERROR
+    |     ^
+    = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `x` is reserved by this cleanup
+   --> main.kg:381:5
+    |
+381 |     defer { take(x) }
+    |     ^^^^^^^^^^^^^^
+

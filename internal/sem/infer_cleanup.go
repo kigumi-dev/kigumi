@@ -21,6 +21,7 @@ func (c *checker) cleanupStmt(n syntax.NodeID) {
 	c.cleanupNode, c.cleanupLog = outerNode, outerLog
 	c.cleanupLog.earlier = earlier
 	c.holdReservations(n, consumed)
+	c.rejectLoopConsume(n, consumed)
 	for _, a := range assigned {
 		a.scope = c.scope
 		c.cleanupLog.earlier = append(c.cleanupLog.earlier, a)

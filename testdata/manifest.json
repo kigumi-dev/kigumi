@@ -996,6 +996,17 @@
       ]
     },
     {
+      "id": "mir/pattern_move_loop",
+      "kind": "mir",
+      "path": "testdata/mir/pattern_move_loop.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/reborrow_alias",
       "kind": "mir",
       "path": "testdata/mir/reborrow_alias.txtar",
@@ -4509,6 +4520,23 @@
       ]
     },
     {
+      "id": "run/defer_reserved_mut",
+      "kind": "run",
+      "path": "testdata/run/defer_reserved_mut.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/defer_reserved_paths",
       "kind": "run",
       "path": "testdata/run/defer_reserved_paths.txtar",
@@ -4529,6 +4557,23 @@
       "id": "run/defer_reserved_patterns",
       "kind": "run",
       "path": "testdata/run/defer_reserved_patterns.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_reserved_reads",
+      "kind": "run",
+      "path": "testdata/run/defer_reserved_reads.txtar",
       "mode": [
         "vm",
         "native"
@@ -13017,9 +13062,42 @@
       ]
     },
     {
+      "id": "sem/defer_reserved_loops",
+      "kind": "sem",
+      "path": "testdata/sem/defer_reserved_loops.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_reserved_mut",
+      "kind": "sem",
+      "path": "testdata/sem/defer_reserved_mut.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/defer_reserved_patterns",
       "kind": "sem",
       "path": "testdata/sem/defer_reserved_patterns.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_reserved_reads",
+      "kind": "sem",
+      "path": "testdata/sem/defer_reserved_reads.txtar",
       "mode": [
         "check"
       ],
@@ -14714,6 +14792,17 @@
       "id": "sem/partial_move_err",
       "kind": "sem",
       "path": "testdata/sem/partial_move_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/pattern_move_loop",
+      "kind": "sem",
+      "path": "testdata/sem/pattern_move_loop.txtar",
       "mode": [
         "check"
       ],

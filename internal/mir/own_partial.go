@@ -36,3 +36,29 @@ func (a *owner) checkBorrowedWhole(st *dstate, report bool) {
 		a.report(a.defNode[rep], code, msg)
 	}
 }
+
+func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
+	if a.movesIntoBinding(in) {
+		l := a.pl.canon(in.Args[0])
+		a.checkWhole(in.Node, l, st, report)
+		st.val[l], st.at[l] = ownMoved, in.Node
+		return
+	}
+	for argi, arg := range in.Args {
+		l := a.pl.canon(arg)
+		if !a.tracked[l] {
+			continue
+		}
+		a.check(in, l, st.val, report)
+		if a.pl.isPlace(arg) && a.p.consumesArg(in, argi) {
+			a.checkWhole(in.Node, l, st, report)
+			st.val[l], st.at[l] = ownMoved, in.Node
+		}
+	}
+}
+
+// movesIntoBinding is a named binding taking a field place by value; the field read just before it already checked the place.
+func (a *owner) movesIntoBinding(in *Inst) bool {
+	return in.Op == OpCopy && !in.Share && a.f.Locals[in.Dst].Ent != 0 && a.tracked[in.Dst] &&
+		a.pl.isPlace(in.Args[0]) && a.tracked[a.pl.canon(in.Args[0])]
+}

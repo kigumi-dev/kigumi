@@ -1,0 +1,114 @@
+-- src --
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub inner Handle
+    pub other Handle
+    pub n Int
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1), n: n * 2 }
+}
+
+fn pair(n: Int) -> (Handle, Handle) {
+    (mkh(n), mkh(n + 1))
+}
+
+fn show(h: &Handle) -> Unit {
+    print "show ${h.id}"
+}
+
+fn apply(f: fn() -> Int) -> Int {
+    f()
+}
+
+fn take[T](x: T) -> Unit {}
+
+fn borrowLambdaCalled() -> Unit {
+    let b = mk(10)
+    defer { b.inner.close() }
+    let f = () => b.inner.peek()
+    print "first ${f()}"
+    print "second ${f()}"
+    take(b.other)
+}
+
+fn borrowLambdaShared() -> Unit {
+    let b = mk(20)
+    defer { b.inner.close() }
+    let f = () => show(&b.inner)
+    f()
+    take(b.other)
+}
+
+fn borrowLambdaWholeReserved() -> Unit {
+    let b = mk(30)
+    defer { take(b.inner) }
+    let f = () => b.n
+    print "n ${f()}"
+    take(b.other)
+}
+
+fn borrowLambdaImmediate() -> Unit {
+    let b = mk(40)
+    defer { b.inner.close() }
+    print "applied ${apply(() => b.inner.peek())}"
+    take(b.other)
+}
+
+fn tupleSecondElement() -> Unit {
+    let t = pair(50)
+    defer { t._0.close() }
+    match t {
+        (_, y) -> y.close()
+    }
+}
+
+fn tupleNestedSibling() -> Unit {
+    let t = ((mkh(70), mkh(71)), mkh(72))
+    defer { t._1.close() }
+    match t {
+        ((a, b), _) -> {
+            a.close()
+            b.close()
+        }
+    }
+}
+
+borrowLambdaCalled()
+borrowLambdaShared()
+borrowLambdaWholeReserved()
+borrowLambdaImmediate()
+tupleSecondElement()
+tupleNestedSibling()
+-- stdout --
+first 10
+second 10
+close 10
+show 20
+close 20
+n 60
+applied 40
+close 40
+close 51
+close 50
+close 70
+close 71
+close 72

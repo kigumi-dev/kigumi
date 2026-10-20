@@ -19,6 +19,7 @@ func (c *checker) reservePlace(a syntax.NodeID, p reservedPlace) {
 	}
 	if c.cleanup > 0 && !c.declaredIn(p.ent, c.cleanupNode) {
 		c.consumeAfterAssign(a, p)
+		p.node = a
 		c.cleanupLog.consumed = append(c.cleanupLog.consumed, p)
 	}
 }
@@ -56,6 +57,7 @@ func (c *checker) reserveAssign(lhs syntax.NodeID) {
 	}
 	p, ok := c.placeUnder(lhs)
 	if !ok {
+		c.reserveIndexAssign(lhs)
 		return
 	}
 	if c.cleanup > 0 && c.ownsValue(p.ent) && !c.declaredIn(p.ent, c.cleanupNode) {
@@ -71,4 +73,29 @@ func (c *checker) reserveAssign(lhs syntax.NodeID) {
 			return
 		}
 	}
+}
+
+func (c *checker) reserveIndexAssign(lhs syntax.NodeID) {
+	owner, ok := c.indexOwner(lhs)
+	if !ok || owner.Root == 0 || owner.Deref {
+		return
+	}
+	if i, held := c.reservedOver(owner.Root, owner.Fields); held {
+		c.reservedError(lhs, cCleanupReservedAssign, c.reserved[owner.Root][i])
+	}
+}
+
+func (c *checker) indexOwner(n syntax.NodeID) (Place, bool) {
+	n = c.stripParen(n)
+	switch c.t.Kind(n) {
+	case syntax.MemberExpr:
+		return c.indexOwner(c.t.View(n).AsMember().Base().ID())
+	case syntax.BracketExpr:
+		base := c.t.View(n).AsBracket().Base().ID()
+		if p, ok := c.indexOwner(base); ok {
+			return p, true
+		}
+		return c.buildPlace(c.stripParen(base))
+	}
+	return Place{}, false
 }

@@ -1,0 +1,322 @@
+-- src --
+import test from std/test
+import {BytesWriter} from std/io
+
+type Handle = resource {
+    pub mut id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn Handle.bump(mut self) -> Unit {
+    self.id = self.id + 1
+}
+
+fn Handle.bumpTwice(mut self) -> Unit {
+    self.bump()
+    self.bump()
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+    pub mut n Int
+}
+
+fn Pack.setN(mut self, n: Int) -> Unit {
+    self.n = n
+}
+
+type Outer = {
+    pub mut pack Pack
+    pub mut tag Int
+}
+
+fn Outer.retag(mut self, tag: Int) -> Unit {
+    self.tag = tag
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
+}
+
+fn reset(p: &mut Handle) -> Unit {
+    p = mkh(90)
+}
+
+fn showPack(p: &Pack) -> Unit {
+    print "pack ${p.n}"
+}
+
+fn show(h: &Handle) -> Unit {
+    print "show ${h.id}"
+}
+
+fn incr(n: &mut Int) -> Unit {
+    n = n + 1
+}
+
+fn closeAll(xs: Array[Handle]) -> Unit {
+    for h in xs {
+        h.close()
+    }
+}
+
+fn siblingBorrow() -> Unit {
+    let mut b = mk(10)
+    defer { b.inner.close() }
+    reset(&mut b.other)
+    incr(&mut b.n)
+    showPack(&b)
+    show(&b.inner)
+    b.other.close()
+}
+
+fn siblingRecv() -> Unit {
+    let mut b = mk(20)
+    defer { b.inner.close() }
+    b.other.bump()
+    b.setN(3)
+    print "other ${b.other.peek()} n ${b.n}"
+    b.other.close()
+}
+
+fn siblingOfAncestor() -> Unit {
+    let mut o = Outer { pack: mk(30), tag: 0 }
+    defer { o.pack.inner.close() }
+    o.retag(2)
+    o.pack.setN(1)
+    print "tag ${o.tag} n ${o.pack.n}"
+    o.pack.other.close()
+}
+
+fn bumpReserved() -> Unit {
+    let mut h = mkh(40)
+    defer { h.close() }
+    h.bump()
+    h.bump()
+}
+
+fn pushIntoReserved() -> Unit {
+    let mut xs = Array.of(mkh(50))
+    defer { closeAll(xs) }
+    xs.push(mkh(51))
+    print "len ${xs.len()}"
+}
+
+fn perIterationBinding() -> Unit {
+    for i in 0..2 {
+        let h = mkh(60 + i)
+        defer { h.close() }
+        print "iter ${h.peek()}"
+    }
+}
+
+fn loopVariable() -> Unit {
+    for h in Array.of(mkh(70), mkh(71)) {
+        defer { h.close() }
+    }
+}
+
+fn perIterationField() -> Unit {
+    for i in 0..2 {
+        let b = mk(80 + i * 10)
+        defer { b.inner.close() }
+        b.other.close()
+    }
+}
+
+fn perIterationFieldMoves() -> Unit {
+    for i in 0..2 {
+        let b = mk(100 + i * 10)
+        b.other.close()
+        b.inner.close()
+    }
+}
+
+fn reassignedEachIteration() -> Unit {
+    let mut b = mk(120)
+    for i in 0..2 {
+        b.other.close()
+        b = mk(130 + i * 10)
+    }
+    b.inner.close()
+    b.other.close()
+}
+
+fn outerBorrowOnly() -> Unit {
+    let h = mkh(150)
+    for i in 0..2 {
+        defer { show(&h) }
+    }
+    h.close()
+}
+
+fn outerFailCleanup(ok: Bool) -> Unit! {
+    let h = mkh(160)
+    for i in 0..1 {
+        defer(fail) { h.close() }
+        if !ok {
+            fail test.failure("late")
+        }
+    }
+    h.close()
+}
+
+fn helperRecv() -> Unit {
+    let mut h = mkh(170)
+    defer { h.close() }
+    h.bumpTwice()
+}
+
+fn indexSibling() -> Unit {
+    let mut xs = Array.of(mkh(180))
+    let mut ys = Array.of(mkh(181))
+    defer { closeAll(xs) }
+    ys[0] = mkh(182)
+    closeAll(ys)
+}
+
+fn indexBeforeCleanup() -> Unit {
+    let mut xs = Array.of(mkh(190))
+    xs[0] = mkh(191)
+    defer { closeAll(xs) }
+}
+
+fn borrowHeldUnused() -> Unit {
+    let mut b = mk(200)
+    let r = &mut b
+    r.inner = mkh(210)
+    defer { b.inner.close() }
+    b.other.close()
+}
+
+fn closureBeforeCleanupUnused() -> Unit {
+    let mut h = mkh(220)
+    let f = () => { h = mkh(221) }
+    f()
+    defer { h.close() }
+}
+
+type Tally = {
+    pub mut h Handle
+    pub mut k Int
+}
+
+fn Tally.close(move self) -> Unit {
+    print "tally ${self.k}"
+    self.h.close()
+}
+
+fn Tally.add(mut self) -> Unit {
+    self.k = self.k + self.h.peek()
+}
+
+fn copyWriteUnderWholeCleanup() -> Unit {
+    let mut t = Tally { h: mkh(230), k: 1 }
+    defer { t.close() }
+    t.add()
+    t.add()
+}
+
+fn stdWriteUnderCleanup() -> Unit! {
+    let mut w = BytesWriter.new()
+    defer { written(w) }
+    _ = w.write("hey".toBytes())?
+    _ = w.write("!".toBytes())?
+}
+
+fn written(w: BytesWriter) -> Unit {
+    print "written ${w.bytes().len()}"
+}
+
+fn report(label: String, r: Unit!) -> Unit {
+    match r {
+        Ok(_) -> print "${label}: ok"
+        Err(e) -> print "${label}: err ${e.message()}"
+    }
+}
+
+siblingBorrow()
+siblingRecv()
+siblingOfAncestor()
+bumpReserved()
+pushIntoReserved()
+perIterationBinding()
+loopVariable()
+perIterationField()
+perIterationFieldMoves()
+reassignedEachIteration()
+outerBorrowOnly()
+helperRecv()
+indexSibling()
+indexBeforeCleanup()
+borrowHeldUnused()
+closureBeforeCleanupUnused()
+report("fail ok", outerFailCleanup(true))
+report("fail err", outerFailCleanup(false))
+report("std write", stdWriteUnderCleanup())
+copyWriteUnderWholeCleanup()
+-- stdout --
+pack 1
+show 10
+close 90
+close 10
+other 22 n 3
+close 22
+close 20
+tag 2 n 1
+close 31
+close 30
+close 42
+len 2
+close 50
+close 51
+iter 60
+close 60
+iter 61
+close 61
+close 70
+close 71
+close 81
+close 80
+close 91
+close 90
+close 101
+close 100
+close 111
+close 110
+close 121
+close 131
+close 140
+close 141
+show 150
+show 150
+close 150
+close 172
+close 182
+close 180
+close 191
+close 201
+close 210
+close 221
+close 160
+fail ok: ok
+close 160
+fail err: err late
+written 4
+std write: ok
+tally 461
+close 230

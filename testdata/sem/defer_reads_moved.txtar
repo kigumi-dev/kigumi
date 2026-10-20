@@ -38,14 +38,6 @@ fn discardedBeforeExit() -> Unit! {
     fail test.failure("late")
 }
 
-fn consumedInEveryIteration() -> Unit {
-    let h = Handle { id: 1 }
-    for i in 0..2 {
-        defer { h.close() } //~ ERROR a cleanup reads `h`
-        print "iteration ${i}"
-    }
-}
-
 fn movedIntoRecord() -> Unit {
     let h = Handle { id: 1 }
     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
@@ -112,26 +104,14 @@ note: `h` is moved here
    |         ^
 
 error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
-  --> main.kg:41:9
+  --> main.kg:40:27
    |
-41 |         defer { h.close() } //~ ERROR a cleanup reads `h`
-   |         ^^^^^^^^^^^^^^^^
-   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `h` is moved here by the previous run of this cleanup
-  --> main.kg:41:17
-   |
-41 |         defer { h.close() } //~ ERROR a cleanup reads `h`
-   |                 ^
-
-error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
-  --> main.kg:48:27
-   |
-48 |     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
+40 |     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
    |                           ^^^^^^^
    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
 note: `h` is moved here
-  --> main.kg:49:30
+  --> main.kg:41:30
    |
-49 |     let w = Wrapper { inner: h }
+41 |     let w = Wrapper { inner: h }
    |                              ^
 

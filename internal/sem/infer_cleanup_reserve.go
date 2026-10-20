@@ -20,6 +20,7 @@ type reservation struct {
 type reservedPlace struct {
 	ent    EntityID
 	fields []EntityID
+	node   syntax.NodeID
 }
 
 type cleanupLog struct {

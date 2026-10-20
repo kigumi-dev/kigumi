@@ -28,14 +28,17 @@ func (c *checker) tuplePattern(p syntax.NodeID, scrutinee TypeID, seen map[strin
 	}
 	c.info.Uses[p] = ent
 	moves := false
+	fields := c.r.typeDecl(ent).Fields
 	for i, s := range subs {
 		ft := TyPoison
 		if scrutinee != TyPoison {
 			ft = sn.Args[i]
 		}
-		if c.patternInner(s, ft, false, seen).Moves {
-			moves = true
-		}
+		c.patternInField(fields[i], func() {
+			if c.patternInner(s, ft, false, seen).Moves {
+				moves = true
+			}
+		})
 	}
 	return PatInfo{Kind: PatRecordTy, Type: scrutinee, Moves: moves}
 }

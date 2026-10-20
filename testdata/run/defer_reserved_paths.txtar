@@ -25,10 +25,6 @@ fn show(h: &Handle) -> Unit {
     print "show ${h.id}"
 }
 
-fn tweak(h: &mut Handle) -> Unit {
-    h.id = h.id + 10
-}
-
 fn take(h: Handle) -> Unit {
     print "take ${h.id}"
 }
@@ -108,7 +104,7 @@ fn borrowsAllowed() -> Unit! {
     h.bump()
     h.id = h.id + 100
     show(&h)
-    tweak(&mut h)
+    h.id = h.id + 10
     print "body ${h.id}"
 }
 

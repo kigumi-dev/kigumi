@@ -212,7 +212,7 @@ fn wildcardArm() -> Unit {
 fn lambdaReadsReservedField() -> Unit {
     let b = mk()
     defer { b.inner.close() }
-    let f = () => b.inner.peek() //~ ERROR
+    let f = () => b.inner.peek()
     sink(f())
 }
 
@@ -443,18 +443,6 @@ note: `b.inner` is reserved by this cleanup
    --> main.kg:168:5
     |
 168 |     defer { b.inner.close() }
-    |     ^^^^^^^^^^^^^^^^^^^^^^
-
-error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:212:19
-    |
-212 |     let f = () => b.inner.peek() //~ ERROR
-    |                   ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `b.inner` is reserved by this cleanup
-   --> main.kg:211:5
-    |
-211 |     defer { b.inner.close() }
     |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits

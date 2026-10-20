@@ -13,6 +13,7 @@ type lambdaCtx struct {
 	immediate  bool
 	// reserveUses are uses of cleanup-reserved bindings, judged when the lambda closes.
 	reserveUses []captureUse
+	writes      []EntityID
 }
 
 // synthLambda: want is a fn type, an Fn-constrained type parameter, or 0

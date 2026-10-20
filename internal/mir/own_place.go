@@ -54,8 +54,7 @@ func findPlaces(p *Program, f *Func) *places {
 				pl.key[in.Dst] = key
 				if _, seen := pl.rep[key]; !seen {
 					pl.rep[key] = in.Dst
-					sp := t.Span(in.Node)
-					pl.name[in.Dst] = string(t.File.Src[sp.Start:sp.End])
+					pl.name[in.Dst] = pl.placeName(p, f, t, in)
 				}
 				changed = true
 			}
@@ -164,4 +163,13 @@ func ctxArgCount(info *sem.FnInfo) int {
 		}
 	}
 	return n
+}
+
+func (pl *places) resetFields(root LocalID, st *dstate) {
+	for _, rep := range pl.children[root] {
+		delete(st.val, rep)
+		delete(st.field, rep)
+		delete(st.at, rep)
+		pl.resetFields(rep, st)
+	}
 }

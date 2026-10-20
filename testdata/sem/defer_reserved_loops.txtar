@@ -1,0 +1,226 @@
+-- module --
+mir: planned
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+type Pack = {
+    pub mut inner Handle
+    pub mut other Handle
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn mk(n: Int) -> Pack {
+    Pack { inner: mkh(n), other: mkh(n + 1) }
+}
+
+fn show(h: &Handle) -> Unit {}
+
+fn sink(n: Int) -> Unit {}
+
+fn outerBinding() -> Unit {
+    let h = mkh(1)
+    for i in 0..2 {
+        defer { h.close() } //~ ERROR
+    }
+}
+
+fn outerField() -> Unit {
+    let b = mk(1)
+    for i in 0..2 {
+        defer { b.inner.close() } //~ ERROR
+    }
+}
+
+fn outerParam(h: Handle) -> Unit {
+    for i in 0..2 {
+        defer { h.close() } //~ ERROR
+    }
+}
+
+fn conditionLoop(n: Int) -> Unit {
+    let h = mkh(1)
+    let mut left = n
+    for left > 0 {
+        defer { h.close() } //~ ERROR
+        left = left - 1
+    }
+}
+
+fn bareLoop() -> Unit {
+    let h = mkh(1)
+    for {
+        defer { h.close() } //~ ERROR
+        break
+    }
+}
+
+fn innerLoop() -> Unit {
+    for i in 0..2 {
+        let h = mkh(i)
+        for j in 0..2 {
+            defer { h.close() } //~ ERROR
+        }
+    }
+}
+
+fn perIterationBinding() -> Unit {
+    for i in 0..2 {
+        let h = mkh(i)
+        defer { h.close() }
+        sink(h.peek())
+    }
+}
+
+fn loopVariable() -> Unit {
+    for h in Array.of(mkh(1), mkh(2)) {
+        defer { h.close() }
+    }
+}
+
+fn perIterationField() -> Unit {
+    for i in 0..2 {
+        let b = mk(i)
+        defer { b.inner.close() }
+        b.other.close()
+    }
+}
+
+fn perIterationFieldMoves() -> Unit {
+    for i in 0..2 {
+        let b = mk(i)
+        b.other.close()
+        b.inner.close()
+    }
+}
+
+fn reassignedEachIteration() -> Unit {
+    let mut b = mk(1)
+    for i in 0..2 {
+        b.other.close()
+        b = mk(i)
+    }
+    b.inner.close()
+    b.other.close()
+}
+
+fn outerBorrowOnly() -> Unit {
+    let h = mkh(1)
+    for i in 0..2 {
+        defer { show(&h) }
+    }
+    h.close()
+}
+
+fn outerFailCleanup() -> Unit! {
+    let h = mkh(1)
+    for i in 0..2 {
+        defer(fail) { h.close() }
+    }
+}
+
+fn cleanupBeforeLoop() -> Unit {
+    let h = mkh(1)
+    defer { h.close() }
+    for i in 0..2 {
+        sink(i)
+    }
+}
+
+fn lambdaInLoop() -> Unit {
+    let h = mkh(1)
+    for i in 0..2 {
+        let f = () => {
+            let g = mkh(i)
+            defer { g.close() }
+            sink(g.peek())
+        }
+        f()
+    }
+    h.close()
+}
+-- expect --
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:33:9
+   |
+33 |         defer { h.close() } //~ ERROR
+   |         ^^^^^^^^^^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here by the previous run of this cleanup
+  --> main.kg:33:17
+   |
+33 |         defer { h.close() } //~ ERROR
+   |                 ^
+
+error[E2103]: a cleanup reads `b.inner`, which can already be moved when the cleanup runs
+  --> main.kg:40:9
+   |
+40 |         defer { b.inner.close() } //~ ERROR
+   |         ^^^^^^^^^^^^^^^^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `b.inner` is moved here by the previous run of this cleanup
+  --> main.kg:40:17
+   |
+40 |         defer { b.inner.close() } //~ ERROR
+   |                 ^^^^^^^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:46:9
+   |
+46 |         defer { h.close() } //~ ERROR
+   |         ^^^^^^^^^^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here by the previous run of this cleanup
+  --> main.kg:46:17
+   |
+46 |         defer { h.close() } //~ ERROR
+   |                 ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:54:9
+   |
+54 |         defer { h.close() } //~ ERROR
+   |         ^^^^^^^^^^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here by the previous run of this cleanup
+  --> main.kg:54:17
+   |
+54 |         defer { h.close() } //~ ERROR
+   |                 ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:62:9
+   |
+62 |         defer { h.close() } //~ ERROR
+   |         ^^^^^^^^^^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here by the previous run of this cleanup
+  --> main.kg:62:17
+   |
+62 |         defer { h.close() } //~ ERROR
+   |                 ^
+
+error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+  --> main.kg:71:13
+   |
+71 |             defer { h.close() } //~ ERROR
+   |             ^^^^^^^^^^^^^^^^
+   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
+note: `h` is moved here by the previous run of this cleanup
+  --> main.kg:71:21
+   |
+71 |             defer { h.close() } //~ ERROR
+   |                     ^
+

@@ -32,6 +32,7 @@ func (c *checker) synthIdent(n syntax.NodeID) TypeID {
 		e.Flags |= EfUsed
 		c.placeOf(n)
 		c.noteCapture(n, ent, found)
+		c.reserveHolderUse(n, ent)
 		return e.Type
 	case EntConst:
 		c.r.useEntity(c.f, n, ent)

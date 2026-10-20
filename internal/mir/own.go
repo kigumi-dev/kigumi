@@ -146,17 +146,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 				st.val[src], st.at[src] = ownMoved, in.Node
 			}
 		default:
-			for argi, arg := range in.Args {
-				l := a.pl.canon(arg)
-				if !a.tracked[l] {
-					continue
-				}
-				a.check(in, l, st.val, report)
-				if a.pl.isPlace(arg) && a.p.consumesArg(in, argi) {
-					a.checkWhole(in.Node, l, st, report)
-					st.val[l], st.at[l] = ownMoved, in.Node
-				}
-			}
+			a.useArgs(in, st, report)
 		}
 		if in.Op == OpField || in.Op == OpFieldMove {
 			if l := a.pl.canon(in.Dst); a.tracked[l] {
@@ -180,6 +170,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 		}
 		if in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone && a.tracked[in.Dst] {
 			st.val[in.Dst] = ownValid
+			a.pl.resetFields(in.Dst, st)
 		}
 	}
 	if blk.Term.Op == TermReturn {

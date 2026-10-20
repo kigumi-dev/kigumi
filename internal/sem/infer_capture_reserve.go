@@ -17,16 +17,31 @@ func (c *checker) deferCaptureReserve(ctx *lambdaCtx, n syntax.NodeID, ent Entit
 
 func (c *checker) settleCaptureReserves(ctx *lambdaCtx) {
 	lambda := c.r.Entities[ctx.ent].Node
+	var reads []heldUse
 	for _, u := range ctx.reserveUses {
-		c.conflictUse(u.node, c.capturedPlace(lambda, u), false)
+		p, top, above := c.captureChain(lambda, u)
+		i, held := c.reservedOver(p.ent, p.fields)
+		if !held {
+			continue
+		}
+		if c.cleanup == 0 && c.readOnlyUse(top, above) {
+			reads = append(reads, heldUse{node: u.node, res: c.reserved[p.ent][i]})
+			continue
+		}
+		if !c.mutBorrowOperand(above) {
+			c.conflictUse(u.node, p, false)
+		}
 	}
+	c.settleReadOnlyLambda(lambda, reads)
+	c.noteClosureWrites(ctx)
 }
 
-func (c *checker) capturedPlace(lambda syntax.NodeID, u captureUse) reservedPlace {
+func (c *checker) captureChain(lambda syntax.NodeID, u captureUse) (reservedPlace, syntax.NodeID, []syntax.NodeID) {
 	p := reservedPlace{ent: u.ent}
 	path := c.pathTo(lambda, u.node)
 	cur := u.node
-	for i := len(path) - 1; i >= 0; i-- {
+	i := len(path) - 1
+	for ; i >= 0; i-- {
 		par := path[i]
 		if c.t.Kind(par) == syntax.Paren {
 			cur = par
@@ -42,7 +57,7 @@ func (c *checker) capturedPlace(lambda syntax.NodeID, u captureUse) reservedPlac
 		p.fields = append(p.fields, fld)
 		cur = par
 	}
-	return p
+	return p, cur, path[:i+1]
 }
 
 func (c *checker) pathTo(root, target syntax.NodeID) []syntax.NodeID {
