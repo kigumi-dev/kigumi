@@ -1,0 +1,224 @@
+-- src --
+import map from std/map
+import test from std/test
+
+type Meters = f64
+
+pure fn Meters.equals(self, other: &Meters) -> Bool {
+    true
+}
+
+pure fn Meters.compareTo(self, other: &Meters) -> Ordering {
+    Ordering.Less
+}
+
+type Wrapped = {
+    pub v f64
+}
+
+pure fn Wrapped.equals(self, other: &Wrapped) -> Bool {
+    self.v.equals(&other.v)
+}
+
+pure fn Wrapped.hash(self) -> u64 {
+    self.v.hash()
+}
+
+pure fn Wrapped.compareTo(self, other: &Wrapped) -> Ordering {
+    self.v.compareTo(&other.v)
+}
+
+fn eqG[T: Eq](a: T, b: &T) -> Bool { a == b }
+fn neG[T: Eq](a: T, b: &T) -> Bool { a != b }
+fn ltG[T: Ord](a: T, b: &T) -> Bool { a < b }
+fn leG[T: Ord](a: T, b: &T) -> Bool { a <= b }
+fn gtG[T: Ord](a: T, b: &T) -> Bool { a > b }
+fn geG[T: Ord](a: T, b: &T) -> Bool { a >= b }
+
+fn viaRef64(a: &f64, b: &f64) -> String {
+    "${a == b} ${a != b} ${a < b} ${a <= b} ${a > b} ${a >= b}"
+}
+
+fn viaRefG[T: Eq + Ord](a: &T, b: &T) -> String {
+    "${a == b} ${a != b} ${a < b} ${a <= b} ${a > b} ${a >= b}"
+}
+
+fn apply(f: fn(f64, &f64) -> Bool, a: f64, b: f64) -> Bool {
+    f(a, &b)
+}
+
+fn apply32(f: fn(f32, &f32) -> Bool, a: f32, b: f32) -> Bool {
+    f(a, &b)
+}
+
+fn row64(label: String, a: f64, b: f64) -> Unit {
+    print "${label} concrete: ${a == b} ${a != b} ${a < b} ${a <= b} ${a > b} ${a >= b}"
+    print "${label} generic:  ${eqG(a, &b)} ${neG(a, &b)} ${ltG(a, &b)} ${leG(a, &b)} ${gtG(a, &b)} ${geG(a, &b)}"
+    print "${label} ref:      ${viaRef64(&a, &b)}"
+    print "${label} refG:     ${viaRefG(&a, &b)}"
+    let fe = eqG[f64]
+    let fn_ = neG[f64]
+    let fl = ltG[f64]
+    let fle = leG[f64]
+    let fg = gtG[f64]
+    let fge = geG[f64]
+    print "${label} fn value: ${apply(fe, a, b)} ${apply(fn_, a, b)} ${apply(fl, a, b)} ${apply(fle, a, b)} ${apply(fg, a, b)} ${apply(fge, a, b)}"
+    print "${label} named:    ${a.equals(&b)} ${debug(&a.compareTo(&b))}"
+}
+
+fn row32(label: String, a: f32, b: f32) -> Unit {
+    print "${label} concrete: ${a == b} ${a != b} ${a < b} ${a <= b} ${a > b} ${a >= b}"
+    print "${label} generic:  ${eqG(a, &b)} ${neG(a, &b)} ${ltG(a, &b)} ${leG(a, &b)} ${gtG(a, &b)} ${geG(a, &b)}"
+    print "${label} refG:     ${viaRefG(&a, &b)}"
+    let fe = eqG[f32]
+    let fl = leG[f32]
+    print "${label} fn value: ${apply32(fe, a, b)} ${apply32(fl, a, b)}"
+    print "${label} named:    ${a.equals(&b)} ${debug(&a.compareTo(&b))}"
+}
+
+fn main() -> Unit! {
+    let z: f64 = 0.0
+    let nan = z / z
+    let negz: f64 = -0.0
+    let one: f64 = 1.0
+    let two: f64 = 2.0
+
+    row64("f64 nan,nan", nan, nan)
+    row64("f64 nan,1", nan, one)
+    row64("f64 1,nan", one, nan)
+    row64("f64 +0,-0", z, negz)
+    row64("f64 -0,+0", negz, z)
+    row64("f64 1,2", one, two)
+    row64("f64 2,1", two, one)
+    row64("f64 1,1", one, one)
+
+    let z32: f32 = 0.0
+    let nan32 = z32 / z32
+    let negz32: f32 = -0.0
+    let one32: f32 = 1.0
+    let two32: f32 = 2.0
+
+    row32("f32 nan,nan", nan32, nan32)
+    row32("f32 nan,1", nan32, one32)
+    row32("f32 1,nan", one32, nan32)
+    row32("f32 +0,-0", z32, negz32)
+    row32("f32 1,2", one32, two32)
+    row32("f32 1,1", one32, one32)
+
+    let w1 = Wrapped { v: nan }
+    let w2 = Wrapped { v: nan }
+    print "user type concrete: ${w1 == w2} ${w1 != w2} ${w1 < w2} ${w1 <= w2} ${w1 >= w2}"
+    print "user type generic:  ${eqG(w1, &w2)} ${neG(w1, &w2)} ${ltG(w1, &w2)} ${leG(w1, &w2)} ${geG(w1, &w2)}"
+    let meters = Meters(nan)
+    print "defined f64 concrete: ${meters == meters} ${meters != meters} ${meters <= meters} ${meters > meters}"
+    print "defined f64 generic:  ${eqG(meters, &meters)} ${neG(meters, &meters)} ${leG(meters, &meters)} ${gtG(meters, &meters)}"
+    print "option nan: ${Some(nan) == Some(nan)} ${eqG(Some(nan), &Some(nan))}"
+
+    let mut m = map.empty[f64, i64]()
+    m.set(nan, 1)
+    m.set(z / z, 2)
+    m.set(negz, 3)
+    m.set(z, 4)
+    print "map len: ${m.len()} get nan: ${debug(m.get(nan))} get zero: ${debug(m.get(negz))}"
+
+    let arr = Array.of[f64](1.0, nan, negz)
+    print "contains nan: ${arr.contains(nan)} contains +0: ${arr.contains(z)} contains 2: ${arr.contains(two)}"
+    let same = Array.of[f64](1.0, nan, z)
+    print "array equals: ${arr.equals(&same)} array ==: ${arr == same}"
+    print "expectEq nan: ${test.expectEq(nan, nan) is Ok(_)} expectEq 1,2: ${test.expectEq(one, two) is Err(_)}"
+
+    let mut m2 = map.empty[f64, f64]()
+    m2.set(one, nan)
+    let mut m3 = map.empty[f64, f64]()
+    m3.set(one, nan)
+    print "map equals: ${m2 == m3}"
+}
+-- stdout --
+f64 nan,nan concrete: false true false false false false
+f64 nan,nan generic:  false true false false false false
+f64 nan,nan ref:      false true false false false false
+f64 nan,nan refG:     false true false false false false
+f64 nan,nan fn value: false true false false false false
+f64 nan,nan named:    true Equal
+f64 nan,1 concrete: false true false false false false
+f64 nan,1 generic:  false true false false false false
+f64 nan,1 ref:      false true false false false false
+f64 nan,1 refG:     false true false false false false
+f64 nan,1 fn value: false true false false false false
+f64 nan,1 named:    false Greater
+f64 1,nan concrete: false true false false false false
+f64 1,nan generic:  false true false false false false
+f64 1,nan ref:      false true false false false false
+f64 1,nan refG:     false true false false false false
+f64 1,nan fn value: false true false false false false
+f64 1,nan named:    false Less
+f64 +0,-0 concrete: true false false true false true
+f64 +0,-0 generic:  true false false true false true
+f64 +0,-0 ref:      true false false true false true
+f64 +0,-0 refG:     true false false true false true
+f64 +0,-0 fn value: true false false true false true
+f64 +0,-0 named:    true Equal
+f64 -0,+0 concrete: true false false true false true
+f64 -0,+0 generic:  true false false true false true
+f64 -0,+0 ref:      true false false true false true
+f64 -0,+0 refG:     true false false true false true
+f64 -0,+0 fn value: true false false true false true
+f64 -0,+0 named:    true Equal
+f64 1,2 concrete: false true true true false false
+f64 1,2 generic:  false true true true false false
+f64 1,2 ref:      false true true true false false
+f64 1,2 refG:     false true true true false false
+f64 1,2 fn value: false true true true false false
+f64 1,2 named:    false Less
+f64 2,1 concrete: false true false false true true
+f64 2,1 generic:  false true false false true true
+f64 2,1 ref:      false true false false true true
+f64 2,1 refG:     false true false false true true
+f64 2,1 fn value: false true false false true true
+f64 2,1 named:    false Greater
+f64 1,1 concrete: true false false true false true
+f64 1,1 generic:  true false false true false true
+f64 1,1 ref:      true false false true false true
+f64 1,1 refG:     true false false true false true
+f64 1,1 fn value: true false false true false true
+f64 1,1 named:    true Equal
+f32 nan,nan concrete: false true false false false false
+f32 nan,nan generic:  false true false false false false
+f32 nan,nan refG:     false true false false false false
+f32 nan,nan fn value: false false
+f32 nan,nan named:    true Equal
+f32 nan,1 concrete: false true false false false false
+f32 nan,1 generic:  false true false false false false
+f32 nan,1 refG:     false true false false false false
+f32 nan,1 fn value: false false
+f32 nan,1 named:    false Greater
+f32 1,nan concrete: false true false false false false
+f32 1,nan generic:  false true false false false false
+f32 1,nan refG:     false true false false false false
+f32 1,nan fn value: false false
+f32 1,nan named:    false Less
+f32 +0,-0 concrete: true false false true false true
+f32 +0,-0 generic:  true false false true false true
+f32 +0,-0 refG:     true false false true false true
+f32 +0,-0 fn value: true true
+f32 +0,-0 named:    true Equal
+f32 1,2 concrete: false true true true false false
+f32 1,2 generic:  false true true true false false
+f32 1,2 refG:     false true true true false false
+f32 1,2 fn value: false true
+f32 1,2 named:    false Less
+f32 1,1 concrete: true false false true false true
+f32 1,1 generic:  true false false true false true
+f32 1,1 refG:     true false false true false true
+f32 1,1 fn value: true true
+f32 1,1 named:    true Equal
+user type concrete: true false false true true
+user type generic:  true false false true true
+defined f64 concrete: true false true false
+defined f64 generic:  true false true false
+option nan: true true
+map len: 2 get nan: Some(2) get zero: Some(4)
+contains nan: true contains +0: true contains 2: false
+array equals: true array ==: true
+expectEq nan: true expectEq 1,2: true
+map equals: true

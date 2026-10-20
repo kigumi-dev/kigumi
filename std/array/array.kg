@@ -150,7 +150,7 @@ pub pure fn Array[T: Eq].equals(self, other: &Array[T]) -> Bool {
     }
     let mut i: usize = 0
     for i < self.len() {
-        let same = self.with(i, (a: &T) => other.with(i, (b: &T) => a == b) is Some(true))
+        let same = self.with(i, (a: &T) => other.with(i, (b: &T) => a.equals(b)) is Some(true))
         if same is Some(true) {
             i = i + 1
         } else {
@@ -174,7 +174,7 @@ pub pure fn Array[T: Hash].hash(self) -> u64 {
 /// Whether some element equals item.
 pub pure fn Array[T: Eq].contains(self, item: T) -> Bool {
     for x in self {
-        if x == item {
+        if x.equals(&item) {
             return true
         }
     }

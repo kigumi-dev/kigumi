@@ -97,7 +97,7 @@ pub pure noalloc fn Box[T].into(move self) -> T
 
 /// Equality of the contents; satisfies `Eq` when T does.
 pub pure fn Box[T: Eq].equals(self, other: &Box[T]) -> Bool {
-    self.with((a: &T) => other.with((b: &T) => a == b))
+    self.with((a: &T) => other.with((b: &T) => a.equals(b)))
 }
 
 /// The hash of the content; satisfies `Hash` when T does.

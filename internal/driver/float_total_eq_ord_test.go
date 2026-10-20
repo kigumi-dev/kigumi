@@ -10,8 +10,8 @@ import (
 )
 
 // TestFloatTotalEqOrd checks that the VM and native builds agree on the
-// Eq/Ord/Hash total order for NaN and -0.0, including through a generic
-// T: Eq/Ord dispatch.
+// named Eq/Ord/Hash total order for NaN and -0.0 and on the IEEE operators,
+// including through a generic T: Eq/Ord dispatch.
 func TestFloatTotalEqOrd(t *testing.T) {
 	path := "../../testdata/run/float_total_eq_ord.txtar"
 	root, wantOut, _, _ := loadRunFixture(t, path)

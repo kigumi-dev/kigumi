@@ -3030,6 +3030,14 @@ val rt_builtin(const char* name, int n, val* args) {
     }
     if (!strcmp(name, "panic")) rt_panic(n > 0 ? cstr(args[0]) : "explicit panic");
     if (!strcmp(name, "host")) return opaque("Host", NULL);
+    if (!strcmp(name, "cmp.unordered")) {
+        val w = deref(args[0]), a = deref(args[1]), b = deref(args[2]);
+        const char* k = w->kind == K_CLOSURE && w->u.clo.key ? w->u.clo.key : "";
+        if (!strncmp(k, "std/", 4)) k += 4;
+        int fl = !strcmp(k, "prelude.f64.equals") || !strcmp(k, "prelude.f64.compareTo") || !strcmp(k, "prelude.f32.equals") || !strcmp(k, "prelude.f32.compareTo");
+        return rt_bool(fl && ((a->kind == K_FLOAT && a->u.f != a->u.f) || (b->kind == K_FLOAT && b->u.f != b->u.f)));
+    }
+    if (!strcmp(name, "cmp.guard")) return rt_bool(rt_truth(args[0]) && !rt_truth(args[1]));
     if (!strcmp(name, "fixed.fill")) return fixed_fill(args[0], deref(args[1])->u.i);
     if (!strcmp(name, "iter.len")) return iter_len(args[0]);
     if (!strcmp(name, "iter.at")) return rt_iter_at(args[0], deref(args[1])->u.i, 0);

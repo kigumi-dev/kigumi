@@ -118,7 +118,7 @@ pub pure fn FixedArray[T, N].set(mut self, index: usize, value: T) -> Bool {
 pub pure fn FixedArray[T: Eq, N].equals(self, other: &FixedArray[T, N]) -> Bool {
     let mut i: usize = 0
     for i < N {
-        if !(self.at(i, (a: &T) => other.at(i, (b: &T) => a == b) is Some(true)) is Some(true)) {
+        if !(self.at(i, (a: &T) => other.at(i, (b: &T) => a.equals(b)) is Some(true)) is Some(true)) {
             return false
         }
         i = i + 1

@@ -1,5 +1,7 @@
 package vm
 
+import "kigumi/internal/mir"
+
 // isTrivialScalar reports whether k is a value kind with no drop hook of
 // its own: sharing it needs no ownership transfer, only a retain.
 func isTrivialScalar(k kind) bool {
@@ -38,6 +40,11 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		return mkBool(m.directEq(args[0], args[1]))
 	case "direct.hash":
 		return mkInt(int64(m.directHash(args[0])), 64)
+	case "cmp.unordered":
+		isNaN := func(v *obj) bool { v = deref(v); return v.k == kFloat && v.fl() != v.fl() }
+		return mkBool(mir.FloatWitnessKey(deref(args[0]).cstd()) && (isNaN(args[1]) || isNaN(args[2])))
+	case "cmp.guard":
+		return mkBool(deref(args[0]).b && !deref(args[1]).b)
 	case "fixed.fill":
 		n := deref(args[1]).i
 		items := make([]*obj, n)

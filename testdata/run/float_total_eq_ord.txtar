@@ -53,8 +53,8 @@ protocol nan.equals(&nan): true
 protocol nan.compareTo(&nan): Equal
 protocol one.compareTo(&nan): Less
 protocol z.equals(&negz): true
-generic eqG(nan, &nan): true
-generic ltG(one, &nan): true
+generic eqG(nan, &nan): false
+generic ltG(one, &nan): false
 generic ltG(nan, &one): false
 map len: 3
 map.get(nan): Some(1)

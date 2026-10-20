@@ -15,7 +15,7 @@ pub pure fn Map[K: Eq + Hash, V: Eq].equals(self, other: &Map[K, V]) -> Bool {
     let mut i: usize = 0
     for i < self.keyList.len() {
         let same = self.keyList.with(i, (k: &K) => match other.position(k) {
-            Some(pos) -> self.valueList.with(i, (v: &V) => other.valueList.with(pos, (ov: &V) => v == ov) is Some(true)) is Some(true)
+            Some(pos) -> self.valueList.with(i, (v: &V) => other.valueList.with(pos, (ov: &V) => v.equals(ov)) is Some(true)) is Some(true)
             None -> false
         })
         if same is Some(true) {
@@ -75,7 +75,7 @@ pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
             return None
         }
         let pos = s - 1
-        if &self.keyList[pos] == key {
+        if (&self.keyList[pos]).equals(key) {
             return Some(pos)
         }
         i = (i + 1) & (n - 1)

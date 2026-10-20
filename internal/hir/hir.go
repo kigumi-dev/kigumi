@@ -96,7 +96,9 @@ type Expr struct {
 	// IndexWitness marks a MethodCall lowered from a bracket read: the
 	// receiver must evaluate before the index, unlike an ordinary method call.
 	IndexWitness bool
-	Passes       []sem.WitnessArg
+	// Cmp is the comparison operator a MethodCall through a witness stands for; the call yields Bool.
+	Cmp    string
+	Passes []sem.WitnessArg
 	// ConstArgs are the hidden const-parameter arguments a call to a
 	// function with const parameters hands over after Passes.
 	ConstArgs []sem.ConstArg

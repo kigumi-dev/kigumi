@@ -7026,6 +7026,23 @@
       ]
     },
     {
+      "id": "run/float_ieee_operators",
+      "kind": "run",
+      "path": "testdata/run/float_ieee_operators.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/float_map_key",
       "kind": "run",
       "path": "testdata/run/float_map_key.txtar",

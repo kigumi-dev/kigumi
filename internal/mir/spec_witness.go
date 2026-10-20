@@ -13,6 +13,10 @@ func (s *specializer) devirtualize(sp *spec, f *Func) {
 		insts := f.Blocks[bid].Insts
 		for i := range insts {
 			in := &insts[i]
+			if in.Op == OpBuiltin && in.Str == builtinCmpUnordered {
+				s.foldUnordered(sp, f, defs, slots, in)
+				continue
+			}
 			if in.Op != OpCallValue || in.Ent == 0 || len(in.Args) == 0 {
 				continue
 			}
@@ -23,6 +27,7 @@ func (s *specializer) devirtualize(sp *spec, f *Func) {
 			in.Op, in.Ent, in.Args = OpCall, sp.wit[k].Ent, in.Args[1:]
 		}
 	}
+	foldCompareGuards(f, defs)
 }
 
 func (s *specializer) directImpl(m sem.EntityID, in Inst) bool {

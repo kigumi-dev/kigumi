@@ -423,6 +423,8 @@ builtin iter.at_ref (any, int) -> any min=2 iter vm native=runtime
 builtin iter.at_move (any, int) -> any min=2 iter vm native=runtime
 builtin direct.eq (any, any) -> bool min=2 vm native=inline
 builtin direct.hash (any) -> int min=1 vm native=inline
+builtin cmp.unordered (any, any, any) -> bool min=3 vm native=runtime
+builtin cmp.guard (bool, bool) -> bool min=2 vm native=runtime
 op 135 ARRAY_TRY_CLONE primitive (array) -> result
 key array.Array.tryClone
 op 136 BOX_NEW primitive (any) -> named

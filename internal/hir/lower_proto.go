@@ -21,6 +21,11 @@ func (l *lowerer) protoBinary(n syntax.NodeID, op string, call sem.CallInfo, lhs
 	}
 	mc := l.node(n, MethodCall)
 	mc.Ent, mc.Args, mc.Witness, mc.Passes, mc.ConstArgs = call.Callee, []*Expr{left, right}, call.Witness, call.Passes, call.ConstArgs
+	if call.Witness != 0 {
+		// MIR builds the NaN-aware form from Cmp.
+		mc.Cmp = op
+		return mc
+	}
 	var out *Expr
 	switch op {
 	case "==", "!=":

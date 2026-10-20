@@ -21,6 +21,9 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		args := b.args(e, e.Args, e.EvalOrder, true, false, 0)
 		return b.emit(Inst{Op: OpVariant, Dst: b.temp(t), Ent: e.Ent, Type: t, Args: args, Node: n})
 	case hir.MethodCall:
+		if e.Cmp != "" {
+			return b.witnessCompare(e, mark)
+		}
 		recv, rest := b.methodArgs(e)
 		if v, ok := b.explicitDrop(e, recv, rest); ok {
 			return v

@@ -1,8 +1,10 @@
 /// Result of a three-way comparison.
 pub type Ordering = Less | Equal | Greater
 
-/// Equality; `==` and `!=` call `equals`. A record or ADT whose parts are
-/// all `Eq` gets a generated `equals` unless it defines one.
+/// Equality; `==` and `!=` call `equals`, except on `f32` and `f64`, where
+/// they stay IEEE (NaN differs from itself) in generic code too, while
+/// `equals` is total. A record or ADT whose parts are all `Eq` gets a
+/// generated `equals` unless it defines one.
 @derivable
 pub interface Eq {
     pure fn equals(self, other: &Self) -> Bool
@@ -15,7 +17,9 @@ pub interface Hash {
     pure fn hash(self) -> u64
 }
 
-/// Total order; `<`, `<=`, `>` and `>=` call `compareTo`.
+/// Total order; `<`, `<=`, `>` and `>=` call `compareTo`, except on `f32`
+/// and `f64`, where they stay IEEE (false against NaN) in generic code too,
+/// while `compareTo` is total.
 pub interface Ord {
     pure fn compareTo(self, other: &Self) -> Ordering
 }
