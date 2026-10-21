@@ -203,7 +203,7 @@ func TestGet(t *testing.T) {
 	}
 	app := filepath.Join(root, "app")
 	os.MkdirAll(app, 0o755)
-	os.WriteFile(filepath.Join(app, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\nRequire { name: \"greet\", version: \"v0.1.0\", url: \""+repo+"\" }\n"), 0o644)
+	os.WriteFile(filepath.Join(app, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\nRequire { name: \"greet\", version: \"v0.1.0\", url: \"file://"+repo+"\" }\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {hello} from greet\nprint hello(\"deps\")\n"), 0o644)
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	std, _ := filepath.Abs("../../std")

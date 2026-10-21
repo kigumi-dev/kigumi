@@ -20,3 +20,12 @@
 #define NUL_END "nul\0end"
 #define DOLLAR "cost: ${x}"
 #define BAD_BYTE "\xff"
+#define MAX_ALIAS INT64_MAX
+#define U64_CONST UINT64_C(18446744073709551615)
+#define U32_CONST UINT32_C(5)
+#define I64_CONST INT64_C(-5)
+#define WIDE_L L"wide"
+#define WIDE_U16 u"wide"
+#define WIDE_U32 U"wide"
+#define WIDE_MID "a" L"b"
+#define WIDE_COMMENTED /* c */ L"c"

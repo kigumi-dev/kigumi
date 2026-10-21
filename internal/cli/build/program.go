@@ -74,6 +74,6 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 		cmd.PrintErrln("build: " + err.Error())
 		return cliutil.Exit(1)
 	}
-	fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, p.Module, policy, reproducible).Render())
+	fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, p.Module, policy, reproducible, driver.ToolCapabilities(rg.Graph)).Render())
 	return nil
 }

@@ -54,6 +54,9 @@ func (m *Module) loadDeps(opts LoadOptions, lock Lock, enforceLock bool) error {
 					return fmt.Errorf("%s %s is not in %s; run `kigumi get` to lock it", r.Name, r.Version, LockName)
 				}
 			} else {
+				if want := RepoURLKey(r); entry.URL != "" && want != "" && entry.URL != want {
+					return fmt.Errorf("%s %s is fetched from %s but %s locked %s; run `kigumi get` to accept the new source", r.Name, r.Version, want, LockName, entry.URL)
+				}
 				hash, err := TreeHash(depDir)
 				if err != nil {
 					return err

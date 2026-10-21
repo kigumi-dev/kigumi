@@ -1,0 +1,98 @@
+-- app/a/a.kg --
+extern(C) {
+    fn labs(x: i64) -> i64
+    fn atol(s: *const u8) -> i64
+}
+
+export(C) {
+    pub fn shared(x: i32) -> i32 {
+        x
+    }
+    pub fn malloc(n: usize) -> usize { //~ ERROR
+        n
+    }
+    pub fn rt_release(x: i32) -> i32 { //~ ERROR
+        x
+    }
+    pub fn rt_sys_hook(x: i32) -> i32 {
+        x
+    }
+}
+
+-- app/b/b.kg --
+extern(C) {
+    fn labs(x: i32) -> i32 //~ ERROR
+    fn atol(s: *mut u8) -> i64
+    fn tail(a: i32, ..., b: i32) -> i32 //~ ERROR
+}
+
+export(C) {
+    pub fn shared(x: i32) -> i32 { //~ ERROR
+        x
+    }
+    pub fn twin(x: i32) -> i32 {
+        x
+    }
+    pub fn twin(x: i64) -> i64 { //~ ERROR
+        x
+    }
+}
+
+-- expect --
+error[E2218]: the C symbol `malloc` is already defined by the C library
+  --> app/a/a.kg:10:5
+   |
+10 |     pub fn malloc(n: usize) -> usize { //~ ERROR
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: declare each C symbol once, with one signature, and export only names the C library does not define
+
+error[E2218]: the C symbol `rt_release` is reserved for the Kigumi runtime
+  --> app/a/a.kg:13:5
+   |
+13 |     pub fn rt_release(x: i32) -> i32 { //~ ERROR
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: declare each C symbol once, with one signature, and export only names the C library does not define
+
+error[E2218]: the C symbol `labs` is declared with different C signatures
+ --> app/b/b.kg:2:5
+  |
+2 |     fn labs(x: i32) -> i32 //~ ERROR
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  = help: declare each C symbol once, with one signature, and export only names the C library does not define
+note: also declared here
+ --> app/a/a.kg:2:8
+  |
+2 |     fn labs(x: i64) -> i64
+  |        ^^^^
+
+error[E2219]: a C `...` must be the last parameter of an extern declaration
+ --> app/b/b.kg:4:21
+  |
+4 |     fn tail(a: i32, ..., b: i32) -> i32 //~ ERROR
+  |                     ^^^
+  = help: move it to the end
+
+error[E2218]: the C symbol `shared` is exported more than once
+ --> app/b/b.kg:8:5
+  |
+8 |     pub fn shared(x: i32) -> i32 { //~ ERROR
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: declare each C symbol once, with one signature, and export only names the C library does not define
+note: also exported here
+ --> app/a/a.kg:7:12
+  |
+7 |     pub fn shared(x: i32) -> i32 {
+  |            ^^^^^^
+
+error[E2218]: the C symbol `twin` is exported more than once
+  --> app/b/b.kg:14:5
+   |
+14 |     pub fn twin(x: i64) -> i64 { //~ ERROR
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: declare each C symbol once, with one signature, and export only names the C library does not define
+note: also exported here
+  --> app/b/b.kg:11:12
+   |
+11 |     pub fn twin(x: i32) -> i32 {
+   |            ^^^^
+

@@ -8,7 +8,7 @@ import (
 )
 
 func requireBlock(name, version, url string) string {
-	return "Require {\n    name: \"" + name + "\"\n    version: \"" + version + "\"\n    url: \"" + url + "\"\n}\n"
+	return "Require {\n    name: \"" + name + "\"\n    version: \"" + version + "\"\n    url: \"file://" + url + "\"\n}\n"
 }
 
 // The root wants dep v1.0.0 and mid wants v1.1.0; both versions must be fetched.

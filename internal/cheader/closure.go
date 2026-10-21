@@ -14,7 +14,15 @@ type DepRunner func(zigPath, target, headerPath string) ([]string, error)
 // RunZigDeps is the default DepRunner: translate-c's own frontend (Aro)
 // does not report files read, so this asks `zig cc -M` (clang) instead.
 func RunZigDeps(zigPath, target, headerPath string) ([]string, error) {
-	args := []string{"cc", "-M", "-x", "c-header"}
+	return runZigDeps("-M", zigPath, target, headerPath)
+}
+
+func RunZigUserDeps(zigPath, target, headerPath string) ([]string, error) {
+	return runZigDeps("-MM", zigPath, target, headerPath)
+}
+
+func runZigDeps(flag, zigPath, target, headerPath string) ([]string, error) {
+	args := []string{"cc", flag, "-x", "c-header"}
 	if target != "" {
 		args = append(args, "-target", target)
 	}
@@ -23,7 +31,7 @@ func RunZigDeps(zigPath, target, headerPath string) ([]string, error) {
 	var out, errOut bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errOut
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("zig cc -M %s: %w\n%s", headerPath, err, errOut.String())
+		return nil, fmt.Errorf("zig cc %s %s: %w\n%s", flag, headerPath, err, errOut.String())
 	}
 	return parseMakeDeps(out.String()), nil
 }

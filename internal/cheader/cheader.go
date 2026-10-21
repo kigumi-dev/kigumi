@@ -27,7 +27,11 @@ type Options struct {
 	Run Runner
 	// DepRun overrides how the include closure is discovered; nil uses
 	// RunZigDeps.
-	DepRun DepRunner
+	DepRun     DepRunner
+	Root       string
+	UserDepRun DepRunner
+	// Abs resolves a path against the working directory the paths zig reports are relative to.
+	Abs func(string) (string, error)
 }
 
 // Result is one header's generated Kigumi source.
@@ -107,6 +111,9 @@ func Import(opts Options) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("discovering %s's includes: %w", opts.HeaderPath, err)
 	}
+	if err := confineIncludes(opts); err != nil {
+		return Result{}, err
+	}
 	closure, err := closureSources(opts.HeaderPath, deps)
 	if err != nil {
 		return Result{}, err
@@ -123,7 +130,7 @@ func Import(opts Options) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("importing %s: %w", opts.HeaderPath, err)
 	}
-	source, skipped := Generate(full, baseline, opts.ABI)
+	source, skipped := GenerateWith(full, baseline, opts.ABI, wideStringMacros(closure))
 	mf := Manifest{
 		FormatVersion:     formatVersion,
 		ZigDigest:         zigDigest,

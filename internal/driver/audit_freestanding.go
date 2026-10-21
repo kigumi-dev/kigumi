@@ -12,8 +12,8 @@ import (
 )
 
 // auditBareArchive checks a `--sys none` archive's embedder contract: every undefined
-// symbol must be one freestanding_symbols.txt names, and nothing is thread-local.
-func auditBareArchive(o CompilerOptions, cc []string, archive string) error {
+// symbol must be one freestanding_symbols.txt or an Embedder record names, and nothing is thread-local.
+func auditBareArchive(o CompilerOptions, cc []string, archive string, embedder []string) error {
 	dir, err := os.MkdirTemp("", "kigumi-audit")
 	if err != nil {
 		return err
@@ -51,6 +51,9 @@ func auditBareArchive(o CompilerOptions, cc []string, archive string) error {
 		allSyms = append(allSyms, syms...)
 	}
 	allowed := llgen.FreestandingSymbols()
+	for _, s := range embedder {
+		allowed[s] = true
+	}
 	var missing []string
 	seen := map[string]bool{}
 	for _, s := range allSyms {
@@ -68,7 +71,7 @@ func auditBareArchive(o CompilerOptions, cc []string, archive string) error {
 	}
 	sort.Strings(missing)
 	if cat := classifySymbol(missing[0]); cat != "" {
-		return fmt.Errorf("auditing %s: references undefined symbol %q (%s), which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s)", archive, missing[0], cat, strings.Join(missing, ", "))
+		return fmt.Errorf("auditing %s: references undefined symbol %q (%s), which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", archive, missing[0], cat, strings.Join(missing, ", "))
 	}
-	return fmt.Errorf("auditing %s: references undefined symbol %q, which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s)", archive, missing[0], strings.Join(missing, ", "))
+	return fmt.Errorf("auditing %s: references undefined symbol %q, which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", archive, missing[0], strings.Join(missing, ", "))
 }

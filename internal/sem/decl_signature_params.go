@@ -47,8 +47,11 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 			continue
 		}
 		if ps.Flags&syntax.FlagVariadic != 0 && ps.Type == 0 {
-			if info.Abi == "" {
+			switch {
+			case info.Abi == "":
 				r.errAt(f, p, cCVariadicOutsideExtern)
+			case i != list.Len()-1:
+				r.errAt(f, p, cCVariadicNotLast)
 			}
 			cvariadic = true
 			continue
@@ -111,6 +114,6 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 	}
 	r.Entities[id].Type = info.Sig
 	if info.Abi != "" || info.Export != "" {
-		r.checkAbiTypes(f, e.Node, s, params, ret)
+		r.checkAbiTypes(f, e.Node, s, params, ret, info.Abi != "")
 	}
 }

@@ -14747,6 +14747,50 @@
       ]
     },
     {
+      "id": "sem/c_bit_pattern_params",
+      "kind": "sem",
+      "path": "testdata/sem/c_bit_pattern_params.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/c_export_bare_libc",
+      "kind": "sem",
+      "path": "testdata/sem/c_export_bare_libc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/c_symbol_conflicts",
+      "kind": "sem",
+      "path": "testdata/sem/c_symbol_conflicts.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/c_symbol_records",
+      "kind": "sem",
+      "path": "testdata/sem/c_symbol_records.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/callback_noalloc_box",
       "kind": "sem",
       "path": "testdata/sem/callback_noalloc_box.txtar",

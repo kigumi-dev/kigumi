@@ -21,6 +21,9 @@ func clone(cmd *cobra.Command, r driver.Require, dir string) (string, error) {
 	if !ok {
 		return "", errors.NewErrf("dependency %s %s: cannot derive its repository; give `url` in the Require", r.Name, r.Version)
 	}
+	if err := checkRequire(r, url); err != nil {
+		return "", err
+	}
 	if err := os.MkdirAll(filepath.Dir(dir), 0o755); err != nil {
 		return "", errors.WrapErr(err, "create module cache")
 	}
@@ -38,7 +41,10 @@ func clone(cmd *cobra.Command, r driver.Require, dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	src := filepath.Join(tmp, filepath.FromSlash(subdir))
+	src, err := confinedSubdir(tmp, subdir, r)
+	if err != nil {
+		return "", err
+	}
 	if _, err := os.Stat(filepath.Join(src, driver.ManifestName)); err != nil {
 		return "", errors.NewErrf("%s at %s has no %s in %q", r.Name, r.Version, driver.ManifestName, subdir)
 	}
@@ -74,7 +80,7 @@ func git(cmd *cobra.Command, dir string, args ...string) (string, error) {
 }
 
 func cloneTag(cmd *cobra.Command, url, tag, tmp string) (string, error) {
-	if _, err := git(cmd, "", "clone", "--quiet", "--depth", "1", "--branch", tag, url, tmp); err != nil {
+	if _, err := git(cmd, "", "clone", "--quiet", "--depth", "1", "--branch", tag, "--", url, tmp); err != nil {
 		return "", errors.WrapErrf(err, "git clone %s at %s", url, tag)
 	}
 	head, err := git(cmd, tmp, "rev-parse", "HEAD")
@@ -86,59 +92,6 @@ func cloneTag(cmd *cobra.Command, url, tag, tmp string) (string, error) {
 		return "", errors.NewErrf("%s has no tag %s (a branch of that name is not a version)", url, tag)
 	}
 	return head, nil
-}
-
-// shallowFetch is a var, not a direct call, so tests can make it fail without a real server.
-var shallowFetch = shallowFetchCommit
-
-func cloneCommit(cmd *cobra.Command, url, hash, tmp string) (string, error) {
-	full, err := shallowFetch(cmd, url, hash, tmp)
-	if err == nil {
-		return full, nil
-	}
-	cmd.Printf("%s: cannot fetch commit %s directly (%s); cloning the full history instead\n", url, hash, err)
-	if err := os.RemoveAll(tmp); err != nil {
-		return "", errors.WrapErr(err, "clear partial fetch")
-	}
-	if err := os.Mkdir(tmp, 0o755); err != nil {
-		return "", errors.WrapErr(err, "clear partial fetch")
-	}
-	return cloneCommitFull(cmd, url, hash, tmp)
-}
-
-func shallowFetchCommit(cmd *cobra.Command, url, hash, tmp string) (string, error) {
-	if _, err := git(cmd, "", "init", "--quiet", tmp); err != nil {
-		return "", err
-	}
-	if _, err := git(cmd, tmp, "remote", "add", "origin", url); err != nil {
-		return "", err
-	}
-	if _, err := git(cmd, tmp, "fetch", "--quiet", "--depth", "1", "origin", hash); err != nil {
-		return "", err
-	}
-	full, err := git(cmd, tmp, "rev-parse", "--verify", "--quiet", "FETCH_HEAD^{commit}")
-	if err != nil {
-		return "", err
-	}
-	if _, err := git(cmd, tmp, "checkout", "--quiet", full); err != nil {
-		return "", err
-	}
-	return full, nil
-}
-
-// cloneCommitFull is the unbounded fallback every server supports.
-func cloneCommitFull(cmd *cobra.Command, url, hash, tmp string) (string, error) {
-	if _, err := git(cmd, "", "clone", "--quiet", "--no-checkout", url, tmp); err != nil {
-		return "", errors.WrapErrf(err, "git clone %s", url)
-	}
-	full, err := git(cmd, tmp, "rev-parse", "--verify", "--quiet", hash+"^{commit}")
-	if err != nil {
-		return "", errors.NewErrf("%s has no commit %s (or it is ambiguous)", url, hash)
-	}
-	if _, err := git(cmd, tmp, "checkout", "--quiet", full); err != nil {
-		return "", errors.WrapErrf(err, "git checkout %s", full)
-	}
-	return full, nil
 }
 
 // dropNestedModules removes module roots below src: they are separate
@@ -167,7 +120,10 @@ func dropNestedModules(src string) error {
 // version of the module's subdirectory (prereleases excluded).
 func latestTag(r driver.Require) (string, error) {
 	url, subdir, _ := driver.RepoOf(r)
-	ls, err := gitCommand("ls-remote", "--tags", "--refs", url)
+	if err := checkRequire(r, url); err != nil {
+		return "", err
+	}
+	ls, err := gitCommand("ls-remote", "--tags", "--refs", "--", url)
 	if err != nil {
 		return "", err
 	}

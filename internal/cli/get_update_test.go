@@ -13,7 +13,7 @@ func TestGetUpdateRefreshesExistingCache(t *testing.T) {
 	repo := monorepo(t, root)
 	app := filepath.Join(root, "app")
 	os.MkdirAll(app, 0o755)
-	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"github.com/kigumilang/exp/sgx\"\n    version: \"v0.1.0\"\n    url: \""+repo+"\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"github.com/kigumilang/exp/sgx\"\n    version: \"v0.1.0\"\n    url: \"file://"+repo+"\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import enclave from github.com/kigumilang/exp/sgx/enclave\nprint enclave.hello()\n"), 0o644)
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
@@ -56,7 +56,7 @@ func TestGetUpdateAnnotatedTagStaysUpToDate(t *testing.T) {
 
 	app := filepath.Join(root, "app")
 	os.MkdirAll(app, 0o755)
-	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"github.com/kigumilang/exp/sgx\"\n    version: \"v0.1.0\"\n    url: \""+repo+"\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"github.com/kigumilang/exp/sgx\"\n    version: \"v0.1.0\"\n    url: \"file://"+repo+"\"\n}\n"), 0o644)
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
 	if code, _, errOut := execute(t, "get", app); code != 0 {

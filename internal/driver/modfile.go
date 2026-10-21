@@ -55,7 +55,8 @@ type ModFile struct {
 	Zig string
 	// ZigSpan is where Zig was declared (the Module record's `zig` field,
 	// or a standalone Zig record), for a build-time resolution diagnostic.
-	ZigSpan token.Span
+	ZigSpan  token.Span
+	Embedder []string
 	// Interrupt is the interrupt configuration of `Interrupt` records; the root module's is the limit, a dependency's only narrows its own handlers.
 	Interrupt sem.InterruptConfig
 }
@@ -87,6 +88,7 @@ var manifestFields = map[string][]string{
 	"Header":    {"path", "package"},
 	"Zig":       {"version"},
 	"Interrupt": {"handler", "allow"},
+	"Embedder":  {"symbol"},
 }
 
 // ReadModFile parses root/mod.kg; ok is false when there is none.

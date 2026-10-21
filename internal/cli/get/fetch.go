@@ -95,6 +95,9 @@ func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
 	}
 	prev, locked := f.lock.Entries[r.Name]
 	locked = locked && prev.Version == r.Version
+	if want := driver.RepoURLKey(r); locked && !f.update && prev.URL != "" && want != "" && prev.URL != want {
+		return errors.NewErrf("%s %s is now fetched from %s but the lock recorded %s; run `kigumi get -u` to accept the new source", r.Name, r.Version, want, prev.URL)
+	}
 	if missing {
 		rawCommit, err := clone(f.cmd, r, dir)
 		if err != nil {
@@ -133,7 +136,7 @@ func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
 	if err != nil {
 		return errors.WrapErrf(err, "%s %s: read the origin marker", r.Name, r.Version)
 	}
-	f.next.Entries[r.Name] = driver.LockEntry{Version: r.Version, Commit: driver.TagCommit(strings.TrimSpace(string(commit))), Hash: hash}
+	f.next.Entries[r.Name] = driver.LockEntry{Version: r.Version, Commit: driver.TagCommit(strings.TrimSpace(string(commit))), Hash: hash, URL: driver.RepoURLKey(r)}
 	return nil
 }
 

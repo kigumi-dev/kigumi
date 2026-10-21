@@ -4,3 +4,5 @@ print "${m.INT8_MIN} ${m.INT16_MIN} ${m.INT32_MIN} ${m.INTPTR_MIN} ${m.PTRDIFF_M
 print "${m.PAREN_MIN} ${m.SHIFTED} ${m.I32_FLOOR} ${m.I16_FLOOR} ${m.BIG} ${m.MASK} ${m.MIXED}"
 print "${m.GREETING} ${m.NEG_UNSIGNED}"
 print "${m.WRAP_ADD} ${m.WRAP_NOT} ${m.WRAP_SHL} ${m.NEG_HEX} ${m.OCT_WRAP} ${m.RESET == "\u{1b}[0m"} ${m.NUL_END == "nul\0end"} ${m.DOLLAR}"
+print "${m.INT64_MAX} ${m.INT64_MIN} ${m.UINT64_MAX} ${m.INTMAX_MAX} ${m.INTMAX_MIN} ${m.UINTMAX_MAX}"
+print "${m.MAX_ALIAS} ${m.U64_CONST} ${m.U32_CONST} ${m.I64_CONST}"

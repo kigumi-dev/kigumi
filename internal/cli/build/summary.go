@@ -10,7 +10,7 @@ import (
 	"kigumi/internal/schema"
 )
 
-func buildSummary(cmd *cobra.Command, m *driver.Module, policy driver.BuildPolicy, reproducible bool) driver.Summary {
+func buildSummary(cmd *cobra.Command, m *driver.Module, policy driver.BuildPolicy, reproducible bool, tools []string) driver.Summary {
 	var inputs []string
 	if path, ambient := shared.AmbientStd(cmd); ambient {
 		inputs = append(inputs, "std: "+path+" (from $KIGUMI_STD)")
@@ -30,7 +30,7 @@ func buildSummary(cmd *cobra.Command, m *driver.Module, policy driver.BuildPolic
 		LocalOverrides:      m.LocalOverrides(),
 		HostInputs:          inputs,
 		Resources:           driver.ResourceReport(m.LastAnalysis()),
-		Capabilities:        driver.Capabilities(m.LastAnalysis()),
+		Capabilities:        append(driver.Capabilities(m.LastAnalysis()), tools...),
 		ReproducibleChecked: reproducible,
 		Reproducible:        reproducible,
 		DeriveProvenance:    provenance,

@@ -97,6 +97,10 @@ func classifyOpaque(chunk string, known, opaque map[string]bool) item {
 // skipped lists what was left out, one entry per declaration, sorted and
 // deduplicated by name.
 func Generate(full, baseline string, abi ABI) (source string, skipped []string) {
+	return GenerateWith(full, baseline, abi, nil)
+}
+
+func GenerateWith(full, baseline string, abi ABI, wide map[string]bool) (source string, skipped []string) {
 	seen := map[string]bool{}
 	for _, c := range splitTopLevel(baseline) {
 		if k, n, ok := declHead(c); ok {
@@ -105,6 +109,7 @@ func Generate(full, baseline string, abi ABI) (source string, skipped []string) 
 	}
 	known := map[string]bool{}
 	opaque := map[string]bool{}
+	vals := map[string]cval{}
 	var opaques, records, aliases, fns, consts []item
 	var skip []string
 	var pendingMembers []int
@@ -113,7 +118,10 @@ func Generate(full, baseline string, abi ABI) (source string, skipped []string) 
 		if !ok || seen[k+" "+n] {
 			continue
 		}
-		it := classify(c, known, opaque, abi)
+		it := classify(c, known, opaque, vals, abi)
+		if k == "const" && wide[n] && it.skip == "" {
+			it = item{name: n, skip: "wide string literal (L, u or U prefix); Kigumi has no wide string type"}
+		}
 		switch {
 		case it.kind == "noop":
 		case it.skip != "":
@@ -154,40 +162,4 @@ func Generate(full, baseline string, abi ABI) (source string, skipped []string) 
 	}
 	sort.Strings(skip)
 	return render(opaques, records, aliases, fns, consts), dedupe(skip)
-}
-
-func render(opaques, records, aliases, fns, consts []item) string {
-	var b strings.Builder
-	if len(opaques) > 0 || len(fns) > 0 {
-		b.WriteString("extern(C) {\n")
-		for _, t := range opaques {
-			fmt.Fprintf(&b, "    pub %s\n", t.text)
-		}
-		if len(opaques) > 0 && len(fns) > 0 {
-			b.WriteString("\n")
-		}
-		for _, f := range fns {
-			fmt.Fprintf(&b, "    pub %s\n", f.text)
-		}
-		b.WriteString("}\n")
-	}
-	for _, group := range [][]item{records, aliases, consts} {
-		for _, it := range group {
-			if b.Len() > 0 {
-				b.WriteString("\n")
-			}
-			fmt.Fprintf(&b, "pub %s\n", it.text)
-		}
-	}
-	return b.String()
-}
-
-func dedupe(s []string) []string {
-	var out []string
-	for i, v := range s {
-		if i == 0 || v != s[i-1] {
-			out = append(out, v)
-		}
-	}
-	return out
 }

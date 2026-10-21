@@ -1,0 +1,74 @@
+-- app/t/t.kg --
+import ffi from std/ffi
+
+type Letter = alias Char
+
+extern(C) {
+    fn fill_char(p: *mut Char) -> i32 //~ ERROR
+    fn read_char(p: *const Char) -> i32 //~ ERROR
+    fn flag_ptr(p: *mut Bool) -> i32
+    fn flag_cell(c: ffi.CValue[Bool]) -> i32 //~ ERROR
+    fn char_cell(c: ffi.CValue[Char]) -> i32 //~ ERROR
+    fn letter_ptr(p: *const Letter) -> i32 //~ ERROR
+    fn fill_bytes(p: *mut u8, n: usize) -> i32
+    fn fill_codes(p: *mut i32, n: usize) -> i32
+    fn fill_ptrs(p: *mut *const u8) -> i32
+    fn nested_char(p: *mut *mut Char) -> i32 //~ ERROR
+    fn cell_ptr(p: *mut ffi.CValue[Char]) -> i32 //~ ERROR
+}
+
+fn cells() -> Char {
+    let cv = ffi.CValue.new[Char]('k')
+    cv.get()
+}
+
+-- expect --
+error[E2220]: `*mut Char` cannot be an extern parameter, because C can store bit patterns that are not a valid Char
+ --> app/t/t.kg:6:21
+  |
+6 |     fn fill_char(p: *mut Char) -> i32 //~ ERROR
+  |                     ^^^^^^^^^
+  = help: use the integer type `i32` and convert it in Kigumi
+
+error[E2220]: `*const Char` cannot be an extern parameter, because C can store bit patterns that are not a valid Char
+ --> app/t/t.kg:7:21
+  |
+7 |     fn read_char(p: *const Char) -> i32 //~ ERROR
+  |                     ^^^^^^^^^^^
+  = help: use the integer type `i32` and convert it in Kigumi
+
+error[E2220]: `CValue[Bool]` cannot be an extern parameter, because C can store bit patterns that are not a valid Bool
+ --> app/t/t.kg:9:21
+  |
+9 |     fn flag_cell(c: ffi.CValue[Bool]) -> i32 //~ ERROR
+  |                     ^^^^^^^^^^^^^^^
+  = help: use the integer type `u8` and convert it in Kigumi
+
+error[E2220]: `CValue[Char]` cannot be an extern parameter, because C can store bit patterns that are not a valid Char
+  --> app/t/t.kg:10:21
+   |
+10 |     fn char_cell(c: ffi.CValue[Char]) -> i32 //~ ERROR
+   |                     ^^^^^^^^^^^^^^^
+   = help: use the integer type `i32` and convert it in Kigumi
+
+error[E2220]: `*const Char` cannot be an extern parameter, because C can store bit patterns that are not a valid Char
+  --> app/t/t.kg:11:22
+   |
+11 |     fn letter_ptr(p: *const Letter) -> i32 //~ ERROR
+   |                      ^^^^^^^^^^^^^
+   = help: use the integer type `i32` and convert it in Kigumi
+
+error[E2220]: `*mut *mut Char` cannot be an extern parameter, because C can store bit patterns that are not a valid Char
+  --> app/t/t.kg:15:23
+   |
+15 |     fn nested_char(p: *mut *mut Char) -> i32 //~ ERROR
+   |                       ^^^^^^^^^^^^^^
+   = help: use the integer type `i32` and convert it in Kigumi
+
+error[E2220]: `*mut CValue[Char]` cannot be an extern parameter, because C can store bit patterns that are not a valid Char
+  --> app/t/t.kg:16:20
+   |
+16 |     fn cell_ptr(p: *mut ffi.CValue[Char]) -> i32 //~ ERROR
+   |                    ^^^^^^^^^^^^^^^^^^^^
+   = help: use the integer type `i32` and convert it in Kigumi
+

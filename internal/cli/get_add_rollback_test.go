@@ -17,7 +17,7 @@ func TestGetAddRollsBackOnFetchFailure(t *testing.T) {
 
 	// A URL that cannot be cloned, so the fetch step fails deterministically.
 	notARepo := filepath.Join(root, "does-not-exist")
-	if code, _, errOut := execute(t, "get", "example.com/nope", "--url", notARepo, app); code == 0 {
+	if code, _, errOut := execute(t, "get", "example.com/nope", "--url", "file://"+notARepo, app); code == 0 {
 		t.Fatalf("fetch of a nonexistent repo must fail, stderr %q", errOut)
 	}
 	mf, err := os.ReadFile(filepath.Join(app, "mod.kg"))

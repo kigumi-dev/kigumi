@@ -13,6 +13,7 @@ type cparser struct {
 	pos  int
 	abi  ABI
 	ok   bool
+	vals map[string]cval
 }
 
 func tokenizeConst(s string) ([]string, bool) {

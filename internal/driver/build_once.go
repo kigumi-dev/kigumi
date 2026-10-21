@@ -121,7 +121,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		if err := WriteFingerprintSidecar(out, fp); err != nil {
 			return false, err
 		}
-		err = auditBareArchive(m.compiler, cc, out)
+		err = auditBareArchive(m.compiler, cc, out, m.Manifest.Embedder)
 		return err == nil, err
 	}
 	ok, err = publishBuildOutput(out, func(staged string) error {

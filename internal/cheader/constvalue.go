@@ -12,11 +12,15 @@ func classifyConst(name, typ, literal string, abi ABI) item {
 
 // classifyBareConst disambiguates `pub const NAME = TARGET;`, which zig uses
 // for a plain alias, a function-pointer typedef, and a macro constant alike.
-func classifyBareConst(chunk string, known, opaque map[string]bool, abi ABI) item {
+func classifyBareConst(chunk string, known, opaque map[string]bool, vals map[string]cval, abi ABI) item {
 	m := reConstBare.FindStringSubmatch(chunk)
 	name, target := m[1], strings.TrimSpace(m[2])
 	switch {
 	case isIdent(target):
+		if v, ok := vals[target]; ok {
+			vals[name] = v
+			return item{kind: "const", name: name, text: "const " + name + ": " + v.typeName() + " = " + v.v.String()}
+		}
 		return classifyAlias(name, target, known, opaque, abi)
 	case looksLikeType(target):
 		// A function-pointer typedef (`Callback = ?*const fn (...) ...`):
@@ -30,9 +34,12 @@ func classifyBareConst(chunk string, known, opaque map[string]bool, abi ABI) ite
 		known[friendly] = true
 		return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + kt}
 	}
-	typ, lit, ok := evalConst(target, abi)
+	typ, lit, v, ok := evalConstEnv(target, abi, vals)
 	if !ok {
 		return item{name: name, skip: "unsupported constant value"}
+	}
+	if v.v != nil {
+		vals[name] = v
 	}
 	return item{kind: "const", name: name, text: "const " + name + ": " + typ + " = " + lit}
 }

@@ -3,12 +3,16 @@ package sem
 import "kigumi/internal/syntax"
 
 // checkAbiTypes keeps C signatures to what the C ABI can carry.
-func (r *Result) checkAbiTypes(f FileID, n syntax.NodeID, s fnSlots, params []TypeID, ret TypeID) {
+func (r *Result) checkAbiTypes(f FileID, n syntax.NodeID, s fnSlots, params []TypeID, ret TypeID, extern bool) {
 	t := r.tree(f)
 	i := 0
 	for p := range t.List(s.Params).IDs() {
 		ps := param(t, p)
 		if ps.Flags&syntax.FlagSelf != 0 || ps.Type == 0 {
+			continue
+		}
+		if extern && i < len(params) && r.errBitPattern(f, ps.Type, params[i]) {
+			i++
 			continue
 		}
 		if i < len(params) && !r.abiSafe(params[i]) {

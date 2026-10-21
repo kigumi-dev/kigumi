@@ -53,6 +53,8 @@ func (m *Module) addHeaders(dir string, mf ModFile) error {
 			Target:     m.target.compileTriple(),
 			ABI:        cheader.ABIFor(m.target.OS, m.target.Arch),
 			HeaderPath: headerPath,
+			Root:       dir,
+			Abs:        m.compiler.Abs,
 			CacheDir:   cacheDir,
 		})
 		if err != nil {

@@ -31,7 +31,7 @@ var reBodiedFn = regexp.MustCompile(`^pub (?:inline )?fn (\w+)\(`)
 // as struct, opaque and alias declarations are found. Chunks must be fed in
 // their original header order: a C declaration can only reference an
 // earlier one, so one forward pass is enough to resolve every reference.
-func classify(chunk string, known, opaque map[string]bool, abi ABI) item {
+func classify(chunk string, known, opaque map[string]bool, vals map[string]cval, abi ABI) item {
 	switch {
 	case strings.Contains(chunk, "@compileError("):
 		return item{name: declName(chunk), skip: "unsupported C construct (zig could not translate it)"}
@@ -51,7 +51,7 @@ func classify(chunk string, known, opaque map[string]bool, abi ABI) item {
 		m := reConstTyped.FindStringSubmatch(chunk)
 		return classifyConst(m[1], m[2], m[3], abi)
 	case reConstBare.MatchString(chunk):
-		return classifyBareConst(chunk, known, opaque, abi)
+		return classifyBareConst(chunk, known, opaque, vals, abi)
 	}
 	return item{name: declName(chunk), skip: "unrecognized declaration shape"}
 }

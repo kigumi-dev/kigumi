@@ -26,6 +26,7 @@ func (r *Result) phases() []func() {
 		r.declareTypes,
 		r.declareSignatures,
 		r.checkTypeNomono,
+		r.checkCSymbols,
 		r.declareConsts,
 		r.declareStatics,
 		r.declareContextKeys,

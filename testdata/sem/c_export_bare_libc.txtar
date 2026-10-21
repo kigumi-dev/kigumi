@@ -1,0 +1,21 @@
+-- module --
+target: freestanding
+-- src --
+export(C) {
+    pub fn memset(p: *mut u8, v: i32, n: usize) -> *mut u8 {
+        p
+    }
+    pub fn malloc(n: usize) -> usize { //~ ERROR
+        n
+    }
+}
+
+fn main() {}
+-- expect --
+error[E2218]: the C symbol `malloc` is already defined by the C library
+ --> main/main.kg:5:5
+  |
+5 |     pub fn malloc(n: usize) -> usize { //~ ERROR
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: declare each C symbol once, with one signature, and export only names the C library does not define
+

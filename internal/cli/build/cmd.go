@@ -93,7 +93,7 @@ func Cmd() *cobra.Command {
 		if !ok {
 			return cliutil.Exit(1)
 		}
-		fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, policy, *reproducible).Render())
+		fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, policy, *reproducible, nil).Render())
 		return nil
 	}
 	return cmd

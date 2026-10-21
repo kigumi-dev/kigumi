@@ -65,6 +65,12 @@ func modFileOf(recs []record, module bool) (ModFile, []diag.Diagnostic) {
 			mf.Sources = append(mf.Sources, NativeSource{Path: c + asm, Asm: asm != ""})
 		case "Interrupt":
 			ds = append(ds, mf.addInterrupt(r)...)
+		case "Embedder":
+			sym := r.Fields["symbol"]
+			if !validCSymbol.MatchString(sym) {
+				ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, "Embedder needs a `symbol` that is a C identifier (letters, digits, `_`)"))
+			}
+			mf.Embedder = append(mf.Embedder, sym)
 		case "Header":
 			ds = append(ds, headerDiags(r)...)
 			mf.Headers = append(mf.Headers, HeaderImport{Path: r.Fields["path"], Package: r.Fields["package"]})
@@ -106,6 +112,8 @@ func linkDiags(r record) []diag.Diagnostic {
 	}
 	return nil
 }
+
+var validCSymbol = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 var validPackageName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*$`)
 

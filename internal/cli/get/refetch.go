@@ -17,9 +17,12 @@ func remoteTagCommit(r driver.Require) (string, error) {
 	if !ok {
 		return "", errors.NewErrf("dependency %s %s: cannot derive its repository; give `url` in the Require", r.Name, r.Version)
 	}
+	if err := checkRequire(r, url); err != nil {
+		return "", err
+	}
 	tag := driver.TagOf(subdir, r.Version)
 	ref := "refs/tags/" + tag
-	ls, err := gitCommand("ls-remote", "--tags", url, ref, ref+"^{}")
+	ls, err := gitCommand("ls-remote", "--tags", "--", url, ref, ref+"^{}")
 	if err != nil {
 		return "", err
 	}

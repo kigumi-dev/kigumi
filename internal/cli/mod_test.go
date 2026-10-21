@@ -49,7 +49,7 @@ func TestGetLock(t *testing.T) {
 	repo := monorepo(t, root)
 	app := filepath.Join(root, "app")
 	os.MkdirAll(app, 0o755)
-	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"github.com/kigumilang/exp/sgx\"\n    version: \"v0.1.0\"\n    url: \""+repo+"\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"github.com/kigumilang/exp/sgx\"\n    version: \"v0.1.0\"\n    url: \"file://"+repo+"\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import enclave from github.com/kigumilang/exp/sgx/enclave\nprint enclave.hello()\n"), 0o644)
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
@@ -98,7 +98,7 @@ func TestGetLock(t *testing.T) {
 	}
 
 	hash := git(t, repo, "rev-parse", "--short=9", "HEAD")
-	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"github.com/kigumilang/exp/sgx\"\n    version: \""+hash+"\"\n    url: \""+repo+"\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"github.com/kigumilang/exp/sgx\"\n    version: \""+hash+"\"\n    url: \"file://"+repo+"\"\n}\n"), 0o644)
 	if code, _, errOut := execute(t, "get", app); code != 0 {
 		t.Fatalf("get by commit: %s", errOut)
 	}
@@ -121,7 +121,7 @@ func TestGetAdd(t *testing.T) {
 	os.MkdirAll(app, 0o755)
 	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", ""), 0o644)
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	if code, out, errOut := execute(t, "get", "github.com/kigumilang/exp/web", "--url", repo, app); code != 0 || !strings.Contains(out, "added github.com/kigumilang/exp/web v0.3.0") {
+	if code, out, errOut := execute(t, "get", "github.com/kigumilang/exp/web", "--url", "file://"+repo, app); code != 0 || !strings.Contains(out, "added github.com/kigumilang/exp/web v0.3.0") {
 		t.Fatalf("get add: exit %d %q %q", code, out, errOut)
 	}
 	mf, _ := os.ReadFile(filepath.Join(app, "mod.kg"))
@@ -131,7 +131,7 @@ func TestGetAdd(t *testing.T) {
 
 	script := filepath.Join(root, "tool.kg")
 	os.WriteFile(script, []byte("#!/usr/bin/env kigumi\nimport web from github.com/kigumilang/exp/web\nprint \"${web.serve()}\"\n"), 0o644)
-	if code, _, errOut := execute(t, "get", "github.com/kigumilang/exp/web@v0.3.0", "--url", repo, "--lock", script); code != 0 {
+	if code, _, errOut := execute(t, "get", "github.com/kigumilang/exp/web@v0.3.0", "--url", "file://"+repo, "--lock", script); code != 0 {
 		t.Fatalf("get add script: %s", errOut)
 	}
 	src, _ := os.ReadFile(script)

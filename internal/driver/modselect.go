@@ -38,29 +38,13 @@ func SelectVersions(o CompilerOptions, root ModFile, local Local) (*Selection, e
 	visited := map[verKey]bool{}
 	var queue []Require
 
-	visit := func(r Require, from string) error {
-		if cur, ok := max[r.Name]; !ok {
-			max[r.Name], by[r.Name] = r, from
-		} else if r.Version == cur.Version {
-			if r.URL != "" && cur.URL != "" && r.URL != cur.URL {
-				return fmt.Errorf("dependency %s %s is required from %s by %s and from %s by %s", r.Name, r.Version, cur.URL, by[r.Name], r.URL, from)
-			}
-		} else if CompareVersions(r.Version, cur.Version) == 0 {
-			// Same precedence, different literal tag (build metadata):
-			// CacheDir keys off the literal string, so these are not
-			// necessarily the same content and must not merge silently.
-			return fmt.Errorf("dependency %s is required at %s by %s and at %s by %s: same precedence but different tags", r.Name, cur.Version, by[r.Name], r.Version, from)
-		} else {
-			newer, err := versionNewer(r, cur)
-			if err != nil {
-				return fmt.Errorf("dependency %s is required at %s by %s and at %s by %s: %w", r.Name, cur.Version, by[r.Name], r.Version, from, err)
-			}
-			if newer {
-				if r.URL == "" {
-					r.URL = cur.URL
-				}
-				max[r.Name], by[r.Name] = r, from
-			}
+	claims := urlClaims{}
+	visit := func(r Require, from string, isRoot bool) error {
+		if err := claims.claim(r, from, isRoot); err != nil {
+			return err
+		}
+		if err := mergeRequire(max, by, r, from); err != nil {
+			return err
 		}
 		key := verKey{r.Name, r.Version}
 		if visited[key] {
@@ -72,7 +56,7 @@ func SelectVersions(o CompilerOptions, root ModFile, local Local) (*Selection, e
 	}
 
 	for _, r := range root.Requires {
-		if err := visit(r, byName(root)); err != nil {
+		if err := visit(r, byName(root), true); err != nil {
 			return nil, err
 		}
 	}
@@ -95,7 +79,7 @@ func SelectVersions(o CompilerOptions, root ModFile, local Local) (*Selection, e
 		}
 		manifests[verKey{r.Name, r.Version}] = mf
 		for _, sub := range mf.Requires {
-			if err := visit(sub, r.Name); err != nil {
+			if err := visit(sub, r.Name, false); err != nil {
 				return nil, err
 			}
 		}

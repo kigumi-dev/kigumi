@@ -22,9 +22,10 @@ type Lock struct {
 
 type LockEntry struct {
 	Version, Commit, Hash string
+	URL                   string
 }
 
-var lockFields = map[string][]string{"Lock": {"name", "version", "commit", "hash"}}
+var lockFields = map[string][]string{"Lock": {"name", "version", "commit", "hash", "url"}}
 
 // ReadLock parses root/mod.lock.kg; a missing file is an empty lock.
 func ReadLock(root string) (Lock, error) { return ReadLockFile(filepath.Join(root, LockName)) }
@@ -55,7 +56,7 @@ func ParseLock(f *token.File) (Lock, []diag.Diagnostic) {
 		if _, dup := lk.Entries[r.Fields["name"]]; dup {
 			ds = append(ds, diag.Errorf(diag.Location{Span: r.Span}, fmt.Sprintf("%s is locked twice", r.Fields["name"])))
 		}
-		lk.Entries[r.Fields["name"]] = LockEntry{Version: r.Fields["version"], Commit: NormalizeCommit(r.Fields["commit"]), Hash: r.Fields["hash"]}
+		lk.Entries[r.Fields["name"]] = LockEntry{Version: r.Fields["version"], Commit: NormalizeCommit(r.Fields["commit"]), Hash: r.Fields["hash"], URL: r.Fields["url"]}
 	}
 	return lk, ds
 }
@@ -83,7 +84,7 @@ func WriteLockFile(path string, lk Lock) error {
 	for _, n := range names {
 		e := lk.Entries[n]
 		sb.WriteString("\n")
-		writeRecord(&sb, "Lock", "name", n, "version", e.Version, "commit", e.Commit, "hash", e.Hash)
+		writeRecord(&sb, "Lock", "name", n, "version", e.Version, "commit", e.Commit, "hash", e.Hash, "url", e.URL)
 	}
 	return writeFileAtomic(path, []byte(sb.String()), 0o644)
 }

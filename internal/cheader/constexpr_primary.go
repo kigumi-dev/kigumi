@@ -34,6 +34,19 @@ func (p *cparser) primary() cval {
 		base := p.next()
 		p.expect(")")
 		return p.promote(typ, n.v, base != ".decimal")
+	case suffixMacros[t] && p.peek() == "(":
+		p.next()
+		arg := p.binary(0)
+		p.expect(")")
+		if !p.ok {
+			return arg
+		}
+		return p.suffixed(t, arg)
+	case t != "" && isIdentStart(t[0]):
+		if v, found := p.vals[t]; found {
+			return v
+		}
+		return p.fail()
 	case t != "" && t[0] >= '0' && t[0] <= '9':
 		v, good := new(big.Int).SetString(t, 0)
 		if !good || strings.ContainsAny(t, ".") {
@@ -43,6 +56,8 @@ func (p *cparser) primary() cval {
 	}
 	return p.fail()
 }
+
+func isIdentStart(c byte) bool { return c == '_' || (c|0x20 >= 'a' && c|0x20 <= 'z') }
 
 func isRadixLiteral(t string) bool {
 	return len(t) > 1 && t[0] == '0' && (strings.ContainsAny(t[1:2], "xXoObB") || !strings.ContainsAny(t, ".eE"))
@@ -123,23 +138,28 @@ func kigumiStringBody(b string) (string, bool) {
 
 // Integer expressions follow C's integer promotions; strings may be joined by `++`.
 func evalConst(target string, abi ABI) (typ, literal string, ok bool) {
+	typ, literal, _, ok = evalConstEnv(target, abi, nil)
+	return typ, literal, ok
+}
+
+func evalConstEnv(target string, abi ABI, vals map[string]cval) (typ, literal string, v cval, ok bool) {
 	toks, good := tokenizeConst(target)
 	if !good || len(toks) == 0 {
-		return "", "", false
+		return "", "", cval{}, false
 	}
 	if toks[0][0] == '"' {
 		s, joined := concatStrings(toks)
-		return "String", s, joined
+		return "String", s, cval{}, joined
 	}
 	if ft, fl, fok := floatConst(toks, abi); fok {
-		return ft, fl, true
+		return ft, fl, cval{}, true
 	}
-	p := &cparser{toks: toks, abi: abi, ok: true}
-	v := p.binary(0)
+	p := &cparser{toks: toks, abi: abi, ok: true, vals: vals}
+	v = p.binary(0)
 	if !p.ok || p.pos != len(toks) {
-		return "", "", false
+		return "", "", cval{}, false
 	}
-	return v.typeName(), spelling(toks, v), true
+	return v.typeName(), spelling(toks, v), v, true
 }
 
 // A plain literal keeps its own digits (hex stays hex); computed values print in decimal.

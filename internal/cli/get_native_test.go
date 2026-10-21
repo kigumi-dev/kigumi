@@ -22,7 +22,7 @@ func TestGetNativeConsentDiff(t *testing.T) {
 
 	app := filepath.Join(root, "app")
 	os.MkdirAll(app, 0o755)
-	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"greet\"\n    version: \"v1.0.0\"\n    url: \""+repo+"\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"greet\"\n    version: \"v1.0.0\"\n    url: \"file://"+repo+"\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {greeting} from greet\nprint greeting()\n"), 0o644)
 	cache := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cache)
@@ -53,7 +53,7 @@ func TestGetNativeConsentDiff(t *testing.T) {
 	git(t, repo, "add", ".")
 	git(t, repo, "commit", "-q", "-am", "add native source")
 	git(t, repo, "tag", "v1.1.0")
-	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"greet\"\n    version: \"v1.1.0\"\n    url: \""+repo+"\"\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(app, "mod.kg"), manifest("app", "Require {\n    name: \"greet\"\n    version: \"v1.1.0\"\n    url: \"file://"+repo+"\"\n}\n"), 0o644)
 
 	code, out, errOut = execute(t, "get", app)
 	if code != 0 {

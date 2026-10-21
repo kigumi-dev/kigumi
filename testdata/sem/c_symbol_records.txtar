@@ -1,0 +1,43 @@
+-- app/a/a.kg --
+type DivT layout(C) = {
+    pub quot i32
+    pub rem i32
+}
+
+extern(C) {
+    fn div(a: i32, b: i32) -> DivT
+}
+
+-- app/b/b.kg --
+type DivB layout(C) = {
+    pub quot i32
+    pub rem i32
+}
+
+extern(C) {
+    fn div(a: i32, b: i32) -> DivB
+}
+
+-- app/c/c.kg --
+type DivWide layout(C) = {
+    pub quot i64
+    pub rem i64
+}
+
+extern(C) {
+    fn div(a: i32, b: i32) -> DivWide //~ ERROR
+}
+
+-- expect --
+error[E2218]: the C symbol `div` is declared with different C signatures
+ --> app/c/c.kg:7:5
+  |
+7 |     fn div(a: i32, b: i32) -> DivWide //~ ERROR
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: declare each C symbol once, with one signature, and export only names the C library does not define
+note: also declared here
+ --> app/a/a.kg:7:8
+  |
+7 |     fn div(a: i32, b: i32) -> DivT
+  |        ^^^
+
