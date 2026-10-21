@@ -7,3 +7,18 @@ fn eexist() -> i32 {
 fn eintr() -> i32 {
     4
 }
+
+/// errno(3) ENOTDIR on this platform.
+fn enotdir() -> i32 {
+    20
+}
+
+/// errno(3) ENOENT on this platform.
+fn enoent() -> i32 {
+    2
+}
+
+/// errno(3) ELOOP on this platform.
+fn eloop() -> i32 {
+    62
+}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"kigumi/internal/hostshell"
 	"kigumi/internal/sem"
 )
 
@@ -41,7 +42,7 @@ func readFile(m *Machine, fn sem.EntityID, a []*obj) *obj {
 	buf := make([]byte, want)
 	got, err := fh.Read(buf)
 	if err != nil && err != io.EOF {
-		return m.errMsg(err.Error())
+		return m.errMsg(hostshell.OSErrText(err))
 	}
 	arr := deref(a[1])
 	for _, b := range buf[:got] {
@@ -54,7 +55,7 @@ func (m *Machine) registerFiles() {
 	h := m.host
 	openAs := func(m *Machine, fn sem.EntityID, fh *os.File, err error) *obj {
 		if err != nil {
-			return m.errMsg(err.Error())
+			return m.errMsg(hostshell.OSErrText(err))
 		}
 		file := m.r.Types.Node(m.resultPayload(fn)).Ent
 		return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
@@ -74,7 +75,7 @@ func (m *Machine) registerFiles() {
 	}
 	h["fs.Files.remove"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := os.Remove(m.resolvePath(pathText(a[1]))); err != nil {
-			return m.errMsg(err.Error())
+			return m.errMsg(hostshell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}
@@ -85,14 +86,14 @@ func (m *Machine) registerFiles() {
 		}
 		n, err := fh.Write(deref(a[1]).str())
 		if err != nil {
-			return m.errMsg(err.Error())
+			return m.errMsg(hostshell.OSErrText(err))
 		}
 		return m.ok(mkInt(int64(n), m.numKind(sem.TyUsize)))
 	}
 	h["fs.File.close"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if fh := fileOf(a[0]); fh != nil {
 			if err := fh.Sync(); err != nil && !strings.Contains(err.Error(), "invalid argument") {
-				return m.errMsg(err.Error())
+				return m.errMsg(hostshell.OSErrText(err))
 			}
 		}
 		return m.ok(unitObj)
@@ -107,7 +108,7 @@ func (m *Machine) registerFiles() {
 		b, err := os.ReadFile(m.resolvePath(pathText(a[1])))
 		switch {
 		case err != nil:
-			return m.errMsg(err.Error())
+			return m.errMsg(hostshell.OSErrText(err))
 		case !utf8.Valid(b):
 			return m.errMsg("invalid UTF-8")
 		}
@@ -116,17 +117,20 @@ func (m *Machine) registerFiles() {
 	h["fs.Files.readBytes"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		b, err := os.ReadFile(m.resolvePath(pathText(a[1])))
 		if err != nil {
-			return m.errMsg(err.Error())
+			return m.errMsg(hostshell.OSErrText(err))
 		}
 		return m.ok(mkBytes(b))
 	}
 	h["fs.Files.mkdir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		if err := os.MkdirAll(m.resolvePath(pathText(a[1])), 0o755); err != nil {
-			return m.errMsg(err.Error())
+		if err := m.mkdirAll(pathText(a[1])); err != nil {
+			return m.errMsg(hostshell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}
 	h["fs.Files.exists"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		if pathText(a[1]) == "" {
+			return mkBool(false)
+		}
 		_, err := os.Stat(m.resolvePath(pathText(a[1])))
 		return mkBool(err == nil)
 	}
@@ -134,7 +138,7 @@ func (m *Machine) registerFiles() {
 		dir := pathText(a[1])
 		entries, err := os.ReadDir(m.resolvePath(dir))
 		if err != nil {
-			return m.errMsg(err.Error())
+			return m.errMsg(hostshell.OSErrText(err))
 		}
 		var names []string
 		for _, e := range entries {

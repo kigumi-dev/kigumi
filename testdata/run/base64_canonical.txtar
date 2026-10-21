@@ -1,0 +1,37 @@
+-- src --
+import base64 from std/encoding/base64
+
+fn show(r: Result[Bytes, base64.DecodeError]) -> String {
+    match r {
+        Ok(b) -> "ok ${b.len()}"
+        Err(e) -> "err: ${e.message()}"
+    }
+}
+
+for input in Array.of("YQ==", "YQ", "YWI=", "YWI", "YWJj", "", "Zh==", "YQ===", "YQ=", "YWJ=", "YWJj=", "YQ=a", "Y", "YR==") {
+    print "decode <${input}>: ${show(base64.decode(input))}"
+}
+for input in Array.of("YQ", "Zh", "YWI", "YWJ", "YQ==", "YQ=") {
+    print "decodeUrl <${input}>: ${show(base64.decodeUrl(input))}"
+}
+-- stdout --
+decode <YQ==>: ok 1
+decode <YQ>: ok 1
+decode <YWI=>: ok 2
+decode <YWI>: ok 2
+decode <YWJj>: ok 3
+decode <>: ok 0
+decode <Zh==>: err: base64: the last character carries nonzero trailing bits
+decode <YQ===>: err: base64: padding does not fill the last group
+decode <YQ=>: err: base64: padding does not fill the last group
+decode <YWJ=>: err: base64: the last character carries nonzero trailing bits
+decode <YWJj=>: err: base64: padding does not fill the last group
+decode <YQ=a>: err: base64: `=` is not in the alphabet
+decode <Y>: err: base64: length 1 leaves a single stray character
+decode <YR==>: err: base64: the last character carries nonzero trailing bits
+decodeUrl <YQ>: ok 1
+decodeUrl <Zh>: err: base64: the last character carries nonzero trailing bits
+decodeUrl <YWI>: ok 2
+decodeUrl <YWJ>: err: base64: the last character carries nonzero trailing bits
+decodeUrl <YQ==>: ok 1
+decodeUrl <YQ=>: err: base64: padding does not fill the last group

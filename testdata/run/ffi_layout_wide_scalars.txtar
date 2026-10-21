@@ -1,0 +1,21 @@
+-- src --
+import ffi from std/ffi
+
+type Mixed layout(C) = {
+    pub a u8
+    pub b u64
+    pub c u8
+    pub d f64
+    pub e u16
+}
+
+type Tail layout(C) = {
+    pub n u32
+    pub w u64
+}
+
+let m = Mixed { a: 1, b: 2, c: 3, d: 4.0, e: 5 }
+let t = Tail { n: 1, w: 2 }
+print "${ffi.sizeOf(&m)} ${ffi.alignOf(&m)} ${ffi.sizeOf(&t)} ${ffi.alignOf(&t)}"
+-- stdout --
+40 8 16 8

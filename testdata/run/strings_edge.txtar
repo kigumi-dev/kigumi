@@ -29,7 +29,7 @@ case: HéLLO WöRLD Àbc Ünï MIXED 123
 repeat: <ababab> <> <>
 concat: <abcd> <>
 indexOf: 8 99 99 0
-lines:  |  | <a> | <a> | <a>,<>,<b> | <>,<>
+lines:  | <> | <a> | <a> | <a>,<>,<b> | <>,<>
 graphemes: <a>,<é>,<日>,<😀> | 
 parseInt: 42 7 0 -1 -1 9223372036854775807 -1 -15 -1 -9223372036854775808 7 -1 -1
 replace: <ba> <abc> <abc> <world> <> <abababab>

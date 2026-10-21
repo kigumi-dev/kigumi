@@ -1,0 +1,85 @@
+-- src --
+import fs from std/fs
+import shell from std/shell
+
+let files = host.files()
+
+fn msg[T](r: T!) -> String {
+    if r is Err(e) {
+        "err: ${e.message()}"
+    } else {
+        "ok"
+    }
+}
+
+let missing = fs.Path.fromString("no_such_dir_xyz/file.txt")?
+print "open: ${msg(files.open(missing))}"
+print "read: ${msg(files.read(missing))}"
+print "readBytes: ${msg(files.readBytes(missing))}"
+print "remove: ${msg(files.remove(missing))}"
+print "list: ${msg(files.list(missing))}"
+print "create: ${msg(files.create(missing))}"
+let plain = fs.Path.fromString("plain_mkdir_probe.txt")?
+files.writeText(plain, "hi")?
+defer(fail) _ = files.remove(plain)
+print "mkdir over file: ${msg(files.mkdir(plain))}"
+print "mkdir under file: ${msg(files.mkdir(fs.Path.fromString("plain_mkdir_probe.txt/sub")?))}"
+print "list file: ${msg(files.list(plain))}"
+let dir = fs.Path.fromString("mkdir_probe_dir/a/b")?
+print "mkdir new: ${msg(files.mkdir(dir))}"
+print "mkdir again: ${msg(files.mkdir(dir))}"
+print "exists dir: ${files.exists(dir)}"
+print "exists empty: ${files.exists(fs.Path.fromString("")?)}"
+let blank = fs.Path.fromString("")?
+print "open empty: ${msg(files.open(blank))}"
+print "read empty: ${msg(files.read(blank))}"
+print "readBytes empty: ${msg(files.readBytes(blank))}"
+print "list empty: ${msg(files.list(blank))}"
+print "create empty: ${msg(files.create(blank))}"
+print "remove empty: ${msg(files.remove(blank))}"
+print "exists file: ${files.exists(plain)}"
+print "read dir: ${msg(files.read(dir))}"
+let sh = host.shell()
+defer _ = $"sh -c 'rm -f mk_dang mk_loop mk_reg'" |> shell.run(sh)
+match $"sh -c 'ln -s no_target_xyz mk_dang; ln -s mk_loop mk_loop; : > mk_reg'" |> shell.run(sh) {
+    Ok(_) -> print "links ready"
+    Err(e) -> print "links err: ${e.message()}"
+}
+for name in Array.of("mk_dang", "mk_dang/q", "mk_loop", "mk_loop/q", "mk_reg/", "mk_reg/q") {
+    print "mkdir ${name}: ${msg(files.mkdir(fs.Path.fromString(name)?))}"
+}
+print "exists dangling: ${files.exists(fs.Path.fromString("mk_dang")?)}"
+files.remove(fs.Path.fromString("mkdir_probe_dir/a/b")?)?
+files.remove(fs.Path.fromString("mkdir_probe_dir/a")?)?
+files.remove(fs.Path.fromString("mkdir_probe_dir")?)?
+files.remove(plain)?
+-- stdout --
+open: err: No such file or directory
+read: err: No such file or directory
+readBytes: err: No such file or directory
+remove: err: No such file or directory
+list: err: No such file or directory
+create: err: No such file or directory
+mkdir over file: err: Not a directory
+mkdir under file: err: Not a directory
+list file: err: Not a directory
+mkdir new: ok
+mkdir again: ok
+exists dir: true
+exists empty: false
+open empty: err: No such file or directory
+read empty: err: No such file or directory
+readBytes empty: err: No such file or directory
+list empty: err: No such file or directory
+create empty: err: No such file or directory
+remove empty: err: No such file or directory
+exists file: true
+read dir: err: Is a directory
+links ready
+mkdir mk_dang: err: File exists
+mkdir mk_dang/q: err: File exists
+mkdir mk_loop: err: File exists
+mkdir mk_loop/q: err: File exists
+mkdir mk_reg/: err: Not a directory
+mkdir mk_reg/q: err: Not a directory
+exists dangling: false

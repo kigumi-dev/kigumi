@@ -5,12 +5,15 @@ package hostshell
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"kigumi/internal/syntax"
 )
@@ -32,22 +35,41 @@ type Redirect struct {
 	Target string
 }
 
-// GrepFilter keeps the lines matching pattern.
+// GrepFilter keeps the lines matching pattern, byte by byte like the native
+// runtime: lines split at "\n" only, and a line holding a NUL never matches.
 func GrepFilter(pattern string) func(io.Reader, io.Writer) error {
 	return func(in io.Reader, out io.Writer) error {
-		re, err := regexp.Compile(pattern)
+		re, err := regexp.Compile(byteRunes([]byte(pattern)))
 		if err != nil {
 			return err
 		}
-		sc := bufio.NewScanner(in)
-		sc.Buffer(make([]byte, 1024*1024), 1024*1024*64)
-		for sc.Scan() {
-			if re.MatchString(sc.Text()) {
-				fmt.Fprintln(out, sc.Text())
+		br := bufio.NewReader(in)
+		for {
+			line, rerr := br.ReadBytes('\n')
+			if len(line) > 0 {
+				line = bytes.TrimSuffix(line, []byte("\n"))
+				if !bytes.Contains(line, []byte{0}) && re.MatchString(byteRunes(line)) {
+					if _, werr := out.Write(append(line, '\n')); werr != nil {
+						return werr
+					}
+				}
+			}
+			if rerr == io.EOF {
+				return nil
+			}
+			if rerr != nil {
+				return rerr
 			}
 		}
-		return sc.Err()
 	}
+}
+
+func byteRunes(b []byte) string {
+	runes := make([]rune, len(b))
+	for i, c := range b {
+		runes[i] = rune(c)
+	}
+	return string(runes)
 }
 
 // fdTable is a stage's file descriptors 0, 1 and 2 while its redirects are
@@ -73,9 +95,12 @@ func applyRedirects(fds *fdTable, redirs []Redirect, dir string) ([]*os.File, er
 			fds[r.Fd] = fds[n]
 			continue
 		}
+		if strings.IndexByte(r.Target, 0) >= 0 {
+			return opened, errors.New("cannot open redirect target: it contains a NUL byte")
+		}
 		f, err := openRedirect(r, dir)
 		if err != nil {
-			return opened, err
+			return opened, fmt.Errorf("cannot open %s: %s", r.Target, OSErrText(err))
 		}
 		opened = append(opened, f)
 		fds[r.Fd] = f

@@ -327,11 +327,7 @@ fn parseAuthority(authority: String) -> HostPort! {
         } else {
             fail fails("malformed IPv6 host")
         }
-        return HostPort {
-            host: host
-            header: "[${host}]"
-            port: port
-        }
+        return finishAuthority(host, "[${host}]", port)
     }
     let colon = indexOf(authority, ":")
     let host = if colon is Some(i) {
@@ -344,9 +340,41 @@ fn parseAuthority(authority: String) -> HostPort! {
     } else {
         "80"
     }
+    finishAuthority(host, host, port)
+}
+
+fn validPort(port: Int) -> Bool {
+    port >= 0 && port <= 65535
+}
+
+// An empty port means the default, as in RFC 3986; anything but 1 to 5
+// digits within 0..65535 is refused before it can reach the resolver.
+fn finishAuthority(host: String, header: String, port: String) -> HostPort! {
+    if host == "" {
+        fail fails("invalid URL: empty host")
+    }
+    if port == "" {
+        return HostPort {
+            host: host
+            header: header
+            port: "80"
+        }
+    }
+    let digits = port.bytes()
+    let mut n = 0
+    for i in 0..digits.len() {
+        let d = (digits.get(i) || 0).toInt()
+        if d < 48 || d > 57 || i >= 5 {
+            fail fails("invalid URL: bad port")
+        }
+        n = n * 10 + (d - 48)
+    }
+    if !validPort(n) {
+        fail fails("invalid URL: bad port")
+    }
     HostPort {
         host: host
-        header: host
+        header: header
         port: port
     }
 }
@@ -451,9 +479,12 @@ pub type Listener = resource {
     fd i32
 }
 
-/// Connects to host:port over IPv4; no timeout (unlike Http.post, this
+/// Connects to host:port over IPv4, refusing a port outside 0..65535; no timeout (unlike Http.post, this
 /// call blocks until the OS gives up or a peer answers).
 pub fn Net.connect(self, host: String, port: Int) -> Conn! {
+    if !validPort(port) {
+        fail fails("port must be between 0 and 65535")
+    }
     let fd = connectTo(host, "${port}", 0)?
     Conn { fd: fd }
 }
@@ -463,6 +494,9 @@ pub fn Net.connect(self, host: String, port: Int) -> Conn! {
 /// family is forced to AF_INET (2) so SockAddrIn's fixed layout matches
 /// what the kernel later hands back from getsockname.
 pub fn Net.listen(self, host: String, port: Int) -> Listener! {
+    if !validPort(port) {
+        fail fails("port must be between 0 and 65535")
+    }
     // An empty host means "every interface", matching internal/netsock.Listen.
     let host = if host == "" {
         "0.0.0.0"

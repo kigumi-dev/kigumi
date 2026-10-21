@@ -2,6 +2,7 @@ package vm
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 )
 
@@ -47,13 +48,28 @@ func parseHTTPAuthority(authority string) (host, header, port string, err error)
 		default:
 			return "", "", "", errors.New("malformed IPv6 host")
 		}
-		return host, "[" + host + "]", port, nil
+		return finishHTTPAuthority(host, "["+host+"]", port)
 	}
 	host, port = authority, "80"
 	if i := strings.IndexByte(authority, ':'); i >= 0 {
 		host, port = authority[:i], authority[i+1:]
 	}
-	return host, host, port, nil
+	return finishHTTPAuthority(host, host, port)
+}
+
+// finishHTTPAuthority applies the host and port rules Http.post's own parser does.
+func finishHTTPAuthority(host, header, port string) (string, string, string, error) {
+	if host == "" {
+		return "", "", "", errors.New("invalid URL: empty host")
+	}
+	if port == "" {
+		port = "80"
+	}
+	n, err := strconv.Atoi(port)
+	if err != nil || len(port) > 5 || port[0] < '0' || port[0] > '9' || n > 65535 {
+		return "", "", "", errors.New("invalid URL: bad port")
+	}
+	return host, header, port, nil
 }
 
 func hasUnsafeHTTPByte(s string) bool {

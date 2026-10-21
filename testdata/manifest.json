@@ -4017,6 +4017,23 @@
       ]
     },
     {
+      "id": "run/base64_canonical",
+      "kind": "run",
+      "path": "testdata/run/base64_canonical.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/bind_temp_share",
       "kind": "run",
       "path": "testdata/run/bind_temp_share.txtar",
@@ -7294,6 +7311,23 @@
       ]
     },
     {
+      "id": "run/ffi_layout_wide_scalars",
+      "kind": "run",
+      "path": "testdata/run/ffi_layout_wide_scalars.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/ffi_nested_packed",
       "kind": "run",
       "path": "testdata/run/ffi_nested_packed.txtar",
@@ -8749,6 +8783,23 @@
       ]
     },
     {
+      "id": "run/fs_mkdir_exists_errors",
+      "kind": "run",
+      "path": "testdata/run/fs_mkdir_exists_errors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fs_open_read_lines",
       "kind": "run",
       "path": "testdata/run/fs_open_read_lines.txtar",
@@ -10032,6 +10083,23 @@
       "id": "run/json_derive_box",
       "kind": "run",
       "path": "testdata/run/json_derive_box.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/json_f64_large_integers",
+      "kind": "run",
+      "path": "testdata/run/json_f64_large_integers.txtar",
       "mode": [
         "vm",
         "native"
@@ -11572,6 +11640,23 @@
       ]
     },
     {
+      "id": "run/net_port_url_checks",
+      "kind": "run",
+      "path": "testdata/run/net_port_url_checks.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/never_payload_binding",
       "kind": "run",
       "path": "testdata/run/never_payload_binding.txtar",
@@ -11976,6 +12061,23 @@
         "type": "regex",
         "pattern": "panic: sync"
       }
+    },
+    {
+      "id": "run/parse_float_nul",
+      "kind": "run",
+      "path": "testdata/run/parse_float_nul.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
     },
     {
       "id": "run/partial_move",
@@ -12813,9 +12915,60 @@
       ]
     },
     {
+      "id": "run/shell_error_messages",
+      "kind": "run",
+      "path": "testdata/run/shell_error_messages.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/shell_grep_dialect",
+      "kind": "run",
+      "path": "testdata/run/shell_grep_dialect.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/shell_interp_argv",
       "kind": "run",
       "path": "testdata/run/shell_interp_argv.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/shell_signal_status",
+      "kind": "run",
+      "path": "testdata/run/shell_signal_status.txtar",
       "mode": [
         "vm",
         "native"
@@ -13462,6 +13615,40 @@
       ]
     },
     {
+      "id": "run/text_lines_crlf",
+      "kind": "run",
+      "path": "testdata/run/text_lines_crlf.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/text_parse_whitespace",
+      "kind": "run",
+      "path": "testdata/run/text_parse_whitespace.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/text_parsefloat",
       "kind": "run",
       "path": "testdata/run/text_parsefloat.txtar",
@@ -13805,6 +13992,23 @@
       "id": "run/untyped_branch_operand",
       "kind": "run",
       "path": "testdata/run/untyped_branch_operand.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/usize_wide_values",
+      "kind": "run",
+      "path": "testdata/run/usize_wide_values.txtar",
       "mode": [
         "vm",
         "native"

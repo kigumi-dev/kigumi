@@ -12,7 +12,7 @@ static val cap_secure_erase(val a0) {
     }
     // a literal/foreign Bytes has no writable backing of its own; give
     // self a fresh owned one instead of writing through static memory.
-    char* d = calloc((uint64_t)n + 1, 1);
+    char* d = kg_calloc_n(n);
     if (!d) rt_panic("out of memory");
     a0->u.s.data = d;
     a0->owned = 1;
@@ -30,7 +30,7 @@ static val cap_secure_erase_try(val a0) {
         rt_secure_zero((volatile unsigned char*)a0->u.s.data, n);
         return try_ok(rt_unit());
     }
-    char* d = fault_tick() ? NULL : calloc((uint64_t)n + 1, 1);
+    char* d = fault_tick() ? NULL : kg_calloc_n(n);
     if (!d) return alloc_error();
     a0->u.s.data = d;
     a0->owned = 1;

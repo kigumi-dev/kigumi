@@ -161,7 +161,7 @@ pub fn Files.readBytes(self, path: Path) -> Bytes! {
     out
 }
 
-/// Creates the directory at path and any missing parents; an existing directory is fine.
+/// Creates the directory at path and any missing parents; an existing directory is fine, an existing file is an error.
 pub fn Files.mkdir(self, path: Path) -> Void! {
     let parts = path.text.split("/")
     let mut cur = ""
@@ -176,8 +176,29 @@ pub fn Files.mkdir(self, path: Path) -> Void! {
         let c = ffi.CString.new(&cur)?
         if unsafe {
             mkdir(c.ptr(), 493)
-        } != 0 && ffi.errno() != eexist() {
-            fail ffi.lastError()
+        } != 0 {
+            if ffi.errno() != eexist() {
+                fail ffi.lastError()
+            }
+            let d = unsafe {
+                opendir(c.ptr())
+            }
+            if ffi.isNull(ffi.toConst(d)) {
+                let e = ffi.errno()
+                if e == enotdir() {
+                    fail ffi.lastError()
+                }
+                if e == enoent() || e == eloop() {
+                    fail ffi.CError {
+                        code: eexist()
+                        text: ffi.errorText(eexist())
+                    }
+                }
+            } else {
+                _ = unsafe {
+                    closedir(d)
+                }
+            }
         }
     }
 }

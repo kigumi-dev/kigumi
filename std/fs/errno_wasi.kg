@@ -9,3 +9,18 @@ fn eexist() -> i32 {
 fn eintr() -> i32 {
     27
 }
+
+/// errno(3) ENOTDIR on this platform: wasi-libc maps it to __WASI_ERRNO_NOTDIR (wasi/api.h), 54.
+fn enotdir() -> i32 {
+    54
+}
+
+/// errno(3) ENOENT on this platform.
+fn enoent() -> i32 {
+    44
+}
+
+/// errno(3) ELOOP on this platform.
+fn eloop() -> i32 {
+    32
+}

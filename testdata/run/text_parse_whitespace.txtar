@@ -1,0 +1,14 @@
+-- src --
+import text from std/text
+
+print "trim: <${"\t \r\n x y \n\r\t ".trim()}> <${"\u{b}x".trim().len()}> <${"\u{c}".trim().len()}>"
+print "parseInt: ${debug(&text.parseInt(" 5\t"))} ${debug(&text.parseInt("\n12\r\n"))} ${debug(&text.parseInt("\r-3"))} ${debug(&text.parseInt("\u{b}1"))} ${debug(&text.parseInt("1\u{c}"))} ${debug(&text.parseInt("1 2"))} ${debug(&text.parseInt("\n"))}"
+print "parseUint: ${debug(&text.parseUint("\n7\n"))} ${debug(&text.parseUint("\u{b}7"))}"
+print "parseUint radix: ${debug(&text.parseUint("\n7f\r\n", 16))} ${debug(&text.parseUint("\u{b}7f", 16))}"
+print "parseI128: ${debug(&text.parseI128("\n-9\r"))} ${debug(&text.parseI128("\u{b}9"))}"
+-- stdout --
+trim: <x y> <2> <1>
+parseInt: Some(5) Some(12) Some(-3) None None None None
+parseUint: Some(7) None
+parseUint radix: Some(127) None
+parseI128: Some(-9) None

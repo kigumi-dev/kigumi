@@ -1,0 +1,80 @@
+-- src --
+import shell from std/shell
+import coreutil from std/shell/coreutil
+
+let sh = host.shell()
+fn grepOut(sh: shell.Shell, input: String, pattern: String) -> String {
+    let plan = $"printf %b ${input}" |> coreutil.grep(pattern)
+    match plan |> shell.capture(sh) {
+        Ok(c) -> "[${String.fromBytes(c.stdout) || "?"}]"
+        Err(e) -> "err: ${e.message()}"
+    }
+}
+print grepOut(sh, "a\\nb\\nab\\n", "a")
+print grepOut(sh, "a\\nb\\nab", "b$")
+print grepOut(sh, "", "^$")
+print grepOut(sh, "\\n", "^$")
+print grepOut(sh, "a\\n\\nb\\n", "^$")
+print grepOut(sh, "x\\r\\ny\\r\\n", "y$")
+print grepOut(sh, "caf\\0303\\0251\\nabc\\n", "^caf")
+print grepOut(sh, "\\0377\\0376\\nok\\n", "ok")
+print grepOut(sh, "\\0303\\0251\\n", "^.$")
+print grepOut(sh, "\\0303\\0251\\n", "^..$")
+print grepOut(sh, "abc\\n", "\\d")
+print grepOut(sh, "abc\\n", "(?i)ABC")
+print grepOut(sh, "abc\\n", "[a-")
+print grepOut(sh, "a1\\n", "[[:digit:]]")
+print grepOut(sh, "ab\\nac\\n", "a(b|c)")
+print grepOut(sh, "aaa\\n", "^a{2,3}$")
+print grepOut(sh, "ab\\nac\\n", "a(b|c)")
+print grepOut(sh, "x\\ny\\n", "[")
+print grepOut(sh, "x\\ny\\n", "x|")
+print grepOut(sh, "x\\ny\\n", "(x")
+print grepOut(sh, "a{b\\n", "a{")
+print grepOut(sh, "ab\\n", "a**")
+print grepOut(sh, "ab\\n", "\\<a")
+print grepOut(sh, "a.b\\naxb\\n", "a\\.b")
+print grepOut(sh, "ab\\n", "")
+-- stdout --
+[a
+ab
+]
+[b
+ab
+]
+[]
+[
+]
+[
+]
+[]
+[café
+]
+[ok
+]
+[]
+[é
+]
+err: invalid grep pattern: unsupported escape
+err: invalid grep pattern: nothing to repeat
+err: invalid grep pattern: unterminated bracket
+[a1
+]
+[ab
+ac
+]
+[aaa
+]
+[ab
+ac
+]
+err: invalid grep pattern: unterminated bracket
+err: invalid grep pattern: empty expression
+err: invalid grep pattern: unbalanced parenthesis
+err: invalid grep pattern: bad repetition
+err: invalid grep pattern: bad repetition
+err: invalid grep pattern: unsupported escape
+[a.b
+]
+[ab
+]

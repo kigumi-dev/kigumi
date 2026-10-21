@@ -120,6 +120,7 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 	}
 	mod.Arch = m.target.Arch
 	mod.PtrBits = m.target.Layout().PtrBits
+	mod.Align64 = m.target.Layout().ScalarAlign(false, 64)
 	mod.NoDefaultAllocator = m.target.NoDefaultAllocator()
 	mod.RecoverableOnly = m.target.RecoverableOnly()
 	mod.NoPlatform = m.target.Sys == "none"

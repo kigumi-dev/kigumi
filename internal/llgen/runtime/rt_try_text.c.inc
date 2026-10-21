@@ -3,7 +3,7 @@
 
 static char* try_bytes(int64_t n) {
     if (n < 0 || fault_tick()) return NULL;
-    return malloc((uint64_t)n + 1);
+    return kg_malloc_n(n);
 }
 static val try_piece(const char* s, int64_t n) {
     char* d = try_dup(s, n);
@@ -104,11 +104,13 @@ static val try_text_lines(val s) {
     if (!out) return alloc_error();
     const char* d = s->u.s.data;
     int64_t end = s->u.s.len, start = 0;
-    if (end > 0 && d[end - 1] == 10) end--;
     if (end == 0) return try_ok(out);
+    if (d[end - 1] == 10) end--;
     for (int64_t i = 0; i <= end; i++) {
         if (i != end && d[i] != 10) continue;
-        if (!try_push_piece(out, d + start, i - start)) return try_array_done(out, 0);
+        int64_t stop = i;
+        if (stop > start && d[stop - 1] == 13) stop--;
+        if (!try_push_piece(out, d + start, stop - start)) return try_array_done(out, 0);
         start = i + 1;
     }
     return try_ok(out);

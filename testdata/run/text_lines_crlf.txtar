@@ -1,0 +1,28 @@
+-- src --
+import text from std/text
+
+fn show(lines: &Array[String]) -> String {
+    let mut parts = ""
+    for l in lines {
+        parts = "${parts}<${l}>"
+    }
+    "${lines.len()}:${parts}"
+}
+
+print "empty: ${show(&text.lines(""))}"
+print "newline: ${show(&text.lines("\n"))}"
+print "two newlines: ${show(&text.lines("\n\n"))}"
+print "crlf: ${show(&text.lines("a\r\nb\r\n"))}"
+print "crlf blank: ${show(&text.lines("a\r\n\r\nb"))}"
+print "lone cr end: ${show(&text.lines("x\r"))}"
+print "cr middle: ${text.lines("a\rb\n")[0].len()}"
+print "no terminator: ${show(&text.lines("a\nb"))}"
+-- stdout --
+empty: 0:
+newline: 1:<>
+two newlines: 2:<><>
+crlf: 2:<a><b>
+crlf blank: 3:<a><><b>
+lone cr end: 1:<x>
+cr middle: 3
+no terminator: 2:<a><b>

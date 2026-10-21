@@ -36,7 +36,7 @@ run()
 split 4 a|b||c 1 1
 chars 5 0 h/é/! 2
 case ABC-é abc-É XYZ xyz
-lines 4 0 0 one+two
+lines 4 0 1 one+two
 replace a::b::c bbbbbb abc abc
 prefix bar foobar foo foobar
 slice oob true

@@ -111,14 +111,12 @@ func (m *Machine) retType(fn sem.EntityID) sem.TypeID {
 }
 
 // cLayout is the C size and alignment of a layout(C) record as the native
-// runtime computes it: natural alignment unless packed, widened by an
-// explicit align.
+// runtime computes it: the target's scalar alignments unless packed, widened by an explicit align.
 func (m *Machine) cLayout(t sem.TypeID) (size, align int64) {
 	tt := m.r.Types
 	switch {
 	case tt.IsNumeric(t):
-		b := int64(tt.Width(t) / 8)
-		return b, b
+		return int64(tt.CWidth(t) / 8), int64(tt.CAlign(t))
 	case t == sem.TyBool:
 		return 1, 1
 	case t == sem.TyChar:

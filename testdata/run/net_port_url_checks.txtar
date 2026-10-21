@@ -1,0 +1,44 @@
+-- src --
+let net = host.net()
+
+
+fn msg[T](r: T!) -> String {
+    if r is Err(e) {
+        e.message()
+    } else {
+        "ok"
+    }
+}
+
+print "listen 74637: ${msg(net.listen("127.0.0.1", 74637))}"
+print "listen -1: ${msg(net.listen("127.0.0.1", -1))}"
+print "listen 65536: ${msg(net.listen("127.0.0.1", 65536))}"
+print "connect 74637: ${msg(net.connect("127.0.0.1", 74637))}"
+print "connect 2^32+80: ${msg(net.connect("127.0.0.1", 4294967376))}"
+print "connect -80: ${msg(net.connect("127.0.0.1", -80))}"
+let http = net.http()
+print "post empty host: ${msg(http.post("http://:8931/", "x"))}"
+print "post empty ipv6 host: ${msg(http.post("http://[]:8931/", "x"))}"
+print "post port 65536: ${msg(http.post("http://127.0.0.1:65536/", "x"))}"
+print "post port 99999: ${msg(http.post("http://127.0.0.1:99999/", "x"))}"
+print "post port 123456: ${msg(http.post("http://127.0.0.1:123456/", "x"))}"
+print "post port letters: ${msg(http.post("http://127.0.0.1:80a/", "x"))}"
+print "post port sign: ${msg(http.post("http://127.0.0.1:+80/", "x"))}"
+print "post userinfo: ${msg(http.post("http://u:p@127.0.0.1/", "x"))}"
+print "post scheme: ${msg(http.post("ftp://127.0.0.1/", "x"))}"
+-- stdout --
+listen 74637: port must be between 0 and 65535
+listen -1: port must be between 0 and 65535
+listen 65536: port must be between 0 and 65535
+connect 74637: port must be between 0 and 65535
+connect 2^32+80: port must be between 0 and 65535
+connect -80: port must be between 0 and 65535
+post empty host: invalid URL: empty host
+post empty ipv6 host: invalid URL: empty host
+post port 65536: invalid URL: bad port
+post port 99999: invalid URL: bad port
+post port 123456: invalid URL: bad port
+post port letters: invalid URL: bad port
+post port sign: invalid URL: bad port
+post userinfo: userinfo in URL is not supported
+post scheme: unsupported URL scheme

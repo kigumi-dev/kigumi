@@ -28,7 +28,7 @@ replace a::b::::c a,,,c a,b,,c xyzb,,c
 edges ,b,,c a,b,,  a,b,,c
 join a,b,,c, a,b,,c,  a,b,,c
 split  1 1 1
-chars 0  0 0 0 +z
+chars 0  0 1 1 +z
 case   [] []
 replace    
 edges    

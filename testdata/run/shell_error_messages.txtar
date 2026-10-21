@@ -1,0 +1,25 @@
+-- src --
+import shell from std/shell
+
+let sh = host.shell()
+fn msg[T](r: T!) -> String {
+    if r is Err(e) { "err: ${e.message()}" } else { "ok" }
+}
+print "missing: ${msg($"this_binary_does_not_exist_xyz" |> shell.run(sh))}"
+print "missing capture: ${msg($"this_binary_does_not_exist_xyz arg" |> shell.capture(sh))}"
+print "redirect in missing: ${msg($"cat < no_such_input_file" |> shell.run(sh))}"
+print "redirect out bad dir: ${msg($"echo hi > no_such_dir_xyz/out" |> shell.run(sh))}"
+print "later stage missing: ${msg($"echo hi | this_binary_does_not_exist_xyz" |> shell.run(sh))}"
+let arg = "a\0b"
+print "nul: ${msg($"echo ${arg}" |> shell.run(sh))}"
+print "bad dup: ${msg($"echo hi >&7" |> shell.run(sh))}"
+print "dir: ${msg($"/tmp" |> shell.run(sh))}"
+-- stdout --
+missing: err: exec: No such file or directory
+missing capture: err: exec: No such file or directory
+redirect in missing: err: cannot open no_such_input_file: No such file or directory
+redirect out bad dir: err: cannot open no_such_dir_xyz/out: No such file or directory
+later stage missing: err: exec: No such file or directory
+nul: err: argument contains a NUL byte
+bad dup: err: `7` is not a file descriptor that can be duplicated
+dir: err: exec: Permission denied

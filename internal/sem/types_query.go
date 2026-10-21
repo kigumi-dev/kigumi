@@ -26,12 +26,24 @@ func (tt *TypeTable) IsSigned(t TypeID) bool {
 	return (t >= TyI8 && t <= TyI128) || t == TyIsize || tt.IsFloat(t)
 }
 
-// Width is the bit width of a numeric type on the target: usize and isize
-// are as wide as a pointer.
-func (tt *TypeTable) Width(t TypeID) int { return tt.Bits(t, tt.ptrBits) }
+// Width is the bit width of a numeric type; usize and isize are 64 bits on
+// every target.
+func (tt *TypeTable) Width(t TypeID) int { return tt.Bits(t, 64) }
 
 // PtrBits is the target pointer width.
 func (tt *TypeTable) PtrBits() int { return tt.ptrBits }
+
+// CWidth is the width of a numeric type in C: usize and isize are size_t and
+// ptrdiff_t, as wide as a pointer.
+func (tt *TypeTable) CWidth(t TypeID) int { return tt.Bits(t, tt.ptrBits) }
+
+// CAlign is the alignment in bytes of a numeric type inside a C struct on the target.
+func (tt *TypeTable) CAlign(t TypeID) int {
+	if tt.CWidth(t) == 64 {
+		return tt.align64
+	}
+	return tt.CWidth(t) / 8
+}
 
 // Bits returns the width of a fixed-width numeric type; usize and isize take
 // the given pointer width.

@@ -136,7 +136,7 @@ func (m *Machine) stdinReader() *bufio.Reader {
 }
 
 func (m *Machine) resolvePath(p string) string {
-	if m.opts.Cwd == "" || strings.HasPrefix(p, "/") {
+	if p == "" || m.opts.Cwd == "" || strings.HasPrefix(p, "/") {
 		return p
 	}
 	return m.opts.Cwd + "/" + p

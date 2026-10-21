@@ -208,6 +208,26 @@ func TestFsOsShellErrnoConstants(t *testing.T) {
 			checkFnLiteral(t, "fs", "errno_"+os+".kg", "eexist", want)
 		})
 	}
+	enoent := map[string]int64{
+		"darwin": 2, "freebsd": 2, "linux": 2, "netbsd": 2, "openbsd": 2, "windows": 2,
+		"wasi": 44,
+	}
+	eloop := map[string]int64{
+		"darwin": 62, "freebsd": 62, "linux": 40, "netbsd": 62, "openbsd": 62, "windows": 114,
+		"wasi": 32,
+	}
+	for os, want := range enoent {
+		os, want := os, want
+		t.Run("fs_enoent_"+os, func(t *testing.T) {
+			checkFnLiteral(t, "fs", "errno_"+os+".kg", "enoent", want)
+		})
+	}
+	for os, want := range eloop {
+		os, want := os, want
+		t.Run("fs_eloop_"+os, func(t *testing.T) {
+			checkFnLiteral(t, "fs", "errno_"+os+".kg", "eloop", want)
+		})
+	}
 }
 
 func checkFnLiteral(t *testing.T, pkg, file, fn string, want int64) {

@@ -1,0 +1,208 @@
+type GrepScan = {
+    src Bytes
+    mut pos usize
+    mut interval Bool
+}
+
+fn GrepScan.at(self, k: usize) -> Int {
+    match self.src.get(self.pos + k) {
+        Some(b) -> b.toInt()
+        None -> -1
+    }
+}
+
+fn isRepeat(c: Int) -> Bool {
+    c == 42 || c == 43 || c == 63 || c == 123
+}
+
+fn isEscapable(c: Int) -> Bool {
+    c == 92 || c == 46 || c == 91 || c == 93 || c == 40 || c == 41 || c == 42 || c == 43 || c == 63 || c == 123 || c == 125 || c == 124 || c == 94 || c == 36
+}
+
+fn isDigit(c: Int) -> Bool {
+    c >= 48 && c <= 57
+}
+
+fn isClassName(name: String) -> Bool {
+    name == "alnum" || name == "alpha" || name == "blank" || name == "cntrl" || name == "digit" || name == "graph" || name == "lower" || name == "print" || name == "punct" || name == "space" || name == "upper" || name == "xdigit"
+}
+
+fn GrepScan.number(mut self) -> Int {
+    let mut n = 0
+    for isDigit(self.at(0)) {
+        n = n * 10 + (self.at(0) - 48)
+        if n > 100 {
+            return 101
+        }
+        self.pos += 1
+    }
+    n
+}
+
+fn GrepScan.repeatCount(mut self) -> String {
+    self.pos += 1
+    if !isDigit(self.at(0)) {
+        return "bad repetition"
+    }
+    let low = self.number()
+    let mut high = low
+    if self.at(0) == 44 {
+        self.pos += 1
+        high = if isDigit(self.at(0)) {
+            self.number()
+        } else {
+            100
+        }
+    }
+    if self.at(0) != 125 || low > 100 || high > 100 || low > high {
+        return "bad repetition"
+    }
+    self.pos += 1
+    ""
+}
+
+fn GrepScan.bracket(mut self) -> String {
+    self.pos += 1
+    if self.at(0) == 94 {
+        self.pos += 1
+    }
+    let mut first = true
+    for self.at(0) != 93 || first {
+        let c = self.at(0)
+        if c < 0 {
+            return "unterminated bracket"
+        }
+        if c == 92 {
+            return "backslash inside a bracket"
+        }
+        if c == 91 {
+            if self.at(1) != 58 {
+                return "unsupported bracket syntax"
+            }
+            let mut end = self.pos + 2
+            for end < self.src.len() && (self.src.get(end) || 0) != 58 {
+                end += 1
+            }
+            let name = String.fromBytes(self.src.slice(self.pos + 2, end) || "".toBytes()) || ""
+            if (self.src.get(end + 1) || 0) != 93 || !isClassName(name) {
+                return "unknown character class"
+            }
+            self.pos = end + 2
+            first = false
+            continue
+        }
+        if c == 45 && !first && self.at(1) != 93 && self.at(1) >= 0 {
+            return "misplaced hyphen in a bracket"
+        }
+        if self.at(1) == 45 && self.at(2) != 93 && self.at(2) >= 0 {
+            let d = self.at(2)
+            if c == 45 || d == 45 || d == 91 || d == 92 || d < c {
+                return "invalid range in a bracket"
+            }
+            self.pos += 2
+        }
+        self.pos += 1
+        first = false
+    }
+    self.pos += 1
+    ""
+}
+
+fn GrepScan.alternation(mut self, depth: Int) -> String {
+    if depth > 50 {
+        return "nested too deeply"
+    }
+    let mut err = self.sequence(depth)
+    for err == "" && self.at(0) == 124 {
+        self.pos += 1
+        err = self.sequence(depth)
+    }
+    err
+}
+
+fn GrepScan.sequence(mut self, depth: Int) -> String {
+    let mut pieces = 0
+    for {
+        let c = self.at(0)
+        if c < 0 || c == 124 || c == 41 {
+            break
+        }
+        let outer = self.interval
+        self.interval = false
+        let mut anchor = false
+        if c == 40 {
+            self.pos += 1
+            let err = self.alternation(depth + 1)
+            if err != "" {
+                return err
+            }
+            if self.at(0) != 41 {
+                return "unbalanced parenthesis"
+            }
+            self.pos += 1
+        } else if c == 91 {
+            let err = self.bracket()
+            if err != "" {
+                return err
+            }
+        } else if c == 92 {
+            if !isEscapable(self.at(1)) {
+                return "unsupported escape"
+            }
+            self.pos += 2
+        } else if isRepeat(c) {
+            return "nothing to repeat"
+        } else {
+            anchor = c == 94 || c == 36
+            self.pos += 1
+        }
+        let q = self.at(0)
+        if isRepeat(q) {
+            if anchor {
+                return "nothing to repeat"
+            }
+            if q == 123 {
+                if self.interval {
+                    return "bad repetition"
+                }
+                let err = self.repeatCount()
+                if err != "" {
+                    return err
+                }
+                self.interval = true
+            } else {
+                self.pos += 1
+            }
+            if isRepeat(self.at(0)) {
+                return "bad repetition"
+            }
+        }
+        self.interval = self.interval || outer
+        pieces += 1
+    }
+    if pieces == 0 {
+        return "empty expression"
+    }
+    ""
+}
+
+/// Why `pattern` is not a valid `coreutil.grep` pattern, or "" when it is: only syntax that POSIX ERE and RE2 read alike
+/// is accepted (literals, groups, `|`, `* + ? {m,n}` up to 100, brackets, `\` before a metacharacter).
+pub pure fn grepProblem(pattern: &String) -> String {
+    if pattern.len() == 0 {
+        return ""
+    }
+    let mut scan = GrepScan {
+        src: pattern.bytes()
+        pos: 0
+        interval: false
+    }
+    let err = scan.alternation(0)
+    if err != "" {
+        return err
+    }
+    if scan.pos < scan.src.len() {
+        return "unbalanced parenthesis"
+    }
+    ""
+}

@@ -18,6 +18,9 @@ func (m *Machine) registerNet() {
 		return func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 			host := string(deref(a[1]).str())
 			port := deref(a[2]).i
+			if port < 0 || port > 65535 {
+				return m.errMsg("port must be between 0 and 65535")
+			}
 			fd, err := dial(host, port)
 			if err != nil {
 				return m.errMsg(err.Error())

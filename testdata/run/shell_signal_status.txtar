@@ -1,0 +1,20 @@
+-- src --
+import shell from std/shell
+
+let sh = host.shell()
+match $"sh -c 'kill -9 $$'" |> shell.run(sh) {
+    Ok(r) -> print "killed: ${debug(&r)}"
+    Err(e) -> print "killed err: ${e.message()}"
+}
+match $"sh -c 'kill -15 $$'" |> shell.run(sh) {
+    Ok(r) -> print "terminated: ${debug(&r)}"
+    Err(e) -> print "terminated err: ${e.message()}"
+}
+match $"sh -c 'exit 3'" |> shell.run(sh) {
+    Ok(r) -> print "exit 3: ${debug(&r)}"
+    Err(e) -> print "exit 3 err: ${e.message()}"
+}
+-- stdout --
+killed: PipelineResult { statuses: [137] }
+terminated: PipelineResult { statuses: [143] }
+exit 3: PipelineResult { statuses: [3] }

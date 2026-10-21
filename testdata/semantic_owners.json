@@ -2251,6 +2251,36 @@
     "status": "ok"
   },
   {
+    "key": "fs.eloop",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.enoent",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "fs.enotdir",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "fs.openFile",
     "signature": "fn(\u0026String, String) -\u003e File!",
     "has_body": true,
@@ -4501,6 +4531,16 @@
     "status": "ok"
   },
   {
+    "key": "net.finishAuthority",
+    "signature": "fn(String, String, String) -\u003e HostPort!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net.gaiFails",
     "signature": "fn(i32) -\u003e Failure",
     "has_body": true,
@@ -4683,6 +4723,16 @@
   {
     "key": "net.timeoutValue",
     "signature": "fn(i32) -\u003e Timeval",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net.validPort",
+    "signature": "fn(Int) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10002,6 +10052,66 @@
     "status": "ok"
   },
   {
+    "key": "shell.GrepScan.alternation",
+    "signature": "fn(Int) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.GrepScan.at",
+    "signature": "fn(usize) -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.GrepScan.bracket",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.GrepScan.number",
+    "signature": "fn() -\u003e Int",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.GrepScan.repeatCount",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.GrepScan.sequence",
+    "signature": "fn(Int) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.applyRedirs",
     "signature": "fn(\u0026Array[Redir], i32) -\u003e Bool",
     "has_body": true,
@@ -10102,8 +10212,68 @@
     "status": "ok"
   },
   {
+    "key": "shell.grepProblem",
+    "signature": "pure fn(\u0026String) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "shell.hasNul",
     "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.isClassName",
+    "signature": "fn(String) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.isDigit",
+    "signature": "fn(Int) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.isEscapable",
+    "signature": "fn(Int) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.isRepeat",
+    "signature": "fn(Int) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "shell.lineMatches",
+    "signature": "fn(*const u8, \u0026Bytes, usize, usize) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10594,6 +10764,16 @@
   {
     "key": "text.indexOf",
     "signature": "pure fn(String, Char) -\u003e usize?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.isSpace",
+    "signature": "fn(u8) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",

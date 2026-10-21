@@ -62,7 +62,7 @@ func atoi(s string) int64 {
 
 // planOf turns a Plan record into the host plan by asking std/shell.stages
 // for the stage records, so word joining lives in one place.
-func (m *Machine) planOf(v *obj) *hostshell.Plan {
+func (m *Machine) planOf(v *obj) (*hostshell.Plan, string) {
 	stages := m.callStd("std/shell", "stages", []*obj{v})
 	defer m.release(stages)
 	p := &hostshell.Plan{}
@@ -77,18 +77,29 @@ func (m *Machine) planOf(v *obj) *hostshell.Plan {
 			st.Redirs = append(st.Redirs, hostshell.Redirect{Op: uint32(deref(rr.fields[0]).i), Fd: int(deref(rr.fields[1]).i), Target: string(deref(rr.fields[2]).str())})
 		}
 		if g := deref(rec.fields[2]); len(g.fields) == 1 {
-			st.Filter = hostshell.GrepFilter(string(deref(g.fields[0]).str()))
+			pattern := deref(g.fields[0])
+			problem := m.callStd("std/shell", "grepProblem", []*obj{pattern})
+			text := string(deref(problem).str())
+			m.release(problem)
+			if text != "" {
+				return nil, "invalid grep pattern: " + text
+			}
+			st.Filter = hostshell.GrepFilter(string(pattern.str()))
 		}
 		p.Stages = append(p.Stages, st)
 	}
-	return p
+	return p, ""
 }
 
 func (m *Machine) registerShell() {
 	h := m.host
 	h["os.Host.shell"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj { return mkOpaque("Shell", nil) }
 	h["shell.capture"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		out, errOut, _, err := hostshell.Run(m.planOf(a[0]), m.opts.Cwd)
+		plan, problem := m.planOf(a[0])
+		if problem != "" {
+			return m.errMsg(problem)
+		}
+		out, errOut, _, err := hostshell.Run(plan, m.opts.Cwd)
 		if err != nil {
 			return m.errMsg(err.Error())
 		}
@@ -96,7 +107,11 @@ func (m *Machine) registerShell() {
 		return m.ok(mkRecord(captured, []*obj{mkBytes(out), mkBytes(errOut)}))
 	}
 	h["shell.run"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		out, errOut, statuses, err := hostshell.Run(m.planOf(a[0]), m.opts.Cwd)
+		plan, problem := m.planOf(a[0])
+		if problem != "" {
+			return m.errMsg(problem)
+		}
+		out, errOut, statuses, err := hostshell.Run(plan, m.opts.Cwd)
 		if err != nil {
 			return m.errMsg(err.Error())
 		}

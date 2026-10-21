@@ -14,7 +14,7 @@ pub pure fn indexOf(s: String, c: Char) -> usize? {
     None
 }
 
-/// Lines of s without their newline characters; a trailing newline adds no empty line.
+/// Lines of s without their `\n` or `\r\n` endings, as `BufReader.readLine` reads them; a trailing newline adds no empty line and "" has no lines.
 pub pure fn lines(s: String) -> Array[String] {
     tryLines(s) || panic("out of memory")
 }
@@ -34,11 +34,15 @@ pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError]
 /// including a leading `+`, spaces, `inf`, `nan`, hex floats, underscores and a result that overflows to infinity.
 pub pure fn parseFloat(s: String) -> Float?
 
-/// Parses s (surrounding spaces and tabs allowed) as a base-10 integer with an optional sign, or None.
+fn isSpace(b: u8) -> Bool {
+    b == 32 || b == 9 || b == 10 || b == 13
+}
+
+/// Parses s (surrounding whitespace allowed, the same set `trim` removes) as a base-10 integer with an optional sign, or None.
 pub pure fn parseInt(s: String) -> Int? {
     let n = s.len()
     let mut i: usize = 0
-    for i < n && (s[i] == 32 || s[i] == 9) {
+    for i < n && isSpace(s[i]) {
         i = i + 1
     }
     let mut negative = false
@@ -58,7 +62,7 @@ pub pure fn parseInt(s: String) -> Int? {
         digits = digits + 1
         i = i + 1
     }
-    for i < n && (s[i] == 32 || s[i] == 9) {
+    for i < n && isSpace(s[i]) {
         i = i + 1
     }
     if digits == 0 || i != n {
@@ -73,11 +77,11 @@ pub pure fn parseInt(s: String) -> Int? {
     Some(-acc)
 }
 
-/// Parses s (surrounding spaces and tabs allowed) as a base-10 unsigned integer with an optional leading `+`, or None. The full u64 range, unlike parseInt.
+/// Parses s (surrounding whitespace allowed, the same set `trim` removes) as a base-10 unsigned integer with an optional leading `+`, or None. The full u64 range, unlike parseInt.
 pub pure fn parseUint(s: String) -> u64? {
     let n = s.len()
     let mut i: usize = 0
-    for i < n && (s[i] == 32 || s[i] == 9) {
+    for i < n && isSpace(s[i]) {
         i = i + 1
     }
     if i < n && s[i] == 43 {
@@ -95,7 +99,7 @@ pub pure fn parseUint(s: String) -> u64? {
         digits = digits + 1
         i = i + 1
     }
-    for i < n && (s[i] == 32 || s[i] == 9) {
+    for i < n && isSpace(s[i]) {
         i = i + 1
     }
     if digits == 0 || i != n {
@@ -104,11 +108,11 @@ pub pure fn parseUint(s: String) -> u64? {
     Some(acc)
 }
 
-/// Parses s (surrounding spaces and tabs allowed) as a base-10 i128 with an optional sign, or None.
+/// Parses s (surrounding whitespace allowed, the same set `trim` removes) as a base-10 i128 with an optional sign, or None.
 pub pure fn parseI128(s: String) -> i128? {
     let n = s.len()
     let mut i: usize = 0
-    for i < n && (s[i] == 32 || s[i] == 9) {
+    for i < n && isSpace(s[i]) {
         i = i + 1
     }
     let mut negative = false
@@ -128,7 +132,7 @@ pub pure fn parseI128(s: String) -> i128? {
         digits = digits + 1
         i = i + 1
     }
-    for i < n && (s[i] == 32 || s[i] == 9) {
+    for i < n && isSpace(s[i]) {
         i = i + 1
     }
     if digits == 0 || i != n {
@@ -143,11 +147,11 @@ pub pure fn parseI128(s: String) -> i128? {
     Some(-acc)
 }
 
-/// Parses s (surrounding spaces and tabs allowed) as a base-10 unsigned integer with an optional leading `+`, or None. The full u128 range.
+/// Parses s (surrounding whitespace allowed, the same set `trim` removes) as a base-10 unsigned integer with an optional leading `+`, or None. The full u128 range.
 pub pure fn parseU128(s: String) -> u128? {
     let n = s.len()
     let mut i: usize = 0
-    for i < n && (s[i] == 32 || s[i] == 9) {
+    for i < n && isSpace(s[i]) {
         i = i + 1
     }
     if i < n && s[i] == 43 {
@@ -165,7 +169,7 @@ pub pure fn parseU128(s: String) -> u128? {
         digits = digits + 1
         i = i + 1
     }
-    for i < n && (s[i] == 32 || s[i] == 9) {
+    for i < n && isSpace(s[i]) {
         i = i + 1
     }
     if digits == 0 || i != n {
@@ -266,7 +270,7 @@ pub pure fn tryTrimSuffix(s: String, suffix: String) -> Result[String, AllocErro
 
 /// `s` as an unsigned integer in `base` (2 to 36, letters either case), or None
 /// when it is empty, has a stray character, or does not fit in a u64.
-/// Surrounding spaces and tabs are allowed, a sign is not.
+/// Surrounding whitespace is allowed, the same set `trim` removes; a sign is not.
 pub pure fn parseUint(s: String, base: usize) -> u64? {
     if base < 2 || base > 36 {
         return None

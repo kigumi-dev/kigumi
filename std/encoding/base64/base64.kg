@@ -26,12 +26,12 @@ pub pure fn encodeUrl(data: Bytes) -> String {
     render(data, urlAlphabet, false)
 }
 
-/// Bytes of a standard-alphabet string; padding is optional.
+/// Bytes of a standard-alphabet string; padding is optional, but a wrong amount of it or nonzero trailing bits are errors.
 pub pure fn decode(text: String) -> Result[Bytes, DecodeError] {
     parse(text, stdAlphabet)
 }
 
-/// Bytes of a URL-safe string; padding is optional.
+/// Bytes of a URL-safe string; padding is optional, but a wrong amount of it or nonzero trailing bits are errors.
 pub pure fn decodeUrl(text: String) -> Result[Bytes, DecodeError] {
     parse(text, urlAlphabet)
 }
@@ -75,11 +75,16 @@ pure fn parse(text: String, alphabet: String) -> Result[Bytes, DecodeError] {
     // Trailing '=' only says how many bytes the last group carries; the group
     // length below already encodes that, so drop the padding first.
     let mut end = src.len()
+    let mut pad: usize = 0
     for end > 0 && src[end - 1] == 61 {
         end = end - 1
+        pad = pad + 1
     }
     if end % 4 == 1 {
         fail DecodeError { text: "base64: length ${end} leaves a single stray character" }
+    }
+    if pad > 0 && pad != (4 - end % 4) % 4 {
+        fail DecodeError { text: "base64: padding does not fill the last group" }
     }
     let mut out = Array.empty[u8]()
     let mut i: usize = 0
@@ -99,6 +104,9 @@ pure fn parse(text: String, alphabet: String) -> Result[Bytes, DecodeError] {
             }
             w = (w << 6) | sextet
             k = k + 1
+        }
+        if (take == 2 && (w & 65535) != 0) || (take == 3 && (w & 255) != 0) {
+            fail DecodeError { text: "base64: the last character carries nonzero trailing bits" }
         }
         out.push(((w >> 16) & 255).toU8() || 0)
         if take >= 3 {

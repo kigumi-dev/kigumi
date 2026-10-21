@@ -267,6 +267,38 @@ fn dupOnto(from: i32, to: i32, what: String, statusfd: i32) -> Bool {
     true
 }
 
+// Matches bytes [start, end) of input against a compiled regex_t; a line
+// holding a NUL never matches, since C matching would stop at it.
+fn lineMatches(re: *const u8, input: &Bytes, start: usize, end: usize) -> Bool {
+    let buf = unsafe {
+        malloc(end - start + 1)
+    }
+    let mut at: usize = 0
+    for k in start..end {
+        let b = input.get(k) || 0
+        if b == 0 {
+            unsafe {
+                free(buf)
+            }
+            return false
+        }
+        unsafe {
+            ffi.writeU8(ffi.toMut(ffi.offset(ffi.toConst(buf), at.toInt() || 0)), b)
+        }
+        at += 1
+    }
+    unsafe {
+        ffi.writeU8(ffi.toMut(ffi.offset(ffi.toConst(buf), at.toInt() || 0)), 0)
+    }
+    let hit = unsafe {
+        regexec(re, ffi.toConst(buf), 0, ffi.toMut(ffi.null[u8]()), 0)
+    } == 0
+    unsafe {
+        free(buf)
+    }
+    hit
+}
+
 // Runs one pipeline stage in a just-forked child: an external command
 // execs, a grep filters in-process. Either way it reports a startup
 // failure (bad exec, bad regex, bad redirect) through statusfd instead of
@@ -317,27 +349,23 @@ fn runChild(st: &Stage, infd: i32, outfd: i32, errfd: i32, statusfd: i32) -> Nev
             close(statusfd)
         }
         let input = readAll(0)
-        let text = String.fromBytes(input) || ""
-        let body = if text.endsWith("\n") {
-            text.sliceBytes(0, text.len() - 1) || text
-        } else {
-            text
-        }
-        let mut out = "".toBytes()
-        for line in body.split("\n") {
-            let lc = match ffi.CString.new(&line) {
-                Ok(v) -> v
-                // A NUL byte can't survive a C-string match; such a line
-                // never matches rather than matching on a truncated prefix.
-                Err(_) -> continue
+        let n = input.len()
+        let mut out: Array[u8] = Array.empty()
+        let mut start: usize = 0
+        for start < n {
+            let mut end = start
+            for end < n && (input.get(end) || 0) != 10 {
+                end += 1
             }
-            if unsafe {
-                regexec(ffi.toConst(re), lc.ptr(), 0, ffi.toMut(ffi.null[u8]()), 0)
-            } == 0 {
-                out = out.concat("${line}\n".toBytes())
+            if lineMatches(ffi.toConst(re), &input, start, end) {
+                for k in start..end {
+                    out.push(input.get(k) || 0)
+                }
+                out.push(10)
             }
+            start = end + 1
         }
-        writeAll(1, out)
+        writeAll(1, Bytes.fromArray(&out))
         unsafe {
             _exit(0)
         }
@@ -413,7 +441,7 @@ fn exitStatus(pid: i32) -> Int {
     if (code & 127) == 0 {
         ((code >> 8) & 255).toInt()
     } else {
-        1
+        128 + (code & 127).toInt()
     }
 }
 
@@ -443,6 +471,12 @@ fn runPlan(plan: &Plan) -> Run! {
         for a in st.argv {
             if hasNul(a) {
                 fail Failure { text: "argument contains a NUL byte" }
+            }
+        }
+        if st.grep is Some(pattern) {
+            let problem = grepProblem(&pattern)
+            if problem != "" {
+                fail Failure { text: "invalid grep pattern: ${problem}" }
             }
         }
     }

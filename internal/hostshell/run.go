@@ -2,9 +2,12 @@ package hostshell
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
+	"syscall"
 )
 
 // stageRun tracks one running pipeline stage so a startup failure can stop
@@ -21,6 +24,13 @@ type stageRun struct {
 // order. A startup failure stops and reaps the stages already started
 // instead of leaking them.
 func Run(p *Plan, cwd string) (stdout, stderr []byte, statuses []int, err error) {
+	for _, st := range p.Stages {
+		for _, a := range st.Argv {
+			if strings.IndexByte(a, 0) >= 0 {
+				return nil, nil, nil, errors.New("argument contains a NUL byte")
+			}
+		}
+	}
 	var input io.Reader = bytes.NewReader(nil)
 	var upstream *os.File
 	var runs []*stageRun
@@ -71,7 +81,7 @@ func Run(p *Plan, cwd string) (stdout, stderr []byte, statuses []int, err error)
 		}
 		if serr != nil {
 			pr.Close()
-			return abortPlan(runs, serr)
+			return abortPlan(runs, errors.New("exec: "+OSErrText(serr)))
 		}
 		runs = append(runs, &stageRun{cmd: cmd, stderr: &stderrBuf, out: pr})
 		input, upstream = pr, pr
@@ -84,7 +94,7 @@ func Run(p *Plan, cwd string) (stdout, stderr []byte, statuses []int, err error)
 			errBuf.Write(r.stderr.Bytes())
 			code := 0
 			if ee, ok := werr.(*exec.ExitError); ok {
-				code = ee.ExitCode()
+				code = exitCode(ee)
 			} else if werr != nil && rerr == nil {
 				rerr = werr
 			}
@@ -126,4 +136,12 @@ func abortPlan(runs []*stageRun, rerr error) (stdout, stderr []byte, statuses []
 		}
 	}
 	return nil, nil, nil, rerr
+}
+
+// exitCode is the exit status, or 128 plus the signal number for a child a signal killed, as sh reports it.
+func exitCode(ee *exec.ExitError) int {
+	if ws, ok := ee.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
+		return 128 + int(ws.Signal())
+	}
+	return ee.ExitCode()
 }

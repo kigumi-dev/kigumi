@@ -1,0 +1,15 @@
+-- src --
+import text from std/text
+
+print "${debug(&text.parseFloat("1\u{0}x"))}"
+print "${debug(&text.parseFloat("1\u{0}"))}"
+print "${debug(&text.parseFloat("\u{0}1"))}"
+print "${debug(&text.parseFloat("1.5"))}"
+let embedded = "2\u{0}9"
+print "${debug(&text.parseFloat(embedded))}"
+-- stdout --
+None
+None
+None
+Some(1.5)
+None

@@ -78,10 +78,12 @@ func newResult(mod *Module) *Result {
 			}
 		}
 	}
+	types := newTypeTable(cmp.Or(mod.PtrBits, 64))
+	types.align64 = cmp.Or(mod.Align64, 8)
 	r := &Result{
 		sources:         mod.Sources,
 		mod:             mod,
-		Types:           newTypeTable(cmp.Or(mod.PtrBits, 64)),
+		Types:           types,
 		Entities:        []Entity{{}},
 		Scopes:          []Scope{{}},
 		Overloads:       []OverloadSet{{}},

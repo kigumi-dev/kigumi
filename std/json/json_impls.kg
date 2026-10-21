@@ -188,6 +188,15 @@ pub fn f64.fromJson(value: Value) -> Float! {
     match value {
         Value.Number(f) -> Ok(f)
         Value.Integer(n) -> Ok(math.toFloat(n))
+        Value.Unsigned(u) -> Ok(u.toFloat())
+        Value.Wide(negative, magnitude) -> {
+            let f = magnitude.toFloat()
+            Ok(if negative {
+                -f
+            } else {
+                f
+            })
+        }
         other -> mismatch("number", other)
     }
 }

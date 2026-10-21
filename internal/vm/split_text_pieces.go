@@ -65,20 +65,16 @@ func (m *Machine) splitPieces(s, sep *obj) []*obj {
 }
 
 func linePieces(s []byte) []*obj {
-	end := len(s)
-	if end > 0 && s[end-1] == 10 {
-		end--
+	if len(s) == 0 {
+		return nil
+	}
+	if s[len(s)-1] == 10 {
+		s = s[:len(s)-1]
 	}
 	var out []*obj
-	if end == 0 {
-		return out
-	}
-	start := 0
-	for i := 0; i <= end; i++ {
-		if i == end || s[i] == 10 {
-			out = append(out, mkStr(append([]byte{}, s[start:i]...)))
-			start = i + 1
-		}
+	for _, line := range bytes.Split(s, []byte{10}) {
+		line = bytes.TrimSuffix(line, []byte{13})
+		out = append(out, mkStr(append([]byte{}, line...)))
 	}
 	return out
 }

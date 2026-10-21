@@ -28,14 +28,13 @@ func (e *emitter) byValue(sig sem.TypeID) bool {
 	return false
 }
 
-// cLayoutOf uses natural alignment unless packed (widened by an explicit
-// align); pointers are as wide as the target says.
+// cLayoutOf takes scalar sizes and alignments from the target (an i386 u64
+// aligns to 4), and uses them unless packed (widened by an explicit align).
 func (e *emitter) cLayoutOf(t sem.TypeID) (size, align int64) {
 	tt := e.r.Types
 	switch {
 	case tt.IsNumeric(t):
-		b := int64(tt.Width(t) / 8)
-		return b, b
+		return int64(tt.CWidth(t) / 8), int64(tt.CAlign(t))
 	case t == sem.TyBool:
 		return 1, 1
 	case t == sem.TyChar:

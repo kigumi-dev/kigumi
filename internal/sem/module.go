@@ -44,9 +44,10 @@ type Module struct {
 	// BlockingProfile is "" (hosted default: warns on a direct-blocking op reached from async) or a strict
 	// profile name (isr, alloc-free-executor, single-thread-event-loop, ...) that rejects it instead.
 	BlockingProfile string
-	// PtrBits is the target pointer width (usize, isize, raw pointers);
-	// 0 means 64.
+	// PtrBits is the target pointer width (C's size_t, raw pointers); 0 means 64.
 	PtrBits int
+	// Align64 is the alignment in bytes of a 64-bit integer or float inside a C struct; 0 means 8.
+	Align64 int
 	// Arch names the target architecture (amd64, arm64, riscv64, 386, arm,
 	// wasm32) for inline asm; "" means amd64.
 	Arch string

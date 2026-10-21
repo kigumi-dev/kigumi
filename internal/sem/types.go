@@ -101,8 +101,10 @@ type TypeTable struct {
 	nodes []typeNode
 	index map[string]TypeID
 	props []typeProps
-	// ptrBits is the target pointer width, the width of usize and isize.
+	// ptrBits is the target pointer width, the width of C's size_t.
 	ptrBits int
+	// align64 is the struct alignment in bytes of 64-bit integers and floats.
+	align64 int
 
 	optionEnt, resultEnt, arrayEnt, errorEnt, futureEnt EntityID
 	// constVals holds the distinct const generic argument values in
@@ -135,7 +137,7 @@ func (tt *TypeTable) isTupleEnt(ent EntityID) bool {
 }
 
 func newTypeTable(ptrBits int) *TypeTable {
-	tt := &TypeTable{index: map[string]TypeID{}, ptrBits: ptrBits, constIndex: map[int64]uint32{}}
+	tt := &TypeTable{index: map[string]TypeID{}, ptrBits: ptrBits, align64: 8, constIndex: map[int64]uint32{}}
 	tt.nodes = append(tt.nodes, typeNode{})
 	tt.props = append(tt.props, typeProps{})
 	tt.Intern(typeNode{Kind: KPoison})

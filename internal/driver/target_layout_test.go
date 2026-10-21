@@ -27,8 +27,8 @@ func load386(t *testing.T, src string) *driver.Module {
 	return m
 }
 
-// TestTargetLayout follows usize through a 32 bit target: a literal that
-// only fits 64 bits is refused, and an extern signature uses i32.
+// TestTargetLayout follows usize through a 32 bit target: it stays 64 bits
+// wide, and an extern signature uses i32 behind a range check.
 func TestTargetLayout(t *testing.T) {
 	t.Parallel()
 	if driver.HostTarget().Layout().PtrBits != 64 {
@@ -38,8 +38,8 @@ func TestTargetLayout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !res.HasErrors() {
-		t.Fatal("a 33 bit usize literal must not fit a 32 bit target")
+	if res.HasErrors() {
+		t.Fatal("usize is 64 bits on every target, so a 33 bit literal fits")
 	}
 	m := load386(t, "extern(C) {\n    fn kg_len(n: usize) -> usize\n}\n\nlet n: usize = 7\nprint \"${unsafe { kg_len(n) }}\"\n")
 	var stderr bytes.Buffer
@@ -49,6 +49,9 @@ func TestTargetLayout(t *testing.T) {
 	}
 	if !strings.Contains(ir, "@kg_len(i32") {
 		t.Fatalf("usize should be i32 on a 32 bit target:\n%s", grepLines(ir, "kg_len"))
+	}
+	if !strings.Contains(ir, "usize value does not fit the size_t of this target") {
+		t.Fatal("the usize argument is not range-checked before the i32 call")
 	}
 }
 

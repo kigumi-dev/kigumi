@@ -20,7 +20,7 @@ func (e *emitter) cType(t sem.TypeID) string {
 		}
 		return "double"
 	case tt.IsInteger(t):
-		return fmt.Sprintf("i%d", tt.Width(t))
+		return fmt.Sprintf("i%d", tt.CWidth(t))
 	}
 	return "ptr"
 }
@@ -33,7 +33,7 @@ func (e *emitter) cArg(sb *strings.Builder, v string, t sem.TypeID) string {
 	switch {
 	case tt.IsFloat(t):
 		return "double " + e.unbox(sb, v, t, "double")
-	case tt.IsInteger(t) && tt.Width(t) > 32:
+	case tt.IsInteger(t) && tt.CWidth(t) > 32:
 		return "i64 " + e.unbox(sb, v, t, "i64")
 	case tt.IsInteger(t):
 		return "i32 " + e.unbox(sb, v, t, "i32")
@@ -129,6 +129,9 @@ func (e *emitter) unbox(sb *strings.Builder, v string, t sem.TypeID, ct string) 
 	case tt.IsInteger(t):
 		w := e.irb(sb).Call(rtIntVal, vptr(v)).Text
 		if ct != "i64" {
+			if t == sem.TyUsize || t == sem.TyIsize {
+				e.checkCRange(sb, w, t, ct)
+			}
 			out := e.newTmp()
 			fmt.Fprintf(sb, "  %s = trunc i64 %s to %s\n", out, w, ct)
 			return out

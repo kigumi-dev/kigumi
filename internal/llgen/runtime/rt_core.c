@@ -88,6 +88,13 @@ static inline void kg_stack_restore(void) {
 #define kg_stack_check_locked() ((void)0)
 #define kg_stack_restore() ((void)0)
 #endif
+// n + 1 bytes, or NULL above half of this target's size_t: musl's allocators crash on requests just below SIZE_MAX.
+static void* kg_malloc_n(int64_t n) {
+    return (uint64_t)n + 1 > (uint64_t)SIZE_MAX / 2 ? NULL : malloc((size_t)((uint64_t)n + 1));
+}
+static void* kg_calloc_n(int64_t n) {
+    return (uint64_t)n + 1 > (uint64_t)SIZE_MAX / 2 ? NULL : calloc((size_t)((uint64_t)n + 1), 1);
+}
 // A contained task panic needs a non-local jump: libc's where there is one, the compiler's own on a bare build.
 #if defined(KIGUMI_TASK_CATCH) && defined(KIGUMI_UNWIND) && (!defined(KIGUMI_FREESTANDING) || defined(KIGUMI_TASK_CATCH_BUILTIN))
 #define KG_CATCH 1
@@ -672,7 +679,7 @@ val rt_str_take(char* data, int64_t len) {
 }
 val strdup_val(const char* s, int64_t len) {
     if (len < 0) rt_panic("out of memory");
-    char* d = malloc((uint64_t)len + 1);
+    char* d = kg_malloc_n(len);
     if (!d) rt_panic("out of memory");
     memcpy(d, s, len);
     d[len] = 0;
@@ -681,7 +688,7 @@ val strdup_val(const char* s, int64_t len) {
 // NULL on refusal instead of strdup_val's panic, for the fallible primitives.
 static char* strdup_or_null(const char* s, int64_t len) {
     if (len < 0 || fault_tick()) return NULL;
-    char* d = malloc((uint64_t)len + 1);
+    char* d = kg_malloc_n(len);
     if (!d) return NULL;
     memcpy(d, s, len);
     d[len] = 0;
@@ -2129,7 +2136,7 @@ static val try_ok(val v) {
 // the allocator refused, and nothing built so far stays live.
 static char* try_dup(const char* s, int64_t len) {
     if (len < 0 || fault_tick()) return NULL;
-    char* d = malloc((uint64_t)len + 1);
+    char* d = kg_malloc_n(len);
     if (!d) return NULL;
     memcpy(d, s, len);
     d[len] = 0;
@@ -3416,7 +3423,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_BYTES_ZEROS: {
         int64_t n2 = a0->u.i;
         if (n2 < 0) rt_panic("out of memory");
-        char* d = fault_tick() ? NULL : calloc((uint64_t)n2 + 1, 1);
+        char* d = fault_tick() ? NULL : kg_calloc_n(n2);
         if (!d) rt_panic("out of memory");
         val v = rt_str_take(d, n2);
         v->kind = K_BYTES;
@@ -3425,7 +3432,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_BYTES_TRY_ZEROS: {
         int64_t n2 = a0->u.i;
         if (n2 < 0) return alloc_error();
-        char* d = fault_tick() ? NULL : calloc((uint64_t)n2 + 1, 1);
+        char* d = fault_tick() ? NULL : kg_calloc_n(n2);
         if (!d) return alloc_error();
         val v = rt_str_take_try(d, n2);
         if (!v) {
@@ -3438,7 +3445,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_BYTES_FILL: {
         int64_t n2 = a1->u.i;
         if (n2 < 0) rt_panic("out of memory");
-        char* d = fault_tick() ? NULL : malloc((uint64_t)n2 + 1);
+        char* d = fault_tick() ? NULL : kg_malloc_n(n2);
         if (!d) rt_panic("out of memory");
         memset(d, (unsigned char)a0->u.i, n2);
         d[n2] = 0;
@@ -3449,7 +3456,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_BYTES_TRY_FILL: {
         int64_t n2 = a1->u.i;
         if (n2 < 0) return alloc_error();
-        char* d = fault_tick() ? NULL : malloc((uint64_t)n2 + 1);
+        char* d = fault_tick() ? NULL : kg_malloc_n(n2);
         if (!d) return alloc_error();
         memset(d, (unsigned char)a0->u.i, n2);
         d[n2] = 0;

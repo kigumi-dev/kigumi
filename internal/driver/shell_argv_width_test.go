@@ -65,10 +65,10 @@ func TestShellArgvUsesTargetPointerWidth(t *testing.T) {
 		t.Fatalf("expected the 32-bit target's malloc to take i32, got:\n%s", grepLines(ir, "declare ptr @malloc"))
 	}
 	body := funcBody(t, ir, "std/shell.runChild")
-	if !strings.Contains(body, "rt_int(i64 4, i32 32)") {
+	if !strings.Contains(body, "rt_int(i64 4, i32 64)") {
 		t.Errorf("runChild should size the argv array off the target's 4-byte pointer width; got:\n%s", grepLines(body, "rt_int(i64 "))
 	}
-	if strings.Contains(body, "rt_int(i64 8, i32 32)") {
+	if strings.Contains(body, "rt_int(i64 8, i32 64)") {
 		t.Errorf("runChild still hardcodes an 8-byte pointer stride on a 32-bit target:\n%s", grepLines(body, "rt_int(i64 8"))
 	}
 }
