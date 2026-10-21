@@ -1,23 +1,20 @@
 package vm
 
 // Runs after the callback's own frames are swept; a root task keeps its frames, so only the produced items go.
-func (m *Machine) releaseProducedOnPanic(base int, items func() []*obj) {
-	r := recover()
-	if r == nil {
+func (m *Machine) releaseProducedOnPanic(base int, done *bool, items func() []*obj) {
+	if *done {
 		return
 	}
-	p, ok := r.(*Panic)
-	if !ok || p.Sandbox || !m.containing() {
-		panic(r)
-	}
-	if m.sweepsPanics() {
-		p = m.recoverJoined(r, nil, base)
-	}
-	produced := items()
-	for i := len(produced) - 1; i >= 0; i-- {
-		p = m.releaseJoined(produced[i], p)
-	}
-	panic(p)
+	m.joinInflight(func(p *Panic) *Panic {
+		if m.sweepsPanics() {
+			p = m.recoverJoined(p, nil, base)
+		}
+		produced := items()
+		for i := len(produced) - 1; i >= 0; i-- {
+			p = m.releaseJoined(produced[i], p)
+		}
+		return p
+	})
 }
 
 func (m *Machine) tryMapItems(src, f *obj) *obj {
@@ -25,10 +22,12 @@ func (m *Machine) tryMapItems(src, f *obj) *obj {
 		return m.allocError()
 	}
 	var out []*obj
-	defer m.releaseProducedOnPanic(len(m.frames), func() []*obj { return out })
+	done := false
+	defer m.releaseProducedOnPanic(len(m.frames), &done, func() []*obj { return out })
 	for _, x := range src.fields {
 		out = append(out, m.callValue(f, []*obj{x}))
 	}
+	done = true
 	return m.ok(m.sized(mkArray(out)))
 }
 
@@ -37,12 +36,14 @@ func (m *Machine) tryFilterItems(src, keep *obj) *obj {
 		return m.allocError()
 	}
 	var out []*obj
-	defer m.releaseProducedOnPanic(len(m.frames), func() []*obj { return out })
+	done := false
+	defer m.releaseProducedOnPanic(len(m.frames), &done, func() []*obj { return out })
 	for _, x := range src.fields {
 		r := deref(m.callValue(keep, []*obj{x}))
 		if r.b {
 			out = append(out, retain(x))
 		}
 	}
+	done = true
 	return m.ok(m.sized(mkArray(out)))
 }

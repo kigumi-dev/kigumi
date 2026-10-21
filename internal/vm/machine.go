@@ -82,6 +82,7 @@ type Machine struct {
 	pool             []*obj
 	slab             []*obj
 	sweepFault       *Panic
+	inflight         *Panic
 	outerDepth       int
 	stepsLeft, depth int
 	// cur is the running task and curLane its executor lane, for spawn and cancellation.
@@ -164,11 +165,11 @@ func (m *Machine) catch(f func()) (err error) {
 }
 
 func (m *Machine) abort(msg string) {
-	panic(&Panic{Msg: msg, Site: m.abortSite()})
+	m.throw(&Panic{Msg: msg, Site: m.abortSite()})
 }
 
 func (m *Machine) sandboxAbort(msg string) {
-	panic(&Panic{Msg: msg, Site: m.abortSite(), Sandbox: true})
+	m.throw(&Panic{Msg: msg, Site: m.abortSite(), Sandbox: true})
 }
 
 func (m *Machine) abortSite() mir.Site {

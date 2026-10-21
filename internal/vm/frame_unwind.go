@@ -106,6 +106,6 @@ func (m *Machine) recoverJoined(r any, fault *Panic, base int) *Panic {
 
 func (m *Machine) raiseJoined(fault *Panic) {
 	if fault != nil {
-		panic(fault)
+		m.throw(fault)
 	}
 }

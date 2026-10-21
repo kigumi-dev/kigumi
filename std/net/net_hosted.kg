@@ -15,7 +15,7 @@ extern(C) {
     fn getsockname(fd: i32, addr: *mut SockAddrIn, len: *mut LenBox) -> i32
     fn close(fd: i32) -> i32
     fn read(fd: i32, buf: *mut u8, n: usize) -> isize
-    fn write(fd: i32, buf: *const u8, n: usize) -> isize
+    fn send(fd: i32, buf: *const u8, n: usize, flags: i32) -> isize
     fn poll(fds: *mut u8, n: usize, timeout: i32) -> i32
     fn fcntl(fd: i32, cmd: i32, ...) -> i32
     fn malloc(n: usize) -> *mut u8
@@ -222,7 +222,7 @@ fn sendAll(fd: i32, data: Bytes) -> Unit! {
     let mut off: usize = 0
     for off < n {
         let w = unsafe {
-            write(fd, ffi.offset(ffi.bytesPtr(&data), off.toInt() || 0), n - off)
+            send(fd, ffi.offset(ffi.bytesPtr(&data), off.toInt() || 0), n - off, msgNoSignal())
         }
         if w <= 0 {
             if w < 0 && ffi.errno() == eintr() {
@@ -615,7 +615,7 @@ pub fn Conn.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
     n
 }
 
-/// Writes data; may send fewer bytes than given, matching write(2) and
+/// Writes data; may send fewer bytes than given, matching send(2) and
 /// std/io's Writer (writeAll loops for the rest).
 pub fn Conn.write(mut self, data: Bytes) -> usize! {
     let n = data.len()
@@ -625,7 +625,7 @@ pub fn Conn.write(mut self, data: Bytes) -> usize! {
     let mut w: isize = -1
     for w < 0 {
         w = unsafe {
-            write(self.fd, ffi.bytesPtr(&data), n)
+            send(self.fd, ffi.bytesPtr(&data), n, msgNoSignal())
         }
         if w < 0 && ffi.errno() != eintr() {
             fail ffi.lastError()

@@ -1,0 +1,37 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop res ${self.n}"
+}
+
+fn deep(n: Int) -> Int {
+    let mut s = Array.of(n)
+    let q = "s${n}"
+    s.push(q.len().toInt() || 0)
+    1 + deep(n + 1)
+}
+
+async fn boom(r: Res) -> Int {
+    print "in task ${r.n}"
+    deep(0)
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom(Res { n: 7 }))
+    await h
+}
+
+let ex = task.threadPoolExecutor(2)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+in task 7
+drop res 7
+-- stderr --
+panic: stack overflow
+-- exit --
+2

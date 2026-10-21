@@ -130,6 +130,9 @@ typedef struct {
 void rt_sys_write(int fd, const char* p, size_t n);
 void rt_sys_exit(int code);
 int rt_sys_close(int fd);
+// Called once per OS thread that runs Kigumi code; a hosted POSIX target installs its stack-overflow guard here.
+void rt_sys_stack_guard(void);
+void rt_sys_stack_force(void);
 val rt_sys_std(const char* k, int n, val* a, val a0, val a1, val a2);
 
 // ---- core helpers ----

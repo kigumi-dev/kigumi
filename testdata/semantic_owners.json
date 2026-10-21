@@ -4511,6 +4511,16 @@
     "status": "ok"
   },
   {
+    "key": "net.msgNoSignal",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net.oNonBlock",
     "signature": "fn() -\u003e i32",
     "has_body": true,

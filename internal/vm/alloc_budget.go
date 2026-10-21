@@ -1,11 +1,19 @@
 package vm
 
+import "runtime/debug"
+
 // objOverhead approximates one obj allocation's fixed bookkeeping cost.
 const objOverhead = 32
 
-// maxVMAlloc bounds one make() request; past it a size-taking primitive
-// reports AllocError instead of risking Go's own makeslice panic.
-const maxVMAlloc = 1 << 40
+// maxVMAlloc bounds one make() request, because Go's out-of-memory error is
+// fatal and cannot be recovered; fixed at 4 GiB, lower under GOMEMLIMIT.
+var maxVMAlloc = func() uint64 {
+	limit := uint64(1) << 32
+	if mem := debug.SetMemoryLimit(-1); mem > 0 && uint64(mem) < limit {
+		limit = uint64(mem)
+	}
+	return limit
+}()
 
 // approxSize estimates the bytes a value's own backing storage costs right
 // now. Scalars (int/float/bool/char/unit) count as 0: the sandbox's memory

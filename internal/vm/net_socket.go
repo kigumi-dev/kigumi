@@ -39,7 +39,7 @@ func (m *Machine) registerNet() {
 	}
 	h["net.Conn.read"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		max := deref(a[2]).i
-		if max < 0 {
+		if max < 0 || uint64(max) >= maxVMAlloc {
 			return m.errMsg("out of memory")
 		}
 		buf := make([]byte, max)

@@ -1,0 +1,36 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+    if self.n < 0 {
+        print "never"
+    }
+}
+
+fn deep(n: Int) -> Int {
+    let r = Res { n: n }
+    let xs = Array.of(1)
+    let ys = xs.map((x: &Int) => deep(n + 1))
+    ys.len().toInt() || 0
+}
+
+async fn boom() -> Int {
+    deep(1)
+}
+
+async fn root() -> Int {
+    let h = task.spawn(boom())
+    await h
+}
+
+let ex = task.threadPoolExecutor(2)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+-- stderr --
+panic: stack overflow
+-- exit --
+2

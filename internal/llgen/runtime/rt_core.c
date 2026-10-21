@@ -23,7 +23,7 @@
 #define KG_ALOAD(x) atomic_load_explicit(&(x), memory_order_acquire)
 #define KG_ASTORE(x, v) atomic_store_explicit(&(x), (v), memory_order_release)
 static pthread_mutex_t g_sched = PTHREAD_MUTEX_INITIALIZER;
-#define SCHED_LOCK() pthread_mutex_lock(&g_sched)
+#define SCHED_LOCK() (kg_stack_check_locked(), pthread_mutex_lock(&g_sched))
 #define SCHED_UNLOCK() pthread_mutex_unlock(&g_sched)
 #else
 #define KG_TLS
@@ -36,6 +36,57 @@ static pthread_mutex_t g_sched = PTHREAD_MUTEX_INITIALIZER;
 #define KG_ASTORE(x, v) ((x) = (v))
 #define SCHED_LOCK() ((void)0)
 #define SCHED_UNLOCK() ((void)0)
+#endif
+#ifndef KIGUMI_FREESTANDING
+// Set by rt_stack_guard.c: the low end of this thread's stack, or 0 while no guard is installed.
+KG_TLS uintptr_t rt_stack_floor;
+KG_TLS uintptr_t rt_stack_saved;
+KG_TLS int rt_stack_forced;
+KG_TLS int rt_in_libc;
+#define KG_STACK_RESERVE (64 * 1024)
+// A fault inside malloc would leave its lock held, so the overflow is raised here, before the call, with room left to unwind.
+static inline void kg_stack_need(size_t room) {
+    if ((uintptr_t)__builtin_frame_address(0) - rt_stack_floor < room && rt_stack_floor) {
+        rt_stack_forced = 1;
+        rt_sys_stack_force();
+    }
+}
+#define kg_stack_check() kg_stack_need(KG_STACK_RESERVE)
+#define kg_stack_check_locked() kg_stack_need(2 * KG_STACK_RESERVE)
+static inline void* kg_malloc(size_t n) {
+    kg_stack_check();
+    rt_in_libc++;
+    void* p = malloc(n);
+    rt_in_libc--;
+    return p;
+}
+static inline void* kg_calloc(size_t n, size_t m) {
+    kg_stack_check();
+    rt_in_libc++;
+    void* p = calloc(n, m);
+    rt_in_libc--;
+    return p;
+}
+static inline void* kg_realloc(void* q, size_t n) {
+    kg_stack_check();
+    rt_in_libc++;
+    void* p = realloc(q, n);
+    rt_in_libc--;
+    return p;
+}
+#define malloc(n) kg_malloc(n)
+#define calloc(n, m) kg_calloc(n, m)
+#define realloc(q, n) kg_realloc(q, n)
+static inline void kg_stack_restore(void) {
+    if (rt_stack_saved) {
+        rt_stack_floor = rt_stack_saved;
+        rt_stack_saved = 0;
+    }
+}
+#else
+#define kg_stack_check() ((void)0)
+#define kg_stack_check_locked() ((void)0)
+#define kg_stack_restore() ((void)0)
 #endif
 // A contained task panic needs a non-local jump: libc's where there is one, the compiler's own on a bare build.
 #if defined(KIGUMI_TASK_CATCH) && defined(KIGUMI_UNWIND) && (!defined(KIGUMI_FREESTANDING) || defined(KIGUMI_TASK_CATCH_BUILTIN))
@@ -322,7 +373,7 @@ static void report_live(void) {
 #endif
 #ifdef KIGUMI_THREADS
 static pthread_mutex_t g_out = PTHREAD_MUTEX_INITIALIZER;
-#define OUT_LOCK() pthread_mutex_lock(&g_out)
+#define OUT_LOCK() (kg_stack_check_locked(), pthread_mutex_lock(&g_out))
 #define OUT_UNLOCK() pthread_mutex_unlock(&g_out)
 #else
 #define OUT_LOCK() ((void)0)
@@ -389,6 +440,11 @@ static void unwind_args(kg_unwind* u) {
     val* args = (val*)u->p;
     while (u->i > 0) rt_release(args[--u->i]);
 }
+// The same, for an argument region the call also owns; freed once every release has run.
+static void unwind_args_region(kg_unwind* u) {
+    unwind_args(u);
+    gen_free(&g_general, u->p);
+}
 // The arguments of a std function value, released in order; u->i is the next one, so a release that panics resumes with the rest.
 typedef struct {
     val* args;
@@ -406,7 +462,7 @@ static void unwind_std_args(kg_unwind* u) {
     }
 }
 #define IS_FRAME_REC(u) \
-    ((u)->run == unwind_frame || (u)->run == unwind_frame_slots || (u)->run == unwind_args || (u)->run == unwind_std_args)
+    ((u)->run == unwind_frame || (u)->run == unwind_frame_slots || (u)->run == unwind_args || (u)->run == unwind_args_region || (u)->run == unwind_std_args)
 void rt_unwind_enter(void* rec, int64_t n) {
     kg_uframe* f = (kg_uframe*)rec;
     f->prev = g_unwind;
@@ -529,7 +585,7 @@ static struct obj g_small_char[128];
 static KG_AINT g_small_filled[9];
 #ifdef KIGUMI_THREADS
 static pthread_mutex_t g_small_lock = PTHREAD_MUTEX_INITIALIZER;
-#define SMALL_LOCK() pthread_mutex_lock(&g_small_lock)
+#define SMALL_LOCK() (kg_stack_check_locked(), pthread_mutex_lock(&g_small_lock))
 #define SMALL_UNLOCK() pthread_mutex_unlock(&g_small_lock)
 #else
 #define SMALL_LOCK() ((void)0)
@@ -1262,22 +1318,27 @@ static void ptr_hex(const void* p, char* out) {
     for (int i = 0; i < n; i++) out[i] = tmp[n - 1 - i];
     out[n] = 0;
 }
-static void char_utf8(uint32_t c, char u[5]) {
-    u[0] = u[1] = u[2] = u[3] = u[4] = 0;
-    if (c < 0x80) u[0] = c;
-    else if (c < 0x800) {
+static int char_utf8(uint32_t c, char u[4]) {
+    if (c < 0x80) {
+        u[0] = c;
+        return 1;
+    }
+    if (c < 0x800) {
         u[0] = 0xC0 | (c >> 6);
         u[1] = 0x80 | (c & 0x3F);
-    } else if (c < 0x10000) {
+        return 2;
+    }
+    if (c < 0x10000) {
         u[0] = 0xE0 | (c >> 12);
         u[1] = 0x80 | ((c >> 6) & 0x3F);
         u[2] = 0x80 | (c & 0x3F);
-    } else {
-        u[0] = 0xF0 | (c >> 18);
-        u[1] = 0x80 | ((c >> 12) & 0x3F);
-        u[2] = 0x80 | ((c >> 6) & 0x3F);
-        u[3] = 0x80 | (c & 0x3F);
+        return 3;
     }
+    u[0] = 0xF0 | (c >> 18);
+    u[1] = 0x80 | ((c >> 12) & 0x3F);
+    u[2] = 0x80 | ((c >> 6) & 0x3F);
+    u[3] = 0x80 | (c & 0x3F);
+    return 4;
 }
 static double canon_float(double f) {
     if (f == 0.0) return 0.0;
@@ -1314,9 +1375,8 @@ void display_into(buf* b, val v, int canon) {
         bputs(b, v->u.b ? "true" : "false");
         break;
     case K_CHAR: {
-        char u[5];
-        char_utf8(v->u.c, u);
-        bputs(b, u);
+        char u[4];
+        bput(b, u, char_utf8(v->u.c, u));
         break;
     }
     case K_STR:
@@ -1711,13 +1771,16 @@ int rt_d_convert_float(double x, int dnk, uint64_t* out) {
     return 1;
 }
 // The direct hash of a scalar leaf: FNV-1a over the text display_into renders, with no box to hold it.
-static int64_t fnv_text(const char* s) {
+static int64_t fnv_bytes(const char* s, int n) {
     uint64_t h = 14695981039346656037ULL;
-    for (; *s; s++) {
-        h ^= (unsigned char)*s;
+    for (int i = 0; i < n; i++) {
+        h ^= (unsigned char)s[i];
         h *= 1099511628211ULL;
     }
     return (int64_t)h;
+}
+static int64_t fnv_text(const char* s) {
+    return fnv_bytes(s, (int)strlen(s));
 }
 int64_t rt_d_hash_int(int64_t v, int nk) {
     char tmp[24];
@@ -1729,9 +1792,8 @@ int64_t rt_d_hash_bool(int v) {
     return fnv_text(v ? "true" : "false");
 }
 int64_t rt_d_hash_char(int c) {
-    char u[5];
-    char_utf8((uint32_t)c, u);
-    return fnv_text(u);
+    char u[4];
+    return fnv_bytes(u, char_utf8((uint32_t)c, u));
 }
 int64_t rt_d_hash_float(double f, int nk) {
     char text[64];
@@ -1861,6 +1923,7 @@ void rt_abi_check(const char* expected) {
     rt_sys_exit(2);
 }
 void rt_init(int argc, char** argv, int ntypes, rt_type** types) {
+    rt_sys_stack_guard();
     g_argc = argc;
     g_argv = argv;
     g_ntypes = ntypes;
@@ -2195,18 +2258,22 @@ int rt_exit_code(val r) {
 }
 // The argument array lives in this frame: an adapter only rt_at's out of it,
 // and it is immortal so none can free it. args are consumed here, as before.
-val invoke(adapter_fn fn, val env, int n, val* args) {
+static val invoke_args(adapter_fn fn, val env, int n, val* args, int owned) {
     struct obj arr = {.kind = K_ARRAY, .rc = -1, .u.arr = {.items = args, .len = n, .cap = n}};
 #ifdef KG_CATCH
-    UNWIND_PUSH(u, unwind_args, args, NULL, n);
+    UNWIND_PUSH(u, owned ? unwind_args_region : unwind_args, args, NULL, n);
     val r = fn(env, &arr);
-    unwind_args(&u);
+    u.run(&u);
     UNWIND_POP(u);
 #else
     val r = fn(env, &arr);
     for (int i = n - 1; i >= 0; i--) rt_release(args[i]);
+    if (owned) gen_free(&g_general, args);
 #endif
     return r;
+}
+val invoke(adapter_fn fn, val env, int n, val* args) {
+    return invoke_args(fn, env, n, args, 0);
 }
 // A call's argument count has no compile-time cap, and a variable-length
 // stack array needs __chkstk, which freestanding_symbols.txt refuses.
@@ -2251,7 +2318,8 @@ val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
     adapter_fn fn = (adapter_fn)target->u.box.vt[slot];
     int64_t total = n + 1;
     val stackbuf[STACK_ARGS];
-    val* all = total <= STACK_ARGS ? stackbuf : malloc(total * sizeof(val));
+    val* all = total <= STACK_ARGS ? stackbuf : gen_alloc(&g_general, total * sizeof(val));
+    if (!all) rt_panic("out of memory");
     struct obj cell;
     // A concrete `mut self` body writes self through a cell; the boxed
     // value is behind the existential, so the cell is built over it here.
@@ -2262,7 +2330,7 @@ val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
         all[0] = target->u.box.v;
     }
     for (int i = 0; i < n; i++) all[i + 1] = args[i];
-    val r = invoke(fn, NULL, (int)total, all);
+    val r = invoke_args(fn, NULL, (int)total, all, all != stackbuf);
     if (recvmode == 1) {
         val old = target->u.box.v;
         target->u.box.v = cell.u.cell.v;
@@ -2271,7 +2339,6 @@ val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
         target->u.box.v = NULL;
         rt_release(recv);
     }
-    if (all != stackbuf) free(all);
     return r;
 }
 val rt_std_closure(const char* key, int n, val* caps) {
@@ -2495,6 +2562,7 @@ static __attribute__((noinline)) int contained(void (*fn)(val), val arg) {
     g_unwind_base = g_unwind;
     if (KG_SETJMP(jb)) {
         g_task_catch = prev;
+        kg_stack_restore();
         g_unwind_base = prev_base;
         g_alloc_sp = sp;
         g_drop_depth = depth;

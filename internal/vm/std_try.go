@@ -68,7 +68,7 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		}
 		return m.ok(retain(a[0]))
 	case "prelude.String.tryConcat":
-		if m.faultTick() {
+		if uint64(len(a0.str()))+uint64(len(a1.str())) >= maxVMAlloc || m.faultTick() {
 			return m.allocError()
 		}
 		return m.ok(mkStr(append(append([]byte{}, a0.str()...), a1.str()...)))

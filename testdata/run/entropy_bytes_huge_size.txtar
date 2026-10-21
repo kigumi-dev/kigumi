@@ -1,0 +1,6 @@
+-- src --
+let e = host.entropy()
+let r = e.bytes(288230376151711744)
+print "${r is Err(_)}"
+-- stdout --
+true

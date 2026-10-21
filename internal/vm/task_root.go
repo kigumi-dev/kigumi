@@ -17,7 +17,7 @@ func (m *Machine) runToCompletion(ex *executor, fut *obj) *obj {
 		if ex.failed != nil {
 			f := ex.failed
 			m.sh.sched.Unlock()
-			panic(f)
+			m.rethrow(f)
 		}
 		if root.terminal() {
 			ex.driving = false
@@ -77,7 +77,7 @@ func (m *Machine) rootResult(root *task) *obj {
 	case taskCancelled:
 		m.abort("the root task was cancelled")
 	case taskFaulted:
-		panic(root.fault)
+		m.throw(root.fault)
 	}
 	return r
 }

@@ -1,0 +1,14 @@
+-- src --
+import text from std/text
+import json from std/json
+
+let c: Char = '\0'
+print "${"${c}".len()} ${text.fromChar(c).len()} ${debug(c).len()}"
+print "${hash(c) == hash("\0")} ${hash(c) != hash('a')}"
+print "${"a${c}b".len()} ${"x\0y".chars().len()}"
+print "${json.encode(c) || "?"} ${json.encode("a${c}b") || "?"}"
+-- stdout --
+1 1 1
+true true
+3 3
+"\u0000" "a\u0000b"

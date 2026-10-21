@@ -28,6 +28,9 @@ var runtimeSys string
 //go:embed runtime/rt_signal.c
 var runtimeSignal string
 
+//go:embed runtime/rt_stack_guard.c
+var runtimeStackGuard string
+
 //go:embed runtime/rt_freestanding.h
 var runtimeFreestandingHeader string
 
@@ -122,7 +125,7 @@ func RuntimeFiles(sys, os string) []RuntimeFile {
 	files = append(files, capFiles...)
 	files = append(files, coreFragments...)
 	if sys != "none" && mir.PosixSignalOS(os) {
-		files = append(files, RuntimeFile{"rt_signal.c", runtimeSignal})
+		files = append(files, RuntimeFile{"rt_signal.c", runtimeSignal}, RuntimeFile{"rt_stack_guard.c", runtimeStackGuard})
 	}
 	if freestandingOS[os] {
 		files = append(files, RuntimeFile{"rt_freestanding.h", runtimeFreestandingHeader})

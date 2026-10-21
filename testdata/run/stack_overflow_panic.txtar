@@ -1,0 +1,14 @@
+-- src --
+fn depth(n: Int) -> Int {
+    1 + depth(n + 1)
+}
+
+print "before"
+print "${depth(0)}"
+print "after"
+-- stdout --
+before
+-- stderr --
+panic: stack overflow
+-- exit --
+2

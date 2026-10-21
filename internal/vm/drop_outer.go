@@ -15,7 +15,7 @@ func (m *Machine) dropChecked(fr *frame, v *obj) {
 			if !ok || p.Sandbox {
 				panic(r)
 			}
-			panic(m.sweepOuter(fr, base, p))
+			m.throw(m.sweepOuter(fr, base, p))
 		}
 	}()
 	m.release(v)

@@ -1,0 +1,14 @@
+-- src --
+let overflow = "abc".tryRepeat(4611686018427387904)
+print "${overflow is Err(AllocError.OutOfMemory)}"
+let zeros = Bytes.tryZeros(4611686018427387904)
+let filled = Bytes.tryFill(7, 4611686018427387904)
+print "${zeros is Err(AllocError.OutOfMemory)} ${filled is Err(AllocError.OutOfMemory)}"
+let cap = Array.tryWithCapacity[Int](288230376151711744)
+print "${cap is Err(AllocError.OutOfMemory)}"
+print "${"ab".repeat(3)}|${"".repeat(1000000000000)}|${"x".repeat(0)}|${"é".tryRepeat(2) || ""}"
+-- stdout --
+true
+true true
+true
+ababab|||éé

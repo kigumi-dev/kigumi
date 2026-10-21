@@ -129,13 +129,11 @@ func (m *Machine) resume(fu *future) (*obj, polled) {
 	f := co.fr.f
 	m.stack = append(m.stack, f)
 	m.depth++
-	if m.opts.Sandbox && m.depth > m.opts.DepthLimit {
-		m.sandboxAbort("comptime recursion too deep")
-	}
 	defer func() {
 		m.depth--
 		m.stack = m.stack[:len(m.stack)-1]
 	}()
+	m.checkDepth(f)
 	m.frames = append(m.frames, &co.fr)
 	leave := func() { m.frames = m.frames[:len(m.frames)-1] }
 	for {

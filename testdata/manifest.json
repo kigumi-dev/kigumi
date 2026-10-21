@@ -1707,6 +1707,23 @@
       ]
     },
     {
+      "id": "run/alloc_huge_requests",
+      "kind": "run",
+      "path": "testdata/run/alloc_huge_requests.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/alloc_try",
       "kind": "run",
       "path": "testdata/run/alloc_try.txtar",
@@ -3977,6 +3994,23 @@
       ]
     },
     {
+      "id": "run/char_nul_survives",
+      "kind": "run",
+      "path": "testdata/run/char_nul_survives.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/closure_call_args",
       "kind": "run",
       "path": "testdata/run/closure_call_args.txtar",
@@ -5830,6 +5864,23 @@
       "id": "run/entropy_bytes_huge",
       "kind": "run",
       "path": "testdata/run/entropy_bytes_huge.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/entropy_bytes_huge_size",
+      "kind": "run",
+      "path": "testdata/run/entropy_bytes_huge_size.txtar",
       "mode": [
         "vm",
         "native"
@@ -11221,6 +11272,90 @@
       ]
     },
     {
+      "id": "run/stack_overflow_panic",
+      "kind": "run",
+      "path": "testdata/run/stack_overflow_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: stack overflow"
+      }
+    },
+    {
+      "id": "run/stack_overflow_task_alloc",
+      "kind": "run",
+      "path": "testdata/run/stack_overflow_task_alloc.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: stack overflow"
+      }
+    },
+    {
+      "id": "run/stack_overflow_task_drop",
+      "kind": "run",
+      "path": "testdata/run/stack_overflow_task_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: stack overflow"
+      }
+    },
+    {
+      "id": "run/stack_overflow_task_map",
+      "kind": "run",
+      "path": "testdata/run/stack_overflow_task_map.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: stack overflow"
+      }
+    },
+    {
       "id": "run/static_basic",
       "kind": "run",
       "path": "testdata/run/static_basic.txtar",
@@ -11496,6 +11631,23 @@
       "id": "run/std_net_socket",
       "kind": "run",
       "path": "testdata/run/std_net_socket.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_net_write_closed_peer",
+      "kind": "run",
+      "path": "testdata/run/std_net_write_closed_peer.txtar",
       "mode": [
         "vm",
         "native"

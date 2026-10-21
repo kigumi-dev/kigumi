@@ -133,6 +133,7 @@ static __attribute__((noinline)) val poll_body(kgtask* t, int* faulted) {
     g_unwind_base = g_unwind;
     if (KG_SETJMP(jb)) {
         g_task_catch = prev;
+        kg_stack_restore();
         g_unwind_base = prev_base;
         g_alloc_sp = sp;
         g_drop_depth = depth;
@@ -268,6 +269,7 @@ typedef struct kgworker {
 } kgworker;
 static void* worker_main(void* p) {
     kgworker* w = (kgworker*)p;
+    rt_sys_stack_guard();
     g_cur_lane = w->lane;
     SCHED_LOCK();
     for (;;) {

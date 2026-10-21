@@ -1,6 +1,6 @@
 # The complete symbol surface a `--target x86_64-freestanding --sys none`
 # (or a hosted target with `--sys none`) archive may leave for the
-# embedder: libc calls rt_core.c makes directly, plus the four rt_sys_*
+# embedder: libc calls rt_core.c makes directly, plus the rt_sys_*
 # boundary points (rt.h) an embedder may override with real ones. A new
 # runtime libc call or a changed rt_sys_* boundary must land here too, or
 # internal/driver's TestBuildFreestandingSymbolSet fails naming it.
@@ -78,6 +78,8 @@ realloc
 round
 rt_sys_close
 rt_sys_exit
+rt_sys_stack_force
+rt_sys_stack_guard
 rt_sys_std
 rt_sys_write
 sqrt

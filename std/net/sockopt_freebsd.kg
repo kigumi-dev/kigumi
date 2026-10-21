@@ -57,3 +57,8 @@ fn pollOut() -> i16 {
 fn eintr() -> i32 {
     4
 }
+
+/// send(2) flags that make a write to a closed peer fail with EPIPE instead of raising SIGPIPE.
+fn msgNoSignal() -> i32 {
+    131072
+}

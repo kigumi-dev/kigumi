@@ -519,6 +519,11 @@ pub pure fn String.repeat(self, count: usize) -> String {
 
 /// The string repeated count times, or AllocError when the allocator refuses (repeat panics instead).
 pub pure fn String.tryRepeat(self, count: usize) -> Result[String, AllocError] {
+    let total = self.len().mulWithOverflow(count)
+    let zero: usize = 0
+    if total.overflowed || total.value > zero.wrappingSub(1) / 2 {
+        return Err(AllocError.OutOfMemory)
+    }
     // Doubling keeps the copying linear in the result instead of quadratic.
     let mut out = ""
     let mut base = self

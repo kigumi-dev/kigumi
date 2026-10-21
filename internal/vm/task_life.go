@@ -72,7 +72,7 @@ func (m *Machine) pollTask(t *task) (*obj, polled) {
 	case taskCancelled:
 		return nil, cancelled
 	case taskFaulted:
-		panic(fault)
+		m.throw(fault)
 	}
 	return r, ready
 }

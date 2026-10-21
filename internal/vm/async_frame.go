@@ -73,7 +73,7 @@ func (m *Machine) cancelSuspended(fu *future) {
 	base := len(m.frames)
 	defer func() {
 		if r := recover(); r != nil {
-			panic(m.sweepCoro(fu, m.recoverJoined(r, nil, base)))
+			m.throw(m.sweepCoro(fu, m.recoverJoined(r, nil, base)))
 		}
 	}()
 	if _, st := m.resume(fu); st != cancelled {

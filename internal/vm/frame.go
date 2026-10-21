@@ -66,13 +66,11 @@ func (m *Machine) run(fr *frame) *obj {
 	m.stack = append(m.stack, f)
 	m.frames = append(m.frames, fr)
 	m.depth++
-	if m.opts.Sandbox && m.depth > m.opts.DepthLimit {
-		m.sandboxAbort("comptime recursion too deep")
-	}
 	defer func() {
 		m.depth--
 		m.stack = m.stack[:len(m.stack)-1]
 	}()
+	m.checkDepth(f)
 	bid := mir.BlockID(0)
 	for {
 		blk := &f.Blocks[bid]
