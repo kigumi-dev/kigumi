@@ -9,6 +9,8 @@
 #include <unistd.h>
 #ifdef __linux__
 #include <sys/syscall.h>
+// A `-include` header may pull in pthread.h before _GNU_SOURCE is set, hiding this prototype.
+int pthread_getattr_np(pthread_t, pthread_attr_t*);
 #endif
 
 #include "rt.h"
