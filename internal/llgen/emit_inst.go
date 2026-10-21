@@ -99,7 +99,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		arr := e.argArray(sb, args)
 		res = e.irb(sb).Call(rtArray, vi64(len(args)), vptr(arr)).Text
 	case mir.OpIndex:
-		res = e.irb(sb).Call(rtIndex, vptr(args[0]), vptr(args[1])).Text
+		res = e.irb(sb).Call(rtIndex, vptr(args[0]), vptr(args[1]), vptr(e.siteText(f, in))).Text
 	case mir.OpSetIndex:
 		e.setIndex(sb, f, in, args)
 		e.releaseScalarArgs(sb, in, args)

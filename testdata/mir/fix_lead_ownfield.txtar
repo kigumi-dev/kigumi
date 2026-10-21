@@ -74,15 +74,25 @@ fn lib.onceThenRestored(%b: Box, %fresh: Handle) -> Void {
     drop(%b)
     return %t6
 }
-error[use-after-move]: `b.h` was moved; it cannot be used again
+error[E2197]: `b.h` was moved; it cannot be used again
   --> lib/own.kg:18:13
    |
 18 |     consume(b.h)
    |             ^^^
+note: `b.h` is moved here
+  --> lib/own.kg:17:5
+   |
+17 |     consume(b.h)
+   |     ^^^^^^^^^^^
 
-error[use-after-move]: `b.h` was moved; it cannot be used again
+error[E2197]: `b.h` was moved; it cannot be used again
   --> lib/own.kg:18:5
    |
 18 |     consume(b.h)
+   |     ^^^^^^^^^^^
+note: `b.h` is moved here
+  --> lib/own.kg:17:5
+   |
+17 |     consume(b.h)
    |     ^^^^^^^^^^^
 

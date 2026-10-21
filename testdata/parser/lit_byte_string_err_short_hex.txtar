@@ -14,13 +14,13 @@ File
     pattern: PatBind c
     init: IntLit 1
 -- diagnostics --
-error: invalid hex escape (need two hex digits after \x)
+error[E2199]: invalid hex escape (need two hex digits after \x)
  --> lit_byte_string_err_short_hex.txtar:1:11
   |
 1 | let a = b"\x4"
   |           ^^^
 
-error: invalid hex escape (need two hex digits after \x)
+error[E2199]: invalid hex escape (need two hex digits after \x)
  --> lit_byte_string_err_short_hex.txtar:2:11
   |
 2 | let b = b"\x"

@@ -1,7 +1,6 @@
 package syntax
 
 import (
-	"kigumi/internal/diag"
 	"kigumi/internal/token"
 )
 
@@ -26,7 +25,7 @@ func (p *parser) errdeferAhead() bool {
 func (p *parser) oldErrdefer() NodeID {
 	kw := p.advance()
 	p.lastErr = kw
-	p.bag.Add(diag.Errorf(diag.Location{Span: p.toks[kw].Span}, "`errdefer` is no longer a keyword").
+	p.bag.Add(syntaxError(p.toks[kw].Span, "`errdefer` is no longer a keyword").
 		WithHelp("write `defer(fail)` for a cleanup that runs only when the scope exits with an error"))
 	return p.node1(DeferFailStmt, kw, p.cleanupBody())
 }

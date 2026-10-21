@@ -54,9 +54,14 @@ fn lib.genuine(%x: Int) -> Box {
     drop(%x)
     return %t6
 }
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
   --> lib/reinit.kg:16:5
    |
 16 |     b
    |     ^
+note: `b` is moved here
+  --> lib/reinit.kg:15:13
+   |
+15 |     let c = b
+   |             ^
 

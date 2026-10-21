@@ -79,6 +79,9 @@ func (c *checker) errSuggest(n syntax.NodeID, code Code, name string, candidates
 	if !ok {
 		return
 	}
+	if name == "display" && code.Num == cMemberNotFound.Num {
+		d = d.WithHelp("a type gets a derived `display` once `std/fmt` is imported: `import fmt from std/fmt`")
+	}
 	if alt := suggest(name, candidates); alt != "" {
 		d = d.WithHelp("did you mean `" + alt + "`?")
 		d.Fixes = append(d.Fixes, c.r.replaceFix(c.f, n, "replace with `"+alt+"`", alt))

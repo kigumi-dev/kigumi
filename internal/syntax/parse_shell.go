@@ -1,7 +1,6 @@
 package syntax
 
 import (
-	"kigumi/internal/diag"
 	"kigumi/internal/token"
 )
 
@@ -32,7 +31,7 @@ type shellParser struct {
 
 func (s *shellParser) errorf(start int, msg string) {
 	end := max(s.pos, start+1)
-	s.p.bag.Add(diag.Errorf(diag.Location{Span: token.Span{Start: token.Pos(start), End: token.Pos(end)}}, msg))
+	s.p.bag.Add(syntaxError(token.Span{Start: token.Pos(start), End: token.Pos(end)}, msg))
 }
 
 func (s *shellParser) plan(tok uint32) NodeID {

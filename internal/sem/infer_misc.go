@@ -17,7 +17,7 @@ func (c *checker) synthString(n syntax.NodeID) TypeID {
 		case tt.Kind(t) == KUntyped:
 			c.adopt(c.literalNode(p.Expr), defaultOf(t))
 		default:
-			c.errAt(p.Expr, cInterpolationType, t)
+			c.errAtHelp(p.Expr, c.displayHelp(t), cInterpolationType, t)
 		}
 	}
 	if interpolated {
@@ -130,6 +130,9 @@ func (c *checker) synthOptMember(n syntax.NodeID) TypeID {
 	}
 	t := c.memberOn(n, member.Base().ID(), elem, member.Member().Text())
 	if t == TyPoison {
+		return TyPoison
+	}
+	if c.isPlace(member.Base().ID()) && !c.r.isCopy(elem) && c.rejectOptFieldValue(n, member.Base().ID(), member.Member().Text(), t) {
 		return TyPoison
 	}
 	c.buildEdge(n, c.r.Types.Option(t))

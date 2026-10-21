@@ -68,8 +68,8 @@ hash true
 cmp true true
 display Circle(4) Circle(4)
 pair eq true
-pair display Pair { 1, x }
-debug Pair { 1, x }
+pair display Pair { a: 1, b: x }
+debug Pair { a: 1, b: x }
 gen 3
 arr 6
 map 10

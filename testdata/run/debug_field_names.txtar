@@ -1,0 +1,33 @@
+-- src --
+import fmt from std/fmt
+
+type P = {
+    pub x Int
+    pub y Int
+}
+
+type Line = {
+    pub from P
+    pub to P
+}
+
+type Shape = Circle(r: Int) | Dot
+
+let p = P { x: 1, y: 2 }
+print debug(&p)
+print p.display()
+print debug(&Line { from: p, to: P { x: 3, y: 4 } })
+print debug(&Some(p))
+print debug(&(1, "a"))
+print debug(&Array.of(p, P { x: 5, y: 6 }))
+print debug(&Circle(2))
+print debug(&Dot)
+-- stdout --
+P { x: 1, y: 2 }
+P { x: 1, y: 2 }
+Line { from: P { x: 1, y: 2 }, to: P { x: 3, y: 4 } }
+Some(P { x: 1, y: 2 })
+(1, a)
+[P { x: 1, y: 2 }, P { x: 5, y: 6 }]
+Circle(2)
+Dot

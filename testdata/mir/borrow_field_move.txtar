@@ -48,7 +48,7 @@ fn lib.peek(%o: &Outer) -> Int {
     %t2 = field 0(%t1)
     return %t2
 }
-error[move-from-borrow]: a value borrowed here cannot be moved out; clone it
+error[move-from-borrow]: a value borrowed here cannot be moved out
   --> lib/field.kg:15:5
    |
 15 |     self.inner

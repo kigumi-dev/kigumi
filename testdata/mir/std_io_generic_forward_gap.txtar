@@ -52,9 +52,14 @@ fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) 
     nop
     return %t13
 }
-error[use-after-move]: `w` was moved; it cannot be used again
+error[E2197]: `w` was moved; it cannot be used again
   --> lib/gap.kg:11:17
    |
 11 |     io.writeAll(w, b)?
+   |                 ^
+note: `w` is moved here
+  --> lib/gap.kg:10:17
+   |
+10 |     io.writeAll(w, a)?
    |                 ^
 

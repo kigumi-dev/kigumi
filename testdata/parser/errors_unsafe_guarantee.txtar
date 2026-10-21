@@ -56,19 +56,19 @@ File
         type: TypePath
           Path i32
 -- diagnostics --
-error: expected `,` or newline between list entries, found `||`
+error[E2199]: expected `,` or newline between list entries, found `||`
  --> errors_unsafe_guarantee.txtar:1:36
   |
 1 | @unsafeGuarantee(Send when T: Send || T: Sync)
   |                                    ^^
 
-error: expected identifier, found `!`
+error[E2199]: expected identifier, found `!`
  --> errors_unsafe_guarantee.txtar:5:28
   |
 5 | @unsafeGuarantee(Send when !T: Send)
   |                            ^
 
-error: expected :, found `(`
+error[E2199]: expected :, found `(`
  --> errors_unsafe_guarantee.txtar:9:31
   |
 9 | @unsafeGuarantee(Send when foo(T))

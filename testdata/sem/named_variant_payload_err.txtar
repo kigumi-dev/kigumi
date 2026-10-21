@@ -1,0 +1,50 @@
+-- src --
+type E = Add(a: Int, b: Int) | Plain(Int)
+
+fn use() {
+    let ok = Add(b: 1, a: 2)
+    let mixed = Add(1, b: 2)
+    let unknown = Add(a: 1, c: 2) //~ ERROR `Add` has no parameter named `c`
+    let dup = Add(a: 1, a: 2) //~ ERROR argument `a` given more than once
+    let late = Add(a: 1, 2) //~ ERROR positional argument after a named argument
+    let few = Add(a: 1) //~ ERROR `Add` takes 2 payload values, 1 given
+    let plain = Plain(v: 1) //~ ERROR `Plain` has no parameter named `v`
+    let wrong = Add(a: "x", b: 1) //~ ERROR expected `Int`, found `String`
+}
+-- expect --
+error[E1012]: `Add` has no parameter named `c`
+ --> main/main.kg:6:29
+  |
+6 |     let unknown = Add(a: 1, c: 2) //~ ERROR `Add` has no parameter named `c`
+  |                             ^^^^
+
+error[E1013]: argument `a` given more than once
+ --> main/main.kg:7:25
+  |
+7 |     let dup = Add(a: 1, a: 2) //~ ERROR argument `a` given more than once
+  |                         ^^^^
+
+error[E1011]: positional argument after a named argument
+ --> main/main.kg:8:26
+  |
+8 |     let late = Add(a: 1, 2) //~ ERROR positional argument after a named argument
+  |                          ^
+
+error[E522]: `Add` takes 2 payload values, 1 given
+ --> main/main.kg:9:15
+  |
+9 |     let few = Add(a: 1) //~ ERROR `Add` takes 2 payload values, 1 given
+  |               ^^^^^^^^
+
+error[E1012]: `Plain` has no parameter named `v`
+  --> main/main.kg:10:23
+   |
+10 |     let plain = Plain(v: 1) //~ ERROR `Plain` has no parameter named `v`
+   |                       ^^^^
+
+error[E400]: expected `Int`, found `String`
+  --> main/main.kg:11:24
+   |
+11 |     let wrong = Add(a: "x", b: 1) //~ ERROR expected `Int`, found `String`
+   |                        ^^^
+

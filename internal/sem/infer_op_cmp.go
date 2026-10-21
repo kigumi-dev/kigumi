@@ -7,7 +7,7 @@ import (
 
 func (c *checker) comparisonMismatch(n, rhs syntax.NodeID, l, r TypeID) TypeID {
 	if c.r.Types.IsNumeric(l) && c.r.Types.IsNumeric(r) {
-		c.errAt(n, cNumericMixed, l, r)
+		c.errAtHelp(n, mixedUsizeHelp(l, r), cNumericMixed, l, r)
 	} else {
 		c.mismatch(rhs, l, r)
 	}

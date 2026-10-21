@@ -14,7 +14,7 @@ File
           List
             Ident ab
 -- diagnostics --
-error: unexpected `string` in interpolation
+error[E2199]: unexpected `string` in interpolation
  --> byte_string_in_interpolation_err.txtar:2:12
   |
 2 | print "${ab"x"}"

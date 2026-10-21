@@ -1,0 +1,81 @@
+-- src --
+type H = {
+    pub mut n Int
+}
+
+type R = resource {
+    pub n Int
+}
+
+fn R.drop(move self) {
+    _ = self
+}
+
+fn H.get(self) -> Int {
+    self.n
+}
+
+fn H.bump(mut self) {
+    self.n += 1
+}
+
+fn R.consume(move self) -> Int {
+    self.n
+}
+
+fn R.peek(self) -> Int {
+    self.n
+}
+
+fn okChain(h: H?) -> Int? {
+    h?.get()
+}
+
+fn nonOption(i: Int) -> Int? {
+    i?.get() //~ ERROR `?.` needs an `Option` operand, found `Int`
+}
+
+fn mutThrough(h: H?) -> Void? {
+    h?.bump() //~ ERROR `bump` takes `mut self` but the receiver is a temporary
+}
+
+fn moveThrough(r: R?) -> Int? {
+    r?.consume() //~ ERROR cannot move `R` out of a borrow
+}
+
+fn borrowedOk(r: R?) -> Int? {
+    r?.peek()
+}
+
+fn ownedTemp(make: fn() -> R?) -> Int? {
+    make()?.consume()
+}
+
+fn doubled(h: H?) -> Int? {
+    h?.get()?.toInt() //~ ERROR `Int` has no field or method `toInt`
+}
+-- expect --
+error[E520]: `?.` needs an `Option` operand, found `Int`
+  --> main/main.kg:34:5
+   |
+34 |     i?.get() //~ ERROR `?.` needs an `Option` operand, found `Int`
+   |     ^^^^^^
+
+error[E516]: `bump` takes `mut self` but the receiver is a temporary
+  --> main/main.kg:38:5
+   |
+38 |     h?.bump() //~ ERROR `bump` takes `mut self` but the receiver is a temporary
+   |     ^
+
+error[E517]: cannot move `R` out of a borrow
+  --> main/main.kg:42:5
+   |
+42 |     r?.consume() //~ ERROR cannot move `R` out of a borrow
+   |     ^
+
+error[E510]: `Int` has no field or method `toInt`
+  --> main/main.kg:54:8
+   |
+54 |     h?.get()?.toInt() //~ ERROR `Int` has no field or method `toInt`
+   |        ^^^^^^^^^^^^
+

@@ -124,13 +124,13 @@ fn lib.peek(%h: &mut Holder) -> String {
     drop(%s)
     jump b5
 }
-error[borrow-conflict]: `h` is borrowed and cannot be mutated here
+error[E2198]: `h` is borrowed and cannot be mutated here
   --> lib/conflict.kg:23:9
    |
 23 |         h.slot = None
    |         ^^^^^^
 
-error[borrow-conflict]: `o` is borrowed and cannot be mutated here
+error[E2198]: `o` is borrowed and cannot be mutated here
   --> lib/conflict.kg:31:5
    |
 31 |     o.inner = Full { slot: Res { label: "r" } }

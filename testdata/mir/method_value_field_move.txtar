@@ -156,7 +156,7 @@ error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
 23 |     take(p)
    |          ^
 
-error[use-after-move]: `p.left` was moved; it cannot be used again
+error[E2197]: `p.left` was moved; it cannot be used again
   --> lib/mv.kg:28:13
    |
 28 |     let g = p.left.get
@@ -169,9 +169,14 @@ error[E2103]: a cleanup reads `p.left`, which can already be moved when the clea
    |                 ^^^^^^
    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> lib/mv.kg:40:13
    |
 40 |     let g = o?.get
+   |             ^
+note: `o` is moved here
+  --> lib/mv.kg:39:13
+   |
+39 |     let f = o?.get
    |             ^
 

@@ -42,7 +42,7 @@ fn lib.S.take(%self: S) -> Res {
     drop(%f)
     return %t8
 }
-error[move-from-borrow]: a value borrowed here cannot be moved out; clone it
+error[move-from-borrow]: a value borrowed here cannot be moved out
   --> lib/partial_move_closure_capture.kg:12:24
    |
 12 |     let f = () => move self.r

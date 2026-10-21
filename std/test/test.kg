@@ -19,3 +19,11 @@ pub pure fn expectEq[T: Eq](actual: T, expected: T) -> Void! {
         fail failure("expected ${debug(&expected)}, got ${debug(&actual)}")
     }
 }
+
+/// Stops the program with `message` unless `condition` holds. Prefer `expectEq`
+/// or `fail` where the caller can handle the failure.
+pub pure fn assert(condition: Bool, message: String) {
+    if !condition {
+        panic(message)
+    }
+}

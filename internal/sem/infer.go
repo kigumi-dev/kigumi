@@ -14,6 +14,9 @@ func (c *checker) synth(n syntax.NodeID) TypeID {
 	if t := c.info.Types[n]; t != 0 {
 		return t
 	}
+	if root := c.optChainRoot(n); root != 0 {
+		return c.setType(n, c.synthOptChain(n, root))
+	}
 	if place && c.t.Kind(n) == syntax.Paren {
 		return c.setType(n, c.synthPlace(c.t.View(n).AsParen().Inner().ID()))
 	}
@@ -71,6 +74,9 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 
 // synthKind dispatches on node kind; want is 0 in synth mode.
 func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
+	if root := c.optChainRoot(n); root != 0 {
+		return c.synthOptChain(n, root)
+	}
 	node := c.t.View(n)
 	switch node.Kind() {
 	case syntax.Ident:

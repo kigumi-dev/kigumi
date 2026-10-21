@@ -250,31 +250,31 @@ fn lib.Bag.indexStaysConservative(%self: Bag) -> Void {
     drop(%t18)
     return %t17
 }
-error[borrow-conflict]: `self` is exclusively borrowed and cannot be used here
+error[E2198]: `self` is exclusively borrowed and cannot be used here
   --> lib/disjoint.kg:15:13
    |
 15 |     let s = &mut self.a
    |             ^^^^^^^^^^^
 
-error[borrow-conflict]: `self` is borrowed and cannot be mutated here
+error[E2198]: `self` is borrowed and cannot be mutated here
   --> lib/disjoint.kg:22:13
    |
 22 |     let r = &mut self.a
    |             ^^^^^^^^^^^
 
-error[borrow-conflict]: `self` is exclusively borrowed and cannot be used here
+error[E2198]: `self` is exclusively borrowed and cannot be used here
   --> lib/disjoint.kg:33:13
    |
 33 |     let s = &mut self.pair
    |             ^^^^^^^^^^^^^^
 
-error[borrow-conflict]: `self` is borrowed and cannot be mutated here
+error[E2198]: `self` is borrowed and cannot be mutated here
   --> lib/disjoint.kg:40:13
    |
 40 |     let r = &mut self.pair.a
    |             ^^^^^^^^^^^^^^^^
 
-error[borrow-conflict]: `self` is exclusively borrowed and cannot be used here
+error[E2198]: `self` is exclusively borrowed and cannot be used here
   --> lib/disjoint.kg:59:5
    |
 59 |     self.label.push(1)

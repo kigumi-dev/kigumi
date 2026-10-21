@@ -37,15 +37,25 @@ fn lib.twice(%b: Box[Int]) -> Int {
     nop
     return %t7
 }
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
  --> lib/moves.kg:5:5
   |
 5 |     b.get() + c.get()
   |     ^^^^^^
+note: `b` is moved here
+ --> lib/moves.kg:4:13
+  |
+4 |     let c = b
+  |             ^
 
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
   --> lib/moves.kg:10:13
    |
 10 |     let y = b.into()
+   |             ^
+note: `b` is moved here
+  --> lib/moves.kg:9:13
+   |
+ 9 |     let x = b.into()
    |             ^
 

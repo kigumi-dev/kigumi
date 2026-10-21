@@ -15,5 +15,5 @@ error[E2123]: `panic` is reserved for the std runtime and cannot be called from 
   |
 2 |     panic("named std")
   |     ^^^^^^^^^^^^^^^^^
-  = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or a failing assertion
+  = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or `test.assert`
 

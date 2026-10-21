@@ -43,11 +43,16 @@ fn lib.outer(%out: &mut Array[u8]) -> Void {
     drop(%r)
     return %t14
 }
-error[use-after-move]: `out` was moved; it cannot be used again
+error[E2197]: `out` was moved; it cannot be used again
   --> lib/reborrow.kg:10:5
    |
 10 |     out.push(1)
    |     ^^^
+note: `out` is moved here
+  --> lib/reborrow.kg:9:22
+   |
+ 9 |     let r = identity(out)
+   |                      ^^^
 
 error[E1532]: a borrow cannot go to `x`, a parameter of `identity` declared `T`: a parameter declared that way is dropped by the callee, and this borrow has no count to give; declare the parameter `&T`, or pass a value the callee can own
  --> lib/reborrow.kg:9:13

@@ -1,0 +1,12 @@
+-- src --
+let mut xs = Array.of(1, 2, 3)
+let at = xs.len()
+print "start"
+xs[at] = 9
+print "unreachable"
+-- stdout --
+start
+-- stderr --
+panic: index out of range: index 3, length 3 at main/main.kg:4
+-- exit --
+2

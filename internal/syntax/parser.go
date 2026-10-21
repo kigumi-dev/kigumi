@@ -151,7 +151,7 @@ func (p *parser) errorAt(span token.Span, format string, args ...any) {
 		return
 	}
 	p.lastErr = p.pos
-	p.bag.Add(diag.Errorf(diag.Location{Span: span}, sprintf(format, args...)))
+	p.bag.Add(syntaxError(span, sprintf(format, args...)))
 }
 
 func (p *parser) warnAt(span token.Span, msg string) {

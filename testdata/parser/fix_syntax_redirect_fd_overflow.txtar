@@ -15,7 +15,7 @@ File
                 target: ShellWord
                   ShellText "out"
 -- diagnostics --
-error: redirect file descriptor is too large (max is 1000000)
+error[E2199]: redirect file descriptor is too large (max is 1000000)
  --> fix_syntax_redirect_fd_overflow.txtar:1:13
   |
 1 | print $"cat 99999999999999999999>out"

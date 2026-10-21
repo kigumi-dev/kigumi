@@ -399,5 +399,5 @@ error[E1050]: reading `Pack` out of an index by value needs `Copy`
     |
 213 |     match xs[0] { //~ ERROR
     |           ^^^^
-    = help: borrow it with `&`, clone it, or take it with `.takeAt`
+    = help: borrow it with `&`, or take it with `.takeAt`
 

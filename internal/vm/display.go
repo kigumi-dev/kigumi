@@ -67,16 +67,7 @@ func (m *Machine) displayIntoCanon(sb *strings.Builder, v *obj, canon bool) {
 			sb.WriteString(")")
 		}
 	case kRecord:
-		sb.WriteString(m.r.Entity(v.ent).Name)
-		sb.WriteString(" {")
-		for i, f := range v.fields {
-			if i > 0 {
-				sb.WriteString(",")
-			}
-			sb.WriteString(" ")
-			m.displayIntoCanon(sb, f, canon)
-		}
-		sb.WriteString(" }")
+		m.displayRecord(sb, v, canon)
 	case kArray:
 		sb.WriteString("[")
 		for i, e := range v.fields {

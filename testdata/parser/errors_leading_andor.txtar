@@ -14,7 +14,7 @@ File
     ret: -
     body: Block
 -- diagnostics --
-error: expected expression, found `&&`
+error[E2199]: expected expression, found `&&`
  --> errors_leading_andor.txtar:2:5
   |
 2 |     && b

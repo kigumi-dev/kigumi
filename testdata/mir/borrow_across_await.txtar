@@ -88,7 +88,7 @@ async fn lib.endedBefore() -> u8 {
     drop(%buf)
     return %t18
 }
-error[borrow-across-await]: a borrow of `buf` is still live across this `await`
+error[E1290]: a borrow of `buf` is still live across this `await`
  --> lib/across.kg:8:13
   |
 8 |     let v = await zero()

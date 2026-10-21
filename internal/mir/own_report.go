@@ -91,7 +91,7 @@ func (a *owner) check(in *Inst, l LocalID, st map[LocalID]ownState, report bool)
 	}
 	switch st[l] {
 	case ownMoved:
-		a.report(in.Node, "use-after-move", "`"+name+"` was moved; it cannot be used again")
+		a.reportMoved(in.Node, l, name)
 	case ownConflict:
 		a.report(in.Node, "move-join-mismatch", "`"+name+"` is moved on some paths but not others")
 	}
@@ -170,7 +170,7 @@ func (a *owner) report(n syntax.NodeID, code, msg string) {
 	}
 	a.reported[n] = true
 	t := a.p.R.Tree(a.f.File)
-	a.f.Diags = append(a.f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: code})
+	a.f.Diags = append(a.f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: diagCode(code)})
 }
 
 // HasErrors reports whether any function carries an ownership error.

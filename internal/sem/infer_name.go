@@ -83,6 +83,9 @@ func (c *checker) setHasGeneric(set OverloadSetID) bool {
 }
 
 func (c *checker) identHead(n syntax.NodeID) headRef {
+	if _, hole := c.info.ChainHoles[n]; hole {
+		return headRef{kind: headValue}
+	}
 	name := c.t.View(n).Tok().Text()
 	b, found, ok := c.r.lookup(c.scope, name)
 	if !ok {

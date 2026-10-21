@@ -28,7 +28,7 @@ func (c *checker) synthMove(n syntax.NodeID) TypeID {
 		return TyPoison
 	}
 	if c.indexRooted(target) {
-		c.errAt(target, cMoveIndex)
+		c.errAtHelp(target, c.noCloneHelp(t, "take the element out with `.takeAt` instead"), cMoveIndex)
 		return t
 	}
 	p, ok := c.buildPlace(target)

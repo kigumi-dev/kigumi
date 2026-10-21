@@ -15,13 +15,15 @@ func (l *lowerer) move(n, target syntax.NodeID) *Expr {
 	if l.t.Kind(target) != syntax.MemberExpr {
 		return l.expr(target)
 	}
+	if call, ok := l.info.Calls[target]; ok && call.Kind == sem.CallMethodValue {
+		return l.expr(target)
+	}
+	if l.r.IsCopy(l.typeOf(target)) {
+		return l.expr(target)
+	}
 	fld := l.r.Field(l.info.Uses[target])
 	base := l.expr(l.t.View(target).AsMember().Base().ID())
-	kind := FieldMove
-	if l.r.IsCopy(fld.Type) {
-		kind = Field
-	}
-	out := l.node(target, kind)
+	out := l.node(target, FieldMove)
 	out.Args, out.Index = []*Expr{base}, fld.Index
 	return out
 }

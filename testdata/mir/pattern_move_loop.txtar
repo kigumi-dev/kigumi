@@ -126,13 +126,13 @@ fn lib.recordInLoop(%p: Pack) -> Void {
     panic "no match arm matched"
     unreachable
 }
-error[use-after-move]: `t._1` was moved; it cannot be used again
+error[E2197]: `t._1` was moved; it cannot be used again
   --> lib/loop.kg:17:17
    |
 17 |             (_, b) -> b.close()
    |                 ^
 
-error[use-after-move]: `p.other` was moved; it cannot be used again
+error[E2197]: `p.other` was moved; it cannot be used again
   --> lib/loop.kg:25:20
    |
 25 |             Pack { other, inner: _ } -> other.close()

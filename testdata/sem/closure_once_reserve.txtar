@@ -358,22 +358,37 @@ error[move-join-mismatch]: `b` is moved on some paths but not others
 35 |         let k = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
    |                 ^^^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
   --> main.kg:44:5
    |
 44 |     h.close() //~ ERROR `h` was moved; it cannot be used again
    |     ^
+note: `h` is moved here
+  --> main.kg:42:13
+   |
+42 |     let f = () => { h.close() }
+   |             ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
   --> main.kg:50:10
    |
 50 |     take(h) //~ ERROR `h` was moved; it cannot be used again
    |          ^
+note: `h` is moved here
+  --> main.kg:49:13
+   |
+49 |     let f = () => { h.close() }
+   |             ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
   --> main.kg:57:13
    |
 57 |     let g = () => { h.close() } //~ ERROR `h` was moved; it cannot be used again
+   |             ^^^^^^^^^^^^^^^^
+note: `h` is moved here
+  --> main.kg:56:13
+   |
+56 |     let f = () => { h.close() }
    |             ^^^^^^^^^^^^^^^^
 
 error[move-join-mismatch]: `g` is moved on some paths but not others
@@ -382,17 +397,27 @@ error[move-join-mismatch]: `g` is moved on some paths but not others
 66 |         let k = () => { g() } //~ ERROR `g` is moved on some paths but not others
    |                 ^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
   --> main.kg:74:13
    |
 74 |     let n = h.peek() //~ ERROR `h` was moved; it cannot be used again
    |             ^^^^^^^
+note: `h` is moved here
+  --> main.kg:73:13
+   |
+73 |     let f = () => { h.close() }
+   |             ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:106:5
     |
 106 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+note: `h` is moved here
+   --> main.kg:101:13
+    |
+101 |     let f = () => {
+    |             ^^^^^^^
 
 error[move-join-mismatch]: `h` is moved on some paths but not others
    --> main.kg:115:5
@@ -400,29 +425,49 @@ error[move-join-mismatch]: `h` is moved on some paths but not others
 115 |     h.close() //~ ERROR `h` is moved on some paths but not others
     |     ^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:124:5
     |
 124 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+note: `h` is moved here
+   --> main.kg:121:17
+    |
+121 |         let f = () => { h.close() }
+    |                 ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:134:5
     |
 134 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+note: `h` is moved here
+   --> main.kg:130:17
+    |
+130 |         let g = () => { h.close() }
+    |                 ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:142:5
     |
 142 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+note: `h` is moved here
+   --> main.kg:139:17
+    |
+139 |         let f = () => { h.close() }
+    |                 ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
    --> main.kg:151:5
     |
 151 |     b.other.close() //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
+note: `b` is moved here
+   --> main.kg:148:17
+    |
+148 |         let f = () => { b.other.close() }
+    |                 ^^^^^^^^^^^^^^^^^^^^^^
 
 error[move-join-mismatch]: `h` is moved on some paths but not others
    --> main.kg:171:5
@@ -430,11 +475,16 @@ error[move-join-mismatch]: `h` is moved on some paths but not others
 171 |     h.close() //~ ERROR `h` is moved on some paths but not others
     |     ^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:180:9
     |
 180 |         h.close() //~ ERROR `h` was moved; it cannot be used again
     |         ^
+note: `h` is moved here
+   --> main.kg:176:13
+    |
+176 |     let f = () => { h.close() }
+    |             ^^^^^^^^^^^^^^^^
 
 error[move-join-mismatch]: `h` is moved on some paths but not others
    --> main.kg:237:17
@@ -448,11 +498,16 @@ error[move-join-mismatch]: `b` is moved on some paths but not others
 249 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
     |                 ^^^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
    --> main.kg:254:9
     |
 254 |         b.other = mkh(10 + i) //~ ERROR `b` was moved; it cannot be used again
     |         ^^^^^^^
+note: `b` is moved here
+   --> main.kg:249:17
+    |
+249 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+    |                 ^^^^^^^^^^^^^^^^^^^^^^
 
 error[move-join-mismatch]: `b` is moved on some paths but not others
    --> main.kg:261:17
@@ -460,16 +515,26 @@ error[move-join-mismatch]: `b` is moved on some paths but not others
 261 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
     |                 ^^^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
    --> main.kg:266:9
     |
 266 |         b.other = mkh(10 + i) //~ ERROR `b` was moved; it cannot be used again
     |         ^^^^^^^
+note: `b` is moved here
+   --> main.kg:261:17
+    |
+261 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+    |                 ^^^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:289:5
     |
 289 |     h.close() //~ ERROR `h` was moved; it cannot be used again
+    |     ^
+note: `h` is moved here
+   --> main.kg:288:5
+    |
+288 |     h.close()
     |     ^
 
 error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
@@ -490,40 +555,70 @@ error[move-join-mismatch]: `h` is moved on some paths but not others
 305 |         let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
     |                 ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:309:9
     |
 309 |         h.close() //~ ERROR `h` was moved; it cannot be used again
     |         ^
+note: `h` is moved here
+   --> main.kg:308:9
+    |
+308 |         h.close()
+    |         ^
 
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
    --> main.kg:317:5
     |
 317 |     b.other = mkh(3) //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
+note: `b` is moved here
+   --> main.kg:315:13
+    |
+315 |     let f = () => { b.other.close() }
+    |             ^^^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
    --> main.kg:318:5
     |
 318 |     b.other.close() //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
+note: `b` is moved here
+   --> main.kg:315:13
+    |
+315 |     let f = () => { b.other.close() }
+    |             ^^^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b` was moved; it cannot be used again
+error[E2197]: `b` was moved; it cannot be used again
    --> main.kg:319:10
     |
 319 |     take(b.other) //~ ERROR `b` was moved; it cannot be used again //~ ERROR `b.other` was moved; it cannot be used again
     |          ^^^^^^^
+note: `b` is moved here
+   --> main.kg:315:13
+    |
+315 |     let f = () => { b.other.close() }
+    |             ^^^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
    --> main.kg:319:5
     |
 319 |     take(b.other) //~ ERROR `b` was moved; it cannot be used again //~ ERROR `b.other` was moved; it cannot be used again
     |     ^^^^^^^^^^^^
+note: `b.other` is moved here
+   --> main.kg:318:5
+    |
+318 |     b.other.close() //~ ERROR `b` was moved; it cannot be used again
+    |     ^^^^^^^^^^^^^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:331:5
     |
 331 |     h.close() //~ ERROR `h` was moved; it cannot be used again
+    |     ^
+note: `h` is moved here
+   --> main.kg:330:5
+    |
+330 |     h.close()
     |     ^
 
 error[move-join-mismatch]: `b` is moved on some paths but not others

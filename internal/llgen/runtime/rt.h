@@ -166,7 +166,7 @@ void rt_cell_init(void* slot, val x);
 val rt_cell_take(val c);
 val rt_copy(val v);
 val rt_copy_mut(val v);
-void rt_setindex_copy(val base, val idx, val src);
+void rt_setindex_copy(val base, val idx, val src, const char* site);
 void rt_setfield_copy(val r, int64_t i, val src);
 void rt_secure_zero(volatile unsigned char* p, int64_t n);
 val opaque(const char* kind, void* data);

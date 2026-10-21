@@ -50,7 +50,7 @@ func (lx *lexer) emit(kind token.Kind, start, end int) {
 }
 
 func (lx *lexer) errorf(start, end int, msg string) {
-	lx.diags.Add(diag.Errorf(diag.Location{Span: token.Span{Start: token.Pos(start), End: token.Pos(end)}}, msg))
+	lx.diags.Add(syntaxError(token.Span{Start: token.Pos(start), End: token.Pos(end)}, msg))
 }
 
 func (lx *lexer) peekByte(off int) byte {

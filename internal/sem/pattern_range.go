@@ -43,6 +43,7 @@ func (c *checker) rangeBoundValue(n syntax.NodeID, scrutinee TypeID) bool {
 	switch {
 	case scrutinee == TyPoison || got == TyPoison:
 		return false
+	case tt.Kind(got) == KUntyped && c.adoptPendingPattern(n, scrutinee, got):
 	case tt.Kind(got) == KUntyped:
 		if !tt.IsInteger(scrutinee) {
 			return false

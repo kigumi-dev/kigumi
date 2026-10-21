@@ -65,7 +65,7 @@ fn lib.reentrant(%cell: Shared[Item]) -> Void {
     drop(%cell)
     return %t3
 }
-error[borrow-conflict]: `cell` is captured by a closure passed to this call and cannot be used until the call returns
+error[E2198]: `cell` is captured by a closure passed to this call and cannot be used until the call returns
   --> lib/esc.kg:12:5
    |
 12 |     cell.withMut((x: &mut Item) => {

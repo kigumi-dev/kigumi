@@ -58,11 +58,18 @@ func checkBorrowedMoves(p *Program, f *Func) {
 		}
 		reported[n] = true
 		t := p.R.Tree(f.File)
-		msg := "a value borrowed here cannot be moved out; clone it"
+		clone := "; clone it"
+		if p.R.HoldsResource(f.Locals[l].Type) {
+			clone = ""
+		}
+		msg := "a value borrowed here cannot be moved out" + clone
 		if name := f.Locals[l].Name; f.Locals[l].Ent != 0 {
 			msg = "`" + name + "` is borrowed by this method and cannot be moved out; clone it or take `move self`"
+			if clone == "" {
+				msg = "`" + name + "` is borrowed by this method and cannot be moved out; take `move self`"
+			}
 			if p.R.Entity(f.Ent).Kind == sem.EntClosure {
-				msg = "`" + name + "` is lent to this closure and cannot be moved out; clone it"
+				msg = "`" + name + "` is lent to this closure and cannot be moved out" + clone
 			}
 		}
 		f.Diags = append(f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: "move-from-borrow", Msg: msg})
@@ -86,7 +93,7 @@ func checkBorrowedMoves(p *Program, f *Func) {
 			if seen[a] {
 				reported[n] = true
 				t := p.R.Tree(f.File)
-				f.Diags = append(f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: "borrow-conflict",
+				f.Diags = append(f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: diagCode("borrow-conflict"),
 					Msg: "`" + f.Locals[a].Name + "` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value"})
 				return
 			}

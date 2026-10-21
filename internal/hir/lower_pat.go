@@ -17,6 +17,10 @@ func (l *lowerer) pattern(p syntax.NodeID) *Pat {
 	case syntax.PatLit:
 		out.Kind, out.Lit = PatLit, l.expr(v.AsPatLit().Lit().ID())
 	case syntax.PatCtor:
+		if ent := l.info.Uses[p]; l.r.Entity(ent).Kind == sem.EntConst {
+			out.Kind, out.Lit = PatLit, l.constLit(p, ent)
+			return out
+		}
 		out.Kind, out.Ent = PatCtor, l.info.Uses[p]
 		out.IsType = l.r.Entity(out.Ent).Kind != sem.EntVariant
 		for s := range v.AsPatCtor().Args().IDs() {
@@ -70,5 +74,11 @@ func (l *lowerer) patField(f syntax.NodeID, owner sem.EntityID) *PatField {
 		}
 	}
 	out.Index = l.r.Field(l.r.FindField(owner, name)).Index
+	return out
+}
+
+func (l *lowerer) constLit(p syntax.NodeID, ent sem.EntityID) *Expr {
+	out := l.node(p, Lit)
+	out.Lit, _ = l.r.ConstValueOf(ent)
 	return out
 }

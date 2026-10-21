@@ -1,6 +1,7 @@
 -- src --
 let a: Int? = None
 let b = a == None //~ WARNING prefer `a is None`
+let n = a != None //~ WARNING prefer `!(a is None)`
 let c = if a is None { 1 } else { 0 }
 let d = match a {
     Some(v) -> v
@@ -17,9 +18,15 @@ warning[W600]: prefer `a is None`
 2 | let b = a == None //~ WARNING prefer `a is None`
   |         ^^^^^^^^^
 
-error[E400]: expected `Int?`, found `Int`
- --> main/main.kg:9:14
+warning[W600]: prefer `!(a is None)`
+ --> main/main.kg:3:9
   |
-9 | let f = a == 1 //~ ERROR expected `Int?`, found `Int`
-  |              ^
+3 | let n = a != None //~ WARNING prefer `!(a is None)`
+  |         ^^^^^^^^^
+
+error[E400]: expected `Int?`, found `Int`
+  --> main/main.kg:10:14
+   |
+10 | let f = a == 1 //~ ERROR expected `Int?`, found `Int`
+   |              ^
 

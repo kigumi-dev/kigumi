@@ -392,7 +392,7 @@ fn lib.isTakeAndClear(%s: Slot) -> Void {
     drop(%i)
     jump b3
 }
-error[use-after-move]: `b.opt` was moved; it cannot be used again
+error[E2197]: `b.opt` was moved; it cannot be used again
   --> lib/loop.kg:17:13
    |
 17 |             Some(h) -> h.close()

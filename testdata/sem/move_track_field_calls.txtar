@@ -93,43 +93,68 @@ fn chainElseKeeps(c: Bool) {
     }
 }
 -- expect --
-error[use-after-move]: `w.a` was moved; it cannot be used again
+error[E2197]: `w.a` was moved; it cannot be used again
   --> main.kg:33:15
    |
 33 |     keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |               ^^^
+note: `w.a` is moved here
+  --> main.kg:32:5
+   |
+32 |     keep.push(w.a)
+   |     ^^^^^^^^^^^^^
 
-error[use-after-move]: `w.a` was moved; it cannot be used again
+error[E2197]: `w.a` was moved; it cannot be used again
   --> main.kg:33:5
    |
 33 |     keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |     ^^^^^^^^^^^^^
+note: `w.a` is moved here
+  --> main.kg:32:5
+   |
+32 |     keep.push(w.a)
+   |     ^^^^^^^^^^^^^
 
-error[use-after-move]: `w.a` was moved; it cannot be used again
+error[E2197]: `w.a` was moved; it cannot be used again
   --> main.kg:40:9
    |
 40 |     say(w.a.peek()) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |         ^^^
+note: `w.a` is moved here
+  --> main.kg:39:5
+   |
+39 |     keep.push(w.a)
+   |     ^^^^^^^^^^^^^
 
-error[use-after-move]: `w.a` was moved; it cannot be used again
+error[E2197]: `w.a` was moved; it cannot be used again
   --> main.kg:40:9
    |
 40 |     say(w.a.peek()) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |         ^^^^^^^^^
+note: `w.a` is moved here
+  --> main.kg:39:5
+   |
+39 |     keep.push(w.a)
+   |     ^^^^^^^^^^^^^
 
-error[use-after-move]: `w.a` was moved; it cannot be used again
+error[E2197]: `w.a` was moved; it cannot be used again
   --> main.kg:47:19
    |
 47 |         keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |                   ^^^
-
-error[use-after-move]: `w.a` was moved; it cannot be used again
+note: `w.a` is moved here
   --> main.kg:47:9
    |
 47 |         keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |         ^^^^^^^^^^^^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `w.a` was moved; it cannot be used again
+  --> main.kg:47:9
+   |
+47 |         keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+   |         ^^^^^^^^^^^^^
+
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:63:13
    |
 63 |             Some(x) -> x.close() //~ ERROR `o` was moved

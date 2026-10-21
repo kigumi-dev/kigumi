@@ -113,7 +113,7 @@ var (
 	cImplDuplicate         = defineCode("W300", "impl-duplicate", "duplicate `@impl({iface})` after alias expansion")
 	cUnusedValue           = defineCode("W400", "unused-value", "unused value of type `{type}`")
 	cUnreachableCode       = defineCode("W401", "unreachable-code", "unreachable statement")
-	cEqNoneLint            = defineCode("W600", "eq-none-lint", "prefer `{place} is None`")
+	cEqNoneLint            = defineCode("W600", "eq-none-lint", "prefer `{fix}`")
 	cFallbackOptionBool    = defineCode("W601", "fallback-option-bool", "`Option[Bool] ||`: `Some(false)` is a hit")
 	cLetElseIrrefutable    = defineCode("W800", "let-else-irrefutable", "pattern is irrefutable; `else` is never taken")
 	cMatchUnreachable      = defineCode("W801", "match-unreachable", "unreachable pattern")

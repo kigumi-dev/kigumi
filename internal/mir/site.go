@@ -1,6 +1,10 @@
 package mir
 
-import "kigumi/internal/syntax"
+import (
+	"strconv"
+
+	"kigumi/internal/syntax"
+)
 
 // Site is a minimal source location (file, 1-based line, enclosing function), shared by VM and native so a panic's frame reads the same either way.
 type Site struct {
@@ -27,4 +31,12 @@ func (p *Program) SiteAt(fn *Func, node syntax.NodeID) Site {
 func (p *Program) EntitySite(fn *Func) Site {
 	ent := p.R.Entity(fn.Ent)
 	return p.SiteAt(fn, ent.Node)
+}
+
+// Text is `file:line`, or empty for an unknown site.
+func (s Site) Text() string {
+	if s.File == "" {
+		return ""
+	}
+	return s.File + ":" + strconv.Itoa(s.Line)
 }

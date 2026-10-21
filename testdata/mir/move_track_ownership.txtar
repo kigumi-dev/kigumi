@@ -135,21 +135,26 @@ fn lib.captureThenClose(%r: Res) -> Void {
     nop
     return %t6
 }
-error[use-after-move]: `r` was moved; it cannot be used again
+error[E2197]: `r` was moved; it cannot be used again
   --> lib/mt.kg:11:13
    |
 11 |     let b = r?
    |             ^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> lib/mt.kg:19:13
    |
 19 |     let b = o || e
    |             ^^^^^^
 
-error[use-after-move]: `r` was moved; it cannot be used again
+error[E2197]: `r` was moved; it cannot be used again
   --> lib/mt.kg:26:5
    |
 26 |     r.close()
    |     ^
+note: `r` is moved here
+  --> lib/mt.kg:25:13
+   |
+25 |     let f = () => { r.close() }
+   |             ^^^^^^^^^^^^^^^^
 

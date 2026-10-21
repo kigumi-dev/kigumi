@@ -425,11 +425,16 @@ error[move-while-borrowed]: `xs` is shared with a closure that may still run, so
 43 |     xs.push(3) //~ ERROR `xs` is shared with a closure that may still run
    |     ^^
 
-error[use-after-move]: `xs` was moved; it cannot be used again
+error[E2197]: `xs` was moved; it cannot be used again
   --> main.kg:51:10
    |
 51 |     sayU(xs.len()) //~ ERROR `xs` was moved
    |          ^^^^^^^
+note: `xs` is moved here
+  --> main.kg:49:13
+   |
+49 |     let f = () => { xs.push(2) }
+   |             ^^^^^^^^^^^^^^^^^
 
 error[E2151]: `f` consumes `r` when called and can be called only once
   --> main.kg:66:5
@@ -497,65 +502,110 @@ note: `f` may already be called here
 194 |     f()
     |     ^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:241:5
     |
 241 |     o.close() //~ ERROR `o` was moved
     |     ^
+note: `o` is moved here
+   --> main.kg:240:5
+    |
+240 |     o.close()
+    |     ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:248:15
     |
 248 |     closeOptC(o) //~ ERROR `o` was moved
     |               ^
+note: `o` is moved here
+   --> main.kg:247:15
+    |
+247 |     closeOptC(o)
+    |               ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:256:15
     |
 256 |     closeOptC(o) //~ ERROR `o` was moved
     |               ^
+note: `o` is moved here
+   --> main.kg:254:13
+    |
+254 |     let x = o
+    |             ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:265:15
     |
 265 |     closeOptC(o) //~ ERROR `o` was moved
     |               ^
+note: `o` is moved here
+   --> main.kg:263:9
+    |
+263 |         x -> closeOptC(x)
+    |         ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:275:15
     |
 275 |     closeOptC(o) //~ ERROR `o` was moved
     |               ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:282:14
     |
 282 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
     |              ^^^^^^^^^^^^^^^^^^^^^^
+note: `o` is moved here
+   --> main.kg:281:15
+    |
+281 |     closeOptC(o)
+    |               ^
 
-error[use-after-move]: `p.r` was moved; it cannot be used again
+error[E2197]: `p.r` was moved; it cannot be used again
    --> main.kg:310:17
     |
 310 |     eatRes(move p.r) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
     |                 ^^^
+note: `p.r` is moved here
+   --> main.kg:309:5
+    |
+309 |     eatRes(move p.r)
+    |     ^^^^^^^^^^^^^^^
 
-error[use-after-move]: `p.r` was moved; it cannot be used again
+error[E2197]: `p.r` was moved; it cannot be used again
    --> main.kg:310:5
     |
 310 |     eatRes(move p.r) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
     |     ^^^^^^^^^^^^^^^
+note: `p.r` is moved here
+   --> main.kg:309:5
+    |
+309 |     eatRes(move p.r)
+    |     ^^^^^^^^^^^^^^^
 
-error[use-after-move]: `p.r` was moved; it cannot be used again
+error[E2197]: `p.r` was moved; it cannot be used again
    --> main.kg:318:9
     |
 318 |     say(p.r.peek()) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
     |         ^^^
+note: `p.r` is moved here
+   --> main.kg:316:9
+    |
+316 |     let r1 = move p.r
+    |         ^^
 
-error[use-after-move]: `p.r` was moved; it cannot be used again
+error[E2197]: `p.r` was moved; it cannot be used again
    --> main.kg:318:9
     |
 318 |     say(p.r.peek()) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
     |         ^^^^^^^^^
+note: `p.r` is moved here
+   --> main.kg:316:9
+    |
+316 |     let r1 = move p.r
+    |         ^^
 
 error[move-while-borrowed]: `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
    --> main.kg:325:16
@@ -581,11 +631,16 @@ error[move-while-borrowed]: `p` is held by the pattern binding `q` until its gua
 350 |         q if { p = CP { a: 2, r: mkr(2) }; false } -> say(q.a) //~ ERROR `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
     |                ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:359:14
     |
 359 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
     |              ^^^^^^^^^^^^^^^^^^^^^^
+note: `o` is moved here
+   --> main.kg:358:15
+    |
+358 |     closeOptC(o)
+    |               ^
 
 error[move-join-mismatch]: `o` is moved on some paths but not others
    --> main.kg:367:15
@@ -611,7 +666,7 @@ error[E1025]: `p.r` was moved out of `p`; using the whole value needs it back
 394 |     let f = () => p.a //~ ERROR `p.r` was moved out of `p`
     |             ^^^^^^^^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:403:14
     |
 403 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved

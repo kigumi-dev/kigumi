@@ -1,0 +1,31 @@
+-- src --
+type E = Add(a: Int, b: String) | Neg(x: Int) | Plain(Int)
+
+fn show(e: E) -> String {
+    match e {
+        Add(a, b) -> "add ${a} ${b}"
+        Neg(x) -> "neg ${x}"
+        Plain(v) -> "plain ${v}"
+    }
+}
+
+fn side(n: Int) -> Int {
+    print "eval ${n}"
+    n
+}
+
+print show(Add(a: 1, b: "two"))
+print show(Add(b: "z", a: 5))
+print show(Add(1, b: "mixed"))
+print show(Neg(x: 3))
+print show(Plain(9))
+print show(Add(b: "${side(1)}", a: side(2)))
+-- stdout --
+add 1 two
+add 5 z
+add 1 mixed
+neg 3
+plain 9
+eval 1
+eval 2
+add 2 1

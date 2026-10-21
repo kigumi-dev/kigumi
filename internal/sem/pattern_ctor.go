@@ -10,7 +10,7 @@ func (c *checker) resolveCtorPath(p, path syntax.NodeID, scrutinee TypeID) (Enti
 	if segs.Len() == 1 {
 		if b, _, ok := c.r.lookup(c.scope, name); ok {
 			ent := c.r.follow(b.Ent)
-			if b.Ent != 0 && (c.r.Entities[ent].Kind == EntVariant || c.r.Entities[ent].Kind == EntType || c.r.Entities[ent].Kind == EntAlias) {
+			if b.Ent != 0 && (c.r.Entities[ent].Kind == EntVariant || c.r.Entities[ent].Kind == EntType || c.r.Entities[ent].Kind == EntAlias || c.r.Entities[ent].Kind == EntConst) {
 				return c.checkBareVariant(p, ent, scrutinee), true
 			}
 		}
@@ -114,6 +114,9 @@ func (c *checker) ctorPattern(p syntax.NodeID, scrutinee TypeID, seen map[string
 	}
 	c.info.Uses[p] = ent
 	e := &c.r.Entities[ent]
+	if e.Kind == EntConst {
+		return c.constPattern(p, ent, scrutinee, subs, seen)
+	}
 	if e.Kind != EntVariant {
 		return c.typeTest(p, ent, scrutinee, subs, seen)
 	}

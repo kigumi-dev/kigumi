@@ -90,37 +90,37 @@ File
             IntLit 3
             IntLit 4
 -- diagnostics --
-error: `...` needs an element type outside `extern(C)`: write `fn(...T) -> R`
+error[E2199]: `...` needs an element type outside `extern(C)`: write `fn(...T) -> R`
  --> call_forms_errors.txtar:1:27
   |
 1 | type A = alias fn(Int, ...) -> Void
   |                           ^
 
-error: only the last parameter may be variadic
+error[E2199]: only the last parameter may be variadic
  --> call_forms_errors.txtar:2:27
   |
 2 | type B = alias fn(...Int, String) -> Void
   |                           ^^^^^^
 
-error: an `extern(C)` function type takes a bare `...`
+error[E2199]: an `extern(C)` function type takes a bare `...`
  --> call_forms_errors.txtar:3:43
   |
 3 | type C = alias extern(C) fn(*const u8, ...Int) -> i32
   |                                           ^^^
 
-error: pipeline placeholders require a parenthesized call: `value |> f(a, _)`
+error[E2199]: pipeline placeholders require a parenthesized call: `value |> f(a, _)`
  --> call_forms_errors.txtar:5:14
   |
 5 |     v |> f a _
   |              ^
 
-error: named arguments require a parenthesized call: `f(name: value)`
+error[E2199]: named arguments require a parenthesized call: `f(name: value)`
  --> call_forms_errors.txtar:7:15
   |
 7 |     greet name: name
   |               ^
 
-error: spread requires a parenthesized call: `f(...values)`
+error[E2199]: spread requires a parenthesized call: `f(...values)`
  --> call_forms_errors.txtar:8:9
   |
 8 |     log ...xs

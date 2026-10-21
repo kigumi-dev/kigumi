@@ -44,7 +44,7 @@ fn lib.outer() -> Void {
     drop(%xs)
     return %t5
 }
-error[borrow-conflict]: `xs` is exclusively borrowed and cannot be used here
+error[E2198]: `xs` is exclusively borrowed and cannot be used here
  --> lib/reborrow.kg:8:14
   |
 8 |     inner(r, xs.len())

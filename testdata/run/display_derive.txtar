@@ -31,9 +31,9 @@ print render(Wrap { inner: Point { x: 5, y: 6 } })
 print render(Pretty { label: "hi" })
 print debug(&Point { x: 1, y: 2 })
 -- stdout --
-Point { 1, 2 }
+Point { x: 1, y: 2 }
 Circle(3)
 Dot
-Wrap { Point { 5, 6 } }
+Wrap { inner: Point { x: 5, y: 6 } }
 <hi>
-Point { 1, 2 }
+Point { x: 1, y: 2 }

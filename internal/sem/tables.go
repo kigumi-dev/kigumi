@@ -26,6 +26,8 @@ type FileInfo struct {
 	Narrow        map[syntax.NodeID][]NarrowFact
 	Literals      map[syntax.NodeID]constValue
 	Asm           map[syntax.NodeID]*AsmInfo
+	OptChains     map[syntax.NodeID]*OptChain
+	ChainHoles    map[syntax.NodeID]EntityID
 	Diags         []diag.Diagnostic
 	// CtxUse resolves a direct context-key value reference.
 	CtxUse map[syntax.NodeID]CtxBind

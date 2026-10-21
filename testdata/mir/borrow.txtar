@@ -113,13 +113,13 @@ fn lib.escape(%b: Buf) -> Void {
     drop(%b)
     return %t7
 }
-error[borrow-conflict]: `b` is borrowed and cannot be mutated here
+error[E2198]: `b` is borrowed and cannot be mutated here
   --> lib/bw.kg:15:5
    |
 15 |     b.push()
    |     ^
 
-error[borrow-conflict]: `b` is exclusively borrowed and cannot be used here
+error[E2198]: `b` is exclusively borrowed and cannot be used here
   --> lib/bw.kg:21:13
    |
 21 |     let k = b.len()

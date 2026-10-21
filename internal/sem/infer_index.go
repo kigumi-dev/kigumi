@@ -58,7 +58,7 @@ func (c *checker) indexValueResult(n syntax.NodeID, elem TypeID) TypeID {
 		return elem
 	}
 	if !c.r.isCopy(c.vars.resolve(elem)) {
-		c.errAt(n, cIndexValueCopy, elem)
+		c.errAtHelp(n, c.noCloneHelp(elem, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, elem)
 	}
 	return elem
 }
@@ -69,7 +69,7 @@ func (c *checker) checkIndexFieldValue(n syntax.NodeID, t TypeID) TypeID {
 	if t == 0 || t == TyPoison || !c.indexRooted(n) || c.r.isCopy(c.vars.resolve(t)) {
 		return t
 	}
-	c.errAt(n, cIndexValueCopy, t)
+	c.errAtHelp(n, c.noCloneHelp(t, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, t)
 	return t
 }
 
@@ -154,7 +154,7 @@ func (c *checker) indexType(n, idx syntax.NodeID, recv, index TypeID) TypeID {
 		c.errAt(n, cNotIndexable, recv)
 		return TyPoison
 	}
-	c.errAt(idx, cIndexType, index)
+	c.errAtHelp(idx, usizeHelp(TyUsize, index), cIndexType, index)
 	return TyPoison
 }
 
@@ -189,6 +189,6 @@ func (c *checker) indexWitnessType(n, idx syntax.NodeID, recv, index TypeID) Typ
 		c.edge(EffectEdge{Kind: EdgeCall, Target: m, Node: n})
 		return c.indexValueResult(n, sig.Elem)
 	}
-	c.errAt(idx, cIndexType, index)
+	c.errAtHelp(idx, usizeHelp(TyUsize, index), cIndexType, index)
 	return TyPoison
 }

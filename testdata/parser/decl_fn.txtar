@@ -370,7 +370,7 @@ warning: duplicate modifier
 4 | pure pure fn g() {}
   |      ^^^^
 
-error: conflicting visibility modifiers
+error[E2199]: conflicting visibility modifiers
   --> decl_fn.txtar:18:5
    |
 18 | pub pub(module) fn bad() {}

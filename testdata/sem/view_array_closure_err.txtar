@@ -29,5 +29,5 @@ error[E413]: closure captures `vs` (move-only) and cannot be a plain `fn`
    |
 15 |     f
    |     ^
-   = help: use `F: Fn[...]`
+   = help: a returned closure cannot hold a move-only value; return a record that owns it and give the record a method
 

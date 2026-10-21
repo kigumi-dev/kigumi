@@ -102,7 +102,7 @@ func (c *checker) operandMismatch(n, rhs syntax.NodeID, op string, l, r TypeID) 
 	case c.isMethodValue(rhs):
 		c.mismatch(rhs, l, r)
 	case tt.IsNumeric(l) && tt.IsNumeric(r) && l != r:
-		c.errAt(n, cNumericMixed, l, r)
+		c.errAtHelp(n, mixedUsizeHelp(l, r), cNumericMixed, l, r)
 	case l != r && (tt.IsNumeric(l) || l == TyBool || l == TyString || l == TyChar || l == TyBytes):
 		c.mismatch(rhs, l, r)
 	default:
@@ -134,7 +134,11 @@ func (c *checker) equality(n, lhs, rhs syntax.NodeID, l, r TypeID, op token.Kind
 		if c.isBareNone(lhs) {
 			place = rhs
 		}
-		c.errAt(n, cEqNoneLint, c.placeName(place))
+		fix := c.placeName(place) + " is None"
+		if op == token.NotEq {
+			fix = "!(" + fix + ")"
+		}
+		c.errAt(n, cEqNoneLint, fix)
 	}
 	from := len(*c.edges)
 	if !c.primitiveCompare(l) && c.protoCall(n, l, "Eq", "equals", op) {
@@ -147,9 +151,15 @@ func (c *checker) equality(n, lhs, rhs syntax.NodeID, l, r TypeID, op token.Kind
 }
 
 func (c *checker) ordering(n, rhs syntax.NodeID, l, r TypeID, op token.Kind) TypeID {
+	if l != r && c.vars.unifiable(l, r) {
+		c.vars.unify(l, r)
+		l = c.vars.resolve(l)
+		r = l
+	}
 	if l != r {
 		return c.comparisonMismatch(n, rhs, l, r)
 	}
+	l = c.vars.settleLiterals(l)
 	if !c.r.hasOrd(l) {
 		c.errAt(n, cOrdUnsupported, op.String(), l)
 		return TyPoison

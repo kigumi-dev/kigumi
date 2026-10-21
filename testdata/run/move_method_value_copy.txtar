@@ -1,0 +1,22 @@
+-- src --
+type C = {
+    pub n Int
+}
+
+fn C.get(self) -> Int {
+    self.n
+}
+
+let c = C { n: 5 }
+let f = move c.get
+print "${f()}"
+let t = (1, 2)
+let y = move t._0
+print "${y} ${t._0} ${t._1}"
+let u = ("a", 2)
+let s = move u._0
+print "${s} ${u._1}"
+-- stdout --
+5
+1 1 2
+a 2

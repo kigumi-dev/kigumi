@@ -99,13 +99,18 @@ fn main.mutateInsideBorrowLoop() -> Void {
     drop(%items)
     return %t20
 }
-error[use-after-move]: `items` was moved; it cannot be used again
+error[E2197]: `items` was moved; it cannot be used again
  --> main/main.kg:9:14
   |
 9 |     print "${items.len()}"
   |              ^^^^^^^^^^
+note: `items` is moved here
+ --> main/main.kg:6:14
+  |
+6 |     for x in items {
+  |              ^^^^^
 
-error[borrow-conflict]: `items` is borrowed and cannot be mutated here
+error[E2198]: `items` is borrowed and cannot be mutated here
   --> main/main.kg:15:9
    |
 15 |         items.push(4)

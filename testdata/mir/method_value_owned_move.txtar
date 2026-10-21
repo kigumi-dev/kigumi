@@ -67,15 +67,25 @@ fn lib.valueAfterMove(%t: T, %$w:T:get: fn(Int) -> Int) -> Int {
     nop
     return %t12
 }
-error[use-after-move]: `w` was moved; it cannot be used again
+error[E2197]: `w` was moved; it cannot be used again
   --> lib/mv.kg:15:5
    |
 15 |     w.get(2) + f(1)
    |     ^^^^^^^
+note: `w` is moved here
+  --> lib/mv.kg:14:13
+   |
+14 |     let f = w.get
+   |             ^
 
-error[use-after-move]: `f` was moved; it cannot be used again
+error[E2197]: `f` was moved; it cannot be used again
   --> lib/mv.kg:21:5
    |
 21 |     f(1) + g(1)
    |     ^^^
+note: `f` is moved here
+  --> lib/mv.kg:20:13
+   |
+20 |     let g = f
+   |             ^
 

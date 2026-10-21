@@ -26,9 +26,14 @@ fn lib.twice(%w: T) -> Void {
     nop
     return %t4
 }
-error[use-after-move]: `w` was moved; it cannot be used again
+error[E2197]: `w` was moved; it cannot be used again
  --> lib/twice.kg:9:13
   |
 9 |     consume(w)
+  |             ^
+note: `w` is moved here
+ --> lib/twice.kg:8:13
+  |
+8 |     consume(w)
   |             ^
 

@@ -201,7 +201,7 @@ fn reinitAfterMatch() {
     }
 }
 -- expect --
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:45:9
    |
 45 |         Some(c) -> c.close() //~ ERROR `o` was moved
@@ -213,61 +213,76 @@ error[move-join-mismatch]: `o` is moved on some paths but not others
 54 |     if o is Some(c) { //~ ERROR `o` is moved on some paths but not others
    |             ^^^^^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:64:9
    |
 64 |         Some(c) -> c.close() //~ ERROR `o` was moved
    |         ^^^^^^
 
-error[use-after-move]: `r` was moved; it cannot be used again
+error[E2197]: `r` was moved; it cannot be used again
   --> main.kg:71:13
    |
 71 |     let b = r? //~ ERROR `r` was moved
    |             ^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:79:13
    |
 79 |     let b = o || mkr(2) //~ ERROR `o` was moved
    |             ^^^^^^^^^^
 
-error[use-after-move]: `p.left` was moved; it cannot be used again
+error[E2197]: `p.left` was moved; it cannot be used again
   --> main.kg:89:16
    |
 89 |         Pair { left, right } -> right.close() //~ ERROR `p.left` was moved //~ ERROR `p.right` was moved
    |                ^^^^
+note: `p.left` is moved here
+  --> main.kg:86:16
+   |
+86 |         Pair { left, right } -> left.close()
+   |                ^^^^
 
-error[use-after-move]: `p.right` was moved; it cannot be used again
+error[E2197]: `p.right` was moved; it cannot be used again
   --> main.kg:89:22
    |
 89 |         Pair { left, right } -> right.close() //~ ERROR `p.left` was moved //~ ERROR `p.right` was moved
    |                      ^^^^^
+note: `p.right` is moved here
+  --> main.kg:86:22
+   |
+86 |         Pair { left, right } -> left.close()
+   |                      ^^^^^
 
-error[use-after-move]: `t._0` was moved; it cannot be used again
+error[E2197]: `t._0` was moved; it cannot be used again
   --> main.kg:98:10
    |
 98 |         (c, n) -> c.close() //~ ERROR `t._0` was moved
    |          ^
+note: `t._0` is moved here
+  --> main.kg:95:10
+   |
+95 |         (c, n) -> c.close()
+   |          ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:109:9
     |
 109 |         Some(x) -> x //~ ERROR `o` was moved
     |         ^^^^^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:120:9
     |
 120 |         Some(q) -> q.left.close() //~ ERROR `o` was moved
     |         ^^^^^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:131:9
     |
 131 |         Some(q) -> q.right.close() //~ ERROR `o` was moved
     |         ^^^^^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:142:9
     |
 142 |         Some(q) -> q.left.close() //~ ERROR `o` was moved

@@ -42,7 +42,7 @@ func TestFixedArrayRunsInPlace(t *testing.T) {
 			t.Errorf("main.work calls %s:\n%s", bad, body)
 		}
 	}
-	if !strings.Contains(body, "icmp uge i64") || !strings.Contains(body, "@rt_panic(") {
+	if !strings.Contains(body, "icmp uge i64") || !strings.Contains(body, "@rt_panic_index(") {
 		t.Errorf("an index past the end must trap in place:\n%s", body)
 	}
 }

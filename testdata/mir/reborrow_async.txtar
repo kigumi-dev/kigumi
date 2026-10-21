@@ -48,11 +48,16 @@ async fn lib.scenario(%out: &mut Array[u8]) -> Void {
     nop
     return %t12
 }
-error[use-after-move]: `out` was moved; it cannot be used again
+error[E2197]: `out` was moved; it cannot be used again
  --> lib/reborrow.kg:7:5
   |
 7 |     out.push(1)
   |     ^^^
+note: `out` is moved here
+ --> lib/reborrow.kg:6:20
+  |
+6 |     let f = addOne(out)
+  |                    ^^^
 
 error[borrow-escape]: a borrow cannot be captured by a future
  --> lib/reborrow.kg:6:13

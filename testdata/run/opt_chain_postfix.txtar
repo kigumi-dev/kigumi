@@ -1,0 +1,115 @@
+-- src --
+type H = {
+    pub n Int
+    pub s String
+}
+
+type W = {
+    pub h H?
+    pub k Int
+}
+
+type R = resource {
+    pub n Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.n}"
+}
+
+fn R.get(self) -> Int {
+    self.n
+}
+
+fn R.consume(move self) -> Int {
+    self.n
+}
+
+fn H.handle(self, x: Int) -> Int {
+    self.n + x
+}
+
+fn H.name(self) -> String {
+    self.s
+}
+
+fn H.apply(self, f: fn(Int) -> Int) -> Int {
+    f(self.n)
+}
+
+fn show(o: Int?) -> String {
+    if o is Some(v) {
+        "Some(${v})"
+    } else {
+        "None"
+    }
+}
+
+fn showN(o: usize?) -> String {
+    if o is Some(v) {
+        "Some(${v})"
+    } else {
+        "None"
+    }
+}
+
+fn call(maybe: H?) -> Int? {
+    maybe?.handle(3)
+}
+
+fn length(maybe: H?) -> usize? {
+    maybe?.name().len()
+}
+
+fn field(maybe: H?) -> String? {
+    maybe?.s
+}
+
+fn make(n: Int) -> H? {
+    if n > 0 {
+        Some(H { n: n, s: "x" })
+    } else {
+        None
+    }
+}
+
+fn nested(w: W) -> Int? {
+    w.h?.handle(w.k)
+}
+
+fn twice(maybe: H?) -> Int?? {
+    maybe?.name().len().toInt()
+}
+
+let h = Some(H { n: 1, s: "ab" })
+print "${show(call(h))} ${show(call(None))}"
+print "${showN(length(h))} ${showN(length(None))}"
+print "${field(h) || "-"} ${field(None) || "-"}"
+print "${show(make(4)?.handle(1))} ${show(make(0)?.handle(1))}"
+print "${show(nested(W { h: h, k: 10 }))} ${show(nested(W { h: None, k: 10 }))}"
+print "${show(h?.apply((x: Int) => x * 10))}"
+print "${show(call(h))}"
+let both = h?.name()
+print "${both || "-"}"
+let r = Some(R { n: 7 })
+print "${show(r?.get())} ${show(r?.get())}"
+print "${show(Some(R { n: 8 })?.consume())}"
+if twice(h) is Some(inner) {
+    print "${showN(None) == "None"} ${inner is Some(v) && v == 2}"
+}
+print "end"
+-- stdout --
+Some(4) None
+Some(2) None
+ab -
+Some(5) None
+Some(11) None
+Some(10)
+Some(4)
+ab
+Some(7) Some(7)
+drop 8
+Some(8)
+true true
+end
+drop 7

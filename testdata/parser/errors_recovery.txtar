@@ -74,49 +74,49 @@ File
     pattern: PatBind tail
     init: IntLit 4
 -- diagnostics --
-error: expected expression, found end of line
+error[E2199]: expected expression, found end of line
  --> errors_recovery.txtar:1:9
   |
 1 | let x = 
   |         ^
 
-error: expected identifier, found `->`
+error[E2199]: expected identifier, found `->`
  --> errors_recovery.txtar:2:12
   |
 2 | fn broken( -> Void {}
   |            ^^
 
-error: expected ), found `let`
+error[E2199]: expected ), found `let`
  --> errors_recovery.txtar:3:1
   |
 3 | let ok = 1
   | ^^^
 
-error: `static fn` does not exist; an associated function is `fn Type.name(...)` without `self`
+error[E2199]: `static fn` does not exist; an associated function is `fn Type.name(...)` without `self`
  --> errors_recovery.txtar:4:1
   |
 4 | static fn User.anonymous() -> User { User { name: "?" } }
   | ^^^^^^
 
-error: `impl` blocks do not exist; write `fn Type.name(self)` at top level and use `@impl(Interface)` on the type
+error[E2199]: `impl` blocks do not exist; write `fn Type.name(self)` at top level and use `@impl(Interface)` on the type
  --> errors_recovery.txtar:5:1
   |
 5 | impl User { }
   | ^^^^
 
-error: empty list entry
+error[E2199]: empty list entry
  --> errors_recovery.txtar:6:18
   |
 6 | type T = { a Int,, b Int }
   |                  ^
 
-error: expected expression, found `let`
+error[E2199]: expected expression, found `let`
  --> errors_recovery.txtar:9:5
   |
 9 |     let z = 2
   |     ^^^
 
-error: expected expression, found `}`
+error[E2199]: expected expression, found `}`
   --> errors_recovery.txtar:12:1
    |
 12 | }

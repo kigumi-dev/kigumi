@@ -53,7 +53,7 @@ error[E407]: cannot interpolate `String?`
   |
 7 | print("x=${first}") //~ ERROR cannot interpolate `String?`
   |            ^^^^^
-  = help: call `.display()`
+  = help: write `debug(&value)` for a rendering, or import `std/fmt` and call `.display()`
 
 error[E419]: `print` is a compiler intrinsic, not a value
   --> cmd/app/main.kg:11:9

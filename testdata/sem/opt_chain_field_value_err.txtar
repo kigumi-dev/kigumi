@@ -1,0 +1,41 @@
+-- src --
+type R = resource {
+    pub n Int
+}
+
+fn R.drop(move self) {
+    _ = self
+}
+
+type V = resource {
+    pub r R
+    pub k Int
+}
+
+fn plain(y: V?) -> Int? {
+    y?.k
+}
+
+fn steal(y: V?) -> R? {
+    y?.r //~ ERROR reading `y?.r` by value would copy a `R`, which is not `Copy`
+}
+
+fn stealLocal(y: V?) {
+    let t = y?.r //~ ERROR reading `y?.r` by value would copy a `R`, which is not `Copy`
+    _ = t
+}
+-- expect --
+error[E2153]: reading `y?.r` by value would copy a `R`, which is not `Copy`
+  --> main/main.kg:19:5
+   |
+19 |     y?.r //~ ERROR reading `y?.r` by value would copy a `R`, which is not `Copy`
+   |     ^^^^
+   = help: match on the option and `move` the field out of the payload, or call a method that returns what you need
+
+error[E2153]: reading `y?.r` by value would copy a `R`, which is not `Copy`
+  --> main/main.kg:23:13
+   |
+23 |     let t = y?.r //~ ERROR reading `y?.r` by value would copy a `R`, which is not `Copy`
+   |             ^^^^
+   = help: match on the option and `move` the field out of the payload, or call a method that returns what you need
+

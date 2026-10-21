@@ -105,61 +105,61 @@ File
         Ident z
       Ident w
 -- diagnostics --
-error: `+` and `||` cannot be mixed without parentheses (v2.6 C1)
+error[E2199]: `+` and `||` cannot be mixed without parentheses (v2.6 C1)
  --> errors_mixing.txtar:1:28
   |
 1 | let a = counts.get(k) || 0 + 1
   |                            ^
 
-error: `<<` and `&` cannot be mixed without parentheses (v2.6 C1)
+error[E2199]: `<<` and `&` cannot be mixed without parentheses (v2.6 C1)
  --> errors_mixing.txtar:2:11
   |
 2 | let b = x << 2 & y
   |           ^^
 
-error: `&` and `|` cannot be mixed without parentheses (v2.6 C1)
+error[E2199]: `&` and `|` cannot be mixed without parentheses (v2.6 C1)
  --> errors_mixing.txtar:3:11
   |
 3 | let c = a & b | c
   |           ^
 
-error: `+` and `|>` cannot be mixed without parentheses (v2.6 C1)
+error[E2199]: `+` and `|>` cannot be mixed without parentheses (v2.6 C1)
  --> errors_mixing.txtar:4:11
   |
 4 | let d = a + b |> f
   |           ^
 
-error: `|>` and `==` cannot be mixed without parentheses (v2.6 C1)
+error[E2199]: `|>` and `==` cannot be mixed without parentheses (v2.6 C1)
  --> errors_mixing.txtar:5:11
   |
 5 | let e = x |> f == expected
   |           ^^
 
-error: `|>` and `||` cannot be mixed without parentheses (v2.6 C1)
+error[E2199]: `|>` and `||` cannot be mixed without parentheses (v2.6 C1)
  --> errors_mixing.txtar:6:12
   |
 6 | let f2 = a |> f || fallback
   |            ^^
 
-error: `&&` and `||` cannot be mixed without parentheses (v2.6 C1)
+error[E2199]: `&&` and `||` cannot be mixed without parentheses (v2.6 C1)
  --> errors_mixing.txtar:7:11
   |
 7 | let g = a && b || c
   |           ^^
 
-error: `+` and `..` cannot be mixed without parentheses (v2.6 C1)
+error[E2199]: `+` and `..` cannot be mixed without parentheses (v2.6 C1)
  --> errors_mixing.txtar:8:14
   |
 8 | let h = 0..n + 1
   |              ^
 
-error: chained < needs parentheses
+error[E2199]: chained < needs parentheses
  --> errors_mixing.txtar:9:15
   |
 9 | let i = a < b < c
   |               ^
 
-error: ambiguous `f -1`; write `f - 1` for subtraction or `f(-1)` for a call
+error[E2199]: ambiguous `f -1`; write `f - 1` for subtraction or `f(-1)` for a call
   --> errors_mixing.txtar:11:11
    |
 11 | let k = f -1

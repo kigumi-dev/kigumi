@@ -21,8 +21,19 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 	}
 	if len(args) != len(vi.Payload) {
 		c.errAt(n, cVariantArity, name, len(vi.Payload), plural(len(vi.Payload)), len(args))
-		c.synthArgs(args)
+		c.synthArgs(c.unwrapNamed(args))
 		return result
+	}
+	plan := identityPlan(args)
+	if c.hasNamedArg(args) {
+		lay := c.layoutNamed(args, vi.Names)
+		if !lay.ok() {
+			c.reportNamedLayout(name, lay)
+			c.synthArgs(c.unwrapNamed(args))
+			return result
+		}
+		plan = newCallPlan(c.unwrapNamed(args), lay.place())
+		args = plan.placed()
 	}
 	subst := map[EntityID]TypeID{}
 	for i, p := range c.r.typeDecl(adt).Params {
@@ -42,7 +53,7 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 	if !c.fixedPayload(args) {
 		c.buildEdge(n, result)
 	}
-	c.info.Calls[n] = CallInfo{Kind: CallVariant, Callee: v, Inst: typeArgs, Plan: identityPlan(args)}
+	c.info.Calls[n] = CallInfo{Kind: CallVariant, Callee: v, Inst: typeArgs, Plan: plan}
 	c.touched = append(c.touched, n)
 	return result
 }
@@ -109,6 +120,9 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 			return TyPoison
 		}
 		c.synthArgs(args)
+		if name == "display" && len(args) == 0 && c.requestDisplay(valueType) {
+			return TyPoison
+		}
 		if tt.Kind(valueType) == KParam {
 			c.errAt(callee, cParamNoMember, valueType, name)
 		} else {
@@ -124,6 +138,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 		return TyPoison
 	}
 	info := c.r.Fn(m)
+	c.noteDerivedDisplayUse(m)
 	if info.Recv == RecvNone {
 		c.synthArgs(args)
 		c.errAt(callee, cMethodAsAssoc, name, c.r.entityName(tt.Node(valueType).Ent), name)
@@ -150,7 +165,9 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 		if tt.Kind(recv) == KRef && tt.Node(recv).Flags&flagMut != 0 {
 			return
 		}
-		if c.indexAssignUnsupported(base) {
+		if c.rootIsChainHole(base) {
+			c.errAt(base, cRecvTemporary, name)
+		} else if c.indexAssignUnsupported(base) {
 			c.errAt(base, cIndexAssignUnsupported)
 		} else if !c.isPlace(base) {
 			c.errAt(base, cRecvTemporary, name)
@@ -166,7 +183,7 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 		if tt.Kind(recv) == KRef {
 			c.errAt(base, cMoveOutOfBorrow, tt.Node(recv).Elem)
 		} else if c.indexRooted(base) && !c.r.isCopy(recv) {
-			c.errAt(base, cIndexValueCopy, recv)
+			c.errAtHelp(base, c.noCloneHelp(recv, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, recv)
 		} else {
 			c.consumeWhole(base)
 		}

@@ -336,13 +336,13 @@ fn isTakeNoClearInLoop() {
     }
 }
 -- expect --
-error[use-after-move]: `b.opt` was moved; it cannot be used again
+error[E2197]: `b.opt` was moved; it cannot be used again
   --> main.kg:43:13
    |
 43 |             Some(h) -> h.close() //~ ERROR `b.opt` was moved
    |             ^^^^^^
 
-error[use-after-move]: `b.opt` was moved; it cannot be used again
+error[E2197]: `b.opt` was moved; it cannot be used again
   --> main.kg:52:13
    |
 52 |             Some(h) -> h.close() //~ ERROR `b.opt` was moved
@@ -354,19 +354,19 @@ error[move-join-mismatch]: `b.opt` is moved on some paths but not others
 60 |         if b.opt is Some(h) { //~ ERROR `b.opt` is moved on some paths
    |                     ^^^^^^
 
-error[use-after-move]: `b.pack.other` was moved; it cannot be used again
+error[E2197]: `b.pack.other` was moved; it cannot be used again
   --> main.kg:69:25
    |
 69 |             Some(Pack { other, inner: _, n: _ }) -> other.close() //~ ERROR `b.pack.other` was moved
    |                         ^^^^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:78:13
    |
 78 |             Some(h) -> h.close() //~ ERROR `o` was moved
    |             ^^^^^^
 
-error[use-after-move]: `b.opt` was moved; it cannot be used again
+error[E2197]: `b.opt` was moved; it cannot be used again
   --> main.kg:90:9
    |
 90 |         Some(g) -> g.close() //~ ERROR `b.opt` was moved
@@ -378,65 +378,110 @@ error[move-join-mismatch]: `b.opt` is moved on some paths but not others
 189 |             Some(h) if ok(&h) -> h.close() //~ ERROR `b.opt` is moved on some paths
     |             ^^^^^^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
    --> main.kg:247:5
     |
 247 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
     |     ^^^^^^^
+note: `b.other` is moved here
+   --> main.kg:246:13
+    |
+246 |     let t = (move b.other, 1)
+    |             ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
    --> main.kg:247:5
     |
 247 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
     |     ^^^^^^^^^^^^^^
+note: `b.other` is moved here
+   --> main.kg:246:13
+    |
+246 |     let t = (move b.other, 1)
+    |             ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.opt` was moved; it cannot be used again
+error[E2197]: `b.opt` was moved; it cannot be used again
    --> main.kg:253:23
     |
 253 |         let t = (move b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
     |                       ^^^^^
-
-error[use-after-move]: `b.opt` was moved; it cannot be used again
+note: `b.opt` is moved here
    --> main.kg:253:17
     |
 253 |         let t = (move b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
     |                 ^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.opt` was moved; it cannot be used again
+error[E2197]: `b.opt` was moved; it cannot be used again
+   --> main.kg:253:17
+    |
+253 |         let t = (move b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+    |                 ^^^^^^^^^^^^^^
+
+error[E2197]: `b.opt` was moved; it cannot be used again
    --> main.kg:265:13
     |
 265 |     takeOpt(b.opt) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
     |             ^^^^^
+note: `b.opt` is moved here
+   --> main.kg:264:13
+    |
+264 |     let w = Wrap { o: move b.opt }
+    |             ^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.opt` was moved; it cannot be used again
+error[E2197]: `b.opt` was moved; it cannot be used again
    --> main.kg:265:5
     |
 265 |     takeOpt(b.opt) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
     |     ^^^^^^^^^^^^^
+note: `b.opt` is moved here
+   --> main.kg:264:13
+    |
+264 |     let w = Wrap { o: move b.opt }
+    |             ^^^^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
    --> main.kg:271:5
     |
 271 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
     |     ^^^^^^^
+note: `b.other` is moved here
+   --> main.kg:270:13
+    |
+270 |     let o = Some(move b.other)
+    |             ^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
    --> main.kg:271:5
     |
 271 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
     |     ^^^^^^^^^^^^^^
+note: `b.other` is moved here
+   --> main.kg:270:13
+    |
+270 |     let o = Some(move b.other)
+    |             ^^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
    --> main.kg:277:5
     |
 277 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
     |     ^^^^^^^
+note: `b.other` is moved here
+   --> main.kg:276:14
+    |
+276 |     let xs = Array.of(b.other)
+    |              ^^^^^^^^^^^^^^^^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
    --> main.kg:277:5
     |
 277 |     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
     |     ^^^^^^^^^^^^^^
+note: `b.other` is moved here
+   --> main.kg:276:14
+    |
+276 |     let xs = Array.of(b.other)
+    |              ^^^^^^^^^^^^^^^^
 
 error[move-join-mismatch]: `o` is moved on some paths but not others
    --> main.kg:330:17

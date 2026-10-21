@@ -249,34 +249,59 @@ async fn lib.awaitLoop() -> Int {
     drop(%i)
     jump b3
 }
-error[use-after-move]: `f` was moved; it cannot be used again
+error[E2197]: `f` was moved; it cannot be used again
   --> lib/own_await.kg:13:19
    |
 13 |     let b = await f
    |                   ^
+note: `f` is moved here
+  --> lib/own_await.kg:12:19
+   |
+12 |     let a = await f
+   |                   ^
 
-error[use-after-move]: `f` was moved; it cannot be used again
+error[E2197]: `f` was moved; it cannot be used again
   --> lib/own_await.kg:21:19
    |
 21 |     let b = await f
    |                   ^
+note: `f` is moved here
+  --> lib/own_await.kg:20:19
+   |
+20 |     let a = await f
+   |                   ^
 
-error[use-after-move]: `b.fut` was moved; it cannot be used again
+error[E2197]: `b.fut` was moved; it cannot be used again
   --> lib/own_await.kg:31:19
    |
 31 |     let y = await b.fut
    |                   ^^^^^
+note: `b.fut` is moved here
+  --> lib/own_await.kg:30:13
+   |
+30 |     let x = await b.fut
+   |             ^^^^^^^^^^^
 
-error[use-after-move]: `b.fut` was moved; it cannot be used again
+error[E2197]: `b.fut` was moved; it cannot be used again
   --> lib/own_await.kg:31:13
    |
 31 |     let y = await b.fut
    |             ^^^^^^^^^^^
+note: `b.fut` is moved here
+  --> lib/own_await.kg:30:13
+   |
+30 |     let x = await b.fut
+   |             ^^^^^^^^^^^
 
-error[use-after-move]: `f` was moved; it cannot be used again
+error[E2197]: `f` was moved; it cannot be used again
   --> lib/own_await.kg:37:19
    |
 37 |     let b = await f
+   |                   ^
+note: `f` is moved here
+  --> lib/own_await.kg:36:19
+   |
+36 |     let a = await f
    |                   ^
 
 error[move-join-mismatch]: `f` is moved on some paths but not others

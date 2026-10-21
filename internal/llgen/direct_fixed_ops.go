@@ -29,25 +29,25 @@ func (e *emitter) tryFixedInst(sb *strings.Builder, f *mir.Func, in mir.Inst) bo
 	}
 	switch {
 	case in.Op == mir.OpIndex:
-		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, a, in.Args[0], in.Args[1], !in.NoTrap), in.Dst)
+		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, in, a, in.Args[0], in.Args[1], !in.NoTrap), in.Dst)
 	case in.Op == mir.OpSetIndex:
-		e.storeLeaf(sb, *a.Arr, e.elemPtr(sb, f, a, in.Args[0], in.Args[1], !in.NoTrap), in.Args[2])
+		e.storeLeaf(sb, *a.Arr, e.elemPtr(sb, f, in, a, in.Args[0], in.Args[1], !in.NoTrap), in.Args[2])
 	case in.Op == mir.OpBuiltin && in.Str == "iter.len":
 		e.storeScalarResult(sb, f, in.Dst, Value{TI64, fmt.Sprint(a.Len)})
 	case in.Op == mir.OpBuiltin && strings.HasPrefix(in.Str, "iter.at"):
-		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, a, in.Args[0], in.Args[1], false), in.Dst)
+		e.loadLeaf(sb, f, *a.Arr, e.elemPtr(sb, f, in, a, in.Args[0], in.Args[1], false), in.Dst)
 	default:
 		return false
 	}
 	return true
 }
 
-func (e *emitter) elemPtr(sb *strings.Builder, f *mir.Func, a *aggInfo, base, idx mir.LocalID, checked bool) string {
+func (e *emitter) elemPtr(sb *strings.Builder, f *mir.Func, in mir.Inst, a *aggInfo, base, idx mir.LocalID, checked bool) string {
 	iv, _ := e.scalarOperand(sb, f, idx)
 	if checked {
 		bad, ok, c := e.label("oob"), e.label("inb"), e.newTmp()
 		fmt.Fprintf(sb, "  %s = icmp uge i64 %s, %d\n  br i1 %s, label %%%s, label %%%s\n%s:\n", c, iv.Text, a.Len, c, bad, ok, bad)
-		e.irb(sb).Call(rtPanic, vptr(e.cstr("index out of range")))
+		e.irb(sb).Call(rtPanicIndex, vi64text(iv.Text), vi64(int(a.Len)), vptr(e.siteText(f, in)))
 		fmt.Fprintf(sb, "  unreachable\n%s:\n", ok)
 	}
 	return e.elemAt(sb, a, aggPtr(base), iv.Text)

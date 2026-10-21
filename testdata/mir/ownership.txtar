@@ -212,10 +212,15 @@ fn lib.dropped(%files: Files, %p: Path) -> Void! {
     drop(%files)
     return %t17
 }
-error[use-after-move]: `f` was moved; it cannot be used again
+error[E2197]: `f` was moved; it cannot be used again
  --> lib/own.kg:9:13
   |
 9 |     consume(f)?
+  |             ^
+note: `f` is moved here
+ --> lib/own.kg:8:13
+  |
+8 |     consume(f)?
   |             ^
 
 error[move-join-mismatch]: `f` is moved on some paths but not others

@@ -11,6 +11,9 @@ import (
 // since llgen's own C string reaches rt_std, which strips it itself.
 func StdKey(r *sem.Result, fn sem.EntityID, stripStd bool) string {
 	ent := r.Entity(fn)
+	if ent.Kind != sem.EntFn {
+		return ""
+	}
 	info := r.Fn(fn)
 	key := r.Packages[ent.Pkg].Path + "."
 	if stripStd {

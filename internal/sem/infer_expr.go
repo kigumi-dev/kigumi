@@ -11,6 +11,9 @@ func (c *checker) synthIdent(n syntax.NodeID) TypeID {
 		return TyPoison
 	}
 	b, found, ok := c.r.lookup(c.scope, name)
+	if hole, isHole := c.info.ChainHoles[n]; isHole {
+		b, found, ok = Binding{Ent: hole}, c.scope, true
+	}
 	if !ok {
 		if variants := c.r.variantNames[c.pkg][name]; len(variants) > 0 {
 			return c.variantValue(n, variants[0], nil)

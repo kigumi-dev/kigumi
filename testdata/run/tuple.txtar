@@ -58,8 +58,8 @@ match decoded {
 a=1 b=a
 sum=7
 eq=true ne=false hasheq=true
-dbg=Tuple2 { 1, 2 }
-get=Tuple2 { 1, 2 }
+dbg=(1, 2)
+get=(1, 2)
 b=3,4
 ms=hi n=3
 json=[1,2]

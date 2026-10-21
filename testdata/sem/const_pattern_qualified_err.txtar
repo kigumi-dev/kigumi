@@ -1,0 +1,54 @@
+-- src --
+import a from lib/a
+
+fn use(n: Int, s: String) -> Int {
+    let one = match n {
+        a.K -> 1
+        _ -> 0
+    }
+    let two = match n {
+        a.Nope -> 1 //~ ERROR package `lib/a` has no visible `Nope`
+        _ -> 0
+    }
+    let three = match s {
+        a.K -> 1 //~ ERROR literal pattern `K` does not fit `String`
+        _ -> 0
+    }
+    let four = match n {
+        a.K(x) -> 1 //~ ERROR `K` has 0 payloads, 1 pattern given
+        _ -> 0
+    }
+    let five = match n {
+        a.Flag -> 1 //~ ERROR literal pattern `Flag` does not fit `Int`
+        _ -> 0
+    }
+    one + two + three + four + five
+}
+-- lib/a/a.kg --
+pub const K: Int = 3
+pub const Flag: Bool = true
+-- expect --
+error[E103]: package `lib/a` has no visible `Nope`
+ --> main/main.kg:9:9
+  |
+9 |         a.Nope -> 1 //~ ERROR package `lib/a` has no visible `Nope`
+  |         ^^^^^^
+
+error[E805]: literal pattern `K` does not fit `String`
+  --> main/main.kg:13:9
+   |
+13 |         a.K -> 1 //~ ERROR literal pattern `K` does not fit `String`
+   |         ^^^
+
+error[E803]: `K` has 0 payloads, 1 pattern given
+  --> main/main.kg:17:9
+   |
+17 |         a.K(x) -> 1 //~ ERROR `K` has 0 payloads, 1 pattern given
+   |         ^^^^^
+
+error[E805]: literal pattern `Flag` does not fit `Int`
+  --> main/main.kg:21:9
+   |
+21 |         a.Flag -> 1 //~ ERROR literal pattern `Flag` does not fit `Int`
+   |         ^^^^^^
+

@@ -58,7 +58,7 @@ error[move-while-borrowed]: `buf` is still borrowed when its scope ends here
 15 |         let buf = bytes()
    |             ^^^
 
-error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+error[E2198]: `buf` is borrowed and cannot be mutated here
   --> main.kg:26:5
    |
 26 |     buf = bytes()

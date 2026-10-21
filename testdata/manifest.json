@@ -4527,6 +4527,23 @@
       ]
     },
     {
+      "id": "run/const_pattern_qualified",
+      "kind": "run",
+      "path": "testdata/run/const_pattern_qualified.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/const_qualified_package",
       "kind": "run",
       "path": "testdata/run/const_qualified_package.txtar",
@@ -4785,6 +4802,23 @@
       "id": "run/cvalue_scalar",
       "kind": "run",
       "path": "testdata/run/cvalue_scalar.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/debug_field_names",
+      "kind": "run",
+      "path": "testdata/run/debug_field_names.txtar",
       "mode": [
         "vm",
         "native"
@@ -10032,6 +10066,23 @@
       ]
     },
     {
+      "id": "run/match_tuple_literal",
+      "kind": "run",
+      "path": "testdata/run/match_tuple_literal.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/math_abs_min_i16",
       "kind": "run",
       "path": "testdata/run/math_abs_min_i16.txtar",
@@ -10246,6 +10297,23 @@
       "id": "run/method_value_witness",
       "kind": "run",
       "path": "testdata/run/method_value_witness.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/move_method_value_copy",
+      "kind": "run",
+      "path": "testdata/run/move_method_value_copy.txtar",
       "mode": [
         "vm",
         "native"
@@ -10657,6 +10725,23 @@
       ]
     },
     {
+      "id": "run/named_variant_payload",
+      "kind": "run",
+      "path": "testdata/run/named_variant_payload.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/nested_ctor_loop_reassign",
       "kind": "run",
       "path": "testdata/run/nested_ctor_loop_reassign.txtar",
@@ -10844,6 +10929,23 @@
       ]
     },
     {
+      "id": "run/opt_chain_postfix",
+      "kind": "run",
+      "path": "testdata/run/opt_chain_postfix.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/option_result_combinators",
       "kind": "run",
       "path": "testdata/run/option_result_combinators.txtar",
@@ -10972,6 +11074,48 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: deep"
+      }
+    },
+    {
+      "id": "run/panic_index_message",
+      "kind": "run",
+      "path": "testdata/run/panic_index_message.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: index out of range: index 7, length 3 at main/main\\.kg:4"
+      }
+    },
+    {
+      "id": "run/panic_index_write_message",
+      "kind": "run",
+      "path": "testdata/run/panic_index_write_message.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: index out of range: index 3, length 3 at main/main\\.kg:4"
       }
     },
     {
@@ -13927,6 +14071,17 @@
       ]
     },
     {
+      "id": "sem/closure_return_state_err",
+      "kind": "sem",
+      "path": "testdata/sem/closure_return_state_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/collection_copy",
       "kind": "sem",
       "path": "testdata/sem/collection_copy.txtar",
@@ -14051,6 +14206,17 @@
       "id": "sem/const_generic_err",
       "kind": "sem",
       "path": "testdata/sem/const_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/const_pattern_qualified_err",
+      "kind": "sem",
+      "path": "testdata/sem/const_pattern_qualified_err.txtar",
       "mode": [
         "check"
       ],
@@ -15764,6 +15930,17 @@
       ]
     },
     {
+      "id": "sem/interpolation_display_help",
+      "kind": "sem",
+      "path": "testdata/sem/interpolation_display_help.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/isr_naked",
       "kind": "sem",
       "path": "testdata/sem/isr_naked.txtar",
@@ -16292,6 +16469,17 @@
       ]
     },
     {
+      "id": "sem/named_variant_payload_err",
+      "kind": "sem",
+      "path": "testdata/sem/named_variant_payload_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/narrow_invalidate",
       "kind": "sem",
       "path": "testdata/sem/narrow_invalidate.txtar",
@@ -16328,6 +16516,39 @@
       "id": "sem/operators_user",
       "kind": "sem",
       "path": "testdata/sem/operators_user.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/opt_chain_err",
+      "kind": "sem",
+      "path": "testdata/sem/opt_chain_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/opt_chain_field_value_err",
+      "kind": "sem",
+      "path": "testdata/sem/opt_chain_field_value_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/ordering_tuple_diag",
+      "kind": "sem",
+      "path": "testdata/sem/ordering_tuple_diag.txtar",
       "mode": [
         "check"
       ],

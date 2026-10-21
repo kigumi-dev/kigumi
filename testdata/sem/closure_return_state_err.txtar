@@ -1,0 +1,35 @@
+-- src --
+fn counter() -> fn() -> Int {
+    let mut n = 0
+    () => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+        n = n + 1
+        n
+    }
+}
+
+fn apply(f: fn() -> Int) -> Int {
+    f()
+}
+
+fn viaArg() -> Int {
+    let mut n = 0
+    apply(() => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+        n = n + 1
+        n
+    })
+}
+-- expect --
+error[E413]: closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+ --> main/main.kg:3:5
+  |
+3 |     () => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: a returned closure cannot own state it changes; return a record that holds the state and update it through a `mut self` method
+
+error[E413]: closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+  --> main/main.kg:15:11
+   |
+15 |     apply(() => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: use `F: Fn[...]`
+

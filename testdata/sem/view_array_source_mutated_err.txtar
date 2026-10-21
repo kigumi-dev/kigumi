@@ -64,7 +64,7 @@ fn fine() -> usize {
     n + buf.len()
 }
 -- expect --
-error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+error[E2198]: `buf` is borrowed and cannot be mutated here
   --> main.kg:16:5
    |
 16 |     buf = bytes()
@@ -76,7 +76,7 @@ error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped her
 16 |     buf = bytes()
    |     ^^^
 
-error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+error[E2198]: `buf` is borrowed and cannot be mutated here
   --> main.kg:24:5
    |
 24 |     buf = bytes()
@@ -88,7 +88,7 @@ error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped her
 24 |     buf = bytes()
    |     ^^^
 
-error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+error[E2198]: `buf` is borrowed and cannot be mutated here
   --> main.kg:35:5
    |
 35 |     buf = bytes()
@@ -100,7 +100,7 @@ error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped her
 35 |     buf = bytes()
    |     ^^^
 
-error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+error[E2198]: `buf` is borrowed and cannot be mutated here
   --> main.kg:43:5
    |
 43 |     buf = bytes()
@@ -112,7 +112,7 @@ error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped her
 43 |     buf = bytes()
    |     ^^^
 
-error[borrow-conflict]: `buf` is borrowed and cannot be mutated here
+error[E2198]: `buf` is borrowed and cannot be mutated here
   --> main.kg:53:5
    |
 53 |     buf = bytes()

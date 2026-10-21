@@ -25,7 +25,7 @@ func (c *checker) rejectFieldLeaf(n syntax.NodeID) {
 		return
 	}
 	name := c.placeName(n)
-	c.errAt(n, cFieldValueMove, name, t, name, name)
+	c.errAtHelp(n, c.noCloneHelp(t, "write `move "+name+"` to take it out, or borrow it with `&"+name+"`"), cFieldValueMove, name, t, name, name)
 }
 
 // rejectBranchFieldArg: a plain `use(w.a)` stays an implicit move, but a field picked by an if / match / block tail is not tracked as one.

@@ -46,37 +46,37 @@ File
     init: Unary !
       -
 -- diagnostics --
-error: expected type, found `!`
+error[E2199]: expected type, found `!`
  --> decl_fn_void_errors.txtar:1:17
   |
 1 | fn a(f: fn() -> !) {}
   |                 ^
 
-error: expected type, found `!`
+error[E2199]: expected type, found `!`
  --> decl_fn_void_errors.txtar:2:10
   |
 2 | type T = !
   |          ^
 
-error: expected type, found `!`
+error[E2199]: expected type, found `!`
  --> decl_fn_void_errors.txtar:3:9
   |
 3 | fn b(x: !) {}
   |         ^
 
-error: expected type, found `!`
+error[E2199]: expected type, found `!`
  --> decl_fn_void_errors.txtar:4:11
   |
 4 | fn c() -> ! {}
   |           ^
 
-error: expected type, found `!`
+error[E2199]: expected type, found `!`
  --> decl_fn_void_errors.txtar:5:8
   |
 5 | let v: ! = 1
   |        ^
 
-error: expected expression, found `=`
+error[E2199]: expected expression, found `=`
  --> decl_fn_void_errors.txtar:5:10
   |
 5 | let v: ! = 1

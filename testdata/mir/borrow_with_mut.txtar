@@ -129,13 +129,13 @@ fn lib.fine(%xs: Array[Item]) -> usize {
     drop(%xs)
     return %t11
 }
-error[borrow-conflict]: `xs` is borrowed and cannot be mutated here
+error[E2198]: `xs` is borrowed and cannot be mutated here
   --> lib/wm.kg:11:5
    |
 11 |     xs.withMut(0, (x: &mut Item) => x.update(1))
    |     ^^
 
-error[borrow-conflict]: `xs` is exclusively borrowed and cannot be used here
+error[E2198]: `xs` is exclusively borrowed and cannot be used here
   --> lib/wm.kg:17:13
    |
 17 |     let k = xs.len()

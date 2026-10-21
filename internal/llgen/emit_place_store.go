@@ -24,10 +24,10 @@ func (e *emitter) setIndex(sb *strings.Builder, f *mir.Func, in mir.Inst, args [
 		fn, swap = rtSetindexCopy, rtSetindexCopySwap
 	}
 	if e.outer != nil {
-		e.dropCall(sb, f, rtRelease, e.irb(sb).Call(swap, vptr(args[0]), vptr(args[1]), vptr(args[2])).Text)
+		e.dropCall(sb, f, rtRelease, e.irb(sb).Call(swap, vptr(args[0]), vptr(args[1]), vptr(args[2]), vptr(e.siteText(f, in))).Text)
 		return
 	}
-	e.irb(sb).Call(fn, vptr(args[0]), vptr(args[1]), vptr(args[2]))
+	e.irb(sb).Call(fn, vptr(args[0]), vptr(args[1]), vptr(args[2]), vptr(e.siteText(f, in)))
 }
 
 func (e *emitter) cellSet(sb *strings.Builder, f *mir.Func, args []string) {

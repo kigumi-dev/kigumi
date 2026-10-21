@@ -10362,6 +10362,16 @@
     "status": "ok"
   },
   {
+    "key": "test.assert",
+    "signature": "pure fn(Bool, String) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "test.expectEq",
     "signature": "pure fn(T, T) -\u003e Void!",
     "has_body": true,

@@ -46,7 +46,7 @@ error[E1022]: cannot move a value out of an index
    |
 22 |     move xs[0] //~ ERROR cannot move a value out of an index
    |          ^^^^
-   = help: clone the element instead
+   = help: take the element out with `.takeAt` instead
 
 error[E1024]: cannot move a value out of `Shared[Res]`
   --> main/main.kg:26:10

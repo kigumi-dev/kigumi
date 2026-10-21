@@ -120,27 +120,32 @@ fn movedOnceAfterLoop() {
     }
 }
 -- expect --
-error[use-after-move]: `t._1` was moved; it cannot be used again
+error[E2197]: `t._1` was moved; it cannot be used again
   --> main.kg:33:17
    |
 33 |             (_, b) -> b.close() //~ ERROR `t._1` was moved
    |                 ^
 
-error[use-after-move]: `t._1` was moved; it cannot be used again
+error[E2197]: `t._1` was moved; it cannot be used again
   --> main.kg:43:17
    |
 43 |             (_, b) -> b.close() //~ ERROR `t._1` was moved
    |                 ^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
   --> main.kg:52:20
    |
 52 |             Pack { other, inner: _, n: _ } -> other.close() //~ ERROR `b.other` was moved
    |                    ^^^^^
 
-error[use-after-move]: `b.other` was moved; it cannot be used again
+error[E2197]: `b.other` was moved; it cannot be used again
   --> main.kg:60:22
    |
 60 |         let x = move b.other //~ ERROR `b.other` was moved
    |                      ^^^^^^^
+note: `b.other` is moved here
+  --> main.kg:60:13
+   |
+60 |         let x = move b.other //~ ERROR `b.other` was moved
+   |             ^
 

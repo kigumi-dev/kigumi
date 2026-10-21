@@ -149,14 +149,14 @@ error[E413]: closure captures `self` (a receiver lent by the caller) and cannot 
    |
 57 |     () => self.n //~ ERROR cannot be a plain `fn`
    |     ^^^^^^^^^^^^
-   = help: use `F: Fn[...]`
+   = help: a returned closure cannot own state it changes; return a record that holds the state and update it through a `mut self` method
 
 error[E413]: closure captures `self` (move-only) and cannot be a plain `fn`
   --> main/main.kg:93:5
    |
 93 |     () => self.id //~ ERROR move-only //~ ERROR cannot capture the borrow `self`
    |     ^^^^^^^^^^^^^
-   = help: use `F: Fn[...]`
+   = help: a returned closure cannot hold a move-only value; return a record that owns it and give the record a method
 
 error[E412]: closure cannot capture the borrow `self`
   --> main/main.kg:93:11

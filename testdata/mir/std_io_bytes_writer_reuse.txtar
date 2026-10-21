@@ -34,9 +34,14 @@ fn lib.afterCopy(%r: BytesReader, %w: BytesWriter) -> Bytes! {
     %t9 = variant Result.Err(%t8)
     return %t9
 }
-error[use-after-move]: `w` was moved; it cannot be used again
+error[E2197]: `w` was moved; it cannot be used again
  --> lib/reuse.kg:7:5
   |
 7 |     w.bytes()
   |     ^^^^^^^^
+note: `w` is moved here
+ --> lib/reuse.kg:6:16
+  |
+6 |     io.copy(r, w)?
+  |                ^
 

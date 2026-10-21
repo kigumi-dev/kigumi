@@ -32,12 +32,12 @@ func (m *Machine) index(base, idx *obj) *obj {
 	i := idx.i
 	if base.k == kStr || base.k == kBytes {
 		if i < 0 || i >= int64(len(base.str())) {
-			m.abort("index out of range")
+			m.abortIndex(i, int64(len(base.str())))
 		}
 		return mkInt(int64(base.str()[i]), 8)
 	}
 	if base.k != kArray || i < 0 || i >= int64(len(base.fields)) {
-		m.abort("index out of range")
+		m.abortIndex(i, int64(len(base.fields)))
 	}
 	return retain(base.fields[i])
 }
@@ -46,7 +46,7 @@ func (m *Machine) setIndex(base, idx, v *obj) *obj {
 	base = deref(base)
 	i := deref(idx).i
 	if base.k != kArray || i < 0 || i >= int64(len(base.fields)) {
-		m.abort("index out of range")
+		m.abortIndex(i, int64(len(base.fields)))
 	}
 	old := base.fields[i]
 	base.fields[i] = v

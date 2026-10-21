@@ -214,7 +214,7 @@ error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    |
 39 |     let t = w.a //~ ERROR reading `w.a` by value would copy a `Res`
    |             ^^^
-   = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+   = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.xs` by value would copy a `Array[Int]`, which is not `Copy`
   --> main.kg:44:18
@@ -228,42 +228,42 @@ error[E2153]: reading `n.w.a` by value would copy a `Res`, which is not `Copy`
    |
 50 |     let t = n.w.a //~ ERROR reading `n.w.a` by value would copy a `Res`
    |             ^^^^^
-   = help: write `move n.w.a` to take it out, borrow it with `&n.w.a`, or clone it
+   = help: write `move n.w.a` to take it out, or borrow it with `&n.w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
   --> main.kg:56:11
    |
 56 |     h.f = w.a //~ ERROR reading `w.a` by value would copy a `Res`
    |           ^^^
-   = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+   = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
   --> main.kg:61:25
    |
 61 |     let h = Holder { f: w.a } //~ ERROR reading `w.a` by value would copy a `Res`
    |                         ^^^
-   = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+   = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
   --> main.kg:66:14
    |
 66 |     let t = (w.a, 1) //~ ERROR reading `w.a` by value would copy a `Res`
    |              ^^^
-   = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+   = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
   --> main.kg:71:18
    |
 71 |     let o = Some(w.a) //~ ERROR reading `w.a` by value would copy a `Res`
    |                  ^^^
-   = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+   = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
   --> main.kg:76:20
    |
 76 |     let t = if c { w.a } else { mkr(4) } //~ ERROR reading `w.a` by value would copy a `Res`
    |                    ^^^
-   = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+   = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.xs` by value would copy a `Array[Int]`, which is not `Copy`
   --> main.kg:82:17
@@ -277,75 +277,75 @@ error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    |
 87 |     let t = w.a //~ ERROR reading `w.a` by value would copy a `Res`
    |             ^^^
-   = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+   = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `b.rs` by value would copy a `Array[Res]`, which is not `Copy`
    --> main.kg:128:14
     |
 128 |     for r in b.rs { //~ ERROR reading `b.rs` by value
     |              ^^^^
-    = help: write `move b.rs` to take it out, borrow it with `&b.rs`, or clone it
+    = help: write `move b.rs` to take it out, or borrow it with `&b.rs`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    --> main.kg:151:9
     |
 151 |     x = w.a //~ ERROR reading `w.a` by value would copy a `Res`
     |         ^^^
-    = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+    = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    --> main.kg:157:14
     |
 157 |         0 -> w.a //~ ERROR reading `w.a` by value would copy a `Res`
     |              ^^^
-    = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+    = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `p._0` by value would copy a `Res`, which is not `Copy`
    --> main.kg:164:20
     |
 164 |     let t = if c { p._0 } else { mkr(8) } //~ ERROR reading `p._0` by value would copy a `Res`
     |                    ^^^^
-    = help: write `move p._0` to take it out, borrow it with `&p._0`, or clone it
+    = help: write `move p._0` to take it out, or borrow it with `&p._0`
 
 error[E2153]: reading `n.w.a` by value would copy a `Res`, which is not `Copy`
    --> main.kg:169:20
     |
 169 |     let t = if c { n.w.a } else { mkr(9) } //~ ERROR reading `n.w.a` by value would copy a `Res`
     |                    ^^^^^
-    = help: write `move n.w.a` to take it out, borrow it with `&n.w.a`, or clone it
+    = help: write `move n.w.a` to take it out, or borrow it with `&n.w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    --> main.kg:174:17
     |
 174 |     take(if c { w.a } else { mkr(10) }) //~ ERROR reading `w.a` by value would copy a `Res`
     |                 ^^^
-    = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+    = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    --> main.kg:180:14
     |
 180 |         0 -> w.a //~ ERROR reading `w.a` by value would copy a `Res`
     |              ^^^
-    = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+    = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    --> main.kg:187:12
     |
 187 |     take({ w.a }) //~ ERROR reading `w.a` by value would copy a `Res`
     |            ^^^
-    = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+    = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    --> main.kg:192:25
     |
 192 |     let o = Some(if c { w.a } else { mkr(12) }) //~ ERROR reading `w.a` by value would copy a `Res`
     |                         ^^^
-    = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+    = help: write `move w.a` to take it out, or borrow it with `&w.a`
 
 error[E2153]: reading `w.a` by value would copy a `Res`, which is not `Copy`
    --> main.kg:198:20
     |
 198 |     xs.push(if c { w.a } else { mkr(13) }) //~ ERROR reading `w.a` by value would copy a `Res`
     |                    ^^^
-    = help: write `move w.a` to take it out, borrow it with `&w.a`, or clone it
+    = help: write `move w.a` to take it out, or borrow it with `&w.a`
 

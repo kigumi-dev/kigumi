@@ -404,11 +404,16 @@ note: `f` may already be called here
 80 |         defer { f() } //~ ERROR consumes `h`
    |                 ^^
 
-error[use-after-move]: `h` was moved; it cannot be used again
+error[E2197]: `h` was moved; it cannot be used again
    --> main.kg:142:5
     |
 142 |     h.close() //~ ERROR `h` was moved
     |     ^
+note: `h` is moved here
+   --> main.kg:136:13
+    |
+136 |     let f = () => {
+    |             ^^^^^^^
 
 error[E2151]: `f` consumes `h` when called and can be called only once
    --> main.kg:175:5

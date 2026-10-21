@@ -77,6 +77,7 @@ func (c *checker) literalPattern(p, lit syntax.NodeID, scrutinee TypeID) PatInfo
 	got := c.vars.resolve(c.synth(lit))
 	switch {
 	case scrutinee == TyPoison || got == TyPoison:
+	case tt.Kind(got) == KUntyped && c.adoptPendingPattern(lit, scrutinee, got):
 	case tt.Kind(got) == KUntyped:
 		if !tt.IsNumeric(scrutinee) {
 			c.errAt(p, cPatternLiteralType, c.t.View(c.literalNode(lit)).Tok().Text(), scrutinee)
@@ -182,4 +183,16 @@ func firstBinding(t *syntax.Tree, p syntax.NodeID) syntax.NodeID {
 		}
 	}
 	return 0
+}
+
+// adoptPendingPattern lets a literal pattern share a still-pending literal variable of the scrutinee instead of forcing its default.
+func (c *checker) adoptPendingPattern(lit syntax.NodeID, scrutinee, got TypeID) bool {
+	i, ok := c.vars.pendingIndex(c.vars.resolve(scrutinee))
+	if !ok || !c.vars.unify(scrutinee, got) {
+		return false
+	}
+	node := c.literalNode(lit)
+	c.vars.notePending(i, node)
+	c.setType(node, scrutinee)
+	return true
 }

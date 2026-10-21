@@ -64,7 +64,7 @@ func (c *checker) mismatch(n syntax.NodeID, want, got TypeID) {
 			ws = alias
 		}
 	}
-	c.errAt(n, cTypeMismatch, ws, gs)
+	c.errAtHelp(n, usizeHelp(want, got), cTypeMismatch, ws, gs)
 	c.vars.poison(got)
 	c.vars.poison(want)
 }

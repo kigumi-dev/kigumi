@@ -69,7 +69,7 @@ fn lib.moveOut(%xs: &Array[Int], %r: Res) -> Int {
     drop(%r)
     return %t5
 }
-error[move-from-borrow]: `r` is lent to this closure and cannot be moved out; clone it
+error[move-from-borrow]: `r` is lent to this closure and cannot be moved out
   --> lib/capture.kg:18:32
    |
 18 |     each(xs, (x: &Int) => keep(r))

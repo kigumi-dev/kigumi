@@ -45,3 +45,6 @@ func (r *Result) mayHoldResource(t TypeID, visited map[TypeID]bool) bool {
 	}
 	return false
 }
+
+// HoldsResource reports whether an owned t could hold a resource, which cannot be cloned.
+func (r *Result) HoldsResource(t TypeID) bool { return r.mayHoldResource(t, map[TypeID]bool{}) }

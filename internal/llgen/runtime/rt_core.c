@@ -310,6 +310,7 @@ static val opaque_in(rt_allocator* a, const char* kind, void* data) {
 // -DKIGUMI_RC_CHECK quarantines freed objects instead of freeing them and
 // panics on later use, standing in for a sanitizer.
 void rt_panic(const char* msg);
+void rt_panic_index(int64_t i, int64_t len, const char* site);
 #ifdef KIGUMI_RC_CHECK
 #define CHK(v)                                           \
     do {                                                 \
@@ -941,7 +942,7 @@ val rt_error_as(val e, rt_type* target, rt_type* ctx, int64_t wrapped) {
 static int boundary(const char* s, int64_t n, int64_t i) {
     return i == n || (s[i] & 0xC0) != 0x80;
 }
-val rt_index(val base, val idx) {
+val rt_index(val base, val idx, const char* site) {
     base = deref(base);
     idx = deref(idx);
     if (idx->kind == K_RECORD) {
@@ -962,22 +963,22 @@ val rt_index(val base, val idx) {
     }
     int64_t i = idx->u.i;
     if (base->kind == K_STR || base->kind == K_BYTES) {
-        if (i < 0 || i >= base->u.s.len) rt_panic("index out of range");
+        if (i < 0 || i >= base->u.s.len) rt_panic_index(i, base->u.s.len, site);
         return rt_int((unsigned char)base->u.s.data[i], 8);
     }
-    if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic("index out of range");
+    if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic_index(i, base->kind == K_ARRAY ? base->u.arr.len : 0, site);
     return rt_retain(base->u.arr.items[i]);
 }
-val rt_setindex_swap(val base, val idx, val v) {
+val rt_setindex_swap(val base, val idx, val v, const char* site) {
     base = deref(base);
     int64_t i = deref(idx)->u.i;
-    if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic("index out of range");
+    if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic_index(i, base->kind == K_ARRAY ? base->u.arr.len : 0, site);
     val old = base->u.arr.items[i];
     base->u.arr.items[i] = v;
     return old;
 }
-void rt_setindex(val base, val idx, val v) {
-    rt_release(rt_setindex_swap(base, idx, v));
+void rt_setindex(val base, val idx, val v, const char* site) {
+    rt_release(rt_setindex_swap(base, idx, v, site));
 }
 // Fields of a record built only from scalar boxes and such records can be taken over where they stand.
 static int fields_fit(val dst, val src) {
@@ -1006,10 +1007,10 @@ static void take_fields(val dst, val src) {
     }
 }
 // base[idx] = copy of src; the slot keeps its own box when src's fields fit into it.
-val rt_setindex_copy_swap(val base, val idx, val src) {
+val rt_setindex_copy_swap(val base, val idx, val src, const char* site) {
     base = deref(base);
     int64_t i = deref(idx)->u.i;
-    if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic("index out of range");
+    if (base->kind != K_ARRAY || i < 0 || i >= base->u.arr.len) rt_panic_index(i, base->kind == K_ARRAY ? base->u.arr.len : 0, site);
     val old = base->u.arr.items[i];
     if (old && fields_fit(old, src)) {
         take_fields(old, src);
@@ -1018,8 +1019,8 @@ val rt_setindex_copy_swap(val base, val idx, val src) {
     base->u.arr.items[i] = rt_copy(src);
     return old;
 }
-void rt_setindex_copy(val base, val idx, val src) {
-    rt_release(rt_setindex_copy_swap(base, idx, src));
+void rt_setindex_copy(val base, val idx, val src, const char* site) {
+    rt_release(rt_setindex_copy_swap(base, idx, src, site));
 }
 // r.fields[i] = copy of src; the field keeps its own box when src's fields fit into it.
 val rt_setfield_copy_swap(val r, int64_t i, val src) {
@@ -1304,6 +1305,29 @@ static void i64_dec(int64_t v, char* out) {
     // INT64_MIN negated overflows int64_t; take the magnitude via uint64_t.
     u64_dec(v == INT64_MIN ? (uint64_t)INT64_MAX + 1 : (uint64_t)(-v), out);
 }
+// "index out of range: index I, length N at SITE"; the VM prints the same text.
+void rt_panic_index(int64_t i, int64_t len, const char* site) {
+    char msg[320];
+    size_t n = 0;
+    const char* head = "index out of range: index ";
+    memcpy(msg, head, strlen(head));
+    n = strlen(head);
+    i64_dec(i, msg + n);
+    n += strlen(msg + n);
+    memcpy(msg + n, ", length ", 9);
+    n += 9;
+    i64_dec(len, msg + n);
+    n += strlen(msg + n);
+    if (site && *site) {
+        size_t k = strlen(site);
+        if (k > 200) k = 200;
+        memcpy(msg + n, " at ", 4);
+        memcpy(msg + n + 4, site, k);
+        n += 4 + k;
+    }
+    msg[n] = 0;
+    rt_panic(msg);
+}
 // "0x" + lowercase hex of p, no leading zeros (out must hold 2+16+1 bytes).
 static void ptr_hex(const void* p, char* out) {
     uintptr_t v = (uintptr_t)p;
@@ -1344,6 +1368,39 @@ static double canon_float(double f) {
     if (f == 0.0) return 0.0;
     if (f != f) return __builtin_nan("");
     return f;
+}
+static int is_tuple_name(const char* name) {
+    if (strncmp(name, "Tuple", 5) != 0 || !name[5]) return 0;
+    for (const char* c = name + 5; *c; c++)
+        if (*c < '0' || *c > '9') return 0;
+    return 1;
+}
+// `P { x: 1, y: 2 }`, or `(1, 2)` for a tuple; hashing (canon) keeps the bare `P { 1, 2 }` form.
+static void display_record(buf* b, val v, int canon) {
+    const rt_type* t = v->u.rec.type;
+    const char* name = short_name(t->name);
+    int named = !canon && t->fields && t->nfields == v->u.rec.n;
+    if (named && is_tuple_name(name)) {
+        bputs(b, "(");
+        for (int64_t i = 0; i < v->u.rec.n; i++) {
+            if (i) bputs(b, ", ");
+            display_into(b, v->u.rec.fields[i], canon);
+        }
+        bputs(b, ")");
+        return;
+    }
+    bputs(b, name);
+    bputs(b, " {");
+    for (int64_t i = 0; i < v->u.rec.n; i++) {
+        if (i) bputs(b, ",");
+        bputs(b, " ");
+        if (named) {
+            bputs(b, t->fields[i]);
+            bputs(b, ": ");
+        }
+        display_into(b, v->u.rec.fields[i], canon);
+    }
+    bputs(b, " }");
 }
 // canon folds -0.0 and every NaN so hashing matches total float equality.
 void display_into(buf* b, val v, int canon) {
@@ -1404,14 +1461,7 @@ void display_into(buf* b, val v, int canon) {
         }
         break;
     case K_RECORD:
-        bputs(b, short_name(v->u.rec.type->name));
-        bputs(b, " {");
-        for (int64_t i = 0; i < v->u.rec.n; i++) {
-            if (i) bputs(b, ",");
-            bputs(b, " ");
-            display_into(b, v->u.rec.fields[i], canon);
-        }
-        bputs(b, " }");
+        display_record(b, v, canon);
         break;
     case K_ARRAY:
         bputs(b, "[");

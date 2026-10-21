@@ -80,7 +80,7 @@ error[move-while-borrowed]: `b` is still borrowed when its scope ends here
 33 |         let b = Array.of(4)
    |             ^
 
-error[borrow-conflict]: `a` is borrowed and cannot be mutated here
+error[E2198]: `a` is borrowed and cannot be mutated here
   --> main.kg:46:5
    |
 46 |     a = Array.of(9)

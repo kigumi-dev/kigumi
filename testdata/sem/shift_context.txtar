@@ -40,6 +40,7 @@ error[E400]: expected `usize`, found `Int`
    |
 16 |     let c: usize = (-1 << n) + 1 //~ ERROR expected `usize`, found `Int`
    |                     ^^^^^^^
+   = help: convert with `.toUsize()`, which returns `usize?`
 
 error[E400]: expected `u32`, found `usize`
   --> main/main.kg:17:18

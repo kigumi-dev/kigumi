@@ -1,0 +1,18 @@
+-- src --
+type P = {
+    pub x Int
+}
+
+fn use(p: P) -> String {
+    let a = "${p}" //~ ERROR cannot interpolate `P`
+    let b = p.display()
+    "${a}${b}"
+}
+-- expect --
+error[E407]: cannot interpolate `P`
+ --> main/main.kg:6:16
+  |
+6 |     let a = "${p}" //~ ERROR cannot interpolate `P`
+  |                ^
+  = help: call `.display()`
+

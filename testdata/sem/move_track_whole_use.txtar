@@ -615,25 +615,25 @@ fn leadingAndWholeIs(o: Res?, c: Bool) {
     }
 }
 -- expect --
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:65:10
    |
 65 |     useO(o) //~ ERROR `o` was moved
    |          ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:72:10
    |
 72 |     useO(o) //~ ERROR `o` was moved
    |          ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:78:10
    |
 78 |     useO(o) //~ ERROR `o` was moved
    |          ^
 
-error[use-after-move]: `r` was moved; it cannot be used again
+error[E2197]: `r` was moved; it cannot be used again
   --> main.kg:84:10
    |
 84 |     useR(r) //~ ERROR `r` was moved
@@ -645,19 +645,19 @@ error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
 92 |     useP(p) //~ ERROR `p.left` was moved out of `p`
    |          ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:100:13
     |
 100 |     let z = o //~ ERROR `o` was moved
     |             ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:108:10
     |
 108 |     o is None //~ ERROR `o` was moved
     |          ^^^^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:116:13
     |
 116 |     let b = &o //~ ERROR `o` was moved
@@ -765,25 +765,30 @@ error[move-while-borrowed]: `p.right` is held by the pattern binding `right` unt
 339 |         Pair { left, right } if { take(move p.right); false } -> left.close() //~ ERROR `p.right` is held by the pattern binding `right` until its guard passes
     |                                             ^^^^^^^
 
-error[use-after-move]: `w.left` was moved; it cannot be used again
+error[E2197]: `w.left` was moved; it cannot be used again
    --> main.kg:358:18
     |
 358 |     let t = move w.left //~ ERROR `w.left` was moved
     |                  ^^^^^^
 
-error[use-after-move]: `w.left` was moved; it cannot be used again
+error[E2197]: `w.left` was moved; it cannot be used again
    --> main.kg:364:18
     |
 364 |     let t = move w.left //~ ERROR `w.left` was moved
     |                  ^^^^^^
+note: `w.left` is moved here
+   --> main.kg:363:5
+    |
+363 |     x = move w.left
+    |     ^
 
-error[use-after-move]: `w.left` was moved; it cannot be used again
+error[E2197]: `w.left` was moved; it cannot be used again
    --> main.kg:370:18
     |
 370 |     let t = move w.left //~ ERROR `w.left` was moved
     |                  ^^^^^^
 
-error[use-after-move]: `w.left` was moved; it cannot be used again
+error[E2197]: `w.left` was moved; it cannot be used again
    --> main.kg:375:18
     |
 375 |     let t = move w.left //~ ERROR `w.left` was moved
@@ -843,11 +848,16 @@ error[E1025]: `x.w` was moved out of `x`; using the whole value needs it back
 453 |     let y = x //~ ERROR `x.w` was moved out of `x`
     |             ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:478:14
     |
 478 |     eatWhole(o) //~ ERROR `o` was moved
     |              ^
+note: `o` is moved here
+   --> main.kg:476:9
+    |
+476 |         x -> eatWhole(x)
+    |         ^
 
 error[move-join-mismatch]: `o` is moved on some paths but not others
    --> main.kg:485:14
@@ -867,10 +877,15 @@ error[move-while-borrowed]: `o` is held by the pattern binding `x` until its gua
 498 |         x if chk(o) -> eatWhole(x) //~ ERROR `o` is held by the pattern binding `x` until its guard passes
     |                  ^
 
-error[use-after-move]: `o` was moved; it cannot be used again
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:509:9
     |
 509 |         y -> eatWhole(y) //~ ERROR `o` was moved
+    |         ^
+note: `o` is moved here
+   --> main.kg:506:9
+    |
+506 |         x -> eatWhole(x)
     |         ^
 
 error[move-join-mismatch]: `o` is moved on some paths but not others

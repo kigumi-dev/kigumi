@@ -84,7 +84,7 @@ fn lib.danger(%flag: Bool) -> Void {
     drop(%flag)
     return %t11
 }
-error[borrow-conflict]: `r` is captured by a closure passed to this call and cannot be used until the call returns
+error[E2198]: `r` is captured by a closure passed to this call and cannot be used until the call returns
   --> lib/esc.kg:25:45
    |
 25 |     twoArgs(() => r.touch(), if flag { sink(r); true } else { false })

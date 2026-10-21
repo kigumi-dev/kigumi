@@ -32,26 +32,26 @@ error[E2123]: `panic` is reserved for the std runtime and cannot be called from 
   |
 4 |     panic("stop") //~ ERROR `panic` is reserved for the std runtime
   |     ^^^^^^^^^^^^
-  = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or a failing assertion
+  = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or `test.assert`
 
 error[E2123]: `panic` is reserved for the std runtime and cannot be called from application code
  --> main/main.kg:8:5
   |
 8 |     panic() //~ ERROR `panic` is reserved for the std runtime
   |     ^^^^^^
-  = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or a failing assertion
+  = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or `test.assert`
 
 error[E2123]: `panic` is reserved for the std runtime and cannot be called from application code
   --> main/main.kg:13:50
    |
 13 |     let pick = (x: Int) => if x > 1 { x } else { panic("small") } //~ ERROR `panic` is reserved for the std runtime
    |                                                  ^^^^^^^^^^^^^
-   = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or a failing assertion
+   = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or `test.assert`
 
 error[E2123]: `panic` is reserved for the std runtime and cannot be called from application code
   --> main/main.kg:18:10
    |
 18 |     o || panic() //~ ERROR `panic` is reserved for the std runtime
    |          ^^^^^^
-   = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or a failing assertion
+   = help: report a failure the caller can handle with `fail`, `T!` or `?`, or stop deliberately with `unwrap`, `expect` or `test.assert`
 

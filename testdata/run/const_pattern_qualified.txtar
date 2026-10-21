@@ -1,0 +1,26 @@
+-- src --
+import a from lib/a
+
+const L: Int = 4
+
+fn name(n: Int) -> String {
+    match n {
+        a.K -> "three"
+        L -> "four"
+        _ -> "other"
+    }
+}
+
+print "${name(3)} ${name(4)} ${name(5)}"
+print "${3 is a.K} ${4 is a.K}"
+match "x" {
+    a.S -> print "s"
+    _ -> print "not s"
+}
+-- lib/a/a.kg --
+pub const K: Int = 3
+pub const S: String = "x"
+-- stdout --
+three four other
+true false
+s

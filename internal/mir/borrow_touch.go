@@ -89,5 +89,5 @@ func (c *borrowCheck) report(n syntax.NodeID, local LocalID, code, msg string) {
 	}
 	c.reported[key] = true
 	t := c.p.R.Tree(c.f.File)
-	c.f.Diags = append(c.f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: code})
+	c.f.Diags = append(c.f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Msg: msg, Code: diagCode(code)})
 }
