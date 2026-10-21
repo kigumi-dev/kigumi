@@ -59,9 +59,10 @@ const (
 	Panic         // Name is the message; a construct the checker let through
 	DefinedWrap   // A(value): a defined type's representation wrap over Args[0]
 	DefinedUnwrap // a.value: the inverse projection over Args[0]
+	ArgRef        // the value of the enclosing call's already evaluated argument Index (-1: its receiver); only inside a default thunk call's arguments
 )
 
-var exprNames = [...]string{Lit: "lit", Local: "local", FnItem: "fnitem", Variant: "variant", Host: "host", Unary: "un", Binary: "bin", And: "and", Fallback: "or", Pipe: "pipe", Call: "call", MethodCall: "mcall", StaticCall: "scall", ValueCall: "callv", Intrinsic: "builtin", Index: "index", Field: "field", FieldMove: "fieldmove", MethodValue: "mvalue", OptField: "optfield", Try: "try", Record: "record", Lambda: "lambda", BlockExpr: "block", If: "if", IfLet: "iflet", Match: "match", Loop: "loop", Return: "return", Fail: "fail", Break: "break", Continue: "continue", Is: "is", Borrow: "borrow", Allocator: "allocator", Asm: "asm", Await: "await", Interp: "interp", Shell: "shell", Unit: "unit", Wrap: "wrap", Comptime: "comptime", Panic: "panic", DefinedWrap: "definedwrap", DefinedUnwrap: "definedunwrap", Global: "global"}
+var exprNames = [...]string{Lit: "lit", Local: "local", FnItem: "fnitem", Variant: "variant", Host: "host", Unary: "un", Binary: "bin", And: "and", Fallback: "or", Pipe: "pipe", Call: "call", MethodCall: "mcall", StaticCall: "scall", ValueCall: "callv", Intrinsic: "builtin", Index: "index", Field: "field", FieldMove: "fieldmove", MethodValue: "mvalue", OptField: "optfield", Try: "try", Record: "record", Lambda: "lambda", BlockExpr: "block", If: "if", IfLet: "iflet", Match: "match", Loop: "loop", Return: "return", Fail: "fail", Break: "break", Continue: "continue", Is: "is", Borrow: "borrow", Allocator: "allocator", Asm: "asm", Await: "await", Interp: "interp", Shell: "shell", Unit: "unit", Wrap: "wrap", Comptime: "comptime", Panic: "panic", DefinedWrap: "definedwrap", DefinedUnwrap: "definedunwrap", Global: "global", ArgRef: "argref"}
 
 func (k ExprKind) String() string { return exprNames[k] }
 

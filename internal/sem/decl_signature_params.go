@@ -54,6 +54,9 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 			continue
 		}
 		typ := r.resolveType(f, scope, ps.Type, posParam)
+		if info.DefaultOf != 0 && !r.isCopy(typ) && !r.Types.RefMut(typ) {
+			typ = r.Types.Ref(typ, false)
+		}
 		grant := false
 		if ps.Flags&syntax.FlagEscaping != 0 {
 			typ, grant = r.escapingParamType(f, p, typ)

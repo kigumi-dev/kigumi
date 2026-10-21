@@ -1,0 +1,123 @@
+-- src --
+type Sum = alias fn(...Int) -> Int
+type Cmd = alias fn(String, ...String) -> usize
+
+fn sum(xs: ...Int) -> Int {
+    let mut t = 0
+    for x in xs {
+        t = t + x
+    }
+    t
+}
+
+fn run(prog: String, args: ...String) -> usize {
+    print "${prog} ${args.len()}"
+    args.len()
+}
+
+type Logger = {
+    pub name String
+}
+
+fn Logger.emit(self, parts: ...String) -> usize {
+    print "${self.name} ${parts.len()}"
+    parts.len()
+}
+
+fn pick(xs: ...Int) -> Int { 1 }
+fn pick(xs: Array[Int]) -> Int { 2 }
+
+fn count[T](xs: ...T) -> usize { xs.len() }
+
+async fn fetchAll(urls: ...String) -> usize { urls.len() }
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.n}"
+}
+
+fn eat(rs: ...Res) -> Int {
+    let mut t = 0
+    for r in rs {
+        t += r.n
+    }
+    t
+}
+
+fn apply(f: fn(...Int) -> Int, values: Array[Int]) -> Int {
+    f(...values)
+}
+
+fn forward(f: fn(String, ...String) -> usize, rest: ...String) -> usize {
+    f("fwd", ...rest)
+}
+
+fn callThrice[F: Fn[fn(...Int) -> Int]](f: F) -> Int {
+    f(1, 2, 3)
+}
+
+fn main() -> Void! {
+    let f: Sum = sum
+    print "${f(1, 2, 3)} ${f()} ${f(9)}"
+    let values = Array.of(4, 5)
+    print "${f(...values)}"
+    let g = sum
+    print "${g(1, 1)}"
+    let cmd: Cmd = run
+    print "${cmd("git")} ${cmd("git", "status", "--short")}"
+    let names = Array.of("a", "b", "c")
+    print "${cmd("git", ...names)}"
+    let lg = Logger { name: "L" }
+    let emit: fn(...String) -> usize = lg.emit
+    print "${emit("x", "y")}"
+    let v: fn(...Int) -> Int = pick
+    let a: fn(Array[Int]) -> Int = pick
+    print "${v(1, 2)} ${a(Array.of(1))}"
+    let counter = count[Int]
+    print "${counter(1, 2, 3)}"
+    let c2: fn(...String) -> usize = count
+    print "${c2("a", "b")}"
+    let n: fn(...Int) -> usize = (items) => items.len()
+    print "${n(1, 2)}"
+    let adapter: fn(...Int) -> Int = (items: ...Int) => sum(...items)
+    print "${adapter(7, 8, 9)}"
+    let fixed: fn(Array[Int]) -> Int = (items: Array[Int]) => sum(...items)
+    let wrapped: fn(...Int) -> Int = (items: ...Int) => fixed(items)
+    print "${wrapped(2, 3)}"
+    print "${apply(sum, Array.of(10, 20))}"
+    print "${forward(cmd, "p", "q")}"
+    let eater: fn(...Res) -> Int = eat
+    print "${eater(Res { n: 1 }, Res { n: 2 })}"
+    let fa: fn(...String) -> Future[usize] = fetchAll
+    let fut = fa("a", "b")
+    print "${apply(f, Array.of())}"
+    print "${callThrice(sum)} ${callThrice((xs: ...Int) => sum(...xs) + 100)}"
+}
+-- stdout --
+6 0 9
+9
+2
+git 0
+git 2
+0 2
+git 3
+3
+L 2
+2
+1 2
+3
+2
+2
+24
+5
+30
+fwd 2
+2
+drop 1
+drop 2
+3
+0
+6 106

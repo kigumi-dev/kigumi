@@ -1,0 +1,87 @@
+-- src --
+fn pad[T](x: T, width: Int = 4) -> Int {
+    width
+}
+
+fn load() -> Int! {
+    Ok(1)
+}
+
+fn withTry(a: Int, b: Int = load()?) -> Int {
+    a + b
+}
+
+fn main() -> Void! {
+    print "${pad("s")}"
+    print "${withTry(1)}"
+}
+-- expect --
+fn main.pad(%x: T, %width: Int) -> Int {
+  b0:
+    %t2 = copy(%width)
+    drop(%width)
+    drop(%x)
+    return %t2
+}
+fn main.load() -> Int! {
+  b0:
+    %t0 = const 1: Int
+    %t1 = variant Result.Ok(%t0)
+    return %t1
+}
+fn main.withTry(%a: Int, %b: Int) -> Int {
+  b0:
+    %t2 = bin +(%a, %b)
+    drop(%b)
+    drop(%a)
+    return %t2
+}
+fn main.main() -> Void! {
+  b0:
+    %t1 = const "s": String
+    %t2 = share copy(%t1)
+    %t3 = borrow 0(%t2)
+    %t4 = call main.pad$default.width(%t3)
+    %t5 = call main.pad(%t1, %t4)
+    %t0 = interp ""(%t5)
+    %t6 = builtin print(%t0)
+    drop(%t6)
+    %t8 = const 1: Int
+    %t9 = share copy(%t8)
+    %t10 = call main.withTry$default.b(%t9)
+    %t11 = isvariant Result.Ok(%t10)
+    branch %t11 ? b1 : b2
+  b1:
+    %t14 = payload 0(%t10)
+    drop(%t10)
+    %t15 = call main.withTry(%t8, %t14)
+    %t7 = interp ""(%t15)
+    %t16 = builtin print(%t7)
+    %t17 = variant Result.Ok(%t16)
+    return %t17
+  b2:
+    %t12 = payload 0(%t10)
+    drop(%t10)
+    %t13 = variant Result.Err(%t12)
+    return %t13
+}
+fn main.pad$default.width(%x: &T) -> Int {
+  b0:
+    %t1 = const 4: Int
+    return %t1
+}
+fn main.withTry$default.b(%a: Int) -> Int! {
+  b0:
+    %t1 = call main.load
+    %t2 = isvariant Result.Ok(%t1)
+    branch %t2 ? b1 : b2
+  b1:
+    %t3 = payload 0(%t1)
+    drop(%t1)
+    %t4 = variant Result.Ok(%t3)
+    drop(%a)
+    return %t4
+  b2:
+    drop(%a)
+    return %t1
+}

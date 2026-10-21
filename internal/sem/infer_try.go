@@ -63,6 +63,12 @@ func (c *checker) synthTry(n syntax.NodeID) TypeID {
 	if !borrowed {
 		c.reservePayloadTake(operand, got, val)
 	}
+	return c.tryPropagate(n, got, val, e, borrowed || c.namedOperand(operand))
+}
+
+// tryPropagate checks that a `?` on a Result of val and error e can return its error from the enclosing function.
+func (c *checker) tryPropagate(n syntax.NodeID, got, val, e TypeID, rebuilt bool) TypeID {
+	tt := c.r.Types
 	_, want, retOK := tt.IsResult(c.retType)
 	if !retOK {
 		if c.lambdaRetUnknown() {
@@ -73,7 +79,7 @@ func (c *checker) synthTry(n syntax.NodeID) TypeID {
 		return val
 	}
 	c.info.Calls[n] = CallInfo{Kind: CallTry}
-	if borrowed || got != c.vars.resolve(c.retType) || c.namedOperand(operand) {
+	if rebuilt || got != c.vars.resolve(c.retType) {
 		c.buildEdge(n, c.retType)
 	}
 	if e == want || e == TyPoison || want == TyPoison {

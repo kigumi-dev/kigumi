@@ -7,6 +7,11 @@ type IdentView struct{ View }
 func (v View) AsIdent() IdentView  { return IdentView{v} }
 func (v IdentView) Name() TokenRef { return v.Tok() }
 
+type DefaultArgView struct{ View }
+
+func (v View) AsDefaultArg() DefaultArgView { return DefaultArgView{v} }
+func (v DefaultArgView) Call() TokenRef     { return v.Tok() }
+
 type IntLitView struct{ View }
 
 func (v View) AsIntLit() IntLitView { return IntLitView{v} }

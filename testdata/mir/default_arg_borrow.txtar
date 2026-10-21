@@ -1,0 +1,51 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.n}"
+}
+
+fn peek(r: Res, extra: Int = r.n * 2) -> Int {
+    r.n + extra
+}
+
+fn main() -> Void! {
+    print "${peek(Res { n: 4 })}"
+}
+-- expect --
+fn main.Res.drop(%self: Res) -> Void {
+  b0:
+    %t2 = field 0(%self)
+    %t1 = interp "drop \x00"(%t2)
+    %t3 = builtin print(%t1)
+    return %t3
+}
+fn main.peek(%r: Res, %extra: Int) -> Int {
+  b0:
+    %t2 = field 0(%r)
+    %t3 = bin +(%t2, %extra)
+    drop(%extra)
+    drop(%r)
+    return %t3
+}
+fn main.main() -> Void! {
+  b0:
+    %t1 = const 4: Int
+    %t2 = record main.Res(%t1)
+    %t3 = borrow 0(%t2)
+    %t4 = call main.peek$default.extra(%t3)
+    %t5 = call main.peek(%t2, %t4)
+    %t0 = interp ""(%t5)
+    %t6 = builtin print(%t0)
+    %t7 = variant Result.Ok(%t6)
+    return %t7
+}
+fn main.peek$default.extra(%r: &Res) -> Int {
+  b0:
+    %t1 = field 0(%r)
+    %t2 = const 2: Int
+    %t3 = bin *(%t1, %t2)
+    return %t3
+}

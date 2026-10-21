@@ -1,0 +1,30 @@
+-- src --
+import task from std/task
+
+fn tag(label: String) -> Int {
+    print "default ${label}"
+    5
+}
+
+async fn work(a: Int, b: Int = tag("b"), c: Int = a + b) -> Int {
+    print "run ${a} ${b} ${c}"
+    a + b + c
+}
+
+async fn root() -> Int {
+    let pending = work(1)
+    print "created"
+    let first = await pending
+    let second = await work(2, c: 0)
+    first + second
+}
+
+let ex = task.currentThreadExecutor()
+print "sum ${ex.runToCompletion(root())}"
+-- stdout --
+default b
+created
+run 1 5 6
+default b
+run 2 5 0
+sum 19

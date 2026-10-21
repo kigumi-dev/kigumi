@@ -42,15 +42,14 @@ type checker struct {
 	allocPending  []pendingAlloc
 	protoSites    []protoSite
 	inlinePending []pendingInline
-	// piped maps a call node to the `|>` left operand it takes first.
+	defaultRecv   TypeID
+	// piped maps a call node to the `|>` left operand it takes first, and a `name: _` argument to the one standing for it.
 	piped map[syntax.NodeID]syntax.NodeID
 	// argLambda marks a lambda written directly as a call argument; it may capture borrows, the callee not expected to keep them.
 	argLambda map[syntax.NodeID]bool
-	// argPlace marks a `&mut` written directly as a call argument: only there
-	// does build_call_fixup.go give a scalar index/field a base to write back to.
+	// argPlace marks a `&mut` written directly as a call argument, the only place build_call_fixup.go writes a scalar index/field back.
 	argPlace map[syntax.NodeID]bool
-	// argAsyncPlace is argPlace for an async call, where build_call_fixup.go
-	// never boxes the place since the callee runs later, at await.
+	// argAsyncPlace is argPlace for an async call, whose place is never boxed since the callee runs at await.
 	argAsyncPlace map[syntax.NodeID]bool
 	// patBorrow is set while checking a pattern whose scrutinee is borrowed:
 	// bindings then borrow their payloads instead of moving them.
@@ -156,6 +155,7 @@ func (r *Result) checkFnBody(id EntityID) {
 		}
 	}
 	c.checkBodyBlock(info.Body)
+	c.checkDefaultVisibility(id)
 	c.settleExclusive()
 	c.registerContainerFlows(info.Body)
 	c.recordResultLeaves(info.Body)

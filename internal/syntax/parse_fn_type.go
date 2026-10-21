@@ -88,11 +88,20 @@ func (p *parser) fnType(escaping bool) NodeID {
 		flags |= FlagEscaping
 	}
 	p.layoutList(token.LParen, token.RParen, func() {
+		if flags&FlagVariadic != 0 {
+			p.errorf("only the last parameter may be variadic")
+		}
 		if p.at(token.Ellipsis) {
 			flags |= FlagVariadic
 			p.advance()
-			if p.at(token.RParen) {
+			if p.at(token.RParen) || p.at(token.Comma) {
+				if abi == 0 {
+					p.errorf("`...` needs an element type outside `extern(C)`: write `fn(...T) -> R`")
+				}
 				return
+			}
+			if abi != 0 {
+				p.errorf("an `extern(C)` function type takes a bare `...`")
 			}
 		}
 		typ, esc := p.escapableType()

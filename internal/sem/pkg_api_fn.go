@@ -16,7 +16,7 @@ func (r *Result) apiFn(d *APIDecl, id EntityID) {
 	d.Generics = append(r.apiParams(info.TypeParams), r.apiParams(info.RecvParams)...)
 	for _, p := range info.Params {
 		pe := &r.Entities[p]
-		d.Params = append(d.Params, fmt.Sprintf("%s %s %d", pe.Name, r.TypeString(pe.Type), pe.Flags&(EfMut|EfMove|EfEscaping|EfVariadic)))
+		d.Params = append(d.Params, fmt.Sprintf("%s %s %d%s", pe.Name, r.TypeString(pe.Type), pe.Flags&(EfMut|EfMove|EfEscaping|EfVariadic), r.defaultFingerprint(p)))
 	}
 	d.Effects = fmt.Sprintf("%s pure=%v noalloc=%v default=%v known=%v recv=%d", effectBits(info.Declared), info.Summary.Pure, info.Summary.Noalloc, info.Summary.Default, info.Summary.Known, info.Recv)
 	ops := r.opSummaryArtifact(id)

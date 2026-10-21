@@ -47,6 +47,11 @@ func (t *Tree) AddList(kind NodeKind, tok uint32, items []NodeID) NodeID {
 	return t.addList(kind, tok, items)
 }
 
+// AddDefaultArg appends the stand-in for an omitted defaulted argument of the call whose head token is tok.
+func (t *Tree) AddDefaultArg(tok uint32) NodeID {
+	return t.add(rawNode{Kind: DefaultArg, Tok: tok})
+}
+
 func (t *Tree) addList(kind NodeKind, tok uint32, items []NodeID) NodeID {
 	start := uint32(len(t.extra))
 	for _, it := range items {

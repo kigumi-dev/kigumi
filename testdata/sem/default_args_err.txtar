@@ -1,0 +1,189 @@
+-- app/t/t.kg --
+interface Writer {
+    fn write(self, text: String, level: Int = 1) //~ ERROR default arguments are not allowed on an interface requirement
+}
+
+extern(C) {
+    fn puts(s: *const u8, n: Int = 1) -> i32 //~ ERROR default arguments are not allowed on an `extern(C)` function
+}
+
+export(C) {
+    fn exported(a: Int = 1) -> Int { a } //~ ERROR default arguments are not allowed on an `export(C)` function
+}
+
+fn badOrder(a: Int = 1, b: Int) -> Int { a + b } //~ ERROR parameter `b` has no default but follows a parameter that has one
+fn withVariadic(a: Int = 1, rest: ...Int) -> Int { a } //~ ERROR default arguments are not allowed on a variadic function
+fn genericOrder[T](a: Int = 1, b: T) -> Int { a } //~ ERROR parameter `b` has no default but follows a parameter that has one
+fn generic[T](b: T, a: Int = 1) -> Int { a }
+fn genericOnlyDefault[T](x: T = 1) -> T { x } //~ ERROR expected `T`, found `Int`
+fn mkOnly[T](n: Int = 7) -> Int { n }
+fn useOnly() -> Int { mkOnly() } //~ ERROR cannot infer type parameter `T`
+fn useExplicit() -> Int { mkOnly[Int]() + generic(1) + generic(1, 2) }
+
+type Box[T] = {
+    pub value T
+}
+
+fn Box[T].with(self, n: Int = 1) -> Int { n }
+
+fn connect(host: String, port: Int = 443, tls: Bool = true) -> Int { port }
+fn render(text: String, width: Int = 80, color: Bool = true) -> Int { width }
+fn wrongType(a: Int = "no") -> Int { a } //~ ERROR expected `Int`, found `String`
+
+fn open(path: String) -> Int { 1 }
+fn open(path: String, mode: Int = 0) -> Int { 2 } //~ ERROR `open` with parameters (String, Int) is already declared
+
+interface Sink {
+    fn put(self, text: String, level: Int)
+}
+
+type Out = {
+    pub n Int
+}
+
+fn Out.put(self, text: String, level: Int = 1) {}
+
+fn viaConstraint[S: Sink](s: S) {
+    s.put("a", 2)
+    s.put("a") //~ ERROR `put` expects 2 arguments, 1 given
+}
+
+fn viaDirect(o: Out) {
+    o.put("a")
+}
+
+fn use() {
+    _ = connect() //~ ERROR `connect` expects 1 to 3 arguments, 0 given
+    _ = connect("h", 1, true, 4) //~ ERROR `connect` expects 1 to 3 arguments, 4 given
+    _ = connect(port: 1) //~ ERROR `connect` is missing the argument `host`, which has no default
+    _ = render("t", color: false)
+    _ = render("t", height: 1) //~ ERROR `render` has no parameter named `height`
+    _ = render("t", 1, width: 2) //~ ERROR argument `width` given more than once
+    _ = render(color: true, "t") //~ ERROR positional argument after a named argument
+    let f: fn(String) -> Int = render //~ ERROR expected `fn(String) -> Int`, found `fn(String, Int, Bool) -> Int`
+    let g: fn(String, Int, Bool) -> Int = render
+    _ = g("a", 1, true)
+    _ = g("a") //~ ERROR `this function` expects 3 arguments, 1 given
+}
+-- expect --
+error[E2188]: default arguments are not allowed on an interface requirement
+ --> app/t/t.kg:2:34
+  |
+2 |     fn write(self, text: String, level: Int = 1) //~ ERROR default arguments are not allowed on an interface requirement
+  |                                  ^^^^^^^^^^^^^^
+  = help: write a wrapper function that supplies the value
+
+error[E2188]: default arguments are not allowed on an `extern(C)` function
+ --> app/t/t.kg:6:27
+  |
+6 |     fn puts(s: *const u8, n: Int = 1) -> i32 //~ ERROR default arguments are not allowed on an `extern(C)` function
+  |                           ^^^^^^^^^^
+  = help: write a wrapper function that supplies the value
+
+error[E2188]: default arguments are not allowed on an `export(C)` function
+  --> app/t/t.kg:10:17
+   |
+10 |     fn exported(a: Int = 1) -> Int { a } //~ ERROR default arguments are not allowed on an `export(C)` function
+   |                 ^^^^^^^^^^
+   = help: write a wrapper function that supplies the value
+
+error[E2187]: parameter `b` has no default but follows a parameter that has one
+  --> app/t/t.kg:13:25
+   |
+13 | fn badOrder(a: Int = 1, b: Int) -> Int { a + b } //~ ERROR parameter `b` has no default but follows a parameter that has one
+   |                         ^^^^^^
+   = help: put every parameter with a default after the required ones
+
+error[E2188]: default arguments are not allowed on a variadic function
+  --> app/t/t.kg:14:17
+   |
+14 | fn withVariadic(a: Int = 1, rest: ...Int) -> Int { a } //~ ERROR default arguments are not allowed on a variadic function
+   |                 ^^^^^^^^^^
+   = help: write a wrapper function that supplies the value
+
+error[E2187]: parameter `b` has no default but follows a parameter that has one
+  --> app/t/t.kg:15:32
+   |
+15 | fn genericOrder[T](a: Int = 1, b: T) -> Int { a } //~ ERROR parameter `b` has no default but follows a parameter that has one
+   |                                ^^^^
+   = help: put every parameter with a default after the required ones
+
+error[E400]: expected `T`, found `Int`
+  --> app/t/t.kg:17:33
+   |
+17 | fn genericOnlyDefault[T](x: T = 1) -> T { x } //~ ERROR expected `T`, found `Int`
+   |                                 ^
+
+error[E301]: cannot infer type parameter `T`
+  --> app/t/t.kg:19:23
+   |
+19 | fn useOnly() -> Int { mkOnly() } //~ ERROR cannot infer type parameter `T`
+   |                       ^^^^^^^
+   = help: write explicit type arguments or an annotation
+
+error[E400]: expected `Int`, found `String`
+  --> app/t/t.kg:30:23
+   |
+30 | fn wrongType(a: Int = "no") -> Int { a } //~ ERROR expected `Int`, found `String`
+   |                       ^^^^
+
+error[E249]: `open` with parameters (String, Int) is already declared
+  --> app/t/t.kg:33:1
+   |
+33 | fn open(path: String, mode: Int = 0) -> Int { 2 } //~ ERROR `open` with parameters (String, Int) is already declared
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E501]: `put` expects 2 arguments, 1 given
+  --> app/t/t.kg:47:5
+   |
+47 |     s.put("a") //~ ERROR `put` expects 2 arguments, 1 given
+   |     ^^^^^^^^^
+
+error[E501]: `connect` expects 1 to 3 arguments, 0 given
+  --> app/t/t.kg:55:9
+   |
+55 |     _ = connect() //~ ERROR `connect` expects 1 to 3 arguments, 0 given
+   |         ^^^^^^^^
+
+error[E501]: `connect` expects 1 to 3 arguments, 4 given
+  --> app/t/t.kg:56:9
+   |
+56 |     _ = connect("h", 1, true, 4) //~ ERROR `connect` expects 1 to 3 arguments, 4 given
+   |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2190]: `connect` is missing the argument `host`, which has no default
+  --> app/t/t.kg:57:9
+   |
+57 |     _ = connect(port: 1) //~ ERROR `connect` is missing the argument `host`, which has no default
+   |         ^^^^^^^^^^^^^^^
+
+error[E1012]: `render` has no parameter named `height`
+  --> app/t/t.kg:59:21
+   |
+59 |     _ = render("t", height: 1) //~ ERROR `render` has no parameter named `height`
+   |                     ^^^^^^^^^
+
+error[E1013]: argument `width` given more than once
+  --> app/t/t.kg:60:24
+   |
+60 |     _ = render("t", 1, width: 2) //~ ERROR argument `width` given more than once
+   |                        ^^^^^^^^
+
+error[E1011]: positional argument after a named argument
+  --> app/t/t.kg:61:29
+   |
+61 |     _ = render(color: true, "t") //~ ERROR positional argument after a named argument
+   |                             ^^^
+
+error[E400]: expected `fn(String) -> Int`, found `fn(String, Int, Bool) -> Int`
+  --> app/t/t.kg:62:32
+   |
+62 |     let f: fn(String) -> Int = render //~ ERROR expected `fn(String) -> Int`, found `fn(String, Int, Bool) -> Int`
+   |                                ^^^^^^
+
+error[E501]: `this function` expects 3 arguments, 1 given
+  --> app/t/t.kg:65:9
+   |
+65 |     _ = g("a") //~ ERROR `this function` expects 3 arguments, 1 given
+   |         ^^^^^
+

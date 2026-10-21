@@ -21,7 +21,6 @@ var (
 	cIfValueNeedsElse    = defineCode("E414", "if-value-needs-else", "`if` in value position needs `else`")
 	cConditionNotBool    = defineCode("E415", "condition-not-bool", "condition must be `Bool`, found `{type}`")
 	cMethodValueMoveOnly = defineCode("E416", "method-value-move-only", "cannot form a method value on move-only `{type}`; write a lambda")
-	cVariadicNoValue     = defineCode("E418", "variadic-no-value", "variadic function `{name}` has no function value; write `(a) => {name}(..., ...a)`")
 	cIntrinsicNotValue   = defineCode("E419", "intrinsic-not-value", "`{name}` is a compiler intrinsic, not a value")
 	cOverloadValueAmbig  = defineCode("E420", "overload-value-ambiguous", "`{name}` is overloaded; annotate the function type")
 	cFnValueEffects      = defineCode("E421", "fn-value-effects", "`{actual}` cannot be used as `{expected}`: it is not declared `{mod}`")

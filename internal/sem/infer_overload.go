@@ -62,7 +62,7 @@ func (c *checker) arityFits(m EntityID, args []syntax.NodeID) bool {
 	}
 	sig := c.r.Types.Node(c.r.Fn(m).Sig)
 	if sig.Flags&fnVariadic == 0 {
-		return len(args) == len(sig.Args)
+		return len(args) >= c.requiredParams(c.r.Fn(m).Params, len(sig.Args)) && len(args) <= len(sig.Args)
 	}
 	return len(args) >= len(sig.Args)-1
 }
@@ -120,6 +120,10 @@ func (c *checker) argShapes(args []syntax.NodeID) ([]TypeID, []TypeID) {
 	tt := c.r.Types
 	var out, trial []TypeID
 	for _, a := range args {
+		if a == 0 {
+			out = append(out, 0)
+			continue
+		}
 		switch c.t.Kind(a) {
 		case syntax.Lambda:
 			var ps []TypeID
@@ -151,6 +155,9 @@ func (c *checker) trialMatch(m EntityID, recv TypeID, shapes []TypeID) bool {
 		fixed--
 	}
 	for i, s := range shapes {
+		if s == 0 {
+			continue
+		}
 		param := sig.Args[min(i, len(sig.Args)-1)]
 		if variadic && i >= fixed && !(i == len(shapes)-1 && tt.Kind(s) == KNamed && tt.Node(s).Ent == tt.arrayEnt && len(shapes) == fixed+1) {
 			param = tt.Node(sig.Args[fixed]).Args[0]

@@ -49,6 +49,9 @@ func (c *checker) resolveTouched(nodes []syntax.NodeID) {
 			for i := range call.Inst {
 				call.Inst[i] = c.vars.resolve(call.Inst[i])
 			}
+			if call.Box != 0 {
+				call.Box = c.vars.resolve(call.Box)
+			}
 			c.info.Calls[n] = call
 			c.r.checkLifetimeEscapeType(c.f, n, c.info.Types[n], map[TypeID]bool{})
 		}

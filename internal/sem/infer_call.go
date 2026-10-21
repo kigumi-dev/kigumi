@@ -4,6 +4,10 @@ import "kigumi/internal/syntax"
 
 func (c *checker) synthArgs(args []syntax.NodeID) {
 	for _, a := range args {
+		if v := c.piped[a]; v != 0 && c.t.Kind(a) == syntax.NamedArg {
+			c.synth(v)
+			continue
+		}
 		if k := c.t.Kind(a); k == syntax.Spread || k == syntax.NamedArg {
 			c.synth(c.t.View(a).ArgValue().ID())
 			continue
@@ -35,7 +39,9 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	} else if info.Owner != 0 {
 		kind = CallAssoc
 	}
+	c.defaultRecv = recv
 	ret, plan := c.checkArgs(n, name, sig, args, inst, want, info.Params, info.Body != 0, async)
+	c.defaultRecv = 0
 	c.taintRecvResult(n, ret, recvBase)
 	c.crossRecv(n, fn, recv, recvBase)
 	c.ffiCValueCheck(n, fn, inst, recv)
@@ -99,12 +105,13 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 		fixed--
 	}
 	spread := len(args) > 0 && c.t.Kind(args[len(args)-1]) == syntax.Spread
+	required := c.requiredParams(declParams, fixed)
 	switch {
 	case cVariadic && len(args) < fixed:
 		c.errAt(n, cCallArity, name, fixed, plural(fixed), len(args))
 		return c.abandonCall(sig, args), nil
-	case !cVariadic && !variadic && len(args) != len(params):
-		c.errAt(n, cCallArity, name, len(params), plural(len(params)), len(args))
+	case !cVariadic && !variadic && (len(args) < required || len(args) > len(params)):
+		c.errAt(n, cCallArity, name, arityCount(required, len(params)), plural(len(params)), len(args))
 		return c.abandonCall(sig, args), nil
 	case !cVariadic && variadic && len(args) < fixed:
 		c.errAt(n, cCallArity, name, fixed, plural(fixed), len(args))
@@ -120,8 +127,18 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 			return c.abandonCall(sig, args), nil
 		}
 		plan = newCallPlan(c.unwrapNamed(args), place)
-		args = plan.placed()
 	}
+	if required < fixed {
+		eval, place, ok := c.fillDefaults(n, name, plan.Eval, plan.Place, declParams, fixed, inst)
+		if !ok {
+			return c.abandonCall(sig, args), nil
+		}
+		plan = newCallPlan(eval, place)
+	}
+	if p := c.piped[n]; p != 0 {
+		plan = plan.pipedFirst(p)
+	}
+	args = plan.placed()
 	if cVariadic {
 		return c.checkCArgs(n, name, sn, args), plan
 	}

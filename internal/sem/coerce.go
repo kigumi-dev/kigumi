@@ -109,7 +109,7 @@ func (c *checker) coerceToFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool)
 	if g.Kind == KClosure {
 		return c.closureErase(n, g.Ent, want)
 	}
-	if g.Kind != KFn || g.Flags&(fnVariadic|fnCAbi) != 0 {
+	if g.Kind != KFn || g.Flags&fnCAbi != 0 {
 		return nil, false
 	}
 	if !c.sameFnShape(got, want) || (g.Flags^w.Flags)&uint16(EffUnsafe) != 0 {

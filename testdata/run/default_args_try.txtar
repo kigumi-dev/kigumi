@@ -1,0 +1,82 @@
+-- src --
+type Cnt = { pub mut n Int }
+
+fn Cnt.bump(mut self) -> Int {
+    self.n += 1
+    self.n
+}
+
+type BadN = { n Int }
+
+fn BadN.message(self) -> String {
+    "bad ${self.n}"
+}
+
+fn bad(n: Int) -> Int! {
+    if n > 0 {
+        fail BadN { n: n }
+    } else {
+        Ok(7)
+    }
+}
+
+fn good() -> Int! {
+    Ok(5)
+}
+
+fn fallible(a: Int, b: Int = bad(a)?) -> Int! {
+    Ok(a * 10 + b)
+}
+
+fn plain(a: Int, b: Int = bad(a)?) -> Int {
+    a * 10 + b
+}
+
+fn viaLambda(a: Int, f: fn(Int) -> Int = (x) => x + 1) -> Int {
+    f(a)
+}
+
+fn viaFallible(a: Int) -> Int! {
+    fallible(a)
+}
+
+fn viaPlain(a: Int) -> Int! {
+    let v = plain(a)
+    Ok(v)
+}
+
+fn peek(c: &mut Cnt, k: Int = c.n) -> Int {
+    c.n * 100 + k
+}
+
+fn bumped(c: &mut Cnt, k: Int = c.bump(), j: Int = c.bump() + k) -> Int {
+    c.n * 1000 + k * 10 + j
+}
+
+fn main() -> Void! {
+    print "${fallible(0)?} ${fallible(5, 1)?} ${viaLambda(1)}"
+    for i in Array.of(0, 2) {
+        match viaFallible(i) {
+            Ok(v) -> print "ok ${v}"
+            Err(e) -> print "err ${e.message()}"
+        }
+        match viaPlain(i) {
+            Ok(v) -> print "ok ${v}"
+            Err(e) -> print "err ${e.message()}"
+        }
+    }
+    let mut c = Cnt { n: 1 }
+    print "${peek(&mut c)}"
+    print "${bumped(&mut c)}"
+    let g = fallible(0)? + good()?
+    print "${g}"
+}
+-- stdout --
+7 51 2
+ok 7
+ok 7
+err bad 2
+err bad 2
+101
+3025
+12

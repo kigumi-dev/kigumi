@@ -1,0 +1,128 @@
+-- src --
+type A = alias fn(Int, ...) -> Void
+type B = alias fn(...Int, String) -> Void
+type C = alias extern(C) fn(*const u8, ...Int) -> i32
+fn use() {
+    v |> f a _
+    let w = (xs: ...Int, y: Int) => xs
+    greet name: name
+    log ...xs
+    greet name 3 4
+}
+-- expect --
+File
+  TypeDecl
+    name: A
+    body: AliasBody
+      TypeFn
+        params: List
+          TypePath
+            Path Int
+        flags: variadic
+        ret: TypePath
+          Path Void
+  TypeDecl
+    name: B
+    body: AliasBody
+      TypeFn
+        params: List
+          TypePath
+            Path Int
+          TypePath
+            Path String
+        flags: variadic
+        ret: TypePath
+          Path Void
+  TypeDecl
+    name: C
+    body: AliasBody
+      TypeFn
+        abi: C
+        params: List
+          TypePtr
+            TypePath
+              Path u8
+          TypePath
+            Path Int
+        flags: variadic
+        ret: TypePath
+          Path i32
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: use
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      ExprStmt
+        Binary |>
+          Ident v
+          WsCall
+            Ident f
+            List
+              Ident a
+      Let
+        pattern: PatBind w
+        init: Lambda
+          List
+            Param xs
+              flags: variadic
+              type: TypePath
+                Path Int
+            Param y
+              type: TypePath
+                Path Int
+          Ident xs
+      ExprStmt
+        WsCall
+          Ident greet
+          List
+            Ident name
+      ExprStmt
+        Ident log
+      ExprStmt
+        WsCall
+          Ident greet
+          List
+            Ident name
+            IntLit 3
+            IntLit 4
+-- diagnostics --
+error: `...` needs an element type outside `extern(C)`: write `fn(...T) -> R`
+ --> call_forms_errors.txtar:1:27
+  |
+1 | type A = alias fn(Int, ...) -> Void
+  |                           ^
+
+error: only the last parameter may be variadic
+ --> call_forms_errors.txtar:2:27
+  |
+2 | type B = alias fn(...Int, String) -> Void
+  |                           ^^^^^^
+
+error: an `extern(C)` function type takes a bare `...`
+ --> call_forms_errors.txtar:3:43
+  |
+3 | type C = alias extern(C) fn(*const u8, ...Int) -> i32
+  |                                           ^^^
+
+error: pipeline placeholders require a parenthesized call: `value |> f(a, _)`
+ --> call_forms_errors.txtar:5:14
+  |
+5 |     v |> f a _
+  |              ^
+
+error: named arguments require a parenthesized call: `f(name: value)`
+ --> call_forms_errors.txtar:7:15
+  |
+7 |     greet name: name
+  |               ^
+
+error: spread requires a parenthesized call: `f(...values)`
+ --> call_forms_errors.txtar:8:9
+  |
+8 |     log ...xs
+  |         ^^^
+

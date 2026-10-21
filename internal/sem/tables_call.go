@@ -51,9 +51,11 @@ const (
 type CallInfo struct {
 	// Piped is the left operand of `|>`, already included as Plan.Eval[0]
 	// when Plan is set.
-	Piped    syntax.NodeID
-	Kind     CallKind
-	Callee   EntityID
+	Piped  syntax.NodeID
+	Kind   CallKind
+	Callee EntityID
+	// Box is the concrete error type a default argument's `?` boxes, 0 for none.
+	Box      TypeID
 	Next     EntityID
 	Inst     []TypeID
 	Recv     RecvKind

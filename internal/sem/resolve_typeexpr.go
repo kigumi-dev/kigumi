@@ -62,11 +62,16 @@ func (r *Result) resolveFnType(f FileID, scope ScopeID, n syntax.NodeID) TypeID 
 	s := fnType(t, n)
 	var params []TypeID
 	var marked []bool
-	for i, p := range t.List(s.Params).EnumerateIDs() {
+	list := t.List(s.Params)
+	variadic := s.Flags&syntax.FlagVariadic != 0 && s.Abi == 0 && list.Len() > 0
+	for i, p := range list.EnumerateIDs() {
 		pt := r.resolveType(f, scope, p, posParam)
 		ok := false
 		if s.Flags&(syntax.FlagEscapingParam0<<i) != 0 {
 			pt, ok = r.escapingParamType(f, p, pt)
+		}
+		if variadic && i == list.Len()-1 {
+			pt = r.Types.Named(r.Types.arrayEnt, []TypeID{r.Types.WithoutEscaping(pt)})
 		}
 		params = append(params, pt)
 		marked = append(marked, ok)
@@ -75,28 +80,25 @@ func (r *Result) resolveFnType(f FileID, scope ScopeID, n syntax.NodeID) TypeID 
 	if s.Abi != 0 {
 		return r.resolveCFnType(f, n, s, params, ret)
 	}
-	if s.Flags&syntax.FlagVariadic != 0 {
-		r.errAt(f, n, cFnTypeVariadic)
-	}
 	if mask := r.escapingMarks(params, marked); mask != "" {
-		return r.Types.WithEscParams(r.resolveFnShape(s, params, ret), mask)
+		return r.Types.WithEscParams(r.resolveFnShape(s, params, ret, variadic), mask)
 	}
-	return r.resolveFnShape(s, params, ret)
+	return r.resolveFnShape(s, params, ret, variadic)
 }
 
-func (r *Result) resolveFnShape(s fnTypeSlots, params []TypeID, ret TypeID) TypeID {
+func (r *Result) resolveFnShape(s fnTypeSlots, params []TypeID, ret TypeID, variadic bool) TypeID {
 	eff := Effects(s.Mods) & (EffPure | EffNoalloc | EffUnsafe)
 	escaping := s.Flags&syntax.FlagEscaping != 0
 	switch {
 	case s.Mods&syntax.ModPureVar != 0:
 		if escaping {
-			return r.Types.FnEscaping(params, ret, eff, false, true)
+			return r.Types.FnEscaping(params, ret, eff, variadic, true)
 		}
-		return r.Types.FnEffectPoly(params, ret, eff, false)
+		return r.Types.FnEffectPoly(params, ret, eff, variadic)
 	case escaping:
-		return r.Types.FnEscaping(params, ret, eff, false, false)
+		return r.Types.FnEscaping(params, ret, eff, variadic, false)
 	default:
-		return r.Types.Fn(params, ret, eff, false)
+		return r.Types.Fn(params, ret, eff, variadic)
 	}
 }
 

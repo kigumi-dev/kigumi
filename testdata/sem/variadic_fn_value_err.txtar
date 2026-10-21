@@ -1,0 +1,134 @@
+-- app/t/t.kg --
+fn sum(xs: ...Int) -> Int { 0 }
+fn fixed(xs: Array[Int]) -> Int { 0 }
+fn one(a: Int) -> Int { a }
+fn cmd(prog: String, args: ...String) -> Int { 0 }
+fn callAll[F: Fn[fn(...Int) -> Int]](f: F) -> Int { f(1) }
+
+fn use(values: Array[Int], names: Array[String]) {
+    let f: fn(...Int) -> Int = sum
+    let a: fn(Array[Int]) -> Int = sum //~ ERROR expected `fn(Array[Int]) -> Int`, found `fn(...Int) -> Int`
+    let b: fn(...Int) -> Int = fixed //~ ERROR expected `fn(...Int) -> Int`, found `fn(Array[Int]) -> Int`
+    let c: fn(...Int) -> Int = one //~ ERROR expected `fn(...Int) -> Int`, found `fn(Int) -> Int`
+    let d: fn(Int) -> Int = f //~ ERROR expected `fn(Int) -> Int`, found `fn(...Int) -> Int`
+    let e: fn(Array[Int]) -> Int = (xs: ...Int) => 0 //~ ERROR expected `fn(Array[Int]) -> Int`
+    let g: fn(...Int) -> Int = (xs: Array[Int]) => 0 //~ ERROR expected `fn(...Int) -> Int`
+    let h: fn(...Int) -> Int = (xs: ...Int) => 0
+    let i: fn(...Int) -> Int = (xs) => 0
+    _ = f(1, 2)
+    _ = f(...values)
+    _ = f(1, ...values) //~ ERROR cannot mix listed arguments with `...expr`
+    _ = fixed2(...values) //~ ERROR undefined name `fixed2`
+    let j: fn(Array[Int]) -> Int = fixed
+    _ = j(...values) //~ ERROR `this function` is not variadic
+    let k: fn(String, ...String) -> Int = cmd
+    _ = k("a", ...names)
+    _ = k(...names) //~ ERROR cannot mix listed arguments with `...expr`
+    _ = k() //~ ERROR `this function` expects 1 argument, 0 given
+    _ = f(...names) //~ ERROR expected `Array[Int]`, found `Array[String]`
+    _ = f("s") //~ ERROR expected `Int`, found `String`
+    _ = f(x: 1) //~ ERROR a `fn` value has no parameter names
+    _ = callAll(sum)
+    _ = callAll(fixed) //~ ERROR `fn(Array[Int]) -> Int` does not satisfy `Fn[fn(...Int) -> Int]`: signature differs
+    let mid = (xs: ...Int, y: Int) => y //~ ERROR only the last parameter may be variadic
+    let l: fn(Int, ...Int) -> Int = (a, xs: ...Int) => a
+}
+-- expect --
+error[E400]: expected `fn(Array[Int]) -> Int`, found `fn(...Int) -> Int`
+ --> app/t/t.kg:9:36
+  |
+9 |     let a: fn(Array[Int]) -> Int = sum //~ ERROR expected `fn(Array[Int]) -> Int`, found `fn(...Int) -> Int`
+  |                                    ^^^
+
+error[E400]: expected `fn(...Int) -> Int`, found `fn(Array[Int]) -> Int`
+  --> app/t/t.kg:10:32
+   |
+10 |     let b: fn(...Int) -> Int = fixed //~ ERROR expected `fn(...Int) -> Int`, found `fn(Array[Int]) -> Int`
+   |                                ^^^^^
+
+error[E400]: expected `fn(...Int) -> Int`, found `fn(Int) -> Int`
+  --> app/t/t.kg:11:32
+   |
+11 |     let c: fn(...Int) -> Int = one //~ ERROR expected `fn(...Int) -> Int`, found `fn(Int) -> Int`
+   |                                ^^^
+
+error[E400]: expected `fn(Int) -> Int`, found `fn(...Int) -> Int`
+  --> app/t/t.kg:12:29
+   |
+12 |     let d: fn(Int) -> Int = f //~ ERROR expected `fn(Int) -> Int`, found `fn(...Int) -> Int`
+   |                             ^
+
+error[E400]: expected `fn(Array[Int]) -> Int`, found `closure fn(...Int) -> Int`
+  --> app/t/t.kg:13:36
+   |
+13 |     let e: fn(Array[Int]) -> Int = (xs: ...Int) => 0 //~ ERROR expected `fn(Array[Int]) -> Int`
+   |                                    ^^^^^^^^^^^^^^^^^
+
+error[E400]: expected `fn(...Int) -> Int`, found `closure fn(Array[Int]) -> Int`
+  --> app/t/t.kg:14:32
+   |
+14 |     let g: fn(...Int) -> Int = (xs: Array[Int]) => 0 //~ ERROR expected `fn(...Int) -> Int`
+   |                                ^^^^^^^^^^^^^^^^^^^^^
+
+error[E505]: cannot mix listed arguments with `...expr`
+  --> app/t/t.kg:19:14
+   |
+19 |     _ = f(1, ...values) //~ ERROR cannot mix listed arguments with `...expr`
+   |              ^^^^^^^^^
+
+error[E100]: undefined name `fixed2`
+  --> app/t/t.kg:20:9
+   |
+20 |     _ = fixed2(...values) //~ ERROR undefined name `fixed2`
+   |         ^^^^^^
+   = help: did you mean `fixed`?
+
+error[E506]: `this function` is not variadic
+  --> app/t/t.kg:22:11
+   |
+22 |     _ = j(...values) //~ ERROR `this function` is not variadic
+   |           ^^^^^^^^^
+
+error[E505]: cannot mix listed arguments with `...expr`
+  --> app/t/t.kg:25:11
+   |
+25 |     _ = k(...names) //~ ERROR cannot mix listed arguments with `...expr`
+   |           ^^^^^^^^
+
+error[E501]: `this function` expects 1 argument, 0 given
+  --> app/t/t.kg:26:9
+   |
+26 |     _ = k() //~ ERROR `this function` expects 1 argument, 0 given
+   |         ^^
+
+error[E400]: expected `Array[Int]`, found `Array[String]`
+  --> app/t/t.kg:27:14
+   |
+27 |     _ = f(...names) //~ ERROR expected `Array[Int]`, found `Array[String]`
+   |              ^^^^^
+
+error[E400]: expected `Int`, found `String`
+  --> app/t/t.kg:28:11
+   |
+28 |     _ = f("s") //~ ERROR expected `Int`, found `String`
+   |           ^^^
+
+error[E1014]: a `fn` value has no parameter names
+  --> app/t/t.kg:29:11
+   |
+29 |     _ = f(x: 1) //~ ERROR a `fn` value has no parameter names
+   |           ^^^^
+   = help: call it positionally
+
+error[E300]: `fn(Array[Int]) -> Int` does not satisfy `Fn[fn(...Int) -> Int]`: signature differs
+  --> app/t/t.kg:31:9
+   |
+31 |     _ = callAll(fixed) //~ ERROR `fn(Array[Int]) -> Int` does not satisfy `Fn[fn(...Int) -> Int]`: signature differs
+   |         ^^^^^^^^^^^^^
+
+error[E235]: only the last parameter may be variadic
+  --> app/t/t.kg:32:16
+   |
+32 |     let mid = (xs: ...Int, y: Int) => y //~ ERROR only the last parameter may be variadic
+   |                ^^^^^^^^^^
+

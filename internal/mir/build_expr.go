@@ -31,6 +31,12 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return id
 	case hir.Lit:
 		return b.emit(Inst{Op: OpConst, Dst: b.temp(t), Lit: e.Lit, Type: t, Node: n})
+	case hir.ArgRef:
+		v := b.argRef(e.Index)
+		if e.Index >= 0 && b.r.IsCopy(t) {
+			return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: n})
+		}
+		return v
 	case hir.Global:
 		return b.emit(Inst{Op: OpGlobalGet, Dst: b.temp(t), Ent: e.Ent, Node: n})
 	case hir.FnItem:

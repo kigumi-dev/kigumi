@@ -202,8 +202,8 @@ func TestSchemaMatchesParser(t *testing.T) {
 		t.Error(m)
 	}
 	for k := NodeKind(1); k < kindEnd; k++ {
-		// The parser builds a ContractBlock only next to a diagnostic.
-		if !seen[k] && k != ContractBlock {
+		// The parser builds a ContractBlock only next to a diagnostic, and a DefaultArg never.
+		if !seen[k] && k != ContractBlock && k != DefaultArg {
 			t.Errorf("no corpus source builds a %s node; add one to syntheticSources", k)
 		}
 	}

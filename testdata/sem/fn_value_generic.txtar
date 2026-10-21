@@ -19,22 +19,8 @@ fn use() {
     let b: fn(Pt) -> Pt = identity
     let c = describe[Pt] //~ TYPE c : fn(Pt) -> String
     let d: fn(Pt) -> String = describe
-    let e = Array.of[Int] //~ ERROR variadic function `of` has no function value
-    let f = collect //~ ERROR variadic function `collect` has no function value
+    let e = Array.of[Int] //~ TYPE e : pure fn(...Int) -> Array[Int]
+    let f = collect //~ TYPE f : fn(...Int) -> Int
     let g = describe(Pt { x: 1, y: 2 }) //~ TYPE g : String
 }
 -- expect --
-error[E418]: variadic function `of` has no function value
-  --> lib/fv.kg:21:13
-   |
-21 |     let e = Array.of[Int] //~ ERROR variadic function `of` has no function value
-   |             ^^^^^^^^^^^^
-   = help: write `(a) => of(..., ...a)`
-
-error[E418]: variadic function `collect` has no function value
-  --> lib/fv.kg:22:13
-   |
-22 |     let f = collect //~ ERROR variadic function `collect` has no function value
-   |             ^^^^^^^
-   = help: write `(a) => collect(..., ...a)`
-

@@ -75,7 +75,6 @@ var (
 	cRecvTypeParam           = defineCode("E233", "recv-type-param", "a type parameter cannot be a receiver")
 	cSelfPosition            = defineCode("E234", "self-position", "`self` must be the first parameter")
 	cVariadicNotLast         = defineCode("E235", "variadic-not-last", "only the last parameter may be variadic")
-	cFnTypeVariadic          = defineCode("E236", "fn-type-variadic", "function types cannot be variadic")
 	cConstPubNeedsType       = defineCode("E237", "const-pub-needs-type", "public const `{name}` needs an explicit type")
 	cConstNotComptime        = defineCode("E238", "const-not-comptime", "{what} is not a compile-time constant")
 	cConstCycle              = defineCode("E239", "const-cycle", "constant cycle: {chain}")

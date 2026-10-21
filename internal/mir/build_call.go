@@ -110,7 +110,7 @@ func evalOrder(n int, order []int, eval func(i int) LocalID) []LocalID {
 
 // methodArgs evaluates a MethodCall's receiver (Args[0]) and explicit arguments (Args[1:]) in e.EvalOrder's sequence.
 func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
-	full := evalOrder(len(e.Args), e.EvalOrder, func(i int) LocalID {
+	full := b.evalArgs(1, len(e.Args), e.EvalOrder, func(i int) LocalID {
 		if i == 0 {
 			return b.receiver(e.Args[0], e.Ent, !e.Async, e.Witness == 0 && !b.r.ReplacesSelf(e.Ent))
 		}
@@ -118,7 +118,7 @@ func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
 	})
 	recv, rest := full[0], full[1:]
 	if e.Variadic {
-		rest = b.packVariadic(e, rest)
+		rest = b.packVariadic(e, rest, b.r.Fn(e.Ent).Sig)
 	}
 	return recv, rest
 }
@@ -133,7 +133,7 @@ func (b *builder) valueCallArgs(e *hir.Expr) (LocalID, []LocalID) {
 	})
 	fv, rest := full[0], full[1:]
 	if e.Variadic {
-		rest = b.packVariadic(e, rest)
+		rest = b.packVariadic(e, rest, b.valueSig(e.Args[0].Type))
 	}
 	return fv, rest
 }
@@ -178,23 +178,9 @@ func (b *builder) receiver(base *hir.Expr, m sem.EntityID, sync, inPlace bool) L
 }
 
 func (b *builder) args(call *hir.Expr, exprs []*hir.Expr, order []int, reborrow, sync bool, ent sem.EntityID) []LocalID {
-	out := evalOrder(len(exprs), order, func(i int) LocalID { return b.argValue(exprs[i], i, ent, reborrow, sync) })
+	out := b.evalArgs(0, len(exprs), order, func(i int) LocalID { return b.argValue(exprs[i], i, ent, reborrow, sync) })
 	if call.Variadic {
-		out = b.packVariadic(call, out)
+		out = b.packVariadic(call, out, b.r.Fn(call.Ent).Sig)
 	}
 	return out
-}
-
-// packVariadic groups a variadic call's trailing arguments into one array, per call.Ent's fixed arity.
-func (b *builder) packVariadic(call *hir.Expr, out []LocalID) []LocalID {
-	params := b.r.Types.Node(b.r.Fn(call.Ent).Sig).Args
-	fixed := len(params) - 1
-	if fixed < 0 {
-		fixed = 0
-	}
-	if fixed > len(out) {
-		fixed = len(out)
-	}
-	arr := b.emit(Inst{Op: OpArray, Dst: b.temp(params[len(params)-1]), Args: append([]LocalID{}, out[fixed:]...), Node: call.Node})
-	return append(out[:fixed], arr)
 }

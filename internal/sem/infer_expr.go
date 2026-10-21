@@ -136,12 +136,8 @@ func (c *checker) fnItemValue(n syntax.NodeID, set OverloadSetID) TypeID {
 	c.r.useEntity(c.f, n, fn)
 	c.info.Uses[n] = fn
 	info := c.r.Fn(fn)
-	name := c.r.Entities[fn].Name
 	sig := info.Sig
 	switch {
-	case c.r.Types.Node(sig).Flags&fnVariadic != 0:
-		c.errAt(n, cVariadicNoValue, name, name)
-		return TyPoison
 	case len(c.ownGenerics(fn)) > 0:
 		var inst []TypeID
 		sig, inst, _ = c.instantiateFn(n, fn, nil, 0)

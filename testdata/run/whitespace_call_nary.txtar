@@ -1,0 +1,60 @@
+-- src --
+fn add(a: Int, b: Int) -> Int { a + b }
+
+fn show3(a: Int, b: Int, c: Int) {
+    print "${a} ${b} ${c}"
+}
+
+fn id(a: Int) -> Int {
+    print "id ${a}"
+    a
+}
+
+fn log(level: String, msg: String, rest: ...Int) -> usize {
+    print "${level} ${msg} ${rest.len()}"
+    rest.len()
+}
+
+fn greet(name: String, times: Int = 1) {
+    print "hi ${name} x${times}"
+}
+
+type Req = {
+    pub path String
+}
+
+fn submit(r: Req, extra: Int) {
+    print "${r.path} ${extra}"
+}
+
+fn pair(a: Int, f: fn(Int) -> Int) -> Int { f(a) }
+
+fn main() -> Void! {
+    show3 1 2 3
+    show3 id(1) id(2) add(1, 2)
+    let n = log "info" "boot" 1 2 3
+    print "${n}"
+    greet "a"
+    greet "b" 3
+    let route = "/x"
+    submit Req { path: route } 5
+    let total = add 1 2 + 10
+    print "${total}"
+    let xs = Array.of(4, 5, 6)
+    show3 xs[0] xs[1] xs[2]
+    print "${pair 5 id}"
+}
+-- stdout --
+1 2 3
+id 1
+id 2
+1 2 3
+info boot 3
+3
+hi a x1
+hi b x3
+/x 5
+13
+4 5 6
+id 5
+5

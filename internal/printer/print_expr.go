@@ -28,7 +28,7 @@ func (p *printer) expr(id syntax.NodeID) {
 		p.write("$" + v.AsShellLit().Str().Text())
 	case syntax.Paren:
 		inner := v.AsParen().Inner()
-		if inner.Kind() == syntax.Paren {
+		if inner.Kind() == syntax.Paren || inner.Kind() == syntax.Ident && inner.Tok().Text() == "_" {
 			p.expr(inner.ID())
 			return
 		}
@@ -166,21 +166,4 @@ func (p *printer) member(name syntax.TokenRef, dot string) {
 		}
 	}
 	p.write(dot + name.Text())
-}
-
-// wsCall keeps `f x` only for a bare identifier callee; member callees
-// become ordinary calls.
-func (p *printer) wsCall(id syntax.NodeID) {
-	c := p.t.View(id).AsWsCall()
-	callee := c.Callee()
-	if callee.Kind() == syntax.Ident {
-		p.expr(callee.ID())
-		p.write(" ")
-		p.exprList(c.Args().ID())
-		return
-	}
-	p.expr(callee.ID())
-	p.write("(")
-	p.exprList(c.Args().ID())
-	p.write(")")
 }

@@ -1,0 +1,36 @@
+-- src --
+const K =
+    // k
+    1
+fn main() -> Void! {
+    let z =
+        /* inline */ 6
+    let y = /* a */ /* b */ 5
+    let w =
+        // line
+        7
+    let mut c = 0
+    c = // note
+        3
+    c +=
+        /* q */ 1
+    print "${z}"
+}
+-- expect --
+const K =
+    // k
+    1
+
+fn main() -> Void! {
+    let z = /* inline */ 6
+    let y = /* a */ /* b */ 5
+    let w =
+        // line
+        7
+    let mut c = 0
+    c =
+        // note
+        3
+    c += /* q */ 1
+    print "${z}"
+}

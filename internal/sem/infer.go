@@ -114,6 +114,8 @@ func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
 		return c.synthTuple(n, want)
 	case syntax.UnitLit:
 		return TyUnit
+	case syntax.DefaultArg:
+		return c.synthDefaultArg(n)
 	case syntax.Lambda:
 		return c.synthLambda(n, want)
 	case syntax.Block:

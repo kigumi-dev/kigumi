@@ -1,0 +1,48 @@
+-- src --
+fn sum(xs: ...Int) -> Int { 0 }
+
+fn main() -> Void! {
+    let f: fn(...Int) -> Int = sum
+    let values = Array.of(1, 2)
+    let a = f(...values)
+    let b = f(...values)
+    print "${a + b}"
+}
+-- expect --
+fn main.sum(%xs: Array[Int]) -> Int {
+  b0:
+    %t1 = const 0: Int
+    drop(%xs)
+    return %t1
+}
+fn main.main() -> Void! {
+  b0:
+    %t0 = fnitem main.sum
+    %f = copy(%t0)
+    %t2 = const 1: Int
+    %t3 = const 2: Int
+    %t4 = array(%t2, %t3)
+    %t5 = call std/array.Array.of(%t4)
+    %values = copy(%t5)
+    %t7 = move(%values)
+    %t8 = callv(%f, %t7)
+    %a = copy(%t8)
+    %t10 = move(%values)
+    %t11 = callv(%f, %t10)
+    %b = copy(%t11)
+    %t14 = bin +(%a, %b)
+    %t13 = interp ""(%t14)
+    %t15 = builtin print(%t13)
+    %t16 = variant Result.Ok(%t15)
+    drop(%b)
+    drop(%a)
+    nop
+    drop(%f)
+    return %t16
+}
+error[use-after-move]: `values` was moved; it cannot be used again
+ --> main/main.kg:7:18
+  |
+7 |     let b = f(...values)
+  |                  ^^^^^^
+

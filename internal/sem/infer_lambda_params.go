@@ -21,6 +21,13 @@ func (c *checker) lambdaParams(closure EntityID, params []syntax.NodeID, target 
 			if ps.Flags&syntax.FlagEscaping != 0 {
 				annotated, declared = c.r.escapingParamType(c.f, p, annotated)
 			}
+			if ps.Flags&syntax.FlagVariadic != 0 {
+				if i != len(params)-1 {
+					c.errAt(p, cVariadicNotLast)
+					bad = true
+				}
+				annotated = tt.Named(tt.arrayEnt, []TypeID{tt.WithoutEscaping(annotated)})
+			}
 			if pt != 0 && annotated != pt && !c.vars.unify(annotated, pt) {
 				c.errAt(p, cLambdaParamMismatch, name, annotated, pt)
 				bad = true
@@ -59,4 +66,16 @@ func (c *checker) escapingFlags(params []EntityID) []bool {
 		out[i] = c.r.Entities[p].Flags&EfEscaping != 0
 	}
 	return out
+}
+
+// lambdaVariadic reports a lambda whose last parameter is written `name: ...T`, or is bare under an expected variadic fn type.
+func (c *checker) lambdaVariadic(params []syntax.NodeID, target TypeID) bool {
+	if len(params) == 0 {
+		return false
+	}
+	ps := param(c.t, params[len(params)-1])
+	if ps.Flags&syntax.FlagVariadic != 0 {
+		return true
+	}
+	return ps.Type == 0 && target != 0 && c.r.Types.Node(target).Flags&fnVariadic != 0
 }

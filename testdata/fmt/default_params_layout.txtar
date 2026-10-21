@@ -1,0 +1,38 @@
+-- src --
+type Mode = | A | B
+fn f(a: Int,
+    // about b
+    b: Int = 5,
+    c: Mode = match a {
+        1 -> Mode.A
+        _ -> Mode.B
+    }) -> Int { 1 }
+fn g(
+    // lead
+    a: Int, /* x */ b: Int) -> Int { a }
+fn main() -> Void! {}
+-- expect --
+type Mode = A | B
+
+fn f(
+    a: Int,
+    // about b
+    b: Int = 5,
+    c: Mode = match a {
+        1 -> Mode.A
+        _ -> Mode.B
+    },
+) -> Int {
+    1
+}
+
+fn g(
+    // lead
+    a: Int,
+    /* x */
+    b: Int,
+) -> Int {
+    a
+}
+
+fn main() -> Void! {}

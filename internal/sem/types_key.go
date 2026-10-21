@@ -65,6 +65,9 @@ func (r *Result) writeKey(sb *strings.Builder, t TypeID, positional bool) {
 		if n.Flags&fnCVariadic != 0 {
 			sb.WriteString(",...")
 		}
+		if n.Flags&fnVariadic != 0 {
+			sb.WriteString(";variadic")
+		}
 		sb.WriteString(")->")
 		r.writeKey(sb, n.Elem, positional)
 	default:

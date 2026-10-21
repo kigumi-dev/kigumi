@@ -1,0 +1,31 @@
+-- src --
+fn add(a: Int, b: Int) -> Int { a + b }
+
+const LIMIT =
+    10
+
+fn main() -> Void! {
+    let x =
+        add(1, 2)
+    print "${x}"
+    let mut c = 0
+    c =
+        add 3 4
+    print "${c}"
+    c +=
+        1
+    print "${c}"
+    let s =
+        "${x}b"
+    print s
+    if let Some(v) =
+        Array.of(1, 2).first() {
+        print "${v + LIMIT}"
+    }
+}
+-- stdout --
+3
+7
+8
+3b
+11

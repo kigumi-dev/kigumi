@@ -92,6 +92,14 @@ func (p *parser) skipNewlines() {
 	}
 }
 
+// A declaration keyword on the next line ends an unfinished initializer instead of continuing it, so recovery stays local.
+func (p *parser) skipNewlinesAfterAssign() {
+	if p.at(token.Newline) && startsDecl(p.peekPastNewlines()) {
+		return
+	}
+	p.skipNewlines()
+}
+
 func (p *parser) eat(k token.Kind) bool {
 	if p.at(k) {
 		p.advance()

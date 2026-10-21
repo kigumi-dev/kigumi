@@ -8,7 +8,7 @@ File
       List
         Ident a
 -- diagnostics --
-error: expected end of statement, found `:`
+error: named arguments require a parenthesized call: `f(name: value)`
  --> named_args_ws_call.txtar:1:4
   |
 1 | f a: 1

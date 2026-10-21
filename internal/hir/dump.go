@@ -98,7 +98,7 @@ func (d *dumper) expr(e *Expr, depth int) {
 		head += " " + d.name(e.Ent)
 	case Unary, Binary, Intrinsic, Panic:
 		head += " " + e.Name
-	case Field, OptField:
+	case Field, OptField, ArgRef:
 		head += fmt.Sprintf(" .%d", e.Index)
 	case Interp, Shell:
 		head += fmt.Sprintf(" %q", strings.Join(e.Strs, "\x00"))

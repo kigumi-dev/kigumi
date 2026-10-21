@@ -71,7 +71,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info := c.r.closure(id)
 	info.Params = pents
 	info.Ret = ret
-	info.Sig = tt.WithEscParams(tt.Fn(ptypes, ret, 0, false), c.r.escapingMarks(ptypes, c.escapingFlags(pents)))
+	info.Sig = tt.WithEscParams(tt.Fn(ptypes, ret, 0, c.lambdaVariadic(params, target)), c.r.escapingMarks(ptypes, c.escapingFlags(pents)))
 	c.demoteReadCaptures(ctx)
 	c.rejectKeptMut(ctx)
 	info.Captures = ctx.list

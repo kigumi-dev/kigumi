@@ -27,6 +27,7 @@ func (p *parser) fnDecl(pf prefix) NodeID {
 	if p.at(token.LBrace) {
 		body = p.block()
 	}
+	p.addDefaultThunks(pf.mods, name, recv, generics, params)
 	return p.tree.addRec(FnDecl, tok, []uint32{
 		pf.doc, uint32(p.attrList(pf)), pf.mods, uint32(pf.vis), uint32(recv), name,
 		uint32(generics), uint32(params), uint32(ret), uint32(body),
@@ -134,7 +135,7 @@ func (p *parser) param() NodeID {
 	var flags uint32
 	if p.at(token.Ellipsis) {
 		tok := p.advance()
-		return p.tree.addRec(Param, tok, []uint32{0, FlagVariadic, 0})
+		return p.tree.addRec(Param, tok, []uint32{0, FlagVariadic, 0, 0, 0})
 	}
 	if p.eat(token.KwMut) {
 		flags |= FlagMut
@@ -146,7 +147,7 @@ func (p *parser) param() NodeID {
 		if len(attrs) > 0 {
 			p.errorAt(p.tree.Span(attrs[0]), "attributes cannot be applied to `self`")
 		}
-		return p.tree.addRec(Param, tok, []uint32{0, flags | FlagSelf, 0})
+		return p.tree.addRec(Param, tok, []uint32{0, flags | FlagSelf, 0, 0, 0})
 	}
 	if flags&FlagMove != 0 {
 		p.errorf("`move` is only allowed on `self`")
@@ -164,7 +165,12 @@ func (p *parser) param() NodeID {
 	if len(attrs) > 0 {
 		attrList = p.tree.addList(List, p.tree.nodes[attrs[0]].Tok, attrs)
 	}
-	return p.tree.addRec(Param, name, []uint32{uint32(attrList), flags, uint32(typ)})
+	var def NodeID
+	if p.eat(token.Assign) {
+		p.skipNewlinesAfterAssign()
+		def = p.expr()
+	}
+	return p.tree.addRec(Param, name, []uint32{uint32(attrList), flags, uint32(typ), uint32(def), 0})
 }
 
 func (p *parser) interfaceDecl(pf prefix) NodeID {

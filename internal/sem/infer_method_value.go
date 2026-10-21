@@ -5,7 +5,6 @@ import "kigumi/internal/syntax"
 // Types `v.m` without a call: a fn value copying a Copy receiver, or a closure taking a move-only one.
 func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityID, viaRef bool) TypeID {
 	info := c.r.Fn(m)
-	name := c.r.Entities[m].Name
 	c.info.Uses[n] = m
 	c.info.Calls[n] = CallInfo{Kind: CallMethodValue, Callee: m, Recv: info.Recv}
 	sig := c.r.memberSig(valueType, m)
@@ -14,9 +13,6 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 	owned := info.Recv == RecvSelf && !c.r.isCopy(valueType)
 	var inst []TypeID
 	switch {
-	case c.r.Types.Node(sig).Flags&fnVariadic != 0:
-		c.errAt(n, cVariadicNoValue, name, name)
-		return TyPoison
 	case len(c.ownGenerics(m)) > 0:
 		if !c.copyableBoundValue(n, m, valueType) || !c.ownedSync(n, owned && async, valueType) {
 			return TyPoison

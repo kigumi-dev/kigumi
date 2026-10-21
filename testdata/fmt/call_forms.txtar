@@ -1,0 +1,47 @@
+-- src --
+fn connect(host: String, port: Int=443, tls: Bool   =  true) {}
+fn render(text: String, width: Int =
+    80) -> String { text }
+fn g(f: fn(...Int) -> Int, h: fn(String,...String)->Void, k: fn( ...Int )->Int) {}
+fn main() {
+    show   1   2   3
+    fs.copy source destination
+    print add 1 2
+    f a b |> sink
+    submit Request { path: route } context
+    f g(x) user.name xs[0] value?
+    f a Request {
+        x: 1
+    } b
+    let y = values |> transform(option,   _)
+    let z = req |> send(client:c, request:_)
+    let v = req |> send((_), c)
+    let w = (x: ...Int) => x.len()
+    let u = mku "n" U { name: "x", age: 3 }
+}
+-- expect --
+fn connect(host: String, port: Int = 443, tls: Bool = true) {}
+
+fn render(text: String, width: Int = 80) -> String {
+    text
+}
+
+fn g(f: fn(...Int) -> Int, h: fn(String, ...String) -> Void, k: fn(...Int) -> Int) {}
+
+fn main() {
+    show 1 2 3
+    fs.copy(source, destination)
+    print add 1 2
+    f a b |> sink
+    submit Request { path: route } context
+    f g(x) user.name xs[0] value?
+    f(a, Request { x: 1 }, b)
+    let y = values |> transform(option, _)
+    let z = req |> send(client: c, request: _)
+    let v = req |> send(_, c)
+    let w = (x: ...Int) => x.len()
+    let u = mku("n", U {
+        name: "x"
+        age: 3
+    })
+}

@@ -1,0 +1,74 @@
+-- src --
+fn tag(label: String) -> String {
+    print "default ${label}"
+    label
+}
+
+fn read(data: String, offset: usize = 0, length: usize = data.len() - offset) -> String {
+    "${data} ${offset} ${length}"
+}
+
+fn greet(name: String, suffix: String = "!${name}", times: Int = 2) -> String {
+    "${name}${suffix}${times}"
+}
+
+type Logger = {
+    pub prefix String
+    pub mut level Int
+}
+
+fn Logger.write(self, text: String, level: Int = self.level, mark: String = "${self.prefix}${text}") -> String {
+    "${text} ${level} ${mark}"
+}
+
+fn Logger.bump(mut self, by: Int = 1) {
+    self.level += by
+}
+
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.n}"
+}
+
+fn peek(r: Res, extra: Int = r.n * 2) -> Int {
+    r.n + extra
+}
+
+fn main() -> Void! {
+    print read("hello")
+    print read("hello", 2)
+    print read("hello", 1, 3)
+    print read("hello", length: 1)
+    print greet("ann")
+    print greet("bob", times: 5)
+    print greet("cy", "?")
+    let lg = Logger { prefix: ">", level: 3 }
+    print lg.write("a")
+    print lg.write("b", 9)
+    print lg.write("c", mark: "M")
+    let mut m = Logger { prefix: "m", level: 1 }
+    m.bump()
+    m.bump(5)
+    print "${m.level}"
+    print "${peek(Res { n: 4 })}"
+    print "${peek(Res { n: 4 }, 1)}"
+}
+-- stdout --
+hello 0 5
+hello 2 3
+hello 1 3
+hello 0 1
+ann!ann2
+bob!bob5
+cy?2
+a 3 >a
+b 9 >b
+c 3 M
+7
+drop 4
+12
+drop 4
+5

@@ -93,6 +93,8 @@ func (v ParamView) Name() TokenRef     { return v.Tok() }
 func (v ParamView) Attrs() ListView    { return ListView{v.at(v.rec(0))} }
 func (v ParamView) Flags() uint32      { return v.rec(1) }
 func (v ParamView) Type() TypeExprView { return v.at(v.rec(2)).AsTypeExpr() }
+func (v ParamView) Default() ExprView  { return v.at(v.rec(3)).AsExpr() }
+func (v ParamView) Thunk() uint32      { return v.rec(4) }
 
 type GenericParamView struct{ View }
 

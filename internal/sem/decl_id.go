@@ -36,7 +36,11 @@ func (r *Result) DeclID(ent EntityID) DeclID {
 	id := DeclID{Package: r.Packages[e.Pkg].Path, Module: r.Packages[e.Pkg].Module, Path: path}
 	switch e.Kind {
 	case EntFn:
-		id.Sig = r.overloadSig(ent)
+		if of := r.Fn(ent).DefaultOf; of != 0 {
+			id.Sig = r.overloadSig(of)
+		} else {
+			id.Sig = r.overloadSig(ent)
+		}
 	case EntClosure:
 		id.Sig = r.DeclID(e.Parent).Sig
 	}
@@ -52,6 +56,10 @@ func (r *Result) declPath(ent EntityID) (string, bool) {
 	case EntType, EntAlias, EntInterface, EntConstraint, EntConst, EntStatic, EntContextKey, EntIntrinsic, EntContract:
 		return e.Name, true
 	case EntFn:
+		if of := r.Fn(ent).DefaultOf; of != 0 {
+			path, ok := r.declPath(of)
+			return path + "$default." + r.Fn(ent).DefaultParam, ok
+		}
 		if owner := r.Fn(ent).Owner; owner != 0 {
 			return r.ownerPath(owner, e.Pkg) + "." + e.Name, true
 		}

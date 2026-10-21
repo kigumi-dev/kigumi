@@ -7,6 +7,7 @@ var (
 
 var exprSchema = []kindSchema{
 	{Ident, "Ident", layLeaf, "Name", nil},
+	{DefaultArg, "DefaultArg", layLeaf, "Call", nil},
 	{IntLit, "IntLit", layLeaf, "Lit", nil},
 	{FloatLit, "FloatLit", layLeaf, "Lit", nil},
 	{CharLit, "CharLit", layLeaf, "Lit", nil},

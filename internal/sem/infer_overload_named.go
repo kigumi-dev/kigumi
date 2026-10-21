@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/syntax"
+)
 
 func (c *checker) candidateFixed(m EntityID) int {
 	sig := c.r.Types.Node(c.r.Fn(m).Sig)
@@ -18,10 +22,11 @@ func (c *checker) namedArgsFit(m EntityID, args []syntax.NodeID) bool {
 		if len(args) < fixed {
 			return false
 		}
-	} else if len(args) != len(sig.Args) {
+	} else if len(args) < c.requiredParams(c.r.Fn(m).Params, fixed) || len(args) > len(sig.Args) {
 		return false
 	}
-	return c.layoutNamed(args, c.paramNames(c.r.Fn(m).Params, fixed)).ok()
+	lay := c.layoutNamed(args, c.paramNames(c.r.Fn(m).Params, fixed))
+	return lay.ok() && !slices.Contains(lay.order[:c.requiredParams(c.r.Fn(m).Params, fixed)], -1)
 }
 
 // Callers only use this once namedArgsFit(m, args) holds, so the layout always succeeds.

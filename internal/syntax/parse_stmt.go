@@ -44,6 +44,7 @@ func (p *parser) stmt() NodeID {
 	}
 	if p.at(token.Assign) || p.tok().Kind.IsCompoundAssign() {
 		op := p.advance()
+		p.skipNewlinesAfterAssign()
 		return p.node2(AssignStmt, op, e, p.expr())
 	}
 	return p.node1(ExprStmt, p.tree.nodes[e].Tok, e)
@@ -61,6 +62,7 @@ func (p *parser) letStmt() NodeID {
 		typ = p.typ()
 	}
 	p.expect(token.Assign)
+	p.skipNewlinesAfterAssign()
 	init := p.expr()
 	var elseBlock NodeID
 	if p.at(token.KwElse) {
@@ -95,6 +97,7 @@ func (p *parser) ifLet(tok uint32) NodeID {
 	}
 	pat := p.pattern()
 	p.expect(token.Assign)
+	p.skipNewlinesAfterAssign()
 	init := p.condition()
 	var guard NodeID
 	if p.eat(token.Semicolon) {

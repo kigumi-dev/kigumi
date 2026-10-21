@@ -24,7 +24,7 @@ fn use() {
     let f = single(...Array.of(1))
     single("s") //~ ERROR expected `Int`, found `String` //~ WARNING unused value of type `usize`
     single(...xs) //~ ERROR expected `Array[Int]`, found `Array[String]` //~ WARNING unused value of type `usize`
-    let v = single //~ ERROR variadic function `single` has no function value
+    let v = single //~ TYPE v : fn(...Int) -> usize
     let w = a + 1
     w(...xs) //~ ERROR `Int` is not callable
     cmd(...xs) //~ ERROR no overload of `cmd` takes (Array[String])
@@ -61,13 +61,6 @@ error[E400]: expected `Array[Int]`, found `Array[String]`
    |
 25 |     single(...xs) //~ ERROR expected `Array[Int]`, found `Array[String]` //~ WARNING unused value of type `usize`
    |               ^^
-
-error[E418]: variadic function `single` has no function value
-  --> lib/va.kg:26:13
-   |
-26 |     let v = single //~ ERROR variadic function `single` has no function value
-   |             ^^^^^^
-   = help: write `(a) => single(..., ...a)`
 
 error[E500]: `Int` is not callable
   --> lib/va.kg:28:5

@@ -55,8 +55,7 @@ func (p *printer) stmt(id syntax.NodeID) {
 			p.write(": ")
 			p.typ(typ.ID())
 		}
-		p.write(" = ")
-		p.expr(s.Init().ID())
+		p.initExpr("=", s.Init().ID())
 		if els := s.Else(); els.Valid() {
 			p.write(" else ")
 			p.block(els.ID())
@@ -66,8 +65,7 @@ func (p *printer) stmt(id syntax.NodeID) {
 	case syntax.AssignStmt:
 		s := v.AsAssign()
 		p.expr(s.Target().ID())
-		p.write(" " + s.Op().Text() + " ")
-		p.expr(s.Value().ID())
+		p.initExpr(s.Op().Text(), s.Value().ID())
 	case syntax.DeferStmt:
 		p.write("defer ")
 		p.cleanup(v.AsDefer().Body().ID())
@@ -103,8 +101,7 @@ func (p *printer) ifLet(id syntax.NodeID) {
 		p.write("mut ")
 	}
 	p.pattern(s.Pattern().ID())
-	p.write(" = ")
-	p.expr(s.Init().ID())
+	p.initExpr("=", s.Init().ID())
 	if guard := s.Guard(); guard.Valid() {
 		p.write("; ")
 		p.expr(guard.ID())

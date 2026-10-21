@@ -10,6 +10,7 @@ func (p *parser) constDecl(pf prefix) NodeID {
 		typ = p.typ()
 	}
 	p.expect(token.Assign)
+	p.skipNewlinesAfterAssign()
 	value := p.expr()
 	return p.tree.addRec(ConstDecl, tok, []uint32{pf.doc, uint32(p.attrList(pf)), uint32(pf.vis), name, uint32(typ), uint32(value)})
 }

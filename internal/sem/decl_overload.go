@@ -29,18 +29,37 @@ func (r *Result) checkOverloadSets() {
 	}
 }
 
+// sameParams reports two members some argument count calls alike: equal parameter types over the shortest count both accept.
 func (r *Result) sameParams(a, b EntityID) bool {
 	fa, fb := r.Fn(a), r.Fn(b)
 	na, nb := r.Types.Node(fa.Sig), r.Types.Node(fb.Sig)
-	if fa.Recv != fb.Recv || len(na.Args) != len(nb.Args) || na.Flags&fnVariadic != nb.Flags&fnVariadic {
+	if fa.Recv != fb.Recv || na.Flags&fnVariadic != nb.Flags&fnVariadic {
 		return false
 	}
-	for i := range na.Args {
+	need := len(na.Args)
+	if na.Flags&fnVariadic == 0 {
+		need = max(r.requiredParams(fa.Params, len(na.Args)), r.requiredParams(fb.Params, len(nb.Args)))
+		if need > min(len(na.Args), len(nb.Args)) {
+			return false
+		}
+	} else if len(na.Args) != len(nb.Args) {
+		return false
+	}
+	for i := 0; i < need; i++ {
 		if na.Args[i] != nb.Args[i] {
 			return false
 		}
 	}
 	return true
+}
+
+func (r *Result) requiredParams(params []EntityID, total int) int {
+	for i := 0; i < min(total, len(params)); i++ {
+		if r.Entities[params[i]].Target != 0 {
+			return i
+		}
+	}
+	return total
 }
 
 func (r *Result) paramTypesText(id EntityID) string {

@@ -74,6 +74,8 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 		return out
 	case syntax.CallExpr, syntax.WsCallExpr:
 		return l.call(n)
+	case syntax.DefaultArg:
+		return l.defaultArg(n)
 	case syntax.BracketExpr:
 		b := v.AsBracket()
 		if ent := l.info.Uses[n]; ent != 0 && l.r.Entity(ent).Kind == sem.EntFn {

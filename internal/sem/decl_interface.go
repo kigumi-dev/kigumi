@@ -59,6 +59,7 @@ func (r *Result) declareRequirements(id EntityID) {
 		r.resolveConstraints(f, reqScope, fs.Generics, own)
 		r.Fn(req).TypeParams = own
 		r.resolveSignature(req, reqScope, r.Types.Param(r.iface(id).SelfParam))
+		r.rejectRequirementDefaults(f, fs)
 		r.iface(id).Reqs = append(r.iface(id).Reqs, req)
 	}
 }

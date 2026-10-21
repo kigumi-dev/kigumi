@@ -35,6 +35,8 @@ type FileInfo struct {
 	// CtxProviders maps a `context (...) { }` node to the hidden local
 	// holding each provider expression's one-time evaluated value.
 	CtxProviders map[syntax.NodeID][]EntityID
+	// Defaults maps a DefaultArg node to the hidden thunk computing the omitted argument.
+	Defaults map[syntax.NodeID]EntityID
 }
 
 func newFileInfo(t *syntax.Tree, pkg PackageID) FileInfo {

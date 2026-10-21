@@ -7,7 +7,7 @@ var declSchema = []kindSchema{
 		och("Recv", set(TypePath)), tk("Name"), olst("Generics", set(GenericParam)), lst("Params", set(Param)),
 		och("Ret", typeSet), och("Body", blk),
 	}},
-	{Param, "Param", layRec, "Name", []slot{olst("Attrs", set(Attr, UnsafeGuarantee)), num("Flags"), och("Type", typeSet)}},
+	{Param, "Param", layRec, "Name", []slot{olst("Attrs", set(Attr, UnsafeGuarantee)), num("Flags"), och("Type", typeSet), och("Default", exprSet), num("Thunk")}},
 	{GenericParam, "GenericParam", layFlagR, "Name", []slot{num("Flags"), och("Bound", typeSet.or(lists))}},
 	{TypeDecl, "TypeDecl", layRec, "Kw", []slot{
 		otk("Doc"), olst("Attrs", set(Attr, UnsafeGuarantee)), och("Vis", set(Visibility)), tk("Name"),

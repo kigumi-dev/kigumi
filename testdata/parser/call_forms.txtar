@@ -1,0 +1,175 @@
+-- src --
+fn connect(host: String, port: Int = 443, tls: Bool = true) {}
+fn read(data: Bytes, offset: Int = 0, length: Int = data.len() - offset) -> Bytes { data }
+type Sum = alias fn(...Int) -> Int
+type Cmd = alias fn(String, ...String) -> Void
+fn use() {
+    show 1 2 3
+    f g(x) user.name xs[0] value?
+    f a b + c
+    let x =
+        add(1, 2)
+    c =
+        add 3 4
+    let y = v |> transform(opt, _)
+    let z = r |> send(client: c, request: _)
+    let w = (xs: ...Int) => xs.len()
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: connect
+    generics: -
+    params: List
+      Param host
+        type: TypePath
+          Path String
+      Param port
+        type: TypePath
+          Path Int
+        default: IntLit 443
+      Param tls
+        type: TypePath
+          Path Bool
+        default: BoolLit true
+    ret: -
+    body: Block
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: read
+    generics: -
+    params: List
+      Param data
+        type: TypePath
+          Path Bytes
+      Param offset
+        type: TypePath
+          Path Int
+        default: IntLit 0
+      Param length
+        type: TypePath
+          Path Int
+        default: Binary -
+          Call
+            Member len
+              Ident data
+            List
+          Ident offset
+    ret: TypePath
+      Path Bytes
+    body: Block
+      ExprStmt
+        Ident data
+  TypeDecl
+    name: Sum
+    body: AliasBody
+      TypeFn
+        params: List
+          TypePath
+            Path Int
+        flags: variadic
+        ret: TypePath
+          Path Int
+  TypeDecl
+    name: Cmd
+    body: AliasBody
+      TypeFn
+        params: List
+          TypePath
+            Path String
+          TypePath
+            Path String
+        flags: variadic
+        ret: TypePath
+          Path Void
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: use
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      ExprStmt
+        WsCall
+          Ident show
+          List
+            IntLit 1
+            IntLit 2
+            IntLit 3
+      ExprStmt
+        WsCall
+          Ident f
+          List
+            Call
+              Ident g
+              List
+                Ident x
+            Member name
+              Ident user
+            Bracket
+              Ident xs
+              List
+                IntLit 0
+            Try
+              Ident value
+      ExprStmt
+        Binary +
+          WsCall
+            Ident f
+            List
+              Ident a
+              Ident b
+          Ident c
+      Let
+        pattern: PatBind x
+        init: Call
+          Ident add
+          List
+            IntLit 1
+            IntLit 2
+      Assign =
+        Ident c
+        WsCall
+          Ident add
+          List
+            IntLit 3
+            IntLit 4
+      Let
+        pattern: PatBind y
+        init: Binary |>
+          Ident v
+          Call
+            Ident transform
+            List
+              Ident opt
+              Ident _
+      Let
+        pattern: PatBind z
+        init: Binary |>
+          Ident r
+          Call
+            Ident send
+            List
+              NamedArg client
+                Ident c
+              NamedArg request
+                Ident _
+      Let
+        pattern: PatBind w
+        init: Lambda
+          List
+            Param xs
+              flags: variadic
+              type: TypePath
+                Path Int
+          Call
+            Member len
+              Ident xs
+            List

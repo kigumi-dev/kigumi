@@ -107,6 +107,11 @@ type FnInfo struct {
 	CtxRequires []EntityID
 	// CtxParam maps a required key to the hidden parameter entity reading it.
 	CtxParam map[EntityID]EntityID
+	// DefaultOf is the declaration a hidden default thunk computes an argument for; DefaultParam names that parameter.
+	DefaultOf EntityID
+	// DefaultTry marks a thunk that returns `T!` because its default expression uses `?`.
+	DefaultTry   bool
+	DefaultParam string
 }
 
 type InterfaceInfo struct {

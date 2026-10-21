@@ -1,0 +1,28 @@
+-- src --
+const LIMIT =
+    10
+fn main() {
+    let x =
+        add(1, 2)
+    let mut c = 0
+    c =
+        add 3 4
+    c +=
+        1
+    if let Some(v) =
+        lookup(c) {
+        use(v)
+    }
+}
+-- expect --
+const LIMIT = 10
+
+fn main() {
+    let x = add(1, 2)
+    let mut c = 0
+    c = add 3 4
+    c += 1
+    if let Some(v) = lookup(c) {
+        use(v)
+    }
+}

@@ -1,0 +1,92 @@
+-- src --
+interface Named {
+    fn name(self) -> String
+}
+
+type A = { n Int }
+
+fn A.name(self) -> String {
+    "A${self.n}"
+}
+
+type Box[T] = { pub v T }
+
+fn Box[T].of(v: T, k: Int = 1) -> Box[T] {
+    print "of k=${k}"
+    Box { v: v }
+}
+
+fn Box[T].zero(k: Int = 3) -> Int {
+    k
+}
+
+fn Box[T].get(self, k: Int = 1) -> Int {
+    k
+}
+
+fn Box[T].first(self, d: Int = 2, e: Int = d + 1) -> Int {
+    d * 10 + e
+}
+
+fn Box[T: Named].tag(self, suffix: String = "<${self.v.name()}>") -> String {
+    "${self.v.name()}${suffix}"
+}
+
+fn Box[T].map[U](self, f: fn(T) -> U, k: Int = 5) -> Int {
+    k
+}
+
+fn Box[T].show(self, k: Int = self.size()) -> Int {
+    k
+}
+
+fn Box[T].size(self) -> Int {
+    9
+}
+
+fn gen[T](x: T, y: Int = 1) -> T {
+    print "y=${y}"
+    x
+}
+
+fn tagged[T: Named](x: T, tag: String = "<${x.name()}>") -> String {
+    "${x.name()}${tag}"
+}
+
+fn make[T](v: T, f: fn(T) -> T = (x) => x) -> T {
+    f(v)
+}
+
+fn mk[T](n: Int = 7) -> Int {
+    n
+}
+
+fn main() -> Void! {
+    print "${gen("a")}"
+    print "${gen(5, 2)}"
+    print tagged(A { n: 1 })
+    print tagged(A { n: 2 }, tag: "!")
+    print "${make(4)} ${mk[Int]()} ${mk[String](8)}"
+    let b = Box { v: 3 }
+    print "${b.get()} ${b.get(4)} ${b.first()} ${b.first(3)} ${b.map((x) => x + 1)} ${b.show()}"
+    let c = Box { v: A { n: 5 } }
+    print c.tag()
+    print c.tag(suffix: "!")
+    let made = Box.of(3)
+    let other = Box[Int].of(4, 6)
+    print "${made.v} ${other.v} ${Box[String].zero()}"
+}
+-- stdout --
+y=1
+a
+y=2
+5
+A1<A1>
+A2!
+4 7 8
+1 4 23 34 5 9
+A5<A5>
+A5!
+of k=1
+of k=6
+3 4 3

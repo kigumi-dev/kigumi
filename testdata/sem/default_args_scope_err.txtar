@@ -1,0 +1,60 @@
+-- app/t/t.kg --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) {}
+
+type Logger = {
+    pub mut level Int
+}
+
+fn later(a: Int = b, b: Int = 1) -> Int { a } //~ ERROR undefined name `b`
+fn selfRef(a: Int = a) -> Int { a } //~ ERROR undefined name `a`
+fn consume(r: Res, other: Res = r) -> Int { 1 } //~ ERROR expected `Res`, found `&Res`
+fn borrow(r: Res, n: Int = r.n) -> Int { n }
+fn Logger.bump(mut self, by: Int = self.level) {} //~ ERROR a `mut self` method whose default reads `self`
+fn Logger.show(self, by: Int = self.level) -> Int { by }
+fn effectful(a: Int = impure()) -> Int { a }
+noalloc fn quiet(a: Int = 1) -> Int { a }
+noalloc fn allocs(a: Array[Int] = Array.of(1)) -> Int { 1 } //~ ERROR `of` is not `noalloc` //~ ERROR listed variadic arguments allocate
+fn impure() -> Int { 1 }
+-- expect --
+error[E100]: undefined name `b`
+  --> app/t/t.kg:11:19
+   |
+11 | fn later(a: Int = b, b: Int = 1) -> Int { a } //~ ERROR undefined name `b`
+   |                   ^
+
+error[E100]: undefined name `a`
+  --> app/t/t.kg:12:21
+   |
+12 | fn selfRef(a: Int = a) -> Int { a } //~ ERROR undefined name `a`
+   |                     ^
+
+error[E400]: expected `Res`, found `&Res`
+  --> app/t/t.kg:13:33
+   |
+13 | fn consume(r: Res, other: Res = r) -> Int { 1 } //~ ERROR expected `Res`, found `&Res`
+   |                                 ^
+
+error[E2188]: default arguments are not allowed on a `mut self` method whose default reads `self`
+  --> app/t/t.kg:15:26
+   |
+15 | fn Logger.bump(mut self, by: Int = self.level) {} //~ ERROR a `mut self` method whose default reads `self`
+   |                          ^^^^^^^^^^^^^^^^^^^^
+   = help: write a wrapper function that supplies the value
+
+error[E907]: `of` is not `noalloc`
+  --> app/t/t.kg:19:35
+   |
+19 | noalloc fn allocs(a: Array[Int] = Array.of(1)) -> Int { 1 } //~ ERROR `of` is not `noalloc` //~ ERROR listed variadic arguments allocate
+   |                                   ^^^^^^^^^^
+
+error[E911]: listed variadic arguments allocate
+  --> app/t/t.kg:19:35
+   |
+19 | noalloc fn allocs(a: Array[Int] = Array.of(1)) -> Int { 1 } //~ ERROR `of` is not `noalloc` //~ ERROR listed variadic arguments allocate
+   |                                   ^^^^^^^^^^
+   = help: pass `...array`
+

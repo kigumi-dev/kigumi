@@ -75,6 +75,9 @@ const (
 	ShellInterp
 	ShellRedirect
 
+	// DefaultArg is a call-site stand-in for an omitted defaulted argument; the checker appends it, the parser never produces it.
+	DefaultArg
+
 	exprKindEnd
 )
 
@@ -93,9 +96,11 @@ const ModPureVar uint32 = 1 << 8
 
 // ModBareErr marks a `!` right after a fn's parameter list, the same as `-> Void!`;
 // ModStrayBang marks a `!` separated from an explicit return type, which sem rejects.
+// ModDefaultTry marks a hidden default thunk that returns `T!` because its default expression uses `?`.
 const (
-	ModBareErr   uint32 = 1 << 9
-	ModStrayBang uint32 = 1 << 10
+	ModBareErr    uint32 = 1 << 9
+	ModStrayBang  uint32 = 1 << 10
+	ModDefaultTry uint32 = 1 << 11
 )
 
 // Flag bits stored in "#flags" slots.
@@ -154,6 +159,7 @@ var exprKindNames = [...]string{
 	PatTuple: "PatTuple", PatRange: "PatRange",
 	ShellPlan: "ShellPlan", ShellCmd: "ShellCmd", ShellWord: "ShellWord",
 	ShellText: "ShellText", ShellInterp: "ShellInterp", ShellRedirect: "ShellRedirect",
+	DefaultArg: "DefaultArg",
 }
 
 func (k NodeKind) String() string {

@@ -40,6 +40,8 @@ func buildFor(r *sem.Result, all bool, keep func(path string) bool) *Program {
 // builder holds the state of one function under construction.
 type builder struct {
 	shared map[LocalID]bool
+	// argFrames are the argument lists of the calls being evaluated, innermost last, for hir.ArgRef.
+	argFrames []argFrame
 	// guardedArm is set while the bindings of an arm with a guard are declared; guardMoves collects the places they take by value.
 	guardedArm bool
 	guardMoves []guardMove

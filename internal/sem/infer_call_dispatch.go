@@ -8,7 +8,12 @@ func (c *checker) synthCall(n syntax.NodeID, want TypeID) TypeID {
 	callee := call.Callee().ID()
 	args := call.Args().AppendIDs(nil)
 	if p := c.piped[n]; p != 0 {
-		args = append([]syntax.NodeID{p}, args...)
+		var ok bool
+		if args, ok = c.pipeArgs(n, p, args); !ok {
+			c.synth(p)
+			c.synthArgs(nonHoles(c, call.Args().AppendIDs(nil)))
+			return TyPoison
+		}
 	}
 	t := c.synthCallWith(n, callee, args, want)
 	if p := c.piped[n]; p != 0 {
@@ -71,4 +76,14 @@ func (c *checker) synthCallWith(n, callee syntax.NodeID, args []syntax.NodeID, w
 	}
 	ft := c.vars.resolve(c.synth(callee))
 	return c.callValue(n, callee, ft, args, want)
+}
+
+func nonHoles(c *checker, args []syntax.NodeID) []syntax.NodeID {
+	var out []syntax.NodeID
+	for _, a := range args {
+		if c.nestedHole(a) == 0 {
+			out = append(out, a)
+		}
+	}
+	return out
 }

@@ -19,6 +19,7 @@ func (p *parser) staticDecl(pf prefix) NodeID {
 	typ := p.typ()
 	var value NodeID
 	if p.eat(token.Assign) {
+		p.skipNewlinesAfterAssign()
 		value = p.expr()
 	}
 	return p.tree.addRec(StaticDecl, tok, []uint32{

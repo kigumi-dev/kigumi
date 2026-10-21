@@ -25,10 +25,8 @@ func (c *checker) paramNames(declParams []EntityID, fixed int) []string {
 	return names
 }
 
-// A name missing from the call always double-fills another slot first, so
-// it surfaces as a dup or unknown rather than needing its own case here.
 type namedLayout struct {
-	// order and tail hold indices into the call's args, not the nodes.
+	// order and tail hold indices into the call's args, not the nodes; order[i] is -1 for a slot no argument fills.
 	order    []int
 	tail     []int
 	badOrder []syntax.NodeID
@@ -48,6 +46,9 @@ func (lay namedLayout) place() []int {
 // for overload candidates.
 func (c *checker) layoutNamed(args []syntax.NodeID, names []string) namedLayout {
 	lay := namedLayout{order: make([]int, len(names))}
+	for i := range lay.order {
+		lay.order[i] = -1
+	}
 	filled := make([]bool, len(names))
 	seenNamed, pos := false, 0
 	for i, a := range args {
@@ -105,6 +106,9 @@ func (c *checker) unwrapNamed(args []syntax.NodeID) []syntax.NodeID {
 	for i, a := range args {
 		if c.t.Kind(a) == syntax.NamedArg {
 			out[i] = c.t.View(a).AsNamedArg().Value().ID()
+			if v := c.piped[a]; v != 0 {
+				out[i] = v
+			}
 		} else {
 			out[i] = a
 		}

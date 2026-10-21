@@ -47,7 +47,14 @@ func (s *Server) SignatureHelp(ctx context.Context, p *protocol.SignatureHelpPar
 	sig := protocol.SignatureInformation{Label: label}
 	for _, prm := range fn.Params {
 		e := snap.res.Entity(prm)
-		sig.Parameters = append(sig.Parameters, protocol.ParameterInformation{Label: protocol.String(e.Name + ": " + snap.res.ParamTypeString(prm))})
+		label := e.Name + ": " + snap.res.ParamTypeString(prm)
+		if tree := snap.res.Tree(e.File); tree != nil {
+			if def := tree.View(e.Node).AsParam().Default(); def.Valid() {
+				sp := def.Span()
+				label += " = " + string(tree.File.Src[sp.Start:sp.End])
+			}
+		}
+		sig.Parameters = append(sig.Parameters, protocol.ParameterInformation{Label: protocol.String(label)})
 	}
 	if doc := syntax.DocText(snap.res.Tree(snap.res.Entity(ent).File), snap.res.Entity(ent).Node); doc != "" && snap.res.Entity(ent).File != 0 {
 		sig.Documentation = protocol.String(doc)

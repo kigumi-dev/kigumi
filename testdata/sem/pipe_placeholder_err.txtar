@@ -1,0 +1,92 @@
+-- app/t/t.kg --
+fn sub(a: Int, b: Int) -> Int { a - b }
+fn g(a: Int) -> Int { a }
+fn log(tag: String, rest: ...Int) -> usize { rest.len() }
+
+fn use() {
+    _ = 1 |> sub(_, _) //~ ERROR this stage has more than one `_` placeholder
+    _ = 1 |> sub(a: _, b: _) //~ ERROR this stage has more than one `_` placeholder
+    _ = 1 |> sub(_ + 1, 2) //~ ERROR `_` here is not a whole direct argument of this stage's call
+    _ = 1 |> sub(g(_), 2) //~ ERROR `_` here is not a whole direct argument of this stage's call
+    _ = 1 |> sub(2, 3) //~ ERROR `sub` expects 2 arguments, 3 given
+    _ = sub(_, 2) //~ ERROR `_` is only a pattern or an assignment target
+    _ = 1 |> log("t", ..._) //~ ERROR `_` here is not a whole direct argument of this stage's call
+    _ = 1 |> sub(c: _, a: 2) //~ ERROR `sub` has no parameter named `c`
+    _ = 1 |> sub(a: 2, a: _) //~ ERROR argument `a` given more than once
+    _ = "s" |> sub(_, 1) //~ ERROR expected `Int`, found `String`
+    _ = 1 |> g(_)
+    _ = 1 |> log("t", _, _) //~ ERROR this stage has more than one `_` placeholder
+}
+-- expect --
+error[E2189]: this stage has more than one `_` placeholder
+ --> app/t/t.kg:6:21
+  |
+6 |     _ = 1 |> sub(_, _) //~ ERROR this stage has more than one `_` placeholder
+  |                     ^
+  = help: a `_` placeholder is one whole direct argument of the parenthesized call on the right of `|>`, so write `value |> (v) => f(g(v), v)` for anything else
+
+error[E2189]: this stage has more than one `_` placeholder
+ --> app/t/t.kg:7:24
+  |
+7 |     _ = 1 |> sub(a: _, b: _) //~ ERROR this stage has more than one `_` placeholder
+  |                        ^^^^
+  = help: a `_` placeholder is one whole direct argument of the parenthesized call on the right of `|>`, so write `value |> (v) => f(g(v), v)` for anything else
+
+error[E2189]: `_` here is not a whole direct argument of this stage's call
+ --> app/t/t.kg:8:18
+  |
+8 |     _ = 1 |> sub(_ + 1, 2) //~ ERROR `_` here is not a whole direct argument of this stage's call
+  |                  ^
+  = help: a `_` placeholder is one whole direct argument of the parenthesized call on the right of `|>`, so write `value |> (v) => f(g(v), v)` for anything else
+
+error[E2189]: `_` here is not a whole direct argument of this stage's call
+ --> app/t/t.kg:9:20
+  |
+9 |     _ = 1 |> sub(g(_), 2) //~ ERROR `_` here is not a whole direct argument of this stage's call
+  |                    ^
+  = help: a `_` placeholder is one whole direct argument of the parenthesized call on the right of `|>`, so write `value |> (v) => f(g(v), v)` for anything else
+
+error[E501]: `sub` expects 2 arguments, 3 given
+  --> app/t/t.kg:10:14
+   |
+10 |     _ = 1 |> sub(2, 3) //~ ERROR `sub` expects 2 arguments, 3 given
+   |              ^^^^^^^^
+
+error[E127]: `_` is only a pattern or an assignment target
+  --> app/t/t.kg:11:13
+   |
+11 |     _ = sub(_, 2) //~ ERROR `_` is only a pattern or an assignment target
+   |             ^
+
+error[E2189]: `_` here is not a whole direct argument of this stage's call
+  --> app/t/t.kg:12:26
+   |
+12 |     _ = 1 |> log("t", ..._) //~ ERROR `_` here is not a whole direct argument of this stage's call
+   |                          ^
+   = help: a `_` placeholder is one whole direct argument of the parenthesized call on the right of `|>`, so write `value |> (v) => f(g(v), v)` for anything else
+
+error[E1012]: `sub` has no parameter named `c`
+  --> app/t/t.kg:13:18
+   |
+13 |     _ = 1 |> sub(c: _, a: 2) //~ ERROR `sub` has no parameter named `c`
+   |                  ^^^^
+
+error[E1013]: argument `a` given more than once
+  --> app/t/t.kg:14:24
+   |
+14 |     _ = 1 |> sub(a: 2, a: _) //~ ERROR argument `a` given more than once
+   |                        ^^^^
+
+error[E400]: expected `Int`, found `String`
+  --> app/t/t.kg:15:9
+   |
+15 |     _ = "s" |> sub(_, 1) //~ ERROR expected `Int`, found `String`
+   |         ^^^
+
+error[E2189]: this stage has more than one `_` placeholder
+  --> app/t/t.kg:17:26
+   |
+17 |     _ = 1 |> log("t", _, _) //~ ERROR this stage has more than one `_` placeholder
+   |                          ^
+   = help: a `_` placeholder is one whole direct argument of the parenthesized call on the right of `|>`, so write `value |> (v) => f(g(v), v)` for anything else
+

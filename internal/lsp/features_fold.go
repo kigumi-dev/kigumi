@@ -29,6 +29,9 @@ func (s *Server) FoldingRanges(ctx context.Context, p *protocol.FoldingRangePara
 		default:
 			continue
 		}
+		if t.IsDefaultThunk(v.ID()) {
+			continue
+		}
 		sp := v.Span()
 		// A node's span stops before its closing brace; fold through it.
 		close := sp.End

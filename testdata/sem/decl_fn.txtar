@@ -31,7 +31,7 @@ fn variadicOk(a: Int, rest: ...Int) -> Int {
     a
 }
 
-type Cb = fn(...Int) -> Int //~ ERROR function types cannot be variadic
+type Cb = fn(...Int) -> Int
 
 fn over(a: Int) -> Int {
     a
@@ -107,12 +107,6 @@ error[E235]: only the last parameter may be variadic
    |
 25 | fn variadicMid(a: ...Int, b: Int) -> Int { //~ ERROR only the last parameter may be variadic
    |                ^^^^^^^^^
-
-error[E236]: function types cannot be variadic
-  --> app/f/f.kg:33:11
-   |
-33 | type Cb = fn(...Int) -> Int //~ ERROR function types cannot be variadic
-   |           ^^^^^^^^^^^^^^^^^
 
 error[E249]: `over` with parameters (Int) is already declared
   --> app/f/f.kg:39:1

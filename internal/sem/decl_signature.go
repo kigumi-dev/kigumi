@@ -107,4 +107,5 @@ func (r *Result) declareFn(id EntityID) {
 		owner := r.Entities[info.Owner].Name
 		r.errAt(f, s.Recv, cRecvGenericBinder, owner, owner, r.paramNames(r.typeDecl(info.Owner).Params), e.Name)
 	}
+	r.declareDefaults(id)
 }

@@ -1,0 +1,109 @@
+-- src --
+fn tag(label: String) -> String {
+    print "default ${label}"
+    label
+}
+
+fn first() -> String {
+    print "first"
+    "f"
+}
+
+fn third() -> Bool {
+    print "third"
+    false
+}
+
+fn connect(host: String, port: Int = 443, tls: Bool = true, name: String = tag("n")) -> String {
+    "${host}:${port} tls=${tls} ${name}"
+}
+
+fn render(text: String, width: Int = 80, color: Bool = true) -> String {
+    "${text} ${width} ${color}"
+}
+
+fn counter() -> Int {
+    print "counter"
+    7
+}
+
+fn count(base: Int, step: Int = counter()) -> Int {
+    base + step
+}
+
+type Logger = {
+    pub prefix String
+}
+
+fn Logger.write(self, text: String, level: Int = 1, mark: String = tag("m")) -> String {
+    "${self.prefix}${text} ${level} ${mark}"
+}
+
+fn Logger.make(prefix: String, loud: Bool = false) -> Logger {
+    if loud {
+        Logger { prefix: "${prefix}!" }
+    } else {
+        Logger { prefix: prefix }
+    }
+}
+
+fn open(path: String) -> String { "open ${path}" }
+fn open(path: String, mode: Int) -> String { "open ${path} ${mode}" }
+
+fn swap(a: Int, b: Int = 2) -> Int { a * 10 + b }
+fn swap(a: String, b: Int = 3) -> Int { b }
+
+fn main() -> Void! {
+    print connect("example.com")
+    print connect("example.com", 8443)
+    print connect("example.com", tls: false)
+    print render("hello")
+    print render("hello", 100)
+    print render("hello", 100, false)
+    print render("hello", color: false)
+    print render(text: "hi", color: third(), width: 3)
+    print render(color: third(), text: first())
+    print "${count(1)} ${count(1, 2)} ${count(1)}"
+    let lg = Logger.make("> ")
+    print lg.write("a")
+    print lg.write("b", 5)
+    print lg.write("c", mark: "M")
+    print Logger.make("x", loud: true).prefix
+    print open("a")
+    print open("a", 2)
+    print "${swap(1)} ${swap(1, 5)} ${swap("s")} ${swap(b: 9, a: 4)}"
+    let writer: fn(Int, Int) -> Int = swap
+    print "${writer(6, 7)}"
+    let simple = (a: Int) => swap(a)
+    print "${simple(8)}"
+}
+-- stdout --
+default n
+example.com:443 tls=true n
+default n
+example.com:8443 tls=true n
+default n
+example.com:443 tls=false n
+hello 80 true
+hello 100 true
+hello 100 false
+hello 80 false
+third
+hi 3 false
+third
+first
+f 80 false
+counter
+counter
+8 3 8
+default m
+> a 1 m
+default m
+> b 5 m
+> c 1 M
+x!
+open a
+open a 2
+12 15 3 49
+67
+82

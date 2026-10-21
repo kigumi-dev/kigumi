@@ -10,8 +10,7 @@ func (p *printer) constDecl(id syntax.NodeID) {
 		p.write(": ")
 		p.typ(typ.ID())
 	}
-	p.write(" = ")
-	p.expr(d.Value().ID())
+	p.initExpr("=", d.Value().ID())
 }
 
 func (p *printer) staticDecl(id syntax.NodeID) {
@@ -24,8 +23,7 @@ func (p *printer) staticDecl(id syntax.NodeID) {
 	p.write(d.Name().Text() + ": ")
 	p.typ(d.Type().ID())
 	if value := d.Value(); value.Valid() {
-		p.write(" = ")
-		p.expr(value.ID())
+		p.initExpr("=", value.ID())
 	}
 }
 

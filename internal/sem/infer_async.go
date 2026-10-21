@@ -37,5 +37,5 @@ func (c *checker) asyncValueFn(sig TypeID) TypeID {
 	tt := c.r.Types
 	n := tt.Node(sig)
 	ret := tt.Named(tt.futureEnt, []TypeID{n.Elem})
-	return tt.Fn(n.Args, ret, Effects(n.Flags), false)
+	return tt.Fn(n.Args, ret, Effects(n.Flags), n.Flags&fnVariadic != 0)
 }

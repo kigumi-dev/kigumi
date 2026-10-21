@@ -129,7 +129,7 @@ func (t *Tree) dumpSlot(d *dumper, kind NodeKind, s slot, v uint32) {
 	}
 	switch s.role {
 	case roleInt:
-		if v == 0 || kind == ShellRedirect {
+		if v == 0 || kind == ShellRedirect || kind == Param && name == "thunk" {
 			return
 		}
 		text := fmt.Sprint(v)

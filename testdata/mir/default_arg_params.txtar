@@ -1,0 +1,44 @@
+-- src --
+fn read(data: String, offset: usize = 0, length: usize = data.len() - offset) -> String {
+    "${data} ${offset} ${length}"
+}
+
+fn main() -> Void! {
+    print read("hello")
+}
+-- expect --
+fn main.read(%data: String, %offset: usize, %length: usize) -> String {
+  b0:
+    %t3 = interp "\x00 \x00\x00 \x00"(%data, %offset, %length)
+    drop(%length)
+    drop(%offset)
+    drop(%data)
+    return %t3
+}
+fn main.main() -> Void! {
+  b0:
+    %t0 = const "hello": String
+    %t1 = share copy(%t0)
+    %t2 = call main.read$default.offset(%t1)
+    %t3 = share copy(%t0)
+    %t4 = share copy(%t2)
+    %t5 = call main.read$default.length(%t3, %t4)
+    %t6 = call main.read(%t0, %t2, %t5)
+    %t7 = builtin print(%t6)
+    %t8 = variant Result.Ok(%t7)
+    return %t8
+}
+fn main.read$default.offset(%data: String) -> usize {
+  b0:
+    %t1 = const 0: usize
+    drop(%data)
+    return %t1
+}
+fn main.read$default.length(%data: String, %offset: usize) -> usize {
+  b0:
+    %t2 = call std/prelude.String.len(%data)
+    %t3 = bin -(%t2, %offset)
+    drop(%offset)
+    drop(%data)
+    return %t3
+}

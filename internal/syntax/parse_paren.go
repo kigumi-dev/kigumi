@@ -55,12 +55,15 @@ func (p *parser) lambda() NodeID {
 		var typ NodeID
 		var flags uint32
 		if p.eat(token.Colon) {
+			if p.eat(token.Ellipsis) {
+				flags |= FlagVariadic
+			}
 			var esc bool
 			if typ, esc = p.escapableType(); esc {
 				flags |= FlagEscaping
 			}
 		}
-		params = append(params, p.tree.addRec(Param, name, []uint32{0, flags, uint32(typ)}))
+		params = append(params, p.tree.addRec(Param, name, []uint32{0, flags, uint32(typ), 0, 0}))
 	})
 	p.expect(token.FatArrow)
 	p.skipNewlines()

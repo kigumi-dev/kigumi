@@ -83,6 +83,28 @@
       ]
     },
     {
+      "id": "fmt/assign_comments",
+      "kind": "fmt",
+      "path": "testdata/fmt/assign_comments.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/assign_newline",
+      "kind": "fmt",
+      "path": "testdata/fmt/assign_newline.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/break_value",
       "kind": "fmt",
       "path": "testdata/fmt/break_value.txtar",
@@ -105,6 +127,17 @@
       ]
     },
     {
+      "id": "fmt/call_forms",
+      "kind": "fmt",
+      "path": "testdata/fmt/call_forms.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/canonical",
       "kind": "fmt",
       "path": "testdata/fmt/canonical.txtar",
@@ -119,6 +152,17 @@
       "id": "fmt/const_generic",
       "kind": "fmt",
       "path": "testdata/fmt/const_generic.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/default_params_layout",
+      "kind": "fmt",
+      "path": "testdata/fmt/default_params_layout.txtar",
       "mode": [
         "format"
       ],
@@ -460,6 +504,39 @@
       "id": "mir/comptime_multi_block",
       "kind": "mir",
       "path": "testdata/mir/comptime_multi_block.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/default_arg_borrow",
+      "kind": "mir",
+      "path": "testdata/mir/default_arg_borrow.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/default_arg_generic",
+      "kind": "mir",
+      "path": "testdata/mir/default_arg_generic.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/default_arg_params",
+      "kind": "mir",
+      "path": "testdata/mir/default_arg_params.txtar",
       "mode": [
         "build"
       ],
@@ -1293,6 +1370,17 @@
       ]
     },
     {
+      "id": "mir/variadic_value_spread_move",
+      "kind": "mir",
+      "path": "testdata/mir/variadic_value_spread_move.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "parser/asm",
       "kind": "parser",
       "path": "testdata/parser/asm.txtar",
@@ -1318,6 +1406,28 @@
       "id": "parser/byte_string_in_interpolation_err",
       "kind": "parser",
       "path": "testdata/parser/byte_string_in_interpolation_err.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/call_forms",
+      "kind": "parser",
+      "path": "testdata/parser/call_forms.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/call_forms_errors",
+      "kind": "parser",
+      "path": "testdata/parser/call_forms_errors.txtar",
       "mode": [
         "parse"
       ],
@@ -4675,6 +4785,91 @@
       "id": "run/cvalue_scalar",
       "kind": "run",
       "path": "testdata/run/cvalue_scalar.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/default_args",
+      "kind": "run",
+      "path": "testdata/run/default_args.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/default_args_async",
+      "kind": "run",
+      "path": "testdata/run/default_args_async.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/default_args_generic",
+      "kind": "run",
+      "path": "testdata/run/default_args_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/default_args_params",
+      "kind": "run",
+      "path": "testdata/run/default_args_params.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/default_args_try",
+      "kind": "run",
+      "path": "testdata/run/default_args_try.txtar",
       "mode": [
         "vm",
         "native"
@@ -10530,6 +10725,23 @@
       ]
     },
     {
+      "id": "run/newline_after_assign",
+      "kind": "run",
+      "path": "testdata/run/newline_after_assign.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/noalloc_array_first_last",
       "kind": "run",
       "path": "testdata/run/noalloc_array_first_last.txtar",
@@ -10999,6 +11211,23 @@
       "id": "run/pipe_insert",
       "kind": "run",
       "path": "testdata/run/pipe_insert.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/pipe_placeholder",
+      "kind": "run",
+      "path": "testdata/run/pipe_placeholder.txtar",
       "mode": [
         "vm",
         "native"
@@ -12582,6 +12811,23 @@
       ]
     },
     {
+      "id": "run/variadic_fn_value",
+      "kind": "run",
+      "path": "testdata/run/variadic_fn_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/variadic_spread_forward",
       "kind": "run",
       "path": "testdata/run/variadic_spread_forward.txtar",
@@ -12772,6 +13018,23 @@
       "id": "run/weak",
       "kind": "run",
       "path": "testdata/run/weak.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/whitespace_call_nary",
+      "kind": "run",
+      "path": "testdata/run/whitespace_call_nary.txtar",
       "mode": [
         "vm",
         "native"
@@ -14019,6 +14282,39 @@
       "id": "sem/decl_variant_prelude_fn_const_collision",
       "kind": "sem",
       "path": "testdata/sem/decl_variant_prelude_fn_const_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/default_args_err",
+      "kind": "sem",
+      "path": "testdata/sem/default_args_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/default_args_scope_err",
+      "kind": "sem",
+      "path": "testdata/sem/default_args_scope_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/default_args_vis_err",
+      "kind": "sem",
+      "path": "testdata/sem/default_args_vis_err.txtar",
       "mode": [
         "check"
       ],
@@ -16117,6 +16413,17 @@
       ]
     },
     {
+      "id": "sem/pipe_placeholder_err",
+      "kind": "sem",
+      "path": "testdata/sem/pipe_placeholder_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/pipeline_err",
       "kind": "sem",
       "path": "testdata/sem/pipeline_err.txtar",
@@ -16802,6 +17109,17 @@
       "id": "sem/variadic_empty_alloc",
       "kind": "sem",
       "path": "testdata/sem/variadic_empty_alloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/variadic_fn_value_err",
+      "kind": "sem",
+      "path": "testdata/sem/variadic_fn_value_err.txtar",
       "mode": [
         "check"
       ],

@@ -9,16 +9,38 @@ func (p *parser) postfix() NodeID {
 	if e == 0 {
 		return 0
 	}
-	if !p.isWsCallee(e) || !p.startsWsArg() {
+	if !p.isWsCallee(e) {
+		return e
+	}
+	if !p.startsWsArg() {
+		p.wsCallHint(false)
 		return e
 	}
 	argTok := p.pos
-	arg := p.postfixChain(p.primary())
-	call := p.node2(WsCallExpr, p.tree.nodes[e].Tok, e, p.tree.addList(List, argTok, []NodeID{arg}))
-	if p.startsWsArg() {
-		p.errorf("whitespace call takes exactly one argument; write `f(g(x))` or `f(g, x)`")
+	args := []NodeID{p.postfixChain(p.primary())}
+	for p.startsWsArg() {
+		args = append(args, p.postfixChain(p.primary()))
 	}
-	return call
+	p.wsCallHint(true)
+	return p.node2(WsCallExpr, p.tree.nodes[e].Tok, e, p.tree.addList(List, argTok, args))
+}
+
+// wsCallHint names the parenthesized form for what a whitespace call cannot spell, consuming the operand to keep recovery local.
+func (p *parser) wsCallHint(hasArgs bool) {
+	switch {
+	case p.at(token.Ellipsis) && p.tok().HasSpaceBefore():
+		p.errorf("spread requires a parenthesized call: `f(...values)`")
+	case hasArgs && p.at(token.Colon):
+		p.errorf("named arguments require a parenthesized call: `f(name: value)`")
+	case p.at(token.Ident) && p.tok().HasSpaceBefore() && p.text() == "_":
+		p.errorf("pipeline placeholders require a parenthesized call: `value |> f(a, _)`")
+		p.advance()
+		return
+	default:
+		return
+	}
+	p.advance()
+	p.postfixChain(p.primary())
 }
 
 func (p *parser) postfixChain(e NodeID) NodeID {

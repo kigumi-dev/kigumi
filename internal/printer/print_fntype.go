@@ -16,16 +16,20 @@ func (p *printer) fnType(id syntax.NodeID) {
 	}
 	p.write("fn(")
 	params := f.Params()
+	cVariadic := flags&syntax.FlagVariadic != 0 && f.Abi().Valid()
 	for i, a := range params.Enumerate() {
 		if i > 0 {
 			p.write(", ")
+		}
+		if flags&syntax.FlagVariadic != 0 && !cVariadic && i == params.Len()-1 {
+			p.write("...")
 		}
 		if flags&(syntax.FlagEscapingParam0<<i) != 0 {
 			p.write("escaping ")
 		}
 		p.typ(a.ID())
 	}
-	if flags&syntax.FlagVariadic != 0 {
+	if cVariadic {
 		if params.Len() > 0 {
 			p.write(", ")
 		}
