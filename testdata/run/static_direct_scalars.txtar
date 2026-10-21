@@ -1,0 +1,66 @@
+-- src --
+static mut ticks: u32 = 0
+static mut small: u8 = 250
+static mut level: Int = -3
+static mut armed: Bool = false
+static mut gain: f64 = 1.5
+static mut half: f32 = 0.5
+static mut mark: Char = 'a'
+static mut big: u64 = 18446744073709551000
+
+noalloc fn bump() {
+    unsafe {
+        ticks = ticks.wrappingAdd(1)
+        small = small.wrappingAdd(3)
+        level = level * 2
+        armed = !armed
+        gain = gain * 2.0
+        half = half + 0.25
+        big = big.wrappingAdd(1000)
+    }
+}
+
+export(interrupt) {
+    pub fn tick() {
+        unsafe {
+            ticks = ticks.wrappingAdd(1)
+            level = level.wrappingAdd(1)
+            armed = level > 0
+        }
+    }
+}
+
+fn snapshot() -> String {
+    unsafe {
+        "${ticks} ${small} ${level} ${armed} ${gain} ${half} ${mark} ${big}"
+    }
+}
+
+fn setMark(c: Char) {
+    unsafe {
+        mark = c
+    }
+}
+
+noalloc fn readLevel() -> Int {
+    unsafe {
+        level
+    }
+}
+
+print snapshot()
+bump()
+print snapshot()
+tick()
+tick()
+print snapshot()
+setMark('z')
+bump()
+print snapshot()
+print "${readLevel()}"
+-- stdout --
+0 250 -3 false 1.5 0.5 a 18446744073709551000
+1 253 -6 true 3 0.75 a 384
+3 253 -4 false 3 0.75 a 384
+4 0 -8 true 6 1 z 1384
+-8

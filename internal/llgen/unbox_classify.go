@@ -96,6 +96,10 @@ func (e *emitter) classifyDst(f *mir.Func, in mir.Inst, disqualify func(mir.Loca
 			disqualify(in.Dst)
 		}
 	case mir.OpConst, mir.OpBinary, mir.OpAlias, mir.OpShare, mir.OpMove:
+	case mir.OpGlobalGet:
+		if _, ok := e.directStatic(in.Ent); !ok {
+			disqualify(in.Dst)
+		}
 	case mir.OpUnary:
 		if in.Str == "cast" {
 			disqualify(in.Dst)
@@ -159,6 +163,10 @@ func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.Loc
 			}
 		}
 	case mir.OpDrop, mir.OpRelease:
+	case mir.OpGlobalSet:
+		if _, ok := e.directStatic(in.Ent); !ok {
+			disqualify(in.Args[0])
+		}
 	case mir.OpCall:
 		if in.DPrim == mir.DPNone && e.wideCallOp(f, in) == "" && !e.rawConvert(f, in) {
 			sig := e.calleeScalarSig(in)
@@ -173,25 +181,4 @@ func (e *emitter) classifyArgs(f *mir.Func, in mir.Inst, disqualify func(mir.Loc
 			disqualify(a)
 		}
 	}
-}
-
-// classifyTerm lets a Bool TermBranch condition read straight from its i1
-// register; TermReturn always boxes on demand, crossing the C ABI.
-func classifyTerm(t mir.Term, out map[mir.LocalID]scalarInfo, disqualify func(mir.LocalID)) {
-	switch t.Op {
-	case mir.TermBranch:
-		if info, ok := out[t.Args[0]]; ok && info.Ty != TI1 {
-			disqualify(t.Args[0])
-		}
-	}
-}
-
-func (e *emitter) inPlaceBuiltin(in mir.Inst) bool {
-	switch in.Str {
-	case "fixed.fill", "direct.eq", "direct.hash":
-		return true
-	case "iter.len", "iter.at", "iter.at_ref", "iter.at_move":
-		return e.isDirect(in.Args[0])
-	}
-	return false
 }

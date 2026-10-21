@@ -1,0 +1,61 @@
+-- src --
+type P = { y Int }
+type Holder[T] = { items Array[T] }
+
+fn Holder[T].count(self) -> usize {
+    let mut n: usize = 0
+    for x in self.items { //~ ERROR `for` over `self.items` would take each element
+        n = n + 1
+    }
+    n
+}
+
+fn Holder[T].borrowedCount(self) -> usize {
+    let mut n: usize = 0
+    for x in &self.items {
+        n = n + 1
+    }
+    n
+}
+
+fn Holder[T: Copy].copyCount(self) -> usize {
+    let mut n: usize = 0
+    for x in self.items {
+        n = n + 1
+    }
+    n
+}
+
+fn Holder[T].consume(move self) -> usize {
+    let mut n: usize = 0
+    for x in move self.items {
+        n = n + 1
+    }
+    n
+}
+
+fn Holder[T].viaRef(r: &Holder[T]) -> usize {
+    let mut n: usize = 0
+    for x in r.items { //~ ERROR `for` over `r.items` would take each element
+        n = n + 1
+    }
+    n
+}
+
+let h = Holder { items: Array.of(P { y: 1 }) }
+print "${h.count()} ${h.borrowedCount()}"
+-- expect --
+error[E2200]: `for` over `self.items` would take each element out of a place that is only borrowed, and `T` is not known to be `Copy`
+ --> main/main.kg:6:14
+  |
+6 |     for x in self.items { //~ ERROR `for` over `self.items` would take each element
+  |              ^^^^^^^^^^
+  = help: iterate `&self.items` to borrow the elements, or take the owner by `move`
+
+error[E2200]: `for` over `r.items` would take each element out of a place that is only borrowed, and `T` is not known to be `Copy`
+  --> main/main.kg:38:14
+   |
+38 |     for x in r.items { //~ ERROR `for` over `r.items` would take each element
+   |              ^^^^^^^
+   = help: iterate `&r.items` to borrow the elements, or take the owner by `move`
+

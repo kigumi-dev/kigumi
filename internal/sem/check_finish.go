@@ -5,6 +5,7 @@ import "kigumi/internal/syntax"
 // finish closes a full expression: every type recorded since the last
 // boundary is substituted to its final, defaulted form.
 func (c *checker) finish() {
+	c.bindCallableConstraints()
 	c.vars.settle(c)
 	c.settleAllocs()
 	c.settleInline()

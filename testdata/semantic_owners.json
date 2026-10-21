@@ -371,7 +371,7 @@
   },
   {
     "key": "array.Array.fold",
-    "signature": "pure fn(A, fn(A, T) -\u003e A) -\u003e A",
+    "signature": "pure fn(A, fn(A, \u0026T) -\u003e A) -\u003e A",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2071,6 +2071,16 @@
     "status": "ok"
   },
   {
+    "key": "fs.File.read",
+    "signature": "fn(\u0026mut Array[u8], usize) -\u003e usize!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
     "key": "fs.File.write",
     "signature": "fn(Bytes) -\u003e usize!",
     "has_body": true,
@@ -2123,6 +2133,16 @@
   {
     "key": "fs.Files.mkdir",
     "signature": "fn(Path) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "fs.Files.open",
+    "signature": "fn(Path) -\u003e File!",
     "has_body": true,
     "kind": "",
     "vm": "implemented",
@@ -10262,6 +10282,16 @@
     "status": "ok"
   },
   {
+    "key": "task.BlockingError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "task.BlockingPool.new",
     "signature": "fn(usize) -\u003e BlockingPool",
     "has_body": false,
@@ -10273,7 +10303,7 @@
   },
   {
     "key": "task.BlockingPool.run",
-    "signature": "fn(escaping fn() -\u003e T) -\u003e Result[Future[T], BlockingError]",
+    "signature": "fn(escaping F) -\u003e Result[Future[T], BlockingError]",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",

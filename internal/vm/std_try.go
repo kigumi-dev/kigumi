@@ -26,7 +26,7 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		if m.faultTick() {
 			return m.allocError()
 		}
-		items := append(append([]*obj{}, retainAll(a0.fields)...), retainAll(a1.fields)...)
+		items := append(append([]*obj{}, m.copyAll(a0.fields)...), retainAll(a1.fields)...)
 		return m.ok(m.sized(mkArray(items)))
 	case "array.Array.tryAppendAll":
 		if m.faultTick() {
@@ -158,6 +158,14 @@ func (m *Machine) tryEmptyRecord(pkg, name string, n int) *obj {
 		fields[i] = mkArray(nil)
 	}
 	return m.ok(mkRecord(m.lookup(pkg, name), fields))
+}
+
+func (m *Machine) copyAll(items []*obj) []*obj {
+	out := make([]*obj, len(items))
+	for i, x := range items {
+		out[i] = m.copy(x)
+	}
+	return out
 }
 
 func retainAll(items []*obj) []*obj {

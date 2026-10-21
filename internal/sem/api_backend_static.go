@@ -35,6 +35,15 @@ func (r *Result) StaticOwnerOf(id EntityID) (owner StaticOwner, mut bool) {
 	return info.Owner, info.Mut
 }
 
+// DirectStatic reports a Kigumi-owned `static mut` of a register scalar type, which the back ends keep as a raw slot, so a store to it takes no box.
+func (r *Result) DirectStatic(id EntityID) bool {
+	if r.Entities[id].Kind != EntStatic {
+		return false
+	}
+	info := r.Static(id)
+	return info.Mut && info.Owner == StaticOwned && r.RegScalar(r.Entities[id].Type)
+}
+
 // StaticSymbolOf resolves a static's external linkage spelling: the
 // `@linkName` override, or its source identifier.
 func (r *Result) StaticSymbolOf(id EntityID) string {

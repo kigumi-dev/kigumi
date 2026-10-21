@@ -1776,15 +1776,38 @@ int rt_d_convert_int(int64_t v, int snk, int dnk, int checked, uint64_t* out) {
     *out = 0;
     return 0;
 }
+static int float_text_ok(const char* s, int64_t len) {
+    int64_t i = 0;
+    if (i < len && s[i] == '-') i++;
+    int64_t start = i;
+    while (i < len && s[i] >= '0' && s[i] <= '9') i++;
+    if (i == start) return 0;
+    if (i < len && s[i] == '.') {
+        i++;
+        start = i;
+        while (i < len && s[i] >= '0' && s[i] <= '9') i++;
+        if (i == start) return 0;
+    }
+    if (i < len && (s[i] == 'e' || s[i] == 'E')) {
+        i++;
+        if (i < len && (s[i] == '+' || s[i] == '-')) i++;
+        start = i;
+        while (i < len && s[i] >= '0' && s[i] <= '9') i++;
+        if (i == start) return 0;
+    }
+    return i == len;
+}
 static int parse_float_text(val text, double* d) {
+    val t = direct_arg(text);
     const char* s = cstr(text);
+    int64_t len = t->kind == K_OPAQUE ? (int64_t)strlen(s) : t->u.s.len;
     int ok = 0;
-    if (*s && *s != ' ' && *s != '\t' && *s != '\n' && *s != '+') {
+    if (float_text_ok(s, len)) {
         const char* end;
         // erange also fires on underflow; Go errors only on overflow, so reject only inf.
         ok = rt_parse_f64(s, &end, d, NULL) && !*end && !isinf(*d);
     }
-    if (direct_arg(text)->kind != K_OPAQUE) free((void*)s);
+    if (t->kind != K_OPAQUE) free((void*)s);
     return ok;
 }
 int rt_d_parse_float(val s, uint64_t* out) {
@@ -3456,7 +3479,7 @@ val rt_std_id(int op, int n, val* a) {
                 rt_release(out);
                 return alloc_error();
             }
-            out->u.arr.items[out->u.arr.len++] = rt_retain(a0->u.arr.items[i]);
+            out->u.arr.items[out->u.arr.len++] = rt_copy(a0->u.arr.items[i]);
         }
         UNWIND_POP(u);
         return try_ok(out);
@@ -3464,7 +3487,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_ARRAY_TRY_CONCAT: {
         val out = array_try_new(a0->u.arr.len + a1->u.arr.len);
         if (!out) return alloc_error();
-        for (int64_t i = 0; i < a0->u.arr.len; i++) out->u.arr.items[out->u.arr.len++] = rt_retain(a0->u.arr.items[i]);
+        for (int64_t i = 0; i < a0->u.arr.len; i++) out->u.arr.items[out->u.arr.len++] = rt_copy(a0->u.arr.items[i]);
         for (int64_t i = 0; i < a1->u.arr.len; i++) out->u.arr.items[out->u.arr.len++] = rt_retain(a1->u.arr.items[i]);
         return try_ok(out);
     }

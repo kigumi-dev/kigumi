@@ -58,7 +58,7 @@ fn viaCapture() -> Int {
 
 fn viaFold() -> Int {
     let xs = items(%[1]d)
-    xs.fold(0, (acc: Int, x: Res) => explode())
+    xs.fold(0, (acc: Int, x: &Res) => explode())
 }
 
 async fn boom() -> Int {

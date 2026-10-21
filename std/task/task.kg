@@ -36,8 +36,14 @@ pub type BlockingPool
 /// `run`'s only failure: the pool already has `capacity` closures in flight.
 pub type BlockingError = | CapacityExhausted
 
+pub fn BlockingError.message(self) -> String {
+    match self {
+        CapacityExhausted -> "blocking pool capacity exhausted"
+    }
+}
+
 /// Creates a pool that runs at most capacity closures at once.
 pub fn BlockingPool.new(capacity: usize) -> BlockingPool
 
-/// Runs work through the pool's boundary instead of a bare direct call.
-pub fn BlockingPool.run[T](self, work: fn() -> T) -> Result[Future[T], BlockingError]
+/// Runs work through the pool's boundary instead of a bare direct call; work may capture move-only values such as a File or Conn, and is consumed.
+pub fn BlockingPool.run[T, F: FnOnce[fn() -> T]](self, work: F) -> Result[Future[T], BlockingError]

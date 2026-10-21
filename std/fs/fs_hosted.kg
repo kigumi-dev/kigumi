@@ -239,3 +239,51 @@ pub fn Files.list(self, path: Path) -> Array[Path]! {
     }
     out
 }
+
+/// Opens the existing file at path for reading; read it with `File.read`, or wrap it in an `io.BufReader` to read line by line.
+pub fn Files.open(self, path: Path) -> File! {
+    openFile(&path.text, "rb")
+}
+
+/// Appends up to max bytes read from the file to into and returns how many; 0 means end of file (std/io's Reader).
+pub fn File.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
+    if max == 0 {
+        return 0
+    }
+    let want = if max < 65536 {
+        max
+    } else {
+        65536
+    }
+    let buf = unsafe {
+        malloc(want)
+    }
+    if ffi.isNull(ffi.toConst(buf)) {
+        fail ffi.CError {
+            code: 12
+            text: "out of memory"
+        }
+    }
+    let got = unsafe {
+        fread(buf, 1, want, self.f)
+    }
+    if got == 0 && unsafe {
+        ferror(self.f)
+    } != 0 {
+        let err = ffi.lastError()
+        unsafe {
+            free(buf)
+        }
+        fail err
+    }
+    let chunk = unsafe {
+        ffi.bytesFrom(ffi.toConst(buf), got)
+    }
+    unsafe {
+        free(buf)
+    }
+    for i in 0..got {
+        into.push(chunk[i])
+    }
+    got
+}

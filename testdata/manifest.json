@@ -1315,6 +1315,17 @@
       ]
     },
     {
+      "id": "mir/static_scalar_store",
+      "kind": "mir",
+      "path": "testdata/mir/static_scalar_store.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/std_io_bytes_writer_reuse",
       "kind": "mir",
       "path": "testdata/mir/std_io_bytes_writer_reuse.txtar",
@@ -1937,6 +1948,40 @@
       "id": "run/array_bulk",
       "kind": "run",
       "path": "testdata/run/array_bulk.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/array_contains_fold_borrow",
+      "kind": "run",
+      "path": "testdata/run/array_contains_fold_borrow.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/array_filter_concat_copy",
+      "kind": "run",
+      "path": "testdata/run/array_filter_concat_copy.txtar",
       "mode": [
         "vm",
         "native"
@@ -3581,6 +3626,57 @@
       "id": "run/blocking_pool_capacity",
       "kind": "run",
       "path": "testdata/run/blocking_pool_capacity.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_contract",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_contract.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_move_capture",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_move_capture.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_stored_closure",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_stored_closure.txtar",
       "mode": [
         "vm",
         "native"
@@ -8072,6 +8168,23 @@
       ]
     },
     {
+      "id": "run/fs_open_read_lines",
+      "kind": "run",
+      "path": "testdata/run/fs_open_read_lines.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fs_read_error",
       "kind": "run",
       "path": "testdata/run/fs_read_error.txtar",
@@ -10205,6 +10318,40 @@
       ]
     },
     {
+      "id": "run/math_float_minmax_nan",
+      "kind": "run",
+      "path": "testdata/run/math_float_minmax_nan.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/math_float_minmax_zero",
+      "kind": "run",
+      "path": "testdata/run/math_float_minmax_zero.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/method_typeargs",
       "kind": "run",
       "path": "testdata/run/method_typeargs.txtar",
@@ -12135,6 +12282,23 @@
       ]
     },
     {
+      "id": "run/static_direct_scalars",
+      "kind": "run",
+      "path": "testdata/run/static_direct_scalars.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/static_section",
       "kind": "run",
       "path": "testdata/run/static_section.txtar",
@@ -12584,6 +12748,23 @@
       "id": "run/text_parsefloat",
       "kind": "run",
       "path": "testdata/run/text_parsefloat.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/text_parsefloat_grammar",
+      "kind": "run",
+      "path": "testdata/run/text_parsefloat_grammar.txtar",
       "mode": [
         "vm",
         "native"
@@ -13403,6 +13584,17 @@
       "id": "sem/ambiguous_member",
       "kind": "sem",
       "path": "testdata/sem/ambiguous_member.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/array_filter_move_only",
+      "kind": "sem",
+      "path": "testdata/sem/array_filter_move_only.txtar",
       "mode": [
         "check"
       ],
@@ -15666,6 +15858,17 @@
       ]
     },
     {
+      "id": "sem/for_moves_borrowed_elements",
+      "kind": "sem",
+      "path": "testdata/sem/for_moves_borrowed_elements.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/foreign_method_signature",
       "kind": "sem",
       "path": "testdata/sem/foreign_method_signature.txtar",
@@ -16978,6 +17181,17 @@
       "id": "sem/static_ok",
       "kind": "sem",
       "path": "testdata/sem/static_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/static_scalar_direct_store",
+      "kind": "sem",
+      "path": "testdata/sem/static_scalar_direct_store.txtar",
       "mode": [
         "check"
       ],

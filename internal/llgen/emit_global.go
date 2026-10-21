@@ -28,6 +28,11 @@ func (e *emitter) staticGlobals() (decls, initFn string) {
 			lit, _ := e.r.StaticValueOf(ent)
 			fmt.Fprintf(&g, "@%s = global %s %s%s\n", e.r.StaticSymbolOf(ent), e.cType(typ), cLiteralText(lit, e.cType(typ)), sectionClause(e.r.StaticSectionOf(ent)))
 		default:
+			if ty, ok := e.directStatic(ent); ok {
+				lit, _ := e.r.StaticValueOf(ent)
+				fmt.Fprintf(&g, "%s = internal global %s %s%s\n", e.globalSym(ent), ty, scalarConstText(e.r.Types, mir.Inst{Lit: lit, Type: typ}), sectionClause(e.r.StaticSectionOf(ent)))
+				continue
+			}
 			fmt.Fprintf(&g, "%s = internal global ptr null%s\n", e.globalSym(ent), sectionClause(e.r.StaticSectionOf(ent)))
 			lit, _ := e.r.StaticValueOf(ent)
 			v := e.constant(&init, mir.Inst{Lit: lit, Type: typ})
@@ -40,6 +45,9 @@ func (e *emitter) staticGlobals() (decls, initFn string) {
 
 func (e *emitter) loadGlobal(sb *strings.Builder, ent sem.EntityID) string {
 	typ := e.r.Entity(ent).Type
+	if ty, ok := e.directStatic(ent); ok {
+		return e.boxNative(sb, scalarInfo{Ty: ty, Nk: e.numKind(typ)}, e.loadDirectStatic(sb, ent, ty))
+	}
 	if owner, _ := e.r.StaticOwnerOf(ent); owner != sem.StaticOwned {
 		ct := e.cType(typ)
 		raw := e.newTmp()
@@ -56,6 +64,11 @@ func (e *emitter) loadGlobal(sb *strings.Builder, ent sem.EntityID) string {
 // storeGlobal: the caller hands over an owned reference, so only the old value needs releasing, mirroring rt_setfield.
 func (e *emitter) storeGlobal(sb *strings.Builder, ent sem.EntityID, v string) {
 	typ := e.r.Entity(ent).Type
+	if ty, ok := e.directStatic(ent); ok {
+		e.storeDirectStatic(sb, ent, e.unboxScalar(sb, ty, v))
+		e.irb(sb).Call(rtRelease, vptr(v))
+		return
+	}
 	if owner, _ := e.r.StaticOwnerOf(ent); owner != sem.StaticOwned {
 		ct := e.cType(typ)
 		raw := e.unbox(sb, v, typ, ct)

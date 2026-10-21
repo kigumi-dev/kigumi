@@ -1,0 +1,46 @@
+-- src --
+import fs from std/fs
+import task from std/task
+
+async fn writeIt(f: fs.File) -> Int! {
+    let pool = task.BlockingPool.new(1)
+    let fut = pool.run(() => {
+        let mut out = f
+        let n = out.write("hello".toBytes()).unwrap().toInt() || 0
+        out.close().unwrap()
+        n
+    })?
+    let n = await fut
+    let again = pool.run(() => 3)
+    print "second ${again is Ok(_)}"
+    let blocked = pool.run(() => 4)
+    print "third ${blocked is Err(_)}"
+    match blocked {
+        Err(e) -> print "msg ${e.message()}"
+        Ok(_) -> print "ok"
+    }
+    n
+}
+
+async fn viaQ() -> Int! {
+    let pool = task.BlockingPool.new(0)
+    let fut = pool.run(() => 5)?
+    await fut
+}
+
+let files = host.files()
+let path = fs.Path.fromString("note.txt")?
+let ex = task.currentThreadExecutor()
+print "n ${ex.runToCompletion(writeIt(files.create(path)?))?}"
+print "file ${files.read(path)?}"
+match ex.runToCompletion(viaQ()) {
+    Err(e) -> print "q ${e.message()}"
+    Ok(v) -> print "q ok ${v}"
+}
+-- stdout --
+second true
+third true
+msg blocking pool capacity exhausted
+n 5
+file hello
+q blocking pool capacity exhausted

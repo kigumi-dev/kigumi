@@ -127,17 +127,17 @@ pub pure fn sortedBy[T: Copy](items: &Array[T], order: fn(&T, &T) -> Ordering) -
 pub pure fn trySortedBy[T: Copy](items: &Array[T], order: fn(&T, &T) -> Ordering) -> Result[Array[T], AllocError]
 
 /// Elements for which keep returns true, in the original order.
-pub pure fn Array[T].filter(self, keep: fn(&T) -> Bool) -> Array[T] {
+pub pure fn Array[T: Copy].filter(self, keep: fn(&T) -> Bool) -> Array[T] {
     self.tryFilter(keep) || panic("out of memory")
 }
 
 /// Elements for which keep returns true, in the original order, or AllocError when the allocator refuses (filter panics instead).
-pub pure fn Array[T].tryFilter(self, keep: fn(&T) -> Bool) -> Result[Array[T], AllocError]
+pub pure fn Array[T: Copy].tryFilter(self, keep: fn(&T) -> Bool) -> Result[Array[T], AllocError]
 
-/// Reduces the array left to right, starting from init.
-pub pure fn Array[T].fold[A](self, init: A, step: fn(A, T) -> A) -> A {
+/// Reduces the array left to right, starting from init; step borrows each element and cannot move it out (use `for` to consume them).
+pub pure fn Array[T].fold[A](self, init: A, step: fn(A, &T) -> A) -> A {
     let mut acc = init
-    for item in self {
+    for item in &self {
         acc = step(acc, item)
     }
     acc
@@ -173,7 +173,7 @@ pub pure fn Array[T: Hash].hash(self) -> u64 {
 
 /// Whether some element equals item.
 pub pure fn Array[T: Eq].contains(self, item: T) -> Bool {
-    for x in self {
+    for x in &self {
         if x.equals(&item) {
             return true
         }
@@ -206,12 +206,12 @@ pub pure fn Array[T: Copy].slice(self, start: usize, end: usize) -> Array[T]? {
 pub pure fn Array[T: Copy].trySlice(self, start: usize, end: usize) -> Result[Array[T]?, AllocError]
 
 /// New array holding the elements of self followed by those of other.
-pub pure fn Array[T].concat(self, other: Array[T]) -> Array[T] {
+pub pure fn Array[T: Copy].concat(self, other: Array[T]) -> Array[T] {
     self.tryConcat(other) || panic("out of memory")
 }
 
 /// New array holding the elements of self followed by those of other, or AllocError when the allocator refuses (concat panics instead).
-pub pure fn Array[T].tryConcat(self, other: Array[T]) -> Result[Array[T], AllocError]
+pub pure fn Array[T: Copy].tryConcat(self, other: Array[T]) -> Result[Array[T], AllocError]
 
 /// Concatenates items with sep between consecutive elements.
 pub pure fn join(items: &Array[String], sep: String) -> String {

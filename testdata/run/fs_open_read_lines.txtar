@@ -1,0 +1,80 @@
+-- src --
+import fs from std/fs
+import io from std/io
+
+let files = host.files()
+let path = fs.Path.fromString("lines.txt")?
+files.writeText(path, "alpha\nbeta\r\n\ngamma")?
+
+let f = files.open(path)?
+let mut br = io.BufReader.new(f)
+let mut n = 0
+for true {
+    match br.readLine()? {
+        Some(line) -> {
+            n += 1
+            print "${n}: [${line}]"
+        }
+        None -> break
+    }
+}
+print "lines ${n}"
+
+let big = fs.Path.fromString("big.txt")?
+let mut out = files.create(big)?
+let mut i = 0
+for i < 12000 {
+    let data = "row ${i}\n".toBytes()
+    let mut sent: usize = 0
+    for sent < data.len() {
+        sent += out.write(data.slice(sent, data.len()).unwrap())?
+    }
+    i += 1
+}
+out.close()?
+
+let mut rd = io.BufReader.new(files.open(big)?)
+let mut rows = 0
+let mut last = ""
+for rows < 1500 {
+    match rd.readLine()? {
+        Some(line) -> {
+            rows += 1
+            last = line
+        }
+        None -> break
+    }
+}
+print "rows ${rows} last ${last}"
+
+let whole = io.readAll(files.open(big)?)?
+print "bytes ${whole.len()}"
+
+let mut f2 = files.open(path)?
+let mut chunk = Array.empty[u8]()
+print "zero ${f2.read(&mut chunk, 0)? } ${chunk.len()}"
+print "five ${f2.read(&mut chunk, 5)?} ${chunk.len()}"
+print "rest ${f2.read(&mut chunk, 100)?} ${chunk.len()}"
+print "eof ${f2.read(&mut chunk, 100)?} ${chunk.len()}"
+
+print "missing ${files.open(fs.Path.fromString("nope.txt")?) is Err(_)}"
+let mut w = files.create(fs.Path.fromString("w.txt")?)?
+let mut sink = Array.empty[u8]()
+print "write-only ${w.read(&mut sink, 4) is Err(_)}"
+let mut dir = files.open(fs.Path.fromString(".")?)?
+print "dir ${dir.read(&mut sink, 4) is Err(_)}"
+-- stdout --
+1: [alpha]
+2: [beta]
+3: []
+4: [gamma]
+lines 4
+rows 1500 last row 1499
+bytes 108890
+zero 0 0
+five 5 5
+rest 13 18
+eof 0 18
+missing true
+write-only true
+dir true

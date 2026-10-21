@@ -1,0 +1,75 @@
+-- src --
+import text from std/text
+
+fn show(s: String) -> String {
+    if text.parseFloat(s) is Some(f) {
+        return "[${s}] some ${f}"
+    }
+    "[${s}] none"
+}
+
+print show("1.5")
+print show("-2.5e3")
+print show("0")
+print show("-0")
+print show("12345678901234567890")
+print show("1e5")
+print show("1E+5")
+print show("1e-2")
+print show("0.000001")
+print show("1e-400")
+print show("inf")
+print show("-inf")
+print show("Infinity")
+print show("nan")
+print show("NaN")
+print show("0x1p3")
+print show("1_0")
+print show(".5")
+print show("5.")
+print show("+1")
+print show(" 1")
+print show("1 ")
+print show("1e")
+print show("1e+")
+print show("--1")
+print show("1.5.5")
+print show("1.5x")
+print show("")
+print show("-")
+print show("1e400")
+print show("-1e400")
+print "embedded nul: ${text.parseFloat("1\u{0}x") is None}"
+-- stdout --
+[1.5] some 1.5
+[-2.5e3] some -2500
+[0] some 0
+[-0] some -0
+[12345678901234567890] some 1.2345678901234567e+19
+[1e5] some 100000
+[1E+5] some 100000
+[1e-2] some 0.01
+[0.000001] some 1e-06
+[1e-400] some 0
+[inf] none
+[-inf] none
+[Infinity] none
+[nan] none
+[NaN] none
+[0x1p3] none
+[1_0] none
+[.5] none
+[5.] none
+[+1] none
+[ 1] none
+[1 ] none
+[1e] none
+[1e+] none
+[--1] none
+[1.5.5] none
+[1.5x] none
+[] none
+[-] none
+[1e400] none
+[-1e400] none
+embedded nul: true

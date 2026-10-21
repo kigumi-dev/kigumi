@@ -25,6 +25,7 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 		elem := c.iterElement(n, s.Head, iter)
 		if !c.r.isCopy(c.vars.resolve(elem)) {
 			c.rejectFieldLeaf(c.t.Unparen(s.Head))
+			c.rejectForOfBorrowed(s.Head, iter, elem)
 		}
 		c.reserveUse(s.Head)
 		c.checkPattern(s.Pattern, elem, false, c.scope)

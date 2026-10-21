@@ -30,7 +30,8 @@ pub pure fn graphemes(s: String) -> Array[String] {
 /// Same as graphemes, or AllocError when the allocator refuses (graphemes panics instead).
 pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError]
 
-/// Parses a decimal floating-point literal (JSON / C `strtod` grammar); None unless the whole text is a number.
+/// Parses `-? digits (. digits)? ([eE] [+-]? digits)?` (the JSON number grammar); None for anything else,
+/// including a leading `+`, spaces, `inf`, `nan`, hex floats, underscores and a result that overflows to infinity.
 pub pure fn parseFloat(s: String) -> Float?
 
 /// Parses s (surrounding spaces and tabs allowed) as a base-10 integer with an optional sign, or None.

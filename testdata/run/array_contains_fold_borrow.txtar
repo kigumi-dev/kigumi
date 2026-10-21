@@ -1,0 +1,46 @@
+-- src --
+type P = { y Int }
+
+type R = resource {
+    pub id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn play() {
+    let ys = Array.of(P { y: 1 }, P { y: 2 })
+    print "${ys.contains(P { y: 1 })} ${ys.contains(P { y: 7 })}"
+    print "${ys.fold(0, (acc, p) => acc + p.y)}"
+    for p in ys {
+        print "p ${p.y}"
+    }
+
+    let tuples = Array.of((1, "a"), (2, "b"))
+    print "${tuples.contains((2, "b"))} ${tuples.contains((2, "c"))}"
+    print "${tuples.fold(0, (acc, t) => match t { (n, _) -> acc + n })} ${tuples.len()}"
+
+    let xs = Array.of(1, 2, 3)
+    print "${xs.fold(0, (a, b) => a + b)} ${xs.contains(2)} ${xs.len()}"
+
+    let rs = Array.of(R { id: 1 }, R { id: 2 })
+    print "${rs.fold(0, (a, r) => a + r.id)} ${rs.len()}"
+    print "${rs.with(1, (r: &R) => r.id) || -1}"
+    print "end of play"
+}
+
+play()
+-- stdout --
+true false
+3
+p 1
+p 2
+true false
+3 2
+6 true 3
+3 2
+2
+end of play
+drop 2
+drop 1

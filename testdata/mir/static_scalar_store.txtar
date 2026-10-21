@@ -1,0 +1,27 @@
+-- src --
+static mut ticks: u32 = 0
+
+noalloc fn bump() {
+    unsafe {
+        ticks = ticks.wrappingAdd(1)
+    }
+}
+
+bump()
+-- expect --
+fn main.bump() -> Void {
+  b0:
+    %t0 = globalget main.ticks
+    %t1 = const 1: u32
+    %t2 = call std/prelude.u32.wrappingAdd(%t0, %t1)
+    globalset main.ticks(%t2)
+    %t3 = unit
+    return %t3
+}
+fn main() -> Void! {
+  b0:
+    %t0 = call main.bump
+    drop(%t0)
+    %t1 = unit
+    return %t1
+}

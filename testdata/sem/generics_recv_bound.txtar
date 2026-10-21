@@ -4,8 +4,8 @@ pub type Bag[T] = {
 }
 
 pub fn Bag[T: Eq].has(self, item: T) -> Bool {
-    for x in self.items {
-        if x == item { return true }
+    for x in &self.items {
+        if x.equals(&item) { return true }
     }
     false
 }

@@ -1,0 +1,21 @@
+-- src --
+type Cell = { pub mut v Int }
+
+fn at(a: &Array[Cell], i: usize) -> Int {
+    a.with(i, (c: &Cell) => c.v) || -1
+}
+
+let a = Array.of(Cell { v: 1 }, Cell { v: 2 })
+let mut f = a.filter((c: &Cell) => true)
+_ = f.withMut(0, (c: &mut Cell) => { c.v = 100 })
+print "filter ${at(&a, 0)} ${at(&f, 0)}"
+let mut g = a.concat(Array.of(Cell { v: 9 }))
+_ = g.withMut(0, (c: &mut Cell) => { c.v = 70 })
+print "concat ${at(&a, 0)} ${at(&g, 0)} ${at(&g, 2)}"
+let mut t = a.tryFilter((c: &Cell) => c.v > 1).unwrap()
+_ = t.withMut(0, (c: &mut Cell) => { c.v = 5 })
+print "try ${at(&a, 1)} ${at(&t, 0)}"
+-- stdout --
+filter 1 100
+concat 1 70 9
+try 2 5

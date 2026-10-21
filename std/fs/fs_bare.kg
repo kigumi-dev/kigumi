@@ -1,3 +1,13 @@
+/// Opens a file for reading; a bare target has no file system.
+pub fn Files.open(self, path: Path) -> File! {
+    panic()
+}
+
+/// Reads from a file; a bare target has no file system.
+pub fn File.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
+    panic()
+}
+
 /// Creates a file; a bare target has no file system.
 pub fn Files.create(self, path: Path) -> File! {
     panic()

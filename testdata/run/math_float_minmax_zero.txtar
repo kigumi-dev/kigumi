@@ -1,0 +1,11 @@
+-- src --
+import math from std/math
+
+let z = 0.0
+let nz = -z
+let nan = math.sqrt(-1.0)
+print "${math.min(z, nz)} ${math.min(nz, z)} ${math.max(z, nz)} ${math.max(nz, z)}"
+print "${math.clamp(0.5, nan, 1.0)} ${math.clamp(5.0, 0.0, nan)} ${math.clamp(nan, 0.0, 1.0)} ${math.clamp(5.0, 0.0, 1.0)}"
+-- stdout --
+-0 -0 0 0
+NaN NaN NaN 1

@@ -1,0 +1,26 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+let r = Array.of(Res { id: 1 })
+let f = r.filter((x: &Res) => true) //~ ERROR `Res` does not satisfy `Copy`
+let g = r.concat(Array.of(Res { id: 2 })) //~ ERROR `Res` does not satisfy `Copy`
+print "${f.len()} ${g.len()}"
+-- expect --
+error[E300]: `Res` does not satisfy `Copy`: it is move-only
+  --> main/main.kg:10:9
+   |
+10 | let f = r.filter((x: &Res) => true) //~ ERROR `Res` does not satisfy `Copy`
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `Res` does not satisfy `Copy`: it is move-only
+  --> main/main.kg:11:9
+   |
+11 | let g = r.concat(Array.of(Res { id: 2 })) //~ ERROR `Res` does not satisfy `Copy`
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

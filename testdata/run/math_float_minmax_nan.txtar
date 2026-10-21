@@ -1,0 +1,9 @@
+-- src --
+import math from std/math
+
+let nan = math.sqrt(-1.0)
+print "${math.min(nan, 1.0)} ${math.min(1.0, nan)} ${math.max(nan, 1.0)} ${math.max(1.0, nan)} ${math.min(nan, nan)}"
+print "${math.min(2.0, 1.0)} ${math.max(2.0, 1.0)} ${math.min(-0.0, 1.0)} ${math.max(1.5, 1.5)}"
+-- stdout --
+NaN NaN NaN NaN NaN
+1 2 -0 1.5

@@ -20,7 +20,7 @@ fn methodMatch(cbs: ...fn() -> Int) -> Handler[fn() -> Int] {
     }
 }
 
-fn methodGeneric[F: FnMut[fn() -> Int]](cbs: ...F) -> Array[F] {
+fn methodGeneric[F: Copy + FnMut[fn() -> Int]](cbs: ...F) -> Array[F] {
     cbs.concat(Array.empty()) //~ ERROR `cbs` is a non-escaping callback and cannot be returned
 }
 

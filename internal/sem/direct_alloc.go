@@ -75,7 +75,10 @@ func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) bool {
 	if elem, ok := c.r.MutRefElem(c.vars.resolve(t)); ok {
 		t = elem
 	}
-	if _, static := c.staticRootOf(lhs); static && c.t.Kind(lhs) == syntax.Ident {
+	if ent, static := c.staticRootOf(lhs); static && c.t.Kind(lhs) == syntax.Ident {
+		if c.r.DirectStatic(ent) {
+			return false
+		}
 		c.crossDirect(lhs, t)
 		return true
 	}

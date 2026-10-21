@@ -94,11 +94,10 @@ func (m *Machine) std(key string, a []*obj) *obj {
 	case "text.fromChar":
 		return mkStr([]byte(string(a0.ch())))
 	case "text.parseFloat":
-		s := string(a0.str())
-		if s == "" || s[0] == ' ' || s[0] == '\t' || s[0] == '\n' || s[0] == '+' {
+		if !floatTextOK(a0.str()) {
 			return m.none()
 		}
-		f, err := strconv.ParseFloat(s, 64)
+		f, err := strconv.ParseFloat(string(a0.str()), 64)
 		if err != nil {
 			return m.none()
 		}

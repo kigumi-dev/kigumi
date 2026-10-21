@@ -45,12 +45,12 @@ fn fromField['a](v: View['a]) -> View['a] {
 
 fn largest['a](b: &'a Bytes) -> View['a] {
     let vs = views(b)
-    vs.fold(head(b), (acc: View['a], v: View['a]) => if v.byte() > acc.byte() { v } else { acc })
+    vs.fold(head(b), (acc: View['a], v: &View['a]) => if v.byte() > acc.byte() { View { data: v.data, off: v.off } } else { acc })
 }
 
 fn smallest['a](b: &'a Bytes) -> View['a] {
     let vs = views(b)
-    vs.fold(head(b), (acc, v) => if v.byte() < acc.byte() { v } else { acc })
+    vs.fold(head(b), (acc, v) => if v.byte() < acc.byte() { View { data: v.data, off: v.off } } else { acc })
 }
 
 fn localSum() -> Int {

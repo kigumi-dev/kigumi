@@ -1,0 +1,31 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn eat(r: Res) -> Int {
+    r.id
+}
+
+async fn go() -> Int! {
+    let pool = task.BlockingPool.new(2)
+    let k = 4
+    let plain = () => k + 1
+    let f = pool.run(plain)?
+    let r = Res { id: 7 }
+    let owning = () => eat(r)
+    let g = pool.run(owning)?
+    (await f) + (await g)
+}
+
+let ex = task.currentThreadExecutor()
+print "sum ${ex.runToCompletion(go())?}"
+-- stdout --
+drop 7
+sum 12

@@ -11,7 +11,7 @@ pub type Path = {
     text String
 }
 
-/// Open file for writing; close it explicitly or let the drop close it.
+/// Open file, from `Files.open` (read) or `Files.create` / `Files.append` (write); close it explicitly or let the drop close it.
 pub type File = resource {
     f *mut u8
 }

@@ -1,0 +1,30 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn consume(r: Res) -> Int {
+    r.id
+}
+
+async fn useIt() -> Int {
+    let pool = task.BlockingPool.new(2)
+    let r = Res { id: 7 }
+    let fut = pool.run(() => consume(r)).unwrap()
+    let keep = Res { id: 8 }
+    let fut2 = pool.run(() => keep.id).unwrap()
+    (await fut) + (await fut2)
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(useIt())}"
+-- stdout --
+drop 7
+drop 8
+total 15

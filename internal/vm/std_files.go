@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -8,6 +9,9 @@ import (
 
 	"kigumi/internal/sem"
 )
+
+// readChunk caps one File.read, like the hosted runtime.
+const readChunk = 65536
 
 func pathText(v *obj) string { return string(deref(deref(v).fields[0]).str()) }
 
@@ -22,6 +26,30 @@ func (m *Machine) resultPayload(fn sem.EntityID) sem.TypeID {
 	return t
 }
 
+func readFile(m *Machine, fn sem.EntityID, a []*obj) *obj {
+	fh := fileOf(a[0])
+	if fh == nil {
+		return m.errMsg("file is closed")
+	}
+	want := deref(a[2]).i
+	if want < 0 || want > readChunk {
+		want = readChunk
+	}
+	if want == 0 {
+		return m.ok(mkInt(0, m.numKind(sem.TyUsize)))
+	}
+	buf := make([]byte, want)
+	got, err := fh.Read(buf)
+	if err != nil && err != io.EOF {
+		return m.errMsg(err.Error())
+	}
+	arr := deref(a[1])
+	for _, b := range buf[:got] {
+		arr.fields = append(arr.fields, mkInt(int64(b), 8))
+	}
+	return m.ok(mkInt(int64(got), m.numKind(sem.TyUsize)))
+}
+
 func (m *Machine) registerFiles() {
 	h := m.host
 	openAs := func(m *Machine, fn sem.EntityID, fh *os.File, err error) *obj {
@@ -31,8 +59,13 @@ func (m *Machine) registerFiles() {
 		file := m.r.Types.Node(m.resultPayload(fn)).Ent
 		return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
 	}
+	h["fs.Files.open"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		fh, err := os.Open(m.resolvePath(pathText(a[1])))
+		return openAs(m, fn, fh, err)
+	}
+	h["fs.File.read"] = readFile
 	h["fs.Files.create"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		fh, err := os.Create(m.resolvePath(pathText(a[1])))
+		fh, err := os.OpenFile(m.resolvePath(pathText(a[1])), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
 		return openAs(m, fn, fh, err)
 	}
 	h["fs.Files.append"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {

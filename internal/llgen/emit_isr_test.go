@@ -103,3 +103,36 @@ func TestExportInterruptNoTrapLeavesNoPanicPath(t *testing.T) {
 		}
 	}
 }
+
+func TestInterruptStaticScalarStoreIsPlain(t *testing.T) {
+	src := `
+static mut ticks: u32 = 0
+static mut armed: Bool = false
+static mut gain: f64 = 1.5
+
+export(interrupt) {
+    pub fn tick() {
+        unsafe {
+            ticks = ticks.wrappingAdd(1)
+            armed = ticks > 3
+            gain = gain * 2.0
+        }
+    }
+}
+`
+	ir := emitIR(t, src)
+	for _, want := range []string{"internal global i64 0", "internal global i1 0", "internal global double 0x"} {
+		if !strings.Contains(ir, want) {
+			t.Errorf("IR lacks a raw static slot %q:\n%s", want, ir)
+		}
+	}
+	hstart := strings.Index(ir, `define ptr @"main.tick$kg"(`)
+	if hstart < 0 {
+		t.Fatalf("no handler body for `tick` in IR:\n%s", ir)
+	}
+	hend := strings.Index(ir[hstart:], "\n}\n")
+	if hend < 0 {
+		t.Fatalf("handler body not closed:\n%s", ir)
+	}
+	checkNoAlloc(t, "handler body", ir[hstart:hstart+hend])
+}

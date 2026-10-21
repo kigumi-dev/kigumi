@@ -41,7 +41,7 @@ func (m *Machine) tryFilterItems(src, keep *obj) *obj {
 	for _, x := range src.fields {
 		r := deref(m.callValue(keep, []*obj{x}))
 		if r.b {
-			out = append(out, retain(x))
+			out = append(out, m.copy(x))
 		}
 	}
 	done = true

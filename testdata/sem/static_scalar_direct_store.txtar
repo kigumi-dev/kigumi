@@ -1,0 +1,41 @@
+-- src --
+static mut ticks: u32 = 0
+static mut level: Int = 3
+static mut armed: Bool = false
+static mut gain: f64 = 1.5
+
+noalloc fn bump() {
+    unsafe {
+        ticks = ticks.wrappingAdd(1)
+        level = level * 2
+        level += 1
+        armed = level > 4
+        gain = gain * 2.0
+    }
+}
+
+export(interrupt) {
+    pub fn tick() {
+        unsafe {
+            ticks = ticks.wrappingAdd(1)
+            armed = !armed
+        }
+    }
+}
+
+noalloc fn viaFnValue(g: noalloc fn(Int) -> Bool) -> Bool {
+    unsafe {
+        g(level) //~ ERROR a call through a function value receives this `Int` in a box
+    }
+}
+
+bump()
+tick()
+-- expect --
+error[E2124]: a call through a function value receives this `Int` in a box allocated for it
+  --> main/main.kg:27:11
+   |
+27 |         g(level) //~ ERROR a call through a function value receives this `Int` in a box
+   |           ^^^^^
+   = help: pass a constant, call the function directly, or drop the declaration
+
