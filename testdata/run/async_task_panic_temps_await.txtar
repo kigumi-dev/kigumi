@@ -59,7 +59,6 @@ drop 41
 drop 40
 drop 32
 drop 1
-b 4
 -- stderr --
 panic: explode 1
 -- exit --

@@ -42,7 +42,6 @@ print "total ${ex.runToCompletion(root())}"
 -- stdout --
 cleanup b
 drop 1
-sibling 1
 -- stderr --
 panic: in defer
 -- exit --

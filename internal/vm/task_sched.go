@@ -34,10 +34,17 @@ type task struct {
 	queued   bool
 	draining bool
 	waitKids bool
-	fault    *Panic
+	// closing is set once the scope starts to close; a spawn after it is rejected.
+	closing bool
+	fault   *Panic
+	// closeMark is the closing pass that last found this task under its scope.
+	closeMark uint64
 	// cancelReq is read at every suspension point by the lane running the
 	// task and set by whichever lane asks, so it stays outside sched.
 	cancelReq atomic.Bool
+
+	// kidAt is t's slot in parent.kids; openKids counts the non-terminal kids and goneKids the nil holes.
+	kidAt, openKids, goneKids int
 }
 
 type taskQueue struct{ q []*task }

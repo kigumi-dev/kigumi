@@ -1,0 +1,54 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+async fn serve(id: Int) -> Int {
+    let r = Res { id: id }
+    for !task.cancelRequested() {
+        await task.yieldNow()
+    }
+    id
+}
+
+async fn quick() -> Res {
+    Res { id: 7 }
+}
+
+// A discarding await of a cancelled child goes on; one that uses the value cancels the awaiter.
+async fn root() -> Int {
+    let w = task.spawn(serve(1))
+    await task.yieldNow()
+    w.cancel()
+    _ = await w
+    print "after cancelled child, requested ${task.cancelRequested()}"
+    let q = task.spawn(quick())
+    q.cancel()
+    _ = await q
+    print "after finished child"
+    let v = task.spawn(serve(2))
+    await task.yieldNow()
+    v.cancel()
+    let n = await v
+    print "unreachable ${n}"
+    n
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 1
+after cancelled child, requested false
+drop 7
+after finished child
+drop 2
+-- stderr --
+panic: the root task was cancelled
+-- exit --
+2

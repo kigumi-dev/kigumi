@@ -1,0 +1,23 @@
+-- src --
+import task from std/task
+
+async fn noop() {
+}
+
+// Each awaited child leaves the parent's scope when its await completes.
+async fn root() -> Int {
+    let mut i = 0
+    for i < 20000 {
+        await task.spawn(noop())
+        i = i + 1
+    }
+    i
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+total 20000
+-- stderr --
+-- exit --
+0

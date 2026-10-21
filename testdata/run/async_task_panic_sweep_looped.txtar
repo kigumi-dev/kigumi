@@ -1,0 +1,57 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+fn eat(r: Res) {
+    print "eat ${r.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// The only task that panics, so nothing cancels it before it reaches its panic.
+async fn looped() -> Int {
+    let mut i = 0
+    for i < 3 {
+        let r = Res { id: 30 + i }
+        let _ = await tick()
+        i = i + 1
+    }
+    let last = Res { id: 40 }
+    None.expect("looped")
+}
+
+async fn sentinel() -> Int {
+    9
+}
+
+async fn root() -> Int {
+    let a = task.spawn(looped())
+    let s = task.spawn(sentinel())
+    await s
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 30
+drop 31
+drop 32
+drop 40
+-- stderr --
+panic: looped
+-- exit --
+2

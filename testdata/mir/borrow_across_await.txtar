@@ -23,6 +23,7 @@ async fn endedBefore() -> u8 {
 async fn lib.zero() -> u8 {
   b0:
     %t0 = const 0: u8
+    %t1 = builtin task.close
     return %t0
 }
 async fn lib.held() -> u8 {
@@ -51,6 +52,7 @@ async fn lib.held() -> u8 {
     %t15 = const 0: usize
     %t16 = index(%r, %t15)
     %t17 = bin +(%t16, %v)
+    %t18 = builtin task.close
     drop(%v)
     drop(%buf)
     return %t17
@@ -83,6 +85,7 @@ async fn lib.endedBefore() -> u8 {
   b2:
     %v = copy(%t15)
     %t18 = bin +(%first, %v)
+    %t19 = builtin task.close
     drop(%v)
     drop(%first)
     drop(%buf)

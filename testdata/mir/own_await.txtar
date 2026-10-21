@@ -51,6 +51,7 @@ async fn awaitLoop() -> Int {
 async fn lib.work() -> Int {
   b0:
     %t0 = const 1: Int
+    %t1 = builtin task.close
     return %t0
 }
 async fn lib.awaitOnce() -> Int {
@@ -67,6 +68,7 @@ async fn lib.awaitOnce() -> Int {
     cancel
     unreachable
   b2:
+    %t6 = builtin task.close
     nop
     return %t4
 }
@@ -97,6 +99,7 @@ async fn lib.awaitTwice() -> Int {
   b4:
     %b = copy(%t8)
     %t11 = bin +(%a, %b)
+    %t12 = builtin task.close
     drop(%b)
     drop(%a)
     nop
@@ -132,6 +135,7 @@ async fn lib.awaitValueTwice() -> Int {
   b4:
     %b = copy(%t9)
     %t12 = bin +(%a, %b)
+    %t13 = builtin task.close
     drop(%b)
     drop(%a)
     nop
@@ -162,6 +166,7 @@ async fn lib.awaitField(%b: Box) -> Int {
   b4:
     %y = copy(%t6)
     %t9 = bin +(%x, %y)
+    %t10 = builtin task.close
     drop(%y)
     drop(%x)
     drop(%b)
@@ -191,6 +196,7 @@ async fn lib.awaitParam(%f: Future[Int]) -> Int {
   b4:
     %b = copy(%t6)
     %t9 = bin +(%a, %b)
+    %t10 = builtin task.close
     drop(%b)
     drop(%a)
     nop
@@ -230,6 +236,7 @@ async fn lib.awaitLoop() -> Int {
     %t19 = unit
     drop(%t19)
     %t20 = copy(%total)
+    %t21 = builtin task.close
     drop(%total)
     drop(%f)
     return %t20

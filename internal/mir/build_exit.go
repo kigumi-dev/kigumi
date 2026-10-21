@@ -10,6 +10,7 @@ import (
 // Result that is not statically Ok runs the defer(fail) cleanups when it holds Err.
 func (b *builder) returnUnwinding(v LocalID, ex *hir.Expr, n syntax.NodeID) {
 	b.splitOnErr(v, n, b.dynamicErr(v, ex), func(failing bool) {
+		b.closeTaskScope(n)
 		b.unwindTo(0, failing)
 		b.returnValue(v)
 	})

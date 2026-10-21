@@ -18,6 +18,9 @@ func (b *builder) stmt(s *hir.Stmt) {
 			b.discard(&hir.Stmt{Kind: hir.DiscardStmt, Expr: b.unparen(s.Expr), Node: s.Node})
 			return
 		}
+		if b.settles(s.Expr) {
+			return
+		}
 		v := b.expr(s.Expr)
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: s.Node})
 	case hir.DeferStmt:
@@ -29,6 +32,9 @@ func (b *builder) stmt(s *hir.Stmt) {
 }
 
 func (b *builder) letStmt(s *hir.Stmt) {
+	if s.Else == nil && s.Pat.Kind == hir.PatWild && !s.Pat.Borrow && b.settles(s.Expr) {
+		return
+	}
 	var v LocalID
 	if s.Pat.Borrow {
 		v = b.expr(s.Expr)
@@ -119,6 +125,9 @@ func (b *builder) transfer(outer *hir.Expr, v LocalID) LocalID {
 // at scope exit, while a move-only value is moved out and dropped here.
 func (b *builder) discard(s *hir.Stmt) {
 	rhs := s.Expr
+	if b.settles(rhs) {
+		return
+	}
 	if l, ok := b.locals[rhs.Ent]; ok && rhs.Kind == hir.Local {
 		lt := b.fn.Locals[l].Type
 		if b.fn.Locals[l].Borrowed || b.r.IsCopy(lt) {

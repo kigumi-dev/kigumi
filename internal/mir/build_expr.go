@@ -146,12 +146,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 	case hir.Asm:
 		return b.asm(e)
 	case hir.Await:
-		// await consumes the future, so it moves like Fail above.
-		fut := b.exprMoved(e.Args[0])
-		b.fn.Suspends++
-		v := b.emit(Inst{Op: OpAwait, Dst: b.temp(t), Args: []LocalID{fut}, Index: b.fn.Suspends, Node: n})
-		b.cancelEdge(n)
-		return v
+		return b.await(e, n, t, "")
 	case hir.Allocator:
 		// The guard pops the allocator when it is dropped, so every exit
 		// from the block, structured or not, restores the previous one.

@@ -1,0 +1,77 @@
+-- src --
+import task from std/task
+
+type Res = {
+    id Int
+}
+
+type Pool = {
+    pub mut tasks Array[task.Task[Int]]
+}
+
+async fn leaf() -> Res {
+    await task.yieldNow()
+    Res { id: 5 }
+}
+
+async fn num(i: Int) -> Int {
+    i
+}
+
+async fn wrapper(t: task.Task[Res]) -> Int {
+    let r = await t
+    r.id
+}
+
+async fn Pool.waitAll(mut self) -> Int {
+    let mut s = 0
+    let n = self.tasks.len()
+    for _ in 0..n {
+        if let Some(t) = self.tasks.takeAt(0) {
+            s += await t
+        }
+    }
+    s
+}
+
+async fn fill(ts: &mut Array[task.Task[Int]]) {
+    ts.push(task.spawn(num(1)))
+}
+
+// A sibling may await a handle it was given, since the scope joins both.
+async fn spawned() -> Int {
+    let t = task.spawn(leaf())
+    let w = task.spawn(wrapper(t))
+    await w
+}
+
+async fn inline() -> Int {
+    let t = task.spawn(leaf())
+    await wrapper(t)
+}
+
+async fn pool() -> Int {
+    let mut a: Array[task.Task[Int]] = Array.of()
+    a.push(task.spawn(num(2)))
+    let mut p = Pool { tasks: a }
+    await p.waitAll()
+}
+
+async fn filled() -> Int {
+    let mut ts: Array[task.Task[Int]] = Array.of()
+    ts.push(task.spawn(num(3)))
+    await fill(&mut ts)
+    let mut s = 0
+    for t in ts {
+        s += await t
+    }
+    s
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(spawned())} ${ex.runToCompletion(inline())} ${ex.runToCompletion(pool())} ${ex.runToCompletion(filled())}"
+-- stdout --
+5 5 2 4
+-- stderr --
+-- exit --
+0

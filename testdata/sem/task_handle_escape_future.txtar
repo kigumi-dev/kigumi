@@ -1,0 +1,75 @@
+-- src --
+import task from std/task
+
+type Res = {
+    id Int
+}
+
+async fn leaf() -> Res {
+    await task.yieldNow()
+    Res { id: 5 }
+}
+
+async fn wrapper(t: task.Task[Res]) -> Int {
+    let r = await t
+    r.id
+}
+
+fn wrapSync(t: task.Task[Res]) -> Future[Int] {
+    wrapper(t) //~ ERROR `Task[Res]` holds a `Task` handle
+}
+
+async fn returned() -> Future[Int] {
+    let t = task.spawn(leaf())
+    wrapper(t) //~ ERROR `Task[Res]` holds a `Task` handle
+}
+
+async fn bound() -> Int {
+    let t = task.spawn(leaf())
+    let f = wrapper(t) //~ ERROR `Task[Res]` holds a `Task` handle
+    await f
+}
+
+async fn viaValue() -> Int {
+    let t = task.spawn(leaf())
+    let g = wrapper
+    let f = g(t) //~ ERROR `Task[Res]` holds a `Task` handle
+    await f
+}
+
+async fn inScope() -> Int {
+    let a = task.spawn(leaf())
+    let b = task.spawn(leaf())
+    let w = task.spawn(wrapper(a))
+    await wrapper(b) + await w
+}
+
+-- expect --
+error[E2203]: `Task[Res]` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future that is not awaited or spawned where it is built
+  --> main/main.kg:18:5
+   |
+18 |     wrapper(t) //~ ERROR `Task[Res]` holds a `Task` handle
+   |     ^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Task[Res]` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future that is not awaited or spawned where it is built
+  --> main/main.kg:23:5
+   |
+23 |     wrapper(t) //~ ERROR `Task[Res]` holds a `Task` handle
+   |     ^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Task[Res]` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future that is not awaited or spawned where it is built
+  --> main/main.kg:28:13
+   |
+28 |     let f = wrapper(t) //~ ERROR `Task[Res]` holds a `Task` handle
+   |             ^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Task[Res]` holds a `Task` handle and cannot leave the task that spawned it as an argument of a Future that is not awaited or spawned where it is built
+  --> main/main.kg:35:13
+   |
+35 |     let f = g(t) //~ ERROR `Task[Res]` holds a `Task` handle
+   |             ^^^
+   = help: await the task there and pass on its result
+

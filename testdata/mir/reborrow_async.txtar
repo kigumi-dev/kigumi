@@ -19,6 +19,7 @@ async fn lib.addOne(%out: &mut Array[u8]) -> Void {
     %t6 = celltake(%t3)
     drop(%t3)
     drop(%t6)
+    %t7 = builtin task.close
     return %t5
 }
 async fn lib.scenario(%out: &mut Array[u8]) -> Void {
@@ -45,6 +46,7 @@ async fn lib.scenario(%out: &mut Array[u8]) -> Void {
     cancel
     unreachable
   b2:
+    %t14 = builtin task.close
     nop
     return %t12
 }

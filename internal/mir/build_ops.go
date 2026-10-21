@@ -142,6 +142,7 @@ func (b *builder) forwardErr(e *hir.Expr, v LocalID, rt sem.TypeID) bool {
 	if b.r.Types.Kind(e.Args[0].Type) == sem.KRef {
 		return false
 	}
+	b.closeTaskScope(e.Node)
 	b.unwindTo(0, true)
 	b.returnValue(v)
 	return true

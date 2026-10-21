@@ -29,7 +29,9 @@ func (m *Machine) callJoined(fault *Panic, run func()) (out *Panic) {
 		return fault
 	}
 	base := len(m.frames)
+	m.joinDepth++
 	defer func() {
+		m.joinDepth--
 		if r := recover(); r != nil {
 			out = m.recoverJoined(r, fault, base)
 		}

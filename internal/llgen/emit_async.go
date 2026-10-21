@@ -90,7 +90,11 @@ func (e *emitter) await(sb *strings.Builder, in mir.Inst, operand string) {
 	e.irb(sb).Call(rtFutureSuspend, vptr("%fut"), vi32(k), vptr(operand))
 	fmt.Fprintf(sb, "  br label %%rs%d\nrs%d:\n", k, k)
 	e.unwindResume(sb)
-	r := e.irb(sb).Call(rtFutureResume, vptr("%fut")).Text
+	resume := rtFutureResume
+	if in.Str == "settle" {
+		resume = rtFutureSettle
+	}
+	r := e.irb(sb).Call(resume, vptr("%fut")).Text
 	p := e.newTmp()
 	fmt.Fprintf(sb, "  %s = icmp eq ptr %s, null\n", p, r)
 	fmt.Fprintf(sb, "  br i1 %s, label %%pend%d, label %%ck%d\n", p, k, k)

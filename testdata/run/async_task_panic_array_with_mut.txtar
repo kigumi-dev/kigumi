@@ -16,14 +16,15 @@ async fn boom(s: Shared[Array[Int]]) -> Int {
 }
 
 async fn sib(s: Shared[Array[Int]]) -> Int {
-    s.with((xs: &Array[Int]) => xs[0])
+    let x = s.with((xs: &Array[Int]) => xs[0])
+    print "sibling ${x}"
+    x
 }
 
 async fn root(s: Shared[Array[Int]]) -> Int {
     let a = task.spawn(boom(s.clone()))
     let b = task.spawn(sib(s.clone()))
     let x = await b
-    print "sibling ${x}"
     await a
 }
 

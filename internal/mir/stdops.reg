@@ -425,6 +425,7 @@ builtin direct.eq (any, any) -> bool min=2 vm native=inline
 builtin direct.hash (any) -> int min=1 vm native=inline
 builtin cmp.unordered (any, any, any) -> bool min=3 vm native=runtime
 builtin cmp.guard (bool, bool) -> bool min=2 vm native=runtime
+builtin task.close () -> any vm native=inline
 op 135 ARRAY_TRY_CLONE primitive (array) -> result
 key array.Array.tryClone
 op 136 BOX_NEW primitive (any) -> named
@@ -485,6 +486,9 @@ cap host.args
 key os.Args.getBytes
 op 161 OS_STRING_TRY_CLONE primitive (named) -> result
 key os.OsString.tryClone
+op 162 TASK_YIELD_NOW provider () -> named
+cap task.executor
+key task.yieldNow
 
 bodiless NUMERIC_CONVERSIONS
 prefix prelude.i8.to

@@ -55,8 +55,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		}
 		res = e.irb(sb).Call(rtCallv, vptr(args[0]), vi32(len(args)-1), vptr(arr)).Text
 	case mir.OpBuiltin:
-		arr := e.argArray(sb, args)
-		res = e.irb(sb).Call(rtBuiltin, vptr(e.cstr(in.Str)), vi32(len(args)), vptr(arr)).Text
+		res = e.builtinCall(sb, in, args)
 	case mir.OpFutureNew:
 		arr := e.argArray(sb, args[1:])
 		res = e.irb(sb).Call(rtFutureNew, vptr(args[0]), vi32(len(args)-1), vptr(arr)).Text

@@ -70,6 +70,9 @@ func (r *Result) declareFn(id EntityID) {
 	case mods&EffAsync != 0 && mods&EffNoalloc != 0:
 		r.errAt(f, e.Node, cUnsupportedAsync)
 	}
+	if mods&EffAsync != 0 && s.Ret != 0 {
+		r.checkAsyncTaskReturn(f, s.Ret, info.Sig)
+	}
 	if info.Export != "" && mods&EffAsync != 0 {
 		r.errAt(f, e.Node, cExportAsync, e.Name)
 	}

@@ -1,0 +1,29 @@
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    1
+}
+
+// A defer runs once the scope is closing, so a spawn there would start a
+// child nothing can join; it panics instead.
+async fn mid() -> Int {
+    defer {
+        let t = task.spawn(leaf())
+    }
+    print "mid body"
+    2
+}
+
+async fn root() -> Int {
+    await task.spawn(mid())
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+mid body
+-- stderr --
+panic: a task cannot spawn a child once its scope is closing; spawn it before the task returns, fails or is cancelled
+-- exit --
+2

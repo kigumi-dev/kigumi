@@ -1,0 +1,21 @@
+-- src --
+import task from std/task
+
+async fn chain(n: Int) -> Int {
+    if n > 0 {
+        let t = task.spawn(chain(n - 1))
+    }
+    n
+}
+
+async fn root(n: Int) -> Int {
+    await task.spawn(chain(n))
+}
+
+let ex = task.currentThreadExecutor()
+print "current ${ex.runToCompletion(root(200000))}"
+let pool = task.threadPoolExecutor(2)
+print "pool ${pool.runToCompletion(root(20000))}"
+-- stdout --
+current 200000
+pool 20000

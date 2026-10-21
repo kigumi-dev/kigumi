@@ -164,6 +164,7 @@ enum std_op {
     OP_STRING_BUILDER_TRY_FREEZE = 159,
     OP_ARGS_GET_BYTES = 160,
     OP_OS_STRING_TRY_CLONE = 161,
+    OP_TASK_YIELD_NOW = 162,
 };
 static int rt_std_op_of(const char* key) {
     const char* k = key;
@@ -319,6 +320,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "text.StringBuilder.tryFreeze")) return OP_STRING_BUILDER_TRY_FREEZE;
     if (!strcmp(k, "os.Args.getBytes")) return OP_ARGS_GET_BYTES;
     if (!strcmp(k, "os.OsString.tryClone")) return OP_OS_STRING_TRY_CLONE;
+    if (!strcmp(k, "task.yieldNow")) return OP_TASK_YIELD_NOW;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;

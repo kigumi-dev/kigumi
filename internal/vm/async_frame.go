@@ -43,7 +43,14 @@ func (m *Machine) suspendPoint(fu *future, in *mir.Inst) (*obj, polled) {
 	case pending:
 		return nil, st
 	case cancelled:
-		return m.cancelWhenKidsClosed(fu)
+		if in.Str != "settle" {
+			return m.cancelWhenKidsClosed(fu)
+		}
+		v = nil
+	}
+	if in.Str == "settle" {
+		m.release(v)
+		v = unitObj
 	}
 	m.release(fu.awaited)
 	fu.awaited = nil

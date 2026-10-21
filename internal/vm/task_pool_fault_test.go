@@ -47,7 +47,7 @@ func goroutinesSettle(t *testing.T) int {
 	return last
 }
 
-func TestWorkerPanicFaultsOnlyThatTask(t *testing.T) {
+func TestWorkerPanicCancelsSiblingsAndJoinsPool(t *testing.T) {
 	before := goroutinesSettle(t)
 	src := `import task from std/task
 
@@ -55,14 +55,19 @@ async fn boom() -> Int {
     None.expect("boom")
 }
 
-async fn leaf(n: Int) -> Int {
-    n * n
+async fn spin(n: Int) -> Int {
+    let mut i = 0
+    for !task.cancelRequested() {
+        await task.yieldNow()
+        i = i + 1
+    }
+    n
 }
 
 async fn root() -> Int {
     let a = task.spawn(boom())
-    let b = task.spawn(leaf(2))
-    let c = task.spawn(leaf(3))
+    let b = task.spawn(spin(2))
+    let c = task.spawn(spin(3))
     let x = await b
     print "b ${x}"
     let y = await c
@@ -74,8 +79,8 @@ let ex = task.threadPoolExecutor(3)
 print "total ${ex.runToCompletion(root())}"
 `
 	out, errOut, code := buildAndRun(t, src, vm.Options{})
-	if out != "b 4\nc 9\n" {
-		t.Fatalf("stdout = %q, want the siblings' output and nothing from the panicking task", out)
+	if out != "" {
+		t.Fatalf("stdout = %q, want nothing: the unawaited panic cancels the root and the spinning siblings", out)
 	}
 	if errOut != "panic: boom\n" {
 		t.Fatalf("stderr = %q, want the original panic text", errOut)
@@ -111,8 +116,6 @@ async fn leaf(n: Int) -> Int {
 async fn root() -> Int {
     let a = task.spawn(boom())
     let b = task.spawn(leaf(2))
-    let x = await b
-    print "b ${x}"
     await a
 }
 
@@ -122,9 +125,6 @@ print "total ${ex.runToCompletion(root())}"
 	out, errOut, code := buildAndRun(t, src, vm.Options{})
 	if !strings.Contains(out, "drop 1") {
 		t.Fatalf("stdout = %q, want the panicking task's resource dropped", out)
-	}
-	if !strings.Contains(out, "b 4") {
-		t.Fatalf("stdout = %q, want the sibling's output", out)
 	}
 	if errOut != "panic: boom\n" {
 		t.Fatalf("stderr = %q, want the original panic text", errOut)

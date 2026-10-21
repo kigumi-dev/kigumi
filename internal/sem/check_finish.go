@@ -28,6 +28,7 @@ func (c *checker) resolveClosures(ids []EntityID) {
 }
 
 func (c *checker) resolveTouched(nodes []syntax.NodeID) {
+	var futures []taskFutureCall
 	for _, n := range nodes {
 		c.info.Types[n] = c.vars.resolve(c.info.Types[n])
 		// Bindings keep the resolved type too; the backends read it from
@@ -55,6 +56,12 @@ func (c *checker) resolveTouched(nodes []syntax.NodeID) {
 			}
 			c.info.Calls[n] = call
 			c.r.checkLifetimeEscapeType(c.f, n, c.info.Types[n], map[TypeID]bool{})
+			c.r.checkTaskEscapeCall(c.f, n, call)
+			c.r.noteSpawnArgs(c.f, n, call)
+			if fc, ok := c.r.taskFutureOf(c.f, n, call, c.info.Types[n]); ok {
+				futures = append(futures, fc)
+			}
 		}
 	}
+	c.r.checkTaskFutures(c.f, futures)
 }

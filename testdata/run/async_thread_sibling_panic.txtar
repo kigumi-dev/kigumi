@@ -1,0 +1,44 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+// Runs until it is cancelled; nothing but the sibling's panic stops it.
+async fn server() -> Int {
+    let r = Res { id: 1 }
+    let mut n = 0
+    for !task.cancelRequested() {
+        await task.yieldNow()
+        n = n + 1
+    }
+    n
+}
+
+async fn bad() -> Int {
+    None.expect("bad")
+}
+
+async fn root() -> Int {
+    defer print "root defer"
+    let s = task.spawn(server())
+    let b = task.spawn(bad())
+    let n = await s
+    print "unreachable ${n}"
+    n
+}
+
+let ex = task.threadPoolExecutor(3)
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 1
+root defer
+-- stderr --
+panic: bad
+-- exit --
+2

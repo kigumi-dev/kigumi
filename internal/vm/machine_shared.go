@@ -16,9 +16,10 @@ import (
 // is guarded by one of these mutexes or atomic. The rest lives on the Machine.
 type shared struct {
 	// sched covers the scheduler: both queues, task fields, executor counters.
-	sched   sync.Mutex
-	orphans []*executor
-	pools   []*executor
+	sched    sync.Mutex
+	orphans  []*executor
+	closeGen uint64
+	pools    []*executor
 	// out covers stdout and stderr, in the single stdin reader; they are
 	// separate so a lane parked on a read does not hold the printers.
 	out      sync.Mutex

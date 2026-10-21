@@ -16,6 +16,9 @@ func (b *builder) blockExpr(blk *hir.Block) LocalID {
 	if blk.Tail != nil {
 		result = b.detach(b.exprMoved(blk.Tail))
 	}
+	if blk == b.body {
+		b.closeTaskScope(blk.Node)
+	}
 	if blk == b.body && blk.Tail != nil {
 		b.exitBodyScope(result, blk.Tail, blk.Node)
 	} else {

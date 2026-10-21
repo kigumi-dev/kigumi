@@ -1,0 +1,97 @@
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    5
+}
+
+type Holder = {
+    pub t task.Task[Int]
+}
+
+async fn returned() -> task.Task[Int] { //~ ERROR `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+    task.spawn(leaf())
+}
+
+async fn inTuple() -> (Int, task.Task[Int]) { //~ ERROR `(Int, Task[Int])` holds a `Task` handle
+    (1, task.spawn(leaf()))
+}
+
+async fn inRecord() -> Holder { //~ ERROR `Holder` holds a `Task` handle
+    Holder { t: task.spawn(leaf()) }
+}
+
+async fn inArray() -> Array[task.Task[Int]] { //~ ERROR `Array[Task[Int]]` holds a `Task` handle
+    Array.of(task.spawn(leaf()))
+}
+
+async fn inOption() -> task.Task[Int]? { //~ ERROR `Task[Int]?` holds a `Task` handle
+    Some(task.spawn(leaf()))
+}
+
+async fn pass[T](x: T) -> T {
+    x
+}
+
+async fn spawnsHandle() -> Int {
+    let t = task.spawn(leaf())
+    let u = task.spawn(pass(t)) //~ ERROR as the result of a spawned or root task
+    0
+}
+
+fn drive() {
+    let ex = task.currentThreadExecutor()
+    let t = ex.runToCompletion(pass(Some(1)))
+    let h = ex.runToCompletion(returned()) //~ ERROR as the result of a spawned or root task
+}
+
+-- expect --
+error[E2203]: `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+  --> main/main.kg:11:24
+   |
+11 | async fn returned() -> task.Task[Int] { //~ ERROR `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+   |                        ^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `(Int, Task[Int])` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+  --> main/main.kg:15:23
+   |
+15 | async fn inTuple() -> (Int, task.Task[Int]) { //~ ERROR `(Int, Task[Int])` holds a `Task` handle
+   |                       ^^^^^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Holder` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+  --> main/main.kg:19:24
+   |
+19 | async fn inRecord() -> Holder { //~ ERROR `Holder` holds a `Task` handle
+   |                        ^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Array[Task[Int]]` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+  --> main/main.kg:23:23
+   |
+23 | async fn inArray() -> Array[task.Task[Int]] { //~ ERROR `Array[Task[Int]]` holds a `Task` handle
+   |                       ^^^^^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Task[Int]?` holds a `Task` handle and cannot leave the task that spawned it as the result of an async fn
+  --> main/main.kg:27:24
+   |
+27 | async fn inOption() -> task.Task[Int]? { //~ ERROR `Task[Int]?` holds a `Task` handle
+   |                        ^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as the result of a spawned or root task
+  --> main/main.kg:37:13
+   |
+37 |     let u = task.spawn(pass(t)) //~ ERROR as the result of a spawned or root task
+   |             ^^^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Task[Int]` holds a `Task` handle and cannot leave the task that spawned it as the result of a spawned or root task
+  --> main/main.kg:44:13
+   |
+44 |     let h = ex.runToCompletion(returned()) //~ ERROR as the result of a spawned or root task
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+

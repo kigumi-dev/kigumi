@@ -86,6 +86,8 @@ type Machine struct {
 	sweepFault       *Panic
 	inflight         *Panic
 	outerDepth       int
+	joinDepth        int
+	closeDepth       int
 	stepsLeft, depth int
 	// cur is the running task and curLane its executor lane, for spawn and cancellation.
 	cur     *task

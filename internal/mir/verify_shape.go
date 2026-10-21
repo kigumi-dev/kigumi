@@ -102,7 +102,10 @@ func verifyShape(f *Func) *Error {
 			if s.str && in.Str == "" {
 				return fail("shape", bid, i, "%s needs its text", in.Op)
 			}
-			if !s.str && in.Str != "" && in.Op != OpClosure && in.Op != OpNop && in.Op != OpConst {
+			if in.Op == OpAwait && in.Str != "" && in.Str != "settle" {
+				return fail("shape", bid, i, "await carries the text %q, which is not a mode", in.Str)
+			}
+			if !s.str && in.Str != "" && in.Op != OpClosure && in.Op != OpNop && in.Op != OpConst && in.Op != OpAwait {
 				return fail("shape", bid, i, "%s carries the text %q it never reads", in.Op, in.Str)
 			}
 			if in.Op == OpConst && in.Str != "" && !numberText(in) {

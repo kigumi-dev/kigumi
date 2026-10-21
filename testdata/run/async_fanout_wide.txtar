@@ -1,0 +1,44 @@
+-- src --
+import task from std/task
+
+async fn leaf(i: Int) -> Int {
+    i
+}
+
+async fn yielder() -> Int {
+    await task.yieldNow()
+    1
+}
+
+async fn awaitAll(n: Int) -> Int {
+    let mut ts: Array[task.Task[Int]] = Array.of()
+    for i in 0..n {
+        ts.push(task.spawn(leaf(i)))
+    }
+    let mut s = 0
+    for t in ts {
+        s += await t
+    }
+    s
+}
+
+// Every child is still running when the parent returns, so the scope cancels and joins them all.
+async fn fireAndForget(n: Int) -> Int {
+    for i in 0..n {
+        let t = task.spawn(yielder())
+    }
+    n
+}
+
+async fn root() -> Int {
+    let n = 50000
+    await awaitAll(n) + await fireAndForget(n)
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+total 1250025000
+-- stderr --
+-- exit --
+0

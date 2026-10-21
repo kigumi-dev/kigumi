@@ -1,0 +1,37 @@
+-- src --
+import task from std/task
+
+// Siblings on one executor take turns at each yield.
+async fn worker(name: String, n: Int) -> Int {
+    let mut i = 0
+    for i < n {
+        print "${name} ${i}"
+        await task.yieldNow()
+        i = i + 1
+    }
+    n
+}
+
+async fn root() -> Int {
+    let a = task.spawn(worker("a", 3))
+    let b = task.spawn(worker("b", 2))
+    let c = task.spawn(worker("c", 1))
+    await task.yieldNow()
+    print "root resumes"
+    await a + await b + await c
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+a 0
+b 0
+c 0
+root resumes
+a 1
+b 1
+a 2
+total 6
+-- stderr --
+-- exit --
+0

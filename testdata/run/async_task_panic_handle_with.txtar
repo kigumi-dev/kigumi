@@ -18,14 +18,15 @@ async fn boom(s: Shared[Slot]) -> Int {
 }
 
 async fn sib(s: Shared[Slot]) -> Int {
-    s.with((p: &Slot) => p.table.with(&p.h, (v: &Int) => v + 1))
+    let x = s.with((p: &Slot) => p.table.with(&p.h, (v: &Int) => v + 1))
+    print "sibling ${x}"
+    x
 }
 
 async fn root(s: Shared[Slot]) -> Int {
     let a = task.spawn(boom(s.clone()))
     let b = task.spawn(sib(s.clone()))
     let x = await b
-    print "sibling ${x}"
     await a
 }
 

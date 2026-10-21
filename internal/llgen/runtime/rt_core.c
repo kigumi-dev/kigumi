@@ -2491,7 +2491,11 @@ struct kgtask {
     kgtask** kids;
     char* fault;
     int nkids, capkids;
-    int state, ending, notified, queued, draining, wait_kids;
+    // kid_at is the slot in parent->kids; open_kids counts non-terminal kids and gone_kids the NULL holes.
+    int kid_at, open_kids, gone_kids;
+    int state, ending, notified, queued, draining, wait_kids, closing;
+    // close_mark is the closing pass that last found this task under its scope.
+    unsigned long close_mark;
     // refs and cancel are read outside the scheduler lock: a Task handle can
     // be dropped on any lane, and a poll checks cancellation as it runs.
     KG_AINT refs, cancel;
@@ -2642,7 +2646,13 @@ static void join_fault(const char* msg) {
     g_fault_msg = j;
 }
 // A frame record stays on the stack while it runs so a panic inside resumes it; other records are one-shot and pop first.
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
+static void task_close_on_panic(void);
+#endif
 static void task_raise(void) {
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
+    if (!g_faulting && !g_drop_depth && g_cur_task && !g_cur_task->closing) task_close_on_panic();
+#endif
     while (g_unwind != g_unwind_base) {
         kg_unwind* u = g_unwind;
         if (!IS_FRAME_REC(u)) g_unwind = u->prev;
@@ -2769,10 +2779,31 @@ val rt_future_resume(val fut) {
     rt_release(a);
     return r;
 }
+// A discarded `await` of a Task goes on past its cancellation; the result is dropped here.
+val rt_future_settle(val fut) {
+    kgframe* f = frame_of(fut);
+    if (f->force || (g_cur_task && KG_ALOAD(g_cur_task->cancel))) return future_cancel(fut);
+    val r = poll_value(f->awaited);
+    if (!r) return NULL;
+    if (r != KG_CANCELLED) rt_release(r);
+    val a = f->awaited;
+    f->awaited = NULL;
+    rt_release(a);
+    return rt_unit();
+}
 
 #ifdef KIGUMI_CAP_TASK_EXECUTOR
 #include "rt_cap_task_executor.c.inc"
 #endif
+// The scope closes only when the body leaving is the task's own Future.
+val rt_task_close(val fut) {
+#ifdef KIGUMI_CAP_TASK_EXECUTOR
+    if (g_cur_task && g_cur_task->fut && deref(g_cur_task->fut) == fut) task_close_scope(g_cur_task);
+#else
+    (void)fut;
+#endif
+    return rt_unit();
+}
 #if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
 #include "rt_cap_task_blocking_pool.c.inc"
 #endif
@@ -2780,6 +2811,7 @@ static val poll_value(val v) {
     val d = deref(v);
 #ifdef KIGUMI_CAP_TASK_EXECUTOR
     if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "Task")) return poll_task((kgtask*)d->u.op.data);
+    if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "Yield")) return poll_yield((int*)d->u.op.data);
 #endif
 #if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
     if (d && d->kind == K_OPAQUE && !strcmp(d->u.op.kind, "BlockingFuture")) return blocking_future_join((blocking_future*)d->u.op.data);
@@ -2828,7 +2860,8 @@ static void free_opaque(val v) {
     else if (!strcmp(kind, "Task")) {
         task_unref((kgtask*)d);
         sched_flush();
-    } else if (!strcmp(kind, "Executor")) exec_drop((kgexec*)d);
+    } else if (!strcmp(kind, "Yield")) free(d);
+    else if (!strcmp(kind, "Executor")) exec_drop((kgexec*)d);
 #endif
 #if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
     else if (!strcmp(kind, "BlockingFuture")) {
@@ -3892,6 +3925,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_TASK_CANCEL_REQUESTED: return rt_bool(rt_cancel_requested());
     case OP_TASK_THREAD_POOL_EXECUTOR: return rt_thread_pool_new(a0->u.i);
     case OP_TASK_HANDOFF: return rt_task_handoff(a0, rt_retain(a1));
+    case OP_TASK_YIELD_NOW: return rt_task_yield_now();
 #else
     case OP_TASK_CURRENT_EXECUTOR:
     case OP_EXECUTOR_RUN_TO_COMPLETION:
@@ -3900,6 +3934,7 @@ val rt_std_id(int op, int n, val* a) {
     case OP_TASK_CANCEL_REQUESTED:
     case OP_TASK_THREAD_POOL_EXECUTOR:
     case OP_TASK_HANDOFF:
+    case OP_TASK_YIELD_NOW:
         rt_panic("this build has no task.executor capability");
         return NULL;
 #endif

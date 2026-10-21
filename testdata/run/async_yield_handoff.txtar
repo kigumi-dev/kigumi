@@ -1,0 +1,24 @@
+-- src --
+import task from std/task
+
+async fn spin(n: Int) -> Int {
+    let mut i = 0
+    for i < n {
+        await task.yieldNow()
+        i = i + 1
+    }
+    i
+}
+
+async fn root(pool: task.Executor) -> Int {
+    let a = pool.handoff(spin(50))
+    let b = pool.handoff(spin(70))
+    let c = task.spawn(spin(3))
+    await a + await b + await c
+}
+
+let pool = task.threadPoolExecutor(2)
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root(pool))}"
+-- stdout --
+total 123

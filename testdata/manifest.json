@@ -2052,6 +2052,23 @@
       ]
     },
     {
+      "id": "run/async_await_release_loop",
+      "kind": "run",
+      "path": "testdata/run/async_await_release_loop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_await_shapes",
       "kind": "run",
       "path": "testdata/run/async_await_shapes.txtar",
@@ -2213,6 +2230,44 @@
       ]
     },
     {
+      "id": "run/async_cancel_settle",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_settle.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: the root task was cancelled"
+      }
+    },
+    {
+      "id": "run/async_cancel_settle_let",
+      "kind": "run",
+      "path": "testdata/run/async_cancel_settle_let.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_const_key",
       "kind": "run",
       "path": "testdata/run/async_const_key.txtar",
@@ -2266,6 +2321,23 @@
         "type": "regex",
         "pattern": "panic: boom"
       }
+    },
+    {
+      "id": "run/async_fanout_wide",
+      "kind": "run",
+      "path": "testdata/run/async_fanout_wide.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
     },
     {
       "id": "run/async_fn_value",
@@ -2567,6 +2639,86 @@
       }
     },
     {
+      "id": "run/async_scope_close_order",
+      "kind": "run",
+      "path": "testdata/run/async_scope_close_order.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: parent panic"
+      }
+    },
+    {
+      "id": "run/async_scope_deep_chain",
+      "kind": "run",
+      "path": "testdata/run/async_scope_deep_chain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_scope_sibling_panic",
+      "kind": "run",
+      "path": "testdata/run/async_scope_sibling_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: bad"
+      }
+    },
+    {
+      "id": "run/async_spawn_in_defer",
+      "kind": "run",
+      "path": "testdata/run/async_spawn_in_defer.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: a task cannot spawn a child once its scope is closing; spawn it before the task returns, fails or is cancelled"
+      }
+    },
+    {
       "id": "run/async_spawn_order",
       "kind": "run",
       "path": "testdata/run/async_spawn_order.txtar",
@@ -2750,6 +2902,23 @@
         "type": "regex",
         "pattern": "panic: drop 6\npanic: drop 4\npanic: drop 2"
       }
+    },
+    {
+      "id": "run/async_task_handle_inline",
+      "kind": "run",
+      "path": "testdata/run/async_task_handle_inline.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
     },
     {
       "id": "run/async_task_panic_array_with_mut",
@@ -3085,6 +3254,111 @@
       "stderr": {
         "type": "regex",
         "pattern": "panic: partial"
+      }
+    },
+    {
+      "id": "run/async_task_panic_sweep_cond",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_sweep_cond.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: cond"
+      }
+    },
+    {
+      "id": "run/async_task_panic_sweep_divide",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_sweep_divide.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: division by zero"
+      }
+    },
+    {
+      "id": "run/async_task_panic_sweep_looped",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_sweep_looped.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: looped"
+      }
+    },
+    {
+      "id": "run/async_task_panic_sweep_oob",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_sweep_oob.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: index out of range"
+      }
+    },
+    {
+      "id": "run/async_task_panic_sweep_strings",
+      "kind": "run",
+      "path": "testdata/run/async_task_panic_sweep_strings.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: strings value 5 2"
       }
     },
     {
@@ -3560,6 +3834,27 @@
       }
     },
     {
+      "id": "run/async_thread_sibling_panic",
+      "kind": "run",
+      "path": "testdata/run/async_thread_sibling_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: bad"
+      }
+    },
+    {
       "id": "run/async_thread_spawn",
       "kind": "run",
       "path": "testdata/run/async_thread_spawn.txtar",
@@ -3580,6 +3875,40 @@
       "id": "run/async_thread_stress",
       "kind": "run",
       "path": "testdata/run/async_thread_stress.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_yield_handoff",
+      "kind": "run",
+      "path": "testdata/run/async_yield_handoff.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/async_yield_interleave",
+      "kind": "run",
+      "path": "testdata/run/async_yield_interleave.txtar",
       "mode": [
         "vm",
         "native"
@@ -17420,6 +17749,61 @@
       "id": "sem/task_cancellation_context",
       "kind": "sem",
       "path": "testdata/sem/task_cancellation_context.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_handle_escape_capture",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_escape_capture.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_handle_escape_future",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_escape_future.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_handle_escape_mut_param",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_escape_mut_param.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_handle_escape_return",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_escape_return.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/task_handle_escape_shared",
+      "kind": "sem",
+      "path": "testdata/sem/task_handle_escape_shared.txtar",
       "mode": [
         "check"
       ],

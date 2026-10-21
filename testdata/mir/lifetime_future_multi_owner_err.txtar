@@ -17,6 +17,7 @@ async fn lib.pick(%a: &Bytes, %b: &Bytes) -> u8 {
     %t4 = const 0: usize
     %t5 = index(%b, %t4)
     %t6 = bin +(%t3, %t5)
+    %t7 = builtin task.close
     return %t6
 }
 async fn lib.run() -> u8 {
@@ -53,6 +54,7 @@ async fn lib.run() -> u8 {
     cancel
     unreachable
   b2:
+    %t24 = builtin task.close
     nop
     drop(%y)
     drop(%x)

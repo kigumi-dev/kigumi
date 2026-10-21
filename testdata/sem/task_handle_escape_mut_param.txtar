@@ -1,0 +1,98 @@
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    5
+}
+
+type Box = {
+    mut ts Array[task.Task[Int]]
+}
+
+async fn fill(slot: &mut Array[task.Task[Int]]) -> Int {
+    slot.push(task.spawn(leaf()))
+    0
+}
+
+async fn fillBox(b: &mut Box) -> Int {
+    b.ts.push(task.spawn(leaf()))
+    0
+}
+
+async fn Box.fill(mut self) -> Int {
+    self.ts.push(task.spawn(leaf()))
+    0
+}
+
+async fn fillAny[T, F: Fn[fn() -> T]](slot: &mut Array[T], mk: F) -> Int {
+    slot.push(mk())
+    0
+}
+
+async fn spawned() -> Int {
+    let mut slot: Array[task.Task[Int]] = Array.of()
+    let mut b = Box { ts: Array.of() }
+    let c = task.spawn(fill(&mut slot)) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
+    let d = task.spawn(b.fill()) //~ ERROR `Box` holds a `Task` handle
+    let f = fillBox(&mut b) //~ ERROR `&mut Box` holds a `Task` handle
+    await c + await d + await f
+}
+
+async fn generic() -> Int {
+    let mut slot: Array[task.Task[Int]] = Array.of()
+    let c = task.spawn(fillAny(&mut slot, () => task.spawn(leaf()))) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
+    await c
+}
+
+fn fillSync(slot: &mut Array[task.Task[Int]]) {
+    slot.push(task.spawn(leaf()))
+}
+
+async fn count(xs: &mut Array[Int]) -> Int {
+    xs.push(1)
+    1
+}
+
+async fn sameTask() -> Int {
+    let mut s = 0
+    let mut slot: Array[task.Task[Int]] = Array.of()
+    let mut b = Box { ts: Array.of() }
+    fillSync(&mut slot)
+    s = s + await fill(&mut slot) + await fillBox(&mut b) + await b.fill()
+    s = s + await fillAny(&mut slot, () => task.spawn(leaf()))
+    for t in slot {
+        s = s + await t
+    }
+    let mut xs: Array[Int] = Array.of()
+    s + await task.spawn(count(&mut xs))
+}
+
+-- expect --
+error[E2203]: `&mut Array[Task[Int]]` holds a `Task` handle and cannot leave the task that spawned it as a write through a `&mut` or `mut self` parameter of a Future that is not awaited where it is built
+  --> main/main.kg:34:24
+   |
+34 |     let c = task.spawn(fill(&mut slot)) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
+   |                        ^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `Box` holds a `Task` handle and cannot leave the task that spawned it as a write through a `&mut` or `mut self` parameter of a Future that is not awaited where it is built
+  --> main/main.kg:35:24
+   |
+35 |     let d = task.spawn(b.fill()) //~ ERROR `Box` holds a `Task` handle
+   |                        ^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `&mut Box` holds a `Task` handle and cannot leave the task that spawned it as a write through a `&mut` or `mut self` parameter of a Future that is not awaited where it is built
+  --> main/main.kg:36:13
+   |
+36 |     let f = fillBox(&mut b) //~ ERROR `&mut Box` holds a `Task` handle
+   |             ^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+
+error[E2203]: `&mut Array[Task[Int]]` holds a `Task` handle and cannot leave the task that spawned it as a write through a `&mut` or `mut self` parameter of a Future that is not awaited where it is built
+  --> main/main.kg:42:24
+   |
+42 |     let c = task.spawn(fillAny(&mut slot, () => task.spawn(leaf()))) //~ ERROR `&mut Array[Task[Int]]` holds a `Task` handle
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: await the task there and pass on its result
+

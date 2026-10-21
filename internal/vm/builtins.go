@@ -15,6 +15,8 @@ func isTrivialScalar(k kind) bool {
 // builtin is rt_builtin: the compiler-known runtime entry points.
 func (m *Machine) builtin(name string, args []*obj) *obj {
 	switch name {
+	case "task.close":
+		m.abort("`task.close` outside an async body")
 	case "print", "eprint":
 		line := append([]byte(m.display(args[0])), '\n')
 		if name == "eprint" {

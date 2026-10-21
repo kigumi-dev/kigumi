@@ -59,6 +59,7 @@ func (r *Result) checkLifetimeEscapeType(f FileID, n syntax.NodeID, t TypeID, se
 	node := r.Types.Node(t)
 	if node.Kind == KNamed {
 		r.checkLifetimeEscapeArgs(f, n, node.Ent, node.Args)
+		r.checkTaskEscapeArgs(f, n, node.Ent, node.Args)
 	}
 	r.checkLifetimeEscapeType(f, n, node.Elem, seen)
 	for _, a := range node.Args {

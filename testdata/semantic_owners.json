@@ -10382,6 +10382,16 @@
     "status": "ok"
   },
   {
+    "key": "task.yieldNow",
+    "signature": "fn() -\u003e Future[Void]",
+    "has_body": false,
+    "kind": "provider",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "test.Failure.message",
     "signature": "fn() -\u003e String",
     "has_body": true,

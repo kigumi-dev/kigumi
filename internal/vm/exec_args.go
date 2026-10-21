@@ -42,6 +42,11 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 		m.argTicks(f, in, args)
 		res = m.callValue(args[0], args[1:])
 	case mir.OpBuiltin:
+		if in.Str == "task.close" {
+			m.closeScopeAt(fr)
+			res = unitObj
+			break
+		}
 		res = m.builtin(in.Str, args)
 		m.chargeMemory(res)
 	case mir.OpFutureNew:

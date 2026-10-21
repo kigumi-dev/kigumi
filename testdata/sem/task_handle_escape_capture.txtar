@@ -1,0 +1,50 @@
+-- src --
+import task from std/task
+
+async fn leaf() -> Int {
+    5
+}
+
+type Holder = {
+    pub t task.Task[Int]
+}
+
+async fn captured() -> Int {
+    let t = task.spawn(leaf())
+    let f = () => {
+        t.cancel() //~ ERROR `t` holds a `Task` handle and cannot be captured by a closure that may outlive the task that spawned it
+    }
+    0
+}
+
+async fn capturedHolder() -> Int {
+    let h = Holder { t: task.spawn(leaf()) }
+    let f = () => h.t.cancel() //~ ERROR `h` holds a `Task` handle
+    0
+}
+
+fn now[F: Fn[fn() -> Void]](f: F) {
+    f()
+}
+
+async fn immediate() -> Int {
+    let t = task.spawn(leaf())
+    now(() => t.cancel())
+    await t
+}
+
+-- expect --
+error[E2205]: `t` holds a `Task` handle and cannot be captured by a closure that may outlive the task that spawned it
+  --> main/main.kg:14:9
+   |
+14 |         t.cancel() //~ ERROR `t` holds a `Task` handle and cannot be captured by a closure that may outlive the task that spawned it
+   |         ^
+   = help: await the task first, or pass the closure to a parameter that does not keep it
+
+error[E2205]: `h` holds a `Task` handle and cannot be captured by a closure that may outlive the task that spawned it
+  --> main/main.kg:21:19
+   |
+21 |     let f = () => h.t.cancel() //~ ERROR `h` holds a `Task` handle
+   |                   ^
+   = help: await the task first, or pass the closure to a parameter that does not keep it
+

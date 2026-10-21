@@ -65,6 +65,9 @@ func (p *Program) build(hf *hir.Func) *Func {
 			b.body = hf.Body.Block
 		}
 		v := b.detach(b.expr(hf.Body))
+		if b.body == nil {
+			b.closeTaskScope(hf.Body.Node)
+		}
 		b.exitScope()
 		b.returnValue(v)
 	}

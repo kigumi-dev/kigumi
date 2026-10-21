@@ -144,6 +144,8 @@ type Result struct {
 	pendingWitnessCallbacks []pendingWitnessCallback
 	// lifetimeEscapeSeen dedupes an escaping (carrier, arg) pair.
 	lifetimeEscapeSeen map[lifetimeEscapeKey]bool
+	taskEscapeSeen     map[taskEscapeKey]bool
+	taskFutureUse      map[taskEscapeKey]uint8
 	// provides maps a provider type's EntType entity to the context keys its
 	// fields supply, declared by `@provides(...)`.
 	provides map[EntityID][]ProvideBinding

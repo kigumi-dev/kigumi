@@ -27,10 +27,14 @@ func refineMobility(p *Program) {
 // callee's own reason where the body is known, the operand's type otherwise.
 func awaitedPin(p *Program, f *Func) (string, bool) {
 	t := newFutureTrace()
+	yields := map[LocalID]bool{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			t.note(in)
-			if in.Op != OpAwait || len(in.Args) != 1 {
+			if in.Op == OpCall && p.R.IsTaskYieldNow(in.Ent) {
+				yields[in.Dst] = true
+			}
+			if in.Op != OpAwait || len(in.Args) != 1 || yields[t.origin(in.Args[0])] {
 				continue
 			}
 			if ent := t.asyncBody(in.Args[0]); ent != 0 {

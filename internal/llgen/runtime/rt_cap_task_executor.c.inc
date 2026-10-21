@@ -56,21 +56,24 @@ static void task_wake(kgtask* t) {
     t->notified = 1;
     if (t->state == T_SUSPENDED) exec_push(t->ex, t);
 }
+static void task_request_cancel(kgtask* t);
+static void task_cancel_kids(kgtask* t) {
+    for (int i = 0; i < t->nkids; i++)
+        if (t->kids[i]) task_request_cancel(t->kids[i]);
+}
 static void task_request_cancel(kgtask* t) {
     if (task_terminal(t) || KG_ALOAD(t->cancel)) return;
     KG_ASTORE(t->cancel, 1);
-    for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
+    task_cancel_kids(t);
     task_wake(t);
 }
 // The last kid to end wakes a task that is waiting on them.
 static int task_close_kids(kgtask* t) {
     SCHED_LOCK();
     KG_ASTORE(t->cancel, 1);
-    int open = 0;
-    for (int i = 0; i < t->nkids; i++) {
-        task_request_cancel(t->kids[i]);
-        if (!task_terminal(t->kids[i])) open = 1;
-    }
+    t->closing = 1;
+    task_cancel_kids(t);
+    int open = t->open_kids > 0;
     t->wait_kids = open;
     SCHED_UNLOCK();
     sched_flush();
@@ -79,29 +82,58 @@ static int task_close_kids(kgtask* t) {
 static void task_inherit_fault(kgtask* t) {
     if (t->ending == T_FAULTED) return;
     for (int i = 0; i < t->nkids; i++)
-        if (t->kids[i]->state == T_FAULTED) {
+        if (t->kids[i] && t->kids[i]->state == T_FAULTED) {
             t->ending = T_FAULTED;
             t->fault = t->kids[i]->fault ? dup_msg(t->kids[i]->fault) : NULL;
             return;
         }
 }
-static void task_finish_drain(kgtask* t) {
-    for (int i = 0; i < t->nkids; i++)
-        if (!task_terminal(t->kids[i])) {
-            t->state = T_SUSPENDED;
-            return;
+// A panic nobody awaits cancels the parent, and with it every sibling.
+static void task_notify_scope(kgtask* t) {
+    kgtask* p = t->parent;
+    if (!p) return;
+    p->open_kids--;
+    if (t->state == T_FAULTED && !t->waiter) task_request_cancel(p);
+#ifdef KIGUMI_THREADS
+    if (p->closing) pthread_cond_broadcast(&p->ex->cv);
+#endif
+}
+// An awaited child leaves its parent's scope, so its frame goes now instead of at the parent's end.
+// Its slot becomes a NULL hole so the other kids keep their order without a copy.
+static void task_forget(kgtask* t) {
+    kgtask* p = t->parent;
+    if (!p || t->kid_at >= p->nkids || p->kids[t->kid_at] != t) return;
+    p->kids[t->kid_at] = NULL;
+    task_end(t);
+    task_unref(t);
+    if (++p->gone_kids * 2 <= p->nkids) return;
+    int n = 0;
+    for (int i = 0; i < p->nkids; i++)
+        if (p->kids[i]) {
+            p->kids[i]->kid_at = n;
+            p->kids[n++] = p->kids[i];
         }
+    p->nkids = n;
+    p->gone_kids = 0;
+}
+static void task_finish_drain(kgtask* t) {
+    if (t->open_kids > 0) {
+        t->state = T_SUSPENDED;
+        return;
+    }
     task_inherit_fault(t);
     t->state = t->ending;
     t->draining = 0;
+    task_notify_scope(t);
     t->ex->live--;
 #ifdef KIGUMI_THREADS
     if (exec_finished(t->ex)) pthread_cond_broadcast(&t->ex->cv);
 #endif
-    for (int i = 0; i < t->nkids; i++) {
-        task_end(t->kids[i]);
-        task_unref(t->kids[i]);
-    }
+    for (int i = 0; i < t->nkids; i++)
+        if (t->kids[i]) {
+            task_end(t->kids[i]);
+            task_unref(t->kids[i]);
+        }
     t->nkids = 0;
     if (t->pex && t->pex != t->ex) {
         t->pex->external--;
@@ -120,7 +152,7 @@ static void task_finish_drain(kgtask* t) {
 static void task_begin_finish(kgtask* t, int end) {
     t->ending = end;
     t->draining = 1;
-    for (int i = 0; i < t->nkids; i++) task_request_cancel(t->kids[i]);
+    task_cancel_kids(t);
     task_finish_drain(t);
 }
 #ifdef KG_CATCH
@@ -257,7 +289,9 @@ static val poll_task(kgtask* t) {
     val r = t->result;
     t->result = NULL;
     const char* fault = t->fault;
+    task_forget(t);
     SCHED_UNLOCK();
+    sched_flush();
     if (st == T_CANCELLED) return KG_CANCELLED;
     if (st == T_FAULTED) rt_panic(fault ? fault : "the awaited task did not finish");
     return r;
@@ -498,7 +532,9 @@ static val task_start(kgexec* e, val fut, int mobile) {
         p->kids = realloc(p->kids, (size_t)p->capkids * sizeof(kgtask*));
         if (!p->kids) rt_fatal("out of memory");
     }
+    t->kid_at = p->nkids;
     p->kids[p->nkids++] = t;
+    p->open_kids++;
     if (e != p->ex) p->ex->external++;
     e->live++;
     exec_push(e, t);
@@ -506,12 +542,17 @@ static val task_start(kgexec* e, val fut, int mobile) {
     sched_flush();
     return opaque("Task", t);
 }
+static void task_check_open(void) {
+    if (g_cur_task->closing) rt_panic("a task cannot spawn a child once its scope is closing; spawn it before the task returns, fails or is cancelled");
+}
 val rt_task_spawn(val fut) {
     if (!g_cur_task) rt_panic("`task.spawn` needs a running task; start one with `Executor.runToCompletion`");
+    task_check_open();
     return task_start(g_cur_task->ex, fut, future_mobile(fut));
 }
 val rt_task_handoff(val exv, val fut) {
     if (!g_cur_task) rt_panic("`Executor.handoff` needs a running task; start one with `Executor.runToCompletion`");
+    task_check_open();
     kgexec* e = (kgexec*)deref(exv)->u.op.data;
     if (!future_mobile(fut)) rt_panic("this future is bound to its own executor and cannot be handed to another one");
     SCHED_LOCK();
@@ -531,3 +572,103 @@ void rt_task_cancel(val tv) {
     sched_flush();
 }
 int rt_cancel_requested(void) { return g_cur_task && KG_ALOAD(g_cur_task->cancel); }
+// Only descendants run here: they are all cancelled, so none waits on a task outside the closing scope.
+static int task_descends(kgtask* d, kgtask* t, unsigned long mark) {
+    for (kgtask* p = d->parent; p; p = p->parent)
+        if (p == t || p->close_mark == mark) {
+            for (kgtask* q = d; q != p; q = q->parent) q->close_mark = mark;
+            return 1;
+        }
+    return 0;
+}
+static unsigned long g_close_gen;
+static kgtask* q_take_desc(kgqueue* k, kgtask* t, unsigned long mark) {
+    for (int i = 0; i < k->len; i++) {
+        kgtask* d = k->q[k->head + i];
+        if (!task_descends(d, t, mark)) continue;
+        if (i == 0)
+            k->head++;
+        else
+            memmove(&k->q[k->head + i], &k->q[k->head + i + 1], (size_t)(k->len - i - 1) * sizeof(kgtask*));
+        if (--k->len == 0) k->head = 0;
+        d->queued = 0;
+        return d;
+    }
+    return NULL;
+}
+// Deeper scopes than this join their children after their own cleanups, as the VM does.
+#define KG_CLOSE_NESTING 64
+static KG_TLS int g_close_depth;
+// Cancels the children still running and drives them to a terminal state before t's own cleanups run.
+static void task_close_scope(kgtask* t) {
+    SCHED_LOCK();
+    if (t->closing) {
+        SCHED_UNLOCK();
+        return;
+    }
+    t->closing = 1;
+    task_cancel_kids(t);
+    if (g_close_depth >= KG_CLOSE_NESTING) {
+        SCHED_UNLOCK();
+        sched_flush();
+        return;
+    }
+    g_close_depth++;
+    unsigned long mark = ++g_close_gen;
+    for (;;) {
+        if (!t->open_kids) break;
+        kgexec* e = t->ex;
+        kgtask* d = q_take_desc(&e->lane[g_cur_lane], t, mark);
+        if (!d) d = q_take_desc(&e->pool, t, mark);
+        if (!d) {
+#ifdef KIGUMI_THREADS
+            if (e->nworkers || e->external) {
+                pthread_cond_wait(&e->cv, &g_sched);
+                continue;
+            }
+#endif
+            g_close_depth--;
+            SCHED_UNLOCK();
+            sched_flush();
+            rt_panic("every task on this executor is waiting for something that cannot happen");
+        }
+        e->running++;
+        SCHED_UNLOCK();
+        sched_flush();
+        task_run(d, g_cur_lane);
+        SCHED_LOCK();
+        e->running--;
+#ifdef KIGUMI_THREADS
+        pthread_cond_broadcast(&e->cv);
+#endif
+    }
+    g_close_depth--;
+    SCHED_UNLOCK();
+    sched_flush();
+}
+#ifdef KG_CATCH
+// A stack overflow leaves no room to run the children, so they close after the unwinding instead.
+static void task_close_on_panic(void) {
+    if (g_fault_msg && !strncmp(g_fault_msg, "stack overflow", 14)) return;
+    char* saved = g_fault_msg;
+    g_fault_msg = NULL;
+    task_close_scope(g_cur_task);
+    g_fault_msg = saved;
+}
+#endif
+static val poll_yield(int* st) {
+    if (!*st && g_cur_task) {
+        *st = 1;
+        SCHED_LOCK();
+        g_cur_task->notified = 1;
+        SCHED_UNLOCK();
+        return NULL;
+    }
+    *st = 1;
+    return rt_unit();
+}
+val rt_task_yield_now(void) {
+    int* st = calloc(1, sizeof *st);
+    if (!st) rt_panic("out of memory");
+    return opaque("Yield", st);
+}

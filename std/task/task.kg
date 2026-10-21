@@ -18,11 +18,14 @@ pub fn Executor.handoff[T](self, future: Future[T]) -> Task[T]
 /// Drives the future, and everything it spawns, to a terminal state.
 pub fn Executor.runToCompletion[T](self, future: Future[T]) -> T
 
-/// Starts the future as a child task; its panic faults only the child and is raised where it is awaited.
+/// Starts the future as a child task. Its panic is raised where it is awaited; if nothing awaits it, the panic cancels the parent and its other children, and the parent fails with it.
 pub fn spawn[T](future: Future[T]) -> Task[T]
 
 /// Asks the task to stop at its next suspension point.
 pub fn Task[T].cancel(self)
+
+/// A Future whose first poll puts the running task behind the other runnable tasks of its executor.
+pub fn yieldNow() -> Future[Void]
 
 /// Whether the running task has been asked to stop.
 pub fn cancelRequested() -> Bool

@@ -1,0 +1,38 @@
+-- src --
+import task from std/task
+import {Shared} from std/alloc
+
+async fn leaf() -> Int {
+    5
+}
+
+async fn intoParam(cell: Shared[task.Task[Int]?]) -> Int { //~ ERROR `Task[Int]?` holds a `Task` handle and cannot be stored in `Shared`
+    0
+}
+
+async fn inferred() -> Int {
+    let s = Shared.new(Some(task.spawn(leaf()))) //~ ERROR cannot be stored in `Shared`
+    0
+}
+
+async fn local() -> Int {
+    let t = task.spawn(leaf())
+    let s = Shared.new(1)
+    await t
+}
+
+-- expect --
+error[E2204]: `Task[Int]?` holds a `Task` handle and cannot be stored in `Shared`, which may outlive the task that spawned it
+ --> main/main.kg:8:26
+  |
+8 | async fn intoParam(cell: Shared[task.Task[Int]?]) -> Int { //~ ERROR `Task[Int]?` holds a `Task` handle and cannot be stored in `Shared`
+  |                          ^^^^^^^^^^^^^^^^^^^^^^
+  = help: keep the handle in a local, record or array of that task
+
+error[E2204]: `Task[Int]?` holds a `Task` handle and cannot be stored in `Shared`, which may outlive the task that spawned it
+  --> main/main.kg:13:13
+   |
+13 |     let s = Shared.new(Some(task.spawn(leaf()))) //~ ERROR cannot be stored in `Shared`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: keep the handle in a local, record or array of that task
+

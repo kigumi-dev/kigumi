@@ -1,0 +1,52 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+fn eat(r: Res) {
+    print "eat ${r.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// The only task that panics, so nothing cancels it before it reaches its panic.
+async fn cond(flag: Bool) -> Int {
+    let r = Res { id: 20 }
+    if flag {
+        eat(r)
+    }
+    let _ = await tick()
+    None.expect("cond")
+}
+
+async fn sentinel() -> Int {
+    9
+}
+
+async fn root() -> Int {
+    let a = task.spawn(cond(false))
+    let s = task.spawn(sentinel())
+    await s
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 20
+-- stderr --
+panic: cond
+-- exit --
+2

@@ -20,6 +20,7 @@ func (r *Result) resolveTypePath(f FileID, scope ScopeID, n syntax.NodeID, pos t
 		}
 	}
 	r.checkLifetimeEscapeArgs(f, n, ent, args)
+	r.checkTaskEscapeArgs(f, n, ent, args)
 	return r.instantiateTypeEntity(f, n, ent, args, pos)
 }
 

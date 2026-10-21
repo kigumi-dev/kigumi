@@ -25,6 +25,8 @@ type future struct {
 	forceCancel bool
 	result      *obj
 	pool        *obj
+	// yield is 1 for a fresh `task.yieldNow` Future and 2 once it has requeued its task.
+	yield uint8
 }
 
 type coro struct {
@@ -79,6 +81,9 @@ func (m *Machine) pollValue(v *obj) (*obj, polled) {
 func (m *Machine) pollFuture(fu *future) (*obj, polled) {
 	if fu.done {
 		m.abort("a Future that already completed cannot be polled again")
+	}
+	if fu.yield != 0 {
+		return m.pollYield(fu)
 	}
 	if fu.fn == nil && fu.co == nil {
 		return m.takeReady(fu), ready

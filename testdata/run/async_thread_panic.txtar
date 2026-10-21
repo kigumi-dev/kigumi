@@ -1,32 +1,31 @@
 -- src --
 import task from std/task
 
-// A panic faults only its own task: the siblings still finish, and the
-// panic surfaces with its own text once the root awaits it.
+// The root awaits the task that panics, so the panic surfaces there with its
+// own text, and the siblings still running are cancelled before the run ends.
 async fn boom() -> Int {
     None.expect("boom")
 }
 
-async fn leaf(n: Int) -> Int {
-    n * n
+async fn spin() -> Int {
+    let mut n = 0
+    for !task.cancelRequested() {
+        await task.yieldNow()
+        n = n + 1
+    }
+    n
 }
 
 async fn root() -> Int {
     let a = task.spawn(boom())
-    let b = task.spawn(leaf(2))
-    let c = task.spawn(leaf(3))
-    let x = await b
-    print "b ${x}"
-    let y = await c
-    print "c ${y}"
+    let b = task.spawn(spin())
+    let c = task.spawn(spin())
     await a
 }
 
 let ex = task.threadPoolExecutor(3)
 print "total ${ex.runToCompletion(root())}"
 -- stdout --
-b 4
-c 9
 -- stderr --
 panic: boom
 -- exit --

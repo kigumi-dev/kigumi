@@ -1,0 +1,41 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+async fn quick() -> Res {
+    Res { id: 7 }
+}
+
+async fn serve(id: Int) -> Int {
+    for !task.cancelRequested() {
+        await task.yieldNow()
+    }
+    id
+}
+
+async fn root() -> Int {
+    let q = task.spawn(quick())
+    let _ = await q
+    print "after let"
+    let t = task.spawn(serve(2))
+    await task.yieldNow()
+    t.cancel()
+    let _ = await t
+    print "after cancelled"
+    0
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 7
+after let
+after cancelled
+total 0

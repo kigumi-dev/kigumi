@@ -6,6 +6,7 @@ import "kigumi/internal/syntax"
 // returns it after unwinding every scope, parameters included, with the
 // error cleanups active.
 func (b *builder) failWith(n syntax.NodeID, e LocalID) {
+	b.closeTaskScope(n)
 	b.unwindTo(0, true)
 	ret := b.ret
 	if ret == 0 {

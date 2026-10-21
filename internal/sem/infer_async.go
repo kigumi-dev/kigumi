@@ -13,7 +13,9 @@ func (r *Result) taskEntity() EntityID {
 
 func (c *checker) synthAwait(n syntax.NodeID) TypeID {
 	c.dropUnstableFacts()
-	t := c.vars.resolve(c.synth(c.t.View(n).AsAwait().Operand().ID()))
+	op := c.t.View(n).AsAwait().Operand().ID()
+	c.r.markTaskFuture(c.f, op, futureAwaited)
+	t := c.vars.resolve(c.synth(op))
 	if e := c.r.Entities[c.fn]; e.Kind != EntFn || c.r.Fn(c.fn).Declared&EffAsync == 0 {
 		c.errAt(n, cAwaitOutsideAsync)
 	}

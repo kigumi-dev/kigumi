@@ -15,6 +15,7 @@ async fn lib.readFirst(%b: &Bytes) -> u8 {
   b0:
     %t1 = const 0: usize
     %t2 = index(%b, %t1)
+    %t3 = builtin task.close
     return %t2
 }
 async fn lib.run() -> u8 {
@@ -41,6 +42,7 @@ async fn lib.run() -> u8 {
     cancel
     unreachable
   b2:
+    %t15 = builtin task.close
     nop
     return %t13
 }

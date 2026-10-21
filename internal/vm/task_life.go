@@ -5,6 +5,7 @@ func (m *Machine) spawnTask(fut *obj) *obj {
 	if m.cur == nil {
 		m.abort("`task.spawn` needs a running task; start one with `Executor.runToCompletion`")
 	}
+	m.checkOpen()
 	return m.startTask(m.cur.ex, fut, m.futureMobile(fut))
 }
 
@@ -14,6 +15,7 @@ func (m *Machine) handoffTask(ex *executor, fut *obj) *obj {
 	if m.cur == nil {
 		m.abort("`Executor.handoff` needs a running task; start one with `Executor.runToCompletion`")
 	}
+	m.checkOpen()
 	if !m.futureMobile(fut) {
 		m.abort("this future is bound to its own executor and cannot be handed to another one")
 	}
@@ -45,7 +47,7 @@ func (m *Machine) startTask(ex *executor, fut *obj, mobile bool) *obj {
 			t.lane = m.curLane
 		}
 	}
-	p.kids = append(p.kids, t)
+	p.addKid(t)
 	if ex != p.ex {
 		p.ex.external++
 	}
@@ -67,7 +69,9 @@ func (m *Machine) pollTask(t *task) (*obj, polled) {
 	st, fault := t.state, t.fault
 	r := t.result
 	t.result = nil
+	m.forgetKid(t)
 	m.sh.sched.Unlock()
+	m.flushReleases()
 	switch st {
 	case taskCancelled:
 		return nil, cancelled
@@ -89,9 +93,7 @@ func (m *Machine) cancelLocked(t *task) {
 		return
 	}
 	t.cancelReq.Store(true)
-	for _, k := range t.kids {
-		m.cancelLocked(k)
-	}
+	m.cancelKids(t)
 	m.wake(t)
 }
 
@@ -109,27 +111,26 @@ func (m *Machine) wake(t *task) {
 // beginFinish cancels still-running kids; the terminal transition waits for all of them.
 func (m *Machine) beginFinish(t *task, end taskState) {
 	t.ending, t.draining = end, true
-	for _, k := range t.kids {
-		m.cancelLocked(k)
-	}
+	m.cancelKids(t)
 	m.finishDrain(t)
 }
 
 func (m *Machine) finishDrain(t *task) {
-	for _, k := range t.kids {
-		if !k.terminal() {
-			t.state = taskSuspended
-			return
-		}
+	if t.openKids > 0 {
+		t.state = taskSuspended
+		return
 	}
 	m.inheritFault(t)
 	t.state, t.draining = t.ending, false
+	m.notifyScope(t)
 	t.ex.live--
 	if t.ex.finished() {
 		t.ex.cv.Broadcast()
 	}
 	for _, k := range t.kids {
-		m.endTask(k)
+		if k != nil {
+			m.endTask(k)
+		}
 	}
 	t.kids = nil
 	if t.pex != nil && t.pex != t.ex {
@@ -151,11 +152,9 @@ func (m *Machine) closeKids(t *task) bool {
 	m.sh.sched.Lock()
 	defer m.sh.sched.Unlock()
 	t.cancelReq.Store(true)
-	open := false
-	for _, k := range t.kids {
-		m.cancelLocked(k)
-		open = open || !k.terminal()
-	}
+	t.closing = true
+	m.cancelKids(t)
+	open := t.openKids > 0
 	t.waitKids = open
 	return open
 }
@@ -172,7 +171,7 @@ func (m *Machine) inheritFault(t *task) {
 		return
 	}
 	for _, k := range t.kids {
-		if k.state == taskFaulted {
+		if k != nil && k.state == taskFaulted {
 			t.ending, t.fault = taskFaulted, k.fault
 			return
 		}

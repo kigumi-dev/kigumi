@@ -1,0 +1,82 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+async fn child(id: Int) -> Int {
+    let r = Res { id: id }
+    await task.yieldNow()
+    await task.yieldNow()
+    id
+}
+
+// The children still running are cancelled and joined before the parent's
+// own defer and drops run, on every way out of its body.
+async fn normal() -> Int {
+    defer print "normal defer"
+    let own = Res { id: 100 }
+    let a = task.spawn(child(10))
+    let b = task.spawn(child(11))
+    print "normal returns"
+    1
+}
+
+async fn early(stop: Bool) -> Result[Int, String] {
+    defer print "early defer"
+    let own = Res { id: 200 }
+    let a = task.spawn(child(20))
+    await task.yieldNow()
+    if stop {
+        print "early fails"
+        return Err("stopped")
+    }
+    Ok(2)
+}
+
+async fn panics() -> Int {
+    defer print "panics defer"
+    let own = Res { id: 300 }
+    let a = task.spawn(child(30))
+    await task.yieldNow()
+    print "panics now"
+    None.expect("parent panic")
+}
+
+async fn root() -> Int {
+    let n = await task.spawn(normal())
+    print "normal gave ${n}"
+    let e = await task.spawn(early(true))
+    match e {
+        Ok(v) -> print "early gave ${v}"
+        Err(m) -> print "early gave ${m}"
+    }
+    await task.spawn(panics())
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+normal returns
+drop 10
+drop 11
+normal defer
+drop 100
+normal gave 1
+early fails
+drop 20
+early defer
+drop 200
+early gave stopped
+panics now
+drop 30
+drop 300
+-- stderr --
+panic: parent panic
+-- exit --
+2

@@ -1,18 +1,24 @@
 -- src --
 import task from std/task
 
-// Nothing awaits this panic, yet it is not lost: it ends `mid` faulted.
+// Nothing awaits this panic, yet it is not lost: it cancels `mid` and the
+// sibling that would otherwise spin forever, and ends the run faulted.
 async fn boom() -> Int {
     None.expect("boom")
 }
 
-async fn leaf(n: Int) -> Int {
-    n * n
+async fn spin() -> Int {
+    let mut n = 0
+    for !task.cancelRequested() {
+        await task.yieldNow()
+        n = n + 1
+    }
+    n
 }
 
 async fn mid() -> Int {
     let a = task.spawn(boom())
-    let b = task.spawn(leaf(5))
+    let b = task.spawn(spin())
     let x = await b
     print "mid ${x}"
     x
@@ -28,7 +34,6 @@ async fn root() -> Int {
 let ex = task.threadPoolExecutor(2)
 print "total ${ex.runToCompletion(root())}"
 -- stdout --
-mid 25
 -- stderr --
 panic: boom
 -- exit --

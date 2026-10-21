@@ -1,0 +1,51 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Pair = {
+    pub a Res
+    pub b Res
+}
+
+fn eat(r: Res) {
+    print "eat ${r.id}"
+}
+
+async fn tick() -> Int {
+    1
+}
+
+// The only task that panics, so nothing cancels it before it reaches its panic.
+async fn oob() -> Int {
+    let r = Res { id: 60 }
+    let arr = Array.of[Int](1, 2, 3)
+    let _ = await tick()
+    let i: usize = 7
+    arr[i]
+}
+
+async fn sentinel() -> Int {
+    9
+}
+
+async fn root() -> Int {
+    let a = task.spawn(oob())
+    let s = task.spawn(sentinel())
+    await s
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 60
+-- stderr --
+panic: index out of range
+-- exit --
+2

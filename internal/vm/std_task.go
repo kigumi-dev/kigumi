@@ -58,6 +58,9 @@ func (m *Machine) registerTask() {
 		m.requestCancel(m.taskOf(a[0]))
 		return unitObj
 	}
+	h["task.yieldNow"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
+		return mkOpaque("Future", &future{yield: 1})
+	}
 	h["task.cancelRequested"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		return mkBool(m.cur != nil && m.cur.cancelReq.Load())
 	}

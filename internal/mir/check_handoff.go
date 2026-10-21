@@ -73,6 +73,17 @@ func (t *futureTrace) asyncBody(l LocalID) sem.EntityID {
 	return 0
 }
 
+func (t *futureTrace) origin(l LocalID) LocalID {
+	for i := 0; i < len(t.alias)+1; i++ {
+		next, ok := t.alias[l]
+		if !ok {
+			break
+		}
+		l = next
+	}
+	return l
+}
+
 func emitHandoffDiag(p *Program, f *Func, node syntax.NodeID, boundBy string) {
 	c, ok := sem.CodeByName("handoff-executor-bound")
 	if !ok {

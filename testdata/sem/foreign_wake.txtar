@@ -5,7 +5,7 @@ async fn leaf() -> Int {
     5
 }
 
-async fn spawner() -> task.Task[Int] {
+fn spawner() -> task.Task[Int] {
     task.spawn(leaf())
 }
 
@@ -25,14 +25,12 @@ fn pump(n: Int) -> Int {
 
 export(C) {
     pub fn viaHelper() {
-        let ex = task.currentThreadExecutor()
-        let t = ex.runToCompletion(spawner())
+        let t = spawner()
         stop(t) //~ ERROR `viaHelper` is exported to C and reaches `Task.cancel`
     }
 
     pub fn direct() {
-        let ex = task.currentThreadExecutor()
-        let t = ex.runToCompletion(spawner())
+        let t = spawner()
         t.cancel() //~ ERROR `direct` is exported to C and reaches `Task.cancel`
     }
 
@@ -48,9 +46,9 @@ export(C) {
 
 -- expect --
 error[E1780]: `viaHelper` is exported to C and reaches `Task.cancel`: a C caller may run it on a thread the executor does not know, which cannot wake a task safely
-  --> app/t/t.kg:29:9
+  --> app/t/t.kg:28:9
    |
-29 |         stop(t) //~ ERROR `viaHelper` is exported to C and reaches `Task.cancel`
+28 |         stop(t) //~ ERROR `viaHelper` is exported to C and reaches `Task.cancel`
    |         ^^^^^^
    = help: call `cancel` from inside a task instead
 note: wakes a task here
@@ -60,9 +58,9 @@ note: wakes a task here
    |     ^^^^^^^^^
 
 error[E1780]: `direct` is exported to C and reaches `Task.cancel`: a C caller may run it on a thread the executor does not know, which cannot wake a task safely
-  --> app/t/t.kg:35:9
+  --> app/t/t.kg:33:9
    |
-35 |         t.cancel() //~ ERROR `direct` is exported to C and reaches `Task.cancel`
+33 |         t.cancel() //~ ERROR `direct` is exported to C and reaches `Task.cancel`
    |         ^^^^^^^^^
    = help: call `cancel` from inside a task instead
 

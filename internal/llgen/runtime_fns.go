@@ -115,6 +115,8 @@ var (
 	rtFutureSuspend    = RuntimeFn{"rt_future_suspend", []Type{TPtr, TI32, TPtr}, TVoid}
 	rtFutureResume     = RuntimeFn{"rt_future_resume", []Type{TPtr}, TPtr}
 	rtFutureComplete   = RuntimeFn{"rt_future_complete", []Type{TPtr, TPtr}, TPtr}
+	rtFutureSettle     = RuntimeFn{"rt_future_settle", []Type{TPtr}, TPtr}
+	rtTaskClose        = RuntimeFn{"rt_task_close", []Type{TPtr}, TPtr}
 	rtUnwindEnter      = RuntimeFn{"rt_unwind_enter", []Type{TPtr, TI64}, TVoid}
 	rtUnwindEnterSlots = RuntimeFn{"rt_unwind_enter_slots", []Type{TPtr, TPtr, TPtr, TI64}, TVoid}
 	rtUnwindEnterStd   = RuntimeFn{"rt_unwind_enter_std", []Type{TPtr, TPtr, TI64, TI64}, TVoid}
@@ -139,7 +141,7 @@ var runtimeFns = []RuntimeFn{
 	rtRetain, rtRelease, rtPanic, rtPanicIndex, rtIntVal, rtPtr, rtConvert, rtPtrVal,
 	rtFloatVal, rtCstr, rtFromCstr, rtCharVal, rtErrorAs,
 	rtFutureNew, rtFutureSlots, rtFutureState, rtFutureArg, rtFutureStarted,
-	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtUnwindEnter, rtUnwindEnterSlots, rtUnwindEnterStd, rtUnwindLeave,
+	rtFutureSuspend, rtFutureResume, rtFutureComplete, rtFutureSettle, rtTaskClose, rtUnwindEnter, rtUnwindEnterSlots, rtUnwindEnterStd, rtUnwindLeave,
 	rtDropOuter, rtReleaseOuter, rtSweepRelease, rtOuterFatal,
 	rtSetfieldSwap, rtSetindexSwap, rtSetindexCopySwap, rtSetfieldCopySwap, rtCellsetSwap,
 	rtDLen, rtDArrayLen, rtDBytesGet, rtDArrayGet, rtDCharFromInt, rtDParseFloat, rtDConvertInt, rtDConvertFloat,

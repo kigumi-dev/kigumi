@@ -22,8 +22,8 @@ async fn tick() -> Int {
     1
 }
 
-// Each task panics in a different state; whatever its frames still owned is
-// dropped once, and the first fault in queue order is the one root reports.
+// The first panic cancels the other tasks at their next suspension point, so
+// only those that panic before one get that far; each frame drops its own once.
 async fn partial() -> Int {
     let p = Pair { a: Res { id: 10 }, b: Res { id: 11 } }
     let _ = await tick()
@@ -111,11 +111,7 @@ eat 20
 drop 20
 drop 20
 drop 30
-drop 31
-drop 32
-drop 40
 drop 90
-drop 50
 drop 60
 drop 70
 drop 81
