@@ -41,6 +41,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	c.ffiCValueCheck(n, fn, inst, recv)
 	c.ffiAddressLeaseCheck(n, fn, inst)
 	c.errorAsCheck(n, fn, inst)
+	c.exitCodeCheck(fn, args)
 	if async {
 		// A direct call to an async fn yields a lazy Future.
 		ret = c.r.Types.Named(c.r.Types.futureEnt, []TypeID{ret})

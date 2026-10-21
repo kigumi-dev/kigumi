@@ -44,6 +44,7 @@ func (r *Result) phases() []func() {
 		r.checkInterruptHandlers,
 		r.checkAsyncDirectBlocking,
 		r.checkThreadPool,
+		r.resolveExitItems,
 		r.closeMethodFieldWrites,
 		r.closeLateFieldEdges,
 		r.pruneEntryBinds,

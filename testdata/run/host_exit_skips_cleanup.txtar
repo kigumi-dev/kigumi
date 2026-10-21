@@ -1,0 +1,29 @@
+-- src --
+type Res = resource {
+    pub name String
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.name}"
+}
+
+fn deep() -> Void! {
+    let r = Res { name: "deep" }
+    defer print "defer deep"
+    defer(fail) print "rollback deep"
+    print "exiting"
+    host.exit(7)
+}
+
+fn main() -> Void! {
+    let r = Res { name: "main" }
+    defer print "defer main"
+    print "start"
+    deep()?
+    print "unreachable"
+}
+-- stdout --
+start
+exiting
+-- exit --
+7

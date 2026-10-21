@@ -43,7 +43,7 @@ func RunTestsReportingWith(m *Module, opts TestRunOptions, stdout, stderr io.Wri
 		return 1, vmRefusalError(why)
 	}
 	failed, err := vm.RunTestsReporting(a.Prog, vm.TestRunOptions{
-		Options:        vm.Options{Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, DenySignals: true},
+		Options:        vm.Options{Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, DenySignals: true, DenyExit: true},
 		Module:         m.Name,
 		Filter:         opts.Filter,
 		List:           opts.List,

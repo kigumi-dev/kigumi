@@ -1,0 +1,12 @@
+-- src --
+import os from std/os
+
+defer print "defer script"
+print "script start"
+fail os.ExitError.new(5)?
+print "unreachable"
+-- stdout --
+script start
+defer script
+-- exit --
+5

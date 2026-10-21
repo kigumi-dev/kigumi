@@ -1,10 +1,8 @@
 package vm
 
 import (
-	"fmt"
 	"io"
 
-	"kigumi/internal/diag"
 	"kigumi/internal/mir"
 	"kigumi/internal/sem"
 )
@@ -50,9 +48,5 @@ func RunReleasing(prog *mir.Program, opts Options, out, errOut io.Writer, atExit
 		atExit()
 		m.release(res)
 	})
-	if p, ok := err.(*Panic); ok {
-		fmt.Fprintf(errOut, "%s: %s\n", diag.Prefix("panic"), p.Msg)
-		return 2, nil
-	}
-	return code, err
+	return settleRun(code, err, errOut)
 }

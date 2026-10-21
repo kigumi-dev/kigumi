@@ -28,7 +28,26 @@ func (e *emitter) mainWrapper() string {
 		return sb.String()
 	}
 	fmt.Fprintf(&sb, "  %%r = call ptr %s()\n", e.sym(e.p.Entry))
-	e.irb(&sb).CallAs("%c", rtExitCode, vptr("%r"))
+	exitDesc, ctxDesc, wrapped, code := e.exitDescriptors()
+	e.irb(&sb).CallAs("%c", rtExitCode, vptr("%r"), vptr(exitDesc), vptr(ctxDesc), vi64(wrapped), vi64(code))
 	sb.WriteString("  ret i32 %c\n}\n")
 	return sb.String()
+}
+
+// A type nothing in the program builds has no descriptor and no value, so null is exact for it.
+func (e *emitter) exitDescriptors() (exit, ctx string, wrapped, code int) {
+	exit, ctx = "null", "null"
+	exitEnt := e.r.LangItem("ExitError")
+	if _, built := e.descs[exitEnt]; exitEnt == 0 || !built {
+		return
+	}
+	exit = e.desc(exitEnt)
+	code = e.r.Field(e.r.FindField(exitEnt, "code")).Index
+	if ctxEnt := e.r.LangItem("Context"); ctxEnt != 0 {
+		if _, built := e.descs[ctxEnt]; built {
+			ctx = e.desc(ctxEnt)
+			wrapped = e.r.Field(e.r.FindField(ctxEnt, "wrapped")).Index
+		}
+	}
+	return
 }

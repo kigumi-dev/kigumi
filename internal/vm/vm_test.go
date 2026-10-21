@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -45,7 +46,7 @@ func readFixture(t *testing.T, path string) fixture {
 		case "stdout":
 			fx.stdout = body
 		case "exit":
-			fx.exit = int(strings.TrimSpace(body)[0] - '0')
+			fx.exit, _ = strconv.Atoi(strings.TrimSpace(body))
 		}
 	}
 	return fx

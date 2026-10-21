@@ -6148,6 +6148,125 @@
       ]
     },
     {
+      "id": "run/exit_error_child_task",
+      "kind": "run",
+      "path": "testdata/run/exit_error_child_task.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/exit_error_cleanup",
+      "kind": "run",
+      "path": "testdata/run/exit_error_cleanup.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/exit_error_code_range",
+      "kind": "run",
+      "path": "testdata/run/exit_error_code_range.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/exit_error_context",
+      "kind": "run",
+      "path": "testdata/run/exit_error_context.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/exit_error_handled",
+      "kind": "run",
+      "path": "testdata/run/exit_error_handled.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/exit_error_implicit_main",
+      "kind": "run",
+      "path": "testdata/run/exit_error_implicit_main.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/exit_error_other_err",
+      "kind": "run",
+      "path": "testdata/run/exit_error_other_err.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/explicit_main_http_fallback",
       "kind": "run",
       "path": "testdata/run/explicit_main_http_fallback.txtar",
@@ -8071,6 +8190,57 @@
       "id": "run/hir_scalar",
       "kind": "run",
       "path": "testdata/run/hir_scalar.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/host_exit_in_task",
+      "kind": "run",
+      "path": "testdata/run/host_exit_in_task.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/host_exit_on_worker",
+      "kind": "run",
+      "path": "testdata/run/host_exit_on_worker.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/host_exit_skips_cleanup",
+      "kind": "run",
+      "path": "testdata/run/host_exit_skips_cleanup.txtar",
       "mode": [
         "vm",
         "native"
@@ -14861,6 +15031,28 @@
       "id": "sem/exclusive_access_stored",
       "kind": "sem",
       "path": "testdata/sem/exclusive_access_stored.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/exit_error_code_range",
+      "kind": "sem",
+      "path": "testdata/sem/exit_error_code_range.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/exit_host_freestanding",
+      "kind": "sem",
+      "path": "testdata/sem/exit_host_freestanding.txtar",
       "mode": [
         "check"
       ],

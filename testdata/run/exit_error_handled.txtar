@@ -1,0 +1,16 @@
+-- src --
+import os from std/os
+
+fn ask(code: Int) -> Void! {
+    fail os.ExitError.new(code)?
+}
+
+fn main() -> Void! {
+    ask(6) || (e) => print "handled: ${e.message()}"
+    print "main continues"
+}
+-- stdout --
+handled: exit status 6
+main continues
+-- exit --
+0

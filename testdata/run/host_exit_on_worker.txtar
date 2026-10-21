@@ -1,0 +1,31 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub name String
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.name}"
+}
+
+async fn leaver() -> Int {
+    let r = Res { name: "leaver" }
+    defer print "defer leaver"
+    print "worker exits"
+    host.exit(11)
+}
+
+async fn root() -> Int {
+    let r = Res { name: "root" }
+    defer print "defer root"
+    let l = task.spawn(leaver())
+    await l
+}
+
+let ex = task.threadPoolExecutor(2)
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+worker exits
+-- exit --
+11

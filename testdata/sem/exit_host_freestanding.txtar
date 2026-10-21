@@ -1,0 +1,26 @@
+-- module --
+target: freestanding
+-- src --
+import os from std/os //~ ERROR not available on a freestanding target
+
+fn leave() -> Never {
+    host.exit(1) //~ ERROR undefined name `host`
+}
+-- expect --
+error[E920]: `std/os` is not available on a freestanding target
+ --> main/main.kg:1:16
+  |
+1 | import os from std/os //~ ERROR not available on a freestanding target
+  |                ^^^^^^
+
+error[E100]: undefined name `host`
+ --> main/main.kg:4:5
+  |
+4 |     host.exit(1) //~ ERROR undefined name `host`
+  |     ^^^^
+note: `host` exists only in the entry file
+ --> main/main.kg:4:5
+  |
+4 |     host.exit(1) //~ ERROR undefined name `host`
+  |     ^^^^
+

@@ -1,0 +1,47 @@
+-- src --
+import os from std/os
+
+type Res = resource {
+    pub name String
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.name}"
+}
+
+fn leaf() -> Void! {
+    let r = Res { name: "leaf" }
+    defer print "defer leaf"
+    defer(fail) print "rollback leaf"
+    print "leaf asks for 3"
+    fail os.ExitError.new(3)?
+}
+
+fn middle() -> Void! {
+    let r = Res { name: "middle" }
+    defer print "defer middle"
+    defer(fail) print "rollback middle"
+    leaf()?
+    print "middle unreachable"
+}
+
+fn main() -> Void! {
+    let r = Res { name: "main" }
+    defer print "defer main"
+    print "start"
+    middle()?
+    print "main unreachable"
+}
+-- stdout --
+start
+leaf asks for 3
+rollback leaf
+defer leaf
+drop leaf
+rollback middle
+defer middle
+drop middle
+defer main
+drop main
+-- exit --
+3

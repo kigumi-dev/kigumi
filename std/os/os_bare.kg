@@ -1,3 +1,8 @@
+/// Ends the process; a bare target has no process to end.
+pub fn Host.exit(self, code: u8) -> Never {
+    panic()
+}
+
 /// Everything left on stdin; a bare target has no stdin.
 pub fn Stdin.readAll(self) -> String! {
     panic()

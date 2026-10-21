@@ -1,0 +1,41 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub name String
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.name}"
+}
+
+async fn sibling() -> Int {
+    let r = Res { name: "sibling" }
+    defer print "defer sibling"
+    1
+}
+
+async fn leaver() -> Int {
+    let r = Res { name: "leaver" }
+    defer print "defer leaver"
+    print "leaver exits"
+    host.exit(8)
+}
+
+async fn root() -> Int {
+    defer print "defer root"
+    let s = task.spawn(sibling())
+    let l = task.spawn(leaver())
+    let a = await l
+    let b = await s
+    a + b
+}
+
+let ex = task.currentThreadExecutor()
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+defer sibling
+drop sibling
+leaver exits
+-- exit --
+8

@@ -1,0 +1,17 @@
+-- src --
+import test from std/test
+
+fn main() -> Void! {
+    defer print "defer main"
+    defer(fail) print "rollback main"
+    print "start"
+    fail test.failure("plain failure")
+}
+-- stdout --
+start
+rollback main
+defer main
+-- stderr --
+error: plain failure
+-- exit --
+1

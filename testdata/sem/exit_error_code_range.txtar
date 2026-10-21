@@ -1,0 +1,44 @@
+-- src --
+import os from std/os
+
+fn zero() -> Void! {
+    fail os.ExitError.new(0)? //~ ERROR outside 1 to 255
+}
+
+fn big() -> Void! {
+    fail os.ExitError.new(256)? //~ ERROR outside 1 to 255
+}
+
+fn negative() -> Void! {
+    fail os.ExitError.new(-3)? //~ ERROR outside 1 to 255
+}
+
+fn fine() -> Void! {
+    fail os.ExitError.new(255)?
+}
+
+fn dynamic(code: Int) -> Void! {
+    fail os.ExitError.new(code)?
+}
+-- expect --
+error[E2207]: exit code 0 is outside 1 to 255
+ --> main/main.kg:4:27
+  |
+4 |     fail os.ExitError.new(0)? //~ ERROR outside 1 to 255
+  |                           ^
+  = help: return from the entry normally for status 0
+
+error[E2207]: exit code 256 is outside 1 to 255
+ --> main/main.kg:8:27
+  |
+8 |     fail os.ExitError.new(256)? //~ ERROR outside 1 to 255
+  |                           ^^^
+  = help: return from the entry normally for status 0
+
+error[E2207]: exit code -3 is outside 1 to 255
+  --> main/main.kg:12:27
+   |
+12 |     fail os.ExitError.new(-3)? //~ ERROR outside 1 to 255
+   |                           ^^
+   = help: return from the entry normally for status 0
+

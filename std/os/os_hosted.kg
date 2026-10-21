@@ -59,6 +59,15 @@ export(C) {
     }
 }
 
+/// Ends the process at once with status code: no `defer`, drop or child task cancellation runs
+/// and no application buffer is flushed. Return an `ExitError` instead to let every
+/// scope clean up first. It is not a panic.
+pub fn Host.exit(self, code: u8) -> Never {
+    unsafe {
+        exit(code.toI32())
+    }
+}
+
 /// Everything left on stdin as UTF-8 text; fails when it is not valid UTF-8
 /// or on a real read error (a signal arriving mid-read is retried, not
 /// reported).

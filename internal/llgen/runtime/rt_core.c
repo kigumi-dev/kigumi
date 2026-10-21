@@ -2244,9 +2244,15 @@ static void report_live_objs(val r) {
     }
 }
 #endif
-int rt_exit_code(val r) {
+// exit_t, ctx, wrapped and code are compile-time: ExitError's and Context's descriptors (null when no value of the type can exist), Context's "wrapped" field index and ExitError's "code" field index.
+int rt_exit_code(val r, rt_type* exit_t, rt_type* ctx, int64_t wrapped, int64_t code) {
     r = deref(r);
     if (r && r->kind == K_VARIANT && r->u.var.v == V_Err) {
+        for (val cur = deref(r->u.var.payload[0]); exit_t && cur->kind == K_BOX;) {
+            if (cur->u.box.dyn == exit_t) return (int)deref(cur->u.box.v->u.rec.fields[code])->u.i;
+            if (!ctx || cur->u.box.dyn != ctx) break;
+            cur = deref(cur->u.box.v->u.rec.fields[wrapped]);
+        }
         val m = display(error_message(r->u.var.payload[0]));
         write_line(2, "error: ", 7, m->u.s.data, m->u.s.len);
         return 1;

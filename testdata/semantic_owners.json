@@ -4711,6 +4711,46 @@
     "status": "ok"
   },
   {
+    "key": "os.ExitCodeError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.ExitError.message",
+    "signature": "fn() -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.ExitError.new",
+    "signature": "pure fn(Int) -\u003e Result[ExitError, ExitCodeError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.ExitError.status",
+    "signature": "pure noalloc fn() -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "os.Host.args",
     "signature": "fn() -\u003e Args",
     "has_body": false,
@@ -4769,6 +4809,16 @@
     "vm": "gap",
     "native": "gap",
     "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "os.Host.exit",
+    "signature": "fn(u8) -\u003e Never",
+    "has_body": true,
+    "kind": "",
+    "vm": "implemented",
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {

@@ -10,7 +10,7 @@ import (
 var (
 	rtInit             = RuntimeFn{"rt_init", []Type{TI32, TPtr, TI32, TPtr}, TVoid}
 	rtAbiCheck         = RuntimeFn{"rt_abi_check", []Type{TPtr}, TVoid}
-	rtExitCode         = RuntimeFn{"rt_exit_code", []Type{TPtr}, TI32}
+	rtExitCode         = RuntimeFn{"rt_exit_code", []Type{TPtr, TPtr, TPtr, TI64, TI64}, TI32}
 	rtUnit             = RuntimeFn{"rt_unit", nil, TPtr}
 	rtInt              = RuntimeFn{"rt_int", []Type{TI64, TI32}, TPtr}
 	rtFloat            = RuntimeFn{"rt_float", []Type{TDouble, TI32}, TPtr}

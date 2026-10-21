@@ -16,6 +16,7 @@ var langItemTable = map[string]string{
 	"AllocatorScope": "std/alloc",
 	"Host":           "std/os",
 	"Context":        "std/error",
+	"ExitError":      "std/os",
 	"FixedArray":     "std/prelude",
 }
 

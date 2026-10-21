@@ -1,0 +1,26 @@
+-- src --
+import error from std/error
+import os from std/os
+
+fn leaf() -> Void! {
+    defer(fail) print "rollback leaf"
+    fail os.ExitError.new(4)?
+}
+
+fn wrapOnce() -> Void! {
+    leaf() || (e) => fail error.context(e, "loading config")
+}
+
+fn wrapTwice() -> Void! {
+    wrapOnce() || (e) => fail error.context(e, "starting up")
+}
+
+fn main() -> Void! {
+    defer print "defer main"
+    wrapTwice()?
+}
+-- stdout --
+rollback leaf
+defer main
+-- exit --
+4

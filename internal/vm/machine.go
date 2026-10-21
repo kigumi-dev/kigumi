@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"kigumi/internal/diag"
 	"kigumi/internal/mir"
 	"kigumi/internal/sem"
 )
@@ -46,6 +45,9 @@ type Options struct {
 	// real sigaction/os-signal.Notify there would hijack the runner's own
 	// Ctrl-C handling for the rest of the invocation.
 	DenySignals bool
+	// DenyExit makes `host.exit` a panic instead of ending the process, for
+	// the same reason as DenySignals.
+	DenyExit bool
 	// FaultInjectAt mirrors rt_core.c's KIGUMI_FAIL_ALLOC_AT: the Nth
 	// allocation attempt refuses instead of succeeding; 0 disables it.
 	FaultInjectAt int64
@@ -95,7 +97,8 @@ type Machine struct {
 }
 
 // Run executes the program's entry and returns its exit code: 0, 1 for a
-// main that fails with an Error, 2 for a panic.
+// main that fails with an Error, the code of an ExitError that reaches the
+// entry or of `host.exit`, 2 for a panic.
 func Run(prog *mir.Program, opts Options, out, errOut io.Writer) (int, error) {
 	if prog.Entry == nil {
 		return 1, fmt.Errorf("vm: program has no entry")
@@ -109,11 +112,7 @@ func runMachine(m *Machine, prog *mir.Program, errOut io.Writer) (int, error) {
 		res := m.call(prog.Entry, nil)
 		code = m.exitCode(res)
 	})
-	if p, ok := err.(*Panic); ok {
-		fmt.Fprintf(errOut, "%s: %s\n", diag.Prefix("panic"), p.Msg)
-		return 2, nil
-	}
-	return code, err
+	return settleRun(code, err, errOut)
 }
 
 func newMachine(prog *mir.Program, opts Options, out, errOut io.Writer) *Machine {
@@ -143,6 +142,7 @@ func (m *Machine) registerAll() {
 	m.registerNetHTTP()
 	m.registerEntropy()
 	m.registerError()
+	m.registerExit()
 	m.indexHostByOp()
 }
 
@@ -153,7 +153,7 @@ func (m *Machine) catch(f func()) (err error) {
 		m.frames = m.frames[:min(base, len(m.frames))]
 		if rec := recover(); rec != nil {
 			switch e := rec.(type) {
-			case *Panic, *Unsupported:
+			case *Panic, *Unsupported, *exitSignal:
 				err = e.(error)
 			default:
 				panic(rec)
@@ -177,13 +177,4 @@ func (m *Machine) abortSite() mir.Site {
 		return m.p.SiteAt(m.curFn, m.curInst.Node)
 	}
 	return mir.Site{}
-}
-
-func (m *Machine) exitCode(res *obj) int {
-	res = deref(res)
-	if res != nil && res.k == kVariant && res.ent == m.variantOf(m.r.Types.ResultEnt(), "Err") {
-		m.writeErr([]byte(fmt.Sprintf("%s: %s\n", diag.Prefix("error"), m.display(m.errorMessage(res.fields[0])))))
-		return 1
-	}
-	return 0
 }

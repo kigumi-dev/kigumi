@@ -71,7 +71,7 @@ func RunTestsWith(m *Module, opts RunOptions, stdout, stderr io.Writer) (int, er
 	if ok, why := vm.SupportsTests(a.Prog); !ok {
 		return 1, vmRefusalError(why)
 	}
-	failed, err := vm.RunTests(a.Prog, vm.Options{Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, DenySignals: true}, stdout, stderr)
+	failed, err := vm.RunTests(a.Prog, vm.Options{Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, DenySignals: true, DenyExit: true}, stdout, stderr)
 	if err != nil {
 		return 1, fmt.Errorf("%w", err)
 	}

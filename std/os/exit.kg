@@ -1,0 +1,32 @@
+/// Carries a process exit status through `fail` and `?`; when it reaches the entry of a hosted
+/// program the process exits with `code` after every scope has cleaned up, printing nothing.
+/// Build it with `ExitError.new`; 0 is not a valid code because success is a plain return.
+pub type ExitError = {
+    code u8
+}
+
+/// The exit status this error asks for, 1 to 255.
+pub pure noalloc fn ExitError.status(self) -> u8 {
+    self.code
+}
+
+pub fn ExitError.message(self) -> String {
+    "exit status ${self.code}"
+}
+
+/// The failure of `ExitError.new` for a code outside 1 to 255.
+pub type ExitCodeError = {
+    pub code Int
+}
+
+pub fn ExitCodeError.message(self) -> String {
+    "exit code ${self.code} is outside 1 to 255"
+}
+
+/// An ExitError for code; fails with the rejected code unless it is in 1 to 255.
+pub pure fn ExitError.new(code: Int) -> Result[ExitError, ExitCodeError] {
+    if code < 1 || code > 255 {
+        fail ExitCodeError { code: code }
+    }
+    ExitError { code: (code.toU8() || 1) }
+}

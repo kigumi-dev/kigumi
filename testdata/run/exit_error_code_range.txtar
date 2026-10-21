@@ -1,0 +1,27 @@
+-- src --
+import os from std/os
+
+fn show(code: Int) {
+    match os.ExitError.new(code) {
+        Ok(e) -> print "ok ${e.status()}"
+        Err(bad) -> print "rejected: ${bad.message()}"
+    }
+}
+
+fn main() -> Void! {
+    show(0)
+    show(1)
+    show(255)
+    show(256)
+    show(-1)
+    print "returns normally"
+}
+-- stdout --
+rejected: exit code 0 is outside 1 to 255
+ok 1
+ok 255
+rejected: exit code 256 is outside 1 to 255
+rejected: exit code -1 is outside 1 to 255
+returns normally
+-- exit --
+0

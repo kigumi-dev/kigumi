@@ -1,0 +1,30 @@
+-- src --
+import os from std/os
+import task from std/task
+
+async fn child() -> Void! {
+    defer print "defer child"
+    fail os.ExitError.new(9)?
+}
+
+async fn root() {
+    defer print "defer root"
+    let t = task.spawn(child())
+    match await t {
+        Ok(_) -> print "child finished"
+        Err(e) -> print "child failed: ${e.message()}"
+    }
+    print "root continues"
+}
+
+let ex = task.currentThreadExecutor()
+ex.runToCompletion(root())
+print "process continues"
+-- stdout --
+defer child
+child failed: exit status 9
+root continues
+defer root
+process continues
+-- exit --
+0
