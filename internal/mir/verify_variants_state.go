@@ -133,6 +133,14 @@ func (s *variantFacts) forget(l LocalID) {
 	}
 }
 
+func (s *variantFacts) forgetBelow(root LocalID) {
+	for pl := range s.known {
+		if pl.root == root && pl.path != 0 {
+			delete(s.known, pl)
+		}
+	}
+}
+
 func (s *variantFacts) keepOnly(keep []bool) {
 	for c := range s.bools {
 		if !keep[c] {

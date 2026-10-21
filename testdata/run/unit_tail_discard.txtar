@@ -1,0 +1,43 @@
+-- src --
+fn mi() -> Int { 3 }
+
+fn tailCall() -> Unit {
+  mi()
+}
+
+fn tailArith() -> Unit {
+  1 + 2
+}
+
+fn tailIf(c: Bool) -> Unit {
+  if c { mi() } else { mi() }
+}
+
+fn tailLocal(n: Int) -> Unit {
+  n
+}
+
+fn tailMatch(o: Int?) -> Unit {
+  match o {
+    Some(v) -> v
+    None -> 0
+  }
+}
+
+fn tailLambda() -> Int {
+  let f: fn() -> Unit = () => { mi() }
+  f()
+  7
+}
+
+fn main() -> Unit! {
+  tailCall()
+  tailArith()
+  tailIf(true)
+  tailLocal(4)
+  tailMatch(Some(5))
+  let u: Unit = { mi() }
+  print "ok ${tailLambda()}"
+}
+-- stdout --
+ok 7

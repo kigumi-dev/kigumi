@@ -110,7 +110,7 @@ func (c *checker) recordPattern(p syntax.NodeID, scrutinee TypeID, seen map[stri
 			c.errAt(f, cPatternDuplicateBinding, name)
 		}
 		seen[name] = f
-		c.declareLocal(f, name, c.bindingType(ft), false)
+		c.noteCopyBinding(c.declareLocal(f, name, c.bindingType(ft), false), fld)
 		c.patternInField(fld, func() { c.notePatternMove(ft) })
 		if !c.patBorrow && !c.r.isCopy(ft) {
 			info.Moves = true

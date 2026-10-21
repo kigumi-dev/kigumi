@@ -40,9 +40,8 @@ func (c *checker) exprStmt(n syntax.NodeID) TypeID {
 	if c.r.Types.Kind(t) == KUntyped {
 		t = c.adopt(c.literalNode(e), defaultOf(t))
 	}
-	if _, _, ok := c.r.Types.IsResult(t); ok {
-		start := c.t.Span(e).Start
-		c.errFix(e, diag.Fix{Title: "Discard with `_ =`", Loc: diag.At(c.t.File, token.Span{Start: start, End: start}), NewText: "_ = "}, cUnusedResult, t)
+	if _, _, ok := c.r.Types.IsResult(t); ok || c.discardsMoveOnly(t) {
+		c.reportUnused(e, t)
 		return TyPoison
 	}
 	if t == TyNever {
@@ -53,6 +52,19 @@ func (c *checker) exprStmt(n syntax.NodeID) TypeID {
 		c.errAt(e, cUnusedValue, t)
 	}
 	return t
+}
+
+func (c *checker) reportUnused(e syntax.NodeID, t TypeID) {
+	start := c.t.Span(e).Start
+	c.errFix(e, diag.Fix{Title: "Discard with `_ =`", Loc: diag.At(c.t.File, token.Span{Start: start, End: start}), NewText: "_ = "}, cUnusedResult, t)
+}
+
+func (c *checker) discardsMoveOnly(t TypeID) bool {
+	switch c.r.Types.Kind(t) {
+	case KVar, KRef, KPoison, KUntyped, KParam, KIface, KClosure:
+		return false
+	}
+	return !c.r.isCopy(t) && c.r.mayHoldResource(t, map[TypeID]bool{})
 }
 
 func (c *checker) letStmt(n syntax.NodeID) {

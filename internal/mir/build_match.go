@@ -32,7 +32,7 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 			b.cur = run
 			b.markGuardMoves(moves)
 		}
-		b.assign(result, b.exprMoved(arm.Body))
+		b.assignValue(result, b.exprMoved(arm.Body), e.Node)
 		b.exitScope()
 		b.jump(join)
 		b.cur = next
@@ -103,6 +103,7 @@ func (b *builder) bindLocal(id, v LocalID, n syntax.NodeID) {
 		ref := b.emit(Inst{Op: OpBorrow, Dst: b.temp(idT), Args: []LocalID{v}, Index: 1, Node: n})
 		owned := b.emit(Inst{Op: OpShare, Dst: b.temp(idT), Args: []LocalID{ref}, Node: n, Copy: true})
 		b.emit(Inst{Op: OpNewCell, Dst: id, Args: []LocalID{owned}, Node: n})
+		b.unowned[id] = false
 		return
 	}
 	if tt.Kind(idT) == sem.KRef && vNotRef {

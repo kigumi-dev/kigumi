@@ -14,6 +14,10 @@ func (b *builder) stmt(s *hir.Stmt) {
 	case hir.DiscardStmt:
 		b.discard(s)
 	case hir.ExprStmt:
+		if b.unparen(s.Expr).Kind == hir.Local {
+			b.discard(&hir.Stmt{Kind: hir.DiscardStmt, Expr: b.unparen(s.Expr), Node: s.Node})
+			return
+		}
 		v := b.expr(s.Expr)
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: s.Node})
 	case hir.DeferStmt:
@@ -36,9 +40,7 @@ func (b *builder) letStmt(s *hir.Stmt) {
 		b.bindPattern(s.Pat, v)
 		return
 	}
-	okBlock, elseBlock := b.newBlock(), b.newBlock()
-	entry := BlockID(len(b.fn.Blocks) - 3)
-	b.cur = entry
+	okBlock, elseBlock := b.newBlockAt(), b.newBlockAt()
 	cond := b.testPattern(s.Pat, v)
 	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{okBlock, elseBlock}})
 	b.cur = elseBlock
@@ -52,6 +54,10 @@ func (b *builder) isParen(e *hir.Expr) bool {
 	return e.Kind == hir.Wrap && len(e.Args) == 1 && b.r.Tree(b.fn.File).Kind(e.Node) == syntax.Paren
 }
 
+func (b *builder) isSpread(e *hir.Expr) bool {
+	return e.Kind == hir.Wrap && len(e.Args) == 1 && b.r.Tree(b.fn.File).Kind(e.Node) == syntax.Spread
+}
+
 func (b *builder) unparen(e *hir.Expr) *hir.Expr {
 	for b.isParen(e) {
 		e = e.Args[0]
@@ -63,7 +69,7 @@ func (b *builder) unparen(e *hir.Expr) *hir.Expr {
 // named local is copied or moved into a temporary before any coercion
 // wraps it, so the scope's drop of the local stays balanced.
 func (b *builder) exprMoved(e *hir.Expr) LocalID {
-	if b.isParen(e) {
+	if b.isParen(e) || b.isSpread(e) {
 		return b.coerce(e.Coercion, e.Node, b.exprMoved(e.Args[0]))
 	}
 	v := b.transfer(e, b.exprRaw(e))

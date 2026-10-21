@@ -1,0 +1,89 @@
+-- src --
+fn f(r: Int?, q: Int?) -> Int {
+  let Some(n) = q else { return 1 }
+  let Some(m) = r else { return 0 }
+  m + n
+}
+
+
+fn afterMatch(x: Int?, y: Int?) -> Int {
+  match x {
+    Some(a) -> print "a ${a}"
+    None -> print "none"
+  }
+  let Some(v) = y else { return -1 }
+  v
+}
+
+fn inIf(c: Bool, y: Int?) -> Int {
+  if c {
+    let Some(v) = y else { return -1 }
+    return v + 100
+  }
+  0
+}
+
+fn inFor(ys: Array[Int?]) -> Int {
+  let mut total = 0
+  for y in ys {
+    let Some(v) = y else { continue }
+    let Some(w) = Some(v * 2) else { return -9 }
+    total = total + w
+  }
+  total
+}
+
+fn inMatch(x: Int?, y: Int?) -> Int {
+  match x {
+    Some(a) -> {
+      let Some(b) = y else { return -2 }
+      a + b
+    }
+    None -> 0
+  }
+}
+
+fn inBlockExpr(y: Int?, z: Int?) -> Int {
+  let r = {
+    let Some(a) = y else { return 7 }
+    let Some(b) = z else { return 8 }
+    a + b
+  }
+  r
+}
+
+fn ifLetThenLetElse(o: Int?, y: Int?) -> Int {
+  let base = if let Some(k) = o { k } else { return 0 }
+  let Some(v) = y else { return -3 }
+  base + v
+}
+
+fn letElseThenIfLet(y: Int?, z: Int?) -> Int {
+  let Some(v) = y else { return -4 }
+  if let Some(w) = z {
+    return v + w
+  }
+  v
+}
+
+fn main() -> Unit! {
+  print "${f(Some(1), Some(2))} ${f(None, Some(2))} ${f(Some(1), None)}"
+  print "${afterMatch(Some(1), Some(5))} ${afterMatch(None, None)}"
+  print "${inIf(true, Some(1))} ${inIf(true, None)} ${inIf(false, None)}"
+  print "${inFor(Array.of(Some(1), None, Some(3)))}"
+  print "${inMatch(Some(1), Some(2))} ${inMatch(Some(1), None)} ${inMatch(None, None)}"
+  print "${inBlockExpr(Some(1), Some(2))} ${inBlockExpr(None, Some(2))} ${inBlockExpr(Some(1), None)}"
+  print "${ifLetThenLetElse(Some(1), Some(2))} ${ifLetThenLetElse(None, Some(2))} ${ifLetThenLetElse(Some(1), None)}"
+  print "${letElseThenIfLet(Some(1), Some(2))} ${letElseThenIfLet(Some(1), None)} ${letElseThenIfLet(None, None)}"
+}
+-- stdout --
+3 0 1
+a 1
+none
+5 -1
+101 -1 0
+8
+3 -2 0
+3 7 8
+3 0 -3
+3 1 -4

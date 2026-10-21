@@ -1,0 +1,195 @@
+-- src --
+type R = {
+    pub a Int
+    pub b Int?
+}
+
+fn tuplePayload(x: (Int, Int?)) -> Int {
+    match x {
+        (a, Some(r)) -> a + r
+        (a, None) -> a
+    }
+}
+
+fn recordPayload(x: R) -> Int {
+    match x {
+        R { b: Some(v), a } -> a + v
+        R { a } -> a
+    }
+}
+
+fn letElse(x: (Int, Int?)) -> Int {
+    let (a, Some(b)) = x else { return -1 }
+    a + b
+}
+
+fn isTest(x: (Int, Int?)) -> Int {
+    if x is (a, Some(r)) {
+        return a * r
+    }
+    0
+}
+-- expect --
+fn main.tuplePayload(%x: (Int, Int?)) -> Int {
+  b0:
+    %t2 = const true: Bool
+    %t3 = copy(%t2)
+    branch %t2 ? b4 : b5
+  b1:
+    drop(%x)
+    return %t1
+  b2:
+    %t6 = field 0(%x)
+    %a = copy(%t6)
+    %t8 = field 1(%x)
+    %t9 = payload 0(%t8)
+    %r = copy(%t9)
+    %t11 = bin +(%a, %r)
+    %t1 = copy(%t11)
+    drop(%r)
+    drop(%a)
+    jump b1
+  b3:
+    %t12 = const true: Bool
+    %t13 = copy(%t12)
+    branch %t12 ? b8 : b9
+  b4:
+    %t4 = field 1(%x)
+    %t5 = isvariant Option.Some(%t4)
+    %t3 = copy(%t5)
+    jump b5
+  b5:
+    branch %t3 ? b2 : b3
+  b6:
+    %t16 = field 0(%x)
+    %a = copy(%t16)
+    %t18 = field 1(%x)
+    %t19 = copy(%a)
+    %t1 = copy(%t19)
+    drop(%a)
+    jump b1
+  b7:
+    panic "no match arm matched"
+    unreachable
+  b8:
+    %t14 = field 1(%x)
+    %t15 = isvariant Option.None(%t14)
+    %t13 = copy(%t15)
+    jump b9
+  b9:
+    branch %t13 ? b6 : b7
+}
+fn main.recordPayload(%x: R) -> Int {
+  b0:
+    %t2 = const true: Bool
+    %t3 = copy(%t2)
+    branch %t2 ? b4 : b5
+  b1:
+    drop(%x)
+    return %t1
+  b2:
+    %t6 = field 1(%x)
+    %t7 = payload 0(%t6)
+    %v = copy(%t7)
+    %t9 = field 0(%x)
+    %a = copy(%t9)
+    %t11 = bin +(%a, %v)
+    %t1 = copy(%t11)
+    drop(%a)
+    drop(%v)
+    jump b1
+  b3:
+    %t12 = const true: Bool
+    branch %t12 ? b6 : b7
+  b4:
+    %t4 = field 1(%x)
+    %t5 = isvariant Option.Some(%t4)
+    %t3 = copy(%t5)
+    jump b5
+  b5:
+    branch %t3 ? b2 : b3
+  b6:
+    %t13 = field 0(%x)
+    %a = copy(%t13)
+    %t15 = copy(%a)
+    %t1 = copy(%t15)
+    drop(%a)
+    jump b1
+  b7:
+    panic "no match arm matched"
+    unreachable
+}
+fn main.letElse(%x: (Int, Int?)) -> Int {
+  b0:
+    %t1 = copy(%x)
+    %t2 = const true: Bool
+    %t3 = copy(%t2)
+    branch %t2 ? b3 : b4
+  b1:
+    %t8 = field 0(%t1)
+    %a = copy(%t8)
+    %t10 = field 1(%t1)
+    %t11 = payload 0(%t10)
+    %b = copy(%t11)
+    %t13 = bin +(%a, %b)
+    drop(%b)
+    drop(%a)
+    drop(%x)
+    return %t13
+  b2:
+    %t6 = const -1: Int
+    drop(%x)
+    return %t6
+  b3:
+    %t4 = field 1(%t1)
+    %t5 = isvariant Option.Some(%t4)
+    %t3 = copy(%t5)
+    jump b4
+  b4:
+    branch %t3 ? b1 : b2
+  b5:
+    %t7 = unit
+    unreachable
+}
+fn main.isTest(%x: (Int, Int?)) -> Int {
+  b0:
+    %t1 = const true: Bool
+    %t2 = copy(%t1)
+    branch %t1 ? b1 : b2
+  b1:
+    %t3 = field 1(%x)
+    %t4 = isvariant Option.Some(%t3)
+    %t2 = copy(%t4)
+    jump b2
+  b2:
+    branch %t2 ? b3 : b4
+  b3:
+    %t5 = field 0(%x)
+    %a = copy(%t5)
+    %t7 = field 1(%x)
+    %t8 = payload 0(%t7)
+    %r = copy(%t8)
+    jump b4
+  b4:
+    branch %t2 ? b5 : b6
+  b5:
+    %t11 = bin *(%a, %r)
+    drop(%r)
+    drop(%a)
+    drop(%x)
+    return %t11
+  b6:
+    %t13 = unit
+    %t10 = copy(%t13)
+    jump b7
+  b7:
+    drop(%t10)
+    %t14 = const 0: Int
+    drop(%r)
+    drop(%a)
+    drop(%x)
+    return %t14
+  b8:
+    %t12 = unit
+    jump b7
+}

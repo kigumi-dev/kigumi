@@ -13,6 +13,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		return
 	}
 	target := c.synthPlace(lhs)
+	c.rejectScalarCopyWrite(lhs)
 	if !op.IsCompoundAssign() {
 		c.reserveAssign(lhs, target)
 	}

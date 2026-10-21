@@ -8,6 +8,7 @@ type variantFlow struct {
 	cond    []bool
 	lenOf   map[LocalID]LocalID
 	carried []bool
+	multi   []bool
 }
 
 func (p *Program) verifyVariants(f *Func) *Error {
@@ -15,7 +16,7 @@ func (p *Program) verifyVariants(f *Func) *Error {
 		return nil
 	}
 	cond := condLocals(f)
-	vf := &variantFlow{p: p, f: f, cond: cond, lenOf: iterLengths(f), carried: carriedBools(f, cond)}
+	vf := &variantFlow{p: p, f: f, cond: cond, lenOf: iterLengths(f), carried: carriedBools(f, cond), multi: multiDefs(f)}
 	in := make([]*variantFacts, len(f.Blocks))
 	in[0] = newFacts(len(f.Locals))
 	var found *Error
@@ -120,4 +121,24 @@ func copiesBool(in Inst) bool {
 		return in.Str == "!" && in.Args[0] != in.Dst
 	}
 	return false
+}
+
+// A place named through a local that several instructions define would change root between passes of the solver.
+func multiDefs(f *Func) []bool {
+	count := make([]int, len(f.Locals))
+	for _, prm := range f.Params {
+		count[prm]++
+	}
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if in.Op.Yields() {
+				count[in.Dst]++
+			}
+		}
+	}
+	multi := make([]bool, len(count))
+	for l, n := range count {
+		multi[l] = n > 1
+	}
+	return multi
 }

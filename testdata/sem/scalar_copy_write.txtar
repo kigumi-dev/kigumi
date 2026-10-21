@@ -1,0 +1,142 @@
+-- src --
+type In = {
+    pub mut v Int
+}
+
+type B = {
+    pub mut n Int
+    pub mut m Int
+    pub mut i In
+}
+
+fn viaMatch(b: &mut B) -> Unit {
+    match b {
+        B { n } -> {
+            n = n + 1 //~ ERROR
+        }
+    }
+}
+
+fn viaRename(b: &mut B) -> Unit {
+    match b {
+        B { n: k } -> {
+            k = 2 //~ ERROR
+        }
+    }
+}
+
+fn viaNested(b: &mut B) -> Unit {
+    match b {
+        B { i: In { v } } -> {
+            v = 3 //~ ERROR
+        }
+    }
+}
+
+fn viaIs(b: &mut B) -> Unit {
+    if b is (B { n }) {
+        n = 1 //~ ERROR
+    }
+}
+
+fn viaPayload(o: &mut Int?) -> Unit {
+    match o {
+        Some(n) -> {
+            n = 3 //~ ERROR
+        }
+        None -> {}
+    }
+}
+
+fn bump(x: &mut Int) -> Unit {
+    x = x + 1
+}
+
+fn viaCall(b: &mut B) -> Unit {
+    match b {
+        B { n } -> {
+            bump(n) //~ ERROR
+        }
+    }
+}
+
+fn viaCallPayload(o: &mut Int?) -> Unit {
+    match o {
+        Some(n) -> bump(n) //~ ERROR
+        None -> {}
+    }
+}
+
+fn viaCallField(b: &mut B) -> Unit {
+    match b {
+        B { n } -> {
+            bump(&mut b.n)
+            b.m = n + 1
+        }
+    }
+}
+
+fn throughField(b: &mut B) -> Unit {
+    match b {
+        B { n, i } -> {
+            b.m = n + 1
+            i.v = n + 2
+        }
+    }
+}
+
+fn readOnly(b: &mut B) -> Int {
+    match b {
+        B { n, m } -> n + m
+    }
+}
+-- expect --
+error[E2169]: assignment to `n` is lost: a binding from a `&mut` match holds a copy of the scalar
+  --> main/main.kg:14:13
+   |
+14 |             n = n + 1 //~ ERROR
+   |             ^
+   = help: assign to `b.n` instead
+
+error[E2169]: assignment to `k` is lost: a binding from a `&mut` match holds a copy of the scalar
+  --> main/main.kg:22:13
+   |
+22 |             k = 2 //~ ERROR
+   |             ^
+   = help: assign to `b.n` instead
+
+error[E2169]: assignment to `v` is lost: a binding from a `&mut` match holds a copy of the scalar
+  --> main/main.kg:30:13
+   |
+30 |             v = 3 //~ ERROR
+   |             ^
+   = help: assign to `b.i.v` instead
+
+error[E2169]: assignment to `n` is lost: a binding from a `&mut` match holds a copy of the scalar
+  --> main/main.kg:37:9
+   |
+37 |         n = 1 //~ ERROR
+   |         ^
+   = help: assign to `b.n` instead
+
+error[E2169]: assignment to `n` is lost: a binding from a `&mut` match holds a copy of the scalar
+  --> main/main.kg:44:13
+   |
+44 |             n = 3 //~ ERROR
+   |             ^
+   = help: assign to the matched place instead
+
+error[E2170]: `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+  --> main/main.kg:57:18
+   |
+57 |             bump(n) //~ ERROR
+   |                  ^
+   = help: pass `&mut b.n` instead
+
+error[E2170]: `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+  --> main/main.kg:64:25
+   |
+64 |         Some(n) -> bump(n) //~ ERROR
+   |                         ^
+   = help: pass a `&mut` borrow of the matched place instead
+

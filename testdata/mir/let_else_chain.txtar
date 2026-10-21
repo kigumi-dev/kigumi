@@ -1,0 +1,180 @@
+-- src --
+fn guards(a: Int?, b: Int?) -> Int {
+    let Some(x) = a else { return 1 }
+    let Some(y) = b else { return 2 }
+    x + y
+}
+
+fn afterMatch(o: Int?, a: Int?) -> Int {
+    match o {
+        Some(v) -> print "${v}"
+        None -> print "none"
+    }
+    let Some(x) = a else { return 0 }
+    x
+}
+
+fn inLoop(xs: Array[Int?]) -> Int {
+    let mut t = 0
+    for e in xs {
+        let Some(v) = e else { continue }
+        let Some(w) = Some(v) else { return -1 }
+        t = t + w
+    }
+    t
+}
+-- expect --
+fn main.guards(%a: Int?, %b: Int?) -> Int {
+  b0:
+    %t2 = copy(%a)
+    %t3 = isvariant Option.Some(%t2)
+    branch %t3 ? b1 : b2
+  b1:
+    %t6 = payload 0(%t2)
+    %x = copy(%t6)
+    %t8 = copy(%b)
+    %t9 = isvariant Option.Some(%t8)
+    branch %t9 ? b4 : b5
+  b2:
+    %t4 = const 1: Int
+    drop(%b)
+    drop(%a)
+    return %t4
+  b3:
+    %t5 = unit
+    unreachable
+  b4:
+    %t12 = payload 0(%t8)
+    %y = copy(%t12)
+    %t14 = bin +(%x, %y)
+    drop(%y)
+    drop(%x)
+    drop(%b)
+    drop(%a)
+    return %t14
+  b5:
+    %t10 = const 2: Int
+    drop(%x)
+    drop(%b)
+    drop(%a)
+    return %t10
+  b6:
+    %t11 = unit
+    unreachable
+}
+fn main.afterMatch(%o: Int?, %a: Int?) -> Int {
+  b0:
+    %t3 = isvariant Option.Some(%o)
+    branch %t3 ? b2 : b3
+  b1:
+    drop(%t2)
+    %t11 = copy(%a)
+    %t12 = isvariant Option.Some(%t11)
+    branch %t12 ? b6 : b7
+  b2:
+    %t4 = payload 0(%o)
+    %v = copy(%t4)
+    %t6 = interp ""(%v)
+    %t7 = builtin print(%t6)
+    %t2 = copy(%t7)
+    drop(%v)
+    jump b1
+  b3:
+    %t8 = isvariant Option.None(%o)
+    branch %t8 ? b4 : b5
+  b4:
+    %t9 = const "none": String
+    %t10 = builtin print(%t9)
+    %t2 = copy(%t10)
+    jump b1
+  b5:
+    panic "no match arm matched"
+    unreachable
+  b6:
+    %t15 = payload 0(%t11)
+    %x = copy(%t15)
+    %t17 = copy(%x)
+    drop(%x)
+    drop(%a)
+    drop(%o)
+    return %t17
+  b7:
+    %t13 = const 0: Int
+    drop(%a)
+    drop(%o)
+    return %t13
+  b8:
+    %t14 = unit
+    unreachable
+}
+fn main.inLoop(%xs: Array[Int?]) -> Int {
+  b0:
+    %t1 = const 0: Int
+    %t = copy(%t1)
+    %t3 = move(%xs)
+    %t4 = const 0: usize
+    %t5 = builtin iter.len(%t3)
+    jump b1
+  b1:
+    %t6 = bin <(%t4, %t5)
+    branch %t6 ? b2 : b4
+  b2:
+    %t7 = builtin iter.at(%t3, %t4)
+    %e = copy(%t7)
+    %t9 = copy(%e)
+    %t10 = isvariant Option.Some(%t9)
+    branch %t10 ? b5 : b6
+  b3:
+    %t23 = const 1: usize
+    %t24 = bin +(%t4, %t23)
+    drop(%t4)
+    %t4 = copy(%t24)
+    jump b1
+  b4:
+    drop(%t5)
+    drop(%t4)
+    drop(%t3)
+    %t25 = unit
+    drop(%t25)
+    %t26 = copy(%t)
+    drop(%t)
+    nop
+    return %t26
+  b5:
+    %t12 = payload 0(%t9)
+    %v = copy(%t12)
+    %t14 = copy(%v)
+    %t15 = variant Option.Some(%t14)
+    %t16 = isvariant Option.Some(%t15)
+    branch %t16 ? b8 : b9
+  b6:
+    drop(%e)
+    jump b3
+  b7:
+    %t11 = unit
+    unreachable
+  b8:
+    %t19 = payload 0(%t15)
+    %w = copy(%t19)
+    %t21 = bin +(%t, %w)
+    drop(%t)
+    %t = copy(%t21)
+    drop(%w)
+    drop(%v)
+    %t22 = unit
+    drop(%e)
+    jump b3
+  b9:
+    %t17 = const -1: Int
+    drop(%v)
+    drop(%e)
+    drop(%t5)
+    drop(%t4)
+    drop(%t3)
+    drop(%t)
+    nop
+    return %t17
+  b10:
+    %t18 = unit
+    unreachable
+}

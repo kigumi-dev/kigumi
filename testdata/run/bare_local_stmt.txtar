@@ -1,0 +1,19 @@
+-- src --
+type P = { pub x Int, pub y Int }
+fn a(n: Int) -> Int {
+  n
+  n + 1
+}
+fn b(p: P) -> Int {
+  p
+  p.x
+}
+fn c(s: String) -> usize {
+  s
+  s.len()
+}
+fn main() -> Unit! {
+  print "${a(1)} ${b(P { x: 1, y: 2 })} ${c("abc")}"
+}
+-- stdout --
+2 1 3

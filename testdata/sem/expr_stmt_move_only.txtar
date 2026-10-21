@@ -1,0 +1,145 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {}
+
+fn Handle.close(move self) -> Unit {}
+
+type Slot = {
+    pub mut o Handle?
+}
+
+fn mkh(n: Int) -> Handle {
+    Handle { id: n }
+}
+
+fn tailCall() -> Unit {
+    mkh(1) //~ ERROR
+}
+
+fn Slot.drain(mut self) -> Unit {
+    self.o.take() //~ ERROR
+}
+
+fn bareLocal() -> Unit {
+    let r = mkh(2)
+    let s = r
+    r //~ ERROR
+    s.close()
+}
+
+fn bareMove() -> Unit {
+    let r = mkh(3)
+    move r //~ ERROR
+}
+
+fn armValues(c: Bool) -> Unit {
+    if c {
+        mkh(4) //~ ERROR
+    } else {
+        mkh(5) //~ ERROR
+    }
+    match c {
+        true -> mkh(6) //~ ERROR
+        false -> mkh(7).close()
+    }
+}
+
+fn arr() -> Array[Int] {
+    Array.of(1)
+}
+
+fn plainNonCopyPass(xs: Array[Int]) -> Unit {
+    arr() //~ WARNING unused value
+    xs //~ WARNING unused value
+}
+
+fn copyValuesPass(n: Int, o: Int?) -> Unit {
+    n //~ WARNING unused value
+    1 + 2 //~ WARNING unused value
+    match o {
+        Some(v) -> v
+        None -> 0
+    }
+}
+
+fn explicitDiscard(c: Bool) -> Unit {
+    _ = mkh(8)
+    if c { _ = mkh(9) } else { mkh(10).close() }
+}
+-- expect --
+error[E700]: unused `Handle`
+  --> main/main.kg:18:5
+   |
+18 |     mkh(1) //~ ERROR
+   |     ^^^^^
+   = help: use `?`, `||`, or `_ =`
+
+error[E700]: unused `Handle?`
+  --> main/main.kg:22:5
+   |
+22 |     self.o.take() //~ ERROR
+   |     ^^^^^^^^^^^^
+   = help: use `?`, `||`, or `_ =`
+
+error[E700]: unused `Handle`
+  --> main/main.kg:28:5
+   |
+28 |     r //~ ERROR
+   |     ^
+   = help: use `?`, `||`, or `_ =`
+
+error[E700]: unused `Handle`
+  --> main/main.kg:34:5
+   |
+34 |     move r //~ ERROR
+   |     ^^^^^^
+   = help: use `?`, `||`, or `_ =`
+
+error[E700]: unused `Handle`
+  --> main/main.kg:39:9
+   |
+39 |         mkh(4) //~ ERROR
+   |         ^^^^^
+   = help: use `?`, `||`, or `_ =`
+
+error[E700]: unused `Handle`
+  --> main/main.kg:41:9
+   |
+41 |         mkh(5) //~ ERROR
+   |         ^^^^^
+   = help: use `?`, `||`, or `_ =`
+
+error[E700]: unused `Handle`
+  --> main/main.kg:44:17
+   |
+44 |         true -> mkh(6) //~ ERROR
+   |                 ^^^^^
+   = help: use `?`, `||`, or `_ =`
+
+warning[W400]: unused value of type `Array[Int]`
+  --> main/main.kg:54:5
+   |
+54 |     arr() //~ WARNING unused value
+   |     ^^^^
+
+warning[W400]: unused value of type `Array[Int]`
+  --> main/main.kg:55:5
+   |
+55 |     xs //~ WARNING unused value
+   |     ^^
+
+warning[W400]: unused value of type `Int`
+  --> main/main.kg:59:5
+   |
+59 |     n //~ WARNING unused value
+   |     ^
+
+warning[W400]: unused value of type `Int`
+  --> main/main.kg:60:5
+   |
+60 |     1 + 2 //~ WARNING unused value
+   |     ^^^^^
+

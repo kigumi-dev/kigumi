@@ -2,6 +2,9 @@ package mir
 
 import "kigumi/internal/sem"
 
+// fieldSlot keeps a field's path step apart from a payload slot's.
+const fieldSlot = 1 << 24
+
 func (vf *variantFlow) step(s *variantFacts, in Inst) {
 	p, f := vf.p, vf.f
 	d := in.Dst
@@ -30,14 +33,22 @@ func (vf *variantFlow) step(s *variantFacts, in Inst) {
 			no:  &implied{facts: map[vplace]variantSet{srcPlace: rest}},
 		})
 	case OpPayload:
-		if src != d {
+		if src != d && !vf.multi[d] {
 			s.setAt(d, vplace{root: srcPlace.root, path: s.paths.child(srcPlace.path, in.Index)})
 		}
-	case OpAlias, OpCopy, OpMove, OpShare:
+	case OpField, OpFieldMove:
+		if src != d && !vf.multi[d] {
+			s.setAt(d, vplace{root: srcPlace.root, path: s.paths.child(srcPlace.path, fieldSlot|in.Index)})
+		}
+	case OpAlias, OpCopy, OpMove, OpShare, OpBoxDirect, OpUnboxDirect:
 		if src == d {
 			return
 		}
-		s.setAt(d, srcPlace)
+		if vf.multi[d] {
+			s.rebase(srcPlace, d)
+		} else {
+			s.setAt(d, srcPlace)
+		}
 		if srcBool != nil && vf.cond[d] {
 			s.setBool(d, srcBool)
 		}

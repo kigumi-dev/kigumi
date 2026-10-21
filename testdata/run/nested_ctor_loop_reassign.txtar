@@ -1,0 +1,55 @@
+-- src --
+type R = {pub a Int?, pub b Int}
+fn mk(i: Int) -> (Int?, Int?) { (Some(i), None) }
+
+fn e1(x: (Int?, Int?)) -> Int {
+  let mut t = x
+  let mut n = 0
+  for i in 0..3 {
+    match t {
+      (Some(a), _) -> { n = n + a }
+      _ -> {}
+    }
+    t = mk(i)
+  }
+  n
+}
+fn e2(x: R) -> Int {
+  let mut t = x
+  let mut n = 0
+  for i in 0..3 {
+    match t {
+      R { a: Some(v), b } -> { n = n + v + b }
+      R { b } -> { n = n + b }
+    }
+    t = R { a: None, b: i }
+  }
+  n
+}
+fn e4(x: (Int?, Int?)) -> Int {
+  let mut t = x
+  let mut n = 0
+  for i in 0..3 {
+    if t is (Some(a), _) { n = n + a }
+    t = (None, Some(i))
+  }
+  n
+}
+fn e5(x: (Int?, Int?)) -> Int {
+  let mut t = x
+  let mut n = 0
+  for i in 0..3 {
+    match t {
+      (Some(a), Some(b)) -> { n = n + a + b }
+      (_, Some(b)) -> { n = n + b }
+      _ -> { n = n + 100 }
+    }
+    t = (if i == 1 { None } else { Some(i) }, Some(i))
+  }
+  n
+}
+fn main() -> Unit! {
+  print "${e1((Some(1), Some(2)))} ${e2(R { a: Some(1), b: 2 })} ${e4((Some(5), None))} ${e5((Some(1), Some(2)))}"
+}
+-- stdout --
+2 4 5 4

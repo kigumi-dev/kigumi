@@ -134,7 +134,7 @@ func (l *lowerer) block(n syntax.NodeID) *Block {
 	b := &Block{Type: l.typeOf(n), Node: n, Coercion: l.coercion(n)}
 	stmts := l.t.List(n)
 	for i, sv := range stmts.Enumerate() {
-		if i == stmts.Len()-1 && sv.Kind() == syntax.ExprStmt {
+		if i == stmts.Len()-1 && sv.Kind() == syntax.ExprStmt && !l.discardedTail(b.Type, sv.ID()) {
 			b.Tail = l.expr(sv.AsExprStmt().Expr().ID())
 			break
 		}

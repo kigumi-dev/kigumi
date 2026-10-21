@@ -1,0 +1,107 @@
+-- src --
+import task from std/task
+
+type Handle = resource {
+  pub id Int
+}
+
+fn Handle.drop(move self) -> Unit {
+  print "drop ${self.id}"
+}
+
+type R = {
+  pub name String
+  pub v Int?
+}
+
+fn t1(p: (String, Int?)) -> Int {
+  match p {
+    (s, Some(a)) -> s.len().toInt().unwrap() + a
+    _ -> -1
+  }
+}
+
+fn t2(p: (Int?, String)) -> Int {
+  match p {
+    (Some(a), s) -> s.len().toInt().unwrap() + a
+    _ -> -1
+  }
+}
+
+fn t3(p: (String, Int?)) -> Int {
+  let (s, Some(a)) = p else { return 0 }
+  s.len().toInt().unwrap() + a
+}
+
+fn t4(p: (String, Int?)) -> Int {
+  if p is (s, Some(a)) {
+    return s.len().toInt().unwrap() + a
+  }
+  7
+}
+
+fn t5(p: R) -> Int {
+  match p {
+    R { name, v: Some(x) } -> name.len().toInt().unwrap() + x
+    _ -> -1
+  }
+}
+
+fn t6(p: R) -> Int {
+  match p {
+    R { v: Some(x), name } -> name.len().toInt().unwrap() + x
+    _ -> -1
+  }
+}
+
+fn t7(p: (Handle, Int?)) -> Int {
+  match p {
+    (h, Some(a)) -> h.id + a
+    (h, None) -> h.id
+  }
+}
+
+fn t8(p: (Array[Int], Int?)) -> Int {
+  match p {
+    (xs, Some(a)) -> xs.len().toInt().unwrap() + a
+    _ -> -1
+  }
+}
+
+async fn t9(p: (String, Int?)) -> Int {
+  match p {
+    (s, Some(a)) -> s.len().toInt().unwrap() + a
+    _ -> -1
+  }
+}
+
+async fn root() -> Int {
+  let a = await t9(("ab", Some(2)))
+  let b = await t9(("ab", None))
+  print "${a} ${b}"
+  0
+}
+
+print "${t1(("ab", Some(2)))} ${t1(("ab", None))}"
+print "${t2((Some(2), "abc"))} ${t2((None, "abc"))}"
+print "${t3(("ab", Some(2)))} ${t3(("ab", None))}"
+print "${t4(("ab", Some(2)))} ${t4(("ab", None))}"
+print "${t5(R { name: "ab", v: Some(2) })} ${t5(R { name: "ab", v: None })}"
+print "${t6(R { name: "ab", v: Some(2) })} ${t6(R { name: "ab", v: None })}"
+print "${t7((Handle { id: 4 }, Some(1)))} ${t7((Handle { id: 5 }, None))}"
+print "${t8((Array.of(1, 2), Some(3)))} ${t8((Array.of(1), None))}"
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(root())}"
+-- stdout --
+4 -1
+5 -1
+4 0
+4 7
+4 -1
+4 -1
+drop 4
+drop 5
+5 5
+5 -1
+4 -1
+0

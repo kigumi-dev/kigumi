@@ -29,6 +29,9 @@ func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bo
 		}
 	}
 	c.patMoved = savedMoved
+	if c.patBorrowMut {
+		c.noteCopyScrutinee(expr, c.locals[bound:])
+	}
 	if expr != 0 && c.patBorrowMut {
 		c.noteLentBindings(p, expr, info, c.locals[bound:])
 	}

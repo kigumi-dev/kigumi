@@ -622,6 +622,17 @@
       ]
     },
     {
+      "id": "mir/let_else_chain",
+      "kind": "mir",
+      "path": "testdata/mir/let_else_chain.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/lifetime_borrow_err",
       "kind": "mir",
       "path": "testdata/mir/lifetime_borrow_err.txtar",
@@ -1010,6 +1021,17 @@
       "id": "mir/mut_ref_recv_field",
       "kind": "mir",
       "path": "testdata/mir/mut_ref_recv_field.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/nested_ctor_field",
+      "kind": "mir",
+      "path": "testdata/mir/nested_ctor_field.txtar",
       "mode": [
         "build"
       ],
@@ -3337,6 +3359,23 @@
       "id": "run/async_thread_stress",
       "kind": "run",
       "path": "testdata/run/async_thread_stress.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/bare_local_stmt",
+      "kind": "run",
+      "path": "testdata/run/bare_local_stmt.txtar",
       "mode": [
         "vm",
         "native"
@@ -8972,6 +9011,23 @@
       ]
     },
     {
+      "id": "run/let_else_nested",
+      "kind": "run",
+      "path": "testdata/run/let_else_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/let_wildcard_drop",
       "kind": "run",
       "path": "testdata/run/let_wildcard_drop.txtar",
@@ -9519,6 +9575,23 @@
       "id": "run/live_unbox_consumed",
       "kind": "run",
       "path": "testdata/run/live_unbox_consumed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/match_mut_scrutinee_field",
+      "kind": "run",
+      "path": "testdata/run/match_mut_scrutinee_field.txtar",
       "mode": [
         "vm",
         "native"
@@ -10110,6 +10183,57 @@
       "id": "run/named_args",
       "kind": "run",
       "path": "testdata/run/named_args.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/nested_ctor_loop_reassign",
+      "kind": "run",
+      "path": "testdata/run/nested_ctor_loop_reassign.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/nested_ctor_move_sibling",
+      "kind": "run",
+      "path": "testdata/run/nested_ctor_move_sibling.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/nested_ctor_pattern",
+      "kind": "run",
+      "path": "testdata/run/nested_ctor_pattern.txtar",
       "mode": [
         "vm",
         "native"
@@ -12074,6 +12198,23 @@
       ]
     },
     {
+      "id": "run/unit_tail_discard",
+      "kind": "run",
+      "path": "testdata/run/unit_tail_discard.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/unsafe_cell",
       "kind": "run",
       "path": "testdata/run/unsafe_cell.txtar",
@@ -12162,6 +12303,23 @@
       "id": "run/variadic_empty_tail",
       "kind": "run",
       "path": "testdata/run/variadic_empty_tail.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/variadic_spread_forward",
+      "kind": "run",
+      "path": "testdata/run/variadic_spread_forward.txtar",
       "mode": [
         "vm",
         "native"
@@ -14554,6 +14712,17 @@
       ]
     },
     {
+      "id": "sem/expr_stmt_move_only",
+      "kind": "sem",
+      "path": "testdata/sem/expr_stmt_move_only.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/fallback_err",
       "kind": "sem",
       "path": "testdata/sem/fallback_err.txtar",
@@ -15734,6 +15903,17 @@
       "id": "sem/result_ok",
       "kind": "sem",
       "path": "testdata/sem/result_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/scalar_copy_write",
+      "kind": "sem",
+      "path": "testdata/sem/scalar_copy_write.txtar",
       "mode": [
         "check"
       ],

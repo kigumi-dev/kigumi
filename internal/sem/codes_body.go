@@ -95,6 +95,8 @@ var (
 	cTryInLambdaUnknownRet = defineCode("E714", "try-in-lambda-unknown-return", "`?` in a lambda needs a known return type")
 	cCleanupControlFlow    = defineCode("E715", "cleanup-control-flow", "{what} is not allowed in a cleanup body")
 	cDeferFailNoResult     = defineCode("E716", "errdefer-outside-result", "`defer(fail)` in a function that cannot fail; it would never run, so use a plain `defer` or make the function return `T!`")
+	cScalarCopyWrite       = defineCode("E2169", "scalar-copy-write", "assignment to `{name}` is lost: a binding from a `&mut` match holds a copy of the scalar; assign to {place} instead")
+	cScalarCopyArg         = defineCode("E2170", "scalar-copy-arg", "`{name}` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost; pass {place} instead")
 	cForLoopScalarMut      = defineCode("E717", "for-loop-scalar-mut", "cannot bind a mutable `{type}` element in a `for` loop; index the collection instead")
 
 	// break-with-value.

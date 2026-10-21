@@ -100,6 +100,10 @@ func (c *checker) checkBranch(n, body syntax.NodeID, want TypeID, valuePos bool)
 	c.branch++
 	t := c.checkTail(n, body, want)
 	c.branch--
+	if !valuePos && want == 0 && c.discardsMoveOnly(c.vars.resolve(t)) {
+		c.reportUnused(c.branchValue(body), t)
+		return TyPoison
+	}
 	return t
 }
 
@@ -161,4 +165,15 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 	c.onceEnd(once, false)
 	c.joinBranches(then, thenFacts, els, c.snapshotFacts())
 	return c.branchResult(want, valuePos, []syntax.NodeID{s.Then, s.Else}, []TypeID{then, els})
+}
+
+func (c *checker) branchValue(body syntax.NodeID) syntax.NodeID {
+	for c.t.Kind(body) == syntax.Block {
+		stmts := c.t.List(body)
+		if stmts.Len() == 0 || stmts.At(stmts.Len()-1).Kind() != syntax.ExprStmt {
+			break
+		}
+		body = stmts.At(stmts.Len() - 1).AsExprStmt().Expr().ID()
+	}
+	return body
 }

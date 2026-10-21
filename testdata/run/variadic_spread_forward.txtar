@@ -1,0 +1,61 @@
+-- src --
+fn callAll(cbs: ...fn() -> Unit) -> Int {
+  let mut n = 0
+  for cb in cbs {
+    cb()
+    n += 1
+  }
+  n
+}
+
+fn forward(cbs: ...fn() -> Unit) -> Int {
+  callAll(...cbs)
+}
+
+fn sum(xs: ...Int) -> Int {
+  let mut t = 0
+  for x in xs {
+    t = t + x
+  }
+  t
+}
+
+fn fwd(xs: ...Int) -> Int {
+  sum(...xs) + 1
+}
+
+fn fwd2(xs: ...Int) -> Int {
+  sum(...xs)
+}
+
+type Res = resource {
+  pub n Int
+}
+
+fn Res.drop(move self) -> Unit {
+  print "drop res ${self.n}"
+}
+
+fn Res.show(self) -> Unit {
+  print "show res ${self.n}"
+}
+
+fn forwardTwice(cbs: ...fn() -> Unit) -> Int {
+  forward(...cbs)
+}
+
+fn main() -> Unit! {
+  print "${forward(() => print "a", () => print "b")}"
+  let r = Res { n: 1 }
+  print "${forwardTwice(() => r.show(), () => print "x")}"
+  print "${fwd(1, 2, 3)} ${fwd()} ${fwd2(4, 5)}"
+}
+-- stdout --
+a
+b
+2
+show res 1
+x
+2
+7 1 9
+drop res 1

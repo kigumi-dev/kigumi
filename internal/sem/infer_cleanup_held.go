@@ -13,6 +13,8 @@ type heldMuts struct {
 	// patWhole is set for the pattern of a `let`, which moves its whole initializer.
 	patWhole    bool
 	mutArgParam map[syntax.NodeID]EntityID
+	scalarCopy  map[EntityID]scalarCopy
+	patDepth    int
 }
 
 type mutHolder struct {

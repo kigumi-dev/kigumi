@@ -1,0 +1,29 @@
+-- src --
+type In = { pub mut v Int }
+type B = { pub mut n Int, pub mut m Int, pub mut i In }
+
+fn bump(b: &mut B) -> Unit {
+  match b {
+    B { n } -> {
+      b.n = n + 1
+    }
+  }
+}
+
+fn viaInner(b: &mut B) -> Unit {
+  match b {
+    B { n, i } -> {
+      i.v = n + 10
+    }
+  }
+}
+
+fn main() -> Unit! {
+  let mut b = B { n: 0, m: 5, i: In { v: 0 } }
+  bump(&mut b)
+  bump(&mut b)
+  viaInner(&mut b)
+  print "${b.n} ${b.m} ${b.i.v}"
+}
+-- stdout --
+2 5 12

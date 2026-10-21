@@ -16,6 +16,8 @@ func (c *checker) patternInner(p syntax.NodeID, scrutinee TypeID, mut bool, seen
 	node := c.t.View(p)
 	tt := c.r.Types
 	c.setType(p, scrutinee)
+	c.held.patDepth++
+	defer func() { c.held.patDepth-- }()
 	switch node.Kind() {
 	case syntax.PatWildcard:
 		return PatInfo{Kind: PatWild, Type: scrutinee}
@@ -28,7 +30,7 @@ func (c *checker) patternInner(p syntax.NodeID, scrutinee TypeID, mut bool, seen
 		if scrutinee != TyPoison && c.shadowsVariant(scrutinee, name) {
 			c.errAt(p, cBindingShadowsVariant, name, c.r.entityName(tt.Node(scrutinee).Ent), name)
 		}
-		c.declareLocal(p, name, c.bindingType(scrutinee), mut)
+		c.noteCopyBinding(c.declareLocal(p, name, c.bindingType(scrutinee), mut))
 		c.notePatternMove(scrutinee)
 		return PatInfo{Kind: PatBinding, Type: scrutinee, Moves: !c.patBorrow && !c.r.isCopy(scrutinee)}
 	case syntax.PatLit:
