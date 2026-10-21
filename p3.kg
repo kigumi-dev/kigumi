@@ -1,7 +1,0 @@
-type UserId = u64
-
-fn main() -> Unit {
-    let a = UserId(1)
-    let b = UserId(1)
-    print "${a == b}"
-}
