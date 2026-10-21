@@ -16,7 +16,7 @@ func (r *Result) RegScalar(t TypeID) bool {
 func WideScalar(t TypeID) bool { return t == TyI128 || t == TyU128 }
 
 func (r *Result) directLeaf(t TypeID) bool {
-	return t == TyUnit || r.RegScalar(t) || WideScalar(t) || r.DirectAgg(t)
+	return t == TyUnit || r.RegScalar(t) || WideScalar(t) || r.DirectAgg(t) || r.nominalScalar(t) != 0
 }
 
 func (r *Result) DirectAgg(t TypeID) bool {
@@ -109,5 +109,5 @@ func (r *Result) AggFields(t TypeID) []TypeID {
 		return r.closureEnv(n.Ent)
 	}
 	info := r.typeDecl(n.Ent)
-	return r.fieldTypes(info, instSubst(info.Params, n.Args))
+	return r.slotTypes(r.fieldTypes(info, instSubst(info.Params, n.Args)))
 }

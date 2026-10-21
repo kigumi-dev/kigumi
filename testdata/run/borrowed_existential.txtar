@@ -1,0 +1,137 @@
+-- src --
+interface Show {
+    fn show(self) -> String
+}
+
+interface Counter {
+    fn bump(mut self, by: Int)
+    fn get(self) -> Int
+}
+
+interface Reset {
+    fn reset(mut self)
+}
+
+interface Len {
+    fn len(self) -> usize
+}
+
+type Box = {
+    value String
+}
+
+fn Box.show(self) -> String {
+    "box:${self.value}"
+}
+
+type Num = {
+    pub mut n Int
+}
+
+fn Num.show(self) -> String {
+    "num:${self.n}"
+}
+
+fn Num.bump(mut self, by: Int) {
+    self.n = self.n + by
+}
+
+fn Num.get(self) -> Int {
+    self.n
+}
+
+fn Num.reset(mut self) {
+    self = Num { n: 99 }
+}
+
+fn printBorrowed(value: &Show) {
+    print value.show()
+}
+
+fn bumpTwice(c: &mut Counter) {
+    c.bump(1)
+    c.bump(2)
+}
+
+fn resetView(r: &mut Reset) {
+    r.reset()
+}
+
+fn resetThrough(n: &mut Num) {
+    resetView(n)
+}
+
+fn eat(b: Box) -> Int {
+    1
+}
+
+fn mkBox(s: String) -> Box {
+    Box { value: "${s}!" }
+}
+
+fn borrowedLen(v: &Len) -> usize {
+    v.len()
+}
+
+fn ownedLen(v: Len) -> usize {
+    v.len()
+}
+
+fn pick(flag: Bool, a: &Box, b: &Num) -> String {
+    let v: &Show = if flag { a } else { b }
+    v.show()
+}
+
+fn joined(items: &Array[Box]) -> String {
+    let mut out = ""
+    for i in 0..items.len() {
+        let cur: &Show = &items[i]
+        out = "${out}${cur.show()} "
+    }
+    out
+}
+
+fn main() -> Void! {
+    let box = Box { value: "borrowed" }
+    let mut num = Num { n: 10 }
+    printBorrowed(&box)
+    printBorrowed(&num)
+    bumpTwice(&mut num)
+    print "${num.n}"
+    printBorrowed(&mut num)
+    print pick(true, &box, &num)
+    print pick(false, &box, &num)
+    let c: &mut Counter = &mut num
+    c.bump(5)
+    print "${c.get()}"
+    print "${num.n}"
+    resetView(&mut num)
+    print "${num.n}"
+    print box.value
+    print joined(&Array.of(Box { value: "x" }, Box { value: "y" }))
+    let v: &Show = &box
+    let k = eat(box)
+    print "${k} ${v.show()}"
+    printBorrowed(&mkBox("t"))
+    num.n = 1
+    resetThrough(&mut num)
+    print "${num.n}"
+    let s = "hello"
+    print "${borrowedLen(&s)} ${ownedLen(s)}"
+}
+-- stdout --
+box:borrowed
+num:10
+13
+num:13
+box:borrowed
+num:13
+18
+18
+99
+borrowed
+box:x box:y 
+1 box:borrowed
+box:t!
+99
+5 5

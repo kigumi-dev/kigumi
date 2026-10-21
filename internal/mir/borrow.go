@@ -17,6 +17,8 @@ type ownerRef struct {
 	mut   bool
 	path  []int
 	exact bool
+	// view names the `lendbox` result whose frame slot this borrow points at.
+	view bool
 }
 
 // borrowInfo tracks every owner a holder might alias, not just one: an ambiguous
@@ -64,6 +66,7 @@ type borrowCheck struct {
 	borrowedIn  []map[LocalID]bool
 	firstBorrow map[LocalID]int
 	curBlock    BlockID
+	loopReach   [][]bool
 	curIdx      int
 }
 
@@ -100,7 +103,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 				live[a] = true
 				continue
 			}
-			c.report(b.node, a, "borrow-escape", "a borrow cannot be returned")
+			c.report(b.node, a, "borrow-escape", returnEscapeMessage(b))
 			live[a] = true
 		}
 	}
@@ -125,6 +128,8 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 // owner whose borrow outlives this instruction.
 func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 	c.checkCapture(in)
+	c.checkRecvArgs(in)
+	c.checkViewReuse(in, liveAfter)
 	c.checkSuspend(in, liveAfter)
 	// A receiver cell's write-back releases the place's old value; the
 	// exclusive borrow the call took of that place already reported.
@@ -137,7 +142,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 			continue
 		}
 		for _, o := range b.owners {
-			if !c.mayBeBorrowed(o.owner, c.curIdx) {
+			if o.view || !c.mayBeBorrowed(o.owner, c.curIdx) {
 				continue
 			}
 			touched, path, exact := c.touch(in, o.owner)

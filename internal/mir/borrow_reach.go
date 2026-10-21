@@ -44,6 +44,7 @@ func (c *borrowCheck) borrowRoot(in Inst) (LocalID, bool) {
 }
 
 func (c *borrowCheck) enterBlock(bid BlockID) {
+	c.curBlock = bid
 	if c.borrowedIn == nil {
 		return
 	}
@@ -55,7 +56,6 @@ func (c *borrowCheck) enterBlock(bid BlockID) {
 			}
 		}
 	}
-	c.curBlock = bid
 }
 
 func (c *borrowCheck) mayBeBorrowed(owner LocalID, at int) bool {

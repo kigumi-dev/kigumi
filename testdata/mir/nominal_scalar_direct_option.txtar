@@ -1,0 +1,96 @@
+-- src --
+type UserId = u64
+
+pure noalloc fn some(id: UserId) -> UserId? {
+    Some(id)
+}
+
+pure noalloc fn checked(id: UserId, ok: Bool) -> Result[UserId, UserId] {
+    if ok { Ok(id) } else { Err(id) }
+}
+
+fn main() -> Void! {
+    if some(UserId(5)) is Some(v) { print "${v.value}" }
+    if checked(UserId(7), false) is Err(v) { print "${v.value}" }
+}
+-- expect --
+fn main.some(%id: UserId) -> UserId? {
+  b0:
+    %t1 = copy(%id)
+    %t2 = variant Option.Some(%t1)
+    drop(%id)
+    return %t2
+}
+fn main.checked(%id: UserId, %ok: Bool) -> Result[UserId, UserId] {
+  b0:
+    branch %ok ? b1 : b2
+  b1:
+    %t3 = copy(%id)
+    %t4 = variant Result.Ok(%t3)
+    %t2 = copy(%t4)
+    jump b3
+  b2:
+    %t5 = copy(%id)
+    %t6 = variant Result.Err(%t5)
+    %t2 = copy(%t6)
+    jump b3
+  b3:
+    drop(%ok)
+    drop(%id)
+    return %t2
+}
+fn main.main() -> Void! {
+  b0:
+    %t0 = const 5: u64
+    %t1 = alias(%t0)
+    %t2 = call main.some(%t1)
+    %t3 = isvariant Option.Some(%t2)
+    branch %t3 ? b1 : b2
+  b1:
+    %t4 = payload 0(%t2)
+    %v = copy(%t4)
+    jump b2
+  b2:
+    drop(%t2)
+    branch %t3 ? b3 : b4
+  b3:
+    %t8 = alias(%v)
+    %t7 = interp ""(%t8)
+    %t9 = builtin print(%t7)
+    %t6 = copy(%t9)
+    jump b5
+  b4:
+    %t10 = unit
+    %t6 = copy(%t10)
+    jump b5
+  b5:
+    drop(%t6)
+    %t11 = const 7: u64
+    %t12 = alias(%t11)
+    %t13 = const false: Bool
+    %t14 = call main.checked(%t12, %t13)
+    %t15 = isvariant Result.Err(%t14)
+    branch %t15 ? b6 : b7
+  b6:
+    %t16 = payload 0(%t14)
+    %v = copy(%t16)
+    jump b7
+  b7:
+    drop(%t14)
+    branch %t15 ? b8 : b9
+  b8:
+    %t20 = alias(%v)
+    %t19 = interp ""(%t20)
+    %t21 = builtin print(%t19)
+    %t18 = copy(%t21)
+    jump b10
+  b9:
+    %t22 = unit
+    %t18 = copy(%t22)
+    jump b10
+  b10:
+    drop(%v)
+    drop(%v)
+    %t23 = variant Result.Ok(%t18)
+    return %t23
+}

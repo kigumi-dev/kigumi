@@ -144,7 +144,7 @@ func projects(in Inst) bool {
 
 func passesOn(op Opcode) bool {
 	switch op {
-	case OpCopy, OpAlias, OpMove, OpBorrow, OpCellGet, OpNewCell, OpShare:
+	case OpCopy, OpAlias, OpMove, OpBorrow, OpLendBox, OpCellGet, OpNewCell, OpShare:
 		return true
 	}
 	return false

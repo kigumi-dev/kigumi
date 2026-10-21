@@ -1,0 +1,50 @@
+-- src --
+interface Reader {
+    fn at(self) -> Int
+}
+
+interface Sink[T] {
+    fn put(mut self, v: T)
+}
+
+type View['a] = {
+    pub data &'a Array[Int],
+    pub off usize
+}
+
+fn View['a].at(self) -> Int {
+    self.data[self.off]
+}
+
+type H['a] = {
+    pub mut item View['a]
+}
+
+fn H['a].put(mut self, v: View['a]) {
+    self.item = v
+}
+
+fn fill[T, S: Sink[T]](s: &mut S, v: T) {
+    s.put(v)
+}
+
+fn readGeneric[R: Reader](r: R) -> Int {
+    r.at()
+}
+
+fn readBorrowed(r: &Reader) -> Int {
+    r.at()
+}
+
+fn main() -> Void! {
+    let b = Array.of(9, 8, 7)
+    let v = View { data: &b, off: 1 }
+    print "${v.at()} ${readGeneric(v)} ${readBorrowed(&v)}"
+    let outer = Array.of(1, 2, 3)
+    let mut h = H { item: View { data: &outer, off: 0 } }
+    fill(&mut h, View { data: &b, off: 2 })
+    print "${h.item.at()}"
+}
+-- stdout --
+8 8 8
+7

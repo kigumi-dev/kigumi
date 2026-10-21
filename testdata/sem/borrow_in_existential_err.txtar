@@ -1,0 +1,71 @@
+-- module --
+stage: driver
+-- src --
+interface Reader {
+    fn at(self) -> Int
+}
+
+type View['a] = {
+    pub data &'a Array[Int],
+    pub off usize
+}
+
+fn View['a].at(self) -> Int {
+    self.data[self.off]
+}
+
+type BadErr['a] = {
+    pub data &'a Array[Int]
+}
+
+fn BadErr['a].message(self) -> String {
+    "bad"
+}
+
+fn toReader() -> Int {
+    let o: Reader = {
+        let b = Array.of(9, 9, 9)
+        View { data: &b, off: 1 }
+    }
+    o.at()
+}
+
+fn inScope() -> Int {
+    let b = Array.of(9, 9, 9)
+    let o: Reader = View { data: &b, off: 1 }
+    o.at()
+}
+
+fn fromParam['a](v: View['a]) -> Reader {
+    v
+}
+
+fn toError() -> Void! {
+    let b = Array.of(9, 9, 9)
+    fail BadErr { data: &b }
+}
+-- expect --
+error[E2192]: a value carrying a borrow cannot become `Reader`: an interface value does not carry the borrow's lifetime; keep the concrete type, or a generic `T` constrained by the interface, while the borrow is live, or convert a value it can own
+  --> main.kg:25:9
+   |
+25 |         View { data: &b, off: 1 }
+   |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2192]: a value carrying a borrow cannot become `Reader`: an interface value does not carry the borrow's lifetime; keep the concrete type, or a generic `T` constrained by the interface, while the borrow is live, or convert a value it can own
+  --> main.kg:32:21
+   |
+32 |     let o: Reader = View { data: &b, off: 1 }
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2192]: a value carrying a borrow cannot become `Reader`: an interface value does not carry the borrow's lifetime; keep the concrete type, or a generic `T` constrained by the interface, while the borrow is live, or convert a value it can own
+  --> main.kg:37:5
+   |
+37 |     v
+   |     ^
+
+error[E2192]: a value carrying a borrow cannot become `Error`: an interface value does not carry the borrow's lifetime; keep the concrete type, or a generic `T` constrained by the interface, while the borrow is live, or convert a value it can own
+  --> main.kg:42:10
+   |
+42 |     fail BadErr { data: &b }
+   |          ^^^^^^^^^^^^^^^^^
+

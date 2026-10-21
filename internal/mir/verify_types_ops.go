@@ -28,7 +28,7 @@ func yieldsData(op Opcode) bool {
 	switch op {
 	case OpConst, OpBinary, OpUnary, OpRecord, OpVariant, OpArray, OpField, OpFieldMove, OpIndex, OpTag, OpPayload,
 		OpIsVariant, OpIsType, OpUnbox, OpBox, OpClosure, OpFnItem, OpBind, OpBorrow, OpNewCell, OpCellGet, OpCellTake,
-		OpInterp, OpBoxDirect, OpUnboxDirect:
+		OpInterp, OpBoxDirect, OpUnboxDirect, OpLendBox:
 		return true
 	}
 	return false

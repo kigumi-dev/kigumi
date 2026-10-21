@@ -11,5 +11,5 @@ func (r *Result) AggVariants(t TypeID) []EntityID {
 func (r *Result) AggPayload(t TypeID, v EntityID) []TypeID {
 	n := r.Types.Node(t)
 	info := r.typeDecl(n.Ent)
-	return r.payloadTypes(v, instSubst(info.Params, n.Args))
+	return r.slotTypes(r.payloadTypes(v, instSubst(info.Params, n.Args)))
 }

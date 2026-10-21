@@ -106,7 +106,7 @@ func (p *Program) copyBinding(f *Func, in *Inst, st *rcState, w *shareFacts, at 
 // deferred to its own consuming use, or an eager share by default.
 func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState, w *shareFacts, at Point) {
 	switch in.Op {
-	case OpBorrow:
+	case OpBorrow, OpLendBox:
 		st.borrowed[in.Dst] = true
 		return
 	case OpNewCell:

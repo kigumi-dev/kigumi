@@ -1,0 +1,136 @@
+-- module --
+stage: driver
+-- src --
+type C = {
+    pub mut n Int
+}
+
+fn C.absorb(mut self, o: &mut C) {
+    self.n = self.n + o.n
+    o.n = 0
+}
+
+fn sameLocal() -> Int {
+    let mut c = C { n: 5 }
+    c.absorb(&mut c)
+    c.n
+}
+
+fn throughParam(c: &mut C) {
+    c.absorb(c)
+}
+
+fn throughReference() -> Int {
+    let mut c = C { n: 5 }
+    let r = &mut c
+    r.absorb(&mut c)
+    c.n
+}
+
+fn C.peek(self, o: &mut C) -> Int {
+    o.n = 0
+    self.n
+}
+
+fn C.read(self, o: &C) -> Int {
+    self.n + o.n
+}
+
+fn sharedSelf() -> Int {
+    let mut c = C { n: 5 }
+    c.peek(&mut c)
+}
+
+fn sharedSelfParam(c: &mut C) -> Int {
+    c.peek(c)
+}
+
+fn sharedRead() -> Int {
+    let c = C { n: 5 }
+    c.read(&c)
+}
+
+fn sharedDistinct() -> Int {
+    let a = C { n: 5 }
+    let mut b = C { n: 5 }
+    a.peek(&mut b)
+}
+
+fn distinct() -> Int {
+    let mut a = C { n: 5 }
+    let mut b = C { n: 5 }
+    a.absorb(&mut b)
+    a.n + b.n
+}
+
+interface Absorber {
+    fn absorb(mut self, o: &mut Self)
+    fn peek(self, o: &mut Self) -> Int
+}
+
+fn witnessSame[T: Absorber](mut x: T) -> T {
+    x.absorb(&mut x)
+    x
+}
+
+fn witnessParam[T: Absorber](x: &mut T) {
+    x.absorb(x)
+}
+
+fn witnessShared[T: Absorber](mut x: T) -> Int {
+    x.peek(&mut x)
+}
+
+fn witnessDistinct[T: Absorber](mut x: T, mut y: T) -> T {
+    x.absorb(&mut y)
+    x
+}
+-- expect --
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+  --> main.kg:12:14
+   |
+12 |     c.absorb(&mut c)
+   |              ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+  --> main.kg:17:5
+   |
+17 |     c.absorb(c)
+   |     ^^^^^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+  --> main.kg:23:14
+   |
+23 |     r.absorb(&mut c)
+   |              ^^^^^^
+
+error[E2198]: `c` is exclusively borrowed and cannot be used here
+  --> main.kg:38:12
+   |
+38 |     c.peek(&mut c)
+   |            ^^^^^^
+
+error[E2198]: `c` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value
+  --> main.kg:42:5
+   |
+42 |     c.peek(c)
+   |     ^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:69:14
+   |
+69 |     x.absorb(&mut x)
+   |              ^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:74:5
+   |
+74 |     x.absorb(x)
+   |     ^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:78:12
+   |
+78 |     x.peek(&mut x)
+   |            ^^^^^^
+

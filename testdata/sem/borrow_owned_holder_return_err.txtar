@@ -1,0 +1,96 @@
+-- module --
+stage: driver
+-- src --
+interface Sink[T] {
+    fn put(mut self, v: T)
+}
+
+type View['a] = {
+    pub data &'a Array[Int],
+    pub off usize
+}
+
+fn View['a].at(self) -> Int {
+    self.data[self.off]
+}
+
+type H['a] = {
+    pub mut item View['a]
+}
+
+fn H['a].put(mut self, v: View['a]) {
+    self.item = v
+}
+
+fn H['a].withItem(mut self, v: View['a]) -> H['a] {
+    self.item = v
+    self
+}
+
+fn plainOwned['a](mut s: H['a], v: View['a]) -> H['a] {
+    s.put(v)
+    s
+}
+
+fn plain() -> Int {
+    let outer = Array.of(1, 2, 3)
+    let mut h = H { item: View { data: &outer, off: 0 } }
+    let h2 = {
+        let b = Array.of(7, 8, 9)
+        plainOwned(h, View { data: &b, off: 2 })
+    }
+    h2.item.at()
+}
+
+fn method() -> Int {
+    let outer = Array.of(1, 2, 3)
+    let mut h = H { item: View { data: &outer, off: 0 } }
+    let h2 = {
+        let b = Array.of(7, 8, 9)
+        h.withItem(View { data: &b, off: 2 })
+    }
+    h2.item.at()
+}
+
+fn fillOwned[T, S: Sink[T]](mut s: S, v: T) -> S {
+    s.put(v)
+    s
+}
+
+fn witness() -> Int {
+    let outer = Array.of(1, 2, 3)
+    let h = H { item: View { data: &outer, off: 0 } }
+    let h2 = {
+        let b = Array.of(7, 8, 9)
+        fillOwned(h, View { data: &b, off: 2 })
+    }
+    h2.item.at()
+}
+
+fn inScope() -> Int {
+    let outer = Array.of(1, 2, 3)
+    let b = Array.of(7, 8, 9)
+    let h = H { item: View { data: &outer, off: 0 } }
+    let h2 = plainOwned(h, View { data: &b, off: 2 })
+    let h3 = fillOwned(h2, View { data: &b, off: 1 })
+    h3.item.at()
+}
+-- expect --
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:36:13
+   |
+36 |         let b = Array.of(7, 8, 9)
+   |             ^
+
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:46:13
+   |
+46 |         let b = Array.of(7, 8, 9)
+   |             ^
+
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:61:13
+   |
+61 |         let b = Array.of(7, 8, 9)
+   |             ^
+

@@ -49,8 +49,8 @@ func (c *borrowCheck) resolveLifetimeHolder(ent sem.EntityID, args []LocalID, ca
 	return c.sameKindCandidate(args, tracked)
 }
 
-// resolveLifetimeCandidate picks the index of the sole candidate the callee's own body
-// provably returns; a witness call has no body and falls through to sameKindCandidate.
+// resolveLifetimeCandidate picks the index of the sole candidate the callee's own body provably
+// returns unchanged; a witness call or a writable returned param falls through to sameKindCandidate.
 func (c *borrowCheck) resolveLifetimeCandidate(ent sem.EntityID, candidates []lifetimeCandidate) (int, bool) {
 	switch len(candidates) {
 	case 0:
@@ -66,6 +66,9 @@ func (c *borrowCheck) resolveLifetimeCandidate(ent sem.EntityID, candidates []li
 	for i, cand := range candidates {
 		if cand.callee >= len(callee.Params) || !calleeReturnsParam(callee, callee.Params[cand.callee]) {
 			continue
+		}
+		if c.writableParam(callee.Params[cand.callee], callee) {
+			return 0, false
 		}
 		if found {
 			return 0, false
@@ -149,4 +152,9 @@ func calleeDefinition(f *Func, l LocalID) *Inst {
 		}
 	}
 	return found
+}
+
+func (c *borrowCheck) writableParam(prm LocalID, callee *Func) bool {
+	ent := callee.Locals[prm].Ent
+	return ent != 0 && c.p.R.Entity(ent).Flags&(sem.EfMut|sem.EfMove) != 0
 }

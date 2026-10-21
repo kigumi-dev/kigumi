@@ -83,6 +83,8 @@ struct obj {
             // vt holds one adapter per requirement of the interface the
             // value was boxed as.
             void** vt;
+            // src is the `&mut` cell an `&mut Interface` view lends self through, else NULL.
+            val src;
         } box;
         struct {
             val v;

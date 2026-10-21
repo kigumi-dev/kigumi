@@ -77,6 +77,9 @@ func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 		c.vars.unify(got, w.Elem)
 		return []CoStep{{CoBorrow, want}}, true
 	}
+	if steps, ok := c.lendExistential(n, got, want); ok {
+		return steps, true
+	}
 	if tt.Kind(want) == KIface && c.r.objectSafe(tt.Node(want).Ent) {
 		if res := c.r.conforms(got, want, c.pkg); res.ok {
 			for _, w := range res.witnesses {

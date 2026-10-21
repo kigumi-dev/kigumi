@@ -1,0 +1,44 @@
+-- module --
+stage: driver
+-- src --
+interface Sink[T] {
+    fn put(mut self, v: T)
+}
+
+type View['a] = {
+    pub data &'a Array[Int],
+    pub off usize
+}
+
+fn View['a].at(self) -> Int {
+    self.data[self.off]
+}
+
+type H['a] = {
+    pub mut item View['a]
+}
+
+fn H['a].put(mut self, v: View['a]) {
+    self.item = v
+}
+
+fn fill[T, S: Sink[T]](s: &mut S, v: T) {
+    s.put(v)
+}
+
+fn escapes() -> Int {
+    let outer = Array.of(1, 2, 3)
+    let mut h = H { item: View { data: &outer, off: 0 } }
+    {
+        let b = Array.of(7, 8, 9)
+        fill(&mut h, View { data: &b, off: 2 })
+    }
+    h.item.at()
+}
+-- expect --
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:30:13
+   |
+30 |         let b = Array.of(7, 8, 9)
+   |             ^
+

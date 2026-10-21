@@ -1,0 +1,83 @@
+-- src --
+interface Counter {
+    fn bump(mut self, by: Int)
+    fn get(self) -> Int
+}
+
+type Num = {
+    pub mut n Int
+}
+
+fn Num.bump(mut self, by: Int) {
+    self.n = self.n + by
+}
+
+fn Num.get(self) -> Int {
+    self.n
+}
+
+fn read(c: &Counter) -> Int {
+    c.get()
+}
+
+fn bump(c: &mut Counter) {
+    c.bump(1)
+}
+
+fn main() -> Void! {
+    let mut num = Num { n: 1 }
+    bump(&mut num)
+    print "${read(&num)}"
+}
+-- expect --
+fn main.Num.bump(%self: Num, %by: Int) -> Void {
+  b0:
+    %t2 = cellget(%self)
+    %t3 = cellget(%self)
+    %t4 = field 0(%t3)
+    %t5 = bin +(%t4, %by)
+    setfield 0(%t2, %t5)
+    %t6 = unit
+    drop(%by)
+    return %t6
+}
+fn main.Num.get(%self: Num) -> Int {
+  b0:
+    %t1 = field 0(%self)
+    return %t1
+}
+fn main.read(%c: &Counter) -> Int {
+  b0:
+    %t1 = call main.Counter.get(%c)
+    return %t1
+}
+fn main.bump(%c: &mut Counter) -> Void {
+  b0:
+    %t1 = borrow 1(%c)
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const 1: Int
+    %t5 = call main.Counter.bump(%t3, %t4)
+    %t6 = celltake(%t3)
+    drop(%t3)
+    drop(%t6)
+    return %t5
+}
+fn main.main() -> Void! {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record main.Num(%t0)
+    %num = copy(%t1)
+    %t3 = borrow 1(%num)
+    %t4 = lendbox(%t3)
+    %t5 = call main.bump(%t4)
+    drop(%t5)
+    %t7 = borrow 0(%num)
+    %t8 = lendbox(%t7)
+    %t9 = call main.read(%t8)
+    %t6 = interp ""(%t9)
+    %t10 = builtin print(%t6)
+    %t11 = variant Result.Ok(%t10)
+    drop(%num)
+    return %t11
+}

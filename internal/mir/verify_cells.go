@@ -102,7 +102,7 @@ func (p *Program) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
 			}
 			defined = true
 			switch in.Op {
-			case OpConst, OpUnit, OpBinary, OpUnary, OpInterp, OpShell, OpTag, OpIsVariant, OpIsType, OpRecord, OpVariant, OpArray, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpBox, OpBoxDirect, OpUnboxDirect,
+			case OpConst, OpUnit, OpBinary, OpUnary, OpInterp, OpShell, OpTag, OpIsVariant, OpIsType, OpRecord, OpVariant, OpArray, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpBox, OpLendBox, OpBoxDirect, OpUnboxDirect,
 				OpCall, OpCallValue, OpCallC, OpBuiltin, OpAwait, OpFutureNew, OpCellGet, OpCellTake, OpAsm,
 				OpField, OpFieldMove, OpPayload, OpIndex, OpUnbox, OpGlobalGet:
 			case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:

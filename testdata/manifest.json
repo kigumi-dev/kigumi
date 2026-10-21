@@ -479,6 +479,17 @@
       ]
     },
     {
+      "id": "mir/borrowed_existential_lendbox",
+      "kind": "mir",
+      "path": "testdata/mir/borrowed_existential_lendbox.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/borrowed_self",
       "kind": "mir",
       "path": "testdata/mir/borrowed_self.txtar",
@@ -1131,6 +1142,17 @@
       "id": "mir/nested_ctor_field",
       "kind": "mir",
       "path": "testdata/mir/nested_ctor_field.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/nominal_scalar_direct_option",
+      "kind": "mir",
+      "path": "testdata/mir/nominal_scalar_direct_option.txtar",
       "mode": [
         "build"
       ],
@@ -3728,6 +3750,57 @@
       "id": "run/borrow_match",
       "kind": "run",
       "path": "testdata/run/borrow_match.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_view_in_scope",
+      "kind": "run",
+      "path": "testdata/run/borrow_view_in_scope.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrowed_existential",
+      "kind": "run",
+      "path": "testdata/run/borrowed_existential.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrowed_existential_async",
+      "kind": "run",
+      "path": "testdata/run/borrowed_existential_async.txtar",
       "mode": [
         "vm",
         "native"
@@ -11059,6 +11132,23 @@
       ]
     },
     {
+      "id": "run/nominal_scalar_direct_option",
+      "kind": "run",
+      "path": "testdata/run/nominal_scalar_direct_option.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/numeric_convert",
       "kind": "run",
       "path": "testdata/run/numeric_convert.txtar",
@@ -11723,6 +11813,23 @@
       "id": "run/reinit",
       "kind": "run",
       "path": "testdata/run/reinit.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/requirement_generic_constraint_call",
+      "kind": "run",
+      "path": "testdata/run/requirement_generic_constraint_call.txtar",
       "mode": [
         "vm",
         "native"
@@ -13955,9 +14062,53 @@
       ]
     },
     {
+      "id": "sem/async_witness_mismatch",
+      "kind": "sem",
+      "path": "testdata/sem/async_witness_mismatch.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/attrs",
       "kind": "sem",
       "path": "testdata/sem/attrs.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_in_existential_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_in_existential_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_merge_branch_owner_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_merge_branch_owner_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_owned_holder_return_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_owned_holder_return_err.txtar",
       "mode": [
         "check"
       ],
@@ -13980,6 +14131,28 @@
       "id": "sem/borrow_pattern_ok",
       "kind": "sem",
       "path": "testdata/sem/borrow_pattern_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrowed_existential_borrow_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrowed_existential_borrow_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrowed_existential_reject",
+      "kind": "sem",
+      "path": "testdata/sem/borrowed_existential_reject.txtar",
       "mode": [
         "check"
       ],
@@ -16584,6 +16757,17 @@
       ]
     },
     {
+      "id": "sem/mut_alias_self_receiver",
+      "kind": "sem",
+      "path": "testdata/sem/mut_alias_self_receiver.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/mut_place_async_arg",
       "kind": "sem",
       "path": "testdata/sem/mut_place_async_arg.txtar",
@@ -16961,6 +17145,17 @@
       "id": "sem/reentrant_capture_param_shapes",
       "kind": "sem",
       "path": "testdata/sem/reentrant_capture_param_shapes.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/requirement_generic_constraint_call",
+      "kind": "sem",
+      "path": "testdata/sem/requirement_generic_constraint_call.txtar",
       "mode": [
         "check"
       ],
@@ -17852,6 +18047,17 @@
       "id": "sem/withmut_scalar_reject",
       "kind": "sem",
       "path": "testdata/sem/withmut_scalar_reject.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/witness_call_lifetime_err",
+      "kind": "sem",
+      "path": "testdata/sem/witness_call_lifetime_err.txtar",
       "mode": [
         "check"
       ],

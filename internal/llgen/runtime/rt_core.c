@@ -290,6 +290,7 @@ static val alloc_in(rt_allocator* a, int kind) {
     LIVE_OBJ(kind, 1);
     v->kind = kind;
     v->rc = 1;
+    v->owned = 0;
     v->al = a;
     return v;
 }
@@ -915,7 +916,20 @@ val rt_box(val v, rt_type* dyn, void** vt) {
     b->u.box.dyn = dyn;
     b->u.box.v = v;
     b->u.box.vt = vt;
+    b->u.box.src = NULL;
     return b;
+}
+// An `&Interface` view in its caller's frame: immortal, and owned marks that it holds no count of v.
+void rt_box_lent(void* slot, val v, rt_type* dyn, void** vt) {
+    val b = (val)slot;
+    b->kind = K_BOX;
+    b->rc = -1;
+    b->owned = 1;
+    b->al = NULL;
+    b->u.box.dyn = dyn;
+    b->u.box.v = deref(v);
+    b->u.box.vt = vt;
+    b->u.box.src = v && v->kind == K_CELL ? v : NULL;
 }
 val rt_unbox(val b) {
     return b->kind == K_BOX ? rt_retain(b->u.box.v) : b;
@@ -1152,6 +1166,7 @@ val rt_copy(val v) {
         val c = alloc(K_BOX);
         c->u.box.dyn = v->u.box.dyn;
         c->u.box.vt = v->u.box.vt;
+        c->u.box.src = NULL;
         c->u.box.v = rt_copy(v->u.box.v);
         return c;
     }
@@ -2057,6 +2072,7 @@ static val alloc_in_try(rt_allocator* a, int kind) {
     LIVE_OBJ(kind, 1);
     v->kind = kind;
     v->rc = 1;
+    v->owned = 0;
     v->al = a;
     return v;
 }
@@ -2217,6 +2233,7 @@ static val copy_try(val v) {
         if (!c) return NULL;
         c->u.box.dyn = v->u.box.dyn;
         c->u.box.vt = v->u.box.vt;
+        c->u.box.src = NULL;
         if (!copy_slot_try(&c->u.box.v, v->u.box.v)) {
             discard_header(c);
             return NULL;
@@ -2402,7 +2419,9 @@ val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
     struct obj cell;
     // A concrete `mut self` body writes self through a cell; the boxed
     // value is behind the existential, so the cell is built over it here.
-    if (recvmode == 1) {
+    if (recvmode == 1 && target->u.box.src) {
+        all[0] = target->u.box.src;
+    } else if (recvmode == 1) {
         rt_cell_init(&cell, rt_retain(target->u.box.v));
         all[0] = &cell;
     } else {
@@ -2410,7 +2429,11 @@ val rt_call_slot(val recv, int slot, int n, val* args, int recvmode) {
     }
     for (int i = 0; i < n; i++) all[i + 1] = args[i];
     val r = invoke_args(fn, NULL, (int)total, all, all != stackbuf);
-    if (recvmode == 1) {
+    if (recvmode == 1 && target->u.box.src) {
+        target->u.box.v = deref(target->u.box.src);
+    } else if (recvmode == 1 && target->owned) {
+        rt_release(cell.u.cell.v);
+    } else if (recvmode == 1) {
         val old = target->u.box.v;
         target->u.box.v = cell.u.cell.v;
         rt_release(old);

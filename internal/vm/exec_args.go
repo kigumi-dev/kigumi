@@ -97,6 +97,11 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 			m.chargeMemory(b)
 		}
 		res = v
+	case mir.OpLendBox:
+		res = &obj{k: kBox, rc: -1, i: int64(in.Type), inner: deref(args[0]), b: true}
+		if args[0].k == kCell {
+			res.fields = []*obj{args[0]}
+		}
 	case mir.OpClosure, mir.OpFnItem, mir.OpBind, mir.OpCFnPtr:
 		res = m.closure(in, ic, args)
 		m.chargeMemory(res)

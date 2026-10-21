@@ -61,7 +61,7 @@ func (c *checker) ifaceMember(n syntax.NodeID, t TypeID, name string) (req Entit
 	return founds[0].req, founds[0].sig, founds[0].iface, false
 }
 
-func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, req EntityID, sig, iface TypeID, args []syntax.NodeID, want TypeID) TypeID {
+func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, req EntityID, sig, iface TypeID, typeArgs []TypeID, args []syntax.NodeID, want TypeID) TypeID {
 	c.info.Uses[callee] = req
 	c.checkReceiver(base, recv, req)
 	c.noteWitnessRecv(base, recv, req, iface)
@@ -81,6 +81,7 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 	} else {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Param: c.ifaceRecvEnt(base, recv), Node: n})
 	}
+	sig = c.instantiateRequirement(n, req, sig, typeArgs)
 	from := len(*c.edges)
 	ret, plan := c.checkArgs(n, c.r.Entities[req].Name, sig, args, nil, want, c.r.Fn(req).Params, false, c.r.Fn(req).Declared&EffAsync != 0)
 	c.taintRecvResult(n, ret, base)

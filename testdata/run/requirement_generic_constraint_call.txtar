@@ -1,0 +1,67 @@
+-- src --
+interface Show { fn show(self) -> String }
+type W = { pub v Int }
+fn W.show(self) -> String { "W${self.v}" }
+interface Conv {
+    fn conv[U](self, v: U) -> U
+}
+interface Pair {
+    fn pair[A, B](self, a: A, b: B) -> (B, A)
+}
+interface Gen {
+    fn gen[U](self, f: fn() -> U) -> U?
+}
+interface Empty {
+    fn nothing[U](self) -> U?
+}
+type B = { pub n Int }
+fn B.nothing[U](self) -> U? { None }
+fn useEmpty[T: Empty](x: T) -> String {
+    let a: Int? = x.nothing()
+    let s: String? = x.nothing()
+    "${a is None} ${s is None}"
+}
+fn B.conv[U](self, v: U) -> U { v }
+fn B.pair[A, B](self, a: A, b: B) -> (B, A) { (b, a) }
+fn B.gen[U](self, f: fn() -> U) -> U? { if self.n > 0 { Some(f()) } else { None } }
+fn use[T: Conv](x: T) -> Int { x.conv(3) + x.conv(4) }
+fn useStr[T: Conv](x: T) -> String { x.conv("s") }
+fn useExplicit[T: Conv](x: T) -> String {
+    let e = x.conv[String]("e")
+    "${x.conv[Int](8)} ${e}"
+}
+fn usePairExplicit[T: Pair](x: T) -> String {
+    let p = x.pair[Int, String](2, "two")
+    "${p._0}${p._1}"
+}
+fn usePair[T: Pair](x: T) -> String {
+    let p = x.pair(1, "one")
+    "${p._0}${p._1}"
+}
+fn useGen[T: Gen](x: T) -> String {
+    let a = x.gen(() => 7)
+    let b = x.gen(() => W { v: 2 })
+    let av = a || 0
+    let bv = b || W { v: 0 }
+    "${av} ${bv.show()}"
+}
+fn main() -> Void! {
+    let b = B { n: 1 }
+    print "${use(b)}"
+    print useStr(b)
+    print usePair(b)
+    print useGen(b)
+    print useEmpty(b)
+    print "${b.conv(5)}"
+    print useExplicit(b)
+    print usePairExplicit(b)
+}
+-- stdout --
+7
+s
+one1
+7 W2
+true true
+5
+8 e
+two2

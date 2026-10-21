@@ -65,6 +65,10 @@ func (p *Program) verifyTypes(f *Func) *Error {
 				if tt.Kind(ty(in.Dst)) != sem.KIface || in.Type != ty(in.Args[0]) {
 					return fail("types", bid, i, "box of %s as %s into %s", p.R.TypeString(ty(in.Args[0])), p.R.TypeString(in.Type), p.R.TypeString(ty(in.Dst)))
 				}
+			case OpLendBox:
+				if r := tt.Node(ty(in.Dst)); r.Kind != sem.KRef || tt.Kind(r.Elem) != sem.KIface || in.Type != tt.Node(ty(in.Args[0])).Elem {
+					return fail("types", bid, i, "lendbox of %s as %s into %s", p.R.TypeString(ty(in.Args[0])), p.R.TypeString(in.Type), p.R.TypeString(ty(in.Dst)))
+				}
 			case OpBoxDirect, OpUnboxDirect:
 				// Only the unboxed side is named: the carrier may be a
 				// reference or a defined type handing the same object on.

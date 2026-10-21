@@ -37,7 +37,7 @@ func (p *Program) invalidateUnowned() {
 
 func lendsOn(in Inst, out []bool) bool {
 	switch in.Op {
-	case OpBorrow:
+	case OpBorrow, OpLendBox:
 		return true
 	case OpAlias, OpMove:
 		return len(in.Args) == 1 && out[in.Args[0]]

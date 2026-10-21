@@ -18,7 +18,7 @@ type fnItem struct {
 
 // objSlotBytes is the storage an immortal value is built in; RT_OBJ_SLOT
 // in runtime/rt.h must agree (TestObjSlotMatchesC).
-const objSlotBytes = 64
+const objSlotBytes = mir.ObjSlotBytes
 
 func objSlotType() string { return fmt.Sprintf("[%d x i8]", objSlotBytes) }
 

@@ -106,10 +106,16 @@ func (w *reachWalk) inst(f *Func, id sem.EntityID, pkg sem.PackageID, in *Inst) 
 		w.visit(id, shellRuntimeFn(w.r, "planNew"), "call")
 		w.visit(id, shellRuntimeFn(w.r, "planPush"), "call")
 	}
-	if in.Op == OpBox {
+	if in.Op == OpBox || in.Op == OpLendBox {
 		dstT := f.Locals[in.Dst].Type
+		if in.Op == OpLendBox {
+			dstT = w.r.Types.Node(dstT).Elem
+		}
 		for _, wit := range w.r.Witnesses(in.Type, dstT, pkg) {
 			w.visit(id, wit, "witness")
+		}
+		if w.r.Types.Kind(in.Type) != sem.KNamed {
+			w.markType(w.r.EntityOfName(w.r.TypeString(in.Type)))
 		}
 	}
 	if op, ok := w.stdOp(in); ok {

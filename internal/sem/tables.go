@@ -68,6 +68,8 @@ const (
 	CoBorrow
 	// CoCFnPtr turns an export(C) function item into a C function pointer.
 	CoCFnPtr
+	// CoLendExistential views a `&T` as a `&Interface` without copying or owning the value.
+	CoLendExistential
 )
 
 type CoStep struct {

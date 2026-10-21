@@ -1,0 +1,51 @@
+-- src --
+pub type NonZero = u64
+
+pub pure noalloc fn NonZero.new(raw: u64) -> NonZero? {
+    if raw == 0 { None } else { Some(NonZero(raw)) }
+}
+
+pub pure noalloc fn NonZero.raw(self) -> u64 {
+    self.value
+}
+
+type UserId = u64
+
+type Meters = f64
+
+type Wide = i128
+
+type Sample = {
+    pub id UserId,
+    pub m Meters,
+    pub w Wide
+}
+
+pure noalloc fn some(id: UserId) -> UserId? {
+    Some(id)
+}
+
+pure noalloc fn checked(id: UserId, ok: Bool) -> Result[UserId, UserId] {
+    if ok { Ok(id) } else { Err(id) }
+}
+
+pure noalloc fn sample(id: UserId, m: Meters) -> Sample {
+    Sample { id: id, m: m, w: Wide(7) }
+}
+
+fn main() -> Void! {
+    if NonZero.new(42) is Some(n) { print "${n.raw()}" }
+    if NonZero.new(0) is None { print "zero" }
+    if some(UserId(5)) is Some(v) { print "${v.value}" }
+    if checked(UserId(7), true) is Ok(v) { print "ok ${v.value}" }
+    if checked(UserId(8), false) is Err(v) { print "err ${v.value}" }
+    let s = sample(UserId(9), Meters(2.5))
+    print "${s.id.value} ${s.m.value} ${s.w.value}"
+}
+-- stdout --
+42
+zero
+5
+ok 7
+err 8
+9 2.5 7

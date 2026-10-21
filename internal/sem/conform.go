@@ -136,6 +136,8 @@ func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, 
 			why, generic = "`"+name+"` takes `"+recvText(minfo.Recv)+"`, the requirement takes `"+recvText(rinfo.Recv)+"`", false
 		case !sameArgs(r.Types, gotNode.Args, wantNode.Args) || !r.Types.SameIgnoringEscaping(gotNode.Elem, wantNode.Elem):
 			why, generic = "`"+name+"` has signature `"+r.reqText(name, minfo.Recv, got)+"`, the requirement is `"+sig+"`", false
+		case (minfo.Declared^rinfo.Declared)&EffAsync != 0:
+			why, generic = r.asyncWitnessWhy(cand, minfo.Declared&EffAsync != 0), false
 		case (gotNode.Flags^wantNode.Flags)&uint16(EffUnsafe) != 0:
 			why, generic = "`"+name+"` differs in `unsafe`", false
 		case Effects(gotNode.Flags)&Effects(wantNode.Flags)&(EffPure|EffNoalloc) != Effects(wantNode.Flags)&(EffPure|EffNoalloc):

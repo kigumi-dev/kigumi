@@ -8,7 +8,7 @@ pub type Bad = {
     pub v Int
 }
 
-async fn Bad.run(self, cb: fn() -> Void) {
+fn Bad.run(self, cb: escaping fn() -> Void) {
     cb()
 }
 

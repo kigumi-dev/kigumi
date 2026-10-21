@@ -91,12 +91,28 @@ func (b *builder) lentRefArg(a *hir.Expr) (LocalID, bool) {
 	if !ok {
 		return 0, false
 	}
-	if _, cell := b.refCellBase(a); cell {
+	raw, lend := *a, lendsExistential(a.Coercion)
+	if lend {
+		raw.Coercion = hir.Coercion{}
+	}
+	if _, cell := b.refCellBase(&raw); cell {
 		return 0, false
 	}
-	cell := b.cellOver(b.expr(a), a.Type, a.Node, true)
+	cell := b.cellOver(b.expr(&raw), a.Type, a.Node, true)
 	b.argFixups = append(b.argFixups, argFixup{recv: &place{}, elemType: elem, retag: elem, cell: cell, node: a.Node, depth: len(b.scopes)})
+	if lend {
+		return b.coerce(a.Coercion, a.Node, cell), true
+	}
 	return cell, true
+}
+
+func lendsExistential(co hir.Coercion) bool {
+	for _, s := range co.Coerce {
+		if s.Kind == sem.CoLendExistential {
+			return true
+		}
+	}
+	return false
 }
 
 func (b *builder) lendCell(v LocalID, t sem.TypeID, n syntax.NodeID, scoped bool) LocalID {

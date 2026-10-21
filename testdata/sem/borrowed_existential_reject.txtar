@@ -1,0 +1,90 @@
+-- src --
+interface Show {
+    fn show(self) -> String
+}
+
+interface Counter {
+    fn bump(mut self, by: Int)
+    fn take(move self) -> Int
+}
+
+interface Conv {
+    fn conv[U](self, v: U) -> U
+}
+
+type Box = {
+    pub value String
+}
+
+fn Box.show(self) -> String {
+    self.value
+}
+
+type Num = {
+    pub mut n Int
+}
+
+fn Num.bump(mut self, by: Int) {
+    self.n = self.n + by
+}
+
+fn Num.take(move self) -> Int {
+    self.n
+}
+
+type Other = {
+    pub x Int
+}
+
+fn notDispatchable(c: &Conv) {} //~ ERROR `Conv` is not object-safe
+
+fn mutateThroughShared(c: &Counter) {
+    c.bump(1) //~ ERROR `bump` takes `mut self` but `c` is immutable
+}
+
+fn moveThroughView(c: &mut Counter) -> Int {
+    c.take() //~ ERROR cannot move `Counter` out of a borrow
+}
+
+fn nonConforming() {
+    let o = Other { x: 1 }
+    let v: &Show = &o //~ ERROR expected `&Show`, found `&Other`
+}
+
+fn sharedToExclusive() {
+    let num = Num { n: 1 }
+    let c: &mut Counter = &num //~ ERROR expected `&mut Counter`, found `&Num`
+}
+-- expect --
+error[E307]: `Conv` is not object-safe (requirement `conv` is generic)
+  --> main/main.kg:38:24
+   |
+38 | fn notDispatchable(c: &Conv) {} //~ ERROR `Conv` is not object-safe
+   |                        ^^^^
+   = help: use it as a constraint
+
+error[E515]: `bump` takes `mut self` but `c` is immutable
+  --> main/main.kg:41:5
+   |
+41 |     c.bump(1) //~ ERROR `bump` takes `mut self` but `c` is immutable
+   |     ^
+   = help: annotate `c` as `&mut Counter`
+
+error[E517]: cannot move `Counter` out of a borrow
+  --> main/main.kg:45:5
+   |
+45 |     c.take() //~ ERROR cannot move `Counter` out of a borrow
+   |     ^
+
+error[E400]: expected `&Show`, found `&Other`
+  --> main/main.kg:50:20
+   |
+50 |     let v: &Show = &o //~ ERROR expected `&Show`, found `&Other`
+   |                    ^^
+
+error[E400]: expected `&mut Counter`, found `&Num`
+  --> main/main.kg:55:27
+   |
+55 |     let c: &mut Counter = &num //~ ERROR expected `&mut Counter`, found `&Num`
+   |                           ^^^^
+

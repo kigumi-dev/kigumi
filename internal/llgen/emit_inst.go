@@ -33,16 +33,7 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpAlias:
 		res = args[0]
 	case mir.OpShare:
-		if in.Copy && e.scalarBoxed(f.Locals[in.Args[0]].Type) {
-			// rt_copy retains a scalar box, and a retain says so to an IR audit.
-			res = e.irb(sb).Call(rtRetain, vptr(args[0])).Text
-		} else if in.Copy && in.IfWritable {
-			res = e.irb(sb).Call(rtCopyMut, vptr(args[0])).Text
-		} else if in.Copy {
-			res = e.irb(sb).Call(rtCopy, vptr(args[0])).Text
-		} else {
-			res = e.irb(sb).Call(rtRetain, vptr(args[0])).Text
-		}
+		res = e.share(sb, f, in, args[0])
 	case mir.OpRelease:
 		e.dropCall(sb, f, rtRelease, args[0])
 		return
@@ -114,6 +105,8 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 		res = e.irb(sb).Call(rtUnbox, vptr(args[0])).Text
 	case mir.OpBox:
 		res = e.irb(sb).Call(rtBox, vptr(args[0]), vptr(e.descOfType(in.Type)), vptr(e.vtable(in.Type, f.Locals[in.Dst].Type, e.r.Entity(f.Ent).Pkg))).Text
+	case mir.OpLendBox:
+		res = e.lendBox(sb, f, in, args[0])
 	case mir.OpAsm:
 		res = e.asm(sb, f, in, args)
 	case mir.OpCFnPtr:

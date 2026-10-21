@@ -59,6 +59,7 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 		recvIdx = 1
 	}
 	slots := c.callSlots(info, in.Args, recvIdx)
+	c.linkSlots(info, slots)
 	var out []storeFlow
 	for i, t := range slots {
 		if !t.target || c.declaredLifetime(c.f.Locals[t.arg].Type) == 0 && c.declaredLifetime(c.placeOf(t.arg)) == 0 {
@@ -101,6 +102,7 @@ func (c *borrowCheck) genericFlowSource(in Inst, recvIdx int) (*borrowInfo, bool
 		return nil, false
 	}
 	slots := c.callSlots(info, in.Args, recvIdx)
+	c.linkSlots(info, slots)
 	for grown := true; grown; {
 		grown = false
 		for _, s := range slots {

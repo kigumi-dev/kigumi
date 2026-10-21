@@ -23,18 +23,25 @@ func (m *Machine) callMethod(recv *obj, name string, args []*obj, kind sem.RecvK
 	}
 	fn := m.r.Overloads[set].Members[0]
 	self, cell := target, (*obj)(nil)
+	lentCell := box != nil && box.b && kind == sem.RecvMut && len(box.fields) == 1
 	// mut self writes through a cell even though the value sits behind the existential.
-	if kind == sem.RecvMut {
+	switch {
+	case lentCell:
+		self = box.fields[0]
+	case kind == sem.RecvMut:
 		cell = mkCell(retain(target))
 		self = cell
 	}
 	r := m.dispatch(fn, append([]*obj{self}, args...))
+	if lentCell {
+		box.inner = deref(box.fields[0])
+	}
 	if kind == sem.RecvMove && box != nil {
 		box.inner = nil
 		m.release(box)
 	}
 	if cell != nil {
-		if box != nil {
+		if box != nil && !box.b {
 			box.inner, cell.inner = cell.inner, nil
 			m.release(target)
 		}

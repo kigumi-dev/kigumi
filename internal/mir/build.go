@@ -115,7 +115,7 @@ func (b *builder) emit(in Inst) LocalID {
 
 func (b *builder) trackUnowned(in Inst) {
 	switch in.Op {
-	case OpBorrow:
+	case OpBorrow, OpLendBox:
 		b.unowned[in.Dst] = true
 	case OpAlias, OpMove:
 		if len(in.Args) == 1 {

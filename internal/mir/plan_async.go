@@ -144,7 +144,7 @@ func owningLocals(f *Func, r *sem.Result) map[LocalID]bool {
 				continue
 			}
 			defined[in.Dst] = true
-			if in.Op == OpBorrow || (in.Op == OpBuiltin && in.Str == "iter.at_ref") {
+			if in.Op == OpBorrow || in.Op == OpLendBox || (in.Op == OpBuiltin && in.Str == "iter.at_ref") {
 				owned[in.Dst] = false
 			}
 		}

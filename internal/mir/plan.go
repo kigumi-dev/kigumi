@@ -54,7 +54,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 			if _, used := last[in.Dst]; !used {
 				last[in.Dst] = use{b, k}
 			}
-			if (in.Op == OpBorrow || in.Op == OpNewCell && in.Lent) && len(in.Args) == 1 && isTemp(in.Args[0]) {
+			if (in.Op == OpBorrow || in.Op == OpLendBox || in.Op == OpNewCell && in.Lent) && len(in.Args) == 1 && isTemp(in.Args[0]) {
 				borrowed[in.Dst] = in.Args[0]
 			}
 		}
@@ -163,7 +163,7 @@ func (p *Program) consumes(f *Func, in Inst, i int) bool {
 	}
 	switch in.Op {
 	case OpField, OpFieldMove, OpIndex, OpIsVariant, OpIsType, OpPayload, OpUnbox,
-		OpCellGet, OpCellTake, OpBinary, OpUnary, OpInterp, OpBuiltin, OpBorrow, OpFutureNew, OpFutureDone, OpShare, OpClosure, OpBind:
+		OpCellGet, OpCellTake, OpBinary, OpUnary, OpInterp, OpBuiltin, OpBorrow, OpLendBox, OpFutureNew, OpFutureDone, OpShare, OpClosure, OpBind:
 		return false
 	}
 	return true

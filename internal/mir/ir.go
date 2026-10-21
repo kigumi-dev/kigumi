@@ -66,6 +66,7 @@ const (
 	OpCancelDone                    // the async body finishes as cancelled
 	OpBoxDirect                     // Dst = a carrier holding the direct aggregate Args[0] (Type: its type)
 	OpUnboxDirect                   // Dst = the direct aggregate in carrier Args[0] (Type: its type)
+	OpLendBox                       // Dst = `&Interface` view over the borrow Args[0], owning nothing (Type = dynamic type)
 )
 
 // Inst is one instruction; the fields used depend on Op.
@@ -168,10 +169,11 @@ type Func struct {
 	// return of a fallible-Void function, which must carry a real Ok.
 	ImplicitOk bool
 	// Async marks a body that runs as a resumable state machine: Suspends
-	// counts its points, Slot places a local in the Frame slots (-1: none).
+	// counts its points, Slot places a local in the Frame slots (-1: none), ViewSlot a lendbox's view.
 	Async    bool
 	Suspends int
 	Slot     []int
+	ViewSlot map[LocalID]int
 	Frame    int
 	// Cleanup lists, per suspension point, the frame slots an abandoned
 	// body releases, innermost binding first.

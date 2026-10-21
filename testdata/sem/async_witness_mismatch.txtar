@@ -1,0 +1,60 @@
+-- src --
+interface Look {
+    fn look(self) -> Int
+}
+
+type C = {
+    pub n Int
+}
+
+async fn C.look(self) -> Int {
+    self.n
+}
+
+@impl(Look) //~ ERROR `D` does not implement `Look`
+type D = {
+    pub n Int
+}
+
+async fn D.look(self) -> Int {
+    self.n
+}
+
+interface Later {
+    async fn later(self) -> Int //~ ERROR `async` requirements are not allowed
+}
+
+type E = {
+    pub n Int
+}
+
+fn E.later(self) -> Int {
+    self.n
+}
+
+fn use[T: Look](x: T) -> Int {
+    x.look()
+}
+
+fn viaConstraint() -> Int {
+    use(C { n: 3 }) //~ ERROR `C` does not satisfy `Look`
+}
+-- expect --
+error[E304]: `D` does not implement `Look`: `look` is `async`, the requirement is synchronous
+  --> main/main.kg:13:7
+   |
+13 | @impl(Look) //~ ERROR `D` does not implement `Look`
+   |       ^^^^
+
+error[E204]: `async` requirements are not allowed
+  --> main/main.kg:23:11
+   |
+23 |     async fn later(self) -> Int //~ ERROR `async` requirements are not allowed
+   |           ^^^^^^^^^^^^^^^^^^^^^
+
+error[E300]: `C` does not satisfy `Look`: `look` is `async`, the requirement is synchronous
+  --> main/main.kg:39:5
+   |
+39 |     use(C { n: 3 }) //~ ERROR `C` does not satisfy `Look`
+   |     ^^^^^^^^^^^^
+

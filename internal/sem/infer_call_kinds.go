@@ -114,7 +114,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 	set := c.r.memberSet(valueType, name)
 	if set == 0 {
 		if req, sig, iface, ambiguous := c.ifaceMember(callee, valueType, name); req != 0 {
-			return c.callRequirement(n, callee, base, recv, req, sig, iface, args, want)
+			return c.callRequirement(n, callee, base, recv, req, sig, iface, typeArgs, args, want)
 		} else if ambiguous {
 			c.synthArgs(args)
 			return TyPoison

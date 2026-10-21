@@ -1,0 +1,50 @@
+-- module --
+stage: driver
+-- src --
+interface Show {
+    fn show(self) -> String
+}
+
+type Res = { pub tag Array[Int] }
+
+fn Res.show(self) -> String { "res:${self.tag.len()}" }
+
+fn consume(r: Res) -> usize { r.tag.len() }
+
+fn plainElse(flag: Bool) -> String {
+    let r = Res { tag: Array.of(1) }
+    let q = Res { tag: Array.of(1, 2) }
+    let v: &Res = if flag { &r } else { &q }
+    let k = consume(q)
+    "${k} ${v.show()}"
+}
+
+fn viewElse(flag: Bool) -> String {
+    let r = Res { tag: Array.of(1) }
+    let q = Res { tag: Array.of(1, 2) }
+    let v: &Show = if flag { &r } else { &q }
+    let k = consume(q)
+    "${k} ${v.show()}"
+}
+
+fn afterLastUse(flag: Bool) -> String {
+    let r = Res { tag: Array.of(1) }
+    let q = Res { tag: Array.of(1, 2) }
+    let v: &Show = if flag { &r } else { &q }
+    let s = v.show()
+    let k = consume(q)
+    "${k} ${s}"
+}
+-- expect --
+error[move-while-borrowed]: `q` is borrowed and cannot be moved or dropped here
+  --> main.kg:15:21
+   |
+15 |     let k = consume(q)
+   |                     ^
+
+error[move-while-borrowed]: `q` is borrowed and cannot be moved or dropped here
+  --> main.kg:23:21
+   |
+23 |     let k = consume(q)
+   |                     ^
+

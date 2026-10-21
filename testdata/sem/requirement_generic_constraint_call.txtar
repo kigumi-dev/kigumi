@@ -1,0 +1,69 @@
+-- src --
+interface Conv {
+    fn conv[U](self, v: U) -> U
+}
+
+interface Empty {
+    fn nothing[U](self) -> U?
+}
+
+type B = {
+    pub n Int
+}
+
+fn B.conv[U](self, v: U) -> U {
+    v
+}
+
+fn B.nothing[U](self) -> U? {
+    None
+}
+
+fn twoCalls[T: Conv](x: T) -> String {
+    let n: Int = x.conv(3)
+    let s: String = x.conv("s")
+    "${n}${s}"
+}
+
+fn wrongResult[T: Conv](x: T) -> String {
+    x.conv(3) //~ ERROR expected `String`, found `{integer}`
+}
+
+fn explicitArgs[T: Conv](x: T) -> String {
+    let n = x.conv[Int](3)
+    let s = x.conv[String]("s")
+    "${n}${s}"
+}
+
+fn explicitCount[T: Conv](x: T) -> Int {
+    x.conv[Int, Int](3) //~ ERROR `conv` takes 1 type argument, 2 given
+}
+
+fn explicitMismatch[T: Conv](x: T) -> String {
+    x.conv[String](3) //~ ERROR expected `String`, found `Int`
+}
+
+fn returnOnly[T: Empty](x: T) -> Bool {
+    let a: Int? = x.nothing()
+    let b: String? = x.nothing()
+    a is None && b is None
+}
+-- expect --
+error[E400]: expected `String`, found `{integer}`
+  --> main/main.kg:28:5
+   |
+28 |     x.conv(3) //~ ERROR expected `String`, found `{integer}`
+   |     ^^^^^^^^
+
+error[E217]: `conv` takes 1 type argument, 2 given
+  --> main/main.kg:38:5
+   |
+38 |     x.conv[Int, Int](3) //~ ERROR `conv` takes 1 type argument, 2 given
+   |     ^^^^^^^^^^^^^^^^^^
+
+error[E400]: expected `String`, found `Int`
+  --> main/main.kg:42:20
+   |
+42 |     x.conv[String](3) //~ ERROR expected `String`, found `Int`
+   |                    ^
+

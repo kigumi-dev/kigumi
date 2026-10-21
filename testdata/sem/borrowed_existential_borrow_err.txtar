@@ -1,0 +1,138 @@
+-- module --
+stage: driver
+-- src --
+interface Show {
+    fn show(self) -> String
+}
+
+interface Counter {
+    fn bump(mut self, by: Int)
+}
+
+type Box = {
+    pub mut value String
+}
+
+fn Box.show(self) -> String {
+    self.value
+}
+
+type Num = {
+    pub mut n Int
+}
+
+fn Num.bump(mut self, by: Int) {
+    self.n = self.n + by
+}
+
+type Keep['a] = {
+    pub mut s &'a Show
+}
+
+fn escape['a](b: &'a Box) -> &'a Show {
+    b
+}
+
+fn escapeField['a](b: &'a Box) -> Keep['a] {
+    Keep { s: b }
+}
+
+fn storeCaller['a](k: &mut Keep['a], b: &'a Box) {
+    k.s = b
+}
+
+fn mutateOwner() -> String {
+    let mut box = Box { value: "a" }
+    let v: &Show = &box
+    box.value = "b"
+    v.show()
+}
+
+fn exclusive() -> Int {
+    let mut num = Num { n: 1 }
+    let c: &mut Counter = &mut num
+    let n = num.n
+    c.bump(1)
+    n
+}
+
+fn scopeEnd() -> String {
+    let v: &Show = {
+        let box = Box { value: "a" }
+        &box
+    }
+    v.show()
+}
+
+fn reusedSlot(items: &Array[Box]) -> String {
+    let mut out = ""
+    let first = Box { value: "first" }
+    let mut k = Keep { s: &first }
+    for i in 0..items.len() {
+        let cur: &Show = &items[i]
+        out = "${out}${k.s.show()}"
+        k = Keep { s: cur }
+    }
+    out
+}
+
+fn copiedView(items: &Array[Box]) -> String {
+    let first = Box { value: "first" }
+    let mut prev = Keep { s: &first }
+    let mut cur = Keep { s: &first }
+    for i in 0..items.len() {
+        prev = Keep { s: cur.s }
+        let v: &Show = &items[i]
+        cur = Keep { s: v }
+    }
+    prev.s.show()
+}
+-- expect --
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+  --> main.kg:30:5
+   |
+30 |     b
+   |     ^
+
+error[borrow-escape]: an `&Interface` view made in this function lives in its frame and cannot be returned; return `&'a T` or take `&'a I` as a parameter
+  --> main.kg:34:15
+   |
+34 |     Keep { s: b }
+   |               ^
+
+error[borrow-escape]: a borrow cannot be stored
+  --> main.kg:38:5
+   |
+38 |     k.s = b
+   |     ^^^
+
+error[E2198]: `box` is borrowed and cannot be mutated here
+  --> main.kg:44:5
+   |
+44 |     box.value = "b"
+   |     ^^^^^^^^^
+
+error[E2198]: `num` is exclusively borrowed and cannot be used here
+  --> main.kg:51:13
+   |
+51 |     let n = num.n
+   |             ^^^^^
+
+error[move-while-borrowed]: `box` is still borrowed when its scope ends here
+  --> main.kg:58:13
+   |
+58 |         let box = Box { value: "a" }
+   |             ^^^
+
+error[E2193]: this `&Interface` view is made again while the one it made on an earlier pass is still in use; keep each view inside the loop body that makes it
+  --> main.kg:69:26
+   |
+69 |         let cur: &Show = &items[i]
+   |                          ^^^^^^^^
+
+error[E2193]: this `&Interface` view is made again while the one it made on an earlier pass is still in use; keep each view inside the loop body that makes it
+  --> main.kg:82:24
+   |
+82 |         let v: &Show = &items[i]
+   |                        ^^^^^^^^
+

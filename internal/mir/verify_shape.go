@@ -40,6 +40,7 @@ var shapes = map[Opcode]shape{
 	OpIsType:      {1, 1, true, true, false, false},
 	OpUnbox:       {1, 1, true, false, false, false},
 	OpBox:         {1, 1, true, false, true, false},
+	OpLendBox:     {1, 1, true, false, true, false},
 	OpClosure:     {0, -1, true, true, false, false},
 	OpFnItem:      {0, 0, true, true, false, false},
 	OpBind:        {0, -1, true, true, false, false},

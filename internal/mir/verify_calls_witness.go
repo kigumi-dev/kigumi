@@ -18,11 +18,11 @@ func (p *Program) witnessCallMismatch(f *Func, in Inst, recv bool) string {
 			return "passes " + itoa(len(args)) + " values to a witness of type " + p.R.TypeString(t)
 		}
 		for k, want := range node.Args {
-			if !p.compatible(want, f.Locals[args[k]].Type) {
+			if !p.compatibleGeneric(want, f.Locals[args[k]].Type) {
 				return "passes " + p.R.TypeString(f.Locals[args[k]].Type) + " as argument " + itoa(k) + " of the witness of type " + p.R.TypeString(t)
 			}
 		}
-		if !p.compatible(node.Elem, f.Locals[in.Dst].Type) {
+		if !p.compatibleGeneric(node.Elem, f.Locals[in.Dst].Type) {
 			return "takes " + p.R.TypeString(f.Locals[in.Dst].Type) + " from a witness of type " + p.R.TypeString(t)
 		}
 	}

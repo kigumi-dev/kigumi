@@ -1,0 +1,52 @@
+-- src --
+import task from std/task
+
+interface Show {
+    fn show(self) -> String
+}
+
+interface Bump {
+    fn bump(mut self)
+    fn get(self) -> Int
+}
+
+type Num = { pub n Int }
+
+fn Num.show(self) -> String { "num:${self.n}" }
+
+type Counter = { pub mut n Int }
+
+fn Counter.bump(mut self) { self.n = self.n + 1 }
+
+fn Counter.get(self) -> Int { self.n }
+
+async fn stall() -> Int { 0 }
+
+async fn inner(v: &Show) -> Int {
+    let z = await task.spawn(stall())
+    print v.show()
+    z
+}
+
+async fn acount(c: &mut Bump) -> Int {
+    c.bump()
+    let z = await task.spawn(stall())
+    c.bump()
+    c.get() + z
+}
+
+async fn outer() -> Int {
+    let n = Num { n: 1 }
+    let a = await inner(&n)
+    let mut c = Counter { n: 5 }
+    let b = await acount(&mut c)
+    print "c=${c.n}"
+    a + b
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(outer())}"
+-- stdout --
+num:1
+c=7
+7

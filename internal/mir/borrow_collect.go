@@ -83,6 +83,8 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 			return false
 		}
 		return set(src, ok)
+	case OpLendBox:
+		return set(c.lendBoxInfo(in), true)
 	case OpArray:
 		c.collectArray(in)
 	case OpSetIndex, OpSetField:
@@ -113,10 +115,10 @@ func (c *borrowCheck) widen(dst LocalID, b *borrowInfo) {
 	c.merge(c.sink(dst, b.node), b)
 }
 
-// widens reports whether dst keeps the union of every value written to it instead
-// of the first one: a store target, or a named local of a type carrying a lifetime.
+// widens reports whether dst keeps the union of every value written to it instead of the first
+// one: a store target, a temporary joining branches, or a named local of a type carrying a lifetime.
 func (c *borrowCheck) widens(dst LocalID) bool {
-	if c.targets[dst] {
+	if c.targets[dst] || c.multiDefined(dst) {
 		return true
 	}
 	l := c.f.Locals[dst]
