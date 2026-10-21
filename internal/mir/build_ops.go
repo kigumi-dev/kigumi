@@ -65,7 +65,10 @@ func (b *builder) fallback(e *hir.Expr) LocalID {
 			b.emit(Inst{Op: OpNop, Args: []LocalID{hit}, Node: n, Guarded: true})
 		}
 	}
-	b.assign(result, b.coerce(e.Coercion, n, hit))
+	if e.HitLift {
+		hit = b.coerce(e.Coercion, n, hit)
+	}
+	b.assign(result, hit)
 	b.jump(join)
 	b.cur = missBlock
 	if ltn.Kind == sem.KNamed && len(ltn.Args) > 1 {

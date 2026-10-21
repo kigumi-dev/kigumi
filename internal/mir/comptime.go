@@ -13,6 +13,8 @@ type ComptimeFunc struct {
 	Slot int
 	// Type is the block's type at the use site, which the constant takes.
 	Type sem.TypeID
+	// Cloned marks the copy a specialised instance made of a generic body's block.
+	Cloned bool
 }
 
 // Fold records the evaluated value with the checker and replaces the

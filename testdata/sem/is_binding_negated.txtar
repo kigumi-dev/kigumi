@@ -1,0 +1,36 @@
+-- src --
+fn thenSide(x: Int?) -> Int {
+    if !(x is Some(a)) { return a } //~ ERROR undefined name `a`
+    0
+}
+
+fn elseSide(x: Int?) -> Int {
+    if !(x is Some(a)) { 0 } else { a } //~ ERROR undefined name `a`
+}
+
+fn doubleNegated(x: Int?) -> Int {
+    if !(!(x is Some(a))) { a } else { 0 }
+}
+
+fn positive(x: Int?) -> Int {
+    if x is Some(a) { a } else { 0 }
+}
+
+fn both(x: Int?, y: Int?) -> Int {
+    if x is Some(a) && !(y is Some(b)) { a } else { 0 }
+}
+-- expect --
+error[E100]: undefined name `a`
+ --> main/main.kg:2:33
+  |
+2 |     if !(x is Some(a)) { return a } //~ ERROR undefined name `a`
+  |                                 ^
+  = help: did you mean `x`?
+
+error[E100]: undefined name `a`
+ --> main/main.kg:7:37
+  |
+7 |     if !(x is Some(a)) { 0 } else { a } //~ ERROR undefined name `a`
+  |                                     ^
+  = help: did you mean `x`?
+

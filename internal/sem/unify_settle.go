@@ -27,6 +27,7 @@ func (v *varStore) settle(c *checker) {
 		final := v.resolve(v.binding[i])
 		for _, lit := range v.lits[i] {
 			if c.checkLiteralFits(lit, final) {
+				c.adoptTails(lit, final)
 				c.setType(lit, final)
 			}
 		}

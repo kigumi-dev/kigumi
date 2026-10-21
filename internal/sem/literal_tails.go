@@ -22,6 +22,8 @@ func (c *checker) adoptTails(n syntax.NodeID, target TypeID) {
 	case syntax.IfLetExpr:
 		s := ifLet(c.t, n)
 		parts = []syntax.NodeID{s.Then, s.Else}
+	case syntax.ForExpr:
+		parts = c.loopValues[n]
 	case syntax.MatchExpr:
 		for arm := range c.t.View(n).AsMatch().Arms().IDs() {
 			parts = append(parts, matchArm(c.t, arm).Body)

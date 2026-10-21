@@ -1,0 +1,39 @@
+-- src --
+type Span = { pub r Range[Int] }
+
+fn total(r: Range[Int]) -> Int {
+    let mut s = 0
+    for i in r { s += i }
+    s
+}
+
+fn tail(lo: u8) -> Range[u8] { lo..=255 }
+
+let a = 1..=4
+let b = 3..3
+let c = Range { start: 5, end: 8, inclusive: false }
+let d: Range[Int] = Range { start: 5, end: 8, inclusive: true }
+print "a ${total(a)} b ${total(b)} c ${total(c)} d ${total(d)}"
+let sp = Span { r: 2..6 }
+let mut seen = Array.empty[Int]()
+for i in sp.r { seen.push(i) }
+print "span ${seen.len()}"
+let mut cnt = 0
+for x in tail(250) { cnt += x.toInt() }
+print "u8 ${cnt}"
+for i in 0..2 { print "lit ${i}" }
+let e = 7..9
+print "e ${e.start} ${e.end}"
+for k in e { print "k ${k}" }
+for k in e { print "again ${k}" }
+-- stdout --
+a 10 b 0 c 18 d 26
+span 4
+u8 1515
+lit 0
+lit 1
+e 7 9
+k 7
+k 8
+again 7
+again 8

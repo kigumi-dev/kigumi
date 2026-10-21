@@ -31,7 +31,9 @@ func (c *checker) condFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
 		}
 	case syntax.Unary:
 		if operand := node.AsUnary().Operand().ID(); node.Tok().Kind() == token.Bang {
+			c.negated = !c.negated
 			pos, neg = c.condFacts(operand)
+			c.negated = !c.negated
 			if c.vars.resolve(c.info.Types[operand]) == TyBool {
 				c.setType(n, TyBool)
 				return neg, pos

@@ -10,7 +10,10 @@ type ComptimeSite struct {
 }
 
 func (c *checker) synthComptimeBlock(n, inner syntax.NodeID) TypeID {
+	saved := c.comptimeAt
+	c.comptimeAt = len(c.lambdas) + 1
 	t := c.synth(inner)
+	c.comptimeAt = saved
 	if !c.literalType(t) {
 		c.errAt(n, cComptimeResultType, c.r.TypeString(t))
 	}
@@ -30,6 +33,15 @@ func (c *checker) synthComptimeBlock(n, inner syntax.NodeID) TypeID {
 	})
 	c.r.Comptime = append(c.r.Comptime, ComptimeSite{File: c.f, Node: n, Fn: c.fn})
 	return t
+}
+
+// leavesComptime reports whether a `?` or `await` at the current point would act on the comptime block itself.
+func (c *checker) leavesComptime(n syntax.NodeID, what string) bool {
+	if c.comptimeAt == 0 || len(c.lambdas) != c.comptimeAt-1 {
+		return false
+	}
+	c.errAt(n, cComptimeFlow, what)
+	return true
 }
 
 // literalType is what a comptime block may produce: what a literal can spell.

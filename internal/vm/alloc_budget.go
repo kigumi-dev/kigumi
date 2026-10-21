@@ -58,6 +58,16 @@ func (m *Machine) chargeMemory(v *obj) {
 	}
 }
 
+// reserveMemory aborts a sandboxed run before it allocates n bytes the memory limit would refuse.
+func (m *Machine) reserveMemory(n uint64) {
+	if !m.opts.Sandbox || m.opts.MemoryLimit <= 0 {
+		return
+	}
+	if n > uint64(m.opts.MemoryLimit) || m.sh.mem.Load()+int64(n) > m.opts.MemoryLimit {
+		m.sandboxAbort("comptime block allocated too much memory")
+	}
+}
+
 // unchargeMemory reclaims a freed value's last-charged share of the live
 // total. The total tracks live bytes, not cumulative churn, so a loop that
 // builds and immediately drops small values stays bounded instead of

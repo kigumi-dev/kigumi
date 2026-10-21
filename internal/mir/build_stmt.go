@@ -79,7 +79,7 @@ func (b *builder) exprMoved(e *hir.Expr) LocalID {
 		return b.coerce(e.Coercion, e.Node, b.exprMoved(e.Args[0]))
 	}
 	v := b.transfer(e, b.exprRaw(e))
-	if e.Kind == hir.Fallback {
+	if e.Kind == hir.Fallback && e.HitLift {
 		return v
 	}
 	return b.coerce(e.Coercion, e.Node, v)

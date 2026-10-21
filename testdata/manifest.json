@@ -523,6 +523,17 @@
       ]
     },
     {
+      "id": "mir/dead_code_after_return",
+      "kind": "mir",
+      "path": "testdata/mir/dead_code_after_return.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/default_arg_borrow",
       "kind": "mir",
       "path": "testdata/mir/default_arg_borrow.txtar",
@@ -592,6 +603,17 @@
       "id": "mir/early_return",
       "kind": "mir",
       "path": "testdata/mir/early_return.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "mir/else_if_is_unreached_drop",
+      "kind": "mir",
+      "path": "testdata/mir/else_if_is_unreached_drop.txtar",
       "mode": [
         "build"
       ],
@@ -1227,6 +1249,17 @@
       ]
     },
     {
+      "id": "mir/range_value_cursor",
+      "kind": "mir",
+      "path": "testdata/mir/range_value_cursor.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/reborrow_alias",
       "kind": "mir",
       "path": "testdata/mir/reborrow_alias.txtar",
@@ -1408,6 +1441,17 @@
       "path": "testdata/mir/variadic_value_spread_move.txtar",
       "mode": [
         "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/abi_block_missing_name",
+      "kind": "parser",
+      "path": "testdata/parser/abi_block_missing_name.txtar",
+      "mode": [
+        "parse"
       ],
       "observes": [
         "expect"
@@ -4855,6 +4899,23 @@
       ]
     },
     {
+      "id": "run/comptime_generic_instance",
+      "kind": "run",
+      "path": "testdata/run/comptime_generic_instance.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/comptime_multi_block",
       "kind": "run",
       "path": "testdata/run/comptime_multi_block.txtar",
@@ -5300,6 +5361,23 @@
       "id": "run/cvalue_scalar",
       "kind": "run",
       "path": "testdata/run/cvalue_scalar.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/debug_fallback_borrow",
+      "kind": "run",
+      "path": "testdata/run/debug_fallback_borrow.txtar",
       "mode": [
         "vm",
         "native"
@@ -6671,6 +6749,23 @@
       ]
     },
     {
+      "id": "run/else_if_is_return_drop",
+      "kind": "run",
+      "path": "testdata/run/else_if_is_return_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/entropy_bytes_huge",
       "kind": "run",
       "path": "testdata/run/entropy_bytes_huge.txtar",
@@ -6742,6 +6837,23 @@
       "id": "run/error_as",
       "kind": "run",
       "path": "testdata/run/error_as.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/error_as_without_context",
+      "kind": "run",
+      "path": "testdata/run/error_as_without_context.txtar",
       "mode": [
         "vm",
         "native"
@@ -11359,6 +11471,40 @@
       ]
     },
     {
+      "id": "run/nested_literal_inference",
+      "kind": "run",
+      "path": "testdata/run/nested_literal_inference.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/never_payload_binding",
+      "kind": "run",
+      "path": "testdata/run/never_payload_binding.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/newline_after_assign",
       "kind": "run",
       "path": "testdata/run/newline_after_assign.txtar",
@@ -12054,6 +12200,23 @@
       ]
     },
     {
+      "id": "run/range_value_loop",
+      "kind": "run",
+      "path": "testdata/run/range_value_loop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/reborrow_call_arg",
       "kind": "run",
       "path": "testdata/run/reborrow_call_arg.txtar",
@@ -12278,6 +12441,23 @@
       "id": "run/result_paren_tail",
       "kind": "run",
       "path": "testdata/run/result_paren_tail.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/return_dead_statements",
+      "kind": "run",
+      "path": "testdata/run/return_dead_statements.txtar",
       "mode": [
         "vm",
         "native"
@@ -14050,6 +14230,17 @@
       ]
     },
     {
+      "id": "sem/asm_undeclared_operand",
+      "kind": "sem",
+      "path": "testdata/sem/asm_undeclared_operand.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/assign_immutable_multi",
       "kind": "sem",
       "path": "testdata/sem/assign_immutable_multi.txtar",
@@ -14798,6 +14989,17 @@
       ]
     },
     {
+      "id": "sem/comptime_flow_err",
+      "kind": "sem",
+      "path": "testdata/sem/comptime_flow_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/conform_err",
       "kind": "sem",
       "path": "testdata/sem/conform_err.txtar",
@@ -14922,6 +15124,17 @@
       "id": "sem/const_qualified_package",
       "kind": "sem",
       "path": "testdata/sem/const_qualified_package.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/const_shift_limit",
+      "kind": "sem",
+      "path": "testdata/sem/const_shift_limit.txtar",
       "mode": [
         "check"
       ],
@@ -16646,6 +16859,17 @@
       ]
     },
     {
+      "id": "sem/is_binding_negated",
+      "kind": "sem",
+      "path": "testdata/sem/is_binding_negated.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/isr_naked",
       "kind": "sem",
       "path": "testdata/sem/isr_naked.txtar",
@@ -17911,6 +18135,17 @@
       ]
     },
     {
+      "id": "sem/type_nomono_recursion",
+      "kind": "sem",
+      "path": "testdata/sem/type_nomono_recursion.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/typearg_inline",
       "kind": "sem",
       "path": "testdata/sem/typearg_inline.txtar",
@@ -18134,6 +18369,17 @@
       "id": "sem/variadic_fn_value_err",
       "kind": "sem",
       "path": "testdata/sem/variadic_fn_value_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/variadic_spread_position",
+      "kind": "sem",
+      "path": "testdata/sem/variadic_spread_position.txtar",
       "mode": [
         "check"
       ],

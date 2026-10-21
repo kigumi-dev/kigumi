@@ -1,20 +1,10 @@
 package sem
 
-import "kigumi/internal/syntax"
+import (
+	"slices"
 
-func (c *checker) synthArgs(args []syntax.NodeID) {
-	for _, a := range args {
-		if v := c.piped[a]; v != 0 && c.t.Kind(a) == syntax.NamedArg {
-			c.synth(v)
-			continue
-		}
-		if k := c.t.Kind(a); k == syntax.Spread || k == syntax.NamedArg {
-			c.synth(c.t.View(a).ArgValue().ID())
-			continue
-		}
-		c.synth(a)
-	}
-}
+	"kigumi/internal/syntax"
+)
 
 func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args []syntax.NodeID, want TypeID, recv TypeID, recvBase syntax.NodeID) TypeID {
 	info := c.r.Fn(fn)
@@ -104,7 +94,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 	if variadic {
 		fixed--
 	}
-	spread := len(args) > 0 && c.t.Kind(args[len(args)-1]) == syntax.Spread
+	spreadAt := slices.IndexFunc(args, func(a syntax.NodeID) bool { return c.t.Kind(a) == syntax.Spread })
 	required := c.requiredParams(declParams, fixed)
 	switch {
 	case cVariadic && len(args) < fixed:
@@ -116,8 +106,8 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 	case !cVariadic && variadic && len(args) < fixed:
 		c.errAt(n, cCallArity, name, fixed, plural(fixed), len(args))
 		return c.abandonCall(sig, args), nil
-	case !cVariadic && variadic && spread && len(args) != fixed+1:
-		c.errAt(args[len(args)-1], cVariadicMixed)
+	case !cVariadic && variadic && spreadAt >= 0 && (spreadAt != len(args)-1 || len(args) != fixed+1):
+		c.errAt(args[spreadAt], cVariadicMixed)
 		return c.abandonCall(sig, args), nil
 	}
 	plan := identityPlan(args)

@@ -1,0 +1,32 @@
+-- src --
+fn f(c: Bool) -> Int {
+    if c {
+        return 1
+        let y = 5
+        for i in 0..2 { print "${i}" }
+    }
+    3
+}
+-- expect --
+fn main.f(%c: Bool) -> Int {
+  b0:
+    branch %c ? b1 : b2
+  b1:
+    %t2 = const 1: Int
+    drop(%c)
+    return %t2
+  b2:
+    %t5 = unit
+    %t1 = copy(%t5)
+    jump b3
+  b3:
+    drop(%t1)
+    %t6 = const 3: Int
+    drop(%c)
+    return %t6
+  b4:
+    %t3 = unit
+    drop(%t3)
+    %t4 = unit
+    jump b3
+}

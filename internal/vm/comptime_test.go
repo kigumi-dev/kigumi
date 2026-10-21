@@ -56,6 +56,15 @@ func TestComptimeMemoryLimitFailsInstead(t *testing.T) {
 	}
 }
 
+// String.repeat builds its result by doubling through tryConcat, whose payload sits inside a Result:
+// the budget must still see it before the next doubling allocates.
+func TestComptimeStringRepeatFailsInstead(t *testing.T) {
+	_, err := evalOneComptime(t, "let x = comptime {\n    \"a\".repeat(1000000000000)\n}\nprint \"${x}\"\n")
+	if err == nil || !strings.Contains(err.Error(), "too much memory") {
+		t.Fatalf("err = %v, want a memory-budget diagnostic", err)
+	}
+}
+
 // A comptime loop that builds and immediately drops a small record each
 // iteration must not trip the memory budget: the budget bounds live bytes,
 // not the cumulative volume ever allocated, so this stays cheap no matter

@@ -1,0 +1,59 @@
+-- src --
+fn total(r: Range[Int]) -> Int {
+    let mut s = 0
+    for i in r { s += i }
+    s
+}
+-- expect --
+fn main.total(%r: Range[Int]) -> Int {
+  b0:
+    %t1 = const 0: Int
+    %s = copy(%t1)
+    %t3 = field 0(%r)
+    %t4 = copy(%t3)
+    %t5 = field 1(%r)
+    %t6 = copy(%t5)
+    %t7 = field 2(%r)
+    %t8 = copy(%t7)
+    jump b1
+  b1:
+    branch %t8 ? b5 : b6
+  b2:
+    %t12 = copy(%t4)
+    %i = copy(%t12)
+    %t14 = bin +(%s, %i)
+    drop(%s)
+    %s = copy(%t14)
+    %t15 = unit
+    drop(%i)
+    jump b3
+  b3:
+    %t16 = bin ==(%t4, %t6)
+    branch %t16 ? b4 : b8
+  b4:
+    drop(%t8)
+    drop(%t6)
+    drop(%t4)
+    %t19 = unit
+    drop(%t19)
+    %t20 = copy(%s)
+    drop(%s)
+    drop(%r)
+    return %t20
+  b5:
+    %t10 = bin <=(%t4, %t6)
+    %t9 = copy(%t10)
+    jump b7
+  b6:
+    %t11 = bin <(%t4, %t6)
+    %t9 = copy(%t11)
+    jump b7
+  b7:
+    branch %t9 ? b2 : b4
+  b8:
+    %t17 = const 1: Int
+    %t18 = bin +(%t4, %t17)
+    drop(%t4)
+    %t4 = copy(%t18)
+    jump b1
+}

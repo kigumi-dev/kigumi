@@ -1,6 +1,11 @@
 package mir
 
-import "kigumi/internal/sem"
+import (
+	"fmt"
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 // ents renames the closures g builds to their copies.
 func (p *Program) cloneFor(g *Func, ent sem.EntityID, name string, subst map[sem.EntityID]sem.TypeID, ents map[sem.EntityID]sem.EntityID) *Func {
@@ -27,6 +32,9 @@ func (p *Program) cloneFor(g *Func, ent sem.EntityID, name string, subst map[sem
 				in.Op = OpField
 			}
 			insts[i] = in
+			if in.Op == OpBuiltin && in.Str == "comptime" {
+				p.cloneComptime(g, f, BlockID(bid), in.Index, subst, ents)
+			}
 		}
 		term := Term{Op: blk.Term.Op, Args: append([]LocalID(nil), blk.Term.Args...), Targets: append([]BlockID(nil), blk.Term.Targets...)}
 		f.Blocks[bid] = Block{Insts: insts, Term: term}
@@ -61,4 +69,32 @@ func (s *specializer) genericClosure(t sem.TypeID, seen map[sem.TypeID]bool) boo
 		}
 	}
 	return false
+}
+
+// cloneComptime gives a specialised copy of a generic body its own comptime block, so the copy's placeholder gets folded too.
+func (p *Program) cloneComptime(g, f *Func, bid BlockID, slot int, subst map[sem.EntityID]sem.TypeID, ents map[sem.EntityID]sem.EntityID) {
+	for _, cf := range p.Comptime {
+		if cf.Owner != g || cf.Block != bid || cf.Slot != slot {
+			continue
+		}
+		name := fmt.Sprintf("%s.comptime%d", f.Name, slot)
+		p.Comptime = append(p.Comptime, &ComptimeFunc{
+			Site:   cf.Site,
+			Func:   p.cloneFor(cf.Func, 0, name, subst, ents),
+			Owner:  f,
+			Block:  bid,
+			Slot:   slot,
+			Type:   p.R.Types.Subst(cf.Type, subst),
+			Cloned: true,
+		})
+		return
+	}
+}
+
+func (p *Program) dropStaleComptime() {
+	live := make(map[*Func]bool, len(p.Funcs))
+	for _, f := range p.Funcs {
+		live[f] = true
+	}
+	p.Comptime = slices.DeleteFunc(p.Comptime, func(cf *ComptimeFunc) bool { return cf.Cloned && !live[cf.Owner] })
 }

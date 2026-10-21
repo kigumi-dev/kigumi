@@ -1,0 +1,49 @@
+-- src --
+type S = { pub k Int }
+
+fn S.sum(self, xs: ...Int) -> Int {
+    let mut s = self.k
+    for x in xs { s += x }
+    s
+}
+
+fn total(xs: ...Int) -> Int {
+    let mut s = 0
+    for x in xs { s += x }
+    s
+}
+
+fn calls(xs: Array[Int], s: S) -> Int {
+    let f = total
+    let a = total(...xs, 3) //~ ERROR cannot mix listed arguments
+    let b = total(3, ...xs) //~ ERROR cannot mix listed arguments
+    let c = s.sum(...xs, 3) //~ ERROR cannot mix listed arguments
+    let d = f(...xs, 3) //~ ERROR cannot mix listed arguments
+    let e = total(...xs) + s.sum(...xs) + f(...xs) + total(1, 2, 3)
+    a + b + c + d + e
+}
+-- expect --
+error[E505]: cannot mix listed arguments with `...expr`
+  --> main/main.kg:17:19
+   |
+17 |     let a = total(...xs, 3) //~ ERROR cannot mix listed arguments
+   |                   ^^^^^
+
+error[E505]: cannot mix listed arguments with `...expr`
+  --> main/main.kg:18:22
+   |
+18 |     let b = total(3, ...xs) //~ ERROR cannot mix listed arguments
+   |                      ^^^^^
+
+error[E505]: cannot mix listed arguments with `...expr`
+  --> main/main.kg:19:19
+   |
+19 |     let c = s.sum(...xs, 3) //~ ERROR cannot mix listed arguments
+   |                   ^^^^^
+
+error[E505]: cannot mix listed arguments with `...expr`
+  --> main/main.kg:20:15
+   |
+20 |     let d = f(...xs, 3) //~ ERROR cannot mix listed arguments
+   |               ^^^^^
+

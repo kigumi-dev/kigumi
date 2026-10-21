@@ -29,6 +29,10 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 	}
 	if a.Kind == constInt && b.Kind == constInt {
 		x, y := a.Int, b.Int
+		if constIntTooLarge(op, x, y) {
+			r.errAt(f, n, cConstTooLarge, maxConstBits)
+			return constValue{}, false
+		}
 		z := new(big.Int)
 		switch op {
 		case token.Plus:
@@ -126,4 +130,21 @@ func compareResult(op token.Kind, c int) bool {
 		return c > 0
 	}
 	return c >= 0
+}
+
+const maxConstBits = 1 << 16
+
+// constIntTooLarge reports an operation whose result would pass maxConstBits, before it allocates.
+func constIntTooLarge(op token.Kind, x, y *big.Int) bool {
+	switch op {
+	case token.Shl:
+		return y.Sign() < 0 || !y.IsUint64() || y.Uint64() > maxConstBits
+	case token.Shr:
+		return y.Sign() < 0 || !y.IsUint64()
+	case token.Star:
+		return x.BitLen()+y.BitLen() > maxConstBits
+	case token.Plus, token.Minus:
+		return max(x.BitLen(), y.BitLen()) >= maxConstBits
+	}
+	return false
 }

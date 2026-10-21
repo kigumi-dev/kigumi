@@ -2,7 +2,6 @@ package sem
 
 import (
 	"kigumi/internal/syntax"
-	"kigumi/internal/token"
 )
 
 type checker struct {
@@ -102,7 +101,7 @@ type checker struct {
 	exclusiveSites    []exclusiveSite
 	outsideCalls      []outsideMutCall
 	mutCaptures       map[EntityID][]syntax.NodeID
-	loopSpans         []token.Span
+	exprState
 	// lentFrom maps a `for` or pattern binding over a `&mut` head to the head's root place.
 	lentFrom map[EntityID]lentRef
 	// mutAliasInit: the initializer of a `let mut` borrow, which cannot be rebound to another place.

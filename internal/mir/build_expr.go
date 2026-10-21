@@ -11,7 +11,7 @@ func (b *builder) expr(e *hir.Expr) LocalID {
 	v := b.exprRaw(e)
 	// A fallback lifts only its hit value (build_ops.go); the miss arm is
 	// already at the lifted type.
-	if e.Kind == hir.Fallback {
+	if e.Kind == hir.Fallback && e.HitLift {
 		return v
 	}
 	if e.Kind == hir.DefinedWrap || e.Kind == hir.DefinedUnwrap {

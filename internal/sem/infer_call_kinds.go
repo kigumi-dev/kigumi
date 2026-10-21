@@ -68,6 +68,9 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 		c.synthArgs(args)
 		return TyPoison
 	}
+	if c.vars.pendingLiteral(recv) {
+		recv = c.vars.settleLiterals(recv)
+	}
 	valueType := recv
 	if tt.Kind(recv) == KRef {
 		valueType = tt.Node(recv).Elem

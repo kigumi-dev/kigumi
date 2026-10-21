@@ -38,6 +38,9 @@ func (c *checker) synthTry(n syntax.NodeID) TypeID {
 	if c.cleanup > 0 {
 		c.errAt(n, cCleanupControlFlow, "`?`")
 	}
+	if c.leavesComptime(n, "`?`") {
+		return TyPoison
+	}
 	if tt.Kind(got) == KUntyped {
 		got = c.adopt(c.literalNode(operand), defaultOf(got))
 	}

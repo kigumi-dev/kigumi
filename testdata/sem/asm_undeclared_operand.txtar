@@ -1,0 +1,40 @@
+-- src --
+fn named(x: u64) {
+    unsafe {
+        asm {
+            "mov {zzz}, 1" //~ ERROR the template names `zzz`
+            in(rax) x
+        }
+    }
+}
+
+fn voidAsValue(x: u64) -> u64 {
+    let y: u64 = unsafe {
+        asm { //~ ERROR expected `u64`, found `Void`
+            "nop"
+            in(rax) x
+        }
+    }
+    y
+}
+
+fn statement(x: u64) {
+    unsafe {
+        asm {
+            "nop"
+        }
+    }
+}
+-- expect --
+error[E948]: the template names `zzz`, which is not an operand label
+ --> main/main.kg:4:13
+  |
+4 |             "mov {zzz}, 1" //~ ERROR the template names `zzz`
+  |             ^^^^^^^^^^^^^^
+
+error[E400]: expected `u64`, found `Void`
+  --> main/main.kg:12:9
+   |
+12 |         asm { //~ ERROR expected `u64`, found `Void`
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

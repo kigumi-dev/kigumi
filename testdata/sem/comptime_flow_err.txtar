@@ -1,0 +1,47 @@
+-- src --
+async fn a() -> Int { 1 }
+
+fn ok() -> Int! { 1 }
+
+fn viaTry() -> Int! {
+    let n = comptime {
+        let v = ok()? //~ ERROR cannot leave a `comptime` block
+        v + 1
+    }
+    n
+}
+
+async fn viaAwait() -> Int {
+    comptime { await a() } //~ ERROR cannot leave a `comptime` block
+}
+
+async fn closureAwait() -> Int {
+    let g = () => { await a() } //~ ERROR only allowed inside an `async fn`
+    g()
+}
+
+fn fine() -> Int {
+    comptime { 1 + 2 }
+}
+-- expect --
+error[E2212]: `?` cannot leave a `comptime` block, which has no enclosing function to return to or suspend
+ --> main/main.kg:7:17
+  |
+7 |         let v = ok()? //~ ERROR cannot leave a `comptime` block
+  |                 ^^^^^
+  = help: handle the value inside the block
+
+error[E2212]: `await` cannot leave a `comptime` block, which has no enclosing function to return to or suspend
+  --> main/main.kg:14:16
+   |
+14 |     comptime { await a() } //~ ERROR cannot leave a `comptime` block
+   |                ^^^^^^^^
+   = help: handle the value inside the block
+
+error[E925]: `await` is only allowed inside an `async fn`
+  --> main/main.kg:18:21
+   |
+18 |     let g = () => { await a() } //~ ERROR only allowed inside an `async fn`
+   |                     ^^^^^^^^
+   = help: a closure is not async even inside an `async fn`; await before building the closure and capture the result
+

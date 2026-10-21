@@ -100,6 +100,10 @@ func checkDefs(f *Func, bid BlockID, inMust, inMay []bool) *Error {
 	blk := &f.Blocks[bid]
 	for i, in := range blk.Insts {
 		for _, a := range in.Args {
+			// Every backend starts a named local null, so releasing one no path assigned is a no-op.
+			if in.Op == OpDrop && f.Locals[a].Ent != 0 {
+				continue
+			}
 			if !defined(a) {
 				return fail("defs", bid, i, "%s reads %%%s before any definition", in.Op, f.Locals[a].Name)
 			}

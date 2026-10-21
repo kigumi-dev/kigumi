@@ -1,0 +1,46 @@
+-- src --
+type G[T] = {
+    pub g Array[G[Option[T]]] //~ ERROR requires `G[T?]`
+}
+
+type A[T] = {
+    pub b Array[B[Option[T]]] //~ ERROR requires `B[T?]`
+}
+
+type B[U] = {
+    pub a Array[A[U]]
+}
+
+type Tree[T] = {
+    pub v T
+    pub kids Array[Tree[T]]
+}
+
+type Swap[X, Y] = {
+    pub next Array[Swap[Y, X]]
+    pub x X
+}
+
+type Fixed[T] = {
+    pub inner Array[Fixed[Int]]
+    pub t T
+}
+
+fn main() {
+    let t: Tree[Int] = Tree { v: 1, kids: Array.empty() }
+}
+-- expect --
+error[E2213]: `G[T]` requires `G[T?]`, so the type expands without end
+ --> main/main.kg:2:5
+  |
+2 |     pub g Array[G[Option[T]]] //~ ERROR requires `G[T?]`
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  = help: use the parameter unchanged in the recursive field
+
+error[E2213]: `A[T]` requires `B[T?]` through B, so the type expands without end
+ --> main/main.kg:6:5
+  |
+6 |     pub b Array[B[Option[T]]] //~ ERROR requires `B[T?]`
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  = help: use the parameter unchanged in the recursive field
+

@@ -1,0 +1,54 @@
+-- src --
+extern() {
+    fn puts(s: *const u8) -> i32
+}
+export() {
+    fn foo() -> i32 { 1 }
+}
+-- expect --
+File
+  AbiBlock extern
+    List
+    List
+      FnDecl
+        attrs: -
+        vis: -
+        recv: -
+        name: puts
+        generics: -
+        params: List
+          Param s
+            type: TypePtr
+              TypePath
+                Path u8
+        ret: TypePath
+          Path i32
+        body: -
+  AbiBlock export
+    List
+    List
+      FnDecl
+        attrs: -
+        vis: -
+        recv: -
+        name: foo
+        generics: -
+        params: List
+        ret: TypePath
+          Path i32
+        body: Block
+          ExprStmt
+            IntLit 1
+-- diagnostics --
+error[E2199]: expected an ABI name after `extern(`
+ --> abi_block_missing_name.txtar:1:1
+  |
+1 | extern() {
+  | ^^^^^^
+
+error[E2199]: expected an ABI name after `export(`
+ --> abi_block_missing_name.txtar:4:1
+  |
+4 | export() {
+  | ^^^^^^
+

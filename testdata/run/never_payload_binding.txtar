@@ -1,0 +1,15 @@
+-- src --
+fn viaMatch(r: Result[Int, Never]) -> Int {
+    match r {
+        Ok(v) -> v
+        Err(e) -> 0
+    }
+}
+
+fn viaIs(r: Result[Int, Never]) -> Int {
+    if r is Err(e) { 0 } else { 1 }
+}
+
+print "${viaMatch(Ok(3))} ${viaIs(Ok(3))}"
+-- stdout --
+3 1

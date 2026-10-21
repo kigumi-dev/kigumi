@@ -1,0 +1,16 @@
+-- src --
+type Box[T] = { pub v T }
+
+fn Box[T].tag(self) -> Int { comptime { 5 } }
+
+fn gen[T](x: T) -> Int { comptime { 5 } }
+
+fn name[T](x: T) -> String { comptime { "gen" } }
+
+print "gen ${gen(1)} ${gen("a")} ${gen(2.5)} ${gen(true)}"
+print "name ${name(1)} ${name(Box { v: 7 })}"
+print "box ${Box { v: 1 }.tag()} ${Box { v: "s" }.tag()}"
+-- stdout --
+gen 5 5 5 5
+name gen gen
+box 5 5

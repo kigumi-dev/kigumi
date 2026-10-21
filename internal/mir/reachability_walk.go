@@ -30,6 +30,14 @@ func (w *reachWalk) markType(id sem.EntityID) {
 	w.root(w.r.TypeDecl(id).Drop, RootDropGlue)
 }
 
+// rt_error_as walks Context values by descriptor, so std/error.as keeps the type even when nothing builds one.
+func (w *reachWalk) keepErrorContext(ent sem.EntityID) {
+	if ent == 0 || w.r.Entity(ent).Kind != sem.EntFn || !w.r.Packages[w.r.Entity(ent).Pkg].Std || StdKey(w.r, ent, false) != "std/error.as" {
+		return
+	}
+	w.markType(w.r.LangItem("Context"))
+}
+
 func (w *reachWalk) walkType(t sem.TypeID) {
 	if t == 0 || w.seenTypes[t] {
 		return
@@ -93,6 +101,7 @@ func (w *reachWalk) hasBody(ent sem.EntityID) bool {
 // inst follows one instruction of f; pkg is the package f's code belongs to.
 func (w *reachWalk) inst(f *Func, id sem.EntityID, pkg sem.PackageID, in *Inst) {
 	w.visit(id, in.Ent, "call")
+	w.keepErrorContext(in.Ent)
 	w.walkType(in.Type)
 	switch in.Op {
 	case OpRecord, OpIsType:

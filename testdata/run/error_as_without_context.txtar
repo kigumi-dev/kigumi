@@ -1,0 +1,41 @@
+-- src --
+import error from std/error
+
+type LowError = {
+    text String
+}
+
+fn LowError.message(self) -> String {
+    self.text
+}
+
+type OtherError = {
+    code Int
+}
+
+fn OtherError.message(self) -> String {
+    "other"
+}
+
+fn low() -> Int! {
+    Err(LowError { text: "disk full" })
+}
+
+match low() {
+    Ok(v) -> print "ok ${v}"
+    Err(e) -> {
+        if error.as[LowError](&e) is Some(lo) {
+            print "recovered low: ${lo.text}"
+        } else {
+            print "low not found"
+        }
+        if error.as[OtherError](&e) is Some(_) {
+            print "unexpected other"
+        } else {
+            print "other not found"
+        }
+    }
+}
+-- stdout --
+recovered low: disk full
+other not found

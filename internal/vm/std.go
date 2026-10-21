@@ -115,6 +115,7 @@ func (m *Machine) some(v *obj) *obj {
 func (m *Machine) none() *obj { return mkVariant(m.variantOf(m.r.Types.OptionEnt(), "None"), nil) }
 
 func (m *Machine) ok(v *obj) *obj {
+	m.chargeMemory(v)
 	return mkVariant(m.variantOf(m.r.Types.ResultEnt(), "Ok"), []*obj{v})
 }
 

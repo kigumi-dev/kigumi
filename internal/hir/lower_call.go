@@ -17,6 +17,7 @@ func (l *lowerer) binary(n syntax.NodeID) *Expr {
 	case call.Kind == sem.CallFallback:
 		out := l.node(n, Fallback)
 		out.Ent = call.Callee
+		out.HitLift = call.HitLift
 		out.Args = []*Expr{l.expr(lhs)}
 		// The miss side of `a || (x) => b` binds the miss value.
 		if l.t.Kind(rhs) == syntax.Lambda {

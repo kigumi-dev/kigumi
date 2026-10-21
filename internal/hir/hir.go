@@ -114,6 +114,8 @@ type Expr struct {
 	Entries []*RecordEntry
 	Param   *LocalDecl
 	Fn      *Func
+	// HitLift marks a Fallback whose Coercion lifts the hit value only.
+	HitLift bool
 	Coercion
 }
 

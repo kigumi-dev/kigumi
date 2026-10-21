@@ -65,8 +65,12 @@ func (v *asmVerifier) expand(line string) string {
 			sb.WriteString(p.Text)
 			continue
 		}
-		op := v.info.Operands[v.info.Label(p.Text)]
-		switch op.Kind {
+		label := v.info.Label(p.Text)
+		if label < 0 {
+			sb.WriteString("%out")
+			continue
+		}
+		switch op := v.info.Operands[label]; op.Kind {
 		case AsmConst:
 			sb.WriteString(strconv.FormatInt(op.Const, 10))
 		case AsmSym:

@@ -8,12 +8,19 @@ import (
 
 func (b *builder) blockExpr(blk *hir.Block) LocalID {
 	b.pushScope()
-	for _, s := range blk.Stmts {
+	dead := false
+	for i, s := range blk.Stmts {
 		b.stmt(s)
+		if s.Kind == hir.ExprStmt && s.Expr.Type == sem.TyNever && (i < len(blk.Stmts)-1 || blk.Tail != nil) {
+			dead = true
+			break
+		}
 	}
 	b.markExit(len(b.scopes) - 1)
 	var result LocalID
-	if blk.Tail != nil {
+	if dead && blk.Tail != nil {
+		result = b.unreached(blk.Node)
+	} else if blk.Tail != nil {
 		result = b.detach(b.exprMoved(blk.Tail))
 	}
 	if blk == b.body {
@@ -25,7 +32,11 @@ func (b *builder) blockExpr(blk *hir.Block) LocalID {
 		b.exitScope()
 	}
 	if blk.Tail == nil {
-		result = b.unit(blk.Node)
+		if dead {
+			result = b.unreached(blk.Node)
+		} else {
+			result = b.unit(blk.Node)
+		}
 	}
 	return b.coerce(blk.Coercion, blk.Node, result)
 }
@@ -171,4 +182,9 @@ func (b *builder) markRetain(v LocalID) {
 	if n := len(insts); n > 0 && insts[n-1].Op == OpCopy && insts[n-1].Dst == v {
 		insts[n-1].Retain = true
 	}
+}
+
+// unreached stands for the value of a block whose later code is dead, in the orphan block the diverging statement left.
+func (b *builder) unreached(n syntax.NodeID) LocalID {
+	return b.emit(Inst{Op: OpUnit, Dst: b.temp(sem.TyNever), Node: n})
 }

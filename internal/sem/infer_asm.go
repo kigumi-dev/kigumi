@@ -66,20 +66,10 @@ func (c *checker) synthAsm(n syntax.NodeID, want TypeID) TypeID {
 	}
 	c.info.Asm[n] = info
 	c.asmEdges(n, info)
+	if want != 0 && len(outputs) == 0 && !c.naked {
+		return c.coerce(n, info.Result, want)
+	}
 	return info.Result
-}
-
-func (c *checker) asmEdges(n syntax.NodeID, info *AsmInfo) {
-	e := EffectEdge{Kind: EdgeAsm, Node: n}
-	if c.naked {
-		e.Why = asmNaked
-	}
-	c.edge(e)
-	for _, op := range info.Operands {
-		if op.Kind == AsmSym && op.Sym != 0 {
-			c.edge(EffectEdge{Kind: EdgeAsm, Param: op.Sym, Node: op.Node})
-		}
-	}
 }
 
 func (c *checker) asmTemplate(line syntax.NodeID, info *AsmInfo) {

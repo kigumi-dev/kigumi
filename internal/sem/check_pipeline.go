@@ -25,6 +25,7 @@ func (r *Result) phases() []func() {
 		r.resolveImports,
 		r.declareTypes,
 		r.declareSignatures,
+		r.checkTypeNomono,
 		r.declareConsts,
 		r.declareStatics,
 		r.declareContextKeys,

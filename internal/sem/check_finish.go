@@ -4,19 +4,24 @@ import "kigumi/internal/syntax"
 
 // finish closes a full expression: every type recorded since the last
 // boundary is substituted to its final, defaulted form.
-func (c *checker) finish() {
+func (c *checker) finish() { c.finishWith(false) }
+
+func (c *checker) finishWith(nested bool) {
 	c.bindCallableConstraints()
 	c.vars.settle(c)
 	c.settleAllocs()
 	c.settleInline()
 	c.checkConstraints()
 	c.runFFIValueChecks()
-	c.resolveClosures(c.closures)
-	c.resolveTouched(c.touched)
+	c.resolveClosures(c.closures[c.closureBase:])
+	c.resolveTouched(c.touched[c.touchedBase:])
 	c.keepUnsettled()
-	c.closures = c.closures[:0]
-	c.touched = c.touched[:0]
 	c.vars.boundary()
+	if nested {
+		return
+	}
+	c.closures = c.closures[:c.closureBase]
+	c.touched = c.touched[:c.touchedBase]
 }
 
 func (c *checker) resolveClosures(ids []EntityID) {

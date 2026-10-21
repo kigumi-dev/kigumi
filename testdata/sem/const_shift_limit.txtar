@@ -1,0 +1,18 @@
+-- src --
+const Big = 1 << 100000000000 //~ ERROR limited to 65536 bits
+const Neg = 1 << -1 //~ ERROR a shift count cannot be negative
+const Fits = 1 << 100
+const Prod = 4294967296 * 4294967296
+-- expect --
+error[E2214]: constant integer arithmetic is limited to 65536 bits, and a shift count cannot be negative
+ --> main/main.kg:1:13
+  |
+1 | const Big = 1 << 100000000000 //~ ERROR limited to 65536 bits
+  |             ^^^^^^^^^^^^^^^^^
+
+error[E2214]: constant integer arithmetic is limited to 65536 bits, and a shift count cannot be negative
+ --> main/main.kg:2:13
+  |
+2 | const Neg = 1 << -1 //~ ERROR a shift count cannot be negative
+  |             ^^^^^^^
+

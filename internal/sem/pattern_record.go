@@ -146,6 +146,12 @@ func (c *checker) synthIs(n syntax.NodeID) TypeID {
 			c.errAt(n, cIsBindingOutsideCond)
 		}
 		c.popScope(saved)
+	} else if c.negated {
+		saved := c.scope
+		c.pushScope(ScopeArm, n)
+		c.checkPatternOn(pat, subject, scrutinee, false, c.scope)
+		c.taintPatternBindings(pat, rp)
+		c.popScope(saved)
 	} else {
 		c.checkPatternOn(pat, subject, scrutinee, false, c.scope)
 		c.taintPatternBindings(pat, rp)

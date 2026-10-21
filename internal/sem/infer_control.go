@@ -6,6 +6,9 @@ func (c *checker) synthBlock(n syntax.NodeID, want TypeID) TypeID {
 	saved := c.scope
 	c.pushScope(ScopeBlock, n)
 	c.openBlock()
+	savedFirst, savedTouched, savedClosures := c.vars.first, c.touchedBase, c.closureBase
+	c.vars.first, c.touchedBase, c.closureBase = c.vars.count(), len(c.touched), len(c.closures)
+	defer func() { c.vars.first, c.touchedBase, c.closureBase = savedFirst, savedTouched, savedClosures }()
 	stmts := c.t.List(n)
 	result := TyUnit
 	dead := false
@@ -21,7 +24,9 @@ func (c *checker) synthBlock(n syntax.NodeID, want TypeID) TypeID {
 			if want == 0 && c.stmtPos == n {
 				c.stmtPos = e
 			}
+			c.openStmts++
 			result = c.checkTail(n, e, want)
+			c.openStmts--
 			c.setType(s, result)
 			tailValue = true
 			break

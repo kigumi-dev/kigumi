@@ -110,6 +110,9 @@ func (p *parser) abiBlock(pf prefix) NodeID {
 		}
 		p.errorf("expected ABI name, found %s", p.describe())
 	})
+	if len(args) == 0 {
+		p.errorAt(p.toks[tok].Span, "expected an ABI name after `%s(`", p.toks[tok].Text(p.tree.File.Src))
+	}
 	return p.node2(AbiBlock, tok, p.tree.addList(List, tok, args), p.declBlock())
 }
 

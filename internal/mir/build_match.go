@@ -69,6 +69,10 @@ func (b *builder) bindPattern(p *hir.Pat, v LocalID) {
 			if s.Kind == hir.PatWild {
 				continue
 			}
+			if s.Type == sem.TyNever {
+				b.bindPattern(s, b.unreached(s.Node))
+				continue
+			}
 			b.bindPattern(s, b.emit(Inst{Op: OpPayload, Dst: b.temp(s.Type), Args: []LocalID{v}, Index: i, Node: s.Node}))
 		}
 	case hir.PatRecord:

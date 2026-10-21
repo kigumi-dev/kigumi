@@ -64,6 +64,7 @@ func Specialize(p *Program) error {
 		s.rollback(mark)
 	}
 	p.inlineProtoCalls()
+	p.dropStaleComptime()
 	return nil
 }
 

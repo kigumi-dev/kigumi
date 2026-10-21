@@ -74,6 +74,8 @@ type CallInfo struct {
 	// Plan is the call's evaluation/placement schedule; nil only when
 	// checkArgs abandoned the call on an arity or named-argument error.
 	Plan *CallPlan
+	// HitLift marks a fallback whose Coerce steps lift only the hit value, the miss side being checked at the lifted type.
+	HitLift bool
 }
 
 type WitnessKind uint8

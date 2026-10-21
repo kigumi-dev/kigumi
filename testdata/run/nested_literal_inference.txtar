@@ -1,0 +1,64 @@
+-- src --
+fn id[T](x: T) -> T { x }
+
+fn breakValue(n: Int) -> Int {
+    for {
+        break if n > 3 { 1 } else { 2 }
+    }
+}
+
+fn nestedIf(c: Bool, d: u8) -> u8 {
+    let x = if c { if c { 1 } else { 2 } } else { d }
+    x
+}
+
+fn nestedMatch(n: Int, d: u16) -> u16 {
+    match n {
+        0 -> match n { 0 -> 10, _ -> 11 }
+        _ -> d
+    }
+}
+
+fn someOr(d: u64) -> u64 {
+    let x = Some({ 8 }) || d
+    x
+}
+
+fn blockArg(a: Int) -> Int {
+    let u = id({ let t = 1
+        t })
+    let w = id({ let t: Int = a; t })
+    u + w
+}
+
+fn blockInIf(a: Int) -> Int {
+    id(if a > 1 { let t: Int = a; t } else { 2 })
+}
+
+fn blockInMatch(a: Int) -> Int {
+    id(match a { 1 -> { let t: Int = a; t }, _ -> 2 })
+}
+
+fn someBlock(a: Int) -> Int? {
+    Some({ let t: Int = a; t })
+}
+
+let mut total: u64 = 0
+for i in 0..4 {
+    total += i.toU64().unwrap()
+}
+print "break ${breakValue(5)} ${breakValue(1)}"
+print "if ${nestedIf(true, 7)} ${nestedIf(false, 7)}"
+print "match ${nestedMatch(0, 9)} ${nestedMatch(3, 9)}"
+print "some ${someOr(3)}"
+print "block ${blockArg(4)} ${blockInIf(5)} ${blockInIf(1)} ${blockInMatch(1)} ${blockInMatch(6)}"
+print "some block ${someBlock(4) || 0}"
+print "total ${total}"
+-- stdout --
+break 1 2
+if 1 7
+match 10 9
+some 8
+block 5 5 2 1 2
+some block 4
+total 6

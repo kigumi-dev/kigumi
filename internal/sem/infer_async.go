@@ -16,7 +16,12 @@ func (c *checker) synthAwait(n syntax.NodeID) TypeID {
 	op := c.t.View(n).AsAwait().Operand().ID()
 	c.r.markTaskFuture(c.f, op, futureAwaited)
 	t := c.vars.resolve(c.synth(op))
-	if e := c.r.Entities[c.fn]; e.Kind != EntFn || c.r.Fn(c.fn).Declared&EffAsync == 0 {
+	switch e := c.r.Entities[c.fn]; {
+	case c.leavesComptime(n, "`await`"):
+		return TyPoison
+	case len(c.lambdas) > 0 && e.Kind == EntFn && c.r.Fn(c.fn).Declared&EffAsync != 0:
+		c.errAtHelp(n, "a closure is not async even inside an `async fn`; await before building the closure and capture the result", cAwaitOutsideAsync)
+	case e.Kind != EntFn || c.r.Fn(c.fn).Declared&EffAsync == 0:
 		c.errAt(n, cAwaitOutsideAsync)
 	}
 	if c.cleanup > 0 {

@@ -11,6 +11,8 @@ import (
 // stmt checks one statement and returns its type.
 func (c *checker) stmt(n syntax.NodeID) TypeID {
 	var t TypeID
+	c.openStmts++
+	defer func() { c.openStmts-- }()
 	c.noteTakeAtKill(n)
 	switch c.t.Kind(n) {
 	case syntax.LetStmt:
@@ -27,7 +29,7 @@ func (c *checker) stmt(n syntax.NodeID) TypeID {
 	default:
 		t = c.synth(n)
 	}
-	c.finish()
+	c.finishWith(c.openStmts > 1)
 	c.setType(n, t)
 	return t
 }

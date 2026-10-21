@@ -40,6 +40,7 @@ func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 		out = append(out, a1.str()...)
 		return mkBytes(out)
 	case "prelude.Bytes.tryConcat":
+		m.reserveMemory(uint64(len(a0.str())) + uint64(len(a1.str())))
 		if uint64(len(a0.str()))+uint64(len(a1.str())) >= maxVMAlloc || m.faultTick() {
 			return m.allocError()
 		}

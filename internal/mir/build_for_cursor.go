@@ -16,6 +16,11 @@ func (b *builder) forCursorFor(e *hir.Expr) forCursor {
 	if c := b.rangeCursor(e); c != nil {
 		return c
 	}
+	if rng := b.r.LangItem("Range"); rng != 0 {
+		if n := b.r.Types.Node(e.Cond.Type); n.Kind == sem.KNamed && n.Ent == rng {
+			return b.valueRangeCursor(e)
+		}
+	}
 	return b.indexCursor(e)
 }
 
