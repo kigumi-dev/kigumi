@@ -21,7 +21,7 @@ func (b *builder) blockExpr(blk *hir.Block) LocalID {
 	if dead && blk.Tail != nil {
 		result = b.unreached(blk.Node)
 	} else if blk.Tail != nil {
-		result = b.detach(b.exprMoved(blk.Tail))
+		result = b.fullValue(func() LocalID { return b.detach(b.exprMoved(blk.Tail)) })
 	}
 	if blk == b.body {
 		b.closeTaskScope(blk.Node)
@@ -42,16 +42,26 @@ func (b *builder) blockExpr(blk *hir.Block) LocalID {
 }
 
 func (b *builder) ifExpr(e *hir.Expr) LocalID {
-	cond, moves := b.cond(e.Cond)
+	var cond LocalID
+	var moves []guardMove
+	// The bindings of the condition's `is` tests end with the then branch;
+	// one a later `&&` test turned down stays with the enclosing scope.
+	b.pushScope()
+	bindings := b.scopes[len(b.scopes)-1]
+	b.fullExpr(func() { cond, moves = b.cond(e.Cond) })
 	result := b.temp(e.Type)
 	then, els, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()
 	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{then, els}})
 	b.cur = then
 	b.markGuardMoves(moves)
 	b.assignValue(result, b.blockExpr(e.Then), e.Node)
+	b.unwindScope(bindings, false)
 	b.jump(join)
 	b.cur = els
 	b.releaseGuardMoves(moves)
+	b.scopes = b.scopes[:len(b.scopes)-1]
+	outer := b.scopes[len(b.scopes)-1]
+	outer.owned = append(outer.owned, bindings.owned...)
 	if e.Else != nil {
 		b.assignValue(result, b.expr(e.Else), e.Node)
 	} else {
@@ -141,7 +151,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 		b.term(Term{Op: TermBranch, Args: []LocalID{cur.test(n)}, Targets: []BlockID{loop, exit}})
 	case head != nil:
 		var c LocalID
-		c, headBound, headMoves = b.loopHead(head)
+		b.fullExpr(func() { c, headBound, headMoves = b.loopHead(head) })
 		b.term(Term{Op: TermBranch, Args: []LocalID{c}, Targets: []BlockID{loop, exit}})
 	default:
 		b.jump(loop)

@@ -141,16 +141,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			st.val[l] = ownUninit
 			continue
 		case OpMove:
-			src := a.moveSource(in, st, report)
-			if a.tracked[src] {
-				a.check(in, src, st.val, report && !in.Guarded)
-				a.checkWhole(in.Node, src, st, report)
-				a.checkDropOwner(in.Node, src, report)
-				a.checkGuardHeld(in, src, st, report && !in.Guarded, 0)
-				st.val[src], st.at[src] = ownMoved, in.Node
-				a.noteMove(in, src, report)
-				a.moveGuardSource(in, src, st, report)
-			}
+			a.moveInst(in, st, report)
 		case OpNop:
 			a.guardedMove(in, st, report)
 			continue

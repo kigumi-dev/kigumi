@@ -1,0 +1,137 @@
+-- src --
+type R = resource {
+    pub id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(n: Int) -> R {
+    print "mk ${n}"
+    R { id: n }
+}
+
+fn tick() -> Int {
+    print "tick"
+    0
+}
+
+fn two(a: &R, b: &R) -> Int {
+    a.id + b.id
+}
+
+fn add(a: Int, b: Int) -> Int {
+    a + b
+}
+
+fn viaReturn() -> Int {
+    return mk(5).id + tick()
+}
+
+fn viaArm(x: Int) -> Int {
+    match x {
+        1 -> mk(10).id + tick(),
+        _ -> 0,
+    }
+}
+
+fn viaGuard(n: Int) {
+    match n {
+        k if mk(k).id > tick() -> print "guard big",
+        _ -> print "guard small",
+    }
+}
+
+fn viaTail() -> Int {
+    let base = 1
+    mk(6).id + tick() + base
+}
+
+print "a ${two(&mk(2), &mk(3))}"
+print "b ${add(mk(1).id, tick())}"
+let c = mk(1).id + tick()
+print "c ${c}"
+print "d ${mk(3).id}${tick()}"
+if mk(4).id > tick() {
+    print "cond true"
+}
+print "return ${viaReturn()}"
+print "tail ${viaTail()}"
+match mk(7).id + tick() {
+    7 -> print "matched"
+    _ -> print "other"
+}
+let e = mk(8).id + {
+    let inner = mk(9).id
+    inner + tick()
+}
+print "e ${e}"
+print "arm ${viaArm(1)}"
+let lam = () => mk(11).id + tick()
+print "lambda ${lam()}"
+viaGuard(12)
+let mut x = 0
+for mk(13).id > tick() + x {
+    x += 13
+}
+print "loop ${x}"
+-- stdout --
+mk 2
+mk 3
+a 5
+drop 3
+drop 2
+mk 1
+tick
+b 1
+drop 1
+mk 1
+tick
+drop 1
+c 1
+mk 3
+tick
+d 30
+drop 3
+mk 4
+tick
+drop 4
+cond true
+mk 5
+tick
+drop 5
+return 5
+mk 6
+tick
+drop 6
+tail 7
+mk 7
+tick
+drop 7
+matched
+mk 8
+mk 9
+drop 9
+tick
+drop 8
+e 17
+mk 10
+tick
+drop 10
+arm 10
+mk 11
+tick
+drop 11
+lambda 11
+mk 12
+tick
+drop 12
+guard big
+mk 13
+tick
+drop 13
+mk 13
+tick
+drop 13
+loop 13

@@ -1,0 +1,222 @@
+-- src --
+type H = resource {
+    pub id Int
+}
+
+fn H.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn consume(h: H) {
+    print "consume ${h.id}"
+}
+
+fn mkopt(n: Int) -> H? {
+    Some(H { id: n })
+}
+
+fn takes[F: Fn[fn() -> Int]](f: F) -> Int {
+    f()
+}
+
+type Pair = {
+    pub left H
+    pub right H
+}
+
+type Counted = {
+    pub h H
+    pub n Int
+}
+
+fn recordCopyRead() {
+    let q = Counted { h: H { id: 14 }, n: 5 }
+    match q {
+        Counted { h, n: _ } -> consume(h)
+    }
+    let r = Counted { h: H { id: 15 }, n: 6 }
+    match r {
+        Counted { h, n } -> consume(h)
+    }
+    let t = Counted { h: H { id: 16 }, n: 7 }
+    if let Counted { h, n: _ } = t {
+        consume(h)
+    }
+    print "end recordCopyRead ${q.n} ${r.n} ${t.n}"
+}
+
+fn recordGuarded(limit: Int) {
+    let q = Counted { h: H { id: 17 }, n: 8 }
+    match q {
+        Counted { h, n } if n > limit -> consume(h)
+        _ -> print "guard failed"
+    }
+    let p = Pair { left: H { id: 18 }, right: H { id: 19 } }
+    match p {
+        Pair { left, right } if left.id > limit -> {
+            consume(right)
+            print "left ${left.id}"
+        }
+        _ -> print "pair guard failed"
+    }
+    print "end recordGuarded ${limit} ${q.n}"
+}
+
+fn matchConsumed() {
+    let o = Some(H { id: 1 })
+    match o {
+        Some(h) -> consume(h)
+        None -> print "none"
+    }
+    print "end matchConsumed"
+}
+
+fn ifIsConsumed() {
+    let o = Some(H { id: 2 })
+    if o is Some(h) {
+        consume(h)
+    }
+    print "end ifIsConsumed"
+}
+
+fn ifIsTemporary() {
+    if mkopt(3) is Some(h) {
+        print "body ${h.id}"
+    }
+    print "end ifIsTemporary"
+}
+
+fn matchKept() {
+    let o = Some(H { id: 4 })
+    match o {
+        Some(h) -> print "arm ${h.id}"
+        None -> print "none"
+    }
+    print "end matchKept"
+}
+
+fn guardedArm(limit: Int) {
+    let o = Some(H { id: 5 })
+    match o {
+        Some(h) if h.id > limit -> consume(h)
+        _ -> print "guard failed"
+    }
+    print "end guardedArm ${limit}"
+}
+
+fn ifLetConsumed() {
+    let o = Some(H { id: 7 })
+    if let Some(h) = o {
+        consume(h)
+    }
+    print "end ifLetConsumed"
+}
+
+fn recordFields() {
+    let p = Pair { left: H { id: 8 }, right: H { id: 9 } }
+    match p {
+        Pair { left, right } -> {
+            consume(right)
+            print "left ${left.id}"
+        }
+    }
+    print "end recordFields"
+}
+
+fn wildcardKeepsRest() {
+    let p = Pair { left: H { id: 10 }, right: H { id: 11 } }
+    match p {
+        Pair { left, right: _ } -> consume(left)
+    }
+    print "end wildcardKeepsRest"
+}
+
+fn andChain(c: Bool) {
+    let o = Some(H { id: 12 })
+    if o is Some(h) && c {
+        consume(h)
+    }
+    print "end andChain ${c}"
+}
+
+fn movedClosure() {
+    let h = H { id: 13 }
+    let f = move () => h.id
+    print "got ${takes(f)}"
+    print "end movedClosure"
+}
+
+matchConsumed()
+ifIsConsumed()
+ifIsTemporary()
+matchKept()
+guardedArm(0)
+guardedArm(9)
+ifLetConsumed()
+recordFields()
+wildcardKeepsRest()
+andChain(true)
+andChain(false)
+movedClosure()
+recordCopyRead()
+recordGuarded(0)
+recordGuarded(100)
+-- stdout --
+consume 1
+drop 1
+end matchConsumed
+consume 2
+drop 2
+end ifIsConsumed
+body 3
+drop 3
+end ifIsTemporary
+arm 4
+drop 4
+end matchKept
+consume 5
+drop 5
+end guardedArm 0
+guard failed
+end guardedArm 9
+drop 5
+consume 7
+drop 7
+end ifLetConsumed
+consume 9
+drop 9
+left 8
+drop 8
+end recordFields
+consume 10
+drop 10
+end wildcardKeepsRest
+drop 11
+consume 12
+drop 12
+end andChain true
+end andChain false
+drop 12
+drop 13
+got 13
+end movedClosure
+consume 14
+drop 14
+consume 15
+drop 15
+consume 16
+drop 16
+end recordCopyRead 5 6 7
+consume 17
+consume 19
+drop 19
+left 18
+drop 18
+end recordGuarded 0 8
+drop 17
+guard failed
+pair guard failed
+end recordGuarded 100 8
+drop 19
+drop 18
+drop 17

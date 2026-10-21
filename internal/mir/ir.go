@@ -110,6 +110,10 @@ type Inst struct {
 	Fixed bool
 	// NoTrap marks a checked op or panic that cannot fire: a loop counter step or fixed-array index under its guard, a match's fall-through.
 	NoTrap bool
+	// Rest marks the OpMove and OpDrop that empty a scrutinee a pattern moved a resource out of.
+	Rest bool
+	// FullEnd numbers the full expression this instruction ends (see Local.FullExpr).
+	FullEnd int32
 	// Prim/Prov are zero unless Ent is a registry-covered std call.
 	Prim  PrimitiveId
 	Prov  ProviderOpId
@@ -135,19 +139,6 @@ type Term struct {
 type Block struct {
 	Insts []Inst
 	Term  Term
-}
-
-type Local struct {
-	Name string
-	Type sem.TypeID
-	Ent  sem.EntityID
-	Cell bool
-	// Borrowed marks a `self` / `mut self` receiver: an alias of the
-	// caller's value that the method neither owns nor may move out.
-	Borrowed bool
-	// Cross marks a local PlanDirect made for one crossing: the crossing
-	// owns what it holds, the ownership plan having run before it existed.
-	Cross bool
 }
 
 // Func is one lowered body: a user function, a closure, an implicit main

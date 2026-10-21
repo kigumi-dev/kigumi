@@ -61,10 +61,13 @@ func (p *Program) build(hf *hir.Func) *Func {
 		f.ImplicitOk = true
 		b.returnValue(b.unit(hf.Main.Node))
 	} else {
+		var v LocalID
 		if hf.Body.Kind == hir.BlockExpr {
 			b.body = hf.Body.Block
+			v = b.detach(b.expr(hf.Body))
+		} else {
+			v = b.fullValue(func() LocalID { return b.detach(b.expr(hf.Body)) })
 		}
-		v := b.detach(b.expr(hf.Body))
 		if b.body == nil {
 			b.closeTaskScope(hf.Body.Node)
 		}

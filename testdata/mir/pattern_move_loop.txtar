@@ -72,7 +72,7 @@ fn lib.tupleInLoop(%t: (Handle, Handle)) -> Void {
     jump b3
   b6:
     %t10 = field 0(%t)
-    %t11 = field 1(%t)
+    %t11 = fieldmove 1(%t)
     %b = copy(%t11)
     %t13 = move(%b)
     %t14 = call lib.Handle.close(%t13)
@@ -114,7 +114,7 @@ fn lib.recordInLoop(%p: Pack) -> Void {
     drop(%i)
     jump b3
   b6:
-    %t10 = field 1(%p)
+    %t10 = fieldmove 1(%p)
     %other = copy(%t10)
     %t12 = field 0(%p)
     %t13 = move(%other)

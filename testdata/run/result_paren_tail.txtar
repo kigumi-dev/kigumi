@@ -46,8 +46,8 @@ show("branch else", parenBranch(false))
 show("return", parenReturn())
 show("nested", nested())
 -- stdout --
-drop 1
 plain 1
+drop 1
 tail: got 2
 drop 2
 branch first: got 3

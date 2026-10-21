@@ -56,7 +56,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		}
 		return b.emit(Inst{Op: OpUnary, Dst: b.temp(t), Str: e.Name, Args: []LocalID{v}, Node: n})
 	case hir.Binary:
-		l := b.expr(e.Args[0])
+		l := b.snapshot(b.expr(e.Args[0]), e.Args[0], e.Args[0].Node, e.Args[1])
 		r := b.expr(e.Args[1])
 		if e.Ent != 0 {
 			return b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: e.Ent, Args: []LocalID{l, r}, Node: n})
@@ -116,14 +116,14 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 			}
 			b.returnUnwinding(v, nil, n)
 		} else {
-			v = b.exprMoved(e.Args[0])
+			v = b.fullValue(func() LocalID { return b.exprMoved(e.Args[0]) })
 			b.returnUnwinding(v, e.Args[0], n)
 		}
 		return b.never(n)
 	case hir.Fail:
 		// The error leaves every scope, so a named local travels in a
 		// temporary before the scopes drop it.
-		v := b.exprMoved(e.Args[0])
+		v := b.fullValue(func() LocalID { return b.exprMoved(e.Args[0]) })
 		b.failWith(n, v)
 		return b.never(n)
 	case hir.Break, hir.Continue:
@@ -161,14 +161,14 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 	case hir.Interp:
 		// The result temporary is numbered before the pieces it interpolates.
 		in := Inst{Op: OpInterp, Dst: b.temp(sem.TyString), Strs: e.Strs, Node: n}
-		for _, a := range e.Args {
-			in.Args = append(in.Args, b.expr(a))
+		for i, a := range e.Args {
+			in.Args = append(in.Args, b.snapshot(b.expr(a), a, a.Node, e.Args[i+1:]...))
 		}
 		return b.emit(in)
 	case hir.Shell:
 		in := Inst{Op: OpShell, Dst: b.temp(t), Strs: e.Strs, Node: n}
-		for _, a := range e.Args {
-			in.Args = append(in.Args, b.expr(a))
+		for i, a := range e.Args {
+			in.Args = append(in.Args, b.snapshot(b.expr(a), a, a.Node, e.Args[i+1:]...))
 		}
 		return b.emit(in)
 	case hir.Comptime:

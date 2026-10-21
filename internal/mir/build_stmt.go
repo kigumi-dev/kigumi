@@ -6,6 +6,15 @@ import (
 )
 
 func (b *builder) stmt(s *hir.Stmt) {
+	if s.Kind == hir.DeferStmt {
+		sc := b.scopes[len(b.scopes)-1]
+		sc.defers = append(sc.defers, s)
+		return
+	}
+	b.fullExpr(func() { b.fullStmt(s) })
+}
+
+func (b *builder) fullStmt(s *hir.Stmt) {
 	switch s.Kind {
 	case hir.LetStmt:
 		b.letStmt(s)
@@ -23,9 +32,6 @@ func (b *builder) stmt(s *hir.Stmt) {
 		}
 		v := b.expr(s.Expr)
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: s.Node})
-	case hir.DeferStmt:
-		sc := b.scopes[len(b.scopes)-1]
-		sc.defers = append(sc.defers, s)
 	case hir.EvalStmt:
 		b.expr(s.Expr)
 	}
@@ -140,8 +146,11 @@ func (b *builder) discard(s *hir.Stmt) {
 
 func (b *builder) assignStmt(s *hir.Stmt) {
 	p := b.resolvePlace(s.Place)
+	if s.Place.Kind == hir.PlaceIndex {
+		p.idx = b.snapshot(p.idx, s.Place.Idx, s.Place.Idx.Node, s.Expr)
+	}
 	if s.Compound {
-		cur := b.loadPlace(p)
+		cur := b.snapshot(b.loadPlace(p), nil, s.Place.Node, s.Expr)
 		r := b.expr(s.Expr)
 		var out LocalID
 		if s.OpEnt != 0 {

@@ -1,0 +1,47 @@
+-- src --
+fn plain(k: Int, m: Int) -> Int {
+    k + m
+}
+
+fn written() -> Int {
+    let mut k = 1
+    k + { k = 5; 1 }
+}
+
+let a = plain(1, 2)
+print "${a} ${written()}"
+-- expect --
+fn main.plain(%k: Int, %m: Int) -> Int {
+  b0:
+    %t2 = bin +(%k, %m)
+    drop(%m)
+    drop(%k)
+    return %t2
+}
+fn main.written() -> Int {
+  b0:
+    %t0 = const 1: Int
+    %k = copy(%t0)
+    %t2 = share copy(%k)
+    %t3 = const 5: Int
+    drop(%k)
+    %k = copy(%t3)
+    %t4 = const 1: Int
+    %t5 = bin +(%t2, %t4)
+    drop(%k)
+    return %t5
+}
+fn main() -> Void! {
+  b0:
+    %t0 = const 1: Int
+    %t1 = const 2: Int
+    %t2 = call main.plain(%t0, %t1)
+    %a = copy(%t2)
+    %t5 = call main.written
+    %t4 = interp "\x00 \x00"(%a, %t5)
+    %t6 = builtin print(%t4)
+    drop(%t6)
+    drop(%a)
+    %t7 = unit
+    return %t7
+}

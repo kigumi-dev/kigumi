@@ -58,6 +58,7 @@ fn main.main() -> Void! {
     %t7 = interp ""(%t8)
     %t9 = builtin print(%t7)
     %t6 = copy(%t9)
+    drop(%v)
     jump b5
   b4:
     %t10 = unit
@@ -83,6 +84,7 @@ fn main.main() -> Void! {
     %t19 = interp ""(%t20)
     %t21 = builtin print(%t19)
     %t18 = copy(%t21)
+    drop(%v)
     jump b10
   b9:
     %t22 = unit

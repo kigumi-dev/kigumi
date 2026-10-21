@@ -112,7 +112,11 @@ func evalOrder(n int, order []int, eval func(i int) LocalID) []LocalID {
 func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
 	full := b.evalArgs(1, len(e.Args), e.EvalOrder, func(i int) LocalID {
 		if i == 0 {
-			return b.receiver(e.Args[0], e.Ent, !e.Async, e.Witness == 0 && !b.r.ReplacesSelf(e.Ent))
+			recv := b.receiver(e.Args[0], e.Ent, !e.Async, e.Witness == 0 && !b.r.ReplacesSelf(e.Ent))
+			if later := laterArgs(e.Args, e.EvalOrder, 0); b.r.Fn(e.Ent).Recv == sem.RecvSelf && !mutBorrowsReceiver(e.Args[0], later) {
+				recv = b.snapshot(recv, e.Args[0], e.Args[0].Node, later...)
+			}
+			return recv
 		}
 		return b.argValue(e.Args[i], i-1, e.Ent, true, !e.Async)
 	})

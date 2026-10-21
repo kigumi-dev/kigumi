@@ -139,7 +139,7 @@ func (p *Program) transferOwn(f *Func, bid BlockID, entry []ownVerify, tracked [
 			if st[a] == ovNone && check {
 				return broken(i, "%s reads %%%s after it was consumed", in.Op, f.Locals[a].Name)
 			}
-			if in.Op == OpMove || p.consumesArg(in, k) {
+			if !in.Rest && (in.Op == OpMove || p.consumesArg(in, k)) {
 				st[a] = ovNone
 			}
 		}

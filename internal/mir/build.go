@@ -62,6 +62,7 @@ type builder struct {
 	unowned map[LocalID]bool
 	body    *hir.Block
 	ghosts  []pendingGhost
+	full    fullState
 }
 
 // scope tracks the owned locals and deferred statements of one block.
@@ -137,7 +138,8 @@ func (b *builder) term(t Term) {
 func (b *builder) jump(to BlockID) { b.term(Term{Op: TermJump, Targets: []BlockID{to}}) }
 
 func (b *builder) temp(t sem.TypeID) LocalID {
-	b.fn.Locals = append(b.fn.Locals, Local{Name: fmt.Sprintf("t%d", len(b.fn.Locals)), Type: t})
+	b.fn.Locals = append(b.fn.Locals, Local{Name: fmt.Sprintf("t%d", len(b.fn.Locals)), Type: t, FullExpr: b.full.id})
+	b.full.note(b.r, t)
 	return LocalID(len(b.fn.Locals) - 1)
 }
 

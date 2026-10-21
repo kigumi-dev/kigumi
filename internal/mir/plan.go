@@ -95,6 +95,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 		}
 	}
 	plan := map[Point][]LocalID{}
+	late := lateReleases{}
 	var live *liveCtx
 	for t, u := range last {
 		if noRelease[t] {
@@ -110,6 +111,10 @@ func (p *Program) planFunc(f *Func) *Plan {
 			continue
 		}
 		if !crossUse[t] && defs[t] == 1 && defBlock[t] == u.block {
+			if p.releasedLate(f, t, u) {
+				late.add(f, t, u)
+				continue
+			}
 			plan[Point{u.block, u.inst}] = append(plan[Point{u.block, u.inst}], t)
 			continue
 		}
@@ -125,6 +130,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 	for _, ts := range plan {
 		slices.Sort(ts)
 	}
+	late.into(plan)
 	return &Plan{Releases: plan, Splits: split, Defs: defs, Materialize: materialize}
 }
 

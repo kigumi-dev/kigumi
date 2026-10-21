@@ -13,6 +13,9 @@ func (c *checker) isSharedEnt(ent EntityID) bool {
 // so the declared type comes back, not `&T`.
 func (c *checker) synthMove(n syntax.NodeID) TypeID {
 	target := c.t.Unparen(c.t.View(n).AsMove().Operand().ID())
+	if c.t.Kind(target) == syntax.Lambda {
+		return c.synthMovedLambda(target)
+	}
 	isField := c.t.Kind(target) == syntax.MemberExpr
 	var baseType TypeID
 	if isField {
@@ -73,4 +76,20 @@ func (c *checker) fieldRoot(field syntax.NodeID) EntityID {
 			return 0
 		}
 	}
+}
+
+// synthMovedLambda: `move` before a closure literal takes the move-only captures it only reads
+// instead of sharing them, so whoever owns the closure drops them.
+func (c *checker) synthMovedLambda(n syntax.NodeID) TypeID {
+	t := c.synth(n)
+	if c.r.Types.Kind(t) != KClosure {
+		return t
+	}
+	info := c.r.closure(c.r.Types.Node(t).Ent)
+	for i := range info.Captures {
+		if info.Captures[i].Mode == capRead {
+			info.Captures[i].Mode = capMove
+		}
+	}
+	return t
 }

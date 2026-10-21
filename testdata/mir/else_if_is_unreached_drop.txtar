@@ -41,6 +41,7 @@ fn main.pick(%c: Bool, %y: String?) -> Int {
     jump b3
   b9:
     %t9 = unit
+    drop(%b)
     jump b8
   b10:
     %t11 = unit

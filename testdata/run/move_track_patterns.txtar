@@ -341,8 +341,8 @@ guardReadsBinding(Some(mkr(5)))
 close 1
 drop 1
 kept 2
-end matchThenRefill
 drop 2
+end matchThenRefill
 close 10
 drop 10
 try 10
@@ -356,10 +356,10 @@ drop 3
 end ifLetThenReinit
 drop 4
 close 6
-left 5
-end recordPattern
 drop 6
+left 5
 drop 5
+end recordPattern
 peek 7
 peek again 7
 close 7
@@ -442,8 +442,8 @@ and skipped
 end leadingAndIs false
 drop 101
 close 102
-end leadingAndIsSome true
 drop 102
+end leadingAndIsSome true
 end leadingAndIsSome false
 drop 103
 close 104

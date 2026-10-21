@@ -1,0 +1,100 @@
+-- src --
+import {Map, empty} from std/map
+
+type R = resource {
+    pub id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn mk(n: Int) -> R {
+    R { id: n }
+}
+
+fn eat(a: R, b: R) -> Int {
+    print "eat ${a.id} ${b.id}"
+    a.id + b.id
+}
+
+fn tuples() {
+    let t = (mk(1), mk(2))
+    print "tuple built"
+}
+
+fn arrays() {
+    let xs = Array.of(mk(3), mk(4), mk(5))
+    print "array ${xs.len()}"
+}
+
+fn breakLoop() {
+    let mut xs = Array.empty[R]()
+    xs.push(mk(6))
+    xs.push(mk(7))
+    xs.push(mk(8))
+    for x in xs {
+        print "visit ${x.id}"
+        if x.id == 6 {
+            break
+        }
+    }
+    print "after break"
+}
+
+fn maps() {
+    let mut m = empty[String, R]()
+    m.set("a", mk(9))
+    m.set("b", mk(10))
+    print "map ${m.len()}"
+}
+
+fn byValue() {
+    print "sum ${eat(mk(11), mk(12))}"
+    print "after eat"
+}
+
+fn discard() {
+    let _ = mk(13)
+    print "after let _"
+}
+
+tuples()
+print "-"
+arrays()
+print "-"
+breakLoop()
+print "-"
+maps()
+print "-"
+byValue()
+print "-"
+discard()
+-- stdout --
+tuple built
+drop 2
+drop 1
+-
+array 3
+drop 5
+drop 4
+drop 3
+-
+visit 6
+drop 6
+drop 8
+drop 7
+after break
+-
+map 2
+drop 10
+drop 9
+-
+eat 11 12
+drop 12
+drop 11
+sum 23
+after eat
+-
+drop 13
+after let _

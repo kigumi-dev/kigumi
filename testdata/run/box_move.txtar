@@ -68,10 +68,10 @@ drop res 1
 took 1
 inner 2
 first 3
+drop res 3
 left 1
 counter 3
 again 20
 end
-drop res 3
 drop res 4
 drop res 2

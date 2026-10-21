@@ -12,7 +12,7 @@ opcode-arity "main.Point.bump" b0/0 cellget | i11
 opcode-any "main.main.closure2" b0/4 release | i44
 `},
 	{"iface_static", "calls", `
-opcode-any "main.Pair.show" b0/3 release | i44
+opcode-any "main.Pair.show" b0/10 release | i44
 `},
 	{"direct_aggregate", "stdop", `
 redirect-call "main.firstPoint" b0/1 call | efn:"std/json||put"
@@ -41,7 +41,7 @@ entity "main.main.closure3" b2/2 alias | i0
 term-operand "main.lendsCapture" b0/1 share | l"t1"
 `},
 	{"iface_static", "refs", `
-duplicate "main.Pair.show" b0/3 release
+duplicate "main.Pair.show" b0/10 release
 `},
 	{"direct_adt", "structure", `
 term-kind "std/math.clamp#(u32,u32,u32)" b1/1 share | i0

@@ -666,6 +666,17 @@
       ]
     },
     {
+      "id": "mir/eval_order_snapshot",
+      "kind": "mir",
+      "path": "testdata/mir/eval_order_snapshot.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/fallback_diverge",
       "kind": "mir",
       "path": "testdata/mir/fallback_diverge.txtar",
@@ -6487,6 +6498,23 @@
       ]
     },
     {
+      "id": "run/drop_moves_with_value",
+      "kind": "run",
+      "path": "testdata/run/drop_moves_with_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/drop_order_nested_chain",
       "kind": "run",
       "path": "testdata/run/drop_order_nested_chain.txtar",
@@ -7023,6 +7051,23 @@
       "id": "run/escaping_stash_variadic",
       "kind": "run",
       "path": "testdata/run/escaping_stash_variadic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/eval_order_operands",
+      "kind": "run",
+      "path": "testdata/run/eval_order_operands.txtar",
       "mode": [
         "vm",
         "native"
@@ -13601,6 +13646,40 @@
       "id": "run/subtle_constant_time",
       "kind": "run",
       "path": "testdata/run/subtle_constant_time.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/temp_drop_full_expr",
+      "kind": "run",
+      "path": "testdata/run/temp_drop_full_expr.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/temp_drop_unspecified",
+      "kind": "run",
+      "path": "testdata/run/temp_drop_unspecified.txtar",
       "mode": [
         "vm",
         "native"

@@ -1,0 +1,121 @@
+-- src --
+type Box2 = {
+    pub v Int
+}
+
+fn Box2.plus(self, n: Int) -> Int {
+    self.v * 10 + n
+}
+
+type P2 = {
+    pub a Int
+    pub b Int
+}
+
+fn add3(a: Int, b: Int) -> Int {
+    a * 10 + b
+}
+
+fn same(x: Int) -> Int {
+    x
+}
+
+type Named = {
+    pub mut name String
+}
+
+fn Named.cat(self, x: String) -> String {
+    "${self.name}${x}"
+}
+
+type Holder = {
+    pub mut xs Array[Int]
+}
+
+fn sameFirst[T: Copy + Eq](x: T, y: T) -> Bool {
+    let mut k = x
+    k == { k = y; x }
+}
+
+fn pair[T: Copy](x: T, y: T, f: fn(T, T) -> Int) -> Int {
+    let mut k = x
+    f(k, { k = y; x })
+}
+
+fn viaRef(r: &mut Int) {
+    let sum = r + { r = 5; 1 }
+    r = 1
+    let text = "${r}${{ r = 5; 7 }}${r}"
+    r = 1
+    let eq = r == { r = 5; 1 }
+    r = 1
+    let viaIf = r + if r > 0 { r = 5; 1 } else { 2 }
+    r = 1
+    r = r + { r = 5; 1 }
+    print "ref ${sum} ${text} ${eq} ${viaIf} ${r}"
+}
+
+let mut k = 1
+let r1 = k + { k = 5; 1 }
+let mut u = 1
+u += { u = 5; 1 }
+let mut s = "a"
+let r3 = "${s}${{ s = "b"; s }}${s}"
+print "binary ${r1} compound ${u} interp ${r3}"
+let mut w = 1
+let eq = w == { w = 2; 1 }
+let mut a = Array.of(1, 2, 3)
+let mut i: usize = 0
+a[i] = { i = 2; 100 }
+print "compare ${eq} index ${a[0]} ${a[1]} ${a[2]}"
+let mut k2 = 3
+let viaIf = k2 - (if k2 > 0 { k2 = 7; 1 } else { 2 })
+let mut k3 = 3
+let viaMatch = k3 * match k3 {
+    3 -> {
+        k3 = 10
+        2
+    }
+    _ -> 1
+}
+let mut k4 = 1
+let shifted = k4 << { k4 = 3; 1 }
+print "if ${viaIf} match ${viaMatch} shift ${shifted}"
+let mut bx = Box2 { v: 1 }
+let recv = bx.plus({ bx = Box2 { v: 9 }; 2 })
+let mut k6 = 1
+let arg = add3(k6, { k6 = 5; 2 })
+let mut k7 = 1
+let rec = P2 { a: k7, b: { k7 = 4; 3 } }
+let mut b2 = Array.of(1, 2, 3)
+let mut j: usize = 0
+b2[j] += { j = 2; 50 }
+print "receiver ${recv} arg ${arg} record ${rec.a} compound index ${b2[0]} ${b2[2]}"
+let mut k8 = 1
+let viaCall = k8 + same(k8)
+let mut f = 2
+let fieldRead = bx.v + { bx = Box2 { v: 1 }; f }
+print "call ${viaCall} field ${fieldRead} after ${k} ${u} ${s} ${w} ${i} ${k2} ${k3} ${k4} ${bx.v}"
+let mut ra = 1
+viaRef(&mut ra)
+let mut arr = Array.of(1, 2, 3)
+let pushed = arr == { arr.push(4); Array.of(1, 2, 3) }
+let mut nm = Named { name: "n" }
+let catted = nm.cat({ nm.name = "m"; "x" })
+print "in place ${pushed} ${arr.len()} ${catted} ${nm.name} ${ra}"
+let mut hd = Holder { xs: Array.of(1) }
+let fieldPushed = hd.xs == { hd.xs.push(2); Array.of(1) }
+let recvPushed = hd.xs.contains({ hd.xs.push(3); 3 })
+let lens = "${hd.xs.len()}${{ hd.xs.push(4); 0 }}${hd.xs.len()}"
+print "field place ${fieldPushed} ${recvPushed} ${lens}"
+print "generic ${sameFirst(1, 10)} ${pair(1, 10, (a, b) => a * 100 + b)}"
+-- stdout --
+binary 2 compound 2 interp abb
+compare true index 100 2 3
+if 2 match 6 shift 2
+receiver 12 arg 12 record 1 compound index 51 3
+call 2 field 11 after 5 2 b 2 2 7 10 3 1
+ref 2 175 true 2 2
+in place true 4 nx m 2
+field place true false 304
+generic true 101

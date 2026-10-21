@@ -191,5 +191,7 @@ fn main.isTest(%x: (Int, Int?)) -> Int {
     return %t14
   b8:
     %t12 = unit
+    drop(%r)
+    drop(%a)
     jump b7
 }

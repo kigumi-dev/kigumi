@@ -381,6 +381,7 @@ fn lib.isTakeAndClear(%s: Slot) -> Void {
     setfield 0(%b, %t17)
     %t18 = unit
     %t14 = copy(%t18)
+    nop
     jump b9
   b8:
     nop

@@ -7,7 +7,7 @@ import (
 )
 
 func (b *builder) matchExpr(e *hir.Expr) LocalID {
-	scrutinee := b.expr(e.Args[0])
+	scrutinee := b.fullValue(func() LocalID { return b.expr(e.Args[0]) })
 	// The scrutinee's scope opens after it is assigned, so every exit of
 	// the arms (including early ones) drops a live temporary.
 	b.pushScope()
@@ -22,7 +22,7 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 		b.pushScope()
 		moves := b.bindGuarded(arm.Pat, scrutinee, arm.Guard != nil)
 		if arm.Guard != nil {
-			gv := b.expr(arm.Guard)
+			gv := b.fullValue(func() LocalID { return b.expr(arm.Guard) })
 			run, fail := b.newBlockAt(), b.newBlockAt()
 			b.term(Term{Op: TermBranch, Args: []LocalID{gv}, Targets: []BlockID{run, fail}})
 			// A failed guard leaves the arm: its bindings die here too.
@@ -32,7 +32,7 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 			b.cur = run
 			b.markGuardMoves(moves)
 		}
-		b.assignValue(result, b.exprMoved(arm.Body), e.Node)
+		b.assignValue(result, b.armBody(arm.Body), e.Node)
 		b.exitScope()
 		b.jump(join)
 		b.cur = next
@@ -77,7 +77,12 @@ func (b *builder) bindPattern(p *hir.Pat, v LocalID) {
 		}
 	case hir.PatRecord:
 		for _, f := range p.Fields {
-			val := b.fieldOf(f, v)
+			var val LocalID
+			if b.takesField(p, f, v) {
+				val = b.emit(Inst{Op: OpFieldMove, Dst: b.temp(f.Type), Args: []LocalID{v}, Index: f.Index, Node: f.Node})
+			} else {
+				val = b.fieldOf(f, v)
+			}
 			if f.Sub != nil {
 				b.bindPattern(f.Sub, val)
 				continue
@@ -124,7 +129,7 @@ func (b *builder) bindLocal(id, v LocalID, n syntax.NodeID) {
 	}
 	b.emit(Inst{Op: OpCopy, Dst: id, Args: []LocalID{v}, Node: n, Share: b.shared[v], Guarded: b.guardedArm})
 	if b.guardedArm && (!b.shared[v] || b.readsCell(v)) && !b.r.IsCopy(b.fn.Locals[v].Type) {
-		b.guardMoves = append(b.guardMoves, guardMove{v, n, id})
+		b.guardMoves = append(b.guardMoves, guardMove{place: v, node: n, bind: id})
 	}
 }
 
@@ -132,6 +137,8 @@ type guardMove struct {
 	place LocalID
 	node  syntax.NodeID
 	bind  LocalID
+	// take empties the scrutinee place once the guard passed (takesScrutinee).
+	take *hir.Pat
 }
 
 func (b *builder) bindGuarded(p *hir.Pat, v LocalID, guarded bool) []guardMove {
@@ -140,42 +147,12 @@ func (b *builder) bindGuarded(p *hir.Pat, v LocalID, guarded bool) []guardMove {
 	b.guardedArm = false
 	moves := b.guardMoves
 	b.guardMoves = nil
+	if b.takesScrutinee(p, v) {
+		if !guarded {
+			b.takeScrutinee(v, p, false)
+		} else {
+			moves = append(moves, guardMove{place: v, take: p})
+		}
+	}
 	return moves
-}
-
-const guardFailed = "guard-failed"
-
-func (b *builder) releaseGuardMoves(moves []guardMove) {
-	for _, m := range moves {
-		b.emit(Inst{Op: OpNop, Args: []LocalID{m.place}, Node: m.node, Guarded: true, Str: guardFailed})
-	}
-}
-
-func (b *builder) markGuardMoves(moves []guardMove) {
-	for _, m := range moves {
-		if b.wholeLocal(m.place) {
-			// The binding holds its own reference; the passed guard empties the local it was copied from.
-			t := b.emit(Inst{Op: OpMove, Dst: b.temp(b.fn.Locals[m.place].Type), Args: []LocalID{m.place}, Node: m.node, Guarded: true})
-			b.emit(Inst{Op: OpDrop, Args: []LocalID{t}, Node: m.node})
-			continue
-		}
-		b.emit(Inst{Op: OpNop, Args: []LocalID{m.place, m.bind}, Node: m.node, Guarded: true})
-	}
-}
-
-func (b *builder) wholeLocal(v LocalID) bool {
-	l := b.fn.Locals[v]
-	return l.Ent != 0 && !l.Cell && !l.Borrowed && !b.shared[v] && !b.r.IsCopy(l.Type)
-}
-
-// readsCell is a scrutinee temporary read out of a move-only cell local; its guarded binding takes the cell's content once the guard passes.
-func (b *builder) readsCell(v LocalID) bool {
-	for _, blk := range b.fn.Blocks {
-		for _, in := range blk.Insts {
-			if in.Op == OpCellGet && in.Dst == v {
-				return trackedCell(b.p, b.fn.Locals[in.Args[0]])
-			}
-		}
-	}
-	return false
 }
