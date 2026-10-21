@@ -14,7 +14,9 @@ func (m *Machine) cellSet(c *obj, v *obj) {
 
 // release drops one reference; the machine runs the drop hook and frees
 // the children when it was the last.
-func (m *Machine) release(v *obj) {
+func (m *Machine) release(v *obj) { m.releaseAt(v, 0) }
+
+func (m *Machine) releaseAt(v *obj, d int) {
 	if v == nil {
 		return
 	}
@@ -25,7 +27,7 @@ func (m *Machine) release(v *obj) {
 		return
 	}
 	if atomic.AddInt32(&v.rc, -1) == 0 {
-		m.free(v)
+		m.freeAt(v, d)
 	}
 }
 
@@ -35,7 +37,9 @@ func (m *Machine) hostWins(lowered bool) bool {
 	return !lowered || !m.opts.NoAccel
 }
 
-func (m *Machine) free(v *obj) {
+func (m *Machine) free(v *obj) { m.freeAt(v, 0) }
+
+func (m *Machine) freeAt(v *obj, d int) {
 	switch v.k {
 	case kInt, kFloat, kChar:
 		tracked := v.live
@@ -49,8 +53,13 @@ func (m *Machine) free(v *obj) {
 		}
 		return
 	}
+	if d >= freeDepthMax {
+		m.freeDeep(v)
+		return
+	}
 	m.unchargeMemory(v)
 	var fault *Panic
+	d++
 	switch v.k {
 	case kRecord:
 		setImmortal(v)
@@ -58,25 +67,25 @@ func (m *Machine) free(v *obj) {
 		atomic.StoreInt32(&v.rc, 0)
 		for i := len(v.fields) - 1; i >= 0; i-- {
 			if !m.borrowField(v, i) {
-				fault = m.releaseChild(v.fields[i], fault)
+				fault = m.releaseChildAt(v.fields[i], fault, d)
 			}
 		}
 	case kVariant:
 		for _, p := range v.fields {
-			fault = m.releaseChild(p, fault)
+			fault = m.releaseChildAt(p, fault, d)
 		}
 	case kArray:
 		for i := len(v.fields) - 1; i >= 0; i-- {
-			fault = m.releaseChild(v.fields[i], fault)
+			fault = m.releaseChildAt(v.fields[i], fault, d)
 		}
 	case kBox, kCell:
 		if v.k != kCell || !v.b {
-			fault = m.releaseChild(v.inner, fault)
+			fault = m.releaseChildAt(v.inner, fault, d)
 		}
 	case kClosure:
-		fault = m.releaseChild(v.cenv(), fault)
+		fault = m.releaseChildAt(v.cenv(), fault, d)
 	case kOpaque:
-		m.freeOpaque(v)
+		m.freeOpaqueAt(v, d)
 	}
 	dropExtension(v)
 	// A freed object is poisoned so a later use is caught, like -DKIGUMI_RC_CHECK.

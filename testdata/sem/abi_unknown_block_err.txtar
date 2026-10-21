@@ -1,0 +1,33 @@
+-- src --
+extern(Banana) { //~ ERROR unknown ABI `Banana`
+    fn labs(x: i64) -> i64
+}
+
+export(stdcall) { //~ ERROR unknown ABI `stdcall`
+    pub fn twice(x: i32) -> i32 {
+        x * 2
+    }
+}
+
+extern(C) {
+    fn abs(x: i32) -> i32
+}
+
+fn use() -> i32 {
+    unsafe { abs(-3) }
+}
+-- expect --
+error[E928]: unknown ABI `Banana`
+ --> main/main.kg:1:8
+  |
+1 | extern(Banana) { //~ ERROR unknown ABI `Banana`
+  |        ^^^^^^
+  = help: only `C` is supported
+
+error[E928]: unknown ABI `stdcall`
+ --> main/main.kg:5:8
+  |
+5 | export(stdcall) { //~ ERROR unknown ABI `stdcall`
+  |        ^^^^^^^
+  = help: only `C` is supported
+

@@ -1,0 +1,96 @@
+-- src --
+const X: u8 = 200
+const Y = X + 100 //~ ERROR `300` does not fit `u8`
+const Z: u8 = 255
+const W = Z + 1 //~ ERROR `256` does not fit `u8`
+const NEG = -X //~ ERROR `-200` does not fit `u8`
+const BAD: u16 = X //~ ERROR expected `u16`, found `u8`
+const OK = X - 50
+const OK2: u8 = 100 + 100
+const FLIP = ~X
+
+const ONE: u8 = 1
+const S = 1 << -1 //~ ERROR `-1` does not fit `usize`
+const T = 1 >> -3 //~ ERROR `-3` does not fit `usize`
+const WIDE = ONE << 8 //~ ERROR `a shift by 8` does not fit `u8`
+const HUGE = 1 << 100000000000 //~ ERROR `a shift by 100000000000` does not fit `Int`
+const FINE = ONE << 7
+const L: Int = 8 >> 70 //~ ERROR `a shift by 70` does not fit `Int`
+const M: u32 = 5 >> 40 //~ ERROR `a shift by 40` does not fit `u32`
+const N = 8 >> 200 //~ ERROR `a shift by 200`
+const OKS: Int = 8 >> 2
+const FINE2: u16 = 1 << 12
+
+fn use() -> Int {
+    let a: u8 = OK
+    let b: u8 = FLIP
+    let c: u8 = FINE
+    a.toInt() + b.toInt() + c.toInt()
+}
+-- expect --
+error[E402]: `300` does not fit `u8`
+ --> main/main.kg:2:11
+  |
+2 | const Y = X + 100 //~ ERROR `300` does not fit `u8`
+  |           ^^^^^^^
+
+error[E402]: `256` does not fit `u8`
+ --> main/main.kg:4:11
+  |
+4 | const W = Z + 1 //~ ERROR `256` does not fit `u8`
+  |           ^^^^^
+
+error[E402]: `-200` does not fit `u8`
+ --> main/main.kg:5:13
+  |
+5 | const NEG = -X //~ ERROR `-200` does not fit `u8`
+  |             ^^
+
+error[E400]: expected `u16`, found `u8`
+ --> main/main.kg:6:18
+  |
+6 | const BAD: u16 = X //~ ERROR expected `u16`, found `u8`
+  |                  ^
+
+error[E402]: `-1` does not fit `usize`
+  --> main/main.kg:12:11
+   |
+12 | const S = 1 << -1 //~ ERROR `-1` does not fit `usize`
+   |           ^^^^^^^
+
+error[E402]: `-3` does not fit `usize`
+  --> main/main.kg:13:11
+   |
+13 | const T = 1 >> -3 //~ ERROR `-3` does not fit `usize`
+   |           ^^^^^^^
+
+error[E402]: `a shift by 8` does not fit `u8`
+  --> main/main.kg:14:14
+   |
+14 | const WIDE = ONE << 8 //~ ERROR `a shift by 8` does not fit `u8`
+   |              ^^^^^^^^
+
+error[E402]: `a shift by 100000000000` does not fit `Int`
+  --> main/main.kg:15:14
+   |
+15 | const HUGE = 1 << 100000000000 //~ ERROR `a shift by 100000000000` does not fit `Int`
+   |              ^^^^^^^^^^^^^^^^^
+
+error[E402]: `a shift by 70` does not fit `Int`
+  --> main/main.kg:17:16
+   |
+17 | const L: Int = 8 >> 70 //~ ERROR `a shift by 70` does not fit `Int`
+   |                ^^^^^^^
+
+error[E402]: `a shift by 40` does not fit `u32`
+  --> main/main.kg:18:16
+   |
+18 | const M: u32 = 5 >> 40 //~ ERROR `a shift by 40` does not fit `u32`
+   |                ^^^^^^^
+
+error[E402]: `a shift by 200` does not fit `Int`
+  --> main/main.kg:19:11
+   |
+19 | const N = 8 >> 200 //~ ERROR `a shift by 200`
+   |           ^^^^^^^^
+

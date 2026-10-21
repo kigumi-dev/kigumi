@@ -23,7 +23,7 @@ func (e *emitter) nakedFn(f *mir.Func) {
 	if info == nil {
 		return
 	}
-	name := e.symPrefix + e.r.Entity(f.Ent).Name
+	name := e.symPrefix + e.cName(f.Ent)
 	e.declareForeign(f.Ent)
 	intel := (info.Arch == "amd64" || info.Arch == "386") && !info.Options["att_syntax"]
 	lines := []string{".text", ".globl " + name}

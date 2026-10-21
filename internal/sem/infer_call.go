@@ -36,6 +36,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	c.crossRecv(n, fn, recv, recvBase)
 	c.ffiCValueCheck(n, fn, inst, recv)
 	c.ffiAddressLeaseCheck(n, fn, inst)
+	c.ffiLeaseCapture(fn, args)
 	c.errorAsCheck(n, fn, inst)
 	c.exitCodeCheck(fn, args)
 	if async {

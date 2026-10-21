@@ -1,0 +1,76 @@
+-- src --
+import ffi from std/ffi
+
+fn store(into: &mut Array[*mut i32], p: *mut i32) {
+    into.push(p)
+}
+
+fn leaks() {
+    let mut x: i32 = 7
+    let mut saved = Array.empty[*mut i32]()
+    ffi.withAddress(&mut x, (p: *mut i32) => { saved.push(p) }) //~ ERROR `withAddress`'s callback stores its leased pointer in `saved`
+    ffi.withAddress(&mut x, (p: *mut i32) => {
+        let q = p
+        saved.push(q) //~ ERROR `withAddress`'s callback stores its leased pointer in `saved`
+    })
+    ffi.withAddress(&mut x, (p: *mut i32) => { store(&mut saved, p) }) //~ ERROR `withAddress`'s callback stores its leased pointer in `saved`
+    let f = ffi.withAddress(&mut x, (p: *mut i32) => () => unsafe { ffi.readI32(ffi.toConst(p)) }) //~ ERROR `withAddress`'s callback returns `closure fn() -> i32`
+    let g = ffi.withAddressConst(&x, (p: *const i32) => (n: i32) => unsafe { ffi.readI32(p) + n }) //~ ERROR `withAddressConst`'s callback returns
+}
+
+fn fine() -> i32 {
+    let mut x: i32 = 7
+    let seen = ffi.withAddress(&mut x, (p: *mut i32) => unsafe {
+        let mut mine = Array.empty[*mut i32]()
+        mine.push(p)
+        ffi.writeI32(p, ffi.readI32(ffi.toConst(p)) + 1)
+        ffi.readI32(ffi.toConst(p))
+    })
+    seen
+}
+
+fn readsOnly() {
+    let mut x: i32 = 7
+    let mut vals = Array.empty[i32]()
+    ffi.withAddress(&mut x, (p: *mut i32) => unsafe { vals.push(ffi.readI32(ffi.toConst(p))) })
+    ffi.withAddress(&mut x, (p: *mut i32) => unsafe {
+        let v = ffi.readI32(ffi.toConst(p))
+        vals.push(v)
+    })
+}
+-- expect --
+error[E2222]: `withAddress`'s callback stores its leased pointer in `saved`, which outlives the call
+  --> main/main.kg:10:48
+   |
+10 |     ffi.withAddress(&mut x, (p: *mut i32) => { saved.push(p) }) //~ ERROR `withAddress`'s callback stores its leased pointer in `saved`
+   |                                                ^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E2222]: `withAddress`'s callback stores its leased pointer in `saved`, which outlives the call
+  --> main/main.kg:13:9
+   |
+13 |         saved.push(q) //~ ERROR `withAddress`'s callback stores its leased pointer in `saved`
+   |         ^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E2222]: `withAddress`'s callback stores its leased pointer in `saved`, which outlives the call
+  --> main/main.kg:15:48
+   |
+15 |     ffi.withAddress(&mut x, (p: *mut i32) => { store(&mut saved, p) }) //~ ERROR `withAddress`'s callback stores its leased pointer in `saved`
+   |                                                ^^^^^^^^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E1413]: `withAddress`'s callback returns `closure fn() -> i32`, which can carry the leased pointer out past the call
+  --> main/main.kg:16:13
+   |
+16 |     let f = ffi.withAddress(&mut x, (p: *mut i32) => () => unsafe { ffi.readI32(ffi.toConst(p)) }) //~ ERROR `withAddress`'s callback returns `closure fn() -> i32`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E1413]: `withAddressConst`'s callback returns `closure fn(i32) -> i32`, which can carry the leased pointer out past the call
+  --> main/main.kg:17:13
+   |
+17 |     let g = ffi.withAddressConst(&x, (p: *const i32) => (n: i32) => unsafe { ffi.readI32(p) + n }) //~ ERROR `withAddressConst`'s callback returns
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+

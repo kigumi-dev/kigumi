@@ -1,18 +1,18 @@
 -- src --
-const Big = 1 << 100000000000 //~ ERROR limited to 65536 bits
-const Neg = 1 << -1 //~ ERROR a shift count cannot be negative
+const Big = 1 << 100000000000 //~ ERROR a shift by 100000000000
+const Neg = 1 << -1 //~ ERROR `-1` does not fit `usize`
 const Fits = 1 << 100
 const Prod = 4294967296 * 4294967296
 -- expect --
-error[E2214]: constant integer arithmetic is limited to 65536 bits, and a shift count cannot be negative
+error[E402]: `a shift by 100000000000` does not fit `Int`
  --> main/main.kg:1:13
   |
-1 | const Big = 1 << 100000000000 //~ ERROR limited to 65536 bits
+1 | const Big = 1 << 100000000000 //~ ERROR a shift by 100000000000
   |             ^^^^^^^^^^^^^^^^^
 
-error[E2214]: constant integer arithmetic is limited to 65536 bits, and a shift count cannot be negative
+error[E402]: `-1` does not fit `usize`
  --> main/main.kg:2:13
   |
-2 | const Neg = 1 << -1 //~ ERROR a shift count cannot be negative
+2 | const Neg = 1 << -1 //~ ERROR `-1` does not fit `usize`
   |             ^^^^^^^
 

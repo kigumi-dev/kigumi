@@ -85,6 +85,8 @@ func (r *Result) collectAbi(f FileID, block syntax.NodeID) {
 	export := blk.Tok().Kind() != token.KwExtern
 	if abi == "interrupt" && !export {
 		r.errAt(f, abiArgs.ItemID(0), cInterruptExtern)
+	} else if abi != "C" && abi != "interrupt" {
+		r.errAt(f, abiArgs.ItemID(0), cAbiUnknown, abi)
 	}
 	noalloc, naked := false, false
 	for i, av := range abiArgs.Enumerate() {

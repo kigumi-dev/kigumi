@@ -1,7 +1,7 @@
 -- src --
 import task from std/task
 
-interface Show {
+pub interface Show {
     fn show(self) -> String
 }
 

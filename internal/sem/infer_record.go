@@ -23,6 +23,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		return TyPoison
 	}
 	ent := head.ent
+	written := len(head.args)
 	if c.r.Entities[ent].Kind == EntAlias {
 		if t := c.r.aliasType(ent); c.r.Types.Kind(t) == KNamed {
 			ent = c.r.Types.Node(t).Ent
@@ -37,6 +38,10 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 	}
 	c.info.Uses[headNode] = ent
 	info := c.r.typeDecl(ent)
+	if written > 0 && written != len(info.Params) && !c.hasLifetimeParam(info.Params) {
+		c.errAt(headNode, cTypeArgCount, e.Name, len(info.Params), plural(len(info.Params)), written)
+		head.args = nil
+	}
 	typeArgs := c.adtArgs(n, ent, head.args)
 	result := c.r.Types.Named(ent, typeArgs)
 	if want != 0 {
@@ -153,4 +158,13 @@ func joinComma(items []string) string {
 		out += s
 	}
 	return out
+}
+
+func (c *checker) hasLifetimeParam(params []EntityID) bool {
+	for _, p := range params {
+		if c.r.typeParam(p).IsLifetime {
+			return true
+		}
+	}
+	return false
 }

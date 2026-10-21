@@ -1,0 +1,51 @@
+-- src --
+import {Shared, Weak} from std/alloc
+
+type WNode = {
+    pub id Int
+    pub mut parent Weak[WNode]?
+    pub mut kid Shared[WNode]?
+}
+
+fn node(id: Int) -> Shared[WNode] {
+    Shared.new(WNode { id: id, parent: None, kid: None })
+}
+
+fn link(p: &Shared[WNode], c: &Shared[WNode]) {
+    p.withMut((n) => { n.kid = Some(c.clone()) })
+    c.withMut((n) => { n.parent = Some(p.downgrade()) })
+}
+
+fn parentGone() -> Weak[WNode] {
+    let p = node(1)
+    let c = node(2)
+    link(&p, &c)
+    c.downgrade()
+}
+
+fn release(s: Shared[WNode]) {}
+
+fn childFirst() {
+    let p = node(3)
+    let c = node(4)
+    link(&p, &c)
+    let w = p.downgrade()
+    let wc = c.downgrade()
+    release(c)
+    print "child released ${wc.upgrade() is Some(_)}"
+    release(p)
+    print "parent released ${w.upgrade() is None} ${wc.upgrade() is None}"
+}
+
+let orphan = parentGone()
+print "parent gone ${orphan.upgrade() is None}"
+childFirst()
+let p = node(8)
+let c = node(9)
+link(&p, &c)
+print "end"
+-- stdout --
+parent gone true
+child released true
+parent released true true
+end

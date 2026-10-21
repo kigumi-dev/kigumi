@@ -1,0 +1,57 @@
+-- src --
+import ffi from std/ffi
+
+type Holder = { pub mut ps Array[*mut i32] }
+
+fn paths() {
+    let mut x: i32 = 7
+    let mut saved = Array.empty[*mut i32]()
+    let mut h = Holder { ps: Array.empty[*mut i32]() }
+    ffi.withAddress(&mut x, (p: *mut i32) => { h.ps.push(p) }) //~ ERROR stores its leased pointer in `h`
+    ffi.withAddress(&mut x, (p: *mut i32) => {
+        let w = Some(p)
+        match w {
+            Some(q) -> saved.push(q), //~ ERROR stores its leased pointer in `saved`
+            None -> {}
+        }
+    })
+    ffi.withAddress(&mut x, (p: *mut i32) => {
+        if let Some(q) = Some(p) {
+            saved.push(q) //~ ERROR stores its leased pointer in `saved`
+        }
+    })
+    ffi.withAddress(&mut x, (p: *mut i32) => {
+        let mut tmp = Array.empty[*mut i32]()
+        tmp.push(p)
+        saved.push(tmp[0]) //~ ERROR stores its leased pointer in `saved`
+    })
+}
+-- expect --
+error[E2222]: `withAddress`'s callback stores its leased pointer in `h`, which outlives the call
+ --> main/main.kg:9:48
+  |
+9 |     ffi.withAddress(&mut x, (p: *mut i32) => { h.ps.push(p) }) //~ ERROR stores its leased pointer in `h`
+  |                                                ^^^^^^^^^^^
+  = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E2222]: `withAddress`'s callback stores its leased pointer in `saved`, which outlives the call
+  --> main/main.kg:13:24
+   |
+13 |             Some(q) -> saved.push(q), //~ ERROR stores its leased pointer in `saved`
+   |                        ^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E2222]: `withAddress`'s callback stores its leased pointer in `saved`, which outlives the call
+  --> main/main.kg:19:13
+   |
+19 |             saved.push(q) //~ ERROR stores its leased pointer in `saved`
+   |             ^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+
+error[E2222]: `withAddress`'s callback stores its leased pointer in `saved`, which outlives the call
+  --> main/main.kg:25:9
+   |
+25 |         saved.push(tmp[0]) //~ ERROR stores its leased pointer in `saved`
+   |         ^^^^^^^^^^^^^^^^
+   = help: keep the pointer inside the callback, or use a retained carrier (`ffi.Pin`) for data that must outlive this call
+

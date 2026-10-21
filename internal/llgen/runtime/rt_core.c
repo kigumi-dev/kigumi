@@ -2824,7 +2824,7 @@ static val poll_value(val v) {
 // static borrow checker does not track.
 typedef struct sctrl {
     val cell, shared;
-    int weak, alive, borrow;
+    int weak, alive, borrow, draining;
 } sctrl;
 #ifdef KG_CATCH
 static void unwind_borrow_release(kg_unwind* u) {
@@ -2849,7 +2849,7 @@ static void free_opaque(val v) {
     if (!strcmp(kind, "AllocatorHandle")) arena_close((arena*)d);
     else if (!strcmp(kind, "Weak")) {
         sctrl* c = d;
-        if (--c->weak == 0 && !c->alive) free(c);
+        if (--c->weak == 0 && !c->alive && !c->draining) free(c);
     } else if (!strcmp(kind, "Future")) {
         kgframe* f = (kgframe*)d;
         frame_abandon(v);
@@ -3015,6 +3015,7 @@ static int drain_close(dframe* fr) {
     int raise = 0;
     if (fr->opaque == OPAQUE_SHARED) {
         sctrl* c = fr->v->u.op.data;
+        c->draining = 0;
         if (c->weak == 0) free(c);
     }
     free_storage(fr->v);
@@ -3076,6 +3077,7 @@ static void drain_open(dstack* st, val v, int64_t pend) {
         fr.opaque = (unsigned char)opaque_class(v);
         if (fr.opaque == OPAQUE_SHARED) {
             ((sctrl*)v->u.op.data)->alive = 0;
+            ((sctrl*)v->u.op.data)->draining = 1;
         } else if (fr.opaque == OPAQUE_SLOT) {
             if (!strcmp(v->u.op.kind, "AllocGuard")) g_alloc_sp--;
         } else {

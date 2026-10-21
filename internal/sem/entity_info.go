@@ -142,8 +142,12 @@ const (
 
 // constValue holds a compile-time value; exactly one field is set per Kind.
 type constValue struct {
-	Kind  constKind
-	Int   *big.Int
+	Kind constKind
+	Int  *big.Int
+	// Typ is the fixed-width integer type a typed const carries through const expressions; 0 for an untyped value.
+	Typ TypeID
+	// Shift is the widest untyped shift count in the expression; a target type must be wider than it.
+	Shift int
 	Float *big.Float
 	Str   string
 	Bool  bool

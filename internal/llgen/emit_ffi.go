@@ -58,7 +58,7 @@ func (e *emitter) exportWrapper(f *mir.Func) string {
 		params = append(params, fmt.Sprintf("%s %%a%d", e.cType(pt), i))
 	}
 	ret := e.cType(sig.Elem)
-	fmt.Fprintf(&sb, "define %s @%s(%s) {\nentry:\n", ret, e.r.Entity(f.Ent).Name, strings.Join(params, ", "))
+	fmt.Fprintf(&sb, "define %s @%s(%s) {\nentry:\n", ret, e.cName(f.Ent), strings.Join(params, ", "))
 	for i, pt := range sig.Args {
 		// rt_unit() is immortal, so it stands in here: a trivial export(C) fn
 		// can end up as a signal handler, where malloc/free must not reenter.

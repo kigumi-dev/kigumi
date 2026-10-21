@@ -37,7 +37,7 @@ func (e *emitter) cCall(sb *strings.Builder, callee string, sig sem.TypeID, args
 }
 
 func (e *emitter) declareForeign(ent sem.EntityID) string {
-	name := e.r.FnLinkNameOf(ent)
+	name := e.cName(ent)
 	sn := e.r.Types.Node(e.r.Fn(ent).Sig)
 	var params []string
 	for _, pt := range sn.Args {
@@ -57,7 +57,7 @@ func (e *emitter) cFnPtr(sb *strings.Builder, ent sem.EntityID) string {
 }
 
 func (e *emitter) cSymbol(ent sem.EntityID) string {
-	name := e.r.Entity(ent).Name
+	name := e.cName(ent)
 	switch {
 	case e.r.Fn(ent).Abi != "", e.r.Fn(ent).Naked:
 		return e.declareForeign(ent)
@@ -89,3 +89,5 @@ func (e *emitter) dlCall(sb *strings.Builder, f *mir.Func, in mir.Inst, args []s
 	e.irb(sb).Call(rtRelease, vptr(fp))
 	return res
 }
+
+func (e *emitter) cName(ent sem.EntityID) string { return e.r.FnLinkNameOf(ent) }

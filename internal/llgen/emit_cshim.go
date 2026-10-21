@@ -123,7 +123,7 @@ func (e *emitter) shimFn(shim string, sig sem.TypeID, callee string, viaPtr bool
 }
 
 func (e *emitter) byvalShim(ent sem.EntityID) string {
-	name := e.r.FnLinkNameOf(ent)
+	name := e.cName(ent)
 	shim := "kg_byval_" + name
 	if _, done := e.shim.sigs[shim]; done {
 		return shim

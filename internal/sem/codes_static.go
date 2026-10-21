@@ -15,7 +15,7 @@ var (
 	cStaticExternAbiType  = defineCode("E1201", "extern-static-abi-type", "`{type}` is not a C ABI-safe type for an `extern`/`export` static")
 	cStaticExternWrite    = defineCode("E1203", "extern-static-immutable-write", "`{name}` is declared `extern(C) static` without `mut`; the binding contract says the external definition never changes; declare it `static mut` if the foreign definition can change")
 	cLinkNameBadTarget    = defineCode("E1204", "link-name-bad-target", "`@linkName` is only allowed on a function or static inside an `extern`/`export` block")
-	cLinkNameBadArg       = defineCode("E1205", "link-name-bad-arg", "`@linkName` takes exactly one nonempty string literal with no embedded NUL")
+	cLinkNameBadArg       = defineCode("E1205", "link-name-bad-arg", "`@linkName` takes exactly one nonempty string literal made of letters, digits, `_`, `.` and `$`")
 	cSectionBadTarget     = defineCode("E1206", "section-bad-target", "`@section` is only allowed on a Kigumi-owned function or static definition, not an `extern` declaration")
 	cSectionBadArg        = defineCode("E1207", "section-bad-arg", "`@section` takes exactly one nonempty string literal")
 	cAttrDuplicate        = defineCode("E1208", "attr-duplicate", "`@{name}` cannot be given twice on the same declaration")

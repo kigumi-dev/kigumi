@@ -10,7 +10,7 @@ import (
 // exportShim defines the C symbol of an export(C) function whose records
 // move by value, forwarding to kg_export_<name> (exportByval).
 func (e *emitter) exportShim(f *mir.Func) {
-	name := e.r.Entity(f.Ent).Name
+	name := e.cName(f.Ent)
 	sn := e.r.Types.Node(e.r.Fn(f.Ent).Sig)
 	ret := e.cLang(sn.Elem)
 	outRet := e.isCRecord(sn.Elem)
@@ -44,7 +44,7 @@ func (e *emitter) exportShim(f *mir.Func) {
 
 // exportInterruptWrapper is export(interrupt)'s non-naked wrapper; sem (decl_interrupt.go) already forces Void-in, Void-out.
 func (e *emitter) exportInterruptWrapper(f *mir.Func) string {
-	return fmt.Sprintf("define void @%s() {\nentry:\n  call ptr %s()\n  ret void\n}\n\n", e.r.Entity(f.Ent).Name, e.sym(f))
+	return fmt.Sprintf("define void @%s() {\nentry:\n  call ptr %s()\n  ret void\n}\n\n", e.cName(f.Ent), e.sym(f))
 }
 
 func orVoid(parts []string) string {

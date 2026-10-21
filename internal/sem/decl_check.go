@@ -11,13 +11,17 @@ func (r *Result) checkDeclarations() {
 		}
 		switch e.Kind {
 		case EntFn:
+			vis := e.Vis
 			if r.Entities[e.Parent].Kind == EntInterface {
-				continue
+				vis = r.Entities[e.Parent].Vis
 			}
-			r.checkSignatureVisibility(EntityID(id), e.Vis, r.Fn(EntityID(id)).Sig)
+			r.checkSignatureVisibility(EntityID(id), vis, r.Fn(EntityID(id)).Sig)
+			r.checkBoundVisibility(EntityID(id), vis, r.Fn(EntityID(id)).TypeParams)
 			if e.Name == "main" && r.Fn(EntityID(id)).Owner == 0 {
 				r.checkMain(EntityID(id))
 			}
+		case EntType:
+			r.checkBoundVisibility(EntityID(id), e.Vis, r.typeDecl(EntityID(id)).Params)
 		case EntField:
 			r.checkSignatureVisibility(EntityID(id), r.Entities[e.Parent].Vis, e.Type)
 		case EntVariant:
@@ -52,6 +56,14 @@ func (r *Result) checkSignatureVisibility(id EntityID, vis Visibility, t TypeID)
 			continue
 		}
 		r.errAt(e.File, e.Node, cSignaturePrivateType, te.Name, r.visText(te.Vis), r.visText(vis), e.Name)
+	}
+}
+
+func (r *Result) checkBoundVisibility(id EntityID, vis Visibility, params []EntityID) {
+	for _, p := range params {
+		for _, con := range r.typeParam(p).Constraints {
+			r.checkSignatureVisibility(id, vis, con.Type)
+		}
 	}
 }
 

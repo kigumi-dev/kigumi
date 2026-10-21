@@ -111,20 +111,26 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 	return nil
 }
 
-// freeOpaque releases what an opaque handle owns.
-func (m *Machine) freeOpaque(v *obj) {
+func (m *Machine) opaqueOwned(v *obj) *obj {
 	switch v.opaqueOp() {
 	case "Shared":
 		c := v.opaqueData().(*sharedCtrl)
 		c.alive = false
-		m.release(c.cell)
+		return c.cell
+	case "AllocatorScope", "UnsafeCell", "Box":
+		h, _ := v.opaqueData().(*obj)
+		return h
+	}
+	return nil
+}
+
+func (m *Machine) freeOpaqueAt(v *obj, d int) {
+	switch v.opaqueOp() {
+	case "Shared", "AllocatorScope", "UnsafeCell", "Box":
+		m.releaseAt(m.opaqueOwned(v), d)
 	case "Weak":
 		c := v.opaqueData().(*sharedCtrl)
 		c.weak--
-	case "AllocatorScope", "UnsafeCell", "Box":
-		if h, ok := v.opaqueData().(*obj); ok {
-			m.release(h)
-		}
 	case "Future":
 		m.freeFuture(v.opaqueData().(*future))
 	case "Executor":

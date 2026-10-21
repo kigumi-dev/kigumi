@@ -10,13 +10,19 @@ import (
 func (r *Result) constUnary(f FileID, n syntax.NodeID, op token.Kind, v constValue) (constValue, bool) {
 	switch {
 	case op == token.Minus && v.Kind == constInt:
-		return constValue{Kind: constInt, Int: new(big.Int).Neg(v.Int)}, true
+		res, ok := r.typedConstInt(f, n, new(big.Int).Neg(v.Int), v.Typ)
+		res.Shift = v.Shift
+		return res, ok
 	case op == token.Minus && v.Kind == constFloat:
 		return constValue{Kind: constFloat, Float: new(big.Float).Neg(v.Float)}, true
 	case op == token.Bang && v.Kind == constBool:
 		return constValue{Kind: constBool, Bool: !v.Bool}, true
 	case op == token.Tilde && v.Kind == constInt:
-		return constValue{Kind: constInt, Int: new(big.Int).Not(v.Int)}, true
+		z := new(big.Int).Not(v.Int)
+		if v.Typ != 0 && !r.Types.IsSigned(v.Typ) {
+			z.Add(z, new(big.Int).Lsh(big.NewInt(1), uint(r.Types.Width(v.Typ))))
+		}
+		return r.typedConstInt(f, n, z, v.Typ)
 	}
 	r.errAt(f, n, cConstNotComptime, "this operator")
 	return constValue{}, false
@@ -29,11 +35,28 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 	}
 	if a.Kind == constInt && b.Kind == constInt {
 		x, y := a.Int, b.Int
-		if constIntTooLarge(op, x, y) {
+		if op != token.Shl && op != token.Shr && constIntTooLarge(op, x, y) {
 			r.errAt(f, n, cConstTooLarge, maxConstBits)
 			return constValue{}, false
 		}
 		z := new(big.Int)
+		typ := a.Typ
+		if typ == 0 {
+			typ = b.Typ
+		} else if b.Typ != 0 && b.Typ != typ && op != token.Shl && op != token.Shr {
+			r.errAt(f, n, cTypeMismatch, typ, b.Typ)
+			return constValue{}, false
+		}
+		shift := max(a.Shift, b.Shift)
+		if op == token.Shl || op == token.Shr {
+			typ = a.Typ
+			if !r.constShiftOK(f, n, x, y, typ, op == token.Shl) {
+				return constValue{}, false
+			}
+			if typ == 0 {
+				shift = max(shift, int(y.Int64()))
+			}
+		}
 		switch op {
 		case token.Plus:
 			z.Add(x, y)
@@ -66,7 +89,9 @@ func (r *Result) constBinary(f FileID, n syntax.NodeID, op token.Kind, a, b cons
 		default:
 			return fail()
 		}
-		return constValue{Kind: constInt, Int: z}, true
+		res, ok := r.typedConstInt(f, n, z, typ)
+		res.Shift = shift
+		return res, ok
 	}
 	if (a.Kind == constInt || a.Kind == constFloat) && (b.Kind == constInt || b.Kind == constFloat) {
 		x, y := toFloat(a), toFloat(b)

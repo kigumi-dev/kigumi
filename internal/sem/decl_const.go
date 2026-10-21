@@ -44,6 +44,9 @@ func (r *Result) evalConstDecl(id EntityID) constValue {
 		return constValue{}
 	}
 	typ := r.untypedOf(v)
+	if v.Typ != 0 {
+		typ = v.Typ
+	}
 	if s.Type != 0 {
 		typ = r.resolveType(e.File, r.fileScopes[e.File], s.Type, posConst)
 		if !r.constFits(e.File, s.Value, v, typ) {
@@ -54,6 +57,9 @@ func (r *Result) evalConstDecl(id EntityID) constValue {
 		r.errAt(e.File, e.Node, cConstPubNeedsType, e.Name)
 	}
 	r.Entities[id].Type = typ
+	if v.Kind == constInt && r.Types.IsInteger(typ) {
+		v.Typ = typ
+	}
 	info.Value = v
 	info.State = constDone
 	return v

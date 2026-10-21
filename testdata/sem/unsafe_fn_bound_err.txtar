@@ -1,0 +1,67 @@
+-- src --
+unsafe fn danger(x: Int) -> Int {
+    x
+}
+
+extern(C) {
+    fn labs(x: i64) -> i64
+}
+
+export(C) {
+    pub fn twice(x: i32) -> i32 {
+        x * 2
+    }
+}
+
+fn applyFn[F: Fn[fn(Int) -> Int]](f: F) -> Int {
+    f(1)
+}
+
+fn applyMut[F: FnMut[fn(i32) -> i32]](f: F) -> i32 {
+    f(1)
+}
+
+fn applyOnce[F: FnOnce[fn(i64) -> i64]](f: F) -> i64 {
+    f(1)
+}
+
+fn use() -> Int {
+    let a = applyFn(danger) //~ ERROR `danger` is an `unsafe fn` and cannot satisfy `Fn[fn(Int) -> Int]`
+    let item = danger
+    let b = applyFn(item) //~ ERROR `danger` is an `unsafe fn` and cannot satisfy `Fn[fn(Int) -> Int]`
+    let c = applyOnce(labs) //~ ERROR `labs` is an `extern(C)` function and cannot satisfy `FnOnce[fn(Int) -> Int]`
+    let ptr: extern(C) fn(i32) -> i32 = twice
+    let d = applyMut(ptr) //~ ERROR `extern(C) fn(i32) -> i32` is a C function pointer and cannot satisfy `FnMut[fn(i32) -> i32]`
+    let e = applyFn((x) => unsafe { danger(x) })
+    let f = applyOnce((x) => unsafe { labs(x) })
+    a + b + e
+}
+-- expect --
+error[E2221]: `danger` is an `unsafe fn` and cannot satisfy `Fn[fn(Int) -> Int]`
+  --> main/main.kg:28:21
+   |
+28 |     let a = applyFn(danger) //~ ERROR `danger` is an `unsafe fn` and cannot satisfy `Fn[fn(Int) -> Int]`
+   |                     ^^^^^^
+   = help: wrap it in a lambda inside `unsafe { }` and pass the lambda
+
+error[E2221]: `danger` is an `unsafe fn` and cannot satisfy `Fn[fn(Int) -> Int]`
+  --> main/main.kg:30:21
+   |
+30 |     let b = applyFn(item) //~ ERROR `danger` is an `unsafe fn` and cannot satisfy `Fn[fn(Int) -> Int]`
+   |                     ^^^^
+   = help: wrap it in a lambda inside `unsafe { }` and pass the lambda
+
+error[E2221]: `labs` is an `extern(C)` function and cannot satisfy `FnOnce[fn(Int) -> Int]`
+  --> main/main.kg:31:23
+   |
+31 |     let c = applyOnce(labs) //~ ERROR `labs` is an `extern(C)` function and cannot satisfy `FnOnce[fn(Int) -> Int]`
+   |                       ^^^^
+   = help: wrap it in a lambda inside `unsafe { }` and pass the lambda
+
+error[E2221]: `extern(C) fn(i32) -> i32` is a C function pointer and cannot satisfy `FnMut[fn(i32) -> i32]`
+  --> main/main.kg:33:13
+   |
+33 |     let d = applyMut(ptr) //~ ERROR `extern(C) fn(i32) -> i32` is a C function pointer and cannot satisfy `FnMut[fn(i32) -> i32]`
+   |             ^^^^^^^^^^^^
+   = help: wrap it in a lambda inside `unsafe { }` and pass the lambda
+

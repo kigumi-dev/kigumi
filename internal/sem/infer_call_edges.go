@@ -31,6 +31,9 @@ func (c *checker) callbackEdges(n syntax.NodeID, fn EntityID, sig TypeID, args [
 		}
 		at := c.vars.resolve(c.info.Types[a])
 		need, bound := c.fnBoundMods(fn, i)
+		if bound != 0 {
+			c.rejectFnItemBound(n, a, fn, i)
+		}
 		switch {
 		case c.info.Uses[a] != 0 && c.r.Entities[c.info.Uses[a]].Kind == EntFn:
 			tgt := c.info.Uses[a]

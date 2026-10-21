@@ -1,0 +1,16 @@
+-- src --
+import ffi from std/ffi
+import {Entropy} from std/entropy
+
+extern(C) {
+    fn read(fd: i32, buf: *mut u8, n: u64) -> i64
+}
+
+fn draw(e: Entropy) -> u64! {
+    e.u64()
+}
+
+fn main() {
+    let r = unsafe { read(-1, ffi.toMut(ffi.null[u8]()), 0) }
+}
+-- expect --

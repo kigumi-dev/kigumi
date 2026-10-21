@@ -41,6 +41,10 @@ func (r *Result) resolveLinkSection(f FileID, attrs syntax.NodeID, allowLink, al
 			}
 			sawLink = true
 			out.LinkName = r.oneStringArg(f, a, cLinkNameBadArg)
+			if !cSymbolName(out.LinkName) {
+				r.errAt(f, a, cLinkNameBadArg)
+				out.LinkName = ""
+			}
 		case "section":
 			if !allowSection {
 				r.errAt(f, a, cSectionBadTarget)
@@ -72,4 +76,13 @@ func (r *Result) oneStringArg(f FileID, attr syntax.NodeID, code Code) string {
 		return ""
 	}
 	return v.Str
+}
+
+func cSymbolName(s string) bool {
+	for _, c := range s {
+		if !(c == '_' || c == '.' || c == '$' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
+			return false
+		}
+	}
+	return true
 }

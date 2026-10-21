@@ -1,0 +1,24 @@
+-- src --
+type P[T] = { pub x T }
+type Pair[A, B] = { pub a A, pub b B }
+
+fn use() -> Int {
+    let a = P[Int, String] { x: 1 } //~ ERROR `P` takes 1 type argument, 2 given
+    let b = P[Int] { x: 2 }
+    let c = Pair[Int] { a: 1, b: 2 } //~ ERROR `Pair` takes 2 type arguments, 1 given
+    let d = Pair[Int, Int] { a: 1, b: 2 }
+    b.x + d.a
+}
+-- expect --
+error[E217]: `P` takes 1 type argument, 2 given
+ --> main/main.kg:5:13
+  |
+5 |     let a = P[Int, String] { x: 1 } //~ ERROR `P` takes 1 type argument, 2 given
+  |             ^^^^^^^^^^^^^
+
+error[E217]: `Pair` takes 2 type arguments, 1 given
+ --> main/main.kg:7:13
+  |
+7 |     let c = Pair[Int] { a: 1, b: 2 } //~ ERROR `Pair` takes 2 type arguments, 1 given
+  |             ^^^^^^^^
+

@@ -1,0 +1,21 @@
+-- src --
+unsafe fn danger(x: Int) -> Int {
+    x + 1
+}
+
+fn applyFn[F: Fn[fn(Int) -> Int]](f: F) -> Int {
+    f(1)
+}
+
+fn applyOnce[F: FnOnce[fn(Int) -> Int]](f: F) -> Int {
+    f(-5)
+}
+
+let bound = (x: Int) => unsafe { danger(x) }
+print "bound ${applyFn(bound)}"
+print "danger ${applyFn((x) => unsafe { danger(x) })}"
+print "once ${applyOnce((x) => unsafe { danger(x) * 2 })}"
+-- stdout --
+bound 2
+danger 2
+once -8

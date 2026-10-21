@@ -89,7 +89,7 @@ func (c *checker) ffiAddressLeaseCheck(n syntax.NodeID, fn EntityID, inst []Type
 		return
 	}
 	ret := c.vars.resolve(inst[1])
-	if !c.r.mayContainPtr(ret, map[TypeID]bool{}) {
+	if !c.r.mayContainPtr(ret, map[TypeID]bool{}) && !c.r.mayContainFn(ret, map[TypeID]bool{}) {
 		return
 	}
 	c.errAt(n, cCarrierLeaseEscape, e.Name, c.r.TypeString(ret))

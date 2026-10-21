@@ -1,0 +1,39 @@
+-- src --
+interface Hidden {
+    fn show(self) -> String
+}
+
+type Secret = {
+    n Int
+}
+
+pub fn apply[T: Hidden](x: T) -> String { //~ ERROR
+    x.show()
+}
+
+pub type Holder[T: Hidden] = { //~ ERROR
+    v T
+}
+
+pub interface Wide {
+    fn leak(self) -> Secret //~ ERROR
+}
+-- expect --
+error[E118]: `Hidden` is private but appears in the pub signature of `apply`
+ --> main/main.kg:9:1
+  |
+9 | pub fn apply[T: Hidden](x: T) -> String { //~ ERROR
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E118]: `Hidden` is private but appears in the pub signature of `Holder`
+  --> main/main.kg:13:1
+   |
+13 | pub type Holder[T: Hidden] = { //~ ERROR
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E118]: `Secret` is private but appears in the pub signature of `leak`
+  --> main/main.kg:18:5
+   |
+18 |     fn leak(self) -> Secret //~ ERROR
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+

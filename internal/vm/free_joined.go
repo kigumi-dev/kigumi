@@ -3,12 +3,14 @@ package vm
 import "sync/atomic"
 
 // Inside a task a panic from one child's drop joins the others instead of ending the free.
-func (m *Machine) releaseChild(c *obj, fault *Panic) *Panic {
+func (m *Machine) releaseChild(c *obj, fault *Panic) *Panic { return m.releaseChildAt(c, fault, 0) }
+
+func (m *Machine) releaseChildAt(c *obj, fault *Panic, d int) *Panic {
 	if !m.containing() || c == nil || c.k < kRecord || atomic.LoadInt32(&c.rc) != 1 {
-		m.release(c)
+		m.releaseAt(c, d)
 		return fault
 	}
-	return m.releaseJoined(c, fault)
+	return m.callJoined(fault, func() { m.releaseAt(c, d) })
 }
 
 func (m *Machine) runDropHook(v *obj, fault *Panic) (out *Panic) {

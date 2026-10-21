@@ -1,0 +1,25 @@
+-- src --
+export(C) {
+    @linkName("p q") //~ ERROR `@linkName` takes exactly one
+    pub fn x2(a: i32) -> i32 {
+        a + 1
+    }
+}
+
+export(C) {
+    pub fn dup(a: i32) -> i32 {
+        a
+    }
+}
+
+extern(C) {
+    @linkName("dup")
+    fn dupDecl(a: i32) -> i32
+}
+-- expect --
+error[E1205]: `@linkName` takes exactly one nonempty string literal made of letters, digits, `_`, `.` and `$`
+ --> main/main.kg:2:5
+  |
+2 |     @linkName("p q") //~ ERROR `@linkName` takes exactly one
+  |     ^^^^^^^^^^^^^^^
+

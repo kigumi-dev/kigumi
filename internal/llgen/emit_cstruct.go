@@ -107,7 +107,7 @@ func (e *emitter) shimCall(sb *strings.Builder, shim string, sig sem.TypeID, ext
 func (e *emitter) exportByval(f *mir.Func) string {
 	var sb strings.Builder
 	sn := e.r.Types.Node(e.r.Fn(f.Ent).Sig)
-	name := e.r.Entity(f.Ent).Name
+	name := e.cName(f.Ent)
 	outRet := e.isCRecord(sn.Elem)
 	var params, vals []string
 	if outRet {

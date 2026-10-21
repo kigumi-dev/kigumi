@@ -44,6 +44,9 @@ func (c *checker) checkConstraints() {
 					}
 				}
 			}
+			if isFnKind(con.Kind) && c.rejectFnValueBound(cc.node, arg, con) {
+				continue
+			}
 			if why := c.unsatisfied(arg, con); why != "" {
 				c.errAt(cc.node, cConstraintUnsatisfied, arg, c.constraintText(con), why)
 				if con.Kind == CIface {
