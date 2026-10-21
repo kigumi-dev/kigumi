@@ -4095,7 +4095,9 @@ val rt_std_id(int op, int n, val* a) {
     case OP_SHARED_CLONE: return rt_retain(a0);
     case OP_SHARED_GET: return rt_copy(((sctrl*)a0->u.op.data)->cell->u.cell.v);
     case OP_SHARED_SET: {
-        val cell = ((sctrl*)a0->u.op.data)->cell;
+        sctrl* c = a0->u.op.data;
+        if (c->borrow != 0) rt_panic("Shared is already borrowed");
+        val cell = c->cell;
         val old = cell->u.cell.v;
         cell->u.cell.v = rt_retain(a1);
         rt_release(old);

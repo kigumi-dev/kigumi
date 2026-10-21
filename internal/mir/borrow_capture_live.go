@@ -61,7 +61,7 @@ func holdersFrom(p *Program, f *Func, direct func(Inst) []capturedPlace) map[Loc
 
 func hasCapturedPlace(list []capturedPlace, cp capturedPlace) bool {
 	for _, x := range list {
-		if x.root == cp.root && len(x.path) == len(cp.path) && fieldPathsOverlap(x.path, cp.path, true, true) {
+		if x.root == cp.root && len(x.path) == len(cp.path) && fieldPathsOverlap(x.path, cp.path) {
 			return true
 		}
 	}

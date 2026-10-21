@@ -16,6 +16,7 @@ type Plan struct {
 	Splits      map[Edge][]LocalID
 	Defs        map[LocalID]int
 	Materialize map[LocalID]bool
+	LentJoins   map[LocalID]bool
 }
 
 // MIR drops only named locals, so a temporary no instruction consumes is
@@ -30,6 +31,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 	isTemp := func(l LocalID) bool { return f.Locals[l].Ent == 0 }
 	defs, defBlocks, defBlock := tempDefs(f, isTemp)
 	materialize := p.planAliases(f, isTemp, defs)
+	joins := p.lentJoins(f, defs)
 	// Block numbers do not follow execution order, so a temporary used outside
 	// its defining block is released by liveness instead of at its last read.
 	for b, blk := range f.Blocks {
@@ -74,6 +76,9 @@ func (p *Program) planFunc(f *Func) *Plan {
 	}
 	extendBorrowed(borrowed, last, crossUse)
 	noRelease := p.unownedTemps(f, isTemp, defs, materialize, func(l LocalID) bool { return crossUse[l] && reads[l] > 1 })
+	for t := range joins {
+		noRelease[t] = true
+	}
 	root := func(l LocalID) LocalID {
 		for {
 			src, ok := borrowed[l]
@@ -131,7 +136,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 		slices.Sort(ts)
 	}
 	late.into(plan)
-	return &Plan{Releases: plan, Splits: split, Defs: defs, Materialize: materialize}
+	return &Plan{Releases: plan, Splits: split, Defs: defs, Materialize: materialize, LentJoins: joins}
 }
 
 // extendBorrowed keeps a source alive while a borrow of it is read; a borrow read in another block sends it to the liveness placement.

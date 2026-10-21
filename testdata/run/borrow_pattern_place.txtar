@@ -1,0 +1,131 @@
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type E = A(r: R) | C
+
+type W = {
+    pub mut items Array[Int]
+    pub mut tag Int
+}
+
+fn W.clear(mut self) {
+    self.items = Array.empty[Int]()
+}
+
+type Pair = {
+    pub mut a R
+    pub mut b R
+}
+
+fn E.reset(mut self) -> Int {
+    let n = match &self {
+        A(r) -> r.id
+        C -> 0
+    }
+    self = C
+    n
+}
+
+fn matchShared() {
+    let mut e = A(R { id: 1 })
+    match &e {
+        A(r) -> {
+            print "r.id=${r.id}"
+            e = C
+        }
+        C -> {}
+    }
+    print "matchShared end"
+}
+
+fn matchMut() {
+    let mut o = Some(Array.of(1, 2, 3))
+    match &mut o {
+        Some(a) -> {
+            a.push(4)
+            print "len=${a.len()}"
+            o = None
+        }
+        None -> {}
+    }
+    print "none=${o is None}"
+}
+
+fn siblings() {
+    let mut w = W { items: Array.of(1, 2), tag: 1 }
+    let W { items, tag } = &w
+    w.tag = 9
+    print "items=${items.len()} tag=${tag} w.tag=${w.tag}"
+    w.clear()
+    print "cleared=${w.items.len()}"
+}
+
+fn exclusiveSiblings() {
+    let mut p = Pair { a: R { id: 10 }, b: R { id: 20 } }
+    let Pair { a, b } = &mut p
+    a.id += 1
+    print "a=${a.id}"
+    p.b = R { id: 21 }
+    print "b=${p.b.id}"
+}
+
+fn isThenAssign() {
+    let mut o = Some(Array.of(5))
+    if &o is Some(s) {
+        print "s=${s.len()}"
+    }
+    o = None
+    let Some(t) = &o else {
+        print "else"
+        return
+    }
+    print "t=${t.len()}"
+}
+
+fn tupleThenAssign() {
+    let mut t = (R { id: 30 }, R { id: 31 })
+    let (a, b) = &t
+    print "sum=${a.id + b.id}"
+    t = (R { id: 32 }, R { id: 33 })
+    print "tuple end"
+}
+
+let mut e = A(R { id: 40 })
+print "reset=${e.reset()}"
+matchShared()
+matchMut()
+siblings()
+exclusiveSiblings()
+isThenAssign()
+tupleThenAssign()
+print "end"
+-- stdout --
+drop 40
+reset=40
+r.id=1
+drop 1
+matchShared end
+len=4
+none=true
+items=2 tag=1 w.tag=9
+cleared=0
+a=11
+drop 20
+b=21
+drop 21
+drop 11
+s=1
+else
+sum=61
+drop 31
+drop 30
+tuple end
+drop 33
+drop 32
+end

@@ -51,7 +51,7 @@ pub fn Shared[T: Copy].get(self) -> T
 /// A copy of the current content, or AllocError when the allocator refuses (get panics instead).
 pub fn Shared[T: Copy].tryGet(self) -> Result[T, AllocError]
 
-/// Replaces the content; the old value is dropped.
+/// Replaces the content; the old value is dropped. Panics while a `with` or `withMut` of the same cell is running.
 pub fn Shared[T].set(self, value: T)
 
 /// Calls f once with a borrow of the content and returns what it returns; f is not kept (non-escaping).

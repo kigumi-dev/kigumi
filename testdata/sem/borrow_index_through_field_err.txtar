@@ -1,0 +1,109 @@
+-- module --
+stage: driver
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    _ = self
+}
+
+type H = {
+    pub mut xs Array[R]
+    pub mut ys Array[R]
+}
+
+type O = {
+    pub mut h H
+}
+
+fn see(n: Int) -> Int {
+    n
+}
+
+fn head(xs: &Array[R]) -> &R {
+    &xs[0]
+}
+
+fn mk() -> H {
+    H { xs: Array.of(R { id: 1 }), ys: Array.of(R { id: 2 }) }
+}
+
+fn direct() {
+    let mut h = mk()
+    let a = &h.xs[0]
+    h.xs[0] = R { id: 7 }
+    _ = see(a.id)
+}
+
+fn viaAccessor() {
+    let mut h = mk()
+    let a = head(&h.xs)
+    h.xs[0] = R { id: 7 }
+    _ = see(a.id)
+}
+
+fn viaReference() {
+    let mut h = mk()
+    let r = &h
+    let a = &r.xs[0]
+    h.xs[0] = R { id: 7 }
+    _ = see(a.id)
+}
+
+fn nested() {
+    let mut o = O { h: mk() }
+    let a = head(&o.h.xs)
+    o.h.xs[0] = R { id: 7 }
+    _ = see(a.id)
+}
+
+fn H.receiver(mut self) {
+    let a = &self.xs[0]
+    self.xs[0] = R { id: 9 }
+    _ = see(a.id)
+}
+
+fn mutParam(h: &mut H) {
+    let a = &h.xs[0]
+    h.xs[0] = R { id: 8 }
+    _ = see(a.id)
+}
+-- expect --
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:33:5
+   |
+33 |     h.xs[0] = R { id: 7 }
+   |     ^^^^^^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:40:5
+   |
+40 |     h.xs[0] = R { id: 7 }
+   |     ^^^^^^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:48:5
+   |
+48 |     h.xs[0] = R { id: 7 }
+   |     ^^^^^^
+
+error[E2198]: `o` is borrowed and cannot be mutated here
+  --> main.kg:55:5
+   |
+55 |     o.h.xs[0] = R { id: 7 }
+   |     ^^^^^^^^
+
+error[E2198]: `self` is borrowed and cannot be mutated here
+  --> main.kg:61:5
+   |
+61 |     self.xs[0] = R { id: 9 }
+   |     ^^^^^^^^^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:67:5
+   |
+67 |     h.xs[0] = R { id: 8 }
+   |     ^^^^^^
+

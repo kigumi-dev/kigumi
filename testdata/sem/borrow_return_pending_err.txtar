@@ -1,0 +1,81 @@
+-- module --
+stage: driver
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    _ = self
+}
+
+type H = {
+    pub mut r R
+    pub mut n Int
+}
+
+fn see(n: Int) -> Int {
+    n
+}
+
+fn rOf(h: &H) -> &R {
+    &h.r
+}
+
+fn H.rMut(mut self) -> &mut R {
+    &mut self.r
+}
+
+fn writeBeforeLastUse() {
+    let mut h = H { r: R { id: 1 }, n: 0 }
+    let a = rOf(&h)
+    h.n += 1
+    _ = see(a.id)
+}
+
+fn replaceAfterLastUse() {
+    let mut h = H { r: R { id: 1 }, n: 0 }
+    let a = rOf(&h)
+    _ = see(a.id)
+    h.r = R { id: 2 }
+}
+
+fn mutCallAfterLastUse() {
+    let mut h = H { r: R { id: 1 }, n: 0 }
+    let a = rOf(&h)
+    _ = see(a.id)
+    let m = h.rMut()
+    m.id += 1
+}
+
+fn moveAfterLastUse() {
+    let h = H { r: R { id: 1 }, n: 0 }
+    let a = rOf(&h)
+    _ = see(a.id)
+    let h2 = h
+}
+-- expect --
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:29:5
+   |
+29 |     h.n += 1
+   |     ^^^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:37:5
+   |
+37 |     h.r = R { id: 2 }
+   |     ^^^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:44:13
+   |
+44 |     let m = h.rMut()
+   |             ^
+
+error[move-while-borrowed]: `h` is borrowed and cannot be moved or dropped here
+  --> main.kg:52:14
+   |
+52 |     let h2 = h
+   |              ^
+

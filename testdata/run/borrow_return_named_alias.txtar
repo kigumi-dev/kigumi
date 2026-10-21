@@ -1,0 +1,108 @@
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type H = {
+    pub mut r R
+}
+
+type P = {
+    pub mut r R
+    pub mut s R
+}
+
+fn twice(h: &H) -> &R {
+    let a = &h.r
+    let b = a
+    b
+}
+
+fn thrice(h: &H) -> &R {
+    let a = &h.r
+    let b = a
+    let c = b
+    c
+}
+
+fn tagged['a](h: &'a R) -> &'a R {
+    let a = h
+    a
+}
+
+fn elided(h: &R) -> &R {
+    let a = h
+    let b = a
+    b
+}
+
+fn readOnly(h: &H) -> Int {
+    let a = &h.r
+    let b = a
+    b.id
+}
+
+fn reborrowAlias(h: &P) -> &R {
+    let a = h
+    let b = &a.r
+    let c = b
+    c
+}
+
+fn reborrowAliasTagged['a](h: &'a P) -> &'a R {
+    let a = h
+    &a.s
+}
+
+fn reborrowAliasChain(h: &P) -> &R {
+    let a = h
+    let b = a
+    &b.r
+}
+
+{
+    let h = H { r: R { id: 1 } }
+    let q = twice(&h)
+    print "twice ${q.id}"
+}
+{
+    let h = H { r: R { id: 2 } }
+    print "thrice ${thrice(&h).id}"
+}
+{
+    let r = R { id: 3 }
+    let s = tagged(&r)
+    print "tagged ${s.id}"
+}
+{
+    let r = R { id: 4 }
+    print "elided ${elided(&r).id}"
+}
+{
+    let h = H { r: R { id: 5 } }
+    print "readOnly ${readOnly(&h)}"
+}
+{
+    let p = P { r: R { id: 6 }, s: R { id: 7 } }
+    print "reborrow ${reborrowAlias(&p).id} ${reborrowAliasTagged(&p).id} ${reborrowAliasChain(&p).id}"
+}
+print "end"
+-- stdout --
+twice 1
+drop 1
+thrice 2
+drop 2
+tagged 3
+drop 3
+elided 4
+drop 4
+readOnly 5
+drop 5
+reborrow 6 7 6
+drop 7
+drop 6
+end

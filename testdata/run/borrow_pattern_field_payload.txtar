@@ -1,0 +1,101 @@
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type E = A(r: R) | B
+
+type T = {
+    pub mut a Int
+    pub mut b Int
+}
+
+type S = {
+    pub mut cur R?
+    pub mut count Int
+    pub mut e E
+    pub mut t T
+    pub mut items Array[R]
+}
+
+fn viaMatch(s: &mut S) -> Int {
+    match &s.cur {
+        Some(c) -> {
+            s.count += 1
+            c.id
+        }
+        None -> 0
+    }
+}
+
+fn viaLetElse(s: &mut S) -> Int {
+    let Some(c) = &s.cur else {
+        return 0
+    }
+    s.count += 1
+    c.id
+}
+
+fn viaIs(s: &mut S) -> Int {
+    if (&s.cur) is Some(c) {
+        s.count += 1
+        return c.id
+    }
+    0
+}
+
+fn S.viaMutSelf(mut self) -> Int {
+    match &mut self.cur {
+        Some(c) -> {
+            self.count += 1
+            c.id += 100
+            c.id
+        }
+        None -> 0
+    }
+}
+
+fn viaEnumField(s: &mut S) -> Int {
+    match &s.e {
+        A(r) -> {
+            s.t = T { a: 1, b: 2 }
+            r.id
+        }
+        B -> 0
+    }
+}
+
+fn viaElement(s: &mut S) -> Int {
+    let r = &s.items[0]
+    s.count += 1
+    r.id
+}
+
+let mut s = S { cur: Some(R { id: 1 }), count: 0, e: A(R { id: 2 }), t: T { a: 0, b: 0 }, items: Array.of(R { id: 3 }) }
+let x1 = viaMatch(&mut s)
+let x2 = viaLetElse(&mut s)
+let x3 = viaIs(&mut s)
+let x4 = s.viaMutSelf()
+let x5 = viaEnumField(&mut s)
+let x6 = viaElement(&mut s)
+print "${x1} ${x2} ${x3} ${x4} ${x5} ${x6} count=${s.count} t=${s.t.a}"
+match &s.cur {
+    Some(c) -> {
+        s.count += 1
+        print "local ${c.id} ${s.count}"
+    }
+    None -> {}
+}
+s.cur = None
+print "cleared"
+-- stdout --
+1 1 1 101 2 3 count=5 t=1
+local 101 6
+drop 101
+cleared
+drop 3
+drop 2

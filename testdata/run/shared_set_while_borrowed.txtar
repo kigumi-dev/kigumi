@@ -1,0 +1,39 @@
+-- src --
+import {Shared} from std/alloc
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type W = {
+    pub mut items Array[Int]
+    pub mut r Res
+}
+
+let s = Shared.new(W { items: Array.of(1, 2, 3), r: Res { id: 1 } })
+let t = s.clone()
+s.with((a: &W) => {
+    print "with len=${a.items.len()}"
+})
+t.set(W { items: Array.of(7), r: Res { id: 2 } })
+print "after set len=${s.with((a: &W) => a.items.len())}"
+s.withMut((a: &mut W) => {
+    let it = &a.items
+    print "inside len=${it.len()}"
+    t.set(W { items: Array.of(8), r: Res { id: 3 } })
+    print "len=${it.len()}"
+})
+print "unreachable"
+-- stdout --
+with len=3
+drop 1
+after set len=1
+inside len=1
+-- stderr --
+panic: Shared is already borrowed
+-- exit --
+2

@@ -19,6 +19,10 @@ type ownerRef struct {
 	exact bool
 	// view names the `lendbox` result whose frame slot this borrow points at.
 	view bool
+	// carried marks a borrow a container holds through a carried value (see carrySite).
+	carried bool
+	// lifetime is the parameter lifetime a borrow into a parameter's referent may be returned under.
+	lifetime sem.EntityID
 }
 
 // borrowInfo tracks every owner a holder might alias, not just one: an ambiguous
@@ -45,6 +49,8 @@ type borrowCheck struct {
 	liveOut  []map[LocalID]bool
 	liveIn   []map[LocalID]bool
 	firstDef map[LocalID]int
+	// realOut is liveOut without the scope-end release of a reference, which only ends or replaces nothing.
+	realOut []map[LocalID]bool
 	// definedIn holds the holders that may have been assigned on some
 	// path into a block: a binding that `is` assigns only when its pattern
 	// matches is live at the join but not yet defined before the test.
@@ -70,6 +76,11 @@ type borrowCheck struct {
 	curBlock    BlockID
 	loopReach   [][]bool
 	curIdx      int
+	carry       map[LocalID][]carrySite
+	carryIn     map[[2]LocalID][]bool
+	recvBorrows map[recvBorrowKey]*borrowInfo
+	callNode    syntax.NodeID
+	soleFrom    map[BlockID]BlockID
 }
 
 func analyzeBorrows(p *Program, f *Func) {
@@ -90,11 +101,11 @@ func analyzeBorrows(p *Program, f *Func) {
 // instruction, and reports the conflicts and escapes.
 func (c *borrowCheck) checkBlock(bid BlockID) {
 	blk := &c.f.Blocks[bid]
-	live := map[LocalID]bool{}
-	for l := range c.liveOut[bid] {
-		live[l] = true
-	}
+	live, real := copySet(c.liveOut[bid]), copySet(c.realOut[bid])
 	for _, a := range blk.Term.Args {
+		if _, ok := c.holders[a]; ok {
+			real[a] = true
+		}
 		if b, ok := c.holders[a]; ok {
 			// A holder with no owner is a borrow inherited from a
 			// parameter, not one taken of a local: returning it is the
@@ -102,6 +113,11 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 			// own call site becomes the new holder (lifetimeSource).
 			if !b.hasOwner {
 				c.checkLifetimeEscape(a, b)
+				live[a] = true
+				continue
+			}
+			if lt := referentLifetime(b); lt != 0 {
+				c.checkLifetimeEscape(a, &borrowInfo{lifetime: lt, node: b.node})
 				live[a] = true
 				continue
 			}
@@ -114,21 +130,15 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		in := blk.Insts[i]
 		c.curIdx = i
-		c.checkInst(in, c.definedLive(live, bid, i))
-		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone {
-			delete(live, in.Dst)
-		}
-		for _, a := range uses(in) {
-			if _, ok := c.holders[a]; ok {
-				live[a] = true
-			}
-		}
+		c.checkInst(in, c.definedLive(live, bid, i), real)
+		c.stepBack(in, live, c.plainRefRelease)
+		c.stepBack(in, real, c.refRelease)
 	}
 }
 
-// checkInst sees the holders live after in; a conflict is a touch of an
-// owner whose borrow outlives this instruction.
-func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
+// checkInst sees the holders live after in; a conflict is a touch of an owner whose borrow outlives in,
+// and a holder outside realAfter waits only on its own release, so only what may drop a value conflicts.
+func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) {
 	c.checkCapture(in)
 	c.checkRecvArgs(in)
 	c.checkViewReuse(in, liveAfter)
@@ -140,15 +150,15 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 	}
 	for holder := range liveAfter {
 		b := c.holders[holder]
-		if !b.hasOwner || holder == in.Dst {
+		if !b.hasOwner || holder == in.Dst || !realAfter[holder] && !c.mayDrop(in) {
 			continue
 		}
 		for _, o := range b.owners {
-			if o.view || !c.mayBeBorrowed(o.owner, c.curIdx) {
+			if o.view || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) {
 				continue
 			}
-			touched, path, exact := c.touch(in, o.owner)
-			if !touched || !fieldPathsOverlap(path, o.path, exact, o.exact) {
+			touched, path, _ := c.touch(in, o.owner)
+			if !touched || !fieldPathsOverlap(path, o.path) {
 				continue
 			}
 			moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || c.takesPayload(in)

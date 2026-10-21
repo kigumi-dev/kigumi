@@ -1,0 +1,213 @@
+-- module --
+stage: driver
+-- src --
+import task from std/task
+import {Task} from std/task
+
+type Res = resource {
+    pub mut id Int
+}
+
+fn Res.drop(move self) {
+    _ = self
+}
+
+type Pool = {
+    pub mut fs Array[Future[Int]]
+}
+
+fn Pool.add(mut self, f: Future[Int]) {
+    self.fs.push(f)
+}
+
+async fn bump(r: &mut Res) -> Int {
+    r.id += 1
+    r.id
+}
+
+async fn show(r: &Res) -> Int {
+    r.id
+}
+
+fn twoInArray() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 100 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    fs.push(bump(&mut x))
+    let mut s = 0
+    for f in fs {
+        s += ex.runToCompletion(f)
+    }
+    s
+}
+
+fn writeAfterPush() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 100 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(show(&x))
+    x.id = 5
+    let mut s = 0
+    for f in fs {
+        s += ex.runToCompletion(f)
+    }
+    s
+}
+
+fn outlivesBlock() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut fs = Array.empty[Future[Int]]()
+    {
+        let x = Res { id: 7 }
+        fs.push(show(&x))
+    }
+    let mut s = 0
+    for f in fs {
+        s += ex.runToCompletion(f)
+    }
+    s
+}
+
+fn intoRecordMethod() -> usize {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 1 }
+    let mut p = Pool { fs: Array.empty[Future[Int]]() }
+    p.add(bump(&mut x))
+    x.id = 2
+    p.fs.len()
+}
+
+fn intoCaller(fs: &mut Array[Future[Int]]) {
+    let mut x = Res { id: 9 }
+    fs.push(bump(&mut x))
+}
+
+fn Pool.addLocal(mut self) {
+    let x = Res { id: 9 }
+    self.fs.push(show(&x))
+}
+
+async fn spawnThenWrite() -> Int {
+    let mut x = Res { id: 100 }
+    let mut ts = Array.empty[Task[Int]]()
+    ts.push(task.spawn(bump(&mut x)))
+    x.id = 5
+    0
+}
+
+async fn twoFutures() -> Int {
+    let mut x = Res { id: 100 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    fs.push(bump(&mut x))
+    let mut s = 0
+    for f in fs {
+        s += await f
+    }
+    s
+}
+
+async fn writeAfterSpawn() -> Int {
+    let mut x = Res { id: 100 }
+    let mut ts = Array.empty[Task[Int]]()
+    ts.push(task.spawn(bump(&mut x)))
+    x.id = 5
+    let mut s = 0
+    for t in ts {
+        s += await t
+    }
+    s
+}
+
+async fn outlives() -> Int {
+    let mut ts = Array.empty[Task[Int]]()
+    {
+        let x = Res { id: 7 }
+        ts.push(task.spawn(show(&x)))
+    }
+    let mut s = 0
+    for t in ts {
+        s += await t
+    }
+    s
+}
+-- expect --
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:34:18
+   |
+34 |     fs.push(bump(&mut x))
+   |                  ^^^^^^
+
+error[E2198]: `x` is borrowed and cannot be mutated here
+  --> main.kg:47:5
+   |
+47 |     x.id = 5
+   |     ^^^^
+
+error[move-while-borrowed]: `x` is still borrowed when its scope ends here
+  --> main.kg:59:13
+   |
+59 |         let x = Res { id: 7 }
+   |             ^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:74:5
+   |
+74 |     x.id = 2
+   |     ^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+  --> main.kg:80:5
+   |
+80 |     fs.push(bump(&mut x))
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow cannot be stored
+  --> main.kg:85:5
+   |
+85 |     self.fs.push(show(&x))
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:92:5
+   |
+92 |     x.id = 5
+   |     ^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:100:18
+    |
+100 |     fs.push(bump(&mut x))
+    |                  ^^^^^^
+
+error[E1290]: a borrow of `x` is still live across this `await`
+   --> main.kg:103:14
+    |
+103 |         s += await f
+    |              ^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:112:5
+    |
+112 |     x.id = 5
+    |     ^^^^
+
+error[E1290]: a borrow of `x` is still live across this `await`
+   --> main.kg:115:14
+    |
+115 |         s += await t
+    |              ^^^^^^^
+
+error[move-while-borrowed]: `x` is still borrowed when its scope ends here
+   --> main.kg:123:13
+    |
+123 |         let x = Res { id: 7 }
+    |             ^
+
+error[E1290]: a borrow of `x` is still live across this `await`
+   --> main.kg:128:14
+    |
+128 |         s += await t
+    |              ^^^^^^^
+

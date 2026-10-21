@@ -34,7 +34,7 @@ func (c *borrowCheck) checkRecvArgs(in Inst) {
 		}
 		for _, o := range c.mutArgOwners(a) {
 			for _, r := range recv {
-				if o.owner == r.owner && fieldPathsOverlap(o.path, r.path, o.exact, r.exact) {
+				if o.owner == r.owner && fieldPathsOverlap(o.path, r.path) {
 					c.report(node, r.owner, "borrow-conflict", "`"+c.f.Locals[r.owner].Name+"` is exclusively borrowed and cannot be used here")
 				}
 			}

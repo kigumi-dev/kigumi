@@ -4,12 +4,16 @@ func uses(in Inst) []LocalID { return in.Args }
 
 // liveness computes, per block, the borrow holders live at exit.
 func (c *borrowCheck) liveness() {
+	c.liveOut, c.liveIn = c.solveLive(c.plainRefRelease)
+	c.realOut, _ = c.solveLive(c.refRelease)
+}
+
+func (c *borrowCheck) solveLive(skip func(LocalID) bool) (liveOut, liveIn []map[LocalID]bool) {
 	n := len(c.f.Blocks)
-	c.liveOut = make([]map[LocalID]bool, n)
-	c.liveIn = make([]map[LocalID]bool, n)
-	liveIn := c.liveIn
+	liveOut = make([]map[LocalID]bool, n)
+	liveIn = make([]map[LocalID]bool, n)
 	for i := range n {
-		c.liveOut[i] = map[LocalID]bool{}
+		liveOut[i] = map[LocalID]bool{}
 		liveIn[i] = map[LocalID]bool{}
 	}
 	for changed := true; changed; {
@@ -18,37 +22,31 @@ func (c *borrowCheck) liveness() {
 			blk := &c.f.Blocks[bid]
 			out := map[LocalID]bool{}
 			for _, t := range blk.Term.Targets {
-				for l := range liveIn[t] {
+				in := liveIn[t]
+				if k, ok := c.threadedTarget(BlockID(bid), t); ok {
+					in = c.liveThrough(t, liveIn[k], skip)
+				}
+				for l := range in {
 					out[l] = true
 				}
 			}
-			live := map[LocalID]bool{}
-			for l := range out {
-				live[l] = true
-			}
-			for _, a := range blk.Term.Args {
-				if _, ok := c.holders[a]; ok {
-					live[a] = true
-				}
-			}
-			for i := len(blk.Insts) - 1; i >= 0; i-- {
-				in := blk.Insts[i]
-				if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone {
-					delete(live, in.Dst)
-				}
-				for _, a := range uses(in) {
-					if _, ok := c.holders[a]; ok {
-						live[a] = true
-					}
-				}
-			}
-			if !sameSet(out, c.liveOut[bid]) || !sameSet(live, liveIn[bid]) {
+			live := c.liveThrough(BlockID(bid), out, skip)
+			if !sameSet(out, liveOut[bid]) || !sameSet(live, liveIn[bid]) {
 				changed = true
 			}
-			c.liveOut[bid] = out
+			liveOut[bid] = out
 			liveIn[bid] = live
 		}
 	}
+	return liveOut, liveIn
+}
+
+func copySet(a map[LocalID]bool) map[LocalID]bool {
+	out := make(map[LocalID]bool, len(a))
+	for k := range a {
+		out[k] = true
+	}
+	return out
 }
 
 func sameSet(a, b map[LocalID]bool) bool {

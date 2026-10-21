@@ -1,0 +1,162 @@
+-- module --
+stage: driver
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub mut id Int
+}
+
+fn Res.drop(move self) {
+    _ = self
+}
+
+fn see(n: Int) -> Int {
+    n
+}
+
+async fn bump(r: &mut Res) -> Int {
+    r.id += 1
+    r.id
+}
+
+fn idf(a: Future[Int]) -> Future[Int] {
+    a
+}
+
+fn id2(fs: Array[Future[Int]]) -> Array[Future[Int]] {
+    fs
+}
+
+fn movedWhileCarried() {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 1 }
+    let g = idf(bump(&mut x))
+    {
+        let y = x
+    }
+    _ = see(ex.runToCompletion(g))
+}
+
+fn writtenWhileArrayCarried() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let gs = id2(fs)
+    x.id = 5
+    let mut s = 0
+    for f in gs {
+        s += ex.runToCompletion(f)
+    }
+    s
+}
+
+type Wrap = {
+    pub f Future[Int]
+}
+
+type Either =
+    | Fut(Future[Int])
+    | Nothing
+
+fn wrap(f: Future[Int]) -> Wrap {
+    Wrap { f: f }
+}
+
+fn either(f: Future[Int]) -> Either {
+    Either.Fut(f)
+}
+
+fn go(f: Future[Int]) -> task.Task[Int] {
+    task.spawn(f)
+}
+
+fn movedWhileWrapped() {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 1 }
+    let w = wrap(bump(&mut x))
+    let y = x
+    _ = see(ex.runToCompletion(w.f))
+}
+
+fn writtenWhileWrapped() {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 1 }
+    let w = wrap(bump(&mut x))
+    x.id = 5
+    _ = see(ex.runToCompletion(w.f))
+}
+
+fn writtenWhileInVariant() {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 1 }
+    let e = either(bump(&mut x))
+    x.id = 5
+    let n = match e {
+        Fut(f) -> ex.runToCompletion(f),
+        Nothing -> 0,
+    }
+    _ = see(n)
+}
+
+fn writtenWhileTaskWrapped() {
+    let mut x = Res { id: 1 }
+    let t = go(bump(&mut x))
+    x.id = 5
+    t.cancel()
+}
+
+fn wrapperOutlivesLocal() -> Wrap {
+    let mut x = Res { id: 1 }
+    wrap(bump(&mut x))
+}
+-- expect --
+error[move-while-borrowed]: `x` is borrowed and cannot be moved or dropped here
+  --> main.kg:33:17
+   |
+33 |         let y = x
+   |                 ^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:44:5
+   |
+44 |     x.id = 5
+   |     ^^^^
+
+error[move-while-borrowed]: `x` is borrowed and cannot be moved or dropped here
+  --> main.kg:76:13
+   |
+76 |     let y = x
+   |             ^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:84:5
+   |
+84 |     x.id = 5
+   |     ^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:92:5
+   |
+92 |     x.id = 5
+   |     ^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:103:5
+    |
+103 |     x.id = 5
+    |     ^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+   --> main.kg:109:15
+    |
+109 |     wrap(bump(&mut x))
+    |               ^^^^^^
+
+error[move-while-borrowed]: `x` is still borrowed when its scope ends here
+   --> main.kg:108:13
+    |
+108 |     let mut x = Res { id: 1 }
+    |             ^
+

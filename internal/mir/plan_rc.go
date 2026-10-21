@@ -25,6 +25,8 @@ func PlanRC(p *Program) error {
 type rcState struct {
 	alias    map[LocalID]LocalID
 	borrowed map[LocalID]bool
+	// viaBorrow marks a local aliasing a borrow; it holds no count either.
+	viaBorrow map[LocalID]bool
 }
 
 func (s *rcState) origin(l LocalID) LocalID {
@@ -40,7 +42,10 @@ func (s *rcState) origin(l LocalID) LocalID {
 func (p *Program) planRCFunc(f *Func, w *shareFacts) {
 	f.rcBase = len(f.Locals)
 	plan := p.planFunc(f)
-	st := &rcState{alias: map[LocalID]LocalID{}, borrowed: map[LocalID]bool{}}
+	st := &rcState{alias: map[LocalID]LocalID{}, borrowed: map[LocalID]bool{}, viaBorrow: map[LocalID]bool{}}
+	for t := range plan.LentJoins {
+		st.viaBorrow[t] = true
+	}
 	for bid := range f.Blocks {
 		p.planRCBlock(f, bid, plan, st, w)
 	}
@@ -125,13 +130,21 @@ func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState, w *sha
 	}
 	src := st.origin(in.Args[0])
 	switch {
+	case plan.LentJoins[in.Dst]:
+		in.Op = OpAlias
 	case in.Share:
 		in.Op, in.Copy = OpShare, p.copyable(f.Locals[src].Type)
+	case (st.borrowed[in.Args[0]] || st.viaBorrow[in.Args[0]]) && plan.Defs[in.Dst] > 1 && returned(f, in.Dst):
+		in.Op, in.Copy = OpShare, p.copyable(f.Locals[in.Dst].Type)
 	case f.Locals[src].Ent == 0 || st.borrowed[in.Args[0]]:
 		in.Op = OpAlias
+		st.viaBorrow[in.Dst] = (f.Locals[in.Dst].Ent == 0 || plan.Defs[in.Dst] <= 1) && (st.borrowed[in.Args[0]] || st.viaBorrow[in.Args[0]])
 	case f.Locals[in.Dst].Ent == 0 && plan.Defs[in.Dst] <= 1 && !plan.Materialize[in.Dst]:
 		in.Op = OpAlias
 		st.alias[in.Dst] = src
+	case plan.Defs[in.Dst] <= 1 && p.countless(f, st, src):
+		in.Op = OpAlias
+		st.viaBorrow[in.Dst] = true
 	default:
 		in.Op, in.Copy = OpShare, p.copyable(f.Locals[src].Type)
 		if in.Last = p.bindsLast(f, *in, src, w, at); in.Last {
@@ -148,7 +161,13 @@ func (p *Program) shareReturn(f *Func, t *Term, st *rcState, out *[]Inst, w *sha
 	}
 	a := t.Args[0]
 	src := st.origin(a)
-	if st.borrowed[a] {
+	if st.borrowed[a] || st.viaBorrow[a] {
+		if p.R.Types.Kind(f.Locals[a].Type) != sem.KRef {
+			return nil
+		}
+		nt := f.newTemp(f.Locals[a].Type)
+		*out = append(*out, Inst{Op: OpShare, Dst: nt, Args: []LocalID{a}, Copy: p.copyable(f.Locals[a].Type), Node: w.defNode(a)})
+		t.Args = []LocalID{nt}
 		return nil
 	}
 	if f.Locals[src].Ent != 0 {

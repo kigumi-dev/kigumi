@@ -13,11 +13,12 @@ func (c *borrowCheck) collect() {
 	for changed := true; changed; {
 		changed = false
 		c.grew = false
-		for _, blk := range c.f.Blocks {
-			for _, in := range blk.Insts {
+		for bid, blk := range c.f.Blocks {
+			for i, in := range blk.Insts {
 				if c.collectInst(in) {
 					changed = true
 				}
+				c.collectCarry(in, BlockID(bid), i)
 			}
 		}
 		changed = changed || c.grew
@@ -64,12 +65,18 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 	}
 	switch in.Op {
 	case OpBorrow:
+		root, path, exact, ok := c.patternPlace(in.Args[0])
 		if has {
+			if ok {
+				c.merge(c.holders[in.Dst], c.throughRef(root, path, exact, in.Index == 1))
+			}
 			return false
 		}
-		if root, path, exact, ok := c.projectionPlace(in.Args[0]); ok {
-			ref := ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact}
-			return set(&borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}, true)
+		if ok {
+			ref := ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact, lifetime: c.projectionLifetime(root, in.Args[0])}
+			b := &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}
+			mergeInto(b, c.throughRef(root, path, exact, in.Index == 1))
+			return set(b, true)
 		}
 		if def := c.definition(in.Args[0]); def != nil && def.Op == OpGlobalGet {
 			// A static-origin borrow has no local owner to touch-check

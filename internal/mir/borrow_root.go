@@ -1,15 +1,49 @@
 package mir
 
-import "kigumi/internal/syntax"
+import (
+	"slices"
 
-// projectionPlace follows a temporary produced by reading into a value
-// (a field, payload, element, unboxed value or copy) back to the named
-// local it was read from, so a borrow of the part holds the whole. It also
-// accumulates the field-index chain (root-first) crossed along the way, and
-// whether every step was a plain field projection: an index, payload or
-// unbox step marks the place inexact since the checker cannot tell which part of the
-// owner it names, so it keeps treating it as the whole owner.
+	"kigumi/internal/sem"
+	"kigumi/internal/syntax"
+)
+
+// projectionPlace follows a temporary read out of a value back to its named local, with the field chain
+// (root-first); an index, payload or unbox step cuts the chain there, marking it inexact.
 func (c *borrowCheck) projectionPlace(l LocalID) (root LocalID, path []int, exact bool, ok bool) {
+	return c.walkPlace(l, false)
+}
+
+// patternPlace is projectionPlace also crossing a temporary borrow and a borrowed loop's element,
+// so a binding destructured from `&e` or `&mut e`, or bound by `for x in &e`, holds e itself.
+func (c *borrowCheck) patternPlace(l LocalID) (root LocalID, path []int, exact bool, ok bool) {
+	return c.walkPlace(l, true)
+}
+
+// throughRef is what a borrow of root's referent at path holds when root is a reference
+// local: the places root borrows, extended by path, so they stay borrowed while it lives.
+func (c *borrowCheck) throughRef(root LocalID, path []int, exact, mut bool) *borrowInfo {
+	b, ok := c.holders[root]
+	if !ok || !b.hasOwner || c.p.R.Types.Kind(c.f.Locals[root].Type) != sem.KRef {
+		return nil
+	}
+	out := &borrowInfo{hasOwner: true, node: b.node}
+	for _, o := range b.owners {
+		if o.view || o.carried {
+			continue
+		}
+		p := slices.Clone(o.path)
+		if o.exact {
+			p = append(p, path...)
+		}
+		out.owners = append(out.owners, ownerRef{owner: o.owner, mut: mut, path: p, exact: o.exact && exact, lifetime: o.lifetime})
+	}
+	if len(out.owners) == 0 {
+		return nil
+	}
+	return out
+}
+
+func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, path []int, exact bool, ok bool) {
 	exact = true
 	for {
 		if c.f.Locals[l].Ent != 0 {
@@ -24,9 +58,20 @@ func (c *borrowCheck) projectionPlace(l LocalID) (root LocalID, path []int, exac
 			path = append([]int{in.Index}, path...)
 			l = in.Args[0]
 		case OpPayload, OpIndex, OpUnbox:
-			exact = false
+			path, exact = nil, false
 			l = in.Args[0]
 		case OpCopy:
+			l = in.Args[0]
+		case OpBorrow:
+			if !throughBorrow {
+				return 0, nil, false, false
+			}
+			l = in.Args[0]
+		case OpBuiltin:
+			if !throughBorrow || in.Str != "iter.at_ref" {
+				return 0, nil, false, false
+			}
+			path, exact = nil, false
 			l = in.Args[0]
 		case OpCellGet:
 			if !c.f.Locals[in.Args[0]].Borrowed {
@@ -99,14 +144,9 @@ func (c *borrowCheck) definition(l LocalID) *Inst {
 	return c.defs[l]
 }
 
-// fieldPathsOverlap reports whether a borrow of a and a touch of b, both
-// resolved from the same owner, can name overlapping storage: one path is a
-// prefix of the other (equal counts as overlapping too), or either side is
-// inexact and so stands for the whole owner.
-func fieldPathsOverlap(a, b []int, exactA, exactB bool) bool {
-	if !exactA || !exactB {
-		return true
-	}
+// fieldPathsOverlap reports whether two field chains of one owner can name overlapping storage:
+// one is a prefix of the other, a cut chain standing for its whole last field.
+func fieldPathsOverlap(a, b []int) bool {
 	n := len(a)
 	if len(b) < n {
 		n = len(b)

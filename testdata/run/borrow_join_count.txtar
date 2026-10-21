@@ -1,0 +1,225 @@
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type H = {
+    pub mut r R
+    pub mut s R
+    pub mut t R
+}
+
+fn mk(base: Int) -> H {
+    H { r: R { id: base + 1 }, s: R { id: base + 2 }, t: R { id: base + 3 } }
+}
+
+fn rOf(h: &H) -> &R {
+    &h.r
+}
+
+fn namedAndFresh(h: &H, c: Bool) -> &R {
+    let b = &h.s
+    let a = if c { &h.r } else { b }
+    a
+}
+
+fn twoNamed(h: &H, c: Bool) -> &R {
+    let b = &h.s
+    let d = &h.t
+    let a = if c { d } else { b }
+    a
+}
+
+fn paramChain['a](p: &'a R, h: &'a H, c: Bool) -> &'a R {
+    let q = p
+    let z = q
+    let a = if c { z } else { &h.t }
+    a
+}
+
+fn countedNamed(h: &H, c: Bool) -> &R {
+    let q = rOf(h)
+    let a = if c { q } else { &h.s }
+    a
+}
+
+fn countedCall(h: &H, c: Bool) -> &R {
+    let a = if c { rOf(h) } else { &h.s }
+    a
+}
+
+fn borrowThenCall(h: &H, c: Bool) -> &R {
+    let a = if c { &h.s } else { rOf(h) }
+    a
+}
+
+fn payloadOrDefault(o: &Option[R], d: &R) -> Int {
+    let x = match o {
+        Some(r) -> r,
+        None -> d,
+    }
+    x.id
+}
+
+fn payloadOrDefaultInline(o: &Option[R], d: &R) -> Int {
+    (match o {
+        Some(r) -> r,
+        None -> d,
+    }).id
+}
+
+fn three(h: &H, k: Int) -> &R {
+    let b = &h.s
+    let q = rOf(h)
+    match k {
+        0 -> b,
+        1 -> q,
+        2 -> &h.t,
+        _ -> return b,
+    }
+}
+
+fn brk(h: &H, c: Bool) -> Int {
+    let b = &h.s
+    let a = for {
+        if c {
+            break &h.r
+        }
+        break b
+    }
+    a.id
+}
+
+fn local(c: Bool) {
+    let h = mk(70)
+    let b = &h.s
+    let d = &h.t
+    let a = if c { &h.r } else { b }
+    let q = rOf(&h)
+    print "local ${a.id} ${(if c { d } else { b }).id} ${(if c { q } else { &h.s }).id}"
+}
+
+for c in Array.of(true, false) {
+    {
+        let h = mk(10)
+        print "namedAndFresh ${namedAndFresh(&h, c).id}"
+    }
+    {
+        let h = mk(20)
+        print "twoNamed ${twoNamed(&h, c).id}"
+    }
+    {
+        let h = mk(30)
+        print "paramChain ${paramChain(&h.r, &h, c).id}"
+    }
+    {
+        let h = mk(40)
+        print "countedNamed ${countedNamed(&h, c).id}"
+    }
+    {
+        let h = mk(50)
+        print "countedCall ${countedCall(&h, c).id}"
+        print "borrowThenCall ${borrowThenCall(&h, c).id}"
+    }
+    local(c)
+}
+for k in Array.of(0, 1, 2, 3) {
+    let h = mk(100 + 10 * k)
+    print "three ${three(&h, k).id}"
+}
+for c in Array.of(true, false) {
+    let h = mk(150)
+    print "brk ${brk(&h, c)}"
+}
+{
+    let d = R { id: 61 }
+    let s = Some(R { id: 62 })
+    let n: Option[R] = None
+    print "payload ${payloadOrDefault(&s, &d)} ${payloadOrDefault(&n, &d)}"
+    print "inline ${payloadOrDefaultInline(&s, &d)} ${payloadOrDefaultInline(&n, &d)}"
+}
+print "end"
+-- stdout --
+namedAndFresh 11
+drop 13
+drop 12
+drop 11
+twoNamed 23
+drop 23
+drop 22
+drop 21
+paramChain 31
+drop 33
+drop 32
+drop 31
+countedNamed 41
+drop 43
+drop 42
+drop 41
+countedCall 51
+borrowThenCall 52
+drop 53
+drop 52
+drop 51
+local 71 73 71
+drop 73
+drop 72
+drop 71
+namedAndFresh 12
+drop 13
+drop 12
+drop 11
+twoNamed 22
+drop 23
+drop 22
+drop 21
+paramChain 33
+drop 33
+drop 32
+drop 31
+countedNamed 42
+drop 43
+drop 42
+drop 41
+countedCall 52
+borrowThenCall 51
+drop 53
+drop 52
+drop 51
+local 72 72 72
+drop 73
+drop 72
+drop 71
+three 102
+drop 103
+drop 102
+drop 101
+three 111
+drop 113
+drop 112
+drop 111
+three 123
+drop 123
+drop 122
+drop 121
+three 132
+drop 133
+drop 132
+drop 131
+brk 151
+drop 153
+drop 152
+drop 151
+brk 152
+drop 153
+drop 152
+drop 151
+payload 62 61
+inline 62 61
+drop 62
+drop 61
+end

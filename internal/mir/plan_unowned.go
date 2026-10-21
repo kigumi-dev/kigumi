@@ -47,7 +47,7 @@ func (p *Program) unownedTemps(f *Func, isTemp func(LocalID) bool, defs map[Loca
 		}
 		switch {
 		case in.Op == OpBorrow, in.Op == OpLendBox, in.Op == OpBuiltin && in.Str == "iter.at_ref":
-		case copies(in) && isTemp(in.Args[0]) && !inRoots(root, in.Args[0]) && (unowned[in.Args[0]] || sharedAcross(in.Args[0])):
+		case copies(in) && !(in.Share && defs[in.Dst] > 1) && isTemp(in.Args[0]) && !inRoots(root, in.Args[0]) && (unowned[in.Args[0]] || sharedAcross(in.Args[0])):
 		default:
 			return false
 		}

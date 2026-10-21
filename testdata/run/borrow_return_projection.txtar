@@ -1,0 +1,147 @@
+-- src --
+type Res = resource {
+    pub mut id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Inner = {
+    pub label String
+    pub res Res
+}
+
+type Cfg = {
+    pub name String
+    pub port Int
+    pub inner Inner
+    pub mut items Array[Int]
+    pub mut slot Res
+}
+
+type View['a] = {
+    pub data &'a Array[Int]
+}
+
+fn nameOf['a](c: &'a Cfg) -> &'a String {
+    &c.name
+}
+
+fn portOf['a](c: &'a Cfg) -> &'a Int {
+    &c.port
+}
+
+fn resOf['a](c: &'a Cfg) -> &'a Res {
+    &c.inner.res
+}
+
+fn labelOf['a](c: &'a Cfg) -> &'a String {
+    &c.inner.label
+}
+
+fn first['a](xs: &'a Array[Int]) -> &'a Int {
+    &xs[0]
+}
+
+fn itemOf['a](c: &'a Cfg, i: usize) -> &'a Int {
+    &c.items[i]
+}
+
+fn View['a].firstOf(self) -> &'a Int {
+    &self.data[0]
+}
+
+fn Cfg.nameRef(self) -> &String {
+    &self.name
+}
+
+fn elidedFirst(xs: &Array[Int]) -> &Int {
+    &xs[1]
+}
+
+fn elidedRes(c: &Cfg, k: Int) -> &Res {
+    &c.inner.res
+}
+
+fn slotMut['a](c: &'a mut Cfg) -> &'a mut Res {
+    &mut c.slot
+}
+
+fn itemsMut['a](c: &'a mut Cfg) -> &'a mut Array[Int] {
+    &mut c.items
+}
+
+fn Cfg.itemsRef(mut self) -> &mut Array[Int] {
+    &mut self.items
+}
+
+fn someRes['a](o: &'a Res?, d: &'a Res) -> &'a Res {
+    match o {
+        Some(r) -> r
+        None -> d
+    }
+}
+
+fn bumpRes(r: &mut Res) {
+    r.id += 1
+}
+
+fn lastUse() {
+    let c = Cfg { name: "last", port: 1, inner: Inner { label: "l", res: Res { id: 5 } }, items: Array.of(1), slot: Res { id: 6 } }
+    print "last ${resOf(&c).id}"
+    print "end of lastUse"
+}
+
+fn mutating() {
+    let mut c = Cfg { name: "m", port: 2, inner: Inner { label: "i", res: Res { id: 7 } }, items: Array.of(1), slot: Res { id: 8 } }
+    bumpRes(slotMut(&mut c))
+    itemsMut(&mut c).push(2)
+    c.itemsRef().push(3)
+    print "slot ${c.slot.id} items ${c.items.len()}"
+    let o = Some(Res { id: 11 })
+    let d = Res { id: 10 }
+    print "some ${someRes(&o, &d).id}"
+    print "end of mutating"
+}
+
+fn play() {
+    let c = Cfg { name: "cfg", port: 8080, inner: Inner { label: "in", res: Res { id: 1 } }, items: Array.of(10, 20, 30), slot: Res { id: 2 } }
+    let n = nameOf(&c)
+    let p = portOf(&c)
+    let r = resOf(&c)
+    let l = labelOf(&c)
+    let i = itemOf(&c, 2)
+    print "${n} ${p} ${r.id} ${l} ${i}"
+    let xs = Array.of(4, 5, 6)
+    let f = first(&xs)
+    let v = View { data: &xs }
+    let g = v.firstOf()
+    print "${f} ${g} ${elidedFirst(&xs)}"
+    print "${c.nameRef()} ${elidedRes(&c, 0).id}"
+    print "end of play"
+}
+
+play()
+lastUse()
+mutating()
+print "end"
+-- stdout --
+cfg 8080 1 in 30
+4 4 5
+cfg 1
+end of play
+drop 2
+drop 1
+last 5
+end of lastUse
+drop 6
+drop 5
+slot 9 items 3
+some 11
+end of mutating
+drop 10
+drop 11
+drop 9
+drop 7
+end

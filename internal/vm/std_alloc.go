@@ -50,7 +50,11 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 	case "alloc.Shared.get":
 		return m.copy(a0.opaqueData().(*sharedCtrl).cell.inner)
 	case "alloc.Shared.set":
-		cell := a0.opaqueData().(*sharedCtrl).cell
+		c := a0.opaqueData().(*sharedCtrl)
+		if c.borrow != 0 {
+			m.abort("Shared is already borrowed")
+		}
+		cell := c.cell
 		old := cell.inner
 		cell.inner = retain(a1)
 		m.release(old)

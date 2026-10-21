@@ -25,7 +25,7 @@ fn i(x: Result[Int]) {} //~ ERROR `Result` takes 2 type arguments, 1 given
 
 fn j(x: Int[Bool]) {} //~ ERROR `Int` takes no type arguments
 
-fn k(x: &Int) -> &Int { //~ ERROR a returned borrow needs a lifetime
+fn k(x: &Int, y: &Int) -> &Int { //~ ERROR a returned borrow needs a lifetime
     x
 }
 
@@ -76,11 +76,11 @@ error[E219]: `Int` takes no type arguments
    |         ^^^^^^^^
 
 error[E1016]: a returned borrow needs a lifetime
-  --> app/t/t.kg:27:18
+  --> app/t/t.kg:27:27
    |
-27 | fn k(x: &Int) -> &Int { //~ ERROR a returned borrow needs a lifetime
-   |                  ^^^^
-   = help: annotate `&'a` here, or give the function exactly one `&'a` parameter to elide it
+27 | fn k(x: &Int, y: &Int) -> &Int { //~ ERROR a returned borrow needs a lifetime
+   |                           ^^^^
+   = help: annotate `&'a` here, or give the function exactly one reference parameter (the receiver counts first) to elide it
 
 error[E1017]: a field cannot hold a borrow without a lifetime
   --> app/t/t.kg:32:7

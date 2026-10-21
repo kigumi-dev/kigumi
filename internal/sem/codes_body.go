@@ -108,7 +108,7 @@ var (
 	cNamedArgOnFnValue    = defineCode("E1014", "named-arg-fn-value", "a `fn` value has no parameter names; call it positionally")
 
 	// Named lifetimes.
-	cLifetimeReturnAnnot = defineCode("E1016", "lifetime-return-annotation", "a returned borrow needs a lifetime; annotate `&'a` here, or give the function exactly one `&'a` parameter to elide it")
+	cLifetimeReturnAnnot = defineCode("E1016", "lifetime-return-annotation", "a returned borrow needs a lifetime; annotate `&'a` here, or give the function exactly one reference parameter (the receiver counts first) to elide it")
 	cLifetimeFieldAnnot  = defineCode("E1017", "lifetime-field-annotation", "a field cannot hold a borrow without a lifetime; add a lifetime parameter to this type, `['a]`, and write `&'a`")
 	cLifetimeArgKind     = defineCode("E1018", "lifetime-arg-kind", "`{name}` expects {want} argument here, not {got}")
 	cLifetimeUnresolved  = defineCode("E1019", "lifetime-unresolved", "undefined lifetime `{name}`")

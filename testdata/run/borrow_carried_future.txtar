@@ -1,0 +1,119 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub mut id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+async fn bump(r: &mut Res) -> Int {
+    r.id += 1
+    r.id
+}
+
+async fn show(r: &Res) -> Int {
+    r.id
+}
+
+fn consumeThenNext() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 100 }
+    let mut s = 0
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    for f in fs {
+        s += ex.runToCompletion(f)
+    }
+    let mut gs = Array.empty[Future[Int]]()
+    gs.push(bump(&mut x))
+    for g in gs {
+        s += ex.runToCompletion(g)
+    }
+    x.id = 1
+    s + x.id
+}
+
+fn freshPerIteration() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 200 }
+    let mut s = 0
+    let mut i = 0
+    for i < 3 {
+        let mut fs = Array.empty[Future[Int]]()
+        fs.push(bump(&mut x))
+        for f in fs {
+            s += ex.runToCompletion(f)
+        }
+        i += 1
+    }
+    s
+}
+
+fn reassigned() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = Res { id: 300 }
+    let mut s = 0
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    if fs.takeAt(0) is Some(f) {
+        s += ex.runToCompletion(f)
+    }
+    fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    for f in fs {
+        s += ex.runToCompletion(f)
+    }
+    s
+}
+
+async fn oneAtATime() -> Int {
+    let mut x = Res { id: 400 }
+    let mut s = 0
+    let mut i = 0
+    for i < 2 {
+        let next = {
+            let mut fs = Array.empty[Future[Int]]()
+            fs.push(bump(&mut x))
+            fs.takeAt(0)
+        }
+        if next is Some(f) {
+            s += await f
+        }
+        i += 1
+    }
+    s
+}
+
+fn sharedFutures() -> Int {
+    let ex = task.currentThreadExecutor()
+    let x = Res { id: 7 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(show(&x))
+    fs.push(show(&x))
+    let mut s = 0
+    for f in fs {
+        s += ex.runToCompletion(f)
+    }
+    s
+}
+
+print "consume ${consumeThenNext()}"
+print "fresh ${freshPerIteration()}"
+print "reassigned ${reassigned()}"
+let ex = task.currentThreadExecutor()
+print "async ${ex.runToCompletion(oneAtATime())}"
+print "shared ${sharedFutures()}"
+-- stdout --
+drop 1
+consume 204
+drop 203
+fresh 606
+drop 302
+reassigned 603
+drop 402
+async 803
+drop 7
+shared 14

@@ -1,0 +1,124 @@
+-- src --
+import task from std/task
+
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type E = A(r: R) | C
+
+type Cfg = {
+    pub mut name String
+    pub mut port Int
+}
+
+fn Cfg.portRef(self) -> &Int {
+    &self.port
+}
+
+fn nameOf(c: &Cfg) -> &String {
+    &c.name
+}
+
+async fn bump(r: &mut R) -> Int {
+    r.id += 1
+    r.id
+}
+
+fn idf(a: Future[Int]) -> Future[Int] {
+    a
+}
+
+fn isAssignInLoop() {
+    let mut o = Some(R { id: 1 })
+    for i in 0..2 {
+        if &o is Some(s) {
+            print "is ${s.id}"
+            o = None
+        }
+    }
+}
+
+fn isAssignAfterInLoop() {
+    let mut o = Some(R { id: 2 })
+    for i in 0..2 {
+        if &o is Some(s) {
+            print "is ${s.id}"
+        }
+        o = None
+    }
+}
+
+fn matchRefThenAssign() {
+    let mut e = A(R { id: 3 })
+    let r = &e
+    match r {
+        A(x) -> print "match ${x.id}"
+        C -> {}
+    }
+    e = C
+    print "assigned"
+}
+
+fn accessorThenWrite() {
+    let mut c = Cfg { name: "x", port: 1 }
+    let n = nameOf(&c)
+    print "name ${n}"
+    c.name = "y"
+    for i in 0..2 {
+        let p = c.portRef()
+        print "port ${p}"
+        c.port += 1
+    }
+    print "${c.name} ${c.port}"
+}
+
+fn passThroughAwaited() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = R { id: 10 }
+    let g = idf(bump(&mut x))
+    let n = ex.runToCompletion(g)
+    x.id += 5
+    n + x.id
+}
+
+fn sameFlag(ok: Bool) {
+    let mut v = Array.of("a")
+    let r = &v
+    if ok {
+        v.push("b")
+    }
+    if ok {
+        print "then ${v.len()}"
+    } else {
+        print "else ${r.len()}"
+    }
+}
+
+isAssignInLoop()
+isAssignAfterInLoop()
+matchRefThenAssign()
+accessorThenWrite()
+print "sum ${passThroughAwaited()}"
+sameFlag(true)
+sameFlag(false)
+-- stdout --
+is 1
+drop 1
+is 2
+drop 2
+match 3
+drop 3
+assigned
+name x
+port 1
+port 2
+y 3
+drop 16
+sum 27
+then 2
+else 1

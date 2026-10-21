@@ -28,7 +28,7 @@ error[E1016]: a returned borrow needs a lifetime
   |
 5 | fn pick['a](x: &'a Int, y: &'a Int) -> &Int { //~ ERROR a returned borrow needs a lifetime
   |                                        ^^^^
-  = help: annotate `&'a` here, or give the function exactly one `&'a` parameter to elide it
+  = help: annotate `&'a` here, or give the function exactly one reference parameter (the receiver counts first) to elide it
 
 error[E1017]: a field cannot hold a borrow without a lifetime
   --> app/t/t.kg:10:7

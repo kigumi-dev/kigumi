@@ -66,6 +66,7 @@ func (c *borrowCheck) fitsDeclared(b *borrowInfo, dst LocalID) bool {
 // callLifetimeSource matches the callee's return lifetime against its
 // receiver and params, which OpCall always lowers as args[0] and args[1:].
 func (c *borrowCheck) callLifetimeSource(in Inst) (*borrowInfo, bool) {
+	c.callNode = in.Node
 	if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
 		if b, ok := c.genericFlowSource(in, 0); ok {
 			return b, true
@@ -74,6 +75,9 @@ func (c *borrowCheck) callLifetimeSource(in Inst) (*borrowInfo, bool) {
 			return b, true
 		}
 		if b, ok := c.futureHandleSource(in); ok {
+			return b, true
+		}
+		if b, ok := c.carriedResultSource(in, 0); ok {
 			return b, true
 		}
 	}
@@ -104,8 +108,12 @@ func (c *borrowCheck) futureHandleSource(in Inst) (*borrowInfo, bool) {
 // callValueLifetimeSource handles OpCallValue: a witnessed interface requirement keeps
 // Ent and lowers args[0] as the witness; a closure or fn pointer always falls to rejectUntrackedResult.
 func (c *borrowCheck) callValueLifetimeSource(in Inst) (*borrowInfo, bool) {
+	c.callNode = in.Node
 	if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
 		if b, ok := c.entityLifetimeSource(in.Ent, c.p.R.Fn(in.Ent), in.Args, 1); ok {
+			return b, true
+		}
+		if b, ok := c.carriedResultSource(in, 1); ok {
 			return b, true
 		}
 	}
@@ -152,6 +160,9 @@ func (c *borrowCheck) entityLifetimeSource(ent sem.EntityID, info *sem.FnInfo, a
 				candidates = append(candidates, lifetimeCandidate{arg: recvIdx, callee: 0})
 				break
 			}
+		}
+		if info.SelfParam != 0 && c.p.R.Local(info.SelfParam).Lifetime == retLt {
+			candidates = append(candidates, lifetimeCandidate{arg: recvIdx, callee: 0, recv: info.Recv})
 		}
 	}
 	for i, prm := range info.Params {

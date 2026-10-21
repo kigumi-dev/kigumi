@@ -1,0 +1,177 @@
+-- module --
+stage: driver
+-- src --
+type Cfg = {
+    pub name String
+    pub port Int
+}
+
+type View['a] = {
+    pub data &'a Array[Int]
+    pub own Array[Int]
+}
+
+type Two['a, 'b] = {
+    pub x &'a Cfg
+    pub y &'b Cfg
+}
+
+fn local['a](c: &'a Cfg) -> &'a String {
+    let mine = Cfg { name: "m", port: 0 }
+    &mine.name
+}
+
+fn byValue['a](c: &'a Cfg, d: Cfg) -> &'a String {
+    &d.name
+}
+
+fn ownedField['a](v: &'a View['a]) -> &'a Int {
+    &v.own[0]
+}
+
+fn View['a].ownFirst(self) -> &'a Int {
+    &self.own[0]
+}
+
+fn otherLifetime['a, 'b](t: &'b Two['a, 'b]) -> &'a String {
+    &t.y.name
+}
+
+fn wrongParam['a, 'b](c: &'a Cfg, d: &'b Cfg) -> &'a String {
+    &d.name
+}
+
+fn callerMutates() {
+    let mut c = Cfg { name: "a", port: 1 }
+    let n = nameOf(&c)
+    c = Cfg { name: "b", port: 2 }
+    _ = n.len()
+}
+
+fn nameOf['a](c: &'a Cfg) -> &'a String {
+    &c.name
+}
+
+fn elidedLocal(c: &Cfg) -> &String {
+    let mine = Cfg { name: "m", port: 0 }
+    &mine.name
+}
+
+fn Cfg.nameRef(self) -> &String {
+    &self.name
+}
+
+fn receiverHeld() {
+    let mut c = Cfg { name: "a", port: 1 }
+    let n = c.nameRef()
+    c = Cfg { name: "b", port: 2 }
+    _ = n.len()
+}
+
+fn reborrowLocalAlias(c: &Cfg) -> &String {
+    let l = Cfg { name: "l", port: 0 }
+    let a = &l
+    &a.name
+}
+
+fn reborrowOtherLifetime['a, 'b](c: &'a Cfg, d: &'b Cfg) -> &'a String {
+    let a = d
+    &a.name
+}
+-- expect --
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:18:5
+   |
+18 |     &mine.name
+   |     ^^^^^^^^^^
+
+error[move-while-borrowed]: `mine` is still borrowed when its scope ends here
+  --> main.kg:17:9
+   |
+17 |     let mine = Cfg { name: "m", port: 0 }
+   |         ^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:22:5
+   |
+22 |     &d.name
+   |     ^^^^^^^
+
+error[move-while-borrowed]: `d` is still borrowed when its scope ends here
+  --> main.kg:21:28
+   |
+21 | fn byValue['a](c: &'a Cfg, d: Cfg) -> &'a String {
+   |                            ^^^^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:30:5
+   |
+30 |     &self.own[0]
+   |     ^^^^^^^^^^^
+
+error[E1041]: a borrow returned here cannot be traced to the declared lifetime; its source must carry the same `'a` as this function's own return
+  --> main.kg:34:5
+   |
+34 |     &t.y.name
+   |     ^^^^^^^^^
+
+error[E1041]: a borrow returned here cannot be traced to the declared lifetime; its source must carry the same `'a` as this function's own return
+  --> main.kg:38:5
+   |
+38 |     &d.name
+   |     ^^^^^^^
+
+error[E2198]: `c` is borrowed and cannot be mutated here
+  --> main.kg:44:5
+   |
+44 |     c = Cfg { name: "b", port: 2 }
+   |     ^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+  --> main.kg:44:5
+   |
+44 |     c = Cfg { name: "b", port: 2 }
+   |     ^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:54:5
+   |
+54 |     &mine.name
+   |     ^^^^^^^^^^
+
+error[move-while-borrowed]: `mine` is still borrowed when its scope ends here
+  --> main.kg:53:9
+   |
+53 |     let mine = Cfg { name: "m", port: 0 }
+   |         ^^^^
+
+error[E2198]: `c` is borrowed and cannot be mutated here
+  --> main.kg:64:5
+   |
+64 |     c = Cfg { name: "b", port: 2 }
+   |     ^
+
+error[move-while-borrowed]: `c` is borrowed and cannot be moved or dropped here
+  --> main.kg:64:5
+   |
+64 |     c = Cfg { name: "b", port: 2 }
+   |     ^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:71:5
+   |
+71 |     &a.name
+   |     ^^^^^^^
+
+error[move-while-borrowed]: `l` is still borrowed when its scope ends here
+  --> main.kg:69:9
+   |
+69 |     let l = Cfg { name: "l", port: 0 }
+   |         ^
+
+error[E1041]: a borrow returned here cannot be traced to the declared lifetime; its source must carry the same `'a` as this function's own return
+  --> main.kg:76:5
+   |
+76 |     &a.name
+   |     ^^^^^^^
+

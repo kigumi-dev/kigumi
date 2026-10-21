@@ -1,6 +1,10 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 func (p *Program) shareArgs(f *Func, in *Inst, st *rcState, out *[]Inst, w *shareFacts, at Point) []LocalID {
 	if len(in.Args) == 0 {
@@ -92,4 +96,21 @@ func (w *shareFacts) freshAlias(a, o LocalID, at Point) bool {
 		}
 	}
 	return v == o
+}
+
+func returned(f *Func, l LocalID) bool {
+	for _, b := range f.Blocks {
+		if b.Term.Op == TermReturn && len(b.Term.Args) > 0 && b.Term.Args[0] == l {
+			return true
+		}
+	}
+	return false
+}
+
+// countless reports whether l holds no count: a borrow, an alias of one, or a lent reference parameter.
+func (p *Program) countless(f *Func, st *rcState, l LocalID) bool {
+	if st.borrowed[l] || st.viaBorrow[l] {
+		return true
+	}
+	return !f.Locals[l].Cell && p.R.Types.Kind(f.Locals[l].Type) == sem.KRef && slices.Contains(f.Params, l)
 }

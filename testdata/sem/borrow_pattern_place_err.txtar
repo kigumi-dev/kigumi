@@ -1,0 +1,234 @@
+-- module --
+stage: driver
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    _ = self
+}
+
+type E = A(r: R) | C
+
+type W = {
+    pub mut items Array[Int]
+    pub mut tag Int
+}
+
+fn W.clear(mut self) {
+    self.items = Array.empty[Int]()
+}
+
+type Inner = {
+    pub mut r R
+}
+
+type Outer = {
+    pub mut inner Inner
+    pub mut n Int
+}
+
+fn E.reset(mut self) -> Int {
+    match &self {
+        A(r) -> {
+            self = C
+            r.id
+        }
+        C -> 0
+    }
+}
+
+fn touch(o: &mut Array[Int]?) {
+    o = None
+}
+
+fn matchShared() -> Int {
+    let mut e = A(R { id: 1 })
+    match &e {
+        A(r) -> {
+            e = C
+            r.id
+        }
+        C -> 0
+    }
+}
+
+fn matchMut() {
+    let mut o = Some(Array.of(1, 2, 3))
+    match &mut o {
+        Some(a) -> {
+            o = None
+            a.push(4)
+        }
+        None -> {}
+    }
+}
+
+fn letTuple() -> usize {
+    let mut t = (Array.of(1), Array.of(2))
+    let (a, b) = &t
+    t = (Array.of(3), Array.of(4))
+    a.len() + b.len()
+}
+
+fn letRecord() -> usize {
+    let mut w = W { items: Array.of(1), tag: 1 }
+    let W { items, tag } = &w
+    w.items = Array.of(2)
+    items.len()
+}
+
+fn letRecordMutSelf() -> usize {
+    let mut w = W { items: Array.of(1), tag: 1 }
+    let W { items, tag } = &w
+    w.clear()
+    items.len()
+}
+
+fn letRecordExclusive() -> usize {
+    let mut w = W { items: Array.of(1), tag: 1 }
+    let W { items, tag } = &mut w
+    let n = w.items.len()
+    items.push(2)
+    n
+}
+
+fn isShared() -> usize {
+    let mut o = Some(Array.of(1))
+    if &o is Some(s) {
+        o = None
+        return s.len()
+    }
+    0
+}
+
+fn letElse() -> usize {
+    let mut o = Some(Array.of(1))
+    let Some(s) = &o else {
+        return 0
+    }
+    o = None
+    s.len()
+}
+
+fn sharedThenMut() -> usize {
+    let mut o = Some(Array.of(1))
+    match &o {
+        Some(a) -> {
+            touch(&mut o)
+            a.len()
+        }
+        None -> 0
+    }
+}
+
+fn nested() -> Int {
+    let mut out = Outer { inner: Inner { r: R { id: 2 } }, n: 0 }
+    let Inner { r } = &out.inner
+    out.inner = Inner { r: R { id: 3 } }
+    r.id
+}
+-- expect --
+error[E2198]: `self` is borrowed and cannot be mutated here
+  --> main.kg:32:13
+   |
+32 |             self = C
+   |             ^^^^
+
+error[E2198]: `e` is borrowed and cannot be mutated here
+  --> main.kg:47:13
+   |
+47 |             e = C
+   |             ^
+
+error[move-while-borrowed]: `e` is borrowed and cannot be moved or dropped here
+  --> main.kg:47:13
+   |
+47 |             e = C
+   |             ^
+
+error[E2198]: `o` is exclusively borrowed and cannot be used here
+  --> main.kg:58:13
+   |
+58 |             o = None
+   |             ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+  --> main.kg:58:13
+   |
+58 |             o = None
+   |             ^
+
+error[E2198]: `t` is borrowed and cannot be mutated here
+  --> main.kg:68:5
+   |
+68 |     t = (Array.of(3), Array.of(4))
+   |     ^
+
+error[move-while-borrowed]: `t` is borrowed and cannot be moved or dropped here
+  --> main.kg:68:5
+   |
+68 |     t = (Array.of(3), Array.of(4))
+   |     ^
+
+error[E2198]: `w` is borrowed and cannot be mutated here
+  --> main.kg:75:5
+   |
+75 |     w.items = Array.of(2)
+   |     ^^^^^^^
+
+error[E2198]: `w` is borrowed and cannot be mutated here
+  --> main.kg:82:5
+   |
+82 |     w.clear()
+   |     ^
+
+error[E2198]: `w` is exclusively borrowed and cannot be used here
+  --> main.kg:89:13
+   |
+89 |     let n = w.items.len()
+   |             ^^^^^^^
+
+error[E2198]: `o` is borrowed and cannot be mutated here
+  --> main.kg:97:9
+   |
+97 |         o = None
+   |         ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+  --> main.kg:97:9
+   |
+97 |         o = None
+   |         ^
+
+error[E2198]: `o` is borrowed and cannot be mutated here
+   --> main.kg:108:5
+    |
+108 |     o = None
+    |     ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+   --> main.kg:108:5
+    |
+108 |     o = None
+    |     ^
+
+error[E2198]: `o` is borrowed and cannot be mutated here
+   --> main.kg:116:24
+    |
+116 |             touch(&mut o)
+    |                        ^
+
+error[E2198]: `o` is borrowed and cannot be mutated here
+   --> main.kg:116:19
+    |
+116 |             touch(&mut o)
+    |                   ^^^^^^
+
+error[E2198]: `out` is borrowed and cannot be mutated here
+   --> main.kg:126:5
+    |
+126 |     out.inner = Inner { r: R { id: 3 } }
+    |     ^^^^^^^^^
+

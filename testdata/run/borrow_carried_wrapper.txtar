@@ -1,0 +1,99 @@
+-- src --
+import task from std/task
+
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+async fn bump(x: &mut R) -> Int {
+    x.id += 1
+    x.id
+}
+
+type Wrap = {
+    pub f Future[Int]
+}
+
+type Either =
+    | Fut(Future[Int])
+    | Nothing
+
+fn wrap(f: Future[Int]) -> Wrap {
+    Wrap { f: f }
+}
+
+fn unwrap(w: Wrap) -> Future[Int] {
+    w.f
+}
+
+fn either(f: Future[Int]) -> Either {
+    Either.Fut(f)
+}
+
+fn go(f: Future[Int]) -> task.Task[Int] {
+    task.spawn(f)
+}
+
+fn describe(f: Future[Int]) -> String {
+    _ = f
+    "dropped unpolled"
+}
+
+fn wrappedThenWrite() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = R { id: 10 }
+    let w = wrap(bump(&mut x))
+    let n = ex.runToCompletion(unwrap(w))
+    x.id += 5
+    n + x.id
+}
+
+fn enumThenWrite() -> Int {
+    let ex = task.currentThreadExecutor()
+    let mut x = R { id: 20 }
+    let n = {
+        let e = either(bump(&mut x))
+        match e {
+            Fut(f) -> ex.runToCompletion(f),
+            Nothing -> 0,
+        }
+    }
+    x.id += 5
+    n + x.id
+}
+
+async fn taskThenWrite() -> Int {
+    let mut x = R { id: 30 }
+    let t = go(bump(&mut x))
+    let n = await t
+    x.id += 5
+    n + x.id
+}
+
+fn describeThenWrite() -> Int {
+    let mut x = R { id: 40 }
+    let s = describe(bump(&mut x))
+    x.id += 5
+    print s
+    x.id
+}
+
+print "wrapped ${wrappedThenWrite()}"
+print "enum ${enumThenWrite()}"
+let ex = task.currentThreadExecutor()
+print "task ${ex.runToCompletion(taskThenWrite())}"
+print "describe ${describeThenWrite()}"
+-- stdout --
+drop 16
+wrapped 27
+drop 26
+enum 47
+drop 36
+task 67
+dropped unpolled
+drop 45
+describe 45

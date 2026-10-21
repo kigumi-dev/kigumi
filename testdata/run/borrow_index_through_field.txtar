@@ -1,0 +1,85 @@
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type H = {
+    pub mut xs Array[R]
+    pub mut ys Array[R]
+}
+
+type O = {
+    pub mut h H
+}
+
+fn head(xs: &Array[R]) -> &R {
+    &xs[0]
+}
+
+fn mk(base: Int) -> H {
+    H { xs: Array.of(R { id: base + 1 }), ys: Array.of(R { id: base + 2 }) }
+}
+
+{
+    let mut h = mk(10)
+    let a = &h.xs[0]
+    print "after last use ${a.id}"
+    h.xs[0] = R { id: 13 }
+    print "now ${h.xs[0].id}"
+}
+{
+    let mut h = mk(20)
+    {
+        let a = head(&h.xs)
+        print "accessor in a block ${a.id}"
+    }
+    h.xs[0] = R { id: 23 }
+    print "now ${h.xs[0].id}"
+}
+{
+    let mut h = mk(30)
+    let a = &h.ys[0]
+    h.xs[0] = R { id: 33 }
+    print "sibling ${a.id} ${h.xs[0].id}"
+}
+{
+    let mut h = mk(40)
+    let a = head(&h.ys)
+    h.xs[0] = R { id: 43 }
+    print "sibling accessor ${a.id} ${h.xs[0].id}"
+}
+{
+    let mut o = O { h: mk(50) }
+    let a = head(&o.h.ys)
+    o.h.xs[0] = R { id: 53 }
+    print "nested sibling ${a.id} ${o.h.xs[0].id}"
+}
+print "end"
+-- stdout --
+after last use 11
+drop 11
+now 13
+drop 12
+drop 13
+accessor in a block 21
+drop 21
+now 23
+drop 22
+drop 23
+drop 31
+sibling 32 33
+drop 32
+drop 33
+drop 41
+sibling accessor 42 43
+drop 42
+drop 43
+drop 51
+nested sibling 52 53
+drop 52
+drop 53
+end

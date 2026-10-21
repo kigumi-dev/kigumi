@@ -25,13 +25,18 @@ type lifetimeCandidate struct {
 	arg      int
 	callee   int
 	contents bool
+	// recv is the receiver mode of an elided receiver lifetime, RecvNone otherwise.
+	recv sem.RecvKind
 }
 
 func (c *borrowCheck) candidateInfo(args []LocalID, cand lifetimeCandidate) (*borrowInfo, bool) {
 	if cand.arg >= len(args) {
 		return nil, false
 	}
-	return c.flowInfo(flowArg{arg: args[cand.arg], contents: cand.contents})
+	if b, ok := c.flowInfo(flowArg{arg: args[cand.arg], contents: cand.contents}); ok || cand.recv == sem.RecvNone {
+		return b, ok
+	}
+	return c.receiverPlaceInfo(args[cand.arg], cand.recv == sem.RecvMut)
 }
 
 // resolveLifetimeHolder drops candidates whose argument is a phantom lifetime

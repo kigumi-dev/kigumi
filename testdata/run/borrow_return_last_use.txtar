@@ -1,0 +1,98 @@
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type H = {
+    pub mut r R
+    pub mut n Int
+}
+
+fn rOf(h: &H) -> &R {
+    &h.r
+}
+
+fn H.rMut(mut self) -> &mut R {
+    &mut self.r
+}
+
+fn rMutOf(h: &mut H) -> &mut R {
+    &mut h.r
+}
+
+fn mkh(i: Int) -> H {
+    H { r: R { id: i }, n: i }
+}
+
+fn find(xs: &Array[H], k: Int) -> &H {
+    for x in xs {
+        if x.n == k {
+            return x
+        }
+    }
+    &xs[0]
+}
+
+fn fieldWritesAfterLastUse() {
+    let mut h = mkh(1)
+    {
+        let m = h.rMut()
+        m.id += 10
+        print "m=${m.id} n=${h.n}"
+        h.n += 1
+    }
+    let a = rOf(&h)
+    print "a=${a.id}"
+    h.n += 1
+    print "n=${h.n} r=${h.r.id}"
+    for i in 0..3 {
+        let b = rOf(&h)
+        print "b=${b.id}"
+        h.n += i
+    }
+    print "n=${h.n}"
+}
+
+fn loopReferences() {
+    let mut ys = Array.of(mkh(20), mkh(21))
+    for y in &ys {
+        print "ref ${rOf(y).id}"
+    }
+    for y in &mut ys {
+        let r = rMutOf(y)
+        r.id += 100
+        print "mut ${r.id}"
+        y.n += 1
+    }
+    {
+        let f = find(&ys, 22)
+        print "found ${f.r.id}"
+    }
+    ys.push(mkh(3))
+    print "len ${ys.len()}"
+}
+
+fieldWritesAfterLastUse()
+loopReferences()
+-- stdout --
+m=11 n=1
+a=11
+n=3 r=11
+b=11
+b=11
+b=11
+n=6
+drop 11
+ref 20
+ref 21
+mut 120
+mut 121
+found 121
+len 3
+drop 3
+drop 121
+drop 120

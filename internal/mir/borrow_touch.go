@@ -1,6 +1,8 @@
 package mir
 
 import (
+	"slices"
+
 	"kigumi/internal/diag"
 	"kigumi/internal/syntax"
 )
@@ -19,12 +21,20 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 		}
 	case OpSetField, OpFieldMove:
 		if root, p, ex, ok := c.projectionPlace(in.Args[0]); ok && root == owner {
-			return true, append(p, in.Index), ex
+			if ex {
+				p = append(p, in.Index)
+			}
+			return true, p, ex
 		}
 	case OpBorrow:
 		if root, p, ex, ok := c.projectionPlace(in.Args[0]); ok && root == owner {
 			return true, p, ex
 		}
+	case OpSetIndex:
+		if root, p, ex, ok := c.projectionPlace(in.Args[0]); ok && root == owner {
+			return true, p, ex
+		}
+		return touchesLocal(in, owner), nil, true
 	// Reading a lent receiver's write-back cell stands for the receiver
 	// itself, so a field chain through it resolves like a plain one.
 	case OpCellGet:
@@ -45,7 +55,7 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 			}
 		} else if c.takesPayload(in) {
 			if root, p, ex, ok := c.projectionPlace(c.definition(in.Args[0]).Args[0]); ok && root == owner {
-				if d := c.definition(in.Args[0]); d.Op == OpField {
+				if d := c.definition(in.Args[0]); d.Op == OpField && ex {
 					p = append(p, d.Index)
 				}
 				return true, p, ex
@@ -53,16 +63,13 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 		}
 		fallthrough
 	default:
-		if in.Dst == owner && in.Op != OpDrop {
-			return true, nil, true
-		}
-		for _, a := range in.Args {
-			if a == owner {
-				return true, nil, true
-			}
-		}
+		return touchesLocal(in, owner), nil, true
 	}
 	return false, nil, true
+}
+
+func touchesLocal(in Inst, l LocalID) bool {
+	return in.Dst == l && in.Op != OpDrop || slices.Contains(in.Args, l)
 }
 
 // reportKey dedups one diagnostic at one node; local is needed too since an unnamed

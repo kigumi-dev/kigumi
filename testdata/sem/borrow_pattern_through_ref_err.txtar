@@ -1,0 +1,190 @@
+-- module --
+stage: driver
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    _ = self
+}
+
+fn see(n: Int) -> Int {
+    n
+}
+
+fn seeName(s: &String) -> Bool {
+    s == "z"
+}
+
+type E = A(r: R) | C
+
+type W = {
+    pub mut items Array[R]
+    pub mut tag Int
+}
+
+fn W.clear(mut self) {
+    self.items = Array.empty[R]()
+}
+
+type Cfg = {
+    pub mut name String
+    pub mut port Int
+}
+
+fn matchRef() {
+    let mut e = A(R { id: 1 })
+    let r = &e
+    match r {
+        A(x) -> {
+            e = C
+            _ = see(x.id)
+        }
+        C -> {}
+    }
+}
+
+fn isRef() {
+    let mut e = A(R { id: 2 })
+    let r = &e
+    if r is A(x) {
+        e = C
+        _ = see(x.id)
+    }
+}
+
+fn recordMutRef() -> usize {
+    let mut w = W { items: Array.of(R { id: 3 }), tag: 0 }
+    let r = &mut w
+    match r {
+        W { items, tag } -> {
+            w.clear()
+            items.len()
+        }
+    }
+}
+
+fn fieldOfRef() {
+    let mut c = Cfg { name: "a", port: 1 }
+    let r = &c
+    let n = &r.name
+    c.name = "z"
+    _ = seeName(n)
+}
+
+fn isInLoopStillLive() {
+    let mut o = Some(R { id: 4 })
+    for i in 0..2 {
+        if &o is Some(s) {
+            o = None
+            _ = see(s.id)
+        }
+    }
+}
+
+fn flagReassigned(ok: Bool) {
+    let mut v = Array.of("a")
+    let r = &v
+    let mut go = ok
+    if go {
+        v.push("b")
+    }
+    go = !go
+    if go {
+        _ = see(1)
+    } else {
+        _ = r.len()
+    }
+}
+
+fn otherFlag(ok: Bool, other: Bool) {
+    let mut v = Array.of("a")
+    let r = &v
+    if ok {
+        v.push("b")
+    }
+    if other {
+        _ = see(1)
+    } else {
+        _ = r.len()
+    }
+}
+
+fn sameFlagSameSide(ok: Bool) {
+    let mut v = Array.of("a")
+    let r = &v
+    if ok {
+        v.push("b")
+    }
+    if ok {
+        _ = r.len()
+    }
+}
+-- expect --
+error[E2198]: `e` is borrowed and cannot be mutated here
+  --> main.kg:38:13
+   |
+38 |             e = C
+   |             ^
+
+error[move-while-borrowed]: `e` is borrowed and cannot be moved or dropped here
+  --> main.kg:38:13
+   |
+38 |             e = C
+   |             ^
+
+error[E2198]: `e` is borrowed and cannot be mutated here
+  --> main.kg:49:9
+   |
+49 |         e = C
+   |         ^
+
+error[move-while-borrowed]: `e` is borrowed and cannot be moved or dropped here
+  --> main.kg:49:9
+   |
+49 |         e = C
+   |         ^
+
+error[E2198]: `w` is exclusively borrowed and cannot be used here
+  --> main.kg:59:13
+   |
+59 |             w.clear()
+   |             ^
+
+error[E2198]: `c` is borrowed and cannot be mutated here
+  --> main.kg:69:5
+   |
+69 |     c.name = "z"
+   |     ^^^^^^
+
+error[E2198]: `o` is borrowed and cannot be mutated here
+  --> main.kg:77:13
+   |
+77 |             o = None
+   |             ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+  --> main.kg:77:13
+   |
+77 |             o = None
+   |             ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+  --> main.kg:88:9
+   |
+88 |         v.push("b")
+   |         ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:102:9
+    |
+102 |         v.push("b")
+    |         ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:115:9
+    |
+115 |         v.push("b")
+    |         ^
+

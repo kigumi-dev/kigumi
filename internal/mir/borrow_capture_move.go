@@ -73,7 +73,7 @@ func checkCapturedFieldMoves(p *Program, f *Func) {
 func sharedBy(moved capturedPlace, caps map[LocalID][]capturedPlace, live map[LocalID]bool) bool {
 	for l := range live {
 		for _, cp := range caps[l] {
-			if cp.root == moved.root && fieldPathsOverlap(cp.path, moved.path, true, true) {
+			if cp.root == moved.root && fieldPathsOverlap(cp.path, moved.path) {
 				return true
 			}
 		}

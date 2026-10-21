@@ -4147,6 +4147,40 @@
       ]
     },
     {
+      "id": "run/borrow_carried_future",
+      "kind": "run",
+      "path": "testdata/run/borrow_carried_future.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_carried_wrapper",
+      "kind": "run",
+      "path": "testdata/run/borrow_carried_wrapper.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_field_ownership",
       "kind": "run",
       "path": "testdata/run/borrow_field_ownership.txtar",
@@ -4181,9 +4215,145 @@
       ]
     },
     {
+      "id": "run/borrow_index_through_field",
+      "kind": "run",
+      "path": "testdata/run/borrow_index_through_field.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_join_count",
+      "kind": "run",
+      "path": "testdata/run/borrow_join_count.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_match",
       "kind": "run",
       "path": "testdata/run/borrow_match.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_pattern_field_payload",
+      "kind": "run",
+      "path": "testdata/run/borrow_pattern_field_payload.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_pattern_live_ranges",
+      "kind": "run",
+      "path": "testdata/run/borrow_pattern_live_ranges.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_pattern_place",
+      "kind": "run",
+      "path": "testdata/run/borrow_pattern_place.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_return_last_use",
+      "kind": "run",
+      "path": "testdata/run/borrow_return_last_use.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_return_named_alias",
+      "kind": "run",
+      "path": "testdata/run/borrow_return_named_alias.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_return_projection",
+      "kind": "run",
+      "path": "testdata/run/borrow_return_projection.txtar",
       "mode": [
         "vm",
         "native"
@@ -12977,6 +13147,48 @@
       ]
     },
     {
+      "id": "run/shared_set_in_with",
+      "kind": "run",
+      "path": "testdata/run/shared_set_in_with.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: Shared is already borrowed"
+      }
+    },
+    {
+      "id": "run/shared_set_while_borrowed",
+      "kind": "run",
+      "path": "testdata/run/shared_set_while_borrowed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: Shared is already borrowed"
+      }
+    },
+    {
       "id": "run/shared_variant_values",
       "kind": "run",
       "path": "testdata/run/shared_variant_values.txtar",
@@ -15101,9 +15313,42 @@
       ]
     },
     {
+      "id": "sem/borrow_carried_future_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_carried_future_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_carried_passthrough_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_carried_passthrough_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/borrow_in_existential_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_in_existential_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_index_through_field_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_index_through_field_err.txtar",
       "mode": [
         "check"
       ],
@@ -15145,9 +15390,64 @@
       ]
     },
     {
+      "id": "sem/borrow_pattern_field_payload_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_pattern_field_payload_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/borrow_pattern_ok",
       "kind": "sem",
       "path": "testdata/sem/borrow_pattern_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_pattern_place_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_pattern_place_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_pattern_through_ref_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_pattern_through_ref_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_return_pending_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_return_pending_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_return_projection_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_return_projection_err.txtar",
       "mode": [
         "check"
       ],

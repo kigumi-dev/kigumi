@@ -8,6 +8,13 @@ func (p *Program) unownedRefs(f *Func) []bool {
 	if f.unownedCached {
 		return f.unownedCache
 	}
+	out := p.lentRefs(f)
+	f.unownedCache, f.unownedCached = out, true
+	return out
+}
+
+// lentRefs computes unownedRefs without the cache, for a pass that runs between two Verify rounds.
+func (p *Program) lentRefs(f *Func) []bool {
 	out := make([]bool, len(f.Locals))
 	for _, prm := range f.Params {
 		out[prm] = p.R.Types.Kind(f.Locals[prm].Type) == sem.KRef
@@ -23,7 +30,6 @@ func (p *Program) unownedRefs(f *Func) []bool {
 			}
 		}
 	}
-	f.unownedCache, f.unownedCached = out, true
 	return out
 }
 

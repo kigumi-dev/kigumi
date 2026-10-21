@@ -45,7 +45,7 @@ func mergeInto(dst, src *borrowInfo) bool {
 }
 
 func (o ownerRef) same(p ownerRef) bool {
-	return o.owner == p.owner && o.mut == p.mut && o.exact == p.exact && o.view == p.view && slices.Equal(o.path, p.path)
+	return o.owner == p.owner && o.mut == p.mut && o.exact == p.exact && o.view == p.view && o.carried == p.carried && o.lifetime == p.lifetime && slices.Equal(o.path, p.path)
 }
 
 // sink is l's re-merged holder, created on first use from what l already holds.

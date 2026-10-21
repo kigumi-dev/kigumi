@@ -1,0 +1,140 @@
+-- module --
+stage: driver
+-- src --
+type R = resource {
+    pub mut id Int
+}
+
+fn R.drop(move self) {
+    _ = self
+}
+
+fn see(n: Int) -> Int {
+    n
+}
+
+type E = A(r: R) | B
+
+type S = {
+    pub mut cur R?
+    pub mut count Int
+    pub mut e E
+    pub mut items Array[R]
+}
+
+fn S.reset(mut self) {
+    self.count = 0
+}
+
+fn sameField(s: &mut S) -> Int {
+    match &s.cur {
+        Some(c) -> {
+            s.cur = None
+            c.id
+        }
+        None -> 0
+    }
+}
+
+fn mutOfSameField(s: &mut S) -> Int {
+    let Some(c) = &s.cur else {
+        return 0
+    }
+    let m = &mut s.cur
+    c.id
+}
+
+fn sameEnumField(s: &mut S) -> Int {
+    match &s.e {
+        A(r) -> {
+            s.e = B
+            r.id
+        }
+        B -> 0
+    }
+}
+
+fn mutSelfCall(s: &mut S) -> Int {
+    if (&s.cur) is Some(c) {
+        s.reset()
+        return c.id
+    }
+    0
+}
+
+fn S.readUnderMut(mut self) -> Int {
+    match &mut self.cur {
+        Some(c) -> {
+            let n = self.cur is Some(_)
+            c.id
+        }
+        None -> 0
+    }
+}
+
+fn pushUnderElement(s: &mut S) -> Int {
+    let r = &s.items[0]
+    s.items.push(R { id: 9 })
+    r.id
+}
+
+fn wholeAssign() {
+    let mut s = S { cur: Some(R { id: 1 }), count: 0, e: B, items: Array.empty[R]() }
+    match &s.cur {
+        Some(c) -> {
+            s.count += 1
+            s = S { cur: None, count: 0, e: B, items: Array.empty[R]() }
+            _ = see(c.id)
+        }
+        None -> {}
+    }
+}
+-- expect --
+error[E2198]: `s` is borrowed and cannot be mutated here
+  --> main.kg:29:13
+   |
+29 |             s.cur = None
+   |             ^^^^^
+
+error[E2198]: `s` is borrowed and cannot be mutated here
+  --> main.kg:40:13
+   |
+40 |     let m = &mut s.cur
+   |             ^^^^^^^^^^
+
+error[E2198]: `s` is borrowed and cannot be mutated here
+  --> main.kg:47:13
+   |
+47 |             s.e = B
+   |             ^^^
+
+error[E2198]: `s` is borrowed and cannot be mutated here
+  --> main.kg:56:9
+   |
+56 |         s.reset()
+   |         ^
+
+error[E2198]: `self` is exclusively borrowed and cannot be used here
+  --> main.kg:65:21
+   |
+65 |             let n = self.cur is Some(_)
+   |                     ^^^^^^^^
+
+error[E2198]: `s` is borrowed and cannot be mutated here
+  --> main.kg:74:5
+   |
+74 |     s.items.push(R { id: 9 })
+   |     ^^^^^^^
+
+error[E2198]: `s` is borrowed and cannot be mutated here
+  --> main.kg:83:13
+   |
+83 |             s = S { cur: None, count: 0, e: B, items: Array.empty[R]() }
+   |             ^
+
+error[move-while-borrowed]: `s` is borrowed and cannot be moved or dropped here
+  --> main.kg:83:13
+   |
+83 |             s = S { cur: None, count: 0, e: B, items: Array.empty[R]() }
+   |             ^
+

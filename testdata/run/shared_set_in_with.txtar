@@ -1,0 +1,25 @@
+-- src --
+import {Shared} from std/alloc
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+let s = Shared.new(Res { id: 1 })
+let t = s.clone()
+s.with((a: &Res) => {
+    print "with id=${a.id}"
+    t.set(Res { id: 2 })
+    print "id=${a.id}"
+})
+print "unreachable"
+-- stdout --
+with id=1
+-- stderr --
+panic: Shared is already borrowed
+-- exit --
+2

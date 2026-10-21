@@ -61,6 +61,7 @@ type builder struct {
 	cancelled *cancelPath
 	// unowned tracks which locals hold no count of their own: a borrow, or anything that only forwards one.
 	unowned map[LocalID]bool
+	joins   map[LocalID][]joinArm
 	body    *hir.Block
 	ghosts  []pendingGhost
 	full    fullState
@@ -159,6 +160,7 @@ func (b *builder) assign(dst, src LocalID) {
 		return
 	}
 	b.emit(Inst{Op: OpCopy, Dst: dst, Args: []LocalID{src}})
+	b.noteJoinArm(dst)
 }
 
 // returnValue ends the function with v; the caller has unwound scopes.

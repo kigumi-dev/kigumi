@@ -23,15 +23,15 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         716,
-	"rt_retain":        4701,
-	"rt_release":       52132,
-	"rt_release_outer": 19371,
-	"rt_drop":          30942,
-	"rt_cell_init":     3216,
-	"rt_cell_take":     1274,
-	"rt_setfield_swap": 286,
-	"rt_setindex_swap": 67,
+	"fixtures":         728,
+	"rt_retain":        4760,
+	"rt_release":       52258,
+	"rt_release_outer": 20130,
+	"rt_drop":          30953,
+	"rt_cell_init":     3236,
+	"rt_cell_take":     1278,
+	"rt_setfield_swap": 313,
+	"rt_setindex_swap": 72,
 }
 
 // The same call sites over the fixtures that existed before the retain / release elimination and the lent receivers,
@@ -237,6 +237,18 @@ var addedAfterBaseline = map[string]bool{
 	"to_float_callback.txtar":                       true,
 	"method_value_owned_receiver.txtar":             true,
 	"async_task_panic_owned_method_value.txtar":     true,
+	"borrow_pattern_place.txtar":                    true,
+	"borrow_carried_future.txtar":                   true,
+	"borrow_return_projection.txtar":                true,
+	"shared_set_while_borrowed.txtar":               true,
+	"shared_set_in_with.txtar":                      true,
+	"borrow_pattern_live_ranges.txtar":              true,
+	"borrow_pattern_field_payload.txtar":            true,
+	"borrow_return_named_alias.txtar":               true,
+	"borrow_return_last_use.txtar":                  true,
+	"borrow_join_count.txtar":                       true,
+	"borrow_index_through_field.txtar":              true,
+	"borrow_carried_wrapper.txtar":                  true,
 }
 
 func TestRCCallCounts(t *testing.T) {
