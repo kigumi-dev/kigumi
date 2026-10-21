@@ -29,6 +29,10 @@ func (c *checker) merge(nodes []syntax.NodeID, types []TypeID) TypeID {
 		if t == TyNever || t == TyPoison {
 			continue
 		}
+		if tt.ContainsVar(t) && !c.vars.pendingLiteral(t) && c.vars.unifiable(t, best) {
+			c.vars.unify(t, best)
+			t = c.vars.resolve(t)
+		}
 		steps, ok := c.coerceSteps(nodes[i], t, best)
 		if !ok || !optionOnly(steps) {
 			if !c.closureMismatch(nodes[i], cBranchTypeMismatch, best, t) {

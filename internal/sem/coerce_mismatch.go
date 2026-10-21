@@ -44,6 +44,10 @@ func (c *checker) mismatch(n syntax.NodeID, want, got TypeID) {
 		}
 	}
 	if tt.Kind(want) == KIface && tt.Node(want).Ent == tt.errorEnt {
+		if tt.Kind(got) == KParam && c.paramHasIface(got, want) {
+			c.errAt(n, cErrorParamBox, got)
+			return
+		}
 		c.errAt(n, cErrorNotConform, got)
 		return
 	}

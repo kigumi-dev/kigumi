@@ -1,0 +1,36 @@
+-- src --
+type Cfg = {
+    pub name String
+    pub n Int
+    pub mut m Int
+}
+
+fn mk() -> Cfg {
+    Cfg { name: "hello", n: 3, m: 4 }
+}
+
+static mut cfg: Cfg = comptime mk()
+
+fn main() {
+    unsafe {
+        cfg.n = 7 //~ ERROR field `n` is immutable
+        cfg.m = 8
+        cfg.m += 1
+        cfg.n += 1 //~ ERROR field `n` is immutable
+    }
+}
+-- expect --
+error[E702]: field `n` is immutable
+  --> main/main.kg:15:9
+   |
+15 |         cfg.n = 7 //~ ERROR field `n` is immutable
+   |         ^^^^^
+   = help: declare `mut n`
+
+error[E702]: field `n` is immutable
+  --> main/main.kg:18:9
+   |
+18 |         cfg.n += 1 //~ ERROR field `n` is immutable
+   |         ^^^^^
+   = help: declare `mut n`
+

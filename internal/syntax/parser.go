@@ -50,25 +50,6 @@ func (p *parser) atIdent(name string) bool {
 	return p.at(token.Ident) && p.text() == name
 }
 
-// peek returns the kind at offset n from the current token, skipping nothing.
-func (p *parser) peek(n int) token.Kind {
-	i := int(p.pos) + n
-	if i >= len(p.toks) {
-		return token.EOF
-	}
-	return p.toks[i].Kind
-}
-
-// peekPastNewlines returns the kind of the next token that is not a newline.
-func (p *parser) peekPastNewlines() token.Kind {
-	for i := p.pos + 1; int(i) < len(p.toks); i++ {
-		if p.toks[i].Kind != token.Newline {
-			return p.toks[i].Kind
-		}
-	}
-	return token.EOF
-}
-
 func (p *parser) advance() uint32 {
 	i := p.pos
 	if !p.at(token.EOF) {

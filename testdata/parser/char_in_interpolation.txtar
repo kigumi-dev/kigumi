@@ -1,0 +1,48 @@
+-- src --
+print "${'"'}"
+print "a${'{'}b${'}'}c"
+print "${'\''}${'\\'}${'\u{41}'}"
+print "x${"y${'"'}"}z"
+print "${'a'}"
+-- expect --
+File
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "${'"'}"
+          List
+            CharLit '"'
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "a${'{'}b${'}'}c"
+          List
+            CharLit '{'
+            CharLit '}'
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "${'\''}${'\\'}${'\u{41}'}"
+          List
+            CharLit '\''
+            CharLit '\\'
+            CharLit '\u{41}'
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "x${"y${'"'}"}z"
+          List
+            StringLit "y${'"'}"
+              List
+                CharLit '"'
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        StringLit "${'a'}"
+          List
+            CharLit 'a'

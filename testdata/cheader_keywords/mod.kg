@@ -1,0 +1,9 @@
+Module {
+    name: "cheader-keywords"
+    kigumi: "0.1"
+}
+
+Header {
+    path: "kw.h"
+    package: "kw"
+}

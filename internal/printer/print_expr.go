@@ -164,6 +164,7 @@ func (p *printer) member(name syntax.TokenRef, dot string) {
 			p.indent++
 			p.chain = true
 		}
+		p.flushComments(uint32(nameTok - 1))
 	}
 	p.write(dot + name.Text())
 }

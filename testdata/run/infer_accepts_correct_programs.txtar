@@ -1,0 +1,143 @@
+-- src --
+type G[T] = {
+    pub v T
+    pub w Int
+}
+
+type H = resource {
+    pub id Int
+}
+
+fn H.drop(move self) {}
+
+fn H.get(self) -> Int {
+    self.id
+}
+
+fn H.label(self) -> String {
+    "h${self.id}"
+}
+
+const K = 5
+
+fn gen(n: Int) -> Array[Int] {
+    Array.of(n, n + 1)
+}
+
+fn wrap1[T](f: T) -> Option[T] {
+    Some(f)
+}
+
+fn probe(o: &H?) -> Int? {
+    o?.get()
+}
+
+fn probeCopy(o: &Int?) -> Float? {
+    o?.toFloat()
+}
+
+fn probeField(o: &H?) -> Int? {
+    o?.id
+}
+
+fn probeMut(o: &mut H?) -> String? {
+    o?.label()
+}
+
+for i in 0..3 {
+    for j in 0..i {
+        print "pair ${i} ${j}"
+    }
+}
+for q in 0..3 {
+    print "u8 ${q.toU8().unwrapOr(9)}"
+}
+
+let first = Array.of(1, 2)[0]
+let second = gen(5)[1]
+print "index ${first} ${second}"
+
+let g: i8 = -K
+let a: u8 = ~0
+let f = K.toFloat()
+print "unary ${g} ${a} ${f}"
+
+let h: Float = -K
+let h2: Float = -(5)
+let h3: Float = -(1 + 2)
+print "float ${h} ${h2} ${h3}"
+
+let src = G { v: 1, w: 2 }
+let copy: G[Int] = G { ..src }
+let again = G { ..src, w: 7 }
+print "spread ${copy.v} ${copy.w} ${again.w}"
+
+let empty = Array.empty[FixedArray[Int, 3]]()
+print "empty ${empty.len()}"
+
+let never = () => host.exit(9)
+print "never lambda"
+
+let mut n = 0
+let picked = for {
+    n += 1
+    if n == 2 {
+        break None
+    }
+    if n == 4 {
+        break Some("s")
+    }
+}
+print "break ${picked.unwrapOr("-")}"
+let later = for {
+    n += 1
+    if n == 6 {
+        break Some("t")
+    }
+    if n == 8 {
+        break None
+    }
+}
+print "break ${later.unwrapOr("-")}"
+
+let b: Option[fn(Int) -> Int] = wrap1((x) => x + 1)
+print "lambda ${b.unwrapOr((x) => x)(1)}"
+
+let early = (x: Int) => {
+    if x > 2 {
+        return
+    }
+    print "early ${x}"
+}
+early(1)
+early(5)
+
+let held = Some(H { id: 4 })
+print "chain ${probe(&held).unwrapOr(0)}"
+let nothing: H? = None
+print "chain ${probe(&nothing).unwrapOr(0)}"
+let three = Some(3)
+print "chain ${probeCopy(&three).unwrapOr(0.0)} ${probeField(&held).unwrapOr(0)}"
+let mut owner = Some(H { id: 7 })
+print "chain ${probeMut(&mut owner).unwrapOr("-")}"
+-- stdout --
+pair 1 0
+pair 2 0
+pair 2 1
+u8 0
+u8 1
+u8 2
+index 1 6
+unary -5 255 5
+float -5 -5 -3
+spread 1 2 7
+empty 0
+never lambda
+break -
+break t
+lambda 2
+early 1
+chain 4
+chain 0
+chain 3 4
+chain h7

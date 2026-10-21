@@ -111,6 +111,7 @@ func GenerateWith(full, baseline string, abi ABI, wide map[string]bool) (source 
 	opaque := map[string]bool{}
 	vals := map[string]cval{}
 	var opaques, records, aliases, fns, consts []item
+	taken := declaredNames(full)
 	var skip []string
 	var pendingMembers []int
 	for _, c := range splitTopLevel(full) {
@@ -118,7 +119,7 @@ func GenerateWith(full, baseline string, abi ABI, wide map[string]bool) (source 
 		if !ok || seen[k+" "+n] {
 			continue
 		}
-		it := classify(c, known, opaque, vals, abi)
+		it := renameKeyword(classify(c, known, opaque, vals, abi), taken)
 		if k == "const" && wide[n] && it.skip == "" {
 			it = item{name: n, skip: "wide string literal (L, u or U prefix); Kigumi has no wide string type"}
 		}

@@ -9,6 +9,8 @@ type OptChain struct {
 	Body  syntax.NodeID
 	Local EntityID
 	Elem  TypeID
+	// Through is set when Base is itself a borrow of the Option.
+	Through bool
 	// ByRef is set when Base is a place of a non-Copy payload: Local is then `&Elem` and Base stays in place.
 	ByRef bool
 }
@@ -37,7 +39,17 @@ func (c *checker) optChainRoot(n syntax.NodeID) syntax.NodeID {
 
 func (c *checker) synthOptChain(n, o syntax.NodeID) TypeID {
 	baseNode := c.t.View(o).AsOptMember().Base().ID()
-	base := c.vars.resolve(c.synthPlace(baseNode))
+	return c.optChainOn(n, o, c.vars.resolve(c.synthPlace(baseNode)))
+}
+
+func (c *checker) optChainOn(n, o syntax.NodeID, base TypeID) TypeID {
+	baseNode := c.t.View(o).AsOptMember().Base().ID()
+	through := false
+	if bn := c.r.Types.Node(base); bn.Kind == KRef {
+		if _, isOpt := c.r.Types.IsOption(c.vars.resolve(bn.Elem)); isOpt {
+			base, through = c.vars.resolve(bn.Elem), true
+		}
+	}
 	elem, ok := c.r.Types.IsOption(base)
 	if !ok {
 		if base != TyPoison {
@@ -45,7 +57,7 @@ func (c *checker) synthOptChain(n, o syntax.NodeID) TypeID {
 		}
 		return TyPoison
 	}
-	byRef := c.isPlace(baseNode) && !c.r.isCopy(elem)
+	byRef := through || c.isPlace(baseNode) && !c.r.isCopy(elem)
 	holeType := elem
 	if byRef {
 		holeType = c.r.Types.Ref(elem, false)
@@ -89,7 +101,7 @@ func (c *checker) synthOptChain(n, o syntax.NodeID) TypeID {
 	if c.info.OptChains == nil {
 		c.info.OptChains = map[syntax.NodeID]*OptChain{}
 	}
-	c.info.OptChains[n] = &OptChain{Base: baseNode, Body: body, Local: local, Elem: elem, ByRef: byRef}
+	c.info.OptChains[n] = &OptChain{Base: baseNode, Body: body, Local: local, Elem: elem, ByRef: byRef, Through: through}
 	c.buildEdge(n, c.r.Types.Option(t))
 	return c.r.Types.Option(t)
 }

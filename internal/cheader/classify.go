@@ -18,12 +18,14 @@ type item struct {
 	// of enum members when they disagree with their enum's type.
 	scalar string
 	lit    string
+	// link is the C symbol of a function renamed for Kigumi.
+	link string
 }
 
 var reConstTyped = regexp.MustCompile(`^pub const (\w+): (\w+) = (.+);$`)
 var reConstBare = regexp.MustCompile(`(?s)^pub const (\w+) = (.+);$`)
 var reExternVar = regexp.MustCompile(`^pub extern var (\w+):`)
-var reExternFn = regexp.MustCompile(`(?s)^pub extern fn (\w+)\((.*)$`)
+var reExternFn = regexp.MustCompile(`(?s)^pub extern fn (\w+|@"[^"]+")\((.*)$`)
 var reBodiedFn = regexp.MustCompile(`^pub (?:inline )?fn (\w+)\(`)
 
 // classify turns one header-specific chunk into an item, consulting and
@@ -67,7 +69,7 @@ func declName(chunk string) string {
 
 func classifyFn(chunk string, known, opaque map[string]bool, abi ABI) item {
 	m := reExternFn.FindStringSubmatch(chunk)
-	name, rest := m[1], m[2]
+	name, rest := unquoteIdent(m[1]), m[2]
 	closeIdx := matchParen("("+rest, 0)
 	if closeIdx < 0 {
 		return item{name: name, skip: "malformed function declaration"}
@@ -118,10 +120,16 @@ func classifyFn(chunk string, known, opaque map[string]bool, abi ABI) item {
 	return item{kind: "fn", name: name, text: "fn " + name + "(" + strings.Join(params, ", ") + ") -> " + ret}
 }
 
-// sanitizeIdent escapes a Kigumi keyword used as a C parameter name (`type`,
-// `fn`, ...); zig's own translation already renames a Zig keyword the same
-// way, so this only guards Kigumi's smaller, different keyword set.
+// zig quotes a name that is a zig keyword as @"name".
+func unquoteIdent(name string) string {
+	if n, ok := strings.CutPrefix(name, `@"`); ok {
+		return strings.TrimSuffix(n, `"`)
+	}
+	return name
+}
+
 func sanitizeIdent(name string) string {
+	name = unquoteIdent(name)
 	if kigumiKeywords[name] {
 		return name + "_"
 	}

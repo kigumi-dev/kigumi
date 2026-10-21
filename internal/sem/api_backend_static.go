@@ -13,6 +13,13 @@ func (r *Result) StaticValueOf(id EntityID) (Literal, bool) {
 	if info.Owner == StaticExtern {
 		return Literal{}, false
 	}
+	if info.Thunk != 0 {
+		v, ok := r.Files[r.Entities[id].File].Literals[info.Init]
+		if !ok {
+			return Literal{}, false
+		}
+		return v.literal()
+	}
 	return info.Value.literal()
 }
 

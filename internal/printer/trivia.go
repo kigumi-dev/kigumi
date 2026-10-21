@@ -19,7 +19,11 @@ func newComments(t *syntax.Tree) *comments { return &comments{t: t} }
 
 // flushComments emits every not-yet-printed comment that appears before token
 // index limit, each on its own line.
-func (p *printer) flushComments(limit uint32) {
+func (p *printer) flushComments(limit uint32) { p.flushTrivia(limit, false) }
+
+func (p *printer) flushDocComments(limit uint32) { p.flushTrivia(limit, true) }
+
+func (p *printer) flushTrivia(limit uint32, docs bool) {
 	toks := p.t.Toks
 	for p.cm.next < len(toks) && uint32(p.cm.next) < limit {
 		tk := toks[p.cm.next]
@@ -28,7 +32,7 @@ func (p *printer) flushComments(limit uint32) {
 			p.cm.next = len(toks)
 			break
 		}
-		if !tk.Kind.IsTrivia() || tk.Kind == token.DocComment {
+		if !tk.Kind.IsTrivia() || tk.Kind == token.DocComment && !docs {
 			continue
 		}
 		if p.cm.next >= 2 && p.blankBefore(p.cm.next-1) {
@@ -40,6 +44,30 @@ func (p *printer) flushComments(limit uint32) {
 		if tk.Start == 0 && strings.HasPrefix(text, "#!") {
 			p.blank()
 		}
+	}
+}
+
+// Does nothing when another kind of comment is pending, so none is reordered.
+func (p *printer) inlineBlockComments(from uint32, kind token.Kind) {
+	toks := p.t.Toks
+	end := int(from)
+	for end < len(toks) && toks[end].Kind != kind {
+		end++
+	}
+	var found []token.Token
+	for i := p.cm.next; i < end; i++ {
+		switch toks[i].Kind {
+		case token.BlockComment:
+			found = append(found, toks[i])
+		case token.Comment, token.DocComment:
+			return
+		}
+	}
+	for _, tk := range found {
+		p.write(" " + tk.Text(p.t.File.Src))
+	}
+	if len(found) > 0 {
+		p.cm.next = end
 	}
 }
 

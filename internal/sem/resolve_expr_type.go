@@ -44,9 +44,20 @@ func (r *Result) exprAsTypeRef(f FileID, scope ScopeID, n syntax.NodeID) (Entity
 		if !ok {
 			return 0, nil, false
 		}
+		var params []EntityID
+		switch r.Entities[ent].Kind {
+		case EntType:
+			params = r.typeDecl(ent).Params
+		case EntAlias:
+			params = r.aliasParams[ent]
+		}
 		var args []TypeID
-		for a := range node.AsBracket().Args().IDs() {
-			args = append(args, r.exprAsType(f, scope, a))
+		for i, a := range node.AsBracket().Args().EnumerateIDs() {
+			if k := t.Kind(a); i >= len(params) && (k == syntax.IntLit || k == syntax.BoolLit) {
+				args = append(args, TyPoison)
+				continue
+			}
+			args = append(args, r.resolveExprGenericArg(f, scope, a, entAt(params, i)))
 		}
 		return ent, args, true
 	}

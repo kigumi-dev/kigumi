@@ -15,6 +15,12 @@ func (l *lowerer) record(n syntax.NodeID) *Expr {
 	out := l.node(n, Record)
 	out.Ent = call.Callee
 	set := make([]bool, len(info.Fields))
+	subst := map[sem.EntityID]sem.TypeID{}
+	for i, p := range info.Params {
+		if i < len(call.Inst) {
+			subst[p] = call.Inst[i]
+		}
+	}
 	for en := range l.t.View(n).AsRecordLit().Fields().Views() {
 		entry := en.ID()
 		value := l.entryValue(en)
@@ -39,7 +45,7 @@ func (l *lowerer) record(n syntax.NodeID) *Expr {
 			if sf == 0 {
 				continue
 			}
-			re.Fields = append(re.Fields, SpreadField{Index: i, SrcIndex: l.r.Field(sf).Index, Type: l.r.Entity(fld).Type})
+			re.Fields = append(re.Fields, SpreadField{Index: i, SrcIndex: l.r.Field(sf).Index, Type: l.r.Types.Subst(l.r.Entity(fld).Type, subst)})
 			set[i] = true
 		}
 		out.Entries = append(out.Entries, re)

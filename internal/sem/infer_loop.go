@@ -10,6 +10,8 @@ import (
 type loopBreaks struct {
 	nodes []syntax.NodeID
 	types []TypeID
+	// bareNone are typed against the other breaks once the loop ends.
+	bareNone []syntax.NodeID
 }
 
 func (c *checker) synthFor(n syntax.NodeID) TypeID {
@@ -65,6 +67,9 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 		}
 		return TyUnit
 	}
+	if len(mine.bareNone) > 0 {
+		return c.mergeBareNone(mine)
+	}
 	if len(mine.types) > 0 {
 		c.noteLoopValues(n, mine.nodes)
 		return c.merge(mine.nodes, mine.types)
@@ -106,8 +111,11 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 		c.errAt(n, cCleanupControlFlow, "`return`")
 	}
 	if !ret.Value().Valid() {
-		if c.retType != TyUnit && c.retType != TyPoison && c.retType != c.r.unitResult() {
-			c.errAt(n, cReturnMissingValue, c.retType)
+		if c.lambdaRetUnknown() {
+			c.vars.unify(c.retType, TyUnit)
+		}
+		if rt := c.vars.resolve(c.retType); rt != TyUnit && rt != TyPoison && rt != c.r.unitResult() {
+			c.errAt(n, cReturnMissingValue, rt)
 		}
 		return TyNever
 	}
@@ -120,37 +128,6 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 	}
 	c.checkEscapeReturn(val)
 	c.consumeWhole(val)
-	return TyNever
-}
-
-func (c *checker) synthBreak(n syntax.NodeID) TypeID {
-	kw := c.t.View(n).Tok().Text()
-	if c.cleanup > 0 {
-		c.errAt(n, cCleanupControlFlow, "`"+kw+"`")
-	} else if c.loop == 0 {
-		c.errAt(n, cBreakOutsideLoop, kw)
-		return TyPoison
-	}
-	if kw == "break" {
-		c.brokeOut = true
-		val := c.t.View(n).AsBreak().Value().ID()
-		if val != 0 && c.cleanup == 0 {
-			c.reserveUse(val)
-		}
-		switch {
-		case c.breaks != nil:
-			t, node := TyUnit, n
-			if val != 0 {
-				t, node = c.synth(val), val
-			}
-			c.breaks.nodes = append(c.breaks.nodes, node)
-			c.breaks.types = append(c.breaks.types, t)
-		case val != 0:
-			c.synth(val)
-			c.errAt(n, cBreakValueLoopKind)
-		}
-	}
-	c.onceLeave(kw == "break")
 	return TyNever
 }
 

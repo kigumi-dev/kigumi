@@ -136,8 +136,8 @@ func (c *checker) spreadEntry(target EntityID, subst map[EntityID]TypeID, src sy
 		switch {
 		case !c.r.visibleFrom(c.r.Entities[sf].Vis, c.pkg):
 			c.errAt(src, cNotVisible, name, c.r.visText(c.r.Entities[sf].Vis), c.r.Packages[c.r.Entities[sf].Pkg].Path)
-		case got != want:
-			c.errAt(src, cSpreadFieldType, name, got, want)
+		case got != want && !c.vars.unify(want, got):
+			c.errAt(src, cSpreadFieldType, name, c.vars.resolve(got), c.vars.resolve(want))
 		}
 		given[fld] = true
 	}

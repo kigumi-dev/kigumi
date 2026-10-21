@@ -101,6 +101,9 @@ func (r *Result) constArgFromEntity(f FileID, n syntax.NodeID, ent EntityID, wan
 		}
 		return r.Types.Param(ent)
 	case EntConst:
+		if r.comptimeConstUse(f, n, ent) {
+			return TyPoison
+		}
 		v := r.evalConstDecl(ent)
 		if v.Kind != constInt && v.Kind != constBool {
 			r.errAt(f, n, cConstExprUnsupported)

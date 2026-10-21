@@ -39,6 +39,9 @@ func (r *Result) evalQualifiedConst(f FileID, n syntax.NodeID) (constValue, bool
 		r.errAt(f, n, cConstNotComptime, "`"+r.Entities[ent].Name+"`")
 		return constValue{}, false
 	}
+	if r.comptimeConstUse(f, n, ent) {
+		return constValue{}, false
+	}
 	v := r.evalConstDecl(ent)
 	return v, v.Kind != constNone
 }

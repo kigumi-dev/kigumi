@@ -1,0 +1,96 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) {}
+
+fn Handle.close(move self) {}
+
+fn step() -> Void! {}
+
+fn tailLoopBreak() -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    for {
+        break h
+    }
+}
+
+fn tailBlock() -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    {
+        h
+    }
+}
+
+fn letLoopBreak() -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    let v = for {
+        break h //~ ERROR `h` is reserved by a cleanup that consumes it
+    }
+    step()?
+    v
+}
+
+fn letBlock() -> Handle! {
+    let h = Handle { id: 1 }
+    defer(fail) { h.close() }
+    let v = {
+        h //~ ERROR `h` is reserved by a cleanup that consumes it
+    }
+    step()?
+    v
+}
+
+fn outerLoopFromCleanup() {
+    for i in 0..3 {
+        defer {
+            break //~ ERROR `break` is not allowed in a cleanup body
+        }
+    }
+}
+
+fn innerLoopInCleanup() {
+    defer {
+        for i in 0..3 {
+            if i == 1 {
+                continue
+            }
+            break
+        }
+    }
+}
+-- expect --
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main/main.kg:31:15
+   |
+31 |         break h //~ ERROR `h` is reserved by a cleanup that consumes it
+   |               ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> main/main.kg:29:5
+   |
+29 |     defer(fail) { h.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main/main.kg:41:9
+   |
+41 |         h //~ ERROR `h` is reserved by a cleanup that consumes it
+   |         ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> main/main.kg:39:5
+   |
+39 |     defer(fail) { h.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E715]: `break` is not allowed in a cleanup body
+  --> main/main.kg:50:13
+   |
+50 |             break //~ ERROR `break` is not allowed in a cleanup body
+   |             ^^^^^
+

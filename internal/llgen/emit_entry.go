@@ -28,6 +28,7 @@ func (e *emitter) mainWrapper() string {
 		return sb.String()
 	}
 	fmt.Fprintf(&sb, "  %%r = call ptr %s()\n", e.sym(e.p.Entry))
+	sb.WriteString("  call void @kg_fini_statics()\n")
 	exitDesc, ctxDesc, wrapped, code := e.exitDescriptors()
 	e.irb(&sb).CallAs("%c", rtExitCode, vptr("%r"), vptr(exitDesc), vptr(ctxDesc), vi64(wrapped), vi64(code))
 	sb.WriteString("  ret i32 %c\n}\n")

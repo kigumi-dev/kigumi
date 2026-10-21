@@ -37,7 +37,7 @@ func (e *emitter) cCall(sb *strings.Builder, callee string, sig sem.TypeID, args
 }
 
 func (e *emitter) declareForeign(ent sem.EntityID) string {
-	name := e.r.Entity(ent).Name
+	name := e.r.FnLinkNameOf(ent)
 	sn := e.r.Types.Node(e.r.Fn(ent).Sig)
 	var params []string
 	for _, pt := range sn.Args {

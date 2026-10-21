@@ -1,6 +1,9 @@
 package printer
 
-import "kigumi/internal/syntax"
+import (
+	"kigumi/internal/syntax"
+	"kigumi/internal/token"
+)
 
 func (p *printer) recordLit(id syntax.NodeID) {
 	r := p.t.View(id).AsRecordLit()
@@ -49,6 +52,7 @@ func (p *printer) tupleLit(id syntax.NodeID) {
 func (p *printer) lambda(id syntax.NodeID) {
 	l := p.t.View(id).AsLambda()
 	p.params(l.Params().ID())
+	p.inlineBlockComments(l.Tok().Index(), token.FatArrow)
 	p.write(" => ")
 	p.expr(l.Body().ID())
 }

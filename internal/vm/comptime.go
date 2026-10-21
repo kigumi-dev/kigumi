@@ -56,6 +56,11 @@ func EvalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, err
 		}
 		return lit, cerr
 	}
+	return m.literalOf(v, cf.Type)
+}
+
+func (m *Machine) literalOf(v *obj, t sem.TypeID) (sem.Literal, error) {
+	v = deref(v)
 	switch v.k {
 	case kInt:
 		if is128(v.nkind()) {
@@ -72,8 +77,22 @@ func EvalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, err
 		return sem.Literal{Kind: sem.LitString, Str: string(v.str())}, nil
 	case kBytes:
 		return sem.Literal{Kind: sem.LitBytes, Str: string(v.str())}, nil
+	case kRecord:
+		fields := m.r.TypeDecl(m.typeEnt(t)).Fields
+		if len(fields) != len(v.fields) {
+			break
+		}
+		out := sem.Literal{Kind: sem.LitRecord}
+		for i, f := range fields {
+			fl, err := m.literalOf(v.fields[i], m.r.Entity(f).Type)
+			if err != nil {
+				return fl, err
+			}
+			out.Fields = append(out.Fields, fl)
+		}
+		return out, nil
 	}
-	return lit, fmt.Errorf("comptime value %s cannot be embedded as a literal", m.display(v))
+	return sem.Literal{}, fmt.Errorf("comptime value %s cannot be embedded as a literal", m.display(v))
 }
 
 // ComptimeError is a comptime block that failed to evaluate.

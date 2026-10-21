@@ -81,6 +81,12 @@ func (lx *lexer) scanInterpolation(pos int) (int, bool) {
 			if !ok {
 				return pos, false
 			}
+		case '\'':
+			if n := charLiteralLen(lx.src, pos, lx.end); n > 0 {
+				pos += n
+				continue
+			}
+			pos++
 		default:
 			pos++
 		}

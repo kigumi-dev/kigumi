@@ -70,7 +70,8 @@ func (p *parser) bracketFollowedByDot() bool {
 		case token.RBracket:
 			depth--
 			if depth == 0 {
-				return int(i)+1 < len(p.toks) && p.toks[i+1].Kind == token.Dot
+				j := p.nextSignificant(i + 1)
+				return int(j) < len(p.toks) && p.toks[j].Kind == token.Dot
 			}
 		case token.Newline, token.EOF, token.LBrace:
 			return false

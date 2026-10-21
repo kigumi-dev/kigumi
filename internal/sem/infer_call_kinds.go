@@ -75,8 +75,9 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 	if tt.Kind(recv) == KRef {
 		valueType = tt.Node(recv).Elem
 	}
+	recv, valueType = c.settlePendingReceiver(recv, valueType, name)
 	if tt.Kind(valueType) == KUntyped {
-		if lit := c.literalNode(base); isNumericLiteral(c.t, lit) {
+		if lit := c.literalNode(base); c.isConstLiteral(lit) {
 			if resolved, ok := c.resolveLiteralReceiver(valueType, name); ok {
 				if recv = c.adopt(lit, resolved); recv == TyPoison {
 					c.synthArgs(args)
@@ -185,7 +186,7 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 	case RecvMove:
 		if tt.Kind(recv) == KRef {
 			c.errAt(base, cMoveOutOfBorrow, tt.Node(recv).Elem)
-		} else if c.indexRooted(base) && !c.r.isCopy(recv) {
+		} else if c.indexRooted(base) && !c.copyNow(recv) {
 			c.errAtHelp(base, c.noCloneHelp(recv, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, recv)
 		} else {
 			c.consumeWhole(base)

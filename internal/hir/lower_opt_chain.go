@@ -10,6 +10,9 @@ import (
 func (l *lowerer) optChain(n syntax.NodeID, ch *sem.OptChain) *Expr {
 	tt := l.r.Types
 	baseType := l.typeOf(ch.Base)
+	if ch.Through {
+		baseType = tt.Node(baseType).Elem
+	}
 	var some, none sem.EntityID
 	for _, v := range l.r.TypeDecl(tt.OptionEnt()).Variants {
 		switch l.r.Entity(v).Name {
@@ -20,7 +23,7 @@ func (l *lowerer) optChain(n syntax.NodeID, ch *sem.OptChain) *Expr {
 		}
 	}
 	scrutinee := l.expr(ch.Base)
-	if ch.ByRef {
+	if ch.ByRef && !ch.Through {
 		borrow := l.node(n, Borrow)
 		borrow.Type, borrow.Args = tt.Ref(baseType, false), []*Expr{scrutinee}
 		scrutinee = borrow

@@ -109,6 +109,8 @@ type FnInfo struct {
 	CtxParam map[EntityID]EntityID
 	// DefaultOf is the declaration a hidden default thunk computes an argument for; DefaultParam names that parameter.
 	DefaultOf EntityID
+	// InitOf is the const or static this hidden function initializes.
+	InitOf EntityID
 	// DefaultTry marks a thunk that returns `T!` because its default expression uses `?`.
 	DefaultTry   bool
 	DefaultParam string
@@ -135,6 +137,7 @@ const (
 	constBytes
 	constBool
 	constChar
+	constRecord
 )
 
 // constValue holds a compile-time value; exactly one field is set per Kind.
@@ -145,6 +148,8 @@ type constValue struct {
 	Str   string
 	Bool  bool
 	Char  rune
+	// Fields are in declaration order.
+	Fields []constValue
 }
 
 const (
@@ -158,6 +163,8 @@ type ConstInfo struct {
 	Value    constValue
 	State    uint8
 	Metadata []MetaRef
+	// Thunk computes a `comptime` initializer; the value exists only after folding.
+	Thunk EntityID
 }
 
 type LocalInfo struct {

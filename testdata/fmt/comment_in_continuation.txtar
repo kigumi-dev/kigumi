@@ -1,0 +1,60 @@
+-- src --
+fn double(x: Int) -> Int {
+    x * 2
+}
+
+let piped = 4
+    // between operand and operator
+    |> double
+let both = true
+    // note
+    && false
+    // another
+    && true
+let last = Array.of(1, 2, 3)
+    // before the dot
+    .len()
+
+type Shape =
+    // first
+    | Circle(r: Float)
+    /// documented
+    | Rect(w: Float, h: Float)
+    // last
+    | Dot
+
+type R = resource /* before brace */ {
+    pub id Int
+}
+
+let f = (x: Int) /* before arrow */ => x
+-- expect --
+fn double(x: Int) -> Int {
+    x * 2
+}
+
+let piped = 4
+    // between operand and operator
+    |> double
+let both = true
+    // note
+    && false
+    // another
+    && true
+let last = Array.of(1, 2, 3)
+    // before the dot
+    .len()
+
+type Shape =
+    // first
+    | Circle(r: Float)
+    /// documented
+    | Rect(w: Float, h: Float)
+    // last
+    | Dot
+
+type R = resource /* before brace */ {
+    pub id Int
+}
+
+let f = (x: Int) /* before arrow */ => x

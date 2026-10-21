@@ -16,6 +16,9 @@ func render(opaques, records, aliases, fns, consts []item) string {
 			b.WriteString("\n")
 		}
 		for _, f := range fns {
+			if f.link != "" {
+				fmt.Fprintf(&b, "    @linkName(%q)\n", f.link)
+			}
 			fmt.Fprintf(&b, "    pub %s\n", f.text)
 		}
 		b.WriteString("}\n")

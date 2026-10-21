@@ -43,6 +43,13 @@ func (m *Machine) constant(in *mir.Inst) *obj {
 		return mkBytes([]byte(lit.Str))
 	case lit.Kind == sem.LitChar:
 		return mkChar(lit.Char)
+	case lit.Kind == sem.LitRecord:
+		ent := m.typeEnt(in.Type)
+		fields := make([]*obj, len(lit.Fields))
+		for i, f := range m.r.TypeDecl(ent).Fields {
+			fields[i] = m.constant(&mir.Inst{Lit: lit.Fields[i], Type: m.r.Entity(f).Type})
+		}
+		return mkRecord(ent, fields)
 	}
 	return unitObj
 }

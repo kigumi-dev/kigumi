@@ -40,7 +40,27 @@ func (e *emitter) staticGlobals() (decls, initFn string) {
 		}
 	}
 	init.WriteString("  ret void\n}\n\n")
+	init.WriteString(e.finiStatics())
 	return g.String(), init.String()
+}
+
+// kg_fini_statics releases the boxed statics at a clean exit, so a leak check sees only what the program left behind.
+func (e *emitter) finiStatics() string {
+	var sb strings.Builder
+	sb.WriteString("define void @kg_fini_statics() {\n")
+	for _, ent := range e.r.StaticEntities() {
+		if owner, _ := e.r.StaticOwnerOf(ent); owner != sem.StaticOwned {
+			continue
+		}
+		if _, direct := e.directStatic(ent); direct {
+			continue
+		}
+		v := e.newTmp()
+		fmt.Fprintf(&sb, "  %s = load ptr, ptr %s\n", v, e.globalSym(ent))
+		e.irb(&sb).Call(rtRelease, vptr(v))
+	}
+	sb.WriteString("  ret void\n}\n\n")
+	return sb.String()
 }
 
 func (e *emitter) loadGlobal(sb *strings.Builder, ent sem.EntityID) string {

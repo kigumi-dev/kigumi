@@ -1,0 +1,34 @@
+-- src --
+fn wrap[E: Error](e: E) -> Error {
+    e //~ ERROR `E` is a type parameter bounded by `Error`
+}
+
+type Bad = {
+    pub code Int
+}
+
+fn Bad.message(self) -> String {
+    "bad ${self.code}"
+}
+
+fn concrete(b: Bad) -> Error {
+    b
+}
+
+fn plain(n: Int) -> Error {
+    n //~ ERROR `Int` does not conform to `Error`
+}
+-- expect --
+error[E2230]: `E` is a type parameter bounded by `Error`, so its concrete type is not known here and it cannot become a dynamic `Error`
+ --> main/main.kg:2:5
+  |
+2 |     e //~ ERROR `E` is a type parameter bounded by `Error`
+  |     ^
+  = help: keep the type parameter in the signature, or convert the value where the type is concrete
+
+error[E425]: `Int` does not conform to `Error` (no `fn message(self) -> String`)
+  --> main/main.kg:18:5
+   |
+18 |     n //~ ERROR `Int` does not conform to `Error`
+   |     ^
+

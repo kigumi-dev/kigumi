@@ -1,0 +1,118 @@
+-- src --
+fn double(x: Int) -> Int { x * 2 }
+
+let piped = 4
+    // between operand and operator
+    |> double
+let both = true
+    // note
+    && false
+    /* block */
+    && true
+let last = Array.of(1, 2, 3)
+    // before the dot
+    .len()
+
+type Shape =
+    // first
+    | Circle(r: Float)
+    /// documented
+    | Rect(w: Float, h: Float)
+    // last
+    | Dot
+
+type Open =
+    /// leading doc
+    Left(Int)
+    // between
+    | Right
+
+type R = resource /* before brace */ {
+    pub id Int
+}
+
+let f = (x: Int) /* before arrow */ => x
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: double
+    generics: -
+    params: List
+      Param x
+        type: TypePath
+          Path Int
+    ret: TypePath
+      Path Int
+    body: Block
+      ExprStmt
+        Binary *
+          Ident x
+          IntLit 2
+  Let
+    pattern: PatBind piped
+    init: Binary |>
+      IntLit 4
+      Ident double
+  Let
+    pattern: PatBind both
+    init: Binary &&
+      Binary &&
+        BoolLit true
+        BoolLit false
+      BoolLit true
+  Let
+    pattern: PatBind last
+    init: Call
+      Member len
+        Call
+          Member of
+            Ident Array
+          List
+            IntLit 1
+            IntLit 2
+            IntLit 3
+      List
+  TypeDecl
+    name: Shape
+    body: AdtBody
+      Variant Circle
+        List
+          VariantField r named
+            TypePath
+              Path Float
+      Variant Rect
+        List
+          VariantField w named
+            TypePath
+              Path Float
+          VariantField h named
+            TypePath
+              Path Float
+      Variant Dot
+  TypeDecl
+    name: Open
+    body: AdtBody
+      Variant Left
+        List
+          VariantField Int
+            TypePath
+              Path Int
+      Variant Right
+  TypeDecl
+    name: R
+    body: ResourceBody
+      Field id
+        vis: Visibility
+        type: TypePath
+          Path Int
+  Let
+    pattern: PatBind f
+    init: Lambda
+      List
+        Param x
+          type: TypePath
+            Path Int
+      Ident x

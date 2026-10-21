@@ -1,10 +1,6 @@
 package sem
 
-import (
-	"math/big"
-
-	"kigumi/internal/syntax"
-)
+import "kigumi/internal/syntax"
 
 // Accessors for the back ends (mir, llgen): tables stay unexported
 // so the checker owns them, and readers go through here.
@@ -15,47 +11,6 @@ const (
 	FnCVariadic = fnCVariadic
 	FnCAbi      = fnCAbi
 )
-
-type LitKind uint8
-
-const (
-	LitInt LitKind = iota + 1
-	LitFloat
-	LitString
-	LitBool
-	LitChar
-	LitBytes
-)
-
-type Literal struct {
-	Kind  LitKind
-	Int   *big.Int
-	Float *big.Float
-	Str   string
-	Bool  bool
-	Char  rune
-}
-
-func (v constValue) literal() (Literal, bool) {
-	out := Literal{Int: v.Int, Float: v.Float, Str: v.Str, Bool: v.Bool, Char: v.Char}
-	switch v.Kind {
-	case constInt:
-		out.Kind = LitInt
-	case constFloat:
-		out.Kind = LitFloat
-	case constString:
-		out.Kind = LitString
-	case constBytes:
-		out.Kind = LitBytes
-	case constBool:
-		out.Kind = LitBool
-	case constChar:
-		out.Kind = LitChar
-	default:
-		return Literal{}, false
-	}
-	return out, true
-}
 
 // LiteralOf returns the folded value of a literal node.
 func (r *Result) LiteralOf(t *syntax.Tree, n syntax.NodeID) (Literal, bool) {

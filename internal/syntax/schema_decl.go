@@ -30,11 +30,11 @@ var declSchema = []kindSchema{
 	}},
 	{ConstDecl, "ConstDecl", layRec, "Kw", []slot{
 		otk("Doc"), olst("Attrs", set(Attr, UnsafeGuarantee)), och("Vis", set(Visibility)), tk("Name"),
-		och("Type", typeSet), ch("Value", exprSet),
+		och("Type", typeSet), ch("Value", exprSet), num("Thunk"),
 	}},
 	{StaticDecl, "StaticDecl", layRec, "Kw", []slot{
 		otk("Doc"), olst("Attrs", set(Attr, UnsafeGuarantee)), num("Flags"), och("Vis", set(Visibility)), tk("Name"),
-		och("Type", typeSet), och("Value", exprSet),
+		och("Type", typeSet), och("Value", exprSet), num("Thunk"),
 	}},
 	{ContextKeyDecl, "ContextKeyDecl", layRec, "Kw", []slot{
 		otk("Doc"), olst("Attrs", set(Attr, UnsafeGuarantee)), och("Vis", set(Visibility)), tk("Name"), och("Type", typeSet),

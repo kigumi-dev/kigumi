@@ -60,7 +60,7 @@ func (c *checker) shellInterps(n syntax.NodeID) {
 
 func (c *checker) synthComptime(n syntax.NodeID) TypeID {
 	inner := c.t.View(n).AsComptime().Body().ID()
-	if c.t.Kind(inner) == syntax.Block {
+	if !c.constShaped(inner) {
 		return c.synthComptimeBlock(n, inner)
 	}
 	v, ok := c.r.evalConst(c.f, inner)
@@ -72,6 +72,21 @@ func (c *checker) synthComptime(n syntax.NodeID) TypeID {
 		c.info.Literals[inner] = v
 	}
 	return c.setType(inner, c.r.untypedOf(v))
+}
+
+// Anything else runs in the comptime sandbox.
+func (c *checker) constShaped(n syntax.NodeID) bool {
+	switch v := c.t.View(n); v.Kind() {
+	case syntax.IntLit, syntax.FloatLit, syntax.BoolLit, syntax.CharLit, syntax.StringLit, syntax.ByteStringLit, syntax.Ident, syntax.MemberExpr:
+		return true
+	case syntax.Paren:
+		return c.constShaped(v.AsParen().Inner().ID())
+	case syntax.Unary:
+		return c.constShaped(v.AsUnary().Operand().ID())
+	case syntax.Binary:
+		return c.constShaped(v.AsBinary().Left().ID()) && c.constShaped(v.AsBinary().Right().ID())
+	}
+	return false
 }
 
 func (c *checker) synthAllocator(n syntax.NodeID, want TypeID) TypeID {
@@ -121,6 +136,11 @@ func (c *checker) synthContract(n syntax.NodeID, want TypeID) TypeID {
 func (c *checker) synthOptMember(n syntax.NodeID) TypeID {
 	member := c.t.View(n).AsOptMember()
 	base := c.vars.resolve(c.synthPlace(member.Base().ID()))
+	if bn := c.r.Types.Node(base); bn.Kind == KRef {
+		if _, isOpt := c.r.Types.IsOption(c.vars.resolve(bn.Elem)); isOpt {
+			return c.optChainOn(n, n, base)
+		}
+	}
 	elem, ok := c.r.Types.IsOption(base)
 	if !ok {
 		if base != TyPoison {

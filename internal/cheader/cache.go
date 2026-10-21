@@ -9,7 +9,7 @@ import (
 
 // formatVersion is folded into the cache key; bump it whenever Generate's
 // or the manifest's shape changes, so an old entry never masks a new one.
-const formatVersion = 10
+const formatVersion = 11
 
 // cacheKey hashes each closure member's content, not its path, so the same
 // bytes reached through a different checkout still hit.

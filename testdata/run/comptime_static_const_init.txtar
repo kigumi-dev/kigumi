@@ -1,0 +1,68 @@
+-- src --
+type Pt = {
+    pub mut x Int
+    pub y Int
+}
+
+type Cfg = {
+    pub name String
+    pub scale Float
+    pub at Pt
+    pub on Bool
+}
+
+fn square(n: Int) -> Int {
+    n * n
+}
+
+fn banner() -> String {
+    "ab${square(2)}"
+}
+
+fn small() -> u8 {
+    200
+}
+
+fn mkPt() -> Pt {
+    Pt { x: 1, y: 2 }
+}
+
+fn mkCfg() -> Cfg {
+    Cfg { name: "cfg", scale: 1.5, at: Pt { x: 3, y: 4 }, on: true }
+}
+
+static answer: Int = comptime square(12)
+static label: String = comptime banner()
+static low: u8 = comptime small()
+static origin: Pt = comptime mkPt()
+static cfg: Cfg = comptime mkCfg()
+static mut counter: Int = comptime square(3)
+static mut cursor: Pt = comptime mkPt()
+const limit: Int = comptime { square(5) + 1 }
+const title: String = comptime banner()
+const home: Pt = comptime mkPt()
+
+fn bump() -> Int {
+    unsafe {
+        counter += 1
+        cursor.x += 10
+        counter + cursor.x
+    }
+}
+
+fn total(p: Pt) -> Int {
+    p.x + p.y
+}
+
+print "${answer} ${label} ${low} ${limit} ${title}"
+print "${origin.x} ${origin.y} ${cfg.name} ${cfg.scale} ${cfg.at.y} ${cfg.on}"
+print "${total(home)} ${home.y} ${total(origin)}"
+print "${bump()} ${bump()}"
+let table = Array.of(limit, limit + 1)
+print "${table.len()} ${table[1]}"
+-- stdout --
+144 ab4 200 26 ab4
+1 2 cfg 1.5 4 true
+3 2 3
+21 32
+2 27

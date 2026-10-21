@@ -61,24 +61,26 @@ func ifaceDecl(t *syntax.Tree, n syntax.NodeID) ifaceSlots {
 type constSlots struct {
 	Doc, Name               uint32
 	Attrs, Vis, Type, Value syntax.NodeID
+	Thunk                   syntax.NodeID
 }
 
 func constDecl(t *syntax.Tree, n syntax.NodeID) constSlots {
 	d := t.View(n).AsConstDecl()
 	return constSlots{Doc: d.Doc().Index(), Attrs: d.Attrs().ID(), Vis: d.Vis().ID(), Name: d.Name().Index(),
-		Type: d.Type().ID(), Value: d.Value().ID()}
+		Type: d.Type().ID(), Value: d.Value().ID(), Thunk: syntax.NodeID(d.Thunk())}
 }
 
 type staticSlots struct {
 	Doc, Name               uint32
 	Flags                   uint32
 	Attrs, Vis, Type, Value syntax.NodeID
+	Thunk                   syntax.NodeID
 }
 
 func staticDecl(t *syntax.Tree, n syntax.NodeID) staticSlots {
 	d := t.View(n).AsStaticDecl()
 	return staticSlots{Doc: d.Doc().Index(), Attrs: d.Attrs().ID(), Flags: d.Flags(), Vis: d.Vis().ID(), Name: d.Name().Index(),
-		Type: d.Type().ID(), Value: d.Value().ID()}
+		Type: d.Type().ID(), Value: d.Value().ID(), Thunk: syntax.NodeID(d.Thunk())}
 }
 
 type contextKeyDeclSlots struct {

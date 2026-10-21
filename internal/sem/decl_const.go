@@ -29,9 +29,13 @@ func (r *Result) evalConstDecl(id EntityID) constValue {
 		e.Flags |= EfPoison
 		return constValue{}
 	}
-	info.State = constEvaluating
 	t := r.tree(e.File)
 	s := constDecl(t, e.Node)
+	if s.Thunk != 0 {
+		r.declareComptimeConst(id, s)
+		return constValue{}
+	}
+	info.State = constEvaluating
 	v, ok := r.evalConst(e.File, s.Value)
 	info = r.constInfo(id)
 	if !ok {
@@ -133,6 +137,9 @@ func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 		if r.Entities[ent].Kind != EntConst {
 			return fail("`" + r.Entities[ent].Name + "`")
 		}
+		if r.comptimeConstUse(f, n, ent) {
+			return constValue{}, false
+		}
 		v := r.evalConstDecl(ent)
 		return v, v.Kind != constNone
 	case syntax.MemberExpr:
@@ -153,6 +160,10 @@ func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 			return b, false
 		}
 		return r.constBinary(f, n, node.Tok().Kind(), a, b)
+	}
+	if node.Kind() == syntax.ComptimeExpr {
+		r.errAt(f, n, cComptimeInitUntyped)
+		return constValue{}, false
 	}
 	return fail("this expression")
 }

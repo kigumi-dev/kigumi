@@ -1,0 +1,104 @@
+-- src --
+fn square(n: Int) -> Int {
+    n * n
+}
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+fn mkPt() -> Pt {
+    Pt { x: 1, y: 2 }
+}
+
+const base: Int = comptime square(3)
+const next: Int = base + 1 //~ ERROR `base` is initialized by `comptime`
+const bare = comptime square(2) //~ ERROR a `comptime` initializer needs a type annotation
+const sum: Int = 1 + comptime square(2) //~ ERROR a `comptime` initializer needs a type annotation
+
+static origin: Pt = comptime mkPt()
+static other: Int = comptime { square(2) }
+
+fn mkOpt() -> Option[Int] {
+    Some(1)
+}
+
+const opt: Option[Int] = comptime mkOpt() //~ ERROR a comptime block must produce
+
+type Wrap = {
+    pub inner Pt
+}
+
+fn mkWrap() -> Wrap {
+    Wrap { inner: mkPt() }
+}
+
+const wrapped: Wrap = comptime mkWrap()
+
+fn use() -> Int {
+    let r = 0..base
+    base + origin.x + other + wrapped.inner.y
+}
+
+fn readsConst(x: Int) -> Int {
+    match x {
+        1 -> base
+        _ -> 0
+    }
+}
+
+const Top: Int = comptime square(3)
+
+fn matchesConst(x: Int) -> Int {
+    match x {
+        Top -> 1 //~ ERROR `Top` is initialized by `comptime`
+        _ -> 0
+    }
+}
+
+fn sized(a: FixedArray[Int, base]) -> Int { //~ ERROR `base` is initialized by `comptime`
+    1
+}
+-- expect --
+error[E2231]: `base` is initialized by `comptime`, so its value is not known where this needs it
+  --> main/main.kg:15:19
+   |
+15 | const next: Int = base + 1 //~ ERROR `base` is initialized by `comptime`
+   |                   ^^^^
+   = help: read it inside a function body instead
+
+error[E2232]: a `comptime` initializer needs a type annotation and must be the whole initializer, as in `const c: Int = comptime f()`
+  --> main/main.kg:16:14
+   |
+16 | const bare = comptime square(2) //~ ERROR a `comptime` initializer needs a type annotation
+   |              ^^^^^^^^^^^^^^^^^
+   = help: write `comptime (a + 1)` or `comptime { a + 1 }` for an expression
+
+error[E2232]: a `comptime` initializer needs a type annotation and must be the whole initializer, as in `const c: Int = comptime f()`
+  --> main/main.kg:17:22
+   |
+17 | const sum: Int = 1 + comptime square(2) //~ ERROR a `comptime` initializer needs a type annotation
+   |                      ^^^^^^^^^^^^^^^^^
+   = help: write `comptime (a + 1)` or `comptime { a + 1 }` for an expression
+
+error[E918]: a comptime block must produce a number, Bool, Char, String or Bytes, or as a const or static initializer a plain record of those, not `Int?`
+  --> main/main.kg:26:26
+   |
+26 | const opt: Option[Int] = comptime mkOpt() //~ ERROR a comptime block must produce
+   |                          ^^^^^^^^^^^^^^^
+
+error[E2231]: `Top` is initialized by `comptime`, so its value is not known where this needs it
+  --> main/main.kg:54:9
+   |
+54 |         Top -> 1 //~ ERROR `Top` is initialized by `comptime`
+   |         ^^^
+   = help: read it inside a function body instead
+
+error[E2231]: `base` is initialized by `comptime`, so its value is not known where this needs it
+  --> main/main.kg:59:29
+   |
+59 | fn sized(a: FixedArray[Int, base]) -> Int { //~ ERROR `base` is initialized by `comptime`
+   |                             ^^^^
+   = help: read it inside a function body instead
+

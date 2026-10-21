@@ -50,6 +50,9 @@ func (l *lowerer) ident(n syntax.NodeID) *Expr {
 		out.Ent = ent
 		return out
 	case sem.EntConst:
+		if th := l.r.ConstThunk(ent); th != 0 {
+			return l.thunkCall(n, th, e.Type)
+		}
 		out := l.node(n, Lit)
 		out.Lit, _ = l.r.ConstValueOf(ent)
 		if out.Type == 0 || l.r.Types.Kind(out.Type) == sem.KUntyped {
@@ -115,6 +118,9 @@ func (l *lowerer) member(n syntax.NodeID) *Expr {
 	case sem.EntFn:
 		return l.fnItem(n, ent)
 	case sem.EntConst:
+		if th := l.r.ConstThunk(ent); th != 0 {
+			return l.thunkCall(n, th, l.r.Entity(ent).Type)
+		}
 		out := l.node(n, Lit)
 		out.Lit, _ = l.r.ConstValueOf(ent)
 		return out
@@ -167,5 +173,11 @@ func (l *lowerer) fnItem(n syntax.NodeID, ent sem.EntityID) *Expr {
 	if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallFnItem {
 		out.Passes = call.Passes
 	}
+	return out
+}
+
+func (l *lowerer) thunkCall(n syntax.NodeID, thunk sem.EntityID, t sem.TypeID) *Expr {
+	out := l.node(n, Call)
+	out.Ent, out.Type = thunk, t
 	return out
 }

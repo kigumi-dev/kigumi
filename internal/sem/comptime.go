@@ -14,7 +14,7 @@ func (c *checker) synthComptimeBlock(n, inner syntax.NodeID) TypeID {
 	c.comptimeAt = len(c.lambdas) + 1
 	t := c.synth(inner)
 	c.comptimeAt = saved
-	if !c.literalType(t) {
+	if !c.literalType(t) && !c.initRecordType(t, 0) {
 		c.errAt(n, cComptimeResultType, c.r.TypeString(t))
 	}
 	block := c.t.Span(inner)
@@ -62,6 +62,10 @@ func (c *checker) walkNodes(n syntax.NodeID, f func(syntax.NodeID)) {
 
 // SetLiteral records the evaluated value of a comptime block.
 func (r *Result) SetLiteral(f FileID, n syntax.NodeID, v Literal) {
+	r.Files[f].Literals[n] = literalValue(v)
+}
+
+func literalValue(v Literal) constValue {
 	cv := constValue{Int: v.Int, Float: v.Float, Str: v.Str, Bool: v.Bool, Char: v.Char}
 	switch v.Kind {
 	case LitInt:
@@ -76,6 +80,33 @@ func (r *Result) SetLiteral(f FileID, n syntax.NodeID, v Literal) {
 		cv.Kind = constBool
 	case LitChar:
 		cv.Kind = constChar
+	case LitRecord:
+		cv.Kind = constRecord
+		for _, f := range v.Fields {
+			cv.Fields = append(cv.Fields, literalValue(f))
+		}
 	}
-	r.Files[f].Literals[n] = cv
+	return cv
+}
+
+// Only a const or static initializer may produce a record.
+func (c *checker) initRecordType(t TypeID, depth int) bool {
+	if c.fn == 0 || c.r.Fn(c.fn).InitOf == 0 || depth > 8 {
+		return false
+	}
+	n := c.r.Types.Node(t)
+	if n.Kind != KNamed || len(n.Args) > 0 {
+		return false
+	}
+	info := c.r.typeDecl(n.Ent)
+	if info.Form != FormRecord || len(info.Params) > 0 || len(info.Fields) == 0 {
+		return false
+	}
+	for _, f := range info.Fields {
+		ft := c.r.Entities[f].Type
+		if !c.literalType(ft) && !c.initRecordType(ft, depth+1) {
+			return false
+		}
+	}
+	return true
 }

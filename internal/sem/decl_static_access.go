@@ -39,6 +39,7 @@ func (c *checker) staticRootOf(n syntax.NodeID) (EntityID, bool) {
 func (c *checker) checkStaticAssign(lhs syntax.NodeID, ent EntityID) {
 	info := c.r.Static(ent)
 	if info.Mut {
+		c.checkStaticFieldMut(lhs)
 		return
 	}
 	name := c.r.Entities[ent].Name
@@ -47,4 +48,23 @@ func (c *checker) checkStaticAssign(lhs syntax.NodeID, ent EntityID) {
 		return
 	}
 	c.errAt(lhs, cStaticAssign, name)
+}
+
+// checkStaticFieldMut applies the per-field `mut` rule to a write through a static mut, which assignStmt does not route through isMutablePlace.
+func (c *checker) checkStaticFieldMut(lhs syntax.NodeID) {
+	for n := lhs; ; {
+		switch c.t.Kind(n) {
+		case syntax.Paren, syntax.BracketExpr:
+			n = c.t.View(n).Base().ID()
+			continue
+		case syntax.MemberExpr:
+			if fld := c.info.Uses[n]; fld != 0 && c.r.Entities[fld].Kind == EntField && c.r.Entities[fld].Flags&EfMut == 0 {
+				c.reportImmutableField(lhs, c.r.Entities[fld].Name)
+				return
+			}
+			n = c.t.View(n).Base().ID()
+			continue
+		}
+		return
+	}
 }

@@ -38,6 +38,11 @@ func (c *checker) rangeBoundValue(n syntax.NodeID, scrutinee TypeID) bool {
 			c.setType(n, TyPoison)
 			return false
 		}
+		if c.r.ConstThunk(ent) != 0 {
+			c.errAt(n, cComptimeConstUse, c.r.Entities[ent].Name)
+			c.setType(n, TyPoison)
+			return false
+		}
 	}
 	tt := c.r.Types
 	switch {

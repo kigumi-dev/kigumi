@@ -122,7 +122,8 @@ func (c *checker) lambdaBody(body syntax.NodeID, ret TypeID) TypeID {
 	entryFacts := c.snapshotFacts()
 	c.loop, c.cleanup, c.breaks = 0, 0, nil
 	tt := c.r.Types
-	if ret == 0 {
+	own := ret == 0
+	if own {
 		ret = c.vars.fresh(body, "return")
 	}
 	c.retType = ret
@@ -138,6 +139,8 @@ func (c *checker) lambdaBody(body syntax.NodeID, ret TypeID) TypeID {
 			c.vars.poison(ret)
 		} else if got != TyNever && !c.vars.unify(ret, got) {
 			c.mismatch(body, ret, got)
+		} else if got == TyNever && own && tt.Kind(c.vars.resolve(ret)) == KVar {
+			c.vars.unify(ret, TyNever)
 		}
 	}
 	c.checkEscapeTailReturn(body)

@@ -57,7 +57,7 @@ func (c *checker) indexValueResult(n syntax.NodeID, elem TypeID) TypeID {
 		delete(c.indexAsPlace, n)
 		return elem
 	}
-	if !c.r.isCopy(c.vars.resolve(elem)) {
+	if !c.copyNow(elem) {
 		c.errAtHelp(n, c.noCloneHelp(elem, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, elem)
 	}
 	return elem
@@ -66,7 +66,7 @@ func (c *checker) indexValueResult(n syntax.NodeID, elem TypeID) TypeID {
 // checkIndexFieldValue extends indexValueResult to a field read whose base is
 // (transitively) an index: `xs[i].field` is as untracked as `xs[i]` itself.
 func (c *checker) checkIndexFieldValue(n syntax.NodeID, t TypeID) TypeID {
-	if t == 0 || t == TyPoison || !c.indexRooted(n) || c.r.isCopy(c.vars.resolve(t)) {
+	if t == 0 || t == TyPoison || !c.indexRooted(n) || c.copyNow(t) {
 		return t
 	}
 	c.errAtHelp(n, c.noCloneHelp(t, "borrow it with `&`, or take it with `.takeAt`"), cIndexValueCopy, t)
@@ -191,4 +191,10 @@ func (c *checker) indexWitnessType(n, idx syntax.NodeID, recv, index TypeID) Typ
 	}
 	c.errAtHelp(idx, usizeHelp(TyUsize, index), cIndexType, index)
 	return TyPoison
+}
+
+// An open numeric literal variable settles to a scalar.
+func (c *checker) copyNow(t TypeID) bool {
+	t = c.vars.resolve(t)
+	return c.vars.pendingLiteral(t) || c.r.isCopy(t)
 }

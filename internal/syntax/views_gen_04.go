@@ -30,6 +30,7 @@ func (v ConstDeclView) Vis() VisibilityView { return v.at(v.rec(2)).AsVisibility
 func (v ConstDeclView) Name() TokenRef      { return v.tokRef(v.rec(3)) }
 func (v ConstDeclView) Type() TypeExprView  { return v.at(v.rec(4)).AsTypeExpr() }
 func (v ConstDeclView) Value() ExprView     { return v.at(v.rec(5)).AsExpr() }
+func (v ConstDeclView) Thunk() uint32       { return v.rec(6) }
 
 type StaticDeclView struct{ View }
 
@@ -42,6 +43,7 @@ func (v StaticDeclView) Vis() VisibilityView { return v.at(v.rec(3)).AsVisibilit
 func (v StaticDeclView) Name() TokenRef      { return v.tokRef(v.rec(4)) }
 func (v StaticDeclView) Type() TypeExprView  { return v.at(v.rec(5)).AsTypeExpr() }
 func (v StaticDeclView) Value() ExprView     { return v.at(v.rec(6)).AsExpr() }
+func (v StaticDeclView) Thunk() uint32       { return v.rec(7) }
 
 type ContextKeyDeclView struct{ View }
 

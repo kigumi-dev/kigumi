@@ -143,5 +143,8 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		}
 		return mkInt(lo.i+i, lo.nkind())
 	}
+	if name == "comptime" {
+		panic(&Unsupported{What: "reading a `comptime` value before its block is evaluated (declare it above the one that reads it)"})
+	}
 	panic(&Unsupported{What: "builtin " + name})
 }

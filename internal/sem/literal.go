@@ -141,3 +141,11 @@ func (c *checker) adopt(n syntax.NodeID, target TypeID) TypeID {
 func (c *checker) literalNode(n syntax.NodeID) syntax.NodeID {
 	return c.t.Unparen(n)
 }
+
+func (c *checker) isConstLiteral(n syntax.NodeID) bool {
+	if isNumericLiteral(c.t, n) {
+		return true
+	}
+	v, ok := c.info.Literals[n]
+	return ok && (v.Kind == constInt || v.Kind == constFloat)
+}

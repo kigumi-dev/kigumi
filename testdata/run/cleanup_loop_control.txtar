@@ -1,0 +1,51 @@
+-- src --
+type Handle = resource {
+    pub id Int
+}
+
+fn Handle.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Handle.close(move self) {
+    print "close ${self.id}"
+}
+
+fn work() {
+    defer {
+        let mut i = 0
+        for {
+            i += 1
+            if i == 2 {
+                continue
+            }
+            if i > 3 {
+                break
+            }
+            print "cleanup ${i}"
+        }
+    }
+    print "body"
+}
+
+fn viaBreak(id: Int) -> Handle! {
+    let h = Handle { id: id }
+    defer(fail) { h.close() }
+    for {
+        break h
+    }
+}
+
+work()
+match viaBreak(1) {
+    Ok(h) -> print "got ${h.id}"
+    Err(_) -> print "failed"
+}
+print "${'"'}${'{'}${'}'}"
+-- stdout --
+body
+cleanup 1
+cleanup 3
+got 1
+drop 1
+"{}

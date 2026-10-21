@@ -38,7 +38,7 @@ func (r *Result) DeclID(ent EntityID) DeclID {
 	case EntFn:
 		if of := r.Fn(ent).DefaultOf; of != 0 {
 			id.Sig = r.overloadSig(of)
-		} else {
+		} else if r.Fn(ent).InitOf == 0 {
 			id.Sig = r.overloadSig(ent)
 		}
 	case EntClosure:
@@ -59,6 +59,10 @@ func (r *Result) declPath(ent EntityID) (string, bool) {
 		if of := r.Fn(ent).DefaultOf; of != 0 {
 			path, ok := r.declPath(of)
 			return path + "$default." + r.Fn(ent).DefaultParam, ok
+		}
+		if of := r.Fn(ent).InitOf; of != 0 {
+			path, ok := r.declPath(of)
+			return path + "$init", ok
 		}
 		if owner := r.Fn(ent).Owner; owner != 0 {
 			return r.ownerPath(owner, e.Pkg) + "." + e.Name, true

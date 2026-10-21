@@ -97,6 +97,11 @@ func matchBrace(src []byte, pos, end int, out map[int]interpInfo) int {
 		case '"':
 			pos = skipString(src, pos, end, out)
 			continue
+		case '\'':
+			if n := charLiteralLen(src, pos, end); n > 0 {
+				pos += n
+				continue
+			}
 		}
 		pos++
 	}

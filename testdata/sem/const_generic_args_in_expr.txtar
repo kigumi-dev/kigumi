@@ -1,0 +1,18 @@
+-- src --
+let ok = Array.empty[FixedArray[Int, 3]]()
+let notGeneric = Array.empty[Int[3]]() //~ ERROR `Int` takes no type arguments
+let badArg = Array.empty[FixedArray[Int, "x"]]() //~ ERROR const generic arguments must be
+-- expect --
+error[E219]: `Int` takes no type arguments
+ --> main/main.kg:2:30
+  |
+2 | let notGeneric = Array.empty[Int[3]]() //~ ERROR `Int` takes no type arguments
+  |                              ^^^^^
+
+error[E1005]: const generic arguments must be a literal, a const declaration or another const parameter
+ --> main/main.kg:3:42
+  |
+3 | let badArg = Array.empty[FixedArray[Int, "x"]]() //~ ERROR const generic arguments must be
+  |                                          ^^^
+  = help: expressions like `N + 1` are not supported yet
+

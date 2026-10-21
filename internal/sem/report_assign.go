@@ -27,12 +27,7 @@ func (c *checker) reportImmutable(lhs syntax.NodeID) {
 			switch c.r.Entities[fld].Kind {
 			case EntField:
 				if fe := c.r.Entities[fld]; fe.Flags&EfMut == 0 {
-					fix, tok, file := c.assignImmutableFix(lhs)
-					if file != 0 && file == c.f && tok != 0 {
-						c.errFix(lhs, c.r.insertAt(c.f, tok, "Declare `mut "+fe.Name+"`", "mut "), cAssignImmutableField, fe.Name, fix)
-						return
-					}
-					c.errAt(lhs, cAssignImmutableField, fe.Name, fix)
+					c.reportImmutableField(lhs, fe.Name)
 					return
 				}
 				c.reportImmutable(node.Base().ID())
@@ -50,6 +45,15 @@ func (c *checker) reportImmutable(lhs syntax.NodeID) {
 		}
 	}
 	c.errAt(lhs, cAssignNotPlace)
+}
+
+func (c *checker) reportImmutableField(lhs syntax.NodeID, name string) {
+	fix, tok, file := c.assignImmutableFix(lhs)
+	if file != 0 && file == c.f && tok != 0 {
+		c.errFix(lhs, c.r.insertAt(c.f, tok, "Declare `mut "+name+"`", "mut "), cAssignImmutableField, name, fix)
+		return
+	}
+	c.errAt(lhs, cAssignImmutableField, name, fix)
 }
 
 // mirrors recvMutabilityFix (E515): an insert-before token is offered only for a single link.

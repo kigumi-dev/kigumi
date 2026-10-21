@@ -83,6 +83,7 @@ func (p *printer) opChain(b syntax.BinaryView) {
 	}
 	p.newline()
 	p.indent++
+	p.flushComments(b.Op().Index())
 	p.write(b.Op().Text() + " ")
 	p.indent--
 	p.expr(b.Right().ID())

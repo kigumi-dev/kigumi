@@ -104,7 +104,7 @@ func (c *checker) noFailureAfter(n, use syntax.NodeID) bool {
 	case syntax.Lambda:
 		return !c.within(use, n)
 	case syntax.ForExpr:
-		if c.within(use, n) {
+		if c.within(use, n) && !c.movedByBreak(n, use) {
 			return false
 		}
 	case syntax.TryExpr:
@@ -122,4 +122,33 @@ func (c *checker) noFailureAfter(n, use syntax.NodeID) bool {
 		}
 	}
 	return true
+}
+
+// A `break h` move runs once and the loop value is the exit.
+func (c *checker) movedByBreak(loop, use syntax.NodeID) bool {
+	var walk func(n syntax.NodeID) bool
+	walk = func(n syntax.NodeID) bool {
+		if !c.within(use, n) {
+			return false
+		}
+		switch c.t.Kind(n) {
+		case syntax.BreakExpr:
+			v := c.t.View(n).AsBreak().Value().ID()
+			return c.t.View(n).Tok().Text() == "break" && v != 0 && c.within(use, v)
+		case syntax.ForExpr, syntax.Lambda:
+			return false
+		}
+		for ch := range c.t.View(n).Children() {
+			if walk(ch.ID()) {
+				return true
+			}
+		}
+		return false
+	}
+	for ch := range c.t.View(loop).Children() {
+		if walk(ch.ID()) {
+			return true
+		}
+	}
+	return false
 }

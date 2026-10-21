@@ -24,7 +24,9 @@ func (p *printer) typeDecl(id syntax.NodeID) {
 	p.write(" =")
 	switch body.Kind() {
 	case syntax.ResourceBody:
-		p.write(" resource ")
+		p.write(" resource")
+		p.inlineBlockComments(body.Tok().Index(), token.LBrace)
+		p.write(" ")
 		p.fields(body.AsResourceBody().ListView)
 	case syntax.RecordBody:
 		p.write(" ")

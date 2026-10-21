@@ -97,10 +97,25 @@ func (c *checker) checkOperator(n syntax.NodeID, want TypeID) (TypeID, bool) {
 	switch {
 	case c.t.Kind(n) == syntax.Unary && isNumericLiteral(c.t, n), c.t.Kind(n) == syntax.Binary && c.t.View(n).Tok().Kind() == token.OrOr:
 		return c.setType(n, c.synthKind(n, want)), true
-	case c.t.Kind(n) == syntax.Binary && c.shiftChecked(n, want), c.negatedShift(n, want):
+	case c.t.Kind(n) == syntax.Binary && c.shiftChecked(n, want), c.negatedShift(n, want), c.numericUnary(n, want):
 		return c.coerce(n, c.setType(n, c.synthKind(n, want)), want), true
 	}
 	return 0, false
+}
+
+func (c *checker) numericUnary(n syntax.NodeID, want TypeID) bool {
+	if c.t.Kind(n) != syntax.Unary {
+		return false
+	}
+	tt := c.r.Types
+	w := c.vars.resolve(want)
+	switch c.t.View(n).Tok().Kind() {
+	case token.Minus:
+		return tt.IsInteger(w) || tt.IsFloat(w)
+	case token.Tilde:
+		return tt.IsInteger(w)
+	}
+	return false
 }
 
 func (c *checker) negatedShift(n syntax.NodeID, want TypeID) bool {

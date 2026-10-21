@@ -48,7 +48,7 @@ var (
 	cEntryStmtOutsideEntry   = defineCode("E915", "entry-stmt-outside-entry", "top-level statements are only allowed in the entry file")
 	cScriptLocalCapture      = defineCode("E916", "script-local-capture", "`{name}` is a script-local `let` of `main`; pass it as a parameter")
 	cUnsupportedAsync        = defineCode("E917", "unsupported-async", "async/await is not supported yet")
-	cComptimeResultType      = defineCode("E918", "comptime-result-type", "a comptime block must produce a number, Bool, Char, String or Bytes, not `{type}`")
+	cComptimeResultType      = defineCode("E918", "comptime-result-type", "a comptime block must produce a number, Bool, Char, String or Bytes, or as a const or static initializer a plain record of those, not `{type}`")
 	cCVariadicOutsideExtern  = defineCode("E922", "c-variadic-outside-extern", "a bare `...` parameter is C's variadic tail and belongs in an `extern(C)` block")
 	cExternBody              = defineCode("E923", "extern-body", "`{name}` is declared in an extern block and cannot have a body")
 	cAbiType                 = defineCode("E924", "abi-type", "`{type}` cannot cross the C ABI; use a fixed-width number, a raw pointer, a C function pointer or a `layout(C)` record")

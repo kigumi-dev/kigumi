@@ -41,6 +41,10 @@ func (r *Result) declareStatic(id EntityID) {
 	if typ != TyPoison && !r.staticInitializable(typ) {
 		r.errAt(e.File, s.Type, cStaticNotInitable, typ)
 	}
+	if s.Thunk != 0 {
+		info.Thunk, info.Init = r.newInitThunk(id, s.Thunk), s.Value
+		return
+	}
 	v, ok := r.evalConst(e.File, s.Value)
 	if !ok {
 		return

@@ -23,6 +23,6 @@ func (p *parser) staticDecl(pf prefix) NodeID {
 		value = p.expr()
 	}
 	return p.tree.addRec(StaticDecl, tok, []uint32{
-		pf.doc, uint32(p.attrList(pf)), flags, uint32(pf.vis), name, uint32(typ), uint32(value),
+		pf.doc, uint32(p.attrList(pf)), flags, uint32(pf.vis), name, uint32(typ), uint32(value), uint32(p.initThunk(name, typ, value)),
 	})
 }

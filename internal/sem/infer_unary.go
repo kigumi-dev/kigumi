@@ -19,7 +19,10 @@ func (c *checker) synthUnary(n syntax.NodeID, want TypeID) TypeID {
 		return TyPoison
 	}
 	if tt.Kind(operand) == KUntyped {
-		operand = c.adopt(c.literalNode(u.Operand().ID()), defaultOf(operand))
+		operand = c.adopt(c.literalNode(u.Operand().ID()), c.unaryLiteralTarget(operand, op, want))
+		if operand == TyPoison {
+			return TyPoison
+		}
 	}
 	switch op {
 	case token.Minus:
@@ -106,4 +109,15 @@ func (c *checker) unaryOperand(n syntax.NodeID, op token.Kind, want TypeID) Type
 		return c.setType(n, c.synthKind(n, ctx))
 	}
 	return c.synth(n)
+}
+
+func (c *checker) unaryLiteralTarget(operand TypeID, op token.Kind, want TypeID) TypeID {
+	tt := c.r.Types
+	w := c.vars.resolve(want)
+	switch {
+	case op == token.Tilde && operand != TyUntypedInt:
+	case operand == TyUntypedInt && tt.IsInteger(w), op == token.Minus && tt.IsFloat(w):
+		return w
+	}
+	return defaultOf(operand)
 }

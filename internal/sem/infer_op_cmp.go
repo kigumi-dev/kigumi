@@ -39,6 +39,14 @@ func (c *checker) synthRange(n syntax.NodeID, op token.Kind, lhs, rhs syntax.Nod
 		c.vars.notePending(i, c.literalNode(lhs))
 		c.vars.notePending(i, c.literalNode(rhs))
 		l, r = v, v
+	case lu && l == TyUntypedInt && c.pendingIntVar(r):
+		i, _ := c.vars.index(r)
+		c.vars.notePending(i, c.literalNode(lhs))
+		l = r
+	case ru && r == TyUntypedInt && c.pendingIntVar(l):
+		i, _ := c.vars.index(l)
+		c.vars.notePending(i, c.literalNode(rhs))
+		r = l
 	case lu && tt.IsInteger(r):
 		l = c.adopt(c.literalNode(lhs), r)
 	case ru && tt.IsInteger(l):
@@ -66,4 +74,9 @@ func (c *checker) readThrough(t TypeID) TypeID {
 		return n.Elem
 	}
 	return t
+}
+
+func (c *checker) pendingIntVar(t TypeID) bool {
+	i, ok := c.vars.pendingIndex(t)
+	return ok && c.vars.pending[i] == 1
 }

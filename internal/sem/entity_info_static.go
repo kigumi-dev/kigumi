@@ -1,5 +1,7 @@
 package sem
 
+import "kigumi/internal/syntax"
+
 // StaticOwner says who owns a static's storage: Kigumi itself, or a
 // foreign definition imported/exported across the C ABI.
 type StaticOwner uint8
@@ -20,4 +22,7 @@ type StaticInfo struct {
 	Value    constValue
 	State    uint8
 	Metadata []MetaRef
+	// Thunk computes a `comptime` initializer; Init is its node, whose folded literal is the value.
+	Thunk EntityID
+	Init  syntax.NodeID
 }

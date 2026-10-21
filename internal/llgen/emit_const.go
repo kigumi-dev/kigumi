@@ -22,11 +22,24 @@ func (e *emitter) constant(sb *strings.Builder, in mir.Inst) string {
 			b = "1"
 		}
 		return e.boolBox(sb, b)
+	case sem.LitRecord:
+		return e.recordConstant(sb, in)
 	case sem.LitBytes:
 		// secureErase rewrites a Bytes in place, so a literal cannot be one shared object.
 		return e.irb(sb).Call(rtBytes, vptr(e.cstr(in.Lit.Str)), vi64(len(in.Lit.Str))).Text
 	}
 	return e.irb(sb).Call(rtUnit).Text
+}
+
+func (e *emitter) recordConstant(sb *strings.Builder, in mir.Inst) string {
+	ent := e.r.Types.Node(in.Type).Ent
+	fields := e.r.TypeDecl(ent).Fields
+	vals := make([]string, len(fields))
+	for i, f := range fields {
+		vals[i] = e.constant(sb, mir.Inst{Lit: in.Lit.Fields[i], Type: e.r.Entity(f).Type})
+	}
+	arr := e.argArray(sb, vals)
+	return e.irb(sb).Call(rtRecord, vptr(e.desc(ent)), vi64(len(vals)), vptr(arr)).Text
 }
 
 // litKey registers in's literal as an immortal and names its slot key;

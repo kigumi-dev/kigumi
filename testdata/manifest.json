@@ -149,6 +149,17 @@
       ]
     },
     {
+      "id": "fmt/comment_in_continuation",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_in_continuation.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/const_generic",
       "kind": "fmt",
       "path": "testdata/fmt/const_generic.txtar",
@@ -1505,6 +1516,28 @@
       "id": "parser/call_forms_errors",
       "kind": "parser",
       "path": "testdata/parser/call_forms_errors.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/char_in_interpolation",
+      "kind": "parser",
+      "path": "testdata/parser/char_in_interpolation.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/comment_whitespace",
+      "kind": "parser",
+      "path": "testdata/parser/comment_whitespace.txtar",
       "mode": [
         "parse"
       ],
@@ -4746,6 +4779,23 @@
       ]
     },
     {
+      "id": "run/cleanup_loop_control",
+      "kind": "run",
+      "path": "testdata/run/cleanup_loop_control.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/closure_call_args",
       "kind": "run",
       "path": "testdata/run/closure_call_args.txtar",
@@ -4919,6 +4969,23 @@
       "id": "run/comptime_multi_block",
       "kind": "run",
       "path": "testdata/run/comptime_multi_block.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/comptime_static_const_init",
+      "kind": "run",
+      "path": "testdata/run/comptime_static_const_init.txtar",
       "mode": [
         "vm",
         "native"
@@ -9182,6 +9249,23 @@
       "id": "run/import_rename",
       "kind": "run",
       "path": "testdata/run/import_rename.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/infer_accepts_correct_programs",
+      "kind": "run",
+      "path": "testdata/run/infer_accepts_correct_programs.txtar",
       "mode": [
         "vm",
         "native"
@@ -14945,6 +15029,17 @@
       ]
     },
     {
+      "id": "sem/cleanup_exit_forms",
+      "kind": "sem",
+      "path": "testdata/sem/cleanup_exit_forms.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/closure_captured_mut_conflict",
       "kind": "sem",
       "path": "testdata/sem/closure_captured_mut_conflict.txtar",
@@ -15044,6 +15139,17 @@
       ]
     },
     {
+      "id": "sem/comptime_init_rejects",
+      "kind": "sem",
+      "path": "testdata/sem/comptime_init_rejects.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/conform_err",
       "kind": "sem",
       "path": "testdata/sem/conform_err.txtar",
@@ -15135,6 +15241,17 @@
       "id": "sem/const_float_fits",
       "kind": "sem",
       "path": "testdata/sem/const_float_fits.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/const_generic_args_in_expr",
+      "kind": "sem",
+      "path": "testdata/sem/const_generic_args_in_expr.txtar",
       "mode": [
         "check"
       ],
@@ -16114,6 +16231,17 @@
       "id": "sem/error_as_type_generic_err",
       "kind": "sem",
       "path": "testdata/sem/error_as_type_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/error_param_box",
+      "kind": "sem",
+      "path": "testdata/sem/error_param_box.txtar",
       "mode": [
         "check"
       ],
@@ -17962,6 +18090,17 @@
       "id": "sem/static_err",
       "kind": "sem",
       "path": "testdata/sem/static_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/static_mut_field_immutable",
+      "kind": "sem",
+      "path": "testdata/sem/static_mut_field_immutable.txtar",
       "mode": [
         "check"
       ],

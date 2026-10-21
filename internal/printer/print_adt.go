@@ -10,6 +10,7 @@ func (p *printer) variants(body syntax.NodeID) {
 		case multi:
 			p.newline()
 			p.indent++
+			p.flushDocComments(vv.AsVariant().Name().Index())
 			p.write("| ")
 			p.indent--
 		case i > 0:

@@ -14,7 +14,7 @@ func (p *parser) typeDecl(pf prefix) NodeID {
 	}
 	if p.eat(token.Assign) {
 		if p.at(token.Newline) && p.startsAdtAfterNewlines() {
-			p.skipNewlines()
+			p.skipNewlinesAndDocs()
 		}
 		body = p.typeBody()
 	}
@@ -26,10 +26,7 @@ func (p *parser) typeDecl(pf prefix) NodeID {
 // startsAdtAfterNewlines mirrors the ADT detection in typeBody so `type T =`
 // can drop to the first variant without a leading `|` (request: adt-leading-bar).
 func (p *parser) startsAdtAfterNewlines() bool {
-	i := p.pos + 1
-	for int(i) < len(p.toks) && p.toks[i].Kind == token.Newline {
-		i++
-	}
+	i := p.blankEnd(p.pos + 1)
 	if int(i) >= len(p.toks) {
 		return false
 	}
@@ -37,17 +34,28 @@ func (p *parser) startsAdtAfterNewlines() bool {
 	case token.Pipe:
 		return true
 	case token.Ident:
-		j := i + 1
-		if int(j) < len(p.toks) && p.toks[j].Kind == token.LParen {
+		if j := p.nextSignificant(i + 1); int(j) < len(p.toks) && p.toks[j].Kind == token.LParen {
 			return true
 		}
-		for int(j) < len(p.toks) && p.toks[j].Kind == token.Newline {
-			j++
-		}
+		j := p.blankEnd(i + 1)
 		return int(j) < len(p.toks) && p.toks[j].Kind == token.Pipe
 	}
 	return false
 }
+
+func (p *parser) blankEnd(i uint32) uint32 {
+	for int(i) < len(p.toks) {
+		switch p.toks[i].Kind {
+		case token.Newline, token.Comment, token.BlockComment, token.DocComment:
+			i++
+			continue
+		}
+		break
+	}
+	return i
+}
+
+func (p *parser) skipNewlinesAndDocs() { p.pos = p.blankEnd(p.pos) }
 
 func (p *parser) layoutClause() NodeID {
 	tok := p.advance()
@@ -75,7 +83,7 @@ func (p *parser) typeBody() NodeID {
 		tok := p.advance()
 		return p.node1(AliasBody, tok, p.typ())
 	case p.at(token.Ident) && (p.peek(1) == token.LParen || p.peek(1) == token.Pipe ||
-		(p.peek(1) == token.Newline && p.peekPastNewlines() == token.Pipe)):
+		(p.peek(1) == token.Newline && p.peekPastNewlinesFrom(p.pos+2, true) == token.Pipe)):
 		return p.adtBody()
 	case p.at(token.Pipe):
 		p.advance()
@@ -140,13 +148,13 @@ func (p *parser) adtBody() NodeID {
 	var variants []NodeID
 	for {
 		variants = append(variants, p.variant())
-		if p.at(token.Newline) && p.peekPastNewlines() == token.Pipe {
-			p.skipNewlines()
+		if p.at(token.Newline) && p.peekPastNewlinesFrom(p.pos+1, true) == token.Pipe {
+			p.skipNewlinesAndDocs()
 		}
 		if !p.eat(token.Pipe) {
 			break
 		}
-		p.skipNewlines()
+		p.skipNewlinesAndDocs()
 	}
 	return p.tree.addList(AdtBody, tok, variants)
 }

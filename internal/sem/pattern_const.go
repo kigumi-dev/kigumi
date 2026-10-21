@@ -18,6 +18,9 @@ func (c *checker) constPattern(p syntax.NodeID, ent EntityID, scrutinee TypeID, 
 	_, hasValue := c.r.ConstValueOf(ent)
 	switch {
 	case scrutinee == TyPoison || got == TyPoison:
+	case c.r.ConstThunk(ent) != 0:
+		c.errAt(p, cComptimeConstUse, e.Name)
+		c.setType(p, TyPoison)
 	case !hasValue || got != scrutinee && !(tt.Kind(got) == KUntyped && tt.IsNumeric(scrutinee)):
 		c.errAt(p, cPatternLiteralType, e.Name, scrutinee)
 		c.setType(p, TyPoison)

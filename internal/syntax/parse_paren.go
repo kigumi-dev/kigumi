@@ -45,7 +45,8 @@ func (p *parser) parenFollowedByFatArrow() bool {
 	if close == 0 {
 		return false
 	}
-	return int(close)+1 < len(p.toks) && p.toks[close+1].Kind == token.FatArrow
+	i := p.nextSignificant(close + 1)
+	return int(i) < len(p.toks) && p.toks[i].Kind == token.FatArrow
 }
 
 func (p *parser) lambda() NodeID {
