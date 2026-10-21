@@ -24,6 +24,10 @@ func (p *printer) flushComments(limit uint32) {
 	for p.cm.next < len(toks) && uint32(p.cm.next) < limit {
 		tk := toks[p.cm.next]
 		p.cm.next++
+		if tk.Kind == token.EOF {
+			p.cm.next = len(toks)
+			break
+		}
 		if !tk.Kind.IsTrivia() || tk.Kind == token.DocComment {
 			continue
 		}
@@ -59,19 +63,9 @@ func (p *printer) blankBefore(i int) bool {
 	return prev.Len() > 1
 }
 
-// trailingComment returns the comment that follows the token at i on the same
-// line, if any, and marks it consumed.
-func (p *printer) trailingComment(afterTok uint32) string {
-	if c := p.peekTrailing(afterTok); c != "" {
-		p.cm.next = int(afterTok) + 2
-		return c
-	}
-	return ""
-}
-
 func (p *printer) peekTrailing(afterTok uint32) string {
 	i := int(afterTok) + 1
-	if i < len(p.t.Toks) && p.t.Toks[i].Kind == token.Comment && i >= p.cm.next {
+	if i < len(p.t.Toks) && (p.t.Toks[i].Kind == token.Comment || p.t.Toks[i].Kind == token.BlockComment) && i >= p.cm.next {
 		return p.t.Toks[i].Text(p.t.File.Src)
 	}
 	return ""

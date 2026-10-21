@@ -31,7 +31,7 @@ import (
 func RootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "kigumi",
-		Short:         "The Kigumi compiler, interpreter and tooling",
+		Short:         "The Kigumi compiler and tooling",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          cobra.ArbitraryArgs,

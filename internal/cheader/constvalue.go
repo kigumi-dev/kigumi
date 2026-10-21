@@ -30,7 +30,7 @@ func classifyBareConst(chunk string, known, opaque map[string]bool, abi ABI) ite
 		known[friendly] = true
 		return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + kt}
 	}
-	typ, lit, ok := parseConstValue(target, abi)
+	typ, lit, ok := evalConst(target, abi)
 	if !ok {
 		return item{name: name, skip: "unsupported constant value"}
 	}
@@ -78,32 +78,4 @@ func classifyAlias(name, target string, known, opaque map[string]bool, abi ABI) 
 		opaque[friendly] = true
 	}
 	return item{kind: "alias", name: friendly, text: "type " + friendly + " = alias " + resolved}
-}
-
-// parseConstValue reads the value zig gave a `#define`d constant: a signed
-// or unsigned integer literal (`@as(TYPE, N)` or, once it no longer fits a
-// plain int, `__helpers.promoteIntLiteral(TYPE, N, .decimal)`), a float
-// literal (`@as(f32|f64, N)`), or a bare string literal.
-func parseConstValue(target string, abi ABI) (typ, literal string, ok bool) {
-	neg := ""
-	if s, hasNeg := strings.CutPrefix(target, "-"); hasNeg {
-		neg, target = "-", s
-	}
-	for _, wrapper := range []string{"@as(", "__helpers.promoteIntLiteral("} {
-		if inner, hasWrap := strings.CutPrefix(target, wrapper); hasWrap && strings.HasSuffix(inner, ")") {
-			parts := splitTopCommas(inner[:len(inner)-1])
-			if len(parts) < 2 {
-				return "", "", false
-			}
-			kt, ok := mapScalar(strings.TrimSpace(parts[0]), abi)
-			if !ok {
-				return "", "", false
-			}
-			return kt, neg + strings.TrimSpace(parts[1]), true
-		}
-	}
-	if neg == "" && len(target) >= 2 && target[0] == '"' && target[len(target)-1] == '"' {
-		return "String", target, true
-	}
-	return "", "", false
 }

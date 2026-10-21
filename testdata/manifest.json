@@ -4300,6 +4300,23 @@
       ]
     },
     {
+      "id": "run/const_qualified_package",
+      "kind": "run",
+      "path": "testdata/run/const_qualified_package.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/context_closure_calls_bound",
       "kind": "run",
       "path": "testdata/run/context_closure_calls_bound.txtar",
@@ -13134,6 +13151,17 @@
       "id": "sem/const_generic_err",
       "kind": "sem",
       "path": "testdata/sem/const_generic_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/const_qualified_package",
+      "kind": "sem",
+      "path": "testdata/sem/const_qualified_package.txtar",
       "mode": [
         "check"
       ],

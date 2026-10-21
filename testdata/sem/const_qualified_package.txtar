@@ -1,0 +1,21 @@
+-- lib/a/a.kg --
+pub const K: Int = 3
+pub const KU: usize = 3
+-- lib/y/y.kg --
+pub const BY: Int = 4
+-- app/main/main.kg --
+import a from lib/a
+import y from lib/y
+
+static S: Int = a.K + 1
+const C: Int = y.BY + 1
+const D: Int = a.K * y.BY
+
+fn width[const N: usize]() -> usize { N }
+
+fn use() -> usize {
+    let w = width[a.KU]()
+    let arr = FixedArray.filled[i32, a.KU](0)
+    w + arr.len()
+}
+-- expect --

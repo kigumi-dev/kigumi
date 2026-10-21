@@ -43,6 +43,18 @@ func (r *Result) resolveConstArg(f FileID, scope ScopeID, n syntax.NodeID, want 
 		return TyPoison
 	case syntax.Ident:
 		return r.constArgFromIdent(f, scope, n, n, want)
+	case syntax.MemberExpr:
+		path, ok := r.qualifiedConstPath(f, n)
+		if !ok {
+			r.errAt(f, n, cConstExprUnsupported)
+			return TyPoison
+		}
+		ent := r.resolveValueName(f, scope, path)
+		if ent == 0 {
+			return TyPoison
+		}
+		r.Files[f].Uses[n] = ent
+		return r.constArgFromEntity(f, n, ent, want)
 	case syntax.TypePath:
 		tp := t.View(n).AsTypePath()
 		if tp.Args().Valid() {
@@ -72,6 +84,10 @@ func (r *Result) constArgFromIdent(f FileID, scope ScopeID, path, n syntax.NodeI
 		}
 	}
 	r.Files[f].Uses[n] = ent
+	return r.constArgFromEntity(f, n, ent, want)
+}
+
+func (r *Result) constArgFromEntity(f FileID, n syntax.NodeID, ent EntityID, want TypeID) TypeID {
 	switch r.Entities[ent].Kind {
 	case EntTypeParam:
 		info := r.typeParam(ent)

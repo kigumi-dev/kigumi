@@ -1,0 +1,9 @@
+Module {
+    name: "cheader-macros"
+    kigumi: "0.1"
+}
+
+Header {
+    path: "macros.h"
+    package: "macros"
+}

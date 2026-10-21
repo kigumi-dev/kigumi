@@ -1,0 +1,19 @@
+-- src --
+import a from lib/a
+import y from lib/y
+
+static S: Int = a.K + 1
+const C: Int = y.BY + 1
+const D: Int = a.K * y.BY
+
+fn width[const N: usize]() -> usize { N }
+
+let arr = FixedArray.filled[i32, a.KU](7)
+print "${S} ${C} ${D} ${width[a.KU]()} ${arr.len()}"
+-- lib/a/a.kg --
+pub const K: Int = 3
+pub const KU: usize = 3
+-- lib/y/y.kg --
+pub const BY: Int = 4
+-- stdout --
+4 5 12 3 3

@@ -90,7 +90,7 @@ func (f *fetcher) native(name string, mf driver.ModFile) {
 
 // cached makes sure the cache holds r and that it agrees with the lock.
 func (f *fetcher) cached(r driver.Require, dir string, missing bool) error {
-	if _, done := f.next.Entries[r.Name]; done {
+	if done, ok := f.next.Entries[r.Name]; ok && done.Version == r.Version {
 		return nil
 	}
 	prev, locked := f.lock.Entries[r.Name]

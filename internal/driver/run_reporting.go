@@ -52,7 +52,7 @@ func RunTestsReportingWith(m *Module, opts TestRunOptions, stdout, stderr io.Wri
 		JSON:           opts.JSON,
 	}, stdout, stderr)
 	if err != nil {
-		return 1, fmt.Errorf("%w (run with --engine interp)", err)
+		return 1, fmt.Errorf("%w (use `kigumi build` to run natively)", err)
 	}
 	if failed > 0 {
 		return 1, nil

@@ -2,13 +2,12 @@ package printer
 
 import (
 	"kigumi/internal/syntax"
-	"kigumi/internal/token"
 )
 
 func (p *printer) block(id syntax.NodeID) {
 	stmts := p.t.List(id)
 	if stmts.Len() == 0 {
-		p.write("{}")
+		p.emptyBlock(id)
 		return
 	}
 	p.write("{")
@@ -23,31 +22,23 @@ func (p *printer) block(id syntax.NodeID) {
 		p.withIndent(func() { p.stmt(s) })
 		p.endLine(s)
 	}
+	p.flushComments(p.closingBrace(id))
 	p.indent--
 	p.write("}")
 }
 
 // endLine finishes a statement line, keeping a trailing comment attached.
 func (p *printer) endLine(s syntax.NodeID) {
-	if c := p.trailingComment(p.lastTok(s)); c != "" {
-		p.write(" " + c)
+	last := p.lastTok(s)
+	c := p.peekTrailing(last)
+	if c == "" {
+		p.newline()
+		return
 	}
+	p.write(" " + c)
 	p.newline()
-}
-
-func (p *printer) lastTok(s syntax.NodeID) uint32 {
-	sp := p.t.Span(s)
-	last := uint32(0)
-	for i, tk := range p.t.Toks {
-		// Import path segments are synthetic tokens appended after EOF.
-		if tk.Kind == token.EOF {
-			break
-		}
-		if tk.End <= sp.End && tk.Start >= sp.Start {
-			last = uint32(i)
-		}
-	}
-	return last
+	p.flushComments(last + 1)
+	p.cm.next = int(last) + 2
 }
 
 func (p *printer) stmt(id syntax.NodeID) {

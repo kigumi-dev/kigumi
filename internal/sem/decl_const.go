@@ -135,6 +135,8 @@ func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 		}
 		v := r.evalConstDecl(ent)
 		return v, v.Kind != constNone
+	case syntax.MemberExpr:
+		return r.evalQualifiedConst(f, n)
 	case syntax.Unary:
 		v, ok := r.evalConst(f, node.AsUnary().Operand().ID())
 		if !ok {
