@@ -31,11 +31,11 @@ func (p *Program) verifyOwnership(f *Func) *Error {
 	if !any {
 		return nil
 	}
-	in := make([][]ownVerify, len(f.Blocks))
-	entry := make([]ownVerify, len(f.Locals))
+	in := make([]*cowVec[ownVerify], len(f.Blocks))
+	entry := &cowVec[ownVerify]{}
 	for _, prm := range f.Params {
 		if tracked[prm] {
-			entry[prm] = ovOwned
+			entry.set(prm, ovOwned)
 		}
 	}
 	in[0] = entry
@@ -51,17 +51,12 @@ func (p *Program) verifyOwnership(f *Func) *Error {
 		}
 		for _, succ := range f.Blocks[bid].Term.Targets {
 			if in[succ] == nil {
-				in[succ] = append([]ownVerify{}, out...)
+				cp := out.clone()
+				in[succ] = &cp
 				work = append(work, succ)
 				continue
 			}
-			changed := false
-			for l := range out {
-				if j := joinVerify(in[succ][l], out[l]); j != in[succ][l] {
-					in[succ][l], changed = j, true
-				}
-			}
-			if changed {
+			if in[succ].join(out, joinVerify) {
 				work = append(work, succ)
 			}
 		}
@@ -101,13 +96,14 @@ func joinVerify(a, b ownVerify) ownVerify {
 
 // transferOwn walks a block from its entry state; in check mode it also
 // reports the first broken rule.
-func (p *Program) transferOwn(f *Func, bid BlockID, entry []ownVerify, tracked []bool, check bool) ([]ownVerify, *Error) {
-	st := append([]ownVerify{}, entry...)
+func (p *Program) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], tracked []bool, check bool) (*cowVec[ownVerify], *Error) {
+	cp := entry.clone()
+	st := &cp
 	// A plain copy of a named local into a temporary aliases it (the plan
 	// takes no reference); dropping that temporary releases the local.
 	alias := map[LocalID]LocalID{}
 	blk := &f.Blocks[bid]
-	broken := func(i int, format string, args ...any) ([]ownVerify, *Error) {
+	broken := func(i int, format string, args ...any) (*cowVec[ownVerify], *Error) {
 		if check {
 			return nil, fail("ownership", bid, i, format, args...)
 		}
@@ -126,21 +122,21 @@ func (p *Program) transferOwn(f *Func, bid BlockID, entry []ownVerify, tracked [
 			if !tracked[l] {
 				continue
 			}
-			if st[l] == ovNone && check {
+			if st.get(l) == ovNone && check {
 				return broken(i, "drop of %%%s, which holds nothing", f.Locals[l].Name)
 			}
-			st[l] = ovNone
+			st.set(l, ovNone)
 			continue
 		}
 		for k, a := range in.Args {
 			if !tracked[a] {
 				continue
 			}
-			if st[a] == ovNone && check {
+			if st.get(a) == ovNone && check {
 				return broken(i, "%s reads %%%s after it was consumed", in.Op, f.Locals[a].Name)
 			}
 			if !in.Rest && (in.Op == OpMove || p.consumesArg(in, k)) {
-				st[a] = ovNone
+				st.set(a, ovNone)
 			}
 		}
 		if in.Op == OpCopy && !in.Share && f.Locals[in.Dst].Ent == 0 && tracked[in.Args[0]] {
@@ -150,25 +146,30 @@ func (p *Program) transferOwn(f *Func, bid BlockID, entry []ownVerify, tracked [
 			alias[in.Dst] = in.Args[0]
 		}
 		if in.Op.Yields() && tracked[in.Dst] {
-			if st[in.Dst] == ovOwned && check {
+			if st.get(in.Dst) == ovOwned && check {
 				return broken(i, "%s overwrites %%%s while it still holds a value", in.Op, f.Locals[in.Dst].Name)
 			}
-			st[in.Dst] = ovOwned
+			st.set(in.Dst, ovOwned)
 		}
 	}
 	if !check {
 		return st, nil
 	}
 	for _, a := range blk.Term.Args {
-		if tracked[a] && st[a] == ovNone {
+		if tracked[a] && st.get(a) == ovNone {
 			return broken(len(blk.Insts), "terminator reads %%%s after it was consumed", f.Locals[a].Name)
 		}
 	}
 	if blk.Term.Op == TermReturn && !diverges(f, blk) {
-		for l, s := range st {
-			if tracked[l] && s != ovNone {
-				return broken(len(blk.Insts), "%%%s is still owned at return", f.Locals[l].Name)
+		var left LocalID
+		found := false
+		st.each(func(l LocalID, _ ownVerify) {
+			if tracked[l] && !found {
+				left, found = l, true
 			}
+		})
+		if found {
+			return broken(len(blk.Insts), "%%%s is still owned at return", f.Locals[left].Name)
 		}
 	}
 	return st, nil

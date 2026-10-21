@@ -1,7 +1,18 @@
 package vm
 
 func (m *Machine) index(base, idx *obj) *obj {
-	base, idx = deref(base), deref(idx)
+	base, idx = derefRaw(base), deref(idx)
+	if base.k == kRawArray {
+		if idx.k == kRecord {
+			base = deref(base)
+		} else {
+			r := base.rawArr()
+			if idx.i < 0 || idx.i >= int64(len(r.raw)) {
+				m.abortIndex(idx.i, int64(len(r.raw)))
+			}
+			return r.at(idx.i)
+		}
+	}
 	if idx.k == kRecord {
 		lo, hi := deref(idx.fields[0]).i, deref(idx.fields[1]).i
 		if deref(idx.fields[2]).b {
@@ -43,8 +54,24 @@ func (m *Machine) index(base, idx *obj) *obj {
 }
 
 func (m *Machine) setIndex(base, idx, v *obj) *obj {
-	base = deref(base)
+	base = derefRaw(base)
 	i := deref(idx).i
+	if base.k == kRawArray {
+		r := base.rawArr()
+		if i < 0 || i >= int64(len(r.raw)) {
+			m.abortIndex(i, int64(len(r.raw)))
+		}
+		old := r.at(i)
+		if r.store(i, v) {
+			m.release(v)
+			return old
+		}
+		base.expand()
+		prev := base.fields[i]
+		base.fields[i] = v
+		m.release(old)
+		return prev
+	}
 	if base.k != kArray || i < 0 || i >= int64(len(base.fields)) {
 		m.abortIndex(i, int64(len(base.fields)))
 	}

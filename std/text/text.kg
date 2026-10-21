@@ -211,20 +211,7 @@ pub pure fn find(s: String, sub: String) -> usize? {
 
 /// Byte offset of the last `sub` in `s`, or None. The empty `sub` is at `s.len()`.
 pub pure fn rfind(s: String, sub: String) -> usize? {
-    if sub.len() > s.len() {
-        return None
-    }
-    let mut i = s.len() - sub.len()
-    for true {
-        if s.matchesAt(sub, i) {
-            return Some(i)
-        }
-        if i == 0 {
-            return None
-        }
-        i = i - 1
-    }
-    None
+    s.toBytes().lastIndexOf(sub.toBytes())
 }
 
 /// Whether `a` and `b` are equal ignoring the case of ASCII letters. Bytes

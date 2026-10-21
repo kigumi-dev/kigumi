@@ -168,11 +168,11 @@ func ctxArgCount(info *sem.FnInfo) int {
 
 func (pl *places) resetFields(root LocalID, st *dstate) {
 	for _, rep := range pl.children[root] {
-		delete(st.val, rep)
-		delete(st.field, rep)
-		delete(st.called, rep)
-		delete(st.at, rep)
-		delete(st.callAt, rep)
+		st.val.del(rep)
+		st.field.del(rep)
+		st.called.del(rep)
+		st.at.del(rep)
+		st.callAt.del(rep)
 		pl.resetFields(rep, st)
 	}
 }

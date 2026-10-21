@@ -9,7 +9,7 @@ import (
 func (a *owner) movedFields(root LocalID, st *dstate) []int {
 	var out []int
 	for idx, rep := range a.pl.children[root] {
-		if gone(st.field[rep]) || a.tracked[rep] && gone(st.val[rep]) || len(a.movedFields(rep, st)) > 0 {
+		if gone(st.field.get(rep)) || a.tracked[rep] && gone(st.val.get(rep)) || len(a.movedFields(rep, st)) > 0 {
 			out = append(out, idx)
 		}
 	}
@@ -47,7 +47,7 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 		a.captureWhole(in, st, report)
 	}
 	if in.Op == OpCopy && in.Guarded {
-		delete(st.rel, a.pl.canon(in.Args[0]))
+		st.rel.del(a.pl.canon(in.Args[0]))
 	}
 	if a.movesIntoBinding(in) {
 		l := a.pl.canon(in.Args[0])
@@ -57,9 +57,11 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 		a.moveGuardSource(in, l, st, report)
 		if in.Share {
 			// A shared scrutinee temporary keeps its own drop, so the binding takes the field without emptying it.
-			st.field[l], st.at[l] = ownMoved, in.Node
+			st.field.set(l, ownMoved)
+			st.at.set(l, in.Node)
 		} else {
-			st.val[l], st.at[l] = ownMoved, in.Node
+			st.val.set(l, ownMoved)
+			st.at.set(l, in.Node)
 		}
 		a.noteMove(in, l, report && !a.fieldMoved(in.Args[0]))
 		return
@@ -72,14 +74,15 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 		if !a.tracked[l] {
 			continue
 		}
-		a.check(in, l, st.val, report)
+		a.check(in, l, st.val.get(l), report)
 		switch {
 		case a.pl.isPlace(arg) && (a.p.consumesArg(in, argi) || a.p.primitiveTakes(in, argi) || constructs(in.Op)):
 			a.checkWhole(in.Node, l, st, report)
 			a.checkDropOwner(in.Node, l, report)
 			a.checkGuardHeld(in, l, st, report && !a.fieldMoved(arg), 0)
 			a.moveGuardSource(in, l, st, report)
-			st.val[l], st.at[l] = ownMoved, in.Node
+			st.val.set(l, ownMoved)
+			st.at.set(l, in.Node)
 			a.noteMove(in, l, report)
 		case in.Op == OpCall || in.Op == OpCallValue || in.Op == OpBuiltin || in.Op == OpBorrow || in.Op == OpTag || in.Op == OpIsVariant:
 			a.checkWhole(in.Node, l, st, report)
@@ -107,7 +110,7 @@ func (a *owner) guardedMove(in *Inst, st *dstate, report bool) {
 	}
 	arg := in.Args[0]
 	if in.Str == guardFailed {
-		st.rel[a.pl.canon(arg)] = ownValid
+		st.rel.set(a.pl.canon(arg), ownValid)
 		return
 	}
 	a.cellConsume(in, arg, st, report)
@@ -120,7 +123,8 @@ func (a *owner) guardedMove(in *Inst, st *dstate, report bool) {
 		}
 		a.checkGuardHeld(in, l, st, report, own)
 		a.moveGuardSource(in, l, st, report)
-		st.val[l], st.at[l] = ownMoved, in.Node
+		st.val.set(l, ownMoved)
+		st.at.set(l, in.Node)
 		a.noteMove(in, l, report)
 	}
 }
@@ -132,7 +136,8 @@ func (a *owner) moveGuardSource(in *Inst, l LocalID, st *dstate, report bool) {
 	if src, ok := a.guardSources()[l]; ok {
 		a.checkWhole(in.Node, src, st, report)
 		a.checkDropOwner(in.Node, src, report)
-		st.val[src], st.at[src] = ownMoved, in.Node
+		st.val.set(src, ownMoved)
+		st.at.set(src, in.Node)
 		a.noteMove(in, src, report)
 	}
 }
@@ -160,7 +165,7 @@ func (a *owner) movesIntoBinding(in *Inst) bool {
 func (a *owner) fieldMove(in *Inst, l LocalID, st *dstate, report bool) {
 	a.checkGuardHeld(in, l, st, report, 0)
 	a.moveGuardSource(in, l, st, report)
-	st.field[l] = ownMoved
+	st.field.set(l, ownMoved)
 }
 
 func (a *owner) holdable(l LocalID) bool {

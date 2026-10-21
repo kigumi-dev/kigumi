@@ -507,3 +507,11 @@ prefix prelude.f32.to
 prefix prelude.f64.to
 prefix prelude.Char.to
 isr inert
+op 163 MAP_SEED primitive () -> int
+key map.seed
+op 164 BYTES_INDEX_OF primitive (bytes, bytes) -> option
+key prelude.Bytes.indexOf
+op 165 STRING_CONTAINS primitive (string, string) -> bool
+key prelude.String.contains
+op 166 BYTES_LAST_INDEX_OF primitive (bytes, bytes) -> option
+key prelude.Bytes.lastIndexOf

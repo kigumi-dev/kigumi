@@ -426,20 +426,8 @@ pub pure fn String.chars(self) -> Array[Char] {
 /// Same as chars, or AllocError when the allocator refuses (chars panics instead).
 pub pure fn String.tryChars(self) -> Result[Array[Char], AllocError]
 
-/// Whether sub occurs in the string; the empty string occurs in every string.
-pub pure noalloc fn String.contains(self, sub: String) -> Bool {
-    if sub.len() > self.len() {
-        return false
-    }
-    let mut i: usize = 0
-    for i <= self.len() - sub.len() {
-        if self.matchesAt(sub, i) {
-            return true
-        }
-        i = i + 1
-    }
-    false
-}
+/// Whether sub occurs in the string; the empty string occurs in every string. Runs in time linear in both lengths.
+pub pure noalloc fn String.contains(self, sub: String) -> Bool
 
 /// Whether the bytes of sub appear at byte offset at; false for any offset past the end.
 pub pure noalloc fn String.matchesAt(self, sub: String, at: usize) -> Bool {
@@ -589,20 +577,11 @@ pub pure fn Bytes.slice(self, start: usize, end: usize) -> Bytes?
 /// Same as slice, or AllocError when the allocator refuses (slice panics instead).
 pub pure fn Bytes.trySlice(self, start: usize, end: usize) -> Result[Bytes?, AllocError]
 
-/// Byte-wise position of the first occurrence of sub in self; the empty sub matches at 0.
-pub pure fn Bytes.indexOf(self, sub: Bytes) -> usize? {
-    if sub.len() > self.len() {
-        return None
-    }
-    let mut i: usize = 0
-    for i <= self.len() - sub.len() {
-        if self.hasAt(&sub, i) {
-            return Some(i)
-        }
-        i = i + 1
-    }
-    None
-}
+/// Byte-wise position of the first occurrence of sub in self; the empty sub matches at 0. Runs in time linear in both lengths.
+pub pure fn Bytes.indexOf(self, sub: Bytes) -> usize?
+
+/// Byte-wise position of the last occurrence of sub in self; the empty sub matches at self.len(). Runs in time linear in both lengths.
+pub pure fn Bytes.lastIndexOf(self, sub: Bytes) -> usize?
 
 pure noalloc fn Bytes.hasAt(self, sub: &Bytes, at: usize) -> Bool {
     if sub.len() > self.len() || at > self.len() - sub.len() {

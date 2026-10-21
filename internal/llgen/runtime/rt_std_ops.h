@@ -165,6 +165,10 @@ enum std_op {
     OP_ARGS_GET_BYTES = 160,
     OP_OS_STRING_TRY_CLONE = 161,
     OP_TASK_YIELD_NOW = 162,
+    OP_MAP_SEED = 163,
+    OP_BYTES_INDEX_OF = 164,
+    OP_STRING_CONTAINS = 165,
+    OP_BYTES_LAST_INDEX_OF = 166,
 };
 static int rt_std_op_of(const char* key) {
     const char* k = key;
@@ -321,6 +325,10 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "os.Args.getBytes")) return OP_ARGS_GET_BYTES;
     if (!strcmp(k, "os.OsString.tryClone")) return OP_OS_STRING_TRY_CLONE;
     if (!strcmp(k, "task.yieldNow")) return OP_TASK_YIELD_NOW;
+    if (!strcmp(k, "map.seed")) return OP_MAP_SEED;
+    if (!strcmp(k, "prelude.Bytes.indexOf")) return OP_BYTES_INDEX_OF;
+    if (!strcmp(k, "prelude.String.contains")) return OP_STRING_CONTAINS;
+    if (!strcmp(k, "prelude.Bytes.lastIndexOf")) return OP_BYTES_LAST_INDEX_OF;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;

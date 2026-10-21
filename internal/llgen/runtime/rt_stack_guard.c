@@ -1,5 +1,5 @@
-// Hosted POSIX only: a guard-page fault becomes the runtime's "stack overflow" panic.
-// Other targets keep the weak no-op in rt_sys.c.
+// Hosted POSIX only: a guard-page fault becomes the runtime's "stack overflow" panic, and the hash seed comes from the OS.
+// Other targets keep the weak defaults in rt_sys.c.
 #define _GNU_SOURCE
 #include <pthread.h>
 #include <signal.h>
@@ -14,6 +14,14 @@ int pthread_getattr_np(pthread_t, pthread_attr_t*);
 #endif
 
 #include "rt.h"
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+#include <sys/random.h>
+int64_t rt_sys_seed(void) {
+    int64_t seed = 0;
+    return getentropy(&seed, sizeof seed) == 0 ? seed : 0;
+}
+#endif
 
 #if defined(__linux__) || defined(__APPLE__)
 

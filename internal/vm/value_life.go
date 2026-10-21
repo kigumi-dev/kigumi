@@ -78,6 +78,8 @@ func (m *Machine) freeAt(v *obj, d int) {
 		for i := len(v.fields) - 1; i >= 0; i-- {
 			fault = m.releaseChildAt(v.fields[i], fault, d)
 		}
+	case kRawArray:
+		v.rawArr().raw = nil
 	case kBox, kCell:
 		if v.k != kCell || !v.b {
 			fault = m.releaseChildAt(v.inner, fault, d)
@@ -132,6 +134,8 @@ func (m *Machine) copy(v *obj) *obj {
 		}
 		m.chargeMemory(c)
 		return c
+	case kRawArray:
+		return m.copyRaw(v)
 	case kBytes:
 		// A fresh backing array, not just a retain: secureErase mutates
 		// in place, and a shared slice would let it zero another copy too.
@@ -153,7 +157,7 @@ func (m *Machine) writableInside(v *obj) bool {
 		return false
 	}
 	switch v.k {
-	case kArray:
+	case kArray, kRawArray:
 		return true
 	case kRecord:
 		if m.r.RecordWritable(v.ent) {

@@ -768,6 +768,14 @@ static int try_grow(val a, uint64_t extra) {
     if (extra > UINT64_MAX - len) return 0;
     uint64_t need = len + extra;
     if (need <= (uint64_t)a->u.arr.cap) return 1;
+    if (a->u.arr.head) {
+        val* base = a->u.arr.items - a->u.arr.head;
+        for (int64_t j = 0; j < a->u.arr.len; j++) base[j] = a->u.arr.items[j];
+        a->u.arr.items = base;
+        a->u.arr.cap += a->u.arr.head;
+        a->u.arr.head = 0;
+        if (need <= (uint64_t)a->u.arr.cap) return 1;
+    }
     if (need > SIZE_MAX / sizeof(val) / 2) return 0;
     uint64_t cap = (uint64_t)a->u.arr.cap * 2 > need ? (uint64_t)a->u.arr.cap * 2 : need;
     val* items = arealloc(a->al, a->u.arr.items, a->u.arr.len * sizeof(val), cap * sizeof(val));
@@ -2986,7 +2994,7 @@ static void free_storage(val v) {
         break;
     case K_RECORD: afree(v->al, v->u.rec.fields); break;
     case K_VARIANT: afree(v->al, v->u.var.payload); break;
-    case K_ARRAY: afree(v->al, v->u.arr.items); break;
+    case K_ARRAY: afree(v->al, v->u.arr.items ? v->u.arr.items - v->u.arr.head : NULL); break;
     }
     LIVE_OBJ(v->kind, -1);
 #ifdef KIGUMI_RC_CHECK
@@ -3323,6 +3331,67 @@ uint64_t hash_of(val v) {
     free(b.p);
     return h;
 }
+// A fixed seed stands in on targets without an entropy source.
+static uint64_t map_seed(void) {
+    static uint64_t seed;
+    if (!seed) {
+        seed = (uint64_t)rt_sys_seed();
+        if (!seed) seed = 0x9e3779b97f4a7c15ULL;
+    }
+    return seed;
+}
+// Two-way search: linear time in constant space, unlike the naive scan.
+static int64_t max_suffix(const unsigned char* x, int64_t m, int64_t* period, int reverse) {
+    int64_t ms = -1, j = 0, k = 1;
+    *period = 1;
+    while (j + k < m) {
+        unsigned char a = x[j + k], b = x[ms + k];
+        if (reverse ? a > b : a < b) {
+            j += k;
+            k = 1;
+            *period = j - ms;
+        } else if (a == b) {
+            if (k != *period) {
+                k++;
+            } else {
+                j += *period;
+                k = 1;
+            }
+        } else {
+            ms = j;
+            j = ms + 1;
+            k = *period = 1;
+        }
+    }
+    return ms;
+}
+static int64_t bytes_index(const unsigned char* y, int64_t n, const unsigned char* x, int64_t m) {
+    if (m == 0) return 0;
+    if (m > n) return -1;
+    int64_t p, q;
+    int64_t i = max_suffix(x, m, &p, 0), j = max_suffix(x, m, &q, 1);
+    int64_t ell = i > j ? i : j, per = i > j ? p : q;
+    int periodic = ell + 1 + per <= m;
+    for (int64_t t = 0; periodic && t <= ell; t++) periodic = x[t] == x[t + per];
+    int64_t pos = 0, memory = -1;
+    if (!periodic) per = (ell + 1 > m - ell - 1 ? ell + 1 : m - ell - 1) + 1;
+    while (pos <= n - m) {
+        int64_t k = (periodic && ell < memory ? memory : ell) + 1;
+        while (k < m && x[k] == y[k + pos]) k++;
+        if (k < m) {
+            pos += k - ell;
+            memory = -1;
+            continue;
+        }
+        k = ell;
+        int64_t floor = periodic ? memory : -1;
+        while (k > floor && x[k] == y[k + pos]) k--;
+        if (k <= floor) return pos;
+        pos += per;
+        memory = periodic ? m - per - 1 : -1;
+    }
+    return -1;
+}
 // Constant-time compare: time
 // depends only on the lengths (an early return there is fine, lengths
 // aren't secret), never on where the bytes differ. `diff` is volatile so
@@ -3413,6 +3482,26 @@ val rt_std_id(int op, int n, val* a) {
     case OP_EQUALS: return rt_bool(a0->kind == K_FLOAT ? float_total_equal(a0->u.f, a1->u.f) : equal(a0, a1));
     case OP_COMPARE_TO: return ordering(a0->kind == K_FLOAT ? float_total_compare(a0->u.f, a1->u.f) : cmp_vals(a0, a1));
     case OP_HASH: return rt_int((int64_t)hash_of(a0), 64);
+    case OP_MAP_SEED: return rt_int((int64_t)map_seed(), 64);
+    case OP_BYTES_INDEX_OF: {
+        int64_t at = bytes_index((const unsigned char*)a0->u.s.data, a0->u.s.len, (const unsigned char*)a1->u.s.data, a1->u.s.len);
+        return at < 0 ? none() : some(rt_int(at, 64));
+    }
+    case OP_BYTES_LAST_INDEX_OF: {
+        int64_t n = a0->u.s.len, m = a1->u.s.len;
+        if (m == 0) return some(rt_int(n, 64));
+        unsigned char* rev = n >= m ? malloc((size_t)(n + m)) : NULL;
+        if (n >= m && !rev) rt_panic("out of memory");
+        int64_t at = -1;
+        if (rev) {
+            for (int64_t i = 0; i < n; i++) rev[i] = (unsigned char)a0->u.s.data[n - 1 - i];
+            for (int64_t i = 0; i < m; i++) rev[n + i] = (unsigned char)a1->u.s.data[m - 1 - i];
+            at = bytes_index(rev, n, rev + n, m);
+            free(rev);
+        }
+        return at < 0 ? none() : some(rt_int(n - m - at, 64));
+    }
+    case OP_STRING_CONTAINS: return rt_bool(bytes_index((const unsigned char*)a0->u.s.data, a0->u.s.len, (const unsigned char*)a1->u.s.data, a1->u.s.len) >= 0);
     case OP_DISPLAY: return display(a0);
     case OP_STRING_BYTES: return bytes_val(a0->u.s.data, a0->u.s.len);
     case OP_BYTES_SLICE: {
@@ -3685,7 +3774,7 @@ val rt_std_id(int op, int n, val* a) {
         }
         return try_ok(out);
     }
-    case OP_MAP_TRY_EMPTY: return empty_record_try(find_type("std/map.Map"), 3);
+    case OP_MAP_TRY_EMPTY: return empty_record_try(find_type("std/map.Map"), 5);
     case OP_STRING_BUILDER_TRY_NEW: return empty_record_try(find_type("std/text.StringBuilder"), 1);
     case OP_STRING_TRY_TRIM: return try_string_trim(a0);
     case OP_STRING_TRY_TO_UPPER: return try_string_shift(a0, 97, 122, 0);
@@ -3750,7 +3839,14 @@ val rt_std_id(int op, int n, val* a) {
         int64_t i = a1->u.i;
         if (i < 0 || i >= a0->u.arr.len) return none();
         val x = a0->u.arr.items[i];
-        for (int64_t j = i; j + 1 < a0->u.arr.len; j++) a0->u.arr.items[j] = a0->u.arr.items[j + 1];
+        if (i < a0->u.arr.len - 1 - i) {
+            for (int64_t j = i; j > 0; j--) a0->u.arr.items[j] = a0->u.arr.items[j - 1];
+            a0->u.arr.items++;
+            a0->u.arr.head++;
+            a0->u.arr.cap--;
+        } else {
+            for (int64_t j = i; j + 1 < a0->u.arr.len; j++) a0->u.arr.items[j] = a0->u.arr.items[j + 1];
+        }
         a0->u.arr.len--;
         return some(x);
     }

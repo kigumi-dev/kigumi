@@ -1,10 +1,6 @@
 package mir
 
-import (
-	"maps"
-
-	"kigumi/internal/syntax"
-)
+import "kigumi/internal/syntax"
 
 // Ownership states of a move-only local along a path.
 type ownState uint8
@@ -34,16 +30,14 @@ func joinOwn(a, b ownState) ownState {
 // val and field are independent: a moved-out field's temporary stays valid in val until consumed.
 // called is whether a once-only callable has run; callAt is where, apart from at so a move cannot hide the call.
 type dstate struct {
-	val, field, called, rel map[LocalID]ownState
-	at, callAt              map[LocalID]syntax.NodeID
+	val, field, called, rel ownVec
+	at, callAt              nodeVec
 }
 
-func newDstate() *dstate {
-	return &dstate{val: map[LocalID]ownState{}, field: map[LocalID]ownState{}, called: map[LocalID]ownState{}, rel: map[LocalID]ownState{}, at: map[LocalID]syntax.NodeID{}, callAt: map[LocalID]syntax.NodeID{}}
-}
+func newDstate() *dstate { return &dstate{} }
 
 func cloneD(s *dstate) *dstate {
-	return &dstate{val: cloneState(s.val), field: cloneState(s.field), called: cloneState(s.called), rel: cloneState(s.rel), at: maps.Clone(s.at), callAt: maps.Clone(s.callAt)}
+	return &dstate{val: s.val.clone(), field: s.field.clone(), called: s.called.clone(), rel: s.rel.clone(), at: s.at.clone(), callAt: s.callAt.clone()}
 }
 
 // analyzeOwnership runs a forward dataflow over the CFG: every use needs a
@@ -77,7 +71,7 @@ func analyzeOwnership(p *Program, f *Func) {
 	entry := newDstate()
 	for _, prm := range f.Params {
 		if tracked[prm] {
-			entry.val[prm] = ownValid
+			entry.val.set(prm, ownValid)
 		}
 	}
 	a.in[0] = entry
@@ -127,7 +121,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			// backends store null into every local first and into a local a
 			// move emptied, so dropping an absent value is a no-op. Only a
 			// drop that can never find a value goes.
-			if st.val[l] == ownUninit || st.val[l] == ownMoved {
+			if st.val.get(l) == ownUninit || st.val.get(l) == ownMoved {
 				if report {
 					in.Op = OpNop
 					in.Args = nil
@@ -138,7 +132,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			// backend's free already walks an aggregate's fields and skips
 			// a moved-out (null) one, so the fields still there are
 			// released the same way a whole value's would be.
-			st.val[l] = ownUninit
+			st.val.set(l, ownUninit)
 			continue
 		case OpMove:
 			a.moveInst(in, st, report)
@@ -151,8 +145,8 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 		}
 		if in.Op == OpField || in.Op == OpFieldMove || in.Op == OpPayload {
 			if l := a.pl.canon(in.Dst); a.tracked[l] {
-				a.check(in, l, st.val, report)
-				a.check(in, l, st.field, report)
+				a.check(in, l, st.val.get(l), report)
+				a.check(in, l, st.field.get(l), report)
 				if in.Op == OpFieldMove {
 					a.fieldMove(in, l, st, report)
 				}
@@ -160,20 +154,21 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 		}
 		if in.Op == OpSetField {
 			if l, ok := a.pl.stored(a.f, *in); ok {
-				st.val[l], st.field[l] = ownValid, ownValid
-				delete(st.called, l)
+				st.val.set(l, ownValid)
+				st.field.set(l, ownValid)
+				st.called.del(l)
 				a.pl.resetFields(l, st)
 			}
 		}
 		if a.pl.isPlace(in.Dst) {
-			if l := a.pl.canon(in.Dst); st.val[l] == ownUninit {
-				st.val[l] = ownValid
+			if l := a.pl.canon(in.Dst); st.val.get(l) == ownUninit {
+				st.val.set(l, ownValid)
 			}
 			continue
 		}
 		if in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone && a.tracked[in.Dst] {
-			st.val[in.Dst] = ownValid
-			delete(st.called, in.Dst)
+			st.val.set(in.Dst, ownValid)
+			st.called.del(in.Dst)
 			a.pl.resetFields(in.Dst, st)
 		}
 	}
@@ -181,7 +176,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 		for _, arg := range blk.Term.Args {
 			l := a.pl.canon(arg)
 			if a.tracked[l] {
-				a.check(nil, l, st.val, report)
+				a.check(nil, l, st.val.get(l), report)
 				a.checkWhole(a.defNode[arg], l, st, report)
 			}
 		}

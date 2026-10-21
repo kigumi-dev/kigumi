@@ -44,7 +44,11 @@ func (b *builder) unwindScope(s *scope, failing bool) {
 		}
 		b.markMoved(fromBlock, fromInst, consumed)
 	}
-	for i := len(s.owned) - 1; i >= 0; i-- {
+	b.dropOwnedFrom(s, 0, consumed)
+}
+
+func (b *builder) dropOwnedFrom(s *scope, lo int, consumed map[LocalID]bool) {
+	for i := len(s.owned) - 1; i >= lo; i-- {
 		if consumed[s.owned[i]] {
 			continue
 		}

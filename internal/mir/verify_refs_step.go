@@ -49,14 +49,14 @@ func (rf *refFlow) step(p *Program, s *refState, bid BlockID, i int, in *Inst, b
 			return nil
 		}
 		named := f.Locals[a].Ent != 0
-		nulled := s.ptr[a] == rf.nulled
+		nulled := s.ptr.get(a) == rf.nulled
 		if !(named && nulled) && rf.counted[a] && s.release(a) {
 			if err := broken(i, "%s of %%%s, whose reference is already released", in.Op, f.Locals[a].Name); err != nil {
 				return err
 			}
 		}
 		if in.Op == OpDrop && named {
-			s.ptr[a] = rf.nulled
+			s.ptr.set(a, rf.nulled)
 		}
 		return nil
 	}
@@ -74,25 +74,25 @@ func (rf *refFlow) step(p *Program, s *refState, bid BlockID, i int, in *Inst, b
 	}
 	switch {
 	case in.Op == OpBorrow && rf.track[src] && f.Locals[src].Ent != 0:
-		s.ptr[in.Dst] = rf.read(s, src)
+		s.ptr.set(in.Dst, rf.read(s, src))
 	case in.Op == OpBorrow:
-		s.ptr[in.Dst] = rf.lent
+		s.ptr.set(in.Dst, rf.lent)
 	case in.Op == OpAlias && rf.track[src] && rf.counted[in.Dst] && rf.crossedFromTemp(bid, i, src):
 		s.release(src)
 		s.fresh(in.Dst, rf.site[rf.siteBase[bid]+i], rf.loop[bid])
 	case in.Op == OpAlias && rf.track[src]:
-		s.ptr[in.Dst] = rf.read(s, src)
+		s.ptr.set(in.Dst, rf.read(s, src))
 	case in.Op == OpMove && rf.track[src]:
-		s.ptr[in.Dst] = rf.read(s, src)
+		s.ptr.set(in.Dst, rf.read(s, src))
 		if f.Locals[src].Ent != 0 && src != in.Dst {
-			s.ptr[src] = rf.nulled
+			s.ptr.set(src, rf.nulled)
 		}
 	case (in.Op == OpBoxDirect || in.Op == OpUnboxDirect) && f.Locals[in.Dst].Cross && rf.track[src]:
-		s.ptr[in.Dst] = s.ptr[src]
+		s.ptr.set(in.Dst, s.ptr.get(src))
 	case rf.counted[in.Dst]:
 		s.fresh(in.Dst, rf.site[rf.siteBase[bid]+i], rf.loop[bid])
 	default:
-		s.ptr[in.Dst] = rf.lent
+		s.ptr.set(in.Dst, rf.lent)
 	}
 	return nil
 }
@@ -101,9 +101,9 @@ func (rf *refFlow) step(p *Program, s *refState, bid BlockID, i int, in *Inst, b
 // assigned on some paths, the read is on the assigning one, so only live objects.
 func (rf *refFlow) read(s *refState, l LocalID) int32 {
 	if rf.f.weakDefs != nil && rf.f.weakDefs[l] {
-		return s.sets.held(s.ptr[l])
+		return s.sets.held(s.ptr.get(l))
 	}
-	return s.ptr[l]
+	return s.ptr.get(l)
 }
 
 func (p *Program) takesForGood(f *Func, in *Inst, k int) bool {

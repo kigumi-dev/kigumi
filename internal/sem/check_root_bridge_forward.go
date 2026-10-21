@@ -5,10 +5,7 @@ package sem
 func (r *Result) forwardSubst(caller EntityID, e EffectEdge, subst map[EntityID][]EntityID, rr *rootRun) map[EntityID][]EntityID {
 	var out map[EntityID][]EntityID
 	var open map[EntityID]bool
-	for _, ie := range r.edgesOf(caller) {
-		if ie.Param == 0 || ie.File != e.File || ie.Node != e.Node {
-			continue
-		}
+	for _, ie := range rr.edgesAt(r, caller, siteLoc{e.File, e.Node}) {
 		var w []EntityID
 		var ok bool
 		switch ie.Kind {
@@ -68,6 +65,23 @@ func (r *Result) forwardSubst(caller EntityID, e EffectEdge, subst map[EntityID]
 		out[param] = []EntityID{rr.unresolved}
 	}
 	return out
+}
+
+func (rr *rootRun) edgesAt(r *Result, caller EntityID, site siteLoc) []EffectEdge {
+	idx, ok := rr.siteEdges[caller]
+	if !ok {
+		idx = map[siteLoc][]EffectEdge{}
+		for _, ie := range r.edgesOf(caller) {
+			if ie.Param != 0 {
+				idx[siteLoc{ie.File, ie.Node}] = append(idx[siteLoc{ie.File, ie.Node}], ie)
+			}
+		}
+		if rr.siteEdges == nil {
+			rr.siteEdges = map[EntityID]map[siteLoc][]EffectEdge{}
+		}
+		rr.siteEdges[caller] = idx
+	}
+	return idx[site]
 }
 
 func (r *Result) unboundPlace(ent EntityID) bool {

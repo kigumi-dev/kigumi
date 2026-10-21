@@ -2,47 +2,63 @@ package mir
 
 import "kigumi/internal/sem"
 
+// Only locals read before a definition in their own block need a bit; the rest are defined wherever they are read.
+// The sets at block entry keep only locals live there, so they stay small however long the function is.
+type defFlow struct {
+	f         *Func
+	live      *edgeLive
+	stamp     []int32
+	cur       int32
+	must, may wordSet
+}
+
+func (d *defFlow) define(in *Inst) {
+	if i := d.live.idx[in.Dst]; i >= 0 {
+		d.stamp[i] = d.cur
+	}
+}
+
 // verifyDefs checks definition before use. A temporary must be assigned
 // on every path to each of its uses; a named local must be assigned on at
 // least one, because the checker narrows the reads of a pattern binding
 // behind `&&` to the matched path, which the CFG cannot see.
 func verifyDefs(f *Func) *Error {
 	f.weakDefs = nil
-	n := len(f.Locals)
-	must := make([][]bool, len(f.Blocks))
-	may := make([][]bool, len(f.Blocks))
-	entryMust, entryMay := make([]bool, n), make([]bool, n)
-	for _, prm := range f.Params {
-		entryMust[prm], entryMay[prm] = true, true
+	if f.live == nil {
+		defer func() { f.live = nil }()
 	}
-	must[0], may[0] = entryMust, entryMay
+	live := f.edgeLive()
+	d := &defFlow{f: f, live: live, stamp: make([]int32, len(live.locals))}
+	must := make([]wordSet, len(f.Blocks))
+	may := make([]wordSet, len(f.Blocks))
 	seen := make([]bool, len(f.Blocks))
-	work := []BlockID{0}
-	for len(work) > 0 {
-		bid := work[0]
-		work = work[1:]
-		outMust, outMay := transferDefs(f, bid, must[bid], may[bid])
-		if diverges(f, &f.Blocks[bid]) {
-			continue
-		}
-		for _, succ := range f.Blocks[bid].Term.Targets {
-			if !seen[succ] {
-				seen[succ] = true
-				must[succ], may[succ] = append([]bool{}, outMust...), append([]bool{}, outMay...)
-				work = append(work, succ)
+	pending := make([]bool, len(f.Blocks))
+	pending[0] = true
+	order := reversePostorder(f)
+	for again := true; again; {
+		again = false
+		for _, bid := range order {
+			if !pending[bid] {
 				continue
 			}
-			changed := false
-			for l := 0; l < n; l++ {
-				if must[succ][l] && !outMust[l] {
-					must[succ][l], changed = false, true
-				}
-				if !may[succ][l] && outMay[l] {
-					may[succ][l], changed = true, true
-				}
+			pending[bid] = false
+			if diverges(f, &f.Blocks[bid]) {
+				continue
 			}
-			if changed {
-				work = append(work, succ)
+			outMust, outMay := must[bid].union(live.defs[bid]), may[bid].union(live.defs[bid])
+			for _, succ := range f.Blocks[bid].Term.Targets {
+				m, y := outMust.inter(live.in[succ]), outMay.inter(live.in[succ])
+				if !seen[succ] {
+					seen[succ] = true
+					must[succ], may[succ] = m, y
+					pending[succ], again = true, true
+					continue
+				}
+				nm, ny := must[succ].inter(m), may[succ].union(y)
+				if !nm.equal(must[succ]) || !ny.equal(may[succ]) {
+					must[succ], may[succ] = nm, ny
+					pending[succ], again = true, true
+				}
 			}
 		}
 	}
@@ -51,7 +67,7 @@ func verifyDefs(f *Func) *Error {
 		if !seen[bid] {
 			continue
 		}
-		if err := checkDefs(f, BlockID(bid), must[bid], may[bid]); err != nil {
+		if err := d.check(BlockID(bid), must[bid], may[bid]); err != nil {
 			return err
 		}
 	}
@@ -73,47 +89,47 @@ func diverges(f *Func, blk *Block) bool {
 	return false
 }
 
-func transferDefs(f *Func, bid BlockID, inMust, inMay []bool) ([]bool, []bool) {
-	must, may := append([]bool{}, inMust...), append([]bool{}, inMay...)
-	for _, in := range f.Blocks[bid].Insts {
-		if in.Op.Yields() {
-			must[in.Dst], may[in.Dst] = true, true
-		}
+func (d *defFlow) defined(l LocalID) bool {
+	i := d.live.idx[l]
+	if i < 0 {
+		return true
 	}
-	return must, may
+	added := d.stamp[i] == d.cur
+	must, may := added || d.must.has(i), added || d.may.has(i)
+	if d.f.Locals[l].Ent != 0 {
+		if may && !must {
+			if d.f.weakDefs == nil {
+				d.f.weakDefs = make([]bool, len(d.f.Locals))
+			}
+			d.f.weakDefs[l] = true
+		}
+		return may
+	}
+	return must
 }
 
-func checkDefs(f *Func, bid BlockID, inMust, inMay []bool) *Error {
-	must, may := append([]bool{}, inMust...), append([]bool{}, inMay...)
-	defined := func(l LocalID) bool {
-		if f.Locals[l].Ent != 0 {
-			if may[l] && !must[l] {
-				if f.weakDefs == nil {
-					f.weakDefs = make([]bool, len(f.Locals))
-				}
-				f.weakDefs[l] = true
-			}
-			return may[l]
-		}
-		return must[l]
-	}
+func (d *defFlow) check(bid BlockID, inMust, inMay wordSet) *Error {
+	f := d.f
+	d.cur++
+	d.must, d.may = inMust, inMay
 	blk := &f.Blocks[bid]
-	for i, in := range blk.Insts {
+	for i := range blk.Insts {
+		in := &blk.Insts[i]
 		for _, a := range in.Args {
 			// Every backend starts a named local null, so releasing one no path assigned is a no-op.
 			if in.Op == OpDrop && f.Locals[a].Ent != 0 {
 				continue
 			}
-			if !defined(a) {
+			if !d.defined(a) {
 				return fail("defs", bid, i, "%s reads %%%s before any definition", in.Op, f.Locals[a].Name)
 			}
 		}
 		if in.Op.Yields() {
-			must[in.Dst], may[in.Dst] = true, true
+			d.define(in)
 		}
 	}
 	for _, a := range blk.Term.Args {
-		if !defined(a) {
+		if !d.defined(a) {
 			return fail("defs", bid, len(blk.Insts), "terminator reads %%%s before any definition", f.Locals[a].Name)
 		}
 	}

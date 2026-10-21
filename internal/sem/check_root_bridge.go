@@ -54,6 +54,7 @@ type rootRun struct {
 	unresolved     EntityID
 	poisonBySite   map[siteLoc][]EntityID
 	poisonedPlaces map[EntityID]bool
+	siteEdges      map[EntityID]map[siteLoc][]EffectEdge
 }
 
 type siteLoc struct {

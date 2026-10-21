@@ -24,14 +24,6 @@ type owner struct {
 	cellDefs map[LocalID]*Inst
 }
 
-func cloneState(s map[LocalID]ownState) map[LocalID]ownState {
-	out := make(map[LocalID]ownState, len(s))
-	for k, v := range s {
-		out[k] = v
-	}
-	return out
-}
-
 // merge joins a predecessor's exit state into a block; it reports
 // whether the block's entry state changed.
 func (a *owner) merge(bid BlockID, out *dstate) bool {
@@ -40,39 +32,16 @@ func (a *owner) merge(bid BlockID, out *dstate) bool {
 		a.in[bid] = cloneD(out)
 		return true
 	}
-	c1 := mergeMap(cur.val, out.val)
-	c2 := mergeMap(cur.field, out.field)
-	for l, n := range out.at {
-		if cur.at[l] == 0 {
-			cur.at[l] = n
-		}
-	}
-	for l, n := range out.callAt {
-		if cur.callAt[l] == 0 {
-			cur.callAt[l] = n
-		}
-	}
-	c3 := mergeMap(cur.called, out.called)
-	c4 := mergeMap(cur.rel, out.rel)
+	c1 := cur.val.join(&out.val)
+	c2 := cur.field.join(&out.field)
+	cur.at.join(&out.at)
+	cur.callAt.join(&out.callAt)
+	c3 := cur.called.join(&out.called)
+	c4 := cur.rel.join(&out.rel)
 	return c1 || c2 || c3 || c4
 }
 
-// mergeMap joins one dstate map's predecessor exit into a block's entry.
-func mergeMap(cur, out map[LocalID]ownState) bool {
-	changed := false
-	for l, s := range out {
-		if c, ok := cur[l]; !ok {
-			cur[l] = s
-			changed = true
-		} else if j := joinOwn(c, s); j != c {
-			cur[l] = j
-			changed = true
-		}
-	}
-	return changed
-}
-
-func (a *owner) check(in *Inst, l LocalID, st map[LocalID]ownState, report bool) {
+func (a *owner) check(in *Inst, l LocalID, s ownState, report bool) {
 	if !report || in == nil {
 		return
 	}
@@ -80,16 +49,16 @@ func (a *owner) check(in *Inst, l LocalID, st map[LocalID]ownState, report bool)
 	if n, ok := a.pl.name[l]; ok {
 		name = n
 	}
-	if s := st[l]; (s == ownMoved || s == ownConflict) && a.reportCleanupRead(in.Node, l, name) {
+	if (s == ownMoved || s == ownConflict) && a.reportCleanupRead(in.Node, l, name) {
 		return
 	}
 	if in.Node == 0 {
 		return
 	}
-	if par, ok := a.pl.parent[l]; ok && a.pl.payloadStep(l) && (st[l] == ownMoved || st[l] == ownConflict) && !a.firstForMove(par, a.cur.at[l]) {
+	if par, ok := a.pl.parent[l]; ok && a.pl.payloadStep(l) && (s == ownMoved || s == ownConflict) && !a.firstForMove(par, a.cur.at.get(l)) {
 		return
 	}
-	switch st[l] {
+	switch s {
 	case ownMoved:
 		a.reportMoved(in.Node, l, name)
 	case ownConflict:
@@ -114,12 +83,12 @@ func (a *owner) checkWhole(n syntax.NodeID, l LocalID, st *dstate, report bool) 
 		return
 	}
 	// A taken payload leaves nothing of the value to name, so this reads as a use of the whole after its move.
-	if n != 0 && a.firstForMove(l, st.at[rep]) {
-		s := st.field[rep]
-		if gone(st.val[rep]) {
-			s = st.val[rep]
+	if n != 0 && a.firstForMove(l, st.at.get(rep)) {
+		s := st.field.get(rep)
+		if gone(st.val.get(rep)) {
+			s = st.val.get(rep)
 		}
-		a.check(&Inst{Node: n}, l, map[LocalID]ownState{l: s}, true)
+		a.check(&Inst{Node: n}, l, s, true)
 	}
 }
 

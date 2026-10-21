@@ -13,6 +13,7 @@ type Program struct {
 	// Resources is every function's resource summary, set once ComputeResourceSummaries runs; nil before then.
 	Resources map[sem.EntityID]*ResourceSummary
 	unwind    unwindMemo
+	sole      *soleIndex
 	executor  executorMemo
 	Diags     []FileDiag
 	// Entries holds every Func.Entry; they are not in Funcs, so nothing keyed by entity sees them.

@@ -99,7 +99,7 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	case "map.Map.tryEntries":
 		return m.tryMapEntries(a0)
 	case "map.tryEmpty":
-		return m.tryEmptyRecord("std/map", "Map", 3)
+		return m.tryEmptyRecord("std/map", "Map", 5)
 	case "text.StringBuilder.tryNew":
 		return m.tryEmptyRecord("std/text", "StringBuilder", 1)
 	}

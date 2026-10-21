@@ -5,6 +5,7 @@ func (s *variantFacts) fold() {
 		return
 	}
 	memo := map[*boolFact]*boolFact{}
+	updates := map[LocalID]*boolFact{}
 	for c, b := range s.bools {
 		nb, ok := memo[b]
 		if !ok {
@@ -14,6 +15,15 @@ func (s *variantFacts) fold() {
 			}
 			memo[b] = nb
 		}
+		if nb != b {
+			updates[c] = nb
+		}
+	}
+	if len(updates) == 0 {
+		return
+	}
+	s.own()
+	for c, nb := range updates {
 		s.bools[c] = nb
 	}
 }
@@ -62,7 +72,7 @@ func (s *variantFacts) assume(c LocalID, value bool) bool {
 		case len(set.list) == 0:
 			return false
 		case set.full():
-			delete(s.known, pl)
+			s.drop([]vplace{pl})
 		default:
 			s.setKnown(pl, set)
 		}
@@ -72,8 +82,15 @@ func (s *variantFacts) assume(c LocalID, value bool) bool {
 		nb = &boolFact{yes: im, no: neverImplied}
 	}
 	s.markFacts(nb)
+	var same []LocalID
 	for l, x := range s.bools {
 		if x == b {
+			same = append(same, l)
+		}
+	}
+	if len(same) > 0 {
+		s.own()
+		for _, l := range same {
 			s.bools[l] = nb
 		}
 	}

@@ -1,0 +1,81 @@
+-- src --
+import text from std/text
+
+fn naive(hay: String, needle: String) -> usize? {
+    if needle.len() > hay.len() {
+        return None
+    }
+    let mut i: usize = 0
+    for i <= hay.len() - needle.len() {
+        if hay.matchesAt(needle, i) {
+            return Some(i)
+        }
+        i = i + 1
+    }
+    None
+}
+
+fn word(seed: Int, len: Int, alphabet: Int) -> String {
+    let mut out = Array.empty[u8]()
+    let mut s = seed
+    let mut i = 0
+    for i < len {
+        s = (s * 1103515245 + 12345) % 2147483648
+        out.push((97 + (s / 65536) % alphabet).toU8() || 97)
+        i = i + 1
+    }
+    String.fromBytes(Bytes.fromArray(&out)) || ""
+}
+
+fn naiveLast(hay: String, needle: String) -> usize? {
+    if needle.len() > hay.len() {
+        return None
+    }
+    let mut i = hay.len() - needle.len()
+    for true {
+        if hay.matchesAt(needle, i) {
+            return Some(i)
+        }
+        if i == 0 {
+            return None
+        }
+        i = i - 1
+    }
+    None
+}
+
+let mut mismatches = 0
+let mut found = 0
+let mut round = 0
+for round < 4000 {
+    let hay = word(round * 7 + 1, (round * 13) % 41, 1 + round % 3)
+    let needle = if round % 3 == 0 {
+        word(round * 11 + 5, (round * 5) % 9, 1 + round % 3)
+    } else {
+        hay.sliceBytes(0, ((round * 3) % ((hay.len().toInt() || 0) + 1)).toUsize() || 0) || ""
+    }
+    let want = naive(hay, needle)
+    if text.find(hay, needle) != want || hay.contains(needle) != (want is Some(_)) || hay.toBytes().indexOf(needle.toBytes()) != want {
+        mismatches = mismatches + 1
+    }
+    if text.rfind(hay, needle) != naiveLast(hay, needle) || hay.toBytes().lastIndexOf(needle.toBytes()) != naiveLast(hay, needle) {
+        mismatches = mismatches + 1
+    }
+    if want is Some(_) {
+        found = found + 1
+    }
+    round = round + 1
+}
+print "mismatches=${mismatches} found>0=${found > 0}"
+print "empty needle ${text.find("abc", "") || 99} ${"abc".contains("")} ${"".contains("")}"
+print "longer needle ${"ab".contains("abc")} ${text.find("ab", "abc") is None}"
+print "multibyte ${text.find("héllo wörld", "wör") || 99} ${"日本語のテキスト".contains("のテ")}"
+print "periodic ${text.find("abababababc", "ababc") || 99} ${text.find("aaaaaaaaab", "aaab") || 99}"
+print "last ${text.rfind("abcabc", "bc") || 99} ${text.rfind("abc", "") || 99} ${text.rfind("ab", "abc") is None} ${text.rfind("日本語日本", "日本") || 99}"
+-- stdout --
+mismatches=0 found>0=true
+empty needle 0 true true
+longer needle false true
+multibyte 7 true
+periodic 6 6
+last 4 3 true 9

@@ -1,0 +1,70 @@
+-- src --
+// Long arrays of equal-kind scalars take the VM's packed storage; every operation must behave as on a plain array.
+fn bump(mut a: FixedArray[Int, 100]) -> FixedArray[Int, 100] {
+    a[3] = a[3] + 1000
+    a
+}
+
+fn main() -> Void! {
+    let mut ints = FixedArray.filled[Int, 100](5)
+    ints[10] = 77
+    let copy = ints
+    ints[10] = 78
+    let moved = bump(ints)
+    print "ints ${ints[10]} ${copy[10]} ${ints[3]} ${moved[3]} ${ints.get(100) is None} ${ints.get(99) || 0}"
+
+    let mut sum = 0
+    for x in moved {
+        sum = sum + x
+    }
+    let mut viaRef = 0
+    for x in &moved {
+        viaRef = viaRef + x
+    }
+    print "sum ${sum} ${viaRef} ${moved.len()}"
+
+    let hit = ints.withMut(20, (x: &mut Int) => { x = x + 4 })
+    let miss = ints.withMut(100, (x: &mut Int) => { x = 0 })
+    print "withMut ${hit is Some(_)} ${ints[20]} ${miss is None}"
+
+    let mut floats = FixedArray.filled[f64, 80](1.5)
+    floats[2] = -0.25
+    let mut bools = FixedArray.filled[Bool, 70](false)
+    bools[69] = true
+    let mut bytes = FixedArray.filled[u8, 90](200)
+    bytes[0] = 7
+    let mut chars = FixedArray.filled[Char, 66]('a')
+    chars[65] = 'z'
+    print "kinds ${floats[2]} ${floats[3]} ${bools[69]} ${bools[68]} ${bytes[0]} ${bytes[89]} ${chars[65]} ${chars[0]}"
+
+    let same = FixedArray.filled[Int, 100](5)
+    let other = FixedArray.filled[Int, 100](5)
+    let mut changed = FixedArray.filled[Int, 100](5)
+    changed[99] = 6
+    print "eq ${same.equals(&other)} ${same.equals(&changed)} ${hash(&same) == hash(&other)} ${hash(&same) == hash(&changed)}"
+
+    let arr = changed.toArray()
+    print "toArray ${arr.len()} ${arr[99]} ${arr[0]}"
+    let shown = debug(&bytes)
+    print "display ${shown.len() > 100} ${shown.contains("200")}"
+
+    let mut nested = FixedArray.filled[Int, 64](1)
+    nested[63] = 2
+    let rec = Holder { cells: nested, tag: 4 }
+    let again = rec
+    print "record ${again.cells[63]} ${again.cells[0]} ${again.tag}"
+}
+
+type Holder = {
+    pub cells FixedArray[Int, 64]
+    pub tag Int
+}
+-- stdout --
+ints 78 77 5 1005 true 5
+sum 1573 1573 100
+withMut true 9 true
+kinds -0.25 1.5 true false 7 200 z a
+eq true false true false
+toArray 100 6 5
+display true true
+record 2 1 4

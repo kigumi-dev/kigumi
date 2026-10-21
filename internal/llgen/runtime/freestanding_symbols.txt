@@ -78,6 +78,7 @@ realloc
 round
 rt_sys_close
 rt_sys_exit
+rt_sys_seed
 rt_sys_stack_force
 rt_sys_stack_guard
 rt_sys_std

@@ -95,21 +95,4 @@ func (tt *TypeTable) Params(t TypeID) []EntityID {
 }
 
 // ContainsVar reports whether an unresolved inference variable occurs in t.
-func (tt *TypeTable) ContainsVar(t TypeID) bool {
-	if t == 0 {
-		return false
-	}
-	n := tt.nodes[t]
-	if n.Kind == KVar {
-		return true
-	}
-	if tt.ContainsVar(n.Elem) {
-		return true
-	}
-	for _, a := range n.Args {
-		if tt.ContainsVar(a) {
-			return true
-		}
-	}
-	return false
-}
+func (tt *TypeTable) ContainsVar(t TypeID) bool { return tt.props[t].hasVar }

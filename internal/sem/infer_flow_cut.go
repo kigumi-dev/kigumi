@@ -25,9 +25,10 @@ type flowState struct {
 	order          map[fieldSiteKey]fieldPoisonSiteInfo
 	poisonAt       map[fieldFnKey]fieldPoisonSiteInfo
 	// sites lists every statement that wrote the fn into the key, not only the earliest.
-	sites    map[fieldSiteKey][]fieldPoisonSiteInfo
-	kills    map[EntityID][]killSite
-	soleElem map[EntityID]token.Span
+	sites     map[fieldSiteKey][]fieldPoisonSiteInfo
+	kills     map[EntityID][]killSite
+	soleElem  map[EntityID]token.Span
+	bodyStmts bodyStmtSet
 }
 
 type histBind struct {

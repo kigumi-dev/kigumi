@@ -93,9 +93,7 @@ async fn lib.awaitTwice() -> Int {
     branch %t9 ? b3 : b4
   b3:
     drop(%a)
-    nop
-    cancel
-    unreachable
+    jump b1
   b4:
     %b = copy(%t8)
     %t11 = bin +(%a, %b)
@@ -128,10 +126,7 @@ async fn lib.awaitValueTwice() -> Int {
     branch %t10 ? b3 : b4
   b3:
     drop(%a)
-    nop
-    drop(%g)
-    cancel
-    unreachable
+    jump b1
   b4:
     %b = copy(%t9)
     %t12 = bin +(%a, %b)
@@ -160,9 +155,7 @@ async fn lib.awaitField(%b: Box) -> Int {
     branch %t7 ? b3 : b4
   b3:
     drop(%x)
-    drop(%b)
-    cancel
-    unreachable
+    jump b1
   b4:
     %y = copy(%t6)
     %t9 = bin +(%x, %y)
@@ -190,9 +183,7 @@ async fn lib.awaitParam(%f: Future[Int]) -> Int {
     branch %t7 ? b3 : b4
   b3:
     drop(%a)
-    nop
-    cancel
-    unreachable
+    jump b1
   b4:
     %b = copy(%t6)
     %t9 = bin +(%a, %b)

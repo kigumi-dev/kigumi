@@ -27,7 +27,7 @@ func (vf *variantFlow) block(bid BlockID, entry *variantFacts, check bool) (*var
 			}
 		}
 		if in.Op == OpCellSet {
-			delete(s.known, cellPlace(s.where(in.Args[0])))
+			s.drop([]vplace{cellPlace(s.where(in.Args[0]))})
 		}
 		if in.Op == OpSetField {
 			s.forgetBelow(s.where(in.Args[0]).root)

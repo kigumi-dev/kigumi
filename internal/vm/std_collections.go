@@ -5,8 +5,10 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	switch key {
 	case "array.Array.empty":
 		return mkArray(nil)
-	case "array.Array.of", "prelude.FixedArray.adopt":
+	case "array.Array.of":
 		return retain(a0)
+	case "prelude.FixedArray.adopt":
+		return m.compact(a0)
 	// No fault tick here: growBy is the fallible reservation push commits
 	// into, same as native's try_grow fast path once capacity is enough.
 	case "array.Array.push":
@@ -57,7 +59,13 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 			return m.none()
 		}
 		x := a0.fields[i]
-		a0.fields = append(a0.fields[:i], a0.fields[i+1:]...)
+		if n := int64(len(a0.fields)); i < n-1-i {
+			copy(a0.fields[1:i+1], a0.fields[:i])
+			a0.fields[0] = nil
+			a0.fields = a0.fields[1:]
+		} else {
+			a0.fields = append(a0.fields[:i], a0.fields[i+1:]...)
+		}
 		m.chargeMemory(a0)
 		return m.some(x)
 	case "array.Array.clone":

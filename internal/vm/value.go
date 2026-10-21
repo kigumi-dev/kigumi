@@ -27,8 +27,9 @@ const (
 	kArray
 	kClosure
 	kBox
-	kCell
 	kOpaque
+	kCell
+	kRawArray
 )
 
 // reqCall is a method value on an interface requirement; env[0] is the witness when witness is set.
@@ -102,6 +103,10 @@ func newObj(k kind) *obj {
 		o := &opaqueObj{}
 		o.k, o.rc = k, 1
 		return born(&o.obj)
+	case kRawArray:
+		o := &rawArrObj{}
+		o.k, o.rc = k, 1
+		return born(&o.obj)
 	}
 	return born(&obj{k: k, rc: 1})
 }
@@ -168,14 +173,6 @@ func mkOpaque(op string, data any) *obj {
 	v := newObj(kOpaque)
 	o := v.opq()
 	o.op, o.data = op, data
-	return v
-}
-
-// deref follows cells, as every runtime entry point does.
-func deref(v *obj) *obj {
-	for v != nil && v.k == kCell {
-		v = v.inner
-	}
 	return v
 }
 

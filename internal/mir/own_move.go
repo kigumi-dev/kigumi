@@ -10,11 +10,12 @@ func (a *owner) moveInst(in *Inst, st *dstate, report bool) {
 	if !a.tracked[src] {
 		return
 	}
-	a.check(in, src, st.val, report && !in.Guarded)
+	a.check(in, src, st.val.get(src), report && !in.Guarded)
 	a.checkWhole(in.Node, src, st, report)
 	a.checkDropOwner(in.Node, src, report)
 	a.checkGuardHeld(in, src, st, report && !in.Guarded, 0)
-	st.val[src], st.at[src] = ownMoved, in.Node
+	st.val.set(src, ownMoved)
+	st.at.set(src, in.Node)
 	a.noteMove(in, src, report)
 	a.moveGuardSource(in, src, st, report)
 }

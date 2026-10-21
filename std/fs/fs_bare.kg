@@ -18,6 +18,21 @@ pub fn Files.append(self, path: Path) -> File! {
     panic()
 }
 
+/// Creates a file with permission bits; a bare target has no file system.
+pub fn Files.createWithMode(self, path: Path, mode: u32) -> File! {
+    panic()
+}
+
+/// Deletes an empty directory; a bare target has no file system.
+pub fn Files.removeDir(self, path: Path) -> Void! {
+    panic()
+}
+
+/// Reads a file up to a limit; a bare target has no file system.
+pub fn Files.readBytesUpTo(self, path: Path, limit: usize) -> Bytes! {
+    panic()
+}
+
 /// Deletes a file; a bare target has no file system.
 pub fn Files.remove(self, path: Path) -> Void! {
     panic()

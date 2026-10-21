@@ -2,9 +2,13 @@
 pub type Map[K: Eq + Hash, V] = {
     mut keyList Array[K]
     mut valueList Array[V]
-    // slots is an open-addressing index over the entry positions, stored
-    // as position + 1 so that 0 marks a free slot; its length is a power of two.
+    // slots is an open-addressing index of sequence number + 2 (0 free,
+    // 1 removed); its length is a power of two.
     mut slots Array[usize]
+    // seqList[pos] is the sequence number of entry pos after a removal; before that it is empty or the identity.
+    mut seqList Array[usize]
+    // meta is empty until the first insert, then [hash seed, removals since the last reindex].
+    mut meta Array[usize]
 }
 
 /// Same entries in any order; satisfies `Eq` when the values do.
@@ -62,101 +66,188 @@ pub pure fn empty[K: Eq + Hash, V]() -> Map[K, V] {
 /// Creates an empty map, or AllocError when the allocator refuses (empty panics instead).
 pub pure fn tryEmpty[K: Eq + Hash, V]() -> Result[Map[K, V], AllocError]
 
-/// The position of key among the entries, or None.
-pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
-    let n = self.slots.len()
-    if n == 0 {
-        return None
+/// The per-process hash seed.
+pure noalloc fn seed() -> u64
+
+/// Spreads every bit of h over the low bits (the murmur3 finalizer), so hashes that agree only in their low bits do not share probe chains.
+pure noalloc fn mix(h: u64) -> u64 {
+    let a = h ^ h.wrappingShiftRight(33)
+    let b = a.wrappingMul(0xff51afd7ed558ccd)
+    let c = b ^ b.wrappingShiftRight(33)
+    let d = c.wrappingMul(0xc4ceb9fe1a85ec53)
+    d ^ d.wrappingShiftRight(33)
+}
+
+/// First slot of the probe sequence of a key with hash h in an index of size slots.
+pure noalloc fn startSlot(h: u64, seed: usize, size: usize) -> usize {
+    mix(h ^ seed.toU64()).toUsize() & (size - 1)
+}
+
+/// Entries removed since the last reindex; each left a dead slot and a gap in the sequence numbers.
+pure noalloc fn gapOf(meta: &Array[usize]) -> usize {
+    meta.get(1) || 0
+}
+
+/// The position of the entry with sequence number seq; the two agree until the first removal after a reindex.
+pure fn seqPosition(seqList: &Array[usize], gap: usize, seq: usize) -> usize {
+    if gap == 0 {
+        return seq
     }
-    let mut i = hash(key).toUsize() & (n - 1)
+    let mut lo: usize = 0
+    if seq > gap {
+        lo = seq - gap
+    }
+    let mut hi = seqList.len()
+    if seq + 1 < hi {
+        hi = seq + 1
+    }
+    for lo + 1 < hi {
+        let mid = lo + (hi - lo) / 2
+        if seqList[mid] > seq {
+            hi = mid
+        } else {
+            lo = mid
+        }
+    }
+    lo
+}
+
+/// Records the entry with sequence number seq in the first free slot of its probe sequence; dead slots are not reused.
+pure fn fileSlot(slots: &mut Array[usize], start: usize, seq: usize) {
+    let mask = slots.len() - 1
+    let mut i = start
+    for slots[i] != 0 {
+        i = (i + 1) & mask
+    }
+    slots[i] = seq + 2
+}
+
+/// Whether one more entry would fill the index past half, counting dead slots.
+pure noalloc fn roomNeeded(live: usize, gap: usize, slots: usize) -> Bool {
+    (live + gap + 1) * 2 > slots
+}
+
+/// The index size for live entries plus one; after removals it leaves at least as many free slots as live entries so rebuilding stays amortised.
+pure noalloc fn indexSizeFor(live: usize, gap: usize) -> usize {
+    let wanted = (live + 1) * 2
+    let mut size: usize = 8
+    for size < wanted {
+        size = size * 2
+    }
+    if gap > 0 && wanted * 2 > size {
+        size = size * 2
+    }
+    size
+}
+
+/// Draws the hash seed on the first insert.
+pure fn drawSeed(meta: &mut Array[usize]) {
+    if meta.len() == 0 {
+        meta.push(seed().toUsize())
+        meta.push(0)
+    }
+}
+
+/// The slot holding key, probing from start.
+pure fn Map[K: Eq + Hash, V].findSlot(self, start: usize, key: &K) -> usize? {
+    let mask = self.slots.len() - 1
+    let mut i = start
     for {
         let s = self.slots[i]
         if s == 0 {
             return None
         }
-        let pos = s - 1
-        if (&self.keyList[pos]).equals(key) {
-            return Some(pos)
+        if s > 1 && (&self.keyList[seqPosition(&self.seqList, gapOf(&self.meta), s - 2)]).equals(key) {
+            return Some(i)
         }
-        i = (i + 1) & (n - 1)
+        i = (i + 1) & mask
     }
 }
 
-/// Records entry pos in the first free slot of its probe sequence.
-pure fn Map[K: Eq + Hash, V].fileSlot(mut self, h: u64, pos: usize) {
-    let n = self.slots.len()
-    let mut i = h.toUsize() & (n - 1)
-    for self.slots[i] != 0 {
-        i = (i + 1) & (n - 1)
+/// The position of the key with hash h among the entries, or None.
+pure fn Map[K: Eq + Hash, V].positionHashed(self, h: u64, key: &K) -> usize? {
+    if self.slots.len() == 0 {
+        return None
     }
-    self.slots[i] = pos + 1
+    let start = startSlot(h, self.meta[0], self.slots.len())
+    if self.findSlot(start, key) is Some(i) {
+        return Some(seqPosition(&self.seqList, gapOf(&self.meta), self.slots[i] - 2))
+    }
+    None
 }
 
-/// Files every entry into the (already right-sized) index; used after the
-/// index is replaced wholesale, when the old slots cannot be reused.
-pure fn Map[K: Eq + Hash, V].refileAll(mut self) {
+/// The position of key among the entries, or None.
+pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
+    self.positionHashed(hash(key), key)
+}
+
+/// Installs a fresh index, renumbers the entries by position and files them all; allocates nothing.
+pure fn Map[K: Eq + Hash, V].rebuild(mut self, slots: Array[usize]) {
+    self.slots = slots
+    self.meta[1] = 0
+    let seed = self.meta[0]
+    let size = self.slots.len()
     let mut pos: usize = 0
     for pos < self.keyList.len() {
-        let h = hash(&self.keyList[pos])
-        self.fileSlot(h, pos)
+        if pos < self.seqList.len() {
+            self.seqList[pos] = pos
+        }
+        let start = startSlot(hash(&self.keyList[pos]), seed, size)
+        fileSlot(&mut self.slots, start, pos)
         pos = pos + 1
     }
 }
 
-/// Rebuilds the index with size slots; entries keep their positions.
-pure fn Map[K: Eq + Hash, V].reindex(mut self, size: usize) {
-    self.slots = Array.tryFill[usize](0, size) || panic("out of memory")
-    self.refileAll()
+/// Appends a new entry with hash h; the index must have room.
+pure fn Map[K: Eq + Hash, V].append(mut self, h: u64, key: K, value: V) {
+    let gap = gapOf(&self.meta)
+    let seq = self.keyList.len() + gap
+    self.keyList.push(key)
+    self.valueList.push(value)
+    if gap > 0 {
+        self.seqList.push(seq)
+    }
+    let start = startSlot(h, self.meta[0], self.slots.len())
+    fileSlot(&mut self.slots, start, seq)
 }
 
 /// Inserts value under key, replacing an existing value.
 pub pure fn Map[K: Eq + Hash, V].set(mut self, key: K, value: V) {
-    if self.position(&key) is Some(pos) {
+    let h = hash(&key)
+    if self.positionHashed(h, &key) is Some(pos) {
         self.valueList[pos] = value
         return
     }
-    let h = hash(&key)
-    self.keyList.push(key)
-    self.valueList.push(value)
-    let pos = self.keyList.len() - 1
-    if (pos + 1) * 2 > self.slots.len() {
-        let mut size: usize = 8
-        for size < (pos + 1) * 2 {
-            size = size * 2
-        }
-        self.reindex(size)
-        return
+    drawSeed(&mut self.meta)
+    if roomNeeded(self.keyList.len(), gapOf(&self.meta), self.slots.len()) {
+        self.rebuild(Array.tryFill[usize](0, indexSizeFor(self.keyList.len(), gapOf(&self.meta))) || panic("out of memory"))
     }
-    self.fileSlot(h, pos)
+    self.append(h, key, value)
 }
 
 /// Inserts value under key, or AllocError when the allocator refuses; the
 /// map is left unchanged in that case (set panics instead).
 pub pure fn Map[K: Eq + Hash, V].trySet(mut self, key: K, value: V) -> Result[Void, AllocError] {
-    if self.position(&key) is Some(pos) {
+    let h = hash(&key)
+    if self.positionHashed(h, &key) is Some(pos) {
         self.valueList[pos] = value
     } else {
+        if self.meta.len() == 0 {
+            self.meta.tryReserve(2)?
+        }
         self.keyList.tryReserve(1)?
         self.valueList.tryReserve(1)?
-        let pos = self.keyList.len()
-        let h = hash(&key)
-        if (pos + 1) * 2 > self.slots.len() {
-            let mut size: usize = 8
-            for size < (pos + 1) * 2 {
-                size = size * 2
-            }
+        if gapOf(&self.meta) > 0 {
+            self.seqList.tryReserve(1)?
+        }
+        if roomNeeded(self.keyList.len(), gapOf(&self.meta), self.slots.len()) {
             // Build the bigger index before committing key/value, so a
             // refused allocation here still leaves the map untouched.
-            let slots = Array.tryFill[usize](0, size)?
-            self.keyList.push(key)
-            self.valueList.push(value)
-            self.slots = slots
-            self.refileAll()
-        } else {
-            self.keyList.push(key)
-            self.valueList.push(value)
-            self.fileSlot(h, pos)
+            let slots = Array.tryFill[usize](0, indexSizeFor(self.keyList.len(), gapOf(&self.meta)))?
+            drawSeed(&mut self.meta)
+            self.rebuild(slots)
         }
+        self.append(h, key, value)
     }
 }
 
@@ -177,14 +268,22 @@ pub pure fn Map[K: Eq + Hash, V].with[R](self, key: &K, f: fn(&V) -> R) -> R? {
 }
 
 /// Moves the value under key out of the map; None when the key is absent.
-/// Removing shifts the later positions, so the index is rebuilt.
+/// The index slot is marked dead and the later entries shift down, so the cost is a copy of the tail rather than a rehash.
 pub pure fn Map[K: Eq + Hash, V].take(mut self, key: &K) -> V? {
-    if self.position(key) is Some(pos) {
+    if self.slots.len() == 0 {
+        return None
+    }
+    let start = startSlot(hash(key), self.meta[0], self.slots.len())
+    if self.findSlot(start, key) is Some(i) {
+        let pos = seqPosition(&self.seqList, gapOf(&self.meta), self.slots[i] - 2)
+        for self.seqList.len() < self.keyList.len() {
+            self.seqList.push(self.seqList.len())
+        }
+        self.slots[i] = 1
         _ = self.keyList.takeAt(pos)
-        let value = self.valueList.takeAt(pos)
-        let size = self.slots.len()
-        self.reindex(size)
-        return value
+        _ = self.seqList.takeAt(pos)
+        self.meta[1] = self.meta[1] + 1
+        return self.valueList.takeAt(pos)
     }
     None
 }

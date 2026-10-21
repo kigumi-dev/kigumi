@@ -1,0 +1,54 @@
+-- src --
+import io from std/io
+
+type Zeros = {
+    mut served usize
+}
+
+fn Zeros.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
+    let mut i: usize = 0
+    for i < max {
+        into.push(0)
+        i = i + 1
+    }
+    self.served = self.served + max
+    max
+}
+
+type Slice = {
+    data Bytes
+    mut at usize
+}
+
+fn Slice.read(mut self, into: &mut Array[u8], max: usize) -> usize! {
+    let mut n: usize = 0
+    for n < max && self.at < self.data.len() {
+        into.push(self.data[self.at])
+        self.at = self.at + 1
+        n = n + 1
+    }
+    n
+}
+
+fn describe(r: Result[Bytes, Error]) -> String {
+    match r {
+        Ok(b) -> "ok ${b.len()}"
+        Err(e) -> "err ${e.message()}"
+    }
+}
+
+let zeros = Zeros { served: 0 }
+print "endless ${describe(io.readUpTo(zeros, 10000))}"
+let text = "0123456789".toBytes()
+print "exact ${describe(io.readUpTo(Slice { data: text, at: 0 }, 10))}"
+print "short ${describe(io.readUpTo(Slice { data: text, at: 0 }, 9))}"
+print "none ${describe(io.readUpTo(Slice { data: text, at: 0 }, 0))}"
+print "all ${describe(io.readAll(Slice { data: text, at: 0 }))}"
+print "empty ${describe(io.readUpTo(Slice { data: "".toBytes(), at: 0 }, 0))}"
+-- stdout --
+endless err input is larger than the read limit of 10000 bytes
+exact ok 10
+short err input is larger than the read limit of 9 bytes
+none err input is larger than the read limit of 0 bytes
+all ok 10
+empty ok 0

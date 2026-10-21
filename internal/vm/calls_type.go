@@ -23,7 +23,7 @@ func (m *Machine) dynType(v *obj) sem.TypeID {
 		return sem.TyBytes
 	case kChar:
 		return sem.TyChar
-	case kArray:
+	case kArray, kRawArray:
 		return tt.Named(tt.ArrayEnt(), nil)
 	}
 	return sem.TyUnit

@@ -30,6 +30,7 @@ __attribute__((weak)) int rt_sys_close(int fd) {
     (void)fd;
     return -1;
 }
+__attribute__((weak)) int64_t rt_sys_seed(void) { return 0; }
 __attribute__((weak)) void rt_sys_stack_guard(void) {}
 __attribute__((weak)) void rt_sys_stack_force(void) {}
 val rt_sys_std(const char* k, int n, val* a, val a0, val a1, val a2) {

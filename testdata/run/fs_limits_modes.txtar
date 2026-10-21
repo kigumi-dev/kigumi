@@ -1,0 +1,67 @@
+-- src --
+import fs from std/fs
+import shell from std/shell
+
+let files = host.files()
+let sh = host.shell()
+
+fn at(name: String) -> fs.Path! {
+    fs.Path.fromString(name)
+}
+
+fn outcome(r: Result[Bytes, Error]) -> String {
+    match r {
+        Ok(b) -> "ok ${b.len()}"
+        Err(e) -> "err ${e.message()}"
+    }
+}
+
+files.writeText(at("ten.txt")?, "0123456789")?
+print "exact ${outcome(files.readBytesUpTo(at("ten.txt")?, 10))}"
+print "short ${outcome(files.readBytesUpTo(at("ten.txt")?, 9))}"
+print "zero ${outcome(files.readBytesUpTo(at("ten.txt")?, 0))}"
+print "plain ${outcome(files.readBytes(at("ten.txt")?))} ${files.read(at("ten.txt")?)?}"
+
+files.writeText(at("empty.txt")?, "")?
+print "empty ${outcome(files.readBytesUpTo(at("empty.txt")?, 0))}"
+
+print "device ${outcome(files.readBytesUpTo(at("/dev/zero")?, 4096))}"
+print "dir ${files.readBytes(at(".")?) is Err(_)}"
+
+let mut secret = files.createWithMode(at("secret.txt")?, 0o600)?
+_ = secret.write("key".toBytes())?
+secret.close()?
+let mode = ($"stat -c %a secret.txt" |> shell.capture(sh))?
+let modeText = String.fromBytes(mode.stdout)?
+print "mode ${modeText.trim()} content ${files.read(at("secret.txt")?)?}"
+
+let mut special = files.createWithMode(at("special.txt")?, 0o4755)?
+special.close()?
+let specialMode = ($"stat -c %a special.txt" |> shell.capture(sh))?
+let specialText = String.fromBytes(specialMode.stdout)?
+print "special ${specialText.trim()}"
+
+files.mkdir(at("sub/inner")?)?
+print "remove dir ${files.remove(at("sub")?) is Err(_)} still ${files.exists(at("sub/inner")?)}"
+print "remove non-empty ${files.removeDir(at("sub")?) is Err(_)}"
+files.removeDir(at("sub/inner")?)?
+files.removeDir(at("sub")?)?
+print "after ${files.exists(at("sub")?)}"
+files.remove(at("ten.txt")?)?
+print "file gone ${files.exists(at("ten.txt")?)}"
+print "removeDir on file ${files.removeDir(at("empty.txt")?) is Err(_)}"
+-- stdout --
+exact ok 10
+short err file is larger than the read limit of 9 bytes
+zero err file is larger than the read limit of 0 bytes
+plain ok 10 0123456789
+empty ok 0
+device err file is larger than the read limit of 4096 bytes
+dir true
+mode 600 content key
+special 4755
+remove dir true still true
+remove non-empty true
+after false
+file gone false
+removeDir on file true

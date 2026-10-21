@@ -143,6 +143,7 @@ func (m *Machine) registerAll() {
 	m.registerNet()
 	m.registerNetHTTP()
 	m.registerEntropy()
+	m.registerMapSeed()
 	m.registerError()
 	m.registerExit()
 	m.indexHostByOp()

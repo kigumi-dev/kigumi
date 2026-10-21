@@ -68,7 +68,7 @@ struct obj {
         } var;
         struct {
             val* items;
-            int64_t len, cap;
+            int64_t len, cap, head;
         } arr;
         struct {
             adapter_fn fn;
@@ -132,6 +132,8 @@ typedef struct {
 void rt_sys_write(int fd, const char* p, size_t n);
 void rt_sys_exit(int code);
 int rt_sys_close(int fd);
+// A random word for keyed hashing, or 0 when the platform has none.
+int64_t rt_sys_seed(void);
 // Called once per OS thread that runs Kigumi code; a hosted POSIX target installs its stack-overflow guard here.
 void rt_sys_stack_guard(void);
 void rt_sys_stack_force(void);

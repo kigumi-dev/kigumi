@@ -42,6 +42,8 @@ type specializer struct {
 	bonus    map[string]int
 	lent     map[lendParam]bool
 	edits    []siteEdit
+	// Rebuilt per dry run; a revert drops its caller's entry.
+	reboxFlows map[*Func]*reboxFlow
 }
 
 type siteEdit struct {

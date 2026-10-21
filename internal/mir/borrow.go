@@ -39,10 +39,12 @@ type borrowInfo struct {
 }
 
 type borrowCheck struct {
-	p       *Program
-	f       *Func
-	holders map[LocalID]*borrowInfo
-	liveOut []map[LocalID]bool
+	p        *Program
+	f        *Func
+	holders  map[LocalID]*borrowInfo
+	liveOut  []map[LocalID]bool
+	liveIn   []map[LocalID]bool
+	firstDef map[LocalID]int
 	// definedIn holds the holders that may have been assigned on some
 	// path into a block: a binding that `is` assigns only when its pattern
 	// matches is live at the join but not yet defined before the test.
@@ -107,12 +109,12 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 			live[a] = true
 		}
 	}
-	before := c.definedBefore(bid)
+	c.enterDefs(bid)
 	c.enterBlock(bid)
 	for i := len(blk.Insts) - 1; i >= 0; i-- {
 		in := blk.Insts[i]
 		c.curIdx = i
-		c.checkInst(in, intersect(live, before[i]))
+		c.checkInst(in, c.definedLive(live, bid, i))
 		if _, ok := c.holders[in.Dst]; ok && in.Op != OpDrop && in.Op != OpSetField && in.Op != OpSetIndex && in.Op != OpCellSet && in.Op != OpGlobalSet && in.Op != OpFutureDone && in.Op != OpCancelDone {
 			delete(live, in.Dst)
 		}

@@ -30,6 +30,8 @@ func approxSize(v *obj) int64 {
 		return int64(len(v.str())) + objOverhead
 	case kArray, kRecord, kVariant, kClosure:
 		return int64(len(v.fields))*8 + objOverhead
+	case kRawArray:
+		return int64(len(v.rawArr().raw))*8 + objOverhead
 	case kCell, kBox, kOpaque:
 		return objOverhead
 	}

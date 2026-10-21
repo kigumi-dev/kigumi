@@ -35,9 +35,7 @@ func frameCrossing(f *Func) map[LocalID]bool {
 		}
 	}
 	for _, live := range liveAtSuspends(f) {
-		for l := range live {
-			at[l] = true
-		}
+		live.each(func(l LocalID) { at[l] = true })
 	}
 	return at
 }

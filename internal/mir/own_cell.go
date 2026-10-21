@@ -48,7 +48,8 @@ func (a *owner) cellConsume(in *Inst, t LocalID, st *dstate, report bool) {
 	if c := a.cellOf(t); c != 0 {
 		a.cellRead(in, c, st, report)
 		a.checkWhole(in.Node, c, st, report)
-		st.field[c], st.at[c] = ownMoved, in.Node
+		st.field.set(c, ownMoved)
+		st.at.set(c, in.Node)
 	}
 }
 
@@ -57,7 +58,7 @@ func (a *owner) cellStep(in *Inst, st *dstate, report bool) {
 	case OpCellSet:
 		if c := in.Args[0]; a.cellTracked(c) {
 			a.checkGuardHeld(in, c, st, report, 0)
-			delete(st.field, c)
+			st.field.del(c)
 			a.pl.resetFields(c, st)
 		}
 		return
@@ -69,8 +70,8 @@ func (a *owner) cellStep(in *Inst, st *dstate, report bool) {
 		for i, c := range in.Args {
 			switch {
 			case !a.cellTracked(c):
-			case gone(st.field[c]) && a.onlyAssigns(in, i):
-				st.field[c] = ownConflict
+			case gone(st.field.get(c)) && a.onlyAssigns(in, i):
+				st.field.set(c, ownConflict)
 			default:
 				a.cellRead(in, c, st, report)
 			}
@@ -95,8 +96,8 @@ func (a *owner) moveSource(in *Inst, st *dstate, report bool) LocalID {
 
 // cellRead reports one use after move per consume of the cell's content, however many reads follow it on one line.
 func (a *owner) cellRead(in *Inst, c LocalID, st *dstate, report bool) {
-	if report && in.Node != 0 && gone(st.field[c]) && a.firstForMove(c, st.at[c]) {
-		a.check(in, c, st.field, report)
+	if report && in.Node != 0 && gone(st.field.get(c)) && a.firstForMove(c, st.at.get(c)) {
+		a.check(in, c, st.field.get(c), report)
 	}
 }
 

@@ -62,7 +62,7 @@ func (p *Program) boundArg(f *Func, witness, val LocalID) string {
 
 func (p *Program) witnessDef(f *Func, l LocalID) *Inst {
 	for range 5 {
-		def := soleDef(f, l)
+		def := p.soleDefOf(f, l)
 		if def == nil {
 			return nil
 		}

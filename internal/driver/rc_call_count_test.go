@@ -23,15 +23,15 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         711,
-	"rt_retain":        4780,
-	"rt_release":       48951,
-	"rt_release_outer": 17522,
-	"rt_drop":          29942,
-	"rt_cell_init":     3071,
-	"rt_cell_take":     1273,
-	"rt_setfield_swap": 257,
-	"rt_setindex_swap": 40,
+	"fixtures":         716,
+	"rt_retain":        4701,
+	"rt_release":       52132,
+	"rt_release_outer": 19371,
+	"rt_drop":          30942,
+	"rt_cell_init":     3216,
+	"rt_cell_take":     1274,
+	"rt_setfield_swap": 286,
+	"rt_setindex_swap": 67,
 }
 
 // The same call sites over the fixtures that existed before the retain / release elimination and the lent receivers,
@@ -42,10 +42,10 @@ var baselineRCCalls = map[string]int{
 	"rt_release":       51119,
 	"rt_release_outer": 12954,
 	"rt_drop":          25759,
-	"rt_cell_init":     2525,
+	"rt_cell_init":     2577,
 	"rt_cell_take":     2503,
 	"rt_setfield_swap": 203,
-	"rt_setindex_swap": 32,
+	"rt_setindex_swap": 51,
 }
 
 var addedAfterBaseline = map[string]bool{
@@ -63,6 +63,11 @@ var addedAfterBaseline = map[string]bool{
 	"defer_reserved_paths.txtar":                    true,
 	"defer_second_binding.txtar":                    true,
 	"exclusive_access_accepted.txtar":               true,
+	"std_io_read_limit.txtar":                       true,
+	"map_remove_reinsert.txtar":                     true,
+	"fs_limits_modes.txtar":                         true,
+	"fixed_array_compact_ops.txtar":                 true,
+	"bytes_search_agrees.txtar":                     true,
 	"temp_drop_unspecified.txtar":                   true,
 	"temp_drop_full_expr.txtar":                     true,
 	"drop_moves_with_value.txtar":                   true,

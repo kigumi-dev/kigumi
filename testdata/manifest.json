@@ -4559,6 +4559,23 @@
       ]
     },
     {
+      "id": "run/bytes_search_agrees",
+      "kind": "run",
+      "path": "testdata/run/bytes_search_agrees.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/bytes_slice",
       "kind": "run",
       "path": "testdata/run/bytes_slice.txtar",
@@ -8312,6 +8329,23 @@
       ]
     },
     {
+      "id": "run/fixed_array_compact_ops",
+      "kind": "run",
+      "path": "testdata/run/fixed_array_compact_ops.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fixed_array_ffi",
       "kind": "run",
       "path": "testdata/run/fixed_array_ffi.txtar",
@@ -8814,6 +8848,23 @@
       "id": "run/fs_append",
       "kind": "run",
       "path": "testdata/run/fs_append.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/fs_limits_modes",
+      "kind": "run",
+      "path": "testdata/run/fs_limits_modes.txtar",
       "mode": [
         "vm",
         "native"
@@ -10842,6 +10893,23 @@
       "id": "run/live_unbox_consumed",
       "kind": "run",
       "path": "testdata/run/live_unbox_consumed.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/map_remove_reinsert",
+      "kind": "run",
+      "path": "testdata/run/map_remove_reinsert.txtar",
       "mode": [
         "vm",
         "native"
@@ -13353,6 +13421,23 @@
       "id": "run/std_io_n_laws",
       "kind": "run",
       "path": "testdata/run/std_io_n_laws.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_io_read_limit",
+      "kind": "run",
+      "path": "testdata/run/std_io_read_limit.txtar",
       "mode": [
         "vm",
         "native"

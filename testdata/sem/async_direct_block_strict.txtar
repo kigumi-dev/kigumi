@@ -8,24 +8,24 @@ async fn readIt() -> String! { //~ ERROR reaches a direct-blocking operation
 }
 -- expect --
 error[E1320]: `readIt` reaches a direct-blocking operation from its async body, which profile single-thread-event-loop forbids
-  --> main/main.kg:3:7
-   |
- 3 | async fn readIt() -> String! { //~ ERROR reaches a direct-blocking operation
-   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = help: run it through a blocking execution provider or use an async-native operation instead
+   --> main/main.kg:3:7
+    |
+  3 | async fn readIt() -> String! { //~ ERROR reaches a direct-blocking operation
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: run it through a blocking execution provider or use an async-native operation instead
 note: calls `read`
-  --> main/main.kg:4:5
-   |
- 4 |     host.files().read(fs.Path.fromString("x")?)?
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: calls `readBytes`
-  --> std/fs/fs_hosted.kg:91:22
-   |
-91 |     String.fromBytes(self.readBytes(path)?)
-   |                      ^^^^^^^^^^^^^^^^^^^
+   --> main/main.kg:4:5
+    |
+  4 |     host.files().read(fs.Path.fromString("x")?)?
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `readBytesUpTo`
+   --> std/fs/fs_hosted.kg:128:22
+    |
+128 |     String.fromBytes(self.readBytesUpTo(path, defaultReadLimit)?)
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: calls `opendir`
-  --> std/fs/fs_hosted.kg:99:9
-   |
-99 |         opendir(c.ptr())
-   |         ^^^^^^^^^^^^^^
+   --> std/fs/fs_hosted.kg:141:9
+    |
+141 |         opendir(c.ptr())
+    |         ^^^^^^^^^^^^^^
 

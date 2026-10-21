@@ -32,7 +32,7 @@ func (a *owner) checkGuardHeld(in *Inst, l LocalID, st *dstate, report bool, own
 	srcs := a.guardSources()
 	for _, bind := range slices.Sorted(maps.Keys(srcs)) {
 		src := srcs[bind]
-		if bind == own || st.val[bind] != ownValid || gone(st.val[src]) || gone(st.field[src]) || st.rel[src] == ownValid || !a.heldOverlap(in, src, l) {
+		if bind == own || st.val.get(bind) != ownValid || gone(st.val.get(src)) || gone(st.field.get(src)) || st.rel.get(src) == ownValid || !a.heldOverlap(in, src, l) {
 			continue
 		}
 		if a.reported[in.Node] {

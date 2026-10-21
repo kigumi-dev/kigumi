@@ -8,6 +8,7 @@ type refFlow struct {
 	siteBase            []int
 	nobj                int
 	loop                []bool
+	live                *edgeLive
 	track               []bool
 	counted             []bool
 	undef, nulled, lent int32
@@ -30,6 +31,7 @@ func (p *Program) verifyRefs(f *Func) *Error {
 		if diverges(f, &f.Blocks[bid]) {
 			return true
 		}
+		rf.live.dead(f, bid, func(l LocalID) { out.ptr.set(l, rf.undef) })
 		targets := f.Blocks[bid].Term.Targets
 		for k, succ := range targets {
 			switch {
@@ -76,6 +78,7 @@ func hasRelease(f *Func) bool {
 
 func (p *Program) newRefFlow(f *Func) *refFlow {
 	rf := &refFlow{f: f, loop: cyclicBlocks(f), nobj: len(f.Params), siteBase: make([]int, len(f.Blocks)), track: make([]bool, len(f.Locals)), counted: make([]bool, len(f.Locals))}
+	rf.live = f.edgeLive()
 	lent := p.unownedRefs(f)
 	for l := range f.Locals {
 		t := f.Locals[l].Type
@@ -102,17 +105,15 @@ func (p *Program) newRefFlow(f *Func) *refFlow {
 
 func (rf *refFlow) entry(p *Program) *refState {
 	f := rf.f
-	s := &refState{sets: newObjSets(3 * rf.nobj), ptr: make([]int32, len(f.Locals))}
-	rf.undef, rf.nulled, rf.lent = s.sets.of(refUndef), s.sets.of(refNulled), s.sets.of(refLent)
-	for l := range s.ptr {
-		s.ptr[l] = rf.undef
-	}
+	sets := newObjSets(3*rf.nobj, len(f.Locals))
+	rf.undef, rf.nulled, rf.lent = sets.of(refUndef), sets.of(refNulled), sets.of(refLent)
+	s := &refState{sets: sets, ptr: newPtrVec(len(f.Locals), sets, rf.undef)}
 	for i, prm := range f.Params {
 		switch {
 		case rf.counted[prm]:
-			s.ptr[prm] = s.sets.single(int32(i) * 3)
+			s.ptr.set(prm, s.sets.single(int32(i)*3))
 		case rf.track[prm]:
-			s.ptr[prm] = rf.lent
+			s.ptr.set(prm, rf.lent)
 		}
 	}
 	return s

@@ -61,7 +61,7 @@ operand "main.root" b4/3 release | i0 l"y"
 `},
 	{"iface_static", "stdop", `
 prim "main.showAll" b0/1 share | i1 v"HOST_STDERR"
-type "main.parseOne" b0/2 share | i1 t"&mut Map[K, V]"#6
+type "main.parseOne" b0/2 share | i1 t"&mut Map[K, V]"#3
 `},
 	{"conform_generic_method_dispatch", "types", `
 local-type "std/io.BufReader.new" b0/0 move | l"t1" i0 l"t3"

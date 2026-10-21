@@ -6,6 +6,9 @@ import os from std/os
 @unsafeGuarantee(Copy, Send, Sync)
 pub type Files
 
+/// The most bytes `Files.read` and `Files.readBytes` load; `Files.readBytesUpTo` takes another limit.
+pub const defaultReadLimit: usize = 268435456
+
 /// Validated file system path.
 pub type Path = {
     text String

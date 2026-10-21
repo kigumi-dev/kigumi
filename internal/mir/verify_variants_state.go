@@ -1,42 +1,37 @@
 package mir
 
+import "maps"
+
 type variantFacts struct {
 	known map[vplace]variantSet
 	at    map[LocalID]vplace
 	bools map[LocalID]*boolFact
 	roots []bool
 	paths *pathIDs
+	// shared says the maps are also another state's, so the first write copies them.
+	shared bool
 }
 
 func newFacts(locals int) *variantFacts {
 	return &variantFacts{roots: make([]bool, locals), paths: &pathIDs{ids: map[[2]uint32]uint32{}}}
 }
 
-// The maps stay nil until something is learned, so a state with no facts costs nothing to copy.
+// A clone shares the maps until either state writes; a state with no facts costs nothing to copy.
 func (s *variantFacts) clone() *variantFacts {
-	c := &variantFacts{roots: s.roots, paths: s.paths}
-	if len(s.known) > 0 {
-		c.known = make(map[vplace]variantSet, len(s.known))
-		for k, v := range s.known {
-			c.known[k] = v
-		}
+	s.shared = len(s.known)+len(s.at)+len(s.bools) > 0
+	return &variantFacts{roots: s.roots, paths: s.paths, known: s.known, at: s.at, bools: s.bools, shared: s.shared}
+}
+
+func (s *variantFacts) own() {
+	if !s.shared {
+		return
 	}
-	if len(s.at) > 0 {
-		c.at = make(map[LocalID]vplace, len(s.at))
-		for k, v := range s.at {
-			c.at[k] = v
-		}
-	}
-	if len(s.bools) > 0 {
-		c.bools = make(map[LocalID]*boolFact, len(s.bools))
-		for k, v := range s.bools {
-			c.bools[k] = v
-		}
-	}
-	return c
+	s.shared = false
+	s.known, s.at, s.bools = maps.Clone(s.known), maps.Clone(s.at), maps.Clone(s.bools)
 }
 
 func (s *variantFacts) setKnown(pl vplace, set variantSet) {
+	s.own()
 	if s.known == nil {
 		s.known = map[vplace]variantSet{}
 	}
@@ -45,6 +40,7 @@ func (s *variantFacts) setKnown(pl vplace, set variantSet) {
 }
 
 func (s *variantFacts) setAt(l LocalID, pl vplace) {
+	s.own()
 	if s.at == nil {
 		s.at = map[LocalID]vplace{}
 	}
@@ -53,6 +49,7 @@ func (s *variantFacts) setAt(l LocalID, pl vplace) {
 }
 
 func (s *variantFacts) setBool(l LocalID, b *boolFact) {
+	s.own()
 	if s.bools == nil {
 		s.bools = map[LocalID]*boolFact{}
 	}
@@ -73,6 +70,7 @@ func (s *variantFacts) where(l LocalID) vplace {
 }
 
 func (s *variantFacts) join(o *variantFacts) bool {
+	s.own()
 	changed := s.alignAliases(o)
 	for pl, set := range s.known {
 		os, ok := o.known[pl]
@@ -109,6 +107,7 @@ func (s *variantFacts) forget(l LocalID) {
 	if !s.roots[l] {
 		return
 	}
+	s.own()
 	delete(s.at, l)
 	for m, pl := range s.at {
 		if pl.root == l {
@@ -134,17 +133,63 @@ func (s *variantFacts) forget(l LocalID) {
 }
 
 func (s *variantFacts) forgetBelow(root LocalID) {
+	var gone []vplace
 	for pl := range s.known {
 		if pl.root == root && pl.path != 0 {
-			delete(s.known, pl)
+			gone = append(gone, pl)
 		}
+	}
+	s.drop(gone)
+}
+
+func (s *variantFacts) drop(places []vplace) {
+	if len(places) == 0 {
+		return
+	}
+	s.own()
+	for _, pl := range places {
+		delete(s.known, pl)
 	}
 }
 
+// retire drops what a local that is never read again owns; facts about its place stay while a live alias still points there.
+func (s *variantFacts) retire(l LocalID) {
+	if !s.roots[l] {
+		return
+	}
+	_, aliased := s.at[l]
+	_, boolean := s.bools[l]
+	if aliased || boolean {
+		s.own()
+		delete(s.at, l)
+		delete(s.bools, l)
+	}
+	for _, pl := range s.at {
+		if pl.root == l {
+			return
+		}
+	}
+	var gone []vplace
+	for pl := range s.known {
+		if pl.about(l) {
+			gone = append(gone, pl)
+		}
+	}
+	s.drop(gone)
+}
+
 func (s *variantFacts) keepOnly(keep []bool) {
+	var gone []LocalID
 	for c := range s.bools {
 		if !keep[c] {
-			delete(s.bools, c)
+			gone = append(gone, c)
 		}
+	}
+	if len(gone) == 0 {
+		return
+	}
+	s.own()
+	for _, c := range gone {
+		delete(s.bools, c)
 	}
 }

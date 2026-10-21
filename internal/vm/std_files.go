@@ -53,6 +53,7 @@ func readFile(m *Machine, fn sem.EntityID, a []*obj) *obj {
 
 func (m *Machine) registerFiles() {
 	h := m.host
+	m.registerFileReads()
 	openAs := func(m *Machine, fn sem.EntityID, fh *os.File, err error) *obj {
 		if err != nil {
 			return m.errMsg(hostshell.OSErrText(err))
@@ -72,12 +73,6 @@ func (m *Machine) registerFiles() {
 	h["fs.Files.append"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh, err := os.OpenFile(m.resolvePath(pathText(a[1])), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		return openAs(m, fn, fh, err)
-	}
-	h["fs.Files.remove"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		if err := os.Remove(m.resolvePath(pathText(a[1]))); err != nil {
-			return m.errMsg(hostshell.OSErrText(err))
-		}
-		return m.ok(unitObj)
 	}
 	h["fs.File.write"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh := fileOf(a[0])
@@ -103,23 +98,6 @@ func (m *Machine) registerFiles() {
 			fh.Close()
 		}
 		return unitObj
-	}
-	h["fs.Files.read"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		b, err := os.ReadFile(m.resolvePath(pathText(a[1])))
-		switch {
-		case err != nil:
-			return m.errMsg(hostshell.OSErrText(err))
-		case !utf8.Valid(b):
-			return m.errMsg("invalid UTF-8")
-		}
-		return m.ok(mkStr(b))
-	}
-	h["fs.Files.readBytes"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
-		b, err := os.ReadFile(m.resolvePath(pathText(a[1])))
-		if err != nil {
-			return m.errMsg(hostshell.OSErrText(err))
-		}
-		return m.ok(mkBytes(b))
 	}
 	h["fs.Files.mkdir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := m.mkdirAll(pathText(a[1])); err != nil {

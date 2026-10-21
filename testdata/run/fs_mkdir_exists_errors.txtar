@@ -49,9 +49,9 @@ for name in Array.of("mk_dang", "mk_dang/q", "mk_loop", "mk_loop/q", "mk_reg/", 
     print "mkdir ${name}: ${msg(files.mkdir(fs.Path.fromString(name)?))}"
 }
 print "exists dangling: ${files.exists(fs.Path.fromString("mk_dang")?)}"
-files.remove(fs.Path.fromString("mkdir_probe_dir/a/b")?)?
-files.remove(fs.Path.fromString("mkdir_probe_dir/a")?)?
-files.remove(fs.Path.fromString("mkdir_probe_dir")?)?
+files.removeDir(fs.Path.fromString("mkdir_probe_dir/a/b")?)?
+files.removeDir(fs.Path.fromString("mkdir_probe_dir/a")?)?
+files.removeDir(fs.Path.fromString("mkdir_probe_dir")?)?
 files.remove(plain)?
 -- stdout --
 open: err: No such file or directory

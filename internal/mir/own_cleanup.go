@@ -38,7 +38,7 @@ func (a *owner) reportCleanupRead(n syntax.NodeID, l LocalID, name string) bool 
 	code, _ := sem.CodeByName("cleanup-reads-moved")
 	msg, help := sem.FillCode(code, name)
 	t := a.p.R.Tree(a.f.File)
-	at := a.cur.at[l]
+	at := a.cur.at.get(l)
 	selfMove := at != 0 && at == n
 	loc := n
 	if selfMove {

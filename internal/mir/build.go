@@ -58,6 +58,7 @@ type builder struct {
 	ret     sem.TypeID
 	// argFixups holds pending scalar &mut write-backs for the call being built.
 	argFixups []argFixup
+	cancelled *cancelPath
 	// unowned tracks which locals hold no count of their own: a borrow, or anything that only forwards one.
 	unowned map[LocalID]bool
 	body    *hir.Block

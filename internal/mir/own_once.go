@@ -35,10 +35,11 @@ func (a *owner) onceCall(in *Inst, st *dstate, report bool) {
 	if !a.tracked[l] {
 		return
 	}
-	if s := st.called[l]; report && (s == ownMoved || s == ownConflict) {
+	if s := st.called.get(l); report && (s == ownMoved || s == ownConflict) {
 		a.reportOnce(in, l, name, place)
 	}
-	st.called[l], st.callAt[l] = ownMoved, in.Node
+	st.called.set(l, ownMoved)
+	st.callAt.set(l, in.Node)
 }
 
 func (a *owner) onceCallee(l LocalID) (name, place string, ok bool) {
@@ -78,7 +79,7 @@ func (a *owner) reportOnce(in *Inst, l LocalID, name, place string) {
 	if help != "" {
 		d.Help = []string{help}
 	}
-	if at := a.cur.callAt[l]; at != 0 {
+	if at := a.cur.callAt.get(l); at != 0 {
 		d = d.WithNote(diag.At(t.File, t.Span(at)), "`"+name+"` may already be called here")
 	}
 	a.f.Diags = append(a.f.Diags, d)
@@ -124,10 +125,11 @@ func (a *owner) onceCapture(in *Inst, st *dstate, report bool) {
 		if !ok || !a.tracked[l] || a.pl.isPlace(l) {
 			continue
 		}
-		if s := st.called[l]; report && (s == ownMoved || s == ownConflict) {
+		if s := st.called.get(l); report && (s == ownMoved || s == ownConflict) {
 			a.reportOnce(in, l, name, place)
 		}
-		st.called[l], st.callAt[l] = ownMoved, in.Node
+		st.called.set(l, ownMoved)
+		st.callAt.set(l, in.Node)
 	}
 }
 

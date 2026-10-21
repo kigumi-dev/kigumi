@@ -1,6 +1,7 @@
 package sem
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -93,6 +94,7 @@ type typeNode struct {
 
 type typeProps struct {
 	copy, eq, hash, ord, send, sync, repr, agg, inside int8
+	hasVar                                             bool
 }
 
 // TypeTable hash-conses typeNodes so structurally equal types share one id
@@ -176,7 +178,7 @@ func (tt *TypeTable) Intern(n typeNode) TypeID {
 	}
 	id := TypeID(len(tt.nodes))
 	tt.nodes = append(tt.nodes, n)
-	tt.props = append(tt.props, typeProps{})
+	tt.props = append(tt.props, typeProps{hasVar: n.Kind == KVar || tt.props[n.Elem].hasVar || slices.ContainsFunc(n.Args, func(a TypeID) bool { return tt.props[a].hasVar })})
 	tt.index[key] = id
 	return id
 }

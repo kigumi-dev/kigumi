@@ -16,6 +16,10 @@ func (s *variantFacts) alignAliases(o *variantFacts) bool {
 			diff = append(diff, pair{l, s.where(l), pl})
 		}
 	}
+	if len(diff) == 0 {
+		return false
+	}
+	o.own()
 	for _, d := range diff {
 		s.rebase(d.a, d.l)
 		o.rebase(d.b, d.l)
@@ -48,6 +52,7 @@ func (s *variantFacts) rebase(from vplace, l LocalID) {
 			moved = append(moved, fact{vplace{root: l, tag: pl.tag}, set})
 		}
 	}
+	s.own()
 	for _, m := range moved {
 		s.setKnown(m.pl, m.set)
 	}
@@ -63,7 +68,9 @@ func (s *variantFacts) rebase(from vplace, l LocalID) {
 			}
 			memo[b] = nb
 		}
-		s.bools[c] = nb
+		if nb != b {
+			s.bools[c] = nb
+		}
 	}
 }
 

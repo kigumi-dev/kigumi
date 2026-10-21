@@ -6,7 +6,8 @@ func uses(in Inst) []LocalID { return in.Args }
 func (c *borrowCheck) liveness() {
 	n := len(c.f.Blocks)
 	c.liveOut = make([]map[LocalID]bool, n)
-	liveIn := make([]map[LocalID]bool, n)
+	c.liveIn = make([]map[LocalID]bool, n)
+	liveIn := c.liveIn
 	for i := range n {
 		c.liveOut[i] = map[LocalID]bool{}
 		liveIn[i] = map[LocalID]bool{}
@@ -62,7 +63,7 @@ func sameSet(a, b map[LocalID]bool) bool {
 	return true
 }
 
-// definitions computes, per block, the holders assigned on some path into it.
+// definitions computes, per block, the live-in holders assigned on some path into it.
 func (c *borrowCheck) definitions() {
 	n := len(c.f.Blocks)
 	c.definedIn = make([]map[LocalID]bool, n)
@@ -72,18 +73,26 @@ func (c *borrowCheck) definitions() {
 	for changed := true; changed; {
 		changed = false
 		for bid := range n {
-			out := map[LocalID]bool{}
-			for l := range c.definedIn[bid] {
-				out[l] = true
-			}
-			for _, in := range c.f.Blocks[bid].Insts {
+			blk := &c.f.Blocks[bid]
+			var defs []LocalID
+			for _, in := range blk.Insts {
 				if _, ok := c.holders[in.Dst]; ok && shapes[in.Op].result {
-					out[in.Dst] = true
+					defs = append(defs, in.Dst)
 				}
 			}
-			for _, t := range c.f.Blocks[bid].Term.Targets {
-				for l := range out {
-					if !c.definedIn[t][l] {
+			for _, t := range blk.Term.Targets {
+				live := c.liveIn[t]
+				if len(live) == 0 {
+					continue
+				}
+				for l := range c.definedIn[bid] {
+					if live[l] && !c.definedIn[t][l] {
+						c.definedIn[t][l] = true
+						changed = true
+					}
+				}
+				for _, l := range defs {
+					if live[l] && !c.definedIn[t][l] {
 						c.definedIn[t][l] = true
 						changed = true
 					}
@@ -93,33 +102,21 @@ func (c *borrowCheck) definitions() {
 	}
 }
 
-// definedBefore lists, per instruction of a block, the holders assigned
-// before it on some path.
-func (c *borrowCheck) definedBefore(bid BlockID) []map[LocalID]bool {
-	blk := &c.f.Blocks[bid]
-	cur := map[LocalID]bool{}
-	for l := range c.definedIn[bid] {
-		cur[l] = true
-	}
-	out := make([]map[LocalID]bool, len(blk.Insts))
-	for i, in := range blk.Insts {
-		out[i] = cur
+func (c *borrowCheck) enterDefs(bid BlockID) {
+	c.firstDef = map[LocalID]int{}
+	for i, in := range c.f.Blocks[bid].Insts {
 		if _, ok := c.holders[in.Dst]; ok && shapes[in.Op].result {
-			next := map[LocalID]bool{}
-			for l := range cur {
-				next[l] = true
+			if _, seen := c.firstDef[in.Dst]; !seen {
+				c.firstDef[in.Dst] = i
 			}
-			next[in.Dst] = true
-			cur = next
 		}
 	}
-	return out
 }
 
-func intersect(a, b map[LocalID]bool) map[LocalID]bool {
+func (c *borrowCheck) definedLive(live map[LocalID]bool, bid BlockID, idx int) map[LocalID]bool {
 	out := map[LocalID]bool{}
-	for l := range a {
-		if b[l] {
+	for l := range live {
+		if d, ok := c.firstDef[l]; c.definedIn[bid][l] || ok && d < idx {
 			out[l] = true
 		}
 	}

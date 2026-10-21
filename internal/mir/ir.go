@@ -186,4 +186,6 @@ type Func struct {
 	Wraps    *Func
 	weakDefs []bool
 	flowOK   uint64
+	live     *edgeLive
+	yielders map[LocalID][]Inst
 }

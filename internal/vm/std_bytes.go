@@ -1,9 +1,27 @@
 package vm
 
+import (
+	"bytes"
+
+	"kigumi/internal/sem"
+)
+
 // bytesStd implements Bytes primitives other than concat/tryConcat (kept in
 // prelude.go for their Eq/Hash-style naming overlap); nil for other keys.
 func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 	switch key {
+	case "prelude.Bytes.indexOf":
+		if at := bytes.Index(a0.str(), a1.str()); at >= 0 {
+			return m.some(mkInt(int64(at), m.numKind(sem.TyUsize)))
+		}
+		return m.none()
+	case "prelude.Bytes.lastIndexOf":
+		if at := bytes.LastIndex(a0.str(), a1.str()); at >= 0 {
+			return m.some(mkInt(int64(at), m.numKind(sem.TyUsize)))
+		}
+		return m.none()
+	case "prelude.String.contains":
+		return mkBool(bytes.Contains(a0.str(), a1.str()))
 	case "prelude.Bytes.slice":
 		s, e := a1.i, a2.i
 		if s < 0 || s > e || e > int64(len(a0.str())) {

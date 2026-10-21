@@ -89,29 +89,38 @@ func (p *Program) verifyCellOps(f *Func) *Error {
 	return nil
 }
 
+func yielders(f *Func) map[LocalID][]Inst {
+	if f.yielders == nil {
+		f.yielders = map[LocalID][]Inst{}
+		for _, blk := range f.Blocks {
+			for _, in := range blk.Insts {
+				if in.Op.Yields() {
+					f.yielders[in.Dst] = append(f.yielders[in.Dst], in)
+				}
+			}
+		}
+	}
+	return f.yielders
+}
+
 func (p *Program) canBeCell(f *Func, l LocalID, seen map[LocalID]bool) bool {
 	if seen[l] || f.Locals[l].Cell || (isParam(f, l) && p.refCellParam(f, l)) {
 		return true
 	}
 	seen[l] = true
 	defined := false
-	for _, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			if !in.Op.Yields() || in.Dst != l {
-				continue
-			}
-			defined = true
-			switch in.Op {
-			case OpConst, OpUnit, OpBinary, OpUnary, OpInterp, OpShell, OpTag, OpIsVariant, OpIsType, OpRecord, OpVariant, OpArray, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpBox, OpLendBox, OpBoxDirect, OpUnboxDirect,
-				OpCall, OpCallValue, OpCallC, OpBuiltin, OpAwait, OpFutureNew, OpCellGet, OpCellTake, OpAsm,
-				OpField, OpFieldMove, OpPayload, OpIndex, OpUnbox, OpGlobalGet:
-			case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
-				if p.canBeCell(f, in.Args[0], seen) {
-					return true
-				}
-			default:
+	for _, in := range yielders(f)[l] {
+		defined = true
+		switch in.Op {
+		case OpConst, OpUnit, OpBinary, OpUnary, OpInterp, OpShell, OpTag, OpIsVariant, OpIsType, OpRecord, OpVariant, OpArray, OpClosure, OpFnItem, OpBind, OpCFnPtr, OpBox, OpLendBox, OpBoxDirect, OpUnboxDirect,
+			OpCall, OpCallValue, OpCallC, OpBuiltin, OpAwait, OpFutureNew, OpCellGet, OpCellTake, OpAsm,
+			OpField, OpFieldMove, OpPayload, OpIndex, OpUnbox, OpGlobalGet:
+		case OpAlias, OpShare, OpCopy, OpMove, OpBorrow:
+			if p.canBeCell(f, in.Args[0], seen) {
 				return true
 			}
+		default:
+			return true
 		}
 	}
 	if isParam(f, l) {

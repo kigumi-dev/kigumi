@@ -3,6 +3,8 @@ package mir
 import "kigumi/internal/sem"
 
 func (p *Program) verifyCalls(f *Func) *Error {
+	p.sole = newSoleIndex(f)
+	defer func() { p.sole = nil }()
 	for bid, blk := range f.Blocks {
 		bid := BlockID(bid)
 		for i, in := range blk.Insts {
@@ -49,7 +51,7 @@ func (p *Program) callMismatch(f *Func, in Inst) string {
 }
 
 func (p *Program) futureMismatch(f *Func, in Inst) string {
-	item := soleDef(f, in.Args[0])
+	item := p.soleDefOf(f, in.Args[0])
 	if item == nil || item.Op != OpFnItem || !item.Async {
 		return "runs %" + f.Locals[in.Args[0]].Name + ", which is not an async function item"
 	}

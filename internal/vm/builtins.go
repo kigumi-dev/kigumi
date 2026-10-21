@@ -61,8 +61,10 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		// The VM allocates from Go; an `allocator` block only scopes.
 		return mkOpaque("AllocatorScope", nil)
 	case "iter.len":
-		it := deref(args[0])
+		it := derefRaw(args[0])
 		switch it.k {
+		case kRawArray:
+			return mkInt(int64(len(it.rawArr().raw)), 64)
 		case kArray:
 			return mkInt(int64(len(it.fields)), 64)
 		case kBytes, kStr:
@@ -85,8 +87,13 @@ func (m *Machine) builtin(name string, args []*obj) *obj {
 		}
 		return mkInt(n, 64)
 	case "iter.at", "iter.at_ref", "iter.at_move":
-		it, i := deref(args[0]), deref(args[1]).i
+		it, i := derefRaw(args[0]), deref(args[1]).i
 		switch it.k {
+		case kRawArray:
+			if name == "iter.at_ref" {
+				return it.rawArr().borrowed(i)
+			}
+			return it.rawArr().at(i)
 		case kArray:
 			switch name {
 			case "iter.at_ref":

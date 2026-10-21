@@ -2,8 +2,6 @@ package mir
 
 import (
 	"slices"
-	"strconv"
-	"strings"
 	"sync"
 
 	"kigumi/internal/sem"
@@ -53,12 +51,6 @@ func cannotPanic(op Opcode) bool {
 	return false
 }
 
-type bitset []uint64
-
-func (b bitset) has(l LocalID) bool { return b[l/64]&(1<<(l%64)) != 0 }
-func (b bitset) set(l LocalID)      { b[l/64] |= 1 << (l % 64) }
-func (b bitset) clear(l LocalID)    { b[l/64] &^= 1 << (l % 64) }
-
 // candidates ignores frame slots, since the plan decides which temporaries get one.
 func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool, held func(in *Inst, i int) bool) *UnwindPlan {
 	plan := &UnwindPlan{Sets: [][]LocalID{nil}, At: make([][]int32, len(f.Blocks))}
@@ -77,7 +69,7 @@ func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool, 
 	for i := range liveIn {
 		liveIn[i] = make(bitset, words)
 	}
-	walk := func(bid int, visit func(i int, live bitset)) bitset {
+	walk := func(bid int) bitset {
 		blk := &f.Blocks[bid]
 		live := make(bitset, words)
 		for _, t := range blk.Term.Targets {
@@ -92,9 +84,6 @@ func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool, 
 		}
 		for i := len(blk.Insts) - 1; i >= 0; i-- {
 			in := &blk.Insts[i]
-			if visit != nil {
-				visit(i, live)
-			}
 			if shapes[in.Op].result {
 				live.clear(in.Dst)
 			}
@@ -109,72 +98,21 @@ func planUnwind(f *Func, r *sem.Result, candidates bool, lent map[LocalID]bool, 
 	for changed := true; changed; {
 		changed = false
 		for bid := len(f.Blocks) - 1; bid >= 0; bid-- {
-			if live := walk(bid, nil); !slices.Equal(live, liveIn[bid]) {
+			if live := walk(bid); !slices.Equal(live, liveIn[bid]) {
 				liveIn[bid] = live
 				changed = true
 			}
 		}
 	}
-	parent := aliasParents(f)
-	interned := map[string]int32{}
+	fill := &unwindFill{f: f, plan: plan, owned: owned, parent: aliasParents(f), held: held, words: words, interned: map[uint64][]int32{}}
+	fill.aliased = make([]bool, len(f.Locals))
+	for l := range fill.parent {
+		fill.aliased[l] = true
+	}
 	for bid := range f.Blocks {
-		walk(bid, func(i int, live bitset) {
-			in := &f.Blocks[bid].Insts[i]
-			if cannotPanic(in.Op) {
-				return
-			}
-			plan.At[bid][i] = 0
-			if held != nil {
-				live = withHeld(live, in, owned, held)
-			}
-			var set []LocalID
-			for l := len(f.Locals) - 1; l >= 0; l-- {
-				id := LocalID(l)
-				if !live.has(id) || shapes[in.Op].result && in.Dst == id {
-					continue
-				}
-				if sharesOwner(id, parent, owned, live, in) {
-					continue
-				}
-				set = append(set, id)
-			}
-			if len(set) == 0 {
-				return
-			}
-			key := keyOf(set)
-			idx, ok := interned[key]
-			if !ok {
-				idx = int32(len(plan.Sets))
-				plan.Sets = append(plan.Sets, set)
-				interned[key] = idx
-			}
-			plan.At[bid][i] = idx
-		})
+		fill.block(bid, liveIn)
 	}
 	return plan
-}
-
-// withHeld adds the boxes in's call site still releases, which the walk counted as handed over.
-func withHeld(live bitset, in *Inst, owned map[LocalID]bool, held func(in *Inst, i int) bool) bitset {
-	out := live
-	for i, a := range in.Args {
-		if owned[a] && !live.has(a) && held(in, i) {
-			if &out[0] == &live[0] {
-				out = slices.Clone(live)
-			}
-			out.set(a)
-		}
-	}
-	return out
-}
-
-func keyOf(set []LocalID) string {
-	var sb strings.Builder
-	for _, l := range set {
-		sb.WriteString(strconv.Itoa(int(l)))
-		sb.WriteByte(',')
-	}
-	return sb.String()
 }
 
 // An alias holds the reference of the local it copies: an unowned source means nothing to release, a live one releases it once.

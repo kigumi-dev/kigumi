@@ -45,6 +45,7 @@ func (p *Program) allFuncs() []*Func {
 }
 
 func (p *Program) verifyFunc(f *Func) error {
+	defer func() { f.live, f.yielders = nil, nil }()
 	if err := runRules(f, []func(*Func) *Error{verifyShape, verifyAsync, p.verifyParams, p.verifyEntities, p.verifyTypes, p.verifyStdOpTags, p.verifyPrimCalls, p.verifyCalls, p.verifyAggregates}); err != nil {
 		return err
 	}

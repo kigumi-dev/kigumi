@@ -3,15 +3,42 @@ package mir
 import "slices"
 
 type objSets struct {
-	sets    [][]int32
-	index   map[string]int32
-	merge   map[[2]int32]int32
-	one     []int32
-	objects []bool
+	sets  [][]int32
+	index map[string]int32
+	merge map[[2]int32]int32
+	one   []int32
+	// holders[site] lists every local any state ever gave an object of the site, so a retag visits those rather than all locals.
+	holders [][]LocalID
+	seen    map[uint64]struct{}
+	noted   []int32
+	owners  int32
 }
 
-func newObjSets(objects int) *objSets {
-	return &objSets{one: make([]int32, objects)}
+func newObjSets(objects, locals int) *objSets {
+	return &objSets{one: make([]int32, objects), holders: make([][]LocalID, objects/3+1), seen: map[uint64]struct{}{}, noted: make([]int32, locals)}
+}
+
+func (o *objSets) owner() int32 {
+	o.owners++
+	return o.owners
+}
+
+func (o *objSets) note(l LocalID, set int32) {
+	if o.noted[l] == set+1 {
+		return
+	}
+	o.noted[l] = set + 1
+	for _, x := range o.sets[set] {
+		if x < 0 {
+			continue
+		}
+		site := objSite(x)
+		key := uint64(site)<<32 | uint64(l)
+		if _, ok := o.seen[key]; !ok {
+			o.seen[key] = struct{}{}
+			o.holders[site] = append(o.holders[site], l)
+		}
+	}
 }
 
 func (o *objSets) single(obj int32) int32 {
@@ -38,7 +65,6 @@ func (o *objSets) of(ids ...int32) int32 {
 	}
 	n := int32(len(o.sets))
 	o.sets = append(o.sets, slices.Clone(ids))
-	o.objects = append(o.objects, len(ids) > 0 && ids[len(ids)-1] >= 0)
 	o.index[string(key)] = n
 	return n
 }

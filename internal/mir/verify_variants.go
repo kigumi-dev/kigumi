@@ -1,6 +1,10 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 type variantFlow struct {
 	p       *Program
@@ -9,6 +13,9 @@ type variantFlow struct {
 	lenOf   map[LocalID]LocalID
 	carried []bool
 	multi   []bool
+	live    *edgeLive
+	// inert marks locals whose values never carry variant, cell or ordering facts, so an alias of one is not tracked.
+	inert []bool
 }
 
 func (p *Program) verifyVariants(f *Func) *Error {
@@ -16,7 +23,7 @@ func (p *Program) verifyVariants(f *Func) *Error {
 		return nil
 	}
 	cond := condLocals(f)
-	vf := &variantFlow{p: p, f: f, cond: cond, lenOf: iterLengths(f), carried: carriedBools(f, cond), multi: multiDefs(f)}
+	vf := &variantFlow{p: p, f: f, cond: cond, lenOf: iterLengths(f), carried: carriedBools(f, cond), multi: multiDefs(f), live: f.edgeLive(), inert: p.inertLocals(f)}
 	in := make([]*variantFacts, len(f.Blocks))
 	in[0] = newFacts(len(f.Locals))
 	var found *Error
@@ -38,6 +45,7 @@ func (p *Program) verifyVariants(f *Func) *Error {
 			if term.Op == TermBranch && !edge.assume(term.Args[0], k == 0) {
 				continue
 			}
+			vf.live.dead(f, bid, edge.retire)
 			edge.keepOnly(vf.carried)
 			edge.fold()
 			switch {
@@ -141,4 +149,20 @@ func multiDefs(f *Func) []bool {
 		multi[l] = n > 1
 	}
 	return multi
+}
+
+func (p *Program) inertLocals(f *Func) []bool {
+	inert := make([]bool, len(f.Locals))
+	for i, l := range f.Locals {
+		inert[i] = !l.Cell && p.opaqueValue(l.Type)
+	}
+	return inert
+}
+
+func (p *Program) opaqueValue(t sem.TypeID) bool {
+	t = p.R.UnderlyingRepr(p.derefAll(t))
+	if t == sem.TyString {
+		return true
+	}
+	return p.R.Types.Kind(t) == sem.KNamed && p.R.TypeDecl(p.R.Types.Node(t).Ent).Form == sem.FormOpaque
 }

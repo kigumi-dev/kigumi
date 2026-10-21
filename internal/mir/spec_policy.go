@@ -34,6 +34,7 @@ func (s *specializer) dryRun(live []*spec, pins map[*Func][]bool) bool {
 		s.p.settlePrims(f, pins[f])
 	}
 	changed := false
+	s.reboxFlows = nil
 	fixed := map[*Func][]bool{}
 	held := s.noallocHeld(live)
 	for _, sp := range live {
@@ -135,6 +136,7 @@ func (s *specializer) drop(sp *spec) {
 
 func (s *specializer) revert(sp *spec, site *callSite) {
 	site.gone = true
+	delete(s.reboxFlows, site.f)
 	site.f.Blocks[site.blk].Insts[site.idx].Ent = sp.gen
 }
 

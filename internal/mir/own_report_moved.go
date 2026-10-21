@@ -14,7 +14,7 @@ func (a *owner) reportMoved(n syntax.NodeID, l LocalID, name string) {
 	t := a.p.R.Tree(a.f.File)
 	d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: diagCode("use-after-move"),
 		Msg: "`" + name + "` was moved; it cannot be used again"}
-	if at := a.cur.at[l]; at != 0 && at != n {
+	if at := a.cur.at.get(l); at != 0 && at != n {
 		d = d.WithNote(diag.At(t.File, t.Span(at)), "`"+name+"` is moved here")
 	}
 	a.f.Diags = append(a.f.Diags, d)

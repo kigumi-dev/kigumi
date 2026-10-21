@@ -3,12 +3,16 @@ import ffi from std/ffi
 
 extern(C) {
     fn fopen(path: *const u8, mode: *const u8) -> *mut u8
+    fn fdopen(fd: i32, mode: *const u8) -> *mut u8
+    fn open(path: *const u8, flags: i32, ...) -> i32
+    fn close(fd: i32) -> i32
+    fn unlink(path: *const u8) -> i32
+    fn rmdir(path: *const u8) -> i32
     fn fclose(f: *mut u8) -> i32
     fn fflush(f: *mut u8) -> i32
     fn fwrite(p: *const u8, size: usize, n: usize, f: *mut u8) -> usize
     fn fread(p: *mut u8, size: usize, n: usize, f: *mut u8) -> usize
     fn ferror(f: *mut u8) -> i32
-    fn remove(path: *const u8) -> i32
     fn access(path: *const u8, mode: i32) -> i32
     fn mkdir(path: *const u8, mode: u32) -> i32
     fn opendir(path: *const u8) -> *mut u8
@@ -42,11 +46,44 @@ pub fn Files.append(self, path: Path) -> File! {
     openFile(&path.text, "a")
 }
 
-/// Deletes the file at path.
+/// Creates the file at path like `create`, with permission bits mode (before the umask is applied), for example 0o600 for a file only its owner can read.
+pub fn Files.createWithMode(self, path: Path, mode: u32) -> File! {
+    let c = ffi.CString.new(&path.text)?
+    let fd = unsafe {
+        open(c.ptr(), createFlags(), mode)
+    }
+    if fd < 0 {
+        fail ffi.lastError()
+    }
+    let m = ffi.CString.new(&"w")?
+    let f = unsafe {
+        fdopen(fd, m.ptr())
+    }
+    if ffi.isNull(ffi.toConst(f)) {
+        let err = ffi.lastError()
+        _ = unsafe {
+            close(fd)
+        }
+        fail err
+    }
+    File { f: f }
+}
+
+/// Deletes the file at path; a directory is an error, `removeDir` deletes an empty one.
 pub fn Files.remove(self, path: Path) -> Void! {
     let c = ffi.CString.new(&path.text)?
     if unsafe {
-        remove(c.ptr())
+        unlink(c.ptr())
+    } != 0 {
+        fail ffi.lastError()
+    }
+}
+
+/// Deletes the empty directory at path.
+pub fn Files.removeDir(self, path: Path) -> Void! {
+    let c = ffi.CString.new(&path.text)?
+    if unsafe {
+        rmdir(c.ptr())
     } != 0 {
         fail ffi.lastError()
     }
@@ -86,13 +123,18 @@ pub fn File.drop(move self) {
     }
 }
 
-/// Whole file as UTF-8 text; fails when the file is missing or not valid UTF-8.
+/// Whole file as UTF-8 text; fails when the file is missing, longer than `defaultReadLimit` bytes or not valid UTF-8.
 pub fn Files.read(self, path: Path) -> String! {
-    String.fromBytes(self.readBytes(path)?)
+    String.fromBytes(self.readBytesUpTo(path, defaultReadLimit)?)
 }
 
-/// Whole file as bytes.
+/// Whole file as bytes; fails when it is longer than `defaultReadLimit` bytes.
 pub fn Files.readBytes(self, path: Path) -> Bytes! {
+    self.readBytesUpTo(path, defaultReadLimit)
+}
+
+/// Whole file as bytes; fails once it turns out to hold more than limit bytes, so a device such as /dev/zero cannot exhaust memory.
+pub fn Files.readBytesUpTo(self, path: Path, limit: usize) -> Bytes! {
     // fopen happily opens a directory; report it as EISDIR up front.
     let c = ffi.CString.new(&path.text)?
     let d = unsafe {
@@ -108,7 +150,14 @@ pub fn Files.readBytes(self, path: Path) -> Bytes! {
         }
     }
     let file = openFile(&path.text, "rb")?
+    let mut most = limit.wrappingAdd(1)
+    if most == 0 {
+        most = limit
+    }
     let mut cap: usize = 65536
+    if most < cap {
+        cap = most
+    }
     let mut len: usize = 0
     let mut buf = unsafe {
         malloc(cap)
@@ -121,7 +170,11 @@ pub fn Files.readBytes(self, path: Path) -> Bytes! {
     }
     for true {
         if len == cap {
-            cap = cap * 2
+            cap = if cap > most / 2 {
+                most
+            } else {
+                cap * 2
+            }
             let grown = unsafe {
                 realloc(buf, cap)
             }
@@ -151,6 +204,15 @@ pub fn Files.readBytes(self, path: Path) -> Bytes! {
             break
         }
         len = len + got
+        if len > limit {
+            unsafe {
+                free(buf)
+            }
+            fail ffi.CError {
+                code: 27
+                text: "file is larger than the read limit of ${limit} bytes"
+            }
+        }
     }
     let out = unsafe {
         ffi.bytesFrom(ffi.toConst(buf), len)

@@ -9,6 +9,11 @@ import (
 // std runs a bodiless std function by its runtime key; arguments are lent
 // and the result is owned, as with rt_std.
 func (m *Machine) std(key string, a []*obj) *obj {
+	if key == "prelude.FixedArray.withMut" {
+		if r := m.rawWithMut(a); r != nil {
+			return r
+		}
+	}
 	arg := func(i int) *obj {
 		if i < len(a) {
 			return deref(a[i])

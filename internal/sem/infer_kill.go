@@ -1,8 +1,6 @@
 package sem
 
 import (
-	"slices"
-
 	"kigumi/internal/syntax"
 	"kigumi/internal/token"
 )
@@ -18,8 +16,28 @@ func (c *checker) topLevelStmt(stmt syntax.NodeID) bool {
 	if c.fn == 0 || len(c.lambdas) > 0 || c.r.Entities[c.fn].Kind != EntFn {
 		return false
 	}
+	return c.isBodyStmt(stmt)
+}
+
+type bodyStmtSet struct {
+	body  syntax.NodeID
+	stmts map[syntax.NodeID]struct{}
+}
+
+func (c *checker) isBodyStmt(stmt syntax.NodeID) bool {
 	body := c.r.Fn(c.fn).Body
-	return body != 0 && slices.Contains(c.t.List(body).AppendIDs(nil), stmt)
+	if body == 0 {
+		return false
+	}
+	if c.r.flow.bodyStmts.body != body || c.r.flow.bodyStmts.stmts == nil {
+		ids := c.t.List(body).AppendIDs(nil)
+		c.r.flow.bodyStmts = bodyStmtSet{body: body, stmts: make(map[syntax.NodeID]struct{}, len(ids))}
+		for _, id := range ids {
+			c.r.flow.bodyStmts.stmts[id] = struct{}{}
+		}
+	}
+	_, ok := c.r.flow.bodyStmts.stmts[stmt]
+	return ok
 }
 
 func (c *checker) killableLocal(ent EntityID) bool {

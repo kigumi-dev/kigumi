@@ -46,7 +46,7 @@ func (vf *variantFlow) step(s *variantFacts, in Inst) {
 		}
 		if vf.multi[d] {
 			s.rebase(srcPlace, d)
-		} else {
+		} else if !vf.inert[srcPlace.root] {
 			s.setAt(d, srcPlace)
 		}
 		if srcBool != nil && vf.cond[d] {

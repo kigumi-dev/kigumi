@@ -26,7 +26,11 @@ pub fn IoError.message(self) -> String {
     self.text
 }
 
-/// Reads r until end of input and returns everything read.
+/// The most bytes `readAll` collects before it fails.
+pub const defaultReadLimit: usize = 268435456
+
+/// Reads r until end of input and returns everything read; fails once the
+/// input turns out to exceed `defaultReadLimit` bytes, and `readUpTo` takes another limit.
 ///
 /// Unsound if r is a `mut r: R` forwarded from the caller's own generic
 /// function and this (or writeAll/copy) is called more than once on it:
@@ -36,13 +40,48 @@ pub fn readAll[R: Reader](mut r: R) -> Bytes! {
     let mut buf = Array.empty[u8]()
     for true {
         let before = buf.len()
-        let n = r.read(&mut buf, 4096)?
-        checkReadLaw(n, 4096, before, buf.len())?
+        let max = readRoom(defaultReadLimit, before)
+        let n = r.read(&mut buf, max)?
+        checkReadLaw(n, max, before, buf.len())?
         if n == 0 {
             break
         }
+        if buf.len() > defaultReadLimit {
+            fail tooLong(defaultReadLimit)
+        }
     }
     Bytes.fromArray(&buf)
+}
+
+/// Same as readAll, but fails with IoError once more than limit bytes have arrived instead of reading on.
+pub fn readUpTo[R: Reader](mut r: R, limit: usize) -> Bytes! {
+    let mut buf = Array.empty[u8]()
+    for true {
+        let before = buf.len()
+        let max = readRoom(limit, before)
+        let n = r.read(&mut buf, max)?
+        checkReadLaw(n, max, before, buf.len())?
+        if n == 0 {
+            break
+        }
+        if buf.len() > limit {
+            fail tooLong(limit)
+        }
+    }
+    Bytes.fromArray(&buf)
+}
+
+/// The next read size: a chunk, cut so the buffer reaches at most limit + 1 bytes, the one that proves the input too long.
+fn readRoom(limit: usize, have: usize) -> usize {
+    let left = limit - have
+    if left < 4095 {
+        return left + 1
+    }
+    4096
+}
+
+fn tooLong(limit: usize) -> IoError {
+    IoError { text: "input is larger than the read limit of ${limit} bytes" }
 }
 
 /// Fails with IoError when a Reader.read call broke its law: see the
