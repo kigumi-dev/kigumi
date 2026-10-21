@@ -10,7 +10,7 @@ noalloc fn setInPlace(n: Int) -> Int {
 noalloc fn setThroughCell(n: Int) -> Int {
     let mut a = FixedArray.filled[Int, 8](n)
     let ok = a.set(3, 1) //~ ERROR `set` is not `noalloc` //~ ERROR handing `FixedArray[Int, 8]` to a slot that holds a reference allocates a box for it
-    let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Unit` allocates
+    let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Void` allocates
     bump()
     a[3]
 }
@@ -54,7 +54,7 @@ noalloc fn atBuildsOption(n: Int) -> Int {
 // Reading through a cell receiver is still in place, but withMut writes the local back, so it stays a call.
 noalloc fn atThroughCell(n: Int) -> Int {
     let mut a = FixedArray.filled[Int, 8](n)
-    let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Unit` allocates
+    let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Void` allocates
     bump()
     a.at(3, (x: &Int) => x + 1) || 0
 }
@@ -62,7 +62,7 @@ noalloc fn atThroughCell(n: Int) -> Int {
 noalloc fn withMutThroughCell(n: Int) -> Int {
     let mut a = FixedArray.filled[Int, 8](n)
     let _ = a.withMut(3, (x: &mut Int) => { x = x + 1 }) //~ ERROR `withMut` is not `noalloc` //~ ERROR handing `FixedArray[Int, 8]` to a slot that holds a reference allocates a box for it //~ ERROR closure is not `noalloc` (allocates)
-    let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Unit` allocates
+    let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Void` allocates
     bump()
     a[3]
 }
@@ -80,10 +80,10 @@ error[E1610]: handing `FixedArray[Int, 8]` to a slot that holds a reference allo
    |              ^^^^^^^^^^
    = help: keep it in a value of its own, or drop the declaration
 
-error[E961]: constructing `closure fn() -> Unit` allocates
+error[E961]: constructing `closure fn() -> Void` allocates
   --> lib/fixed.kg:12:16
    |
-12 |     let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Unit` allocates
+12 |     let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Void` allocates
    |                ^^^^^^^^^^^^^^^^
 
 error[E907]: `filled` is not `noalloc`
@@ -105,10 +105,10 @@ error[E961]: constructing `String?` allocates
 49 |     let r = a.at(3, (x: &Int) => "s") //~ ERROR constructing `String?` allocates
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E961]: constructing `closure fn() -> Unit` allocates
+error[E961]: constructing `closure fn() -> Void` allocates
   --> lib/fixed.kg:56:16
    |
-56 |     let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Unit` allocates
+56 |     let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Void` allocates
    |                ^^^^^^^^^^^^^^^^
 
 error[E907]: `withMut` is not `noalloc`
@@ -130,9 +130,9 @@ error[E422]: closure is not `noalloc` (allocates)
 63 |     let _ = a.withMut(3, (x: &mut Int) => { x = x + 1 }) //~ ERROR `withMut` is not `noalloc` //~ ERROR handing `FixedArray[Int, 8]` to a slot that holds a reference allocates a box for it //~ ERROR closure is not `noalloc` (allocates)
    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E961]: constructing `closure fn() -> Unit` allocates
+error[E961]: constructing `closure fn() -> Void` allocates
   --> lib/fixed.kg:64:16
    |
-64 |     let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Unit` allocates
+64 |     let bump = () => { a[0] = 5 } //~ ERROR constructing `closure fn() -> Void` allocates
    |                ^^^^^^^^^^^^^^^^
 

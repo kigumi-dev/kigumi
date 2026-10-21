@@ -12,7 +12,7 @@ fn show(a: Array[Int]) -> String {
     out
 }
 
-fn run() -> Unit {
+fn run() {
     let a = Array.of(1, 2, 3, 4, 5)
     print "clone ${show(a.tryClone().unwrap())} ${show(a.clone())}"
     print "take ${show(a.tryTake(2).unwrap())} ${show(a.take(9))} ${show(a.tryTake(0).unwrap())} ${a.tryTake(18446744073709551615).unwrap().len()}"

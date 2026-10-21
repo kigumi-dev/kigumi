@@ -103,7 +103,7 @@ func TestCarrierLeaseLocalUseAccepted(t *testing.T) {
 // A bodiless std/ffi leaf with no StdOp id still counts as bounded under strict.
 func TestStrictStackRawFFILeafAccepted(t *testing.T) {
 	t.Parallel()
-	src := "import ffi from std/ffi\n\nfn run() -> Unit {\n    unsafe {\n        let p = ffi.toMut(ffi.null[i32]())\n        ffi.writeI32(p, 7)\n    }\n}\n\nrun()\nprint \"done\"\n"
+	src := "import ffi from std/ffi\n\nfn run() {\n    unsafe {\n        let p = ffi.toMut(ffi.null[i32]())\n        ffi.writeI32(p, 7)\n    }\n}\n\nrun()\nprint \"done\"\n"
 	out := checkStrict(t, src, true, 0)
 	if strings.Contains(out, "error") {
 		t.Fatalf("expected a raw std/ffi leaf call to stay bounded under strict, got:\n%s", out)
@@ -230,7 +230,7 @@ func TestResourceReportHostedDefault(t *testing.T) {
 
 func TestCarrierLeaseEscapeViaGenericWrapperRejected(t *testing.T) {
 	t.Parallel()
-	src := "import ffi from std/ffi\n\nfn lease[R](x: &mut i32, f: escaping fn(*mut i32) -> R) -> R {\n    ffi.withAddress(x, f)\n}\n\nfn bad() -> Unit {\n    let mut v: i32 = 5\n    let p = lease(&mut v, (p: *mut i32) => p)\n    unsafe { ffi.writeI32(p, 123) }\n}\n"
+	src := "import ffi from std/ffi\n\nfn lease[R](x: &mut i32, f: escaping fn(*mut i32) -> R) -> R {\n    ffi.withAddress(x, f)\n}\n\nfn bad() {\n    let mut v: i32 = 5\n    let p = lease(&mut v, (p: *mut i32) => p)\n    unsafe { ffi.writeI32(p, 123) }\n}\n"
 	out := checkStrict(t, src, false, 0)
 	if !strings.Contains(out, "E1413") {
 		t.Fatalf("expected E1413 carrier-lease-escape through a generic wrapper, got:\n%s", out)

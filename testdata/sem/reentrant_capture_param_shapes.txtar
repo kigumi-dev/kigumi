@@ -2,32 +2,32 @@
 type Resource = resource {
     pub mut count Int
 }
-fn Resource.drop(move self) -> Unit {}
+fn Resource.drop(move self) {}
 
-fn Resource.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+fn Resource.run[F: FnMut[fn() -> Void]](mut self, f: F) {
     f()
 }
 
-fn mutate(x: &mut Resource) -> Unit {
+fn mutate(x: &mut Resource) {
     x.count = 99
 }
 
-fn reenter(mut v: Resource, f: fn() -> Unit) -> Unit {
+fn reenter(mut v: Resource, f: fn() -> Void) {
     v.run(f) //~ ERROR cannot see what this closure captures
 }
 
-fn forward[G: FnMut[fn() -> Unit]](mut v: Resource, g: G) -> Unit {
+fn forward[G: FnMut[fn() -> Void]](mut v: Resource, g: G) {
     v.run(g) //~ ERROR cannot see what this closure captures
 }
 
-fn forwardAlias[G: FnMut[fn() -> Unit]](mut v: Resource, g: G) -> Unit {
+fn forwardAlias[G: FnMut[fn() -> Void]](mut v: Resource, g: G) {
     let g2 = g
     v.run(g2) //~ ERROR cannot see what this closure captures
 }
 
-fn doNothing() -> Unit {}
+fn doNothing() {}
 
-fn viaTopLevelFnParam(mut v: Resource, unused: fn() -> Unit) -> Unit {
+fn viaTopLevelFnParam(mut v: Resource, unused: fn() -> Void) {
     v.run(doNothing)
 }
 -- expect --

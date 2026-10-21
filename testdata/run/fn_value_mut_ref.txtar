@@ -3,11 +3,11 @@ type R = {
     mut n Int
 }
 
-fn bump(r: &mut R) -> Unit {
+fn bump(r: &mut R) {
     r.n = r.n + 1
 }
 
-fn inc(x: &mut Int) -> Unit {
+fn inc(x: &mut Int) {
     x = x + 1
 }
 

@@ -40,7 +40,7 @@ fn build(depth: Int, base: Int) -> Tree {
     Node(kids)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let t = build(3, 1)
     let mut total = 0
     for i in 0..6 {
@@ -75,7 +75,7 @@ fn keep[T: Copy](x: T) -> T {
     x
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let named = Named { name: "a", n: 1 }
     let mut total = 0
     for i in 0..6 {
@@ -146,7 +146,7 @@ noalloc fn onNestedNamed(r: Named) -> Named {
     viaId(r)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${onInt(1)}"
 }
 `
@@ -192,7 +192,7 @@ noalloc fn getAny[T: Copy](a: &Array[T], i: usize) -> Int {
     if v is None { 0 } else { 1 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${1}"
 }
 `
@@ -215,17 +215,17 @@ func TestNoallocArrayGetIsChargedUnlessDirect(t *testing.T) {
 
 func TestNoallocFirstIsChargedLikeGet(t *testing.T) {
 	t.Parallel()
-	scalar := "noalloc fn head(a: &Array[Int]) -> Int {\n    a.first() || 0\n}\n\nfn main() -> Unit! {\n    print \"${head(&Array.of(1))}\"\n}\n"
+	scalar := "noalloc fn head(a: &Array[Int]) -> Int {\n    a.first() || 0\n}\n\nfn main() -> Void! {\n    print \"${head(&Array.of(1))}\"\n}\n"
 	if out := checkAllocClaim(t, scalar); strings.Contains(out, "error[") {
 		t.Errorf("a scalar first must stay noalloc:\n%s", out)
 	}
-	heap := "noalloc fn head(a: &Array[String]) -> Bool {\n    a.first() is Some(_)\n}\n\nfn main() -> Unit! {\n    print \"${head(&Array.of(\"a\"))}\"\n}\n"
+	heap := "noalloc fn head(a: &Array[String]) -> Bool {\n    a.first() is Some(_)\n}\n\nfn main() -> Void! {\n    print \"${head(&Array.of(\"a\"))}\"\n}\n"
 	if out := checkAllocClaim(t, heap); !strings.Contains(out, "error[E1700]") {
 		t.Errorf("a heap element copied by first must be an E1700:\n%s", out)
 	}
 }
 
-const getLoopSrc = `fn main() -> Unit! {
+const getLoopSrc = `fn main() -> Void! {
     let a = Array.of(%s)
     let mut s = 0
     for i in 0..10 {
@@ -267,7 +267,7 @@ fn first(a: &Array[String]) -> Int {
     if a.get(0) is Some(_) { 1 } else { 0 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${hand(Named { name: "a", n: 1 }).n} ${first(&Array.of("b"))}"
 }
 `

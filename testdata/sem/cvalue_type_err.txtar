@@ -1,15 +1,15 @@
 -- app/t/t.kg --
 import ffi from std/ffi
 
-fn useNew() -> Unit! {
+fn useNew() -> Void! {
     let cv = ffi.CValue.new("hi") //~ ERROR `String` cannot be a `CValue` element
 }
 
-fn useGet(cv: &ffi.CValue[String]) -> Unit! {
+fn useGet(cv: &ffi.CValue[String]) -> Void! {
     let v = cv.get() //~ ERROR `String` cannot be a `CValue` element
 }
 
-fn useSet(cv: &ffi.CValue[String]) -> Unit! {
+fn useSet(cv: &ffi.CValue[String]) -> Void! {
     cv.set(&"bye") //~ ERROR `String` cannot be a `CValue` element
 }
 

@@ -5,7 +5,7 @@ pub fn probe() -> time.Instant {
     time.now()
 }
 -- src --
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E966]: `std/time` is a higher dependency layer than `std/test`
  --> std/test/test.kg:1:18

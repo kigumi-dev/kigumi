@@ -3,23 +3,23 @@ import {Box, Shared} from std/alloc
 
 type View['a] = { pub data &'a Bytes, pub off usize }
 
-fn stash['a](b: &'a Bytes) -> Unit {
+fn stash['a](b: &'a Bytes) {
     let v = View { data: b, off: 0 }
     let s: Box[View['a]] = Box.new(v) //~ ERROR carries a borrow and cannot be stored
     _ = s
 }
 
-fn stashInferred['a](b: &'a Bytes) -> Unit {
+fn stashInferred['a](b: &'a Bytes) {
     let v = View { data: b, off: 0 }
     let s = Box.new(v) //~ ERROR carries a borrow and cannot be stored
     _ = s
 }
 
-fn ship[T: Send](x: T) -> Unit {}
+fn ship[T: Send](x: T) {}
 
-fn share[T: Sync](x: &T) -> Unit {}
+fn share[T: Sync](x: &T) {}
 
-fn threads(plain: Box[Int], arr: Box[Array[Int]], cell: Box[Shared[Int]]) -> Unit {
+fn threads(plain: Box[Int], arr: Box[Array[Int]], cell: Box[Shared[Int]]) {
     ship(plain)
     ship(arr)
     ship(cell) //~ ERROR `Box[Shared[Int]]` does not satisfy `Send`

@@ -1,41 +1,41 @@
 -- std/probe/probe.kg --
 // Not on the reviewed nonEscapingIntrinsics allowlist: its fn-typed
 // parameter is escaping, same as any other bodiless std declaration.
-pub fn unknownPrimitive(f: fn() -> Unit) -> Unit
+pub fn unknownPrimitive(f: fn() -> Void)
 
 -- lib/esc.kg --
 import probe from std/probe
 
-fn genericCall[F: Fn[fn(fn() -> Unit) -> Unit]](call: F, cb: fn() -> Unit) -> Unit {
+fn genericCall[F: Fn[fn(fn() -> Void) -> Void]](call: F, cb: fn() -> Void) {
     call(cb)
 }
 
-fn direct(cb: fn() -> Unit) -> Unit {
+fn direct(cb: fn() -> Void) {
     cb()
 }
 
-fn useExactMatch(cb: fn() -> Unit) -> Unit {
+fn useExactMatch(cb: fn() -> Void) {
     genericCall(direct, cb)
 }
 
 // unknownPrimitive is escaping where the constraint promises non-escaping (the unsafe direction);
 // genericCall trusts that promise to grant capBorrow, so a too-loose F must still be rejected.
-fn useTooEscaping() -> Unit {
+fn useTooEscaping() {
     genericCall(probe.unknownPrimitive, () => {}) //~ ERROR does not satisfy
 }
 
 // Isolated from forwarding (no call(cb) in the body); only constraint satisfaction is exercised.
-fn holdsFn[F: Fn[fn(escaping fn() -> Unit) -> Unit]](call: F) -> Unit {
+fn holdsFn[F: Fn[fn(escaping fn() -> Void) -> Void]](call: F) {
     _ = call
 }
 
 // direct is plain where the constraint only demands AT MOST escaping: a witness may be more
 // conservative than its requirement, never looser.
-fn useLooserConstraint() -> Unit {
+fn useLooserConstraint() {
     holdsFn(direct)
 }
 -- expect --
-error[E300]: `fn(escaping fn() -> Unit) -> Unit` does not satisfy `Fn[fn(fn() -> Unit) -> Unit]`: may keep the callback at parameter 1, which the constraint requires not to escape
+error[E300]: `fn(escaping fn() -> Void) -> Void` does not satisfy `Fn[fn(fn() -> Void) -> Void]`: may keep the callback at parameter 1, which the constraint requires not to escape
   --> lib/esc.kg:18:5
    |
 18 |     genericCall(probe.unknownPrimitive, () => {}) //~ ERROR does not satisfy

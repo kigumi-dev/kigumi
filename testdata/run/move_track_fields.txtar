@@ -3,11 +3,11 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Res.close(move self) -> Unit {
+fn Res.close(move self) {
     print "close ${self.id}"
 }
 
@@ -32,18 +32,18 @@ type Nest = {
     pub mut w Wrap
 }
 
-fn take(r: Res) -> Unit {
+fn take(r: Res) {
     print "take ${r.peek()}"
 }
 
-fn letMove() -> Unit {
+fn letMove() {
     let w = Wrap { a: mkr(1), n: 2 }
     let t = move w.a
     t.close()
     print "n ${w.n}"
 }
 
-fn assignMove() -> Unit {
+fn assignMove() {
     let mut w = Wrap { a: mkr(3), n: 4 }
     let mut h = Holder { f: mkr(5) }
     h.f = move w.a
@@ -51,7 +51,7 @@ fn assignMove() -> Unit {
     print "h ${h.f.peek()} w ${w.a.peek()}"
 }
 
-fn literalMoves() -> Unit {
+fn literalMoves() {
     let w = Wrap { a: mkr(7), n: 8 }
     let o = Some(move w.a)
     let x = Wrap { a: mkr(9), n: 10 }
@@ -61,20 +61,20 @@ fn literalMoves() -> Unit {
     print "literals ${t._1}"
 }
 
-fn nestedMove() -> Unit {
+fn nestedMove() {
     let n = Nest { w: Wrap { a: mkr(13), n: 14 } }
     let t = move n.w.a
     t.close()
     print "nested ${n.w.n}"
 }
 
-fn callArg() -> Unit {
+fn callArg() {
     let w = Wrap { a: mkr(15), n: 16 }
     take(w.a)
     print "after take ${w.n}"
 }
 
-fn arrayField() -> Unit {
+fn arrayField() {
     let w = Wrap { a: mkr(17), n: 18 }
     let xs = Array.of(1)
     let mut ys = xs.clone()
@@ -87,14 +87,14 @@ type RB = {
     pub mut rs Array[Res]
 }
 
-fn pushField() -> Unit {
+fn pushField() {
     let w = Wrap { a: mkr(19), n: 20 }
     let mut keep = Array.of(mkr(21))
     keep.push(move w.a)
     print "kept ${keep.len()} ${w.n}"
 }
 
-fn forField() -> Unit {
+fn forField() {
     let b = RB { rs: Array.of(mkr(22), mkr(23)) }
     for r in move b.rs {
         r.close()
@@ -102,14 +102,14 @@ fn forField() -> Unit {
     print "end forField"
 }
 
-fn branchMoves(c: Bool) -> Unit {
+fn branchMoves(c: Bool) {
     let w = Wrap { a: mkr(30), n: 1 }
     let x = if c { move w.a } else { mkr(31) }
     x.close()
     print "end branchMoves ${c}"
 }
 
-fn armMoves(k: Int) -> Unit {
+fn armMoves(k: Int) {
     let t = (mkr(40), Wrap { a: mkr(41), n: 0 })
     let x = match k {
         0 -> move t._0
@@ -120,13 +120,13 @@ fn armMoves(k: Int) -> Unit {
     print "end armMoves ${k}"
 }
 
-fn argBranchMoves(c: Bool) -> Unit {
+fn argBranchMoves(c: Bool) {
     let w = Wrap { a: mkr(50), n: 1 }
     take(if c { move w.a } else { mkr(51) })
     print "end argBranchMoves ${c}"
 }
 
-fn assignFieldMoves() -> Unit {
+fn assignFieldMoves() {
     let w = Wrap { a: mkr(60), n: 1 }
     let mut h = Holder { f: mkr(61) }
     h.f = move w.a

@@ -9,7 +9,7 @@ fn Tag.flag(self) -> String {
     "--n=${self.n}"
 }
 
-fn show(plan: &shell.Plan) -> Unit {
+fn show(plan: &shell.Plan) {
     for s in shell.stages(plan) {
         let mut line = "argc=${s.argv.len()}"
         for a in s.argv {

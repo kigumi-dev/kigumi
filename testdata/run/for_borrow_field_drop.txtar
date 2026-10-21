@@ -8,7 +8,7 @@ type Res = resource {
     mut tag Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}:${self.tag}"
 }
 
@@ -16,19 +16,19 @@ type Box = {
     mut items Array[Res]
 }
 
-fn Box.report(self) -> Unit {
+fn Box.report(self) {
     for it in &self.items {
         print "see ${it.id}"
     }
 }
 
-fn reportParam(b: &Box) -> Unit {
+fn reportParam(b: &Box) {
     for it in &b.items {
         print "see ${it.id}"
     }
 }
 
-fn bumpParam(b: &mut Box) -> Unit {
+fn bumpParam(b: &mut Box) {
     for it in &mut b.items {
         it.tag = it.tag + 100
     }

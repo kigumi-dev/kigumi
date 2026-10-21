@@ -22,7 +22,7 @@ fn fresh(i: In) -> Result[Int, Int] {
     Ok(x.a)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanDirectKeepsAMutatedUnwrappedPayloadUnboxed(t *testing.T) {

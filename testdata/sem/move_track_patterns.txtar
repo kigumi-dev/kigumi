@@ -5,17 +5,17 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
-fn Res.close(move self) -> Unit {}
+fn Res.close(move self) {}
 
 fn Res.peek(self) -> Int {
     self.id
 }
 
-fn say(n: Int) -> Unit {}
+fn say(n: Int) {}
 
-fn sayU(n: usize) -> Unit {}
+fn sayU(n: usize) {}
 
 fn mkr(n: Int) -> Res {
     Res { id: n }
@@ -30,16 +30,16 @@ type Box = {
     pub mut p Pair?
 }
 
-fn Box.put(mut self, p: Pair) -> Unit {
+fn Box.put(mut self, p: Pair) {
     self.p = Some(p)
 }
 
-fn take(p: Pair) -> Unit {
+fn take(p: Pair) {
     let g = move p.left
     g.close()
 }
 
-fn matchTwice(o: Res?) -> Unit {
+fn matchTwice(o: Res?) {
     match o {
         Some(c) -> c.close()
         None -> {}
@@ -50,7 +50,7 @@ fn matchTwice(o: Res?) -> Unit {
     }
 }
 
-fn isTwice(o: Res?) -> Unit {
+fn isTwice(o: Res?) {
     if o is Some(c) {
         c.close()
     }
@@ -59,7 +59,7 @@ fn isTwice(o: Res?) -> Unit {
     }
 }
 
-fn ifLetThenMatch(o: Res?) -> Unit {
+fn ifLetThenMatch(o: Res?) {
     if let Some(c) = o {
         say(c.peek())
     }
@@ -77,14 +77,14 @@ fn tryTwice(r: Result[Res, String]) -> Result[Int, String] {
     Ok(1)
 }
 
-fn orTwice(o: Res?) -> Unit {
+fn orTwice(o: Res?) {
     let a = o || mkr(1)
     let b = o || mkr(2) //~ ERROR `o` was moved
     a.close()
     b.close()
 }
 
-fn recordTwice(p: Pair) -> Unit {
+fn recordTwice(p: Pair) {
     match p {
         Pair { left, right } -> left.close()
     }
@@ -93,7 +93,7 @@ fn recordTwice(p: Pair) -> Unit {
     }
 }
 
-fn tupleTwice(t: (Res, Int)) -> Unit {
+fn tupleTwice(t: (Res, Int)) {
     match t {
         (c, n) -> c.close()
     }
@@ -102,7 +102,7 @@ fn tupleTwice(t: (Res, Int)) -> Unit {
     }
 }
 
-fn arrayShared() -> Unit {
+fn arrayShared() {
     let o = Some(Array.of(1, 2, 3))
     let mut a = match o {
         Some(x) -> x
@@ -115,7 +115,7 @@ fn arrayShared() -> Unit {
     a.push(9)
 }
 
-fn aliasPassedOn(o: Pair?) -> Unit {
+fn aliasPassedOn(o: Pair?) {
     if let Some(p) = o {
         take(p)
     }
@@ -125,7 +125,7 @@ fn aliasPassedOn(o: Pair?) -> Unit {
     }
 }
 
-fn aliasStored(o: Pair?, b: Box) -> Unit {
+fn aliasStored(o: Pair?, b: Box) {
     let mut bx = b
     if let Some(p) = o {
         bx.put(p)
@@ -136,7 +136,7 @@ fn aliasStored(o: Pair?, b: Box) -> Unit {
     }
 }
 
-fn aliasReturnedByLambda(o: Pair?) -> Unit {
+fn aliasReturnedByLambda(o: Pair?) {
     if let Some(p) = o {
         let f = () => p
         take(f())
@@ -156,7 +156,7 @@ fn fieldThenWhole(o: Pair?) -> Int {
     0
 }
 
-fn borrowedTwice(o: &Res?) -> Unit {
+fn borrowedTwice(o: &Res?) {
     match o {
         Some(c) -> say(c.peek())
         None -> {}
@@ -167,7 +167,7 @@ fn borrowedTwice(o: &Res?) -> Unit {
     }
 }
 
-fn borrowedLocal() -> Unit {
+fn borrowedLocal() {
     let o = Some(mkr(3))
     match &o {
         Some(c) -> say(c.peek())
@@ -188,7 +188,7 @@ fn copyPayload(o: Int?) -> Int {
     }
 }
 
-fn reinitAfterMatch() -> Unit {
+fn reinitAfterMatch() {
     let mut o = Some(mkr(4))
     match o {
         Some(c) -> c.close()

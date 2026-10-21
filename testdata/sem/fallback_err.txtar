@@ -11,7 +11,7 @@ fn use() -> Int {
     let a = 5 || 0 //~ ERROR `Int` is not a Fallback (no `fn branch(move self) -> Branch[V, R]`)
     let b = find(1) || "x" //~ ERROR expected `Int`, found `String`
     let c = find(1) || (a, b) => 0 //~ ERROR fallback handler takes exactly one parameter
-    let d = find(1) || (e: Int) => 0 //~ ERROR fallback handler parameter is `Unit`, annotated `Int`
+    let d = find(1) || (e: Int) => 0 //~ ERROR fallback handler parameter is `Void`, annotated `Int`
     let e = find(1) || (e) => "s" //~ ERROR expected `Int`, found `String`
     let f = flag() || true //~ WARNING `Option[Bool] ||`: `Some(false)` is a hit
     let g = find(1) || fail 1 //~ ERROR `fail` requires a `Result` return type
@@ -37,10 +37,10 @@ error[E622]: fallback handler takes exactly one parameter
 12 |     let c = find(1) || (a, b) => 0 //~ ERROR fallback handler takes exactly one parameter
    |                        ^^^^^^^^^^^
 
-error[E623]: fallback handler parameter is `Unit`, annotated `Int`
+error[E623]: fallback handler parameter is `Void`, annotated `Int`
   --> lib/fb.kg:13:28
    |
-13 |     let d = find(1) || (e: Int) => 0 //~ ERROR fallback handler parameter is `Unit`, annotated `Int`
+13 |     let d = find(1) || (e: Int) => 0 //~ ERROR fallback handler parameter is `Void`, annotated `Int`
    |                            ^^^
 
 error[E400]: expected `Int`, found `String`

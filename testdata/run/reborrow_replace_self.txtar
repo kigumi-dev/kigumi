@@ -15,7 +15,7 @@ let mut plain = a.Rebound { n: 1 }
 plain.grow(5)
 print "plain ${plain.n}"
 -- lib/a/a.kg --
-fn reset(p: &mut Rebound, k: Int) -> Unit {
+fn reset(p: &mut Rebound, k: Int) {
     p = Rebound { n: k }
 }
 
@@ -23,15 +23,15 @@ pub type Rebound = {
     pub mut n Int
 }
 
-pub fn Rebound.grow(mut self, k: Int) -> Unit {
+pub fn Rebound.grow(mut self, k: Int) {
     reset(&mut self, k)
 }
 
-fn forward(p: &mut Chained, k: Int) -> Unit {
+fn forward(p: &mut Chained, k: Int) {
     swap(p, k)
 }
 
-fn swap(p: &mut Chained, k: Int) -> Unit {
+fn swap(p: &mut Chained, k: Int) {
     p = Chained { n: k }
 }
 
@@ -39,11 +39,11 @@ pub type Chained = {
     pub mut n Int
 }
 
-pub fn Chained.grow(mut self, k: Int) -> Unit {
+pub fn Chained.grow(mut self, k: Int) {
     forward(&mut self, k)
 }
 
-fn bump(p: &mut Kept, k: Int) -> Unit {
+fn bump(p: &mut Kept, k: Int) {
     p.n = p.n + k
 }
 
@@ -51,15 +51,15 @@ pub type Kept = {
     pub mut n Int
 }
 
-pub fn Kept.grow(mut self, k: Int) -> Unit {
+pub fn Kept.grow(mut self, k: Int) {
     bump(&mut self, k)
 }
 -- lib/b/b.kg --
 pub interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
 }
 
-pub fn growAny[G: Grower](x: &mut G, k: Int) -> Unit {
+pub fn growAny[G: Grower](x: &mut G, k: Int) {
     x.grow(k)
 }
 -- stdout --

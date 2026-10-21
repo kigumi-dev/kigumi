@@ -7,7 +7,7 @@ import (
 )
 
 var primNames = map[TypeID]string{
-	TyPoison: "<error>", TyNever: "Never", TyUnit: "Unit", TyBool: "Bool", TyChar: "Char",
+	TyPoison: "<error>", TyNever: "Never", TyUnit: "Void", TyBool: "Bool", TyChar: "Char",
 	TyString: "String", TyBytes: "Bytes", TyI8: "i8", TyI16: "i16", TyI32: "i32", TyI64: "Int",
 	TyI128: "i128", TyU8: "u8", TyU16: "u16", TyU32: "u32", TyU64: "u64", TyU128: "u128",
 	TyUsize: "usize", TyIsize: "isize", TyF32: "f32", TyF64: "Float",

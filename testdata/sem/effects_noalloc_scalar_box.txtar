@@ -19,12 +19,12 @@ noalloc fn byteResult(f: noalloc fn() -> u8) -> u8 {
     f() //~ ERROR the `u8` it returns arrives in a box
 }
 
-// Bool and Unit boxes are immortals.
+// Bool and Void boxes are immortals.
 noalloc fn boolResult(f: noalloc fn() -> Bool) -> Bool {
     f()
 }
 
-noalloc fn unitResult(f: noalloc fn() -> Unit) -> Unit {
+noalloc fn unitResult(f: noalloc fn() -> Void) {
     f()
 }
 
@@ -49,7 +49,7 @@ noalloc fn callsInferred() -> Int {
     inferred(twice, 3) //~ ERROR `inferred` is not `noalloc` //~ ERROR `twice` returns `Int` unboxed
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E1841]: this call goes through a function value or an interface, so the `Int` it returns arrives in a box the callee allocates
  --> main/main.kg:6:5

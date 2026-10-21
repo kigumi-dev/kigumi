@@ -18,7 +18,7 @@ type Counter = {
     pub n Int
 }
 
-fn Counter.bump(mut self) -> Unit {
+fn Counter.bump(mut self) {
     _ = self
 }
 
@@ -54,7 +54,7 @@ fn lib.Nat.keep(%self: Nat) -> Nat {
     %t3 = record lib.Nat(%t2)
     return %t3
 }
-fn lib.Counter.bump(%self: Counter) -> Unit {
+fn lib.Counter.bump(%self: Counter) -> Void {
   b0:
     %t1 = unit
     return %t1

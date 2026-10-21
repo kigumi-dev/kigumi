@@ -1,17 +1,18 @@
 -- main/main.kg --
 import os from std/os
 
-fn main(x: Int) -> Int { //~ ERROR `main` must be `fn main() -> Unit!` or `fn main(host: Host) -> Unit!`
+fn main(x: Int) -> Int { //~ ERROR `main` must be `fn main()` or `fn main(host: Host)` returning Void or Void!
     x + 1
 }
 
-fn other(host: os.Host) -> Unit! {
+fn other(host: os.Host) -> Void! {
     _ = host
 }
 -- expect --
-error[E244]: `main` must be `fn main() -> Unit!` or `fn main(host: Host) -> Unit!`
+error[E244]: `main` must be `fn main()` or `fn main(host: Host)` returning Void or Void!
  --> main/main.kg:3:1
   |
-3 | fn main(x: Int) -> Int { //~ ERROR `main` must be `fn main() -> Unit!` or `fn main(host: Host) -> Unit!`
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+3 | fn main(x: Int) -> Int { //~ ERROR `main` must be `fn main()` or `fn main(host: Host)` returning Void or Void!
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: write `!` or `-> Void!` after the parameter list for a main that can fail
 

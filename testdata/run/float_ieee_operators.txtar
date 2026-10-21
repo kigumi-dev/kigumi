@@ -51,7 +51,7 @@ fn apply32(f: fn(f32, &f32) -> Bool, a: f32, b: f32) -> Bool {
     f(a, &b)
 }
 
-fn row64(label: String, a: f64, b: f64) -> Unit {
+fn row64(label: String, a: f64, b: f64) {
     print "${label} concrete: ${a == b} ${a != b} ${a < b} ${a <= b} ${a > b} ${a >= b}"
     print "${label} generic:  ${eqG(a, &b)} ${neG(a, &b)} ${ltG(a, &b)} ${leG(a, &b)} ${gtG(a, &b)} ${geG(a, &b)}"
     print "${label} ref:      ${viaRef64(&a, &b)}"
@@ -66,7 +66,7 @@ fn row64(label: String, a: f64, b: f64) -> Unit {
     print "${label} named:    ${a.equals(&b)} ${debug(&a.compareTo(&b))}"
 }
 
-fn row32(label: String, a: f32, b: f32) -> Unit {
+fn row32(label: String, a: f32, b: f32) {
     print "${label} concrete: ${a == b} ${a != b} ${a < b} ${a <= b} ${a > b} ${a >= b}"
     print "${label} generic:  ${eqG(a, &b)} ${neG(a, &b)} ${ltG(a, &b)} ${leG(a, &b)} ${gtG(a, &b)} ${geG(a, &b)}"
     print "${label} refG:     ${viaRefG(&a, &b)}"
@@ -76,7 +76,7 @@ fn row32(label: String, a: f32, b: f32) -> Unit {
     print "${label} named:    ${a.equals(&b)} ${debug(&a.compareTo(&b))}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let z: f64 = 0.0
     let nan = z / z
     let negz: f64 = -0.0

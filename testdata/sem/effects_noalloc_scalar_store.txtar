@@ -11,18 +11,18 @@ noalloc fn constantArguments(f: noalloc fn(Int) -> Bool, g: noalloc fn(Float) ->
     f(-1) && f(-5000) && f(1 + 2) && f(BIG) && g(-1.5) && g((2.5))
 }
 
-noalloc fn throughRef(r: &mut Int, i: Int) -> Unit {
+noalloc fn throughRef(r: &mut Int, i: Int) {
     r = r + i //~ ERROR storing a computed `Int` in it allocates a box
     r = 7
 }
 
-noalloc fn intoRecord(p: &mut P, i: Int) -> Unit {
+noalloc fn intoRecord(p: &mut P, i: Int) {
     p.a = i + 2000 //~ ERROR storing a computed `Int` in it allocates a box
     p.b = 1.5
     p.a += i //~ ERROR storing a computed `Int` in it allocates a box
 }
 
-noalloc fn intoArray(xs: &mut Array[Int], i: Int) -> Unit {
+noalloc fn intoArray(xs: &mut Array[Int], i: Int) {
     xs[0] = i + 2000 //~ ERROR storing a computed `Int` in it allocates a box
     xs[1] = xs[0]
     xs[2] = 9
@@ -46,7 +46,7 @@ noalloc fn constantClosure() -> Bool {
     f(3)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E2125]: this place holds its value boxed, so storing a computed `Int` in it allocates a box
   --> main/main.kg:14:9

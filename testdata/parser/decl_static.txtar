@@ -23,7 +23,7 @@ export(C) {
 static vectorTable: u32 = 0
 
 @section(".ramfunc")
-fn flashWriter() -> Unit {}
+fn flashWriter() {}
 -- expect --
 File
   StaticDecl
@@ -121,6 +121,5 @@ File
     name: flashWriter
     generics: -
     params: List
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block

@@ -31,7 +31,7 @@ fn port() -> Result[Int, ConfigError] {
     }
 }
 
-fn boot() -> Unit! {
+fn boot() -> Void! {
     let p = port()?
     print "listening on ${p}"
     let host = lookup("host") || (e) => {

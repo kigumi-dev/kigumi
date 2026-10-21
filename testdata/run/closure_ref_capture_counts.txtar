@@ -3,7 +3,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop res ${self.n}"
 }
 

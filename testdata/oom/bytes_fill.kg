@@ -1,4 +1,4 @@
-fn run() -> Unit {
+fn run() {
     let n = 1
     eprint "go"
     let r = Bytes.tryFill(1, 8)

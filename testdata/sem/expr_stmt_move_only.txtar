@@ -3,9 +3,9 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 type Slot = {
     pub mut o Handle?
@@ -15,27 +15,27 @@ fn mkh(n: Int) -> Handle {
     Handle { id: n }
 }
 
-fn tailCall() -> Unit {
+fn tailCall() {
     mkh(1) //~ ERROR
 }
 
-fn Slot.drain(mut self) -> Unit {
+fn Slot.drain(mut self) {
     self.o.take() //~ ERROR
 }
 
-fn bareLocal() -> Unit {
+fn bareLocal() {
     let r = mkh(2)
     let s = r
     r //~ ERROR
     s.close()
 }
 
-fn bareMove() -> Unit {
+fn bareMove() {
     let r = mkh(3)
     move r //~ ERROR
 }
 
-fn armValues(c: Bool) -> Unit {
+fn armValues(c: Bool) {
     if c {
         mkh(4) //~ ERROR
     } else {
@@ -51,12 +51,12 @@ fn arr() -> Array[Int] {
     Array.of(1)
 }
 
-fn plainNonCopyPass(xs: Array[Int]) -> Unit {
+fn plainNonCopyPass(xs: Array[Int]) {
     arr() //~ WARNING unused value
     xs //~ WARNING unused value
 }
 
-fn copyValuesPass(n: Int, o: Int?) -> Unit {
+fn copyValuesPass(n: Int, o: Int?) {
     n //~ WARNING unused value
     1 + 2 //~ WARNING unused value
     match o {
@@ -65,7 +65,7 @@ fn copyValuesPass(n: Int, o: Int?) -> Unit {
     }
 }
 
-fn explicitDiscard(c: Bool) -> Unit {
+fn explicitDiscard(c: Bool) {
     _ = mkh(8)
     if c { _ = mkh(9) } else { mkh(10).close() }
 }

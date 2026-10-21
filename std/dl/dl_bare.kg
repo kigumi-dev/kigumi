@@ -1,5 +1,5 @@
 /// Closes the library; a bare target has no loader.
-pub fn Handle.drop(move self) -> Unit {}
+pub fn Handle.drop(move self) {}
 
 /// Loads a shared library; a bare target has no dynamic loader.
 pub fn Loader.open(self, path: String) -> Library! {

@@ -1,6 +1,6 @@
 import {Shared} from std/alloc
 
-fn run() -> Unit {
+fn run() {
     let before = 1
     eprint "go"
     let r = Shared.tryNew(before)

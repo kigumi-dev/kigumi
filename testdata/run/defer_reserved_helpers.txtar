@@ -3,9 +3,9 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
@@ -13,7 +13,7 @@ fn Handle.peek(self) -> Int {
     self.id
 }
 
-fn Handle.bump(mut self) -> Unit {
+fn Handle.bump(mut self) {
     self.id = self.id + 1
 }
 
@@ -36,48 +36,48 @@ fn mk(n: Int) -> Pack {
     Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
 }
 
-fn closeAll(xs: Array[Handle]) -> Unit {
+fn closeAll(xs: Array[Handle]) {
     for h in xs {
         h.close()
     }
 }
 
-fn closePacks(ps: Array[Pack]) -> Unit {
+fn closePacks(ps: Array[Pack]) {
     for p in ps {
         p.inner.close()
         p.other.close()
     }
 }
 
-fn tweak(p: &mut Handle) -> Unit {
+fn tweak(p: &mut Handle) {
     p.id = p.id + 10
 }
 
-fn tweakTwice(p: &mut Handle) -> Unit {
+fn tweakTwice(p: &mut Handle) {
     tweak(p)
     tweak(p)
 }
 
-fn tweakViaMethod(p: &mut Handle) -> Unit {
+fn tweakViaMethod(p: &mut Handle) {
     p.bump()
 }
 
-fn tweakRecursive(p: &mut Handle, n: Int) -> Unit {
+fn tweakRecursive(p: &mut Handle, n: Int) {
     if n > 0 {
         tweakRecursive(p, n - 1)
     }
     p.id = p.id + 1
 }
 
-fn bumpN(p: &mut Pack) -> Unit {
+fn bumpN(p: &mut Pack) {
     p.n = p.n + 1
 }
 
-fn replaceInner(p: &mut Pack) -> Unit {
+fn replaceInner(p: &mut Pack) {
     p.inner = mkh(7)
 }
 
-fn helperWhole() -> Unit {
+fn helperWhole() {
     let mut h = mkh(1)
     defer { h.close() }
     tweak(&mut h)
@@ -86,7 +86,7 @@ fn helperWhole() -> Unit {
     tweakRecursive(&mut h, 2)
 }
 
-fn helperField() -> Unit {
+fn helperField() {
     let mut b = mk(100)
     defer { b.inner.close() }
     bumpN(&mut b)
@@ -95,14 +95,14 @@ fn helperField() -> Unit {
     b.other.close()
 }
 
-fn helperBeforeCleanup() -> Unit {
+fn helperBeforeCleanup() {
     let mut b = mk(200)
     replaceInner(&mut b)
     defer { b.inner.close() }
     b.other.close()
 }
 
-fn forConsumes() -> Unit {
+fn forConsumes() {
     let mut xs = Array.of(mkh(300), mkh(301))
     defer {
         for h in xs {
@@ -113,7 +113,7 @@ fn forConsumes() -> Unit {
     print "len ${xs.len()}"
 }
 
-fn forConsumesField() -> Unit {
+fn forConsumesField() {
     let mut b = Bag { items: Array.of(mkh(310)), n: 0 }
     defer {
         for h in move b.items {
@@ -124,27 +124,27 @@ fn forConsumesField() -> Unit {
     b.items.push(mkh(311))
 }
 
-fn indexCopyFieldWrite() -> Unit {
+fn indexCopyFieldWrite() {
     let mut xs = Array.of(mkh(1), mkh(2))
     defer { closeAll(xs) }
     xs[0].id = 55
     xs[1].id = xs[1].id + 40
 }
 
-fn indexCopyFieldNested() -> Unit {
+fn indexCopyFieldNested() {
     let mut ps = Array.of(mk(400))
     defer { closePacks(ps) }
     ps[0].n = 5
 }
 
-fn letDestructure() -> Unit {
+fn letDestructure() {
     let b = mk(500)
     let Pack { inner, other, n: _ } = b
     other.close()
     inner.close()
 }
 
-fn loopReassignThenDefer() -> Unit {
+fn loopReassignThenDefer() {
     let mut h = mkh(0)
     for i in 0..3 {
         h = mkh(600 + i)
@@ -153,7 +153,7 @@ fn loopReassignThenDefer() -> Unit {
     }
 }
 
-fn loopReassignField() -> Unit {
+fn loopReassignField() {
     let mut b = mk(700)
     for i in 0..2 {
         b = mk(700 + 10 * i)
@@ -162,7 +162,7 @@ fn loopReassignField() -> Unit {
     }
 }
 
-fn loopReassignInner() -> Unit {
+fn loopReassignInner() {
     let mut h = mkh(0)
     for i in 0..2 {
         for j in 0..2 {
@@ -172,17 +172,17 @@ fn loopReassignInner() -> Unit {
     }
 }
 
-fn gen[T](p: &mut T) -> Unit {}
+fn gen[T](p: &mut T) {}
 
-fn over(p: &mut Handle) -> Unit {
+fn over(p: &mut Handle) {
     p.id = p.id + 1
 }
 
-fn over(p: &mut Handle, n: Int) -> Unit {
+fn over(p: &mut Handle, n: Int) {
     p.id = n
 }
 
-fn helperShapes() -> Unit {
+fn helperShapes() {
     let mut h = mkh(900)
     defer { h.close() }
     gen(&mut h)
@@ -194,14 +194,14 @@ type Slot = {
     pub mut o Handle?
 }
 
-fn Slot.empty(mut self) -> Unit {
+fn Slot.empty(mut self) {
     match self.o.take() {
         Some(h) -> h.close()
         None -> {}
     }
 }
 
-fn drainArray() -> Unit {
+fn drainArray() {
     let mut xs = Array.of(mkh(1000), mkh(1001))
     defer {
         for xs.len() > 0 {
@@ -215,13 +215,13 @@ fn drainArray() -> Unit {
     print "body"
 }
 
-fn drainViaMethod() -> Unit {
+fn drainViaMethod() {
     let mut s = Slot { o: Some(mkh(1100)) }
     defer { s.empty() }
     print "slot"
 }
 
-fn drainOption() -> Unit {
+fn drainOption() {
     let mut o = Some(mkh(1200))
     defer {
         match o.take() {
@@ -232,7 +232,7 @@ fn drainOption() -> Unit {
     print "option"
 }
 
-fn drainHelper(xs: &mut Array[Handle]) -> Unit {
+fn drainHelper(xs: &mut Array[Handle]) {
     for xs.len() > 0 {
         match xs.takeAt(0) {
             Some(h) -> h.close()
@@ -241,21 +241,21 @@ fn drainHelper(xs: &mut Array[Handle]) -> Unit {
     }
 }
 
-fn drainThroughHelper() -> Unit {
+fn drainThroughHelper() {
     let mut xs = Array.of(mkh(301), mkh(302))
     defer { drainHelper(&mut xs) }
     xs.push(mkh(303))
 }
 
-fn addOne(p: &mut Pack) -> Unit {
+fn addOne(p: &mut Pack) {
     p.n = p.n + 1
 }
 
-fn viaAddOne(p: &mut Pack) -> Unit {
+fn viaAddOne(p: &mut Pack) {
     addOne(p)
 }
 
-fn helperForwards() -> Unit {
+fn helperForwards() {
     let mut b = Pack { inner: mkh(310), other: mkh(311), n: 0 }
     defer { b.inner.close() }
     viaAddOne(&mut b)
@@ -263,7 +263,7 @@ fn helperForwards() -> Unit {
     b.other.close()
 }
 
-fn reassignInBareBlock() -> Unit {
+fn reassignInBareBlock() {
     let mut h = mkh(320)
     h.close()
     for i in 0..2 {
@@ -276,20 +276,20 @@ fn reassignInBareBlock() -> Unit {
     h.close()
 }
 
-fn Bag.closeAll(move self) -> Unit {
+fn Bag.closeAll(move self) {
     print "bag n ${self.n}"
     for h in move self.items {
         h.close()
     }
 }
 
-fn drainFieldKeepsPush() -> Unit {
+fn drainFieldKeepsPush() {
     let mut b = Bag { items: Array.of(mkh(340), mkh(341)), n: 0 }
     defer { drainHelper(&mut b.items) }
     b.items.push(mkh(342))
 }
 
-fn consumeWholeThenWriteCopyField() -> Unit {
+fn consumeWholeThenWriteCopyField() {
     let mut b = Bag { items: Array.of(mkh(350)), n: 0 }
     defer { b.closeAll() }
     b.n = 5
@@ -301,13 +301,13 @@ type Conn = resource {
     pub mut log Array[Int]
 }
 
-fn Conn.drop(move self) -> Unit {}
+fn Conn.drop(move self) {}
 
-fn Conn.close(move self) -> Unit {
+fn Conn.close(move self) {
     print "conn ${self.name} ${self.log.len()}"
 }
 
-fn plainFieldUnderReservedResource() -> Unit {
+fn plainFieldUnderReservedResource() {
     let mut c = Conn { id: 1, name: "a", log: Array.of(1) }
     defer { c.close() }
     c.log = Array.of(2, 3)

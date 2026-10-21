@@ -7,7 +7,7 @@ fn readIt(x: &Meters) -> f64 {
     x.value
 }
 
-fn bump(x: &mut Meters) -> Unit {
+fn bump(x: &mut Meters) {
     x.value = x.value + 1.0
 }
 

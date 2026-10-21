@@ -5,21 +5,21 @@ type Plain = { pub a i64, pub b i64 }
 
 type HasString = { pub s String, pub n i64 }
 
-fn useSizeOf() -> Unit! {
+fn useSizeOf() -> Void! {
     let p = Plain { a: 1, b: 2 }
     let n = ffi.sizeOf(&p) //~ ERROR `Plain` cannot be passed to `sizeOf`
 }
 
-fn useSizeOfString() -> Unit! {
+fn useSizeOfString() -> Void! {
     let h = HasString { s: "hi", n: 5 }
     let n = ffi.sizeOf(&h) //~ ERROR `HasString` cannot be passed to `sizeOf`
 }
 
-fn useReadRecord(p: *const Plain) -> Unit! {
+fn useReadRecord(p: *const Plain) -> Void! {
     let v = unsafe { ffi.readRecord(p) } //~ ERROR `Plain` cannot be passed to `readRecord`
 }
 
-fn useWriteRecord(p: *mut Plain, v: &Plain) -> Unit! {
+fn useWriteRecord(p: *mut Plain, v: &Plain) -> Void! {
     unsafe { ffi.writeRecord(p, v) } //~ ERROR `Plain` cannot be passed to `writeRecord`
 }
 

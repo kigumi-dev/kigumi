@@ -33,7 +33,7 @@ fn run(n: Int) -> Float {
     s
 }
 run(3)`},
-	{"parameter stored into an array element", `fn put(xs: &mut Array[Int], i: Int) -> Unit { xs[0] = i }
+	{"parameter stored into an array element", `fn put(xs: &mut Array[Int], i: Int) { xs[0] = i }
 fn run(n: Int) -> Int {
     let mut xs = Array.of(0, 0)
     eprint "start"
@@ -51,7 +51,7 @@ run(3)`},
     s
 }
 run(3)`},
-	{"parameter stored, argument is a user call result", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
+	{"parameter stored, argument is a user call result", `fn put(r: &mut Int, i: Int) { r = i }
 fn f(x: Int) -> Int { x * 3 }
 fn run(n: Int) -> Int {
     let mut c = 0
@@ -60,7 +60,7 @@ fn run(n: Int) -> Int {
     c
 }
 run(3)`},
-	{"parameter stored, argument is a mutable accumulator", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
+	{"parameter stored, argument is a mutable accumulator", `fn put(r: &mut Int, i: Int) { r = i }
 fn run(n: Int) -> Int {
     let mut c = 0
     let mut k = 2000

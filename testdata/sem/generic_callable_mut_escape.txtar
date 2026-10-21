@@ -3,7 +3,7 @@ fn identity[T](x: T) -> T {
     x
 }
 
-fn unwrap() -> Unit {
+fn unwrap() {
     let mut xs = Array.of(1, 2, 3)
     let r = xs.withMut(0, identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
 }

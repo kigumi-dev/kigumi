@@ -4,7 +4,7 @@ type Box = {
     mut w Int
 }
 
-fn Box.touch(mut self, x: &mut Int) -> Unit {
+fn Box.touch(mut self, x: &mut Int) {
     self.v = self.v + 1
     x = x + 100
 }
@@ -14,11 +14,11 @@ type Reader = {
     mut w Int
 }
 
-fn Reader.peek(self, x: &mut Int) -> Unit {
+fn Reader.peek(self, x: &mut Int) {
     x = x + self.v
 }
 
-fn useAlias(w: &mut Box) -> Unit {
+fn useAlias(w: &mut Box) {
     let mut y = 7
     w.touch(&mut y)
     print "alias v=${w.v} y=${y}"

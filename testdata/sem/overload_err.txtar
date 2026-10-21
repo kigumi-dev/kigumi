@@ -1,15 +1,15 @@
 -- lib/ov.kg --
-fn f(x: u8) -> Unit {}
+fn f(x: u8) {}
 
-fn f(x: u16) -> Unit {}
+fn f(x: u16) {}
 
-fn g(x: Int) -> Unit {}
+fn g(x: Int) {}
 
-fn g(x: String) -> Unit {}
+fn g(x: String) {}
 
-fn h[T](x: T, y: Int) -> Unit {}
+fn h[T](x: T, y: Int) {}
 
-fn h[T](x: Int, y: T) -> Unit {}
+fn h[T](x: Int, y: T) {}
 
 fn apply(h: fn(Int) -> Int) -> Int {
     h(1)
@@ -19,11 +19,11 @@ fn apply(h: fn(String) -> String) -> String {
     h("s")
 }
 
-fn use() -> Unit {
+fn use() {
     f(1) //~ ERROR no overload of `f` takes (Int)
     let x: u8 = 1
     f(x)
-    h(1, 2) //~ ERROR call to `h` is ambiguous: `fn(T, Int) -> Unit`, `fn(Int, T) -> Unit`
+    h(1, 2) //~ ERROR call to `h` is ambiguous: `fn(T, Int) -> Void`, `fn(Int, T) -> Void`
     h("s", 2)
     g(true) //~ ERROR no overload of `g` takes (Bool)
     g(1, 2) //~ ERROR `g` expects 1 arguments, 2 given
@@ -31,7 +31,7 @@ fn use() -> Unit {
     apply((x) => x) //~ ERROR annotate the lambda parameters: `apply` is overloaded
     let r = apply((x: Int) => x + 1) //~ TYPE r : Int
     let s = apply((x: String) => x) //~ TYPE s : String
-    let t: fn(Bool) -> Unit = g //~ ERROR `g` is overloaded
+    let t: fn(Bool) -> Void = g //~ ERROR `g` is overloaded
 }
 -- expect --
 error[E502]: no overload of `f` takes (Int)
@@ -39,12 +39,12 @@ error[E502]: no overload of `f` takes (Int)
    |
 22 |     f(1) //~ ERROR no overload of `f` takes (Int)
    |     ^^^
-   = help: candidates: `fn(u8) -> Unit`, `fn(u16) -> Unit`
+   = help: candidates: `fn(u8) -> Void`, `fn(u16) -> Void`
 
-error[E503]: call to `h` is ambiguous: `fn(T, Int) -> Unit`, `fn(Int, T) -> Unit`
+error[E503]: call to `h` is ambiguous: `fn(T, Int) -> Void`, `fn(Int, T) -> Void`
   --> lib/ov.kg:25:5
    |
-25 |     h(1, 2) //~ ERROR call to `h` is ambiguous: `fn(T, Int) -> Unit`, `fn(Int, T) -> Unit`
+25 |     h(1, 2) //~ ERROR call to `h` is ambiguous: `fn(T, Int) -> Void`, `fn(Int, T) -> Void`
    |     ^^^^^^
    = help: annotate the arguments
 
@@ -53,7 +53,7 @@ error[E502]: no overload of `g` takes (Bool)
    |
 27 |     g(true) //~ ERROR no overload of `g` takes (Bool)
    |     ^^^^^^
-   = help: candidates: `fn(Int) -> Unit`, `fn(String) -> Unit`
+   = help: candidates: `fn(Int) -> Void`, `fn(String) -> Void`
 
 error[E501]: `g` expects 1 arguments, 2 given
   --> lib/ov.kg:28:5
@@ -77,7 +77,7 @@ error[E504]: annotate the lambda parameters: `apply` is overloaded
 error[E420]: `g` is overloaded
   --> lib/ov.kg:33:31
    |
-33 |     let t: fn(Bool) -> Unit = g //~ ERROR `g` is overloaded
+33 |     let t: fn(Bool) -> Void = g //~ ERROR `g` is overloaded
    |                               ^
    = help: annotate the function type
 

@@ -3,14 +3,14 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.bump(mut self) -> Unit {
+fn Counter.bump(mut self) {
     let step = () => {
         self.n = self.n + 1
     }
     step()
 }
 
-fn Counter.resetDirect(mut self) -> Unit {
+fn Counter.resetDirect(mut self) {
     self = Counter { n: 99 }
 }
 
@@ -19,7 +19,7 @@ c.bump()
 c.resetDirect()
 print "n=${c.n}"
 -- expect --
-fn main.Counter.bump.closure1(%self: Counter) -> Unit {
+fn main.Counter.bump.closure1(%self: Counter) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = cellget(%self)
@@ -30,7 +30,7 @@ fn main.Counter.bump.closure1(%self: Counter) -> Unit {
     %t6 = unit
     return %t6
 }
-fn main.Counter.bump(%self: Counter) -> Unit {
+fn main.Counter.bump(%self: Counter) -> Void {
   b0:
     %t1 = closure main.Counter.bump.closure1(%self)
     %step = copy(%t1)
@@ -38,7 +38,7 @@ fn main.Counter.bump(%self: Counter) -> Unit {
     drop(%step)
     return %t3
 }
-fn main.Counter.resetDirect(%self: Counter) -> Unit {
+fn main.Counter.resetDirect(%self: Counter) -> Void {
   b0:
     %t1 = const 99: Int
     %t2 = record main.Counter(%t1)
@@ -46,7 +46,7 @@ fn main.Counter.resetDirect(%self: Counter) -> Unit {
     %t3 = unit
     return %t3
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = const 0: Int
     %t1 = record main.Counter(%t0)

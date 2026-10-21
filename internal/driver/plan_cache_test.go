@@ -11,7 +11,7 @@ import (
 
 func planModule(t *testing.T, root string, targets ...string) (string, driver.PlanStats) {
 	t.Helper()
-	build := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n"
+	build := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n"
 	for i, tr := range targets {
 		build += "    let a" + string(rune('a'+i)) + " = b.executable(\"app" + string(rune('a'+i)) + "\", \"cmd/app\", b.target(\"" + tr + "\"))?\n"
 	}

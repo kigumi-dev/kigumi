@@ -5,26 +5,26 @@ pub type Guard = {
     pub mut amount Int
 }
 
-fn Guard.grow(mut self, k: Int) -> Unit {
+fn Guard.grow(mut self, k: Int) {
     self = Guard { amount: k }
 }
 
-pub fn growHere(g: &mut Guard, k: Int) -> Unit {
+pub fn growHere(g: &mut Guard, k: Int) {
     b.growViaBorrowedParamIsFine(g, k)
 }
 -- app/b/b.kg --
 pub interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
 }
 
-pub fn growViaBorrowedParamIsFine[G: Grower](g: &mut G, k: Int) -> Unit {
+pub fn growViaBorrowedParamIsFine[G: Grower](g: &mut G, k: Int) {
     g.grow(k)
 }
 -- app/c/c.kg --
 import a from app/a
 import b from app/b
 
-pub fn growThere(g: &mut a.Guard, k: Int) -> Unit {
+pub fn growThere(g: &mut a.Guard, k: Int) {
     b.growViaBorrowedParamIsFine(g, k) //~ ERROR `Guard` does not satisfy `Grower`
 }
 -- expect --

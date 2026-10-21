@@ -49,7 +49,7 @@ noalloc fn toGeneric(n: Int) -> Int {
 
 noalloc fn mutCapture() -> Int {
     let mut c = 0
-    let f = () => { c = c + 1 } //~ ERROR constructing `closure fn() -> Unit` allocates
+    let f = () => { c = c + 1 } //~ ERROR constructing `closure fn() -> Void` allocates
     f() //~ ERROR `f` is not `noalloc`
     c
 }
@@ -115,10 +115,10 @@ error[E422]: closure is not `noalloc` (allocates)
 46 |     applyGen((x: Int) => x + n, 1) //~ ERROR closure is not `noalloc` (allocates)
    |              ^^^^^^^^^^^^^^^^^
 
-error[E961]: constructing `closure fn() -> Unit` allocates
+error[E961]: constructing `closure fn() -> Void` allocates
   --> lib/clo.kg:51:13
    |
-51 |     let f = () => { c = c + 1 } //~ ERROR constructing `closure fn() -> Unit` allocates
+51 |     let f = () => { c = c + 1 } //~ ERROR constructing `closure fn() -> Void` allocates
    |             ^^^^^^^^^^^^^^^^^
 
 error[E907]: `f` is not `noalloc`

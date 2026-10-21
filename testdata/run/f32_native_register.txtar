@@ -65,7 +65,7 @@ fn identity[T](x: T) -> T {
     x
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let a: f32 = 0.1
     let b: f32 = 0.2
     let one: f32 = 1

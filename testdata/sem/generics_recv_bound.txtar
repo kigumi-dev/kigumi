@@ -14,7 +14,7 @@ pub fn Bag[T].count(self) -> usize {
     self.items.len()
 }
 
-fn use(ints: Bag[Int], fns: Bag[fn(Int) -> Int]) -> Unit {
+fn use(ints: Bag[Int], fns: Bag[fn(Int) -> Int]) {
     let a = ints.has(3) //~ TYPE a : Bool
     let n = fns.count() //~ TYPE n : usize
     let b = fns.has((x) => x) //~ ERROR `fn(Int) -> Int` does not satisfy `Eq`

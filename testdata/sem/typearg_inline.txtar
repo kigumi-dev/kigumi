@@ -1,7 +1,7 @@
 -- app/t/t.kg --
 type Cb = alias extern(C) fn(i32) -> i32
 
-fn use() -> Unit {
+fn use() {
     let cbs = Array.empty[extern(C) fn(i32) -> i32]()
     let ptrs = Array.empty[*const u8]()
     let same: Array[Cb] = cbs

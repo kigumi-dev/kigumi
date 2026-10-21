@@ -13,7 +13,7 @@ fn dup(o: Nm?) -> Int {
     if b is Some(_) { 1 } else { 0 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let o: Nm? = None
     let n = dup(o) //~ ERROR `dup` may terminate on a refused allocation
 }

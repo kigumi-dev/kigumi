@@ -26,7 +26,7 @@ fn same(s: String) -> Result[Int, ParseError] {
     parse(s)? + 1
 }
 
-fn err(s: String) -> Unit! {
+fn err(s: String) -> Void! {
     if s.len() == 0 { fail Empty }
     let e: Error = Empty
     fail e
@@ -45,12 +45,12 @@ fn isTest(e: Error) -> Bool {
     e is Silent //~ ERROR `Silent` never conforms to `Error`
 }
 
-fn unit() -> Unit! {
+fn unit() -> Void! {
     let a = parse("x")?
     let b = wrap("y")?
 }
 
-fn hostMain() -> Unit! {
+fn hostMain() -> Void! {
     let s = "x"
     let v = parse(s)?
     unit()?

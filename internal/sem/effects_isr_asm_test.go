@@ -23,20 +23,20 @@ func checkIsrArch(t *testing.T, arch, os, src string) *sem.Result {
 func nakedIsr(body, extra string) string {
 	return `
 extern(C) {
-    fn raw() -> Unit
+    fn raw()
 }
 
 export(C) {
     pub fn wrapped() -> Int { 70000 }
-    pub fn plain() -> Unit {}
+    pub fn plain() {}
 }
 
 export(interrupt) {
-    pub fn inner() -> Unit {}
+    pub fn inner() {}
 }
 
 export(interrupt, naked) {
-    pub fn isr() -> Unit {
+    pub fn isr() {
         asm {
 ` + body + `
         }
@@ -85,7 +85,7 @@ func TestInterruptNakedRejected(t *testing.T) {
 	}
 }
 
-// A zero-argument Unit export(C) wrapper boxes nothing, so a naked handler may reach it.
+// A zero-argument Void export(C) wrapper boxes nothing, so a naked handler may reach it.
 func TestInterruptNakedPlainExportC(t *testing.T) {
 	res := checkIsrArch(t, "amd64", "linux", nakedIsr("\"jmp {f}\"\nf: sym plain", ""))
 	if res.HasErrors() {
@@ -98,7 +98,7 @@ func TestInterruptNakedUnsupportedTarget(t *testing.T) {
 		{"arm64", "linux", "asm for arm64 cannot be verified yet"},
 		{"amd64", "windows", "Microsoft x64 ABI"},
 	} {
-		src := "export(interrupt, naked) {\n    pub fn isr() -> Unit {\n        asm {\n            \"ret\"\n        }\n    }\n}\n"
+		src := "export(interrupt, naked) {\n    pub fn isr() {\n        asm {\n            \"ret\"\n        }\n    }\n}\n"
 		if out := checkIsrArch(t, tc.arch, tc.os, src).Render(); !strings.Contains(out, "E1089") || !strings.Contains(out, tc.want) {
 			t.Fatalf("%s/%s must be rejected as unverifiable:\n%s", tc.arch, tc.os, out)
 		}
@@ -108,7 +108,7 @@ func TestInterruptNakedUnsupportedTarget(t *testing.T) {
 func TestInterruptInlineAsm(t *testing.T) {
 	ok := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         unsafe {
             asm {
                 "xor eax, eax"
@@ -128,7 +128,7 @@ export(interrupt) {
 		{"\"push rax\"\nclobber rax", "inline asm may not `push`"},
 		{"\"nop # c\\rsyscall\"", "control character '\\r'"},
 	} {
-		out := checkIsr(t, "export(interrupt) {\n    pub fn tick() -> Unit {\n        unsafe {\n            asm {\n"+c.body+"\n            }\n        }\n    }\n}\n").Render()
+		out := checkIsr(t, "export(interrupt) {\n    pub fn tick() {\n        unsafe {\n            asm {\n"+c.body+"\n            }\n        }\n    }\n}\n").Render()
 		if !strings.Contains(out, "E1089") || !strings.Contains(out, c.want) {
 			t.Fatalf("want an E1089 mentioning %q:\n%s", c.want, out)
 		}

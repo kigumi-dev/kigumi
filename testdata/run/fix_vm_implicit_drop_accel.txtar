@@ -1,7 +1,7 @@
 -- src --
 import fs from std/fs
 
-fn writeAndDrop(files: fs.Files, path: fs.Path) -> Unit! {
+fn writeAndDrop(files: fs.Files, path: fs.Path) -> Void! {
     let mut f = files.create(path)?
     _ = f.write("hi".toBytes())?
     // f drops implicitly here; no explicit close() or drop().

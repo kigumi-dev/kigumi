@@ -8,29 +8,29 @@ type Row = {
     pub mut cells Array[Res]
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn consume(x: Res) -> Unit {
+fn consume(x: Res) {
     print "consume ${x.id}"
 }
 
-fn peek(x: &Res) -> Unit {
+fn peek(x: &Res) {
     print "peek ${x.id}"
 }
 
-fn byNestedTakeAt() -> Unit {
+fn byNestedTakeAt() {
     let mut xs = Array.of(Array.of(Res { id: 1 }, Res { id: 2 }))
     consume(xs[0].takeAt(1).unwrap())
 }
 
-fn byNestedBorrow() -> Unit {
+fn byNestedBorrow() {
     let xs = Array.of(Array.of(Res { id: 3 }, Res { id: 4 }))
     peek(&xs[0][1])
 }
 
-fn byIndexFieldIndex() -> Unit {
+fn byIndexFieldIndex() {
     let mut rows = Array.of(Row { cells: Array.of(Res { id: 5 }) })
     let r: usize = 0
     consume(rows[r].cells.takeAt(0).unwrap())

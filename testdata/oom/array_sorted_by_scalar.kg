@@ -1,6 +1,6 @@
 import array from std/array
 
-fn run() -> Unit {
+fn run() {
     let items = Array.of(3, 1, 2, 6, 5, 4)
     eprint "go"
     let r = array.trySortedBy(&items, (a, b) => (a * 3 - 1).compareTo(b * 3 - 1))

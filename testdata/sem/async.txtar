@@ -27,7 +27,7 @@ async fn Box.get(move self) -> Int {
     self.v
 }
 
-fn method() -> Unit {
+fn method() {
     let b = Box { v: 1 }
     let n: Int = b.get() //~ ERROR expected `Int`, found `Future[Int]`
 }

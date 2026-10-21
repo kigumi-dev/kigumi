@@ -75,7 +75,7 @@ func (r *Result) nominalEntities(t TypeID) []EntityID {
 	return out
 }
 
-// checkMain enforces `fn main() -> Unit!` or `fn main(host: Host) -> Unit!`
+// checkMain enforces `fn main()` or `fn main(host: Host)` returning Void or Void!
 // in the main module. Not gated on an entry file: a module whose main
 // is written out explicitly has no script-shaped file at all.
 func (r *Result) checkMain(id EntityID) {
@@ -85,7 +85,7 @@ func (r *Result) checkMain(id EntityID) {
 	}
 	info := r.Fn(id)
 	sig := r.Types.Node(info.Sig)
-	ok := sig.Elem == r.Types.Result(TyUnit, r.Types.errorType()) && info.Recv == RecvNone && len(info.TypeParams) == 0
+	ok := (sig.Elem == TyUnit || sig.Elem == r.unitResult()) && info.Recv == RecvNone && len(info.TypeParams) == 0
 	switch len(sig.Args) {
 	case 0:
 	case 1:

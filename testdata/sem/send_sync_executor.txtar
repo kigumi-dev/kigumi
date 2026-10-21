@@ -1,15 +1,15 @@
 -- app/t/t.kg --
 import task from std/task
 
-fn ship[T: Send](x: T) -> Unit {}
+fn ship[T: Send](x: T) {}
 
-fn share[T: Sync](x: &T) -> Unit {}
+fn share[T: Sync](x: &T) {}
 
 async fn drive(pool: task.Executor) -> Int {
     42
 }
 
-fn use(pool: task.Executor, other: task.Executor) -> Unit {
+fn use(pool: task.Executor, other: task.Executor) {
     ship(pool)
     ship(drive(other)) //~ ERROR `Future[Int]` does not satisfy `Send`: it cannot move to another thread
     share(&pool) //~ ERROR `Executor` does not satisfy `Sync`: it cannot be shared between threads

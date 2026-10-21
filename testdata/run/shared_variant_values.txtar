@@ -3,7 +3,7 @@ type Mark = Cold | Hot
 
 type Slot = Free | Held(id: Int)
 
-fn Slot.release(mut self) -> Unit {
+fn Slot.release(mut self) {
     self = Free
 }
 
@@ -14,25 +14,25 @@ fn slotName(s: Slot) -> String {
     }
 }
 
-fn reserve(n: usize) -> Result[Unit, AllocError] {
+fn reserve(n: usize) -> Result[Void, AllocError] {
     let mut xs = Array.empty[Int]()
     xs.tryReserve(n)?
 }
 
-fn chain(n: usize) -> Result[Unit, AllocError] {
+fn chain(n: usize) -> Result[Void, AllocError] {
     reserve(n)?
     reserve(n)?
 }
 
-fn refuse() -> Result[Unit, AllocError] {
+fn refuse() -> Result[Void, AllocError] {
     Err(AllocError.OutOfMemory)
 }
 
-fn shout(text: String) -> Unit {
+fn shout(text: String) {
     print text
 }
 
-fn wrapCall(text: String) -> Result[Unit, AllocError] {
+fn wrapCall(text: String) -> Result[Void, AllocError] {
     shout(text)
 }
 

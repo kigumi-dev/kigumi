@@ -44,7 +44,7 @@ void greet(const char *name);
 	}
 	for _, want := range []string{
 		"pub fn add(a: i32, b: i32) -> i32",
-		"pub fn greet(name: *const u8) -> Unit",
+		"pub fn greet(name: *const u8)",
 		"pub type Point layout(C) = {",
 		"pub x i32",
 		"pub const RED: u32 = 0",
@@ -140,7 +140,7 @@ int add(int a, int b);
 	}
 	for _, want := range []string{
 		"pub type BitfieldThing",
-		"pub fn probe_bitfield_ptr(t: *mut BitfieldThing) -> Unit",
+		"pub fn probe_bitfield_ptr(t: *mut BitfieldThing)",
 		"pub fn add(a: i32, b: i32) -> i32",
 	} {
 		if !strings.Contains(res.Source, want) {

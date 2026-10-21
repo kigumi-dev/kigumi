@@ -5,15 +5,15 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.inc(mut self) -> Unit {
+fn Counter.inc(mut self) {
     self.n += 1
 }
 
-pure fn Counter.bump(mut self) -> Unit {
+pure fn Counter.bump(mut self) {
     self.n += 1
 }
 
-pure fn viaRef(c: &mut Counter) -> Unit {
+pure fn viaRef(c: &mut Counter) {
     c.inc()
 }
 
@@ -23,15 +23,15 @@ pure fn local() -> Int {
     c.n
 }
 
-fn write(files: fs.Files, p: fs.Path) -> Unit! {
+fn write(files: fs.Files, p: fs.Path) -> Void! {
     files.remove(p)?
 }
 
-pure fn callsInferredImpure(files: fs.Files, p: fs.Path) -> Unit! {
+pure fn callsInferredImpure(files: fs.Files, p: fs.Path) -> Void! {
     write(files, p)? //~ ERROR `write` is not `pure`
 }
 
-pure fn callsStub(files: fs.Files, p: fs.Path) -> Unit! {
+pure fn callsStub(files: fs.Files, p: fs.Path) -> Void! {
     files.remove(p)? //~ ERROR `remove` is not `pure`
 }
 
@@ -152,7 +152,7 @@ fn block(files: fs.Files, p: fs.Path) -> Int {
         1
     }
     let w = pure {
-        _ = files.remove(p) //~ ERROR `remove` is not `pure` //~ ERROR dropping `Unit!` is not `pure`
+        _ = files.remove(p) //~ ERROR `remove` is not `pure` //~ ERROR dropping `Void!` is not `pure`
         2
     }
     v + w
@@ -209,12 +209,12 @@ error[E422]: closure is not `pure` (calls `remove`)
 error[E900]: `remove` is not `pure`
    --> lib/eff.kg:154:13
     |
-154 |         _ = files.remove(p) //~ ERROR `remove` is not `pure` //~ ERROR dropping `Unit!` is not `pure`
+154 |         _ = files.remove(p) //~ ERROR `remove` is not `pure` //~ ERROR dropping `Void!` is not `pure`
     |             ^^^^^^^^^^^^^^
 
-error[E906]: dropping `Unit!` is not `pure`
+error[E906]: dropping `Void!` is not `pure`
    --> lib/eff.kg:154:13
     |
-154 |         _ = files.remove(p) //~ ERROR `remove` is not `pure` //~ ERROR dropping `Unit!` is not `pure`
+154 |         _ = files.remove(p) //~ ERROR `remove` is not `pure` //~ ERROR dropping `Void!` is not `pure`
     |             ^^^^^^^^^^^^^^
 

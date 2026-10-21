@@ -1,7 +1,7 @@
 -- src --
 import text from std/text
 
-fn run() -> Unit {
+fn run() {
     let s = "  héllo  "
     print "concat ${"ab".tryConcat("cd").unwrap()} ${"ab".concat("")} ${"".tryConcat("").unwrap().len()}"
     print "repeat ${"ab".tryRepeat(3).unwrap()} ${"x".repeat(0).len()} ${"xy".repeat(5)}"

@@ -1,0 +1,12 @@
+-- src --
+fn helper() {
+    print "helper"
+}
+
+fn main() {
+    helper()
+    print "void main done"
+}
+-- stdout --
+helper
+void main done

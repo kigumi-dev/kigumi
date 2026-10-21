@@ -8,37 +8,37 @@ import (
 const isrCallbackSrc = `
 import {Box} from std/alloc
 
-fn boxWith(b: &Box[Int]) -> Unit {
+fn boxWith(b: &Box[Int]) {
     b.with((x: &Int) => {})
 }
 
-fn boxWithMut(b: &mut Box[Int]) -> Unit {
+fn boxWithMut(b: &mut Box[Int]) {
     b.withMut((x: &mut Int) => {})
 }
 
-fn boxWithAlloc(b: &Box[Int]) -> Unit {
+fn boxWithAlloc(b: &Box[Int]) {
     b.with((x: &Int) => {
         _ = "ab".repeat(3)
     })
 }
 
-fn boxWithPanic(b: &Box[Int]) -> Unit {
+fn boxWithPanic(b: &Box[Int]) {
     b.with((x: &Int) => {
         let n: Int? = None
         _ = n.unwrap()
     })
 }
 
-fn arrayWithMut(a: &mut Array[Int]) -> Unit {
+fn arrayWithMut(a: &mut Array[Int]) {
     _ = a.withMut(0, (x: &mut Int) => {})
 }
 
-fn arrayWith(a: &Array[Int]) -> Unit {
+fn arrayWith(a: &Array[Int]) {
     _ = a.with(0, (x: &Int) => {})
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {}
+    pub fn tick() {}
 }
 `
 

@@ -9,7 +9,7 @@ fn name(m: Mark) -> String {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let m = Hot
         _ = m
         let f = () => 1

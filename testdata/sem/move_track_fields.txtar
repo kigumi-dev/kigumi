@@ -5,7 +5,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.peek(self) -> Int {
     self.id
@@ -33,69 +33,69 @@ fn mkw() -> Wrap {
     Wrap { a: mkr(1), n: 2, xs: Array.of(1) }
 }
 
-fn take(r: Res) -> Unit {}
+fn take(r: Res) {}
 
-fn show(r: &Res) -> Unit {}
+fn show(r: &Res) {}
 
-fn letRead() -> Unit {
+fn letRead() {
     let w = mkw()
     let t = w.a //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn letArray() -> Unit {
+fn letArray() {
     let w = mkw()
     let mut ys = w.xs //~ ERROR reading `w.xs` by value would copy a `Array[Int]`
     ys.push(2)
 }
 
-fn nestedRead() -> Unit {
+fn nestedRead() {
     let n = Nest { w: mkw() }
     let t = n.w.a //~ ERROR reading `n.w.a` by value would copy a `Res`
 }
 
-fn assignRead() -> Unit {
+fn assignRead() {
     let w = mkw()
     let mut h = Holder { f: mkr(3) }
     h.f = w.a //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn recordLiteral() -> Unit {
+fn recordLiteral() {
     let w = mkw()
     let h = Holder { f: w.a } //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn tupleLiteral() -> Unit {
+fn tupleLiteral() {
     let w = mkw()
     let t = (w.a, 1) //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn variantArg() -> Unit {
+fn variantArg() {
     let w = mkw()
     let o = Some(w.a) //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn branchTail(c: Bool) -> Unit {
+fn branchTail(c: Bool) {
     let w = mkw()
     let t = if c { w.a } else { mkr(4) } //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn inLoop() -> Unit {
+fn inLoop() {
     let w = mkw()
     for i in 0..2 {
         let t = w.xs //~ ERROR reading `w.xs` by value would copy a `Array[Int]`
     }
 }
 
-fn paramRead(w: Wrap) -> Unit {
+fn paramRead(w: Wrap) {
     let t = w.a //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn callArgMoves() -> Unit {
+fn callArgMoves() {
     let w = mkw()
     take(w.a)
 }
 
-fn explicitMoves() -> Unit {
+fn explicitMoves() {
     let w = mkw()
     let t = move w.a
     let x = mkw()
@@ -104,7 +104,7 @@ fn explicitMoves() -> Unit {
     let o = Some(move y.a)
 }
 
-fn borrowsAndCopies() -> Unit {
+fn borrowsAndCopies() {
     let w = mkw()
     let r = &w.a
     show(r)
@@ -117,7 +117,7 @@ fn Wrap.lent(self) -> Int {
     a.peek()
 }
 
-fn temporaryField() -> Unit {
+fn temporaryField() {
     let t = mkw().a
 }
 
@@ -126,14 +126,14 @@ type RB = {
     pub ns Array[Int]
 }
 
-fn forOverField() -> Unit {
+fn forOverField() {
     let b = RB { rs: Array.of(mkr(1)), ns: Array.of(1) }
     for r in b.rs { //~ ERROR reading `b.rs` by value
         take(r)
     }
 }
 
-fn forOverFieldAccepted() -> Unit {
+fn forOverFieldAccepted() {
     let b = RB { rs: Array.of(mkr(1)), ns: Array.of(1) }
     for n in b.ns {
         sayN(n)
@@ -146,15 +146,15 @@ fn forOverFieldAccepted() -> Unit {
     }
 }
 
-fn sayN(n: Int) -> Unit {}
+fn sayN(n: Int) {}
 
-fn localAssignRead() -> Unit {
+fn localAssignRead() {
     let w = mkw()
     let mut x = mkr(5)
     x = w.a //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn matchArmTail(c: Int) -> Unit {
+fn matchArmTail(c: Int) {
     let w = mkw()
     let t = match c {
         0 -> w.a //~ ERROR reading `w.a` by value would copy a `Res`
@@ -162,22 +162,22 @@ fn matchArmTail(c: Int) -> Unit {
     }
 }
 
-fn tupleElemTail(c: Bool) -> Unit {
+fn tupleElemTail(c: Bool) {
     let p = (mkr(7), 1)
     let t = if c { p._0 } else { mkr(8) } //~ ERROR reading `p._0` by value would copy a `Res`
 }
 
-fn nestedTail(c: Bool) -> Unit {
+fn nestedTail(c: Bool) {
     let n = Nest { w: mkw() }
     let t = if c { n.w.a } else { mkr(9) } //~ ERROR reading `n.w.a` by value would copy a `Res`
 }
 
-fn argBranchTail(c: Bool) -> Unit {
+fn argBranchTail(c: Bool) {
     let w = mkw()
     take(if c { w.a } else { mkr(10) }) //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn argMatchTail(c: Int) -> Unit {
+fn argMatchTail(c: Int) {
     let w = mkw()
     take(match c {
         0 -> w.a //~ ERROR reading `w.a` by value would copy a `Res`
@@ -185,23 +185,23 @@ fn argMatchTail(c: Int) -> Unit {
     })
 }
 
-fn argBlockTail() -> Unit {
+fn argBlockTail() {
     let w = mkw()
     take({ w.a }) //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn variantArgBranch(c: Bool) -> Unit {
+fn variantArgBranch(c: Bool) {
     let w = mkw()
     let o = Some(if c { w.a } else { mkr(12) }) //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn pushArgBranch(c: Bool) -> Unit {
+fn pushArgBranch(c: Bool) {
     let w = mkw()
     let mut xs: Array[Res] = Array.of()
     xs.push(if c { w.a } else { mkr(13) }) //~ ERROR reading `w.a` by value would copy a `Res`
 }
 
-fn branchTailsAccepted(c: Bool) -> Unit {
+fn branchTailsAccepted(c: Bool) {
     let w = mkw()
     take(if c { move w.a } else { mkr(14) })
     let v = mkw()

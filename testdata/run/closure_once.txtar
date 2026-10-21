@@ -3,9 +3,9 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
@@ -26,11 +26,11 @@ fn mk(n: Int) -> Pack {
     Pack { inner: mkh(n), other: mkh(n + 1) }
 }
 
-fn take(h: Handle) -> Unit {
+fn take(h: Handle) {
     print "take ${h.id}"
 }
 
-fn callOnce[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+fn callOnce[F: FnOnce[fn() -> Void]](f: F) {
     f()
 }
 
@@ -38,13 +38,13 @@ fn callTwice[F: Fn[fn() -> Int]](f: F) -> Int {
     f() + f()
 }
 
-fn calledOnce() -> Unit {
+fn calledOnce() {
     let h = mkh(1)
     let f = () => { h.close() }
     f()
 }
 
-fn calledInBranches(c: Bool) -> Unit {
+fn calledInBranches(c: Bool) {
     let h = mkh(2)
     let f = () => { h.close() }
     if c {
@@ -54,7 +54,7 @@ fn calledInBranches(c: Bool) -> Unit {
     }
 }
 
-fn consumesField() -> Unit {
+fn consumesField() {
     let b = mk(10)
     let o = move b.other
     let f = () => { o.close() }
@@ -62,13 +62,13 @@ fn consumesField() -> Unit {
     b.inner.close()
 }
 
-fn passedToOnce() -> Unit {
+fn passedToOnce() {
     let h = mkh(20)
     let f = () => { take(h) }
     callOnce(f)
 }
 
-fn perIteration() -> Unit {
+fn perIteration() {
     for i in 0..2 {
         let h = mkh(30 + i)
         let f = () => { h.close() }
@@ -76,14 +76,14 @@ fn perIteration() -> Unit {
     }
 }
 
-fn nestedOnce() -> Unit {
+fn nestedOnce() {
     let h = mkh(40)
     let f = () => { h.close() }
     let g = () => { f() }
     g()
 }
 
-fn deferredOnce() -> Unit {
+fn deferredOnce() {
     let h = mkh(50)
     let f = () => { h.close() }
     defer { f() }
@@ -107,7 +107,7 @@ type Slot = {
     pub mut opt Handle?
 }
 
-fn refillTwice() -> Unit {
+fn refillTwice() {
     let mut h = mkh(80)
     let f = () => {
         h.close()
@@ -117,7 +117,7 @@ fn refillTwice() -> Unit {
     f()
 }
 
-fn refillField() -> Unit {
+fn refillField() {
     let mut p = mk(90)
     let f = () => {
         p.other.close()
@@ -127,7 +127,7 @@ fn refillField() -> Unit {
     f()
 }
 
-fn refillPayload() -> Unit {
+fn refillPayload() {
     let mut s = Slot { opt: Some(mkh(100)) }
     let f = () => {
         match s.opt {
@@ -144,7 +144,7 @@ type Holder[F] = {
     pub f F
 }
 
-fn storedInField() -> Unit {
+fn storedInField() {
     let p = mk(110)
     let o = move p.other
     let f = () => { o.close() }
@@ -153,7 +153,7 @@ fn storedInField() -> Unit {
     p.inner.close()
 }
 
-fn innerBreakThenRefill(xs: Array[Int]) -> Unit {
+fn innerBreakThenRefill(xs: Array[Int]) {
     let mut h = mkh(120)
     let f = () => {
         h.close()
@@ -172,17 +172,17 @@ type Runner[F] = {
     pub f F
 }
 
-fn Runner[F: FnOnce[fn() -> Unit]].runOwned(move self) -> Unit {
+fn Runner[F: FnOnce[fn() -> Void]].runOwned(move self) {
     (self.f)()
 }
 
-fn runOwnedOnce() -> Unit {
+fn runOwnedOnce() {
     let p = mk(130)
     let s = Runner { f: () => { p.other.close() } }
     s.runOwned()
 }
 
-fn readAfterMaking() -> Unit {
+fn readAfterMaking() {
     let h = mkh(140)
     print "peek ${h.peek()}"
     let f = () => { h.close() }

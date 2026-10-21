@@ -15,7 +15,7 @@ async fn canceller() -> Int {
     1
 }
 
-fn stop(t: task.Task[Int]) -> Unit {
+fn stop(t: task.Task[Int]) {
     t.cancel()
 }
 
@@ -24,13 +24,13 @@ fn pump(n: Int) -> Int {
 }
 
 export(C) {
-    pub fn viaHelper() -> Unit {
+    pub fn viaHelper() {
         let ex = task.currentThreadExecutor()
         let t = ex.runToCompletion(spawner())
         stop(t) //~ ERROR `viaHelper` is exported to C and reaches `Task.cancel`
     }
 
-    pub fn direct() -> Unit {
+    pub fn direct() {
         let ex = task.currentThreadExecutor()
         let t = ex.runToCompletion(spawner())
         t.cancel() //~ ERROR `direct` is exported to C and reaches `Task.cancel`

@@ -3,17 +3,17 @@
 // type isn't Fn-shaped, so the tail-return check must still catch it.
 type Handle = resource { pub id Int }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     _ = self
 }
 
-fn Handle.touch(self) -> Unit {}
+fn Handle.touch(self) {}
 
-fn leaky(cb: fn() -> Unit) -> (fn() -> Unit, Int) {
+fn leaky(cb: fn() -> Void) -> (fn() -> Void, Int) {
     (cb, 0) //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-fn danger() -> fn() -> Unit {
+fn danger() -> fn() -> Void {
     let h = Handle { id: 1 }
     let (g, _n) = leaky(() => h.touch())
     h.touch()

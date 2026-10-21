@@ -3,7 +3,7 @@ type Inner = resource {
     pub id Int
 }
 
-fn Inner.drop(move self) -> Unit {
+fn Inner.drop(move self) {
     _ = self
 }
 
@@ -25,7 +25,7 @@ fn peek(o: &Outer) -> Int {
 }
 
 -- expect --
-fn lib.Inner.drop(%self: Inner) -> Unit {
+fn lib.Inner.drop(%self: Inner) -> Void {
   b0:
     %t1 = move(%self)
     drop(%t1)

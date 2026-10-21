@@ -34,7 +34,7 @@ fn readsN(x: Named) -> Int {
     x.n
 }
 
-fn keepsN(x: Named, out: &mut Array[Int]) -> Unit {
+fn keepsN(x: Named, out: &mut Array[Int]) {
     out.push(x.n)
 }
 
@@ -46,15 +46,15 @@ fn deepReader(w: &mut W) -> Int {
     reader(w) + 1
 }
 
-fn writer(w: &mut W) -> Unit {
+fn writer(w: &mut W) {
     w.nm.n = 40
 }
 
-fn deepWriter(w: &mut W) -> Unit {
+fn deepWriter(w: &mut W) {
     writer(w)
 }
 
-fn poke(x: &mut Named) -> Unit {
+fn poke(x: &mut Named) {
     x.n = 70
 }
 
@@ -62,11 +62,11 @@ fn peek(x: &mut Named) -> Int {
     x.n
 }
 
-fn Pair.bumpOther(mut self) -> Unit {
+fn Pair.bumpOther(mut self) {
     self.other.n = self.other.n + 100
 }
 
-fn bumpPair(p: &mut Pair) -> Unit {
+fn bumpPair(p: &mut Pair) {
     p.nm.n = p.nm.n + 100
 }
 
@@ -151,7 +151,7 @@ fn rebound() -> String {
     "rebound ${seen} ${cur.nm.n}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut w1 = fresh()
     print readers(&mut w1)
     let mut w2 = fresh()

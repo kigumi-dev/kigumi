@@ -10,11 +10,11 @@ import (
 
 // TestRunExplicitMainNoExplicitEntry covers `kigumi run <dir>` (no filename
 // argument): Module.defaultEntry must recognize an explicit
-// `fn main() -> Unit!` root file as the entry, not only a script-shaped one.
+// `fn main() -> Void!` root file as the entry, not only a script-shaped one.
 func TestRunExplicitMainNoExplicitEntry(t *testing.T) {
 	root := t.TempDir()
 	writeEntryScopeModule(t, root, map[string]string{
-		"main.kg": "fn main() -> Unit! {\n    print(\"hello\")\n}\n",
+		"main.kg": "fn main() -> Void! {\n    print(\"hello\")\n}\n",
 	})
 	std, _ := filepath.Abs("../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
@@ -44,7 +44,7 @@ func TestCheckExplicitMainCmdPackage(t *testing.T) {
 	writeEntryScopeModule(t, root, map[string]string{
 		"mod.kg":               "Module {\n    name: \"cmdmain\"\n    kigumi: \"0.1\"\n}\n",
 		"cmd/script/main.kg":   "print \"from script\"\n",
-		"cmd/explicit/main.kg": "fn main() -> Unit! {\n    print(\"from explicit\")\n}\n",
+		"cmd/explicit/main.kg": "fn main() -> Void! {\n    print(\"from explicit\")\n}\n",
 	})
 	std, _ := filepath.Abs("../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})

@@ -22,7 +22,7 @@ pub fn Executor.runToCompletion[T](self, future: Future[T]) -> T
 pub fn spawn[T](future: Future[T]) -> Task[T]
 
 /// Asks the task to stop at its next suspension point.
-pub fn Task[T].cancel(self) -> Unit
+pub fn Task[T].cancel(self)
 
 /// Whether the running task has been asked to stop.
 pub fn cancelRequested() -> Bool

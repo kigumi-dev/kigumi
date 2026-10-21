@@ -7,7 +7,7 @@ fn View['a].at(self) -> Int { self.data[self.off] }
 
 async fn sum['a](vs: Array[View['a]]) -> Int { vs[0].data[vs[0].off] }
 
-fn cursor() -> Unit {
+fn cursor() {
     let a = Array.of(1, 2, 3)
     let b = Array.of(7, 8)
     let mut cur = View { data: &a, off: 0 }

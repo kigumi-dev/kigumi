@@ -85,11 +85,11 @@ async fn safeMethodSummary() -> Int {
     h.cb()
 }
 
-fn setSafe(w: &mut Wrap) -> Unit {
+fn setSafe(w: &mut Wrap) {
     w.inner.cb = safeFn
 }
 
-fn Wrap.armSafe(mut self) -> Unit {
+fn Wrap.armSafe(mut self) {
     self.inner.cb = safeFn
 }
 
@@ -173,11 +173,11 @@ async fn safeWriteAfterRead() -> Int {
     r
 }
 
-fn setRisky(w: &mut Wrap) -> Unit {
+fn setRisky(w: &mut Wrap) {
     w.inner.cb = syncRoot
 }
 
-fn Wrap.armRisky(mut self) -> Unit {
+fn Wrap.armRisky(mut self) {
     self.inner.cb = syncRoot
 }
 

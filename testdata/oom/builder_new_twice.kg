@@ -1,6 +1,6 @@
 import text from std/text
 
-fn run() -> Unit {
+fn run() {
     let before = 1
     eprint "go"
     let r1 = text.StringBuilder.tryNew()

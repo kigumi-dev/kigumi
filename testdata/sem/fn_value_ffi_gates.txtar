@@ -13,11 +13,11 @@ fn sizeIn[T](v: &T) -> usize {
     f(v)
 }
 
-fn cellIn[U](v: U) -> Unit {
+fn cellIn[U](v: U) {
     let mk = ffi.CValue.new[U] //~ ERROR `U` cannot be a `CValue` element
 }
 
-fn lease() -> Unit {
+fn lease() {
     let a: fn(&Plain) -> usize = ffi.sizeOf //~ ERROR `Plain` cannot be passed to `sizeOf`
     let b = ffi.sizeOf[String] //~ ERROR `String` cannot be passed to `sizeOf`
     let c = ffi.alignOf[Plain] //~ ERROR `Plain` cannot be passed to `alignOf`

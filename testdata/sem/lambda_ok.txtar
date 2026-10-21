@@ -11,7 +11,7 @@ fn double(x: Int) -> Int {
     x * 2
 }
 
-fn use() -> Unit {
+fn use() {
     let k = 10
     let a = apply((x) => x + k, 1) //~ TYPE a : Int
     let b = apply((x: Int) => x * 2, 2) //~ TYPE b : Int

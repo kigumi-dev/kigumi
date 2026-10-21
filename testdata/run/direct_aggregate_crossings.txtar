@@ -24,11 +24,11 @@ type Counter = {
     pub mut at Point
 }
 
-fn Counter.reset(mut self) -> Unit {
+fn Counter.reset(mut self) {
     self = Counter { at: mk(9, 9) }
 }
 
-fn Counter.bump(mut self) -> Unit {
+fn Counter.bump(mut self) {
     self.at = mk(self.at.x + 1, self.at.y + 1)
 }
 

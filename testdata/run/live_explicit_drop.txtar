@@ -4,7 +4,7 @@ type Handle = resource {
     pub label String
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id} ${self.label}"
 }
 

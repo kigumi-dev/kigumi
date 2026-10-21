@@ -1,6 +1,6 @@
 -- src --
 interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
     fn size(self) -> Int
 }
 
@@ -8,7 +8,7 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.grow(mut self, k: Int) -> Unit { self.n = self.n + k }
+fn Counter.grow(mut self, k: Int) { self.n = self.n + k }
 fn Counter.size(self) -> Int { self.n }
 
 fn bump(mut n: Int) -> Int {

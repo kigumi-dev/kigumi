@@ -1,13 +1,13 @@
 -- src --
-fn takesUnit(u: Unit) -> Unit {
+fn takesUnit(u: Void) {
     _ = u
 }
 
-fn ok() -> Unit! {
+fn ok() -> Void! {
     return Ok(())
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let u = ()
     takesUnit(u)
     takesUnit(())

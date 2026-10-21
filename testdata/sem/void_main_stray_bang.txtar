@@ -1,0 +1,11 @@
+-- main/main.kg --
+fn main() -> Void ! { //~ ERROR write `-> Void!`
+}
+-- expect --
+error[E2184]: `!` must touch the return type: write `-> Void!`
+ --> main/main.kg:1:1
+  |
+1 | fn main() -> Void ! { //~ ERROR write `-> Void!`
+  | ^^^^^^^^^^^^^^^^^^^^^
+  = help: a bare `!` right after the parameter list, with no `->`, means `-> Void!`
+

@@ -6,7 +6,7 @@ async fn boom(s: Shared[Int]) -> Int {
     s.withMut((v: &mut Int) => {
         v = 7
         if v == 7 {
-            let _: Unit = None.expect("inside")
+            let _: Void = None.expect("inside")
         }
         0
     })

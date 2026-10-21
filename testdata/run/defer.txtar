@@ -1,7 +1,7 @@
 -- src --
 import test from std/test
 
-fn work(fail_it: Bool) -> Unit! {
+fn work(fail_it: Bool) -> Void! {
     defer print "defer 1"
     defer(fail) print "defer(fail)"
     defer {

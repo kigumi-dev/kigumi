@@ -30,7 +30,7 @@ pub fn Array[T: Show].show(self) -> String {
     "array"
 }
 
-fn useIt() -> Unit! {
+fn useIt() -> Void! {
     let p = Point { x: 1, y: 2 }
     let text = json.encode(p)?
     _ = text

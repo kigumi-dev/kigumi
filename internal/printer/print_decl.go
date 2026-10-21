@@ -23,7 +23,7 @@ func (p *printer) prefix(id syntax.NodeID) {
 		p.visibility(vis)
 	}
 	if d.Kind() == syntax.FnDecl {
-		if mods := d.AsFnDecl().Mods(); mods != 0 {
+		if mods := d.AsFnDecl().Mods() &^ (syntax.ModBareErr | syntax.ModStrayBang); mods != 0 {
 			p.write(modsText(mods) + " ")
 		}
 	}
@@ -96,14 +96,29 @@ func (p *printer) fnDecl(id syntax.NodeID) {
 		p.genericParams(g.ID())
 	}
 	p.params(f.Params().ID())
-	if ret := f.Ret(); ret.Valid() {
+	stray := f.Mods()&syntax.ModStrayBang != 0
+	if f.Mods()&syntax.ModBareErr != 0 {
+		p.write(" !")
+	} else if ret := f.Ret(); ret.Valid() && (stray || !p.isVoidType(ret.ID())) {
 		p.write(" -> ")
 		p.typ(ret.ID())
+	}
+	if stray {
+		p.write(" !")
 	}
 	if body := f.Body(); body.Valid() {
 		p.write(" ")
 		p.block(body.ID())
 	}
+}
+
+func (p *printer) isVoidType(id syntax.NodeID) bool {
+	v := p.t.View(id)
+	if v.Kind() != syntax.TypePath {
+		return false
+	}
+	tp := v.AsTypePath()
+	return !tp.Args().Valid() && tp.Path().Join(".") == "Void"
 }
 
 func (p *printer) genericParams(list syntax.NodeID) {

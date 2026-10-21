@@ -18,7 +18,7 @@ fn k() -> Int! {
     }
 }
 
-fn run() -> Unit! {
+fn run() -> Void! {
     let a = f()?
     let c = h() || -1
     let d = k()?

@@ -10,9 +10,9 @@ import (
 )
 
 var invalidDerefForms = []struct{ name, src string }{
-	{"let", "fn f(p: &Int) -> Int {\n    let q = *p\n    q\n}\n\nfn main() -> Unit! {}\n"},
-	{"interpolation", "fn f(p: &Int) -> String {\n    \"${*p}\"\n}\n\nfn main() -> Unit! {}\n"},
-	{"argument", "fn g(x: Int) -> Int { x }\n\nfn f(p: &Int) -> Int {\n    g(*p)\n}\n\nfn main() -> Unit! {}\n"},
+	{"let", "fn f(p: &Int) -> Int {\n    let q = *p\n    q\n}\n\nfn main() -> Void! {}\n"},
+	{"interpolation", "fn f(p: &Int) -> String {\n    \"${*p}\"\n}\n\nfn main() -> Void! {}\n"},
+	{"argument", "fn g(x: Int) -> Int { x }\n\nfn f(p: &Int) -> Int {\n    g(*p)\n}\n\nfn main() -> Void! {}\n"},
 	{"top level", "let x = 3\nlet p = &x\nlet q = *p\n"},
 }
 

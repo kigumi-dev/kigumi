@@ -27,7 +27,7 @@ func TestBuildRejectsBuildProgramFlagsWithoutOne(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	dir := t.TempDir()
 	file := filepath.Join(dir, "main.kg")
-	os.WriteFile(file, []byte("fn main() -> Unit! {}\n"), 0o644)
+	os.WriteFile(file, []byte("fn main() -> Void! {}\n"), 0o644)
 	out := filepath.Join(dir, "a.out")
 
 	if code, errOut := executeReal(t, "--std", std, "build", "--plan", "-o", out, file); code != 2 || !strings.Contains(errOut, "--plan") {

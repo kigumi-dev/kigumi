@@ -5,38 +5,38 @@ type Item = {
     pub mut count Int
 }
 
-fn Item.update(mut self, d: Int) -> Unit {
+fn Item.update(mut self, d: Int) {
     self.count = self.count + d
 }
 
-fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+fn Item.run[F: FnMut[fn() -> Void]](mut self, f: F) {
     f()
 }
 
 interface Cb {
-    fn call(mut self) -> Unit
+    fn call(mut self)
 }
 
 @impl(Cb)
-type Box[F: FnMut[fn() -> Unit]] = {
+type Box[F: FnMut[fn() -> Void]] = {
     pub cb F
 }
 
-fn Box[F].call(mut self) -> Unit {
+fn Box[F].call(mut self) {
     self.cb()
 }
 
-fn Item.runBox[F: FnMut[fn() -> Unit]](mut self, b: Box[F]) -> Unit {
+fn Item.runBox[F: FnMut[fn() -> Void]](mut self, b: Box[F]) {
     let mut b2 = b
     b2.call()
 }
 
-fn Item.runT[T: Cb](mut self, t: T) -> Unit {
+fn Item.runT[T: Cb](mut self, t: T) {
     let mut t2 = t
     t2.call()
 }
 
-fn Item.runDyn(mut self, t: Cb) -> Unit {
+fn Item.runDyn(mut self, t: Cb) {
     let mut t2 = t
     t2.call()
 }
@@ -45,12 +45,12 @@ type Holder = {
     pub c Cb
 }
 
-fn Item.runHolder(mut self, h: Holder) -> Unit {
+fn Item.runHolder(mut self, h: Holder) {
     let mut c2 = move h.c
     c2.call()
 }
 
-fn nop() -> Unit {}
+fn nop() {}
 
 fn consecutive() -> Int {
     let mut v = Item { count: 0 }
@@ -122,7 +122,7 @@ fn holderUnrelated() -> Int {
     b.count
 }
 
-fn applyOther(x: &mut Item, f: fn() -> Unit) -> Unit {
+fn applyOther(x: &mut Item, f: fn() -> Void) {
     x.update(1)
     f()
 }
@@ -133,7 +133,7 @@ fn mutRefUnrelated() -> Int {
     a.count
 }
 
-fn forwardRef(x: &mut Item, f: fn() -> Unit) -> Unit {
+fn forwardRef(x: &mut Item, f: fn() -> Void) {
     applyOther(x, f)
 }
 
@@ -170,11 +170,11 @@ type Pair = {
     pub mut b Item
 }
 
-fn bump(x: &mut Item) -> Unit {
+fn bump(x: &mut Item) {
     x.count = x.count + 1
 }
 
-fn withRef[F: FnMut[fn() -> Unit]](x: &mut Item, f: F) -> Unit {
+fn withRef[F: FnMut[fn() -> Void]](x: &mut Item, f: F) {
     x.count = x.count + 1
     f()
 }

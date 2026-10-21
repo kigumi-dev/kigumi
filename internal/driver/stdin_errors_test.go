@@ -189,16 +189,16 @@ type Itimerval layout(C) = {
 }
 
 extern(C) {
-    fn signal(sig: i32, handler: extern(C) fn(i32) -> Unit) -> extern(C) fn(i32) -> Unit
+    fn signal(sig: i32, handler: extern(C) fn(i32) -> Void) -> extern(C) fn(i32) -> Void
     fn siginterrupt(sig: i32, flag: i32) -> i32
     fn setitimer(which: i32, newValue: *const Itimerval, oldValue: *mut Itimerval) -> i32
 }
 
 export(C) {
-    pub fn onAlarm(sig: i32) -> Unit {}
+    pub fn onAlarm(sig: i32) {}
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     unsafe {
         signal(14, onAlarm)
         siginterrupt(14, 1)
@@ -228,16 +228,16 @@ type Itimerval layout(C) = {
 }
 
 extern(C) {
-    fn signal(sig: i32, handler: extern(C) fn(i32) -> Unit) -> extern(C) fn(i32) -> Unit
+    fn signal(sig: i32, handler: extern(C) fn(i32) -> Void) -> extern(C) fn(i32) -> Void
     fn siginterrupt(sig: i32, flag: i32) -> i32
     fn setitimer(which: i32, newValue: *const Itimerval, oldValue: *mut Itimerval) -> i32
 }
 
 export(C) {
-    pub fn onAlarm(sig: i32) -> Unit {}
+    pub fn onAlarm(sig: i32) {}
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     unsafe {
         signal(14, onAlarm)
         siginterrupt(14, 1)

@@ -63,7 +63,7 @@ pub pure fn planPush(mut p: Plan, item: Item) -> Plan {
 }
 
 /// Fails when any stage exited with a non-zero status.
-pub pure fn check(result: PipelineResult) -> Unit! {
+pub pure fn check(result: PipelineResult) -> Void! {
     for status in result.statuses {
         if status != 0 {
             fail Failure { text: "command exited with status ${status}" }
@@ -81,7 +81,7 @@ type Building = {
     mut rfd Int
 }
 
-fn Building.endWord(mut self) -> Unit {
+fn Building.endWord(mut self) {
     if !self.inWord {
         return
     }
@@ -99,7 +99,7 @@ fn Building.endWord(mut self) -> Unit {
     self.inWord = false
 }
 
-fn Building.endStage(mut self, grep: String?) -> Unit {
+fn Building.endStage(mut self, grep: String?) {
     self.endWord()
     if self.argv.len() > 0 || grep is Some(_) {
         self.out.push(Stage {

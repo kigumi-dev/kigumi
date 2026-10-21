@@ -5,7 +5,7 @@ fn View['a].peek(self) -> &Bytes {
     self.data
 }
 
-fn take['a](v: View['a]) -> Unit {
+fn take['a](v: View['a]) {
     let r = v.peek()
     let xs = Array.of(r)
 }
@@ -15,7 +15,7 @@ fn lib.View.peek(%self: View['a]) -> &Bytes {
     %t1 = field 0(%self)
     return %t1
 }
-fn lib.take(%v: View['a]) -> Unit {
+fn lib.take(%v: View['a]) -> Void {
   b0:
     %t1 = call lib.View.peek(%v)
     %r = copy(%t1)

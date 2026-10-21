@@ -30,7 +30,7 @@ fn parse(s: String, base: Int) -> Int! {
     base
 }
 
-fn use(sh: shell.Shell) -> Unit! {
+fn use(sh: shell.Shell) -> Void! {
     let a = "x" |> normalize //~ TYPE a : String
     let b = "x" |> (v) => v.len() //~ TYPE b : usize
     let c = "x" |> upper(3) //~ TYPE c : Int

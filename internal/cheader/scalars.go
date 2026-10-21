@@ -83,7 +83,7 @@ func mapScalar(word string, abi ABI) (string, bool) {
 		// for the language's Bool.
 		return "u8", true
 	case "void":
-		return "Unit", true
+		return "Void", true
 	}
 	return "", false
 }

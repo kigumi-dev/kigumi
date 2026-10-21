@@ -2,11 +2,11 @@
 import stdio from std/stdio
 import {stdout} from std/stdio
 
-fn inner() -> Unit! {
+fn inner() -> Void! {
     _ = stdout.write("inner\n".toBytes())?
 }
 
-fn call[F: Fn[fn() -> Unit!]](f: F) -> Unit! {
+fn call[F: Fn[fn() -> Void!]](f: F) -> Void! {
     f()
 }
 

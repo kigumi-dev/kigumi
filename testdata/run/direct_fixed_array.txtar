@@ -48,7 +48,7 @@ noalloc fn quiet(seed: Int) -> Int {
     s + (fa.len().toInt() || 0)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut ints = FixedArray.filled[Int, 3](1)
     ints[0] = 5
     ints[2] = ints[0] * 2

@@ -5,7 +5,7 @@ async fn fetch() -> Int {
     1
 }
 
-async fn bad() -> Unit! {
+async fn bad() -> Void! {
     defer { _ = await fetch() } //~ ERROR `await` is not allowed in a cleanup body
     defer(fail) _ = await fetch() //~ ERROR `await` is not allowed in a cleanup body
     fail test.failure("boom")

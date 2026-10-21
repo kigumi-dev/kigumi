@@ -3,11 +3,11 @@ type Guard = resource {
     pub id Int
 }
 
-fn Guard.drop(move self) -> Unit {
-    let _: Unit = None.expect("drop panicked: ${self.id}")
+fn Guard.drop(move self) {
+    let _: Void = None.expect("drop panicked: ${self.id}")
 }
 
-fn scope() -> Unit {
+fn scope() {
     let g = Guard { id: 7 }
     _ = g
 }

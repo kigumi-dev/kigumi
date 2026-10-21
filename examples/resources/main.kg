@@ -12,15 +12,15 @@ fn open(id: Int) -> Connection {
     Connection { id: id }
 }
 
-fn Connection.close(move self) -> Unit! {
+fn Connection.close(move self) -> Void! {
     print "close ${self.id}"
 }
 
-fn Connection.drop(move self) -> Unit {
+fn Connection.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn transfer(fail_it: Bool) -> Unit! {
+fn transfer(fail_it: Bool) -> Void! {
     let a = open(1)
     defer print "transfer finished"
     defer(fail) print "rolling back"

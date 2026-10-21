@@ -22,13 +22,13 @@ type Holder[F] = {
     pub mut f F
 }
 
-fn swap(w: &mut W) -> Unit {
+fn swap(w: &mut W) {
     let t = w.nm
     w.nm = w.other
     w.other = t
 }
 
-fn keep(w: &mut W) -> Unit {
+fn keep(w: &mut W) {
     let t = w.nm
     w.other = t
     w.nm.n = 4
@@ -43,7 +43,7 @@ fn pass(n: Named) -> Named {
     n
 }
 
-fn run[F: FnMut[fn() -> Unit]](x: Named, mut f: F) -> Int {
+fn run[F: FnMut[fn() -> Void]](x: Named, mut f: F) -> Int {
     f()
     x.n
 }
@@ -57,7 +57,7 @@ fn writes(x: Named, w: &mut W) -> Int {
     x.n
 }
 
-fn runHeld[F: FnMut[fn() -> Unit]](x: Named, mut h: Holder[F]) -> Int {
+fn runHeld[F: FnMut[fn() -> Void]](x: Named, mut h: Holder[F]) -> Int {
     h.f()
     x.n
 }
@@ -90,15 +90,15 @@ fn viaClosure(w: &mut W) -> Int {
     run(w.nm, () => { w.nm.n = 9 })
 }
 
-fn viaShared[F: FnMut[fn() -> Unit]](w: &W, mut f: F) -> Int {
+fn viaShared[F: FnMut[fn() -> Void]](w: &W, mut f: F) -> Int {
     run(w.nm, f)
 }
 
-fn viaMut[F: FnMut[fn() -> Unit]](w: &mut W, mut f: F) -> Int {
+fn viaMut[F: FnMut[fn() -> Void]](w: &mut W, mut f: F) -> Int {
     run(w.nm, f)
 }
 
-fn viaOwned[F: FnMut[fn() -> Unit]](w: W, mut f: F) -> Int {
+fn viaOwned[F: FnMut[fn() -> Void]](w: W, mut f: F) -> Int {
     run(w.nm, f)
 }
 
@@ -110,7 +110,7 @@ fn viaWriter(w: &mut W) -> Int {
     writes(w.nm, w)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func sharesOf(f *mir.Func, op mir.Opcode, own bool) int {

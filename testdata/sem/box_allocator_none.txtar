@@ -35,7 +35,7 @@ export(C) {
     }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E959]: `tryNew` needs the default allocator, but this build has none (--allocator none)
   --> main.kg:22:15

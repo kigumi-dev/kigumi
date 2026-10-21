@@ -16,26 +16,26 @@ type Entry =
     | Pair(i128, u128)
     | Named(amount: i128, scale: u128)
 
-fn check_i(label: String, v: i128) -> Unit! {
+fn check_i(label: String, v: i128) -> Void! {
     let text = json.encode(v)?
     let back = json.decode[i128](text)?
     print "${label} ${text} ${back == v}"
 }
 
-fn check_u(label: String, v: u128) -> Unit! {
+fn check_u(label: String, v: u128) -> Void! {
     let text = json.encode(v)?
     let back = json.decode[u128](text)?
     print "${label} ${text} ${back == v}"
 }
 
-fn fails_i(src: String) -> Unit {
+fn fails_i(src: String) {
     match json.decode[i128](src) {
         Ok(v) -> print "ok ${v}"
         Err(e) -> print "error: ${e.message()}"
     }
 }
 
-fn fails_u(src: String) -> Unit {
+fn fails_u(src: String) {
     match json.decode[u128](src) {
         Ok(v) -> print "ok ${v}"
         Err(e) -> print "error: ${e.message()}"

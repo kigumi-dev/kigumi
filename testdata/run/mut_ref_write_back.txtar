@@ -17,7 +17,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -32,11 +32,11 @@ type Nest = {
 
 type Marked = Shape
 
-fn Shape.flatten(mut self) -> Unit {
+fn Shape.flatten(mut self) {
     self = Dot
 }
 
-fn Shape.grow(mut self, k: Int) -> Unit {
+fn Shape.grow(mut self, k: Int) {
     self = match self {
         Circle(r) -> Circle(r + k)
         Square(side) -> Square(side + k)
@@ -44,45 +44,45 @@ fn Shape.grow(mut self, k: Int) -> Unit {
     }
 }
 
-fn reset(s: &mut Shape, k: Int) -> Unit {
+fn reset(s: &mut Shape, k: Int) {
     s = Circle(k)
 }
 
-fn forward(s: &mut Shape, k: Int) -> Unit {
+fn forward(s: &mut Shape, k: Int) {
     reset(s, k)
 }
 
-fn forwardTwice(s: &mut Shape, k: Int) -> Unit {
+fn forwardTwice(s: &mut Shape, k: Int) {
     forward(s, k)
     s.grow(1)
 }
 
-fn viaRecv(s: &mut Shape) -> Unit {
+fn viaRecv(s: &mut Shape) {
     s.flatten()
 }
 
-fn Shape.growTwice(mut self, k: Int) -> Unit {
+fn Shape.growTwice(mut self, k: Int) {
     self.grow(k)
     self.grow(k)
 }
 
-fn Marked.growInner(mut self, k: Int) -> Unit {
+fn Marked.growInner(mut self, k: Int) {
     self.value.grow(k)
 }
 
-fn viaTransitive(s: &mut Shape, k: Int) -> Unit {
+fn viaTransitive(s: &mut Shape, k: Int) {
     s.growTwice(k)
 }
 
-fn viaDefinedRecv(m: &mut Marked, k: Int) -> Unit {
+fn viaDefinedRecv(m: &mut Marked, k: Int) {
     m.growInner(k)
 }
 
-fn viaDefinedValue(m: &mut Marked, k: Int) -> Unit {
+fn viaDefinedValue(m: &mut Marked, k: Int) {
     m.value.grow(k)
 }
 
-fn viaDefinedAssign(m: &mut Marked, k: Int) -> Unit {
+fn viaDefinedAssign(m: &mut Marked, k: Int) {
     m.value = Circle(k)
 }
 
@@ -90,11 +90,11 @@ fn readOnly(s: &mut Shape) -> Int {
     s.area()
 }
 
-fn fieldOnly(h: &mut Holder) -> Unit {
+fn fieldOnly(h: &mut Holder) {
     h.name = "written"
 }
 
-fn rename(s: &mut String) -> Unit {
+fn rename(s: &mut String) {
     s = "renamed"
 }
 
@@ -102,11 +102,11 @@ fn drain(o: &mut Int?) -> Int {
     o.take() || 0
 }
 
-fn swapRes(r: &mut Res, id: Int) -> Unit {
+fn swapRes(r: &mut Res, id: Int) {
     r = Res { id: id }
 }
 
-fn loopReset(s: &mut Shape, n: Int) -> Unit {
+fn loopReset(s: &mut Shape, n: Int) {
     for i in 0..n {
         reset(s, i)
     }

@@ -79,7 +79,7 @@ func TestComptimeMemoryLimitIgnoresRetainedPassThrough(t *testing.T) {
 }
 
 // A comptime loop that grows one array in place via push must trip the
-// memory budget too: push mutates its receiver in place and returns Unit,
+// memory budget too: push mutates its receiver in place and returns Void,
 // so only its own chargeMemory(receiver) call (builtins.go) ever bills the
 // growth.
 func TestComptimeMemoryLimitCatchesArrayPushGrowth(t *testing.T) {

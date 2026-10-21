@@ -44,7 +44,7 @@ noalloc fn viaCoerced(p: Point) -> Int {
     keep(p).y //~ ERROR handing `Point` to a slot that holds a reference allocates a box for it here
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = viaKeep() + viaBig()
 }
 -- expect --

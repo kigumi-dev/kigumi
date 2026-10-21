@@ -1,4 +1,4 @@
-fn run() -> Unit {
+fn run() {
     let s = "  héllo  "
     let before = s.len()
     eprint "go"

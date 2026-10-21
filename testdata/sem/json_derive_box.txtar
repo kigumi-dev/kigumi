@@ -16,7 +16,7 @@ type Handler = {
     pub run Box[fn(Int) -> Int]
 }
 
-fn useIt() -> Unit! {
+fn useIt() -> Void! {
     let item = Item { n: Box.new(1) }
     let text = json.encode(item)?
     _ = text
@@ -31,7 +31,7 @@ fn useIt() -> Unit! {
     _ = badBack
 }
 
-fn useHandler(h: Handler) -> Unit! {
+fn useHandler(h: Handler) -> Void! {
     let badFn = json.encode(h)? //~ ERROR `Handler` does not satisfy `Encode`
     _ = badFn
 }

@@ -202,14 +202,14 @@ type tryConstructorCase struct {
 // tryConstructorCases discards its Result so a leftover fatal call inside
 // the constructor shows as a stray panic, not a branch.
 var tryConstructorCases = []tryConstructorCase{
-	{"Bytes.tryZeros", "fn run() -> Unit { _ = Bytes.tryZeros(8) }\nrun()\n", 2},
-	{"Bytes.tryFill", "fn run() -> Unit { _ = Bytes.tryFill(1, 8) }\nrun()\n", 3},
-	{"Bytes.tryConcat", "fn run() -> Unit {\n    match Bytes.tryZeros(4) {\n        Ok(z) -> { _ = z.tryConcat(z) }\n        Err(_) -> {}\n    }\n}\nrun()\n", 2},
-	{"Bytes.tryFromArray", "fn run() -> Unit {\n    let a: Array[u8] = Array.of(1, 2, 3)\n    _ = Bytes.tryFromArray(&a)\n}\nrun()\n", 6},
-	{"String.tryFromBytes", "fn run() -> Unit {\n    match Bytes.tryZeros(4) {\n        Ok(z) -> { _ = String.tryFromBytes(z) }\n        Err(_) -> {}\n    }\n}\nrun()\n", 2},
-	{"Shared.tryNew", "import {Shared} from std/alloc\n\nfn run() -> Unit {\n    _ = Shared.tryNew(41)\n}\nrun()\n", 2},
-	{"Box.tryNew", "import {Box} from std/alloc\n\nfn run() -> Unit {\n    _ = Box.tryNew(41)\n}\nrun()\n", 2},
-	{"Box.tryNew record", "import {Box} from std/alloc\n\ntype Point = {\n    pub x Int\n    pub y Int\n}\n\nfn run() -> Unit {\n    _ = Box.tryNew(Point { x: 1, y: 2 })\n}\nrun()\n", 5},
+	{"Bytes.tryZeros", "fn run() { _ = Bytes.tryZeros(8) }\nrun()\n", 2},
+	{"Bytes.tryFill", "fn run() { _ = Bytes.tryFill(1, 8) }\nrun()\n", 3},
+	{"Bytes.tryConcat", "fn run() {\n    match Bytes.tryZeros(4) {\n        Ok(z) -> { _ = z.tryConcat(z) }\n        Err(_) -> {}\n    }\n}\nrun()\n", 2},
+	{"Bytes.tryFromArray", "fn run() {\n    let a: Array[u8] = Array.of(1, 2, 3)\n    _ = Bytes.tryFromArray(&a)\n}\nrun()\n", 6},
+	{"String.tryFromBytes", "fn run() {\n    match Bytes.tryZeros(4) {\n        Ok(z) -> { _ = String.tryFromBytes(z) }\n        Err(_) -> {}\n    }\n}\nrun()\n", 2},
+	{"Shared.tryNew", "import {Shared} from std/alloc\n\nfn run() {\n    _ = Shared.tryNew(41)\n}\nrun()\n", 2},
+	{"Box.tryNew", "import {Box} from std/alloc\n\nfn run() {\n    _ = Box.tryNew(41)\n}\nrun()\n", 2},
+	{"Box.tryNew record", "import {Box} from std/alloc\n\ntype Point = {\n    pub x Int\n    pub y Int\n}\n\nfn run() {\n    _ = Box.tryNew(Point { x: 1, y: 2 })\n}\nrun()\n", 5},
 }
 
 // tryConstructorSweepWidth covers each case's own allocation points (a

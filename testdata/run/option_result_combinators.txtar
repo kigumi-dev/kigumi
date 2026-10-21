@@ -3,11 +3,11 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn optionCombinators() -> Unit {
+fn optionCombinators() {
     let holder = Res { id: 7 }
     let some: Int? = Some(4)
     let mapped = some.map((x) => {
@@ -28,7 +28,7 @@ fn optionCombinators() -> Unit {
     print "unwrapOr ${Some(5).unwrapOr(0)} ${noneInt.unwrapOr(9)}"
 }
 
-fn resultCombinators() -> Unit {
+fn resultCombinators() {
     let ok: Result[Int, String] = Ok(2)
     let err: Result[Int, String] = Err("bad")
 

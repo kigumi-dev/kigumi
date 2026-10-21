@@ -3,7 +3,7 @@ type Tag = resource {
     pub n Int
 }
 
-fn Tag.drop(move self) -> Unit {
+fn Tag.drop(move self) {
     print "drop ${self.n}"
 }
 

@@ -6,11 +6,11 @@ type Box = resource {
     tag Int
 }
 
-fn Box.bump(mut self, k: Int) -> Unit {
+fn Box.bump(mut self, k: Int) {
     self.n = self.n + k
 }
 
-fn Box.drop(move self) -> Unit {
+fn Box.drop(move self) {
     print "drop ${self.tag}"
 }
 
@@ -18,16 +18,16 @@ type Holder['a] = {
     pub mut r &'a mut Box
 }
 
-fn bumpLent(r: &mut Box) -> Unit {
+fn bumpLent(r: &mut Box) {
     r.bump(3)
 }
 
-fn useLocal['a](h: Holder['a]) -> Unit {
+fn useLocal['a](h: Holder['a]) {
     let r = h.r
     r.bump(2)
 }
 
-fn forwardLocal['a](h: Holder['a]) -> Unit {
+fn forwardLocal['a](h: Holder['a]) {
     let r = h.r
     bumpLent(r)
 }
@@ -37,19 +37,19 @@ fn returnLocal['a](h: Holder['a]) -> &'a mut Box {
     r
 }
 
-fn scopeUse() -> Unit {
+fn scopeUse() {
     let mut a = Box { n: 1, tag: 1 }
     useLocal(Holder { r: &mut a })
     print "a=${a.n}"
 }
 
-fn scopeForward() -> Unit {
+fn scopeForward() {
     let mut b = Box { n: 1, tag: 2 }
     forwardLocal(Holder { r: &mut b })
     print "b=${b.n}"
 }
 
-fn scopeReturn() -> Unit {
+fn scopeReturn() {
     let mut c = Box { n: 1, tag: 3 }
     returnLocal(Holder { r: &mut c }).bump(4)
     print "c=${c.n}"

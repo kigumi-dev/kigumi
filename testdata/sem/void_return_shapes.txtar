@@ -1,0 +1,89 @@
+-- app/v/v.kg --
+fn okOmitted() {}
+
+fn okExplicit() -> Void {}
+
+fn okLong() -> Void! {
+    return
+}
+
+fn okShort() ! {
+    return
+}
+
+fn strayInt() -> Int ! { //~ ERROR write `-> Int!`
+    1
+}
+
+fn strayVoid() -> Void ! { //~ ERROR write `-> Void!`
+}
+
+fn strayOpt() -> Int? ! { //~ ERROR write `-> Int?!`
+    None
+}
+
+extern(C) {
+    fn cBare() ! //~ ERROR `Void!` cannot cross the C ABI
+    fn cResult() -> Void! //~ ERROR `Void!` cannot cross the C ABI
+    fn cPlain()
+}
+
+type Unit = {
+    pub n Int
+}
+
+fn useUnit(u: Unit) -> Int {
+    u.n
+}
+
+fn badTry() {
+    okShort()? //~ ERROR `?` requires a `Result` return type
+}
+
+fn tryOk() ! {
+    okShort()?
+    okLong()?
+}
+-- expect --
+error[E2184]: `!` must touch the return type: write `-> Int!`
+  --> app/v/v.kg:13:1
+   |
+13 | fn strayInt() -> Int ! { //~ ERROR write `-> Int!`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: a bare `!` right after the parameter list, with no `->`, means `-> Void!`
+
+error[E2184]: `!` must touch the return type: write `-> Void!`
+  --> app/v/v.kg:17:1
+   |
+17 | fn strayVoid() -> Void ! { //~ ERROR write `-> Void!`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: a bare `!` right after the parameter list, with no `->`, means `-> Void!`
+
+error[E2184]: `!` must touch the return type: write `-> Int?!`
+  --> app/v/v.kg:20:1
+   |
+20 | fn strayOpt() -> Int? ! { //~ ERROR write `-> Int?!`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: a bare `!` right after the parameter list, with no `->`, means `-> Void!`
+
+error[E924]: `Void!` cannot cross the C ABI
+  --> app/v/v.kg:25:5
+   |
+25 |     fn cBare() ! //~ ERROR `Void!` cannot cross the C ABI
+   |     ^^^^^^^^^
+   = help: use a fixed-width number, a raw pointer, a C function pointer or a `layout(C)` record
+
+error[E924]: `Void!` cannot cross the C ABI
+  --> app/v/v.kg:26:21
+   |
+26 |     fn cResult() -> Void! //~ ERROR `Void!` cannot cross the C ABI
+   |                     ^^^^^
+   = help: use a fixed-width number, a raw pointer, a C function pointer or a `layout(C)` record
+
+error[E712]: `?` requires a `Result` return type
+  --> app/v/v.kg:39:5
+   |
+39 |     okShort()? //~ ERROR `?` requires a `Result` return type
+   |     ^^^^^^^^^^
+   = help: this returns `Void`
+

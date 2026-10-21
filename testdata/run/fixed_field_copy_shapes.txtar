@@ -28,23 +28,23 @@ fn mk() -> Outer {
     Outer { segs: FixedArray.filled[Seg, 2](Seg { a: p, b: p }), w: Wrap { a: FixedArray.filled[Pt, 3](p), p: p } }
 }
 
-noalloc fn fieldFromField(o: &mut Outer) -> Unit {
+noalloc fn fieldFromField(o: &mut Outer) {
     o.segs[0].a = o.segs[1].b
 }
 
-noalloc fn slotFromField(o: &mut Outer) -> Unit {
+noalloc fn slotFromField(o: &mut Outer) {
     o.w.a[1] = o.segs[1].a
 }
 
-noalloc fn fieldFromSlot(o: &mut Outer) -> Unit {
+noalloc fn fieldFromSlot(o: &mut Outer) {
     o.segs[0].b = o.w.a[2]
 }
 
-noalloc fn nestedField(o: &mut Outer) -> Unit {
+noalloc fn nestedField(o: &mut Outer) {
     o.w.p = o.segs[1].a
 }
 
-fn Outer.shift(mut self) -> Unit {
+fn Outer.shift(mut self) {
     self.segs[1].a = self.segs[0].b
     self.w.a[0] = self.segs[1].b
 }
@@ -91,18 +91,18 @@ fn closure(p: Pt) -> Int {
     o.segs[0].a.y + o.w.a[0].y
 }
 
-fn variableIndex(o: &mut Outer, i: usize, j: usize) -> Unit {
+fn variableIndex(o: &mut Outer, i: usize, j: usize) {
     o.segs[i].a = o.segs[j].b
     o.w.a[j] = o.segs[i].a
 }
 
-fn swapSlots(w: &mut Wrap) -> Unit {
+fn swapSlots(w: &mut Wrap) {
     let t = w.a[0]
     w.a[0] = w.a[1]
     w.a[1] = t
 }
 
-fn adjacentLiterals(w: &mut Wrap) -> Unit {
+fn adjacentLiterals(w: &mut Wrap) {
     w.a[0] = Pt { x: 1, y: 2 }
     w.a[1] = Pt { x: 3, y: 4 }
     w.a[2] = Pt { x: w.a[0].x + w.a[1].x, y: 6 }
@@ -144,7 +144,7 @@ fn show(o: &Outer) -> String {
     "${o.segs[0].a.x},${o.segs[0].a.y} ${o.segs[0].b.x},${o.segs[0].b.y} ${o.segs[1].a.x},${o.segs[1].a.y} ${o.segs[1].b.x},${o.segs[1].b.y} | ${o.w.a[0].x} ${o.w.a[1].x} ${o.w.a[2].x} ${o.w.p.x}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut o = mk()
     o.segs[1].b = Pt { x: 7, y: 8 }
     o.segs[1].a = Pt { x: 5, y: 6 }

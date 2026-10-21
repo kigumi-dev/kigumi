@@ -5,7 +5,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -14,10 +14,10 @@ type Outer = resource {
     pub id Int
 }
 
-fn Outer.drop(move self) -> Unit {
+fn Outer.drop(move self) {
     let local = Res { id: 90 + self.id }
     print "outer ${self.id}"
-    let _: Unit = None.expect("outer ${self.id}")
+    let _: Void = None.expect("outer ${self.id}")
 }
 
 async fn tick() -> Int {

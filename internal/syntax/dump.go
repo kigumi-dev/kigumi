@@ -172,7 +172,7 @@ func modsString(m uint32) string {
 	for _, e := range []struct {
 		bit  uint32
 		name string
-	}{{ModNoalloc, "noalloc"}, {ModAsync, "async"}, {ModUnsafe, "unsafe"}} {
+	}{{ModNoalloc, "noalloc"}, {ModAsync, "async"}, {ModUnsafe, "unsafe"}, {ModBareErr, "!"}, {ModStrayBang, "stray!"}} {
 		if m&e.bit != 0 {
 			parts = append(parts, e.name)
 		}

@@ -9,29 +9,29 @@ fn keepP(cb: escaping fn() -> Int) -> Handler[fn() -> Int] {
     Handler { callback: cb }
 }
 
-fn plainArray() -> Unit {
+fn plainArray() {
     let a: Array[fn(fn() -> Int) -> Handler[fn() -> Int]] = Array.of(keepP) //~ ERROR differs from `Array[fn(fn() -> Int) -> Handler[fn() -> Int]]` only in which callback parameters
 }
 
-fn genericArray() -> Unit {
+fn genericArray() {
     let a: Array[fn(fn() -> Int) -> Handler[fn() -> Int]] = Array.of(keepF) //~ ERROR `Array[fn(escaping F) -> Handler[F]]` differs
 }
 
-fn plainLet() -> Unit {
+fn plainLet() {
     let a: fn(fn() -> Int) -> Handler[fn() -> Int] = keepF //~ ERROR `fn(escaping fn() -> Int) -> Handler[fn() -> Int]` may keep its callback at parameter 1
 }
 
-fn escapingArray() -> Unit {
+fn escapingArray() {
     let a: Array[fn(escaping fn() -> Int) -> Handler[fn() -> Int]] = Array.of(keepP)
 }
 
-pub fn indirect[F: Fn[fn() -> Unit]](first: fn(escaping F, Int, Int) -> Unit, second: fn(Int, escaping F, Int) -> Unit, third: fn(Int, Int, escaping F) -> Unit, cb: F) -> Unit {
+pub fn indirect[F: Fn[fn() -> Void]](first: fn(escaping F, Int, Int) -> Void, second: fn(Int, escaping F, Int) -> Void, third: fn(Int, Int, escaping F) -> Void, cb: F) {
     first(cb, 0, 0) //~ ERROR cannot be passed to `this function`
     second(0, cb, 0) //~ ERROR cannot be passed to `this function`
     third(0, 0, cb) //~ ERROR cannot be passed to `this function`
 }
 
-pub fn indirectPlain[F: Fn[fn() -> Unit]](reg: fn(Int, Int, F) -> Unit, cb: F) -> Unit {
+pub fn indirectPlain[F: Fn[fn() -> Void]](reg: fn(Int, Int, F) -> Void, cb: F) {
     reg(0, 0, cb)
 }
 -- expect --

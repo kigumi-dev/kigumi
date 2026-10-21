@@ -121,7 +121,7 @@ extern(C) {
     fn sqrt(x: f64) -> f64
     fn snprintf(buf: *mut u8, n: usize, fmt: *const u8, ...) -> i32
     fn malloc(n: usize) -> *mut u8
-    fn free(p: *mut u8) -> Unit
+    fn free(p: *mut u8)
     fn call_twice(x: i32) -> i32
     fn apply_i32(f: extern(C) fn(i32) -> i32, x: i32) -> i32
     fn twice_ptr() -> extern(C) fn(i32) -> i32
@@ -147,7 +147,7 @@ pub type Point layout(C) = {
 
 extern(C) {
     fn sum_point(p: *const Point) -> f64
-    fn fill_point(p: *mut Point) -> Unit
+    fn fill_point(p: *mut Point)
     fn point_sum(p: Point) -> f64
     fn make_point(x: i32, y: i64) -> Point
     fn call_scale(p: Point) -> Point

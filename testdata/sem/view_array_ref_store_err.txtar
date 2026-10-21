@@ -7,7 +7,7 @@ fn View['a].at(self) -> Int { self.data[self.off] }
 
 type Doc['a] = { pub mut views Array[View['a]] }
 
-fn Doc['a].add(mut self, v: View['a]) -> Unit { self.views.push(v) }
+fn Doc['a].add(mut self, v: View['a]) { self.views.push(v) }
 
 fn short() -> Int {
     let a = Array.of(1, 2, 3)

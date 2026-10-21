@@ -241,7 +241,7 @@ type Pt = {
     mut x Int
 }
 
-fn run() -> Unit {
+fn run() {
     let mut rec = Pt { x: 1 }
     let old = rec
     let mut bump = () => {
@@ -251,7 +251,7 @@ fn run() -> Unit {
     print "${old.x} ${rec.x}"
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `))
 	if err := prog.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}); err != nil {
 		t.Fatal(err)

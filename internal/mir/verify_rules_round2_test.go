@@ -135,7 +135,7 @@ func TestVerifyIndexOperands(t *testing.T) {
 	runRuleCases(t, rulesSrc+`
 fn first(a: Array[Int], k: Int) -> Int { a[0] }
 
-fn put(a: &mut Array[Int], v: Int) -> Unit { a[0] = v }
+fn put(a: &mut Array[Int], v: Int) { a[0] = v }
 
 let _ = first(Array.of(1, 2), 3)
 let mut xs = Array.of(1, 2)
@@ -159,7 +159,7 @@ type Point = {
     pub mut y Int
 }
 
-fn Point.bump(mut self) -> Unit { self.y += 1 }
+fn Point.bump(mut self) { self.y += 1 }
 
 fn run() -> Int {
     let mut p = Point { x: 1, y: 2 }
@@ -211,7 +211,7 @@ let got = task.currentThreadExecutor().runToCompletion(c.bumpLater(10))
 
 func TestVerifySymbolCallKeepsItsArity(t *testing.T) {
 	runRuleCases(t, rulesSrc+"\nlet mut xs = Array.of(1)\nxs.push(2)\n", false, []ruleCase{
-		{"extra argument of a primitive that returns Unit", "main", "calls", "which takes", func(t *testing.T, p *mir.Program, f *mir.Func) {
+		{"extra argument of a primitive that returns Void", "main", "calls", "which takes", func(t *testing.T, p *mir.Program, f *mir.Func) {
 			in := nth(t, f, mir.OpCall, 1)
 			in.Args = append(in.Args, in.Args[0])
 		}},

@@ -19,7 +19,7 @@ fn lend['a](v: View['a]) -> &'a Bytes {
     v.data
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf = Bytes.fromArray(&Array.of(1, 2, 3))
     print "one=${consume(View { data: &buf, off: 2 })}"
     print "copy=${consumeCopy(View { data: &buf, off: 0 })}"

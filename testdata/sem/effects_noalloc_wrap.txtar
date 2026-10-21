@@ -56,11 +56,11 @@ noalloc fn optCarrier(o: Named?) -> String? {
 }
 
 // A wrapper around a fixed value is one immortal shared by every site.
-noalloc fn fixedOk() -> Unit! {
+noalloc fn fixedOk() -> Void! {
     Ok(())
 }
 
-noalloc fn fixedTail() -> Unit! {}
+noalloc fn fixedTail() -> Void! {}
 
 noalloc fn fixedLiteral() -> String? {
     "lit"

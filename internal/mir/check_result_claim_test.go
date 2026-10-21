@@ -19,7 +19,7 @@ fn peek(p: Point) -> Int { p.x }
 
 noalloc fn declared(p: Point) -> Int { p.y }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // withValueOf forms a value of fn in name's body, whose entry boxes fn's result on every call.

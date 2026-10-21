@@ -180,5 +180,5 @@ func (c *checker) letElse(n syntax.NodeID, s letSlots, got TypeID) {
 	c.info.Matches[n] = MatchInfo{Exhaustive: false}
 }
 
-// cleanupStmt checks a defer / defer(fail) body as a Unit statement with
+// cleanupStmt checks a defer / defer(fail) body as a Void statement with
 // control flow forbidden inside.

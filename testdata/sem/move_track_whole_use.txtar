@@ -5,17 +5,17 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
-fn Res.close(move self) -> Unit {}
+fn Res.close(move self) {}
 
 fn Res.peek(self) -> Int {
     self.id
 }
 
-fn say(n: Int) -> Unit {}
+fn say(n: Int) {}
 
-fn sayU(n: usize) -> Unit {}
+fn sayU(n: usize) {}
 
 fn mkr(n: Int) -> Res {
     Res { id: n }
@@ -31,7 +31,7 @@ type W = resource {
     pub n Int
 }
 
-fn W.drop(move self) -> Unit {
+fn W.drop(move self) {
     match &self.o {
         Some(r) -> say(r.peek())
         None -> {}
@@ -42,25 +42,25 @@ type V = resource {
     pub mut r Result[Res, String]
 }
 
-fn V.drop(move self) -> Unit {}
+fn V.drop(move self) {}
 
-fn useO(o: Res?) -> Unit {}
+fn useO(o: Res?) {}
 
-fn useR(r: Result[Res, String]) -> Unit {}
+fn useR(r: Result[Res, String]) {}
 
-fn useP(p: Pair) -> Unit {}
+fn useP(p: Pair) {}
 
-fn take(r: Res) -> Unit {
+fn take(r: Res) {
     r.close()
 }
 
-fn each(xs: Array[Int], f: fn(Int) -> Unit) -> Unit {
+fn each(xs: Array[Int], f: fn(Int) -> Void) {
     for x in xs {
         f(x)
     }
 }
 
-fn matchThenPass(o: Res?) -> Unit {
+fn matchThenPass(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
@@ -68,14 +68,14 @@ fn matchThenPass(o: Res?) -> Unit {
     useO(o) //~ ERROR `o` was moved
 }
 
-fn ifLetThenPass(o: Res?) -> Unit {
+fn ifLetThenPass(o: Res?) {
     if let Some(r) = o {
         r.close()
     }
     useO(o) //~ ERROR `o` was moved
 }
 
-fn orThenPass(o: Res?) -> Unit {
+fn orThenPass(o: Res?) {
     let a = o || mkr(1)
     a.close()
     useO(o) //~ ERROR `o` was moved
@@ -88,14 +88,14 @@ fn tryThenPass(r: Result[Res, String]) -> Result[Int, String] {
     Ok(1)
 }
 
-fn recordThenPass(p: Pair) -> Unit {
+fn recordThenPass(p: Pair) {
     match p {
         Pair { left, right } -> left.close()
     }
     useP(p) //~ ERROR `p.left` was moved out of `p`
 }
 
-fn matchThenLet(o: Res?) -> Unit {
+fn matchThenLet(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
@@ -111,7 +111,7 @@ fn matchThenIs(o: Res?) -> Bool {
     o is None //~ ERROR `o` was moved
 }
 
-fn matchThenBorrow(o: Res?) -> Unit {
+fn matchThenBorrow(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
@@ -119,19 +119,19 @@ fn matchThenBorrow(o: Res?) -> Unit {
     let b = &o //~ ERROR `o` was moved
 }
 
-fn callThenPass(p: Pair) -> Unit {
+fn callThenPass(p: Pair) {
     take(p.left)
     useP(p) //~ ERROR `p.left` was moved out of `p`
 }
 
-fn matchDropField(w: W) -> Unit {
+fn matchDropField(w: W) {
     match w.o {
         Some(r) -> r.close() //~ ERROR cannot move `w.o` out of `W`
         None -> {}
     }
 }
 
-fn orDropField(w: W) -> Unit {
+fn orDropField(w: W) {
     let a = w.o || mkr(5) //~ ERROR cannot move `w.o` out of `W`
     a.close()
 }
@@ -142,14 +142,14 @@ fn tryDropField(v: V) -> Result[Int, String] {
     Ok(1)
 }
 
-fn borrowDropField(w: W) -> Unit {
+fn borrowDropField(w: W) {
     match &w.o {
         Some(r) -> say(r.peek())
         None -> {}
     }
 }
 
-fn reinitAfterTake(o: Res?) -> Unit {
+fn reinitAfterTake(o: Res?) {
     let mut p = o
     if let Some(r) = p {
         r.close()
@@ -158,21 +158,21 @@ fn reinitAfterTake(o: Res?) -> Unit {
     useO(p)
 }
 
-fn collectThenRead() -> Unit {
+fn collectThenRead() {
     let mut out: Array[Int] = Array.of()
     each(Array.of(1, 2, 3), (x: Int) => out.push(x))
     let report = () => out.len()
     sayU(report())
 }
 
-fn readThenCollect() -> Unit {
+fn readThenCollect() {
     let mut out: Array[Int] = Array.of()
     let report = () => out.len()
     each(Array.of(1, 2, 3), (x: Int) => out.push(x))
     sayU(report())
 }
 
-fn sharedCellConsumed() -> Unit {
+fn sharedCellConsumed() {
     let mut h = mkr(1)
     let f = () => h.peek()
     each(Array.of(2), (x: Int) => {
@@ -182,7 +182,7 @@ fn sharedCellConsumed() -> Unit {
     say(f())
 }
 
-fn sharedCellConsumedLate() -> Unit {
+fn sharedCellConsumedLate() {
     let mut h = mkr(1)
     let f = () => h.peek()
     each(Array.of(2), (x: Int) => {
@@ -191,7 +191,7 @@ fn sharedCellConsumedLate() -> Unit {
     say(f())
     h.close()
 }
-fn closeOpt(o: Res?) -> Unit {
+fn closeOpt(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
@@ -211,40 +211,40 @@ fn peekOpt(o: &Res?) -> Bool {
     true
 }
 
-fn guardConsumes(o: Res?) -> Unit {
+fn guardConsumes(o: Res?) {
     match o {
         Some(r) if chk(o) -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
         _ -> {}
     }
 }
 
-fn chainConsumes(o: Res?) -> Unit {
+fn chainConsumes(o: Res?) {
     if o is Some(r) && chk(o) { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
         r.close()
     }
 }
 
-fn chainPassesByValue(o: Res?) -> Unit {
+fn chainPassesByValue(o: Res?) {
     if o is Some(r) && keepsNothing(o) { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
         r.close()
     }
 }
 
-fn guardMovesWhole(o: Res?) -> Unit {
+fn guardMovesWhole(o: Res?) {
     match o {
         Some(r) if { let z = o; true } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
         _ -> {}
     }
 }
 
-fn guardReadsByRef(o: Res?) -> Unit {
+fn guardReadsByRef(o: Res?) {
     match o {
         Some(r) if peekOpt(&o) -> r.close()
         _ -> {}
     }
 }
 
-fn chainFailsThenUse(o: Res?, c: Bool) -> Unit {
+fn chainFailsThenUse(o: Res?, c: Bool) {
     if o is Some(r) && c {
         r.close()
     } else {
@@ -252,7 +252,7 @@ fn chainFailsThenUse(o: Res?, c: Bool) -> Unit {
     }
 }
 
-fn loopChainExitUse(o: Res?, c: Bool) -> Unit {
+fn loopChainExitUse(o: Res?, c: Bool) {
     for o is Some(r) && c {
         r.close()
         break
@@ -260,7 +260,7 @@ fn loopChainExitUse(o: Res?, c: Bool) -> Unit {
     closeOpt(o) //~ ERROR `o` is moved on some paths but not others
 }
 
-fn loopChainExitOnly(o: Res?, c: Bool) -> Unit {
+fn loopChainExitOnly(o: Res?, c: Bool) {
     let mut n = 0
     for o is Some(r) && c && n > 0 {
         r.close()
@@ -289,7 +289,7 @@ type PairBox = {
     pub mut p Pair?
 }
 
-fn guardFallback() -> Unit {
+fn guardFallback() {
     let o = Some(mkr(1))
     match o {
         Some(r) if { let a = o || mkr(9); a.close(); true } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
@@ -297,27 +297,27 @@ fn guardFallback() -> Unit {
     }
 }
 
-fn guardFallbackField(h: Holder) -> Unit {
+fn guardFallbackField(h: Holder) {
     match h.o {
         Some(r) if { let a = h.o || mkr(9); a.close(); true } -> r.close() //~ ERROR `h.o` is held by the pattern binding `r` until its guard passes
         _ -> {}
     }
 }
 
-fn chainFallback(o: Res?) -> Unit {
+fn chainFallback(o: Res?) {
     if o is Some(r) && { let a = o || mkr(9); a.close(); true } { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
         r.close()
     }
 }
 
-fn guardFieldMove(b: PairBox) -> Unit {
+fn guardFieldMove(b: PairBox) {
     match b.p {
         Some(Pair { left, right }) if { let z = move b.p; false } -> left.close() //~ ERROR `b.p` is held by the pattern binding `left` until its guard passes
         _ -> {}
     }
 }
 
-fn guardInnerGuard(o: Res?) -> Unit {
+fn guardInnerGuard(o: Res?) {
     match o {
         Some(r) if {
             match o {
@@ -330,21 +330,21 @@ fn guardInnerGuard(o: Res?) -> Unit {
     }
 }
 
-fn twoBindingsFirstNamed(p: Pair) -> Unit {
+fn twoBindingsFirstNamed(p: Pair) {
     match p {
         Pair { left, right } if { let z = p; false } -> left.close() //~ ERROR `p` is held by the pattern binding `left` until its guard passes
         _ -> {}
     }
 }
 
-fn twoBindingsSecondTaken(p: Pair) -> Unit {
+fn twoBindingsSecondTaken(p: Pair) {
     match p {
         Pair { left, right } if { take(move p.right); false } -> left.close() //~ ERROR `p.right` is held by the pattern binding `right` until its guard passes
         _ -> {}
     }
 }
 
-fn twoBindingsGuardReads(p: Pair) -> Unit {
+fn twoBindingsGuardReads(p: Pair) {
     match p {
         Pair { left, right } if left.peek() > right.peek() -> left.close()
         _ -> {}
@@ -355,25 +355,25 @@ type HoldsRes = {
     pub mut f Res
 }
 
-fn assignMoveThenRead(w: Pair, h: HoldsRes) -> Unit {
+fn assignMoveThenRead(w: Pair, h: HoldsRes) {
     let mut h2 = h
     h2.f = move w.left
     let t = move w.left //~ ERROR `w.left` was moved
 }
 
-fn localAssignMoveThenUse(w: Pair) -> Unit {
+fn localAssignMoveThenUse(w: Pair) {
     let mut x = mkr(1)
     x = move w.left
     let t = move w.left //~ ERROR `w.left` was moved
 }
 
-fn branchMoveThenUse(w: Pair, c: Bool) -> Unit {
+fn branchMoveThenUse(w: Pair, c: Bool) {
     let x = if c { move w.left } else { mkr(0) }
     x.close()
     let t = move w.left //~ ERROR `w.left` was moved
 }
 
-fn argBranchMoveThenUse(w: Pair, c: Bool) -> Unit {
+fn argBranchMoveThenUse(w: Pair, c: Bool) {
     take(if c { move w.left } else { mkr(0) })
     let t = move w.left //~ ERROR `w.left` was moved
 }
@@ -389,9 +389,9 @@ type XW = {
     pub mut w WO
 }
 
-fn closeWO(w: WO) -> Unit {}
+fn closeWO(w: WO) {}
 
-fn fieldMatchThenWhole(w: WO) -> Unit {
+fn fieldMatchThenWhole(w: WO) {
     match w.o {
         Some(r) -> r.close()
         None -> {}
@@ -399,21 +399,21 @@ fn fieldMatchThenWhole(w: WO) -> Unit {
     closeWO(w) //~ ERROR `w.o` was moved out of `w`
 }
 
-fn fieldIfLetThenWhole(w: WO) -> Unit {
+fn fieldIfLetThenWhole(w: WO) {
     if let Some(r) = w.o {
         r.close()
     }
     let c = w //~ ERROR `w.o` was moved out of `w`
 }
 
-fn fieldIsThenBorrow(w: WO) -> Unit {
+fn fieldIsThenBorrow(w: WO) {
     if w.o is Some(r) {
         r.close()
     }
     let b = &w //~ ERROR `w.o` was moved out of `w`
 }
 
-fn fieldOrThenWhole(w: WO) -> Unit {
+fn fieldOrThenWhole(w: WO) {
     let a = w.o || mkr(5)
     a.close()
     closeWO(w) //~ ERROR `w.o` was moved out of `w`
@@ -426,21 +426,21 @@ fn fieldTryThenWhole(w: WO) -> Result[Int, String] {
     Ok(1)
 }
 
-fn fieldCatchAllThenWhole(w: WO) -> Unit {
+fn fieldCatchAllThenWhole(w: WO) {
     match w.o {
         other -> useO(other)
     }
     closeWO(w) //~ ERROR `w.o` was moved out of `w`
 }
 
-fn fieldRecordThenWhole(w: WO) -> Unit {
+fn fieldRecordThenWhole(w: WO) {
     match w.p {
         Pair { left, right } -> left.close()
     }
     closeWO(w) //~ ERROR `w.p` was moved out of `w`
 }
 
-fn nestedFieldThenWhole(x: XW) -> Unit {
+fn nestedFieldThenWhole(x: XW) {
     match x.w.o {
         Some(r) -> r.close()
         None -> {}
@@ -448,7 +448,7 @@ fn nestedFieldThenWhole(x: XW) -> Unit {
     closeWO(x.w) //~ ERROR `x.w.o` was moved out of `x.w`
 }
 
-fn nestedFieldThenOuter(x: XW) -> Unit {
+fn nestedFieldThenOuter(x: XW) {
     match x.w.o {
         Some(r) -> r.close()
         None -> {}
@@ -456,7 +456,7 @@ fn nestedFieldThenOuter(x: XW) -> Unit {
     let y = x //~ ERROR `x.w` was moved out of `x`
 }
 
-fn fieldReinitThenWhole(w: WO) -> Unit {
+fn fieldReinitThenWhole(w: WO) {
     let mut v = w
     match v.o {
         Some(r) -> r.close()
@@ -467,28 +467,28 @@ fn fieldReinitThenWhole(w: WO) -> Unit {
     closeWO(v)
 }
 
-fn eatWhole(o: Res?) -> Unit {
+fn eatWhole(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
     }
 }
 
-fn catchAllWholeTwice(o: Res?) -> Unit {
+fn catchAllWholeTwice(o: Res?) {
     match o {
         x -> eatWhole(x)
     }
     eatWhole(o) //~ ERROR `o` was moved
 }
 
-fn ifLetWholeTwice(o: Res?) -> Unit {
+fn ifLetWholeTwice(o: Res?) {
     if let x = o {
         eatWhole(x)
     }
     eatWhole(o) //~ ERROR `o` is moved on some paths but not others
 }
 
-fn guardedWholeTwice(o: Res?, g: Bool) -> Unit {
+fn guardedWholeTwice(o: Res?, g: Bool) {
     match o {
         x if g -> eatWhole(x)
         _ -> {}
@@ -496,14 +496,14 @@ fn guardedWholeTwice(o: Res?, g: Bool) -> Unit {
     eatWhole(o) //~ ERROR `o` is moved on some paths but not others
 }
 
-fn guardedWholeHeld(o: Res?) -> Unit {
+fn guardedWholeHeld(o: Res?) {
     match o {
         x if chk(o) -> eatWhole(x) //~ ERROR `o` is held by the pattern binding `x` until its guard passes
         _ -> {}
     }
 }
 
-fn catchAllWholeLocalTwice() -> Unit {
+fn catchAllWholeLocalTwice() {
     let o = Some(mkr(1))
     match o {
         x -> eatWhole(x)
@@ -513,7 +513,7 @@ fn catchAllWholeLocalTwice() -> Unit {
     }
 }
 
-fn catchAllWholeReinit() -> Unit {
+fn catchAllWholeReinit() {
     let mut o = Some(mkr(1))
     match o {
         x -> eatWhole(x)
@@ -542,35 +542,35 @@ fn grow(o: &mut Array[Int]?) -> Bool {
     true
 }
 
-fn guardConsumesPayload(o: Res?) -> Unit {
+fn guardConsumesPayload(o: Res?) {
     match o {
         x if { match x { Some(r) -> r.close(), None -> {} }; false } -> say(1)
         other -> closeOpt(other) //~ ERROR `o` is moved on some paths but not others
     }
 }
 
-fn guardIfLetPayload(o: Res?) -> Unit {
+fn guardIfLetPayload(o: Res?) {
     match o {
         x if { if let Some(r) = x { r.close() }; false } -> say(1)
         other -> closeOpt(other) //~ ERROR `o` is moved on some paths but not others
     }
 }
 
-fn guardConsumesField(s: GSlot) -> Unit {
+fn guardConsumesField(s: GSlot) {
     match s {
         z if { closeOpt(z.o); false } -> say(1)
         other -> closeOpt(other.o) //~ ERROR `s` is moved on some paths but not others
     }
 }
 
-fn guardMatchesField(s: GSlot) -> Unit {
+fn guardMatchesField(s: GSlot) {
     match s {
         z if { match z.o { Some(r) -> r.close(), None -> {} }; false } -> say(1)
         other -> closeOpt(other.o) //~ ERROR `s` is moved on some paths but not others
     }
 }
 
-fn guardReadsBinding(o: Res?) -> Unit {
+fn guardReadsBinding(o: Res?) {
     match o {
         x if { match &x { Some(r) -> r.peek() > 0, None -> false } } -> closeOpt(x)
         other -> closeOpt(other)
@@ -593,7 +593,7 @@ fn guardLendsScrutinee() -> Int {
     }
 }
 
-fn guardStoresField(s: GSlot) -> Unit {
+fn guardStoresField(s: GSlot) {
     let mut t = s
     match t {
         z if { t.o = None; true } -> closeOpt(z.o) //~ ERROR `t` is held by the pattern binding `z` until its guard passes, so it cannot be changed here
@@ -609,7 +609,7 @@ fn guardReadsScrutinee() -> usize {
     }
 }
 
-fn leadingAndWholeIs(o: Res?, c: Bool) -> Unit {
+fn leadingAndWholeIs(o: Res?, c: Bool) {
     if c && o is x {
         closeOpt(x)
     }

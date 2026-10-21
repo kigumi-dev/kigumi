@@ -1,4 +1,4 @@
-fn run() -> Unit {
+fn run() {
     let before = 1
     eprint "go"
     let r = AllocError.wrap(before)

@@ -25,7 +25,7 @@ fn pick(v: Int) -> Bool {
     n > 3
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	f := funcNamed(t, p, "main.pick")
 	released := releasedLocals(f)
@@ -40,12 +40,12 @@ fn main() -> Unit! {}
 
 func TestPlanReleasesTheIndexOfASetIndexAfterIt(t *testing.T) {
 	p := planned(t, `
-fn put() -> Unit {
+fn put() {
     let mut a = FixedArray.filled[Int, 3](0)
     a[1] = 5
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	f := funcNamed(t, p, "main.put")
 	released := releasedLocals(f)
@@ -64,7 +64,7 @@ fn same(a: Int?, b: Int?) -> Bool { a == b }
 
 fn fingerprint(a: Int?) -> u64 { hash(&a) }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	same := funcNamed(t, p, "main.same")
 	if n := countOp(same, mir.OpBind) + countOp(same, mir.OpClosure) + countOp(same, mir.OpFnItem); n != 0 {

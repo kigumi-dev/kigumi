@@ -10,7 +10,7 @@ pub type Guard = {
     pub mut amount Int
 }
 
-fn Guard.grow(mut self, k: Int) -> Unit {
+fn Guard.grow(mut self, k: Int) {
     self = Guard { amount: self.amount + k }
 }
 
@@ -27,7 +27,7 @@ pub fn runBox() -> Int {
 }
 -- lib/b/b.kg --
 pub interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
     fn size(self) -> Int
 }
 

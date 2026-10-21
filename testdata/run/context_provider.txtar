@@ -20,7 +20,7 @@ pub type Prefixed = {
     pub mut stdout io.Writer
 }
 
-async fn writeLineAsync(text: String) -> Unit! {
+async fn writeLineAsync(text: String) -> Void! {
     _ = stdout.write("${text}\n".toBytes())?
 }
 

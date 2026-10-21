@@ -5,14 +5,14 @@ type ResError = resource {
     pub id Int
 }
 
-fn ResError.drop(move self) -> Unit {
+fn ResError.drop(move self) {
 }
 
 fn ResError.message(self) -> String {
     "res ${self.id}"
 }
 
-fn useIt(e: &Error) -> Unit {
+fn useIt(e: &Error) {
     let _ = error.as[ResError](e) //~ ERROR cannot move `ResError` out of a borrow
 }
 

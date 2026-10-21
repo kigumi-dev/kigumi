@@ -12,7 +12,7 @@ func ElideRC(p *Program) error {
 	return nil
 }
 
-// Unit and Bool are the runtime's immortal singletons, so a count on one changes nothing.
+// Void and Bool are the runtime's immortal singletons, so a count on one changes nothing.
 func immortalLocal(f *Func, l LocalID) bool {
 	t := f.Locals[l].Type
 	return t == sem.TyUnit || t == sem.TyBool

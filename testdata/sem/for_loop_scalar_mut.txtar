@@ -5,20 +5,20 @@ import map from std/map
 // write through, unlike an ordinary `&mut` local (R10), so a mutable
 // scalar element binding is rejected outright instead of silently losing
 // the write on those two engines.
-fn arrayLiteralBorrow() -> Unit {
+fn arrayLiteralBorrow() {
     let mut ns = Array.of(1, 2, 3)
     for x in &mut ns { //~ ERROR cannot bind a mutable `Int` element
         x = x + 1
     }
 }
 
-fn arrayParamBorrow(xs: &mut Array[Int]) -> Unit {
+fn arrayParamBorrow(xs: &mut Array[Int]) {
     for x in xs { //~ ERROR cannot bind a mutable `Int` element
         x = x + 1
     }
 }
 
-fn mapValueBorrow(m: &mut map.Map[String, Int]) -> Unit {
+fn mapValueBorrow(m: &mut map.Map[String, Int]) {
     for (k, v) in m { //~ ERROR cannot bind a mutable `Int` element
         v = v + 1
     }

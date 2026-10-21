@@ -14,11 +14,11 @@ fn Buffer.finish(move self) -> String! {
     String.fromBytes(Bytes.fromArray(&self.bytes))
 }
 
-fn Buffer.byte(mut self, b: u8) -> Unit {
+fn Buffer.byte(mut self, b: u8) {
     self.bytes.push(b)
 }
 
-fn Buffer.text(mut self, s: String) -> Unit {
+fn Buffer.text(mut self, s: String) {
     let bs = s.bytes()
     for i in 0..bs.len() {
         self.bytes.push(bs.get(i) || 0)
@@ -34,7 +34,7 @@ fn hexDigit(n: Int) -> u8 {
 }
 
 /// Escapes s as a JSON string: quote, backslash and every code point below U+0020.
-fn Buffer.string(mut self, s: String) -> Unit {
+fn Buffer.string(mut self, s: String) {
     self.bytes.push(34)
     let bs = s.bytes()
     for i in 0..bs.len() {
@@ -64,7 +64,7 @@ fn Buffer.string(mut self, s: String) -> Unit {
     self.bytes.push(34)
 }
 
-fn Buffer.value(mut self, value: Value) -> Unit! {
+fn Buffer.value(mut self, value: Value) -> Void! {
     match value {
         Value.Null -> self.text("null")
         Value.Boolean(b) -> self.text("${b}")
@@ -118,7 +118,7 @@ fn Buffer.value(mut self, value: Value) -> Unit! {
 }
 
 /// Appends a code point as UTF-8.
-fn Buffer.codePoint(mut self, cp: Int) -> Unit {
+fn Buffer.codePoint(mut self, cp: Int) {
     if cp < 128 {
         self.bytes.push(cp.toU8() || 0)
     } else if cp < 2048 {

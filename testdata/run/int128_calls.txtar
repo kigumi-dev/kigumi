@@ -65,7 +65,7 @@ type Acc = {
     mut sign i128
 }
 
-fn Acc.add(mut self, v: u128) -> Unit {
+fn Acc.add(mut self, v: u128) {
     self.total = self.total + v
     self.sign = self.sign - 1
 }

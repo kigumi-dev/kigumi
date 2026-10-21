@@ -3,46 +3,46 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
 }
 
 type Box = {
     pub mut h Handle
 }
 
-fn consume(x: Handle) -> Unit {
+fn consume(x: Handle) {
     x.close()
 }
 
-fn twiceField(b: Box) -> Unit {
+fn twiceField(b: Box) {
     consume(b.h)
     consume(b.h)
 }
 
-fn plainOverwrite(mut b: Box, fresh: Handle) -> Unit {
+fn plainOverwrite(mut b: Box, fresh: Handle) {
     b.h = fresh
 }
 
-fn onceThenRestored(mut b: Box, fresh: Handle) -> Unit {
+fn onceThenRestored(mut b: Box, fresh: Handle) {
     consume(b.h)
     b.h = fresh
     consume(b.h)
 }
 -- expect --
-fn lib.Handle.close(%self: Handle) -> Unit {
+fn lib.Handle.close(%self: Handle) -> Void {
   b0:
     %t1 = unit
     drop(%self)
     return %t1
 }
-fn lib.consume(%x: Handle) -> Unit {
+fn lib.consume(%x: Handle) -> Void {
   b0:
     %t1 = move(%x)
     %t2 = call lib.Handle.close(%t1)
     nop
     return %t2
 }
-fn lib.twiceField(%b: Box) -> Unit {
+fn lib.twiceField(%b: Box) -> Void {
   b0:
     %t1 = field 0(%b)
     %t2 = call lib.consume(%t1)
@@ -52,7 +52,7 @@ fn lib.twiceField(%b: Box) -> Unit {
     drop(%b)
     return %t4
 }
-fn lib.plainOverwrite(%b: Box, %fresh: Handle) -> Unit {
+fn lib.plainOverwrite(%b: Box, %fresh: Handle) -> Void {
   b0:
     %t2 = move(%fresh)
     setfield 0(%b, %t2)
@@ -61,7 +61,7 @@ fn lib.plainOverwrite(%b: Box, %fresh: Handle) -> Unit {
     drop(%b)
     return %t3
 }
-fn lib.onceThenRestored(%b: Box, %fresh: Handle) -> Unit {
+fn lib.onceThenRestored(%b: Box, %fresh: Handle) -> Void {
   b0:
     %t2 = field 0(%b)
     %t3 = call lib.consume(%t2)

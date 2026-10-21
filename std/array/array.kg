@@ -49,13 +49,13 @@ pure fn Array[T: Copy].tryCopyRange(self, start: usize, end: usize) -> Result[Ar
 pub pure fn Array[T: Copy].tryReverse(self) -> Result[Array[T], AllocError]
 
 /// Appends item at the end; panics when memory runs out (tryPush reports it instead).
-pub pure fn Array[T].push(mut self, item: T) -> Unit
+pub pure fn Array[T].push(mut self, item: T)
 
 /// Makes room for extra more elements; false when the allocator refuses.
 pure fn Array[T].growBy(mut self, extra: usize) -> Bool
 
 /// Appends item, or returns AllocError when memory runs out.
-pub pure fn Array[T].tryPush(mut self, item: T) -> Result[Unit, AllocError] {
+pub pure fn Array[T].tryPush(mut self, item: T) -> Result[Void, AllocError] {
     if !self.growBy(1) {
         return Err(AllocError.OutOfMemory)
     }
@@ -63,19 +63,19 @@ pub pure fn Array[T].tryPush(mut self, item: T) -> Result[Unit, AllocError] {
 }
 
 /// Reserves room for extra more elements without adding any.
-pub pure fn Array[T].tryReserve(mut self, extra: usize) -> Result[Unit, AllocError] {
+pub pure fn Array[T].tryReserve(mut self, extra: usize) -> Result[Void, AllocError] {
     if !self.growBy(extra) {
         return Err(AllocError.OutOfMemory)
     }
 }
 
 /// Moves the elements of other into self.
-pub pure fn Array[T].appendAll(mut self, other: Array[T]) -> Unit {
+pub pure fn Array[T].appendAll(mut self, other: Array[T]) {
     self.tryAppendAll(other) || panic("out of memory")
 }
 
 /// Moves the elements of other into self, or AllocError when the allocator refuses.
-pub pure fn Array[T].tryAppendAll(mut self, other: Array[T]) -> Result[Unit, AllocError]
+pub pure fn Array[T].tryAppendAll(mut self, other: Array[T]) -> Result[Void, AllocError]
 
 /// Inserts item before the element at index, shifting the later ones up; false when index is past the end. Panics when memory runs out (tryInsertAt reports it instead).
 pub pure fn Array[T].insertAt(mut self, index: usize, item: T) -> Bool {

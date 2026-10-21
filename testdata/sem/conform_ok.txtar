@@ -23,7 +23,7 @@ fn show(d: Display) -> String {
     d.display()
 }
 
-fn use(p: P) -> Unit {
+fn use(p: P) {
     let d: Display = p //~ TYPE d : Display
     let s = show(p) //~ TYPE s : String
     let t = d.display() //~ TYPE t : String

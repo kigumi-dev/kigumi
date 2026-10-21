@@ -6,11 +6,11 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn consumeAll() -> Unit {
+fn consumeAll() {
     let items = Array.of(Res { id: 1 }, Res { id: 2 }, Res { id: 3 })
     for it in items {
         print "see ${it.id}"
@@ -18,7 +18,7 @@ fn consumeAll() -> Unit {
     print "consumeAll done"
 }
 
-fn consumeUntilBreak() -> Unit {
+fn consumeUntilBreak() {
     let items = Array.of(Res { id: 10 }, Res { id: 20 }, Res { id: 30 })
     for it in items {
         print "see ${it.id}"

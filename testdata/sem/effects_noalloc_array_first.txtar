@@ -40,7 +40,7 @@ noalloc fn genericGet[T: Copy](xs: &Array[T]) -> T? {
     xs.get(0) //~ ERROR copying `T`
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let a = Array.of(1, 2)
     print "${firstInt(&a)} ${getInt(&a)}"
 }

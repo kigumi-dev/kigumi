@@ -6,7 +6,7 @@ type Slot['a] = Empty | Full(View['a])
 
 fn View['a].at(self) -> Int { self.data[self.off] }
 
-fn eat(a: Array[Int]) -> Unit { print "eat ${a.len()}" }
+fn eat(a: Array[Int]) { print "eat ${a.len()}" }
 
 fn okv['a](v: View['a]) -> Result[View['a], String] { Ok(v) }
 
@@ -17,7 +17,7 @@ fn moved() -> usize {
     vs.len()
 }
 
-fn option() -> Unit {
+fn option() {
     let b = Array.of(4)
     let a = Array.of(1, 2, 3)
     let mut cur = Some(View { data: &b, off: 0 })
@@ -26,7 +26,7 @@ fn option() -> Unit {
     if let Some(v) = cur { print "cur ${v.at()}" }
 }
 
-fn result() -> Unit {
+fn result() {
     let b = Array.of(4)
     let a = Array.of(1, 2, 3)
     let mut cur = okv(View { data: &b, off: 0 })
@@ -35,7 +35,7 @@ fn result() -> Unit {
     if let Ok(v) = cur { print "cur ${v.at()}" }
 }
 
-fn tuple() -> Unit {
+fn tuple() {
     let b = Array.of(4)
     let a = Array.of(1, 2, 3)
     let mut cur = (View { data: &b, off: 0 }, 1)
@@ -44,7 +44,7 @@ fn tuple() -> Unit {
     match cur { (v, _) -> print "cur ${v.at()}" }
 }
 
-fn slot() -> Unit {
+fn slot() {
     let b = Array.of(4)
     let a = Array.of(1, 2, 3)
     let mut cur = Full(View { data: &b, off: 0 })
@@ -53,7 +53,7 @@ fn slot() -> Unit {
     if let Full(v) = cur { print "cur ${v.at()}" }
 }
 
-fn plain() -> Unit {
+fn plain() {
     let b = Array.of(4)
     let a = Array.of(1, 2, 3)
     let mut cur = View { data: &b, off: 0 }
@@ -62,7 +62,7 @@ fn plain() -> Unit {
     print "cur ${cur.at()}"
 }
 
-fn copied() -> Unit {
+fn copied() {
     let b = Array.of(4)
     let a = Array.of(1, 2, 3)
     let other = Some(View { data: &a, off: 1 })

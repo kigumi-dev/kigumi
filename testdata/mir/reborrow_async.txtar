@@ -1,15 +1,15 @@
 -- lib/reborrow.kg --
-async fn addOne(out: &mut Array[u8]) -> Unit {
+async fn addOne(out: &mut Array[u8]) {
     out.push(99)
 }
 
-async fn scenario(out: &mut Array[u8]) -> Unit {
+async fn scenario(out: &mut Array[u8]) {
     let f = addOne(out)
     out.push(1)
     await f
 }
 -- expect --
-async fn lib.addOne(%out: &mut Array[u8]) -> Unit {
+async fn lib.addOne(%out: &mut Array[u8]) -> Void {
   b0:
     %t1 = borrow 1(%out)
     %t2 = share retain(%t1)
@@ -21,7 +21,7 @@ async fn lib.addOne(%out: &mut Array[u8]) -> Unit {
     drop(%t6)
     return %t5
 }
-async fn lib.scenario(%out: &mut Array[u8]) -> Unit {
+async fn lib.scenario(%out: &mut Array[u8]) -> Void {
   b0:
     %t1 = move(%out)
     %t2 = fnitem lib.addOne async

@@ -85,7 +85,7 @@ func (e *emitter) constLocals(f *mir.Func) map[mir.LocalID]string {
 					out[in.Dst], shape[in.Dst] = k, k
 				}
 			}
-			// Unit carries nothing and rt_unit() is its only object, so any
+			// Void carries nothing and rt_unit() is its only object, so any
 			// one stands for the rest; the site releases what it was handed.
 			if _, keyed := out[in.Dst]; !keyed && f.Locals[in.Dst].Type == sem.TyUnit {
 				e.registerConst(constUnitKey, constVal{})

@@ -53,7 +53,7 @@ noalloc fn directCopy(w: &WP) -> Int {
     b.x + w.p.x
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let w = W { nm: Nm { name: "a", n: 1 } }
     let wp = WP { p: Pt { x: 1, y: 2 }, k: 3 }
     print "${written(&w)} ${callsCopier(&w)} ${readOnly(&w)} ${directCopy(&wp)}"
@@ -130,7 +130,7 @@ noalloc fn viaReader(w: &mut W) -> Int {
     reader(w) + b.n
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut w = W { nm: Named { name: "a", n: 1 }, other: Named { name: "b", n: 2 }, k: 0 }
     print "${viaRead(&w)} ${sibling(&mut w)} ${viaReader(&mut w)}"
 }

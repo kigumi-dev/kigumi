@@ -26,7 +26,7 @@ fn run(n: Int) -> Int {
     total
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestDirectClosureLoopAllocatesNothing(t *testing.T) {
@@ -69,5 +69,5 @@ fn run(n: Int, base: Int, p: Point, on: Bool, o: Int?) -> Int {
     apply(f, n)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `

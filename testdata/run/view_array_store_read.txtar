@@ -36,7 +36,7 @@ fn make() -> Bytes {
     Bytes.fromArray(&Array.of(10, 20, 30, 40))
 }
 
-fn run() -> Unit {
+fn run() {
     let buf = make()
     let mut vs = views(&buf)
     print "len ${vs.len()} total ${total(&vs)}"

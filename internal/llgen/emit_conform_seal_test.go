@@ -13,13 +13,13 @@ import (
 
 const conformSealSrc = `
 interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
     fn size(self) -> Int
 }
 
 type Shape = Circle(r: Int) | Dot
 
-fn Shape.grow(mut self, k: Int) -> Unit {
+fn Shape.grow(mut self, k: Int) {
     self = Circle(self.size() + k)
 }
 
@@ -34,7 +34,7 @@ type Box = {
     pub mut n Int
 }
 
-fn Box.grow(mut self, k: Int) -> Unit {
+fn Box.grow(mut self, k: Int) {
     self = Box { n: self.n + k }
 }
 
@@ -52,7 +52,7 @@ fn growDyn(g: &mut Grower, k: Int) -> Int {
     g.size()
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut s: Shape = Circle(1)
     let mut b = Box { n: 2 }
     print "${growStatic(&mut s, 1)} ${growStatic(&mut b, 2)}"

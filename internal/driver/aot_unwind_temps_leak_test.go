@@ -18,7 +18,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     let seen = "drop ${self.id}"
 }
 
@@ -26,8 +26,8 @@ type Bad = resource {
     pub id Int
 }
 
-fn Bad.drop(move self) -> Unit {
-    let _: Unit = None.expect("bad drop")
+fn Bad.drop(move self) {
+    let _: Void = None.expect("bad drop")
 }
 
 fn make(n: Int) -> Res {
@@ -80,7 +80,7 @@ print "total ${ex.runToCompletion(root())}"
 func outerDropSrc(k int) string {
 	var sb strings.Builder
 	sb.WriteString(tempsLeakPrelude)
-	sb.WriteString("\nfn scope() -> Unit {\n")
+	sb.WriteString("\nfn scope() {\n")
 	for i := range k {
 		fmt.Fprintf(&sb, "    let r%d = Res { id: %d }\n    let s%d = \"text %d\"\n", i, i, i, i)
 	}

@@ -13,9 +13,9 @@ type Node = {
     pub value Int
 }
 
-fn needsSend[T: Send](x: &T) -> Unit {}
+fn needsSend[T: Send](x: &T) {}
 
-fn use(a: A, b: B, node: Node) -> Unit {
+fn use(a: A, b: B, node: Node) {
     needsSend(&a) //~ ERROR `A` does not satisfy `Send`: it cannot move to another thread
     needsSend(&b) //~ ERROR `B` does not satisfy `Send`: it cannot move to another thread
     needsSend(&node)

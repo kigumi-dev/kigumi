@@ -21,7 +21,7 @@ fn mk() -> Wrap {
 
 var chainShapes = []struct{ name, src string }{
 	{"field", chainPrelude + `
-noalloc fn op(w: &mut Wrap) -> Unit {
+noalloc fn op(w: &mut Wrap) {
     %s
 }
 
@@ -38,7 +38,7 @@ fn run(rounds: Int) -> Int {
 print "ok=${run(%d)}"
 `},
 	{"method", chainPrelude + `
-noalloc fn Wrap.op(mut self) -> Unit {
+noalloc fn Wrap.op(mut self) {
     %s
 }
 
@@ -55,7 +55,7 @@ fn run(rounds: Int) -> Int {
 print "ok=${run(%d)}"
 `},
 	{"undeclared", chainPrelude + `
-fn Wrap.op(mut self) -> Unit {
+fn Wrap.op(mut self) {
     %s
 }
 
@@ -126,7 +126,7 @@ type Grid = {
     pub mut rows FixedArray[FixedArray[Pt, 2], 2]
 }
 
-noalloc fn op(g: &mut Grid) -> Unit {
+noalloc fn op(g: &mut Grid) {
     %s
 }
 

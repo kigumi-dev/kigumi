@@ -11,10 +11,10 @@ import (
 const isrPairSrc = `
 type Pair = { pub x Int, pub y Int }
 
-noalloc fn poke() -> Unit {}
+noalloc fn poke() {}
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let p = Pair { x: 1, y: 2 }
         _ = p.y
         poke()
@@ -54,13 +54,13 @@ func TestInterruptLoweringFollowsCallees(t *testing.T) {
 }
 
 const isrMeasureSrc = `
-fn measure(s: String) -> Unit {
+fn measure(s: String) {
     let r = s.len()
     _ = r
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         measure("abc")
     }
 }
@@ -98,12 +98,12 @@ type Shape = | Dot(Pt) | Line(Pt, Pt)
 type Named = { pub name String }
 type Handle = resource { pub id Int }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn probe(pt Pt, wrap Wrap, shape Shape, grid FixedArray[Int, 100000], opt Option[Int], names FixedArray[String, 4], named Named, items Array[Int], text String, handle Handle, view &Named, edit &mut Named) -> Unit {}
+fn probe(pt Pt, wrap Wrap, shape Shape, grid FixedArray[Int, 100000], opt Option[Int], names FixedArray[String, 4], named Named, items Array[Int], text String, handle Handle, view &Named, edit &mut Named) {}
 
 export(interrupt) {
-    pub fn tick() -> Unit {}
+    pub fn tick() {}
 }
 `
 

@@ -4,15 +4,15 @@ type P = {
     pub mut b Float
 }
 
-noalloc fn put(r: &mut Int, i: Int) -> Unit {
+noalloc fn put(r: &mut Int, i: Int) {
     r = i
 }
 
-noalloc fn putAt(xs: &mut Array[Int], i: Int) -> Unit {
+noalloc fn putAt(xs: &mut Array[Int], i: Int) {
     xs[0] = i
 }
 
-noalloc fn putField(p: &mut P, i: Int, f: Float) -> Unit {
+noalloc fn putField(p: &mut P, i: Int, f: Float) {
     p.a = i
     p.b = f
 }
@@ -21,15 +21,15 @@ noalloc fn call(f: noalloc fn(Int) -> Bool, x: Int) -> Bool {
     f(x)
 }
 
-noalloc fn forward(r: &mut Int, i: Int) -> Unit {
+noalloc fn forward(r: &mut Int, i: Int) {
     put(r, i)
 }
 
-noalloc fn forwardTwice(r: &mut Int, i: Int) -> Unit {
+noalloc fn forwardTwice(r: &mut Int, i: Int) {
     forward(r, i)
 }
 
-noalloc fn copyFrom(xs: &mut Array[Int], ys: &Array[Int]) -> Unit {
+noalloc fn copyFrom(xs: &mut Array[Int], ys: &Array[Int]) {
     xs[0] = ys[1]
 }
 
@@ -45,20 +45,20 @@ noalloc fn passedOn(r: &mut Int, i: Int, f: noalloc fn(Int) -> Bool) -> Bool {
     call(f, i)
 }
 
-noalloc fn fromSlots(r: &mut Int, xs: &mut Array[Int]) -> Unit {
+noalloc fn fromSlots(r: &mut Int, xs: &mut Array[Int]) {
     put(r, xs[0])
     putAt(xs, xs[1])
 }
 
-noalloc fn computed(r: &mut Int, i: Int) -> Unit {
+noalloc fn computed(r: &mut Int, i: Int) {
     put(r, i + 1) //~ ERROR goes to a parameter its callee keeps in a box
 }
 
-noalloc fn computedField(p: &mut P, f: Float) -> Unit {
+noalloc fn computedField(p: &mut P, f: Float) {
     putField(p, 1, f * 2.0) //~ ERROR goes to a parameter its callee keeps in a box
 }
 
-noalloc fn computedForward(r: &mut Int, i: Int) -> Unit {
+noalloc fn computedForward(r: &mut Int, i: Int) {
     forwardTwice(r, i * 2) //~ ERROR goes to a parameter its callee keeps in a box
 }
 
@@ -83,7 +83,7 @@ noalloc fn callsGenComputed[G: Fn[noalloc fn(Int) -> Int]](g: G, i: Int) -> Int 
 }
 
 // A reassigned parameter no longer holds the box its caller made.
-noalloc fn reassigned(r: &mut Int, mut i: Int) -> Unit {
+noalloc fn reassigned(r: &mut Int, mut i: Int) {
     i = i + 1
     r = i //~ ERROR storing a computed `Int` in it allocates a box
 }
@@ -97,7 +97,7 @@ noalloc fn callsPlain(i: Int) -> Int {
     plain(i * 3)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E2147]: this computed `Int` goes to a parameter its callee keeps in a box, so the call allocates one for it
   --> main/main.kg:53:12

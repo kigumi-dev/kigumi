@@ -20,7 +20,7 @@ fn value(t: Tick) -> Int {
     }
 }
 
-fn main() -> Unit! { print "${value(Up(2))}" }
+fn main() -> Void! { print "${value(Up(2))}" }
 `
 
 func TestFieldWriteOnADirectSumTypeIsRefused(t *testing.T) {

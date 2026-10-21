@@ -12,7 +12,7 @@ fn Buf.finish(move self) -> Int {
     self.data.len().toInt() || 0
 }
 
-fn Buf.drop(move self) -> Unit {
+fn Buf.drop(move self) {
     print "drop ${self.id}"
 }
 

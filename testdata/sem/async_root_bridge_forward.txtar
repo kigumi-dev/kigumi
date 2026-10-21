@@ -10,15 +10,15 @@ fn syncRoot() -> Int {
     ex.runToCompletion(work())
 }
 
-fn keepIgnore(f: escaping fn() -> Int) -> Unit {
+fn keepIgnore(f: escaping fn() -> Int) {
     let _ = f
 }
 
-fn forwardIgnore(f: escaping fn() -> Int) -> Unit {
+fn forwardIgnore(f: escaping fn() -> Int) {
     keepIgnore(f)
 }
 
-async fn okForwardIgnore() -> Unit {
+async fn okForwardIgnore() {
     forwardIgnore(syncRoot)
 }
 
@@ -46,16 +46,16 @@ async fn badTwoHop() -> Int {
     outer(syncRoot) //~ ERROR cannot run inside an `async fn`
 }
 
-fn dropsIt(f: escaping fn() -> Int) -> Unit {
+fn dropsIt(f: escaping fn() -> Int) {
     let g = f
     let _ = g
 }
 
-fn midDrop(f: escaping fn() -> Int) -> Unit {
+fn midDrop(f: escaping fn() -> Int) {
     dropsIt(f)
 }
 
-async fn okTwoHopDrop() -> Unit {
+async fn okTwoHopDrop() {
     midDrop(syncRoot)
 }
 -- expect --

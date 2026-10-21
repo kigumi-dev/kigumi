@@ -36,7 +36,7 @@ extern(C) {
     fn frame_size() -> usize
     fn frame_get(f: *const Frame, i: i32) -> i64
     fn frame_get_val(f: Frame, i: i32) -> i64
-    fn frame_fill(f: *mut Frame) -> Unit
+    fn frame_fill(f: *mut Frame)
     fn frame_make(seed: i32) -> Frame
 }
 

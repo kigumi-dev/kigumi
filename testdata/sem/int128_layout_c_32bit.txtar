@@ -11,7 +11,7 @@ type Halves layout(C) = {
     pub hi u64
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     _ = Halves { lo: 1, hi: 2 }
 }
 -- expect --

@@ -1,14 +1,14 @@
 -- src --
-fn helper() -> Unit! {
+fn helper() -> Void! {
     let x = 1
 }
 
-fn helperControl() -> Unit! {
+fn helperControl() -> Void! {
     let x = 1
     print "control"
 }
 
-fn elseHelper(b: Bool) -> Unit! {
+fn elseHelper(b: Bool) -> Void! {
     if b {
         print "then"
     } else {
@@ -16,7 +16,7 @@ fn elseHelper(b: Bool) -> Unit! {
     }
 }
 
-fn matchHelper(b: Bool) -> Unit! {
+fn matchHelper(b: Bool) -> Void! {
     match b {
         true -> print "true"
         false -> {
@@ -25,11 +25,11 @@ fn matchHelper(b: Bool) -> Unit! {
     }
 }
 
-fn helperOpt() -> Unit? {
+fn helperOpt() -> Void? {
     let x = 1
 }
 
-let f: fn() -> Unit! = () => {
+let f: fn() -> Void! = () => {
     let x = 1
 }
 

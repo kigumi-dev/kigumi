@@ -5,7 +5,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -13,9 +13,9 @@ async fn tick() -> Int {
     1
 }
 
-fn inner() -> Unit {
+fn inner() {
     let r = Res { id: 2 }
-    let _: Unit = None.expect("sync")
+    let _: Void = None.expect("sync")
 }
 
 // A faulted task releases what its sync callee frames own before its async frames.

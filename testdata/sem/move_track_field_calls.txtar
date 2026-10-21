@@ -5,9 +5,9 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
-fn Res.close(move self) -> Unit {}
+fn Res.close(move self) {}
 
 fn Res.peek(self) -> Int {
     self.id
@@ -17,7 +17,7 @@ fn mkr(n: Int) -> Res {
     Res { id: n }
 }
 
-fn say(n: Int) -> Unit {}
+fn say(n: Int) {}
 
 type Wrap = {
     pub mut a Res
@@ -29,21 +29,21 @@ fn eat(r: Res) -> Bool {
     false
 }
 
-fn pushTwice() -> Unit {
+fn pushTwice() {
     let w = Wrap { a: mkr(1), n: 1 }
     let mut keep = Array.of(mkr(0))
     keep.push(w.a)
     keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
 }
 
-fn pushThenRead() -> Unit {
+fn pushThenRead() {
     let w = Wrap { a: mkr(2), n: 1 }
     let mut keep = Array.of(mkr(0))
     keep.push(w.a)
     say(w.a.peek()) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
 }
 
-fn pushInLoop() -> Unit {
+fn pushInLoop() {
     let w = Wrap { a: mkr(3), n: 1 }
     let mut keep = Array.of(mkr(0))
     for i in 0..2 {
@@ -51,14 +51,14 @@ fn pushInLoop() -> Unit {
     }
 }
 
-fn pushOnce() -> Unit {
+fn pushOnce() {
     let w = Wrap { a: mkr(4), n: 1 }
     let mut keep = Array.of(mkr(0))
     keep.push(w.a)
     say(w.n)
 }
 
-fn guardConsumes() -> Unit {
+fn guardConsumes() {
     let o = Some(mkr(5))
     match o {
         Some(r) if eat(r) -> say(1)
@@ -69,7 +69,7 @@ fn guardConsumes() -> Unit {
     }
 }
 
-fn chainConsumes() -> Unit {
+fn chainConsumes() {
     let o = Some(mkr(6))
     if o is Some(r) && eat(r) {
         say(1)
@@ -81,7 +81,7 @@ fn chainConsumes() -> Unit {
     }
 }
 
-fn chainElseKeeps(c: Bool) -> Unit {
+fn chainElseKeeps(c: Bool) {
     let o = Some(mkr(7))
     if o is Some(r) && c {
         r.close()

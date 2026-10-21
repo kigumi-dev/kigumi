@@ -15,11 +15,11 @@ fn Shape.area(self) -> Int {
     }
 }
 
-fn reset(s: &mut Shape, k: Int) -> Unit {
+fn reset(s: &mut Shape, k: Int) {
     s = Circle(k)
 }
 
-fn forward(s: &mut Shape, k: Int) -> Unit {
+fn forward(s: &mut Shape, k: Int) {
     reset(s, k)
 }
 
@@ -38,7 +38,7 @@ fn readLocal(k: Int) -> Int {
     readOnly(&mut v)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // The lent cell lives in the caller's frame; the callee stores through it.

@@ -23,7 +23,7 @@ fn Q.dup(self) -> Q {
     self
 }
 
-fn use(p: P, q: Q) -> Unit {
+fn use(p: P, q: Q) {
     let d: Display = p //~ ERROR expected `Display`, found `P`
     let e: Display = 1 //~ ERROR expected `Display`, found `Int`
     let f: Dup = q //~ ERROR `Dup` is not object-safe

@@ -1,5 +1,5 @@
 -- src --
-fn main() -> Unit! {
+fn main() -> Void! {
     let n: usize = 4
     let a: u8 = 1 << 8 //~ ERROR `256` does not fit `u8`
     let b = 340282366920938463463374607431768211456 >> n //~ ERROR `340282366920938463463374607431768211456` does not fit `u128`

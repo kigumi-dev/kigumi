@@ -1,0 +1,84 @@
+-- src --
+fn a(f: fn() -> !) {}
+type T = !
+fn b(x: !) {}
+fn c() -> ! {}
+let v: ! = 1
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: a
+    generics: -
+    params: List
+      Param f
+        type: TypeFn
+          params: List
+    ret: -
+    body: Block
+  TypeDecl
+    name: T
+    body: DefinedBody
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: b
+    generics: -
+    params: List
+      Param x
+    ret: -
+    body: Block
+  FnDecl
+    attrs: -
+    mods: stray!
+    vis: -
+    recv: -
+    name: c
+    generics: -
+    params: List
+    ret: -
+    body: Block
+  Let
+    pattern: PatBind v
+    init: Unary !
+      -
+-- diagnostics --
+error: expected type, found `!`
+ --> decl_fn_void_errors.txtar:1:17
+  |
+1 | fn a(f: fn() -> !) {}
+  |                 ^
+
+error: expected type, found `!`
+ --> decl_fn_void_errors.txtar:2:10
+  |
+2 | type T = !
+  |          ^
+
+error: expected type, found `!`
+ --> decl_fn_void_errors.txtar:3:9
+  |
+3 | fn b(x: !) {}
+  |         ^
+
+error: expected type, found `!`
+ --> decl_fn_void_errors.txtar:4:11
+  |
+4 | fn c() -> ! {}
+  |           ^
+
+error: expected type, found `!`
+ --> decl_fn_void_errors.txtar:5:8
+  |
+5 | let v: ! = 1
+  |        ^
+
+error: expected expression, found `=`
+ --> decl_fn_void_errors.txtar:5:10
+  |
+5 | let v: ! = 1
+  |          ^
+

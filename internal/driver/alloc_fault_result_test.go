@@ -37,14 +37,14 @@ var resultCases = []resultCase{
 	{name: "int and int", ok: "Int", err: "Int", use: "v|e"},
 	{name: "record payload", decls: "type Point = {\n    pub x Int\n    pub y Int\n}\n", ok: "Point", err: "Int", use: "v.x + v.y|e"},
 	{name: "variant error", decls: "type Fault = Bad(n: Int) | Worse\n", ok: "Int", err: "Fault", use: "v|(match e {\n                Bad(n) -> n\n                Worse -> 0\n            })"},
-	{name: "unit payload", ok: "Unit", err: "Int", use: "1|e"},
+	{name: "unit payload", ok: "Void", err: "Int", use: "1|e"},
 	{name: "bool and float", ok: "Bool", err: "Float", use: "(if v { 1 } else { 0 })|(if e > 1.0 { 2 } else { 3 })"},
 }
 
 func (c resultCase) src(rounds int) string {
 	mk := map[string][2]string{
 		"Int": {"i", "i"}, "Point": {"Point { x: i, y: 1 }", ""}, "Fault": {"", "Bad(i)"},
-		"Unit": {"()", ""}, "Bool": {"i > 0", ""}, "Float": {"", "1.5"},
+		"Void": {"()", ""}, "Bool": {"i > 0", ""}, "Float": {"", "1.5"},
 	}
 	okv, errv := mk[c.ok][0], mk[c.err][1]
 	if c.ok == "Int" {

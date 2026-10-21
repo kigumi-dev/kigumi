@@ -35,7 +35,7 @@ noalloc fn viaValue(f: fn(Pt) -> Pt, p: Pt) -> Pt {
     f(p) //~ ERROR the `Pt` it returns arrives in a box the callee allocates //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
 }
 
-noalloc fn viaPush(p: Pt, mut xs: Array[Pt]) -> Unit {
+noalloc fn viaPush(p: Pt, mut xs: Array[Pt]) {
     xs.push(p) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Pt` to a slot that holds a reference allocates a box for it
 }
 -- expect --

@@ -9,12 +9,12 @@ async fn spawner() -> task.Task[Int] {
     task.spawn(leaf())
 }
 
-fn stop(t: task.Task[Int]) -> Unit {
+fn stop(t: task.Task[Int]) {
     t.cancel()
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit { //~ ERROR export(interrupt) handler `tick` may block or reach unverified code
+    pub fn tick() { //~ ERROR export(interrupt) handler `tick` may block or reach unverified code
         let ex = task.currentThreadExecutor()
         let t = ex.runToCompletion(spawner())
         stop(t)
@@ -25,8 +25,8 @@ export(interrupt) {
 error[E1082]: export(interrupt) handler `tick` may block or reach unverified code
   --> app/t/t.kg:16:5
    |
-16 |     pub fn tick() -> Unit { //~ ERROR export(interrupt) handler `tick` may block or reach unverified code
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+16 |     pub fn tick() { //~ ERROR export(interrupt) handler `tick` may block or reach unverified code
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: give the callee a body the compiler can check: `noalloc` alone is no interrupt contract, and an extern(C) declaration cannot carry one yet
    = help: `tick` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
 note: calls `currentThreadExecutor`, which has no body the compiler can check and no reviewed interrupt contract

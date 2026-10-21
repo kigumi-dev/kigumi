@@ -1,7 +1,7 @@
 -- lib/pat.kg --
 type Shape = Circle(r: Int) | Square(s: Int)
 
-fn okNoElse(x: Int?) -> Unit {
+fn okNoElse(x: Int?) {
     if let Some(v) = x {
         let w = v //~ TYPE w : Int
     }

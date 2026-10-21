@@ -14,7 +14,7 @@ fn useWitness['a, T: Peek['a]](x: T) -> usize {
     r.len()
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let data = Bytes.fromArray(&Array.of(1, 2, 3))
     let h = Holder { buf: &data }
     let n = useWitness(h)

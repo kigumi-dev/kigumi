@@ -13,23 +13,23 @@ type Outer = {
     pub mut tag Int
 }
 
-noalloc fn viaField(w: &mut Wrap, to: usize, from: usize) -> Unit {
+noalloc fn viaField(w: &mut Wrap, to: usize, from: usize) {
     w.a[to] = w.a[from]
 }
 
-fn viaFieldPlain(w: &mut Wrap) -> Unit {
+fn viaFieldPlain(w: &mut Wrap) {
     w.a[0] = w.a[1]
 }
 
-noalloc fn viaDeep(o: &mut Outer) -> Unit {
+noalloc fn viaDeep(o: &mut Outer) {
     o.w.a[2] = o.w.a[0]
 }
 
-fn Wrap.shift(mut self) -> Unit {
+fn Wrap.shift(mut self) {
     self.a[0] = self.a[2]
 }
 
-noalloc fn Wrap.shiftNa(mut self) -> Unit {
+noalloc fn Wrap.shiftNa(mut self) {
     self.a[1] = self.a[2]
 }
 
@@ -48,7 +48,7 @@ fn closureCopy() -> String {
     "${cs[0].x},${cs[0].y} ${cs[1].x},${cs[1].y} ${cs[2].x},${cs[2].y}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut w = Wrap { a: FixedArray.filled[Pt, 3](Pt { x: 1, y: 2 }) }
     w.a[1] = Pt { x: 3, y: 4 }
     w.a[2] = Pt { x: 5, y: 6 }

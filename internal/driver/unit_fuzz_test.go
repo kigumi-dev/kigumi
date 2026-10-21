@@ -63,7 +63,7 @@ pub type Holder['a] = {
     pub mut r &'a mut Shape2
 }
 
-pub fn touch(s: &mut Shape2, k: Int) -> Unit {
+pub fn touch(s: &mut Shape2, k: Int) {
     let n = k
 }
 
@@ -105,7 +105,7 @@ pub fn area(n: Int) -> Int {
     lib.measure(lib.Square { n: n })
 }
 
-pub fn relay['a](h: lib.Holder['a]) -> Unit {
+pub fn relay['a](h: lib.Holder['a]) {
     lib.touch(h.r, 1)
 }
 

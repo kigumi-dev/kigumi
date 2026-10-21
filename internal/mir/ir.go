@@ -164,8 +164,8 @@ type Func struct {
 	Cleanups []syntax.NodeID
 	ghosts   ghostSet
 	// ImplicitOk marks a script's implicit main: falling off its statement
-	// list returns a bare Unit standing for Ok(()), unlike every other
-	// return of a fallible-Unit function, which must carry a real Ok.
+	// list returns a bare Void standing for Ok(()), unlike every other
+	// return of a fallible-Void function, which must carry a real Ok.
 	ImplicitOk bool
 	// Async marks a body that runs as a resumable state machine: Suspends
 	// counts its points, Slot places a local in the Frame slots (-1: none).

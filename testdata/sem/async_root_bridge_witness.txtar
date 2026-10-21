@@ -23,14 +23,14 @@ type RiskyHolder = {
 }
 
 interface Armable {
-    fn arm(mut self) -> Unit
+    fn arm(mut self)
 }
 
-fn SafeHolder.arm(mut self) -> Unit {
+fn SafeHolder.arm(mut self) {
     self.cb = safeFn
 }
 
-fn RiskyHolder.arm(mut self) -> Unit {
+fn RiskyHolder.arm(mut self) {
     self.cb = syncRoot
 }
 
@@ -42,11 +42,11 @@ fn callRisky(h: RiskyHolder) -> Int {
     h.cb()
 }
 
-fn armVia[S: Armable](s: &mut S) -> Unit {
+fn armVia[S: Armable](s: &mut S) {
     s.arm()
 }
 
-fn armViaTwice[S: Armable](s: &mut S) -> Unit {
+fn armViaTwice[S: Armable](s: &mut S) {
     armVia(s)
 }
 
@@ -57,7 +57,7 @@ async fn riskyWitnessEarly() -> Int {
     callRisky(h) //~ ERROR cannot run inside an `async fn`
 }
 
-fn armViaLate[S: Armable](s: &mut S) -> Unit {
+fn armViaLate[S: Armable](s: &mut S) {
     s.arm()
 }
 
@@ -97,11 +97,11 @@ fn unrelatedRiskyWitnessTwoHop() -> Int {
     callRisky(h)
 }
 
-fn setRef(h: &mut SafeHolder, f: escaping fn() -> Int) -> Unit {
+fn setRef(h: &mut SafeHolder, f: escaping fn() -> Int) {
     h.cb = f
 }
 
-fn forwardSet(h: &mut SafeHolder, f: escaping fn() -> Int) -> Unit {
+fn forwardSet(h: &mut SafeHolder, f: escaping fn() -> Int) {
     setRef(h, f)
 }
 

@@ -1,12 +1,12 @@
 -- lib/lt.kg --
 type View['a] = { pub data &'a Bytes, pub off usize }
 
-fn chooseView['a](b: &'a Bytes, which: fn(&'a Bytes) -> View['a]) -> Unit {
+fn chooseView['a](b: &'a Bytes, which: fn(&'a Bytes) -> View['a]) {
     let v = which(b)
     _ = v
 }
 -- expect --
-fn lib.chooseView(%b: &Bytes, %which: fn(&Bytes) -> View['a]) -> Unit {
+fn lib.chooseView(%b: &Bytes, %which: fn(&Bytes) -> View['a]) -> Void {
   b0:
     %t2 = copy(%b)
     %t3 = callv(%which, %t2)

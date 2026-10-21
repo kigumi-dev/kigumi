@@ -7,7 +7,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -15,11 +15,11 @@ type Wrapper = {
     pub inner Res
 }
 
-fn consume(x: Res) -> Unit {
+fn consume(x: Res) {
     print "consume ${x.id}"
 }
 
-fn Wrapper.give(move self) -> Unit {
+fn Wrapper.give(move self) {
     consume(self.inner)
 }
 

@@ -4,7 +4,7 @@ var primEntities = []struct {
 	name string
 	id   TypeID
 }{
-	{"Unit", TyUnit}, {"Never", TyNever}, {"Bool", TyBool}, {"Char", TyChar}, {"String", TyString}, {"Bytes", TyBytes},
+	{"Void", TyUnit}, {"Never", TyNever}, {"Bool", TyBool}, {"Char", TyChar}, {"String", TyString}, {"Bytes", TyBytes},
 	{"i8", TyI8}, {"i16", TyI16}, {"i32", TyI32}, {"i64", TyI64}, {"i128", TyI128},
 	{"u8", TyU8}, {"u16", TyU16}, {"u32", TyU32}, {"u64", TyU64}, {"u128", TyU128},
 	{"usize", TyUsize}, {"isize", TyIsize}, {"f32", TyF32}, {"f64", TyF64},

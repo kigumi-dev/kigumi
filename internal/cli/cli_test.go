@@ -98,7 +98,7 @@ func TestCommands(t *testing.T) {
 func TestMissingEntryFile(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "other.kg"), []byte("fn main() -> Unit! {}\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "other.kg"), []byte("fn main() -> Void! {}\n"), 0o644)
 	missing := filepath.Join(dir, "does_not_exist.kg")
 
 	for _, sub := range []string{"check", "test", "doc"} {

@@ -9,7 +9,7 @@ fn pickData['a, 'b](v: View['a], other: View['b]) -> &'b Bytes {
     pick2(v.data, other.data)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf1 = Bytes.fromArray(&Array.of(1, 2, 3))
     let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
     let v1 = View { data: &buf1, off: 0 }

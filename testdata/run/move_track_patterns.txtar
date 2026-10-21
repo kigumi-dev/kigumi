@@ -3,11 +3,11 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Res.close(move self) -> Unit {
+fn Res.close(move self) {
     print "close ${self.id}"
 }
 
@@ -24,7 +24,7 @@ type Pair = {
     pub right Res
 }
 
-fn matchThenRefill() -> Unit {
+fn matchThenRefill() {
     let mut o = Some(mkr(1))
     match o {
         Some(r) -> r.close()
@@ -45,12 +45,12 @@ fn tryOnce(r: Result[Res, String]) -> Result[Int, String] {
     Ok(n)
 }
 
-fn orOnce(o: Res?) -> Unit {
+fn orOnce(o: Res?) {
     let a = o || mkr(99)
     print "or ${a.peek()}"
 }
 
-fn ifLetThenReinit() -> Unit {
+fn ifLetThenReinit() {
     let mut o = Some(mkr(3))
     if let Some(r) = o {
         r.close()
@@ -60,7 +60,7 @@ fn ifLetThenReinit() -> Unit {
     print "end ifLetThenReinit"
 }
 
-fn recordPattern() -> Unit {
+fn recordPattern() {
     let p = Pair { left: mkr(5), right: mkr(6) }
     match p {
         Pair { left, right } -> {
@@ -71,7 +71,7 @@ fn recordPattern() -> Unit {
     print "end recordPattern"
 }
 
-fn borrowedTwice() -> Unit {
+fn borrowedTwice() {
     let o = Some(mkr(7))
     match &o {
         Some(r) -> print "peek ${r.peek()}"
@@ -87,7 +87,7 @@ fn borrowedTwice() -> Unit {
     }
 }
 
-fn arrayOwnedOnce() -> Unit {
+fn arrayOwnedOnce() {
     let o = Some(Array.of(1, 2, 3))
     let mut a = match o {
         Some(xs) -> xs
@@ -97,7 +97,7 @@ fn arrayOwnedOnce() -> Unit {
     print "len ${a.len()}"
 }
 
-fn isAndElse(c: Bool) -> Unit {
+fn isAndElse(c: Bool) {
     let o = Some(mkr(12))
     if o is Some(r) && c {
         r.close()
@@ -109,7 +109,7 @@ fn isAndElse(c: Bool) -> Unit {
     }
 }
 
-fn closeOpt(o: Res?) -> Unit {
+fn closeOpt(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
@@ -123,14 +123,14 @@ fn peekOpt(o: &Res?) -> Bool {
     }
 }
 
-fn guardReadsByRef(o: Res?) -> Unit {
+fn guardReadsByRef(o: Res?) {
     match o {
         Some(r) if peekOpt(&o) -> r.close()
         _ -> {}
     }
 }
 
-fn chainFailsThenUse(o: Res?, c: Bool) -> Unit {
+fn chainFailsThenUse(o: Res?, c: Bool) {
     if o is Some(r) && c {
         r.close()
     } else {
@@ -138,7 +138,7 @@ fn chainFailsThenUse(o: Res?, c: Bool) -> Unit {
     }
 }
 
-fn guardFailsToOther(o: Res?) -> Unit {
+fn guardFailsToOther(o: Res?) {
     match o {
         Some(r) if r.peek() > 25 -> r.close()
         other -> closeOpt(other)
@@ -150,14 +150,14 @@ type Slot = {
     pub n Int
 }
 
-fn closeSlot(s: Slot) -> Unit {
+fn closeSlot(s: Slot) {
     match s.o {
         Some(r) -> r.close()
         None -> print "slot empty ${s.n}"
     }
 }
 
-fn fieldReinit(s: Slot) -> Unit {
+fn fieldReinit(s: Slot) {
     let mut v = s
     match v.o {
         Some(r) -> r.close()
@@ -173,7 +173,7 @@ type SlotBox = {
     pub mut s Slot
 }
 
-fn catchAllLocal() -> Unit {
+fn catchAllLocal() {
     let s = Slot { o: Some(mkr(80)), n: 0 }
     match s.o {
         other -> print "catch-all local"
@@ -181,42 +181,42 @@ fn catchAllLocal() -> Unit {
     print "end catchAllLocal"
 }
 
-fn catchAllParam(s: Slot) -> Unit {
+fn catchAllParam(s: Slot) {
     match s.o {
         other -> print "catch-all param"
     }
     print "end catchAllParam"
 }
 
-fn catchAllNested(b: SlotBox) -> Unit {
+fn catchAllNested(b: SlotBox) {
     match b.s.o {
         other -> print "catch-all nested"
     }
     print "end catchAllNested"
 }
 
-fn catchAllRecordField(b: SlotBox) -> Unit {
+fn catchAllRecordField(b: SlotBox) {
     match b.s {
         s2 -> print "catch-all record ${s2.n}"
     }
     print "end catchAllRecordField"
 }
 
-fn catchAllPairField(p: Pair) -> Unit {
+fn catchAllPairField(p: Pair) {
     match p.left {
         x -> print "catch-all left ${x.peek()}"
     }
     print "end catchAllPairField"
 }
 
-fn catchAllMoved(s: Slot) -> Unit {
+fn catchAllMoved(s: Slot) {
     match move s.o {
         other -> print "catch-all moved"
     }
     print "end catchAllMoved"
 }
 
-fn catchAllThenReassign() -> Unit {
+fn catchAllThenReassign() {
     let mut s = Slot { o: Some(mkr(86)), n: 0 }
     match s.o {
         other -> print "catch-all then reassign"
@@ -225,7 +225,7 @@ fn catchAllThenReassign() -> Unit {
     print "end catchAllThenReassign"
 }
 
-fn catchAllThenMatch(s: Slot) -> Unit {
+fn catchAllThenMatch(s: Slot) {
     match s.o {
         other -> match other {
             Some(r) -> r.close()
@@ -235,7 +235,7 @@ fn catchAllThenMatch(s: Slot) -> Unit {
     print "end catchAllThenMatch"
 }
 
-fn wholeReinit() -> Unit {
+fn wholeReinit() {
     let mut o = Some(mkr(90))
     match o {
         x -> closeOpt(x)
@@ -245,14 +245,14 @@ fn wholeReinit() -> Unit {
     print "end wholeReinit"
 }
 
-fn wholeKept(o: Res?) -> Unit {
+fn wholeKept(o: Res?) {
     match o {
         x -> print "whole kept"
     }
     print "end wholeKept"
 }
 
-fn wholeGuarded(o: Res?, g: Bool) -> Unit {
+fn wholeGuarded(o: Res?, g: Bool) {
     match o {
         x if g -> closeOpt(x)
         other -> print "whole guard failed"
@@ -260,14 +260,14 @@ fn wholeGuarded(o: Res?, g: Bool) -> Unit {
     print "end wholeGuarded ${g}"
 }
 
-fn wholeIfLet(o: Res?) -> Unit {
+fn wholeIfLet(o: Res?) {
     if let x = o {
         print "whole if let"
     }
     print "end wholeIfLet"
 }
 
-fn wholeAfterBorrow(o: Res?) -> Unit {
+fn wholeAfterBorrow(o: Res?) {
     let r = &o
     print "borrowed ${peekOpt(r)}"
     match o {
@@ -275,7 +275,7 @@ fn wholeAfterBorrow(o: Res?) -> Unit {
     }
 }
 
-fn leadingAndIs(o: Res?, c: Bool) -> Unit {
+fn leadingAndIs(o: Res?, c: Bool) {
     if c && o is x {
         closeOpt(x)
     } else {
@@ -284,14 +284,14 @@ fn leadingAndIs(o: Res?, c: Bool) -> Unit {
     print "end leadingAndIs ${c}"
 }
 
-fn leadingAndIsSome(o: Res?, c: Bool) -> Unit {
+fn leadingAndIsSome(o: Res?, c: Bool) {
     if c && o is Some(r) {
         r.close()
     }
     print "end leadingAndIsSome ${c}"
 }
 
-fn guardReadsBinding(o: Res?) -> Unit {
+fn guardReadsBinding(o: Res?) {
     match o {
         x if { match &x { Some(r) -> r.peek() > 100, None -> false } } -> closeOpt(x)
         other -> closeOpt(other)

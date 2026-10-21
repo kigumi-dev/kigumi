@@ -11,19 +11,19 @@ type Cell = {
     pub mut c Char
 }
 
-noalloc fn copyPt(xs: &mut FixedArray[Pt, 3], to: usize, from: usize) -> Unit {
+noalloc fn copyPt(xs: &mut FixedArray[Pt, 3], to: usize, from: usize) {
     xs[to] = xs[from]
 }
 
-noalloc fn firstFromLast(xs: &mut FixedArray[Pt, 3]) -> Unit {
+noalloc fn firstFromLast(xs: &mut FixedArray[Pt, 3]) {
     xs[0] = xs[2]
 }
 
-noalloc fn copyCell(xs: &mut FixedArray[Cell, 2]) -> Unit {
+noalloc fn copyCell(xs: &mut FixedArray[Cell, 2]) {
     xs[0] = xs[1]
 }
 
-noalloc fn between(dst: &mut FixedArray[Pt, 3], src: &FixedArray[Pt, 3]) -> Unit {
+noalloc fn between(dst: &mut FixedArray[Pt, 3], src: &FixedArray[Pt, 3]) {
     dst[1] = src[2]
 }
 
@@ -31,7 +31,7 @@ fn show(xs: &FixedArray[Pt, 3]) -> String {
     "${xs[0].x},${xs[0].y} ${xs[1].x},${xs[1].y} ${xs[2].x},${xs[2].y}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut a = FixedArray.filled[Pt, 3](Pt { x: 1, y: 2 })
     a[1] = Pt { x: 3, y: 4 }
     a[2] = Pt { x: 5, y: 6 }

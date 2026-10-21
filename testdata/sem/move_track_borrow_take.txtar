@@ -5,17 +5,17 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
-fn Res.close(move self) -> Unit {}
+fn Res.close(move self) {}
 
 fn Res.peek(self) -> Int {
     self.id
 }
 
-fn say(n: Int) -> Unit {}
+fn say(n: Int) {}
 
-fn sayRef(n: &Int) -> Unit {}
+fn sayRef(n: &Int) {}
 
 fn mkr(n: Int) -> Res {
     Res { id: n }
@@ -25,14 +25,14 @@ type SB = {
     pub n Int
 }
 
-fn peekRef(o: &Res?) -> Unit {
+fn peekRef(o: &Res?) {
     match o {
         Some(q) -> say(q.peek())
         None -> {}
     }
 }
 
-fn borrowThenMatch() -> Unit {
+fn borrowThenMatch() {
     let o = Some(mkr(1))
     let r = &o
     match o {
@@ -42,7 +42,7 @@ fn borrowThenMatch() -> Unit {
     peekRef(r)
 }
 
-fn fieldBorrowThenMatch(s: SB) -> Unit {
+fn fieldBorrowThenMatch(s: SB) {
     let r = &s.o
     match s.o {
         Some(q) -> q.close() //~ ERROR `s` is borrowed and cannot be moved or dropped here
@@ -51,7 +51,7 @@ fn fieldBorrowThenMatch(s: SB) -> Unit {
     peekRef(r)
 }
 
-fn wholeBorrowThenMatch(s: SB) -> Unit {
+fn wholeBorrowThenMatch(s: SB) {
     let r = &s
     match s.o {
         Some(q) -> q.close() //~ ERROR `s` is borrowed and cannot be moved or dropped here
@@ -60,7 +60,7 @@ fn wholeBorrowThenMatch(s: SB) -> Unit {
     say(r.n)
 }
 
-fn borrowThenIfLet(o: Res?) -> Unit {
+fn borrowThenIfLet(o: Res?) {
     let r = &o
     if let Some(q) = o { //~ ERROR `o` is borrowed and cannot be moved or dropped here
         q.close()
@@ -68,7 +68,7 @@ fn borrowThenIfLet(o: Res?) -> Unit {
     peekRef(r)
 }
 
-fn borrowThenIs(o: Res?) -> Unit {
+fn borrowThenIs(o: Res?) {
     let r = &o
     if o is Some(q) { //~ ERROR `o` is borrowed and cannot be moved or dropped here
         q.close()
@@ -76,7 +76,7 @@ fn borrowThenIs(o: Res?) -> Unit {
     peekRef(r)
 }
 
-fn borrowThenOr(o: Res?) -> Unit {
+fn borrowThenOr(o: Res?) {
     let r = &o
     let a = o || mkr(0) //~ ERROR `o` is borrowed and cannot be moved or dropped here
     a.close()
@@ -94,7 +94,7 @@ fn borrowThenTry(r: Result[Res, String]) -> Result[Int, String] {
     Ok(1)
 }
 
-fn borrowEndsThenMatch(o: Res?) -> Unit {
+fn borrowEndsThenMatch(o: Res?) {
     let r = &o
     peekRef(r)
     match o {
@@ -103,7 +103,7 @@ fn borrowEndsThenMatch(o: Res?) -> Unit {
     }
 }
 
-fn disjointFieldBorrow(s: SB) -> Unit {
+fn disjointFieldBorrow(s: SB) {
     let r = &s.n
     match s.o {
         Some(q) -> q.close()
@@ -112,14 +112,14 @@ fn disjointFieldBorrow(s: SB) -> Unit {
     sayRef(r)
 }
 
-fn eatWhole(o: Res?) -> Unit {
+fn eatWhole(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
     }
 }
 
-fn borrowThenCatchAll(o: Res?) -> Unit {
+fn borrowThenCatchAll(o: Res?) {
     let r = &o
     match o {
         x -> eatWhole(x) //~ ERROR `o` is borrowed and cannot be moved or dropped here
@@ -127,7 +127,7 @@ fn borrowThenCatchAll(o: Res?) -> Unit {
     peekRef(r)
 }
 
-fn borrowThenCatchAllAlias(o: Res?) -> Unit {
+fn borrowThenCatchAllAlias(o: Res?) {
     let r = &o
     match o {
         x -> match x { //~ ERROR `o` is borrowed and cannot be moved or dropped here
@@ -138,7 +138,7 @@ fn borrowThenCatchAllAlias(o: Res?) -> Unit {
     peekRef(r)
 }
 
-fn borrowThenGuardedCatchAll(o: Res?, g: Bool) -> Unit {
+fn borrowThenGuardedCatchAll(o: Res?, g: Bool) {
     let r = &o
     match o {
         x if g -> eatWhole(x) //~ ERROR `o` is borrowed and cannot be moved or dropped here
@@ -147,7 +147,7 @@ fn borrowThenGuardedCatchAll(o: Res?, g: Bool) -> Unit {
     peekRef(r)
 }
 
-fn borrowEndsThenCatchAll(o: Res?) -> Unit {
+fn borrowEndsThenCatchAll(o: Res?) {
     let r = &o
     peekRef(r)
     match o {

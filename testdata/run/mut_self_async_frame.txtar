@@ -5,7 +5,7 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.bump(mut self, by: Int) -> Unit {
+fn Counter.bump(mut self, by: Int) {
     self.n = self.n + by
 }
 

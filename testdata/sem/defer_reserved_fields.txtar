@@ -3,17 +3,17 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
 }
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn takePack(p: Pack) -> Unit {}
+fn takePack(p: Pack) {}
 
 type Pack = {
     pub mut inner Handle
@@ -29,62 +29,62 @@ fn mk() -> Pack {
     Pack { inner: Handle { id: 1 }, other: Handle { id: 2 }, n: 0 }
 }
 
-fn reassignWhole() -> Unit {
+fn reassignWhole() {
     let mut b = mk()
     defer { take(b.inner) }
     b = mk() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
 }
 
-fn reassignField() -> Unit {
+fn reassignField() {
     let mut b = mk()
     defer { take(b.inner) }
     b.inner = Handle { id: 3 } //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
 }
 
-fn reassignFailField() -> Unit! {
+fn reassignFailField() -> Void! {
     let mut b = mk()
     defer(fail) { take(b.inner) }
     b.inner = Handle { id: 3 } //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be assigned
 }
 
-fn reassignNestedField() -> Unit {
+fn reassignNestedField() {
     let mut o = Outer { pack: mk() }
     defer { take(o.pack.inner) }
     o.pack = mk() //~ ERROR `o.pack.inner` is reserved by a cleanup that consumes it and cannot be assigned
 }
 
-fn moveWhole() -> Unit {
+fn moveWhole() {
     let b = mk()
     defer { take(b.inner) }
     let c = b //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
     _ = c.n
 }
 
-fn moveField() -> Unit {
+fn moveField() {
     let b = mk()
     defer { take(b.inner) }
     take(b.inner) //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
 }
 
-fn moveFieldByClose() -> Unit {
+fn moveFieldByClose() {
     let b = mk()
     defer { b.inner.close() }
     b.inner.close() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
 }
 
-fn secondCleanupSameField() -> Unit {
+fn secondCleanupSameField() {
     let b = mk()
     defer { take(b.inner) }
     defer { take(b.inner) } //~ ERROR `b.inner` is already consumed by an earlier cleanup
 }
 
-fn secondCleanupWholeBinding() -> Unit {
+fn secondCleanupWholeBinding() {
     let b = mk()
     defer { take(b.inner) }
     defer { takePack(b) } //~ ERROR `b.inner` is already consumed by an earlier cleanup
 }
 
-fn outerBindingAssignedAfterConsume() -> Unit {
+fn outerBindingAssignedAfterConsume() {
     let mut h = Handle { id: 1 }
     defer {
         h.close()
@@ -92,7 +92,7 @@ fn outerBindingAssignedAfterConsume() -> Unit {
     }
 }
 
-fn outerFieldAssignedAfterConsume() -> Unit {
+fn outerFieldAssignedAfterConsume() {
     let mut b = mk()
     defer {
         take(b.inner)
@@ -100,42 +100,42 @@ fn outerFieldAssignedAfterConsume() -> Unit {
     }
 }
 
-fn lambdaMovesReserved() -> Unit {
+fn lambdaMovesReserved() {
     let h = Handle { id: 1 }
     defer { h.close() }
     let f = () => h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
     _ = f
 }
 
-fn lambdaMovesFailReserved() -> Unit! {
+fn lambdaMovesFailReserved() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { h.close() }
     let f = () => h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
     _ = f
 }
 
-fn lambdaMovesWholeOfFieldReserved() -> Unit {
+fn lambdaMovesWholeOfFieldReserved() {
     let b = mk()
     defer { take(b.inner) }
     let f = () => b //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be moved
     _ = f
 }
 
-fn breakMovesReserved() -> Unit {
+fn breakMovesReserved() {
     let h = Handle { id: 1 }
     defer { h.close() }
     let r = for { break h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
     _ = r
 }
 
-fn breakMovesFailReserved() -> Unit! {
+fn breakMovesFailReserved() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { h.close() }
     let r = for { break h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
     _ = r
 }
 
-fn siblingFieldStaysUsable() -> Unit {
+fn siblingFieldStaysUsable() {
     let mut b = mk()
     defer { take(b.inner) }
     take(b.other)
@@ -144,26 +144,26 @@ fn siblingFieldStaysUsable() -> Unit {
     _ = b.inner.peek()
 }
 
-fn siblingCleanups() -> Unit {
+fn siblingCleanups() {
     let b = mk()
     defer { take(b.inner) }
     defer { take(b.other) }
 }
 
-fn siblingAfterFailCleanup() -> Unit! {
+fn siblingAfterFailCleanup() -> Void! {
     let b = mk()
     defer(fail) { take(b.inner) }
     take(b.other)
 }
 
-fn closureBorrowsReservedBinding() -> Unit {
+fn closureBorrowsReservedBinding() {
     let h = Handle { id: 1 }
     defer { h.close() }
     let n = h.peek()
     _ = n
 }
 
-fn assignBeforeConsumeInCleanup() -> Unit {
+fn assignBeforeConsumeInCleanup() {
     let mut h = Handle { id: 1 }
     defer {
         h = Handle { id: 2 }

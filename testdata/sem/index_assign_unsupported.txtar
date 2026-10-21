@@ -3,7 +3,7 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.inc(mut self) -> Unit {
+fn Counter.inc(mut self) {
     self.n += 1
 }
 
@@ -11,7 +11,7 @@ type Cell = {
     pub mut n Int
 }
 
-fn Cell.inc(mut self) -> Unit {
+fn Cell.inc(mut self) {
     self.n += 1
 }
 
@@ -21,7 +21,7 @@ fn Buf.index(self, i: usize) -> Cell {
     Cell { n: 0 }
 }
 
-fn m() -> Unit {
+fn m() {
     let mut arr = Array.of(Counter { n: 0 }, Counter { n: 1 })
     arr[0].n = 9
     arr[0].n += 1

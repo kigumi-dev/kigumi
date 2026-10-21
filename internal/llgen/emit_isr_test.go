@@ -8,10 +8,10 @@ import (
 // TestExportInterruptWrapperNoAlloc checks the export(interrupt) wrapper and handler body never allocate.
 func TestExportInterruptWrapperNoAlloc(t *testing.T) {
 	src := `
-noalloc fn poke() -> Unit {}
+noalloc fn poke() {}
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         poke()
     }
 }
@@ -58,7 +58,7 @@ fn pick(m: Mode) -> Int {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let b = true
         let r = match b {
             true -> 1

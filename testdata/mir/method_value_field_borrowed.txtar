@@ -3,7 +3,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.get(self, k: Int) -> Int { self.n + k }
 
@@ -15,7 +15,7 @@ type Pair = {
 
 fn Pair.sum(self) -> Int { self.left.n + self.right.n }
 
-fn show(r: &Res) -> Unit {}
+fn show(r: &Res) {}
 
 fn two[F: Fn[fn(Int) -> Int]](p: &Pair, f: F) -> Int { p.left.n + f(1) }
 
@@ -36,7 +36,7 @@ fn borrowedArgument() -> Int {
     two(&p, p.left.get)
 }
 
-fn borrowedHolder() -> Unit {
+fn borrowedHolder() {
     let p = Pair { tag: 1, left: Res { n: 1 }, right: Res { n: 2 } }
     let b = &p
     let f = p.left.get
@@ -82,7 +82,7 @@ fn capturedCalledBefore() -> Int {
     x + f(1)
 }
 -- expect --
-fn lib.Res.drop(%self: Res) -> Unit {
+fn lib.Res.drop(%self: Res) -> Void {
   b0:
     %t1 = unit
     return %t1
@@ -103,7 +103,7 @@ fn lib.Pair.sum(%self: Pair) -> Int {
     %t5 = bin +(%t2, %t4)
     return %t5
 }
-fn lib.show(%r: &Res) -> Unit {
+fn lib.show(%r: &Res) -> Void {
   b0:
     %t1 = unit
     return %t1
@@ -167,7 +167,7 @@ fn lib.borrowedArgument() -> Int {
     drop(%p)
     return %t10
 }
-fn lib.borrowedHolder() -> Unit {
+fn lib.borrowedHolder() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = const 1: Int

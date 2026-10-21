@@ -45,7 +45,7 @@ fn firstLarge(xs: &Array[Int]) -> Int {
     found
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // ownedTemps are the temporaries a path must give up exactly once: fresh values nothing else adopts.

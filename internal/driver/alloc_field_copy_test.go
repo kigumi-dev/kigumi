@@ -34,7 +34,7 @@ fn mk() -> Outer {
 
 var fieldCopyShapes = []struct{ name, src string }{
 	{"param", fieldCopyPrelude + `
-noalloc fn op(o: &mut Outer) -> Unit {
+noalloc fn op(o: &mut Outer) {
     %s
 }
 
@@ -51,7 +51,7 @@ fn run(rounds: Int) -> Int {
 print "ok=${run(%d)}"
 `},
 	{"method", fieldCopyPrelude + `
-noalloc fn Outer.op(mut self) -> Unit {
+noalloc fn Outer.op(mut self) {
     %s
 }
 
@@ -106,35 +106,35 @@ func TestRecordFieldCopyAllocatesNothing(t *testing.T) {
 }
 
 const ownedRootStoreSrc = fieldCopyPrelude + `
-fn bySlots(mut w: Wrap, i: usize, j: usize) -> Unit {
+fn bySlots(mut w: Wrap, i: usize, j: usize) {
     w.a[i] = w.a[j]
 }
 
-fn bySlotsFixed(mut w: Wrap) -> Unit {
+fn bySlotsFixed(mut w: Wrap) {
     w.a[0] = w.a[2]
 }
 
-fn byFields(mut o: Outer) -> Unit {
+fn byFields(mut o: Outer) {
     o.segs[0].a = o.segs[1].b
 }
 
-fn bySeg(mut o: Outer) -> Unit {
+fn bySeg(mut o: Outer) {
     o.segs[0] = o.segs[1]
 }
 
-fn bySwap(mut w: Wrap) -> Unit {
+fn bySwap(mut w: Wrap) {
     let t = w.a[0]
     w.a[1] = t
     w.a[2] = Pt { x: 1, y: 2 }
 }
 
-fn local(p: Pt) -> Unit {
+fn local(p: Pt) {
     let mut w = Wrap { a: FixedArray.filled[Pt, 3](p) }
     w.a[0] = w.a[2]
     w.a[1] = Pt { x: 3, y: 4 }
 }
 
-fn localFields(p: Pt) -> Unit {
+fn localFields(p: Pt) {
     let mut o = mk()
     o.segs[0].a = o.segs[1].b
     o.w.a[1] = o.segs[1].a
@@ -170,7 +170,7 @@ fn twCopy(mut t: Tw) -> Int {
     t.w.a[0].x
 }
 
-fn caller() -> Unit {
+fn caller() {
     let o = mk()
     let _ = twLiteral(mkTw())
     let _ = twSwap(mkTw())

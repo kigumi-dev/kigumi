@@ -30,7 +30,7 @@ fn size(s: String) -> usize {
     s.len()
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPrimitiveResultsComeBackWithoutABox(t *testing.T) {
@@ -62,7 +62,7 @@ fn names(xs: &Array[String], i: usize) -> String? {
     xs.get(i)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := bodyOf(t, ir, `@"main.names"(`)
 	if strings.Contains(body, "@rt_d_") || !strings.Contains(body, "@rt_std_id(") {

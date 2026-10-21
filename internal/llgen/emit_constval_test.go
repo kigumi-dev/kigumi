@@ -21,7 +21,7 @@ fn pick(bad: Bool) -> Result[Tag, Int] {
     Ok(Plain)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := bodyOf(t, ir, `define ptr @"main.pick"(`)
 	checkNoHeap(t, "main.pick", body)
@@ -39,15 +39,15 @@ fn main() -> Unit! {}
 
 func TestUnitTailOkBuildsInline(t *testing.T) {
 	ir := emitIR(t, `
-fn side(n: Int) -> Unit {}
+fn side(n: Int) {}
 
-fn wrap(n: Int) -> Result[Unit, AllocError] {
+fn wrap(n: Int) -> Result[Void, AllocError] {
     side(n)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
-	body := bodyOf(t, ir, `define %"kg.adt.Result[Unit,std/prelude.AllocError]" @"main.wrap"(`)
+	body := bodyOf(t, ir, `define %"kg.adt.Result[Void,std/prelude.AllocError]" @"main.wrap"(`)
 	checkNoHeap(t, "main.wrap", body)
 	if strings.Contains(body, `@".constval.`) {
 		t.Errorf("an inline result must not read a shared slot:\n%s", body)
@@ -56,15 +56,15 @@ fn main() -> Unit! {}
 
 func TestAllocErrorBuildsInline(t *testing.T) {
 	ir := emitIR(t, `
-fn fails(bad: Bool) -> Result[Unit, AllocError] {
+fn fails(bad: Bool) -> Result[Void, AllocError] {
     if bad {
         return Err(AllocError.OutOfMemory)
     }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
-	body := bodyOf(t, ir, `define %"kg.adt.Result[Unit,std/prelude.AllocError]" @"main.fails"(`)
+	body := bodyOf(t, ir, `define %"kg.adt.Result[Void,std/prelude.AllocError]" @"main.fails"(`)
 	checkNoHeap(t, "main.fails", body)
 	if strings.Contains(body, "@rt_nullary(") || strings.Contains(body, `@".constval.`) {
 		t.Errorf("an inline AllocError must not come from an immortal:\n%s", body)
@@ -77,7 +77,7 @@ type Mark = Cold | Named(s: String)
 
 fn here() -> Option[Mark] { Some(Cold) }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := bodyOf(t, ir, `define ptr @"main.here"(`)
 	checkNoHeap(t, "main.here", body)
@@ -91,7 +91,7 @@ type Mark = Cold | Named(s: String)
 
 fn here() -> Option[Mark] { Some(Cold) }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut o = here()
     _ = o.take()
 }

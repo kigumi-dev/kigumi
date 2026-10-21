@@ -22,7 +22,7 @@ fn scoped(h: AllocatorHandle, o: Nm?) -> Int {
     }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = 1
 }
 -- expect --

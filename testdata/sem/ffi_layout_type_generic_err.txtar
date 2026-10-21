@@ -5,7 +5,7 @@ fn sizeOfWrap[U](v: U) -> usize {
     ffi.sizeOf(&v) //~ ERROR `U` cannot be passed to `sizeOf`
 }
 
-fn useWrap() -> Unit! {
+fn useWrap() -> Void! {
     let _ = sizeOfWrap(1)
 }
 

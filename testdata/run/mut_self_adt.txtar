@@ -9,7 +9,7 @@ fn area(s: &Shape) -> Int {
     }
 }
 
-fn Shape.grow(mut self, k: Int) -> Unit {
+fn Shape.grow(mut self, k: Int) {
     self = match self {
         Circle(r) -> Circle(r + k)
         Square(side) -> Square(side + k)
@@ -17,21 +17,21 @@ fn Shape.grow(mut self, k: Int) -> Unit {
     }
 }
 
-fn Shape.flatten(mut self) -> Unit {
+fn Shape.flatten(mut self) {
     self = Dot
 }
 
-fn Shape.growTwice(mut self, k: Int) -> Unit {
+fn Shape.growTwice(mut self, k: Int) {
     self.grow(k)
     self.grow(k)
 }
 
-fn Shape.growViaClosure(mut self, k: Int) -> Unit {
+fn Shape.growViaClosure(mut self, k: Int) {
     let step = () => { self = Circle(k) }
     step()
 }
 
-fn Shape.shrink(mut self, k: Int) -> Unit {
+fn Shape.shrink(mut self, k: Int) {
     if k == 0 {
         return
     }
@@ -44,18 +44,18 @@ type Scene = {
     pub mut tail Shape
 }
 
-fn Scene.growHead(mut self, k: Int) -> Unit {
+fn Scene.growHead(mut self, k: Int) {
     self.head.grow(k)
 }
 
 type Marked = Shape
 
-fn Marked.flattenInner(mut self) -> Unit {
+fn Marked.flattenInner(mut self) {
     self.value.flatten()
 }
 
 interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
     fn size(self) -> Int
 }
 
@@ -65,7 +65,7 @@ type Cell = {
     pub mut n Int
 }
 
-fn Cell.grow(mut self, k: Int) -> Unit {
+fn Cell.grow(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -81,11 +81,11 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Handle.replace(mut self, newId: Int) -> Unit {
+fn Handle.replace(mut self, newId: Int) {
     self = Handle { id: newId }
 }
 

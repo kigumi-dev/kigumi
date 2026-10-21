@@ -5,18 +5,18 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn arrays() -> Unit {
+fn arrays() {
     let mut xs = Array.of(Res { id: 1 }, Res { id: 2 }, Res { id: 3 })
     print "with ${xs.with(1, (r) => r.id * 10) || 0} ${xs.with(9, (r) => r.id) is None}"
     let taken = xs.takeAt(0) || Res { id: 0 }
     print "took ${taken.id} left ${xs.len()} ${xs.with(0, (r) => r.id) || 0}"
 }
 
-fn maps() -> Unit {
+fn maps() {
     let mut m = map.empty[String, Res]()
     m.set("a", Res { id: 4 })
     m.set("b", Res { id: 5 })

@@ -95,7 +95,7 @@ noalloc fn call(a: Point, b: Point) -> u64 {
     if same(a, b) { fingerprint(a) } else { fingerprint(b) }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${call(Point { x: 1, y: 2 }, Point { x: 1, y: 2 })} ${differ(On(1), Off)} ${viaTuple((1, true), (1, false))}"
 }
 `, "\t", "", 0))

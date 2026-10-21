@@ -19,7 +19,7 @@ fn lookup['a](m: &Map[String, View['a]], key: String) -> View['a]? {
     m.get(&key)
 }
 
-fn run() -> Unit {
+fn run() {
     let buf = Bytes.fromArray(&Array.of(11, 22, 33, 44))
     {
         let mut m = index(&buf)

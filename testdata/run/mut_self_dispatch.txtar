@@ -2,13 +2,13 @@
 import task from std/task
 
 interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
     fn size(self) -> Int
 }
 
 type Shape = Circle(r: Int) | Dot
 
-fn Shape.grow(mut self, k: Int) -> Unit {
+fn Shape.grow(mut self, k: Int) {
     self = match self {
         Circle(r) -> Circle(r + k)
         Dot -> Circle(k)
@@ -26,7 +26,7 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.grow(mut self, k: Int) -> Unit {
+fn Counter.grow(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -56,13 +56,13 @@ fn Counter.viaClosure(mut self) -> Int {
     self.n
 }
 
-fn Shape.flattenViaClosure(mut self) -> Unit {
+fn Shape.flattenViaClosure(mut self) {
     let step = () => { self = Dot }
     step()
 }
 
 interface Bumper {
-    fn bump(mut self, k: Int) -> Unit
+    fn bump(mut self, k: Int)
     fn total(self) -> Int
 }
 
@@ -71,14 +71,14 @@ type Tally = {
     pub mut sum Int
 }
 
-fn Tally.bump(mut self, k: Int) -> Unit {
+fn Tally.bump(mut self, k: Int) {
     self.hits = self.hits + 1
     self.sum = self.sum + k
 }
 
 fn Tally.total(self) -> Int { self.hits * 100 + self.sum }
 
-fn Counter.bump(mut self, k: Int) -> Unit {
+fn Counter.bump(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -101,7 +101,7 @@ fn growDynBorrowed(g: &mut Grower, k: Int) -> Int {
 }
 
 interface Ticker {
-    fn tick(mut self, k: Int) -> Unit
+    fn tick(mut self, k: Int)
     fn value(self) -> Int
 }
 
@@ -109,7 +109,7 @@ type Meter = {
     pub mut v Int
 }
 
-fn Meter.tick(mut self, k: Int) -> Unit {
+fn Meter.tick(mut self, k: Int) {
     self.v = self.v + k
 }
 
@@ -122,7 +122,7 @@ type Fuse = {
 // Same name/arity/recv as Ticker.tick, but Fuse has no `value`, so it can
 // never instantiate G: Ticker; the precise conformance check must not
 // treat it as a witness that could replace tickViaParam's receiver.
-fn Fuse.tick(mut self, k: Int) -> Unit {
+fn Fuse.tick(mut self, k: Int) {
     self = Fuse { armed: k > 0 }
 }
 

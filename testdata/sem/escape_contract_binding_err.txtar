@@ -1,30 +1,30 @@
 -- lib/esc.kg --
-fn storeIt(cb: escaping fn() -> Unit) -> Unit {}
+fn storeIt(cb: escaping fn() -> Void) {}
 
-fn noop() -> Unit {}
+fn noop() {}
 
-fn tupleDestructureReturn(cb: fn() -> Unit) -> fn() -> Unit {
+fn tupleDestructureReturn(cb: fn() -> Void) -> fn() -> Void {
     let (g, _n) = (cb, 0)
     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-fn tupleDestructureForward(cb: fn() -> Unit) -> Unit {
+fn tupleDestructureForward(cb: fn() -> Void) {
     let (g, _n) = (cb, 0)
     storeIt(g) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
 }
 
-fn tupleDestructureCapturedByEscapingClosure(cb: fn() -> Unit) -> fn() -> Unit {
+fn tupleDestructureCapturedByEscapingClosure(cb: fn() -> Void) -> fn() -> Void {
     let (g, _n) = (cb, 0)
     () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
 }
 
-fn matchArmBindReturn(cb: fn() -> Unit) -> fn() -> Unit {
+fn matchArmBindReturn(cb: fn() -> Void) -> fn() -> Void {
     match cb { //~ ERROR `cb` is a non-escaping callback and cannot be returned
         x -> x
     }
 }
 
-fn ifLetBindReturn(cb: fn() -> Unit) -> fn() -> Unit {
+fn ifLetBindReturn(cb: fn() -> Void) -> fn() -> Void {
     if let g = cb { //~ ERROR `cb` is a non-escaping callback and cannot be returned
         g
     } else {
@@ -32,29 +32,29 @@ fn ifLetBindReturn(cb: fn() -> Unit) -> fn() -> Unit {
     }
 }
 
-fn isBindReturn(cb: fn() -> Unit) -> fn() -> Unit {
+fn isBindReturn(cb: fn() -> Void) -> fn() -> Void {
     if cb is x {
         return x //~ ERROR `cb` is a non-escaping callback and cannot be returned
     }
     noop
 }
 
-fn closureParamLaundering(cb: fn() -> Unit, identity: fn(fn() -> Unit) -> fn() -> Unit) -> fn() -> Unit {
+fn closureParamLaundering(cb: fn() -> Void, identity: fn(fn() -> Void) -> fn() -> Void) -> fn() -> Void {
     identity(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-pub type Wrapped = Boxed(fn() -> Unit)
+pub type Wrapped = Boxed(fn() -> Void)
 
-fn variantPayloadStore(cb: fn() -> Unit) -> Wrapped {
+fn variantPayloadStore(cb: fn() -> Void) -> Wrapped {
     Boxed(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
 }
 
-fn optionWrap(cb: fn() -> Unit) -> Unit {
+fn optionWrap(cb: fn() -> Void) {
     let o = Some(cb) //~ ERROR `cb` is a non-escaping callback and cannot be stored
     _ = o
 }
 
-fn intoGenericArray(cb: fn() -> Unit) -> Unit {
+fn intoGenericArray(cb: fn() -> Void) {
     let arr = Array.of(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `of`, whose parameter type cannot be verified not to keep it
     _ = arr
 }

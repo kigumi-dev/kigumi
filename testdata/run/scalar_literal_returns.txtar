@@ -33,7 +33,7 @@ fn viaBox(xs: &Array[Int]) -> Int {
     if xs.len() == 0 { 0 } else { xs[0] + 1 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let xs = Array.of(10, 20)
     print "${lit(-3)} ${lit(0)} ${lit(4)} ${multi(-1)} ${multi(0)} ${multi(9)}"
     print "${down(0)} ${down(5)} ${flag(1)} ${flag(2)} ${flag(9)}"

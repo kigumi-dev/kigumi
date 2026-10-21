@@ -3,7 +3,7 @@ import {sqrt as squareRoot} from std/math
 import {floor as squareRoot} from std/math //~ ERROR `squareRoot` is already bound in this file
 import {nonexistent as ghost} from std/math //~ ERROR has no visible `nonexistent`
 
-fn use() -> Unit {
+fn use() {
     let a = sqrt(4.0) //~ ERROR undefined name `sqrt`
     let b = squareRoot(9.0)
 }

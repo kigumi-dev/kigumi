@@ -133,7 +133,7 @@ async fn riskyEarlyBorrow() -> Int {
     callH(h) //~ ERROR cannot run inside an `async fn`
 }
 
-fn swapEarly(b: &mut Holder) -> Unit {
+fn swapEarly(b: &mut Holder) {
     b.cb = mk()
 }
 
@@ -143,35 +143,35 @@ async fn riskyEarlyMethod() -> Int {
     callH(h) //~ ERROR cannot run inside an `async fn`
 }
 
-fn Holder.armEarly(mut self) -> Unit {
+fn Holder.armEarly(mut self) {
     self.cb = mk()
 }
 
-fn swapLate(b: &mut Holder) -> Unit {
+fn swapLate(b: &mut Holder) {
     b.cb = mk()
 }
 
-fn Holder.armLate(mut self) -> Unit {
+fn Holder.armLate(mut self) {
     self.cb = mk()
 }
 
-fn setCalcLate(o: &mut O, c: Calc) -> Unit {
+fn setCalcLate(o: &mut O, c: Calc) {
     o.c = c
 }
 
-fn O.armLate(mut self) -> Unit {
+fn O.armLate(mut self) {
     self.c = mkCalc()
 }
 
-fn setSafeLate(b: &mut Holder) -> Unit {
+fn setSafeLate(b: &mut Holder) {
     b.cb = safeFn
 }
 
-fn setCalcSafeLate(o: &mut O, c: Calc) -> Unit {
+fn setCalcSafeLate(o: &mut O, c: Calc) {
     o.c = c
 }
 
-fn Holder.armSafeLate(mut self) -> Unit {
+fn Holder.armSafeLate(mut self) {
     self.cb = safeFn
 }
 
@@ -262,7 +262,7 @@ fn unrelatedRiskyValueArg() -> Int {
     callF(h.cb)
 }
 
-fn swapPair(a: &mut Holder, b: &mut Holder) -> Unit {
+fn swapPair(a: &mut Holder, b: &mut Holder) {
     a.cb = syncRoot
     let t = a.cb
     b.cb = t

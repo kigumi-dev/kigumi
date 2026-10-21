@@ -3,7 +3,7 @@ type Item = {
     pub names Array[String]
 }
 
-fn twice(items: Array[Item]) -> Unit {
+fn twice(items: Array[Item]) {
     for it in &items {
         print "${it.names.len()}"
     }
@@ -14,7 +14,7 @@ fn twice(items: Array[Item]) -> Unit {
 
 twice(Array.of(Item { names: Array.of("a") }))
 -- expect --
-fn main.twice(%items: Array[Item]) -> Unit {
+fn main.twice(%items: Array[Item]) -> Void {
   b0:
     %t1 = borrow 0(%items)
     %t2 = const 0: usize
@@ -72,7 +72,7 @@ fn main.twice(%items: Array[Item]) -> Unit {
     nop
     return %t26
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = const "a": String
     %t1 = array(%t0)

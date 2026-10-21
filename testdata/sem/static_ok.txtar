@@ -8,14 +8,14 @@ fn port() -> u32 {
     deviceId
 }
 
-fn show() -> Unit {
+fn show() {
     let v = &version
     reader(v)
 }
 
-fn reader(v: &u32) -> Unit {}
+fn reader(v: &u32) {}
 
-fn reset() -> Unit {
+fn reset() {
     unsafe {
         ticks = 0
     }
@@ -51,7 +51,7 @@ fn readFirmware() -> u32 {
     }
 }
 
-fn bumpVendor() -> Unit {
+fn bumpVendor() {
     unsafe {
         vendorCounter = vendorCounter + 1
     }

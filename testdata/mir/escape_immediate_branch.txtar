@@ -3,42 +3,42 @@ type Res = resource {
     pub tag Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     _ = self
 }
 
-fn Res.touch(self) -> Unit {
+fn Res.touch(self) {
     _ = self
 }
 
-fn sink(r: Res) -> Unit {
+fn sink(r: Res) {
     _ = r
 }
 
 // twoArgs's cb is non-escaping (capBorrow granted), but the branching sibling argument moves the
 // call to a different block than the closure's creation; a touch of the owner before it must still be rejected.
-fn twoArgs(cb: fn() -> Unit, flag: Bool) -> Unit {
+fn twoArgs(cb: fn() -> Void, flag: Bool) {
     cb()
 }
 
-fn danger(flag: Bool) -> Unit {
+fn danger(flag: Bool) {
     let r = Res { tag: 42 }
     twoArgs(() => r.touch(), if flag { sink(r); true } else { false })
 }
 -- expect --
-fn lib.Res.drop(%self: Res) -> Unit {
+fn lib.Res.drop(%self: Res) -> Void {
   b0:
     %t1 = move(%self)
     drop(%t1)
     %t2 = unit
     return %t2
 }
-fn lib.Res.touch(%self: Res) -> Unit {
+fn lib.Res.touch(%self: Res) -> Void {
   b0:
     %t1 = unit
     return %t1
 }
-fn lib.sink(%r: Res) -> Unit {
+fn lib.sink(%r: Res) -> Void {
   b0:
     %t1 = move(%r)
     drop(%t1)
@@ -46,20 +46,20 @@ fn lib.sink(%r: Res) -> Unit {
     nop
     return %t2
 }
-fn lib.twoArgs(%cb: fn() -> Unit, %flag: Bool) -> Unit {
+fn lib.twoArgs(%cb: fn() -> Void, %flag: Bool) -> Void {
   b0:
     %t2 = callv(%cb)
     drop(%flag)
     drop(%cb)
     return %t2
 }
-fn lib.danger.closure1(%r: Res) -> Unit {
+fn lib.danger.closure1(%r: Res) -> Void {
   b0:
     %t1 = call lib.Res.touch(%r)
     drop(%r)
     return %t1
 }
-fn lib.danger(%flag: Bool) -> Unit {
+fn lib.danger(%flag: Bool) -> Void {
   b0:
     %t1 = const 42: Int
     %t2 = record lib.Res(%t1)

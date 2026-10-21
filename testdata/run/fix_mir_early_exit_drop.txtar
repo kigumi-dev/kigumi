@@ -3,7 +3,7 @@ type Tag = resource {
     pub n Int
 }
 
-fn Tag.drop(move self) -> Unit {
+fn Tag.drop(move self) {
     print "drop ${self.n}"
 }
 
@@ -28,7 +28,7 @@ fn relay(n: Int) -> Int! {
     v + 1
 }
 
-fn pick(flags: Array[Bool]) -> Unit {
+fn pick(flags: Array[Bool]) {
     for flag in flags {
         let t = Tag { n: 10 }
         if flag {

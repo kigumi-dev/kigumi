@@ -9,7 +9,7 @@ import (
 
 func TestNoallocRejectsAHeldCopy(t *testing.T) {
 	t.Parallel()
-	src := "noalloc fn sameStart(a: Bytes, b: Bytes) -> Bool {\n    a.startsWith(b)\n}\n\nfn main() -> Unit! {\n    print \"${sameStart(\"abc\".toBytes(), \"ab\".toBytes())}\"\n}\n"
+	src := "noalloc fn sameStart(a: Bytes, b: Bytes) -> Bool {\n    a.startsWith(b)\n}\n\nfn main() -> Void! {\n    print \"${sameStart(\"abc\".toBytes(), \"ab\".toBytes())}\"\n}\n"
 	out := checkAllocClaim(t, src)
 	want := "error[E1700]: copying `Bytes` here allocates a box of its own for the copy\n --> main.kg:2:5"
 	if !strings.Contains(out, want) {
@@ -22,7 +22,7 @@ func TestNoallocRejectsAHeldCopy(t *testing.T) {
 
 func TestExplainNamesAHeldCopy(t *testing.T) {
 	t.Parallel()
-	src := "fn sameStart(a: Bytes, b: Bytes) -> Bool {\n    a.startsWith(b)\n}\n\nfn main() -> Unit! {\n    print \"${sameStart(\"abc\".toBytes(), \"ab\".toBytes())}\"\n}\n"
+	src := "fn sameStart(a: Bytes, b: Bytes) -> Bool {\n    a.startsWith(b)\n}\n\nfn main() -> Void! {\n    print \"${sameStart(\"abc\".toBytes(), \"ab\".toBytes())}\"\n}\n"
 	a := analyzeModule(t, src, false, 0)
 	if a.Res.HasErrors() {
 		t.Fatalf("unexpected errors:\n%s", a.Res.Render())
@@ -38,7 +38,7 @@ func TestExplainNamesAHeldCopy(t *testing.T) {
 
 func TestStdBytesPrefixHelpersCopyNothing(t *testing.T) {
 	t.Parallel()
-	src := "fn main() -> Unit! {\n    let b = \"abc\".toBytes()\n    print \"${b.startsWith(\"ab\".toBytes())} ${b.endsWith(\"bc\".toBytes())}\"\n}\n"
+	src := "fn main() -> Void! {\n    let b = \"abc\".toBytes()\n    print \"${b.startsWith(\"ab\".toBytes())} ${b.endsWith(\"bc\".toBytes())}\"\n}\n"
 	if out := checkAllocClaim(t, src); strings.Contains(out, "error[") {
 		t.Fatalf("unexpected errors:\n%s", out)
 	}
@@ -54,7 +54,7 @@ type V = {
     pub mut c Nm
 }
 
-noalloc fn swap(w: &mut V) -> Unit {
+noalloc fn swap(w: &mut V) {
     let t = w.a
     w.a = w.c
     w.c = t
@@ -105,7 +105,7 @@ noalloc fn nthInt(arr: &Array[Int], i: usize) -> Int {
     }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let a = Array.of(Nm { name: "a", n: 1 })
     print "${nth(&a, 0)} ${nthInt(&Array.of(1), 0)}"
 }

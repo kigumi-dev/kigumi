@@ -17,7 +17,7 @@ fn pick(o: Option[Int]) -> Int {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let o: Option[Int] = Some(1)
         _ = pick(o)
     }

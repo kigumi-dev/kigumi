@@ -1,14 +1,14 @@
 -- lib/esc.kg --
-fn stash(cb: escaping fn() -> Unit) -> fn() -> Unit {
+fn stash(cb: escaping fn() -> Void) -> fn() -> Void {
     cb
 }
 
-fn stashViaLet(cb: escaping fn() -> Unit) -> fn() -> Unit {
+fn stashViaLet(cb: escaping fn() -> Void) -> fn() -> Void {
     let kept = cb
     kept
 }
 
-fn stashEach(cb: escaping fn() -> Unit, other: escaping fn() -> Unit) -> Array[fn() -> Unit] {
+fn stashEach(cb: escaping fn() -> Void, other: escaping fn() -> Void) -> Array[fn() -> Void] {
     Array.of(cb, other)
 }
 -- expect --

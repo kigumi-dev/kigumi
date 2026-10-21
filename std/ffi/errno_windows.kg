@@ -11,7 +11,7 @@ pub fn errno() -> i32 {
 
 /// Sets errno to 0; call before a C function that reports failure by
 /// clearing errno and leaving it clear, e.g. readdir(3) at end of stream.
-pub fn clearErrno() -> Unit {
+pub fn clearErrno() {
     unsafe {
         writeI32(_errno(), 0)
     }

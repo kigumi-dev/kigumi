@@ -3,9 +3,9 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
-fn Res.close(move self) -> Unit {}
+fn Res.close(move self) {}
 
 fn Res.peek(self) -> Int {
     self.id
@@ -15,11 +15,11 @@ fn mkr(n: Int) -> Res {
     Res { id: n }
 }
 
-fn each(n: Int, f: fn(Int) -> Unit) -> Unit {
+fn each(n: Int, f: fn(Int) -> Void) {
     f(n)
 }
 
-fn keptThenShared() -> Unit {
+fn keptThenShared() {
     let mut r = mkr(20)
     let f = () => { r.close() }
     each(1, (i: Int) => {
@@ -28,7 +28,7 @@ fn keptThenShared() -> Unit {
     f()
 }
 
-fn sharedThenKept() -> Unit {
+fn sharedThenKept() {
     let mut r = mkr(22)
     each(1, (i: Int) => {
         r = mkr(23 + i)

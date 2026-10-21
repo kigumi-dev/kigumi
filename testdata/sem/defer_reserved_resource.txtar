@@ -3,48 +3,48 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
 }
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn reassign() -> Unit! {
+fn reassign() -> Void! {
     let mut h = Handle { id: 1 }
     defer { h.close() }
     h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
 }
 
-fn reassignErrdefer() -> Unit! {
+fn reassignErrdefer() -> Void! {
     let mut h = Handle { id: 1 }
     defer(fail) { h.close() }
     h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
 }
 
-fn moveByCall() -> Unit! {
+fn moveByCall() -> Void! {
     let h = Handle { id: 1 }
     defer { h.close() }
     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
 }
 
-fn moveByLet() -> Unit! {
+fn moveByLet() -> Void! {
     let h = Handle { id: 1 }
     defer { h.close() }
     let g = h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
     take(g)
 }
 
-fn moveByClose() -> Unit! {
+fn moveByClose() -> Void! {
     let h = Handle { id: 1 }
     defer { h.close() }
     h.close() //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
 }
 
-fn moveIntoRecord() -> Unit! {
+fn moveIntoRecord() -> Void! {
     let h = Handle { id: 1 }
     defer { take(h) }
     let b = Wrapper { inner: h } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
@@ -55,13 +55,13 @@ type Wrapper = {
     pub inner Handle
 }
 
-fn secondCleanupSameScope() -> Unit! {
+fn secondCleanupSameScope() -> Void! {
     let h = Handle { id: 1 }
     defer { h.close() }
     defer { take(h) } //~ ERROR `h` is already consumed by an earlier cleanup
 }
 
-fn secondCleanupNestedScope() -> Unit! {
+fn secondCleanupNestedScope() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { h.close() }
     if h.peek() > 0 {
@@ -69,7 +69,7 @@ fn secondCleanupNestedScope() -> Unit! {
     }
 }
 
-fn reservedInsideConditionalScope(flag: Bool) -> Unit! {
+fn reservedInsideConditionalScope(flag: Bool) -> Void! {
     let mut h = Handle { id: 1 }
     if flag {
         defer(fail) { h.close() }
@@ -77,18 +77,18 @@ fn reservedInsideConditionalScope(flag: Bool) -> Unit! {
     }
 }
 
-fn parameterIsReserved(h: Handle) -> Unit {
+fn parameterIsReserved(h: Handle) {
     defer { h.close() }
     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
 }
 
-fn peekingCleanupDoesNotReserve() -> Unit! {
+fn peekingCleanupDoesNotReserve() -> Void! {
     let mut h = Handle { id: 1 }
     defer { _ = h.peek() }
     h = Handle { id: 2 }
 }
 
-fn reservationEndsWithItsScope(flag: Bool) -> Unit! {
+fn reservationEndsWithItsScope(flag: Bool) -> Void! {
     let mut h = Handle { id: 1 }
     if flag {
         defer(fail) { h.close() }
@@ -97,7 +97,7 @@ fn reservationEndsWithItsScope(flag: Bool) -> Unit! {
     take(h)
 }
 
-fn localInsideCleanupIsNotReserved() -> Unit! {
+fn localInsideCleanupIsNotReserved() -> Void! {
     defer {
         let t = Handle { id: 9 }
         t.close()
@@ -106,7 +106,7 @@ fn localInsideCleanupIsNotReserved() -> Unit! {
     take(t)
 }
 
-fn borrowsStayLegal() -> Unit! {
+fn borrowsStayLegal() -> Void! {
     let h = Handle { id: 1 }
     defer { h.close() }
     let n = h.peek()

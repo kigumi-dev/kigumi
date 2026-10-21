@@ -1,7 +1,7 @@
 -- module --
 entry: cmd/app/main.kg
 -- lib/lib.kg --
-pub fn print(x: String) -> Unit {
+pub fn print(x: String) {
     _ = x
 }
 -- cmd/app/other.kg --

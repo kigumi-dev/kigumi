@@ -3,12 +3,12 @@ mir: planned
 -- src --
 import {Box} from std/alloc
 
-noalloc fn wrap(n: Int) -> Unit {
+noalloc fn wrap(n: Int) {
     let b = Box.new(n) //~ ERROR `new` is not `noalloc`
     _ = b
 }
 
-noalloc fn wrapFallible(n: Int) -> Unit {
+noalloc fn wrapFallible(n: Int) {
     let r = Box.tryNew(n) //~ ERROR `tryNew` is not `noalloc`
     _ = r
 }
@@ -18,7 +18,7 @@ fn fine(n: Int) -> Int {
     b.into()
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E907]: `new` is not `noalloc`
  --> main.kg:4:13

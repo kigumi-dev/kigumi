@@ -5,11 +5,11 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn twice() -> Unit {
+fn twice() {
     let p = ffi.Pin.new(Res { id: 7 })
     let ptr = p.ptr()
     let a = unsafe { ffi.Pin.with(ptr, (r: &Res) => r.id) }
@@ -17,7 +17,7 @@ fn twice() -> Unit {
     print "${a} ${b}"
 }
 
-fn never() -> Unit {
+fn never() {
     let p = ffi.Pin.new(Res { id: 9 })
     print "no call"
 }

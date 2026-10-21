@@ -5,15 +5,15 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
 }
 
-fn Handle.bump(mut self) -> Unit {
+fn Handle.bump(mut self) {
     self.id = self.id + 1
 }
 
@@ -31,72 +31,72 @@ fn mk(n: Int) -> Pack {
     Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
 }
 
-fn closeAll(xs: Array[Handle]) -> Unit {}
+fn closeAll(xs: Array[Handle]) {}
 
-fn closePacks(xs: Array[Pack]) -> Unit {}
+fn closePacks(xs: Array[Pack]) {}
 
-fn takePack(b: Pack) -> Unit {}
+fn takePack(b: Pack) {}
 
-fn tweak(p: &mut Handle) -> Unit {
+fn tweak(p: &mut Handle) {
     p.id = p.id + 10
 }
 
-fn tweakTwice(p: &mut Handle) -> Unit {
+fn tweakTwice(p: &mut Handle) {
     tweak(p)
     tweak(p)
 }
 
-fn tweakViaMethod(p: &mut Handle) -> Unit {
+fn tweakViaMethod(p: &mut Handle) {
     p.bump()
 }
 
-fn tweakRecursive(p: &mut Handle, n: Int) -> Unit {
+fn tweakRecursive(p: &mut Handle, n: Int) {
     if n > 0 {
         tweakRecursive(p, n - 1)
     }
     p.id = p.id + 1
 }
 
-fn tweakShared(p: &mut Handle) -> Unit {
+fn tweakShared(p: &mut Handle) {
     p.id = p.peek()
 }
 
-fn replace(p: &mut Handle) -> Unit {
+fn replace(p: &mut Handle) {
     p = mkh(9)
 }
 
-fn replaceViaHelper(p: &mut Handle) -> Unit {
+fn replaceViaHelper(p: &mut Handle) {
     replace(p)
 }
 
-fn replaceViaMethod(p: &mut Handle) -> Unit {
+fn replaceViaMethod(p: &mut Handle) {
     p.rebind()
 }
 
-fn Handle.rebind(mut self) -> Unit {
+fn Handle.rebind(mut self) {
     replace(&mut self)
 }
 
-fn bumpN(p: &mut Pack) -> Unit {
+fn bumpN(p: &mut Pack) {
     p.n = p.n + 1
 }
 
-fn replaceInner(p: &mut Pack) -> Unit {
+fn replaceInner(p: &mut Pack) {
     p.inner = mkh(7)
 }
 
-fn mutual(p: &mut Handle, n: Int) -> Unit {
+fn mutual(p: &mut Handle, n: Int) {
     if n > 0 {
         mutualBack(p, n - 1)
     }
 }
 
-fn mutualBack(p: &mut Handle, n: Int) -> Unit {
+fn mutualBack(p: &mut Handle, n: Int) {
     p.id = n
     mutual(p, n)
 }
 
-fn helperWholeAccept() -> Unit {
+fn helperWholeAccept() {
     let mut h = mkh(1)
     defer { h.close() }
     tweak(&mut h)
@@ -107,14 +107,14 @@ fn helperWholeAccept() -> Unit {
     mutual(&mut h, 3)
 }
 
-fn helperFieldAccept() -> Unit {
+fn helperFieldAccept() {
     let mut b = mk(1)
     defer { b.inner.close() }
     bumpN(&mut b)
     tweak(&mut b.other)
 }
 
-fn helperWholeReject() -> Unit {
+fn helperWholeReject() {
     let mut h = mkh(1)
     defer { h.close() }
     replace(&mut h) //~ ERROR cannot be borrowed mutably
@@ -122,19 +122,19 @@ fn helperWholeReject() -> Unit {
     replaceViaMethod(&mut h) //~ ERROR cannot be borrowed mutably
 }
 
-fn helperFieldReject() -> Unit {
+fn helperFieldReject() {
     let mut b = mk(1)
     defer { b.inner.close() }
     replaceInner(&mut b) //~ ERROR cannot be borrowed mutably
 }
 
-fn helperBeforeCleanup() -> Unit {
+fn helperBeforeCleanup() {
     let mut h = mkh(1)
     replace(&mut h)
     defer { h.close() }
 }
 
-fn forConsumes() -> Unit {
+fn forConsumes() {
     let mut xs = Array.of(mkh(1))
     defer {
         for h in xs {
@@ -149,7 +149,7 @@ type Bag = {
     pub mut n Int
 }
 
-fn forConsumesField() -> Unit {
+fn forConsumesField() {
     let mut b = Bag { items: Array.of(mkh(1)), n: 5 }
     defer {
         for h in move b.items {
@@ -159,7 +159,7 @@ fn forConsumesField() -> Unit {
     b.items = Array.of(mkh(2)) //~ ERROR cannot be assigned
 }
 
-fn forConsumesTwice() -> Unit {
+fn forConsumesTwice() {
     let xs = Array.of(mkh(1))
     defer { closeAll(xs) }
     for h in xs { //~ ERROR cannot be moved
@@ -167,7 +167,7 @@ fn forConsumesTwice() -> Unit {
     }
 }
 
-fn forConsumesTwoCleanups() -> Unit {
+fn forConsumesTwoCleanups() {
     let xs = Array.of(mkh(1))
     defer {
         for h in xs {
@@ -177,7 +177,7 @@ fn forConsumesTwoCleanups() -> Unit {
     defer { closeAll(xs) } //~ ERROR already consumed
 }
 
-fn forBorrows() -> Unit {
+fn forBorrows() {
     let mut xs = Array.of(mkh(1))
     defer { closeAll(xs) }
     for h in &xs {
@@ -186,7 +186,7 @@ fn forBorrows() -> Unit {
     xs.push(mkh(2))
 }
 
-fn forBorrowsInCleanup() -> Unit {
+fn forBorrowsInCleanup() {
     let mut xs = Array.of(mkh(1))
     defer {
         for h in &xs {
@@ -196,17 +196,17 @@ fn forBorrowsInCleanup() -> Unit {
     xs = Array.of(mkh(2))
 }
 
-fn sink(n: Int) -> Unit {}
+fn sink(n: Int) {}
 
-fn refill(p: &mut Array[Handle]) -> Unit {
+fn refill(p: &mut Array[Handle]) {
     p = Array.of(mkh(9))
 }
 
-fn append(p: &mut Array[Handle]) -> Unit {
+fn append(p: &mut Array[Handle]) {
     p.push(mkh(9))
 }
 
-fn forConsumesMutBorrow() -> Unit {
+fn forConsumesMutBorrow() {
     let mut xs = Array.of(mkh(1))
     defer {
         for h in xs {
@@ -217,7 +217,7 @@ fn forConsumesMutBorrow() -> Unit {
     refill(&mut xs) //~ ERROR cannot be borrowed mutably
 }
 
-fn forInLoopCleanup() -> Unit {
+fn forInLoopCleanup() {
     let xs = Array.of(mkh(1))
     for i in 0..2 {
         defer { //~ ERROR reads `xs`
@@ -228,67 +228,67 @@ fn forInLoopCleanup() -> Unit {
     }
 }
 
-fn indexCopyFieldWrite() -> Unit {
+fn indexCopyFieldWrite() {
     let mut xs = Array.of(mkh(1))
     defer { closeAll(xs) }
     xs[0].id = 55
     xs[0].id = xs[0].id + 1
 }
 
-fn indexCopyFieldNested() -> Unit {
+fn indexCopyFieldNested() {
     let mut ps = Array.of(mk(1))
     defer { closePacks(ps) }
     ps[0].n = 5
 }
 
-fn indexNonCopyReject() -> Unit {
+fn indexNonCopyReject() {
     let mut xs = Array.of(mkh(1))
     defer { closeAll(xs) }
     xs[0] = mkh(2) //~ ERROR cannot be assigned
 }
 
-fn indexNonCopyFieldReject() -> Unit {
+fn indexNonCopyFieldReject() {
     let mut ps = Array.of(mk(1))
     defer { closePacks(ps) }
     ps[0].inner = mkh(5) //~ ERROR cannot be assigned
 }
 
-fn letDestructureReserved() -> Unit {
+fn letDestructureReserved() {
     let b = mk(1)
     defer { b.inner.close() }
     let Pack { other, inner: _, n: _ } = b //~ ERROR cannot be moved
     other.close()
 }
 
-fn letDestructureWhole() -> Unit {
+fn letDestructureWhole() {
     let b = mk(1)
     defer { takePack(b) }
     let Pack { n, inner: _, other: _ } = b //~ ERROR cannot be moved
     sink(n)
 }
 
-fn letDestructureTuple() -> Unit {
+fn letDestructureTuple() {
     let t = (mkh(1), mkh(2))
     defer { t._0.close() }
     let (_, y) = t //~ ERROR cannot be moved
     y.close()
 }
 
-fn letDestructureUnreserved() -> Unit {
+fn letDestructureUnreserved() {
     let b = mk(1)
     let Pack { inner, other, n: _ } = b
     inner.close()
     other.close()
 }
 
-fn letDestructureBorrowed() -> Unit {
+fn letDestructureBorrowed() {
     let b = mk(1)
     defer { b.inner.close() }
     let Pack { n, inner: _, other: _ } = &b
     sink(n)
 }
 
-fn loopReassignThenDefer() -> Unit {
+fn loopReassignThenDefer() {
     let mut h = mkh(0)
     for i in 0..2 {
         h = mkh(i + 10)
@@ -296,7 +296,7 @@ fn loopReassignThenDefer() -> Unit {
     }
 }
 
-fn loopReassignNested() -> Unit {
+fn loopReassignNested() {
     let mut h = mkh(0)
     for i in 0..2 {
         h = mkh(i + 10)
@@ -307,7 +307,7 @@ fn loopReassignNested() -> Unit {
     }
 }
 
-fn loopReassignField() -> Unit {
+fn loopReassignField() {
     let mut b = mk(1)
     for i in 0..2 {
         b = mk(i)
@@ -315,7 +315,7 @@ fn loopReassignField() -> Unit {
     }
 }
 
-fn loopReassignInner() -> Unit {
+fn loopReassignInner() {
     let mut h = mkh(0)
     for i in 0..2 {
         for j in 0..2 {
@@ -325,7 +325,7 @@ fn loopReassignInner() -> Unit {
     }
 }
 
-fn loopConditionalReassign() -> Unit {
+fn loopConditionalReassign() {
     let mut h = mkh(0)
     for i in 0..2 {
         if i > 0 {
@@ -335,7 +335,7 @@ fn loopConditionalReassign() -> Unit {
     }
 }
 
-fn loopReassignAfterDefer() -> Unit {
+fn loopReassignAfterDefer() {
     let mut h = mkh(0)
     for i in 0..2 {
         defer { h.close() } //~ ERROR reads `h`
@@ -343,7 +343,7 @@ fn loopReassignAfterDefer() -> Unit {
     }
 }
 
-fn loopReassignOtherBinding() -> Unit {
+fn loopReassignOtherBinding() {
     let mut h = mkh(0)
     let mut g = mkh(1)
     for i in 0..2 {
@@ -352,7 +352,7 @@ fn loopReassignOtherBinding() -> Unit {
     }
 }
 
-fn loopReassignDescendant() -> Unit {
+fn loopReassignDescendant() {
     let mut b = mk(1)
     for i in 0..2 {
         b.n = i
@@ -360,33 +360,33 @@ fn loopReassignDescendant() -> Unit {
     }
 }
 
-fn gen[T](p: &mut T) -> Unit {}
+fn gen[T](p: &mut T) {}
 
-fn setIt(p: &mut Handle, v: Handle) -> Unit {
+fn setIt(p: &mut Handle, v: Handle) {
     p = v
 }
 
-fn genSet[T](p: &mut T, v: T) -> Unit {
+fn genSet[T](p: &mut T, v: T) {
     p = v
 }
 
-fn over(p: &mut Handle) -> Unit {
+fn over(p: &mut Handle) {
     p.id = 1
 }
 
-fn over(p: &mut Handle, n: Int) -> Unit {
+fn over(p: &mut Handle, n: Int) {
     p = mkh(n)
 }
 
-fn overT(p: &mut Handle) -> Unit {
+fn overT(p: &mut Handle) {
     p.id = 1
 }
 
-fn overT(p: &mut Pack) -> Unit {
+fn overT(p: &mut Pack) {
     p.n = 1
 }
 
-fn helperShapesAccept() -> Unit {
+fn helperShapesAccept() {
     let mut h = mkh(1)
     let mut b = mk(2)
     defer { h.close() }
@@ -395,7 +395,7 @@ fn helperShapesAccept() -> Unit {
     over(&mut h)
 }
 
-fn helperShapesReject() -> Unit {
+fn helperShapesReject() {
     let mut h = mkh(1)
     defer { h.close() }
     setIt(&mut h, mkh(2)) //~ ERROR cannot be borrowed mutably
@@ -408,14 +408,14 @@ type Slot = {
     pub mut o Handle?
 }
 
-fn Slot.empty(mut self) -> Unit {
+fn Slot.empty(mut self) {
     match self.o.take() {
         Some(h) -> h.close()
         None -> {}
     }
 }
 
-fn drainArray() -> Unit {
+fn drainArray() {
     let mut xs = Array.of(mkh(1), mkh(2))
     defer {
         for xs.len() > 0 {
@@ -429,13 +429,13 @@ fn drainArray() -> Unit {
     xs = Array.of(mkh(4)) //~ ERROR reserved by a cleanup
 }
 
-fn drainViaMethod() -> Unit {
+fn drainViaMethod() {
     let mut s = Slot { o: Some(mkh(1)) }
     defer { s.empty() }
     s = Slot { o: None } //~ ERROR reserved by a cleanup
 }
 
-fn drainOption() -> Unit {
+fn drainOption() {
     let mut o = Some(mkh(1))
     defer {
         match o.take() {
@@ -446,7 +446,7 @@ fn drainOption() -> Unit {
     o = None //~ ERROR reserved by a cleanup
 }
 
-fn drainField() -> Unit {
+fn drainField() {
     let mut s = Slot { o: Some(mkh(1)) }
     defer {
         match s.o.take() {
@@ -457,13 +457,13 @@ fn drainField() -> Unit {
     s.o = None //~ ERROR reserved by a cleanup
 }
 
-fn pushInCleanupKeeps() -> Unit {
+fn pushInCleanupKeeps() {
     let mut xs = Array.of(mkh(1))
     defer { xs.push(mkh(2)) }
     xs = Array.of(mkh(3))
 }
 
-fn drainHelper(xs: &mut Array[Handle]) -> Unit {
+fn drainHelper(xs: &mut Array[Handle]) {
     for xs.len() > 0 {
         match xs.takeAt(0) {
             Some(h) -> h.close()
@@ -472,50 +472,50 @@ fn drainHelper(xs: &mut Array[Handle]) -> Unit {
     }
 }
 
-fn drainForward(ys: &mut Array[Handle]) -> Unit {
+fn drainForward(ys: &mut Array[Handle]) {
     drainHelper(ys)
 }
 
-fn drainThroughHelper() -> Unit {
+fn drainThroughHelper() {
     let mut xs = Array.of(mkh(1), mkh(2))
     defer { drainHelper(&mut xs) }
     xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
 }
 
-fn drainThroughForward() -> Unit {
+fn drainThroughForward() {
     let mut xs = Array.of(mkh(1), mkh(2))
     defer { drainForward(&mut xs) }
     xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
 }
 
-fn drainThroughHelperKeeps() -> Unit {
+fn drainThroughHelperKeeps() {
     let mut xs = Array.of(mkh(1), mkh(2))
     defer { drainHelper(&mut xs) }
     xs.push(mkh(3))
 }
 
-fn addOne(p: &mut Pack) -> Unit {
+fn addOne(p: &mut Pack) {
     p.n = p.n + 1
 }
 
-fn viaShadowLocal(p: &mut Pack) -> Unit {
+fn viaShadowLocal(p: &mut Pack) {
     let addOne = (q: &mut Pack) => { q.inner = mkh(1) }
     addOne(p)
 }
 
-fn viaShadowParam(addOne: fn(&mut Pack) -> Unit, p: &mut Pack) -> Unit {
+fn viaShadowParam(addOne: fn(&mut Pack) -> Void, p: &mut Pack) {
     addOne(p)
 }
 
-fn replaceInnerOf(q: &mut Pack) -> Unit {
+fn replaceInnerOf(q: &mut Pack) {
     q.inner = mkh(2)
 }
 
-fn viaBumpN(p: &mut Pack) -> Unit {
+fn viaBumpN(p: &mut Pack) {
     addOne(p)
 }
 
-fn shadowedCallee() -> Unit {
+fn shadowedCallee() {
     let mut b = mk(10)
     defer { b.inner.close() }
     viaShadowLocal(&mut b) //~ ERROR cannot be borrowed mutably
@@ -523,7 +523,7 @@ fn shadowedCallee() -> Unit {
     viaBumpN(&mut b)
 }
 
-fn reassignInBareBlock() -> Unit {
+fn reassignInBareBlock() {
     let mut h = mkh(0)
     for i in 0..2 {
         {
@@ -542,13 +542,13 @@ type OuterBox = {
     pub mut b ArrBox
 }
 
-fn ArrBox.closeAll(move self) -> Unit {
+fn ArrBox.closeAll(move self) {
     for h in move self.xs {
         h.close()
     }
 }
 
-fn drainArrBox(b: &mut ArrBox) -> Unit {
+fn drainArrBox(b: &mut ArrBox) {
     drainHelper(&mut b.xs)
 }
 
@@ -556,37 +556,37 @@ fn mkBox(n: Int) -> ArrBox {
     ArrBox { xs: Array.of(mkh(n), mkh(n + 1)), n: 0 }
 }
 
-fn drainFieldThroughHelper() -> Unit {
+fn drainFieldThroughHelper() {
     let mut b = mkBox(1)
     defer { drainHelper(&mut b.xs) }
     b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
 }
 
-fn drainWholeThenAssignField() -> Unit {
+fn drainWholeThenAssignField() {
     let mut b = mkBox(1)
     defer { drainArrBox(&mut b) }
     b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
 }
 
-fn drainNestedThenAssignField() -> Unit {
+fn drainNestedThenAssignField() {
     let mut o = OuterBox { b: mkBox(1) }
     defer { drainArrBox(&mut o.b) }
     o.b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
 }
 
-fn consumeWholeThenAssignField() -> Unit {
+fn consumeWholeThenAssignField() {
     let mut b = mkBox(1)
     defer { b.closeAll() }
     b.xs = Array.of(mkh(9)) //~ ERROR reserved by a cleanup
 }
 
-fn consumeWholeThenWriteCopyField() -> Unit {
+fn consumeWholeThenWriteCopyField() {
     let mut b = mkBox(1)
     defer { b.closeAll() }
     b.n = 5
 }
 
-fn drainFieldKeepsPush() -> Unit {
+fn drainFieldKeepsPush() {
     let mut b = mkBox(1)
     defer { drainHelper(&mut b.xs) }
     b.xs.push(mkh(3))
@@ -599,18 +599,18 @@ type Conn = resource {
     pub mut sub Handle?
 }
 
-fn Conn.drop(move self) -> Unit {}
+fn Conn.drop(move self) {}
 
-fn Conn.close(move self) -> Unit {}
+fn Conn.close(move self) {}
 
-fn plainFieldUnderReservedResource() -> Unit {
+fn plainFieldUnderReservedResource() {
     let mut c = Conn { id: 1, name: "a", log: Array.of(1), sub: None }
     defer { c.close() }
     c.log = Array.of(2, 3)
     c.name = "b"
 }
 
-fn resourceFieldUnderReservedResource() -> Unit {
+fn resourceFieldUnderReservedResource() {
     let mut c = Conn { id: 1, name: "a", log: Array.of(1), sub: None }
     defer { c.close() }
     c.sub = Some(mkh(3)) //~ ERROR reserved by a cleanup

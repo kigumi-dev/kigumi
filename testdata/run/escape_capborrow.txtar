@@ -3,17 +3,17 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Handle.touch(self) -> Unit {
+fn Handle.touch(self) {
     print "touch ${self.id}"
 }
 
 // callTwice's cb is non-escaping by default, so the caller may lend a move-only capture (capBorrow)
 // and still use the owner after the call returns.
-fn callTwice(cb: fn() -> Unit) -> Unit {
+fn callTwice(cb: fn() -> Void) {
     cb()
     cb()
 }

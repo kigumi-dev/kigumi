@@ -13,7 +13,7 @@ import (
 	"kigumi/internal/lsp"
 )
 
-const profileCopySrc = "type Nm = {\n    pub name String\n    pub mut n Int\n}\n\nfn dup(o: Nm?) -> Int {\n    let mut b = o\n    if b is Some(_) { 1 } else { 0 }\n}\n\nfn main() -> Unit! {\n    let o: Nm? = None\n    let n = dup(o)\n}\n"
+const profileCopySrc = "type Nm = {\n    pub name String\n    pub mut n Int\n}\n\nfn dup(o: Nm?) -> Int {\n    let mut b = o\n    if b is Some(_) { 1 } else { 0 }\n}\n\nfn main() -> Void! {\n    let o: Nm? = None\n    let n = dup(o)\n}\n"
 
 func withProfile(allocator, profile string) driver.Target {
 	t := driver.HostTarget()

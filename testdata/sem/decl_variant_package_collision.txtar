@@ -8,7 +8,7 @@ pub type Color = {
 -- app/t/node.kg --
 type Node = Color(Int) | Leaf(Int) //~ ERROR variant `Color` collides with the declared type `Color`
 
-fn use() -> Unit {
+fn use() {
     let c = Color { r: 0, g: 0, b: 0 }
     _ = c
 }

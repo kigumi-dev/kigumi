@@ -1,5 +1,5 @@
 -- src --
-fn show(xs: &Array[Float]) -> Unit {
+fn show(xs: &Array[Float]) {
     let mut out = ""
     for x in xs { out = "${out}${x} " }
     print out
@@ -7,7 +7,7 @@ fn show(xs: &Array[Float]) -> Unit {
 
 fn forward(f: fn(Float) -> Bool, x: Float) -> Bool { f(x) }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let ints = Array.of(-9223372036854775807, -1500, 0, 7, 1023, 1024, 4000000000)
     show(&ints.map((x: &Int) => x.toFloat()))
     show(&ints.map((x: &Int) => x.toFloat() * 0.5))

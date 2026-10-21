@@ -1,5 +1,5 @@
 -- src --
-fn f() -> Unit {
+fn f() {
     && b
 }
 -- expect --
@@ -11,8 +11,7 @@ File
     name: f
     generics: -
     params: List
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
 -- diagnostics --
 error: expected expression, found `&&`

@@ -21,7 +21,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     let seen = "drop ${self.id}"
 }
 
@@ -39,7 +39,7 @@ fn explode() -> Int {
     None.expect("deep")
 }
 
-fn f0() -> Unit {
+fn f0() {
     let s = "leaf"
     let a = build(2)
     let r = Res { id: 0 }
@@ -48,7 +48,7 @@ fn f0() -> Unit {
 }
 `)
 	for i := 1; i < depth; i++ {
-		fmt.Fprintf(&sb, "\nfn f%d() -> Unit {\n    let s = \"frame %d\"\n    let a = build(2)\n    let r = Res { id: %d }\n    f%d()\n}\n", i, i, i, i-1)
+		fmt.Fprintf(&sb, "\nfn f%d() {\n    let s = \"frame %d\"\n    let a = build(2)\n    let r = Res { id: %d }\n    f%d()\n}\n", i, i, i, i-1)
 	}
 	fmt.Fprintf(&sb, `
 async fn tick() -> Int {

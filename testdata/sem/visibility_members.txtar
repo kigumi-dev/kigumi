@@ -3,21 +3,21 @@ type Hidden = {
     v Int
 }
 
-pub fn leak(h: Hidden) -> Unit {} //~ ERROR `Hidden` is private but appears in the pub signature of `leak`
+pub fn leak(h: Hidden) {} //~ ERROR `Hidden` is private but appears in the pub signature of `leak`
 
 pub fn leakRet() -> Hidden? { //~ ERROR `Hidden` is private but appears in the pub signature of `leakRet`
     None
 }
 
-fn fine(h: Hidden) -> Unit {}
+fn fine(h: Hidden) {}
 
 pub(module) type ModT = {
     v Int
 }
 
-pub fn leakMod(m: ModT) -> Unit {} //~ ERROR `ModT` is pub(module) but appears in the pub signature of `leakMod`
+pub fn leakMod(m: ModT) {} //~ ERROR `ModT` is pub(module) but appears in the pub signature of `leakMod`
 
-pub(module) fn okMod(m: ModT) -> Unit {}
+pub(module) fn okMod(m: ModT) {}
 
 pub type Holder = {
     pub h Hidden //~ ERROR `Hidden` is private but appears in the pub signature of `h`
@@ -53,8 +53,8 @@ pub(module) fn ModShown.display(self) -> String {
 error[E118]: `Hidden` is private but appears in the pub signature of `leak`
  --> app/v/v.kg:5:1
   |
-5 | pub fn leak(h: Hidden) -> Unit {} //~ ERROR `Hidden` is private but appears in the pub signature of `leak`
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 | pub fn leak(h: Hidden) {} //~ ERROR `Hidden` is private but appears in the pub signature of `leak`
+  | ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E118]: `Hidden` is private but appears in the pub signature of `leakRet`
  --> app/v/v.kg:7:1
@@ -65,8 +65,8 @@ error[E118]: `Hidden` is private but appears in the pub signature of `leakRet`
 error[E118]: `ModT` is pub(module) but appears in the pub signature of `leakMod`
   --> app/v/v.kg:17:1
    |
-17 | pub fn leakMod(m: ModT) -> Unit {} //~ ERROR `ModT` is pub(module) but appears in the pub signature of `leakMod`
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 | pub fn leakMod(m: ModT) {} //~ ERROR `ModT` is pub(module) but appears in the pub signature of `leakMod`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E118]: `Hidden` is private but appears in the pub signature of `h`
   --> app/v/v.kg:22:5

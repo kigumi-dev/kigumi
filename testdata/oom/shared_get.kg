@@ -1,6 +1,6 @@
 import {Shared} from std/alloc
 
-fn run() -> Unit {
+fn run() {
     let s = Shared.new("abc")
     eprint "go"
     let r = s.tryGet()

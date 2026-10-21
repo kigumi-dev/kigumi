@@ -1,15 +1,15 @@
 -- lib/reborrow.kg --
-fn inner(out: &mut Array[u8], v: usize) -> Unit {
+fn inner(out: &mut Array[u8], v: usize) {
     if v > 0 { out.push(1) }
 }
 
-fn outer() -> Unit {
+fn outer() {
     let mut xs = Array.empty[u8]()
     let r = &mut xs
     inner(r, xs.len())
 }
 -- expect --
-fn lib.inner(%out: &mut Array[u8], %v: usize) -> Unit {
+fn lib.inner(%out: &mut Array[u8], %v: usize) -> Void {
   b0:
     %t2 = const 0: usize
     %t3 = bin >(%v, %t2)
@@ -33,7 +33,7 @@ fn lib.inner(%out: &mut Array[u8], %v: usize) -> Unit {
     drop(%v)
     return %t4
 }
-fn lib.outer() -> Unit {
+fn lib.outer() -> Void {
   b0:
     %t0 = call std/array.Array.empty
     %xs = copy(%t0)

@@ -6,7 +6,7 @@ Module {
     kigumi: "0.1"
 }
 -- src --
-fn main() -> Unit! {
+fn main() -> Void! {
     panic("named std")
 }
 -- expect --

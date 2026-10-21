@@ -1,5 +1,5 @@
 -- src --
-fn check(label: String, bs: Array[u8]) -> Unit {
+fn check(label: String, bs: Array[u8]) {
     let r = String.fromBytes(Bytes.fromArray(&bs))
     match r {
         Ok(s) -> print "${label}: OK len=${s.len()}"

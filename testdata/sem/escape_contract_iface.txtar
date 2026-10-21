@@ -1,6 +1,6 @@
 -- lib/esc.kg --
 pub interface Runner {
-    fn run(self, cb: fn() -> Unit) -> Unit
+    fn run(self, cb: fn() -> Void)
 }
 
 @impl(Runner) //~ ERROR `Bad` does not implement `Runner`
@@ -8,7 +8,7 @@ pub type Bad = {
     pub v Int
 }
 
-async fn Bad.run(self, cb: fn() -> Unit) -> Unit {
+async fn Bad.run(self, cb: fn() -> Void) {
     cb()
 }
 
@@ -17,7 +17,7 @@ pub type Good = {
     pub v Int
 }
 
-pub fn Good.run(self, cb: fn() -> Unit) -> Unit {
+pub fn Good.run(self, cb: fn() -> Void) {
     cb()
 }
 -- expect --

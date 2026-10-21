@@ -27,11 +27,11 @@ fn Slot[V: Copy].take(mut self) -> V? {
     }
 }
 
-fn put[T](x: &mut T, v: T) -> Unit {
+fn put[T](x: &mut T, v: T) {
     x = v
 }
 
-fn putVia[T](x: &mut T, v: T) -> Unit {
+fn putVia[T](x: &mut T, v: T) {
     put(x, v)
 }
 

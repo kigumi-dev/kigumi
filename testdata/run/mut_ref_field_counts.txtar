@@ -3,11 +3,11 @@ type Box = resource {
     pub mut n Int
 }
 
-fn Box.drop(move self) -> Unit {
+fn Box.drop(move self) {
     print "drop box ${self.n}"
 }
 
-fn Box.bump(mut self, k: Int) -> Unit {
+fn Box.bump(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -21,7 +21,7 @@ type Outer['a] = {
     pub mut extra Int
 }
 
-fn bumpArg['a](b: &'a mut Box, k: Int) -> Unit {
+fn bumpArg['a](b: &'a mut Box, k: Int) {
     b.bump(k)
 }
 
@@ -45,7 +45,7 @@ fn viaReturn['a](h: Holder['a]) -> Int {
     3
 }
 
-fn twice(f: fn(Int) -> Unit) -> Unit {
+fn twice(f: fn(Int) -> Void) {
     f(4)
     f(1)
 }

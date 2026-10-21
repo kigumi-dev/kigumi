@@ -3,33 +3,33 @@ type Item = {
     pub mut count Int
 }
 
-fn Item.update(mut self, d: Int) -> Unit {
+fn Item.update(mut self, d: Int) {
     self.count = self.count + d
 }
 
-fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+fn Item.run[F: FnMut[fn() -> Void]](mut self, f: F) {
     f()
 }
 
-fn bump(x: &mut Item) -> Unit {
+fn bump(x: &mut Item) {
     x.count = x.count + 1
 }
 
-fn withRef[F: FnMut[fn() -> Unit]](x: &mut Item, f: F) -> Unit {
+fn withRef[F: FnMut[fn() -> Void]](x: &mut Item, f: F) {
     x.count = x.count + 1
     f()
 }
 
 interface Cb {
-    fn call(mut self) -> Unit
+    fn call(mut self)
 }
 
 @impl(Cb)
-type Box[F: FnMut[fn() -> Unit]] = {
+type Box[F: FnMut[fn() -> Void]] = {
     pub cb F
 }
 
-fn Box[F].call(mut self) -> Unit {
+fn Box[F].call(mut self) {
     self.cb()
 }
 
@@ -43,7 +43,7 @@ type Res = resource {
     pub mut cb Cb
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.fire(mut self) -> Int {
     self.n = 7
@@ -56,7 +56,7 @@ type Pair = {
     pub mut b Item
 }
 
-fn nop() -> Unit {}
+fn nop() {}
 
 fn go(h: &mut Holder) -> Int {
     h.n = 7

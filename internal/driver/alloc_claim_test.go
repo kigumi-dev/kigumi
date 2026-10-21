@@ -40,7 +40,7 @@ noalloc fn span(p: Point) -> Int {
     q.y - q.x
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${span(Point { x: 1, y: 2 })}"
 }
 `
@@ -68,7 +68,7 @@ noalloc fn span(p: Point) -> Int {
     lend(p)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${span(Point { x: 1, y: 2 })}"
 }
 `)
@@ -100,7 +100,7 @@ noalloc fn span(p: Point) -> Int {
     p.y - p.x
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${span(Point { x: 1, y: 2 })}"
 }
 `)
@@ -134,7 +134,7 @@ noalloc fn closure(n: Int) -> Bool {
     applyGen((x: Int) => x + n > 0)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${literals()} ${method(Point { x: 1, y: 2 }).y} ${closure(2)}"
 }
 `)
@@ -179,7 +179,7 @@ noalloc fn parity(w: Wide, n: Int) -> Bool {
     isEven(w, n)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let w = Wide { a: 1, b: 2, c: 3 }
     print "${run(w, 4)} ${nested(w, 5)} ${parity(w, 7)}"
 }

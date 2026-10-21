@@ -7,7 +7,7 @@ type Frozen = {
     inner Counter
 }
 
-fn use() -> Unit {
+fn use() {
     let c = Counter { n: 1 }
     c.n = 2 //~ ERROR field `n` is immutable
     let fz = Frozen { inner: Counter { n: 1 } }

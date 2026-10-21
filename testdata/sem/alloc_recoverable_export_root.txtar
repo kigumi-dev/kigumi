@@ -18,7 +18,7 @@ export(C) {
     }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E1280]: this allocation may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
   --> main.kg:12:17

@@ -35,7 +35,7 @@ fn main.take(%x: Int?) -> Int {
     drop(%v)
     jump b2
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t1 = const 2: Int
     %t2 = variant Option.Some(%t1)

@@ -18,7 +18,7 @@ type Acc = {
     pub mut count Int
 }
 
-fn Acc.add(mut self, x: f32) -> Unit {
+fn Acc.add(mut self, x: f32) {
     self.total = self.total + x
     self.count = self.count + 1
 }
@@ -53,7 +53,7 @@ async fn slow(x: f32) -> f32 {
     z + x
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let m = Mixed { tag: 7, a: 0.1, n: 5, b: 0.2, ok: true }
     print "${m.tag} ${m.a} ${m.n} ${m.b} ${m.ok} ${m.a + m.b}"
     print "${payload(One(0.1))} ${payload(Two(0.3, 3))} ${payload(Three(0.1, 0.2, 0.3))}"

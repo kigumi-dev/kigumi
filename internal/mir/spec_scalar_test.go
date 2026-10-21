@@ -33,7 +33,7 @@ fn run(n: Int) -> Int {
     (wrap(n) || 0) + (firstOf(&xs) || 0) + orElse(Some(n), 1) + a + b + sink(n) + sinkNoalloc(n) + f(n)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // A scalar instance builds the aggregate it returns unboxed, and passes a returned scalar (or a noalloc

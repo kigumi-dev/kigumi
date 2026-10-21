@@ -3,15 +3,15 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let old = Handle { id: 1 }
     defer { old.close() }
     let current = Handle { id: 2 }

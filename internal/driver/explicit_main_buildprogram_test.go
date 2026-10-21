@@ -11,7 +11,7 @@ import (
 )
 
 // TestBuildProgramExplicitMainArtifact covers a build.kg artifact whose
-// cmd/ entry is written as an explicit `fn main() -> Unit!` instead of a
+// cmd/ entry is written as an explicit `fn main() -> Void!` instead of a
 // bare-statement script: buildArtifact's scriptUnder must find it, like
 // Module.defaultEntry does.
 func TestBuildProgramExplicitMainArtifact(t *testing.T) {
@@ -24,8 +24,8 @@ func TestBuildProgramExplicitMainArtifact(t *testing.T) {
 		os.WriteFile(filepath.Join(root, rel), []byte(body), 0o644)
 	}
 	write("mod.kg", "Module {\n    name: \"explicitmain\"\n    kigumi: \"0.1\"\n}\n")
-	write("cmd/app/main.kg", "fn main() -> Unit! {\n    print(\"explicit main artifact\")\n}\n")
-	write("build.kg", "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n"+
+	write("cmd/app/main.kg", "fn main() -> Void! {\n    print(\"explicit main artifact\")\n}\n")
+	write("build.kg", "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n"+
 		"    let app = b.executable(\"app\", \"cmd/app\", b.request().target())?\n"+
 		"}\n")
 	std, _ := filepath.Abs("../../std")

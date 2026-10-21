@@ -3,7 +3,7 @@ import {Shared} from std/alloc
 
 type View['a] = { pub data &'a Bytes, pub off usize }
 
-fn stash['a](b: &'a Bytes) -> Unit {
+fn stash['a](b: &'a Bytes) {
     let v = View { data: b, off: 0 }
     let s = Shared.new(v) //~ ERROR carries a borrow and cannot be stored
     _ = s
@@ -13,7 +13,7 @@ async fn head['a](b: &'a Bytes) -> View['a] {
     View { data: b, off: 0 }
 }
 
-fn awaitIt['a](b: &'a Bytes) -> Unit {
+fn awaitIt['a](b: &'a Bytes) {
     let f = head(b) //~ ERROR carries a borrow and cannot be stored
     _ = f
 }

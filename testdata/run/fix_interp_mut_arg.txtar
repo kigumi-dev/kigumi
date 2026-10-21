@@ -3,11 +3,11 @@ type Counter = {
     mut n usize
 }
 
-fn bump(c: &mut Counter) -> Unit {
+fn bump(c: &mut Counter) {
     c.n = c.n + 1
 }
 
-fn bumpArr(a: &mut Array[Int]) -> Unit {
+fn bumpArr(a: &mut Array[Int]) {
     a[0] = a[0] + 1
 }
 

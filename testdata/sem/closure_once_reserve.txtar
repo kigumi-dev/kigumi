@@ -5,9 +5,9 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
@@ -22,9 +22,9 @@ fn mkh(n: Int) -> Handle {
     Handle { id: n }
 }
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn madeInLoop() -> Unit {
+fn madeInLoop() {
     let h = mkh(1)
     for i in 0..2 {
         let k = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
@@ -32,7 +32,7 @@ fn madeInLoop() -> Unit {
     }
 }
 
-fn madeInLoopField() -> Unit {
+fn madeInLoopField() {
     let b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..2 {
         let k = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
@@ -40,21 +40,21 @@ fn madeInLoopField() -> Unit {
     }
 }
 
-fn consumedAfterCall() -> Unit {
+fn consumedAfterCall() {
     let h = mkh(1)
     let f = () => { h.close() }
     f()
     h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
-fn consumedBeforeCall() -> Unit {
+fn consumedBeforeCall() {
     let h = mkh(1)
     let f = () => { h.close() }
     take(h) //~ ERROR `h` was moved; it cannot be used again
     f()
 }
 
-fn twoClosures() -> Unit {
+fn twoClosures() {
     let h = mkh(1)
     let f = () => { h.close() }
     let g = () => { h.close() } //~ ERROR `h` was moved; it cannot be used again
@@ -62,7 +62,7 @@ fn twoClosures() -> Unit {
     g()
 }
 
-fn innerOnceMadeInLoop() -> Unit {
+fn innerOnceMadeInLoop() {
     let h = mkh(1)
     let g = () => { h.close() }
     for i in 0..2 {
@@ -79,7 +79,7 @@ fn readAfterMaking() -> Int {
     n
 }
 
-fn madeInLoopOverLocal() -> Unit {
+fn madeInLoopOverLocal() {
     for i in 0..2 {
         let h = mkh(i)
         let k = () => { h.close() }
@@ -87,7 +87,7 @@ fn madeInLoopOverLocal() -> Unit {
     }
 }
 
-fn reassignedBeforeMaking() -> Unit {
+fn reassignedBeforeMaking() {
     let mut h = mkh(0)
     h.close()
     for i in 0..2 {
@@ -99,7 +99,7 @@ fn reassignedBeforeMaking() -> Unit {
     h.close()
 }
 
-fn refillReservesNothing() -> Unit {
+fn refillReservesNothing() {
     let mut h = mkh(1)
     let f = () => {
         h.close()
@@ -109,7 +109,7 @@ fn refillReservesNothing() -> Unit {
     h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
-fn madeInBranchThenConsumed(c: Bool) -> Unit {
+fn madeInBranchThenConsumed(c: Bool) {
     let h = mkh(1)
     if c {
         let f = () => { h.close() }
@@ -118,7 +118,7 @@ fn madeInBranchThenConsumed(c: Bool) -> Unit {
     h.close() //~ ERROR `h` is moved on some paths but not others
 }
 
-fn madeInBlockThenConsumed() -> Unit {
+fn madeInBlockThenConsumed() {
     let h = mkh(1)
     {
         let f = () => { h.close() }
@@ -127,7 +127,7 @@ fn madeInBlockThenConsumed() -> Unit {
     h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
-fn escapedFromBlockThenConsumed() -> Unit {
+fn escapedFromBlockThenConsumed() {
     let h = mkh(1)
     let f = {
         let g = () => { h.close() }
@@ -137,7 +137,7 @@ fn escapedFromBlockThenConsumed() -> Unit {
     h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
-fn paramMadeInBlockThenConsumed(h: Handle) -> Unit {
+fn paramMadeInBlockThenConsumed(h: Handle) {
     {
         let f = () => { h.close() }
         f()
@@ -145,7 +145,7 @@ fn paramMadeInBlockThenConsumed(h: Handle) -> Unit {
     h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
-fn fieldMadeInBlockThenConsumed() -> Unit {
+fn fieldMadeInBlockThenConsumed() {
     let b = Pack { inner: mkh(1), other: mkh(2) }
     {
         let f = () => { b.other.close() }
@@ -154,7 +154,7 @@ fn fieldMadeInBlockThenConsumed() -> Unit {
     b.other.close() //~ ERROR `b` was moved; it cannot be used again
 }
 
-fn conditionalCallThenAssign(c: Bool) -> Unit {
+fn conditionalCallThenAssign(c: Bool) {
     let mut h = mkh(1)
     let f = () => { h.close() }
     if c {
@@ -164,7 +164,7 @@ fn conditionalCallThenAssign(c: Bool) -> Unit {
     h.close()
 }
 
-fn callThenConditionalAssign(c: Bool) -> Unit {
+fn callThenConditionalAssign(c: Bool) {
     let mut h = mkh(1)
     let f = () => { h.close() }
     f()
@@ -174,7 +174,7 @@ fn callThenConditionalAssign(c: Bool) -> Unit {
     h.close() //~ ERROR `h` is moved on some paths but not others
 }
 
-fn neverCalledStillReserves(c: Bool) -> Unit {
+fn neverCalledStillReserves(c: Bool) {
     let h = mkh(1)
     let f = () => { h.close() }
     if c {
@@ -184,7 +184,7 @@ fn neverCalledStillReserves(c: Bool) -> Unit {
     }
 }
 
-fn callThenAssign() -> Unit {
+fn callThenAssign() {
     let mut h = mkh(1)
     let f = () => { h.close() }
     f()
@@ -192,7 +192,7 @@ fn callThenAssign() -> Unit {
     h.close()
 }
 
-fn callThenAssignPerIteration() -> Unit {
+fn callThenAssignPerIteration() {
     for i in 0..2 {
         let mut h = mkh(i)
         let f = () => { h.close() }
@@ -202,7 +202,7 @@ fn callThenAssignPerIteration() -> Unit {
     }
 }
 
-fn callThenAssignInLoop() -> Unit {
+fn callThenAssignInLoop() {
     let mut h = mkh(30)
     for i in 0..2 {
         let f = () => { h.close() }
@@ -212,7 +212,7 @@ fn callThenAssignInLoop() -> Unit {
     h.close()
 }
 
-fn madeInBranchThenAssign(c: Bool) -> Unit {
+fn madeInBranchThenAssign(c: Bool) {
     let mut h = mkh(1)
     if c {
         let f = () => { h.close() }
@@ -222,7 +222,7 @@ fn madeInBranchThenAssign(c: Bool) -> Unit {
     h.close()
 }
 
-fn breakBeforeRefill() -> Unit {
+fn breakBeforeRefill() {
     let mut h = mkh(1)
     for i in 0..3 {
         let f = () => { h.close() }
@@ -234,7 +234,7 @@ fn breakBeforeRefill() -> Unit {
     }
 }
 
-fn continueBeforeRefillInLoop() -> Unit {
+fn continueBeforeRefillInLoop() {
     let mut h = mkh(1)
     for i in 0..3 {
         let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
@@ -246,7 +246,7 @@ fn continueBeforeRefillInLoop() -> Unit {
     }
 }
 
-fn breakBeforeFieldRefill() -> Unit {
+fn breakBeforeFieldRefill() {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..3 {
         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
@@ -258,7 +258,7 @@ fn breakBeforeFieldRefill() -> Unit {
     }
 }
 
-fn continueBeforeFieldRefill() -> Unit {
+fn continueBeforeFieldRefill() {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..3 {
         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
@@ -270,7 +270,7 @@ fn continueBeforeFieldRefill() -> Unit {
     }
 }
 
-fn breakAfterRefill() -> Unit {
+fn breakAfterRefill() {
     let mut h = mkh(1)
     for i in 0..3 {
         let f = () => { h.close() }
@@ -283,7 +283,7 @@ fn breakAfterRefill() -> Unit {
     h.close()
 }
 
-fn refillThenCloseTwice() -> Unit {
+fn refillThenCloseTwice() {
     let mut h = mkh(1)
     let f = () => { h.close() }
     f()
@@ -292,7 +292,7 @@ fn refillThenCloseTwice() -> Unit {
     h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
-fn refillThenMoveAndDefer() -> Unit {
+fn refillThenMoveAndDefer() {
     let mut h = mkh(1)
     let f = () => { h.close() }
     f()
@@ -302,7 +302,7 @@ fn refillThenMoveAndDefer() -> Unit {
     take(k)
 }
 
-fn refillInLoopThenCloseTwice() -> Unit {
+fn refillInLoopThenCloseTwice() {
     let mut h = mkh(1)
     for i in 0..2 {
         let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
@@ -313,7 +313,7 @@ fn refillInLoopThenCloseTwice() -> Unit {
     }
 }
 
-fn refillFieldThenCloseTwice() -> Unit {
+fn refillFieldThenCloseTwice() {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     let f = () => { b.other.close() }
     f()
@@ -322,7 +322,7 @@ fn refillFieldThenCloseTwice() -> Unit {
     take(b.other) //~ ERROR `b` was moved; it cannot be used again //~ ERROR `b.other` was moved; it cannot be used again
 }
 
-fn refillAfterLoopThenCloseTwice() -> Unit {
+fn refillAfterLoopThenCloseTwice() {
     let mut h = mkh(1)
     for i in 0..2 {
         h = mkh(10 + i)
@@ -334,7 +334,7 @@ fn refillAfterLoopThenCloseTwice() -> Unit {
     h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
-fn shadowingLetIsNoRefill() -> Unit {
+fn shadowingLetIsNoRefill() {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..2 {
         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others

@@ -80,7 +80,7 @@ fn nothing() -> String? {
     None
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	for _, fn := range []string{`define ptr @"main.pick"(`, `define ptr @"main.nothing"(`} {
 		body := bodyOf(t, ir, fn)
@@ -101,7 +101,7 @@ fn named() -> Int { apply(twice) }
 
 fn lambda() -> Int { apply((x: Int) => x + 1) }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	for _, fn := range []string{"main.named", "main.lambda"} {
 		body := fnBody(t, ir, fn)
@@ -123,7 +123,7 @@ fn twice(x: Int) -> Int { x + x }
 
 fn apply(f: fn(Int) -> Int) -> Int { f(1) }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${apply(twice)}"
 }
 `)
@@ -179,7 +179,7 @@ fn apply(f: fn(Int) -> Int) -> Int { f(1) }
 
 fn capturing(n: Int) -> Int { apply((x: Int) => x + n) }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := fnBody(t, ir, "main.capturing")
 	if strings.Contains(body, "@rt_closure(") || !strings.Contains(body, `@"kg.box.main.capturing.closure1"(`) {
@@ -197,11 +197,11 @@ func TestWholeSelfAssignKeepsVariantsShared(t *testing.T) {
 	ir := emitIR(t, `
 type Shape = Circle(label: String) | Dot
 
-fn Shape.clear(mut self) -> Unit { self = Dot }
+fn Shape.clear(mut self) { self = Dot }
 
 fn blank() -> Shape { Dot }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := bodyOf(t, ir, `define ptr @"main.blank"(`)
 	checkNoHeap(t, "main.blank", body)

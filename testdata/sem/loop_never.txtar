@@ -14,7 +14,7 @@ fn pick(n: Int) -> Int {
 }
 
 fn stops() -> Int {
-    for { //~ ERROR expected `Int`, found `Unit`
+    for { //~ ERROR expected `Int`, found `Void`
         break
     }
 }
@@ -28,9 +28,9 @@ fn nested() -> Never {
 }
 
 -- expect --
-error[E400]: expected `Int`, found `Unit`
+error[E400]: expected `Int`, found `Void`
   --> app/t/t.kg:16:5
    |
-16 |     for { //~ ERROR expected `Int`, found `Unit`
+16 |     for { //~ ERROR expected `Int`, found `Void`
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

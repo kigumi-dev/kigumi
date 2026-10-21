@@ -9,4 +9,4 @@ pub fn errno() -> i32 {
 }
 
 /// Sets errno to 0; a bare target has none.
-pub fn clearErrno() -> Unit {}
+pub fn clearErrno() {}

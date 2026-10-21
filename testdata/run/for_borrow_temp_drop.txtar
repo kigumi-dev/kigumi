@@ -6,7 +6,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -14,7 +14,7 @@ fn makeArr() -> Array[Res] {
     Array.of(Res { id: 7 }, Res { id: 8 })
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     for x in &makeArr() {
         print "see ${x.id}"
     }

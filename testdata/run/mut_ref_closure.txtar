@@ -10,25 +10,25 @@ fn Shape.area(self) -> Int {
     }
 }
 
-fn Shape.flatten(mut self) -> Unit {
+fn Shape.flatten(mut self) {
     self = Dot
 }
 
-fn apply(f: fn(&mut Shape) -> Unit, s: &mut Shape) -> Unit {
+fn apply(f: fn(&mut Shape) -> Void, s: &mut Shape) {
     f(s)
 }
 
-fn applyHere(f: fn(&mut Shape) -> Unit) -> Int {
+fn applyHere(f: fn(&mut Shape) -> Void) -> Int {
     let mut owned: Shape = Circle(2)
     f(&mut owned)
     owned.area()
 }
 
-fn reset(s: &mut Shape, k: Int) -> Unit {
+fn reset(s: &mut Shape, k: Int) {
     s = Circle(k)
 }
 
-fn pick(k: Int) -> fn(&mut Shape) -> Unit {
+fn pick(k: Int) -> fn(&mut Shape) -> Void {
     (s: &mut Shape) => { s = Circle(k) }
 }
 

@@ -22,7 +22,7 @@ type Wrap = {
     pub mut inner Holder
 }
 
-fn mutate(w: &mut Wrap) -> Unit {
+fn mutate(w: &mut Wrap) {
     w.inner.cb = syncRoot
 }
 

@@ -1,4 +1,4 @@
-fn run() -> Unit {
+fn run() {
     let b = Bytes.zeros(6)
     let before = b.len()
     eprint "go"

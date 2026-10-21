@@ -1,13 +1,13 @@
 -- src --
-fn runNow[F: Fn[fn() -> Unit]](callback: F) -> Unit { callback() }
-fn keep[F: Fn[fn() -> Unit]](callback: escaping F) -> Handler[F] { Handler { callback: callback } }
-fn both[F: Fn[fn() -> Unit]](a: escaping fn() -> Unit, b: escaping F, c: F) -> Unit {}
-fn viaType[F: Fn[fn() -> Unit]](register: fn(escaping F, Int) -> Unit, cb: F) -> Unit { register(cb, 1) }
-fn many[F: Fn[fn() -> Unit]](cbs: ...escaping F) -> Unit {}
+fn runNow[F: Fn[fn() -> Void]](callback: F) { callback() }
+fn keep[F: Fn[fn() -> Void]](callback: escaping F) -> Handler[F] { Handler { callback: callback } }
+fn both[F: Fn[fn() -> Void]](a: escaping fn() -> Void, b: escaping F, c: F) {}
+fn viaType[F: Fn[fn() -> Void]](register: fn(escaping F, Int) -> Void, cb: F) { register(cb, 1) }
+fn many[F: Fn[fn() -> Void]](cbs: ...escaping F) {}
 interface Registry {
-    fn add[F: Fn[fn() -> Unit]](self, callback: escaping F) -> Unit
+    fn add[F: Fn[fn() -> Void]](self, callback: escaping F)
 }
-fn bad(x: escaping Int) -> Unit {}
+fn bad(x: escaping Int) {}
 -- expect --
 File
   FnDecl
@@ -24,13 +24,12 @@ File
               TypeFn
                 params: List
                 ret: TypePath
-                  Path Unit
+                  Path Void
     params: List
       Param callback
         type: TypePath
           Path F
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
       ExprStmt
         Call
@@ -50,7 +49,7 @@ File
               TypeFn
                 params: List
                 ret: TypePath
-                  Path Unit
+                  Path Void
     params: List
       Param callback
         flags: escaping
@@ -82,14 +81,14 @@ File
               TypeFn
                 params: List
                 ret: TypePath
-                  Path Unit
+                  Path Void
     params: List
       Param a
         type: TypeFn
           params: List
           flags: escaping
           ret: TypePath
-            Path Unit
+            Path Void
       Param b
         flags: escaping
         type: TypePath
@@ -97,8 +96,7 @@ File
       Param c
         type: TypePath
           Path F
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
   FnDecl
     attrs: -
@@ -114,7 +112,7 @@ File
               TypeFn
                 params: List
                 ret: TypePath
-                  Path Unit
+                  Path Void
     params: List
       Param register
         type: TypeFn
@@ -125,12 +123,11 @@ File
               Path Int
           flags: escaping#0
           ret: TypePath
-            Path Unit
+            Path Void
       Param cb
         type: TypePath
           Path F
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
       ExprStmt
         Call
@@ -152,14 +149,13 @@ File
               TypeFn
                 params: List
                 ret: TypePath
-                  Path Unit
+                  Path Void
     params: List
       Param cbs
         flags: variadic escaping
         type: TypePath
           Path F
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
   InterfaceDecl
     name: Registry
@@ -178,7 +174,7 @@ File
                   TypeFn
                     params: List
                     ret: TypePath
-                      Path Unit
+                      Path Void
         params: List
           Param self
             flags: self
@@ -186,8 +182,7 @@ File
             flags: escaping
             type: TypePath
               Path F
-        ret: TypePath
-          Path Unit
+        ret: -
         body: -
   FnDecl
     attrs: -
@@ -200,6 +195,5 @@ File
         flags: escaping
         type: TypePath
           Path Int
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block

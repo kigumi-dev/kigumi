@@ -2,7 +2,7 @@
 import array from std/array
 import text from std/text
 
-fn run() -> Unit {
+fn run() {
     for s in Array.of("a,b,,c", "", ",", "x", ",,", "é,ü", "abc") {
         print "split ${array.join(&s.split(","), "|")} ${s.split(",").len()} ${s.split("").len()} ${s.split(",,").len()}"
         print "chars ${s.chars().len()} ${array.join(&text.graphemes(s), "/")} ${text.lines(s).len()} ${text.lines("${s}\n").len()} ${text.lines("\n${s}").len()} ${array.join(&text.lines("${s}\nz"), "+")}"

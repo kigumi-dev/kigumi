@@ -14,7 +14,7 @@ fn sysWrite(fd: usize, buf: *const u8, len: usize) -> Out[isize] {
     }
 }
 
-fn spin(lock: *mut i32) -> Unit {
+fn spin(lock: *mut i32) {
     unsafe {
         asm {
             "1:"
@@ -111,8 +111,7 @@ File
         type: TypePtr mut
           TypePath
             Path i32
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
       ExprStmt
         Unsafe

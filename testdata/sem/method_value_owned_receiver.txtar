@@ -3,11 +3,11 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.get(self, k: Int) -> Int { self.n + k }
 
-fn Res.bump(mut self) -> Unit {}
+fn Res.bump(mut self) {}
 
 fn Res.take(move self) -> Int { self.n }
 
@@ -46,7 +46,7 @@ interface Getter {
 }
 
 interface Bumper {
-    fn bump(mut self) -> Unit
+    fn bump(mut self)
 }
 
 interface Taker {
@@ -134,14 +134,14 @@ fn plainParam[T: Getter](t: T) -> Int {
     f(1)
 }
 
-fn unchanged(mut w: Res, v: Res, x: Res, y: Res) -> Unit {
+fn unchanged(mut w: Res, v: Res, x: Res, y: Res) {
     let a = w.bump //~ ERROR cannot form a method value on move-only `Res`
     let b = v.take //~ ERROR cannot form a method value on move-only `Res`
     let c = x.later //~ ERROR cannot form a method value on move-only `Res`
     let d = y.laterWith //~ ERROR cannot take its move-only `Res` receiver
 }
 
-fn unchangedReq[B: Bumper, T: Taker](mut b: B, t: T) -> Unit {
+fn unchangedReq[B: Bumper, T: Taker](mut b: B, t: T) {
     let a = b.bump //~ ERROR is an interface requirement with no single implementation
     let c = t.take //~ ERROR consumes its receiver
 }

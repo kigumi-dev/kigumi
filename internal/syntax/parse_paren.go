@@ -5,7 +5,7 @@ import "kigumi/internal/token"
 // parenOrLambda decides between `()` the unit value, `(expr)`, `(a, b)` a
 // tuple literal, and `(params) => body` by looking for `=>` after the
 // matching `)`; a comma after the first expression is what commits to a
-// tuple. `()` is the Unit literal, the 0-tuple counterpart of
+// tuple. `()` is the Void literal, the 0-tuple counterpart of
 // `(a, b)`.
 func (p *parser) parenOrLambda() NodeID {
 	if p.parenFollowedByFatArrow() {

@@ -29,7 +29,7 @@ fn pointOf(h: &Holder) -> Point {
     h.p
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut a = FixedArray.filled[Int, 3](1)
     let mut arr: Array[FixedArray[Int, 3]] = Array.empty()
     arr.push(a)

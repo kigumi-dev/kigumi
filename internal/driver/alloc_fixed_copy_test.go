@@ -16,7 +16,7 @@ type Cell = {
     pub mut w Float
 }
 
-noalloc fn op(xs: &mut FixedArray[%s, 2]) -> Unit {
+noalloc fn op(xs: &mut FixedArray[%s, 2]) {
     %s
 }
 

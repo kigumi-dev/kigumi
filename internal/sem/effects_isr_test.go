@@ -66,10 +66,10 @@ func checkIsrWith(t *testing.T, source, src string, contracts sem.IsrContracts, 
 
 func TestInterruptHandlerOK(t *testing.T) {
 	ok := checkIsr(t, `
-noalloc fn poke() -> Unit {}
+noalloc fn poke() {}
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         poke()
     }
 }
@@ -84,7 +84,7 @@ func TestInterruptHandlerRecordConstruct(t *testing.T) {
 type Pair = { pub x String, pub y Int }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let p = Pair { x: "a", y: 2 }
         _ = p
     }
@@ -103,7 +103,7 @@ func TestInterruptHandlerDirectRecordConstruct(t *testing.T) {
 type Pair = { pub x Int, pub y Int }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let p = Pair { x: 1, y: 2 }
         _ = p.y
     }
@@ -121,7 +121,7 @@ type Pair = A(x: String) | B(y: Int)
 fn level() -> Int { 3 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let p = B(level())
         _ = p
     }
@@ -138,7 +138,7 @@ func TestInterruptHandlerDirectVariantConstruct(t *testing.T) {
 type Pair = A(x: Int) | B(y: Int)
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let p = A(1)
         _ = p is A(n) && n == 1
     }
@@ -156,7 +156,7 @@ func TestInterruptHandlerNullaryVariantAccepted(t *testing.T) {
 type Mark = Cold | Hot
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let x = Cold
         _ = x
     }
@@ -170,7 +170,7 @@ export(interrupt) {
 func TestInterruptHandlerOptionNoneAccepted(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let x: Int? = None
         _ = x
     }
@@ -186,12 +186,12 @@ func TestInterruptHandlerWholeAssignedVariantConstruct(t *testing.T) {
 	res := checkIsr(t, `
 type Slot = Free | Busy(id: Int)
 
-fn Slot.release(mut self) -> Unit {
+fn Slot.release(mut self) {
     self = Free
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let s = Free
         _ = s
     }
@@ -207,7 +207,7 @@ func TestInterruptHandlerQualifiedNullaryVariantAccepted(t *testing.T) {
 type Box = Empty | Full(x: Int)
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let b: Box = Box.Empty
         _ = b
     }
@@ -221,7 +221,7 @@ export(interrupt) {
 func TestInterruptHandlerTupleConstruct(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let p = (1, "a")
         _ = p
     }
@@ -237,7 +237,7 @@ export(interrupt) {
 func TestInterruptHandlerDirectTupleAccepted(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let p = (1, 2)
         _ = p._0 == p._1
     }
@@ -253,7 +253,7 @@ export(interrupt) {
 func TestInterruptHandlerCapturelessClosureAccepted(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let f = () => 1
         _ = f
     }
@@ -267,7 +267,7 @@ export(interrupt) {
 func TestInterruptHandlerCapturingClosureConstruct(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let n = "x"
         let f = () => n.len()
         _ = f
@@ -283,7 +283,7 @@ export(interrupt) {
 func TestInterruptHandlerDirectClosureConstruct(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let n = 1
         let f = (x: Int) => x == n
         _ = f(2)
@@ -298,7 +298,7 @@ export(interrupt) {
 func TestInterruptHandlerAlloc(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let s = "${1}"
         _ = s
     }
@@ -317,7 +317,7 @@ fn divideBy(d: Int) -> Int {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         _ = divideBy(0)
     }
 }
@@ -334,7 +334,7 @@ export(interrupt) {
 func TestInterruptHandlerBlocking(t *testing.T) {
 	res := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         print("tick")
     }
 }
@@ -356,7 +356,7 @@ async fn twice() -> Int {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let _ = twice()
     }
 }
@@ -373,11 +373,11 @@ export(interrupt) {
 func TestInterruptHandlerUnvettedExtern(t *testing.T) {
 	res := checkIsr(t, `
 extern(C) {
-    fn raw_op() -> Unit
+    fn raw_op()
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         unsafe {
             raw_op()
         }
@@ -396,7 +396,7 @@ type Buf = resource {
     pub tag String
 }
 
-fn Buf.drop(move self) -> Unit {
+fn Buf.drop(move self) {
     let s = "${self.tag}"
     _ = s
 }
@@ -406,7 +406,7 @@ fn make() -> Buf {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let b = make()
         _ = b
     }
@@ -424,7 +424,7 @@ pub type Buf = resource {
     pub tag String
 }
 
-fn Buf.drop(move self) -> Unit {
+fn Buf.drop(move self) {
     let s = "${self.tag}"
     _ = s
 }
@@ -437,11 +437,11 @@ pub type Box = Empty | Full(buf: Buf)
 
 pub noalloc fn box() -> Box
 
-pub fn consumeResource(x: Buf?) -> Unit {}
+pub fn consumeResource(x: Buf?) {}
 
 pub fn identity(x: Buf) -> Buf { x }
 
-pub fn Buf.release(move self) -> Unit {
+pub fn Buf.release(move self) {
     let s = "${self.tag}"
     _ = s
 }
@@ -453,7 +453,7 @@ func TestInterruptHandlerDropOnlyArgs(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let x = source.option()
         _ = x
     }
@@ -474,7 +474,7 @@ func TestInterruptHandlerDropOnlyVariants(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let b = source.box()
         _ = b
     }
@@ -495,7 +495,7 @@ func TestInterruptHandlerImplicitLocalDrop(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let x = source.option()
     }
 }
@@ -512,7 +512,7 @@ func TestInterruptHandlerImplicitParamDrop(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         source.consumeResource(source.option())
     }
 }
@@ -531,10 +531,10 @@ func TestInterruptHandlerWildcardParamDrop(t *testing.T) {
 	res := checkIsrWithSource(t, bufLibSrc, `
 import source from buflib
 
-fn peek(_: source.Buf) -> Unit {}
+fn peek(_: source.Buf) {}
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         peek(source.buf())
     }
 }
@@ -551,7 +551,7 @@ func TestInterruptHandlerLetWildcardDrop(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let _ = source.buf()
     }
 }
@@ -568,7 +568,7 @@ func TestInterruptHandlerTypeTestStillDrops(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let x = source.option()
         if x is None {
         }
@@ -590,7 +590,7 @@ func TestInterruptHandlerIsBindingConsumes(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let x = source.option()
         if x is Some(v) {
             _ = v
@@ -612,7 +612,7 @@ import source from buflib
 fn identity(x: source.Buf) -> source.Buf { x }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         _ = identity(source.buf())
     }
 }
@@ -631,10 +631,10 @@ func TestInterruptHandlerConsumedParamStillDropsInCallee(t *testing.T) {
 	res := checkIsrWithSource(t, bufLibSrc, `
 import source from buflib
 
-fn sink(x: source.Buf) -> Unit { _ = x }
+fn sink(x: source.Buf) { _ = x }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         sink(source.buf())
     }
 }
@@ -651,7 +651,7 @@ func TestInterruptHandlerSelfAssignStillDrops(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let mut b = source.buf()
         b = b
     }
@@ -669,7 +669,7 @@ func TestInterruptHandlerReassignFromHelperStillDrops(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let mut b = source.buf()
         b = source.identity(b)
     }
@@ -687,7 +687,7 @@ func TestInterruptHandlerMoveSelfReceiverConsumes(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         source.buf().release()
     }
 }
@@ -706,7 +706,7 @@ func TestInterruptHandlerRecursiveAdtDrop(t *testing.T) {
 type Node = Text(s: String) | Wrap(kid: Node)
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let n = Wrap(Text("x"))
         _ = n
     }
@@ -723,7 +723,7 @@ func TestInterruptHandlerRecursiveGenericAdtDrop(t *testing.T) {
 type Boxed[M] = Leaf(v: M) | Nest(kid: Boxed[M])
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let b: Boxed[Int] = Nest(Leaf(7))
         _ = b
     }
@@ -740,10 +740,10 @@ func TestInterruptHandlerGenericParamDrop(t *testing.T) {
 	res := checkIsrWithSource(t, bufLibSrc, `
 import source from buflib
 
-fn consume[T](x: T) -> Unit {}
+fn consume[T](x: T) {}
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         consume(source.option())
     }
 }
@@ -763,7 +763,7 @@ func TestInterruptHandlerFieldReadDrops(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let x = source.buf()
         let tag = x.tag
         _ = tag
@@ -781,13 +781,13 @@ func TestInterruptHandlerParamFieldReadDrops(t *testing.T) {
 	res := checkIsrWithSource(t, bufLibSrc, `
 import source from buflib
 
-fn peek(b: source.Buf) -> Unit {
+fn peek(b: source.Buf) {
     let tag = b.tag
     _ = tag
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         peek(source.buf())
     }
 }
@@ -804,7 +804,7 @@ func TestInterruptHandlerMatchBindingFieldReadDrops(t *testing.T) {
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         match source.box() {
             source.Box.Empty -> {}
             source.Box.Full(buf) -> {
@@ -825,7 +825,7 @@ export(interrupt) {
 func TestInterruptHandlerIfaceDrop(t *testing.T) {
 	res := checkIsrWithSource(t, `
 pub interface Greeter {
-    fn hello(self) -> Unit
+    fn hello(self)
 }
 
 pub noalloc fn greeter() -> Greeter
@@ -833,7 +833,7 @@ pub noalloc fn greeter() -> Greeter
 import source from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let g = source.greeter()
         _ = g
     }
@@ -847,11 +847,11 @@ export(interrupt) {
 
 func TestInterruptHandlerFnValue(t *testing.T) {
 	res := checkIsr(t, `
-fn other() -> Unit {}
+fn other() {}
 
 export(interrupt) {
-    pub fn tick() -> Unit {
-        let f: fn() -> Unit = other
+    pub fn tick() {
+        let f: fn() -> Void = other
         f()
     }
 }
@@ -865,7 +865,7 @@ export(interrupt) {
 // TestInterruptHandlerRecursionBeforePanic checks a self-call's cycle doesn't pre-empt a panic finding sitting right after it in the edge list.
 func TestInterruptHandlerRecursionBeforePanic(t *testing.T) {
 	res := checkIsr(t, `
-noalloc fn countdown(n: Int) -> Unit {
+noalloc fn countdown(n: Int) {
     if n <= 0 {
         return
     }
@@ -873,7 +873,7 @@ noalloc fn countdown(n: Int) -> Unit {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         countdown(5)
     }
 }
@@ -899,8 +899,8 @@ export(interrupt) {
 	if !strings.Contains(out, "E1084") || !strings.Contains(out, "takes parameters") {
 		t.Fatalf("a handler with parameters must be rejected:\n%s", out)
 	}
-	if !strings.Contains(out, "E1085") || !strings.Contains(out, "must return `Unit`") {
-		t.Fatalf("a non-Unit handler must be rejected:\n%s", out)
+	if !strings.Contains(out, "E1085") || !strings.Contains(out, "must return `Void`") {
+		t.Fatalf("a non-Void handler must be rejected:\n%s", out)
 	}
 }
 
@@ -911,7 +911,7 @@ type Board = {
 }
 
 export(interrupt) {
-    pub fn Board.tick(self) -> Unit {}
+    pub fn Board.tick(self) {}
 }
 `)
 	out := res.Render()
@@ -939,7 +939,7 @@ export(interrupt, naked) {
 func TestInterruptExtern(t *testing.T) {
 	res := checkIsr(t, `
 extern(interrupt) {
-    fn tick() -> Unit
+    fn tick()
 }
 `)
 	out := res.Render()
@@ -951,13 +951,13 @@ extern(interrupt) {
 // A bodiless noalloc declaration is no interrupt contract on its own; only a reviewed one makes it callable.
 func TestInterruptHandlerBodilessNoallocCallee(t *testing.T) {
 	const lib = `
-pub noalloc fn raw_op() -> Unit
+pub noalloc fn raw_op()
 `
 	const src = `
 import {raw_op} from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         raw_op()
     }
 }
@@ -973,12 +973,12 @@ export(interrupt) {
 
 func TestInterruptHandlerBodilessPureNoallocCallee(t *testing.T) {
 	res := checkIsrWith(t, `
-pub pure noalloc fn raw_op() -> Unit
+pub pure noalloc fn raw_op()
 `, `
 import {raw_op} from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         raw_op()
     }
 }

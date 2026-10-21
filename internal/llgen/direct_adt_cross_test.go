@@ -18,7 +18,7 @@ fn Tick.value(self) -> Int {
     }
 }
 
-fn bumpTo(t: &mut Tick, n: Int) -> Unit { t = Up(n) }
+fn bumpTo(t: &mut Tick, n: Int) { t = Up(n) }
 
 fn marked(n: Int) -> Int {
     let mut m = Marked(Up(n * 2))
@@ -26,7 +26,7 @@ fn marked(n: Int) -> Int {
     m.value.value()
 }
 
-fn main() -> Unit! { print "${marked(3)}" }
+fn main() -> Void! { print "${marked(3)}" }
 `
 
 // An alias renames the crossing's box instead of consuming it, so releasing at the alias would free the binding's object.
@@ -61,7 +61,7 @@ fn fixed() -> Bool { pick(Some(4)) is Some(_) }
 
 fn fresh(n: Int) -> Bool { pick(Some(n)) is Some(_) }
 
-fn main() -> Unit! { print "${fixed()} ${fresh(1)}" }
+fn main() -> Void! { print "${fixed()} ${fresh(1)}" }
 `
 
 // A fixed crossing reads the variant's immortal and calls no boxing helper; the second builds its box at run time.

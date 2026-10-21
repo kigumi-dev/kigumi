@@ -3,7 +3,7 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -15,14 +15,14 @@ type Counter = {
     mut n Int
 }
 
-fn copyValue() -> Unit {
+fn copyValue() {
     let mut count = 1
     let saved = count
     defer { print "saved=${saved}, current=${count}" }
     count = 2
 }
 
-fn shadowing() -> Unit {
+fn shadowing() {
     let mut count = 1
     defer { print "shadow count=${count}" }
     count = 5
@@ -30,7 +30,7 @@ fn shadowing() -> Unit {
     print "shadowed ${count}"
 }
 
-fn lifo() -> Unit {
+fn lifo() {
     let mut total = 0
     defer { print "outer sees ${total}" }
     defer { total += 10 }
@@ -38,7 +38,7 @@ fn lifo() -> Unit {
     print "body total ${total}"
 }
 
-fn textAndRecord() -> Unit {
+fn textAndRecord() {
     let mut label = "first"
     let mut c = Counter { n: 1 }
     defer { print "label=${label} n=${c.n}" }
@@ -46,7 +46,7 @@ fn textAndRecord() -> Unit {
     c.n = 7
 }
 
-fn loopCopy() -> Unit {
+fn loopCopy() {
     let mut last = 0
     for i in 1..4 {
         defer { last = i }
@@ -55,7 +55,7 @@ fn loopCopy() -> Unit {
     print "last ${last}"
 }
 
-fn resourceReassign() -> Unit {
+fn resourceReassign() {
     let mut h = Handle { id: 1 }
     defer { print "cleanup peeks ${h.peek()}" }
     h = Handle { id: 2 }

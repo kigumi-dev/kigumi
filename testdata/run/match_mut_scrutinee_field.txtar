@@ -2,7 +2,7 @@
 type In = { pub mut v Int }
 type B = { pub mut n Int, pub mut m Int, pub mut i In }
 
-fn bump(b: &mut B) -> Unit {
+fn bump(b: &mut B) {
   match b {
     B { n } -> {
       b.n = n + 1
@@ -10,7 +10,7 @@ fn bump(b: &mut B) -> Unit {
   }
 }
 
-fn viaInner(b: &mut B) -> Unit {
+fn viaInner(b: &mut B) {
   match b {
     B { n, i } -> {
       i.v = n + 10
@@ -18,7 +18,7 @@ fn viaInner(b: &mut B) -> Unit {
   }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
   let mut b = B { n: 0, m: 5, i: In { v: 0 } }
   bump(&mut b)
   bump(&mut b)

@@ -87,9 +87,12 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 		params = append(params, typ)
 		granted = append(granted, pe.Flags&EfEscaping != 0)
 	}
-	ret := TyPoison
-	if s.Ret != 0 {
+	ret := TyUnit
+	switch {
+	case s.Ret != 0:
 		ret = r.resolveReturnType(f, scope, id, selfType, info.Params, s.Ret)
+	case s.Mods&syntax.ModBareErr != 0:
+		ret = r.unitResult()
 	}
 	info = r.Fn(id)
 	switch {
@@ -105,6 +108,6 @@ func (r *Result) resolveSignature(id EntityID, scope ScopeID, selfType TypeID) {
 	}
 	r.Entities[id].Type = info.Sig
 	if info.Abi != "" || info.Export != "" {
-		r.checkAbiTypes(f, s, params, ret)
+		r.checkAbiTypes(f, e.Node, s, params, ret)
 	}
 }

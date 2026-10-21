@@ -21,7 +21,7 @@ noalloc fn declared(p: Point) -> Int {
     p.y
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func withBox(t *testing.T, p *mir.Program, name string) {
@@ -79,7 +79,7 @@ fn grow(p: Point) -> Array[Point] {
     out
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	if claims := mir.CheckAllocClaims(p); len(claims) != 0 {
 		t.Fatalf("a body without a noalloc summary may box: %+v", claims)

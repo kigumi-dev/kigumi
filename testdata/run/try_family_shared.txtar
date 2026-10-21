@@ -1,7 +1,7 @@
 -- src --
 import {Shared} from std/alloc
 
-fn run() -> Unit {
+fn run() {
     let s = Shared.tryNew(41).unwrap()
     print "get ${s.tryGet().unwrap()} ${s.get()}"
     let w = s.tryDowngrade().unwrap()

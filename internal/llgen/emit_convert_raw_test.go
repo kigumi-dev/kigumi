@@ -12,7 +12,7 @@ fn widened(xs: &Array[u8]) -> Array[Float] { xs.map((x: &u8) => x.toFloat()) }
 
 fn narrowed(xs: &Array[Int]) -> Array[u8?] { xs.map((x: &Int) => x.toU8()) }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${scaled(&Array.of(3)).len()} ${widened(&Array.of(200)).len()} ${narrowed(&Array.of(300)).len()}"
 }
 `

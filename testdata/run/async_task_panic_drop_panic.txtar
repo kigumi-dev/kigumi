@@ -5,10 +5,10 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
     if self.id == 1 {
-        let _: Unit = None.expect("drop panic 1")
+        let _: Void = None.expect("drop panic 1")
     }
 }
 

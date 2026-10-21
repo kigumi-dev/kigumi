@@ -7,7 +7,7 @@ fn Failure.message(self) -> String {
     self.text
 }
 
-fn work(flag: Bool) -> Unit! {
+fn work(flag: Bool) -> Void! {
     let w = 1
     if flag {
         _ = w
@@ -16,7 +16,7 @@ fn work(flag: Bool) -> Unit! {
     }
 }
 
-fn outer(flag: Bool) -> Unit! {
+fn outer(flag: Bool) -> Void! {
     work(flag)?
     print "after ${flag}"
 }

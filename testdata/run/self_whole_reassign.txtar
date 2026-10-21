@@ -9,11 +9,11 @@ fn area(s: Shape) -> Float {
     }
 }
 
-fn Shape.growCircle(mut self, r: Float) -> Unit {
+fn Shape.growCircle(mut self, r: Float) {
     self = Circle(r)
 }
 
-fn Shape.growViaClosure(mut self, r: Float) -> Unit {
+fn Shape.growViaClosure(mut self, r: Float) {
     let step = () => {
         self = Circle(r)
     }
@@ -24,15 +24,15 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Handle.replace(mut self, newId: Int) -> Unit {
+fn Handle.replace(mut self, newId: Int) {
     self = Handle { id: newId }
 }
 
-fn Handle.replaceViaClosure(mut self, newId: Int) -> Unit {
+fn Handle.replaceViaClosure(mut self, newId: Int) {
     let step = () => {
         self = Handle { id: newId }
     }

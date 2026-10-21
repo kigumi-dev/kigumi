@@ -3,7 +3,7 @@ pub type Guard = {
     pub mut amount Int
 }
 
-fn Guard.grow(mut self, k: String) -> Unit {
+fn Guard.grow(mut self, k: String) {
     self = Guard { amount: 0 }
 }
 
@@ -11,7 +11,7 @@ pub type Pad = {
     pub mut n Int
 }
 
-pub fn Pad.grow(mut self, k: Int) -> Unit {
+pub fn Pad.grow(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -20,17 +20,17 @@ pub type Holder['a] = {
 }
 -- app/b/b.kg --
 pub interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
 }
 
-pub fn growAny[G: Grower](x: &mut G, k: Int) -> Unit {
+pub fn growAny[G: Grower](x: &mut G, k: Int) {
     x.grow(k)
 }
 -- app/c/c.kg --
 import a from app/a
 import b from app/b
 
-pub fn viaField['x](h: a.Holder['x]) -> Unit {
+pub fn viaField['x](h: a.Holder['x]) {
     b.growAny(h.r, 1)
 }
 -- expect --

@@ -3,18 +3,18 @@
 // borrow-capturing closure over `h`, risking a cross-engine use-after-drop.
 type Handle = resource { pub id Int }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     _ = self
 }
 
-fn Handle.touch(self) -> Unit {}
+fn Handle.touch(self) {}
 
-fn leaky(cb: fn() -> Unit) -> fn() -> Unit {
+fn leaky(cb: fn() -> Void) -> fn() -> Void {
     let mut g = cb
     return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-fn make() -> fn() -> Unit {
+fn make() -> fn() -> Void {
     let h = Handle { id: 1 }
     leaky(() => h.touch())
 }

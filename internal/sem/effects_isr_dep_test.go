@@ -15,10 +15,10 @@ const isrDepHandler = `
 import {ack, notify} from buflib
 
 export(interrupt) {
-    pub fn uart() -> Unit {
+    pub fn uart() {
         ack()
     }
-    pub fn timer() -> Unit {
+    pub fn timer() {
         notify()
     }
 }

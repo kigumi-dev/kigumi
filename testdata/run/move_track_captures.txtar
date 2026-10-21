@@ -3,11 +3,11 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Res.close(move self) -> Unit {
+fn Res.close(move self) {
     print "close ${self.id}"
 }
 
@@ -27,14 +27,14 @@ fn total(xs: Array[Int], f: fn(Int) -> Int) -> Int {
     t
 }
 
-fn readerOwnsCapture() -> Unit {
+fn readerOwnsCapture() {
     let r = mkr(1)
     let f = () => r.peek()
     print "read ${f()} ${f()}"
     print "end readerOwnsCapture"
 }
 
-fn consumerOnce() -> Unit {
+fn consumerOnce() {
     let r = mkr(2)
     let f = () => { r.close() }
     print "made"
@@ -42,7 +42,7 @@ fn consumerOnce() -> Unit {
     print "end consumerOnce"
 }
 
-fn reinitAfterCapture() -> Unit {
+fn reinitAfterCapture() {
     let mut r = mkr(3)
     let f = () => r.peek()
     r = mkr(4)
@@ -50,7 +50,7 @@ fn reinitAfterCapture() -> Unit {
     r.close()
 }
 
-fn ownState() -> Unit {
+fn ownState() {
     let mut xs = Array.of(1)
     let push = (n: Int) => {
         xs.push(n)
@@ -65,7 +65,7 @@ fn ownState() -> Unit {
     print "swap ${swap(6)} ${swap(7)}"
 }
 
-fn perIteration() -> Unit {
+fn perIteration() {
     for i in 0..2 {
         let r = mkr(10 + i)
         let f = () => { r.close() }
@@ -73,7 +73,7 @@ fn perIteration() -> Unit {
     }
 }
 
-fn immediateBorrows() -> Unit {
+fn immediateBorrows() {
     let ys = Array.of(1, 2)
     let r = mkr(20)
     let t = total(Array.of(1, 2, 3), (x: Int) => x * ys[0] + r.peek())
@@ -81,7 +81,7 @@ fn immediateBorrows() -> Unit {
     r.close()
 }
 
-fn readerShares() -> Unit {
+fn readerShares() {
     let r = mkr(30)
     {
         let f = () => r.peek()
@@ -90,7 +90,7 @@ fn readerShares() -> Unit {
     print "end readerShares"
 }
 
-fn readerThenConsume() -> Unit {
+fn readerThenConsume() {
     let r = mkr(40)
     let f = () => r.peek()
     print "reader ${f()}"
@@ -98,7 +98,7 @@ fn readerThenConsume() -> Unit {
     print "end readerThenConsume"
 }
 
-fn readerInLoop() -> Unit {
+fn readerInLoop() {
     let xs = Array.of(1, 2)
     for i in 0..2 {
         let g = () => xs.len()
@@ -107,7 +107,7 @@ fn readerInLoop() -> Unit {
     print "outer ${xs.len()}"
 }
 
-fn nestedReader() -> Unit {
+fn nestedReader() {
     let r = mkr(50)
     let f = () => {
         let g = () => r.peek()
@@ -117,27 +117,27 @@ fn nestedReader() -> Unit {
     r.close()
 }
 
-fn eachInt(xs: Array[Int], f: fn(Int) -> Unit) -> Unit {
+fn eachInt(xs: Array[Int], f: fn(Int) -> Void) {
     for x in xs {
         f(x)
     }
 }
 
-fn collectThenRead() -> Unit {
+fn collectThenRead() {
     let mut out: Array[Int] = Array.of()
     eachInt(Array.of(1, 2, 3), (x: Int) => out.push(x))
     let report = () => out.len()
     print "collected ${report()}"
 }
 
-fn readThenCollect() -> Unit {
+fn readThenCollect() {
     let mut out: Array[Int] = Array.of()
     let report = () => out.len()
     eachInt(Array.of(1, 2, 3), (x: Int) => out.push(x))
     print "read then collected ${report()} ${out.len()}"
 }
 
-fn sharedCellLate() -> Unit {
+fn sharedCellLate() {
     let mut h = mkr(60)
     let f = () => h.peek()
     eachInt(Array.of(61), (x: Int) => {
@@ -148,11 +148,11 @@ fn sharedCellLate() -> Unit {
     print "end sharedCellLate"
 }
 
-fn applyNow(f: fn() -> Unit) -> Unit {
+fn applyNow(f: fn() -> Void) {
     f()
 }
 
-fn cellReinit() -> Unit {
+fn cellReinit() {
     let mut o = mkr(70)
     applyNow(() => { o = mkr(71) })
     o.close()
@@ -161,7 +161,7 @@ fn cellReinit() -> Unit {
     print "end cellReinit"
 }
 
-fn cellBranchReinit(c: Bool) -> Unit {
+fn cellBranchReinit(c: Bool) {
     let mut o = mkr(73)
     applyNow(() => { o = mkr(74) })
     if c {
@@ -177,18 +177,18 @@ type CellPair = resource {
     pub mut r Res
 }
 
-fn closeOptR(o: Res?) -> Unit {
+fn closeOptR(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> print "none"
     }
 }
 
-fn eatR(r: Res) -> Unit {
+fn eatR(r: Res) {
     r.close()
 }
 
-fn siblingStoreInGuard() -> Unit {
+fn siblingStoreInGuard() {
     let mut p = CellPair { a: 1, r: mkr(131) }
     match p.r {
         r if { p.a = 5; r.peek() > 0 } -> {
@@ -200,7 +200,7 @@ fn siblingStoreInGuard() -> Unit {
     print "end siblingStoreInGuard"
 }
 
-fn writingLambdaAfterConsume() -> Unit {
+fn writingLambdaAfterConsume() {
     let mut o = Some(mkr(141))
     applyNow(() => { o = None })
     closeOptR(o)
@@ -210,7 +210,7 @@ fn writingLambdaAfterConsume() -> Unit {
     print "end writingLambdaAfterConsume"
 }
 
-fn writingLambdaInLoop() -> Unit {
+fn writingLambdaInLoop() {
     let mut o = Some(mkr(144))
     applyNow(() => { o = None })
     for i in 0..2 {
@@ -222,7 +222,7 @@ fn writingLambdaInLoop() -> Unit {
     print "end writingLambdaInLoop"
 }
 
-fn writingLambdaAfterLet() -> Unit {
+fn writingLambdaAfterLet() {
     let mut o = Some(mkr(147))
     applyNow(() => { o = None })
     let q = o
@@ -231,7 +231,7 @@ fn writingLambdaAfterLet() -> Unit {
     print "end writingLambdaAfterLet"
 }
 
-fn cellFieldMoveRefill() -> Unit {
+fn cellFieldMoveRefill() {
     let mut p = CellPair { a: 1, r: mkr(111) }
     applyNow(() => { p.a = 2 })
     eatR(move p.r)
@@ -241,7 +241,7 @@ fn cellFieldMoveRefill() -> Unit {
     print "end cellFieldMoveRefill ${p.a}"
 }
 
-fn cellGuardReads() -> Unit {
+fn cellGuardReads() {
     let mut p = CellPair { a: 1, r: mkr(121) }
     applyNow(() => { p.a = 2 })
     match p {

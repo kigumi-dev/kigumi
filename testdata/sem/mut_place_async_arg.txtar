@@ -1,52 +1,52 @@
 -- src --
-async fn bump(x: &mut Int) -> Unit {
+async fn bump(x: &mut Int) {
     x = x + 1
 }
 
-fn syncBump(x: &mut Int) -> Unit {
+fn syncBump(x: &mut Int) {
     x = x + 1
 }
 
 type Box = { mut v Int }
 
-async fn Box.touch(self, x: &mut Int) -> Unit {
+async fn Box.touch(self, x: &mut Int) {
     x = x + self.v
 }
 
 type Counter = { mut v Int }
 
-async fn Counter.bump(mut self, x: &mut Int) -> Unit {
+async fn Counter.bump(mut self, x: &mut Int) {
     self.v = self.v + 1
     x = x + 100
 }
 
-async fn indexArg() -> Unit {
+async fn indexArg() {
     let mut arr = Array.of(1, 2, 3)
     await bump(&mut arr[0]) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
 }
 
-async fn fieldArg() -> Unit {
+async fn fieldArg() {
     let mut b = Box { v: 1 }
     await bump(&mut b.v) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
 }
 
-async fn methodArg() -> Unit {
+async fn methodArg() {
     let mut arr = Array.of(1, 2, 3)
     let b = Box { v: 1 }
     await b.touch(&mut arr[0]) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
 }
 
-async fn methodSelfAliasArg() -> Unit {
+async fn methodSelfAliasArg() {
     let mut c = Counter { v: 1 }
     await c.bump(&mut c.v) //~ ERROR a mutable borrow of an array element or struct field cannot be passed to an async call
 }
 
-fn syncIndexArgStillOk() -> Unit {
+fn syncIndexArgStillOk() {
     let mut arr = Array.of(1, 2, 3)
     syncBump(&mut arr[0])
 }
 
-fn bareLocalToAsyncStillOk() -> Unit {
+fn bareLocalToAsyncStillOk() {
     let mut x = 1
     let f = bump(&mut x)
 }

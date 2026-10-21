@@ -7,12 +7,12 @@ extern(C) {
     fn read(fd: i32, buf: *mut u8, n: usize) -> isize
     fn close(fd: i32) -> i32
     fn malloc(n: usize) -> *mut u8
-    fn free(p: *mut u8) -> Unit
+    fn free(p: *mut u8)
 }
 
 // getrandom(2) is unavailable on a kernel old enough to predate it; fill
 // the rest of the buffer by reading /dev/urandom instead.
-fn fillFromUrandom(buf: *mut u8, start: usize, n: usize) -> Unit! {
+fn fillFromUrandom(buf: *mut u8, start: usize, n: usize) -> Void! {
     let path = "/dev/urandom"
     let c = ffi.CString.new(&path)?
     let fd = unsafe {

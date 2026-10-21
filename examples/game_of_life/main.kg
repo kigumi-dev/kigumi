@@ -39,7 +39,7 @@ fn step(cells: &Array[Bool]) -> Array[Bool] {
     next
 }
 
-fn render(cells: &Array[Bool]) -> Unit {
+fn render(cells: &Array[Bool]) {
     for y in 0..height {
         let mut row = ""
         for x in 0..width {

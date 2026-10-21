@@ -13,7 +13,7 @@ func writePlatformModule(t *testing.T, name string) string {
 	t.Helper()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \""+name+"\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import time from std/time\n\nfn age(t: time.Instant) -> Unit {}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import time from std/time\n\nfn age(t: time.Instant) {}\n"), 0o644)
 	return root
 }
 
@@ -91,7 +91,7 @@ func TestPlatformUnavailableRandomFreestanding(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"randbare\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import random from std/random\n\nfn seed(r: random.Rng) -> Unit {}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import random from std/random\n\nfn seed(r: random.Rng) {}\n"), 0o644)
 	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})
@@ -118,11 +118,11 @@ func TestPlatformUnavailableTransitive(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"transitive\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import crypto from std/crypto\n\nfn use() -> Unit { crypto.touchClock() }\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("import crypto from std/crypto\n\nfn use() { crypto.touchClock() }\n"), 0o644)
 	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../std")
 	overlay := map[string][]byte{
-		filepath.Join(std, "crypto", "layer_probe.kg"): []byte("import time from std/time\n\npub fn touchClock() -> Unit {\n    _ = time.now()\n}\n"),
+		filepath.Join(std, "crypto", "layer_probe.kg"): []byte("import time from std/time\n\npub fn touchClock() {\n    _ = time.now()\n}\n"),
 	}
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target, Overlay: overlay})
 	if err != nil {
@@ -151,7 +151,7 @@ func TestStdLayerDirectionFreestanding(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"stdwalk\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "main.kg"), []byte("fn main() -> Unit! {}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "main.kg"), []byte("fn main() -> Void! {}\n"), 0o644)
 	target, _ := driver.ParseTarget(testCompiler(), "x86_64-freestanding", "")
 	std, _ := filepath.Abs("../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Target: target})

@@ -10,7 +10,7 @@ noalloc fn viaInferred(n: Int) -> Int {
     inferred(cheap, n) //~ ERROR `inferred` is not `noalloc` //~ ERROR `cheap` returns `Int` unboxed
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E907]: `inferred` is not `noalloc`
  --> main/main.kg:9:5

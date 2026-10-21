@@ -95,7 +95,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -249,7 +249,7 @@ print "total ${ex.runToCompletion(root())}"
 func TestSandboxRejectsThreadPool(t *testing.T) {
 	src := `import task from std/task
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let ex = task.threadPoolExecutor(2)
     _ = ex
 }
@@ -336,7 +336,7 @@ print "total ${ex.runToCompletion(root())}"
 func TestDeepPanicUnwindsInOnePass(t *testing.T) {
 	src := `fn rec(n: Int) -> Int {
     if n == 0 {
-        let _: Unit = None.expect("deep")
+        let _: Void = None.expect("deep")
     }
     1 + rec(n - 1)
 }
@@ -359,7 +359,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 

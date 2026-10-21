@@ -6,11 +6,11 @@ type Named = {
     pub mut n Int
 }
 
-noalloc fn copyNamed(xs: &mut FixedArray[Named, 2]) -> Unit {
+noalloc fn copyNamed(xs: &mut FixedArray[Named, 2]) {
     xs[0] = xs[1] //~ ERROR copying `Named`
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E1700]: copying `Named` here allocates a box of its own for the copy
  --> main.kg:7:5

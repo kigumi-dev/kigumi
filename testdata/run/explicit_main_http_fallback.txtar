@@ -1,5 +1,5 @@
 -- src --
-fn main() -> Unit! {
+fn main() -> Void! {
     let h = host.net().http()
     match h.post("http://exa mple.com/path", "hi") {
         Ok(r) -> print "ok status=${r.status}"

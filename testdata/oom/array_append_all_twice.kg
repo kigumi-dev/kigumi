@@ -1,4 +1,4 @@
-fn run() -> Unit {
+fn run() {
     let mut a = Array.of(1, 2, 3, 4)
     let x1 = Array.of(4, 5, 6, 7)
     let x2 = Array.of(8, 9)

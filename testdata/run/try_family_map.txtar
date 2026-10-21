@@ -9,7 +9,7 @@ fn show(a: Array[Int]) -> String {
     out
 }
 
-fn run() -> Unit {
+fn run() {
     let mut m = map.tryEmpty[Int, Int]().unwrap()
     print "empty ${m.len()} ${m.tryClone().unwrap().len()}"
     _ = m.trySet(1, 10)

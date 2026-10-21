@@ -111,7 +111,7 @@
   },
   {
     "key": "alloc.Box.set",
-    "signature": "pure fn(T) -\u003e Unit",
+    "signature": "pure fn(T) -\u003e Void",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -191,7 +191,7 @@
   },
   {
     "key": "alloc.Shared.set",
-    "signature": "fn(T) -\u003e Unit",
+    "signature": "fn(T) -\u003e Void",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -271,7 +271,7 @@
   },
   {
     "key": "array.Array.appendAll",
-    "signature": "pure fn(Array[T]) -\u003e Unit",
+    "signature": "pure fn(Array[T]) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -471,7 +471,7 @@
   },
   {
     "key": "array.Array.push",
-    "signature": "pure fn(T) -\u003e Unit",
+    "signature": "pure fn(T) -\u003e Void",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -521,7 +521,7 @@
   },
   {
     "key": "array.Array.tryAppendAll",
-    "signature": "pure fn(Array[T]) -\u003e Result[Unit, AllocError]",
+    "signature": "pure fn(Array[T]) -\u003e Result[Void, AllocError]",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -611,7 +611,7 @@
   },
   {
     "key": "array.Array.tryPush",
-    "signature": "pure fn(T) -\u003e Result[Unit, AllocError]",
+    "signature": "pure fn(T) -\u003e Result[Void, AllocError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -621,7 +621,7 @@
   },
   {
     "key": "array.Array.tryReserve",
-    "signature": "pure fn(usize) -\u003e Result[Unit, AllocError]",
+    "signature": "pure fn(usize) -\u003e Result[Void, AllocError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -731,7 +731,7 @@
   },
   {
     "key": "binary.putU16Be",
-    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -741,7 +741,7 @@
   },
   {
     "key": "binary.putU16Le",
-    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Array[u8], u16) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -751,7 +751,7 @@
   },
   {
     "key": "binary.putU32Be",
-    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -761,7 +761,7 @@
   },
   {
     "key": "binary.putU32Le",
-    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Array[u8], u32) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -771,7 +771,7 @@
   },
   {
     "key": "binary.putU64Be",
-    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -781,7 +781,7 @@
   },
   {
     "key": "binary.putU64Le",
-    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Array[u8], u64) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -791,7 +791,7 @@
   },
   {
     "key": "binary.putUintBe",
-    "signature": "pure fn(\u0026mut Array[u8], u64, usize) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Array[u8], u64, usize) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -801,7 +801,7 @@
   },
   {
     "key": "binary.putUintLe",
-    "signature": "pure fn(\u0026mut Array[u8], u64, usize) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Array[u8], u64, usize) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -891,7 +891,7 @@
   },
   {
     "key": "build.Artifact.addLink",
-    "signature": "fn(String, String) -\u003e Unit",
+    "signature": "fn(String, String) -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -901,7 +901,7 @@
   },
   {
     "key": "build.Artifact.addSource",
-    "signature": "fn(FilePath) -\u003e Unit",
+    "signature": "fn(FilePath) -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -911,7 +911,7 @@
   },
   {
     "key": "build.Artifact.availability",
-    "signature": "fn(Array[String], String) -\u003e Unit",
+    "signature": "fn(Array[String], String) -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -921,7 +921,7 @@
   },
   {
     "key": "build.Artifact.entry",
-    "signature": "fn(String) -\u003e Unit",
+    "signature": "fn(String) -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -931,7 +931,7 @@
   },
   {
     "key": "build.Artifact.linkFlags",
-    "signature": "fn(Array[String]) -\u003e Unit",
+    "signature": "fn(Array[String]) -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -941,7 +941,7 @@
   },
   {
     "key": "build.Artifact.linkerScript",
-    "signature": "fn(FilePath) -\u003e Unit",
+    "signature": "fn(FilePath) -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -961,7 +961,7 @@
   },
   {
     "key": "build.Artifact.uses",
-    "signature": "fn(Artifact) -\u003e Unit",
+    "signature": "fn(Artifact) -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -1141,7 +1141,7 @@
   },
   {
     "key": "dl.Handle.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1171,7 +1171,7 @@
   },
   {
     "key": "dl.Symbol.call",
-    "signature": "unsafe fn() -\u003e Unit",
+    "signature": "unsafe fn() -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "gap",
@@ -1342,7 +1342,7 @@
   },
   {
     "key": "entropy.fillFromUrandom",
-    "signature": "fn(*mut u8, usize, usize) -\u003e Unit!",
+    "signature": "fn(*mut u8, usize, usize) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1412,7 +1412,7 @@
   },
   {
     "key": "ffi.CString.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "gap",
@@ -1445,7 +1445,7 @@
   },
   {
     "key": "ffi.CValue.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -1485,7 +1485,7 @@
   },
   {
     "key": "ffi.CValue.set",
-    "signature": "fn(\u0026T) -\u003e Unit",
+    "signature": "fn(\u0026T) -\u003e Void",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -1495,7 +1495,7 @@
   },
   {
     "key": "ffi.FfiHandle.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -1515,7 +1515,7 @@
   },
   {
     "key": "ffi.HandleTable.close",
-    "signature": "fn() -\u003e Result[Unit, HandleTableBusy]",
+    "signature": "fn() -\u003e Result[Void, HandleTableBusy]",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -1525,7 +1525,7 @@
   },
   {
     "key": "ffi.HandleTable.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -1585,7 +1585,7 @@
   },
   {
     "key": "ffi.Pin.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -1687,7 +1687,7 @@
   },
   {
     "key": "ffi.clearErrno",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -1823,7 +1823,7 @@
   },
   {
     "key": "ffi.secureEraseRaw",
-    "signature": "unsafe fn(*mut u8, usize) -\u003e Unit",
+    "signature": "unsafe fn(*mut u8, usize) -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "gap",
@@ -1917,7 +1917,7 @@
   },
   {
     "key": "ffi.writeF64",
-    "signature": "unsafe fn(*mut Float, Float) -\u003e Unit",
+    "signature": "unsafe fn(*mut Float, Float) -\u003e Void",
     "has_body": false,
     "kind": "",
     "vm": "gap",
@@ -1928,7 +1928,7 @@
   },
   {
     "key": "ffi.writeI32",
-    "signature": "unsafe fn(*mut i32, i32) -\u003e Unit",
+    "signature": "unsafe fn(*mut i32, i32) -\u003e Void",
     "has_body": false,
     "kind": "",
     "vm": "gap",
@@ -1939,7 +1939,7 @@
   },
   {
     "key": "ffi.writeI64",
-    "signature": "unsafe fn(*mut Int, Int) -\u003e Unit",
+    "signature": "unsafe fn(*mut Int, Int) -\u003e Void",
     "has_body": false,
     "kind": "",
     "vm": "gap",
@@ -1950,7 +1950,7 @@
   },
   {
     "key": "ffi.writePtr",
-    "signature": "unsafe fn(*mut u8, *const u8) -\u003e Unit",
+    "signature": "unsafe fn(*mut u8, *const u8) -\u003e Void",
     "has_body": false,
     "kind": "",
     "vm": "gap",
@@ -1961,7 +1961,7 @@
   },
   {
     "key": "ffi.writeRecord",
-    "signature": "unsafe fn(*mut T, \u0026T) -\u003e Unit",
+    "signature": "unsafe fn(*mut T, \u0026T) -\u003e Void",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -1971,7 +1971,7 @@
   },
   {
     "key": "ffi.writeU8",
-    "signature": "unsafe fn(*mut u8, u8) -\u003e Unit",
+    "signature": "unsafe fn(*mut u8, u8) -\u003e Void",
     "has_body": false,
     "kind": "",
     "vm": "gap",
@@ -2052,7 +2052,7 @@
   },
   {
     "key": "fs.File.close",
-    "signature": "fn() -\u003e Unit!",
+    "signature": "fn() -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "implemented",
@@ -2062,7 +2062,7 @@
   },
   {
     "key": "fs.File.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "implemented",
@@ -2122,7 +2122,7 @@
   },
   {
     "key": "fs.Files.mkdir",
-    "signature": "fn(Path) -\u003e Unit!",
+    "signature": "fn(Path) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "implemented",
@@ -2152,7 +2152,7 @@
   },
   {
     "key": "fs.Files.remove",
-    "signature": "fn(Path) -\u003e Unit!",
+    "signature": "fn(Path) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "implemented",
@@ -2162,7 +2162,7 @@
   },
   {
     "key": "fs.Files.writeText",
-    "signature": "fn(Path, String) -\u003e Unit!",
+    "signature": "fn(Path, String) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2372,7 +2372,7 @@
   },
   {
     "key": "io.checkReadLaw",
-    "signature": "fn(usize, usize, usize, usize) -\u003e Unit!",
+    "signature": "fn(usize, usize, usize, usize) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2382,7 +2382,7 @@
   },
   {
     "key": "io.checkWriteLaw",
-    "signature": "fn(usize, usize) -\u003e Unit!",
+    "signature": "fn(usize, usize) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2432,7 +2432,7 @@
   },
   {
     "key": "io.writeAll",
-    "signature": "fn(W, Bytes) -\u003e Unit!",
+    "signature": "fn(W, Bytes) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2512,7 +2512,7 @@
   },
   {
     "key": "json.Buffer.byte",
-    "signature": "fn(u8) -\u003e Unit",
+    "signature": "fn(u8) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2522,7 +2522,7 @@
   },
   {
     "key": "json.Buffer.codePoint",
-    "signature": "fn(Int) -\u003e Unit",
+    "signature": "fn(Int) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2542,7 +2542,7 @@
   },
   {
     "key": "json.Buffer.string",
-    "signature": "fn(String) -\u003e Unit",
+    "signature": "fn(String) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2552,7 +2552,7 @@
   },
   {
     "key": "json.Buffer.text",
-    "signature": "fn(String) -\u003e Unit",
+    "signature": "fn(String) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2562,7 +2562,7 @@
   },
   {
     "key": "json.Buffer.value",
-    "signature": "fn(Value) -\u003e Unit!",
+    "signature": "fn(Value) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2712,7 +2712,7 @@
   },
   {
     "key": "json.Cursor.skipSpace",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2782,7 +2782,7 @@
   },
   {
     "key": "json.Fields.put",
-    "signature": "fn(String, Value) -\u003e Unit",
+    "signature": "fn(String, Value) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -2912,7 +2912,7 @@
   },
   {
     "key": "json.Tagged.arity",
-    "signature": "fn(Int) -\u003e Unit!",
+    "signature": "fn(Int) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3091,8 +3091,8 @@
     "status": "ok"
   },
   {
-    "key": "json.Unit.fromJson",
-    "signature": "fn(Value) -\u003e Unit!",
+    "key": "json.Void.fromJson",
+    "signature": "fn(Value) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3101,7 +3101,7 @@
     "status": "ok"
   },
   {
-    "key": "json.Unit.toJson",
+    "key": "json.Void.toJson",
     "signature": "fn() -\u003e Value",
     "has_body": true,
     "kind": "",
@@ -3582,7 +3582,7 @@
   },
   {
     "key": "map.Map.fileSlot",
-    "signature": "pure fn(u64, usize) -\u003e Unit",
+    "signature": "pure fn(u64, usize) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3642,7 +3642,7 @@
   },
   {
     "key": "map.Map.refileAll",
-    "signature": "pure fn() -\u003e Unit",
+    "signature": "pure fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3652,7 +3652,7 @@
   },
   {
     "key": "map.Map.reindex",
-    "signature": "pure fn(usize) -\u003e Unit",
+    "signature": "pure fn(usize) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3662,7 +3662,7 @@
   },
   {
     "key": "map.Map.remove",
-    "signature": "pure fn(\u0026K) -\u003e Unit",
+    "signature": "pure fn(\u0026K) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3672,7 +3672,7 @@
   },
   {
     "key": "map.Map.set",
-    "signature": "pure fn(K, V) -\u003e Unit",
+    "signature": "pure fn(K, V) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -3722,7 +3722,7 @@
   },
   {
     "key": "map.Map.trySet",
-    "signature": "pure fn(K, V) -\u003e Result[Unit, AllocError]",
+    "signature": "pure fn(K, V) -\u003e Result[Void, AllocError]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4262,7 +4262,7 @@
   },
   {
     "key": "mem.UnsafeCell.set",
-    "signature": "unsafe fn(T) -\u003e Unit",
+    "signature": "unsafe fn(T) -\u003e Void",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -4272,7 +4272,7 @@
   },
   {
     "key": "mem.secureErase",
-    "signature": "pure fn(\u0026mut Bytes) -\u003e Unit",
+    "signature": "pure fn(\u0026mut Bytes) -\u003e Void",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -4282,7 +4282,7 @@
   },
   {
     "key": "mem.trySecureErase",
-    "signature": "pure fn(\u0026mut Bytes) -\u003e Result[Unit, AllocError]",
+    "signature": "pure fn(\u0026mut Bytes) -\u003e Result[Void, AllocError]",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -4292,7 +4292,7 @@
   },
   {
     "key": "net.Conn.close",
-    "signature": "fn() -\u003e Unit!",
+    "signature": "fn() -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "implemented",
@@ -4302,7 +4302,7 @@
   },
   {
     "key": "net.Conn.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -4362,7 +4362,7 @@
   },
   {
     "key": "net.Listener.drop",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -4412,7 +4412,7 @@
   },
   {
     "key": "net.connectSocket",
-    "signature": "fn(i32, *const u8, u32, i32) -\u003e Unit!",
+    "signature": "fn(i32, *const u8, u32, i32) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4582,7 +4582,7 @@
   },
   {
     "key": "net.sendAll",
-    "signature": "fn(i32, Bytes) -\u003e Unit!",
+    "signature": "fn(i32, Bytes) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4592,7 +4592,7 @@
   },
   {
     "key": "net.setTimeout",
-    "signature": "fn(i32, i32) -\u003e Unit",
+    "signature": "fn(i32, i32) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -5023,7 +5023,7 @@
   },
   {
     "key": "os.Signals.watch",
-    "signature": "fn(Signal) -\u003e Unit!",
+    "signature": "fn(Signal) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "implemented",
@@ -5123,7 +5123,7 @@
   },
   {
     "key": "os.rt_sys_write",
-    "signature": "fn(i32, *const u8, usize) -\u003e Unit",
+    "signature": "fn(i32, *const u8, usize) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -5992,8 +5992,8 @@
     "status": "ok"
   },
   {
-    "key": "prelude.Unit.compareTo",
-    "signature": "pure noalloc fn(\u0026Unit) -\u003e Ordering",
+    "key": "prelude.Void.compareTo",
+    "signature": "pure noalloc fn(\u0026Void) -\u003e Ordering",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -6002,8 +6002,8 @@
     "status": "ok"
   },
   {
-    "key": "prelude.Unit.equals",
-    "signature": "pure noalloc fn(\u0026Unit) -\u003e Bool",
+    "key": "prelude.Void.equals",
+    "signature": "pure noalloc fn(\u0026Void) -\u003e Bool",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -6012,7 +6012,7 @@
     "status": "ok"
   },
   {
-    "key": "prelude.Unit.hash",
+    "key": "prelude.Void.hash",
     "signature": "pure noalloc fn() -\u003e u64",
     "has_body": false,
     "kind": "primitive",
@@ -9903,7 +9903,7 @@
   },
   {
     "key": "shell.Building.endStage",
-    "signature": "fn(String?) -\u003e Unit",
+    "signature": "fn(String?) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -9913,7 +9913,7 @@
   },
   {
     "key": "shell.Building.endWord",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -9953,7 +9953,7 @@
   },
   {
     "key": "shell.check",
-    "signature": "pure fn(PipelineResult) -\u003e Unit!",
+    "signature": "pure fn(PipelineResult) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -9963,7 +9963,7 @@
   },
   {
     "key": "shell.closeAll",
-    "signature": "fn(\u0026Array[i32]) -\u003e Unit",
+    "signature": "fn(\u0026Array[i32]) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -9973,7 +9973,7 @@
   },
   {
     "key": "shell.closeAllPipes",
-    "signature": "fn(\u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], i32) -\u003e Unit",
+    "signature": "fn(\u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], \u0026Array[i32], i32) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10133,7 +10133,7 @@
   },
   {
     "key": "shell.report",
-    "signature": "fn(i32, String) -\u003e Unit",
+    "signature": "fn(i32, String) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10183,7 +10183,7 @@
   },
   {
     "key": "shell.writeAll",
-    "signature": "fn(i32, Bytes) -\u003e Unit",
+    "signature": "fn(i32, Bytes) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10253,7 +10253,7 @@
   },
   {
     "key": "task.Task.cancel",
-    "signature": "fn() -\u003e Unit",
+    "signature": "fn() -\u003e Void",
     "has_body": false,
     "kind": "provider",
     "vm": "implemented",
@@ -10313,7 +10313,7 @@
   },
   {
     "key": "test.expectEq",
-    "signature": "pure fn(T, T) -\u003e Unit!",
+    "signature": "pure fn(T, T) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10373,7 +10373,7 @@
   },
   {
     "key": "text.StringBuilder.push",
-    "signature": "pure fn(String) -\u003e Unit",
+    "signature": "pure fn(String) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10383,7 +10383,7 @@
   },
   {
     "key": "text.StringBuilder.pushByte",
-    "signature": "pure fn(u8) -\u003e Unit",
+    "signature": "pure fn(u8) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -10413,7 +10413,7 @@
   },
   {
     "key": "text.StringBuilder.tryPush",
-    "signature": "pure fn(String) -\u003e Result[Unit, AllocError]",
+    "signature": "pure fn(String) -\u003e Result[Void, AllocError]",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10423,7 +10423,7 @@
   },
   {
     "key": "text.StringBuilder.tryPushByte",
-    "signature": "pure fn(u8) -\u003e Result[Unit, AllocError]",
+    "signature": "pure fn(u8) -\u003e Result[Void, AllocError]",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -10773,7 +10773,7 @@
   },
   {
     "key": "time.sleep",
-    "signature": "fn(Int) -\u003e Unit",
+    "signature": "fn(Int) -\u003e Void",
     "has_body": true,
     "kind": "",
     "vm": "implemented",

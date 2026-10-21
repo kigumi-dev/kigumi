@@ -73,7 +73,7 @@ pub pure fn build(commits: Array[Commit]) -> Report {
     }
 }
 
-pub fn writeJson(files: fs.Files, path: fs.Path, r: &Report) -> Unit! {
+pub fn writeJson(files: fs.Files, path: fs.Path, r: &Report) -> Void! {
     let published = PublishedReport {
         total: r.total
         days: r.days

@@ -11,7 +11,7 @@ import (
 
 const planCapabilityBuild = `import build from std/build
 
-fn configure(b: build.Builder) -> Unit! {
+fn configure(b: build.Builder) -> Void! {
     let musl = b.executable("app-musl", "cmd/app", b.target("x86_64-linux-musl"))?
     let gnu = b.executable("app-gnu", "cmd/app", b.target("x86_64-linux-gnu"))?
     let wasi = b.executable("app-wasi", "cmd/app", b.target("wasm32-wasi"))?

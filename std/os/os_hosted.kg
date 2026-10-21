@@ -17,7 +17,7 @@ extern(C) {
     fn getenv(name: *const u8) -> *const u8
     fn strlen(s: *const u8) -> usize
     fn malloc(n: usize) -> *mut u8
-    fn free(p: *mut u8) -> Unit
+    fn free(p: *mut u8)
 }
 
 // struct pollfd, the same shape std/shell/shell_hosted.kg's Pollfd uses.
@@ -30,7 +30,7 @@ type Pollfd layout(C) = {
 // The C runtime's system layer: print, eprint and panics end up here, and
 // so does the exit of the process. Bare targets keep the weak C versions.
 export(C) {
-    pub fn rt_sys_write(fd: i32, p: *const u8, n: usize) -> Unit {
+    pub fn rt_sys_write(fd: i32, p: *const u8, n: usize) {
         let mut off: usize = 0
         for off < n {
             let w = unsafe {

@@ -17,7 +17,7 @@ func TestBuildOutputSymlinkEscape(t *testing.T) {
 	victim := filepath.Join(outside, "victim.txt")
 	os.WriteFile(victim, []byte("ORIGINAL"), 0o644)
 	os.Symlink(victim, filepath.Join(out, "gen.txt"))
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let f = b.write(\"gen.txt\", \"PWNED\")?\n" +
 		"}\n"
 	err := buildWith(t, root, out, program)
@@ -37,7 +37,7 @@ func TestBuildOutputDotDotName(t *testing.T) {
 	t.Parallel()
 	root, out := t.TempDir(), t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"oc2\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let f = b.write(\"..\", \"PWNED\")?\n" +
 		"}\n"
 	err := buildWith(t, root, out, program)
@@ -60,7 +60,7 @@ func TestBuildToolOutputDirectory(t *testing.T) {
 	write("kigumi.framework.kg", "Framework { name: \"t/mkdir\", version: \"1\" }\nTool { name: \"mkdir\", program: \"tools/mkdir.sh\" }\n")
 	write("tools/mkdir.sh", "#!/bin/sh\nmkdir -p \"$1\"\n")
 	os.Chmod(filepath.Join(root, "tools", "mkdir.sh"), 0o755)
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let fw = b.framework(\"t/mkdir\", \"1\")\n" +
 		"    let o = b.runToolOutput(fw, \"mkdir\", Array.of(\"$out:0\"), Array.empty[build.FilePath](), \"gen.c\", Array.empty[build.Secret]())?\n" +
 		"}\n"
@@ -79,14 +79,14 @@ func TestBuildOutputReservedDeviceName(t *testing.T) {
 	root, out := t.TempDir(), t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"oc4\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	for _, name := range []string{"nul", "NUL", "Con.txt", "com1", "lpt9"} {
-		program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+		program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 			"    let f = b.write(\"" + name + "\", \"PWNED\")?\n" +
 			"}\n"
 		if err := buildWith(t, root, out, program); err == nil || !strings.Contains(err.Error(), "bare file name") {
 			t.Fatalf("write(%q): expected a bare-name refusal, got %v", name, err)
 		}
 	}
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let a = b.executable(\"con\", \"cmd/con\", b.request().target())?\n" +
 		"}\n"
 	if err := buildWith(t, root, out, program); err == nil || !strings.Contains(err.Error(), "bare name") {
@@ -96,7 +96,7 @@ func TestBuildOutputReservedDeviceName(t *testing.T) {
 	// CreateFile reserves these names at any path component, so a
 	// directory segment named "nul" is just as broken on Windows as an
 	// artifact or output leaf name.
-	program = "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program = "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let a = b.executable(\"app\", \"cmd/nul/inner\", b.request().target())?\n" +
 		"}\n"
 	if err := buildWith(t, root, out, program); err == nil || !strings.Contains(err.Error(), "root-relative directory") {
@@ -113,7 +113,7 @@ func TestBuildOutputReservedDeviceName(t *testing.T) {
 func TestBuildGraphGeneratedOutputIgnoresStaleMode(t *testing.T) {
 	root, out := t.TempDir(), t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"oc5\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let f = b.write(\"gen.txt\", \"hello\")?\n" +
 		"}\n"
 	if err := buildWith(t, root, out, program); err != nil {

@@ -68,7 +68,7 @@ fn localSum() -> Int {
     s
 }
 
-fn run() -> Unit {
+fn run() {
     let buf = Bytes.fromArray(&Array.of(3, 7, 1, 5))
     print "first ${first(&buf).byte()} all ${all(&buf).len()}"
     if second(&buf) is Ok(v) {

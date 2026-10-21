@@ -3,14 +3,14 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.replace(mut self) -> Unit {
+fn Handle.replace(mut self) {
     let step = () => {
         self = Handle { id: 99 }
     }
     step()
 }
 -- expect --
-fn main.Handle.replace.closure1(%self: Handle) -> Unit {
+fn main.Handle.replace.closure1(%self: Handle) -> Void {
   b0:
     %t1 = const 99: Int
     %t2 = record main.Handle(%t1)
@@ -18,7 +18,7 @@ fn main.Handle.replace.closure1(%self: Handle) -> Unit {
     %t3 = unit
     return %t3
 }
-fn main.Handle.replace(%self: Handle) -> Unit {
+fn main.Handle.replace(%self: Handle) -> Void {
   b0:
     %t1 = closure main.Handle.replace.closure1(%self)
     %step = copy(%t1)

@@ -2,9 +2,9 @@
 import {Shared} from std/alloc
 import random from std/random
 
-fn ship[T: Send](x: T) -> Unit {}
+fn ship[T: Send](x: T) {}
 
-fn share[T: Sync](x: &T) -> Unit {}
+fn share[T: Sync](x: &T) {}
 
 type Plain = {
     n Int
@@ -27,7 +27,7 @@ type Socket = resource {
     fd Int
 }
 
-fn use(shared: Shared[Int], leaky: Shared[*const u8], plain: Plain, holder: Holder, handle: Handle, socket: Socket, rng: random.Rng, f: fn(Int) -> Int) -> Unit {
+fn use(shared: Shared[Int], leaky: Shared[*const u8], plain: Plain, holder: Holder, handle: Handle, socket: Socket, rng: random.Rng, f: fn(Int) -> Int) {
     ship(1)
     ship("text")
     ship(plain)
@@ -90,7 +90,7 @@ error[E1036]: `f` is a non-escaping callback and cannot be passed to `ship`, who
    |          ^
    = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
 
-error[E300]: `closure fn() -> Unit` does not satisfy `Send`: it cannot move to another thread
+error[E300]: `closure fn() -> Void` does not satisfy `Send`: it cannot move to another thread
   --> app/t/t.kg:43:5
    |
 43 |     ship(() => { //~ ERROR does not satisfy `Send`

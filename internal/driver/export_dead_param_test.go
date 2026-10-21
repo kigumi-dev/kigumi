@@ -22,7 +22,7 @@ func TestExportDeadParamNeedsNoBox(t *testing.T) {
 }
 
 export(C) {
-    pub fn onSig(sig: i32, p: Point) -> Unit {}
+    pub fn onSig(sig: i32, p: Point) {}
     pub fn twice(x: i32) -> i32 { x * 2 }
 }
 

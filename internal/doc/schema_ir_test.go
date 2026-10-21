@@ -39,7 +39,7 @@ const schemaIRProbeGolden = `{
   "envelope": {
     "format": "kigumi.schema",
     "major": 1,
-    "minor": 1,
+    "minor": 2,
     "compiler": "0.1",
     "target": "x86_64-linux",
     "scope": [

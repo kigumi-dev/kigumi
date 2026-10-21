@@ -80,7 +80,7 @@ func TestParseDoesNotOverflowTheStack(t *testing.T) {
 		{"blocks", strings.Repeat("{\n", 4000) + "1\n" + strings.Repeat("}\n", 4000)},
 		{"parens", strings.Repeat("(", 6000) + "1" + strings.Repeat(")", 6000) + "\n"},
 		{"unary", "print " + strings.Repeat("- ", 11000) + "1\n"},
-		{"elseIf", "fn f() -> Unit {\nif true {1}\n" +
+		{"elseIf", "fn f() {\nif true {1}\n" +
 			strings.Repeat("else if true {1}\n", 11000) + "else {1}\n}\n"},
 		{"typePointers", "fn f(x: " + strings.Repeat("*const ", 11000) + "Int) {}\n"},
 		{"patternCtors", "fn f() { match x { " + strings.Repeat("Foo(", 11000) + "1" +

@@ -24,4 +24,4 @@ pub type Symbol[T] = resource {
 }
 
 /// Calls the symbol with T's parameters and result; the compiler lowers the call.
-pub unsafe fn Symbol[T].call(self) -> Unit
+pub unsafe fn Symbol[T].call(self)

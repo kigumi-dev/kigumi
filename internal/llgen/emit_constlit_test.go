@@ -17,7 +17,7 @@ fn build() -> usize {
     takes("hello", 42, 'z', 2.5)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := fnBody(t, ir, "main.build")
 	checkNoHeap(t, "main.build", body)
@@ -53,7 +53,7 @@ fn run() -> Int {
     step(k) + step(k)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := fnBody(t, ir, "main.run")
 	if n := strings.Count(body, "@rt_int("); n != 0 {
@@ -79,7 +79,7 @@ fn forwards(bad: Bool) -> Result[Int, Fault] {
     Ok(v + 1)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := bodyOf(t, ir, `define ptr @"main.forwards"(`)
 	if n := strings.Count(body, "@rt_variant("); n != 1 {
@@ -118,7 +118,7 @@ fn largest[T: Ord](xs: &Array[T]) -> usize {
     best
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let xs = Array.of[Int](3, 9, 4)
     print "${largest(&xs)}"
 }

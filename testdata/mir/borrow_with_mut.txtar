@@ -3,7 +3,7 @@ type Item = {
     pub mut count Int
 }
 
-fn Item.update(mut self, delta: Int) -> Unit {
+fn Item.update(mut self, delta: Int) {
     self.count = self.count + delta
 }
 
@@ -27,7 +27,7 @@ fn fine(mut xs: Array[Item]) -> usize {
     xs.len() + n
 }
 -- expect --
-fn lib.Item.update(%self: Item, %delta: Int) -> Unit {
+fn lib.Item.update(%self: Item, %delta: Int) -> Void {
   b0:
     %t2 = cellget(%self)
     %t3 = cellget(%self)
@@ -38,7 +38,7 @@ fn lib.Item.update(%self: Item, %delta: Int) -> Unit {
     drop(%delta)
     return %t6
 }
-fn lib.sharedThenWithMut.closure1(%x: &mut Item) -> Unit {
+fn lib.sharedThenWithMut.closure1(%x: &mut Item) -> Void {
   b0:
     %t1 = borrow 1(%x)
     %t2 = share retain(%t1)
@@ -65,7 +65,7 @@ fn lib.sharedThenWithMut(%xs: Array[Item]) -> usize {
     drop(%xs)
     return %t8
 }
-fn lib.exclusiveThenLen.closure1(%x: &mut Item) -> Unit {
+fn lib.exclusiveThenLen.closure1(%x: &mut Item) -> Void {
   b0:
     %t1 = borrow 1(%x)
     %t2 = share retain(%t1)
@@ -98,7 +98,7 @@ fn lib.exclusiveThenLen(%xs: Array[Item]) -> usize {
     drop(%xs)
     return %t12
 }
-fn lib.fine.closure1(%x: &mut Item) -> Unit {
+fn lib.fine.closure1(%x: &mut Item) -> Void {
   b0:
     %t1 = borrow 1(%x)
     %t2 = share retain(%t1)

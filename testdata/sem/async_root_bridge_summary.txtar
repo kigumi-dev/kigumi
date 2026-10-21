@@ -53,11 +53,11 @@ async fn riskyEarlyAlias() -> Int {
     callH(h) //~ ERROR cannot run inside an `async fn`
 }
 
-fn lateMutate(o: &mut O) -> Unit {
+fn lateMutate(o: &mut O) {
     o.c = RiskyCalc { n: 3 }
 }
 
-fn lateSetSync(h: &mut Holder) -> Unit {
+fn lateSetSync(h: &mut Holder) {
     h.cb = syncRoot
 }
 
@@ -89,27 +89,27 @@ fn callH(h: Holder) -> Int {
     h.cb()
 }
 
-fn O.arm(mut self) -> Unit {
+fn O.arm(mut self) {
     self.c = RiskyCalc { n: 3 }
 }
 
-fn O.calm(mut self) -> Unit {
+fn O.calm(mut self) {
     self.c = SafeCalc { n: 3 }
 }
 
-fn mutate(o: &mut O) -> Unit {
+fn mutate(o: &mut O) {
     o.c = RiskyCalc { n: 3 }
 }
 
-fn soothe(o: &mut O) -> Unit {
+fn soothe(o: &mut O) {
     o.c = SafeCalc { n: 3 }
 }
 
-fn setSync(h: &mut Holder) -> Unit {
+fn setSync(h: &mut Holder) {
     h.cb = syncRoot
 }
 
-fn setSafe(h: &mut Holder) -> Unit {
+fn setSafe(h: &mut Holder) {
     h.cb = safeFn
 }
 

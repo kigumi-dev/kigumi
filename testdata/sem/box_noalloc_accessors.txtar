@@ -43,7 +43,7 @@ noalloc fn drainPt(b: Box[Pt]) -> Pt {
     b.into()
 }
 
-noalloc fn replace(b: &mut Box[Int], n: Int) -> Unit {
+noalloc fn replace(b: &mut Box[Int], n: Int) {
     b.set(n) //~ ERROR `set` is not `noalloc`
 }
 
@@ -51,12 +51,12 @@ noalloc fn viaAllocatingCallback(b: &Box[Int]) -> Int {
     b.with((n: &Int) => mkn(*n).n) //~ ERROR closure is not `noalloc`
 }
 
-noalloc fn wrap(n: Int) -> Unit {
+noalloc fn wrap(n: Int) {
     let b = Box.new(n) //~ ERROR `new` is not `noalloc`
     _ = b
 }
 
-noalloc fn wrapFallible(n: Int) -> Unit {
+noalloc fn wrapFallible(n: Int) {
     let r = Box.tryNew(n) //~ ERROR `tryNew` is not `noalloc`
     _ = r
 }
@@ -78,7 +78,7 @@ noalloc fn forwardToCaller(b: &Box[Pt]) -> Int {
     forwardCallback(b, allocatingPeek) //~ ERROR `allocatingPeek` is not `noalloc` //~ ERROR `allocatingPeek` returns `Int` unboxed
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E422]: closure is not `noalloc` (allocates)
   --> main.kg:25:12

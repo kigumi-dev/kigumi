@@ -3,7 +3,7 @@ type Box = {
     pub mut n Int
 }
 
-fn Box.bump(mut self, k: Int) -> Unit {
+fn Box.bump(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -20,11 +20,11 @@ type Nest['a] = {
     pub mut h Holder['a]
 }
 
-fn bumpField['a](h: Holder['a]) -> Unit {
+fn bumpField['a](h: Holder['a]) {
     h.r.bump(2)
 }
 
-fn bumpNested['a](n: Nest['a]) -> Unit {
+fn bumpNested['a](n: Nest['a]) {
     n.h.r.bump(3)
 }
 
@@ -32,7 +32,7 @@ fn lend['a](h: Holder['a]) -> &'a mut Box {
     h.r
 }
 
-fn bumpReturned['a](h: Holder['a]) -> Unit {
+fn bumpReturned['a](h: Holder['a]) {
     lend(h).bump(4)
 }
 

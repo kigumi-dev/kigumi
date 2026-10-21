@@ -4,7 +4,7 @@ type Pt = {
     pub mut y Int
 }
 
-fn putI(r: &mut Int, i: Int) -> Unit {
+fn putI(r: &mut Int, i: Int) {
     r = i
 }
 
@@ -16,19 +16,19 @@ noalloc fn pos(x: Int) -> Bool {
     x > 0
 }
 
-noalloc fn viaRef(r: &mut Int, p: &Pt) -> Unit {
+noalloc fn viaRef(r: &mut Int, p: &Pt) {
     putI(r, p.x) //~ ERROR goes to a parameter its callee keeps in a box
 }
 
-noalloc fn viaTuple(r: &mut Int, t: &(Int, Int)) -> Unit {
+noalloc fn viaTuple(r: &mut Int, t: &(Int, Int)) {
     putI(r, t._0) //~ ERROR goes to a parameter its callee keeps in a box
 }
 
-noalloc fn viaOwned(r: &mut Int, p: Pt) -> Unit {
+noalloc fn viaOwned(r: &mut Int, p: Pt) {
     putI(r, p.y) //~ ERROR goes to a parameter its callee keeps in a box
 }
 
-noalloc fn viaSlot(r: &mut Int, xs: &Array[Int]) -> Unit {
+noalloc fn viaSlot(r: &mut Int, xs: &Array[Int]) {
     putI(r, xs[0])
 }
 
@@ -42,7 +42,7 @@ fn captured(n: Int) -> Bool {
     ap((x: Int) => callI(pos, k), 1) //~ ERROR closure is not `noalloc` (allocates)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E2147]: this computed `Int` goes to a parameter its callee keeps in a box, so the call allocates one for it
   --> main/main.kg:19:13

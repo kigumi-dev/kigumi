@@ -5,9 +5,9 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
@@ -26,31 +26,31 @@ fn mk(n: Int) -> Pack {
     Pack { inner: mkh(n), other: mkh(n + 1) }
 }
 
-fn show(h: &Handle) -> Unit {}
+fn show(h: &Handle) {}
 
-fn sink(n: Int) -> Unit {}
+fn sink(n: Int) {}
 
-fn outerBinding() -> Unit {
+fn outerBinding() {
     let h = mkh(1)
     for i in 0..2 {
         defer { h.close() } //~ ERROR
     }
 }
 
-fn outerField() -> Unit {
+fn outerField() {
     let b = mk(1)
     for i in 0..2 {
         defer { b.inner.close() } //~ ERROR
     }
 }
 
-fn outerParam(h: Handle) -> Unit {
+fn outerParam(h: Handle) {
     for i in 0..2 {
         defer { h.close() } //~ ERROR
     }
 }
 
-fn conditionLoop(n: Int) -> Unit {
+fn conditionLoop(n: Int) {
     let h = mkh(1)
     let mut left = n
     for left > 0 {
@@ -59,7 +59,7 @@ fn conditionLoop(n: Int) -> Unit {
     }
 }
 
-fn bareLoop() -> Unit {
+fn bareLoop() {
     let h = mkh(1)
     for {
         defer { h.close() } //~ ERROR
@@ -67,7 +67,7 @@ fn bareLoop() -> Unit {
     }
 }
 
-fn innerLoop() -> Unit {
+fn innerLoop() {
     for i in 0..2 {
         let h = mkh(i)
         for j in 0..2 {
@@ -76,7 +76,7 @@ fn innerLoop() -> Unit {
     }
 }
 
-fn perIterationBinding() -> Unit {
+fn perIterationBinding() {
     for i in 0..2 {
         let h = mkh(i)
         defer { h.close() }
@@ -84,13 +84,13 @@ fn perIterationBinding() -> Unit {
     }
 }
 
-fn loopVariable() -> Unit {
+fn loopVariable() {
     for h in Array.of(mkh(1), mkh(2)) {
         defer { h.close() }
     }
 }
 
-fn perIterationField() -> Unit {
+fn perIterationField() {
     for i in 0..2 {
         let b = mk(i)
         defer { b.inner.close() }
@@ -98,7 +98,7 @@ fn perIterationField() -> Unit {
     }
 }
 
-fn perIterationFieldMoves() -> Unit {
+fn perIterationFieldMoves() {
     for i in 0..2 {
         let b = mk(i)
         b.other.close()
@@ -106,7 +106,7 @@ fn perIterationFieldMoves() -> Unit {
     }
 }
 
-fn reassignedEachIteration() -> Unit {
+fn reassignedEachIteration() {
     let mut b = mk(1)
     for i in 0..2 {
         b.other.close()
@@ -116,7 +116,7 @@ fn reassignedEachIteration() -> Unit {
     b.other.close()
 }
 
-fn outerBorrowOnly() -> Unit {
+fn outerBorrowOnly() {
     let h = mkh(1)
     for i in 0..2 {
         defer { show(&h) }
@@ -124,14 +124,14 @@ fn outerBorrowOnly() -> Unit {
     h.close()
 }
 
-fn outerFailCleanup() -> Unit! {
+fn outerFailCleanup() -> Void! {
     let h = mkh(1)
     for i in 0..2 {
         defer(fail) { h.close() }
     }
 }
 
-fn cleanupBeforeLoop() -> Unit {
+fn cleanupBeforeLoop() {
     let h = mkh(1)
     defer { h.close() }
     for i in 0..2 {
@@ -139,7 +139,7 @@ fn cleanupBeforeLoop() -> Unit {
     }
 }
 
-fn lambdaInLoop() -> Unit {
+fn lambdaInLoop() {
     let h = mkh(1)
     for i in 0..2 {
         let f = () => {

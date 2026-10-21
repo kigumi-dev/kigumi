@@ -14,7 +14,7 @@ fn pick[T](v: T) -> T { v }
 
 fn mk(i: Int) -> P { P { x: i, y: i, z: i, w: i } }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut s = 0
     let mut i = 0
     let mut arr: Array[P] = Array.empty()

@@ -5,9 +5,9 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
@@ -37,9 +37,9 @@ fn mkBag(n: Int) -> Bag {
     Bag { opt: Some(mkh(n)), pack: Some(mk(n)), other: mkh(n + 1) }
 }
 
-fn sink(n: Int) -> Unit {}
+fn sink(n: Int) {}
 
-fn payloadInLoop() -> Unit {
+fn payloadInLoop() {
     let b = mkBag(1)
     for i in 0..2 {
         match b.opt {
@@ -49,7 +49,7 @@ fn payloadInLoop() -> Unit {
     }
 }
 
-fn payloadInLoopParam(b: Bag) -> Unit {
+fn payloadInLoopParam(b: Bag) {
     for i in 0..2 {
         match b.opt {
             Some(h) -> h.close() //~ ERROR `b.opt` was moved
@@ -58,7 +58,7 @@ fn payloadInLoopParam(b: Bag) -> Unit {
     }
 }
 
-fn payloadIsInLoop(b: Bag) -> Unit {
+fn payloadIsInLoop(b: Bag) {
     for i in 0..2 {
         if b.opt is Some(h) { //~ ERROR `b.opt` is moved on some paths
             h.close()
@@ -66,7 +66,7 @@ fn payloadIsInLoop(b: Bag) -> Unit {
     }
 }
 
-fn payloadNestedInLoop(b: Bag) -> Unit {
+fn payloadNestedInLoop(b: Bag) {
     for i in 0..2 {
         match b.pack {
             Some(Pack { other, inner: _, n: _ }) -> other.close() //~ ERROR `b.pack.other` was moved
@@ -75,7 +75,7 @@ fn payloadNestedInLoop(b: Bag) -> Unit {
     }
 }
 
-fn payloadLocalInLoop(o: Handle?) -> Unit {
+fn payloadLocalInLoop(o: Handle?) {
     for i in 0..2 {
         match o {
             Some(h) -> h.close() //~ ERROR `o` was moved
@@ -84,7 +84,7 @@ fn payloadLocalInLoop(o: Handle?) -> Unit {
     }
 }
 
-fn payloadTwice(b: Bag) -> Unit {
+fn payloadTwice(b: Bag) {
     match b.opt {
         Some(h) -> h.close()
         None -> {}
@@ -95,14 +95,14 @@ fn payloadTwice(b: Bag) -> Unit {
     }
 }
 
-fn payloadOnce(b: Bag) -> Unit {
+fn payloadOnce(b: Bag) {
     match b.opt {
         Some(h) -> h.close()
         None -> {}
     }
 }
 
-fn payloadPerIteration() -> Unit {
+fn payloadPerIteration() {
     for i in 0..2 {
         let b = mkBag(i)
         match b.opt {
@@ -112,7 +112,7 @@ fn payloadPerIteration() -> Unit {
     }
 }
 
-fn payloadForElement(bs: Array[Bag]) -> Unit {
+fn payloadForElement(bs: Array[Bag]) {
     for b in bs {
         match b.opt {
             Some(h) -> h.close()
@@ -121,7 +121,7 @@ fn payloadForElement(bs: Array[Bag]) -> Unit {
     }
 }
 
-fn payloadReference(b: Bag) -> Unit {
+fn payloadReference(b: Bag) {
     for i in 0..2 {
         match &b.opt {
             Some(h) -> sink(h.peek())
@@ -130,7 +130,7 @@ fn payloadReference(b: Bag) -> Unit {
     }
 }
 
-fn payloadCopy(o: Int?) -> Unit {
+fn payloadCopy(o: Int?) {
     for i in 0..2 {
         match o {
             Some(n) -> sink(n)
@@ -139,7 +139,7 @@ fn payloadCopy(o: Int?) -> Unit {
     }
 }
 
-fn payloadGuarded(b: Bag) -> Unit {
+fn payloadGuarded(b: Bag) {
     match b.opt {
         Some(h) if h.peek() > 100 -> h.close()
         Some(h) -> h.close()
@@ -147,7 +147,7 @@ fn payloadGuarded(b: Bag) -> Unit {
     }
 }
 
-fn payloadGuardedLoop(b: Bag) -> Unit {
+fn payloadGuardedLoop(b: Bag) {
     match b.pack {
         Some(Pack { other, inner: _, n: _ }) if other.peek() > 100 -> other.close()
         Some(Pack { other, inner: _, n: _ }) -> other.close()
@@ -155,7 +155,7 @@ fn payloadGuardedLoop(b: Bag) -> Unit {
     }
 }
 
-fn payloadReassigned(b: Bag) -> Unit {
+fn payloadReassigned(b: Bag) {
     let mut o = move b.opt
     for i in 0..2 {
         match o {
@@ -179,13 +179,13 @@ fn mkCell(n: Int) -> Cell {
     Cell { opt: Some(mkh(n)), other: mkh(n + 1) }
 }
 
-fn takeOpt(o: Handle?) -> Unit {}
+fn takeOpt(o: Handle?) {}
 
 fn ok(h: &Handle) -> Bool {
     true
 }
 
-fn guardedInLoop() -> Unit {
+fn guardedInLoop() {
     let mut b = mkCell(110)
     for i in 0..2 {
         match b.opt {
@@ -195,7 +195,7 @@ fn guardedInLoop() -> Unit {
     }
 }
 
-fn guardedPerIteration() -> Unit {
+fn guardedPerIteration() {
     for i in 0..2 {
         let b = mkCell(120 + 10 * i)
         match b.opt {
@@ -206,7 +206,7 @@ fn guardedPerIteration() -> Unit {
     }
 }
 
-fn takeAndRefill() -> Unit {
+fn takeAndRefill() {
     let mut b = mkCell(30)
     for i in 0..3 {
         match b.opt {
@@ -220,7 +220,7 @@ fn takeAndRefill() -> Unit {
     b.other.close()
 }
 
-fn ifLetTakeAndRefill() -> Unit {
+fn ifLetTakeAndRefill() {
     let mut b = mkCell(40)
     for i in 0..3 {
         if let Some(h) = b.opt {
@@ -231,7 +231,7 @@ fn ifLetTakeAndRefill() -> Unit {
     b.other.close()
 }
 
-fn putBack() -> Unit {
+fn putBack() {
     let mut b = mkCell(50)
     for i in 0..2 {
         match b.opt {
@@ -244,13 +244,13 @@ fn putBack() -> Unit {
     b.other.close()
 }
 
-fn tupleMovesField() -> Unit {
+fn tupleMovesField() {
     let b = mkCell(60)
     let t = (move b.other, 1)
     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
 }
 
-fn tupleInLoop() -> Unit {
+fn tupleInLoop() {
     let b = mkCell(70)
     for i in 0..2 {
         let t = (move b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
@@ -262,25 +262,25 @@ fn tupleInLoop() -> Unit {
     }
 }
 
-fn recordMovesField() -> Unit {
+fn recordMovesField() {
     let b = mkCell(80)
     let w = Wrap { o: move b.opt }
     takeOpt(b.opt) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
 }
 
-fn variantMovesField() -> Unit {
+fn variantMovesField() {
     let b = mkCell(90)
     let o = Some(move b.other)
     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
 }
 
-fn arrayMovesField() -> Unit {
+fn arrayMovesField() {
     let b = mkCell(100)
     let xs = Array.of(b.other)
     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
 }
 
-fn literalOfOtherField() -> Unit {
+fn literalOfOtherField() {
     let b = mkCell(130)
     let t = (move b.other, 1)
     match b.opt {
@@ -289,7 +289,7 @@ fn literalOfOtherField() -> Unit {
     }
 }
 
-fn isTakeAndClear() -> Unit {
+fn isTakeAndClear() {
     let mut o = Some(mkh(5))
     if o is Some(h) {
         h.close()
@@ -300,7 +300,7 @@ fn isTakeAndClear() -> Unit {
     }
 }
 
-fn isTakeAndClearInLoop() -> Unit {
+fn isTakeAndClearInLoop() {
     let mut o = Some(mkh(6))
     for i in 0..3 {
         if o is Some(h) {
@@ -317,7 +317,7 @@ type Box1 = {
     pub mut opt Handle?
 }
 
-fn isTakeAndClearField() -> Unit {
+fn isTakeAndClearField() {
     let mut g = Box1 { opt: Some(mkh(7)) }
     for i in 0..3 {
         if g.opt is Some(h) {
@@ -327,7 +327,7 @@ fn isTakeAndClearField() -> Unit {
     }
 }
 
-fn isTakeNoClearInLoop() -> Unit {
+fn isTakeNoClearInLoop() {
     let o = Some(mkh(8))
     for i in 0..2 {
         if o is Some(h) { //~ ERROR `o` is moved on some paths

@@ -28,7 +28,7 @@ noalloc fn throughClosure() -> Int {
     if f(2) { 1 } else { 0 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = direct() + throughClosure()
 }
 -- expect --

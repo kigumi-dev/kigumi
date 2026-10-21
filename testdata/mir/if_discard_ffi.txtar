@@ -5,7 +5,7 @@ extern(C) {
     fn memcpy(dst: *mut u8, src: *const u8, n: usize) -> *mut u8
 }
 
-fn copy(c: Bool) -> Unit {
+fn copy(c: Bool) {
     let text = "abc"
     let buf = ffi.CString.new(&text).unwrap()
     if c {
@@ -16,7 +16,7 @@ fn copy(c: Bool) -> Unit {
 copy(true)
 print "done"
 -- expect --
-fn main.copy(%c: Bool) -> Unit {
+fn main.copy(%c: Bool) -> Void {
   b0:
     %t1 = const "abc": String
     %text = copy(%t1)
@@ -45,7 +45,7 @@ fn main.copy(%c: Bool) -> Unit {
     drop(%c)
     return %t7
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = const true: Bool
     %t1 = call main.copy(%t0)

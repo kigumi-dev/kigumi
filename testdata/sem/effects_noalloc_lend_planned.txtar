@@ -39,7 +39,7 @@ noalloc fn compared(a: Prio, b: Prio) -> Bool { a < b }
 
 noalloc fn same(a: Point, b: Point) -> Bool { a.equals(&b) && a == b }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = written() + coerced(Point { x: 1, y: 2 })
 }
 -- expect --

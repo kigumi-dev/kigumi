@@ -33,7 +33,7 @@ type Pair = {
     pub b Shared[Shape]
 }
 
-fn boxed() -> Unit {
+fn boxed() {
     let sh: Shape = Sq { s: 5 }
     let b = Box.new(sh)
     print "box ${b.with((x: &Shape) => x.area())}"
@@ -45,7 +45,7 @@ fn boxed() -> Unit {
     print "box into ${b3.into().area()}"
 }
 
-fn shared() -> Unit {
+fn shared() {
     let sh2: Shape = Sq { s: 6 }
     let s = Shared.new(sh2)
     print "shared ${s.with((x: &Shape) => x.area())}"
@@ -62,7 +62,7 @@ fn shared() -> Unit {
     }
 }
 
-fn containers() -> Unit {
+fn containers() {
     let shapes = Array.of[Shape](Sq { s: 2 }, Rect { w: 2, h: 5 })
     let mut total = 0
     for s in &shapes {

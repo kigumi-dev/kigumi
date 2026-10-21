@@ -11,8 +11,17 @@ func (p *parser) fnDecl(pf prefix) NodeID {
 	}
 	params := p.params()
 	var ret NodeID
-	if p.eat(token.Arrow) {
+	arrow := p.eat(token.Arrow)
+	if arrow {
 		ret = p.typ()
+	}
+	if p.at(token.Bang) {
+		p.advance()
+		if arrow {
+			pf.mods |= ModStrayBang
+		} else {
+			pf.mods |= ModBareErr
+		}
 	}
 	var body NodeID
 	if p.at(token.LBrace) {

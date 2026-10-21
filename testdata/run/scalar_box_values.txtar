@@ -39,7 +39,7 @@ fn viaInterface(s: Scale, k: Int) -> Int {
     s.scale(k)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let ints: fn(Int) -> Int = twice
     for x in Array.of(-129, -128, 0, 511, 1023, 1024, 5000, 9223372036854775807 / 4) {
         print "int ${x} -> ${ints(x)} ${apply(twice, x)}"

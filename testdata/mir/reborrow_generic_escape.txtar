@@ -6,7 +6,7 @@ fn identity[T](x: T) -> T {
     x
 }
 
-fn outer(out: &mut Array[u8]) -> Unit {
+fn outer(out: &mut Array[u8]) {
     let r = identity(out)
     out.push(1)
     r.push(2)
@@ -18,7 +18,7 @@ fn lib.identity(%x: T) -> T {
     nop
     return %t1
 }
-fn lib.outer(%out: &mut Array[u8]) -> Unit {
+fn lib.outer(%out: &mut Array[u8]) -> Void {
   b0:
     %t1 = move(%out)
     %t2 = call lib.identity(%t1)

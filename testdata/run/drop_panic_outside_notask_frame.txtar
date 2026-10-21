@@ -3,7 +3,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -11,12 +11,12 @@ type Bad = resource {
     pub id Int
 }
 
-fn Bad.drop(move self) -> Unit {
+fn Bad.drop(move self) {
     print "bad ${self.id}"
-    let _: Unit = None.expect("drop failed: ${self.id}")
+    let _: Void = None.expect("drop failed: ${self.id}")
 }
 
-fn scope() -> Unit {
+fn scope() {
     let a = Res { id: 1 }
     let bad = Bad { id: 2 }
     let c = Res { id: 3 }

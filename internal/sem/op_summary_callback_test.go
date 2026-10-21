@@ -13,11 +13,11 @@ import ffi from std/ffi
 import fs from std/fs
 
 fn boxPure(b: &Box[Int]) -> Bool { b.with((x: &Int) => x == 1) }
-fn boxMutPure(b: &mut Box[Int]) -> Unit { b.withMut((x: &mut Int) => { x = 2 }) }
+fn boxMutPure(b: &mut Box[Int]) { b.withMut((x: &mut Int) => { x = 2 }) }
 fn sharedPure(s: &Shared[Int]) -> Bool { s.with((x: &Int) => x == 1) }
-fn sharedMutPure(s: &Shared[Int]) -> Unit { s.withMut((x: &mut Int) => { x = 2 }) }
+fn sharedMutPure(s: &Shared[Int]) { s.withMut((x: &mut Int) => { x = 2 }) }
 fn arrayPure(a: &Array[Int]) -> Bool? { a.with(0, (x: &Int) => x == 1) }
-fn arrayMutPure(a: &mut Array[Int]) -> Unit? { a.withMut(0, (x: &mut Int) => { x = 2 }) }
+fn arrayMutPure(a: &mut Array[Int]) -> Void? { a.withMut(0, (x: &mut Int) => { x = 2 }) }
 fn mapPure(a: &Array[Int]) -> Result[Array[Bool], AllocError] { a.tryMap((x: &Int) => x == 1) }
 fn tablePure(t: &ffi.HandleTable[Int], h: &ffi.FfiHandle[Int]) -> Bool { t.with(h, (x: &Int) => x == 1) }
 fn pinPure(p: *mut u8) -> Bool { unsafe { ffi.Pin.with(p, (x: &Int) => x == 1) } }
@@ -119,7 +119,7 @@ fn drain(s: &Shared[Int]) -> Bool {
 let cell = Shared.new(1)
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         _ = drain(&cell)
     }
 }

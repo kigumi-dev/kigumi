@@ -94,7 +94,7 @@ func TestVerifyBuiltinContracts(t *testing.T) {
 	num := func(f *mir.Func) mir.LocalID { return f.Params[0] }
 	runRuleCases(t, rulesSrc, false, []ruleCase{
 		{"print of a number", "main.add", "builtins", "print takes Int as argument 0, not a String", builtin("print", sem.TyUnit, num)},
-		{"print yielding a number", "main.add", "builtins", "print yields Int, not Unit", builtin("print", sem.TyI64, str)},
+		{"print yielding a number", "main.add", "builtins", "print yields Int, not Void", builtin("print", sem.TyI64, str)},
 		{"panic of a number", "main.add", "builtins", "panic takes Int as argument 0, not a String", builtin("panic", sem.TyNever, num)},
 		{"fill by a string", "main.add", "builtins", "fixed.fill indexes with String", builtin("fixed.fill", sem.TyI64, num, str)},
 		{"length that is no integer", "main.add", "builtins", "iter.len yields String, not an integer", builtin("iter.len", sem.TyString, str)},

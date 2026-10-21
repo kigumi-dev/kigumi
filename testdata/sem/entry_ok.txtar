@@ -19,9 +19,9 @@ fn helper(x: Int) -> Int {
     x + n //~ ERROR undefined name `n` //~ NOTE `n` is a script-local `let` of `main`
 }
 -- app/lib/l.kg --
-pub fn run(n: Int) -> Unit {}
+pub fn run(n: Int) {}
 
-fn lib() -> Unit {
+fn lib() {
     print "x" //~ ERROR undefined name `print` //~ NOTE `print` exists only in the entry file
     let h = host //~ ERROR undefined name `host`
 }

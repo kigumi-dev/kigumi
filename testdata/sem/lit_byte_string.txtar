@@ -1,10 +1,10 @@
 -- src --
 const K: Bytes = b"\x01\x02"
 
-fn wantBytes(b: Bytes) -> Unit {}
-fn wantString(s: String) -> Unit {}
+fn wantBytes(b: Bytes) {}
+fn wantString(s: String) {}
 
-fn use() -> Unit {
+fn use() {
     let a = b"abc"
     wantBytes(a)
     wantBytes(a)

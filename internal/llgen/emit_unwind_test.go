@@ -26,7 +26,7 @@ async fn tick() -> Int {
     1
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestCatchBuildsRegisterFrameRecords(t *testing.T) {
@@ -60,7 +60,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     let seen = "drop ${self.id}"
 }
 
@@ -85,13 +85,13 @@ async fn boom() -> Int {
     v
 }
 
-fn scope() -> Unit {
+fn scope() {
     let a = make(1)
     let s = "text"
     let b = make(2)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestAsyncTemporariesRegisterARecordOverTheFrame(t *testing.T) {

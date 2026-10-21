@@ -22,32 +22,32 @@ type Grid = {
     pub mut rows FixedArray[FixedArray[Pt, 2], 2]
 }
 
-fn fieldFromField(o: &mut Outer) -> Unit {
+fn fieldFromField(o: &mut Outer) {
     o.segs[0].a = o.segs[1].b
 }
 
-fn slotFromField(o: &mut Outer) -> Unit {
+fn slotFromField(o: &mut Outer) {
     o.w.a[1] = o.segs[1].a
 }
 
-noalloc fn nested(g: &mut Grid) -> Unit {
+noalloc fn nested(g: &mut Grid) {
     g.rows[0][1] = g.rows[1][0]
 }
 
-fn swapThroughLocal(w: &mut Wrap) -> Unit {
+fn swapThroughLocal(w: &mut Wrap) {
     let t = w.a[0]
     w.a[1] = t
 }
 
-fn literalStore(w: &mut Wrap) -> Unit {
+fn literalStore(w: &mut Wrap) {
     w.a[0] = Pt { x: 1, y: 2 }
 }
 
-fn valueStore(w: &mut Wrap, p: Pt) -> Unit {
+fn valueStore(w: &mut Wrap, p: Pt) {
     w.a[2] = p
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let zero = Pt { x: 0, y: 0 }
     let mut o = Outer { segs: FixedArray.filled[Seg, 2](Seg { a: zero, b: zero }), w: Wrap { a: FixedArray.filled[Pt, 3](zero) } }
     o.segs[1].b = Pt { x: 7, y: 8 }

@@ -1,14 +1,14 @@
 -- src --
 extern(C) {
-    fn raw() -> Unit
+    fn raw()
 }
 
 export(interrupt) {
-    pub fn inner() -> Unit {}
+    pub fn inner() {}
 }
 
 export(interrupt, naked) {
-    pub fn saved() -> Unit {
+    pub fn saved() {
         asm {
             "push rbx"
             "xor ebx, ebx"
@@ -18,12 +18,12 @@ export(interrupt, naked) {
             f: sym inner
         }
     }
-    pub fn trap() -> Unit { //~ ERROR export(interrupt) handler `trap` reaches assembly the compiler cannot verify
+    pub fn trap() { //~ ERROR export(interrupt) handler `trap` reaches assembly the compiler cannot verify
         asm {
             "ud2"
         }
     }
-    pub fn foreign() -> Unit { //~ ERROR export(interrupt) handler `foreign` may block or reach unverified code
+    pub fn foreign() { //~ ERROR export(interrupt) handler `foreign` may block or reach unverified code
         asm {
             "push rbx"
             "call {f}"
@@ -32,7 +32,7 @@ export(interrupt, naked) {
             f: sym raw
         }
     }
-    pub fn device() -> Unit { //~ ERROR export(interrupt) handler `device` reaches assembly the compiler cannot verify
+    pub fn device() { //~ ERROR export(interrupt) handler `device` reaches assembly the compiler cannot verify
         asm {
             "mov eax, [rdi]"
             "ret"
@@ -44,8 +44,8 @@ export(interrupt, naked) {
 error[E1089]: export(interrupt) handler `trap` reaches assembly the compiler cannot verify
   --> main/main.kg:20:5
    |
-20 |     pub fn trap() -> Unit { //~ ERROR export(interrupt) handler `trap` reaches assembly the compiler cannot verify
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+20 |     pub fn trap() { //~ ERROR export(interrupt) handler `trap` reaches assembly the compiler cannot verify
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: a reviewed trusted summary is required and none can be declared yet, so keep to register arithmetic, balanced push/pop and `call`/`jmp` to a checked `sym` operand
    = help: `trap` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
 note: `ud2` cannot be classified as ordinary computation
@@ -57,8 +57,8 @@ note: `ud2` cannot be classified as ordinary computation
 error[E1082]: export(interrupt) handler `foreign` may block or reach unverified code
   --> main/main.kg:25:5
    |
-25 |     pub fn foreign() -> Unit { //~ ERROR export(interrupt) handler `foreign` may block or reach unverified code
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+25 |     pub fn foreign() { //~ ERROR export(interrupt) handler `foreign` may block or reach unverified code
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: give the callee a body the compiler can check: `noalloc` alone is no interrupt contract, and an extern(C) declaration cannot carry one yet
    = help: `foreign` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
 note: calls `raw`, which has no body the compiler can check and no reviewed interrupt contract
@@ -70,8 +70,8 @@ note: calls `raw`, which has no body the compiler can check and no reviewed inte
 error[E1089]: export(interrupt) handler `device` reaches assembly the compiler cannot verify
   --> main/main.kg:34:5
    |
-34 |     pub fn device() -> Unit { //~ ERROR export(interrupt) handler `device` reaches assembly the compiler cannot verify
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+34 |     pub fn device() { //~ ERROR export(interrupt) handler `device` reaches assembly the compiler cannot verify
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: a reviewed trusted summary is required and none can be declared yet, so keep to register arithmetic, balanced push/pop and `call`/`jmp` to a checked `sym` operand
    = help: `device` uses the root common interrupt configuration, which permits no MMIO or synchronization operation
 note: `mov eax, [rdi]` accesses memory, which may be MMIO no configuration names

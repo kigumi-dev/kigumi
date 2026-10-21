@@ -3,36 +3,36 @@ type Item = {
     pub mut count Int
 }
 
-fn Item.update(mut self, delta: Int) -> Unit {
+fn Item.update(mut self, delta: Int) {
     self.count = self.count + delta
 }
 
-fn reentrant(mut xs: Array[Item]) -> Unit {
+fn reentrant(mut xs: Array[Item]) {
     let _ = xs.withMut(0, (x: &mut Item) => { //~ ERROR a closure argument cannot capture `xs`
         xs.push(Item { count: 0 })
         x.update(1)
     })
 }
 
-fn fine(mut xs: Array[Item]) -> Unit {
+fn fine(mut xs: Array[Item]) {
     let _ = xs.withMut(0, (x: &mut Item) => {
         x.update(1)
     })
 }
 
 interface Runner {
-    fn run(mut self, f: fn() -> Unit) -> Unit
+    fn run(mut self, f: fn() -> Void)
 }
 
-fn Item.run(mut self, f: fn() -> Unit) -> Unit {
+fn Item.run(mut self, f: fn() -> Void) {
     f()
 }
 
-fn genericReentrant[T: Runner](mut v: T) -> Unit {
+fn genericReentrant[T: Runner](mut v: T) {
     v.run(() => { v.run(() => {}) }) //~ ERROR a closure argument cannot capture `v`
 }
 
-fn genericFine[T: Runner](mut v: T) -> Unit {
+fn genericFine[T: Runner](mut v: T) {
     v.run(() => {})
 }
 -- expect --

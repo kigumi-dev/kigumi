@@ -11,16 +11,16 @@ import (
 const escapingSrc = `
 pub type Slot[F] = { pub cb F }
 
-pub fn keepFn(cb: escaping fn() -> Unit, n: Int) -> fn() -> Unit { cb }
+pub fn keepFn(cb: escaping fn() -> Void, n: Int) -> fn() -> Void { cb }
 
-pub fn keepBound[F: Fn[fn() -> Unit]](cb: escaping F) -> Slot[F] { Slot { cb: cb } }
+pub fn keepBound[F: Fn[fn() -> Void]](cb: escaping F) -> Slot[F] { Slot { cb: cb } }
 
-pub fn callFn(cb: fn() -> Unit, tail: ...escaping fn() -> Unit) -> Int { cb()
+pub fn callFn(cb: fn() -> Void, tail: ...escaping fn() -> Void) -> Int { cb()
     0 }
 
-pub fn callBound[F: Fn[fn() -> Unit]](cb: F) -> Unit { cb() }
+pub fn callBound[F: Fn[fn() -> Void]](cb: F) { cb() }
 
-pub fn lambdaOnly() -> fn(fn() -> Unit) -> Unit { (f) => f() }
+pub fn lambdaOnly() -> fn(fn() -> Void) -> Void { (f) => f() }
 `
 
 func TestBuildParamEscaping(t *testing.T) {
@@ -64,7 +64,7 @@ func TestBuildParamEscapingJSON(t *testing.T) {
 	if !strings.Contains(text, `"escaping":true`) {
 		t.Fatalf("no escaping field in %s", text)
 	}
-	if !strings.Contains(text, `"minor":1`) {
+	if !strings.Contains(text, `"minor":2`) {
 		t.Fatalf("envelope minor not bumped in %s", text)
 	}
 	if strings.Count(text, `"escaping"`) != 3 {

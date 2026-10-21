@@ -6,7 +6,7 @@ type Money = resource {
     pub cents Int
 }
 
-fn Money.drop(move self) -> Unit {
+fn Money.drop(move self) {
     print "drop ${self.cents}"
 }
 

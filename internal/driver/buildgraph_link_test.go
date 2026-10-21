@@ -33,7 +33,7 @@ func TestBuildProgramLink(t *testing.T) {
 	// instead of replacing it, so crt/libc startup still links normally
 	// (ld and lld both support this form).
 	write("extra.ld", "SECTIONS\n{\n  .kigumi_test (INFO) : { LONG(0x1234) }\n}\nINSERT AFTER .text\n")
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let a = b.executable(\"app\", \"cmd/app\", b.target(\"x86_64-linux-musl\"))?\n" +
 		"    let script = b.file(\"extra.ld\")?\n" +
 		"    a.linkerScript(script)\n" +

@@ -9,9 +9,9 @@ import (
 )
 
 const boxedParamSrc = `
-fn put(r: &mut Int, i: Int) -> Unit { r = i }
+fn put(r: &mut Int, i: Int) { r = i }
 
-fn forward(r: &mut Int, i: Int, j: Int) -> Unit { put(r, i) }
+fn forward(r: &mut Int, i: Int, j: Int) { put(r, i) }
 
 fn call(f: fn(Int) -> Bool, x: Int, y: Int) -> Bool { f(x) }
 
@@ -19,7 +19,7 @@ fn plain(i: Int, f: Float) -> Float { f * i.toFloat() }
 
 fn mk(k: Int) -> fn(Int) -> Int { (x: Int) => x + k }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestBoxedParamsFollowTheBoxesABodyMakes(t *testing.T) {
@@ -56,18 +56,18 @@ func TestBoxedParamsTakeEveryClosureParameterBoxed(t *testing.T) {
 }
 
 const mutualSrc = `
-fn put(r: &mut Int, i: Int) -> Unit { r = i }
+fn put(r: &mut Int, i: Int) { r = i }
 
-fn f(r: &mut Int, i: Int, n: Int) -> Unit {
+fn f(r: &mut Int, i: Int, n: Int) {
     if n > 0 { g(r, i, n - 1) }
     put(r, i)
 }
 
-fn g(r: &mut Int, i: Int, n: Int) -> Unit {
+fn g(r: &mut Int, i: Int, n: Int) {
     if n > 0 { f(r, i, n - 1) }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestBoxedParamsOfMutualRecursionIgnoreTheOrderOfFirstReach(t *testing.T) {

@@ -37,7 +37,7 @@ pub fn monotonic() -> Monotonic {
 }
 
 /// Pauses the current thread for millis milliseconds.
-pub fn sleep(millis: i64) -> Unit {
+pub fn sleep(millis: i64) {
     if millis <= 0 {
         return
     }

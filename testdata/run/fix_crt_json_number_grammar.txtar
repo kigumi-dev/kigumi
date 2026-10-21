@@ -1,7 +1,7 @@
 -- src --
 import json from std/json
 
-fn tryDecode(s: String) -> Unit {
+fn tryDecode(s: String) {
     match json.decode[Int](s) {
         Ok(x) -> print "ok:${x}"
         Err(_) -> print "err"

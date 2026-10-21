@@ -26,7 +26,7 @@ fn viaParam[T: Getter](g: T) -> Int {
     g.get()
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${viaExistential(A { n: 4 })} ${viaExistential(Bx(5))} ${viaParam(A { n: 7 })} ${viaParam(Bx(8))} ${viaParam(By)}"
 }
 -- stdout --

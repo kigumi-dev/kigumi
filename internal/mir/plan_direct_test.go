@@ -64,7 +64,7 @@ fn intoArray(x: Int) -> Array[Point] {
     Array.of(Point { x: x, y: x })
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // A direct aggregate built and read in one body never meets the boxed
@@ -118,7 +118,7 @@ type Point = {
 
 fn mk(x: Int) -> Point { Point { x: x, y: x } }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let f = (x: Int) => Point { x: x, y: x }
     let p = mk(1)
     print "${p.x} ${f(2).y}"
@@ -225,7 +225,7 @@ fn count(n: usize) -> usize {
     total
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${count(3)}"
 }
 `)
@@ -251,7 +251,7 @@ fn touch(n: Int) -> Int {
     p.y + p.combine(Point { x: n + 2, y: n + 3 })
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${touch(1)}"
 }
 `)
@@ -272,7 +272,7 @@ type Point = {
     pub mut y Int
 }
 
-fn Point.raise(mut self) -> Unit {
+fn Point.raise(mut self) {
     self.y += 1
 }
 
@@ -282,7 +282,7 @@ fn touch(n: Int) -> Int {
     p.y
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${touch(1)}"
 }
 `)
@@ -321,7 +321,7 @@ fn area(n: Int) -> Int {
     }
 }
 
-fn store(n: Int, mut xs: Array[Shape]) -> Unit {
+fn store(n: Int, mut xs: Array[Shape]) {
     xs.push(Circle(n))
 }
 `
@@ -445,7 +445,7 @@ type Point = {
 
 type Marked = Point
 
-fn bump(p: &mut Point, n: Int) -> Unit { p = Point { x: n, y: n + 1 } }
+fn bump(p: &mut Point, n: Int) { p = Point { x: n, y: n + 1 } }
 
 fn marked(n: Int) -> Int {
     let mut m = Marked(Point { x: n * 2, y: n })

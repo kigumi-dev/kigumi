@@ -3,7 +3,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop res ${self.n}"
 }
 
@@ -49,13 +49,13 @@ fn apply[F: Fn[fn(Int) -> String]](f: F, x: Int) -> String {
     f(x + 1)
 }
 
-fn returned[T: Getter](t: T) -> Unit {
+fn returned[T: Getter](t: T) {
     let f = t.get
     print apply(f, 4)
     print "after apply"
 }
 
-fn carried[T: Getter](t: T) -> Unit {
+fn carried[T: Getter](t: T) {
     let k = Keep { f: t.get }
     print callKept(k, 1)
     print "after callKept"

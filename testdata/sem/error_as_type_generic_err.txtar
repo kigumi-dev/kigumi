@@ -5,7 +5,7 @@ fn useVar[T](e: &Error) -> T? {
     error.as[T](e) //~ ERROR `T` cannot be `std/error.as`'s type argument
 }
 
-fn useIt(e: &Error) -> Unit! {
+fn useIt(e: &Error) -> Void! {
     let _ = useVar[String](e)
 }
 

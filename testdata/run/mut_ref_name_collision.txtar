@@ -13,10 +13,10 @@ type Counter = {
 }
 
 interface Thing {
-    fn tweak(mut self, s: &mut Shape) -> Unit
+    fn tweak(mut self, s: &mut Shape)
 }
 
-fn Shape.tweak(mut self, s: &mut Shape) -> Unit {
+fn Shape.tweak(mut self, s: &mut Shape) {
     s = Dot
 }
 
@@ -24,11 +24,11 @@ type Gauge = {
     pub mut n Int
 }
 
-fn Gauge.tweak(mut self, s: &mut Shape) -> Unit {
+fn Gauge.tweak(mut self, s: &mut Shape) {
     self.n = self.n + s.area()
 }
 
-fn Counter.tweak(mut self, mut s: Int) -> Unit {
+fn Counter.tweak(mut self, mut s: Int) {
     s = s + 1
     self.n = self.n + s
 }
@@ -39,10 +39,10 @@ fn tweak(mut x: Int) -> Int {
 }
 
 interface Sink {
-    fn drain(mut self, s: &mut Shape) -> Unit
+    fn drain(mut self, s: &mut Shape)
 }
 
-fn Shape.drain(mut self, s: &mut Shape) -> Unit {
+fn Shape.drain(mut self, s: &mut Shape) {
     s = Circle(self.area())
 }
 
@@ -50,7 +50,7 @@ fn drain(s: &mut Shape) -> Int {
     s.area()
 }
 
-fn tweakVia[T: Thing](t: &mut T, s: &mut Shape) -> Unit {
+fn tweakVia[T: Thing](t: &mut T, s: &mut Shape) {
     t.tweak(s)
 }
 

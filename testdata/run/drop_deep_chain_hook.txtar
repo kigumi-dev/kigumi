@@ -5,7 +5,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -51,7 +51,7 @@ fn leftArrayChain(depth: Int) -> Node {
     cur
 }
 
-fn drops(depth: Int) -> Unit {
+fn drops(depth: Int) {
     let r = Res { id: 7 }
     let a = boxChain(depth)
     print "box ${depth}"

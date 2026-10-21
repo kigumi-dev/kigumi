@@ -6,13 +6,13 @@ import {run} from app/lib
 let x = 1
 print "hi"
 
-fn main() -> Unit! { //~ ERROR implicit `main` (top-level statements) conflicts with `fn main`
+fn main() -> Void! { //~ ERROR implicit `main` (top-level statements) conflicts with `fn main`
     run()
 }
 -- cmd/app/other.kg --
 let y = 2 //~ ERROR top-level statements are only allowed in the entry file
 -- app/lib/l.kg --
-pub fn run() -> Unit {}
+pub fn run() {}
 
 let z = 3 //~ ERROR top-level statements are only allowed in the entry file
 -- app/bad/b.kg --
@@ -33,7 +33,7 @@ error[E915]: top-level statements are only allowed in the entry file
 error[E245]: implicit `main` (top-level statements) conflicts with `fn main`
  --> cmd/app/main.kg:6:1
   |
-6 | fn main() -> Unit! { //~ ERROR implicit `main` (top-level statements) conflicts with `fn main`
+6 | fn main() -> Void! { //~ ERROR implicit `main` (top-level statements) conflicts with `fn main`
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E915]: top-level statements are only allowed in the entry file

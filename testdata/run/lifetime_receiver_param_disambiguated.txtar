@@ -7,7 +7,7 @@ fn Holder['a].mix(self, other: &'a Bytes) -> &'a Bytes {
     other
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf1 = Bytes.fromArray(&Array.of(1, 2, 3))
     let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
     let h = Holder { buf: &buf1 }

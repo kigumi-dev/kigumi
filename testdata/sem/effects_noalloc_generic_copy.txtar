@@ -51,7 +51,7 @@ fn plain(r: Named) -> Named {
     keep(r)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = onInt(1)
 }
 -- expect --

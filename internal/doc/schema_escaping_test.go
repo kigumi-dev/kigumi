@@ -8,7 +8,7 @@ import (
 )
 
 func TestDeclarationsKeepEscapingTypeParam(t *testing.T) {
-	m := loadSchemaIRProbe(t, "pub fn keep[F: Fn[fn() -> Unit]](callback: escaping F, other: F) -> Unit {}\n")
+	m := loadSchemaIRProbe(t, "pub fn keep[F: Fn[fn() -> Void]](callback: escaping F, other: F) {}\n")
 	res, err := driver.Check(m)
 	if err != nil {
 		t.Fatal(err)

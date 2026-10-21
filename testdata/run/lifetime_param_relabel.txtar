@@ -5,7 +5,7 @@ fn relabel['a, 'b](v: View['a], other: View['b]) -> View['a] {
     View { data: v.data, off: other.off }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf1 = Bytes.fromArray(&Array.of(1, 2, 3))
     let buf2 = Bytes.fromArray(&Array.of(4, 5, 6))
     let v1 = View { data: &buf1, off: 0 }

@@ -169,7 +169,7 @@ func (r *Result) checkFnBody(id EntityID) {
 }
 
 // checkBodyBlock checks a function body against the return type: the block's
-// tail value must coerce to it, and a missing tail needs Unit or Never.
+// tail value must coerce to it, and a missing tail needs Void or Never.
 func (c *checker) checkBodyBlock(body syntax.NodeID) {
 	c.exitCheck.tail = c.bodyTail(body)
 	c.check(body, c.retType)

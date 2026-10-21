@@ -11,7 +11,7 @@ type R = resource {
     pub n Int
 }
 
-fn R.drop(move self) -> Unit {}
+fn R.drop(move self) {}
 
 fn R.eat(move self) -> String { "ate" }
 

@@ -23,7 +23,7 @@ fn Box[T].map[U](self, f: fn(T) -> U) -> Box[U] {
     Box[U] { v: f(self.v) }
 }
 
-fn use(b: Box[Int]) -> Unit {
+fn use(b: Box[Int]) {
     let f = identity //~ ERROR cannot infer type parameter `T`
     let g: fn(Int) -> Int = identity
     let a = g(1) //~ TYPE a : Int

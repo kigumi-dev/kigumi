@@ -49,7 +49,7 @@ fn main.spin(%n: Int) -> Int {
     drop(%n)
     return %t10
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t1 = const 3: Int
     %t2 = call main.spin(%t1)

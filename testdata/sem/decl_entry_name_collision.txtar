@@ -1,11 +1,11 @@
 -- module --
 entry: cmd/app/main.kg
 -- cmd/app/main.kg --
-fn print(x: String) -> Unit {} //~ ERROR `print` is an entry-only intrinsic
+fn print(x: String) {} //~ ERROR `print` is an entry-only intrinsic
 
-fn eprint(x: String) -> Unit {} //~ ERROR `eprint` is an entry-only intrinsic
+fn eprint(x: String) {} //~ ERROR `eprint` is an entry-only intrinsic
 
-fn host() -> Unit {} //~ ERROR `host` is an entry-only intrinsic
+fn host() {} //~ ERROR `host` is an entry-only intrinsic
 
 type Cmd = print(String) | Other //~ ERROR `print` is an entry-only intrinsic
 
@@ -14,20 +14,20 @@ print("still the intrinsic")
 error[E256]: `print` is an entry-only intrinsic and cannot be redeclared in the entry package
  --> cmd/app/main.kg:1:1
   |
-1 | fn print(x: String) -> Unit {} //~ ERROR `print` is an entry-only intrinsic
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1 | fn print(x: String) {} //~ ERROR `print` is an entry-only intrinsic
+  | ^^^^^^^^^^^^^^^^^^^^^
 
 error[E256]: `eprint` is an entry-only intrinsic and cannot be redeclared in the entry package
  --> cmd/app/main.kg:3:1
   |
-3 | fn eprint(x: String) -> Unit {} //~ ERROR `eprint` is an entry-only intrinsic
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+3 | fn eprint(x: String) {} //~ ERROR `eprint` is an entry-only intrinsic
+  | ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E256]: `host` is an entry-only intrinsic and cannot be redeclared in the entry package
  --> cmd/app/main.kg:5:1
   |
-5 | fn host() -> Unit {} //~ ERROR `host` is an entry-only intrinsic
-  | ^^^^^^^^^^^^^^^^^^^
+5 | fn host() {} //~ ERROR `host` is an entry-only intrinsic
+  | ^^^^^^^^^^^
 
 error[E256]: `print` is an entry-only intrinsic and cannot be redeclared in the entry package
  --> cmd/app/main.kg:7:12

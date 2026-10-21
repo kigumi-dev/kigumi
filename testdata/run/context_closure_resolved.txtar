@@ -2,7 +2,7 @@
 import stdio from std/stdio
 import {stdout} from std/stdio
 
-fn call[F: Fn[fn() -> Unit!]](f: F) -> Unit! {
+fn call[F: Fn[fn() -> Void!]](f: F) -> Void! {
     f()
 }
 

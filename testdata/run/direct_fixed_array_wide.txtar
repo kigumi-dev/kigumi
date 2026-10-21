@@ -29,7 +29,7 @@ fn packetLen(p: Packet) -> Int {
     }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let a = fill(1, 100)
     let b = a
     print "buf ${sumBytes(a)} ${sumBytes(b)} ${b.data[100]} ${b.data[4095]} ${b.len}"

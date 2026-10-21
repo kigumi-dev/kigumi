@@ -3,15 +3,15 @@ type Box = {
     pub mut n Int
 }
 
-fn Box.bump(mut self, k: Int) -> Unit {
+fn Box.bump(mut self, k: Int) {
     self.n = self.n + k
 }
 
-fn Box.reset(mut self) -> Unit {
+fn Box.reset(mut self) {
     self = Box { n: 0 }
 }
 
-fn Box.forwarded(mut self) -> Unit {
+fn Box.forwarded(mut self) {
     self.reset()
 }
 
@@ -27,51 +27,51 @@ fn lend['a](h: Holder['a]) -> &'a mut Box {
     h.r
 }
 
-fn fieldRecv['a](h: Holder['a]) -> Unit {
+fn fieldRecv['a](h: Holder['a]) {
     h.r.reset() //~ ERROR a `&mut` held in a field is the receiver here
 }
 
-fn nestedFieldRecv['a](n: Nest['a]) -> Unit {
+fn nestedFieldRecv['a](n: Nest['a]) {
     n.h.r.reset() //~ ERROR a `&mut` held in a field is the receiver here
 }
 
-fn returnedRecv['a](h: Holder['a]) -> Unit {
+fn returnedRecv['a](h: Holder['a]) {
     lend(h).reset() //~ ERROR a `&mut` a call returned is the receiver here
 }
 
-fn parenFieldRecv['a](h: Holder['a]) -> Unit {
+fn parenFieldRecv['a](h: Holder['a]) {
     (h.r).reset() //~ ERROR a `&mut` held in a field is the receiver here
 }
 
-fn forwardingRecv['a](h: Holder['a]) -> Unit {
+fn forwardingRecv['a](h: Holder['a]) {
     h.r.forwarded() //~ ERROR a `&mut` held in a field is the receiver here
 }
 
 interface Resettable {
-    fn reset(mut self) -> Unit
+    fn reset(mut self)
 }
 
-fn resetAny[T: Resettable](x: &mut T) -> Unit {
+fn resetAny[T: Resettable](x: &mut T) {
     x.reset()
 }
 
-fn witnessRecv['a](h: Holder['a]) -> Unit {
+fn witnessRecv['a](h: Holder['a]) {
     resetAny(h.r) //~ ERROR a `&mut` held in a field is lent here
 }
 
-fn fieldWriteIsFine['a](h: Holder['a]) -> Unit {
+fn fieldWriteIsFine['a](h: Holder['a]) {
     h.r.bump(1)
 }
 
-fn nestedFieldWriteIsFine['a](n: Nest['a]) -> Unit {
+fn nestedFieldWriteIsFine['a](n: Nest['a]) {
     n.h.r.bump(1)
 }
 
-fn returnedWriteIsFine['a](h: Holder['a]) -> Unit {
+fn returnedWriteIsFine['a](h: Holder['a]) {
     lend(h).bump(1)
 }
 
-fn ownPlaceReplaceIsFine() -> Unit {
+fn ownPlaceReplaceIsFine() {
     let mut b = Box { n: 1 }
     b.reset()
 }

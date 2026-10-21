@@ -47,7 +47,7 @@ fn viaInfer[T: Shower](x: T) -> String {
 
 fn run(f: fn(Pt) -> String, p: Pt) -> String { f(p) }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let a = describe[Pt]
     let b = describe[Named]
     let c = describe[Tag]

@@ -11,13 +11,13 @@ type Bad = {
     r &Int //~ ERROR a field cannot hold a borrow without a lifetime
 }
 
-fn stash['a](b: &'a Bytes) -> Unit {
+fn stash['a](b: &'a Bytes) {
     let v = View { data: b, off: 0 }
     let s: Shared[View['a]] = Shared.new(v) //~ ERROR carries a borrow and cannot be stored
     _ = s
 }
 
-fn escape['a](b: &'a Bytes) -> Unit {
+fn escape['a](b: &'a Bytes) {
     let v = View { data: b, off: 0 }
     let f = () => v.off //~ ERROR carries a borrow and cannot be stored
     _ = f

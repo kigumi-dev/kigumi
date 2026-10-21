@@ -199,7 +199,7 @@ func TestHoverDocs(t *testing.T) {
 func TestHoverConstParam(t *testing.T) {
 	root := t.TempDir()
 	os.MkdirAll(filepath.Join(root, "main"), 0o755)
-	src := "fn len[T, const N: usize](a: &FixedArray[T, N]) -> usize {\n    N\n}\n\nfn main() -> Unit! {\n    let a = FixedArray.filled[i32, 3](0)\n    print \"${len(&a)}\"\n}\n"
+	src := "fn len[T, const N: usize](a: &FixedArray[T, N]) -> usize {\n    N\n}\n\nfn main() -> Void! {\n    let a = FixedArray.filled[i32, 3](0)\n    print \"${len(&a)}\"\n}\n"
 	path := filepath.Join(root, "main", "main.kg")
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")

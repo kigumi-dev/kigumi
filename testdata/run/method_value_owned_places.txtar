@@ -19,7 +19,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.n}"
 }
 
@@ -44,7 +44,7 @@ type Shown[T] = resource {
     pub n Int
 }
 
-fn Shown[T].drop(move self) -> Unit {
+fn Shown[T].drop(move self) {
     print "drop shown ${self.n}"
 }
 
@@ -60,13 +60,13 @@ fn both[F: Fn[fn(Int) -> Int]](f: F, g: F) -> Int { f(1) + g(2) }
 
 fn useLabel[F: Fn[fn(Tag) -> String]](f: F) -> String { "${f(Tag { s: "a" })}|${f(Tag { s: "b" })}" }
 
-fn fieldOfParam(p: Pair) -> Unit {
+fn fieldOfParam(p: Pair) {
     let f = p.left.get
     print "${f(1)} ${f(2)} ${p.tag}"
     print "fieldOfParam end"
 }
 
-fn fieldInBlock() -> Unit {
+fn fieldInBlock() {
     let p = Pair { tag: 7, left: Res { n: 3 }, right: Res { n: 4 } }
     if true {
         let f = p.right.get
@@ -75,12 +75,12 @@ fn fieldInBlock() -> Unit {
     print "after block ${p.tag} ${p.left.n}"
 }
 
-fn deepField(o: Outer) -> Unit {
+fn deepField(o: Outer) {
     print "${apply(o.inner.left.get, 5)}"
     print "deepField end"
 }
 
-fn temporaries() -> Unit {
+fn temporaries() {
     let f = mk(5)?.get
     if let Some(g) = f {
         print "${g(1)} ${g(2)}"
@@ -96,7 +96,7 @@ fn temporaries() -> Unit {
     print "temporaries end"
 }
 
-fn optionalLocal() -> Unit {
+fn optionalLocal() {
     let o = mk(6)
     let f = o?.get
     if let Some(g) = f {
@@ -105,7 +105,7 @@ fn optionalLocal() -> Unit {
     print "optionalLocal end"
 }
 
-fn reassign(c: Bool) -> Unit {
+fn reassign(c: Bool) {
     let a = Res { n: 11 }
     let b = Res { n: 12 }
     let mut f = a.get
@@ -117,7 +117,7 @@ fn reassign(c: Bool) -> Unit {
     print "reassign end"
 }
 
-fn branches(c: Bool) -> Unit {
+fn branches(c: Bool) {
     let a = Res { n: 13 }
     let b = Res { n: 14 }
     let f = if c { a.get } else { b.get }
@@ -125,26 +125,26 @@ fn branches(c: Bool) -> Unit {
     print "branches end"
 }
 
-fn twoForOneF() -> Unit {
+fn twoForOneF() {
     let a = Res { n: 15 }
     let b = Res { n: 16 }
     print "${both(a.get, b.get)}"
     print "twoForOneF end"
 }
 
-fn witnessBound() -> Unit {
+fn witnessBound() {
     let r = Res { n: 17 }
     print useLabel(r.label)
     print "witnessBound end"
 }
 
-fn ownerBound[T: Show](s: Shown[T]) -> Unit {
+fn ownerBound[T: Show](s: Shown[T]) {
     let g = s.say
     print "${g("p1")} ${g("p2")}"
     print "ownerBound end"
 }
 
-fn inferredLater() -> Unit {
+fn inferredLater() {
     let r = Res { n: 18 }
     let p = r.peek
     let s = p((k: Int) => "k${k}")
@@ -157,7 +157,7 @@ fn inferredLater() -> Unit {
     print "inferredLater end"
 }
 
-fn openShared(c: Bool) -> Unit {
+fn openShared(c: Bool) {
     let r = Res { n: 31 }
     let s = Res { n: 32 }
     let t = Res { n: 33 }
@@ -172,7 +172,7 @@ fn openShared(c: Bool) -> Unit {
     print "openShared end"
 }
 
-fn witnessLater() -> Unit {
+fn witnessLater() {
     let r = Res { n: 34 }
     let f = r.label
     print f(Tag { s: "w" })
@@ -180,7 +180,7 @@ fn witnessLater() -> Unit {
     print "witnessLater end"
 }
 
-fn reinitBoth(c: Bool) -> Unit {
+fn reinitBoth(c: Bool) {
     let mut p = Pair { tag: 3, left: Res { n: 35 }, right: Res { n: 36 } }
     let f = p.left.get
     if c {
@@ -193,7 +193,7 @@ fn reinitBoth(c: Bool) -> Unit {
     print "reinitBoth end"
 }
 
-fn lambdaParamField() -> Unit {
+fn lambdaParamField() {
     let h = (p: Pair) => p.left.get
     let f = h(Pair { tag: 4, left: Res { n: 39 }, right: Res { n: 40 } })
     print "${f(1)} ${f(2)}"

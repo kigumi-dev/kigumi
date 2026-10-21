@@ -22,7 +22,7 @@ func artifactAvailabilityModule(t *testing.T, entryBody, deny, ceiling string) (
 	}
 	write("mod.kg", "Module {\n    name: \"av\"\n    kigumi: \"0.1\"\n}\n")
 	write("cmd/art/main.kg", entryBody)
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let a = b.executable(\"art\", \"cmd/art\", b.request().target())?\n" +
 		"    a.availability(" + deny + ", " + ceiling + ")\n" +
 		"}\n"

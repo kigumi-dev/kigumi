@@ -62,7 +62,7 @@ fn widen(n: i32, s: String) -> Int {
     w + (s.len().toInt() || 0)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	f := funcNamed(t, p, "main.widen")
 	for bi := range f.Blocks {
@@ -96,7 +96,7 @@ fn use(x: Int) -> Int {
     take(p)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // llgen copies an aggregate at parameters, call arguments and results, so each must match the signature.

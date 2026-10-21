@@ -11,7 +11,7 @@ pub fn CString.new(text: &String) -> CString!
 pub fn CString.ptr(self) -> *const u8
 
 /// Frees the buffer.
-pub fn CString.drop(move self) -> Unit
+pub fn CString.drop(move self)
 
 /// The null pointer.
 pub pure fn null[T]() -> *const T
@@ -55,16 +55,16 @@ pub unsafe fn readI64(p: *const i64) -> i64
 pub unsafe fn readF64(p: *const f64) -> f64
 
 /// Stores value at p.
-pub unsafe fn writeU8(p: *mut u8, value: u8) -> Unit
+pub unsafe fn writeU8(p: *mut u8, value: u8)
 
 /// Stores value at p.
-pub unsafe fn writeI32(p: *mut i32, value: i32) -> Unit
+pub unsafe fn writeI32(p: *mut i32, value: i32)
 
 /// Stores value at p.
-pub unsafe fn writeI64(p: *mut i64, value: i64) -> Unit
+pub unsafe fn writeI64(p: *mut i64, value: i64)
 
 /// Stores value at p.
-pub unsafe fn writeF64(p: *mut f64, value: f64) -> Unit
+pub unsafe fn writeF64(p: *mut f64, value: f64)
 
 /// Bytes a value of a `layout(C)` record occupies in C.
 pub pure fn sizeOf[T](value: &T) -> usize
@@ -77,7 +77,7 @@ pub pure fn alignOf[T](value: &T) -> usize
 pub unsafe fn readRecord[T](p: *const T) -> T
 
 /// Stores a `layout(C)` record at p.
-pub unsafe fn writeRecord[T](p: *mut T, value: &T) -> Unit
+pub unsafe fn writeRecord[T](p: *mut T, value: &T)
 
 /// C memory holding one value of T, freed on drop. T must be concrete (a
 /// `layout(C)` record, fixed-width number, `Bool`, `Char` or pointer), not a type parameter.
@@ -95,10 +95,10 @@ pub fn CValue[T].ptr(self) -> *mut T
 pub fn CValue[T].get(self) -> T
 
 /// Overwrites the C memory with value.
-pub fn CValue[T].set(self, value: &T) -> Unit
+pub fn CValue[T].set(self, value: &T)
 
 /// Frees the C memory.
-pub fn CValue[T].drop(move self) -> Unit
+pub fn CValue[T].drop(move self)
 
 /// Runs f with a raw pointer to value, valid only for the call: it cannot
 /// escape past f's own return. Use Pin for a pointer that must outlive it.
@@ -122,7 +122,7 @@ pub fn Pin[T].ptr(self) -> *mut u8
 pub unsafe fn Pin.with[T, R](p: *mut u8, f: fn(&T) -> R) -> R
 
 /// Releases the value.
-pub fn Pin[T].drop(move self) -> Unit
+pub fn Pin[T].drop(move self)
 
 /// Gives up ownership without dropping: self is consumed, the pinned value
 /// stays alive, and the returned pointer can be handed to C to come back
@@ -175,11 +175,11 @@ pub unsafe fn HandleTable[T].reclaim(self, raw: RawHandle) -> Result[FfiHandle[T
 
 /// Reports whether the table can drop without aborting, without consuming
 /// self, so a caller on Err can clear handles and check again.
-pub fn HandleTable[T].close(self) -> Result[Unit, HandleTableBusy]
+pub fn HandleTable[T].close(self) -> Result[Void, HandleTableBusy]
 
 /// Drops the table; aborts if a handle is still outstanding, since drop
 /// cannot report an error — call `close` first to recover.
-pub fn HandleTable[T].drop(move self) -> Unit
+pub fn HandleTable[T].drop(move self)
 
 /// An owned slot in a HandleTable.
 pub type FfiHandle[T] = resource {
@@ -193,7 +193,7 @@ pub fn FfiHandle[T].raw(self) -> RawHandle
 
 /// Releases the slot and drops the value, like `HandleTable.remove`
 /// without using the result.
-pub fn FfiHandle[T].drop(move self) -> Unit
+pub fn FfiHandle[T].drop(move self)
 
 /// Reinterprets a byte pointer as a pointer to T; reading through it is the caller's responsibility.
 pub pure fn cast[T](p: *const u8) -> *const T
@@ -205,13 +205,13 @@ pub unsafe fn bytesFrom(p: *const u8, n: usize) -> Bytes
 pub unsafe fn bytesPtr(b: &Bytes) -> *const u8
 
 /// Zeros n bytes at p like mem.secureErase; p..p+n must be valid and writable. Native-only.
-pub unsafe fn secureEraseRaw(p: *mut u8, n: usize) -> Unit
+pub unsafe fn secureEraseRaw(p: *mut u8, n: usize)
 
 /// Reads the pointer stored at p.
 pub unsafe fn readPtr(p: *const u8) -> *const u8
 
 /// Stores value at p.
-pub unsafe fn writePtr(p: *mut u8, value: *const u8) -> Unit
+pub unsafe fn writePtr(p: *mut u8, value: *const u8)
 
 /// Error from a C call: the errno value and its text.
 pub type CError = {

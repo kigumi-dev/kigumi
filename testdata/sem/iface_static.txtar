@@ -45,7 +45,7 @@ pub fn showAll[T: Show](xs: Array[T]) -> Array[String] {
     out
 }
 
-pub fn useIt() -> Unit {
+pub fn useIt() {
     let nums = parseAll[Num](Array.of("1", "2"))
     _ = showAll(nums)
     let bad = parseAll[Bad](Array.of("x")) //~ ERROR `Bad` does not satisfy `Parse`
@@ -54,7 +54,7 @@ pub fn useIt() -> Unit {
     _ = boxed
 }
 
-pub fn wrong[T](x: T) -> Unit {
+pub fn wrong[T](x: T) {
     let v = T.parse("x") //~ ERROR `T` has no method `parse`
     _ = v
 }

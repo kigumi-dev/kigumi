@@ -19,9 +19,9 @@ fn optRes() -> Int!? {
     1
 }
 
-fn arg(x: Int?) -> Unit {}
+fn arg(x: Int?) {}
 
-fn callArg() -> Unit {
+fn callArg() {
     arg(1)
     arg(None)
     arg(Some(1))
@@ -39,7 +39,7 @@ fn branch(b: Bool) -> Result[Int, String] {
     if b { 1 } else { Err("no") }
 }
 
-fn merged(b: Bool) -> Unit {
+fn merged(b: Bool) {
     let v = if b { 1 } else { None } //~ TYPE v : Int?
     let w = if b { Some(1) } else { None } //~ TYPE w : Int?
     let x = if b { None } else { 2 } //~ TYPE x : Int?

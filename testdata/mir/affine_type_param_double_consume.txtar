@@ -3,20 +3,20 @@
 // consuming it twice is use-after-move, exactly like a concrete
 // move-only type (this used to type-check: own.go's moveOnly excluded
 // every sem.KParam local from tracking).
-fn consume[T](x: T) -> Unit {}
+fn consume[T](x: T) {}
 
-fn twice[T](w: T) -> Unit {
+fn twice[T](w: T) {
     consume(w)
     consume(w)
 }
 -- expect --
-fn lib.consume(%x: T) -> Unit {
+fn lib.consume(%x: T) -> Void {
   b0:
     %t1 = unit
     drop(%x)
     return %t1
 }
-fn lib.twice(%w: T) -> Unit {
+fn lib.twice(%w: T) -> Void {
   b0:
     %t1 = move(%w)
     %t2 = call lib.consume(%t1)

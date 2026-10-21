@@ -1,15 +1,15 @@
 -- lib/esc.kg --
 // All of an async fn's fn-typed parameters are escaping, keyword or not:
 // callers cannot assume it runs to completion before returning.
-async fn runLater(cb: fn() -> Unit) -> Unit {
+async fn runLater(cb: fn() -> Void) {
     cb()
 }
 
-fn forward(cb: fn() -> Unit) -> Unit {
+fn forward(cb: fn() -> Void) {
     _ = runLater(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `runLater`, which may keep it
 }
 
-fn directOwned(x: Int) -> Unit {
+fn directOwned(x: Int) {
     _ = runLater(() => { let _ = x })
 }
 -- expect --

@@ -18,7 +18,7 @@ func writeAllocatorFixture(t *testing.T, dir string) {
 	os.WriteFile(filepath.Join(dir, "build.kg"), []byte(strings.Join([]string{
 		"import build from std/build",
 		"",
-		"fn configure(b: build.Builder) -> Unit! {",
+		"fn configure(b: build.Builder) -> Void! {",
 		"    let a = b.executable(\"app\", \"\", b.request().target())?",
 		"}",
 	}, "\n")+"\n"), 0o644)
@@ -69,7 +69,7 @@ func TestBuildProgramAllocatorNoneSurvivesHostTarget(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte(strings.Join([]string{
 		"import build from std/build",
 		"",
-		"fn configure(b: build.Builder) -> Unit! {",
+		"fn configure(b: build.Builder) -> Void! {",
 		"    let t = b.hostTarget()",
 		"    let a = b.executable(\"app\", \"\", t)?",
 		"}",
@@ -111,7 +111,7 @@ func TestBuildProgramAllocatorNoneSurvivesExplicitTarget(t *testing.T) {
 	os.WriteFile(filepath.Join(root, "build.kg"), []byte(strings.Join([]string{
 		"import build from std/build",
 		"",
-		"fn configure(b: build.Builder) -> Unit! {",
+		"fn configure(b: build.Builder) -> Void! {",
 		"    let t = b.target(\"x86_64-freestanding\")",
 		"    let a = b.library(\"core\", \"\", t)?",
 		"}",

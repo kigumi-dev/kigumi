@@ -73,13 +73,13 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 	return &BuildProgram{Module: m, Res: res, Configure: configure, Tree: tree, stdRoot: opts.StdRoot}, true, nil
 }
 
-// configureEntity finds `fn configure(b: build.Builder) -> Unit!` and
+// configureEntity finds `fn configure(b: build.Builder) -> Void!` and
 // checks its shape, the way the checker checks `main`.
 func configureEntity(res *sem.Result) (sem.EntityID, error) {
 	pkg := res.PackageByPath("build")
 	fn := res.PackageMember(pkg, "configure")
 	if fn == 0 || res.Entity(fn).Kind != sem.EntFn {
-		return 0, fmt.Errorf("%s needs `fn configure(b: build.Builder) -> Unit!`", BuildFileName)
+		return 0, fmt.Errorf("%s needs `fn configure(b: build.Builder) -> Void!`", BuildFileName)
 	}
 	info := res.Fn(fn)
 	if info.Set != 0 && len(res.Overloads[info.Set].Members) > 1 {
@@ -88,7 +88,7 @@ func configureEntity(res *sem.Result) (sem.EntityID, error) {
 	sig := res.Types.Node(info.Sig)
 	ret, _, isResult := res.Types.IsResult(sig.Elem)
 	if info.Recv != sem.RecvNone || len(info.TypeParams) != 0 || len(info.Params) != 1 || !isResult || ret != sem.TyUnit || res.TypeString(sig.Args[0]) != "Builder" {
-		return 0, fmt.Errorf("%s: configure must be `fn configure(b: build.Builder) -> Unit!`", BuildFileName)
+		return 0, fmt.Errorf("%s: configure must be `fn configure(b: build.Builder) -> Void!`", BuildFileName)
 	}
 	for d := range res.Tree(res.Entity(fn).File).List(res.Tree(res.Entity(fn).File).Root).Views() {
 		if !d.Is(syntax.ImportDecl, syntax.FnDecl) {

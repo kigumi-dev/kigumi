@@ -10,7 +10,7 @@ import (
 // A function that only calls `print` carries a real `stdout` requirement,
 // visible transitively on hover at any of its callers.
 func TestHoverContextRequiresFromPrint(t *testing.T) {
-	src := "fn greet() -> Unit {\n    print \"hi\"\n}\n\nfn wrapper() -> Unit {\n    greet()\n}\n\nwrapper()\n"
+	src := "fn greet() {\n    print \"hi\"\n}\n\nfn wrapper() {\n    greet()\n}\n\nwrapper()\n"
 	s, ctx, doc, _ := openModule(t, src)
 	hoverAt := func(pos protocol.TextDocumentPositionParams) string {
 		h, err := s.Hover(ctx, &protocol.HoverParams{TextDocumentPositionParams: pos})

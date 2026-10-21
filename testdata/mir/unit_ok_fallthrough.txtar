@@ -1,9 +1,9 @@
 -- src --
-fn helper() -> Unit! {
+fn helper() -> Void! {
     let x = 1
 }
 -- expect --
-fn main.helper() -> Unit! {
+fn main.helper() -> Void! {
   b0:
     %t0 = const 1: Int
     %x = copy(%t0)

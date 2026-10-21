@@ -102,7 +102,7 @@ fn marked(n: Int) -> Int { tickValue(wrapMarked(n).value) }
 
 fn errFlat() -> Result[String, Tick] { Err(Flat) }
 
-fn okUnit() -> Unit! {}
+fn okUnit() -> Void! {}
 
 fn sizeAny[T](v: T) -> Int { 1 }
 

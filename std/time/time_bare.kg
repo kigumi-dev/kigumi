@@ -4,7 +4,7 @@ pub fn now() -> Instant {
 }
 
 /// Pauses the current thread; a bare target has no clock.
-pub fn sleep(millis: i64) -> Unit {
+pub fn sleep(millis: i64) {
     panic()
 }
 

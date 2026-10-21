@@ -3,20 +3,20 @@
 // into copying, so the identical double-use `own_borrowed.go` rejects
 // for a bare `T` (affine_type_param_double_consume.txtar) type-checks
 // here: IsCopy sees the constraint witness and lowers each use to a copy.
-fn consume[T: Copy](x: T) -> Unit {}
+fn consume[T: Copy](x: T) {}
 
-fn twice[T: Copy](w: T) -> Unit {
+fn twice[T: Copy](w: T) {
     consume(w)
     consume(w)
 }
 -- expect --
-fn lib.consume(%x: T) -> Unit {
+fn lib.consume(%x: T) -> Void {
   b0:
     %t1 = unit
     drop(%x)
     return %t1
 }
-fn lib.twice(%w: T) -> Unit {
+fn lib.twice(%w: T) -> Void {
   b0:
     %t1 = copy(%w)
     %t2 = call lib.consume(%t1)

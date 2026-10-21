@@ -5,7 +5,7 @@ fn get(c: UnsafeCell[Int]) -> Int {
     c.get() //~ ERROR calling `get` requires an `unsafe { }` block
 }
 
-fn set(c: UnsafeCell[Int]) -> Unit {
+fn set(c: UnsafeCell[Int]) {
     c.set(1) //~ ERROR calling `set` requires an `unsafe { }` block
 }
 

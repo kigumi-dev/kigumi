@@ -1,0 +1,106 @@
+-- src --
+type Failure = {
+    pub text String
+}
+
+fn Failure.message(self) -> String {
+    self.text
+}
+
+interface Greeter {
+    fn greet(self)
+    fn close(self) !
+}
+
+@impl(Greeter)
+type Quiet = {
+    pub n Int
+}
+
+fn Quiet.greet(self) {
+    print "greet ${self.n}"
+}
+
+fn Quiet.close(self) ! {
+    if self.n < 0 { fail Failure { text: "negative ${self.n}" } }
+    print "closed ${self.n}"
+}
+
+fn omitted() {
+    print "omitted"
+}
+
+fn explicit() -> Void {
+    print "explicit"
+}
+
+fn fallibleLong() -> Void! {
+    print "fallibleLong"
+    return
+}
+
+fn fallibleShort() ! {
+    defer(fail) print "never printed"
+    print "fallibleShort"
+}
+
+fn failing() ! {
+    defer(fail) print "failing cleanup"
+    fail Failure { text: "boom" }
+}
+
+fn generic[T](x: T) {
+    print "generic"
+}
+
+fn viaResult(ok: Bool) -> Result[Void, Failure] {
+    if ok { Ok(()) } else { Err(Failure { text: "no" }) }
+}
+
+fn describe(r: Result[Void, Failure]) -> String {
+    match r {
+        Ok(_) -> "ok"
+        Err(e) -> "err ${e.message()}"
+    }
+}
+
+fn through(g: Greeter) ! {
+    g.greet()
+    g.close()?
+}
+
+fn main() ! {
+    omitted()
+    explicit()
+    fallibleLong()?
+    fallibleShort()?
+    generic(7)
+    let u: Void = omitted()
+    let r: Result[Void, Error] = Ok(())
+    r?
+    print "viaResult ${describe(viaResult(true))} ${describe(viaResult(false))}"
+    through(Quiet { n: 1 })?
+    match failing() {
+        Ok(_) -> print "unexpected"
+        Err(e) -> print "caught ${e.message()}"
+    }
+    through(Quiet { n: -2 })?
+    print "not reached"
+}
+-- stdout --
+omitted
+explicit
+fallibleLong
+fallibleShort
+generic
+omitted
+viaResult ok err no
+greet 1
+closed 1
+failing cleanup
+caught boom
+greet -2
+-- stderr --
+error: negative -2
+-- exit --
+1

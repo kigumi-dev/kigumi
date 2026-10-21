@@ -32,7 +32,7 @@ fn mkn() -> Named {
     Named { name: "x", n: 1 }
 }
 
-fn twoOut(x: Named, y: Named, out: &mut V) -> Unit {
+fn twoOut(x: Named, y: Named, out: &mut V) {
     out.a = x
     out.c = y
 }
@@ -41,13 +41,13 @@ fn pairOf(x: Named) -> V {
     V { a: x, c: x }
 }
 
-noalloc fn swap(w: &mut V) -> Unit {
+noalloc fn swap(w: &mut V) {
     let t = w.a
     w.a = w.c
     w.c = t
 }
 
-fn reviewed() -> Unit {
+fn reviewed() {
     let v0 = mkv()
     let mut v1 = V { a: v0.a, c: v0.a }
     v1.a.n = 5
@@ -64,7 +64,7 @@ fn reviewed() -> Unit {
     print "reviewed ${v1.a.n} ${v1.c.n} ${arr[0].n} ${arr[1].n} ${out.a.n} ${out.c.n} ${y.a.n} ${y.ns[1].n}"
 }
 
-fn variants() -> Unit {
+fn variants() {
     let v1 = mkv()
     let n = v1.a
     let mut r1 = V { a: n, c: v1.a }
@@ -97,7 +97,7 @@ fn variants() -> Unit {
     print "variants ${r1.a.n} ${r1.c.n} ${r2.a.n} ${r2.c.n} ${arr[0].n} ${arr[1].n} ${y2.a.n} ${y2.ns[1].n} ${q} ${r3.a.n} ${r3.c.n} ${r4.a.n} ${r4.c.n} ${v4.c.n}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     reviewed()
     variants()
     let mut w = mkv()

@@ -1,6 +1,6 @@
 import alloc from std/alloc
 
-fn run() -> Unit {
+fn run() {
     let n = 1
     eprint "go"
     let r = alloc.Arena.tryCreate()

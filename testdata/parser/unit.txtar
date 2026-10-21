@@ -1,9 +1,9 @@
 -- src --
-fn ok() -> Unit! {
+fn ok() -> Void! {
     return Ok(())
 }
 
-fn takesUnit(u: Unit) -> Unit {
+fn takesUnit(u: Void) {
     let v = ()
     takesUnit(())
     v
@@ -19,7 +19,7 @@ File
     params: List
     ret: TypeResult
       TypePath
-        Path Unit
+        Path Void
     body: Block
       ExprStmt
         Return
@@ -36,9 +36,8 @@ File
     params: List
       Param u
         type: TypePath
-          Path Unit
-    ret: TypePath
-      Path Unit
+          Path Void
+    ret: -
     body: Block
       Let
         pattern: PatBind v

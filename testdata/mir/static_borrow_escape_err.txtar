@@ -5,12 +5,12 @@ fn port() -> u32 {
     config
 }
 
-fn show() -> Unit {
+fn show() {
     let v = &config
     reader(v)
 }
 
-fn reader(v: &u32) -> Unit {}
+fn reader(v: &u32) {}
 
 fn leak['a]() -> &'a u32 {
     return &config
@@ -21,7 +21,7 @@ fn lib.port() -> u32 {
     %t0 = globalget lib.config
     return %t0
 }
-fn lib.show() -> Unit {
+fn lib.show() -> Void {
   b0:
     %t0 = globalget lib.config
     %t1 = borrow 0(%t0)
@@ -30,7 +30,7 @@ fn lib.show() -> Unit {
     %t4 = call lib.reader(%t3)
     return %t4
 }
-fn lib.reader(%v: &u32) -> Unit {
+fn lib.reader(%v: &u32) -> Void {
   b0:
     %t1 = unit
     return %t1

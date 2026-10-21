@@ -5,9 +5,9 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
@@ -27,9 +27,9 @@ fn mk(n: Int) -> Pack {
     Pack { inner: mkh(n), other: mkh(n + 1), n: n * 2 }
 }
 
-fn sink(n: Int) -> Unit {}
+fn sink(n: Int) {}
 
-fn tupleElementInLoop() -> Unit {
+fn tupleElementInLoop() {
     let t = (mkh(1), mkh(2))
     for i in 0..2 {
         match t {
@@ -38,7 +38,7 @@ fn tupleElementInLoop() -> Unit {
     }
 }
 
-fn tupleElementInLoopUnderCleanup() -> Unit {
+fn tupleElementInLoopUnderCleanup() {
     let t = (mkh(1), mkh(2))
     defer { t._0.close() }
     for i in 0..2 {
@@ -48,7 +48,7 @@ fn tupleElementInLoopUnderCleanup() -> Unit {
     }
 }
 
-fn recordFieldInLoop() -> Unit {
+fn recordFieldInLoop() {
     let b = mk(1)
     for i in 0..2 {
         match b {
@@ -57,7 +57,7 @@ fn recordFieldInLoop() -> Unit {
     }
 }
 
-fn letFieldInLoop() -> Unit {
+fn letFieldInLoop() {
     let b = mk(1)
     for i in 0..2 {
         let x = move b.other //~ ERROR `b.other` was moved
@@ -65,7 +65,7 @@ fn letFieldInLoop() -> Unit {
     }
 }
 
-fn perIterationTuple(ts: Array[(Handle, Handle)]) -> Unit {
+fn perIterationTuple(ts: Array[(Handle, Handle)]) {
     for t in ts {
         match t {
             (a, b) -> {
@@ -76,7 +76,7 @@ fn perIterationTuple(ts: Array[(Handle, Handle)]) -> Unit {
     }
 }
 
-fn perIterationRecord() -> Unit {
+fn perIterationRecord() {
     for i in 0..2 {
         let b = mk(i)
         match b {
@@ -88,7 +88,7 @@ fn perIterationRecord() -> Unit {
     }
 }
 
-fn referenceScrutinee() -> Unit {
+fn referenceScrutinee() {
     let t = (mkh(1), mkh(2))
     defer { t._0.close() }
     for i in 0..2 {
@@ -98,7 +98,7 @@ fn referenceScrutinee() -> Unit {
     }
 }
 
-fn copyFieldInLoop() -> Unit {
+fn copyFieldInLoop() {
     let b = mk(1)
     for i in 0..2 {
         match b {
@@ -107,7 +107,7 @@ fn copyFieldInLoop() -> Unit {
     }
 }
 
-fn movedOnceAfterLoop() -> Unit {
+fn movedOnceAfterLoop() {
     let t = (mkh(1), mkh(2))
     for i in 0..2 {
         sink(i)

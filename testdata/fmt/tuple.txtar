@@ -10,7 +10,7 @@ fn use(p: (Int, Int)) -> Int {
     x+y
 }
 
-fn single() -> Unit {
+fn single() {
     let a = (1,)
 }
 -- expect --
@@ -25,6 +25,6 @@ fn use(p: (Int, Int)) -> Int {
     x + y
 }
 
-fn single() -> Unit {
+fn single() {
     let a = (1,)
 }

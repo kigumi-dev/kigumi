@@ -45,7 +45,7 @@ fn readOnly(h: &Holder) -> Int {
     b.n + h.k
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanDirectChargesAPlannedCopy(t *testing.T) {

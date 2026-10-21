@@ -7,7 +7,7 @@ fn pair[T](a: T, b: T) -> Array[T] {
     Array.of(a, b)
 }
 
-fn use() -> Unit {
+fn use() {
     let e: Array[u8] = pair(1, 300) //~ ERROR `300` does not fit `u8`
     let g = Array.empty() //~ ERROR cannot infer type parameter
     let i = identity[Int, Int](1) //~ ERROR `identity` takes 1 type argument, 2 given
@@ -24,7 +24,7 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.inc(mut self) -> Unit {
+fn Counter.inc(mut self) {
     self.n += 1
 }
 
@@ -36,7 +36,7 @@ fn Counter.make() -> Counter {
     Counter { n: 0 }
 }
 
-fn m() -> Unit {
+fn m() {
     let c = Counter.make()
     c.inc() //~ ERROR `inc` takes `mut self` but `c` is immutable
     let mut d = Counter.make()
@@ -50,15 +50,15 @@ fn m() -> Unit {
     let fld = Counter.n //~ ERROR `n` is a field
 }
 
-fn selfUse(c: Counter) -> Unit {
+fn selfUse(c: Counter) {
     c.inc() //~ ERROR `inc` takes `mut self` but `c` is immutable
 }
 
-fn mutParam(mut c: Counter) -> Unit {
+fn mutParam(mut c: Counter) {
     c.inc()
 }
 
-fn Counter.getInc(self) -> Unit {
+fn Counter.getInc(self) {
     self.inc() //~ ERROR `inc` takes `mut self` but `self` is immutable
 }
 -- expect --

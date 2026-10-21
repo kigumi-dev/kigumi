@@ -103,7 +103,7 @@ fn counter() -> Int {
 
 fn both[T: Show](x: T) -> String { x.show() }
 
-fn lend(mut p: Point) -> Unit { p.y += 1 }
+fn lend(mut p: Point) { p.y += 1 }
 
 fn mk() -> Shape { Rect(1.0, 2.0) }
 

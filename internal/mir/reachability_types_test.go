@@ -106,8 +106,8 @@ func TestReachableRootsDropGlueOnlyForKeptTypes(t *testing.T) {
 type Held = resource { pub id Int }
 type Idle = resource { pub id Int }
 
-fn Held.drop(move self) -> Unit {}
-fn Idle.drop(move self) -> Unit {}
+fn Held.drop(move self) {}
+fn Idle.drop(move self) {}
 
 fn open() -> Held { Held { id: 1 } }
 

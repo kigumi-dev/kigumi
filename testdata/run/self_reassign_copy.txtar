@@ -3,11 +3,11 @@ type Shape = Circle(r: Float) | Square(side: Float) | Dot
 
 type Mode = Idle | Busy
 
-fn Shape.growCircle(mut self, r: Float) -> Unit {
+fn Shape.growCircle(mut self, r: Float) {
     self = Circle(r)
 }
 
-fn Shape.clear(mut self) -> Unit {
+fn Shape.clear(mut self) {
     self = Dot
 }
 

@@ -80,7 +80,7 @@ noalloc fn callsInferred(m: &Maker, p: Point) -> Int {
     inferredTable(m, p) //~ ERROR `inferredTable` is not `noalloc`
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E1840]: `mk` returns `Point` unboxed, so every call through this function value allocates a box for the result
   --> main/main.kg:42:13

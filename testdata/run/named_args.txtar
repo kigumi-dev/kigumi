@@ -8,7 +8,7 @@ fn Point.moveBy(self, dx: Int, dy: Int) -> Point {
     Point { x: self.x + dx, y: self.y + dy }
 }
 
-fn greet(name: String, times: Int) -> Unit {
+fn greet(name: String, times: Int) {
     let mut i = 0
     for i < times {
         print "hi ${name}"

@@ -30,7 +30,7 @@ async fn walk(n: Int) -> Int {
     p.x
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestAsyncFrameKeepsADirectLocalInline(t *testing.T) {

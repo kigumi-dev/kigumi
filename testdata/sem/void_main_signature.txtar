@@ -1,0 +1,12 @@
+-- main/main.kg --
+fn main() -> Int { //~ ERROR `main` must be `fn main()` or `fn main(host: Host)` returning Void or Void!
+    1
+}
+-- expect --
+error[E244]: `main` must be `fn main()` or `fn main(host: Host)` returning Void or Void!
+ --> main/main.kg:1:1
+  |
+1 | fn main() -> Int { //~ ERROR `main` must be `fn main()` or `fn main(host: Host)` returning Void or Void!
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: write `!` or `-> Void!` after the parameter list for a main that can fail
+

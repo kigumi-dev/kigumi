@@ -7,7 +7,7 @@ type Cell = {
     n UnsafeCell[Int]
 }
 
-fn use(c: Cell, raw: UnsafeCell[Int]) -> Unit {
+fn use(c: Cell, raw: UnsafeCell[Int]) {
     let _ = needsCopy(c) //~ ERROR `Cell` does not satisfy `Copy`
     let _ = needsCopy(raw) //~ ERROR `UnsafeCell[Int]` does not satisfy `Copy`
 }

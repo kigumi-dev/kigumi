@@ -3,16 +3,16 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 type Pack = {
     pub inner Handle
     pub other Handle
 }
 
-fn tupleInLoop(t: (Handle, Handle)) -> Unit {
+fn tupleInLoop(t: (Handle, Handle)) {
     for i in 0..2 {
         match t {
             (_, b) -> b.close()
@@ -20,7 +20,7 @@ fn tupleInLoop(t: (Handle, Handle)) -> Unit {
     }
 }
 
-fn recordInLoop(p: Pack) -> Unit {
+fn recordInLoop(p: Pack) {
     for i in 0..2 {
         match p {
             Pack { other, inner: _ } -> other.close()
@@ -29,18 +29,18 @@ fn recordInLoop(p: Pack) -> Unit {
 }
 
 -- expect --
-fn lib.Handle.drop(%self: Handle) -> Unit {
+fn lib.Handle.drop(%self: Handle) -> Void {
   b0:
     %t1 = unit
     return %t1
 }
-fn lib.Handle.close(%self: Handle) -> Unit {
+fn lib.Handle.close(%self: Handle) -> Void {
   b0:
     %t1 = unit
     drop(%self)
     return %t1
 }
-fn lib.tupleInLoop(%t: (Handle, Handle)) -> Unit {
+fn lib.tupleInLoop(%t: (Handle, Handle)) -> Void {
   b0:
     %t1 = const 0: Int
     %t2 = const 2: Int
@@ -83,7 +83,7 @@ fn lib.tupleInLoop(%t: (Handle, Handle)) -> Unit {
     panic "no match arm matched"
     unreachable
 }
-fn lib.recordInLoop(%p: Pack) -> Unit {
+fn lib.recordInLoop(%p: Pack) -> Void {
   b0:
     %t1 = const 0: Int
     %t2 = const 2: Int

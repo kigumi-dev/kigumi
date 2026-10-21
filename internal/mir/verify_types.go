@@ -104,9 +104,9 @@ func (p *Program) verifyTypes(f *Func) *Error {
 }
 
 // returnable accepts the function's type, a diverging value, and, for a
-// script's implicit main, Unit standing for the `Ok(())` of falling off
-// its statement list. Every other return of a fallible-Unit function must
-// carry an actual Ok, not a bare Unit (see ImplicitOk).
+// script's implicit main, Void standing for the `Ok(())` of falling off
+// its statement list. Every other return of a fallible-Void function must
+// carry an actual Ok, not a bare Void (see ImplicitOk).
 func (p *Program) returnable(f *Func, t sem.TypeID) bool {
 	if p.sameType(t, f.Ret) || t == sem.TyNever || f.Ret == 0 {
 		return true

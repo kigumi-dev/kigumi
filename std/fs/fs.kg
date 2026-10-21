@@ -49,7 +49,7 @@ pub pure noalloc fn Path.toString(self) -> String {
 
 /// Creates or truncates the file at path and writes text into it; loops
 /// over File.write's short writes to send all of it (std/io's writeAll law).
-pub fn Files.writeText(self, path: Path, text: String) -> Unit! {
+pub fn Files.writeText(self, path: Path, text: String) -> Void! {
     let mut file = self.create(path)?
     let data = text.toBytes()
     let mut sent: usize = 0

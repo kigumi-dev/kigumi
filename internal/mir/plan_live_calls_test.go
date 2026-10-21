@@ -25,7 +25,7 @@ fn run(n: Int) -> Result[String, String] {
     Ok(r)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // freshStrings are the String temporaries a call or a temp-to-temp alias hands over.

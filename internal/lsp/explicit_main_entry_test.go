@@ -17,7 +17,7 @@ func TestAutoImportSkipsExplicitMainPackage(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "cmd", "tool"), 0o755)
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "cmd", "tool", "main.kg"), []byte(
-		"pub fn helper() -> Int {\n    1\n}\n\nfn main() -> Unit! {\n    print(\"${helper()}\")\n}\n"), 0o644)
+		"pub fn helper() -> Int {\n    1\n}\n\nfn main() -> Void! {\n    print(\"${helper()}\")\n}\n"), 0o644)
 	src := "print \"${helper()}\"\n"
 	path := filepath.Join(root, "cmd", "other", "main.kg")
 	os.MkdirAll(filepath.Dir(path), 0o755)
@@ -47,7 +47,7 @@ func TestAutoImportSkipsExplicitMainPackage(t *testing.T) {
 func TestDiagnosticsExplicitMainNoScript(t *testing.T) {
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "tool.kg"), []byte("print \"tool\"\n"), 0o644)
-	src := "fn main() -> Unit! {\n    print(\"hi\")\n}\n"
+	src := "fn main() -> Void! {\n    print(\"hi\")\n}\n"
 	path := filepath.Join(root, "main.kg")
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")

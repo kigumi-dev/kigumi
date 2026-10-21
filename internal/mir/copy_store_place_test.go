@@ -18,11 +18,11 @@ type Wrap = {
     pub mut a FixedArray[Pt, 3]
 }
 
-noalloc fn viaField(w: &mut Wrap) -> Unit {
+noalloc fn viaField(w: &mut Wrap) {
     w.a[0] = w.a[1]
 }
 
-fn Wrap.shift(mut self) -> Unit {
+fn Wrap.shift(mut self) {
     self.a[0] = self.a[2]
 }
 
@@ -35,7 +35,7 @@ fn closure() -> Int {
     cs[0].x
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestCopyStoreThroughAPlaceFillsTheSlotInPlace(t *testing.T) {
@@ -84,27 +84,27 @@ type Outer = {
     pub mut w Wrap
 }
 
-noalloc fn fieldFromField(o: &mut Outer) -> Unit {
+noalloc fn fieldFromField(o: &mut Outer) {
     o.segs[0].a = o.segs[1].b
 }
 
-noalloc fn slotFromField(o: &mut Outer) -> Unit {
+noalloc fn slotFromField(o: &mut Outer) {
     o.w.a[1] = o.segs[1].a
 }
 
-fn Outer.shift(mut self) -> Unit {
+fn Outer.shift(mut self) {
     self.segs[1].a = self.segs[0].b
 }
 
-fn byValueFields(mut o: Outer) -> Unit {
+fn byValueFields(mut o: Outer) {
     o.segs[0].a = o.segs[1].b
 }
 
-fn byValueSlots(mut w: Wrap) -> Unit {
+fn byValueSlots(mut w: Wrap) {
     w.a[0] = w.a[2]
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestCopyStoreBetweenFieldsFillsTheDestinationInPlace(t *testing.T) {

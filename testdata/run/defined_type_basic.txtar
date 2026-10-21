@@ -10,7 +10,7 @@ pub fn UserId.raw(self) -> u64 {
     self.value
 }
 
-fn bumpRaw(r: &mut u64) -> Unit {
+fn bumpRaw(r: &mut u64) {
     r = r + 1
 }
 

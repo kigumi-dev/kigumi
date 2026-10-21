@@ -10,7 +10,7 @@ import (
 )
 
 // BuildFileName is the build program at a module root: ordinary Kigumi
-// source with a single `fn configure(b: build.Builder) -> Unit!`.
+// source with a single `fn configure(b: build.Builder) -> Void!`.
 const BuildFileName = "build.kg"
 
 // FrameworkFileName describes a Framework: its name, version and the

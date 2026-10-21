@@ -1,19 +1,19 @@
 -- src --
-fn ok() -> Unit! {
+fn ok() -> Void! {
     return Ok(())
 }
 
-fn takesUnit(u: Unit) -> Unit {
+fn takesUnit(u: Void) {
     let v=()
     takesUnit(())
     v
 }
 -- expect --
-fn ok() -> Unit! {
+fn ok() -> Void! {
     return Ok(())
 }
 
-fn takesUnit(u: Unit) -> Unit {
+fn takesUnit(u: Void) {
     let v = ()
     takesUnit(())
     v

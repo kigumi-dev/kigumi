@@ -1,0 +1,185 @@
+-- src --
+fn cleanup() {}
+fn cleanupExplicit() -> Void {}
+fn run() -> Void! { return }
+fn runShort() ! { return }
+fn count() -> Int { 1 }
+fn T.method(self) ! {}
+pub async fn serve[T](x: T) ! {}
+extern(C) {
+    fn foreign(x: Int) !
+    fn plain(x: Int)
+}
+interface Closer {
+    fn close(self) !
+    fn flush(self)
+}
+fn stray() -> Int ! { 1 }
+fn strayOpt() -> Int? ! { None }
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: cleanup
+    generics: -
+    params: List
+    ret: -
+    body: Block
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: cleanupExplicit
+    generics: -
+    params: List
+    ret: TypePath
+      Path Void
+    body: Block
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: run
+    generics: -
+    params: List
+    ret: TypeResult
+      TypePath
+        Path Void
+    body: Block
+      ExprStmt
+        Return
+  FnDecl
+    attrs: -
+    mods: !
+    vis: -
+    recv: -
+    name: runShort
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      ExprStmt
+        Return
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: count
+    generics: -
+    params: List
+    ret: TypePath
+      Path Int
+    body: Block
+      ExprStmt
+        IntLit 1
+  FnDecl
+    attrs: -
+    mods: !
+    vis: -
+    recv: TypePath
+      Path T
+    name: method
+    generics: -
+    params: List
+      Param self
+        flags: self
+    ret: -
+    body: Block
+  FnDecl
+    attrs: -
+    mods: async !
+    vis: Visibility
+    recv: -
+    name: serve
+    generics: List
+      GenericParam T
+    params: List
+      Param x
+        type: TypePath
+          Path T
+    ret: -
+    body: Block
+  AbiBlock extern
+    List
+      Ident C
+    List
+      FnDecl
+        attrs: -
+        mods: !
+        vis: -
+        recv: -
+        name: foreign
+        generics: -
+        params: List
+          Param x
+            type: TypePath
+              Path Int
+        ret: -
+        body: -
+      FnDecl
+        attrs: -
+        vis: -
+        recv: -
+        name: plain
+        generics: -
+        params: List
+          Param x
+            type: TypePath
+              Path Int
+        ret: -
+        body: -
+  InterfaceDecl
+    name: Closer
+    members: List
+      FnDecl
+        attrs: -
+        mods: !
+        vis: -
+        recv: -
+        name: close
+        generics: -
+        params: List
+          Param self
+            flags: self
+        ret: -
+        body: -
+      FnDecl
+        attrs: -
+        vis: -
+        recv: -
+        name: flush
+        generics: -
+        params: List
+          Param self
+            flags: self
+        ret: -
+        body: -
+  FnDecl
+    attrs: -
+    mods: stray!
+    vis: -
+    recv: -
+    name: stray
+    generics: -
+    params: List
+    ret: TypePath
+      Path Int
+    body: Block
+      ExprStmt
+        IntLit 1
+  FnDecl
+    attrs: -
+    mods: stray!
+    vis: -
+    recv: -
+    name: strayOpt
+    generics: -
+    params: List
+    ret: TypeOptional
+      TypePath
+        Path Int
+    body: Block
+      ExprStmt
+        Ident None

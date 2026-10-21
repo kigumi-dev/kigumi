@@ -7,7 +7,7 @@ import task from std/task
 import alloc from std/alloc
 
 interface Runner {
-    fn run(self, f: fn(&mut Bytes) -> Unit, b: &mut Bytes) -> Unit
+    fn run(self, f: fn(&mut Bytes) -> Void, b: &mut Bytes)
 }
 
 @impl(Runner)
@@ -15,15 +15,15 @@ type Plain = {
     pub tag Int
 }
 
-fn Plain.run(self, f: fn(&mut Bytes) -> Unit, b: &mut Bytes) -> Unit {
+fn Plain.run(self, f: fn(&mut Bytes) -> Void, b: &mut Bytes) {
     f(b)
 }
 
 type Holder = {
-    op fn(&mut Bytes) -> Unit
+    op fn(&mut Bytes) -> Void
 }
 
-fn viaRunner(r: Runner, f: fn(&mut Bytes) -> Unit, b: &mut Bytes) -> Unit {
+fn viaRunner(r: Runner, f: fn(&mut Bytes) -> Void, b: &mut Bytes) {
     r.run(f, b)
 }
 

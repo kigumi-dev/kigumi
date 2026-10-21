@@ -1,7 +1,7 @@
 -- lib/cl.kg --
 import fs from std/fs
 
-fn write(files: fs.Files, path: fs.Path) -> Unit! {
+fn write(files: fs.Files, path: fs.Path) -> Void! {
     let mut f = files.create(path)?
     defer(fail) _ = files.remove(path)
     defer _ = files.remove(path)
@@ -12,9 +12,9 @@ fn write(files: fs.Files, path: fs.Path) -> Unit! {
     f.close()?
 }
 
-fn bad(files: fs.Files, path: fs.Path) -> Unit! {
+fn bad(files: fs.Files, path: fs.Path) -> Void! {
     defer files.remove(path)? //~ ERROR `?` is not allowed in a cleanup body
-    defer files.remove(path) //~ ERROR unused `Unit!`
+    defer files.remove(path) //~ ERROR unused `Void!`
     defer return //~ ERROR `return` is not allowed in a cleanup body
     defer(fail) fail Empty //~ ERROR `fail` is not allowed in a cleanup body //~ ERROR undefined name `Empty`
     for i in 0..3 {
@@ -22,7 +22,7 @@ fn bad(files: fs.Files, path: fs.Path) -> Unit! {
     }
 }
 
-fn noFail() -> Unit {
+fn noFail() {
     defer(fail) _ = 1 //~ ERROR `defer(fail)` in a function that cannot fail
 }
 -- expect --
@@ -32,10 +32,10 @@ error[E715]: `?` is not allowed in a cleanup body
 15 |     defer files.remove(path)? //~ ERROR `?` is not allowed in a cleanup body
    |           ^^^^^^^^^^^^^^^^^^^
 
-error[E700]: unused `Unit!`
+error[E700]: unused `Void!`
   --> lib/cl.kg:16:11
    |
-16 |     defer files.remove(path) //~ ERROR unused `Unit!`
+16 |     defer files.remove(path) //~ ERROR unused `Void!`
    |           ^^^^^^^^^^^^^^^^^
    = help: use `?`, `||`, or `_ =`
 

@@ -5,11 +5,11 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
@@ -17,25 +17,25 @@ fn Handle.peek(self) -> Int {
     self.id
 }
 
-fn Handle.bump(mut self) -> Unit {
+fn Handle.bump(mut self) {
     self.id = self.id + 1
 }
 
-fn show(h: &Handle) -> Unit {
+fn show(h: &Handle) {
     print "show ${h.id}"
 }
 
-fn take(h: Handle) -> Unit {
+fn take(h: Handle) {
     print "take ${h.id}"
 }
 
-fn normal() -> Unit! {
+fn normal() -> Void! {
     let h = Handle { id: 1 }
     defer { h.close() }
     print "normal body ${h.peek()}"
 }
 
-fn typedErr(failIt: Bool) -> Unit! {
+fn typedErr(failIt: Bool) -> Void! {
     let h = Handle { id: 2 }
     defer(fail) { h.close() }
     print "typed body"
@@ -44,7 +44,7 @@ fn typedErr(failIt: Bool) -> Unit! {
     }
 }
 
-fn early(skip: Bool) -> Unit! {
+fn early(skip: Bool) -> Void! {
     if skip {
         return
     }
@@ -53,7 +53,7 @@ fn early(skip: Bool) -> Unit! {
     print "early body"
 }
 
-fn loops() -> Unit {
+fn loops() {
     for i in 0..4 {
         let h = Handle { id: 10 + i }
         defer { h.close() }
@@ -63,7 +63,7 @@ fn loops() -> Unit {
     }
 }
 
-fn loopErr(failAt: Int) -> Unit! {
+fn loopErr(failAt: Int) -> Void! {
     for i in 0..3 {
         let h = Handle { id: 20 + i }
         defer(fail) { h.close() }
@@ -73,12 +73,12 @@ fn loopErr(failAt: Int) -> Unit! {
     }
 }
 
-fn param(h: Handle) -> Unit {
+fn param(h: Handle) {
     defer { h.close() }
     print "param body ${h.peek()}"
 }
 
-fn conditional(flag: Bool, failIt: Bool) -> Unit! {
+fn conditional(flag: Bool, failIt: Bool) -> Void! {
     let h = Handle { id: 5 }
     if flag {
         defer(fail) { h.close() }
@@ -90,7 +90,7 @@ fn conditional(flag: Bool, failIt: Bool) -> Unit! {
     take(h)
 }
 
-fn twoBindings() -> Unit! {
+fn twoBindings() -> Void! {
     let first = Handle { id: 40 }
     defer { first.close() }
     let second = Handle { id: 41 }
@@ -98,7 +98,7 @@ fn twoBindings() -> Unit! {
     print "both open ${first.peek() + second.peek()}"
 }
 
-fn borrowsAllowed() -> Unit! {
+fn borrowsAllowed() -> Void! {
     let mut h = Handle { id: 50 }
     defer { h.close() }
     h.bump()

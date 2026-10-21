@@ -9,7 +9,7 @@ fn variantName(v: &json.Value) -> String {
     }
 }
 
-fn show(v: json.Value) -> Unit! {
+fn show(v: json.Value) -> Void! {
     let text = json.render(v)?
     let back = json.parse(text)?
     print "text=${text} out=${variantName(&back)}"

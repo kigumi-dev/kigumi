@@ -18,7 +18,7 @@ fn Point.shifted(self, dx: Int) -> Point {
     Point { x: self.x + dx, y: self.y }
 }
 
-fn Point.bump(mut self) -> Unit {
+fn Point.bump(mut self) {
     self.y += 1
 }
 

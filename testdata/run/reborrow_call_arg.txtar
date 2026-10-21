@@ -1,11 +1,11 @@
 -- src --
-fn putByte(out: &mut Array[u8], b: u8) -> Unit {
+fn putByte(out: &mut Array[u8], b: u8) {
     out.push(b)
 }
 
 // out is a borrow already, so handing it to putByte reborrows it rather
 // than moving it; otherwise the second call below could not reuse it.
-fn putTwo(out: &mut Array[u8], a: u8, b: u8) -> Unit {
+fn putTwo(out: &mut Array[u8], a: u8, b: u8) {
     putByte(out, a)
     putByte(out, b)
 }

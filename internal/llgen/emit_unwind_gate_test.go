@@ -13,17 +13,17 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     let seen = "drop ${self.id}"
 }
 
-fn scope() -> Unit {
+fn scope() {
     let a = Res { id: 1 }
     let s = "text"
     let b = Res { id: 2 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     scope()
 }
 `

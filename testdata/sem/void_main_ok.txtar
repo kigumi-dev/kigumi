@@ -1,0 +1,7 @@
+-- main/main.kg --
+import os from std/os
+
+fn main(host: os.Host) {
+    _ = host
+}
+-- expect --

@@ -74,7 +74,7 @@ pub pure fn uintLe(data: Bytes, at: usize, n: usize) -> u64? {
 
 /// Appends the low `n` bytes of `v`, most-significant first. `n` above 8 pads
 /// with leading zeroes.
-pub pure fn putUintBe(out: &mut Array[u8], v: u64, n: usize) -> Unit {
+pub pure fn putUintBe(out: &mut Array[u8], v: u64, n: usize) {
     let mut i: usize = 0
     for i < n {
         let left = n - 1 - i
@@ -89,7 +89,7 @@ pub pure fn putUintBe(out: &mut Array[u8], v: u64, n: usize) -> Unit {
 
 /// Appends the low `n` bytes of `v`, least-significant first. `n` above 8 pads
 /// with trailing zeroes.
-pub pure fn putUintLe(out: &mut Array[u8], v: u64, n: usize) -> Unit {
+pub pure fn putUintLe(out: &mut Array[u8], v: u64, n: usize) {
     let mut i: usize = 0
     for i < n {
         if i >= 8 {
@@ -102,31 +102,31 @@ pub pure fn putUintLe(out: &mut Array[u8], v: u64, n: usize) -> Unit {
 }
 
 /// Appends `v` as two bytes, most-significant first.
-pub pure fn putU16Be(out: &mut Array[u8], v: u16) -> Unit {
+pub pure fn putU16Be(out: &mut Array[u8], v: u16) {
     putUintBe(out, v.toU64(), 2)
 }
 
 /// Appends `v` as four bytes, most-significant first.
-pub pure fn putU32Be(out: &mut Array[u8], v: u32) -> Unit {
+pub pure fn putU32Be(out: &mut Array[u8], v: u32) {
     putUintBe(out, v.toU64(), 4)
 }
 
 /// Appends `v` as eight bytes, most-significant first.
-pub pure fn putU64Be(out: &mut Array[u8], v: u64) -> Unit {
+pub pure fn putU64Be(out: &mut Array[u8], v: u64) {
     putUintBe(out, v, 8)
 }
 
 /// Appends `v` as two bytes, least-significant first.
-pub pure fn putU16Le(out: &mut Array[u8], v: u16) -> Unit {
+pub pure fn putU16Le(out: &mut Array[u8], v: u16) {
     putUintLe(out, v.toU64(), 2)
 }
 
 /// Appends `v` as four bytes, least-significant first.
-pub pure fn putU32Le(out: &mut Array[u8], v: u32) -> Unit {
+pub pure fn putU32Le(out: &mut Array[u8], v: u32) {
     putUintLe(out, v.toU64(), 4)
 }
 
 /// Appends `v` as eight bytes, least-significant first.
-pub pure fn putU64Le(out: &mut Array[u8], v: u64) -> Unit {
+pub pure fn putU64Le(out: &mut Array[u8], v: u64) {
     putUintLe(out, v, 8)
 }

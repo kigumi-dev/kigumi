@@ -3,7 +3,7 @@ type Buf = {
     pub mut n Int
 }
 
-fn Buf.push(mut self) -> Unit {
+fn Buf.push(mut self) {
     self.n += 1
 }
 
@@ -31,12 +31,12 @@ fn fine(mut b: Buf) -> Int {
     b.len() + n
 }
 
-fn escape(mut b: Buf) -> Unit {
+fn escape(mut b: Buf) {
     let r = &b
     let xs = Array.of(r)
 }
 -- expect --
-fn lib.Buf.push(%self: Buf) -> Unit {
+fn lib.Buf.push(%self: Buf) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = field 0(%t1)
@@ -100,7 +100,7 @@ fn lib.fine(%b: Buf) -> Int {
     drop(%b)
     return %t9
 }
-fn lib.escape(%b: Buf) -> Unit {
+fn lib.escape(%b: Buf) -> Void {
   b0:
     %t1 = borrow 0(%b)
     %r = copy(%t1)

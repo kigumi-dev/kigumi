@@ -5,7 +5,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop res ${self.id}"
 }
 
@@ -14,7 +14,7 @@ type Holder = resource {
     pub inner Box[Res]
 }
 
-fn Holder.drop(move self) -> Unit {
+fn Holder.drop(move self) {
     print "drop holder ${self.label}"
 }
 
@@ -23,7 +23,7 @@ type Point = {
     pub mut y Int
 }
 
-fn scalars() -> Unit {
+fn scalars() {
     let mut b = Box.new(41)
     print "get ${b.get()}"
     b.set(b.get() + 1)
@@ -35,7 +35,7 @@ fn scalars() -> Unit {
     print "into ${b.into()}"
 }
 
-fn points() -> Unit {
+fn points() {
     let mut p = Box.new(Point { x: 1, y: 2 })
     p.withMut((q: &mut Point) => {
         q.x = 10
@@ -46,7 +46,7 @@ fn points() -> Unit {
     print "into ${q.x} ${q.y}"
 }
 
-fn resources() -> Unit {
+fn resources() {
     let mut b = Box.new(Res { id: 1 })
     print "before set"
     b.set(Res { id: 2 })
@@ -58,7 +58,7 @@ fn resources() -> Unit {
     print "end of resources"
 }
 
-fn tryNew() -> Unit {
+fn tryNew() {
     match Box.tryNew("hello") {
         Ok(b) -> print "tryNew ${b.with((s: &String) => s.len())}"
         Err(_) -> print "tryNew failed"

@@ -1,37 +1,37 @@
 -- src --
-fn addBoth(a: &mut Int, b: &mut Int) -> Unit {
+fn addBoth(a: &mut Int, b: &mut Int) {
     a = a + 10
     b = b + 100
 }
 
-fn sameIndexLiteral() -> Unit {
+fn sameIndexLiteral() {
     let mut arr = Array.of(1, 2, 3)
     addBoth(&mut arr[0], &mut arr[0]) //~ ERROR this `&mut` argument may target the same element
 }
 
 type Box = { mut v Int }
 
-fn sameField() -> Unit {
+fn sameField() {
     let mut b = Box { v: 1 }
     addBoth(&mut b.v, &mut b.v) //~ ERROR this `&mut` argument may target the same element
 }
 
-fn unknownIndices(i: usize, j: usize) -> Unit {
+fn unknownIndices(i: usize, j: usize) {
     let mut arr = Array.of(1, 2, 3)
     addBoth(&mut arr[i], &mut arr[j]) //~ ERROR this `&mut` argument may target the same element
 }
 
-fn distinctLiteral() -> Unit {
+fn distinctLiteral() {
     let mut arr = Array.of(1, 2, 3)
     addBoth(&mut arr[0], &mut arr[2])
 }
 
-fn distinctNestedRow() -> Unit {
+fn distinctNestedRow() {
     let mut mat = Array.of(Array.of(1, 2), Array.of(3, 4))
     addBoth(&mut mat[0][1], &mut mat[1][1])
 }
 
-fn sameNestedIndex() -> Unit {
+fn sameNestedIndex() {
     let mut mat = Array.of(Array.of(1, 2), Array.of(3, 4))
     addBoth(&mut mat[0][1], &mut mat[0][1]) //~ ERROR this `&mut` argument may target the same element
 }

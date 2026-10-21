@@ -5,11 +5,11 @@ type Item = {
     pub mut count Int
 }
 
-fn Item.update(mut self, delta: Int) -> Unit {
+fn Item.update(mut self, delta: Int) {
     self.count = self.count + delta
 }
 
-fn arrays() -> Unit {
+fn arrays() {
     let mut xs = Array.of(Item { count: 1 }, Item { count: 2 }, Item { count: 3 })
     let r = xs.withMut(1, (x: &mut Item) => {
         x.update(10)
@@ -20,7 +20,7 @@ fn arrays() -> Unit {
     print "after ${xs.with(1, (x: &Item) => x.count) || 0}"
 }
 
-fn shared() -> Unit {
+fn shared() {
     let cell = Shared.new(Item { count: 100 })
     let other = cell.clone()
     let r = cell.withMut((x: &mut Item) => {

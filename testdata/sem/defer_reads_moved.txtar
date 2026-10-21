@@ -7,23 +7,23 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
 }
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn movedAfterRegistration() -> Unit {
+fn movedAfterRegistration() {
     let h = Handle { id: 1 }
     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     take(h)
 }
 
-fn movedOnOnePath(flag: Bool) -> Unit {
+fn movedOnOnePath(flag: Bool) {
     let h = Handle { id: 1 }
     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     if flag {
@@ -31,14 +31,14 @@ fn movedOnOnePath(flag: Bool) -> Unit {
     }
 }
 
-fn discardedBeforeExit() -> Unit! {
+fn discardedBeforeExit() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     _ = h
     fail test.failure("late")
 }
 
-fn movedIntoRecord() -> Unit {
+fn movedIntoRecord() {
     let h = Handle { id: 1 }
     defer { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     let w = Wrapper { inner: h }
@@ -49,7 +49,7 @@ type Wrapper = {
     pub inner Handle
 }
 
-fn readsCopyAfterMove() -> Unit {
+fn readsCopyAfterMove() {
     let mut n = 1
     let h = Handle { id: 1 }
     defer { print "n=${n}" }
@@ -57,7 +57,7 @@ fn readsCopyAfterMove() -> Unit {
     n = 2
 }
 
-fn movedBeforeRegistration() -> Unit {
+fn movedBeforeRegistration() {
     let h = Handle { id: 1 }
     take(h)
     let g = Handle { id: 2 }

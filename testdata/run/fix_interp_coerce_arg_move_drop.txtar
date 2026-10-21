@@ -10,18 +10,18 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn consumeOption(x: Res?) -> Unit {
+fn consumeOption(x: Res?) {
     match x {
         Some(r) -> print "option ${r.id}"
         None -> print "none"
     }
 }
 
-fn consumeResult(x: Res!) -> Unit {
+fn consumeResult(x: Res!) {
     match x {
         Ok(r) -> print "result ${r.id}"
         Err(_) -> print "err"
@@ -29,14 +29,14 @@ fn consumeResult(x: Res!) -> Unit {
 }
 
 interface Doer {
-    fn doIt(move self) -> Unit
+    fn doIt(move self)
 }
 
-fn Res.doIt(move self) -> Unit {
+fn Res.doIt(move self) {
     print "doer ${self.id}"
 }
 
-fn consumeIface(x: Doer) -> Unit {
+fn consumeIface(x: Doer) {
     x.doIt()
 }
 

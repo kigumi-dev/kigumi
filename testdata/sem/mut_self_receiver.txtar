@@ -1,11 +1,11 @@
 -- src --
 type Shape = Circle(r: Int) | Dot
 
-fn Shape.flatten(mut self) -> Unit {
+fn Shape.flatten(mut self) {
     self = Dot
 }
 
-fn Shape.widen(mut self, k: Int) -> Unit {
+fn Shape.widen(mut self, k: Int) {
     self = Circle(k)
 }
 
@@ -13,23 +13,23 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.inc(mut self) -> Unit {
+fn Counter.inc(mut self) {
     self.n = self.n + 1
 }
 
-async fn Counter.incLater(mut self) -> Unit {
+async fn Counter.incLater(mut self) {
     self = Counter { n: self.n + 1 } //~ ERROR assigns `self` as a whole in an `async` body
 }
 
-async fn Counter.bumpLater(mut self) -> Unit {
+async fn Counter.bumpLater(mut self) {
     self.n = self.n + 1
 }
 
-fn viaBorrowIsFine(s: &mut Shape) -> Unit {
+fn viaBorrowIsFine(s: &mut Shape) {
     s.flatten()
 }
 
-fn viaBorrowNestedIsFine(s: &mut Shape, k: Int) -> Unit {
+fn viaBorrowNestedIsFine(s: &mut Shape, k: Int) {
     s.widen(k)
 }
 
@@ -37,7 +37,7 @@ fn takeViaBorrowIsFine(o: &mut Int?) -> Int {
     o.take() || 0
 }
 
-fn fieldWriteIsFine(c: &mut Counter) -> Unit {
+fn fieldWriteIsFine(c: &mut Counter) {
     c.inc()
 }
 
@@ -45,11 +45,11 @@ type Holder = {
     mut shape Shape
 }
 
-fn placeIsFine(h: &mut Holder) -> Unit {
+fn placeIsFine(h: &mut Holder) {
     h.shape.flatten()
 }
 
-fn ownedIsFine() -> Unit {
+fn ownedIsFine() {
     let mut s: Shape = Circle(1)
     s.flatten()
 }
@@ -65,22 +65,22 @@ fn Counter.closureIsFine(mut self) -> Int {
 }
 
 interface Widener {
-    fn widen(mut self, k: Int) -> Unit
+    fn widen(mut self, k: Int)
 }
 
-fn widenViaBorrowedParamIsFine[W: Widener](w: &mut W, k: Int) -> Unit {
+fn widenViaBorrowedParamIsFine[W: Widener](w: &mut W, k: Int) {
     w.widen(k)
 }
 
-fn widenOwnedParamIsFine[W: Widener](mut w: W, k: Int) -> Unit {
+fn widenOwnedParamIsFine[W: Widener](mut w: W, k: Int) {
     w.widen(k)
 }
 
 interface Bumper {
-    fn inc(mut self) -> Unit
+    fn inc(mut self)
 }
 
-fn incViaBorrowedParamIsFine[B: Bumper](b: &mut B) -> Unit {
+fn incViaBorrowedParamIsFine[B: Bumper](b: &mut B) {
     b.inc()
 }
 
@@ -88,7 +88,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.escapingRead(self) -> fn() -> Int {
     () => self.id //~ ERROR move-only //~ ERROR cannot capture the borrow `self`
@@ -103,7 +103,7 @@ fn Res.localReadIsFine(self) -> Int {
 }
 
 interface Replacer {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
     fn size(self) -> Int
 }
 
@@ -111,7 +111,7 @@ type Tank = {
     pub mut amount Int
 }
 
-fn Tank.grow(mut self, k: Int) -> Unit {
+fn Tank.grow(mut self, k: Int) {
     self.amount = self.amount + k
 }
 
@@ -123,7 +123,7 @@ type Fuse = {
 
 // Same name/arity/recv as Replacer.grow, but Fuse has no `size`, so it can
 // never instantiate G: Replacer; the precise conformance check excludes it.
-fn Fuse.grow(mut self, k: Int) -> Unit {
+fn Fuse.grow(mut self, k: Int) {
     self = Fuse { armed: k > 0 }
 }
 
@@ -132,7 +132,7 @@ fn growViaBorrowedParamIsFine[G: Replacer](g: &mut G, k: Int) -> Int {
     g.size()
 }
 
-fn growViaWitnessValue[G: Replacer](mut g: G) -> Unit {
+fn growViaWitnessValue[G: Replacer](mut g: G) {
     let h = g.grow //~ ERROR is an interface requirement with no single implementation
     h(1)
 }

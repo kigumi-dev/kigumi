@@ -9,7 +9,7 @@ fn build(n: Int) -> Array[String] {
     xs
 }
 
-fn run() -> Unit! {
+fn run() -> Void! {
     let arena = Arena.create()?
     let kept = allocator arena.scope() {
         let xs = build(50)

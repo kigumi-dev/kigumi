@@ -3,16 +3,16 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 type Bag = {
     pub opt Handle?
     pub other Handle
 }
 
-fn payloadInLoop(b: Bag) -> Unit {
+fn payloadInLoop(b: Bag) {
     for i in 0..2 {
         match b.opt {
             Some(h) -> h.close()
@@ -21,14 +21,14 @@ fn payloadInLoop(b: Bag) -> Unit {
     }
 }
 
-fn payloadOnce(b: Bag) -> Unit {
+fn payloadOnce(b: Bag) {
     match b.opt {
         Some(h) -> h.close()
         None -> {}
     }
 }
 
-fn payloadGuarded(b: Bag) -> Unit {
+fn payloadGuarded(b: Bag) {
     match b.opt {
         Some(h) if true -> h.close()
         Some(h) -> h.close()
@@ -44,7 +44,7 @@ fn ok(h: &Handle) -> Bool {
     true
 }
 
-fn payloadGuardedLoop(b: Slot) -> Unit {
+fn payloadGuardedLoop(b: Slot) {
     for i in 0..2 {
         match b.opt {
             Some(h) if ok(&h) -> h.close()
@@ -53,7 +53,7 @@ fn payloadGuardedLoop(b: Slot) -> Unit {
     }
 }
 
-fn payloadRefill(s: Slot) -> Unit {
+fn payloadRefill(s: Slot) {
     let mut b = s
     for i in 0..2 {
         match b.opt {
@@ -66,7 +66,7 @@ fn payloadRefill(s: Slot) -> Unit {
     }
 }
 
-fn isTakeAndClear(s: Slot) -> Unit {
+fn isTakeAndClear(s: Slot) {
     let mut b = s
     for i in 0..2 {
         if b.opt is Some(h) {
@@ -76,18 +76,18 @@ fn isTakeAndClear(s: Slot) -> Unit {
     }
 }
 -- expect --
-fn lib.Handle.drop(%self: Handle) -> Unit {
+fn lib.Handle.drop(%self: Handle) -> Void {
   b0:
     %t1 = unit
     return %t1
 }
-fn lib.Handle.close(%self: Handle) -> Unit {
+fn lib.Handle.close(%self: Handle) -> Void {
   b0:
     %t1 = unit
     drop(%self)
     return %t1
 }
-fn lib.payloadInLoop(%b: Bag) -> Unit {
+fn lib.payloadInLoop(%b: Bag) -> Void {
   b0:
     %t1 = const 0: Int
     %t2 = const 2: Int
@@ -138,7 +138,7 @@ fn lib.payloadInLoop(%b: Bag) -> Unit {
     panic "no match arm matched"
     unreachable
 }
-fn lib.payloadOnce(%b: Bag) -> Unit {
+fn lib.payloadOnce(%b: Bag) -> Void {
   b0:
     %t1 = field 0(%b)
     %t3 = isvariant Option.Some(%t1)
@@ -166,7 +166,7 @@ fn lib.payloadOnce(%b: Bag) -> Unit {
     panic "no match arm matched"
     unreachable
 }
-fn lib.payloadGuarded(%b: Bag) -> Unit {
+fn lib.payloadGuarded(%b: Bag) -> Void {
   b0:
     %t1 = field 0(%b)
     %t3 = isvariant Option.Some(%t1)
@@ -217,7 +217,7 @@ fn lib.ok(%h: &Handle) -> Bool {
     %t1 = const true: Bool
     return %t1
 }
-fn lib.payloadGuardedLoop(%b: Slot) -> Unit {
+fn lib.payloadGuardedLoop(%b: Slot) -> Void {
   b0:
     %t1 = const 0: Int
     %t2 = const 2: Int
@@ -276,7 +276,7 @@ fn lib.payloadGuardedLoop(%b: Slot) -> Unit {
     panic "no match arm matched"
     unreachable
 }
-fn lib.payloadRefill(%s: Slot) -> Unit {
+fn lib.payloadRefill(%s: Slot) -> Void {
   b0:
     %t1 = move(%s)
     %b = copy(%t1)
@@ -334,7 +334,7 @@ fn lib.payloadRefill(%s: Slot) -> Unit {
     panic "no match arm matched"
     unreachable
 }
-fn lib.isTakeAndClear(%s: Slot) -> Unit {
+fn lib.isTakeAndClear(%s: Slot) -> Void {
   b0:
     %t1 = move(%s)
     %b = copy(%t1)

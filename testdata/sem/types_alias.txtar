@@ -17,13 +17,13 @@ fn f(x: UserId) -> i64 {
     x
 }
 
-fn g(x: Copy) -> Unit {} //~ ERROR `Copy` is a constraint, not a type
+fn g(x: Copy) {} //~ ERROR `Copy` is a constraint, not a type
 
-fn h(x: Option) -> Unit {} //~ ERROR `Option` is generic
+fn h(x: Option) {} //~ ERROR `Option` is generic
 
-fn i(x: Result[Int]) -> Unit {} //~ ERROR `Result` takes 2 type arguments, 1 given
+fn i(x: Result[Int]) {} //~ ERROR `Result` takes 2 type arguments, 1 given
 
-fn j(x: Int[Bool]) -> Unit {} //~ ERROR `Int` takes no type arguments
+fn j(x: Int[Bool]) {} //~ ERROR `Int` takes no type arguments
 
 fn k(x: &Int) -> &Int { //~ ERROR a returned borrow needs a lifetime
     x
@@ -53,26 +53,26 @@ error[E100]: undefined name `Nope`
 error[E125]: `Copy` is a constraint, not a type
   --> app/t/t.kg:19:9
    |
-19 | fn g(x: Copy) -> Unit {} //~ ERROR `Copy` is a constraint, not a type
+19 | fn g(x: Copy) {} //~ ERROR `Copy` is a constraint, not a type
    |         ^^^^
 
 error[E218]: `Option` is generic
   --> app/t/t.kg:21:9
    |
-21 | fn h(x: Option) -> Unit {} //~ ERROR `Option` is generic
+21 | fn h(x: Option) {} //~ ERROR `Option` is generic
    |         ^^^^^^
    = help: write `Option[...]`
 
 error[E217]: `Result` takes 2 type arguments, 1 given
   --> app/t/t.kg:23:9
    |
-23 | fn i(x: Result[Int]) -> Unit {} //~ ERROR `Result` takes 2 type arguments, 1 given
+23 | fn i(x: Result[Int]) {} //~ ERROR `Result` takes 2 type arguments, 1 given
    |         ^^^^^^^^^^
 
 error[E219]: `Int` takes no type arguments
   --> app/t/t.kg:25:9
    |
-25 | fn j(x: Int[Bool]) -> Unit {} //~ ERROR `Int` takes no type arguments
+25 | fn j(x: Int[Bool]) {} //~ ERROR `Int` takes no type arguments
    |         ^^^^^^^^
 
 error[E1016]: a returned borrow needs a lifetime

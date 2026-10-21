@@ -3,7 +3,7 @@ type P = {
     pub s String
 }
 
-fn run() -> Unit {
+fn run() {
     let a = Array.of(P {
         x: 1
         s: "a"

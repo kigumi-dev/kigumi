@@ -24,12 +24,12 @@ import coreutil from std/shell/coreutil
 import text from std/text
 
 extern(C) {
-    fn signal(sig: i32, handler: extern(C) fn(i32) -> Unit) -> usize
+    fn signal(sig: i32, handler: extern(C) fn(i32) -> Void) -> usize
     fn siginterrupt(sig: i32, flag: i32) -> i32
 }
 
 export(C) {
-    pub fn onAlarm(sig: i32) -> Unit {
+    pub fn onAlarm(sig: i32) {
     }
 }
 
@@ -58,12 +58,12 @@ print "matched=${n}"
 const shellEintrWriteSrc = `import shell from std/shell
 
 extern(C) {
-    fn signal(sig: i32, handler: extern(C) fn(i32) -> Unit) -> usize
+    fn signal(sig: i32, handler: extern(C) fn(i32) -> Void) -> usize
     fn siginterrupt(sig: i32, flag: i32) -> i32
 }
 
 export(C) {
-    pub fn onAlarm(sig: i32) -> Unit {
+    pub fn onAlarm(sig: i32) {
     }
 }
 

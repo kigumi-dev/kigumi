@@ -26,7 +26,7 @@ fn mkn(n: Int) -> Named {
     t
 }
 
-fn runs[F: FnMut[fn() -> Unit]](x: Named, mut f: F) -> Int {
+fn runs[F: FnMut[fn() -> Void]](x: Named, mut f: F) -> Int {
     f()
     x.n
 }
@@ -35,16 +35,16 @@ type Holder[F] = {
     pub mut f F
 }
 
-fn runsHeld[F: FnMut[fn() -> Unit]](x: Named, mut h: Holder[F]) -> Int {
+fn runsHeld[F: FnMut[fn() -> Void]](x: Named, mut h: Holder[F]) -> Int {
     h.f()
     x.n
 }
 
-fn viaShared[F: FnMut[fn() -> Unit]](w: &W, mut f: F) -> Int {
+fn viaShared[F: FnMut[fn() -> Void]](w: &W, mut f: F) -> Int {
     runs(w.nm, f)
 }
 
-fn viaMut[F: FnMut[fn() -> Unit]](w: &mut W, mut f: F) -> Int {
+fn viaMut[F: FnMut[fn() -> Void]](w: &mut W, mut f: F) -> Int {
     runs(w.nm, f)
 }
 
@@ -66,7 +66,7 @@ fn lent(w: &mut W) -> Int {
     viaRef(w.nm, w)
 }
 
-fn swap(w: &mut W) -> Unit {
+fn swap(w: &mut W) {
     let t = w.nm
     w.nm = w.other
     w.other = t
@@ -81,7 +81,7 @@ fn pass(n: Named) -> Named {
     n
 }
 
-fn captures() -> Unit {
+fn captures() {
     let mut w = mkw()
     let r = runs(w.nm, () => { w.nm.n = 9 })
     let mut v = mkw()
@@ -98,7 +98,7 @@ fn captures() -> Unit {
     print "captures ${r} ${w.nm.n} ${r2} ${v.nm.n} ${r3} ${u.nm.n} ${r4} ${z.nm.n} ${r5} ${r6} ${m.nm.n}"
 }
 
-fn nestedCaptures() -> Unit {
+fn nestedCaptures() {
     let mut a = mkw()
     let inner = () => { a.nm.n = 31 }
     let outer = () => { inner() }
@@ -113,7 +113,7 @@ fn nestedCaptures() -> Unit {
     print "nestedCaptures ${r} ${a.nm.n} ${r2 * 100 + b.nm.n} ${r3} ${c.nm.n}"
 }
 
-fn wrapped() -> Unit {
+fn wrapped() {
     let mut a = mkw()
     let r = viaShared(&a, () => { a.nm.n = 4 })
     let mut b = mkw()
@@ -121,7 +121,7 @@ fn wrapped() -> Unit {
     print "wrapped ${r} ${a.nm.n} ${r2} ${b.nm.n}"
 }
 
-fn handOver() -> Unit {
+fn handOver() {
     let mut w = mkw()
     swap(&mut w)
     w.nm.n = 50
@@ -138,7 +138,7 @@ fn handOver() -> Unit {
     print "handOver ${w.nm.name} ${w.nm.n} ${w.other.name} ${w.other.n} ${r.n} ${orig.n} ${c.n} ${e.n}"
 }
 
-fn lastUse() -> Unit {
+fn lastUse() {
     let w = mkw()
     let t = w.nm
     let mut pair = Two { a: t, b: w.nm }
@@ -152,7 +152,7 @@ fn lastUse() -> Unit {
     print "lastUse ${pair.a.n} ${pair.b.n} ${w.nm.n} ${arr[0].n} ${arr[1].n} ${pair2.a.n} ${pair2.b.n}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     captures()
     nestedCaptures()
     wrapped()

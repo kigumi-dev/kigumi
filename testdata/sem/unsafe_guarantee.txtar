@@ -1,5 +1,5 @@
 -- app/t/t.kg --
-fn ship[T: Send](x: T) -> Unit {}
+fn ship[T: Send](x: T) {}
 
 /// Safety: test fixture only; not a real guarantee.
 @unsafeGuarantee(Send, Send) //~ ERROR `Send` is already guaranteed by this `@unsafeGuarantee`
@@ -25,7 +25,7 @@ type OrdinaryRecord = {
 }
 
 @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
-fn stray() -> Unit {}
+fn stray() {}
 
 @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
 const K: Int = 1
@@ -43,7 +43,7 @@ interface MethodTarget {
 @unsafeGuarantee(Send) //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
 type Adt = Red | Blue
 
-fn paramTarget(@unsafeGuarantee(Send) x: Int) -> Unit {} //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+fn paramTarget(@unsafeGuarantee(Send) x: Int) {} //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
 
 /// Safety: test fixture only; not a real guarantee.
 @unsafeGuarantee(Send when U: Send) //~ ERROR `U` is not a type parameter of `BadParam`
@@ -76,16 +76,16 @@ type Cell[T] = resource {
 
 type CellAlias = Cell[Int]
 
-fn use(doc: Documented, cell: Cell[Int], nested: Cell[Cell[Int]], alias: CellAlias) -> Unit {
+fn use(doc: Documented, cell: Cell[Int], nested: Cell[Cell[Int]], alias: CellAlias) {
     ship(doc)
     ship(cell)
     ship(nested)
     ship(alias)
 }
 
-fn share[T: Sync](x: &T) -> Unit {}
+fn share[T: Sync](x: &T) {}
 
-fn useSync(cell: Cell[Int], notSync: Cell[*const u8]) -> Unit {
+fn useSync(cell: Cell[Int], notSync: Cell[*const u8]) {
     share(&cell)
     share(&notSync) //~ ERROR `Cell[*const u8]` does not satisfy `Sync`: it cannot be shared between threads
 }
@@ -155,7 +155,7 @@ error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type`
 error[E1072]: `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
   --> app/t/t.kg:45:16
    |
-45 | fn paramTarget(@unsafeGuarantee(Send) x: Int) -> Unit {} //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
+45 | fn paramTarget(@unsafeGuarantee(Send) x: Int) {} //~ ERROR `@unsafeGuarantee` only applies to a `resource` or bodiless `type` declaration
    |                ^^^^^^^^^^^^^^^^^^^^^
 
 error[E1075]: `U` is not a type parameter of `BadParam`

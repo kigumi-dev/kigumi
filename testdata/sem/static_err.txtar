@@ -3,11 +3,11 @@ static noInit: u32 //~ ERROR `noInit` needs a compile-time initializer
 
 static immutable: u32 = 1
 
-fn badAssign() -> Unit {
+fn badAssign() {
     immutable = 2 //~ ERROR `immutable` is an immutable static
 }
 
-fn badBorrowMut() -> Unit {
+fn badBorrowMut() {
     let p = &mut immutable //~ ERROR `&mut immutable` cannot be taken of a static place
     _ = p
 }
@@ -18,11 +18,11 @@ fn readNoUnsafe() -> u32 {
     ticks //~ ERROR accessing `static mut ticks` requires an `unsafe { }` block
 }
 
-fn writeNoUnsafe() -> Unit {
+fn writeNoUnsafe() {
     ticks = 1 //~ ERROR accessing `static mut ticks` requires an `unsafe { }` block
 }
 
-fn borrowMutStatic() -> Unit {
+fn borrowMutStatic() {
     unsafe {
         let a = &ticks //~ ERROR an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut`, even inside `unsafe`
         let b = &mut ticks //~ ERROR an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut`, even inside `unsafe`
@@ -31,7 +31,7 @@ fn borrowMutStatic() -> Unit {
     }
 }
 
-fn useStaticLifetime(x: &'static u32) -> Unit { //~ ERROR program-lifetime references are not supported in v1
+fn useStaticLifetime(x: &'static u32) { //~ ERROR program-lifetime references are not supported in v1
     _ = x
 }
 
@@ -113,7 +113,7 @@ error[E1197]: an ordinary `&ticks`/`&mut ticks` cannot be taken of a `static mut
 error[E1199]: program-lifetime references are not supported in v1
   --> app/t/t.kg:33:26
    |
-33 | fn useStaticLifetime(x: &'static u32) -> Unit { //~ ERROR program-lifetime references are not supported in v1
+33 | fn useStaticLifetime(x: &'static u32) { //~ ERROR program-lifetime references are not supported in v1
    |                          ^^^^^^^^^^^
    = help: use the static directly, pass a call-scoped borrow, or an unsafe raw pointer with an explicit contract
 

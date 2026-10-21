@@ -3,7 +3,7 @@ import ffi from std/ffi
 extern(C) {
     fn getaddrinfo(host: *const u8, port: *const u8, hints: *const AddrInfo, out: *mut PtrBox) -> i32
     fn gai_strerror(code: i32) -> *const u8
-    fn freeaddrinfo(res: *const u8) -> Unit
+    fn freeaddrinfo(res: *const u8)
     fn socket(family: i32, socktype: i32, protocol: i32) -> i32
     fn connect(fd: i32, addr: *const u8, len: u32) -> i32
     fn bind(fd: i32, addr: *const u8, len: u32) -> i32
@@ -19,7 +19,7 @@ extern(C) {
     fn poll(fds: *mut u8, n: usize, timeout: i32) -> i32
     fn fcntl(fd: i32, cmd: i32, ...) -> i32
     fn malloc(n: usize) -> *mut u8
-    fn free(p: *mut u8) -> Unit
+    fn free(p: *mut u8)
     fn ntohs(v: u16) -> u16
 }
 
@@ -78,7 +78,7 @@ fn pollFdPtr(buf: *mut u8) -> *mut Pollfd {
 // connect() (Net.connect makes no timeout promise, so it passes 0). Every
 // failure path reports the errno connect() (or SO_ERROR) actually left
 // behind, and poll's EINTR is retried rather than surfaced as a failure.
-fn connectSocket(s: i32, addr: *const u8, addrlen: u32, timeoutSeconds: i32) -> Unit! {
+fn connectSocket(s: i32, addr: *const u8, addrlen: u32, timeoutSeconds: i32) -> Void! {
     if timeoutSeconds <= 0 {
         if unsafe {
             connect(s, addr, addrlen)
@@ -217,7 +217,7 @@ fn connectTo(host: String, port: String, timeoutSeconds: i32) -> i32! {
     fd
 }
 
-fn sendAll(fd: i32, data: Bytes) -> Unit! {
+fn sendAll(fd: i32, data: Bytes) -> Void! {
     let n = data.len()
     let mut off: usize = 0
     for off < n {
@@ -274,7 +274,7 @@ fn readLine(fd: i32) -> String! {
 // but never answers cannot hang the caller forever; the connect() phase
 // is bounded separately, by connectSocket's poll(2) (SO_SNDTIMEO set
 // before connect() is not a portable connect timeout on its own).
-fn setTimeout(fd: i32, seconds: i32) -> Unit {
+fn setTimeout(fd: i32, seconds: i32) {
     let raw = timeoutValue(seconds)
     let len = ffi.sizeOf(&raw).toU32() || 0
     let boxed = ffi.CValue.new(raw)
@@ -635,7 +635,7 @@ pub fn Conn.write(mut self, data: Bytes) -> usize! {
 }
 
 /// Nothing to flush for a socket; the drop closes it, as File.close's does.
-pub fn Conn.close(move self) -> Unit! {}
+pub fn Conn.close(move self) -> Void! {}
 
 /// Closes the connection when it goes out of scope, ignoring errors.
 ///
@@ -643,8 +643,8 @@ pub fn Conn.close(move self) -> Unit! {}
 /// on an implicit drop even when an accelerator exists for it, so a body
 /// here would hit the unsupported extern(C) close on the first Conn ever
 /// dropped without an explicit close().
-pub fn Conn.drop(move self) -> Unit
+pub fn Conn.drop(move self)
 
 /// Closes the listening socket when it goes out of scope, ignoring errors;
 /// see Conn.drop for why this is bodiless.
-pub fn Listener.drop(move self) -> Unit
+pub fn Listener.drop(move self)

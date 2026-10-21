@@ -24,15 +24,15 @@ func TestAotCValueScalar(t *testing.T) {
 
 extern(C) {
     fn get_i64(p: *const i64) -> i64
-    fn set_i64(p: *mut i64, v: i64) -> Unit
+    fn set_i64(p: *mut i64, v: i64)
     fn get_u32(p: *const u32) -> u32
-    fn set_u32(p: *mut u32, v: u32) -> Unit
+    fn set_u32(p: *mut u32, v: u32)
     fn get_u8(p: *const u8) -> u8
-    fn set_u8(p: *mut u8, v: u8) -> Unit
+    fn set_u8(p: *mut u8, v: u8)
     fn get_f64(p: *const f64) -> f64
-    fn set_f64(p: *mut f64, v: f64) -> Unit
+    fn set_f64(p: *mut f64, v: f64)
     fn get_bool_byte(p: *const Bool) -> u8
-    fn set_bool_byte(p: *mut Bool, v: u8) -> Unit
+    fn set_bool_byte(p: *mut Bool, v: u8)
 }
 
 let iv = ffi.CValue.new[i64](7)

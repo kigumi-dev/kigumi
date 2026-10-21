@@ -6,7 +6,7 @@ type Counter = {
     mut count Int
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut items = Array.of(Counter { count: 1 }, Counter { count: 2 }, Counter { count: 3 })
     for it in &mut items {
         it.count = it.count + 10

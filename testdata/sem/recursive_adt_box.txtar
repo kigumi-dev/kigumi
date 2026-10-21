@@ -30,5 +30,5 @@ type Direct = Node2(kid: Box[Direct2])
 
 type Direct2 = Leaf2 | Hold(inner: Direct)
 
-fn use(n: Node, l: List, k: Link, t: Tree, m: Mutual, g: Generic[Int], s: Tuple, d: Direct) -> Unit {}
+fn use(n: Node, l: List, k: Link, t: Tree, m: Mutual, g: Generic[Int], s: Tuple, d: Direct) {}
 -- expect --

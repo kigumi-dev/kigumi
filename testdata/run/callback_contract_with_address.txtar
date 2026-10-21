@@ -7,7 +7,7 @@ type Res = resource {
     pub n i32
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop res ${self.n}"
 }
 

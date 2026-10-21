@@ -91,6 +91,13 @@ const (
 // truncates it away.
 const ModPureVar uint32 = 1 << 8
 
+// ModBareErr marks a `!` right after a fn's parameter list, the same as `-> Void!`;
+// ModStrayBang marks a `!` separated from an explicit return type, which sem rejects.
+const (
+	ModBareErr   uint32 = 1 << 9
+	ModStrayBang uint32 = 1 << 10
+)
+
 // Flag bits stored in "#flags" slots.
 const (
 	FlagMut uint32 = 1 << iota

@@ -1,6 +1,6 @@
 import text from std/text
 
-fn run() -> Unit {
+fn run() {
     let s = "a\nb\nc\n"
     eprint "go"
     let r1 = text.tryLines(s)

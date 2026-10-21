@@ -1,12 +1,12 @@
 -- src --
 type Box = { mut v Int, mut w Int }
 
-fn Box.touch(mut self, y: &mut Int) -> Unit {
+fn Box.touch(mut self, y: &mut Int) {
     self.v = self.v + 1
     y = y + 100
 }
 
-fn fieldArg() -> Unit {
+fn fieldArg() {
     let mut b = Box { v: 1, w: 2 }
     b.touch(&mut b.v) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
 }
@@ -14,24 +14,24 @@ fn fieldArg() -> Unit {
 type Inner = { mut x Int }
 type Box2 = { mut v Int, mut inner Inner }
 
-fn Box2.touch(mut self, y: &mut Int) -> Unit {
+fn Box2.touch(mut self, y: &mut Int) {
     self.v = self.v + 1
     y = y + 100
 }
 
-fn nestedFieldArg() -> Unit {
+fn nestedFieldArg() {
     let mut b = Box2 { v: 1, inner: Inner { x: 9 } }
     b.touch(&mut b.inner.x) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
 }
 
 type Box3 = { mut arr Array[Int] }
 
-fn Box3.touch(mut self, y: &mut Int) -> Unit {
+fn Box3.touch(mut self, y: &mut Int) {
     self.arr[0] = self.arr[0] + 1
     y = y + 100
 }
 
-fn indexedElementArg() -> Unit {
+fn indexedElementArg() {
     let mut b = Box3 { arr: Array.of(1, 2, 3) }
     b.touch(&mut b.arr[0]) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
 }
@@ -39,44 +39,44 @@ fn indexedElementArg() -> Unit {
 type Row = { mut cells Array[Int] }
 type Box4 = { mut row Row }
 
-fn Box4.touch(mut self, y: &mut Int) -> Unit {
+fn Box4.touch(mut self, y: &mut Int) {
     self.row.cells[0] = self.row.cells[0] + 1
     y = y + 100
 }
 
-fn elementBehindFieldArg() -> Unit {
+fn elementBehindFieldArg() {
     let mut b = Box4 { row: Row { cells: Array.of(1, 2, 3) } }
     b.touch(&mut b.row.cells[0]) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
 }
 
-fn receiverLocalAlias(w: &mut Box) -> Unit {
+fn receiverLocalAlias(w: &mut Box) {
     w.touch(&mut w.v) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
 }
 
 type Reader = { v Int, mut w Int }
 
-fn Reader.peek(self, y: &mut Int) -> Unit {
+fn Reader.peek(self, y: &mut Int) {
     y = y + self.v
 }
 
-fn sharedSelfFieldArg() -> Unit {
+fn sharedSelfFieldArg() {
     let mut r = Reader { v: 1, w: 2 }
     r.peek(&mut r.w) //~ ERROR this `&mut` argument may target storage this call's receiver already borrows
 }
 
-fn disjointLocalOk() -> Unit {
+fn disjointLocalOk() {
     let mut b = Box { v: 1, w: 2 }
     let mut y = 7
     b.touch(&mut y)
 }
 
-fn differentObjectOk() -> Unit {
+fn differentObjectOk() {
     let mut b = Box { v: 1, w: 2 }
     let mut c = Box { v: 10, w: 20 }
     b.touch(&mut c.v)
 }
 
-fn sharedSelfDisjointOk() -> Unit {
+fn sharedSelfDisjointOk() {
     let mut r = Reader { v: 1, w: 2 }
     let mut y = 7
     r.peek(&mut y)

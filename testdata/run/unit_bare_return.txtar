@@ -1,5 +1,5 @@
 -- src --
-fn bareReturn() -> Unit! {
+fn bareReturn() -> Void! {
     return
 }
 bareReturn()?
@@ -11,14 +11,14 @@ fn Boom.message(self) -> String {
     "boom"
 }
 
-fn mixedFail(flag: Bool) -> Unit! {
+fn mixedFail(flag: Bool) -> Void! {
     if flag {
         return
     }
     fail Boom { }
 }
 
-fn loopReturn() -> Unit! {
+fn loopReturn() -> Void! {
     for i in 0..3 {
         if i == 1 {
             return
@@ -27,7 +27,7 @@ fn loopReturn() -> Unit! {
     fail Boom { }
 }
 
-fn nestedIfReturn() -> Unit! {
+fn nestedIfReturn() -> Void! {
     if true {
         {
             return
@@ -36,7 +36,7 @@ fn nestedIfReturn() -> Unit! {
     fail Boom { }
 }
 
-fn caller() -> Unit! {
+fn caller() -> Void! {
     mixedFail(true)?
     loopReturn()?
     nestedIfReturn()?

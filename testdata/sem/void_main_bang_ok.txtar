@@ -1,0 +1,4 @@
+-- main/main.kg --
+fn main() ! {
+}
+-- expect --

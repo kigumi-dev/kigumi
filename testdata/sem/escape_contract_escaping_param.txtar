@@ -1,56 +1,56 @@
 -- lib/esc.kg --
 pub type Handler[F] = { pub callback F }
 
-fn runNow[F: Fn[fn() -> Unit]](callback: F) -> Unit {
+fn runNow[F: Fn[fn() -> Void]](callback: F) {
     callback()
 }
 
-fn keep[F: Fn[fn() -> Unit]](callback: escaping F) -> Handler[F] {
+fn keep[F: Fn[fn() -> Void]](callback: escaping F) -> Handler[F] {
     Handler { callback: callback }
 }
 
-fn giveBack[F: Fn[fn() -> Unit]](callback: escaping F) -> F {
+fn giveBack[F: Fn[fn() -> Void]](callback: escaping F) -> F {
     callback
 }
 
-fn wrap[F: Fn[fn() -> Unit] + Copy](callback: escaping F) -> fn() -> Unit {
+fn wrap[F: Fn[fn() -> Void] + Copy](callback: escaping F) -> fn() -> Void {
     () => callback()
 }
 
-fn stash(cb: escaping fn() -> Unit) -> Handler[fn() -> Unit] {
+fn stash(cb: escaping fn() -> Void) -> Handler[fn() -> Void] {
     Handler { callback: cb }
 }
 
-fn wrapAndStash[F: Fn[fn() -> Unit] + Copy](callback: escaping F) -> Handler[fn() -> Unit] {
+fn wrapAndStash[F: Fn[fn() -> Void] + Copy](callback: escaping F) -> Handler[fn() -> Void] {
     stash(() => callback())
 }
 
-type Callback = alias fn() -> Unit
+type Callback = alias fn() -> Void
 
-fn keepAlias(callback: escaping Callback) -> fn() -> Unit {
+fn keepAlias(callback: escaping Callback) -> fn() -> Void {
     callback
 }
 
-fn forward[F: Fn[fn() -> Unit]](callback: escaping F) -> Handler[F] {
+fn forward[F: Fn[fn() -> Void]](callback: escaping F) -> Handler[F] {
     keep(callback)
 }
 
-fn viaRegister[F: Fn[fn() -> Unit]](register: fn(escaping F) -> Unit, callback: escaping F) -> Unit {
+fn viaRegister[F: Fn[fn() -> Void]](register: fn(escaping F) -> Void, callback: escaping F) {
     register(callback)
 }
 
-fn useAll(cb: fn() -> Unit) -> Unit {
+fn useAll(cb: fn() -> Void) {
     runNow(cb)
     let h = keep(() => {})
     h.callback()
 }
 
-pub interface Registry[F: Fn[fn() -> Unit]] {
+pub interface Registry[F: Fn[fn() -> Void]] {
     fn add(self, callback: escaping F) -> Handler[F]
 }
 
 @impl(Registry[F])
-pub type Slots[F: Fn[fn() -> Unit]] = {
+pub type Slots[F: Fn[fn() -> Void]] = {
     pub n Int
 }
 
@@ -58,32 +58,32 @@ pub fn Slots[F].add(self, callback: escaping F) -> Handler[F] {
     Handler { callback: callback }
 }
 
-fn register[F: Fn[fn() -> Unit], R: Registry[F]](r: R, callback: escaping F) -> Handler[F] {
+fn register[F: Fn[fn() -> Void], R: Registry[F]](r: R, callback: escaping F) -> Handler[F] {
     r.add(callback)
 }
-pub interface Observer[F: Fn[fn() -> Unit]] {
-    fn watch(self, callback: escaping F) -> Unit
+pub interface Observer[F: Fn[fn() -> Void]] {
+    fn watch(self, callback: escaping F)
 }
 
 // An implementation may be more conservative than its requirement.
 @impl(Observer[F])
-pub type Quiet[F: Fn[fn() -> Unit]] = {
+pub type Quiet[F: Fn[fn() -> Void]] = {
     pub n Int
 }
 
-pub fn Quiet[F].watch(self, callback: F) -> Unit {
+pub fn Quiet[F].watch(self, callback: F) {
     runNow(() => {})
 }
-pub fn pinned() -> fn(escaping fn() -> Unit) -> Handler[fn() -> Unit] {
+pub fn pinned() -> fn(escaping fn() -> Void) -> Handler[fn() -> Void] {
     keep
 }
 
-pub fn annotated() -> Handler[fn() -> Unit] {
-    let k: fn(escaping fn() -> Unit) -> Handler[fn() -> Unit] = keep
+pub fn annotated() -> Handler[fn() -> Void] {
+    let k: fn(escaping fn() -> Void) -> Handler[fn() -> Void] = keep
     k(() => {})
 }
 
-pub fn forwarded(callback: escaping fn() -> Unit) -> Handler[fn() -> Unit] {
+pub fn forwarded(callback: escaping fn() -> Void) -> Handler[fn() -> Void] {
     keep(callback)
 }
 -- expect --

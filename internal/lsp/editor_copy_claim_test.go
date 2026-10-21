@@ -13,7 +13,7 @@ import (
 func TestEditorReportsACopyOnlyThePlanFinds(t *testing.T) {
 	root := t.TempDir()
 	os.MkdirAll(filepath.Join(root, "main"), 0o755)
-	src := "noalloc fn sameStart(a: Bytes, b: Bytes) -> Bool {\n    a.startsWith(b)\n}\n\nfn main() -> Unit! {\n    print \"${sameStart(\"abc\".toBytes(), \"ab\".toBytes())}\"\n}\n"
+	src := "noalloc fn sameStart(a: Bytes, b: Bytes) -> Bool {\n    a.startsWith(b)\n}\n\nfn main() -> Void! {\n    print \"${sameStart(\"abc\".toBytes(), \"ab\".toBytes())}\"\n}\n"
 	path := filepath.Join(root, "main", "main.kg")
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")

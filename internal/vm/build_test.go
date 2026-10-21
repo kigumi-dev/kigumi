@@ -37,7 +37,7 @@ func evalBuild(t *testing.T, src string, flags []string) (*buildgraph.Graph, err
 func TestEvalBuild(t *testing.T) {
 	src := `import build from std/build
 
-fn configure(b: build.Builder) -> Unit! {
+fn configure(b: build.Builder) -> Void! {
     let sdk = b.framework("acme/sdk", "1.0")
     let key = b.secret("KEY")
     let cfg = b.write("cfg.txt", "hello")?
@@ -78,15 +78,15 @@ fn configure(b: build.Builder) -> Unit! {
 // TestEvalBuildRefusals: configure fails on a path outside the sandbox and
 // on host effects.
 func TestEvalBuildRefusals(t *testing.T) {
-	_, err := evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n    let f = b.file(\"../escape.c\")?\n    let app = b.executable(\"app\", \"cmd\", b.request().target())?\n    app.addSource(f)\n}\n", nil)
+	_, err := evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let f = b.file(\"../escape.c\")?\n    let app = b.executable(\"app\", \"cmd\", b.request().target())?\n    app.addSource(f)\n}\n", nil)
 	if err == nil || !strings.Contains(err.Error(), "outside") {
 		t.Fatalf("expected a sandbox refusal, got %v", err)
 	}
-	_, err = evalBuild(t, "import build from std/build\nimport time from std/time\n\nfn configure(b: build.Builder) -> Unit! {\n    let n = time.now()\n    let app = b.executable(\"app\", \"cmd\", b.request().target())?\n}\n", nil)
+	_, err = evalBuild(t, "import build from std/build\nimport time from std/time\n\nfn configure(b: build.Builder) -> Void! {\n    let n = time.now()\n    let app = b.executable(\"app\", \"cmd\", b.request().target())?\n}\n", nil)
 	if err == nil || !strings.Contains(err.Error(), "not available at compile time") {
 		t.Fatalf("expected the host-effect refusal, got %v", err)
 	}
-	_, err = evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n    let a = b.executable(\"app\", \"cmd\", b.request().target())?\n    let d = b.executable(\"app\", \"other\", b.request().target())?\n}\n", nil)
+	_, err = evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\"app\", \"cmd\", b.request().target())?\n    let d = b.executable(\"app\", \"other\", b.request().target())?\n}\n", nil)
 	if err == nil || !strings.Contains(err.Error(), "declared twice") {
 		t.Fatalf("expected the duplicate-artifact error, got %v", err)
 	}
@@ -99,15 +99,15 @@ func TestEvalBuildRefusals(t *testing.T) {
 // its parent once joined, so declaration must reject it up front.
 func TestEvalBuildOutputNameRefusals(t *testing.T) {
 	for _, name := range []string{".", ".."} {
-		_, err := evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n    let f = b.write(\""+name+"\", \"x\")?\n}\n", nil)
+		_, err := evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let f = b.write(\""+name+"\", \"x\")?\n}\n", nil)
 		if err == nil || !strings.Contains(err.Error(), "bare file name") {
 			t.Errorf("write(%q): expected a bare-name refusal, got %v", name, err)
 		}
-		_, err = evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n    let a = b.executable(\""+name+"\", \"cmd\", b.request().target())?\n}\n", nil)
+		_, err = evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\""+name+"\", \"cmd\", b.request().target())?\n}\n", nil)
 		if err == nil || !strings.Contains(err.Error(), "bare name") {
 			t.Errorf("executable(%q): expected a bare-name refusal, got %v", name, err)
 		}
-		_, err = evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n    let fw = b.framework(\"acme/sdk\", \"1.0\")\n    let o = b.runToolOutput(fw, \"gen\", Array.of(\"$out:0\"), Array.empty[build.FilePath](), \""+name+"\", Array.empty[build.Secret]())?\n}\n", nil)
+		_, err = evalBuild(t, "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let fw = b.framework(\"acme/sdk\", \"1.0\")\n    let o = b.runToolOutput(fw, \"gen\", Array.of(\"$out:0\"), Array.empty[build.FilePath](), \""+name+"\", Array.empty[build.Secret]())?\n}\n", nil)
 		if err == nil || !strings.Contains(err.Error(), "bare file name") {
 			t.Errorf("runToolOutput(%q): expected a bare-name refusal, got %v", name, err)
 		}

@@ -1,85 +1,85 @@
 -- lib/esc.kg --
 pub type Handler[F] = { pub callback F }
 
-fn keep[F: Fn[fn() -> Unit]](callback: escaping F) -> Handler[F] {
+fn keep[F: Fn[fn() -> Void]](callback: escaping F) -> Handler[F] {
     Handler { callback: callback }
 }
 
-fn storePlain[F: Fn[fn() -> Unit]](callback: F) -> Handler[F] {
+fn storePlain[F: Fn[fn() -> Void]](callback: F) -> Handler[F] {
     Handler { callback: callback } //~ ERROR cannot be stored
 }
 
-fn returnPlain[F: Fn[fn() -> Unit]](callback: F) -> F {
+fn returnPlain[F: Fn[fn() -> Void]](callback: F) -> F {
     callback //~ ERROR cannot be returned
 }
 
-fn capturePlain[F: Fn[fn() -> Unit] + Copy](callback: F) -> fn() -> Unit {
+fn capturePlain[F: Fn[fn() -> Void] + Copy](callback: F) -> fn() -> Void {
     () => callback() //~ ERROR cannot be captured
 }
 
-fn forwardPlain[F: Fn[fn() -> Unit]](callback: F) -> Handler[F] {
+fn forwardPlain[F: Fn[fn() -> Void]](callback: F) -> Handler[F] {
     keep(callback) //~ ERROR cannot be passed to `keep`
 }
 
-fn viaRegister[F: Fn[fn() -> Unit]](register: fn(escaping F) -> Unit, callback: F) -> Unit {
+fn viaRegister[F: Fn[fn() -> Void]](register: fn(escaping F) -> Void, callback: F) {
     register(callback) //~ ERROR cannot be passed to `this function`
 }
 
-fn narrowRegister[F: Fn[fn() -> Unit]](register: escaping fn(escaping F) -> Unit) -> fn(F) -> Unit {
+fn narrowRegister[F: Fn[fn() -> Void]](register: escaping fn(escaping F) -> Void) -> fn(F) -> Void {
     register //~ ERROR may keep its callback
 }
 
-fn unbounded[T](value: escaping T) -> Unit {} //~ ERROR is not bounded by
+fn unbounded[T](value: escaping T) {} //~ ERROR is not bounded by
 
-fn notCallable(value: escaping Int) -> Unit {} //~ ERROR not `Int`
+fn notCallable(value: escaping Int) {} //~ ERROR not `Int`
 
-fn optionOfF[F: Fn[fn() -> Unit]](value: escaping Option[F]) -> Unit {} //~ ERROR not `F?`
+fn optionOfF[F: Fn[fn() -> Void]](value: escaping Option[F]) {} //~ ERROR not `F?`
 
-type Wrapped = fn() -> Unit
+type Wrapped = fn() -> Void
 
-fn notAlias(callback: escaping Wrapped) -> Unit {} //~ ERROR not `Wrapped`
+fn notAlias(callback: escaping Wrapped) {} //~ ERROR not `Wrapped`
 
-fn badFnType[T](register: fn(escaping T) -> Unit) -> Unit {} //~ ERROR is not bounded by
+fn badFnType[T](register: fn(escaping T) -> Void) {} //~ ERROR is not bounded by
 
-pub interface Registry[F: Fn[fn() -> Unit]] {
-    fn add(self, callback: F) -> Unit
+pub interface Registry[F: Fn[fn() -> Void]] {
+    fn add(self, callback: F)
 }
 
 @impl(Registry[F]) //~ ERROR `Slots` does not implement `Registry[F]`
-pub type Slots[F: Fn[fn() -> Unit]] = {
+pub type Slots[F: Fn[fn() -> Void]] = {
     pub n Int
 }
 
-pub fn Slots[F].add(self, callback: escaping F) -> Unit {}
+pub fn Slots[F].add(self, callback: escaping F) {}
 pub type Slot[F] = { pub mut cb F }
 
-fn setG[F: Fn[fn() -> Unit]](s: &mut Slot[F], cb: escaping F) -> Unit {
+fn setG[F: Fn[fn() -> Void]](s: &mut Slot[F], cb: escaping F) {
     s.cb = cb
 }
 
-fn viaItem[F: Fn[fn() -> Unit]](cb: F, s: &mut Slot[F]) -> Unit {
-    let k: fn(&mut Slot[F], F) -> Unit = setG //~ ERROR may keep its callback
+fn viaItem[F: Fn[fn() -> Void]](cb: F, s: &mut Slot[F]) {
+    let k: fn(&mut Slot[F], F) -> Void = setG //~ ERROR may keep its callback
     k(s, cb)
 }
 
-fn needPlainF[F: Fn[fn() -> Unit]](reg: fn(F) -> Unit, f: F) -> Unit {
+fn needPlainF[F: Fn[fn() -> Void]](reg: fn(F) -> Void, f: F) {
     reg(f)
 }
 
-fn eager[G: Fn[fn() -> Unit]](cb: escaping G) -> Unit {}
+fn eager[G: Fn[fn() -> Void]](cb: escaping G) {}
 
-fn viaArg[F: Fn[fn() -> Unit]](f: F) -> Unit {
+fn viaArg[F: Fn[fn() -> Void]](f: F) {
     needPlainF(eager, f) //~ ERROR may keep its callback
 }
 
 pub type Reg = { pub n Int }
 
-pub fn Reg.add[F: Fn[fn() -> Unit]](self, cb: escaping F) -> Handler[F] {
+pub fn Reg.add[F: Fn[fn() -> Void]](self, cb: escaping F) -> Handler[F] {
     Handler { callback: cb }
 }
 
-fn viaMethod(r: Reg) -> Unit {
-    let k: fn(fn() -> Unit) -> Handler[fn() -> Unit] = r.add //~ ERROR may keep its callback
+fn viaMethod(r: Reg) {
+    let k: fn(fn() -> Void) -> Handler[fn() -> Void] = r.add //~ ERROR may keep its callback
 }
 -- expect --
 error[E1031]: `callback` is a non-escaping callback and cannot be stored
@@ -117,7 +117,7 @@ error[E1033]: `callback` is a non-escaping callback and cannot be passed to `thi
    |              ^^^^^^^^
    = help: declare the parameter `escaping F`
 
-error[E1034]: `escaping fn(escaping F) -> Unit` may keep its callback at parameter 1, but `fn(F) -> Unit` declares it non-escaping
+error[E1034]: `escaping fn(escaping F) -> Void` may keep its callback at parameter 1, but `fn(F) -> Void` declares it non-escaping
   --> lib/esc.kg:28:5
    |
 28 |     register //~ ERROR may keep its callback
@@ -127,35 +127,35 @@ error[E1034]: `escaping fn(escaping F) -> Unit` may keep its callback at paramet
 error[E2167]: `escaping` on type parameter `T`, which is not bounded by `Fn`, `FnMut` or `FnOnce`
   --> lib/esc.kg:31:17
    |
-31 | fn unbounded[T](value: escaping T) -> Unit {} //~ ERROR is not bounded by
+31 | fn unbounded[T](value: escaping T) {} //~ ERROR is not bounded by
    |                 ^^^^^^^^^^^^^^^^^
    = help: add the bound or remove `escaping`
 
 error[E2166]: `escaping` applies to a fn type or a type parameter bounded by `Fn`, `FnMut` or `FnOnce`, not `Int`
   --> lib/esc.kg:33:16
    |
-33 | fn notCallable(value: escaping Int) -> Unit {} //~ ERROR not `Int`
+33 | fn notCallable(value: escaping Int) {} //~ ERROR not `Int`
    |                ^^^^^^^^^^^^^^^^^^^
    = help: remove `escaping`
 
 error[E2166]: `escaping` applies to a fn type or a type parameter bounded by `Fn`, `FnMut` or `FnOnce`, not `F?`
   --> lib/esc.kg:35:35
    |
-35 | fn optionOfF[F: Fn[fn() -> Unit]](value: escaping Option[F]) -> Unit {} //~ ERROR not `F?`
+35 | fn optionOfF[F: Fn[fn() -> Void]](value: escaping Option[F]) {} //~ ERROR not `F?`
    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^
    = help: remove `escaping`
 
 error[E2166]: `escaping` applies to a fn type or a type parameter bounded by `Fn`, `FnMut` or `FnOnce`, not `Wrapped`
   --> lib/esc.kg:39:13
    |
-39 | fn notAlias(callback: escaping Wrapped) -> Unit {} //~ ERROR not `Wrapped`
+39 | fn notAlias(callback: escaping Wrapped) {} //~ ERROR not `Wrapped`
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: remove `escaping`
 
 error[E2167]: `escaping` on type parameter `T`, which is not bounded by `Fn`, `FnMut` or `FnOnce`
   --> lib/esc.kg:41:39
    |
-41 | fn badFnType[T](register: fn(escaping T) -> Unit) -> Unit {} //~ ERROR is not bounded by
+41 | fn badFnType[T](register: fn(escaping T) -> Void) {} //~ ERROR is not bounded by
    |                                       ^
    = help: add the bound or remove `escaping`
 
@@ -165,24 +165,24 @@ error[E305]: `Slots` does not implement `Registry[F]` for every `F`: `add` may k
 47 | @impl(Registry[F]) //~ ERROR `Slots` does not implement `Registry[F]`
    |       ^^^^^^^^^^
 
-error[E1034]: `fn(&mut Slot[F], escaping F) -> Unit` may keep its callback at parameter 2, but `fn(&mut Slot[F], F) -> Unit` declares it non-escaping
+error[E1034]: `fn(&mut Slot[F], escaping F) -> Void` may keep its callback at parameter 2, but `fn(&mut Slot[F], F) -> Void` declares it non-escaping
   --> lib/esc.kg:60:42
    |
-60 |     let k: fn(&mut Slot[F], F) -> Unit = setG //~ ERROR may keep its callback
+60 |     let k: fn(&mut Slot[F], F) -> Void = setG //~ ERROR may keep its callback
    |                                          ^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 
-error[E1034]: `fn(escaping F) -> Unit` may keep its callback at parameter 1, but `fn(F) -> Unit` declares it non-escaping
+error[E1034]: `fn(escaping F) -> Void` may keep its callback at parameter 1, but `fn(F) -> Void` declares it non-escaping
   --> lib/esc.kg:71:16
    |
 71 |     needPlainF(eager, f) //~ ERROR may keep its callback
    |                ^^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 
-error[E1034]: `fn(escaping fn() -> Unit) -> Handler[fn() -> Unit]` may keep its callback at parameter 1, but `fn(fn() -> Unit) -> Handler[fn() -> Unit]` declares it non-escaping
+error[E1034]: `fn(escaping fn() -> Void) -> Handler[fn() -> Void]` may keep its callback at parameter 1, but `fn(fn() -> Void) -> Handler[fn() -> Void]` declares it non-escaping
   --> lib/esc.kg:81:56
    |
-81 |     let k: fn(fn() -> Unit) -> Handler[fn() -> Unit] = r.add //~ ERROR may keep its callback
+81 |     let k: fn(fn() -> Void) -> Handler[fn() -> Void] = r.add //~ ERROR may keep its callback
    |                                                        ^^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 

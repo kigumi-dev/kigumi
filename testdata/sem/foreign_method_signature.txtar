@@ -22,7 +22,7 @@ pub fn Bag.size(self) -> String { //~ ERROR member functions of `Bag` must be de
     "n/a"
 }
 
-fn useIt() -> Unit {
+fn useIt() {
     let b = Box { v: 1 }
     _ = b.size()
 }

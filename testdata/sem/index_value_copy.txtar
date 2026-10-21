@@ -7,10 +7,10 @@ type Holder = {
     pub r Res
 }
 
-fn Res.drop(move self) -> Unit {}
-fn Res.touch(self) -> Unit {}
-fn Res.touchMut(mut self) -> Unit {}
-fn Res.consume(move self) -> Unit {}
+fn Res.drop(move self) {}
+fn Res.touch(self) {}
+fn Res.touchMut(mut self) {}
+fn Res.consume(move self) {}
 
 type Keyed = {
     mut slots Array[Res]
@@ -20,49 +20,49 @@ fn Keyed.index(mut self, k: usize) -> Res {
     self.slots.takeAt(0).unwrap()
 }
 
-fn byValue(xs: Array[Res]) -> Unit {
+fn byValue(xs: Array[Res]) {
     let y = xs[0] //~ ERROR reading `Res` out of an index by value needs `Copy`
 }
 
-fn byValueField(ys: Array[Holder]) -> Unit {
+fn byValueField(ys: Array[Holder]) {
     let z = ys[0].r //~ ERROR reading `Res` out of an index by value needs `Copy`
 }
 
-fn byValueChained(xs: Array[Array[Res]]) -> Unit {
+fn byValueChained(xs: Array[Array[Res]]) {
     let z = xs[0][0] //~ ERROR reading `Res` out of an index by value needs `Copy`
 }
 
-fn viaWitness(k: Keyed) -> Unit {
+fn viaWitness(k: Keyed) {
     let z = k[0] //~ ERROR reading `Res` out of an index by value needs `Copy`
 }
 
-fn borrowed(xs: &Array[Res]) -> Unit {
+fn borrowed(xs: &Array[Res]) {
     let r = &xs[0]
     r.touch()
 }
 
-fn borrowedMut(mut xs: Array[Res]) -> Unit {
+fn borrowedMut(mut xs: Array[Res]) {
     let r = &mut xs[0]
     r.touch()
 }
 
-fn methodCall(xs: Array[Res]) -> Unit {
+fn methodCall(xs: Array[Res]) {
     xs[0].touch()
 }
 
-fn methodCallMut(mut xs: Array[Res]) -> Unit {
+fn methodCallMut(mut xs: Array[Res]) {
     xs[0].touchMut()
 }
 
-fn takenOwned(mut xs: Array[Res]) -> Unit {
+fn takenOwned(mut xs: Array[Res]) {
     let y = xs.takeAt(0).unwrap()
 }
 
-fn chainedNavigate(xs: Array[Array[Res]]) -> Unit {
+fn chainedNavigate(xs: Array[Array[Res]]) {
     xs[0][0].touch()
 }
 
-fn moveReceiverViaIndex(xs: Array[Res]) -> Unit {
+fn moveReceiverViaIndex(xs: Array[Res]) {
     xs[0].consume() //~ ERROR reading `Res` out of an index by value needs `Copy`
 }
 
@@ -74,19 +74,19 @@ fn makeHolderArr() -> Array[Holder] {
     Array.of(Holder { r: Res { id: 1 } })
 }
 
-fn moveReceiverViaCallIndex() -> Unit {
+fn moveReceiverViaCallIndex() {
     makeArr()[0].consume() //~ ERROR reading `Res` out of an index by value needs `Copy`
 }
 
-fn byValueFieldOfCallIndex() -> Unit {
+fn byValueFieldOfCallIndex() {
     let z = makeHolderArr()[0].r //~ ERROR reading `Res` out of an index by value needs `Copy`
 }
 
-fn byValueOptField(hs: Array[Holder?]) -> Unit {
+fn byValueOptField(hs: Array[Holder?]) {
     let z = hs[0]?.r //~ ERROR reading `Res?` out of an index by value needs `Copy`
 }
 
-fn moveExprViaCallIndex() -> Unit {
+fn moveExprViaCallIndex() {
     let y = move makeArr()[0] //~ ERROR cannot move a value out of an index
 }
 -- expect --

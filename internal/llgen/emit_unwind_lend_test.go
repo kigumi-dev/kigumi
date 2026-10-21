@@ -34,7 +34,7 @@ fn viaMethod(p: Pt) -> Int {
     run(p.read)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestLentCaptureIsBorrowedFromTheEnvironment(t *testing.T) {

@@ -46,7 +46,7 @@ fn Cursor.peek(self) -> Int {
     }
 }
 
-fn Cursor.skipSpace(mut self) -> Unit {
+fn Cursor.skipSpace(mut self) {
     for {
         let b = self.peek()
         if b == 32 || b == 9 || b == 10 || b == 13 {

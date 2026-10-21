@@ -4,20 +4,20 @@ type Counter = {
     pub mut tag String
 }
 
-fn Counter.bump(mut self, by: Int) -> Unit {
+fn Counter.bump(mut self, by: Int) {
     self.n = self.n + by
 }
 
-fn Counter.bumpTwice(mut self, by: Int) -> Unit {
+fn Counter.bumpTwice(mut self, by: Int) {
     self.bump(by)
     self.bump(by)
 }
 
-fn Counter.reset(mut self, tag: String) -> Unit {
+fn Counter.reset(mut self, tag: String) {
     self = Counter { n: 0, tag: tag }
 }
 
-fn Counter.descend(mut self, k: Int) -> Unit {
+fn Counter.descend(mut self, k: Int) {
     if k == 0 {
         return
     }
@@ -30,23 +30,23 @@ type Pair = {
     pub mut right Counter
 }
 
-fn Pair.bumpLeft(mut self, by: Int) -> Unit {
+fn Pair.bumpLeft(mut self, by: Int) {
     self.left.bump(by)
 }
 
-fn Pair.swap(mut self) -> Unit {
+fn Pair.swap(mut self) {
     self = Pair { left: self.right, right: self.left }
 }
 
 type Tagged = Counter
 
-fn Tagged.scale(mut self, k: Int) -> Unit {
+fn Tagged.scale(mut self, k: Int) {
     self.value.n = self.value.n * k
 }
 
 static mut slot: Int = 0
 
-fn Counter.record(mut self) -> Unit {
+fn Counter.record(mut self) {
     unsafe { slot = self.n }
 }
 

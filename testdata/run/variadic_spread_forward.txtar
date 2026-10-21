@@ -1,5 +1,5 @@
 -- src --
-fn callAll(cbs: ...fn() -> Unit) -> Int {
+fn callAll(cbs: ...fn() -> Void) -> Int {
   let mut n = 0
   for cb in cbs {
     cb()
@@ -8,7 +8,7 @@ fn callAll(cbs: ...fn() -> Unit) -> Int {
   n
 }
 
-fn forward(cbs: ...fn() -> Unit) -> Int {
+fn forward(cbs: ...fn() -> Void) -> Int {
   callAll(...cbs)
 }
 
@@ -32,19 +32,19 @@ type Res = resource {
   pub n Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
   print "drop res ${self.n}"
 }
 
-fn Res.show(self) -> Unit {
+fn Res.show(self) {
   print "show res ${self.n}"
 }
 
-fn forwardTwice(cbs: ...fn() -> Unit) -> Int {
+fn forwardTwice(cbs: ...fn() -> Void) -> Int {
   forward(...cbs)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
   print "${forward(() => print "a", () => print "b")}"
   let r = Res { n: 1 }
   print "${forwardTwice(() => r.show(), () => print "x")}"

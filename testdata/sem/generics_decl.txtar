@@ -51,7 +51,7 @@ fn fnBound[A, R, F: FnOnce[fn(A) -> R]](f: F, v: A) -> R {
     f(v)
 }
 
-fn badFn[F: Fn](f: F) -> Unit {} //~ ERROR `Fn` is not an interface or compiler-known constraint
+fn badFn[F: Fn](f: F) {} //~ ERROR `Fn` is not an interface or compiler-known constraint
 
 fn T.g(self) -> Int { //~ ERROR `T` is not a nominal type of this package
     1
@@ -95,7 +95,7 @@ error[E248]: `Pair` is not an interface or compiler-known constraint
 error[E248]: `Fn` is not an interface or compiler-known constraint
   --> app/g/g.kg:53:13
    |
-53 | fn badFn[F: Fn](f: F) -> Unit {} //~ ERROR `Fn` is not an interface or compiler-known constraint
+53 | fn badFn[F: Fn](f: F) {} //~ ERROR `Fn` is not an interface or compiler-known constraint
    |             ^^
 
 error[E230]: `T` is not a nominal type of this package

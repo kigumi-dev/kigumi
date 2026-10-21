@@ -524,7 +524,7 @@ fn unrelatedRiskyTwoHopLiteralField() -> Int {
 
 // A `mut self` method's own field write must bind back to the caller's
 // receiver, not just the method's own self parameter.
-fn MutHolder.setCb(mut self, f: escaping fn() -> Int) -> Unit {
+fn MutHolder.setCb(mut self, f: escaping fn() -> Int) {
     self.cb = f
 }
 
@@ -573,11 +573,11 @@ fn unrelatedRiskySetterRefCall() -> Int {
 }
 
 // setCbChainSafe/Risky call setCb on their own self: the summary must compose.
-fn MutHolder.setCbChainSafe(mut self) -> Unit {
+fn MutHolder.setCbChainSafe(mut self) {
     self.setCb(safeFnBoundValue)
 }
 
-fn MutHolder.setCbChainRisky(mut self) -> Unit {
+fn MutHolder.setCbChainRisky(mut self) {
     self.setCb(syncRoot)
 }
 
@@ -601,7 +601,7 @@ fn unrelatedRiskySetterChainCall() -> Int {
 
 // A setter's argument that isn't ident/literal-resolvable poisons the field
 // to the global union, same as an unresolved direct write.
-fn MutBox.setC(mut self, c: Calc) -> Unit {
+fn MutBox.setC(mut self, c: Calc) {
     self.c = c
 }
 
@@ -673,7 +673,7 @@ type GBox[T] = {
     mut cb T
 }
 
-fn GBox[T].setCb(mut self, f: T) -> Unit {
+fn GBox[T].setCb(mut self, f: T) {
     self.cb = f
 }
 
@@ -739,7 +739,7 @@ fn unrelatedRiskyFieldTwoHopLet() -> Int {
 }
 
 // A `&mut T` argument to a plain fn that writes the referent's field.
-fn setHolderFieldViaRef(h: &mut MutHolder, f: escaping fn() -> Int) -> Unit {
+fn setHolderFieldViaRef(h: &mut MutHolder, f: escaping fn() -> Int) {
     h.cb = f
 }
 
@@ -790,11 +790,11 @@ fn unrelatedRiskyUnresolvedFieldWrite() -> Int {
 }
 
 // An already-`&mut` parameter forwarded as a bare ident traces like a fresh borrow.
-fn forwardSafeHolderFieldViaRef(h: &mut MutHolder) -> Unit {
+fn forwardSafeHolderFieldViaRef(h: &mut MutHolder) {
     setHolderFieldViaRef(h, safeFnBoundValue)
 }
 
-fn forwardRiskyHolderFieldViaRef(h: &mut MutHolder) -> Unit {
+fn forwardRiskyHolderFieldViaRef(h: &mut MutHolder) {
     setHolderFieldViaRef(h, syncRoot)
 }
 

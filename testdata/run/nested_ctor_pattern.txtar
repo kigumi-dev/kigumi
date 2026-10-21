@@ -116,7 +116,7 @@ fn n8(x: Array[(Int, Int?)]) -> Int {
   t
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
   print "${m1((1, Some(2)))} ${m1((1, None))}"
   print "${m2(R { a: 1, b: Some(5) })} ${m2(R { a: 1, b: None })}"
   print "${m3((Some(4), 1))} ${m3((None, 1))}"

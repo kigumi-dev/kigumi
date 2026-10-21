@@ -10,7 +10,7 @@ type Point = {
 fn eqG[T: Eq](a: T, b: &T) -> Bool { a == b }
 fn ltG[T: Ord](a: T, b: &T) -> Bool { a < b }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let z: f64 = 0.0
     let nan = z / z
     let negz: f64 = -0.0

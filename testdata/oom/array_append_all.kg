@@ -1,4 +1,4 @@
-fn run() -> Unit {
+fn run() {
     let mut a = Array.of(1, 2, 3, 4)
     let before = a.len()
     let extra = Array.of(4, 5, 6, 7)

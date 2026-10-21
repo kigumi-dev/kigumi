@@ -5,7 +5,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop res ${self.n}"
 }
 
@@ -23,7 +23,7 @@ fn readTwice(b: &Box[Pt], calls: &mut Int, r: Res) -> Int {
     v
 }
 
-fn bumpTwice(b: &mut Box[Pt], calls: &mut Int, r: Res) -> Unit {
+fn bumpTwice(b: &mut Box[Pt], calls: &mut Int, r: Res) {
     b.withMut((p: &mut Pt) => {
         calls = calls + 1
         p.x = p.x + 1

@@ -3,15 +3,15 @@ type Item = {
     pub mut count Int
 }
 
-fn Item.update(mut self, d: Int) -> Unit {
+fn Item.update(mut self, d: Int) {
     self.count = self.count + d
 }
 
-fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+fn Item.run[F: FnMut[fn() -> Void]](mut self, f: F) {
     f()
 }
 
-fn nop() -> Unit {}
+fn nop() {}
 
 type Pair = {
     pub mut a Item
@@ -208,7 +208,7 @@ fn patternFieldVsRoot() -> Int {
     p.a.count
 }
 
-fn aliasOfFieldCapturedByFieldCall() -> Unit {
+fn aliasOfFieldCapturedByFieldCall() {
     let mut p = Pair { a: mk(), b: mk() }
     match &mut p.a {
         r -> p.a.run(() => { r.update(1) }) //~ ERROR a closure argument cannot capture `r`

@@ -22,7 +22,7 @@ fn work(xs: Array[Int]) -> Int {
     total
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestNativeScalarReleasesTheBoxesItReplaces(t *testing.T) {
@@ -53,7 +53,7 @@ fn repeat[T: Copy](value: T, n: Int) -> Array[T] {
     out
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `), `define ptr @"main.repeat"(`)
 	if !strings.Contains(body, "@rt_copy_mut(") || strings.Contains(body, "@rt_copy(") {
 		t.Fatalf("the pushed type parameter should go through rt_copy_mut alone:\n%s", body)
@@ -66,7 +66,7 @@ fn same[T: Eq](a: &T, b: &T) -> Bool {
     a.equals(b)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let z: f64 = 0.0
     let k = z / z
     print "${same(k, k)}"

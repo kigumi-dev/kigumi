@@ -4,7 +4,7 @@
 // a host executable that uses both.
 import build from std/build
 
-fn configure(b: build.Builder) -> Unit! {
+fn configure(b: build.Builder) -> Void! {
     let gen = b.framework("example/gen", "1.0")
     let core = b.library("core", "cmd/core", b.target("x86_64-freestanding"))?
     let value = if b.request().flag("big") {

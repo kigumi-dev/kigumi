@@ -6,7 +6,7 @@ import (
 	"kigumi/internal/syntax"
 )
 
-// ScalarBoxes reports whether a t crossing into a boxed slot may take a heap box on native; Bool and Unit boxes are immortals.
+// ScalarBoxes reports whether a t crossing into a boxed slot may take a heap box on native; Bool and Void boxes are immortals.
 func (r *Result) ScalarBoxes(t TypeID) bool {
 	return t != TyBool && (r.RegScalar(t) || WideScalar(t))
 }

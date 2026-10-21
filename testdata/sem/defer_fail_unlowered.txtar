@@ -5,26 +5,26 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
 }
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn step() -> Unit! {}
+fn step() -> Void! {}
 
-fn movedBeforeTheEnd() -> Unit! {
+fn movedBeforeTheEnd() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     take(h)
     print "done"
 }
 
-fn movedOnOnePath(flag: Bool) -> Unit! {
+fn movedOnOnePath(flag: Bool) -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     if flag {
@@ -33,7 +33,7 @@ fn movedOnOnePath(flag: Bool) -> Unit! {
     print "done"
 }
 
-fn movedBeforeReturn(flag: Bool) -> Unit! {
+fn movedBeforeReturn(flag: Bool) -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     take(h)
@@ -43,7 +43,7 @@ fn movedBeforeReturn(flag: Bool) -> Unit! {
     print "done"
 }
 
-fn movedInInnerBlock() -> Unit! {
+fn movedInInnerBlock() -> Void! {
     let h = Handle { id: 1 }
     if h.peek() > 0 {
         defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
@@ -52,7 +52,7 @@ fn movedInInnerBlock() -> Unit! {
     }
 }
 
-fn movedAndTailIsPlain() -> Unit! {
+fn movedAndTailIsPlain() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     take(h)
@@ -60,13 +60,13 @@ fn movedAndTailIsPlain() -> Unit! {
     ()
 }
 
-fn movedByTail() -> Unit! {
+fn movedByTail() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" }
     take(h)
 }
 
-fn movedByReturnOperand() -> Unit! {
+fn movedByReturnOperand() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" }
     return Ok(take(h))
@@ -79,7 +79,7 @@ fn returnedAsValue() -> Handle! {
     h
 }
 
-fn readsCopyOnly() -> Unit! {
+fn readsCopyOnly() -> Void! {
     let h = Handle { id: 1 }
     let n = h.peek()
     defer(fail) { print "n=${n}" }
@@ -87,14 +87,14 @@ fn readsCopyOnly() -> Unit! {
     print "done"
 }
 
-fn failingExitStillChecked() -> Unit! {
+fn failingExitStillChecked() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" } //~ ERROR a cleanup reads `h`
     take(h)
     step()?
 }
 
-fn failingExitWithoutMove() -> Unit! {
+fn failingExitWithoutMove() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { print "peek ${h.peek()}" }
     step()?

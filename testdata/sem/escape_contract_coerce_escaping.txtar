@@ -1,49 +1,49 @@
 -- lib/esc.kg --
 import task from std/task
 
-async fn runLater(cb: fn() -> Unit) -> Unit {
+async fn runLater(cb: fn() -> Void) {
     cb()
 }
 
-fn plainCall(cb: fn() -> Unit) -> Unit {
+fn plainCall(cb: fn() -> Void) {
     cb()
 }
 
 type Box = {
-    pub f fn(fn() -> Unit) -> Future[Unit]
+    pub f fn(fn() -> Void) -> Future[Void]
 }
 
 // runLater's escaping (implied by async) must survive coercion into a plain-declared field, the
 // same one-directional reject witness and Fn[...] checking already apply.
-fn intoRecordField() -> Unit {
+fn intoRecordField() {
     let b = Box { f: runLater } //~ ERROR may keep its callback at parameter 1
     _ = b
 }
 
 // Same mismatch through a plain `let` with a declared type, not a record field.
-fn intoDeclaredLet(ex: task.Executor, cb: fn() -> Unit) -> task.Task[Unit] {
-    let f: fn(fn() -> Unit) -> Future[Unit] = runLater //~ ERROR may keep its callback at parameter 1
+fn intoDeclaredLet(ex: task.Executor, cb: fn() -> Void) -> task.Task[Void] {
+    let f: fn(fn() -> Void) -> Future[Void] = runLater //~ ERROR may keep its callback at parameter 1
     task.spawn(f(cb))
 }
 
 // The sound direction still coerces cleanly: a plain, verified-non-escaping
 // fn item into a plain-declared slot is not more escaping than the target.
-fn intoDeclaredLetOk() -> Unit {
-    let f: fn(fn() -> Unit) -> Unit = plainCall
+fn intoDeclaredLetOk() {
+    let f: fn(fn() -> Void) -> Void = plainCall
     f(() => {})
 }
 -- expect --
-error[E1034]: `fn(escaping fn() -> Unit) -> Future[Unit]` may keep its callback at parameter 1, but `fn(fn() -> Unit) -> Future[Unit]` declares it non-escaping
+error[E1034]: `fn(escaping fn() -> Void) -> Future[Void]` may keep its callback at parameter 1, but `fn(fn() -> Void) -> Future[Void]` declares it non-escaping
   --> lib/esc.kg:18:22
    |
 18 |     let b = Box { f: runLater } //~ ERROR may keep its callback at parameter 1
    |                      ^^^^^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 
-error[E1034]: `fn(escaping fn() -> Unit) -> Future[Unit]` may keep its callback at parameter 1, but `fn(fn() -> Unit) -> Future[Unit]` declares it non-escaping
+error[E1034]: `fn(escaping fn() -> Void) -> Future[Void]` may keep its callback at parameter 1, but `fn(fn() -> Void) -> Future[Void]` declares it non-escaping
   --> lib/esc.kg:24:47
    |
-24 |     let f: fn(fn() -> Unit) -> Future[Unit] = runLater //~ ERROR may keep its callback at parameter 1
+24 |     let f: fn(fn() -> Void) -> Future[Void] = runLater //~ ERROR may keep its callback at parameter 1
    |                                               ^^^^^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 

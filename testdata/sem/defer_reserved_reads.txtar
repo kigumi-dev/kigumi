@@ -5,15 +5,15 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
 }
 
-fn Handle.bump(mut self) -> Unit {
+fn Handle.bump(mut self) {
     self.id = self.id + 1
 }
 
@@ -39,13 +39,13 @@ fn pair() -> (Handle, Handle) {
     (mkh(1), mkh(2))
 }
 
-fn show(h: &Handle) -> Unit {}
+fn show(h: &Handle) {}
 
-fn sink(n: Int) -> Unit {}
+fn sink(n: Int) {}
 
-fn take[T](x: T) -> Unit {}
+fn take[T](x: T) {}
 
-fn reset(p: &mut Handle) -> Unit {
+fn reset(p: &mut Handle) {
     p = mkh(9)
 }
 
@@ -53,11 +53,11 @@ fn apply(f: fn() -> Int) -> Int {
     f()
 }
 
-fn store(f: escaping fn() -> Int) -> Unit {}
+fn store(f: escaping fn() -> Int) {}
 
-fn keep[T](x: T) -> Unit {}
+fn keep[T](x: T) {}
 
-fn borrowLambdaCalled() -> Unit {
+fn borrowLambdaCalled() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.inner.peek()
@@ -65,14 +65,14 @@ fn borrowLambdaCalled() -> Unit {
     sink(f())
 }
 
-fn borrowLambdaShared() -> Unit {
+fn borrowLambdaShared() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => show(&b.inner)
     f()
 }
 
-fn borrowLambdaWholeReserved() -> Unit {
+fn borrowLambdaWholeReserved() {
     let b = mk()
     defer { take(b) }
     let f = () => b.n
@@ -81,39 +81,39 @@ fn borrowLambdaWholeReserved() -> Unit {
     g()
 }
 
-fn borrowLambdaDirect() -> Unit {
+fn borrowLambdaDirect() {
     let b = mk()
     defer { b.inner.close() }
     sink((() => b.inner.peek())())
 }
 
-fn borrowLambdaImmediate() -> Unit {
+fn borrowLambdaImmediate() {
     let b = mk()
     defer { b.inner.close() }
     sink(apply(() => b.inner.peek()))
 }
 
-fn borrowLambdaSibling() -> Unit {
+fn borrowLambdaSibling() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.other.peek()
     sink(f())
 }
 
-fn lambdaEscapesToStore() -> Unit {
+fn lambdaEscapesToStore() {
     let b = mk()
     defer { b.inner.close() }
     store(() => b.inner.peek()) //~ ERROR closure captures //~ ERROR is reserved
 }
 
-fn lambdaEscapesThroughLocal() -> Unit {
+fn lambdaEscapesThroughLocal() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.inner.peek() //~ ERROR
     keep(f)
 }
 
-fn lambdaEscapesThroughAlias() -> Unit {
+fn lambdaEscapesThroughAlias() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.inner.peek() //~ ERROR
@@ -121,7 +121,7 @@ fn lambdaEscapesThroughAlias() -> Unit {
     sink(g())
 }
 
-fn lambdaEscapesIntoLambda() -> Unit {
+fn lambdaEscapesIntoLambda() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.inner.peek() //~ ERROR
@@ -129,41 +129,41 @@ fn lambdaEscapesIntoLambda() -> Unit {
     sink(g())
 }
 
-fn lambdaInRecord() -> Unit {
+fn lambdaInRecord() {
     let b = mk()
     defer { b.inner.close() }
     let s = Slot { keep: () => b.inner.peek() } //~ ERROR closure captures //~ ERROR is reserved
 }
 
-fn lambdaMoves() -> Unit {
+fn lambdaMoves() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => take(b.inner) //~ ERROR
     f()
 }
 
-fn lambdaReturnsReserved() -> Unit {
+fn lambdaReturnsReserved() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.inner //~ ERROR
     take(f())
 }
 
-fn lambdaBorrowsMutably() -> Unit {
+fn lambdaBorrowsMutably() {
     let mut b = mk()
     defer { b.inner.close() }
     let f = () => reset(&mut b.inner) //~ ERROR
     f()
 }
 
-fn lambdaCallsMutSelf() -> Unit {
+fn lambdaCallsMutSelf() {
     let mut b = mk()
     defer { b.inner.close() }
     let f = () => b.inner.bump() //~ ERROR
     f()
 }
 
-fn tupleSecondElement() -> Unit {
+fn tupleSecondElement() {
     let t = pair()
     defer { take(t._0) }
     match t {
@@ -171,7 +171,7 @@ fn tupleSecondElement() -> Unit {
     }
 }
 
-fn tupleReservedElement() -> Unit {
+fn tupleReservedElement() {
     let t = pair()
     defer { take(t._0) }
     match t { //~ ERROR
@@ -179,7 +179,7 @@ fn tupleReservedElement() -> Unit {
     }
 }
 
-fn tupleReservedBoth() -> Unit {
+fn tupleReservedBoth() {
     let t = pair()
     defer { take(t) }
     match t { //~ ERROR
@@ -187,7 +187,7 @@ fn tupleReservedBoth() -> Unit {
     }
 }
 
-fn tupleNestedSibling() -> Unit {
+fn tupleNestedSibling() {
     let t = ((mkh(1), mkh(2)), mkh(3))
     defer { take(t._1) }
     match t {
@@ -195,14 +195,14 @@ fn tupleNestedSibling() -> Unit {
     }
 }
 
-fn tupleReservedLet() -> Unit {
+fn tupleReservedLet() {
     let t = pair()
     defer { take(t._1) }
     let (_, y) = t //~ ERROR
     y.close()
 }
 
-fn tupleNested() -> Unit {
+fn tupleNested() {
     let t = ((mkh(1), mkh(2)), mkh(3))
     defer { take(t._0) }
     match t { //~ ERROR
@@ -210,7 +210,7 @@ fn tupleNested() -> Unit {
     }
 }
 
-fn indexScrutinee() -> Unit {
+fn indexScrutinee() {
     let xs = Array.of(mk())
     defer { take(xs) }
     match xs[0] { //~ ERROR
@@ -218,7 +218,7 @@ fn indexScrutinee() -> Unit {
     }
 }
 
-fn refScrutinee(p: &Pack) -> Unit {
+fn refScrutinee(p: &Pack) {
     match p {
         Pack { inner, other: _, n: _ } -> show(inner)
     }

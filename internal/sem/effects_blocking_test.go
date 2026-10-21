@@ -78,7 +78,7 @@ func TestAsyncDirectBlockOffloadedQuiet(t *testing.T) {
 	res := checkBlocking(t, "single-thread-event-loop", `
 import task from std/task
 
-async fn useProvider() -> Result[Unit, task.BlockingError] {
+async fn useProvider() -> Result[Void, task.BlockingError] {
     let pool = task.BlockingPool.new(4)
     let fut = pool.run(() => 1)?
     _ = await fut

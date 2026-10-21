@@ -4,19 +4,19 @@ type Item = {
     pub mut items Array[Int]
 }
 
-fn Item.update(mut self, d: Int) -> Unit {
+fn Item.update(mut self, d: Int) {
     self.count = self.count + d
 }
 
-fn Item.tick(mut self) -> Unit {
+fn Item.tick(mut self) {
     self.count = self.count + 1
 }
 
-fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+fn Item.run[F: FnMut[fn() -> Void]](mut self, f: F) {
     f()
 }
 
-fn Item.runFn(mut self, f: fn() -> Unit) -> Unit {
+fn Item.runFn(mut self, f: fn() -> Void) {
     f()
 }
 
@@ -37,7 +37,7 @@ fn fresh() -> Both {
     Both { acc: item(), other: item() }
 }
 
-fn pokeOther() -> Unit {
+fn pokeOther() {
     other.update(1)
 }
 
@@ -60,7 +60,7 @@ type Pair = {
     pub mut b Item
 }
 
-fn Pair.bumpB(mut self) -> Unit {
+fn Pair.bumpB(mut self) {
     self.b.run(() => { self.a.update(1) })
 }
 
@@ -114,11 +114,11 @@ type Cnt = {
     pub mut n Int
 }
 
-fn Cnt.tick(mut self) -> Unit {
+fn Cnt.tick(mut self) {
     self.n = self.n + 1
 }
 
-fn Cnt.runFn(mut self, f: fn() -> Unit) -> Unit {
+fn Cnt.runFn(mut self, f: fn() -> Void) {
     f()
 }
 
@@ -152,15 +152,15 @@ type Hub = {
     pub mut log Array[Int]
 }
 
-fn Hub.bump(mut self) -> Unit {
+fn Hub.bump(mut self) {
     self.count = self.count + 1
 }
 
 type Wrap = {
-    pub cb fn() -> Unit
+    pub cb fn() -> Void
 }
 
-fn Hub.fireWrap(mut self, w: Wrap) -> Unit {
+fn Hub.fireWrap(mut self, w: Wrap) {
     w.cb()
 }
 
@@ -171,7 +171,7 @@ type HubProvider = {
     pub mut hub Hub
 }
 
-fn idle() -> Unit {}
+fn idle() {}
 
 fn wrappedFnItem() -> Int {
     context (HubProvider { hub: Hub { count: 5, log: Array.of(1) } }) {

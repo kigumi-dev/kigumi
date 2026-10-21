@@ -14,7 +14,7 @@ fn takesA(w: a.Widget) -> Int {
     w.n
 }
 
-fn use() -> Unit {
+fn use() {
     let wb = b.Widget { s: "hi" }
     _ = takesA(wb) //~ ERROR expected `pkga.Widget`, found `pkgb.Widget`
 }

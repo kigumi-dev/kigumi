@@ -5,9 +5,9 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
@@ -21,7 +21,7 @@ fn mk(base: Int) -> Pack {
     Pack { inner: Handle { id: base }, other: Handle { id: base + 1 }, n: 0 }
 }
 
-fn siblingField() -> Unit {
+fn siblingField() {
     let mut b = mk(10)
     defer { b.inner.close() }
     b.other.close()
@@ -30,14 +30,14 @@ fn siblingField() -> Unit {
     print "n=${b.n} other=${b.other.id}"
 }
 
-fn siblingCleanups() -> Unit {
+fn siblingCleanups() {
     let b = mk(20)
     defer { b.inner.close() }
     defer { b.other.close() }
     print "both reserved"
 }
 
-fn siblingFailCleanup(ok: Bool) -> Unit! {
+fn siblingFailCleanup(ok: Bool) -> Void! {
     let b = mk(30)
     defer(fail) { b.inner.close() }
     b.other.close()
@@ -47,14 +47,14 @@ fn siblingFailCleanup(ok: Bool) -> Unit! {
     print "ok path"
 }
 
-fn reassignAfterBorrowOnlyCleanup() -> Unit {
+fn reassignAfterBorrowOnlyCleanup() {
     let mut b = mk(40)
     defer { print "inner=${b.inner.id}" }
     b.other = Handle { id: 50 }
     print "reassigned"
 }
 
-fn report(label: String, r: Unit!) -> Unit {
+fn report(label: String, r: Void!) {
     match r {
         Ok(_) -> print "${label}: ok"
         Err(e) -> print "${label}: err ${e.message()}"

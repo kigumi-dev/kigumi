@@ -1,14 +1,14 @@
 -- src --
 /// stable checksum API
 pub pure noalloc fn checksum(data: Bytes) -> u64 { data.len() }
-noalloc pub pure fn f() -> Unit {}
-pure pure fn g() -> Unit {}
+noalloc pub pure fn f() {}
+pure pure fn g() {}
 pub async fn fetch(net: Network, url: Url) -> Response! { await net.get(url) }
 pub unsafe fn readByte(ptr: *const u8) -> u8 { unsafe { mem.read(ptr) } }
 fn Vec.length(self) -> Float { self.x }
 fn Vec.zero() -> Vec { Vec { x: 0.0 } }
-fn ByteBuffer.push(mut self, x: byte) -> Unit { self.data.push(x) }
-fn File.drop(move self) -> Unit {}
+fn ByteBuffer.push(mut self, x: byte) { self.data.push(x) }
+fn File.drop(move self) {}
 fn Box[T].value(self) -> T { self.inner }
 pub pure fn Array[T].map[U](self, f: fn(T) -> U) -> Array[U] { self.inner }
 pub pure fn Vec.+^(a: Vec, b: Vec) -> Vec { a }
@@ -16,7 +16,7 @@ pub pure fn Vec.*(a: Float, b: Vec) -> Vec { b }
 pub fn fold[A, S](items: list.List[A], initial: S, step: pure fn(S, A) -> S) -> S { initial }
 fn applyOnce[A, R, F: FnOnce[fn(A) -> R]](f: F, value: A) -> R { f(value) }
 pub fn command(program: String, args: ...String) -> Command { run(program, ...args) }
-pub pub(module) fn bad() -> Unit {}
+pub pub(module) fn bad() {}
 -- expect --
 File
   FnDecl
@@ -47,8 +47,7 @@ File
     name: f
     generics: -
     params: List
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
   FnDecl
     attrs: -
@@ -58,8 +57,7 @@ File
     name: g
     generics: -
     params: List
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
   FnDecl
     attrs: -
@@ -156,8 +154,7 @@ File
       Param x
         type: TypePath
           Path byte
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
       ExprStmt
         Call
@@ -176,8 +173,7 @@ File
     params: List
       Param self
         flags: move self
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
   FnDecl
     attrs: -
@@ -365,19 +361,18 @@ File
     name: bad
     generics: -
     params: List
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
 -- diagnostics --
 warning: duplicate modifier
  --> decl_fn.txtar:4:6
   |
-4 | pure pure fn g() -> Unit {}
+4 | pure pure fn g() {}
   |      ^^^^
 
 error: conflicting visibility modifiers
   --> decl_fn.txtar:18:5
    |
-18 | pub pub(module) fn bad() -> Unit {}
+18 | pub pub(module) fn bad() {}
    |     ^^^
 

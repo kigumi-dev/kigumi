@@ -72,7 +72,7 @@ fn getter(h: Holder) -> Int {
     q.n + h.q.n
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func rcPlanned(t *testing.T, src string) *mir.Program {
@@ -170,7 +170,7 @@ fn repeat[T: Copy](value: T, n: Int) -> Array[T] {
     out
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanRCCopiesATypeParameterOnlyIfWritable(t *testing.T) {
@@ -213,7 +213,7 @@ fn dead(w: W) -> Int {
     x.n
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanRCCopiesAnOptionHoldingAWritableRecord(t *testing.T) {

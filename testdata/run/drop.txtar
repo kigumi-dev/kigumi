@@ -5,11 +5,11 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Handle.close(move self) -> Unit! {
+fn Handle.close(move self) -> Void! {
     print "close ${self.id}"
 }
 
@@ -22,11 +22,11 @@ fn make(id: Int) -> Handle {
     Handle { id: id }
 }
 
-fn consume(h: Handle) -> Unit {
+fn consume(h: Handle) {
     print "consume ${h.id}"
 }
 
-fn early(flag: Bool) -> Unit! {
+fn early(flag: Bool) -> Void! {
     let h = make(3)
     if flag {
         fail test.failure("early")
@@ -34,7 +34,7 @@ fn early(flag: Bool) -> Unit! {
     h.close()?
 }
 
-fn scoped() -> Unit {
+fn scoped() {
     let x = make(1)
     let y = make(2)
     consume(y)

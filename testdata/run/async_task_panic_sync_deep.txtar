@@ -5,7 +5,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -17,18 +17,18 @@ fn explode() -> Int {
     None.expect("deep")
 }
 
-fn c() -> Unit {
+fn c() {
     let r = Res { id: 3 }
     let t = Array.of(Res { id: 7 }, Res { id: explode() })
     print "unreachable ${t.len()}"
 }
 
-fn b() -> Unit {
+fn b() {
     let r = Res { id: 2 }
     c()
 }
 
-fn a() -> Unit {
+fn a() {
     let r = Res { id: 1 }
     b()
 }

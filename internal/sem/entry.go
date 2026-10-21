@@ -3,7 +3,7 @@ package sem
 import "kigumi/internal/syntax"
 
 // checkImplicitMain checks the entry file's top-level statements as the body
-// of `fn main() -> Unit!`, in a script scope under the entry scope.
+// of `fn main() -> Void!`, in a script scope under the entry scope.
 func (r *Result) checkImplicitMain(id EntityID) {
 	e := &r.Entities[id]
 	f := e.File

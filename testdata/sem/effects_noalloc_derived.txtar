@@ -40,7 +40,7 @@ noalloc fn sameListed(a: &Listed, b: &Listed) -> Bool {
     a == b //~ ERROR `equals` is not `noalloc`
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = Named { name: "a", n: 1 }
     print "${sameNamed(&n, &n)}"
 }

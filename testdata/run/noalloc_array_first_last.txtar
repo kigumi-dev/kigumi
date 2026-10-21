@@ -30,7 +30,7 @@ fn lastOf[T: Copy](a: &Array[T]) -> T? {
     a.last()
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let some = Array.of(4, 5, 6)
     let none: Array[Int] = Array.empty()
     print "int ${firstInt(&some)} ${lastInt(&some)} ${firstInt(&none)} ${lastInt(&none)} ${hasFirst(&some)} ${hasFirst(&none)}"

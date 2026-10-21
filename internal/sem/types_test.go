@@ -34,7 +34,7 @@ func TestTypeIntern(t *testing.T) {
 	if got := res.TypeString(tt.Result(sem.TyI64, tt.Iface(res.EntityOfName("Error"), nil))); got != "Int!" {
 		t.Errorf("TypeString(Int!) = %q", got)
 	}
-	if got := res.TypeString(tt.Fn([]sem.TypeID{sem.TyString, tt.Option(sem.TyU8)}, sem.TyUnit, sem.EffPure|sem.EffNoalloc, false)); got != "pure noalloc fn(String, u8?) -> Unit" {
+	if got := res.TypeString(tt.Fn([]sem.TypeID{sem.TyString, tt.Option(sem.TyU8)}, sem.TyUnit, sem.EffPure|sem.EffNoalloc, false)); got != "pure noalloc fn(String, u8?) -> Void" {
 		t.Errorf("TypeString(fn) = %q", got)
 	}
 	if got := res.TypeString(tt.Ref(sem.TyString, true)); got != "&mut String" {

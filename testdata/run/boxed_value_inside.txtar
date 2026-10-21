@@ -43,7 +43,7 @@ fn ident[T](x: T) -> T {
     x
 }
 
-fn keep[T: Copy](arr: &mut Array[T], x: T) -> Unit {
+fn keep[T: Copy](arr: &mut Array[T], x: T) {
     arr.push(x)
 }
 
@@ -51,7 +51,7 @@ fn firstOr[T: Copy](arr: &Array[T?], d: T) -> T {
     arr[0].unwrapOr(d)
 }
 
-fn wrapped() -> Unit {
+fn wrapped() {
     let w = fresh()
     let mut a = w.o.unwrapOr(none())
     a.n = 5
@@ -64,7 +64,7 @@ fn wrapped() -> Unit {
     print "wrapped ${a.n} ${b.n} ${c.n} ${d.n} ${w.o.unwrapOr(none()).n} ${w.fz.q.n}"
 }
 
-fn taken() -> Unit {
+fn taken() {
     let w = fresh()
     let mut o = w.o
     let mut y = o.take().unwrap()
@@ -72,7 +72,7 @@ fn taken() -> Unit {
     print "take ${y.n} ${w.o.unwrapOr(none()).n}"
 }
 
-fn stored() -> Unit {
+fn stored() {
     let w = fresh()
     let mut arr: Array[Named?] = Array.empty()
     arr.push(w.o)
@@ -91,7 +91,7 @@ fn viaTry(w: &W) -> Result[Int, E] {
     Ok(x.n)
 }
 
-fn paths() -> Unit {
+fn paths() {
     let w = fresh()
     let tried = viaTry(&w).unwrap()
     let mut other = W { ..w, tag: 9 }
@@ -124,7 +124,7 @@ async fn inAsync() -> Int {
     set
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     wrapped()
     taken()
     stored()

@@ -1,23 +1,23 @@
 -- lib/esc.kg --
-fn twice[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+fn twice[F: FnOnce[fn() -> Void]](f: F) {
     f()
     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
 }
 
-fn inLoop[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+fn inLoop[F: FnOnce[fn() -> Void]](f: F, xs: Array[Int]) {
     for x in xs {
         f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
     }
 }
 
-fn afterBranch[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+fn afterBranch[F: FnOnce[fn() -> Void]](f: F, c: Bool) {
     if c {
         f()
     }
     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
 }
 
-fn afterMatch[F: FnOnce[fn() -> Unit]](f: F, n: Int) -> Unit {
+fn afterMatch[F: FnOnce[fn() -> Void]](f: F, n: Int) {
     match n {
         0 -> f()
         _ -> {}
@@ -25,24 +25,24 @@ fn afterMatch[F: FnOnce[fn() -> Unit]](f: F, n: Int) -> Unit {
     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
 }
 
-fn run(g: fn() -> Unit) -> Unit { g() }
+fn run(g: fn() -> Void) { g() }
 
-fn afterLambda[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+fn afterLambda[F: FnOnce[fn() -> Void]](f: F) {
     f()
     run(() => f()) //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop or a closure
 }
 
-fn parenthesized[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+fn parenthesized[F: FnOnce[fn() -> Void]](f: F) {
     (f)()
     f() //~ ERROR `f` is bound by `FnOnce` and may already have been called
 }
 
 // Accepted: one call on each path, and bounds that allow repeating.
-fn once[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+fn once[F: FnOnce[fn() -> Void]](f: F) {
     f()
 }
 
-fn eachBranch[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+fn eachBranch[F: FnOnce[fn() -> Void]](f: F, c: Bool) {
     if c {
         f()
     } else {
@@ -50,14 +50,14 @@ fn eachBranch[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
     }
 }
 
-fn eachArm[F: FnOnce[fn() -> Unit]](f: F, n: Int) -> Unit {
+fn eachArm[F: FnOnce[fn() -> Void]](f: F, n: Int) {
     match n {
         0 -> f()
         _ -> f()
     }
 }
 
-fn eachIfLet[F: FnOnce[fn() -> Unit]](f: F, o: Int?) -> Unit {
+fn eachIfLet[F: FnOnce[fn() -> Void]](f: F, o: Int?) {
     if let x = o {
         f()
     } else {
@@ -65,7 +65,7 @@ fn eachIfLet[F: FnOnce[fn() -> Unit]](f: F, o: Int?) -> Unit {
     }
 }
 
-fn divergingBranch[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+fn divergingBranch[F: FnOnce[fn() -> Void]](f: F, c: Bool) {
     if c {
         f()
         return
@@ -77,7 +77,7 @@ fn withArgument[F: FnOnce[fn(Int) -> Int]](f: F) -> Int {
     f(1)
 }
 
-fn repeatable[F: FnMut[fn() -> Unit]](f: F) -> Unit {
+fn repeatable[F: FnMut[fn() -> Void]](f: F) {
     f()
     f()
     for i in 0..3 {
@@ -85,17 +85,17 @@ fn repeatable[F: FnMut[fn() -> Unit]](f: F) -> Unit {
     }
 }
 
-fn repeatableFn[F: Fn[fn() -> Unit]](f: F) -> Unit {
+fn repeatableFn[F: Fn[fn() -> Void]](f: F) {
     f()
     f()
 }
 
-fn plain(f: fn() -> Unit) -> Unit {
+fn plain(f: fn() -> Void) {
     f()
     f()
 }
 
-fn continueLoop[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+fn continueLoop[F: FnOnce[fn() -> Void]](f: F, xs: Array[Int]) {
     for x in xs {
         if x > 0 {
             f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
@@ -104,7 +104,7 @@ fn continueLoop[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
     }
 }
 
-fn nestedLoop[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+fn nestedLoop[F: FnOnce[fn() -> Void]](f: F, xs: Array[Int]) {
     for x in xs {
         for y in xs {
             f() //~ ERROR `f` is bound by `FnOnce` and cannot be called inside a loop
@@ -113,7 +113,7 @@ fn nestedLoop[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
     }
 }
 
-fn afterBreakCall[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+fn afterBreakCall[F: FnOnce[fn() -> Void]](f: F, xs: Array[Int]) {
     for x in xs {
         if x > 0 {
             f()
@@ -142,14 +142,14 @@ fn returnInLoopThenCall[F: FnOnce[fn() -> Int]](f: F, xs: Array[Int]) -> Int {
     f()
 }
 
-fn bareLoopReturn[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+fn bareLoopReturn[F: FnOnce[fn() -> Void]](f: F) {
     for {
         f()
         return
     }
 }
 
-fn breakAfterCall[F: FnOnce[fn() -> Unit]](f: F, xs: Array[Int]) -> Unit {
+fn breakAfterCall[F: FnOnce[fn() -> Void]](f: F, xs: Array[Int]) {
     for x in xs {
         if x > 0 {
             f()
@@ -165,7 +165,7 @@ fn elseReturnsCall[F: FnOnce[fn() -> Int]](f: F, o: Int?) -> Int {
     x + f()
 }
 
-fn elseDivergesThenCall[F: FnOnce[fn() -> Unit]](f: F, o: Int?) -> Unit {
+fn elseDivergesThenCall[F: FnOnce[fn() -> Void]](f: F, o: Int?) {
     let Some(x) = o else {
         f()
         return

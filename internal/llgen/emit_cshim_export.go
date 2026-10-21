@@ -42,7 +42,7 @@ func (e *emitter) exportShim(f *mir.Func) {
 	fmt.Fprintf(&e.shim.fns, "extern %s kg_export_%s(%s);\n%s %s(%s) {\n%s}\n", innerRet, name, orVoid(innerParams), ret, name, orVoid(params), body)
 }
 
-// exportInterruptWrapper is export(interrupt)'s non-naked wrapper; sem (decl_interrupt.go) already forces Unit-in, Unit-out.
+// exportInterruptWrapper is export(interrupt)'s non-naked wrapper; sem (decl_interrupt.go) already forces Void-in, Void-out.
 func (e *emitter) exportInterruptWrapper(f *mir.Func) string {
 	return fmt.Sprintf("define void @%s() {\nentry:\n  call ptr %s()\n  ret void\n}\n\n", e.r.Entity(f.Ent).Name, e.sym(f))
 }

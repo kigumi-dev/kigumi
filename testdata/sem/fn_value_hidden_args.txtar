@@ -27,7 +27,7 @@ pub fn Ticket.same[U: Eq](self, a: U, b: U) -> Bool { a == b }
 
 pub async fn Box[T].laterEq[U: Eq](self, a: U, b: U) -> Bool { a == b }
 
-pub fn use() -> Unit {
+pub fn use() {
     let a = say[Int] //~ ERROR `say` requires context key `token`
     let b = zeroLen[4] //~ ERROR `zeroLen` has const generic parameters
     let c = lenOf[Int, 3] //~ ERROR `lenOf` has const generic parameters

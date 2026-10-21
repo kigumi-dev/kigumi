@@ -1,34 +1,34 @@
 -- std/probe/probe.kg --
 // Not on the reviewed nonEscapingIntrinsics allowlist: its fn-typed
 // parameter is escaping, same as any other bodiless std declaration.
-pub fn unknownPrimitive(f: fn() -> Unit) -> Unit
+pub fn unknownPrimitive(f: fn() -> Void)
 
 -- lib/esc.kg --
 import probe from std/probe
 
 // An async fn's escaping mode lives on the fn's own TYPE, not just the parameter entity, so
 // referencing it as a value still triggers the direct-call check below.
-async fn runLater(cb: fn() -> Unit) -> Unit {
+async fn runLater(cb: fn() -> Void) {
     cb()
 }
 
-fn asyncFnAsValue(cb: fn() -> Unit) -> Unit {
+fn asyncFnAsValue(cb: fn() -> Void) {
     let f = runLater
     _ = f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
 }
 
-fn bodilessIntrinsicAsValue(cb: fn() -> Unit) -> Unit {
+fn bodilessIntrinsicAsValue(cb: fn() -> Void) {
     let f = probe.unknownPrimitive
     f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
 }
 
 pub interface Runner {
-    fn run(self, cb: escaping fn() -> Unit) -> Unit
+    fn run(self, cb: escaping fn() -> Void)
 }
 
 // A witness's method, obtained as a value through a generic type parameter, must see the
 // requirement's `escaping` the same way a direct call does.
-fn interfaceMethodAsValue[T: Runner](t: T, cb: fn() -> Unit) -> Unit {
+fn interfaceMethodAsValue[T: Runner](t: T, cb: fn() -> Void) {
     let m = t.run
     m(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
 }

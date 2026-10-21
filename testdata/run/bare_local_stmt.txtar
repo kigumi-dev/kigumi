@@ -12,7 +12,7 @@ fn c(s: String) -> usize {
   s
   s.len()
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   print "${a(1)} ${b(P { x: 1, y: 2 })} ${c("abc")}"
 }
 -- stdout --

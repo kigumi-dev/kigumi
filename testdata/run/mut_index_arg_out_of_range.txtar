@@ -1,5 +1,5 @@
 -- src --
-fn bump(x: &mut Int) -> Unit {
+fn bump(x: &mut Int) {
     x = x + 1
 }
 

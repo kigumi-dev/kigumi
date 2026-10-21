@@ -17,7 +17,7 @@ func discardedFanOut(wasters int) string {
 	for i := 0; i < wasters; i++ {
 		fmt.Fprintf(&src, "    s = s + waste%d[T]()\n", i)
 	}
-	src.WriteString("    let u = useful(x)\n    s\n}\n\nfn run(n: Int) -> Int { top(P { x: n, y: n }) }\n\nfn main() -> Unit! {}\n")
+	src.WriteString("    let u = useful(x)\n    s\n}\n\nfn run(n: Int) -> Int { top(P { x: n, y: n }) }\n\nfn main() -> Void! {}\n")
 	return src.String()
 }
 
@@ -59,7 +59,7 @@ fn viaValue[T](x: T, n: Int) -> T {
 
 fn run(n: Int) -> Int { viaValue(Wide { a: n, b: n, c: n }, n).c }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	if got := instances(p); len(got) != 0 {
 		t.Errorf("instantiations = %v, want the wide recursion left shared", got)
@@ -77,7 +77,7 @@ fn viaClosure[T: Copy](x: T, n: Int) -> T {
 
 fn run(n: Int) -> Int { viaClosure(Wide { a: n, b: n, c: n }, n).c }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	if got := instances(p); len(got) != 0 {
 		t.Errorf("instantiations = %v, want the wide recursion left shared", got)
@@ -102,7 +102,7 @@ fn run(n: Int) -> Int {
     viaA(v) + viaB(v)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	if got := instances(p); len(got) != 1 {
 		t.Errorf("instantiations = %v, want one shared by both lifetimes", got)
@@ -132,7 +132,7 @@ fn run(n: Int) -> Bool {
     a == b
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	got := strings.Join(instances(p), " ")
 	if !strings.Contains(got, "main.fingerprint[main.Plain]") {

@@ -11,17 +11,17 @@ fn bytes() -> Bytes {
     Bytes.fromArray(&Array.of(1, 2, 3))
 }
 
-fn into['a](vs: &mut Array[View['a]]) -> Unit {
+fn into['a](vs: &mut Array[View['a]]) {
     let mine = bytes()
     vs.push(View { data: &mine, off: 0 })
 }
 
-fn add['a](vs: &mut Array[View['a]], v: View['a]) -> Unit {
+fn add['a](vs: &mut Array[View['a]], v: View['a]) {
     vs.push(v)
 }
 
-fn viaValue['a](b: &'a Bytes, vs: &mut Array[View['a]]) -> Unit {
-    let f: fn(&mut Array[View['a]], View['a]) -> Unit = add
+fn viaValue['a](b: &'a Bytes, vs: &mut Array[View['a]]) {
+    let f: fn(&mut Array[View['a]], View['a]) -> Void = add
     f(vs, View { data: b, off: 0 })
 }
 -- expect --

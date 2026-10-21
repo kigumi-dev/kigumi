@@ -15,7 +15,7 @@ fn useAB[T: A + B](x: T) -> Int {
     x.name() //~ ERROR `name` is ambiguous between `A` and `B`
 }
 
-fn useValue[T: A + B](x: T) -> Unit {
+fn useValue[T: A + B](x: T) {
     let f = x.name //~ ERROR `name` is ambiguous between `A` and `B`
 }
 
@@ -46,7 +46,7 @@ fn useGenericDup[T: Iterator[Int] + Iterator[Int]](x: T) -> Int {
 interface D { fn conv[U](self, v: U) -> U }
 interface E { fn conv[U](self, v: U) -> U }
 
-fn useOwnGeneric[T: D + E](x: T) -> Unit {
+fn useOwnGeneric[T: D + E](x: T) {
     let f = x.conv
 }
 
@@ -57,14 +57,14 @@ interface Show {
 interface F { fn conv2[U](self) -> Int }
 interface G { fn conv2[U, V](self) -> Int }
 
-fn useOwnArity[T: F + G](x: T) -> Unit {
+fn useOwnArity[T: F + G](x: T) {
     let f = x.conv2 //~ ERROR `conv2` is ambiguous between `F` and `G`
 }
 
 interface H { fn conv3[U](self, v: U) -> U }
 interface I { fn conv3[U: Show](self, v: U) -> U }
 
-fn useOwnConstraint[T: H + I](x: T) -> Unit {
+fn useOwnConstraint[T: H + I](x: T) {
     let f = x.conv3 //~ ERROR `conv3` is ambiguous between `H` and `I`
 }
 -- expect --

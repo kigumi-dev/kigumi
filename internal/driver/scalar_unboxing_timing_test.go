@@ -24,7 +24,7 @@ func TestScalarUnboxingTiming(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(main), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	src := `fn main() -> Unit! {
+	src := `fn main() -> Void! {
     let n: usize = 262144
     let arr = Array.fill[u8](171, n)
     let mut acc: u8 = 0

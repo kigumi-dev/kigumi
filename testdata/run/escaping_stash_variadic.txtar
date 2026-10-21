@@ -3,24 +3,24 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop res ${self.n}"
 }
 
-fn Res.show(self) -> Unit {
+fn Res.show(self) {
     print "show res ${self.n}"
 }
 
-fn stash(cb: escaping fn() -> Unit) -> fn() -> Unit {
+fn stash(cb: escaping fn() -> Void) -> fn() -> Void {
     cb
 }
 
-fn stashViaLet(cb: escaping fn() -> Unit) -> fn() -> Unit {
+fn stashViaLet(cb: escaping fn() -> Void) -> fn() -> Void {
     let kept = cb
     kept
 }
 
-fn callAll(cbs: ...fn() -> Unit) -> Int {
+fn callAll(cbs: ...fn() -> Void) -> Int {
     let mut n = 0
     for cb in cbs {
         cb()
@@ -29,7 +29,7 @@ fn callAll(cbs: ...fn() -> Unit) -> Int {
     n
 }
 
-fn callBound[F: Fn[fn() -> Unit]](cbs: ...F) -> Int {
+fn callBound[F: Fn[fn() -> Void]](cbs: ...F) -> Int {
     let mut n = 0
     for cb in cbs {
         cb()
@@ -38,15 +38,15 @@ fn callBound[F: Fn[fn() -> Unit]](cbs: ...F) -> Int {
     n
 }
 
-fn keepAll(cbs: ...escaping fn() -> Unit) -> Array[fn() -> Unit] {
+fn keepAll(cbs: ...escaping fn() -> Void) -> Array[fn() -> Void] {
     cbs
 }
 
-fn keepGeneric[F: Fn[fn() -> Unit]](cbs: ...escaping F) -> Array[F] {
+fn keepGeneric[F: Fn[fn() -> Void]](cbs: ...escaping F) -> Array[F] {
     cbs
 }
 
-fn once[F: FnOnce[fn() -> Unit]](f: F, first: Bool) -> Unit {
+fn once[F: FnOnce[fn() -> Void]](f: F, first: Bool) {
     if first {
         print "first branch"
         f()
@@ -56,11 +56,11 @@ fn once[F: FnOnce[fn() -> Unit]](f: F, first: Bool) -> Unit {
     }
 }
 
-fn identity() -> fn(escaping fn() -> Unit) -> fn() -> Unit {
-    (cb: escaping fn() -> Unit) => cb
+fn identity() -> fn(escaping fn() -> Void) -> fn() -> Void {
+    (cb: escaping fn() -> Void) => cb
 }
 
-fn viaStash() -> Unit {
+fn viaStash() {
     let a = Res { n: 1 }
     let n = a.n
     let kept = stash(() => print "stash ${n}")
@@ -72,7 +72,7 @@ fn viaStash() -> Unit {
     print "stash end"
 }
 
-fn viaVariadic() -> Unit {
+fn viaVariadic() {
     let a = Res { n: 2 }
     let b = Res { n: 3 }
     print "called ${callAll(() => a.show(), () => b.show())}"
@@ -91,14 +91,14 @@ fn viaVariadic() -> Unit {
     print "variadic end"
 }
 
-fn viaOnce() -> Unit {
+fn viaOnce() {
     let a = Res { n: 4 }
     once(() => a.show(), true)
     once(() => a.show(), false)
     print "once end"
 }
 
-fn viaLambda() -> Unit {
+fn viaLambda() {
     let a = Res { n: 5 }
     let n = a.n
     let f = identity()(() => print "lambda ${n}")

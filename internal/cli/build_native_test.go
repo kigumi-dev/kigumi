@@ -20,7 +20,7 @@ func TestBuildPlainBuildNative(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	dir := t.TempDir()
 	file := filepath.Join(dir, "main.kg")
-	os.WriteFile(file, []byte("fn main() -> Unit! {}\n"), 0o644)
+	os.WriteFile(file, []byte("fn main() -> Void! {}\n"), 0o644)
 	out := filepath.Join(dir, "a.out")
 
 	if code, _, errOut := execute(t, "--std", std, "build", "-o", out, file); code != 0 {

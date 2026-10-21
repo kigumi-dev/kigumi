@@ -1,11 +1,11 @@
 -- src --
-fn f() -> Unit! {
+fn f() -> Void! {
     return
 }
 f()?
 print "ok"
 -- expect --
-fn main.f() -> Unit! {
+fn main.f() -> Void! {
   b0:
     %t0 = unit
     %t1 = variant Result.Ok(%t0)
@@ -14,7 +14,7 @@ fn main.f() -> Unit! {
     %t2 = unit
     return %t2
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = call main.f
     %t1 = isvariant Result.Ok(%t0)

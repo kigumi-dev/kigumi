@@ -47,7 +47,7 @@ fn keep(ps: Array[Point], p: Point) -> Array[Point] {
     out
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let t: Taker = Pm { k: 3 }
     let nm = Named { name: "a" }
     print "${throughValue(1)} ${throughTable(&t, 2)} ${throughWitness(&nm, 3)} ${keep(Array.empty[Point](), Point { x: 1, y: 1 }).len()}"

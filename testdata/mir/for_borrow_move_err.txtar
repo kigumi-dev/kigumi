@@ -2,7 +2,7 @@
 // An owned `for` moves its head, and a `for` over a shared
 // borrow holds it for the whole loop; both are the pre-existing own/borrow
 // errors, not new diagnostics.
-fn useAfterOwnedLoop() -> Unit {
+fn useAfterOwnedLoop() {
     let items = Array.of(1, 2, 3)
     for x in items {
         print "${x}"
@@ -10,7 +10,7 @@ fn useAfterOwnedLoop() -> Unit {
     print "${items.len()}"
 }
 
-fn mutateInsideBorrowLoop() -> Unit {
+fn mutateInsideBorrowLoop() {
     let mut items = Array.of(1, 2, 3)
     for x in &items {
         items.push(4)
@@ -18,7 +18,7 @@ fn mutateInsideBorrowLoop() -> Unit {
     }
 }
 -- expect --
-fn main.useAfterOwnedLoop() -> Unit {
+fn main.useAfterOwnedLoop() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = const 2: Int
@@ -58,7 +58,7 @@ fn main.useAfterOwnedLoop() -> Unit {
     nop
     return %t19
 }
-fn main.mutateInsideBorrowLoop() -> Unit {
+fn main.mutateInsideBorrowLoop() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = const 2: Int

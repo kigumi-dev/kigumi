@@ -15,7 +15,7 @@ async fn child(n: Int) -> Int {
 
 // A spawn inside an awaited helper joins the running task's executor, not
 // one of its own.
-async fn helper() -> Unit {
+async fn helper() {
     let deep = task.spawn(child(3))
     print "helper spawned"
     let v = await deep

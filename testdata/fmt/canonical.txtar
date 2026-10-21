@@ -9,8 +9,8 @@ noalloc pub pure fn f(  data : Bytes ) -> u64 { data.len() }
 @impl(Identified)
 pub type User = { pub id Int { json.name("id") }, name String, }
 
-pure pure fn g() -> Unit {}
-fn h() -> Unit {
+pure pure fn g() {}
+fn h() {
     io.print "x"
     user.display locale
     print "hi"   // trailing
@@ -55,9 +55,9 @@ pub type User = {
     name String
 }
 
-pure fn g() -> Unit {}
+pure fn g() {}
 
-fn h() -> Unit {
+fn h() {
     io.print("x")
     user.display(locale)
     print "hi" // trailing

@@ -24,7 +24,7 @@ noalloc fn five() -> Int {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let s = "isr"
         _ = s
         let k = 7
@@ -32,7 +32,7 @@ export(interrupt) {
     }
 }
 
-fn shout(text: String) -> Unit {
+fn shout(text: String) {
     print text
 }
 

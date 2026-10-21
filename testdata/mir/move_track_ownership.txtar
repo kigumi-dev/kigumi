@@ -3,9 +3,9 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
-fn Res.close(move self) -> Unit {}
+fn Res.close(move self) {}
 
 fn tryTwice(r: Result[Res, Int]) -> Result[Int, Int] {
     let a = r?
@@ -15,25 +15,25 @@ fn tryTwice(r: Result[Res, Int]) -> Result[Int, Int] {
     Ok(1)
 }
 
-fn orTwice(o: Res?, d: Res, e: Res) -> Unit {
+fn orTwice(o: Res?, d: Res, e: Res) {
     let a = o || d
     let b = o || e
     a.close()
     b.close()
 }
 
-fn captureThenClose(r: Res) -> Unit {
+fn captureThenClose(r: Res) {
     let f = () => { r.close() }
     r.close()
     f()
 }
 -- expect --
-fn lib.Res.drop(%self: Res) -> Unit {
+fn lib.Res.drop(%self: Res) -> Void {
   b0:
     %t1 = unit
     return %t1
 }
-fn lib.Res.close(%self: Res) -> Unit {
+fn lib.Res.close(%self: Res) -> Void {
   b0:
     %t1 = unit
     drop(%self)
@@ -75,7 +75,7 @@ fn lib.tryTwice(%r: Result[Res, Int]) -> Result[Int, Int] {
     %t8 = variant Result.Err(%t7)
     return %t8
 }
-fn lib.orTwice(%o: Res?, %d: Res, %e: Res) -> Unit {
+fn lib.orTwice(%o: Res?, %d: Res, %e: Res) -> Void {
   b0:
     %t4 = isvariant Option.Some(%o)
     branch %t4 ? b1 : b2
@@ -115,14 +115,14 @@ fn lib.orTwice(%o: Res?, %d: Res, %e: Res) -> Unit {
     drop(%o)
     return %t16
 }
-fn lib.captureThenClose.closure1(%r: Res) -> Unit {
+fn lib.captureThenClose.closure1(%r: Res) -> Void {
   b0:
     %t1 = move(%r)
     %t2 = call lib.Res.close(%t1)
     nop
     return %t2
 }
-fn lib.captureThenClose(%r: Res) -> Unit {
+fn lib.captureThenClose(%r: Res) -> Void {
   b0:
     %t1 = move(%r)
     %t2 = closure lib.captureThenClose.closure1(%t1)

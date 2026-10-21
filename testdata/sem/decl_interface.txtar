@@ -17,17 +17,17 @@ interface Cl {
     fn dup(self) -> Self
 }
 
-fn useCl(c: Cl) -> Unit {} //~ ERROR `Cl` is not object-safe (`Self` appears outside the receiver of `dup`)
+fn useCl(c: Cl) {} //~ ERROR `Cl` is not object-safe (`Self` appears outside the receiver of `dup`)
 
-fn genericOk[T: Cl](c: T) -> Unit {}
+fn genericOk[T: Cl](c: T) {}
 
 interface Gen {
     fn g[U](self, u: U) -> U
 }
 
-fn useGen(g: Gen) -> Unit {} //~ ERROR `Gen` is not object-safe (requirement `g` is generic)
+fn useGen(g: Gen) {} //~ ERROR `Gen` is not object-safe (requirement `g` is generic)
 
-fn selfOut(x: Self) -> Unit {} //~ ERROR `Self` is only available inside an interface body
+fn selfOut(x: Self) {} //~ ERROR `Self` is only available inside an interface body
 
 fn ok(d: Display) -> Display {
     d
@@ -60,20 +60,20 @@ error[E205]: interface bodies contain only function requirements
 error[E307]: `Cl` is not object-safe (`Self` appears outside the receiver of `dup`)
   --> app/i/i.kg:19:13
    |
-19 | fn useCl(c: Cl) -> Unit {} //~ ERROR `Cl` is not object-safe (`Self` appears outside the receiver of `dup`)
+19 | fn useCl(c: Cl) {} //~ ERROR `Cl` is not object-safe (`Self` appears outside the receiver of `dup`)
    |             ^^
    = help: use it as a constraint
 
 error[E307]: `Gen` is not object-safe (requirement `g` is generic)
   --> app/i/i.kg:27:14
    |
-27 | fn useGen(g: Gen) -> Unit {} //~ ERROR `Gen` is not object-safe (requirement `g` is generic)
+27 | fn useGen(g: Gen) {} //~ ERROR `Gen` is not object-safe (requirement `g` is generic)
    |              ^^^
    = help: use it as a constraint
 
 error[E132]: `Self` is only available inside an interface body
   --> app/i/i.kg:29:15
    |
-29 | fn selfOut(x: Self) -> Unit {} //~ ERROR `Self` is only available inside an interface body
+29 | fn selfOut(x: Self) {} //~ ERROR `Self` is only available inside an interface body
    |               ^^^^
 

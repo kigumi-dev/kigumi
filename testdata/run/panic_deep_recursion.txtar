@@ -1,7 +1,7 @@
 -- src --
 fn rec(n: Int) -> Int {
     if n == 0 {
-        let _: Unit = None.expect("deep")
+        let _: Void = None.expect("deep")
     }
     1 + rec(n - 1)
 }

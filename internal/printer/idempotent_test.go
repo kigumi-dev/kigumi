@@ -3,6 +3,7 @@ package printer_test
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -72,7 +73,7 @@ func TestIdempotent(t *testing.T) {
 			if len(again.Diags) > 0 {
 				t.Fatalf("formatted output does not parse:\n%s\n%v", once, again.Diags[0])
 			}
-			if got, want := normalizeImports(stripNoise(again.Dump())), normalizeImports(stripNoise(tree.Dump())); got != want {
+			if got, want := dropVoidReturns(normalizeImports(stripNoise(again.Dump()))), dropVoidReturns(normalizeImports(stripNoise(tree.Dump()))); got != want {
 				t.Errorf("parse(fmt(s)) != parse(s)\n--- fmt ---\n%s\n--- got ---\n%s--- want ---\n%s", once, got, want)
 			}
 			if twice := printer.Print(again); twice != once {
@@ -81,6 +82,11 @@ func TestIdempotent(t *testing.T) {
 		})
 	}
 }
+
+var voidReturn = regexp.MustCompile(`ret: TypePath\n\s+Path Void\n`)
+
+// dropVoidReturns makes a tree dump insensitive to an explicit `-> Void`, which the formatter omits.
+func dropVoidReturns(dump string) string { return voidReturn.ReplaceAllString(dump, "ret: -\n") }
 
 // normalizeImports makes a tree dump insensitive to the order of a run of
 // top-level imports and of the names inside one, which the formatter sorts

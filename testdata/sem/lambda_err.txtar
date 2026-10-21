@@ -3,13 +3,13 @@ fn apply(f: fn(Int) -> Int, x: Int) -> Int {
     f(x)
 }
 
-fn use(r: &Int) -> Unit {
+fn use(r: &Int) {
     let a = (x) => x //~ ERROR parameter `x` needs a type annotation
     apply((x, y) => x, 1) //~ ERROR lambda takes 2 parameters, `fn(Int) -> Int` expects 1 //~ WARNING unused value of type `Int`
     apply((x: String) => 1, 1) //~ ERROR parameter `x` is `String`, expected `Int` //~ WARNING unused value of type `Int`
     apply((x) => "s", 1) //~ ERROR expected `Int`, found `String` //~ WARNING unused value of type `Int`
     let mut n = 0
-    let f: fn() -> Unit = () => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+    let f: fn() -> Void = () => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
         n += 1
     }
     let g = () => r //~ ERROR closure cannot capture the borrow `r`
@@ -70,7 +70,7 @@ error[E400]: expected `Int`, found `String`
 error[E413]: closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
   --> lib/lam.kg:11:27
    |
-11 |     let f: fn() -> Unit = () => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+11 |     let f: fn() -> Void = () => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: use `F: Fn[...]`
 

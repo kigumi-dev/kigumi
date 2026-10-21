@@ -1,5 +1,5 @@
 -- src --
-fn nothing() -> Unit {
+fn nothing() {
 }
 
 let a = nothing()

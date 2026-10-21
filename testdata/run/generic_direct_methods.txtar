@@ -30,7 +30,7 @@ fn Point.choose[T](self, a: T, b: T) -> T {
 
 fn Slot[T: Copy].get(self) -> T { self.v }
 
-fn Slot[T].put(mut self, v: T) -> Unit {
+fn Slot[T].put(mut self, v: T) {
     self.v = v
 }
 

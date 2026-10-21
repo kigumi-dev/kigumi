@@ -22,7 +22,7 @@ fn LogWriter.write(mut self, data: Bytes) -> usize! {
     data.len()
 }
 
-fn sendTwice[W: io.Writer](mut w: W, a: Bytes, b: Bytes) -> Unit! {
+fn sendTwice[W: io.Writer](mut w: W, a: Bytes, b: Bytes) -> Void! {
     io.writeAll(w, a)?
     io.writeAll(w, b)?
 }
@@ -76,7 +76,7 @@ fn lib.LogWriter.write(%self: LogWriter, %data: Bytes) -> usize! {
     %t20 = unit
     jump b3
 }
-fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) -> Unit! {
+fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) -> Void! {
   b0:
     %t4 = move(%w)
     %t5 = copy(%a)

@@ -73,7 +73,7 @@ fn okAlias() -> String {
     }
 }
 
-fn nestedOverride() -> Unit {
+fn nestedOverride() {
     context (lib.Bundle.wrap("outer")) {
         let a = lib.needsToken()
         context (lib.Bundle.wrap("inner")) {
@@ -82,7 +82,7 @@ fn nestedOverride() -> Unit {
     }
 }
 
-async fn futureKeepsCallSiteBinding() -> Unit {
+async fn futureKeepsCallSiteBinding() {
     context (lib.Bundle.wrap("outer")) {
         let future = lib.needsTokenAsync()
         context (lib.Bundle.wrap("inner")) {
@@ -162,7 +162,7 @@ fn duplicate() -> String {
     }
 }
 
-fn wrongType() -> Unit {
+fn wrongType() {
     context (1) { //~ ERROR `{integer}` does not declare any context keys
     }
 }

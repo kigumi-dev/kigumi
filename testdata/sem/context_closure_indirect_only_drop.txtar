@@ -6,7 +6,7 @@ type Bundle = resource {
     tok Int
 }
 
-fn Bundle.drop(move self) -> Unit {
+fn Bundle.drop(move self) {
     _ = "${self.tok}"
 }
 

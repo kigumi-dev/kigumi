@@ -45,7 +45,7 @@ fn hashTag(a: &Tag) -> u64 {
     hash(a)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let a = Named { name: "ab", n: 1 }
     let b = Named { name: "ab", n: 1 }
     let c = Named { name: "ab", n: 2 }

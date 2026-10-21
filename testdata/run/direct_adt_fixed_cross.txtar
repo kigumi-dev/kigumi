@@ -18,7 +18,7 @@ fn pick[T](v: T) -> T { v }
 
 fn showIt(s: Shown) -> String { s.show() }
 
-fn unitOk() -> Result[Unit, AllocError] { pick(Ok(())) }
+fn unitOk() -> Result[Void, AllocError] { pick(Ok(())) }
 
 fn sum(xs: &Array[Tick]) -> Int {
     let mut total = 0

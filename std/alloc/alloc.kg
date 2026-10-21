@@ -52,7 +52,7 @@ pub fn Shared[T: Copy].get(self) -> T
 pub fn Shared[T: Copy].tryGet(self) -> Result[T, AllocError]
 
 /// Replaces the content; the old value is dropped.
-pub fn Shared[T].set(self, value: T) -> Unit
+pub fn Shared[T].set(self, value: T)
 
 /// Calls f once with a borrow of the content and returns what it returns; f is not kept (non-escaping).
 /// Panics on reentrant `withMut` into the same cell.
@@ -84,7 +84,7 @@ pub pure fn Box.tryNew[T](value: T) -> Result[Box[T], AllocError]
 pub pure noalloc fn Box[T: Copy].get(self) -> T
 
 /// Replaces the content; the old value is dropped.
-pub pure fn Box[T].set(mut self, value: T) -> Unit
+pub pure fn Box[T].set(mut self, value: T)
 
 /// Calls f once with a borrow of the content and returns what it returns; f is not kept (non-escaping).
 pub pure noalloc fn Box[T].with[R](self, f: fn(&T) -> R) -> R

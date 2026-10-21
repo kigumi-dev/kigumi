@@ -6,13 +6,13 @@ type Point = {
     pub mut y Int
 }
 
-fn put(s: &Shared[FixedArray[Point, 2]], i: usize, p: Point) -> Unit {
+fn put(s: &Shared[FixedArray[Point, 2]], i: usize, p: Point) {
     s.withMut((a) => {
         a[i] = p
     })
 }
 
-fn swap01(s: &Shared[FixedArray[Point, 2]]) -> Unit {
+fn swap01(s: &Shared[FixedArray[Point, 2]]) {
     s.withMut((a) => {
         let t = a[0]
         a[0] = a[1]
@@ -20,7 +20,7 @@ fn swap01(s: &Shared[FixedArray[Point, 2]]) -> Unit {
     })
 }
 
-fn nested(s: &Shared[FixedArray[Point, 2]], t: &Shared[Point]) -> Unit {
+fn nested(s: &Shared[FixedArray[Point, 2]], t: &Shared[Point]) {
     s.withMut((a) => {
         t.withMut((p) => {
             a[1] = Point { x: p.x + 10, y: p.y + 10 }
@@ -28,7 +28,7 @@ fn nested(s: &Shared[FixedArray[Point, 2]], t: &Shared[Point]) -> Unit {
     })
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let s = Shared.new(FixedArray.filled[Point, 2](Point { x: 1, y: 2 }))
     let t = Shared.new(Point { x: 7, y: 8 })
     put(&s, 0, Point { x: 5, y: 6 })

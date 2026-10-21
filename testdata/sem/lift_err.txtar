@@ -24,7 +24,7 @@ fn plus() -> Int? {
     x
 }
 
-fn tail() -> String { //~ ERROR expected `String`, found `Unit`
+fn tail() -> String { //~ ERROR expected `String`, found `Void`
     let a = 1
 }
 -- expect --
@@ -59,9 +59,9 @@ error[E400]: expected `Int`, found `_?`
 22 |     let x: Int? = 1 + None //~ ERROR expected `Int`, found `_?`
    |                       ^^^^
 
-error[E400]: expected `String`, found `Unit`
+error[E400]: expected `String`, found `Void`
   --> lib/lift.kg:26:21
    |
-26 | fn tail() -> String { //~ ERROR expected `String`, found `Unit`
+26 | fn tail() -> String { //~ ERROR expected `String`, found `Void`
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

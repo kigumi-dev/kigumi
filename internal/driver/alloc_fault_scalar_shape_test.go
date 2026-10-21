@@ -39,7 +39,7 @@ print "${s}"`, 0},
 let mut s = 0
 for r in 0..%[1]d { for x in &xs { s = s + x } }
 print "${s > 0}"`, 0},
-	{"store through a mut reference", `fn bump(r: &mut Int, i: Int) -> Unit { r = r + i + 2000 }
+	{"store through a mut reference", `fn bump(r: &mut Int, i: Int) { r = r + i + 2000 }
 let mut c = 0
 for i in 0..%[1]d { bump(&mut c, i) }
 print "${c > 0}"`, 1},
@@ -47,14 +47,14 @@ print "${c > 0}"`, 1},
     pub mut a Int
     pub mut b Float
 }
-fn bump(p: &mut P, i: Int) -> Unit {
+fn bump(p: &mut P, i: Int) {
     p.a = i + 2000
     p.b = 0.5
 }
 let mut p = P { a: 0, b: 0.0 }
 for i in 0..%[1]d { bump(&mut p, i) }
 print "${p.a > 0}"`, 1},
-	{"store into an array element", `fn put(xs: &mut Array[Int], i: Int) -> Unit { xs[0] = i + 2000 }
+	{"store into an array element", `fn put(xs: &mut Array[Int], i: Int) { xs[0] = i + 2000 }
 let mut xs = Array.fill(0, 2)
 for i in 0..%[1]d { put(&mut xs, i) }
 print "${xs[0] > 0}"`, 1},

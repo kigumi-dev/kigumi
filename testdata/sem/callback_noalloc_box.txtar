@@ -14,7 +14,7 @@ noalloc fn allocatingCallback(b: &Box[Int]) -> Bool {
     })
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E422]: closure is not `noalloc` (calls `new`)
  --> main.kg:8:12

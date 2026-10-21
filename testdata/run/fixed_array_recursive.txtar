@@ -30,7 +30,7 @@ fn build(depth: Int, base: Int) -> Tree {
     Node(kids)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let t = build(3, 1)
     let leaf = Rose { tag: 2, kids: FixedArray.filled(None) }
     let mut kids = FixedArray.filled[Rose?, 2](None)

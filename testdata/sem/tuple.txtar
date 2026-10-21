@@ -3,19 +3,19 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     _ = self
 }
 
 // A 1-tuple is a parenthesized expression, not a type of its own (R4).
 type Bad = (Int,) //~ ERROR a tuple needs 2 to 8 elements, found 1
 
-fn oneLit() -> Unit {
+fn oneLit() {
     let x = (1,) //~ ERROR a tuple needs 2 to 8 elements, found 1
     _ = x
 }
 
-fn onePat() -> Unit {
+fn onePat() {
     let (a,) = (1, 2) //~ ERROR a tuple needs 2 to 8 elements, found 1
     _ = a
 }
@@ -26,7 +26,7 @@ fn two() -> (Int, Int) {
 
 // A pattern's arity must match the scrutinee's tuple arity, the same as a
 // record pattern naming the wrong type.
-fn arityMismatch() -> Unit {
+fn arityMismatch() {
     let (a, b, c) = two() //~ ERROR this pattern cannot match `(Int, Int)`
     _ = a
     _ = b

@@ -24,7 +24,7 @@ fn Tick.value(self) -> Int {
     }
 }
 
-fn Counter.bump(mut self, t: Tick) -> Unit {
+fn Counter.bump(mut self, t: Tick) {
     self = Counter { last: t, hits: self.hits + 1 }
 }
 
@@ -44,7 +44,7 @@ fn label(l: Labelled) -> String {
     }
 }
 
-fn bumpTo(t: &mut Tick, n: Int) -> Unit { t = Up(n) }
+fn bumpTo(t: &mut Tick, n: Int) { t = Up(n) }
 
 fn marked(n: Int) -> Int {
     let mut m = Marked(Up(n * 2))
@@ -62,7 +62,7 @@ async fn root() -> Int {
     a + b
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut c = Counter { last: Flat, hits: 0 }
     c.bump(Up(3))
     c.bump(Down(4))

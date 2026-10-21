@@ -7,7 +7,7 @@ type Item = {
     pub rank Int
 }
 
-fn run() -> Unit {
+fn run() {
     let s = "a,b,,c"
     print "split ${s.trySplit(",").unwrap().len()} ${array.join(&s.split(","), "|")} ${"abc".trySplit("").unwrap().len()} ${"".split(",").len()}"
     print "chars ${"héllo".tryChars().unwrap().len()} ${"".chars().len()} ${array.join(&text.graphemes("hé!"), "/")} ${text.tryGraphemes("日本").unwrap().len()}"

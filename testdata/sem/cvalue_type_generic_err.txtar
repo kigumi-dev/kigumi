@@ -6,7 +6,7 @@ fn wrap[U](v: U) -> U {
     cv.get() //~ ERROR `U` cannot be a `CValue` element
 }
 
-fn useWrap() -> Unit! {
+fn useWrap() -> Void! {
     let _ = wrap(1)
 }
 

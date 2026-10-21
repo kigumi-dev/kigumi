@@ -38,7 +38,7 @@ fn mk(n: Int) -> Point { Point { x: n, y: n } }
 		"record": "fn run(n: Int) -> Int {\n    let mut c = Point { x: 0, y: 0 }\n    let f = () => { c = mk(n) }\n    f()\n    c.x\n}\n",
 	}
 	for name, body := range cases {
-		if closureNoalloc(t, head+body+"\nfn main() -> Unit! {}\n", "run") {
+		if closureNoalloc(t, head+body+"\nfn main() -> Void! {}\n", "run") {
 			t.Errorf("%s: the closure boxes the value it stores, so its summary must not claim noalloc", name)
 		}
 	}
@@ -46,7 +46,7 @@ fn mk(n: Int) -> Point { Point { x: n, y: n } }
 
 func TestClosureStoringAScalarIntoACellStaysNoalloc(t *testing.T) {
 	t.Parallel()
-	src := "fn run(n: Int) -> Int {\n    let mut c = 0\n    let f = () => { c = n }\n    f()\n    c\n}\n\nfn main() -> Unit! {}\n"
+	src := "fn run(n: Int) -> Int {\n    let mut c = 0\n    let f = () => { c = n }\n    f()\n    c\n}\n\nfn main() -> Void! {}\n"
 	if !closureNoalloc(t, src, "run") {
 		t.Error("a scalar store into a cell does not allocate")
 	}

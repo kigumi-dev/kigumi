@@ -35,7 +35,7 @@ fn apply(f: fn(Int) -> Int) -> Int { f(1) }
 
 fn describe[T: Shape](s: T) -> Float { s.area() }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${plain(1)} ${apply(twice)}"
     let s: Shape = Square { side: 2.0 }
     print "${s.area()} ${describe(Square { side: 3.0 })}"

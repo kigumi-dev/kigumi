@@ -38,7 +38,7 @@ fn returned['a](b: &'a Bytes) -> Map[String, View['a]] {
     m
 }
 
-fn intoCaller['a](m: &mut Map[String, View['a]]) -> Unit {
+fn intoCaller['a](m: &mut Map[String, View['a]]) {
     let local = bytes()
     m.set("local", View { data: &local, off: 0 })
 }

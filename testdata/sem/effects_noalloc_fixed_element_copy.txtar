@@ -16,23 +16,23 @@ type Named = {
     pub mut n Int
 }
 
-noalloc fn copyScalar(xs: &mut FixedArray[Int, 2]) -> Unit {
+noalloc fn copyScalar(xs: &mut FixedArray[Int, 2]) {
     xs[0] = xs[1]
 }
 
-noalloc fn copyRecord(xs: &mut FixedArray[Pt, 2]) -> Unit {
+noalloc fn copyRecord(xs: &mut FixedArray[Pt, 2]) {
     xs[0] = xs[1]
 }
 
-noalloc fn copyNested(xs: &mut FixedArray[Inner, 2]) -> Unit {
+noalloc fn copyNested(xs: &mut FixedArray[Inner, 2]) {
     xs[1] = xs[0]
 }
 
-noalloc fn copyAcross(dst: &mut FixedArray[Pt, 2], src: &FixedArray[Pt, 2]) -> Unit {
+noalloc fn copyAcross(dst: &mut FixedArray[Pt, 2], src: &FixedArray[Pt, 2]) {
     dst[0] = src[1]
 }
 
-noalloc fn copyParen(xs: &mut FixedArray[Pt, 2]) -> Unit {
+noalloc fn copyParen(xs: &mut FixedArray[Pt, 2]) {
     xs[0] = (xs[1])
 }
 
@@ -42,5 +42,5 @@ noalloc fn copyLocal() -> Int {
     xs[0].x
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --

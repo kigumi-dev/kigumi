@@ -43,7 +43,7 @@ fn rebound(mut v: V) -> Int {
     v.a.n
 }
 
-fn swap(w: &mut V) -> Unit {
+fn swap(w: &mut V) {
     let t = w.a
     w.a = w.c
     w.c = t
@@ -57,7 +57,7 @@ fn readBetween(w: &mut V) -> Int {
     k
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanRCCopiesAReadSunkTwice(t *testing.T) {

@@ -26,7 +26,7 @@ fn wrongSibling(x: OrderId) -> ids.UserId {
     x //~ ERROR expected `UserId`, found `OrderId`
 }
 
-fn badWrapArgs() -> Unit {
+fn badWrapArgs() {
     let a = OrderId() //~ ERROR `OrderId(...)` takes exactly one argument, 0 given
     let b = OrderId(1, 2) //~ ERROR `OrderId(...)` takes exactly one argument, 2 given
     let c = OrderId(value: 1) //~ ERROR named, default and spread arguments are not allowed when wrapping `OrderId`
@@ -36,7 +36,7 @@ fn OrderId.value(self) -> u64 { //~ ERROR `value` is `OrderId`'s representation 
     0
 }
 
-fn outsideAccess(raw: u64, id: ids.UserId) -> Unit {
+fn outsideAccess(raw: u64, id: ids.UserId) {
     let w = ids.UserId(raw) //~ ERROR `UserId(...)` is a representation operation usable only inside the package that declares `UserId`
     let v = id.value //~ ERROR `.value` is `UserId`'s private representation, usable only inside the package that declares `UserId`
 }
@@ -49,12 +49,12 @@ type Holder = {
     m Meters
 }
 
-fn unwrapAssignLocal() -> Unit {
+fn unwrapAssignLocal() {
     let m = Meters(10.0)
     m.value = 5.0 //~ ERROR `m` is immutable
 }
 
-fn unwrapAssignField() -> Unit {
+fn unwrapAssignField() {
     let mut h = Holder { m: Meters(10.0) }
     h.m.value = 5.0 //~ ERROR field `m` is immutable
 }

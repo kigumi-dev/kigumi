@@ -37,7 +37,7 @@ export(C) {
 export(component) {
     instantiate IntList = List[i64]
 }
-pub(in app.core) fn helper() -> Unit {}
+pub(in app.core) fn helper() {}
 -- expect --
 File
   ImportDecl
@@ -237,6 +237,5 @@ File
     name: helper
     generics: -
     params: List
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block

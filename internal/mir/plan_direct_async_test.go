@@ -33,7 +33,7 @@ async fn walk(n: Int) -> Int {
     p.x + p.y
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func localNamed(t *testing.T, f *mir.Func, name string) mir.LocalID {
@@ -111,7 +111,7 @@ type WideShape = Big(v: u128) | Dot
 
 fn use(f: Flags, m: Mixed, s: Shape, b: FixedArray[u8, 5], o: Int?, w: Wide, ws: WideShape, wa: FixedArray[i128, 3]) -> Int { 0 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	f := funcNamed(t, prog, "main.use")
 	want := [][2]int64{{8, 4}, {16, 8}, {24, 8}, {5, 1}, {16, 8}, {24, 8}, {24, 8}, {48, 8}}

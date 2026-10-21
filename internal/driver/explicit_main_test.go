@@ -13,7 +13,7 @@ import (
 func TestRunExplicitMain(t *testing.T) {
 	root := t.TempDir()
 	writeEntryScopeModule(t, root, map[string]string{
-		"main/main.kg": "fn main() -> Unit! {\n    print(\"hello\")\n}\n",
+		"main/main.kg": "fn main() -> Void! {\n    print(\"hello\")\n}\n",
 	})
 	std, _ := filepath.Abs("../../std")
 	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std, Entry: "main/main.kg"})
@@ -34,13 +34,13 @@ func TestRunExplicitMain(t *testing.T) {
 	}
 }
 
-// TestRunExplicitMainWithHost covers the `fn main(host: Host) -> Unit!`
+// TestRunExplicitMainWithHost covers the `fn main(host: Host) -> Void!`
 // form, the second sanctioned signature.
 func TestRunExplicitMainWithHost(t *testing.T) {
 	root := t.TempDir()
 	writeEntryScopeModule(t, root, map[string]string{
 		"main/main.kg": "import os from std/os\n\n" +
-			"fn main(host: os.Host) -> Unit! {\n" +
+			"fn main(host: os.Host) -> Void! {\n" +
 			"    let a = host.args()\n" +
 			"    print(\"argc=${a.len()}\")\n" +
 			"}\n",

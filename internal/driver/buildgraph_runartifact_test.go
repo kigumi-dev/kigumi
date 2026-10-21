@@ -28,7 +28,7 @@ func TestBuildProgramRunArtifact(t *testing.T) {
 	write("cmd/writer/main.kg", "import fs from std/fs\n\n"+
 		"let out = host.args().get(1) || \"missing\"\n"+
 		"host.files().writeText(fs.Path.fromString(out)?, \"ran\\n\")?\n")
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let tool = b.executable(\"writer\", \"cmd/writer\", b.request().target())?\n" +
 		"    let o = b.runArtifact(tool, Array.of(\"$out:0\"), Array.empty[build.FilePath](), Array.of(\"result.txt\"))?\n" +
 		"}\n"

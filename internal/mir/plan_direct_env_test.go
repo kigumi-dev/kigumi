@@ -29,7 +29,7 @@ fn lends(p: Point) -> Bool {
     f()
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func fixedCalls(p *mir.Program, f *mir.Func) int {
@@ -119,7 +119,7 @@ fn viewWrite() -> Int {
     pts[0].x
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanDirectKeepsAFixedArrayInline(t *testing.T) {

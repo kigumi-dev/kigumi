@@ -17,7 +17,7 @@ noalloc fn declared(n: Nm) -> Int {
     n.n
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func withCopy(t *testing.T, p *mir.Program, name string) {

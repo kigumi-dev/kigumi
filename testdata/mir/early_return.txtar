@@ -35,7 +35,7 @@ fn main.g(%n: Int) -> String {
     %t7 = unit
     jump b3
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t1 = const 5: Int
     %t2 = call main.g(%t1)

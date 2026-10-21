@@ -1,9 +1,9 @@
 -- src --
-fn incr(x: &mut Int) -> Unit {
+fn incr(x: &mut Int) {
     x = x + 1
 }
 
-fn setByte(x: &mut u8) -> Unit {
+fn setByte(x: &mut u8) {
     x = 250
 }
 

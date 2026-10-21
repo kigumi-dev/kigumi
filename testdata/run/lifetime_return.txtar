@@ -10,7 +10,7 @@ fn larger['a](x: &'a Int, y: &'a Int) -> &'a Int {
     if x > y { x } else { y }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let a = 3
     let b = 7
     let f = first(&a)

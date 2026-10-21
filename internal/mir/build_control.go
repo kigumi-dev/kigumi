@@ -50,7 +50,7 @@ func (b *builder) ifExpr(e *hir.Expr) LocalID {
 
 // assignValue stores a branch's value into the result of an `if`. A branch
 // of an `if` used as a statement may still produce a value (a foreign call
-// whose pointer nobody reads); it is dropped, and the result stays Unit.
+// whose pointer nobody reads); it is dropped, and the result stays Void.
 func (b *builder) assignValue(dst, src LocalID, n syntax.NodeID) {
 	if b.fn.Locals[dst].Type == sem.TyUnit && b.fn.Locals[src].Type != sem.TyUnit && b.fn.Locals[src].Type != sem.TyNever {
 		if b.r.Types.Kind(b.fn.Locals[src].Type) != sem.KRef {

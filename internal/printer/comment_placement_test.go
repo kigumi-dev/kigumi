@@ -16,12 +16,12 @@ func format(src string) string {
 func TestCommentPlacementIsStable(t *testing.T) {
 	cases := []struct{ name, src, want string }{
 		{"interpolation", "fn f(x: Int) -> String {\n    \"v=${x /* c */}\"\n}\n", ""},
-		{"empty if block", "fn g() -> Unit {\n    if true {\n        // only\n    }\n    print \"a\"\n}\n", ""},
-		{"empty else block", "fn g(x: Int) -> Unit {\n    if x > 0 {\n        print \"a\"\n    } else {\n        // none\n    }\n}\n", ""},
-		{"empty block inside interpolation fn", "fn h() -> Unit {\n    for i in 0..3 {\n        /* c */\n    }\n}\n", ""},
+		{"empty if block", "fn g() {\n    if true {\n        // only\n    }\n    print \"a\"\n}\n", ""},
+		{"empty else block", "fn g(x: Int) {\n    if x > 0 {\n        print \"a\"\n    } else {\n        // none\n    }\n}\n", ""},
+		{"empty block inside interpolation fn", "fn h() {\n    for i in 0..3 {\n        /* c */\n    }\n}\n", ""},
 		{"last call trailing", "fn k(x: Int) -> Int {\n    f(x) // last\n}\n", ""},
 		{"last match trailing", "fn a(x: Int) -> Int {\n    match x {\n        1 -> 2\n        _ -> 3\n    } // end\n}\n", ""},
-		{"last block comment", "fn d(x: Int) -> Unit {\n    print \"${x}\" /* blk */\n}\n", ""},
+		{"last block comment", "fn d(x: Int) {\n    print \"${x}\" /* blk */\n}\n", ""},
 		{"own line after last", "fn m(x: Int) -> Int {\n    x\n    // after\n}\n", ""},
 	}
 	for _, c := range cases {

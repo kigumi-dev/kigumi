@@ -3,7 +3,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop res ${self.n}"
 }
 
@@ -29,7 +29,7 @@ fn later[F: Fn[fn() -> Int]](h: Handler[F]) -> Int {
     (h.callback)()
 }
 
-fn viaMethod() -> Unit {
+fn viaMethod() {
     let c = Counter { base: 10 }
     let h = keep(c.next)
     print "kept method"
@@ -38,12 +38,12 @@ fn viaMethod() -> Unit {
 
 fn plain() -> Int { 100 }
 
-fn viaFnItem() -> Unit {
+fn viaFnItem() {
     let h = keep(plain)
     print "fn item result ${later(h)}"
 }
 
-fn viaLambda() -> Unit {
+fn viaLambda() {
     let a = Res { n: 2 }
     let b = Res { n: 3 }
     let first = keep(() => a.n * 2)
@@ -59,7 +59,7 @@ fn pinned() -> fn(escaping fn() -> Int) -> Handler[fn() -> Int] { keep }
 
 fn forwarded(callback: escaping fn() -> Int) -> Handler[fn() -> Int] { keep(callback) }
 
-fn viaAnnotation() -> Unit {
+fn viaAnnotation() {
     let ks: fn(escaping fn() -> Int) -> Handler[fn() -> Int] = keep
     print "annotated ${(ks(plain).callback)()}"
     print "returned ${(pinned()(plain).callback)()}"

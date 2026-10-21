@@ -9,63 +9,63 @@ type Wrap[T] = { pub v T }
 
 type View['a] = { pub data &'a Box }
 
-fn own[T](x: T) -> Unit {}
+fn own[T](x: T) {}
 
-fn lend[T](x: &T) -> Unit {}
+fn lend[T](x: &T) {}
 
-fn wrapped() -> Unit {
+fn wrapped() {
     let b = Box { n: 1 }
     let w = Wrap { v: &b }
 }
 
-fn nested() -> Unit {
+fn nested() {
     let b = Box { n: 1 }
     let w = Wrap { v: Wrap { v: &b } }
 }
 
-fn tupled() -> Unit {
+fn tupled() {
     let b = Box { n: 1 }
     let t = (&b, 1)
 }
 
-fn variant() -> Unit {
+fn variant() {
     let b = Box { n: 1 }
     let o = Option.Some(&b)
 }
 
-fn element() -> Unit {
+fn element() {
     let b = Box { n: 1 }
     let a = Array.of(&b)
 }
 
-fn handed() -> Unit {
+fn handed() {
     let b = Box { n: 1 }
     own(&b)
 }
 
-fn forwarded(r: &Box) -> Unit {
+fn forwarded(r: &Box) {
     own(r)
 }
 
-fn viewed() -> Unit {
+fn viewed() {
     let b = Box { n: 1 }
     let v = View { data: &b }
     lend(v.data)
     own(v.data)
 }
 -- expect --
-fn lib.own(%x: T) -> Unit {
+fn lib.own(%x: T) -> Void {
   b0:
     %t1 = unit
     drop(%x)
     return %t1
 }
-fn lib.lend(%x: &T) -> Unit {
+fn lib.lend(%x: &T) -> Void {
   b0:
     %t1 = unit
     return %t1
 }
-fn lib.wrapped() -> Unit {
+fn lib.wrapped() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = record lib.Box(%t0)
@@ -78,7 +78,7 @@ fn lib.wrapped() -> Unit {
     %t6 = unit
     return %t6
 }
-fn lib.nested() -> Unit {
+fn lib.nested() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = record lib.Box(%t0)
@@ -92,7 +92,7 @@ fn lib.nested() -> Unit {
     %t7 = unit
     return %t7
 }
-fn lib.tupled() -> Unit {
+fn lib.tupled() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = record lib.Box(%t0)
@@ -106,7 +106,7 @@ fn lib.tupled() -> Unit {
     %t7 = unit
     return %t7
 }
-fn lib.variant() -> Unit {
+fn lib.variant() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = record lib.Box(%t0)
@@ -119,7 +119,7 @@ fn lib.variant() -> Unit {
     %t6 = unit
     return %t6
 }
-fn lib.element() -> Unit {
+fn lib.element() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = record lib.Box(%t0)
@@ -133,7 +133,7 @@ fn lib.element() -> Unit {
     %t7 = unit
     return %t7
 }
-fn lib.handed() -> Unit {
+fn lib.handed() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = record lib.Box(%t0)
@@ -143,13 +143,13 @@ fn lib.handed() -> Unit {
     drop(%b)
     return %t4
 }
-fn lib.forwarded(%r: &Box) -> Unit {
+fn lib.forwarded(%r: &Box) -> Void {
   b0:
     %t1 = copy(%r)
     %t2 = call lib.own(%t1)
     return %t2
 }
-fn lib.viewed() -> Unit {
+fn lib.viewed() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = record lib.Box(%t0)

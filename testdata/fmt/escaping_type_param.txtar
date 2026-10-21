@@ -1,21 +1,21 @@
 -- src --
-fn keep[F: Fn[fn() -> Unit]](callback:   escaping   F) -> Handler[F] { Handler { callback: callback } }
-fn viaType[F: Fn[fn() -> Unit]](register: fn(escaping   F, Int) -> Unit, cb: F) -> Unit { register(cb, 1) }
-fn direct(a: escaping   fn() -> Unit, rest: ...escaping   Int) -> Unit {}
+fn keep[F: Fn[fn() -> Void]](callback:   escaping   F) -> Handler[F] { Handler { callback: callback } }
+fn viaType[F: Fn[fn() -> Void]](register: fn(escaping   F, Int) -> Void, cb: F) { register(cb, 1) }
+fn direct(a: escaping   fn() -> Void, rest: ...escaping   Int) {}
 interface Registry {
-    fn add[F: Fn[fn() -> Unit]](self, callback:   escaping F) -> Unit
+    fn add[F: Fn[fn() -> Void]](self, callback:   escaping F)
 }
 -- expect --
-fn keep[F: Fn[fn() -> Unit]](callback: escaping F) -> Handler[F] {
+fn keep[F: Fn[fn() -> Void]](callback: escaping F) -> Handler[F] {
     Handler { callback: callback }
 }
 
-fn viaType[F: Fn[fn() -> Unit]](register: fn(escaping F, Int) -> Unit, cb: F) -> Unit {
+fn viaType[F: Fn[fn() -> Void]](register: fn(escaping F, Int) -> Void, cb: F) {
     register(cb, 1)
 }
 
-fn direct(a: escaping fn() -> Unit, rest: ...escaping Int) -> Unit {}
+fn direct(a: escaping fn() -> Void, rest: ...escaping Int) {}
 
 interface Registry {
-    fn add[F: Fn[fn() -> Unit]](self, callback: escaping F) -> Unit
+    fn add[F: Fn[fn() -> Void]](self, callback: escaping F)
 }

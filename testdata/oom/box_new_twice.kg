@@ -1,6 +1,6 @@
 import {Box} from std/alloc
 
-fn run() -> Unit {
+fn run() {
     let n = 41
     eprint "go"
     let r1 = Box.tryNew(n)

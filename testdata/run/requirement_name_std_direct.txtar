@@ -2,7 +2,7 @@
 interface Sized {
     fn len(self) -> Int
     fn get(self, i: Int) -> Int
-    fn push(mut self, x: Int) -> Unit
+    fn push(mut self, x: Int)
     fn first(self) -> Int
     fn trim(self) -> Int
     fn contains(self, x: Int) -> Bool
@@ -15,7 +15,7 @@ type Box = {
 
 fn Box.len(self) -> Int { self.n }
 fn Box.get(self, i: Int) -> Int { self.n + i }
-fn Box.push(mut self, x: Int) -> Unit { self.n = self.n + x }
+fn Box.push(mut self, x: Int) { self.n = self.n + x }
 fn Box.first(self) -> Int { self.n * 10 }
 fn Box.trim(self) -> Int { self.n * 100 }
 fn Box.contains(self, x: Int) -> Bool { self.n == x }
@@ -29,7 +29,7 @@ fn driveParam[T: Sized](s: T) -> String {
     "${s.len()} ${s.get(2)} ${s.first()} ${s.toString()}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut b = Box { n: 4 }
     print "d=${drive(b)} ${driveParam(b)}"
     b.push(1)

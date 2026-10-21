@@ -1,35 +1,35 @@
 -- lib/esc.kg --
 import alloc from std/alloc
 
-fn useThunk(t: fn() -> (fn() -> Unit)) -> fn() -> Unit {
+fn useThunk(t: fn() -> (fn() -> Void)) -> fn() -> Void {
     t()
 }
 
 // A lambda's implicit tail value is a return of its own body, caught at the lambda itself, not
 // only through an explicit `return`.
-fn viaUserForwarder(cb: fn() -> Unit) -> fn() -> Unit {
+fn viaUserForwarder(cb: fn() -> Void) -> fn() -> Void {
     useThunk(() => cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
 // The pipe form of the same idiom: `|>` calls the lambda immediately, but
 // the lambda's own return value still carries the restriction onward.
-fn viaPipe(cb: fn() -> Unit) -> fn() -> Unit {
+fn viaPipe(cb: fn() -> Void) -> fn() -> Void {
     let g = 0 |> (y: Int) => cb //~ ERROR `cb` is a non-escaping callback and cannot be returned
     g
 }
 
 // The allowlisted intrinsic Shared.with forwards its own result: the
 // lambda handed to it must not launder cb through as that result either.
-fn viaSharedWith(cb: fn() -> Unit) -> fn() -> Unit {
+fn viaSharedWith(cb: fn() -> Void) -> fn() -> Void {
     let cell = alloc.Shared.new(0)
     cell.with((n: &Int) => cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-fn noop() -> Unit {}
+fn noop() {}
 
 // A lambda whose tail is NOT the restricted callback stays clean, even
 // when it captures and calls cb along the way.
-fn viaUserForwarderOk(cb: fn() -> Unit) -> fn() -> Unit {
+fn viaUserForwarderOk(cb: fn() -> Void) -> fn() -> Void {
     useThunk(() => { cb(); noop })
 }
 -- expect --

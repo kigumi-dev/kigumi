@@ -3,7 +3,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.get(self, k: Int) -> Int { self.n + k }
 
@@ -12,36 +12,36 @@ type Pair = {
     pub left Res
 }
 
-fn take(p: Pair) -> Unit {}
+fn take(p: Pair) {}
 
 fn moved(p: Pair) -> Int {
     let f = p.left.get
     f(1) + p.tag
 }
 
-fn wholeAfter(p: Pair) -> Unit {
+fn wholeAfter(p: Pair) {
     let f = p.left.get
     take(p)
 }
 
-fn twice(p: Pair) -> Unit {
+fn twice(p: Pair) {
     let f = p.left.get
     let g = p.left.get
 }
 
-fn show(r: &Res) -> Unit {}
+fn show(r: &Res) {}
 
-fn reserved(p: Pair) -> Unit {
+fn reserved(p: Pair) {
     defer show(&p.left)
     let f = p.left.get
 }
 
-fn optional(o: Res?) -> Unit {
+fn optional(o: Res?) {
     let f = o?.get
     let g = o?.get
 }
 -- expect --
-fn lib.Res.drop(%self: Res) -> Unit {
+fn lib.Res.drop(%self: Res) -> Void {
   b0:
     %t1 = unit
     return %t1
@@ -53,7 +53,7 @@ fn lib.Res.get(%self: Res, %k: Int) -> Int {
     drop(%k)
     return %t3
 }
-fn lib.take(%p: Pair) -> Unit {
+fn lib.take(%p: Pair) -> Void {
   b0:
     %t1 = unit
     drop(%p)
@@ -72,7 +72,7 @@ fn lib.moved(%p: Pair) -> Int {
     drop(%p)
     return %t7
 }
-fn lib.wholeAfter(%p: Pair) -> Unit {
+fn lib.wholeAfter(%p: Pair) -> Void {
   b0:
     %t1 = fieldmove 1(%p)
     %t2 = closure lib.Res.get method(%t1)
@@ -83,7 +83,7 @@ fn lib.wholeAfter(%p: Pair) -> Unit {
     nop
     return %t5
 }
-fn lib.twice(%p: Pair) -> Unit {
+fn lib.twice(%p: Pair) -> Void {
   b0:
     %t1 = fieldmove 1(%p)
     %t2 = closure lib.Res.get method(%t1)
@@ -97,12 +97,12 @@ fn lib.twice(%p: Pair) -> Unit {
     drop(%p)
     return %t7
 }
-fn lib.show(%r: &Res) -> Unit {
+fn lib.show(%r: &Res) -> Void {
   b0:
     %t1 = unit
     return %t1
 }
-fn lib.reserved(%p: Pair) -> Unit {
+fn lib.reserved(%p: Pair) -> Void {
   b0:
     %t1 = fieldmove 1(%p)
     %t2 = closure lib.Res.get method(%t1)
@@ -116,7 +116,7 @@ fn lib.reserved(%p: Pair) -> Unit {
     drop(%p)
     return %t7
 }
-fn lib.optional(%o: Res?) -> Unit {
+fn lib.optional(%o: Res?) -> Void {
   b0:
     %t1 = move(%o)
     %t2 = isvariant Option.Some(%t1)

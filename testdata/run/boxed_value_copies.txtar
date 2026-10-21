@@ -9,7 +9,7 @@ type Point = {
     pub mut y Int
 }
 
-fn Point.bump(mut self) -> Unit {
+fn Point.bump(mut self) {
     self.x = self.x + 100
 }
 
@@ -18,7 +18,7 @@ type Named = {
     pub mut n Int
 }
 
-fn Named.bump(mut self) -> Unit {
+fn Named.bump(mut self) {
     self.n = self.n + 100
 }
 
@@ -33,7 +33,7 @@ type W = {
     pub mut inner Inner
 }
 
-fn poke(p: &mut Point) -> Unit {
+fn poke(p: &mut Point) {
     p.x = 77
 }
 
@@ -54,7 +54,7 @@ fn fresh() -> W {
     W { a: FixedArray.filled(1), p: Point { x: 1, y: 2 }, inner: Inner { q: Named { name: "q", n: 1 }, k: 2 } }
 }
 
-fn bindings() -> Unit {
+fn bindings() {
     let w = fresh()
     let mut b = w.a
     b[1] = 5
@@ -85,7 +85,7 @@ fn bindings() -> Unit {
     print "cell ${w.inner.k} ${cell.k} ${w.inner.q.n} ${pick.n}"
 }
 
-fn elements() -> Unit {
+fn elements() {
     let mut ns: Array[Named] = Array.of(Named { name: "a", n: 1 }, Named { name: "b", n: 2 })
     let mut pts: Array[Point] = Array.of(Point { x: 1, y: 1 })
     let mut e = ns[0]
@@ -115,7 +115,7 @@ fn elements() -> Unit {
     }
 }
 
-fn kept() -> Unit {
+fn kept() {
     let mut r = Named { name: "a", n: 1 }
     let mut rs: Array[Named] = Array.empty()
     rs.push(r)
@@ -148,7 +148,7 @@ fn kept() -> Unit {
     print "loop ${total}"
 }
 
-fn calls() -> Unit {
+fn calls() {
     let w = fresh()
     let mut i = w.innerOf()
     i.k = 77
@@ -160,7 +160,7 @@ fn calls() -> Unit {
     print "calls ${w.inner.k} ${i.k} ${w.inner.q.n} ${q.n} ${set} ${ns[0].n} ${setElem}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     bindings()
     elements()
     kept()

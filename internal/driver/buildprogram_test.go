@@ -75,12 +75,12 @@ func TestBuildProgramShape(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"shape\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder, extra: Int) -> Unit! {\n    let a = b.executable(\"x\", \"\", b.request().target())?\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder, extra: Int) -> Void! {\n    let a = b.executable(\"x\", \"\", b.request().target())?\n}\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
 	if _, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err == nil || !strings.Contains(err.Error(), "configure must be") {
 		t.Fatalf("expected the shape error, got %v", err)
 	}
-	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nlet x = 1\n\nfn configure(b: build.Builder) -> Unit! {\n    let a = b.executable(\"x\", \"\", b.request().target())?\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nlet x = 1\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\"x\", \"\", b.request().target())?\n}\n"), 0o644)
 	if _, _, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std}); err == nil {
 		t.Fatal("top-level statements in build.kg should be rejected")
 	}

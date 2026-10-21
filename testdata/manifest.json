@@ -193,6 +193,17 @@
       ]
     },
     {
+      "id": "fmt/fn_void_forms",
+      "kind": "fmt",
+      "path": "testdata/fmt/fn_void_forms.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/import_rename",
       "kind": "fmt",
       "path": "testdata/fmt/import_rename.txtar",
@@ -1351,6 +1362,28 @@
       "id": "parser/decl_fn",
       "kind": "parser",
       "path": "testdata/parser/decl_fn.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/decl_fn_void",
+      "kind": "parser",
+      "path": "testdata/parser/decl_fn_void.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/decl_fn_void_errors",
+      "kind": "parser",
+      "path": "testdata/parser/decl_fn_void_errors.txtar",
       "mode": [
         "parse"
       ],
@@ -12515,6 +12548,57 @@
       ]
     },
     {
+      "id": "run/void_main_bare_bang",
+      "kind": "run",
+      "path": "testdata/run/void_main_bare_bang.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/void_main_plain",
+      "kind": "run",
+      "path": "testdata/run/void_main_plain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/void_return_forms",
+      "kind": "run",
+      "path": "testdata/run/void_return_forms.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/weak",
       "kind": "run",
       "path": "testdata/run/weak.txtar",
@@ -16735,6 +16819,61 @@
       "id": "sem/visibility_pkg",
       "kind": "sem",
       "path": "testdata/sem/visibility_pkg.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/void_main_bang_ok",
+      "kind": "sem",
+      "path": "testdata/sem/void_main_bang_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/void_main_ok",
+      "kind": "sem",
+      "path": "testdata/sem/void_main_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/void_main_signature",
+      "kind": "sem",
+      "path": "testdata/sem/void_main_signature.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/void_main_stray_bang",
+      "kind": "sem",
+      "path": "testdata/sem/void_main_stray_bang.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/void_return_shapes",
+      "kind": "sem",
+      "path": "testdata/sem/void_return_shapes.txtar",
       "mode": [
         "check"
       ],

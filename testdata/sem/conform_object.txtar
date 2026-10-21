@@ -15,7 +15,7 @@ fn f(x: Display) -> Display {
     x
 }
 
-fn g(x: Cloneable) -> Unit {} //~ ERROR `Cloneable` is not object-safe (`Self` appears outside the receiver of `dup`)
+fn g(x: Cloneable) {} //~ ERROR `Cloneable` is not object-safe (`Self` appears outside the receiver of `dup`)
 
 fn h[T: Cloneable](x: T) -> T {
     x
@@ -41,7 +41,7 @@ error[E307]: `Cloneable` is not object-safe (`Self` appears outside the receiver
 error[E307]: `Cloneable` is not object-safe (`Self` appears outside the receiver of `dup`)
   --> app/e/e.kg:17:9
    |
-17 | fn g(x: Cloneable) -> Unit {} //~ ERROR `Cloneable` is not object-safe (`Self` appears outside the receiver of `dup`)
+17 | fn g(x: Cloneable) {} //~ ERROR `Cloneable` is not object-safe (`Self` appears outside the receiver of `dup`)
    |         ^^^^^^^^^
    = help: use it as a constraint
 

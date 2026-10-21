@@ -5,9 +5,9 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
@@ -27,11 +27,11 @@ fn mk(n: Int) -> Pack {
     Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
 }
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn sink(n: Int) -> Unit {}
+fn sink(n: Int) {}
 
-fn callOnceBranches[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+fn callOnceBranches[F: FnOnce[fn() -> Void]](f: F, c: Bool) {
     if c {
         f()
     } else {
@@ -39,7 +39,7 @@ fn callOnceBranches[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
     }
 }
 
-fn fieldInLoop() -> Unit {
+fn fieldInLoop() {
     let b = mk(1)
     let f = () => { b.other.close() }
     for i in 0..2 {
@@ -47,28 +47,28 @@ fn fieldInLoop() -> Unit {
     }
 }
 
-fn wholeTwice() -> Unit {
+fn wholeTwice() {
     let h = mkh(1)
     let f = () => { h.close() }
     f()
     f() //~ ERROR consumes `h`
 }
 
-fn returnedTwice() -> Unit {
+fn returnedTwice() {
     let h = mkh(1)
     let f = () => h
     let a = f()
     let b = f() //~ ERROR consumes `h`
 }
 
-fn passedOn() -> Unit {
+fn passedOn() {
     let h = mkh(1)
     let f = () => { take(h) }
     f()
     f() //~ ERROR consumes `h`
 }
 
-fn consumedViaNested() -> Unit {
+fn consumedViaNested() {
     let h = mkh(1)
     let f = () => { h.close() }
     let g = () => { f() }
@@ -76,7 +76,7 @@ fn consumedViaNested() -> Unit {
     g() //~ ERROR consumes `f`
 }
 
-fn deferInLoop() -> Unit {
+fn deferInLoop() {
     let h = mkh(1)
     let f = () => { h.close() }
     for i in 0..2 {
@@ -84,13 +84,13 @@ fn deferInLoop() -> Unit {
     }
 }
 
-fn onceCalledOnce() -> Unit {
+fn onceCalledOnce() {
     let h = mkh(1)
     let f = () => { h.close() }
     f()
 }
 
-fn onceInBranches(c: Bool) -> Unit {
+fn onceInBranches(c: Bool) {
     let h = mkh(1)
     let f = () => { h.close() }
     if c {
@@ -100,14 +100,14 @@ fn onceInBranches(c: Bool) -> Unit {
     }
 }
 
-fn borrowedManyTimes() -> Unit {
+fn borrowedManyTimes() {
     let h = mkh(1)
     let f = () => h.peek()
     sink(f())
     sink(f())
 }
 
-fn borrowedField() -> Unit {
+fn borrowedField() {
     let b = mk(1)
     let f = () => b.other.peek()
     for i in 0..2 {
@@ -115,14 +115,14 @@ fn borrowedField() -> Unit {
     }
 }
 
-fn copyCaptureManyTimes() -> Unit {
+fn copyCaptureManyTimes() {
     let n = 5
     let f = () => n + 1
     sink(f())
     sink(f())
 }
 
-fn perIterationClosure() -> Unit {
+fn perIterationClosure() {
     for i in 0..2 {
         let h = mkh(i)
         let f = () => { h.close() }
@@ -134,7 +134,7 @@ type Slot = {
     pub mut opt Handle?
 }
 
-fn refillClosure() -> Unit {
+fn refillClosure() {
     let mut h = mkh(1)
     let f = () => {
         h.close()
@@ -145,7 +145,7 @@ fn refillClosure() -> Unit {
     h.close() //~ ERROR `h` was moved
 }
 
-fn refillFieldClosure() -> Unit {
+fn refillFieldClosure() {
     let mut p = mk(10)
     let f = () => {
         p.other.close()
@@ -155,7 +155,7 @@ fn refillFieldClosure() -> Unit {
     f()
 }
 
-fn refillPayloadClosure() -> Unit {
+fn refillPayloadClosure() {
     let mut s = Slot { opt: Some(mkh(20)) }
     let f = () => {
         match s.opt {
@@ -168,7 +168,7 @@ fn refillPayloadClosure() -> Unit {
     f()
 }
 
-fn assignedBeforeConsume() -> Unit {
+fn assignedBeforeConsume() {
     let mut h = mkh(1)
     let f = () => {
         h = mkh(2)
@@ -178,7 +178,7 @@ fn assignedBeforeConsume() -> Unit {
     f() //~ ERROR can be called only once
 }
 
-fn conditionalRefill(c: Bool) -> Unit {
+fn conditionalRefill(c: Bool) {
     let mut h = mkh(1)
     let f = () => {
         h.close()
@@ -204,14 +204,14 @@ type Holder[F] = {
     pub f F
 }
 
-fn storedInFieldOnce() -> Unit {
+fn storedInFieldOnce() {
     let p = mk(30)
     let f = () => { p.other.close() }
     let s = Holder { f: f }
     (s.f)()
 }
 
-fn storedInFieldTwice() -> Unit {
+fn storedInFieldTwice() {
     let p = mk(40)
     let f = () => { p.other.close() }
     let s = Holder { f: f }
@@ -219,7 +219,7 @@ fn storedInFieldTwice() -> Unit {
     (s.f)() //~ ERROR can be called only once
 }
 
-fn storedInFieldInLoop() -> Unit {
+fn storedInFieldInLoop() {
     let p = mk(50)
     let f = () => { p.other.close() }
     let s = Holder { f: f }
@@ -228,7 +228,7 @@ fn storedInFieldInLoop() -> Unit {
     }
 }
 
-fn returnBeforeRefill(c: Bool) -> Unit {
+fn returnBeforeRefill(c: Bool) {
     let mut h = mkh(1)
     let f = () => {
         h.close()
@@ -241,7 +241,7 @@ fn returnBeforeRefill(c: Bool) -> Unit {
     f() //~ ERROR can be called only once
 }
 
-fn matchReturnBeforeRefill() -> Unit {
+fn matchReturnBeforeRefill() {
     let mut h = mkh(1)
     let f = (x: Int) => {
         h.close()
@@ -256,7 +256,7 @@ fn matchReturnBeforeRefill() -> Unit {
     sink(f(1)) //~ ERROR can be called only once
 }
 
-fn continueBeforeRefill(c: Bool) -> Unit {
+fn continueBeforeRefill(c: Bool) {
     let mut h = mkh(1)
     let f = () => {
         for i in 0..1 {
@@ -271,7 +271,7 @@ fn continueBeforeRefill(c: Bool) -> Unit {
     f() //~ ERROR can be called only once
 }
 
-fn innerLoopBreakKeepsRefill(xs: Array[Int]) -> Unit {
+fn innerLoopBreakKeepsRefill(xs: Array[Int]) {
     let mut h = mkh(1)
     let f = () => {
         h.close()
@@ -290,25 +290,25 @@ type S[F] = {
     pub f F
 }
 
-fn S[F: FnOnce[fn() -> Unit]].run(self) -> Unit {
+fn S[F: FnOnce[fn() -> Void]].run(self) {
     (self.f)() //~ ERROR reached through a borrow
 }
 
-fn S[F: FnOnce[fn() -> Unit]].runOwned(move self) -> Unit {
+fn S[F: FnOnce[fn() -> Void]].runOwned(move self) {
     (self.f)()
 }
 
-fn runS[F: FnOnce[fn() -> Unit]](s: &S[F]) -> Unit {
+fn runS[F: FnOnce[fn() -> Void]](s: &S[F]) {
     (s.f)() //~ ERROR reached through a borrow
 }
 
-fn runOwnedOnce() -> Unit {
+fn runOwnedOnce() {
     let p = mk(60)
     let s = S { f: () => { p.other.close() } }
     s.runOwned()
 }
 
-fn innerOnceThenOuter() -> Unit {
+fn innerOnceThenOuter() {
     let h = mkh(1)
     let g = () => { h.close() }
     let k = () => { g() }
@@ -316,7 +316,7 @@ fn innerOnceThenOuter() -> Unit {
     g() //~ ERROR can be called only once
 }
 
-fn outerAfterInner() -> Unit {
+fn outerAfterInner() {
     let h = mkh(1)
     let g = () => { h.close() }
     g()
@@ -324,7 +324,7 @@ fn outerAfterInner() -> Unit {
     k()
 }
 
-fn innerDeferredAndOuter() -> Unit {
+fn innerDeferredAndOuter() {
     let h = mkh(1)
     let g = () => { h.close() }
     defer { g() } //~ ERROR can be called only once

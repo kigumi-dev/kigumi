@@ -9,19 +9,19 @@ fn Shape.area(self) -> Int {
     }
 }
 
-fn reset(s: &mut Shape, k: Int) -> Unit {
+fn reset(s: &mut Shape, k: Int) {
     s = Circle(k)
 }
 
-fn forward(s: &mut Shape, k: Int) -> Unit {
+fn forward(s: &mut Shape, k: Int) {
     reset(s, k)
 }
 
-fn forwardTwice(s: &mut Shape, k: Int) -> Unit {
+fn forwardTwice(s: &mut Shape, k: Int) {
     forward(s, k)
 }
 
-fn forwardThrice(s: &mut Shape, k: Int) -> Unit {
+fn forwardThrice(s: &mut Shape, k: Int) {
     forwardTwice((s), k)
 }
 
@@ -49,11 +49,11 @@ fn readReturned['a](h: Holder['a]) -> Int {
     readOnly(lend(h))
 }
 
-fn setScalar(x: &mut Int, k: Int) -> Unit {
+fn setScalar(x: &mut Int, k: Int) {
     x = k
 }
 
-fn setScalarField['a](c: Count['a], k: Int) -> Unit {
+fn setScalarField['a](c: Count['a], k: Int) {
     setScalar(c.n, k)
 }
 

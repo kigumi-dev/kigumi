@@ -9,7 +9,7 @@ type Pair = {
     pub tag Int
 }
 
-fn Ring.push(mut self, v: u128) -> Unit {
+fn Ring.push(mut self, v: u128) {
     self.slots[self.head % 4] = v
     self.head = self.head + 1
 }

@@ -43,7 +43,7 @@ fn leftArrayChain(depth: Int) -> Node {
     cur
 }
 
-fn drops(depth: Int) -> Unit {
+fn drops(depth: Int) {
     let a = boxChain(depth)
     print "box ${depth}"
     let b = arrayChain(depth)

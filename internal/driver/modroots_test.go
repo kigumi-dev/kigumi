@@ -38,7 +38,7 @@ func TestBuildProgramRootsFollowSelection(t *testing.T) {
 	if err := driver.WriteLock(root, lock); err != nil {
 		t.Fatal(err)
 	}
-	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {}\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Void! {}\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
 	p, ok, err := driver.LoadBuildProgram(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil || !ok {

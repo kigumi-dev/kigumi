@@ -3,7 +3,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     ()
 }
 
@@ -19,11 +19,11 @@ fn takeNoReinit(mut p: Pair) -> Res {
     move p.a
 }
 
-fn consume(p: Pair) -> Unit {
+fn consume(p: Pair) {
     ()
 }
 
-fn useWhole(mut p: Pair) -> Unit {
+fn useWhole(mut p: Pair) {
     let taken = move p.a
     consume(p)
 }
@@ -34,7 +34,7 @@ fn S.leak(mut self) -> Res {
     move self.r
 }
 -- expect --
-fn lib.Res.drop(%self: Res) -> Unit {
+fn lib.Res.drop(%self: Res) -> Void {
   b0:
     %t1 = unit
     return %t1
@@ -57,13 +57,13 @@ fn lib.takeNoReinit(%p: Pair) -> Res {
     drop(%p)
     return %t1
 }
-fn lib.consume(%p: Pair) -> Unit {
+fn lib.consume(%p: Pair) -> Void {
   b0:
     %t1 = unit
     drop(%p)
     return %t1
 }
-fn lib.useWhole(%p: Pair) -> Unit {
+fn lib.useWhole(%p: Pair) -> Void {
   b0:
     %t1 = fieldmove 0(%p)
     %taken = copy(%t1)

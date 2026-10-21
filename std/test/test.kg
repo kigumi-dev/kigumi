@@ -14,7 +14,7 @@ pub pure fn failure(text: String) -> Failure {
 }
 
 /// Fails with `expected <expected>, got <actual>` unless the two are equal.
-pub pure fn expectEq[T: Eq](actual: T, expected: T) -> Unit! {
+pub pure fn expectEq[T: Eq](actual: T, expected: T) -> Void! {
     if !actual.equals(&expected) {
         fail failure("expected ${debug(&expected)}, got ${debug(&actual)}")
     }

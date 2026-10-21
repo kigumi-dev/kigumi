@@ -42,7 +42,7 @@ fn keeps(i: Int) -> Int {
     show(&p).len().toInt() || 0
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanDirectLendsAReadOnlyReferenceByValue(t *testing.T) {

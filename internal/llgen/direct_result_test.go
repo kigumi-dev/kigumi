@@ -36,7 +36,7 @@ fn run(n: Int) -> Int {
     s
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     if run(3) > 100 {}
 }
 `

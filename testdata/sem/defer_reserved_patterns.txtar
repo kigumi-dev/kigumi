@@ -5,9 +5,9 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
@@ -26,7 +26,7 @@ type Outer = {
 
 type Shape = Boxed(Handle) | Empty
 
-fn sink(n: Int) -> Unit {}
+fn sink(n: Int) {}
 
 fn mkh(n: Int) -> Handle {
     Handle { id: n }
@@ -36,7 +36,7 @@ fn mk() -> Pack {
     Pack { inner: mkh(1), other: mkh(2), n: 0 }
 }
 
-fn matchField() -> Unit {
+fn matchField() {
     let b = mk()
     defer { b.inner.close() }
     match b { //~ ERROR
@@ -44,7 +44,7 @@ fn matchField() -> Unit {
     }
 }
 
-fn matchFieldRenamed() -> Unit {
+fn matchFieldRenamed() {
     let b = mk()
     defer { b.inner.close() }
     match b { //~ ERROR
@@ -52,7 +52,7 @@ fn matchFieldRenamed() -> Unit {
     }
 }
 
-fn ifLetField() -> Unit {
+fn ifLetField() {
     let b = mk()
     defer { b.inner.close() }
     if let Pack { inner, other: _, n: _ } = b { //~ ERROR
@@ -60,7 +60,7 @@ fn ifLetField() -> Unit {
     }
 }
 
-fn isPattern() -> Unit {
+fn isPattern() {
     let s = Boxed(mkh(1))
     defer {
         match s {
@@ -73,14 +73,14 @@ fn isPattern() -> Unit {
     }
 }
 
-fn letDestructure() -> Unit {
+fn letDestructure() {
     let b = mk()
     defer { b.inner.close() }
     let Pack { inner, other: _, n: _ } = b //~ ERROR
     inner.close()
 }
 
-fn matchWholeBinding() -> Unit {
+fn matchWholeBinding() {
     let b = mk()
     defer { b.inner.close() }
     match b { //~ ERROR
@@ -88,7 +88,7 @@ fn matchWholeBinding() -> Unit {
     }
 }
 
-fn matchWholeHandle() -> Unit {
+fn matchWholeHandle() {
     let h = mkh(1)
     defer { h.close() }
     match h { //~ ERROR
@@ -96,7 +96,7 @@ fn matchWholeHandle() -> Unit {
     }
 }
 
-fn nestedPattern() -> Unit {
+fn nestedPattern() {
     let o = Outer { pack: mk(), tag: 0 }
     defer { o.pack.inner.close() }
     match o { //~ ERROR
@@ -104,7 +104,7 @@ fn nestedPattern() -> Unit {
     }
 }
 
-fn nestedBindsParent() -> Unit {
+fn nestedBindsParent() {
     let o = Outer { pack: mk(), tag: 0 }
     defer { o.pack.inner.close() }
     match o { //~ ERROR
@@ -112,7 +112,7 @@ fn nestedBindsParent() -> Unit {
     }
 }
 
-fn variantPayload() -> Unit {
+fn variantPayload() {
     let s = Boxed(mkh(1))
     defer {
         match s {
@@ -126,7 +126,7 @@ fn variantPayload() -> Unit {
     }
 }
 
-fn failMatchField() -> Unit! {
+fn failMatchField() -> Void! {
     let b = mk()
     defer(fail) { b.inner.close() }
     match b { //~ ERROR
@@ -135,7 +135,7 @@ fn failMatchField() -> Unit! {
     sink(0)
 }
 
-fn failMatchFieldAsSuccessExit() -> Unit! {
+fn failMatchFieldAsSuccessExit() -> Void! {
     let b = mk()
     defer(fail) { b.inner.close() }
     match b {
@@ -143,7 +143,7 @@ fn failMatchFieldAsSuccessExit() -> Unit! {
     }
 }
 
-fn cleanupDestructuresThenMoves() -> Unit {
+fn cleanupDestructuresThenMoves() {
     let b = mk()
     defer {
         match b {
@@ -153,25 +153,25 @@ fn cleanupDestructuresThenMoves() -> Unit {
     b.inner.close() //~ ERROR
 }
 
-fn assignerBeforeConsumer() -> Unit {
+fn assignerBeforeConsumer() {
     let mut h = mkh(1)
     defer { h = mkh(2) } //~ ERROR
     defer { h.close() }
 }
 
-fn failAssignerBeforeConsumer() -> Unit! {
+fn failAssignerBeforeConsumer() -> Void! {
     let mut h = mkh(1)
     defer(fail) { h = mkh(2) } //~ ERROR
     defer { h.close() }
 }
 
-fn assignerOfWholeBeforeFieldConsumer() -> Unit {
+fn assignerOfWholeBeforeFieldConsumer() {
     let mut b = mk()
     defer { b = mk() } //~ ERROR
     defer { b.inner.close() }
 }
 
-fn siblingFieldDestructure() -> Unit {
+fn siblingFieldDestructure() {
     let b = mk()
     defer { b.inner.close() }
     match b {
@@ -179,7 +179,7 @@ fn siblingFieldDestructure() -> Unit {
     }
 }
 
-fn copyFieldDestructure() -> Unit {
+fn copyFieldDestructure() {
     let b = mk()
     defer { b.inner.close() }
     match b {
@@ -187,7 +187,7 @@ fn copyFieldDestructure() -> Unit {
     }
 }
 
-fn borrowedScrutinee() -> Unit {
+fn borrowedScrutinee() {
     let b = mk()
     defer { b.inner.close() }
     match &b {
@@ -195,13 +195,13 @@ fn borrowedScrutinee() -> Unit {
     }
 }
 
-fn borrowedParam(b: &Pack) -> Unit {
+fn borrowedParam(b: &Pack) {
     match b {
         Pack { inner, other: _, n: _ } -> sink(inner.peek())
     }
 }
 
-fn wildcardArm() -> Unit {
+fn wildcardArm() {
     let b = mk()
     defer { b.inner.close() }
     match b {
@@ -209,14 +209,14 @@ fn wildcardArm() -> Unit {
     }
 }
 
-fn lambdaReadsReservedField() -> Unit {
+fn lambdaReadsReservedField() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.inner.peek()
     sink(f())
 }
 
-fn lambdaReadsSiblingThenReturnsReserved() -> Unit {
+fn lambdaReadsSiblingThenReturnsReserved() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => {
@@ -226,40 +226,40 @@ fn lambdaReadsSiblingThenReturnsReserved() -> Unit {
     _ = f
 }
 
-fn lambdaReadsSiblingField() -> Unit {
+fn lambdaReadsSiblingField() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.other.peek()
     sink(f())
 }
 
-fn lambdaReadsSiblingTwice() -> Unit {
+fn lambdaReadsSiblingTwice() {
     let b = mk()
     defer { b.inner.close() }
     let f = () => b.other.peek() + b.n
     sink(f())
 }
 
-fn failLambdaReadsSiblingField() -> Unit! {
+fn failLambdaReadsSiblingField() -> Void! {
     let b = mk()
     defer(fail) { b.inner.close() }
     let f = () => b.other.peek()
     sink(f())
 }
 
-fn assignerWithoutConsumer() -> Unit {
+fn assignerWithoutConsumer() {
     let mut h = mkh(1)
     defer { h = mkh(2) }
     sink(h.peek())
 }
 
-fn assignerOfSiblingField() -> Unit {
+fn assignerOfSiblingField() {
     let mut b = mk()
     defer { b.other = mkh(5) }
     defer { b.inner.close() }
 }
 
-fn assignerAfterBorrowOnlyConsumer() -> Unit {
+fn assignerAfterBorrowOnlyConsumer() {
     let mut h = mkh(1)
     defer { sink(h.peek()) }
     defer { h = mkh(2) }

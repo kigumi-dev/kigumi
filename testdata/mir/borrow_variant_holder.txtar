@@ -12,7 +12,7 @@ fn make['a](b: &'a Box) -> Holder['a] {
     Has(v)
 }
 
-fn makeLoose() -> Unit {
+fn makeLoose() {
     let b = Box { v: 1 }
     let r = &b
     let l = Wrap2(r)
@@ -29,7 +29,7 @@ fn lib.make(%b: &Box) -> Holder['a] {
     drop(%v)
     return %t5
 }
-fn lib.makeLoose() -> Unit {
+fn lib.makeLoose() -> Void {
   b0:
     %t0 = const 1: Int
     %t1 = record lib.Box(%t0)

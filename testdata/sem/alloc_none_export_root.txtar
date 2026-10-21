@@ -28,7 +28,7 @@ export(C) {
     }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E959]: this allocation needs the default allocator, but this build has none (--allocator none)
   --> main.kg:18:17

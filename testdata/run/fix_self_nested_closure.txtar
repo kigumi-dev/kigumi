@@ -3,7 +3,7 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.nested(mut self) -> Unit {
+fn Counter.nested(mut self) {
     let outer = () => {
         let inner = () => {
             self.n = self.n + 1
@@ -14,7 +14,7 @@ fn Counter.nested(mut self) -> Unit {
     outer()
 }
 
-fn Counter.nestedReset(mut self) -> Unit {
+fn Counter.nestedReset(mut self) {
     let outer = () => {
         let inner = () => {
             self = Counter { n: 42 }

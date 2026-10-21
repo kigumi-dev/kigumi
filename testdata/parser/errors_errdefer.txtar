@@ -1,5 +1,5 @@
 -- src --
-fn f() -> Unit! {
+fn f() -> Void! {
     errdefer h.close()
     errdefer {
         a()
@@ -16,7 +16,7 @@ File
     params: List
     ret: TypeResult
       TypePath
-        Path Unit
+        Path Void
     body: Block
       DeferFail
         ExprStmt

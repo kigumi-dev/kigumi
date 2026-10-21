@@ -59,7 +59,7 @@ fn writesLoop(xs: FixedArray[Named, 2]) -> Int {
     total + ys[0].n
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func retainsOf(p *mir.Program, f *mir.Func) (retains, copies int) {

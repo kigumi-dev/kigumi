@@ -5,9 +5,9 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
@@ -25,7 +25,7 @@ fn mk(base: Int) -> Pack {
     Pack { inner: Handle { id: base }, other: Handle { id: base + 1 }, n: base }
 }
 
-fn siblingMatch() -> Unit {
+fn siblingMatch() {
     let b = mk(10)
     defer { b.inner.close() }
     match b {
@@ -34,7 +34,7 @@ fn siblingMatch() -> Unit {
     print "after match"
 }
 
-fn siblingIfLet() -> Unit {
+fn siblingIfLet() {
     let b = mk(20)
     defer { b.inner.close() }
     if let Pack { other, inner: _, n } = b {
@@ -44,7 +44,7 @@ fn siblingIfLet() -> Unit {
     print "after if let"
 }
 
-fn borrowedMatch() -> Unit {
+fn borrowedMatch() {
     let b = mk(30)
     defer { b.inner.close() }
     match &b {
@@ -53,7 +53,7 @@ fn borrowedMatch() -> Unit {
     print "after borrow"
 }
 
-fn failTailMatch(ok: Bool) -> Unit! {
+fn failTailMatch(ok: Bool) -> Void! {
     let b = mk(40)
     defer(fail) { b.inner.close() }
     if !ok {
@@ -64,7 +64,7 @@ fn failTailMatch(ok: Bool) -> Unit! {
     }
 }
 
-fn cleanupDestructures() -> Unit {
+fn cleanupDestructures() {
     let b = mk(50)
     defer {
         match b {
@@ -74,7 +74,7 @@ fn cleanupDestructures() -> Unit {
     print "other ${b.other.peek()}"
 }
 
-fn assignsSiblingInEarlierCleanup() -> Unit {
+fn assignsSiblingInEarlierCleanup() {
     let mut b = mk(60)
     defer {
         b.other = Handle { id: 99 }
@@ -84,7 +84,7 @@ fn assignsSiblingInEarlierCleanup() -> Unit {
     print "body"
 }
 
-fn assignsWithoutConsumer() -> Unit {
+fn assignsWithoutConsumer() {
     let mut h = Handle { id: 70 }
     defer {
         h = Handle { id: 71 }
@@ -93,14 +93,14 @@ fn assignsWithoutConsumer() -> Unit {
     print "body ${h.peek()}"
 }
 
-fn lambdaReadsSibling() -> Unit {
+fn lambdaReadsSibling() {
     let b = mk(80)
     defer { b.inner.close() }
     let f = (p: &Pack) => p.other.peek() + p.n
     print "f ${f(&b)}"
 }
 
-fn report(label: String, r: Unit!) -> Unit {
+fn report(label: String, r: Void!) {
     match r {
         Ok(_) -> print "${label}: ok"
         Err(e) -> print "${label}: err ${e.message()}"

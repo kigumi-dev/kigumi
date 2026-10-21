@@ -9,22 +9,22 @@ fn wrap(x: Int) -> String {
     "nope"
 }
 
-fn use() -> Unit {
+fn use() {
     _ = takesUser("not an id") //~ ERROR expected `UserId`, found `String`
     let n: UserId = "also not an id" //~ ERROR expected `UserId`, found `String`
 }
 
-fn useCall() -> Unit {
+fn useCall() {
     let id: UserId = wrap(1) //~ ERROR expected `UserId`, found `String`
 }
 
-fn useNestedCall() -> Unit {
+fn useNestedCall() {
     _ = takesUser(wrap(1)) //~ ERROR expected `UserId`, found `String`
 }
 
 type Choice = A | B
 
-fn useIf(b: Bool) -> Unit {
+fn useIf(b: Bool) {
     let id: UserId = if b {
         "bad" //~ ERROR expected `UserId`, found `String`
     } else {
@@ -32,7 +32,7 @@ fn useIf(b: Bool) -> Unit {
     }
 }
 
-fn useIfCallThenBranch(b: Bool) -> Unit {
+fn useIfCallThenBranch(b: Bool) {
     let id: UserId = if b {
         wrap(1) //~ ERROR expected `UserId`, found `String`
     } else {
@@ -40,21 +40,21 @@ fn useIfCallThenBranch(b: Bool) -> Unit {
     }
 }
 
-fn useMatch(c: Choice) -> Unit {
+fn useMatch(c: Choice) {
     let id: UserId = match c {
         A -> "bad" //~ ERROR expected `UserId`, found `String`
         B -> "still bad" //~ ERROR expected `UserId`, found `String`
     }
 }
 
-fn useBlock() -> Unit {
+fn useBlock() {
     let id: UserId = {
         let x = 1
         "bad" //~ ERROR expected `UserId`, found `String`
     }
 }
 
-fn useArgIf(b: Bool) -> Unit {
+fn useArgIf(b: Bool) {
     _ = takesUser(if b {
         "bad" //~ ERROR expected `UserId`, found `String`
     } else {

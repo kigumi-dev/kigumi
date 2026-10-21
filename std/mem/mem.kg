@@ -13,12 +13,12 @@ pub unsafe fn UnsafeCell[T: Copy].get(self) -> T
 /// Replaces the content; the old value is dropped. The caller rules out
 /// overlapping access through another alias of the same cell for the
 /// duration of the call.
-pub unsafe fn UnsafeCell[T].set(self, value: T) -> Unit
+pub unsafe fn UnsafeCell[T].set(self, value: T)
 
 /// Zeros region; survives the optimizer even right before drop/free, but
 /// promises nothing about registers, the stack, or allocator-reused memory.
-pub pure fn secureErase(region: &mut Bytes) -> Unit
+pub pure fn secureErase(region: &mut Bytes)
 
 /// Zeros region like secureErase, or AllocError when the allocator refuses
 /// (secureErase panics instead; only an unowned region can hit this path).
-pub pure fn trySecureErase(region: &mut Bytes) -> Result[Unit, AllocError]
+pub pure fn trySecureErase(region: &mut Bytes) -> Result[Void, AllocError]

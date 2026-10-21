@@ -7,11 +7,11 @@ fn apply[A, R](f: fn(A) -> Future[R], a: A) -> Future[R] {
     f(a)
 }
 
-fn wrongAnnotation() -> Unit {
+fn wrongAnnotation() {
     let g: fn(Int) -> Int = fetch //~ ERROR expected `fn(Int) -> Int`, found `fn(Int) -> Future[Int]`
 }
 
-fn awaitOutside() -> Unit {
+fn awaitOutside() {
     let f = fetch
     let p = f(1)
     let x = await p //~ ERROR `await` is only allowed inside an `async fn`

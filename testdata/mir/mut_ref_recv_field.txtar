@@ -3,7 +3,7 @@ type Box = {
     pub mut n Int
 }
 
-fn Box.bump(mut self, k: Int) -> Unit {
+fn Box.bump(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -11,7 +11,7 @@ type Holder['a] = {
     pub mut r &'a mut Box
 }
 
-fn bumpField['a](h: Holder['a]) -> Unit {
+fn bumpField['a](h: Holder['a]) {
     h.r.bump(2)
 }
 
@@ -23,7 +23,7 @@ let mut b = Box { n: 1 }
 bumpField(Holder { r: &mut b })
 print "${b.n}"
 -- expect --
-fn main.Box.bump(%self: Box, %k: Int) -> Unit {
+fn main.Box.bump(%self: Box, %k: Int) -> Void {
   b0:
     %t2 = cellget(%self)
     %t3 = cellget(%self)
@@ -34,7 +34,7 @@ fn main.Box.bump(%self: Box, %k: Int) -> Unit {
     drop(%k)
     return %t6
 }
-fn main.bumpField(%h: Holder['a]) -> Unit {
+fn main.bumpField(%h: Holder['a]) -> Void {
   b0:
     %t1 = field 0(%h)
     %t2 = borrow 1(%t1)
@@ -55,7 +55,7 @@ fn main.readField(%h: Holder['a]) -> Int {
     drop(%h)
     return %t2
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = const 1: Int
     %t1 = record main.Box(%t0)

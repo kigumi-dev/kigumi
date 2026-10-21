@@ -1,5 +1,5 @@
 -- src --
-let id = (cb: escaping fn() -> Unit) => cb
+let id = (cb: escaping fn() -> Void) => cb
 -- expect --
 File
   Let
@@ -11,5 +11,5 @@ File
             params: List
             flags: escaping
             ret: TypePath
-              Path Unit
+              Path Void
       Ident cb

@@ -26,7 +26,7 @@ fn show[T: Display](x: T) -> String {
     x.display()
 }
 
-fn showAll(xs: Array[Display]) -> Unit {
+fn showAll(xs: Array[Display]) {
     for x in xs {
         print x.display()
     }

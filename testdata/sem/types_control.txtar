@@ -37,7 +37,7 @@ fn blk() -> Int {
     v
 }
 
-fn unit() -> Unit {
+fn unit() {
     1 //~ WARNING unused value of type `Int`
 }
 
@@ -51,7 +51,7 @@ fn merged(n: Int) -> Int? {
     v
 }
 
-fn loops(xs: Array[Int], s: String) -> Unit {
+fn loops(xs: Array[Int], s: String) {
     for x in xs {
         let y = x + 1 //~ TYPE y : Int
     }

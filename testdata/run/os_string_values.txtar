@@ -3,7 +3,7 @@ import map from std/map
 import os from std/os
 import fs from std/fs
 
-fn show(label: String, o: &os.OsString) -> Unit {
+fn show(label: String, o: &os.OsString) {
     print "${label}: len=${o.len()} unicode=${o.isUnicode()} lossy=${o.toStringLossy().bytes().len()}"
 }
 

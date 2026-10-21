@@ -21,7 +21,7 @@ fn noTry() -> Int {
     parse("x")? //~ ERROR `?` requires a `Result` return type
 }
 
-fn notResult() -> Unit! {
+fn notResult() -> Void! {
     let v = 1? //~ ERROR `?` needs a `Result`, found `Int`
 }
 
@@ -29,25 +29,25 @@ fn wrongErr() -> Result[Int, Silent] {
     parse("x")? //~ ERROR cannot propagate `ParseError` from a function returning `Result[_, Silent]`
 }
 
-fn noMessage() -> Unit! {
+fn noMessage() -> Void! {
     let v = parse("x")? //~ ERROR cannot propagate `ParseError` from a function returning `Result[_, Error]`
 }
 
-fn failNoMessage() -> Unit! {
+fn failNoMessage() -> Void! {
     fail Silent { code: 1 } //~ ERROR `Silent` does not conform to `Error` (no `fn message(self) -> String`)
 }
 
-fn failInt() -> Unit! {
+fn failInt() -> Void! {
     fail 5 //~ ERROR `Int` does not conform to `Error`
 }
 
-fn unused() -> Unit! {
+fn unused() -> Void! {
     parse("x") //~ ERROR unused `Result[Int, ParseError]`
     _ = parse("y")
     let r = parse("z")
 }
 
-fn missing() -> Unit! {
+fn missing() -> Void! {
     fail //~ ERROR `return` needs a value of type `Error`
 }
 -- expect --

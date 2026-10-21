@@ -13,14 +13,14 @@ fn bytes() -> Bytes {
     Bytes.fromArray(&Array.of(1, 2, 3))
 }
 
-fn shared() -> Unit {
+fn shared() {
     let buf = bytes()
     let vs = views(&buf)
     let s = Shared.new(vs)
     _ = s
 }
 
-fn boxed() -> Unit {
+fn boxed() {
     let buf = bytes()
     let vs = views(&buf)
     let b = Box.new(vs)

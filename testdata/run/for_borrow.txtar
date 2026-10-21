@@ -6,7 +6,7 @@ type Item = {
     pub name String
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let nums = Array.of(1, 2, 3)
     let mut total = 0
     for x in &nums {

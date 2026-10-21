@@ -42,7 +42,7 @@ fn swap(p: (Int, Int)) -> (Int, Int) {
 
 fn named(n: Named) -> Int { n.at.x }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestDirectAggregateNeverAllocates(t *testing.T) {
@@ -98,7 +98,7 @@ fn stash(x: Int) -> Array[Point] {
     Array.of(Point { x: x, y: x })
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := bodyOf(t, ir, `@"main.stash"(`)
 	if !strings.Contains(body, `call ptr @"kg.box.main.Point"(`) {
@@ -119,7 +119,7 @@ fn touch(n: Int) -> Int {
     p.y + p.combine(Point { x: n + 2, y: n + 3 })
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${touch(1)}"
 }
 `
@@ -161,7 +161,7 @@ fn stash(n: Int) -> Array[Point?] {
     Array.of(find(n))
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${readBack(1)}"
 }
 `

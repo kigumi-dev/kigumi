@@ -7,13 +7,13 @@ fn cmd(name: String) -> Int {
     0
 }
 
-fn fixed(a: String) -> Unit {}
+fn fixed(a: String) {}
 
 fn single(xs: ...Int) -> usize {
     xs.len()
 }
 
-fn use() -> Unit {
+fn use() {
     let a = cmd("git") //~ TYPE a : Int
     let b = cmd("git", "log") //~ TYPE b : usize
     let xs = Array.of("a", "b")

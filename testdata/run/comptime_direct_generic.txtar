@@ -10,7 +10,7 @@ type Slab = {
     pub mut tag Int
 }
 
-fn stash[T: Copy](xs: &mut Array[T], v: T) -> Unit { xs.push(v) }
+fn stash[T: Copy](xs: &mut Array[T], v: T) { xs.push(v) }
 
 fn same[T: Copy](v: T) -> T { v }
 

@@ -22,14 +22,14 @@ fn Tag.shellArg(self) -> String {
     self.flag()
 }
 
-fn bad(t: Tag, k: Kind, xs: Array[String], o: String?) -> Unit {
+fn bad(t: Tag, k: Kind, xs: Array[String], o: String?) {
     let a = $"cmd ${t}" //~ ERROR cannot be a shell argument
     let b = $"cmd ${k}" //~ ERROR cannot be a shell argument
     let c = $"cmd ${xs}" //~ ERROR cannot be a shell argument
     let d = $"cmd ${o}" //~ ERROR cannot be a shell argument
 }
 
-fn good(t: Tag, k: Kind, n: u8) -> Unit {
+fn good(t: Tag, k: Kind, n: u8) {
     let a = $"cmd ${t.flag()} ${k.name()} ${n} ${7} ${"lit"}"
 }
 -- expect --

@@ -1,23 +1,23 @@
 -- src --
 fn mi() -> Int { 3 }
 
-fn tailCall() -> Unit {
+fn tailCall() {
   mi()
 }
 
-fn tailArith() -> Unit {
+fn tailArith() {
   1 + 2
 }
 
-fn tailIf(c: Bool) -> Unit {
+fn tailIf(c: Bool) {
   if c { mi() } else { mi() }
 }
 
-fn tailLocal(n: Int) -> Unit {
+fn tailLocal(n: Int) {
   n
 }
 
-fn tailMatch(o: Int?) -> Unit {
+fn tailMatch(o: Int?) {
   match o {
     Some(v) -> v
     None -> 0
@@ -25,18 +25,18 @@ fn tailMatch(o: Int?) -> Unit {
 }
 
 fn tailLambda() -> Int {
-  let f: fn() -> Unit = () => { mi() }
+  let f: fn() -> Void = () => { mi() }
   f()
   7
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
   tailCall()
   tailArith()
   tailIf(true)
   tailLocal(4)
   tailMatch(Some(5))
-  let u: Unit = { mi() }
+  let u: Void = { mi() }
   print "ok ${tailLambda()}"
 }
 -- stdout --

@@ -1,11 +1,11 @@
 -- src --
 let x = 
-fn broken( -> Unit {}
+fn broken( -> Void {}
 let ok = 1
 static fn User.anonymous() -> User { User { name: "?" } }
 impl User { }
 type T = { a Int,, b Int }
-fn f() -> Unit {
+fn f() {
     let y = (1 +
     let z = 2
 }
@@ -59,8 +59,7 @@ File
     name: f
     generics: -
     params: List
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
       Let
         pattern: PatBind y
@@ -84,7 +83,7 @@ error: expected expression, found end of line
 error: expected identifier, found `->`
  --> errors_recovery.txtar:2:12
   |
-2 | fn broken( -> Unit {}
+2 | fn broken( -> Void {}
   |            ^^
 
 error: expected ), found `let`

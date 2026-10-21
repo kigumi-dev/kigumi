@@ -2,7 +2,7 @@
 import map from std/map
 import {Shared} from std/alloc
 
-fn run() -> Unit {
+fn run() {
     let mut items = Array.empty[u8]()
     items.push(72)
     items.push(105)

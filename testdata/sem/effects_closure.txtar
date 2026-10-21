@@ -13,7 +13,7 @@ fn impureDouble(x: Int) -> Int {
     unsafe { x * 2 }
 }
 
-fn use(files: fs.Files, p: fs.Path) -> Unit {
+fn use(files: fs.Files, p: fs.Path) {
     let a = apply((x) => x + 1)
     let b = apply((x) => { //~ ERROR closure is not `pure` (calls `remove`)
         _ = files.remove(p)
@@ -31,7 +31,7 @@ fn use(files: fs.Files, p: fs.Path) -> Unit {
     let inc = () => {
         n += 1
     }
-    let j: pure fn() -> Unit = inc //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+    let j: pure fn() -> Void = inc //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
     let k = (x: Int) => x + n
     let m: pure fn(Int) -> Int = k //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
 }
@@ -73,7 +73,7 @@ error[E423]: `impureDouble` is not `pure` (contains `unsafe`)
 error[E413]: closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
   --> lib/cl.kg:33:32
    |
-33 |     let j: pure fn() -> Unit = inc //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+33 |     let j: pure fn() -> Void = inc //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
    |                                ^^^
    = help: use `F: Fn[...]`
 

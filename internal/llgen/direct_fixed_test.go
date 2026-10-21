@@ -27,7 +27,7 @@ fn crossing() -> usize {
     total(a) + (sum3(a).toUsize() || 0)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestFixedArrayRunsInPlace(t *testing.T) {
@@ -76,7 +76,7 @@ type Grid = {
 
 fn same(g: Grid, h: Grid) -> Bool { g == h && hash(&g) == hash(&h) }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let g = Grid { tag: 1, cells: FixedArray.filled[Cell, 3](Cell { a: 1, b: true }) }
     if same(g, g) {}
 }

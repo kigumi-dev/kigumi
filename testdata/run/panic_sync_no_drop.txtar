@@ -3,16 +3,16 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn inner() -> Unit {
+fn inner() {
     let r = Res { id: 2 }
-    let _: Unit = None.expect("sync")
+    let _: Void = None.expect("sync")
 }
 
-fn work() -> Unit {
+fn work() {
     let r = Res { id: 1 }
     let a = Array.of[Int](1, 2)
     inner()

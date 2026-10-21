@@ -7,7 +7,7 @@ import {Reader} from pkga
 
 type Event = Reader(Int) | Written(Int) //~ ERROR variant `Reader` collides with the imported type `Reader`
 
-fn use() -> Unit {
+fn use() {
     let e = Reader { tag: 1 }
     _ = e
 }

@@ -1,5 +1,5 @@
 -- app/f/f.kg --
-fn noRet() {} //~ ERROR function `noRet` needs an explicit return type
+fn noRet() {}
 
 fn noBody() -> Int //~ ERROR function `noBody` has no body
 
@@ -66,12 +66,6 @@ fn P.late(a: Int, self) -> Int { //~ ERROR `self` must be the first parameter
     a
 }
 -- expect --
-error[E200]: function `noRet` needs an explicit return type
- --> app/f/f.kg:1:1
-  |
-1 | fn noRet() {} //~ ERROR function `noRet` needs an explicit return type
-  | ^^^^^^^^^^^^
-
 error[E201]: function `noBody` has no body
  --> app/f/f.kg:3:1
   |

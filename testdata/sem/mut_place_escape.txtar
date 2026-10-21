@@ -1,28 +1,28 @@
 -- src --
-fn bump(x: &mut Int) -> Unit {
+fn bump(x: &mut Int) {
     x = x + 1
 }
 
 type Box = { mut v Int }
 
-fn boundIndex() -> Unit {
+fn boundIndex() {
     let mut arr = Array.of(10, 20, 30)
     let r = &mut arr[0] //~ ERROR a mutable borrow of an array element or struct field
     bump(r)
 }
 
-fn boundField() -> Unit {
+fn boundField() {
     let mut b = Box { v: 1 }
     let r = &mut b.v //~ ERROR a mutable borrow of an array element or struct field
     bump(r)
 }
 
-fn directArgStillOk() -> Unit {
+fn directArgStillOk() {
     let mut arr = Array.of(10, 20, 30)
     bump(&mut arr[0])
 }
 
-fn boundLocalStillOk() -> Unit {
+fn boundLocalStillOk() {
     let mut x = 1
     let r = &mut x
     bump(r)

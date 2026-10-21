@@ -10,7 +10,7 @@ import (
 )
 
 const isrDepLib = `export(interrupt) {
-    pub fn tick() -> Unit {}
+    pub fn tick() {}
 }
 `
 
@@ -24,7 +24,7 @@ func isrDepModule(t *testing.T, rootManifest, depManifest string) *driver.Module
 	os.WriteFile(filepath.Join(lib, "lib.kg"), []byte(isrDepLib), 0o644)
 	os.WriteFile(filepath.Join(app, "mod.kg"), []byte("Module {\n    name: \"app\"\n    kigumi: \"0.1\"\n}\nRequire { name: \"lib\", version: \"v1.0.0\", url: \"https://example.invalid/lib.git\" }\n"+rootManifest), 0o644)
 	os.WriteFile(filepath.Join(app, "mod.local.kg"), []byte("Replace { name: \"lib\", path: \"../lib\" }\n"), 0o644)
-	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {tick} from lib\n\nfn main() -> Unit! {\n    tick()\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {tick} from lib\n\nfn main() -> Void! {\n    tick()\n}\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
 	m, err := driver.LoadModule(app, driver.LoadOptions{Compiler: testCompiler(), StdRoot: std})
 	if err != nil {

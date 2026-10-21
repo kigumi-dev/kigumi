@@ -3,7 +3,7 @@
 // "declare it escaping" advice, which doesn't apply to a plain, non-fn slot.
 fn identity[T](x: T) -> T { x }
 
-fn useIdentity(cb: fn() -> Unit) -> Unit {
+fn useIdentity(cb: fn() -> Void) {
     let y = identity(cb) //~ ERROR whose parameter type cannot be verified not to keep it
     y()
 }
@@ -11,19 +11,19 @@ fn useIdentity(cb: fn() -> Unit) -> Unit {
 interface Marker {}
 
 // A type parameter constrained to something unrelated to Fn is just as unverified as a bare T.
-fn ship[T: Marker](x: T) -> Unit {}
+fn ship[T: Marker](x: T) {}
 
-fn useShip(cb: fn() -> Unit) -> Unit {
+fn useShip(cb: fn() -> Void) {
     ship(cb) //~ ERROR whose parameter type cannot be verified not to keep it
 }
 
 // An Fn-constrained generic parameter is directly verified (fnShapeOf resolves its bound), so an
 // async fn's implied escaping still triggers the original diagnostic.
-async fn runWithEscaping[F: Fn[fn() -> Unit]](action: F) -> Unit {
+async fn runWithEscaping[F: Fn[fn() -> Void]](action: F) {
     action()
 }
 
-fn useRunWithEscaping(cb: fn() -> Unit) -> Unit {
+fn useRunWithEscaping(cb: fn() -> Void) {
     _ = runWithEscaping(cb) //~ ERROR which may keep it
 }
 -- expect --

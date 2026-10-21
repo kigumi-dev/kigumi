@@ -1,5 +1,5 @@
 -- src --
-fn main() -> Unit! {
+fn main() -> Void! {
     let n: usize = 3
     let x: u32 = 5
     let y: u64 = 7

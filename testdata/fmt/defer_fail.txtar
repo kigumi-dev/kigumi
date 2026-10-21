@@ -1,5 +1,5 @@
 -- src --
-fn f() -> Unit! {
+fn f() -> Void! {
     defer ( fail )   h.close()
     defer(fail){
         a()
@@ -7,7 +7,7 @@ fn f() -> Unit! {
     defer (x).close()
 }
 -- expect --
-fn f() -> Unit! {
+fn f() -> Void! {
     defer(fail) h.close()
     defer(fail) {
         a()

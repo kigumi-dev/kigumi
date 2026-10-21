@@ -3,7 +3,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.get(self, k: Int) -> Int { self.n + k }
 
@@ -12,9 +12,9 @@ type Pair = {
     pub mut left Res
 }
 
-fn take(p: Pair) -> Unit {}
+fn take(p: Pair) {}
 
-fn reinitBoth(c: Bool) -> Unit {
+fn reinitBoth(c: Bool) {
     let mut p = Pair { tag: 1, left: Res { n: 1 } }
     let f = p.left.get
     if c {
@@ -25,7 +25,7 @@ fn reinitBoth(c: Bool) -> Unit {
     take(p)
 }
 
-fn reinitOneBranch(c: Bool) -> Unit {
+fn reinitOneBranch(c: Bool) {
     let mut p = Pair { tag: 1, left: Res { n: 1 } }
     let f = p.left.get
     if c {
@@ -34,7 +34,7 @@ fn reinitOneBranch(c: Bool) -> Unit {
     take(p)
 }
 
-fn moveReinitOneBranch(c: Bool) -> Unit {
+fn moveReinitOneBranch(c: Bool) {
     let mut p = Pair { tag: 1, left: Res { n: 1 } }
     let g = move p.left
     if c {
@@ -43,7 +43,7 @@ fn moveReinitOneBranch(c: Bool) -> Unit {
     take(p)
 }
 -- expect --
-fn lib.Res.drop(%self: Res) -> Unit {
+fn lib.Res.drop(%self: Res) -> Void {
   b0:
     %t1 = unit
     return %t1
@@ -55,13 +55,13 @@ fn lib.Res.get(%self: Res, %k: Int) -> Int {
     drop(%k)
     return %t3
 }
-fn lib.take(%p: Pair) -> Unit {
+fn lib.take(%p: Pair) -> Void {
   b0:
     %t1 = unit
     drop(%p)
     return %t1
 }
-fn lib.reinitBoth(%c: Bool) -> Unit {
+fn lib.reinitBoth(%c: Bool) -> Void {
   b0:
     %t1 = const 1: Int
     %t2 = const 1: Int
@@ -95,7 +95,7 @@ fn lib.reinitBoth(%c: Bool) -> Unit {
     drop(%c)
     return %t17
 }
-fn lib.reinitOneBranch(%c: Bool) -> Unit {
+fn lib.reinitOneBranch(%c: Bool) -> Void {
   b0:
     %t1 = const 1: Int
     %t2 = const 1: Int
@@ -126,7 +126,7 @@ fn lib.reinitOneBranch(%c: Bool) -> Unit {
     drop(%c)
     return %t15
 }
-fn lib.moveReinitOneBranch(%c: Bool) -> Unit {
+fn lib.moveReinitOneBranch(%c: Bool) -> Void {
   b0:
     %t1 = const 1: Int
     %t2 = const 1: Int

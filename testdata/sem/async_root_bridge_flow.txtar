@@ -27,7 +27,7 @@ fn callIt(h: Holder) -> Int {
     h.cb()
 }
 
-fn mutate(w: &mut Wrap) -> Unit {
+fn mutate(w: &mut Wrap) {
     w.inner.cb = syncRoot
 }
 

@@ -3,7 +3,7 @@ pub type Guard = {
     pub mut amount Int
 }
 
-fn Guard.grow(mut self, k: Int) -> Unit {
+fn Guard.grow(mut self, k: Int) {
     self = Guard { amount: k }
 }
 
@@ -11,7 +11,7 @@ pub type Pad = {
     pub mut n Int
 }
 
-pub fn Pad.grow(mut self, k: Int) -> Unit {
+pub fn Pad.grow(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -23,14 +23,14 @@ pub type Swap = {
     pub mut amount Int
 }
 
-pub fn Swap.grow(mut self, k: Int) -> Unit {
+pub fn Swap.grow(mut self, k: Int) {
     self = Swap { amount: k }
 }
 
 pub type SwapHolder['a] = {
     pub mut r &'a mut Swap
 }
-fn reset(p: &mut Rebound, k: Int) -> Unit {
+fn reset(p: &mut Rebound, k: Int) {
     p = Rebound { n: k }
 }
 
@@ -38,7 +38,7 @@ pub type Rebound = {
     pub mut n Int
 }
 
-pub fn Rebound.grow(mut self, k: Int) -> Unit {
+pub fn Rebound.grow(mut self, k: Int) {
     reset(&mut self, k)
 }
 
@@ -47,29 +47,29 @@ pub type ReboundHolder['a] = {
 }
 -- app/b/b.kg --
 pub interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
 }
 
-pub fn growAny[G: Grower](x: &mut G, k: Int) -> Unit {
+pub fn growAny[G: Grower](x: &mut G, k: Int) {
     x.grow(k)
 }
 -- app/c/c.kg --
 import a from app/a
 import b from app/b
 
-pub fn viaField['x](h: a.Holder['x]) -> Unit {
+pub fn viaField['x](h: a.Holder['x]) {
     b.growAny(h.r, 1)
 }
 
-pub fn viaSwapField['x](h: a.SwapHolder['x]) -> Unit {
+pub fn viaSwapField['x](h: a.SwapHolder['x]) {
     b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
 }
 
-pub fn viaReborrow['x](h: a.ReboundHolder['x]) -> Unit {
+pub fn viaReborrow['x](h: a.ReboundHolder['x]) {
     b.growAny(h.r, 1) //~ ERROR a `&mut` held in a field is lent here
 }
 
-pub fn viaGuard(g: &mut a.Guard) -> Unit {
+pub fn viaGuard(g: &mut a.Guard) {
     b.growAny(g, 1) //~ ERROR `Guard` does not satisfy `Grower`
 }
 -- expect --

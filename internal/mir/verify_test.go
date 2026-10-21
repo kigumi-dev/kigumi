@@ -84,16 +84,16 @@ func TestVerifyTypes(t *testing.T) {
 	expectRule(t, p, fn("cond", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpConst, Dst: 0, Type: sem.TyI64, Lit: sem.Literal{Kind: sem.LitInt}}}, Term: mir.Term{Op: mir.TermBranch, Args: []mir.LocalID{0}, Targets: []mir.BlockID{1, 1}}}, mir.Block{Term: ret(0)}), "types", "branch on Int")
 	expectRule(t, p, fn("ret", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{boolConst}, Term: ret(1)}), "types", "return of Bool")
 	expectRule(t, p, fn("interp", sem.TyI64, locals, mir.Block{Insts: []mir.Inst{{Op: mir.OpInterp, Dst: 0, Strs: []string{"x"}}}, Term: ret(0)}), "types", "yields String")
-	// A bare Unit only stands for Ok(()) on the ImplicitOk script exit
-	// (build.go); an ordinary fallible-Unit function must return an Ok.
+	// A bare Void only stands for Ok(()) on the ImplicitOk script exit
+	// (build.go); an ordinary fallible-Void function must return an Ok.
 	unitRet := p.R.Types.Result(sem.TyUnit, resource(p))
 	unitLocals := []mir.Local{{Name: "t0", Type: sem.TyUnit}}
-	expectRule(t, p, fn("bareunit", unitRet, unitLocals, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}, Term: ret(0)}), "types", "return of Unit")
+	expectRule(t, p, fn("bareunit", unitRet, unitLocals, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}, Term: ret(0)}), "types", "return of Void")
 	implicitOk := fn("main", unitRet, unitLocals, mir.Block{Insts: []mir.Inst{{Op: mir.OpUnit, Dst: 0}}, Term: ret(0)})
 	implicitOk.ImplicitOk = true
 	p.Funcs = []*mir.Func{implicitOk}
 	if err := p.Verify(); err != nil {
-		t.Fatalf("ImplicitOk bare Unit return: got %v, want no error", err)
+		t.Fatalf("ImplicitOk bare Void return: got %v, want no error", err)
 	}
 }
 
@@ -237,7 +237,7 @@ func TestVerifyCellCapturesNested(t *testing.T) {
 type Counter = {
     pub mut n Int
 }
-fn Counter.nested(mut self) -> Unit {
+fn Counter.nested(mut self) {
     let outer = () => {
         let inner = () => { self.n = self.n + 1 }
         inner()

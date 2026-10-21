@@ -1,11 +1,11 @@
 -- src --
 import map from std/map
 
-fn check(name: String, ok: Bool) -> Unit {
+fn check(name: String, ok: Bool) {
     print "${name}: ${ok}"
 }
 
-fn run64() -> Unit {
+fn run64() {
     let z: f64 = 0.0
     let negz: f64 = -0.0
     let one: f64 = 1.0
@@ -55,7 +55,7 @@ fn run64() -> Unit {
     check("f64 len after delete", m.len() == 2)
 }
 
-fn run32() -> Unit {
+fn run32() {
     let z: f32 = 0.0
     let negz: f32 = -0.0
     let one: f32 = 1.0
@@ -92,7 +92,7 @@ fn run32() -> Unit {
     check("f32 len after delete", m.len() == 1)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     run64()
     run32()
 }

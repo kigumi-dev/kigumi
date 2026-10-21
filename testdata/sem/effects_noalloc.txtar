@@ -15,8 +15,8 @@ noalloc fn variadic() -> Array[Int] {
     Array.of(1, 2) //~ ERROR `of` is not `noalloc` //~ ERROR listed variadic arguments allocate
 }
 
-noalloc fn widen() -> Unit! {
-    fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Unit!` allocates
+noalloc fn widen() -> Void! {
+    fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Void!` allocates
 }
 
 pure noalloc fn ok(data: Bytes) -> usize {
@@ -50,7 +50,7 @@ noalloc fn directBorrowed(n: Int) -> Int {
     r.code
 }
 
-noalloc fn directIntoAnArray(n: Int, mut xs: Array[MyErr]) -> Unit {
+noalloc fn directIntoAnArray(n: Int, mut xs: Array[MyErr]) {
     xs.push(MyErr { code: n }) //~ ERROR `push` is not `noalloc` //~ ERROR handing `MyErr` to a slot that holds a reference allocates a box for it
 }
 
@@ -66,7 +66,7 @@ noalloc fn optionNone() -> Int? {
 
 type Slot = Free | Busy
 
-fn Slot.release(mut self) -> Unit {
+fn Slot.release(mut self) {
     self = Free
 }
 
@@ -103,7 +103,7 @@ noalloc fn carrierVariant(s: String) -> Tagged {
     Labelled(s) //~ ERROR constructing `Tagged` allocates
 }
 
-noalloc fn directVariantIntoAnArray(n: Int, mut xs: Array[Int?]) -> Unit {
+noalloc fn directVariantIntoAnArray(n: Int, mut xs: Array[Int?]) {
     xs.push(Some(n)) //~ ERROR `push` is not `noalloc` //~ ERROR handing `Int?` to a slot that holds a reference allocates a box for it
 }
 
@@ -111,40 +111,40 @@ noalloc fn bytes(s: String) -> Bytes {
     s.toBytes()
 }
 
-noalloc fn pushes(mut xs: Array[Int]) -> Unit {
+noalloc fn pushes(mut xs: Array[Int]) {
     xs.push(1) //~ ERROR `push` is not `noalloc`
 }
 
-noalloc fn cb(f: fn() -> Unit) -> Unit {
+noalloc fn cb(f: fn() -> Void) {
     f()
 }
 
-fn grows() -> Unit {
+fn grows() {
     let mut xs = Array.empty[Int]()
     xs.push(1)
 }
 
-noalloc fn cbCaller() -> Unit {
+noalloc fn cbCaller() {
     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
 }
 
-noalloc fn noop(n: Int) -> Unit {}
+noalloc fn noop(n: Int) {}
 
-noalloc fn cbCapturing(n: Int) -> Unit {
-    cb(() => noop(n)) //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+noalloc fn cbCapturing(n: Int) {
+    cb(() => noop(n)) //~ ERROR boxing `closure fn() -> Void` into `fn() -> Void` allocates
 }
 
-noalloc fn cbOk(f: noalloc fn() -> Unit) -> Unit {
+noalloc fn cbOk(f: noalloc fn() -> Void) {
     f()
 }
 
-noalloc fn dropsErr(e: Error) -> Unit {
+noalloc fn dropsErr(e: Error) {
     _ = e //~ ERROR dropping `Error` may allocate or deallocate
 }
 
-noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
+noalloc fn dropsErrUnused(e: Error) {} //~ ERROR dropping `Error` may allocate or deallocate
 
-noalloc fn dropsLocalUnused(e: Error) -> Unit {
+noalloc fn dropsLocalUnused(e: Error) {
     let local = e //~ ERROR dropping `Error` may allocate or deallocate
 }
 
@@ -199,16 +199,16 @@ error[E911]: listed variadic arguments allocate
    |     ^^^^^^^^^^^^^
    = help: pass `...array`
 
-error[E961]: constructing `Unit!` allocates
+error[E961]: constructing `Void!` allocates
   --> lib/na.kg:18:5
    |
-18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Unit!` allocates
+18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Void!` allocates
    |     ^^^^^^^^^^^^^^^^^^^^
 
 error[E910]: boxing `MyErr` into `Error` allocates
   --> lib/na.kg:18:10
    |
-18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Unit!` allocates
+18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Void!` allocates
    |          ^^^^^^^^^^^^^^^
 
 error[E1610]: handing `MyErr` to a slot that holds a reference allocates a box for it
@@ -262,10 +262,10 @@ error[E422]: closure is not `noalloc` (calls `grows`)
 127 |     cb(() => grows()) //~ ERROR closure is not `noalloc` (calls `grows`)
     |        ^^^^^^^^^^^^
 
-error[E910]: boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+error[E910]: boxing `closure fn() -> Void` into `fn() -> Void` allocates
    --> lib/na.kg:133:8
     |
-133 |     cb(() => noop(n)) //~ ERROR boxing `closure fn() -> Unit` into `fn() -> Unit` allocates
+133 |     cb(() => noop(n)) //~ ERROR boxing `closure fn() -> Void` into `fn() -> Void` allocates
     |        ^^^^^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate
@@ -277,7 +277,7 @@ error[E912]: dropping `Error` may allocate or deallocate
 error[E912]: dropping `Error` may allocate or deallocate
    --> lib/na.kg:144:27
     |
-144 | noalloc fn dropsErrUnused(e: Error) -> Unit {} //~ ERROR dropping `Error` may allocate or deallocate
+144 | noalloc fn dropsErrUnused(e: Error) {} //~ ERROR dropping `Error` may allocate or deallocate
     |                           ^^^^^^^^
 
 error[E912]: dropping `Error` may allocate or deallocate

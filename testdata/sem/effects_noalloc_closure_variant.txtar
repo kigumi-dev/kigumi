@@ -18,7 +18,7 @@ noalloc fn payload(n: Int) -> Int? {
     applyOpt((x: Int) => Some(x), n) //~ ERROR is not `noalloc`
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E1841]: this call goes through a function value or an interface, so the `Int?` it returns arrives in a box the callee allocates
   --> main.kg:11:5

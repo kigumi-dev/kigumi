@@ -101,7 +101,7 @@ func classifyFn(chunk string, known, opaque map[string]bool, abi ABI) item {
 		}
 		params = append(params, sanitizeIdent(pname)+": "+kt)
 	}
-	ret := "Unit"
+	ret := "Void"
 	if tail != "" {
 		if bareOpaqueByValue(tail, opaque) {
 			return item{name: name, skip: "`" + name + "` returns `" + stripTagPrefix(strings.TrimSpace(tail)) + "` by value (opaque type; zig demoted it, most likely for a bitfield, so only a pointer to it crosses the C ABI)"}

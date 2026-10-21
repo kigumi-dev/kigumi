@@ -5,11 +5,11 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
@@ -76,7 +76,7 @@ fn ifLetTail(o: Int?) -> Handle! {
     if let Some(k) = o { h } else { h }
 }
 
-fn show(label: String, r: Handle!) -> Unit {
+fn show(label: String, r: Handle!) {
     match r {
         Ok(h) -> print "${label}: got ${h.id}"
         Err(e) -> print "${label}: err ${e.message()}"

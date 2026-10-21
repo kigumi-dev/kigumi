@@ -1,4 +1,4 @@
-fn run() -> Unit {
+fn run() {
     let a = Array.of(1, 2, 3)
     let before = a.len()
     eprint "go"

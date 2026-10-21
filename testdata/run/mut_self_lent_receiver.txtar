@@ -27,7 +27,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -41,15 +41,15 @@ fn Counter.bump(mut self, by: Int) -> Int {
     self.n
 }
 
-fn Counter.reset(mut self) -> Unit {
+fn Counter.reset(mut self) {
     self = Counter { n: 0 }
 }
 
-fn Pt.shift(mut self, dx: Int) -> Unit {
+fn Pt.shift(mut self, dx: Int) {
     self.x = self.x + dx
 }
 
-fn Slot.fill(mut self, v: Int) -> Unit {
+fn Slot.fill(mut self, v: Int) {
     self = Full(v)
 }
 
@@ -124,7 +124,7 @@ async fn inner(x: Int) -> Int {
     x * 2
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let mut c = Counter { n: 1 }
     print "${c.bump(2)} ${c.bump(3)} ${c.n}"
     c.reset()

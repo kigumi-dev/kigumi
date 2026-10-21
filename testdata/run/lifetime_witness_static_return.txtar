@@ -13,7 +13,7 @@ fn useStatic['a, T: MakeView['a]](x: T, b: &'a Bytes) -> &'a Bytes {
     T.make(b)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf = Bytes.fromArray(&Array.of(7, 8, 9))
     let r = useStatic(Holder { off: 0 }, &buf)
     print "${r[0]} ${r[2]}"

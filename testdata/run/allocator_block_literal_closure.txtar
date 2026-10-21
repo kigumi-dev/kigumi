@@ -34,7 +34,7 @@ fn viaMapped(h: &AllocatorHandle) -> Int {
     }
 }
 
-fn run() -> Unit! {
+fn run() -> Void! {
     let arena = Arena.create()?
     let own = Arena.create()?
     let outer = () => {
@@ -45,7 +45,7 @@ fn run() -> Unit! {
     print "${outer()} ${literal(&arena)} ${viaClosure(&arena)} ${viaBlockClosure(&arena)} ${viaCapture(&arena, 4)} ${viaMapped(&arena)}"
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     run()?
 }
 -- stdout --

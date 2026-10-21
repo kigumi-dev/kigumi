@@ -1,6 +1,6 @@
 import map from std/map
 
-fn run() -> Unit {
+fn run() {
     let mut m = map.tryEmpty[String, Int]().unwrap()
     m.set("a", 1)
     m.set("b", 2)

@@ -29,7 +29,7 @@ fn total(inputs: Array[String]) -> Result[usize, ParseError] {
     sum
 }
 
-fn widen(s: String) -> Unit! {
+fn widen(s: String) -> Void! {
     let n = parse(s)?
     print "widened ${n}"
 }

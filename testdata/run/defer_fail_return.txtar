@@ -5,11 +5,11 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
@@ -21,7 +21,7 @@ fn open(id: Int) -> Handle! {
     Handle { id: id }
 }
 
-fn prepare(h: &Handle, ok: Bool) -> Unit! {
+fn prepare(h: &Handle, ok: Bool) -> Void! {
     print "prepare ${h.id}"
     if !ok {
         fail test.failure("prepare ${h.id}")
@@ -71,7 +71,7 @@ fn passReturn(n: Int) -> Int! {
     return check(n)
 }
 
-fn use(label: String, r: Handle!) -> Unit {
+fn use(label: String, r: Handle!) {
     match r {
         Ok(h) -> print "${label}: got ${h.id}"
         Err(e) -> print "${label}: err ${e.message()}"

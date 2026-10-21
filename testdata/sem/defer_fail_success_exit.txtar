@@ -7,13 +7,13 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn step() -> Unit! {}
+fn step() -> Void! {}
 
 fn num() -> Int! {
     1

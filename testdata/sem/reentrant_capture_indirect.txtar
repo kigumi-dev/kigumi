@@ -3,72 +3,72 @@ type Item = {
     pub mut count Int
 }
 
-fn Item.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+fn Item.run[F: FnMut[fn() -> Void]](mut self, f: F) {
     f()
 }
 
-fn direct(mut v: Item) -> Unit {
+fn direct(mut v: Item) {
     v.run(() => { v.run(() => {}) }) //~ ERROR a closure argument cannot capture `v`
 }
 
-fn indirect(mut v: Item) -> Unit {
+fn indirect(mut v: Item) {
     let cb = () => { v.run(() => {}) }
     v.run(cb) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
 }
 
-fn aliasIndirect(mut v: Item) -> Unit {
+fn aliasIndirect(mut v: Item) {
     let cb = () => { v.run(() => {}) }
     let cb2 = cb
     v.run(cb2) //~ ERROR a `mut self` call on `v` conflicts //~ ERROR a closure argument cannot capture `v`
 }
 
-fn fineIndirect(mut v: Item) -> Unit {
+fn fineIndirect(mut v: Item) {
     let cb = () => {}
     v.run(cb)
 }
 
-fn makeCb() -> fn() -> Unit {
+fn makeCb() -> fn() -> Void {
     () => {}
 }
 
-fn viaCall(mut v: Item) -> Unit {
+fn viaCall(mut v: Item) {
     v.run(makeCb()) //~ ERROR cannot see what this closure captures
 }
 
-fn viaIndex(mut v: Item, cbs: Array[fn() -> Unit]) -> Unit {
+fn viaIndex(mut v: Item, cbs: Array[fn() -> Void]) {
     v.run(cbs[0]) //~ ERROR cannot see what this closure captures
 }
 
 type Resource = resource {
     pub mut count Int
 }
-fn Resource.drop(move self) -> Unit {}
+fn Resource.drop(move self) {}
 
-fn Resource.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+fn Resource.run[F: FnMut[fn() -> Void]](mut self, f: F) {
     f()
 }
 
-fn mutate(x: &mut Resource) -> Unit {
+fn mutate(x: &mut Resource) {
     x.count = 99
 }
 
-fn identity(cb: escaping fn() -> Unit) -> fn() -> Unit {
+fn identity(cb: escaping fn() -> Void) -> fn() -> Void {
     cb
 }
 
-fn viaErasedReturn(mut v: Resource) -> Unit {
+fn viaErasedReturn(mut v: Resource) {
     let stored = identity(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
     v.run(stored) //~ ERROR cannot see what this closure captures
 }
 
-fn viaErasedReturnAlias(mut v: Resource) -> Unit {
+fn viaErasedReturnAlias(mut v: Resource) {
     let stored = identity(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
     let stored2 = stored
     v.run(stored2) //~ ERROR cannot see what this closure captures
 }
 
-fn viaErasedReturnFine(mut v: Resource) -> Unit {
-    let stored: fn() -> Unit = () => {}
+fn viaErasedReturnFine(mut v: Resource) {
+    let stored: fn() -> Void = () => {}
     v.run(stored)
 }
 -- expect --

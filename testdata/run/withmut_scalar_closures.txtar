@@ -29,10 +29,10 @@ let r = &mut c
 r = 100
 readerC()
 
-fn setInt(x: &mut Int) -> Unit {
+fn setInt(x: &mut Int) {
     x = 100
 }
-fn run() -> Unit {
+fn run() {
     let mut d = 5
     let clD = () => {
         setInt(&mut d)

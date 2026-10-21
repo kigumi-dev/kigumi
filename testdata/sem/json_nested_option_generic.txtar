@@ -9,7 +9,7 @@ type Safe[T] = {
     pub items Array[Option[T]]
 }
 
-fn useIt() -> Unit! {
+fn useIt() -> Void! {
     let bad = Box[Option[Int]] { value: Some(None) }
     let encoded = json.encode(bad)? //~ ERROR `Box[Int?]` cannot derive JSON `Encode`
     _ = encoded

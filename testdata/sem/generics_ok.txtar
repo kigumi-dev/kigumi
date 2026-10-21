@@ -31,7 +31,7 @@ fn copyTwice[T: Copy](x: T) -> Array[T] {
     Array.of(x, x)
 }
 
-fn use(p: P) -> Unit {
+fn use(p: P) {
     let a = same(1, 2) //~ TYPE a : Bool
     let b = same("x", "y")
     let c = call((x) => x + 1) //~ TYPE c : Int

@@ -1,10 +1,10 @@
 -- src --
-fn addOne(out: &mut Array[u8]) -> Unit {
+fn addOne(out: &mut Array[u8]) {
     out.push(1)
 }
 
 // parens around the argument must not defeat reborrow detection.
-fn addTwo(out: &mut Array[u8]) -> Unit {
+fn addTwo(out: &mut Array[u8]) {
     addOne((out))
     addOne(out)
 }

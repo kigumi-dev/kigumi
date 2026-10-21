@@ -3,9 +3,9 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {
+fn Handle.close(move self) {
     print "close ${self.id}"
 }
 
@@ -32,7 +32,7 @@ fn mkBag(n: Int) -> Bag {
     Bag { opt: Some(mkh(n)), pack: Some(Pack { inner: mkh(n + 1), other: mkh(n + 2) }), other: mkh(n + 3) }
 }
 
-fn payloadOnce() -> Unit {
+fn payloadOnce() {
     let b = mkBag(10)
     match b.opt {
         Some(h) -> h.close()
@@ -41,7 +41,7 @@ fn payloadOnce() -> Unit {
     b.other.close()
 }
 
-fn payloadPerIteration() -> Unit {
+fn payloadPerIteration() {
     for i in 0..2 {
         let b = mkBag(20 + 10 * i)
         match b.opt {
@@ -52,7 +52,7 @@ fn payloadPerIteration() -> Unit {
     }
 }
 
-fn payloadReference() -> Unit {
+fn payloadReference() {
     let b = mkBag(50)
     for i in 0..2 {
         match &b.opt {
@@ -63,7 +63,7 @@ fn payloadReference() -> Unit {
     b.other.close()
 }
 
-fn payloadNested() -> Unit {
+fn payloadNested() {
     let b = mkBag(60)
     match b.pack {
         Some(Pack { other, inner: _ }) -> other.close()
@@ -72,7 +72,7 @@ fn payloadNested() -> Unit {
     b.other.close()
 }
 
-fn payloadGuarded() -> Unit {
+fn payloadGuarded() {
     let b = mkBag(70)
     match b.opt {
         Some(h) if h.peek() > 100 -> h.close()
@@ -91,7 +91,7 @@ fn mkSlot(n: Int) -> Slot {
     Slot { opt: Some(mkh(n)), other: mkh(n + 1) }
 }
 
-fn takeAndRefill() -> Unit {
+fn takeAndRefill() {
     let mut b = mkSlot(80)
     for i in 0..3 {
         match b.opt {
@@ -105,7 +105,7 @@ fn takeAndRefill() -> Unit {
     b.other.close()
 }
 
-fn ifLetTakeAndRefill() -> Unit {
+fn ifLetTakeAndRefill() {
     let mut b = mkSlot(90)
     for i in 0..3 {
         if let Some(h) = b.opt {
@@ -116,7 +116,7 @@ fn ifLetTakeAndRefill() -> Unit {
     b.other.close()
 }
 
-fn putBack() -> Unit {
+fn putBack() {
     let mut b = mkSlot(100)
     for i in 0..2 {
         match b.opt {
@@ -130,7 +130,7 @@ fn putBack() -> Unit {
     b.other.close()
 }
 
-fn guardedTakeAndRefill() -> Unit {
+fn guardedTakeAndRefill() {
     let mut b = mkSlot(110)
     for i in 0..2 {
         match b.opt {
@@ -144,7 +144,7 @@ fn guardedTakeAndRefill() -> Unit {
     b.other.close()
 }
 
-fn guardedPerIteration() -> Unit {
+fn guardedPerIteration() {
     for i in 0..2 {
         let b = mkSlot(120 + 10 * i)
         match b.opt {
@@ -160,7 +160,7 @@ type Slot1 = {
     pub mut opt Handle?
 }
 
-fn isTakeAndClear() -> Unit {
+fn isTakeAndClear() {
     let mut o = Some(mkh(400))
     if o is Some(h) {
         h.close()
@@ -172,7 +172,7 @@ fn isTakeAndClear() -> Unit {
     }
 }
 
-fn isTakeAndClearInLoop() -> Unit {
+fn isTakeAndClearInLoop() {
     let mut o = Some(mkh(410))
     for i in 0..3 {
         if o is Some(h) {
@@ -185,7 +185,7 @@ fn isTakeAndClearInLoop() -> Unit {
     }
 }
 
-fn isTakeAndClearField() -> Unit {
+fn isTakeAndClearField() {
     let mut g = Slot1 { opt: Some(mkh(420)) }
     for i in 0..3 {
         if g.opt is Some(h) {

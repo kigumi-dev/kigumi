@@ -34,7 +34,7 @@ fn run(x: Int) -> Int {
     hold(p).x + twice(p)._0.y + later(p)().x
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func closureFuncs(p *mir.Program, prefix string) []*mir.Func {

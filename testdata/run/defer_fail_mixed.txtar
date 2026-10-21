@@ -1,13 +1,13 @@
 -- src --
 import test from std/test
 
-fn step(label: String, ok: Bool) -> Unit! {
+fn step(label: String, ok: Bool) -> Void! {
     if !ok {
         fail test.failure(label)
     }
 }
 
-fn mixed(ok: Bool) -> Unit! {
+fn mixed(ok: Bool) -> Void! {
     defer print "plain 1"
     defer(fail) print "fail 1"
     defer {
@@ -39,7 +39,7 @@ fn loop(failAt: Int) -> Int! {
     seen
 }
 
-fn nested(ok: Bool) -> Unit! {
+fn nested(ok: Bool) -> Void! {
     defer(fail) print "outer fail"
     {
         defer(fail) print "inner fail"

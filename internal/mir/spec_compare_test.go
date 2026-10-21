@@ -15,7 +15,7 @@ type Point = {
 
 fn same[T: Eq](a: T, b: T) -> Bool { a == b }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let p = Point { x: 1, y: 2 }
     let q = Point { x: 1, y: 3 }
     let r = same(p, q)

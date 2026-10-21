@@ -4,21 +4,21 @@ type Pair = {
     mut b Array[u8]
 }
 
-fn Pair.disjointOk(mut self) -> Unit {
+fn Pair.disjointOk(mut self) {
     let r = &mut self.a
     let s = &mut self.b
     r.push(1)
     s.push(2)
 }
 
-fn Pair.sameFieldConflict(mut self) -> Unit {
+fn Pair.sameFieldConflict(mut self) {
     let r = &mut self.a
     let s = &mut self.a
     r.push(1)
     s.push(2)
 }
 
-fn Pair.sharedThenExclusiveConflict(mut self) -> Unit {
+fn Pair.sharedThenExclusiveConflict(mut self) {
     let s = &self.a
     let r = &mut self.a
     s.len()
@@ -29,21 +29,21 @@ type Nested = {
     mut pair Pair
 }
 
-fn Nested.nestedOverlapConflict(mut self) -> Unit {
+fn Nested.nestedOverlapConflict(mut self) {
     let r = &mut self.pair.a
     let s = &mut self.pair
     r.push(1)
     s.a.push(2)
 }
 
-fn Nested.sharedAncestorThenExclusiveDescendant(mut self) -> Unit {
+fn Nested.sharedAncestorThenExclusiveDescendant(mut self) {
     let s = &self.pair
     let r = &mut self.pair.a
     s.a.len()
     r.push(1)
 }
 
-fn Nested.nestedSiblingsOk(mut self) -> Unit {
+fn Nested.nestedSiblingsOk(mut self) {
     let r = &mut self.pair.a
     let s = &mut self.pair.b
     r.push(1)
@@ -55,13 +55,13 @@ type Bag = {
     mut label Array[u8]
 }
 
-fn Bag.indexStaysConservative(mut self) -> Unit {
+fn Bag.indexStaysConservative(mut self) {
     let r = &mut self.items[0]
     self.label.push(1)
     r.push(2)
 }
 -- expect --
-fn lib.Pair.disjointOk(%self: Pair) -> Unit {
+fn lib.Pair.disjointOk(%self: Pair) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = field 0(%t1)
@@ -90,7 +90,7 @@ fn lib.Pair.disjointOk(%self: Pair) -> Unit {
     drop(%t20)
     return %t19
 }
-fn lib.Pair.sameFieldConflict(%self: Pair) -> Unit {
+fn lib.Pair.sameFieldConflict(%self: Pair) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = field 0(%t1)
@@ -119,7 +119,7 @@ fn lib.Pair.sameFieldConflict(%self: Pair) -> Unit {
     drop(%t20)
     return %t19
 }
-fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Unit {
+fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = field 0(%t1)
@@ -141,7 +141,7 @@ fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Unit {
     drop(%t15)
     return %t14
 }
-fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
+fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = field 0(%t1)
@@ -169,7 +169,7 @@ fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Unit {
     drop(%t18)
     return %t20
 }
-fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Unit {
+fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = field 0(%t1)
@@ -193,7 +193,7 @@ fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Unit {
     drop(%t17)
     return %t16
 }
-fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Unit {
+fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = field 0(%t1)
@@ -224,7 +224,7 @@ fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Unit {
     drop(%t22)
     return %t21
 }
-fn lib.Bag.indexStaysConservative(%self: Bag) -> Unit {
+fn lib.Bag.indexStaysConservative(%self: Bag) -> Void {
   b0:
     %t1 = cellget(%self)
     %t2 = field 0(%t1)

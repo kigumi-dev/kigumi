@@ -5,7 +5,7 @@ type Res = resource {
     pub id Int
 }
 
-fn use(xs: &Array[Res], m: &map.Map[String, Res], nums: &Array[Int]) -> Unit {
+fn use(xs: &Array[Res], m: &map.Map[String, Res], nums: &Array[Int]) {
     _ = nums.get(0)
     _ = xs.get(0) //~ ERROR `Res` does not satisfy `Copy`
     _ = xs.clone() //~ ERROR `Res` does not satisfy `Copy`

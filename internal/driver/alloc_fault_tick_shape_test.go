@@ -65,79 +65,79 @@ print "${ys.len()}"`, 1},
     s
 }
 print "${run(%[1]d)}"`, 1},
-	{"parameter stored through a reference, computed argument", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
+	{"parameter stored through a reference, computed argument", `fn put(r: &mut Int, i: Int) { r = i }
 let mut c = 0
 for i in 0..%[1]d { put(&mut c, i + 2000) }
 print "${c > 0}"`, 1},
-	{"parameter stored through a reference, constant argument", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
+	{"parameter stored through a reference, constant argument", `fn put(r: &mut Int, i: Int) { r = i }
 let mut c = 0
 for i in 0..%[1]d { put(&mut c, 3000) }
 print "${c > 0}"`, 0},
-	{"parameter forwarded to a storing function", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
-fn put2(r: &mut Int, i: Int) -> Unit { put(r, i) }
+	{"parameter forwarded to a storing function", `fn put(r: &mut Int, i: Int) { r = i }
+fn put2(r: &mut Int, i: Int) { put(r, i) }
 let mut c = 0
 for i in 0..%[1]d { put2(&mut c, i + 2000) }
 print "${c > 0}"`, 1},
-	{"parameter stored into an array element, constant argument", `fn put(xs: &mut Array[Int], i: Int) -> Unit { xs[0] = i }
+	{"parameter stored into an array element, constant argument", `fn put(xs: &mut Array[Int], i: Int) { xs[0] = i }
 let mut xs = Array.fill(0, 2)
 for i in 0..%[1]d { put(&mut xs, 3000) }
 print "${xs[0] > 0}"`, 0},
-	{"parameter stored, argument is a user call result", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
+	{"parameter stored, argument is a user call result", `fn put(r: &mut Int, i: Int) { r = i }
 fn f(x: Int) -> Int { x * 3 }
 let mut c = 0
 for i in 0..%[1]d { put(&mut c, f(i + 1000)) }
 print "${c > 0}"`, 1},
-	{"parameter stored, argument is a mutable accumulator", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
+	{"parameter stored, argument is a mutable accumulator", `fn put(r: &mut Int, i: Int) { r = i }
 let mut c = 0
 let mut k = 2000
 for i in 0..%[1]d { k = k + 1
     put(&mut c, k) }
 print "${c > 0}"`, 1},
-	{"parameter stored, argument is a range loop variable", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
+	{"parameter stored, argument is a range loop variable", `fn put(r: &mut Int, i: Int) { r = i }
 let mut c = 0
 for i in 1500..(1500 + %[1]d) { put(&mut c, i) }
 print "${c > 0}"`, 1},
 	{"parameter stored, argument is a field of a direct record", `type P = { x Int, y Int }
-fn put(r: &mut Int, i: Int) -> Unit { r = i }
+fn put(r: &mut Int, i: Int) { r = i }
 let mut c = 0
 for i in 0..%[1]d { let p = P { x: i + 2000, y: 1 }
     put(&mut c, p.x) }
 print "${c > 0}"`, 1},
-	{"mutual recursion reached through the storing function", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
-fn f(r: &mut Int, i: Int, n: Int) -> Unit {
+	{"mutual recursion reached through the storing function", `fn put(r: &mut Int, i: Int) { r = i }
+fn f(r: &mut Int, i: Int, n: Int) {
     if n > 0 { g(r, i, n - 1) }
     put(r, i)
 }
-fn g(r: &mut Int, i: Int, n: Int) -> Unit {
+fn g(r: &mut Int, i: Int, n: Int) {
     if n > 0 { f(r, i, n - 1) }
 }
 let mut c = 0
 for i in 0..%[1]d { f(&mut c, i + 2000, 1) }
 print "${c > 0}"`, 1},
-	{"mutual recursion, callee reached first through the storing function", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
-fn f(r: &mut Int, i: Int, n: Int) -> Unit {
+	{"mutual recursion, callee reached first through the storing function", `fn put(r: &mut Int, i: Int) { r = i }
+fn f(r: &mut Int, i: Int, n: Int) {
     if n > 0 { g(r, i, n - 1) }
     put(r, i)
 }
-fn g(r: &mut Int, i: Int, n: Int) -> Unit {
+fn g(r: &mut Int, i: Int, n: Int) {
     if n > 0 { f(r, i, n - 1) }
 }
 let mut c = 0
 f(&mut c, 7, 0)
 for i in 0..%[1]d { g(&mut c, i + 2000, 0) }
 print "${c > 0}"`, 1},
-	{"mutual recursion, callee reached directly", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
-fn f(r: &mut Int, i: Int, n: Int) -> Unit {
+	{"mutual recursion, callee reached directly", `fn put(r: &mut Int, i: Int) { r = i }
+fn f(r: &mut Int, i: Int, n: Int) {
     if n > 0 { g(r, i, n - 1) }
     put(r, i)
 }
-fn g(r: &mut Int, i: Int, n: Int) -> Unit {
+fn g(r: &mut Int, i: Int, n: Int) {
     if n > 0 { f(r, i, n - 1) }
 }
 let mut c = 0
 for i in 0..%[1]d { g(&mut c, i + 2000, 0) }
 print "${c > 0}"`, 1},
-	{"parameter stored, argument is an if value", `fn put(r: &mut Int, i: Int) -> Unit { r = i }
+	{"parameter stored, argument is an if value", `fn put(r: &mut Int, i: Int) { r = i }
 let mut c = 0
 for i in 0..%[1]d { let v = if i > 100 { i + 2000 } else { i + 3000 }
     put(&mut c, v) }
@@ -186,7 +186,7 @@ var tickPairCases = []tickPairCase{
 }
 
 func (c tickPairCase) source(body string, rounds int) string {
-	return "fn put(r: &mut Int, i: Int) -> Unit { r = i }\n" + fmt.Sprintf(tickPairTemplate, body, rounds)
+	return "fn put(r: &mut Int, i: Int) { r = i }\n" + fmt.Sprintf(tickPairTemplate, body, rounds)
 }
 
 func TestFaultInjectionTickPairsCountTheSameOnBothBackends(t *testing.T) {

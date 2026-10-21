@@ -2,42 +2,42 @@
 import task from std/task
 
 type Handle = resource { pub id Int }
-fn Handle.drop(move self) -> Unit { _ = self }
-fn Handle.touch(self) -> Unit {}
+fn Handle.drop(move self) { _ = self }
+fn Handle.touch(self) {}
 
-fn noop() -> Unit {}
+fn noop() {}
 
 // A call-value's result, structurally a tuple holding a fn slot, must still be tainted: nothing
 // here shows what f does with its argument.
-fn pairIdentity(cb: fn() -> Unit, f: fn(fn() -> Unit) -> (fn() -> Unit, Int)) -> (fn() -> Unit, Int) {
+fn pairIdentity(cb: fn() -> Void, f: fn(fn() -> Void) -> (fn() -> Void, Int)) -> (fn() -> Void, Int) {
     f(cb) //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
 // Same shape, untainted: must stay clean.
-fn pairIdentityOk(cb: fn() -> Unit, f: fn(fn() -> Unit) -> (fn() -> Unit, Int)) -> (fn() -> Unit, Int) {
+fn pairIdentityOk(cb: fn() -> Void, f: fn(fn() -> Void) -> (fn() -> Void, Int)) -> (fn() -> Void, Int) {
     cb()
     f(noop)
 }
 
 // A concrete, non-Fn-shaped result (Int, not the closure's generic return) must never be tainted
 // by an unrelated restricted argument reaching the same call.
-fn intIdentity(cb: fn() -> Unit) -> Int {
-    let f = (x: fn() -> Unit) => 1
+fn intIdentity(cb: fn() -> Void) -> Int {
+    let f = (x: fn() -> Void) => 1
     f(cb)
 }
 
-async fn runLater(cb: fn() -> Unit) -> Unit {
+async fn runLater(cb: fn() -> Void) {
     cb()
 }
 
 // Forwarding cb through runLater via a value is rejected directly, since runLater's parameter type
 // carries `escaping`, so no Task can end up holding it.
-fn danger(ex: task.Executor, cb: fn() -> Unit) -> task.Task[Unit] {
+fn danger(ex: task.Executor, cb: fn() -> Void) -> task.Task[Void] {
     let f = runLater
     task.spawn(f(cb)) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `this function`, which may keep it
 }
 
-fn makeTask(ex: task.Executor) -> task.Task[Unit] {
+fn makeTask(ex: task.Executor) -> task.Task[Void] {
     let h = Handle { id: 1 }
     danger(ex, () => h.touch())
 }

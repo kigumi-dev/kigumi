@@ -14,7 +14,7 @@ fn main.closure1(%n: Int, %x: Int) -> Int {
     drop(%n)
     return %t3
 }
-fn main.closure2(%n: Int) -> Unit {
+fn main.closure2(%n: Int) -> Void {
   b0:
     %t1 = cellget(%n)
     %t2 = const 1: Int
@@ -24,7 +24,7 @@ fn main.closure2(%n: Int) -> Unit {
     drop(%n)
     return %t4
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = const 0: Int
     %n = newcell(%t0)

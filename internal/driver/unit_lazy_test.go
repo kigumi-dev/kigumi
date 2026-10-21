@@ -27,7 +27,7 @@ func lazyAppSteps(t *testing.T, files map[string]string, want string, apps ...st
 
 func TestUnitLazyImportDropGlue(t *testing.T) {
 	t.Parallel()
-	lib := "pub type Res = resource {\n    pub n Int\n}\n\npub fn make(n: Int) -> Res {\n    Res { n: n }\n}\n\nfn Res.drop(move self) -> Unit {\n    _ = \"${self.n}\"\n}\n"
+	lib := "pub type Res = resource {\n    pub n Int\n}\n\npub fn make(n: Int) -> Res {\n    Res { n: n }\n}\n\nfn Res.drop(move self) {\n    _ = \"${self.n}\"\n}\n"
 	app := "import lib from xmod/lib\n\nnoalloc fn take(r: lib.Res) -> Int {\n    r.n + %s\n}\n\nprint \"${take(lib.make(1))}\"\n"
 	files := map[string]string{"mod.kg": scenarioMod, "lib/lib.kg": lib, "cmd/app/main.kg": strings.Replace(strings.Replace(app, "%s", "0", 1), "noalloc ", "", 1)}
 	lazyAppSteps(t, files, "dropping `Res` may allocate", strings.Replace(app, "%s", "1", 1), strings.Replace(app, "%s", "2", 1))

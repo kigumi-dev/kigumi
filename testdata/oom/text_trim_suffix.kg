@@ -1,6 +1,6 @@
 import text from std/text
 
-fn run() -> Unit {
+fn run() {
     let s = "foobar"
     eprint "go"
     let r = text.tryTrimSuffix(s, "bar")

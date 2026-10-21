@@ -22,7 +22,7 @@ extern(C) {
     fn poll(fds: *mut u8, n: usize, timeout: i32) -> i32
     fn fcntl(fd: i32, cmd: i32, ...) -> i32
     fn malloc(n: usize) -> *mut u8
-    fn free(p: *mut u8) -> Unit
+    fn free(p: *mut u8)
     fn regcomp(re: *mut u8, pattern: *const u8, flags: i32) -> i32
     fn regexec(re: *const u8, s: *const u8, nmatch: usize, m: *mut u8, flags: i32) -> i32
 }
@@ -58,7 +58,7 @@ pub fn run(plan: Plan, sh: Shell) -> PipelineResult! {
     PipelineResult { statuses: move r.statuses }
 }
 
-fn writeAll(fd: i32, data: Bytes) -> Unit {
+fn writeAll(fd: i32, data: Bytes) {
     let n = data.len()
     let mut off: usize = 0
     for off < n {
@@ -250,7 +250,7 @@ fn applyRedirs(redirs: &Array[Redir], statusfd: i32) -> Bool {
     true
 }
 
-fn report(statusfd: i32, message: String) -> Unit {
+fn report(statusfd: i32, message: String) {
     writeAll(statusfd, message.toBytes())
 }
 
@@ -370,7 +370,7 @@ fn runChild(st: &Stage, infd: i32, outfd: i32, errfd: i32, statusfd: i32) -> Nev
     }
 }
 
-fn closeAll(fds: &Array[i32]) -> Unit {
+fn closeAll(fds: &Array[i32]) {
     for fd in fds {
         if fd >= 0 {
             _ = unsafe {
@@ -383,7 +383,7 @@ fn closeAll(fds: &Array[i32]) -> Unit {
 // Closes every descriptor runPlan created for the whole plan, for the
 // paths (pipe setup failure, devnull open failure, fork failure) that bail
 // out before the per-stage children exist to inherit and close them.
-fn closeAllPipes(linkRd: &Array[i32], linkWr: &Array[i32], errRd: &Array[i32], errWr: &Array[i32], stRd: &Array[i32], stWr: &Array[i32], devnull: i32) -> Unit {
+fn closeAllPipes(linkRd: &Array[i32], linkWr: &Array[i32], errRd: &Array[i32], errWr: &Array[i32], stRd: &Array[i32], stWr: &Array[i32], devnull: i32) {
     closeAll(linkRd)
     closeAll(linkWr)
     closeAll(errRd)

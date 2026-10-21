@@ -9,7 +9,7 @@ pub fn Fields.new() -> Fields {
     Fields { fields: map.empty[String, Value]() }
 }
 
-pub fn Fields.put(mut self, key: String, value: Value) -> Unit {
+pub fn Fields.put(mut self, key: String, value: Value) {
     self.fields.set(key, value)
 }
 
@@ -93,7 +93,7 @@ pub fn Tagged.expect(value: Value, typeName: String) -> Tagged! {
 }
 
 /// Checks the payload count of the variant named in the JSON.
-pub fn Tagged.arity(self, count: Int) -> Unit! {
+pub fn Tagged.arity(self, count: Int) -> Void! {
     if (self.payload.len().toInt() || 0) != count {
         fail Error { text: "`${self.name}` takes ${count} payload value(s), found ${self.payload.len()}" }
     }

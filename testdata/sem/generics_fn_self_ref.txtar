@@ -11,7 +11,7 @@ fn applyTwice[A, R, F: Fn[fn(A) -> R]](f: F, value: A) -> R {
     f(value)
 }
 
-fn use() -> Unit {
+fn use() {
     let a = applyOnce((x: Int) => x + 1, 41) //~ TYPE a : Int
     let b = applyOnceRev((x: Int) => "n=${x}", 7) //~ TYPE b : String
     let mut n = 0

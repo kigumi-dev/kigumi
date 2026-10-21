@@ -5,9 +5,9 @@ type Handle = resource {
     pub mut id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
 fn Handle.peek(self) -> Int {
     self.id
@@ -27,22 +27,22 @@ fn mk(n: Int) -> Pack {
     Pack { inner: mkh(n), other: mkh(n + 1), n: 0 }
 }
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn sink(n: Int) -> Unit {}
+fn sink(n: Int) {}
 
-fn callOnceTwice[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+fn callOnceTwice[F: FnOnce[fn() -> Void]](f: F) {
     f()
     f() //~ ERROR cannot be called
 }
 
-fn callOnceInLoop[F: FnOnce[fn() -> Unit]](f: F) -> Unit {
+fn callOnceInLoop[F: FnOnce[fn() -> Void]](f: F) {
     for i in 0..2 {
         f() //~ ERROR cannot be called
     }
 }
 
-fn callOnceMaybeTwice[F: FnOnce[fn() -> Unit]](f: F, c: Bool) -> Unit {
+fn callOnceMaybeTwice[F: FnOnce[fn() -> Void]](f: F, c: Bool) {
     if c {
         f()
     }

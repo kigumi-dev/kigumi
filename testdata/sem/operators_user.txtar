@@ -24,7 +24,7 @@ pub pure fn Vec.+^(a: Vec, b: Int) -> Vec {
     a
 }
 
-fn use(v: Vec, w: Vec) -> Unit {
+fn use(v: Vec, w: Vec) {
     let a = v + w //~ TYPE a : Vec
     let b = 2.0 * v //~ TYPE b : Vec
     let c = v * 2 //~ TYPE c : Vec
@@ -42,7 +42,7 @@ fn use(v: Vec, w: Vec) -> Unit {
 }
 
 type NoEq = {
-    pub f fn() -> Unit
+    pub f fn() -> Void
 }
 
 fn eq(a: NoEq, b: NoEq) -> Bool {

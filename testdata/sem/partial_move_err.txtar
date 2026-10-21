@@ -5,7 +5,7 @@ type Res = resource {
     pub handle usize
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.handle}"
 }
 

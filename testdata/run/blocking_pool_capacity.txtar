@@ -1,7 +1,7 @@
 -- src --
 import task from std/task
 
-fn run() -> Unit {
+fn run() {
     let pool = task.BlockingPool.new(1)
     let a = pool.run(() => 1)
     print "${a is Ok(_)}"

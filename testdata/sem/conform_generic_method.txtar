@@ -51,7 +51,7 @@ fn Y.render[T: Cshow](self, x: T) -> String {
     "y"
 }
 
-fn use(w: W, v: V, u: U, z: Z, y: Y) -> Unit {
+fn use(w: W, v: V, u: U, z: Z, y: Y) {
     let a: Render = w //~ ERROR generic method `render[T]` cannot satisfy `Render.render`: `T` is not determined by the requirement
     let b: R = v //~ TYPE b : R
     let c: R = u //~ ERROR generic method `render[T, X]` cannot satisfy `R.render`: `X` is not determined by the requirement

@@ -5,7 +5,7 @@ fn direct() -> Int {
     panic("stop") //~ ERROR `panic` is reserved for the std runtime
 }
 
-fn bare() -> Unit {
+fn bare() {
     panic() //~ ERROR `panic` is reserved for the std runtime
 }
 

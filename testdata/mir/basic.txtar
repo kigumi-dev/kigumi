@@ -44,7 +44,7 @@ fn main.pick(%flag: Bool, %x: Int?) -> Int {
     %t2 = copy(%t3)
     jump b3
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = const 1: Int
     %t1 = const 2: Int

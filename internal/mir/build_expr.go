@@ -103,7 +103,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		if len(e.Args) == 0 {
 			v = b.unit(n)
 			// A checker coercion has no value node to attach to here, so a
-			// bare `return` in a fallible-Unit function is Ok-wrapped
+			// bare `return` in a fallible-Void function is Ok-wrapped
 			// directly against the function's own return type.
 			if val, _, ok := b.r.Types.IsResult(b.ret); ok && val == sem.TyUnit {
 				v = b.emit(Inst{Op: OpVariant, Dst: b.temp(b.ret), Ent: b.variantNamed(b.r.Types.ResultEnt(), "Ok"), Type: b.ret, Args: []LocalID{v}, Node: n})

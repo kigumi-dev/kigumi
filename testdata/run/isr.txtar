@@ -1,8 +1,8 @@
 -- src --
-noalloc fn poke() -> Unit {}
+noalloc fn poke() {}
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         poke()
     }
 }

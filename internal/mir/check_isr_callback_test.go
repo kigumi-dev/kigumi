@@ -10,15 +10,15 @@ import (
 const isrCallbackSrc = `
 import {Box} from std/alloc
 
-fn withInert(b: &Box[Int]) -> Unit {
+fn withInert(b: &Box[Int]) {
     b.with((x: &Int) => {})
 }
 
-fn withMutInert(b: &mut Box[Int]) -> Unit {
+fn withMutInert(b: &mut Box[Int]) {
     b.withMut((x: &mut Int) => {})
 }
 
-fn withPanic(b: &Box[Int]) -> Unit {
+fn withPanic(b: &Box[Int]) {
     b.with((x: &Int) => {
         let n: Int? = None
         _ = n.unwrap()
@@ -29,24 +29,24 @@ fn withResult(b: &Box[Int]) -> Int {
     b.with((x: &Int) => 7)
 }
 
-fn withOpaque(b: &Box[Int], f: fn(&Int) -> Unit) -> Unit {
+fn withOpaque(b: &Box[Int], f: fn(&Int) -> Void) {
     b.with(f)
 }
 
-fn fixedSet(mut a: FixedArray[Int, 4]) -> Unit {
+fn fixedSet(mut a: FixedArray[Int, 4]) {
     _ = a.set(1, 5)
 }
 
-fn fixedWithMut(mut a: FixedArray[Int, 4]) -> Unit {
+fn fixedWithMut(mut a: FixedArray[Int, 4]) {
     _ = a.withMut(1, (x: &mut Int) => {})
 }
 
-fn fixedRead(a: FixedArray[Int, 4], i: usize) -> Unit {
+fn fixedRead(a: FixedArray[Int, 4], i: usize) {
     _ = a[i]
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {}
+    pub fn tick() {}
 }
 `
 

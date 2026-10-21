@@ -24,7 +24,7 @@ fn describe(m: Mixed) -> Int {
     }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     if describe(A(1, 2)) > 100 {}
 }
 `

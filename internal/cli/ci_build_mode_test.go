@@ -15,7 +15,7 @@ func TestReusableWorkflowPicksBuildFlagByModuleMode(t *testing.T) {
 
 	bp := t.TempDir()
 	os.WriteFile(filepath.Join(bp, "mod.kg"), manifest("bpmod", ""), 0o644)
-	os.WriteFile(filepath.Join(bp, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n    let a = b.executable(\"app\", \"\", b.request().target())?\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(bp, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\"app\", \"\", b.request().target())?\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(bp, "main.kg"), []byte("print \"hi\"\n"), 0o644)
 
 	for _, c := range []struct {

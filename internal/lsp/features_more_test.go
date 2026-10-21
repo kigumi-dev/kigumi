@@ -77,7 +77,7 @@ func TestSignatureHelpNamedArgs(t *testing.T) {
 // Hovering a renamed selected import shows the alias at its
 // declaration and the source function it stands for at a use site.
 func TestHoverImportAlias(t *testing.T) {
-	src := "import {decode as decodeUser} from std/json\n\nfn use() -> Unit! {\n    let n: Int = decodeUser(\"1\")?\n}\n"
+	src := "import {decode as decodeUser} from std/json\n\nfn use() -> Void! {\n    let n: Int = decodeUser(\"1\")?\n}\n"
 	s, ctx, doc, _ := openModule(t, src)
 	hoverAt := func(pos protocol.TextDocumentPositionParams) string {
 		h, err := s.Hover(ctx, &protocol.HoverParams{TextDocumentPositionParams: pos})

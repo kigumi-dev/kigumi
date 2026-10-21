@@ -3,13 +3,13 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.bumpAfterSnapshot(mut self) -> Unit {
+fn Counter.bumpAfterSnapshot(mut self) {
     let old = self
     self.n = self.n + 100
     print "field old=${old.n} self=${self.n}"
 }
 
-fn Counter.replaceAfterSnapshot(mut self) -> Unit {
+fn Counter.replaceAfterSnapshot(mut self) {
     let old = self
     self = Counter { n: self.n + 100 }
     print "whole old=${old.n} self=${self.n}"

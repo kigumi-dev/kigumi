@@ -23,7 +23,7 @@ func TestToolStepFailureRedactsSecret(t *testing.T) {
 	write("kigumi.framework.kg", "Framework { name: \"t/leak\", version: \"1\" }\nTool { name: \"leak\", program: \"tools/leak.sh\" }\n")
 	write("tools/leak.sh", "#!/bin/sh\nexit 1\n")
 	os.Chmod(filepath.Join(root, "tools", "leak.sh"), 0o755)
-	write("build.kg", "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n"+
+	write("build.kg", "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n"+
 		"    let fw = b.framework(\"t/leak\", \"1\")\n"+
 		"    let sec = b.secret(\"apikey\")\n"+
 		"    let o = b.runToolOutput(fw, \"leak\", Array.of(\"$secret:0\"), Array.empty[build.FilePath](), \"out.txt\", Array.of(sec))?\n"+
@@ -77,7 +77,7 @@ func TestGeneratedFileWriteFailsCleanlyOnReadOnlyDir(t *testing.T) {
 	t.Parallel()
 	root, out := t.TempDir(), t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ro\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n"+
+	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n"+
 		"    let o = b.write(\"gen.txt\", \"hello from generated file\\n\")?\n"+
 		"}\n"), 0o644)
 
@@ -122,7 +122,7 @@ func TestGeneratedFileWriteAtomicKeepsOldContentOnFailure(t *testing.T) {
 	t.Parallel()
 	root, out := t.TempDir(), t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"ro2\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n"+
+	os.WriteFile(filepath.Join(root, "build.kg"), []byte("import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n"+
 		"    let o = b.write(\"gen.txt\", \"new content\\n\")?\n"+
 		"}\n"), 0o644)
 	os.WriteFile(filepath.Join(out, "gen.txt"), []byte("original content\n"), 0o644)

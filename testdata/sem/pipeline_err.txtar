@@ -7,11 +7,11 @@ fn convert(s: String, o: Options) -> String {
     s
 }
 
-fn two(s: String) -> Unit {}
+fn two(s: String) {}
 
-fn two(n: Int) -> Unit {}
+fn two(n: Int) {}
 
-fn use(o: Options, r: &Options) -> Unit {
+fn use(o: Options, r: &Options) {
     "x" |> convert //~ ERROR `convert` expects 2 arguments, 1 given
     "x" |> convert("y", o) //~ ERROR `convert` expects 2 arguments, 3 given
     "x" |> o //~ ERROR `Options` is not callable
@@ -67,7 +67,7 @@ error[E502]: no overload of `two` takes (Bool)
    |
 21 |     true |> two //~ ERROR no overload of `two` takes (Bool)
    |     ^^^^^^^^^^^
-   = help: candidates: `fn(String) -> Unit`, `fn(Int) -> Unit`
+   = help: candidates: `fn(String) -> Void`, `fn(Int) -> Void`
 
 error[E400]: expected `Int`, found `String`
   --> lib/pipe.kg:23:13

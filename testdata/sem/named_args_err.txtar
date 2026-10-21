@@ -1,5 +1,5 @@
 -- app/t/t.kg --
-fn greet(name: String, times: Int) -> Unit {}
+fn greet(name: String, times: Int) {}
 
 fn identity(a: Int) -> Int { a }
 
@@ -10,7 +10,7 @@ extern(C) {
     fn buf() -> *mut u8
 }
 
-fn use() -> Unit {
+fn use() {
     greet(name: "x", nope: 1) //~ ERROR `greet` has no parameter named `nope`
     greet(name: "x", name: "x") //~ ERROR argument `name` given more than once
     greet(times: 1, "x") //~ ERROR positional argument after a named argument
@@ -18,7 +18,7 @@ fn use() -> Unit {
     _ = f(a: 1) //~ ERROR a `fn` value has no parameter names
 }
 
-fn useCVariadic() -> Unit {
+fn useCVariadic() {
     unsafe {
         _ = printf(fmt: cstr())
         _ = snprintf(fmt: cstr(), size: 10, buf: buf())

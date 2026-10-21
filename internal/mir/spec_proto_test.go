@@ -26,7 +26,7 @@ fn sameTuple(a: (Int, Bool), b: (Int, Bool)) -> Bool { a == b }
 
 fn sameNamed(a: Named, b: Named) -> Bool { a == b }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func builtinNamed(f *mir.Func, name string) (mir.Inst, bool) {

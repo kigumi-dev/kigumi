@@ -37,27 +37,27 @@ func TestOpSummaryFormula(t *testing.T) {
 	r := checkOp(t, `
 type Box = { n String }
 
-fn callIt(f: fn() -> Unit) -> Unit {
+fn callIt(f: fn() -> Void) {
     f()
 }
 
-fn callDead(f: fn() -> Unit) -> Unit {}
+fn callDead(f: fn() -> Void) {}
 
-noalloc fn quiet() -> Unit {}
+noalloc fn quiet() {}
 
-fn allocating() -> Unit {
+fn allocating() {
     let b = Box { n: "x" }
 }
 
-fn useQuiet() -> Unit {
+fn useQuiet() {
     callIt(quiet)
 }
 
-fn useAllocating() -> Unit {
+fn useAllocating() {
     callIt(allocating)
 }
 
-fn useDeadAllocating() -> Unit {
+fn useDeadAllocating() {
     callDead(allocating)
 }
 
@@ -86,11 +86,11 @@ func TestOpSummaryFixpointOrderIndependent(t *testing.T) {
 	before := checkOp(t, `
 type Box = { n String }
 
-fn leaf() -> Unit {
+fn leaf() {
     let b = Box { n: "x" }
 }
 
-fn caller() -> Unit {
+fn caller() {
     leaf()
 }
 
@@ -99,11 +99,11 @@ let n = 1
 	after := checkOp(t, `
 type Box = { n String }
 
-fn caller() -> Unit {
+fn caller() {
     leaf()
 }
 
-fn leaf() -> Unit {
+fn leaf() {
     let b = Box { n: "x" }
 }
 
@@ -119,13 +119,13 @@ let n = 1
 	mutual := checkOp(t, `
 type Box = { n String }
 
-fn mutualA(n: Int) -> Unit {
+fn mutualA(n: Int) {
     if n > 0 {
         mutualB(n - 1)
     }
 }
 
-fn mutualB(n: Int) -> Unit {
+fn mutualB(n: Int) {
     if n > 0 {
         mutualA(n - 1)
     } else {
@@ -203,15 +203,15 @@ func TestOpSummaryProvenance(t *testing.T) {
 	r := checkOp(t, `
 type Box = { n String }
 
-fn c() -> Unit {
+fn c() {
     let b = Box { n: "x" }
 }
 
-fn b() -> Unit {
+fn b() {
     c()
 }
 
-fn a() -> Unit {
+fn a() {
     b()
 }
 
@@ -238,7 +238,7 @@ func TestOpSummaryReleaseAndSuspend(t *testing.T) {
 	r := checkOp(t, `
 import {Shared} from std/alloc
 
-fn holdsShared() -> Unit {
+fn holdsShared() {
     let s = Shared.new(1)
 }
 
@@ -267,11 +267,11 @@ func TestOpSummaryArtifactDeterministic(t *testing.T) {
 	src := `
 type Box = { n String }
 
-pub fn allocating() -> Unit {
+pub fn allocating() {
     let b = Box { n: "x" }
 }
 
-pub fn quiet() -> Unit {}
+pub fn quiet() {}
 
 let n = 1
 `

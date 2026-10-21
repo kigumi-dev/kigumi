@@ -5,7 +5,7 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -21,14 +21,14 @@ fn bump(c: &Counter) -> Int {
     }
 }
 
-fn scalar() -> Unit {
+fn scalar() {
     let counter = Counter { n: UnsafeCell.new(0) }
     let a = &counter
     let b = &counter
     print "${bump(a)} ${bump(b)} ${bump(a)}"
 }
 
-fn standalone() -> Unit {
+fn standalone() {
     let cell = UnsafeCell.new(10)
     let v = unsafe { cell.get() + 5 }
     unsafe {
@@ -38,7 +38,7 @@ fn standalone() -> Unit {
     print "cell ${r}"
 }
 
-fn dropsOldOnSet() -> Unit {
+fn dropsOldOnSet() {
     let cell = UnsafeCell.new(Handle { id: 1 })
     unsafe {
         cell.set(Handle { id: 2 })

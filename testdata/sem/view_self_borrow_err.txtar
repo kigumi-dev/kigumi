@@ -9,7 +9,7 @@ fn View['a].at(self) -> Int { self.data[self.off] }
 
 fn pass['a](d: Doc2['a]) -> Doc2['a] { d }
 
-fn put['a](vs: &mut Array[View['a]], v: View['a]) -> Unit { vs.push(v) }
+fn put['a](vs: &mut Array[View['a]], v: View['a]) { vs.push(v) }
 
 fn field() -> Int {
     let z = Array.of(0)

@@ -14,7 +14,7 @@ fn identity[T](x: T) -> T { x }
 fn describe[T: Shower](x: T) -> String { x.show() }
 fn collect(xs: ...Int) -> Int { 0 }
 
-fn use() -> Unit {
+fn use() {
     let a = identity[Pt] //~ TYPE a : fn(Pt) -> Pt
     let b: fn(Pt) -> Pt = identity
     let c = describe[Pt] //~ TYPE c : fn(Pt) -> String

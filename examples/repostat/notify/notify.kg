@@ -17,7 +17,7 @@ pub fn RejectedError.message(self) -> String {
     "webhook rejected: status ${self.status}"
 }
 
-pub fn send(client: net.Http, url: String, body: String) -> Unit! {
+pub fn send(client: net.Http, url: String, body: String) -> Void! {
     let res = client.post(url, body) || (e) => fail e
     if res.status >= 400 {
         fail RejectedError { status: res.status }

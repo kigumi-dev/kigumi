@@ -5,7 +5,7 @@ type Node = resource {
     pub id Int
 }
 
-fn Node.drop(move self) -> Unit {
+fn Node.drop(move self) {
     print "drop ${self.id}"
 }
 

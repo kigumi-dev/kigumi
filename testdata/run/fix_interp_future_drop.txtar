@@ -5,7 +5,7 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -18,23 +18,23 @@ async fn consume(h: Handle) -> Int {
     h.id
 }
 
-fn never() -> Unit {
+fn never() {
     let f = consume(make(42))
     print "created, not awaited"
 }
 
-async fn awaited() -> Unit {
+async fn awaited() {
     let f = consume(make(50))
     let _ = await f
     print "after await"
 }
 
-async fn neverAwaited() -> Unit {
+async fn neverAwaited() {
     let t = task.spawn(consume(make(77)))
     print "spawned, never awaited"
 }
 
-async fn root() -> Unit {
+async fn root() {
     await awaited()
     await neverAwaited()
     print "after neverAwaited"

@@ -1,6 +1,6 @@
 import text from std/text
 
-fn run() -> Unit {
+fn run() {
     let mut b = text.StringBuilder.tryNew().unwrap()
     b.push("ab")
     let before = b.len()

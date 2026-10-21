@@ -11,7 +11,7 @@ type Frame = {
     pub mut weight Float
 }
 
-fn Point.shift(mut self, d: Int) -> Unit {
+fn Point.shift(mut self, d: Int) {
     self.x = self.x + d
     self.y = self.y + d
 }

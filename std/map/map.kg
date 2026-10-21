@@ -83,7 +83,7 @@ pure fn Map[K: Eq + Hash, V].position(self, key: &K) -> usize? {
 }
 
 /// Records entry pos in the first free slot of its probe sequence.
-pure fn Map[K: Eq + Hash, V].fileSlot(mut self, h: u64, pos: usize) -> Unit {
+pure fn Map[K: Eq + Hash, V].fileSlot(mut self, h: u64, pos: usize) {
     let n = self.slots.len()
     let mut i = h.toUsize() & (n - 1)
     for self.slots[i] != 0 {
@@ -94,7 +94,7 @@ pure fn Map[K: Eq + Hash, V].fileSlot(mut self, h: u64, pos: usize) -> Unit {
 
 /// Files every entry into the (already right-sized) index; used after the
 /// index is replaced wholesale, when the old slots cannot be reused.
-pure fn Map[K: Eq + Hash, V].refileAll(mut self) -> Unit {
+pure fn Map[K: Eq + Hash, V].refileAll(mut self) {
     let mut pos: usize = 0
     for pos < self.keyList.len() {
         let h = hash(&self.keyList[pos])
@@ -104,13 +104,13 @@ pure fn Map[K: Eq + Hash, V].refileAll(mut self) -> Unit {
 }
 
 /// Rebuilds the index with size slots; entries keep their positions.
-pure fn Map[K: Eq + Hash, V].reindex(mut self, size: usize) -> Unit {
+pure fn Map[K: Eq + Hash, V].reindex(mut self, size: usize) {
     self.slots = Array.tryFill[usize](0, size) || panic("out of memory")
     self.refileAll()
 }
 
 /// Inserts value under key, replacing an existing value.
-pub pure fn Map[K: Eq + Hash, V].set(mut self, key: K, value: V) -> Unit {
+pub pure fn Map[K: Eq + Hash, V].set(mut self, key: K, value: V) {
     if self.position(&key) is Some(pos) {
         self.valueList[pos] = value
         return
@@ -132,7 +132,7 @@ pub pure fn Map[K: Eq + Hash, V].set(mut self, key: K, value: V) -> Unit {
 
 /// Inserts value under key, or AllocError when the allocator refuses; the
 /// map is left unchanged in that case (set panics instead).
-pub pure fn Map[K: Eq + Hash, V].trySet(mut self, key: K, value: V) -> Result[Unit, AllocError] {
+pub pure fn Map[K: Eq + Hash, V].trySet(mut self, key: K, value: V) -> Result[Void, AllocError] {
     if self.position(&key) is Some(pos) {
         self.valueList[pos] = value
     } else {
@@ -208,7 +208,7 @@ pub pure fn Map[K: Eq + Hash, V].contains(self, key: &K) -> Bool {
 }
 
 /// Removes key and drops its value; does nothing when the key is absent.
-pub pure fn Map[K: Eq + Hash, V].remove(mut self, key: &K) -> Unit {
+pub pure fn Map[K: Eq + Hash, V].remove(mut self, key: &K) {
     _ = self.take(key)
 }
 

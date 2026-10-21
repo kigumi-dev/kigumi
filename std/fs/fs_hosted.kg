@@ -16,7 +16,7 @@ extern(C) {
     fn closedir(dir: *mut u8) -> i32
     fn malloc(n: usize) -> *mut u8
     fn realloc(p: *mut u8, n: usize) -> *mut u8
-    fn free(p: *mut u8) -> Unit
+    fn free(p: *mut u8)
 }
 
 fn openFile(path: &String, mode: String) -> File! {
@@ -43,7 +43,7 @@ pub fn Files.append(self, path: Path) -> File! {
 }
 
 /// Deletes the file at path.
-pub fn Files.remove(self, path: Path) -> Unit! {
+pub fn Files.remove(self, path: Path) -> Void! {
     let c = ffi.CString.new(&path.text)?
     if unsafe {
         remove(c.ptr())
@@ -71,7 +71,7 @@ pub fn File.write(mut self, data: Bytes) -> usize! {
 }
 
 /// Flushes the file and reports any error; the drop then closes it.
-pub fn File.close(move self) -> Unit! {
+pub fn File.close(move self) -> Void! {
     if unsafe {
         fflush(self.f)
     } != 0 {
@@ -80,7 +80,7 @@ pub fn File.close(move self) -> Unit! {
 }
 
 /// Closes the file when it goes out of scope, ignoring errors.
-pub fn File.drop(move self) -> Unit {
+pub fn File.drop(move self) {
     _ = unsafe {
         fclose(self.f)
     }
@@ -162,7 +162,7 @@ pub fn Files.readBytes(self, path: Path) -> Bytes! {
 }
 
 /// Creates the directory at path and any missing parents; an existing directory is fine.
-pub fn Files.mkdir(self, path: Path) -> Unit! {
+pub fn Files.mkdir(self, path: Path) -> Void! {
     let parts = path.text.split("/")
     let mut cur = ""
     for i in 0..parts.len() {

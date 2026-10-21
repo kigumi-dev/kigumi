@@ -61,7 +61,7 @@ func TestBuildProgramSandbox(t *testing.T) {
 	write("greet/lib.kg", "pub fn hi() -> Int {\n    1\n}\n")
 	os.WriteFile(filepath.Join(outside, "secret.c"), []byte("int leak(void) { return 1; }\n"), 0o644)
 	os.Symlink(outside, filepath.Join(root, "escape"))
-	head := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n"
+	head := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n"
 	host := "b.request().target()"
 
 	err := buildWith(t, root, out, head+"    let f = b.file(\"escape/secret.c\")?\n    let a = b.executable(\"one\", \"cmd/one\", "+host+")?\n    a.addSource(f)\n}\n")
@@ -81,11 +81,11 @@ func TestBuildProgramSandbox(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "malformed") {
 		t.Errorf("malformed placeholder: %v", err)
 	}
-	err = buildWith(t, root, out, "import build from std/build\n\nfn configure(x: Int) -> Unit! {\n    let y = x\n}\n\nfn configure(b: build.Builder) -> Unit! {\n    let a = b.executable(\"one\", \"cmd/one\", "+host+")?\n}\n")
+	err = buildWith(t, root, out, "import build from std/build\n\nfn configure(x: Int) -> Void! {\n    let y = x\n}\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\"one\", \"cmd/one\", "+host+")?\n}\n")
 	if err == nil || !strings.Contains(err.Error(), "declares configure 2 times") {
 		t.Errorf("overloaded configure: %v", err)
 	}
-	err = buildWith(t, root, out, "import build from std/build\nimport greet from sb/greet\n\nfn configure(b: build.Builder) -> Unit! {\n    let a = b.executable(\"one\", \"cmd/one\", "+host+")?\n}\n")
+	err = buildWith(t, root, out, "import build from std/build\nimport greet from sb/greet\n\nfn configure(b: build.Builder) -> Void! {\n    let a = b.executable(\"one\", \"cmd/one\", "+host+")?\n}\n")
 	if err == nil || !strings.Contains(err.Error(), "cannot import") {
 		t.Errorf("own package import: %v", err)
 	}

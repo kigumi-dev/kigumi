@@ -9,7 +9,7 @@ fn View['a].peek(self) -> &Bytes {
     self.data
 }
 
-fn escapeRecv['a](buf: &'a Bytes) -> Unit {
+fn escapeRecv['a](buf: &'a Bytes) {
     let v = head(buf)
     let r = v.peek()
     let xs = Array.of(r)
@@ -27,7 +27,7 @@ fn lib.View.peek(%self: View['a]) -> &Bytes {
     %t1 = field 0(%self)
     return %t1
 }
-fn lib.escapeRecv(%buf: &Bytes) -> Unit {
+fn lib.escapeRecv(%buf: &Bytes) -> Void {
   b0:
     %t1 = copy(%buf)
     %t2 = call lib.head(%t1)

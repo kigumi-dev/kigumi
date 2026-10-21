@@ -23,14 +23,14 @@ export(C) {
     }
 }
 
-fn counted[const N: i128]() -> Unit {} //~ ERROR `i128` has no C or register representation here
+fn counted[const N: i128]() {} //~ ERROR `i128` has no C or register representation here
 
 fn ok(a: u128, b: i128) -> u128 {
     _ = b
     a
 }
 
-fn operand(x: u128) -> Unit {
+fn operand(x: u128) {
     unsafe {
         asm {
             "nop"
@@ -71,7 +71,7 @@ error[E960]: `u128` has no C or register representation here, since C types, asm
 error[E960]: `i128` has no C or register representation here, since C types, asm operands and const parameters stop at 64 bits
   --> app/t/t.kg:25:18
    |
-25 | fn counted[const N: i128]() -> Unit {} //~ ERROR `i128` has no C or register representation here
+25 | fn counted[const N: i128]() {} //~ ERROR `i128` has no C or register representation here
    |                  ^^^^^^^
    = help: pass it as two u64 halves
 

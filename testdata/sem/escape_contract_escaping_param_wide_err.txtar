@@ -34,12 +34,12 @@ fn keepLow[F: Fn[fn() -> Int]](
     a29: Int,
     slot: &mut Holder[F],
     cb: escaping F
-) -> Unit {
+) {
     slot.cb = Some(cb)
 }
 
-pub fn holeLow[F: Fn[fn() -> Int]](slot: &mut Holder[F], cb: F) -> Unit {
-    let k: fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Unit = keepLow //~ ERROR may keep its callback
+pub fn holeLow[F: Fn[fn() -> Int]](slot: &mut Holder[F], cb: F) {
+    let k: fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Void = keepLow //~ ERROR may keep its callback
     k(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, slot, cb)
 }
 
@@ -77,27 +77,27 @@ fn keepHigh[F: Fn[fn() -> Int]](
     a30: Int,
     slot: &mut Holder[F],
     cb: escaping F
-) -> Unit {
+) {
     slot.cb = Some(cb)
 }
 
-pub fn holeHigh[F: Fn[fn() -> Int]](slot: &mut Holder[F], cb: F) -> Unit {
-    let k: fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Unit = keepHigh //~ ERROR may keep its callback
+pub fn holeHigh[F: Fn[fn() -> Int]](slot: &mut Holder[F], cb: F) {
+    let k: fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Void = keepHigh //~ ERROR may keep its callback
     k(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, slot, cb)
 }
 
 -- expect --
-error[E1034]: `fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], escaping F) -> Unit` may keep its callback at parameter 32, but `fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Unit` declares it non-escaping
+error[E1034]: `fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], escaping F) -> Void` may keep its callback at parameter 32, but `fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Void` declares it non-escaping
   --> lib/esc.kg:41:194
    |
-41 |     let k: fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Unit = keepLow //~ ERROR may keep its callback
+41 |     let k: fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Void = keepLow //~ ERROR may keep its callback
    |                                                                                                                                                                                                  ^^^^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 
-error[E1034]: `fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], escaping F) -> Unit` may keep its callback at parameter 33, but `fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Unit` declares it non-escaping
+error[E1034]: `fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], escaping F) -> Void` may keep its callback at parameter 33, but `fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Void` declares it non-escaping
   --> lib/esc.kg:84:199
    |
-84 |     let k: fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Unit = keepHigh //~ ERROR may keep its callback
+84 |     let k: fn(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, &mut Holder[F], F) -> Void = keepHigh //~ ERROR may keep its callback
    |                                                                                                                                                                                                       ^^^^^^^^
    = help: declare the target's parameter `escaping` too, or keep the value in its own type
 

@@ -29,7 +29,7 @@ pub fn Host.signals(self) -> Signals
 /// Starts watching which; a later delivery sets its pending flag until
 /// `pending` reads and clears it. The C handler only sets that flag
 /// (rt_signal.c), so it never re-enters this refcounted runtime.
-pub fn Signals.watch(self, which: Signal) -> Unit! {
+pub fn Signals.watch(self, which: Signal) -> Void! {
     let r = unsafe {
         rt_sys_signal_watch(which.code())
     }

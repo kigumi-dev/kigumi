@@ -3,21 +3,21 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.bumpTwice(mut self) -> Unit {
+fn Counter.bumpTwice(mut self) {
     let step = () => {
         self.n = self.n + 1
     }
     step()
 }
 
-fn Counter.bumpCompound(mut self) -> Unit {
+fn Counter.bumpCompound(mut self) {
     let step = () => {
         self.n += 1
     }
     step()
 }
 
-fn Counter.bumpLoop(mut self) -> Unit {
+fn Counter.bumpLoop(mut self) {
     let step = () => {
         self.n = self.n + 1
     }
@@ -41,14 +41,14 @@ fn Counter.peekTwice(mut self) -> Int {
     peek() + peek()
 }
 
-fn Counter.reset(mut self) -> Unit {
+fn Counter.reset(mut self) {
     let step = () => {
         self = Counter { n: 99 }
     }
     step()
 }
 
-fn Counter.resetDirect(mut self) -> Unit {
+fn Counter.resetDirect(mut self) {
     self = Counter { n: 100 }
 }
 
@@ -65,7 +65,7 @@ type Bag = {
     pub mut items Array[Int]
 }
 
-fn Bag.bumpFirst(mut self) -> Unit {
+fn Bag.bumpFirst(mut self) {
     let step = () => {
         self.items[0] = self.items[0] + 1
     }

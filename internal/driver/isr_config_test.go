@@ -28,13 +28,13 @@ const isrWideSrc = `fn widen(a: i128) -> i128 {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let a: i128 = 7
         _ = widen(a)
     }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // The sem summary of tick is clean (wrappingAdd carries an inert contract), but the i128 runtime path boxes.
@@ -61,10 +61,10 @@ func TestInterruptLoweringFinalCheck(t *testing.T) {
 }
 
 const isrTickSrc = `export(interrupt) {
-    pub fn tick() -> Unit {}
+    pub fn tick() {}
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestInterruptManifestConfig(t *testing.T) {
@@ -107,7 +107,7 @@ func TestInterruptManifestRecords(t *testing.T) {
 
 func TestInterruptConfigWithoutHandlers(t *testing.T) {
 	t.Parallel()
-	res, err := driver.Check(isrModule(t, "Interrupt { handler: \"isr.gone, elsewhere/pkg.h\" }\n", "fn main() -> Unit! {}\n"))
+	res, err := driver.Check(isrModule(t, "Interrupt { handler: \"isr.gone, elsewhere/pkg.h\" }\n", "fn main() -> Void! {}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}

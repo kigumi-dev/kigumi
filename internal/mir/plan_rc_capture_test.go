@@ -19,7 +19,7 @@ fn nested(p: Pt) -> Int {
     h(1)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanReleasesTheCopyAClosureRetains(t *testing.T) {

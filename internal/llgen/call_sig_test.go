@@ -26,7 +26,7 @@ fn firstLive(fs: &Array[Flag]) -> Bool {
     if fs.get(0) is Some(f) { f.live } else { false }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // Keeps a quoted type name whole: %"kg.agg.Tuple2[Int,Int]" is one token with a

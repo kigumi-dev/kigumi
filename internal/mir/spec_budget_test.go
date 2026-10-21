@@ -16,7 +16,7 @@ func fanOut(levels int) string {
 		fmt.Fprintf(&src, "fn g%d[T: Copy](x: T) -> Int { g%d((x, 1)) + g%d((2, x)) }\n", i, i+1, i+1)
 	}
 	fmt.Fprintf(&src, "fn g%d[T: Copy](x: T) -> Int { 1 }\n\n", levels-1)
-	src.WriteString("fn run(n: Int) -> Int { g0(P { x: n, y: n }) }\n\nfn main() -> Unit! {}\n")
+	src.WriteString("fn run(n: Int) -> Int { g0(P { x: n, y: n }) }\n\nfn main() -> Void! {}\n")
 	return src.String()
 }
 

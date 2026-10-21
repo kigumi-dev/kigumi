@@ -11,7 +11,7 @@ fn View['a].at(self, i: usize) -> u8 {
     self.data[self.off + i]
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf = Bytes.fromArray(&Array.of(10, 20, 30, 40, 50, 60, 70, 80))
     let whole = View { data: &buf, off: 0, len: buf.len() }
     let middle = whole.sub(2, 4)

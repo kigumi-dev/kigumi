@@ -9,7 +9,7 @@ import (
 func TestBuildWriteRejectsDuplicateName(t *testing.T) {
 	t.Parallel()
 	root, out := t.TempDir(), t.TempDir()
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let a = b.write(\"gen.txt\", \"first\")?\n" +
 		"    let b2 = b.write(\"gen.txt\", \"second\")?\n" +
 		"}\n"
@@ -23,7 +23,7 @@ func TestBuildWriteRejectsDuplicateName(t *testing.T) {
 func TestBuildWriteRejectsNameOfToolOutputFirst(t *testing.T) {
 	t.Parallel()
 	root, out := t.TempDir(), t.TempDir()
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let cc = b.toolchain()\n" +
 		"    let outs = b.runTool(cc, \"cc\", Array.empty[String](), Array.empty[build.FilePath](), Array.of(\"gen.txt\"), Array.empty[build.Secret]())?\n" +
 		"    let w = b.write(\"gen.txt\", \"second\")?\n" +
@@ -39,7 +39,7 @@ func TestBuildWriteRejectsNameOfToolOutputFirst(t *testing.T) {
 func TestBuildArtifactRejectsOutputNameCollision(t *testing.T) {
 	t.Parallel()
 	root, out := t.TempDir(), t.TempDir()
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let gen = b.write(\"app\", \"not a binary\")?\n" +
 		"    let a = b.executable(\"app\", \".\", b.hostTarget())?\n" +
 		"}\n"

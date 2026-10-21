@@ -11,11 +11,11 @@ fn View['a].byte(self) -> u8 {
     self.data[self.off]
 }
 
-fn Doc['a].add(mut self, v: View['a]) -> Unit {
+fn Doc['a].add(mut self, v: View['a]) {
     self.views.push(v)
 }
 
-fn fill['a](vs: &mut Array[View['a]], b: &'a Bytes) -> Unit {
+fn fill['a](vs: &mut Array[View['a]], b: &'a Bytes) {
     vs.push(View { data: b, off: 1 })
     vs[0] = View { data: b, off: 2 }
 }
@@ -38,7 +38,7 @@ fn search['a](b: &'a Bytes) -> Found['a] {
     Miss
 }
 
-fn run() -> Unit {
+fn run() {
     let buf = Bytes.fromArray(&Array.of(5, 6, 7, 8))
     let mut vs = Array.of(View { data: &buf, off: 0 })
     fill(&mut vs, &buf)

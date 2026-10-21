@@ -41,7 +41,7 @@ fn plain(p: Int) -> Bool {
     f(p)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${direct(1)} ${viaParam(2)} ${viaLocal(3)} ${callsInferred(4)} ${plain(5)}"
 }
 -- expect --

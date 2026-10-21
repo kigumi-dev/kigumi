@@ -14,7 +14,7 @@ fn addPair(p: (Int, Int)) -> Int {
     x + y
 }
 
-fn use(arr: Array[(Int, String)]) -> Unit {
+fn use(arr: Array[(Int, String)]) {
     for (n, s) in arr {
         _ = n
         _ = s
@@ -102,8 +102,7 @@ File
                 Path Int
               TypePath
                 Path String
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
       ExprStmt
         For

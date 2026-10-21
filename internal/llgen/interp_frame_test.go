@@ -22,7 +22,7 @@ fn fshow(v: Float?) -> String {
     }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // A payload read is raw, so interpolation formats it from a frame immortal instead of boxing it.

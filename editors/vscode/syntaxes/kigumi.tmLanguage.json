@@ -193,7 +193,7 @@
             "patterns": [
                 {
                     "name": "support.type.primitive.kigumi",
-                    "match": "\\b(Int|Float|Bool|String|Bytes|Char|Unit|Never|Error|Array|Option|Result|usize|isize|byte|[iu](8|16|32|64|128)|f32|f64)\\b"
+                    "match": "\\b(Int|Float|Bool|String|Bytes|Char|Void|Never|Error|Array|Option|Result|usize|isize|byte|[iu](8|16|32|64|128)|f32|f64)\\b"
                 },
                 {
                     "name": "entity.name.type.kigumi",

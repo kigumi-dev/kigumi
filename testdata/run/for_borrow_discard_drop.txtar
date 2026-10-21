@@ -6,7 +6,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -14,7 +14,7 @@ type Box = {
     items Array[Res]
 }
 
-fn scanField(b: &Box) -> Unit {
+fn scanField(b: &Box) {
     for x in &b.items {
         _ = x
     }

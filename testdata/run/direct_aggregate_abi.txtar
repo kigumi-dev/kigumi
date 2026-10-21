@@ -26,7 +26,7 @@ fn Point.shifted(self, d: Point) -> Point { mk(self.x + d.x, self.y + d.y) }
 
 fn Point.consumed(move self) -> Int { self.x * 100 + self.y }
 
-fn Point.raise(mut self) -> Unit {
+fn Point.raise(mut self) {
     self.y = self.y + 1
 }
 

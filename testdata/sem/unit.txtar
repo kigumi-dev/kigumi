@@ -1,16 +1,16 @@
 -- app/t/t.kg --
-// `()` is the value of type Unit, the 0-tuple counterpart of `(a, b)`;
-// `Unit` itself stays a type name.
-fn takesUnit(u: Unit) -> Unit {
+// `()` is the value of type Void, the 0-tuple counterpart of `(a, b)`;
+// `Void` itself stays a type name.
+fn takesUnit(u: Void) {
     _ = u
 }
 
-fn ok() -> Unit! {
+fn ok() -> Void! {
     return Ok(())
 }
 
-fn use() -> Unit! {
-    let u = () //~ TYPE u : Unit
+fn use() -> Void! {
+    let u = () //~ TYPE u : Void
     takesUnit(u)
     takesUnit(())
     ok()?

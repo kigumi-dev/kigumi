@@ -2,16 +2,16 @@
 type Handle = resource {
     pub id Int
 }
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 fn paren() -> Handle! {
     let h = Handle { id: 8 }
     (h)
 }
-fn main() -> Unit! {
+fn main() -> Void! {
     _ = paren()?
 }
 -- expect --
-fn main.Handle.drop(%self: Handle) -> Unit {
+fn main.Handle.drop(%self: Handle) -> Void {
   b0:
     %t1 = unit
     return %t1
@@ -26,7 +26,7 @@ fn main.paren() -> Handle! {
     nop
     return %t4
 }
-fn main.main() -> Unit! {
+fn main.main() -> Void! {
   b0:
     %t0 = call main.paren
     %t1 = isvariant Result.Ok(%t0)

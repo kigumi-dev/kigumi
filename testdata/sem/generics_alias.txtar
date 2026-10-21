@@ -19,9 +19,9 @@ fn use1() -> Int! {
     v
 }
 
-fn bad1(x: Res) -> Unit {} //~ ERROR `Res` is generic
+fn bad1(x: Res) {} //~ ERROR `Res` is generic
 
-fn bad2(x: Res[Int, Int]) -> Unit {} //~ ERROR `Res` takes 1 type argument, 2 given
+fn bad2(x: Res[Int, Int]) {} //~ ERROR `Res` takes 1 type argument, 2 given
 
 type Bounded[T: Eq] = alias Array[T] //~ ERROR alias parameters take no constraints
 
@@ -29,14 +29,14 @@ type Bounded[T: Eq] = alias Array[T] //~ ERROR alias parameters take no constrai
 error[E218]: `Res` is generic
   --> app/t/t.kg:21:12
    |
-21 | fn bad1(x: Res) -> Unit {} //~ ERROR `Res` is generic
+21 | fn bad1(x: Res) {} //~ ERROR `Res` is generic
    |            ^^^
    = help: write `Res[...]`
 
 error[E217]: `Res` takes 1 type argument, 2 given
   --> app/t/t.kg:23:12
    |
-23 | fn bad2(x: Res[Int, Int]) -> Unit {} //~ ERROR `Res` takes 1 type argument, 2 given
+23 | fn bad2(x: Res[Int, Int]) {} //~ ERROR `Res` takes 1 type argument, 2 given
    |            ^^^^^^^^^^^^
 
 error[E251]: alias parameters take no constraints

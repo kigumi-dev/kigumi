@@ -12,7 +12,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.get(self, k: Int) -> Int { self.n + k }
 
@@ -37,7 +37,7 @@ fn run(x: Int) -> Int {
     viaParam(Res { n: x }, Point { x: x, y: x }).y
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestSpecializeMintsAMethodValueOverATypeParameter(t *testing.T) {

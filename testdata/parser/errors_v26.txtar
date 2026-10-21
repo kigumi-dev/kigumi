@@ -7,7 +7,7 @@ match v {
 pure noalloc {
     fn hash(self) -> u64 { 0 }
 }
-pub(self) fn same() -> Unit {}
+pub(self) fn same() {}
 pub interface Hash {
     pure noalloc {
         fn hash(self) -> u64
@@ -57,8 +57,7 @@ File
     name: same
     generics: -
     params: List
-    ret: TypePath
-      Path Unit
+    ret: -
     body: Block
   InterfaceDecl
     vis: Visibility
@@ -100,7 +99,7 @@ error: contract blocks were removed from declarations (v2.6 B2); write `pure noa
 error: `pub(self)` is the same as no modifier; remove it (v2.6 B4)
  --> errors_v26.txtar:9:5
   |
-9 | pub(self) fn same() -> Unit {}
+9 | pub(self) fn same() {}
   |     ^^^^
 
 error: contract blocks were removed from declarations (v2.6 B2); write `pure noalloc` on each fn

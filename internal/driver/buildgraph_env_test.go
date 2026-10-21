@@ -27,7 +27,7 @@ func TestToolEnvAllowlist(t *testing.T) {
 	write("tools/env.sh", "#!/bin/sh\nprintf 'HOME=%s SECRET=%s TRIPLE=%s' \"$HOME\" \"$KIGUMI_SECRET_x\" \"$KIGUMI_TARGET_TRIPLE\" > \"$1\"\n")
 	os.Chmod(filepath.Join(root, "tools", "env.sh"), 0o755)
 	write("cmd/one/main.kg", "print \"one\"\n")
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let fw = b.framework(\"t/env\", \"1\")\n" +
 		"    let o = b.runToolOutput(fw, \"env\", Array.of(\"$out:0\"), Array.empty[build.FilePath](), \"env.txt\", Array.empty[build.Secret]())?\n" +
 		"    let a = b.executable(\"one\", \"cmd/one\", b.request().target())?\n    a.addSource(o)\n}\n"

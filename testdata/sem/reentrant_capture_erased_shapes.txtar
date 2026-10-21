@@ -2,53 +2,53 @@
 type Resource = resource {
     pub mut count Int
 }
-fn Resource.drop(move self) -> Unit {}
+fn Resource.drop(move self) {}
 
-fn Resource.run[F: FnMut[fn() -> Unit]](mut self, f: F) -> Unit {
+fn Resource.run[F: FnMut[fn() -> Void]](mut self, f: F) {
     f()
 }
 
-fn mutate(x: &mut Resource) -> Unit {
+fn mutate(x: &mut Resource) {
     x.count = 99
 }
 
 type Holder = {
-    pub cb fn() -> Unit
+    pub cb fn() -> Void
 }
 
-fn pack(f: escaping fn() -> Unit) -> Holder {
+fn pack(f: escaping fn() -> Void) -> Holder {
     Holder { cb: f }
 }
 
-fn viaFieldRead(mut v: Resource) -> Unit {
+fn viaFieldRead(mut v: Resource) {
     let holder = pack(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
     v.run(holder.cb) //~ ERROR cannot see what this closure captures
 }
 
-fn identity(f: escaping fn() -> Unit) -> fn() -> Unit {
+fn identity(f: escaping fn() -> Void) -> fn() -> Void {
     f
 }
 
-fn viaCallResult(mut v: Resource) -> Unit {
+fn viaCallResult(mut v: Resource) {
     let stored = identity(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
     v.run(stored) //~ ERROR cannot see what this closure captures
 }
 
-fn viaIndex(mut v: Resource, cbs: Array[fn() -> Unit]) -> Unit {
+fn viaIndex(mut v: Resource, cbs: Array[fn() -> Void]) {
     v.run(cbs[0]) //~ ERROR cannot see what this closure captures
 }
 
 type HolderArray = {
-    pub cbs Array[fn() -> Unit]
+    pub cbs Array[fn() -> Void]
 }
 
-fn viaFieldThenIndex(mut v: Resource, holder: HolderArray) -> Unit {
+fn viaFieldThenIndex(mut v: Resource, holder: HolderArray) {
     v.run(holder.cbs[0]) //~ ERROR cannot see what this closure captures
 }
 
-fn doNothing() -> Unit {}
+fn doNothing() {}
 
-fn viaTopLevelFn(mut v: Resource) -> Unit {
+fn viaTopLevelFn(mut v: Resource) {
     v.run(doNothing)
 }
 -- expect --

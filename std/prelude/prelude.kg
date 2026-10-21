@@ -50,10 +50,10 @@ pub type Range[T] = {
 }
 
 /// Hit(true) for true, Miss(()) for false.
-pub pure noalloc fn Bool.branch(move self) -> Branch[Bool, Unit]
+pub pure noalloc fn Bool.branch(move self) -> Branch[Bool, Void]
 
 /// Hit(value) for Some, Miss(()) for None.
-pub pure noalloc fn Option[T].branch(move self) -> Branch[T, Unit]
+pub pure noalloc fn Option[T].branch(move self) -> Branch[T, Void]
 
 /// Hit(value) for Ok, Miss(error) for Err.
 pub pure noalloc fn Result[T, E].branch(move self) -> Branch[T, E]
@@ -770,8 +770,8 @@ pub pure noalloc fn Bytes.hash(self) -> u64
 
 pub pure noalloc fn Bytes.compareTo(self, other: &Bytes) -> Ordering
 
-pub pure noalloc fn Unit.equals(self, other: &Unit) -> Bool
+pub pure noalloc fn Void.equals(self, other: &Void) -> Bool
 
-pub pure noalloc fn Unit.hash(self) -> u64
+pub pure noalloc fn Void.hash(self) -> u64
 
-pub pure noalloc fn Unit.compareTo(self, other: &Unit) -> Ordering
+pub pure noalloc fn Void.compareTo(self, other: &Void) -> Ordering

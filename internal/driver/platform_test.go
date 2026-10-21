@@ -94,7 +94,7 @@ func TestArenaAllocates(t *testing.T) {
 		t.Skip("no C compiler")
 	}
 	root := t.TempDir()
-	src := "import {Arena} from std/alloc\n\nfn run() -> Unit! {\n    let arena = Arena.create()?\n    let before = arena.allocated()\n    let n = allocator arena.scope() {\n        let mut xs = Array.empty[Int]()\n        for i in 0..1000 {\n            xs.push(i)\n        }\n        xs.len()\n    }\n    let after = arena.allocated()\n    print \"${n} ${before == 0} ${after > 8000}\"\n}\n\nlet r = run()\n"
+	src := "import {Arena} from std/alloc\n\nfn run() -> Void! {\n    let arena = Arena.create()?\n    let before = arena.allocated()\n    let n = allocator arena.scope() {\n        let mut xs = Array.empty[Int]()\n        for i in 0..1000 {\n            xs.push(i)\n        }\n        xs.len()\n    }\n    let after = arena.allocated()\n    print \"${n} ${before == 0} ${after > 8000}\"\n}\n\nlet r = run()\n"
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"arena\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "main.kg"), []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")

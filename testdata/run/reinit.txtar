@@ -3,7 +3,7 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -15,7 +15,7 @@ fn step(h: Handle) -> Handle {
     h
 }
 
-fn loopReinit() -> Unit {
+fn loopReinit() {
     let mut h = make(1)
     let mut i = 0
     for i < 3 {
@@ -37,13 +37,13 @@ fn branchReinit(flag: Bool, mut h: Handle) -> Handle {
     h
 }
 
-fn reassignDropsOnce() -> Unit {
+fn reassignDropsOnce() {
     let mut h = make(10)
     h = make(11)
     print "reassignDropsOnce done ${h.id}"
 }
 
-fn neverMovedReassign() -> Unit {
+fn neverMovedReassign() {
     let mut h = make(20)
     h = make(21)
     print "neverMovedReassign done ${h.id}"

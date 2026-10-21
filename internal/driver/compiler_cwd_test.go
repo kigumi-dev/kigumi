@@ -138,7 +138,7 @@ func TestLoadBuildProgramResolvesRelativeRootAgainstCompilerCwd(t *testing.T) {
 	os.Mkdir(m, 0o755)
 	os.WriteFile(filepath.Join(m, "mod.kg"), []byte("Module {\n    name: \"m\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(m, "main.kg"), []byte("print \"x\"\n"), 0o644)
-	os.WriteFile(filepath.Join(m, "build.kg"), []byte("fn configure(b: build.Builder) -> Unit! {\n}\n"), 0o644)
+	os.WriteFile(filepath.Join(m, "build.kg"), []byte("fn configure(b: build.Builder) -> Void! {\n}\n"), 0o644)
 	std, _ := filepath.Abs("../../std")
 	t.Chdir(a)
 	cc := driver.CompilerOptions{Cwd: b, PathDirs: []string{}, Home: b}

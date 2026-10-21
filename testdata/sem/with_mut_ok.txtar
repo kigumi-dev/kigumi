@@ -5,7 +5,7 @@ type Item = {
     pub mut count Int
 }
 
-fn Item.update(mut self, delta: Int) -> Unit {
+fn Item.update(mut self, delta: Int) {
     self.count = self.count + delta
 }
 

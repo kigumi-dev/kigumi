@@ -1,6 +1,6 @@
 import os from std/os
 
-fn run() -> Unit {
+fn run() {
     let s = os.OsString.fromUnixBytes(Bytes.zeros(3))
     eprint "go"
     let r = s.tryToStringLossy()

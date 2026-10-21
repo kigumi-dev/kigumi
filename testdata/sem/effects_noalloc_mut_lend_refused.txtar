@@ -6,11 +6,11 @@ type Point = {
     pub y Int
 }
 
-fn Point.bump(mut self) -> Unit {
+fn Point.bump(mut self) {
     self.x = self.x + 1
 }
 
-fn setX(p: &mut Point) -> Unit {
+fn setX(p: &mut Point) {
     p.x = 5
 }
 
@@ -26,7 +26,7 @@ noalloc fn viaMutBorrow() -> Int {
     p.x
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = viaReceiver() + viaMutBorrow()
 }
 -- expect --

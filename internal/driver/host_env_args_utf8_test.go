@@ -104,7 +104,7 @@ func TestHostEnvArgsRejectInvalidUtf8(t *testing.T) {
 	})
 }
 
-const hostOsStringSrc = `fn report(label: String, found: os.OsString?, text: String?) -> Unit {
+const hostOsStringSrc = `fn report(label: String, found: os.OsString?, text: String?) {
     match found {
         Some(o) -> {
             let lossy = o.toStringLossy()

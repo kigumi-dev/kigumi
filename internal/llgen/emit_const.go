@@ -30,7 +30,7 @@ func (e *emitter) constant(sb *strings.Builder, in mir.Inst) string {
 }
 
 // litKey registers in's literal as an immortal and names its slot key;
-// Bool and Unit have one static object each already, so they stay out.
+// Bool and Void have one static object each already, so they stay out.
 func (e *emitter) litKey(in mir.Inst) (string, bool) {
 	lit := in.Lit
 	tt := e.r.Types

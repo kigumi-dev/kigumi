@@ -24,19 +24,19 @@ type Res = resource {
     handle usize
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 type Plain = {
     v Int
 }
 
-fn Plain.drop(move self) -> Unit {} //~ ERROR only `resource` types define `drop`
+fn Plain.drop(move self) {} //~ ERROR only `resource` types define `drop`
 
 type Res2 = resource {
     handle usize
 }
 
-fn Res2.drop(self) -> Unit {} //~ ERROR `drop` must be `fn Res2.drop(move self) -> Unit`
+fn Res2.drop(self) {} //~ ERROR `drop` must be `fn Res2.drop(move self)`
 
 type Clash = {
     name String
@@ -110,14 +110,14 @@ error[E221]: `Opt` contains itself without indirection
 error[E227]: only `resource` types define `drop`
   --> app/t/t.kg:32:1
    |
-32 | fn Plain.drop(move self) -> Unit {} //~ ERROR only `resource` types define `drop`
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+32 | fn Plain.drop(move self) {} //~ ERROR only `resource` types define `drop`
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E226]: `drop` must be `fn Res2.drop(move self) -> Unit`
+error[E226]: `drop` must be `fn Res2.drop(move self)` and return Void
   --> app/t/t.kg:38:1
    |
-38 | fn Res2.drop(self) -> Unit {} //~ ERROR `drop` must be `fn Res2.drop(move self) -> Unit`
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+38 | fn Res2.drop(self) {} //~ ERROR `drop` must be `fn Res2.drop(move self)`
+   | ^^^^^^^^^^^^^^^^^^^^
 
 error[E224]: `name` is both a field and a method of `Clash`
   --> app/t/t.kg:44:1

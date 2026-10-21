@@ -3,11 +3,11 @@ type Box = {
     pub mut v Int
 }
 
-fn callIt(f: fn() -> Unit) -> Unit {
+fn callIt(f: fn() -> Void) {
     f()
 }
 
-fn setMut(r: &mut Box) -> Unit {
+fn setMut(r: &mut Box) {
     callIt(() => { r.v = 42 })
 }
 

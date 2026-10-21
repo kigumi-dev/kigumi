@@ -20,7 +20,7 @@ fn describe(m: Mixed) -> Int {
     }
 }
 
-fn collect(m: Mixed, out: &mut Array[Int]) -> Unit {
+fn collect(m: Mixed, out: &mut Array[Int]) {
     match m {
         A(a, b) -> {
             out.push(b)

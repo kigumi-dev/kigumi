@@ -18,7 +18,7 @@ fn readsField(x: Named) -> Int {
     x.n
 }
 
-fn keepsN(x: Named, out: &mut Array[Int]) -> Unit {
+fn keepsN(x: Named, out: &mut Array[Int]) {
     out.push(x.n)
 }
 
@@ -35,11 +35,11 @@ fn deepReader(w: &mut W) -> Int {
     reader(w) + 1
 }
 
-fn writer(w: &mut W) -> Unit {
+fn writer(w: &mut W) {
     w.nm.n = 4
 }
 
-fn deepWriter(w: &mut W) -> Unit {
+fn deepWriter(w: &mut W) {
     writer(w)
 }
 
@@ -47,7 +47,7 @@ fn peek(x: &mut Named) -> Int {
     x.n
 }
 
-fn poke(x: &mut Named) -> Unit {
+fn poke(x: &mut Named) {
     x.n = 7
 }
 
@@ -55,7 +55,7 @@ fn viaRead(w: &W) -> Int {
     readsField(w.nm)
 }
 
-fn viaKeep(w: &W, out: &mut Array[Int]) -> Unit {
+fn viaKeep(w: &W, out: &mut Array[Int]) {
     keepsN(w.nm, out)
 }
 
@@ -106,7 +106,7 @@ fn rebound(mut w: W) -> Int {
     b.n
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanRCLendsAFieldToAReader(t *testing.T) {

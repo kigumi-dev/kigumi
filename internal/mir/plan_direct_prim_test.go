@@ -49,7 +49,7 @@ fn hyp(x: Float, y: Float) -> Float {
     math.sqrt(x * x + y * y)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanDirectTakesADirectResultFromAPrimitive(t *testing.T) {
@@ -123,7 +123,7 @@ fn viaMatch(n: Int) -> u8 {
     }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestPlanDirectKeepsABoxedResultWhereTheOptionWouldBeBoxedAgain(t *testing.T) {

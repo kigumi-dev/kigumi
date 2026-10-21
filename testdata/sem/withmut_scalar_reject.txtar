@@ -1,9 +1,9 @@
 -- src --
-fn viaShared(xs: &Int) -> Unit {
+fn viaShared(xs: &Int) {
     xs = 9 //~ ERROR
 }
 
-fn m() -> Unit {
+fn m() {
     let mut xs = Array.of(1, 2, 3)
     let _ = xs.with(0, (x: &Int) => { x = 9 }) //~ ERROR
 }

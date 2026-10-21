@@ -14,7 +14,7 @@ type Counter = {
     pub mut tag String
 }
 
-fn Counter.bump(mut self, by: Int) -> Unit {
+fn Counter.bump(mut self, by: Int) {
     self.n = self.n + by
 }
 
@@ -28,7 +28,7 @@ fn drive(start: Counter, k: Int) -> Int {
     acc.n
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	body := bodyOf(t, ir, `define ptr @"main.drive"(`)
 	checkNoHeap(t, "main.drive", body)
@@ -50,7 +50,7 @@ func TestWholeSelfAssignWritesBackThroughCell(t *testing.T) {
 	ir := emitIR(t, `
 type Shape = Circle(label: String) | Dot
 
-fn Shape.flatten(mut self) -> Unit {
+fn Shape.flatten(mut self) {
     self = Dot
 }
 
@@ -60,7 +60,7 @@ fn clear(s: Shape) -> Shape {
     out
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	callee := bodyOf(t, ir, `define ptr @"main.Shape.flatten"(`)
 	if !strings.Contains(callee, "@rt_cellset(") {

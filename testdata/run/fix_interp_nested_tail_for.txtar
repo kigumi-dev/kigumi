@@ -12,7 +12,7 @@ type Counter = {
     pub mut n Int
 }
 
-fn Counter.tryBump(mut self, useLoop: Bool, failEarly: Bool, failLate: Bool) -> Result[Unit, Failure] {
+fn Counter.tryBump(mut self, useLoop: Bool, failEarly: Bool, failLate: Bool) -> Result[Void, Failure] {
     if failEarly {
         fail Bad
     } else {

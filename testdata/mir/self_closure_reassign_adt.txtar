@@ -1,14 +1,14 @@
 -- src --
 type Shape = Circle(r: Float) | Dot
 
-fn Shape.grow(mut self) -> Unit {
+fn Shape.grow(mut self) {
     let step = () => {
         self = Circle(99.0)
     }
     step()
 }
 -- expect --
-fn main.Shape.grow.closure1(%self: Shape) -> Unit {
+fn main.Shape.grow.closure1(%self: Shape) -> Void {
   b0:
     %t1 = const 99: Float
     %t2 = variant main.Shape.Circle(%t1)
@@ -16,7 +16,7 @@ fn main.Shape.grow.closure1(%self: Shape) -> Unit {
     %t3 = unit
     return %t3
 }
-fn main.Shape.grow(%self: Shape) -> Unit {
+fn main.Shape.grow(%self: Shape) -> Void {
   b0:
     %t1 = closure main.Shape.grow.closure1(%self)
     %step = copy(%t1)

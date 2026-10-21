@@ -62,7 +62,7 @@ type Counter = resource {
     pub n Int
 }
 
-fn Counter.drop(move self) -> Unit {
+fn Counter.drop(move self) {
     print "drop ${self.n}"
 }
 

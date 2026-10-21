@@ -4,15 +4,15 @@ type Pt = {
     pub mut y Int
 }
 
-noalloc fn storeLiteral(xs: &mut FixedArray[Pt, 2]) -> Unit {
+noalloc fn storeLiteral(xs: &mut FixedArray[Pt, 2]) {
     xs[0] = Pt { x: 1, y: 2 } //~ ERROR handing `Pt`
 }
 
-noalloc fn storeLocal(xs: &mut FixedArray[Pt, 2], p: Pt) -> Unit {
+noalloc fn storeLocal(xs: &mut FixedArray[Pt, 2], p: Pt) {
     xs[0] = p //~ ERROR handing `Pt`
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 -- expect --
 error[E1610]: handing `Pt` to a slot that holds a reference allocates a box for it
  --> main/main.kg:7:5

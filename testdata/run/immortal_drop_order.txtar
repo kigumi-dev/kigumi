@@ -3,7 +3,7 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {
+fn Handle.drop(move self) {
     print "drop ${self.id}"
 }
 
@@ -16,7 +16,7 @@ fn describe(s: &Slot) -> String {
     }
 }
 
-fn Slot.release(mut self) -> Unit {
+fn Slot.release(mut self) {
     self = Free
 }
 

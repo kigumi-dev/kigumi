@@ -3,7 +3,7 @@ type H = resource {
     pub id Int
 }
 
-fn H.drop(move self) -> Unit {
+fn H.drop(move self) {
     print "drop ${self.id}"
 }
 

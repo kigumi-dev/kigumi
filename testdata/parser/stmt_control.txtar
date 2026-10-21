@@ -1,5 +1,5 @@
 -- src --
-fn f() -> Unit! {
+fn f() -> Void! {
     if let n = count(); n > 3 { use(n) }
     if shape is Circle(r) && r > 1.0 { print "big" }
     if x is Some(v) && v > 0 { use(v) }
@@ -64,7 +64,7 @@ File
     params: List
     ret: TypeResult
       TypePath
-        Path Unit
+        Path Void
     body: Block
       ExprStmt
         IfLet

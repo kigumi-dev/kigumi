@@ -14,7 +14,7 @@ func TestSiteAtResolvesFileAndLine(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "fixture.txtar")
 	src := "-- src --\n" +
-		"fn main() -> Unit! {\n" +
+		"fn main() -> Void! {\n" +
 		"    let x = 1\n" +
 		"    let y = 10 / (x - 1)\n" +
 		"}\n"

@@ -20,7 +20,7 @@ fn mac(n: u32) -> u128 {
     acc
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${mac(10)}"
 }
 `
@@ -46,7 +46,7 @@ func TestWideIntegersStayInRegisters(t *testing.T) {
 }
 
 func TestInt128RuntimeIsAskedForOnlyWhenUsed(t *testing.T) {
-	prog := plannedProgram(t, "fn main() -> Unit! {\n    let x: u64 = 5\n    print \"${x * 2}\"\n}\n")
+	prog := plannedProgram(t, "fn main() -> Void! {\n    let x: u64 = 5\n    print \"${x * 2}\"\n}\n")
 	plain := llgen.EmitProgram(prog, llgen.EmitOptions{Reachable: mir.Reachable(prog)})
 	if plain.Int128 {
 		t.Error("a program without 128-bit integers asks for the 128-bit runtime")
@@ -63,7 +63,7 @@ func TestInt128RuntimeIsAskedForOnlyWhenUsed(t *testing.T) {
 
 func TestWideLiteralsReachTheRuntimeAsWords(t *testing.T) {
 	ir := emitIR(t, `
-fn main() -> Unit! {
+fn main() -> Void! {
     let big: u128 = 340282366920938463463374607431768211455
     let neg: i128 = -170141183460469231731687303715884105728
     print "${big} ${neg}"

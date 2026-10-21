@@ -132,10 +132,10 @@ func TestUnitCrossPackageConformanceFlips(t *testing.T) {
 
 func TestUnitCrossPackageLentCellFlips(t *testing.T) {
 	t.Parallel()
-	app := "import lib from xmod/lib\n\nfn go['a](h: lib.Holder['a]) -> Unit {\n    lib.touch(h.r, 1)\n}\n\nprint \"ok\"\n"
+	app := "import lib from xmod/lib\n\nfn go['a](h: lib.Holder['a]) {\n    lib.touch(h.r, 1)\n}\n\nprint \"ok\"\n"
 	head := "pub type Shape = Circle(r: Int) | Dot\n\npub fn Shape.area(self) -> Int {\n    match self {\n        Circle(r) -> r\n        Dot -> 0\n    }\n}\n\npub type Holder['a] = {\n    pub mut r &'a mut Shape\n}\n\n"
-	reads := head + "pub fn touch(s: &mut Shape, k: Int) -> Unit {\n    let n = s.area() + k\n}\n"
-	replaces := head + "pub fn touch(s: &mut Shape, k: Int) -> Unit {\n    s = Circle(k)\n}\n"
+	reads := head + "pub fn touch(s: &mut Shape, k: Int) {\n    let n = s.area() + k\n}\n"
+	replaces := head + "pub fn touch(s: &mut Shape, k: Int) {\n    s = Circle(k)\n}\n"
 	runScenario(t, app, []scenarioStep{
 		{lib: reads},
 		{lib: replaces, want: "error[E1503]"},

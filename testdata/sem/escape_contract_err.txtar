@@ -3,53 +3,53 @@ pub type Res = resource {
     pub tag Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     _ = self
 }
 
-fn Res.touch(self) -> Unit {}
+fn Res.touch(self) {}
 
-fn storeIt(cb: escaping fn() -> Unit) -> Unit {}
+fn storeIt(cb: escaping fn() -> Void) {}
 
-fn useIt(cb: fn() -> Unit) -> Unit {
+fn useIt(cb: fn() -> Void) {
     cb()
 }
 
-fn returnsIt(cb: fn() -> Unit) -> fn() -> Unit {
+fn returnsIt(cb: fn() -> Void) -> fn() -> Void {
     cb //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-pub type Holder = { mut cb fn() -> Unit }
+pub type Holder = { mut cb fn() -> Void }
 
-fn storesInField(mut h: Holder, cb: fn() -> Unit) -> Unit {
+fn storesInField(mut h: Holder, cb: fn() -> Void) {
     h.cb = cb //~ ERROR `cb` is a non-escaping callback and cannot be stored
 }
 
-fn capturedByEscapingClosure(cb: fn() -> Unit) -> fn() -> Unit {
+fn capturedByEscapingClosure(cb: fn() -> Void) -> fn() -> Void {
     () => cb() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
 }
 
-fn forwardsToEscaping(cb: fn() -> Unit) -> Unit {
+fn forwardsToEscaping(cb: fn() -> Void) {
     storeIt(cb) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
 }
 
-fn forwardsToNonEscaping(cb: fn() -> Unit) -> Unit {
+fn forwardsToNonEscaping(cb: fn() -> Void) {
     useIt(cb)
 }
 
-fn aliasAndReturn(cb: fn() -> Unit) -> fn() -> Unit {
+fn aliasAndReturn(cb: fn() -> Void) -> fn() -> Void {
     let g = cb
     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-fn noop() -> Unit {}
+fn noop() {}
 
-fn aliasViaIf(cb: fn() -> Unit, flag: Bool) -> fn() -> Unit {
+fn aliasViaIf(cb: fn() -> Void, flag: Bool) -> fn() -> Void {
     let g = if flag { cb } else { noop }
     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-fn aliasViaMatch(cb: fn() -> Unit, n: Int) -> fn() -> Unit {
+fn aliasViaMatch(cb: fn() -> Void, n: Int) -> fn() -> Void {
     let g = match n {
         0 -> noop
         _ -> cb
@@ -58,57 +58,57 @@ fn aliasViaMatch(cb: fn() -> Unit, n: Int) -> fn() -> Unit {
 }
 
 // forward's own leak is rejected where it happens; callForward needs no second diagnostic.
-fn forward(cb: fn() -> Unit, flag: Bool) -> fn() -> Unit {
+fn forward(cb: fn() -> Void, flag: Bool) -> fn() -> Void {
     let g = if flag { cb } else { noop }
     g //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-fn callForward(cb: fn() -> Unit, flag: Bool) -> fn() -> Unit {
+fn callForward(cb: fn() -> Void, flag: Bool) -> fn() -> Void {
     forward(cb, flag)
 }
 
 // `mut` doesn't clear the restriction: the local can still hold cb's value.
-fn mutAliasAndReturn(cb: fn() -> Unit) -> fn() -> Unit {
+fn mutAliasAndReturn(cb: fn() -> Void) -> fn() -> Void {
     let mut g = cb
     return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-fn mutAliasAndStore(mut h: Holder, cb: fn() -> Unit) -> Unit {
+fn mutAliasAndStore(mut h: Holder, cb: fn() -> Void) {
     let mut g = cb
     h.cb = g //~ ERROR `cb` is a non-escaping callback and cannot be stored
 }
 
-fn mutAliasAndForward(cb: fn() -> Unit) -> Unit {
+fn mutAliasAndForward(cb: fn() -> Void) {
     let mut g = cb
     storeIt(g) //~ ERROR `cb` is a non-escaping callback and cannot be passed to `storeIt`, which may keep it
 }
 
-fn aliasCapturedByEscapingClosure(cb: fn() -> Unit) -> fn() -> Unit {
+fn aliasCapturedByEscapingClosure(cb: fn() -> Void) -> fn() -> Void {
     let g = cb
     () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
 }
 
-fn mutAliasCapturedByEscapingClosure(cb: fn() -> Unit) -> fn() -> Unit {
+fn mutAliasCapturedByEscapingClosure(cb: fn() -> Void) -> fn() -> Void {
     let mut g = cb
     () => g() //~ ERROR `cb` is a non-escaping callback and cannot be captured by a closure that escapes
 }
 
 // A later plain assignment into an existing `mut` local taints it the same way a `let` does.
-fn assignedAliasAndReturn(cb: fn() -> Unit) -> fn() -> Unit {
+fn assignedAliasAndReturn(cb: fn() -> Void) -> fn() -> Void {
     let mut g = noop
     g = cb
     return g //~ ERROR `cb` is a non-escaping callback and cannot be returned
 }
 
-pub type Holder2 = { cb fn() -> Unit }
+pub type Holder2 = { cb fn() -> Void }
 
-fn storesInRecordLit(cb: fn() -> Unit) -> Holder2 {
+fn storesInRecordLit(cb: fn() -> Void) -> Holder2 {
     Holder2 { cb: cb } //~ ERROR `cb` is a non-escaping callback and cannot be stored
 }
 
 // storeIt is escaping, so this lambda gets no capBorrow trust and falls back to ordinary move
 // semantics, rejecting the capture of `r` -- preventing a cross-engine use-after-drop.
-fn danger() -> Unit {
+fn danger() {
     let r = Res { tag: 1 }
     storeIt(() => r.touch()) //~ ERROR closure captures `r` (move-only) and cannot be a plain `fn`
     r.touch()

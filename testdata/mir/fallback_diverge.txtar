@@ -157,7 +157,7 @@ fn main.relay2(%ok: Bool) -> Int! {
     drop(%e)
     jump b3
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t1 = const true: Bool
     %t2 = call main.relay(%t1)

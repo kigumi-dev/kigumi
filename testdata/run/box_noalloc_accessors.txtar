@@ -10,7 +10,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop res ${self.id}"
 }
 
@@ -26,7 +26,7 @@ fn sumPt(b: &Box[Pt]) -> Int {
     b.with((p: &Pt) => p.x + p.y)
 }
 
-fn bumpPt(b: &mut Box[Pt]) -> Unit {
+fn bumpPt(b: &mut Box[Pt]) {
     b.withMut((p: &mut Pt) => {
         p.x = p.x + 1
         p.y = p.y * 2
@@ -45,7 +45,7 @@ noalloc fn takeRes(b: Box[Res]) -> Res {
     b.into()
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = Box.new(41)
     print "get ${readInt(&n)} ${readInt(&n) + 1}"
     let f = Box.new(true)

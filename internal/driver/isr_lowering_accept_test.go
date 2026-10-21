@@ -16,17 +16,17 @@ fn pick(m: Mode) -> Int {
     }
 }
 
-fn measure(s: String) -> Unit {
+fn measure(s: String) {
     let r = s.len()
     _ = r
 }
 
-fn forward(s: String) -> Unit {
+fn forward(s: String) {
     measure(s)
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let b = true
         let r = match b {
             true -> 1
@@ -50,7 +50,7 @@ export(interrupt) {
     }
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 // The fall-through panic of an exhaustive match, a guarded range counter and the drop of an immortal argument never trap or free.
@@ -62,26 +62,26 @@ func TestInterruptLoweringAcceptsInertShapes(t *testing.T) {
 	}
 }
 
-const isrLoweringOwnedSrc = `fn measure(s: String) -> Unit {
+const isrLoweringOwnedSrc = `fn measure(s: String) {
     let r = s.len()
     _ = r
 }
 
-fn relay(s: String) -> Unit {
+fn relay(s: String) {
     measure(s)
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         relay("abc")
     }
 }
 
-pub fn other(s: String) -> Unit {
+pub fn other(s: String) {
     measure(s)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     other("x".repeat(3))
 }
 `

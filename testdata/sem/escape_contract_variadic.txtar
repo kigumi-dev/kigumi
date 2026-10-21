@@ -1,47 +1,47 @@
 -- lib/esc.kg --
-fn keepP(cb: escaping fn() -> Unit) -> fn() -> Unit {
+fn keepP(cb: escaping fn() -> Void) -> fn() -> Void {
     cb
 }
 
-fn keepEach(cbs: ...escaping fn() -> Unit) -> Int { 0 }
+fn keepEach(cbs: ...escaping fn() -> Void) -> Int { 0 }
 
-fn keepArray(cbs: Array[fn() -> Unit]) -> Int { 0 }
+fn keepArray(cbs: Array[fn() -> Void]) -> Int { 0 }
 
-fn callAll(cbs: ...fn() -> Unit) -> Int { 0 }
+fn callAll(cbs: ...fn() -> Void) -> Int { 0 }
 
-fn returnedBound[F: Fn[fn() -> Unit]](cbs: ...F) -> Array[F] {
+fn returnedBound[F: Fn[fn() -> Void]](cbs: ...F) -> Array[F] {
     cbs //~ ERROR `cbs` is a non-escaping callback and cannot be returned
 }
 
-fn returnedPlain(cbs: ...fn() -> Unit) -> Array[fn() -> Unit] {
+fn returnedPlain(cbs: ...fn() -> Void) -> Array[fn() -> Void] {
     cbs //~ ERROR `cbs` is a non-escaping callback and cannot be returned
 }
 
-fn returnedElement(cbs: ...fn() -> Unit) -> fn() -> Unit {
+fn returnedElement(cbs: ...fn() -> Void) -> fn() -> Void {
     cbs[0] //~ ERROR `cbs` is a non-escaping callback and cannot be returned
 }
 
-fn returnedFromLoop(cbs: ...fn() -> Unit) -> fn() -> Unit {
+fn returnedFromLoop(cbs: ...fn() -> Void) -> fn() -> Void {
     for cb in cbs {
         return cb //~ ERROR `cbs` is a non-escaping callback and cannot be returned
     }
     keepP(cbs[0]) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepP`
 }
 
-fn forwardedElement(cbs: ...fn() -> Unit) -> Int {
+fn forwardedElement(cbs: ...fn() -> Void) -> Int {
     keepEach(cbs[0]) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepEach`
 }
 
-fn forwardedArray(cbs: ...fn() -> Unit) -> Int {
+fn forwardedArray(cbs: ...fn() -> Void) -> Int {
     keepArray(cbs) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepArray`
 }
 
-fn captured(cbs: ...fn() -> Unit) -> Unit {
+fn captured(cbs: ...fn() -> Void) {
     let k = () => cbs[0]() //~ ERROR `cbs` is a non-escaping callback and cannot be captured
 }
 
 // Accepted: variadic callbacks that are only called, or declared `...escaping`.
-fn callsInLoop(cbs: ...fn() -> Unit) -> Int {
+fn callsInLoop(cbs: ...fn() -> Void) -> Int {
     let mut n = 0
     for cb in cbs {
         cb()
@@ -50,7 +50,7 @@ fn callsInLoop(cbs: ...fn() -> Unit) -> Int {
     n
 }
 
-fn callsBound[F: Fn[fn() -> Unit]](cbs: ...F) -> Int {
+fn callsBound[F: Fn[fn() -> Void]](cbs: ...F) -> Int {
     let mut n = 0
     for cb in cbs {
         cb()
@@ -59,37 +59,37 @@ fn callsBound[F: Fn[fn() -> Unit]](cbs: ...F) -> Int {
     n
 }
 
-fn forwardedToNonEscaping(cbs: ...fn() -> Unit) -> Int {
+fn forwardedToNonEscaping(cbs: ...fn() -> Void) -> Int {
     callAll(cbs[0])
 }
 
-fn immediateCapture(cbs: ...fn() -> Unit) -> Int {
+fn immediateCapture(cbs: ...fn() -> Void) -> Int {
     callAll(() => cbs[0]())
 }
 
-fn keepsBound[F: Fn[fn() -> Unit]](cbs: ...escaping F) -> Array[F] {
+fn keepsBound[F: Fn[fn() -> Void]](cbs: ...escaping F) -> Array[F] {
     cbs
 }
 
-fn keepsPlain(cbs: ...escaping fn() -> Unit) -> Array[fn() -> Unit] {
+fn keepsPlain(cbs: ...escaping fn() -> Void) -> Array[fn() -> Void] {
     cbs
 }
 
-fn forwardsKept(cbs: ...escaping fn() -> Unit) -> Int {
+fn forwardsKept(cbs: ...escaping fn() -> Void) -> Int {
     keepEach(cbs[0])
 }
 
-fn keepAll(cbs: ...escaping fn() -> Unit) -> Array[fn() -> Unit] { cbs }
+fn keepAll(cbs: ...escaping fn() -> Void) -> Array[fn() -> Void] { cbs }
 
-fn spreadIntoEscaping(cbs: ...fn() -> Unit) -> Array[fn() -> Unit] {
+fn spreadIntoEscaping(cbs: ...fn() -> Void) -> Array[fn() -> Void] {
     keepAll(...cbs) //~ ERROR `cbs` is a non-escaping callback and cannot be passed to `keepAll`
 }
 
-fn spreadIntoPlain(cbs: ...fn() -> Unit) -> Int {
+fn spreadIntoPlain(cbs: ...fn() -> Void) -> Int {
     callAll(...cbs)
 }
 
-fn spreadEscaping(cbs: ...escaping fn() -> Unit) -> Array[fn() -> Unit] {
+fn spreadEscaping(cbs: ...escaping fn() -> Void) -> Array[fn() -> Void] {
     keepAll(...cbs)
 }
 -- expect --

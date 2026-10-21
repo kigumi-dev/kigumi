@@ -13,11 +13,11 @@ type Counter = {
 }
 
 interface Grower {
-    fn grow(mut self, k: Int) -> Unit
+    fn grow(mut self, k: Int)
     fn size(self) -> Int
 }
 
-fn Shape.grow(mut self, k: Int) -> Unit {
+fn Shape.grow(mut self, k: Int) {
     self = Circle(self.area() + k)
 }
 
@@ -25,7 +25,7 @@ fn Shape.size(self) -> Int {
     self.area()
 }
 
-fn Counter.grow(mut self, k: Int) -> Unit {
+fn Counter.grow(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -34,7 +34,7 @@ fn Counter.size(self) -> Int {
 }
 
 interface Filler {
-    fn fill(self, out: &mut Shape) -> Unit
+    fn fill(self, out: &mut Shape)
 }
 
 type Replacer = {
@@ -45,32 +45,32 @@ type Bumper = {
     pub k Int
 }
 
-fn Replacer.fill(self, out: &mut Shape) -> Unit {
+fn Replacer.fill(self, out: &mut Shape) {
     out = Circle(self.k)
 }
 
-fn Bumper.fill(self, out: &mut Shape) -> Unit {
+fn Bumper.fill(self, out: &mut Shape) {
     out.grow(self.k)
 }
 
-fn growBorrowed[G: Grower](g: &mut G, k: Int) -> Unit {
+fn growBorrowed[G: Grower](g: &mut G, k: Int) {
     g.grow(k)
 }
 
-fn growTwice[G: Grower](g: &mut G, k: Int) -> Unit {
+fn growTwice[G: Grower](g: &mut G, k: Int) {
     growBorrowed(g, k)
     growBorrowed(g, k)
 }
 
-fn growDyn(g: &mut Grower, k: Int) -> Unit {
+fn growDyn(g: &mut Grower, k: Int) {
     g.grow(k)
 }
 
-fn fillVia[F: Filler](f: F, out: &mut Shape) -> Unit {
+fn fillVia[F: Filler](f: F, out: &mut Shape) {
     f.fill(out)
 }
 
-fn fillDyn(f: &Filler, out: &mut Shape) -> Unit {
+fn fillDyn(f: &Filler, out: &mut Shape) {
     f.fill(out)
 }
 

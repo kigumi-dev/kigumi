@@ -11,7 +11,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	// into, same as native's try_grow fast path once capacity is enough.
 	case "array.Array.push":
 		a0.fields = append(a0.fields, retain(a[1]))
-		// Growth happens in place on a0, not on the Unit this returns, so
+		// Growth happens in place on a0, not on the Void this returns, so
 		// the sandbox's per-call chargeMemory(result) never sees it.
 		m.chargeMemory(a0)
 		return unitObj

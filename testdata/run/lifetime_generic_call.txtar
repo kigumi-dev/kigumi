@@ -26,7 +26,7 @@ fn passThrough['a](v: View['a]) -> View['a] {
     identity(v)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf = Bytes.fromArray(&Array.of(10, 20, 30, 40))
     let v = head(&buf)
     let same = identity(v)

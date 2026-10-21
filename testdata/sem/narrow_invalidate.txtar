@@ -8,7 +8,7 @@ fn get() -> Int? {
     None
 }
 
-fn mutate(b: &mut Box) -> Unit {}
+fn mutate(b: &mut Box) {}
 
 fn use(mut x: Int?, mut b: Box, xs: Array[Int?]) -> Int {
     if x is None { return 0 }

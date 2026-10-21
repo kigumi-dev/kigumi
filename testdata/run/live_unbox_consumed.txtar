@@ -13,7 +13,7 @@ fn tickValue(t: Tick) -> Int {
 
 fn wrap(n: Int) -> Marked { Marked(Up(n)) }
 
-fn bumpTo(t: &mut Tick, n: Int) -> Unit { t = Up(n) }
+fn bumpTo(t: &mut Tick, n: Int) { t = Up(n) }
 
 // An unboxed copy that a call takes over leaves the box it came from to be released.
 fn marked(n: Int) -> Int {

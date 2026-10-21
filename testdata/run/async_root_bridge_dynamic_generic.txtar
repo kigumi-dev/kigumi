@@ -6,10 +6,10 @@ type Holder = {
 }
 
 interface Armable {
-    fn arm(mut self) -> Unit
+    fn arm(mut self)
 }
 
-fn Holder.arm(mut self) -> Unit {
+fn Holder.arm(mut self) {
     self.cb = syncRoot
 }
 

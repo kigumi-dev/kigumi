@@ -18,7 +18,7 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     let seen = "drop ${self.id}"
 }
 

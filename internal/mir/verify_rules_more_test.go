@@ -8,7 +8,7 @@ import (
 )
 
 const cellRulesSrc = rulesSrc + `
-fn Point.bump(mut self) -> Unit { self.y += 1 }
+fn Point.bump(mut self) { self.y += 1 }
 
 fn drive() -> Int {
     let mut q = Point { x: 1, y: 2 }

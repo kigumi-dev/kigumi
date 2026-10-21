@@ -1,5 +1,5 @@
 -- std/t/t.kg --
-fn ship[T: Send](x: T) -> Unit {}
+fn ship[T: Send](x: T) {}
 fn needsCopy[T: Copy](x: T) -> T { x }
 
 pub type NoContract
@@ -12,7 +12,7 @@ pub type Timestamp
 @unsafeGuarantee(Send when T: Send, Sync when T: Send + Sync)
 pub type Handle[T]
 
-fn use(a: NoContract, b: Timestamp, h: Handle[Int], hn: Handle[*const u8]) -> Unit {
+fn use(a: NoContract, b: Timestamp, h: Handle[Int], hn: Handle[*const u8]) {
     let _ = needsCopy(a) //~ ERROR `NoContract` does not satisfy `Copy`
     let _ = needsCopy(b)
     ship(a) //~ ERROR `NoContract` does not satisfy `Send`

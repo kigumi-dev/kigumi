@@ -99,7 +99,7 @@ pub type Box%d = {
     pub mut n Int
 }
 
-pub fn Box%d.bump(mut self, k: Int) -> Unit {
+pub fn Box%d.bump(mut self, k: Int) {
     self.n = self.n + k
 }
 
@@ -107,11 +107,11 @@ pub type Holder%d['a] = {
     pub mut r &'a mut Box%d
 }
 
-fn bumpLent%d(r: &mut Box%d) -> Unit {
+fn bumpLent%d(r: &mut Box%d) {
     r.bump(3)
 }
 
-fn useField%d['a](h: Holder%d['a]) -> Unit {
+fn useField%d['a](h: Holder%d['a]) {
     let r = h.r
     r.bump(2)
     bumpLent%d(r)

@@ -7,7 +7,7 @@ pub type Point = {
     pub y Int
 }
 
-fn useIt(text: String) -> Unit! {
+fn useIt(text: String) -> Void! {
     let bad = json.decode[map.Map[Point, Int]](text)? //~ ERROR `Point` has no `fromKeyText`
     _ = bad
 }

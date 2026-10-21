@@ -70,7 +70,7 @@ func TestCheckForEditorNeverEvaluatesComptime(t *testing.T) {
 	t.Parallel()
 	for name, src := range map[string]string{
 		"plain":       comptimeFailsSrc,
-		"alloc claim": strings.Replace(deferredBoxSrc, "fn main() -> Unit! {", "fn main() -> Unit! {\n    let a = comptime {\n        boom(9)\n    }\n    print \"${a}\"", 1) + "\n" + comptimeFailsSrc[:strings.Index(comptimeFailsSrc, "let a")],
+		"alloc claim": strings.Replace(deferredBoxSrc, "fn main() -> Void! {", "fn main() -> Void! {\n    let a = comptime {\n        boom(9)\n    }\n    print \"${a}\"", 1) + "\n" + comptimeFailsSrc[:strings.Index(comptimeFailsSrc, "let a")],
 	} {
 		m := editorModule(t, src)
 		res, err := driver.CheckForEditor(m)

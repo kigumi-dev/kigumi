@@ -42,7 +42,7 @@ fn absent(o: &Nm?) -> Int {
     if o is Some(_) { 1 } else { 0 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let n = 1
 }
 `

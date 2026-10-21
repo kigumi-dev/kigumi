@@ -1,0 +1,64 @@
+-- src --
+fn cleanup() {}
+fn cleanupExplicit() -> Void {}
+fn run() -> Void! { return }
+fn runShort() ! { return }
+fn   spaced ( )   !   {
+    return
+}
+fn count() -> Int { 1 }
+pub async fn serve[T](x: T) -> Void {}
+fn T.method(self) -> Void {}
+fn T.fallible(self) ! {}
+type Callback = fn() -> Void
+fn takes(f: fn(Int) -> Void) -> Void {}
+interface Closer {
+    fn close(self) -> Void
+    fn flush(self) -> Void!
+    fn sync(self) !
+}
+extern(C) {
+    fn raw(x: Int) -> Void
+    fn rawDone(x: Int)
+}
+-- expect --
+fn cleanup() {}
+
+fn cleanupExplicit() {}
+
+fn run() -> Void! {
+    return
+}
+
+fn runShort() ! {
+    return
+}
+
+fn spaced() ! {
+    return
+}
+
+fn count() -> Int {
+    1
+}
+
+pub async fn serve[T](x: T) {}
+
+fn T.method(self) {}
+
+fn T.fallible(self) ! {}
+
+type Callback = fn() -> Void
+
+fn takes(f: fn(Int) -> Void) {}
+
+interface Closer {
+    fn close(self)
+    fn flush(self) -> Void!
+    fn sync(self) !
+}
+
+extern(C) {
+    fn raw(x: Int)
+    fn rawDone(x: Int)
+}

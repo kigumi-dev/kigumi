@@ -22,7 +22,7 @@ fn other(n: Int) -> Int {
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let _ = quiet(1)
     }
 }

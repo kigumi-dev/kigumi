@@ -5,21 +5,21 @@ type Res = resource {
     pub id Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
-fn Res.close(move self) -> Unit {}
+fn Res.close(move self) {}
 
 fn Res.peek(self) -> Int {
     self.id
 }
 
-fn use(r: &Res) -> Unit {}
+fn use(r: &Res) {}
 
-fn say(n: Int) -> Unit {}
+fn say(n: Int) {}
 
-fn sayU(n: usize) -> Unit {}
+fn sayU(n: usize) {}
 
-fn sayB(b: Bool) -> Unit {}
+fn sayB(b: Bool) {}
 
 fn mkr(n: Int) -> Res {
     Res { id: n }
@@ -33,28 +33,28 @@ fn total(xs: Array[Int], f: fn(Int) -> Int) -> Int {
     t
 }
 
-fn readerThenClose() -> Unit {
+fn readerThenClose() {
     let r = mkr(7)
     let f = () => { use(&r) }
     r.close() //~ ERROR `r` is shared with a closure that may still run
     f()
 }
 
-fn arrayShared() -> Unit {
+fn arrayShared() {
     let mut xs = Array.of(1, 2)
     let f = () => { sayU(xs.len()) }
     xs.push(3) //~ ERROR `xs` is shared with a closure that may still run
     f()
 }
 
-fn ownCellThenOuter() -> Unit {
+fn ownCellThenOuter() {
     let mut xs = Array.of(1)
     let f = () => { xs.push(2) }
     f()
     sayU(xs.len()) //~ ERROR `xs` was moved
 }
 
-fn capturedInLoop() -> Unit {
+fn capturedInLoop() {
     let r = mkr(1)
     for i in 0..2 {
         let f = () => r.peek()
@@ -62,14 +62,14 @@ fn capturedInLoop() -> Unit {
     }
 }
 
-fn consumerTwice() -> Unit {
+fn consumerTwice() {
     let r = mkr(2)
     let f = () => { r.close() }
     f()
     f() //~ ERROR `f` consumes `r` when called and can be called only once
 }
 
-fn nestedReadTwice() -> Unit {
+fn nestedReadTwice() {
     let r = mkr(3)
     let f = () => {
         let g = () => r.peek()
@@ -80,7 +80,7 @@ fn nestedReadTwice() -> Unit {
     r.close()
 }
 
-fn nestedMoveTwice() -> Unit {
+fn nestedMoveTwice() {
     let r = mkr(13)
     let f = () => {
         let g = () => r.close()
@@ -90,7 +90,7 @@ fn nestedMoveTwice() -> Unit {
     f() //~ ERROR `f` consumes `r` when called and can be called only once
 }
 
-fn secondClosure() -> Unit {
+fn secondClosure() {
     let r = mkr(4)
     let f = () => r.peek()
     let g = () => r.peek()
@@ -98,7 +98,7 @@ fn secondClosure() -> Unit {
     r.close()
 }
 
-fn reinitAfterCapture() -> Unit {
+fn reinitAfterCapture() {
     let mut r = mkr(5)
     let f = () => { r.close() }
     r = mkr(6)
@@ -112,7 +112,7 @@ fn readerCalledTwice() -> Int {
     f() + f()
 }
 
-fn immediateBorrows() -> Unit {
+fn immediateBorrows() {
     let ys = Array.of(1, 2)
     let r = mkr(9)
     say(total(Array.of(1, 2), (x: Int) => x + r.peek()))
@@ -135,34 +135,34 @@ fn ownCellCalledTwice() -> Int {
     }
     f() + f()
 }
-fn readThenRead() -> Unit {
+fn readThenRead() {
     let xs = Array.of(1, 2)
     let g = () => xs.len()
     sayU(xs.len() + g())
 }
 
-fn readerDeadThenConsume() -> Unit {
+fn readerDeadThenConsume() {
     let r = mkr(10)
     let f = () => r.peek()
     say(f())
     r.close()
 }
 
-fn readerEscapesThenConsume() -> Unit {
+fn readerEscapesThenConsume() {
     let r = mkr(11)
     let f = () => say(r.peek())
     let keep = Array.of(f)
     r.close() //~ ERROR `r` is shared with a closure that may still run
 }
 
-fn fieldWriteWhileRead() -> Unit {
+fn fieldWriteWhileRead() {
     let mut w = Pair { r: mkr(12), n: 1 }
     let f = () => w.n
     w.n = 5 //~ ERROR `w` is shared with a closure that may still run
     say(f())
 }
 
-fn matchWhileRead() -> Unit {
+fn matchWhileRead() {
     let o = Some(mkr(14))
     let f = () => say(probe(&o))
     match o {
@@ -172,7 +172,7 @@ fn matchWhileRead() -> Unit {
     f()
 }
 
-fn fallbackWhileRead() -> Unit {
+fn fallbackWhileRead() {
     let o = Some(mkr(15))
     let f = () => say(probe(&o))
     let x = o || mkr(16) //~ ERROR `o` is shared with a closure that may still run
@@ -180,7 +180,7 @@ fn fallbackWhileRead() -> Unit {
     f()
 }
 
-fn moverWhileRead() -> Unit {
+fn moverWhileRead() {
     let r = mkr(17)
     let f = () => r.peek()
     let g = () => r.close() //~ ERROR `r` is shared with a closure that may still run
@@ -188,7 +188,7 @@ fn moverWhileRead() -> Unit {
     say(f())
 }
 
-fn fallbackConsumerTwice() -> Unit {
+fn fallbackConsumerTwice() {
     let o: Option[Res] = Some(mkr(18))
     let f = () => {
         let x = o || mkr(19)
@@ -198,11 +198,11 @@ fn fallbackConsumerTwice() -> Unit {
     f() //~ ERROR `f` consumes `o` when called and can be called only once
 }
 
-fn each(n: Int, f: fn(Int) -> Unit) -> Unit {
+fn each(n: Int, f: fn(Int) -> Void) {
     f(n)
 }
 
-fn writeInsideKeeper() -> Unit {
+fn writeInsideKeeper() {
     let mut r = mkr(24)
     let f = () => {
         each(1, (i: Int) => {
@@ -226,32 +226,32 @@ type Pair = {
     pub mut n Int
 }
 
-fn applyNow(f: fn() -> Unit) -> Unit {
+fn applyNow(f: fn() -> Void) {
     f()
 }
 
-fn closeOptC(o: Res?) -> Unit {
+fn closeOptC(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
     }
 }
 
-fn cellCloseTwice() -> Unit {
+fn cellCloseTwice() {
     let mut o = mkr(1)
     applyNow(() => { o = mkr(2) })
     o.close()
     o.close() //~ ERROR `o` was moved
 }
 
-fn cellPassTwice() -> Unit {
+fn cellPassTwice() {
     let mut o = Some(mkr(1))
     applyNow(() => { o = Some(mkr(2)) })
     closeOptC(o)
     closeOptC(o) //~ ERROR `o` was moved
 }
 
-fn cellLetThenPass() -> Unit {
+fn cellLetThenPass() {
     let mut o = Some(mkr(1))
     applyNow(() => { o = Some(mkr(2)) })
     let x = o
@@ -259,7 +259,7 @@ fn cellLetThenPass() -> Unit {
     closeOptC(o) //~ ERROR `o` was moved
 }
 
-fn cellCatchAllThenPass() -> Unit {
+fn cellCatchAllThenPass() {
     let mut o = Some(mkr(1))
     applyNow(() => { o = Some(mkr(2)) })
     match o {
@@ -268,7 +268,7 @@ fn cellCatchAllThenPass() -> Unit {
     closeOptC(o) //~ ERROR `o` was moved
 }
 
-fn cellPayloadThenPass() -> Unit {
+fn cellPayloadThenPass() {
     let mut o = Some(mkr(1))
     applyNow(() => { o = Some(mkr(2)) })
     match o {
@@ -278,14 +278,14 @@ fn cellPayloadThenPass() -> Unit {
     closeOptC(o) //~ ERROR `o` was moved
 }
 
-fn cellLambdaAfterConsume() -> Unit {
+fn cellLambdaAfterConsume() {
     let mut o = Some(mkr(1))
     applyNow(() => { o = Some(mkr(2)) })
     closeOptC(o)
     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
 }
 
-fn cellReinit(c: Bool) -> Unit {
+fn cellReinit(c: Bool) {
     let mut o = mkr(1)
     applyNow(() => { o = mkr(2) })
     o.close()
@@ -302,18 +302,18 @@ type CP = resource {
     pub mut r Res
 }
 
-fn eatRes(r: Res) -> Unit {
+fn eatRes(r: Res) {
     r.close()
 }
 
-fn cellFieldMoveTwice() -> Unit {
+fn cellFieldMoveTwice() {
     let mut p = CP { a: 1, r: mkr(1) }
     applyNow(() => { p.a = 2 })
     eatRes(move p.r)
     eatRes(move p.r) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
 }
 
-fn cellFieldMoveThenUse() -> Unit {
+fn cellFieldMoveThenUse() {
     let mut p = CP { a: 1, r: mkr(1) }
     applyNow(() => { p.a = 2 })
     let r1 = move p.r
@@ -321,7 +321,7 @@ fn cellFieldMoveThenUse() -> Unit {
     say(p.r.peek()) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
 }
 
-fn cellGuardStoresField() -> Unit {
+fn cellGuardStoresField() {
     let mut p = CP { a: 1, r: mkr(1) }
     applyNow(() => { p.a = 2 })
     match p {
@@ -330,7 +330,7 @@ fn cellGuardStoresField() -> Unit {
     }
 }
 
-fn guardAssignsWhole(o0: Res?) -> Unit {
+fn guardAssignsWhole(o0: Res?) {
     let mut o = o0
     match o {
         Some(r) if { o = None; false } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
@@ -338,7 +338,7 @@ fn guardAssignsWhole(o0: Res?) -> Unit {
     }
 }
 
-fn cellGuardAssignsWhole() -> Unit {
+fn cellGuardAssignsWhole() {
     let mut o = Some(mkr(1))
     applyNow(() => { o = None })
     match o {
@@ -347,7 +347,7 @@ fn cellGuardAssignsWhole() -> Unit {
     }
 }
 
-fn guardReplacesRecord() -> Unit {
+fn guardReplacesRecord() {
     let mut p = CP { a: 1, r: mkr(1) }
     match p {
         q if { p = CP { a: 2, r: mkr(2) }; false } -> say(q.a) //~ ERROR `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
@@ -355,14 +355,14 @@ fn guardReplacesRecord() -> Unit {
     }
 }
 
-fn cellConsumeThenReadingLambda() -> Unit {
+fn cellConsumeThenReadingLambda() {
     let mut o = Some(mkr(1))
     applyNow(() => { o = None })
     closeOptC(o)
     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
 }
 
-fn cellConsumeThenWritingLambda() -> Unit {
+fn cellConsumeThenWritingLambda() {
     let mut o = Some(mkr(1))
     applyNow(() => { o = None })
     closeOptC(o)
@@ -370,7 +370,7 @@ fn cellConsumeThenWritingLambda() -> Unit {
     closeOptC(o) //~ ERROR `o` is moved on some paths but not others
 }
 
-fn guardStoresSiblingField() -> Unit {
+fn guardStoresSiblingField() {
     let mut p = CP { a: 1, r: mkr(1) }
     match p.r {
         r if { p.a = 5; r.peek() > 0 } -> r.close()
@@ -378,27 +378,27 @@ fn guardStoresSiblingField() -> Unit {
     }
 }
 
-fn lambdaReadsMovedField() -> Unit {
+fn lambdaReadsMovedField() {
     let mut p = CP { a: 1, r: mkr(1) }
     eatRes(move p.r)
     applyNow(() => { say(p.r.peek()) }) //~ ERROR `p.r` was moved out of `p`
 }
 
-fn cellLambdaReadsMovedField() -> Unit {
+fn cellLambdaReadsMovedField() {
     let mut p = CP { a: 1, r: mkr(1) }
     applyNow(() => { p.a = 2 })
     eatRes(move p.r)
     applyNow(() => { say(p.r.peek()) }) //~ ERROR `p.r` was moved out of `p`
 }
 
-fn storedClosureAfterFieldMove() -> Unit {
+fn storedClosureAfterFieldMove() {
     let mut p = CP { a: 1, r: mkr(1) }
     eatRes(move p.r)
     let f = () => p.a //~ ERROR `p.r` was moved out of `p`
     say(f())
 }
 
-fn lambdaAfterPayloadBinding(o: Res?) -> Unit {
+fn lambdaAfterPayloadBinding(o: Res?) {
     match o {
         Some(r) -> r.close()
         None -> {}
@@ -406,7 +406,7 @@ fn lambdaAfterPayloadBinding(o: Res?) -> Unit {
     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
 }
 
-fn lambdaAfterFieldRefill() -> Unit {
+fn lambdaAfterFieldRefill() {
     let mut p = CP { a: 1, r: mkr(1) }
     eatRes(move p.r)
     p.r = mkr(2)

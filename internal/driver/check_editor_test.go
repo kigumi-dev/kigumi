@@ -23,7 +23,7 @@ noalloc fn span(p: Point) -> Int {
     lend(p)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${span(Point { x: 1, y: 2 })}"
 }
 `
@@ -81,7 +81,7 @@ noalloc fn viaCaller(a: Bytes, b: Bytes) -> Bool {
     sameStart(a, b)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     print "${viaCaller("abc".toBytes(), "ab".toBytes())}"
 }
 `
@@ -103,7 +103,7 @@ func TestCheckForEditorReportsAPlannedCopy(t *testing.T) {
 
 func TestCheckForEditorLeavesACopyFreeModuleAlone(t *testing.T) {
 	t.Parallel()
-	src := "noalloc fn add(a: Int, b: Int) -> Int {\n    a + b\n}\n\nfn main() -> Unit! {\n    print \"${add(1, 2)}\"\n}\n"
+	src := "noalloc fn add(a: Int, b: Int) -> Int {\n    a + b\n}\n\nfn main() -> Void! {\n    print \"${add(1, 2)}\"\n}\n"
 	res, err := driver.CheckForEditor(editorModule(t, src))
 	if err != nil || res.HasErrors() {
 		t.Fatalf("expected a clean check: %v\n%s", err, res.Render())

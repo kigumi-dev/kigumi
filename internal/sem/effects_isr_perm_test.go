@@ -20,17 +20,17 @@ var isrDeviceContracts = isrTestContracts{contracts: map[string]sem.IsrContract{
 }}
 
 const isrDeviceLib = `
-pub noalloc fn notify() -> Unit
+pub noalloc fn notify()
 
-pub noalloc fn ack() -> Unit
+pub noalloc fn ack()
 
-pub noalloc fn quiet() -> Unit
+pub noalloc fn quiet()
 
 pub type Port = resource {
     pub id Int
 }
 
-fn Port.drop(move self) -> Unit {
+fn Port.drop(move self) {
     ack()
 }
 
@@ -40,16 +40,16 @@ pub noalloc fn port() -> Port
 const isrTwoHandlers = `
 import {notify, quiet} from buflib
 
-fn wake() -> Unit {
+fn wake() {
     quiet()
     notify()
 }
 
 export(interrupt) {
-    pub fn uart() -> Unit {
+    pub fn uart() {
         wake()
     }
-    pub fn timer() -> Unit {
+    pub fn timer() {
         wake()
     }
 }
@@ -116,7 +116,7 @@ func TestInterruptPermissionDropMMIO(t *testing.T) {
 import {port} from buflib
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let p = port()
         _ = p.id
     }
@@ -137,12 +137,12 @@ func TestInterruptPermissionCallback(t *testing.T) {
 	const src = `
 import {notify} from buflib
 
-fn run(f: noalloc fn() -> Unit) -> Unit {
+fn run(f: noalloc fn() -> Void) {
     f()
 }
 
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         run(notify)
     }
 }
@@ -156,7 +156,7 @@ export(interrupt) {
 func TestInterruptWrappingAndCheckedOps(t *testing.T) {
 	ok := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let a: i64 = 7
         _ = a.wrappingAdd(1).rotateLeft(3)
         _ = a.toU8()
@@ -169,7 +169,7 @@ export(interrupt) {
 	}
 	bad := checkIsr(t, `
 export(interrupt) {
-    pub fn tick() -> Unit {
+    pub fn tick() {
         let a: i64 = 7
         _ = a + 1
     }

@@ -5,13 +5,13 @@ type Handle = resource {
     pub id Int
 }
 
-fn Handle.drop(move self) -> Unit {}
+fn Handle.drop(move self) {}
 
-fn Handle.close(move self) -> Unit {}
+fn Handle.close(move self) {}
 
-fn take(h: Handle) -> Unit {}
+fn take(h: Handle) {}
 
-fn step() -> Unit! {}
+fn step() -> Void! {}
 
 fn num() -> Int! {
     1
@@ -26,7 +26,7 @@ type Pair = {
     pub n Int
 }
 
-fn moveThenFail() -> Unit! {
+fn moveThenFail() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { h.close() }
     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
@@ -69,7 +69,7 @@ fn okBeforeTry() -> Pair! {
     return Ok(Pair { h: h, n: num()? }) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
 }
 
-fn moveInsideLoop(n: Int) -> Unit! {
+fn moveInsideLoop(n: Int) -> Void! {
     let h = Handle { id: 1 }
     defer(fail) { h.close() }
     for i in 0..n {
@@ -98,7 +98,7 @@ fn plainDeferKeepsReservation() -> Handle! {
     h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
 }
 
-fn bodyCheckedWithoutFailureExit() -> Unit! {
+fn bodyCheckedWithoutFailureExit() -> Void! {
     let h = Handle { id: 1 }
     defer(fail) {
         let s: String = h.id //~ ERROR expected `String`, found `Int`

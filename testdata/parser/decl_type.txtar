@@ -14,7 +14,7 @@ type Cmd2 =
     | Version
 type UserId = Int
 type IoResult = alias Int
-type Callback = pure fn(Event) -> Unit
+type Callback = pure fn(Event) -> Void
 type File = resource {
     handle usize
 }
@@ -132,7 +132,7 @@ File
           TypePath
             Path Event
         ret: TypePath
-          Path Unit
+          Path Void
   TypeDecl
     name: File
     body: ResourceBody

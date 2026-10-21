@@ -92,7 +92,7 @@ fn readN(a: Named) -> Int {
     a.n
 }
 
-fn readAfter[F: FnMut[fn() -> Unit]](a: Named, mut bump: F) -> Int {
+fn readAfter[F: FnMut[fn() -> Void]](a: Named, mut bump: F) -> Int {
     bump()
     a.n
 }
@@ -126,7 +126,7 @@ fn iterateNamed() -> Int {
     total
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let ints = Array.of(4, 5, 6)
     let strs = Array.of("a", "b")
     let named = Array.of(mkn(7), mkn(8))

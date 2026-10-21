@@ -86,7 +86,7 @@ noalloc fn quiet(n: Int) -> Int {
     if g(n < k) { 1 } else { 0 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let p = Point { x: 3, y: 4 }
     let s = Rect(2, 5)
     let o: Int? = Some(7)

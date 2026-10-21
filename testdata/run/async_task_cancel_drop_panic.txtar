@@ -5,9 +5,9 @@ type Bad = resource {
     pub id Int
 }
 
-fn Bad.drop(move self) -> Unit {
+fn Bad.drop(move self) {
     print "bad ${self.id}"
-    let _: Unit = None.expect("drop ${self.id}")
+    let _: Void = None.expect("drop ${self.id}")
 }
 
 async fn tick() -> Int {

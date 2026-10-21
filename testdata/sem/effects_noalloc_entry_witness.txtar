@@ -41,7 +41,7 @@ fn inferred[T: Maker](m: &T, p: Point) -> Int {
     m.take(p)
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let pm = Pm { k: 1 }
     let nm = Named { name: "n" }
     let p = Point { x: 1, y: 2 }

@@ -1,5 +1,5 @@
 -- app/t/t.kg --
-fn disagree(n: Int) -> Unit {
+fn disagree(n: Int) {
     let mut i = 0
     let v = for {
         i = i + 1
@@ -12,13 +12,13 @@ fn disagree(n: Int) -> Unit {
     }
 }
 
-fn valueInForIn(xs: Array[Int]) -> Unit {
+fn valueInForIn(xs: Array[Int]) {
     for x in xs {
         break x //~ ERROR `break` with a value is only allowed in a value-less `for { }` loop
     }
 }
 
-fn valueInWhile(n: Int) -> Unit {
+fn valueInWhile(n: Int) {
     let mut i = n
     for i > 0 {
         i = i - 1

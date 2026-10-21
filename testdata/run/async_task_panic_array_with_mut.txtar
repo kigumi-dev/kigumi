@@ -7,7 +7,7 @@ async fn boom(s: Shared[Array[Int]]) -> Int {
         xs.withMut(0, (v: &mut Int) => {
             v = 9
             if v == 9 {
-                let _: Unit = None.expect("inside")
+                let _: Void = None.expect("inside")
             }
             0
         })

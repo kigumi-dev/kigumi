@@ -1,6 +1,6 @@
 import text from std/text
 
-fn run() -> Unit {
+fn run() {
     let s = "héllo"
     eprint "go"
     let r1 = text.tryGraphemes(s)

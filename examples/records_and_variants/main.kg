@@ -15,7 +15,7 @@ fn Point.shifted(self, dx: Int) -> Point {
     }
 }
 
-fn Point.raise(mut self) -> Unit {
+fn Point.raise(mut self) {
     self.y += 1
 }
 

@@ -42,7 +42,7 @@ type AsmInfo struct {
 	Clobbers   []string
 	ClobberAbi string
 	Options    map[string]bool
-	// Result is the record the outputs fill, Unit without outputs, or
+	// Result is the record the outputs fill, Void without outputs, or
 	// Never for noreturn.
 	Result TypeID
 }

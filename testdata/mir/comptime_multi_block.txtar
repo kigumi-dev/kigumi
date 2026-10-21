@@ -14,7 +14,7 @@ let c = comptime {
 }
 print "c: ${c}"
 -- expect --
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = builtin comptime
     %a = copy(%t0)

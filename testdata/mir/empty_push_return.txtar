@@ -33,7 +33,7 @@ fn main.s(%xs: Array[String]) -> usize {
     drop(%xs)
     return %t1
 }
-fn main() -> Unit! {
+fn main() -> Void! {
   b0:
     %t0 = call main.n1
     %t1 = isvariant Result.Ok(%t0)

@@ -7,7 +7,7 @@ fn View['a].at(self) -> Int {
 
 type Doc['a] = { pub mut views Array[View['a]] }
 
-fn Doc['a].add(mut self, v: View['a]) -> Unit {
+fn Doc['a].add(mut self, v: View['a]) {
     self.views.push(v)
 }
 
@@ -47,7 +47,7 @@ fn inner() -> Int {
     total(&doc.views)
 }
 
-fn run() -> Unit {
+fn run() {
     print "named ${named()} binding ${binding()} inner ${inner()}"
 }
 

@@ -58,8 +58,8 @@ func (r *Result) declareFn(id EntityID) {
 	if (info.Abi != "" || info.Export != "") && len(r.constParamsOf(id)) > 0 {
 		r.errAt(f, e.Node, cExportConstParam, e.Name)
 	}
-	if s.Ret == 0 {
-		r.errAt(f, e.Node, cFnReturnTypeRequired, e.Name)
+	if s.Mods&syntax.ModStrayBang != 0 {
+		r.errAt(f, e.Node, cStrayBangReturn, r.TypeString(r.Types.Node(info.Sig).Elem))
 	}
 	mods := Effects(s.Mods)
 	switch {

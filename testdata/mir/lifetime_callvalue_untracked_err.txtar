@@ -1,10 +1,10 @@
 -- lib/lt.kg --
-fn chooseRef['a](b: &'a Bytes, which: fn(&'a Bytes) -> &'a Bytes) -> Unit {
+fn chooseRef['a](b: &'a Bytes, which: fn(&'a Bytes) -> &'a Bytes) {
     let r = which(b)
     _ = r
 }
 -- expect --
-fn lib.chooseRef(%b: &Bytes, %which: fn(&Bytes) -> &Bytes) -> Unit {
+fn lib.chooseRef(%b: &Bytes, %which: fn(&Bytes) -> &Bytes) -> Void {
   b0:
     %t2 = copy(%b)
     %t3 = callv(%which, %t2)

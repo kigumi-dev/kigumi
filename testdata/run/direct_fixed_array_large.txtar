@@ -21,7 +21,7 @@ type Big = {
     pub tag Int
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let a = FixedArray.filled[Int, 65536](3)
     let b = fill(a)
     let mut c = b

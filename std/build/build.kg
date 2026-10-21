@@ -73,30 +73,30 @@ pub fn Builder.library(self, name: String, dir: String, target: Target) -> Artif
 pub fn Artifact.output(self) -> FilePath
 
 /// Builds other first and merges its C sources and link flags into self.
-pub fn Artifact.uses(self, other: Artifact) -> Unit
+pub fn Artifact.uses(self, other: Artifact)
 
 /// Adds a C source compiled into self, alongside `mod.kg`'s `Source` records.
-pub fn Artifact.addSource(self, file: FilePath) -> Unit
+pub fn Artifact.addSource(self, file: FilePath)
 
 /// Adds a link flag alongside `mod.kg`'s `Link` records: library is a `-l` name, search a `-L` directory.
-pub fn Artifact.addLink(self, library: String, search: String) -> Unit
+pub fn Artifact.addLink(self, library: String, search: String)
 
 /// Sets self's linker script (`-T`); a later call replaces it. Needs a hosted target: never a freestanding
 /// one, which links as an archive instead.
-pub fn Artifact.linkerScript(self, file: FilePath) -> Unit
+pub fn Artifact.linkerScript(self, file: FilePath)
 
 /// Adds flags to self's link step, such as `-nostdlib` or `-static-pie`; later calls add to the list.
-pub fn Artifact.linkFlags(self, flags: Array[String]) -> Unit
+pub fn Artifact.linkFlags(self, flags: Array[String])
 
 /// Sets self's link entry symbol; a later call replaces it.
-pub fn Artifact.entry(self, name: String) -> Unit
+pub fn Artifact.entry(self, name: String)
 
 /// Restricts which std packages self's package graph may import: deny
 /// bars each listed path outright, ceiling caps every std package to that layer or lower (`"core"`,
 /// `"alloc"`, `"sys"` or `"tool"`; `""` for no ceiling). A barred package is unavailable transitively
 /// too, reported at the importing package. A later call adds to deny and replaces a non-empty ceiling.
 /// Each deny path must name a real std package; an unknown path aborts configure.
-pub fn Artifact.availability(self, deny: Array[String], ceiling: String) -> Unit
+pub fn Artifact.availability(self, deny: Array[String], ceiling: String)
 
 /// Runs one of the tools fw's descriptor registers. args are literal except `$in:<i>`, `$out:<i>` and
 /// `$secret:<i>`, replaced with real paths just before the process starts. Nothing runs during `configure`.

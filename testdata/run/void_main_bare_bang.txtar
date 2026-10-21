@@ -1,0 +1,25 @@
+-- src --
+type TooBig = {
+    pub n Int
+}
+
+fn TooBig.message(self) -> String {
+    "too big: ${self.n}"
+}
+
+fn check(n: Int) ! {
+    if n > 1 { fail TooBig { n: n } }
+}
+
+fn main() ! {
+    check(1)?
+    print "first ok"
+    check(2)?
+    print "not reached"
+}
+-- stdout --
+first ok
+-- stderr --
+error: too big: 2
+-- exit --
+1

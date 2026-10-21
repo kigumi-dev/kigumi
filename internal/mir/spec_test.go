@@ -72,7 +72,7 @@ fn run(x: Int) -> Int {
 
 fn keep(x: Int) -> Int { store(Point { x: x, y: x }).len().toInt() || 0 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `
 
 func TestSpecializeGivesADirectRecordItsOwnBody(t *testing.T) {
@@ -129,7 +129,7 @@ fn measure[T: Measured](x: T) -> Int { x.size() * 2 }
 
 fn run(x: Int) -> Int { measure(Point { x: x, y: 1 }) }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	spec := funcNamed(t, p, "main.measure[main.Point]")
 	if countOp(spec, mir.OpCallValue) != 0 {
@@ -149,13 +149,13 @@ type Tag = Up(n: Int) | Flat
 
 fn pick[T](x: T) -> T { x }
 
-fn into(mut xs: Array[Tag]) -> Unit { xs.push(pick(Up(3))) }
+fn into(mut xs: Array[Tag]) { xs.push(pick(Up(3))) }
 
-fn moved(x: Int, mut xs: Array[Tag]) -> Unit { xs.push(pick(Up(x))) }
+fn moved(x: Int, mut xs: Array[Tag]) { xs.push(pick(Up(x))) }
 
 fn read(x: Int) -> Bool { pick(Up(x)) is Up(3) }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	for name, want := range map[string]string{"main.into": "main.pick", "main.moved": "main.pick[main.Tag]", "main.read": "main.pick[main.Tag]"} {
 		if f := calleeOf(t, p, funcNamed(t, p, name), "pick"); f.Name != want {
@@ -177,7 +177,7 @@ fn down[T](x: T, n: Int) -> T {
 
 fn run(n: Int) -> Int { down(Point { x: n, y: n }, n).x }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	spec := funcNamed(t, p, "main.down[main.Point]")
 	if f := calleeOf(t, p, spec, "down"); f != spec {
@@ -197,7 +197,7 @@ fn Box[T: Copy].nest(self, n: Int) -> Int {
 
 fn run(n: Int) -> Int { Box { v: n }.nest(n) + Box { v: (n, n) }.nest(n) }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	if len(p.Diags) != 1 || p.Diags[0].Diag.Code != "W1710" || p.Diags[0].Diag.Severity != diag.Warning {
 		t.Fatalf("diagnostics = %+v, want one W1710 warning", p.Diags)
@@ -215,7 +215,7 @@ func TestSpecializeFollowsALongChainOfGenerics(t *testing.T) {
 		fmt.Fprintf(&src, "fn step%d[T](x: T) -> T { step%d(x) }\n", i, i+1)
 	}
 	fmt.Fprintf(&src, "fn step%d[T](x: T) -> T { x }\n\n", steps)
-	src.WriteString("fn run(n: Int) -> Int { step1(Point { x: n, y: n }).y }\n\nfn main() -> Unit! {}\n")
+	src.WriteString("fn run(n: Int) -> Int { step1(Point { x: n, y: n }).y }\n\nfn main() -> Void! {}\n")
 	p := specialized(t, src.String())
 	if len(p.Diags) != 0 {
 		t.Fatalf("diagnostics = %+v, want none", p.Diags)
@@ -242,7 +242,7 @@ fn outer[T](x: T, p: Point) -> T {
 
 fn run(n: Int) -> Int { outer(Point { x: n, y: n }, Point { x: 1, y: 2 }).y }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	for _, name := range []string{"main.outer", "main.outer[main.Point]"} {
 		if f := calleeOf(t, p, funcNamed(t, p, name), "inner"); f.Name != "main.inner" {
@@ -306,7 +306,7 @@ fn run(n: Int) -> Int {
     down(w, n).c + down(Point { x: n, y: n }, n).y + once(w).c + even
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	got := instances(p)
 	sort.Strings(got)
@@ -343,7 +343,7 @@ noalloc fn nested(w: Wide, n: Int) -> Int { outer(w, n).c }
 
 noalloc fn parity(w: Wide, n: Int) -> Bool { isEven(w, n) }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	got := instances(p)
 	sort.Strings(got)
@@ -384,7 +384,7 @@ fn run(x: Int) -> Int {
     f(Point { x: x, y: x }).x + g(x)
 }
 
-fn main() -> Unit! {}
+fn main() -> Void! {}
 `)
 	got := fnItemTargets(p, funcNamed(t, p, "main.run"))
 	if want := []string{"main.identity[main.Point]", "main.identity"}; fmt.Sprint(got) != fmt.Sprint(want) {

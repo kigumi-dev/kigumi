@@ -1,14 +1,14 @@
 -- lib/reborrow.kg --
-fn combine(a: &mut Array[u8], b: &mut Array[u8]) -> Unit {
+fn combine(a: &mut Array[u8], b: &mut Array[u8]) {
     a.push(1)
     b.push(2)
 }
 
-fn outer(out: &mut Array[u8]) -> Unit {
+fn outer(out: &mut Array[u8]) {
     combine(out, out)
 }
 -- expect --
-fn lib.combine(%a: &mut Array[u8], %b: &mut Array[u8]) -> Unit {
+fn lib.combine(%a: &mut Array[u8], %b: &mut Array[u8]) -> Void {
   b0:
     %t2 = borrow 1(%a)
     %t3 = share retain(%t2)
@@ -29,7 +29,7 @@ fn lib.combine(%a: &mut Array[u8], %b: &mut Array[u8]) -> Unit {
     drop(%t13)
     return %t12
 }
-fn lib.outer(%out: &mut Array[u8]) -> Unit {
+fn lib.outer(%out: &mut Array[u8]) -> Void {
   b0:
     %t1 = call lib.combine(%out, %out)
     return %t1

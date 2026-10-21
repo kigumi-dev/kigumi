@@ -9,7 +9,7 @@ pub fn Files.append(self, path: Path) -> File! {
 }
 
 /// Deletes a file; a bare target has no file system.
-pub fn Files.remove(self, path: Path) -> Unit! {
+pub fn Files.remove(self, path: Path) -> Void! {
     panic()
 }
 
@@ -19,12 +19,12 @@ pub fn File.write(mut self, data: Bytes) -> usize! {
 }
 
 /// Closes a file; a bare target has no file system.
-pub fn File.close(move self) -> Unit! {
+pub fn File.close(move self) -> Void! {
     panic()
 }
 
 /// Drops a file handle; a bare target has no file system.
-pub fn File.drop(move self) -> Unit {}
+pub fn File.drop(move self) {}
 
 /// Reads a file; a bare target has no file system.
 pub fn Files.read(self, path: Path) -> String! {
@@ -37,7 +37,7 @@ pub fn Files.readBytes(self, path: Path) -> Bytes! {
 }
 
 /// Creates a directory; a bare target has no file system.
-pub fn Files.mkdir(self, path: Path) -> Unit! {
+pub fn Files.mkdir(self, path: Path) -> Void! {
     panic()
 }
 

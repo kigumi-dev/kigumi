@@ -5,7 +5,7 @@ fn View['a].peek(self) -> &Bytes {
     self.data
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf = Bytes.fromArray(&Array.of(10, 20, 30))
     let v = View { data: &buf, off: 0 }
     let r = v.peek()

@@ -266,11 +266,11 @@ pub fn Bytes.fromKeyText(s: String) -> Bytes! {
     Ok(s.toBytes())
 }
 
-pub fn Unit.toJson(self) -> Value {
+pub fn Void.toJson(self) -> Value {
     Value.Null
 }
 
-pub fn Unit.fromJson(value: Value) -> Unit! {
+pub fn Void.fromJson(value: Value) -> Void! {
     if !(value is Value.Null) {
         return mismatch("null", value)
     }

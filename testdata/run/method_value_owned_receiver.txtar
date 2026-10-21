@@ -3,7 +3,7 @@ type Res = resource {
     pub n Int
 }
 
-fn Res.drop(move self) -> Unit {
+fn Res.drop(move self) {
     print "drop ${self.n}"
 }
 
@@ -36,37 +36,37 @@ fn applyPeek[F: Fn[fn(fn(Int) -> Int) -> Int]](f: F) -> Int { f((k) => k + 1) }
 
 fn useKeep[F: Fn[fn(Int) -> Int]](k: Keep[F]) -> Int { k.f(1) + k.f(2) }
 
-fn concrete() -> Unit {
+fn concrete() {
     let w = Res { n: 1 }
     let f = w.get
     print "${f(1)} ${f(2)}"
     print "concrete end"
 }
 
-fn viaParam[T: Getter](t: T) -> Unit {
+fn viaParam[T: Getter](t: T) {
     let f = t.get
     print "${f(1)} ${f(2)}"
     print "param end"
 }
 
-fn viaExistential(g: Getter) -> Unit {
+fn viaExistential(g: Getter) {
     let f = g.get
     print "${apply(f, 3)}"
     print "existential end"
 }
 
-fn ownGeneric(w: Res) -> Unit {
+fn ownGeneric(w: Res) {
     print "${applyPeek(w.peek)}"
     print "own generic end"
 }
 
-fn stored(w: Res) -> Unit {
+fn stored(w: Res) {
     let k = Keep { f: w.get }
     print "${useKeep(k)}"
     print "stored end"
 }
 
-fn copied() -> Unit {
+fn copied() {
     let mut p = Pt { x: 7 }
     let f = p.get
     p.x = 8
@@ -74,7 +74,7 @@ fn copied() -> Unit {
     print "${f(1)} ${g(1)}"
 }
 
-fn scoped() -> Unit {
+fn scoped() {
     let w = Res { n: 8 }
     if true {
         let f = w.get

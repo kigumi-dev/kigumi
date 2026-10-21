@@ -47,7 +47,7 @@ pub fn readAll[R: Reader](mut r: R) -> Bytes! {
 
 /// Fails with IoError when a Reader.read call broke its law: see the
 /// Reader doc comment.
-fn checkReadLaw(n: usize, max: usize, before: usize, after: usize) -> Unit! {
+fn checkReadLaw(n: usize, max: usize, before: usize, after: usize) -> Void! {
     if n > max {
         fail IoError { text: "Reader.read law violated: returned n=${n} > max=${max}" }
     }
@@ -65,7 +65,7 @@ fn checkReadLaw(n: usize, max: usize, before: usize, after: usize) -> Unit! {
 /// Unsound on a `mut w: W` forwarded from the caller's own generic
 /// function when called more than once on it (a header then a body,
 /// say): see readAll's note.
-pub fn writeAll[W: Writer](mut w: W, data: Bytes) -> Unit! {
+pub fn writeAll[W: Writer](mut w: W, data: Bytes) -> Void! {
     let mut sent: usize = 0
     for sent < data.len() {
         let given = remainder(data, sent)
@@ -80,7 +80,7 @@ pub fn writeAll[W: Writer](mut w: W, data: Bytes) -> Unit! {
 
 /// Fails with IoError when a Writer.write call broke its law: see the
 /// Writer doc comment.
-fn checkWriteLaw(n: usize, given: usize) -> Unit! {
+fn checkWriteLaw(n: usize, given: usize) -> Void! {
     if n > given {
         fail IoError { text: "Writer.write law violated: returned n=${n} > data.len()=${given}" }
     }

@@ -22,7 +22,7 @@ func TestBuildProgramToolchain(t *testing.T) {
 	root, out := t.TempDir(), t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"tc\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
 	os.WriteFile(filepath.Join(root, "hello.c"), []byte("#include <stdio.h>\nint main(void) { printf(\"cc ok\\n\"); return 0; }\n"), 0o644)
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let cc = b.toolchain()\n" +
 		"    let src = b.file(\"hello.c\")?\n" +
 		"    let o = b.runTool(cc, \"cc\", Array.of(\"$in:0\", \"-o\", \"$out:0\"), Array.of(src), Array.of(\"hello\"), Array.empty[build.Secret]())?\n" +
@@ -57,7 +57,7 @@ func TestToolchainUnregisteredTool(t *testing.T) {
 	t.Parallel()
 	root, out := t.TempDir(), t.TempDir()
 	os.WriteFile(filepath.Join(root, "mod.kg"), []byte("Module {\n    name: \"tc2\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
-	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Unit! {\n" +
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
 		"    let cc = b.toolchain()\n" +
 		"    let o = b.runTool(cc, \"nope\", Array.empty[String](), Array.empty[build.FilePath](), Array.empty[String](), Array.empty[build.Secret]())?\n" +
 		"}\n"

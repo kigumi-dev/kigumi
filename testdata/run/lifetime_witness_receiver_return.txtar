@@ -13,7 +13,7 @@ fn useWitness['a, T: Peek['a]](x: T) -> &'a Bytes {
     x.peek()
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let data = Bytes.fromArray(&Array.of(4, 5, 6))
     let h = Holder { buf: &data }
     let r = useWitness(h)

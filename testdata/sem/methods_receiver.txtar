@@ -3,7 +3,7 @@ type Buf = {
     pub mut n Int
 }
 
-fn Buf.push(mut self) -> Unit {
+fn Buf.push(mut self) {
     self.n += 1
 }
 
@@ -23,13 +23,13 @@ type Res = resource {
     pub fd Int
 }
 
-fn Res.drop(move self) -> Unit {}
+fn Res.drop(move self) {}
 
 fn Res.id(self) -> Int {
     self.fd
 }
 
-fn use(b: Buf, mut m: Buf, r: &Buf, w: &mut Buf, res: Res) -> Unit {
+fn use(b: Buf, mut m: Buf, r: &Buf, w: &mut Buf, res: Res) {
     b.push() //~ ERROR `push` takes `mut self` but `b` is immutable
     m.push()
     r.push() //~ ERROR `push` takes `mut self` but `r` is immutable
@@ -61,7 +61,7 @@ fn Outer.make() -> Outer {
     Outer { inner: Buf { n: 0 } }
 }
 
-fn useField(o: Outer, mut f: Frozen) -> Unit {
+fn useField(o: Outer, mut f: Frozen) {
     let lb = Buf.make()
     lb.push() //~ ERROR `push` takes `mut self` but `lb` is immutable
     let lo = Outer.make()

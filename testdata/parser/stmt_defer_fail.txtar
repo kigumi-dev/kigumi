@@ -1,5 +1,5 @@
 -- src --
-fn f() -> Unit! {
+fn f() -> Void! {
     defer(fail) h.close()
     defer(fail) {
         a()
@@ -23,7 +23,7 @@ File
     params: List
     ret: TypeResult
       TypePath
-        Path Unit
+        Path Void
     body: Block
       DeferFail
         ExprStmt

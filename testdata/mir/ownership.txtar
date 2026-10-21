@@ -1,23 +1,23 @@
 -- lib/own.kg --
 import fs from std/fs
 
-fn consume(f: fs.File) -> Unit! {
+fn consume(f: fs.File) -> Void! {
     f.close()?
 }
 
-fn twice(f: fs.File) -> Unit! {
+fn twice(f: fs.File) -> Void! {
     consume(f)?
     consume(f)?
 }
 
-fn branchy(f: fs.File, flag: Bool) -> Unit! {
+fn branchy(f: fs.File, flag: Bool) -> Void! {
     if flag {
         consume(f)?
     }
     consume(f)?
 }
 
-fn diverge(f: fs.File, flag: Bool) -> Unit! {
+fn diverge(f: fs.File, flag: Bool) -> Void! {
     if flag {
         consume(f)?
         return
@@ -25,13 +25,13 @@ fn diverge(f: fs.File, flag: Bool) -> Unit! {
     consume(f)?
 }
 
-fn dropped(files: fs.Files, p: fs.Path) -> Unit! {
+fn dropped(files: fs.Files, p: fs.Path) -> Void! {
     let f = files.create(p)?
     let g = files.create(p)?
     consume(g)?
 }
 -- expect --
-fn lib.consume(%f: File) -> Unit! {
+fn lib.consume(%f: File) -> Void! {
   b0:
     %t1 = move(%f)
     %t2 = call std/fs.File.close(%t1)
@@ -47,7 +47,7 @@ fn lib.consume(%f: File) -> Unit! {
     nop
     return %t2
 }
-fn lib.twice(%f: File) -> Unit! {
+fn lib.twice(%f: File) -> Void! {
   b0:
     %t1 = move(%f)
     %t2 = call lib.consume(%t1)
@@ -74,7 +74,7 @@ fn lib.twice(%f: File) -> Unit! {
     nop
     return %t6
 }
-fn lib.branchy(%f: File, %flag: Bool) -> Unit! {
+fn lib.branchy(%f: File, %flag: Bool) -> Void! {
   b0:
     branch %flag ? b1 : b2
   b1:
@@ -113,7 +113,7 @@ fn lib.branchy(%f: File, %flag: Bool) -> Unit! {
     nop
     return %t9
 }
-fn lib.diverge(%f: File, %flag: Bool) -> Unit! {
+fn lib.diverge(%f: File, %flag: Bool) -> Void! {
   b0:
     branch %flag ? b1 : b2
   b1:
@@ -159,7 +159,7 @@ fn lib.diverge(%f: File, %flag: Bool) -> Unit! {
     nop
     return %t12
 }
-fn lib.dropped(%files: Files, %p: Path) -> Unit! {
+fn lib.dropped(%files: Files, %p: Path) -> Void! {
   b0:
     %t2 = copy(%p)
     %t3 = call std/fs.Files.create(%files, %t2)

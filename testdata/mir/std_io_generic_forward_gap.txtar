@@ -7,12 +7,12 @@
 // testdata/run for the runtime consequence this closes.
 import io from std/io
 
-fn sendTwice[W: io.Writer](mut w: W, a: Bytes, b: Bytes) -> Unit! {
+fn sendTwice[W: io.Writer](mut w: W, a: Bytes, b: Bytes) -> Void! {
     io.writeAll(w, a)?
     io.writeAll(w, b)?
 }
 -- expect --
-fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) -> Unit! {
+fn lib.sendTwice(%w: W, %a: Bytes, %b: Bytes, %$w:W:write: fn(Bytes) -> usize!) -> Void! {
   b0:
     %t4 = move(%w)
     %t5 = copy(%a)

@@ -27,7 +27,7 @@ fn gen(x: String) -> Int {
     4
 }
 
-fn use() -> Unit {
+fn use() {
     let a = show(1) //~ TYPE a : String
     let b = show("s") //~ TYPE b : String
     let c = show(1, 2) //~ TYPE c : Bool
@@ -53,7 +53,7 @@ fn Box.get(self, d: Int) -> String {
     "d"
 }
 
-fn methods(b: Box) -> Unit {
+fn methods(b: Box) {
     let x = b.get() //~ TYPE x : Int
     let y = b.get(1) //~ TYPE y : String
 }

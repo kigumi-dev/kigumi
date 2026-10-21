@@ -19,12 +19,12 @@ import (
 // kill the process (default disposition) before print ever runs; readAll's
 // own EINTR retry absorbs any storm hits during the read.
 const rtSysWriteEintrSrc = `extern(C) {
-    fn signal(sig: i32, handler: extern(C) fn(i32) -> Unit) -> usize
+    fn signal(sig: i32, handler: extern(C) fn(i32) -> Void) -> usize
     fn siginterrupt(sig: i32, flag: i32) -> i32
 }
 
 export(C) {
-    pub fn onAlarm(sig: i32) -> Unit {
+    pub fn onAlarm(sig: i32) {
     }
 }
 

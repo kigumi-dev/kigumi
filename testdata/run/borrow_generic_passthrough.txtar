@@ -28,7 +28,7 @@ fn deepen['a](v: View['a]) -> Nest['a] {
     Nest { inner: v, tag: 7 }
 }
 
-fn main() -> Unit! {
+fn main() -> Void! {
     let buf = Bytes.fromArray(&Array.of(1, 2, 3))
     let other = Bytes.fromArray(&Array.of(4, 5, 6))
     let n = deepen(identity(View { data: &buf, off: 1 }))

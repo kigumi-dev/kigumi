@@ -9,7 +9,7 @@ type B = {
     pub mut i In
 }
 
-fn viaMatch(b: &mut B) -> Unit {
+fn viaMatch(b: &mut B) {
     match b {
         B { n } -> {
             n = n + 1 //~ ERROR
@@ -17,7 +17,7 @@ fn viaMatch(b: &mut B) -> Unit {
     }
 }
 
-fn viaRename(b: &mut B) -> Unit {
+fn viaRename(b: &mut B) {
     match b {
         B { n: k } -> {
             k = 2 //~ ERROR
@@ -25,7 +25,7 @@ fn viaRename(b: &mut B) -> Unit {
     }
 }
 
-fn viaNested(b: &mut B) -> Unit {
+fn viaNested(b: &mut B) {
     match b {
         B { i: In { v } } -> {
             v = 3 //~ ERROR
@@ -33,13 +33,13 @@ fn viaNested(b: &mut B) -> Unit {
     }
 }
 
-fn viaIs(b: &mut B) -> Unit {
+fn viaIs(b: &mut B) {
     if b is (B { n }) {
         n = 1 //~ ERROR
     }
 }
 
-fn viaPayload(o: &mut Int?) -> Unit {
+fn viaPayload(o: &mut Int?) {
     match o {
         Some(n) -> {
             n = 3 //~ ERROR
@@ -48,11 +48,11 @@ fn viaPayload(o: &mut Int?) -> Unit {
     }
 }
 
-fn bump(x: &mut Int) -> Unit {
+fn bump(x: &mut Int) {
     x = x + 1
 }
 
-fn viaCall(b: &mut B) -> Unit {
+fn viaCall(b: &mut B) {
     match b {
         B { n } -> {
             bump(n) //~ ERROR
@@ -60,14 +60,14 @@ fn viaCall(b: &mut B) -> Unit {
     }
 }
 
-fn viaCallPayload(o: &mut Int?) -> Unit {
+fn viaCallPayload(o: &mut Int?) {
     match o {
         Some(n) -> bump(n) //~ ERROR
         None -> {}
     }
 }
 
-fn viaCallField(b: &mut B) -> Unit {
+fn viaCallField(b: &mut B) {
     match b {
         B { n } -> {
             bump(&mut b.n)
@@ -76,7 +76,7 @@ fn viaCallField(b: &mut B) -> Unit {
     }
 }
 
-fn throughField(b: &mut B) -> Unit {
+fn throughField(b: &mut B) {
     match b {
         B { n, i } -> {
             b.m = n + 1

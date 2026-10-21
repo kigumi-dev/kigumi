@@ -94,7 +94,7 @@ func mapFnPointer(s string, known, opaque map[string]bool, abi ABI) (string, boo
 	rest := strings.TrimSpace(s[closeIdx+1:])
 	rest = strings.TrimPrefix(rest, "callconv(.c)")
 	rest = strings.TrimSpace(rest)
-	ret := "Unit"
+	ret := "Void"
 	if rest != "" {
 		r, ok := mapByValueType(rest, known, opaque, abi)
 		if !ok {

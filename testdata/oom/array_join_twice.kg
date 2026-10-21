@@ -1,6 +1,6 @@
 import array from std/array
 
-fn run() -> Unit {
+fn run() {
     let items = Array.of("a", "b", "c")
     eprint "go"
     let r1 = array.tryJoin(&items, ", ")

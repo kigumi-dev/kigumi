@@ -3,7 +3,7 @@ fn identity[T](x: T) -> T {
     x
 }
 
-fn use(xs: Array[Int]) -> Unit {
+fn use(xs: Array[Int]) {
     let a = xs.map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
     let b: Array[Int] = xs.map(identity) //~ ERROR `identity`'s type parameter would be inferred as a reference here
 }
