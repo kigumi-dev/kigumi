@@ -53,13 +53,7 @@ func (c *checker) movableField(n, field syntax.NodeID, recv TypeID) bool {
 		case syntax.Ident:
 			if ent := c.info.Uses[b]; ent != 0 {
 				if k := c.r.Entities[ent].Kind; k == EntLocal || k == EntParam {
-					if root, aliased := c.methodValues.aliases[ent]; aliased {
-						name := c.r.Entities[root].Name
-						c.errAt(n, cMethodValuePlace, recv, "a field of `"+c.r.Entities[ent].Name+"`, which aliases the matched `"+name+"`", "destructure `"+name+"` with `let ... else` to give it up, or call the method directly")
-						return false
-					}
 					if !c.capturedHere(ent) {
-						c.noteFieldMoveSite(ent, n, field, recv)
 						return true
 					}
 					c.errAt(n, cMethodValuePlace, recv, "a field of `"+c.r.Entities[ent].Name+"`, which this closure captured and may run again", "move the field into a local before the closure, or call the method directly")

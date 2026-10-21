@@ -23,6 +23,7 @@ func (c *checker) synthFallback(n, lhs, rhs syntax.NodeID, want TypeID) TypeID {
 		return TyPoison
 	}
 	c.info.Calls[n] = CallInfo{Kind: CallFallback, Callee: witness}
+	c.reservePayloadTake(lhs, l, v)
 	c.touched = append(c.touched, n)
 	result := v
 	if want != 0 {
@@ -99,4 +100,11 @@ func (c *checker) fallbackArm(lambda syntax.NodeID, r, want TypeID) {
 	c.check(body, want)
 	c.popScope(saved)
 	c.setType(lambda, want)
+}
+
+func (c *checker) reservePayloadTake(operand syntax.NodeID, whole, payload TypeID) {
+	if whole == TyBool || c.r.Types.Kind(whole) == KRef || !c.ownsType(payload) {
+		return
+	}
+	c.reserveUse(operand)
 }

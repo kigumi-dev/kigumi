@@ -143,7 +143,7 @@ fn rebound() -> String {
     let mut i = 0
     for i < 2 {
         let b = cur.nm
-        cur = W { nm: Named { name: "n", n: b.n + 10 }, other: cur.other, pair: cur.pair, k: i, ns: cur.ns }
+        cur = W { nm: Named { name: "n", n: b.n + 10 }, other: cur.other, pair: cur.pair, k: i, ns: move cur.ns }
         cur.nm.n = cur.nm.n + 1
         seen = seen + b.n
         i = i + 1

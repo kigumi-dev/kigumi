@@ -55,7 +55,10 @@ func (c *checker) declaredIn(ent EntityID, n syntax.NodeID) bool {
 }
 
 func (c *checker) placeUnder(n syntax.NodeID) (reservedPlace, bool) {
-	p, ok := c.buildPlace(c.stripParen(n))
+	if n = c.stripParen(n); c.t.Kind(n) == syntax.MoveExpr {
+		n = c.stripParen(c.t.View(n).AsMove().Operand().ID())
+	}
+	p, ok := c.buildPlace(n)
 	if !ok || p.Root == 0 || p.Index || p.Deref {
 		return reservedPlace{}, false
 	}

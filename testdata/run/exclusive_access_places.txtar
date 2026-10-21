@@ -82,10 +82,12 @@ fn fieldSelf() -> Int {
 
 fn closureBeforeCall() -> Int {
     let mut p = pair()
-    let touch = () => { p.b.update(1) }
     p.a.tick()
+    let touch = () => {
+        p.b.update(1)
+        p.a.count * 10 + p.b.count
+    }
     touch()
-    p.a.count * 10 + p.b.count
 }
 
 fn aliasOtherField() -> Int {

@@ -6,12 +6,15 @@ import (
 	"kigumi/internal/syntax"
 )
 
+// shortAnd gives the false exit its own constant, so what the right operand binds stays tied to a true result.
 func (b *builder) shortAnd(e *hir.Expr) LocalID {
 	result := b.temp(sem.TyBool)
 	l := b.expr(e.Args[0])
-	right, join := b.newBlockAt(), b.newBlockAt()
-	b.assign(result, l)
-	b.term(Term{Op: TermBranch, Args: []LocalID{l}, Targets: []BlockID{right, join}})
+	right, no, join := b.newBlockAt(), b.newBlockAt(), b.newBlockAt()
+	b.term(Term{Op: TermBranch, Args: []LocalID{l}, Targets: []BlockID{right, no}})
+	b.cur = no
+	b.assign(result, b.emit(Inst{Op: OpConst, Dst: b.temp(sem.TyBool), Lit: sem.Literal{Kind: sem.LitBool}, Type: sem.TyBool, Node: e.Node}))
+	b.jump(join)
 	b.cur = right
 	b.assign(result, b.expr(e.Args[1]))
 	b.jump(join)
@@ -57,7 +60,10 @@ func (b *builder) fallback(e *hir.Expr) LocalID {
 	if lt == sem.TyBool {
 		hit = l
 	} else {
-		hit = b.emit(Inst{Op: OpPayload, Dst: b.temp(ltn.Args[0]), Args: []LocalID{l}, Node: n})
+		hit = b.emit(Inst{Op: OpPayload, Dst: b.temp(ltn.Args[0]), Args: []LocalID{l}, Node: n, Place: true})
+		if !b.r.IsCopy(ltn.Args[0]) {
+			b.emit(Inst{Op: OpNop, Args: []LocalID{hit}, Node: n, Guarded: true})
+		}
 	}
 	b.assign(result, b.coerce(e.Coercion, n, hit))
 	b.jump(join)
@@ -107,7 +113,7 @@ func (b *builder) try(e *hir.Expr) LocalID {
 	b.cur = no
 	if b.forwardErr(e, v, rt) {
 		b.cur = yes
-		p := b.emit(Inst{Op: OpPayload, Dst: b.temp(val), Args: []LocalID{v}, Node: n})
+		p := b.emit(Inst{Op: OpPayload, Dst: b.temp(val), Args: []LocalID{v}, Node: n, Place: true})
 		b.dropUnwrapped(v, n)
 		return p
 	}
@@ -118,7 +124,7 @@ func (b *builder) try(e *hir.Expr) LocalID {
 	b.dropUnwrapped(v, n)
 	b.failWith(n, err)
 	b.cur = yes
-	p := b.emit(Inst{Op: OpPayload, Dst: b.temp(val), Args: []LocalID{v}, Node: n})
+	p := b.emit(Inst{Op: OpPayload, Dst: b.temp(val), Args: []LocalID{v}, Node: n, Place: true})
 	b.dropUnwrapped(v, n)
 	return p
 }

@@ -1,0 +1,54 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.close(move self) -> Unit {}
+
+fn Res.peek(self) -> Int {
+    self.id
+}
+
+fn mkr(n: Int) -> Res {
+    Res { id: n }
+}
+
+fn each(n: Int, f: fn(Int) -> Unit) -> Unit {
+    f(n)
+}
+
+fn keptThenShared() -> Unit {
+    let mut r = mkr(20)
+    let f = () => { r.close() }
+    each(1, (i: Int) => {
+        r = mkr(21 + i) //~ ERROR `r` is kept by a stored closure and also written by a closure passed to a call
+    })
+    f()
+}
+
+fn sharedThenKept() -> Unit {
+    let mut r = mkr(22)
+    each(1, (i: Int) => {
+        r = mkr(23 + i)
+    })
+    let f = () => { r.close() } //~ ERROR `r` is kept by a stored closure and also written by a closure passed to a call
+    f()
+}
+
+-- expect --
+error[E2154]: `r` is kept by a stored closure and also written by a closure passed to a call, which would give one value two owners
+  --> main/main.kg:25:9
+   |
+25 |         r = mkr(21 + i) //~ ERROR `r` is kept by a stored closure and also written by a closure passed to a call
+   |         ^
+   = help: write `r` outside the closures, or give each closure a local of its own
+
+error[E2154]: `r` is kept by a stored closure and also written by a closure passed to a call, which would give one value two owners
+  --> main/main.kg:35:21
+   |
+35 |     let f = () => { r.close() } //~ ERROR `r` is kept by a stored closure and also written by a closure passed to a call
+   |                     ^
+   = help: write `r` outside the closures, or give each closure a local of its own
+

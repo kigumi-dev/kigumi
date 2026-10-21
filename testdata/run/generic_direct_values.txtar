@@ -23,7 +23,7 @@ fn hold[T](x: T, n: Int) -> Holder[T] { Holder { v: x, n: n } }
 
 fn first[A, B](p: (A, B)) -> A { p._0 }
 
-fn swap[A, B](p: (A, B)) -> (B, A) { (p._1, p._0) }
+fn swap[A, B](p: (A, B)) -> (B, A) { (move p._1, move p._0) }
 
 // An Array slot holds a reference, so this instantiation would box inside;
 // it keeps the shared body and the box stays at the call.

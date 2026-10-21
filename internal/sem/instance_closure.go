@@ -9,7 +9,7 @@ func (r *Result) InstantiateClosure(cl EntityID, subst map[EntityID]TypeID) Enti
 	for i, c := range r.closure(cl).Captures {
 		le := r.Entities[c.Local]
 		le.Type = r.Types.Subst(le.Type, subst)
-		info.Captures[i] = Capture{Local: r.newEntity(le), Mode: c.Mode}
+		info.Captures[i] = Capture{Local: r.newEntity(le), Mode: c.Mode, OwnCell: c.OwnCell}
 	}
 	e := r.Entities[cl]
 	e.Detail = r.addClosure(info)

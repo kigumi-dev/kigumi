@@ -1,0 +1,367 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Res.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn Res.peek(self) -> Int {
+    self.id
+}
+
+fn mkr(n: Int) -> Res {
+    Res { id: n }
+}
+
+fn total(xs: Array[Int], f: fn(Int) -> Int) -> Int {
+    let mut t = 0
+    for x in xs {
+        t = t + f(x)
+    }
+    t
+}
+
+fn readerOwnsCapture() -> Unit {
+    let r = mkr(1)
+    let f = () => r.peek()
+    print "read ${f()} ${f()}"
+    print "end readerOwnsCapture"
+}
+
+fn consumerOnce() -> Unit {
+    let r = mkr(2)
+    let f = () => { r.close() }
+    print "made"
+    f()
+    print "end consumerOnce"
+}
+
+fn reinitAfterCapture() -> Unit {
+    let mut r = mkr(3)
+    let f = () => r.peek()
+    r = mkr(4)
+    print "captured ${f()} outer ${r.peek()}"
+    r.close()
+}
+
+fn ownState() -> Unit {
+    let mut xs = Array.of(1)
+    let push = (n: Int) => {
+        xs.push(n)
+        xs.len()
+    }
+    print "push ${push(2)} ${push(3)}"
+    let mut h = mkr(5)
+    let swap = (n: Int) => {
+        h = mkr(n)
+        h.peek()
+    }
+    print "swap ${swap(6)} ${swap(7)}"
+}
+
+fn perIteration() -> Unit {
+    for i in 0..2 {
+        let r = mkr(10 + i)
+        let f = () => { r.close() }
+        f()
+    }
+}
+
+fn immediateBorrows() -> Unit {
+    let ys = Array.of(1, 2)
+    let r = mkr(20)
+    let t = total(Array.of(1, 2, 3), (x: Int) => x * ys[0] + r.peek())
+    print "total ${t} ${ys.len()}"
+    r.close()
+}
+
+fn readerShares() -> Unit {
+    let r = mkr(30)
+    {
+        let f = () => r.peek()
+        print "inner ${f()} ${r.peek()}"
+    }
+    print "end readerShares"
+}
+
+fn readerThenConsume() -> Unit {
+    let r = mkr(40)
+    let f = () => r.peek()
+    print "reader ${f()}"
+    r.close()
+    print "end readerThenConsume"
+}
+
+fn readerInLoop() -> Unit {
+    let xs = Array.of(1, 2)
+    for i in 0..2 {
+        let g = () => xs.len()
+        print "loop ${i} ${g()}"
+    }
+    print "outer ${xs.len()}"
+}
+
+fn nestedReader() -> Unit {
+    let r = mkr(50)
+    let f = () => {
+        let g = () => r.peek()
+        g()
+    }
+    print "nested ${f()} ${f()}"
+    r.close()
+}
+
+fn eachInt(xs: Array[Int], f: fn(Int) -> Unit) -> Unit {
+    for x in xs {
+        f(x)
+    }
+}
+
+fn collectThenRead() -> Unit {
+    let mut out: Array[Int] = Array.of()
+    eachInt(Array.of(1, 2, 3), (x: Int) => out.push(x))
+    let report = () => out.len()
+    print "collected ${report()}"
+}
+
+fn readThenCollect() -> Unit {
+    let mut out: Array[Int] = Array.of()
+    let report = () => out.len()
+    eachInt(Array.of(1, 2, 3), (x: Int) => out.push(x))
+    print "read then collected ${report()} ${out.len()}"
+}
+
+fn sharedCellLate() -> Unit {
+    let mut h = mkr(60)
+    let f = () => h.peek()
+    eachInt(Array.of(61), (x: Int) => {
+        h = mkr(x)
+    })
+    print "cell ${f()}"
+    h.close()
+    print "end sharedCellLate"
+}
+
+fn applyNow(f: fn() -> Unit) -> Unit {
+    f()
+}
+
+fn cellReinit() -> Unit {
+    let mut o = mkr(70)
+    applyNow(() => { o = mkr(71) })
+    o.close()
+    o = mkr(72)
+    o.close()
+    print "end cellReinit"
+}
+
+fn cellBranchReinit(c: Bool) -> Unit {
+    let mut o = mkr(73)
+    applyNow(() => { o = mkr(74) })
+    if c {
+        o.close()
+        o = mkr(75)
+    }
+    o.close()
+    print "end cellBranchReinit ${c}"
+}
+
+type CellPair = resource {
+    pub mut a Int
+    pub mut r Res
+}
+
+fn closeOptR(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> print "none"
+    }
+}
+
+fn eatR(r: Res) -> Unit {
+    r.close()
+}
+
+fn siblingStoreInGuard() -> Unit {
+    let mut p = CellPair { a: 1, r: mkr(131) }
+    match p.r {
+        r if { p.a = 5; r.peek() > 0 } -> {
+            print "a ${p.a}"
+            r.close()
+        }
+        r -> r.close()
+    }
+    print "end siblingStoreInGuard"
+}
+
+fn writingLambdaAfterConsume() -> Unit {
+    let mut o = Some(mkr(141))
+    applyNow(() => { o = None })
+    closeOptR(o)
+    applyNow(() => { o = Some(mkr(142)) })
+    o = Some(mkr(143))
+    closeOptR(o)
+    print "end writingLambdaAfterConsume"
+}
+
+fn writingLambdaInLoop() -> Unit {
+    let mut o = Some(mkr(144))
+    applyNow(() => { o = None })
+    for i in 0..2 {
+        closeOptR(o)
+        applyNow(() => { o = Some(mkr(145 + i)) })
+        o = Some(mkr(150 + i))
+    }
+    closeOptR(o)
+    print "end writingLambdaInLoop"
+}
+
+fn writingLambdaAfterLet() -> Unit {
+    let mut o = Some(mkr(147))
+    applyNow(() => { o = None })
+    let q = o
+    applyNow(() => { o = Some(mkr(148)) })
+    closeOptR(q)
+    print "end writingLambdaAfterLet"
+}
+
+fn cellFieldMoveRefill() -> Unit {
+    let mut p = CellPair { a: 1, r: mkr(111) }
+    applyNow(() => { p.a = 2 })
+    eatR(move p.r)
+    p.r = mkr(112)
+    eatR(move p.r)
+    p.r = mkr(113)
+    print "end cellFieldMoveRefill ${p.a}"
+}
+
+fn cellGuardReads() -> Unit {
+    let mut p = CellPair { a: 1, r: mkr(121) }
+    applyNow(() => { p.a = 2 })
+    match p {
+        q if q.a > 5 -> print "big"
+        q -> q.r.close()
+    }
+    print "end cellGuardReads"
+}
+
+readerOwnsCapture()
+consumerOnce()
+reinitAfterCapture()
+ownState()
+perIteration()
+immediateBorrows()
+readerShares()
+readerThenConsume()
+readerInLoop()
+nestedReader()
+collectThenRead()
+readThenCollect()
+sharedCellLate()
+cellReinit()
+cellBranchReinit(true)
+cellBranchReinit(false)
+siblingStoreInGuard()
+writingLambdaAfterConsume()
+writingLambdaInLoop()
+writingLambdaAfterLet()
+cellFieldMoveRefill()
+cellGuardReads()
+-- stdout --
+read 1 1
+end readerOwnsCapture
+drop 1
+made
+close 2
+end consumerOnce
+drop 2
+captured 3 outer 4
+close 4
+drop 4
+drop 3
+push 2 3
+drop 5
+drop 6
+swap 6 7
+drop 7
+close 10
+drop 10
+close 11
+drop 11
+total 66 2
+close 20
+drop 20
+inner 30 30
+end readerShares
+drop 30
+reader 40
+close 40
+end readerThenConsume
+drop 40
+loop 0 2
+loop 1 2
+outer 2
+nested 50 50
+close 50
+drop 50
+collected 3
+read then collected 3 3
+drop 60
+cell 61
+close 61
+end sharedCellLate
+drop 61
+drop 70
+close 71
+drop 71
+close 72
+end cellReinit
+drop 72
+drop 73
+close 74
+drop 74
+close 75
+end cellBranchReinit true
+drop 75
+drop 73
+close 74
+end cellBranchReinit false
+drop 74
+a 5
+close 131
+end siblingStoreInGuard
+drop 131
+drop 141
+none
+drop 142
+close 143
+end writingLambdaAfterConsume
+drop 143
+drop 144
+none
+drop 145
+close 150
+drop 150
+drop 146
+close 151
+end writingLambdaInLoop
+drop 151
+drop 147
+none
+end writingLambdaAfterLet
+drop 148
+close 111
+drop 111
+close 112
+drop 112
+end cellFieldMoveRefill 2
+drop 113
+close 121
+end cellGuardReads
+drop 121

@@ -37,6 +37,7 @@ func (b *builder) ifExpr(e *hir.Expr) LocalID {
 	b.assignValue(result, b.blockExpr(e.Then), e.Node)
 	b.jump(join)
 	b.cur = els
+	b.releaseGuardMoves(moves)
 	if e.Else != nil {
 		b.assignValue(result, b.expr(e.Else), e.Node)
 	} else {
@@ -149,6 +150,7 @@ func (b *builder) forExpr(e *hir.Expr) LocalID {
 	}
 	b.jump(cond)
 	b.cur = exit
+	b.releaseGuardMoves(headMoves)
 	b.exitScope()
 	if e.Type == sem.TyNever {
 		// Nothing breaks out of this loop; what follows never runs.

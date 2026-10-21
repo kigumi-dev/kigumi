@@ -32,18 +32,18 @@ func joinOwn(a, b ownState) ownState {
 }
 
 // val and field are independent: a moved-out field's temporary stays valid in val until consumed.
-// called is whether a once-only callable has run.
+// called is whether a once-only callable has run; callAt is where, apart from at so a move cannot hide the call.
 type dstate struct {
-	val, field, called map[LocalID]ownState
-	at                 map[LocalID]syntax.NodeID
+	val, field, called, rel map[LocalID]ownState
+	at, callAt              map[LocalID]syntax.NodeID
 }
 
 func newDstate() *dstate {
-	return &dstate{val: map[LocalID]ownState{}, field: map[LocalID]ownState{}, called: map[LocalID]ownState{}, at: map[LocalID]syntax.NodeID{}}
+	return &dstate{val: map[LocalID]ownState{}, field: map[LocalID]ownState{}, called: map[LocalID]ownState{}, rel: map[LocalID]ownState{}, at: map[LocalID]syntax.NodeID{}, callAt: map[LocalID]syntax.NodeID{}}
 }
 
 func cloneD(s *dstate) *dstate {
-	return &dstate{val: cloneState(s.val), field: cloneState(s.field), called: cloneState(s.called), at: maps.Clone(s.at)}
+	return &dstate{val: cloneState(s.val), field: cloneState(s.field), called: cloneState(s.called), rel: cloneState(s.rel), at: maps.Clone(s.at), callAt: maps.Clone(s.callAt)}
 }
 
 // analyzeOwnership runs a forward dataflow over the CFG: every use needs a
@@ -69,7 +69,7 @@ func analyzeOwnership(p *Program, f *Func) {
 			tracked[l] = true
 		}
 	}
-	if len(tracked) == 0 {
+	if len(tracked) == 0 && !hasTrackedCell(p, f) {
 		return
 	}
 	a := &owner{p: p, f: f, pl: pl, tracked: tracked, in: make([]*dstate, len(f.Blocks)),
@@ -88,6 +88,7 @@ func analyzeOwnership(p *Program, f *Func) {
 			a.transfer(BlockID(bid), cloneD(a.in[bid]), true)
 		}
 	}
+	checkReadCaptures(p, f, a.moves)
 }
 
 func (a *owner) solve(start BlockID) {
@@ -112,6 +113,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 	a.cur = st
 	for i := range blk.Insts {
 		in := &blk.Insts[i]
+		a.pos = movePos{bid, i}
 		if in.Dst != 0 {
 			a.defNode[in.Dst] = in.Node
 		}
@@ -139,11 +141,15 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			st.val[l] = ownUninit
 			continue
 		case OpMove:
-			src := a.pl.canon(in.Args[0])
+			src := a.moveSource(in, st, report)
 			if a.tracked[src] {
-				a.check(in, src, st.val, report)
+				a.check(in, src, st.val, report && !in.Guarded)
 				a.checkWhole(in.Node, src, st, report)
+				a.checkDropOwner(in.Node, src, report)
+				a.checkGuardHeld(in, src, st, report && !in.Guarded, 0)
 				st.val[src], st.at[src] = ownMoved, in.Node
+				a.noteMove(in, src, report)
+				a.moveGuardSource(in, src, st, report)
 			}
 		case OpNop:
 			a.guardedMove(in, st, report)
@@ -157,7 +163,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 				a.check(in, l, st.val, report)
 				a.check(in, l, st.field, report)
 				if in.Op == OpFieldMove {
-					st.field[l] = ownMoved
+					a.fieldMove(in, l, st, report)
 				}
 			}
 		}

@@ -40,7 +40,7 @@ func (pl *places) projects(t *syntax.Tree, in Inst) bool {
 	case OpField, OpFieldMove:
 		return true
 	case OpPayload:
-		return in.Node != 0 && t.Kind(in.Node).IsPattern()
+		return in.Place || in.Node != 0 && t.Kind(in.Node).IsPattern()
 	}
 	return false
 }

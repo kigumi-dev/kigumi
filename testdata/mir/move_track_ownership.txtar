@@ -1,0 +1,155 @@
+-- lib/mt.kg --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.close(move self) -> Unit {}
+
+fn tryTwice(r: Result[Res, Int]) -> Result[Int, Int] {
+    let a = r?
+    let b = r?
+    a.close()
+    b.close()
+    Ok(1)
+}
+
+fn orTwice(o: Res?, d: Res, e: Res) -> Unit {
+    let a = o || d
+    let b = o || e
+    a.close()
+    b.close()
+}
+
+fn captureThenClose(r: Res) -> Unit {
+    let f = () => { r.close() }
+    r.close()
+    f()
+}
+-- expect --
+fn lib.Res.drop(%self: Res) -> Unit {
+  b0:
+    %t1 = unit
+    return %t1
+}
+fn lib.Res.close(%self: Res) -> Unit {
+  b0:
+    %t1 = unit
+    drop(%self)
+    return %t1
+}
+fn lib.tryTwice(%r: Result[Res, Int]) -> Result[Int, Int] {
+  b0:
+    %t1 = isvariant Result.Ok(%r)
+    branch %t1 ? b1 : b2
+  b1:
+    %t4 = payload 0(%r)
+    %a = copy(%t4)
+    %t6 = isvariant Result.Ok(%r)
+    branch %t6 ? b3 : b4
+  b2:
+    %t2 = payload 0(%r)
+    drop(%r)
+    %t3 = variant Result.Err(%t2)
+    return %t3
+  b3:
+    %t9 = payload 0(%r)
+    %b = copy(%t9)
+    %t11 = move(%a)
+    %t12 = call lib.Res.close(%t11)
+    drop(%t12)
+    %t13 = move(%b)
+    %t14 = call lib.Res.close(%t13)
+    drop(%t14)
+    %t15 = const 1: Int
+    %t16 = variant Result.Ok(%t15)
+    nop
+    nop
+    drop(%r)
+    return %t16
+  b4:
+    %t7 = payload 0(%r)
+    drop(%a)
+    drop(%r)
+    %t8 = variant Result.Err(%t7)
+    return %t8
+}
+fn lib.orTwice(%o: Res?, %d: Res, %e: Res) -> Unit {
+  b0:
+    %t4 = isvariant Option.Some(%o)
+    branch %t4 ? b1 : b2
+  b1:
+    %t5 = payload 0(%o)
+    nop
+    %t3 = copy(%t5)
+    jump b3
+  b2:
+    %t6 = unit
+    %t3 = copy(%d)
+    jump b3
+  b3:
+    %a = copy(%t3)
+    %t9 = isvariant Option.Some(%o)
+    branch %t9 ? b4 : b5
+  b4:
+    %t10 = payload 0(%o)
+    nop
+    %t8 = copy(%t10)
+    jump b6
+  b5:
+    %t11 = unit
+    %t8 = copy(%e)
+    jump b6
+  b6:
+    %b = copy(%t8)
+    %t13 = move(%a)
+    %t14 = call lib.Res.close(%t13)
+    drop(%t14)
+    %t15 = move(%b)
+    %t16 = call lib.Res.close(%t15)
+    nop
+    nop
+    drop(%e)
+    drop(%d)
+    drop(%o)
+    return %t16
+}
+fn lib.captureThenClose.closure1(%r: Res) -> Unit {
+  b0:
+    %t1 = move(%r)
+    %t2 = call lib.Res.close(%t1)
+    nop
+    return %t2
+}
+fn lib.captureThenClose(%r: Res) -> Unit {
+  b0:
+    %t1 = move(%r)
+    %t2 = closure lib.captureThenClose.closure1(%t1)
+    %f = copy(%t2)
+    %t4 = move(%r)
+    %t5 = call lib.Res.close(%t4)
+    drop(%t5)
+    %t6 = callv(%f)
+    drop(%f)
+    nop
+    return %t6
+}
+error[use-after-move]: `r` was moved; it cannot be used again
+  --> lib/mt.kg:11:13
+   |
+11 |     let b = r?
+   |             ^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> lib/mt.kg:19:13
+   |
+19 |     let b = o || e
+   |             ^^^^^^
+
+error[use-after-move]: `r` was moved; it cannot be used again
+  --> lib/mt.kg:26:5
+   |
+26 |     r.close()
+   |     ^
+

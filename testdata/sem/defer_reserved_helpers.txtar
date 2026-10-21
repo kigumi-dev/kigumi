@@ -152,7 +152,7 @@ type Bag = {
 fn forConsumesField() -> Unit {
     let mut b = Bag { items: Array.of(mkh(1)), n: 5 }
     defer {
-        for h in b.items {
+        for h in move b.items {
             h.close()
         }
     }
@@ -543,7 +543,7 @@ type OuterBox = {
 }
 
 fn ArrBox.closeAll(move self) -> Unit {
-    for h in self.xs {
+    for h in move self.xs {
         h.close()
     }
 }

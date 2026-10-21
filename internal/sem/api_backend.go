@@ -190,11 +190,3 @@ func (tt *TypeTable) IsTupleEnt(ent EntityID) bool { return tt.isTupleEnt(ent) }
 // MapEntity is mapEntity, exported for the backends that recognize a Map
 // container at runtime.
 func (r *Result) MapEntity() EntityID { return r.mapEntity() }
-
-const (
-	CapCopy   = capCopy
-	CapRetain = capRetain
-	CapMove   = capMove
-	CapCell   = capCell
-	CapBorrow = capBorrow
-)

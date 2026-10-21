@@ -1,0 +1,143 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.close(move self) -> Unit {}
+
+fn Res.peek(self) -> Int {
+    self.id
+}
+
+fn mkr(n: Int) -> Res {
+    Res { id: n }
+}
+
+fn say(n: Int) -> Unit {}
+
+type Wrap = {
+    pub mut a Res
+    pub n Int
+}
+
+fn eat(r: Res) -> Bool {
+    r.close()
+    false
+}
+
+fn pushTwice() -> Unit {
+    let w = Wrap { a: mkr(1), n: 1 }
+    let mut keep = Array.of(mkr(0))
+    keep.push(w.a)
+    keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+}
+
+fn pushThenRead() -> Unit {
+    let w = Wrap { a: mkr(2), n: 1 }
+    let mut keep = Array.of(mkr(0))
+    keep.push(w.a)
+    say(w.a.peek()) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+}
+
+fn pushInLoop() -> Unit {
+    let w = Wrap { a: mkr(3), n: 1 }
+    let mut keep = Array.of(mkr(0))
+    for i in 0..2 {
+        keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+    }
+}
+
+fn pushOnce() -> Unit {
+    let w = Wrap { a: mkr(4), n: 1 }
+    let mut keep = Array.of(mkr(0))
+    keep.push(w.a)
+    say(w.n)
+}
+
+fn guardConsumes() -> Unit {
+    let o = Some(mkr(5))
+    match o {
+        Some(r) if eat(r) -> say(1)
+        _ -> match o {
+            Some(x) -> x.close() //~ ERROR `o` was moved
+            None -> say(0)
+        }
+    }
+}
+
+fn chainConsumes() -> Unit {
+    let o = Some(mkr(6))
+    if o is Some(r) && eat(r) {
+        say(1)
+    } else {
+        match o {
+            Some(x) -> x.close() //~ ERROR `o` is moved on some paths but not others
+            None -> say(0)
+        }
+    }
+}
+
+fn chainElseKeeps(c: Bool) -> Unit {
+    let o = Some(mkr(7))
+    if o is Some(r) && c {
+        r.close()
+    } else {
+        match o {
+            Some(x) -> x.close()
+            None -> say(0)
+        }
+    }
+}
+-- expect --
+error[use-after-move]: `w.a` was moved; it cannot be used again
+  --> main.kg:33:15
+   |
+33 |     keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+   |               ^^^
+
+error[use-after-move]: `w.a` was moved; it cannot be used again
+  --> main.kg:33:5
+   |
+33 |     keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+   |     ^^^^^^^^^^^^^
+
+error[use-after-move]: `w.a` was moved; it cannot be used again
+  --> main.kg:40:9
+   |
+40 |     say(w.a.peek()) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+   |         ^^^
+
+error[use-after-move]: `w.a` was moved; it cannot be used again
+  --> main.kg:40:9
+   |
+40 |     say(w.a.peek()) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+   |         ^^^^^^^^^
+
+error[use-after-move]: `w.a` was moved; it cannot be used again
+  --> main.kg:47:19
+   |
+47 |         keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+   |                   ^^^
+
+error[use-after-move]: `w.a` was moved; it cannot be used again
+  --> main.kg:47:9
+   |
+47 |         keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
+   |         ^^^^^^^^^^^^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> main.kg:63:13
+   |
+63 |             Some(x) -> x.close() //~ ERROR `o` was moved
+   |             ^^^^^^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+  --> main.kg:75:13
+   |
+75 |             Some(x) -> x.close() //~ ERROR `o` is moved on some paths but not others
+   |             ^^^^^^
+

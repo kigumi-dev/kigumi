@@ -1,6 +1,25 @@
 package mir
 
 func capturedHolders(p *Program, f *Func, place func(LocalID) capturedPlace) map[LocalID][]capturedPlace {
+	return holdersFrom(p, f, func(in Inst) []capturedPlace {
+		var direct []LocalID
+		switch in.Op {
+		case OpClosure:
+			direct = in.Args
+		case OpFutureNew:
+			if len(in.Args) > 0 {
+				direct = in.Args[1:]
+			}
+		}
+		var out []capturedPlace
+		for _, a := range direct {
+			out = append(out, place(a))
+		}
+		return out
+	})
+}
+
+func holdersFrom(p *Program, f *Func, direct func(Inst) []capturedPlace) map[LocalID][]capturedPlace {
 	caps := map[LocalID][]capturedPlace{}
 	add := func(dst LocalID, cps []capturedPlace) bool {
 		grew := false
@@ -16,21 +35,11 @@ func capturedHolders(p *Program, f *Func, place func(LocalID) capturedPlace) map
 		changed = false
 		for bi := range f.Blocks {
 			for _, in := range f.Blocks[bi].Insts {
-				var direct []LocalID
-				switch in.Op {
-				case OpClosure:
-					direct = in.Args
-				case OpFutureNew:
-					if len(in.Args) > 0 {
-						direct = in.Args[1:]
-					}
-				case OpDrop:
+				if in.Op == OpDrop {
 					continue
 				}
-				for _, a := range direct {
-					if in.Dst != 0 && add(in.Dst, []capturedPlace{place(a)}) {
-						changed = true
-					}
+				if cps := direct(in); in.Dst != 0 && len(cps) > 0 && add(in.Dst, cps) {
+					changed = true
 				}
 				dst := in.Dst
 				if in.Op == OpSetField || in.Op == OpSetIndex {

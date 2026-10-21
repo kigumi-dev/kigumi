@@ -14,7 +14,7 @@ pub fn Fields.put(mut self, key: String, value: Value) -> Unit {
 }
 
 pub fn Fields.finish(move self) -> Value {
-    Value.Object(self.fields)
+    Value.Object(move self.fields)
 }
 
 /// The object a derived `fromJson` of a record reads; fields are taken out by their JSON key.

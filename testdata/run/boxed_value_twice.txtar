@@ -59,7 +59,7 @@ fn reviewed() -> Unit {
     twoOut(v3.a, v3.a, &mut out)
     out.a.n = 5
     let v = mky()
-    let mut y = Y { a: v.ns[1], ns: v.ns }
+    let mut y = Y { a: v.ns[1], ns: move v.ns }
     y.a.n = 7
     print "reviewed ${v1.a.n} ${v1.c.n} ${arr[0].n} ${arr[1].n} ${out.a.n} ${out.c.n} ${y.a.n} ${y.ns[1].n}"
 }
@@ -76,7 +76,7 @@ fn variants() -> Unit {
     let mut arr = Array.of(y0.ns[0], y0.ns[0])
     arr[1].n = 9
     let y1 = mky()
-    let ns = y1.ns
+    let ns = move y1.ns
     let mut y2 = Y { a: ns[1], ns: ns }
     y2.a.n = 7
     let v3 = mkv()

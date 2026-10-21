@@ -142,7 +142,7 @@ fn refillClosure() -> Unit {
     }
     f()
     f()
-    h.close()
+    h.close() //~ ERROR `h` was moved
 }
 
 fn refillFieldClosure() -> Unit {
@@ -403,6 +403,12 @@ note: `f` may already be called here
    |
 80 |         defer { f() } //~ ERROR consumes `h`
    |                 ^^
+
+error[use-after-move]: `h` was moved; it cannot be used again
+   --> main.kg:142:5
+    |
+142 |     h.close() //~ ERROR `h` was moved
+    |     ^
 
 error[E2151]: `f` consumes `h` when called and can be called only once
    --> main.kg:175:5

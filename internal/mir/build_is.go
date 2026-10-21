@@ -24,9 +24,9 @@ func (b *builder) isExpr(p *hir.Pat, v LocalID) LocalID {
 	if b.fn.Locals[v].Ent == 0 {
 		b.shared[v] = true
 	}
-	if p != nil && b.condIs == p {
-		b.condIs = nil
-		b.isMoves = b.bindGuarded(p, v, true)
+	if p != nil && b.condIs[p] {
+		delete(b.condIs, p)
+		b.isMoves = append(b.isMoves, b.bindGuarded(p, v, true)...)
 	} else {
 		b.bindPattern(p, v)
 	}
@@ -39,12 +39,27 @@ func (b *builder) isExpr(p *hir.Pat, v LocalID) LocalID {
 }
 
 func (b *builder) cond(e *hir.Expr) (LocalID, []guardMove) {
-	if e.Kind != hir.Is {
+	pats := map[*hir.Pat]bool{}
+	condTests(e, pats)
+	if len(pats) == 0 {
 		return b.expr(e), nil
 	}
-	b.condIs = e.Pat
+	savedIs, saved := b.condIs, b.isMoves
+	b.condIs, b.isMoves = pats, nil
 	c := b.expr(e)
 	moves := b.isMoves
-	b.condIs, b.isMoves = nil, nil
+	b.condIs, b.isMoves = savedIs, saved
 	return c, moves
+}
+
+func condTests(e *hir.Expr, into map[*hir.Pat]bool) {
+	switch e.Kind {
+	case hir.Is:
+		if e.Pat != nil {
+			into[e.Pat] = true
+		}
+	case hir.And:
+		condTests(e.Args[0], into)
+		condTests(e.Args[1], into)
+	}
 }

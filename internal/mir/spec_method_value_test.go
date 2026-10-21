@@ -27,8 +27,9 @@ type Point = {
 
 fn viaParam[T: Getter, P: Copy](t: T, p: P) -> P {
     let f = t.get
+    let n = f(1)
     let g = (k: Int) => f(k)
-    let n = f(1) + g(2)
+    let m = n + g(2)
     p
 }
 

@@ -1,0 +1,917 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.close(move self) -> Unit {}
+
+fn Res.peek(self) -> Int {
+    self.id
+}
+
+fn say(n: Int) -> Unit {}
+
+fn sayU(n: usize) -> Unit {}
+
+fn mkr(n: Int) -> Res {
+    Res { id: n }
+}
+
+type Pair = {
+    pub left Res
+    pub right Res
+}
+
+type W = resource {
+    pub mut o Res?
+    pub n Int
+}
+
+fn W.drop(move self) -> Unit {
+    match &self.o {
+        Some(r) -> say(r.peek())
+        None -> {}
+    }
+}
+
+type V = resource {
+    pub mut r Result[Res, String]
+}
+
+fn V.drop(move self) -> Unit {}
+
+fn useO(o: Res?) -> Unit {}
+
+fn useR(r: Result[Res, String]) -> Unit {}
+
+fn useP(p: Pair) -> Unit {}
+
+fn take(r: Res) -> Unit {
+    r.close()
+}
+
+fn each(xs: Array[Int], f: fn(Int) -> Unit) -> Unit {
+    for x in xs {
+        f(x)
+    }
+}
+
+fn matchThenPass(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    useO(o) //~ ERROR `o` was moved
+}
+
+fn ifLetThenPass(o: Res?) -> Unit {
+    if let Some(r) = o {
+        r.close()
+    }
+    useO(o) //~ ERROR `o` was moved
+}
+
+fn orThenPass(o: Res?) -> Unit {
+    let a = o || mkr(1)
+    a.close()
+    useO(o) //~ ERROR `o` was moved
+}
+
+fn tryThenPass(r: Result[Res, String]) -> Result[Int, String] {
+    let a = r?
+    a.close()
+    useR(r) //~ ERROR `r` was moved
+    Ok(1)
+}
+
+fn recordThenPass(p: Pair) -> Unit {
+    match p {
+        Pair { left, right } -> left.close()
+    }
+    useP(p) //~ ERROR `p.left` was moved out of `p`
+}
+
+fn matchThenLet(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    let z = o //~ ERROR `o` was moved
+}
+
+fn matchThenIs(o: Res?) -> Bool {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    o is None //~ ERROR `o` was moved
+}
+
+fn matchThenBorrow(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    let b = &o //~ ERROR `o` was moved
+}
+
+fn callThenPass(p: Pair) -> Unit {
+    take(p.left)
+    useP(p) //~ ERROR `p.left` was moved out of `p`
+}
+
+fn matchDropField(w: W) -> Unit {
+    match w.o {
+        Some(r) -> r.close() //~ ERROR cannot move `w.o` out of `W`
+        None -> {}
+    }
+}
+
+fn orDropField(w: W) -> Unit {
+    let a = w.o || mkr(5) //~ ERROR cannot move `w.o` out of `W`
+    a.close()
+}
+
+fn tryDropField(v: V) -> Result[Int, String] {
+    let a = v.r? //~ ERROR cannot move `v.r` out of `V`
+    a.close()
+    Ok(1)
+}
+
+fn borrowDropField(w: W) -> Unit {
+    match &w.o {
+        Some(r) -> say(r.peek())
+        None -> {}
+    }
+}
+
+fn reinitAfterTake(o: Res?) -> Unit {
+    let mut p = o
+    if let Some(r) = p {
+        r.close()
+    }
+    p = None
+    useO(p)
+}
+
+fn collectThenRead() -> Unit {
+    let mut out: Array[Int] = Array.of()
+    each(Array.of(1, 2, 3), (x: Int) => out.push(x))
+    let report = () => out.len()
+    sayU(report())
+}
+
+fn readThenCollect() -> Unit {
+    let mut out: Array[Int] = Array.of()
+    let report = () => out.len()
+    each(Array.of(1, 2, 3), (x: Int) => out.push(x))
+    sayU(report())
+}
+
+fn sharedCellConsumed() -> Unit {
+    let mut h = mkr(1)
+    let f = () => h.peek()
+    each(Array.of(2), (x: Int) => {
+        h = mkr(x)
+    })
+    h.close() //~ ERROR `h` is shared with a closure that may still run
+    say(f())
+}
+
+fn sharedCellConsumedLate() -> Unit {
+    let mut h = mkr(1)
+    let f = () => h.peek()
+    each(Array.of(2), (x: Int) => {
+        h = mkr(x)
+    })
+    say(f())
+    h.close()
+}
+fn closeOpt(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+}
+
+fn chk(o: Res?) -> Bool {
+    closeOpt(o)
+    true
+}
+
+fn keepsNothing(o: Res?) -> Bool {
+    true
+}
+
+fn peekOpt(o: &Res?) -> Bool {
+    true
+}
+
+fn guardConsumes(o: Res?) -> Unit {
+    match o {
+        Some(r) if chk(o) -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+        _ -> {}
+    }
+}
+
+fn chainConsumes(o: Res?) -> Unit {
+    if o is Some(r) && chk(o) { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+        r.close()
+    }
+}
+
+fn chainPassesByValue(o: Res?) -> Unit {
+    if o is Some(r) && keepsNothing(o) { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+        r.close()
+    }
+}
+
+fn guardMovesWhole(o: Res?) -> Unit {
+    match o {
+        Some(r) if { let z = o; true } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+        _ -> {}
+    }
+}
+
+fn guardReadsByRef(o: Res?) -> Unit {
+    match o {
+        Some(r) if peekOpt(&o) -> r.close()
+        _ -> {}
+    }
+}
+
+fn chainFailsThenUse(o: Res?, c: Bool) -> Unit {
+    if o is Some(r) && c {
+        r.close()
+    } else {
+        closeOpt(o)
+    }
+}
+
+fn loopChainExitUse(o: Res?, c: Bool) -> Unit {
+    for o is Some(r) && c {
+        r.close()
+        break
+    }
+    closeOpt(o) //~ ERROR `o` is moved on some paths but not others
+}
+
+fn loopChainExitOnly(o: Res?, c: Bool) -> Unit {
+    let mut n = 0
+    for o is Some(r) && c && n > 0 {
+        r.close()
+        n = 1
+        return
+    }
+    closeOpt(o)
+}
+
+fn guardCopyPayload(o: Int?) -> Int {
+    match o {
+        Some(n) if keepInt(o) -> n
+        _ -> 0
+    }
+}
+
+fn keepInt(o: Int?) -> Bool {
+    true
+}
+
+type Holder = {
+    pub mut o Res?
+}
+
+type PairBox = {
+    pub mut p Pair?
+}
+
+fn guardFallback() -> Unit {
+    let o = Some(mkr(1))
+    match o {
+        Some(r) if { let a = o || mkr(9); a.close(); true } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+        _ -> {}
+    }
+}
+
+fn guardFallbackField(h: Holder) -> Unit {
+    match h.o {
+        Some(r) if { let a = h.o || mkr(9); a.close(); true } -> r.close() //~ ERROR `h.o` is held by the pattern binding `r` until its guard passes
+        _ -> {}
+    }
+}
+
+fn chainFallback(o: Res?) -> Unit {
+    if o is Some(r) && { let a = o || mkr(9); a.close(); true } { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+        r.close()
+    }
+}
+
+fn guardFieldMove(b: PairBox) -> Unit {
+    match b.p {
+        Some(Pair { left, right }) if { let z = move b.p; false } -> left.close() //~ ERROR `b.p` is held by the pattern binding `left` until its guard passes
+        _ -> {}
+    }
+}
+
+fn guardInnerGuard(o: Res?) -> Unit {
+    match o {
+        Some(r) if {
+            match o {
+                Some(q) if true -> q.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+                _ -> {}
+            }
+            true
+        } -> r.close()
+        _ -> {}
+    }
+}
+
+fn twoBindingsFirstNamed(p: Pair) -> Unit {
+    match p {
+        Pair { left, right } if { let z = p; false } -> left.close() //~ ERROR `p` is held by the pattern binding `left` until its guard passes
+        _ -> {}
+    }
+}
+
+fn twoBindingsSecondTaken(p: Pair) -> Unit {
+    match p {
+        Pair { left, right } if { take(move p.right); false } -> left.close() //~ ERROR `p.right` is held by the pattern binding `right` until its guard passes
+        _ -> {}
+    }
+}
+
+fn twoBindingsGuardReads(p: Pair) -> Unit {
+    match p {
+        Pair { left, right } if left.peek() > right.peek() -> left.close()
+        _ -> {}
+    }
+}
+
+type HoldsRes = {
+    pub mut f Res
+}
+
+fn assignMoveThenRead(w: Pair, h: HoldsRes) -> Unit {
+    let mut h2 = h
+    h2.f = move w.left
+    let t = move w.left //~ ERROR `w.left` was moved
+}
+
+fn localAssignMoveThenUse(w: Pair) -> Unit {
+    let mut x = mkr(1)
+    x = move w.left
+    let t = move w.left //~ ERROR `w.left` was moved
+}
+
+fn branchMoveThenUse(w: Pair, c: Bool) -> Unit {
+    let x = if c { move w.left } else { mkr(0) }
+    x.close()
+    let t = move w.left //~ ERROR `w.left` was moved
+}
+
+fn argBranchMoveThenUse(w: Pair, c: Bool) -> Unit {
+    take(if c { move w.left } else { mkr(0) })
+    let t = move w.left //~ ERROR `w.left` was moved
+}
+
+type WO = {
+    pub mut o Res?
+    pub n Int
+    pub mut r Result[Res, String]
+    pub mut p Pair
+}
+
+type XW = {
+    pub mut w WO
+}
+
+fn closeWO(w: WO) -> Unit {}
+
+fn fieldMatchThenWhole(w: WO) -> Unit {
+    match w.o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    closeWO(w) //~ ERROR `w.o` was moved out of `w`
+}
+
+fn fieldIfLetThenWhole(w: WO) -> Unit {
+    if let Some(r) = w.o {
+        r.close()
+    }
+    let c = w //~ ERROR `w.o` was moved out of `w`
+}
+
+fn fieldIsThenBorrow(w: WO) -> Unit {
+    if w.o is Some(r) {
+        r.close()
+    }
+    let b = &w //~ ERROR `w.o` was moved out of `w`
+}
+
+fn fieldOrThenWhole(w: WO) -> Unit {
+    let a = w.o || mkr(5)
+    a.close()
+    closeWO(w) //~ ERROR `w.o` was moved out of `w`
+}
+
+fn fieldTryThenWhole(w: WO) -> Result[Int, String] {
+    let a = w.r?
+    a.close()
+    closeWO(w) //~ ERROR `w.r` was moved out of `w`
+    Ok(1)
+}
+
+fn fieldCatchAllThenWhole(w: WO) -> Unit {
+    match w.o {
+        other -> useO(other)
+    }
+    closeWO(w) //~ ERROR `w.o` was moved out of `w`
+}
+
+fn fieldRecordThenWhole(w: WO) -> Unit {
+    match w.p {
+        Pair { left, right } -> left.close()
+    }
+    closeWO(w) //~ ERROR `w.p` was moved out of `w`
+}
+
+fn nestedFieldThenWhole(x: XW) -> Unit {
+    match x.w.o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    closeWO(x.w) //~ ERROR `x.w.o` was moved out of `x.w`
+}
+
+fn nestedFieldThenOuter(x: XW) -> Unit {
+    match x.w.o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    let y = x //~ ERROR `x.w` was moved out of `x`
+}
+
+fn fieldReinitThenWhole(w: WO) -> Unit {
+    let mut v = w
+    match v.o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    say(v.n)
+    v.o = Some(mkr(7))
+    closeWO(v)
+}
+
+fn eatWhole(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+}
+
+fn catchAllWholeTwice(o: Res?) -> Unit {
+    match o {
+        x -> eatWhole(x)
+    }
+    eatWhole(o) //~ ERROR `o` was moved
+}
+
+fn ifLetWholeTwice(o: Res?) -> Unit {
+    if let x = o {
+        eatWhole(x)
+    }
+    eatWhole(o) //~ ERROR `o` is moved on some paths but not others
+}
+
+fn guardedWholeTwice(o: Res?, g: Bool) -> Unit {
+    match o {
+        x if g -> eatWhole(x)
+        _ -> {}
+    }
+    eatWhole(o) //~ ERROR `o` is moved on some paths but not others
+}
+
+fn guardedWholeHeld(o: Res?) -> Unit {
+    match o {
+        x if chk(o) -> eatWhole(x) //~ ERROR `o` is held by the pattern binding `x` until its guard passes
+        _ -> {}
+    }
+}
+
+fn catchAllWholeLocalTwice() -> Unit {
+    let o = Some(mkr(1))
+    match o {
+        x -> eatWhole(x)
+    }
+    match o {
+        y -> eatWhole(y) //~ ERROR `o` was moved
+    }
+}
+
+fn catchAllWholeReinit() -> Unit {
+    let mut o = Some(mkr(1))
+    match o {
+        x -> eatWhole(x)
+    }
+    o = Some(mkr(2))
+    eatWhole(o)
+}
+
+fn catchAllCopyWhole(n: Int?) -> Int {
+    let k = match n {
+        x -> x || 1
+    }
+    k + (n || 0)
+}
+
+type GSlot = {
+    pub mut o Res?
+    pub n Int
+}
+
+fn grow(o: &mut Array[Int]?) -> Bool {
+    match o {
+        Some(a) -> a.push(9)
+        None -> {}
+    }
+    true
+}
+
+fn guardConsumesPayload(o: Res?) -> Unit {
+    match o {
+        x if { match x { Some(r) -> r.close(), None -> {} }; false } -> say(1)
+        other -> closeOpt(other) //~ ERROR `o` is moved on some paths but not others
+    }
+}
+
+fn guardIfLetPayload(o: Res?) -> Unit {
+    match o {
+        x if { if let Some(r) = x { r.close() }; false } -> say(1)
+        other -> closeOpt(other) //~ ERROR `o` is moved on some paths but not others
+    }
+}
+
+fn guardConsumesField(s: GSlot) -> Unit {
+    match s {
+        z if { closeOpt(z.o); false } -> say(1)
+        other -> closeOpt(other.o) //~ ERROR `s` is moved on some paths but not others
+    }
+}
+
+fn guardMatchesField(s: GSlot) -> Unit {
+    match s {
+        z if { match z.o { Some(r) -> r.close(), None -> {} }; false } -> say(1)
+        other -> closeOpt(other.o) //~ ERROR `s` is moved on some paths but not others
+    }
+}
+
+fn guardReadsBinding(o: Res?) -> Unit {
+    match o {
+        x if { match &x { Some(r) -> r.peek() > 0, None -> false } } -> closeOpt(x)
+        other -> closeOpt(other)
+    }
+}
+
+fn guardPushesScrutinee(g: Bool) -> usize {
+    let mut a = Array.of(1, 2)
+    match a {
+        x if { a.push(9); g } -> x.len() //~ ERROR `a` is held by the pattern binding `x` until its guard passes, so it cannot be changed here
+        _ -> 0
+    }
+}
+
+fn guardLendsScrutinee() -> Int {
+    let mut o: Array[Int]? = Some(Array.of(1))
+    match o {
+        x if grow(&mut o) -> 1 //~ ERROR `o` is held by the pattern binding `x` until its guard passes, so it cannot be changed here
+        _ -> 0
+    }
+}
+
+fn guardStoresField(s: GSlot) -> Unit {
+    let mut t = s
+    match t {
+        z if { t.o = None; true } -> closeOpt(z.o) //~ ERROR `t` is held by the pattern binding `z` until its guard passes, so it cannot be changed here
+        _ -> {}
+    }
+}
+
+fn guardReadsScrutinee() -> usize {
+    let a = Array.of(1, 2)
+    match a {
+        x if a.len() > 1 -> x.len()
+        _ -> 0
+    }
+}
+
+fn leadingAndWholeIs(o: Res?, c: Bool) -> Unit {
+    if c && o is x {
+        closeOpt(x)
+    }
+}
+-- expect --
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> main.kg:65:10
+   |
+65 |     useO(o) //~ ERROR `o` was moved
+   |          ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> main.kg:72:10
+   |
+72 |     useO(o) //~ ERROR `o` was moved
+   |          ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> main.kg:78:10
+   |
+78 |     useO(o) //~ ERROR `o` was moved
+   |          ^
+
+error[use-after-move]: `r` was moved; it cannot be used again
+  --> main.kg:84:10
+   |
+84 |     useR(r) //~ ERROR `r` was moved
+   |          ^
+
+error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
+  --> main.kg:92:10
+   |
+92 |     useP(p) //~ ERROR `p.left` was moved out of `p`
+   |          ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:100:13
+    |
+100 |     let z = o //~ ERROR `o` was moved
+    |             ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:108:10
+    |
+108 |     o is None //~ ERROR `o` was moved
+    |          ^^^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:116:13
+    |
+116 |     let b = &o //~ ERROR `o` was moved
+    |             ^^
+
+error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
+   --> main.kg:121:10
+    |
+121 |     useP(p) //~ ERROR `p.left` was moved out of `p`
+    |          ^
+
+error[E1021]: cannot move `w.o` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `w.o` instead
+   --> main.kg:126:14
+    |
+126 |         Some(r) -> r.close() //~ ERROR cannot move `w.o` out of `W`
+    |              ^
+
+error[E1021]: cannot move `w.o` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `w.o` instead
+   --> main.kg:132:13
+    |
+132 |     let a = w.o || mkr(5) //~ ERROR cannot move `w.o` out of `W`
+    |             ^^^^^^^^^^^^
+
+error[E1021]: cannot move `v.r` out of `V`, which defines a custom `drop`; add a `take`-style method that returns `v.r` instead
+   --> main.kg:137:9
+    |
+137 |     let a = v.r? //~ ERROR cannot move `v.r` out of `V`
+    |         ^
+
+error[move-while-borrowed]: `h` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:178:5
+    |
+178 |     h.close() //~ ERROR `h` is shared with a closure that may still run
+    |     ^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be moved here
+   --> main.kg:213:24
+    |
+213 |         Some(r) if chk(o) -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+    |                        ^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be moved here
+   --> main.kg:219:28
+    |
+219 |     if o is Some(r) && chk(o) { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+    |                            ^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be moved here
+   --> main.kg:225:37
+    |
+225 |     if o is Some(r) && keepsNothing(o) { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+    |                                     ^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be moved here
+   --> main.kg:232:30
+    |
+232 |         Some(r) if { let z = o; true } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+    |                              ^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+   --> main.kg:257:14
+    |
+257 |     closeOpt(o) //~ ERROR `o` is moved on some paths but not others
+    |              ^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be moved here
+   --> main.kg:292:30
+    |
+292 |         Some(r) if { let a = o || mkr(9); a.close(); true } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+    |                              ^^^^^^^^^^
+
+error[move-while-borrowed]: `h.o` is held by the pattern binding `r` until its guard passes, so it cannot be moved here
+   --> main.kg:299:30
+    |
+299 |         Some(r) if { let a = h.o || mkr(9); a.close(); true } -> r.close() //~ ERROR `h.o` is held by the pattern binding `r` until its guard passes
+    |                              ^^^^^^^^^^^^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be moved here
+   --> main.kg:305:34
+    |
+305 |     if o is Some(r) && { let a = o || mkr(9); a.close(); true } { //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+    |                                  ^^^^^^^^^^
+
+error[move-while-borrowed]: `b.p` is held by the pattern binding `left` until its guard passes, so it cannot be moved here
+   --> main.kg:312:54
+    |
+312 |         Some(Pair { left, right }) if { let z = move b.p; false } -> left.close() //~ ERROR `b.p` is held by the pattern binding `left` until its guard passes
+    |                                                      ^^^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be moved here
+   --> main.kg:321:22
+    |
+321 |                 Some(q) if true -> q.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes
+    |                      ^
+
+error[move-while-borrowed]: `p` is held by the pattern binding `left` until its guard passes, so it cannot be moved here
+   --> main.kg:332:43
+    |
+332 |         Pair { left, right } if { let z = p; false } -> left.close() //~ ERROR `p` is held by the pattern binding `left` until its guard passes
+    |                                           ^
+
+error[move-while-borrowed]: `p.right` is held by the pattern binding `right` until its guard passes, so it cannot be moved here
+   --> main.kg:339:45
+    |
+339 |         Pair { left, right } if { take(move p.right); false } -> left.close() //~ ERROR `p.right` is held by the pattern binding `right` until its guard passes
+    |                                             ^^^^^^^
+
+error[use-after-move]: `w.left` was moved; it cannot be used again
+   --> main.kg:358:18
+    |
+358 |     let t = move w.left //~ ERROR `w.left` was moved
+    |                  ^^^^^^
+
+error[use-after-move]: `w.left` was moved; it cannot be used again
+   --> main.kg:364:18
+    |
+364 |     let t = move w.left //~ ERROR `w.left` was moved
+    |                  ^^^^^^
+
+error[use-after-move]: `w.left` was moved; it cannot be used again
+   --> main.kg:370:18
+    |
+370 |     let t = move w.left //~ ERROR `w.left` was moved
+    |                  ^^^^^^
+
+error[use-after-move]: `w.left` was moved; it cannot be used again
+   --> main.kg:375:18
+    |
+375 |     let t = move w.left //~ ERROR `w.left` was moved
+    |                  ^^^^^^
+
+error[E1025]: `w.o` was moved out of `w`; using the whole value needs it back
+   --> main.kg:396:13
+    |
+396 |     closeWO(w) //~ ERROR `w.o` was moved out of `w`
+    |             ^
+
+error[E1025]: `w.o` was moved out of `w`; using the whole value needs it back
+   --> main.kg:403:13
+    |
+403 |     let c = w //~ ERROR `w.o` was moved out of `w`
+    |             ^
+
+error[E1025]: `w.o` was moved out of `w`; using the whole value needs it back
+   --> main.kg:410:13
+    |
+410 |     let b = &w //~ ERROR `w.o` was moved out of `w`
+    |             ^^
+
+error[E1025]: `w.o` was moved out of `w`; using the whole value needs it back
+   --> main.kg:416:13
+    |
+416 |     closeWO(w) //~ ERROR `w.o` was moved out of `w`
+    |             ^
+
+error[E1025]: `w.r` was moved out of `w`; using the whole value needs it back
+   --> main.kg:422:13
+    |
+422 |     closeWO(w) //~ ERROR `w.r` was moved out of `w`
+    |             ^
+
+error[E1025]: `w.o` was moved out of `w`; using the whole value needs it back
+   --> main.kg:430:13
+    |
+430 |     closeWO(w) //~ ERROR `w.o` was moved out of `w`
+    |             ^
+
+error[E1025]: `w.p` was moved out of `w`; using the whole value needs it back
+   --> main.kg:437:13
+    |
+437 |     closeWO(w) //~ ERROR `w.p` was moved out of `w`
+    |             ^
+
+error[E1025]: `x.w.o` was moved out of `x.w`; using the whole value needs it back
+   --> main.kg:445:5
+    |
+445 |     closeWO(x.w) //~ ERROR `x.w.o` was moved out of `x.w`
+    |     ^^^^^^^^^^^
+
+error[E1025]: `x.w` was moved out of `x`; using the whole value needs it back
+   --> main.kg:453:13
+    |
+453 |     let y = x //~ ERROR `x.w` was moved out of `x`
+    |             ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:478:14
+    |
+478 |     eatWhole(o) //~ ERROR `o` was moved
+    |              ^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+   --> main.kg:485:14
+    |
+485 |     eatWhole(o) //~ ERROR `o` is moved on some paths but not others
+    |              ^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+   --> main.kg:493:14
+    |
+493 |     eatWhole(o) //~ ERROR `o` is moved on some paths but not others
+    |              ^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `x` until its guard passes, so it cannot be moved here
+   --> main.kg:498:18
+    |
+498 |         x if chk(o) -> eatWhole(x) //~ ERROR `o` is held by the pattern binding `x` until its guard passes
+    |                  ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:509:9
+    |
+509 |         y -> eatWhole(y) //~ ERROR `o` was moved
+    |         ^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+   --> main.kg:545:9
+    |
+545 |         other -> closeOpt(other) //~ ERROR `o` is moved on some paths but not others
+    |         ^^^^^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+   --> main.kg:552:9
+    |
+552 |         other -> closeOpt(other) //~ ERROR `o` is moved on some paths but not others
+    |         ^^^^^
+
+error[move-join-mismatch]: `s` is moved on some paths but not others
+   --> main.kg:559:9
+    |
+559 |         other -> closeOpt(other.o) //~ ERROR `s` is moved on some paths but not others
+    |         ^^^^^
+
+error[move-join-mismatch]: `s` is moved on some paths but not others
+   --> main.kg:566:9
+    |
+566 |         other -> closeOpt(other.o) //~ ERROR `s` is moved on some paths but not others
+    |         ^^^^^
+
+error[move-while-borrowed]: `a` is held by the pattern binding `x` until its guard passes, so it cannot be changed here
+   --> main.kg:580:16
+    |
+580 |         x if { a.push(9); g } -> x.len() //~ ERROR `a` is held by the pattern binding `x` until its guard passes, so it cannot be changed here
+    |                ^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `x` until its guard passes, so it cannot be changed here
+   --> main.kg:588:19
+    |
+588 |         x if grow(&mut o) -> 1 //~ ERROR `o` is held by the pattern binding `x` until its guard passes, so it cannot be changed here
+    |                   ^^^^^^
+
+error[move-while-borrowed]: `t` is held by the pattern binding `z` until its guard passes, so it cannot be changed here
+   --> main.kg:596:16
+    |
+596 |         z if { t.o = None; true } -> closeOpt(z.o) //~ ERROR `t` is held by the pattern binding `z` until its guard passes, so it cannot be changed here
+    |                ^^^
+

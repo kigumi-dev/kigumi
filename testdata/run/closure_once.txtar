@@ -56,7 +56,8 @@ fn calledInBranches(c: Bool) -> Unit {
 
 fn consumesField() -> Unit {
     let b = mk(10)
-    let f = () => { b.other.close() }
+    let o = move b.other
+    let f = () => { o.close() }
     f()
     b.inner.close()
 }
@@ -92,15 +93,12 @@ fn deferredOnce() -> Unit {
 fn borrowingClosure() -> Int {
     let h = mkh(60)
     let f = () => h.peek()
-    let total = f() + f()
-    h.close()
-    total
+    f() + f()
 }
 
 fn borrowingGeneric() -> Int {
     let h = mkh(70)
-    let f = () => h.peek()
-    let total = callTwice(f)
+    let total = callTwice(() => h.peek())
     h.close()
     total
 }
@@ -117,7 +115,6 @@ fn refillTwice() -> Unit {
     }
     f()
     f()
-    h.close()
 }
 
 fn refillField() -> Unit {
@@ -128,8 +125,6 @@ fn refillField() -> Unit {
     }
     f()
     f()
-    p.other.close()
-    p.inner.close()
 }
 
 fn refillPayload() -> Unit {
@@ -151,7 +146,8 @@ type Holder[F] = {
 
 fn storedInField() -> Unit {
     let p = mk(110)
-    let f = () => { p.other.close() }
+    let o = move p.other
+    let f = () => { o.close() }
     let s = Holder { f: f }
     (s.f)()
     p.inner.close()
@@ -170,7 +166,6 @@ fn innerBreakThenRefill(xs: Array[Int]) -> Unit {
     }
     f()
     f()
-    h.close()
 }
 
 type Runner[F] = {
@@ -189,8 +184,8 @@ fn runOwnedOnce() -> Unit {
 
 fn readAfterMaking() -> Unit {
     let h = mkh(140)
-    let f = () => { h.close() }
     print "peek ${h.peek()}"
+    let f = () => { h.close() }
     f()
 }
 
@@ -223,23 +218,18 @@ close 31
 close 40
 body
 close 50
-close 60
 total 120
 close 70
 total 140
 close 80
 close 81
-close 81
 close 91
 close 99
-close 99
-close 90
 close 100
 empty
 close 111
 close 110
 close 120
-close 121
 close 121
 close 131
 peek 140

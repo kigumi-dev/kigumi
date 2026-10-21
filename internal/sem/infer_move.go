@@ -46,13 +46,6 @@ func (c *checker) synthMove(n syntax.NodeID) TypeID {
 		c.errAt(target, cMoveCapturedField, c.placeName(target), c.r.Entities[root].Name)
 		return t
 	}
-	if b := c.fieldRoot(target); b != 0 {
-		if src, aliased := c.methodValues.aliases[b]; aliased {
-			c.errAt(target, cMoveAliasedField, c.placeName(target), c.r.Entities[b].Name, c.r.Entities[src].Name)
-			return t
-		}
-		c.noteFieldMoveSite(b, target, target, 0)
-	}
 	if bn := c.r.Types.Node(baseType); bn.Kind == KNamed {
 		if info := c.r.typeDecl(bn.Ent); info.Drop != 0 {
 			name := c.placeName(target)

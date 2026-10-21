@@ -116,7 +116,7 @@ fn forConsumes() -> Unit {
 fn forConsumesField() -> Unit {
     let mut b = Bag { items: Array.of(mkh(310)), n: 0 }
     defer {
-        for h in b.items {
+        for h in move b.items {
             h.close()
         }
     }
@@ -278,7 +278,7 @@ fn reassignInBareBlock() -> Unit {
 
 fn Bag.closeAll(move self) -> Unit {
     print "bag n ${self.n}"
-    for h in self.items {
+    for h in move self.items {
         h.close()
     }
 }

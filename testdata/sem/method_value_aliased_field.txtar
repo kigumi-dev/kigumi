@@ -17,7 +17,7 @@ fn mkp() -> Pair { Pair { tag: 1, left: Res { n: 1 }, right: Res { n: 2 } } }
 
 fn ifLetField(o: Pair?) -> Int {
     if let Some(p) = o {
-        let f = p.left.get //~ ERROR a field of `p`, which aliases the matched `o`
+        let f = p.left.get
         return f(1)
     }
     0
@@ -25,7 +25,7 @@ fn ifLetField(o: Pair?) -> Int {
 
 fn ifLetMoveField(o: Pair?) -> Int {
     if let Some(p) = move o {
-        let f = p.left.get //~ ERROR a field of `p`, which aliases the matched `o`
+        let f = p.left.get
         return f(1)
     }
     0
@@ -34,7 +34,7 @@ fn ifLetMoveField(o: Pair?) -> Int {
 fn matchField(o: Pair?) -> Int {
     match o {
         Some(q) -> {
-            let f = q.right.get //~ ERROR a field of `q`, which aliases the matched `o`
+            let f = q.right.get
             f(1)
         }
         None -> 0
@@ -44,7 +44,7 @@ fn matchField(o: Pair?) -> Int {
 fn copiedAlias(o: Pair?) -> Int {
     if let Some(p) = o {
         let q = p
-        let f = q.left.get //~ ERROR a field of `q`, which aliases the matched `o`
+        let f = q.left.get
         return f(1)
     }
     0
@@ -52,14 +52,14 @@ fn copiedAlias(o: Pair?) -> Int {
 
 fn movedAliasField(o: Pair?) -> Int {
     if let Some(p) = o {
-        let g = move p.left //~ ERROR cannot move `p.left` out of `p`, which aliases the matched `o`
+        let g = move p.left
         return g.n
     }
     0
 }
 
 fn isField(o: Pair?) -> Bool {
-    o is Some(q) && { let g = move q.right; g.n > 0 } //~ ERROR cannot move `q.right` out of `q`, which aliases the matched `o`
+    o is Some(q) && { let g = move q.right; g.n > 0 }
 }
 
 fn wholeAlias(o: Res?) -> Int {
@@ -88,19 +88,19 @@ fn blockResultField(p: Pair) -> Int {
 
 fn ifLetTail(o: Pair?) -> Int {
     let q = if let Some(p) = o { p } else { mkp() }
-    let f = q.left.get //~ ERROR a field of `q`, which aliases the matched `o`
+    let f = q.left.get
     f(1)
 }
 
 fn nestedElseTail(o: Pair?) -> Int {
     let q = if o is None { mkp() } else { { match o { Some(z) -> { z }, None -> mkp() } } }
-    let x = move q.right //~ ERROR cannot move `q.right` out of `q`, which aliases the matched `o`
+    let x = move q.right
     x.n
 }
 
 fn matchArmCopyTail(o: Pair?) -> Int {
     let q = match o { None -> mkp(), Some(z) -> { let w = z; w } }
-    let f = q.left.get //~ ERROR a field of `q`, which aliases the matched `o`
+    let f = q.left.get
     f(1)
 }
 
@@ -115,14 +115,14 @@ fn reassignedAlias(o: Pair?) -> Int {
     if let Some(p) = o {
         q = p
     }
-    let f = q.left.get //~ ERROR a field of `q`, which aliases the matched `o`
+    let f = q.left.get
     f(1)
 }
 
 fn reassignedAliasMove(o: Pair?) -> Int {
     let mut q = mkp()
     q = match o { Some(z) -> z, None -> mkp() }
-    let x = move q.left //~ ERROR cannot move `q.left` out of `q`, which aliases the matched `o`
+    let x = move q.left
     x.n
 }
 
@@ -139,7 +139,7 @@ fn loopAliasLater(o: Pair?) -> Int {
     let mut q = mkp()
     let mut sum = 0
     for i in 0..2 {
-        let f = q.left.get //~ ERROR on the next pass of this loop
+        let f = q.left.get
         sum = sum + f(i)
         if let Some(p) = o {
             q = p
@@ -154,7 +154,7 @@ fn loopMoveAliasLater(o: Pair?) -> Int {
     for i in 0..2 {
         if i > 0 {
             for _ in 0..1 {
-                let x = move q.right //~ ERROR cannot move `q.right` out of `q`, which aliases the matched `o`
+                let x = move q.right
                 sum = sum + x.n
             }
         }
@@ -183,7 +183,7 @@ fn tupleAlias(o: Pair?) -> Int {
     match o {
         Some(z) -> {
             let t = (z, 1)
-            let f = t._0.left.get //~ ERROR a field of `t`, which aliases the matched `o`
+            let f = t._0.left.get
             f(1)
         }
         None -> 0
@@ -193,7 +193,7 @@ fn tupleAlias(o: Pair?) -> Int {
 fn destructuredTupleAlias(o: Pair?) -> Int {
     if let Some(z) = o {
         let (a, n) = (z, 1)
-        let x = move a.left //~ ERROR cannot move `a.left` out of `a`, which aliases the matched `o`
+        let x = move a.left
         return x.n + n
     }
     0
@@ -202,7 +202,7 @@ fn destructuredTupleAlias(o: Pair?) -> Int {
 fn callResultAlias(o: Pair?) -> Int {
     if let Some(z) = o {
         let t = idp(z)
-        let f = t.left.get //~ ERROR a field of `t`, which aliases the matched `o`
+        let f = t.left.get
         return f(1)
     }
     0
@@ -231,48 +231,6 @@ fn freshPerIteration(o: Pair?) -> Int {
     sum
 }
 -- expect --
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `p`, which aliases the matched `o`
-  --> lib/mv.kg:19:17
-   |
-19 |         let f = p.left.get //~ ERROR a field of `p`, which aliases the matched `o`
-   |                 ^^^^^^^^^^
-   = help: destructure `o` with `let ... else` to give it up, or call the method directly
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `p`, which aliases the matched `o`
-  --> lib/mv.kg:27:17
-   |
-27 |         let f = p.left.get //~ ERROR a field of `p`, which aliases the matched `o`
-   |                 ^^^^^^^^^^
-   = help: destructure `o` with `let ... else` to give it up, or call the method directly
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `q`, which aliases the matched `o`
-  --> lib/mv.kg:36:21
-   |
-36 |             let f = q.right.get //~ ERROR a field of `q`, which aliases the matched `o`
-   |                     ^^^^^^^^^^^
-   = help: destructure `o` with `let ... else` to give it up, or call the method directly
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `q`, which aliases the matched `o`
-  --> lib/mv.kg:46:17
-   |
-46 |         let f = q.left.get //~ ERROR a field of `q`, which aliases the matched `o`
-   |                 ^^^^^^^^^^
-   = help: destructure `o` with `let ... else` to give it up, or call the method directly
-
-error[E2179]: cannot move `p.left` out of `p`, which aliases the matched `o`
-  --> lib/mv.kg:54:22
-   |
-54 |         let g = move p.left //~ ERROR cannot move `p.left` out of `p`, which aliases the matched `o`
-   |                      ^^^^^^
-   = help: destructure that value with `let ... else` to give it up, or clone the field
-
-error[E2179]: cannot move `q.right` out of `q`, which aliases the matched `o`
-  --> lib/mv.kg:61:36
-   |
-61 |     o is Some(q) && { let g = move q.right; g.n > 0 } //~ ERROR cannot move `q.right` out of `q`, which aliases the matched `o`
-   |                                    ^^^^^^^
-   = help: destructure that value with `let ... else` to give it up, or clone the field
-
 error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of a temporary
   --> lib/mv.kg:79:13
    |
@@ -286,84 +244,4 @@ error[E2164]: a method value on move-only `Res` takes its receiver, which cannot
 84 |     let f = { p }.left.get //~ ERROR cannot be moved out of a field of a temporary
    |             ^^^^^^^^^^^^^^
    = help: bind the temporary to a local first, or call the method directly
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `q`, which aliases the matched `o`
-  --> lib/mv.kg:90:13
-   |
-90 |     let f = q.left.get //~ ERROR a field of `q`, which aliases the matched `o`
-   |             ^^^^^^^^^^
-   = help: destructure `o` with `let ... else` to give it up, or call the method directly
-
-error[E2179]: cannot move `q.right` out of `q`, which aliases the matched `o`
-  --> lib/mv.kg:96:18
-   |
-96 |     let x = move q.right //~ ERROR cannot move `q.right` out of `q`, which aliases the matched `o`
-   |                  ^^^^^^^
-   = help: destructure that value with `let ... else` to give it up, or clone the field
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `q`, which aliases the matched `o`
-   --> lib/mv.kg:102:13
-    |
-102 |     let f = q.left.get //~ ERROR a field of `q`, which aliases the matched `o`
-    |             ^^^^^^^^^^
-    = help: destructure `o` with `let ... else` to give it up, or call the method directly
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `q`, which aliases the matched `o`
-   --> lib/mv.kg:117:13
-    |
-117 |     let f = q.left.get //~ ERROR a field of `q`, which aliases the matched `o`
-    |             ^^^^^^^^^^
-    = help: destructure `o` with `let ... else` to give it up, or call the method directly
-
-error[E2179]: cannot move `q.left` out of `q`, which aliases the matched `o`
-   --> lib/mv.kg:124:18
-    |
-124 |     let x = move q.left //~ ERROR cannot move `q.left` out of `q`, which aliases the matched `o`
-    |                  ^^^^^^
-    = help: destructure that value with `let ... else` to give it up, or clone the field
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `q`, which aliases the matched `o` on the next pass of this loop
-   --> lib/mv.kg:141:17
-    |
-141 |         let f = q.left.get //~ ERROR on the next pass of this loop
-    |                 ^^^^^^^^^^
-    = help: destructure `o` with `let ... else` to give it up, or call the method directly
-note: this assignment makes `q` an alias of the matched `o`
-   --> lib/mv.kg:144:13
-    |
-144 |             q = p
-    |             ^^^^^
-
-error[E2179]: cannot move `q.right` out of `q`, which aliases the matched `o`
-   --> lib/mv.kg:156:30
-    |
-156 |                 let x = move q.right //~ ERROR cannot move `q.right` out of `q`, which aliases the matched `o`
-    |                              ^^^^^^^
-    = help: destructure that value with `let ... else` to give it up, or clone the field
-note: this assignment makes `q` an alias of the matched `o`
-   --> lib/mv.kg:160:9
-    |
-160 |         q = match o { Some(z) -> z, None -> mkp() }
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `t`, which aliases the matched `o`
-   --> lib/mv.kg:185:21
-    |
-185 |             let f = t._0.left.get //~ ERROR a field of `t`, which aliases the matched `o`
-    |                     ^^^^^^^^^^^^^
-    = help: destructure `o` with `let ... else` to give it up, or call the method directly
-
-error[E2179]: cannot move `a.left` out of `a`, which aliases the matched `o`
-   --> lib/mv.kg:195:22
-    |
-195 |         let x = move a.left //~ ERROR cannot move `a.left` out of `a`, which aliases the matched `o`
-    |                      ^^^^^^
-    = help: destructure that value with `let ... else` to give it up, or clone the field
-
-error[E2164]: a method value on move-only `Res` takes its receiver, which cannot be moved out of a field of `t`, which aliases the matched `o`
-   --> lib/mv.kg:204:17
-    |
-204 |         let f = t.left.get //~ ERROR a field of `t`, which aliases the matched `o`
-    |                 ^^^^^^^^^^
-    = help: destructure `o` with `let ... else` to give it up, or call the method directly
 

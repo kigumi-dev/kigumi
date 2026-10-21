@@ -44,24 +44,25 @@ fn take[T](x: T) -> Unit {}
 fn borrowLambdaCalled() -> Unit {
     let b = mk(10)
     defer { b.inner.close() }
-    let f = () => b.inner.peek()
-    print "first ${f()}"
-    print "second ${f()}"
+    let f = (p: &Pack) => p.inner.peek()
+    print "first ${f(&b)}"
+    print "second ${f(&b)}"
     take(b.other)
 }
 
 fn borrowLambdaShared() -> Unit {
     let b = mk(20)
     defer { b.inner.close() }
-    let f = () => show(&b.inner)
-    f()
+    let f = (p: &Pack) => show(&p.inner)
+    f(&b)
     take(b.other)
 }
 
 fn borrowLambdaWholeReserved() -> Unit {
     let b = mk(30)
     defer { take(b.inner) }
-    let f = () => b.n
+    let n = b.n
+    let f = () => n
     print "n ${f()}"
     take(b.other)
 }

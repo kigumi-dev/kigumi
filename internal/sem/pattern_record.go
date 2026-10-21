@@ -142,7 +142,6 @@ func (c *checker) synthIs(n syntax.NodeID) TypeID {
 		c.pushScope(ScopeArm, n)
 		c.checkPatternOn(pat, subject, scrutinee, false, c.scope)
 		c.taintPatternBindings(pat, rp)
-		c.notePatternAliases(pat, subject, true)
 		if len(c.r.Scopes[c.scope].Names) > 0 {
 			c.errAt(n, cIsBindingOutsideCond)
 		}
@@ -150,7 +149,6 @@ func (c *checker) synthIs(n syntax.NodeID) TypeID {
 	} else {
 		c.checkPatternOn(pat, subject, scrutinee, false, c.scope)
 		c.taintPatternBindings(pat, rp)
-		c.notePatternAliases(pat, subject, true)
 	}
 	c.info.Narrow[n] = c.snapshotFacts()
 	c.info.Matches[n] = MatchInfo{}

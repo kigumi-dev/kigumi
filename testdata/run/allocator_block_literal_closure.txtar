@@ -36,8 +36,9 @@ fn viaMapped(h: &AllocatorHandle) -> Int {
 
 fn run() -> Unit! {
     let arena = Arena.create()?
+    let own = Arena.create()?
     let outer = () => {
-        allocator arena.scope() {
+        allocator own.scope() {
             7
         }
     }

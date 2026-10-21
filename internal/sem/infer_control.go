@@ -137,7 +137,6 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 	c.pushScope(ScopeArm, n)
 	c.checkPatternOn(s.Pattern, s.Init, init, s.Flags&syntax.FlagMut != 0, c.scope)
 	c.taintPatternBindings(s.Pattern, c.restrictedAliasOf(s.Init))
-	c.notePatternAliases(s.Pattern, s.Init, true)
 	pos, neg := c.patternFacts(s.Pattern, place)
 	c.addFacts(pos)
 	if s.Guard != 0 {

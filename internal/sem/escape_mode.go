@@ -104,3 +104,5 @@ func (r *Result) callbackType(e *Entity) TypeID {
 	}
 	return e.Type
 }
+
+func (r *Result) NonEscapingParam(p EntityID) bool { return r.nonEscapingParam(p) }

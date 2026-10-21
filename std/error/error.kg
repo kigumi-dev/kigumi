@@ -24,7 +24,7 @@ pub fn context(e: Error, message: String) -> Error {
 /// The error e wraps, or None when e was not built by context().
 pub fn cause(e: Error) -> Error? {
     if e is Context(c) {
-        Some(c.wrapped)
+        Some(move c.wrapped)
     } else {
         None
     }

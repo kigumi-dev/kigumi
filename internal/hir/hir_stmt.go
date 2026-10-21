@@ -122,6 +122,8 @@ type LocalDecl struct {
 	Mut  bool
 	// Cell marks a capture shared by reference with the enclosing function.
 	Cell bool
+	// Move marks a capture that takes the enclosing function's value, leaving its binding moved.
+	Move bool
 }
 
 type FuncKind uint8

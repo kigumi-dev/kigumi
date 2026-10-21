@@ -134,7 +134,7 @@ func (w *shareFacts) noteWrite(base LocalID, at Point, whole bool) {
 
 func projects(in Inst) bool {
 	switch in.Op {
-	case OpField, OpIndex, OpPayload, OpUnbox:
+	case OpField, OpFieldMove, OpIndex, OpPayload, OpUnbox:
 		return true
 	case OpBuiltin:
 		return in.Str == "iter.at" || in.Str == "iter.at_ref"

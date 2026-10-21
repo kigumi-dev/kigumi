@@ -38,6 +38,20 @@ func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, e
 			return true, p, ex
 		}
 		return false, nil, true
+	case OpCopy:
+		if c.takesPayload(in) && c.f.Locals[in.Args[0]].Ent != 0 {
+			if in.Args[0] == owner {
+				return true, nil, true
+			}
+		} else if c.takesPayload(in) {
+			if root, p, ex, ok := c.projectionPlace(c.definition(in.Args[0]).Args[0]); ok && root == owner {
+				if d := c.definition(in.Args[0]); d.Op == OpField {
+					p = append(p, d.Index)
+				}
+				return true, p, ex
+			}
+		}
+		fallthrough
 	default:
 		if in.Dst == owner && in.Op != OpDrop {
 			return true, nil, true

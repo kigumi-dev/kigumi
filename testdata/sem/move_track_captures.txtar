@@ -1,0 +1,619 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.close(move self) -> Unit {}
+
+fn Res.peek(self) -> Int {
+    self.id
+}
+
+fn use(r: &Res) -> Unit {}
+
+fn say(n: Int) -> Unit {}
+
+fn sayU(n: usize) -> Unit {}
+
+fn sayB(b: Bool) -> Unit {}
+
+fn mkr(n: Int) -> Res {
+    Res { id: n }
+}
+
+fn total(xs: Array[Int], f: fn(Int) -> Int) -> Int {
+    let mut t = 0
+    for x in xs {
+        t = t + f(x)
+    }
+    t
+}
+
+fn readerThenClose() -> Unit {
+    let r = mkr(7)
+    let f = () => { use(&r) }
+    r.close() //~ ERROR `r` is shared with a closure that may still run
+    f()
+}
+
+fn arrayShared() -> Unit {
+    let mut xs = Array.of(1, 2)
+    let f = () => { sayU(xs.len()) }
+    xs.push(3) //~ ERROR `xs` is shared with a closure that may still run
+    f()
+}
+
+fn ownCellThenOuter() -> Unit {
+    let mut xs = Array.of(1)
+    let f = () => { xs.push(2) }
+    f()
+    sayU(xs.len()) //~ ERROR `xs` was moved
+}
+
+fn capturedInLoop() -> Unit {
+    let r = mkr(1)
+    for i in 0..2 {
+        let f = () => r.peek()
+        say(f())
+    }
+}
+
+fn consumerTwice() -> Unit {
+    let r = mkr(2)
+    let f = () => { r.close() }
+    f()
+    f() //~ ERROR `f` consumes `r` when called and can be called only once
+}
+
+fn nestedReadTwice() -> Unit {
+    let r = mkr(3)
+    let f = () => {
+        let g = () => r.peek()
+        say(g())
+    }
+    f()
+    f()
+    r.close()
+}
+
+fn nestedMoveTwice() -> Unit {
+    let r = mkr(13)
+    let f = () => {
+        let g = () => r.close()
+        g()
+    }
+    f()
+    f() //~ ERROR `f` consumes `r` when called and can be called only once
+}
+
+fn secondClosure() -> Unit {
+    let r = mkr(4)
+    let f = () => r.peek()
+    let g = () => r.peek()
+    say(f() + g())
+    r.close()
+}
+
+fn reinitAfterCapture() -> Unit {
+    let mut r = mkr(5)
+    let f = () => { r.close() }
+    r = mkr(6)
+    f()
+    r.close()
+}
+
+fn readerCalledTwice() -> Int {
+    let r = mkr(8)
+    let f = () => r.peek()
+    f() + f()
+}
+
+fn immediateBorrows() -> Unit {
+    let ys = Array.of(1, 2)
+    let r = mkr(9)
+    say(total(Array.of(1, 2), (x: Int) => x + r.peek()))
+    sayU(ys.len())
+    r.close()
+}
+
+fn copyCaptureShared() -> Int {
+    let mut n = 1
+    let f = () => { n = n + 1 }
+    f()
+    n
+}
+
+fn ownCellCalledTwice() -> Int {
+    let mut xs = Array.of(1)
+    let f = () => {
+        xs.push(2)
+        xs.len().toInt() || 0
+    }
+    f() + f()
+}
+fn readThenRead() -> Unit {
+    let xs = Array.of(1, 2)
+    let g = () => xs.len()
+    sayU(xs.len() + g())
+}
+
+fn readerDeadThenConsume() -> Unit {
+    let r = mkr(10)
+    let f = () => r.peek()
+    say(f())
+    r.close()
+}
+
+fn readerEscapesThenConsume() -> Unit {
+    let r = mkr(11)
+    let f = () => say(r.peek())
+    let keep = Array.of(f)
+    r.close() //~ ERROR `r` is shared with a closure that may still run
+}
+
+fn fieldWriteWhileRead() -> Unit {
+    let mut w = Pair { r: mkr(12), n: 1 }
+    let f = () => w.n
+    w.n = 5 //~ ERROR `w` is shared with a closure that may still run
+    say(f())
+}
+
+fn matchWhileRead() -> Unit {
+    let o = Some(mkr(14))
+    let f = () => say(probe(&o))
+    match o {
+        Some(x) -> x.close() //~ ERROR `o` is shared with a closure that may still run
+        None -> {}
+    }
+    f()
+}
+
+fn fallbackWhileRead() -> Unit {
+    let o = Some(mkr(15))
+    let f = () => say(probe(&o))
+    let x = o || mkr(16) //~ ERROR `o` is shared with a closure that may still run
+    x.close()
+    f()
+}
+
+fn moverWhileRead() -> Unit {
+    let r = mkr(17)
+    let f = () => r.peek()
+    let g = () => r.close() //~ ERROR `r` is shared with a closure that may still run
+    g()
+    say(f())
+}
+
+fn fallbackConsumerTwice() -> Unit {
+    let o: Option[Res] = Some(mkr(18))
+    let f = () => {
+        let x = o || mkr(19)
+        x.close()
+    }
+    f()
+    f() //~ ERROR `f` consumes `o` when called and can be called only once
+}
+
+fn each(n: Int, f: fn(Int) -> Unit) -> Unit {
+    f(n)
+}
+
+fn writeInsideKeeper() -> Unit {
+    let mut r = mkr(24)
+    let f = () => {
+        each(1, (i: Int) => {
+            r = mkr(25 + i)
+        })
+        say(r.peek())
+    }
+    f()
+    f()
+}
+
+fn probe(o: &Option[Res]) -> Int {
+    match o {
+        Some(_) -> 1
+        None -> 0
+    }
+}
+
+type Pair = {
+    pub mut r Res
+    pub mut n Int
+}
+
+fn applyNow(f: fn() -> Unit) -> Unit {
+    f()
+}
+
+fn closeOptC(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+}
+
+fn cellCloseTwice() -> Unit {
+    let mut o = mkr(1)
+    applyNow(() => { o = mkr(2) })
+    o.close()
+    o.close() //~ ERROR `o` was moved
+}
+
+fn cellPassTwice() -> Unit {
+    let mut o = Some(mkr(1))
+    applyNow(() => { o = Some(mkr(2)) })
+    closeOptC(o)
+    closeOptC(o) //~ ERROR `o` was moved
+}
+
+fn cellLetThenPass() -> Unit {
+    let mut o = Some(mkr(1))
+    applyNow(() => { o = Some(mkr(2)) })
+    let x = o
+    closeOptC(x)
+    closeOptC(o) //~ ERROR `o` was moved
+}
+
+fn cellCatchAllThenPass() -> Unit {
+    let mut o = Some(mkr(1))
+    applyNow(() => { o = Some(mkr(2)) })
+    match o {
+        x -> closeOptC(x)
+    }
+    closeOptC(o) //~ ERROR `o` was moved
+}
+
+fn cellPayloadThenPass() -> Unit {
+    let mut o = Some(mkr(1))
+    applyNow(() => { o = Some(mkr(2)) })
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    closeOptC(o) //~ ERROR `o` was moved
+}
+
+fn cellLambdaAfterConsume() -> Unit {
+    let mut o = Some(mkr(1))
+    applyNow(() => { o = Some(mkr(2)) })
+    closeOptC(o)
+    applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
+}
+
+fn cellReinit(c: Bool) -> Unit {
+    let mut o = mkr(1)
+    applyNow(() => { o = mkr(2) })
+    o.close()
+    o = mkr(3)
+    if c {
+        o.close()
+        o = mkr(4)
+    }
+    o.close()
+}
+
+type CP = resource {
+    pub mut a Int
+    pub mut r Res
+}
+
+fn eatRes(r: Res) -> Unit {
+    r.close()
+}
+
+fn cellFieldMoveTwice() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    applyNow(() => { p.a = 2 })
+    eatRes(move p.r)
+    eatRes(move p.r) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
+}
+
+fn cellFieldMoveThenUse() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    applyNow(() => { p.a = 2 })
+    let r1 = move p.r
+    r1.close()
+    say(p.r.peek()) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
+}
+
+fn cellGuardStoresField() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    applyNow(() => { p.a = 2 })
+    match p {
+        q if { p.r = mkr(7); false } -> say(q.a) //~ ERROR `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
+        q -> q.r.close()
+    }
+}
+
+fn guardAssignsWhole(o0: Res?) -> Unit {
+    let mut o = o0
+    match o {
+        Some(r) if { o = None; false } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+        _ -> {}
+    }
+}
+
+fn cellGuardAssignsWhole() -> Unit {
+    let mut o = Some(mkr(1))
+    applyNow(() => { o = None })
+    match o {
+        Some(r) if { o = None; false } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+        _ -> {}
+    }
+}
+
+fn guardReplacesRecord() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    match p {
+        q if { p = CP { a: 2, r: mkr(2) }; false } -> say(q.a) //~ ERROR `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
+        _ -> {}
+    }
+}
+
+fn cellConsumeThenReadingLambda() -> Unit {
+    let mut o = Some(mkr(1))
+    applyNow(() => { o = None })
+    closeOptC(o)
+    applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
+}
+
+fn cellConsumeThenWritingLambda() -> Unit {
+    let mut o = Some(mkr(1))
+    applyNow(() => { o = None })
+    closeOptC(o)
+    applyNow(() => { o = Some(mkr(2)) })
+    closeOptC(o) //~ ERROR `o` is moved on some paths but not others
+}
+
+fn guardStoresSiblingField() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    match p.r {
+        r if { p.a = 5; r.peek() > 0 } -> r.close()
+        r -> r.close()
+    }
+}
+
+fn lambdaReadsMovedField() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    eatRes(move p.r)
+    applyNow(() => { say(p.r.peek()) }) //~ ERROR `p.r` was moved out of `p`
+}
+
+fn cellLambdaReadsMovedField() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    applyNow(() => { p.a = 2 })
+    eatRes(move p.r)
+    applyNow(() => { say(p.r.peek()) }) //~ ERROR `p.r` was moved out of `p`
+}
+
+fn storedClosureAfterFieldMove() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    eatRes(move p.r)
+    let f = () => p.a //~ ERROR `p.r` was moved out of `p`
+    say(f())
+}
+
+fn lambdaAfterPayloadBinding(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+    applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
+}
+
+fn lambdaAfterFieldRefill() -> Unit {
+    let mut p = CP { a: 1, r: mkr(1) }
+    eatRes(move p.r)
+    p.r = mkr(2)
+    applyNow(() => { say(p.r.peek()) })
+}
+-- expect --
+error[move-while-borrowed]: `r` is shared with a closure that may still run, so it cannot be moved or changed here
+  --> main.kg:36:5
+   |
+36 |     r.close() //~ ERROR `r` is shared with a closure that may still run
+   |     ^
+
+error[move-while-borrowed]: `xs` is shared with a closure that may still run, so it cannot be moved or changed here
+  --> main.kg:43:5
+   |
+43 |     xs.push(3) //~ ERROR `xs` is shared with a closure that may still run
+   |     ^^
+
+error[use-after-move]: `xs` was moved; it cannot be used again
+  --> main.kg:51:10
+   |
+51 |     sayU(xs.len()) //~ ERROR `xs` was moved
+   |          ^^^^^^^
+
+error[E2151]: `f` consumes `r` when called and can be called only once
+  --> main.kg:66:5
+   |
+66 |     f() //~ ERROR `f` consumes `r` when called and can be called only once
+   |     ^^
+   = help: call it a single time, or have the closure borrow `r` instead of consuming it
+note: `f` may already be called here
+  --> main.kg:65:5
+   |
+65 |     f()
+   |     ^^
+
+error[E2151]: `f` consumes `r` when called and can be called only once
+  --> main.kg:87:5
+   |
+87 |     f() //~ ERROR `f` consumes `r` when called and can be called only once
+   |     ^^
+   = help: call it a single time, or have the closure borrow `r` instead of consuming it
+note: `f` may already be called here
+  --> main.kg:86:5
+   |
+86 |     f()
+   |     ^^
+
+error[move-while-borrowed]: `r` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:152:5
+    |
+152 |     r.close() //~ ERROR `r` is shared with a closure that may still run
+    |     ^
+
+error[move-while-borrowed]: `w` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:158:5
+    |
+158 |     w.n = 5 //~ ERROR `w` is shared with a closure that may still run
+    |     ^^^
+
+error[move-while-borrowed]: `o` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:166:14
+    |
+166 |         Some(x) -> x.close() //~ ERROR `o` is shared with a closure that may still run
+    |              ^
+
+error[move-while-borrowed]: `o` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:175:13
+    |
+175 |     let x = o || mkr(16) //~ ERROR `o` is shared with a closure that may still run
+    |             ^^^^^^^^^^^
+
+error[move-while-borrowed]: `r` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:183:13
+    |
+183 |     let g = () => r.close() //~ ERROR `r` is shared with a closure that may still run
+    |             ^^^^^^^^^^^^^^
+
+error[E2151]: `f` consumes `o` when called and can be called only once
+   --> main.kg:195:5
+    |
+195 |     f() //~ ERROR `f` consumes `o` when called and can be called only once
+    |     ^^
+    = help: call it a single time, or have the closure borrow `o` instead of consuming it
+note: `f` may already be called here
+   --> main.kg:194:5
+    |
+194 |     f()
+    |     ^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:241:5
+    |
+241 |     o.close() //~ ERROR `o` was moved
+    |     ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:248:15
+    |
+248 |     closeOptC(o) //~ ERROR `o` was moved
+    |               ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:256:15
+    |
+256 |     closeOptC(o) //~ ERROR `o` was moved
+    |               ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:265:15
+    |
+265 |     closeOptC(o) //~ ERROR `o` was moved
+    |               ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:275:15
+    |
+275 |     closeOptC(o) //~ ERROR `o` was moved
+    |               ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:282:14
+    |
+282 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+
+error[use-after-move]: `p.r` was moved; it cannot be used again
+   --> main.kg:310:17
+    |
+310 |     eatRes(move p.r) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
+    |                 ^^^
+
+error[use-after-move]: `p.r` was moved; it cannot be used again
+   --> main.kg:310:5
+    |
+310 |     eatRes(move p.r) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
+    |     ^^^^^^^^^^^^^^^
+
+error[use-after-move]: `p.r` was moved; it cannot be used again
+   --> main.kg:318:9
+    |
+318 |     say(p.r.peek()) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
+    |         ^^^
+
+error[use-after-move]: `p.r` was moved; it cannot be used again
+   --> main.kg:318:9
+    |
+318 |     say(p.r.peek()) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
+    |         ^^^^^^^^^
+
+error[move-while-borrowed]: `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
+   --> main.kg:325:16
+    |
+325 |         q if { p.r = mkr(7); false } -> say(q.a) //~ ERROR `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
+    |                ^^^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+   --> main.kg:333:22
+    |
+333 |         Some(r) if { o = None; false } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+    |                      ^
+
+error[move-while-borrowed]: `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+   --> main.kg:342:22
+    |
+342 |         Some(r) if { o = None; false } -> r.close() //~ ERROR `o` is held by the pattern binding `r` until its guard passes, so it cannot be changed here
+    |                      ^
+
+error[move-while-borrowed]: `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
+   --> main.kg:350:16
+    |
+350 |         q if { p = CP { a: 2, r: mkr(2) }; false } -> say(q.a) //~ ERROR `p` is held by the pattern binding `q` until its guard passes, so it cannot be changed here
+    |                ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:359:14
+    |
+359 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+   --> main.kg:367:15
+    |
+367 |     closeOptC(o) //~ ERROR `o` is moved on some paths but not others
+    |               ^
+
+error[E1025]: `p.r` was moved out of `p`; using the whole value needs it back
+   --> main.kg:381:14
+    |
+381 |     applyNow(() => { say(p.r.peek()) }) //~ ERROR `p.r` was moved out of `p`
+    |              ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1025]: `p.r` was moved out of `p`; using the whole value needs it back
+   --> main.kg:388:14
+    |
+388 |     applyNow(() => { say(p.r.peek()) }) //~ ERROR `p.r` was moved out of `p`
+    |              ^^^^^^^^^^^^^^^^^^^^^
+
+error[E1025]: `p.r` was moved out of `p`; using the whole value needs it back
+   --> main.kg:394:13
+    |
+394 |     let f = () => p.a //~ ERROR `p.r` was moved out of `p`
+    |             ^^^^^^^^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:403:14
+    |
+403 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+

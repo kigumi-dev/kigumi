@@ -1,0 +1,454 @@
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {
+    print "drop ${self.id}"
+}
+
+fn Res.close(move self) -> Unit {
+    print "close ${self.id}"
+}
+
+fn Res.peek(self) -> Int {
+    self.id
+}
+
+fn mkr(n: Int) -> Res {
+    Res { id: n }
+}
+
+type Pair = {
+    pub left Res
+    pub right Res
+}
+
+fn matchThenRefill() -> Unit {
+    let mut o = Some(mkr(1))
+    match o {
+        Some(r) -> r.close()
+        None -> print "none"
+    }
+    o = Some(mkr(2))
+    match o {
+        Some(r) -> print "kept ${r.peek()}"
+        None -> print "none"
+    }
+    print "end matchThenRefill"
+}
+
+fn tryOnce(r: Result[Res, String]) -> Result[Int, String] {
+    let a = r?
+    let n = a.peek()
+    a.close()
+    Ok(n)
+}
+
+fn orOnce(o: Res?) -> Unit {
+    let a = o || mkr(99)
+    print "or ${a.peek()}"
+}
+
+fn ifLetThenReinit() -> Unit {
+    let mut o = Some(mkr(3))
+    if let Some(r) = o {
+        r.close()
+    }
+    o = None
+    o = Some(mkr(4))
+    print "end ifLetThenReinit"
+}
+
+fn recordPattern() -> Unit {
+    let p = Pair { left: mkr(5), right: mkr(6) }
+    match p {
+        Pair { left, right } -> {
+            right.close()
+            print "left ${left.peek()}"
+        }
+    }
+    print "end recordPattern"
+}
+
+fn borrowedTwice() -> Unit {
+    let o = Some(mkr(7))
+    match &o {
+        Some(r) -> print "peek ${r.peek()}"
+        None -> {}
+    }
+    match &o {
+        Some(r) -> print "peek again ${r.peek()}"
+        None -> {}
+    }
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+}
+
+fn arrayOwnedOnce() -> Unit {
+    let o = Some(Array.of(1, 2, 3))
+    let mut a = match o {
+        Some(xs) -> xs
+        None -> Array.of()
+    }
+    a.push(9)
+    print "len ${a.len()}"
+}
+
+fn isAndElse(c: Bool) -> Unit {
+    let o = Some(mkr(12))
+    if o is Some(r) && c {
+        r.close()
+    } else {
+        match o {
+            Some(x) -> x.close()
+            None -> print "none"
+        }
+    }
+}
+
+fn closeOpt(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+}
+
+fn peekOpt(o: &Res?) -> Bool {
+    match o {
+        Some(r) -> r.peek() > 0
+        None -> false
+    }
+}
+
+fn guardReadsByRef(o: Res?) -> Unit {
+    match o {
+        Some(r) if peekOpt(&o) -> r.close()
+        _ -> {}
+    }
+}
+
+fn chainFailsThenUse(o: Res?, c: Bool) -> Unit {
+    if o is Some(r) && c {
+        r.close()
+    } else {
+        closeOpt(o)
+    }
+}
+
+fn guardFailsToOther(o: Res?) -> Unit {
+    match o {
+        Some(r) if r.peek() > 25 -> r.close()
+        other -> closeOpt(other)
+    }
+}
+
+type Slot = {
+    pub mut o Res?
+    pub n Int
+}
+
+fn closeSlot(s: Slot) -> Unit {
+    match s.o {
+        Some(r) -> r.close()
+        None -> print "slot empty ${s.n}"
+    }
+}
+
+fn fieldReinit(s: Slot) -> Unit {
+    let mut v = s
+    match v.o {
+        Some(r) -> r.close()
+        None -> print "none"
+    }
+    print "slot n ${v.n}"
+    v.o = Some(mkr(71))
+    closeSlot(v)
+    print "end fieldReinit"
+}
+
+type SlotBox = {
+    pub mut s Slot
+}
+
+fn catchAllLocal() -> Unit {
+    let s = Slot { o: Some(mkr(80)), n: 0 }
+    match s.o {
+        other -> print "catch-all local"
+    }
+    print "end catchAllLocal"
+}
+
+fn catchAllParam(s: Slot) -> Unit {
+    match s.o {
+        other -> print "catch-all param"
+    }
+    print "end catchAllParam"
+}
+
+fn catchAllNested(b: SlotBox) -> Unit {
+    match b.s.o {
+        other -> print "catch-all nested"
+    }
+    print "end catchAllNested"
+}
+
+fn catchAllRecordField(b: SlotBox) -> Unit {
+    match b.s {
+        s2 -> print "catch-all record ${s2.n}"
+    }
+    print "end catchAllRecordField"
+}
+
+fn catchAllPairField(p: Pair) -> Unit {
+    match p.left {
+        x -> print "catch-all left ${x.peek()}"
+    }
+    print "end catchAllPairField"
+}
+
+fn catchAllMoved(s: Slot) -> Unit {
+    match move s.o {
+        other -> print "catch-all moved"
+    }
+    print "end catchAllMoved"
+}
+
+fn catchAllThenReassign() -> Unit {
+    let mut s = Slot { o: Some(mkr(86)), n: 0 }
+    match s.o {
+        other -> print "catch-all then reassign"
+    }
+    s.o = None
+    print "end catchAllThenReassign"
+}
+
+fn catchAllThenMatch(s: Slot) -> Unit {
+    match s.o {
+        other -> match other {
+            Some(r) -> r.close()
+            None -> {}
+        }
+    }
+    print "end catchAllThenMatch"
+}
+
+fn wholeReinit() -> Unit {
+    let mut o = Some(mkr(90))
+    match o {
+        x -> closeOpt(x)
+    }
+    o = Some(mkr(91))
+    closeOpt(o)
+    print "end wholeReinit"
+}
+
+fn wholeKept(o: Res?) -> Unit {
+    match o {
+        x -> print "whole kept"
+    }
+    print "end wholeKept"
+}
+
+fn wholeGuarded(o: Res?, g: Bool) -> Unit {
+    match o {
+        x if g -> closeOpt(x)
+        other -> print "whole guard failed"
+    }
+    print "end wholeGuarded ${g}"
+}
+
+fn wholeIfLet(o: Res?) -> Unit {
+    if let x = o {
+        print "whole if let"
+    }
+    print "end wholeIfLet"
+}
+
+fn wholeAfterBorrow(o: Res?) -> Unit {
+    let r = &o
+    print "borrowed ${peekOpt(r)}"
+    match o {
+        x -> closeOpt(x)
+    }
+}
+
+fn leadingAndIs(o: Res?, c: Bool) -> Unit {
+    if c && o is x {
+        closeOpt(x)
+    } else {
+        print "and skipped"
+    }
+    print "end leadingAndIs ${c}"
+}
+
+fn leadingAndIsSome(o: Res?, c: Bool) -> Unit {
+    if c && o is Some(r) {
+        r.close()
+    }
+    print "end leadingAndIsSome ${c}"
+}
+
+fn guardReadsBinding(o: Res?) -> Unit {
+    match o {
+        x if { match &x { Some(r) -> r.peek() > 100, None -> false } } -> closeOpt(x)
+        other -> closeOpt(other)
+    }
+    print "end guardReadsBinding"
+}
+
+matchThenRefill()
+print "try ${tryOnce(Ok(mkr(10))) || 0}"
+print "try ${tryOnce(Err("no")) || 0}"
+orOnce(Some(mkr(11)))
+orOnce(None)
+ifLetThenReinit()
+recordPattern()
+borrowedTwice()
+arrayOwnedOnce()
+isAndElse(true)
+isAndElse(false)
+guardReadsByRef(Some(mkr(21)))
+chainFailsThenUse(Some(mkr(22)), false)
+chainFailsThenUse(Some(mkr(23)), true)
+guardFailsToOther(Some(mkr(24)))
+guardFailsToOther(Some(mkr(26)))
+fieldReinit(Slot { o: Some(mkr(70)), n: 5 })
+fieldReinit(Slot { o: None, n: 6 })
+catchAllLocal()
+catchAllParam(Slot { o: Some(mkr(81)), n: 0 })
+catchAllNested(SlotBox { s: Slot { o: Some(mkr(82)), n: 0 } })
+catchAllRecordField(SlotBox { s: Slot { o: Some(mkr(83)), n: 9 } })
+catchAllPairField(Pair { left: mkr(84), right: mkr(85) })
+catchAllMoved(Slot { o: Some(mkr(87)), n: 0 })
+catchAllThenReassign()
+catchAllThenMatch(Slot { o: Some(mkr(88)), n: 0 })
+wholeReinit()
+wholeKept(Some(mkr(92)))
+wholeGuarded(Some(mkr(93)), true)
+wholeGuarded(Some(mkr(94)), false)
+wholeIfLet(Some(mkr(95)))
+wholeAfterBorrow(Some(mkr(96)))
+leadingAndIs(Some(mkr(100)), true)
+leadingAndIs(Some(mkr(101)), false)
+leadingAndIsSome(Some(mkr(102)), true)
+leadingAndIsSome(Some(mkr(103)), false)
+guardReadsBinding(Some(mkr(104)))
+guardReadsBinding(Some(mkr(5)))
+-- stdout --
+close 1
+drop 1
+kept 2
+end matchThenRefill
+drop 2
+close 10
+drop 10
+try 10
+try 0
+or 11
+drop 11
+or 99
+drop 99
+close 3
+drop 3
+end ifLetThenReinit
+drop 4
+close 6
+left 5
+end recordPattern
+drop 6
+drop 5
+peek 7
+peek again 7
+close 7
+drop 7
+len 4
+close 12
+drop 12
+close 12
+drop 12
+close 21
+drop 21
+close 22
+drop 22
+close 23
+drop 23
+close 24
+drop 24
+close 26
+drop 26
+close 70
+slot n 5
+drop 70
+close 71
+drop 71
+end fieldReinit
+none
+slot n 6
+close 71
+drop 71
+end fieldReinit
+catch-all local
+end catchAllLocal
+drop 80
+catch-all param
+end catchAllParam
+drop 81
+catch-all nested
+end catchAllNested
+drop 82
+catch-all record 9
+end catchAllRecordField
+drop 83
+catch-all left 84
+end catchAllPairField
+drop 85
+drop 84
+catch-all moved
+drop 87
+end catchAllMoved
+catch-all then reassign
+drop 86
+end catchAllThenReassign
+close 88
+end catchAllThenMatch
+drop 88
+close 90
+drop 90
+close 91
+drop 91
+end wholeReinit
+whole kept
+drop 92
+end wholeKept
+close 93
+drop 93
+end wholeGuarded true
+whole guard failed
+drop 94
+end wholeGuarded false
+whole if let
+drop 95
+end wholeIfLet
+borrowed true
+close 96
+drop 96
+close 100
+drop 100
+end leadingAndIs true
+and skipped
+end leadingAndIs false
+drop 101
+close 102
+end leadingAndIsSome true
+drop 102
+end leadingAndIsSome false
+drop 103
+close 104
+drop 104
+end guardReadsBinding
+close 5
+drop 5
+end guardReadsBinding

@@ -383,7 +383,7 @@ fn tupleItems(value: Value, n: usize) -> Array[Value]! {
     match value {
         Value.List(items) -> {
             if items.len() != n {
-                return mismatch("${n}-element array", value)
+                return mismatch("${n}-element array", Value.List(items))
             }
             Ok(items)
         }

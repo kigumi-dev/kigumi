@@ -79,11 +79,20 @@ func (b *builder) lambda(e *hir.Expr) LocalID {
 	var caps []LocalID
 	for _, cap := range e.Fn.Captures {
 		id := b.local(cap.Ent)
-		if cap.Cell || b.fn.Locals[id].Cell {
+		t := b.fn.Locals[id].Type
+		switch {
+		case b.fn.Locals[id].Cell || cap.Cell && !cap.Move:
 			caps = append(caps, id)
-			continue
+		case cap.Cell:
+			moved := b.emit(Inst{Op: OpMove, Dst: b.temp(t), Args: []LocalID{id}, Node: e.Node})
+			cell := b.temp(t)
+			b.fn.Locals[cell].Cell = true
+			caps = append(caps, b.emit(Inst{Op: OpNewCell, Dst: cell, Args: []LocalID{moved}, Node: e.Node}))
+		case cap.Move:
+			caps = append(caps, b.emit(Inst{Op: OpMove, Dst: b.temp(t), Args: []LocalID{id}, Node: e.Node}))
+		default:
+			caps = append(caps, b.emit(Inst{Op: OpCopy, Dst: b.temp(t), Args: []LocalID{id}, Node: e.Node}))
 		}
-		caps = append(caps, b.emit(Inst{Op: OpCopy, Dst: b.temp(b.fn.Locals[id].Type), Args: []LocalID{id}, Node: e.Node}))
 	}
 	if _, built := b.p.ByEnt[e.Ent]; !built {
 		b.p.build(e.Fn)

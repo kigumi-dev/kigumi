@@ -19,6 +19,7 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 		}
 	}
 	c.noteMutArg(a, paramEnt)
+	defer c.rejectBranchFieldArg(a)
 	defer c.reserveDrainArg(a, paramEnt)
 	// After the argument is synthesized: refBinding reads info.Uses.
 	defer c.noteRefArg(a, paramEnt, async)

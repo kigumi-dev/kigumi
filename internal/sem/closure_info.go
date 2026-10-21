@@ -10,11 +10,24 @@ const (
 	// capBorrow lends a move-only local to a lambda passed straight to a
 	// call whose target parameter's escape mode is verified non-escaping.
 	capBorrow
+	// capRead shares a move-only local with a stored closure that only reads it; the local stays unchanged while the closure may run.
+	capRead
+)
+
+const (
+	CapCopy   = capCopy
+	CapRetain = capRetain
+	CapMove   = capMove
+	CapCell   = capCell
+	CapBorrow = capBorrow
+	CapRead   = capRead
 )
 
 type Capture struct {
 	Local EntityID
 	Mode  CaptureMode
+	// OwnCell: a moved-in capture the closure writes, kept in a cell of the closure's own.
+	OwnCell bool
 }
 
 type ClosureInfo struct {

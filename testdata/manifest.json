@@ -1018,6 +1018,17 @@
       ]
     },
     {
+      "id": "mir/move_track_ownership",
+      "kind": "mir",
+      "path": "testdata/mir/move_track_ownership.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/mut_ref_recv_field",
       "kind": "mir",
       "path": "testdata/mir/mut_ref_recv_field.txtar",
@@ -9851,6 +9862,57 @@
       ]
     },
     {
+      "id": "run/move_track_captures",
+      "kind": "run",
+      "path": "testdata/run/move_track_captures.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/move_track_fields",
+      "kind": "run",
+      "path": "testdata/run/move_track_fields.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/move_track_patterns",
+      "kind": "run",
+      "path": "testdata/run/move_track_patterns.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/mut_index_arg",
       "kind": "run",
       "path": "testdata/run/mut_index_arg.txtar",
@@ -13260,6 +13322,17 @@
       ]
     },
     {
+      "id": "sem/capture_kept_shared",
+      "kind": "sem",
+      "path": "testdata/sem/capture_kept_shared.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/cfnptr_err",
       "kind": "sem",
       "path": "testdata/sem/cfnptr_err.txtar",
@@ -15463,6 +15536,72 @@
       "id": "sem/methods_receiver",
       "kind": "sem",
       "path": "testdata/sem/methods_receiver.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_track_borrow_take",
+      "kind": "sem",
+      "path": "testdata/sem/move_track_borrow_take.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_track_captures",
+      "kind": "sem",
+      "path": "testdata/sem/move_track_captures.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_track_field_calls",
+      "kind": "sem",
+      "path": "testdata/sem/move_track_field_calls.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_track_fields",
+      "kind": "sem",
+      "path": "testdata/sem/move_track_fields.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_track_patterns",
+      "kind": "sem",
+      "path": "testdata/sem/move_track_patterns.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_track_whole_use",
+      "kind": "sem",
+      "path": "testdata/sem/move_track_whole_use.txtar",
       "mode": [
         "check"
       ],

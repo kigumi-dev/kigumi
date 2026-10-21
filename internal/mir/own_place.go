@@ -16,6 +16,7 @@ type places struct {
 	// children lists a root's own direct field-place representatives, by
 	// field index, so own.go can tell which of its fields are still valid.
 	children map[LocalID]map[int]LocalID
+	parent   map[LocalID]LocalID
 	// cellRoot maps a read of a lent receiver's write-back cell back to the
 	// receiver, so `self.a` keys the same place a plain receiver's would.
 	cellRoot map[LocalID]LocalID
@@ -26,15 +27,14 @@ type places struct {
 // can cross a back edge.
 func findPlaces(p *Program, f *Func) *places {
 	pl := &places{key: map[LocalID]string{}, rep: map[string]LocalID{}, name: map[LocalID]string{},
-		children: map[LocalID]map[int]LocalID{}, cellRoot: map[LocalID]LocalID{}}
+		children: map[LocalID]map[int]LocalID{}, parent: map[LocalID]LocalID{}, cellRoot: map[LocalID]LocalID{}}
 	// checkBorrowedMoves already rejects every move out of a closure's
 	// captured receiver; keying places there reports the same move twice.
-	if p.R.Entity(f.Ent).Kind != sem.EntClosure {
-		for bi := range f.Blocks {
-			for _, in := range f.Blocks[bi].Insts {
-				if in.Op == OpCellGet && in.Dst != 0 && f.Locals[in.Args[0]].Borrowed {
-					pl.cellRoot[in.Dst] = in.Args[0]
-				}
+	lentOK := p.R.Entity(f.Ent).Kind != sem.EntClosure
+	for bi := range f.Blocks {
+		for _, in := range f.Blocks[bi].Insts {
+			if in.Op == OpCellGet && in.Dst != 0 && (lentOK && f.Locals[in.Args[0]].Borrowed || trackedCell(p, f.Locals[in.Args[0]])) {
+				pl.cellRoot[in.Dst] = in.Args[0]
 			}
 		}
 	}
@@ -70,6 +70,7 @@ func findPlaces(p *Program, f *Func) *places {
 				pl.children[root] = map[int]LocalID{}
 			}
 			pl.children[root][in.Index] = in.Dst
+			pl.parent[in.Dst] = root
 		}
 	}
 	return pl
@@ -171,6 +172,7 @@ func (pl *places) resetFields(root LocalID, st *dstate) {
 		delete(st.field, rep)
 		delete(st.called, rep)
 		delete(st.at, rep)
+		delete(st.callAt, rep)
 		pl.resetFields(rep, st)
 	}
 }

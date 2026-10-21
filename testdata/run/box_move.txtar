@@ -36,7 +36,7 @@ print "back ${back.with((r: &Res) => r.id)}"
 print "took ${take(back)}"
 
 let slot = Slot { name: "s", item: Box.new(Res { id: 2 }) }
-let inner = slot.item
+let inner = move slot.item
 print "inner ${inner.with((r: &Res) => r.id)}"
 
 let mut boxes = Array.empty[Box[Res]]()

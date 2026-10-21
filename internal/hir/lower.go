@@ -95,7 +95,7 @@ func (l *lowerer) closure(ent sem.EntityID, body syntax.NodeID) *Func {
 	out := &Func{Kind: FuncClosure, Ent: ent, File: l.f, Ret: info.Ret}
 	for _, cap := range info.Captures {
 		d := l.decl(cap.Local)
-		d.Cell = cap.Mode == sem.CapCell
+		d.Cell, d.Move = cap.Mode == sem.CapCell || cap.OwnCell, cap.Mode == sem.CapMove
 		out.Captures = append(out.Captures, d)
 	}
 	for _, p := range info.Params {

@@ -128,7 +128,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 	c.checkSuspend(in, liveAfter)
 	// A receiver cell's write-back releases the place's old value; the
 	// exclusive borrow the call took of that place already reported.
-	if in.Op == OpDrop && in.Scoped {
+	if in.Op == OpDrop && in.Scoped || in.Op == OpNop {
 		return
 	}
 	for holder := range liveAfter {
@@ -144,7 +144,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 			if !touched || !fieldPathsOverlap(path, o.path, exact, o.exact) {
 				continue
 			}
-			moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove
+			moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || c.takesPayload(in)
 			mutates := moves || (in.Op == OpBorrow && in.Index == 1) ||
 				in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet
 			name := c.f.Locals[o.owner].Name
@@ -152,7 +152,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter map[LocalID]bool) {
 			case in.Op == OpDrop && in.EndScope:
 				c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is still borrowed when its scope ends here")
 			case moves:
-				c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
+				c.report(c.takeNode(in), o.owner, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
 			case o.mut:
 				c.report(in.Node, o.owner, "borrow-conflict", "`"+name+"` is exclusively borrowed and cannot be used here")
 			case mutates || in.Dst == o.owner:

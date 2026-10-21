@@ -31,7 +31,7 @@ fn apart(v: V) -> V {
 }
 
 fn carried(y: Y) -> Y {
-    Y { a: y.ns[1], ns: y.ns }
+    Y { a: y.ns[1], ns: move y.ns }
 }
 
 fn rebound(mut v: V) -> Int {

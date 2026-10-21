@@ -67,7 +67,7 @@ fn go(h: &mut Holder) -> Int {
 fn storedWriterViaRef() -> Int {
     let mut h0 = Holder { n: 0, cb: Box { cb: nop } }
     h0.cb = Box { cb: () => { h0.n = 99 } }
-    go(&mut h0) //~ ERROR `&mut h0` conflicts with a closure that shares its identity cell
+    go(&mut h0) //~ ERROR `h0` may hold a closure that captures it, but this call exclusively borrows it
 }
 
 fn storedReaderOfResource() -> Int {
@@ -130,17 +130,17 @@ fn sameFieldWriteBefore() -> Int {
     p.a.count
 }
 -- expect --
-error[E2113]: `&mut h0` conflicts with a closure that shares its identity cell
+error[E2112]: `h0` may hold a closure that captures it, but this call exclusively borrows it
   --> app/t/t.kg:69:8
    |
-69 |     go(&mut h0) //~ ERROR `&mut h0` conflicts with a closure that shares its identity cell
+69 |     go(&mut h0) //~ ERROR `h0` may hold a closure that captures it, but this call exclusively borrows it
    |        ^^^^^^^
-   = help: end the closure's use before the borrow, or capture a copy
-note: `h0` is shared with a closure that writes it here
-  --> app/t/t.kg:68:31
+   = help: end the closure's use before the call, capture a copy, or keep callables out of its fields
+note: this closure captures `h0`
+  --> app/t/t.kg:68:23
    |
 68 |     h0.cb = Box { cb: () => { h0.n = 99 } }
-   |                               ^^^^
+   |                       ^^^^^^^^^^^^^^^^^
 
 error[E2112]: `r` may hold a closure that captures it, but this call exclusively borrows it
   --> app/t/t.kg:75:5

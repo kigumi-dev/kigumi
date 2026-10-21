@@ -23,6 +23,9 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	case s.Pattern != 0:
 		iter := c.vars.resolve(c.synthPlace(s.Head))
 		elem := c.iterElement(n, s.Head, iter)
+		if !c.r.isCopy(c.vars.resolve(elem)) {
+			c.rejectFieldLeaf(c.t.Unparen(s.Head))
+		}
 		c.reserveUse(s.Head)
 		c.checkPattern(s.Pattern, elem, false, c.scope)
 		c.trackLoopPlaces(s.Pattern, s.Head)
@@ -47,10 +50,8 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	}
 	c.breaks = mine
 	c.loop++
-	c.methodValues.loops = append(c.methodValues.loops, n)
 	c.onceLoopBody(once)
 	c.onceLoopEnd(once, c.check(s.Body, TyUnit), bare)
-	c.methodValues.loops = c.methodValues.loops[:len(c.methodValues.loops)-1]
 	c.loop--
 	c.breaks = savedBreaks
 	c.popScope(saved)

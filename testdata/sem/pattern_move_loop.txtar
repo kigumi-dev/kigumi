@@ -60,7 +60,7 @@ fn recordFieldInLoop() -> Unit {
 fn letFieldInLoop() -> Unit {
     let b = mk(1)
     for i in 0..2 {
-        let x = b.other //~ ERROR `b.other` was moved
+        let x = move b.other //~ ERROR `b.other` was moved
         x.close()
     }
 }
@@ -139,8 +139,8 @@ error[use-after-move]: `b.other` was moved; it cannot be used again
    |                    ^^^^^
 
 error[use-after-move]: `b.other` was moved; it cannot be used again
-  --> main.kg:60:17
+  --> main.kg:60:22
    |
-60 |         let x = b.other //~ ERROR `b.other` was moved
-   |                 ^^^^^^^
+60 |         let x = move b.other //~ ERROR `b.other` was moved
+   |                      ^^^^^^^
 

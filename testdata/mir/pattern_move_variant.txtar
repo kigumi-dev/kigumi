@@ -383,6 +383,7 @@ fn lib.isTakeAndClear(%s: Slot) -> Unit {
     %t14 = copy(%t18)
     jump b9
   b8:
+    nop
     %t19 = unit
     %t14 = copy(%t19)
     jump b9
@@ -392,14 +393,14 @@ fn lib.isTakeAndClear(%s: Slot) -> Unit {
     jump b3
 }
 error[use-after-move]: `b.opt` was moved; it cannot be used again
-  --> lib/loop.kg:17:18
+  --> lib/loop.kg:17:13
    |
 17 |             Some(h) -> h.close()
-   |                  ^
+   |             ^^^^^^
 
 error[move-join-mismatch]: `b.opt` is moved on some paths but not others
-  --> lib/loop.kg:49:18
+  --> lib/loop.kg:49:13
    |
 49 |             Some(h) if ok(&h) -> h.close()
-   |                  ^
+   |             ^^^^^^
 

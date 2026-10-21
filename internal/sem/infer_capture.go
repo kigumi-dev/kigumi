@@ -52,8 +52,14 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 		if lentReceiver(e) {
 			mode = capCell
 		}
+		if mode == capMove && e.Flags&EfCapturedMut != 0 {
+			if ctx.keptMut == nil {
+				ctx.keptMut = map[EntityID]syntax.NodeID{}
+			}
+			ctx.keptMut[ent] = n
+		}
 		ctx.captured[ent] = len(ctx.list)
-		ctx.list = append(ctx.list, Capture{Local: ent, Mode: mode})
+		ctx.list = append(ctx.list, Capture{Local: ent, Mode: mode, OwnCell: mode == capMove && c.ownCellAbove(i, ent)})
 		c.captureSites[ent] = append(c.captureSites[ent], captureSite{ctx: ctx, idx: len(ctx.list) - 1})
 	}
 }
@@ -76,7 +82,7 @@ func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
 		c.edge(EffectEdge{Kind: EdgeMutateCaller, Target: ent, Node: n})
 	}
 	sites := c.captureSites[ent]
-	if len(sites) == 0 {
+	if len(sites) == 0 || c.movedCaptureWrite(n, ent, sites) {
 		return
 	}
 	c.r.Entities[ent].Flags |= EfCapturedMut
@@ -113,7 +119,7 @@ func (c *checker) scopeWithin(s, root ScopeID) bool {
 
 func closureCopy(caps []Capture) bool {
 	for _, cap := range caps {
-		if cap.Mode == capMove || cap.Mode == capRetain || cap.Mode == capBorrow {
+		if cap.Mode == capMove || cap.Mode == capRetain || cap.Mode == capBorrow || cap.Mode == capRead {
 			return false
 		}
 	}
@@ -136,7 +142,7 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 		case capCell:
 			c.errAt(n, cClosureNotPlainFn, name, c.r.cellCaptureWhy(cap.Local))
 			return nil, true
-		case capMove, capRetain:
+		case capMove, capRetain, capRead:
 			c.errAt(n, cClosureNotPlainFn, name, "move-only")
 			return nil, true
 		}

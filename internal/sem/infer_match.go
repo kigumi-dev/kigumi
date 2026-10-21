@@ -29,7 +29,6 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 		c.pushScope(ScopeArm, arm)
 		c.checkPatternOn(s.Pattern, subject, scrutinee, false, c.scope)
 		c.taintPatternBindings(s.Pattern, scrutineeRp)
-		c.notePatternAliases(s.Pattern, subject, true)
 		pos, neg := c.patternFacts(s.Pattern, place)
 		c.addFacts(pos)
 		if s.Guard != 0 {

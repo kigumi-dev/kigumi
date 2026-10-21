@@ -43,8 +43,8 @@ type builder struct {
 	// guardedArm is set while the bindings of an arm with a guard are declared; guardMoves collects the places they take by value.
 	guardedArm bool
 	guardMoves []guardMove
-	// condIs is the pattern of an `is` that is a whole condition; isMoves holds the places its bindings take, moved on the true branch only.
-	condIs  *hir.Pat
+	// condIs holds the patterns of the `is` tests a condition's `&&` chain needs; isMoves holds the places their bindings take, moved on the true branch only.
+	condIs  map[*hir.Pat]bool
 	isMoves []guardMove
 	p       *Program
 	r       *sem.Result

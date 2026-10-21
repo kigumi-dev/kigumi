@@ -22,6 +22,10 @@ func (p *Program) cloneFor(g *Func, ent sem.EntityID, name string, subst map[sem
 			if c, ok := ents[in.Ent]; ok && in.Op == OpClosure {
 				in.Ent = c
 			}
+			// A Copy instance of a field `move` reads the field; the generic body could not know.
+			if in.Op == OpFieldMove && p.R.IsCopy(f.Locals[in.Dst].Type) {
+				in.Op = OpField
+			}
 			insts[i] = in
 		}
 		term := Term{Op: blk.Term.Op, Args: append([]LocalID(nil), blk.Term.Args...), Targets: append([]BlockID(nil), blk.Term.Targets...)}

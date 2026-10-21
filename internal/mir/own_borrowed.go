@@ -22,7 +22,7 @@ func checkBorrowedMoves(p *Program, f *Func) {
 	isClosure := p.R.Entity(f.Ent).Kind == sem.EntClosure
 	if isClosure {
 		for i, cap := range p.R.Closure(f.Ent).Captures {
-			if cap.Mode == sem.CapBorrow {
+			if cap.Mode == sem.CapBorrow || cap.Mode == sem.CapRead {
 				borrowed[f.Params[i]] = true
 			}
 		}

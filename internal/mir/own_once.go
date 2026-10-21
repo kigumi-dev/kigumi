@@ -38,7 +38,7 @@ func (a *owner) onceCall(in *Inst, st *dstate, report bool) {
 	if s := st.called[l]; report && (s == ownMoved || s == ownConflict) {
 		a.reportOnce(in, l, name, place)
 	}
-	st.called[l], st.at[l] = ownMoved, in.Node
+	st.called[l], st.callAt[l] = ownMoved, in.Node
 }
 
 func (a *owner) onceCallee(l LocalID) (name, place string, ok bool) {
@@ -78,7 +78,7 @@ func (a *owner) reportOnce(in *Inst, l LocalID, name, place string) {
 	if help != "" {
 		d.Help = []string{help}
 	}
-	if at := a.cur.at[l]; at != 0 {
+	if at := a.cur.callAt[l]; at != 0 {
 		d = d.WithNote(diag.At(t.File, t.Span(at)), "`"+name+"` may already be called here")
 	}
 	a.f.Diags = append(a.f.Diags, d)
@@ -127,7 +127,7 @@ func (a *owner) onceCapture(in *Inst, st *dstate, report bool) {
 		if s := st.called[l]; report && (s == ownMoved || s == ownConflict) {
 			a.reportOnce(in, l, name, place)
 		}
-		st.called[l], st.at[l] = ownMoved, in.Node
+		st.called[l], st.callAt[l] = ownMoved, in.Node
 	}
 }
 
@@ -146,7 +146,7 @@ func (a *owner) captureSource(arg LocalID) LocalID {
 		}
 		for _, b := range a.f.Blocks {
 			for _, in := range b.Insts {
-				if in.Op == OpCopy && caps[in.Dst] && a.f.Locals[in.Dst].Ent == 0 {
+				if (in.Op == OpCopy || in.Op == OpMove) && caps[in.Dst] && a.f.Locals[in.Dst].Ent == 0 {
 					a.capSrc[in.Dst] = in.Args[0]
 				}
 			}

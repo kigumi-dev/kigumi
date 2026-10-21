@@ -1,0 +1,217 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.close(move self) -> Unit {}
+
+fn Res.peek(self) -> Int {
+    self.id
+}
+
+fn say(n: Int) -> Unit {}
+
+fn sayRef(n: &Int) -> Unit {}
+
+fn mkr(n: Int) -> Res {
+    Res { id: n }
+}
+type SB = {
+    pub mut o Res?
+    pub n Int
+}
+
+fn peekRef(o: &Res?) -> Unit {
+    match o {
+        Some(q) -> say(q.peek())
+        None -> {}
+    }
+}
+
+fn borrowThenMatch() -> Unit {
+    let o = Some(mkr(1))
+    let r = &o
+    match o {
+        Some(q) -> q.close() //~ ERROR `o` is borrowed and cannot be moved or dropped here
+        None -> {}
+    }
+    peekRef(r)
+}
+
+fn fieldBorrowThenMatch(s: SB) -> Unit {
+    let r = &s.o
+    match s.o {
+        Some(q) -> q.close() //~ ERROR `s` is borrowed and cannot be moved or dropped here
+        None -> {}
+    }
+    peekRef(r)
+}
+
+fn wholeBorrowThenMatch(s: SB) -> Unit {
+    let r = &s
+    match s.o {
+        Some(q) -> q.close() //~ ERROR `s` is borrowed and cannot be moved or dropped here
+        None -> {}
+    }
+    say(r.n)
+}
+
+fn borrowThenIfLet(o: Res?) -> Unit {
+    let r = &o
+    if let Some(q) = o { //~ ERROR `o` is borrowed and cannot be moved or dropped here
+        q.close()
+    }
+    peekRef(r)
+}
+
+fn borrowThenIs(o: Res?) -> Unit {
+    let r = &o
+    if o is Some(q) { //~ ERROR `o` is borrowed and cannot be moved or dropped here
+        q.close()
+    }
+    peekRef(r)
+}
+
+fn borrowThenOr(o: Res?) -> Unit {
+    let r = &o
+    let a = o || mkr(0) //~ ERROR `o` is borrowed and cannot be moved or dropped here
+    a.close()
+    peekRef(r)
+}
+
+fn borrowThenTry(r: Result[Res, String]) -> Result[Int, String] {
+    let b = &r
+    let a = r? //~ ERROR `r` is borrowed and cannot be moved or dropped here
+    a.close()
+    match b {
+        Ok(q) -> say(q.peek())
+        Err(e) -> {}
+    }
+    Ok(1)
+}
+
+fn borrowEndsThenMatch(o: Res?) -> Unit {
+    let r = &o
+    peekRef(r)
+    match o {
+        Some(q) -> q.close()
+        None -> {}
+    }
+}
+
+fn disjointFieldBorrow(s: SB) -> Unit {
+    let r = &s.n
+    match s.o {
+        Some(q) -> q.close()
+        None -> {}
+    }
+    sayRef(r)
+}
+
+fn eatWhole(o: Res?) -> Unit {
+    match o {
+        Some(r) -> r.close()
+        None -> {}
+    }
+}
+
+fn borrowThenCatchAll(o: Res?) -> Unit {
+    let r = &o
+    match o {
+        x -> eatWhole(x) //~ ERROR `o` is borrowed and cannot be moved or dropped here
+    }
+    peekRef(r)
+}
+
+fn borrowThenCatchAllAlias(o: Res?) -> Unit {
+    let r = &o
+    match o {
+        x -> match x { //~ ERROR `o` is borrowed and cannot be moved or dropped here
+            Some(q) -> q.close()
+            None -> {}
+        }
+    }
+    peekRef(r)
+}
+
+fn borrowThenGuardedCatchAll(o: Res?, g: Bool) -> Unit {
+    let r = &o
+    match o {
+        x if g -> eatWhole(x) //~ ERROR `o` is borrowed and cannot be moved or dropped here
+        _ -> {}
+    }
+    peekRef(r)
+}
+
+fn borrowEndsThenCatchAll(o: Res?) -> Unit {
+    let r = &o
+    peekRef(r)
+    match o {
+        x -> eatWhole(x)
+    }
+}
+-- expect --
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+  --> main.kg:36:14
+   |
+36 |         Some(q) -> q.close() //~ ERROR `o` is borrowed and cannot be moved or dropped here
+   |              ^
+
+error[move-while-borrowed]: `s` is borrowed and cannot be moved or dropped here
+  --> main.kg:45:14
+   |
+45 |         Some(q) -> q.close() //~ ERROR `s` is borrowed and cannot be moved or dropped here
+   |              ^
+
+error[move-while-borrowed]: `s` is borrowed and cannot be moved or dropped here
+  --> main.kg:54:14
+   |
+54 |         Some(q) -> q.close() //~ ERROR `s` is borrowed and cannot be moved or dropped here
+   |              ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+  --> main.kg:62:17
+   |
+62 |     if let Some(q) = o { //~ ERROR `o` is borrowed and cannot be moved or dropped here
+   |                 ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+  --> main.kg:70:18
+   |
+70 |     if o is Some(q) { //~ ERROR `o` is borrowed and cannot be moved or dropped here
+   |                  ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+  --> main.kg:78:13
+   |
+78 |     let a = o || mkr(0) //~ ERROR `o` is borrowed and cannot be moved or dropped here
+   |             ^^^^^^^^^^
+
+error[move-while-borrowed]: `r` is borrowed and cannot be moved or dropped here
+  --> main.kg:85:9
+   |
+85 |     let a = r? //~ ERROR `r` is borrowed and cannot be moved or dropped here
+   |         ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+   --> main.kg:122:9
+    |
+122 |         x -> eatWhole(x) //~ ERROR `o` is borrowed and cannot be moved or dropped here
+    |         ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+   --> main.kg:130:9
+    |
+130 |         x -> match x { //~ ERROR `o` is borrowed and cannot be moved or dropped here
+    |         ^
+
+error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
+   --> main.kg:141:9
+    |
+141 |         x if g -> eatWhole(x) //~ ERROR `o` is borrowed and cannot be moved or dropped here
+    |         ^
+

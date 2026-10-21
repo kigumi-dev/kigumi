@@ -1,5 +1,7 @@
 package mir
 
+import "kigumi/internal/syntax"
+
 // projectionPlace follows a temporary produced by reading into a value
 // (a field, payload, element, unboxed value or copy) back to the named
 // local it was read from, so a borrow of the part holds the whole. It also
@@ -115,4 +117,32 @@ func fieldPathsOverlap(a, b []int, exactA, exactB bool) bool {
 		}
 	}
 	return true
+}
+
+func (c *borrowCheck) takesPayload(in Inst) bool {
+	if in.Op != OpCopy || c.p.R.IsCopy(c.f.Locals[in.Dst].Type) {
+		return false
+	}
+	if src := c.f.Locals[in.Args[0]]; src.Ent != 0 {
+		return !in.Share && !src.Borrowed && !src.Cell && c.f.Locals[in.Dst].Ent != 0
+	}
+	d := c.definition(in.Args[0])
+	if d == nil {
+		return false
+	}
+	switch d.Op {
+	case OpPayload:
+		return d.Place || c.f.Locals[in.Dst].Ent != 0
+	case OpField:
+		return c.f.Locals[in.Dst].Ent != 0
+	}
+	return false
+}
+
+// takeNode: the copy out of a `||` hit carries no node of its own, so it reports at the payload read.
+func (c *borrowCheck) takeNode(in Inst) syntax.NodeID {
+	if in.Node == 0 && c.takesPayload(in) && c.f.Locals[in.Args[0]].Ent == 0 {
+		return c.definition(in.Args[0]).Node
+	}
+	return in.Node
 }

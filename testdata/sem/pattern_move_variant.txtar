@@ -156,7 +156,7 @@ fn payloadGuardedLoop(b: Bag) -> Unit {
 }
 
 fn payloadReassigned(b: Bag) -> Unit {
-    let mut o = b.opt
+    let mut o = move b.opt
     for i in 0..2 {
         match o {
             Some(h) -> h.close()
@@ -246,14 +246,14 @@ fn putBack() -> Unit {
 
 fn tupleMovesField() -> Unit {
     let b = mkCell(60)
-    let t = (b.other, 1)
+    let t = (move b.other, 1)
     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
 }
 
 fn tupleInLoop() -> Unit {
     let b = mkCell(70)
     for i in 0..2 {
-        let t = (b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+        let t = (move b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
         let (o, _) = t
         match o {
             Some(h) -> h.close()
@@ -264,13 +264,13 @@ fn tupleInLoop() -> Unit {
 
 fn recordMovesField() -> Unit {
     let b = mkCell(80)
-    let w = Wrap { o: b.opt }
+    let w = Wrap { o: move b.opt }
     takeOpt(b.opt) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
 }
 
 fn variantMovesField() -> Unit {
     let b = mkCell(90)
-    let o = Some(b.other)
+    let o = Some(move b.other)
     b.other.close() //~ ERROR `b.other` was moved //~ ERROR `b.other` was moved
 }
 
@@ -282,7 +282,7 @@ fn arrayMovesField() -> Unit {
 
 fn literalOfOtherField() -> Unit {
     let b = mkCell(130)
-    let t = (b.other, 1)
+    let t = (move b.other, 1)
     match b.opt {
         Some(h) -> h.close()
         None -> {}
@@ -337,22 +337,22 @@ fn isTakeNoClearInLoop() -> Unit {
 }
 -- expect --
 error[use-after-move]: `b.opt` was moved; it cannot be used again
-  --> main.kg:43:18
+  --> main.kg:43:13
    |
 43 |             Some(h) -> h.close() //~ ERROR `b.opt` was moved
-   |                  ^
+   |             ^^^^^^
 
 error[use-after-move]: `b.opt` was moved; it cannot be used again
-  --> main.kg:52:18
+  --> main.kg:52:13
    |
 52 |             Some(h) -> h.close() //~ ERROR `b.opt` was moved
-   |                  ^
+   |             ^^^^^^
 
 error[move-join-mismatch]: `b.opt` is moved on some paths but not others
-  --> main.kg:60:26
+  --> main.kg:60:21
    |
 60 |         if b.opt is Some(h) { //~ ERROR `b.opt` is moved on some paths
-   |                          ^
+   |                     ^^^^^^
 
 error[use-after-move]: `b.pack.other` was moved; it cannot be used again
   --> main.kg:69:25
@@ -361,22 +361,22 @@ error[use-after-move]: `b.pack.other` was moved; it cannot be used again
    |                         ^^^^^
 
 error[use-after-move]: `o` was moved; it cannot be used again
-  --> main.kg:78:18
+  --> main.kg:78:13
    |
 78 |             Some(h) -> h.close() //~ ERROR `o` was moved
-   |                  ^
+   |             ^^^^^^
 
 error[use-after-move]: `b.opt` was moved; it cannot be used again
-  --> main.kg:90:14
+  --> main.kg:90:9
    |
 90 |         Some(g) -> g.close() //~ ERROR `b.opt` was moved
-   |              ^
+   |         ^^^^^^
 
 error[move-join-mismatch]: `b.opt` is moved on some paths but not others
-   --> main.kg:189:18
+   --> main.kg:189:13
     |
 189 |             Some(h) if ok(&h) -> h.close() //~ ERROR `b.opt` is moved on some paths
-    |                  ^
+    |             ^^^^^^
 
 error[use-after-move]: `b.other` was moved; it cannot be used again
    --> main.kg:247:5
@@ -391,16 +391,16 @@ error[use-after-move]: `b.other` was moved; it cannot be used again
     |     ^^^^^^^^^^^^^^
 
 error[use-after-move]: `b.opt` was moved; it cannot be used again
-   --> main.kg:253:18
+   --> main.kg:253:23
     |
-253 |         let t = (b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
-    |                  ^^^^^
+253 |         let t = (move b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+    |                       ^^^^^
 
 error[use-after-move]: `b.opt` was moved; it cannot be used again
    --> main.kg:253:17
     |
-253 |         let t = (b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
-    |                 ^^^^^^^^^
+253 |         let t = (move b.opt, 1) //~ ERROR `b.opt` was moved //~ ERROR `b.opt` was moved
+    |                 ^^^^^^^^^^^^^^
 
 error[use-after-move]: `b.opt` was moved; it cannot be used again
    --> main.kg:265:13
@@ -439,8 +439,8 @@ error[use-after-move]: `b.other` was moved; it cannot be used again
     |     ^^^^^^^^^^^^^^
 
 error[move-join-mismatch]: `o` is moved on some paths but not others
-   --> main.kg:330:22
+   --> main.kg:330:17
     |
 330 |         if o is Some(h) { //~ ERROR `o` is moved on some paths
-    |                      ^
+    |                 ^^^^^^
 

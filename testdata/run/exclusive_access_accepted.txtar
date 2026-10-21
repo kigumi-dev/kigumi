@@ -46,7 +46,7 @@ type Holder = {
 }
 
 fn Item.runHolder(mut self, h: Holder) -> Unit {
-    let mut c2 = h.c
+    let mut c2 = move h.c
     c2.call()
 }
 

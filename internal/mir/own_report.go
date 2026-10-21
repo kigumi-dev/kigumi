@@ -16,6 +16,12 @@ type owner struct {
 	defNode  map[LocalID]syntax.NodeID
 	cur      *dstate
 	capSrc   map[LocalID]LocalID
+	pos      movePos
+	moves    []moveEvent
+	guardSrc map[LocalID]LocalID
+	fieldMv  map[LocalID]bool
+	payLine  map[[2]int]bool
+	cellDefs map[LocalID]*Inst
 }
 
 func cloneState(s map[LocalID]ownState) map[LocalID]ownState {
@@ -41,8 +47,14 @@ func (a *owner) merge(bid BlockID, out *dstate) bool {
 			cur.at[l] = n
 		}
 	}
+	for l, n := range out.callAt {
+		if cur.callAt[l] == 0 {
+			cur.callAt[l] = n
+		}
+	}
 	c3 := mergeMap(cur.called, out.called)
-	return c1 || c2 || c3
+	c4 := mergeMap(cur.rel, out.rel)
+	return c1 || c2 || c3 || c4
 }
 
 // mergeMap joins one dstate map's predecessor exit into a block's entry.
@@ -71,6 +83,12 @@ func (a *owner) check(in *Inst, l LocalID, st map[LocalID]ownState, report bool)
 	if s := st[l]; (s == ownMoved || s == ownConflict) && a.reportCleanupRead(in.Node, l, name) {
 		return
 	}
+	if in.Node == 0 {
+		return
+	}
+	if par, ok := a.pl.parent[l]; ok && a.pl.payloadStep(l) && (st[l] == ownMoved || st[l] == ownConflict) && !a.firstForMove(par, a.cur.at[l]) {
+		return
+	}
 	switch st[l] {
 	case ownMoved:
 		a.report(in.Node, "use-after-move", "`"+name+"` was moved; it cannot be used again")
@@ -89,8 +107,33 @@ func (a *owner) checkWhole(n syntax.NodeID, l LocalID, st *dstate, report bool) 
 	if len(fields) == 0 {
 		return
 	}
-	code, msg := partialMoveDiag(a.fieldName(l, fields[0]), a.ownerName(l))
-	a.report(n, code, msg)
+	rep := a.pl.children[l][fields[0]]
+	if !a.pl.payloadStep(rep) {
+		code, msg := partialMoveDiag(a.fieldName(l, fields[0]), a.ownerName(l))
+		a.report(n, code, msg)
+		return
+	}
+	// A taken payload leaves nothing of the value to name, so this reads as a use of the whole after its move.
+	if n != 0 && a.firstForMove(l, st.at[rep]) {
+		s := st.field[rep]
+		if gone(st.val[rep]) {
+			s = st.val[rep]
+		}
+		a.check(&Inst{Node: n}, l, map[LocalID]ownState{l: s}, true)
+	}
+}
+
+// firstForMove keeps one diagnostic per taken payload: a match re-reads the tag in every arm and then the payload.
+func (a *owner) firstForMove(root LocalID, at syntax.NodeID) bool {
+	k := [2]int{int(root), int(at)}
+	if a.payLine == nil {
+		a.payLine = map[[2]int]bool{}
+	}
+	if a.payLine[k] {
+		return false
+	}
+	a.payLine[k] = true
+	return true
 }
 
 // partialMoveDiag renders E1025 from the sem catalog (codes_body.go's

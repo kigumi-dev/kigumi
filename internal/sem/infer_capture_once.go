@@ -15,6 +15,14 @@ func (c *checker) noteLambdaConsume(a syntax.NodeID, p reservedPlace) {
 	}
 }
 
+func (c *checker) noteNestedCaptureMoves(n syntax.NodeID, ctx *lambdaCtx) {
+	for _, cp := range ctx.list {
+		if cp.Mode == capMove && !cp.OwnCell {
+			c.noteLambdaConsume(n, reservedPlace{ent: cp.Local})
+		}
+	}
+}
+
 func (c *checker) noteLambdaTail(body syntax.NodeID) {
 	for _, leaf := range c.tailLeaves(body, 0) {
 		if p, ok := c.consumedPlace(leaf); ok {
@@ -43,9 +51,6 @@ func (c *checker) onceConsumes(ctx *lambdaCtx) []reservedPlace {
 }
 
 func (c *checker) reserverNote(r reservation) string {
-	if c.t.Kind(r.cleanup) == syntax.Lambda {
-		return "`" + r.name + "` is consumed when this closure is called"
-	}
 	return "`" + r.name + "` is reserved by this cleanup"
 }
 

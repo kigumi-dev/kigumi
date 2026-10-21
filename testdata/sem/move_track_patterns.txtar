@@ -1,0 +1,275 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) -> Unit {}
+
+fn Res.close(move self) -> Unit {}
+
+fn Res.peek(self) -> Int {
+    self.id
+}
+
+fn say(n: Int) -> Unit {}
+
+fn sayU(n: usize) -> Unit {}
+
+fn mkr(n: Int) -> Res {
+    Res { id: n }
+}
+
+type Pair = {
+    pub mut left Res
+    pub mut right Res
+}
+
+type Box = {
+    pub mut p Pair?
+}
+
+fn Box.put(mut self, p: Pair) -> Unit {
+    self.p = Some(p)
+}
+
+fn take(p: Pair) -> Unit {
+    let g = move p.left
+    g.close()
+}
+
+fn matchTwice(o: Res?) -> Unit {
+    match o {
+        Some(c) -> c.close()
+        None -> {}
+    }
+    match o {
+        Some(c) -> c.close() //~ ERROR `o` was moved
+        None -> {}
+    }
+}
+
+fn isTwice(o: Res?) -> Unit {
+    if o is Some(c) {
+        c.close()
+    }
+    if o is Some(c) { //~ ERROR `o` is moved on some paths but not others
+        c.close()
+    }
+}
+
+fn ifLetThenMatch(o: Res?) -> Unit {
+    if let Some(c) = o {
+        say(c.peek())
+    }
+    match o {
+        Some(c) -> c.close() //~ ERROR `o` was moved
+        None -> {}
+    }
+}
+
+fn tryTwice(r: Result[Res, String]) -> Result[Int, String] {
+    let a = r?
+    let b = r? //~ ERROR `r` was moved
+    a.close()
+    b.close()
+    Ok(1)
+}
+
+fn orTwice(o: Res?) -> Unit {
+    let a = o || mkr(1)
+    let b = o || mkr(2) //~ ERROR `o` was moved
+    a.close()
+    b.close()
+}
+
+fn recordTwice(p: Pair) -> Unit {
+    match p {
+        Pair { left, right } -> left.close()
+    }
+    match p {
+        Pair { left, right } -> right.close() //~ ERROR `p.left` was moved //~ ERROR `p.right` was moved
+    }
+}
+
+fn tupleTwice(t: (Res, Int)) -> Unit {
+    match t {
+        (c, n) -> c.close()
+    }
+    match t {
+        (c, n) -> c.close() //~ ERROR `t._0` was moved
+    }
+}
+
+fn arrayShared() -> Unit {
+    let o = Some(Array.of(1, 2, 3))
+    let mut a = match o {
+        Some(x) -> x
+        None -> Array.of()
+    }
+    let b = match o {
+        Some(x) -> x //~ ERROR `o` was moved
+        None -> Array.of()
+    }
+    a.push(9)
+}
+
+fn aliasPassedOn(o: Pair?) -> Unit {
+    if let Some(p) = o {
+        take(p)
+    }
+    match o {
+        Some(q) -> q.left.close() //~ ERROR `o` was moved
+        None -> {}
+    }
+}
+
+fn aliasStored(o: Pair?, b: Box) -> Unit {
+    let mut bx = b
+    if let Some(p) = o {
+        bx.put(p)
+    }
+    match o {
+        Some(q) -> q.right.close() //~ ERROR `o` was moved
+        None -> {}
+    }
+}
+
+fn aliasReturnedByLambda(o: Pair?) -> Unit {
+    if let Some(p) = o {
+        let f = () => p
+        take(f())
+    }
+    match o {
+        Some(q) -> q.left.close() //~ ERROR `o` was moved
+        None -> {}
+    }
+}
+
+fn fieldThenWhole(o: Pair?) -> Int {
+    if let Some(p) = o {
+        let g = move p.left
+        g.close()
+        return 1
+    }
+    0
+}
+
+fn borrowedTwice(o: &Res?) -> Unit {
+    match o {
+        Some(c) -> say(c.peek())
+        None -> {}
+    }
+    match o {
+        Some(c) -> say(c.peek())
+        None -> {}
+    }
+}
+
+fn borrowedLocal() -> Unit {
+    let o = Some(mkr(3))
+    match &o {
+        Some(c) -> say(c.peek())
+        None -> {}
+    }
+    match o {
+        Some(c) -> c.close()
+        None -> {}
+    }
+}
+
+fn copyPayload(o: Int?) -> Int {
+    let a = o || 0
+    let b = o || 1
+    match o {
+        Some(n) -> n + a + b
+        None -> 0
+    }
+}
+
+fn reinitAfterMatch() -> Unit {
+    let mut o = Some(mkr(4))
+    match o {
+        Some(c) -> c.close()
+        None -> {}
+    }
+    o = Some(mkr(5))
+    match o {
+        Some(c) -> c.close()
+        None -> {}
+    }
+}
+-- expect --
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> main.kg:45:9
+   |
+45 |         Some(c) -> c.close() //~ ERROR `o` was moved
+   |         ^^^^^^
+
+error[move-join-mismatch]: `o` is moved on some paths but not others
+  --> main.kg:54:13
+   |
+54 |     if o is Some(c) { //~ ERROR `o` is moved on some paths but not others
+   |             ^^^^^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> main.kg:64:9
+   |
+64 |         Some(c) -> c.close() //~ ERROR `o` was moved
+   |         ^^^^^^
+
+error[use-after-move]: `r` was moved; it cannot be used again
+  --> main.kg:71:13
+   |
+71 |     let b = r? //~ ERROR `r` was moved
+   |             ^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+  --> main.kg:79:13
+   |
+79 |     let b = o || mkr(2) //~ ERROR `o` was moved
+   |             ^^^^^^^^^^
+
+error[use-after-move]: `p.left` was moved; it cannot be used again
+  --> main.kg:89:16
+   |
+89 |         Pair { left, right } -> right.close() //~ ERROR `p.left` was moved //~ ERROR `p.right` was moved
+   |                ^^^^
+
+error[use-after-move]: `p.right` was moved; it cannot be used again
+  --> main.kg:89:22
+   |
+89 |         Pair { left, right } -> right.close() //~ ERROR `p.left` was moved //~ ERROR `p.right` was moved
+   |                      ^^^^^
+
+error[use-after-move]: `t._0` was moved; it cannot be used again
+  --> main.kg:98:10
+   |
+98 |         (c, n) -> c.close() //~ ERROR `t._0` was moved
+   |          ^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:109:9
+    |
+109 |         Some(x) -> x //~ ERROR `o` was moved
+    |         ^^^^^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:120:9
+    |
+120 |         Some(q) -> q.left.close() //~ ERROR `o` was moved
+    |         ^^^^^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:131:9
+    |
+131 |         Some(q) -> q.right.close() //~ ERROR `o` was moved
+    |         ^^^^^^
+
+error[use-after-move]: `o` was moved; it cannot be used again
+   --> main.kg:142:9
+    |
+142 |         Some(q) -> q.left.close() //~ ERROR `o` was moved
+    |         ^^^^^^
+

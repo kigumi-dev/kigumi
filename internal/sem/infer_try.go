@@ -60,6 +60,9 @@ func (c *checker) synthTry(n syntax.NodeID) TypeID {
 	if borrowed && !c.r.isCopy(val) {
 		c.errAt(n, cMoveOutOfBorrow, val)
 	}
+	if !borrowed {
+		c.reservePayloadTake(operand, got, val)
+	}
 	_, want, retOK := tt.IsResult(c.retType)
 	if !retOK {
 		if c.lambdaRetUnknown() {

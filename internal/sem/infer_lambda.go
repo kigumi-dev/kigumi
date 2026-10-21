@@ -15,6 +15,8 @@ type lambdaCtx struct {
 	reserveUses []captureUse
 	writes      []EntityID
 	consumes    []lambdaConsume
+	// keptMut are captures of a local another closure writes, rejected unless they turn out only read.
+	keptMut map[EntityID]syntax.NodeID
 }
 
 // synthLambda: want is a fn type, an Fn-constrained type parameter, or 0
@@ -70,10 +72,12 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info.Params = pents
 	info.Ret = ret
 	info.Sig = tt.WithEscParams(tt.Fn(ptypes, ret, 0, false), c.r.escapingMarks(ptypes, c.escapingFlags(pents)))
+	c.demoteReadCaptures(ctx)
+	c.rejectKeptMut(ctx)
 	info.Captures = ctx.list
 	info.Copy = closureCopy(ctx.list)
 	info.Once = c.lambdaOnce(ctx)
-	c.holdLambdaConsumes(n, ctx)
+	c.noteNestedCaptureMoves(n, ctx)
 	info.Immediate = ctx.immediate
 	info.Edges = edges
 	c.closures = append(c.closures, id)

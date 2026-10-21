@@ -52,6 +52,8 @@ func stepOf(in Inst) step {
 	switch in.Op {
 	case OpField, OpPayload:
 		return step{in.Op, in.Index}
+	case OpFieldMove:
+		return step{OpField, in.Index}
 	case OpBuiltin:
 		return step{op: OpIndex}
 	}

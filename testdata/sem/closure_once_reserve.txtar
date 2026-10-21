@@ -27,7 +27,7 @@ fn take(h: Handle) -> Unit {}
 fn madeInLoop() -> Unit {
     let h = mkh(1)
     for i in 0..2 {
-        let k = () => { h.close() } //~ ERROR can already be moved
+        let k = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
         k()
     }
 }
@@ -35,7 +35,7 @@ fn madeInLoop() -> Unit {
 fn madeInLoopField() -> Unit {
     let b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..2 {
-        let k = () => { b.other.close() } //~ ERROR can already be moved
+        let k = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
         k()
     }
 }
@@ -44,20 +44,20 @@ fn consumedAfterCall() -> Unit {
     let h = mkh(1)
     let f = () => { h.close() }
     f()
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
 fn consumedBeforeCall() -> Unit {
     let h = mkh(1)
     let f = () => { h.close() }
-    take(h) //~ ERROR cannot be moved before the scope exits
+    take(h) //~ ERROR `h` was moved; it cannot be used again
     f()
 }
 
 fn twoClosures() -> Unit {
     let h = mkh(1)
     let f = () => { h.close() }
-    let g = () => { h.close() } //~ ERROR cannot be moved before the scope exits
+    let g = () => { h.close() } //~ ERROR `h` was moved; it cannot be used again
     f()
     g()
 }
@@ -66,7 +66,7 @@ fn innerOnceMadeInLoop() -> Unit {
     let h = mkh(1)
     let g = () => { h.close() }
     for i in 0..2 {
-        let k = () => { g() } //~ ERROR can already be moved
+        let k = () => { g() } //~ ERROR `g` is moved on some paths but not others
         k()
     }
 }
@@ -74,7 +74,7 @@ fn innerOnceMadeInLoop() -> Unit {
 fn readAfterMaking() -> Int {
     let h = mkh(1)
     let f = () => { h.close() }
-    let n = h.peek()
+    let n = h.peek() //~ ERROR `h` was moved; it cannot be used again
     f()
     n
 }
@@ -95,8 +95,8 @@ fn reassignedBeforeMaking() -> Unit {
         let k = () => { h.close() }
         k()
     }
-    h = mkh(9) //~ ERROR cannot be assigned
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h = mkh(9)
+    h.close()
 }
 
 fn refillReservesNothing() -> Unit {
@@ -106,7 +106,7 @@ fn refillReservesNothing() -> Unit {
         h = mkh(2)
     }
     f()
-    h.close()
+    h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
 fn madeInBranchThenConsumed(c: Bool) -> Unit {
@@ -115,7 +115,7 @@ fn madeInBranchThenConsumed(c: Bool) -> Unit {
         let f = () => { h.close() }
         f()
     }
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h.close() //~ ERROR `h` is moved on some paths but not others
 }
 
 fn madeInBlockThenConsumed() -> Unit {
@@ -124,7 +124,7 @@ fn madeInBlockThenConsumed() -> Unit {
         let f = () => { h.close() }
         f()
     }
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
 fn escapedFromBlockThenConsumed() -> Unit {
@@ -134,7 +134,7 @@ fn escapedFromBlockThenConsumed() -> Unit {
         g
     }
     f()
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
 fn paramMadeInBlockThenConsumed(h: Handle) -> Unit {
@@ -142,7 +142,7 @@ fn paramMadeInBlockThenConsumed(h: Handle) -> Unit {
         let f = () => { h.close() }
         f()
     }
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
 fn fieldMadeInBlockThenConsumed() -> Unit {
@@ -151,7 +151,7 @@ fn fieldMadeInBlockThenConsumed() -> Unit {
         let f = () => { b.other.close() }
         f()
     }
-    b.other.close() //~ ERROR cannot be moved before the scope exits
+    b.other.close() //~ ERROR `b` was moved; it cannot be used again
 }
 
 fn conditionalCallThenAssign(c: Bool) -> Unit {
@@ -160,8 +160,8 @@ fn conditionalCallThenAssign(c: Bool) -> Unit {
     if c {
         f()
     }
-    h = mkh(2) //~ ERROR cannot be assigned before the scope exits
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h = mkh(2)
+    h.close()
 }
 
 fn callThenConditionalAssign(c: Bool) -> Unit {
@@ -169,9 +169,9 @@ fn callThenConditionalAssign(c: Bool) -> Unit {
     let f = () => { h.close() }
     f()
     if c {
-        h = mkh(2) //~ ERROR cannot be assigned
+        h = mkh(2)
     }
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h.close() //~ ERROR `h` is moved on some paths but not others
 }
 
 fn neverCalledStillReserves(c: Bool) -> Unit {
@@ -180,7 +180,7 @@ fn neverCalledStillReserves(c: Bool) -> Unit {
     if c {
         f()
     } else {
-        h.close() //~ ERROR cannot be moved before the scope exits
+        h.close() //~ ERROR `h` was moved; it cannot be used again
     }
 }
 
@@ -188,8 +188,8 @@ fn callThenAssign() -> Unit {
     let mut h = mkh(1)
     let f = () => { h.close() }
     f()
-    h = mkh(2) //~ ERROR cannot be assigned
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h = mkh(2)
+    h.close()
 }
 
 fn callThenAssignPerIteration() -> Unit {
@@ -197,19 +197,19 @@ fn callThenAssignPerIteration() -> Unit {
         let mut h = mkh(i)
         let f = () => { h.close() }
         f()
-        h = mkh(i + 10) //~ ERROR cannot be assigned
-        h.close() //~ ERROR cannot be moved before the scope exits
+        h = mkh(i + 10)
+        h.close()
     }
 }
 
 fn callThenAssignInLoop() -> Unit {
     let mut h = mkh(30)
     for i in 0..2 {
-        let f = () => { h.close() } //~ ERROR can already be moved
+        let f = () => { h.close() }
         f()
-        h = mkh(i + 31) //~ ERROR cannot be assigned
+        h = mkh(i + 31)
     }
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h.close()
 }
 
 fn madeInBranchThenAssign(c: Bool) -> Unit {
@@ -218,98 +218,98 @@ fn madeInBranchThenAssign(c: Bool) -> Unit {
         let f = () => { h.close() }
         f()
     }
-    h = mkh(2) //~ ERROR cannot be assigned
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h = mkh(2)
+    h.close()
 }
 
 fn breakBeforeRefill() -> Unit {
     let mut h = mkh(1)
     for i in 0..3 {
-        let f = () => { h.close() } //~ ERROR can already be moved
+        let f = () => { h.close() }
         f()
         if i == 1 {
             break
         }
-        h = mkh(10 + i) //~ ERROR cannot be assigned
+        h = mkh(10 + i)
     }
 }
 
 fn continueBeforeRefillInLoop() -> Unit {
     let mut h = mkh(1)
     for i in 0..3 {
-        let f = () => { h.close() } //~ ERROR can already be moved
+        let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
         f()
         if i == 1 {
             continue
         }
-        h = mkh(10 + i) //~ ERROR cannot be assigned
+        h = mkh(10 + i)
     }
 }
 
 fn breakBeforeFieldRefill() -> Unit {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..3 {
-        let f = () => { b.other.close() } //~ ERROR can already be moved
+        let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
         f()
         if i == 1 {
             break
         }
-        b.other = mkh(10 + i) //~ ERROR cannot be assigned
+        b.other = mkh(10 + i) //~ ERROR `b` was moved; it cannot be used again
     }
 }
 
 fn continueBeforeFieldRefill() -> Unit {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..3 {
-        let f = () => { b.other.close() } //~ ERROR can already be moved
+        let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
         f()
         if i == 1 {
             continue
         }
-        b.other = mkh(10 + i) //~ ERROR cannot be assigned
+        b.other = mkh(10 + i) //~ ERROR `b` was moved; it cannot be used again
     }
 }
 
 fn breakAfterRefill() -> Unit {
     let mut h = mkh(1)
     for i in 0..3 {
-        let f = () => { h.close() } //~ ERROR can already be moved
+        let f = () => { h.close() }
         f()
-        h = mkh(10 + i) //~ ERROR cannot be assigned
+        h = mkh(10 + i)
         if i == 1 {
             break
         }
     }
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h.close()
 }
 
 fn refillThenCloseTwice() -> Unit {
     let mut h = mkh(1)
     let f = () => { h.close() }
     f()
-    h = mkh(2) //~ ERROR cannot be assigned
-    h.close() //~ ERROR cannot be moved before the scope exits
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h = mkh(2)
+    h.close()
+    h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
 fn refillThenMoveAndDefer() -> Unit {
     let mut h = mkh(1)
     let f = () => { h.close() }
     f()
-    h = mkh(2) //~ ERROR cannot be assigned
-    let k = h //~ ERROR cannot be moved before the scope exits
-    defer { h.close() } //~ ERROR already consumed by an earlier cleanup
+    h = mkh(2)
+    let k = h
+    defer { h.close() } //~ ERROR a cleanup reads `h`, which can already be moved when the cleanup runs
     take(k)
 }
 
 fn refillInLoopThenCloseTwice() -> Unit {
     let mut h = mkh(1)
     for i in 0..2 {
-        let f = () => { h.close() } //~ ERROR can already be moved
+        let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
         f()
-        h = mkh(10 + i) //~ ERROR cannot be assigned
-        h.close() //~ ERROR cannot be moved before the scope exits
-        h.close() //~ ERROR cannot be moved before the scope exits
+        h = mkh(10 + i)
+        h.close()
+        h.close() //~ ERROR `h` was moved; it cannot be used again
     }
 }
 
@@ -317,9 +317,9 @@ fn refillFieldThenCloseTwice() -> Unit {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     let f = () => { b.other.close() }
     f()
-    b.other = mkh(3) //~ ERROR cannot be assigned
-    b.other.close() //~ ERROR cannot be moved before the scope exits
-    take(b.other) //~ ERROR cannot be moved before the scope exits
+    b.other = mkh(3) //~ ERROR `b` was moved; it cannot be used again
+    b.other.close() //~ ERROR `b` was moved; it cannot be used again
+    take(b.other) //~ ERROR `b` was moved; it cannot be used again //~ ERROR `b.other` was moved; it cannot be used again
 }
 
 fn refillAfterLoopThenCloseTwice() -> Unit {
@@ -329,15 +329,15 @@ fn refillAfterLoopThenCloseTwice() -> Unit {
         let f = () => { h.close() }
         f()
     }
-    h = mkh(20) //~ ERROR cannot be assigned
-    h.close() //~ ERROR cannot be moved before the scope exits
-    h.close() //~ ERROR cannot be moved before the scope exits
+    h = mkh(20)
+    h.close()
+    h.close() //~ ERROR `h` was moved; it cannot be used again
 }
 
 fn shadowingLetIsNoRefill() -> Unit {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..2 {
-        let f = () => { b.other.close() } //~ ERROR can already be moved
+        let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
         f()
         let mut b = Pack { inner: mkh(3), other: mkh(4) }
         b.other = mkh(5)
@@ -346,663 +346,189 @@ fn shadowingLetIsNoRefill() -> Unit {
     }
 }
 -- expect --
-error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+error[move-join-mismatch]: `h` is moved on some paths but not others
   --> main.kg:27:17
    |
-27 |         let k = () => { h.close() } //~ ERROR can already be moved
+27 |         let k = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
    |                 ^^^^^^^^^^^^^^^^
-   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `h` is consumed here by the closure made in the previous iteration
-  --> main.kg:27:25
-   |
-27 |         let k = () => { h.close() } //~ ERROR can already be moved
-   |                         ^
 
-error[E2103]: a cleanup reads `b.other`, which can already be moved when the cleanup runs
+error[move-join-mismatch]: `b` is moved on some paths but not others
   --> main.kg:35:17
    |
-35 |         let k = () => { b.other.close() } //~ ERROR can already be moved
+35 |         let k = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
    |                 ^^^^^^^^^^^^^^^^^^^^^^
-   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `b.other` is consumed here by the closure made in the previous iteration
-  --> main.kg:35:25
-   |
-35 |         let k = () => { b.other.close() } //~ ERROR can already be moved
-   |                         ^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
   --> main.kg:44:5
    |
-44 |     h.close() //~ ERROR cannot be moved before the scope exits
+44 |     h.close() //~ ERROR `h` was moved; it cannot be used again
    |     ^
-   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-  --> main.kg:42:13
-   |
-42 |     let f = () => { h.close() }
-   |             ^^^^^^^^^^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
   --> main.kg:50:10
    |
-50 |     take(h) //~ ERROR cannot be moved before the scope exits
+50 |     take(h) //~ ERROR `h` was moved; it cannot be used again
    |          ^
-   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-  --> main.kg:49:13
+
+error[use-after-move]: `h` was moved; it cannot be used again
+  --> main.kg:57:13
    |
-49 |     let f = () => { h.close() }
+57 |     let g = () => { h.close() } //~ ERROR `h` was moved; it cannot be used again
    |             ^^^^^^^^^^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main.kg:57:21
-   |
-57 |     let g = () => { h.close() } //~ ERROR cannot be moved before the scope exits
-   |                     ^
-   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-  --> main.kg:56:13
-   |
-56 |     let f = () => { h.close() }
-   |             ^^^^^^^^^^^^^^^^
-
-error[E2103]: a cleanup reads `g`, which can already be moved when the cleanup runs
+error[move-join-mismatch]: `g` is moved on some paths but not others
   --> main.kg:66:17
    |
-66 |         let k = () => { g() } //~ ERROR can already be moved
+66 |         let k = () => { g() } //~ ERROR `g` is moved on some paths but not others
    |                 ^^^^^^^^^^
-   = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `g` is consumed here by the closure made in the previous iteration
-  --> main.kg:66:25
-   |
-66 |         let k = () => { g() } //~ ERROR can already be moved
-   |                         ^
 
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-  --> main.kg:95:5
+error[use-after-move]: `h` was moved; it cannot be used again
+  --> main.kg:74:13
    |
-95 |     h = mkh(9) //~ ERROR cannot be assigned
-   |     ^
-   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-  --> main.kg:92:17
-   |
-92 |         let k = () => { h.close() }
-   |                 ^^^^^^^^^^^^^^^^
+74 |     let n = h.peek() //~ ERROR `h` was moved; it cannot be used again
+   |             ^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main.kg:96:5
-   |
-96 |     h.close() //~ ERROR cannot be moved before the scope exits
-   |     ^
-   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-  --> main.kg:92:17
-   |
-92 |         let k = () => { h.close() }
-   |                 ^^^^^^^^^^^^^^^^
+error[use-after-move]: `h` was moved; it cannot be used again
+   --> main.kg:106:5
+    |
+106 |     h.close() //~ ERROR `h` was moved; it cannot be used again
+    |     ^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[move-join-mismatch]: `h` is moved on some paths but not others
    --> main.kg:115:5
     |
-115 |     h.close() //~ ERROR cannot be moved before the scope exits
+115 |     h.close() //~ ERROR `h` is moved on some paths but not others
     |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:112:17
-    |
-112 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
    --> main.kg:124:5
     |
-124 |     h.close() //~ ERROR cannot be moved before the scope exits
+124 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:121:17
-    |
-121 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
    --> main.kg:134:5
     |
-134 |     h.close() //~ ERROR cannot be moved before the scope exits
+134 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:130:17
-    |
-130 |         let g = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
    --> main.kg:142:5
     |
-142 |     h.close() //~ ERROR cannot be moved before the scope exits
+142 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:139:17
-    |
-139 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
 
-error[E2101]: `b.other` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `b` was moved; it cannot be used again
    --> main.kg:151:5
     |
-151 |     b.other.close() //~ ERROR cannot be moved before the scope exits
+151 |     b.other.close() //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `b.other` is consumed when this closure is called
-   --> main.kg:148:17
-    |
-148 |         let f = () => { b.other.close() }
-    |                 ^^^^^^^^^^^^^^^^^^^^^^
 
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:160:5
-    |
-160 |     h = mkh(2) //~ ERROR cannot be assigned before the scope exits
-    |     ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:156:13
-    |
-156 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:161:5
-    |
-161 |     h.close() //~ ERROR cannot be moved before the scope exits
-    |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:156:13
-    |
-156 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:169:9
-    |
-169 |         h = mkh(2) //~ ERROR cannot be assigned
-    |         ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:166:13
-    |
-166 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[move-join-mismatch]: `h` is moved on some paths but not others
    --> main.kg:171:5
     |
-171 |     h.close() //~ ERROR cannot be moved before the scope exits
+171 |     h.close() //~ ERROR `h` is moved on some paths but not others
     |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:166:13
-    |
-166 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
    --> main.kg:180:9
     |
-180 |         h.close() //~ ERROR cannot be moved before the scope exits
+180 |         h.close() //~ ERROR `h` was moved; it cannot be used again
     |         ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:176:13
-    |
-176 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
 
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:188:5
-    |
-188 |     h = mkh(2) //~ ERROR cannot be assigned
-    |     ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:186:13
-    |
-186 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:189:5
-    |
-189 |     h.close() //~ ERROR cannot be moved before the scope exits
-    |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:186:13
-    |
-186 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:197:9
-    |
-197 |         h = mkh(i + 10) //~ ERROR cannot be assigned
-    |         ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:195:17
-    |
-195 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:198:9
-    |
-198 |         h.close() //~ ERROR cannot be moved before the scope exits
-    |         ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:195:17
-    |
-195 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
-   --> main.kg:205:17
-    |
-205 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `h` is consumed here by the closure made in the previous iteration
-   --> main.kg:205:25
-    |
-205 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                         ^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:207:9
-    |
-207 |         h = mkh(i + 31) //~ ERROR cannot be assigned
-    |         ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:205:17
-    |
-205 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:209:5
-    |
-209 |     h.close() //~ ERROR cannot be moved before the scope exits
-    |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:205:17
-    |
-205 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:218:5
-    |
-218 |     h = mkh(2) //~ ERROR cannot be assigned
-    |     ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:215:17
-    |
-215 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:219:5
-    |
-219 |     h.close() //~ ERROR cannot be moved before the scope exits
-    |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:215:17
-    |
-215 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
-   --> main.kg:225:17
-    |
-225 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `h` is consumed here by the closure made in the previous iteration
-   --> main.kg:225:25
-    |
-225 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                         ^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:230:9
-    |
-230 |         h = mkh(10 + i) //~ ERROR cannot be assigned
-    |         ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:225:17
-    |
-225 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
+error[move-join-mismatch]: `h` is moved on some paths but not others
    --> main.kg:237:17
     |
-237 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `h` is consumed here by the closure made in the previous iteration
-   --> main.kg:237:25
-    |
-237 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                         ^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:242:9
-    |
-242 |         h = mkh(10 + i) //~ ERROR cannot be assigned
-    |         ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:237:17
-    |
-237 |         let f = () => { h.close() } //~ ERROR can already be moved
+237 |         let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
     |                 ^^^^^^^^^^^^^^^^
 
-error[E2103]: a cleanup reads `b.other`, which can already be moved when the cleanup runs
+error[move-join-mismatch]: `b` is moved on some paths but not others
    --> main.kg:249:17
     |
-249 |         let f = () => { b.other.close() } //~ ERROR can already be moved
+249 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
     |                 ^^^^^^^^^^^^^^^^^^^^^^
-    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `b.other` is consumed here by the closure made in the previous iteration
-   --> main.kg:249:25
-    |
-249 |         let f = () => { b.other.close() } //~ ERROR can already be moved
-    |                         ^^^^^^^
 
-error[E2100]: `b.other` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+error[use-after-move]: `b` was moved; it cannot be used again
    --> main.kg:254:9
     |
-254 |         b.other = mkh(10 + i) //~ ERROR cannot be assigned
+254 |         b.other = mkh(10 + i) //~ ERROR `b` was moved; it cannot be used again
     |         ^^^^^^^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `b.other` is consumed when this closure is called
-   --> main.kg:249:17
-    |
-249 |         let f = () => { b.other.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^^^^^^^
 
-error[E2103]: a cleanup reads `b.other`, which can already be moved when the cleanup runs
+error[move-join-mismatch]: `b` is moved on some paths but not others
    --> main.kg:261:17
     |
-261 |         let f = () => { b.other.close() } //~ ERROR can already be moved
+261 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
     |                 ^^^^^^^^^^^^^^^^^^^^^^
-    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `b.other` is consumed here by the closure made in the previous iteration
-   --> main.kg:261:25
-    |
-261 |         let f = () => { b.other.close() } //~ ERROR can already be moved
-    |                         ^^^^^^^
 
-error[E2100]: `b.other` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+error[use-after-move]: `b` was moved; it cannot be used again
    --> main.kg:266:9
     |
-266 |         b.other = mkh(10 + i) //~ ERROR cannot be assigned
+266 |         b.other = mkh(10 + i) //~ ERROR `b` was moved; it cannot be used again
     |         ^^^^^^^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `b.other` is consumed when this closure is called
-   --> main.kg:261:17
-    |
-261 |         let f = () => { b.other.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^^^^^^^
 
-error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
-   --> main.kg:273:17
-    |
-273 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `h` is consumed here by the closure made in the previous iteration
-   --> main.kg:273:25
-    |
-273 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                         ^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:275:9
-    |
-275 |         h = mkh(10 + i) //~ ERROR cannot be assigned
-    |         ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:273:17
-    |
-273 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:280:5
-    |
-280 |     h.close() //~ ERROR cannot be moved before the scope exits
-    |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:273:17
-    |
-273 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:287:5
-    |
-287 |     h = mkh(2) //~ ERROR cannot be assigned
-    |     ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:285:13
-    |
-285 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:288:5
-    |
-288 |     h.close() //~ ERROR cannot be moved before the scope exits
-    |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:285:13
-    |
-285 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
    --> main.kg:289:5
     |
-289 |     h.close() //~ ERROR cannot be moved before the scope exits
+289 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:285:13
-    |
-285 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:296:5
-    |
-296 |     h = mkh(2) //~ ERROR cannot be assigned
-    |     ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:294:13
-    |
-294 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:297:13
-    |
-297 |     let k = h //~ ERROR cannot be moved before the scope exits
-    |             ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:294:13
-    |
-294 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
-
-error[E2102]: `h` is already consumed by an earlier cleanup
-   --> main.kg:298:13
-    |
-298 |     defer { h.close() } //~ ERROR already consumed by an earlier cleanup
-    |             ^
-    = help: only one cleanup in scope may consume a binding
-note: `h` is consumed when this closure is called
-   --> main.kg:294:13
-    |
-294 |     let f = () => { h.close() }
-    |             ^^^^^^^^^^^^^^^^
 
 error[E2103]: a cleanup reads `h`, which can already be moved when the cleanup runs
-   --> main.kg:305:17
+   --> main.kg:298:13
     |
-305 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
+298 |     defer { h.close() } //~ ERROR a cleanup reads `h`, which can already be moved when the cleanup runs
+    |             ^
     = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `h` is consumed here by the closure made in the previous iteration
-   --> main.kg:305:25
+note: `h` is moved here
+   --> main.kg:297:13
     |
-305 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                         ^
+297 |     let k = h
+    |             ^
 
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:307:9
-    |
-307 |         h = mkh(10 + i) //~ ERROR cannot be assigned
-    |         ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
+error[move-join-mismatch]: `h` is moved on some paths but not others
    --> main.kg:305:17
     |
-305 |         let f = () => { h.close() } //~ ERROR can already be moved
+305 |         let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
     |                 ^^^^^^^^^^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:308:9
-    |
-308 |         h.close() //~ ERROR cannot be moved before the scope exits
-    |         ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:305:17
-    |
-305 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
    --> main.kg:309:9
     |
-309 |         h.close() //~ ERROR cannot be moved before the scope exits
+309 |         h.close() //~ ERROR `h` was moved; it cannot be used again
     |         ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:305:17
-    |
-305 |         let f = () => { h.close() } //~ ERROR can already be moved
-    |                 ^^^^^^^^^^^^^^^^
 
-error[E2100]: `b.other` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+error[use-after-move]: `b` was moved; it cannot be used again
    --> main.kg:317:5
     |
-317 |     b.other = mkh(3) //~ ERROR cannot be assigned
+317 |     b.other = mkh(3) //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `b.other` is consumed when this closure is called
-   --> main.kg:315:13
-    |
-315 |     let f = () => { b.other.close() }
-    |             ^^^^^^^^^^^^^^^^^^^^^^
 
-error[E2101]: `b.other` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `b` was moved; it cannot be used again
    --> main.kg:318:5
     |
-318 |     b.other.close() //~ ERROR cannot be moved before the scope exits
+318 |     b.other.close() //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `b.other` is consumed when this closure is called
-   --> main.kg:315:13
-    |
-315 |     let f = () => { b.other.close() }
-    |             ^^^^^^^^^^^^^^^^^^^^^^
 
-error[E2101]: `b.other` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `b` was moved; it cannot be used again
    --> main.kg:319:10
     |
-319 |     take(b.other) //~ ERROR cannot be moved before the scope exits
+319 |     take(b.other) //~ ERROR `b` was moved; it cannot be used again //~ ERROR `b.other` was moved; it cannot be used again
     |          ^^^^^^^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `b.other` is consumed when this closure is called
-   --> main.kg:315:13
-    |
-315 |     let f = () => { b.other.close() }
-    |             ^^^^^^^^^^^^^^^^^^^^^^
 
-error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-   --> main.kg:329:5
+error[use-after-move]: `b.other` was moved; it cannot be used again
+   --> main.kg:319:5
     |
-329 |     h = mkh(20) //~ ERROR cannot be assigned
-    |     ^
-    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
-note: `h` is consumed when this closure is called
-   --> main.kg:326:17
-    |
-326 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
+319 |     take(b.other) //~ ERROR `b` was moved; it cannot be used again //~ ERROR `b.other` was moved; it cannot be used again
+    |     ^^^^^^^^^^^^
 
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-   --> main.kg:330:5
-    |
-330 |     h.close() //~ ERROR cannot be moved before the scope exits
-    |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:326:17
-    |
-326 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+error[use-after-move]: `h` was moved; it cannot be used again
    --> main.kg:331:5
     |
-331 |     h.close() //~ ERROR cannot be moved before the scope exits
+331 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
-    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is consumed when this closure is called
-   --> main.kg:326:17
-    |
-326 |         let f = () => { h.close() }
-    |                 ^^^^^^^^^^^^^^^^
 
-error[E2103]: a cleanup reads `b.other`, which can already be moved when the cleanup runs
+error[move-join-mismatch]: `b` is moved on some paths but not others
    --> main.kg:337:17
     |
-337 |         let f = () => { b.other.close() } //~ ERROR can already be moved
+337 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
     |                 ^^^^^^^^^^^^^^^^^^^^^^
-    = help: keep the binding in place until the scope exits, or save what the cleanup needs in another binding
-note: `b.other` is consumed here by the closure made in the previous iteration
-   --> main.kg:337:25
-    |
-337 |         let f = () => { b.other.close() } //~ ERROR can already be moved
-    |                         ^^^^^^^
 

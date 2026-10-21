@@ -69,6 +69,7 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		}
 		given[fld] = true
 		c.checkArg(value, c.r.Types.Subst(c.r.Entities[fld].Type, subst), 0, false)
+		c.rejectFieldValue(value)
 		c.checkEscapeStore(value)
 	}
 	var missing []string

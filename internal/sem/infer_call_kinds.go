@@ -34,6 +34,9 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 			continue
 		}
 		c.checkArg(a, c.r.Types.Subst(vi.Payload[i], subst), 0, false)
+		if c.t.Kind(c.t.Unparen(a)) == syntax.MemberExpr {
+			c.rejectFieldValue(a)
+		}
 		c.checkEscapeStore(a)
 	}
 	if !c.fixedPayload(args) {

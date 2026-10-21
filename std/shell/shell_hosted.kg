@@ -55,7 +55,7 @@ pub fn run(plan: Plan, sh: Shell) -> PipelineResult! {
     let r = runPlan(&plan)?
     writeAll(1, r.stdout)
     writeAll(2, r.stderr)
-    PipelineResult { statuses: r.statuses }
+    PipelineResult { statuses: move r.statuses }
 }
 
 fn writeAll(fd: i32, data: Bytes) -> Unit {

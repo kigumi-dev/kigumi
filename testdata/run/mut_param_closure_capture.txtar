@@ -18,9 +18,11 @@ fn bump(mut n: Int) -> Int {
 }
 
 fn viaClosure[G: Grower](mut g: G) -> Int {
-    let add = (k: Int) => { g.grow(k) }
+    let add = (k: Int) => {
+        g.grow(k)
+        g.size()
+    }
     add(1)
-    g.size()
 }
 
 fn Counter.twice[G: Grower](mut self, other: G) -> Int {

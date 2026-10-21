@@ -205,8 +205,8 @@ fn borrowHeldUnused() -> Unit {
 
 fn closureBeforeCleanupUnused() -> Unit {
     let mut h = mkh(220)
-    let f = () => { h = mkh(221) }
-    f()
+    let f = () => { mkh(221) }
+    h = f()
     defer { h.close() }
 }
 

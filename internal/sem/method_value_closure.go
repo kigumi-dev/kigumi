@@ -10,9 +10,6 @@ type methodClosureKey struct {
 
 type methodValueState struct {
 	shared     map[methodClosureKey][]EntityID
-	aliases    map[EntityID]EntityID
-	fieldMoves map[EntityID][]fieldMoveSite
-	loops      []syntax.NodeID
 	deferrable map[uint32]string
 	pending    []pendingInfer
 	nodes      []syntax.NodeID
