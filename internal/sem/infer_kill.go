@@ -20,7 +20,7 @@ func (c *checker) topLevelStmt(stmt syntax.NodeID) bool {
 }
 
 type bodyStmtSet struct {
-	body  syntax.NodeID
+	fn    EntityID
 	stmts map[syntax.NodeID]struct{}
 }
 
@@ -29,9 +29,9 @@ func (c *checker) isBodyStmt(stmt syntax.NodeID) bool {
 	if body == 0 {
 		return false
 	}
-	if c.r.flow.bodyStmts.body != body || c.r.flow.bodyStmts.stmts == nil {
+	if c.r.flow.bodyStmts.fn != c.fn || c.r.flow.bodyStmts.stmts == nil {
 		ids := c.t.List(body).AppendIDs(nil)
-		c.r.flow.bodyStmts = bodyStmtSet{body: body, stmts: make(map[syntax.NodeID]struct{}, len(ids))}
+		c.r.flow.bodyStmts = bodyStmtSet{fn: c.fn, stmts: make(map[syntax.NodeID]struct{}, len(ids))}
 		for _, id := range ids {
 			c.r.flow.bodyStmts.stmts[id] = struct{}{}
 		}

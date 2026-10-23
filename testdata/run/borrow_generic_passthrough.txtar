@@ -1,7 +1,5 @@
 -- src --
-// A borrow only ever reaches a field declared `&'a T`, so a record holding
-// one keeps working when a generic function owns, returns and drops it, and
-// when another generic record owns that record in turn.
+// A borrow only reaches a field declared `&'a T`, so a record holding one survives generic ownership.
 type View['a] = {
     pub data &'a Bytes
     pub mut off usize

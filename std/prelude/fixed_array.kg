@@ -10,9 +10,7 @@ pub pure fn FixedArray.filled[T: Copy, const N: usize](value: T) -> FixedArray[T
     FixedArray.adopt(Array.fill(value, N))
 }
 
-/// A type whose zero value is known statically, dispatched the way
-/// `Digest.new()` is: lets `zeroed` reach a correctly-tagged zero of an
-/// otherwise-erased T without a value to copy.
+/// A type whose zero value is known statically, so `zeroed` can build a zero of an erased T.
 pub interface Zero {
     pure fn zero() -> Self
 }
@@ -154,9 +152,7 @@ pub pure fn FixedArray.fromArray[T: Copy, const N: usize](a: &Array[T]) -> Fixed
     Some(FixedArray.adopt(a.clone()))
 }
 
-/// Moves a's elements in, or None (dropping a) when its length is not N.
-/// The only constructor that works for a move-only (resource) T: it takes
-/// ownership instead of cloning, so it needs no Copy bound.
+/// Moves a's elements in, or None (dropping a) when its length is not N; needs no Copy bound.
 pub pure fn FixedArray.fromArrayMove[T, const N: usize](a: Array[T]) -> FixedArray[T, N]? {
     if a.len() != N {
         return None
@@ -165,9 +161,7 @@ pub pure fn FixedArray.fromArrayMove[T, const N: usize](a: Array[T]) -> FixedArr
 }
 
 /// N bytes read out of a Bytes value, or None when its length is not N.
-/// A method on Bytes (not on FixedArray[u8, N]) because a receiver binder
-/// must reuse the owning type's own parameter names (`FixedArray[T, ...]`);
-/// it cannot fix T to `u8` the way this conversion needs.
+/// On Bytes because a receiver binder cannot fix T to `u8` on FixedArray.
 pub pure fn Bytes.toFixed[const N: usize](self) -> FixedArray[u8, N]? {
     if self.len() != N {
         return None

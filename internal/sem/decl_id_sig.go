@@ -31,7 +31,7 @@ func (r *Result) siblingMatches(ent EntityID, members []EntityID, key func(Entit
 }
 
 func (r *Result) fullKey(ent EntityID) string {
-	return r.paramsKey(ent) + "->" + r.signatureKey(r.Fn(ent).Sig)
+	return r.paramsKey(ent) + "->" + r.signatureKey(ent, r.Fn(ent).Sig)
 }
 
 func (r *Result) boundsKey(ent EntityID) string {
@@ -47,7 +47,7 @@ func (r *Result) boundsKey(ent EntityID) string {
 			for _, c := range r.typeParam(p).Constraints {
 				sb.WriteString(itoa(int(c.Kind)))
 				if c.Type != 0 {
-					sb.WriteString(":" + r.signatureKey(c.Type))
+					sb.WriteString(":" + r.signatureKey(ent, c.Type))
 				}
 				sb.WriteString(",")
 			}
@@ -70,7 +70,7 @@ func (r *Result) paramsKey(ent EntityID) string {
 	}
 	sb.WriteString("(")
 	if info.Sig != 0 {
-		r.writeKeys(&sb, r.Types.nodes[info.Sig].Args, true)
+		r.writeKeys(&sb, r.Types.nodes[info.Sig].Args, r.numberingOf(ent))
 	}
 	sb.WriteString(")")
 	return sb.String()

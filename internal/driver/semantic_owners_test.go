@@ -20,7 +20,7 @@ type ownerEntry struct {
 	Key         string `json:"key"` // "std/"-stripped package[.owner].name
 	Signature   string `json:"signature"`
 	HasBody     bool   `json:"has_body"`    // a Kigumi reference body exists
-	Kind        string `json:"kind"`        // "primitive", "provider", or "" (not in the N1 registry)
+	Kind        string `json:"kind"`        // "primitive", "provider", or "" (not in the std op registry)
 	VM          string `json:"vm"`          // "implemented" or "gap"
 	Native      string `json:"native"`      // "implemented" or "gap"
 	Accelerated bool   `json:"accelerated"` // HasBody and some backend also answers it directly

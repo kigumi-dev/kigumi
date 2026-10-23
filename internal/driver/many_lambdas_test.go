@@ -11,7 +11,6 @@ import (
 	"kigumi/internal/driver"
 )
 
-// The VM looked up a closure's entity in the function table, which a program with more closures than functions overran.
 func TestRunProgramWithManyLambdas(t *testing.T) {
 	const n = 1500
 	var src strings.Builder

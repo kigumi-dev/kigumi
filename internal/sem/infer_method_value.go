@@ -34,6 +34,7 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 		return TyPoison
 	}
 	c.deferFFIValueCheck(n, m, inst, valueType)
+	c.deferTruncateValue(n, m, inst)
 	if async {
 		sig = c.asyncValueFn(sig)
 	} else {

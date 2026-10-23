@@ -40,7 +40,6 @@ func tidyCmd(root *string) *cobra.Command {
 				cmd.Println("nothing to remove")
 				return nil
 			}
-			// Read the lock before editing the manifest, not after.
 			lock, err := driver.ReadLock(*root)
 			if err != nil {
 				return errors.WrapErr(err, "read lock")

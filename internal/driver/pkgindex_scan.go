@@ -19,8 +19,15 @@ func scanImports(src []byte) []string {
 		if tk.Kind != token.KwImport {
 			continue
 		}
-		for j := i + 1; j < len(toks) && toks[j].Kind != token.Newline && toks[j].Kind != token.EOF; j++ {
-			if toks[j].Kind != token.Ident || toks[j].Text(src) != "from" {
+		depth := 0
+		for j := i + 1; j < len(toks) && toks[j].Kind != token.EOF && (depth > 0 || toks[j].Kind != token.Newline); j++ {
+			switch toks[j].Kind {
+			case token.LBrace:
+				depth++
+			case token.RBrace:
+				depth--
+			}
+			if depth > 0 || toks[j].Kind != token.Ident || toks[j].Text(src) != "from" {
 				continue
 			}
 			from := int(toks[j].End)

@@ -1,0 +1,25 @@
+-- app/v/v.kg --
+interface Flusher {
+    fn flush(self) -> Int ! //~ ERROR write `-> Int!`
+    fn close(self) !
+    fn sync(self) -> Void!
+}
+
+fn withDefault(x: Int = 1) -> Int ! { //~ ERROR write `-> Int!`
+    x
+}
+-- expect --
+error[E2184]: `!` must touch the return type: write `-> Int!`
+ --> app/v/v.kg:2:5
+  |
+2 |     fn flush(self) -> Int ! //~ ERROR write `-> Int!`
+  |     ^^^^^^^^^^^^^^^^^^^^^
+  = help: a bare `!` right after the parameter list, with no `->`, means `-> Void!`
+
+error[E2184]: `!` must touch the return type: write `-> Int!`
+ --> app/v/v.kg:7:1
+  |
+7 | fn withDefault(x: Int = 1) -> Int ! { //~ ERROR write `-> Int!`
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: a bare `!` right after the parameter list, with no `->`, means `-> Void!`
+

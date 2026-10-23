@@ -37,8 +37,6 @@ func checkDeterministic(t *testing.T, path string) {
 	}
 }
 
-// TestMethodFieldWriteFixpointTerminates guards closeMethodFieldWrites: a
-// record-literal setter argument used to mint a fresh entity every pass, never converging.
 func TestMethodFieldWriteFixpointTerminates(t *testing.T) {
 	fx := parseFixture(t, "../../testdata/sem/async_root_bridge.txtar")
 	mod := buildModule(t, fx)

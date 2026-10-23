@@ -78,9 +78,7 @@ func (c *checker) genericFnItemCallable(n syntax.NodeID) (EntityID, bool) {
 	return item, true
 }
 
-// coerceGenericFnItem fits a generic fn item's instantiation to a callable type; a bare type
-// parameter never adopts a `&T`/`&mut T` slot's referent, since the item's compiled body expects
-// an owned parameter and calling it through a borrow would hand back a reference with no retain to match.
+// A bare type parameter never adopts a `&T` slot's referent: the item's body expects an owned parameter.
 func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want TypeID) bool {
 	var fresh []TypeID
 	for i := len(c.r.Instances[item]) - 1; i >= 0; i-- {

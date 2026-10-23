@@ -18,10 +18,7 @@ func PlanRC(p *Program) error {
 	return planAsync(p)
 }
 
-// rcState is the working memory PlanRC threads across one function's
-// blocks, in the same block-array order the two backends walk today: which
-// temporary stands for which named local (alias), and which temporaries a
-// borrow produced (never copied, never re-aliased further).
+// rcState maps each temporary to the named local it stands for and marks borrow results, which are never copied.
 type rcState struct {
 	alias    map[LocalID]LocalID
 	borrowed map[LocalID]bool
@@ -104,11 +101,7 @@ func (p *Program) copyBinding(f *Func, in *Inst, st *rcState, w *shareFacts, at 
 	return []LocalID{in.Args[0]}
 }
 
-// rewriteCopy turns one OpCopy into OpAlias (no runtime call) or OpShare
-// (rt_copy/rt_retain), following the same cases the backends' OpCopy
-// handling does: an eager Share, a source that is itself a temporary or a
-// borrow (a pure alias), a single-definition temporary destination
-// deferred to its own consuming use, or an eager share by default.
+// rewriteCopy turns one OpCopy into OpAlias (no runtime call) or OpShare (rt_copy/rt_retain).
 func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState, w *shareFacts, at Point) {
 	switch in.Op {
 	case OpBorrow, OpLendBox:
@@ -118,8 +111,7 @@ func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState, w *sha
 		st.borrowed[in.Dst] = in.Lent
 		return
 	case OpAlias:
-		// A defined-type wrap/unwrap emits this instead of an OpCopy PlanRC
-		// rewrites, but its chain must still be recorded for origin() to work.
+		// A defined-type wrap or unwrap emits this, and origin() still needs its chain.
 		if len(in.Args) == 1 {
 			st.alias[in.Dst] = st.origin(in.Args[0])
 		}
@@ -146,7 +138,7 @@ func (p *Program) rewriteCopy(f *Func, in *Inst, plan *Plan, st *rcState, w *sha
 		in.Op = OpAlias
 		st.viaBorrow[in.Dst] = true
 	default:
-		in.Op, in.Copy = OpShare, p.copyable(f.Locals[src].Type)
+		in.Op, in.Copy = OpShare, p.copyable(f.Locals[src].Type) && !w.bindingShares(at)
 		if in.Last = p.bindsLast(f, *in, src, w, at); in.Last {
 			in.Args = []LocalID{src}
 		}

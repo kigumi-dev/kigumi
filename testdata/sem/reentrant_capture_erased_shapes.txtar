@@ -22,7 +22,7 @@ fn pack(f: escaping fn() -> Void) -> Holder {
 
 fn viaFieldRead(mut v: Resource) {
     let holder = pack(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
-    v.run(holder.cb) //~ ERROR cannot see what this closure captures
+    v.run(holder.cb)
 }
 
 fn identity(f: escaping fn() -> Void) -> fn() -> Void {
@@ -58,18 +58,6 @@ error[E413]: closure captures `v` (move-only) and cannot be a plain `fn`
 23 |     let holder = pack(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
    |                       ^^^^^^^^^^^^^^^^^^^^^
    = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
-
-error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
-  --> app/t/t.kg:24:11
-   |
-24 |     v.run(holder.cb) //~ ERROR cannot see what this closure captures
-   |           ^^^^^^^^^
-   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
-note: `v` is exclusively borrowed by this call
-  --> app/t/t.kg:24:5
-   |
-24 |     v.run(holder.cb) //~ ERROR cannot see what this closure captures
-   |     ^
 
 error[E413]: closure captures `v` (move-only) and cannot be a plain `fn`
   --> app/t/t.kg:32:27

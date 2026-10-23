@@ -1,0 +1,18 @@
+-- src --
+fn main() {
+    let big: Int = 300
+    let f = big.truncate[u8]
+    print "${f()}"
+    let w: u16 = 0x1234
+    let mk = () => w.truncate[u8]
+    print "${mk()()}"
+    let g = w.toU64
+    print "${g()}"
+}
+-- stdout --
+44
+52
+4660
+-- stderr --
+-- exit --
+0

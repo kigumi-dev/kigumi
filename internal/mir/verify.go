@@ -2,7 +2,7 @@ package mir
 
 import "fmt"
 
-// Error is a verifier finding: a rule the program breaks, at one point of
+// Error is a verifier finding: a rule a function breaks, at one point of its body.
 type Error struct {
 	Func string
 	Rule string

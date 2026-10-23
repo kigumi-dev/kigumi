@@ -1,11 +1,12 @@
 -- module --
 mir: planned
 -- src --
-async fn both(a: &Int, b: &Int) -> Int { a + b }
-async fn run() -> Int {
-    let x = 1
-    let y = 2
-    await both(&x, &y) //~ ERROR a borrow cannot be captured by a future
+async fn one(a: &Int) -> Int { a + 1 }
+type H = {
+    pub mut f Future[Int]
+}
+fn store(a: &Int, h: &mut H) {
+    h.f = one(a) //~ ERROR a borrow cannot be captured by a future
 }
 type R = resource {
     pub id Int
@@ -25,27 +26,27 @@ fn twice() {
 }
 -- expect --
 error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
- --> main.kg:5:11
+ --> main.kg:6:11
   |
-5 |     await both(&x, &y) //~ ERROR a borrow cannot be captured by a future
-  |           ^^^^^^^^^^^
+6 |     h.f = one(a) //~ ERROR a borrow cannot be captured by a future
+  |           ^^^^^
 
 error[E2197]: `r` was moved in an earlier iteration of the loop; it cannot be moved again
-  --> main.kg:15:13
+  --> main.kg:16:13
    |
-15 |         eat(r) //~ ERROR `r` was moved in an earlier iteration of the loop
+16 |         eat(r) //~ ERROR `r` was moved in an earlier iteration of the loop
    |             ^
    = help: create the value inside the loop, or leave the loop right after moving it
 
 error[E2197]: `r` was moved; it cannot be used again
-  --> main.kg:21:9
+  --> main.kg:22:9
    |
-21 |     eat(r) //~ ERROR `r` was moved
+22 |     eat(r) //~ ERROR `r` was moved
    |         ^
    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `r` is moved here
-  --> main.kg:20:9
+  --> main.kg:21:9
    |
-20 |     eat(r)
+21 |     eat(r)
    |         ^
 

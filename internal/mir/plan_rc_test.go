@@ -10,10 +10,6 @@ import (
 	"kigumi/internal/testkit"
 )
 
-// TestPlanRCCorpus runs PlanRC over every mir and run fixture: the result
-// must still verify, no OpCopy may survive, and (since every fixture has
-// at least one temporary) at least one OpRelease must appear somewhere in
-// the whole run, or the release-insertion step is dead.
 func TestPlanRCCorpus(t *testing.T) {
 	var files []string
 	for _, glob := range []string{"../../testdata/mir/*.txtar", "../../testdata/run/*.txtar"} {
@@ -77,10 +73,7 @@ func rcLocals(t sem.TypeID, ent sem.EntityID, named ...bool) []mir.Local {
 	return ls
 }
 
-// planRC runs the rewrite alone, without the surrounding Verify calls
-// Apply makes: these fixtures each isolate one decision and are not
-// otherwise complete, ownership-valid functions (TestPlanRCCorpus checks
-// the pass against real, fully valid programs instead).
+// planRC skips the Verify calls Apply makes: these fixtures isolate one decision and are not valid functions.
 func planRC(t *testing.T, f *mir.Func, p *mir.Program) {
 	t.Helper()
 	p.Funcs = []*mir.Func{f}
@@ -157,9 +150,6 @@ func TestPlanRCBorrowNoShare(t *testing.T) {
 	}
 }
 
-// TestPlanRCArgShare: a deferred alias (a Copy-typed named local copied
-// into a single-use temporary) only takes its own reference where a later
-// instruction actually consumes it, as an OpShare inserted right there.
 func TestPlanRCArgShare(t *testing.T) {
 	p := program(t)
 	ent := p.R.Types.ErrorEnt()

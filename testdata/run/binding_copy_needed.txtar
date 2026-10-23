@@ -1,0 +1,49 @@
+-- src --
+type Named = {
+    pub name String
+    pub mut n Int
+}
+
+noalloc fn heldCopy(x: Named) -> Int {
+    let y = x
+    y.n + x.n
+}
+
+fn writeSource(x: Named) -> Int {
+    let mut s = x
+    let y = s
+    s.n = 10
+    y.n + s.n
+}
+
+fn writeCopy(x: Named) -> Int {
+    let mut y = x
+    y.n = 20
+    y.n + x.n
+}
+
+fn writeInLoop(x: Named) -> Int {
+    let mut s = x
+    let y = s
+    let mut total = 0
+    for i in 0..3 {
+        s.n = s.n + 1
+        total = total + y.n + s.n
+    }
+    total
+}
+
+fn main() {
+    let ns = Array.of(Named { name: "a", n: 3 })
+    print "${heldCopy(ns[0])}"
+    print "${writeSource(ns[0])}"
+    print "${writeCopy(ns[0])}"
+    print "${writeInLoop(ns[0])}"
+    print "${ns[0].n}"
+}
+-- stdout --
+6
+13
+23
+24
+3

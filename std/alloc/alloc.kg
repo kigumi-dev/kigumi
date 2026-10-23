@@ -4,8 +4,7 @@ import {Display} from std/fmt
 pub type Arena
 
 /// Handle to an allocator, obtained from `Arena.create()`; `scope()` makes it current.
-/// Its arena tracks live references with a plain counter, not an atomic one,
-/// so it is neither Send nor Sync.
+/// It counts references non-atomically, so it is neither Send nor Sync.
 pub type AllocatorHandle
 
 /// Value consumed by an `allocator ... { }` block to route its allocations.
@@ -17,8 +16,7 @@ pub type Shared[T]
 /// Non-owning handle to a Shared cell; it breaks reference cycles.
 pub type Weak[T]
 
-/// Owned heap cell holding one T: exactly one owner, and dropping the Box drops the content. It is never copied
-/// or cloned implicitly, and it is the way a type refers to itself (`Wrap(kid: Box[Node])`).
+/// Owned heap cell holding one T: exactly one owner, never copied implicitly, and how a type refers to itself (`Wrap(kid: Box[Node])`).
 /// Safety: a Box is the only owner of its T, so sending it moves T and sharing it only shares T.
 @unsafeGuarantee(Send when T: Send, Sync when T: Sync)
 pub type Box[T]
@@ -33,7 +31,7 @@ pub fn Arena.tryCreate() -> Result[AllocatorHandle, AllocError]
 /// bookkeeping lives in this allocator, so no ambient allocator is needed.
 pub noalloc fn AllocatorHandle.scope(self) -> AllocatorScope
 
-/// Bytes handed out by this allocator so far; the interpreter reports 0.
+/// Bytes handed out by this allocator so far; the VM reports 0.
 pub fn AllocatorHandle.allocated(self) -> Int
 
 /// Wraps a value in a shared cell.

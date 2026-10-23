@@ -86,10 +86,8 @@ func (r *Result) ifaceInstSubst(iface, t TypeID) map[EntityID]TypeID {
 	return subst
 }
 
-// findWitness looks for the method of t that satisfies requirement req. A
-// generic method (own type parameters past the owner's) wins only when
-// unifying its signature against req determines every one of them uniquely;
-// ownSubst carries that determination, nil when the method has none.
+// findWitness looks for the method of t that satisfies req. A generic method wins only when unifying with req fixes
+// every own type parameter uniquely; ownSubst carries that, nil when there is none.
 func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, from PackageID) (m EntityID, why string, generic bool, ownSubst map[EntityID]TypeID) {
 	rinfo := r.Fn(req)
 	name := r.Entities[req].Name
@@ -112,7 +110,7 @@ func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, 
 			why, generic = "`"+name+"` is a method, the requirement is an associated function", false
 			continue
 		}
-		if !r.memberImportedBy(cand, from) {
+		if r.Entities[cand].Pkg != r.Entities[req].Pkg && !r.memberImportedBy(cand, from) {
 			why, generic = "`"+name+"` is declared in package `"+r.Packages[r.Entities[cand].Pkg].Path+"`, which is not imported here", false
 			continue
 		}

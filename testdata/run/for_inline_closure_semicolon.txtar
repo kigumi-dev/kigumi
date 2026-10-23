@@ -1,0 +1,11 @@
+-- src --
+fn main() {
+    let xs = Array.of(1, 2, 3)
+    for v in xs.map((y: &Int) => { let z = y * 3; z }) {
+        print "${v}"
+    }
+}
+-- stdout --
+3
+6
+9

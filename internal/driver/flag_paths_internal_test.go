@@ -50,6 +50,8 @@ func TestResolveFlagPathForms(t *testing.T) {
 		{[]string{"-Wl,-rpath,/lib"}, []string{"-Wl,-rpath,/lib"}},
 		{[]string{"-Wl,--script=s.ld,--gc-sections"}, []string{"-Wl,--script=" + abs("s.ld") + ",--gc-sections"}},
 		{[]string{"-Wl,--gc-sections", "-Wl,-z,noexecstack"}, []string{"-Wl,--gc-sections", "-Wl,-z,noexecstack"}},
+		{[]string{"-Wl,-T", "-Wl,s.ld"}, []string{"-Wl,-T", "-Wl," + abs("s.ld")}},
+		{[]string{"-Wl,-T", "-O2", "-Wl,s.ld"}, []string{"-Wl,-T", "-O2", "-Wl,s.ld"}},
 		{[]string{"-Xlinker", "-T", "-Xlinker", "s.ld"}, []string{"-Xlinker", "-T", "-Xlinker", abs("s.ld")}},
 		{[]string{"-Xlinker", "-rpath-link", "-Xlinker", "lib"}, []string{"-Xlinker", "-rpath-link", "-Xlinker", abs("lib")}},
 		{[]string{"-Xlinker", "sub/x.map"}, []string{"-Xlinker", abs("sub/x.map")}},

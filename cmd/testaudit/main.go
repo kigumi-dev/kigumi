@@ -1,4 +1,4 @@
-// Command testaudit prints the B0 test-inventory snapshot as JSON.
+// Command testaudit prints the test-inventory snapshot as JSON.
 package main
 
 import (

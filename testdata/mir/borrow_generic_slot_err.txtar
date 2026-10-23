@@ -1,8 +1,5 @@
 -- lib/slot.kg --
-// A slot whose declared type is a type parameter owns and releases what it
-// holds, however that parameter is later instantiated, so a borrow with no
-// count to give cannot go there. Only `&'a T` and a type routing one through
-// its own `'a` are skipped by the destructor.
+// A slot of a type parameter owns what it holds, so a borrow cannot go there.
 type Box = { pub mut n Int }
 
 type Wrap[T] = { pub v T }
@@ -167,44 +164,44 @@ fn lib.viewed() -> Void {
     return %t9
 }
 error[E1531]: a borrow cannot go in `v`, a field of `Wrap` declared `T`: a field declared that way is released with the record, and this borrow has no count to give; declare the field `&'a T` and take a `['a]` on the record, or store a value the record can own
-  --> lib/slot.kg:17:13
+  --> lib/slot.kg:14:13
    |
-17 |     let w = Wrap { v: &b }
+14 |     let w = Wrap { v: &b }
    |             ^^^^^^^^^^^^
 
 error[E1531]: a borrow cannot go in `v`, a field of `Wrap` declared `T`: a field declared that way is released with the record, and this borrow has no count to give; declare the field `&'a T` and take a `['a]` on the record, or store a value the record can own
-  --> lib/slot.kg:22:23
+  --> lib/slot.kg:19:23
    |
-22 |     let w = Wrap { v: Wrap { v: &b } }
+19 |     let w = Wrap { v: Wrap { v: &b } }
    |                       ^^^^^^^^^^^^
 
 error[E1531]: a borrow cannot go in `_0`, an element of `Tuple2` declared `A`: an element declared that way is released with the tuple, and this borrow has no count to give; a tuple cannot take a `['a]` of its own, so put it in a record that can, or store a value the tuple can own
-  --> lib/slot.kg:27:13
+  --> lib/slot.kg:24:13
    |
-27 |     let t = (&b, 1)
+24 |     let t = (&b, 1)
    |             ^^^^^^
 
 error[E1582]: a borrow cannot go in payload 0, a payload of `Option`: a payload declared that way is released with the variant, and this borrow has no count to give; nest it in a type that takes a `['a]` and routes the borrow through its own field, or store a value it can own
-  --> lib/slot.kg:32:13
+  --> lib/slot.kg:29:13
    |
-32 |     let o = Option.Some(&b)
+29 |     let o = Option.Some(&b)
    |             ^^^^^^^^^^^^^^
 
 error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
-  --> lib/slot.kg:37:13
+  --> lib/slot.kg:34:13
    |
-37 |     let a = Array.of(&b)
+34 |     let a = Array.of(&b)
    |             ^^^^^^^^^^^
 
 error[E1532]: a borrow cannot go to `x`, a parameter of `own` declared `T`: a parameter declared that way is dropped by the callee, and this borrow has no count to give; declare the parameter `&T`, or pass a value the callee can own
-  --> lib/slot.kg:42:5
+  --> lib/slot.kg:39:5
    |
-42 |     own(&b)
+39 |     own(&b)
    |     ^^^^^^
 
 error[E1532]: a borrow cannot go to `x`, a parameter of `own` declared `T`: a parameter declared that way is dropped by the callee, and this borrow has no count to give; declare the parameter `&T`, or pass a value the callee can own
-  --> lib/slot.kg:46:5
+  --> lib/slot.kg:43:5
    |
-46 |     own(r)
+43 |     own(r)
    |     ^^^^^
 

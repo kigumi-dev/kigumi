@@ -322,3 +322,20 @@ func TestUnreachableEditDoesNotUnsettle(t *testing.T) {
 		t.Fatalf("a package the entry never reaches does not matter: %v %+v", err, m.PackageCacheStats())
 	}
 }
+
+func TestMultiLineBraceImportKeysItsPackage(t *testing.T) {
+	t.Parallel()
+	root, cache := t.TempDir(), t.TempDir()
+	files := graphFiles()
+	files["cmd/app/main.kg"] = "import {\n    twice\n} from graphmod/mid\n\nprint \"${twice()}\"\n"
+	writeGraph(t, root, files)
+	recordStatuses(t, root, cache, "cmd/app/main.kg")
+	writeGraph(t, root, map[string]string{"leaf/leaf.kg": "pub fn value( {\n"})
+	m, err := driver.LoadModule(root, driver.LoadOptions{Compiler: testCompiler(), StdRoot: stdRoot(t), Entry: "cmd/app/main.kg", PackageCache: cache, DeferParse: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res, err := driver.Check(m); err == nil && !res.HasErrors() {
+		t.Fatalf("breaking a package behind a multi-line import must not replay a clean outcome: %+v", m.PackageCacheStats())
+	}
+}

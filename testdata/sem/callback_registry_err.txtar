@@ -12,11 +12,11 @@ fn addKept(r: &mut Reg, f: escaping fn() -> Int) {
 }
 
 fn addLent(r: &mut Reg, f: fn() -> Int) {
-    r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+    r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push`
 }
 
 fn Reg.addLentMethod(mut self, f: fn() -> Int) {
-    self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+    self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push`
 }
 
 fn register(r: &mut Reg) {
@@ -39,42 +39,16 @@ fn counted(xs: Array[Int]) -> Int {
 error[E1036]: `f` is a non-escaping callback and cannot be passed to `push`, whose parameter type cannot be verified not to keep it
   --> main/main.kg:14:15
    |
-14 |     r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+14 |     r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push`
    |               ^
    = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
-
-error[E1051]: cannot see what this closure captures while `r` is exclusively borrowed by this call
-  --> main/main.kg:14:15
-   |
-14 |     r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
-   |               ^
-   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
-   = help: or declare the parameter `escaping`; an escaping callback holds no borrow of `r`
-note: `r` is exclusively borrowed by this call
-  --> main/main.kg:14:5
-   |
-14 |     r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
-   |     ^^^^
 
 error[E1036]: `f` is a non-escaping callback and cannot be passed to `push`, whose parameter type cannot be verified not to keep it
   --> main/main.kg:18:18
    |
-18 |     self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+18 |     self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push`
    |                  ^
    = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
-
-error[E1051]: cannot see what this closure captures while `self` is exclusively borrowed by this call
-  --> main/main.kg:18:18
-   |
-18 |     self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
-   |                  ^
-   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
-   = help: or declare the parameter `escaping`; an escaping callback holds no borrow of `self`
-note: `self` is exclusively borrowed by this call
-  --> main/main.kg:18:5
-   |
-18 |     self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
-   |     ^^^^^^^
 
 error[E413]: closure captures `a` (move-only) and cannot be a plain `fn`
   --> main/main.kg:23:16

@@ -81,10 +81,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		}
 	}
 	inputs = append(inputs, m.Sources...)
-	// llgen emits no target triple, so the compiler always "overrides" one
-	// from the host; only that expected warning is silenced. -O1 also
-	// keeps zig cc out of its Debug mode, which instruments C with UBSan
-	// calls freestanding has no runtime for.
+	// -O1 keeps zig cc out of Debug mode, which instruments C with UBSan calls freestanding has no runtime for.
 	args := append(cc[1:], "-Wno-override-module", "-O1")
 	if t.compileTriple() != "" {
 		args = append(args, "-target", t.compileTriple())

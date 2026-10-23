@@ -125,8 +125,7 @@ func ParseTarget(o CompilerOptions, triple, sys string) (Target, error) {
 // with a `kigumi_main` entry for the embedder's startup code.
 func (t Target) Freestanding() bool { return t.OS == "freestanding" || t.OS == "uefi" }
 
-// COFF reports a PE/COFF object format (UEFI today), which needs the
-// _fltused marker rt_core.c defines since -nostdlib leaves no CRT to.
+// COFF reports a PE/COFF object format (UEFI today); -nostdlib leaves no CRT, so rt_core.c defines `_fltused`.
 func (t Target) COFF() bool { return t.OS == "uefi" }
 
 // Bare targets get Freestanding's archive output even on a hosted OS, since `--sys none`

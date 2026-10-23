@@ -95,6 +95,22 @@ func TestListSkipsUnfinishedStaging(t *testing.T) {
 	}
 }
 
+func TestListSkipsStageWithBinary(t *testing.T) {
+	root := t.TempDir()
+	st, err := store.Stage(root, "0.17.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Discard()
+	if err := os.WriteFile(store.BinaryPath(st.Dir), []byte("#!/bin/sh\necho 0.17.0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	versions, err := store.List(root)
+	if err != nil || len(versions) != 0 {
+		t.Fatalf("List must not report an interrupted install: %v, err=%v", versions, err)
+	}
+}
+
 func TestListOnMissingRootIsEmpty(t *testing.T) {
 	versions, err := store.List(filepath.Join(t.TempDir(), "does-not-exist"))
 	if err != nil || versions != nil {

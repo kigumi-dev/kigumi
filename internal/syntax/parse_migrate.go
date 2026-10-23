@@ -68,7 +68,7 @@ func (p *parser) foreignTypeDecl(word, form string) NodeID {
 }
 
 func (p *parser) cStyleForAhead() bool {
-	depth := 0
+	depth, braces := 0, 0
 	for i := p.pos; int(i) < len(p.toks); i++ {
 		switch p.toks[i].Kind {
 		case token.LParen, token.LBracket:
@@ -79,8 +79,13 @@ func (p *parser) cStyleForAhead() bool {
 			if depth <= 0 {
 				return false
 			}
+			braces++
+		case token.RBrace:
+			braces--
 		case token.Semicolon:
-			return true
+			if braces <= 0 {
+				return true
+			}
 		case token.Newline, token.EOF:
 			return false
 		}

@@ -1,6 +1,7 @@
 package lsp_test
 
 import (
+	"strings"
 	"testing"
 
 	"go.lsp.dev/protocol"
@@ -85,6 +86,20 @@ func TestDocumentSymbolRangeIncludesClosingBrace(t *testing.T) {
 	}
 	if got := ends["Box"]; got.Line != 6 || got.Character != 1 {
 		t.Errorf("Box ends at %+v, want line 6 col 1", got)
+	}
+}
+
+func TestDocumentSymbolRangeSurvivesInterpolationTokens(t *testing.T) {
+	src := "fn first(n: Int) -> Int {\n    print \"" + strings.Repeat("${n}", 120) + "\"\n    n\n}\n\nfn second(n: Int) -> Int {\n    n + n\n}\n"
+	s, ctx, doc, _ := openModule(t, src)
+	res, err := s.DocumentSymbol(ctx, &protocol.DocumentSymbolParams{TextDocument: protocol.TextDocumentIdentifier{URI: doc}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sym := range res.(protocol.DocumentSymbolSlice) {
+		if sym.Name == "second" && (sym.Range.End.Line != 7 || sym.Range.End.Character != 1) {
+			t.Errorf("second ends at %+v, want line 7 col 1", sym.Range.End)
+		}
 	}
 }
 

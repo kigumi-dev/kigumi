@@ -1,6 +1,6 @@
 import time from std/time
 
-/// Deterministic pseudo-random generator (splitmix64); a seed gives the same sequence in the interpreter and in native builds.
+/// Deterministic pseudo-random generator (splitmix64); a seed gives the same sequence on the VM and in native builds.
 pub type Rng = {
     mut state u64
 }

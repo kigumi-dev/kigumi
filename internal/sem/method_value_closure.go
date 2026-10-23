@@ -15,6 +15,7 @@ type methodValueState struct {
 	nodes      []syntax.NodeID
 	closures   []EntityID
 	depth      int
+	truncates  []truncateValue
 }
 
 type pendingInfer struct {

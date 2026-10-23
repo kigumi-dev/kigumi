@@ -12,6 +12,9 @@ import (
 var shallowFetch = shallowFetchCommit
 
 func cloneCommit(cmd *cobra.Command, url, hash, tmp string) (string, error) {
+	if len(hash) != 40 && len(hash) != 64 {
+		return cloneCommitFull(cmd, url, hash, tmp)
+	}
 	full, err := shallowFetch(cmd, url, hash, tmp)
 	if err == nil {
 		return full, nil

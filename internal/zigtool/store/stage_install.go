@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Staging is a temporary directory under root a caller populates before
@@ -105,7 +106,7 @@ func List(root string) ([]string, error) {
 			continue
 		}
 		name := e.Name()
-		if filepath.Ext(name) == ".replaced" || filepath.Ext(name) == ".removing" {
+		if filepath.Ext(name) == ".replaced" || filepath.Ext(name) == ".removing" || strings.HasPrefix(name, "install-") {
 			continue
 		}
 		if _, ok := Installed(root, name); ok {

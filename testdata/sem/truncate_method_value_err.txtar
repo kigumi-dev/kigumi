@@ -1,0 +1,47 @@
+-- main/main.kg --
+fn probe() {
+    let w: u8 = 7
+    let a = w.truncate[Bool] //~ ERROR cannot be the target of `truncate`
+    let b = w.truncate[Int] //~ ERROR cannot be the target of `truncate`
+    let c: fn() -> u8 = w.truncate //~ ERROR needs its target type spelled out
+    let e = w.truncate[u8]
+    let big: Int = 300
+    let f = big.truncate[u8]
+    let g = w.truncate //~ ERROR needs its target type spelled out
+    let h = w.truncate[u8, u8] //~ ERROR takes 1 type argument
+}
+-- expect --
+error[E2245]: `Bool` cannot be the target of `truncate` on `u8`
+ --> main/main.kg:3:13
+  |
+3 |     let a = w.truncate[Bool] //~ ERROR cannot be the target of `truncate`
+  |             ^^^^^^^^^^
+  = help: truncate to an integer type no wider than `u8`, widen with a conversion such as `toU64()`, which keeps the value, or drop a float's fraction with `toInt()`
+
+error[E2245]: `Int` cannot be the target of `truncate` on `u8`
+ --> main/main.kg:4:13
+  |
+4 |     let b = w.truncate[Int] //~ ERROR cannot be the target of `truncate`
+  |             ^^^^^^^^^^
+  = help: truncate to an integer type no wider than `u8`, widen with a conversion such as `toU64()`, which keeps the value, or drop a float's fraction with `toInt()`
+
+error[E2247]: `truncate` needs its target type spelled out
+ --> main/main.kg:5:25
+  |
+5 |     let c: fn() -> u8 = w.truncate //~ ERROR needs its target type spelled out
+  |                         ^^^^^^^^^^
+  = help: write `value.truncate[u8]()`, or use `toU8()` to keep the value when it fits
+
+error[E2247]: `truncate` needs its target type spelled out
+ --> main/main.kg:9:13
+  |
+9 |     let g = w.truncate //~ ERROR needs its target type spelled out
+  |             ^^^^^^^^^^
+  = help: write `value.truncate[u8]()`, or use `toU8()` to keep the value when it fits
+
+error[E217]: `truncate` takes 1 type argument, 2 given
+  --> main/main.kg:10:13
+   |
+10 |     let h = w.truncate[u8, u8] //~ ERROR takes 1 type argument
+   |             ^^^^^^^^^^^^^^^^^
+

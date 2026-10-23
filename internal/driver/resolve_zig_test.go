@@ -77,9 +77,6 @@ func TestResolveZigMatch(t *testing.T) {
 	}
 }
 
-// Offline, a mismatch, an unreadable version, or no zig at all now all report
-// the same E1563; the old per-cause E1560/E1561/E1562 fire only when an on-demand fetch fails.
-
 func TestResolveZigMismatch(t *testing.T) {
 	zig := fakeZigReporting(t, "0.16.0-dev.2287+eb3f16db5")
 	m, err := loadPinned(t, "0.17.0", zig)

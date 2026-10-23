@@ -1,0 +1,21 @@
+-- src --
+import task from std/task
+
+async fn sum(a: &Array[Int], b: &Array[Int]) -> Int {
+    a[0] + b[0]
+}
+
+async fn root() -> Int {
+    let x = Array.of(1, 2, 3)
+    let y = Array.of(10, 20, 30)
+    let r = sum(&x, &y)
+    await r
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+total 11
+-- stderr --
+-- exit --
+0

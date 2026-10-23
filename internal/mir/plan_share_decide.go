@@ -1,5 +1,7 @@
 package mir
 
+import "slices"
+
 func (w *shareFacts) writable(v LocalID) bool { return w.p.R.WritableInside(w.f.Locals[v].Type) }
 
 // WritableInside is false for a T without Copy, yet its instance may be a writable record.
@@ -65,7 +67,7 @@ func (w *shareFacts) copyBinding(at Point, in Inst) bool {
 	}
 	lv := w.liveness()
 	for _, r := range rs.refs {
-		if r.own && lv.after(r.l, at.Block, at.Inst) {
+		if r.own && lv.after(r.l, at.Block, at.Inst) && w.writtenAfter(r.l, at) {
 			return true
 		}
 		if r.inner && w.interferes(r.l, b, at, in.Args[0]) {
@@ -73,6 +75,15 @@ func (w *shareFacts) copyBinding(at Point, in Inst) bool {
 		}
 	}
 	return false
+}
+
+func (w *shareFacts) bindingShares(at Point) bool {
+	in := w.inst(at)
+	return in.Op == OpCopy && w.writable(in.Dst) && slices.Contains(w.binds[in.Dst], at) && !w.copyAt[at]
+}
+
+func (w *shareFacts) writtenAfter(r LocalID, at Point) bool {
+	return w.reachable(at, w.own[r]) || w.reachable(at, w.inner[r]) || w.reachable(at, w.blind)
 }
 
 func (w *shareFacts) interferes(r, b LocalID, at Point, src LocalID) bool {

@@ -22,8 +22,6 @@ func TestValidModuleNameRejectsNonCanonicalHost(t *testing.T) {
 	}
 }
 
-// TestValidModuleNameRejectsTrailingDot covers the other modules_v2 rule:
-// no segment may end with `.`.
 func TestValidModuleNameRejectsTrailingDot(t *testing.T) {
 	t.Parallel()
 	if err := driver.ValidModuleName("example.com./acme"); err == nil {

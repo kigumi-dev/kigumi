@@ -13,7 +13,7 @@ fn mutate(x: &mut Resource) {
 }
 
 fn reenter(mut v: Resource, f: fn() -> Void) {
-    v.run(f) //~ ERROR cannot see what this closure captures
+    v.run(f)
 }
 
 fn forward[G: FnMut[fn() -> Void]](mut v: Resource, g: G) {
@@ -30,20 +30,28 @@ fn doNothing() {}
 fn viaTopLevelFnParam(mut v: Resource, unused: fn() -> Void) {
     v.run(doNothing)
 }
--- expect --
-error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
-  --> app/t/t.kg:15:11
-   |
-15 |     v.run(f) //~ ERROR cannot see what this closure captures
-   |           ^
-   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
-   = help: or declare the parameter `escaping`; an escaping callback holds no borrow of `v`
-note: `v` is exclusively borrowed by this call
-  --> app/t/t.kg:15:5
-   |
-15 |     v.run(f) //~ ERROR cannot see what this closure captures
-   |     ^
 
+type Hold = {
+    pub mut cb fn() -> Void
+    pub mut n Int
+}
+
+fn Hold.run[F: FnMut[fn() -> Void]](mut self, f: F) {
+    f()
+    self.n = self.n + 1
+}
+
+fn viaFieldLet(mut h: Hold) -> Int {
+    let f = h.cb
+    h.run(f)
+    h.n
+}
+
+fn viaFieldDirect(mut h: Hold) -> Int {
+    h.run(h.cb)
+    h.n
+}
+-- expect --
 error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
   --> app/t/t.kg:19:11
    |

@@ -2,9 +2,7 @@ package hir
 
 import "kigumi/internal/syntax"
 
-// A block already carries its own coercion on Block.Coercion (set by
-// l.block for the same node), so the wrapping BlockExpr must not record
-// it a second time.
+// l.block already records the coercion on Block.Coercion, so the wrapping BlockExpr must not.
 func (l *lowerer) expr(n syntax.NodeID) *Expr {
 	e := l.exprRaw(n)
 	if e.Kind != BlockExpr {

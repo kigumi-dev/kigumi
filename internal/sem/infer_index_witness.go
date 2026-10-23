@@ -68,6 +68,7 @@ func (c *checker) methodRefTypeArgs(n, base syntax.NodeID, items syntax.ListView
 		return ref
 	}
 	inst := c.methodValueInst(m, base)
+	c.nameTruncateValue(base)
 	if len(args) != len(inst) {
 		c.errAt(n, cTypeArgCount, c.r.Entities[m].Name, len(inst), plural(len(inst)), len(args))
 		for _, t := range inst {

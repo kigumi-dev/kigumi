@@ -43,7 +43,7 @@ func (p *parser) defaultThunk(mods, name uint32, recv, generics NodeID, self uin
 	}
 	body := p.tree.addList(Block, tok, []NodeID{p.node1(ExprStmt, tok, def)})
 	ret := NodeID(p.thunkType(generics, typ))
-	keep := mods &^ (ModAsync | ModPureVar)
+	keep := mods &^ (ModAsync | ModPureVar | ModStrayBang)
 	if p.tree.hasOwnTry(def) {
 		ret = p.node1(TypeResult, tok, ret)
 		keep |= ModDefaultTry

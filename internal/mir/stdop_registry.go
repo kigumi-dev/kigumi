@@ -23,9 +23,9 @@ type StdOpEntry struct {
 	Suffixes []string
 	Prefixes []string
 	Types    []nativeTypeRef
-	// Direct names the DirectPrim the op takes a register scalar result by; Elem marks an op that copies out an array element; Callback is the argument index of a closure the op calls (-1 for none).
 	Direct   string
 	Elem     bool
+	// Callback is the argument index of a closure the op calls, -1 for none.
 	Callback int
 	// Isr is the reviewed interrupt contract (`isr` line); IsrNone when the op has none.
 	Isr sem.IsrContract

@@ -25,7 +25,7 @@ func (c *checker) recordFieldWrite(ent, field EntityID, init syntax.NodeID) {
 	if c.r.fieldWitnessPoisoned[key] {
 		return
 	}
-	c.r.fieldParamEnt(key) // indexes key for a later whole-value invalidation
+	c.r.fieldParamEnt(key)
 	// field's declared type, not init's: a literal coerced into an
 	// interface-typed field keeps its own concrete type in info.Types.
 	t := c.vars.resolve(c.r.Entities[field].Type)

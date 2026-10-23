@@ -13,7 +13,7 @@ import (
 	"kigumi/internal/lsp"
 )
 
-const profileCopySrc = "type Nm = {\n    pub name String\n    pub mut n Int\n}\n\nfn dup(o: Nm?) -> Int {\n    let mut b = o\n    if b is Some(_) { 1 } else { 0 }\n}\n\nfn main() -> Void! {\n    let o: Nm? = None\n    let n = dup(o)\n}\n"
+const profileCopySrc = "type Nm = {\n    pub name String\n    pub mut n Int\n}\n\nfn dup(o: Nm?) -> Int {\n    let mut b = o\n    match &mut b {\n        Some(x) -> { x.n = 2 }\n        None -> {}\n    }\n    if o is Some(_) { 1 } else { 0 }\n}\n\nfn main() -> Void! {\n    let o: Nm? = None\n    let n = dup(o)\n}\n"
 
 func withProfile(allocator, profile string) driver.Target {
 	t := driver.HostTarget()
@@ -66,7 +66,7 @@ func TestEditorReportsAProfileCopy(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			diags := profileDiagnostics(t, tc.server, tc.opts)
-			if len(diags) != 1 || diags[0].Code != protocol.String(tc.code) || diags[0].Range.Start.Line != 12 {
+			if len(diags) != 1 || diags[0].Code != protocol.String(tc.code) || diags[0].Range.Start.Line != 16 {
 				t.Fatalf("want one %s at `dup(o)`, got %+v", tc.code, diags)
 			}
 		})

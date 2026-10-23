@@ -6,8 +6,6 @@ import (
 	"kigumi/internal/sem"
 )
 
-// checkPayloadBorrows is split from checkCapture so its own code for a
-// holder in a variant payload leaves that branch's goldens untouched.
 func (c *borrowCheck) checkPayloadBorrows(in Inst) {
 	vi := c.p.R.Variant(in.Ent)
 	owner := c.p.R.Entity(in.Ent).Parent

@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 
@@ -30,9 +31,7 @@ var keywords = []string{"fn", "let", "mut", "pub", "type", "interface", "const",
 	"return", "fail", "defer", "break", "continue", "is", "pure", "noalloc", "unsafe", "async", "await", "comptime",
 	"allocator", "asm", "extern", "export", "test", "resource", "move", "self", "static", "true", "false", "None", "Some", "Ok", "Err"}
 
-// Completion offers keywords, names in scope, and then import candidates
-// from the rest of the module; a name already available bare always wins
-// over a same-named import suggestion.
+// Completion offers keywords, names in scope, then import candidates; a bare name wins over a same-named import.
 func (s *Server) Completion(ctx context.Context, p *protocol.CompletionParams) (protocol.CompletionResult, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -116,8 +115,12 @@ func declRange(t *syntax.Tree, d syntax.NodeID, nameTok uint32) protocol.Range {
 func closeBraces(t *syntax.Tree, sp token.Span) token.Pos {
 	depth := 0
 	end := sp.End
-	first := sort.Search(len(t.Toks), func(i int) bool { return t.Toks[i].Start >= sp.Start })
-	for _, tk := range t.Toks[first:] {
+	toks := t.Toks
+	if eof := slices.IndexFunc(toks, func(tk token.Token) bool { return tk.Kind == token.EOF }); eof >= 0 {
+		toks = toks[:eof]
+	}
+	first := sort.Search(len(toks), func(i int) bool { return toks[i].Start >= sp.Start })
+	for _, tk := range toks[first:] {
 		if tk.Start >= sp.End && depth <= 0 {
 			break
 		}

@@ -2,7 +2,7 @@ package testtool
 
 import "encoding/json"
 
-// Audit is the B0 test-inventory snapshot uploaded as a CI artifact.
+// Audit is the test-inventory snapshot uploaded as a CI artifact.
 type Audit struct {
 	Packages  []PackageCounts `json:"packages"`
 	Fixtures  FixtureCounts   `json:"fixtures"`

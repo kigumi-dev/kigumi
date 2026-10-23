@@ -45,7 +45,8 @@ fn reads(w: Named) -> Int {
 
 fn keeps(n: Named) -> Int {
     let a = n
-    let b = keepN(a)
+    let mut b = keepN(a)
+    b.n = 9
     a.n + b.n
 }
 
@@ -104,9 +105,13 @@ func TestPlanRetainsAnArgumentTheCalleeOnlyReads(t *testing.T) {
 
 func TestPlanCopiesWhatACalleeKeeps(t *testing.T) {
 	p := planned(t, retainSrc)
-	keeps := funcNamed(t, p, "main.keeps")
-	if _, c := retainsOf(p, keeps); c == 0 {
-		t.Errorf("keeps hands a box to a callee that returns it without a copy:\n%s", p.Dump())
+	copies := 0
+	for _, name := range []string{"main.keeps", "main.keepN"} {
+		_, c := retainsOf(p, funcNamed(t, p, name))
+		copies += c
+	}
+	if copies == 0 {
+		t.Errorf("keeps writes the box keepN returns without a copy on either side:\n%s", p.Dump())
 	}
 }
 

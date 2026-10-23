@@ -9,8 +9,7 @@ import (
 	"testing"
 )
 
-// ambientGlobals are what the driver may only touch in compiler_options.go,
-// where a zero CompilerOptions field falls back to the process (with compiler_tools.go).
+// ambientGlobals are what the driver may touch only in the files that resolve CompilerOptions.
 var ambientGlobals = map[string]bool{
 	"os.UserCacheDir": true, "os.UserHomeDir": true, "os.Getwd": true, "os.TempDir": true,
 	"runtime.GOOS": true, "runtime.GOARCH": true,

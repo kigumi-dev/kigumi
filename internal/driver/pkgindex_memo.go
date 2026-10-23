@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const memoVersion = 2
+const memoVersion = 3
 
 // racyWindow keeps a file whose mtime is this close to the time it was read out of the memo: a later edit could keep the same size and mtime tick.
 const racyWindow = 2 * time.Second

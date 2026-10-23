@@ -7,10 +7,15 @@ type Nm = {
     pub mut n Int
 }
 
+fn clear(x: &mut Nm?) {
+    x = None
+}
+
 // A copy of a parameter makes a box of its own, which needs the default allocator like a construction does.
 fn dup(o: Nm?) -> Int {
     let mut b = o
-    if b is Some(_) { 1 } else { 0 }
+    clear(&mut b)
+    if o is Some(_) { 1 } else { 0 }
 }
 
 fn main() -> Void! {
@@ -19,9 +24,9 @@ fn main() -> Void! {
 }
 -- expect --
 error[E959]: `dup` needs the default allocator, but this build has none (--allocator none)
-  --> main.kg:14:13
+  --> main.kg:19:13
    |
-14 |     let n = dup(o) //~ ERROR `dup` needs the default allocator
+19 |     let n = dup(o) //~ ERROR `dup` needs the default allocator
    |             ^^^^^
    = help: allocate inside an `allocator` block
 

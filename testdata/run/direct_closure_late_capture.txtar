@@ -1,7 +1,5 @@
 -- src --
-// A closure's captures can change after it is first classified: a later
-// write turns a copied capture into a shared cell, and a context provider
-// adds a capture once requirements settle. Types built over it follow.
+// A closure's captures can change after it is first classified.
 context level: Int
 
 @provides(level)

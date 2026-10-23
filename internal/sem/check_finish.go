@@ -13,6 +13,7 @@ func (c *checker) finishWith(nested bool) {
 	c.settleInline()
 	c.checkConstraints()
 	c.runFFIValueChecks()
+	c.runTruncateValueChecks()
 	c.resolveClosures(c.closures[c.closureBase:])
 	c.resolveTouched(c.touched[c.touchedBase:])
 	c.keepUnsettled()

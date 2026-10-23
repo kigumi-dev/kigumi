@@ -11,7 +11,6 @@ import (
 
 // Candidate must be within an edit distance of a third of name's length
 // (one for short names); ties go to the alphabetically first candidate.
-// A name under three characters is near almost any short name, so it only matches a candidate that differs in letter case.
 func suggest(name string, candidates []string) string {
 	limit := max(1, len(name)/3)
 	best, bestDist := "", limit+1

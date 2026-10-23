@@ -1,0 +1,26 @@
+-- src --
+fn apply[F: Fn[fn(Int) -> Int]](f: F, seed: Int = f(2)) -> Int {
+    seed + 1
+}
+
+fn dbl(x: Int) -> Int {
+    x * 2
+}
+
+type Box[T] = { pub v T }
+
+fn Box[T].call[F: Fn[fn(Int) -> Int]](self, f: F, k: Int = f(3)) -> Int {
+    k
+}
+
+fn main() {
+    print "${apply(dbl)}"
+    print "${apply((x: Int) => x * 10)}"
+    print "${apply(dbl, 7)}"
+    print "${Box { v: 1 }.call(dbl)}"
+}
+-- stdout --
+5
+21
+8
+6

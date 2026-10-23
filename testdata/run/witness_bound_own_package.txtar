@@ -1,0 +1,13 @@
+-- src --
+import http from std/http
+
+fn show() -> Void! {
+    let r = http.Response.ofJson(200, 42)?
+    print "${r.status}"
+}
+show()?
+-- stdout --
+200
+-- stderr --
+-- exit --
+0

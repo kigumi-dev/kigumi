@@ -952,9 +952,9 @@
       ]
     },
     {
-      "id": "mir/lifetime_future_multi_owner_err",
+      "id": "mir/lifetime_future_multi_owner",
       "kind": "mir",
-      "path": "testdata/mir/lifetime_future_multi_owner_err.txtar",
+      "path": "testdata/mir/lifetime_future_multi_owner.txtar",
       "mode": [
         "build"
       ],
@@ -2622,6 +2622,23 @@
       ]
     },
     {
+      "id": "run/async_future_two_borrows",
+      "kind": "run",
+      "path": "testdata/run/async_future_two_borrows.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_method",
       "kind": "run",
       "path": "testdata/run/async_method.txtar",
@@ -4053,6 +4070,23 @@
       "id": "run/bind_temp_share",
       "kind": "run",
       "path": "testdata/run/bind_temp_share.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/binding_copy_needed",
+      "kind": "run",
+      "path": "testdata/run/binding_copy_needed.txtar",
       "mode": [
         "vm",
         "native"
@@ -6182,6 +6216,23 @@
       "id": "run/default_args_async",
       "kind": "run",
       "path": "testdata/run/default_args_async.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/default_args_fn_bound",
+      "kind": "run",
+      "path": "testdata/run/default_args_fn_bound.txtar",
       "mode": [
         "vm",
         "native"
@@ -9460,6 +9511,23 @@
       "id": "run/for_borrow_temp_drop",
       "kind": "run",
       "path": "testdata/run/for_borrow_temp_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_inline_closure_semicolon",
+      "kind": "run",
+      "path": "testdata/run/for_inline_closure_semicolon.txtar",
       "mode": [
         "vm",
         "native"
@@ -14883,6 +14951,23 @@
       ]
     },
     {
+      "id": "run/truncate_method_value_closure",
+      "kind": "run",
+      "path": "testdata/run/truncate_method_value_closure.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/truncate_table",
       "kind": "run",
       "path": "testdata/run/truncate_table.txtar",
@@ -15682,6 +15767,23 @@
       ]
     },
     {
+      "id": "run/witness_bound_own_package",
+      "kind": "run",
+      "path": "testdata/run/witness_bound_own_package.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "sem/abi_unknown_block_err",
       "kind": "sem",
       "path": "testdata/sem/abi_unknown_block_err.txtar",
@@ -15949,6 +16051,17 @@
       "id": "sem/async_root_bridge",
       "kind": "sem",
       "path": "testdata/sem/async_root_bridge.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/async_root_bridge_body_ids",
+      "kind": "sem",
+      "path": "testdata/sem/async_root_bridge_body_ids.txtar",
       "mode": [
         "check"
       ],
@@ -20291,6 +20404,17 @@
       ]
     },
     {
+      "id": "sem/stray_bang_interface",
+      "kind": "sem",
+      "path": "testdata/sem/stray_bang_interface.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/target_platform_err",
       "kind": "sem",
       "path": "testdata/sem/target_platform_err.txtar",
@@ -20481,6 +20605,17 @@
       "id": "sem/thread_pool_profile_indirect",
       "kind": "sem",
       "path": "testdata/sem/thread_pool_profile_indirect.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/truncate_method_value_err",
+      "kind": "sem",
+      "path": "testdata/sem/truncate_method_value_err.txtar",
       "mode": [
         "check"
       ],

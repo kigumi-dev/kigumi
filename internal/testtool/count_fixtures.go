@@ -11,9 +11,9 @@ import (
 // FixtureCounts tallies the corpus by kind, plus Kigumi `test "..." { }`
 // blocks found in .kg sources (std, examples, testdata).
 type FixtureCounts struct {
-	ByKind    map[string]int `json:"byKind"`
-	Total     int            `json:"total"`
-	TestBlocs int            `json:"testBlocks"`
+	ByKind     map[string]int `json:"byKind"`
+	Total      int            `json:"total"`
+	TestBlocks int            `json:"testBlocks"`
 }
 
 // CountFixtures scans the manifest's testdata kinds and every .kg file
@@ -32,7 +32,7 @@ func CountFixtures(repoRoot string) (FixtureCounts, error) {
 	if err != nil {
 		return fc, err
 	}
-	fc.TestBlocs = n
+	fc.TestBlocks = n
 	return fc, nil
 }
 

@@ -106,3 +106,23 @@ func TestCloneCommitSucceedsOnPlainHistory(t *testing.T) {
 		t.Fatalf("checkout missing: %v", err)
 	}
 }
+
+// git fetches a commit by object id only, so an abbreviated hash goes to the full clone without a failed fetch.
+func TestCloneCommitAbbreviatedHashSkipsShallowFetch(t *testing.T) {
+	repo, head := repoWithHistory(t, 3)
+	prev := shallowFetch
+	shallowFetch = func(*cobra.Command, string, string, string) (string, error) {
+		return "", errors.NewErrf("an abbreviated hash must not reach the bounded fetch")
+	}
+	defer func() { shallowFetch = prev }()
+	var out strings.Builder
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+	full, err := cloneCommit(cmd, repo, head[:12], t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if full != head || out.Len() != 0 {
+		t.Fatalf("resolved %s (want %s) with output %q", full, head, out.String())
+	}
+}

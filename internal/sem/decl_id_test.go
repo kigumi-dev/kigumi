@@ -143,3 +143,20 @@ func TestDeclIDSeparatesOverloadsByBoundsAndClosureParent(t *testing.T) {
 		t.Errorf("want 2 constrained overloads and 2 overload-qualified closures, got %d and %d in %v", fs, closures, ids)
 	}
 }
+
+func TestReceiverAndMethodTypeParamsKeepOverloadsApart(t *testing.T) {
+	ids := declIDs(t, `
+type Box[T] = { pub v: T }
+fn Box[T].put[U](self, a: T, b: U) -> Int { 1 }
+fn Box[T].put[U](self, a: U, b: T) -> Int { 2 }
+`)
+	puts := 0
+	for _, id := range ids {
+		if strings.HasPrefix(id, "main.Box.put") {
+			puts++
+		}
+	}
+	if puts != 2 || len(slices.Compact(slices.Clone(ids))) != len(ids) {
+		t.Fatalf("overloads that swap the receiver's T and the method's U need distinct DeclIDs: %v", ids)
+	}
+}

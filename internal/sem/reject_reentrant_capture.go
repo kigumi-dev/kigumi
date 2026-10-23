@@ -65,13 +65,14 @@ func (c *checker) opaqueFnOrigin(expr syntax.NodeID, s exclusiveSite, seen map[s
 		if init, ok := c.letInit[ent]; ok {
 			return c.opaqueFnOrigin(init, s, seen)
 		}
-		return hidden(ent == 0 || (c.r.Entities[ent].Kind != EntFn && !c.escapingParamEnt(ent)))
+		return hidden(ent == 0 || (c.r.Entities[ent].Kind != EntFn && !c.escapingParamEnt(ent) && !c.plainFnParam(ent)))
 	case syntax.Lambda:
 		return hidden(len(c.r.closure(c.info.Defs[expr]).Captures) != 0)
 	case syntax.MemberExpr:
 		if c.isMethodValue(expr) {
 			return hidden(!c.methodValueApart(expr, s))
 		}
+		return hidden(c.r.Types.Kind(c.vars.resolve(c.info.Types[expr])) != KFn)
 	}
 	return expr
 }
@@ -110,4 +111,10 @@ func (c *checker) fnShaped(t TypeID) bool {
 func (c *checker) escapingParamEnt(ent EntityID) bool {
 	e := &c.r.Entities[ent]
 	return e.Kind == EntParam && e.Flags&EfEscaping != 0
+}
+
+// A plain fn value cannot hold a cell or a move-only capture, so a parameter of that type cannot reach the caller's own receiver.
+func (c *checker) plainFnParam(ent EntityID) bool {
+	e := &c.r.Entities[ent]
+	return e.Kind == EntParam && e.Flags&EfSelf == 0 && c.r.Types.Kind(c.vars.resolve(e.Type)) == KFn
 }

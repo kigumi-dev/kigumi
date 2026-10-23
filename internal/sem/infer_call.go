@@ -85,9 +85,7 @@ func protoSubject(recv TypeID, inst []TypeID) TypeID {
 	return 0
 }
 
-// declParams may be nil (no declaration backs sig, e.g. a bare fn value).
-// selfVerified: the callee's own body was already checked not to leak its arguments, so taintCallResult is skipped.
-// The second result is the call's plan, or nil on an arity/named-argument error.
+// declParams is nil for a bare fn value; selfVerified skips taintCallResult for a body already checked not to leak.
 func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syntax.NodeID, inst []TypeID, want TypeID, declParams []EntityID, selfVerified, async bool) (TypeID, *CallPlan) {
 	tt := c.r.Types
 	sn := tt.Node(sig)
