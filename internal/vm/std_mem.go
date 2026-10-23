@@ -14,6 +14,9 @@ func (m *Machine) memStd(key string, a []*obj, a0, a1 *obj) *obj {
 		cell.inner = retain(a1)
 		m.release(old)
 		return unitObj
+	case "mem.UnsafeCell.atomicLoad", "mem.UnsafeCell.atomicStore", "mem.UnsafeCell.atomicExchange", "mem.UnsafeCell.atomicCompareExchange",
+		"mem.UnsafeCell.atomicAdd", "mem.UnsafeCell.atomicSub", "mem.UnsafeCell.atomicAnd", "mem.UnsafeCell.atomicOr", "mem.UnsafeCell.atomicXor":
+		return m.atomicCell(key, a0, a[1:len(a)-1])
 	case "mem.secureErase":
 		for i := range a0.str() {
 			a0.str()[i] = 0

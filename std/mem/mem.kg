@@ -15,10 +15,84 @@ pub unsafe fn UnsafeCell[T: Copy].get(self) -> T
 /// duration of the call.
 pub unsafe fn UnsafeCell[T].set(self, value: T)
 
-/// Zeros region; survives the optimizer even right before drop/free, but
-/// promises nothing about registers, the stack, or allocator-reused memory.
+/// Zeros region and no copy of it (`let b = a` owns its own bytes); survives the optimizer
+/// even right before drop/free, but promises nothing about registers, the stack, or reused memory.
 pub pure fn secureErase(region: &mut Bytes)
 
 /// Zeros region like secureErase, or AllocError when the allocator refuses
 /// (secureErase panics instead; only an unowned region can hit this path).
 pub pure fn trySecureErase(region: &mut Bytes) -> Result[Void, AllocError]
+
+/// The memory order of an atomic operation; the argument must be written as one of these variants.
+pub type AtomicOrder =
+    | Relaxed
+    | Acquire
+    | Release
+    | AcqRel
+    | SeqCst
+
+/// Atomically reads the `static mut` named by `place` (`&name`); an integer up to 64 bits or Bool, never Release or AcqRel.
+pub noalloc unsafe fn atomicLoad[T](place: &T, order: AtomicOrder) -> T
+
+/// Atomically writes value to the `static mut` named by `place` (`&mut name`); never Acquire or AcqRel.
+pub noalloc unsafe fn atomicStore[T](place: &mut T, value: T, order: AtomicOrder)
+
+/// Atomically replaces the `static mut` and returns the value it held.
+pub noalloc unsafe fn atomicExchange[T](place: &mut T, value: T, order: AtomicOrder) -> T
+
+/// Writes desired when the `static mut` holds expected; returns the value it held, so the exchange happened exactly when that equals expected. When it fails, the read uses the order without its release part.
+pub noalloc unsafe fn atomicCompareExchange[T](place: &mut T, expected: T, desired: T, order: AtomicOrder) -> T
+
+/// Adds value to the `static mut`, wrapping at the type's width, and returns the value it held.
+pub noalloc unsafe fn atomicAdd[T](place: &mut T, value: T, order: AtomicOrder) -> T
+
+/// Subtracts value from the `static mut`, wrapping at the type's width, and returns the value it held.
+pub noalloc unsafe fn atomicSub[T](place: &mut T, value: T, order: AtomicOrder) -> T
+
+/// Bitwise-ands value into the `static mut` and returns the value it held.
+pub noalloc unsafe fn atomicAnd[T](place: &mut T, value: T, order: AtomicOrder) -> T
+
+/// Bitwise-ors value into the `static mut` and returns the value it held.
+pub noalloc unsafe fn atomicOr[T](place: &mut T, value: T, order: AtomicOrder) -> T
+
+/// Bitwise-xors value into the `static mut` and returns the value it held.
+pub noalloc unsafe fn atomicXor[T](place: &mut T, value: T, order: AtomicOrder) -> T
+
+/// Atomically reads the cell; T is an integer up to 64 bits, Bool or a raw pointer. The cell must not be read or written through `get` / `set` at the same time.
+pub unsafe fn UnsafeCell[T].atomicLoad(self, order: AtomicOrder) -> T
+
+/// Atomically replaces the content of the cell.
+pub unsafe fn UnsafeCell[T].atomicStore(self, value: T, order: AtomicOrder)
+
+/// Atomically replaces the content and returns the value it held.
+pub unsafe fn UnsafeCell[T].atomicExchange(self, value: T, order: AtomicOrder) -> T
+
+/// Writes desired when the cell holds expected; returns the value it held, so the exchange happened exactly when that equals expected.
+pub unsafe fn UnsafeCell[T].atomicCompareExchange(self, expected: T, desired: T, order: AtomicOrder) -> T
+
+/// Adds value to the cell, wrapping at the type's width, and returns the value it held; T is an integer.
+pub unsafe fn UnsafeCell[T].atomicAdd(self, value: T, order: AtomicOrder) -> T
+
+/// Subtracts value from the cell, wrapping at the type's width, and returns the value it held; T is an integer.
+pub unsafe fn UnsafeCell[T].atomicSub(self, value: T, order: AtomicOrder) -> T
+
+/// Bitwise-ands value into the cell and returns the value it held; T is an integer.
+pub unsafe fn UnsafeCell[T].atomicAnd(self, value: T, order: AtomicOrder) -> T
+
+/// Bitwise-ors value into the cell and returns the value it held; T is an integer.
+pub unsafe fn UnsafeCell[T].atomicOr(self, value: T, order: AtomicOrder) -> T
+
+/// Bitwise-xors value into the cell and returns the value it held; T is an integer.
+pub unsafe fn UnsafeCell[T].atomicXor(self, value: T, order: AtomicOrder) -> T
+
+/// Reads the value at p in exactly one access that the optimizer neither drops, merges nor reorders against other volatile accesses; for memory-mapped registers. T is a fixed-width number, Bool, Char or a raw pointer. It orders nothing across threads.
+pub noalloc unsafe fn volatileRead[T](p: *const T) -> T
+
+/// Writes value at p in exactly one access like `volatileRead`.
+pub noalloc unsafe fn volatileWrite[T](p: *mut T, value: T)
+
+/// Reads the register at a fixed address like `volatileRead`, without forming a pointer; T is an integer up to 64 bits or Bool. It is called directly, never as a function value. The VM has no device memory: it keeps a table of the addresses written so far, and a register nobody wrote reads as zero.
+pub noalloc unsafe fn volatileReadAt[T](address: usize) -> T
+
+/// Writes value to the register at a fixed address like `volatileWrite`, without forming a pointer.
+pub noalloc unsafe fn volatileWriteAt[T](address: usize, value: T)

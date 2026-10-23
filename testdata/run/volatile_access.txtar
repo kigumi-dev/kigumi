@@ -1,0 +1,34 @@
+-- src --
+import ffi from std/ffi
+import {volatileRead, volatileWrite} from std/mem
+
+// The VM reads and writes the CValue a pointer addresses; native emits single volatile accesses to the C memory.
+unsafe {
+    let reg = ffi.CValue.new(0x10)
+    let p = reg.ptr()
+    print "read ${volatileRead(ffi.toConst(p))}"
+    volatileWrite(p, 0x2a)
+    print "wrote ${volatileRead(ffi.toConst(p))} ${reg.get()}"
+    volatileWrite(p, volatileRead(ffi.toConst(p)) + 1)
+    print "bumped ${reg.get()}"
+
+    let status = ffi.CValue.new(true)
+    volatileWrite(status.ptr(), false)
+    print "bool ${volatileRead(ffi.toConst(status.ptr()))}"
+
+    let seed: u8 = 200
+    let small = ffi.CValue.new(seed)
+    volatileWrite(small.ptr(), volatileRead(ffi.toConst(small.ptr())).wrappingAdd(100))
+    print "u8 ${volatileRead(ffi.toConst(small.ptr()))}"
+
+    let ch = ffi.CValue.new('k')
+    volatileWrite(ch.ptr(), 'z')
+    print "char ${volatileRead(ffi.toConst(ch.ptr()))}"
+}
+-- stdout --
+read 16
+wrote 42 42
+bumped 43
+bool false
+u8 44
+char z

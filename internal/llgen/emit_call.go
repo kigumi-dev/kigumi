@@ -41,7 +41,7 @@ func (e *emitter) callEntity(sb *strings.Builder, f *mir.Func, in mir.Inst, args
 	if key == "std/error.as" {
 		return e.errorAsCall(sb, args[0], dst)
 	}
-	if strings.HasPrefix(key, "std/ffi.") {
+	if strings.HasPrefix(key, "std/ffi.") || strings.HasPrefix(key, "std/mem.volatile") {
 		var types []sem.TypeID
 		for _, a := range in.Args {
 			types = append(types, f.Locals[a].Type)

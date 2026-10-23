@@ -17,6 +17,8 @@ func (e *emitter) inPlaceBuiltin(in mir.Inst) bool {
 	switch in.Str {
 	case "fixed.fill", "direct.eq", "direct.hash":
 		return true
+	case "atomic.load", "atomic.store", "atomic.exchange", "atomic.compareExchange", "atomic.add", "atomic.sub", "atomic.and", "atomic.or", "atomic.xor", "volatile.read", "volatile.write":
+		return true
 	case "iter.len", "iter.at", "iter.at_ref", "iter.at_move":
 		return e.isDirect(in.Args[0])
 	}

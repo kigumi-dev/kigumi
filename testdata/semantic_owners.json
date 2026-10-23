@@ -4461,6 +4461,96 @@
     "status": "ok"
   },
   {
+    "key": "mem.UnsafeCell.atomicAdd",
+    "signature": "unsafe fn(T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.UnsafeCell.atomicAnd",
+    "signature": "unsafe fn(T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.UnsafeCell.atomicCompareExchange",
+    "signature": "unsafe fn(T, T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.UnsafeCell.atomicExchange",
+    "signature": "unsafe fn(T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.UnsafeCell.atomicLoad",
+    "signature": "unsafe fn(AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.UnsafeCell.atomicOr",
+    "signature": "unsafe fn(T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.UnsafeCell.atomicStore",
+    "signature": "unsafe fn(T, AtomicOrder) -\u003e Void",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.UnsafeCell.atomicSub",
+    "signature": "unsafe fn(T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.UnsafeCell.atomicXor",
+    "signature": "unsafe fn(T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "mem.UnsafeCell.get",
     "signature": "unsafe fn() -\u003e T",
     "has_body": false,
@@ -4491,6 +4581,96 @@
     "status": "ok"
   },
   {
+    "key": "mem.atomicAdd",
+    "signature": "noalloc unsafe fn(\u0026mut T, T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.atomicAnd",
+    "signature": "noalloc unsafe fn(\u0026mut T, T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.atomicCompareExchange",
+    "signature": "noalloc unsafe fn(\u0026mut T, T, T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.atomicExchange",
+    "signature": "noalloc unsafe fn(\u0026mut T, T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.atomicLoad",
+    "signature": "noalloc unsafe fn(\u0026T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.atomicOr",
+    "signature": "noalloc unsafe fn(\u0026mut T, T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.atomicStore",
+    "signature": "noalloc unsafe fn(\u0026mut T, T, AtomicOrder) -\u003e Void",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.atomicSub",
+    "signature": "noalloc unsafe fn(\u0026mut T, T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.atomicXor",
+    "signature": "noalloc unsafe fn(\u0026mut T, T, AtomicOrder) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "mem.secureErase",
     "signature": "pure fn(\u0026mut Bytes) -\u003e Void",
     "has_body": false,
@@ -4505,6 +4685,46 @@
     "signature": "pure fn(\u0026mut Bytes) -\u003e Result[Void, AllocError]",
     "has_body": false,
     "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.volatileRead",
+    "signature": "noalloc unsafe fn(*const T) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.volatileReadAt",
+    "signature": "noalloc unsafe fn(usize) -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.volatileWrite",
+    "signature": "noalloc unsafe fn(*mut T, T) -\u003e Void",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.volatileWriteAt",
+    "signature": "noalloc unsafe fn(usize, T) -\u003e Void",
+    "has_body": false,
+    "kind": "",
     "vm": "implemented",
     "native": "implemented",
     "accelerated": false,
@@ -4792,7 +5012,7 @@
   },
   {
     "key": "net.readLine",
-    "signature": "fn(i32) -\u003e String!",
+    "signature": "fn(i32) -\u003e Bytes!",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -4882,7 +5102,7 @@
   },
   {
     "key": "net.statusOf",
-    "signature": "fn(String) -\u003e Int?",
+    "signature": "fn(Bytes) -\u003e Int?",
     "has_body": true,
     "kind": "",
     "vm": "gap",

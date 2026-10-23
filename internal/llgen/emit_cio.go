@@ -120,6 +120,11 @@ func (e *emitter) ffiRecordCall(sb *strings.Builder, key string, args []string, 
 		return e.irb(sb).Call(rtPtrVal, vptr(v)).Text
 	}
 	switch key {
+	case "std/mem.volatileRead":
+		return e.loadScalarQ(sb, dst, rawPtr(args[0]), "volatile "), true
+	case "std/mem.volatileWrite":
+		e.storeScalarQ(sb, args[1], types[1], rawPtr(args[0]), "volatile ")
+		return e.irb(sb).Call(rtUnit).Text, true
 	case "std/ffi.sizeOf":
 		size, _ := e.cLayoutOf(elem(types[0]))
 		return e.irb(sb).Call(rtInt, vi64(int(size)), vi32(e.numKind(sem.TyUsize))).Text, true

@@ -33,6 +33,8 @@ func (e *emitter) tryScalarInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 		return false
 	case mir.OpGlobalGet, mir.OpGlobalSet:
 		return e.tryDirectStaticInst(sb, f, in)
+	case mir.OpBuiltin:
+		return e.tryAtomicInst(sb, f, in) || e.tryVolatileAt(sb, f, in)
 	case mir.OpDrop, mir.OpRelease:
 		// A value this pass never boxed has no refcount to manage.
 		return e.isScalar(in.Args[0])

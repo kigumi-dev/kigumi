@@ -15,7 +15,7 @@ type ffiValueCheck struct {
 
 // A function value's type arguments are known only once inference settles, so its gates run then.
 func (c *checker) deferFFIValueCheck(n syntax.NodeID, fn EntityID, inst []TypeID, recv TypeID) {
-	if c.r.Packages[c.r.Entities[fn].Pkg].Path == "std/ffi" {
+	if path := c.r.Packages[c.r.Entities[fn].Pkg].Path; path == "std/ffi" || path == "std/mem" {
 		c.ffiValues = append(c.ffiValues, ffiValueCheck{n, fn, inst, recv})
 	}
 }
@@ -26,6 +26,7 @@ func (c *checker) runFFIValueChecks() {
 	for _, v := range pending {
 		c.ffiCValueCheck(v.node, v.fn, v.inst, v.recv)
 		c.ffiAddressLeaseCheck(v.node, v.fn, v.inst)
+		c.memValueCheck(v)
 	}
 }
 

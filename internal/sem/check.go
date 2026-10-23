@@ -73,6 +73,7 @@ type checker struct {
 	constraints  []constraintCheck
 	witnessTasks []witnessTask
 	ffiValues    []ffiValueCheck
+	atomicPlace  map[syntax.NodeID]bool
 	unsatIface   map[unsatKey]bool
 	// paramAlias maps an immutable local bound to a fn-typed parameter (`let g = f`) back to it for callback polymorphism.
 	paramAlias map[EntityID]EntityID

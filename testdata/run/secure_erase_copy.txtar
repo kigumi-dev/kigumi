@@ -1,0 +1,19 @@
+-- src --
+import {secureErase} from std/mem
+import entropy from std/entropy
+
+// secureErase reaches only the value it is given: a copy made with `let b = a` owns its own bytes.
+let mut a = "secret".toBytes()
+let b = a
+secureErase(&mut a)
+print "erased ${a.get(0) || 99} copy ${b.get(0) || 99}"
+
+let e = host.entropy()
+let mut key = e.bytes(16).unwrap()
+let kept = key
+secureErase(&mut key)
+let zeros = Bytes.zeros(16)
+print "key zero ${key.equals(zeros)} copy zero ${kept.equals(zeros)}"
+-- stdout --
+erased 0 copy 115
+key zero true copy zero false

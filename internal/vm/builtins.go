@@ -15,6 +15,13 @@ func isTrivialScalar(k kind) bool {
 // builtin is rt_builtin: the compiler-known runtime entry points.
 func (m *Machine) builtin(name string, args []*obj) *obj {
 	switch name {
+	case "atomic.load", "atomic.store", "atomic.exchange", "atomic.compareExchange", "atomic.add", "atomic.sub", "atomic.and", "atomic.or", "atomic.xor":
+		return m.atomicStatic(m.site.Ent, name, args)
+	case "volatile.read":
+		return m.volatileReadAt(deref(args[0]).i)
+	case "volatile.write":
+		m.volatileWriteAt(deref(args[0]).i, deref(args[1]))
+		return unitObj
 	case "task.close":
 		m.abort("`task.close` outside an async body")
 	case "print", "eprint":

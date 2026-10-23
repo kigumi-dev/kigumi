@@ -4011,6 +4011,57 @@
       ]
     },
     {
+      "id": "run/atomic_static_ops",
+      "kind": "run",
+      "path": "testdata/run/atomic_static_ops.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/atomic_static_pool",
+      "kind": "run",
+      "path": "testdata/run/atomic_static_pool.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/atomic_unsafe_cell",
+      "kind": "run",
+      "path": "testdata/run/atomic_unsafe_cell.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/bare_local_stmt",
       "kind": "run",
       "path": "testdata/run/bare_local_stmt.txtar",
@@ -4113,6 +4164,40 @@
       ]
     },
     {
+      "id": "run/blocking_pool_drop_waits",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_drop_waits.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_many",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_many.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/blocking_pool_move_capture",
       "kind": "run",
       "path": "testdata/run/blocking_pool_move_capture.txtar",
@@ -4128,6 +4213,44 @@
         "stderr",
         "exit"
       ]
+    },
+    {
+      "id": "run/blocking_pool_overlap",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_overlap.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/blocking_pool_panic",
+      "kind": "run",
+      "path": "testdata/run/blocking_pool_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: blocking boom"
+      }
     },
     {
       "id": "run/blocking_pool_stored_closure",
@@ -13026,6 +13149,23 @@
       ]
     },
     {
+      "id": "run/secure_erase_copy",
+      "kind": "run",
+      "path": "testdata/run/secure_erase_copy.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/secure_erase_literal_reuse",
       "kind": "run",
       "path": "testdata/run/secure_erase_literal_reuse.txtar",
@@ -14654,6 +14794,23 @@
       ]
     },
     {
+      "id": "run/volatile_access",
+      "kind": "run",
+      "path": "testdata/run/volatile_access.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/weak",
       "kind": "run",
       "path": "testdata/run/weak.txtar",
@@ -15294,6 +15451,39 @@
       "id": "sem/async_witness_mismatch",
       "kind": "sem",
       "path": "testdata/sem/async_witness_mismatch.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/atomic_order_misuse",
+      "kind": "sem",
+      "path": "testdata/sem/atomic_order_misuse.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/atomic_place_misuse",
+      "kind": "sem",
+      "path": "testdata/sem/atomic_place_misuse.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/atomic_type_misuse",
+      "kind": "sem",
+      "path": "testdata/sem/atomic_type_misuse.txtar",
       "mode": [
         "check"
       ],

@@ -108,39 +108,56 @@ func TestHttpPostRequestLine(t *testing.T) {
 	}
 }
 
-// TestHttpPostInvalidUTF8StatusLine checks invalid UTF-8 in the status line fails clearly instead of readLine silently swallowing the bad bytes into "".
-func TestHttpPostInvalidUTF8StatusLine(t *testing.T) {
+// TestHttpPostNonUTF8ReasonPhrase checks a reason phrase that is Latin-1, or cut in the middle of a character by the 64-byte status line cap, still gives the status: the POST already took effect, so a retry would run it twice.
+func TestHttpPostNonUTF8ReasonPhrase(t *testing.T) {
 	t.Parallel()
 	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
 	exe := buildHTTPProbe(t)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
+	cases := []struct{ name, line string }{
+		{"latin1", "HTTP/1.1 200 Caf\xe9\r\nContent-Length: 0\r\n\r\n"},
+		{"lone continuation", "HTTP/1.1 200 O\xffK\r\nContent-Length: 0\r\n\r\n"},
+		{"cut character", "HTTP/1.1 200 " + strings.Repeat("a", 50) + "\u00e9 tail\r\nContent-Length: 0\r\n\r\n"},
 	}
-	defer ln.Close()
-	go func() {
-		conn, err := ln.Accept()
+	serve := func(t *testing.T, line string) string {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
 		if err != nil {
-			return
+			t.Fatal(err)
 		}
-		defer conn.Close()
-		conn.SetDeadline(time.Now().Add(5 * time.Second))
-		buf := make([]byte, 4096)
-		conn.Read(buf)
-		conn.Write([]byte("HTTP/1.1 200 O\xffK\r\nContent-Length: 0\r\n\r\n"))
-	}()
-	addr := ln.Addr().(*net.TCPAddr)
-	url := fmt.Sprintf("http://127.0.0.1:%d/x", addr.Port)
-	cmd := exec.Command(exe, url)
-	var out, errOut bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &out, &errOut
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("run: %v\n%s", err, errOut.String())
+		t.Cleanup(func() { ln.Close() })
+		go func() {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			defer conn.Close()
+			conn.SetDeadline(time.Now().Add(5 * time.Second))
+			buf := make([]byte, 4096)
+			conn.Read(buf)
+			conn.Write([]byte(line))
+		}()
+		return fmt.Sprintf("http://%s/x", ln.Addr())
 	}
-	if got := strings.TrimSpace(out.String()); got != "err: invalid UTF-8" {
-		t.Fatalf("client output: got %q, want %q (stderr: %s)", got, "err: invalid UTF-8", errOut.String())
+	for _, c := range cases {
+		t.Run(c.name+"/native", func(t *testing.T) {
+			t.Parallel()
+			cmd := exec.Command(exe, serve(t, c.line))
+			var out, errOut bytes.Buffer
+			cmd.Stdout, cmd.Stderr = &out, &errOut
+			if err := cmd.Run(); err != nil {
+				t.Fatalf("run: %v\n%s", err, errOut.String())
+			}
+			if got, want := strings.TrimSpace(out.String()), "ok status=200"; got != want {
+				t.Fatalf("got %q, want %q (stderr: %s)", got, want, errOut.String())
+			}
+		})
+		t.Run(c.name+"/vm", func(t *testing.T) {
+			t.Parallel()
+			if got, want := runEmulatedEngine(t, serve(t, c.line)), "ok status=200"; got != want {
+				t.Fatalf("got %q, want %q", got, want)
+			}
+		})
 	}
 }
 

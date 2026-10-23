@@ -1,5 +1,6 @@
 import binary from std/binary
 import ffi from std/ffi
+import mem from std/mem
 
 extern(C) {
     fn getrandom(buf: *mut u8, buflen: usize, flags: u32) -> isize
@@ -43,7 +44,7 @@ fn fillFromUrandom(buf: *mut u8, start: usize, n: usize) -> Void! {
 }
 
 /// n cryptographically random bytes from the OS: `getrandom(2)`, falling
-/// back to `/dev/urandom` when the syscall itself fails.
+/// back to `/dev/urandom` when the syscall itself fails; the scratch buffer is erased before it is freed.
 pub fn Entropy.bytes(self, n: usize) -> Bytes! {
     if n == 0 {
         return "".toBytes()
@@ -71,6 +72,7 @@ pub fn Entropy.bytes(self, n: usize) -> Bytes! {
         let filled = fillFromUrandom(buf, off, n)
         if filled is Err(e) {
             unsafe {
+                ffi.secureEraseRaw(buf, n)
                 free(buf)
             }
             fail e
@@ -80,6 +82,7 @@ pub fn Entropy.bytes(self, n: usize) -> Bytes! {
         ffi.bytesFrom(ffi.toConst(buf), n)
     }
     unsafe {
+        ffi.secureEraseRaw(buf, n)
         free(buf)
     }
     out
@@ -87,6 +90,8 @@ pub fn Entropy.bytes(self, n: usize) -> Bytes! {
 
 /// One random u64 from the OS.
 pub fn Entropy.u64(self) -> u64! {
-    let b = self.bytes(8)?
-    binary.u64Be(b, 0) || 0
+    let mut b = self.bytes(8)?
+    let v = binary.u64Be(b, 0) || 0
+    mem.secureErase(&mut b)
+    v
 }

@@ -55,6 +55,9 @@ func (b *builder) call(e *hir.Expr) LocalID {
 		b.applyArgFixups(mark)
 		return dst
 	case hir.Call:
+		if v, ok := b.atomicStatic(e); ok {
+			return v
+		}
 		// An async call's future can outlive the call, so its args are moved, never reborrowed or fixed up.
 		args := b.args(e, e.Args, e.EvalOrder, !e.Async, !e.Async, e.Ent)
 		if e.Async {

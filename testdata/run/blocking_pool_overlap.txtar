@@ -1,0 +1,34 @@
+-- src --
+import task from std/task
+import time from std/time
+
+// Two 400 ms sleeps through the pool of a thread-pool executor overlap; run on the caller they would take at least 800 ms.
+async fn both() -> Int! {
+    let pool = task.BlockingPool.new(4)
+    let a = pool.run(() => {
+        time.sleep(400)
+        1
+    })?
+    let b = pool.run(() => {
+        time.sleep(400)
+        2
+    })?
+    let x = await a
+    let y = await b
+    x * 10 + y
+}
+
+async fn root() -> Int! {
+    let start = time.monotonic()
+    let r = await both()
+    let ms = start.elapsedMillis()
+    print "overlapped ${ms < 760} slept ${ms >= 400}"
+    r?
+}
+
+let ex = task.threadPoolExecutor(2)
+let r = ex.runToCompletion(root())
+print "result ${r.unwrap()}"
+-- stdout --
+overlapped true slept true
+result 12

@@ -37,6 +37,7 @@ type shared struct {
 	// holds belongs to a move-only resource, so only the table itself is shared.
 	store        sync.Mutex
 	globals      map[sem.EntityID]*obj
+	mmio         map[uint64]*obj
 	cvalues      []*obj
 	handleTables []*handleTableState
 	sigWatch     map[string]chan os.Signal
@@ -61,7 +62,7 @@ func newShared() *shared {
 
 func (m *Machine) lane() *Machine {
 	w := *m
-	w.stack, w.pending, w.spare, w.pool, w.slab = nil, nil, nil, nil, nil
+	w.stack, w.pending, w.spare, w.pool, w.slab, w.frames = nil, nil, nil, nil, nil, nil
 	w.stepsLeft, w.depth = 0, 0
 	w.site, w.siteFn, w.curFn, w.curInst, w.valueSites, w.boxFacts, w.boxParams = nil, nil, nil, nil, nil, nil, nil
 	w.cur, w.curLane = nil, 0

@@ -30,7 +30,7 @@ func (e *emitter) staticGlobals() (decls, initFn string) {
 		default:
 			if ty, ok := e.directStatic(ent); ok {
 				lit, _ := e.r.StaticValueOf(ent)
-				fmt.Fprintf(&g, "%s = internal global %s %s%s\n", e.globalSym(ent), ty, scalarConstText(e.r.Types, mir.Inst{Lit: lit, Type: typ}), sectionClause(e.r.StaticSectionOf(ent)))
+				fmt.Fprintf(&g, "%s = internal global %s %s%s, align %d\n", e.globalSym(ent), ty, scalarConstText(e.r.Types, mir.Inst{Lit: lit, Type: typ}), sectionClause(e.r.StaticSectionOf(ent)), alignOf(ty.String()))
 				continue
 			}
 			fmt.Fprintf(&g, "%s = internal global ptr null%s\n", e.globalSym(ent), sectionClause(e.r.StaticSectionOf(ent)))

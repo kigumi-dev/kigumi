@@ -1,0 +1,122 @@
+-- app/t/t.kg --
+import {atomicAdd, atomicExchange, atomicLoad, volatileRead, volatileReadAt, volatileWrite, volatileWriteAt, AtomicOrder, UnsafeCell} from std/mem
+
+static mut wide: i128 = 0
+static mut ratio: f64 = 1.0
+static mut flag: Bool = false
+static mut count: Int = 0
+
+type Pair = {
+    a Int
+    b Int
+}
+
+fn run(p: *const Pair, q: *mut i128, u: *mut u32, s: UnsafeCell[String], f: UnsafeCell[f32], w: UnsafeCell[u128], b: UnsafeCell[Bool], r: UnsafeCell[*mut u8]) {
+    unsafe {
+        _ = atomicAdd(&mut wide, 1, AtomicOrder.SeqCst) //~ ERROR `i128` cannot be the type of `atomicAdd`
+        _ = atomicLoad(&ratio, AtomicOrder.SeqCst) //~ ERROR `Float` cannot be the type of `atomicLoad`
+        _ = atomicAdd(&mut flag, true, AtomicOrder.SeqCst) //~ ERROR `Bool` cannot be the type of `atomicAdd`
+        _ = atomicExchange(&mut flag, true, AtomicOrder.SeqCst)
+        _ = atomicAdd(&mut count, 1, AtomicOrder.SeqCst)
+        _ = s.atomicLoad(AtomicOrder.SeqCst) //~ ERROR `String` cannot be the type of `atomicLoad`
+        _ = f.atomicLoad(AtomicOrder.SeqCst) //~ ERROR `f32` cannot be the type of `atomicLoad`
+        _ = w.atomicAdd(1, AtomicOrder.SeqCst) //~ ERROR `u128` cannot be the type of `atomicAdd`
+        _ = b.atomicAdd(true, AtomicOrder.SeqCst) //~ ERROR `Bool` cannot be the type of `atomicAdd`
+        _ = b.atomicExchange(true, AtomicOrder.SeqCst)
+        _ = r.atomicAdd(r.atomicLoad(AtomicOrder.SeqCst), AtomicOrder.SeqCst) //~ ERROR `*mut u8` cannot be the type of `atomicAdd`
+        _ = r.atomicLoad(AtomicOrder.SeqCst)
+        _ = volatileRead(p) //~ ERROR `Pair` cannot be the type of `volatileRead`
+        volatileWrite(q, 1) //~ ERROR `i128` cannot be the type of `volatileWrite`
+        volatileWrite(u, 1)
+        _ = volatileReadAt[f32](0x10) //~ ERROR `f32` cannot be the type of `volatileReadAt`
+        volatileWriteAt(0x10, 'c') //~ ERROR `Char` cannot be the type of `volatileWriteAt`
+        volatileWriteAt(0x10, 7)
+        _ = volatileReadAt[u8](0x10)
+    }
+}
+
+-- expect --
+error[E2249]: `i128` cannot be the type of `atomicAdd`
+  --> app/t/t.kg:15:13
+   |
+15 |         _ = atomicAdd(&mut wide, 1, AtomicOrder.SeqCst) //~ ERROR `i128` cannot be the type of `atomicAdd`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits
+
+error[E2249]: `Float` cannot be the type of `atomicLoad`
+  --> app/t/t.kg:16:13
+   |
+16 |         _ = atomicLoad(&ratio, AtomicOrder.SeqCst) //~ ERROR `Float` cannot be the type of `atomicLoad`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits or Bool
+
+error[E2249]: `Bool` cannot be the type of `atomicAdd`
+  --> app/t/t.kg:17:13
+   |
+17 |         _ = atomicAdd(&mut flag, true, AtomicOrder.SeqCst) //~ ERROR `Bool` cannot be the type of `atomicAdd`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits
+
+error[E2249]: `String` cannot be the type of `atomicLoad`
+  --> app/t/t.kg:20:13
+   |
+20 |         _ = s.atomicLoad(AtomicOrder.SeqCst) //~ ERROR `String` cannot be the type of `atomicLoad`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits, Bool or a raw pointer
+
+error[E2249]: `f32` cannot be the type of `atomicLoad`
+  --> app/t/t.kg:21:13
+   |
+21 |         _ = f.atomicLoad(AtomicOrder.SeqCst) //~ ERROR `f32` cannot be the type of `atomicLoad`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits, Bool or a raw pointer
+
+error[E2249]: `u128` cannot be the type of `atomicAdd`
+  --> app/t/t.kg:22:13
+   |
+22 |         _ = w.atomicAdd(1, AtomicOrder.SeqCst) //~ ERROR `u128` cannot be the type of `atomicAdd`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits
+
+error[E2249]: `Bool` cannot be the type of `atomicAdd`
+  --> app/t/t.kg:23:13
+   |
+23 |         _ = b.atomicAdd(true, AtomicOrder.SeqCst) //~ ERROR `Bool` cannot be the type of `atomicAdd`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits
+
+error[E2249]: `*mut u8` cannot be the type of `atomicAdd`
+  --> app/t/t.kg:25:13
+   |
+25 |         _ = r.atomicAdd(r.atomicLoad(AtomicOrder.SeqCst), AtomicOrder.SeqCst) //~ ERROR `*mut u8` cannot be the type of `atomicAdd`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits
+
+error[E2249]: `Pair` cannot be the type of `volatileRead`
+  --> app/t/t.kg:27:13
+   |
+27 |         _ = volatileRead(p) //~ ERROR `Pair` cannot be the type of `volatileRead`
+   |             ^^^^^^^^^^^^^^
+   = help: T is a fixed-width number, Bool, Char or a raw pointer
+
+error[E2249]: `i128` cannot be the type of `volatileWrite`
+  --> app/t/t.kg:28:9
+   |
+28 |         volatileWrite(q, 1) //~ ERROR `i128` cannot be the type of `volatileWrite`
+   |         ^^^^^^^^^^^^^^^^^^
+   = help: T is a fixed-width number, Bool, Char or a raw pointer
+
+error[E2249]: `f32` cannot be the type of `volatileReadAt`
+  --> app/t/t.kg:30:13
+   |
+30 |         _ = volatileReadAt[f32](0x10) //~ ERROR `f32` cannot be the type of `volatileReadAt`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits or Bool
+
+error[E2249]: `Char` cannot be the type of `volatileWriteAt`
+  --> app/t/t.kg:31:9
+   |
+31 |         volatileWriteAt(0x10, 'c') //~ ERROR `Char` cannot be the type of `volatileWriteAt`
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: T is an integer type of at most 64 bits or Bool
+

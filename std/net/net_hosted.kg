@@ -234,10 +234,9 @@ fn sendAll(fd: i32, data: Bytes) -> Void! {
     }
 }
 
-// readLine stops at LF or EOF; a real read error (including a timeout
-// once setTimeout has armed SO_RCVTIMEO) or invalid UTF-8 in the line
-// fails instead of returning whatever was read so far.
-fn readLine(fd: i32) -> String! {
+// readLine stops at LF, EOF or 64 bytes; a real read error (including a timeout
+// once setTimeout has armed SO_RCVTIMEO) fails. The line stays bytes: a Latin-1 or cut reason phrase must not fail a POST that took effect.
+fn readLine(fd: i32) -> Bytes! {
     let buf = unsafe {
         malloc(1)
     }
@@ -267,7 +266,7 @@ fn readLine(fd: i32) -> String! {
     unsafe {
         free(buf)
     }
-    String.fromBytes(acc)
+    acc
 }
 
 // setTimeout bounds send/recv on fd so a peer that accepts a connection
@@ -390,20 +389,30 @@ fn indexOf(text: String, sub: String) -> usize? {
     None
 }
 
-fn statusOf(line: String) -> Int? {
-    // "HTTP/1.1 200 OK": the status is the second space-separated word.
-    let parts = line.split(" ")
-    if parts.len() < 2 || !line.startsWith("HTTP/") {
+fn statusOf(line: Bytes) -> Int? {
+    // "HTTP/1.1 200 OK": the status is the second space-separated word, exactly three digits.
+    let prefix = "HTTP/".bytes()
+    if line.len() < prefix.len() {
         return None
     }
-    let code = parts.get(1) || ""
-    let b = code.bytes()
-    if b.len() != 3 {
+    for i in 0..prefix.len() {
+        if (line.get(i) || 0) != (prefix.get(i) || 0) {
+            return None
+        }
+    }
+    let mut space: usize = 0
+    for space < line.len() && (line.get(space) || 0) != 32 {
+        space = space + 1
+    }
+    if space + 4 > line.len() {
+        return None
+    }
+    if space + 4 < line.len() && (line.get(space + 4) || 0) != 32 {
         return None
     }
     let mut n = 0
-    for i in 0..3 {
-        let d = (b.get(i) || 0).toInt()
+    for i in 1..4 {
+        let d = (line.get(space + i) || 0).toInt()
         if d < 48 || d > 57 {
             return None
         }
@@ -416,8 +425,8 @@ fn statusOf(line: String) -> Int? {
 /// refused); a `[v6]:port` IPv6 literal is accepted, but a `user:pass@`
 /// authority and any control character or space in the host or path are
 /// rejected, since either could inject extra headers or a second request.
-/// The 10 second timeout from `Net.http` covers the whole request, not just
-/// the connect phase.
+/// The 10 second timeout bounds each connect, send and receive, not the whole request;
+/// the status line is read as bytes, so a non-UTF-8 reason phrase is not an Err.
 pub fn Http.post(self, url: String, body: String) -> Response! {
     if url.startsWith("https://") {
         fail fails("https is not supported in native builds")

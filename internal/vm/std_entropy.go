@@ -27,6 +27,8 @@ func (m *Machine) registerEntropy() {
 		if _, err := rand.Read(buf[:]); err != nil {
 			return m.errMsg(err.Error())
 		}
-		return m.ok(mkInt(int64(binary.BigEndian.Uint64(buf[:])), m.numKind(sem.TyU64)))
+		v := binary.BigEndian.Uint64(buf[:])
+		clear(buf[:])
+		return m.ok(mkInt(int64(v), m.numKind(sem.TyU64)))
 	}
 }

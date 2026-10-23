@@ -8,7 +8,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unicode/utf8"
 
 	"kigumi/internal/sem"
 )
@@ -102,12 +101,12 @@ func ioError(err error) error {
 }
 
 // readHTTPStatusLine reads up to LF or 64 bytes, whichever comes first, matching net_hosted.kg's readLine byte-at-a-time cap.
-func readHTTPStatusLine(conn net.Conn) (string, error) {
+func readHTTPStatusLine(conn net.Conn) ([]byte, error) {
 	var acc []byte
 	buf := make([]byte, 1)
 	for len(acc) < 64 {
 		if err := conn.SetReadDeadline(time.Now().Add(httpRequestTimeout)); err != nil {
-			return "", err
+			return nil, err
 		}
 		n, err := conn.Read(buf)
 		if n > 0 {
@@ -120,24 +119,21 @@ func readHTTPStatusLine(conn net.Conn) (string, error) {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return "", ioError(err)
+			return nil, ioError(err)
 		}
 		if n == 0 {
 			break
 		}
 	}
-	if !utf8.Valid(acc) {
-		return "", errors.New("invalid UTF-8")
-	}
-	return string(acc), nil
+	return acc, nil
 }
 
 // parseHTTPStatus matches statusOf: "HTTP/1.1 200 OK" is the second space-separated word, exactly three ASCII digits.
-func parseHTTPStatus(line string) (int, bool) {
-	if !strings.HasPrefix(line, "HTTP/") {
+func parseHTTPStatus(line []byte) (int, bool) {
+	if !strings.HasPrefix(string(line), "HTTP/") {
 		return 0, false
 	}
-	parts := strings.Split(line, " ")
+	parts := strings.Split(string(line), " ")
 	if len(parts) < 2 || len(parts[1]) != 3 {
 		return 0, false
 	}

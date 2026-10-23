@@ -169,6 +169,15 @@ enum std_op {
     OP_BYTES_INDEX_OF = 164,
     OP_STRING_CONTAINS = 165,
     OP_BYTES_LAST_INDEX_OF = 166,
+    OP_UCELL_ATOMIC_LOAD = 167,
+    OP_UCELL_ATOMIC_STORE = 168,
+    OP_UCELL_ATOMIC_EXCHANGE = 169,
+    OP_UCELL_ATOMIC_COMPARE_EXCHANGE = 170,
+    OP_UCELL_ATOMIC_ADD = 171,
+    OP_UCELL_ATOMIC_SUB = 172,
+    OP_UCELL_ATOMIC_AND = 173,
+    OP_UCELL_ATOMIC_OR = 174,
+    OP_UCELL_ATOMIC_XOR = 175,
 };
 static int rt_std_op_of(const char* key) {
     const char* k = key;
@@ -329,6 +338,15 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "prelude.Bytes.indexOf")) return OP_BYTES_INDEX_OF;
     if (!strcmp(k, "prelude.String.contains")) return OP_STRING_CONTAINS;
     if (!strcmp(k, "prelude.Bytes.lastIndexOf")) return OP_BYTES_LAST_INDEX_OF;
+    if (!strcmp(k, "mem.UnsafeCell.atomicLoad")) return OP_UCELL_ATOMIC_LOAD;
+    if (!strcmp(k, "mem.UnsafeCell.atomicStore")) return OP_UCELL_ATOMIC_STORE;
+    if (!strcmp(k, "mem.UnsafeCell.atomicExchange")) return OP_UCELL_ATOMIC_EXCHANGE;
+    if (!strcmp(k, "mem.UnsafeCell.atomicCompareExchange")) return OP_UCELL_ATOMIC_COMPARE_EXCHANGE;
+    if (!strcmp(k, "mem.UnsafeCell.atomicAdd")) return OP_UCELL_ATOMIC_ADD;
+    if (!strcmp(k, "mem.UnsafeCell.atomicSub")) return OP_UCELL_ATOMIC_SUB;
+    if (!strcmp(k, "mem.UnsafeCell.atomicAnd")) return OP_UCELL_ATOMIC_AND;
+    if (!strcmp(k, "mem.UnsafeCell.atomicOr")) return OP_UCELL_ATOMIC_OR;
+    if (!strcmp(k, "mem.UnsafeCell.atomicXor")) return OP_UCELL_ATOMIC_XOR;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;

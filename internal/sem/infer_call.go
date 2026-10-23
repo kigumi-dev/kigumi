@@ -30,6 +30,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 		kind = CallAssoc
 	}
 	c.defaultRecv = recv
+	c.markAtomicPlace(fn, args)
 	ret, plan := c.checkArgs(n, name, sig, args, inst, want, info.Params, info.Body != 0, async)
 	c.defaultRecv = 0
 	c.taintRecvResult(n, ret, recvBase)
@@ -39,6 +40,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	c.ffiLeaseCapture(fn, args)
 	c.errorAsCheck(n, fn, inst)
 	c.exitCodeCheck(fn, args)
+	c.memOpCheck(n, fn, inst, args, recv)
 	if async {
 		// A direct call to an async fn yields a lazy Future.
 		ret = c.r.Types.Named(c.r.Types.futureEnt, []TypeID{ret})

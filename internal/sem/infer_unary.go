@@ -61,7 +61,8 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 		t = c.adopt(c.literalNode(inner), target)
 	}
 	mut := b.Flags()&syntax.FlagMut != 0
-	if staticEnt, ok := c.staticRootOf(inner); ok && c.r.Static(staticEnt).Mut {
+	if staticEnt, ok := c.staticRootOf(inner); ok && c.atomicPlace[n] {
+	} else if ok && c.r.Static(staticEnt).Mut {
 		name := c.r.Entities[staticEnt].Name
 		c.errAt(n, cStaticMutOrdinaryRef, name, name)
 	} else if ok && mut {

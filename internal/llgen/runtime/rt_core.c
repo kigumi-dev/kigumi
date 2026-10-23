@@ -2879,15 +2879,8 @@ static void free_opaque(val v) {
     else if (!strcmp(kind, "Executor")) exec_drop((kgexec*)d);
 #endif
 #if !defined(KIGUMI_FREESTANDING) && defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
-    else if (!strcmp(kind, "BlockingFuture")) {
-        blocking_future* f = d;
-        if (!f->taken) {
-            ((blocking_pool*)f->pool->u.op.data)->in_flight--;
-            rt_release(f->result);
-        }
-        rt_release(f->pool);
-        free(f);
-    } else if (!strcmp(kind, "BlockingPool")) free(d);
+    else if (!strcmp(kind, "BlockingFuture")) blocking_future_free(d);
+    else if (!strcmp(kind, "BlockingPool")) free(d);
 #endif
 }
 enum { OPAQUE_PLAIN, OPAQUE_SLOT, OPAQUE_SHARED };
@@ -3449,6 +3442,58 @@ static int subtle_constant_time_eq(val a, val b) {
 // A constructor keeps its argument as is: an interface value must stay a witness-carrying box inside the cell.
 static int op_stores_a0(int op) {
     return op == OP_BOX_NEW || op == OP_BOX_TRY_NEW || op == OP_SHARED_NEW || op == OP_SHARED_TRY_NEW || op == OP_UCELL_NEW;
+}
+#ifdef KIGUMI_THREADS
+static pthread_mutex_t g_ucell_atomic = PTHREAD_MUTEX_INITIALIZER;
+#define UCELL_LOCK() (kg_stack_check_locked(), pthread_mutex_lock(&g_ucell_atomic))
+#define UCELL_UNLOCK() pthread_mutex_unlock(&g_ucell_atomic)
+#else
+#define UCELL_LOCK() ((void)0)
+#define UCELL_UNLOCK() ((void)0)
+#endif
+// Cell content is a boxed scalar that may be shared, so atomics take one lock and store a fresh box; the named order is not used.
+static val ucell_scalar(val v) {
+    switch (v->kind) {
+    case K_INT: return rt_int(v->u.i, v->nk);
+    case K_BOOL: return rt_bool(v->u.b);
+    case K_PTR: return rt_ptr(v->u.p);
+    default: return rt_retain(v);
+    }
+}
+static int ucell_same(val a, val b) {
+    switch (a->kind) {
+    case K_INT: return a->u.i == b->u.i;
+    case K_BOOL: return a->u.b == b->u.b;
+    default: return a->u.p == b->u.p;
+    }
+}
+static val ucell_atomic(char op, val cell, val x, val y) {
+    val c = (val)cell->u.op.data;
+    UCELL_LOCK();
+    val old = c->u.cell.v, res = ucell_scalar(old), next = NULL;
+    switch (op) {
+    case 'l': break;
+    case 's':
+        next = ucell_scalar(x);
+        rt_release(res);
+        res = rt_unit();
+        break;
+    case 'x': next = ucell_scalar(x); break;
+    case 'c':
+        if (ucell_same(old, x)) next = ucell_scalar(y);
+        break;
+    default: {
+        uint64_t o = (uint64_t)old->u.i, v = (uint64_t)x->u.i;
+        uint64_t r = op == '+' ? o + v : op == '-' ? o - v : op == '&' ? (o & v) : op == '|' ? (o | v) : (o ^ v);
+        next = rt_int(truncate_to((int64_t)r, old->nk), old->nk);
+    }
+    }
+    if (next) {
+        c->u.cell.v = next;
+        rt_release(old);
+    }
+    UCELL_UNLOCK();
+    return res;
 }
 // rt_std_id never compares key strings: llgen resolves a call's std key to
 // an enum std_op at compile time (rt_std_op_of does the same resolution
@@ -4239,6 +4284,15 @@ val rt_std_id(int op, int n, val* a) {
         rt_release(old);
         return rt_unit();
     }
+    case OP_UCELL_ATOMIC_LOAD: return ucell_atomic('l', a0, NULL, NULL);
+    case OP_UCELL_ATOMIC_STORE: return ucell_atomic('s', a0, a1, NULL);
+    case OP_UCELL_ATOMIC_EXCHANGE: return ucell_atomic('x', a0, a1, NULL);
+    case OP_UCELL_ATOMIC_COMPARE_EXCHANGE: return ucell_atomic('c', a0, a1, a2);
+    case OP_UCELL_ATOMIC_ADD: return ucell_atomic('+', a0, a1, NULL);
+    case OP_UCELL_ATOMIC_SUB: return ucell_atomic('-', a0, a1, NULL);
+    case OP_UCELL_ATOMIC_AND: return ucell_atomic('&', a0, a1, NULL);
+    case OP_UCELL_ATOMIC_OR: return ucell_atomic('|', a0, a1, NULL);
+    case OP_UCELL_ATOMIC_XOR: return ucell_atomic('^', a0, a1, NULL);
     case OP_BLOCKING_POOL_NEW:
 #if defined(KIGUMI_FREESTANDING) || !defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
         rt_panic("this build has no task.blocking-pool capability");

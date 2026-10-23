@@ -1,0 +1,61 @@
+-- app/t/t.kg --
+import {atomicAdd, atomicLoad, volatileReadAt, AtomicOrder} from std/mem
+
+static mut hits: u32 = 0
+static version: u32 = 1
+
+fn outside() -> u32 {
+    atomicLoad(&hits, AtomicOrder.SeqCst) //~ ERROR calling `atomicLoad` requires an `unsafe { }` block //~ ERROR accessing `static mut hits` requires an `unsafe { }` block
+}
+
+fn run(mut local: u32) {
+    unsafe {
+        _ = atomicAdd(&mut local, 1, AtomicOrder.SeqCst) //~ ERROR the place of `atomicAdd` is not a bare static
+        _ = atomicAdd(&mut hits, 1, AtomicOrder.SeqCst)
+        _ = atomicLoad(&version, AtomicOrder.SeqCst) //~ ERROR `version` is not a Kigumi-owned `static mut`
+        let load = atomicLoad[u32] //~ ERROR `atomicLoad` is lowered at its call site and cannot be used as a function value
+        let read = volatileReadAt[u8] //~ ERROR `volatileReadAt` is lowered at its call site and cannot be used as a function value
+    }
+}
+
+-- expect --
+error[E914]: calling `atomicLoad` requires an `unsafe { }` block
+ --> app/t/t.kg:7:5
+  |
+7 |     atomicLoad(&hits, AtomicOrder.SeqCst) //~ ERROR calling `atomicLoad` requires an `unsafe { }` block //~ ERROR accessing `static mut hits` requires an `unsafe { }` block
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E914]: accessing `static mut hits` requires an `unsafe { }` block
+ --> app/t/t.kg:7:17
+  |
+7 |     atomicLoad(&hits, AtomicOrder.SeqCst) //~ ERROR calling `atomicLoad` requires an `unsafe { }` block //~ ERROR accessing `static mut hits` requires an `unsafe { }` block
+  |                 ^^^^
+
+error[E2250]: the place of `atomicAdd` is not a bare static
+  --> app/t/t.kg:12:23
+   |
+12 |         _ = atomicAdd(&mut local, 1, AtomicOrder.SeqCst) //~ ERROR the place of `atomicAdd` is not a bare static
+   |                       ^^^^^^^^^^
+   = help: an atomic operation names a Kigumi-owned `static mut` of an integer type up to 64 bits or Bool as `&NAME` or `&mut NAME` (or is a method of an UnsafeCell), and is called directly
+
+error[E2250]: `version` is not a Kigumi-owned `static mut`
+  --> app/t/t.kg:14:24
+   |
+14 |         _ = atomicLoad(&version, AtomicOrder.SeqCst) //~ ERROR `version` is not a Kigumi-owned `static mut`
+   |                        ^^^^^^^^
+   = help: an atomic operation names a Kigumi-owned `static mut` of an integer type up to 64 bits or Bool as `&NAME` or `&mut NAME` (or is a method of an UnsafeCell), and is called directly
+
+error[E2250]: `atomicLoad` is lowered at its call site and cannot be used as a function value
+  --> app/t/t.kg:15:20
+   |
+15 |         let load = atomicLoad[u32] //~ ERROR `atomicLoad` is lowered at its call site and cannot be used as a function value
+   |                    ^^^^^^^^^^^^^^
+   = help: an atomic operation names a Kigumi-owned `static mut` of an integer type up to 64 bits or Bool as `&NAME` or `&mut NAME` (or is a method of an UnsafeCell), and is called directly
+
+error[E2250]: `volatileReadAt` is lowered at its call site and cannot be used as a function value
+  --> app/t/t.kg:16:20
+   |
+16 |         let read = volatileReadAt[u8] //~ ERROR `volatileReadAt` is lowered at its call site and cannot be used as a function value
+   |                    ^^^^^^^^^^^^^^^^^
+   = help: an atomic operation names a Kigumi-owned `static mut` of an integer type up to 64 bits or Bool as `&NAME` or `&mut NAME` (or is a method of an UnsafeCell), and is called directly
+

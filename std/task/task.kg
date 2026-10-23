@@ -48,5 +48,5 @@ pub fn BlockingError.message(self) -> String {
 /// Creates a pool that runs at most capacity closures at once.
 pub fn BlockingPool.new(capacity: usize) -> BlockingPool
 
-/// Runs work through the pool's boundary instead of a bare direct call; work may capture move-only values such as a File or Conn, and is consumed.
+/// Runs work through the pool's boundary instead of a bare direct call; work may capture move-only values such as a File or Conn, and is consumed. Under a `threadPoolExecutor` it runs on a thread of its own, so awaiting the result suspends the task and the workers keep running other tasks; under `currentThreadExecutor`, or outside a running task, it runs on the caller before `run` returns. Dropping a result that is still pending waits for the closure, since blocking work cannot be interrupted.
 pub fn BlockingPool.run[T, F: FnOnce[fn() -> T]](self, work: F) -> Result[Future[T], BlockingError]

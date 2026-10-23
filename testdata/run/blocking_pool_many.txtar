@@ -1,0 +1,42 @@
+-- src --
+import task from std/task
+import time from std/time
+import {atomicAdd, atomicLoad, AtomicOrder} from std/mem
+
+static mut finished: u32 = 0
+
+// Each task offloads a short blocking closure; the closures count themselves on their own threads.
+async fn offload(pool: task.BlockingPool, n: Int) -> Int {
+    let fut = pool.run(() => {
+        time.sleep(5)
+        unsafe {
+            _ = atomicAdd(&mut finished, 1, AtomicOrder.SeqCst)
+        }
+        n * n
+    }).unwrap()
+    await fut
+}
+
+async fn root() -> Int {
+    let mut kids = Array.empty[task.Task[Int]]()
+    let mut i = 0
+    for i < 24 {
+        kids.push(task.spawn(offload(task.BlockingPool.new(1), i)))
+        i = i + 1
+    }
+    let mut sum = 0
+    for k in kids {
+        sum = sum + await k
+    }
+    sum
+}
+
+let ex = task.threadPoolExecutor(4)
+let r = ex.runToCompletion(root())
+print "sum ${r}"
+unsafe {
+    print "finished ${atomicLoad(&finished, AtomicOrder.SeqCst)}"
+}
+-- stdout --
+sum 4324
+finished 24

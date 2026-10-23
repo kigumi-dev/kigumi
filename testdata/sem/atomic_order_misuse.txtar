@@ -1,0 +1,80 @@
+-- app/t/t.kg --
+import {atomicAdd, atomicLoad, atomicStore, AtomicOrder, UnsafeCell} from std/mem
+
+static mut hits: u32 = 0
+
+fn order() -> AtomicOrder {
+    AtomicOrder.SeqCst
+}
+
+fn run(c: UnsafeCell[u32]) {
+    let chosen = AtomicOrder.Acquire
+    unsafe {
+        _ = atomicLoad(&hits, AtomicOrder.Release) //~ ERROR `Release` is not a valid memory order for `atomicLoad`
+        _ = atomicLoad(&hits, AtomicOrder.AcqRel) //~ ERROR `AcqRel` is not a valid memory order for `atomicLoad`
+        atomicStore(&mut hits, 1, AtomicOrder.Acquire) //~ ERROR `Acquire` is not a valid memory order for `atomicStore`
+        _ = atomicAdd(&mut hits, 1, order()) //~ ERROR the memory order of `atomicAdd` is not a literal `AtomicOrder` variant
+        _ = atomicAdd(&mut hits, 1, chosen) //~ ERROR the memory order of `atomicAdd` is not a literal `AtomicOrder` variant
+        _ = c.atomicLoad(AtomicOrder.Release) //~ ERROR `Release` is not a valid memory order for `atomicLoad`
+        c.atomicStore(1, order()) //~ ERROR the memory order of `atomicStore` is not a literal `AtomicOrder` variant
+        _ = atomicLoad(&hits, AtomicOrder.Relaxed)
+        _ = atomicLoad(&hits, AtomicOrder.Acquire)
+        _ = atomicLoad(&hits, AtomicOrder.SeqCst)
+        atomicStore(&mut hits, 1, AtomicOrder.Relaxed)
+        atomicStore(&mut hits, 1, AtomicOrder.Release)
+        atomicStore(&mut hits, 1, AtomicOrder.SeqCst)
+        _ = atomicAdd(&mut hits, 1, AtomicOrder.AcqRel)
+        _ = c.atomicAdd(1, AtomicOrder.Relaxed)
+    }
+}
+
+-- expect --
+error[E2248]: `Release` is not a valid memory order for `atomicLoad`
+  --> app/t/t.kg:12:31
+   |
+12 |         _ = atomicLoad(&hits, AtomicOrder.Release) //~ ERROR `Release` is not a valid memory order for `atomicLoad`
+   |                               ^^^^^^^^^^^^^^^^^^^
+   = help: write the order as a `mem.AtomicOrder` variant; a load takes Relaxed, Acquire or SeqCst, a store Relaxed, Release or SeqCst
+
+error[E2248]: `AcqRel` is not a valid memory order for `atomicLoad`
+  --> app/t/t.kg:13:31
+   |
+13 |         _ = atomicLoad(&hits, AtomicOrder.AcqRel) //~ ERROR `AcqRel` is not a valid memory order for `atomicLoad`
+   |                               ^^^^^^^^^^^^^^^^^^
+   = help: write the order as a `mem.AtomicOrder` variant; a load takes Relaxed, Acquire or SeqCst, a store Relaxed, Release or SeqCst
+
+error[E2248]: `Acquire` is not a valid memory order for `atomicStore`
+  --> app/t/t.kg:14:35
+   |
+14 |         atomicStore(&mut hits, 1, AtomicOrder.Acquire) //~ ERROR `Acquire` is not a valid memory order for `atomicStore`
+   |                                   ^^^^^^^^^^^^^^^^^^^
+   = help: write the order as a `mem.AtomicOrder` variant; a load takes Relaxed, Acquire or SeqCst, a store Relaxed, Release or SeqCst
+
+error[E2248]: the memory order of `atomicAdd` is not a literal `AtomicOrder` variant
+  --> app/t/t.kg:15:37
+   |
+15 |         _ = atomicAdd(&mut hits, 1, order()) //~ ERROR the memory order of `atomicAdd` is not a literal `AtomicOrder` variant
+   |                                     ^^^^^^
+   = help: write the order as a `mem.AtomicOrder` variant; a load takes Relaxed, Acquire or SeqCst, a store Relaxed, Release or SeqCst
+
+error[E2248]: the memory order of `atomicAdd` is not a literal `AtomicOrder` variant
+  --> app/t/t.kg:16:37
+   |
+16 |         _ = atomicAdd(&mut hits, 1, chosen) //~ ERROR the memory order of `atomicAdd` is not a literal `AtomicOrder` variant
+   |                                     ^^^^^^
+   = help: write the order as a `mem.AtomicOrder` variant; a load takes Relaxed, Acquire or SeqCst, a store Relaxed, Release or SeqCst
+
+error[E2248]: `Release` is not a valid memory order for `atomicLoad`
+  --> app/t/t.kg:17:26
+   |
+17 |         _ = c.atomicLoad(AtomicOrder.Release) //~ ERROR `Release` is not a valid memory order for `atomicLoad`
+   |                          ^^^^^^^^^^^^^^^^^^^
+   = help: write the order as a `mem.AtomicOrder` variant; a load takes Relaxed, Acquire or SeqCst, a store Relaxed, Release or SeqCst
+
+error[E2248]: the memory order of `atomicStore` is not a literal `AtomicOrder` variant
+  --> app/t/t.kg:18:26
+   |
+18 |         c.atomicStore(1, order()) //~ ERROR the memory order of `atomicStore` is not a literal `AtomicOrder` variant
+   |                          ^^^^^^
+   = help: write the order as a `mem.AtomicOrder` variant; a load takes Relaxed, Acquire or SeqCst, a store Relaxed, Release or SeqCst
+

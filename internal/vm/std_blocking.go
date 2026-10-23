@@ -23,6 +23,9 @@ func (m *Machine) registerBlocking() {
 		if pool.inFlight.Load() >= int64(pool.capacity) {
 			return m.blockingCapacityExhausted()
 		}
+		if m.cur != nil && m.cur.ex.workers > 0 {
+			return m.ok(m.offload(deref(a[0]), retain(deref(a[1]))))
+		}
 		r := m.callValue(a[1], nil)
 		pool.inFlight.Add(1)
 		return m.ok(mkOpaque("Future", &future{result: r, pool: retain(deref(a[0]))}))

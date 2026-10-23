@@ -166,11 +166,10 @@ func (m *Machine) freeFuture(fu *future) {
 		m.release(a)
 	}
 	fu.fn, fu.args = nil, nil
-	if fu.pool != nil {
-		fu.pool.opaqueData().(*blockingPool).inFlight.Add(-1)
-		m.release(fu.pool)
-		fu.pool = nil
+	if fu.job != nil {
+		m.dropJob(fu)
 	}
+	m.dropAdmission(fu)
 	m.release(fu.result)
 	fu.result = nil
 }

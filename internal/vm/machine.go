@@ -137,6 +137,7 @@ func (m *Machine) registerAll() {
 	m.registerBlocking()
 	m.registerFFI()
 	m.registerFFIHandle()
+	m.registerMem()
 	m.registerTime()
 	m.registerSignal()
 	m.registerBuild()

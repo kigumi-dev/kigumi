@@ -1,6 +1,10 @@
 package mir
 
-import "kigumi/internal/sem"
+import (
+	"strings"
+
+	"kigumi/internal/sem"
+)
 
 // isrCheckedOps are the integer operators whose overflow or zero divisor traps.
 var isrCheckedOps = map[string]bool{"+": true, "-": true, "*": true, "/": true, "%": true, "<<": true, ">>": true, "neg": true}
@@ -41,7 +45,7 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 			return "may panic on integer overflow or a zero divisor"
 		}
 	case OpBuiltin:
-		if !isrPureBuiltins[in.Str] {
+		if !isrPureBuiltins[in.Str] && !strings.HasPrefix(in.Str, "atomic.") && !strings.HasPrefix(in.Str, "volatile.") {
 			return "calls the runtime helper `" + in.Str + "`"
 		}
 	case OpShell, OpInterp:

@@ -515,3 +515,52 @@ op 165 STRING_CONTAINS primitive (string, string) -> bool
 key prelude.String.contains
 op 166 BYTES_LAST_INDEX_OF primitive (bytes, bytes) -> option
 key prelude.Bytes.lastIndexOf
+op 167 UCELL_ATOMIC_LOAD primitive (named, any) -> any
+key mem.UnsafeCell.atomicLoad
+op 168 UCELL_ATOMIC_STORE primitive (named, any, any) -> unit
+key mem.UnsafeCell.atomicStore
+op 169 UCELL_ATOMIC_EXCHANGE primitive (named, any, any) -> any
+key mem.UnsafeCell.atomicExchange
+op 170 UCELL_ATOMIC_COMPARE_EXCHANGE primitive (named, any, any, any) -> any
+key mem.UnsafeCell.atomicCompareExchange
+op 171 UCELL_ATOMIC_ADD primitive (named, any, any) -> any
+key mem.UnsafeCell.atomicAdd
+op 172 UCELL_ATOMIC_SUB primitive (named, any, any) -> any
+key mem.UnsafeCell.atomicSub
+op 173 UCELL_ATOMIC_AND primitive (named, any, any) -> any
+key mem.UnsafeCell.atomicAnd
+op 174 UCELL_ATOMIC_OR primitive (named, any, any) -> any
+key mem.UnsafeCell.atomicOr
+op 175 UCELL_ATOMIC_XOR primitive (named, any, any) -> any
+key mem.UnsafeCell.atomicXor
+builtin atomic.load () -> any vm native=inline
+builtin atomic.store (any) -> unit min=1 vm native=inline
+builtin atomic.exchange (any) -> any min=1 vm native=inline
+builtin atomic.compareExchange (any, any) -> any min=2 vm native=inline
+builtin atomic.add (any) -> any min=1 vm native=inline
+builtin atomic.sub (any) -> any min=1 vm native=inline
+builtin atomic.and (any) -> any min=1 vm native=inline
+builtin atomic.or (any) -> any min=1 vm native=inline
+builtin atomic.xor (any) -> any min=1 vm native=inline
+builtin volatile.read (int) -> any min=1 vm native=inline
+builtin volatile.write (int, any) -> unit min=2 vm native=inline
+
+bodiless STATIC_ATOMICS
+prefix mem.atomic
+isr sync mem.atomic width=64 impl=native
+
+bodiless VOLATILE_READ
+key mem.volatileRead
+isr mmio mem.volatileRead
+
+bodiless VOLATILE_WRITE
+key mem.volatileWrite
+isr mmio mem.volatileWrite
+
+bodiless VOLATILE_READ_AT
+key mem.volatileReadAt
+isr mmio mem.volatileReadAt
+
+bodiless VOLATILE_WRITE_AT
+key mem.volatileWriteAt
+isr mmio mem.volatileWriteAt

@@ -47,6 +47,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 			res = unitObj
 			break
 		}
+		m.site, m.siteFn = in, f
 		res = m.builtin(in.Str, args)
 		m.chargeMemory(res)
 	case mir.OpFutureNew:

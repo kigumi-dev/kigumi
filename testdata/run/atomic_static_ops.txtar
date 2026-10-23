@@ -1,0 +1,62 @@
+-- src --
+import {atomicAdd, atomicSub, atomicAnd, atomicOr, atomicXor, atomicLoad, atomicStore, atomicExchange, atomicCompareExchange, AtomicOrder} from std/mem
+
+static mut octet: u8 = 250
+static mut small: i8 = 120
+static mut half: u16 = 65530
+static mut word: i32 = -5
+static mut wide: u64 = 5
+static mut signed: Int = 9223372036854775800
+static mut flag: Bool = false
+
+fn show(label: String, old: Int, now: Int) {
+    print "${label} ${old} -> ${now}"
+}
+
+unsafe {
+    let a = atomicAdd(&mut octet, 10, AtomicOrder.SeqCst)
+    show("u8 add", a.toInt(), atomicLoad(&octet, AtomicOrder.SeqCst).toInt())
+    let b = atomicSub(&mut octet, 7, AtomicOrder.AcqRel)
+    show("u8 sub", b.toInt(), atomicLoad(&octet, AtomicOrder.Acquire).toInt())
+    let c = atomicAdd(&mut small, 10, AtomicOrder.Relaxed)
+    show("i8 add", c.toInt(), atomicLoad(&small, AtomicOrder.Relaxed).toInt())
+    let d = atomicAdd(&mut half, 10, AtomicOrder.Release)
+    show("u16 add", d.toInt(), atomicLoad(&half, AtomicOrder.SeqCst).toInt())
+    let e = atomicSub(&mut word, 2147483647, AtomicOrder.SeqCst)
+    show("i32 sub", e.toInt(), atomicLoad(&word, AtomicOrder.SeqCst).toInt())
+    let f = atomicSub(&mut wide, 6, AtomicOrder.SeqCst)
+    print "u64 sub ${f} -> ${atomicLoad(&wide, AtomicOrder.SeqCst)}"
+    let g = atomicAdd(&mut signed, 100, AtomicOrder.SeqCst)
+    show("Int add", g, atomicLoad(&signed, AtomicOrder.SeqCst))
+    let h = atomicAnd(&mut word, 255, AtomicOrder.SeqCst)
+    show("i32 and", h.toInt(), atomicLoad(&word, AtomicOrder.SeqCst).toInt())
+    let i = atomicOr(&mut word, -256, AtomicOrder.SeqCst)
+    show("i32 or", i.toInt(), atomicLoad(&word, AtomicOrder.SeqCst).toInt())
+    let j = atomicXor(&mut half, 65535, AtomicOrder.SeqCst)
+    show("u16 xor", j.toInt(), atomicLoad(&half, AtomicOrder.SeqCst).toInt())
+    let k = atomicExchange(&mut octet, 77, AtomicOrder.SeqCst)
+    show("u8 xchg", k.toInt(), atomicLoad(&octet, AtomicOrder.SeqCst).toInt())
+    let hit = atomicCompareExchange(&mut octet, 77, 78, AtomicOrder.AcqRel)
+    let miss = atomicCompareExchange(&mut octet, 77, 79, AtomicOrder.Acquire)
+    print "cas ${hit} ${miss} ${atomicLoad(&octet, AtomicOrder.SeqCst)}"
+    atomicStore(&mut signed, -1, AtomicOrder.Release)
+    print "store ${atomicLoad(&signed, AtomicOrder.SeqCst)}"
+    print "flag ${atomicExchange(&mut flag, true, AtomicOrder.SeqCst)} ${atomicLoad(&flag, AtomicOrder.SeqCst)}"
+    print "flag cas ${atomicCompareExchange(&mut flag, true, false, AtomicOrder.SeqCst)} ${atomicLoad(&flag, AtomicOrder.SeqCst)}"
+}
+-- stdout --
+u8 add 250 -> 4
+u8 sub 4 -> 253
+i8 add 120 -> -126
+u16 add 65530 -> 4
+i32 sub -5 -> 2147483644
+u64 sub 5 -> 18446744073709551615
+Int add 9223372036854775800 -> -9223372036854775716
+i32 and 2147483644 -> 252
+i32 or 252 -> -4
+u16 xor 4 -> 65531
+u8 xchg 253 -> 77
+cas 77 78 78
+store -1
+flag false true
+flag cas true false

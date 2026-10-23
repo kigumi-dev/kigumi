@@ -1,0 +1,20 @@
+-- src --
+import task from std/task
+
+async fn root() -> Int! {
+    let pool = task.BlockingPool.new(1)
+    let fut = pool.run(() => {
+        let missing: Int? = None
+        missing.expect("blocking boom")
+    })?
+    await fut
+}
+
+let ex = task.threadPoolExecutor(2)
+let r = ex.runToCompletion(root())
+print "unreachable ${r.unwrap()}"
+-- stdout --
+-- stderr --
+panic: blocking boom
+-- exit --
+2

@@ -1,0 +1,47 @@
+-- src --
+import {AtomicOrder, UnsafeCell} from std/mem
+
+type Gate = {
+    open UnsafeCell[Bool]
+    seen UnsafeCell[u8]
+}
+
+fn bump(g: &Gate) -> u8 {
+    unsafe {
+        g.seen.atomicAdd(100, AtomicOrder.SeqCst)
+    }
+}
+
+unsafe {
+    let n = UnsafeCell.new(7)
+    print "add ${n.atomicAdd(3, AtomicOrder.SeqCst)} ${n.atomicLoad(AtomicOrder.SeqCst)}"
+    print "sub ${n.atomicSub(20, AtomicOrder.AcqRel)} ${n.atomicLoad(AtomicOrder.Acquire)}"
+    print "xchg ${n.atomicExchange(100, AtomicOrder.SeqCst)} ${n.atomicLoad(AtomicOrder.SeqCst)}"
+    print "cas ${n.atomicCompareExchange(100, 1, AtomicOrder.SeqCst)} ${n.atomicCompareExchange(100, 2, AtomicOrder.SeqCst)} ${n.atomicLoad(AtomicOrder.SeqCst)}"
+    print "bits ${n.atomicOr(6, AtomicOrder.Relaxed)} ${n.atomicAnd(3, AtomicOrder.Relaxed)} ${n.atomicXor(255, AtomicOrder.Relaxed)} ${n.atomicLoad(AtomicOrder.SeqCst)}"
+    n.atomicStore(-5, AtomicOrder.Release)
+    print "store ${n.atomicLoad(AtomicOrder.SeqCst)}"
+
+    let g = Gate { open: UnsafeCell.new(false), seen: UnsafeCell.new(200) }
+    print "u8 ${bump(&g)} ${bump(&g)} ${g.seen.atomicLoad(AtomicOrder.SeqCst)}"
+    print "bool ${g.open.atomicExchange(true, AtomicOrder.SeqCst)} ${g.open.atomicCompareExchange(true, false, AtomicOrder.SeqCst)} ${g.open.atomicLoad(AtomicOrder.SeqCst)}"
+
+    // A value read before the next atomic operation does not change under it.
+    let before = n.atomicLoad(AtomicOrder.SeqCst)
+    _ = n.atomicAdd(1, AtomicOrder.SeqCst)
+    print "snapshot ${before} ${n.atomicLoad(AtomicOrder.SeqCst)}"
+    let plain = n.get()
+    n.atomicStore(0, AtomicOrder.SeqCst)
+    print "plain ${plain} ${n.get()}"
+}
+-- stdout --
+add 7 10
+sub 10 -10
+xchg -10 100
+cas 100 1 1
+bits 1 7 3 252
+store -5
+u8 200 44 144
+bool false true false
+snapshot -5 -4
+plain -4 0

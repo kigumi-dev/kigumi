@@ -14,7 +14,9 @@ var lowered = map[string]bool{
 	"ffi.readU8": true, "ffi.readI32": true, "ffi.readI64": true, "ffi.readF64": true, "ffi.readPtr": true,
 	"ffi.writeU8": true, "ffi.writeI32": true, "ffi.writeI64": true, "ffi.writeF64": true, "ffi.writePtr": true,
 	"ffi.null": true, "ffi.isNull": true, "ffi.cast": true, "ffi.toConst": true, "ffi.toMut": true, "ffi.offset": true,
-	"error.as": true,
+	"error.as": true, "mem.volatileRead": true, "mem.volatileWrite": true, "mem.volatileReadAt": true, "mem.volatileWriteAt": true,
+	"mem.atomicLoad": true, "mem.atomicStore": true, "mem.atomicExchange": true, "mem.atomicCompareExchange": true, "mem.atomicAdd": true,
+	"mem.atomicSub": true, "mem.atomicAnd": true, "mem.atomicOr": true, "mem.atomicXor": true,
 }
 
 // conversionKey matches the numeric `toX` methods, which callEntity lowers

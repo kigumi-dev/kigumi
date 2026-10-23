@@ -70,13 +70,16 @@ func TestEmitAbiCheckIsOptIn(t *testing.T) {
 }
 
 // A new thread-creating call anywhere but rt_thread_pool_new would need its own capability, or the single-threaded runtime would race on plain refcounts.
+// A blocking job's thread is the exception: it starts only under a thread-pool executor, whose capability already made the counts atomic.
 func TestOnlyThreadPoolCreatesThreads(t *testing.T) {
 	re := regexp.MustCompile(`pthread_create\(`)
 	for _, f := range llgen.RuntimeFiles("posix", "linux") {
 		for _, loc := range re.FindAllStringIndex(f.Src, -1) {
 			before := f.Src[:loc[0]]
-			fn := before[strings.LastIndex(before, "\nval rt_thread_pool_new")+1:]
-			if !strings.HasPrefix(fn, "val rt_thread_pool_new") || strings.Contains(fn[len("val rt_thread_pool_new"):], "\n}\n") {
+			if insideFn(before, "static blocking_job* blocking_job_start") && strings.Contains(f.Src, "ex->nworkers > 0) {\n        f->job = blocking_job_start(") {
+				continue
+			}
+			if !insideFn(before, "val rt_thread_pool_new") {
 				t.Errorf("%s creates a thread outside rt_thread_pool_new", f.Name)
 			}
 		}
@@ -98,4 +101,9 @@ func TestOnlyThreadPoolCreatesThreads(t *testing.T) {
 			t.Errorf("op %s also needs task.threads", name)
 		}
 	}
+}
+
+func insideFn(before, header string) bool {
+	fn := before[strings.LastIndex(before, "\n"+header)+1:]
+	return strings.HasPrefix(fn, header) && !strings.Contains(fn[len(header):], "\n}\n")
 }

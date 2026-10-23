@@ -61,7 +61,7 @@ func TestHttpPostEngineMatrix(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid utf8 status line", func(t *testing.T) {
+	t.Run("invalid byte in the status code", func(t *testing.T) {
 		ln, err := net.Listen("tcp", "127.0.0.1:0")
 		if err != nil {
 			t.Fatal(err)
@@ -80,7 +80,7 @@ func TestHttpPostEngineMatrix(t *testing.T) {
 		}()
 		addr := ln.Addr().(*net.TCPAddr)
 		url := fmt.Sprintf("http://127.0.0.1:%d/x", addr.Port)
-		if got, want := runProbe(t, url), "err: invalid UTF-8"; got != want {
+		if got, want := runProbe(t, url), "err: malformed response"; got != want {
 			t.Errorf("vm: got %q, want %q", got, want)
 		}
 	})

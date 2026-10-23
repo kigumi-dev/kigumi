@@ -12,6 +12,8 @@ import (
 
 var builtinEmit = regexp.MustCompile(`Op:\s*OpBuiltin[^}]*Str:\s*"([^"]+)"`)
 
+var builtinFamily = regexp.MustCompile(`"((?:atomic|volatile)\.[A-Za-z]+)"`)
+
 func TestEveryEmittedBuiltinIsRegistered(t *testing.T) {
 	files, _ := filepath.Glob("build*.go")
 	more, _ := filepath.Glob("spec_proto*.go")
@@ -22,6 +24,9 @@ func TestEveryEmittedBuiltinIsRegistered(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, m := range builtinEmit.FindAllStringSubmatch(string(src), -1) {
+			seen[m[1]] = true
+		}
+		for _, m := range builtinFamily.FindAllStringSubmatch(string(src), -1) {
 			seen[m[1]] = true
 		}
 	}

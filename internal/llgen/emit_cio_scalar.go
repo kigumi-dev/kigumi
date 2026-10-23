@@ -78,7 +78,7 @@ func (e *emitter) convertCall(sb *strings.Builder, ent sem.EntityID, key string,
 // compiler rather than rt_std, so its function value needs that same adapter.
 func (e *emitter) loweredStd(fn sem.EntityID) bool {
 	key := e.stdKey(fn)
-	if strings.HasPrefix(key, "std/ffi.") || key == "std/error.as" {
+	if strings.HasPrefix(key, "std/ffi.") || strings.HasPrefix(key, "std/mem.volatile") || key == "std/error.as" {
 		return true
 	}
 	info := e.r.Fn(fn)
