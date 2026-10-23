@@ -1,0 +1,74 @@
+-- src --
+import c from std/pc
+import a from std/pa
+import b from std/pb
+
+fn both() {
+    let x = c.mk()
+    _ = x.show() //~ ERROR call to `show` is ambiguous
+    _ = a.tag() + b.tag()
+}
+-- main/other.kg --
+import c from std/pc
+import a from std/pa
+
+fn onlyA() {
+    let x = c.mk()
+    _ = x.show()
+    _ = a.tag()
+}
+-- main/again.kg --
+import c from std/pc
+import b from std/pb
+
+fn onlyB() {
+    let x = c.mk()
+    _ = x.show()
+    _ = b.tag()
+}
+-- main/only_call.kg --
+import c from std/pc
+import a from std/pa
+import b from std/pb
+
+fn onlyCall() {
+    _ = c.mk().show() //~ ERROR call to `show` is ambiguous
+}
+-- std/pc/pc.kg --
+pub type Box = { pub n Int }
+pub fn mk() -> Box { Box { n: 1 } }
+-- std/pa/pa.kg --
+import {Box} from std/pc
+
+pub interface Showy {
+    fn show(self) -> String
+}
+
+pub fn tag() -> Int { 1 }
+
+pub fn Box.show(self) -> String { "a" }
+-- std/pb/pb.kg --
+import {Box} from std/pc
+
+pub interface Showy {
+    fn show(self) -> String
+}
+
+pub fn tag() -> Int { 2 }
+
+pub fn Box.show(self) -> String { "b" }
+-- expect --
+error[E503]: call to `show` is ambiguous: `fn() -> String`, `fn() -> String`
+ --> main/main.kg:7:9
+  |
+7 |     _ = x.show() //~ ERROR call to `show` is ambiguous
+  |         ^^^^^^^
+  = help: annotate the arguments
+
+error[E503]: call to `show` is ambiguous: `fn() -> String`, `fn() -> String`
+ --> main/only_call.kg:6:9
+  |
+6 |     _ = c.mk().show() //~ ERROR call to `show` is ambiguous
+  |         ^^^^^^^^^^^^
+  = help: annotate the arguments
+

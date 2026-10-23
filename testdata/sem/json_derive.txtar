@@ -14,22 +14,6 @@ type Boxed = {
     pub items Array[Point]
 }
 
-pub interface Show {
-    fn show(self) -> String
-}
-
-pub fn Boxed.show(self) -> String {
-    "boxed"
-}
-
-pub fn Point.show(self) -> String {
-    "point"
-}
-
-pub fn Array[T: Show].show(self) -> String {
-    "array"
-}
-
 fn useIt() -> Void! {
     let p = Point { x: 1, y: 2 }
     let text = json.encode(p)?
@@ -39,12 +23,6 @@ fn useIt() -> Void! {
     let h = Handler { run: (n: Int) => n }
     let bad = json.encode(h)? //~ ERROR `Handler` does not satisfy `Encode`
     _ = bad
-    let shown: Show = Array.of(p) //~ ERROR `Array[Point]` cannot become a dynamic `Show`
-    _ = shown
-}
-
-pub fn String.show(self) -> String {
-    "text"
 }
 
 pub fn i64.trim(self) -> Int { //~ ERROR member functions of `i64` must be declared in package
@@ -52,20 +30,15 @@ pub fn i64.trim(self) -> Int { //~ ERROR member functions of `i64` must be decla
 }
 -- expect --
 error[E300]: `Handler` does not satisfy `Encode`: missing `fn toJson(self) -> Value`
-  --> app/t/t.kg:39:15
+  --> app/t/t.kg:23:15
    |
-39 |     let bad = json.encode(h)? //~ ERROR `Handler` does not satisfy `Encode`
+23 |     let bad = json.encode(h)? //~ ERROR `Handler` does not satisfy `Encode`
    |               ^^^^^^^^^^^^^
 
-error[E963]: `Array[Point]` cannot become a dynamic `Show`: its `show` needs the witnesses of its type arguments, which a dynamic value does not carry
-  --> app/t/t.kg:41:23
-   |
-41 |     let shown: Show = Array.of(p) //~ ERROR `Array[Point]` cannot become a dynamic `Show`
-   |                       ^^^^^^^^^^
-
 error[E229]: member functions of `i64` must be declared in package `std/prelude`
-  --> app/t/t.kg:49:8
+  --> app/t/t.kg:27:8
    |
-49 | pub fn i64.trim(self) -> Int { //~ ERROR member functions of `i64` must be declared in package
+27 | pub fn i64.trim(self) -> Int { //~ ERROR member functions of `i64` must be declared in package
    |        ^^^
+   = help: only std packages may declare members of a type from another package
 

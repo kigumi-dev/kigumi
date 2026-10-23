@@ -1,0 +1,63 @@
+-- src --
+import c from std/pc
+import b from std/pb
+
+fn viaNothing() {
+    let x = c.mk()
+    _ = x.show() //~ ERROR `Box` has no field or method `show`
+    _ = x.show //~ ERROR `Box` has no field or method `show`
+    _ = c.Box.make() //~ ERROR `Box` has no field or method `make`
+    b.hello()
+}
+-- main/second.kg --
+import c from std/pc
+import a from std/pa
+
+fn viaImport() {
+    let x = c.mk()
+    _ = x.show()
+    _ = c.Box.make()
+}
+-- std/pc/pc.kg --
+pub type Box = { pub n Int }
+pub fn mk() -> Box { Box { n: 1 } }
+-- std/pa/pa.kg --
+import {Box} from std/pc
+
+pub fn tag() -> Int { 1 }
+
+pub interface Showy {
+    fn show(self) -> String
+    fn make() -> Box
+}
+
+pub fn Box.show(self) -> String { "a" }
+pub fn Box.make() -> Box { Box { n: 2 } }
+-- std/pb/pb.kg --
+import a from std/pa
+
+pub fn hello() {
+    _ = a.tag()
+}
+-- expect --
+error[E510]: `Box` has no field or method `show`
+ --> main/main.kg:6:9
+  |
+6 |     _ = x.show() //~ ERROR `Box` has no field or method `show`
+  |         ^^^^^^
+  = help: `show` is declared in package `std/pa`, which this file does not import; add `import ... from std/pa`
+
+error[E510]: `Box` has no field or method `show`
+ --> main/main.kg:7:9
+  |
+7 |     _ = x.show //~ ERROR `Box` has no field or method `show`
+  |         ^^^^^^
+  = help: `show` is declared in package `std/pa`, which this file does not import; add `import ... from std/pa`
+
+error[E510]: `Box` has no field or method `make`
+ --> main/main.kg:8:9
+  |
+8 |     _ = c.Box.make() //~ ERROR `Box` has no field or method `make`
+  |         ^^^^^^^^^^
+  = help: `make` is declared in package `std/pa`, which this file does not import; add `import ... from std/pa`
+

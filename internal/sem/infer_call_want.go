@@ -7,7 +7,7 @@ func (c *checker) wantBeforeLambdas(pass int, ret, want TypeID, args []syntax.No
 		return
 	}
 	for _, a := range args {
-		if c.t.Kind(a) == syntax.Lambda && c.vars.unifiable(ret, want) {
+		if c.lambdaArg(a) && c.vars.unifiable(ret, want) {
 			c.vars.unify(ret, want)
 			return
 		}

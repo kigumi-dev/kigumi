@@ -26,8 +26,6 @@ fn Tag.eat(move self, k: Int) -> String {
     }
 }
 
-fn i64.eat(move self, k: Int) -> String { "int ${self + k}" }
-
 fn twice[T: Eater + Copy](t: T) -> String {
     let m = t.eat
     "${m(1)}|${m(2)}"
@@ -54,7 +52,6 @@ fn main() -> Void! {
     print twice(Named { name: "n", n: 3 })
     print twice(On(4, "s"))
     print twice(Off)
-    print twice(7)
     print viaLambda(Named { name: "v", n: 1 })
     print passed(Pt { x: 2, y: 2 })
     print direct(Named { name: "d", n: 0 })
@@ -64,7 +61,6 @@ pt 4|pt 5
 n4|n5
 s4|s8
 off|off
-int 8|int 9
 v11|v21
 pt 7pt 8
 d5d6

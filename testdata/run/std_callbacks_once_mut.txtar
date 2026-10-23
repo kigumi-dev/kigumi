@@ -1,0 +1,70 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) {
+    print "drop res ${self.n}"
+}
+
+fn Res.use(move self) -> Int { self.n }
+
+fn dbl(x: Int) -> Int { x * 2 }
+
+fn none() -> Int? { None }
+
+fn plainFns() {
+    let o: Int? = Some(3)
+    let r: Result[Int, String] = Ok(4)
+    print "${o.map(dbl).unwrap()} ${r.map(dbl).unwrap()} ${o.orElse(none).unwrap()}"
+    print "${o.andThen((x) => if x > 1 { Some(x) } else { None }).unwrap()}"
+}
+
+fn stateful() {
+    let mut calls = 0
+    let o: Int? = Some(3)
+    let n: Int? = None
+    print "${o.map((x) => { calls = calls + 1; x + 1 }).unwrap()} ${calls}"
+    print "${n.unwrapOrElse(() => { calls = calls + 1; 9 })} ${calls}"
+    print "${o.filter((x) => x > 2).unwrap()} ${n.orElse(() => Some(5)).unwrap()}"
+    let xs = Array.of(1, 2, 3)
+    let total = xs.fold(0, (acc, x) => { calls = calls + 1; acc + x })
+    print "${total} ${calls}"
+}
+
+fn consuming() {
+    let a = Res { n: 7 }
+    let r: Result[Int, String] = Ok(1)
+    let r2 = r.map(move (x) => x + a.use())
+    print "${r2.unwrap()}"
+    let e: Result[Int, String] = Err("bad")
+    let b = Res { n: 8 }
+    let shown = e.mapErr(move (m) => m.concat("${b.use()}"))
+    print "${shown.unwrapOrElse((m) => m.len().toInt().unwrap())}"
+    let c = Res { n: 9 }
+    let o: Int? = Some(2)
+    print "${o.andThen(move (x) => Some(x + c.use())).unwrap()}"
+    let d = Res { n: 10 }
+    let rr: Result[Int, String] = Ok(1)
+    let r3: Result[Int, String] = rr.andThen(move (x) => Ok(x + d.use()))
+    print "${r3.unwrap()}"
+}
+
+plainFns()
+stateful()
+consuming()
+-- stdout --
+6 8 3
+3
+4 1
+9 2
+3 5
+6 5
+drop res 7
+8
+drop res 8
+4
+drop res 9
+11
+drop res 10
+11

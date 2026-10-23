@@ -1,0 +1,61 @@
+-- lib/capture.kg --
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    _ = self
+}
+
+fn keep(r: Res) -> Int {
+    r.id
+}
+
+fn once[F: FnOnce[fn() -> Int]](f: F) -> Int {
+    f()
+}
+
+fn moveOut(r: Res) -> Int {
+    once(() => keep(r))
+}
+-- expect --
+fn lib.Res.drop(%self: Res) -> Void {
+  b0:
+    %t1 = move(%self)
+    drop(%t1)
+    %t2 = unit
+    return %t2
+}
+fn lib.keep(%r: Res) -> Int {
+  b0:
+    %t1 = field 0(%r)
+    drop(%r)
+    return %t1
+}
+fn lib.once(%f: F) -> Int {
+  b0:
+    %t1 = callv(%f)
+    drop(%f)
+    return %t1
+}
+fn lib.moveOut.closure1(%r: Res) -> Int {
+  b0:
+    %t1 = move(%r)
+    %t2 = call lib.keep(%t1)
+    nop
+    return %t2
+}
+fn lib.moveOut(%r: Res) -> Int {
+  b0:
+    %t1 = copy(%r)
+    %t2 = closure lib.moveOut.closure1(%t1)
+    %t3 = call lib.once(%t2)
+    drop(%r)
+    return %t3
+}
+error[move-from-borrow]: `r` is lent to this closure and cannot be moved out; write `move` before the closure to give it `r`
+  --> lib/capture.kg:18:21
+   |
+18 |     once(() => keep(r))
+   |                     ^
+

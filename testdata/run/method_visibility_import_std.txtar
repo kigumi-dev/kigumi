@@ -1,0 +1,26 @@
+-- src --
+import json from std/json
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+fn run() -> Void! {
+    let n: Int = 42
+    let v = n.toJson()
+    print json.kindOf(n.toJson())
+    let back = i64.fromJson(v)?
+    print "${back + 1}"
+    let p = Pt { x: 1, y: 2 }
+    print json.encode(p)?
+    let again = json.decode[Pt]("{\"x\":3,\"y\":4}")?
+    print "${again.x + again.y}"
+}
+
+run()?
+-- stdout --
+number
+43
+{"x":1,"y":2}
+7

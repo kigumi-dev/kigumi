@@ -69,6 +69,7 @@ error[E229]: member functions of `i64` must be declared in package `std/prelude`
    |
 34 | fn i64.+(a: i64, b: i64) -> i64 { //~ ERROR member functions of `i64` must be declared in package `std/prelude`
    |    ^^^
+   = help: only std packages may declare members of a type from another package
 
 error[E215]: alias `Int` cannot own methods
   --> app/o/o.kg:38:4

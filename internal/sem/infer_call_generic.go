@@ -25,7 +25,7 @@ func (c *checker) callBracketMethod(n, callee syntax.NodeID, args []syntax.NodeI
 		valueType = tt.Node(recv).Elem
 	}
 	isField := tt.Kind(valueType) == KNamed && c.r.findField(tt.Node(valueType).Ent, name) != 0
-	if isField || c.r.memberSet(valueType, name) == 0 && !c.hasRequirement(valueType, name) {
+	if isField || c.memberSetHere(valueType, name) == 0 && !c.hasRequirement(valueType, name) {
 		ft := c.vars.resolve(c.memberOn(inner, base, recv, name))
 		c.setType(inner, ft)
 		if len(items) != 1 {

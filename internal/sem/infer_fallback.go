@@ -64,8 +64,8 @@ func (c *checker) fallbackParts(n, lhs syntax.NodeID, l TypeID) (v, r TypeID, wi
 		return val, e, 0, true
 	}
 	branch := c.r.langItems["Branch"]
-	if set := c.r.memberSet(l, "branch"); set != 0 && branch != 0 {
-		m := c.r.Overloads[set].Members[0]
+	if set := c.memberSetHere(l, "branch"); set != 0 && branch != 0 {
+		m := c.visibleMembers(set)[0]
 		sig, _, _ := c.instantiateFn(n, m, nil, l)
 		ret := c.vars.resolve(tt.Node(sig).Elem)
 		if c.r.Fn(m).Recv == RecvMove && tt.Kind(ret) == KNamed && tt.Node(ret).Ent == branch {

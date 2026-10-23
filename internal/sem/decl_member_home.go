@@ -105,6 +105,14 @@ func (r *Result) authorizeForeignMember(id, owner EntityID, ownerType TypeID, re
 	if r.homeOf(owner) == r.packageOf(f) {
 		return
 	}
+	if !r.Packages[r.packageOf(f)].Std {
+		if d, ok := r.diagAt(f, recv, cMemberForeignType, r.Entities[owner].Name, r.homePath(owner)); ok {
+			d.Help = append(d.Help, "only std packages may declare members of a type from another package")
+			r.emitDiag(f, d)
+		}
+		r.Fn(id).Owner = 0
+		return
+	}
 	var mismatch EntityID
 	for iid := 1; iid < len(r.Entities); iid++ {
 		ie := &r.Entities[iid]

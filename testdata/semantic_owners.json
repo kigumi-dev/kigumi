@@ -371,7 +371,7 @@
   },
   {
     "key": "array.Array.fold",
-    "signature": "pure fn(A, fn(A, \u0026T) -\u003e A) -\u003e A",
+    "signature": "pure fn(A, F) -\u003e A",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7363,7 +7363,7 @@
   },
   {
     "key": "prelude.Option.andThen",
-    "signature": "pure fn(fn(T) -\u003e U?) -\u003e U?",
+    "signature": "pure fn(F) -\u003e U?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7382,8 +7382,28 @@
     "status": "ok"
   },
   {
+    "key": "prelude.Option.filter",
+    "signature": "pure fn(F) -\u003e T?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.Option.map",
-    "signature": "pure fn(fn(T) -\u003e U) -\u003e U?",
+    "signature": "pure fn(F) -\u003e U?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.Option.orElse",
+    "signature": "pure fn(F) -\u003e T?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7422,8 +7442,18 @@
     "status": "ok"
   },
   {
+    "key": "prelude.Option.unwrapOrElse",
+    "signature": "pure fn(F) -\u003e T",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.Option.with",
-    "signature": "pure fn(fn(\u0026T) -\u003e R) -\u003e R?",
+    "signature": "pure fn(F) -\u003e R?",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7433,7 +7463,7 @@
   },
   {
     "key": "prelude.Result.andThen",
-    "signature": "pure fn(fn(T) -\u003e Result[U, E]) -\u003e Result[U, E]",
+    "signature": "pure fn(F) -\u003e Result[U, E]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7453,7 +7483,7 @@
   },
   {
     "key": "prelude.Result.map",
-    "signature": "pure fn(fn(T) -\u003e U) -\u003e Result[U, E]",
+    "signature": "pure fn(F) -\u003e Result[U, E]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7463,7 +7493,17 @@
   },
   {
     "key": "prelude.Result.mapErr",
-    "signature": "pure fn(fn(E) -\u003e F) -\u003e Result[T, F]",
+    "signature": "pure fn(F) -\u003e Result[T, X]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.Result.orElse",
+    "signature": "pure fn(F) -\u003e Result[T, X]",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -7474,6 +7514,16 @@
   {
     "key": "prelude.Result.unwrap",
     "signature": "pure fn() -\u003e T",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.Result.unwrapOrElse",
+    "signature": "pure fn(F) -\u003e T",
     "has_body": true,
     "kind": "",
     "vm": "gap",

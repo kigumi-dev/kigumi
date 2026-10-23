@@ -75,7 +75,7 @@ pub pure fn Option[T].expect(move self, message: String) -> T {
 }
 
 /// Calls f with a borrow of the value; None when there is none.
-pub pure fn Option[T].with[R](self, f: fn(&T) -> R) -> R? {
+pub pure fn Option[T].with[R, F: FnOnce[fn(&T) -> R]](self, f: F) -> R? {
     match self {
         Some(v) -> Some(f(v))
         None -> None
@@ -83,7 +83,7 @@ pub pure fn Option[T].with[R](self, f: fn(&T) -> R) -> R? {
 }
 
 /// Transforms the value of Some by consuming it; None stays None.
-pub pure fn Option[T].map[U](move self, f: fn(T) -> U) -> U? {
+pub pure fn Option[T].map[U, F: FnOnce[fn(T) -> U]](move self, f: F) -> U? {
     match self {
         Some(v) -> Some(f(v))
         None -> None
@@ -91,7 +91,7 @@ pub pure fn Option[T].map[U](move self, f: fn(T) -> U) -> U? {
 }
 
 /// Chains an Option-returning step onto the value of Some, consuming it; None stays None.
-pub pure fn Option[T].andThen[U](move self, f: fn(T) -> U?) -> U? {
+pub pure fn Option[T].andThen[U, F: FnOnce[fn(T) -> U?]](move self, f: F) -> U? {
     match self {
         Some(v) -> f(v)
         None -> None
@@ -103,6 +103,30 @@ pub pure fn Option[T].unwrapOr(move self, fallback: T) -> T {
     match self {
         Some(v) -> v
         None -> fallback
+    }
+}
+
+/// The value of Some, or what f builds for None.
+pub pure fn Option[T].unwrapOrElse[F: FnOnce[fn() -> T]](move self, f: F) -> T {
+    match self {
+        Some(v) -> v
+        None -> f()
+    }
+}
+
+/// Some stays as it is; for None, what f builds.
+pub pure fn Option[T].orElse[F: FnOnce[fn() -> T?]](move self, f: F) -> T? {
+    match self {
+        Some(v) -> Some(v)
+        None -> f()
+    }
+}
+
+/// Keeps the value of Some only when keep accepts a borrow of it; otherwise None.
+pub pure fn Option[T].filter[F: FnOnce[fn(&T) -> Bool]](move self, keep: F) -> T? {
+    match self {
+        Some(v) -> if keep(&v) { Some(v) } else { None }
+        None -> None
     }
 }
 
@@ -126,7 +150,7 @@ pub pure fn Result[T, E].expect(move self, message: String) -> T {
 }
 
 /// Transforms the value of Ok by consuming it; Err stays Err.
-pub pure fn Result[T, E].map[U](move self, f: fn(T) -> U) -> Result[U, E] {
+pub pure fn Result[T, E].map[U, F: FnOnce[fn(T) -> U]](move self, f: F) -> Result[U, E] {
     match self {
         Ok(v) -> Ok(f(v))
         Err(e) -> Err(e)
@@ -134,7 +158,7 @@ pub pure fn Result[T, E].map[U](move self, f: fn(T) -> U) -> Result[U, E] {
 }
 
 /// Transforms the error of Err by consuming it; Ok stays Ok.
-pub pure fn Result[T, E].mapErr[F](move self, f: fn(E) -> F) -> Result[T, F] {
+pub pure fn Result[T, E].mapErr[X, F: FnOnce[fn(E) -> X]](move self, f: F) -> Result[T, X] {
     match self {
         Ok(v) -> Ok(v)
         Err(e) -> Err(f(e))
@@ -142,10 +166,26 @@ pub pure fn Result[T, E].mapErr[F](move self, f: fn(E) -> F) -> Result[T, F] {
 }
 
 /// Chains a Result-returning step onto the value of Ok, consuming it; Err stays Err.
-pub pure fn Result[T, E].andThen[U](move self, f: fn(T) -> Result[U, E]) -> Result[U, E] {
+pub pure fn Result[T, E].andThen[U, F: FnOnce[fn(T) -> Result[U, E]]](move self, f: F) -> Result[U, E] {
     match self {
         Ok(v) -> f(v)
         Err(e) -> Err(e)
+    }
+}
+
+/// The value of Ok, or what f builds from the error of Err.
+pub pure fn Result[T, E].unwrapOrElse[F: FnOnce[fn(E) -> T]](move self, f: F) -> T {
+    match self {
+        Ok(v) -> v
+        Err(e) -> f(e)
+    }
+}
+
+/// Ok stays as it is; for Err, what f builds from the error.
+pub pure fn Result[T, E].orElse[X, F: FnOnce[fn(E) -> Result[T, X]]](move self, f: F) -> Result[T, X] {
+    match self {
+        Ok(v) -> Ok(v)
+        Err(e) -> f(e)
     }
 }
 

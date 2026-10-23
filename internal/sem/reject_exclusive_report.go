@@ -44,6 +44,9 @@ func (c *checker) errUnknownCapture(arg syntax.NodeID, s exclusiveSite, hidden s
 		recv := c.t.View(hidden).AsMember().Base().ID()
 		d = d.WithNote(c.loc(recv), "this method value holds `"+c.placeName(recv)+"`, which it may share")
 	}
+	if ent := c.info.Uses[hidden]; c.t.Kind(hidden) == syntax.Ident && ent != 0 && c.r.Entities[ent].Kind == EntParam {
+		d.Help = append(d.Help, "or declare the parameter `escaping`; an escaping callback holds no borrow of `"+name+"`")
+	}
 	c.r.emitDiag(c.f, d)
 }
 

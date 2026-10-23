@@ -1,0 +1,13 @@
+-- src --
+fn run() {
+    let n: Int = 1
+    _ = n.toJson() //~ ERROR `Int` has no field or method `toJson`
+}
+-- expect --
+error[E510]: `Int` has no field or method `toJson`
+ --> main/main.kg:3:9
+  |
+3 |     _ = n.toJson() //~ ERROR `Int` has no field or method `toJson`
+  |         ^^^^^^^^
+  = help: `toJson` is declared in package `std/json`, which this file does not import; add `import ... from std/json`
+

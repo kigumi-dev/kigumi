@@ -83,5 +83,5 @@ error[E413]: closure captures `t` (move-only) and cannot be a plain `fn`
    |
 41 |     let tv: fn(Int, Int) -> Bool = t.same //~ ERROR closure captures `t` (move-only) and cannot be a plain `fn`
    |                                    ^^^^^^
-   = help: use `F: Fn[...]`
+   = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
 

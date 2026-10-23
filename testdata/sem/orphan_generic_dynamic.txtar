@@ -1,0 +1,35 @@
+-- std/ext/ext.kg --
+pub type Point = {
+    pub x Int
+}
+-- std/t/t.kg --
+import {Point} from std/ext
+
+pub interface Show {
+    fn show(self) -> String
+}
+
+pub fn Point.show(self) -> String {
+    "point"
+}
+
+pub fn Array[T: Show].show(self) -> String {
+    "array"
+}
+
+pub fn String.show(self) -> String {
+    "text"
+}
+
+fn useIt() {
+    let p = Point { x: 1 }
+    let shown: Show = Array.of(p) //~ ERROR `Array[Point]` cannot become a dynamic `Show`
+    _ = shown
+}
+-- expect --
+error[E963]: `Array[Point]` cannot become a dynamic `Show`: its `show` needs the witnesses of its type arguments, which a dynamic value does not carry
+  --> std/t/t.kg:21:23
+   |
+21 |     let shown: Show = Array.of(p) //~ ERROR `Array[Point]` cannot become a dynamic `Show`
+   |                       ^^^^^^^^^^
+

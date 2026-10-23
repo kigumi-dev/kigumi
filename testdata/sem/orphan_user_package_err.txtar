@@ -1,0 +1,33 @@
+-- app/ext/ext.kg --
+pub type Box = {
+    pub v Int
+}
+-- app/t/t.kg --
+import {Box} from app/ext
+
+pub interface Sized {
+    fn size(self) -> Int
+}
+
+pub fn Box.size(self) -> Int { //~ ERROR member functions of `Box` must be declared in package `app/ext`
+    self.v
+}
+
+pub fn String.size(self) -> Int { //~ ERROR member functions of `String` must be declared in package `std/prelude`
+    1
+}
+-- expect --
+error[E229]: member functions of `Box` must be declared in package `app/ext`
+ --> app/t/t.kg:7:8
+  |
+7 | pub fn Box.size(self) -> Int { //~ ERROR member functions of `Box` must be declared in package `app/ext`
+  |        ^^^
+  = help: only std packages may declare members of a type from another package
+
+error[E229]: member functions of `String` must be declared in package `std/prelude`
+  --> app/t/t.kg:11:8
+   |
+11 | pub fn String.size(self) -> Int { //~ ERROR member functions of `String` must be declared in package `std/prelude`
+   |        ^^^^^^
+   = help: only std packages may declare members of a type from another package
+

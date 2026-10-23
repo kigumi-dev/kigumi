@@ -9,7 +9,7 @@ type captureUse struct {
 
 // deferCaptureReserve queues a use of a reserved binding inside a lambda that keeps it; settleCaptureReserves judges it once the whole body is typed.
 func (c *checker) deferCaptureReserve(ctx *lambdaCtx, n syntax.NodeID, ent EntityID) {
-	if len(c.reserved[ent]) == 0 || ctx.immediate || c.r.isCopy(c.r.Entities[ent].Type) {
+	if len(c.reserved[ent]) == 0 || ctx.immediate || c.copyNow(c.r.Entities[ent].Type) {
 		return
 	}
 	ctx.reserveUses = append(ctx.reserveUses, captureUse{node: n, ent: ent})

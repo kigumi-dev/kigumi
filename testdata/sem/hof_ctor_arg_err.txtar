@@ -1,0 +1,22 @@
+-- src --
+type AppErr = | Io(String) | Bad(Int)
+
+let r: Result[Int, String] = Err("bad")
+let m = r.mapErr(AppErr.Io) //~ ERROR `Io` needs a payload
+let o: Int? = Some(1)
+let p = o.map(Some) //~ ERROR `Some` needs a payload
+-- expect --
+error[E424]: `Io` needs a payload
+ --> main/main.kg:4:18
+  |
+4 | let m = r.mapErr(AppErr.Io) //~ ERROR `Io` needs a payload
+  |                  ^^^^^^^^^
+  = help: write `(x) => Io(x)`
+
+error[E424]: `Some` needs a payload
+ --> main/main.kg:6:15
+  |
+6 | let p = o.map(Some) //~ ERROR `Some` needs a payload
+  |               ^^^^
+  = help: write `(x) => Some(x)`
+

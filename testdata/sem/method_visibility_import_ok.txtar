@@ -1,0 +1,35 @@
+-- src --
+import c from std/pc
+import a from std/pa
+
+fn use() {
+    let x = c.mk()
+    _ = x.show()
+    _ = x.show
+    _ = c.Box.make()
+}
+-- main/other.kg --
+import c from std/pc
+
+fn useOwn() {
+    let x = c.mk()
+    _ = x.own()
+}
+-- std/pc/pc.kg --
+pub type Box = { pub n Int }
+pub fn mk() -> Box { Box { n: 1 } }
+
+pub fn Box.own(self) -> Int { self.n }
+-- std/pa/pa.kg --
+import {Box} from std/pc
+
+pub interface Showy {
+    fn show(self) -> String
+    fn make() -> Box
+}
+
+pub fn tag() -> Int { 1 }
+
+pub fn Box.show(self) -> String { "a" }
+pub fn Box.make() -> Box { Box { n: 2 } }
+-- expect --

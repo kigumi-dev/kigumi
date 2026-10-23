@@ -39,6 +39,8 @@ type FileInfo struct {
 	CtxProviders map[syntax.NodeID][]EntityID
 	// Defaults maps a DefaultArg node to the hidden thunk computing the omitted argument.
 	Defaults map[syntax.NodeID]EntityID
+	// Imported maps each package this file imports to its first import entity.
+	Imported map[PackageID]EntityID
 }
 
 func newFileInfo(t *syntax.Tree, pkg PackageID) FileInfo {

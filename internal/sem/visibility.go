@@ -80,6 +80,7 @@ func (r *Result) useEntity(f FileID, node syntax.NodeID, ent EntityID) bool {
 	}
 	e := &r.Entities[ent]
 	e.Flags |= EfUsed
+	r.noteMemberImport(f, ent)
 	from := r.packageOf(f)
 	if e.Pkg == 0 || r.visibleFrom(e.Vis, from) {
 		return true

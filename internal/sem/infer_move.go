@@ -11,10 +11,10 @@ func (c *checker) isSharedEnt(ent EntityID) bool {
 
 // Forces an owned read of a field path that would otherwise bind as a borrow,
 // so the declared type comes back, not `&T`.
-func (c *checker) synthMove(n syntax.NodeID) TypeID {
+func (c *checker) synthMove(n syntax.NodeID, want TypeID) TypeID {
 	target := c.t.Unparen(c.t.View(n).AsMove().Operand().ID())
 	if c.t.Kind(target) == syntax.Lambda {
-		return c.synthMovedLambda(target)
+		return c.synthMovedLambda(target, want)
 	}
 	isField := c.t.Kind(target) == syntax.MemberExpr
 	var baseType TypeID
@@ -80,8 +80,13 @@ func (c *checker) fieldRoot(field syntax.NodeID) EntityID {
 
 // synthMovedLambda: `move` before a closure literal takes the move-only captures it only reads
 // instead of sharing them, so whoever owns the closure drops them.
-func (c *checker) synthMovedLambda(n syntax.NodeID) TypeID {
-	t := c.synth(n)
+func (c *checker) synthMovedLambda(n syntax.NodeID, want TypeID) TypeID {
+	var t TypeID
+	if want != 0 {
+		t = c.setType(n, c.synthKind(n, want))
+	} else {
+		t = c.synth(n)
+	}
 	if c.r.Types.Kind(t) != KClosure {
 		return t
 	}
@@ -92,4 +97,12 @@ func (c *checker) synthMovedLambda(n syntax.NodeID) TypeID {
 		}
 	}
 	return t
+}
+
+// lambdaArg is a lambda argument, written plain or as `move <lambda>`; both wait for the other arguments to fix their parameter types.
+func (c *checker) lambdaArg(a syntax.NodeID) bool {
+	if c.t.Kind(a) == syntax.MoveExpr {
+		a = c.t.Unparen(c.t.View(a).AsMove().Operand().ID())
+	}
+	return c.t.Kind(a) == syntax.Lambda
 }

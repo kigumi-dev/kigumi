@@ -8,7 +8,7 @@ import (
 
 // Closures own a move-only capture: an outside write reinitializes the local, an inside one goes to the closure's own cell; a write from a lambda passed to a call makes the local a cell that reading closures share.
 func (c *checker) movedCaptureWrite(n syntax.NodeID, ent EntityID, sites []captureSite) bool {
-	if c.r.isCopy(c.r.Entities[ent].Type) {
+	if c.copyNow(c.r.Entities[ent].Type) {
 		return false
 	}
 	keeps, takes, shared := false, false, false

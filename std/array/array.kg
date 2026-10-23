@@ -135,7 +135,7 @@ pub pure fn Array[T: Copy].filter(self, keep: fn(&T) -> Bool) -> Array[T] {
 pub pure fn Array[T: Copy].tryFilter(self, keep: fn(&T) -> Bool) -> Result[Array[T], AllocError]
 
 /// Reduces the array left to right, starting from init; step borrows each element and cannot move it out (use `for` to consume them).
-pub pure fn Array[T].fold[A](self, init: A, step: fn(A, &T) -> A) -> A {
+pub pure fn Array[T].fold[A, F: FnMut[fn(A, &T) -> A]](self, init: A, mut step: F) -> A {
     let mut acc = init
     for item in &self {
         acc = step(acc, item)

@@ -75,14 +75,14 @@ error[E413]: closure captures `n` (assigned inside the closure) and cannot be a 
    |
 33 |     let j: pure fn() -> Void = inc //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
    |                                ^^^
-   = help: use `F: Fn[...]`
+   = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
 
 error[E413]: closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
   --> lib/cl.kg:35:34
    |
 35 |     let m: pure fn(Int) -> Int = k //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
    |                                  ^
-   = help: use `F: Fn[...]`
+   = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
 
 error[E900]: `f` is not `pure`
   --> lib/cl.kg:45:5

@@ -1,0 +1,94 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) {
+    print "drop res ${self.n}"
+}
+
+type Pair = {
+    pub a Int
+    pub b Int
+}
+
+type Reg = { pub mut fs Array[fn() -> Int] }
+
+fn add(r: &mut Reg, f: escaping fn() -> Int) {
+    r.fs.push(f)
+}
+
+fn Reg.addMethod(mut self, f: escaping fn() -> Int) {
+    self.fs.push(f)
+}
+
+fn runAll(r: &Reg) -> Int {
+    let mut total = 0
+    for f in r.fs {
+        total = total + f()
+    }
+    total
+}
+
+type Slot[F] = { pub mut cb F? }
+
+fn setSlot[F: Fn[fn() -> Int]](s: &mut Slot[F], f: escaping F) {
+    s.cb = Some(f)
+}
+
+fn keepIn[F: Fn[fn() -> Int]](f: escaping F) -> Slot[F] {
+    let mut s: Slot[F] = Slot { cb: None }
+    setSlot(&mut s, f)
+    s
+}
+
+fn registry() {
+    let mut r = Reg { fs: Array.empty() }
+    add(&mut r, () => 1)
+    r.addMethod(() => 10)
+    for i in 0..3 {
+        add(&mut r, () => i * 100)
+    }
+    let flag = true
+    add(&mut r, () => if flag { 7 } else { 0 })
+    let p = Pair { a: 3, b: 4 }
+    r.addMethod(() => p.a * p.b)
+    print "registered ${r.fs.len()}"
+    print "total ${runAll(&r)}"
+}
+
+fn owned() {
+    let a = Res { n: 7 }
+    let held = keepIn(() => a.n * 2)
+    print "kept"
+    if held.cb is Some(f) {
+        print "call ${f()}"
+    }
+    print "end owned"
+}
+
+fn copied() {
+    let k = 5
+    let c = () => k + 1
+    let mut again: Slot[fn() -> Int] = Slot { cb: None }
+    setSlot(&mut again, c)
+    let mut twice: Slot[fn() -> Int] = Slot { cb: None }
+    setSlot(&mut twice, c)
+    if again.cb is Some(f) {
+        if twice.cb is Some(g) {
+            print "copies ${f() + g()}"
+        }
+    }
+}
+
+registry()
+owned()
+copied()
+-- stdout --
+registered 7
+total 330
+kept
+call 14
+end owned
+drop res 7
+copies 12

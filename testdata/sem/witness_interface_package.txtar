@@ -1,0 +1,40 @@
+-- src --
+import c from std/pc
+import b2 from std/pb
+
+fn viaB() -> String { b2.describe(c.mk()) }
+-- main/other.kg --
+import c from std/pc
+import a from std/pa
+
+fn viaA() -> String { a.describe(c.mk()) }
+-- main/both.kg --
+import c from std/pc
+import a from std/pa
+import b2 from std/pb
+
+fn viaBoth() -> String { "${b2.describe(c.mk())}${a.describe(c.mk())}" }
+-- std/pc/pc.kg --
+pub type Box = { pub n Int }
+pub fn mk() -> Box { Box { n: 1 } }
+-- std/pa/pa.kg --
+import {Box} from std/pc
+
+pub interface Showy {
+    fn show(self) -> String
+}
+
+pub fn Box.show(self) -> String { "a" }
+
+pub fn describe[T: Showy](x: T) -> String { x.show() }
+-- std/pb/pb.kg --
+import {Box} from std/pc
+
+pub interface Showy2 {
+    fn show(self) -> String
+}
+
+pub fn Box.show(self) -> String { "b" }
+
+pub fn describe[T: Showy2](x: T) -> String { x.show() }
+-- expect --

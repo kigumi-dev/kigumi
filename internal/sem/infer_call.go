@@ -138,7 +138,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 	for pass := 0; pass < 2; pass++ {
 		c.wantBeforeLambdas(pass, sn.Elem, want, args)
 		for i, a := range args {
-			if (c.t.Kind(a) == syntax.Lambda) != (pass == 1) {
+			if c.lambdaArg(a) != (pass == 1) {
 				continue
 			}
 			if c.t.Kind(a) == syntax.Spread {

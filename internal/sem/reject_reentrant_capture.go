@@ -65,7 +65,7 @@ func (c *checker) opaqueFnOrigin(expr syntax.NodeID, s exclusiveSite, seen map[s
 		if init, ok := c.letInit[ent]; ok {
 			return c.opaqueFnOrigin(init, s, seen)
 		}
-		return hidden(ent == 0 || c.r.Entities[ent].Kind != EntFn)
+		return hidden(ent == 0 || (c.r.Entities[ent].Kind != EntFn && !c.escapingParamEnt(ent)))
 	case syntax.Lambda:
 		return hidden(len(c.r.closure(c.info.Defs[expr]).Captures) != 0)
 	case syntax.MemberExpr:
@@ -104,4 +104,10 @@ func (c *checker) fnShaped(t TypeID) bool {
 		}
 	}
 	return false
+}
+
+// An escaping parameter holds no borrows, so its captures cannot overlap the exclusively borrowed place.
+func (c *checker) escapingParamEnt(ent EntityID) bool {
+	e := &c.r.Entities[ent]
+	return e.Kind == EntParam && e.Flags&EfEscaping != 0
 }

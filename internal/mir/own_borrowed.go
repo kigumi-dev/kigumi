@@ -2,6 +2,7 @@ package mir
 
 import (
 	"slices"
+	"strings"
 
 	"kigumi/internal/diag"
 	"kigumi/internal/sem"
@@ -71,7 +72,7 @@ func checkBorrowedMoves(p *Program, f *Func) {
 				msg = "`" + name + "` is borrowed by this method and cannot be moved out; take `move self`"
 			}
 			if p.R.Entity(f.Ent).Kind == sem.EntClosure {
-				msg = "`" + name + "` is lent to this closure and cannot be moved out" + clone
+				msg = "`" + name + "` is lent to this closure and cannot be moved out; write `move` before the closure to give it `" + name + "`" + strings.Replace(clone, "; clone", ", or clone", 1)
 			}
 		}
 		span := t.Span(n)

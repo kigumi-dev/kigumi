@@ -97,7 +97,7 @@ error[E413]: closure captures `res` (move-only) and cannot be a plain `fn`
    |
 42 |     let id: fn() -> Int = res.id //~ ERROR closure captures `res` (move-only) and cannot be a plain `fn`
    |                           ^^^^^^
-   = help: use `F: Fn[...]`
+   = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
 
 error[E701]: `b` is immutable
   --> lib/recv.kg:45:5

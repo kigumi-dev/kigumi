@@ -115,7 +115,7 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType TypeID, typeArgs []TypeID, args []syntax.NodeID, want TypeID) TypeID {
 	tt := c.r.Types
 	name := c.t.View(callee).Tok().Text()
-	set := c.r.memberSet(valueType, name)
+	set := c.memberSetHere(valueType, name)
 	if set == 0 {
 		if req, sig, iface, ambiguous := c.ifaceMember(callee, valueType, name); req != 0 {
 			return c.callRequirement(n, callee, base, recv, req, sig, iface, typeArgs, args, want)
@@ -129,12 +129,14 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 		}
 		if tt.Kind(valueType) == KParam {
 			c.errAt(callee, cParamNoMember, valueType, name)
+		} else if pkg := c.hiddenMemberPackage(valueType, name); pkg != "" {
+			c.errAtHelp(callee, hiddenMemberHelp(name, pkg), cMemberNotFound, valueType, name)
 		} else {
 			c.errSuggest(callee, cMemberNotFound, name, c.r.memberNames(c.r.namedEnt(valueType)), valueType, name)
 		}
 		return TyPoison
 	}
-	members := c.r.Overloads[set].Members
+	members := c.visibleMembers(set)
 	m := members[0]
 	if len(members) == 1 {
 		c.r.useEntity(c.f, callee, m)

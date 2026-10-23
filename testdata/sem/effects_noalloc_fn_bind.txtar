@@ -2,66 +2,64 @@
 mir: planned
 -- src --
 interface Sz {
-    noalloc fn sz(self) -> Bool
+    noalloc fn isEmpty(self) -> Bool
 }
-
-noalloc fn i64.sz(self) -> Bool { self > 0 }
 
 noalloc fn total[T: Sz](x: T) -> Bool {
-    x.sz()
+    x.isEmpty()
 }
 
-noalloc fn takes(f: noalloc fn(Int) -> Bool, p: Int) -> Bool {
+noalloc fn takes(f: noalloc fn(String) -> Bool, p: String) -> Bool {
     f(p)
 }
 
-noalloc fn direct(p: Int) -> Bool {
+noalloc fn direct(p: String) -> Bool {
     total(p)
 }
 
-noalloc fn viaParam(p: Int) -> Bool {
-    takes(total[Int], p) //~ ERROR binding the witnesses of `total`
+noalloc fn viaParam(p: String) -> Bool {
+    takes(total[String], p) //~ ERROR binding the witnesses of `total`
 }
 
-noalloc fn viaLocal(p: Int) -> Bool {
-    let f = total[Int] //~ ERROR binding the witnesses of `total`
+noalloc fn viaLocal(p: String) -> Bool {
+    let f = total[String] //~ ERROR binding the witnesses of `total`
     f(p)
 }
 
-fn inferred(p: Int) -> Bool {
-    takes(total[Int], p)
+fn inferred(p: String) -> Bool {
+    takes(total[String], p)
 }
 
-noalloc fn callsInferred(p: Int) -> Bool {
+noalloc fn callsInferred(p: String) -> Bool {
     inferred(p) //~ ERROR `inferred` is not `noalloc`
 }
 
-fn plain(p: Int) -> Bool {
-    let f = total[Int]
+fn plain(p: String) -> Bool {
+    let f = total[String]
     f(p)
 }
 
 fn main() -> Void! {
-    print "${direct(1)} ${viaParam(2)} ${viaLocal(3)} ${callsInferred(4)} ${plain(5)}"
+    print "${direct("a")} ${viaParam("b")} ${viaLocal("c")} ${callsInferred("d")} ${plain("e")}"
 }
 -- expect --
 error[E1820]: binding the witnesses of `total` into a function value allocates
-  --> main.kg:20:11
+  --> main.kg:18:11
    |
-20 |     takes(total[Int], p) //~ ERROR binding the witnesses of `total`
-   |           ^^^^^^^^^
+18 |     takes(total[String], p) //~ ERROR binding the witnesses of `total`
+   |           ^^^^^^^^^^^^
    = help: call it directly or bind it outside the `noalloc` body
 
 error[E1820]: binding the witnesses of `total` into a function value allocates
-  --> main.kg:24:13
+  --> main.kg:22:13
    |
-24 |     let f = total[Int] //~ ERROR binding the witnesses of `total`
-   |             ^^^^^^^^^
+22 |     let f = total[String] //~ ERROR binding the witnesses of `total`
+   |             ^^^^^^^^^^^^
    = help: call it directly or bind it outside the `noalloc` body
 
 error[E907]: `inferred` is not `noalloc`
-  --> main.kg:33:5
+  --> main.kg:31:5
    |
-33 |     inferred(p) //~ ERROR `inferred` is not `noalloc`
+31 |     inferred(p) //~ ERROR `inferred` is not `noalloc`
    |     ^^^^^^^^^^
 

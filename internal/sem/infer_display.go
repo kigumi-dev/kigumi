@@ -51,7 +51,7 @@ func (c *checker) noteDerivedDisplayUse(m EntityID) {
 
 // displayHelp names the step that works for t: its own `display`, else `debug`.
 func (c *checker) displayHelp(t TypeID) string {
-	if c.r.memberSet(t, "display") != 0 {
+	if c.memberSetHere(t, "display") != 0 {
 		return "call `.display()`"
 	}
 	return ""

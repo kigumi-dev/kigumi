@@ -10,8 +10,8 @@ func (c *checker) typeMember(n syntax.NodeID, base headRef, name string) headRef
 		return headRef{kind: headNone}
 	}
 	info := c.r.typeDecl(base.ent)
-	if set, ok := info.Members[name]; ok {
-		members := c.r.Overloads[set].Members
+	if set, ok := info.Members[name]; ok && len(c.visibleMembers(set)) > 0 {
+		members := c.visibleMembers(set)
 		for _, m := range members {
 			c.r.useEntity(c.f, n, m)
 		}
@@ -34,6 +34,11 @@ func (c *checker) typeMember(n syntax.NodeID, base headRef, name string) headRef
 	}
 	if c.r.findField(base.ent, name) != 0 {
 		c.errAt(n, cFieldOnType, name)
+		return headRef{kind: headNone}
+	}
+	if set, ok := info.Members[name]; ok {
+		pkg := c.r.Packages[c.r.Entities[c.r.Overloads[set].Members[0]].Pkg].Path
+		c.errAtHelp(n, hiddenMemberHelp(name, pkg), cMemberNotFound, e.Name, name)
 		return headRef{kind: headNone}
 	}
 	c.errSuggest(n, cMemberNotFound, name, c.r.memberNames(base.ent), e.Name, name)

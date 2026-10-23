@@ -57,7 +57,7 @@ error[E413]: closure captures `v` (move-only) and cannot be a plain `fn`
    |
 23 |     let holder = pack(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
    |                       ^^^^^^^^^^^^^^^^^^^^^
-   = help: use `F: Fn[...]`
+   = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
 
 error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
   --> app/t/t.kg:24:11
@@ -76,7 +76,7 @@ error[E413]: closure captures `v` (move-only) and cannot be a plain `fn`
    |
 32 |     let stored = identity(() => { mutate(&mut v) }) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
    |                           ^^^^^^^^^^^^^^^^^^^^^
-   = help: use `F: Fn[...]`
+   = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
 
 error[E1051]: cannot see what this closure captures while `v` is exclusively borrowed by this call
   --> app/t/t.kg:33:11

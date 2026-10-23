@@ -26,7 +26,7 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 	c.noteRefPlaceArg(a, paramEnt, async)
 	aliasFile, aliasNode := c.r.paramAliasSite(paramEnt)
 	param = c.vars.resolve(param)
-	if !c.r.Types.ContainsVar(param) || c.t.Kind(a) == syntax.Lambda {
+	if !c.r.Types.ContainsVar(param) || c.lambdaArg(a) {
 		c.checkAlias(a, param, aliasFile, aliasNode)
 		if c.info.Types[a] == TyPoison {
 			c.vars.poison(param)
@@ -35,6 +35,7 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 		}
 		return
 	}
+	hint := c.vars.fnHint(param)
 	var got TypeID
 	if c.t.Kind(a) == syntax.BorrowExpr {
 		got = c.vars.resolve(c.setType(a, c.synthBorrow(a, param)))
@@ -44,6 +45,7 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 	}
 	if got == TyPoison || c.borrowsPoison(got) {
 		c.vars.poison(param)
+		c.vars.poison(hint)
 		return
 	}
 	steps, ok := c.coerceSteps(a, got, param)
@@ -56,7 +58,25 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 		c.touched = append(c.touched, a)
 		c.chargeCoercion(a, c.info.Coerce[a])
 	}
+	c.fixHintedSignature(a, got, hint)
 	c.consumeArg(a, param)
+}
+
+// An fn or closure value passed for a type parameter bounded by Fn/FnMut/FnOnce fixes the type variables of the bound's signature now, so later statements see them.
+func (c *checker) fixHintedSignature(a syntax.NodeID, got, hint TypeID) {
+	if hint == 0 {
+		return
+	}
+	switch c.r.Types.Kind(got) {
+	case KFn:
+		if item, ok := c.genericFnItemCallable(c.t.Unparen(a)); ok {
+			c.coerceGenericFnItem(c.t.Unparen(a), item, got, hint)
+			return
+		}
+		c.sameFnShape(got, hint)
+	case KClosure:
+		c.sameFnShape(c.r.closure(c.r.Types.Node(got).Ent).Sig, hint)
+	}
 }
 
 // consumeArg marks a by-value argument consumed; a &T param borrows instead of moving.

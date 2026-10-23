@@ -147,12 +147,12 @@ func (c *checker) indexType(n, idx syntax.NodeID, recv, index TypeID) TypeID {
 // untyped index literal to its parameter type here, before any builtin usize coercion runs.
 func (c *checker) indexWitnessType(n, idx syntax.NodeID, recv, index TypeID) TypeID {
 	tt := c.r.Types
-	set := c.r.memberSet(recv, "index")
+	set := c.memberSetHere(recv, "index")
 	if set == 0 {
 		c.errAt(n, cNotIndexable, recv)
 		return TyPoison
 	}
-	m := c.r.Overloads[set].Members[0]
+	m := c.visibleMembers(set)[0]
 	sig := tt.Node(c.r.memberSig(recv, m))
 	want := TyPoison
 	if len(sig.Args) == 1 {

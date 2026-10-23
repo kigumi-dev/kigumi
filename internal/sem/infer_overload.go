@@ -7,7 +7,7 @@ func (c *checker) pickOverload(n syntax.NodeID, set OverloadSetID, args []syntax
 	os := &c.r.Overloads[set]
 	named := c.hasNamedArg(args)
 	var cands []EntityID
-	for _, m := range os.Members {
+	for _, m := range c.visibleMembers(set) {
 		if c.r.Entities[m].Flags&EfPoison == 0 && c.r.visibleFrom(c.r.Entities[m].Vis, c.pkg) && c.arityFits(m, args) {
 			cands = append(cands, m)
 		}
@@ -51,6 +51,9 @@ func (c *checker) pickOverload(n syntax.NodeID, set OverloadSetID, args []syntax
 	case 0:
 		c.errAt(n, cOverloadNoMatch, os.Name, c.typesText(shapesFor(cands[0])), c.sigList(cands))
 	default:
+		for _, m := range exact {
+			c.r.noteMemberImport(c.f, m)
+		}
 		c.errAt(n, cOverloadAmbiguous, os.Name, c.sigList(exact))
 	}
 	return 0

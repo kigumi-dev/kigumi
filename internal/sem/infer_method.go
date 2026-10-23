@@ -125,7 +125,7 @@ func (c *checker) resolveLiteralReceiver(untyped TypeID, name string) (TypeID, b
 	}
 	var only TypeID
 	for _, t := range pool {
-		if c.r.memberSet(t, name) != 0 {
+		if c.memberSetHere(t, name) != 0 {
 			if only != 0 {
 				only = 0
 				break

@@ -229,7 +229,7 @@ error[E413]: closure captures `b` (move-only) and cannot be a plain `fn`
     |
 103 |     store(() => b.inner.peek()) //~ ERROR closure captures //~ ERROR is reserved
     |           ^^^^^^^^^^^^^^^^^^^
-    = help: use `F: Fn[...]`
+    = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
 
 error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
    --> main.kg:103:17
@@ -284,7 +284,7 @@ error[E413]: closure captures `b` (move-only) and cannot be a plain `fn`
     |
 132 |     let s = Slot { keep: () => b.inner.peek() } //~ ERROR closure captures //~ ERROR is reserved
     |                          ^^^^^^^^^^^^^^^^^^^
-    = help: use `F: Fn[...]`
+    = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
 
 error[E2101]: `b.inner` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
    --> main.kg:132:32

@@ -33,7 +33,7 @@ error[E413]: closure captures `xs` (move-only) and cannot be a plain `fn`
   |
 9 | let m: fn() -> usize = xs.len //~ ERROR closure captures `xs` (move-only) and cannot be a plain `fn`
   |                        ^^^^^^
-  = help: use `F: Fn[...]`
+  = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
 
 error[E613]: range operands must be the same integer type
   --> main/main.kg:13:12

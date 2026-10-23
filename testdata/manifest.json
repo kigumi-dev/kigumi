@@ -424,6 +424,17 @@
       ]
     },
     {
+      "id": "mir/borrow_capture_move_once",
+      "kind": "mir",
+      "path": "testdata/mir/borrow_capture_move_once.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/borrow_field_move",
       "kind": "mir",
       "path": "testdata/mir/borrow_field_move.txtar",
@@ -5124,6 +5135,23 @@
       "skip": {
         "vm": "static-refusal"
       }
+    },
+    {
+      "id": "run/callback_registry_escaping",
+      "kind": "run",
+      "path": "testdata/run/callback_registry_escaping.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
     },
     {
       "id": "run/captured_cell_user_option",
@@ -11777,6 +11805,23 @@
       ]
     },
     {
+      "id": "run/method_visibility_import_std",
+      "kind": "run",
+      "path": "testdata/run/method_visibility_import_std.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/move_method_value_copy",
       "kind": "run",
       "path": "testdata/run/move_method_value_copy.txtar",
@@ -13918,6 +13963,23 @@
       "id": "run/std_binary_fmt_hex",
       "kind": "run",
       "path": "testdata/run/std_binary_fmt_hex.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_callbacks_once_mut",
+      "kind": "run",
+      "path": "testdata/run/std_callbacks_once_mut.txtar",
       "mode": [
         "vm",
         "native"
@@ -16123,6 +16185,17 @@
       "id": "sem/callback_noalloc_box",
       "kind": "sem",
       "path": "testdata/sem/callback_noalloc_box.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/callback_registry_err",
+      "kind": "sem",
+      "path": "testdata/sem/callback_registry_err.txtar",
       "mode": [
         "check"
       ],
@@ -18364,6 +18437,17 @@
       ]
     },
     {
+      "id": "sem/hof_ctor_arg_err",
+      "kind": "sem",
+      "path": "testdata/sem/hof_ctor_arg_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/if_let_refutable",
       "kind": "sem",
       "path": "testdata/sem/if_let_refutable.txtar",
@@ -18837,6 +18921,50 @@
       ]
     },
     {
+      "id": "sem/method_visibility_import",
+      "kind": "sem",
+      "path": "testdata/sem/method_visibility_import.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_visibility_import_ambiguous",
+      "kind": "sem",
+      "path": "testdata/sem/method_visibility_import_ambiguous.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_visibility_import_ok",
+      "kind": "sem",
+      "path": "testdata/sem/method_visibility_import_ok.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_visibility_import_std_err",
+      "kind": "sem",
+      "path": "testdata/sem/method_visibility_import_std_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/methods_receiver",
       "kind": "sem",
       "path": "testdata/sem/methods_receiver.txtar",
@@ -19115,6 +19243,28 @@
       "id": "sem/ordering_tuple_diag",
       "kind": "sem",
       "path": "testdata/sem/ordering_tuple_diag.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/orphan_generic_dynamic",
+      "kind": "sem",
+      "path": "testdata/sem/orphan_generic_dynamic.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/orphan_user_package_err",
+      "kind": "sem",
+      "path": "testdata/sem/orphan_user_package_err.txtar",
       "mode": [
         "check"
       ],
@@ -20358,6 +20508,17 @@
       "id": "sem/witness_call_lifetime_err",
       "kind": "sem",
       "path": "testdata/sem/witness_call_lifetime_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/witness_interface_package",
+      "kind": "sem",
+      "path": "testdata/sem/witness_interface_package.txtar",
       "mode": [
         "check"
       ],

@@ -31,5 +31,5 @@ error[E413]: closure captures `n` (assigned inside the closure) and cannot be a 
    |
 15 |     apply(() => { //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   = help: use `F: Fn[...]`
+   = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
 

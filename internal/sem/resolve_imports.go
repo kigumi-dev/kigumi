@@ -83,6 +83,12 @@ func (r *Result) bindImport(f FileID, node syntax.NodeID, from, target PackageID
 	}
 	id := r.newEntity(e)
 	r.Files[f].Defs[node] = id
+	if r.Files[f].Imported == nil {
+		r.Files[f].Imported = map[PackageID]EntityID{}
+	}
+	if _, seen := r.Files[f].Imported[target]; !seen {
+		r.Files[f].Imported[target] = id
+	}
 	if prev, dup := r.define(r.fileScopes[f], name, Binding{Ent: id}); dup {
 		r.errNote(f, node, prev, "`"+name+"` was bound here", cImportConflict, name)
 		r.Entities[id].Flags |= EfPoison

@@ -50,3 +50,14 @@ func (c *checker) noCloneHelp(t TypeID, help string) string {
 	}
 	return ""
 }
+
+// plainFnHelp is help for a closure that cannot be a plain `fn`: at a return type a record carries the state, elsewhere the receiving parameter takes a bounded type.
+func (c *checker) plainFnHelp(want TypeID, moveOnly bool) string {
+	if h := c.returnedClosureHelp(want, moveOnly); h != "" {
+		return h
+	}
+	if moveOnly {
+		return "a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value"
+	}
+	return "a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`"
+}

@@ -73,8 +73,8 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 			return c.fieldType(recv, fld)
 		}
 	}
-	if set := c.r.memberSet(recv, name); set != 0 {
-		members := c.r.Overloads[set].Members
+	if set := c.memberSetHere(recv, name); set != 0 {
+		members := c.visibleMembers(set)
 		for _, m := range members {
 			c.r.useEntity(c.f, n, m)
 		}
@@ -122,6 +122,10 @@ func (c *checker) memberOn(n, base syntax.NodeID, recv TypeID, name string) Type
 	}
 	if node.Kind == KParam {
 		c.errAt(n, cParamNoMember, recv, name)
+		return TyPoison
+	}
+	if pkg := c.hiddenMemberPackage(recv, name); pkg != "" {
+		c.errAtHelp(n, hiddenMemberHelp(name, pkg), cMemberNotFound, recv, name)
 		return TyPoison
 	}
 	c.errSuggest(n, cMemberNotFound, name, c.r.memberNames(c.r.namedEnt(recv)), recv, name)

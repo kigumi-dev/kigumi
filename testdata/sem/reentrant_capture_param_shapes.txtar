@@ -37,6 +37,7 @@ error[E1051]: cannot see what this closure captures while `v` is exclusively bor
 15 |     v.run(f) //~ ERROR cannot see what this closure captures
    |           ^
    = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+   = help: or declare the parameter `escaping`; an escaping callback holds no borrow of `v`
 note: `v` is exclusively borrowed by this call
   --> app/t/t.kg:15:5
    |
@@ -49,6 +50,7 @@ error[E1051]: cannot see what this closure captures while `v` is exclusively bor
 19 |     v.run(g) //~ ERROR cannot see what this closure captures
    |           ^
    = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+   = help: or declare the parameter `escaping`; an escaping callback holds no borrow of `v`
 note: `v` is exclusively borrowed by this call
   --> app/t/t.kg:19:5
    |
@@ -61,6 +63,7 @@ error[E1051]: cannot see what this closure captures while `v` is exclusively bor
 24 |     v.run(g2) //~ ERROR cannot see what this closure captures
    |           ^^
    = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+   = help: or declare the parameter `escaping`; an escaping callback holds no borrow of `v`
 note: `v` is exclusively borrowed by this call
   --> app/t/t.kg:24:5
    |

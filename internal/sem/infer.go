@@ -62,6 +62,10 @@ func (c *checker) check(n syntax.NodeID, want TypeID) TypeID {
 				return c.coerce(n, c.setType(n, t), want)
 			}
 		}
+	case syntax.MoveExpr:
+		if c.t.Kind(c.t.Unparen(c.t.View(n).AsMove().Operand().ID())) == syntax.Lambda {
+			return c.coerce(n, c.setType(n, c.synthKind(n, want)), want)
+		}
 	case syntax.Unary, syntax.Binary:
 		if t, ok := c.checkOperator(n, want); ok {
 			return t
@@ -162,7 +166,7 @@ func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
 	case syntax.BorrowExpr:
 		return c.synthBorrow(n, want)
 	case syntax.MoveExpr:
-		return c.synthMove(n)
+		return c.synthMove(n, want)
 	case syntax.Spread:
 		c.errAt(n, cSpreadNonVariadic, "this call")
 		c.synth(node.AsSpread().Value().ID())
@@ -178,14 +182,6 @@ func (c *checker) synthKind(n syntax.NodeID, want TypeID) TypeID {
 func (c *checker) notSupported(n syntax.NodeID, what string) TypeID {
 	c.errAt(n, cNotSupportedYet, what)
 	return TyPoison
-}
-
-func (c *checker) synthLiteral(n syntax.NodeID, want TypeID) TypeID {
-	untyped := c.literalValue(n)
-	if untyped == TyPoison || want == 0 {
-		return untyped
-	}
-	return c.coerce(n, untyped, want)
 }
 
 // edge records an effect fact for the effects pass.

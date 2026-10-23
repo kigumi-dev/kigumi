@@ -100,6 +100,8 @@ func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, 
 	if set == 0 {
 		return 0, "missing `" + sig + "`", false, nil
 	}
+	var first EntityID
+	var firstOwn map[EntityID]TypeID
 	for _, cand := range r.Overloads[set].Members {
 		minfo := r.Fn(cand)
 		if minfo.Recv == RecvNone && rinfo.Recv != RecvNone {
@@ -108,6 +110,10 @@ func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, 
 		}
 		if minfo.Recv != RecvNone && rinfo.Recv == RecvNone {
 			why, generic = "`"+name+"` is a method, the requirement is an associated function", false
+			continue
+		}
+		if !r.memberImportedBy(cand, from) {
+			why, generic = "`"+name+"` is declared in package `"+r.Packages[r.Entities[cand].Pkg].Path+"`, which is not imported here", false
 			continue
 		}
 		if !r.visibleFrom(r.Entities[cand].Vis, from) {
@@ -143,50 +149,18 @@ func (r *Result) findWitness(t TypeID, req EntityID, subst map[EntityID]TypeID, 
 		case Effects(gotNode.Flags)&Effects(wantNode.Flags)&(EffPure|EffNoalloc) != Effects(wantNode.Flags)&(EffPure|EffNoalloc):
 			why, generic = "`"+name+"` is not `"+effectsText(Effects(wantNode.Flags)&(EffPure|EffNoalloc))+"`", false
 		default:
-			r.noteWitness(req, cand)
-			return cand, "", false, candOwn
+			if r.Entities[cand].Pkg == r.Entities[req].Pkg {
+				r.noteWitness(req, cand)
+				return cand, "", false, candOwn
+			}
+			if first == 0 {
+				first, firstOwn = cand, candOwn
+			}
 		}
+	}
+	if first != 0 {
+		r.noteWitness(req, first)
+		return first, "", false, firstOwn
 	}
 	return 0, why, generic, nil
-}
-
-// sameArgs ignores a plain-vs-escaping difference in a parameter's fn type: escapeMismatch is the
-// specific, sharper-diagnostic check for that, and must still run even if that's the only difference.
-func sameArgs(tt *TypeTable, a, b []TypeID) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if !tt.SameIgnoringEscaping(a[i], b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func recvText(k RecvKind) string {
-	switch k {
-	case RecvMut:
-		return "mut self"
-	case RecvMove:
-		return "move self"
-	}
-	return "self"
-}
-
-func (r *Result) reqText(name string, recv RecvKind, sig TypeID) string {
-	n := r.Types.Node(sig)
-	var sb strings.Builder
-	sb.WriteString("fn " + name + "(")
-	if recv != RecvNone {
-		sb.WriteString(recvText(recv))
-	}
-	for i, a := range n.Args {
-		if i > 0 || recv != RecvNone {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(r.TypeString(a))
-	}
-	sb.WriteString(") -> " + r.TypeString(n.Elem))
-	return sb.String()
 }

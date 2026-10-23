@@ -1,0 +1,92 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) {}
+
+type Reg = { pub mut fs Array[fn() -> Int] }
+
+fn addKept(r: &mut Reg, f: escaping fn() -> Int) {
+    r.fs.push(f)
+}
+
+fn addLent(r: &mut Reg, f: fn() -> Int) {
+    r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+}
+
+fn Reg.addLentMethod(mut self, f: fn() -> Int) {
+    self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+}
+
+fn register(r: &mut Reg) {
+    let a = Res { n: 1 }
+    addKept(r, () => a.n) //~ ERROR closure captures `a` (move-only) and cannot be a plain `fn`
+    for i in 0..3 {
+        addKept(r, () => i)
+    }
+    let flag = true
+    addKept(r, () => if flag { 1 } else { 0 })
+}
+
+fn counted(xs: Array[Int]) -> Int {
+    let mut n = 0
+    let f: fn(Int) -> Void = (x: Int) => { n = n + x } //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+    f(1)
+    n
+}
+-- expect --
+error[E1036]: `f` is a non-escaping callback and cannot be passed to `push`, whose parameter type cannot be verified not to keep it
+  --> main/main.kg:14:15
+   |
+14 |     r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+   |               ^
+   = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
+
+error[E1051]: cannot see what this closure captures while `r` is exclusively borrowed by this call
+  --> main/main.kg:14:15
+   |
+14 |     r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+   |               ^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+   = help: or declare the parameter `escaping`; an escaping callback holds no borrow of `r`
+note: `r` is exclusively borrowed by this call
+  --> main/main.kg:14:5
+   |
+14 |     r.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+   |     ^^^^
+
+error[E1036]: `f` is a non-escaping callback and cannot be passed to `push`, whose parameter type cannot be verified not to keep it
+  --> main/main.kg:18:18
+   |
+18 |     self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+   |                  ^
+   = help: constrain the parameter with `Fn[...]`, `FnMut[...]`, or `FnOnce[...]`, or make the callback `escaping`
+
+error[E1051]: cannot see what this closure captures while `self` is exclusively borrowed by this call
+  --> main/main.kg:18:18
+   |
+18 |     self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+   |                  ^
+   = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
+   = help: or declare the parameter `escaping`; an escaping callback holds no borrow of `self`
+note: `self` is exclusively borrowed by this call
+  --> main/main.kg:18:5
+   |
+18 |     self.fs.push(f) //~ ERROR `f` is a non-escaping callback and cannot be passed to `push` //~ ERROR cannot see what this closure captures
+   |     ^^^^^^^
+
+error[E413]: closure captures `a` (move-only) and cannot be a plain `fn`
+  --> main/main.kg:23:16
+   |
+23 |     addKept(r, () => a.n) //~ ERROR closure captures `a` (move-only) and cannot be a plain `fn`
+   |                ^^^^^^^^^
+   = help: a plain `fn` cannot hold a move-only value; take the callback as `F: Fn[...]`, or `F: FnOnce[...]` and pass `move` before the closure if it consumes the value
+
+error[E413]: closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+  --> main/main.kg:33:30
+   |
+33 |     let f: fn(Int) -> Void = (x: Int) => { n = n + x } //~ ERROR closure captures `n` (assigned inside the closure) and cannot be a plain `fn`
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^
+   = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+

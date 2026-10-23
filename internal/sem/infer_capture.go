@@ -21,7 +21,7 @@ func (c *checker) noteCapture(n syntax.NodeID, ent EntityID, found ScopeID) {
 		}
 		e := &c.r.Entities[ent]
 		mode := capMove
-		if c.r.isCopy(e.Type) {
+		if c.copyNow(e.Type) {
 			mode = capCopy
 		}
 		switch {
@@ -142,10 +142,10 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 		name := c.capturedName(n, info, cap.Local)
 		switch cap.Mode {
 		case capCell:
-			c.errAtHelp(n, c.returnedClosureHelp(want, false), cClosureNotPlainFn, name, c.r.cellCaptureWhy(cap.Local))
+			c.errAtHelp(n, c.plainFnHelp(want, false), cClosureNotPlainFn, name, c.r.cellCaptureWhy(cap.Local))
 			return nil, true
 		case capMove, capRetain, capRead:
-			c.errAtHelp(n, c.returnedClosureHelp(want, true), cClosureNotPlainFn, name, "move-only")
+			c.errAtHelp(n, c.plainFnHelp(want, true), cClosureNotPlainFn, name, "move-only")
 			return nil, true
 		}
 	}

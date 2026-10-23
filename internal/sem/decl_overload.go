@@ -12,7 +12,7 @@ func (r *Result) checkOverloadSets() {
 				continue
 			}
 			for _, prev := range members[:i] {
-				if r.Entities[prev].Flags&EfPoison != 0 {
+				if r.Entities[prev].Flags&EfPoison != 0 || r.Overloads[set].Owner != 0 && r.Entities[prev].Pkg != e.Pkg {
 					continue
 				}
 				if r.sameParams(prev, m) {
