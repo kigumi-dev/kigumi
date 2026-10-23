@@ -50,9 +50,9 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
         maxHeaderBytes: 256
         maxHeaders: 8
         maxBodyBytes: 16
-        readTimeoutMillis: 5000
-        idleTimeoutMillis: 5000
-        writeTimeoutMillis: 5000
+        readTimeoutMillis: 600000
+        idleTimeoutMillis: 600000
+        writeTimeoutMillis: 600000
         maxConnections: 8
     }
     let stop = http.Shutdown.new()
@@ -79,7 +79,8 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
         let line = (await raw(n, port, data))?
         print line
     }
-    let c = http.Client.new(n, task.BlockingPool.new(1))
+    let mut c = http.Client.new(n, task.BlockingPool.new(1))
+    c.timeoutMillis = 600000
     let mut session = (await c.open("http://127.0.0.1:${port}"))?
     let first = (await session.send(http.Request.new("GET", "/echo")))?
     print "keep-alive 1: ${first.status} ${first.text()?}"

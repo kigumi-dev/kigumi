@@ -156,11 +156,18 @@ fn siblingAfterFailCleanup() -> Void! {
     take(b.other)
 }
 
-fn closureBorrowsReservedBinding() {
+fn readsReservedBinding() {
     let h = Handle { id: 1 }
     defer { h.close() }
     let n = h.peek()
     _ = n
+}
+
+fn closureBorrowsReservedBinding() {
+    let h = Handle { id: 1 }
+    defer { h.close() }
+    let f = () => h.peek()
+    _ = f()
 }
 
 fn assignBeforeConsumeInCleanup() {

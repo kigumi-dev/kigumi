@@ -7,6 +7,6 @@ print "unreachable ${v}"
 -- stdout --
 start
 -- stderr --
-panic: index out of range
+panic: index out of range: index 5, length 3 at main/main.kg:4
 -- exit --
 2

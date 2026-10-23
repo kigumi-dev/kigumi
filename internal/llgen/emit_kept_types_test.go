@@ -12,6 +12,8 @@ import (
 const keptTypeSrc = `
 type Used = { n: Int }
 
+type Unused = { n: Int }
+
 fn build() -> Used { Used { n: 1 } }
 
 let mut xs: Array[Used] = Array.empty()
@@ -36,6 +38,9 @@ func TestEmitKeepsOnlyReachableDescriptors(t *testing.T) {
 	ir := llgen.EmitWith(prog, llgen.EmitOptions{Reachable: rs})
 	if !strings.Contains(ir, `@".type.main.Used" =`) {
 		t.Fatalf("a constructed type has no descriptor:\n%s", ir)
+	}
+	if strings.Contains(ir, `@".type.main.Unused"`) {
+		t.Fatalf("a type nothing reaches still has a descriptor:\n%s", ir)
 	}
 }
 

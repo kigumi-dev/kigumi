@@ -128,6 +128,10 @@ func (c *checker) noteOnceUse(n, callee syntax.NodeID, ft TypeID) {
 	for c.t.Kind(callee) == syntax.Paren {
 		callee = c.t.View(callee).AsParen().Inner().ID()
 	}
+	if c.t.Kind(callee) == syntax.MemberExpr {
+		c.noteOnceFieldUse(n, callee)
+		return
+	}
 	ent := c.info.Uses[callee]
 	if ent == 0 || c.t.Kind(callee) != syntax.Ident {
 		return
@@ -156,4 +160,19 @@ func (c *checker) onceReassign(lhs syntax.NodeID) {
 	if c.t.Kind(lhs) == syntax.Ident {
 		delete(c.once.called, c.info.Uses[lhs])
 	}
+}
+
+// A FnOnce field is tracked by the ownership pass; here only a call from a closure that may run repeatedly is rejected.
+func (c *checker) noteOnceFieldUse(n, callee syntax.NodeID) {
+	p, ok := c.buildPlace(callee)
+	if !ok || p.Index || len(c.lambdas) == 0 {
+		return
+	}
+	if k := c.r.Entities[p.Root].Kind; k != EntLocal && k != EntParam {
+		return
+	}
+	if c.scopeWithin(c.r.local(p.Root).Scope, c.lambdas[len(c.lambdas)-1].scope) {
+		return
+	}
+	c.errAt(n, cOnceCalledInLoop, c.placeLabel(reservedPlace{ent: p.Root, fields: p.Fields}))
 }

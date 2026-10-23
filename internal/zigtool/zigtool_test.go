@@ -48,10 +48,17 @@ func TestCheckZigUnpinnedSkipsVersion(t *testing.T) {
 }
 
 func TestCheckZigMissingNoPin(t *testing.T) {
-	t.Setenv("PATH", t.TempDir())
-	c := zigtool.CheckZig(nil, "", "")
+	c := zigtool.CheckZig(zigtool.InDirs([]string{t.TempDir()}), "", "")
 	if c != (zigtool.Check{}) {
-		t.Fatalf("no override, no pin, no zig on PATH: the zero Check, got %+v", c)
+		t.Fatalf("no override, no pin, no zig on the search path: the zero Check, got %+v", c)
+	}
+}
+
+func TestCheckZigFindsZigOnTheSearchPath(t *testing.T) {
+	zig := fakeZig(t, "0.17.0")
+	c := zigtool.CheckZig(zigtool.InDirs([]string{filepath.Dir(zig)}), "", "")
+	if c.Path != zig || c.Err != nil {
+		t.Fatalf("a zig on the search path must be found: %+v", c)
 	}
 }
 

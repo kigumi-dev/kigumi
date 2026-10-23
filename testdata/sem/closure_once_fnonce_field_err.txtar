@@ -1,0 +1,53 @@
+-- module --
+mir: planned
+-- src --
+type Tr = resource {
+    pub id Int
+}
+
+fn Tr.drop(move self) {}
+
+fn Tr.close(move self) {}
+
+type Holder[F] = {
+    pub f F
+}
+
+fn runTwice[F: FnOnce[fn() -> Void]](r: Holder[F]) -> Void {
+    (r.f)()
+    (r.f)() //~ ERROR is a `FnOnce` value and can be called only once
+}
+
+fn Holder[F: FnOnce[fn() -> Void]].runOwnedTwice(move self) -> Void {
+    (self.f)()
+    (self.f)() //~ ERROR is a `FnOnce` value and can be called only once
+}
+
+fn runOnce[F: FnOnce[fn() -> Void]](r: Holder[F]) -> Void {
+    (r.f)()
+}
+-- expect --
+error[E2152]: `r.f` is a `FnOnce` value and can be called only once
+  --> main.kg:15:5
+   |
+15 |     (r.f)() //~ ERROR is a `FnOnce` value and can be called only once
+   |     ^^^^^^
+   = help: call it a single time, or bound its type with `Fn` or `FnMut` instead
+note: `r.f` may already be called here
+  --> main.kg:14:5
+   |
+14 |     (r.f)()
+   |     ^^^^^^
+
+error[E2152]: `self.f` is a `FnOnce` value and can be called only once
+  --> main.kg:20:5
+   |
+20 |     (self.f)() //~ ERROR is a `FnOnce` value and can be called only once
+   |     ^^^^^^^^^
+   = help: call it a single time, or bound its type with `Fn` or `FnMut` instead
+note: `self.f` may already be called here
+  --> main.kg:19:5
+   |
+19 |     (self.f)()
+   |     ^^^^^^^^^
+

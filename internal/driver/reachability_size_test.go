@@ -3,7 +3,6 @@ package driver_test
 import (
 	"bytes"
 	"debug/elf"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,23 +58,22 @@ func wideRuntimeSymbols(t *testing.T, exe string) []string {
 	return found
 }
 
-// Never fails on a byte count; this only records what pruning an unused import saves, as JSON.
-func TestHostedBinarySizeReachabilityObservation(t *testing.T) {
+// An import nothing reaches must not make the hosted binary larger; the slack covers the temp path length each binary embeds.
+func TestHostedBinaryOmitsUnusedImport(t *testing.T) {
 	if testCompiler().CCompiler() == nil {
 		t.Skip("no C compiler")
 	}
+	const slack = 4096
 	withoutJSON := sizeOfBuild(t, "print \"hello\"\n")
 	withJSON := sizeOfBuild(t, "import json from std/json\nprint \"hello\"\n")
-
-	report, err := json.Marshal(map[string]int64{
-		"bytes_without_unused_json_import": withoutJSON,
-		"bytes_with_unused_json_import":    withJSON,
-		"delta_bytes":                      withJSON - withoutJSON,
-	})
-	if err != nil {
-		t.Fatal(err)
+	usesJSON := sizeOfBuild(t, "import json from std/json\nlet n = json.decode[Int](\"12\")?\nprint \"${n}\"\n")
+	t.Logf("sizes: plain=%d unused-import=%d used=%d", withoutJSON, withJSON, usesJSON)
+	if usesJSON-withoutJSON <= slack {
+		t.Fatalf("reaching std/json grew the binary by only %d bytes, which the slack would hide", usesJSON-withoutJSON)
 	}
-	t.Logf("hosted binary size observation: %s", report)
+	if withJSON-withoutJSON > slack {
+		t.Fatalf("an unused std/json import grew the binary: %d -> %d bytes", withoutJSON, withJSON)
+	}
 }
 
 // A program that never reaches task.spawn/currentThreadExecutor must not

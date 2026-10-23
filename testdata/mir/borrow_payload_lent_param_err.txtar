@@ -1,0 +1,46 @@
+-- lib/payload.kg --
+// A lent parameter has no count to give a variant that does not hold borrows.
+type Box = { pub v Int }
+
+fn wrap(r: &Box) -> Void {
+    let o = Some(r)
+    let seen = o is Some(x) && x.v == 1
+}
+-- expect --
+fn lib.wrap(%r: &Box) -> Void {
+  b0:
+    %t1 = copy(%r)
+    %t2 = variant Option.Some(%t1)
+    %o = copy(%t2)
+    %t5 = isvariant Option.Some(%o)
+    branch %t5 ? b1 : b2
+  b1:
+    %t6 = payload 0(%o)
+    %x = copy(%t6)
+    jump b2
+  b2:
+    branch %t5 ? b3 : b4
+  b3:
+    %t9 = field 0(%x)
+    %t10 = const 1: Int
+    %t11 = bin ==(%t9, %t10)
+    %t4 = copy(%t11)
+    jump b5
+  b4:
+    %t8 = const false: Bool
+    %t4 = copy(%t8)
+    jump b5
+  b5:
+    %seen = copy(%t4)
+    drop(%seen)
+    drop(%x)
+    drop(%o)
+    %t13 = unit
+    return %t13
+}
+error[E1580]: a borrow cannot go in payload 0, a payload of `Option`: a payload is released with the variant and this borrow has no count to give; nest it in a type that takes a `['a]` and routes the borrow through its own field, or store a value it can own
+ --> lib/payload.kg:5:13
+  |
+5 |     let o = Some(r)
+  |             ^^^^^^
+

@@ -1,0 +1,12 @@
+-- src --
+type P = { pub name String, pub xs Array[Int] }
+
+fn tail(p: P) -> Array[Int] { p.xs }
+
+fn ret(p: P) -> Array[Int] { return p.xs }
+
+fn main() {
+    print "${tail(P { name: "a", xs: Array.of(1) }).len()} ${ret(P { name: "b", xs: Array.of(1, 2) }).len()}"
+}
+-- stdout --
+1 2

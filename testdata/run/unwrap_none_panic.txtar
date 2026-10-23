@@ -5,6 +5,6 @@ print "${o.unwrap()}"
 -- stdout --
 before
 -- stderr --
-unwrap on None
+panic: unwrap on None
 -- exit --
 2

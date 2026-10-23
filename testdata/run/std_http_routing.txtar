@@ -85,10 +85,14 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
         .get("/early", early)
         .use(tag("outer"))
         .use(tag("inner"))
-    let server = http.Server.new(routes.handler(), (line) => print "log: ${line}")
+    let mut server = http.Server.new(routes.handler(), (line) => print "log: ${line}")
+    server.limits.readTimeoutMillis = 600000
+    server.limits.idleTimeoutMillis = 600000
+    server.limits.writeTimeoutMillis = 600000
     let stop = http.Shutdown.new()
     let running = task.spawn(server.serve(listener, stop.clone()))
-    let c = http.Client.new(n, task.BlockingPool.new(2))
+    let mut c = http.Client.new(n, task.BlockingPool.new(2))
+    c.timeoutMillis = 600000
     let base = "http://127.0.0.1:${port}"
     show("GET /things/tool/42", await c.send("${base}/things/tool/42", req("GET", "")))?
     show("GET /things/a%20b/7", await c.send("${base}/things/a%20b/7", req("GET", "")))?

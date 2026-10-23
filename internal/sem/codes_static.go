@@ -8,7 +8,6 @@ var (
 	cStaticNotInitable    = defineCode("E1192", "static-not-initializable", "`{type}` cannot be a static's type; a static must be an allocation-free, drop-free `Copy` value; move the resource or owning value behind an explicit accessor instead")
 	cStaticAssign         = defineCode("E1193", "static-assign", "`{name}` is an immutable static; direct assignment is not allowed; use `static mut` and an `unsafe` block, or a package-private wrapper function")
 	cStaticBorrowMut      = defineCode("E1194", "static-borrow-mut", "`&mut {name}` cannot be taken of a static place; use `static mut` with an unsafe raw pointer")
-	cStaticMoveOut        = defineCode("E1195", "static-move-out", "`{name}` is a static place and its type is not `Copy`; a non-Copy value cannot move out of a static")
 	cStaticMutOrdinaryRef = defineCode("E1197", "static-mut-ordinary-ref", "an ordinary `&{name}`/`&mut {name}` cannot be taken of a `static mut`, even inside `unsafe`; use an explicit raw pointer operation instead")
 	cStaticBorrowEscape   = defineCode("E1198", "static-borrow-escape", "a static-origin borrow cannot escape its call/local scope in v1; return an owned copy, expose an operation/callback, or use an unsafe raw pointer with an explicit contract")
 	cStaticLifetime       = defineCode("E1199", "static-lifetime-reserved", "program-lifetime references are not supported in v1; use the static directly, pass a call-scoped borrow, or an unsafe raw pointer with an explicit contract")

@@ -6,6 +6,6 @@ print "unreachable ${t}"
 -- stdout --
 len=6
 -- stderr --
-is not on character boundaries
+panic: slice is not on character boundaries
 -- exit --
 2

@@ -1,0 +1,56 @@
+-- module --
+stage: driver
+-- src --
+import task from std/task
+
+type View['a] = { pub data &'a Array[Int], pub off usize }
+
+async fn one['a](v: View['a]) -> Int { v.data[v.off] }
+
+async fn viaSpawn() -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let t = task.spawn(one(View { data: &a, off: 0 }))
+    a.push(4)
+    await t
+}
+
+async fn viaHandoff(ex: task.Executor) -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let t = ex.handoff(one(View { data: &a, off: 0 }))
+    a.push(4)
+    await t
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(viaSpawn())} ${ex.runToCompletion(viaHandoff(task.currentThreadExecutor()))}"
+-- expect --
+error[E2198]: `a` is borrowed and cannot be mutated here
+  --> main.kg:10:5
+   |
+10 |     a.push(4)
+   |     ^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:9:41
+   |
+ 9 |     let t = task.spawn(one(View { data: &a, off: 0 }))
+   |                                         ^^
+
+error[E2198]: `a` is borrowed and cannot be mutated here
+  --> main.kg:17:5
+   |
+17 |     a.push(4)
+   |     ^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:16:41
+   |
+16 |     let t = ex.handoff(one(View { data: &a, off: 0 }))
+   |                                         ^^
+
+error[E1462]: this future is bound to one executor by `View['a]` and cannot be handed to another; start it on the running task's own executor with `task.spawn`
+  --> main.kg:16:13
+   |
+16 |     let t = ex.handoff(one(View { data: &a, off: 0 }))
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

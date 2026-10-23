@@ -65,6 +65,18 @@ fn use() {
     _ = g("a", 1, true)
     _ = g("a") //~ ERROR `this function` expects 3 arguments, 1 given
 }
+
+type BadN = { n Int }
+
+fn BadN.message(self) -> String { "bad ${self.n}" }
+
+fn bad(n: Int) -> Int! { if n > 0 { fail BadN { n: n } } else { Ok(7) } }
+
+fn plain(a: Int, b: Int = bad(a)?) -> Int { a * 10 + b }
+
+fn fallible(a: Int) -> Int! { plain(a) }
+
+fn notFallible(a: Int) -> Int { plain(a) } //~ ERROR `?` requires a `Result` return type
 -- expect --
 error[E2188]: default arguments are not allowed on an interface requirement
  --> app/t/t.kg:2:34
@@ -186,4 +198,16 @@ error[E501]: `this function` expects 3 arguments, 1 given
    |
 65 |     _ = g("a") //~ ERROR `this function` expects 3 arguments, 1 given
    |         ^^^^^
+
+error[E712]: `?` requires a `Result` return type
+  --> app/t/t.kg:78:33
+   |
+78 | fn notFallible(a: Int) -> Int { plain(a) } //~ ERROR `?` requires a `Result` return type
+   |                                 ^^^^^
+   = help: this returns `Int`
+note: the default of `b` uses `?`, so a call that omits it propagates the error to its caller
+  --> app/t/t.kg:74:27
+   |
+74 | fn plain(a: Int, b: Int = bad(a)?) -> Int { a * 10 + b }
+   |                           ^^^^^^^
 

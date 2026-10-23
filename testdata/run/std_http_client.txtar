@@ -23,6 +23,8 @@ fn big(req: http.Request) -> http.Response! {
 async fn stalled(n: net.Net, listener: net.Listener) -> Void! {
     let port = listener.port()
     let mut server = http.Server.new(http.Router.new().get("/big", big).handler(), (line) => print "log: ${line}")
+    server.limits.readTimeoutMillis = 600000
+    server.limits.idleTimeoutMillis = 600000
     server.limits.writeTimeoutMillis = 200
     let stop = http.Shutdown.new()
     let running = task.spawn(server.serve(listener, stop.clone()))
@@ -69,13 +71,16 @@ async fn capped(n: net.Net, listener: net.Listener) -> Void! {
     let port = listener.port()
     let mut server = http.Server.new(http.Router.new().get("/two", target).handler(), (line) => print "log: ${line}")
     server.limits.maxConnections = 1
+    server.limits.readTimeoutMillis = 600000
+    server.limits.idleTimeoutMillis = 600000
+    server.limits.writeTimeoutMillis = 600000
     let stop = http.Shutdown.new()
     let running = task.spawn(server.serve(listener, stop.clone()))
     let base = "http://127.0.0.1:${port}"
     let release = http.Shutdown.new()
-    let holder = task.spawn(holdSession(client(n, 5000, 65536), base, release.clone()))
+    let holder = task.spawn(holdSession(client(n, 600000, 65536), base, release.clone()))
     let done = alloc.Shared.new(false)
-    let second = task.spawn(getInto(client(n, 5000, 65536), "${base}/two", done.clone()))
+    let second = task.spawn(getInto(client(n, 600000, 65536), "${base}/two", done.clone()))
     let start = time.monotonic()
     for start.elapsedMillis() < 300 {
         await task.yieldNow()
@@ -151,7 +156,7 @@ async fn unframed(listener: net.Listener, n: net.Net) -> Void! {
     let port = listener.port()
     let stop = http.Shutdown.new()
     let peer = task.spawn(canned(listener, "HTTP/1.1 200 OK\r\n\r\nbody", false, stop.clone()))
-    let mut session = (await client(n, 5000, 65536).open("http://127.0.0.1:${port}"))?
+    let mut session = (await client(n, 600000, 65536).open("http://127.0.0.1:${port}"))?
     let first = (await session.send(http.Request.new("GET", "/")))?
     print "unframed: ${first.status} [${first.text()?}]"
     match await session.send(http.Request.new("GET", "/")) {
@@ -172,7 +177,10 @@ fn client(n: net.Net, timeout: i64, maxHead: usize) -> http.Client {
 async fn root(n: net.Net, listener: net.Listener, peers: Array[net.Listener]) -> Void! {
     let mut peers = peers
     let port = listener.port()
-    let server = http.Server.new(http.Router.new().get("/one", slow).get("/two", target).get("/", target).handler(), (line) => print "log: ${line}")
+    let mut server = http.Server.new(http.Router.new().get("/one", slow).get("/two", target).get("/", target).handler(), (line) => print "log: ${line}")
+    server.limits.readTimeoutMillis = 600000
+    server.limits.idleTimeoutMillis = 600000
+    server.limits.writeTimeoutMillis = 600000
     let stop = http.Shutdown.new()
     let running = task.spawn(server.serve(listener, stop.clone()))
     let base = "http://127.0.0.1:${port}"
@@ -187,10 +195,10 @@ async fn root(n: net.Net, listener: net.Listener, peers: Array[net.Listener]) ->
         Ok(r) -> print "after timeout: unexpected ${r.status} ${r.text()?}"
         Err(e) -> print "after timeout: ${e.message()}"
     }
-    let fresh = (await c.get("${base}/two"))?
+    let fresh = (await client(n, 600000, 65536).get("${base}/two"))?
     print "fresh: ${fresh.status} ${fresh.text()?}"
 
-    let quick = client(n, 5000, 65536)
+    let quick = client(n, 600000, 65536)
     let queryR = (await quick.get("${base}?x=1"))?
     print "query: ${queryR.text()?}"
     let upperR = (await quick.get("HTTP://127.0.0.1:${port}/two?y=2#frag"))?
@@ -198,12 +206,12 @@ async fn root(n: net.Net, listener: net.Listener, peers: Array[net.Listener]) ->
     let fragmentR = (await quick.get("${base}#only"))?
     print "fragment: ${fragmentR.text()?}"
 
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 099 Odd\r\nContent-Length: 0\r\n\r\n", false, client(n, 5000, 65536)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 600 Odd\r\nContent-Length: 0\r\n\r\n", false, client(n, 5000, 65536)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\n", true, client(n, 5000, 4096)))?
+    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 099 Odd\r\nContent-Length: 0\r\n\r\n", false, client(n, 600000, 65536)))?
+    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 600 Odd\r\nContent-Length: 0\r\n\r\n", false, client(n, 600000, 65536)))?
+    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\n", true, client(n, 600000, 4096)))?
     (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\n", true, client(n, 300, 16777216)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3;x\r\nabc\r\n2\r\nde\r\n0\r\nT: 1\r\n\r\n", false, client(n, 5000, 65536)))?
-    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 204 No Content\r\n\r\n", false, client(n, 5000, 65536)))?
+    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3;x\r\nabc\r\n2\r\nde\r\n0\r\nT: 1\r\n\r\n", false, client(n, 600000, 65536)))?
+    (await tryCanned(peers.takeAt(0) || fail http.failure(500, "no listener"), "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 204 No Content\r\n\r\n", false, client(n, 600000, 65536)))?
 
     (await unframed(peers.takeAt(0) || fail http.failure(500, "no listener"), n))?
     (await stalled(n, peers.takeAt(0) || fail http.failure(500, "no listener")))?

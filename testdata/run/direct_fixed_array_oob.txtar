@@ -9,6 +9,6 @@ print "out ${readAt(3)}"
 -- stdout --
 in 4
 -- stderr --
-panic: index out of range
+panic: index out of range: index 3, length 3 at main/main.kg:3
 -- exit --
 2

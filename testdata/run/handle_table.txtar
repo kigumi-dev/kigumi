@@ -9,5 +9,15 @@ let removed = table.remove(h)
 let closed = if table.close() is Ok(_) { "closed" } else { "busy" }
 let stale = if (unsafe { table.reclaim(raw) }) is Err(_) { "stale" } else { "live" }
 print "${got} ${removed} ${closed} ${stale}"
+let busyTable: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let first = busyTable.insert(1)
+let second = busyTable.insert(2)
+let outstanding = if busyTable.close() is Err(b) { b.outstanding } else { 0 }
+let one = busyTable.remove(first)
+let afterOne = if busyTable.close() is Err(b) { b.outstanding } else { 0 }
+let two = busyTable.remove(second)
+let drained = if busyTable.close() is Ok(_) { "drained" } else { "busy" }
+print "${outstanding} ${afterOne} ${one + two} ${drained}"
 -- stdout --
 43 42 closed stale
+2 1 3 drained

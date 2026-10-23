@@ -46,6 +46,6 @@ print "total ${ex.runToCompletion(root())}"
 -- stdout --
 drop 60
 -- stderr --
-panic: index out of range
+panic: index out of range: index 7, length 3 at main/main.kg:30
 -- exit --
 2

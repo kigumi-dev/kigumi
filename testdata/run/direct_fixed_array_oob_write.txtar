@@ -15,6 +15,6 @@ print "out ${writeAt(7)}"
 -- stdout --
 in 7
 -- stderr --
-panic: index out of range
+panic: index out of range: index 7, length 2 at main/main.kg:8
 -- exit --
 2

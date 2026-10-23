@@ -53,7 +53,7 @@ func TestJSONRPCEditsPublishOnlyTheLatestGeneration(t *testing.T) {
 	os.WriteFile(path, []byte(src), 0o644)
 	doc := uri.File(path)
 
-	srv := newServer("../../std").WithDebounce(60 * time.Millisecond)
+	srv := newServer("../../std").WithDebounce(3 * time.Second)
 	a, b := net.Pipe()
 	ctx := context.Background()
 	protocol.NewServer(ctx, srv, jsonrpc2.NewStream(a))
@@ -84,10 +84,8 @@ func TestJSONRPCEditsPublishOnlyTheLatestGeneration(t *testing.T) {
 	}
 	waitFor(t, client, func(v []int32) bool { return len(v) > opened && v[len(v)-1] == 8 })
 	srv.WaitIdle()
-	for i, v := range client.seen()[opened:] {
-		if v != 8 {
-			t.Fatalf("publish %d carries version %d, want only the latest (8): %v", i, v, client.seen())
-		}
+	if after := client.seen()[opened:]; len(after) != 1 || after[0] != 8 {
+		t.Fatalf("a burst of seven edits must publish only version 8: %v", client.seen())
 	}
 }
 

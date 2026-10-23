@@ -19,7 +19,7 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 	switch key {
 	case "alloc.Arena.create":
 		if m.faultTick() {
-			return m.allocError()
+			return m.errMsg("out of memory")
 		}
 		return m.ok(mkOpaque("AllocatorHandle", nil))
 	case "alloc.Arena.tryCreate":

@@ -5,6 +5,6 @@ print "${r.unwrap()}"
 -- stdout --
 before
 -- stderr --
-unwrap on Err
+panic: unwrap on Err
 -- exit --
 2

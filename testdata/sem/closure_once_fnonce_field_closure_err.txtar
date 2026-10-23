@@ -1,0 +1,44 @@
+-- module --
+mir: planned
+-- src --
+type Tr = resource {
+    pub id Int
+}
+
+fn Tr.drop(move self) {}
+
+fn Tr.close(move self) {}
+
+type Holder[F] = {
+    pub f F
+}
+
+fn runInClosure[F: FnOnce[fn() -> Void]](r: Holder[F]) -> Void {
+    let k = () => {
+        (r.f)() //~ ERROR cannot be called inside a loop or a closure
+    }
+    k()
+    k()
+}
+
+fn Holder[F: FnOnce[fn() -> Void]].runInClosureOwned(move self) -> Void {
+    let k = () => {
+        (self.f)() //~ ERROR cannot be called inside a loop or a closure
+    }
+    k()
+}
+-- expect --
+error[E2176]: `r.f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+  --> main.kg:15:9
+   |
+15 |         (r.f)() //~ ERROR cannot be called inside a loop or a closure
+   |         ^^^^^^
+   = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+
+error[E2176]: `self.f` is bound by `FnOnce` and cannot be called inside a loop or a closure, which may call it more than once
+  --> main.kg:23:9
+   |
+23 |         (self.f)() //~ ERROR cannot be called inside a loop or a closure
+   |         ^^^^^^^^^
+   = help: bind it with `FnMut` or `Fn`, or call it outside the loop or closure
+

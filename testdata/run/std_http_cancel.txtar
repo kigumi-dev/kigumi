@@ -12,9 +12,13 @@ fn hello(req: http.Request) -> http.Response! {
 // suspension point, closing every socket they own.
 async fn root(n: net.Net, listener: net.Listener) -> Void! {
     let port = listener.port()
-    let server = http.Server.new(http.Router.new().get("/", hello).handler(), (line) => print "log: ${line}")
+    let mut server = http.Server.new(http.Router.new().get("/", hello).handler(), (line) => print "log: ${line}")
+    server.limits.readTimeoutMillis = 600000
+    server.limits.idleTimeoutMillis = 600000
+    server.limits.writeTimeoutMillis = 600000
     let running = task.spawn(server.serve(listener, http.Shutdown.new()))
-    let c = http.Client.new(n, task.BlockingPool.new(1))
+    let mut c = http.Client.new(n, task.BlockingPool.new(1))
+    c.timeoutMillis = 600000
     let mut session = (await c.open("http://127.0.0.1:${port}"))?
     let first = (await session.send(http.Request.new("GET", "/")))?
     print "before cancel: ${first.status} ${first.text()?}"

@@ -4175,7 +4175,7 @@ val rt_std_id(int op, int n, val* a) {
 #endif
     case OP_ARENA_CREATE: {
         arena* ar = (arena_fault_injected() || fault_tick()) ? NULL : calloc(1, sizeof *ar);
-        if (!ar) return alloc_error();
+        if (!ar) return oom_error();
         ar->a.alloc = arena_alloc;
         ar->a.free = arena_free;
         return ok(opaque("AllocatorHandle", ar));

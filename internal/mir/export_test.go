@@ -11,3 +11,5 @@ func (p *Program) OpDescMismatch(f *Func, in Inst) string { return p.opDescMisma
 func (p *Program) IsrInertArgs(f *Func, in Inst, g *Func) []bool {
 	return p.isrInertArgs(f, in, g, nil)
 }
+
+func ImmortalLocals(f *Func, r *sem.Result) map[LocalID]bool { return immortalLocals(f, r) }

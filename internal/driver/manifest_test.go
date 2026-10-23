@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -72,7 +71,6 @@ func staticFixtures(t *testing.T, kind, mode string) []testtool.Fixture {
 }
 
 // runFixtures classifies each run fixture's engine mode from the VM's static verdict; the slice is complete once the parallel subtests finish.
-// A native-only refusal reports a bare message with no location, so panics get a regex stderr matcher.
 func runFixtures(t *testing.T) []testtool.Fixture {
 	t.Helper()
 	files, err := filepath.Glob("../../testdata/run/*.txtar")
@@ -108,11 +106,14 @@ func runFixtures(t *testing.T) []testtool.Fixture {
 			default:
 				t.Fatalf("vm: %v", c.refusal)
 			}
-			if c.wantExit == 2 && c.wantErr != "" {
-				fx.Stderr = &testtool.StderrMatch{Type: "regex", Pattern: regexp.QuoteMeta(strings.TrimSpace(c.wantErr))}
+			if strings.TrimSpace(c.wantErr) == "panic: stack overflow" {
+				fx.Stderr = &testtool.StderrMatch{Type: "regex", Pattern: stackOverflowStderr}
 			}
 			out[i] = fx
 		})
 	}
 	return out
 }
+
+// The VM names the overflowing function after the message and native does not.
+const stackOverflowStderr = `\Apanic: stack overflow( in \S+)?\n?\z`

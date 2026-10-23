@@ -5,6 +5,6 @@ let t = s[lo..1]
 print "unreachable ${t}"
 -- stdout --
 -- stderr --
-slice out of range
+panic: slice out of range
 -- exit --
 2

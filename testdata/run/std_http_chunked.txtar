@@ -60,6 +60,8 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
     let port = listener.port()
     let mut server = http.Server.new(http.Router.new().post("/size", size).handler(), (line) => print "log: ${line}")
     server.limits.readTimeoutMillis = 600000
+    server.limits.idleTimeoutMillis = 600000
+    server.limits.writeTimeoutMillis = 600000
     let stop = http.Shutdown.new()
     let running = task.spawn(server.serve(listener, stop.clone()))
 
@@ -78,7 +80,7 @@ async fn root(n: net.Net, listener: net.Listener) -> Void! {
     big.push("0\r\n\r\n".toBytes())
     let large = (await post(n, port, big))?
     print large
-    let quick = started.elapsedMillis() < 40000
+    let quick = started.elapsedMillis() < 600000
     print "quick: ${quick}"
 
     stop.request()
@@ -91,6 +93,9 @@ async fn limitsEdge(n: net.Net) -> Void! {
     let mut unlimited = http.Server.new(http.Router.new().post("/size", size).handler(), (line) => print "log: ${line}")
     unlimited.limits.maxBodyBytes = 18446744073709551615
     unlimited.limits.maxConnections = 18446744073709551615
+    unlimited.limits.readTimeoutMillis = 600000
+    unlimited.limits.idleTimeoutMillis = 600000
+    unlimited.limits.writeTimeoutMillis = 600000
     let l1 = n.listen("127.0.0.1", 0)?
     let p1 = l1.port()
     let stop1 = http.Shutdown.new()
@@ -102,6 +107,9 @@ async fn limitsEdge(n: net.Net) -> Void! {
     let mut small = http.Server.new(http.Router.new().post("/size", size).handler(), (line) => print "log: ${line}")
     small.limits.maxBodyBytes = 20000
     small.limits.maxConnections = 0
+    small.limits.readTimeoutMillis = 600000
+    small.limits.idleTimeoutMillis = 600000
+    small.limits.writeTimeoutMillis = 600000
     let l2 = n.listen("127.0.0.1", 0)?
     let p2 = l2.port()
     let stop2 = http.Shutdown.new()

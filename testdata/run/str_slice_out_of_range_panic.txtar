@@ -6,6 +6,6 @@ print "unreachable ${t}"
 -- stdout --
 len=5
 -- stderr --
-slice out of range
+panic: slice out of range
 -- exit --
 2
