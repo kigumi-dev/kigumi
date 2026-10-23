@@ -36,7 +36,8 @@ func (c *checker) merge(nodes []syntax.NodeID, types []TypeID) TypeID {
 		steps, ok := c.coerceSteps(nodes[i], t, best)
 		if !ok || !optionOnly(steps) {
 			if !c.closureMismatch(nodes[i], cBranchTypeMismatch, best, t) {
-				c.errAt(nodes[i], cBranchTypeMismatch, defaultOf(best), defaultOf(t))
+				a, b := c.r.mismatchLabels(defaultOf(best), defaultOf(t))
+				c.errAt(nodes[i], cBranchTypeMismatch, a, b)
 			}
 			continue
 		}

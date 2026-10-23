@@ -287,28 +287,58 @@ error[E2198]: `self` is exclusively borrowed and cannot be used here
    |
 15 |     let s = &mut self.a
    |             ^^^^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `self` is borrowed here
+  --> lib/disjoint.kg:14:13
+   |
+14 |     let r = &mut self.a
+   |             ^^^^^^^^^^^
 
 error[E2198]: `self` is borrowed and cannot be mutated here
   --> lib/disjoint.kg:22:13
    |
 22 |     let r = &mut self.a
    |             ^^^^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `self` is borrowed here
+  --> lib/disjoint.kg:21:13
+   |
+21 |     let s = &self.a
+   |             ^^^^^^^
 
 error[E2198]: `self` is exclusively borrowed and cannot be used here
   --> lib/disjoint.kg:33:13
    |
 33 |     let s = &mut self.pair
    |             ^^^^^^^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `self` is borrowed here
+  --> lib/disjoint.kg:32:13
+   |
+32 |     let r = &mut self.pair.a
+   |             ^^^^^^^^^^^^^^^^
 
 error[E2198]: `self` is borrowed and cannot be mutated here
   --> lib/disjoint.kg:40:13
    |
 40 |     let r = &mut self.pair.a
    |             ^^^^^^^^^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `self` is borrowed here
+  --> lib/disjoint.kg:39:13
+   |
+39 |     let s = &self.pair
+   |             ^^^^^^^^^^
 
 error[E2198]: `self` is exclusively borrowed and cannot be used here
   --> lib/disjoint.kg:65:5
    |
 65 |     self.items.push(Array.empty[u8]())
    |     ^^^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `self` is borrowed here
+  --> lib/disjoint.kg:64:13
+   |
+64 |     let r = &mut self.items[0]
+   |             ^^^^^^^^^^^^^^^^^
 

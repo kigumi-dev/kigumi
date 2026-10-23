@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 
@@ -14,6 +15,8 @@ type Panic struct {
 	Site mir.Site
 	// Sandbox marks a budget abort, never contained as a worker's own fault.
 	Sandbox bool
+	// Limit names the exceeded budget ("step limit of N steps"); empty for any other panic.
+	Limit string
 }
 
 func (p *Panic) Error() string { return "panic: " + p.Msg }
@@ -36,7 +39,9 @@ type Options struct {
 	// bytes, so a comptime block or build program fails
 	// with a diagnostic instead of hanging or exhausting RAM. MemoryLimit
 	// of 0 leaves allocation unbounded (EvalBuild does not set it).
-	Sandbox     bool
+	Sandbox bool
+	// SandboxWhat names the sandboxed code in a limit message; "" reads "comptime block".
+	SandboxWhat string
 	StepLimit   int
 	DepthLimit  int
 	MemoryLimit int64
@@ -172,8 +177,9 @@ func (m *Machine) abort(msg string) {
 	m.throw(&Panic{Msg: msg, Site: m.abortSite()})
 }
 
-func (m *Machine) sandboxAbort(msg string) {
-	m.throw(&Panic{Msg: msg, Site: m.abortSite(), Sandbox: true})
+func (m *Machine) limitAbort(limit string) {
+	what := cmp.Or(m.opts.SandboxWhat, "comptime block")
+	m.throw(&Panic{Msg: what + " exceeded its " + limit, Site: m.abortSite(), Sandbox: true, Limit: limit})
 }
 
 func (m *Machine) abortSite() mir.Site {

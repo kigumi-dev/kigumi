@@ -69,6 +69,12 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |
 16 |     buf = bytes()
    |     ^^^
+   = help: end the borrow first or use a copy
+note: `buf` is borrowed here
+  --> main.kg:15:19
+   |
+15 |     let v = views(&buf)[0]
+   |                   ^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> main.kg:16:5
@@ -81,6 +87,12 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |
 24 |     buf = bytes()
    |     ^^^
+   = help: end the borrow first or use a copy
+note: `buf` is borrowed here
+  --> main.kg:23:13
+   |
+23 |     let o = vs.get(0)
+   |             ^^^^^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> main.kg:24:5
@@ -93,6 +105,12 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |
 35 |     buf = bytes()
    |     ^^^
+   = help: end the borrow first or use a copy
+note: `buf` is borrowed here
+  --> main.kg:34:14
+   |
+34 |     let ws = vs.map((v) => View { data: v.data, off: 1 })
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> main.kg:35:5
@@ -105,6 +123,12 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |
 43 |     buf = bytes()
    |     ^^^
+   = help: end the borrow first or use a copy
+note: `buf` is borrowed here
+  --> main.kg:41:32
+   |
+41 |     let d = Doc { views: views(&buf) }
+   |                                ^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> main.kg:43:5
@@ -117,6 +141,12 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |
 53 |     buf = bytes()
    |     ^^^
+   = help: end the borrow first or use a copy
+note: `buf` is borrowed here
+  --> main.kg:52:14
+   |
+52 |     let ws = vs.map((v) => keep)
+   |              ^^^^^^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> main.kg:53:5

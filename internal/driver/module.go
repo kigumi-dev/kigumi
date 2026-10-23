@@ -66,9 +66,10 @@ type Module struct {
 	target       Target
 	// deny, ceiling and artifactName carry an artifact's declared
 	// availability (LoadOptions) through to semModule (check.go).
-	deny         []string
-	ceiling      string
-	artifactName string
+	deny          []string
+	ceiling       string
+	artifactName  string
+	nestedModules []string
 	// explicitZig is $KIGUMI_ZIG (LoadOptions.ZigPath), read only by
 	// internal/cli; ResolveZig tries it before PATH.
 	explicitZig string
@@ -120,7 +121,7 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 		return nil, err
 	}
 	m.Name, m.Manifest = mf.Name, mf
-	skip := func(dir string) bool { return skipDir(opts.Compiler, dir, opts.StdRoot) || IsModuleRoot(dir) }
+	skip := m.skipper(root, opts)
 	if err := m.indexTree(root, m.Name, false, opts.Test, skip); err != nil {
 		return nil, err
 	}

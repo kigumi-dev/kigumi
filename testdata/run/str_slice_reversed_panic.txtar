@@ -1,0 +1,10 @@
+-- src --
+let s = "hello"
+let lo = s.len() - 1
+let t = s[lo..1]
+print "unreachable ${t}"
+-- stdout --
+-- stderr --
+slice out of range
+-- exit --
+2

@@ -1,0 +1,10 @@
+-- src --
+let o: Option[Int] = None
+print "before"
+print "${o.unwrap()}"
+-- stdout --
+before
+-- stderr --
+unwrap on None
+-- exit --
+2

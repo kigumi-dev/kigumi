@@ -14,17 +14,20 @@ const buildStepLimit = 2_000_000_000
 // EvalBuild runs configure(b) in the sandbox and returns the graph it
 // recorded. A failed Result or a panic becomes the error.
 func EvalBuild(prog *mir.Program, configure sem.EntityID, req buildgraph.Request, roots buildgraph.Roots) (*buildgraph.Graph, error) {
-	m := newMachine(prog, Options{Sandbox: true, StepLimit: buildStepLimit, DepthLimit: comptimeDepthLimit}, io.Discard, io.Discard)
+	m := newMachine(prog, Options{Sandbox: true, SandboxWhat: "build program", StepLimit: buildStepLimit, DepthLimit: comptimeDepthLimit}, io.Discard, io.Discard)
 	g := &buildgraph.Graph{Request: req, Artifacts: []*buildgraph.Artifact{}, Roots: roots.Roots, Host: roots.Host}
 	m.sh.graph = g
 	var failure string
-	cerr := m.catch(func() {
+	cerr := m.catchAtUser(func() {
 		res := deref(m.call(prog.ByEnt[configure], []*obj{mkOpaque("build.Builder", g)}))
 		if res != nil && res.k == kVariant && res.ent == m.variantOf(m.r.Types.ResultEnt(), "Err") {
 			failure = m.display(m.errorMessage(res.fields[0]))
 		}
 	})
 	if p, ok := cerr.(*Panic); ok {
+		if site := p.Site.Text(); site != "" {
+			return nil, fmt.Errorf("%s at %s", p.Msg, site)
+		}
 		return nil, fmt.Errorf("%s", p.Msg)
 	}
 	if cerr != nil {

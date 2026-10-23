@@ -32,7 +32,7 @@ func (c *checker) synthBlock(n syntax.NodeID, want TypeID) TypeID {
 			break
 		}
 		t := c.stmt(s)
-		if c.vars.resolve(t) == TyNever {
+		if c.vars.resolve(t) == TyNever || c.divergingLet(s) {
 			dead = true
 			result = TyNever
 		}
@@ -180,4 +180,12 @@ func (c *checker) branchValue(body syntax.NodeID) syntax.NodeID {
 		body = stmts.At(stmts.Len() - 1).AsExprStmt().Expr().ID()
 	}
 	return body
+}
+
+func (c *checker) divergingLet(s syntax.NodeID) bool {
+	if c.t.Kind(s) != syntax.LetStmt {
+		return false
+	}
+	init := letStmt(c.t, s).Init
+	return init != 0 && c.vars.resolve(c.info.Types[init]) == TyNever
 }

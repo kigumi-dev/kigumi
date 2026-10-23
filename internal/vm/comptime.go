@@ -2,7 +2,6 @@ package vm
 
 import (
 	"fmt"
-	"io"
 	"math/big"
 	"strings"
 
@@ -42,21 +41,44 @@ func hostEffect(key string) bool {
 	return false
 }
 
+type ComptimeFailure struct {
+	Msg   string
+	Site  mir.Site
+	Limit string
+}
+
+func (e *ComptimeFailure) Error() string { return e.Msg }
+
 // EvalComptime runs one comptime block in the sandbox and returns the
-// literal it produced.
+// literal it produced; output the block printed is discarded.
 func EvalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, err error) {
+	lit, _, err = evalComptime(prog, cf)
+	return lit, err
+}
+
+func evalComptime(prog *mir.Program, cf *mir.ComptimeFunc) (lit sem.Literal, printed int, err error) {
 	if err := checkComptimeLiterals(prog, cf.Func); err != nil {
-		return lit, err
+		return lit, 0, err
 	}
-	m := newMachine(prog, Options{Sandbox: true, StepLimit: comptimeStepLimit, DepthLimit: comptimeDepthLimit, MemoryLimit: comptimeMemoryLimit}, io.Discard, io.Discard)
+	var out byteCounter
+	m := newMachine(prog, Options{Sandbox: true, StepLimit: comptimeStepLimit, DepthLimit: comptimeDepthLimit, MemoryLimit: comptimeMemoryLimit}, &out, &out)
 	var v *obj
-	if cerr := m.catch(func() { v = deref(m.call(cf.Func, nil)) }); cerr != nil {
+	cerr := m.catchAtUser(func() { v = deref(m.call(cf.Func, nil)) })
+	if cerr != nil {
 		if p, ok := cerr.(*Panic); ok {
-			return lit, fmt.Errorf("%s", p.Msg)
+			return lit, int(out), &ComptimeFailure{Msg: p.Msg, Site: p.Site, Limit: p.Limit}
 		}
-		return lit, cerr
+		return lit, int(out), cerr
 	}
-	return m.literalOf(v, cf.Type)
+	lit, err = m.literalOf(v, cf.Type)
+	return lit, int(out), err
+}
+
+type byteCounter int
+
+func (c *byteCounter) Write(p []byte) (int, error) {
+	*c += byteCounter(len(p))
+	return len(p), nil
 }
 
 func (m *Machine) literalOf(v *obj, t sem.TypeID) (sem.Literal, error) {
@@ -95,10 +117,12 @@ func (m *Machine) literalOf(v *obj, t sem.TypeID) (sem.Literal, error) {
 	return sem.Literal{}, fmt.Errorf("comptime value %s cannot be embedded as a literal", m.display(v))
 }
 
-// ComptimeError is a comptime block that failed to evaluate.
+// ComptimeError is a comptime block that failed to evaluate, or one that printed output nobody can see.
 type ComptimeError struct {
 	Site sem.ComptimeSite
 	Err  error
+	// Printed is the number of bytes a block that evaluated fine wrote to stdout or stderr.
+	Printed int
 }
 
 // FoldComptime evaluates every comptime block of the program, in the order
@@ -107,12 +131,48 @@ type ComptimeError struct {
 func FoldComptime(prog *mir.Program) []ComptimeError {
 	var errs []ComptimeError
 	for _, cf := range prog.Comptime {
-		lit, err := EvalComptime(prog, cf)
+		lit, printed, err := evalComptime(prog, cf)
 		if err != nil {
 			errs = append(errs, ComptimeError{Site: cf.Site, Err: err})
 			continue
 		}
+		if printed > 0 {
+			errs = append(errs, ComptimeError{Site: cf.Site, Printed: printed})
+		}
 		prog.Fold(cf, lit)
 	}
 	return errs
+}
+
+func (m *Machine) userSite(site mir.Site) mir.Site {
+	for i := len(m.frames) - 1; i >= 0; i-- {
+		fr := m.frames[i]
+		if fr.f == nil || fr.f.Ent != 0 && m.r.Packages[m.r.Entity(fr.f.Ent).Pkg].Std {
+			continue
+		}
+		if i == len(m.frames)-1 {
+			return site
+		}
+		if fr.blk < mir.BlockID(len(fr.f.Blocks)) && fr.pc < len(fr.f.Blocks[fr.blk].Insts) {
+			return m.p.SiteAt(fr.f, fr.f.Blocks[fr.blk].Insts[fr.pc].Node)
+		}
+		return mir.Site{}
+	}
+	return mir.Site{}
+}
+
+// catchAtUser moves a panic's site from std to the user line that led to it.
+func (m *Machine) catchAtUser(fn func()) error {
+	return m.catch(func() {
+		defer func() {
+			r := recover()
+			if p, ok := r.(*Panic); ok {
+				p.Site = m.userSite(p.Site)
+			}
+			if r != nil {
+				panic(r)
+			}
+		}()
+		fn()
+	})
 }

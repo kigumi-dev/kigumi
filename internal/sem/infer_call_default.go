@@ -3,6 +3,7 @@ package sem
 import (
 	"strconv"
 
+	"kigumi/internal/diag"
 	"kigumi/internal/syntax"
 )
 
@@ -52,8 +53,8 @@ func (c *checker) instantiateThunk(d syntax.NodeID, thunk EntityID, inst []TypeI
 		return
 	}
 	args := inst
-	if c.defaultRecv != 0 {
-		recvArgs := c.r.Types.Node(c.defaultRecv).Args
+	if c.deflt.recv != 0 {
+		recvArgs := c.r.Types.Node(c.deflt.recv).Args
 		if n := len(c.r.ownerParams(thunk)); n <= len(recvArgs) {
 			args = append(append([]TypeID(nil), recvArgs[:n]...), inst...)
 		}
@@ -65,7 +66,7 @@ func (c *checker) instantiateThunk(d syntax.NodeID, thunk EntityID, inst []TypeI
 	if len(inst) > 0 {
 		c.r.Instances[thunk] = append(c.r.Instances[thunk], Instance{Args: inst, File: c.f, Node: d, In: c.fn})
 	}
-	c.deferWitnesses(d, thunk, c.defaultRecv, inst)
+	c.deferWitnesses(d, thunk, c.deflt.recv, inst)
 	c.touched = append(c.touched, d)
 }
 
@@ -85,7 +86,9 @@ func (c *checker) synthDefaultArg(n syntax.NodeID) TypeID {
 	if !ok {
 		return ret
 	}
+	c.deflt.note = c.defaultTryNote(thunk, info)
 	out := c.tryPropagate(n, ret, val, e, false)
+	c.deflt.note = nil
 	if isGeneric {
 		if try := c.info.Calls[n]; try.Kind == CallTry && len(try.Inst) == 1 {
 			generic.Box = try.Inst[0]
@@ -93,4 +96,16 @@ func (c *checker) synthDefaultArg(n syntax.NodeID) TypeID {
 		c.info.Calls[n] = generic
 	}
 	return out
+}
+
+func (c *checker) defaultTryNote(thunk EntityID, info *FnInfo) *diag.Diagnostic {
+	f := c.r.Entities[thunk].File
+	span := c.r.Files[f].Tree.Span(info.Body)
+	return &diag.Diagnostic{Severity: diag.Note, Loc: c.r.loc(f, span), Msg: "the default of `" + info.DefaultParam + "` uses `?`, so a call that omits it propagates the error to its caller"}
+}
+
+// defaultFrame is the receiver type and the `?` note of the call whose defaults are being checked.
+type defaultFrame struct {
+	recv TypeID
+	note *diag.Diagnostic
 }

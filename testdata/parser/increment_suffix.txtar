@@ -1,0 +1,58 @@
+-- src --
+fn main() {
+    let mut a = 1
+    a++
+    a--
+    let b = a ++ 2
+    let c = (a++)
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: main
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      Let
+        flags: mut
+        pattern: PatBind a
+        init: IntLit 1
+      ExprStmt
+        Ident a
+      ExprStmt
+        Ident a
+      Let
+        pattern: PatBind b
+        init: Binary ++
+          Ident a
+          IntLit 2
+      Let
+        pattern: PatBind c
+        init: Paren
+          Ident a
+-- diagnostics --
+error[E2199]: `++` is not an operator in Kigumi
+ --> increment_suffix.txtar:3:6
+  |
+3 |     a++
+  |      ^^
+  = help: write `a += 1`
+
+error[E2199]: `--` is not an operator in Kigumi
+ --> increment_suffix.txtar:4:6
+  |
+4 |     a--
+  |      ^^
+  = help: write `a -= 1`
+
+error[E2199]: `++` is not an operator in Kigumi
+ --> increment_suffix.txtar:6:15
+  |
+6 |     let c = (a++)
+  |               ^^
+  = help: write `a += 1`
+

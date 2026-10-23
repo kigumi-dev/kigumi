@@ -144,7 +144,7 @@ func (c *checker) ctorPattern(p syntax.NodeID, scrutinee TypeID, seen map[string
 	moves := false
 	for i, s := range subs {
 		pt := TyPoison
-		if i < len(vi.Payload) {
+		if i < len(vi.Payload) && scrutinee != TyPoison {
 			pt = tt.Subst(vi.Payload[i], subst)
 		}
 		if c.patternInner(s, pt, false, seen).Moves {

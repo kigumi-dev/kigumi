@@ -171,6 +171,7 @@ func (r *Result) evalConst(f FileID, n syntax.NodeID) (constValue, bool) {
 		r.errAt(f, n, cComptimeInitUntyped)
 		return constValue{}, false
 	}
+	r.markImportsUsed(f, node)
 	return fail("this expression")
 }
 

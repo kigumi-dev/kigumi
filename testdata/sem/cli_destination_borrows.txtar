@@ -54,18 +54,31 @@ error[E2198]: `n` is exclusively borrowed and cannot be used here
   |
 5 |     p.flag("n", &mut n, help: "${n}")
   |                                  ^
+  = help: end the borrow first or use a copy
+note: `n` is borrowed here
+ --> main.kg:5:17
+  |
+5 |     p.flag("n", &mut n, help: "${n}")
+  |                 ^^^^^^
 
 error[E2198]: `n` is exclusively borrowed and cannot be used here
   --> main.kg:31:17
    |
 31 |     p.flag("n", &mut n)
    |                 ^^^^^^
+   = help: end the borrow first or use a copy
+note: `n` is borrowed here
+  --> main.kg:30:13
+   |
+30 |     let r = &mut n
+   |             ^^^^^^
 
 error[E2197]: `p` was moved; it cannot be used again
   --> main.kg:46:5
    |
 46 |     p.flag("n", &mut n)
    |     ^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `p` is moved here
   --> main.kg:45:20
    |

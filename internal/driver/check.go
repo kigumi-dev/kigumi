@@ -132,6 +132,7 @@ func (m *Module) semModuleOf(keep func(path string) bool) (*sem.Module, error) {
 	mod.Deny = m.deny
 	mod.LayerCeiling = m.ceiling
 	mod.ArtifactName = m.artifactName
+	mod.NestedModules = m.nestedModules
 	if m.Entry == "" {
 		m.Entry = m.defaultEntry()
 	}

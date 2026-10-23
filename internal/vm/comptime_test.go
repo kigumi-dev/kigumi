@@ -32,7 +32,7 @@ func evalOneComptime(t *testing.T, src string) (sem.Literal, error) {
 // the sandbox blocks host effects, and the step budget bounds CPU.
 func TestComptimeInfiniteLoopFailsInstead(t *testing.T) {
 	_, err := evalOneComptime(t, "let x = comptime {\n    let mut i = 0\n    for true {\n        i = i + 1\n    }\n    i\n}\nprint \"${x}\"\n")
-	if err == nil || !strings.Contains(err.Error(), "too long") {
+	if err == nil || !strings.Contains(err.Error(), "step limit") {
 		t.Fatalf("err = %v, want a step-budget diagnostic", err)
 	}
 }
@@ -41,7 +41,7 @@ func TestComptimeInfiniteLoopFailsInstead(t *testing.T) {
 // stack overflow.
 func TestComptimeDeepRecursionFailsInstead(t *testing.T) {
 	_, err := evalOneComptime(t, "fn rec(n: Int) -> Int { if n <= 0 { 0 } else { 1 + rec(n - 1) } }\nlet n = comptime { rec(2000000) }\nprint \"n ${n}\"\n")
-	if err == nil || !strings.Contains(err.Error(), "too deep") {
+	if err == nil || !strings.Contains(err.Error(), "call depth limit") {
 		t.Fatalf("err = %v, want a recursion-depth diagnostic", err)
 	}
 }
@@ -51,7 +51,7 @@ func TestComptimeDeepRecursionFailsInstead(t *testing.T) {
 // step budget above, and this loop is short on steps but grows without bound.
 func TestComptimeMemoryLimitFailsInstead(t *testing.T) {
 	_, err := evalOneComptime(t, "let x = comptime {\n    let mut s = \"x\"\n    for _ in 0..40 {\n        s = \"${s}${s}\"\n    }\n    s\n}\nprint \"${x}\"\n")
-	if err == nil || !strings.Contains(err.Error(), "too much memory") {
+	if err == nil || !strings.Contains(err.Error(), "memory limit") {
 		t.Fatalf("err = %v, want a memory-budget diagnostic", err)
 	}
 }
@@ -60,7 +60,7 @@ func TestComptimeMemoryLimitFailsInstead(t *testing.T) {
 // the budget must still see it before the next doubling allocates.
 func TestComptimeStringRepeatFailsInstead(t *testing.T) {
 	_, err := evalOneComptime(t, "let x = comptime {\n    \"a\".repeat(1000000000000)\n}\nprint \"${x}\"\n")
-	if err == nil || !strings.Contains(err.Error(), "too much memory") {
+	if err == nil || !strings.Contains(err.Error(), "memory limit") {
 		t.Fatalf("err = %v, want a memory-budget diagnostic", err)
 	}
 }
@@ -93,7 +93,7 @@ func TestComptimeMemoryLimitIgnoresRetainedPassThrough(t *testing.T) {
 // growth.
 func TestComptimeMemoryLimitCatchesArrayPushGrowth(t *testing.T) {
 	_, err := evalOneComptime(t, "let x = comptime {\n    let mut a = Array.empty[Int]()\n    for i in 0..9000000 {\n        a.push(i)\n    }\n    a.len()\n}\nprint \"${x}\"\n")
-	if err == nil || !strings.Contains(err.Error(), "too much memory") {
+	if err == nil || !strings.Contains(err.Error(), "memory limit") {
 		t.Fatalf("err = %v, want a memory-budget diagnostic", err)
 	}
 }
@@ -137,7 +137,7 @@ func nestedCopySource(depth int) string {
 // the outermost value's shallow size.
 func TestComptimeMemoryLimitCatchesNestedStructuralCopy(t *testing.T) {
 	_, err := evalOneComptime(t, nestedCopySource(8))
-	if err == nil || !strings.Contains(err.Error(), "too much memory") {
+	if err == nil || !strings.Contains(err.Error(), "memory limit") {
 		t.Fatalf("err = %v, want a memory-budget diagnostic", err)
 	}
 }
@@ -159,7 +159,7 @@ func TestComptimeMemoryLimitAllowsSmallNestedStructuralCopy(t *testing.T) {
 // allocation.
 func TestComptimeMemoryLimitCatchesSliceGrowth(t *testing.T) {
 	_, err := evalOneComptime(t, "let x = comptime {\n    let mut big = Array.empty[Int]()\n    for i in 0..300000 {\n        big.push(i)\n    }\n    let mut store = Array.empty[Array[Int]]()\n    for _ in 0..40 {\n        let piece = big[0..300000]\n        store.push(piece)\n    }\n    store.len()\n}\nprint \"${x}\"\n")
-	if err == nil || !strings.Contains(err.Error(), "too much memory") {
+	if err == nil || !strings.Contains(err.Error(), "memory limit") {
 		t.Fatalf("err = %v, want a memory-budget diagnostic", err)
 	}
 }

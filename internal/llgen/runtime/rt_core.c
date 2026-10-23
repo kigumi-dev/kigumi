@@ -978,7 +978,8 @@ val rt_index(val base, val idx, const char* site) {
         int64_t lo = idx->u.rec.fields[0]->u.i, hi = idx->u.rec.fields[1]->u.i;
         if (idx->u.rec.fields[2]->u.b) hi++;
         if (base->kind == K_STR || base->kind == K_BYTES) {
-            if (lo < 0 || hi > base->u.s.len || lo > hi || (base->kind == K_STR && (!boundary(base->u.s.data, base->u.s.len, lo) || !boundary(base->u.s.data, base->u.s.len, hi)))) rt_panic("slice is not on character boundaries");
+            if (lo < 0 || hi > base->u.s.len || lo > hi) rt_panic("slice out of range");
+            if (base->kind == K_STR && (!boundary(base->u.s.data, base->u.s.len, lo) || !boundary(base->u.s.data, base->u.s.len, hi))) rt_panic("slice is not on character boundaries");
             val r = strdup_val(base->u.s.data + lo, hi - lo);
             r->kind = base->kind;
             return r;
@@ -1405,9 +1406,27 @@ static int is_tuple_name(const char* name) {
         if (*c < '0' || *c > '9') return 0;
     return 1;
 }
+// `Map { k: v, ... }` in insertion order; the hash index is not part of what a map is.
+static void display_map(buf* b, val v) {
+    val keys = deref(v->u.rec.fields[0]), vals = deref(v->u.rec.fields[1]);
+    bputs(b, "Map {");
+    for (int64_t i = 0; i < keys->u.arr.len; i++) {
+        if (i) bputs(b, ",");
+        bputs(b, " ");
+        display_into(b, keys->u.arr.items[i], 0);
+        bputs(b, ": ");
+        display_into(b, vals->u.arr.items[i], 0);
+    }
+    if (keys->u.arr.len > 0) bputs(b, " ");
+    bputs(b, "}");
+}
 // `P { x: 1, y: 2 }`, or `(1, 2)` for a tuple; hashing (canon) keeps the bare `P { 1, 2 }` form.
 static void display_record(buf* b, val v, int canon) {
     const rt_type* t = v->u.rec.type;
+    if (!canon && v->u.rec.n == 5 && strcmp(t->name, "std/map.Map") == 0) {
+        display_map(b, v);
+        return;
+    }
     const char* name = short_name(t->name);
     int named = !canon && t->fields && t->nfields == v->u.rec.n;
     if (named && is_tuple_name(name)) {

@@ -620,24 +620,28 @@ error[E2197]: `o` was moved; it cannot be used again
    |
 65 |     useO(o) //~ ERROR `o` was moved
    |          ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:72:10
    |
 72 |     useO(o) //~ ERROR `o` was moved
    |          ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:78:10
    |
 78 |     useO(o) //~ ERROR `o` was moved
    |          ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `r` was moved; it cannot be used again
   --> main.kg:84:10
    |
 84 |     useR(r) //~ ERROR `r` was moved
    |          ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
   --> main.kg:92:10
@@ -650,18 +654,21 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 100 |     let z = o //~ ERROR `o` was moved
     |             ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:108:10
     |
 108 |     o is None //~ ERROR `o` was moved
     |          ^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:116:13
     |
 116 |     let b = &o //~ ERROR `o` was moved
     |             ^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E1025]: `p.left` was moved out of `p`; using the whole value needs it back
    --> main.kg:121:10
@@ -770,12 +777,14 @@ error[E2197]: `w.left` was moved; it cannot be used again
     |
 358 |     let t = move w.left //~ ERROR `w.left` was moved
     |                  ^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `w.left` was moved; it cannot be used again
    --> main.kg:364:18
     |
 364 |     let t = move w.left //~ ERROR `w.left` was moved
     |                  ^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `w.left` is moved here
    --> main.kg:363:5
     |
@@ -787,12 +796,14 @@ error[E2197]: `w.left` was moved; it cannot be used again
     |
 370 |     let t = move w.left //~ ERROR `w.left` was moved
     |                  ^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `w.left` was moved; it cannot be used again
    --> main.kg:375:18
     |
 375 |     let t = move w.left //~ ERROR `w.left` was moved
     |                  ^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E1025]: `w.o` was moved out of `w`; using the whole value needs it back
    --> main.kg:396:13
@@ -853,6 +864,7 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 478 |     eatWhole(o) //~ ERROR `o` was moved
     |              ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
    --> main.kg:476:9
     |
@@ -882,6 +894,7 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 509 |         y -> eatWhole(y) //~ ERROR `o` was moved
     |         ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
    --> main.kg:506:9
     |

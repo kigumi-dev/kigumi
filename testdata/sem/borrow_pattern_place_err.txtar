@@ -135,12 +135,24 @@ error[E2198]: `self` is borrowed and cannot be mutated here
    |
 32 |             self = C
    |             ^^^^
+   = help: end the borrow first or use a copy
+note: `self` is borrowed here
+  --> main.kg:31:11
+   |
+31 |         A(r) -> {
+   |           ^
 
 error[E2198]: `e` is borrowed and cannot be mutated here
   --> main.kg:47:13
    |
 47 |             e = C
    |             ^
+   = help: end the borrow first or use a copy
+note: `e` is borrowed here
+  --> main.kg:46:11
+   |
+46 |         A(r) -> {
+   |           ^
 
 error[move-while-borrowed]: `e` is borrowed and cannot be moved or dropped here
   --> main.kg:47:13
@@ -153,6 +165,12 @@ error[E2198]: `o` is exclusively borrowed and cannot be used here
    |
 58 |             o = None
    |             ^
+   = help: end the borrow first or use a copy
+note: `o` is borrowed here
+  --> main.kg:57:14
+   |
+57 |         Some(a) -> {
+   |              ^
 
 error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
   --> main.kg:58:13
@@ -165,6 +183,12 @@ error[E2198]: `t` is borrowed and cannot be mutated here
    |
 68 |     t = (Array.of(3), Array.of(4))
    |     ^
+   = help: end the borrow first or use a copy
+note: `t` is borrowed here
+  --> main.kg:67:13
+   |
+67 |     let (a, b) = &t
+   |             ^
 
 error[move-while-borrowed]: `t` is borrowed and cannot be moved or dropped here
   --> main.kg:68:5
@@ -177,24 +201,48 @@ error[E2198]: `w` is borrowed and cannot be mutated here
    |
 75 |     w.items = Array.of(2)
    |     ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `w` is borrowed here
+  --> main.kg:74:13
+   |
+74 |     let W { items, tag } = &w
+   |             ^^^^^
 
 error[E2198]: `w` is borrowed and cannot be mutated here
   --> main.kg:82:5
    |
 82 |     w.clear()
    |     ^
+   = help: end the borrow first or use a copy
+note: `w` is borrowed here
+  --> main.kg:81:13
+   |
+81 |     let W { items, tag } = &w
+   |             ^^^^^
 
 error[E2198]: `w` is exclusively borrowed and cannot be used here
   --> main.kg:89:13
    |
 89 |     let n = w.items.len()
    |             ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `w` is borrowed here
+  --> main.kg:88:13
+   |
+88 |     let W { items, tag } = &mut w
+   |             ^^^^^
 
 error[E2198]: `o` is borrowed and cannot be mutated here
   --> main.kg:97:9
    |
 97 |         o = None
    |         ^
+   = help: end the borrow first or use a copy
+note: `o` is borrowed here
+  --> main.kg:96:19
+   |
+96 |     if &o is Some(s) {
+   |                   ^
 
 error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
   --> main.kg:97:9
@@ -207,6 +255,12 @@ error[E2198]: `o` is borrowed and cannot be mutated here
     |
 108 |     o = None
     |     ^
+    = help: end the borrow first or use a copy
+note: `o` is borrowed here
+   --> main.kg:105:14
+    |
+105 |     let Some(s) = &o else {
+    |              ^
 
 error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
    --> main.kg:108:5
@@ -219,16 +273,34 @@ error[E2198]: `o` is borrowed and cannot be mutated here
     |
 116 |             touch(&mut o)
     |                        ^
+    = help: end the borrow first or use a copy
+note: `o` is borrowed here
+   --> main.kg:115:14
+    |
+115 |         Some(a) -> {
+    |              ^
 
 error[E2198]: `o` is borrowed and cannot be mutated here
    --> main.kg:116:19
     |
 116 |             touch(&mut o)
     |                   ^^^^^^
+    = help: end the borrow first or use a copy
+note: `o` is borrowed here
+   --> main.kg:115:14
+    |
+115 |         Some(a) -> {
+    |              ^
 
 error[E2198]: `out` is borrowed and cannot be mutated here
    --> main.kg:126:5
     |
 126 |     out.inner = Inner { r: R { id: 3 } }
     |     ^^^^^^^^^
+    = help: end the borrow first or use a copy
+note: `out` is borrowed here
+   --> main.kg:125:17
+    |
+125 |     let Inner { r } = &out.inner
+    |                 ^
 

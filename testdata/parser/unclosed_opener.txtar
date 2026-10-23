@@ -1,0 +1,64 @@
+-- src --
+fn f() {
+    let a = foo(1, 2
+}
+fn g() {
+    let b = (1 + 2
+    let c = 3
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: f
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      Let
+        pattern: PatBind a
+        init: Call
+          Ident foo
+          List
+            IntLit 1
+            IntLit 2
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: g
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      Let
+        pattern: PatBind b
+        init: Paren
+          Binary +
+            IntLit 1
+            IntLit 2
+-- diagnostics --
+error[E2199]: expected ), found `}`
+ --> unclosed_opener.txtar:3:1
+  |
+3 | }
+  | ^
+note: `(` is opened here
+ --> unclosed_opener.txtar:2:16
+  |
+2 |     let a = foo(1, 2
+  |                ^
+
+error[E2199]: expected ), found `let`
+ --> unclosed_opener.txtar:6:5
+  |
+6 |     let c = 3
+  |     ^^^
+note: `(` is opened here
+ --> unclosed_opener.txtar:5:13
+  |
+5 |     let b = (1 + 2
+  |             ^
+

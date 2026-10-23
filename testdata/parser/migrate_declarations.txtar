@@ -1,0 +1,37 @@
+-- src --
+import "std/json"
+struct P {
+    x: Int
+}
+enum Color {
+    Red,
+    Green,
+}
+let n = 1
+-- expect --
+File
+  Let
+    pattern: PatBind n
+    init: IntLit 1
+-- diagnostics --
+error[E2199]: an import path is not a string
+ --> migrate_declarations.txtar:1:8
+  |
+1 | import "std/json"
+  |        ^^^^^^^^^^
+  = help: write `import json from std/json`
+
+error[E2199]: `struct` does not exist
+ --> migrate_declarations.txtar:2:1
+  |
+2 | struct P {
+  | ^^^^^^
+  = help: write `type Name = { field Type }`; fields are `name Type` without a colon
+
+error[E2199]: `enum` does not exist
+ --> migrate_declarations.txtar:5:1
+  |
+5 | enum Color {
+  | ^^^^
+  = help: write `type Name = A | B(T)`; variants are separated by `|`
+

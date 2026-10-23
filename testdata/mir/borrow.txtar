@@ -118,11 +118,23 @@ error[E2198]: `b` is borrowed and cannot be mutated here
    |
 15 |     b.push()
    |     ^
+   = help: end the borrow first or use a copy
+note: `b` is borrowed here
+  --> lib/bw.kg:14:13
+   |
+14 |     let r = &b
+   |             ^^
 
 error[E2198]: `b` is exclusively borrowed and cannot be used here
   --> lib/bw.kg:21:13
    |
 21 |     let k = b.len()
+   |             ^^^^^^
+   = help: end the borrow first or use a copy
+note: `b` is borrowed here
+  --> lib/bw.kg:20:13
+   |
+20 |     let m = &mut b
    |             ^^^^^^
 
 error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own

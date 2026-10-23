@@ -55,13 +55,14 @@ error[E2197]: `out` was moved; it cannot be used again
   |
 7 |     out.push(1)
   |     ^^^
+  = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `out` is moved here
  --> lib/reborrow.kg:6:20
   |
 6 |     let f = addOne(out)
   |                    ^^^
 
-error[borrow-escape]: a borrow cannot be captured by a future
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
  --> lib/reborrow.kg:6:13
   |
 6 |     let f = addOne(out)

@@ -89,4 +89,5 @@ error[E2198]: `r` is captured by a closure passed to this call and cannot be use
    |
 25 |     twoArgs(() => r.touch(), if flag { sink(r); true } else { false })
    |                                             ^
+   = help: end the borrow first or use a copy
 

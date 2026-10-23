@@ -25,12 +25,10 @@ error[E100]: undefined name `a`
   |
 2 |     if !(x is Some(a)) { return a } //~ ERROR undefined name `a`
   |                                 ^
-  = help: did you mean `x`?
 
 error[E100]: undefined name `a`
  --> main/main.kg:7:37
   |
 7 |     if !(x is Some(a)) { 0 } else { a } //~ ERROR undefined name `a`
   |                                     ^
-  = help: did you mean `x`?
 

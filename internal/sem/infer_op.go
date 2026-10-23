@@ -161,7 +161,7 @@ func (c *checker) ordering(n, rhs syntax.NodeID, l, r TypeID, op token.Kind) Typ
 	}
 	l = c.vars.settleLiterals(l)
 	if !c.r.hasOrd(l) {
-		c.errAt(n, cOrdUnsupported, op.String(), l)
+		c.errAtHelp(n, c.orderingHelp(l), cOrdUnsupported, op.String(), l)
 		return TyPoison
 	}
 	from := len(*c.edges)
@@ -171,4 +171,11 @@ func (c *checker) ordering(n, rhs syntax.NodeID, l, r TypeID, op token.Kind) Typ
 		return TyBool
 	}
 	return c.builtinOp(n, op, TyBool)
+}
+
+func (c *checker) orderingHelp(t TypeID) string {
+	if n := c.r.Types.Node(t); n.Kind == KNamed && c.r.Types.isTupleEnt(n.Ent) {
+		return "tuples have no ordering; compare the elements one by one, or use a record with `@impl(Ord)`"
+	}
+	return ""
 }

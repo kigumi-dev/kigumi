@@ -252,6 +252,7 @@ error[E2197]: `f` was moved; it cannot be used again
    |
 13 |     let b = await f
    |                   ^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `f` is moved here
   --> lib/own_await.kg:12:19
    |
@@ -263,6 +264,7 @@ error[E2197]: `f` was moved; it cannot be used again
    |
 21 |     let b = await f
    |                   ^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `f` is moved here
   --> lib/own_await.kg:20:19
    |
@@ -274,6 +276,7 @@ error[E2197]: `b.fut` was moved; it cannot be used again
    |
 31 |     let y = await b.fut
    |                   ^^^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `b.fut` is moved here
   --> lib/own_await.kg:30:13
    |
@@ -285,6 +288,7 @@ error[E2197]: `b.fut` was moved; it cannot be used again
    |
 31 |     let y = await b.fut
    |             ^^^^^^^^^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `b.fut` is moved here
   --> lib/own_await.kg:30:13
    |
@@ -296,15 +300,17 @@ error[E2197]: `f` was moved; it cannot be used again
    |
 37 |     let b = await f
    |                   ^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `f` is moved here
   --> lib/own_await.kg:36:19
    |
 36 |     let a = await f
    |                   ^
 
-error[move-join-mismatch]: `f` is moved on some paths but not others
+error[E2197]: `f` was moved in an earlier iteration of the loop; it cannot be moved again
   --> lib/own_await.kg:45:31
    |
 45 |         total = total + await f
    |                               ^
+   = help: create the value inside the loop, or leave the loop right after moving it
 

@@ -98,6 +98,7 @@ error[E2197]: `w.a` was moved; it cannot be used again
    |
 33 |     keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |               ^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `w.a` is moved here
   --> main.kg:32:5
    |
@@ -109,6 +110,7 @@ error[E2197]: `w.a` was moved; it cannot be used again
    |
 33 |     keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |     ^^^^^^^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `w.a` is moved here
   --> main.kg:32:5
    |
@@ -120,6 +122,7 @@ error[E2197]: `w.a` was moved; it cannot be used again
    |
 40 |     say(w.a.peek()) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |         ^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `w.a` is moved here
   --> main.kg:39:5
    |
@@ -131,6 +134,7 @@ error[E2197]: `w.a` was moved; it cannot be used again
    |
 40 |     say(w.a.peek()) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |         ^^^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `w.a` is moved here
   --> main.kg:39:5
    |
@@ -142,6 +146,7 @@ error[E2197]: `w.a` was moved; it cannot be used again
    |
 47 |         keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |                   ^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `w.a` is moved here
   --> main.kg:47:9
    |
@@ -153,12 +158,14 @@ error[E2197]: `w.a` was moved; it cannot be used again
    |
 47 |         keep.push(w.a) //~ ERROR `w.a` was moved //~ ERROR `w.a` was moved
    |         ^^^^^^^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:63:13
    |
 63 |             Some(x) -> x.close() //~ ERROR `o` was moved
    |             ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[move-join-mismatch]: `o` is moved on some paths but not others
   --> main.kg:75:13

@@ -276,7 +276,7 @@ print "total ${spin()}"
 `
 	const limit = 2_000
 	_, errOut, code := buildAndRun(t, src, vm.Options{Sandbox: true, StepLimit: limit, DepthLimit: 1000})
-	if !strings.Contains(errOut, "comptime block took too long") {
+	if !strings.Contains(errOut, "comptime block exceeded its step limit") {
 		t.Fatalf("stderr = %q, want the step-budget diagnostic", errOut)
 	}
 	if code != 2 {
@@ -321,7 +321,7 @@ print "total ${ex.runToCompletion(root())}"
 	if err != nil {
 		t.Fatalf("vm: %v", err)
 	}
-	if !strings.Contains(errOut.String(), "comptime block took too long") || code != 2 {
+	if !strings.Contains(errOut.String(), "comptime block exceeded its step limit") || code != 2 {
 		t.Fatalf("stderr = %q, exit = %d, want the step-budget diagnostic and exit 2", errOut.String(), code)
 	}
 	if steps != limit {

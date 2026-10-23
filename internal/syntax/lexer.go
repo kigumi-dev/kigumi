@@ -1,6 +1,7 @@
 package syntax
 
 import (
+	"bytes"
 	"unicode"
 	"unicode/utf8"
 
@@ -23,6 +24,8 @@ type lexer struct {
 
 // Lex tokenizes the whole source. Comments and newlines are kept as tokens so
 // the tree stays lossless; runs of newlines collapse into one token.
+var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
+
 func Lex(src []byte, bag *diag.Bag) []token.Token {
 	toks := []token.Token{{Kind: token.BOF}}
 	return append(toks, lexRange(src, 0, len(src), bag, nil)...)
@@ -30,6 +33,11 @@ func Lex(src []byte, bag *diag.Bag) []token.Token {
 
 func lexRange(src []byte, start, end int, bag *diag.Bag, hints map[int]interpInfo) []token.Token {
 	lx := &lexer{src: src, pos: start, end: end, diags: bag, hints: hints}
+	if start == 0 && bytes.HasPrefix(src, utf8BOM) {
+		bag.Add(syntaxError(token.Span{Start: 0, End: token.Pos(len(utf8BOM))}, "the file starts with a UTF-8 byte order mark").
+			WithHelp("save the file as UTF-8 without a BOM"))
+		lx.pos = len(utf8BOM)
+	}
 	for lx.pos < lx.end {
 		lx.step()
 	}

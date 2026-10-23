@@ -1,0 +1,63 @@
+-- src --
+let n = 1
+print n + 1
+print n
+eprint n == 2
+print (n + 1)
+let double = (x: Int) => x * 2
+-- expect --
+File
+  Let
+    pattern: PatBind n
+    init: IntLit 1
+  ExprStmt
+    Binary +
+      WsCall
+        Ident print
+        List
+          Ident n
+      IntLit 1
+  ExprStmt
+    WsCall
+      Ident print
+      List
+        Ident n
+  ExprStmt
+    Binary ==
+      WsCall
+        Ident eprint
+        List
+          Ident n
+      IntLit 2
+  ExprStmt
+    Call
+      Ident print
+      List
+        Binary +
+          Ident n
+          IntLit 1
+  Let
+    pattern: PatBind double
+    init: Lambda
+      List
+        Param x
+          type: TypePath
+            Path Int
+      Binary *
+        Ident x
+        IntLit 2
+-- diagnostics --
+error[E2199]: `print` takes only the one argument written right after it, so this operator would apply to the result of `print`
+ --> print_operator.txtar:2:9
+  |
+2 | print n + 1
+  |         ^
+  = help: wrap the whole argument in parentheses, as in `print (n + 1)`
+
+error[E2199]: `eprint` takes only the one argument written right after it, so this operator would apply to the result of `eprint`
+ --> print_operator.txtar:4:10
+  |
+4 | eprint n == 2
+  |          ^^
+  = help: wrap the whole argument in parentheses, as in `eprint (n + 1)`
+

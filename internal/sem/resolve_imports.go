@@ -28,7 +28,7 @@ func (r *Result) resolveImport(f FileID, d syntax.NodeID) {
 	artifactOffender, artifactBlocked := r.artifactAvailability(from, path)
 	switch {
 	case !ok:
-		r.errAt(f, s.Path, cUnresolvedPackage, path)
+		r.packageNotFound(f, t, s, path)
 		return
 	case path == "std/prelude":
 		r.errAt(f, s.Path, cImportPreludeExplicit)

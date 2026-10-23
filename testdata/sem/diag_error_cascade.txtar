@@ -1,0 +1,57 @@
+-- src --
+type R = { pub a Int }
+fn f(o: Option[R]) -> Int {
+    let a = o?.nosuch.foo //~ ERROR `R` has no field or method `nosuch`
+    let b = a || 0
+    1
+}
+fn g(o: Ordering) -> Int {
+    match o {
+        Less -> 1 //~ ERROR `Less` is a variant of `Ordering` from another package
+        Equal -> 3 //~ ERROR `Equal` is a variant of `Ordering` from another package
+        Greater -> 2 //~ ERROR `Greater` is a variant of `Ordering` from another package
+    }
+}
+fn h() {
+    debug(&"abc".nosuch()) //~ WARNING unused value of type `String` //~ ERROR `String` has no field or method `nosuch`
+}
+-- expect --
+error[E510]: `R` has no field or method `nosuch`
+ --> main/main.kg:3:13
+  |
+3 |     let a = o?.nosuch.foo //~ ERROR `R` has no field or method `nosuch`
+  |             ^^^^^^^^^
+
+error[E128]: `Less` is a variant of `Ordering` from another package
+ --> main/main.kg:9:9
+  |
+9 |         Less -> 1 //~ ERROR `Less` is a variant of `Ordering` from another package
+  |         ^^^^
+  = help: write `Ordering.Less`
+
+error[E128]: `Equal` is a variant of `Ordering` from another package
+  --> main/main.kg:10:9
+   |
+10 |         Equal -> 3 //~ ERROR `Equal` is a variant of `Ordering` from another package
+   |         ^^^^^
+   = help: write `Ordering.Equal`
+
+error[E128]: `Greater` is a variant of `Ordering` from another package
+  --> main/main.kg:11:9
+   |
+11 |         Greater -> 2 //~ ERROR `Greater` is a variant of `Ordering` from another package
+   |         ^^^^^^^
+   = help: write `Ordering.Greater`
+
+warning[W400]: unused value of type `String`
+  --> main/main.kg:15:5
+   |
+15 |     debug(&"abc".nosuch()) //~ WARNING unused value of type `String` //~ ERROR `String` has no field or method `nosuch`
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E510]: `String` has no field or method `nosuch`
+  --> main/main.kg:15:12
+   |
+15 |     debug(&"abc".nosuch()) //~ WARNING unused value of type `String` //~ ERROR `String` has no field or method `nosuch`
+   |            ^^^^^^^^^^^^
+

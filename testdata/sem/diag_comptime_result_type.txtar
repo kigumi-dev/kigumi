@@ -1,0 +1,26 @@
+-- src --
+import math from std/math
+const X: Float = math.sqrt(4.0) //~ ERROR this expression is not a compile-time constant
+fn use() {
+    let a = comptime { Array.of(1, 2) } //~ ERROR a comptime block must produce
+    let b: Int = comptime { 1.5 } //~ ERROR float literal `1.5` cannot be `Int`
+}
+-- expect --
+error[E238]: this expression is not a compile-time constant
+ --> main/main.kg:2:18
+  |
+2 | const X: Float = math.sqrt(4.0) //~ ERROR this expression is not a compile-time constant
+  |                  ^^^^^^^^^^^^^
+
+error[E918]: a comptime block must produce a number, Bool, Char, String or Bytes, or as a const or static initializer a plain record of those, not `Array[Int]`
+ --> main/main.kg:4:13
+  |
+4 |     let a = comptime { Array.of(1, 2) } //~ ERROR a comptime block must produce
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E403]: float literal `1.5` cannot be `Int`
+ --> main/main.kg:5:29
+  |
+5 |     let b: Int = comptime { 1.5 } //~ ERROR float literal `1.5` cannot be `Int`
+  |                             ^^^
+

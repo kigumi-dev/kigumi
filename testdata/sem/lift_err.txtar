@@ -64,4 +64,5 @@ error[E400]: expected `String`, found `Void`
    |
 26 | fn tail() -> String { //~ ERROR expected `String`, found `Void`
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: not every path ends in a value; finish the block with the value to produce, or `return` it on each path
 

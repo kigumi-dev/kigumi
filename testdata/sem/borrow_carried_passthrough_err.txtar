@@ -123,6 +123,12 @@ error[E2198]: `x` is exclusively borrowed and cannot be used here
    |
 44 |     x.id = 5
    |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:42:5
+   |
+42 |     fs.push(bump(&mut x))
+   |     ^^^^^^^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `x` is borrowed and cannot be moved or dropped here
   --> main.kg:76:13
@@ -135,18 +141,36 @@ error[E2198]: `x` is exclusively borrowed and cannot be used here
    |
 84 |     x.id = 5
    |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:83:23
+   |
+83 |     let w = wrap(bump(&mut x))
+   |                       ^^^^^^
 
 error[E2198]: `x` is exclusively borrowed and cannot be used here
   --> main.kg:92:5
    |
 92 |     x.id = 5
    |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:91:25
+   |
+91 |     let e = either(bump(&mut x))
+   |                         ^^^^^^
 
 error[E2198]: `x` is exclusively borrowed and cannot be used here
    --> main.kg:103:5
     |
 103 |     x.id = 5
     |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:102:21
+    |
+102 |     let t = go(bump(&mut x))
+    |                     ^^^^^^
 
 error[borrow-escape]: a borrow cannot be returned
    --> main.kg:109:15

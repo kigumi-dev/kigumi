@@ -80,7 +80,7 @@ func TestCheckForEditorNeverEvaluatesComptime(t *testing.T) {
 		if name == "alloc claim" && !strings.Contains(res.Render(), "E1570") {
 			t.Fatalf("the case must reach the lowering half of the editor check:\n%s", res.Render())
 		}
-		if strings.Contains(res.Render(), "comptime:") {
+		if strings.Contains(res.Render(), "E2240") || strings.Contains(res.Render(), "E2241") {
 			t.Fatalf("%s: comptime ran in the editor path:\n%s", name, res.Render())
 		}
 		if st := m.Stats(); st.Check != 0 || st.MIR != 0 || st.Emit != 0 {
@@ -88,7 +88,7 @@ func TestCheckForEditorNeverEvaluatesComptime(t *testing.T) {
 		}
 	}
 	a, err := driver.Analyze(editorModule(t, comptimeFailsSrc))
-	if err != nil || !strings.Contains(a.Res.Render(), "comptime: index out of range") {
+	if err != nil || !strings.Contains(a.Res.Render(), "E2240") {
 		t.Fatalf("a build must still evaluate it: %v\n%s", err, a.Res.Render())
 	}
 }

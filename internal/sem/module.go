@@ -22,8 +22,9 @@ type Package struct {
 }
 
 type Module struct {
-	Packages []*Package
-	Target   Target
+	Packages      []*Package
+	Target        Target
+	NestedModules []string
 	// Sources numbers files across the module so diagnostics can point into any of them.
 	Sources *token.SourceStore
 	// derived marks the second pass, which carries the generated codecs.

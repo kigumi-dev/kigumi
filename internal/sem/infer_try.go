@@ -75,9 +75,9 @@ func (c *checker) tryPropagate(n syntax.NodeID, got, val, e TypeID, rebuilt bool
 	_, want, retOK := tt.IsResult(c.retType)
 	if !retOK {
 		if c.lambdaRetUnknown() {
-			c.errAt(n, cTryInLambdaUnknownRet)
+			c.errTry(n, cTryInLambdaUnknownRet)
 		} else if c.retType != TyPoison {
-			c.errAt(n, cTryOutsideResult, c.retType)
+			c.errTry(n, cTryOutsideResult, c.retType)
 		}
 		return val
 	}
@@ -96,7 +96,7 @@ func (c *checker) tryPropagate(n syntax.NodeID, got, val, e TypeID, rebuilt bool
 		c.edge(EffectEdge{Kind: EdgeAlloc, Type: want, From: e, Node: n})
 		return val
 	}
-	c.errAt(n, cTryErrorMismatch, e, want)
+	c.errTry(n, cTryErrorMismatch, e, want)
 	return val
 }
 
@@ -104,4 +104,15 @@ func (c *checker) tryPropagate(n syntax.NodeID, got, val, e TypeID, rebuilt bool
 func (c *checker) namedOperand(n syntax.NodeID) bool {
 	_, ok := c.identPlaceEnt(n)
 	return ok
+}
+
+func (c *checker) errTry(n syntax.NodeID, code Code, args ...any) {
+	d, ok := c.r.diagAt(c.f, n, code, args...)
+	if !ok {
+		return
+	}
+	if c.deflt.note != nil {
+		d.Notes = append(d.Notes, *c.deflt.note)
+	}
+	c.r.emitDiag(c.f, d)
 }

@@ -1,6 +1,10 @@
 package vm
 
-import "kigumi/internal/mir"
+import (
+	"fmt"
+
+	"kigumi/internal/mir"
+)
 
 // maxCallDepth bounds nested Kigumi calls outside a sandbox; Go's 1 GB
 // goroutine stack dies fatally near 2.5 million simple frames.
@@ -9,7 +13,7 @@ const maxCallDepth = 100_000
 func (m *Machine) checkDepth(f *mir.Func) {
 	if m.opts.Sandbox {
 		if m.depth > m.opts.DepthLimit {
-			m.sandboxAbort("comptime recursion too deep")
+			m.limitAbort(fmt.Sprintf("call depth limit of %d nested calls", m.opts.DepthLimit))
 		}
 		return
 	}

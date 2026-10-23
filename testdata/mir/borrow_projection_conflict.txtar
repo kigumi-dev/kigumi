@@ -129,10 +129,22 @@ error[E2198]: `h` is borrowed and cannot be mutated here
    |
 23 |         h.slot = None
    |         ^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> lib/conflict.kg:22:23
+   |
+22 |     if h.slot is Some(r) {
+   |                       ^
 
 error[E2198]: `o` is borrowed and cannot be mutated here
   --> lib/conflict.kg:31:5
    |
 31 |     o.inner = Full { slot: Res { label: "r" } }
    |     ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `o` is borrowed here
+  --> lib/conflict.kg:30:16
+   |
+30 |     let Full { slot } = o.inner
+   |                ^^^^
 

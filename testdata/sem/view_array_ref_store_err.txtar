@@ -85,6 +85,12 @@ error[E2198]: `a` is borrowed and cannot be mutated here
    |
 46 |     a = Array.of(9)
    |     ^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:43:17
+   |
+43 |     let mut o = Array.of(View { data: &a, off: 0 })
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
   --> main.kg:46:5

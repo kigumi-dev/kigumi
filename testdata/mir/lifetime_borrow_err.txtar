@@ -112,6 +112,12 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |
 13 |     buf = Bytes.zeros(8)
    |     ^^^
+   = help: end the borrow first or use a copy
+note: `buf` is borrowed here
+  --> lib/lt.kg:12:23
+   |
+12 |     let v = headBytes(&buf)
+   |                       ^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> lib/lt.kg:13:5
@@ -130,6 +136,12 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |
 36 |     buf = Bytes.zeros(8)
    |     ^^^
+   = help: end the borrow first or use a copy
+note: `buf` is borrowed here
+  --> lib/lt.kg:35:32
+   |
+35 |     let v = identity(headBytes(&buf))
+   |                                ^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> lib/lt.kg:36:5

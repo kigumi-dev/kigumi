@@ -29,10 +29,10 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	} else if info.Owner != 0 {
 		kind = CallAssoc
 	}
-	c.defaultRecv = recv
+	c.deflt.recv = recv
 	c.markAtomicPlace(fn, args)
 	ret, plan := c.checkArgs(n, name, sig, args, inst, want, info.Params, info.Body != 0, async)
-	c.defaultRecv = 0
+	c.deflt.recv = 0
 	c.taintRecvResult(n, ret, recvBase)
 	c.crossRecv(n, fn, recv, recvBase)
 	c.ffiCValueCheck(n, fn, inst, recv)

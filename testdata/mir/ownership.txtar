@@ -217,6 +217,7 @@ error[E2197]: `f` was moved; it cannot be used again
   |
 9 |     consume(f)?
   |             ^
+  = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `f` is moved here
  --> lib/own.kg:8:13
   |

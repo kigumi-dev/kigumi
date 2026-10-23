@@ -37,6 +37,16 @@ func (p *parser) stmt() NodeID {
 		return p.deferStmt()
 	case p.atIdent("errdefer") && p.errdeferAhead():
 		return p.oldErrdefer()
+	case p.atIdent("var") && p.peek(1) == token.Ident:
+		return p.varStmt()
+	case p.atIdent("while") && p.whileAhead():
+		return p.whileStmt()
+	case p.atIdent("elif") && p.lineHasBrace():
+		return p.elifStmt()
+	case p.at(token.KwFn) && p.peek(1) == token.Ident:
+		return p.nestedFn()
+	case p.atIdent("static") && p.staticDeclAhead():
+		return p.nestedStatic()
 	}
 	e := p.expr()
 	if e == 0 {
@@ -56,6 +66,10 @@ func (p *parser) letStmt() NodeID {
 	if p.eat(token.KwMut) {
 		flags |= FlagMut
 	}
+	return p.letBinding(tok, flags)
+}
+
+func (p *parser) letBinding(tok, flags uint32) NodeID {
 	pat := p.pattern()
 	var typ NodeID
 	if p.eat(token.Colon) {
@@ -70,54 +84,6 @@ func (p *parser) letStmt() NodeID {
 		elseBlock = p.block()
 	}
 	return p.tree.addRec(LetStmt, tok, []uint32{flags, uint32(pat), uint32(typ), uint32(init), uint32(elseBlock)})
-}
-
-func (p *parser) ifExpr() NodeID {
-	if !p.enterDepth() {
-		return 0
-	}
-	defer p.exitDepth()
-	tok := p.expect(token.KwIf)
-	if p.at(token.KwLet) {
-		return p.ifLet(tok)
-	}
-	cond := p.condition()
-	then := p.block()
-	return p.tree.addRec(IfExpr, tok, []uint32{uint32(cond), uint32(then), uint32(p.elseClause())})
-}
-
-// ifLet parses `if let pattern = expr; guard { ... }`: the pattern
-// may be refutable, taking the then-branch on a match and the else-branch
-// otherwise.
-func (p *parser) ifLet(tok uint32) NodeID {
-	p.expect(token.KwLet)
-	var flags uint32
-	if p.eat(token.KwMut) {
-		flags |= FlagMut
-	}
-	pat := p.pattern()
-	p.expect(token.Assign)
-	p.skipNewlinesAfterAssign()
-	init := p.condition()
-	var guard NodeID
-	if p.eat(token.Semicolon) {
-		guard = p.condition()
-	}
-	then := p.block()
-	return p.tree.addRec(IfLetExpr, tok, []uint32{flags, uint32(pat), uint32(init), uint32(guard), uint32(then), uint32(p.elseClause())})
-}
-
-func (p *parser) elseClause() NodeID {
-	if p.at(token.Newline) && p.peekPastNewlines() == token.KwElse {
-		p.skipNewlines()
-	}
-	if !p.eat(token.KwElse) {
-		return 0
-	}
-	if p.at(token.KwIf) {
-		return p.ifExpr()
-	}
-	return p.block()
 }
 
 // condition parses an expression where a bare record literal is not allowed.
@@ -142,6 +108,7 @@ func (p *parser) matchExpr() NodeID {
 		p.expect(token.Arrow)
 		p.skipNewlines()
 		body := p.expr()
+		p.armAssignment()
 		arms = append(arms, p.tree.addRec(MatchArm, p.tree.nodes[pat].Tok, []uint32{uint32(pat), uint32(guard), uint32(body)}))
 	})
 	return p.node2(MatchExpr, tok, scrutinee, p.tree.addList(List, tok, arms))
@@ -153,6 +120,9 @@ func (p *parser) forExpr() NodeID {
 	tok := p.expect(token.KwFor)
 	if p.at(token.LBrace) {
 		return p.tree.addRec(ForExpr, tok, []uint32{0, 0, uint32(p.block())})
+	}
+	if p.cStyleForAhead() {
+		return p.cStyleFor(tok)
 	}
 	if p.hasTopLevelIn() {
 		pat := p.pattern()

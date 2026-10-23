@@ -1,0 +1,21 @@
+-- src --
+fn use() {
+    let a = null //~ ERROR undefined name `null`
+    let b = NULL //~ ERROR undefined name `NULL`
+    let c: Int? = None
+}
+-- expect --
+error[E100]: undefined name `null`
+ --> main/main.kg:2:13
+  |
+2 |     let a = null //~ ERROR undefined name `null`
+  |             ^^^^
+  = help: there is no null; the absent value is `None` of an `Option`, as in `let x: Int? = None`
+
+error[E100]: undefined name `NULL`
+ --> main/main.kg:3:13
+  |
+3 |     let b = NULL //~ ERROR undefined name `NULL`
+  |             ^^^^
+  = help: there is no null; the absent value is `None` of an `Option`, as in `let x: Int? = None`
+

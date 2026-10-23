@@ -88,6 +88,9 @@ func (c *checker) unsatisfied(arg TypeID, con Constraint) string {
 			if ok {
 				return ""
 			}
+			if why := c.markerWhy(arg, con.Type); why != "" {
+				return why
+			}
 			return "it cannot be derived"
 		}
 		res := c.r.conforms(arg, con.Type, c.pkg)
@@ -156,4 +159,19 @@ func (c *checker) constraintText(con Constraint) string {
 		return "FnOnce[" + c.r.TypeString(con.Type) + "]"
 	}
 	return c.r.TypeString(con.Type)
+}
+
+func (c *checker) markerWhy(arg, iface TypeID) string {
+	tt := c.r.Types
+	if tt.Kind(arg) != KNamed {
+		return ""
+	}
+	proto := c.r.Entities[tt.Node(iface).Ent].Name
+	if set, ok := c.r.typeDecl(tt.Node(arg).Ent).Members[deriveMethods[proto]]; proto != "Ord" && !(ok && len(c.r.Overloads[set].Members) > 0) {
+		return ""
+	}
+	if res := c.r.conforms(arg, iface, c.pkg); !res.ok {
+		return res.missing
+	}
+	return ""
 }

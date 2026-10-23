@@ -409,6 +409,7 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 142 |     h.close() //~ ERROR `h` was moved
     |     ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:136:13
     |

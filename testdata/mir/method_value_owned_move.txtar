@@ -72,6 +72,7 @@ error[E2197]: `w` was moved; it cannot be used again
    |
 15 |     w.get(2) + f(1)
    |     ^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `w` is moved here
   --> lib/mv.kg:14:13
    |
@@ -83,6 +84,7 @@ error[E2197]: `f` was moved; it cannot be used again
    |
 21 |     f(1) + g(1)
    |     ^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `f` is moved here
   --> lib/mv.kg:20:13
    |

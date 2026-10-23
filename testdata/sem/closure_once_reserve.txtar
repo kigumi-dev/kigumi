@@ -27,7 +27,7 @@ fn take(h: Handle) {}
 fn madeInLoop() {
     let h = mkh(1)
     for i in 0..2 {
-        let k = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
+        let k = () => { h.close() } //~ ERROR `h` was moved in an earlier iteration of the loop; it cannot be moved again
         k()
     }
 }
@@ -35,7 +35,7 @@ fn madeInLoop() {
 fn madeInLoopField() {
     let b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..2 {
-        let k = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+        let k = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
         k()
     }
 }
@@ -66,7 +66,7 @@ fn innerOnceMadeInLoop() {
     let h = mkh(1)
     let g = () => { h.close() }
     for i in 0..2 {
-        let k = () => { g() } //~ ERROR `g` is moved on some paths but not others
+        let k = () => { g() } //~ ERROR `g` was moved in an earlier iteration of the loop; it cannot be moved again
         k()
     }
 }
@@ -237,7 +237,7 @@ fn breakBeforeRefill() {
 fn continueBeforeRefillInLoop() {
     let mut h = mkh(1)
     for i in 0..3 {
-        let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
+        let f = () => { h.close() } //~ ERROR `h` was moved in an earlier iteration of the loop; it cannot be moved again
         f()
         if i == 1 {
             continue
@@ -249,7 +249,7 @@ fn continueBeforeRefillInLoop() {
 fn breakBeforeFieldRefill() {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..3 {
-        let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+        let f = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
         f()
         if i == 1 {
             break
@@ -261,7 +261,7 @@ fn breakBeforeFieldRefill() {
 fn continueBeforeFieldRefill() {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..3 {
-        let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+        let f = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
         f()
         if i == 1 {
             continue
@@ -337,7 +337,7 @@ fn refillAfterLoopThenCloseTwice() {
 fn shadowingLetIsNoRefill() {
     let mut b = Pack { inner: mkh(1), other: mkh(2) }
     for i in 0..2 {
-        let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+        let f = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
         f()
         let mut b = Pack { inner: mkh(3), other: mkh(4) }
         b.other = mkh(5)
@@ -346,23 +346,26 @@ fn shadowingLetIsNoRefill() {
     }
 }
 -- expect --
-error[move-join-mismatch]: `h` is moved on some paths but not others
+error[E2197]: `h` was moved in an earlier iteration of the loop; it cannot be moved again
   --> main.kg:27:17
    |
-27 |         let k = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
+27 |         let k = () => { h.close() } //~ ERROR `h` was moved in an earlier iteration of the loop; it cannot be moved again
    |                 ^^^^^^^^^^^^^^^^
+   = help: create the value inside the loop, or leave the loop right after moving it
 
-error[move-join-mismatch]: `b` is moved on some paths but not others
+error[E2197]: `b` was moved in an earlier iteration of the loop; it cannot be moved again
   --> main.kg:35:17
    |
-35 |         let k = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+35 |         let k = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
    |                 ^^^^^^^^^^^^^^^^^^^^^^
+   = help: create the value inside the loop, or leave the loop right after moving it
 
 error[E2197]: `h` was moved; it cannot be used again
   --> main.kg:44:5
    |
 44 |     h.close() //~ ERROR `h` was moved; it cannot be used again
    |     ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
   --> main.kg:42:13
    |
@@ -374,6 +377,7 @@ error[E2197]: `h` was moved; it cannot be used again
    |
 50 |     take(h) //~ ERROR `h` was moved; it cannot be used again
    |          ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
   --> main.kg:49:13
    |
@@ -385,23 +389,26 @@ error[E2197]: `h` was moved; it cannot be used again
    |
 57 |     let g = () => { h.close() } //~ ERROR `h` was moved; it cannot be used again
    |             ^^^^^^^^^^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
   --> main.kg:56:13
    |
 56 |     let f = () => { h.close() }
    |             ^^^^^^^^^^^^^^^^
 
-error[move-join-mismatch]: `g` is moved on some paths but not others
+error[E2197]: `g` was moved in an earlier iteration of the loop; it cannot be moved again
   --> main.kg:66:17
    |
-66 |         let k = () => { g() } //~ ERROR `g` is moved on some paths but not others
+66 |         let k = () => { g() } //~ ERROR `g` was moved in an earlier iteration of the loop; it cannot be moved again
    |                 ^^^^^^^^^^
+   = help: create the value inside the loop, or leave the loop right after moving it
 
 error[E2197]: `h` was moved; it cannot be used again
   --> main.kg:74:13
    |
 74 |     let n = h.peek() //~ ERROR `h` was moved; it cannot be used again
    |             ^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
   --> main.kg:73:13
    |
@@ -413,6 +420,7 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 106 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:101:13
     |
@@ -430,6 +438,7 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 124 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:121:17
     |
@@ -441,6 +450,7 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 134 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:130:17
     |
@@ -452,6 +462,7 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 142 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:139:17
     |
@@ -463,6 +474,7 @@ error[E2197]: `b` was moved; it cannot be used again
     |
 151 |     b.other.close() //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b` is moved here
    --> main.kg:148:17
     |
@@ -480,50 +492,56 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 180 |         h.close() //~ ERROR `h` was moved; it cannot be used again
     |         ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:176:13
     |
 176 |     let f = () => { h.close() }
     |             ^^^^^^^^^^^^^^^^
 
-error[move-join-mismatch]: `h` is moved on some paths but not others
+error[E2197]: `h` was moved in an earlier iteration of the loop; it cannot be moved again
    --> main.kg:237:17
     |
-237 |         let f = () => { h.close() } //~ ERROR `h` is moved on some paths but not others
+237 |         let f = () => { h.close() } //~ ERROR `h` was moved in an earlier iteration of the loop; it cannot be moved again
     |                 ^^^^^^^^^^^^^^^^
+    = help: create the value inside the loop, or leave the loop right after moving it
 
-error[move-join-mismatch]: `b` is moved on some paths but not others
+error[E2197]: `b` was moved in an earlier iteration of the loop; it cannot be moved again
    --> main.kg:249:17
     |
-249 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+249 |         let f = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
     |                 ^^^^^^^^^^^^^^^^^^^^^^
+    = help: create the value inside the loop, or leave the loop right after moving it
 
 error[E2197]: `b` was moved; it cannot be used again
    --> main.kg:254:9
     |
 254 |         b.other = mkh(10 + i) //~ ERROR `b` was moved; it cannot be used again
     |         ^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b` is moved here
    --> main.kg:249:17
     |
-249 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+249 |         let f = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
     |                 ^^^^^^^^^^^^^^^^^^^^^^
 
-error[move-join-mismatch]: `b` is moved on some paths but not others
+error[E2197]: `b` was moved in an earlier iteration of the loop; it cannot be moved again
    --> main.kg:261:17
     |
-261 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+261 |         let f = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
     |                 ^^^^^^^^^^^^^^^^^^^^^^
+    = help: create the value inside the loop, or leave the loop right after moving it
 
 error[E2197]: `b` was moved; it cannot be used again
    --> main.kg:266:9
     |
 266 |         b.other = mkh(10 + i) //~ ERROR `b` was moved; it cannot be used again
     |         ^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b` is moved here
    --> main.kg:261:17
     |
-261 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+261 |         let f = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
     |                 ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2197]: `h` was moved; it cannot be used again
@@ -531,6 +549,7 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 289 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:288:5
     |
@@ -560,6 +579,7 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 309 |         h.close() //~ ERROR `h` was moved; it cannot be used again
     |         ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:308:9
     |
@@ -571,6 +591,7 @@ error[E2197]: `b` was moved; it cannot be used again
     |
 317 |     b.other = mkh(3) //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b` is moved here
    --> main.kg:315:13
     |
@@ -582,6 +603,7 @@ error[E2197]: `b` was moved; it cannot be used again
     |
 318 |     b.other.close() //~ ERROR `b` was moved; it cannot be used again
     |     ^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b` is moved here
    --> main.kg:315:13
     |
@@ -593,6 +615,7 @@ error[E2197]: `b` was moved; it cannot be used again
     |
 319 |     take(b.other) //~ ERROR `b` was moved; it cannot be used again //~ ERROR `b.other` was moved; it cannot be used again
     |          ^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b` is moved here
    --> main.kg:315:13
     |
@@ -604,6 +627,7 @@ error[E2197]: `b.other` was moved; it cannot be used again
     |
 319 |     take(b.other) //~ ERROR `b` was moved; it cannot be used again //~ ERROR `b.other` was moved; it cannot be used again
     |     ^^^^^^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b.other` is moved here
    --> main.kg:318:5
     |
@@ -615,15 +639,17 @@ error[E2197]: `h` was moved; it cannot be used again
     |
 331 |     h.close() //~ ERROR `h` was moved; it cannot be used again
     |     ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `h` is moved here
    --> main.kg:330:5
     |
 330 |     h.close()
     |     ^
 
-error[move-join-mismatch]: `b` is moved on some paths but not others
+error[E2197]: `b` was moved in an earlier iteration of the loop; it cannot be moved again
    --> main.kg:337:17
     |
-337 |         let f = () => { b.other.close() } //~ ERROR `b` is moved on some paths but not others
+337 |         let f = () => { b.other.close() } //~ ERROR `b` was moved in an earlier iteration of the loop; it cannot be moved again
     |                 ^^^^^^^^^^^^^^^^^^^^^^
+    = help: create the value inside the loop, or leave the loop right after moving it
 

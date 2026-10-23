@@ -1491,6 +1491,17 @@
       ]
     },
     {
+      "id": "parser/bom_start",
+      "kind": "parser",
+      "path": "testdata/parser/bom_start.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "parser/byte_string_in_interpolation",
       "kind": "parser",
       "path": "testdata/parser/byte_string_in_interpolation.txtar",
@@ -1788,6 +1799,17 @@
       ]
     },
     {
+      "id": "parser/increment_suffix",
+      "kind": "parser",
+      "path": "testdata/parser/increment_suffix.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "parser/lambda_escaping_param",
       "kind": "parser",
       "path": "testdata/parser/lambda_escaping_param.txtar",
@@ -1865,6 +1887,39 @@
       ]
     },
     {
+      "id": "parser/match_arm_assign",
+      "kind": "parser",
+      "path": "testdata/parser/match_arm_assign.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/migrate_declarations",
+      "kind": "parser",
+      "path": "testdata/parser/migrate_declarations.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/migrate_statements",
+      "kind": "parser",
+      "path": "testdata/parser/migrate_statements.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "parser/named_args",
       "kind": "parser",
       "path": "testdata/parser/named_args.txtar",
@@ -1909,6 +1964,17 @@
       ]
     },
     {
+      "id": "parser/print_operator",
+      "kind": "parser",
+      "path": "testdata/parser/print_operator.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "parser/stmt_control",
       "kind": "parser",
       "path": "testdata/parser/stmt_control.txtar",
@@ -1934,6 +2000,17 @@
       "id": "parser/tuple",
       "kind": "parser",
       "path": "testdata/parser/tuple.txtar",
+      "mode": [
+        "parse"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "parser/unclosed_opener",
+      "kind": "parser",
+      "path": "testdata/parser/unclosed_opener.txtar",
       "mode": [
         "parse"
       ],
@@ -11353,6 +11430,23 @@
       ]
     },
     {
+      "id": "run/map_debug_insertion_order",
+      "kind": "run",
+      "path": "testdata/run/map_debug_insertion_order.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/map_remove_reinsert",
       "kind": "run",
       "path": "testdata/run/map_remove_reinsert.txtar",
@@ -14199,6 +14293,48 @@
       ]
     },
     {
+      "id": "run/str_slice_out_of_range_panic",
+      "kind": "run",
+      "path": "testdata/run/str_slice_out_of_range_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "slice out of range"
+      }
+    },
+    {
+      "id": "run/str_slice_reversed_panic",
+      "kind": "run",
+      "path": "testdata/run/str_slice_reversed_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "slice out of range"
+      }
+    },
+    {
       "id": "run/string_builder",
       "kind": "run",
       "path": "testdata/run/string_builder.txtar",
@@ -14673,6 +14809,48 @@
         "stderr",
         "exit"
       ]
+    },
+    {
+      "id": "run/unwrap_err_panic",
+      "kind": "run",
+      "path": "testdata/run/unwrap_err_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "unwrap on Err"
+      }
+    },
+    {
+      "id": "run/unwrap_none_panic",
+      "kind": "run",
+      "path": "testdata/run/unwrap_none_panic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "unwrap on None"
+      }
     },
     {
       "id": "run/usize_wide_values",
@@ -16803,6 +16981,149 @@
       "id": "sem/derive_json_omit_none_needs_option",
       "kind": "sem",
       "path": "testdata/sem/derive_json_omit_none_needs_option.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_borrow_escape_once",
+      "kind": "sem",
+      "path": "testdata/sem/diag_borrow_escape_once.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_comptime_result_type",
+      "kind": "sem",
+      "path": "testdata/sem/diag_comptime_result_type.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_default_arg_diag",
+      "kind": "sem",
+      "path": "testdata/sem/diag_default_arg_diag.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_display_help",
+      "kind": "sem",
+      "path": "testdata/sem/diag_display_help.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_error_cascade",
+      "kind": "sem",
+      "path": "testdata/sem/diag_error_cascade.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_extern_twice",
+      "kind": "sem",
+      "path": "testdata/sem/diag_extern_twice.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_missing_value_help",
+      "kind": "sem",
+      "path": "testdata/sem/diag_missing_value_help.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_null_name",
+      "kind": "sem",
+      "path": "testdata/sem/diag_null_name.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_ord_reason",
+      "kind": "sem",
+      "path": "testdata/sem/diag_ord_reason.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_qualified_types",
+      "kind": "sem",
+      "path": "testdata/sem/diag_qualified_types.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_short_name_suggest",
+      "kind": "sem",
+      "path": "testdata/sem/diag_short_name_suggest.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_string_dollar",
+      "kind": "sem",
+      "path": "testdata/sem/diag_string_dollar.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/diag_variant_type_args",
+      "kind": "sem",
+      "path": "testdata/sem/diag_variant_type_args.txtar",
       "mode": [
         "check"
       ],

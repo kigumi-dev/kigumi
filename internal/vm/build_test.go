@@ -113,3 +113,18 @@ func TestEvalBuildOutputNameRefusals(t *testing.T) {
 		}
 	}
 }
+
+func TestEvalBuildPanicNamesTheLineInBuildKg(t *testing.T) {
+	src := `import build from std/build
+
+fn configure(b: build.Builder) -> Void! {
+    let o: Option[Int] = None
+    let n = o.unwrap()
+    let w = b.write("a.txt", "x")?
+}
+`
+	_, err := evalBuild(t, src, nil)
+	if err == nil || !strings.Contains(err.Error(), "unwrap on None at build.kg:5") {
+		t.Fatalf("err = %v, want the panic at build.kg:5", err)
+	}
+}

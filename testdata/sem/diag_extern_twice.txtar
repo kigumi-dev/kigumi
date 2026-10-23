@@ -1,0 +1,17 @@
+-- src --
+extern(C) {
+    fn abs(x: i32) -> i32
+}
+extern(C) {
+    fn abs(x: i32) -> i32 //~ ERROR `abs` with parameters (i32) is already declared
+}
+fn use() -> i32 {
+    unsafe { abs(1) }
+}
+-- expect --
+error[E249]: `abs` with parameters (i32) is already declared
+ --> main/main.kg:5:5
+  |
+5 |     fn abs(x: i32) -> i32 //~ ERROR `abs` with parameters (i32) is already declared
+  |     ^^^^^^^^^^^^^^^^^^^^^
+

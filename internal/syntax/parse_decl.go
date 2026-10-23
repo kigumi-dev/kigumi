@@ -147,6 +147,10 @@ func (p *parser) decl() NodeID {
 		p.errorf("`impl` blocks do not exist; write `fn Type.name(self)` at top level and use `@impl(Interface)` on the type")
 		p.recover()
 		return 0
+	case p.atIdent("struct") && p.peek(1) == token.Ident:
+		return p.foreignTypeDecl("struct", "write `type Name = { field Type }`; fields are `name Type` without a colon")
+	case p.atIdent("enum") && p.peek(1) == token.Ident:
+		return p.foreignTypeDecl("enum", "write `type Name = A | B(T)`; variants are separated by `|`")
 	case p.at(token.KwFn):
 		return p.fnDecl(pf)
 	case p.at(token.KwType):

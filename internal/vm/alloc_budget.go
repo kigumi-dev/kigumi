@@ -1,6 +1,9 @@
 package vm
 
-import "runtime/debug"
+import (
+	"fmt"
+	"runtime/debug"
+)
 
 // objOverhead approximates one obj allocation's fixed bookkeeping cost.
 const objOverhead = 32
@@ -56,7 +59,7 @@ func (m *Machine) chargeMemory(v *obj) {
 	if live := m.sh.mem.Add(delta); live < 0 {
 		m.sh.mem.Store(0)
 	} else if delta > 0 && live > m.opts.MemoryLimit {
-		m.sandboxAbort("comptime block allocated too much memory")
+		m.limitAbort(m.memoryLimitText())
 	}
 }
 
@@ -66,7 +69,7 @@ func (m *Machine) reserveMemory(n uint64) {
 		return
 	}
 	if n > uint64(m.opts.MemoryLimit) || m.sh.mem.Load()+int64(n) > m.opts.MemoryLimit {
-		m.sandboxAbort("comptime block allocated too much memory")
+		m.limitAbort(m.memoryLimitText())
 	}
 }
 
@@ -113,11 +116,15 @@ func (m *Machine) reserveSteps() {
 		used := m.sh.steps.Load()
 		n := min(stepBatch, limit-used)
 		if n <= 0 {
-			m.sandboxAbort("comptime block took too long")
+			m.limitAbort(fmt.Sprintf("step limit of %d steps", m.opts.StepLimit))
 		}
 		if m.sh.steps.CompareAndSwap(used, used+n) {
 			m.stepsLeft = int(n) - 1
 			return
 		}
 	}
+}
+
+func (m *Machine) memoryLimitText() string {
+	return fmt.Sprintf("memory limit of %d MiB", m.opts.MemoryLimit>>20)
 }

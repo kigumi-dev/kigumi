@@ -12,6 +12,8 @@ func (c *checker) adoptTails(n syntax.NodeID, target TypeID) {
 	switch c.t.Kind(n) {
 	case syntax.Paren:
 		parts = []syntax.NodeID{c.t.View(n).AsParen().Inner().ID()}
+	case syntax.ComptimeExpr:
+		parts = []syntax.NodeID{c.t.View(n).AsComptime().Body().ID()}
 	case syntax.Block:
 		if tail := c.t.View(n).AsBlock().Tail(); tail.Valid() {
 			parts = []syntax.NodeID{tail.ID()}

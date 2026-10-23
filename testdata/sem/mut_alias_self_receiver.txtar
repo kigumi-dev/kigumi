@@ -91,24 +91,28 @@ error[E2198]: `c` is exclusively borrowed and cannot be used here
    |
 12 |     c.absorb(&mut c)
    |              ^^^^^^
+   = help: end the borrow first or use a copy
 
 error[E2198]: `c` is exclusively borrowed and cannot be used here
   --> main.kg:17:5
    |
 17 |     c.absorb(c)
    |     ^^^^^^^^^^
+   = help: end the borrow first or use a copy
 
 error[E2198]: `c` is exclusively borrowed and cannot be used here
   --> main.kg:23:14
    |
 23 |     r.absorb(&mut c)
    |              ^^^^^^
+   = help: end the borrow first or use a copy
 
 error[E2198]: `c` is exclusively borrowed and cannot be used here
   --> main.kg:38:12
    |
 38 |     c.peek(&mut c)
    |            ^^^^^^
+   = help: end the borrow first or use a copy
 
 error[E2198]: `c` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value
   --> main.kg:42:5
@@ -121,16 +125,19 @@ error[E2198]: `x` is exclusively borrowed and cannot be used here
    |
 69 |     x.absorb(&mut x)
    |              ^^^^^^
+   = help: end the borrow first or use a copy
 
 error[E2198]: `x` is exclusively borrowed and cannot be used here
   --> main.kg:74:5
    |
 74 |     x.absorb(x)
    |     ^^^^^^^^^^
+   = help: end the borrow first or use a copy
 
 error[E2198]: `x` is exclusively borrowed and cannot be used here
   --> main.kg:78:12
    |
 78 |     x.peek(&mut x)
    |            ^^^^^^
+   = help: end the borrow first or use a copy
 

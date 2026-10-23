@@ -27,6 +27,7 @@ func (r *Result) qualifiedConstPath(f FileID, n syntax.NodeID) (syntax.NodeID, b
 func (r *Result) evalQualifiedConst(f FileID, n syntax.NodeID) (constValue, bool) {
 	path, ok := r.qualifiedConstPath(f, n)
 	if !ok {
+		r.markImportsUsed(f, r.tree(f).View(n))
 		r.errAt(f, n, cConstNotComptime, "this expression")
 		return constValue{}, false
 	}

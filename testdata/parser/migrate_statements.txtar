@@ -1,0 +1,142 @@
+-- src --
+fn main() {
+    let mut i = 0
+    while i < 3 {
+        i += 1
+    }
+    var x = 1
+    if x == 1 {
+    } elif x == 2 {
+    } else {
+    }
+    fn inner() -> Int { 1 }
+    for (let mut j = 0; j < 3; j += 1) {
+    }
+    for k = 0; k < 3; k += 1 {
+    }
+    while i < 9 { i += 1 }
+    if i == 1 { } elif i == 2 { }
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: main
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      Let
+        flags: mut
+        pattern: PatBind i
+        init: IntLit 0
+      ExprStmt
+        For
+          head: Binary <
+            Ident i
+            IntLit 3
+          body: Block
+            Assign +=
+              Ident i
+              IntLit 1
+      Let
+        flags: mut
+        pattern: PatBind x
+        init: IntLit 1
+      ExprStmt
+        If
+          cond: Binary ==
+            Ident x
+            IntLit 1
+          then: Block
+          else: If
+            cond: Binary ==
+              Ident x
+              IntLit 2
+            then: Block
+            else: Block
+      ExprStmt
+        For
+          body: Block
+      ExprStmt
+        For
+          body: Block
+      ExprStmt
+        For
+          head: Binary <
+            Ident i
+            IntLit 9
+          body: Block
+            Assign +=
+              Ident i
+              IntLit 1
+      ExprStmt
+        If
+          cond: Binary ==
+            Ident i
+            IntLit 1
+          then: Block
+          else: If
+            cond: Binary ==
+              Ident i
+              IntLit 2
+            then: Block
+-- diagnostics --
+error[E2199]: `while` does not exist
+ --> migrate_statements.txtar:3:5
+  |
+3 |     while i < 3 {
+  |     ^^^^^
+  = help: write `for <condition> { ... }`, or `for { ... }` for a loop that never ends
+
+error[E2199]: `var` does not exist
+ --> migrate_statements.txtar:6:5
+  |
+6 |     var x = 1
+  |     ^^^
+  = help: write `let mut name = value`; bindings are immutable unless marked `mut`
+
+error[E2199]: `elif` does not exist
+ --> migrate_statements.txtar:8:7
+  |
+8 |     } elif x == 2 {
+  |       ^^^^
+  = help: write `else if`
+
+error[E2199]: a `fn` cannot be declared inside a function body
+  --> migrate_statements.txtar:11:5
+   |
+11 |     fn inner() -> Int { 1 }
+   |     ^^
+   = help: declare the function at the top level, or bind a closure: `let name = (x) => x + 1`
+
+error[E2199]: a C-style `for` does not exist
+  --> migrate_statements.txtar:12:5
+   |
+12 |     for (let mut j = 0; j < 3; j += 1) {
+   |     ^^^
+   = help: iterate a range with `for i in 0..n { ... }`, or loop on a condition with `for <condition> { ... }`
+
+error[E2199]: a C-style `for` does not exist
+  --> migrate_statements.txtar:14:5
+   |
+14 |     for k = 0; k < 3; k += 1 {
+   |     ^^^
+   = help: iterate a range with `for i in 0..n { ... }`, or loop on a condition with `for <condition> { ... }`
+
+error[E2199]: `while` does not exist
+  --> migrate_statements.txtar:16:5
+   |
+16 |     while i < 9 { i += 1 }
+   |     ^^^^^
+   = help: write `for <condition> { ... }`, or `for { ... }` for a loop that never ends
+
+error[E2199]: `elif` does not exist
+  --> migrate_statements.txtar:17:19
+   |
+17 |     if i == 1 { } elif i == 2 { }
+   |                   ^^^^
+   = help: write `else if`
+

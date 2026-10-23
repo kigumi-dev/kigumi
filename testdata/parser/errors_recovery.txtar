@@ -91,6 +91,11 @@ error[E2199]: expected ), found `let`
   |
 3 | let ok = 1
   | ^^^
+note: `(` is opened here
+ --> errors_recovery.txtar:2:10
+  |
+2 | fn broken( -> Void {}
+  |          ^
 
 error[E2199]: `static fn` does not exist; an associated function is `fn Type.name(...)` without `self`
  --> errors_recovery.txtar:4:1

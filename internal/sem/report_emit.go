@@ -104,7 +104,7 @@ func FillCode(c Code, args ...any) (msg, help string) {
 func Plural(n int) string { return plural(n) }
 
 func (r *Result) diagAt(f FileID, n syntax.NodeID, c Code, args ...any) (diag.Diagnostic, bool) {
-	if f == 0 || r.suppressed(args) {
+	if f == 0 || r.suppressed(args) || r.afterFailedImport(f, c, args) {
 		return diag.Diagnostic{}, false
 	}
 	return r.diagSpan(f, r.Files[f].span(n), c, args...)

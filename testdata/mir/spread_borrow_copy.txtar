@@ -53,12 +53,6 @@ fn lib.Handle.retag(%self: Handle, %tag: Int) -> Handle {
     drop(%tag)
     return %t6
 }
-error[E1025]: `..self` was moved out of `self`; using the whole value needs it back
-  --> lib/rec.kg:24:14
-   |
-24 |     Handle { ..self, tag: tag }
-   |              ^^^^^^
-
 error[move-from-borrow]: `self` is borrowed by this method and cannot be moved out; take `move self`
   --> lib/rec.kg:24:14
    |

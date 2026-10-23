@@ -62,7 +62,7 @@ pub pure noalloc fn Result[T, E].branch(move self) -> Branch[T, E]
 pub pure fn Option[T].unwrap(move self) -> T {
     match self {
         Some(v) -> v
-        None -> panic("unwrap on an empty value")
+        None -> panic("unwrap on None")
     }
 }
 
@@ -113,7 +113,7 @@ pub pure fn Option[T].take(mut self) -> T?
 pub pure fn Result[T, E].unwrap(move self) -> T {
     match self {
         Ok(v) -> v
-        Err(_) -> panic("unwrap on an empty value")
+        Err(_) -> panic("unwrap on Err")
     }
 }
 

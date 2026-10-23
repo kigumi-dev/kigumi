@@ -127,6 +127,12 @@ error[E2198]: `e` is borrowed and cannot be mutated here
    |
 38 |             e = C
    |             ^
+   = help: end the borrow first or use a copy
+note: `e` is borrowed here
+  --> main.kg:37:11
+   |
+37 |         A(x) -> {
+   |           ^
 
 error[move-while-borrowed]: `e` is borrowed and cannot be moved or dropped here
   --> main.kg:38:13
@@ -139,6 +145,12 @@ error[E2198]: `e` is borrowed and cannot be mutated here
    |
 49 |         e = C
    |         ^
+   = help: end the borrow first or use a copy
+note: `e` is borrowed here
+  --> main.kg:48:15
+   |
+48 |     if r is A(x) {
+   |               ^
 
 error[move-while-borrowed]: `e` is borrowed and cannot be moved or dropped here
   --> main.kg:49:9
@@ -151,18 +163,36 @@ error[E2198]: `w` is exclusively borrowed and cannot be used here
    |
 59 |             w.clear()
    |             ^
+   = help: end the borrow first or use a copy
+note: `w` is borrowed here
+  --> main.kg:58:13
+   |
+58 |         W { items, tag } -> {
+   |             ^^^^^
 
 error[E2198]: `c` is borrowed and cannot be mutated here
   --> main.kg:69:5
    |
 69 |     c.name = "z"
    |     ^^^^^^
+   = help: end the borrow first or use a copy
+note: `c` is borrowed here
+  --> main.kg:68:13
+   |
+68 |     let n = &r.name
+   |             ^^^^^^^
 
 error[E2198]: `o` is borrowed and cannot be mutated here
   --> main.kg:77:13
    |
 77 |             o = None
    |             ^
+   = help: end the borrow first or use a copy
+note: `o` is borrowed here
+  --> main.kg:76:23
+   |
+76 |         if &o is Some(s) {
+   |                       ^
 
 error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
   --> main.kg:77:13
@@ -175,16 +205,34 @@ error[E2198]: `v` is borrowed and cannot be mutated here
    |
 88 |         v.push("b")
    |         ^
+   = help: end the borrow first or use a copy
+note: `v` is borrowed here
+  --> main.kg:85:13
+   |
+85 |     let r = &v
+   |             ^^
 
 error[E2198]: `v` is borrowed and cannot be mutated here
    --> main.kg:102:9
     |
 102 |         v.push("b")
     |         ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:100:13
+    |
+100 |     let r = &v
+    |             ^^
 
 error[E2198]: `v` is borrowed and cannot be mutated here
    --> main.kg:115:9
     |
 115 |         v.push("b")
     |         ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:113:13
+    |
+113 |     let r = &v
+    |             ^^
 

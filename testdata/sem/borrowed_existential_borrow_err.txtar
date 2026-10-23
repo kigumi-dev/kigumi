@@ -111,12 +111,24 @@ error[E2198]: `box` is borrowed and cannot be mutated here
    |
 44 |     box.value = "b"
    |     ^^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `box` is borrowed here
+  --> main.kg:43:20
+   |
+43 |     let v: &Show = &box
+   |                    ^^^^
 
 error[E2198]: `num` is exclusively borrowed and cannot be used here
   --> main.kg:51:13
    |
 51 |     let n = num.n
    |             ^^^^^
+   = help: end the borrow first or use a copy
+note: `num` is borrowed here
+  --> main.kg:50:27
+   |
+50 |     let c: &mut Counter = &mut num
+   |                           ^^^^^^^^
 
 error[move-while-borrowed]: `box` is still borrowed when its scope ends here
   --> main.kg:58:13

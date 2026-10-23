@@ -18,7 +18,7 @@ func sprintf(format string, args ...any) string {
 func (p *parser) layoutList(open, close token.Kind, item func()) uint32 {
 	tok := p.expect(open)
 	p.skipNewlines()
-	for !p.at(close) && !p.at(token.EOF) {
+	for !p.at(close) && !p.at(token.EOF) && !p.atOtherCloser() {
 		start, errs := p.pos, p.bag.Len()
 		item()
 		if p.pos == start {
@@ -45,6 +45,14 @@ func (p *parser) layoutList(open, close token.Kind, item func()) uint32 {
 	p.skipNewlines()
 	p.expect(close)
 	return tok
+}
+
+func (p *parser) atOtherCloser() bool {
+	switch p.tok().Kind {
+	case token.RParen, token.RBracket, token.RBrace:
+		return true
+	}
+	return false
 }
 
 func startsDecl(k token.Kind) bool {

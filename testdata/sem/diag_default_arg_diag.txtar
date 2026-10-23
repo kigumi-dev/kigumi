@@ -1,0 +1,29 @@
+-- src --
+fn g() -> Int! { 1 }
+fn f(x: Int = g()?) -> Int { x }
+async fn h2() -> Int { 1 }
+async fn h(x: Int = await h2()) -> Int { x } //~ ERROR `await` cannot be used in a default argument
+async fn k(x: Int) -> Int { await h2() + x }
+fn use() {
+    let a = f() //~ ERROR `?` requires a `Result` return type
+}
+-- expect --
+error[E925]: `await` cannot be used in a default argument
+ --> main/main.kg:4:21
+  |
+4 | async fn h(x: Int = await h2()) -> Int { x } //~ ERROR `await` cannot be used in a default argument
+  |                     ^^^^^^^^^
+  = help: the caller evaluates a default, and it need not be async even when the function is; take the future as the parameter and await it in the body
+
+error[E712]: `?` requires a `Result` return type
+ --> main/main.kg:7:13
+  |
+7 |     let a = f() //~ ERROR `?` requires a `Result` return type
+  |             ^
+  = help: this returns `Void`
+note: the default of `x` uses `?`, so a call that omits it propagates the error to its caller
+ --> main/main.kg:2:15
+  |
+2 | fn f(x: Int = g()?) -> Int { x }
+  |               ^^^^
+

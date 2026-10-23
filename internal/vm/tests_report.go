@@ -2,6 +2,7 @@ package vm
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"io"
 	"strings"
@@ -55,6 +56,9 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 		return 0, nil
 	}
 
+	if len(cases) == 0 && opts.Filter != "" {
+		return 0, &NoTestsMatch{Filter: opts.Filter}
+	}
 	w := newEventWriter(out, opts.JSON)
 	w.emit(testEvent{Type: "suiteStart", Total: len(cases)})
 	suiteStart := time.Now()
@@ -65,6 +69,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 
 	m := newMachine(prog, opts.Options, out, errOut)
 	var passed, skipped int
+	var failures []testFailure
 	for _, tc := range cases {
 		if !deadline.IsZero() && time.Now().After(deadline) {
 			skipped++
@@ -83,6 +88,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 		}
 		if outcome == "fail" || outcome == "timeout" {
 			failed++
+			failures = append(failures, testFailure{id: tc.id.String(), file: cmp.Or(site.File, tc.site.File), line: cmp.Or(site.Line, tc.site.Line)})
 		} else {
 			passed++
 		}
@@ -94,6 +100,9 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 		if !opts.JSON {
 			writePlainLine(out, outcome, tc.id.Name)
 		}
+	}
+	if !opts.JSON {
+		writeSummary(out, passed, failed, skipped, failures)
 	}
 	w.emit(testEvent{Type: "suiteEnd", Total: len(cases), Passed: passed, Failed: failed, Skipped: skipped, DurationMS: time.Since(suiteStart).Milliseconds()})
 	return failed, nil
@@ -138,7 +147,7 @@ func runOneTest(m *Machine, f *mir.Func, name string, timeout time.Duration) (ou
 	done := make(chan result, 1)
 	go func() {
 		var ok bool
-		cerr := m.catch(func() { ok = m.runTest(f, name) })
+		cerr := m.catchAtUser(func() { ok = m.runTest(f, name) })
 		done <- result{ok, cerr}
 	}()
 

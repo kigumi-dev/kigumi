@@ -1,0 +1,10 @@
+-- src --
+let r: Result[Int, String] = Err("boom")
+print "before"
+print "${r.unwrap()}"
+-- stdout --
+before
+-- stderr --
+unwrap on Err
+-- exit --
+2

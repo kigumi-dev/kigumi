@@ -60,13 +60,7 @@ async fn lib.run() -> u8 {
     drop(%x)
     return %t22
 }
-error[borrow-escape]: a borrow cannot be captured by a future
- --> lib/lt.kg:8:13
-  |
-8 |     let r = pick(&x, &y)
-  |             ^^^^^^^^^^^
-
-error[borrow-escape]: a borrow cannot be captured by a future
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
  --> lib/lt.kg:8:13
   |
 8 |     let r = pick(&x, &y)

@@ -141,7 +141,7 @@ func TestTypingNeverEvaluatesComptime(t *testing.T) {
 		t.Fatal(err)
 	}
 	a, err := driver.Analyze(m)
-	if err != nil || !strings.Contains(a.Res.Render(), "comptime: index out of range") {
+	if err != nil || !strings.Contains(a.Res.Render(), "E2240") {
 		t.Fatalf("the fixture must fail in a build: %v\n%s", err, a.Res.Render())
 	}
 

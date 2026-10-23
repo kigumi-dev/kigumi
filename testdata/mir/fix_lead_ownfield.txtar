@@ -79,6 +79,7 @@ error[E2197]: `b.h` was moved; it cannot be used again
    |
 18 |     consume(b.h)
    |             ^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b.h` is moved here
   --> lib/own.kg:17:5
    |
@@ -90,6 +91,7 @@ error[E2197]: `b.h` was moved; it cannot be used again
    |
 18 |     consume(b.h)
    |     ^^^^^^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `b.h` is moved here
   --> lib/own.kg:17:5
    |

@@ -161,6 +161,7 @@ error[E2197]: `p.left` was moved; it cannot be used again
    |
 28 |     let g = p.left.get
    |             ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2103]: a cleanup reads `p.left`, which can already be moved when the cleanup runs
   --> lib/mv.kg:34:17
@@ -174,6 +175,7 @@ error[E2197]: `o` was moved; it cannot be used again
    |
 40 |     let g = o?.get
    |             ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
   --> lib/mv.kg:39:13
    |

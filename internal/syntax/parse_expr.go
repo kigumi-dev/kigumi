@@ -92,6 +92,9 @@ func (p *parser) binary(minPrec int) NodeID {
 			return lhs
 		}
 		op := p.advance()
+		if p.incrementSuffix(op) {
+			return lhs
+		}
 		p.checkSpacedMinus(op, lhs)
 		p.skipNewlines()
 		p.checkMixing(op, lhs)

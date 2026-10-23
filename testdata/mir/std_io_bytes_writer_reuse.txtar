@@ -39,6 +39,7 @@ error[E2197]: `w` was moved; it cannot be used again
   |
 7 |     w.bytes()
   |     ^^^^^^^^
+  = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `w` is moved here
  --> lib/reuse.kg:6:16
   |

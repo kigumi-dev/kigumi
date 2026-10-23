@@ -430,6 +430,7 @@ error[E2197]: `xs` was moved; it cannot be used again
    |
 51 |     sayU(xs.len()) //~ ERROR `xs` was moved
    |          ^^^^^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `xs` is moved here
   --> main.kg:49:13
    |
@@ -507,6 +508,7 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 241 |     o.close() //~ ERROR `o` was moved
     |     ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
    --> main.kg:240:5
     |
@@ -518,6 +520,7 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 248 |     closeOptC(o) //~ ERROR `o` was moved
     |               ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
    --> main.kg:247:15
     |
@@ -529,6 +532,7 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 256 |     closeOptC(o) //~ ERROR `o` was moved
     |               ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
    --> main.kg:254:13
     |
@@ -540,6 +544,7 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 265 |     closeOptC(o) //~ ERROR `o` was moved
     |               ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
    --> main.kg:263:9
     |
@@ -551,12 +556,14 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 275 |     closeOptC(o) //~ ERROR `o` was moved
     |               ^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:282:14
     |
 282 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
     |              ^^^^^^^^^^^^^^^^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
    --> main.kg:281:15
     |
@@ -568,6 +575,7 @@ error[E2197]: `p.r` was moved; it cannot be used again
     |
 310 |     eatRes(move p.r) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
     |                 ^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `p.r` is moved here
    --> main.kg:309:5
     |
@@ -579,6 +587,7 @@ error[E2197]: `p.r` was moved; it cannot be used again
     |
 310 |     eatRes(move p.r) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
     |     ^^^^^^^^^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `p.r` is moved here
    --> main.kg:309:5
     |
@@ -590,6 +599,7 @@ error[E2197]: `p.r` was moved; it cannot be used again
     |
 318 |     say(p.r.peek()) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
     |         ^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `p.r` is moved here
    --> main.kg:316:9
     |
@@ -601,6 +611,7 @@ error[E2197]: `p.r` was moved; it cannot be used again
     |
 318 |     say(p.r.peek()) //~ ERROR `p.r` was moved //~ ERROR `p.r` was moved
     |         ^^^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `p.r` is moved here
    --> main.kg:316:9
     |
@@ -636,6 +647,7 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 359 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
     |              ^^^^^^^^^^^^^^^^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `o` is moved here
    --> main.kg:358:15
     |
@@ -671,4 +683,5 @@ error[E2197]: `o` was moved; it cannot be used again
     |
 403 |     applyNow(() => { sayB(o is None) }) //~ ERROR `o` was moved
     |              ^^^^^^^^^^^^^^^^^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 

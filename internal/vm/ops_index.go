@@ -20,7 +20,7 @@ func (m *Machine) index(base, idx *obj) *obj {
 		}
 		if base.k == kStr || base.k == kBytes {
 			if lo < 0 || hi > int64(len(base.str())) || lo > hi {
-				m.abort("slice is not on character boundaries")
+				m.abort("slice out of range")
 			}
 			if base.k == kStr && (!boundary(base.str(), lo) || !boundary(base.str(), hi)) {
 				m.abort("slice is not on character boundaries")

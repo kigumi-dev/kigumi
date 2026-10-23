@@ -70,4 +70,5 @@ error[E2198]: `cell` is captured by a closure passed to this call and cannot be 
    |
 12 |     cell.withMut((x: &mut Item) => {
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: end the borrow first or use a copy
 

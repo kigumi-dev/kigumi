@@ -59,6 +59,7 @@ error[E2197]: `b` was moved; it cannot be used again
    |
 16 |     b
    |     ^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `b` is moved here
   --> lib/reinit.kg:15:13
    |

@@ -42,7 +42,7 @@ func (c *checker) checkArg(a syntax.NodeID, param TypeID, paramEnt EntityID, asy
 		got = c.vars.resolve(c.synth(a))
 		c.hintMethodValue(got, param)
 	}
-	if got == TyPoison {
+	if got == TyPoison || c.borrowsPoison(got) {
 		c.vars.poison(param)
 		return
 	}
@@ -99,4 +99,9 @@ func (c *checker) unifyWant(n syntax.NodeID, ret, want TypeID) {
 		c.info.Coerce[n] = Coercion{From: ret, Steps: steps}
 		c.chargeCoercion(n, c.info.Coerce[n])
 	}
+}
+
+func (c *checker) borrowsPoison(t TypeID) bool {
+	tt := c.r.Types
+	return tt.Kind(t) == KRef && tt.Node(t).Elem == TyPoison
 }

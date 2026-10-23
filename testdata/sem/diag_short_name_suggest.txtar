@@ -1,0 +1,29 @@
+-- src --
+type Fn2 = { pub a Int }
+fn use() {
+    let a = 1
+    let ab = 2
+    let b = q //~ ERROR undefined name `q`
+    let c = AB //~ ERROR undefined name `AB`
+    let d = ac //~ ERROR undefined name `ac`
+}
+-- expect --
+error[E100]: undefined name `q`
+ --> main/main.kg:5:13
+  |
+5 |     let b = q //~ ERROR undefined name `q`
+  |             ^
+
+error[E100]: undefined name `AB`
+ --> main/main.kg:6:13
+  |
+6 |     let c = AB //~ ERROR undefined name `AB`
+  |             ^^
+  = help: did you mean `ab`?
+
+error[E100]: undefined name `ac`
+ --> main/main.kg:7:13
+  |
+7 |     let d = ac //~ ERROR undefined name `ac`
+  |             ^^
+

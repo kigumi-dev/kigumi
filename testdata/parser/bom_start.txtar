@@ -1,0 +1,22 @@
+-- src --
+﻿fn main() {
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: main
+    generics: -
+    params: List
+    ret: -
+    body: Block
+-- diagnostics --
+error[E2199]: the file starts with a UTF-8 byte order mark
+ --> bom_start.txtar:1:1
+  |
+1 | ﻿fn main() {
+  | ^
+  = help: save the file as UTF-8 without a BOM
+

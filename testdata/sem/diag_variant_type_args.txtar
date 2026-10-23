@@ -1,0 +1,22 @@
+-- src --
+fn use() {
+    let a = Ok[Int, String](1) //~ ERROR `Ok` is a variant and takes no type arguments of its own
+    let b = Err[Int, String]("x") //~ ERROR `Err` is a variant and takes no type arguments of its own
+    let c: Result[Int, String] = Ok(1)
+    let d = Result[Int, String].Err("x")
+}
+-- expect --
+error[E2239]: `Ok` is a variant and takes no type arguments of its own
+ --> main/main.kg:2:13
+  |
+2 |     let a = Ok[Int, String](1) //~ ERROR `Ok` is a variant and takes no type arguments of its own
+  |             ^^^^^^^^^^^^^^
+  = help: write `Result[Int, String].Ok(...)`, or annotate the binding and call `Ok(...)`
+
+error[E2239]: `Err` is a variant and takes no type arguments of its own
+ --> main/main.kg:3:13
+  |
+3 |     let b = Err[Int, String]("x") //~ ERROR `Err` is a variant and takes no type arguments of its own
+  |             ^^^^^^^^^^^^^^^
+  = help: write `Result[Int, String].Err(...)`, or annotate the binding and call `Err(...)`
+

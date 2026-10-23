@@ -8,7 +8,7 @@ func (c *checker) pickOverload(n syntax.NodeID, set OverloadSetID, args []syntax
 	named := c.hasNamedArg(args)
 	var cands []EntityID
 	for _, m := range os.Members {
-		if c.r.visibleFrom(c.r.Entities[m].Vis, c.pkg) && c.arityFits(m, args) {
+		if c.r.Entities[m].Flags&EfPoison == 0 && c.r.visibleFrom(c.r.Entities[m].Vis, c.pkg) && c.arityFits(m, args) {
 			cands = append(cands, m)
 		}
 	}

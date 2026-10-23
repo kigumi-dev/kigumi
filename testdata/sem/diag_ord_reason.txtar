@@ -1,0 +1,17 @@
+-- src --
+type P = { pub a Int }
+fn P.compareTo(self, o: &P) -> Ordering {
+    print "x"
+    Ordering.Equal
+}
+fn needOrd[T: Ord](x: T) {}
+fn use() {
+    needOrd(P { a: 1 }) //~ ERROR `P` does not satisfy `Ord`
+}
+-- expect --
+error[E300]: `P` does not satisfy `Ord`: `compareTo` is not `pure`
+ --> main/main.kg:8:5
+  |
+8 |     needOrd(P { a: 1 }) //~ ERROR `P` does not satisfy `Ord`
+  |     ^^^^^^^^^^^^^^^^
+

@@ -1,0 +1,16 @@
+-- src --
+fn use(name: String, n: Int) -> String {
+    let a = "hello $name" //~ WARNING
+    let b = "hello ${name}"
+    let c = "cost: $5"
+    let d = "$"
+    a
+}
+-- expect --
+warning: `$name` is plain text in a string
+ --> main/main.kg:2:20
+  |
+2 |     let a = "hello $name" //~ WARNING
+  |                    ^^^^^
+  = help: write `${name}` to insert the value of `name`
+

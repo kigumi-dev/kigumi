@@ -48,6 +48,7 @@ error[E2197]: `out` was moved; it cannot be used again
    |
 10 |     out.push(1)
    |     ^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `out` is moved here
   --> lib/reborrow.kg:9:22
    |

@@ -105,6 +105,8 @@ func (c *checker) unresolved(n syntax.NodeID, name string) TypeID {
 	switch name {
 	case "host", "print", "eprint":
 		d = d.WithNote(c.loc(n), "`"+name+"` exists only in the entry file")
+	case "null", "NULL":
+		d = d.WithHelp("there is no null; the absent value is `None` of an `Option`, as in `let x: Int? = None`")
 	default:
 		if hint := c.scriptLocalHint(name); hint != "" {
 			d = d.WithNote(c.loc(n), hint)

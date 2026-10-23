@@ -134,10 +134,22 @@ error[E2198]: `xs` is borrowed and cannot be mutated here
    |
 11 |     xs.withMut(0, (x: &mut Item) => x.update(1))
    |     ^^
+   = help: end the borrow first or use a copy
+note: `xs` is borrowed here
+  --> lib/wm.kg:10:13
+   |
+10 |     let r = &xs
+   |             ^^^
 
 error[E2198]: `xs` is exclusively borrowed and cannot be used here
   --> lib/wm.kg:17:13
    |
 17 |     let k = xs.len()
+   |             ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `xs` is borrowed here
+  --> lib/wm.kg:16:13
+   |
+16 |     let m = &mut xs
    |             ^^^^^^^
 

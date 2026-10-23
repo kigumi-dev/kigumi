@@ -1,6 +1,8 @@
 package mir
 
 import (
+	"slices"
+
 	"kigumi/internal/diag"
 	"kigumi/internal/sem"
 	"kigumi/internal/syntax"
@@ -72,7 +74,11 @@ func checkBorrowedMoves(p *Program, f *Func) {
 				msg = "`" + name + "` is lent to this closure and cannot be moved out" + clone
 			}
 		}
-		f.Diags = append(f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(n)), Code: "move-from-borrow", Msg: msg})
+		span := t.Span(n)
+		f.Diags = slices.DeleteFunc(f.Diags, func(d diag.Diagnostic) bool {
+			return d.Code == "E1025" && d.Loc.Span.Start >= span.Start && d.Loc.Span.End <= span.End
+		})
+		f.Diags = append(f.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, span), Code: "move-from-borrow", Msg: msg})
 	}
 	mutRef := func(l LocalID) bool {
 		t := f.Locals[l].Type

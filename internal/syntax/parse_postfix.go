@@ -22,6 +22,7 @@ func (p *parser) postfix() NodeID {
 		args = append(args, p.postfixChain(p.primary()))
 	}
 	p.wsCallHint(true)
+	p.printOperand(e)
 	return p.node2(WsCallExpr, p.tree.nodes[e].Tok, e, p.tree.addList(List, argTok, args))
 }
 

@@ -54,6 +54,7 @@ type Result struct {
 	layerCeiling    Layer
 	hasCeiling      bool
 	artifactName    string
+	failedImports   map[FileID]map[string]bool
 	arch            string
 	universe        ScopeID
 	prelude         ScopeID

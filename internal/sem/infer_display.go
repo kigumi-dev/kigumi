@@ -15,6 +15,28 @@ func (c *checker) requestDisplay(t TypeID) bool {
 }
 
 // noteDerivedDisplayUse counts the file's `std/fmt` import as used when m is a generated `display`.
+func (c *checker) importsFmt() bool {
+	for i := range c.r.Entities {
+		e := &c.r.Entities[i]
+		if e.Kind == EntImport && e.File == c.f && e.Target != 0 && c.r.Entities[e.Target].Kind == EntPackage && c.r.Packages[c.r.Entities[e.Target].Pkg].Path == "std/fmt" {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *checker) displayMissingHelp(args []any) string {
+	if !c.importsFmt() {
+		return "a type gets a derived `display` once `std/fmt` is imported: `import fmt from std/fmt`"
+	}
+	if len(args) > 0 {
+		if t, ok := args[0].(TypeID); ok && c.r.Types.Kind(t) == KPrim {
+			return "`std/fmt` derives `display` for records and enums only; interpolate a built-in value as `\"${value}\"`"
+		}
+	}
+	return "`std/fmt` is imported, but this type has no derivable `display`; define `fn Type.display(self) -> String` or print it with `debug`"
+}
+
 func (c *checker) noteDerivedDisplayUse(m EntityID) {
 	if c.r.Entities[m].Name != "display" || !c.r.Files[c.r.Entities[m].File].Tree.File.Generated {
 		return

@@ -1,0 +1,17 @@
+-- src --
+import map from std/map
+let mut m = map.empty[String, Int]()
+m.set("b", 2)
+m.set("a", 1)
+m.set("c", 3)
+print debug(&m)
+m.remove(&"a")
+print debug(&m)
+let e = map.empty[Int, Int]()
+print debug(&e)
+-- stdout --
+Map { b: 2, a: 1, c: 3 }
+Map { b: 2, c: 3 }
+Map {}
+-- exit --
+0

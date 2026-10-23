@@ -55,7 +55,7 @@ type borrowCheck struct {
 	// path into a block: a binding that `is` assigns only when its pattern
 	// matches is live at the join but not yet defined before the test.
 	definedIn []map[LocalID]bool
-	reported  map[reportKey]bool
+	reported  map[reportKey]int
 	quiet     bool
 	// defs maps a temporary to its defining instruction (nil when defined
 	// more than once), built on first use.
@@ -84,7 +84,7 @@ type borrowCheck struct {
 }
 
 func analyzeBorrows(p *Program, f *Func) {
-	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]bool{}}
+	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}}
 	c.collect()
 	if len(c.holders) == 0 {
 		return
@@ -171,9 +171,9 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 			case moves:
 				c.report(c.takeNode(in), o.owner, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
 			case o.mut:
-				c.report(in.Node, o.owner, "borrow-conflict", "`"+name+"` is exclusively borrowed and cannot be used here")
+				c.reportNoted(in.Node, o.owner, "borrow-conflict", "`"+name+"` is exclusively borrowed and cannot be used here", b.node, "`"+name+"` is borrowed here")
 			case mutates || in.Dst == o.owner:
-				c.report(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here")
+				c.reportNoted(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", b.node, "`"+name+"` is borrowed here")
 			}
 		}
 	}

@@ -11,7 +11,7 @@ error[E611]: `<` needs `Ord`
   |
 2 |     let a = (1, 2) < (1, 3) //~ ERROR `<` needs `Ord`
   |             ^^^^^^^^^^^^^^
-  = help: `(Int, Int)` has no `compareTo`
+  = help: tuples have no ordering; compare the elements one by one, or use a record with `@impl(Ord)`
 
 error[E405]: `usize` and `Int` cannot be mixed
  --> main/main.kg:3:13

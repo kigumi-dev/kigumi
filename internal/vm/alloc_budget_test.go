@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -14,7 +15,7 @@ func chargeUntilAbort(t *testing.T, m *Machine) (n int) {
 			t.Fatal("chargeStep never aborted")
 		}
 		p, ok := r.(*Panic)
-		if !ok || !p.Sandbox || p.Msg != "comptime block took too long" {
+		if !ok || !p.Sandbox || !strings.HasPrefix(p.Msg, "comptime block exceeded its step limit") {
 			t.Fatalf("recovered %v, want the sandbox step-budget Panic", r)
 		}
 	}()

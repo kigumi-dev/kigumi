@@ -15,7 +15,7 @@ func (c *checker) synthComptimeBlock(n, inner syntax.NodeID) TypeID {
 	t := c.synth(inner)
 	c.comptimeAt = saved
 	if !c.literalType(t) && !c.initRecordType(t, 0) {
-		c.errAt(n, cComptimeResultType, c.r.TypeString(t))
+		c.errAt(n, cComptimeResultType, c.r.TypeString(c.vars.settleLiterals(t)))
 	}
 	block := c.t.Span(inner)
 	c.walkNodes(inner, func(id syntax.NodeID) {

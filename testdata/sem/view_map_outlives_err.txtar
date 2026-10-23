@@ -63,6 +63,12 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |
 26 |     buf = bytes()
    |     ^^^
+   = help: end the borrow first or use a copy
+note: `buf` is borrowed here
+  --> main.kg:25:13
+   |
+25 |     let v = m.get(&"x")
+   |             ^^^^^^^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> main.kg:26:5

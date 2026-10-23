@@ -1,0 +1,51 @@
+-- module --
+mir: planned
+-- src --
+async fn both(a: &Int, b: &Int) -> Int { a + b }
+async fn run() -> Int {
+    let x = 1
+    let y = 2
+    await both(&x, &y) //~ ERROR a borrow cannot be captured by a future
+}
+type R = resource {
+    pub id Int
+}
+fn R.drop(move self) {}
+fn eat(r: R) {}
+fn loopMove() {
+    let r = R { id: 1 }
+    for i in 0..3 {
+        eat(r) //~ ERROR `r` was moved in an earlier iteration of the loop
+    }
+}
+fn twice() {
+    let r = R { id: 1 }
+    eat(r)
+    eat(r) //~ ERROR `r` was moved
+}
+-- expect --
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+ --> main.kg:5:11
+  |
+5 |     await both(&x, &y) //~ ERROR a borrow cannot be captured by a future
+  |           ^^^^^^^^^^^
+
+error[E2197]: `r` was moved in an earlier iteration of the loop; it cannot be moved again
+  --> main.kg:15:13
+   |
+15 |         eat(r) //~ ERROR `r` was moved in an earlier iteration of the loop
+   |             ^
+   = help: create the value inside the loop, or leave the loop right after moving it
+
+error[E2197]: `r` was moved; it cannot be used again
+  --> main.kg:21:9
+   |
+21 |     eat(r) //~ ERROR `r` was moved
+   |         ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `r` is moved here
+  --> main.kg:20:9
+   |
+20 |     eat(r)
+   |         ^
+

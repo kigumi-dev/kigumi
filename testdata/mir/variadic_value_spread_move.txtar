@@ -45,6 +45,7 @@ error[E2197]: `values` was moved; it cannot be used again
   |
 7 |     let b = f(...values)
   |                  ^^^^^^
+  = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `values` is moved here
  --> main/main.kg:6:18
   |

@@ -1,0 +1,28 @@
+-- src --
+fn f(a: Int) -> Int { //~ ERROR expected `Int`, found `Void`
+    if a > 1 { return 1 }
+}
+fn g(a: Int) -> Int {
+    let b: Int = return 5
+    let w = 3 //~ WARNING unreachable statement
+    w
+}
+fn h(o: Option[Int]) -> Int {
+    let Some(v) = o else { return 0 }
+    let q = 3
+    v + q
+}
+-- expect --
+error[E400]: expected `Int`, found `Void`
+ --> main/main.kg:1:21
+  |
+1 | fn f(a: Int) -> Int { //~ ERROR expected `Int`, found `Void`
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: not every path ends in a value; finish the block with the value to produce, or `return` it on each path
+
+warning[W401]: unreachable statement
+ --> main/main.kg:6:5
+  |
+6 |     let w = 3 //~ WARNING unreachable statement
+  |     ^^^^^^^^^
+

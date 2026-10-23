@@ -1,10 +1,12 @@
 package driver
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
 
+	"kigumi/internal/diag"
 	"kigumi/internal/vm"
 )
 
@@ -51,6 +53,11 @@ func RunTestsReportingWith(m *Module, opts TestRunOptions, stdout, stderr io.Wri
 		SuiteTimeout:   opts.SuiteTimeout,
 		JSON:           opts.JSON,
 	}, stdout, stderr)
+	var noMatch *vm.NoTestsMatch
+	if errors.As(err, &noMatch) {
+		fmt.Fprintf(stderr, "%s: %v\n", diag.Prefix("error"), noMatch)
+		return 1, nil
+	}
 	if err != nil {
 		return 1, fmt.Errorf("%w (use `kigumi build` to run natively)", err)
 	}

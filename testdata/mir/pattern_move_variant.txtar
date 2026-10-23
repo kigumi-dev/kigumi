@@ -398,6 +398,7 @@ error[E2197]: `b.opt` was moved; it cannot be used again
    |
 17 |             Some(h) -> h.close()
    |             ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[move-join-mismatch]: `b.opt` is moved on some paths but not others
   --> lib/loop.kg:49:13

@@ -3,6 +3,7 @@ package sem
 import "kigumi/internal/syntax"
 
 func (c *checker) synthString(n syntax.NodeID) TypeID {
+	c.warnBareInterpolation(n)
 	parts := c.t.StringParts(n)
 	interpolated := false
 	for _, p := range parts {

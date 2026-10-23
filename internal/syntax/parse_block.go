@@ -8,6 +8,9 @@ import (
 
 func (p *parser) importDecl(pf prefix) NodeID {
 	tok := p.expect(token.KwImport)
+	if p.quotedImport() {
+		return 0
+	}
 	var binding NodeID
 	if p.at(token.LBrace) {
 		var names []NodeID

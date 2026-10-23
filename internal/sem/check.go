@@ -41,7 +41,7 @@ type checker struct {
 	allocPending  []pendingAlloc
 	protoSites    []protoSite
 	inlinePending []pendingInline
-	defaultRecv   TypeID
+	deflt         defaultFrame
 	// piped maps a call node to the `|>` left operand it takes first, and a `name: _` argument to the one standing for it.
 	piped map[syntax.NodeID]syntax.NodeID
 	// argLambda marks a lambda written directly as a call argument; it may capture borrows, the callee not expected to keep them.

@@ -1,0 +1,16 @@
+-- lib/other.kg --
+pub type Item = { pub a Int }
+-- src --
+import other from lib
+type Item = { pub a Int }
+fn pick(c: Bool) -> Int {
+    let x = if c { Item { a: 1 } } else { other.Item { a: 2 } } //~ ERROR branches have different types
+    1
+}
+-- expect --
+error[E401]: branches have different types: `main.Item` and `lib.Item`
+ --> main/main.kg:4:41
+  |
+4 |     let x = if c { Item { a: 1 } } else { other.Item { a: 2 } } //~ ERROR branches have different types
+  |                                         ^^^^^^^^^^^^^^^^^^^
+

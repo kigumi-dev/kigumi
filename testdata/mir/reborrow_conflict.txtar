@@ -49,4 +49,10 @@ error[E2198]: `xs` is exclusively borrowed and cannot be used here
   |
 8 |     inner(r, xs.len())
   |              ^^^^^^^
+  = help: end the borrow first or use a copy
+note: `xs` is borrowed here
+ --> lib/reborrow.kg:7:13
+  |
+7 |     let r = &mut xs
+  |             ^^^^^^^
 

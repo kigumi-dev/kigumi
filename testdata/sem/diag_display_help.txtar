@@ -1,0 +1,32 @@
+-- src --
+import fmt from std/fmt //~ WARNING unused import `fmt`
+
+fn use(a: Int) {
+    let b = a.display() //~ ERROR `Int` has no field or method `display`
+}
+-- lib/other.kg --
+type R = { pub a Int }
+fn use(a: Int, r: R) {
+    let b = a.display() //~ ERROR `Int` has no field or method `display`
+}
+-- expect --
+error[E510]: `Int` has no field or method `display`
+ --> lib/other.kg:3:13
+  |
+3 |     let b = a.display() //~ ERROR `Int` has no field or method `display`
+  |             ^^^^^^^^^
+  = help: a type gets a derived `display` once `std/fmt` is imported: `import fmt from std/fmt`
+
+warning[W100]: unused import `fmt`
+ --> main/main.kg:1:8
+  |
+1 | import fmt from std/fmt //~ WARNING unused import `fmt`
+  |        ^^^
+
+error[E510]: `Int` has no field or method `display`
+ --> main/main.kg:4:13
+  |
+4 |     let b = a.display() //~ ERROR `Int` has no field or method `display`
+  |             ^^^^^^^^^
+  = help: `std/fmt` derives `display` for records and enums only; interpolate a built-in value as `"${value}"`
+

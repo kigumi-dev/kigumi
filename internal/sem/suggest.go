@@ -3,6 +3,7 @@ package sem
 import (
 	"slices"
 	"sort"
+	"strings"
 
 	"kigumi/internal/diag"
 	"kigumi/internal/syntax"
@@ -10,15 +11,21 @@ import (
 
 // Candidate must be within an edit distance of a third of name's length
 // (one for short names); ties go to the alphabetically first candidate.
+// A name under three characters is near almost any short name, so it only matches a candidate that differs in letter case.
 func suggest(name string, candidates []string) string {
 	limit := max(1, len(name)/3)
 	best, bestDist := "", limit+1
 	sort.Strings(candidates)
 	for _, c := range candidates {
-		if c == name || c == "" || c[0] == '$' {
+		short := len([]rune(name)) < 3
+		if c == name || c == "" || c[0] == '$' || short && !strings.EqualFold(name, c) {
 			continue
 		}
-		if d := editDistance(name, c); d < bestDist {
+		d := editDistance(name, c)
+		if short {
+			d = 0
+		}
+		if d < bestDist {
 			best, bestDist = c, d
 		}
 	}
@@ -80,7 +87,7 @@ func (c *checker) errSuggest(n syntax.NodeID, code Code, name string, candidates
 		return
 	}
 	if name == "display" && code.Num == cMemberNotFound.Num {
-		d = d.WithHelp("a type gets a derived `display` once `std/fmt` is imported: `import fmt from std/fmt`")
+		d = d.WithHelp(c.displayMissingHelp(args))
 	}
 	if alt := suggest(name, candidates); alt != "" {
 		d = d.WithHelp("did you mean `" + alt + "`?")

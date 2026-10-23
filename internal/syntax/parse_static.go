@@ -5,7 +5,7 @@ import "kigumi/internal/token"
 // staticDeclAhead disambiguates the contextual `static` keyword from an
 // identifier named "static" used as an ordinary expression.
 func (p *parser) staticDeclAhead() bool {
-	return p.peek(1) == token.KwMut || (p.peek(1) == token.Ident && p.peek(2) == token.Colon)
+	return p.peek(1) == token.KwMut || (p.peek(1) == token.Ident && (p.peek(2) == token.Colon || p.peek(2) == token.Assign))
 }
 
 func (p *parser) staticDecl(pf prefix) NodeID {
@@ -15,8 +15,13 @@ func (p *parser) staticDecl(pf prefix) NodeID {
 		flags |= FlagMut
 	}
 	name := p.expect(token.Ident)
-	p.expect(token.Colon)
-	typ := p.typ()
+	var typ NodeID
+	if p.at(token.Assign) {
+		p.errorHelp(p.tok().Span, "write `static name: Type = value`", "a `static` needs a type annotation")
+	} else {
+		p.expect(token.Colon)
+		typ = p.typ()
+	}
 	var value NodeID
 	if p.eat(token.Assign) {
 		p.skipNewlinesAfterAssign()

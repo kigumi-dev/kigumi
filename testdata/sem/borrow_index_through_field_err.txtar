@@ -76,34 +76,70 @@ error[E2198]: `h` is borrowed and cannot be mutated here
    |
 33 |     h.xs[0] = R { id: 7 }
    |     ^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:32:13
+   |
+32 |     let a = &h.xs[0]
+   |             ^^^^^^^
 
 error[E2198]: `h` is borrowed and cannot be mutated here
   --> main.kg:40:5
    |
 40 |     h.xs[0] = R { id: 7 }
    |     ^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:39:18
+   |
+39 |     let a = head(&h.xs)
+   |                  ^^^^^
 
 error[E2198]: `h` is borrowed and cannot be mutated here
   --> main.kg:48:5
    |
 48 |     h.xs[0] = R { id: 7 }
    |     ^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:47:13
+   |
+47 |     let a = &r.xs[0]
+   |             ^^^^^^^
 
 error[E2198]: `o` is borrowed and cannot be mutated here
   --> main.kg:55:5
    |
 55 |     o.h.xs[0] = R { id: 7 }
    |     ^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `o` is borrowed here
+  --> main.kg:54:18
+   |
+54 |     let a = head(&o.h.xs)
+   |                  ^^^^^^^
 
 error[E2198]: `self` is borrowed and cannot be mutated here
   --> main.kg:61:5
    |
 61 |     self.xs[0] = R { id: 9 }
    |     ^^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `self` is borrowed here
+  --> main.kg:60:13
+   |
+60 |     let a = &self.xs[0]
+   |             ^^^^^^^^^^
 
 error[E2198]: `h` is borrowed and cannot be mutated here
   --> main.kg:67:5
    |
 67 |     h.xs[0] = R { id: 8 }
    |     ^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:66:13
+   |
+66 |     let a = &h.xs[0]
+   |             ^^^^^^^
 

@@ -62,6 +62,10 @@ func (a *owner) check(in *Inst, l LocalID, s ownState, report bool) {
 	case ownMoved:
 		a.reportMoved(in.Node, l, name)
 	case ownConflict:
+		if a.cur.at.get(l) == in.Node {
+			a.reportLoopMove(in.Node, name)
+			return
+		}
 		a.report(in.Node, "move-join-mismatch", "`"+name+"` is moved on some paths but not others")
 	}
 }

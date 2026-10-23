@@ -18,6 +18,9 @@ func Parse(f *token.File) *Tree {
 	p.tree.DiagsDropped = bag.Dropped()
 	for i := range p.tree.Diags {
 		p.tree.Diags[i].Loc.Source = f.ID
+		for j := range p.tree.Diags[i].Notes {
+			p.tree.Diags[i].Notes[j].Loc.Source = f.ID
+		}
 	}
 	return p.tree
 }
@@ -105,7 +108,11 @@ func (p *parser) expect(k token.Kind) uint32 {
 	if p.at(k) {
 		return p.advance()
 	}
-	p.errorf("expected %s, found %s", k, p.describe())
+	d := syntaxError(p.tok().Span, sprintf("expected %s, found %s", k, p.describe()))
+	if open, ok := p.unclosedOpener(k); ok {
+		d = d.WithNote(diag.Location{Span: p.toks[open].Span}, "`"+p.toks[open].Kind.String()+"` is opened here")
+	}
+	p.report(d)
 	return p.pos
 }
 
@@ -127,12 +134,24 @@ func (p *parser) errorf(format string, args ...any) {
 }
 
 func (p *parser) errorAt(span token.Span, format string, args ...any) {
-	// One error per token keeps cascades quiet.
+	p.errorHelp(span, "", format, args...)
+}
+
+// errorHelp adds a help line to the error; one error per token keeps cascades quiet.
+func (p *parser) errorHelp(span token.Span, help, format string, args ...any) {
+	d := syntaxError(span, sprintf(format, args...))
+	if help != "" {
+		d = d.WithHelp(help)
+	}
+	p.report(d)
+}
+
+func (p *parser) report(d diag.Diagnostic) {
 	if p.pos == p.lastErr && p.bag.Len() > 0 {
 		return
 	}
 	p.lastErr = p.pos
-	p.bag.Add(syntaxError(span, sprintf(format, args...)))
+	p.bag.Add(d)
 }
 
 func (p *parser) warnAt(span token.Span, msg string) {

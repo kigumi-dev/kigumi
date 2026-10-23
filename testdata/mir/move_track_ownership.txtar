@@ -140,18 +140,21 @@ error[E2197]: `r` was moved; it cannot be used again
    |
 11 |     let b = r?
    |             ^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `o` was moved; it cannot be used again
   --> lib/mt.kg:19:13
    |
 19 |     let b = o || e
    |             ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `r` was moved; it cannot be used again
   --> lib/mt.kg:26:5
    |
 26 |     r.close()
    |     ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `r` is moved here
   --> lib/mt.kg:25:13
    |

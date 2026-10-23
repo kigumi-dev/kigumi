@@ -121,6 +121,7 @@ error[E2197]: `w` was moved; it cannot be used again
    |
 26 |     io.writeAll(w, b)?
    |                 ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 note: `w` is moved here
   --> lib/hazard.kg:25:17
    |

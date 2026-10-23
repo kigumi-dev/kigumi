@@ -131,10 +131,12 @@ error[E2197]: `t._1` was moved; it cannot be used again
    |
 17 |             (_, b) -> b.close()
    |                 ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `p.other` was moved; it cannot be used again
   --> lib/loop.kg:25:20
    |
 25 |             Pack { other, inner: _ } -> other.close()
    |                    ^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 

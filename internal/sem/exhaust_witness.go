@@ -29,11 +29,12 @@ func (c *checker) checkMatch(n syntax.NodeID, scrutineeNode syntax.NodeID, scrut
 		}
 	}
 	synthetic := len(rows)
-	guarded := false
+	guarded, brokenArm := false, false
 	for i, arm := range arms {
 		s := matchArm(c.t, arm)
 		alts := c.abstractAll(s.Pattern)
 		if len(alts) == 0 || hasErr(alts[0]) {
+			brokenArm = true
 			continue
 		}
 		reachable := false
@@ -66,7 +67,7 @@ func (c *checker) checkMatch(n syntax.NodeID, scrutineeNode syntax.NodeID, scrut
 	}
 	if len(info.Missing) > 0 {
 		info.Exhaustive = false
-		if d, ok := c.r.diagAt(c.f, n, cMatchNonExhaustive, strings.Join(info.Missing, "`, `")); ok {
+		if d, ok := c.r.diagAt(c.f, n, cMatchNonExhaustive, strings.Join(info.Missing, "`, `")); ok && !brokenArm {
 			if guarded {
 				d = d.WithNote(c.loc(n), "arms with a guard do not count")
 			}

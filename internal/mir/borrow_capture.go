@@ -25,6 +25,7 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		for _, a := range in.Args {
 			if _, ok := c.holders[a]; ok {
 				c.report(in.Node, a, "borrow-escape", "a borrow cannot be stored")
+				break
 			}
 		}
 	case OpNewCell:
@@ -53,7 +54,8 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		}
 		for _, a := range in.Args[1:] {
 			if _, ok := c.holders[a]; ok {
-				c.report(in.Node, a, "borrow-escape", "a borrow cannot be captured by a future")
+				c.report(in.Node, a, "borrow-escape", "a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself")
+				break
 			}
 		}
 	case OpCall, OpCallValue:

@@ -34,6 +34,15 @@ func defineCode(num, name, template string) Code {
 // Codes lists the catalog in definition order, for `kigumi explain`.
 func Codes() []Code { return append([]Code{}, codes...) }
 
+func HelpOf(num string) string {
+	for _, c := range codes {
+		if c.Num == num {
+			return c.Help
+		}
+	}
+	return ""
+}
+
 // CodeByName looks a code up by its catalog name; tests use it.
 func CodeByName(name string) (Code, bool) {
 	c, ok := codeByName[name]

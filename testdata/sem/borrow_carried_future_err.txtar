@@ -138,12 +138,24 @@ error[E2198]: `x` is exclusively borrowed and cannot be used here
    |
 34 |     fs.push(bump(&mut x))
    |                  ^^^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:33:5
+   |
+33 |     fs.push(bump(&mut x))
+   |     ^^^^^^^^^^^^^^^^^^^
 
 error[E2198]: `x` is borrowed and cannot be mutated here
   --> main.kg:47:5
    |
 47 |     x.id = 5
    |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:46:5
+   |
+46 |     fs.push(show(&x))
+   |     ^^^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `x` is still borrowed when its scope ends here
   --> main.kg:59:13
@@ -156,6 +168,12 @@ error[E2198]: `x` is exclusively borrowed and cannot be used here
    |
 74 |     x.id = 2
    |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:73:5
+   |
+73 |     p.add(bump(&mut x))
+   |     ^^^^^^^^^^^^^^^^^
 
 error[borrow-escape]: a borrow cannot be stored
   --> main.kg:80:5
@@ -174,12 +192,24 @@ error[E2198]: `x` is exclusively borrowed and cannot be used here
    |
 92 |     x.id = 5
    |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:91:5
+   |
+91 |     ts.push(task.spawn(bump(&mut x)))
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2198]: `x` is exclusively borrowed and cannot be used here
    --> main.kg:100:18
     |
 100 |     fs.push(bump(&mut x))
     |                  ^^^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:99:5
+    |
+ 99 |     fs.push(bump(&mut x))
+    |     ^^^^^^^^^^^^^^^^^^^
 
 error[E1290]: a borrow of `x` is still live across this `await`
    --> main.kg:103:14
@@ -192,6 +222,12 @@ error[E2198]: `x` is exclusively borrowed and cannot be used here
     |
 112 |     x.id = 5
     |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:111:5
+    |
+111 |     ts.push(task.spawn(bump(&mut x)))
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E1290]: a borrow of `x` is still live across this `await`
    --> main.kg:115:14

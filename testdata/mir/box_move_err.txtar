@@ -42,6 +42,7 @@ error[E2197]: `b` was moved; it cannot be used again
   |
 5 |     b.get() + c.get()
   |     ^^^^^^
+  = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `b` is moved here
  --> lib/moves.kg:4:13
   |
@@ -53,6 +54,7 @@ error[E2197]: `b` was moved; it cannot be used again
    |
 10 |     let y = b.into()
    |             ^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
 note: `b` is moved here
   --> lib/moves.kg:9:13
    |

@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/syntax"
+import (
+	"cmp"
+
+	"kigumi/internal/syntax"
+)
 
 // mismatch reports a failed coercion with the most specific wording.
 func (c *checker) mismatch(n syntax.NodeID, want, got TypeID) {
@@ -68,7 +72,14 @@ func (c *checker) mismatch(n syntax.NodeID, want, got TypeID) {
 			ws = alias
 		}
 	}
-	c.errAtHelp(n, usizeHelp(want, got), cTypeMismatch, ws, gs)
+	c.errAtHelp(n, cmp.Or(usizeHelp(want, got), c.fallThroughHelp(n, want, got)), cTypeMismatch, ws, gs)
 	c.vars.poison(got)
 	c.vars.poison(want)
+}
+
+func (c *checker) fallThroughHelp(n syntax.NodeID, want, got TypeID) string {
+	if got != TyUnit || c.t.Kind(n) != syntax.Block || want != c.vars.resolve(c.retType) {
+		return ""
+	}
+	return "not every path ends in a value; finish the block with the value to produce, or `return` it on each path"
 }

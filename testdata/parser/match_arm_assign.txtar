@@ -1,0 +1,57 @@
+-- src --
+fn main() {
+    let mut a = 1
+    match a {
+        1 -> a = 2,
+        2 -> a += 3,
+        _ -> { a = 4 }
+    }
+}
+-- expect --
+File
+  FnDecl
+    attrs: -
+    vis: -
+    recv: -
+    name: main
+    generics: -
+    params: List
+    ret: -
+    body: Block
+      Let
+        flags: mut
+        pattern: PatBind a
+        init: IntLit 1
+      ExprStmt
+        Match
+          Ident a
+          List
+            Arm
+              pattern: PatLit
+                IntLit 1
+              body: Ident a
+            Arm
+              pattern: PatLit
+                IntLit 2
+              body: Ident a
+            Arm
+              pattern: PatWildcard _
+              body: Block
+                Assign =
+                  Ident a
+                  IntLit 4
+-- diagnostics --
+error[E2199]: an assignment is a statement, so it cannot be a match arm body
+ --> match_arm_assign.txtar:4:16
+  |
+4 |         1 -> a = 2,
+  |                ^
+  = help: put the assignment in a block: `pattern -> { a = 1 }`
+
+error[E2199]: an assignment is a statement, so it cannot be a match arm body
+ --> match_arm_assign.txtar:5:16
+  |
+5 |         2 -> a += 3,
+  |                ^^
+  = help: put the assignment in a block: `pattern -> { a = 1 }`
+

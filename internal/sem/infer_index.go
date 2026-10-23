@@ -11,24 +11,7 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 	switch head.kind {
 	case headFn:
 		if params := c.ownGenerics(head.ent); len(params) > 0 {
-			var typeArgs []TypeID
-			for i, a := range items.EnumerateIDs() {
-				typeArgs = append(typeArgs, c.r.resolveExprGenericArg(c.f, c.scope, a, entAt(params, i)))
-			}
-			c.r.useEntity(c.f, n, head.ent)
-			c.info.Uses[n] = head.ent
-			sig, inst, _ := c.instantiateFn(n, head.ent, typeArgs, 0)
-			c.fnItemHidden(n, head.ent, inst)
-			c.errorAsCheck(n, head.ent, inst)
-			c.deferFFIValueCheck(n, head.ent, inst, 0)
-			c.touched = append(c.touched, n)
-			if c.r.Fn(head.ent).Declared&EffAsync != 0 {
-				sig = c.asyncValueFn(sig)
-			} else {
-				c.valueEntry(n, head.ent, sig)
-			}
-			c.recordCtxValueRef(n, head.ent)
-			return sig
+			return c.explicitFnItem(n, head.ent, params, items)
 		}
 	case headType:
 		if len(c.r.typeDecl(head.ent).Params) > 0 {
@@ -38,6 +21,8 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 	case headSet:
 		c.errAt(n, cOverloadValueAmbig, c.r.Overloads[head.set].Name)
 		return TyPoison
+	case headVariant:
+		return c.variantTypeArgs(n, head.ent, items)
 	case headNone:
 		return TyPoison
 	}
