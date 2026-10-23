@@ -1,0 +1,65 @@
+-- engines --
+native
+-- src --
+import ffi from std/ffi
+
+type S = {
+    pub mut n i32
+}
+
+fn bump(x: &mut i32) -> Void {
+    _ = ffi.withAddress(x, (p: *mut i32) => unsafe {
+        ffi.writeI32(p, ffi.readI32(ffi.toConst(p)) + 100)
+        0
+    })
+}
+
+let mut x: i32 = 41
+let y = x
+let z: i32 = 41
+let r = ffi.withAddress(&mut x, (p: *mut i32) => unsafe {
+    ffi.writeI32(p, 99)
+    0
+})
+print "x=${x} y=${y} z=${z} r=${r}"
+
+let mut b: u8 = 7
+let other: u8 = 7
+_ = ffi.withAddress(&mut b, (p: *mut u8) => unsafe {
+    ffi.writeU8(p, 200)
+    0
+})
+print "b=${b} other=${other}"
+
+let mut d: f64 = 1.5
+let e: f64 = 1.5
+_ = ffi.withAddress(&mut d, (p: *mut f64) => unsafe {
+    ffi.writeF64(p, 2.25)
+    0
+})
+print "d=${d} e=${e}"
+
+let mut n: i64 = -1
+_ = ffi.withAddress(&mut n, (p: *mut i64) => unsafe {
+    ffi.writeI64(p, ffi.readI64(ffi.toConst(p)) - 4)
+    0
+})
+print "n=${n}"
+
+let mut s = S { n: 5 }
+bump(&mut s.n)
+print "field ${s.n}"
+
+let mut xs = Array.of[i32](1, 2, 3)
+_ = ffi.withAddress(&mut xs[1], (p: *mut i32) => unsafe {
+    ffi.writeI32(p, 42)
+    0
+})
+print "elem ${xs[1]} ${xs[0]}"
+-- stdout --
+x=99 y=41 z=41 r=0
+b=200 other=7
+d=2.25 e=1.5
+n=-5
+field 105
+elem 42 1

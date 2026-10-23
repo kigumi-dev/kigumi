@@ -246,16 +246,29 @@ static void task_unwind(kgtask* t) {
     (void)t;
 }
 #endif
+// The count drops under the lock: once the root's driver sees zero it frees the root, so a poll must not touch the tree after unlocking.
+static void tree_leave(kgtask* tree) {
+    SCHED_LOCK();
+#ifdef KIGUMI_THREADS
+    if (KG_DEC(tree->active) == 1 && tree->tail_wait) pthread_cond_broadcast(&tree->ex->cv);
+#else
+    KG_DEC(tree->active);
+#endif
+    SCHED_UNLOCK();
+}
 static void task_run(kgtask* t, int lane) {
     SCHED_LOCK();
     if (task_terminal(t)) {
         SCHED_UNLOCK();
         return;
     }
+    kgtask* tree = t->tree;
+    KG_INC(tree->active);
     if (t->draining) {
         task_finish_drain(t);
         SCHED_UNLOCK();
         sched_flush();
+        tree_leave(tree);
         return;
     }
     t->state = T_RUNNING;
@@ -285,6 +298,7 @@ static void task_run(kgtask* t, int lane) {
     }
     SCHED_UNLOCK();
     sched_flush();
+    tree_leave(tree);
 }
 // Registers the waiter before reading target state, so a racing completion is still seen.
 static val poll_task(kgtask* t) {
@@ -482,6 +496,7 @@ val rt_run_to_completion(val exv, val fut) {
     root->fut = fut;
     root->ex = e;
     KG_ASTORE(root->refs, 1);
+    root->tree = root;
     e->live++;
     exec_push(e, root);
     while (!task_terminal(root)) {
@@ -504,6 +519,10 @@ val rt_run_to_completion(val exv, val fut) {
         e->running--;
     }
     e->driving = 0;
+#ifdef KIGUMI_THREADS
+    root->tail_wait = 1;
+    while (KG_ALOAD(root->active)) pthread_cond_wait(&e->cv, &g_sched);
+#endif
     SCHED_UNLOCK();
     sched_flush();
     if (root->state == T_CANCELLED || root->state == T_FAULTED) exec_drain();
@@ -528,6 +547,7 @@ static val task_start(kgexec* e, val fut, int mobile) {
     SCHED_LOCK();
     kgtask* p = g_cur_task;
     t->parent = p;
+    t->tree = p->tree;
     t->pex = p->ex;
     KG_ASTORE(t->cancel, KG_ALOAD(p->cancel));
     t->lane = -1;

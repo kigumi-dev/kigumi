@@ -46,7 +46,7 @@ func selectTests(prog *mir.Program, module, filter string) []testCase {
 	return out
 }
 
-// RunTestsReporting is RunTests under the `kigumi test` surface (--list, filter, timeouts, JSON events); it returns the number of failed and timed-out tests.
+// RunTestsReporting is RunTests under the `kigumi test` surface (--list, filter, timeouts, JSON events); it returns the number of failed, timed-out and suite-timeout-skipped tests, since a run that could not finish is not green.
 func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Writer) (failed int, err error) {
 	cases := selectTests(prog, opts.Module, opts.Filter)
 	if opts.List {
@@ -132,7 +132,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 		writeSummary(out, passed, failed, skipped, failures)
 	}
 	w.emit(testEvent{Type: "suiteEnd", Total: len(cases), Passed: passed, Failed: failed, Skipped: skipped, DurationMS: time.Since(suiteStart).Milliseconds()})
-	return failed, nil
+	return failed + skipped, nil
 }
 
 func unsupportedText(opts TestRunOptions, why string) string {

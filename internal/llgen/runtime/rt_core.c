@@ -2540,6 +2540,10 @@ struct kgtask {
     KG_AINT refs, cancel;
     // lane is the home lane a pinned task polls on; -1 means any worker may take it.
     int lane;
+    // tree is the root of this task's runToCompletion; the root's active counts the polls still finishing, so it outlives them.
+    kgtask* tree;
+    KG_AINT active;
+    int tail_wait;
 };
 typedef struct kgqueue {
     kgtask** q;
@@ -3527,6 +3531,60 @@ static val uninit_filled(val u) {
     if (!v) rt_panic("Uninit slot is not initialized");
     return v;
 }
+// The lease is a private C-layout copy of the scalar, written back into the
+// cell as a fresh object: the old one may be a shared immortal literal.
+static int scalar_lease_bytes(val v) {
+    switch (v->kind) {
+    case K_INT: return (v->nk & 255) <= 64 ? (v->nk & 255) / 8 : 0;
+    case K_FLOAT: return (v->nk & 255) == 32 ? 4 : 8;
+    case K_BOOL: return 1;
+    case K_CHAR: return 4;
+    default: return 0;
+    }
+}
+static void scalar_lease_load(val v, void* buf) {
+    switch (scalar_lease_bytes(v)) {
+    case 1: *(uint8_t*)buf = v->kind == K_BOOL ? (uint8_t)v->u.b : (uint8_t)v->u.i; break;
+    case 2: *(uint16_t*)buf = (uint16_t)v->u.i; break;
+    case 4:
+        if (v->kind == K_FLOAT) *(float*)buf = (float)v->u.f;
+        else if (v->kind == K_CHAR) *(uint32_t*)buf = v->u.c;
+        else *(uint32_t*)buf = (uint32_t)v->u.i;
+        break;
+    default:
+        if (v->kind == K_FLOAT) *(double*)buf = v->u.f;
+        else *(int64_t*)buf = v->u.i;
+    }
+}
+static val scalar_lease_store(val v, const void* buf) {
+    int signd = v->nk & 256;
+    switch (v->kind) {
+    case K_BOOL: return rt_bool(*(const uint8_t*)buf != 0);
+    case K_CHAR: return rt_char(*(const uint32_t*)buf);
+    case K_FLOAT: return rt_float(scalar_lease_bytes(v) == 4 ? (double)*(const float*)buf : *(const double*)buf, v->nk);
+    default: break;
+    }
+    switch (scalar_lease_bytes(v)) {
+    case 1: return rt_int(signd ? (int64_t) * (const int8_t*)buf : (int64_t) * (const uint8_t*)buf, v->nk);
+    case 2: return rt_int(signd ? (int64_t) * (const int16_t*)buf : (int64_t) * (const uint16_t*)buf, v->nk);
+    case 4: return rt_int(signd ? (int64_t) * (const int32_t*)buf : (int64_t) * (const uint32_t*)buf, v->nk);
+    default: return rt_int(*(const int64_t*)buf, v->nk);
+    }
+}
+static val with_address(val arg, val value, val f) {
+    if (!scalar_lease_bytes(value)) {
+        val ptr[1] = {rt_ptr((void*)&value->u)};
+        return rt_callv(f, 1, ptr);
+    }
+    uint64_t buf[1] = {0};
+    scalar_lease_load(value, buf);
+    uint64_t before = buf[0];
+    val p[1] = {rt_ptr(buf)};
+    val r = rt_callv(f, 1, p);
+    while (arg->kind == K_CELL && arg->u.cell.v->kind == K_CELL) arg = arg->u.cell.v;
+    if (buf[0] != before && arg->kind == K_CELL) rt_cellset(arg, scalar_lease_store(value, buf));
+    return r;
+}
 // rt_std_id never compares key strings: llgen resolves a call's std key to
 // an enum std_op at compile time (rt_std_op_of does the same resolution
 // for rt_std's few dynamic callers).
@@ -4047,12 +4105,7 @@ val rt_std_id(int op, int n, val* a) {
         rt_panic("this build has no ffi.pin capability");
         return NULL;
 #endif
-    // value's scalar payload lives in the union after the header fields,
-    // so &a0->u is that payload's address regardless of which member.
-    case OP_WITH_ADDRESS: {
-        val arg[1] = {rt_ptr((void*)&a0->u)};
-        return rt_callv(a1, 1, arg);
-    }
+    case OP_WITH_ADDRESS: return with_address(a[0], a0, a1);
 #ifdef KIGUMI_CAP_FFI_PIN
     case OP_PIN_DROP: return cap_pin_drop(a0);
     case OP_PIN_RELEASE: return cap_pin_release(a0);

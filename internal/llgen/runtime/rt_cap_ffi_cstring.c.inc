@@ -1,7 +1,5 @@
 static val cap_cstring_new(val a0) {
-    // Every String/Bytes buffer already carries a guaranteed trailing
-    // NUL at data[len] (see strdup_val); strchr for the first NUL byte
-    // reaches that one unless an earlier, embedded NUL is hit first.
+    // data[len] is always NUL, so the first NUL sits at len unless one is embedded.
     if (strchr(a0->u.s.data, 0) != a0->u.s.data + a0->u.s.len) return err_msg("text contains a NUL byte");
     val h = rt_int((int64_t)(intptr_t)rt_cstr(a0), 64 | 256);
     return ok(make_record("CString", 1, &h));

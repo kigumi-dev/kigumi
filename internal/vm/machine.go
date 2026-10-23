@@ -13,8 +13,6 @@ import (
 type Panic struct {
 	Msg  string
 	Site mir.Site
-	// InStd marks a panic raised inside a std function, whose site says nothing about the caller's code.
-	InStd bool
 	// Sandbox marks a budget abort, never contained as a worker's own fault.
 	Sandbox bool
 	// Limit names the exceeded budget ("step limit of N steps"); empty for any other panic.
@@ -177,16 +175,12 @@ func (m *Machine) catch(f func()) (err error) {
 }
 
 func (m *Machine) abort(msg string) {
-	m.throw(&Panic{Msg: msg, Site: m.abortSite(), InStd: m.abortInStd()})
+	m.throw(&Panic{Msg: msg, Site: m.abortSite()})
 }
 
 func (m *Machine) limitAbort(limit string) {
 	what := cmp.Or(m.opts.SandboxWhat, "comptime block")
 	m.throw(&Panic{Msg: what + " exceeded its " + limit, Site: m.abortSite(), Sandbox: true, Limit: limit})
-}
-
-func (m *Machine) abortInStd() bool {
-	return m.curFn != nil && m.curFn.Ent != 0 && m.r.Entity(m.curFn.Ent).Flags&sem.EfStd != 0
 }
 
 func (m *Machine) abortSite() mir.Site {

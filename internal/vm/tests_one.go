@@ -52,9 +52,6 @@ func runOneTest(m *Machine, f *mir.Func, name string, timeout time.Duration, jso
 		if !jsonMode {
 			sink("stderr", []byte(fmt.Sprintf("%s: %s\n", diag.Prefix("panic"), p.Msg)))
 		}
-		if p.InStd {
-			return "fail", "panic: " + p.Msg, mir.Site{}, took, nil, nil
-		}
 		return "fail", "panic: " + p.Msg, p.Site, took, nil, nil
 	}
 	if u, isUnsupported := r.cerr.(*Unsupported); isUnsupported {

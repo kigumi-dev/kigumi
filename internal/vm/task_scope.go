@@ -62,6 +62,10 @@ func (m *Machine) driveDescendant(t *task, mark uint64) bool {
 		return false
 	}
 	ex := t.ex
+	if f := ex.failed; f != nil {
+		m.sh.sched.Unlock()
+		m.rethrow(f)
+	}
 	d := takeDescendant(&ex.lane[m.curLane], t, mark)
 	if d == nil {
 		d = takeDescendant(&ex.pool, t, mark)

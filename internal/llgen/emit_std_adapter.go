@@ -84,7 +84,7 @@ func (e *emitter) stdAdapterWith(fn sem.EntityID, sym string, bound int, value s
 		return sb.String()
 	}
 	if info := e.r.Fn(fn); info.Owner != 0 && len(vals) == 1 {
-		if res, ok := e.convertCall(&sb, fn, e.stdKey(fn), vals, e.r.Entity(info.Owner).Type, sig.Elem); ok {
+		if res, ok := e.convertCall(&sb, fn, e.stdKey(fn), vals, e.r.Entity(info.Owner).Type, result); ok {
 			sb.WriteString(finish(res))
 			return sb.String()
 		}

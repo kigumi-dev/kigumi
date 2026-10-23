@@ -36,11 +36,11 @@ func outputArtifactName(a *buildgraph.Artifact) string {
 	return a.Name
 }
 
-// claimOutputName case-folds name for case-insensitive filesystems; an artifactOutput FileRef is skipped since its Path mirrors the Artifact, not its own slot.
+// claimOutputName case-folds name for case-insensitive filesystems; only a generated or tool-produced file owns a slot in the output directory, so a literal input and an artifactOutput (whose Path mirrors the Artifact) never collide.
 func claimOutputName(g *buildgraph.Graph, name string) (string, bool) {
 	key := strings.ToLower(name)
 	for _, f := range g.Files {
-		if f.Kind != "artifactOutput" && strings.ToLower(f.Path) == key {
+		if (f.Kind == "generated" || f.Kind == "toolOutput") && strings.ToLower(f.Path) == key {
 			return f.Path, true
 		}
 	}

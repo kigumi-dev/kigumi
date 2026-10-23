@@ -7431,6 +7431,16 @@
     "status": "ok"
   },
   {
+    "key": "net.einprogress",
+    "signature": "fn() -\u003e i32",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "net.eintr",
     "signature": "fn() -\u003e i32",
     "has_body": true,

@@ -1,0 +1,28 @@
+-- src --
+import ffi from std/ffi
+
+let table: ffi.HandleTable[Int] = ffi.HandleTable.new()
+let mut hs = Array.empty[ffi.FfiHandle[Int]]()
+for i in 0..34 {
+    hs.push(table.insert(i))
+}
+print "inserted ${hs.len()}"
+let mut sum = 0
+for h in &hs {
+    sum += table.with(h, (v: &Int) => v + 0)
+}
+print "sum ${sum}"
+for h in hs {
+    _ = table.remove(h)
+}
+let again = table.insert(5)
+print "again ${table.with(&again, (v: &Int) => v + 0)}"
+_ = table.remove(again)
+_ = table.close()
+table.drop()
+print "done"
+-- stdout --
+inserted 34
+sum 561
+again 5
+done

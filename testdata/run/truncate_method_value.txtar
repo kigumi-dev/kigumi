@@ -1,0 +1,15 @@
+-- src --
+let w: u16 = 300
+let f = w.truncate[u8]
+print "${f()}"
+
+let n: i64 = -2
+let g = n.truncate[u32]
+print "${g()}"
+
+let h = w.truncate[u16]
+print "${h()}"
+-- stdout --
+44
+4294967294
+300

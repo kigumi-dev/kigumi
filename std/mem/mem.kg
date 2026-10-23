@@ -15,8 +15,8 @@ pub unsafe fn UnsafeCell[T: Copy].get(self) -> T
 /// duration of the call.
 pub unsafe fn UnsafeCell[T].set(self, value: T)
 
-/// Zeros region and no copy of it (`let b = a` owns its own bytes); survives the optimizer
-/// even right before drop/free, but promises nothing about registers, the stack, or reused memory.
+/// Zeros the bytes behind region, surviving the optimizer, but not registers, the stack or reused memory;
+/// a `let b = a` or by-value copy keeps its own bytes, a copy stored in or read from a container shares them.
 pub pure fn secureErase(region: &mut Bytes)
 
 /// Zeros region like secureErase, or AllocError when the allocator refuses

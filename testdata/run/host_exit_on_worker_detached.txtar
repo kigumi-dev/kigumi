@@ -1,0 +1,25 @@
+-- src --
+import task from std/task
+
+async fn leaver() -> Int {
+    print "worker exits"
+    host.exit(11)
+}
+
+async fn root() -> Int {
+    let l = task.spawn(leaver())
+    let mut i = 0
+    let mut acc = 0
+    for i < 2000000 {
+        acc += i % 7
+        i += 1
+    }
+    acc
+}
+
+let ex = task.threadPoolExecutor(2)
+print "result ${ex.runToCompletion(root())}"
+-- stdout --
+worker exits
+-- exit --
+11

@@ -36,7 +36,7 @@ func httpPost(rawURL string, body []byte) (int, error) {
 	}
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), httpRequestTimeout)
 	if err != nil {
-		return 0, dialTimeoutError(err)
+		return 0, dialError(err)
 	}
 	defer conn.Close()
 	req := "POST " + path + " HTTP/1.1\r\nHost: " + header + "\r\nContent-Type: text/plain\r\nContent-Length: " +
@@ -75,15 +75,6 @@ func writeHTTP(conn net.Conn, data []byte) error {
 		}
 	}
 	return nil
-}
-
-// dialTimeoutError matches connectSocket's poll(2) timeout wording; native never reaches SO_RCVTIMEO/SO_SNDTIMEO until after connect() succeeds.
-func dialTimeoutError(err error) error {
-	var ne net.Error
-	if errors.As(err, &ne) && ne.Timeout() {
-		return errors.New("connect timed out")
-	}
-	return err
 }
 
 // ioError renders a read/write failure like ffi.lastError(): EAGAIN's strerror text on timeout, else the errno's message capitalized to match strerror (Go's is lowercase).

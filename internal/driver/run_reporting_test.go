@@ -68,10 +68,13 @@ func TestRunTestsReportingWithSuiteTimeoutSkipsRest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("suite timeout: err=%v", err)
 	}
-	if code != 0 {
-		t.Fatalf("suite timeout: code=%d, want 0 (nothing ran to fail)", code)
+	if code != 1 {
+		t.Fatalf("suite timeout: code=%d, want 1 (a run that skipped tests is not green)", code)
 	}
 	if strings.Count(out.String(), "SKIP ") != 2 {
 		t.Fatalf("want both tests skipped:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "FAIL: 0 passed, 0 failed, 2 skipped") {
+		t.Fatalf("summary must not say ok when the exit code is 1:\n%s", out.String())
 	}
 }

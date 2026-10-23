@@ -1,12 +1,5 @@
-# The complete symbol surface a `--target x86_64-freestanding --sys none`
-# (or a hosted target with `--sys none`) archive may leave for the
-# embedder: libc calls rt_core.c makes directly, plus the rt_sys_*
-# boundary points (rt.h) an embedder may override with real ones. A new
-# runtime libc call or a changed rt_sys_* boundary must land here too, or
-# internal/driver's TestBuildFreestandingSymbolSet fails naming it.
-# memcpy, memmove, memset and memcmp are also what the compiler itself calls for a large copy or compare.
-# The __aeabi_*, __*di3, __multi3, _all*, _aull*, __rt_*, __dtoi64, __i64tod and __u64tod entries are compiler-rt (or MSVC runtime) helpers; _GLOBAL_OFFSET_TABLE_, __stack_pointer and __indirect_function_table are linker-provided.
-# docs/build_targets_v1.md documents this file as the contract.
+# Symbols a `--sys none` archive may leave for the embedder: rt_core.c's libc calls and rt.h's rt_sys_* points; a new one must land here or TestBuildFreestandingSymbolSet fails.
+# Compiler-rt and MSVC helpers, memcpy/memmove/memset/memcmp and linker-provided names are listed too.
 _GLOBAL_OFFSET_TABLE_
 __aeabi_d2f
 __aeabi_d2lz

@@ -4507,6 +4507,23 @@
       ]
     },
     {
+      "id": "run/borrow_field_assign",
+      "kind": "run",
+      "path": "testdata/run/borrow_field_assign.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_field_ownership",
       "kind": "run",
       "path": "testdata/run/borrow_field_ownership.txtar",
@@ -5386,6 +5403,25 @@
         "stderr",
         "exit"
       ]
+    },
+    {
+      "id": "run/cfn_extern_block_value",
+      "kind": "run",
+      "path": "testdata/run/cfn_extern_block_value.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
     },
     {
       "id": "run/cfnptr",
@@ -8281,6 +8317,25 @@
       }
     },
     {
+      "id": "run/ffi_with_address_shared_literal",
+      "kind": "run",
+      "path": "testdata/run/ffi_with_address_shared_literal.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
       "id": "run/field_ref_named_local",
       "kind": "run",
       "path": "testdata/run/field_ref_named_local.txtar",
@@ -9647,6 +9702,23 @@
       ]
     },
     {
+      "id": "run/fs_error_text_parity",
+      "kind": "run",
+      "path": "testdata/run/fs_error_text_parity.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fs_limits_modes",
       "kind": "run",
       "path": "testdata/run/fs_limits_modes.txtar",
@@ -10008,6 +10080,23 @@
       }
     },
     {
+      "id": "run/handle_table_many_inserts",
+      "kind": "run",
+      "path": "testdata/run/handle_table_many_inserts.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/handle_table_reuse_stale",
       "kind": "run",
       "path": "testdata/run/handle_table_reuse_stale.txtar",
@@ -10096,6 +10185,23 @@
       "id": "run/host_exit_on_worker",
       "kind": "run",
       "path": "testdata/run/host_exit_on_worker.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/host_exit_on_worker_detached",
+      "kind": "run",
+      "path": "testdata/run/host_exit_on_worker_detached.txtar",
       "mode": [
         "vm",
         "native"
@@ -12640,6 +12746,40 @@
       ]
     },
     {
+      "id": "run/net_http_connect_refused",
+      "kind": "run",
+      "path": "testdata/run/net_http_connect_refused.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/net_http_connect_sync_failure",
+      "kind": "run",
+      "path": "testdata/run/net_http_connect_sync_failure.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/net_port_url_checks",
       "kind": "run",
       "path": "testdata/run/net_port_url_checks.txtar",
@@ -13794,6 +13934,23 @@
       "skip": {
         "vm": "static-refusal"
       }
+    },
+    {
+      "id": "run/secure_erase_shared",
+      "kind": "run",
+      "path": "testdata/run/secure_erase_shared.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
     },
     {
       "id": "run/secure_erase_try",
@@ -14954,6 +15111,23 @@
       ]
     },
     {
+      "id": "run/text_trim_edge_longer",
+      "kind": "run",
+      "path": "testdata/run/text_trim_edge_longer.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/time_monotonic",
       "kind": "run",
       "path": "testdata/run/time_monotonic.txtar",
@@ -14991,6 +15165,23 @@
       "id": "run/truncate_contexts",
       "kind": "run",
       "path": "testdata/run/truncate_contexts.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/truncate_method_value",
+      "kind": "run",
+      "path": "testdata/run/truncate_method_value.txtar",
       "mode": [
         "vm",
         "native"

@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
-	"time"
 
 	"kigumi/internal/doc"
 )
@@ -101,10 +100,11 @@ func TestPublishMixedKeepsUserFile(t *testing.T) {
 	if err := doc.Publish(dir, map[string][]byte{"api2.html": []byte("v2")}, noValidate); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "api.html")); os.IsNotExist(err) {
-		// Either outcome is fine here.
-	} else if err != nil {
-		t.Fatal(err)
+	if _, err := os.Stat(filepath.Join(dir, "api.html")); !os.IsNotExist(err) {
+		t.Errorf("a page the new run no longer emits should be removed, stat err = %v", err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dir, "api2.html")); err != nil || string(b) != "v2" {
+		t.Errorf("api2.html: %q, %v", b, err)
 	}
 	if b, err := os.ReadFile(filepath.Join(dir, "README.md")); err != nil || string(b) != "user content" {
 		t.Errorf("README.md was touched on the second publish: %q, %v", b, err)
@@ -115,11 +115,14 @@ func TestPublishConcurrentStagingDoesNotCollide(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "site")
 	var mu sync.Mutex
 	var stagingDirs []string
+	var staged sync.WaitGroup
+	staged.Add(2)
 	start := make(chan struct{})
 	record := func(staging string) error {
 		mu.Lock()
 		stagingDirs = append(stagingDirs, staging)
 		mu.Unlock()
+		staged.Done()
 		<-start
 		return nil
 	}
@@ -132,15 +135,7 @@ func TestPublishConcurrentStagingDoesNotCollide(t *testing.T) {
 			errs[i] = doc.Publish(dir, map[string][]byte{"index.html": []byte("x")}, record)
 		}(i)
 	}
-	for {
-		mu.Lock()
-		n := len(stagingDirs)
-		mu.Unlock()
-		if n == 2 {
-			break
-		}
-		time.Sleep(time.Millisecond)
-	}
+	staged.Wait()
 	close(start)
 	wg.Wait()
 	if stagingDirs[0] == stagingDirs[1] {
@@ -156,5 +151,43 @@ func TestPublishValidationFailureLeavesDirUntouched(t *testing.T) {
 	}
 	if _, err := os.Stat(dir); !os.IsNotExist(err) {
 		t.Errorf("dir should not have been created, stat err = %v", err)
+	}
+}
+
+func TestPublishLeavesSiblingOldDirectory(t *testing.T) {
+	parent := t.TempDir()
+	keep := filepath.Join(parent, "site.old", "keep.txt")
+	if err := os.MkdirAll(filepath.Dir(keep), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(keep, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	site := filepath.Join(parent, "site")
+	for range 2 {
+		if err := doc.Publish(site, map[string][]byte{"index.html": []byte("one")}, noValidate); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if b, err := os.ReadFile(keep); err != nil || string(b) != "x" {
+		t.Errorf("an unrelated site.old directory was disturbed: %q, %v", b, err)
+	}
+	left, _ := filepath.Glob(filepath.Join(parent, "site.*"))
+	if len(left) != 1 {
+		t.Errorf("publish left stray directories behind: %v", left)
+	}
+}
+
+func TestPublishCreatesParentsWithPublicMode(t *testing.T) {
+	site := filepath.Join(t.TempDir(), "deep", "er", "site")
+	if err := doc.Publish(site, map[string][]byte{"index.html": []byte("one")}, noValidate); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(site)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o755 {
+		t.Errorf("fresh output directory mode = %o, want 755", got)
 	}
 }

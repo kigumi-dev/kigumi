@@ -1,0 +1,8 @@
+-- src --
+let h = host.net().http()
+match h.post("http://127.0.0.1:1/x", "hi") {
+    Ok(r) -> print "ok status=${r.status}"
+    Err(e) -> print "err: ${e.message()}"
+}
+-- stdout --
+err: Connection refused

@@ -1,6 +1,4 @@
-// Decodes one codepoint at s[i], the same rules utf8_valid checks; returns
-// the sequence length on success or 0 on any violation, so a caller can
-// tell exactly where a bad sequence starts.
+// Length of the codepoint at s[i] under utf8_valid's rules, or 0 when invalid.
 static int utf8_decode_one(const char* s, int64_t n, int64_t i, uint32_t* cp_out) {
     unsigned char c = s[i];
     if (c < 0x80) {
@@ -34,10 +32,7 @@ static int utf8_decode_one(const char* s, int64_t n, int64_t i, uint32_t* cp_out
     *cp_out = cp;
     return len;
 }
-// Lossy UTF-8 conversion for ffi.stringLossy: each byte that
-// doesn't start a valid sequence becomes its own U+FFFD, matching Go's
-// utf8.DecodeRuneInString fallback, so native agrees byte for byte with
-// the VM/interp Go paths.
+// Each byte that starts no valid sequence becomes its own U+FFFD, as Go's DecodeRuneInString does.
 static val utf8_lossy_val(const char* s, int64_t n) {
     buf b = {0};
     int64_t i = 0;

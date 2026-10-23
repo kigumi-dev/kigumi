@@ -18,7 +18,7 @@ type testFailure struct {
 
 func writeSummary(out io.Writer, passed, failed, skipped int, failures []testFailure) {
 	head := "ok"
-	if failed > 0 {
+	if failed > 0 || skipped > 0 {
 		head = "FAIL"
 	}
 	fmt.Fprintf(out, "%s: %d passed, %d failed, %d skipped\n", head, passed, failed, skipped)

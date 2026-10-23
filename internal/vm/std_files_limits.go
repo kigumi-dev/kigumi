@@ -66,7 +66,7 @@ func (m *Machine) registerFileReads() {
 	h["fs.Files.createWithMode"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		fh, err := os.OpenFile(m.resolvePath(pathText(a[1])), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, unixMode(deref(a[2]).i))
 		if err != nil {
-			return m.errMsg(err.Error())
+			return m.errMsg(hostshell.OSErrText(err))
 		}
 		file := m.r.Types.Node(m.resultPayload(fn)).Ent
 		return m.ok(mkRecord(file, []*obj{mkOpaque("Ptr", fh)}))
@@ -83,7 +83,7 @@ func (m *Machine) registerFileReads() {
 	}
 	h["fs.Files.removeDir"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		if err := syscall.Rmdir(m.resolvePath(pathText(a[1]))); err != nil {
-			return m.errMsg(err.Error())
+			return m.errMsg(hostshell.OSErrText(err))
 		}
 		return m.ok(unitObj)
 	}

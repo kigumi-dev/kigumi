@@ -58,6 +58,11 @@ fn eintr() -> i32 {
     4
 }
 
+/// errno(3) EINPROGRESS on this platform.
+fn einprogress() -> i32 {
+    36
+}
+
 /// send(2) flags that make a write to a closed peer fail with EPIPE instead of raising SIGPIPE. MSG_NOSIGNAL needs macOS 12.
 fn msgNoSignal() -> i32 {
     524288

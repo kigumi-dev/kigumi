@@ -83,12 +83,14 @@ static val cap_handle_table_insert(val a0, val a1) {
         }
     }
     if (index < 0) {
-        int64_t newcap = t->cap ? t->cap * 2 : 4;
-        handle_slot* ns = realloc(t->slots, (size_t)newcap * sizeof *ns);
-        if (!ns) rt_panic("out of memory");
-        for (int64_t i = t->cap; i < newcap; i++) ns[i] = (handle_slot){0};
-        t->slots = ns;
-        t->cap = newcap;
+        if (t->len == t->cap) {
+            int64_t newcap = t->cap ? t->cap * 2 : 4;
+            handle_slot* ns = realloc(t->slots, (size_t)newcap * sizeof *ns);
+            if (!ns) rt_panic("out of memory");
+            for (int64_t i = t->cap; i < newcap; i++) ns[i] = (handle_slot){0};
+            t->slots = ns;
+            t->cap = newcap;
+        }
         index = t->len++;
     }
     t->slots[index].occupied = 1;

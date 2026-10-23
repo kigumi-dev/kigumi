@@ -43,7 +43,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst, ic *instCode) {
 		loc[in.Dst] = v
 		return
 	case mir.OpRelease:
-		if v := loc[in.Args[0]]; v != nil && atomic.LoadInt32(&v.rc) > 0 {
+		if v := loc[in.Args[0]]; v != nil && atomic.LoadInt32(&v.rc) >= 0 {
 			m.dropChecked(fr, v)
 		}
 		return
@@ -52,7 +52,7 @@ func (m *Machine) exec(fr *frame, in *mir.Inst, ic *instCode) {
 		if f.Locals[in.Args[0]].Ent != 0 {
 			loc[in.Args[0]] = nil
 		}
-		if v != nil && atomic.LoadInt32(&v.rc) > 0 {
+		if v != nil && atomic.LoadInt32(&v.rc) >= 0 {
 			m.dropChecked(fr, v)
 		}
 		return

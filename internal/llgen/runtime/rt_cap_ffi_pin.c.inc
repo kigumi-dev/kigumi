@@ -11,9 +11,7 @@ static val cap_pin_with(val a0, val a1) {
     return rt_callv(a1, 1, arg);
 }
 static val cap_pin_drop(val a0) {
-    // mir now consumes self for a type's own drop (isOwnDrop in
-    // internal/mir/plan_args.go), so scope exit no longer re-enters
-    // here; the zero-guard just stays as a defensive no-op on repeat.
+    // The zero guard makes a repeated drop a no-op.
     int64_t* hf = &a0->u.rec.fields[0]->u.i;
     if (*hf) {
         rt_release((val)(intptr_t)*hf);
@@ -22,9 +20,7 @@ static val cap_pin_drop(val a0) {
     return rt_unit();
 }
 static val cap_pin_release(val a0) {
-    // release() (unlike drop) still lends self, so the caller's
-    // scope-exit drop runs after this; retain here keeps the
-    // extracted pointer alive through that drop.
+    // release lends self, so the caller's drop still runs; the retain keeps the pointer alive through it.
     rt_retain((val)(intptr_t)a0->u.rec.fields[0]->u.i);
     return rt_ptr((void*)(intptr_t)a0->u.rec.fields[0]->u.i);
 }

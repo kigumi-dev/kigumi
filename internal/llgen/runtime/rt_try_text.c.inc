@@ -157,8 +157,9 @@ static val try_text_replace(val s, val old, val repl) {
 }
 static val try_text_trim_edge(val s, val edge, int suffix) {
     int64_t n = s->u.s.len, m = edge->u.s.len;
+    if (m == 0 || m > n) return try_ok(rt_retain(s));
     const char* at = suffix ? s->u.s.data + n - m : s->u.s.data;
-    if (m == 0 || m > n || memcmp(at, edge->u.s.data, (size_t)m) != 0) return try_ok(rt_retain(s));
+    if (memcmp(at, edge->u.s.data, (size_t)m) != 0) return try_ok(rt_retain(s));
     val v = try_piece(suffix ? s->u.s.data : s->u.s.data + m, n - m);
     return v ? try_ok(v) : alloc_error();
 }

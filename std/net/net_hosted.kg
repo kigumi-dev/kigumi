@@ -92,11 +92,19 @@ fn connectSocket(s: i32, addr: *const u8, addrlen: u32, timeoutSeconds: i32) -> 
         _ = unsafe {
             fcntl(s, fcntlSetFl(), flags | oNonBlock())
         }
-        let immediate = unsafe {
+        let rc = unsafe {
             connect(s, addr, addrlen)
-        } == 0
-        let outcome = if immediate {
+        }
+        let code = if rc == 0 {
             0
+        } else {
+            ffi.errno()
+        }
+        let pending = code == einprogress() || code == eintr()
+        let outcome = if code == 0 {
+            0
+        } else if !pending {
+            code
         } else {
             let pbuf = unsafe {
                 malloc(8)

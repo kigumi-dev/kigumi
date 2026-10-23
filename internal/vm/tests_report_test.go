@@ -206,11 +206,12 @@ test "spins forever" {
 	}
 }
 
-func TestRunTestsReportingStdPanicReportsTheTestSite(t *testing.T) {
+func TestRunTestsReportingStdPanicReportsTheCallingLine(t *testing.T) {
 	src := `import test from std/test
 
 test "asserts" {
-    test.assert(false, "boom")
+    let x = 1
+    test.assert(false, "boom ${x}")
 }
 `
 	prog := buildRunnableProgram(t, src)
@@ -228,8 +229,8 @@ test "asserts" {
 		if err := json.Unmarshal([]byte(line), &ev); err != nil {
 			t.Fatalf("bad event line %q: %v", line, err)
 		}
-		if ev.Type == "testFail" && (ev.Line != 3 || strings.Contains(ev.File, "std/")) {
-			t.Errorf("testFail at %s:%d, want the test block at line 3 outside std", ev.File, ev.Line)
+		if ev.Type == "testFail" && (ev.Line != 5 || strings.Contains(ev.File, "std/")) {
+			t.Errorf("testFail at %s:%d, want the failing call at line 5 outside std", ev.File, ev.Line)
 		}
 	}
 }

@@ -1,0 +1,30 @@
+-- src --
+import fs from std/fs
+
+let files = host.files()
+
+fn at(name: String) -> fs.Path! {
+    fs.Path.fromString(name)
+}
+
+fn msg(r: Result[Void, Error]) -> String {
+    match r {
+        Ok(_) -> "ok"
+        Err(e) -> "err ${e.message()}"
+    }
+}
+
+files.mkdir(at("d1/inner")?)?
+print "removeDir missing: ${msg(files.removeDir(at("nope_dir")?))}"
+print "removeDir nonempty: ${msg(files.removeDir(at("d1")?))}"
+match files.createWithMode(at("no_such_dir/x.txt")?, 0o600) {
+    Ok(_) -> print "ok"
+    Err(e) -> print "err ${e.message()}"
+}
+files.writeText(at("f.txt")?, "x")?
+print "removeDir on file: ${msg(files.removeDir(at("f.txt")?))}"
+-- stdout --
+removeDir missing: err No such file or directory
+removeDir nonempty: err Directory not empty
+err No such file or directory
+removeDir on file: err Not a directory

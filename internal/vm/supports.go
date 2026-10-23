@@ -86,7 +86,12 @@ func (m *Machine) supportsInst(in *mir.Inst) string {
 	case mir.OpAsm:
 		return in.Op.String()
 	case mir.OpCallC:
-		// A CFn-typed value only ever comes from OpCFnPtr, naming a real Kigumi entity, so this is never a true foreign call.
+		return ""
+	case mir.OpCFnPtr, mir.OpFnItem:
+		e := m.r.Entity(in.Ent)
+		if _, lowered := m.p.ByEnt[in.Ent]; !lowered && e.Kind == sem.EntFn && m.r.Fn(in.Ent).Abi != "" {
+			return "foreign function " + e.Name
+		}
 		return ""
 	case mir.OpCall:
 		e := m.r.Entity(in.Ent)

@@ -1,0 +1,12 @@
+-- src --
+import text from std/text
+
+print text.trimSuffix("ab", "xyzw")
+print text.trimPrefix("ab", "xyzw")
+print text.trimSuffix("abcd", "cd")
+print text.trimPrefix("abcd", "ab")
+-- stdout --
+ab
+ab
+ab
+cd

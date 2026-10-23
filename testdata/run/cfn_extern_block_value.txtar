@@ -1,0 +1,13 @@
+-- engines --
+native
+-- src --
+extern(C) {
+    fn abs(x: i32) -> i32
+}
+
+let g: extern(C) fn(i32) -> i32 = abs
+print "before"
+print "${unsafe { g(-21) }}"
+-- stdout --
+before
+21

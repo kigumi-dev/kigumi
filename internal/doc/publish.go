@@ -22,6 +22,9 @@ type siteManifest struct {
 // replaced wholesale; a shared dir is updated path-by-path via its manifest.
 func Publish(dir string, files map[string][]byte, validate func(stagingDir string) error) error {
 	full := withManifest(files)
+	if err := os.MkdirAll(filepath.Dir(dir), 0o755); err != nil {
+		return errors.WrapErr(err, "create doc output parent")
+	}
 	staging, err := os.MkdirTemp(filepath.Dir(dir), filepath.Base(dir)+".staging-*")
 	if err != nil {
 		return errors.WrapErr(err, "create doc staging directory")
@@ -43,6 +46,9 @@ func Publish(dir string, files map[string][]byte, validate func(stagingDir strin
 	}
 	owned, hasManifest := readManifest(dir)
 	if isDedicated(dir, owned, hasManifest) {
+		if err := os.Chmod(staging, outputMode(dir)); err != nil {
+			return errors.WrapErr(err, "create doc staging directory")
+		}
 		return swapIn(dir, staging)
 	}
 	return overlay(dir, full, owned)
@@ -107,9 +113,20 @@ func isDedicated(dir string, owned []string, hasManifest bool) bool {
 	return !foreign
 }
 
+func outputMode(dir string) os.FileMode {
+	if info, err := os.Stat(dir); err == nil {
+		return info.Mode().Perm()
+	}
+	return 0o755
+}
+
 func swapIn(dir, staging string) error {
-	old := dir + ".old"
-	os.RemoveAll(old)
+	aside, err := os.MkdirTemp(filepath.Dir(dir), filepath.Base(dir)+".replaced-*")
+	if err != nil {
+		return errors.WrapErr(err, "move previous doc output aside")
+	}
+	defer os.RemoveAll(aside)
+	old := filepath.Join(aside, "previous")
 	if _, err := os.Stat(dir); err == nil {
 		if err := os.Rename(dir, old); err != nil {
 			return errors.WrapErr(err, "move previous doc output aside")
@@ -119,7 +136,6 @@ func swapIn(dir, staging string) error {
 		os.Rename(old, dir)
 		return errors.WrapErr(err, "publish doc site")
 	}
-	os.RemoveAll(old)
 	return nil
 }
 

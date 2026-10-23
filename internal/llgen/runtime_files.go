@@ -117,9 +117,7 @@ type RuntimeFile struct {
 // none" target keeps its real OS headers (driver.Target.Bare's doc).
 var freestandingOS = map[string]bool{"freestanding": true, "uefi": true}
 
-// RuntimeFiles includes rt_signal.c only for hosted POSIX OSes: sigaction
-// needs a POSIX <signal.h>, which freestanding/"--sys none" and
-// Windows/WASI lack.
+// RuntimeFiles includes rt_signal.c only for hosted POSIX OSes, which alone have <signal.h>.
 func RuntimeFiles(sys, os string) []RuntimeFile {
 	files := []RuntimeFile{{"rt.h", runtimeHeader}, {"rt_internal.h", runtimeInternalHeader}, {"rt_std_ops.h", runtimeStdOps}, {"rt_core.c", runtimeCore}, {"rt_float.c", runtimeFloat}, {"rt_sys.c", runtimeSys}}
 	files = append(files, capFiles...)

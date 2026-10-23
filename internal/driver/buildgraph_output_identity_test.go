@@ -1,6 +1,8 @@
 package driver_test
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -46,5 +48,21 @@ func TestBuildArtifactRejectsOutputNameCollision(t *testing.T) {
 	err := buildWith(t, root, out, program)
 	if err == nil || !strings.Contains(err.Error(), "collides") {
 		t.Fatalf("expected a duplicate-output refusal, got %v", err)
+	}
+}
+
+// TestBuildWriteMayReuseAnInputFileName checks that a module-root input and a generated output of the same name live in different directories.
+func TestBuildWriteMayReuseAnInputFileName(t *testing.T) {
+	t.Parallel()
+	root, out := t.TempDir(), t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "notes.txt"), []byte("input"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	program := "import build from std/build\n\nfn configure(b: build.Builder) -> Void! {\n" +
+		"    let input = b.file(\"notes.txt\")\n" +
+		"    let gen = b.write(\"notes.txt\", \"generated\")?\n" +
+		"}\n"
+	if err := buildWith(t, root, out, program); err != nil {
+		t.Fatalf("a literal input blocked a generated output: %v", err)
 	}
 }

@@ -1,0 +1,31 @@
+-- src --
+type Box = resource {
+    pub mut n Int
+    tag Int
+}
+
+fn Box.drop(move self) -> Void {
+    print "drop ${self.tag}"
+}
+
+fn Box.bump(mut self, k: Int) -> Void {
+    self.n = self.n + k
+}
+
+type Holder['a] = {
+    pub mut r &'a mut Box
+}
+
+fn main() -> Void! {
+    let mut a = Box { n: 1, tag: 1 }
+    let mut b = Box { n: 10, tag: 2 }
+    let mut h = Holder { r: &mut a }
+    h.r.bump(1)
+    h.r = &mut b
+    h.r.bump(5)
+    print "r=${h.r.n}"
+}
+-- stdout --
+r=15
+drop 2
+drop 1

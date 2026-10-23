@@ -32,7 +32,7 @@ func (c *borrowCheck) storeFlows(in Inst) []storeFlow {
 	switch in.Op {
 	case OpSetIndex, OpSetField:
 		v := in.Args[len(in.Args)-1]
-		if !c.elementHolder(c.f.Locals[v].Type) {
+		if !c.elementHolder(c.f.Locals[v].Type) && !c.borrowIntoHolderField(in, v) {
 			return nil
 		}
 		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}}}
@@ -40,6 +40,22 @@ func (c *borrowCheck) storeFlows(in Inst) []storeFlow {
 		return c.callFlows(in)
 	}
 	return nil
+}
+
+// borrowIntoHolderField reports a plain borrow (not an `&Interface` view, which lives in its frame) assigned to a field of a record that names a lifetime.
+func (c *borrowCheck) borrowIntoHolderField(in Inst, v LocalID) bool {
+	tt := c.p.R.Types
+	if in.Op != OpSetField || tt.Kind(c.f.Locals[v].Type) != sem.KRef {
+		return false
+	}
+	if tt.Kind(tt.Node(c.f.Locals[v].Type).Elem) == sem.KIface {
+		return false
+	}
+	rec := c.f.Locals[in.Args[0]].Type
+	if tt.Kind(rec) == sem.KRef {
+		rec = tt.Node(rec).Elem
+	}
+	return c.declaredLifetime(rec) != 0
 }
 
 // storeRoot resolves where a flow writes: the named local owning the place,

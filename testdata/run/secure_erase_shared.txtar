@@ -1,0 +1,38 @@
+-- src --
+import mem from std/mem
+
+type Holder = {
+    pub mut key Bytes
+}
+
+fn show(b: &Bytes) -> String {
+    let mut out = ""
+    for x in b {
+        out = "${out}${x},"
+    }
+    out
+}
+
+fn eraseCopy(b: Bytes) -> Void {
+    let mut own = b
+    mem.secureErase(&mut own)
+}
+
+let mut src = Bytes.fromArray(&Array.of[u8](1, 2, 3))
+let mut xs = Array.empty[Bytes]()
+xs.push(src)
+mem.secureErase(&mut src)
+print "src ${show(&src)} arr ${show(&xs[0])}"
+
+let mut h = Holder { key: Bytes.fromArray(&Array.of[u8](4, 5)) }
+let k = h.key
+mem.secureErase(&mut h.key)
+print "field ${show(&h.key)} read ${show(&k)}"
+
+let kept = Bytes.fromArray(&Array.of[u8](6, 7))
+eraseCopy(kept)
+print "by value ${show(&kept)}"
+-- stdout --
+src 0,0,0, arr 0,0,0,
+field 0,0, read 0,0,
+by value 6,7,
