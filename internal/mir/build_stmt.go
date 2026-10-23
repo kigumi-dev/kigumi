@@ -152,11 +152,15 @@ func (b *builder) assignStmt(s *hir.Stmt) {
 	if s.Compound {
 		cur := b.snapshot(b.loadPlace(p), nil, s.Place.Node, s.Expr)
 		r := b.expr(s.Expr)
+		t := s.Place.Type
+		if elem, ok := b.r.MutRefElem(t); ok {
+			t = elem
+		}
 		var out LocalID
 		if s.OpEnt != 0 {
-			out = b.emit(Inst{Op: OpCall, Dst: b.temp(s.Place.Type), Ent: s.OpEnt, Args: []LocalID{cur, r}, Node: s.Node})
+			out = b.emit(Inst{Op: OpCall, Dst: b.temp(t), Ent: s.OpEnt, Args: []LocalID{cur, r}, Node: s.Node})
 		} else {
-			out = b.emit(Inst{Op: OpBinary, Dst: b.temp(s.Place.Type), Str: s.OpText, Args: []LocalID{cur, r}, Node: s.Node})
+			out = b.emit(Inst{Op: OpBinary, Dst: b.temp(t), Str: s.OpText, Args: []LocalID{cur, r}, Node: s.Node})
 		}
 		b.storePlace(p, out)
 		return

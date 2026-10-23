@@ -60,7 +60,7 @@ fn payloadInLoopParam(b: Bag) {
 
 fn payloadIsInLoop(b: Bag) {
     for i in 0..2 {
-        if b.opt is Some(h) { //~ ERROR `b.opt` is moved on some paths
+        if b.opt is Some(h) { //~ ERROR `b.opt` was moved
             h.close()
         }
     }
@@ -330,7 +330,7 @@ fn isTakeAndClearField() {
 fn isTakeNoClearInLoop() {
     let o = Some(mkh(8))
     for i in 0..2 {
-        if o is Some(h) { //~ ERROR `o` is moved on some paths
+        if o is Some(h) { //~ ERROR `o` was moved
             h.close()
         }
     }
@@ -350,11 +350,12 @@ error[E2197]: `b.opt` was moved; it cannot be used again
    |             ^^^^^^
    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
-error[move-join-mismatch]: `b.opt` is moved on some paths but not others
+error[E2197]: `b.opt` was moved; it cannot be used again
   --> main.kg:60:21
    |
-60 |         if b.opt is Some(h) { //~ ERROR `b.opt` is moved on some paths
+60 |         if b.opt is Some(h) { //~ ERROR `b.opt` was moved
    |                     ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `b.pack.other` was moved; it cannot be used again
   --> main.kg:69:25
@@ -498,9 +499,10 @@ note: `b.other` is moved here
 276 |     let xs = Array.of(b.other)
     |              ^^^^^^^^^^^^^^^^
 
-error[move-join-mismatch]: `o` is moved on some paths but not others
+error[E2197]: `o` was moved; it cannot be used again
    --> main.kg:330:17
     |
-330 |         if o is Some(h) { //~ ERROR `o` is moved on some paths
+330 |         if o is Some(h) { //~ ERROR `o` was moved
     |                 ^^^^^^
+    = help: borrow it with `&` where it is used before the move, or make the move its last use
 

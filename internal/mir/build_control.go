@@ -61,7 +61,7 @@ func (b *builder) ifExpr(e *hir.Expr) LocalID {
 	b.releaseGuardMoves(moves)
 	b.scopes = b.scopes[:len(b.scopes)-1]
 	outer := b.scopes[len(b.scopes)-1]
-	outer.owned = append(outer.owned, bindings.owned...)
+	b.handOverBindings(outer, bindings)
 	if e.Else != nil {
 		b.assignValue(result, b.expr(e.Else), e.Node)
 	} else {

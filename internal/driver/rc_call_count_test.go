@@ -23,14 +23,14 @@ var rcCallSites = map[string]*regexp.Regexp{
 
 // Call sites of the count and cell runtime calls in the IR of every native run fixture, std included.
 var pinnedRCCalls = map[string]int{
-	"fixtures":         767,
-	"rt_retain":        5846,
-	"rt_release":       63995,
-	"rt_release_outer": 27611,
-	"rt_drop":          40318,
-	"rt_cell_init":     4261,
-	"rt_cell_take":     1578,
-	"rt_setfield_swap": 396,
+	"fixtures":         776,
+	"rt_retain":        5883,
+	"rt_release":       64273,
+	"rt_release_outer": 27954,
+	"rt_drop":          40365,
+	"rt_cell_init":     4279,
+	"rt_cell_take":     1586,
+	"rt_setfield_swap": 402,
 	"rt_setindex_swap": 78,
 }
 
@@ -63,6 +63,15 @@ var addedAfterBaseline = map[string]bool{
 	"defer_reserved_paths.txtar":                    true,
 	"defer_second_binding.txtar":                    true,
 	"exclusive_access_accepted.txtar":               true,
+	"is_consume_diverge_loop.txtar":                 true,
+	"impl_derive_at_declaration.txtar":              true,
+	"generic_move_self_builder.txtar":               true,
+	"compound_assign_through_mut_ref.txtar":         true,
+	"borrowed_callable_call.txtar":                  true,
+	"borrow_temp_scrutinee.txtar":                   true,
+	"borrow_mut_param_payloads.txtar":               true,
+	"borrow_hold_last_use.txtar":                    true,
+	"async_fn_field_method_value.txtar":             true,
 	"uninit_primitives.txtar":                       true,
 	"uninit_empty_read.txtar":                       true,
 	"truncate_table.txtar":                          true,

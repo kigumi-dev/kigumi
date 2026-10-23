@@ -38,6 +38,39 @@ func TestCowVecJoinHandlesMissingLeaves(t *testing.T) {
 	}
 }
 
+func TestCowVecJoinSharedPartsStayIndependent(t *testing.T) {
+	first := func(cur, x uint8) uint8 {
+		if cur != 0 {
+			return cur
+		}
+		return x
+	}
+	var a, b cowVec[uint8]
+	for l := range LocalID(10000) {
+		a.set(l, 1+uint8(l%7))
+	}
+	b.set(9999, 50)
+	if !b.joinIdent(&a, first) || b.get(5) != 6 || b.get(9999) != 50 {
+		t.Fatalf("join: b5=%d b9999=%d", b.get(5), b.get(9999))
+	}
+	if b.nodeAt(0) != a.nodeAt(0) {
+		t.Fatal("join copied a node the other side could share")
+	}
+	a.set(5, 100)
+	b.set(6, 200)
+	if b.get(5) != 6 || a.get(6) != 7 {
+		t.Fatalf("shared leaf written in place: b5=%d a6=%d", b.get(5), a.get(6))
+	}
+	c := b.clone()
+	var d cowVec[uint8]
+	d.joinIdent(&c, first)
+	c.set(7, 90)
+	d.set(8, 91)
+	if b.get(7) != 1+7%7 || d.get(7) != 1+7%7 || b.get(8) != 1+8%7 || c.get(8) != 1+8%7 {
+		t.Fatalf("shared node written in place: b7=%d d7=%d b8=%d c8=%d", b.get(7), d.get(7), b.get(8), c.get(8))
+	}
+}
+
 func TestCowVecEachVisitsSetEntriesInOrder(t *testing.T) {
 	var v cowVec[uint8]
 	for _, l := range []LocalID{9000, 3, 64, 4096} {

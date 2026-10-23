@@ -23,6 +23,8 @@ type ownerRef struct {
 	carried bool
 	// lifetime is the parameter lifetime a borrow into a parameter's referent may be returned under.
 	lifetime sem.EntityID
+	// temp marks a borrow of a call's result temporary, which lives only to the statement's end.
+	temp bool
 }
 
 // borrowInfo tracks every owner a holder might alias, not just one: an ambiguous
@@ -76,15 +78,16 @@ type borrowCheck struct {
 	curBlock    BlockID
 	loopReach   [][]bool
 	curIdx      int
+	keptTemp    map[LocalID]bool
 	carry       map[LocalID][]carrySite
 	carryIn     map[[2]LocalID][]bool
 	recvBorrows map[recvBorrowKey]*borrowInfo
 	callNode    syntax.NodeID
-	soleFrom    map[BlockID]BlockID
+	thread      *flagThread
 }
 
 func analyzeBorrows(p *Program, f *Func) {
-	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}}
+	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
 	c.collect()
 	if len(c.holders) == 0 {
 		return
@@ -140,6 +143,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 // and a holder outside realAfter waits only on its own release, so only what may drop a value conflicts.
 func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) {
 	c.checkCapture(in)
+	c.checkTempKept(in)
 	c.checkRecvArgs(in)
 	c.checkViewReuse(in, liveAfter)
 	c.checkSuspend(in, liveAfter)
@@ -166,6 +170,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 				in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet
 			name := c.f.Locals[o.owner].Name
 			switch {
+			case c.tempScopeEnd(in, holder, b, o):
 			case in.Op == OpDrop && in.EndScope:
 				c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is still borrowed when its scope ends here")
 			case moves:

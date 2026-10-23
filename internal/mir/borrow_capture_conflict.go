@@ -1,6 +1,10 @@
 package mir
 
-import "kigumi/internal/sem"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 // changes lists in-place writes and field moves; whole reassignment is left out since the closure keeps the old value.
 func (c *readCheck) changes() []moveEvent {
@@ -71,13 +75,22 @@ func (c *readCheck) escapesAt(in Inst, i int) bool {
 			}
 			idx--
 		}
-		return idx >= len(info.Params) || !c.p.R.NonEscapingParam(info.Params[idx])
+		return idx >= len(info.Params) || !c.p.R.NonEscapingParam(info.Params[idx]) && !c.lentParam(info.Params[idx])
 	case OpCallValue:
 		return i != 0
 	case OpSetField, OpSetIndex, OpCellSet, OpGlobalSet, OpNewCell, OpCallC, OpBuiltin, OpAsm, OpShell:
 		return true
 	}
 	return false
+}
+
+// lentParam reports a reference parameter without a lifetime, which the callee cannot keep past the call.
+func (c *readCheck) lentParam(prm sem.EntityID) bool {
+	t := c.p.R.Entity(prm).Type
+	if c.p.R.Types.Kind(t) != sem.KRef || c.p.R.Local(prm).Lifetime != 0 {
+		return false
+	}
+	return !slices.ContainsFunc(c.p.R.Types.Params(t), func(p sem.EntityID) bool { return c.p.R.TypeParam(p).IsLifetime })
 }
 
 func (c *readCheck) root(l LocalID) LocalID {

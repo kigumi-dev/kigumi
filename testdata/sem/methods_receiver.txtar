@@ -111,7 +111,7 @@ error[E701]: `r` is immutable
    |
 48 |     r.n = 3 //~ ERROR `r` is immutable
    |     ^
-   = help: declare `let mut r`
+   = help: annotate `r` as `&mut Buf`
 
 error[E515]: `push` takes `mut self` but `lb` is immutable
   --> lib/recv.kg:65:5

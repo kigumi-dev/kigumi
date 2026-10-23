@@ -1,0 +1,74 @@
+-- module --
+mir: planned
+-- src --
+type R = resource { pub id Int }
+
+fn R.drop(move self) {}
+
+fn eat(r: R) {}
+
+fn next(i: Int) -> Option[R] {
+    if i < 2 { Some(R { id: i }) } else { None }
+}
+
+fn eatsTwice() {
+    let mut i = 0
+    for {
+        let r = next(i)
+        i += 1
+        if r is Some(x) {
+            eat(x)
+            eat(x) //~ ERROR `x` was moved
+        } else {
+            break
+        }
+    }
+}
+
+fn scrutineeAfter() {
+    let mut i = 0
+    for i < 3 {
+        let r = next(i)
+        i += 1
+        if r is Some(x) { eat(x) } else { continue }
+        let again = r //~ ERROR `r` was moved
+    }
+}
+
+fn notDiverging() {
+    let o = next(0)
+    for i in 0..2 {
+        if o is Some(x) { //~ ERROR `o` was moved
+            eat(x)
+        } else {
+            eat(R { id: 9 })
+        }
+    }
+}
+-- expect --
+error[E2197]: `x` was moved; it cannot be used again
+  --> main.kg:18:17
+   |
+18 |             eat(x) //~ ERROR `x` was moved
+   |                 ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `x` is moved here
+  --> main.kg:17:17
+   |
+17 |             eat(x)
+   |                 ^
+
+error[E2197]: `r` was moved; it cannot be used again
+  --> main.kg:31:21
+   |
+31 |         let again = r //~ ERROR `r` was moved
+   |                     ^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+
+error[E2197]: `o` was moved; it cannot be used again
+  --> main.kg:38:17
+   |
+38 |         if o is Some(x) { //~ ERROR `o` was moved
+   |                 ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
+

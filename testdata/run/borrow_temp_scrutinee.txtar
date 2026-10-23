@@ -1,0 +1,142 @@
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type H = resource { pub r R, pub n Int }
+
+fn H.drop(move self) {
+    print "droph ${self.n}"
+}
+
+type P = { pub a Int, pub b String }
+
+fn mk(i: Int) -> R {
+    R { id: i }
+}
+
+fn mkh(i: Int) -> H {
+    H { r: R { id: i }, n: i }
+}
+
+fn opt(i: Int) -> Option[R] {
+    if i % 2 == 0 { Some(R { id: i }) } else { None }
+}
+
+fn whole() {
+    match &mk(1) { r -> print "whole ${r.id}" }
+    match &mkh(2).r { r -> print "field ${r.id}" }
+}
+
+fn payload() {
+    match &Some(mk(3)) {
+        Some(r) -> print "payload ${r.id}"
+        None -> {}
+    }
+    match &mkh(4) { H { r, n } -> print "parts ${r.id} ${n}" }
+    match &mk(5) { R { id } -> print "id ${id}" }
+    match &mkh(6).r { R { id } -> print "field id ${id}" }
+    match &P { a: 7, b: "s" } { P { a, b } -> print "plain ${a} ${b}" }
+}
+
+fn isForms() {
+    if &Some(mk(8)) is Some(r) { print "is ${r.id}" }
+    for i in 0..3 {
+        if &opt(i) is Some(r) { print "is some ${r.id}" } else { print "is none ${i}" }
+    }
+    if &Some(mk(9)) is Some(r) && r.id > 3 { print "and ${r.id}" }
+    if &Some(mk(2)) is Some(r) && r.id > 3 { print "and ${r.id}" } else { print "and else" }
+    let x = if &Some(mk(10)) is Some(r) { r.id } else { 0 }
+    print "is value ${x}"
+}
+
+fn wholeBehindAnd(c: Bool) {
+    if c && &mk(13) is r { print "whole and ${r.id}" } else { print "whole and else" }
+}
+
+fn loopHead() -> Int {
+    let mut i = 0
+    let mut t = 0
+    for &opt(i) is Some(r) {
+        t += r.id
+        i += 2
+        if i > 4 { break }
+    }
+    t
+}
+
+fn exits() -> Int {
+    for i in 0..4 {
+        match &opt(i) {
+            Some(r) -> { if r.id == 2 { break } }
+            None -> continue
+        }
+    }
+    match &Some(mk(11)) {
+        Some(r) if r.id > 20 -> 1
+        Some(r) -> return r.id
+        None -> 0
+    }
+}
+
+fn asValue() -> Int {
+    let v = match &mkh(12) { H { r, n } -> r.id + n }
+    print "value after"
+    v
+}
+
+whole()
+payload()
+isForms()
+wholeBehindAnd(true)
+wholeBehindAnd(false)
+print "loop ${loopHead()}"
+print "exits ${exits()}"
+print "value ${asValue()}"
+-- stdout --
+whole 1
+drop 1
+droph 2
+field 2
+drop 2
+payload 3
+drop 3
+parts 4 4
+droph 4
+drop 4
+id 5
+drop 5
+droph 6
+field id 6
+drop 6
+plain 7 s
+is 8
+drop 8
+is some 0
+drop 0
+is none 1
+is some 2
+drop 2
+and 9
+drop 9
+drop 2
+and else
+drop 10
+is value 10
+whole and 13
+drop 13
+whole and else
+drop 0
+drop 2
+drop 4
+loop 6
+drop 0
+drop 2
+drop 11
+exits 11
+droph 12
+drop 12
+value after
+value 24

@@ -389,7 +389,7 @@ fn lib.isTakeAndClear(%s: Slot) -> Void {
     %t14 = copy(%t19)
     jump b9
   b9:
-    drop(%h)
+    nop
     drop(%i)
     jump b3
 }

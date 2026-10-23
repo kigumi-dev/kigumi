@@ -12,6 +12,7 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 	// the arms (including early ones) drops a live temporary.
 	b.pushScope()
 	b.ownTemp(scrutinee)
+	b.ownBorrowedTemp(e.Args[0], scrutinee)
 	result := b.temp(e.Type)
 	join := b.newBlockAt()
 	for _, arm := range e.Arms {

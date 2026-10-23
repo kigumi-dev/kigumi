@@ -1,0 +1,62 @@
+-- src --
+type Res = resource { pub id Int }
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type S[T] = { pub v T, pub n Int }
+
+type Holder[T] = { pub mut s Option[S[T]] }
+
+fn S[T].same(move self) -> S[T] {
+    self
+}
+
+fn S[T].wrap(move self) -> Option[S[T]] {
+    Some(self)
+}
+
+fn S[T].pair(move self, x: Int) -> (S[T], Int) {
+    (self, x)
+}
+
+fn S[T].hold(move self) -> Holder[T] {
+    Holder { s: Some(self) }
+}
+
+fn S[T].bump(move self) -> S[T] {
+    S { v: move self.v, n: self.n + 1 }
+}
+
+fn free[T](s: S[T]) -> Option[S[T]] {
+    Some(s)
+}
+
+let a = S { v: Res { id: 1 }, n: 0 }.same().bump().bump()
+print "same n=${a.n} id=${a.v.id}"
+match S { v: Res { id: 2 }, n: 5 }.wrap() {
+    Some(s) -> print "wrap n=${s.n} id=${s.v.id}"
+    None -> print "none"
+}
+let (p, k) = S { v: Res { id: 3 }, n: 7 }.pair(9)
+print "pair n=${p.n} k=${k} id=${p.v.id}"
+let h = S { v: Res { id: 4 }, n: 1 }.hold()
+if h.s is Some(s) {
+    print "hold id=${s.v.id}"
+}
+if free(S { v: 8, n: 2 }) is Some(f) {
+    print "free v=${f.v}"
+}
+print "end"
+-- stdout --
+same n=2 id=1
+wrap n=5 id=2
+drop 2
+pair n=7 k=9 id=3
+hold id=4
+free v=8
+end
+drop 4
+drop 3
+drop 1

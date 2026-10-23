@@ -73,6 +73,9 @@ func (c *borrowCheck) selfLifetime() sem.EntityID {
 	}
 	var sole sem.EntityID
 	for _, p := range c.recvLifetimeParams(c.p.R.Fn(c.f.Ent)) {
+		if !c.p.R.TypeParam(p).IsLifetime {
+			continue
+		}
 		if sole != 0 {
 			return 0
 		}

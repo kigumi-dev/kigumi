@@ -1,0 +1,35 @@
+-- module --
+mir: planned
+-- src --
+type Res = resource { pub id Int }
+
+fn Res.drop(move self) {}
+
+type S[T] = { pub v T }
+
+fn S[T].twice(move self) -> (S[T], S[T]) {
+    (self, self) //~ ERROR `self` was moved
+}
+
+fn S[T].keep(self) -> Option[S[T]] {
+    Some(self) //~ ERROR
+}
+-- expect --
+error[E2197]: `self` was moved; it cannot be used again
+ --> main.kg:8:12
+  |
+8 |     (self, self) //~ ERROR `self` was moved
+  |            ^^^^
+  = help: borrow it with `&` where it is used before the move, or make the move its last use
+note: `self` is moved here
+ --> main.kg:8:6
+  |
+8 |     (self, self) //~ ERROR `self` was moved
+  |      ^^^^
+
+error[move-from-borrow]: `self` is borrowed by this method and cannot be moved out; take `move self`
+  --> main.kg:12:10
+   |
+12 |     Some(self) //~ ERROR
+   |          ^^^^
+

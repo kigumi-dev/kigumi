@@ -1,0 +1,81 @@
+-- module --
+mir: planned
+-- src --
+type E = A(Array[Int], Array[Int]) | B(p: Array[Int], q: Array[Int]) | C
+
+fn grab(e: &mut E) {}
+
+fn sameFieldTwice(e: &mut E) {
+    match e {
+        A(x, _) -> {
+            if e is A(z, _) { //~ ERROR `e` is exclusively borrowed //~ ERROR `e` is exclusively borrowed
+                z.push(1)
+            }
+            x.push(2)
+        }
+        _ -> {}
+    }
+}
+
+fn reassigned(e: &mut E) {
+    if e is B(p, q) {
+        e = C //~ ERROR `e` is exclusively borrowed
+        p.push(1)
+    }
+}
+
+fn wholeUse(e: &mut E) {
+    if e is A(x, y) {
+        grab(e) //~ ERROR `e` is exclusively borrowed
+        x.push(1)
+    }
+}
+-- expect --
+error[E2198]: `e` is exclusively borrowed and cannot be used here
+ --> main.kg:8:21
+  |
+8 |             if e is A(z, _) { //~ ERROR `e` is exclusively borrowed //~ ERROR `e` is exclusively borrowed
+  |                     ^^^^^^
+  = help: end the borrow first or use a copy
+note: `e` is borrowed here
+ --> main.kg:7:11
+  |
+7 |         A(x, _) -> {
+  |           ^
+
+error[E2198]: `e` is exclusively borrowed and cannot be used here
+ --> main.kg:8:23
+  |
+8 |             if e is A(z, _) { //~ ERROR `e` is exclusively borrowed //~ ERROR `e` is exclusively borrowed
+  |                       ^
+  = help: end the borrow first or use a copy
+note: `e` is borrowed here
+ --> main.kg:7:11
+  |
+7 |         A(x, _) -> {
+  |           ^
+
+error[E2198]: `e` is exclusively borrowed and cannot be used here
+  --> main.kg:19:9
+   |
+19 |         e = C //~ ERROR `e` is exclusively borrowed
+   |         ^
+   = help: end the borrow first or use a copy
+note: `e` is borrowed here
+  --> main.kg:18:15
+   |
+18 |     if e is B(p, q) {
+   |               ^
+
+error[E2198]: `e` is exclusively borrowed and cannot be used here
+  --> main.kg:26:9
+   |
+26 |         grab(e) //~ ERROR `e` is exclusively borrowed
+   |         ^^^^^^
+   = help: end the borrow first or use a copy
+note: `e` is borrowed here
+  --> main.kg:25:15
+   |
+25 |     if e is A(x, y) {
+   |               ^
+

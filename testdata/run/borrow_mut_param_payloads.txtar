@@ -1,0 +1,54 @@
+-- src --
+type E = A(Array[Int], Array[Int]) | B(p: Array[Int], q: Array[Int]) | C
+
+fn grow(e: &mut E) {
+    match e {
+        A(x, y) -> {
+            x.push(1)
+            y.push(2)
+        }
+        B { p, q } -> {
+            p.push(3)
+            q.push(4)
+        }
+        C -> {}
+    }
+}
+
+fn growIs(e: &mut E) {
+    if e is A(x, y) {
+        x.push(5)
+        y.push(6)
+    }
+}
+
+fn swapIn(e: &mut E) {
+    if e is B(p, q) {
+        let n = p.len()
+        q.push(n.toInt() || 0)
+    }
+}
+
+fn show(e: &E) -> String {
+    match e {
+        A(x, y) -> "A ${x.len()} ${y.len()}"
+        B { p, q } -> "B ${p.len()} ${q.len()}"
+        C -> "C"
+    }
+}
+
+let mut a = A(Array.empty[Int](), Array.of(9))
+grow(&mut a)
+growIs(&mut a)
+print show(&a)
+let mut b = B(Array.empty[Int](), Array.empty[Int]())
+grow(&mut b)
+swapIn(&mut b)
+print show(&b)
+let mut c = C
+grow(&mut c)
+print show(&c)
+-- stdout --
+A 2 3
+B 1 2
+C

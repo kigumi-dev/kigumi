@@ -1,0 +1,511 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+type Res = resource { pub mut id Int }
+
+fn Res.drop(move self) {}
+
+type Wrap = { pub f Future[Int], pub g Future[Int] }
+
+type H = { pub mut s String, pub mut n Int, pub mut r Res }
+
+async fn bump(r: &mut Res) -> Int {
+    r.id += 1
+    r.id
+}
+
+async fn peek(r: &Res) -> Int {
+    r.id
+}
+
+fn rOf(h: &H) -> &Res {
+    &h.r
+}
+
+async fn wrapperStillHolds() -> Int {
+    let mut x = Res { id: 1 }
+    let mut y = Res { id: 2 }
+    let w = Wrap { f: bump(&mut x), g: bump(&mut y) }
+    let v = await w.f //~ ERROR is still live across this `await`
+    y.id = 10 //~ ERROR `y` is exclusively borrowed
+    v
+}
+
+async fn movedOutThenWriteBefore() -> Int {
+    let mut x = Res { id: 1 }
+    let w = Wrap { f: bump(&mut x), g: peek(&x) } //~ ERROR `x` is exclusively borrowed
+    let f = move w.f
+    x.id = 3 //~ ERROR `x` is exclusively borrowed
+    await f //~ ERROR a borrow of `x` is still live across this `await`
+}
+
+fn joinWriteBeforeLastUse(c: Bool) -> Int {
+    let mut h = H { s: "s", n: 1, r: Res { id: 1 } }
+    let a = if c { rOf(&h) } else { &h.r }
+    h.r = Res { id: 2 } //~ ERROR `h` is borrowed and cannot be mutated here
+    a.id
+}
+
+async fn containerUsedAfter() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    let n = fs.len()
+    if n == 1 { 1 } else { 0 }
+}
+
+async fn mappedFutures() -> Int {
+    let mut x = Res { id: 1 }
+    let xs = Array.of(1, 2)
+    let fs = xs.map((i: &Int) => peek(&x))
+    x.id = 50 //~ ERROR `x` is exclusively borrowed
+    fs.len().toInt() || 0
+}
+
+type W1 = { pub f Future[Int] }
+
+fn id2[T](a: T) -> T {
+    a
+}
+
+fn W1.take(move self) -> Future[Int] {
+    self.f
+}
+
+fn popF(fs: &mut Array[Future[Int]]) -> Future[Int]? {
+    fs.takeAt(0)
+}
+
+async fn takenOut() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let f = fs.takeAt(0)
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    match f {
+        Some(g) -> await g
+        None -> 0
+    }
+}
+
+async fn takenOutWriteInArm() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let f = fs.takeAt(0)
+    match f {
+        Some(g) -> {
+            x.id = 10 //~ ERROR `x` is exclusively borrowed
+            await g
+        }
+        None -> 0
+    }
+}
+
+async fn takenThroughRef() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let r = &mut fs
+    let f = r.takeAt(0)
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    match f {
+        Some(g) -> await g
+        None -> 0
+    }
+}
+
+async fn takenByHelper() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let f = popF(&mut fs)
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    match f {
+        Some(g) -> await g
+        None -> 0
+    }
+}
+
+async fn spawnedField() -> Int {
+    let mut x = Res { id: 1 }
+    let w = W1 { f: bump(&mut x) }
+    let t = task.spawn(w.f)
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    await t
+}
+
+async fn passedField() -> Int {
+    let mut x = Res { id: 1 }
+    let w = W1 { f: bump(&mut x) }
+    let t = id2(w.f)
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    await t
+}
+
+async fn movedSelf() -> Int {
+    let mut x = Res { id: 1 }
+    let w = W1 { f: bump(&mut x) }
+    let f = w.take()
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    await f
+}
+
+fn callRef[F: Fn[fn(Int) -> Int]](f: &F, x: Int) -> Int {
+    f(x)
+}
+
+fn closureWriteWhileBorrowed() -> Int {
+    let mut q = Res { id: 5 }
+    let g = (x: Int) => x + q.id
+    let m = &g
+    q.id = 100 //~ ERROR `q` is shared with a closure that may still run
+    callRef(m, 1)
+}
+
+fn closureMoveWhileBorrowed() -> Int {
+    let q = Res { id: 5 }
+    let g = (x: Int) => x + q.id
+    let m = &g
+    let q2 = move q //~ ERROR `q` is shared with a closure that may still run
+    let n = m(1)
+    n + q2.id
+}
+
+fn closureCopiedBorrow() -> Int {
+    let mut q = Res { id: 5 }
+    let g = (x: Int) => x + q.id
+    let m = &g
+    let m2 = m
+    q.id = 100 //~ ERROR `q` is shared with a closure that may still run
+    m2(1)
+}
+
+async fn forMovedOut() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let mut gs = Array.empty[Future[Int]]()
+    for f in fs {
+        gs.push(f)
+    }
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    let g = gs.takeAt(0)
+    match g {
+        Some(h) -> await h
+        None -> 0
+    }
+}
+
+async fn forMovedThroughRef() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let mut gs = Array.empty[Future[Int]]()
+    let r = &mut gs
+    for f in fs {
+        r.push(f)
+    }
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    let g = gs.takeAt(0)
+    match g {
+        Some(h) -> await h
+        None -> 0
+    }
+}
+
+async fn forMovedLenBefore() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let mut gs = Array.empty[Future[Int]]()
+    for f in fs {
+        gs.push(f)
+    }
+    let n = gs.len()
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    let g = gs.takeAt(0)
+    match g {
+        Some(h) -> await h + (n.toInt() || 0)
+        None -> 0
+    }
+}
+
+async fn forMovedPayloadField() -> Int {
+    let mut x = Res { id: 1 }
+    let mut ws = Array.empty[W1]()
+    ws.push(W1 { f: bump(&mut x) })
+    let mut gs = Array.empty[Future[Int]]()
+    for W1 { f } in ws {
+        gs.push(f)
+    }
+    x.id = 10 //~ ERROR `x` is exclusively borrowed
+    gs.len().toInt() || 0
+}
+
+type Node = { pub mut v Res, pub mut kids Array[Node] }
+
+fn Node.first(self) -> &Res {
+    &self.v
+}
+
+fn refUsedAfterLoop() -> Int {
+    let mut n = Node { v: Res { id: 1 }, kids: Array.empty[Node]() }
+    let f = n.first()
+    n.v = Res { id: 2 } //~ ERROR `n` is borrowed and cannot be mutated here
+    let mut s = 0
+    for k in &n.kids {
+        s += k.v.id
+    }
+    s + f.id
+}
+-- expect --
+error[E1290]: a borrow of `x` is still live across this `await`
+  --> main.kg:28:13
+   |
+28 |     let v = await w.f //~ ERROR is still live across this `await`
+   |             ^^^^^^^^^
+
+error[E2198]: `y` is exclusively borrowed and cannot be used here
+  --> main.kg:29:5
+   |
+29 |     y.id = 10 //~ ERROR `y` is exclusively borrowed
+   |     ^^^^
+   = help: end the borrow first or use a copy
+note: `y` is borrowed here
+  --> main.kg:27:13
+   |
+27 |     let w = Wrap { f: bump(&mut x), g: bump(&mut y) }
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1290]: a borrow of `x` is still live across this `await`
+  --> main.kg:38:5
+   |
+38 |     await f //~ ERROR a borrow of `x` is still live across this `await`
+   |     ^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:37:5
+   |
+37 |     x.id = 3 //~ ERROR `x` is exclusively borrowed
+   |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:35:13
+   |
+35 |     let w = Wrap { f: bump(&mut x), g: peek(&x) } //~ ERROR `x` is exclusively borrowed
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:35:45
+   |
+35 |     let w = Wrap { f: bump(&mut x), g: peek(&x) } //~ ERROR `x` is exclusively borrowed
+   |                                             ^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:35:28
+   |
+35 |     let w = Wrap { f: bump(&mut x), g: peek(&x) } //~ ERROR `x` is exclusively borrowed
+   |                            ^^^^^^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:44:5
+   |
+44 |     h.r = Res { id: 2 } //~ ERROR `h` is borrowed and cannot be mutated here
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:43:24
+   |
+43 |     let a = if c { rOf(&h) } else { &h.r }
+   |                        ^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:52:5
+   |
+52 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+   |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:51:5
+   |
+51 |     fs.push(bump(&mut x))
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:61:5
+   |
+61 |     x.id = 50 //~ ERROR `x` is exclusively borrowed
+   |     ^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:60:21
+   |
+60 |     let fs = xs.map((i: &Int) => peek(&x))
+   |                     ^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:84:5
+   |
+84 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+   |     ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:82:5
+   |
+82 |     fs.push(bump(&mut x))
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+  --> main.kg:98:13
+   |
+98 |             x.id = 10 //~ ERROR `x` is exclusively borrowed
+   |             ^^^^
+   = help: end the borrow first or use a copy
+note: `x` is borrowed here
+  --> main.kg:94:5
+   |
+94 |     fs.push(bump(&mut x))
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:111:5
+    |
+111 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:108:5
+    |
+108 |     fs.push(bump(&mut x))
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:123:5
+    |
+123 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:121:5
+    |
+121 |     fs.push(bump(&mut x))
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:134:5
+    |
+134 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:132:26
+    |
+132 |     let w = W1 { f: bump(&mut x) }
+    |                          ^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:142:5
+    |
+142 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:140:26
+    |
+140 |     let w = W1 { f: bump(&mut x) }
+    |                          ^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:150:5
+    |
+150 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:148:26
+    |
+148 |     let w = W1 { f: bump(&mut x) }
+    |                          ^^^^^^
+
+error[move-while-borrowed]: `q` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:162:5
+    |
+162 |     q.id = 100 //~ ERROR `q` is shared with a closure that may still run
+    |     ^^^^
+
+error[move-while-borrowed]: `q` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:170:19
+    |
+170 |     let q2 = move q //~ ERROR `q` is shared with a closure that may still run
+    |                   ^
+
+error[move-while-borrowed]: `q` is shared with a closure that may still run, so it cannot be moved or changed here
+   --> main.kg:180:5
+    |
+180 |     q.id = 100 //~ ERROR `q` is shared with a closure that may still run
+    |     ^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:192:5
+    |
+192 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:190:9
+    |
+190 |         gs.push(f)
+    |         ^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:209:5
+    |
+209 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:207:9
+    |
+207 |         r.push(f)
+    |         ^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:226:5
+    |
+226 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:223:9
+    |
+223 |         gs.push(f)
+    |         ^^^^^^^^^
+
+error[E2198]: `x` is exclusively borrowed and cannot be used here
+   --> main.kg:242:5
+    |
+242 |     x.id = 10 //~ ERROR `x` is exclusively borrowed
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:240:9
+    |
+240 |         gs.push(f)
+    |         ^^^^^^^^^
+
+error[E2198]: `n` is borrowed and cannot be mutated here
+   --> main.kg:255:5
+    |
+255 |     n.v = Res { id: 2 } //~ ERROR `n` is borrowed and cannot be mutated here
+    |     ^^^
+    = help: end the borrow first or use a copy
+note: `n` is borrowed here
+   --> main.kg:254:13
+    |
+254 |     let f = n.first()
+    |             ^^^^^^^^
+

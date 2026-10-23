@@ -4,7 +4,7 @@ import "kigumi/internal/sem"
 
 // checkImmediateCaptures: a capBorrow closure's owners must stay untouched from its creation to the call it feeds.
 func checkImmediateCaptures(p *Program, f *Func) {
-	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}}
+	c := &borrowCheck{p: p, f: f, holders: map[LocalID]*borrowInfo{}, reported: map[reportKey]int{}, keptTemp: map[LocalID]bool{}}
 	// The main pass already reported what collect finds.
 	c.quiet = true
 	c.collect()

@@ -32,6 +32,15 @@ func (r *Result) checkImpl(id EntityID, self TypeID, impl ImplAssert) {
 		rangeVis = r.Entities[ifaceEnt].Vis
 	}
 	res := r.conforms(self, impl.Iface, e.Pkg)
+	if name := r.deriveIface(impl.Iface); name != "" {
+		why := r.deriveBlocker(id, name)
+		switch {
+		case why != "":
+			res = conformResult{missing: why}
+		case !res.ok && !r.mod.derived && r.requestDerive(self, impl.Iface):
+			return
+		}
+	}
 	if !res.ok {
 		if len(r.typeDecl(id).Params) > 0 {
 			r.errAt(e.File, impl.Node, cImplGenericUnsat, e.Name, impl.Iface, r.paramNames(r.typeDecl(id).Params), res.missing)

@@ -26,6 +26,16 @@ func (r *Result) chainKnownFnRefs(file FileID, expr syntax.NodeID) []EntityID {
 		return nil
 	case syntax.Paren:
 		return r.chainKnownFnRefs(file, t.View(expr).AsParen().Inner().ID())
+	case syntax.MemberExpr:
+		if call, ok := r.Files[file].Calls[expr]; ok && call.Kind == CallMethodValue {
+			return []EntityID{call.Callee}
+		}
+		return nil
+	case syntax.BracketExpr:
+		if ent := r.Files[file].Uses[expr]; ent != 0 && r.Entities[ent].Kind == EntFn {
+			return []EntityID{ent}
+		}
+		return nil
 	case syntax.Ident:
 	default:
 		return nil

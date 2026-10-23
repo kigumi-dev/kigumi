@@ -1,0 +1,105 @@
+-- module --
+mir: planned
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {}
+
+type H = resource { pub r R, pub n Int }
+
+fn mk(i: Int) -> R {
+    R { id: i }
+}
+
+fn mkh(i: Int) -> H {
+    H { r: R { id: i }, n: i }
+}
+
+fn whole() -> Int {
+    let k = match &mk(1) { r -> r } //~ ERROR `k` keeps a borrow of a temporary
+    k.id
+}
+
+fn payload() -> Int {
+    let k = match &Some(mk(2)) { //~ ERROR `k` keeps a borrow of a temporary
+        Some(r) -> r
+        None -> return 0
+    }
+    k.id
+}
+
+fn viaIs() -> Int {
+    let k = if &Some(mk(3)) is Some(r) { r } else { return 0 } //~ ERROR `k` keeps a borrow of a temporary
+    k.id
+}
+
+fn parts() -> Int {
+    let k = match &mkh(4) { H { r, n } -> r } //~ ERROR `k` keeps a borrow of a temporary
+    k.id
+}
+
+fn behindAnd(c: Bool) -> Int {
+    if c && &Some(mk(7)) is Some(r) { r.id } else { 0 } //~ ERROR `r` keeps a borrow of a temporary that the right side of `&&` creates
+}
+
+fn usedInside() -> Int {
+    let n = match &Some(mk(5)) {
+        Some(r) -> r.id
+        None -> 0
+    }
+    let m = if &Some(mkh(6)) is Some(h) { h.r.id } else { 0 }
+    n + m
+}
+
+async fn tick(n: Int) -> Int {
+    n
+}
+
+async fn acrossAwait() -> Int {
+    let mut t = 0
+    match &mk(8) {
+        r -> {
+            let n = r.id
+            t += await tick(n) //~ ERROR a borrow of a temporary is still live across this `await`
+        }
+    }
+    t
+}
+
+-- expect --
+error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:16:9
+   |
+16 |     let k = match &mk(1) { r -> r } //~ ERROR `k` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:21:9
+   |
+21 |     let k = match &Some(mk(2)) { //~ ERROR `k` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:29:9
+   |
+29 |     let k = if &Some(mk(3)) is Some(r) { r } else { return 0 } //~ ERROR `k` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:34:9
+   |
+34 |     let k = match &mkh(4) { H { r, n } -> r } //~ ERROR `k` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `r` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:39:34
+   |
+39 |     if c && &Some(mk(7)) is Some(r) { r.id } else { 0 } //~ ERROR `r` keeps a borrow of a temporary that the right side of `&&` creates
+   |                                  ^
+
+error[E1290]: a borrow of a temporary is still live across this `await`
+  --> main.kg:60:18
+   |
+60 |             t += await tick(n) //~ ERROR a borrow of a temporary is still live across this `await`
+   |                  ^^^^^^^^^^^^
+

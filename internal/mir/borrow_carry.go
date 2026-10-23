@@ -153,12 +153,10 @@ func (c *borrowCheck) carriedResultSource(in Inst, recvIdx int) (*borrowInfo, bo
 	}
 	var found []*borrowInfo
 	for _, s := range c.callSlots(c.p.R.Fn(in.Ent), in.Args, recvIdx) {
-		t := c.f.Locals[s.arg].Type
-		if s.exact == 0 || c.p.R.Types.Kind(s.exact) == sem.KRef || c.resultMayCarryLifetime(t) || !c.mayCarry(ret, t) {
-			continue
-		}
-		if b, ok := c.holders[s.arg]; ok && !slices.Contains(found, b) {
-			found = append(found, b)
+		for _, b := range c.slotCarry(s, ret) {
+			if !slices.Contains(found, b) {
+				found = append(found, b)
+			}
 		}
 	}
 	switch len(found) {
@@ -172,4 +170,18 @@ func (c *borrowCheck) carriedResultSource(in Inst, recvIdx int) (*borrowInfo, bo
 		c.merge(sink, b)
 	}
 	return sink, true
+}
+
+// carriedArg is what an argument carries into a result that may keep it; a closure built here
+// carries what it borrows from its captures.
+func (c *borrowCheck) carriedArg(a LocalID) (*borrowInfo, bool) {
+	if b, ok := c.holders[a]; ok {
+		return b, true
+	}
+	if def := c.definition(a); def != nil && def.Op == OpClosure && c.p.R.Entity(def.Ent).Kind == sem.EntClosure {
+		if b := c.deferredCaptures(def); b != nil {
+			return b, true
+		}
+	}
+	return nil, false
 }

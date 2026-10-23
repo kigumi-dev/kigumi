@@ -1,0 +1,58 @@
+-- module --
+mir: planned
+-- src --
+type H = { pub s String, pub n Int }
+
+fn sOf(h: &H) -> &String {
+    &h.s
+}
+
+fn mkh(i: Int) -> H {
+    H { s: "h${i}", n: i }
+}
+
+type P = { pub x Int, pub y Int }
+
+fn yOf(p: &P) -> &Int {
+    &p.y
+}
+
+fn pickI(n: &Int) -> &Int {
+    n
+}
+
+fn mkn(i: Int) -> Int {
+    i
+}
+
+fn copyRecord() -> Int {
+    let y = yOf(&P { x: 1, y: 2 }) //~ ERROR `y` keeps a borrow of a temporary
+    y + 0
+}
+
+fn scalar() -> Int {
+    let v = pickI(&mkn(3))
+    v + 1
+}
+
+fn kept() -> usize {
+    let s = sOf(&mkh(1)) //~ ERROR `s` keeps a borrow of a temporary
+    s.len()
+}
+
+fn inStatement() -> usize {
+    sOf(&mkh(2)).len()
+}
+-- expect --
+error[E2235]: `y` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:26:9
+   |
+26 |     let y = yOf(&P { x: 1, y: 2 }) //~ ERROR `y` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `s` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:36:9
+   |
+36 |     let s = sOf(&mkh(1)) //~ ERROR `s` keeps a borrow of a temporary
+   |         ^
+

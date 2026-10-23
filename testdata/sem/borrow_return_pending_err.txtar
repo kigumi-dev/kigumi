@@ -67,33 +67,3 @@ note: `h` is borrowed here
 28 |     let a = rOf(&h)
    |                 ^^
 
-error[E2198]: `h` is borrowed and cannot be mutated here
-  --> main.kg:37:5
-   |
-37 |     h.r = R { id: 2 }
-   |     ^^^
-   = help: end the borrow first or use a copy
-note: `h` is borrowed here
-  --> main.kg:35:17
-   |
-35 |     let a = rOf(&h)
-   |                 ^^
-
-error[E2198]: `h` is borrowed and cannot be mutated here
-  --> main.kg:44:13
-   |
-44 |     let m = h.rMut()
-   |             ^
-   = help: end the borrow first or use a copy
-note: `h` is borrowed here
-  --> main.kg:42:17
-   |
-42 |     let a = rOf(&h)
-   |                 ^^
-
-error[move-while-borrowed]: `h` is borrowed and cannot be moved or dropped here
-  --> main.kg:52:14
-   |
-52 |     let h2 = h
-   |              ^
-

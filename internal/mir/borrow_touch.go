@@ -13,7 +13,7 @@ import (
 // field-chain borrow is checked by field, not by the temp it borrows.
 func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, exact bool) {
 	switch in.Op {
-	case OpField:
+	case OpField, OpPayload:
 		if c.chainedOnly(in.Dst) {
 			return false, nil, true
 		}

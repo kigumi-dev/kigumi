@@ -111,5 +111,28 @@ func (c *borrowCheck) captureInfo(l LocalID, def *Inst) *borrowInfo {
 			c.merge(s, b)
 		}
 	}
+	c.merge(s, c.deferredCaptures(def))
 	return s
+}
+
+// deferredCaptures is what a closure returning a Future or a Task keeps borrowed:
+// the locals it captures without owning, which the value it returns may still reach.
+func (c *borrowCheck) deferredCaptures(def *Inst) *borrowInfo {
+	info := c.p.R.Closure(def.Ent)
+	if !c.holdsAsync(info.Ret) || len(info.Captures) != len(def.Args) {
+		return nil
+	}
+	out := &borrowInfo{hasOwner: true, node: def.Node}
+	for i, cp := range info.Captures {
+		if cp.Mode == sem.CapCopy || cp.Mode == sem.CapMove || cp.Mode == sem.CapRetain {
+			continue
+		}
+		if root, path, exact, ok := c.projectionPlace(def.Args[i]); ok {
+			out.owners = append(out.owners, ownerRef{owner: root, mut: cp.Mode != sem.CapRead, path: path, exact: exact})
+		}
+	}
+	if len(out.owners) == 0 {
+		return nil
+	}
+	return out
 }

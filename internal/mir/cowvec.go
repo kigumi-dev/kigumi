@@ -78,37 +78,105 @@ func (v *cowVec[T]) clone() cowVec[T] {
 	return cowVec[T]{top: slices.Clone(v.top), id: cowOwners.Add(1)}
 }
 
-// join replaces each entry with f(entry, other's entry) and reports a change; leaves both share are skipped.
-func (v *cowVec[T]) join(o *cowVec[T], f func(cur, other T) T) bool {
+// join replaces each entry with f(entry, other's entry) and reports a change; f(x, x) must be x.
+func (v *cowVec[T]) join(o *cowVec[T], f func(cur, other T) T) bool { return v.joinNodes(o, f, false) }
+
+// joinIdent is join for an f with zero as identity on either side: what o lacks is skipped, what v lacks is taken.
+func (v *cowVec[T]) joinIdent(o *cowVec[T], f func(cur, other T) T) bool {
+	return v.joinNodes(o, f, true)
+}
+
+// joinNodes shares o's leaves and nodes where the result equals them, so o takes a fresh id as clone does.
+func (v *cowVec[T]) joinNodes(o *cowVec[T], f func(cur, other T) T, ident bool) bool {
+	if v.id == 0 {
+		v.id = cowOwners.Add(1)
+	}
+	n := len(o.top)
+	if !ident {
+		n = max(n, len(v.top))
+	}
 	changed := false
-	var empty cowLeaf[T]
-	for t := range max(len(v.top), len(o.top)) {
-		for c := range cowNodeSize {
-			vl, ol := v.leafAt(t, c), o.leafAt(t, c)
-			if vl == ol {
-				continue
-			}
-			if ol == nil {
-				ol = &empty
-			}
-			for i, x := range ol.v {
-				l := LocalID(t*cowSpan + c*cowLeafSize + i)
-				cur := v.get(l)
-				if j := f(cur, x); j != cur {
-					v.set(l, j)
-					changed = true
-				}
-			}
+	for t := range n {
+		vn, on := v.nodeAt(t), o.nodeAt(t)
+		if vn == on || ident && on == nil {
+			continue
 		}
+		out, dirty := v.joinLeaves(vn, on, f, ident)
+		if !dirty {
+			continue
+		}
+		changed = true
+		for t >= len(v.top) {
+			v.top = append(v.top, nil)
+		}
+		switch {
+		case on != nil && out == on.leaf:
+			v.top[t] = on
+		case vn != nil && vn.owner == v.id:
+			vn.leaf = out
+		default:
+			v.top[t] = &cowNode[T]{owner: v.id, leaf: out}
+		}
+	}
+	if changed {
+		o.id = cowOwners.Add(1)
 	}
 	return changed
 }
 
-func (v *cowVec[T]) leafAt(t, c int) *cowLeaf[T] {
-	if t >= len(v.top) || v.top[t] == nil {
+func (v *cowVec[T]) joinLeaves(vn, on *cowNode[T], f func(cur, other T) T, ident bool) (out [cowNodeSize]*cowLeaf[T], dirty bool) {
+	if vn != nil {
+		out = vn.leaf
+	}
+	for c := range cowNodeSize {
+		vl, ol := out[c], on.leafOf(c)
+		if vl == ol {
+			continue
+		}
+		cur, other := vl.values(), ol.values()
+		j := cur
+		switch {
+		case cur == other || ident && other == [cowLeafSize]T{}:
+		case ident && cur == [cowLeafSize]T{}:
+			j = other
+		default:
+			for i, x := range other {
+				j[i] = f(cur[i], x)
+			}
+		}
+		switch {
+		case ol != nil && j == other:
+			out[c] = ol
+		case j == cur:
+		case vl != nil && vl.owner == v.id:
+			vl.v = j
+		default:
+			out[c] = &cowLeaf[T]{owner: v.id, v: j}
+		}
+		dirty = dirty || j != cur
+	}
+	return out, dirty
+}
+
+func (v *cowVec[T]) nodeAt(t int) *cowNode[T] {
+	if t >= len(v.top) {
 		return nil
 	}
-	return v.top[t].leaf[c]
+	return v.top[t]
+}
+
+func (n *cowNode[T]) leafOf(c int) *cowLeaf[T] {
+	if n == nil {
+		return nil
+	}
+	return n.leaf[c]
+}
+
+func (l *cowLeaf[T]) values() [cowLeafSize]T {
+	if l == nil {
+		return [cowLeafSize]T{}
+	}
+	return l.v
 }
 
 // each visits the entries that are set.

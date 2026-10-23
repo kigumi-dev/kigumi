@@ -1,5 +1,7 @@
 package mir
 
+import "kigumi/internal/sem"
+
 func capturedHolders(p *Program, f *Func, place func(LocalID) capturedPlace) map[LocalID][]capturedPlace {
 	return holdersFrom(p, f, func(in Inst) []capturedPlace {
 		var direct []LocalID
@@ -45,7 +47,7 @@ func holdersFrom(p *Program, f *Func, direct func(Inst) []capturedPlace) map[Loc
 				if in.Op == OpSetField || in.Op == OpSetIndex {
 					dst = in.Args[0]
 				}
-				if dst == 0 || p.R.IsCopy(f.Locals[dst].Type) {
+				if dst == 0 || p.R.IsCopy(f.Locals[dst].Type) && p.R.Types.Kind(f.Locals[dst].Type) != sem.KRef {
 					continue
 				}
 				for _, a := range in.Args {

@@ -15,11 +15,14 @@ const (
 	ownMaybe
 )
 
-// joinOwn merges two states at a block entry: a move on either side is a
+// joinOwn merges two states at a block entry: a move against a value is a
 // conflict, an unassigned side only makes the value conditional.
 func joinOwn(a, b ownState) ownState {
 	if a == b {
 		return a
+	}
+	if a == ownUninit && b == ownMoved || a == ownMoved && b == ownUninit {
+		return ownMoved
 	}
 	if a == ownMoved || b == ownMoved || a == ownConflict || b == ownConflict {
 		return ownConflict
@@ -67,7 +70,7 @@ func analyzeOwnership(p *Program, f *Func) {
 		return
 	}
 	a := &owner{p: p, f: f, pl: pl, tracked: tracked, in: make([]*dstate, len(f.Blocks)),
-		reported: map[syntax.NodeID]bool{}, defNode: map[LocalID]syntax.NodeID{}}
+		reported: map[syntax.NodeID]bool{}, defNode: map[LocalID]syntax.NodeID{}, thread: &flagThread{f: f}}
 	entry := newDstate()
 	for _, prm := range f.Params {
 		if tracked[prm] {
@@ -91,9 +94,15 @@ func (a *owner) solve(start BlockID) {
 		bid := work[0]
 		work = work[1:]
 		out := a.transfer(bid, cloneD(a.in[bid]), false)
+		if a.thread.allThreaded(bid) {
+			continue
+		}
 		for _, succ := range a.f.Blocks[bid].Term.Targets {
 			if a.merge(succ, out) {
 				work = append(work, succ)
+			}
+			if to, ok := a.thread.target(bid, succ); ok && a.merge(to, a.transfer(succ, cloneD(out), false)) {
+				work = append(work, to)
 			}
 		}
 	}
@@ -132,6 +141,7 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			// backend's free already walks an aggregate's fields and skips
 			// a moved-out (null) one, so the fields still there are
 			// released the same way a whole value's would be.
+			in.Emptied = report && a.emptied(l, st)
 			st.val.set(l, ownUninit)
 			continue
 		case OpMove:

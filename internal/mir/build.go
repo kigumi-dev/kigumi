@@ -48,14 +48,16 @@ type builder struct {
 	// condIs holds the patterns of the `is` tests a condition's `&&` chain needs; isMoves holds the places their bindings take, moved on the true branch only.
 	condIs  map[*hir.Pat]bool
 	isMoves []guardMove
-	p       *Program
-	r       *sem.Result
-	fn      *Func
-	cur     BlockID
-	locals  map[sem.EntityID]LocalID
-	scopes  []*scope
-	loops   []*loopCtx
-	ret     sem.TypeID
+	// shortRHS counts the `&&` right operands being lowered, which may never run.
+	shortRHS int
+	p        *Program
+	r        *sem.Result
+	fn       *Func
+	cur      BlockID
+	locals   map[sem.EntityID]LocalID
+	scopes   []*scope
+	loops    []*loopCtx
+	ret      sem.TypeID
 	// argFixups holds pending scalar &mut write-backs for the call being built.
 	argFixups []argFixup
 	cancelled *cancelPath

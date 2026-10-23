@@ -1,0 +1,78 @@
+-- src --
+fn shared(c: &Int) {
+    c += 1 //~ ERROR `c` is immutable
+}
+
+fn captured(c: &mut Int) {
+    let f = () => {
+        c += 1 //~ ERROR closure cannot capture the borrow `c`
+    }
+    f()
+}
+
+fn wrongType(c: &mut Int) {
+    c += 1.5 //~ ERROR
+}
+
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {}
+
+fn writeThroughShared() {
+    let x = R { id: 1 }
+    let r = &x
+    r.id = 2 //~ ERROR `r` is immutable
+    match &R { id: 3 } {
+        q -> {
+            q.id = 4 //~ ERROR `q` is immutable
+        }
+    }
+}
+
+fn rebind() {
+    let x = 1
+    let y = 2
+    let r = &x
+    r = &y //~ ERROR `r` is immutable
+}
+-- expect --
+error[E701]: `c` is immutable
+ --> main/main.kg:2:5
+  |
+2 |     c += 1 //~ ERROR `c` is immutable
+  |     ^
+  = help: annotate `c` as `&mut Int`
+
+error[E412]: closure cannot capture the borrow `c`
+ --> main/main.kg:7:9
+  |
+7 |         c += 1 //~ ERROR closure cannot capture the borrow `c`
+  |         ^
+
+error[E403]: float literal `1.5` cannot be `Int`
+  --> main/main.kg:13:10
+   |
+13 |     c += 1.5 //~ ERROR
+   |          ^^^
+
+error[E701]: `r` is immutable
+  --> main/main.kg:23:5
+   |
+23 |     r.id = 2 //~ ERROR `r` is immutable
+   |     ^
+   = help: annotate `r` as `&mut R`
+
+error[E701]: `q` is immutable
+  --> main/main.kg:26:13
+   |
+26 |             q.id = 4 //~ ERROR `q` is immutable
+   |             ^
+   = help: annotate `q` as `&mut R`
+
+error[E701]: `r` is immutable
+  --> main/main.kg:35:5
+   |
+35 |     r = &y //~ ERROR `r` is immutable
+   |     ^
+   = help: declare `let mut r`
+

@@ -83,6 +83,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 			got = c.adopt(c.literalNode(s.Init), defaultOf(c.vars.resolve(got)))
 		}
 	}
+	c.rejectTempBorrowLet(s.Init)
 	if s.Else != 0 {
 		c.letElse(n, s, got)
 		return

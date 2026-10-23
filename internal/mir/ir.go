@@ -112,6 +112,8 @@ type Inst struct {
 	NoTrap bool
 	// Rest marks the OpMove and OpDrop that empty a scrutinee a pattern moved a resource out of.
 	Rest bool
+	// Emptied marks an OpDrop of a record whose every non-Copy field was moved out on every path.
+	Emptied bool
 	// FullEnd numbers the full expression this instruction ends (see Local.FullExpr).
 	FullEnd int32
 	// Prim/Prov are zero unless Ent is a registry-covered std call.

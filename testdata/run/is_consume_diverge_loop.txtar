@@ -1,0 +1,152 @@
+-- src --
+type R = resource { pub id Int }
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Stop = { n Int }
+
+fn Stop.message(self) -> String {
+    "stop ${self.n}"
+}
+
+fn eat(r: R) {
+    print "eat ${r.id}"
+}
+
+fn next(i: Int) -> Option[R] {
+    if i < 2 { Some(R { id: i }) } else { None }
+}
+
+fn viaBreak() -> Int {
+    let mut i = 0
+    for {
+        let r = next(i)
+        i += 1
+        if r is Some(x) { eat(x) } else { break }
+    }
+    i
+}
+
+fn viaContinue() -> Int {
+    let mut i = 0
+    let mut seen = 0
+    for i < 4 {
+        let r = next(i)
+        i += 1
+        if r is Some(x) { eat(x) } else { continue }
+        seen += 1
+    }
+    seen
+}
+
+fn viaReturn() -> Int {
+    let mut i = 0
+    for {
+        let r = next(i)
+        i += 1
+        if r is Some(x) { eat(x) } else { return i * 10 }
+    }
+}
+
+fn viaFail() -> Int! {
+    let mut i = 0
+    for {
+        let r = next(i)
+        i += 1
+        if r is Some(x) { eat(x) } else { fail Stop { n: i } }
+    }
+}
+
+fn viaTemp() -> Int {
+    let mut i = 0
+    for {
+        i += 1
+        if next(i - 1) is Some(x) { eat(x) } else { break }
+    }
+    i
+}
+
+fn viaElse() -> Int {
+    let mut i = 0
+    let mut kept = 0
+    for i < 3 {
+        let r = next(i)
+        i += 1
+        if r is Some(x) {
+            eat(x)
+        } else {
+            kept += 1
+            continue
+        }
+    }
+    kept
+}
+
+fn opt(i: Int) -> Option[R] {
+    if i % 2 == 0 { Some(R { id: i }) } else { None }
+}
+
+fn nestedContinue(start: Int) -> Int {
+    let mut n = 0
+    let mut after = 0
+    for n < 3 {
+        n += 1
+        let r = opt(start + n)
+        if r is Some(x) { if n == 2 { eat(x) } else { print "skip"; continue } }
+        after += 1
+    }
+    after
+}
+
+print "break ${viaBreak()}"
+print "continue ${viaContinue()}"
+print "return ${viaReturn()}"
+match viaFail() {
+    Ok(n) -> print "ok ${n}"
+    Err(e) -> print "fail ${e.message()}"
+}
+print "temp ${viaTemp()}"
+print "else ${viaElse()}"
+print "nested ${nestedContinue(0)}"
+print "nested ${nestedContinue(1)}"
+-- stdout --
+eat 0
+drop 0
+eat 1
+drop 1
+break 3
+eat 0
+drop 0
+eat 1
+drop 1
+continue 2
+eat 0
+drop 0
+eat 1
+drop 1
+return 30
+eat 0
+drop 0
+eat 1
+drop 1
+fail stop 3
+eat 0
+drop 0
+eat 1
+drop 1
+temp 3
+eat 0
+drop 0
+eat 1
+drop 1
+else 1
+eat 2
+drop 2
+nested 3
+skip
+drop 2
+skip
+drop 4
+nested 1

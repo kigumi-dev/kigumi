@@ -1,0 +1,34 @@
+-- src --
+import task from std/task
+
+type P = { pub k Int }
+
+fn P.blocking(self, x: Int) -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(later(x + self.k))
+}
+
+async fn later(x: Int) -> Int {
+    x
+}
+
+type W = { pub f fn(Int) -> Int }
+
+async fn go() -> Int {
+    let p = P { k: 10 }
+    let w = W { f: p.blocking } //~ ERROR `runToCompletion` cannot run inside an `async fn`
+    w.f(1)
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> main/main.kg:18:20
+   |
+18 |     let w = W { f: p.blocking } //~ ERROR `runToCompletion` cannot run inside an `async fn`
+   |                    ^^^^^^^^^^
+   = help: `await` the future instead
+note: drives a new root task here
+  --> main/main.kg:7:5
+   |
+ 7 |     ex.runToCompletion(later(x + self.k))
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

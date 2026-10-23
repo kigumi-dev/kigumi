@@ -1,0 +1,50 @@
+-- src --
+fn sharedMut[F: FnMut[fn(Int) -> Int]](f: &F, x: Int) -> Int {
+    f(x) //~ ERROR `F` is only `FnMut`
+}
+
+fn mutOnce[F: FnOnce[fn(Int) -> Int]](f: &mut F, x: Int) -> Int {
+    f(x) //~ ERROR `F` is only `FnOnce`
+}
+
+fn sharedAssigning() -> Int {
+    let mut t = 0
+    let mut h = (x: Int) => {
+        t += x
+        t
+    }
+    let r = &h
+    r(1) //~ ERROR the closure assigns `t`
+}
+
+fn notCallable(n: &Int) -> Int {
+    n(1) //~ ERROR is not callable
+}
+-- expect --
+error[E2233]: `&F` cannot be called through this borrow: `F` is only `FnMut`
+ --> main/main.kg:2:5
+  |
+2 |     f(x) //~ ERROR `F` is only `FnMut`
+  |     ^^^
+  = help: call an `Fn` through `&`, an `FnMut` through `&mut`, and an `FnOnce` by value
+
+error[E2233]: `&mut F` cannot be called through this borrow: `F` is only `FnOnce`
+ --> main/main.kg:6:5
+  |
+6 |     f(x) //~ ERROR `F` is only `FnOnce`
+  |     ^^^
+  = help: call an `Fn` through `&`, an `FnMut` through `&mut`, and an `FnOnce` by value
+
+error[E2233]: `&closure fn(Int) -> Int` cannot be called through this borrow: the closure assigns `t`; it is `FnMut`
+  --> main/main.kg:16:5
+   |
+16 |     r(1) //~ ERROR the closure assigns `t`
+   |     ^^^
+   = help: call an `Fn` through `&`, an `FnMut` through `&mut`, and an `FnOnce` by value
+
+error[E500]: `&Int` is not callable
+  --> main/main.kg:20:5
+   |
+20 |     n(1) //~ ERROR is not callable
+   |     ^^^
+

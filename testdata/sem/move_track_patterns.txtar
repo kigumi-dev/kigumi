@@ -54,7 +54,7 @@ fn isTwice(o: Res?) {
     if o is Some(c) {
         c.close()
     }
-    if o is Some(c) { //~ ERROR `o` is moved on some paths but not others
+    if o is Some(c) { //~ ERROR `o` was moved
         c.close()
     }
 }
@@ -208,11 +208,12 @@ error[E2197]: `o` was moved; it cannot be used again
    |         ^^^^^^
    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
-error[move-join-mismatch]: `o` is moved on some paths but not others
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:54:13
    |
-54 |     if o is Some(c) { //~ ERROR `o` is moved on some paths but not others
+54 |     if o is Some(c) { //~ ERROR `o` was moved
    |             ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 
 error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:64:9

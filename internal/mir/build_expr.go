@@ -70,6 +70,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return b.pipe(e)
 	case hir.Is:
 		v := b.expr(e.Args[0])
+		b.borrowedIsTemp(e, v)
 		return b.isExpr(e.Pat, v)
 	case hir.Call, hir.Intrinsic, hir.Variant, hir.MethodCall, hir.StaticCall, hir.ValueCall:
 		return b.call(e)

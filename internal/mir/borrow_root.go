@@ -8,7 +8,7 @@ import (
 )
 
 // projectionPlace follows a temporary read out of a value back to its named local, with the field chain
-// (root-first); an index, payload or unbox step cuts the chain there, marking it inexact.
+// (root-first); an index or unbox step cuts the chain there, marking it inexact.
 func (c *borrowCheck) projectionPlace(l LocalID) (root LocalID, path []int, exact bool, ok bool) {
 	return c.walkPlace(l, false)
 }
@@ -43,6 +43,9 @@ func (c *borrowCheck) throughRef(root LocalID, path []int, exact, mut bool) *bor
 	return out
 }
 
+// payloadStep keeps payload i apart from field i in a path; payloads of different variants share a step.
+func payloadStep(i int) int { return -1 - i }
+
 func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, path []int, exact bool, ok bool) {
 	exact = true
 	for {
@@ -57,7 +60,10 @@ func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, pa
 		case OpField:
 			path = append([]int{in.Index}, path...)
 			l = in.Args[0]
-		case OpPayload, OpIndex, OpUnbox:
+		case OpPayload:
+			path = append([]int{payloadStep(in.Index)}, path...)
+			l = in.Args[0]
+		case OpIndex, OpUnbox:
 			path, exact = nil, false
 			l = in.Args[0]
 		case OpCopy:

@@ -1,0 +1,74 @@
+-- src --
+type Res = resource { pub mut id Int }
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn callRef[F: Fn[fn(Int) -> Int]](f: &F, x: Int) -> Int {
+    f(x)
+}
+
+fn callMut[F: FnMut[fn(Int) -> Int]](f: &mut F, x: Int) -> Int {
+    f(x)
+}
+
+fn twice[F: FnMut[fn(Int) -> Int]](f: &mut F) -> Int {
+    f(1) + f(2)
+}
+
+fn callFn(f: &fn(Int) -> Int, x: Int) -> Int {
+    f(x)
+}
+
+fn callFnMut(f: &mut fn(Int) -> Int, x: Int) -> Int {
+    f(x)
+}
+
+fn dbl(x: Int) -> Int {
+    x * 2
+}
+
+fn run() {
+    let r = Res { id: 5 }
+    let g = (x: Int) => x + r.id
+    print "ref ${callRef(&g, 1)} ${callRef(&g, 2)}"
+    let shared = &g
+    print "local ${shared(3)} ${g(4)}"
+    let mut q = Res { id: 1 }
+    let mut h = (x: Int) => {
+        q.id += x
+        q.id
+    }
+    print "mut ${callMut(&mut h, 3)} ${twice(&mut h)}"
+    let m = &mut h
+    print "via ${m(10)}"
+    let mut p: fn(Int) -> Int = dbl
+    print "fn ${callFn(&p, 5)} ${callFnMut(&mut p, 6)}"
+    print "end"
+}
+
+fn borrowThenWrite() -> Int {
+    let mut q = Res { id: 7 }
+    let g = (x: Int) => x + q.id
+    let m = &g
+    let n = callRef(m, 1)
+    q.id = 70
+    n + q.id
+}
+
+run()
+print "after"
+print "write ${borrowThenWrite()}"
+-- stdout --
+ref 6 7
+local 8 9
+mut 4 12
+via 17
+fn 10 12
+end
+drop 17
+drop 5
+after
+drop 70
+write 78

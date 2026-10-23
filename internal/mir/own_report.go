@@ -22,6 +22,7 @@ type owner struct {
 	fieldMv  map[LocalID]bool
 	payLine  map[[2]int]bool
 	cellDefs map[LocalID]*Inst
+	thread   *flagThread
 }
 
 // merge joins a predecessor's exit state into a block; it reports

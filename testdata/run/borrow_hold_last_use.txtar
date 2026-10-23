@@ -1,0 +1,253 @@
+-- src --
+import task from std/task
+
+type Res = resource { pub mut id Int }
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Wrap = { pub f Future[Int] }
+
+type H = { pub mut s String, pub mut n Int, pub mut r Res }
+
+async fn bump(r: &mut Res) -> Int {
+    r.id += 1
+    r.id
+}
+
+fn wrap(f: Future[Int]) -> Wrap {
+    Wrap { f: f }
+}
+
+fn sOf(h: &H) -> &String {
+    &h.s
+}
+
+fn rOf(h: &H) -> &Res {
+    &h.r
+}
+
+fn mkh(i: Int) -> H {
+    H { s: "h${i}", n: i, r: Res { id: i * 100 } }
+}
+
+async fn wrapperMovedOut() -> Int {
+    let mut x = Res { id: 1 }
+    let w = wrap(bump(&mut x))
+    let v = await w.f
+    x.id = 10
+    v + x.id
+}
+
+fn joinedRef(c: Bool) -> Int {
+    let mut h = mkh(1)
+    let a = if c { rOf(&h) } else { &h.r }
+    print "joined ${a.id}"
+    h.r = Res { id: 7 }
+    h.n += 1
+    h.r.id + h.n
+}
+
+fn callRefLastUse() -> Int {
+    let mut h = mkh(2)
+    let a = rOf(&h)
+    print "call ${a.id}"
+    h.r = Res { id: 9 }
+    let h2 = h
+    h2.r.id
+}
+
+async fn pushedThenWrite() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let n = fs.len()
+    x.id = 20
+    if n == 1 { x.id } else { 0 }
+}
+
+fn tempCall() -> usize {
+    sOf(&mkh(3)).len() + (rOf(&mkh(4)).id.toUsize() || 0)
+}
+
+type P = { pub x Int, pub y Int }
+
+fn yOf(p: &P) -> &Int {
+    &p.y
+}
+
+fn literalTemps() -> Int {
+    let a = yOf(&P { x: 1, y: 2 }) + 0
+    let b = rOf(&H { s: "abc", n: 0, r: Res { id: 7 } }).id
+    let c = sOf(&H { s: "abcd", n: 0, r: Res { id: 8 } }).len().toInt() || 0
+    a + b + c
+}
+
+fn id2[T](a: T) -> T {
+    a
+}
+
+fn Wrap.take(move self) -> Future[Int] {
+    self.f
+}
+
+fn popF(fs: &mut Array[Future[Int]]) -> Future[Int]? {
+    fs.takeAt(0)
+}
+
+async fn takenThenWrite() -> Int {
+    let mut x = Res { id: 1 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let f = fs.takeAt(0)
+    let v = match f {
+        Some(g) -> await g
+        None -> 0
+    }
+    x.id = 30
+    v + x.id
+}
+
+async fn helperTakenThenWrite() -> Int {
+    let mut x = Res { id: 2 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let f = popF(&mut fs)
+    let v = match f {
+        Some(g) -> await g
+        None -> 0
+    }
+    x.id = 40
+    v + x.id
+}
+
+async fn spawnedFieldThenWrite() -> Int {
+    let mut x = Res { id: 3 }
+    let w = wrap(bump(&mut x))
+    let t = task.spawn(w.f)
+    let v = await t
+    x.id = 50
+    v + x.id
+}
+
+async fn passedFieldThenWrite() -> Int {
+    let mut x = Res { id: 4 }
+    let w = wrap(bump(&mut x))
+    let v = await id2(w.f)
+    x.id = 60
+    v + x.id
+}
+
+async fn takenSelfThenWrite() -> Int {
+    let mut x = Res { id: 5 }
+    let w = wrap(bump(&mut x))
+    let v = await w.take()
+    x.id = 70
+    v + x.id
+}
+
+async fn forMovedThenAwaited() -> Int {
+    let mut x = Res { id: 6 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let mut gs = Array.empty[Future[Int]]()
+    for f in fs {
+        gs.push(f)
+    }
+    let g = gs.takeAt(0)
+    let v = match g {
+        Some(h) -> await h
+        None -> 0
+    }
+    x.id = 80
+    v + x.id
+}
+
+async fn forMovedThenDropped() -> Int {
+    let mut x = Res { id: 7 }
+    let mut fs = Array.empty[Future[Int]]()
+    fs.push(bump(&mut x))
+    let mut gs = Array.empty[Future[Int]]()
+    for f in fs {
+        gs.push(f)
+    }
+    x.id = 90
+    x.id
+}
+
+type Node = { pub mut v Res, pub mut kids Array[Node] }
+
+fn Node.first(self) -> &Res {
+    &self.v
+}
+
+fn refBeforeLoop() -> Int {
+    let mut n = Node { v: Res { id: 110 }, kids: Array.empty[Node]() }
+    n.kids.push(Node { v: Res { id: 120 }, kids: Array.empty[Node]() })
+    let f = n.first()
+    print "first ${f.id}"
+    n.v = Res { id: 111 }
+    let mut s = 0
+    for k in &n.kids {
+        s += k.v.id
+    }
+    s + n.v.id
+}
+
+let ex = task.currentThreadExecutor()
+print "wrapper ${ex.runToCompletion(wrapperMovedOut())}"
+print "join ${joinedRef(true)} ${joinedRef(false)}"
+print "callref ${callRefLastUse()}"
+print "pushed ${ex.runToCompletion(pushedThenWrite())}"
+print "temp ${tempCall()}"
+print "literal ${literalTemps()}"
+print "taken ${ex.runToCompletion(takenThenWrite())}"
+print "helper ${ex.runToCompletion(helperTakenThenWrite())}"
+print "spawned ${ex.runToCompletion(spawnedFieldThenWrite())}"
+print "passed ${ex.runToCompletion(passedFieldThenWrite())}"
+print "self ${ex.runToCompletion(takenSelfThenWrite())}"
+print "for awaited ${ex.runToCompletion(forMovedThenAwaited())}"
+print "for dropped ${ex.runToCompletion(forMovedThenDropped())}"
+print "loop after ref ${refBeforeLoop()}"
+-- stdout --
+drop 10
+wrapper 12
+joined 100
+drop 100
+drop 7
+joined 100
+drop 100
+drop 7
+join 9 9
+call 200
+drop 200
+drop 9
+callref 9
+drop 20
+pushed 20
+drop 300
+drop 400
+temp 402
+drop 7
+drop 8
+literal 13
+drop 30
+taken 32
+drop 40
+helper 43
+drop 50
+spawned 54
+drop 60
+passed 65
+drop 70
+self 76
+drop 80
+for awaited 87
+drop 90
+for dropped 90
+first 110
+drop 110
+drop 120
+drop 111
+loop after ref 231

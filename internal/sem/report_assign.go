@@ -30,21 +30,32 @@ func (c *checker) reportImmutable(lhs syntax.NodeID) {
 					c.reportImmutableField(lhs, fe.Name)
 					return
 				}
-				c.reportImmutable(node.Base().ID())
+				c.reportImmutableBase(node.Base().ID())
 				return
 			case EntType:
 				// `.value`: same storage as the receiver, just retyped (mirrors buildPlace).
-				c.reportImmutable(node.Base().ID())
+				c.reportImmutableBase(node.Base().ID())
 				return
 			}
 		}
 	case syntax.BracketExpr:
 		if c.isPlace(lhs) {
-			c.reportImmutable(node.Base().ID())
+			c.reportImmutableBase(node.Base().ID())
 			return
 		}
 	}
 	c.errAt(lhs, cAssignNotPlace)
+}
+
+// reportImmutableBase is reportImmutable for the base of a written place, which a write goes through.
+func (c *checker) reportImmutableBase(base syntax.NodeID) {
+	if c.t.Kind(base) == syntax.Ident {
+		if fix, ok := c.sharedRefFix(c.rootOf(base)); ok {
+			c.errAt(base, cAssignImmutable, c.t.View(base).Tok().Text(), fix)
+			return
+		}
+	}
+	c.reportImmutable(base)
 }
 
 func (c *checker) reportImmutableField(lhs syntax.NodeID, name string) {
@@ -89,8 +100,23 @@ func (c *checker) assignImmutableFixes(n syntax.NodeID) (fixes []string, tok uin
 		if root == 0 || c.isMutablePlace(n) {
 			return nil, 0, 0
 		}
+		if fix, ok := c.sharedRefFix(root); ok {
+			return []string{fix}, 0, 0
+		}
 		e := &c.r.Entities[root]
 		return []string{"declare `let mut " + e.Name + "`"}, e.Tok, e.File
 	}
 	return nil, 0, 0
+}
+
+// sharedRefFix is the fix for writing through a binding of a shared reference, which `let mut` would not allow.
+func (c *checker) sharedRefFix(root EntityID) (string, bool) {
+	if root == 0 {
+		return "", false
+	}
+	e := &c.r.Entities[root]
+	if c.r.Types.Kind(e.Type) != KRef || c.r.Types.RefMut(e.Type) {
+		return "", false
+	}
+	return "annotate `" + e.Name + "` as `&mut " + c.r.TypeString(c.r.Types.Node(e.Type).Elem) + "`", true
 }

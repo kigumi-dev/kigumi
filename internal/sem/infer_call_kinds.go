@@ -110,7 +110,7 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 			return TyPoison
 		}
 		c.synthArgs(args)
-		if name == "display" && len(args) == 0 && c.requestDisplay(valueType) {
+		if name == "display" && len(args) == 0 && c.requestDisplay(valueType) || c.requestProtoMethod(valueType, name, len(args)) {
 			return TyPoison
 		}
 		if tt.Kind(valueType) == KParam {

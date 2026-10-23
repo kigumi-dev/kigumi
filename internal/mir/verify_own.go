@@ -42,6 +42,7 @@ func (p *Program) verifyOwnership(f *Func) *Error {
 	// The states settle first; the rules are checked once they have, so a
 	// join that a later predecessor widens is not reported early.
 	work := []BlockID{0}
+	thread := &flagThread{f: f}
 	for len(work) > 0 {
 		bid := work[0]
 		work = work[1:]
@@ -49,15 +50,17 @@ func (p *Program) verifyOwnership(f *Func) *Error {
 		if diverges(f, &f.Blocks[bid]) {
 			continue
 		}
+		if thread.allThreaded(bid) {
+			continue
+		}
 		for _, succ := range f.Blocks[bid].Term.Targets {
-			if in[succ] == nil {
-				cp := out.clone()
-				in[succ] = &cp
+			if joinVerifyInto(in, succ, out) {
 				work = append(work, succ)
-				continue
 			}
-			if in[succ].join(out, joinVerify) {
-				work = append(work, succ)
+			if to, ok := thread.target(bid, succ); ok {
+				if thru, _ := p.transferOwn(f, succ, out, tracked, false); joinVerifyInto(in, to, thru) {
+					work = append(work, to)
+				}
 			}
 		}
 	}
@@ -83,6 +86,15 @@ func (p *Program) destructorSelf(f *Func) (LocalID, bool) {
 		return 0, false
 	}
 	return f.Params[0], true
+}
+
+func joinVerifyInto(in []*cowVec[ownVerify], b BlockID, out *cowVec[ownVerify]) bool {
+	if in[b] == nil {
+		cp := out.clone()
+		in[b] = &cp
+		return true
+	}
+	return in[b].join(out, joinVerify)
 }
 
 // joinVerify merges the states of two predecessors: a value on one side

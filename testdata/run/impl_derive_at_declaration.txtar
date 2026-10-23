@@ -1,0 +1,37 @@
+-- src --
+@impl(Eq)
+type P = { pub x Int, pub y Int }
+
+@impl(Hash, Eq)
+type Q = { pub a Int, pub s String }
+
+@impl(Eq, Hash)
+type Shape = Dot | Box(w: Int, h: Int)
+
+@impl(Eq)
+type G[T: Eq] = { pub v T }
+
+@impl(Ord)
+type O = { pub k Int }
+
+pure fn O.compareTo(self, o: &O) -> Ordering {
+    self.k.compareTo(&o.k)
+}
+
+type Plain = { pub n Int }
+
+print "P ${P { x: 1, y: 2 }.equals(&P { x: 1, y: 2 })} ${P { x: 1, y: 2 }.equals(&P { x: 1, y: 3 })}"
+print "Q ${Q { a: 3, s: "k" }.hash() == Q { a: 3, s: "k" }.hash()} ${Q { a: 3, s: "k" }.equals(&Q { a: 3, s: "k" })}"
+print "Shape ${Box(1, 2).equals(&Box(1, 2))} ${Dot.equals(&Box(1, 2))} ${Dot.hash() == Dot.hash()}"
+print "G ${G { v: 4 }.equals(&G { v: 4 })}"
+print "O ${O { k: 1 }.compareTo(&O { k: 3 }) is Ordering.Less}"
+print "Plain ${Plain { n: 1 }.equals(&Plain { n: 1 })} ${Plain { n: 1 }.hash() == Plain { n: 2 }.hash()}"
+print "prim ${3.compareTo(&4) is Ordering.Less}"
+-- stdout --
+P true false
+Q true true
+Shape true false true
+G true
+O true
+Plain true false
+prim true

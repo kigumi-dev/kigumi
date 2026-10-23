@@ -2593,6 +2593,23 @@
       ]
     },
     {
+      "id": "run/async_fn_field_method_value",
+      "kind": "run",
+      "path": "testdata/run/async_fn_field_method_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async_fn_value",
       "kind": "run",
       "path": "testdata/run/async_fn_value.txtar",
@@ -4524,6 +4541,23 @@
       ]
     },
     {
+      "id": "run/borrow_hold_last_use",
+      "kind": "run",
+      "path": "testdata/run/borrow_hold_last_use.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_index_through_field",
       "kind": "run",
       "path": "testdata/run/borrow_index_through_field.txtar",
@@ -4561,6 +4595,23 @@
       "id": "run/borrow_match",
       "kind": "run",
       "path": "testdata/run/borrow_match.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_mut_param_payloads",
+      "kind": "run",
+      "path": "testdata/run/borrow_mut_param_payloads.txtar",
       "mode": [
         "vm",
         "native"
@@ -4677,9 +4728,43 @@
       ]
     },
     {
+      "id": "run/borrow_temp_scrutinee",
+      "kind": "run",
+      "path": "testdata/run/borrow_temp_scrutinee.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_view_in_scope",
       "kind": "run",
       "path": "testdata/run/borrow_view_in_scope.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrowed_callable_call",
+      "kind": "run",
+      "path": "testdata/run/borrowed_callable_call.txtar",
       "mode": [
         "vm",
         "native"
@@ -5595,6 +5680,23 @@
       "id": "run/collection_ownership",
       "kind": "run",
       "path": "testdata/run/collection_ownership.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/compound_assign_through_mut_ref",
+      "kind": "run",
+      "path": "testdata/run/compound_assign_through_mut_ref.txtar",
       "mode": [
         "vm",
         "native"
@@ -9783,6 +9885,23 @@
       ]
     },
     {
+      "id": "run/generic_move_self_builder",
+      "kind": "run",
+      "path": "testdata/run/generic_move_self_builder.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/generic_resource_ownership",
       "kind": "run",
       "path": "testdata/run/generic_resource_ownership.txtar",
@@ -10062,6 +10181,23 @@
       "id": "run/immortal_values",
       "kind": "run",
       "path": "testdata/run/immortal_values.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/impl_derive_at_declaration",
+      "kind": "run",
+      "path": "testdata/run/impl_derive_at_declaration.txtar",
       "mode": [
         "vm",
         "native"
@@ -10743,6 +10879,23 @@
       "id": "run/int_wrapping_narrow",
       "kind": "run",
       "path": "testdata/run/int_wrapping_narrow.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/is_consume_diverge_loop",
+      "kind": "run",
+      "path": "testdata/run/is_consume_diverge_loop.txtar",
       "mode": [
         "vm",
         "native"
@@ -15894,6 +16047,17 @@
       ]
     },
     {
+      "id": "sem/async_fn_field_runner_err",
+      "kind": "sem",
+      "path": "testdata/sem/async_fn_field_runner_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_fn_value",
       "kind": "sem",
       "path": "testdata/sem/async_fn_value.txtar",
@@ -16224,6 +16388,17 @@
       ]
     },
     {
+      "id": "sem/borrow_hold_release_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_hold_release_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/borrow_in_existential_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_in_existential_err.txtar",
@@ -16249,6 +16424,17 @@
       "id": "sem/borrow_merge_branch_owner_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_merge_branch_owner_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_mut_param_payload_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_mut_param_payload_err.txtar",
       "mode": [
         "check"
       ],
@@ -16337,6 +16523,17 @@
       "id": "sem/borrow_return_projection_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_return_projection_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrowed_callable_kind_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrowed_callable_kind_err.txtar",
       "mode": [
         "check"
       ],
@@ -16755,6 +16952,17 @@
       "id": "sem/collection_copy",
       "kind": "sem",
       "path": "testdata/sem/collection_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/compound_assign_mut_ref_err",
+      "kind": "sem",
+      "path": "testdata/sem/compound_assign_mut_ref_err.txtar",
       "mode": [
         "check"
       ],
@@ -18633,6 +18841,17 @@
       ]
     },
     {
+      "id": "sem/generic_move_self_escape_err",
+      "kind": "sem",
+      "path": "testdata/sem/generic_move_self_escape_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/generics_alias",
       "kind": "sem",
       "path": "testdata/sem/generics_alias.txtar",
@@ -18776,6 +18995,17 @@
       ]
     },
     {
+      "id": "sem/impl_derive_declaration_err",
+      "kind": "sem",
+      "path": "testdata/sem/impl_derive_declaration_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/import_rename_err",
       "kind": "sem",
       "path": "testdata/sem/import_rename_err.txtar",
@@ -18867,6 +19097,17 @@
       "id": "sem/is_binding_negated",
       "kind": "sem",
       "path": "testdata/sem/is_binding_negated.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/is_consume_diverge_err",
+      "kind": "sem",
+      "path": "testdata/sem/is_consume_diverge_err.txtar",
       "mode": [
         "check"
       ],
@@ -20187,6 +20428,39 @@
       "id": "sem/task_panic_fatal_wasi",
       "kind": "sem",
       "path": "testdata/sem/task_panic_fatal_wasi.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/temporary_borrow_call_kept_err",
+      "kind": "sem",
+      "path": "testdata/sem/temporary_borrow_call_kept_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/temporary_borrow_let_err",
+      "kind": "sem",
+      "path": "testdata/sem/temporary_borrow_let_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/temporary_borrow_scrutinee_err",
+      "kind": "sem",
+      "path": "testdata/sem/temporary_borrow_scrutinee_err.txtar",
       "mode": [
         "check"
       ],

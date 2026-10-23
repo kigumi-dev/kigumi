@@ -1,0 +1,36 @@
+-- src --
+import task from std/task
+
+type P = { pub k Int }
+
+fn P.add(self, x: Int) -> Int {
+    self.k + x
+}
+
+fn id[T](x: T) -> T {
+    x
+}
+
+fn twice[T: Copy](x: T) -> (T, T) {
+    (x, x)
+}
+
+type W = { pub f fn(Int) -> Int }
+
+type T2 = { pub g fn(String) -> (String, String) }
+
+async fn go() -> Int {
+    let p = P { k: 10 }
+    let w = W { f: p.add }
+    let v = W { f: id[Int] }
+    let t = T2 { g: twice[String] }
+    let (a, b) = t.g("x")
+    print "${a}${b}"
+    w.f(1) + v.f(2)
+}
+
+let ex = task.currentThreadExecutor()
+print "${ex.runToCompletion(go())}"
+-- stdout --
+xx
+13

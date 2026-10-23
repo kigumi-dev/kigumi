@@ -9,6 +9,13 @@ func (c *checker) callValue(n, callee syntax.NodeID, ft TypeID, args []syntax.No
 		return TyPoison
 	}
 	c.noteOnceUse(n, callee, ft)
+	if tt.Kind(ft) == KRef {
+		var ok bool
+		if ft, ok = c.borrowedCallee(n, ft); !ok {
+			c.synthArgs(args)
+			return TyPoison
+		}
+	}
 	node := tt.Node(ft)
 	why := uint8(whyDynamicResult)
 	var closure EntityID

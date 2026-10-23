@@ -78,6 +78,9 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 			mergeInto(b, c.throughRef(root, path, exact, in.Index == 1))
 			return set(b, true)
 		}
+		if b, ok := c.tempBorrow(in); ok && !has {
+			return set(b, true)
+		}
 		if def := c.definition(in.Args[0]); def != nil && def.Op == OpGlobalGet {
 			// A static-origin borrow has no local owner to touch-check
 			// against, but still has to reject escape like any other.
@@ -109,8 +112,8 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 		}
 	case OpBuiltin:
 		c.collectBuiltin(in)
-	case OpField, OpIndex, OpPayload:
-		if !has && c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type) {
+	case OpField, OpIndex, OpPayload, OpFieldMove:
+		if !has && c.projectsHeld(in) {
 			return set(c.readInfo(in.Args[0]))
 		}
 	}
@@ -158,7 +161,11 @@ func (c *borrowCheck) collectArray(in Inst) {
 // collectBuiltin ties a builtin's result (a loop's element) to what every
 // argument holds, and to the referent's elements for a reference argument.
 func (c *borrowCheck) collectBuiltin(in Inst) {
-	if in.Dst == 0 || !c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type) {
+	if in.Dst == 0 {
+		return
+	}
+	if ret := c.f.Locals[in.Dst].Type; !c.resultMayCarryLifetime(ret) {
+		c.collectBuiltinCarry(in, ret)
 		return
 	}
 	for _, a := range in.Args {
@@ -169,6 +176,20 @@ func (c *borrowCheck) collectBuiltin(in Inst) {
 			continue
 		}
 		if b, ok := c.argContents(a); ok {
+			c.merge(c.sink(in.Dst, in.Node), b)
+		}
+	}
+}
+
+// collectBuiltinCarry passes an owned argument's untagged borrow on to a result that may take one
+// of its Futures, Tasks or closures, as a `for` element moved out of an owned container.
+func (c *borrowCheck) collectBuiltinCarry(in Inst, ret sem.TypeID) {
+	for _, a := range in.Args {
+		t := c.f.Locals[a].Type
+		if c.p.R.Types.Kind(t) == sem.KRef || c.resultMayCarryLifetime(t) || !c.mayCarry(ret, t) {
+			continue
+		}
+		if b, ok := c.holders[a]; ok {
 			c.merge(c.sink(in.Dst, in.Node), b)
 		}
 	}

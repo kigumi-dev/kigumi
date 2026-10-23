@@ -1,0 +1,81 @@
+-- src --
+@impl(Eq) //~ ERROR its field `f` of type `fn() -> Int` has no `Eq`
+type F = { pub f fn() -> Int }
+
+@impl(Eq) //~ ERROR its field `v` of type `T` has no `Eq`
+type G[T] = { pub v T }
+
+@impl(Hash) //~ ERROR a payload of `Fn` of type `fn() -> Int` has no `Hash`
+type V = Plain(Int) | Fn(fn() -> Int)
+
+@impl(Eq) //~ ERROR a resource has no structural `Eq`
+type R = resource { pub id Int }
+
+@impl(Eq) //~ ERROR `equals` has signature
+type W = { pub a Int }
+
+fn W.equals(self, o: W) -> Bool {
+    true
+}
+
+@impl(Ord) //~ ERROR missing `fn compareTo
+type NoOrd = { pub a Int }
+
+fn cmp(a: NoOrd) -> Bool {
+    a.compareTo(&a) is Ordering.Less //~ ERROR has no field or method `compareTo`
+}
+
+type Opaque = { pub f fn() -> Int }
+
+fn use(o: Opaque) -> Bool {
+    o.equals(&o) //~ ERROR has no field or method `equals`
+}
+-- expect --
+error[E304]: `F` does not implement `Eq`: its field `f` of type `fn() -> Int` has no `Eq`
+ --> main/main.kg:1:7
+  |
+1 | @impl(Eq) //~ ERROR its field `f` of type `fn() -> Int` has no `Eq`
+  |       ^^
+
+error[E305]: `G` does not implement `Eq` for every `T`: its field `v` of type `T` has no `Eq`
+ --> main/main.kg:4:7
+  |
+4 | @impl(Eq) //~ ERROR its field `v` of type `T` has no `Eq`
+  |       ^^
+
+error[E304]: `V` does not implement `Hash`: a payload of `Fn` of type `fn() -> Int` has no `Hash`
+ --> main/main.kg:7:7
+  |
+7 | @impl(Hash) //~ ERROR a payload of `Fn` of type `fn() -> Int` has no `Hash`
+  |       ^^^^
+
+error[E304]: `R` does not implement `Eq`: a resource has no structural `Eq`
+  --> main/main.kg:10:7
+   |
+10 | @impl(Eq) //~ ERROR a resource has no structural `Eq`
+   |       ^^
+
+error[E304]: `W` does not implement `Eq`: `equals` has signature `fn equals(self, W) -> Bool`, the requirement is `fn equals(self, &W) -> Bool`
+  --> main/main.kg:13:7
+   |
+13 | @impl(Eq) //~ ERROR `equals` has signature
+   |       ^^
+
+error[E304]: `NoOrd` does not implement `Ord`: missing `fn compareTo(self, &NoOrd) -> Ordering`
+  --> main/main.kg:20:7
+   |
+20 | @impl(Ord) //~ ERROR missing `fn compareTo
+   |       ^^^
+
+error[E510]: `NoOrd` has no field or method `compareTo`
+  --> main/main.kg:24:5
+   |
+24 |     a.compareTo(&a) is Ordering.Less //~ ERROR has no field or method `compareTo`
+   |     ^^^^^^^^^^^
+
+error[E510]: `Opaque` has no field or method `equals`
+  --> main/main.kg:30:5
+   |
+30 |     o.equals(&o) //~ ERROR has no field or method `equals`
+   |     ^^^^^^^^
+

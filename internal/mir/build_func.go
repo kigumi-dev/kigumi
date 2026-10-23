@@ -80,6 +80,7 @@ func (p *Program) build(hf *hir.Func) *Func {
 		p.lowering.top[f] = p.lowering.cur
 	}
 	b.lowerGhosts()
+	hoistRefReleases(p, f)
 	analyzeOwnership(p, f)
 	f.dropGhosts()
 	analyzeBorrows(p, f)

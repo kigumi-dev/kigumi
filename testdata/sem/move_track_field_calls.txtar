@@ -75,7 +75,7 @@ fn chainConsumes() {
         say(1)
     } else {
         match o {
-            Some(x) -> x.close() //~ ERROR `o` is moved on some paths but not others
+            Some(x) -> x.close() //~ ERROR `o` was moved
             None -> say(0)
         }
     }
@@ -167,9 +167,10 @@ error[E2197]: `o` was moved; it cannot be used again
    |             ^^^^^^
    = help: borrow it with `&` where it is used before the move, or make the move its last use
 
-error[move-join-mismatch]: `o` is moved on some paths but not others
+error[E2197]: `o` was moved; it cannot be used again
   --> main.kg:75:13
    |
-75 |             Some(x) -> x.close() //~ ERROR `o` is moved on some paths but not others
+75 |             Some(x) -> x.close() //~ ERROR `o` was moved
    |             ^^^^^^
+   = help: borrow it with `&` where it is used before the move, or make the move its last use
 

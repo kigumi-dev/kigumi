@@ -11,10 +11,14 @@ func (c *borrowCheck) checkSuspend(in Inst, liveAfter map[LocalID]bool) {
 		if holder == in.Dst || b.empty {
 			continue
 		}
-		name := c.f.Locals[holder].Name
+		l := holder
 		if len(b.owners) > 0 {
-			name = c.f.Locals[b.owners[0].owner].Name
+			l = b.owners[0].owner
 		}
-		c.report(in.Node, holder, "borrow-across-await", "a borrow of `"+name+"` is still live across this `await`")
+		what := "a temporary"
+		if c.f.Locals[l].Ent != 0 {
+			what = "`" + c.f.Locals[l].Name + "`"
+		}
+		c.report(in.Node, holder, "borrow-across-await", "a borrow of "+what+" is still live across this `await`")
 	}
 }

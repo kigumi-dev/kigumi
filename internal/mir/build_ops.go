@@ -16,7 +16,9 @@ func (b *builder) shortAnd(e *hir.Expr) LocalID {
 	b.assign(result, b.emit(Inst{Op: OpConst, Dst: b.temp(sem.TyBool), Lit: sem.Literal{Kind: sem.LitBool}, Type: sem.TyBool, Node: e.Node}))
 	b.jump(join)
 	b.cur = right
+	b.shortRHS++
 	b.assign(result, b.expr(e.Args[1]))
+	b.shortRHS--
 	b.jump(join)
 	b.cur = join
 	return result

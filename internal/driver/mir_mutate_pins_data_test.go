@@ -20,7 +20,7 @@ redirect-call "main.firstPoint" b0/1 call | efn:"std/json||put"
 	{"mut_self_dispatch", "", `
 func "main.Shape.grow" b0/1 isvariant | i6
 `},
-	{"iface_static", "variants", `
+	{"iface_static", "ownership", `
 insert "main.Pair.parse" b6/1 alias | i0 l"x"
 `},
 	{"generic_direct_methods", "droplent", `

@@ -1,0 +1,71 @@
+-- src --
+fn inc(c: &mut Int) {
+    c += 1
+}
+
+fn ops(c: &mut Int) {
+    c -= 3
+    c *= 10
+    c /= 2
+    c %= 7
+    c |= 8
+    c &= 12
+    c ^= 1
+    c <<= 2
+    c >>= 1
+}
+
+fn loopy(c: &mut Int, n: Int) {
+    for i in 0..n {
+        c += i
+    }
+}
+
+fn half(x: &mut Float) {
+    x *= 0.5
+    x += 0.25
+}
+
+fn narrow(b: &mut u8) {
+    b += 200
+    b -= 100
+}
+
+let mut a = 1
+inc(&mut a)
+inc(&mut a)
+print "a ${a}"
+let mut b = 20
+ops(&mut b)
+print "b ${b}"
+let mut c = 0
+loopy(&mut c, 4)
+print "c ${c}"
+let mut d = 1
+{
+    let r = &mut d
+    r += 5
+    r *= 2
+}
+print "d ${d}"
+let mut e = 3.0
+half(&mut e)
+print "e ${e}"
+let bump = (k: &mut Int) => {
+    k += 7
+}
+let mut k = 1
+bump(&mut k)
+bump(&mut k)
+print "k ${k}"
+let mut u: u8 = 5
+narrow(&mut u)
+print "u ${u}"
+-- stdout --
+a 3
+b 18
+c 6
+d 12
+e 1.75
+k 15
+u 105

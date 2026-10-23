@@ -19,7 +19,7 @@ func (o *ownVec) del(l LocalID) { o.v.set(l, 0) }
 func (o *ownVec) clone() ownVec { return ownVec{o.v.clone()} }
 
 func (o *ownVec) join(other *ownVec) bool {
-	return o.v.join(&other.v, func(cur, x uint8) uint8 {
+	return o.v.joinIdent(&other.v, func(cur, x uint8) uint8 {
 		switch {
 		case x == 0:
 			return cur
@@ -42,7 +42,7 @@ func (n *nodeVec) del(l LocalID) { n.v.set(l, 0) }
 func (n *nodeVec) clone() nodeVec { return nodeVec{n.v.clone()} }
 
 func (n *nodeVec) join(other *nodeVec) {
-	n.v.join(&other.v, func(cur, x syntax.NodeID) syntax.NodeID {
+	n.v.joinIdent(&other.v, func(cur, x syntax.NodeID) syntax.NodeID {
 		if cur != 0 {
 			return cur
 		}
