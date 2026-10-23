@@ -191,3 +191,19 @@ pub pure noalloc fn f64.toI128(self) -> i128?
 pub pure noalloc fn f64.toU128(self) -> u128?
 pub pure noalloc fn f32.toI128(self) -> i128?
 pub pure noalloc fn f32.toU128(self) -> u128?
+
+/// The low bits of the value as the integer type T, which is no wider than the receiver: `value.truncate[u8]()`.
+/// Never fails and reinterprets the sign; `toU8()` and its siblings return None when the value does not fit.
+pub pure noalloc fn i8.truncate[T](self) -> T
+
+pub pure noalloc fn i16.truncate[T](self) -> T
+pub pure noalloc fn i32.truncate[T](self) -> T
+pub pure noalloc fn i64.truncate[T](self) -> T
+pub pure noalloc fn i128.truncate[T](self) -> T
+pub pure noalloc fn isize.truncate[T](self) -> T
+pub pure noalloc fn u8.truncate[T](self) -> T
+pub pure noalloc fn u16.truncate[T](self) -> T
+pub pure noalloc fn u32.truncate[T](self) -> T
+pub pure noalloc fn u64.truncate[T](self) -> T
+pub pure noalloc fn u128.truncate[T](self) -> T
+pub pure noalloc fn usize.truncate[T](self) -> T

@@ -1,0 +1,218 @@
+-- src --
+let v1: i8 = 0
+print "i8 0: ${v1.truncate[i8]()} ${v1.truncate[u8]()}"
+let v2: i8 = 1
+print "i8 1: ${v2.truncate[i8]()} ${v2.truncate[u8]()}"
+let v3: i8 = 127
+print "i8 127: ${v3.truncate[i8]()} ${v3.truncate[u8]()}"
+let v4: i8 = -128
+print "i8 -128: ${v4.truncate[i8]()} ${v4.truncate[u8]()}"
+let v5: i8 = -1
+print "i8 -1: ${v5.truncate[i8]()} ${v5.truncate[u8]()}"
+let v6: i8 = -91
+print "i8 -91: ${v6.truncate[i8]()} ${v6.truncate[u8]()}"
+let v7: i8 = 90
+print "i8 90: ${v7.truncate[i8]()} ${v7.truncate[u8]()}"
+let v8: i16 = 0
+print "i16 0: ${v8.truncate[i8]()} ${v8.truncate[i16]()} ${v8.truncate[u8]()} ${v8.truncate[u16]()}"
+let v9: i16 = 1
+print "i16 1: ${v9.truncate[i8]()} ${v9.truncate[i16]()} ${v9.truncate[u8]()} ${v9.truncate[u16]()}"
+let v10: i16 = 32767
+print "i16 32767: ${v10.truncate[i8]()} ${v10.truncate[i16]()} ${v10.truncate[u8]()} ${v10.truncate[u16]()}"
+let v11: i16 = -32768
+print "i16 -32768: ${v11.truncate[i8]()} ${v11.truncate[i16]()} ${v11.truncate[u8]()} ${v11.truncate[u16]()}"
+let v12: i16 = -1
+print "i16 -1: ${v12.truncate[i8]()} ${v12.truncate[i16]()} ${v12.truncate[u8]()} ${v12.truncate[u16]()}"
+let v13: i16 = -23131
+print "i16 -23131: ${v13.truncate[i8]()} ${v13.truncate[i16]()} ${v13.truncate[u8]()} ${v13.truncate[u16]()}"
+let v14: i16 = 23130
+print "i16 23130: ${v14.truncate[i8]()} ${v14.truncate[i16]()} ${v14.truncate[u8]()} ${v14.truncate[u16]()}"
+let v15: i32 = 0
+print "i32 0: ${v15.truncate[i8]()} ${v15.truncate[i16]()} ${v15.truncate[i32]()} ${v15.truncate[u8]()} ${v15.truncate[u16]()} ${v15.truncate[u32]()}"
+let v16: i32 = 1
+print "i32 1: ${v16.truncate[i8]()} ${v16.truncate[i16]()} ${v16.truncate[i32]()} ${v16.truncate[u8]()} ${v16.truncate[u16]()} ${v16.truncate[u32]()}"
+let v17: i32 = 2147483647
+print "i32 2147483647: ${v17.truncate[i8]()} ${v17.truncate[i16]()} ${v17.truncate[i32]()} ${v17.truncate[u8]()} ${v17.truncate[u16]()} ${v17.truncate[u32]()}"
+let v18: i32 = -2147483648
+print "i32 -2147483648: ${v18.truncate[i8]()} ${v18.truncate[i16]()} ${v18.truncate[i32]()} ${v18.truncate[u8]()} ${v18.truncate[u16]()} ${v18.truncate[u32]()}"
+let v19: i32 = -1
+print "i32 -1: ${v19.truncate[i8]()} ${v19.truncate[i16]()} ${v19.truncate[i32]()} ${v19.truncate[u8]()} ${v19.truncate[u16]()} ${v19.truncate[u32]()}"
+let v20: i32 = -1515870811
+print "i32 -1515870811: ${v20.truncate[i8]()} ${v20.truncate[i16]()} ${v20.truncate[i32]()} ${v20.truncate[u8]()} ${v20.truncate[u16]()} ${v20.truncate[u32]()}"
+let v21: i32 = 1515870810
+print "i32 1515870810: ${v21.truncate[i8]()} ${v21.truncate[i16]()} ${v21.truncate[i32]()} ${v21.truncate[u8]()} ${v21.truncate[u16]()} ${v21.truncate[u32]()}"
+let v22: i64 = 0
+print "i64 0: ${v22.truncate[i8]()} ${v22.truncate[i16]()} ${v22.truncate[i32]()} ${v22.truncate[i64]()} ${v22.truncate[isize]()} ${v22.truncate[u8]()} ${v22.truncate[u16]()} ${v22.truncate[u32]()} ${v22.truncate[u64]()} ${v22.truncate[usize]()}"
+let v23: i64 = 1
+print "i64 1: ${v23.truncate[i8]()} ${v23.truncate[i16]()} ${v23.truncate[i32]()} ${v23.truncate[i64]()} ${v23.truncate[isize]()} ${v23.truncate[u8]()} ${v23.truncate[u16]()} ${v23.truncate[u32]()} ${v23.truncate[u64]()} ${v23.truncate[usize]()}"
+let v24: i64 = 9223372036854775807
+print "i64 9223372036854775807: ${v24.truncate[i8]()} ${v24.truncate[i16]()} ${v24.truncate[i32]()} ${v24.truncate[i64]()} ${v24.truncate[isize]()} ${v24.truncate[u8]()} ${v24.truncate[u16]()} ${v24.truncate[u32]()} ${v24.truncate[u64]()} ${v24.truncate[usize]()}"
+let v25: i64 = -9223372036854775808
+print "i64 -9223372036854775808: ${v25.truncate[i8]()} ${v25.truncate[i16]()} ${v25.truncate[i32]()} ${v25.truncate[i64]()} ${v25.truncate[isize]()} ${v25.truncate[u8]()} ${v25.truncate[u16]()} ${v25.truncate[u32]()} ${v25.truncate[u64]()} ${v25.truncate[usize]()}"
+let v26: i64 = -1
+print "i64 -1: ${v26.truncate[i8]()} ${v26.truncate[i16]()} ${v26.truncate[i32]()} ${v26.truncate[i64]()} ${v26.truncate[isize]()} ${v26.truncate[u8]()} ${v26.truncate[u16]()} ${v26.truncate[u32]()} ${v26.truncate[u64]()} ${v26.truncate[usize]()}"
+let v27: i64 = -6510615555426900571
+print "i64 -6510615555426900571: ${v27.truncate[i8]()} ${v27.truncate[i16]()} ${v27.truncate[i32]()} ${v27.truncate[i64]()} ${v27.truncate[isize]()} ${v27.truncate[u8]()} ${v27.truncate[u16]()} ${v27.truncate[u32]()} ${v27.truncate[u64]()} ${v27.truncate[usize]()}"
+let v28: i64 = 6510615555426900570
+print "i64 6510615555426900570: ${v28.truncate[i8]()} ${v28.truncate[i16]()} ${v28.truncate[i32]()} ${v28.truncate[i64]()} ${v28.truncate[isize]()} ${v28.truncate[u8]()} ${v28.truncate[u16]()} ${v28.truncate[u32]()} ${v28.truncate[u64]()} ${v28.truncate[usize]()}"
+let v29: i128 = 0
+print "i128 0: ${v29.truncate[i8]()} ${v29.truncate[i16]()} ${v29.truncate[i32]()} ${v29.truncate[i64]()} ${v29.truncate[i128]()} ${v29.truncate[isize]()} ${v29.truncate[u8]()} ${v29.truncate[u16]()} ${v29.truncate[u32]()} ${v29.truncate[u64]()} ${v29.truncate[u128]()} ${v29.truncate[usize]()}"
+let v30: i128 = 1
+print "i128 1: ${v30.truncate[i8]()} ${v30.truncate[i16]()} ${v30.truncate[i32]()} ${v30.truncate[i64]()} ${v30.truncate[i128]()} ${v30.truncate[isize]()} ${v30.truncate[u8]()} ${v30.truncate[u16]()} ${v30.truncate[u32]()} ${v30.truncate[u64]()} ${v30.truncate[u128]()} ${v30.truncate[usize]()}"
+let v31: i128 = 170141183460469231731687303715884105727
+print "i128 170141183460469231731687303715884105727: ${v31.truncate[i8]()} ${v31.truncate[i16]()} ${v31.truncate[i32]()} ${v31.truncate[i64]()} ${v31.truncate[i128]()} ${v31.truncate[isize]()} ${v31.truncate[u8]()} ${v31.truncate[u16]()} ${v31.truncate[u32]()} ${v31.truncate[u64]()} ${v31.truncate[u128]()} ${v31.truncate[usize]()}"
+let v32: i128 = -170141183460469231731687303715884105728
+print "i128 -170141183460469231731687303715884105728: ${v32.truncate[i8]()} ${v32.truncate[i16]()} ${v32.truncate[i32]()} ${v32.truncate[i64]()} ${v32.truncate[i128]()} ${v32.truncate[isize]()} ${v32.truncate[u8]()} ${v32.truncate[u16]()} ${v32.truncate[u32]()} ${v32.truncate[u64]()} ${v32.truncate[u128]()} ${v32.truncate[usize]()}"
+let v33: i128 = -1
+print "i128 -1: ${v33.truncate[i8]()} ${v33.truncate[i16]()} ${v33.truncate[i32]()} ${v33.truncate[i64]()} ${v33.truncate[i128]()} ${v33.truncate[isize]()} ${v33.truncate[u8]()} ${v33.truncate[u16]()} ${v33.truncate[u32]()} ${v33.truncate[u64]()} ${v33.truncate[u128]()} ${v33.truncate[usize]()}"
+let v34: i128 = -120099658913272398869426332034741721691
+print "i128 -120099658913272398869426332034741721691: ${v34.truncate[i8]()} ${v34.truncate[i16]()} ${v34.truncate[i32]()} ${v34.truncate[i64]()} ${v34.truncate[i128]()} ${v34.truncate[isize]()} ${v34.truncate[u8]()} ${v34.truncate[u16]()} ${v34.truncate[u32]()} ${v34.truncate[u64]()} ${v34.truncate[u128]()} ${v34.truncate[usize]()}"
+let v35: i128 = 120099658913272398869426332034741721690
+print "i128 120099658913272398869426332034741721690: ${v35.truncate[i8]()} ${v35.truncate[i16]()} ${v35.truncate[i32]()} ${v35.truncate[i64]()} ${v35.truncate[i128]()} ${v35.truncate[isize]()} ${v35.truncate[u8]()} ${v35.truncate[u16]()} ${v35.truncate[u32]()} ${v35.truncate[u64]()} ${v35.truncate[u128]()} ${v35.truncate[usize]()}"
+let v36: isize = 0
+print "isize 0: ${v36.truncate[i8]()} ${v36.truncate[i16]()} ${v36.truncate[i32]()} ${v36.truncate[i64]()} ${v36.truncate[isize]()} ${v36.truncate[u8]()} ${v36.truncate[u16]()} ${v36.truncate[u32]()} ${v36.truncate[u64]()} ${v36.truncate[usize]()}"
+let v37: isize = 1
+print "isize 1: ${v37.truncate[i8]()} ${v37.truncate[i16]()} ${v37.truncate[i32]()} ${v37.truncate[i64]()} ${v37.truncate[isize]()} ${v37.truncate[u8]()} ${v37.truncate[u16]()} ${v37.truncate[u32]()} ${v37.truncate[u64]()} ${v37.truncate[usize]()}"
+let v38: isize = 9223372036854775807
+print "isize 9223372036854775807: ${v38.truncate[i8]()} ${v38.truncate[i16]()} ${v38.truncate[i32]()} ${v38.truncate[i64]()} ${v38.truncate[isize]()} ${v38.truncate[u8]()} ${v38.truncate[u16]()} ${v38.truncate[u32]()} ${v38.truncate[u64]()} ${v38.truncate[usize]()}"
+let v39: isize = -9223372036854775808
+print "isize -9223372036854775808: ${v39.truncate[i8]()} ${v39.truncate[i16]()} ${v39.truncate[i32]()} ${v39.truncate[i64]()} ${v39.truncate[isize]()} ${v39.truncate[u8]()} ${v39.truncate[u16]()} ${v39.truncate[u32]()} ${v39.truncate[u64]()} ${v39.truncate[usize]()}"
+let v40: isize = -1
+print "isize -1: ${v40.truncate[i8]()} ${v40.truncate[i16]()} ${v40.truncate[i32]()} ${v40.truncate[i64]()} ${v40.truncate[isize]()} ${v40.truncate[u8]()} ${v40.truncate[u16]()} ${v40.truncate[u32]()} ${v40.truncate[u64]()} ${v40.truncate[usize]()}"
+let v41: isize = -6510615555426900571
+print "isize -6510615555426900571: ${v41.truncate[i8]()} ${v41.truncate[i16]()} ${v41.truncate[i32]()} ${v41.truncate[i64]()} ${v41.truncate[isize]()} ${v41.truncate[u8]()} ${v41.truncate[u16]()} ${v41.truncate[u32]()} ${v41.truncate[u64]()} ${v41.truncate[usize]()}"
+let v42: isize = 6510615555426900570
+print "isize 6510615555426900570: ${v42.truncate[i8]()} ${v42.truncate[i16]()} ${v42.truncate[i32]()} ${v42.truncate[i64]()} ${v42.truncate[isize]()} ${v42.truncate[u8]()} ${v42.truncate[u16]()} ${v42.truncate[u32]()} ${v42.truncate[u64]()} ${v42.truncate[usize]()}"
+let v43: u8 = 0
+print "u8 0: ${v43.truncate[i8]()} ${v43.truncate[u8]()}"
+let v44: u8 = 1
+print "u8 1: ${v44.truncate[i8]()} ${v44.truncate[u8]()}"
+let v45: u8 = 255
+print "u8 255: ${v45.truncate[i8]()} ${v45.truncate[u8]()}"
+let v46: u8 = 165
+print "u8 165: ${v46.truncate[i8]()} ${v46.truncate[u8]()}"
+let v47: u8 = 90
+print "u8 90: ${v47.truncate[i8]()} ${v47.truncate[u8]()}"
+let v48: u16 = 0
+print "u16 0: ${v48.truncate[i8]()} ${v48.truncate[i16]()} ${v48.truncate[u8]()} ${v48.truncate[u16]()}"
+let v49: u16 = 1
+print "u16 1: ${v49.truncate[i8]()} ${v49.truncate[i16]()} ${v49.truncate[u8]()} ${v49.truncate[u16]()}"
+let v50: u16 = 65535
+print "u16 65535: ${v50.truncate[i8]()} ${v50.truncate[i16]()} ${v50.truncate[u8]()} ${v50.truncate[u16]()}"
+let v51: u16 = 42405
+print "u16 42405: ${v51.truncate[i8]()} ${v51.truncate[i16]()} ${v51.truncate[u8]()} ${v51.truncate[u16]()}"
+let v52: u16 = 23130
+print "u16 23130: ${v52.truncate[i8]()} ${v52.truncate[i16]()} ${v52.truncate[u8]()} ${v52.truncate[u16]()}"
+let v53: u32 = 0
+print "u32 0: ${v53.truncate[i8]()} ${v53.truncate[i16]()} ${v53.truncate[i32]()} ${v53.truncate[u8]()} ${v53.truncate[u16]()} ${v53.truncate[u32]()}"
+let v54: u32 = 1
+print "u32 1: ${v54.truncate[i8]()} ${v54.truncate[i16]()} ${v54.truncate[i32]()} ${v54.truncate[u8]()} ${v54.truncate[u16]()} ${v54.truncate[u32]()}"
+let v55: u32 = 4294967295
+print "u32 4294967295: ${v55.truncate[i8]()} ${v55.truncate[i16]()} ${v55.truncate[i32]()} ${v55.truncate[u8]()} ${v55.truncate[u16]()} ${v55.truncate[u32]()}"
+let v56: u32 = 2779096485
+print "u32 2779096485: ${v56.truncate[i8]()} ${v56.truncate[i16]()} ${v56.truncate[i32]()} ${v56.truncate[u8]()} ${v56.truncate[u16]()} ${v56.truncate[u32]()}"
+let v57: u32 = 1515870810
+print "u32 1515870810: ${v57.truncate[i8]()} ${v57.truncate[i16]()} ${v57.truncate[i32]()} ${v57.truncate[u8]()} ${v57.truncate[u16]()} ${v57.truncate[u32]()}"
+let v58: u64 = 0
+print "u64 0: ${v58.truncate[i8]()} ${v58.truncate[i16]()} ${v58.truncate[i32]()} ${v58.truncate[i64]()} ${v58.truncate[isize]()} ${v58.truncate[u8]()} ${v58.truncate[u16]()} ${v58.truncate[u32]()} ${v58.truncate[u64]()} ${v58.truncate[usize]()}"
+let v59: u64 = 1
+print "u64 1: ${v59.truncate[i8]()} ${v59.truncate[i16]()} ${v59.truncate[i32]()} ${v59.truncate[i64]()} ${v59.truncate[isize]()} ${v59.truncate[u8]()} ${v59.truncate[u16]()} ${v59.truncate[u32]()} ${v59.truncate[u64]()} ${v59.truncate[usize]()}"
+let v60: u64 = 18446744073709551615
+print "u64 18446744073709551615: ${v60.truncate[i8]()} ${v60.truncate[i16]()} ${v60.truncate[i32]()} ${v60.truncate[i64]()} ${v60.truncate[isize]()} ${v60.truncate[u8]()} ${v60.truncate[u16]()} ${v60.truncate[u32]()} ${v60.truncate[u64]()} ${v60.truncate[usize]()}"
+let v61: u64 = 11936128518282651045
+print "u64 11936128518282651045: ${v61.truncate[i8]()} ${v61.truncate[i16]()} ${v61.truncate[i32]()} ${v61.truncate[i64]()} ${v61.truncate[isize]()} ${v61.truncate[u8]()} ${v61.truncate[u16]()} ${v61.truncate[u32]()} ${v61.truncate[u64]()} ${v61.truncate[usize]()}"
+let v62: u64 = 6510615555426900570
+print "u64 6510615555426900570: ${v62.truncate[i8]()} ${v62.truncate[i16]()} ${v62.truncate[i32]()} ${v62.truncate[i64]()} ${v62.truncate[isize]()} ${v62.truncate[u8]()} ${v62.truncate[u16]()} ${v62.truncate[u32]()} ${v62.truncate[u64]()} ${v62.truncate[usize]()}"
+let v63: u128 = 0
+print "u128 0: ${v63.truncate[i8]()} ${v63.truncate[i16]()} ${v63.truncate[i32]()} ${v63.truncate[i64]()} ${v63.truncate[i128]()} ${v63.truncate[isize]()} ${v63.truncate[u8]()} ${v63.truncate[u16]()} ${v63.truncate[u32]()} ${v63.truncate[u64]()} ${v63.truncate[u128]()} ${v63.truncate[usize]()}"
+let v64: u128 = 1
+print "u128 1: ${v64.truncate[i8]()} ${v64.truncate[i16]()} ${v64.truncate[i32]()} ${v64.truncate[i64]()} ${v64.truncate[i128]()} ${v64.truncate[isize]()} ${v64.truncate[u8]()} ${v64.truncate[u16]()} ${v64.truncate[u32]()} ${v64.truncate[u64]()} ${v64.truncate[u128]()} ${v64.truncate[usize]()}"
+let v65: u128 = 340282366920938463463374607431768211455
+print "u128 340282366920938463463374607431768211455: ${v65.truncate[i8]()} ${v65.truncate[i16]()} ${v65.truncate[i32]()} ${v65.truncate[i64]()} ${v65.truncate[i128]()} ${v65.truncate[isize]()} ${v65.truncate[u8]()} ${v65.truncate[u16]()} ${v65.truncate[u32]()} ${v65.truncate[u64]()} ${v65.truncate[u128]()} ${v65.truncate[usize]()}"
+let v66: u128 = 220182708007666064593948275397026489765
+print "u128 220182708007666064593948275397026489765: ${v66.truncate[i8]()} ${v66.truncate[i16]()} ${v66.truncate[i32]()} ${v66.truncate[i64]()} ${v66.truncate[i128]()} ${v66.truncate[isize]()} ${v66.truncate[u8]()} ${v66.truncate[u16]()} ${v66.truncate[u32]()} ${v66.truncate[u64]()} ${v66.truncate[u128]()} ${v66.truncate[usize]()}"
+let v67: u128 = 120099658913272398869426332034741721690
+print "u128 120099658913272398869426332034741721690: ${v67.truncate[i8]()} ${v67.truncate[i16]()} ${v67.truncate[i32]()} ${v67.truncate[i64]()} ${v67.truncate[i128]()} ${v67.truncate[isize]()} ${v67.truncate[u8]()} ${v67.truncate[u16]()} ${v67.truncate[u32]()} ${v67.truncate[u64]()} ${v67.truncate[u128]()} ${v67.truncate[usize]()}"
+let v68: usize = 0
+print "usize 0: ${v68.truncate[i8]()} ${v68.truncate[i16]()} ${v68.truncate[i32]()} ${v68.truncate[i64]()} ${v68.truncate[isize]()} ${v68.truncate[u8]()} ${v68.truncate[u16]()} ${v68.truncate[u32]()} ${v68.truncate[u64]()} ${v68.truncate[usize]()}"
+let v69: usize = 1
+print "usize 1: ${v69.truncate[i8]()} ${v69.truncate[i16]()} ${v69.truncate[i32]()} ${v69.truncate[i64]()} ${v69.truncate[isize]()} ${v69.truncate[u8]()} ${v69.truncate[u16]()} ${v69.truncate[u32]()} ${v69.truncate[u64]()} ${v69.truncate[usize]()}"
+let v70: usize = 18446744073709551615
+print "usize 18446744073709551615: ${v70.truncate[i8]()} ${v70.truncate[i16]()} ${v70.truncate[i32]()} ${v70.truncate[i64]()} ${v70.truncate[isize]()} ${v70.truncate[u8]()} ${v70.truncate[u16]()} ${v70.truncate[u32]()} ${v70.truncate[u64]()} ${v70.truncate[usize]()}"
+let v71: usize = 11936128518282651045
+print "usize 11936128518282651045: ${v71.truncate[i8]()} ${v71.truncate[i16]()} ${v71.truncate[i32]()} ${v71.truncate[i64]()} ${v71.truncate[isize]()} ${v71.truncate[u8]()} ${v71.truncate[u16]()} ${v71.truncate[u32]()} ${v71.truncate[u64]()} ${v71.truncate[usize]()}"
+let v72: usize = 6510615555426900570
+print "usize 6510615555426900570: ${v72.truncate[i8]()} ${v72.truncate[i16]()} ${v72.truncate[i32]()} ${v72.truncate[i64]()} ${v72.truncate[isize]()} ${v72.truncate[u8]()} ${v72.truncate[u16]()} ${v72.truncate[u32]()} ${v72.truncate[u64]()} ${v72.truncate[usize]()}"
+-- stdout --
+i8 0: 0 0
+i8 1: 1 1
+i8 127: 127 127
+i8 -128: -128 128
+i8 -1: -1 255
+i8 -91: -91 165
+i8 90: 90 90
+i16 0: 0 0 0 0
+i16 1: 1 1 1 1
+i16 32767: -1 32767 255 32767
+i16 -32768: 0 -32768 0 32768
+i16 -1: -1 -1 255 65535
+i16 -23131: -91 -23131 165 42405
+i16 23130: 90 23130 90 23130
+i32 0: 0 0 0 0 0 0
+i32 1: 1 1 1 1 1 1
+i32 2147483647: -1 -1 2147483647 255 65535 2147483647
+i32 -2147483648: 0 0 -2147483648 0 0 2147483648
+i32 -1: -1 -1 -1 255 65535 4294967295
+i32 -1515870811: -91 -23131 -1515870811 165 42405 2779096485
+i32 1515870810: 90 23130 1515870810 90 23130 1515870810
+i64 0: 0 0 0 0 0 0 0 0 0 0
+i64 1: 1 1 1 1 1 1 1 1 1 1
+i64 9223372036854775807: -1 -1 -1 9223372036854775807 9223372036854775807 255 65535 4294967295 9223372036854775807 9223372036854775807
+i64 -9223372036854775808: 0 0 0 -9223372036854775808 -9223372036854775808 0 0 0 9223372036854775808 9223372036854775808
+i64 -1: -1 -1 -1 -1 -1 255 65535 4294967295 18446744073709551615 18446744073709551615
+i64 -6510615555426900571: -91 -23131 -1515870811 -6510615555426900571 -6510615555426900571 165 42405 2779096485 11936128518282651045 11936128518282651045
+i64 6510615555426900570: 90 23130 1515870810 6510615555426900570 6510615555426900570 90 23130 1515870810 6510615555426900570 6510615555426900570
+i128 0: 0 0 0 0 0 0 0 0 0 0 0 0
+i128 1: 1 1 1 1 1 1 1 1 1 1 1 1
+i128 170141183460469231731687303715884105727: -1 -1 -1 -1 170141183460469231731687303715884105727 -1 255 65535 4294967295 18446744073709551615 170141183460469231731687303715884105727 18446744073709551615
+i128 -170141183460469231731687303715884105728: 0 0 0 0 -170141183460469231731687303715884105728 0 0 0 0 0 170141183460469231731687303715884105728 0
+i128 -1: -1 -1 -1 -1 -1 -1 255 65535 4294967295 18446744073709551615 340282366920938463463374607431768211455 18446744073709551615
+i128 -120099658913272398869426332034741721691: -91 -23131 -1515870811 -6510615555426900571 -120099658913272398869426332034741721691 -6510615555426900571 165 42405 2779096485 11936128518282651045 220182708007666064593948275397026489765 11936128518282651045
+i128 120099658913272398869426332034741721690: 90 23130 1515870810 6510615555426900570 120099658913272398869426332034741721690 6510615555426900570 90 23130 1515870810 6510615555426900570 120099658913272398869426332034741721690 6510615555426900570
+isize 0: 0 0 0 0 0 0 0 0 0 0
+isize 1: 1 1 1 1 1 1 1 1 1 1
+isize 9223372036854775807: -1 -1 -1 9223372036854775807 9223372036854775807 255 65535 4294967295 9223372036854775807 9223372036854775807
+isize -9223372036854775808: 0 0 0 -9223372036854775808 -9223372036854775808 0 0 0 9223372036854775808 9223372036854775808
+isize -1: -1 -1 -1 -1 -1 255 65535 4294967295 18446744073709551615 18446744073709551615
+isize -6510615555426900571: -91 -23131 -1515870811 -6510615555426900571 -6510615555426900571 165 42405 2779096485 11936128518282651045 11936128518282651045
+isize 6510615555426900570: 90 23130 1515870810 6510615555426900570 6510615555426900570 90 23130 1515870810 6510615555426900570 6510615555426900570
+u8 0: 0 0
+u8 1: 1 1
+u8 255: -1 255
+u8 165: -91 165
+u8 90: 90 90
+u16 0: 0 0 0 0
+u16 1: 1 1 1 1
+u16 65535: -1 -1 255 65535
+u16 42405: -91 -23131 165 42405
+u16 23130: 90 23130 90 23130
+u32 0: 0 0 0 0 0 0
+u32 1: 1 1 1 1 1 1
+u32 4294967295: -1 -1 -1 255 65535 4294967295
+u32 2779096485: -91 -23131 -1515870811 165 42405 2779096485
+u32 1515870810: 90 23130 1515870810 90 23130 1515870810
+u64 0: 0 0 0 0 0 0 0 0 0 0
+u64 1: 1 1 1 1 1 1 1 1 1 1
+u64 18446744073709551615: -1 -1 -1 -1 -1 255 65535 4294967295 18446744073709551615 18446744073709551615
+u64 11936128518282651045: -91 -23131 -1515870811 -6510615555426900571 -6510615555426900571 165 42405 2779096485 11936128518282651045 11936128518282651045
+u64 6510615555426900570: 90 23130 1515870810 6510615555426900570 6510615555426900570 90 23130 1515870810 6510615555426900570 6510615555426900570
+u128 0: 0 0 0 0 0 0 0 0 0 0 0 0
+u128 1: 1 1 1 1 1 1 1 1 1 1 1 1
+u128 340282366920938463463374607431768211455: -1 -1 -1 -1 -1 -1 255 65535 4294967295 18446744073709551615 340282366920938463463374607431768211455 18446744073709551615
+u128 220182708007666064593948275397026489765: -91 -23131 -1515870811 -6510615555426900571 -120099658913272398869426332034741721691 -6510615555426900571 165 42405 2779096485 11936128518282651045 220182708007666064593948275397026489765 11936128518282651045
+u128 120099658913272398869426332034741721690: 90 23130 1515870810 6510615555426900570 120099658913272398869426332034741721690 6510615555426900570 90 23130 1515870810 6510615555426900570 120099658913272398869426332034741721690 6510615555426900570
+usize 0: 0 0 0 0 0 0 0 0 0 0
+usize 1: 1 1 1 1 1 1 1 1 1 1
+usize 18446744073709551615: -1 -1 -1 -1 -1 255 65535 4294967295 18446744073709551615 18446744073709551615
+usize 11936128518282651045: -91 -23131 -1515870811 -6510615555426900571 -6510615555426900571 165 42405 2779096485 11936128518282651045 11936128518282651045
+usize 6510615555426900570: 90 23130 1515870810 6510615555426900570 6510615555426900570 90 23130 1515870810 6510615555426900570 6510615555426900570

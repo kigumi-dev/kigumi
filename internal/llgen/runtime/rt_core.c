@@ -1760,7 +1760,7 @@ val rt_convert(val a0, int dnk, int checked) {
         if (x != x || x < -9223372036854775808.0 || x >= 9223372036854775808.0) return none();
         return some(rt_int((int64_t)x, dnk));
     }
-    if (!checked) return rt_int(a0->u.i, dnk);
+    if (!checked) return rt_int(truncate_to(a0->u.i, dnk), dnk);
     if (!in_range(a0->u.i, a0->nk, dnk)) return none();
     return some(rt_int(a0->u.i, dnk));
 }
@@ -1820,7 +1820,10 @@ int rt_d_convert_int(int64_t v, int snk, int dnk, int checked, uint64_t* out) {
         *out = double_bits(is_signed(snk) ? (double)v : (double)(uint64_t)v);
         return 1;
     }
-    if (!checked) return 1;
+    if (!checked) {
+        *out = (uint64_t)truncate_to(v, dnk);
+        return 1;
+    }
     if (in_range(v, snk, dnk)) return 1;
     *out = 0;
     return 0;
@@ -2883,7 +2886,10 @@ static void free_opaque(val v) {
     const char* kind = v->u.op.kind;
     void* d = v->u.op.data;
     if (!strcmp(kind, "AllocatorHandle")) arena_close((arena*)d);
-    else if (!strcmp(kind, "Weak")) {
+    else if (!strcmp(kind, "Uninit")) {
+        ((val)d)->u.cell.v = NULL;
+        rt_release((val)d);
+    } else if (!strcmp(kind, "Weak")) {
         sctrl* c = d;
         if (--c->weak == 0 && !c->alive && !c->draining) free(c);
     } else if (!strcmp(kind, "Future")) {
@@ -3515,6 +3521,11 @@ static val ucell_atomic(char op, val cell, val x, val y) {
     }
     UCELL_UNLOCK();
     return res;
+}
+static val uninit_filled(val u) {
+    val v = ((val)u->u.op.data)->u.cell.v;
+    if (!v) rt_panic("Uninit slot is not initialized");
+    return v;
 }
 // rt_std_id never compares key strings: llgen resolves a call's std key to
 // an enum std_op at compile time (rt_std_op_of does the same resolution
@@ -4314,6 +4325,27 @@ val rt_std_id(int op, int n, val* a) {
     case OP_UCELL_ATOMIC_AND: return ucell_atomic('&', a0, a1, NULL);
     case OP_UCELL_ATOMIC_OR: return ucell_atomic('|', a0, a1, NULL);
     case OP_UCELL_ATOMIC_XOR: return ucell_atomic('^', a0, a1, NULL);
+    case OP_UNINIT_NEW: return opaque("Uninit", rt_cell(NULL));
+    case OP_UNINIT_INITIALIZE: {
+        ((val)a0->u.op.data)->u.cell.v = rt_retain(a1);
+        return rt_unit();
+    }
+    case OP_UNINIT_BORROW: return rt_retain(uninit_filled(a0));
+    case OP_UNINIT_COPY: return rt_copy(uninit_filled(a0));
+    case OP_UNINIT_BORROW_MUT: return rt_retain((val)a0->u.op.data);
+    case OP_UNINIT_TAKE: {
+        val cell = (val)a0->u.op.data;
+        val v = uninit_filled(a0);
+        cell->u.cell.v = NULL;
+        return v;
+    }
+    case OP_UNINIT_DROP: {
+        val cell = (val)a0->u.op.data;
+        val old = cell->u.cell.v;
+        cell->u.cell.v = NULL;
+        rt_release(old);
+        return rt_unit();
+    }
     case OP_BLOCKING_POOL_NEW:
 #if defined(KIGUMI_FREESTANDING) || !defined(KIGUMI_CAP_TASK_BLOCKING_POOL)
         rt_panic("this build has no task.blocking-pool capability");

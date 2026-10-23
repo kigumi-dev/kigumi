@@ -1,0 +1,46 @@
+-- src --
+pure noalloc fn low(x: u32) -> u8 {
+    x.truncate[u8]()
+}
+
+pure noalloc fn splitSigned(x: i32) -> i8 {
+    x.truncate[i8]()
+}
+
+let word: u32 = 0xDEADBEEF
+let mut out = Array.empty[u8]()
+for shift in Array.of[usize](24, 16, 8, 0) {
+    out.push((word >> shift).truncate[u8]())
+}
+print "${out.get(0) || 0} ${out.get(1) || 0} ${out.get(2) || 0} ${out.get(3) || 0}"
+print "${low(0x1234_5678)} ${splitSigned(0x1FF)} ${splitSigned(-129)}"
+
+let baked = comptime {
+    let w: u16 = 0xABCD
+    w.truncate[u8]()
+}
+let neg = comptime {
+    let v: i16 = -1
+    v.truncate[u8]()
+}
+print "${baked} ${neg}"
+
+let a: Int = 0x1_0000_0001
+let b: byte = a.truncate[byte]()
+let c: Int = a.truncate[Int]()
+let d: usize = 0x1_0000_0001
+print "${b} ${c} ${d.truncate[u32]()} ${d.truncate[usize]()}"
+
+let narrow: u8 = 200
+let signed = narrow.truncate[i8]()
+let again = signed.truncate[u8]()
+print "${signed} ${again} ${narrow.toI8() || 0} ${narrow.truncate[u8]()}"
+let masked = ((word >> 8) & 255).truncate[u8]()
+print "${masked}"
+-- stdout --
+222 173 190 239
+120 -1 127
+205 255
+1 4294967297 1 4294967297
+-56 200 0 200
+190

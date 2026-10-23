@@ -68,24 +68,10 @@ func (c *checker) callMethod(n, callee syntax.NodeID, args []syntax.NodeID, want
 		c.synthArgs(args)
 		return TyPoison
 	}
-	if c.vars.pendingLiteral(recv) {
-		recv = c.vars.settleLiterals(recv)
-	}
-	valueType := recv
-	if tt.Kind(recv) == KRef {
-		valueType = tt.Node(recv).Elem
-	}
-	recv, valueType = c.settlePendingReceiver(recv, valueType, name)
-	if tt.Kind(valueType) == KUntyped {
-		if lit := c.literalNode(base); c.isConstLiteral(lit) {
-			if resolved, ok := c.resolveLiteralReceiver(valueType, name); ok {
-				if recv = c.adopt(lit, resolved); recv == TyPoison {
-					c.synthArgs(args)
-					return TyPoison
-				}
-				valueType = recv
-			}
-		}
+	recv, valueType, ok := c.settleReceiver(base, recv, name)
+	if !ok {
+		c.synthArgs(args)
+		return TyPoison
 	}
 	if tt.Kind(valueType) == KNamed {
 		if fld := c.r.findField(tt.Node(valueType).Ent, name); fld != 0 {

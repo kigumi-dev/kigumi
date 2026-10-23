@@ -22,7 +22,7 @@ var lowered = map[string]bool{
 // conversionKey matches the numeric `toX` methods, which callEntity lowers
 // to rt_convert.
 func conversionKey(key string) bool {
-	return strings.HasPrefix(key, "prelude.") && strings.Contains(key, ".to") && !strings.HasPrefix(key, "prelude.String")
+	return strings.HasPrefix(key, "prelude.") && (strings.Contains(key, ".to") || strings.HasSuffix(key, ".truncate")) && !strings.HasPrefix(key, "prelude.String")
 }
 
 func primitiveKey(res *sem.Result, fn sem.EntityID) (string, bool) {

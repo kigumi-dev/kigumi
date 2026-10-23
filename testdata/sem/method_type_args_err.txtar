@@ -1,0 +1,135 @@
+-- src --
+type Foo = {
+    x Int
+    pub items Array[fn(Int) -> Int]
+}
+
+fn Foo.conv[T](self, v: T) -> T {
+    v
+}
+
+fn Foo.tag[T](self) -> Int {
+    3
+}
+
+fn Foo.pair[A, B](self, a: A, b: B) -> A {
+    a
+}
+
+fn ok(f: Foo) -> Int {
+    let a = f.conv[Int](2)
+    let b = f.tag[u8]()
+    let c = f.pair[Int, String](4, "s")
+    let d = f.items[0](5)
+    a + b + c + d
+}
+
+fn too_many(f: Foo) -> Int {
+    f.tag[u8, u16]() //~ ERROR takes 1 type argument
+}
+
+fn too_few(f: Foo) -> Int {
+    f.pair[Int](1, 2) //~ ERROR takes 2 type arguments
+}
+
+fn value_as_type(f: Foo) -> Int {
+    f.tag[3]() //~ ERROR is an expression, not a type
+}
+
+fn unknown_method(f: Foo) -> Int {
+    f.nope[u8]() //~ ERROR no field or method
+}
+
+fn mismatched(f: Foo) -> Int {
+    f.conv[String](2) //~ ERROR expected `Int`, found `String` //~ ERROR expected `String`, found `Int`
+}
+
+fn Foo.plain(self) -> Int {
+    self.x
+}
+
+fn method_refs(f: Foo) -> Int {
+    let g = f.conv[Int]
+    let h = f.tag[u8]
+    let p = f.pair[Int, String]
+    g(1) + h() + p(2, "s")
+}
+
+fn method_ref_errors(f: Foo) {
+    let _ = f.tag[u8, u16] //~ ERROR takes 1 type argument
+    let _ = f.plain[Int] //~ ERROR takes 0 type arguments
+    let _ = f.conv[&Int] //~ ERROR borrow types cannot appear
+    let g = f.conv[String]
+    let _ = g(1) //~ ERROR expected `String`, found `Int`
+}
+
+fn borrow_arg(f: Foo) -> Int {
+    f.conv[&Int](1) //~ ERROR borrow types cannot appear
+}
+-- expect --
+error[E217]: `tag` takes 1 type argument, 2 given
+  --> main/main.kg:27:5
+   |
+27 |     f.tag[u8, u16]() //~ ERROR takes 1 type argument
+   |     ^^^^^^^^^^^^^^^
+
+error[E217]: `pair` takes 2 type arguments, 1 given
+  --> main/main.kg:31:5
+   |
+31 |     f.pair[Int](1, 2) //~ ERROR takes 2 type arguments
+   |     ^^^^^^^^^^^^^^^^
+
+error[E126]: `3` is an expression, not a type
+  --> main/main.kg:35:11
+   |
+35 |     f.tag[3]() //~ ERROR is an expression, not a type
+   |           ^
+
+error[E510]: `Foo` has no field or method `nope`
+  --> main/main.kg:39:5
+   |
+39 |     f.nope[u8]() //~ ERROR no field or method
+   |     ^^^^^^
+
+error[E400]: expected `Int`, found `String`
+  --> main/main.kg:43:5
+   |
+43 |     f.conv[String](2) //~ ERROR expected `Int`, found `String` //~ ERROR expected `String`, found `Int`
+   |     ^^^^^^^^^^^^^^^^
+
+error[E400]: expected `String`, found `Int`
+  --> main/main.kg:43:20
+   |
+43 |     f.conv[String](2) //~ ERROR expected `Int`, found `String` //~ ERROR expected `String`, found `Int`
+   |                    ^
+
+error[E217]: `tag` takes 1 type argument, 2 given
+  --> main/main.kg:58:13
+   |
+58 |     let _ = f.tag[u8, u16] //~ ERROR takes 1 type argument
+   |             ^^^^^^^^^^^^^
+
+error[E217]: `plain` takes 0 type arguments, 1 given
+  --> main/main.kg:59:13
+   |
+59 |     let _ = f.plain[Int] //~ ERROR takes 0 type arguments
+   |             ^^^^^^^^^^^
+
+error[E220]: borrow types cannot appear in type arguments
+  --> main/main.kg:60:20
+   |
+60 |     let _ = f.conv[&Int] //~ ERROR borrow types cannot appear
+   |                    ^^^^
+
+error[E400]: expected `String`, found `Int`
+  --> main/main.kg:62:15
+   |
+62 |     let _ = g(1) //~ ERROR expected `String`, found `Int`
+   |               ^
+
+error[E220]: borrow types cannot appear in type arguments
+  --> main/main.kg:66:12
+   |
+66 |     f.conv[&Int](1) //~ ERROR borrow types cannot appear
+   |            ^^^^
+

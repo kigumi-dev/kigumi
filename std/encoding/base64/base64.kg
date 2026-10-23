@@ -108,12 +108,12 @@ pure fn parse(text: String, alphabet: String) -> Result[Bytes, DecodeError] {
         if (take == 2 && (w & 65535) != 0) || (take == 3 && (w & 255) != 0) {
             fail DecodeError { text: "base64: the last character carries nonzero trailing bits" }
         }
-        out.push(((w >> 16) & 255).toU8() || 0)
+        out.push((w >> 16).truncate[u8]())
         if take >= 3 {
-            out.push(((w >> 8) & 255).toU8() || 0)
+            out.push((w >> 8).truncate[u8]())
         }
         if take == 4 {
-            out.push((w & 255).toU8() || 0)
+            out.push(w.truncate[u8]())
         }
         i = i + take
     }

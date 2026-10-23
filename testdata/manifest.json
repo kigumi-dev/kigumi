@@ -358,6 +358,17 @@
       ]
     },
     {
+      "id": "fmt/method_type_args",
+      "kind": "fmt",
+      "path": "testdata/fmt/method_type_args.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/named_args",
       "kind": "fmt",
       "path": "testdata/fmt/named_args.txtar",
@@ -4717,6 +4728,23 @@
       ]
     },
     {
+      "id": "run/bounded_array",
+      "kind": "run",
+      "path": "testdata/run/bounded_array.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/box_basic",
       "kind": "run",
       "path": "testdata/run/box_basic.txtar",
@@ -6009,6 +6037,23 @@
       "id": "run/custom_eq",
       "kind": "run",
       "path": "testdata/run/custom_eq.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/custom_index_const_generic",
+      "kind": "run",
+      "path": "testdata/run/custom_index_const_generic.txtar",
       "mode": [
         "vm",
         "native"
@@ -11875,6 +11920,23 @@
       ]
     },
     {
+      "id": "run/method_value_type_args",
+      "kind": "run",
+      "path": "testdata/run/method_value_type_args.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/method_value_witness",
       "kind": "run",
       "path": "testdata/run/method_value_witness.txtar",
@@ -14773,6 +14835,40 @@
       ]
     },
     {
+      "id": "run/truncate_contexts",
+      "kind": "run",
+      "path": "testdata/run/truncate_contexts.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/truncate_table",
+      "kind": "run",
+      "path": "testdata/run/truncate_table.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/try_family_array",
       "kind": "run",
       "path": "testdata/run/try_family_array.txtar",
@@ -14878,6 +14974,44 @@
       "id": "run/tuple",
       "kind": "run",
       "path": "testdata/run/tuple.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/uninit_empty_read",
+      "kind": "run",
+      "path": "testdata/run/uninit_empty_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: Uninit slot is not initialized"
+      }
+    },
+    {
+      "id": "run/uninit_primitives",
+      "kind": "run",
+      "path": "testdata/run/uninit_primitives.txtar",
       "mode": [
         "vm",
         "native"
@@ -19038,6 +19172,17 @@
       ]
     },
     {
+      "id": "sem/method_type_args_err",
+      "kind": "sem",
+      "path": "testdata/sem/method_type_args_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/method_value_aliased_field",
       "kind": "sem",
       "path": "testdata/sem/method_value_aliased_field.txtar",
@@ -20105,6 +20250,17 @@
       ]
     },
     {
+      "id": "sem/truncate_target_err",
+      "kind": "sem",
+      "path": "testdata/sem/truncate_target_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/tuple",
       "kind": "sem",
       "path": "testdata/sem/tuple.txtar",
@@ -20207,6 +20363,39 @@
       "id": "sem/types_record",
       "kind": "sem",
       "path": "testdata/sem/types_record.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/uninit_bounded_misuse_err",
+      "kind": "sem",
+      "path": "testdata/sem/uninit_bounded_misuse_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/uninit_storage_allocator_none",
+      "kind": "sem",
+      "path": "testdata/sem/uninit_storage_allocator_none.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/uninit_storage_recoverable",
+      "kind": "sem",
+      "path": "testdata/sem/uninit_storage_recoverable.txtar",
       "mode": [
         "check"
       ],

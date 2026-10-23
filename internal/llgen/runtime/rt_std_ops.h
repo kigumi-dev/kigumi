@@ -178,6 +178,13 @@ enum std_op {
     OP_UCELL_ATOMIC_AND = 173,
     OP_UCELL_ATOMIC_OR = 174,
     OP_UCELL_ATOMIC_XOR = 175,
+    OP_UNINIT_NEW = 176,
+    OP_UNINIT_INITIALIZE = 177,
+    OP_UNINIT_BORROW = 178,
+    OP_UNINIT_BORROW_MUT = 179,
+    OP_UNINIT_TAKE = 180,
+    OP_UNINIT_DROP = 181,
+    OP_UNINIT_COPY = 182,
 };
 static int rt_std_op_of(const char* key) {
     const char* k = key;
@@ -347,6 +354,13 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "mem.UnsafeCell.atomicAnd")) return OP_UCELL_ATOMIC_AND;
     if (!strcmp(k, "mem.UnsafeCell.atomicOr")) return OP_UCELL_ATOMIC_OR;
     if (!strcmp(k, "mem.UnsafeCell.atomicXor")) return OP_UCELL_ATOMIC_XOR;
+    if (!strcmp(k, "mem.uninit")) return OP_UNINIT_NEW;
+    if (!strcmp(k, "mem.initialize")) return OP_UNINIT_INITIALIZE;
+    if (!strcmp(k, "mem.borrowInitialized")) return OP_UNINIT_BORROW;
+    if (!strcmp(k, "mem.borrowInitializedMut")) return OP_UNINIT_BORROW_MUT;
+    if (!strcmp(k, "mem.takeInitialized")) return OP_UNINIT_TAKE;
+    if (!strcmp(k, "mem.dropInitialized")) return OP_UNINIT_DROP;
+    if (!strcmp(k, "mem.copyInitialized")) return OP_UNINIT_COPY;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;

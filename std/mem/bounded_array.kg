@@ -1,0 +1,156 @@
+/// What a full BoundedArray hands back instead of storing: the value itself, so a move-only element is not lost.
+pub type CapacityFull[T] = {
+    pub value T
+}
+
+/// Up to N elements of T. A full array refuses a push and never grows, and N is part of the type.
+/// Its N slots are heap cells allocated once in `new`; dropping it drops the elements it holds and nothing else.
+pub type BoundedArray[T, const N: usize] = resource {
+    mut slots FixedArray[Uninit[T], N]
+    mut used usize
+}
+
+/// An empty array.
+pub pure fn BoundedArray.new[T, const N: usize]() -> BoundedArray[T, N] {
+    let mut slots = Array.tryWithCapacity[Uninit[T]](N) || panic("out of memory")
+    let mut i: usize = 0
+    for i < N {
+        slots.push(uninit[T]())
+        i = i + 1
+    }
+    BoundedArray {
+        slots: FixedArray.fromArrayMove[Uninit[T], N](slots).expect("one slot per capacity")
+        used: 0
+    }
+}
+
+/// Number of elements held, between 0 and N.
+pub pure noalloc fn BoundedArray[T, N].len(self) -> usize {
+    self.used
+}
+
+/// N, whatever the length.
+pub pure noalloc fn BoundedArray[T, N].capacity(self) -> usize {
+    N
+}
+
+pub pure noalloc fn BoundedArray[T, N].isEmpty(self) -> Bool {
+    self.used == 0
+}
+
+pub pure noalloc fn BoundedArray[T, N].isFull(self) -> Bool {
+    self.used == N
+}
+
+/// Appends value, or hands it back inside CapacityFull when the array already holds N elements.
+pub fn BoundedArray[T, N].tryPush(mut self, value: T) -> Result[Void, CapacityFull[T]] {
+    if self.used >= N {
+        return Err(CapacityFull { value: value })
+    }
+    let i = self.used
+    unsafe {
+        initialize(&mut self.slots[i], value)
+    }
+    self.used = i + 1
+}
+
+/// Appends value, or panics when the array already holds N elements.
+pub fn BoundedArray[T, N].push(mut self, value: T) {
+    if self.tryPush(value) is Err(_) {
+        panic("BoundedArray is full")
+    }
+}
+
+/// Removes and returns the last element; None when empty.
+pub fn BoundedArray[T, N].pop(mut self) -> T? {
+    if self.used == 0 {
+        return None
+    }
+    let i = self.used - 1
+    self.used = i
+    unsafe {
+        Some(takeInitialized(&mut self.slots[i]))
+    }
+}
+
+/// Calls f once with a borrow of the element at index and does not keep it; None when index is out of range.
+pub fn BoundedArray[T, N].at[R](self, index: usize, f: fn(&T) -> R) -> R? {
+    if index >= self.used {
+        return None
+    }
+    unsafe {
+        Some(f(borrowInitialized(&self.slots[index])))
+    }
+}
+
+/// Calls f once with an exclusive borrow of the element at index, so f can change it in place; None when index is out of range.
+pub fn BoundedArray[T, N].withMut[R](mut self, index: usize, f: fn(&mut T) -> R) -> R? {
+    if index >= self.used {
+        return None
+    }
+    unsafe {
+        let mut value = takeInitialized(&mut self.slots[index])
+        let out = f(&mut value)
+        initialize(&mut self.slots[index], value)
+        Some(out)
+    }
+}
+
+/// A copy of the element at index, or None when index is out of range.
+pub fn BoundedArray[T: Copy, N].get(self, index: usize) -> T? {
+    if index >= self.used {
+        return None
+    }
+    unsafe {
+        Some(copyInitialized(&self.slots[index]))
+    }
+}
+
+/// `a[i]`: a copy of the element at index; traps when index is out of range.
+pub fn BoundedArray[T: Copy, N].index(self, index: usize) -> T {
+    self.get(index).expect("index out of range")
+}
+
+/// Replaces the element at index and drops the old one; false when index is out of range, dropping value.
+pub fn BoundedArray[T, N].set(mut self, index: usize, value: T) -> Bool {
+    if index >= self.used {
+        return false
+    }
+    unsafe {
+        dropInitialized(&mut self.slots[index])
+        initialize(&mut self.slots[index], value)
+    }
+    true
+}
+
+/// Drops every element and leaves the array empty.
+pub fn BoundedArray[T, N].clear(mut self) {
+    for self.used > 0 {
+        let i = self.used - 1
+        self.used = i
+        unsafe {
+            dropInitialized(&mut self.slots[i])
+        }
+    }
+}
+
+/// A growable copy of the elements, in order.
+pub fn BoundedArray[T: Copy, N].toArray(self) -> Array[T] {
+    let mut out = Array.empty[T]()
+    let mut i: usize = 0
+    for i < self.used {
+        out.push(self.index(i))
+        i = i + 1
+    }
+    out
+}
+
+fn BoundedArray[T, N].drop(move self) {
+    let mut i: usize = 0
+    for i < self.used {
+        unsafe {
+            dropInitialized(&mut self.slots[i])
+        }
+        i = i + 1
+    }
+}

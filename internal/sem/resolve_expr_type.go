@@ -61,7 +61,7 @@ func (r *Result) exprAsTypeRef(f FileID, scope ScopeID, n syntax.NodeID) (Entity
 		}
 		return ent, args, true
 	}
-	r.errAt(f, n, cNotAType, "this", "an expression")
+	r.errAt(f, n, cNotAType, r.exprName(f, n), "an expression")
 	return 0, nil, false
 }
 
@@ -78,6 +78,9 @@ func (r *Result) exprAsType(f FileID, scope ScopeID, n syntax.NodeID) TypeID {
 		return r.resolveType(f, scope, n, posTypeArg)
 	case syntax.TupleLit:
 		return r.exprAsTupleType(f, scope, n)
+	case syntax.BorrowExpr:
+		r.errAt(f, n, cBorrowPosition, typePosNames[posTypeArg])
+		return TyPoison
 	}
 	ent, args, ok := r.exprAsTypeRef(f, scope, n)
 	if !ok {

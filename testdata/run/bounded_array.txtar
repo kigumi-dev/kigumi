@@ -1,0 +1,102 @@
+-- src --
+import mem from std/mem
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+fn fill(b: &mut mem.BoundedArray[Int, 64]) -> Int {
+    let mut n = 0
+    let mut i = 0
+    for i < 100 {
+        if b.tryPush(i * 2) is Ok(_) {
+            n = n + 1
+        }
+        i = i + 1
+    }
+    n
+}
+
+let mut b = mem.BoundedArray.new[Int, 3]()
+print "${b.tryPush(1) is Ok(_)} ${b.tryPush(2) is Ok(_)} ${b.tryPush(3) is Ok(_)} ${b.tryPush(4) is Ok(_)} ${b.len()} ${b.capacity()} ${b.isFull()}"
+print "${b[0]} ${b[2]} ${b.get(1) || -1} ${b.get(3) || -1} ${b.pop() || -1} ${b.len()}"
+print "${b.toArray().len()} ${b.set(0, 50)} ${b.set(5, 1)} ${b[0]}"
+_ = b.withMut(1, (x: &mut Int) => { x = x + 100 })
+print "${b[1]} ${b.withMut(9, (x: &mut Int) => 0) is None}"
+b.clear()
+print "${b.len()} ${b.isEmpty()} ${b.pop() is None}"
+
+let mut big = mem.BoundedArray.new[Int, 64]()
+print "${fill(&mut big)} ${big.len()} ${big[63]} ${big.isFull()}"
+
+let mut words = mem.BoundedArray.new[String, 2]()
+words.push("a")
+_ = words.tryPush("b")
+match words.tryPush("c") {
+    Ok(_) -> print "pushed"
+    Err(full) -> print "refused ${full.value}"
+}
+print "${words.at(1, (w: &String) => w.len()) || 0} ${words.pop() || "-"} ${words.pop() || "-"} ${words.pop() || "-"}"
+
+let mut pts = mem.BoundedArray.new[Pt, 2]()
+_ = pts.tryPush(Pt { x: 1, y: 2 })
+print "${pts[0].x} ${pts[0].y} ${pts.len()}"
+
+let mut opts = mem.BoundedArray.new[Int?, 2]()
+_ = opts.tryPush(None)
+_ = opts.tryPush(Some(4))
+print "${opts[0] is None} ${opts[1] || -1}"
+
+let mut r = mem.BoundedArray.new[Res, 2]()
+_ = r.tryPush(Res { id: 10 })
+_ = r.tryPush(Res { id: 11 })
+match r.tryPush(Res { id: 12 }) {
+    Ok(_) -> print "pushed"
+    Err(full) -> print "full ${full.value.id}"
+}
+print "${r.at(0, (x: &Res) => x.id) || -1} ${r.at(5, (x: &Res) => x.id) || -1}"
+print "set ${r.set(0, Res { id: 20 })}"
+print "popped ${(r.pop() || Res { id: -1 }).id}"
+let z = mem.BoundedArray.new[Int, 0]()
+print "${z.len()} ${z.capacity()} ${z.isFull()}"
+let mut dropped = mem.BoundedArray.new[Res, 4]()
+_ = dropped.tryPush(Res { id: 30 })
+_ = dropped.tryPush(Res { id: 31 })
+dropped.clear()
+print "cleared ${dropped.len()}"
+_ = dropped.tryPush(Res { id: 32 })
+print "end"
+-- stdout --
+true true true false 3 3 true
+1 3 2 -1 3 2
+2 true false 50
+102 true
+0 true true
+64 64 126 true
+refused c
+1 b a -
+1 2 1
+true 4
+full 12
+drop 12
+10 -1
+drop 10
+set true
+drop 11
+popped 11
+0 0 true
+drop 31
+drop 30
+cleared 0
+end
+drop 32
+drop 20

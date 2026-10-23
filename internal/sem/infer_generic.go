@@ -50,6 +50,8 @@ func (c *checker) instantiateFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID,
 		switch {
 		case i < len(typeArgs):
 			t = typeArgs[i]
+		case bad:
+			t = TyPoison
 		case c.r.typeParam(p).IsLifetime:
 			t = c.vars.freshLifetime(n, p, c.lifetimeFallback(p))
 		default:

@@ -1,0 +1,50 @@
+-- src --
+type Bag = {
+    pub x Int
+}
+
+fn Bag.conv[T](self, x: T) -> T {
+    x
+}
+
+fn Bag.same[T: Eq](self, a: T, b: T) -> Int {
+    if a == b {
+        self.x
+    } else {
+        0
+    }
+}
+
+fn Bag.second[A, B](self, a: A, b: B) -> B {
+    b
+}
+
+type Tok = resource {
+    pub id Int
+}
+
+fn Tok.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Tok.with[T](self, v: T) -> T {
+    v
+}
+
+fn apply(f: fn(String) -> String) -> String {
+    f("hey")
+}
+
+let b = Bag { x: 7 }
+let g = b.conv[Int]
+let s = b.conv[String]
+let e = b.same[String]
+let p = b.second[Int, String]
+print "${g(5)} ${s("a")} ${e("q", "q")} ${e("q", "r")} ${p(1, "two")} ${apply(b.conv[String])}"
+let t = Tok { id: 3 }
+let w = t.with[u8]
+print "${w(9)}"
+-- stdout --
+5 a 7 0 two hey
+9
+drop 3

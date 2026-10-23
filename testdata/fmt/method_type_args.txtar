@@ -1,0 +1,14 @@
+-- src --
+fn f(w: u16, f: Foo) -> u8 {
+    let a = (w >> 4).truncate[ u8 ]()
+    let b = f.conv[ Int, String ](1, "x")
+    let c = f.items[0](2)
+    a
+}
+-- expect --
+fn f(w: u16, f: Foo) -> u8 {
+    let a = (w >> 4).truncate[u8]()
+    let b = f.conv[Int, String](1, "x")
+    let c = f.items[0](2)
+    a
+}

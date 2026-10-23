@@ -20,14 +20,19 @@ func (c *checker) callBracketMethod(n, callee syntax.NodeID, args []syntax.NodeI
 		c.synthArgs(args)
 		return TyPoison, true
 	}
-	valueType := recv
-	if tt.Kind(recv) == KRef {
-		valueType = tt.Node(recv).Elem
+	recv, valueType, ok := c.settleReceiver(base, recv, name)
+	if !ok {
+		c.synthArgs(args)
+		return TyPoison, true
 	}
 	isField := tt.Kind(valueType) == KNamed && c.r.findField(tt.Node(valueType).Ent, name) != 0
 	if isField || c.memberSetHere(valueType, name) == 0 && !c.hasRequirement(valueType, name) {
 		ft := c.vars.resolve(c.memberOn(inner, base, recv, name))
 		c.setType(inner, ft)
+		if ft == TyPoison {
+			c.synthArgs(args)
+			return TyPoison, true
+		}
 		if len(items) != 1 {
 			c.errAt(callee, cIndexCount)
 			c.synthArgs(args)
@@ -38,9 +43,37 @@ func (c *checker) callBracketMethod(n, callee syntax.NodeID, args []syntax.NodeI
 		c.setType(callee, elem)
 		return c.callValue(n, 0, c.vars.resolve(elem), args, want), true
 	}
+	var params []EntityID
+	if members := c.r.Overloads[c.r.memberSet(valueType, name)].Members; len(members) == 1 {
+		params = c.ownGenerics(members[0])
+	}
 	var typeArgs []TypeID
-	for _, a := range items {
-		typeArgs = append(typeArgs, c.r.exprAsType(c.f, c.scope, a))
+	for i, a := range items {
+		typeArgs = append(typeArgs, c.r.resolveExprGenericArg(c.f, c.scope, a, entAt(params, i)))
 	}
 	return c.callMethodOn(n, inner, base, recv, valueType, typeArgs, args, want), true
+}
+
+// settleReceiver fixes the type of a still-untyped literal receiver by the method it names.
+func (c *checker) settleReceiver(base syntax.NodeID, recv TypeID, name string) (TypeID, TypeID, bool) {
+	tt := c.r.Types
+	if c.vars.pendingLiteral(recv) {
+		recv = c.vars.settleLiterals(recv)
+	}
+	valueType := recv
+	if tt.Kind(recv) == KRef {
+		valueType = tt.Node(recv).Elem
+	}
+	recv, valueType = c.settlePendingReceiver(recv, valueType, name)
+	if tt.Kind(valueType) == KUntyped {
+		if lit := c.literalNode(base); c.isConstLiteral(lit) {
+			if resolved, ok := c.resolveLiteralReceiver(valueType, name); ok {
+				if recv = c.adopt(lit, resolved); recv == TyPoison {
+					return recv, valueType, false
+				}
+				valueType = recv
+			}
+		}
+	}
+	return recv, valueType, true
 }

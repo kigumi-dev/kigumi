@@ -1,0 +1,73 @@
+-- src --
+import mem from std/mem
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+noalloc fn viaSlot(s: &mut mem.Uninit[Int]) -> Int {
+    unsafe {
+        mem.initialize(s, 7)
+        mem.takeInitialized(s)
+    }
+}
+
+fn bump(x: &mut Int) {
+    x = x + 10
+}
+
+let mut s = mem.uninit[Int]()
+unsafe {
+    mem.initialize(&mut s, 5)
+    let r = mem.borrowInitialized(&s)
+    print "borrow ${r}"
+    bump(mem.borrowInitializedMut(&mut s))
+    print "take ${mem.takeInitialized(&mut s)}"
+}
+print "noalloc ${viaSlot(&mut s)}"
+
+let mut text = mem.uninit[String]()
+unsafe {
+    mem.initialize(&mut text, "hello")
+    print "string ${mem.borrowInitialized(&text)}"
+    mem.dropInitialized(&mut text)
+    mem.initialize(&mut text, "again")
+    print "string ${mem.takeInitialized(&mut text)}"
+}
+
+let mut opt = mem.uninit[Int?]()
+unsafe {
+    mem.initialize(&mut opt, None)
+    print "option ${mem.takeInitialized(&mut opt) is None}"
+}
+
+let mut a = mem.uninit[Res]()
+unsafe {
+    mem.initialize(&mut a, Res { id: 1 })
+    print "res ${mem.borrowInitialized(&a).id}"
+    mem.dropInitialized(&mut a)
+}
+let mut b = mem.uninit[Res]()
+unsafe {
+    mem.initialize(&mut b, Res { id: 2 })
+    let got = mem.takeInitialized(&mut b)
+    print "took ${got.id}"
+}
+let empty = mem.uninit[Res]()
+print "end"
+-- stdout --
+borrow 5
+take 15
+noalloc 7
+string hello
+string again
+option true
+res 1
+drop 1
+took 2
+drop 2
+end

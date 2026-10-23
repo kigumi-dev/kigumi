@@ -16,11 +16,14 @@ func inRange(v int64, s, d int) bool {
 	return v >= 0 && (bitsOf(d) == 64 || uint64(v) <= maxOf(d))
 }
 
-// convert is the prelude's numeric `toX`: the target kind comes from the
-// callee's return type, the source kind from the value.
+// convert is the prelude's numeric `toX` and `truncate`: the target kind comes
+// from the callee's return type, or from the call's result for `truncate`.
 func (m *Machine) convert(a0 *obj) *obj {
 	tt := m.r.Types
 	target := tt.Node(m.r.Fn(m.site.Ent).Sig).Elem
+	if m.r.IsTruncate(m.site.Ent) {
+		target = m.siteFn.Locals[m.site.Dst].Type
+	}
 	checked := false
 	if n := tt.Node(target); n.Kind == sem.KNamed && n.Ent == tt.OptionEnt() {
 		target, checked = n.Args[0], true
@@ -61,7 +64,7 @@ func (m *Machine) convert(a0 *obj) *obj {
 		return m.some(mkInt(int64(x), dnk))
 	}
 	if !checked {
-		return mkInt(a0.i, dnk)
+		return mkInt(truncateTo(a0.i, dnk), dnk)
 	}
 	if !inRange(a0.i, a0.nkind(), dnk) {
 		return m.none()

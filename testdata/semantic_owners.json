@@ -6741,6 +6741,166 @@
     "status": "ok"
   },
   {
+    "key": "mem.BoundedArray.at",
+    "signature": "fn(usize, fn(\u0026T) -\u003e R) -\u003e R?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.capacity",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.clear",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.drop",
+    "signature": "fn() -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.get",
+    "signature": "fn(usize) -\u003e T?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.index",
+    "signature": "fn(usize) -\u003e T",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.isEmpty",
+    "signature": "pure noalloc fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.isFull",
+    "signature": "pure noalloc fn() -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.len",
+    "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.new",
+    "signature": "pure fn() -\u003e BoundedArray[T, N]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.pop",
+    "signature": "fn() -\u003e T?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.push",
+    "signature": "fn(T) -\u003e Void",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.set",
+    "signature": "fn(usize, T) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.toArray",
+    "signature": "fn() -\u003e Array[T]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.tryPush",
+    "signature": "fn(T) -\u003e Result[Void, CapacityFull[T]]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.BoundedArray.withMut",
+    "signature": "fn(usize, fn(\u0026mut T) -\u003e R) -\u003e R?",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "mem.UnsafeCell.atomicAdd",
     "signature": "unsafe fn(T, AtomicOrder) -\u003e T",
     "has_body": false,
@@ -6951,6 +7111,56 @@
     "status": "ok"
   },
   {
+    "key": "mem.borrowInitialized",
+    "signature": "pure noalloc unsafe fn(\u0026Uninit[T]) -\u003e \u0026T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.borrowInitializedMut",
+    "signature": "pure noalloc unsafe fn(\u0026mut Uninit[T]) -\u003e \u0026mut T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.copyInitialized",
+    "signature": "pure noalloc unsafe fn(\u0026Uninit[T]) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.dropInitialized",
+    "signature": "pure noalloc unsafe fn(\u0026mut Uninit[T]) -\u003e Void",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.initialize",
+    "signature": "pure noalloc unsafe fn(\u0026mut Uninit[T], T) -\u003e Void",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "mem.secureErase",
     "signature": "pure fn(\u0026mut Bytes) -\u003e Void",
     "has_body": false,
@@ -6961,8 +7171,28 @@
     "status": "ok"
   },
   {
+    "key": "mem.takeInitialized",
+    "signature": "pure noalloc unsafe fn(\u0026mut Uninit[T]) -\u003e T",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "mem.trySecureErase",
     "signature": "pure fn(\u0026mut Bytes) -\u003e Result[Void, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "mem.uninit",
+    "signature": "pure fn() -\u003e Uninit[T]",
     "has_body": false,
     "kind": "primitive",
     "vm": "implemented",
@@ -9342,6 +9572,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.i128.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.i128.wrappingAdd",
     "signature": "pure noalloc fn(i128) -\u003e i128",
     "has_body": false,
@@ -9634,6 +9874,16 @@
   {
     "key": "prelude.i16.toUsize",
     "signature": "pure noalloc fn() -\u003e usize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i16.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -9942,6 +10192,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.i32.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.i32.wrappingAdd",
     "signature": "pure noalloc fn(i32) -\u003e i32",
     "has_body": false,
@@ -10234,6 +10494,16 @@
   {
     "key": "prelude.i64.toUsize",
     "signature": "pure noalloc fn() -\u003e usize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.i64.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -10542,6 +10812,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.i8.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.i8.wrappingAdd",
     "signature": "pure noalloc fn(i8) -\u003e i8",
     "has_body": false,
@@ -10834,6 +11114,16 @@
   {
     "key": "prelude.isize.toUsize",
     "signature": "pure noalloc fn() -\u003e usize?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.isize.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -11172,6 +11462,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.u128.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.u128.wrappingAdd",
     "signature": "pure noalloc fn(u128) -\u003e u128",
     "has_body": false,
@@ -11464,6 +11764,16 @@
   {
     "key": "prelude.u16.toUsize",
     "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u16.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -11772,6 +12082,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.u32.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.u32.wrappingAdd",
     "signature": "pure noalloc fn(u32) -\u003e u32",
     "has_body": false,
@@ -12064,6 +12384,16 @@
   {
     "key": "prelude.u64.toUsize",
     "signature": "pure noalloc fn() -\u003e usize",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.u64.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
     "has_body": false,
     "kind": "",
     "vm": "implemented",
@@ -12382,6 +12712,16 @@
     "status": "ok"
   },
   {
+    "key": "prelude.u8.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.u8.wrappingAdd",
     "signature": "pure noalloc fn(u8) -\u003e u8",
     "has_body": false,
@@ -12674,6 +13014,16 @@
   {
     "key": "prelude.usize.toU8",
     "signature": "pure noalloc fn() -\u003e u8?",
+    "has_body": false,
+    "kind": "",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.usize.truncate",
+    "signature": "pure noalloc fn() -\u003e T",
     "has_body": false,
     "kind": "",
     "vm": "implemented",

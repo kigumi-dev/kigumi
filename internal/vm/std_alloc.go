@@ -132,6 +132,10 @@ func (m *Machine) freeOpaqueAt(v *obj, d int) {
 	switch v.opaqueOp() {
 	case "Shared", "AllocatorScope", "UnsafeCell", "Box":
 		m.releaseAt(m.opaqueOwned(v), d)
+	case "Uninit":
+		cell := v.opaqueData().(*obj)
+		cell.inner = nil
+		m.releaseAt(cell, d)
 	case "Weak":
 		c := v.opaqueData().(*sharedCtrl)
 		c.weak--

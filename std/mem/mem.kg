@@ -96,3 +96,30 @@ pub noalloc unsafe fn volatileReadAt[T](address: usize) -> T
 
 /// Writes value to the register at a fixed address like `volatileWrite`, without forming a pointer.
 pub noalloc unsafe fn volatileWriteAt[T](address: usize, value: T)
+
+/// Storage for one T that may or may not hold a value, with no flag saying which, so every state-dependent operation is `unsafe`.
+/// Safety: moving an Uninit[T] to another thread moves at most one T, and sharing it shares at most one T.
+@unsafeGuarantee(Send when T: Send, Sync when T: Sync)
+pub type Uninit[T]
+
+/// An empty slot. The cell behind it is allocated here, so unlike the operations below this is not `noalloc`.
+pub pure fn uninit[T]() -> Uninit[T]
+
+/// Moves value into the slot, which dropping the slot will not drop: empty it with takeInitialized or dropInitialized.
+/// The caller rules out the slot already holding a value, which would be lost.
+pub pure noalloc unsafe fn initialize[T](slot: &mut Uninit[T], value: T)
+
+/// The value in the slot. The caller rules out an empty slot and any write to it while the borrow lives.
+pub pure noalloc unsafe fn borrowInitialized['a, T](slot: &'a Uninit[T]) -> &'a T
+
+/// A copy of the value in the slot. The caller rules out an empty slot.
+pure noalloc unsafe fn copyInitialized[T: Copy](slot: &Uninit[T]) -> T
+
+/// The value in the slot, exclusively. The caller rules out an empty slot and any other access while the borrow lives.
+pub pure noalloc unsafe fn borrowInitializedMut['a, T](slot: &'a mut Uninit[T]) -> &'a mut T
+
+/// Moves the value out and leaves the slot empty. The caller rules out an empty slot.
+pub pure noalloc unsafe fn takeInitialized[T](slot: &mut Uninit[T]) -> T
+
+/// Drops the value and leaves the slot empty. The caller rules out an empty slot.
+pub pure noalloc unsafe fn dropInitialized[T](slot: &mut Uninit[T])

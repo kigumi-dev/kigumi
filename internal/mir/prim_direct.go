@@ -101,7 +101,7 @@ func (p *Program) numericOrChar(t sem.TypeID) bool {
 
 func (p *Program) isConversion(fn sem.EntityID) bool {
 	info := p.R.Fn(fn)
-	if info.Owner == 0 || !strings.HasPrefix(p.R.Entity(fn).Name, "to") || !strings.HasPrefix(StdKey(p.R, fn, false), "std/prelude.") {
+	if info.Owner == 0 || !p.R.IsConversion(fn) || !strings.HasPrefix(StdKey(p.R, fn, false), "std/prelude.") {
 		return false
 	}
 	self := p.R.Entity(info.Owner).Type

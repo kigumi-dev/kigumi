@@ -18,6 +18,7 @@ var langItemTable = map[string]string{
 	"Context":        "std/error",
 	"ExitError":      "std/os",
 	"FixedArray":     "std/prelude",
+	"BoundedArray":   "std/mem",
 }
 
 // langItem returns the entity of a lang item, or 0 (and reports

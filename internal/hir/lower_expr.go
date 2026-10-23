@@ -64,9 +64,13 @@ func (l *lowerer) exprRaw(n syntax.NodeID) *Expr {
 			return l.fnItem(n, ent)
 		}
 		base, idx := b.Base().ID(), b.Args().At(0).ID()
+		if call, ok := l.info.Calls[base]; ok && call.Kind == sem.CallMethodValue {
+			return l.expr(base)
+		}
 		if call, ok := l.info.Calls[n]; ok && call.Kind == sem.CallIndexWitness {
 			out := l.node(n, MethodCall)
 			out.Ent, out.Args = call.Callee, []*Expr{l.expr(base), l.expr(idx)}
+			out.Witness, out.Passes, out.ConstArgs = call.Witness, call.Passes, call.ConstArgs
 			out.Async = l.r.Fn(call.Callee).Declared&sem.EffAsync != 0
 			out.IndexWitness = true
 			return out

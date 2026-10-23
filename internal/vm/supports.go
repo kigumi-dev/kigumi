@@ -132,7 +132,7 @@ func (m *Machine) primitiveKnown(key string) bool {
 	if id, ok := mir.StdOpFor(key); ok && id.Kind() == mir.KindPrimitive {
 		return true
 	}
-	if strings.HasPrefix(key, "prelude.") && strings.Contains(strings.TrimPrefix(key, "prelude."), ".to") {
+	if strings.HasPrefix(key, "prelude.") && (strings.Contains(strings.TrimPrefix(key, "prelude."), ".to") || strings.HasSuffix(key, ".truncate")) {
 		return true
 	}
 	return false

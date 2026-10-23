@@ -81,7 +81,7 @@ pub pure fn putUintBe(out: &mut Array[u8], v: u64, n: usize) {
         if left >= 8 {
             out.push(0)
         } else {
-            out.push(((v >> (left * 8)) & 255).toU8() || 0)
+            out.push((v >> (left * 8)).truncate[u8]())
         }
         i = i + 1
     }
@@ -95,7 +95,7 @@ pub pure fn putUintLe(out: &mut Array[u8], v: u64, n: usize) {
         if i >= 8 {
             out.push(0)
         } else {
-            out.push(((v >> (i * 8)) & 255).toU8() || 0)
+            out.push((v >> (i * 8)).truncate[u8]())
         }
         i = i + 1
     }

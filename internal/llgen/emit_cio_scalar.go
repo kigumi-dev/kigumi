@@ -51,7 +51,7 @@ func (e *emitter) ffiScalarCall(sb *strings.Builder, key string, args []string, 
 // travels with the value itself.
 func (e *emitter) convertCall(sb *strings.Builder, ent sem.EntityID, key string, args []string, self, dst sem.TypeID) (string, bool) {
 	tt := e.r.Types
-	if !strings.HasPrefix(key, "std/prelude.") || !strings.HasPrefix(e.r.Entity(ent).Name, "to") || e.r.Fn(ent).Owner == 0 {
+	if !strings.HasPrefix(key, "std/prelude.") || !e.r.IsConversion(ent) {
 		return "", false
 	}
 	if n := tt.Node(self); n.Kind == sem.KRef {
@@ -82,7 +82,7 @@ func (e *emitter) loweredStd(fn sem.EntityID) bool {
 		return true
 	}
 	info := e.r.Fn(fn)
-	if !strings.HasPrefix(key, "std/prelude.") || !strings.HasPrefix(e.r.Entity(fn).Name, "to") || info.Owner == 0 {
+	if !strings.HasPrefix(key, "std/prelude.") || !e.r.IsConversion(fn) {
 		return false
 	}
 	self := e.r.Entity(info.Owner).Type

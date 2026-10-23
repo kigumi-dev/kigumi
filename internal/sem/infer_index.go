@@ -27,6 +27,9 @@ func (c *checker) synthBracket(n syntax.NodeID) TypeID {
 		return TyPoison
 	}
 	recv := c.vars.resolve(c.synthPlace(base))
+	if c.isMethodRef(base) {
+		return c.methodRefTypeArgs(n, base, items, recv)
+	}
 	if items.Len() != 1 {
 		c.errAt(n, cIndexCount)
 		return TyPoison
@@ -138,41 +141,6 @@ func (c *checker) indexType(n, idx syntax.NodeID, recv, index TypeID) TypeID {
 	default:
 		c.errAt(n, cNotIndexable, recv)
 		return TyPoison
-	}
-	c.errAtHelp(idx, usizeHelp(TyUsize, index), cIndexType, index)
-	return TyPoison
-}
-
-// indexWitnessType resolves `recv[idx]` against recv's own `index` member, fixing an
-// untyped index literal to its parameter type here, before any builtin usize coercion runs.
-func (c *checker) indexWitnessType(n, idx syntax.NodeID, recv, index TypeID) TypeID {
-	tt := c.r.Types
-	set := c.memberSetHere(recv, "index")
-	if set == 0 {
-		c.errAt(n, cNotIndexable, recv)
-		return TyPoison
-	}
-	m := c.visibleMembers(set)[0]
-	sig := tt.Node(c.r.memberSig(recv, m))
-	want := TyPoison
-	if len(sig.Args) == 1 {
-		want = sig.Args[0]
-	}
-	switch {
-	case tt.Kind(index) == KUntyped:
-		index = c.adopt(c.literalNode(idx), want)
-	case want != TyPoison:
-		if _, ok := c.vars.index(index); ok {
-			c.vars.unify(index, want)
-		}
-		index = c.vars.resolve(index)
-	default:
-		index = c.vars.resolve(index)
-	}
-	if len(sig.Args) == 1 && sig.Args[0] == index {
-		c.info.Calls[n] = CallInfo{Kind: CallIndexWitness, Callee: m, Plan: identityPlan([]syntax.NodeID{idx})}
-		c.edge(EffectEdge{Kind: EdgeCall, Target: m, Node: n})
-		return c.indexValueResult(n, sig.Elem)
 	}
 	c.errAtHelp(idx, usizeHelp(TyUsize, index), cIndexType, index)
 	return TyPoison

@@ -138,7 +138,7 @@ func gapOrOK(ok bool) string {
 // isConversion matches a numeric `toX` method, lowered to rt_convert
 // instead of a runtime table entry.
 func isConversion(key string) bool {
-	return strings.HasPrefix(key, "prelude.") && strings.Contains(key, ".to") && !strings.HasPrefix(key, "prelude.String")
+	return strings.HasPrefix(key, "prelude.") && (strings.Contains(key, ".to") || strings.HasSuffix(key, ".truncate")) && !strings.HasPrefix(key, "prelude.String")
 }
 
 // nativeCovers is covered if the registry resolves it, llgen lowers it, or it is a numeric conversion.

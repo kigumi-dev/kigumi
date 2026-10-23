@@ -101,6 +101,9 @@ func (r *Result) checkDefaultAllocator() {
 			if r.edgeAllowsDefault(e) {
 				continue
 			}
+			if r.reportStorageAlloc(e) {
+				break
+			}
 			what := "this allocation"
 			if e.Kind == EdgeCall || e.Kind == EdgeWitness || e.Kind == EdgeCallback && e.Target != 0 {
 				what = "`" + r.Entities[e.Target].Name + "`"

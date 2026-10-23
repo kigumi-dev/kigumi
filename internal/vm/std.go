@@ -50,7 +50,7 @@ func (m *Machine) std(key string, a []*obj) *obj {
 			return r
 		}
 	}
-	if strings.HasPrefix(key, "prelude.") && strings.Contains(key, ".to") {
+	if strings.HasPrefix(key, "prelude.") && (strings.Contains(key, ".to") || strings.HasSuffix(key, ".truncate")) {
 		if r := m.convert(a0); r != nil {
 			return r
 		}

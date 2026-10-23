@@ -1,0 +1,13 @@
+-- src --
+import mem from std/mem
+
+let mut s = mem.uninit[Int]()
+print "before"
+let v = unsafe { mem.takeInitialized(&mut s) }
+print "after ${v}"
+-- stdout --
+before
+-- stderr --
+panic: Uninit slot is not initialized
+-- exit --
+2

@@ -506,6 +506,18 @@ prefix prelude.usize.to
 prefix prelude.f32.to
 prefix prelude.f64.to
 prefix prelude.Char.to
+key prelude.i8.truncate
+key prelude.i16.truncate
+key prelude.i32.truncate
+key prelude.i64.truncate
+key prelude.i128.truncate
+key prelude.isize.truncate
+key prelude.u8.truncate
+key prelude.u16.truncate
+key prelude.u32.truncate
+key prelude.u64.truncate
+key prelude.u128.truncate
+key prelude.usize.truncate
 isr inert
 op 163 MAP_SEED primitive () -> int
 key map.seed
@@ -564,3 +576,17 @@ isr mmio mem.volatileReadAt
 bodiless VOLATILE_WRITE_AT
 key mem.volatileWriteAt
 isr mmio mem.volatileWriteAt
+op 176 UNINIT_NEW primitive () -> named
+key mem.uninit
+op 177 UNINIT_INITIALIZE primitive (named, any) -> unit
+key mem.initialize
+op 178 UNINIT_BORROW primitive (named) -> any
+key mem.borrowInitialized
+op 179 UNINIT_BORROW_MUT primitive (named) -> any
+key mem.borrowInitializedMut
+op 180 UNINIT_TAKE primitive (named) -> any
+key mem.takeInitialized
+op 181 UNINIT_DROP primitive (named) -> unit
+key mem.dropInitialized
+op 182 UNINIT_COPY primitive (named) -> any
+key mem.copyInitialized

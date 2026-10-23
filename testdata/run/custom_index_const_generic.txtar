@@ -1,0 +1,26 @@
+-- src --
+type W[T] = {
+    items Array[T]
+}
+
+fn W[T: Copy].index(self, i: usize) -> T {
+    self.items.get(i).expect("oob")
+}
+
+type V[T, const N: usize] = {
+    items Array[T]
+}
+
+fn V[T: Copy, N].index(self, i: usize) -> T {
+    self.items.get(i).expect("oob")
+}
+
+fn main() {
+    let w = W { items: Array.of(1, 2, 3) }
+    print "${w[1]}"
+    let v = V[Int, 3] { items: Array.of(1, 2, 3) }
+    print "${v[2]}"
+}
+-- stdout --
+2
+3

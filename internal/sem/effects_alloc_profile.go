@@ -74,8 +74,8 @@ func (r *Result) inferRecoverableSafe(nodes []EntityID) map[EntityID]bool {
 	return safe
 }
 
-// recoverableFixed mirrors isrFixed: non-bodied entities are inert, and a
-// bodiless fn is safe unless the registry marks it a fatal convenience.
+// recoverableFixed mirrors isrFixed: non-bodied entities are inert, and a bodiless
+// fn is safe unless it is a fatal convenience or `mem.uninit`, which ends the program when its cell is refused.
 func (r *Result) recoverableFixed(id EntityID) (bool, bool) {
 	e := &r.Entities[id]
 	if e.Kind == EntClosure {
@@ -84,7 +84,7 @@ func (r *Result) recoverableFixed(id EntityID) (bool, bool) {
 	if e.Kind != EntFn && e.Kind != EntContract && e.Kind != EntImplicitMain && e.Kind != EntTest {
 		return true, true
 	}
-	if e.Flags&EfStd != 0 && r.fatalConveniences()[r.fatalAllocKey(id)] {
+	if e.Flags&EfStd != 0 && (r.fatalConveniences()[r.fatalAllocKey(id)] || r.storageFn(id) == "Uninit") {
 		return false, true
 	}
 	if r.Fn(id).Body != 0 {
@@ -140,6 +140,9 @@ func (r *Result) checkRecoverableOnly(nodes []EntityID) {
 		for _, e := range r.edgesOf(root) {
 			if r.recoverableEdgeSafe(e, safe) {
 				continue
+			}
+			if r.reportStorageAlloc(e) {
+				break
 			}
 			what, fix := "this allocation", "the fallible (`try`-prefixed) form"
 			if (e.Kind == EdgeCall || e.Kind == EdgeCallback) && e.Target != 0 {

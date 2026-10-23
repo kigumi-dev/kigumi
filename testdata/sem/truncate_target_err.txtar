@@ -1,0 +1,157 @@
+-- src --
+type Pair = {
+    a Int
+    b Int
+}
+
+fn widen(x: u16) -> u32 {
+    x.truncate[u32]() //~ ERROR cannot be the target
+}
+
+fn float_target(x: u64) -> f64 {
+    x.truncate[f64]() //~ ERROR cannot be the target
+}
+
+fn bool_target(x: u8) -> Bool {
+    x.truncate[Bool]() //~ ERROR cannot be the target
+}
+
+fn record_target(x: u8) -> Pair {
+    x.truncate[Pair]() //~ ERROR cannot be the target
+}
+
+fn generic_target[T](x: u64) -> T {
+    x.truncate[T]() //~ ERROR cannot be the target
+}
+
+fn missing(x: u32) -> u8 {
+    x.truncate() //~ ERROR needs its target type
+}
+
+fn missing_with_hint(x: u32) -> u8 {
+    let y: u8 = x.truncate() //~ ERROR needs its target type
+    y
+}
+
+fn too_many(x: u32) -> u8 {
+    x.truncate[u8, u16]() //~ ERROR takes 1 type argument
+}
+
+fn float_source(x: f64) -> u8 {
+    x.truncate[u8]() //~ ERROR no field or method
+}
+
+fn usize_is_64(x: u32) -> usize {
+    x.truncate[usize]() //~ ERROR cannot be the target
+}
+
+fn borrow_target(x: u32) -> u8 {
+    x.truncate[&u8]() //~ ERROR borrow types cannot appear
+}
+
+fn missing_open(x: u32) {
+    let q = x.truncate() //~ ERROR needs its target type
+    let _ = q
+}
+
+fn missing_empty(x: u32) {
+    let q = x.truncate[]() //~ ERROR needs its target type
+    let _ = q
+}
+
+fn ok(a: u64, b: i8, c: usize, d: Int) -> u8 {
+    let w = a.truncate[u32]()
+    let s = b.truncate[u8]()
+    let z = c.truncate[u64]()
+    let i = d.truncate[byte]()
+    w.truncate[u8]() + s + z.truncate[u8]() + i
+}
+-- expect --
+error[E2245]: `u32` cannot be the target of `truncate` on `u16`
+ --> main/main.kg:7:5
+  |
+7 |     x.truncate[u32]() //~ ERROR cannot be the target
+  |     ^^^^^^^^^^^^^^^^
+  = help: truncate to an integer type no wider than `u16`, widen with a conversion such as `toU64()`, which keeps the value, or drop a float's fraction with `toInt()`
+
+error[E2245]: `Float` cannot be the target of `truncate` on `u64`
+  --> main/main.kg:11:5
+   |
+11 |     x.truncate[f64]() //~ ERROR cannot be the target
+   |     ^^^^^^^^^^^^^^^^
+   = help: truncate to an integer type no wider than `u64`, widen with a conversion such as `toU64()`, which keeps the value, or drop a float's fraction with `toInt()`
+
+error[E2245]: `Bool` cannot be the target of `truncate` on `u8`
+  --> main/main.kg:15:5
+   |
+15 |     x.truncate[Bool]() //~ ERROR cannot be the target
+   |     ^^^^^^^^^^^^^^^^^
+   = help: truncate to an integer type no wider than `u8`, widen with a conversion such as `toU64()`, which keeps the value, or drop a float's fraction with `toInt()`
+
+error[E2245]: `Pair` cannot be the target of `truncate` on `u8`
+  --> main/main.kg:19:5
+   |
+19 |     x.truncate[Pair]() //~ ERROR cannot be the target
+   |     ^^^^^^^^^^^^^^^^^
+   = help: truncate to an integer type no wider than `u8`, widen with a conversion such as `toU64()`, which keeps the value, or drop a float's fraction with `toInt()`
+
+error[E2245]: `T` cannot be the target of `truncate` on `u64`
+  --> main/main.kg:23:5
+   |
+23 |     x.truncate[T]() //~ ERROR cannot be the target
+   |     ^^^^^^^^^^^^^^
+   = help: truncate to an integer type no wider than `u64`, widen with a conversion such as `toU64()`, which keeps the value, or drop a float's fraction with `toInt()`
+
+error[E2247]: `truncate` needs its target type spelled out
+  --> main/main.kg:27:5
+   |
+27 |     x.truncate() //~ ERROR needs its target type
+   |     ^^^^^^^^^^^
+   = help: write `value.truncate[u8]()`, or use `toU8()` to keep the value when it fits
+
+error[E2247]: `truncate` needs its target type spelled out
+  --> main/main.kg:31:17
+   |
+31 |     let y: u8 = x.truncate() //~ ERROR needs its target type
+   |                 ^^^^^^^^^^^
+   = help: write `value.truncate[u8]()`, or use `toU8()` to keep the value when it fits
+
+error[E217]: `truncate` takes 1 type argument, 2 given
+  --> main/main.kg:36:5
+   |
+36 |     x.truncate[u8, u16]() //~ ERROR takes 1 type argument
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E510]: `Float` has no field or method `truncate`
+  --> main/main.kg:40:5
+   |
+40 |     x.truncate[u8]() //~ ERROR no field or method
+   |     ^^^^^^^^^^
+
+error[E2245]: `usize` cannot be the target of `truncate` on `u32`
+  --> main/main.kg:44:5
+   |
+44 |     x.truncate[usize]() //~ ERROR cannot be the target
+   |     ^^^^^^^^^^^^^^^^^^
+   = help: truncate to an integer type no wider than `u32`, widen with a conversion such as `toU64()`, which keeps the value, or drop a float's fraction with `toInt()`
+
+error[E220]: borrow types cannot appear in type arguments
+  --> main/main.kg:48:16
+   |
+48 |     x.truncate[&u8]() //~ ERROR borrow types cannot appear
+   |                ^^^
+
+error[E2247]: `truncate` needs its target type spelled out
+  --> main/main.kg:52:13
+   |
+52 |     let q = x.truncate() //~ ERROR needs its target type
+   |             ^^^^^^^^^^^
+   = help: write `value.truncate[u8]()`, or use `toU8()` to keep the value when it fits
+
+error[E2247]: `truncate` needs its target type spelled out
+  --> main/main.kg:57:13
+   |
+57 |     let q = x.truncate[]() //~ ERROR needs its target type
+   |             ^^^^^^^^^^^^^
+   = help: write `value.truncate[u8]()`, or use `toU8()` to keep the value when it fits
+

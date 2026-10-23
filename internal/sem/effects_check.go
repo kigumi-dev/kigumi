@@ -115,7 +115,7 @@ func (r *Result) violationText(target EntityID, mod Effects) string {
 	return "inferred"
 }
 
-func (r *Result) reportEdge(e EffectEdge, mod Effects) {
+func (r *Result) reportContractEdge(e EffectEdge, mod Effects) {
 	pure := mod == EffPure
 	switch e.Kind {
 	case EdgeCall, EdgeWitness:

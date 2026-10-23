@@ -39,6 +39,7 @@ func (c *checker) callFn(n syntax.NodeID, fn EntityID, typeArgs []TypeID, args [
 	c.ffiAddressLeaseCheck(n, fn, inst)
 	c.ffiLeaseCapture(fn, args)
 	c.errorAsCheck(n, fn, inst)
+	c.truncateCheck(n, fn, typeArgs, inst)
 	c.exitCodeCheck(fn, args)
 	c.memOpCheck(n, fn, inst, args, recv)
 	if async {
