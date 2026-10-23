@@ -1,0 +1,26 @@
+import os from std/os
+
+/// How a command line reads a value of a type: a bool flag that needs no argument, exactly one value, an optional one, or any number of them.
+pub type Shape =
+    | Switch
+    | Single
+    | Optional
+    | Many
+
+/// What help and the parser need to know about a destination type; `name` is the placeholder shown in help, such as `int`.
+pub type ValueInfo = {
+    pub name String
+    pub shape Shape
+}
+
+/// Types a flag or positional argument can write into. The standard scalar types, String, OsString, Option[T] and Array[T] implement it.
+/// A reason in `Err` is a short phrase such as `expected an integer`; the parser adds the flag and the offending value.
+pub interface FlagValue {
+    fn parseFlag(arg: &os.OsString) -> Result[Self, String]
+    fn absorbFlag(mut self, value: Self)
+    fn flagInfo() -> ValueInfo
+}
+
+fn unicodeText(arg: &os.OsString) -> Result[String, String] {
+    arg.checkedString() || Err("not valid UTF-8")
+}

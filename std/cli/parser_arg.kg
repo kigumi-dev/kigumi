@@ -1,0 +1,133 @@
+import os from std/os
+
+fn Parser.declareArg(mut self, name: String, info: ValueInfo, help: String, required: Bool) {
+    self.flagsClosed = true
+    if !validName(name) {
+        self.errors.push(ParseError.BadDefinition("argument name \"${name}\" is empty or has a leading dash, a space or ="))
+    }
+    let level = self.level()
+    for i in 0..self.args.len() {
+        let after = self.args.with(i, (a: &ArgDoc) => a.depth == level && a.shape is Many)
+        if after is Some(true) {
+            self.errors.push(ParseError.BadDefinition("argument <${name}> comes after an argument that takes the rest"))
+        }
+    }
+    self.args.push(ArgDoc {
+        name: name
+        shape: info.shape
+        help: help
+        required: required
+        depth: level
+    })
+}
+
+fn Parser.takeArgs(mut self, rest: Bool) -> Array[os.OsString] {
+    let mut found = Array.empty[os.OsString]()
+    let mut i = self.scope
+    for i < self.toks.len() {
+        if self.isCandidate(i) {
+            self.used[i] = true
+            found.push(os.OsString.fromUnixBytes(self.toks[i]))
+            if !rest {
+                break
+            }
+        }
+        i += 1
+    }
+    found
+}
+
+/// Declares the next positional argument and writes it into dest. A plain destination is required, an Option is optional and an Array
+/// takes every argument that is left, including all of those after `--`. Declare the flags of the level first.
+pub fn Parser.arg[T: FlagValue](mut self, name: String, dest: &mut T, help: String = "") {
+    let info = T.flagInfo()
+    let required = !(info.shape is Optional || info.shape is Many)
+    self.declareArg(name, info, help, required)
+    let found = self.takeArgs(info.shape is Many)
+    if required && found.isEmpty() {
+        self.errors.push(ParseError.MissingArgument(name))
+    }
+    for raw in &found {
+        self.convert("<${name}>", dest, raw)
+    }
+}
+
+/// `arg` for a destination that keeps the argument exactly as the OS passed it.
+pub fn Parser.argOs(mut self, name: String, dest: &mut os.OsString, help: String = "") {
+    self.declareArg(name, ValueInfo {
+        name: "string"
+        shape: Shape.Single
+    }, help, true)
+    let found = self.takeArgs(false)
+    if found.isEmpty() {
+        self.errors.push(ParseError.MissingArgument(name))
+    }
+    for raw in found {
+        dest = raw
+    }
+}
+
+/// `argOs` for an optional OsString.
+pub fn Parser.argOsOption(mut self, name: String, dest: &mut os.OsString?, help: String = "") {
+    self.declareArg(name, ValueInfo {
+        name: "string"
+        shape: Shape.Optional
+    }, help, false)
+    let found = self.takeArgs(false)
+    for raw in found {
+        dest = Some(raw)
+    }
+}
+
+/// `argOs` for the rest of the arguments as OsStrings.
+pub fn Parser.argOsRest(mut self, name: String, dest: &mut Array[os.OsString], help: String = "") {
+    self.declareArg(name, ValueInfo {
+        name: "string"
+        shape: Shape.Many
+    }, help, false)
+    let found = self.takeArgs(true)
+    for raw in found {
+        dest.push(raw)
+    }
+}
+
+/// `arg` in the chain form.
+pub fn Parser.withArg[T: FlagValue](move self, name: String, dest: &mut T, help: String = "") -> Parser {
+    let mut p = self
+    p.arg(name, dest, help)
+    p
+}
+
+/// Declares a subcommand and returns whether the command line selected it; later calls then belong to it, with the flags above still in force.
+/// Test the subcommands of one level as an `else if` chain: a second `if` after a selected branch reads as a subcommand of that branch.
+pub fn Parser.subcommand(mut self, name: String, about: String = "") -> Bool {
+    self.flagsClosed = true
+    if !validName(name) {
+        self.errors.push(ParseError.BadDefinition("subcommand name \"${name}\" is empty or has a leading dash, a space or ="))
+    }
+    self.subs.push(SubDoc {
+        name: name
+        about: about
+        depth: self.level()
+    })
+    let mut i = self.scope
+    for i < self.stop {
+        if self.isCandidate(i) {
+            if self.toks[i].equals(&name.toBytes()) {
+                self.used[i] = true
+                self.scope = i + 1
+                self.trail.push(name)
+                self.flagsClosed = false
+                return true
+            }
+            return false
+        }
+        i += 1
+    }
+    false
+}
+
+/// The command names selected so far, the program first.
+pub fn Parser.path(self) -> Array[String] {
+    self.trail.clone()
+}

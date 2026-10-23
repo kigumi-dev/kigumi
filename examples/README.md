@@ -36,7 +36,7 @@ Start at the top and read down.
 | [errors](errors/) | Error variants, `?`, `||` fallbacks, `fail`, `error.context`. |
 | [resources](resources/) | Resource types with `drop`/`close`, `defer` and `defer(fail)`. |
 | [sorting](sorting/) | `sortedBy` with comparison closures, `compareTo`. |
-| [cli_args](cli_args/) | Reading command line arguments (`args.txt`). |
+| [cli_args](cli_args/) | Reading command line arguments with `std/cli`: flags, positional arguments and help (`args.txt`). |
 | [word_count](word_count/) | Reading stdin, `Map` tallies, sorting entries (`stdin.txt`). |
 | [file_io](file_io/) | `fs`: directories, writing, reading, listing, removing. |
 | [json](json/) | Encoding records with field metadata. |

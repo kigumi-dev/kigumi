@@ -1,0 +1,275 @@
+import os from std/os
+import text from std/text
+
+fn signedText(arg: &os.OsString) -> Result[Int, String] {
+    let s = unicodeText(arg)?
+    match text.parseInt(s) {
+        Some(n) -> Ok(n)
+        None -> Err("expected an integer")
+    }
+}
+
+fn unsignedText(arg: &os.OsString) -> Result[u64, String] {
+    let s = unicodeText(arg)?
+    match text.parseUint(s) {
+        Some(n) -> Ok(n)
+        None -> Err("expected an unsigned integer")
+    }
+}
+
+pub fn i64.parseFlag(arg: &os.OsString) -> Result[i64, String] {
+    signedText(arg)
+}
+
+pub fn i64.absorbFlag(mut self, value: i64) {
+    self = value
+}
+
+pub fn i64.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn i8.parseFlag(arg: &os.OsString) -> Result[i8, String] {
+    let n = signedText(arg)?
+    match n.toI8() {
+        Some(v) -> Ok(v)
+        None -> Err("${n} is out of range for i8")
+    }
+}
+
+pub fn i8.absorbFlag(mut self, value: i8) {
+    self = value
+}
+
+pub fn i8.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn i16.parseFlag(arg: &os.OsString) -> Result[i16, String] {
+    let n = signedText(arg)?
+    match n.toI16() {
+        Some(v) -> Ok(v)
+        None -> Err("${n} is out of range for i16")
+    }
+}
+
+pub fn i16.absorbFlag(mut self, value: i16) {
+    self = value
+}
+
+pub fn i16.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn i32.parseFlag(arg: &os.OsString) -> Result[i32, String] {
+    let n = signedText(arg)?
+    match n.toI32() {
+        Some(v) -> Ok(v)
+        None -> Err("${n} is out of range for i32")
+    }
+}
+
+pub fn i32.absorbFlag(mut self, value: i32) {
+    self = value
+}
+
+pub fn i32.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn u8.parseFlag(arg: &os.OsString) -> Result[u8, String] {
+    let n = signedText(arg)?
+    match n.toU8() {
+        Some(v) -> Ok(v)
+        None -> Err("${n} is out of range for u8")
+    }
+}
+
+pub fn u8.absorbFlag(mut self, value: u8) {
+    self = value
+}
+
+pub fn u8.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn u16.parseFlag(arg: &os.OsString) -> Result[u16, String] {
+    let n = signedText(arg)?
+    match n.toU16() {
+        Some(v) -> Ok(v)
+        None -> Err("${n} is out of range for u16")
+    }
+}
+
+pub fn u16.absorbFlag(mut self, value: u16) {
+    self = value
+}
+
+pub fn u16.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn u32.parseFlag(arg: &os.OsString) -> Result[u32, String] {
+    let n = signedText(arg)?
+    match n.toU32() {
+        Some(v) -> Ok(v)
+        None -> Err("${n} is out of range for u32")
+    }
+}
+
+pub fn u32.absorbFlag(mut self, value: u32) {
+    self = value
+}
+
+pub fn u32.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn isize.parseFlag(arg: &os.OsString) -> Result[isize, String] {
+    let n = signedText(arg)?
+    Ok(n.toIsize())
+}
+
+pub fn isize.absorbFlag(mut self, value: isize) {
+    self = value
+}
+
+pub fn isize.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn u64.parseFlag(arg: &os.OsString) -> Result[u64, String] {
+    unsignedText(arg)
+}
+
+pub fn u64.absorbFlag(mut self, value: u64) {
+    self = value
+}
+
+pub fn u64.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "uint"
+        shape: Shape.Single
+    }
+}
+
+pub fn usize.parseFlag(arg: &os.OsString) -> Result[usize, String] {
+    let n = unsignedText(arg)?
+    Ok(n.toUsize())
+}
+
+pub fn usize.absorbFlag(mut self, value: usize) {
+    self = value
+}
+
+pub fn usize.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "uint"
+        shape: Shape.Single
+    }
+}
+
+pub fn i128.parseFlag(arg: &os.OsString) -> Result[i128, String] {
+    let s = unicodeText(arg)?
+    match text.parseI128(s) {
+        Some(n) -> Ok(n)
+        None -> Err("expected an integer")
+    }
+}
+
+pub fn i128.absorbFlag(mut self, value: i128) {
+    self = value
+}
+
+pub fn i128.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "int"
+        shape: Shape.Single
+    }
+}
+
+pub fn u128.parseFlag(arg: &os.OsString) -> Result[u128, String] {
+    let s = unicodeText(arg)?
+    match text.parseU128(s) {
+        Some(n) -> Ok(n)
+        None -> Err("expected an unsigned integer")
+    }
+}
+
+pub fn u128.absorbFlag(mut self, value: u128) {
+    self = value
+}
+
+pub fn u128.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "uint"
+        shape: Shape.Single
+    }
+}
+
+pub fn f64.parseFlag(arg: &os.OsString) -> Result[f64, String] {
+    let s = unicodeText(arg)?
+    match text.parseFloat(s) {
+        Some(f) -> Ok(f)
+        None -> Err("expected a number")
+    }
+}
+
+pub fn f64.absorbFlag(mut self, value: f64) {
+    self = value
+}
+
+pub fn f64.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "number"
+        shape: Shape.Single
+    }
+}
+
+pub fn f32.parseFlag(arg: &os.OsString) -> Result[f32, String] {
+    let s = unicodeText(arg)?
+    match text.parseFloat(s) {
+        Some(f) -> {
+            if f >= 3.4028235677973366e38 || f <= -3.4028235677973366e38 {
+                return Err("out of range for f32")
+            }
+            Ok(f.toF32())
+        }
+        None -> Err("expected a number")
+    }
+}
+
+pub fn f32.absorbFlag(mut self, value: f32) {
+    self = value
+}
+
+pub fn f32.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "number"
+        shape: Shape.Single
+    }
+}

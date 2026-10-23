@@ -1,0 +1,75 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+fn osv(s: String) -> os.OsString {
+    os.OsString.fromString(s)
+}
+
+fn argv(items: ...String) -> Array[os.OsString] {
+    let mut out = Array.empty[os.OsString]()
+    for s in &items {
+        out.push(osv(s))
+    }
+    out
+}
+
+fn show(p: cli.Parser) {
+    match p.finish() {
+        Ok(cli.Outcome.Run) -> print "ok"
+        Ok(cli.Outcome.Help(_)) -> print "help"
+        Err(e) -> print "error: ${e.message()}"
+    }
+}
+
+fn main() -> Void! {
+    let line = argv("--int=-42", "--i8", "7", "--i16=300", "--i32", "-5", "-q", "9", "--u8=255", "--u16", "65535", "--u32=4000000000", "--u64", "18446744073709551615", "--usize=12", "--isize", "-3", "--i128=-170141183460469231731687303715884105728", "--u128", "340282366920938463463374607431768211455", "--f64=2.5", "--f32", "0.5", "--char=x", "--text", "hello world", "--verbose", "--quiet=false", "--on=1")
+    let mut i: Int = 0
+    let mut a8: i8 = 0
+    let mut a16: i16 = 0
+    let mut a32: i32 = 0
+    let mut b8: u8 = 0
+    let mut b16: u16 = 0
+    let mut b32: u32 = 0
+    let mut b64: u64 = 0
+    let mut size: usize = 0
+    let mut off: isize = 0
+    let mut wide: i128 = 0
+    let mut uwide: u128 = 0
+    let mut f: Float = 0.0
+    let mut g: f32 = 0.0
+    let mut c: Char = 'a'
+    let mut text = ""
+    let mut verbose = false
+    let mut quiet = true
+    let mut on = false
+    let mut p = cli.Parser.new("types", &line)
+    p.flag("int", &mut i)
+    p.flag("i8", &mut a8)
+    p.flag("i16", &mut a16)
+    p.flag("i32", &mut a32, short: "q")
+    p.flag("u8", &mut b8)
+    p.flag("u16", &mut b16)
+    p.flag("u32", &mut b32)
+    p.flag("u64", &mut b64)
+    p.flag("usize", &mut size)
+    p.flag("isize", &mut off)
+    p.flag("i128", &mut wide)
+    p.flag("u128", &mut uwide)
+    p.flag("f64", &mut f)
+    p.flag("f32", &mut g)
+    p.flag("char", &mut c)
+    p.flag("text", &mut text)
+    p.flag("verbose", &mut verbose)
+    p.flag("quiet", &mut quiet)
+    p.flag("on", &mut on)
+    show(p)
+    print "${i} ${a8} ${a16} ${a32} ${b8} ${b16} ${b32} ${b64} ${size} ${off}"
+    print "${wide} ${uwide}"
+    print "${f} ${g} ${c} ${text} ${verbose} ${quiet} ${on}"
+}
+-- stdout --
+ok
+-42 7 300 9 255 65535 4000000000 18446744073709551615 12 -3
+-170141183460469231731687303715884105728 340282366920938463463374607431768211455
+2.5 0.5 x hello world true false true

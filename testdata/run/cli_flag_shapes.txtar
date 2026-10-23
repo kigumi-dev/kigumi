@@ -1,0 +1,85 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+fn osv(s: String) -> os.OsString {
+    os.OsString.fromString(s)
+}
+
+fn argv(items: ...String) -> Array[os.OsString] {
+    let mut out = Array.empty[os.OsString]()
+    for s in &items {
+        out.push(osv(s))
+    }
+    out
+}
+
+fn outcome(p: cli.Parser) -> String {
+    match p.finish() {
+        Ok(cli.Outcome.Run) -> "ok"
+        Ok(cli.Outcome.Help(_)) -> "help"
+        Err(e) -> "error: ${e.message()}"
+    }
+}
+
+fn main() -> Void! {
+    let line = argv("-p", "8080", "--tag", "a", "-t", "b", "--tag=c", "-v", "--name", "first", "--name=second", "--limit", "5", "--out", "x.txt", "--also", "y", "--also=z")
+    let mut port: Int = 0
+    let mut tags: Array[String] = Array.empty()
+    let mut verbose = false
+    let mut name = ""
+    let mut limit: Option[Int] = None
+    let mut missing: Option[Int] = None
+    let mut out = osv("")
+    let mut maybe: Option[os.OsString] = None
+    let mut also: Array[os.OsString] = Array.empty()
+    let mut p = cli.Parser.new("shapes", &line)
+    p.flag("port", &mut port, short: "p")
+    p.flag("tag", &mut tags, short: "t")
+    p.flag("verbose", &mut verbose, short: "v")
+    p.flag("name", &mut name)
+    p.flag("limit", &mut limit)
+    p.flag("missing", &mut missing)
+    p.flagOs("out", &mut out)
+    p.flagOsOption("maybe", &mut maybe)
+    p.flagOsMany("also", &mut also)
+    print outcome(p)
+    print "port=${port} tags=${tags.len()} verbose=${verbose} name=${name}"
+    print "limit=${limit || -1} missing=${missing || -1} out=${out.toStringLossy()} maybe=${maybe is None}"
+    print "also=${also.len()} ${also.with(1, (o: &os.OsString) => o.toStringLossy()) || "?"}"
+    for t in &tags {
+        print "tag ${t}"
+    }
+
+    let line2 = argv("--keep", "--", "--keep", "-x", "file")
+    let mut keep = false
+    let mut rest: Array[String] = Array.empty()
+    let mut q = cli.Parser.new("terminator", &line2)
+    q.flag("keep", &mut keep)
+    q.arg("rest", &mut rest)
+    print outcome(q)
+    print "keep=${keep} rest=${rest.len()}"
+    for r in &rest {
+        print "rest ${r}"
+    }
+
+    let line3 = argv("--n", "1", "--n", "2")
+    let mut n: Int = 0
+    let mut r = cli.Parser.new("last", &line3)
+    r.flag("n", &mut n)
+    print "${outcome(r)} n=${n}"
+}
+-- stdout --
+ok
+port=8080 tags=3 verbose=true name=second
+limit=5 missing=-1 out=x.txt maybe=true
+also=2 z
+tag a
+tag b
+tag c
+ok
+keep=true rest=3
+rest --keep
+rest -x
+rest file
+ok n=2

@@ -1,0 +1,163 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+fn argv(items: ...String) -> Array[os.OsString] {
+    let mut out = Array.empty[os.OsString]()
+    for s in &items {
+        out.push(os.OsString.fromString(s))
+    }
+    out
+}
+
+fn outcome(p: cli.Parser) -> String {
+    match p.finish() {
+        Ok(cli.Outcome.Run) -> "ok"
+        Ok(cli.Outcome.Help(_)) -> "help"
+        Err(e) -> "error: ${e.message()}"
+    }
+}
+
+type Opts = {
+    mut n Int
+    mut verbose Bool
+    mut ratio f64
+    mut mark Char
+    mut name String
+    mut tags Array[String]
+    mut src os.OsString
+}
+
+fn fields() {
+    let line = argv("--n", "7", "-v", "--ratio=2.5", "--mark", "x", "--name", "bob", "--tags", "a", "--tags", "b", "--os", "raw", "--first", "9", "--second", "8")
+    let mut o = Opts {
+        n: 1
+        verbose: false
+        ratio: 0.0
+        mark: 'a'
+        name: ""
+        tags: Array.empty()
+        src: os.OsString.fromString("")
+    }
+    let mut xs = Array.of(0, 0, 0)
+    let mut p = cli.Parser.new("fields", &line)
+    p.flag("n", &mut o.n)
+    p.flag("verbose", &mut o.verbose, short: "v")
+    p.flag("ratio", &mut o.ratio)
+    p.flag("mark", &mut o.mark)
+    p.flag("name", &mut o.name)
+    p.flag("tags", &mut o.tags)
+    p.flagOs("os", &mut o.src)
+    p.flag("first", &mut xs[0])
+    p.flag("second", &mut xs[2])
+    print outcome(p)
+    print "n=${o.n} verbose=${o.verbose} ratio=${o.ratio} mark=${o.mark} name=${o.name} tags=${o.tags.len()} src=${o.src.toStringLossy()}"
+    print "xs=${xs[0]} ${xs[1]} ${xs[2]}"
+
+    let line2 = argv("5", "word")
+    let mut m = Opts {
+        n: 0
+        verbose: false
+        ratio: 0.0
+        mark: 'a'
+        name: ""
+        tags: Array.empty()
+        src: os.OsString.fromString("")
+    }
+    let q = cli.Parser.new("args", &line2).withArg("n", &mut m.n).withArg("name", &mut m.name)
+    print outcome(q)
+    print "n=${m.n} name=${m.name}"
+}
+
+fn floats() {
+    for text in &Array.of("1e39", "-1e39", "3.4028235e38", "1e300", "2.5") {
+        let line = argv("--e", text)
+        let mut e: f32 = 0.0
+        let mut p = cli.Parser.new("f32", &line)
+        p.flag("e", &mut e)
+        print "${text}: ${outcome(p)}"
+    }
+}
+
+fn clashes() {
+    let line = argv("--x", "1", "a", "--x", "2")
+    let mut x: Int = 0
+    let mut z = ""
+    let mut p = cli.Parser.new("clash", &line)
+    p.flag("x", &mut x)
+    if p.subcommand("a") {
+        p.flag("x", &mut z)
+    }
+    print outcome(p)
+
+    let line2 = argv("a")
+    let mut v = false
+    let mut w = false
+    let mut q = cli.Parser.new("short", &line2)
+    q.flag("verbose", &mut v, short: "v")
+    if q.subcommand("a") {
+        q.flag("wide", &mut w, short: "v")
+    }
+    print outcome(q)
+}
+
+fn commands(line: Array[os.OsString], require: Bool) -> String {
+    let mut p = cli.Parser.new("app", &line)
+    if require {
+        p.requireCommand()
+    }
+    let mut chosen = "none"
+    if p.subcommand("serve") {
+        chosen = "serve"
+    } else if p.subcommand("build") {
+        chosen = "build"
+    }
+    let path = p.path().len()
+    "${outcome(p)} chosen=${chosen} depth=${path}"
+}
+
+fn siblings() {
+    let line = argv("a", "b")
+    let mut p = cli.Parser.new("sib", &line)
+    let mut chosen = ""
+    if p.subcommand("a") {
+        chosen = "a"
+    }
+    if p.subcommand("b") {
+        chosen = "${chosen} b"
+    }
+    print "${chosen} path=${p.path().len()}"
+    print outcome(p)
+}
+
+fn main() -> Void! {
+    fields()
+    floats()
+    clashes()
+    print commands(argv("serve"), true)
+    print commands(argv(), true)
+    print commands(argv(), false)
+    print commands(argv("--help"), true)
+    print commands(argv("deploy"), true)
+    siblings()
+}
+-- stdout --
+ok
+n=7 verbose=true ratio=2.5 mark=x name=bob tags=2 src=raw
+xs=9 0 8
+ok
+n=5 name=word
+1e39: error: invalid value "1e39" for --e: out of range for f32
+-1e39: error: invalid value "-1e39" for --e: out of range for f32
+3.4028235e38: ok
+1e300: error: invalid value "1e300" for --e: out of range for f32
+2.5: ok
+error: invalid command definition: flag --x is already declared by a command above
+error: invalid command definition: short name -v is used by two flags
+ok chosen=serve depth=2
+error: missing command: expected one of serve, build chosen=none depth=1
+ok chosen=none depth=1
+help chosen=none depth=1
+error: unknown command: deploy chosen=none depth=1
+a b path=3
+ok

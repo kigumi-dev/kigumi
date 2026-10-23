@@ -1,0 +1,26 @@
+/// Why a command line did not parse. Texts that came from an argument are its lossy form, with U+FFFD for bytes that are not UTF-8.
+pub type ParseError =
+    | UnknownFlag(token: String)
+    | MissingValue(flag: String)
+    | InvalidValue(flag: String, value: String, reason: String)
+    | MissingFlag(flag: String)
+    | MissingArgument(name: String)
+    | UnexpectedArgument(token: String)
+    | UnknownSubcommand(token: String)
+    | MissingSubcommand(names: String)
+    | BadDefinition(reason: String)
+
+/// The one-line text for the user, without the program name or a trailing newline.
+pub fn ParseError.message(self) -> String {
+    match self {
+        UnknownFlag(token) -> "unknown flag: ${token}"
+        MissingValue(flag) -> "missing value for ${flag}"
+        InvalidValue(flag, value, reason) -> "invalid value \"${value}\" for ${flag}: ${reason}"
+        MissingFlag(flag) -> "missing required flag: ${flag}"
+        MissingArgument(name) -> "missing required argument: <${name}>"
+        UnexpectedArgument(token) -> "unexpected argument: ${token}"
+        UnknownSubcommand(token) -> "unknown command: ${token}"
+        MissingSubcommand(names) -> "missing command: expected one of ${names}"
+        BadDefinition(reason) -> "invalid command definition: ${reason}"
+    }
+}

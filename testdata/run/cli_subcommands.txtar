@@ -1,0 +1,117 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+fn osv(s: String) -> os.OsString {
+    os.OsString.fromString(s)
+}
+
+fn argv(items: ...String) -> Array[os.OsString] {
+    let mut out = Array.empty[os.OsString]()
+    for s in &items {
+        out.push(osv(s))
+    }
+    out
+}
+
+fn run(line: Array[os.OsString]) {
+    let mut verbose = false
+    let mut port: Int = 80
+    let mut dir = ""
+    let mut target = ""
+    let mut jobs: Int = 1
+    let mut clean = false
+    let mut open = false
+    let mut p = cli.Parser.new("app", &line, about: "A small build tool.")
+    p.flag("verbose", &mut verbose, help: "print more", short: "v")
+    let mut chosen = "none"
+    if p.subcommand("serve", about: "run the server") {
+        chosen = "serve"
+        p.flag("port", &mut port, help: "listen port", short: "p")
+        p.arg("dir", &mut dir, help: "directory to serve")
+    } else if p.subcommand("build", about: "build a target") {
+        chosen = "build"
+        p.flag("jobs", &mut jobs, help: "parallel jobs", short: "j", required: true)
+        p.flag("clean", &mut clean, help: "remove old output first")
+        if p.subcommand("docs", about: "build the docs only") {
+            chosen = "build docs"
+            p.flag("open", &mut open, help: "open the result")
+            p.arg("target", &mut target, help: "what to build")
+        }
+    }
+    let path = p.path()
+    match p.finish() {
+        Ok(cli.Outcome.Run) -> print "run ${chosen} path=${path.len()} verbose=${verbose} port=${port} dir=${dir} jobs=${jobs} clean=${clean} open=${open} target=${target}"
+        Ok(cli.Outcome.Help(text)) -> print "${text}-----"
+        Err(e) -> print "error: ${e.message()}"
+    }
+}
+
+fn main() -> Void! {
+    run(argv("-v", "serve", "--port", "8080", "site"))
+    run(argv("serve", "-v", "-p", "1", "site"))
+    run(argv("build", "--jobs=4", "--clean"))
+    run(argv("build", "docs", "-j", "2", "--open", "manual"))
+    run(argv("build", "-j", "2", "docs"))
+    run(argv("--verbose"))
+    run(argv("deploy"))
+    run(argv("serve", "--jobs", "3", "x"))
+    run(argv("build", "x"))
+    run(argv("build", "docs"))
+    run(argv("--help"))
+    run(argv("serve", "-h"))
+    run(argv("build", "docs", "--help"))
+}
+-- stdout --
+run serve path=2 verbose=true port=8080 dir=site jobs=1 clean=false open=false target=
+run serve path=2 verbose=true port=1 dir=site jobs=1 clean=false open=false target=
+run build path=2 verbose=false port=80 dir= jobs=4 clean=true open=false target=
+run build docs path=3 verbose=false port=80 dir= jobs=2 clean=false open=true target=manual
+error: missing required argument: <target>
+run none path=1 verbose=true port=80 dir= jobs=1 clean=false open=false target=
+error: unknown command: deploy
+error: unknown flag: --jobs
+error: missing required flag: --jobs
+error: missing required flag: --jobs
+A small build tool.
+
+Usage: app [flags] <command>
+
+Commands:
+  serve  run the server
+  build  build a target
+
+Flags:
+  -v, --verbose  print more
+  -h, --help     Show this help
+-----
+A small build tool.
+
+Usage: app serve [flags] <dir>
+
+Arguments:
+  <dir>  directory to serve
+
+Flags:
+  -p, --port <int>  listen port
+  -h, --help        Show this help
+
+Global flags:
+  -v, --verbose  print more
+-----
+A small build tool.
+
+Usage: app build docs [flags] <target>
+
+Arguments:
+  <target>  what to build
+
+Flags:
+      --open  open the result
+  -h, --help  Show this help
+
+Global flags:
+  -v, --verbose     print more
+  -j, --jobs <int>  parallel jobs (required)
+      --clean       remove old output first
+-----

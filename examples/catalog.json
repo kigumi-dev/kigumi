@@ -10,7 +10,7 @@
     {"name": "errors", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Error variants, ?, || fallbacks, fail, error.context."},
     {"name": "resources", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Resource types with drop/close, defer and defer(fail)."},
     {"name": "sorting", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "sortedBy with comparison closures, compareTo."},
-    {"name": "cli_args", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Reading command line arguments (args.txt)."},
+    {"name": "cli_args", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Reading command line arguments with std/cli: flags, positional arguments and help (args.txt)."},
     {"name": "word_count", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Reading stdin, Map tallies, sorting entries (stdin.txt)."},
     {"name": "file_io", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "fs: directories, writing, reading, listing, removing."},
     {"name": "json", "kind": "tutorial", "oracle": "run-output", "backends": ["vm", "native"], "shows": "Encoding records with field metadata."},

@@ -1,0 +1,128 @@
+import array from std/array
+import fmt from std/fmt
+
+fn flagLeft(f: &FlagDoc) -> String {
+    let short = if f.short.isEmpty() {
+        "    "
+    } else {
+        "-${f.short}, "
+    }
+    let value = match f.shape {
+        Switch -> ""
+        Many -> " <${f.argName}>..."
+        _ -> " <${f.argName}>"
+    }
+    "${short}--${f.name}${value}"
+}
+
+fn flagRight(f: &FlagDoc) -> String {
+    if f.required {
+        "${f.help} (required)".trim()
+    } else {
+        f.help
+    }
+}
+
+fn argLeft(a: &ArgDoc) -> String {
+    match a.shape {
+        Optional -> "[${a.name}]"
+        Many -> "[${a.name}...]"
+        _ -> "<${a.name}>"
+    }
+}
+
+fn section(title: String, rows: Array[String], notes: Array[String]) -> String {
+    if rows.isEmpty() {
+        return ""
+    }
+    let mut width: usize = 0
+    for r in &rows {
+        if r.len() > width {
+            width = r.len()
+        }
+    }
+    let mut out = "\n${title}:\n"
+    for i in 0..rows.len() {
+        let left = rows.get(i) || ""
+        let right = notes.get(i) || ""
+        if right.isEmpty() {
+            out = "${out}  ${left}\n"
+        } else {
+            out = "${out}  ${fmt.padRight(left, width, ' ')}  ${right}\n"
+        }
+    }
+    out
+}
+
+/// The `Usage:` line for the command selected so far.
+pub fn Parser.usage(self) -> String {
+    let level = self.level()
+    let mut line = "Usage: ${array.join(&self.trail, " ")} [flags]"
+    let hasSubs = self.subs.fold(false, (found: Bool, s: &SubDoc) => found || s.depth == level)
+    if hasSubs {
+        line = "${line} <command>"
+    }
+    for i in 0..self.args.len() {
+        let part = self.args.with(i, (a: &ArgDoc) => if a.depth == level {
+            "${argLeft(a)}"
+        } else {
+            ""
+        }) || ""
+        if !part.isEmpty() {
+            line = "${line} ${part}"
+        }
+    }
+    line
+}
+
+/// Full help for the command selected so far: description, usage, subcommands, arguments and flags, built from the declarations.
+/// Show it from the Help outcome; the declarations made before `finish` decide what it lists.
+pub fn Parser.help(self) -> String {
+    let level = self.level()
+    let mut out = ""
+    if !self.about.isEmpty() {
+        out = "${self.about}\n\n"
+    }
+    out = "${out}${self.usage()}\n"
+    let mut subRows = Array.empty[String]()
+    let mut subNotes = Array.empty[String]()
+    for s in &self.subs {
+        if s.depth == level {
+            subRows.push(s.name)
+            subNotes.push(s.about)
+        }
+    }
+    out = "${out}${section("Commands", subRows, subNotes)}"
+    let mut argRows = Array.empty[String]()
+    let mut argNotes = Array.empty[String]()
+    for a in &self.args {
+        if a.depth == level {
+            argRows.push(argLeft(a))
+            argNotes.push(a.help)
+        }
+    }
+    out = "${out}${section("Arguments", argRows, argNotes)}"
+    let mut flagRows = Array.empty[String]()
+    let mut flagNotes = Array.empty[String]()
+    let mut globalRows = Array.empty[String]()
+    let mut globalNotes = Array.empty[String]()
+    for f in &self.flags {
+        if f.depth == level {
+            flagRows.push(flagLeft(f))
+            flagNotes.push(flagRight(f))
+        } else {
+            globalRows.push(flagLeft(f))
+            globalNotes.push(flagRight(f))
+        }
+    }
+    if !self.hasLong("help") {
+        flagRows.push(if self.hasShort("h") {
+            "    --help"
+        } else {
+            "-h, --help"
+        })
+        flagNotes.push("Show this help")
+    }
+    out = "${out}${section("Flags", flagRows, flagNotes)}"
+    "${out}${section("Global flags", globalRows, globalNotes)}"
+}

@@ -1,4 +1,5 @@
-2 argument(s)
-  1: alpha
-  2: beta
-hello, alpha
+2 name(s)
+HELLO, ALPHA
+HELLO, ALPHA
+HELLO, BETA
+HELLO, BETA

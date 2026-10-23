@@ -1,0 +1,111 @@
+import os from std/os
+
+type FlagDoc = {
+    name String
+    short String
+    argName String
+    shape Shape
+    help String
+    required Bool
+    depth usize
+}
+
+type ArgDoc = {
+    name String
+    shape Shape
+    help String
+    required Bool
+    depth usize
+}
+
+type SubDoc = {
+    name String
+    about String
+    depth usize
+}
+
+/// One command line being read. Each declaration finds its occurrences, converts them and writes its destination before it returns,
+/// so no borrow outlives a call. Declare the flags of a level before its arguments and subcommands, and call `finish` last.
+pub type Parser = {
+    about String
+    toks Array[Bytes]
+    mut used Array[Bool]
+    stop usize
+    mut scope usize
+    mut trail Array[String]
+    mut flags Array[FlagDoc]
+    mut args Array[ArgDoc]
+    mut subs Array[SubDoc]
+    mut errors Array[ParseError]
+    mut flagsClosed Bool
+    mut commandRequired Array[usize]
+}
+
+fn Parser.fromTokens(name: String, toks: Array[Bytes], errors: Array[ParseError], about: String) -> Parser {
+    let mut used = Array.empty[Bool]()
+    let mut stop = toks.len()
+    for i in 0..toks.len() {
+        if toks.with(i, (t: &Bytes) => t.equals(&b"--")) is Some(true) && stop == toks.len() {
+            stop = i
+        }
+        used.push(false)
+    }
+    if stop < used.len() {
+        used[stop] = true
+    }
+    Parser {
+        about: about
+        toks: toks
+        used: used
+        stop: stop
+        scope: 0
+        trail: Array.of(name)
+        flags: Array.empty()
+        args: Array.empty()
+        subs: Array.empty()
+        errors: errors
+        flagsClosed: false
+        commandRequired: Array.empty()
+    }
+}
+
+/// A parser for argv, the arguments after the program name; the strings are copied, so argv stays usable.
+pub fn Parser.new(name: String, argv: &Array[os.OsString], about: String = "") -> Parser {
+    let mut toks = Array.empty[Bytes]()
+    let mut errors = Array.empty[ParseError]()
+    for i in 0..argv.len() {
+        match argv.with(i, (a: &os.OsString) => a.toUnixBytes()) {
+            Some(bytes) -> {
+                toks.push(bytes)
+            }
+            None -> {
+                toks.push(b"")
+                errors.push(ParseError.BadDefinition("argument ${i} cannot be read"))
+            }
+        }
+    }
+    Parser.fromTokens(name, toks, errors, about)
+}
+
+/// A parser for the process arguments; index 0 of `args` is the program path and is not read as an argument.
+pub fn Parser.fromArgs(name: String, args: os.Args) -> Parser {
+    Parser.fromArgs(name, args, "")
+}
+
+/// `fromArgs` with a one-line description for help.
+pub fn Parser.fromArgs(name: String, args: os.Args, about: String) -> Parser {
+    let mut toks = Array.empty[Bytes]()
+    let mut errors = Array.empty[ParseError]()
+    for i in 1..args.len() {
+        match args.getOsString(i) {
+            Some(a) -> {
+                toks.push(a.toUnixBytes())
+            }
+            None -> {
+                toks.push(b"")
+                errors.push(ParseError.BadDefinition("argument ${i} cannot be read"))
+            }
+        }
+    }
+    Parser.fromTokens(name, toks, errors, about)
+}

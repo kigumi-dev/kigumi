@@ -1,0 +1,91 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+type Mode =
+    | Fast
+    | Slow
+    | Custom(name: String)
+
+fn Mode.label(self) -> String {
+    match self {
+        Fast -> "fast"
+        Slow -> "slow"
+        Custom(name) -> "custom ${name}"
+    }
+}
+
+fn Mode.parseFlag(arg: &os.OsString) -> Result[Mode, String] {
+    let text = arg.checkedString() || return Err("not valid UTF-8")
+    if text == "fast" {
+        return Ok(Mode.Fast)
+    }
+    if text == "slow" {
+        return Ok(Mode.Slow)
+    }
+    if text.startsWith("x-") {
+        return Ok(Mode.Custom(text.sliceBytes(2, text.len()) || ""))
+    }
+    Err("expected fast, slow or x-<name>")
+}
+
+fn Mode.absorbFlag(mut self, value: Mode) {
+    self = value
+}
+
+fn Mode.flagInfo() -> cli.ValueInfo {
+    cli.ValueInfo {
+        name: "mode"
+        shape: cli.Shape.Single
+    }
+}
+
+fn osv(s: String) -> os.OsString {
+    os.OsString.fromString(s)
+}
+
+fn main() -> Void! {
+    let line = Array.of(osv("--mode"), osv("slow"), osv("--also"), osv("x-turbo"), osv("--also=fast"), osv("--only=x-one"))
+    let mut mode = Mode.Fast
+    let mut also: Array[Mode] = Array.empty()
+    let mut only: Option[Mode] = None
+    let mut never: Option[Mode] = None
+    let mut p = cli.Parser.new("modes", &line)
+    p.flag("mode", &mut mode, help: "how to run")
+    p.flag("also", &mut also)
+    p.flag("only", &mut only)
+    p.flag("never", &mut never)
+    let helpText = p.help()
+    match p.finish() {
+        Ok(_) -> print "ok"
+        Err(e) -> print "error: ${e.message()}"
+    }
+    print "mode=${mode.label()} also=${also.len()}"
+    print "also0=${also.with(0, (m: &Mode) => m.label()) || "?"} also1=${also.with(1, (m: &Mode) => m.label()) || "?"}"
+    print "only=${only.with((m: &Mode) => m.label()) || "none"} never=${never.with((m: &Mode) => m.label()) || "none"}"
+    print helpText
+
+    let bad = Array.of(osv("--mode=warp"))
+    let mut other = Mode.Slow
+    let mut q = cli.Parser.new("modes", &bad)
+    q.flag("mode", &mut other)
+    match q.finish() {
+        Ok(_) -> print "ok"
+        Err(e) -> print "error: ${e.message()}"
+    }
+}
+-- stdout --
+ok
+mode=slow also=2
+also0=custom turbo also1=fast
+only=custom one never=none
+Usage: modes [flags]
+
+Flags:
+      --mode <mode>     how to run
+      --also <mode>...
+      --only <mode>
+      --never <mode>
+  -h, --help            Show this help
+
+error: invalid value "warp" for --mode: expected fast, slow or x-<name>

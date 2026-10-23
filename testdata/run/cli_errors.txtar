@@ -1,0 +1,103 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+fn osv(s: String) -> os.OsString {
+    os.OsString.fromString(s)
+}
+
+fn argv(items: ...String) -> Array[os.OsString] {
+    let mut out = Array.empty[os.OsString]()
+    for s in &items {
+        out.push(osv(s))
+    }
+    out
+}
+
+fn outcome(p: cli.Parser) -> String {
+    match p.finish() {
+        Ok(cli.Outcome.Run) -> "ok"
+        Ok(cli.Outcome.Help(_)) -> "help"
+        Err(e) -> "error: ${e.message()}"
+    }
+}
+
+fn base(line: Array[os.OsString]) -> cli.Parser {
+    let mut port: Int = 0
+    let mut small: u8 = 0
+    let mut name = ""
+    let mut file = ""
+    let mut p = cli.Parser.new("app", &line)
+    p.flag("port", &mut port, short: "p")
+    p.flag("small", &mut small)
+    p.flag("name", &mut name, required: true)
+    p.arg("file", &mut file)
+    p
+}
+
+fn main() -> Void! {
+    print outcome(base(argv("--name", "n", "f")))
+    print outcome(base(argv("--name", "n", "f", "--bogus")))
+    print outcome(base(argv("--name", "n", "f", "-z")))
+    print outcome(base(argv("--name", "n", "f", "--port")))
+    print outcome(base(argv("--name", "n", "f", "-p")))
+    print outcome(base(argv("--name", "n", "f", "--port", "ten")))
+    print outcome(base(argv("--name", "n", "f", "--small=256")))
+    print outcome(base(argv("--name", "n", "f", "--small", "-1")))
+    print outcome(base(argv("f", "--port", "1")))
+    print outcome(base(argv("--name", "n")))
+    print outcome(base(argv("--name", "n", "f", "extra")))
+    print outcome(base(argv("--name", "n", "--", "--odd", "extra")))
+    print outcome(base(argv("--name", "n", "f", "--help")))
+    print outcome(base(argv("-h")))
+
+    let mut flag = false
+    let mut again = false
+    let mut late = ""
+    let none = argv()
+    let mut dup = cli.Parser.new("dup", &none)
+    dup.flag("same", &mut flag)
+    dup.flag("same", &mut again)
+    print outcome(dup)
+    let mut dash = cli.Parser.new("dash", &none)
+    dash.flag("-bad", &mut flag)
+    print outcome(dash)
+    let mut wide = cli.Parser.new("wide", &none)
+    wide.flag("ok", &mut flag, short: "ab")
+    print outcome(wide)
+    let mut shorts = cli.Parser.new("shorts", &none)
+    shorts.flag("one", &mut flag, short: "x")
+    shorts.flag("two", &mut again, short: "x")
+    print outcome(shorts)
+    let one = argv("v")
+    let mut order = cli.Parser.new("order", &one)
+    order.arg("a", &mut late, help: "")
+    order.flag("after", &mut flag)
+    print outcome(order)
+    let mut rest: Array[String] = Array.empty()
+    let mut tail = cli.Parser.new("tail", &none)
+    tail.arg("rest", &mut rest)
+    tail.arg("more", &mut late)
+    print outcome(tail)
+}
+-- stdout --
+ok
+error: unknown flag: --bogus
+error: unknown flag: -z
+error: missing value for --port
+error: missing value for --port
+error: invalid value "ten" for --port: expected an integer
+error: invalid value "256" for --small: 256 is out of range for u8
+error: invalid value "-1" for --small: -1 is out of range for u8
+error: missing required flag: --name
+error: missing required argument: <file>
+error: unexpected argument: extra
+error: unexpected argument: extra
+help
+help
+error: invalid command definition: flag --same is declared twice
+error: invalid command definition: flag name "-bad" is empty or has a leading dash, a space or =
+error: invalid command definition: short name "ab" of --ok must be one character other than -
+error: invalid command definition: short name -x is used by two flags
+error: invalid command definition: flag --after is declared after a positional argument or subcommand
+error: invalid command definition: argument <more> comes after an argument that takes the rest

@@ -1,0 +1,88 @@
+import os from std/os
+
+/// What a successfully read command line asks for: to run, or to show help (`--help` or `-h`, unless a flag of that name was declared).
+pub type Outcome =
+    | Run
+    | Help(text: String)
+
+fn Parser.helpAsked(self) -> Bool {
+    let longHelp = !self.hasLong("help")
+    let shortHelp = !self.hasShort("h")
+    for i in 0..self.stop {
+        if !self.used[i] {
+            let t = self.toks[i]
+            if (longHelp && t.equals(&b"--help")) || (shortHelp && t.equals(&b"-h")) {
+                return true
+            }
+        }
+    }
+    false
+}
+
+fn tokenText(token: Bytes) -> String {
+    os.OsString.fromUnixBytes(token).toStringLossy()
+}
+
+/// Ends the declarations and consumes the parser. Returns Help when help was asked for, otherwise the first problem found: a declaration
+/// or conversion error in call order, then the first undeclared argument in command line order, last a subcommand that `requireCommand` demands.
+pub fn Parser.finish(move self) -> Result[Outcome, ParseError] {
+    if self.helpAsked() {
+        return Ok(Outcome.Help(self.help()))
+    }
+    match self.errors.get(0) {
+        Some(e) -> {
+            return Err(e)
+        }
+        None -> {}
+    }
+    let level = self.level()
+    let mut hasSubs = false
+    let mut names = ""
+    for i in 0..self.subs.len() {
+        let name = self.subs.with(i, (s: &SubDoc) => if s.depth == level {
+            s.name
+        } else {
+            ""
+        }) || ""
+        if !name.isEmpty() {
+            names = if hasSubs {
+                "${names}, ${name}"
+            } else {
+                name
+            }
+            hasSubs = true
+        }
+    }
+    for i in 0..self.toks.len() {
+        if self.used[i] {
+            continue
+        }
+        let t = self.toks[i]
+        if self.isFlagLike(i) {
+            return Err(ParseError.UnknownFlag(tokenText(t)))
+        }
+        if hasSubs && i < self.stop {
+            return Err(ParseError.UnknownSubcommand(tokenText(t)))
+        }
+        return Err(ParseError.UnexpectedArgument(tokenText(t)))
+    }
+    if hasSubs && self.requiresCommandAt(level) {
+        return Err(ParseError.MissingSubcommand(names))
+    }
+    Ok(Outcome.Run)
+}
+
+/// Makes a subcommand mandatory at the current level, so `finish` reports MissingSubcommand when none was selected. Call it before the
+/// `subcommand` tests of that level, since selecting one moves the parser down a level.
+pub fn Parser.requireCommand(mut self) {
+    self.commandRequired.push(self.level())
+}
+
+fn Parser.requiresCommandAt(self, level: usize) -> Bool {
+    for i in 0..self.commandRequired.len() {
+        if self.commandRequired.with(i, (l: &usize) => l == level) is Some(true) {
+            return true
+        }
+    }
+    false
+}

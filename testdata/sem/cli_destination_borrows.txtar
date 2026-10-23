@@ -1,0 +1,74 @@
+-- module --
+stage: driver
+-- src --
+import cli from std/cli
+
+fn readsWhileRegistering(p: &mut cli.Parser) {
+    let mut n: Int = 0
+    p.flag("n", &mut n, help: "${n}")
+}
+
+fn registersTwice(p: &mut cli.Parser) -> Int {
+    let mut n: Int = 0
+    p.flag("a", &mut n)
+    p.flag("b", &mut n)
+    n
+}
+
+fn movedBetweenCalls(p: &mut cli.Parser) {
+    let mut s = ""
+    p.flag("s", &mut s)
+    let t = s
+    p.arg("t", &mut s)
+    let _u = t
+}
+
+fn chainReuses(p: cli.Parser) -> cli.Parser {
+    let mut n: Int = 0
+    p.withFlag("a", &mut n).withFlag("b", &mut n)
+}
+
+fn aliasHeld(p: &mut cli.Parser) {
+    let mut n: Int = 0
+    let r = &mut n
+    p.flag("n", &mut n)
+    p.flag("m", r)
+}
+
+fn useAfter(p: &mut cli.Parser) -> Int {
+    let mut port: Int = 80
+    p.flag("port", &mut port)
+    let doubled = port * 2
+    port = doubled
+    port
+}
+
+fn declaresAfterFinish(mut p: cli.Parser) {
+    let mut n: Int = 0
+    let _outcome = p.finish()
+    p.flag("n", &mut n)
+}
+-- expect --
+error[E2198]: `n` is exclusively borrowed and cannot be used here
+ --> main.kg:5:34
+  |
+5 |     p.flag("n", &mut n, help: "${n}")
+  |                                  ^
+
+error[E2198]: `n` is exclusively borrowed and cannot be used here
+  --> main.kg:31:17
+   |
+31 |     p.flag("n", &mut n)
+   |                 ^^^^^^
+
+error[E2197]: `p` was moved; it cannot be used again
+  --> main.kg:46:5
+   |
+46 |     p.flag("n", &mut n)
+   |     ^
+note: `p` is moved here
+  --> main.kg:45:20
+   |
+45 |     let _outcome = p.finish()
+   |                    ^
+

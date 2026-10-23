@@ -1,0 +1,33 @@
+import os from std/os
+
+pub fn Option[T: FlagValue].parseFlag(arg: &os.OsString) -> Result[T?, String] {
+    let v = T.parseFlag(arg)?
+    Ok(Some(v))
+}
+
+pub fn Option[T: FlagValue].absorbFlag(mut self, value: T?) {
+    self = value
+}
+
+pub fn Option[T: FlagValue].flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: T.flagInfo().name
+        shape: Shape.Optional
+    }
+}
+
+pub fn Array[T: FlagValue].parseFlag(arg: &os.OsString) -> Result[Array[T], String] {
+    let v = T.parseFlag(arg)?
+    Ok(Array.of(v))
+}
+
+pub fn Array[T: FlagValue].absorbFlag(mut self, value: Array[T]) {
+    self.appendAll(value)
+}
+
+pub fn Array[T: FlagValue].flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: T.flagInfo().name
+        shape: Shape.Many
+    }
+}

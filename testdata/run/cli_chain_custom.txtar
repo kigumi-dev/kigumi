@@ -1,0 +1,82 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+fn osv(s: String) -> os.OsString {
+    os.OsString.fromString(s)
+}
+
+type Level = Debug | Info | Warn
+
+fn Level.label(self) -> String {
+    match self {
+        Debug -> "debug"
+        Info -> "info"
+        Warn -> "warn"
+    }
+}
+
+fn parseLevel(s: String) -> Result[Level, String] {
+    if s == "debug" {
+        return Ok(Level.Debug)
+    }
+    if s == "info" {
+        return Ok(Level.Info)
+    }
+    if s == "warn" {
+        return Ok(Level.Warn)
+    }
+    Err("expected debug, info or warn")
+}
+
+fn describe(p: cli.Parser) -> String {
+    match p.finish() {
+        Ok(_) -> "ok"
+        Err(e) -> "error: ${e.message()}"
+    }
+}
+
+fn main() -> Void! {
+    let line = Array.of(osv("--count"), osv("3"), osv("-n"), osv("bob"), osv("file.txt"), osv("--level=warn"))
+    let mut count: Int = 0
+    let mut name = ""
+    let mut file = ""
+    let mut level = Level.Info
+    let mut q = cli.Parser.new("chain", &line).withFlag("count", &mut count, help: "how many").withFlag("name", &mut name, short: "n")
+    q.flagWith("level", &mut level, "level", parseLevel, help: "log level")
+    q.arg("file", &mut file)
+    print describe(q)
+    print "count=${count} name=${name} file=${file} level=${level.label()}"
+
+    let wrong = Array.of(osv("--level"), osv("loud"))
+    let mut other = Level.Info
+    let mut r = cli.Parser.new("custom", &wrong)
+    r.flagWith("level", &mut other, "level", parseLevel)
+    print describe(r)
+    print "other=${other.label()}"
+
+    let mut words: Array[String] = Array.empty()
+    let mut loud = false
+    let mut s = cli.Parser.fromArgs("process", host.args())
+    s.flag("loud", &mut loud)
+    s.arg("words", &mut words)
+    let usage = s.usage()
+    print describe(s)
+    print "words=${words.len()} ${words.with(0, (w: &String) => w.len()) || 0}"
+    print usage
+
+    let line3 = Array.of(osv("-c"), osv("7"), osv("x"))
+    let mut c: Int = 0
+    let mut f = ""
+    let chain = cli.Parser.new("whole", &line3).withFlag("c", &mut c, short: "c").withArg("f", &mut f)
+    print "${describe(chain)} c=${c} f=${f}"
+}
+-- stdout --
+ok
+count=3 name=bob file=file.txt level=warn
+error: invalid value "loud" for --level: expected debug, info or warn
+other=info
+ok
+words=2 3
+Usage: process [flags] [words...]
+ok c=7 f=x

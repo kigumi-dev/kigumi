@@ -5134,6 +5134,159 @@
       ]
     },
     {
+      "id": "run/cli_chain_custom",
+      "kind": "run",
+      "path": "testdata/run/cli_chain_custom.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cli_errors",
+      "kind": "run",
+      "path": "testdata/run/cli_errors.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cli_flag_shapes",
+      "kind": "run",
+      "path": "testdata/run/cli_flag_shapes.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cli_flag_types",
+      "kind": "run",
+      "path": "testdata/run/cli_flag_types.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cli_help",
+      "kind": "run",
+      "path": "testdata/run/cli_help.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cli_osstring",
+      "kind": "run",
+      "path": "testdata/run/cli_osstring.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cli_rules",
+      "kind": "run",
+      "path": "testdata/run/cli_rules.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cli_subcommands",
+      "kind": "run",
+      "path": "testdata/run/cli_subcommands.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cli_user_type",
+      "kind": "run",
+      "path": "testdata/run/cli_user_type.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/closure_call_args",
       "kind": "run",
       "path": "testdata/run/closure_call_args.txtar",
@@ -15946,6 +16099,28 @@
       "id": "sem/cleanup_exit_forms",
       "kind": "sem",
       "path": "testdata/sem/cleanup_exit_forms.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cli_destination_borrows",
+      "kind": "sem",
+      "path": "testdata/sem/cli_destination_borrows.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cli_registration_errors",
+      "kind": "sem",
+      "path": "testdata/sem/cli_registration_errors.txtar",
       "mode": [
         "check"
       ],

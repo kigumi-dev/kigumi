@@ -1,0 +1,61 @@
+import os from std/os
+
+pub fn String.parseFlag(arg: &os.OsString) -> Result[String, String] {
+    unicodeText(arg)
+}
+
+pub fn String.absorbFlag(mut self, value: String) {
+    self = value
+}
+
+pub fn String.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "string"
+        shape: Shape.Single
+    }
+}
+
+pub fn Bool.parseFlag(arg: &os.OsString) -> Result[Bool, String] {
+    let text = unicodeText(arg)?
+    if text == "true" || text == "1" {
+        return Ok(true)
+    }
+    if text == "false" || text == "0" {
+        return Ok(false)
+    }
+    Err("expected true or false")
+}
+
+pub fn Bool.absorbFlag(mut self, value: Bool) {
+    self = value
+}
+
+pub fn Bool.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "bool"
+        shape: Shape.Switch
+    }
+}
+
+pub fn Char.parseFlag(arg: &os.OsString) -> Result[Char, String] {
+    let text = unicodeText(arg)?
+    let chars = text.chars()
+    if chars.len() != 1 {
+        return Err("expected a single character")
+    }
+    match chars.get(0) {
+        Some(c) -> Ok(c)
+        None -> Err("expected a single character")
+    }
+}
+
+pub fn Char.absorbFlag(mut self, value: Char) {
+    self = value
+}
+
+pub fn Char.flagInfo() -> ValueInfo {
+    ValueInfo {
+        name: "char"
+        shape: Shape.Single
+    }
+}

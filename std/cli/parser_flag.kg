@@ -1,0 +1,167 @@
+import os from std/os
+
+fn Parser.level(self) -> usize {
+    self.trail.len() - 1
+}
+
+fn Parser.isFlagLike(self, i: usize) -> Bool {
+    if i >= self.stop {
+        return false
+    }
+    let t = self.toks[i]
+    t.len() > 1 && t.get(0) is Some(45)
+}
+
+fn Parser.isCandidate(self, i: usize) -> Bool {
+    !self.used[i] && !self.isFlagLike(i)
+}
+
+fn validName(name: String) -> Bool {
+    !name.isEmpty() && !name.startsWith("-") && !name.contains("=") && !name.contains(" ")
+}
+
+fn Parser.hasLong(self, name: String) -> Bool {
+    for i in 0..self.flags.len() {
+        if self.flags.with(i, (f: &FlagDoc) => f.name == name) is Some(true) {
+            return true
+        }
+    }
+    false
+}
+
+fn Parser.hasShort(self, short: String) -> Bool {
+    for i in 0..self.flags.len() {
+        if self.flags.with(i, (f: &FlagDoc) => f.short == short) is Some(true) {
+            return true
+        }
+    }
+    false
+}
+
+fn Parser.checkClash(mut self, name: String, short: String) {
+    let level = self.level()
+    for i in 0..self.flags.len() {
+        let sameLevel = self.flags.with(i, (f: &FlagDoc) => f.depth == level && f.name == name)
+        if sameLevel is Some(true) {
+            self.errors.push(ParseError.BadDefinition("flag --${name} is declared twice"))
+        }
+        let aboveName = self.flags.with(i, (f: &FlagDoc) => f.depth < level && f.name == name)
+        if aboveName is Some(true) {
+            self.errors.push(ParseError.BadDefinition("flag --${name} is already declared by a command above"))
+        }
+        let sameShort = self.flags.with(i, (f: &FlagDoc) => f.depth <= level && !short.isEmpty() && f.short == short)
+        if sameShort is Some(true) {
+            self.errors.push(ParseError.BadDefinition("short name -${short} is used by two flags"))
+        }
+    }
+}
+
+fn Parser.declareFlag(mut self, name: String, short: String, info: ValueInfo, help: String, required: Bool) {
+    if !validName(name) {
+        self.errors.push(ParseError.BadDefinition("flag name \"${name}\" is empty or has a leading dash, a space or ="))
+    }
+    if !short.isEmpty() && (short.chars().len() != 1 || short == "-") {
+        self.errors.push(ParseError.BadDefinition("short name \"${short}\" of --${name} must be one character other than -"))
+    }
+    if self.flagsClosed {
+        self.errors.push(ParseError.BadDefinition("flag --${name} is declared after a positional argument or subcommand"))
+    }
+    self.checkClash(name, short)
+    self.flags.push(FlagDoc {
+        name: name
+        short: short
+        argName: info.name
+        shape: info.shape
+        help: help
+        required: required
+        depth: self.level()
+    })
+}
+
+fn Parser.collect(mut self, name: String, short: String, shape: Shape, required: Bool) -> Array[os.OsString] {
+    let long = "--${name}".toBytes()
+    let longEq = "--${name}=".toBytes()
+    let shortTok = "-${short}".toBytes()
+    let mut found = Array.empty[os.OsString]()
+    let mut i = self.scope
+    for i < self.stop {
+        let t = self.toks[i]
+        let inline = t.startsWith(longEq)
+        if self.used[i] || !(inline || t.equals(&long) || (!short.isEmpty() && t.equals(&shortTok))) {
+            i += 1
+            continue
+        }
+        self.used[i] = true
+        if inline {
+            found.push(os.OsString.fromUnixBytes(t.slice(longEq.len(), t.len()) || b""))
+        } else if shape is Switch {
+            found.push(os.OsString.fromString("true"))
+        } else if i + 1 < self.stop && !self.used[i + 1] {
+            self.used[i + 1] = true
+            found.push(os.OsString.fromUnixBytes(self.toks[i + 1]))
+            i += 1
+        } else {
+            self.errors.push(ParseError.MissingValue("--${name}"))
+        }
+        i += 1
+    }
+    if required && found.isEmpty() {
+        self.errors.push(ParseError.MissingFlag("--${name}"))
+    }
+    found
+}
+
+fn Parser.convert[T: FlagValue](mut self, flag: String, dest: &mut T, raw: &os.OsString) {
+    match T.parseFlag(raw) {
+        Ok(v) -> {
+            dest.absorbFlag(v)
+        }
+        Err(reason) -> {
+            self.errors.push(ParseError.InvalidValue(flag, raw.toStringLossy(), reason))
+        }
+    }
+}
+
+/// Declares `--name` (and `-c` for a one-character short) and writes its occurrences into dest. A Bool is a switch, an Array collects
+/// every occurrence, anything else keeps the last; dest keeps its value when the flag is absent, and `required` rejects that.
+pub fn Parser.flag[T: FlagValue](mut self, name: String, dest: &mut T, help: String = "", short: String = "", required: Bool = false) {
+    let info = T.flagInfo()
+    self.declareFlag(name, short, info, help, required)
+    let found = self.collect(name, short, info.shape, required)
+    for raw in &found {
+        self.convert("--${name}", dest, raw)
+    }
+}
+
+/// `flag` for a destination that is not a FlagValue: convert reads the argument as text and returns the value or a reason.
+pub fn Parser.flagWith[T](mut self, name: String, dest: &mut T, argName: String, convert: fn(String) -> Result[T, String], help: String = "", short: String = "", required: Bool = false) {
+    self.declareFlag(name, short, ValueInfo {
+        name: argName
+        shape: Shape.Single
+    }, help, required)
+    let found = self.collect(name, short, Shape.Single, required)
+    for raw in &found {
+        match unicodeText(raw) {
+            Ok(s) -> {
+                match convert(s) {
+                    Ok(v) -> {
+                        dest = v
+                    }
+                    Err(reason) -> {
+                        self.errors.push(ParseError.InvalidValue("--${name}", raw.toStringLossy(), reason))
+                    }
+                }
+            }
+            Err(reason) -> {
+                self.errors.push(ParseError.InvalidValue("--${name}", raw.toStringLossy(), reason))
+            }
+        }
+    }
+}
+
+/// `flag` in the chain form: takes the parser and gives it back, so a command line can be declared in one expression.
+pub fn Parser.withFlag[T: FlagValue](move self, name: String, dest: &mut T, help: String = "", short: String = "", required: Bool = false) -> Parser {
+    let mut p = self
+    p.flag(name, dest, help, short, required)
+    p
+}

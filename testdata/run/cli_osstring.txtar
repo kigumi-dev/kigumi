@@ -1,0 +1,54 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+fn osv(s: String) -> os.OsString {
+    os.OsString.fromString(s)
+}
+
+fn bad() -> os.OsString {
+    os.OsString.fromUnixBytes(b"caf\xe9\xff")
+}
+
+fn main() -> Void! {
+    let line = Array.of(osv("--name"), bad(), osv("--raw"), bad(), osv("--maybe=x"), osv("--list"), bad(), osv("--list"), osv("ok"), bad())
+    let mut name = "keep"
+    let mut raw = osv("")
+    let mut maybe: Option[String] = None
+    let mut list: Array[os.OsString] = Array.empty()
+    let mut last = osv("")
+    let mut p = cli.Parser.new("bytes", &line)
+    p.flag("name", &mut name)
+    p.flagOs("raw", &mut raw)
+    p.flag("maybe", &mut maybe)
+    p.flagOsMany("list", &mut list)
+    p.argOs("last", &mut last)
+    match p.finish() {
+        Ok(_) -> print "ok"
+        Err(e) -> print "error: ${e.message()}"
+    }
+    print "name=${name}"
+    print "raw lossless=${raw.equals(&bad())} unicode=${raw.isUnicode()} len=${raw.len()}"
+    print "maybe=${maybe || "none"}"
+    print "list=${list.len()} first lossless=${list.with(0, (o: &os.OsString) => o.equals(&bad())) || false}"
+    print "last lossless=${last.equals(&bad())}"
+
+    let line2 = Array.of(osv("--flag=true"), bad())
+    let mut text = ""
+    let mut flag = false
+    let mut q = cli.Parser.new("positional", &line2)
+    q.flag("flag", &mut flag)
+    q.arg("text", &mut text)
+    match q.finish() {
+        Ok(_) -> print "ok"
+        Err(e) -> print "error: ${e.message()}"
+    }
+}
+-- stdout --
+error: invalid value "caf��" for --name: not valid UTF-8
+name=keep
+raw lossless=true unicode=false len=5
+maybe=x
+list=2 first lossless=true
+last lossless=true
+error: invalid value "caf��" for <text>: not valid UTF-8

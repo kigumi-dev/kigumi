@@ -1,10 +1,32 @@
 #!/usr/bin/env kigumi
 
-// Command line arguments: index 0 is the program itself.
-let args = host.args()
-print "${args.len() - 1} argument(s)"
-for i in 1..args.len() {
-    print "  ${i}: ${args.get(i) || "?"}"
+// Command line arguments with std/cli: flags and positional arguments written straight into variables, help built from the same calls.
+import cli from std/cli
+
+fn main() -> Void! {
+    let mut times: Int = 1
+    let mut shout = false
+    let mut names: Array[String] = Array.empty()
+    let mut p = cli.Parser.fromArgs("greet", host.args(), about: "Greet each name.")
+    p.flag("times", &mut times, help: "greetings per name", short: "t")
+    p.flag("shout", &mut shout, help: "greet in capitals")
+    p.arg("names", &mut names, help: "who to greet")
+    match p.finish()? {
+        cli.Outcome.Help(text) -> {
+            print text
+            return
+        }
+        cli.Outcome.Run -> {}
+    }
+    print "${names.len()} name(s)"
+    for name in &names {
+        for _ in 0..times {
+            let greeting = "hello, ${name}"
+            if shout {
+                print greeting.toUpper()
+            } else {
+                print greeting
+            }
+        }
+    }
 }
-let name = args.get(1) || "world"
-print "hello, ${name}"

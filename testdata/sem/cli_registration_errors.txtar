@@ -1,0 +1,72 @@
+-- module --
+stage: driver
+-- src --
+import cli from std/cli
+
+type Opaque = {
+    pub n Int
+}
+
+fn immutableDestination(p: &mut cli.Parser) {
+    let n: Int = 0
+    p.flag("n", &mut n)
+}
+
+fn notAFlagType(p: &mut cli.Parser) {
+    let mut o = Opaque { n: 1 }
+    p.flag("o", &mut o)
+}
+
+fn immutableParser(p: cli.Parser) {
+    let mut n: Int = 0
+    p.flag("n", &mut n)
+}
+
+fn plainReferenceDestination(p: &mut cli.Parser) {
+    let mut n: Int = 0
+    p.flag("n", n)
+}
+-- expect --
+error[E703]: cannot assign to this expression
+ --> main.kg:9:22
+  |
+9 |     p.flag("n", &mut n)
+  |                      ^
+
+error[E300]: `Opaque` does not satisfy `FlagValue`: missing `fn parseFlag(&OsString) -> Result[Opaque, String]`; missing `fn absorbFlag(mut self, Opaque) -> Void`; missing `fn flagInfo() -> ValueInfo`
+  --> main.kg:14:5
+   |
+14 |     p.flag("o", &mut o)
+   |     ^^^^^^^^^^^^^^^^^^
+
+error[E964]: `Opaque` has no `parseFlag` to pass for `FlagValue` and none could be generated
+  --> main.kg:14:7
+   |
+14 |     p.flag("o", &mut o)
+   |       ^^^^
+
+error[E964]: `Opaque` has no `absorbFlag` to pass for `FlagValue` and none could be generated
+  --> main.kg:14:7
+   |
+14 |     p.flag("o", &mut o)
+   |       ^^^^
+
+error[E964]: `Opaque` has no `flagInfo` to pass for `FlagValue` and none could be generated
+  --> main.kg:14:7
+   |
+14 |     p.flag("o", &mut o)
+   |       ^^^^
+
+error[E515]: `flag` takes `mut self` but `p` is immutable
+  --> main.kg:19:5
+   |
+19 |     p.flag("n", &mut n)
+   |     ^
+   = help: declare `mut p` in the parameter list
+
+error[E400]: expected `&mut _`, found `Int`
+  --> main.kg:24:17
+   |
+24 |     p.flag("n", n)
+   |                 ^
+

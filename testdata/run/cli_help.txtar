@@ -1,0 +1,70 @@
+-- src --
+import cli from std/cli
+import os from std/os
+
+fn osv(s: String) -> os.OsString {
+    os.OsString.fromString(s)
+}
+
+fn main() -> Void! {
+    let line = Array.of(osv("--help"))
+    let mut out = osv("")
+    let mut tags: Array[String] = Array.empty()
+    let mut level: Option[u8] = None
+    let mut quiet = false
+    let mut src = ""
+    let mut dst: Option[String] = None
+    let mut more: Array[os.OsString] = Array.empty()
+    let mut p = cli.Parser.new("copy", &line, about: "Copy files around.")
+    p.flagOs("output", &mut out, help: "where to write", short: "o", required: true)
+    p.flag("tag", &mut tags, help: "label the copy; repeatable", short: "t")
+    p.flag("level", &mut level)
+    p.flag("quiet", &mut quiet, short: "q")
+    p.arg("src", &mut src, help: "source file")
+    p.arg("dst", &mut dst)
+    p.argOsRest("more", &mut more, help: "anything else")
+    print p.usage()
+    match p.finish() {
+        Ok(cli.Outcome.Help(text)) -> print text
+        Ok(_) -> print "run"
+        Err(e) -> print e.message()
+    }
+
+    let mut help = false
+    let mut h = false
+    let own = Array.of(osv("-h"), osv("--help"))
+    let mut r = cli.Parser.new("own", &own)
+    r.flag("help", &mut help)
+    r.flag("host", &mut h, short: "h")
+    print r.help()
+    match r.finish() {
+        Ok(cli.Outcome.Help(_)) -> print "builtin help"
+        Ok(_) -> print "own flags: ${help} ${h}"
+        Err(e) -> print e.message()
+    }
+}
+-- stdout --
+Usage: copy [flags] <src> [dst] [more...]
+Copy files around.
+
+Usage: copy [flags] <src> [dst] [more...]
+
+Arguments:
+  <src>      source file
+  [dst]
+  [more...]  anything else
+
+Flags:
+  -o, --output <string>  where to write (required)
+  -t, --tag <string>...  label the copy; repeatable
+      --level <int>
+  -q, --quiet
+  -h, --help             Show this help
+
+Usage: own [flags]
+
+Flags:
+      --help
+  -h, --host
+
+own flags: true true

@@ -1,0 +1,37 @@
+import os from std/os
+
+/// `flag` for a destination that keeps the argument exactly as the OS passed it. OsString is not a FlagValue, so the OsString forms have their own names.
+pub fn Parser.flagOs(mut self, name: String, dest: &mut os.OsString, help: String = "", short: String = "", required: Bool = false) {
+    self.declareFlag(name, short, ValueInfo {
+        name: "string"
+        shape: Shape.Single
+    }, help, required)
+    let found = self.collect(name, short, Shape.Single, required)
+    for raw in found {
+        dest = raw
+    }
+}
+
+/// `flagOs` for an optional OsString.
+pub fn Parser.flagOsOption(mut self, name: String, dest: &mut os.OsString?, help: String = "", short: String = "", required: Bool = false) {
+    self.declareFlag(name, short, ValueInfo {
+        name: "string"
+        shape: Shape.Optional
+    }, help, required)
+    let found = self.collect(name, short, Shape.Optional, required)
+    for raw in found {
+        dest = Some(raw)
+    }
+}
+
+/// `flagOs` for a repeatable OsString: every occurrence is appended.
+pub fn Parser.flagOsMany(mut self, name: String, dest: &mut Array[os.OsString], help: String = "", short: String = "", required: Bool = false) {
+    self.declareFlag(name, short, ValueInfo {
+        name: "string"
+        shape: Shape.Many
+    }, help, required)
+    let found = self.collect(name, short, Shape.Many, required)
+    for raw in found {
+        dest.push(raw)
+    }
+}
