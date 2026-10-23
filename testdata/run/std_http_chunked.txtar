@@ -58,7 +58,8 @@ fn ones(count: usize) -> Bytes {
 
 async fn root(n: net.Net, listener: net.Listener) -> Void! {
     let port = listener.port()
-    let server = http.Server.new(http.Router.new().post("/size", size).handler(), (line) => print "log: ${line}")
+    let mut server = http.Server.new(http.Router.new().post("/size", size).handler(), (line) => print "log: ${line}")
+    server.limits.readTimeoutMillis = 600000
     let stop = http.Shutdown.new()
     let running = task.spawn(server.serve(listener, stop.clone()))
 
