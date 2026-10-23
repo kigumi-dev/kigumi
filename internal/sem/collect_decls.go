@@ -71,6 +71,7 @@ func (r *Result) collectFile(f FileID) {
 			id := r.newEntity(Entity{Kind: EntTest, Name: td.Name().Text(), Pkg: r.packageOf(f), File: f, Node: d, Tok: td.Tok().Index()})
 			r.Entities[id].Detail = r.addFn(FnInfo{Body: td.Body().ID()})
 			r.Files[f].Defs[d] = id
+			r.noteTestName(f, d, id)
 		case syntax.AbiBlock:
 			r.collectAbi(f, d)
 		}

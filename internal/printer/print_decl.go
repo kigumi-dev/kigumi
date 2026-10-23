@@ -7,15 +7,7 @@ import (
 
 func (p *printer) prefix(id syntax.NodeID) {
 	d := p.t.View(id).AsDecl()
-	if doc := d.Doc(); doc.Valid() {
-		for i := firstDocTok(p.t, doc.Index()); i <= doc.Index(); i++ {
-			if p.t.Toks[i].Kind == token.DocComment {
-				p.write(p.tok(i))
-				p.newline()
-			}
-		}
-		p.skipTo(doc.Index() + 1)
-	}
+	p.docLines(d)
 	if attrs := d.Attrs(); attrs.Valid() {
 		p.attrs(attrs)
 	}
@@ -29,12 +21,28 @@ func (p *printer) prefix(id syntax.NodeID) {
 	}
 }
 
+// docLines prints the `///` lines of a declaration or field with any plain comments between them.
+func (p *printer) docLines(d syntax.DeclView) {
+	doc := d.Doc()
+	if !doc.Valid() {
+		return
+	}
+	for i := syntax.FirstDocTok(p.t, doc.Index()); i <= doc.Index(); i++ {
+		switch p.t.Toks[i].Kind {
+		case token.DocComment, token.Comment, token.BlockComment:
+			p.write(p.tok(i))
+			p.newline()
+		}
+	}
+	p.skipTo(doc.Index() + 1)
+}
+
 func (p *printer) attrs(list syntax.ListView) {
 	var impls []syntax.NodeID
 	for a := range list.Views() {
 		if a.Kind() == syntax.UnsafeGuarantee {
 			p.unsafeGuarantee(a.ID())
-			p.newline()
+			p.attrLineEnd(a.ID())
 			continue
 		}
 		attr := a.AsAttr()
@@ -43,7 +51,7 @@ func (p *printer) attrs(list syntax.ListView) {
 			continue
 		}
 		p.attr(attr)
-		p.newline()
+		p.attrLineEnd(a.ID())
 	}
 	if len(impls) > 0 {
 		p.write("@impl(")
@@ -56,6 +64,14 @@ func (p *printer) attrs(list syntax.ListView) {
 		p.write(")")
 		p.newline()
 	}
+}
+
+// attrLineEnd ends an attribute's line with its comment and keeps the own-line comments that follow it above the next attribute or the declaration.
+func (p *printer) attrLineEnd(id syntax.NodeID) {
+	last := p.lastTok(id)
+	p.trailing(last, false)
+	p.newline()
+	p.flushComments(p.nextCode(last + 1))
 }
 
 func (p *printer) attr(a syntax.AttrView) {

@@ -5,16 +5,12 @@ import (
 	"strings"
 
 	"kigumi/internal/syntax"
-	"kigumi/internal/token"
 )
 
-// sortImports orders the file's first run of import declarations: std,
-// then host-qualified paths, then `pub import`, each by path.
-// The run stays in source order when a comment sits inside it, since the
-// comment could not follow its declaration. tight marks the imports that
-// print without a blank line before them.
-func (p *printer) sortImports(decls []syntax.NodeID) ([]syntax.NodeID, map[syntax.NodeID]bool) {
-	tight := map[syntax.NodeID]bool{}
+// sortImports orders the file's first run of import declarations: std, then host-qualified paths, then `pub import`, each by path.
+// Comments above an import or at the end of its line travel with it; tight marks the imports printed without a blank line before them.
+func (p *printer) sortImports(decls []syntax.NodeID) (out []syntax.NodeID, tight map[syntax.NodeID]bool, carried *importRun) {
+	tight = map[syntax.NodeID]bool{}
 	start := -1
 	end := 0
 	for i, d := range decls {
@@ -27,8 +23,12 @@ func (p *printer) sortImports(decls []syntax.NodeID) ([]syntax.NodeID, map[synta
 			break
 		}
 	}
-	if start < 0 || end-start < 2 || p.commentWithin(decls[start], decls[end-1]) {
-		return decls, tight
+	if start < 0 || end-start < 2 {
+		return decls, tight, nil
+	}
+	carried, ok := p.collectImportTrivia(decls, start, end)
+	if !ok {
+		return decls, tight, nil
 	}
 	run := append([]syntax.NodeID{}, decls[start:end]...)
 	sort.SliceStable(run, func(i, j int) bool {
@@ -38,11 +38,12 @@ func (p *printer) sortImports(decls []syntax.NodeID) ([]syntax.NodeID, map[synta
 		}
 		return p.importPath(run[i]) < p.importPath(run[j])
 	})
-	out := append(append(append([]syntax.NodeID{}, decls[:start]...), run...), decls[end:]...)
+	out = append(append(append([]syntax.NodeID{}, decls[:start]...), run...), decls[end:]...)
 	for _, d := range run[1:] {
 		tight[d] = true
 	}
-	return out, tight
+	carried.first = start
+	return out, tight, carried
 }
 
 func (p *printer) importGroup(d syntax.NodeID) int {
@@ -57,21 +58,6 @@ func (p *printer) importGroup(d syntax.NodeID) int {
 
 func (p *printer) importPath(d syntax.NodeID) string {
 	return p.t.View(d).AsImportDecl().Path().Join("/")
-}
-
-// commentWithin reports a comment token between the first token of a and
-// the end of b.
-func (p *printer) commentWithin(a, b syntax.NodeID) bool {
-	from, to := p.t.Span(a).Start, p.t.Span(b).End
-	for _, tk := range p.t.Toks {
-		if tk.Kind == token.EOF {
-			break
-		}
-		if (tk.Kind == token.Comment || tk.Kind == token.DocComment) && tk.Start >= from && tk.Start < to {
-			return true
-		}
-	}
-	return false
 }
 
 // sortedNames orders the `{a, b}` binding list of an import.

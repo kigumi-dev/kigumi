@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"kigumi/internal/diag"
@@ -12,6 +13,20 @@ import (
 
 // AppendLocalReplace sets a Replace for name in dir/mod.local.kg; an existing record for name is rewritten in place rather than left as a second one.
 func AppendLocalReplace(dir, name, path string) error {
+	mf, _, err := ReadModFile(dir)
+	if err != nil {
+		return err
+	}
+	if !slices.ContainsFunc(mf.Requires, func(r Require) bool { return r.Name == name }) {
+		return fmt.Errorf("%s is not required in %s; add it with `kigumi mod add` first", name, ManifestName)
+	}
+	target := path
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(dir, target)
+	}
+	if st, err := os.Stat(target); err != nil || !st.IsDir() {
+		return fmt.Errorf("%s is not a directory; nothing to resolve %s from", target, name)
+	}
 	file := filepath.Join(dir, LocalName)
 	src, err := os.ReadFile(file)
 	if err != nil && !os.IsNotExist(err) {
@@ -72,24 +87,11 @@ func RemoveLocalReplaces(dir string, names map[string]bool) error {
 	if len(ds) > 0 {
 		return fmt.Errorf("%s has errors; fix them first", file)
 	}
-	drop := map[int]bool{}
-	for _, r := range recs {
-		if r.Kind == "Replace" && names[r.Fields["name"]] {
-			for line := f.Line(r.Span.Start); line <= f.Line(r.Span.End-1); line++ {
-				drop[line] = true
-			}
-		}
-	}
-	if len(drop) == 0 {
+	next, changed := dropRecords(f, recs, false, func(r record) bool { return r.Kind == "Replace" && names[r.Fields["name"]] })
+	if !changed {
 		return nil
 	}
-	var sb strings.Builder
-	for i, text := range strings.SplitAfter(string(src), "\n") {
-		if !drop[i+1] {
-			sb.WriteString(text)
-		}
-	}
-	return writeFileAtomic(file, []byte(sb.String()), 0o644)
+	return writeFileAtomic(file, next, 0o644)
 }
 
 // nextFileContent is what path's content becomes after appending text, without writing it, so a caller can validate the result first.

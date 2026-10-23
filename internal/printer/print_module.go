@@ -42,21 +42,7 @@ func (p *printer) importDecl(id syntax.NodeID) {
 	p.write("import ")
 	binding := d.Binding()
 	if binding.Kind() == syntax.List {
-		names := p.sortedNames(binding.AsList().AppendIDs(nil))
-		p.write("{")
-		for i, nm := range names {
-			if i > 0 {
-				p.write(", ")
-			}
-			v := p.t.View(nm)
-			if v.Kind() == syntax.ImportAlias {
-				a := v.AsImportAlias()
-				p.write(a.Name().Name().Text() + " as " + a.Alias().Name().Text())
-				continue
-			}
-			p.write(v.Tok().Text())
-		}
-		p.write("}")
+		p.importNames(id, binding.AsList().AppendIDs(nil))
 	} else {
 		p.write(binding.Tok().Text())
 	}

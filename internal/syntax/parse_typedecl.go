@@ -100,9 +100,14 @@ func (p *parser) fieldList(kind NodeKind, tok uint32) NodeID {
 	return p.tree.addList(kind, tok, fields)
 }
 
-// field parses `pub? mut? name Type { metadata }?`. A `fn` here is the
+// field parses `/// doc* pub? mut? name Type { metadata }?`. A `fn` here is the
 // forbidden in-body method and gets a pointed error.
 func (p *parser) field() NodeID {
+	var doc uint32
+	for p.at(token.DocComment) {
+		doc = p.advance()
+		p.skipNewlines()
+	}
 	var vis NodeID
 	if p.at(token.KwPub) {
 		vis = p.visibility()
@@ -114,7 +119,7 @@ func (p *parser) field() NodeID {
 	if p.at(token.KwFn) {
 		p.errorf("methods cannot be declared inside a type body; write `fn Type.name(self)` at top level")
 		p.recoverList(token.RBrace)
-		return p.tree.addRec(Field, p.pos, []uint32{0, 0, 0, 0})
+		return p.tree.addRec(Field, p.pos, []uint32{doc, 0, 0, 0, 0})
 	}
 	name := p.expect(token.Ident)
 	if p.at(token.Colon) {
@@ -126,7 +131,7 @@ func (p *parser) field() NodeID {
 	if p.at(token.LBrace) {
 		meta = p.metadata()
 	}
-	return p.tree.addRec(Field, name, []uint32{uint32(vis), flags, uint32(typ), uint32(meta)})
+	return p.tree.addRec(Field, name, []uint32{doc, uint32(vis), flags, uint32(typ), uint32(meta)})
 }
 
 func (p *parser) metadata() NodeID {

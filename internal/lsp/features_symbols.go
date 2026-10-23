@@ -108,5 +108,26 @@ func (s *Server) Completion(ctx context.Context, p *protocol.CompletionParams) (
 func declRange(t *syntax.Tree, d syntax.NodeID, nameTok uint32) protocol.Range {
 	sp, name := t.Span(d), t.Toks[nameTok].Span
 	sp.Start, sp.End = min(sp.Start, name.Start), max(sp.End, name.End)
+	sp.End = closeBraces(t, sp)
 	return spanRange(t.File, sp)
+}
+
+// closeBraces extends the end of sp over the closing braces its tokens leave open, which a node span can stop short of.
+func closeBraces(t *syntax.Tree, sp token.Span) token.Pos {
+	depth := 0
+	end := sp.End
+	first := sort.Search(len(t.Toks), func(i int) bool { return t.Toks[i].Start >= sp.Start })
+	for _, tk := range t.Toks[first:] {
+		if tk.Start >= sp.End && depth <= 0 {
+			break
+		}
+		switch tk.Kind {
+		case token.LBrace:
+			depth++
+		case token.RBrace:
+			depth--
+			end = max(end, tk.Span.End)
+		}
+	}
+	return end
 }

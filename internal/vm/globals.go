@@ -63,3 +63,11 @@ func (m *Machine) storeGlobal(ent sem.EntityID, v *obj) {
 	}
 	m.release(old)
 }
+
+// resetStatics gives the next test the initial value of every static, so a `static mut` write never leaks between tests.
+func (m *Machine) resetStatics() {
+	m.sh.store.Lock()
+	clear(m.sh.globals)
+	m.sh.store.Unlock()
+	m.initGlobals()
+}

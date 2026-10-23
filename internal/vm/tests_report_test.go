@@ -205,3 +205,31 @@ test "spins forever" {
 		t.Errorf("timeout: missing TIME line:\n%s", out.String())
 	}
 }
+
+func TestRunTestsReportingStdPanicReportsTheTestSite(t *testing.T) {
+	src := `import test from std/test
+
+test "asserts" {
+    test.assert(false, "boom")
+}
+`
+	prog := buildRunnableProgram(t, src)
+	var out, errOut bytes.Buffer
+	failed, err := vm.RunTestsReporting(prog, vm.TestRunOptions{JSON: true}, &out, &errOut)
+	if err != nil || failed != 1 {
+		t.Fatalf("failed=%d err=%v\nstderr=%s", failed, err, errOut.String())
+	}
+	for _, line := range strings.Split(strings.TrimSpace(out.String()), "\n") {
+		var ev struct {
+			Type string `json:"type"`
+			Line int    `json:"line"`
+			File string `json:"file"`
+		}
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
+			t.Fatalf("bad event line %q: %v", line, err)
+		}
+		if ev.Type == "testFail" && (ev.Line != 3 || strings.Contains(ev.File, "std/")) {
+			t.Errorf("testFail at %s:%d, want the test block at line 3 outside std", ev.File, ev.Line)
+		}
+	}
+}

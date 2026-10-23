@@ -159,9 +159,11 @@ func (s *Server) DocumentHighlight(ctx context.Context, p *protocol.DocumentHigh
 		out = append(out, protocol.DocumentHighlight{Range: spanRange(t.File, t.Toks[e.Tok].Span), Kind: protocol.DocumentHighlightKindText})
 	}
 	info := snap.res.File(t)
+	seen := map[token.Span]bool{}
 	for n, use := range info.Uses {
-		if use == ent {
-			out = append(out, protocol.DocumentHighlight{Range: spanRange(t.File, nameSpan(t, syntax.NodeID(n))), Kind: protocol.DocumentHighlightKindText})
+		if sp := nameSpan(t, syntax.NodeID(n)); use == ent && !seen[sp] {
+			seen[sp] = true
+			out = append(out, protocol.DocumentHighlight{Range: spanRange(t.File, sp), Kind: protocol.DocumentHighlightKindText})
 		}
 	}
 	return out, nil

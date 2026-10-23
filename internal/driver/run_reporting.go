@@ -41,9 +41,6 @@ func RunTestsReportingWith(m *Module, opts TestRunOptions, stdout, stderr io.Wri
 		io.WriteString(stderr, a.Res.Render())
 		return 1, nil
 	}
-	if ok, why := vm.SupportsTests(a.Prog); !ok {
-		return 1, vmRefusalError(why)
-	}
 	failed, err := vm.RunTestsReporting(a.Prog, vm.TestRunOptions{
 		Options:        vm.Options{Stdin: opts.Stdin, Cwd: m.cwdFor(opts.Cwd), NoAccel: opts.NoAccel, DenySignals: true, DenyExit: true},
 		Module:         m.Name,
@@ -52,6 +49,7 @@ func RunTestsReportingWith(m *Module, opts TestRunOptions, stdout, stderr io.Wri
 		PerTestTimeout: opts.PerTestTimeout,
 		SuiteTimeout:   opts.SuiteTimeout,
 		JSON:           opts.JSON,
+		Unsupported:    func(why string) string { return vmRefusalError(why).Error() },
 	}, stdout, stderr)
 	var noMatch *vm.NoTestsMatch
 	if errors.As(err, &noMatch) {

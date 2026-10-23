@@ -1,0 +1,47 @@
+-- src --
+type E =
+    | B(
+        i64, // p
+        i64,
+    )
+fn f() {}
+
+type F =
+    | A
+    | B
+    // end
+    // end2
+
+// own
+fn g() {}
+
+type G =
+    | B(
+        x: i64, // p
+        i64, /* q */
+    )
+    | C // c
+-- expect --
+type E =
+    | B(
+        i64, // p
+        i64,
+    )
+
+fn f() {}
+
+type F =
+    | A
+    | B
+    // end
+    // end2
+
+// own
+fn g() {}
+
+type G =
+    | B(
+        x: i64, // p
+        i64, /* q */
+    )
+    | C // c

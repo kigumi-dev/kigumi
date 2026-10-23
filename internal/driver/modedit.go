@@ -116,7 +116,7 @@ func alreadyRequired(mf ModFile, r Require) error {
 	return nil
 }
 
-// RemoveRequires deletes the named dependencies' Require records from root/mod.kg line by line, leaving comments and other records untouched.
+// RemoveRequires deletes the named dependencies' Require records from root/mod.kg line by line, with the comment lines directly above each, and leaving other records untouched.
 func RemoveRequires(root string, names map[string]bool) error {
 	path := filepath.Join(root, ManifestName)
 	src, err := os.ReadFile(path)
@@ -128,24 +128,11 @@ func RemoveRequires(root string, names map[string]bool) error {
 	if len(ds) > 0 {
 		return fmt.Errorf("%s has errors; fix them first", path)
 	}
-	drop := map[int]bool{}
-	for _, r := range recs {
-		if r.Kind == "Require" && names[r.Fields["name"]] {
-			for line := f.Line(r.Span.Start); line <= f.Line(r.Span.End-1); line++ {
-				drop[line] = true
-			}
-		}
-	}
-	if len(drop) == 0 {
+	next, changed := dropRecords(f, recs, true, func(r record) bool { return r.Kind == "Require" && names[r.Fields["name"]] })
+	if !changed {
 		return nil
 	}
-	var sb strings.Builder
-	for i, text := range strings.SplitAfter(string(src), "\n") {
-		if !drop[i+1] {
-			sb.WriteString(text)
-		}
-	}
-	return writeFileAtomic(path, []byte(sb.String()), 0o644)
+	return writeFileAtomic(path, next, 0o644)
 }
 
 // writeRecord prints a record in the formatter's canonical layout; empty

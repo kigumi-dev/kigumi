@@ -1,0 +1,61 @@
+-- src --
+/// First
+// plain
+/// Second
+fn h() {
+}
+
+@derive(Eq) // attr comment
+@derive(Hash)
+// between attr and decl
+pub type T = {
+    pub x Int
+}
+
+extern(C) {
+    fn abs(x: i32) -> i32 // abs
+    // end of extern
+}
+
+export(C) {
+    // nothing exported yet
+}
+
+interface I {
+    fn foo(self) -> Int
+    // end of interface
+}
+
+fn empty() {
+    // only a comment
+}
+-- expect --
+/// First
+// plain
+/// Second
+fn h() {}
+
+@derive(Eq) // attr comment
+@derive(Hash)
+// between attr and decl
+pub type T = {
+    pub x Int
+}
+
+extern(C) {
+    fn abs(x: i32) -> i32 // abs
+    // end of extern
+}
+
+export(C) {
+    // nothing exported yet
+}
+
+interface I {
+    fn foo(self) -> Int
+    // end of interface
+}
+
+fn empty() {
+    // only a comment
+}

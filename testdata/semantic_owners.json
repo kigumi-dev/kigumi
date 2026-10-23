@@ -4511,6 +4511,16 @@
     "status": "ok"
   },
   {
+    "key": "json.encodeRef",
+    "signature": "fn(\u0026T) -\u003e String!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "json.f64.fromJson",
     "signature": "fn(Value) -\u003e Float!",
     "has_body": true,
@@ -12294,6 +12304,16 @@
   {
     "key": "test.expectEq",
     "signature": "pure fn(T, T) -\u003e Void!",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "test.expectEqRef",
+    "signature": "pure fn(\u0026T, \u0026T) -\u003e Void!",
     "has_body": true,
     "kind": "",
     "vm": "gap",

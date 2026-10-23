@@ -28,41 +28,51 @@ func Cmd() *cobra.Command {
 		if *check && *write {
 			return &cliutil.UsageError{Err: errors.NewErr("--check and --write are incompatible")}
 		}
-		dirty := false
 		paths, err := expandDirs(paths)
 		if err != nil {
 			return err
 		}
+		failed := false
 		for _, path := range paths {
-			src, err := driver.Load(path)
-			if err != nil {
-				return errors.WrapErr(err, "read source")
-			}
-			out, err := driver.Format(src)
-			if err != nil {
-				fmt.Fprint(cmd.ErrOrStderr(), err.Error())
-				return cliutil.Exit(1)
-			}
-			switch {
-			case *check:
-				if out != string(src.Src) {
-					dirty = true
-					fmt.Fprintf(cmd.ErrOrStderr(), "%s: not formatted\n", path)
-				}
-			case *write && path != "-":
-				if err := driver.WriteFileAtomic(path, []byte(out), 0o644); err != nil {
-					return errors.WrapErrf(err, "write %s", path)
-				}
-			default:
-				fmt.Fprint(cmd.OutOrStdout(), out)
+			if err := formatOne(cmd, path, *write, *check, len(paths) > 1); err != nil {
+				failed = true
+				fmt.Fprintln(cmd.ErrOrStderr(), strings.TrimRight(err.Error(), "\n"))
 			}
 		}
-		if dirty {
+		if failed {
 			return cliutil.Exit(1)
 		}
 		return nil
 	}
 	return cmd
+}
+
+// formatOne formats a single file. Its error is reported by the caller, which goes on to the next file.
+func formatOne(cmd *cobra.Command, path string, write, check, several bool) error {
+	src, err := driver.Load(path)
+	if err != nil {
+		return errors.WrapErr(err, "read source")
+	}
+	out, err := driver.Format(src)
+	if err != nil {
+		return err
+	}
+	switch {
+	case check:
+		if out != string(src.Src) {
+			return fmt.Errorf("%s: not formatted", path)
+		}
+	case write && path != "-":
+		if err := driver.WriteFileAtomic(path, []byte(out), 0o644); err != nil {
+			return errors.WrapErrf(err, "write %s", path)
+		}
+	default:
+		if several {
+			fmt.Fprintf(cmd.OutOrStdout(), "==> %s <==\n", path)
+		}
+		fmt.Fprint(cmd.OutOrStdout(), out)
+	}
+	return nil
 }
 
 // expandDirs replaces each directory argument with the .kg files under

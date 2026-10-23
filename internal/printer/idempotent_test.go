@@ -150,6 +150,9 @@ func TestFmtCorpus(t *testing.T) {
 			if want := string(raw[i+len("-- expect --\n"):]); got != want {
 				t.Errorf("mismatch\n--- got ---\n%s--- want ---\n%s", got, want)
 			}
+			if again := printer.Print(syntax.Parse(token.NewFile("b", []byte(got)))); again != got {
+				t.Errorf("second run differs\n--- first ---\n%s--- second ---\n%s", got, again)
+			}
 		})
 	}
 }

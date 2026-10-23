@@ -146,10 +146,11 @@ type FieldView struct{ View }
 
 func (v View) AsField() FieldView          { return FieldView{v} }
 func (v FieldView) Name() TokenRef         { return v.Tok() }
-func (v FieldView) Vis() VisibilityView    { return v.at(v.rec(0)).AsVisibility() }
-func (v FieldView) Flags() uint32          { return v.rec(1) }
-func (v FieldView) Type() TypeExprView     { return v.at(v.rec(2)).AsTypeExpr() }
-func (v FieldView) Metadata() MetadataView { return v.at(v.rec(3)).AsMetadata() }
+func (v FieldView) Doc() TokenRef          { return v.tokRef(v.rec(0)) }
+func (v FieldView) Vis() VisibilityView    { return v.at(v.rec(1)).AsVisibility() }
+func (v FieldView) Flags() uint32          { return v.rec(2) }
+func (v FieldView) Type() TypeExprView     { return v.at(v.rec(3)).AsTypeExpr() }
+func (v FieldView) Metadata() MetadataView { return v.at(v.rec(4)).AsMetadata() }
 
 type VariantView struct{ View }
 

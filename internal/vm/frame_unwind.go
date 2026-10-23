@@ -28,7 +28,7 @@ func (m *Machine) ownsNothing(t sem.TypeID) bool {
 }
 
 func joinPanic(first, second *Panic) *Panic {
-	return &Panic{Msg: first.Msg + "\npanic: " + second.Msg, Site: first.Site}
+	return &Panic{Msg: first.Msg + "\npanic: " + second.Msg, Site: first.Site, InStd: first.InStd}
 }
 
 func (m *Machine) sweepRelease(v *obj) {

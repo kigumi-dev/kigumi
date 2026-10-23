@@ -16,6 +16,7 @@ func RunTests(prog *mir.Program, opts Options, out, errOut io.Writer) (failed in
 	for _, f := range testFuncs(prog) {
 		name := m.r.Entity(f.Ent).Name
 		ok := false
+		m.resetStatics()
 		cerr := m.catch(func() { ok = m.runTest(f, name) })
 		if p, isPanic := cerr.(*Panic); isPanic {
 			fmt.Fprintf(errOut, "%s: %s\n", diag.Prefix("panic"), p.Msg)

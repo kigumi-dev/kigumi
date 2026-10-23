@@ -1,0 +1,38 @@
+-- src --
+fn f(x: i64) -> i64 {
+    let r = R { a: 1, // one
+        b: "s", // two
+    }
+    let q = R { a: 1 // solo
+    }
+    let z = R {
+        // lead
+        a: 1,
+        b: 2,
+        // end
+    }
+    let w = R { a: 1 }
+    if x > 1 { 1 } else { 2 }
+}
+-- expect --
+fn f(x: i64) -> i64 {
+    let r = R {
+        a: 1 // one
+        b: "s" // two
+    }
+    let q = R {
+        a: 1 // solo
+    }
+    let z = R {
+        // lead
+        a: 1
+        b: 2
+        // end
+    }
+    let w = R { a: 1 }
+    if x > 1 {
+        1
+    } else {
+        2
+    }
+}

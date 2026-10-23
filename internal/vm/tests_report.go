@@ -1,14 +1,12 @@
 package vm
 
 import (
-	"bytes"
 	"cmp"
 	"fmt"
 	"io"
 	"strings"
 	"time"
 
-	"kigumi/internal/diag"
 	"kigumi/internal/mir"
 )
 
@@ -27,6 +25,8 @@ type TestRunOptions struct {
 	SuiteTimeout time.Duration
 	// JSON streams testEvent JSON lines on out instead of ok/FAIL/TIME text.
 	JSON bool
+	// Unsupported renders the failure text for a test the VM cannot run; nil prints the bare gap.
+	Unsupported func(why string) string
 }
 
 type testCase struct {
@@ -68,6 +68,7 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 	}
 
 	m := newMachine(prog, opts.Options, out, errOut)
+	support := newSupportIndex(prog)
 	var passed, skipped int
 	var failures []testFailure
 	for _, tc := range cases {
@@ -79,7 +80,33 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 			}
 			continue
 		}
-		outcome, message, site, took, fresh, hardErr := runOneTest(m, tc.f, tc.id.Name, opts.PerTestTimeout)
+		sink := func(stream string, data []byte) {
+			if len(data) == 0 {
+				return
+			}
+			switch {
+			case opts.JSON:
+				w.emit(testEvent{Type: "testOutput", ID: tc.id.String(), Stream: stream, Message: string(data)})
+			case stream == "stderr":
+				errOut.Write(data)
+			default:
+				out.Write(data)
+			}
+		}
+		var outcome, message string
+		var site mir.Site
+		var took time.Duration
+		var fresh *Machine
+		var hardErr error
+		if ok, why := support.check(tc.f); !ok {
+			outcome, message = "fail", unsupportedText(opts, why)
+			if !opts.JSON {
+				sink("stderr", []byte(tc.id.Name+": "+message+"\n"))
+			}
+		} else {
+			m.resetStatics()
+			outcome, message, site, took, fresh, hardErr = runOneTest(m, tc.f, tc.id.Name, opts.PerTestTimeout, opts.JSON, sink)
+		}
 		if hardErr != nil {
 			return failed, hardErr
 		}
@@ -108,6 +135,13 @@ func RunTestsReporting(prog *mir.Program, opts TestRunOptions, out, errOut io.Wr
 	return failed, nil
 }
 
+func unsupportedText(opts TestRunOptions, why string) string {
+	if opts.Unsupported != nil {
+		return opts.Unsupported(why)
+	}
+	return why + " is not supported by the VM"
+}
+
 func eventType(outcome string) string {
 	switch outcome {
 	case "pass":
@@ -130,56 +164,4 @@ func writePlainLine(out io.Writer, outcome, name string) {
 	case "timeout":
 		fmt.Fprintf(out, "TIME %s\n", name)
 	}
-}
-
-// runOneTest buffers m.out/m.err privately so a timed-out test's abandoned goroutine can't race the next test's writes to the shared writers.
-// A timeout returns a fresh Machine on the real writers; whatever the orphaned goroutine still writes to its buffers is lost.
-func runOneTest(m *Machine, f *mir.Func, name string, timeout time.Duration) (outcome, message string, site mir.Site, took time.Duration, fresh *Machine, hardErr error) {
-	realOut, realErr := m.out, m.err
-	var outBuf, errBuf bytes.Buffer
-	m.out, m.err = &outBuf, &errBuf
-
-	type result struct {
-		ok   bool
-		cerr error
-	}
-	start := time.Now()
-	done := make(chan result, 1)
-	go func() {
-		var ok bool
-		cerr := m.catchAtUser(func() { ok = m.runTest(f, name) })
-		done <- result{ok, cerr}
-	}()
-
-	var r result
-	timedOut := false
-	if timeout > 0 {
-		select {
-		case r = <-done:
-		case <-time.After(timeout):
-			timedOut = true
-		}
-	} else {
-		r = <-done
-	}
-	took = time.Since(start)
-
-	if timedOut {
-		m.stopPools()
-		return "timeout", fmt.Sprintf("test exceeded %s", timeout), mir.Site{}, took, newMachine(m.p, m.opts, realOut, realErr), nil
-	}
-	realOut.Write(outBuf.Bytes())
-	realErr.Write(errBuf.Bytes())
-	m.out, m.err = realOut, realErr
-	if p, isPanic := r.cerr.(*Panic); isPanic {
-		fmt.Fprintf(realErr, "%s: %s\n", diag.Prefix("panic"), p.Msg)
-		return "fail", "panic: " + p.Msg, p.Site, took, nil, nil
-	}
-	if r.cerr != nil {
-		return "", "", mir.Site{}, took, nil, r.cerr
-	}
-	if r.ok {
-		return "pass", "", mir.Site{}, took, nil, nil
-	}
-	return "fail", errBuf.String(), mir.Site{}, took, nil, nil
 }

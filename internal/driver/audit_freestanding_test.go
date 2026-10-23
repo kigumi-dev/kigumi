@@ -45,6 +45,15 @@ func TestAuditRejectsDisallowedSymbol(t *testing.T) {
 	if !strings.Contains(err.Error(), "printf") {
 		t.Fatalf("expected the error to name printf, got: %v", err)
 	}
+	if !strings.Contains(err.Error(), out) {
+		t.Fatalf("expected the error to quote the output path %s, got: %v", out, err)
+	}
+	if entries, _ := filepath.Glob(filepath.Join(root, "leaky.a*")); len(entries) != 0 {
+		t.Fatalf("a failed audit left output behind: %v", entries)
+	}
+	if staged, _ := filepath.Glob(filepath.Join(root, ".leaky.a*")); len(staged) != 0 {
+		t.Fatalf("a failed audit left a staged file behind: %v", staged)
+	}
 }
 
 // TestAuditAllowsAllocatorNoneArchive: --allocator none (E959) is checker-only, since the runtime still needs malloc for strings and arenas.

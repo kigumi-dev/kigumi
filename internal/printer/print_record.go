@@ -9,7 +9,8 @@ func (p *printer) recordLit(id syntax.NodeID) {
 	r := p.t.View(id).AsRecordLit()
 	p.expr(r.Head().ID())
 	entries := r.Fields()
-	if entries.Len() == 1 {
+	closing := p.lastTok(id)
+	if entries.Len() == 1 && !p.anyCommentIn(p.lastTok(r.Head().ID())+1, closing) {
 		p.write(" { ")
 		p.recordEntry(entries.ItemID(0))
 		p.write(" }")
@@ -19,9 +20,12 @@ func (p *printer) recordLit(id syntax.NodeID) {
 	p.newline()
 	p.indent++
 	for e := range entries.IDs() {
+		p.flushComments(p.firstTok(e))
 		p.withIndent(func() { p.recordEntry(e) })
+		p.trailing(p.lastTok(e), true)
 		p.newline()
 	}
+	p.flushComments(closing)
 	p.indent--
 	p.write("}")
 }

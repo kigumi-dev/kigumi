@@ -113,16 +113,18 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		fp := CurrentFingerprint(t, ZigVersionOf(cc))
 		fp.RuntimeAbi = code.Abi
 		reportStaleFingerprint(out, fp, stderr)
-		ok, err := buildArchive(m.compiler, cc, args, inputs, dir, out, opts.ccEnv, stderr)
+		ok, err := publishBuildOutput(out, func(staged string) error {
+			built, err := buildArchive(m.compiler, cc, args, inputs, dir, staged, opts.ccEnv, stderr)
+			if err != nil || !built {
+				return err
+			}
+			return auditBareArchive(m.compiler, cc, staged, out, m.Manifest.Embedder)
+		})
 		if err != nil || !ok {
 			return ok, err
 		}
 		withProvenance(&fp, m, t, code)
-		if err := WriteFingerprintSidecar(out, fp); err != nil {
-			return false, err
-		}
-		err = auditBareArchive(m.compiler, cc, out, m.Manifest.Embedder)
-		return err == nil, err
+		return true, WriteFingerprintSidecar(out, fp)
 	}
 	ok, err = publishBuildOutput(out, func(staged string) error {
 		linkOut, linkInputsList, err := linkInputs(m.compiler, opts.pinCompDir, dir, staged, inputs)

@@ -102,10 +102,12 @@ func (c *checker) unresolved(n syntax.NodeID, name string) TypeID {
 	if !ok {
 		return TyPoison
 	}
-	switch name {
-	case "host", "print", "eprint":
+	switch {
+	case name == "host" && c.r.target == Freestanding:
+		d = d.WithNote(c.loc(n), "`host` is not available on a freestanding target")
+	case name == "host" || name == "print" || name == "eprint":
 		d = d.WithNote(c.loc(n), "`"+name+"` exists only in the entry file")
-	case "null", "NULL":
+	case name == "null" || name == "NULL":
 		d = d.WithHelp("there is no null; the absent value is `None` of an `Option`, as in `let x: Int? = None`")
 	default:
 		if hint := c.scriptLocalHint(name); hint != "" {

@@ -276,6 +276,8 @@ pub fn Stdin.readSome(self, timeoutMs: Int) -> Bytes! {
 /// is buffered, so ANSI escapes and partial lines reach the terminal
 /// exactly as given; may send fewer bytes than given (a short write),
 /// matching write(2) and std/io's Writer (writeAll loops for the rest).
+/// Unlike C stdio called through FFI, this writes straight to the descriptor:
+/// call `fflush(NULL)` through FFI before it to keep both outputs in order.
 pub fn Stdout.write(mut self, data: Bytes) -> usize! {
     let n = data.len()
     if n == 0 {

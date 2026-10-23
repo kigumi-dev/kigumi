@@ -36,6 +36,7 @@ func (p *printer) paramsVertical(list syntax.NodeID) {
 		p.flushComments(prm.Tok().Index())
 		p.withIndent(func() { p.param(prm.AsParam()) })
 		p.write(",")
+		p.trailing(p.lastTok(prm.ID()), true)
 		p.newline()
 	}
 	p.indent--

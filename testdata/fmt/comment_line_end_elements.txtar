@@ -1,0 +1,90 @@
+-- src --
+type Rec = {
+    pub a Int // field a
+    /// documented
+    pub b Int // field b
+    pub c Int // field c
+    // trailing in record
+}
+
+type Shape =
+    | Circle(Int) // round
+    | Square(Int) // boxy
+    | Dot // point
+
+type Alias = Int // about alias
+
+type Empty = {
+    // nothing here
+}
+
+fn f(x: Int) -> Int {
+    match x {
+        1 -> 10 // one
+        // before two
+        2 -> 20 // two
+        _ -> 30 // other
+        // after the last arm
+    }
+}
+
+fn g() -> Int {
+    call(
+        1, // first
+        // before second
+        2, // second
+        3 // third
+    )
+}
+
+fn p(
+    a: Int, // first param
+    b: Int, // second param
+) -> Int {
+    a + b
+}
+-- expect --
+type Rec = {
+    pub a Int // field a
+    /// documented
+    pub b Int // field b
+    pub c Int // field c
+    // trailing in record
+}
+
+type Shape =
+    | Circle(Int) // round
+    | Square(Int) // boxy
+    | Dot // point
+
+type Alias = Int // about alias
+
+type Empty = {
+    // nothing here
+}
+
+fn f(x: Int) -> Int {
+    match x {
+        1 -> 10 // one
+        // before two
+        2 -> 20 // two
+        _ -> 30 // other
+        // after the last arm
+    }
+}
+
+fn g() -> Int {
+    call(
+        1, // first
+        // before second
+        2, // second
+        3, // third
+    )
+}
+
+fn p(
+    a: Int, // first param
+    b: Int, // second param
+) -> Int {
+    a + b
+}

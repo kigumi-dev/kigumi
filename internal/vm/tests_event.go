@@ -8,13 +8,14 @@ import (
 // TestEventFormatVersion versions the JSON lines RunTestsReporting emits, so a consumer within one version can ignore fields it doesn't know.
 const TestEventFormatVersion = 1
 
-// testEvent is one line of the test-runner event stream: a suiteStart, one testPass/testFail/testTimeout/testSkip per test, then a suiteEnd.
+// testEvent is one line of the test-runner event stream: a suiteStart, testOutput lines carrying what a test printed, one testPass/testFail/testTimeout/testSkip per test, then a suiteEnd.
 type testEvent struct {
 	FormatVersion int    `json:"formatVersion"`
 	Type          string `json:"type"`
 	ID            string `json:"id,omitempty"`
 	File          string `json:"file,omitempty"`
 	Line          int    `json:"line,omitempty"`
+	Stream        string `json:"stream,omitempty"`
 	Message       string `json:"message,omitempty"`
 	DurationMS    int64  `json:"durationMs,omitempty"`
 	Total         int    `json:"total,omitempty"`

@@ -42,40 +42,7 @@ func testFuncs(prog *mir.Program) []*mir.Func {
 }
 
 func supportsFrom(prog *mir.Program, roots ...*mir.Func) (bool, string) {
-	m := &Machine{p: prog, r: prog.R, host: map[string]hostFn{}, sh: newShared()}
-	m.registerAll()
-	seen := map[*mir.Func]bool{}
-	var work []*mir.Func
-	add := func(f *mir.Func) {
-		if f != nil && !seen[f] {
-			seen[f] = true
-			work = append(work, f)
-		}
-	}
-	for _, f := range roots {
-		add(f)
-	}
-	for ent, f := range prog.ByEnt {
-		e := m.r.Entity(ent)
-		if e.Kind == sem.EntFn && m.r.TypeDecl(e.Parent).Drop == ent {
-			add(f)
-		}
-	}
-	for len(work) > 0 {
-		f := work[0]
-		work = work[1:]
-		for _, blk := range f.Blocks {
-			for _, in := range blk.Insts {
-				if why := m.supportsInst(&in); why != "" {
-					return false, why
-				}
-				for _, callee := range m.callees(&in) {
-					add(callee)
-				}
-			}
-		}
-	}
-	return true, ""
+	return newSupportIndex(prog).check(roots...)
 }
 
 // callees lists the functions an instruction can enter: the named function,

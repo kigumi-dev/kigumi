@@ -61,6 +61,11 @@ pub fn encode[T: Encode](value: T) -> String! {
     render(value.toJson())
 }
 
+/// Same as `encode` but borrows value, so a record or an Array can be encoded again afterwards.
+pub fn encodeRef[T: Encode](value: &T) -> String! {
+    render(value.toJson())
+}
+
 /// Parses JSON text into a T; fails on malformed input or a shape that does not match T.
 pub fn decode[T: Decode](text: String) -> T! {
     T.fromJson(parse(text)?)

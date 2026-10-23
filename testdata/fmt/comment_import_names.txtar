@@ -1,0 +1,33 @@
+-- src --
+import zeta from std/zeta
+import {
+    c, // cc
+    a, // aa
+} from std/gamma
+import beta from std/beta
+
+import {
+    // about z
+    z as y, // zz
+    b /* bb */,
+    a
+    // tail
+} from std/delta // imp
+
+fn main() {}
+-- expect --
+import beta from std/beta
+import {
+    a,
+    b, /* bb */
+    // about z
+    z as y, // zz
+    // tail
+} from std/delta // imp
+import {
+    a, // aa
+    c, // cc
+} from std/gamma
+import zeta from std/zeta
+
+fn main() {}

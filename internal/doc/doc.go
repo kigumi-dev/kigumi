@@ -67,16 +67,9 @@ func Index(pages map[string]string) string {
 	return sb.String()
 }
 
-type entry struct {
-	head, doc string
-	kind      syntax.NodeKind
-	name      string
-	recv      string
-}
-
 // Package renders one package; "" when it has nothing to show.
 func Package(p *driver.Package, opts Options) string {
-	var types, ifaces, fns, consts []entry
+	var types, ifaces, fns, consts, statics, reexports []entry
 	methods := map[string][]entry{}
 	var owners []string
 	for _, t := range p.Files {
@@ -84,28 +77,30 @@ func Package(p *driver.Package, opts Options) string {
 			continue
 		}
 		for d := range t.List(t.Root).IDs() {
-			e, ok := declEntry(t, d, opts.All)
-			if !ok {
-				continue
-			}
-			switch {
-			case e.kind == syntax.FnDecl && e.recv != "":
-				if _, seen := methods[e.recv]; !seen {
-					owners = append(owners, e.recv)
+			for _, e := range declEntries(t, d, opts.All) {
+				switch {
+				case e.kind == syntax.FnDecl && e.recv != "":
+					if _, seen := methods[e.recv]; !seen {
+						owners = append(owners, e.recv)
+					}
+					methods[e.recv] = append(methods[e.recv], e)
+				case e.kind == syntax.FnDecl:
+					fns = append(fns, e)
+				case e.kind == syntax.TypeDecl:
+					types = append(types, e)
+				case e.kind == syntax.InterfaceDecl:
+					ifaces = append(ifaces, e)
+				case e.kind == syntax.ConstDecl:
+					consts = append(consts, e)
+				case e.kind == syntax.StaticDecl:
+					statics = append(statics, e)
+				case e.kind == syntax.ImportDecl:
+					reexports = append(reexports, e)
 				}
-				methods[e.recv] = append(methods[e.recv], e)
-			case e.kind == syntax.FnDecl:
-				fns = append(fns, e)
-			case e.kind == syntax.TypeDecl:
-				types = append(types, e)
-			case e.kind == syntax.InterfaceDecl:
-				ifaces = append(ifaces, e)
-			case e.kind == syntax.ConstDecl:
-				consts = append(consts, e)
 			}
 		}
 	}
-	if len(types)+len(ifaces)+len(fns)+len(consts)+len(methods) == 0 {
+	if len(types)+len(ifaces)+len(fns)+len(consts)+len(statics)+len(reexports)+len(methods) == 0 {
 		return ""
 	}
 	var sb strings.Builder
@@ -127,6 +122,8 @@ func Package(p *driver.Package, opts Options) string {
 	}
 	section(&sb, "Functions", fns, nil)
 	section(&sb, "Constants", consts, nil)
+	section(&sb, "Statics", statics, nil)
+	section(&sb, "Re-exports", reexports, nil)
 	return sb.String()
 }
 
@@ -152,39 +149,4 @@ func write(sb *strings.Builder, prefix string, e entry) {
 	if e.doc != "" {
 		sb.WriteString("\n" + e.doc + "\n")
 	}
-}
-
-// declEntry describes a top-level declaration; ok is false for statements,
-// imports and, unless all is set, private declarations.
-func declEntry(t *syntax.Tree, d syntax.NodeID, all bool) (entry, bool) {
-	kind := t.Kind(d)
-	switch kind {
-	case syntax.FnDecl, syntax.TypeDecl, syntax.InterfaceDecl, syntax.ConstDecl:
-	default:
-		return entry{}, false
-	}
-	decl := t.View(d).AsDecl()
-	if !all && !decl.Vis().Valid() {
-		return entry{}, false
-	}
-	name := decl.Name()
-	if !name.Valid() {
-		return entry{}, false
-	}
-	e := entry{kind: kind, name: name.Text(), head: syntax.DeclHead(t, d), doc: syntax.DocText(t, d)}
-	if kind == syntax.FnDecl {
-		if recv := decl.AsFnDecl().Recv(); recv.Valid() {
-			sp := recv.Span()
-			e.recv = ownerName(string(t.File.Src[sp.Start:sp.End]))
-		}
-	}
-	return e, true
-}
-
-// ownerName strips type arguments: `Array[T]` and `Map[K, V]` -> `Array`.
-func ownerName(recv string) string {
-	if i := strings.IndexByte(recv, '['); i >= 0 {
-		return recv[:i]
-	}
-	return recv
 }

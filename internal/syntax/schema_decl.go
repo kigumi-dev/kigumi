@@ -19,7 +19,7 @@ var declSchema = []kindSchema{
 	{AdtBody, "AdtBody", layList, "Head", []slot{items(set(Variant))}},
 	{AliasBody, "AliasBody", layL, "Kw", []slot{ch("Type", typeSet)}},
 	{DefinedBody, "DefinedBody", layL, "Head", []slot{ch("Type", typeSet)}},
-	{Field, "Field", layRec, "Name", []slot{och("Vis", set(Visibility)), num("Flags"), och("Type", typeSet), och("Metadata", set(Metadata))}},
+	{Field, "Field", layRec, "Name", []slot{otk("Doc"), och("Vis", set(Visibility)), num("Flags"), och("Type", typeSet), och("Metadata", set(Metadata))}},
 	{Variant, "Variant", layL, "Name", []slot{olst("Fields", set(VariantField))}},
 	{VariantField, "VariantField", layFlagR, "Name", []slot{num("Flags"), ch("Type", typeSet)}},
 	{Metadata, "Metadata", layList, "Open", []slot{items(set(MetaItem))}},

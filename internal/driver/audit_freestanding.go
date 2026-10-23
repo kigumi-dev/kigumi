@@ -12,8 +12,8 @@ import (
 )
 
 // auditBareArchive checks a `--sys none` archive's embedder contract: every undefined
-// symbol must be one freestanding_symbols.txt or an Embedder record names, and nothing is thread-local.
-func auditBareArchive(o CompilerOptions, cc []string, archive string, embedder []string) error {
+// symbol must be one freestanding_symbols.txt or an Embedder record names, and nothing is thread-local; name is the output path the messages quote.
+func auditBareArchive(o CompilerOptions, cc []string, archive, name string, embedder []string) error {
 	dir, err := os.MkdirTemp("", "kigumi-audit")
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func auditBareArchive(o CompilerOptions, cc []string, archive string, embedder [
 	cmd := exec.Command(ar[0], append(append([]string{}, ar[1:]...), "x", absArchive)...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("auditing %s: extracting archive: %w\n%s", archive, err, out)
+		return fmt.Errorf("auditing %s: extracting archive: %w\n%s", name, err, out)
 	}
 	members, err := os.ReadDir(dir)
 	if err != nil {
@@ -41,7 +41,7 @@ func auditBareArchive(o CompilerOptions, cc []string, archive string, embedder [
 	for _, mem := range members {
 		syms, err := readObjectSymbols(filepath.Join(dir, mem.Name()))
 		if err != nil {
-			return fmt.Errorf("auditing %s: %w", archive, err)
+			return fmt.Errorf("auditing %s: %w", name, err)
 		}
 		for _, s := range syms {
 			if s.Defined {
@@ -58,7 +58,7 @@ func auditBareArchive(o CompilerOptions, cc []string, archive string, embedder [
 	seen := map[string]bool{}
 	for _, s := range allSyms {
 		if s.TLS {
-			return fmt.Errorf("auditing %s: %q is thread-local; freestanding has no TLS runtime", archive, s.Name)
+			return fmt.Errorf("auditing %s: %q is thread-local; freestanding has no TLS runtime", name, s.Name)
 		}
 		if s.Defined || defined[s.Name] || allowed[s.Name] || seen[s.Name] {
 			continue
@@ -71,7 +71,7 @@ func auditBareArchive(o CompilerOptions, cc []string, archive string, embedder [
 	}
 	sort.Strings(missing)
 	if cat := classifySymbol(missing[0]); cat != "" {
-		return fmt.Errorf("auditing %s: references undefined symbol %q (%s), which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", archive, missing[0], cat, strings.Join(missing, ", "))
+		return fmt.Errorf("auditing %s: references undefined symbol %q (%s), which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", name, missing[0], cat, strings.Join(missing, ", "))
 	}
-	return fmt.Errorf("auditing %s: references undefined symbol %q, which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", archive, missing[0], strings.Join(missing, ", "))
+	return fmt.Errorf("auditing %s: references undefined symbol %q, which is not in internal/llgen/runtime/freestanding_symbols.txt (all: %s); if the embedder supplies it, name it in an Embedder record of mod.kg", name, missing[0], strings.Join(missing, ", "))
 }

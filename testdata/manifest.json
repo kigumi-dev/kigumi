@@ -149,9 +149,75 @@
       ]
     },
     {
+      "id": "fmt/comment_blocks_and_attrs",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_blocks_and_attrs.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/comment_import_names",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_import_names.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/comment_import_order",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_import_order.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "fmt/comment_in_continuation",
       "kind": "fmt",
       "path": "testdata/fmt/comment_in_continuation.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/comment_line_end_elements",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_line_end_elements.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/comment_record_literal",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_record_literal.txtar",
+      "mode": [
+        "format"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "fmt/comment_variant_payload_and_end",
+      "kind": "fmt",
+      "path": "testdata/fmt/comment_variant_payload_and_end.txtar",
       "mode": [
         "format"
       ],
@@ -19870,6 +19936,17 @@
       "id": "sem/task_panic_fatal_wasi",
       "kind": "sem",
       "path": "testdata/sem/task_panic_fatal_wasi.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/test_name_duplicate",
+      "kind": "sem",
+      "path": "testdata/sem/test_name_duplicate.txtar",
       "mode": [
         "check"
       ],

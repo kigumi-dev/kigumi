@@ -46,8 +46,13 @@ func scanUses(res *sem.Result, targets map[sem.EntityID]bool) []useSite {
 		if f.Tree.File.Generated {
 			continue
 		}
+		seen := map[token.Span]bool{}
 		for n, use := range f.Uses {
-			if targets[use] {
+			if !targets[use] {
+				continue
+			}
+			if sp := nameSpan(f.Tree, syntax.NodeID(n)); !seen[sp] {
+				seen[sp] = true
 				out = append(out, useSite{i, f.Tree, syntax.NodeID(n)})
 			}
 		}

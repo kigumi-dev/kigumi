@@ -18,7 +18,7 @@ error[E100]: undefined name `host`
   |
 4 |     host.exit(1) //~ ERROR undefined name `host`
   |     ^^^^
-note: `host` exists only in the entry file
+note: `host` is not available on a freestanding target
  --> main/main.kg:4:5
   |
 4 |     host.exit(1) //~ ERROR undefined name `host`

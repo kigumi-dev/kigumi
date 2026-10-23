@@ -1,0 +1,32 @@
+-- src --
+#!/usr/bin/env kigumi
+// License header
+
+// about z
+import z from std/zzz // z trail
+import {b, a} from std/bbb
+
+// section: local
+import local from app/local
+pub import e from std/eee // re-export
+
+// about m
+import m from std/mmm
+
+fn main() {
+}
+-- expect --
+#!/usr/bin/env kigumi
+
+// License header
+
+import {a, b} from std/bbb
+// about m
+import m from std/mmm
+// about z
+import z from std/zzz // z trail
+// section: local
+import local from app/local
+pub import e from std/eee // re-export
+
+fn main() {}

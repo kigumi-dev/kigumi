@@ -93,5 +93,16 @@ func (ix *semIndex) usesOf(targets []sem.EntityID) []useSite {
 		}
 		return int(a.node) - int(b.node)
 	})
-	return out
+	// A type annotation records both its Path and its TypePath node on the same name.
+	type key struct {
+		tree *syntax.Tree
+		sp   token.Span
+	}
+	seen := map[key]bool{}
+	return slices.DeleteFunc(out, func(u useSite) bool {
+		k := key{u.tree, nameSpan(u.tree, u.node)}
+		dup := seen[k]
+		seen[k] = true
+		return dup
+	})
 }

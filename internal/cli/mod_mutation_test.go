@@ -37,6 +37,9 @@ func TestModReplaceUpsertsSameName(t *testing.T) {
 	if code, _, errOut := execute(t, "mod", "add", "-C", app, "github.com/acme/lib", "v1.0.0"); code != 0 {
 		t.Fatalf("add: %s", errOut)
 	}
+	for _, dir := range []string{"one", "two"} {
+		os.MkdirAll(filepath.Join(root, dir), 0o755)
+	}
 	if code, _, errOut := execute(t, "mod", "replace", "-C", app, "github.com/acme/lib", "../one"); code != 0 {
 		t.Fatalf("replace one: %s", errOut)
 	}
@@ -66,6 +69,7 @@ func TestModTidyRemovesLocalReplace(t *testing.T) {
 	if code, _, errOut := execute(t, "mod", "add", "-C", app, "github.com/acme/unused", "v1.0.0"); code != 0 {
 		t.Fatalf("add: %s", errOut)
 	}
+	os.MkdirAll(filepath.Join(root, "unused"), 0o755)
 	if code, _, errOut := execute(t, "mod", "replace", "-C", app, "github.com/acme/unused", "../unused"); code != 0 {
 		t.Fatalf("replace: %s", errOut)
 	}
@@ -90,5 +94,63 @@ func TestModInitEmptyManifestRejected(t *testing.T) {
 	std, _ := filepath.Abs("../../std")
 	if code, _, errOut := execute(t, "--std", std, "check", root); code == 0 {
 		t.Fatalf("a comment-only mod.kg must be rejected, not treated as a valid empty manifest; stderr %q", errOut)
+	}
+}
+
+func TestModTidyDropsTheCommentOfARemovedRequire(t *testing.T) {
+	app := t.TempDir()
+	manifestSrc := "Module {\n    name: \"github.com/acme/app\"\n    kigumi: \"0.1\"\n}\n\n// used by the importer\nRequire {\n    name: \"github.com/acme/unused\"\n    version: \"v2.0.0\"\n}\n\n// keeps its comment\nRequire {\n    name: \"github.com/acme/lib\"\n    version: \"v1.0.0\"\n}\n"
+	os.WriteFile(filepath.Join(app, "mod.kg"), []byte(manifestSrc), 0o644)
+	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {one} from github.com/acme/lib\nprint \"${one()}\"\n"), 0o644)
+	if code, _, errOut := execute(t, "mod", "tidy", "-C", app); code != 0 {
+		t.Fatalf("tidy: exit %d %s", code, errOut)
+	}
+	got, _ := os.ReadFile(filepath.Join(app, "mod.kg"))
+	want := "Module {\n    name: \"github.com/acme/app\"\n    kigumi: \"0.1\"\n}\n\n// keeps its comment\nRequire {\n    name: \"github.com/acme/lib\"\n    version: \"v1.0.0\"\n}\n"
+	if string(got) != want {
+		t.Errorf("manifest after tidy:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestModReplaceRejectsMissingDirectory(t *testing.T) {
+	app := t.TempDir()
+	os.WriteFile(filepath.Join(app, "mod.kg"), []byte("Module {\n    name: \"github.com/acme/app\"\n    kigumi: \"0.1\"\n}\n"), 0o644)
+	if code, _, errOut := execute(t, "mod", "replace", "-C", app, "github.com/acme/lib", "../does-not-exist"); code == 0 {
+		t.Fatalf("replace of a missing directory: exit %d %q", code, errOut)
+	}
+	if _, err := os.Stat(filepath.Join(app, "mod.local.kg")); err == nil {
+		t.Error("mod.local.kg was written for a path that does not exist")
+	}
+}
+
+func TestModTidyKeepsTheHeadingOfARequireGroup(t *testing.T) {
+	app := t.TempDir()
+	head := "Module {\n    name: \"github.com/acme/app\"\n    kigumi: \"0.1\"\n}\n\n// dependencies\n"
+	manifestSrc := head + "Require {\n    name: \"github.com/acme/unused\"\n    version: \"v2.0.0\"\n}\nRequire {\n    name: \"github.com/acme/lib\"\n    version: \"v1.0.0\"\n}\n"
+	os.WriteFile(filepath.Join(app, "mod.kg"), []byte(manifestSrc), 0o644)
+	os.WriteFile(filepath.Join(app, "main.kg"), []byte("import {one} from github.com/acme/lib\nprint \"${one()}\"\n"), 0o644)
+	if code, _, errOut := execute(t, "mod", "tidy", "-C", app); code != 0 {
+		t.Fatalf("tidy: exit %d %s", code, errOut)
+	}
+	got, _ := os.ReadFile(filepath.Join(app, "mod.kg"))
+	want := head + "Require {\n    name: \"github.com/acme/lib\"\n    version: \"v1.0.0\"\n}\n"
+	if string(got) != want {
+		t.Errorf("manifest after tidy:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestModReplaceRejectsUnrequiredName(t *testing.T) {
+	root := t.TempDir()
+	app := filepath.Join(root, "app")
+	os.MkdirAll(filepath.Join(root, "ld"), 0o755)
+	os.MkdirAll(app, 0o755)
+	if code, _, _ := execute(t, "mod", "init", "-C", app, "github.com/acme/app"); code != 0 {
+		t.Fatal("init failed")
+	}
+	if code, _, _ := execute(t, "mod", "replace", "-C", app, "github.com/acme/nosuchdep", "../ld"); code == 0 {
+		t.Fatal("replace of a name that is not a Require succeeded")
+	}
+	if _, err := os.Stat(filepath.Join(app, "mod.local.kg")); err == nil {
+		t.Error("mod.local.kg was written for a name that is not required")
 	}
 }

@@ -130,6 +130,7 @@ func (p *printer) matchExpr(id syntax.NodeID) {
 	p.write(" {")
 	p.newline()
 	p.indent++
+	var last uint32
 	for v := range m.Arms().Views() {
 		arm := v.AsArm()
 		p.flushComments(p.firstTok(arm.ID()))
@@ -140,7 +141,12 @@ func (p *printer) matchExpr(id syntax.NodeID) {
 		}
 		p.write(" -> ")
 		p.expr(arm.Body().ID())
+		last = p.lastTok(arm.ID())
+		p.trailing(last, false)
 		p.newline()
+	}
+	if m.Arms().Len() > 0 {
+		p.flushComments(p.closeOfNext(last))
 	}
 	p.indent--
 	p.write("}")

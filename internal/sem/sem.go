@@ -17,6 +17,7 @@ type PackageInfo struct {
 	HasScript bool
 	Std       bool
 	Files     []FileID
+	tests     map[string]EntityID
 }
 
 type Result struct {

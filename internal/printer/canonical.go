@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"kigumi/internal/syntax"
-	"kigumi/internal/token"
 )
 
 // Print renders the tree in canonical form. It is only defined
@@ -28,7 +27,8 @@ type printer struct {
 	lineStart bool
 	// chain is set once a statement has broken a method chain onto new lines,
 	// so later `.` segments do not indent again.
-	chain bool
+	chain  bool
+	eofIdx int
 }
 
 // withIndent runs f and restores the indent (and chain state) afterwards, so
@@ -69,35 +69,38 @@ func (p *printer) blank() {
 func (p *printer) tok(idx uint32) string { return p.t.TokText(idx) }
 
 func (p *printer) file(root syntax.NodeID) {
-	decls, tight := p.sortImports(p.t.List(root).AppendIDs(nil))
+	decls, tight, run := p.sortImports(p.t.List(root).AppendIDs(nil))
 	for i, d := range decls {
 		if i > 0 && !tight[d] {
 			p.separateDecls(decls[i-1], d)
 		}
-		p.flushComments(p.firstTok(d))
+		var tv *importTrivia
+		if run != nil {
+			tv = run.byDecl[d]
+			if i == run.first {
+				p.flushComments(run.header)
+				if run.headerBlank {
+					p.blank()
+				}
+			}
+		}
+		if tv != nil {
+			p.importComments(tv)
+		} else {
+			p.flushComments(p.firstTok(d))
+		}
 		p.withIndent(func() { p.decl(d) })
-		p.endLine(d)
+		if tv != nil {
+			p.importLineEnd(tv)
+		} else {
+			p.endLine(d)
+		}
 	}
 }
 
 func (p *printer) multiline(id syntax.NodeID) bool {
 	sp := p.t.Span(id)
 	return p.t.File.Line(sp.Start) != p.t.File.Line(sp.End-1)
-}
-
-// firstTok is the first non-trivia token of a node, counting the doc
-// comment lines that the node's doc slot points at.
-func (p *printer) firstTok(id syntax.NodeID) uint32 {
-	if doc := p.t.View(id).AsDecl().Doc(); doc.Valid() {
-		return firstDocTok(p.t, doc.Index())
-	}
-	sp := p.t.Span(id)
-	for i, tk := range p.t.Toks {
-		if tk.Start >= sp.Start && tk.Kind != token.Newline && tk.Kind != token.BOF {
-			return uint32(i)
-		}
-	}
-	return uint32(len(p.t.Toks))
 }
 
 func (p *printer) decl(id syntax.NodeID) {
@@ -137,11 +140,12 @@ func (p *printer) decl(id syntax.NodeID) {
 
 func (p *printer) declList(list syntax.NodeID) {
 	items := p.t.List(list)
-	p.write("{")
+	_, closing := p.bracePairAfter(p.cm.next)
 	if items.Len() == 0 {
-		p.write("}")
+		p.commentsOrEmpty(closing)
 		return
 	}
+	p.write("{")
 	p.newline()
 	p.indent++
 	for c := items.Cursor(); c.Next(); {
@@ -153,6 +157,7 @@ func (p *printer) declList(list syntax.NodeID) {
 		p.withIndent(func() { p.decl(d) })
 		p.endLine(d)
 	}
+	p.flushComments(p.closeOfNext(p.lastTok(items.ItemID(items.Len() - 1))))
 	p.indent--
 	p.write("}")
 }
@@ -174,21 +179,4 @@ func modsText(m uint32) string {
 		}
 	}
 	return strings.Join(parts, " ")
-}
-
-// firstDocTok walks back from the doc slot token over the `///` lines that
-// precede it; the parser records only the last one.
-func firstDocTok(t *syntax.Tree, last uint32) uint32 {
-	first := last
-	for i := int(last) - 1; i > 0; i-- {
-		switch t.Toks[i].Kind {
-		case token.Newline:
-			continue
-		case token.DocComment:
-			first = uint32(i)
-			continue
-		}
-		break
-	}
-	return first
 }

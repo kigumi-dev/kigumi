@@ -49,9 +49,7 @@ func (p *printer) expr(id syntax.NodeID) {
 	case syntax.CallExpr:
 		c := v.AsCall()
 		p.expr(c.Callee().ID())
-		p.write("(")
-		p.exprList(c.Args().ID())
-		p.write(")")
+		p.callArgs(id, c.Callee().ID(), c.Args())
 	case syntax.WsCallExpr:
 		p.wsCall(id)
 	case syntax.BracketExpr:

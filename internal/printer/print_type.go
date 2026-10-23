@@ -57,56 +57,6 @@ func (p *printer) layoutArgs(list syntax.ListView) {
 	}
 }
 
-func (p *printer) fields(fields syntax.ListView) {
-	if fields.Len() == 0 {
-		p.write("{}")
-		return
-	}
-	p.write("{")
-	p.newline()
-	p.indent++
-	for i, fv := range fields.Enumerate() {
-		f := fv.AsField()
-		if i > 0 && (f.Metadata().Valid() || fields.At(i-1).AsField().Metadata().Valid()) {
-			p.blank()
-		}
-		p.flushComments(p.firstTok(f.ID()))
-		if vis := f.Vis(); vis.Valid() {
-			p.visibility(vis)
-		}
-		if f.Flags()&syntax.FlagMut != 0 {
-			p.write("mut ")
-		}
-		p.write(f.Name().Text() + " ")
-		p.typ(f.Type().ID())
-		if meta := f.Metadata(); meta.Valid() {
-			p.write(" ")
-			p.metadata(meta)
-		}
-		p.newline()
-	}
-	p.indent--
-	p.write("}")
-}
-
-func (p *printer) metadata(meta syntax.MetadataView) {
-	p.write("{")
-	p.newline()
-	p.indent++
-	for iv := range meta.Views() {
-		item := iv.AsMetaItem()
-		p.write(item.Path().Join("."))
-		if args := item.Args(); args.Valid() {
-			p.write("(")
-			p.exprList(args.ID())
-			p.write(")")
-		}
-		p.newline()
-	}
-	p.indent--
-	p.write("}")
-}
-
 func (p *printer) typ(id syntax.NodeID) {
 	v := p.t.View(id)
 	switch v.Kind() {

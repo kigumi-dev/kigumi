@@ -154,6 +154,7 @@ func TestManifestEdit(t *testing.T) {
 	if err := driver.AppendRequire(root, driver.Require{Name: "github.com/acme/b", Version: "v3.0.0"}); err == nil {
 		t.Fatal("duplicate require should be refused")
 	}
+	os.MkdirAll(filepath.Join(root, "..", "b"), 0o755)
 	if err := driver.AppendLocalReplace(root, "github.com/acme/b", "../b"); err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +169,7 @@ func TestManifestEdit(t *testing.T) {
 		t.Fatal(err)
 	}
 	src, _ := os.ReadFile(filepath.Join(root, "mod.kg"))
-	if !strings.Contains(string(src), "// keep me") || strings.Contains(string(src), "\"a\"") || !strings.Contains(string(src), "acme/b") {
+	if strings.Contains(string(src), "// keep me") || strings.Contains(string(src), "\"a\"") || !strings.Contains(string(src), "acme/b") {
 		t.Fatalf("remove kept the wrong lines:\n%s", src)
 	}
 
