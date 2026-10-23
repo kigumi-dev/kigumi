@@ -36,7 +36,9 @@ type task struct {
 	waitKids bool
 	// closing is set once the scope starts to close; a spawn after it is rejected.
 	closing bool
-	fault   *Panic
+	// detached says the Task handle is gone, so nothing can await this task any more.
+	detached bool
+	fault    *Panic
 	// closeMark is the closing pass that last found this task under its scope.
 	closeMark uint64
 	// cancelReq is read at every suspension point by the lane running the

@@ -62,3 +62,8 @@ fn eintr() -> i32 {
 fn msgNoSignal() -> i32 {
     1024
 }
+
+/// errno(3) EAGAIN (equal to EWOULDBLOCK) on this platform.
+fn eagain() -> i32 {
+    35
+}

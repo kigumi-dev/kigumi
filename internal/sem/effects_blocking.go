@@ -29,6 +29,14 @@ var directBlockingPrimitives = map[string]bool{
 	"shell.waitpid":   true,
 }
 
+// nonBlockingStd lists bodied std fns that reach a blocking syscall only on a descriptor they first make
+// non-blocking, so the call returns at once and their own FactBlock is cleared.
+var nonBlockingStd = map[string]bool{
+	"net.Listener.pollAccept": true,
+	"net.Conn.pollRead":       true,
+	"net.Conn.pollWrite":      true,
+}
+
 // trustedOpSummaries lists bodiless std fns whose op summary is a complete, hand-verified fact set rather than
 // the bodiless default's unknown widening; run's Offloaded is the API's contract, trusted like a declared noalloc.
 var trustedOpSummaries = map[string]OpSummary{

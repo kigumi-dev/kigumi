@@ -132,6 +132,7 @@ static void task_finish_drain(kgtask* t) {
     for (int i = 0; i < t->nkids; i++)
         if (t->kids[i]) {
             task_end(t->kids[i]);
+            t->kids[i]->parent = NULL;
             task_unref(t->kids[i]);
         }
     t->nkids = 0;
@@ -147,6 +148,15 @@ static void task_finish_drain(kgtask* t) {
         task_wake(w);
     }
     if (t->parent && (t->parent->draining || t->parent->wait_kids)) task_wake(t->parent);
+    if (t->detached && t->state != T_FAULTED) task_forget(t);
+}
+// A finished child nobody can await leaves its parent's scope now; a faulted one stays for the parent to inherit.
+static void task_detach(kgtask* t) {
+    SCHED_LOCK();
+    t->detached = 1;
+    if (task_terminal(t) && t->state != T_FAULTED) task_forget(t);
+    SCHED_UNLOCK();
+    task_unref(t);
 }
 // task_begin_finish cancels still-running kids; the terminal transition waits for all of them.
 static void task_begin_finish(kgtask* t, int end) {

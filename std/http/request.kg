@@ -1,0 +1,164 @@
+import json from std/json
+
+/// A path parameter a Router matched, such as `id` in `/users/{id}`.
+pub type Param = {
+    pub name String
+    pub value String
+}
+
+/// An HTTP request: what a handler receives on the server and what a Client sends.
+pub type Request = {
+    pub method String
+    // The request-target as sent, path plus any `?query`.
+    pub target String
+    // The target before `?`, still percent-encoded.
+    pub path String
+    // The target after `?`, or "".
+    pub query String
+    pub mut headers Headers
+    pub mut body Bytes
+    // Filled by the Router; decoded from percent-encoding.
+    pub mut params Array[Param]
+}
+
+/// A request with no headers and an empty body.
+pub fn Request.new(method: String, target: String) -> Request {
+    let q = indexOfByte(target, 63)
+    let path = if q is Some(i) {
+        target.sliceBytes(0, i) || target
+    } else {
+        target
+    }
+    let query = if q is Some(i) {
+        target.sliceBytes(i + 1, target.len()) || ""
+    } else {
+        ""
+    }
+    Request {
+        method: method
+        target: target
+        path: path
+        query: query
+        headers: Headers.new()
+        body: "".toBytes()
+        params: Array.empty[Param]()
+    }
+}
+
+/// The path parameter name.
+pub fn Request.param(self, name: String) -> String? {
+    for p in &self.params {
+        if p.name == name {
+            return Some(p.value)
+        }
+    }
+    None
+}
+
+/// The first value of the header name.
+pub fn Request.header(self, name: String) -> String? {
+    self.headers.get(name)
+}
+
+/// The first `name=value` pair of the query string, percent-decoded with `+` read as a space.
+pub fn Request.queryParam(self, name: String) -> String? {
+    if self.query == "" {
+        return None
+    }
+    for pair in self.query.split("&") {
+        let eq = indexOfByte(pair, 61)
+        let key = if eq is Some(i) {
+            pair.sliceBytes(0, i) || ""
+        } else {
+            pair
+        }
+        if formDecode(key) is Some(k) && k == name {
+            let raw = if eq is Some(i) {
+                pair.sliceBytes(i + 1, pair.len()) || ""
+            } else {
+                ""
+            }
+            return formDecode(raw)
+        }
+    }
+    None
+}
+
+/// The body as UTF-8 text; invalid UTF-8 fails with a 400 Failure.
+pub fn Request.text(self) -> String! {
+    if String.fromBytes(self.body) is Ok(s) {
+        return s
+    }
+    fail failure(400, "request body is not valid UTF-8")
+}
+
+/// Decodes the body as JSON into a T; a malformed or mismatched body fails with a 400 Failure.
+pub fn Request.json[T: json.Decode](self) -> T! {
+    let text = self.text()?
+    let decoded = json.decode[T](text)
+    if decoded is Err(e) {
+        fail failure(400, "invalid JSON body: ${e.message()}")
+    }
+    decoded?
+}
+
+fn indexOfByte(text: String, b: u8) -> usize? {
+    let bytes = text.bytes()
+    let mut i: usize = 0
+    for i < bytes.len() {
+        if (bytes.get(i) || 0) == b {
+            return Some(i)
+        }
+        i = i + 1
+    }
+    None
+}
+
+fn hexValue(c: u8) -> Int? {
+    let d = c.toInt()
+    if d >= 48 && d <= 57 {
+        return Some(d - 48)
+    }
+    if d >= 65 && d <= 70 {
+        return Some(d - 55)
+    }
+    if d >= 97 && d <= 102 {
+        return Some(d - 87)
+    }
+    None
+}
+
+/// Decodes `%XX` escapes; None for a broken escape or a result that is not UTF-8.
+pub fn percentDecode(text: String) -> String? {
+    decodeEscapes(text, false)
+}
+
+fn formDecode(text: String) -> String? {
+    decodeEscapes(text, true)
+}
+
+fn decodeEscapes(text: String, plusIsSpace: Bool) -> String? {
+    let bytes = text.bytes()
+    let mut out = Array.empty[u8]()
+    let mut i: usize = 0
+    for i < bytes.len() {
+        let c = bytes.get(i) || 0
+        if c == 37 {
+            let hi = hexValue(bytes.get(i + 1) || 0) || return None
+            let lo = hexValue(bytes.get(i + 2) || 0) || return None
+            out.push((hi * 16 + lo).toU8() || 0)
+            i = i + 3
+        } else {
+            out.push(if plusIsSpace && c == 43 {
+                32
+            } else {
+                c
+            })
+            i = i + 1
+        }
+    }
+    if String.fromBytes(Bytes.fromArray(&out)) is Ok(s) {
+        return Some(s)
+    }
+    None
+}

@@ -1,0 +1,124 @@
+-- src --
+import http from std/http
+import net from std/net
+import task from std/task
+import time from std/time
+
+fn size(req: http.Request) -> http.Response! {
+    let b = req.body
+    let mut sum = 0
+    for i in 0..b.len() {
+        sum = sum + (b.get(i) || 0).toInt()
+    }
+    http.Response.ofText(200, "${req.body.len()} bytes, sum ${sum}")
+}
+
+// Writes each part, then lets the server run before the next one, so the body arrives over many reads.
+async fn send(conn: &mut net.Conn, parts: Array[Bytes]) -> Void! {
+    for part in parts {
+        let mut off: usize = 0
+        for off < part.len() {
+            if conn.pollWrite(part.slice(off, part.len()) || "".toBytes())? is Some(w) {
+                off = off + w
+            } else {
+                await task.yieldNow()
+            }
+        }
+        await task.yieldNow()
+        await task.yieldNow()
+    }
+}
+
+async fn answer(conn: &mut net.Conn) -> String! {
+    let mut got = Array.empty[u8]()
+    for true {
+        match conn.pollRead(&mut got, 65536)? {
+            Some(0) -> break
+            Some(_) -> {}
+            None -> await task.yieldNow()
+        }
+    }
+    let text = String.fromBytes(Bytes.fromArray(&got))?
+    let lines = text.split("\r\n")
+    "${lines.get(0) || ""} / ${lines.get(lines.len() - 1) || ""}"
+}
+
+async fn post(n: net.Net, port: Int, parts: Array[Bytes]) -> String! {
+    let pool = task.BlockingPool.new(1)
+    let mut conn = (await pool.run(() => n.connect("127.0.0.1", port)).unwrap())?
+    let mut all = Array.of("POST /size HTTP/1.1\r\nHost: t\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n".toBytes())
+    all.appendAll(parts)
+    (await send(&mut conn, all))?
+    await answer(&mut conn)
+}
+
+fn ones(count: usize) -> Bytes {
+    "1\r\nx\r\n".repeat(count).toBytes()
+}
+
+async fn root(n: net.Net, listener: net.Listener) -> Void! {
+    let port = listener.port()
+    let server = http.Server.new(http.Router.new().post("/size", size).handler(), (line) => print "log: ${line}")
+    let stop = http.Shutdown.new()
+    let running = task.spawn(server.serve(listener, stop.clone()))
+
+    let split = (await post(n, port, Array.of("3\r".toBytes(), "\nab".toBytes(), "c\r".toBytes(), "\n1;e=x\r\n".toBytes(), "d\r\n0\r".toBytes(), "\nT: v\r\n\r".toBytes(), "\n".toBytes())))?
+    print split
+
+    let started = time.monotonic()
+    let tiny = (await post(n, port, Array.of(ones(50000), "0\r\n\r\n".toBytes())))?
+    print tiny
+
+    let mut big = Array.empty[Bytes]()
+    let piece = "4000\r\n${"y".repeat(16384)}\r\n".toBytes()
+    for i in 0..61 {
+        big.push(piece)
+    }
+    big.push("0\r\n\r\n".toBytes())
+    let large = (await post(n, port, big))?
+    print large
+    let quick = started.elapsedMillis() < 40000
+    print "quick: ${quick}"
+
+    stop.request()
+    (await running)?
+    (await limitsEdge(n))?
+}
+
+// Limits at the ends of their range: usize max must not overflow, 0 connections still serves one, and small chunks under a finite limit are fine.
+async fn limitsEdge(n: net.Net) -> Void! {
+    let mut unlimited = http.Server.new(http.Router.new().post("/size", size).handler(), (line) => print "log: ${line}")
+    unlimited.limits.maxBodyBytes = 18446744073709551615
+    unlimited.limits.maxConnections = 18446744073709551615
+    let l1 = n.listen("127.0.0.1", 0)?
+    let p1 = l1.port()
+    let stop1 = http.Shutdown.new()
+    let running1 = task.spawn(unlimited.serve(l1, stop1.clone()))
+    print "unlimited: ${(await post(n, p1, Array.of("3\r\nabc\r\n0\r\n\r\n".toBytes())))?}"
+    stop1.request()
+    (await running1)?
+
+    let mut small = http.Server.new(http.Router.new().post("/size", size).handler(), (line) => print "log: ${line}")
+    small.limits.maxBodyBytes = 20000
+    small.limits.maxConnections = 0
+    let l2 = n.listen("127.0.0.1", 0)?
+    let p2 = l2.port()
+    let stop2 = http.Shutdown.new()
+    let running2 = task.spawn(small.serve(l2, stop2.clone()))
+    print "small chunks: ${(await post(n, p2, Array.of(ones(20000), "0\r\n\r\n".toBytes())))?}"
+    print "over limit: ${(await post(n, p2, Array.of(ones(20001), "0\r\n\r\n".toBytes())))?}"
+    stop2.request()
+    (await running2)?
+}
+
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+task.currentThreadExecutor().runToCompletion(root(n, listener))?
+-- stdout --
+HTTP/1.1 200 OK / 4 bytes, sum 394
+HTTP/1.1 200 OK / 50000 bytes, sum 6000000
+HTTP/1.1 200 OK / 999424 bytes, sum 120930304
+quick: true
+unlimited: HTTP/1.1 200 OK / 3 bytes, sum 294
+small chunks: HTTP/1.1 200 OK / 20000 bytes, sum 2400000
+over limit: HTTP/1.1 413 Content Too Large / request body too large

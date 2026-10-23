@@ -1,0 +1,48 @@
+import json from std/json
+
+/// An HTTP response: what a handler returns and what a Client receives.
+pub type Response = {
+    pub mut status Int
+    pub mut headers Headers
+    pub mut body Bytes
+}
+
+/// A response with no headers and an empty body.
+pub fn Response.new(status: Int) -> Response {
+    Response {
+        status: status
+        headers: Headers.new()
+        body: "".toBytes()
+    }
+}
+
+/// A `text/plain; charset=utf-8` response.
+pub fn Response.ofText(status: Int, text: String) -> Response {
+    let mut r = Response.new(status)
+    r.headers.add("Content-Type", "text/plain; charset=utf-8")
+    r.body = text.toBytes()
+    r
+}
+
+/// An `application/json` response holding value encoded.
+pub fn Response.ofJson[T: json.Encode](status: Int, value: T) -> Response! {
+    let mut r = Response.new(status)
+    r.headers.add("Content-Type", "application/json")
+    r.body = (json.encode(value)?).toBytes()
+    r
+}
+
+/// The first value of the header name.
+pub fn Response.header(self, name: String) -> String? {
+    self.headers.get(name)
+}
+
+/// The body as UTF-8 text.
+pub fn Response.text(self) -> String! {
+    String.fromBytes(self.body)
+}
+
+/// Decodes the body as JSON into a T.
+pub fn Response.json[T: json.Decode](self) -> T! {
+    json.decode[T](self.text()?)
+}

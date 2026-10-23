@@ -1,0 +1,148 @@
+// Where a chunked body decoder stands between reads; Data counts the payload bytes still due.
+type ChunkStage =
+    | SizeLine
+    | Data(usize)
+    | DataEnd
+    | Trailers
+    | Done
+
+// Decodes a chunked body as it arrives, so each read costs only its own bytes.
+type Dechunker = {
+    mut stage ChunkStage
+    mut pieces Array[Bytes]
+    mut size usize
+}
+
+fn Dechunker.new() -> Dechunker {
+    Dechunker {
+        stage: SizeLine
+        pieces: Array.empty[Bytes]()
+        size: 0
+    }
+}
+
+fn Dechunker.done(self) -> Bool {
+    self.stage is Done
+}
+
+fn maxChunkLine() -> usize {
+    4096
+}
+
+// lineAt finds the CRLF ending the line that starts at from, or None while it is still incomplete.
+fn lineAt(data: &Bytes, from: usize) -> usize?! {
+    let mut i = from
+    for i + 1 < data.len() {
+        if (data.get(i) || 0) == 13 && (data.get(i + 1) || 0) == 10 {
+            return Some(i)
+        }
+        if i - from >= maxChunkLine() {
+            fail failure(400, "chunk line too long")
+        }
+        i = i + 1
+    }
+    if data.len() - from > maxChunkLine() {
+        fail failure(400, "chunk line too long")
+    }
+    None
+}
+
+// A chunk costs at most six wire bytes per payload byte when sent one byte at a time.
+fn rawCap(maxBody: usize, maxHead: usize) -> usize {
+    maxBody.saturatingMul(8).saturatingAdd(maxHead)
+}
+
+fn chunkSize(line: Bytes) -> usize! {
+    let text = String.fromBytes(line) || fail failure(400, "invalid chunk size")
+    let sizeText = if indexOfByte(text, 59) is Some(semi) {
+        text.sliceBytes(0, semi) || ""
+    } else {
+        text
+    }
+    parseHex(sizeText.trim()) || fail failure(400, "invalid chunk size")
+}
+
+// step decodes what it can from the front of data and returns how many bytes it used;
+// the caller drops those bytes and calls again with more input until done.
+fn Dechunker.step(mut self, data: &Bytes, maxBody: usize) -> usize! {
+    let mut at: usize = 0
+    for true {
+        let stage = self.stage
+        match stage {
+            SizeLine -> {
+                let end = lineAt(data, at)? || return at
+                let n = chunkSize(data.slice(at, end) || "".toBytes())?
+                at = end + 2
+                if n == 0 {
+                    self.stage = Trailers
+                } else {
+                    if n > maxBody.saturatingSub(self.size) {
+                        fail failure(413, "request body too large")
+                    }
+                    self.stage = Data(n)
+                }
+            }
+            Data(left) -> {
+                if at >= data.len() {
+                    return at
+                }
+                let take = if data.len() - at < left {
+                    data.len() - at
+                } else {
+                    left
+                }
+                self.pieces.push(data.slice(at, at + take) || "".toBytes())
+                self.size = self.size + take
+                at = at + take
+                self.stage = if take == left {
+                    DataEnd
+                } else {
+                    Data(left - take)
+                }
+            }
+            DataEnd -> {
+                if data.len() < at + 2 {
+                    return at
+                }
+                if !data.matchesAt(crlf(), at) {
+                    fail failure(400, "chunk without its CRLF")
+                }
+                at = at + 2
+                self.stage = SizeLine
+            }
+            Trailers -> {
+                let end = lineAt(data, at)? || return at
+                let blank = end == at
+                at = end + 2
+                if blank {
+                    self.stage = Done
+                }
+            }
+            Done -> return at
+        }
+    }
+    at
+}
+
+// body joins the decoded pieces pairwise, so each byte is copied about log2(pieces) times.
+fn Dechunker.body(move self) -> Bytes {
+    let mut level = move self.pieces
+    if level.len() == 0 {
+        return "".toBytes()
+    }
+    for level.len() > 1 {
+        let mut next = Array.empty[Bytes]()
+        let mut i: usize = 0
+        for i < level.len() {
+            let a = level.get(i) || "".toBytes()
+            next.push(if i + 1 < level.len() {
+                a.concat(level.get(i + 1) || "".toBytes())
+            } else {
+                a
+            })
+            i = i + 2
+        }
+        level = next
+    }
+    level.get(0) || "".toBytes()
+}

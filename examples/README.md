@@ -46,6 +46,7 @@ Start at the top and read down.
 | [dependency](dependency/) | `mod.kg` with `Require`, `mod.local.kg` with `Replace`: importing another module's packages. |
 | [ffi](ffi/) | Calling C functions through `extern(C)` (`kigumi build` only). |
 | [async](async/) | `async fn` calls as lazy futures, `await`, `task.spawn`, and the current-thread executor. |
+| [http_api](http_api/) | `std/http`: a JSON API with routing, path parameters and middleware, called by the client in the same program, then shut down. |
 | [comptime](comptime/) | `comptime { }` blocks evaluated by the compiler into literals. |
 | [build_program](build_program/) | `build.kg`: a freestanding library, a registered tool generating C, and a host executable from one graph (`kigumi build` only). |
 | [repostat](repostat/) | The example program from the language spec: shell, JSON, allocators, several packages. |

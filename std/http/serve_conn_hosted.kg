@@ -1,0 +1,176 @@
+import error from std/error
+
+type RequestLine = {
+    method String
+    target String
+    version String
+}
+
+fn parseRequestLine(line: String) -> RequestLine! {
+    let parts = line.split(" ")
+    if parts.len() != 3 {
+        fail failure(400, "malformed request line")
+    }
+    let method = parts.get(0) || ""
+    let target = parts.get(1) || ""
+    let version = parts.get(2) || ""
+    if !isToken(method) || target == "" || hasControlOrSpace(target) {
+        fail failure(400, "malformed request line")
+    }
+    if !target.startsWith("/") && !(target == "*" && method == "OPTIONS") {
+        fail failure(400, "unsupported request target")
+    }
+    if version != "HTTP/1.1" && version != "HTTP/1.0" {
+        if version.startsWith("HTTP/") {
+            fail failure(505, "unsupported HTTP version")
+        }
+        fail failure(400, "malformed request line")
+    }
+    RequestLine {
+        method: method
+        target: target
+        version: version
+    }
+}
+
+fn failureOf(e: &Error) -> Failure? {
+    error.as[Failure](e)
+}
+
+// answer runs the handler and maps its failure: a Failure picks its own status
+// and text, anything else becomes a bare 500 and goes to the log.
+fn answer(handler: fn(Request) -> Response!, log: fn(String) -> Void, req: Request) -> Response {
+    let method = req.method
+    let path = req.path
+    let result = handler(req)
+    if result is Err(e) {
+        if failureOf(&e) is Some(f) {
+            if f.status >= 200 && f.status <= 599 {
+                return Response.ofText(f.status, f.text)
+            }
+        }
+        log("http: ${method} ${path}: ${e.message()}")
+        return Response.ofText(500, "internal server error")
+    }
+    result || Response.ofText(500, "internal server error")
+}
+
+async fn Wire.reject(mut self, f: Failure, limits: Limits) {
+    let body = f.text.toBytes()
+    let mut headers = Headers.new()
+    headers.add("Content-Type", "text/plain; charset=utf-8")
+    if renderHead("HTTP/1.1 ${f.status} ${reason(f.status)}", &headers, Some(body.len()), true) is Ok(head) {
+        _ = await self.writeAll(head.concat(body), deadlineIn(limits.writeTimeoutMillis))
+    }
+}
+
+async fn serveConn(wire: Wire, handler: fn(Request) -> Response!, log: fn(String) -> Void, limits: Limits, stop: Shutdown, active: Active) {
+    let mut wire = wire
+    let keep = active
+    for true {
+        let read = await wire.readHead(limits, stop.clone())
+        let mut end: usize = 0
+        let mut started = deadlineIn(limits.readTimeoutMillis)
+        match read {
+            Ok(Ready(n, reading)) -> {
+                end = n
+                started = reading
+            }
+            Ok(Reject(f)) -> {
+                await wire.reject(f, limits)
+                return
+            }
+            _ -> return
+        }
+        let incoming = await wire.readRequest(end, limits, started)
+        let req = match incoming {
+            Ok(r) -> r
+            Err(e) -> {
+                if failureOf(&e) is Some(f) {
+                    await wire.reject(f, limits)
+                }
+                return
+            }
+        }
+        let close = req.close || stop.requested()
+        let headOnly = req.request.method == "HEAD"
+        let target = req.request.target
+        let method = req.request.method
+        let resp = answer(handler, log, move req.request)
+        let out = match renderResponse(resp, headOnly, close) {
+            Ok(o) -> o
+            Err(e) -> {
+                log("http: ${method} ${target}: ${e.message()}")
+                await wire.reject(failure(500, "internal server error"), limits)
+                return
+            }
+        }
+        let closeAfter = out.close
+        let sent = await wire.writeAll(out.data, deadlineIn(limits.writeTimeoutMillis))
+        if sent is Err(_) || closeAfter {
+            return
+        }
+    }
+}
+
+// A request read off the wire, and whether its sender asked to close afterwards.
+type Incoming = {
+    request Request
+    close Bool
+}
+
+// readRequest reads the rest of one request after its head is buffered.
+async fn Wire.readRequest(mut self, end: usize, limits: Limits, deadline: Deadline) -> Incoming! {
+    let head = parseHead(self.consume(end), limits.maxHeaders)?
+    let line = parseRequestLine(head.first)?
+    let hosts = head.headers.all("Host")
+    if hosts.len() > 1 || (hosts.len() == 0 && line.version == "HTTP/1.1") {
+        fail failure(400, "missing or repeated Host")
+    }
+    let framing = framingOf(&head.headers, true)?
+    if framing is Sized(n) {
+        if n > limits.maxBodyBytes {
+            fail failure(413, "request body too large")
+        }
+    }
+    let expects = head.headers.get("Expect") || ""
+    if expects.toLower() == "100-continue" && !(framing is NoBody) && line.version == "HTTP/1.1" {
+        (await self.writeAll("HTTP/1.1 100 Continue\r\n\r\n".toBytes(), deadlineIn(limits.writeTimeoutMillis)))?
+    }
+    let body = (await self.readBody(framing, limits, deadline))?
+    let close = wantsClose(&head.headers, line.version)
+    let mut req = Request.new(line.method, line.target)
+    req.headers = move head.headers
+    req.body = body
+    Incoming {
+        request: req
+        close: close
+    }
+}
+
+// An encoded response and whether the connection closes after it.
+type Outgoing = {
+    data Bytes
+    close Bool
+}
+
+// renderResponse encodes resp; one that cannot be sent as given fails with a Failure.
+fn renderResponse(resp: Response, headOnly: Bool, close: Bool) -> Outgoing! {
+    if resp.status < 200 || resp.status > 599 {
+        fail failure(500, "invalid status ${resp.status}")
+    }
+    let close = close || wantsClose(&resp.headers, "HTTP/1.1")
+    let bodyLen = if noBodyStatus(resp.status) {
+        None
+    } else {
+        Some(resp.body.len())
+    }
+    let mut out = renderHead("HTTP/1.1 ${resp.status} ${reason(resp.status)}", &resp.headers, bodyLen, close)?
+    if !headOnly && bodyLen is Some(_) {
+        out = out.concat(resp.body)
+    }
+    Outgoing {
+        data: out
+        close: close
+    }
+}

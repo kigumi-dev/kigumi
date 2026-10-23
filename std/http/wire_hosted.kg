@@ -1,0 +1,106 @@
+import alloc from std/alloc
+import net from std/net
+import task from std/task
+import time from std/time
+
+/// A shutdown request shared between a Server and whoever stops it; clones see the same request.
+/// It is a single-thread cell, so a task holding one stays on its executor's thread.
+pub type Shutdown = {
+    flag alloc.Shared[Bool]
+}
+
+pub fn Shutdown.new() -> Shutdown {
+    Shutdown { flag: alloc.Shared.new(false) }
+}
+
+pub fn Shutdown.clone(self) -> Shutdown {
+    Shutdown { flag: self.flag.clone() }
+}
+
+/// Asks every server watching this Shutdown to stop accepting and to close each connection once its
+/// current exchange is done.
+pub fn Shutdown.request(self) {
+    self.flag.set(true)
+}
+
+pub fn Shutdown.requested(self) -> Bool {
+    self.flag.get()
+}
+
+// A connection plus the bytes read from it but not consumed yet; a pipelined
+// second request waits here while the first one is answered.
+type Wire = resource {
+    mut conn net.Conn
+    mut pending Bytes
+}
+
+type Deadline = {
+    start time.Monotonic
+    millis i64
+}
+
+fn deadlineIn(millis: i64) -> Deadline {
+    Deadline {
+        start: time.monotonic()
+        millis: millis
+    }
+}
+
+fn Deadline.passed(self) -> Bool {
+    self.millis > 0 && self.start.elapsedMillis() >= self.millis
+}
+
+type Fill =
+    | Got
+    | Eof
+    | Expired
+    | Stopped
+
+fn readChunk() -> usize {
+    16384
+}
+
+// fill waits for more input without holding the executor; the deadline is checked before every
+// read, so a peer that never stops sending still runs out of time.
+async fn Wire.fill(mut self, deadline: Deadline, stop: Shutdown) -> Fill! {
+    let mut chunk = Array.empty[u8]()
+    for true {
+        if deadline.passed() {
+            return Expired
+        }
+        if self.conn.pollRead(&mut chunk, readChunk())? is Some(n) {
+            if n == 0 {
+                return Eof
+            }
+            self.pending = self.pending.concat(Bytes.fromArray(&chunk))
+            return Got
+        }
+        if stop.requested() {
+            return Stopped
+        }
+        await task.yieldNow()
+    }
+    Expired
+}
+
+async fn Wire.writeAll(mut self, data: Bytes, deadline: Deadline) -> Void! {
+    let mut off: usize = 0
+    for off < data.len() {
+        let rest = data.slice(off, data.len()) || "".toBytes()
+        if self.conn.pollWrite(rest)? is Some(n) {
+            off = off + n
+        } else {
+            if deadline.passed() {
+                fail failure(408, "write timed out")
+            }
+            await task.yieldNow()
+        }
+    }
+}
+
+// consume drops n bytes from the front of pending and hands them back.
+fn Wire.consume(mut self, n: usize) -> Bytes {
+    let head = self.pending.slice(0, n) || "".toBytes()
+    self.pending = self.pending.slice(n, self.pending.len()) || "".toBytes()
+    head
+}

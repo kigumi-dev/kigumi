@@ -139,5 +139,7 @@ func (m *Machine) freeOpaqueAt(v *obj, d int) {
 		m.freeFuture(v.opaqueData().(*future))
 	case "Executor":
 		m.closeExecutor(v.opaqueData().(*executor))
+	case "Task":
+		m.detachTask(v.opaqueData().(*task))
 	}
 }

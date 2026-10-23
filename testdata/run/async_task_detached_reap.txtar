@@ -1,0 +1,71 @@
+-- src --
+import alloc from std/alloc
+import task from std/task
+
+type Noisy = resource {
+    name String
+}
+
+fn Noisy.drop(move self) {
+    print "drop ${self.name}"
+}
+
+async fn make(name: String) -> Noisy {
+    Noisy { name: name }
+}
+
+async fn bump(n: alloc.Shared[Int]) {
+    n.set(n.get() + 1)
+}
+
+async fn explode(name: String) -> Int {
+    let n: Int = None.expect("boom ${name}")
+    n
+}
+
+// A child whose handle is gone leaves the scope once it finishes, so its result drops then, not at the parent's end.
+async fn root() -> Int {
+    let count = alloc.Shared.new(0)
+    for i in 0..3000 {
+        _ = task.spawn(bump(count.clone()))
+    }
+    for count.get() < 3000 {
+        await task.yieldNow()
+    }
+    _ = task.spawn(make("detached early"))
+    await task.yieldNow()
+    print "after detached early"
+    let kept = task.spawn(make("kept"))
+    await task.yieldNow()
+    print "kept finished"
+    _ = kept
+    print "kept handle dropped"
+    let awaited = await task.spawn(make("awaited"))
+    print "awaited ${awaited.name}"
+    count.get()
+}
+
+async fn faulty() -> Int {
+    _ = task.spawn(explode("detached"))
+    await task.yieldNow()
+    await task.yieldNow()
+    print "not reached"
+    1
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+print "faulty ${ex.runToCompletion(faulty())}"
+-- stdout --
+drop detached early
+after detached early
+kept finished
+drop kept
+kept handle dropped
+awaited awaited
+drop awaited
+total 3000
+-- stderr --
+panic: boom detached
+-- exit --
+2

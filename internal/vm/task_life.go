@@ -145,6 +145,9 @@ func (m *Machine) finishDrain(t *task) {
 	if t.parent != nil && (t.parent.draining || t.parent.waitKids) {
 		m.wake(t.parent)
 	}
+	if t.detached && t.state != taskFaulted {
+		m.forgetKid(t)
+	}
 }
 
 // closeKids cancels the kids and reports whether any still runs; the last one to end wakes t.

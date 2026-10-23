@@ -37,6 +37,9 @@ func (r *Result) computeOpSummary(id EntityID) OpSummary {
 	for _, e := range r.edgesOf(id) {
 		r.applyOpEdge(&s, e)
 	}
+	if r.Entities[id].Kind == EntFn && nonBlockingStd[r.stdKey(id)] {
+		s.Facts[FactBlock] = OpFactState{}
+	}
 	return s
 }
 

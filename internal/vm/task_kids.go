@@ -61,3 +61,15 @@ func (m *Machine) checkOpen() {
 		m.abort("a task cannot spawn a child once its scope is closing; spawn it before the task returns, fails or is cancelled")
 	}
 }
+
+// detachTask runs as the last Task handle goes: a finished child nobody can await leaves its parent's scope now,
+// except a faulted one, whose panic the parent inherits.
+func (m *Machine) detachTask(t *task) {
+	m.sh.sched.Lock()
+	t.detached = true
+	if t.terminal() && t.state != taskFaulted {
+		m.forgetKid(t)
+	}
+	m.sh.sched.Unlock()
+	m.flushReleases()
+}

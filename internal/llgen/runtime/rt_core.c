@@ -2528,6 +2528,8 @@ struct kgtask {
     // kid_at is the slot in parent->kids; open_kids counts non-terminal kids and gone_kids the NULL holes.
     int kid_at, open_kids, gone_kids;
     int state, ending, notified, queued, draining, wait_kids, closing;
+    // detached says the Task handle is gone, so nothing can await this task any more.
+    int detached;
     // close_mark is the closing pass that last found this task under its scope.
     unsigned long close_mark;
     // refs and cancel are read outside the scheduler lock: a Task handle can
@@ -2892,7 +2894,7 @@ static void free_opaque(val v) {
     }
 #ifdef KIGUMI_CAP_TASK_EXECUTOR
     else if (!strcmp(kind, "Task")) {
-        task_unref((kgtask*)d);
+        task_detach((kgtask*)d);
         sched_flush();
     } else if (!strcmp(kind, "Yield")) free(d);
     else if (!strcmp(kind, "Executor")) exec_drop((kgexec*)d);

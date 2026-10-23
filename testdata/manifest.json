@@ -3041,6 +3041,27 @@
       }
     },
     {
+      "id": "run/async_task_detached_reap",
+      "kind": "run",
+      "path": "testdata/run/async_task_detached_reap.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "stderr": {
+        "type": "regex",
+        "pattern": "panic: boom detached"
+      }
+    },
+    {
       "id": "run/async_task_drop_panic_callback_args",
       "kind": "run",
       "path": "testdata/run/async_task_drop_panic_callback_args.txtar",
@@ -14063,6 +14084,91 @@
       "id": "run/std_ffi_cstring_nul",
       "kind": "run",
       "path": "testdata/run/std_ffi_cstring_nul.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_http_cancel",
+      "kind": "run",
+      "path": "testdata/run/std_http_cancel.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_http_chunked",
+      "kind": "run",
+      "path": "testdata/run/std_http_chunked.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_http_client",
+      "kind": "run",
+      "path": "testdata/run/std_http_client.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_http_limits",
+      "kind": "run",
+      "path": "testdata/run/std_http_limits.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_http_routing",
+      "kind": "run",
+      "path": "testdata/run/std_http_routing.txtar",
       "mode": [
         "vm",
         "native"

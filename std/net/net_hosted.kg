@@ -677,6 +677,121 @@ pub fn Conn.write(mut self, data: Bytes) -> usize! {
     w.toUsize() || 0
 }
 
+// setNonBlocking is idempotent, so each try* call can make sure of the mode
+// without the Conn or Listener having to remember it.
+fn setNonBlocking(fd: i32) -> Void! {
+    let flags = unsafe {
+        fcntl(fd, fcntlGetFl())
+    }
+    if flags < 0 {
+        fail ffi.lastError()
+    }
+    if (flags & oNonBlock()) == 0 && unsafe {
+        fcntl(fd, fcntlSetFl(), flags | oNonBlock())
+    } < 0 {
+        fail ffi.lastError()
+    }
+}
+
+/// Accepts a waiting connection without blocking, or None when none is
+/// waiting; the listener and the accepted connection stay non-blocking.
+pub fn Listener.pollAccept(mut self) -> Conn?! {
+    setNonBlocking(self.fd)?
+    for true {
+        let fd = unsafe {
+            accept(self.fd, ffi.toMut(ffi.null[u8]()), ffi.toMut(ffi.null[u32]()))
+        }
+        if fd >= 0 {
+            let conn = Conn { fd: fd }
+            setNonBlocking(fd)?
+            return Some(conn)
+        }
+        let code = ffi.errno()
+        if code == eagain() {
+            return None
+        }
+        if code != eintr() {
+            fail ffi.lastError()
+        }
+    }
+    None
+}
+
+/// Reads like `read` without blocking, or None when no input is ready yet;
+/// Some(0) is end of input. The connection stays non-blocking.
+pub fn Conn.pollRead(mut self, into: &mut Array[u8], max: usize) -> usize?! {
+    if max == 0 {
+        return Some(0)
+    }
+    setNonBlocking(self.fd)?
+    let buf = unsafe {
+        malloc(max)
+    }
+    if ffi.isNull(ffi.toConst(buf)) {
+        fail fails("out of memory")
+    }
+    let mut got: isize = -1
+    for got < 0 {
+        got = unsafe {
+            read(self.fd, buf, max)
+        }
+        if got < 0 {
+            let code = ffi.errno()
+            if code == eagain() {
+                unsafe {
+                    free(buf)
+                }
+                return None
+            }
+            if code != eintr() {
+                unsafe {
+                    free(buf)
+                }
+                fail ffi.lastError()
+            }
+        }
+    }
+    let n = got.toUsize() || 0
+    let data = unsafe {
+        ffi.bytesFrom(ffi.toConst(buf), n)
+    }
+    unsafe {
+        free(buf)
+    }
+    let mut i: usize = 0
+    for i < n {
+        into.push(data.get(i) || 0)
+        i = i + 1
+    }
+    Some(n)
+}
+
+/// Writes like `write` without blocking, or None when the send buffer is
+/// full. The connection stays non-blocking.
+pub fn Conn.pollWrite(mut self, data: Bytes) -> usize?! {
+    let n = data.len()
+    if n == 0 {
+        return Some(0)
+    }
+    setNonBlocking(self.fd)?
+    for true {
+        let w = unsafe {
+            send(self.fd, ffi.bytesPtr(&data), n, msgNoSignal())
+        }
+        if w >= 0 {
+            return Some(w.toUsize() || 0)
+        }
+        let code = ffi.errno()
+        if code == eagain() {
+            return None
+        }
+        if code != eintr() {
+            fail ffi.lastError()
+        }
+    }
+    None
+}
+
 /// Nothing to flush for a socket; the drop closes it, as File.close's does.
 pub fn Conn.close(move self) -> Void! {}
 

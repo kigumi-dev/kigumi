@@ -100,3 +100,65 @@ func Write(fd int, data []byte) (int, error) { return syscall.Write(fd, data) }
 // Close closes fd; the caller reports the error or ignores it, matching
 // close(2)'s two Kigumi-side callers (an explicit close and a drop).
 func Close(fd int) error { return syscall.Close(fd) }
+
+// TryAccept accepts without blocking; ok is false when no connection is waiting.
+// Both the listener and the accepted fd are left non-blocking, as net_hosted.kg leaves them.
+func TryAccept(fd int) (nfd int, ok bool, err error) {
+	if err := syscall.SetNonblock(fd, true); err != nil {
+		return -1, false, err
+	}
+	for {
+		nfd, _, err = syscall.Accept(fd)
+		switch err {
+		case nil:
+			if err := syscall.SetNonblock(nfd, true); err != nil {
+				syscall.Close(nfd)
+				return -1, false, err
+			}
+			return nfd, true, nil
+		case syscall.EAGAIN:
+			return -1, false, nil
+		case syscall.EINTR:
+			continue
+		}
+		return -1, false, err
+	}
+}
+
+// TryRead reads without blocking; ok is false when no input is ready yet.
+func TryRead(fd int, buf []byte) (n int, ok bool, err error) {
+	if err := syscall.SetNonblock(fd, true); err != nil {
+		return 0, false, err
+	}
+	for {
+		n, err = syscall.Read(fd, buf)
+		switch err {
+		case nil:
+			return n, true, nil
+		case syscall.EAGAIN:
+			return 0, false, nil
+		case syscall.EINTR:
+			continue
+		}
+		return 0, false, err
+	}
+}
+
+// TryWrite sends without blocking; ok is false when the send buffer is full.
+func TryWrite(fd int, data []byte) (n int, ok bool, err error) {
+	if err := syscall.SetNonblock(fd, true); err != nil {
+		return 0, false, err
+	}
+	for {
+		n, err = syscall.Write(fd, data)
+		switch err {
+		case nil:
+			return n, true, nil
+		case syscall.EAGAIN:
+			return 0, false, nil
+		case syscall.EINTR:
+			continue
+		}
+		return 0, false, err
+	}
+}

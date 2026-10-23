@@ -1,0 +1,219 @@
+import alloc from std/alloc
+import error from std/error
+import net from std/net
+import task from std/task
+
+/// Bounds on what one connection may send and how long it may take.
+pub type Limits = {
+    // Request line plus header fields, CRLFs included; past it the answer is 431.
+    pub mut maxHeaderBytes usize
+    // Header field count; past it the answer is 431.
+    pub mut maxHeaders usize
+    // Decoded body size; past it the answer is 413 and the connection closes.
+    pub mut maxBodyBytes usize
+    // From a request's first byte to its last; past it the answer is 408.
+    pub mut readTimeoutMillis i64
+    // How long a kept-alive connection may wait for its next request before it is closed.
+    pub mut idleTimeoutMillis i64
+    // How long one response may take to send.
+    pub mut writeTimeoutMillis i64
+    // Connections served at once, at least 1; further ones wait in the listener's backlog.
+    pub mut maxConnections usize
+}
+
+/// 8 KiB of head, 100 fields, 1 MiB of body, 10 s to read or write, 30 s idle, 1024 connections.
+pub fn Limits.defaults() -> Limits {
+    Limits {
+        maxHeaderBytes: 8192
+        maxHeaders: 100
+        maxBodyBytes: 1048576
+        readTimeoutMillis: 10000
+        idleTimeoutMillis: 30000
+        writeTimeoutMillis: 10000
+        maxConnections: 1024
+    }
+}
+
+fn Limits.connectionCap(self) -> Int {
+    if self.maxConnections == 0 {
+        return 1
+    }
+    self.maxConnections.toInt() || 9223372036854775807
+}
+
+/// An HTTP/1.1 server around one handler.
+pub type Server = {
+    handler fn(Request) -> Response!
+    log fn(String) -> Void
+    pub mut limits Limits
+}
+
+/// A server answering every request with handler. log receives one line for each handler error that
+/// is not a Failure (the client gets a bare 500) and for each failed accept; nothing else is logged.
+pub fn Server.new(handler: escaping fn(Request) -> Response!, log: escaping fn(String) -> Void) -> Server {
+    Server {
+        handler: handler
+        log: log
+        limits: Limits.defaults()
+    }
+}
+
+// Counts a connection task as running until it is dropped, however the task ends.
+type Active = resource {
+    count alloc.Shared[Int]
+}
+
+fn Active.drop(move self) {
+    self.count.set(self.count.get() - 1)
+}
+
+/// Serves each accepted connection on its own child task until stop is requested, then closes the listener and
+/// returns once every connection has finished its current exchange; cancelling abandons them at their next await.
+pub async fn Server.serve(self, listener: net.Listener, stop: Shutdown) -> Void! {
+    let count = alloc.Shared.new(0)
+    await self.acceptUntil(listener, stop, count.clone())
+    for count.get() > 0 {
+        await task.yieldNow()
+    }
+}
+
+// acceptUntil owns the listener, so it closes as soon as accepting stops rather
+// than after the last connection is done.
+async fn Server.acceptUntil(self, listener: net.Listener, stop: Shutdown, count: alloc.Shared[Int]) {
+    let mut listener = listener
+    let mut backoff: i64 = 0
+    for !stop.requested() {
+        if count.get() >= self.limits.connectionCap() {
+            await task.yieldNow()
+            continue
+        }
+        match listener.pollAccept() {
+            Ok(Some(conn)) -> {
+                backoff = 0
+                count.set(count.get() + 1)
+                let active = Active { count: count.clone() }
+                let wire = Wire {
+                    conn: conn
+                    pending: "".toBytes()
+                }
+                _ = task.spawn(serveConn(wire, self.handler, self.log, self.limits, stop.clone(), active))
+            }
+            Ok(None) -> await task.yieldNow()
+            Err(e) -> {
+                backoff = if backoff == 0 {
+                    5
+                } else if backoff >= 500 {
+                    1000
+                } else {
+                    backoff * 2
+                }
+                (self.log)("http: accept failed: ${e.message()}; retrying in ${backoff} ms")
+                await pauseUntil(deadlineIn(backoff), stop.clone())
+            }
+        }
+    }
+}
+
+// A failed accept (such as running out of descriptors) usually fails again at once, so the retry waits.
+async fn pauseUntil(deadline: Deadline, stop: Shutdown) {
+    for !deadline.passed() && !stop.requested() {
+        await task.yieldNow()
+    }
+}
+
+// What a connection does after reading (or failing to read) a head.
+type HeadRead =
+    | Ready(usize, Deadline)
+    | Close
+    | Reject(Failure)
+
+async fn Wire.readHead(mut self, limits: Limits, stop: Shutdown) -> HeadRead! {
+    let idle = deadlineIn(limits.idleTimeoutMillis)
+    let mut reading = deadlineIn(limits.readTimeoutMillis)
+    let mut started = false
+    let mut scanned: usize = 0
+    for true {
+        for self.pending.startsWith(crlf()) {
+            _ = self.consume(2)
+            scanned = 0
+        }
+        if self.pending.len() > 0 && !started {
+            started = true
+            reading = deadlineIn(limits.readTimeoutMillis)
+        }
+        let found = headEnd(&self.pending, scanned)
+        if found is Err(e) {
+            if error.as[Failure](&e) is Some(f) {
+                return Reject(f)
+            }
+            fail e
+        }
+        if found? is Some(end) {
+            if end > limits.maxHeaderBytes {
+                return Reject(failure(431, "request head too large"))
+            }
+            return Ready(end, reading)
+        }
+        scanned = self.pending.len()
+        if self.pending.len() > limits.maxHeaderBytes {
+            return Reject(failure(431, "request head too large"))
+        }
+        let got = if started {
+            (await self.fill(reading, Shutdown.new()))?
+        } else {
+            (await self.fill(idle, stop.clone()))?
+        }
+        match got {
+            Got -> {}
+            Eof -> return Close
+            Stopped -> return Close
+            Expired -> return if started {
+                Reject(failure(408, "request timed out"))
+            } else {
+                Close
+            }
+        }
+    }
+    Close
+}
+
+async fn Wire.readBody(mut self, framing: Framing, limits: Limits, deadline: Deadline) -> Bytes! {
+    match framing {
+        NoBody -> return "".toBytes()
+        UntilClose -> fail failure(400, "request body without a length")
+        Sized(n) -> {
+            if n > limits.maxBodyBytes {
+                fail failure(413, "request body too large")
+            }
+            for self.pending.len() < n {
+                match (await self.fill(deadline, Shutdown.new()))? {
+                    Got -> {}
+                    Expired -> fail failure(408, "request timed out")
+                    _ -> fail failure(400, "request body cut short")
+                }
+            }
+            return self.consume(n)
+        }
+        Chunked -> {
+            let mut d = Dechunker.new()
+            let mut raw: usize = 0
+            for true {
+                let used = d.step(&self.pending, limits.maxBodyBytes)?
+                raw = raw + used
+                _ = self.consume(used)
+                if d.done() {
+                    return d.body()
+                }
+                if raw.saturatingAdd(self.pending.len()) > rawCap(limits.maxBodyBytes, limits.maxHeaderBytes) {
+                    fail failure(413, "request body too large")
+                }
+                match (await self.fill(deadline, Shutdown.new()))? {
+                    Got -> {}
+                    Expired -> fail failure(408, "request timed out")
+                    _ -> fail failure(400, "request body cut short")
+                }
+            }
+        }
+    }
+    "".toBytes()
+}

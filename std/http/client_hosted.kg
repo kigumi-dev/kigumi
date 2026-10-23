@@ -1,0 +1,297 @@
+import json from std/json
+import net from std/net
+import task from std/task
+
+/// Why a client request failed before a response arrived.
+pub type ClientError =
+    | HttpsUnsupported
+    | InvalidUrl(String)
+    | TimedOut
+    | MalformedResponse(String)
+    | Closed
+
+pub fn ClientError.message(self) -> String {
+    match self {
+        HttpsUnsupported -> "https is not supported yet: std has no TLS provider"
+        InvalidUrl(why) -> "invalid URL: ${why}"
+        TimedOut -> "request timed out"
+        MalformedResponse(why) -> "malformed response: ${why}"
+        Closed -> "connection closed before the response"
+    }
+}
+
+/// An HTTP/1.1 client over plain TCP. Resolving and connecting are direct-blocking, so they go through
+/// pool; reads and writes suspend the task instead.
+pub type Client = {
+    net net.Net
+    pool task.BlockingPool
+    // Bounds each send and each response; connecting is bounded only by the OS.
+    pub mut timeoutMillis i64
+    // Responses larger than this fail instead of being buffered.
+    pub mut maxBodyBytes usize
+    // A response's status line and header fields, CRLFs included.
+    pub mut maxHeaderBytes usize
+}
+
+pub fn Client.new(n: net.Net, pool: task.BlockingPool) -> Client {
+    Client {
+        net: n
+        pool: pool
+        timeoutMillis: 10000
+        maxBodyBytes: 16777216
+        maxHeaderBytes: 65536
+    }
+}
+
+/// One connection that can carry several requests in turn (keep-alive). A send that fails leaves
+/// it closed, since a late response could otherwise answer the next request.
+pub type Session = resource {
+    mut wire Wire
+    authority String
+    timeoutMillis i64
+    maxBodyBytes usize
+    maxHeaderBytes usize
+    mut open Bool
+}
+
+type Target = {
+    host String
+    port Int
+    authority String
+    path String
+}
+
+// authorityEnd is where the authority after the scheme stops: the first '/', '?' or '#'.
+fn authorityEnd(rest: String) -> usize {
+    let b = rest.bytes()
+    for i in 0..b.len() {
+        let c = b.get(i) || 0
+        if c == 47 || c == 63 || c == 35 {
+            return i
+        }
+    }
+    b.len()
+}
+
+fn parseUrl(url: String) -> Target! {
+    let lower = url.toLower()
+    if lower.startsWith("https://") {
+        fail HttpsUnsupported
+    }
+    if !lower.startsWith("http://") {
+        fail InvalidUrl("only http:// URLs are supported")
+    }
+    let rest = url.sliceBytes(7, url.len()) || ""
+    let cut = authorityEnd(rest)
+    let authority = rest.sliceBytes(0, cut) || ""
+    let mut path = rest.sliceBytes(cut, rest.len()) || ""
+    if indexOfByte(path, 35) is Some(hash) {
+        path = path.sliceBytes(0, hash) || ""
+    }
+    if !path.startsWith("/") {
+        path = "/${path}"
+    }
+    if hasControlOrSpace(authority) || hasControlOrSpace(path) || indexOfByte(authority, 64) is Some(_) {
+        fail InvalidUrl("bad authority or path")
+    }
+    let colon = indexOfByte(authority, 58)
+    let host = if colon is Some(i) {
+        authority.sliceBytes(0, i) || ""
+    } else {
+        authority
+    }
+    let port = if colon is Some(i) {
+        parseDecimal(authority.sliceBytes(i + 1, authority.len()) || "") || fail InvalidUrl("bad port")
+    } else {
+        80
+    }
+    if host == "" || port > 65535 {
+        fail InvalidUrl("bad host or port")
+    }
+    Target {
+        host: host
+        port: port.toInt() || 0
+        authority: authority
+        path: path
+    }
+}
+
+/// Opens a connection to the host and port of url (its path is ignored).
+pub async fn Client.open(self, url: String) -> Session! {
+    let t = parseUrl(url)?
+    let n = self.net
+    let host = t.host
+    let port = t.port
+    let pending = self.pool.run(() => n.connect(host, port))?
+    let conn = (await pending)?
+    Session {
+        wire: Wire {
+            conn: conn
+            pending: "".toBytes()
+        }
+        authority: t.authority
+        timeoutMillis: self.timeoutMillis
+        maxBodyBytes: self.maxBodyBytes
+        maxHeaderBytes: self.maxHeaderBytes
+        open: true
+    }
+}
+
+/// Sends req (its target as given) and reads the whole response; a response that closes the
+/// connection leaves the session unusable.
+pub async fn Session.send(mut self, req: Request) -> Response! {
+    if !self.open {
+        fail Closed
+    }
+    if !isToken(req.method) || hasControlOrSpace(req.target) {
+        fail InvalidUrl("bad method or target")
+    }
+    let mut headers = move req.headers
+    if headers.get("Host") is None {
+        headers.add("Host", self.authority)
+    }
+    let close = wantsClose(&headers, "HTTP/1.1")
+    let sendsBody = req.body.len() > 0 || req.method == "POST" || req.method == "PUT" || req.method == "PATCH"
+    let len = if sendsBody {
+        Some(req.body.len())
+    } else {
+        None
+    }
+    let head = renderHead("${req.method} ${req.target} HTTP/1.1", &headers, len, close)?
+    self.open = false
+    (await self.wire.writeAll(head.concat(req.body), deadlineIn(self.timeoutMillis)))?
+    let resp = (await self.wire.readResponse(req.method == "HEAD", self.timeoutMillis, self.maxBodyBytes, self.maxHeaderBytes))?
+    let readToEof = req.method != "HEAD" && !noBodyStatus(resp.status) && framingOf(&resp.headers, false) is Ok(UntilClose)
+    self.open = !close && !readToEof && !wantsClose(&resp.headers, "HTTP/1.1")
+    resp
+}
+
+async fn Wire.readResponse(mut self, headOnly: Bool, timeout: i64, maxBody: usize, maxHead: usize) -> Response! {
+    let deadline = deadlineIn(timeout)
+    let mut scanned: usize = 0
+    for true {
+        if headEnd(&self.pending, scanned)? is Some(end) {
+            if end > maxHead {
+                fail MalformedResponse("head too large")
+            }
+            let head = parseHead(self.consume(end), 1000)?
+            scanned = 0
+            let status = statusOf(head.first) || fail MalformedResponse("bad status line")
+            if status < 200 {
+                continue
+            }
+            let framing = if headOnly || noBodyStatus(status) {
+                NoBody
+            } else {
+                framingOf(&head.headers, false)?
+            }
+            let body = (await self.responseBody(framing, deadline, maxBody))?
+            let mut resp = Response.new(status)
+            resp.headers = move head.headers
+            resp.body = body
+            return resp
+        }
+        if self.pending.len() > maxHead {
+            fail MalformedResponse("head too large")
+        }
+        scanned = self.pending.len()
+        match (await self.fill(deadline, Shutdown.new()))? {
+            Got -> {}
+            Expired -> fail TimedOut
+            _ -> fail Closed
+        }
+    }
+    fail TimedOut
+}
+
+async fn Wire.responseBody(mut self, framing: Framing, deadline: Deadline, maxBody: usize) -> Bytes! {
+    let mut d = Dechunker.new()
+    let mut raw: usize = 0
+    for true {
+        let ready = match framing {
+            NoBody -> return "".toBytes()
+            Sized(n) -> {
+                if n > maxBody {
+                    fail MalformedResponse("body too large")
+                }
+                if self.pending.len() >= n {
+                    return self.consume(n)
+                }
+                false
+            }
+            Chunked -> {
+                let used = d.step(&self.pending, maxBody)?
+                raw = raw + used
+                _ = self.consume(used)
+                if d.done() {
+                    return d.body()
+                }
+                if raw.saturatingAdd(self.pending.len()) > rawCap(maxBody, 65536) {
+                    fail MalformedResponse("body too large")
+                }
+                false
+            }
+            UntilClose -> {
+                if self.pending.len() > maxBody {
+                    fail MalformedResponse("body too large")
+                }
+                false
+            }
+        }
+        match (await self.fill(deadline, Shutdown.new()))? {
+            Got -> {}
+            Eof -> {
+                if framing is UntilClose {
+                    return self.consume(self.pending.len())
+                }
+                fail MalformedResponse("body cut short")
+            }
+            _ -> fail TimedOut
+        }
+    }
+    "".toBytes()
+}
+
+fn statusOf(line: String) -> Int? {
+    let parts = line.split(" ")
+    let version = parts.get(0) || ""
+    if parts.len() < 2 || !version.startsWith("HTTP/1.") {
+        return None
+    }
+    let code = parts.get(1) || ""
+    if code.len() != 3 {
+        return None
+    }
+    let n = parseDecimal(code) || return None
+    if n < 100 || n > 599 {
+        return None
+    }
+    n.toInt()
+}
+
+/// Opens a connection, sends req to url's path and closes it after the response.
+pub async fn Client.send(self, url: String, req: Request) -> Response! {
+    let mut session = (await self.open(url))?
+    let t = parseUrl(url)?
+    let mut out = Request.new(req.method, t.path)
+    out.headers = move req.headers
+    out.headers.set("Connection", "close")
+    out.body = req.body
+    await session.send(out)
+}
+
+pub async fn Client.get(self, url: String) -> Response! {
+    await self.send(url, Request.new("GET", "/"))
+}
+
+pub async fn Client.post(self, url: String, contentType: String, body: Bytes) -> Response! {
+    let mut req = Request.new("POST", "/")
+    req.headers.add("Content-Type", contentType)
+    req.body = body
+    await self.send(url, req)
+}
+
+/// Posts value encoded as JSON.
+pub async fn Client.postJson[T: json.Encode](self, url: String, value: T) -> Response! {
+    await self.post(url, "application/json", (json.encode(value)?).toBytes())
+}

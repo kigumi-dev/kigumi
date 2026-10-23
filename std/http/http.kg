@@ -1,0 +1,136 @@
+/// One header field as received or to be sent.
+pub type Header = {
+    pub name String
+    pub value String
+}
+
+/// Header fields in arrival order; names compare case-insensitively and a name may repeat.
+pub type Headers = {
+    mut items Array[Header]
+}
+
+pub fn Headers.new() -> Headers {
+    Headers { items: Array.empty[Header]() }
+}
+
+/// Appends a field after any earlier one with the same name.
+pub fn Headers.add(mut self, name: String, value: String) {
+    self.items.push(Header {
+        name: name
+        value: value
+    })
+}
+
+/// Replaces every field named name with a single one holding value.
+pub fn Headers.set(mut self, name: String, value: String) {
+    self.remove(name)
+    self.add(name, value)
+}
+
+/// Drops every field named name.
+pub fn Headers.remove(mut self, name: String) {
+    let key = name.toLower()
+    let mut kept = Array.empty[Header]()
+    for h in &self.items {
+        if h.name.toLower() != key {
+            kept.push(Header {
+                name: h.name
+                value: h.value
+            })
+        }
+    }
+    self.items = kept
+}
+
+/// The first value of name.
+pub fn Headers.get(self, name: String) -> String? {
+    let key = name.toLower()
+    for h in &self.items {
+        if h.name.toLower() == key {
+            return Some(h.value)
+        }
+    }
+    None
+}
+
+/// Every value of name, in arrival order.
+pub fn Headers.all(self, name: String) -> Array[String] {
+    let key = name.toLower()
+    let mut out = Array.empty[String]()
+    for h in &self.items {
+        if h.name.toLower() == key {
+            out.push(h.value)
+        }
+    }
+    out
+}
+
+pub fn Headers.len(self) -> usize {
+    self.items.len()
+}
+
+/// The fields in arrival order.
+pub fn Headers.entries(self) -> Array[Header] {
+    let mut out = Array.empty[Header]()
+    for h in &self.items {
+        out.push(Header {
+            name: h.name
+            value: h.value
+        })
+    }
+    out
+}
+
+/// A handler failure that names the status to answer with; the server sends `text` as the body.
+/// Any other error a handler fails with is answered with 500 and handed to the server's log instead.
+pub type Failure = {
+    pub status Int
+    pub text String
+}
+
+pub fn Failure.message(self) -> String {
+    self.text
+}
+
+/// A Failure answering with status and text.
+pub fn failure(status: Int, text: String) -> Failure {
+    Failure {
+        status: status
+        text: text
+    }
+}
+
+/// The standard reason phrase of a status code, or "" for an unregistered one.
+pub fn reason(status: Int) -> String {
+    match status {
+        100 -> "Continue"
+        200 -> "OK"
+        201 -> "Created"
+        202 -> "Accepted"
+        204 -> "No Content"
+        301 -> "Moved Permanently"
+        302 -> "Found"
+        304 -> "Not Modified"
+        307 -> "Temporary Redirect"
+        308 -> "Permanent Redirect"
+        400 -> "Bad Request"
+        401 -> "Unauthorized"
+        403 -> "Forbidden"
+        404 -> "Not Found"
+        405 -> "Method Not Allowed"
+        408 -> "Request Timeout"
+        409 -> "Conflict"
+        411 -> "Length Required"
+        413 -> "Content Too Large"
+        415 -> "Unsupported Media Type"
+        422 -> "Unprocessable Content"
+        429 -> "Too Many Requests"
+        431 -> "Request Header Fields Too Large"
+        500 -> "Internal Server Error"
+        501 -> "Not Implemented"
+        502 -> "Bad Gateway"
+        503 -> "Service Unavailable"
+        505 -> "HTTP Version Not Supported"
+        _ -> ""
+    }
+}

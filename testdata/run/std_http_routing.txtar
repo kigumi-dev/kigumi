@@ -1,0 +1,201 @@
+-- src --
+import http from std/http
+import net from std/net
+import task from std/task
+
+type Sum = {
+    pub a Int
+    pub b Int
+}
+
+type Total = {
+    pub sum Int
+}
+
+type Thing = {
+    pub id String
+    pub kind String
+}
+
+type Missing = {
+    pub what String
+}
+
+fn Missing.message(self) -> String {
+    "missing ${self.what}"
+}
+
+fn showThing(req: http.Request) -> http.Response! {
+    let id = req.param("id") || ""
+    let kind = req.param("kind") || ""
+    if id == "0" {
+        fail http.failure(404, "no thing 0")
+    }
+    if id == "boom" {
+        fail Missing { what: "boom" }
+    }
+    http.Response.ofJson(200, Thing { id: id, kind: kind })
+}
+
+fn addUp(req: http.Request) -> http.Response! {
+    let s = req.json[Sum]()?
+    http.Response.ofJson(201, Total { sum: s.a + s.b })
+}
+
+fn search(req: http.Request) -> http.Response! {
+    http.Response.ofText(200, "q=${req.queryParam("q") || "-"}")
+}
+
+fn early(req: http.Request) -> http.Response! {
+    http.Response.ofText(101, "switch")
+}
+
+fn tag(name: String) -> fn(escaping fn(http.Request) -> http.Response!) -> fn(http.Request) -> http.Response! {
+    (next: escaping fn(http.Request) -> http.Response!) => (req: http.Request) => {
+        print "${name} in ${req.method} ${req.path}"
+        let out = next(req)
+        print "${name} out"
+        if out is Ok(r) {
+            let mut r = r
+            r.headers.add("X-Seen", name)
+            return r
+        }
+        out
+    }
+}
+
+fn req(method: String, body: String) -> http.Request {
+    let mut r = http.Request.new(method, "/")
+    r.body = body.toBytes()
+    r
+}
+
+fn show(what: String, got: http.Response!) -> Void! {
+    let resp = got?
+    let seen = resp.headers.all("X-Seen")
+    print "${what}: ${resp.status} [${resp.text()?}] seen=${seen.len()} allow=${resp.header("Allow") || "-"}"
+}
+
+async fn root(n: net.Net, listener: net.Listener) -> Void! {
+    let port = listener.port()
+    let routes = http.Router.new()
+        .get("/things/{kind}/{id}", showThing)
+        .post("/sum", addUp)
+        .get("/search", search)
+        .get("/early", early)
+        .use(tag("outer"))
+        .use(tag("inner"))
+    let server = http.Server.new(routes.handler(), (line) => print "log: ${line}")
+    let stop = http.Shutdown.new()
+    let running = task.spawn(server.serve(listener, stop.clone()))
+    let c = http.Client.new(n, task.BlockingPool.new(2))
+    let base = "http://127.0.0.1:${port}"
+    show("GET /things/tool/42", await c.send("${base}/things/tool/42", req("GET", "")))?
+    show("GET /things/a%20b/7", await c.send("${base}/things/a%20b/7", req("GET", "")))?
+    show("HEAD /things/tool/42", await c.send("${base}/things/tool/42", req("HEAD", "")))?
+    show("POST /sum", await c.send("${base}/sum", req("POST", "{\"a\": 2, \"b\": 40}")))?
+    show("POST /sum", await c.send("${base}/sum", req("POST", "{\"a\": 2")))?
+    show("GET /things/tool/0", await c.send("${base}/things/tool/0", req("GET", "")))?
+    show("GET /things/tool/boom", await c.send("${base}/things/tool/boom", req("GET", "")))?
+    show("GET /nowhere", await c.send("${base}/nowhere", req("GET", "")))?
+    show("DELETE /sum", await c.send("${base}/sum", req("DELETE", "")))?
+    show("GET /search?q=a+b%21&x=1", await c.send("${base}/search?q=a+b%21&x=1", req("GET", "")))?
+    show("GET /things/tool/42/", await c.send("${base}/things/tool/42/", req("GET", "")))?
+    show("GET /things//42", await c.send("${base}/things//42", req("GET", "")))?
+    show("GET //search", await c.send("${base}//search", req("GET", "")))?
+    show("GET /early", await c.send("${base}/early", req("GET", "")))?
+    let resp = (await c.postJson("${base}/sum", Sum { a: 1, b: 2 }))?
+    print "postJson: ${resp.status} sum=${(resp.json[Total]()?).sum}"
+    match await c.get("https://127.0.0.1:${port}/") {
+        Ok(_) -> print "https: unexpected"
+        Err(e) -> print "https: ${e.message()}"
+    }
+    stop.request()
+    (await running)?
+    print "stopped"
+}
+
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+let ex = task.currentThreadExecutor()
+ex.runToCompletion(root(n, listener))?
+-- stdout --
+outer in GET /things/tool/42
+inner in GET /things/tool/42
+inner out
+outer out
+GET /things/tool/42: 200 [{"id":"42","kind":"tool"}] seen=2 allow=-
+outer in GET /things/a%20b/7
+inner in GET /things/a%20b/7
+inner out
+outer out
+GET /things/a%20b/7: 200 [{"id":"7","kind":"a b"}] seen=2 allow=-
+outer in HEAD /things/tool/42
+inner in HEAD /things/tool/42
+inner out
+outer out
+HEAD /things/tool/42: 200 [] seen=2 allow=-
+outer in POST /sum
+inner in POST /sum
+inner out
+outer out
+POST /sum: 201 [{"sum":42}] seen=2 allow=-
+outer in POST /sum
+inner in POST /sum
+inner out
+outer out
+POST /sum: 400 [invalid JSON body: invalid JSON] seen=0 allow=-
+outer in GET /things/tool/0
+inner in GET /things/tool/0
+inner out
+outer out
+GET /things/tool/0: 404 [no thing 0] seen=0 allow=-
+outer in GET /things/tool/boom
+inner in GET /things/tool/boom
+inner out
+outer out
+log: http: GET /things/tool/boom: missing boom
+GET /things/tool/boom: 500 [internal server error] seen=0 allow=-
+outer in GET /nowhere
+inner in GET /nowhere
+inner out
+outer out
+GET /nowhere: 404 [not found] seen=2 allow=-
+outer in DELETE /sum
+inner in DELETE /sum
+inner out
+outer out
+DELETE /sum: 405 [method not allowed] seen=2 allow=POST
+outer in GET /search
+inner in GET /search
+inner out
+outer out
+GET /search?q=a+b%21&x=1: 200 [q=a b!] seen=2 allow=-
+outer in GET /things/tool/42/
+inner in GET /things/tool/42/
+inner out
+outer out
+GET /things/tool/42/: 404 [not found] seen=2 allow=-
+outer in GET /things//42
+inner in GET /things//42
+inner out
+outer out
+GET /things//42: 404 [not found] seen=2 allow=-
+outer in GET //search
+inner in GET //search
+inner out
+outer out
+GET //search: 404 [not found] seen=2 allow=-
+outer in GET /early
+inner in GET /early
+inner out
+outer out
+log: http: GET /early: invalid status 101
+GET /early: 500 [internal server error] seen=0 allow=-
+outer in POST /sum
+inner in POST /sum
+inner out
+outer out
+postJson: 201 sum=3
+https: https is not supported yet: std has no TLS provider
+stopped

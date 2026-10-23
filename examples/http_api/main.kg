@@ -1,0 +1,81 @@
+#!/usr/bin/env kigumi
+
+import http from std/http
+import net from std/net
+import task from std/task
+
+type Greeting = {
+    pub message String
+}
+
+type Order = {
+    pub item String
+    pub quantity Int
+}
+
+type Quote = {
+    pub item String
+    pub total Int
+}
+
+fn greet(req: http.Request) -> http.Response! {
+    let name = req.param("name") || "stranger"
+    http.Response.ofJson(200, Greeting { message: "hello, ${name}" })
+}
+
+// A Failure picks the status the client sees; any other error would become a 500.
+fn quote(req: http.Request) -> http.Response! {
+    let order = req.json[Order]()?
+    if order.quantity <= 0 {
+        fail http.failure(422, "quantity must be positive")
+    }
+    http.Response.ofJson(200, Quote {
+        item: order.item
+        total: order.quantity * 3
+    })
+}
+
+// Middleware is a function from handler to handler.
+fn poweredBy(next: escaping fn(http.Request) -> http.Response!) -> fn(http.Request) -> http.Response! {
+    (req: http.Request) => {
+        let mut resp = next(req)?
+        resp.headers.add("X-Powered-By", "kigumi")
+        resp
+    }
+}
+
+async fn serveAndCall(n: net.Net, listener: net.Listener) -> Void! {
+    let port = listener.port()
+    let routes = http.Router.new()
+        .get("/greet/{name}", greet)
+        .post("/quote", quote)
+        .use(poweredBy)
+    let server = http.Server.new(routes.handler(), (line) => print "server log: ${line}")
+    let stop = http.Shutdown.new()
+    let serving = task.spawn(server.serve(listener, stop.clone()))
+
+    let client = http.Client.new(n, task.BlockingPool.new(1))
+    let base = "http://127.0.0.1:${port}"
+    let hello = (await client.get("${base}/greet/kigumi"))?
+    print "GET /greet/kigumi -> ${hello.status} ${(hello.json[Greeting]()?).message} (${hello.header("X-Powered-By") || "-"})"
+    let ok = (await client.postJson("${base}/quote", Order {
+        item: "tea"
+        quantity: 4
+    }))?
+    print "POST /quote -> ${ok.status} ${ok.text()?}"
+    let bad = (await client.postJson("${base}/quote", Order {
+        item: "tea"
+        quantity: 0
+    }))?
+    print "POST /quote -> ${bad.status} ${bad.text()?}"
+    let missing = (await client.get("${base}/nothing"))?
+    print "GET /nothing -> ${missing.status}"
+
+    stop.request()
+    (await serving)?
+    print "server stopped"
+}
+
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+task.currentThreadExecutor().runToCompletion(serveAndCall(n, listener))?

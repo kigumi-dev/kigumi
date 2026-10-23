@@ -1,0 +1,165 @@
+type Layer = {
+    wrap fn(escaping fn(Request) -> Response!) -> fn(Request) -> Response!
+}
+
+type Route = {
+    method String
+    pattern String
+    run fn(Request) -> Response!
+}
+
+/// Routes by method and path pattern, built by chaining: `Router.new().get("/users/{id}", show)`.
+/// A `{name}` segment matches one non-empty segment and is read back with `Request.param`.
+pub type Router = {
+    mut routes Array[Route]
+    mut layers Array[Layer]
+}
+
+pub fn Router.new() -> Router {
+    Router {
+        routes: Array.empty[Route]()
+        layers: Array.empty[Layer]()
+    }
+}
+
+/// Adds a route; the first route registered for a matching method and path wins.
+pub fn Router.handle(move self, method: String, pattern: String, handler: escaping fn(Request) -> Response!) -> Router {
+    let mut r = self
+    r.routes.push(Route {
+        method: method
+        pattern: pattern
+        run: handler
+    })
+    r
+}
+
+pub fn Router.get(move self, pattern: String, handler: escaping fn(Request) -> Response!) -> Router {
+    self.handle("GET", pattern, handler)
+}
+
+pub fn Router.post(move self, pattern: String, handler: escaping fn(Request) -> Response!) -> Router {
+    self.handle("POST", pattern, handler)
+}
+
+pub fn Router.put(move self, pattern: String, handler: escaping fn(Request) -> Response!) -> Router {
+    self.handle("PUT", pattern, handler)
+}
+
+pub fn Router.delete(move self, pattern: String, handler: escaping fn(Request) -> Response!) -> Router {
+    self.handle("DELETE", pattern, handler)
+}
+
+/// Adds middleware around every request the router sees, unmatched ones included;
+/// the first one added is the outermost.
+pub fn Router.use(move self, middleware: escaping fn(escaping fn(Request) -> Response!) -> fn(Request) -> Response!) -> Router {
+    let mut r = self
+    r.layers.push(Layer { wrap: middleware })
+    r
+}
+
+/// The router as one handler: 404 when no pattern matches the path, 405 with an
+/// `Allow` header when one does but not for this method; HEAD falls back to GET.
+pub fn Router.handler(move self) -> fn(Request) -> Response! {
+    let mut table = ""
+    for r in &self.routes {
+        table = "${table}${r.method} ${r.pattern}\n"
+    }
+    let mut h: fn(Request) -> Response! = (req: Request) => unmatched(table, req)
+    let mut i = self.routes.len()
+    for i > 0 {
+        i = i - 1
+        if self.routes.get(i) is Some(r) {
+            h = link(r, table, h)
+        }
+    }
+    let mut j = self.layers.len()
+    for j > 0 {
+        j = j - 1
+        if self.layers.get(j) is Some(layer) {
+            h = (layer.wrap)(h)
+        }
+    }
+    h
+}
+
+// Each route becomes one link of a chain, since a plain fn can capture Copy
+// values such as a String or another fn but not the route Array itself.
+fn link(r: Route, table: String, next: escaping fn(Request) -> Response!) -> fn(Request) -> Response! {
+    (req: Request) => {
+        if r.method == req.method || (req.method == "HEAD" && r.method == "GET" && !hasRoute(table, "HEAD", req.path)) {
+            if matchPattern(r.pattern, req.path) is Some(params) {
+                let mut routed = req
+                routed.params = params
+                return (r.run)(routed)
+            }
+        }
+        next(req)
+    }
+}
+
+fn hasRoute(table: String, method: String, path: String) -> Bool {
+    for line in table.split("\n") {
+        let parts = line.split(" ")
+        if parts.len() == 2 && (parts.get(0) || "") == method && matchPattern(parts.get(1) || "", path) is Some(_) {
+            return true
+        }
+    }
+    false
+}
+
+fn unmatched(table: String, req: Request) -> Response! {
+    let mut allowed = Array.empty[String]()
+    for line in table.split("\n") {
+        let parts = line.split(" ")
+        if parts.len() == 2 && matchPattern(parts.get(1) || "", req.path) is Some(_) {
+            allowed.push(parts.get(0) || "")
+        }
+    }
+    if allowed.isEmpty() {
+        return Response.ofText(404, "not found")
+    }
+    let mut resp = Response.ofText(405, "method not allowed")
+    resp.headers.add("Allow", joinComma(&allowed))
+    resp
+}
+
+fn joinComma(items: &Array[String]) -> String {
+    let mut out = ""
+    for s in items {
+        out = if out == "" {
+            s
+        } else {
+            "${out}, ${s}"
+        }
+    }
+    out
+}
+
+// Segments compare exactly, so `/a/` and `//a` stay distinct from `/a` and a
+// middleware reading req.path sees the same path the route matched.
+fn matchPattern(patternText: String, path: String) -> Array[Param]? {
+    let pattern = patternText.split("/")
+    let parts = path.split("/")
+    if pattern.len() != parts.len() {
+        return None
+    }
+    let mut params = Array.empty[Param]()
+    let mut i: usize = 0
+    for i < pattern.len() {
+        let want = pattern.get(i) || ""
+        let got = parts.get(i) || ""
+        if want.startsWith("{") && want.endsWith("}") && want.len() > 2 {
+            if got == "" {
+                return None
+            }
+            params.push(Param {
+                name: want.sliceBytes(1, want.len() - 1) || ""
+                value: percentDecode(got) || return None
+            })
+        } else if want != got {
+            return None
+        }
+        i = i + 1
+    }
+    Some(params)
+}

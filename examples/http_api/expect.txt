@@ -1,0 +1,5 @@
+GET /greet/kigumi -> 200 hello, kigumi (kigumi)
+POST /quote -> 200 {"item":"tea","total":12}
+POST /quote -> 422 quantity must be positive
+GET /nothing -> 404
+server stopped

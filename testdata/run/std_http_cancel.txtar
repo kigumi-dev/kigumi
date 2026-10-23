@@ -1,0 +1,47 @@
+-- src --
+import fs from std/fs
+import http from std/http
+import net from std/net
+import task from std/task
+
+fn hello(req: http.Request) -> http.Response! {
+    http.Response.ofText(200, "hello")
+}
+
+// Cancelling the serving task abandons it and its connection tasks at their next
+// suspension point, closing every socket they own.
+async fn root(n: net.Net, listener: net.Listener) -> Void! {
+    let port = listener.port()
+    let server = http.Server.new(http.Router.new().get("/", hello).handler(), (line) => print "log: ${line}")
+    let running = task.spawn(server.serve(listener, http.Shutdown.new()))
+    let c = http.Client.new(n, task.BlockingPool.new(1))
+    let mut session = (await c.open("http://127.0.0.1:${port}"))?
+    let first = (await session.send(http.Request.new("GET", "/")))?
+    print "before cancel: ${first.status} ${first.text()?}"
+    running.cancel()
+    match await session.send(http.Request.new("GET", "/")) {
+        Ok(r) -> print "after cancel: unexpected ${r.status}"
+        Err(_) -> print "after cancel: the connection is gone"
+    }
+    match await c.get("http://127.0.0.1:${port}/") {
+        Ok(r) -> print "new connection: unexpected ${r.status}"
+        Err(_) -> print "new connection refused"
+    }
+}
+
+fn fdCount(files: fs.Files) -> usize! {
+    let entries = files.list(fs.Path.fromString("/proc/self/fd")?)?
+    entries.len()
+}
+
+let files = host.files()
+let before = fdCount(files)?
+let n = host.net()
+let listener = n.listen("127.0.0.1", 0)?
+task.currentThreadExecutor().runToCompletion(root(n, listener))?
+print "sockets released: ${fdCount(files)? == before}"
+-- stdout --
+before cancel: 200 hello
+after cancel: the connection is gone
+new connection refused
+sockets released: true
