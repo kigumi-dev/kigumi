@@ -10,6 +10,7 @@ type refCellValue struct {
 	node  syntax.NodeID
 	// referent is the lent value's type, the instantiation a witness call in the callee resolves against.
 	referent TypeID
+	key      EntityID
 }
 
 // Whether the callee replaces the referent as a whole settles later, in the fixpoint.
@@ -19,7 +20,13 @@ func (c *checker) noteLentRefArg(a syntax.NodeID, param EntityID, async bool) {
 		a = c.t.View(a).AsParen().Inner().ID()
 	}
 	// An async call is already reported against the parameter by noteRefPlaceArg.
-	if async || c.t.Kind(a) == syntax.BorrowExpr {
+	if async {
+		return
+	}
+	if c.t.Kind(a) == syntax.BorrowExpr {
+		if key := c.lentCtxKey(a); key != 0 {
+			c.r.refCellValues = append(c.r.refCellValues, refCellValue{param: param, file: c.f, node: a, referent: c.r.Entities[key].Type, key: key})
+		}
 		return
 	}
 	if _, ok := c.refBinding(a); ok {
@@ -48,7 +55,11 @@ func lentRefShape(t *syntax.Tree, a syntax.NodeID) string {
 // param 0 means the callee is unknown through a value call, so the argument is lent as a cell whatever its body does.
 func (r *Result) reportLentRefArgs() {
 	for _, v := range r.refCellValues {
-		if v.param == 0 || r.refCellParams[v.param] && !r.lentInstanceKeepsValue(v) {
+		switch {
+		case v.param != 0 && (!r.refCellParams[v.param] || r.lentInstanceKeepsValue(v)):
+		case v.key != 0:
+			r.errAt(v.file, v.node, cCtxKeyAssign, v.key, "lent with `&mut` to a callee that may replace it as a whole", ctxKeyWholeWhy)
+		default:
 			r.errAt(v.file, v.node, cRefCellLentValue, v.what)
 		}
 	}

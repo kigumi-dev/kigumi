@@ -1,0 +1,62 @@
+-- src --
+interface Closer {
+    fn close(self) -> Int
+}
+
+type R = {
+    pub id Int
+}
+
+fn R.close(self) -> Int {
+    self.id * 10
+}
+
+type Box[T] = resource {
+    pub id Int
+    pub v T
+}
+
+fn Box[T: Closer].drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Tagged[T: Closer] = resource {
+    pub v T
+}
+
+fn Tagged[T: Closer].drop(move self) {
+    print "drop tagged"
+}
+
+fn early(stop: Bool) -> Int? {
+    let b = Box { id: 4, v: R { id: 4 } }
+    if stop {
+        return None
+    }
+    Some(b.v.close())
+}
+
+let mut b = Box { id: 1, v: R { id: 1 } }
+print "made ${b.v.close()}"
+b = Box { id: 2, v: R { id: 2 } }
+let mut all: Array[Box[R]] = Array.empty()
+all.push(Box { id: 3, v: R { id: 3 } })
+{
+    let t = Tagged { v: R { id: 5 } }
+    print "tagged ${t.v.close()}"
+}
+let x = early(true) || 0
+let y = early(false) || 0
+print "early ${x} ${y}"
+print "end"
+-- stdout --
+made 10
+drop 1
+tagged 50
+drop tagged
+drop 4
+drop 4
+early 0 40
+end
+drop 3
+drop 2

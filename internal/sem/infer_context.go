@@ -59,6 +59,10 @@ func (c *checker) contextKeyValue(n syntax.NodeID, key EntityID) TypeID {
 		c.setCtxUse(n, CtxBind{Key: key})
 		return typ
 	}
+	if c.comptimeKeyUnbound(n, key) {
+		c.setCtxUse(n, CtxBind{Key: key})
+		return typ
+	}
 	if src, ok := c.ctxLookup(key); ok {
 		c.noteCapture(n, src.Local, c.r.local(src.Local).Scope)
 		c.setCtxUse(n, CtxBind{Key: key, Local: src.Local, Field: src.Field})
@@ -119,11 +123,16 @@ func (c *checker) recordCtxCallEdge(callee EntityID, node syntax.NodeID) {
 		return
 	}
 	info := c.r.Fn(c.fn)
+	stack := c.ctxStack
+	if c.comptimeAt != 0 {
+		stack = stack[c.comptimeCtx:]
+	}
 	info.ctxCalls = append(info.ctxCalls, ctxCallEdge{
-		ref:     ctxNodeRef{File: c.f, Node: node},
-		callee:  callee,
-		stack:   slices.Clone(c.ctxStack),
-		lambdas: lambdaEnts(c.lambdas),
+		ref:      ctxNodeRef{File: c.f, Node: node},
+		callee:   callee,
+		stack:    slices.Clone(stack),
+		lambdas:  lambdaEnts(c.lambdas),
+		comptime: c.comptimeAt != 0,
 	})
 }
 

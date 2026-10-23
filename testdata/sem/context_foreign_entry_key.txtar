@@ -1,0 +1,82 @@
+-- src --
+pub context port: Int
+
+@provides(port)
+pub type Cfg = {
+    pub port Int
+}
+
+fn read() -> Int {
+    port
+}
+
+static mut last: Int = 0
+
+export(C) {
+    pub fn direct() -> Int {
+        port //~ ERROR exported function `direct` requires context key `port`
+    }
+
+    pub fn indirect() -> Int {
+        read() //~ ERROR exported function `indirect` requires context key `port`
+    }
+
+    pub fn bound() -> Int {
+        context (Cfg { port: 3 }) {
+            read()
+        }
+    }
+
+    pub fn printsOnly() {
+        print "hi"
+    }
+}
+
+export(interrupt) {
+    pub fn tick() {
+        unsafe { last = port } //~ ERROR interrupt handler `tick` requires context key `port`
+    }
+}
+
+test "bare" {
+    _ = read() //~ ERROR context key `port` is required here but nothing supplies it
+}
+
+test "bound" {
+    context (Cfg { port: 4 }) {
+        _ = read()
+    }
+}
+
+context (Cfg { port: 5 }) {
+    print "${direct()} ${indirect()} ${bound()}"
+}
+-- expect --
+error[E2258]: exported function `direct` requires context key `port`, but it is entered from outside the program, where no provider is bound
+  --> main/main.kg:16:9
+   |
+16 |         port //~ ERROR exported function `direct` requires context key `port`
+   |         ^^^^
+   = help: supply the key with `context (...) { }` inside it
+
+error[E2258]: exported function `indirect` requires context key `port`, but it is entered from outside the program, where no provider is bound
+  --> main/main.kg:20:9
+   |
+20 |         read() //~ ERROR exported function `indirect` requires context key `port`
+   |         ^^^^^
+   = help: supply the key with `context (...) { }` inside it
+
+error[E2258]: interrupt handler `tick` requires context key `port`, but it is entered from outside the program, where no provider is bound
+  --> main/main.kg:36:25
+   |
+36 |         unsafe { last = port } //~ ERROR interrupt handler `tick` requires context key `port`
+   |                         ^^^^
+   = help: supply the key with `context (...) { }` inside it
+
+error[E1212]: context key `port` is required here but nothing supplies it
+  --> main/main.kg:41:9
+   |
+41 |     _ = read() //~ ERROR context key `port` is required here but nothing supplies it
+   |         ^^^^^
+   = help: wrap the call in `context (...) { }` supplying it
+

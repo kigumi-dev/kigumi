@@ -32,6 +32,8 @@ type Module struct {
 	// deriveGen produces derive source; CheckWith always sets it (Check's
 	// own is noDeriveGenerator).
 	deriveGen DeriveGenerator
+	// BuildProgram is the path of the package whose `configure` the build VM enters with no provider bound.
+	BuildProgram string
 	// NoDefaultAllocator is the `allocator = none` profile: code
 	// reachable from the entry may allocate only inside `allocator` blocks.
 	NoDefaultAllocator bool

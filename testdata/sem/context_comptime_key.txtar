@@ -1,0 +1,87 @@
+-- module --
+stage: driver
+-- src --
+context port: Int
+
+@provides(port)
+type Cfg = {
+    pub port Int
+}
+
+fn read() -> Int {
+    port
+}
+
+const viaConst: Int = comptime read() //~ ERROR this `comptime` block requires context key `port`
+
+fn viaFn() -> Int {
+    comptime { read() } //~ ERROR this `comptime` block requires context key `port`
+}
+
+fn viaParam() -> Int {
+    comptime { port + 1 } //~ ERROR this `comptime` block requires context key `port`
+}
+
+fn viaLambda() -> Int {
+    comptime {
+        let f = () => port //~ ERROR this `comptime` block requires context key `port`
+        f()
+    }
+}
+
+fn bound() -> Int {
+    comptime {
+        context (Cfg { port: 7 }) {
+            read() + port
+        }
+    }
+}
+
+context (Cfg { port: 5 }) {
+    print "${comptime { port }}" //~ ERROR this `comptime` block requires context key `port`
+    let g = () => comptime { read() } //~ ERROR this `comptime` block requires context key `port`
+    print "${viaFn()} ${viaParam()} ${viaLambda()} ${bound()} ${g()} ${viaConst}"
+}
+-- expect --
+error[E2258]: this `comptime` block requires context key `port`, but it is evaluated at compile time, where no provider is bound
+  --> main.kg:12:32
+   |
+12 | const viaConst: Int = comptime read() //~ ERROR this `comptime` block requires context key `port`
+   |                                ^^^^^
+   = help: supply the key with `context (...) { }` inside it
+
+error[E2258]: this `comptime` block requires context key `port`, but it is evaluated at compile time, where no provider is bound
+  --> main.kg:15:16
+   |
+15 |     comptime { read() } //~ ERROR this `comptime` block requires context key `port`
+   |                ^^^^^
+   = help: supply the key with `context (...) { }` inside it
+
+error[E2258]: this `comptime` block requires context key `port`, but it is evaluated at compile time, where no provider is bound
+  --> main.kg:19:16
+   |
+19 |     comptime { port + 1 } //~ ERROR this `comptime` block requires context key `port`
+   |                ^^^^
+   = help: supply the key with `context (...) { }` inside it
+
+error[E2258]: this `comptime` block requires context key `port`, but it is evaluated at compile time, where no provider is bound
+  --> main.kg:24:23
+   |
+24 |         let f = () => port //~ ERROR this `comptime` block requires context key `port`
+   |                       ^^^^
+   = help: supply the key with `context (...) { }` inside it
+
+error[E2258]: this `comptime` block requires context key `port`, but it is evaluated at compile time, where no provider is bound
+  --> main.kg:38:25
+   |
+38 |     print "${comptime { port }}" //~ ERROR this `comptime` block requires context key `port`
+   |                         ^^^^
+   = help: supply the key with `context (...) { }` inside it
+
+error[E2258]: this `comptime` block requires context key `port`, but it is evaluated at compile time, where no provider is bound
+  --> main.kg:39:30
+   |
+39 |     let g = () => comptime { read() } //~ ERROR this `comptime` block requires context key `port`
+   |                              ^^^^^
+   = help: supply the key with `context (...) { }` inside it
+

@@ -1,0 +1,51 @@
+-- src --
+context port: Int
+
+@provides(port)
+type Cfg = {
+    pub port Int
+}
+
+type Conn = resource {
+    pub id Int
+    pub port Int
+}
+
+fn Conn.drop(move self) {
+    print "drop ${self.id} port=${self.port}"
+}
+
+fn open(id: Int) -> Conn {
+    Conn { id: id, port: port }
+}
+
+fn keep(id: Int) -> Array[Conn] {
+    let mut out: Array[Conn] = Array.empty()
+    out.push(open(id))
+    out
+}
+
+let mut held: Array[Conn] = Array.empty()
+context (Cfg { port: 8080 }) {
+    let a = open(1)
+    print "made ${a.id}"
+    let mut b = open(2)
+    b = open(3)
+    print "reassigned ${b.id}"
+    held = keep(4)
+    print "inner end"
+}
+context (Cfg { port: 9090 }) {
+    held.push(open(5))
+}
+print "after ${held.len()}"
+-- stdout --
+made 1
+drop 2 port=8080
+reassigned 3
+inner end
+drop 3 port=8080
+drop 1 port=8080
+after 2
+drop 5 port=9090
+drop 4 port=8080

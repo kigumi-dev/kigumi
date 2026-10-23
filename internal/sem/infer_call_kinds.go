@@ -163,6 +163,7 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 			c.errAt(base, cIndexAssignUnsupported)
 		} else if !c.isPlace(base) {
 			c.errAt(base, cRecvTemporary, name)
+		} else if c.rejectCtxKeyWrite(base, "the receiver of `mut self` method `"+name+"`") {
 		} else if !c.isMutablePlace(base) {
 			c.reportRecvNotMutable(base, name)
 		} else if root := c.rootOf(base); root != 0 {

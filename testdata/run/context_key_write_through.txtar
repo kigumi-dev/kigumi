@@ -1,0 +1,47 @@
+-- src --
+type Log = {
+    pub mut lines Array[String]
+    pub mut count Int
+}
+
+fn Log.add(mut self, s: String) {
+    self.lines.push(s)
+    self.count = self.count + 1
+}
+
+context log: Log
+context port: Int
+
+@provides(log, port)
+type Env = {
+    pub mut log Log
+    pub port Int
+}
+
+fn note(s: String) {
+    log.add("${s}@${port}")
+}
+
+fn bumpCount() {
+    log.count = log.count + 10
+}
+
+fn summary() -> String {
+    "${log.count}:${log.lines.len()}"
+}
+
+context (Env { log: Log { lines: Array.empty(), count: 0 }, port: 5 }) {
+    note("a")
+    log.add("b")
+    bumpCount()
+    print "s ${summary()} ${log.count} ${log.lines[0]} ${log.lines[1]}"
+    context (Env { log: Log { lines: Array.empty(), count: 100 }, port: 9 }) {
+        note("c")
+        print "inner ${summary()} ${port} ${log.lines[0]}"
+    }
+    print "outer ${summary()} ${port}"
+}
+-- stdout --
+s 12:2 12 a@5 b
+inner 101:1 9 c@9
+outer 12:2 5

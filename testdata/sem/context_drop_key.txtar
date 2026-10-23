@@ -1,0 +1,68 @@
+-- src --
+context port: Int
+
+@provides(port)
+type Cfg = {
+    pub port Int
+}
+
+type Direct = resource {
+    pub id Int
+}
+
+fn Direct.drop(move self) {
+    print "drop ${self.id} ${port}" //~ ERROR `Direct.drop` uses context key `port`
+}
+
+fn portText() -> String {
+    "${port}"
+}
+
+type Indirect = resource {
+    pub id Int
+}
+
+fn Indirect.drop(move self) {
+    print "drop ${self.id} ${portText()}" //~ ERROR `Indirect.drop` uses context key `port`
+}
+
+type Bound = resource {
+    pub id Int
+}
+
+fn Bound.drop(move self) {
+    context (Cfg { port: 1 }) {
+        print "drop ${self.id} ${portText()}"
+    }
+}
+
+type Kept = resource {
+    pub id Int
+    pub port Int
+}
+
+fn Kept.drop(move self) {
+    print "drop ${self.id} ${self.port}"
+}
+
+context (Cfg { port: 8080 }) {
+    let a = Direct { id: 1 }
+    let b = Indirect { id: 2 }
+    let c = Bound { id: 3 }
+    let d = Kept { id: 4, port: port }
+}
+-- expect --
+error[E2257]: `Direct.drop` uses context key `port`, but a drop runs wherever its value is released and receives no hidden argument there
+  --> main/main.kg:13:30
+   |
+13 |     print "drop ${self.id} ${port}" //~ ERROR `Direct.drop` uses context key `port`
+   |                              ^^^^
+   = help: read what the drop needs when the value is made and keep it in a field
+
+error[E2257]: `Indirect.drop` uses context key `port`, but a drop runs wherever its value is released and receives no hidden argument there
+  --> main/main.kg:25:30
+   |
+25 |     print "drop ${self.id} ${portText()}" //~ ERROR `Indirect.drop` uses context key `port`
+   |                              ^^^^^^^^^
+   = help: read what the drop needs when the value is made and keep it in a field
+

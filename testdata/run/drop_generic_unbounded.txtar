@@ -1,0 +1,63 @@
+-- src --
+context port: Int
+
+@provides(port)
+type Cfg = {
+    pub port Int
+}
+
+interface Closer {
+    fn close(self) -> Int
+}
+
+type Plain = {
+    pub id Int
+    pub port Int
+}
+
+fn Plain.close(self) -> Int {
+    self.port + self.id
+}
+
+type Box[T] = resource {
+    pub tag String
+    pub v T
+}
+
+fn Box[T].drop(move self) {
+    print "drop box ${self.tag}"
+}
+
+type Holder = resource {
+    pub c Closer
+}
+
+fn Holder.drop(move self) {
+    print "drop holder ${self.c.close()}"
+}
+
+fn open(id: Int) -> Holder {
+    Holder { c: Plain { id: id, port: port } }
+}
+
+fn closeNow[T: Closer](b: Box[T]) -> Int {
+    b.v.close()
+}
+
+context (Cfg { port: 8080 }) {
+    let h = open(1)
+    let b = Box { tag: "a", v: Plain { id: 2, port: port } }
+    print "early ${closeNow(Box { tag: "b", v: Plain { id: 3, port: port } })}"
+    let mut hs: Array[Holder] = Array.empty()
+    hs.push(open(4))
+    print "made ${b.v.close()}"
+}
+print "end"
+-- stdout --
+drop box b
+early 8083
+made 8082
+drop holder 8084
+drop box a
+drop holder 8081
+end

@@ -1,0 +1,147 @@
+-- src --
+import lib from lib
+
+type Point = {
+    pub mut x Int
+}
+
+fn Point.shift(mut self) {
+    self.x = self.x + 1
+}
+
+type Shape = Circle(r: Int) | Dot
+
+fn Shape.flatten(mut self) {
+    self = Dot
+}
+
+type Log = {
+    pub mut lines Array[String]
+}
+
+fn Log.reset(mut self) {
+    self = Log { lines: Array.empty() }
+}
+
+fn Log.add(mut self, s: String) {
+    self.lines.push(s)
+}
+
+context port: Int
+context origin: Point
+context log: Log
+
+@provides(port, origin, log)
+type Env = {
+    pub mut port Int
+    pub mut origin Point
+    pub mut log Log
+}
+
+fn bump(p: &mut Int) {
+    p = p + 1
+}
+
+fn inCallee() {
+    port = 9 //~ ERROR context key `port` cannot be assigned
+    port += 1 //~ ERROR context key `port` cannot be assigned
+    origin.x = 3 //~ ERROR context key `origin` cannot be written through a field or element
+    origin.shift() //~ ERROR context key `origin` cannot be the receiver of `mut self` method `shift`
+    bump(&mut port) //~ ERROR context key `port` cannot be borrowed with `&mut`
+    log = Log { lines: Array.empty() } //~ ERROR context key `log` cannot be assigned
+    log.reset() //~ ERROR this receiver is lent with no owner to return it to
+    log.add("ok")
+    log.lines.push("ok")
+}
+
+fn qualified() {
+    lib.token = "x" //~ ERROR context key `token` cannot be assigned
+}
+
+context (Env { port: 5, origin: Point { x: 0 }, log: Log { lines: Array.empty() } }) {
+    port = 7 //~ ERROR context key `port` cannot be assigned
+    origin.x = 1 //~ ERROR context key `origin` cannot be written through a field or element
+    log.add("ok")
+    inCallee()
+    context (lib.Bundle { token: "t" }) {
+        qualified()
+    }
+}
+-- lib/lib.kg --
+pub context token: String
+
+@provides(token)
+pub type Bundle = {
+    pub mut token String
+}
+-- expect --
+error[E2259]: context key `port` cannot be assigned
+  --> main/main.kg:45:5
+   |
+45 |     port = 9 //~ ERROR context key `port` cannot be assigned
+   |     ^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `port` cannot be assigned
+  --> main/main.kg:46:5
+   |
+46 |     port += 1 //~ ERROR context key `port` cannot be assigned
+   |     ^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `origin` cannot be written through a field or element
+  --> main/main.kg:47:5
+   |
+47 |     origin.x = 3 //~ ERROR context key `origin` cannot be written through a field or element
+   |     ^^^^^^^^
+   = help: its type is Copy, so a function that reads the key gets a copy and the write would be lost; supply a new value with a nested `context (...) { }`, or give the key a non-Copy type
+
+error[E2259]: context key `origin` cannot be the receiver of `mut self` method `shift`
+  --> main/main.kg:48:5
+   |
+48 |     origin.shift() //~ ERROR context key `origin` cannot be the receiver of `mut self` method `shift`
+   |     ^^^^^^
+   = help: its type is Copy, so a function that reads the key gets a copy and the write would be lost; supply a new value with a nested `context (...) { }`, or give the key a non-Copy type
+
+error[E2259]: context key `port` cannot be borrowed with `&mut`
+  --> main/main.kg:49:15
+   |
+49 |     bump(&mut port) //~ ERROR context key `port` cannot be borrowed with `&mut`
+   |               ^^^^
+   = help: its type is Copy, so a function that reads the key gets a copy and the write would be lost; supply a new value with a nested `context (...) { }`, or give the key a non-Copy type
+
+error[E2259]: context key `log` cannot be assigned
+  --> main/main.kg:50:5
+   |
+50 |     log = Log { lines: Array.empty() } //~ ERROR context key `log` cannot be assigned
+   |     ^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E1502]: `reset` replaces its receiver as a whole, and this receiver is lent with no owner to return it to
+  --> main/main.kg:51:5
+   |
+51 |     log.reset() //~ ERROR this receiver is lent with no owner to return it to
+   |     ^^^
+   = help: call it on the value itself, or on a field or element of one
+
+error[E2259]: context key `token` cannot be assigned
+  --> main/main.kg:57:5
+   |
+57 |     lib.token = "x" //~ ERROR context key `token` cannot be assigned
+   |     ^^^^^^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `port` cannot be assigned
+  --> main/main.kg:61:5
+   |
+61 |     port = 7 //~ ERROR context key `port` cannot be assigned
+   |     ^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `origin` cannot be written through a field or element
+  --> main/main.kg:62:5
+   |
+62 |     origin.x = 1 //~ ERROR context key `origin` cannot be written through a field or element
+   |     ^^^^^^^^
+   = help: its type is Copy, so a function that reads the key gets a copy and the write would be lost; supply a new value with a nested `context (...) { }`, or give the key a non-Copy type
+

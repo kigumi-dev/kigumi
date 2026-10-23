@@ -58,6 +58,7 @@ func LoadBuildProgram(root string, opts LoadOptions) (*BuildProgram, bool, error
 		}
 	}
 	mod.Packages = append(mod.Packages, &sem.Package{Path: "build", Files: []*syntax.Tree{tree}})
+	mod.BuildProgram = "build"
 	a, err := (&Module{verifyPasses: opts.VerifyPasses}).analyze(mod, nil)
 	if err != nil {
 		return nil, true, err

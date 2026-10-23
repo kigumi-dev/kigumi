@@ -9,6 +9,8 @@ import (
 type exprState struct {
 	// comptimeAt is len(lambdas)+1 inside a comptime block, 0 outside one.
 	comptimeAt int
+	// comptimeCtx is len(ctxStack) where the innermost comptime block opened; frames below it bind runtime providers.
+	comptimeCtx int
 	// openStmts counts the statements and block tails in progress; a statement finished inside another must leave the outer variables and touched nodes alone.
 	openStmts   int
 	touchedBase int

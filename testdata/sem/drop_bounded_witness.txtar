@@ -1,0 +1,127 @@
+-- src --
+context port: Int
+
+@provides(port)
+type Cfg = {
+    pub port Int
+}
+
+interface Closer {
+    fn close(self) -> Int
+}
+
+type R = {
+    pub id Int
+}
+
+fn R.close(self) -> Int {
+    port + self.id
+}
+
+type Q = {
+    pub id Int
+}
+
+fn Q.close(self) -> Int {
+    self.id
+}
+
+interface Zero {
+    fn zero() -> Int
+}
+
+fn R.zero() -> Int {
+    0
+}
+
+fn helper[T: Closer](v: T) -> Int {
+    v.close()
+}
+
+type Box[T] = resource {
+    pub v T
+}
+
+fn Box[T: Closer].drop(move self) {
+    print "drop ${self.v.close()}" //~ ERROR `Box.drop` uses the `Closer` bound on `T`
+}
+
+type Fwd[T] = resource {
+    pub v T
+}
+
+fn Fwd[T: Closer].drop(move self) {
+    print "drop ${helper(self.v)}" //~ ERROR `Fwd.drop` uses the `Closer` bound on `T`
+}
+
+type Stat[T] = resource {
+    pub v T
+}
+
+fn Stat[T: Zero].drop(move self) {
+    let f = () => T.zero() //~ ERROR `Stat.drop` uses the `Zero` bound on `T`
+    print "drop ${f()}"
+}
+
+type Quiet[T] = resource {
+    pub v T
+}
+
+fn Quiet[T: Closer].drop(move self) {
+    print "drop quiet"
+}
+
+type Holder = resource {
+    pub c Closer
+}
+
+fn Holder.drop(move self) {
+    print "drop holder ${self.c.close()}"
+}
+
+type Plain[T] = resource {
+    pub v T
+}
+
+fn Plain[T].drop(move self) {
+    print "drop plain"
+}
+
+context (Cfg { port: 8080 }) {
+    let a = Box { v: R { id: 1 } }
+    let b = Box { v: Q { id: 2 } }
+    let h = Holder { c: R { id: 3 } } //~ ERROR `close` requires context key `port` and can't be used as a plain function value
+    let p = Plain { v: R { id: 4 } }
+    let f = Fwd { v: Q { id: 5 } }
+    let s = Stat { v: R { id: 6 } }
+    let q = Quiet { v: R { id: 7 } }
+}
+-- expect --
+error[E2257]: `Box.drop` uses the `Closer` bound on `T`, but a drop runs wherever its value is released and receives no hidden argument there
+  --> main/main.kg:45:19
+   |
+45 |     print "drop ${self.v.close()}" //~ ERROR `Box.drop` uses the `Closer` bound on `T`
+   |                   ^^^^^^^^^^^^^
+   = help: read what the drop needs when the value is made and keep it in a field
+
+error[E2257]: `Fwd.drop` uses the `Closer` bound on `T`, but a drop runs wherever its value is released and receives no hidden argument there
+  --> main/main.kg:53:19
+   |
+53 |     print "drop ${helper(self.v)}" //~ ERROR `Fwd.drop` uses the `Closer` bound on `T`
+   |                   ^^^^^^^^^^^^^
+   = help: read what the drop needs when the value is made and keep it in a field
+
+error[E2257]: `Stat.drop` uses the `Zero` bound on `T`, but a drop runs wherever its value is released and receives no hidden argument there
+  --> main/main.kg:61:19
+   |
+61 |     let f = () => T.zero() //~ ERROR `Stat.drop` uses the `Zero` bound on `T`
+   |                   ^^^^^^^
+   = help: read what the drop needs when the value is made and keep it in a field
+
+error[E1217]: `close` requires context key `port` and can't be used as a plain function value
+  --> main/main.kg:92:25
+   |
+92 |     let h = Holder { c: R { id: 3 } } //~ ERROR `close` requires context key `port` and can't be used as a plain function value
+   |                         ^^^^^^^^^
+   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+

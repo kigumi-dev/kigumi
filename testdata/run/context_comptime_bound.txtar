@@ -1,0 +1,44 @@
+-- src --
+context port: Int
+
+@provides(port)
+type Cfg = {
+    pub port Int
+}
+
+type Conn = resource {
+    pub port Int
+}
+
+fn Conn.drop(move self) {
+    print "drop conn ${self.port}"
+}
+
+fn read() -> Int {
+    port
+}
+
+const base: Int = comptime {
+    context (Cfg { port: 100 }) {
+        read() * 2
+    }
+}
+
+fn folded() -> Int {
+    comptime {
+        context (Cfg { port: 7 }) {
+            let f = () => read() + port
+            f()
+        }
+    }
+}
+
+context (Cfg { port: 5 }) {
+    let c = Conn { port: read() }
+    print "${base} ${folded()} ${read()} ${c.port}"
+}
+print "end"
+-- stdout --
+200 14 5 5
+drop conn 5
+end

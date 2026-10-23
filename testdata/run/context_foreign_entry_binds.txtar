@@ -1,0 +1,31 @@
+-- src --
+context port: Int
+
+@provides(port)
+type Cfg = {
+    pub port Int
+}
+
+fn read() -> Int {
+    port
+}
+
+export(C) {
+    pub fn get_port() -> Int {
+        context (Cfg { port: 7 }) {
+            read()
+        }
+    }
+}
+
+fn viaPointer(f: extern(C) fn() -> Int) -> Int {
+    unsafe { f() }
+}
+
+context (Cfg { port: 5 }) {
+    print "kg ${read()} export ${get_port()}"
+}
+print "bare ${get_port()} pointer ${viaPointer(get_port)}"
+-- stdout --
+kg 5 export 7
+bare 7 pointer 7

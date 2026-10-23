@@ -5805,6 +5805,57 @@
       ]
     },
     {
+      "id": "run/context_comptime_bound",
+      "kind": "run",
+      "path": "testdata/run/context_comptime_bound.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_drop_keeps_field",
+      "kind": "run",
+      "path": "testdata/run/context_drop_keeps_field.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_foreign_entry_binds",
+      "kind": "run",
+      "path": "testdata/run/context_foreign_entry_binds.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/context_forward_param",
       "kind": "run",
       "path": "testdata/run/context_forward_param.txtar",
@@ -5825,6 +5876,40 @@
       "id": "run/context_iface_witness_no_requirement",
       "kind": "run",
       "path": "testdata/run/context_iface_witness_no_requirement.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_key_lend_part",
+      "kind": "run",
+      "path": "testdata/run/context_key_lend_part.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/context_key_write_through",
+      "kind": "run",
+      "path": "testdata/run/context_key_write_through.txtar",
       "mode": [
         "vm",
         "native"
@@ -7029,6 +7114,23 @@
       ]
     },
     {
+      "id": "run/drop_bounded_witness_free",
+      "kind": "run",
+      "path": "testdata/run/drop_bounded_witness_free.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/drop_deep_chain",
       "kind": "run",
       "path": "testdata/run/drop_deep_chain.txtar",
@@ -7049,6 +7151,23 @@
       "id": "run/drop_deep_chain_hook",
       "kind": "run",
       "path": "testdata/run/drop_deep_chain_hook.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/drop_generic_unbounded",
+      "kind": "run",
+      "path": "testdata/run/drop_generic_unbounded.txtar",
       "mode": [
         "vm",
         "native"
@@ -16993,6 +17112,61 @@
       ]
     },
     {
+      "id": "sem/context_comptime_key",
+      "kind": "sem",
+      "path": "testdata/sem/context_comptime_key.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_drop_key",
+      "kind": "sem",
+      "path": "testdata/sem/context_drop_key.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_foreign_entry_key",
+      "kind": "sem",
+      "path": "testdata/sem/context_foreign_entry_key.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_key_lend_whole",
+      "kind": "sem",
+      "path": "testdata/sem/context_key_lend_whole.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/context_key_write",
+      "kind": "sem",
+      "path": "testdata/sem/context_key_write.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/context_keys",
       "kind": "sem",
       "path": "testdata/sem/context_keys.txtar",
@@ -17502,6 +17676,17 @@
       "id": "sem/dl_err",
       "kind": "sem",
       "path": "testdata/sem/dl_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/drop_bounded_witness",
+      "kind": "sem",
+      "path": "testdata/sem/drop_bounded_witness.txtar",
       "mode": [
         "check"
       ],

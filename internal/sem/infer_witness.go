@@ -52,8 +52,23 @@ func (c *checker) witnessLocal(n syntax.NodeID, param, req EntityID) EntityID {
 	if !ok || b.Ent == 0 {
 		return 0
 	}
+	c.rejectDropWitness(n, b.Ent)
 	c.noteCapture(n, b.Ent, found)
 	return b.Ent
+}
+
+// rejectDropWitness: drop glue calls a drop with its receiver alone, so the drop's witness slots are empty there.
+func (c *checker) rejectDropWitness(n syntax.NodeID, local EntityID) {
+	fn := c.r.Entities[local].Parent
+	if fn == 0 || !c.r.isDropFn(fn) {
+		return
+	}
+	for _, w := range c.r.Fn(fn).Witnesses {
+		if w.Local == local {
+			what := "the `" + c.r.TypeString(w.Iface) + "` bound on `" + c.r.Entities[w.Param].Name + "`"
+			c.errAt(n, cDropHiddenArg, c.r.Entities[c.r.Fn(fn).Owner].Name+".drop", what)
+		}
+	}
 }
 
 type witnessTask struct {

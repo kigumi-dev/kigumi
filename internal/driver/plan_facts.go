@@ -114,7 +114,7 @@ func analysisKey(m *Module, mod *sem.Module) string {
 	h := sha256.New()
 	w := func(format string, args ...any) { fmt.Fprintf(h, format+"\n", args...) }
 	w("%d %v %v %v %q %d %q %q %q", mod.Target, mod.NoDefaultAllocator, mod.RecoverableOnly, mod.NoPlatform, mod.BlockingProfile, mod.PtrBits, mod.Arch, mod.Deny, mod.LayerCeiling)
-	w("%q %v %d", m.Entry, m.target.StrictStack, m.target.StackBudgetKiB)
+	w("%q %v %d %q", m.Entry, m.target.StrictStack, m.target.StackBudgetKiB, mod.BuildProgram)
 	w("isr %q %q %s", mod.OS, sem.InterruptKey(mod.Interrupt, mod.DepInterrupt), isrContractsVersion(mod))
 	for _, pkg := range mod.Packages {
 		w("pkg %q %q %v", pkg.Path, pkg.Module, pkg.Std)

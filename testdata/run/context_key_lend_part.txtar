@@ -1,0 +1,60 @@
+-- src --
+context r: Rec
+
+type In = {
+    pub mut k Int
+}
+
+fn In.reset(mut self) {
+    self = In { k: 0 }
+}
+
+type Rec = {
+    pub mut n Int
+    pub mut xs Array[Int]
+    pub mut inner In
+}
+
+fn Rec.bump(mut self, by: Int) {
+    self.n = self.n + by
+}
+
+fn touch(p: &mut Rec) {
+    p.n = p.n + 5
+    p.xs.push(p.n)
+    p.bump(1)
+}
+
+fn resetIn(p: &mut In) {
+    p.reset()
+}
+
+type Holder = {
+    pub id Int
+}
+
+fn Holder.poke(self, p: &mut Rec) {
+    p.n = p.n + self.id
+}
+
+@provides(r)
+type Env = {
+    pub mut r Rec
+}
+
+fn callee() {
+    touch(&mut r)
+    Holder { id: 100 }.poke(&mut r)
+    r.inner.k = 9
+    resetIn(&mut r.inner)
+    print "${r.n} ${r.xs.len()} ${r.inner.k}"
+}
+
+context (Env { r: Rec { n: 3, xs: Array.empty(), inner: In { k: 4 } } }) {
+    callee()
+    touch(&mut r)
+    print "${r.n} ${r.xs.len()}"
+}
+-- stdout --
+109 1 0
+115 2

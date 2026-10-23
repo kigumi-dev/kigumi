@@ -36,7 +36,7 @@ func (r *Result) checkContextRequirements() {
 		for _, id := range nodes {
 			set, rset := sets[id], real[id]
 			for _, e := range r.Fn(id).ctxCalls {
-				if len(e.lambdas) > 0 {
+				if len(e.lambdas) > 0 || e.comptime {
 					continue
 				}
 				for k := range sets[e.callee] {
@@ -153,6 +153,11 @@ func (r *Result) resolveCtxFn(fn EntityID) {
 			if src, depth, ok := ctxStackFind(e.stack, key); ok {
 				r.ctxCaptureChain(e.lambdas[depth:], src.Local)
 				binds = append(binds, CtxBind{Key: key, Local: src.Local, Field: src.Field})
+				continue
+			}
+			if e.comptime {
+				r.errAt(e.ref.File, e.ref.Node, cCtxForeignEntry, ctxComptimeWhat, key, ctxComptimeWhere)
+				binds = append(binds, CtxBind{Key: key})
 				continue
 			}
 			if len(e.lambdas) > 0 {

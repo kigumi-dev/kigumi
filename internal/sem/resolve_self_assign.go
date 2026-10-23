@@ -100,7 +100,7 @@ func (c *checker) noteBorrowedRecv(base syntax.NodeID, recv TypeID, m EntityID) 
 		c.queueRefRecv(refCellRecv{ent: ent, callee: m, node: base})
 	} else if c.r.Types.Kind(recv) == KRef {
 		c.queueRefRecv(refCellRecv{callee: m, node: base, what: c.recvRefShape(base)})
-	} else if c.leasedBinding(base) {
+	} else if c.leasedBinding(base) && !c.copyCtxKey(base) {
 		c.queueRefRecv(refCellRecv{callee: m, node: base})
 	}
 }

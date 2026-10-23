@@ -10,10 +10,10 @@ type ComptimeSite struct {
 }
 
 func (c *checker) synthComptimeBlock(n, inner syntax.NodeID) TypeID {
-	saved := c.comptimeAt
-	c.comptimeAt = len(c.lambdas) + 1
+	saved, savedCtx := c.comptimeAt, c.comptimeCtx
+	c.comptimeAt, c.comptimeCtx = len(c.lambdas)+1, len(c.ctxStack)
 	t := c.synth(inner)
-	c.comptimeAt = saved
+	c.comptimeAt, c.comptimeCtx = saved, savedCtx
 	if !c.literalType(t) && !c.initRecordType(t, 0) {
 		c.errAt(n, cComptimeResultType, c.r.TypeString(c.vars.settleLiterals(t)))
 	}
@@ -41,6 +41,18 @@ func (c *checker) leavesComptime(n syntax.NodeID, what string) bool {
 		return false
 	}
 	c.errAt(n, cComptimeFlow, what)
+	return true
+}
+
+// comptimeKeyUnbound reports a key a comptime block reads that no `context` inside the block supplies.
+func (c *checker) comptimeKeyUnbound(n syntax.NodeID, key EntityID) bool {
+	if c.comptimeAt == 0 {
+		return false
+	}
+	if _, _, ok := ctxStackFind(c.ctxStack[c.comptimeCtx:], key); ok {
+		return false
+	}
+	c.errAt(n, cCtxForeignEntry, ctxComptimeWhat, key, ctxComptimeWhere)
 	return true
 }
 

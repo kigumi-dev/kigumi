@@ -1,0 +1,140 @@
+-- src --
+context r: Rec
+
+type Rec = {
+    pub mut n Int
+    pub mut xs Array[Int]
+}
+
+fn Rec.reset(mut self) {
+    self = Rec { n: 0, xs: Array.empty() }
+}
+
+fn Rec.bump(mut self) {
+    self.n = self.n + 1
+}
+
+interface Resettable {
+    fn reset(mut self)
+}
+
+interface Bumpable {
+    fn bump(mut self)
+}
+
+fn replaceWhole(p: &mut Rec) {
+    p.reset()
+}
+
+fn viaCall(p: &mut Rec) {
+    p.n = 11
+    p.reset()
+    p.n = 12
+}
+
+fn viaGeneric[T: Resettable](p: &mut T) {
+    p.reset()
+}
+
+fn bumpGeneric[T: Bumpable](p: &mut T) {
+    p.bump()
+}
+
+fn forward(p: &mut Rec) {
+    replaceWhole(p)
+}
+
+fn touch(p: &mut Rec) {
+    p.n = 1
+    p.xs.push(1)
+}
+
+type Holder = {
+    pub id Int
+}
+
+fn Holder.wipe(self, p: &mut Rec) {
+    p.reset()
+}
+
+@provides(r)
+type Env = {
+    pub mut r Rec
+}
+
+fn callee() {
+    replaceWhole(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+    viaCall(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+    viaGeneric(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+    forward(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+    Holder { id: 1 }.wipe(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+    let f = touch
+    f(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+    let p = &mut r
+    replaceWhole(p) //~ ERROR `p` is a borrow bound to a name
+    touch(&mut r)
+    bumpGeneric(&mut r)
+}
+
+context (Env { r: Rec { n: 3, xs: Array.empty() } }) {
+    callee()
+    replaceWhole(&mut (r)) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+    touch(&mut r)
+}
+-- expect --
+error[E2259]: context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+  --> main/main.kg:65:18
+   |
+65 |     replaceWhole(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+   |                  ^^^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+  --> main/main.kg:66:13
+   |
+66 |     viaCall(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+   |             ^^^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+  --> main/main.kg:67:16
+   |
+67 |     viaGeneric(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+   |                ^^^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+  --> main/main.kg:68:13
+   |
+68 |     forward(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+   |             ^^^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+  --> main/main.kg:69:27
+   |
+69 |     Holder { id: 1 }.wipe(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+   |                           ^^^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E2259]: context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+  --> main/main.kg:71:7
+   |
+71 |     f(&mut r) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+   |       ^^^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+
+error[E1500]: `p` is a borrow bound to a name, with no owner a whole new value could go back to
+  --> main/main.kg:73:18
+   |
+73 |     replaceWhole(p) //~ ERROR `p` is a borrow bound to a name
+   |                  ^
+   = help: write through the place itself, or pass `&mut` straight into the call
+
+error[E2259]: context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+  --> main/main.kg:80:18
+   |
+80 |     replaceWhole(&mut (r)) //~ ERROR context key `r` cannot be lent with `&mut` to a callee that may replace it as a whole
+   |                  ^^^^^^^
+   = help: a key is a lease on its provider's field, not a variable; supply a new value with a nested `context (...) { }`
+

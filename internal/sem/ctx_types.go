@@ -37,6 +37,8 @@ type ctxCallEdge struct {
 	callee  EntityID
 	stack   []ctxFrame
 	lambdas []EntityID
+	// comptime calls see only the frames opened inside their comptime block.
+	comptime bool
 }
 
 // ctxValueRef is a bare function name used as a value (not called directly),
