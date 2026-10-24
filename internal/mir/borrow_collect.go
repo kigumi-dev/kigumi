@@ -22,6 +22,7 @@ func (c *borrowCheck) collect() {
 				c.collectCarry(in, BlockID(bid), i)
 			}
 		}
+		c.refreshReborrows()
 		changed = changed || c.grew
 	}
 }
@@ -66,13 +67,13 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 	}
 	switch in.Op {
 	case OpBorrow:
-		root, path, exact, ok := c.patternPlace(in.Args[0])
 		if has {
-			if ok {
+			if root, path, exact, ok := c.heldPlace(in.Args[0]); ok {
 				c.merge(c.holders[in.Dst], c.throughRef(root, path, exact, in.Index == 1))
 			}
 			return false
 		}
+		root, path, exact, ok := c.patternPlace(in.Args[0])
 		if ok {
 			ref := ownerRef{owner: root, mut: in.Index == 1, path: path, exact: exact, lifetime: c.projectionLifetime(root, in.Args[0])}
 			b := &borrowInfo{owners: []ownerRef{ref}, hasOwner: true, node: in.Node}

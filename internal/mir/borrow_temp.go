@@ -9,7 +9,17 @@ func (c *borrowCheck) tempBorrow(in Inst) (*borrowInfo, bool) {
 	if !ok {
 		return nil, false
 	}
-	return &borrowInfo{owners: []ownerRef{{owner: root, mut: in.Index == 1, path: path, exact: exact, temp: true}}, hasOwner: true, node: in.Node}, true
+	b := &borrowInfo{owners: []ownerRef{{owner: root, mut: in.Index == 1, path: path, exact: exact, temp: true}}, hasOwner: true, node: in.Node}
+	mergeInto(b, c.throughRef(root, path, exact, in.Index == 1))
+	return b, true
+}
+
+// heldPlace is the place a borrow of l takes: under a named root, else in a statement's temporary.
+func (c *borrowCheck) heldPlace(l LocalID) (LocalID, []int, bool, bool) {
+	if root, path, exact, ok := c.patternPlace(l); ok {
+		return root, path, exact, true
+	}
+	return c.tempPlace(l)
 }
 
 func (c *borrowCheck) tempPlace(l LocalID) (LocalID, []int, bool, bool) {

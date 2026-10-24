@@ -1,6 +1,10 @@
 package mir
 
-import "kigumi/internal/hir"
+import (
+	"slices"
+
+	"kigumi/internal/hir"
+)
 
 // exitMark is a place in a scope where a success exit starts, before the exit's value moves anything; defers is how many cleanups were registered by then.
 type exitMark struct {
@@ -90,10 +94,20 @@ func (b *builder) lowerGhosts() {
 	}
 }
 
+// dropGhosts removes the ghost runs' blocks and locals; a block appended after them, as an edge split, stays.
 func (f *Func) dropGhosts() {
 	if len(f.ghosts.runs) == 0 {
 		return
 	}
-	f.Blocks, f.Locals = f.Blocks[:f.ghosts.blocks], f.Locals[:f.ghosts.locals]
+	start, end := f.ghostRange()
+	f.Blocks = slices.Delete(f.Blocks, start, end)
+	for b := range f.Blocks {
+		for i, t := range f.Blocks[b].Term.Targets {
+			if int(t) >= end {
+				f.Blocks[b].Term.Targets[i] = t - BlockID(end-start)
+			}
+		}
+	}
+	f.Locals = f.Locals[:f.ghosts.locals]
 	f.ghosts = ghostSet{}
 }

@@ -1,0 +1,595 @@
+-- module --
+mir: planned
+-- src --
+type Bag = {pub mut items Array[i64], pub mut tag String}
+type Sh = Boxy(b: Bag) | Nil
+type Hold = {pub mut sh Sh, pub mut n Int}
+type Inner = {pub mut bag Bag, pub mut x Int}
+type Deep = {pub mut a Int, pub mut inner Inner}
+type W['a] = {pub r &'a mut Sh}
+type Wr = {pub mut h Hold}
+type View['a] = {pub data &'a Bytes}
+
+fn shMut(h: &mut Hold) -> &mut Sh { &mut h.sh }
+fn Hold.shM(mut self) -> &mut Sh { &mut self.sh }
+fn Hold.view(self) -> &Sh { &self.sh }
+fn innerMut(d: &mut Deep) -> &mut Inner { &mut d.inner }
+fn idr[T](x: T) -> T { x }
+fn apply[R](h: &mut Hold, f: fn(&mut Hold) -> R) -> R { f(h) }
+fn first['a](a: &'a mut Hold, b: &mut Hold) -> &'a mut Sh { &mut a.sh }
+fn touch(h: &mut Hold) { h.sh = Sh.Nil }
+fn count(h: &mut Hold) -> Int { h.n }
+fn isBoxy(s: &mut Sh) -> Bool { s is Boxy(_) }
+fn hm(w: &mut Wr) -> &mut Hold { &mut w.h }
+fn pick['a](a: &'a mut Hold, b: &'a mut Hold, c: Bool) -> &'a mut Sh {
+    if c { &mut a.sh } else { &mut b.sh }
+}
+fn pickBytes['a](c: Bool, a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    if c { a } else { b }
+}
+
+fn passed(h: &mut Hold) -> Bool {
+    let r = shMut(h)
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn written(h: &mut Hold) -> Bool {
+    let r = shMut(h)
+    h.sh = Sh.Nil //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn read(h: &mut Hold) -> Bool {
+    let r = shMut(h)
+    let k = count(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    k > 0 && isBoxy(r)
+}
+
+fn method(h: &mut Hold) -> Bool {
+    let r = h.shM()
+    h.n = 2 //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn sharedMethod(h: &mut Hold) -> Bool {
+    let r = h.view()
+    h.sh = Sh.Nil //~ ERROR `h` is borrowed and cannot be mutated here
+    r is Boxy(_)
+}
+
+fn generic(h: &mut Hold) -> Bool {
+    let r = idr(shMut(h))
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn fnValue(h: &mut Hold) -> Bool {
+    let r = apply(h, shMut)
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn named(h: &mut Hold, g: &mut Hold) -> Bool {
+    let r = first(h, g)
+    touch(g)
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn tempScrutinee(h: &mut Hold) -> String {
+    if shMut(h) is Boxy(b) {
+        touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+        return b.tag
+    }
+    ""
+}
+
+fn matched(h: &mut Hold) -> String {
+    match shMut(h) {
+        Boxy(b) -> {
+            touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+            b.tag
+        }
+        Nil -> ""
+    }
+}
+
+fn binding(h: &mut Hold) -> String {
+    let r = shMut(h)
+    if r is Boxy(b) {
+        h.n = 3 //~ ERROR `h` is exclusively borrowed and cannot be used here
+        return b.tag
+    }
+    ""
+}
+
+fn field(d: &mut Deep) -> Int {
+    let r = innerMut(d)
+    let c = &mut r.bag
+    d.inner.bag.items = Array.of(9) //~ ERROR `d` is exclusively borrowed and cannot be used here
+    c.items.len().toInt() || 0
+}
+
+fn fieldLocal() -> Int {
+    let mut dd = Deep { a: 1, inner: Inner { bag: Bag { items: Array.of(1), tag: "t" }, x: 2 } }
+    let r = innerMut(&mut dd)
+    let c = &mut r.bag
+    dd.inner.bag.tag = "z" //~ ERROR `dd` is exclusively borrowed and cannot be used here
+    c.tag.len().toInt() || 0
+}
+
+fn stored(h: &mut Hold) -> Bool {
+    let w = W { r: shMut(h) }
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(w.r)
+}
+
+fn inArray(h: &mut Hold) -> usize {
+    let ws = Array.of(W { r: shMut(h) })
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    ws.len()
+}
+
+fn returned(h: &mut Hold) -> &mut Sh {
+    let r = shMut(h)
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    r
+}
+
+fn looped(h: &mut Hold) -> Bool {
+    let r = shMut(h)
+    let mut seen = false
+    for i in 0..2 {
+        seen = isBoxy(r)
+        touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    }
+    seen
+}
+
+fn localRef() -> Bool {
+    let mut hh = Hold { sh: Sh.Nil, n: 1 }
+    let h = &mut hh
+    let r = shMut(h)
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn ownerBehindRef() -> Bool {
+    let mut hh = Hold { sh: Sh.Nil, n: 1 }
+    let h = &mut hh
+    let r = h.shM()
+    hh.n = 5 //~ ERROR `hh` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn patternRef(o: &mut Option[Hold]) -> Bool {
+    if o is Some(h) {
+        let r = shMut(h)
+        touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+        return isBoxy(r)
+    }
+    false
+}
+
+fn resultRef(w: &mut Wr) -> Bool {
+    let h = hm(w)
+    let r = shMut(h)
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn loopRef(a: &mut Array[Hold]) -> Bool {
+    for h in a {
+        let r = shMut(h)
+        touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+        return isBoxy(r)
+    }
+    false
+}
+
+fn mixedLocal(h: &mut Hold) -> Bool {
+    let mut l = Hold { sh: Sh.Nil, n: 1 }
+    let r = pick(h, &mut l, true)
+    l.n = 4 //~ ERROR `l` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn mixedParam(h: &mut Hold) -> Bool {
+    let mut l = Hold { sh: Sh.Nil, n: 1 }
+    let r = pick(h, &mut l, true)
+    h.n = 4 //~ ERROR `h` is exclusively borrowed and cannot be used here
+    isBoxy(r)
+}
+
+fn mixedLent['a](v: View['a]) -> usize {
+    let buf = Bytes.fromArray(&Array.of(9, 9))
+    let r = pickBytes(true, v.data, &buf) //~ ERROR a borrow returned through this call may come from `buf`, a local
+    r.len()
+}
+
+fn continued(h: &mut Hold, c: Bool) -> Int {
+    let r = shMut(h)
+    let mut a = 0
+    for i in 0..3 {
+        if isBoxy(r) {
+            a += 1
+        }
+        if c {
+            h.sh = Sh.Nil //~ ERROR `h` is exclusively borrowed and cannot be used here
+            continue
+        }
+    }
+    a
+}
+
+fn usedAfterLoop(h: &mut Hold, c: Bool) -> Bool {
+    let r = shMut(h)
+    for i in 0..3 {
+        if c {
+            h.sh = Sh.Nil //~ ERROR `h` is exclusively borrowed and cannot be used here
+            break
+        }
+    }
+    isBoxy(r)
+}
+
+fn inPayload(h: &mut Hold) -> Bool {
+    let w = Some(shMut(h))
+    touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    if w is Some(x) { isBoxy(x) } else { false }
+}
+
+fn inlineInPayload(h: &mut Hold) -> Bool {
+    let w = Some(&mut h.sh) //~ ERROR a borrow cannot go in payload 0, a payload of `Option`
+    if w is Some(x) { isBoxy(x) } else { false }
+}
+
+fn inElement(h: &mut Hold) -> usize {
+    let w = Array.of(shMut(h)) //~ ERROR a borrow cannot go in element 0
+    w.len()
+}
+
+-- expect --
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:30:5
+   |
+30 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |     ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:29:13
+   |
+29 |     let r = shMut(h)
+   |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:36:5
+   |
+36 |     h.sh = Sh.Nil //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |     ^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:35:13
+   |
+35 |     let r = shMut(h)
+   |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:42:13
+   |
+42 |     let k = count(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |             ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:41:13
+   |
+41 |     let r = shMut(h)
+   |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:48:5
+   |
+48 |     h.n = 2 //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:47:13
+   |
+47 |     let r = h.shM()
+   |             ^^^^^^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:54:5
+   |
+54 |     h.sh = Sh.Nil //~ ERROR `h` is borrowed and cannot be mutated here
+   |     ^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:53:13
+   |
+53 |     let r = h.view()
+   |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:60:5
+   |
+60 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |     ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:59:17
+   |
+59 |     let r = idr(shMut(h))
+   |                 ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:66:5
+   |
+66 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |     ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:65:13
+   |
+65 |     let r = apply(h, shMut)
+   |             ^^^^^^^^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:73:5
+   |
+73 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |     ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:71:13
+   |
+71 |     let r = first(h, g)
+   |             ^^^^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:79:9
+   |
+79 |         touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |         ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:78:25
+   |
+78 |     if shMut(h) is Boxy(b) {
+   |                         ^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:88:13
+   |
+88 |             touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |             ^^^^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:87:14
+   |
+87 |         Boxy(b) -> {
+   |              ^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+  --> main.kg:98:9
+   |
+98 |         h.n = 3 //~ ERROR `h` is exclusively borrowed and cannot be used here
+   |         ^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:97:18
+   |
+97 |     if r is Boxy(b) {
+   |                  ^
+
+error[E2198]: `d` is exclusively borrowed and cannot be used here
+   --> main.kg:107:5
+    |
+107 |     d.inner.bag.items = Array.of(9) //~ ERROR `d` is exclusively borrowed and cannot be used here
+    |     ^^^^^^^^^^^^^^^^^
+    = help: end the borrow first or use a copy
+note: `d` is borrowed here
+   --> main.kg:106:13
+    |
+106 |     let c = &mut r.bag
+    |             ^^^^^^^^^^
+
+error[E2198]: `dd` is exclusively borrowed and cannot be used here
+   --> main.kg:115:5
+    |
+115 |     dd.inner.bag.tag = "z" //~ ERROR `dd` is exclusively borrowed and cannot be used here
+    |     ^^^^^^^^^^^^^^^^
+    = help: end the borrow first or use a copy
+note: `dd` is borrowed here
+   --> main.kg:114:13
+    |
+114 |     let c = &mut r.bag
+    |             ^^^^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:121:5
+    |
+121 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |     ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:120:20
+    |
+120 |     let w = W { r: shMut(h) }
+    |                    ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:127:5
+    |
+127 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |     ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:126:14
+    |
+126 |     let ws = Array.of(W { r: shMut(h) })
+    |              ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:133:5
+    |
+133 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |     ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:132:13
+    |
+132 |     let r = shMut(h)
+    |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:142:9
+    |
+142 |         touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |         ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:138:13
+    |
+138 |     let r = shMut(h)
+    |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:151:5
+    |
+151 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |     ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:150:13
+    |
+150 |     let r = shMut(h)
+    |             ^^^^^^^
+
+error[E2198]: `hh` is exclusively borrowed and cannot be used here
+   --> main.kg:159:5
+    |
+159 |     hh.n = 5 //~ ERROR `hh` is exclusively borrowed and cannot be used here
+    |     ^^^^
+    = help: end the borrow first or use a copy
+note: `hh` is borrowed here
+   --> main.kg:157:13
+    |
+157 |     let h = &mut hh
+    |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:166:9
+    |
+166 |         touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |         ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:165:17
+    |
+165 |         let r = shMut(h)
+    |                 ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:175:5
+    |
+175 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |     ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:174:13
+    |
+174 |     let r = shMut(h)
+    |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:182:9
+    |
+182 |         touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |         ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:181:17
+    |
+181 |         let r = shMut(h)
+    |                 ^^^^^^^
+
+error[E2198]: `l` is exclusively borrowed and cannot be used here
+   --> main.kg:191:5
+    |
+191 |     l.n = 4 //~ ERROR `l` is exclusively borrowed and cannot be used here
+    |     ^^^
+    = help: end the borrow first or use a copy
+note: `l` is borrowed here
+   --> main.kg:190:13
+    |
+190 |     let r = pick(h, &mut l, true)
+    |             ^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:198:5
+    |
+198 |     h.n = 4 //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |     ^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:197:13
+    |
+197 |     let r = pick(h, &mut l, true)
+    |             ^^^^^^^^^^^^^^^^^^^^
+
+error[E2315]: a borrow returned through this call may come from `buf`, a local, or from a borrow a parameter carries in, and the checker cannot trace the two together; pass the call only one kind, for instance by binding a reference read from a parameter to a local first
+   --> main.kg:204:13
+    |
+204 |     let r = pickBytes(true, v.data, &buf) //~ ERROR a borrow returned through this call may come from `buf`, a local
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:216:13
+    |
+216 |             h.sh = Sh.Nil //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |             ^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:209:13
+    |
+209 |     let r = shMut(h)
+    |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:227:13
+    |
+227 |             h.sh = Sh.Nil //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |             ^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:224:13
+    |
+224 |     let r = shMut(h)
+    |             ^^^^^^^
+
+error[E2198]: `h` is exclusively borrowed and cannot be used here
+   --> main.kg:236:5
+    |
+236 |     touch(h) //~ ERROR `h` is exclusively borrowed and cannot be used here
+    |     ^^^^^^^
+    = help: end the borrow first or use a copy
+note: `h` is borrowed here
+   --> main.kg:235:18
+    |
+235 |     let w = Some(shMut(h))
+    |                  ^^^^^^^
+
+error[E1582]: a borrow cannot go in payload 0, a payload of `Option`: a payload declared that way is released with the variant, and this borrow has no count to give; nest it in a type that takes a `['a]` and routes the borrow through its own field, or store a value it can own
+   --> main.kg:241:13
+    |
+241 |     let w = Some(&mut h.sh) //~ ERROR a borrow cannot go in payload 0, a payload of `Option`
+    |             ^^^^^^^^^^^^^^
+
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
+   --> main.kg:246:13
+    |
+246 |     let w = Array.of(shMut(h)) //~ ERROR a borrow cannot go in element 0
+    |             ^^^^^^^^^^^^^^^^
+

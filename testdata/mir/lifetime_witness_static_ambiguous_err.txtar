@@ -38,9 +38,15 @@ fn lib.useStatic(%x: T, %a: &Bytes, %$w:T:make: fn(&Bytes, &Bytes) -> &Bytes) ->
     drop(%x)
     return %t13
 }
-error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+error[borrow-escape]: a borrow cannot be returned
   --> lib/lt.kg:13:5
    |
 13 |     T.make(a, &buf2)
    |     ^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `buf2` is still borrowed when its scope ends here
+  --> lib/lt.kg:12:9
+   |
+12 |     let buf2 = Bytes.fromArray(&Array.of(1, 2, 3))
+   |         ^^^^
 

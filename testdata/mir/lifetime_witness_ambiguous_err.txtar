@@ -37,7 +37,7 @@ fn lib.useWitness(%x: T, %$w:T:mix: fn(&Bytes) -> &Bytes) -> &Bytes {
     drop(%x)
     return %t11
 }
-error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+error[E2315]: a borrow returned through this call may come from `buf2`, a local, or from a borrow a parameter carries in, and the checker cannot trace the two together; pass the call only one kind, for instance by binding a reference read from a parameter to a local first
   --> lib/lt.kg:13:5
    |
 13 |     x.mix(&buf2)

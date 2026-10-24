@@ -13178,6 +13178,23 @@
       ]
     },
     {
+      "id": "run/mut_result_tie",
+      "kind": "run",
+      "path": "testdata/run/mut_result_tie.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/mut_self_adt",
       "kind": "run",
       "path": "testdata/run/mut_self_adt.txtar",
@@ -21364,6 +21381,17 @@
       "id": "sem/mut_ref_recv_field_err",
       "kind": "sem",
       "path": "testdata/sem/mut_ref_recv_field_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/mut_result_tie_err",
+      "kind": "sem",
+      "path": "testdata/sem/mut_result_tie_err.txtar",
       "mode": [
         "check"
       ],

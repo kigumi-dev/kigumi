@@ -27,15 +27,16 @@ func (c *borrowCheck) throughRef(root LocalID, path []int, exact, mut bool) *bor
 		return nil
 	}
 	out := &borrowInfo{hasOwner: true, node: b.node}
+	cut := c.fromCall(root)
 	for _, o := range b.owners {
 		if o.view || o.carried {
 			continue
 		}
 		p := slices.Clone(o.path)
-		if o.exact {
+		if o.exact && !cut {
 			p = append(p, path...)
 		}
-		out.owners = append(out.owners, ownerRef{owner: o.owner, mut: mut, path: p, exact: o.exact && exact, lifetime: o.lifetime, cell: o.cell})
+		out.owners = append(out.owners, ownerRef{owner: o.owner, mut: mut, path: p, exact: o.exact && exact && !cut, lifetime: o.lifetime, cell: o.cell})
 	}
 	if len(out.owners) == 0 {
 		return nil

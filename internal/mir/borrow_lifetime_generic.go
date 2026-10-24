@@ -1,6 +1,10 @@
 package mir
 
-import "kigumi/internal/sem"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
 
 // genericParamLifetimeSource matches a bare-type-parameter return against the
 // same parameter on info's own params (no per-call-site lifetime substitution).
@@ -48,8 +52,8 @@ func (c *borrowCheck) resolveLifetimeHolder(ent sem.EntityID, args []LocalID, ca
 			tracked = append(tracked, cand)
 		}
 	}
-	if i, ok := c.resolveLifetimeCandidate(ent, tracked); ok {
-		return c.candidateInfo(args, tracked[i])
+	if i, one := c.resolveLifetimeCandidate(ent, tracked); one {
+		return c.tiedInfo(args, tracked[i])
 	}
 	return c.sameKindCandidate(args, tracked)
 }
@@ -83,25 +87,40 @@ func (c *borrowCheck) resolveLifetimeCandidate(ent sem.EntityID, candidates []li
 	return match, found
 }
 
-// sameKindCandidate is the untraceable-body fallback: it unions every same-kind
-// candidate's owners, since the callee could return any of them at runtime.
+// sameKindCandidate is the untraceable-body fallback: it unions every candidate's owners, since the callee could
+// return any of them; borrows a parameter lends join only borrows held under that same parameter lifetime.
 func (c *borrowCheck) sameKindCandidate(args []LocalID, candidates []lifetimeCandidate) (*borrowInfo, bool) {
-	if len(candidates) == 0 {
-		return nil, false
-	}
-	first, ok := c.candidateInfo(args, candidates[0])
-	if !ok {
-		return nil, false
-	}
-	merged := &borrowInfo{hasOwner: first.hasOwner, lifetime: first.lifetime, node: first.node}
-	merged.owners = append(merged.owners, first.owners...)
-	for _, cand := range candidates[1:] {
-		b, ok := c.candidateInfo(args, cand)
-		if !ok || b.hasOwner != first.hasOwner || (!first.hasOwner && b.lifetime != first.lifetime) {
+	var owned, lent []*borrowInfo
+	for _, cand := range candidates {
+		b, ok := c.tiedInfo(args, cand)
+		switch {
+		case !ok:
 			return nil, false
+		case b.hasOwner:
+			owned = append(owned, b)
+		default:
+			lent = append(lent, b)
 		}
+	}
+	if len(owned) == 0 && len(lent) == 0 || slices.ContainsFunc(lent, func(b *borrowInfo) bool { return b.lifetime != lent[0].lifetime }) {
+		return nil, false
+	}
+	if len(owned) == 0 {
+		merged := &borrowInfo{lifetime: lent[0].lifetime, node: lent[0].node}
+		for _, b := range lent {
+			merged.owners = append(merged.owners, b.owners...)
+		}
+		return merged, true
+	}
+	if len(lent) > 0 && (lent[0].lifetime == 0 || slices.ContainsFunc(owned, func(b *borrowInfo) bool { return referentLifetime(b) != lent[0].lifetime })) {
+		c.noteMixed(owned)
+		return nil, false
+	}
+	merged := &borrowInfo{hasOwner: true, node: owned[0].node}
+	for _, b := range owned {
 		merged.owners = append(merged.owners, b.owners...)
 	}
+	c.unions = append(c.unions, unionSite{merged, owned})
 	return merged, true
 }
 

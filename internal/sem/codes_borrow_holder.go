@@ -18,3 +18,5 @@ var (
 var cMutFieldLentTwice = defineCode("E2293", "mut-field-lent-twice", "`{place}` is lent to this call as `&mut`, and another argument or the receiver of the same call reaches that value too; the callee would hold two paths to it; pass it once, or read the other value before the call")
 
 var cSharedMutRef = defineCode("E2292", "shared-mut-ref", "`{place}` is a `&mut` reached through a shared reference, so it cannot be copied out or written through: another path to the same value can still use it; read through it, or take the holder with `&mut` or `mut self`")
+
+var cLifetimeMixedCall = defineCode("E2315", "lifetime-mixed-call", "a borrow returned through this call may come from `{name}`, a local, or from a borrow a parameter carries in, and the checker cannot trace the two together; pass the call only one kind, for instance by binding a reference read from a parameter to a local first")

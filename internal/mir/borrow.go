@@ -31,6 +31,8 @@ type ownerRef struct {
 	caller bool
 	// node is where a store put this borrow into its holder, 0 for the holder's own node.
 	node syntax.NodeID
+	// through marks a call result's borrow through a reference local; the result holds its own count, so the local may end first.
+	through bool
 }
 
 // borrowInfo tracks every owner a holder might alias, not just one: an ambiguous
@@ -92,6 +94,10 @@ type borrowCheck struct {
 	recvBorrows map[recvBorrowKey]*borrowInfo
 	callNode    syntax.NodeID
 	thread      *flagThread
+	callRefs    map[LocalID]bool
+	reborrows   []reborrowSite
+	unions      []unionSite
+	mixed       map[syntax.NodeID]LocalID
 }
 
 func analyzeBorrows(p *Program, f *Func) {
@@ -172,7 +178,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 			continue
 		}
 		for _, o := range b.owners {
-			if o.view || o.cell || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
+			if o.view || o.cell || o.through && in.Op == OpDrop && in.EndScope || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
 				continue
 			}
 			touched, path, _ := c.touch(in, o.owner)

@@ -135,8 +135,7 @@ func (c *borrowCheck) rejectUntrackedResult(in Inst) (*borrowInfo, bool) {
 			c.reportCode(in.Node, in.Dst, "borrow-multi-lifetime", c.p.R.TypeString(t))
 			return nil, false
 		}
-		code, msg := lifetimeUntrackedDiag("lifetime-untracked-call")
-		c.report(in.Node, in.Dst, code, msg)
+		c.reportUntrackedCall(in)
 	}
 	return nil, false
 }

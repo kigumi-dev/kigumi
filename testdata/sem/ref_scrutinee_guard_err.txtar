@@ -43,7 +43,7 @@ fn rootMoved() -> String {
     let mut s = mkSh("a")
     match 0 {
         0 if pickSh(&s) is Boxy(b) -> {
-            s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here
+            s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here //~ ERROR `s` is borrowed and cannot be mutated here
             b.tag
         }
         _ -> "",
@@ -109,10 +109,22 @@ error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` crea
 33 |     if let Some(k) = o; c && pickSh(r) is Boxy(b) { //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
    |                                                ^
 
+error[E2198]: `s` is borrowed and cannot be mutated here
+  --> main.kg:43:13
+   |
+43 |             s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here //~ ERROR `s` is borrowed and cannot be mutated here
+   |             ^
+   = help: end the borrow first or use a copy
+note: `s` is borrowed here
+  --> main.kg:42:33
+   |
+42 |         0 if pickSh(&s) is Boxy(b) -> {
+   |                                 ^
+
 error[move-while-borrowed]: `s` is borrowed and cannot be moved or dropped here
   --> main.kg:43:13
    |
-43 |             s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here
+43 |             s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here //~ ERROR `s` is borrowed and cannot be mutated here
    |             ^
 
 error[E2198]: `h` is borrowed and cannot be mutated here
@@ -122,10 +134,10 @@ error[E2198]: `h` is borrowed and cannot be mutated here
    |             ^^^^
    = help: end the borrow first or use a copy
 note: `h` is borrowed here
-  --> main.kg:52:21
+  --> main.kg:52:36
    |
 52 |         0 if pickSh(&h.sh) is Boxy(b) -> {
-   |                     ^^^^^
+   |                                    ^
 
 error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
   --> main.kg:61:9

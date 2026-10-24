@@ -1,0 +1,586 @@
+-- src --
+type Bag = {pub mut items Array[i64], pub mut tag String}
+type Sh = Boxy(b: Bag) | Nil
+type Hold = {pub mut sh Sh, pub mut n Int}
+type W['a] = {pub r &'a mut Sh}
+type Hs = {pub mut a Array[Bag]}
+type Vw['a] = {pub data &'a Bytes}
+type Hd['a] = {pub data &'a Bytes}
+type Wrap[T] = {pub mut v T}
+type Rd['a] = {pub r &'a Hold}
+type R = resource {
+    pub id Int
+}
+type Rs = Has(r: R) | Gone
+type RHold = {pub mut s Rs}
+type Outer = {pub mut inner RHold, pub mut m Int}
+
+fn mkSh(t: String) -> Sh { Sh.Boxy(Bag { items: Array.of(1), tag: t }) }
+fn shMut(h: &mut Hold) -> &mut Sh { &mut h.sh }
+fn view(h: &Hold) -> &Sh { &h.sh }
+fn Hold.shM(mut self) -> &mut Sh { &mut self.sh }
+fn Hold.peek(self) -> &Sh { &self.sh }
+fn idr[T](x: T) -> T { x }
+fn Hs.first(mut self) -> &mut Bag { &mut self.a[0] }
+fn pick['a](a: &'a mut Hold, b: &'a mut Hold, c: Bool) -> &'a mut Sh {
+    if c { &mut a.sh } else { &mut b.sh }
+}
+fn pickBytes['a](c: Bool, a: &'a Bytes, b: &'a Bytes) -> &'a Bytes {
+    if c { a } else { b }
+}
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+fn rsMut(h: &mut RHold) -> &mut Rs { &mut h.s }
+fn RHold.rsM(mut self) -> &mut Rs { &mut self.s }
+fn sub(o: &mut Outer) -> &mut RHold { &mut o.inner }
+fn Outer.subM(mut self) -> &mut RHold { &mut self.inner }
+fn mkRs(i: Int) -> Rs { Rs.Has(R { id: i }) }
+fn Hd['a].pick(self, c: Bool, b: &'a Bytes) -> &'a Bytes { if c { self.data } else { b } }
+fn idOf(s: &mut Rs) -> Int {
+    match s {
+        Has(r) -> r.id
+        Gone -> 0
+    }
+}
+fn count(h: &mut Hold) -> Int { h.n }
+fn touch(h: &mut Hold) { h.sh = Sh.Nil }
+fn tagOf(s: &Sh) -> String {
+    match s {
+        Boxy(b) -> b.tag
+        Nil -> "nil"
+    }
+}
+fn tagMut(s: &mut Sh) -> String {
+    match s {
+        Boxy(b) -> b.tag
+        Nil -> "nil"
+    }
+}
+fn retag(s: &mut Sh, t: String) {
+    if s is Boxy(b) {
+        b.tag = t
+    }
+}
+
+fn lastUse(h: &mut Hold) -> String {
+    let r = shMut(h)
+    let t = tagMut(r)
+    touch(h)
+    "${t} ${tagOf(&h.sh)}"
+}
+
+fn twice(h: &mut Hold) -> String {
+    let a = tagMut(shMut(h))
+    let r = shMut(h)
+    retag(r, "again")
+    let s = shMut(h)
+    let b = tagMut(s)
+    "${a} ${b} ${h.n}"
+}
+
+fn shared(h: &Hold) -> String {
+    let r = view(h)
+    let p = h.peek()
+    "${h.n} ${tagOf(r)} ${tagOf(p)}"
+}
+
+fn noRef(h: &mut Hold) -> Int {
+    let k = count(h)
+    touch(h)
+    k + h.n
+}
+
+fn method(h: &mut Hold) -> String {
+    let r = h.shM()
+    retag(r, "method")
+    let t = tagOf(&h.sh)
+    touch(h)
+    "${t} ${tagOf(&h.sh)}"
+}
+
+fn pass(h: &mut Hold) -> &mut Sh { shMut(h) }
+
+fn generic(h: &mut Hold) -> String {
+    let r = idr(shMut(h))
+    let t = tagMut(r)
+    h.n = 70
+    "${t} ${h.n}"
+}
+
+fn pattern(h: &mut Hold) -> String {
+    if shMut(h) is Boxy(b) {
+        b.tag = "pattern"
+    }
+    let t = tagOf(&h.sh)
+    touch(h)
+    "${t} ${tagOf(&h.sh)}"
+}
+
+fn stored(h: &mut Hold) -> String {
+    let ws = Array.of(W { r: shMut(h) })
+    let t = "${ws.len()}"
+    let w = W { r: shMut(h) }
+    retag(w.r, "stored")
+    let u = tagOf(&h.sh)
+    touch(h)
+    "${t} ${u}"
+}
+
+fn local() -> String {
+    let mut hh = Hold { sh: mkSh("local"), n: 1 }
+    let r = shMut(&mut hh)
+    let t = tagMut(r)
+    hh.n = 2
+    "${t} ${hh.n}"
+}
+
+fn seqParam(h: &mut Hold) -> String {
+    let r = h.shM()
+    retag(r, "seq1")
+    let s = h.shM()
+    let t = tagMut(s)
+    retag(h.shM(), "seq2")
+    "${t} ${tagOf(&h.sh)}"
+}
+
+fn seqLocal() -> String {
+    let mut hh = Hold { sh: mkSh("l"), n: 1 }
+    let r = hh.shM()
+    retag(r, "seqLocal")
+    let q = hh.shM()
+    tagMut(q)
+}
+
+fn seqFirst(h: &mut Hs) -> String {
+    let x = h.first()
+    x.tag = "1"
+    let y = h.first()
+    y.tag = "${y.tag}2"
+    y.tag
+}
+
+fn writeAfter(h: &mut Hold) -> String {
+    let t = shMut(h)
+    if t is Boxy(b) {
+        b.tag = "q"
+    }
+    h.sh = mkSh("written")
+    tagOf(&h.sh)
+}
+
+fn writeAfterLocal() -> String {
+    let mut hh = Hold { sh: mkSh("l"), n: 1 }
+    let t = shMut(&mut hh)
+    if t is Boxy(b) {
+        b.tag = "q"
+    }
+    hh.sh = mkSh("writtenLocal")
+    tagOf(&hh.sh)
+}
+
+fn writeAfterLoop(h: &mut Hold) -> String {
+    let mut n = ""
+    for i in 0..2 {
+        let t = shMut(h)
+        if t is Boxy(b) {
+            n = "${n}${b.tag},"
+        }
+        h.sh = mkSh("w${i}")
+    }
+    n
+}
+
+fn refLocals(a: &mut Array[Hold]) -> String {
+    let mut hh = Hold { sh: mkSh("rl"), n: 1 }
+    let r = {
+        let h = &mut hh
+        shMut(h)
+    }
+    let first = tagMut(r)
+    let h = &mut hh
+    let s = shMut(h)
+    let second = tagMut(s)
+    touch(h)
+    hh.n = 3
+    let mut n = 0
+    for x in a {
+        let q = shMut(x)
+        if isBoxy(q) {
+            n += 1
+        }
+        touch(x)
+    }
+    "${first} ${second} ${hh.n} ${n}"
+}
+
+fn isBoxy(s: &mut Sh) -> Bool { s is Boxy(_) }
+
+fn mixed(h: &mut Hold) -> String {
+    let mut l = Hold { sh: mkSh("ml"), n: 1 }
+    let r = pick(h, &mut l, false)
+    retag(r, "mixed")
+    tagOf(&l.sh)
+}
+
+fn lent['a](v: Vw['a]) -> usize {
+    let buf = Bytes.fromArray(&Array.of(9, 9, 9))
+    let d = v.data
+    let r = pickBytes(false, d, &buf)
+    r.len()
+}
+
+fn viaField['a](v: Rd['a]) -> &'a Sh {
+    let d = v.r
+    view(d)
+}
+
+fn order(h: &mut RHold) {
+    let t = rsMut(h)
+    if t is Has(r) {
+        print "saw ${r.id}"
+    }
+    h.s = Rs.Has(R { id: 2 })
+    print "after write"
+    let a = h.rsM()
+    print "first ${idOf(a)}"
+    let b = h.rsM()
+    print "second ${idOf(b)}"
+    h.s = Rs.Has(R { id: 3 })
+    print "after second write"
+    for i in 0..2 {
+        let u = rsMut(h)
+        if u is Has(r) {
+            print "loop saw ${r.id}"
+        }
+        h.s = Rs.Has(R { id: 10 + i })
+        print "loop wrote ${i}"
+    }
+}
+
+fn viaLocalRef(o: &mut Outer) -> &mut Rs {
+    let a = &mut o.inner
+    rsMut(a)
+}
+
+fn viaResult(o: &mut Outer) -> &mut Rs {
+    let a = sub(o)
+    rsMut(a)
+}
+
+fn viaMethod(o: &mut Outer) -> &mut Rs {
+    let a = o.subM()
+    rsMut(a)
+}
+
+fn viaEarly(o: &mut Outer, c: Bool) -> &mut Rs {
+    let a = sub(o)
+    if c {
+        return rsMut(a)
+    }
+    rsMut(a)
+}
+
+fn chain(o: &mut Outer) -> Int {
+    let a = sub(o)
+    let r = rsMut(a)
+    let k = idOf(r)
+    o.inner.s = mkRs(50)
+    print "chain wrote"
+    k
+}
+
+fn chainBlock(o: &mut Outer) -> Int {
+    let k = {
+        let a = sub(o)
+        let r = rsMut(a)
+        idOf(r)
+    }
+    o.inner.s = mkRs(51)
+    print "chainBlock wrote"
+    k
+}
+
+fn oneBranch(h: &mut RHold, c: Bool) -> Int {
+    let t = rsMut(h)
+    if c {
+        h.s = mkRs(60)
+        print "oneBranch wrote"
+    } else {
+        print "oneBranch read ${idOf(t)}"
+    }
+    0
+}
+
+fn oneBranchLocal(c: Bool) -> Int {
+    let mut h = RHold { s: mkRs(61) }
+    let t = rsMut(&mut h)
+    if c {
+        h.s = mkRs(62)
+        print "oneBranchLocal wrote"
+    } else {
+        print "oneBranchLocal read ${idOf(t)}"
+    }
+    0
+}
+
+fn lentBoth['a](a: &'a Bytes, v: Vw['a], c: Bool) -> &'a Bytes { pickBytes(c, a, v.data) }
+
+fn lentBothLocal['a](a: &'a Bytes, v: Vw['a], c: Bool) -> usize {
+    let r = pickBytes(c, v.data, a)
+    r.len()
+}
+
+fn lentRecv['a](h: Hd['a], a: &'a Bytes, c: Bool) -> &'a Bytes { h.pick(c, a) }
+
+fn breakAfterWrite(h: &mut RHold, c: Bool) -> Int {
+    let t = rsMut(h)
+    let mut a = 0
+    for i in 0..3 {
+        a += idOf(t)
+        if c {
+            h.s = mkRs(70)
+            print "breakAfterWrite wrote"
+            break
+        }
+    }
+    a
+}
+
+fn breakBeforeUse(h: &mut RHold, c: Bool) -> Int {
+    let t = rsMut(h)
+    let mut a = 0
+    for i in 0..3 {
+        if c {
+            h.s = mkRs(71)
+            print "breakBeforeUse wrote"
+            break
+        }
+        a += idOf(t)
+    }
+    a
+}
+
+fn breakLocal() -> Int {
+    let mut hh = RHold { s: mkRs(72) }
+    let t = rsMut(&mut hh)
+    let mut a = 0
+    for i in 0..3 {
+        a += idOf(t)
+        if i == 1 {
+            hh.s = mkRs(73)
+            print "breakLocal wrote"
+            break
+        }
+    }
+    a
+}
+
+fn payload(h: &mut RHold) -> Int {
+    let w = Some(rsMut(h))
+    if w is Some(s) { idOf(s) } else { 0 }
+}
+
+fn payloadNested(h: &mut RHold) -> Int {
+    let x = Wrap { v: Some(rsMut(h)) }
+    if x.v is Some(s) { idOf(s) } else { 0 }
+}
+
+fn payloadLocal() -> Int {
+    let mut hh = RHold { s: mkRs(74) }
+    let w = Some(rsMut(&mut hh))
+    if w is Some(s) { idOf(s) } else { 0 }
+}
+
+fn ghostBreak(h: &mut RHold, c: Bool) -> Result[Int, String] {
+    defer(fail) print "rollback"
+    let t = rsMut(h)
+    let mut a = 0
+    for i in 0..4 {
+        a += idOf(t)
+        if c {
+            h.s = mkRs(80)
+            print "ghostBreak wrote"
+            break
+        }
+    }
+    Ok(a)
+}
+
+fn below(n: Int) -> Result[Int, String] {
+    if n > 200 {
+        return Err("big ${n}")
+    }
+    Ok(n)
+}
+
+fn deferTry(h: &mut RHold, c: Bool) -> Result[Int, String] {
+    defer print "deferTry done"
+    defer(fail) print "rollback"
+    let t = rsMut(h)
+    let mut a = 0
+    for i in 0..4 {
+        a += idOf(t)
+        if c {
+            h.s = mkRs(81)
+            print "deferTry wrote"
+            break
+        }
+    }
+    let k = below(a + idOf(&mut h.s))?
+    Ok(k)
+}
+
+fn showRes(r: Result[Int, String]) -> String {
+    match r {
+        Ok(v) -> "ok ${v}"
+        Err(e) -> "err ${e}"
+    }
+}
+
+let mut a = Hold { sh: mkSh("a"), n: 1 }
+print lastUse(&mut a)
+let mut b = Hold { sh: mkSh("b"), n: 2 }
+print twice(&mut b)
+let c = Hold { sh: mkSh("c"), n: 3 }
+print shared(&c)
+let mut d = Hold { sh: mkSh("d"), n: 4 }
+print "${noRef(&mut d)}"
+let mut e = Hold { sh: mkSh("e"), n: 5 }
+print method(&mut e)
+let mut f = Hold { sh: mkSh("f"), n: 6 }
+let p = pass(&mut f)
+retag(p, "passed")
+print tagOf(&f.sh)
+let mut g = Hold { sh: mkSh("g"), n: 7 }
+print generic(&mut g)
+let mut i = Hold { sh: mkSh("i"), n: 8 }
+print pattern(&mut i)
+let mut j = Hold { sh: mkSh("j"), n: 9 }
+print stored(&mut j)
+print local()
+let mut k = Hold { sh: mkSh("k"), n: 10 }
+print seqParam(&mut k)
+print seqLocal()
+let mut hs = Hs { a: Array.of(Bag { items: Array.of(1), tag: "o" }) }
+print seqFirst(&mut hs)
+let mut m = Hold { sh: mkSh("m"), n: 11 }
+print writeAfter(&mut m)
+print writeAfterLocal()
+print writeAfterLoop(&mut m)
+let mut arr = Array.of(Hold { sh: mkSh("x"), n: 1 }, Hold { sh: Sh.Nil, n: 2 })
+print refLocals(&mut arr)
+let mut q = Hold { sh: mkSh("q"), n: 12 }
+print mixed(&mut q)
+let bytes = Bytes.fromArray(&Array.of(1, 2))
+print "${lent(Vw { data: &bytes })}"
+let rd = Hold { sh: mkSh("rd"), n: 13 }
+print tagOf(viaField(Rd { r: &rd }))
+let mut rh = RHold { s: Rs.Has(R { id: 1 }) }
+order(&mut rh)
+print "end"
+let mut ou = Outer { inner: RHold { s: mkRs(40) }, m: 0 }
+print "${idOf(viaLocalRef(&mut ou))} ${idOf(viaResult(&mut ou))} ${idOf(viaMethod(&mut ou))} ${idOf(viaEarly(&mut ou, true))} ${idOf(viaEarly(&mut ou, false))}"
+print "${chain(&mut ou)}"
+print "${chainBlock(&mut ou)}"
+let mut oh = RHold { s: mkRs(59) }
+print "${oneBranch(&mut oh, true)}"
+print "${oneBranch(&mut oh, false)}"
+print "${oneBranchLocal(true)}"
+print "${oneBranchLocal(false)}"
+let lb1 = Bytes.fromArray(&Array.of(1, 2))
+let lb2 = Bytes.fromArray(&Array.of(3))
+print "${lentBoth(&lb1, Vw { data: &lb2 }, true).len()} ${lentBoth(&lb1, Vw { data: &lb2 }, false).len()} ${lentBothLocal(&lb1, Vw { data: &lb2 }, true)} ${lentRecv(Hd { data: &lb2 }, &lb1, false).len()}"
+let mut bh = RHold { s: mkRs(69) }
+print "${breakAfterWrite(&mut bh, true)} ${breakAfterWrite(&mut bh, false)}"
+print "${breakBeforeUse(&mut bh, false)} ${breakBeforeUse(&mut bh, true)}"
+print "${breakLocal()}"
+print "${payload(&mut bh)} ${payloadNested(&mut bh)} ${payloadLocal()}"
+let mut gh = RHold { s: mkRs(79) }
+print showRes(ghostBreak(&mut gh, true))
+print showRes(ghostBreak(&mut gh, false))
+print showRes(deferTry(&mut gh, true))
+print showRes(deferTry(&mut gh, false))
+-- stdout --
+a nil
+b again 2
+3 c c
+8
+method nil
+passed
+g 70
+pattern nil
+1 stored
+local 2
+seq1 seq2
+seqLocal
+12
+written
+writtenLocal
+written,w0,
+rl rl 3 1
+mixed
+3
+rd
+saw 1
+drop 1
+after write
+first 2
+second 2
+drop 2
+after second write
+loop saw 3
+drop 3
+loop wrote 0
+loop saw 10
+drop 10
+loop wrote 1
+end
+40 40 40 40 40
+drop 40
+chain wrote
+40
+drop 50
+chainBlock wrote
+50
+drop 59
+oneBranch wrote
+0
+oneBranch read 60
+0
+drop 61
+oneBranchLocal wrote
+drop 62
+0
+oneBranchLocal read 61
+drop 61
+0
+2 1 1 2
+drop 69
+breakAfterWrite wrote
+69 210
+drop 70
+breakBeforeUse wrote
+210 0
+drop 72
+breakLocal wrote
+drop 73
+144
+drop 74
+71 71 74
+drop 79
+ghostBreak wrote
+ok 79
+ok 320
+drop 80
+deferTry wrote
+deferTry done
+ok 161
+rollback
+deferTry done
+err big 405
+drop 81
+drop 71
+drop 60
+drop 51
+drop 11

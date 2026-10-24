@@ -35,11 +35,14 @@ func (c *borrowCheck) projectionLifetime(root, l LocalID) sem.EntityID {
 	return 0
 }
 
-// referentLifetime is the one parameter lifetime every owner of b was borrowed
-// under, 0 when some owner is a local of this function.
+// referentLifetime is the one parameter lifetime every owner of b was borrowed under, 0 when some owner is a
+// local of this function; a reference local reborrowed through stands for what it borrows, also an owner of b.
 func referentLifetime(b *borrowInfo) sem.EntityID {
 	var lt sem.EntityID
 	for _, o := range b.owners {
+		if o.through && o.lifetime == 0 {
+			continue
+		}
 		if o.lifetime == 0 || lt != 0 && o.lifetime != lt {
 			return 0
 		}
@@ -54,8 +57,8 @@ type recvBorrowKey struct {
 	node syntax.NodeID
 }
 
-// receiverPlaceInfo is the borrow a call whose result takes its receiver's
-// elided lifetime makes of the receiver's place, cached per argument.
+// receiverPlaceInfo is the borrow a call whose result takes its receiver's elided lifetime makes of the
+// receiver's place, and through a reference place also of what it borrows, cached per argument.
 func (c *borrowCheck) receiverPlaceInfo(a LocalID, mut bool) (*borrowInfo, bool) {
 	key := recvBorrowKey{a, mut, c.callNode}
 	if b, ok := c.recvBorrows[key]; ok {
@@ -64,11 +67,18 @@ func (c *borrowCheck) receiverPlaceInfo(a LocalID, mut bool) (*borrowInfo, bool)
 	if d := c.definition(a); d != nil && d.Op == OpNewCell {
 		a = d.Args[0]
 	}
+	if d := c.definition(a); d != nil && d.Op == OpShare {
+		a = d.Args[0]
+	}
 	root, path, exact, ok := c.patternPlace(a)
 	if !ok {
 		return nil, false
 	}
-	b := &borrowInfo{owners: []ownerRef{{owner: root, mut: mut, path: path, exact: exact, lifetime: c.projectionLifetime(root, a)}}, hasOwner: true, node: c.callNode}
+	through := c.p.R.Types.Kind(c.f.Locals[root].Type) == sem.KRef
+	b := &borrowInfo{owners: []ownerRef{{owner: root, mut: mut, path: path, exact: exact, lifetime: c.projectionLifetime(root, a), through: through}}, hasOwner: true, node: c.callNode}
+	site := reborrowSite{b, root, path, exact, mut}
+	c.reborrows = append(c.reborrows, site)
+	site.refresh(c)
 	if c.recvBorrows == nil {
 		c.recvBorrows = map[recvBorrowKey]*borrowInfo{}
 	}

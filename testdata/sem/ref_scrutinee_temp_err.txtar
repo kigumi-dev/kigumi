@@ -21,7 +21,7 @@ fn shorthandBehindAnd(c: Bool) -> String {
 fn rootMoved() -> String {
     let mut s = mkSh("a")
     if pickSh(&s) is Boxy(b) {
-        s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here
+        s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here //~ ERROR `s` is borrowed and cannot be mutated here
         return b.tag
     }
     ""
@@ -53,10 +53,22 @@ error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` crea
 15 |     if c && (&mkh("s") is H { b, n }) { b.tag } else { "" } //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
    |                               ^
 
+error[E2198]: `s` is borrowed and cannot be mutated here
+  --> main.kg:21:9
+   |
+21 |         s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here //~ ERROR `s` is borrowed and cannot be mutated here
+   |         ^
+   = help: end the borrow first or use a copy
+note: `s` is borrowed here
+  --> main.kg:20:27
+   |
+20 |     if pickSh(&s) is Boxy(b) {
+   |                           ^
+
 error[move-while-borrowed]: `s` is borrowed and cannot be moved or dropped here
   --> main.kg:21:9
    |
-21 |         s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here
+21 |         s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here //~ ERROR `s` is borrowed and cannot be mutated here
    |         ^
 
 error[E2198]: `h` is borrowed and cannot be mutated here
@@ -66,10 +78,10 @@ error[E2198]: `h` is borrowed and cannot be mutated here
    |         ^^^^
    = help: end the borrow first or use a copy
 note: `h` is borrowed here
-  --> main.kg:28:15
+  --> main.kg:28:30
    |
 28 |     if pickSh(&h.sh) is Boxy(b) {
-   |               ^^^^^
+   |                              ^
 
 error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
   --> main.kg:36:9

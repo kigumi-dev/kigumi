@@ -10,6 +10,7 @@ import (
 // last use there; releasing a borrow of a named local runs no destructor, so only the borrow's end moves.
 func hoistRefReleases(p *Program, f *Func) {
 	var defs map[LocalID][]Inst
+	var flow *blockFlow
 	for l := range f.Locals {
 		loc := f.Locals[l]
 		if loc.Ent == 0 || loc.Cell || loc.Borrowed || p.R.Types.Kind(loc.Type) != sem.KRef || p.R.IsCopy(p.R.Types.Node(loc.Type).Elem) {
@@ -18,8 +19,11 @@ func hoistRefReleases(p *Program, f *Func) {
 		if defs == nil {
 			defs = resultDefs(f)
 		}
-		if namedReferent(p, f, defs, LocalID(l), map[LocalID]bool{}) {
-			hoistRefRelease(p, f, LocalID(l))
+		if namedReferent(p, f, defs, LocalID(l), map[LocalID]bool{}) && !hoistRefRelease(p, f, LocalID(l)) && callResult(defs, LocalID(l)) {
+			if flow == nil || len(flow.preds) != len(f.Blocks) {
+				flow = newBlockFlow(f)
+			}
+			hoistRefDrops(p, f, LocalID(l), flow)
 		}
 	}
 }
@@ -46,7 +50,7 @@ func namedReferent(p *Program, f *Func, defs map[LocalID][]Inst, l LocalID, seen
 	}
 	for _, d := range defs[l] {
 		switch d.Op {
-		case OpCopy, OpMove, OpAlias, OpShare, OpBorrow, OpField, OpIndex, OpPayload, OpCellGet:
+		case OpCopy, OpMove, OpAlias, OpShare, OpBorrow, OpField, OpIndex, OpPayload, OpCellGet, OpNewCell:
 			if a := d.Args[0]; f.Locals[a].Ent == 0 && !namedReferent(p, f, defs, a, seen) {
 				return false
 			}
@@ -66,7 +70,8 @@ func namedReferent(p *Program, f *Func, defs map[LocalID][]Inst, l LocalID, seen
 	return true
 }
 
-func hoistRefRelease(p *Program, f *Func, l LocalID) {
+// hoistRefRelease moves l's one release to its defining block when every use is there, false when it cannot.
+func hoistRefRelease(p *Program, f *Func, l LocalID) bool {
 	home, def, last := -1, -1, -1
 	dropBlk, drop := -1, -1
 	for bid := range f.Blocks {
@@ -75,40 +80,32 @@ func hoistRefRelease(p *Program, f *Func, l LocalID) {
 			switch {
 			case shapes[in.Op].result && in.Dst == l:
 				if home != -1 {
-					return
+					return false
 				}
 				home, def = bid, i
 			case in.Op == OpDrop && len(in.Args) == 1 && in.Args[0] == l:
 				if !in.EndScope || drop != -1 {
-					return
+					return false
 				}
 				dropBlk, drop = bid, i
 			case slices.Contains(in.Args, l):
 				if bid != home || in.Dst != 0 && !p.R.IsCopy(f.Locals[in.Dst].Type) {
-					return
+					return false
 				}
 				last = i
 			}
 		}
 		if slices.Contains(blk.Term.Args, l) {
-			return
+			return false
 		}
 	}
 	if drop == -1 || home == -1 {
-		return
+		return true
 	}
 	at := max(def, last) + 1
-	if dropBlk != home {
-		moved := f.Blocks[dropBlk].Insts[drop]
-		f.Blocks[dropBlk].Insts = slices.Delete(f.Blocks[dropBlk].Insts, drop, drop+1)
-		f.Blocks[home].Insts = slices.Insert(f.Blocks[home].Insts, at, moved)
-		return
+	if dropBlk == home && (last > drop || at >= drop) {
+		return true
 	}
-	if last > drop || at >= drop {
-		return
-	}
-	insts := f.Blocks[home].Insts
-	moved := insts[drop]
-	copy(insts[at+1:drop+1], insts[at:drop])
-	insts[at] = moved
+	f.insertInst(home, at, f.deleteInst(dropBlk, drop))
+	return true
 }

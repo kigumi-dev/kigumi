@@ -49,6 +49,9 @@ func (c *borrowCheck) fnTie(in Inst) []*borrowInfo {
 			b, ok = c.receiverPlaceInfo(s.arg, info.Recv == sem.RecvMut)
 		case c.p.R.Types.Kind(s.exact) == sem.KRef:
 			b, ok = c.holders[s.arg]
+			if ok && !generic {
+				b = c.referentOr(s.arg, b)
+			}
 			if generic && (!ok || !b.hasOwner) {
 				b, ok = c.receiverPlaceInfo(s.arg, false)
 			}

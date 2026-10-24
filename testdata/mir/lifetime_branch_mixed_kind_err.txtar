@@ -45,9 +45,15 @@ fn lib.make5(%cond: Bool, %a: &Bytes) -> &Bytes {
     drop(%cond)
     return %t13
 }
-error[E1040]: a borrow returned through this call cannot be traced to an owner; give the callee's signature a named lifetime connecting its parameter to its return type
+error[borrow-escape]: a borrow cannot be returned
   --> lib/lt.kg:11:5
    |
 11 |     pickOne(cond, a, &buf2)
    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `buf2` is still borrowed when its scope ends here
+  --> lib/lt.kg:10:9
+   |
+10 |     let buf2 = Bytes.fromArray(&Array.of(9, 9, 9))
+   |         ^^^^
 
