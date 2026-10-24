@@ -101,7 +101,7 @@ type Inst struct {
 	// EndScope marks an OpDrop synthesized by scope exit, not a user-written drop;
 	// the borrow checker reports it with wording about the scope ending.
 	EndScope bool
-	// Lent marks an OpNewCell over a borrowed reference: the cell holds no count of its content.
+	// Lent marks an OpNewCell over a borrowed reference, or an OpUnboxDirect out of one: neither holds a count of what it reads.
 	Lent bool
 	// Scoped marks one call's receiver-cell plumbing: an OpNewCell a backend
 	// may place in the frame, and the OpDrop that gives its content back.

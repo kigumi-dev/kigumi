@@ -1,7 +1,5 @@
 package mir
 
-import "kigumi/internal/sem"
-
 func (rf *refFlow) crossedFromTemp(p *Program, bid BlockID, i int, l LocalID) bool {
 	f := rf.f
 	if !f.Locals[l].Cross {
@@ -12,11 +10,11 @@ func (rf *refFlow) crossedFromTemp(p *Program, bid BlockID, i int, l LocalID) bo
 	if j < 0 || len(blk.Insts[j].Args) != 1 || (blk.Insts[j].Op != OpBoxDirect && blk.Insts[j].Op != OpUnboxDirect) {
 		return false
 	}
-	return p.CrossHandsOver(f, blk.Insts[j].Args[0])
+	return p.CrossHandsOver(f, &blk.Insts[j])
 }
 
-// CrossHandsOver reports whether consuming a crossing out of src gives src's count back:
-// a named local keeps its value, and a reference holds no count of its referent.
-func (p *Program) CrossHandsOver(f *Func, src LocalID) bool {
-	return f.Locals[src].Ent == 0 && p.R.Types.Kind(f.Locals[src].Type) != sem.KRef
+// CrossHandsOver reports whether consuming the crossing gives its source's count back:
+// a named local keeps its value, and a Lent crossing reads a reference that holds no count.
+func (p *Program) CrossHandsOver(f *Func, cross *Inst) bool {
+	return f.Locals[cross.Args[0]].Ent == 0 && !cross.Lent
 }

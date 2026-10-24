@@ -44,7 +44,7 @@ func (e *emitter) crossSources(f *mir.Func) map[mir.LocalID]mir.LocalID {
 	out := map[mir.LocalID]mir.LocalID{}
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
-			if in.Op == mir.OpUnboxDirect && f.Locals[in.Dst].Cross && e.p.CrossHandsOver(f, in.Args[0]) && !f.Locals[in.Args[0]].Cross {
+			if in.Op == mir.OpUnboxDirect && f.Locals[in.Dst].Cross && e.p.CrossHandsOver(f, &in) && !f.Locals[in.Args[0]].Cross {
 				out[in.Dst] = in.Args[0]
 			}
 		}

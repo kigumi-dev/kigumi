@@ -32,18 +32,19 @@ func PlanDirect(p *Program) error {
 }
 
 func (p *Program) crossFunc(f *Func) {
+	countless := p.countlessRefs(f)
 	for bid := range f.Blocks {
 		blk := &f.Blocks[bid]
 		out := make([]Inst, 0, len(blk.Insts))
 		for _, in := range blk.Insts {
-			out = p.crossInst(f, in, out)
+			out = p.crossInst(f, in, out, countless)
 		}
 		blk.Insts = out
-		p.crossReturn(f, blk)
+		p.crossReturn(f, blk, countless)
 	}
 }
 
-func (p *Program) crossInst(f *Func, in Inst, out []Inst) []Inst {
+func (p *Program) crossInst(f *Func, in Inst, out []Inst, countless []bool) []Inst {
 	src := in
 	for i, a := range src.Args {
 		cross, ct, ok := p.argCross(f, src, i, a)
@@ -51,7 +52,7 @@ func (p *Program) crossInst(f *Func, in Inst, out []Inst) []Inst {
 			continue
 		}
 		t := f.temp(ct, cross == OpUnboxDirect)
-		out = append(out, Inst{Op: cross, Dst: t, Type: ct, Args: []LocalID{a}, Node: in.Node})
+		out = append(out, Inst{Op: cross, Dst: t, Type: ct, Args: []LocalID{a}, Node: in.Node, Lent: countless[a]})
 		in.Args = replaceArg(in.Args, i, t)
 	}
 	cross, ct, ok := p.dstCross(f, in)
@@ -89,7 +90,7 @@ func (p *Program) dstCross(f *Func, in Inst) (Opcode, sem.TypeID, bool) {
 	return OpNop, 0, false
 }
 
-func (p *Program) crossReturn(f *Func, blk *Block) {
+func (p *Program) crossReturn(f *Func, blk *Block, countless []bool) {
 	if blk.Term.Op != TermReturn {
 		return
 	}
@@ -99,7 +100,7 @@ func (p *Program) crossReturn(f *Func, blk *Block) {
 		return
 	}
 	t := f.temp(ct, cross == OpUnboxDirect)
-	blk.Insts = append(blk.Insts, Inst{Op: cross, Dst: t, Type: ct, Args: []LocalID{a}})
+	blk.Insts = append(blk.Insts, Inst{Op: cross, Dst: t, Type: ct, Args: []LocalID{a}, Lent: countless[a]})
 	blk.Term.Args = replaceArg(blk.Term.Args, 0, t)
 }
 

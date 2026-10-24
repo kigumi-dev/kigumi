@@ -141,3 +141,46 @@ func (p *Program) payloadDst(f *Func, in Inst) sem.TypeID {
 	}
 	return t
 }
+
+// countlessRefs marks the reference temporaries holding no count of their own,
+// so a crossing out of one gives nothing back when its consumer keeps the copy.
+func (p *Program) countlessRefs(f *Func) []bool {
+	c := refCounts{defs: map[LocalID][]Inst{}, owns: map[LocalID]bool{}}
+	for _, blk := range f.Blocks {
+		for _, in := range blk.Insts {
+			if in.Op.Yields() && f.Locals[in.Dst].Ent == 0 {
+				c.defs[in.Dst] = append(c.defs[in.Dst], in)
+			}
+		}
+	}
+	out := make([]bool, len(f.Locals))
+	for l, loc := range f.Locals {
+		out[l] = loc.Ent == 0 && p.R.Types.Kind(loc.Type) == sem.KRef && !c.own(LocalID(l))
+	}
+	return out
+}
+
+type refCounts struct {
+	defs map[LocalID][]Inst
+	owns map[LocalID]bool
+}
+
+// own follows aliases back to where the value was made: a call, a field read or a share takes a count,
+// while a borrow, a lent element and an alias of a named local take none.
+func (c *refCounts) own(l LocalID) bool {
+	if v, ok := c.owns[l]; ok {
+		return v
+	}
+	c.owns[l] = false
+	v := len(c.defs[l]) > 0
+	for _, in := range c.defs[l] {
+		switch {
+		case in.Op == OpBorrow, in.Op == OpLendBox, in.Op == OpBuiltin && in.Str == "iter.at_ref":
+			v = false
+		case (in.Op == OpAlias || in.Op == OpMove || in.Op == OpCopy && !in.Share) && len(in.Args) == 1:
+			v = v && c.own(in.Args[0])
+		}
+	}
+	c.owns[l] = v
+	return v
+}
