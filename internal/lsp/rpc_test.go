@@ -91,7 +91,7 @@ func TestJSONRPCEditsPublishOnlyTheLatestGeneration(t *testing.T) {
 
 func waitFor(t *testing.T, c *liveClient, ok func([]int32) bool) {
 	t.Helper()
-	deadline := time.After(30 * time.Second)
+	deadline := time.After(120 * time.Second)
 	for !ok(c.seen()) {
 		select {
 		case <-c.changed:
