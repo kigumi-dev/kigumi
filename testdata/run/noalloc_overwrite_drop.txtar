@@ -26,6 +26,21 @@ noalloc fn relay(a: Buf, b: Buf, put: fn(Buf) -> Bool) -> Buf {
     x
 }
 
+noalloc fn W.rechain(move self, g: fn(Buf) -> Buf) -> W {
+    self.h = g(move self.h)
+    self
+}
+
+noalloc fn chain(a: Buf, g: fn(Buf) -> Buf) -> Buf {
+    let mut x = a
+    x = g(x)
+    x
+}
+
+fn id(b: Buf) -> Buf {
+    b
+}
+
 fn set(w: &mut W, b: Buf) {
     w.h = b
 }
@@ -65,6 +80,10 @@ throughRef(&mut s, Buf { n: 12 })
 print "ref ${s.n}"
 let z = rebind(Buf { n: 13 }, Buf { n: 14 })
 print "rebind ${z.n}"
+let rc = W { h: Buf { n: 15 }, k: 0 }.rechain(id)
+print "rechain ${rc.h.n}"
+let ch = chain(Buf { n: 16 }, id)
+print "chain ${ch.n}"
 -- stdout --
 keep 1
 drop 1 1
@@ -84,6 +103,10 @@ drop 11 1
 ref 12
 drop 13 1
 rebind 14
+rechain 15
+chain 16
+drop 16 1
+drop 15 1
 drop 14 1
 drop 12 1
 drop 10 1

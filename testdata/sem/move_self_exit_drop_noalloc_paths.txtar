@@ -30,6 +30,28 @@ noalloc fn W.late(move self, flag: Bool) -> Buf {
     b
 }
 
+noalloc fn W.failBefore(move self, flag: Bool, put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    if flag {
+        fail 1
+    }
+    Ok(put(move self.h))
+}
+
+noalloc fn W.failAfter(move self, flag: Bool, put: fn(Buf) -> Bool) -> Result[Bool, Int] {
+    let ok = put(move self.h)
+    if flag {
+        fail 1
+    }
+    Ok(ok)
+}
+
+noalloc fn W.bareReturn(move self, flag: Bool, put: fn(Buf) -> Bool) { //~ ERROR dropping `W` may allocate or deallocate
+    if flag {
+        return
+    }
+    let ok = put(move self.h)
+}
+
 noalloc fn earlyWhole(b: Buf, flag: Bool, put: fn(Buf) -> Bool) -> Bool { //~ ERROR dropping `Buf` may allocate or deallocate
     if flag {
         return false
@@ -93,27 +115,39 @@ error[E912]: dropping `W` may allocate or deallocate
 16 | noalloc fn W.early(move self, flag: Bool, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
    |                         ^^^^
 
-error[E912]: dropping `Buf` may allocate or deallocate
-  --> main/main.kg:32:23
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:32:30
    |
-32 | noalloc fn earlyWhole(b: Buf, flag: Bool, put: fn(Buf) -> Bool) -> Bool { //~ ERROR dropping `Buf` may allocate or deallocate
+32 | noalloc fn W.failBefore(move self, flag: Bool, put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+   |                              ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:47:30
+   |
+47 | noalloc fn W.bareReturn(move self, flag: Bool, put: fn(Buf) -> Bool) { //~ ERROR dropping `W` may allocate or deallocate
+   |                              ^^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:54:23
+   |
+54 | noalloc fn earlyWhole(b: Buf, flag: Bool, put: fn(Buf) -> Bool) -> Bool { //~ ERROR dropping `Buf` may allocate or deallocate
    |                       ^^^^^^
 
 error[E912]: dropping `Buf` may allocate or deallocate
-  --> main/main.kg:40:9
+  --> main/main.kg:62:9
    |
-40 |     let b = mk() //~ ERROR dropping `Buf` may allocate or deallocate
+62 |     let b = mk() //~ ERROR dropping `Buf` may allocate or deallocate
    |         ^
 
 error[E912]: dropping `Buf` may allocate or deallocate
-  --> main/main.kg:47:42
+  --> main/main.kg:69:42
    |
-47 | noalloc fn earlyTry(r: Result[Int, Int], b: Buf, put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `Buf` may allocate or deallocate
+69 | noalloc fn earlyTry(r: Result[Int, Int], b: Buf, put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `Buf` may allocate or deallocate
    |                                          ^^^^^^
 
 error[E912]: dropping `V` may allocate or deallocate
-  --> main/main.kg:75:25
+  --> main/main.kg:97:25
    |
-75 | noalloc fn M.inner(move self) -> Buf { //~ ERROR dropping `V` may allocate or deallocate
+97 | noalloc fn M.inner(move self) -> Buf { //~ ERROR dropping `V` may allocate or deallocate
    |                         ^^^^
 

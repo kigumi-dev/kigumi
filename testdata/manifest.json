@@ -13892,6 +13892,23 @@
       ]
     },
     {
+      "id": "run/reborrow_copy_read",
+      "kind": "run",
+      "path": "testdata/run/reborrow_copy_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/reborrow_replace_self",
       "kind": "run",
       "path": "testdata/run/reborrow_replace_self.txtar",

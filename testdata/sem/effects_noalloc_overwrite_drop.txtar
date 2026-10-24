@@ -58,6 +58,17 @@ noalloc fn relay(a: Buf, b: Buf, put: fn(Buf) -> Bool) -> Buf {
     x
 }
 
+noalloc fn W.rechain(move self, g: fn(Buf) -> Buf) -> W {
+    self.h = g(move self.h)
+    self
+}
+
+noalloc fn chain(a: Buf, g: fn(Buf) -> Buf) -> Buf {
+    let mut x = a
+    x = g(x)
+    x
+}
+
 noalloc fn setK(w: &mut W, k: Int) {
     w.k = k
 }

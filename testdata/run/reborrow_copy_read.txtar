@@ -1,0 +1,44 @@
+-- src --
+type Box = {
+    pub mut n Int
+}
+
+type Hold['a] = {
+    pub mut r &'a mut Box
+    pub z Int
+}
+
+fn addN(b: &mut Box, k: Int) {
+    b.n = b.n + k
+}
+
+fn addFirst(k: Int, b: &mut Box) {
+    b.n = b.n + k
+}
+
+fn Hold['a].addOwn(mut self) {
+    addN(self.r, self.r.n)
+    addFirst(self.r.n, self.r)
+}
+
+let mut x = Box { n: 1 }
+let mut h = Hold { r: &mut x, z: 2 }
+addN(h.r, h.r.n)
+print "a ${h.r.n}"
+addFirst(h.r.n, h.r)
+print "b ${h.r.n}"
+addN(h.r, h.z)
+print "c ${h.r.n}"
+h.addOwn()
+print "d ${h.r.n}"
+let r = &mut x
+addN(r, r.n)
+print "e ${x.n}"
+-- stdout --
+a 2
+b 4
+c 6
+d 24
+e 48
+-- exit --
+0

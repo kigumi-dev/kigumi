@@ -655,6 +655,22 @@ fn boxAndHold['a](a: &mut Box, h: &mut Hold['a]) {
     a.update(1)
 }
 
+fn addN(b: &mut Box, k: Int) {
+    b.n = b.n + k
+}
+
+fn addFirst(k: Int, b: &mut Box) {
+    b.n = b.n + k
+}
+
+fn addSeen(b: &mut Box, k: &Int) {
+    b.n = b.n + k
+}
+
+fn boxAndHolder['a](b: &mut Box, h: Hold['a]) {
+    b.update(1)
+}
+
 fn Hold['a].absorb(mut self, b: &mut Box) {
     b.update(1)
 }
@@ -699,6 +715,29 @@ fn lentWithReceiver() {
     let mut v = Box { n: 0 }
     let mut h = Hold { r: &mut v, z: 1 }
     h.absorb(h.r) //~ ERROR `h.r` is lent to this call as `&mut`
+}
+
+fn lentWithBorrowedRead() {
+    let mut v = Box { n: 0 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    addSeen(h.r, &h.r.n) //~ ERROR `h.r` is lent to this call as `&mut`
+}
+
+fn lentWithHolderValue() {
+    let mut v = Box { n: 0 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    boxAndHolder(h.r, h) //~ ERROR `h.r` is lent to this call as `&mut`
+}
+
+fn copyReadBesideLent() -> Int {
+    let mut v = Box { n: 1 }
+    let mut h = Hold { r: &mut v, z: 2 }
+    addN(h.r, h.r.n)
+    addFirst(h.r.n, h.r)
+    addN(h.r, h.z)
+    let r = &mut v
+    addN(r, r.n)
+    v.n
 }
 
 fn reborrowField() -> Int {
@@ -1403,61 +1442,75 @@ error[E701]: `b` is immutable
     = help: declare `let mut b`
 
 error[E517]: cannot move `&mut Box` out of a borrow
-   --> main/main.kg:662:13
+   --> main/main.kg:678:13
     |
-662 |     dst.r = src.r //~ ERROR cannot move `&mut Box` out of a borrow
+678 |     dst.r = src.r //~ ERROR cannot move `&mut Box` out of a borrow
     |             ^^^^^
 
 error[E517]: cannot move `&mut Box` out of a borrow
-   --> main/main.kg:666:5
+   --> main/main.kg:682:5
     |
-666 |     h.r //~ ERROR cannot move `&mut Box` out of a borrow
+682 |     h.r //~ ERROR cannot move `&mut Box` out of a borrow
     |     ^^^
 
 error[E517]: cannot move `&mut Box` out of a borrow
-   --> main/main.kg:671:17
+   --> main/main.kg:687:17
     |
-671 |         let r = x.r //~ ERROR cannot move `&mut Box` out of a borrow
+687 |         let r = x.r //~ ERROR cannot move `&mut Box` out of a borrow
     |                 ^^^
 
 error[E2178]: cannot move `h.r` out of `h`, which this closure captured and may run again
-   --> main/main.kg:680:17
+   --> main/main.kg:696:17
     |
-680 |         let r = h.r //~ ERROR cannot move `h.r` out of `h`
+696 |         let r = h.r //~ ERROR cannot move `h.r` out of `h`
     |                 ^^^
     = help: move the field into a local before the closure, or capture that local instead
 
 error[E2293]: `h.r` is lent to this call as `&mut`, and another argument or the receiver of the same call reaches that value too
-   --> main/main.kg:688:14
+   --> main/main.kg:704:14
     |
-688 |     twoBoxes(h.r, h.r) //~ ERROR `h.r` is lent to this call as `&mut`
+704 |     twoBoxes(h.r, h.r) //~ ERROR `h.r` is lent to this call as `&mut`
     |              ^^^
     = help: the callee would hold two paths to it; pass it once, or read the other value before the call
 
 error[E2293]: `h.r` is lent to this call as `&mut`, and another argument or the receiver of the same call reaches that value too
-   --> main/main.kg:694:16
+   --> main/main.kg:710:16
     |
-694 |     boxAndHold(h.r, &mut h) //~ ERROR `h.r` is lent to this call as `&mut`
+710 |     boxAndHold(h.r, &mut h) //~ ERROR `h.r` is lent to this call as `&mut`
     |                ^^^
     = help: the callee would hold two paths to it; pass it once, or read the other value before the call
 
 error[E2293]: `h.r` is lent to this call as `&mut`, and another argument or the receiver of the same call reaches that value too
-   --> main/main.kg:700:14
+   --> main/main.kg:716:14
     |
-700 |     h.absorb(h.r) //~ ERROR `h.r` is lent to this call as `&mut`
+716 |     h.absorb(h.r) //~ ERROR `h.r` is lent to this call as `&mut`
     |              ^^^
     = help: the callee would hold two paths to it; pass it once, or read the other value before the call
 
-error[E517]: cannot move `&mut Box` out of a borrow
-   --> main/main.kg:715:14
+error[E2293]: `h.r` is lent to this call as `&mut`, and another argument or the receiver of the same call reaches that value too
+   --> main/main.kg:722:13
     |
-715 |     self.r = other.r //~ ERROR cannot move `&mut Box` out of a borrow
+722 |     addSeen(h.r, &h.r.n) //~ ERROR `h.r` is lent to this call as `&mut`
+    |             ^^^
+    = help: the callee would hold two paths to it; pass it once, or read the other value before the call
+
+error[E2293]: `h.r` is lent to this call as `&mut`, and another argument or the receiver of the same call reaches that value too
+   --> main/main.kg:728:18
+    |
+728 |     boxAndHolder(h.r, h) //~ ERROR `h.r` is lent to this call as `&mut`
+    |                  ^^^
+    = help: the callee would hold two paths to it; pass it once, or read the other value before the call
+
+error[E517]: cannot move `&mut Box` out of a borrow
+   --> main/main.kg:754:14
+    |
+754 |     self.r = other.r //~ ERROR cannot move `&mut Box` out of a borrow
     |              ^^^^^^^
 
 error[E2292]: `h.c` is a `&mut` reached through a shared reference, so it cannot be copied out or written through: another path to the same value can still use it
-   --> main/main.kg:740:13
+   --> main/main.kg:779:13
     |
-740 |     let c = h.c //~ ERROR `h.c` is a `&mut` reached through a shared reference
+779 |     let c = h.c //~ ERROR `h.c` is a `&mut` reached through a shared reference
     |             ^^^
     = help: read through it, or take the holder with `&mut` or `mut self`
 

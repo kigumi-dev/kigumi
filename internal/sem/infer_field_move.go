@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/syntax"
+)
 
 func (c *checker) noteMutFieldValue(n syntax.NodeID, t TypeID) {
 	c.rejectSharedMutRef(n, t)
@@ -60,12 +64,44 @@ func (c *checker) rejectTwiceLent(args []syntax.NodeID) {
 			continue
 		}
 		for j, b := range args {
-			if q, ok := c.lentArgPlace(b); ok && j != i && q.Root == p.Root && pathsOverlap(p.Fields, q.Fields) {
+			if j == i || c.copiedBeforeCall(b) {
+				continue
+			}
+			if q, ok := c.lentArgPlace(b); ok && q.Root == p.Root && pathsOverlap(p.Fields, q.Fields) {
 				c.errAt(c.t.Unparen(a), cMutFieldLentTwice, c.placeName(a))
 				return
 			}
 		}
 	}
+}
+
+// A Copy value without references is read before the call, so the callee keeps no path to its place.
+func (c *checker) copiedBeforeCall(a syntax.NodeID) bool {
+	a = c.t.Unparen(a)
+	if c.t.Kind(a) == syntax.BorrowExpr {
+		return false
+	}
+	t := c.vars.resolve(c.info.Types[a])
+	return c.r.isCopy(t) && !c.carriesRef(t, 0)
+}
+
+func (c *checker) carriesRef(t TypeID, depth int) bool {
+	t = c.vars.resolve(t)
+	n := c.r.Types.Node(t)
+	switch n.Kind {
+	case KRef, KPtr, KFn, KClosure, KParam, KVar:
+		return true
+	}
+	if depth >= 8 {
+		return true
+	}
+	if slices.ContainsFunc(n.Args, func(a TypeID) bool { return c.carriesRef(a, depth+1) }) {
+		return true
+	}
+	if n.Kind != KNamed || c.r.Entities[n.Ent].Kind != EntType {
+		return false
+	}
+	return slices.ContainsFunc(c.r.typeDecl(n.Ent).Fields, func(f EntityID) bool { return c.carriesRef(c.r.Entities[f].Type, depth+1) })
 }
 
 func (c *checker) rejectLentRecv(base syntax.NodeID, args []syntax.NodeID) {

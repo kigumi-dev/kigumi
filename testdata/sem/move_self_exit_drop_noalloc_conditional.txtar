@@ -134,6 +134,24 @@ noalloc fn W.bothPaths(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool {
 
 let w = W { h: Buf { n: 1 }, k: 2 }
 print "${w.k}"
+noalloc fn W.deferTry(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] {
+    defer {
+        let ok = put(move self.h)
+    }
+    let v = o?
+    Ok(true)
+}
+
+noalloc fn W.deferBefore(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool {
+    defer {
+        let ok = put(move self.h)
+    }
+    if flag {
+        return false
+    }
+    true
+}
+
 -- expect --
 error[E912]: dropping `W` may allocate or deallocate
   --> main/main.kg:16:24

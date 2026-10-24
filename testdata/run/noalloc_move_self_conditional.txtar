@@ -110,6 +110,24 @@ noalloc fn W.bothPaths(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool {
     put(move self.h)
 }
 
+noalloc fn W.deferTry(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] {
+    defer {
+        let ok = put(move self.h)
+    }
+    let v = o?
+    Ok(true)
+}
+
+noalloc fn W.deferBefore(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool {
+    defer {
+        let ok = put(move self.h)
+    }
+    if flag {
+        return false
+    }
+    true
+}
+
 fn w(n: Int) -> W {
     W { h: Buf { n: n }, k: 0 }
 }
@@ -128,6 +146,8 @@ print "uncond ${w(21).uncond(keep)}"
 print "qArg ${w(22).qArg(Err(5)) is Err(5)} ${w(23).qArg(Ok(1)) is Ok(true)}"
 print "qBefore ${w(24).qBefore(Err(5), keep) is Err(5)} ${w(25).qBefore(Ok(1), keep) is Ok(true)}"
 print "bothPaths ${w(26).bothPaths(true, keep)} ${w(27).bothPaths(false, keep)}"
+print "deferTry ${w(28).deferTry(Err(1), keep) is Err(1)} ${w(29).deferTry(Ok(1), keep) is Ok(true)}"
+print "deferBefore ${w(30).deferBefore(true, keep)} ${w(31).deferBefore(false, keep)}"
 -- stdout --
 drop 1 1
 keep 2
@@ -186,5 +206,15 @@ drop 26 1
 keep 27
 drop 27 1
 bothPaths true true
+keep 28
+drop 28 1
+keep 29
+drop 29 1
+deferTry true true
+keep 30
+drop 30 1
+keep 31
+drop 31 1
+deferBefore false true
 -- exit --
 0
