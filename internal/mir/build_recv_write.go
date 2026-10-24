@@ -7,7 +7,7 @@ import (
 )
 
 // rejectRecvWrite reports a later argument a snapshot or the lent view cannot cover: any write under a `self` resource receiver, or a
-// replace, move or `&mut` of a place holding a `mut self` receiver; a top-level `&mut` or reborrow is the borrow checker's.
+// replace, move or `&mut` of a place holding a `mut self` receiver; a reborrow, or a top-level `&mut` not lent as a cell, is the borrow checker's.
 func (b *builder) rejectRecvWrite(e *hir.Expr, later []*hir.Expr) {
 	recv := b.r.Fn(e.Ent).Recv
 	if recv != sem.RecvSelf && recv != sem.RecvMut {
@@ -29,7 +29,18 @@ func (b *builder) rejectRecvWrite(e *hir.Expr, later []*hir.Expr) {
 	w := localWrites{r: b.r, ent: root, moves: true, whole: recv == sem.RecvMut, deep: resource, lends: lends}
 	w.path, w.steps = placePath(e.Args[0]), placeSteps(e.Args[0])
 	for _, x := range later {
-		if x == nil || x.Kind == hir.Borrow && x.Mut && rootedAt(x.Args[0], root) || lends && x.Kind == hir.Local && x.Ent == root || !w.expr(x) {
+		if x == nil || lends && x.Kind == hir.Local && x.Ent == root {
+			continue
+		}
+		hit := w.expr(x)
+		if x.Kind == hir.Borrow && x.Mut && rootedAt(x.Args[0], root) {
+			if !b.wantsRefCell(e.Ent, argIndex(e, x)-1) {
+				continue
+			}
+			// The callee holds this place and the receiver at once, so a place inside the receiver conflicts too.
+			hit = hit || fieldPathsOverlap(placeSteps(x.Args[0]), w.steps)
+		}
+		if !hit {
 			continue
 		}
 		code, _ := sem.CodeByName("borrow-conflict")
@@ -38,6 +49,15 @@ func (b *builder) rejectRecvWrite(e *hir.Expr, later []*hir.Expr) {
 		b.fn.Diags = append(b.fn.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(tree.File, tree.Span(x.Node)), Code: diagCode(code.Num), Msg: msg})
 		return
 	}
+}
+
+func argIndex(e, x *hir.Expr) int {
+	for i, a := range e.Args {
+		if a == x {
+			return i
+		}
+	}
+	return -1
 }
 
 func recvRoot(e *hir.Expr) sem.EntityID {

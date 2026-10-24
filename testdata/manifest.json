@@ -13932,6 +13932,23 @@
       ]
     },
     {
+      "id": "run/recv_snapshot_lent_ref",
+      "kind": "run",
+      "path": "testdata/run/recv_snapshot_lent_ref.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/recv_write_copy_receiver",
       "kind": "run",
       "path": "testdata/run/recv_write_copy_receiver.txtar",
@@ -21535,6 +21552,17 @@
       ]
     },
     {
+      "id": "sem/temporary_borrow_future_err",
+      "kind": "sem",
+      "path": "testdata/sem/temporary_borrow_future_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/temporary_borrow_let_err",
       "kind": "sem",
       "path": "testdata/sem/temporary_borrow_let_err.txtar",
@@ -21560,6 +21588,28 @@
       "id": "sem/temporary_borrow_scrutinee_err",
       "kind": "sem",
       "path": "testdata/sem/temporary_borrow_scrutinee_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/temporary_borrow_store_err",
+      "kind": "sem",
+      "path": "testdata/sem/temporary_borrow_store_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/temporary_borrow_wrapped_err",
+      "kind": "sem",
+      "path": "testdata/sem/temporary_borrow_wrapped_err.txtar",
       "mode": [
         "check"
       ],

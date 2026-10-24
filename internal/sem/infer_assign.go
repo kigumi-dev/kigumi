@@ -54,6 +54,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 		target = elem
 	}
 	c.check(rhs, target)
+	c.rejectTempBorrowStore(rhs)
 	c.storeScalarCopy(lhs, rhs, target)
 	c.noteHolderAssign(lhs, rhs)
 	c.rejectFieldValue(rhs)

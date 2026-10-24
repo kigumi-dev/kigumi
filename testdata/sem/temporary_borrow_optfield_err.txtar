@@ -62,6 +62,78 @@ fn letKeptChain() -> Int {
         None -> 0
     }
 }
+
+type P = { pub a Int, pub b Int }
+
+type G = resource { pub n Int, pub p P }
+
+fn G.drop(move self) {}
+
+fn mkg(i: Int) -> G? {
+    if i > 0 { Some(G { n: i, p: P { a: i, b: i } }) } else { None }
+}
+
+fn letKeptLocal() -> Int {
+    let x = mkg(5)
+    let z = &x?.n
+    match z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+fn letKeptLocalRecord() -> Int {
+    let x = mkg(5)
+    let z = &x?.p
+    match z {
+        Some(p) -> p.a
+        None -> 0
+    }
+}
+
+fn letKeptRef(x: &G?) -> Int {
+    let z = &x?.n
+    match z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+fn letKeptBlock(x: &G?) -> Int {
+    let z = &{ x?.n }
+    match z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+fn letKeptIf(x: &G?, c: Bool) -> Int {
+    let z = &(if c { x?.n } else { x?.n })
+    match z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+fn letKeptMatch(x: &G?, c: Bool) -> Int {
+    let z = &match c {
+        true -> mkg(1)
+        false -> mkg(2)
+    }
+    match z {
+        Some(g) -> g.n
+        None -> 0
+    }
+}
+
+fn letBlockLocal(x: &G?) -> Int {
+    let y = mkg(3)
+    let z = &{ y }
+    match z {
+        Some(g) -> g.n
+        None -> 0
+    }
+}
 -- expect --
 error[E2234]: `let` cannot keep a borrow of the result of `mko(..)`, which is dropped at the end of this statement
   --> main.kg:38:13
@@ -83,4 +155,53 @@ error[E2234]: `let` cannot keep a borrow of a temporary `W`, which is dropped at
 56 |     let z = &W { h: mko(6) }.h?.r
    |             ^^^^^^^^^^^^^^^^^^^^^
    = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Int?`, which is dropped at the end of this statement
+  --> main.kg:75:13
+   |
+75 |     let z = &x?.n
+   |             ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `P?`, which is dropped at the end of this statement
+  --> main.kg:84:13
+   |
+84 |     let z = &x?.p
+   |             ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Int?`, which is dropped at the end of this statement
+  --> main.kg:92:13
+   |
+92 |     let z = &x?.n
+   |             ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Int?`, which is dropped at the end of this statement
+   --> main.kg:100:13
+    |
+100 |     let z = &{ x?.n }
+    |             ^^^^^^^
+    = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `Int?`, which is dropped at the end of this statement
+   --> main.kg:108:13
+    |
+108 |     let z = &(if c { x?.n } else { x?.n })
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `G?`, which is dropped at the end of this statement
+   --> main.kg:116:13
+    |
+116 |     let z = &match c {
+    |             ^^^^^^^^^^
+    = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `G?`, which is dropped at the end of this statement
+   --> main.kg:128:13
+    |
+128 |     let z = &{ y }
+    |             ^^^^
+    = help: bind the value to a local first and borrow the local
 

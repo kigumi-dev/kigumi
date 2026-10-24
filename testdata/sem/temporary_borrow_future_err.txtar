@@ -1,0 +1,89 @@
+-- module --
+mir: planned
+-- src --
+type H = resource { pub n Int, pub s String }
+
+fn H.drop(move self) {}
+
+fn mko(i: Int) -> H? {
+    if i > 0 { Some(H { n: i, s: "s${i}" }) } else { None }
+}
+
+fn mks() -> String {
+    "s${1}"
+}
+
+async fn g(z: &String?) -> usize {
+    match z {
+        Some(s) -> s.len()
+        None -> 0
+    }
+}
+
+async fn gs(z: &String) -> usize {
+    z.len()
+}
+
+type FH = { pub mut f Future[usize] }
+
+fn keptLet() -> Int {
+    let f = gs(&mks()) //~ ERROR `f` keeps a borrow of a temporary
+    let f2 = g(&mko(7)?.s) //~ ERROR `f2` keeps a borrow of a temporary
+    1
+}
+
+fn keptField() -> Int {
+    let h = FH { f: gs(&mks()) } //~ ERROR `h` keeps a borrow of a temporary
+    1
+}
+
+async fn zero() -> usize {
+    0
+}
+
+fn keptStore() -> Int {
+    let mut h = FH { f: zero() }
+    h.f = gs(&mks()) //~ ERROR a borrow cannot be stored
+    1
+}
+
+fn keptReturn() -> Future[usize] {
+    gs(&mks()) //~ ERROR a borrow cannot be returned
+}
+
+fn namedSource() -> Int {
+    let e = mks()
+    let f = gs(&e)
+    1
+}
+-- expect --
+error[E2235]: `f` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:27:9
+   |
+27 |     let f = gs(&mks()) //~ ERROR `f` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `f2` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:28:9
+   |
+28 |     let f2 = g(&mko(7)?.s) //~ ERROR `f2` keeps a borrow of a temporary
+   |         ^^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:33:9
+   |
+33 |     let h = FH { f: gs(&mks()) } //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[borrow-escape]: a borrow cannot be stored
+  --> main.kg:43:5
+   |
+43 |     h.f = gs(&mks()) //~ ERROR a borrow cannot be stored
+   |     ^^^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:48:8
+   |
+48 |     gs(&mks()) //~ ERROR a borrow cannot be returned
+   |        ^^^^^
+

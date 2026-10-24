@@ -8,13 +8,13 @@ type Edge struct{ From, Slot int }
 type liveCtx struct {
 	g      *flowGraph
 	isTemp func(LocalID) bool
-	root   func(LocalID) LocalID
+	life   *borrowLife
 	points map[Point][]LocalID
 	edges  map[Edge][]LocalID
 }
 
-func newLiveCtx(f *Func, isTemp func(LocalID) bool, root func(LocalID) LocalID, points map[Point][]LocalID) *liveCtx {
-	return &liveCtx{g: newFlowGraph(f), isTemp: isTemp, root: root, points: points, edges: map[Edge][]LocalID{}}
+func newLiveCtx(f *Func, isTemp func(LocalID) bool, life *borrowLife, points map[Point][]LocalID) *liveCtx {
+	return &liveCtx{g: newFlowGraph(f), isTemp: isTemp, life: life, points: points, edges: map[Edge][]LocalID{}}
 }
 
 func noteBlock(m map[LocalID]map[int]bool, t LocalID, b int) {
@@ -24,14 +24,7 @@ func noteBlock(m map[LocalID]map[int]bool, t LocalID, b int) {
 	m[t][b] = true
 }
 
-func (c *liveCtx) reads(args []LocalID, t LocalID) bool {
-	for _, a := range args {
-		if c.root(a) == t {
-			return true
-		}
-	}
-	return false
-}
+func (c *liveCtx) reads(args []LocalID, t LocalID) bool { return c.life.reads(args, t) }
 
 func (c *liveCtx) defines(in Inst, t LocalID) bool {
 	return in.Dst == t && definesTemp(in, c.isTemp)

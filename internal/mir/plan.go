@@ -74,19 +74,11 @@ func (p *Program) planFunc(f *Func) *Plan {
 			}
 		}
 	}
-	extendBorrowed(borrowed, last, crossUse)
+	life := p.newBorrowLife(f, isTemp, defs, borrowed)
+	life.extend(last, crossUse)
 	noRelease := p.unownedTemps(f, isTemp, defs, materialize, func(l LocalID) bool { return crossUse[l] && reads[l] > 1 })
 	for t := range joins {
 		noRelease[t] = true
-	}
-	root := func(l LocalID) LocalID {
-		for {
-			src, ok := borrowed[l]
-			if !ok {
-				return l
-			}
-			l = src
-		}
 	}
 	touch := map[LocalID]map[int]bool{}
 	for t, bs := range defBlocks {
@@ -96,7 +88,9 @@ func (p *Program) planFunc(f *Func) *Plan {
 	}
 	for t, bs := range useBlocks {
 		for b := range bs {
-			noteBlock(touch, root(t), b)
+			for _, r := range life.keeps(t) {
+				noteBlock(touch, r, b)
+			}
 		}
 	}
 	plan := map[Point][]LocalID{}
@@ -109,7 +103,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 		if consumed[t] {
 			if crossUse[t] || defs[t] != 1 {
 				if live == nil {
-					live = newLiveCtx(f, isTemp, root, plan)
+					live = newLiveCtx(f, isTemp, life, plan)
 				}
 				live.placeAbandoned(t, touch[t])
 			}
@@ -124,7 +118,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 			continue
 		}
 		if live == nil {
-			live = newLiveCtx(f, isTemp, root, plan)
+			live = newLiveCtx(f, isTemp, life, plan)
 		}
 		live.place(t, touch[t])
 	}
@@ -137,31 +131,6 @@ func (p *Program) planFunc(f *Func) *Plan {
 	}
 	late.into(plan)
 	return &Plan{Releases: plan, Splits: split, Defs: defs, Materialize: materialize, LentJoins: joins}
-}
-
-// extendBorrowed keeps a source alive while a borrow of it is read; a borrow read in another block sends it to the liveness placement.
-func extendBorrowed(borrowed map[LocalID]LocalID, last map[LocalID]use, crossUse map[LocalID]bool) {
-	for changed := true; changed; {
-		changed = false
-		for alias, src := range borrowed {
-			au, ok := last[alias]
-			if !ok {
-				continue
-			}
-			su := last[src]
-			if au.block != su.block {
-				if !crossUse[src] {
-					crossUse[src] = true
-					changed = true
-				}
-				continue
-			}
-			if au.inst > su.inst {
-				last[src] = au
-				changed = true
-			}
-		}
-	}
 }
 
 func (p *Program) ArgConsumed(f *Func, in Inst, i int) bool { return p.consumes(f, in, i) }

@@ -1,0 +1,323 @@
+-- src --
+import task from std/task
+
+type C = { pub mut n Int }
+
+fn C.show(self, k: Int) -> Int {
+    self.n + k
+}
+
+fn C.both(mut self, o: &mut C) -> Int {
+    o.n = o.n + 100
+    self.n = self.n + 1
+    self.n
+}
+
+fn C.peek(self, o: &mut C) -> Int {
+    o = C { n: 500 }
+    self.n
+}
+
+fn zap(c: &mut C) -> Int {
+    c = C { n: 500 }
+    1
+}
+
+fn lentWhole(c: &mut C) -> Int {
+    c.show(zap(c))
+}
+
+fn lentBlock(c: &mut C) -> Int {
+    c.show({ c = C { n: 7 }; 10 })
+}
+
+type S = { pub mut name String, pub mut n Int }
+
+fn S.label(self, k: Int) -> String {
+    "${self.name}${self.n}${k}"
+}
+
+fn zapS(s: &mut S) -> Int {
+    s = S { name: "yyyy", n: 8 }
+    1
+}
+
+fn lentString(s: &mut S) -> String {
+    s.label(zapS(s))
+}
+
+type Q = { pub mut s S }
+
+fn zapQ(q: &mut Q) -> Int {
+    q.s.name = "w"
+    1
+}
+
+fn lentPath(q: &mut Q) -> String {
+    q.s.label(zapQ(q))
+}
+
+fn apply[F: FnMut[fn() -> Int]](mut f: F) -> Int {
+    f()
+}
+
+fn closureDirect() -> String {
+    let mut q = Q { s: S { name: "a", n: 1 } }
+    let g = () => { q.s.name = "z"; 1 }
+    "${q.s.label(g())} ${q.s.name}"
+}
+
+fn closurePassed() -> String {
+    let mut q = Q { s: S { name: "b", n: 2 } }
+    let g = () => { q.s.name = "z"; 1 }
+    "${q.s.label(apply(g))} ${q.s.name}"
+}
+
+fn bump(c: &mut C) -> Int {
+    c.n = c.n + 100
+    1
+}
+
+fn lentField(c: &mut C) -> Int {
+    c.show(bump(c))
+}
+
+fn lentFieldBlock(c: &mut C) -> Int {
+    c.show({ c.n = 100; 1 })
+}
+
+fn lentCellField(c: &mut C) -> Int {
+    c.show(zap(c)) + c.show({ c.n = 100; 1 })
+}
+
+fn lentStringField(s: &mut S) -> String {
+    s.label({ s.name = "bb"; 1 })
+}
+
+fn closureWhole() -> String {
+    let mut s = S { name: "a", n: 1 }
+    let g = () => { s.name = "z"; 1 }
+    "${s.label(g())} ${s.name}"
+}
+
+fn closureWholePassed() -> String {
+    let mut s = S { name: "c", n: 3 }
+    let g = () => { s.name = "y"; 1 }
+    "${s.label(apply(g))} ${s.name}"
+}
+
+type P = { pub mut h C, pub mut k C }
+
+type R = resource { pub mut id Int, pub mut name String }
+
+fn R.drop(move self) {
+    print "drop ${self.id} ${self.name}"
+}
+
+type H = resource { pub r R, pub n Int }
+
+fn H.drop(move self) {
+    print "droph ${self.n}"
+}
+
+fn mko(i: Int) -> H? {
+    if i > 0 { Some(H { r: R { id: i, name: "h" }, n: i }) } else { None }
+}
+
+fn optLocal() -> Int {
+    let x = mko(5)
+    match &x?.n {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+fn optRef(x: &H?) -> Int {
+    if let Some(n) = &x?.n { n } else { 0 }
+}
+
+type A = { pub mut xs Array[Int] }
+
+fn A.total(self, k: Int) -> Int {
+    let mut t = k
+    for x in self.xs {
+        t = t + x
+    }
+    t
+}
+
+fn pushA(a: &mut A) -> Int {
+    a.xs.push(1000)
+    1
+}
+
+fn swapA(a: &mut A) -> Int {
+    a = A { xs: Array.of(7, 7, 7) }
+    1
+}
+
+fn viaRefPush(a: &mut A) -> Int {
+    a.total(pushA(a))
+}
+
+fn viaRefSwap(a: &mut A) -> Int {
+    a.total(swapA(a))
+}
+
+fn viaRefSwapPush(a: &mut A) -> Int {
+    a.total({ swapA(a); pushA(a) })
+}
+
+type T = resource { pub n Int, pub s String }
+
+fn T.drop(move self) {
+    print "dropt ${self.n}"
+}
+
+fn mkt(i: Int) -> T? {
+    if i > 0 { Some(T { n: i, s: "t${i}" }) } else { None }
+}
+
+fn optLen(z: &String?) -> usize {
+    match z {
+        Some(s) -> s.len()
+        None -> 0
+    }
+}
+
+type V['a] = { pub s &'a String }
+
+fn strLen(s: &String) -> usize {
+    s.len()
+}
+
+fn optPassed(x: &T?, c: Bool) -> usize {
+    optLen(&x?.s) + optLen({ &x?.s }) + optLen(&(if c { x?.s } else { x?.s }))
+}
+
+fn optScrutinee(x: &T?) -> usize {
+    let a = match &x?.s {
+        Some(s) -> strLen(V { s: s }.s)
+        None -> 0
+    }
+    let b = if let Some(s) = &x?.s { strLen(V { s: s }.s) } else { 0 }
+    a + b
+}
+
+fn optLocalPassed() -> usize {
+    let x = mkt(12345)
+    optLen(&x?.s) + optPassed(&x, false)
+}
+
+type W['a] = { pub z &'a String? }
+
+fn mksLit() -> String {
+    "hey"
+}
+
+fn mks(i: Int) -> String {
+    "hey${i}"
+}
+
+fn mkos() -> String? {
+    Some("hi${2}")
+}
+
+fn wrap['a](z: &'a String?) -> W['a] {
+    W { z: z }
+}
+
+fn idOpt['a](z: &'a String?) -> &'a String? {
+    z
+}
+
+fn showOpt(z: &String?) -> String {
+    match z {
+        Some(s) -> "some ${s}"
+        None -> "none"
+    }
+}
+
+fn wrappedTemps(x: &T?) -> String {
+    let a = strLen(V { s: &mksLit() }.s)
+    let b = strLen(V { s: &mks(12) }.s)
+    let c = strLen(V { s: &(mkt(3)?.s || "ddd") }.s)
+    let d = strLen({ let q = 4; V { s: &mks(q) } }.s)
+    "${a} ${b} ${showOpt(W { z: &mkos() }.z)} ${showOpt(wrap(&mkos()).z)} ${c} ${optLen(idOpt(&x?.s))} ${showOpt(W { z: &x?.s }.z)} ${d}"
+}
+
+fn wrappedLoop() -> Int {
+    let mut total = 0
+    for i in Array.of(1, 22, 333) {
+        total = total + (strLen(V { s: &mks(i) }.s).toInt() || 0)
+    }
+    total
+}
+
+fn C.swapBoth(mut self, o: &mut C) -> Int {
+    o = C { n: 500 }
+    self.n = self.n + 1
+    self.n
+}
+
+fn viaRefDisjoint(p: &mut P) -> Int {
+    p.h.swapBoth(&mut p.k)
+}
+
+async fn futLen(z: &String) -> usize {
+    z.len()
+}
+
+async fn futOpt(z: &String?) -> usize {
+    optLen(z)
+}
+
+fn main() {
+    let mut c = C { n: 1 }
+    let mut d = C { n: 1 }
+    let mut s = S { name: "b", n: 2 }
+    let mut q = Q { s: S { name: "a", n: 1 } }
+    print "lent ${lentWhole(&mut c)} ${c.n} ${lentBlock(&mut d)} ${d.n} ${lentString(&mut s)} ${s.name} ${lentPath(&mut q)} ${q.s.name}"
+    print "closure ${closureDirect()} ${closurePassed()} ${closureWhole()} ${closureWholePassed()}"
+    let mut f = C { n: 1 }
+    let mut g = C { n: 1 }
+    let mut h = C { n: 1 }
+    let mut t = S { name: "a", n: 1 }
+    print "field ${lentField(&mut f)} ${f.n} ${lentFieldBlock(&mut g)} ${g.n} ${lentCellField(&mut h)} ${h.n} ${lentStringField(&mut t)} ${t.name}"
+    let mut e = C { n: 1 }
+    let mut p = P { h: C { n: 1 }, k: C { n: 2 } }
+    print "mut ${e.peek(&mut e)} ${e.n} ${p.h.both(&mut p.k)} ${p.h.n} ${p.k.n}"
+    let y = mko(7)
+    print "opt ${optLocal()} ${optRef(&y)}"
+    let mut a1 = A { xs: Array.of(1, 2) }
+    let mut a2 = A { xs: Array.of(1, 2) }
+    let mut a3 = A { xs: Array.of(1, 2) }
+    let mut a4 = A { xs: Array.of(1, 2) }
+    print "array ${viaRefPush(&mut a1)} ${a2.total({ a2.xs.push(1000); 1 })} ${a1.xs.len()} ${a2.xs.len()} ${viaRefSwap(&mut a3)} ${a3.xs.len()} ${viaRefSwapPush(&mut a4)} ${a4.xs.len()}"
+    let z = mkt(42)
+    print "pass ${optPassed(&z, true)} ${optScrutinee(&z)} ${optLocalPassed()}"
+    print "wrapped ${wrappedTemps(&z)} ${wrappedLoop()}"
+    let mut pp = P { h: C { n: 1 }, k: C { n: 2 } }
+    print "disjoint ${viaRefDisjoint(&mut pp)} ${pp.h.n} ${pp.k.n}"
+    let ex = task.currentThreadExecutor()
+    print "future ${ex.runToCompletion(futLen(&mks(5)))} ${ex.runToCompletion(futOpt(&mkt(6)?.s))}"
+}
+-- stdout --
+lent 2 500 11 7 b21 yyyy a11 w
+closure a11 z b21 z a11 z c31 y
+field 2 101 2 100 503 100 a11 bb
+mut 1 500 2 2 102
+droph 5
+drop 5 h
+opt 5 7
+array 4 4 3 3 4 3 4 4
+dropt 12345
+pass 9 6 24
+dropt 3
+wrapped 3 5 some hi2 some hi2 2 3 some t42 4 15
+disjoint 2 2 500
+dropt 6
+future 4 2
+dropt 42
+droph 7
+drop 7 h

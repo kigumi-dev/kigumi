@@ -38,39 +38,64 @@ func (c *borrowCheck) tempPlace(l LocalID) (LocalID, []int, bool, bool) {
 	return 0, nil, false, false
 }
 
-// joinsBuilt reports whether every definition of l builds a fresh value, as the branches of `x?.f` do.
+// joinsBuilt reports whether every definition of l builds a fresh value, or copies a temporary that does,
+// as the arms of `x?.f`, `if` and `match` do.
 func (c *borrowCheck) joinsBuilt(l LocalID) bool {
+	return c.builtFresh(l, map[LocalID]bool{})
+}
+
+func (c *borrowCheck) builtFresh(l LocalID, seen map[LocalID]bool) bool {
+	if seen[l] {
+		return true
+	}
+	seen[l] = true
+	defined := false
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
 			if !shapes[in.Op].result || in.Dst != l {
 				continue
 			}
+			defined = true
 			switch in.Op {
 			case OpCall, OpCallValue, OpRecord, OpVariant, OpArray:
+			case OpCopy:
+				if c.f.Locals[in.Args[0]].Ent != 0 || !c.builtFresh(in.Args[0], seen) {
+					return false
+				}
 			default:
 				return false
 			}
 		}
 	}
-	return true
+	return defined
 }
 
-// checkTempKept rejects binding a name to a borrow of a statement's temporary.
+// checkTempKept rejects binding a name to a borrow of a statement's temporary, also one a Future or Task captured.
 func (c *borrowCheck) checkTempKept(in Inst) {
-	if in.Op != OpCopy && in.Op != OpMove || c.f.Locals[in.Dst].Ent == 0 || !c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type) {
+	if in.Op != OpCopy && in.Op != OpMove || c.f.Locals[in.Dst].Ent == 0 {
+		return
+	}
+	if t := c.f.Locals[in.Dst].Type; !c.resultMayCarryLifetime(t) && !c.holdsAsync(t) {
 		return
 	}
 	b, ok := c.holders[in.Args[0]]
 	if def := c.definition(in.Args[0]); !ok || def != nil && def.Op == OpBorrow {
 		return
 	}
+	if c.keepsTemp(b) {
+		c.reportCode(in.Node, in.Dst, "temporary-borrow-kept", c.f.Locals[in.Dst].Name, tempDropped)
+		c.keptTemp[in.Dst] = true
+		c.noteKept(b)
+	}
+}
+
+func (c *borrowCheck) keepsTemp(b *borrowInfo) bool {
 	for _, o := range b.owners {
 		if o.temp && !c.scalarTemp(o.owner) {
-			c.reportCode(in.Node, in.Dst, "temporary-borrow-kept", c.f.Locals[in.Dst].Name, tempDropped)
-			c.keptTemp[in.Dst] = true
-			return
+			return true
 		}
 	}
+	return false
 }
 
 const tempDropped = "past the statement, `match` or `if` that drops it"

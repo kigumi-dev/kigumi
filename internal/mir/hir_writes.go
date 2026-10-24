@@ -5,12 +5,6 @@ import (
 	"kigumi/internal/sem"
 )
 
-// writesLocal reports whether evaluating e can store into local ent; a closure body is skipped
-// because a local a closure writes lives in a cell, whose reads copy.
-func writesLocal(r *sem.Result, e *hir.Expr, ent sem.EntityID) bool {
-	return localWrites{r: r, ent: ent}.expr(e)
-}
-
 // moves also counts a by-value use of an owned ent as a write, since moving it out ends the value too;
 // path limits the writes to places overlapping that field path of ent, or with whole to places containing it.
 type localWrites struct {
@@ -22,6 +16,8 @@ type localWrites struct {
 	deep bool
 	// lends marks ent as a `&mut` reference, whose plain use may replace the whole referent.
 	lends bool
+	// calls counts any call as a write, for a cell a closure the call runs may store into.
+	calls bool
 	path  []int
 	// steps is the receiver's path with its elements kept, which path loses past an index.
 	steps []int
@@ -32,8 +28,12 @@ func (w localWrites) expr(e *hir.Expr) bool {
 	if e == nil {
 		return false
 	}
+	if w.calls && runsCode(e) {
+		return true
+	}
 	switch e.Kind {
 	case hir.Lambda:
+		// A closure body runs only when called, which calls covers for a cell.
 		return false
 	case hir.Local:
 		return e.Ent == ent && (w.lends || w.moves && !r.IsCopy(e.Type) && r.Types.Kind(e.Type) != sem.KRef)
@@ -83,6 +83,16 @@ func (w localWrites) expr(e *hir.Expr) bool {
 		}
 	}
 	return w.expr(e.Cond) || w.expr(e.Else) || w.expr(e.Guard) || w.block(e.Then) || w.block(e.Block)
+}
+
+func runsCode(e *hir.Expr) bool {
+	switch e.Kind {
+	case hir.Call, hir.MethodCall, hir.StaticCall, hir.ValueCall, hir.Pipe, hir.Await:
+		return true
+	case hir.Unary, hir.Binary:
+		return e.Ent != 0
+	}
+	return false
 }
 
 var placeBase = map[hir.ExprKind]bool{hir.Field: true, hir.OptField: true, hir.Index: true, hir.Borrow: true, hir.MethodCall: true, hir.MethodValue: true}

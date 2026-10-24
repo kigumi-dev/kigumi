@@ -145,6 +145,9 @@ func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.untrackedPlace(fl))
 		case !c.trackedContainer(place):
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.typeName(place))
+		case !caller && c.keepsTemp(b):
+			c.reportCode(in.Node, v.arg, "temporary-borrow-kept", c.f.Locals[root].Name, tempDropped)
+			c.noteKept(b)
 		case !caller && c.borrowsFrom(b, root):
 			name := c.f.Locals[root].Name
 			c.report(in.Node, v.arg, "borrow-escape", "a borrow of `"+name+"` cannot be stored back into `"+name+"`")

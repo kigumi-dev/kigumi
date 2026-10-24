@@ -1,0 +1,209 @@
+-- module --
+mir: planned
+-- src --
+type H = resource { pub n Int, pub s String }
+
+fn H.drop(move self) {}
+
+fn mko(i: Int) -> H? {
+    if i > 0 { Some(H { n: i, s: "s${i}" }) } else { None }
+}
+
+type W['a] = { pub z &'a String? }
+
+type HW['a] = { pub mut w W['a], pub mut z &'a String? }
+
+type E['a] = A(W['a]) | B
+
+fn show(z: &String?) -> usize {
+    match z {
+        Some(s) -> s.len()
+        None -> 0
+    }
+}
+
+fn wrap['a](z: &'a String?) -> W['a] {
+    W { z: z }
+}
+
+fn str(s: &String) -> usize {
+    s.len()
+}
+
+type V['a] = { pub s &'a String }
+
+fn recordKept(x: &H?) -> usize {
+    let w = W { z: &x?.s } //~ ERROR `w` keeps a borrow of a temporary
+    show(w.z)
+}
+
+fn ifKept(x: &H?, c: Bool) -> usize {
+    let z = if c { &x?.s } else { &x?.s } //~ ERROR `z` keeps a borrow of a temporary
+    show(z)
+}
+
+fn matchKept(x: &H?, c: Bool) -> usize {
+    let z = match c { //~ ERROR `z` keeps a borrow of a temporary
+        true -> &x?.s
+        false -> &x?.s
+    }
+    show(z)
+}
+
+fn variantKept(x: &H?) -> usize {
+    let e = A(W { z: &x?.s }) //~ ERROR `e` keeps a borrow of a temporary
+    match e {
+        A(w) -> show(w.z) //~ ERROR `w` keeps a borrow of a temporary
+        B -> 0
+    }
+}
+
+fn callKept(x: &H?) -> usize {
+    let w = wrap(&x?.s) //~ ERROR `w` keeps a borrow of a temporary
+    show(w.z)
+}
+
+fn fieldStore(x: &H?) -> usize {
+    let e: String? = None
+    let mut h = HW { w: W { z: &e }, z: &e }
+    h.w = W { z: &x?.s } //~ ERROR `h` keeps a borrow of a temporary
+    show(h.w.z)
+}
+
+fn joinStore(x: &H?, c: Bool) -> usize {
+    let e: String? = None
+    let mut h = HW { w: W { z: &e }, z: &e }
+    h.z = if c { &x?.s } else { &x?.s } //~ ERROR `h` keeps a borrow of a temporary
+    show(h.z)
+}
+
+fn elementStore(x: &H?) -> usize {
+    let e: String? = None
+    let mut a = Array.of(W { z: &e })
+    a[0] = W { z: &x?.s } //~ ERROR `a` keeps a borrow of a temporary
+    a.push(W { z: &x?.s }) //~ ERROR `a` keeps a borrow of a temporary
+    show(a[0].z)
+}
+
+fn localBase() -> usize {
+    let x = mko(5)
+    let e: String? = None
+    let mut h = HW { w: W { z: &e }, z: &e }
+    h.w = W { z: &x?.s } //~ ERROR `h` keeps a borrow of a temporary
+    show(h.w.z)
+}
+
+fn mks(i: Int) -> String {
+    "s${i}"
+}
+
+fn id['a](z: &'a String?) -> &'a String? {
+    z
+}
+
+fn inStatement(x: &H?) -> usize {
+    show(W { z: &x?.s }.z) + show(wrap(&x?.s).z) + show(id(&x?.s)) + show(wrap(&mko(5)?.s).z) + str(V { s: &mks(1) }.s) + str({ let q = 2; V { s: &mks(q) } }.s)
+}
+
+fn armLeaves(x: &H?, c: Bool) -> usize {
+    show(if c { &x?.s } else { &x?.s }) //~ ERROR cannot leave the `if` or `match` arm
+}
+
+fn armRecordLeaves(c: Bool) -> usize {
+    str(match c {
+        true -> V { s: &mks(1) } //~ ERROR cannot leave the `if` or `match` arm
+        false -> V { s: &mks(2) }
+    }.s)
+}
+
+fn passed(x: &H?, c: Bool) -> usize {
+    show(&x?.s) + show({ &x?.s }) + show(&(if c { x?.s } else { x?.s }))
+}
+
+fn scrutinee(x: &H?) -> usize {
+    let a = match &x?.s {
+        Some(s) -> str(V { s: s }.s)
+        None -> 0
+    }
+    let b = if let Some(s) = &x?.s { str(V { s: s }.s) } else { 0 }
+    a + b
+}
+-- expect --
+error[E2235]: `w` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:33:9
+   |
+33 |     let w = W { z: &x?.s } //~ ERROR `w` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `z` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:38:9
+   |
+38 |     let z = if c { &x?.s } else { &x?.s } //~ ERROR `z` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `z` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:43:9
+   |
+43 |     let z = match c { //~ ERROR `z` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `e` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:51:9
+   |
+51 |     let e = A(W { z: &x?.s }) //~ ERROR `e` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `w` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:53:11
+   |
+53 |         A(w) -> show(w.z) //~ ERROR `w` keeps a borrow of a temporary
+   |           ^
+
+error[E2235]: `w` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:59:9
+   |
+59 |     let w = wrap(&x?.s) //~ ERROR `w` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:66:5
+   |
+66 |     h.w = W { z: &x?.s } //~ ERROR `h` keeps a borrow of a temporary
+   |     ^^^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:73:5
+   |
+73 |     h.z = if c { &x?.s } else { &x?.s } //~ ERROR `h` keeps a borrow of a temporary
+   |     ^^^
+
+error[E2235]: `a` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:80:5
+   |
+80 |     a[0] = W { z: &x?.s } //~ ERROR `a` keeps a borrow of a temporary
+   |     ^^^
+
+error[E2235]: `a` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:81:5
+   |
+81 |     a.push(W { z: &x?.s }) //~ ERROR `a` keeps a borrow of a temporary
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:89:5
+   |
+89 |     h.w = W { z: &x?.s } //~ ERROR `h` keeps a borrow of a temporary
+   |     ^^^
+
+error[E2296]: a borrow of a temporary cannot leave the `if` or `match` arm that makes the temporary; bind the temporary to a local before the `if` or `match` and borrow the local
+   --> main.kg:106:17
+    |
+106 |     show(if c { &x?.s } else { &x?.s }) //~ ERROR cannot leave the `if` or `match` arm
+    |                 ^^^^^
+
+error[E2296]: a borrow of a temporary cannot leave the `if` or `match` arm that makes the temporary; bind the temporary to a local before the `if` or `match` and borrow the local
+   --> main.kg:111:24
+    |
+111 |         true -> V { s: &mks(1) } //~ ERROR cannot leave the `if` or `match` arm
+    |                        ^^^^^^
+

@@ -205,6 +205,85 @@ fn elementFieldReplacedResource(i: usize, j: usize) -> Int {
     let mut ps = Array.of(RP { r: R { id: 1 }, n: 0 })
     ps[i].r.bump({ ps[j].r = R { id: 600 }; 1 })
 }
+
+fn C.both(mut self, o: &mut C) -> Int {
+    o = C { n: 500 }
+    self.n = self.n + 1
+    self.n
+}
+
+fn R.both(mut self, o: &mut R) -> Int {
+    o = R { id: 500 }
+    self.id = self.id + 1
+    self.id
+}
+
+fn R.show(self, o: &mut R) -> Int {
+    o = R { id: 500 }
+    self.id
+}
+
+fn copyBothLentMut() -> Int {
+    let mut c = C { n: 1 }
+    c.both(&mut c)
+}
+
+fn resourceBothLentMut() -> Int {
+    let mut r = R { id: 1 }
+    r.both(&mut r)
+}
+
+fn fieldBothLentMut() -> Int {
+    let mut p = P { h: C { n: 1 }, k: C { n: 2 } }
+    p.h.both(&mut p.h)
+}
+
+fn resourceSelfLentMut() -> Int {
+    let mut r = R { id: 1 }
+    r.show(&mut r)
+}
+
+fn bothThroughRef(c: &mut C) -> Int {
+    c.both(c)
+}
+
+fn P.both(mut self, o: &mut C) -> Int {
+    o = C { n: 500 }
+    self.h.n = self.h.n + 1
+    self.h.n
+}
+
+fn RP.both(mut self, o: &mut R) -> Int {
+    o = R { id: 500 }
+    self.r.id = self.r.id + 1
+    self.r.id
+}
+
+fn innerBothLentMut() -> Int {
+    let mut p = P { h: C { n: 1 }, k: C { n: 2 } }
+    p.both(&mut p.h)
+}
+
+fn innerResourceBothLentMut() -> Int {
+    let mut p = RP { r: R { id: 1 }, n: 0 }
+    p.both(&mut p.r)
+}
+
+fn innerBothThroughRef(p: &mut P) -> Int {
+    p.both(&mut p.h)
+}
+
+fn otherFieldBothThroughRef(p: &mut P) -> Int {
+    p.both(&mut p.k)
+}
+
+fn fieldBothThroughRef(p: &mut P) -> Int {
+    p.h.both(&mut p.h)
+}
+
+fn innerResourceBothThroughRef(p: &mut RP) -> Int {
+    p.both(&mut p.r)
+}
 -- expect --
 error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
   --> main.kg:49:12
@@ -331,4 +410,70 @@ error[E2198]: `ps` is borrowed and this use conflicts with the borrow; the metho
     |
 203 |     ps[i].r.bump({ ps[j].r = R { id: 600 }; 1 })
     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `c` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:225:12
+    |
+225 |     c.both(&mut c)
+    |            ^^^^^^
+
+error[E2198]: `r` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:230:12
+    |
+230 |     r.both(&mut r)
+    |            ^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:235:14
+    |
+235 |     p.h.both(&mut p.h)
+    |              ^^^^^^^^
+
+error[E2198]: `r` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:240:12
+    |
+240 |     r.show(&mut r)
+    |            ^^^^^^
+
+error[E2198]: `c` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value
+   --> main.kg:244:5
+    |
+244 |     c.both(c)
+    |     ^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:261:12
+    |
+261 |     p.both(&mut p.h)
+    |            ^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:266:12
+    |
+266 |     p.both(&mut p.r)
+    |            ^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:270:12
+    |
+270 |     p.both(&mut p.h)
+    |            ^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:274:12
+    |
+274 |     p.both(&mut p.k)
+    |            ^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:278:14
+    |
+278 |     p.h.both(&mut p.h)
+    |              ^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:282:12
+    |
+282 |     p.both(&mut p.r)
+    |            ^^^^^^^^
 

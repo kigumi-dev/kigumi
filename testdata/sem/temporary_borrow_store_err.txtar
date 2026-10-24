@@ -1,0 +1,117 @@
+-- src --
+type H = resource { pub mut n Int }
+
+fn H.drop(move self) {}
+
+fn mk(i: Int) -> H {
+    H { n: i }
+}
+
+fn mko(i: Int) -> H? {
+    if i > 0 { Some(H { n: i }) } else { None }
+}
+
+type Holder['a] = { pub mut z &'a Int? }
+
+type HolderH['a] = { pub mut h &'a H }
+
+fn optLocal() -> Int {
+    let x = mko(5)
+    let w: Int? = Some(1)
+    let mut h = Holder { z: &w }
+    h.z = &x?.n //~ ERROR borrow of a temporary `Int?`
+    match h.z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+fn optRef(x: &H?) -> Int {
+    let w: Int? = Some(1)
+    let mut h = Holder { z: &w }
+    h.z = &x?.n //~ ERROR borrow of a temporary `Int?`
+    match h.z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+fn optCall() -> Int {
+    let w: Int? = Some(1)
+    let mut h = Holder { z: &w }
+    h.z = &mko(5)?.n //~ ERROR borrow of the result of `mko(..)`
+    match h.z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+fn callField() -> Int {
+    let a = mk(1)
+    let mut h = HolderH { h: &a }
+    h.h = &mk(5) //~ ERROR borrow of the result of `mk(..)`
+    h.h = { &mk(6) } //~ ERROR borrow of the result of `mk(..)`
+    h.h.n
+}
+
+fn optJoin(x: &H?, c: Bool) -> Int {
+    let w: Int? = Some(1)
+    let mut h = Holder { z: &w }
+    h.z = &(if c { x?.n } else { x?.n }) //~ ERROR borrow of a temporary `Int?`
+    h.z = &{ x?.n } //~ ERROR borrow of a temporary `Int?`
+    match h.z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+-- expect --
+error[E2295]: an assignment cannot keep a borrow of a temporary `Int?`, which is dropped at the end of this statement
+  --> main/main.kg:21:11
+   |
+21 |     h.z = &x?.n //~ ERROR borrow of a temporary `Int?`
+   |           ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2295]: an assignment cannot keep a borrow of a temporary `Int?`, which is dropped at the end of this statement
+  --> main/main.kg:31:11
+   |
+31 |     h.z = &x?.n //~ ERROR borrow of a temporary `Int?`
+   |           ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2295]: an assignment cannot keep a borrow of the result of `mko(..)`, which is dropped at the end of this statement
+  --> main/main.kg:41:11
+   |
+41 |     h.z = &mko(5)?.n //~ ERROR borrow of the result of `mko(..)`
+   |           ^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2295]: an assignment cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
+  --> main/main.kg:51:11
+   |
+51 |     h.h = &mk(5) //~ ERROR borrow of the result of `mk(..)`
+   |           ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2295]: an assignment cannot keep a borrow of the result of `mk(..)`, which is dropped at the end of this statement
+  --> main/main.kg:52:13
+   |
+52 |     h.h = { &mk(6) } //~ ERROR borrow of the result of `mk(..)`
+   |             ^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2295]: an assignment cannot keep a borrow of a temporary `Int?`, which is dropped at the end of this statement
+  --> main/main.kg:59:11
+   |
+59 |     h.z = &(if c { x?.n } else { x?.n }) //~ ERROR borrow of a temporary `Int?`
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2295]: an assignment cannot keep a borrow of a temporary `Int?`, which is dropped at the end of this statement
+  --> main/main.kg:60:11
+   |
+60 |     h.z = &{ x?.n } //~ ERROR borrow of a temporary `Int?`
+   |           ^^^^^^^
+   = help: bind the value to a local first and borrow the local
+

@@ -24,7 +24,7 @@ func (b *builder) snapshot(v LocalID, src *hir.Expr, n syntax.NodeID, later ...*
 		}
 		t, cell = elem, true
 	}
-	if (b.r.HoldsResource(t) && !b.r.IsCopy(t)) || !b.writtenLater(l.Ent, later) {
+	if (b.r.HoldsResource(t) && !b.r.IsCopy(t)) || !b.writtenLater(localWrites{r: b.r, ent: l.Ent, moves: cell, lends: cell}, later) {
 		return v
 	}
 	if cell {
@@ -33,12 +33,52 @@ func (b *builder) snapshot(v LocalID, src *hir.Expr, n syntax.NodeID, later ...*
 	return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: n})
 }
 
-// snapshotPath copies a field or element read whose root local a later operand writes; a Copy read is already a value,
-// except a Copy record's, which shares the record a later field store writes in place.
+// snapshotRecv is snapshot for a `self` receiver, which also deep-copies a `&mut` referent other than a resource that a later
+// operand writes through, even one lent as a cell, since the cell shares a record a field store or push writes in place.
+func (b *builder) snapshotRecv(v LocalID, src *hir.Expr, n syntax.NodeID, later []*hir.Expr) LocalID {
+	l := b.fn.Locals[v]
+	elem, mut := b.r.MutRefElem(l.Type)
+	if l.Ent == 0 || l.Cell || l.Borrowed || !mut || b.r.HoldsResource(elem) && !b.r.IsCopy(elem) {
+		return b.snapshot(v, src, n, later...)
+	}
+	if passedAgain(l.Ent, later) || !b.writtenLater(localWrites{r: b.r, ent: l.Ent, moves: true, lends: true}, later) {
+		return v
+	}
+	if b.cellLocal(v) {
+		v = b.emit(Inst{Op: OpCellGet, Dst: b.temp(elem), Args: []LocalID{v}, Node: n})
+		if b.r.IsCopy(elem) && !b.copyRecord(elem) {
+			return v
+		}
+	} else {
+		v = b.retagTo(v, l.Type, elem, n)
+	}
+	return b.emit(Inst{Op: OpShare, Dst: b.temp(elem), Args: []LocalID{v}, Copy: true, Node: n})
+}
+
+// passedAgain: the reference handed on as an argument of the same call is the borrow checker's exclusivity conflict.
+func passedAgain(ent sem.EntityID, later []*hir.Expr) bool {
+	for _, x := range later {
+		if x != nil && x.Kind == hir.Local && x.Ent == ent {
+			return true
+		}
+	}
+	return false
+}
+
+// snapshotPath copies a field or element read, or a cell read, whose root local a later operand writes; a Copy read is already a value,
+// except a Copy record's, which shares the record a later field store writes in place, also from a closure a later call runs.
 func (b *builder) snapshotPath(v LocalID, src *hir.Expr, n syntax.NodeID, later []*hir.Expr) LocalID {
 	t := b.fn.Locals[v].Type
 	root := pathRoot(src)
-	if root == 0 || b.r.IsCopy(t) && !b.copyRecord(t) || b.r.HoldsResource(t) && !b.r.IsCopy(t) || !b.writtenLater(root, later) {
+	if root == 0 && src != nil && src.Kind == hir.Local && b.copyRecord(t) {
+		root = src.Ent
+	}
+	if root == 0 || b.r.IsCopy(t) && !b.copyRecord(t) || b.r.HoldsResource(t) && !b.r.IsCopy(t) {
+		return v
+	}
+	_, lends := b.r.MutRefElem(b.r.Entity(root).Type)
+	id, ok := b.locals[root]
+	if !b.writtenLater(localWrites{r: b.r, ent: root, moves: lends, lends: lends, calls: ok && b.fn.Locals[id].Cell}, later) {
 		return v
 	}
 	return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: n})
@@ -69,9 +109,9 @@ func pathRoot(e *hir.Expr) sem.EntityID {
 	}
 }
 
-func (b *builder) writtenLater(ent sem.EntityID, later []*hir.Expr) bool {
+func (b *builder) writtenLater(w localWrites, later []*hir.Expr) bool {
 	for _, x := range later {
-		if writesLocal(b.r, x, ent) {
+		if w.expr(x) {
 			return true
 		}
 	}

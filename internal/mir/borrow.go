@@ -83,6 +83,7 @@ type borrowCheck struct {
 	loopReach   [][]bool
 	curIdx      int
 	keptTemp    map[LocalID]bool
+	keptOwners  map[LocalID]bool
 	carry       map[LocalID][]carrySite
 	carryIn     map[[2]LocalID][]bool
 	resets      resetState
@@ -103,6 +104,7 @@ func analyzeBorrows(p *Program, f *Func) {
 	for bid := range f.Blocks {
 		c.checkBlock(BlockID(bid))
 	}
+	c.checkTempLeaves()
 }
 
 // checkBlock walks a block backward, tracking the holders live after each

@@ -119,7 +119,7 @@ func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
 			later := laterArgs(e.Args, e.EvalOrder, 0)
 			b.rejectRecvWrite(e, later)
 			if b.r.Fn(e.Ent).Recv == sem.RecvSelf && !mutBorrowsReceiver(e.Args[0], later) {
-				recv = b.snapshot(recv, e.Args[0], e.Args[0].Node, later...)
+				recv = b.snapshotRecv(recv, e.Args[0], e.Args[0].Node, later)
 			}
 			return recv
 		}
