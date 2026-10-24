@@ -146,7 +146,7 @@ func (c *borrowCheck) collectArray(in Inst) {
 		if !ok {
 			continue
 		}
-		if !c.elementHolder(c.f.Locals[a].Type) {
+		if t := c.f.Locals[a].Type; !c.elementHolder(t) && !c.namesTypeParam(t) {
 			return
 		}
 		srcs = append(srcs, b)

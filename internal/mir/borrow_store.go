@@ -10,6 +10,8 @@ type storeFlow struct {
 	target LocalID
 	values []flowArg
 	ref    bool
+	// generic marks a flow found only through a type parameter the target's type names.
+	generic bool
 }
 
 // storeTargets finds, before any holder is known, the locals some store may
@@ -32,10 +34,11 @@ func (c *borrowCheck) storeFlows(in Inst) []storeFlow {
 	switch in.Op {
 	case OpSetIndex, OpSetField:
 		v := in.Args[len(in.Args)-1]
-		if !c.elementHolder(c.f.Locals[v].Type) && !c.borrowIntoHolderField(in, v) {
+		lifetime := c.elementHolder(c.f.Locals[v].Type) || c.borrowIntoHolderField(in, v)
+		if !lifetime && !c.namesTypeParam(c.f.Locals[v].Type) {
 			return nil
 		}
-		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}}}
+		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}, generic: !lifetime}}
 	case OpCall, OpCallValue:
 		return c.callFlows(in)
 	}
@@ -122,7 +125,7 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 		return
 	}
 	for _, v := range fl.values {
-		if b, ok := c.flowInfo(v); ok {
+		if b, ok := c.storedInfo(fl, v, false); ok {
 			c.merge(c.sink(root, in.Node), storedAt(b))
 			if c.replacesHolder(in, root) {
 				c.noteResetSite(root, b)
@@ -136,7 +139,7 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
 	root, place, caller, ok := c.storeRoot(fl)
 	for _, v := range fl.values {
-		b, has := c.flowInfo(v)
+		b, has := c.storedInfo(fl, v, caller)
 		if !has || b.empty {
 			continue
 		}
@@ -155,32 +158,6 @@ func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
 			c.reportCode(in.Node, v.arg, "borrow-store-outlives", c.f.Locals[root].Name)
 		}
 	}
-}
-
-func (c *borrowCheck) untrackedPlace(fl storeFlow) string {
-	l := fl.target
-	for c.f.Locals[l].Ent == 0 {
-		in := c.definition(l)
-		if in == nil || len(in.Args) == 0 || in.Op != OpBorrow && in.Op != OpNewCell && in.Op != OpShare && in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
-			break
-		}
-		l = in.Args[0]
-	}
-	t := c.f.Locals[l].Type
-	for c.p.R.Types.Kind(t) == sem.KRef {
-		t = c.p.R.Types.Node(t).Elem
-	}
-	if c.f.Locals[l].Ent == 0 || c.f.Locals[l].Name == "" {
-		return c.typeName(t)
-	}
-	return c.typeName(t) + " behind `" + c.f.Locals[l].Name + "`"
-}
-
-func (c *borrowCheck) typeName(t sem.TypeID) string {
-	if t == 0 {
-		return "this place"
-	}
-	return "`" + c.p.R.TypeString(t) + "`"
 }
 
 func (c *borrowCheck) fitsOwnLifetime(b *borrowInfo, place sem.TypeID) bool {

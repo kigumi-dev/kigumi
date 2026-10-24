@@ -7,21 +7,21 @@ import (
 )
 
 // borrowLife tracks what a read keeps alive: a borrow keeps its source, and so does a temporary built from the borrow
-// (record, variant, array, call result, projection or copy, not a join of branches) whose type can still hold it.
+// (record, variant, array, call result, projection, copy or a join of copies) whose type can still hold it.
 type borrowLife struct {
 	borrowed map[LocalID]LocalID
 	carried  map[LocalID][]LocalID
 	memo     map[LocalID][]LocalID
 }
 
-func (p *Program) newBorrowLife(f *Func, isTemp func(LocalID) bool, defs map[LocalID]int, borrowed map[LocalID]LocalID) *borrowLife {
+func (p *Program) newBorrowLife(f *Func, isTemp func(LocalID) bool, defs map[LocalID]int, defBlocks map[LocalID]map[int]bool, borrowed map[LocalID]LocalID) *borrowLife {
 	carried := map[LocalID][]LocalID{}
 	refs := map[sem.TypeID]bool{}
 	for changed := true; changed; {
 		changed = false
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if !carries(in.Op) || !definesTemp(in, isTemp) || defs[in.Dst] > 1 || !p.holdsRef(f.Locals[in.Dst].Type, refs) {
+				if !carries(in.Op) || !definesTemp(in, isTemp) || defs[in.Dst] > 1 && in.Op != OpCopy && in.Op != OpMove || !p.mayCarry(f, in, refs) {
 					continue
 				}
 				for _, a := range in.Args {
@@ -34,7 +34,9 @@ func (p *Program) newBorrowLife(f *Func, isTemp func(LocalID) bool, defs map[Loc
 			}
 		}
 	}
-	return &borrowLife{borrowed: borrowed, carried: carried, memo: map[LocalID][]LocalID{}}
+	b := &borrowLife{borrowed: borrowed, carried: carried, memo: map[LocalID][]LocalID{}}
+	b.pruneJoins(f, defs, defBlocks)
+	return b
 }
 
 func carries(op Opcode) bool {
@@ -43,6 +45,17 @@ func carries(op Opcode) bool {
 		return true
 	}
 	return false
+}
+
+// An aggregate holds what its operands hold, whatever its declared type (a variadic pack has the callee's Array[T]).
+func (p *Program) mayCarry(f *Func, in Inst, refs map[sem.TypeID]bool) bool {
+	if p.holdsRef(f.Locals[in.Dst].Type, refs) {
+		return true
+	}
+	if in.Op != OpRecord && in.Op != OpVariant && in.Op != OpArray {
+		return false
+	}
+	return slices.ContainsFunc(in.Args, func(a LocalID) bool { return p.holdsRef(f.Locals[a].Type, refs) })
 }
 
 func (b *borrowLife) root(l LocalID) LocalID {
@@ -68,16 +81,21 @@ func (b *borrowLife) sources(h LocalID) []LocalID {
 		}
 	}
 	for _, c := range b.carried[h] {
-		if _, alias := b.borrowed[c]; alias {
-			c = b.root(c)
-			add(c)
-		}
-		for _, s := range b.sources(c) {
+		for _, s := range b.through(c) {
 			add(s)
 		}
 	}
 	b.memo[h] = out
 	return out
+}
+
+// through lists what a value carrying c keeps alive: the source c borrows, and what c carries.
+func (b *borrowLife) through(c LocalID) []LocalID {
+	if _, alias := b.borrowed[c]; alias {
+		r := b.root(c)
+		return append([]LocalID{r}, b.sources(r)...)
+	}
+	return b.sources(c)
 }
 
 // keeps lists the temporaries a read of l keeps alive: the source its borrow chain ends at, and the sources that one carries.
@@ -139,14 +157,15 @@ func extendTo(from, to LocalID, last map[LocalID]use, crossUse map[LocalID]bool)
 	return false
 }
 
-// holdsRef reports whether a value of type t can hold a reference: a reference, or a type with a reference or a lifetime among its arguments.
+// holdsRef reports whether a value of type t can hold a reference: a reference, a type parameter (its instantiation may be one),
+// or a type with such a type among its arguments.
 func (p *Program) holdsRef(t sem.TypeID, memo map[sem.TypeID]bool) bool {
 	if v, ok := memo[t]; ok {
 		return v
 	}
 	memo[t] = false
 	n := p.R.Types.Node(t)
-	v := n.Kind == sem.KRef || n.Kind == sem.KParam && p.R.IsLifetimeParam(n.Ent) || n.Elem != 0 && p.holdsRef(n.Elem, memo)
+	v := n.Kind == sem.KRef || n.Kind == sem.KParam || n.Elem != 0 && p.holdsRef(n.Elem, memo)
 	for _, a := range n.Args {
 		v = v || p.holdsRef(a, memo)
 	}

@@ -116,6 +116,11 @@ type Inst struct {
 	Emptied bool
 	// FullEnd numbers the full expression this instruction ends (see Local.FullExpr).
 	FullEnd int32
+	// GiveArgs marks the value-call arguments a site hands over at a type-parameter slot, declared to the call (see rt_callv_m).
+	GiveArgs uint32
+	// LendArgs marks the value-call arguments a site only lends, declared to the call the same way.
+	LendArgs     uint32
+	argsDeclared bool
 	// Prim/Prov are zero unless Ent is a registry-covered std call.
 	Prim  PrimitiveId
 	Prov  ProviderOpId

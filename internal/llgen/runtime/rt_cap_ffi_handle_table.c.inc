@@ -102,7 +102,7 @@ static val cap_handle_table_with(val a1, val a2) {
     handle_table* t;
     int64_t index = handle_find(a1, &t);
     val arg[1] = {t->slots[index].value};
-    return rt_callv(a2, 1, arg);
+    return rt_callv_lent(a2, 1, arg);
 }
 static val cap_handle_table_remove(val a1) {
     handle_table* t;

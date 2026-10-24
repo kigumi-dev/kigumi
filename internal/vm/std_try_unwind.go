@@ -25,7 +25,7 @@ func (m *Machine) tryMapItems(src, f *obj) *obj {
 	done := false
 	defer m.releaseProducedOnPanic(len(m.frames), &done, func() []*obj { return out })
 	for _, x := range src.fields {
-		out = append(out, m.callValue(f, []*obj{x}))
+		out = append(out, m.callValueLent(f, []*obj{x}))
 	}
 	done = true
 	return m.ok(m.sized(mkArray(out)))
@@ -39,7 +39,7 @@ func (m *Machine) tryFilterItems(src, keep *obj) *obj {
 	done := false
 	defer m.releaseProducedOnPanic(len(m.frames), &done, func() []*obj { return out })
 	for _, x := range src.fields {
-		r := deref(m.callValue(keep, []*obj{x}))
+		r := deref(m.callValueLent(keep, []*obj{x}))
 		if r.b {
 			out = append(out, m.copy(x))
 		}

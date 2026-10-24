@@ -40,7 +40,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		if a1.i < 0 || a1.i >= int64(len(a0.fields)) {
 			return m.none()
 		}
-		return m.some(m.callValue(a2, []*obj{a0.fields[a1.i]}))
+		return m.some(m.callValueLent(a2, []*obj{a0.fields[a1.i]}))
 	case "array.Array.withMut", "prelude.FixedArray.withMut":
 		if a1.i < 0 || a1.i >= int64(len(a0.fields)) {
 			return m.none()
@@ -52,7 +52,7 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 			a0.fields[a1.i], cell.inner = cell.inner, nil
 			m.release(cell)
 		}()
-		return m.some(m.callValue(a2, []*obj{cell}))
+		return m.some(m.callValueLent(a2, []*obj{cell}))
 	case "array.Array.takeAt":
 		i := a1.i
 		if i < 0 || i >= int64(len(a0.fields)) {

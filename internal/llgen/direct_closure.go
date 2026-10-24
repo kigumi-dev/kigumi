@@ -34,6 +34,7 @@ func (e *emitter) cloBoxFn(a *aggInfo) string {
 	fmt.Fprintf(&sb, "define internal ptr %s(ptr %%v) {\nentry:\n", e.aggBoxSym(a))
 	arr, boxes := e.boxLeaves(&sb, a, "%v")
 	fmt.Fprintf(&sb, "  %%r = call ptr @rt_closure(ptr %s, i32 %d, ptr %s)\n", e.useAdapter(a.Clo), len(a.Fields), arr)
+	fmt.Fprintf(&sb, "  call ptr @rt_closure_lent(ptr %%r, i32 %d)\n", e.lentMask(a.Clo.Ent, len(a.Fields)))
 	for _, b := range boxes {
 		fmt.Fprintf(&sb, "  call void @rt_release(ptr %s)\n", b)
 	}

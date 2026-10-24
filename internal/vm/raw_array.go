@@ -155,5 +155,5 @@ func (m *Machine) rawWithMut(a []*obj) *obj {
 		base.fields[i] = inner
 		m.release(cell)
 	}()
-	return m.some(m.callValue(a[2], []*obj{cell}))
+	return m.some(m.callValueLent(a[2], []*obj{cell}))
 }

@@ -13,3 +13,5 @@ func (p *Program) IsrInertArgs(f *Func, in Inst, g *Func) []bool {
 }
 
 func ImmortalLocals(f *Func, r *sem.Result) map[LocalID]bool { return immortalLocals(f, r) }
+
+func (p *Program) CountlessRefs(f *Func) []bool { return p.countlessRefs(f) }

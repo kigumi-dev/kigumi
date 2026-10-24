@@ -75,7 +75,7 @@ func (c *borrowCheck) checkTempKept(in Inst) {
 	if in.Op != OpCopy && in.Op != OpMove || c.f.Locals[in.Dst].Ent == 0 {
 		return
 	}
-	if t := c.f.Locals[in.Dst].Type; !c.resultMayCarryLifetime(t) && !c.holdsAsync(t) {
+	if t := c.f.Locals[in.Dst].Type; !c.resultMayCarryLifetime(t) && !c.holdsAsync(t) && !c.namesTypeParam(t) {
 		return
 	}
 	b, ok := c.holders[in.Args[0]]

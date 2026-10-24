@@ -11,7 +11,7 @@ func (m *Machine) mergeSort(order *obj, items, tmp []*obj) {
 	m.mergeSort(order, items[mid:], tmp)
 	l, r, o := 0, mid, 0
 	for l < mid && r < n {
-		verdict := m.callValue(order, []*obj{items[r], items[l]})
+		verdict := m.callValueLent(order, []*obj{items[r], items[l]})
 		less := m.r.Entity(deref(verdict).ent).Name == "Less"
 		m.release(verdict)
 		if less {

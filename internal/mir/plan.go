@@ -74,7 +74,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 			}
 		}
 	}
-	life := p.newBorrowLife(f, isTemp, defs, borrowed)
+	life := p.newBorrowLife(f, isTemp, defs, defBlocks, borrowed)
 	life.extend(last, crossUse)
 	noRelease := p.unownedTemps(f, isTemp, defs, materialize, joins, func(l LocalID) bool { return crossUse[l] && reads[l] > 1 })
 	touch := map[LocalID]map[int]bool{}

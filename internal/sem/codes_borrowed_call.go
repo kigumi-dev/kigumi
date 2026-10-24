@@ -8,4 +8,4 @@ var cTempBorrowKept = defineCode("E2235", "temporary-borrow-kept", "`{name}` kee
 
 var cTempBorrowStore = defineCode("E2295", "temporary-borrow-store", "an assignment cannot keep a borrow of {what}, which is dropped at the end of this statement; bind the value to a local first and borrow the local")
 
-var cTempBorrowLeaves = defineCode("E2296", "temporary-borrow-leaves", "a borrow of a temporary cannot leave the `if` or `match` arm that makes the temporary; bind the temporary to a local before the `if` or `match` and borrow the local")
+var cTempBorrowLeaves = defineCode("E2296", "temporary-borrow-leaves", "a borrow of a temporary cannot leave the `if` or `match` arm, or the right side of `||`, that makes the temporary; bind the temporary to a local before the branch and borrow the local")

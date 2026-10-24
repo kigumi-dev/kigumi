@@ -40,7 +40,7 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 			break
 		}
 		m.argTicks(f, in, args)
-		res = m.callValue(args[0], args[1:])
+		res = m.callSite(in, args)
 	case mir.OpBuiltin:
 		if in.Str == "task.close" {
 			m.closeScopeAt(fr)

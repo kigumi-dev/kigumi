@@ -29,7 +29,7 @@ static val try_string_chars(val s) {
 }
 static int sort_less(val order, val b, val a) {
     val args[2] = {b, a};
-    val r = rt_callv(order, 2, args);
+    val r = rt_callv_lent(order, 2, args);
     int less = deref(r)->u.var.v == V_Less;
     rt_release(r);
     return less;

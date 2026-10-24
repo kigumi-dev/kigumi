@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"kigumi/internal/mir"
+	"kigumi/internal/sem"
 )
 
 const definedLayersSrc = `
@@ -124,6 +125,14 @@ fn local() -> Int {
     d.y + s.value.y
 }
 
+type View['a] = { pub p &'a Loc }
+
+fn make['a](r: &'a Loc) -> View['a] { View { p: r } }
+
+fn viaField(r: &Loc) -> Int { make(r).p.value.y }
+
+fn viaAlias(r: &Loc) -> Int { { r }.value.x }
+
 fn main() -> Void! {}
 `
 
@@ -134,24 +143,21 @@ func TestDefinedReadThroughAReferenceKeepsTheReferent(t *testing.T) {
 	}
 	// Not planned(): the verifier's verdict is reported after these checks so they fail on their own.
 	perr := p.Apply(mir.Transform{Name: "plan-rc", Run: mir.PlanRC}, mir.Transform{Name: "plan-direct", Run: mir.PlanDirect})
-	for _, name := range []string{"main.get", "main.local", "main.viaCall"} {
+	handsOver := map[string]bool{"main.get": false, "main.local": false, "main.viaCall": true, "main.viaField": true, "main.viaAlias": false}
+	for name, want := range handsOver {
 		f := funcNamed(t, p, name)
 		crossed := 0
 		for _, blk := range f.Blocks {
 			for i, in := range blk.Insts {
-				if in.Op != mir.OpUnboxDirect {
-					continue
-				}
-				owns, isRef := refOrigin(f, in.Args[0])
-				if !isRef {
+				if in.Op != mir.OpUnboxDirect || p.R.Types.Kind(f.Locals[in.Args[0]].Type) != sem.KRef {
 					continue
 				}
 				crossed++
 				if use := nextUse(blk.Insts[i+1:], in.Dst); use == nil || use.Op != mir.OpAlias {
 					t.Errorf("%s: the crossing out of %s is not read through an alias:\n%s", name, f.Locals[in.Args[0]].Name, p.Dump())
 				}
-				if got := p.CrossHandsOver(f, &blk.Insts[i]); got != owns {
-					t.Errorf("%s: the crossing out of %s hands over its count: %v, want %v:\n%s", name, f.Locals[in.Args[0]].Name, got, owns, p.Dump())
+				if got := p.CrossHandsOver(f, &blk.Insts[i]); got != want {
+					t.Errorf("%s: the crossing out of %s hands over its count: %v, want %v:\n%s", name, f.Locals[in.Args[0]].Name, got, want, p.Dump())
 				}
 			}
 		}
@@ -162,22 +168,6 @@ func TestDefinedReadThroughAReferenceKeepsTheReferent(t *testing.T) {
 	if perr != nil {
 		t.Errorf("passes: %v", perr)
 	}
-}
-
-// refOrigin picks sources by origin, not type, so the CrossHandsOver check does not restate it:
-// a call returns a reference with its own count, a borrow or a parameter lends one without.
-func refOrigin(f *mir.Func, src mir.LocalID) (owns, isRef bool) {
-	if slices.Contains(f.Params, src) {
-		return false, true
-	}
-	for _, blk := range f.Blocks {
-		for _, in := range blk.Insts {
-			if in.Dst == src && (in.Op == mir.OpBorrow || in.Op == mir.OpCall) {
-				return in.Op == mir.OpCall, true
-			}
-		}
-	}
-	return false, false
 }
 
 func nextUse(insts []mir.Inst, l mir.LocalID) *mir.Inst {

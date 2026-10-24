@@ -14,8 +14,8 @@ type carrySite struct {
 	owner LocalID
 }
 
-// carryFlows lists a call's `mut self` / `&mut` arguments and the by-value
-// arguments carrying a borrow their types do not name (a Future or Task).
+// carryFlows lists a call's `mut self` / `&mut` arguments and the by-value arguments carrying a borrow their
+// types do not name (a Future or Task); a plain type parameter's borrow goes through callFlows instead.
 func (c *borrowCheck) carryFlows(in Inst) (targets, values []LocalID) {
 	if in.Op != OpCall && in.Op != OpCallValue || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return nil, nil
@@ -33,7 +33,8 @@ func (c *borrowCheck) carryFlows(in Inst) (targets, values []LocalID) {
 		if i == 0 && info.Recv != sem.RecvNone || c.p.R.Types.Kind(s.exact) == sem.KRef {
 			continue
 		}
-		if _, ok := c.holders[s.arg]; ok && !c.resultMayCarryLifetime(c.f.Locals[s.arg].Type) {
+		t := c.f.Locals[s.arg].Type
+		if _, ok := c.holders[s.arg]; ok && !c.resultMayCarryLifetime(t) && (c.holdsDeferred(t) || !c.namesTypeParam(t)) {
 			values = append(values, s.arg)
 		}
 	}

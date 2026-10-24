@@ -19957,6 +19957,17 @@
       ]
     },
     {
+      "id": "sem/generic_fn_value_tie_err",
+      "kind": "sem",
+      "path": "testdata/sem/generic_fn_value_tie_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/generic_move_self_escape_err",
       "kind": "sem",
       "path": "testdata/sem/generic_move_self_escape_err.txtar",
@@ -21786,6 +21797,17 @@
       "id": "sem/temporary_borrow_future_err",
       "kind": "sem",
       "path": "testdata/sem/temporary_borrow_future_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/temporary_borrow_generic_result_err",
+      "kind": "sem",
+      "path": "testdata/sem/temporary_borrow_generic_result_err.txtar",
       "mode": [
         "check"
       ],

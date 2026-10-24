@@ -20,6 +20,7 @@ func PlanDirect(p *Program) error {
 	for _, f := range fs {
 		f.settleElided()
 		p.crossFunc(f)
+		p.settleValueArgs(f)
 		p.markFixed(f)
 		if f.Async {
 			p.slotHeldBoxes(f)

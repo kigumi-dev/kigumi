@@ -1,5 +1,7 @@
 -- src --
 import task from std/task
+import {Box, Shared} from std/alloc
+import array from std/array
 
 type C = { pub mut n Int }
 
@@ -272,6 +274,304 @@ async fn futOpt(z: &String?) -> usize {
     optLen(z)
 }
 
+fn churn() -> Int {
+    let mut arr: Array[String] = Array.of("x")
+    for i in 100..3000 {
+        arr.push("w${i}")
+    }
+    arr.len().toInt() || 0
+}
+
+fn packAll[U](items: ...U) -> Array[U] {
+    items
+}
+
+fn readArr['a](v: Array[V['a]], k: Int) -> String {
+    "${v[0].s.len()} ${v[0].s}"
+}
+
+fn showV['a](v: V['a], k: Int) -> String {
+    "${v.s.len()} ${v.s}"
+}
+
+fn noneOf['a](s: &'a String) -> V['a]? {
+    None
+}
+
+fn fallbackHit['a](n: &'a String) -> String {
+    showV(Some(V { s: &mks(9) }) || V { s: n }, churn())
+}
+
+fn fallbackMiss['a](n: &'a String) -> String {
+    showV(noneOf(&mks(9)) || V { s: n }, churn())
+}
+
+type Mk[U] = { pub f fn(&String) -> U }
+
+interface Maker[U] {
+    fn make(self, s: &String) -> U
+}
+
+type MkV = { pub n Int }
+
+fn MkV.make['a](self, s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+type Held[U] = { pub v U }
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn idT[X](x: X) -> X {
+    x
+}
+
+fn genCall[U](mk: fn(&String) -> U, show: fn(U, Int) -> String) -> String {
+    show(mk(&mks(11)), churn())
+}
+
+fn genField[U](m: Mk[U], show: fn(U, Int) -> String) -> String {
+    show(m.f(&mks(12)), churn())
+}
+
+fn genIface[U, M: Maker[U]](m: M, show: fn(U, Int) -> String) -> String {
+    show(m.make(&mks(13)), churn())
+}
+
+fn genHeld[U](mk: fn(&String) -> U, show: fn(U, Int) -> String) -> String {
+    show(Held { v: mk(&mks(14)) }.v, churn())
+}
+
+fn genUnwrap[U](mk: fn(&String) -> U, show: fn(U, Int) -> String) -> String {
+    show(Some(mk(&mks(15))).unwrap(), churn())
+}
+
+fn genId[U](mk: fn(&String) -> U, show: fn(U, Int) -> String) -> String {
+    show(idT(mk(&mks(16))), churn())
+}
+
+fn genNamed[U](mk: fn(&String) -> U, show: fn(U, Int) -> String) -> String {
+    let s = mks(17)
+    let a = mk(&s)
+    let k = churn()
+    show(a, k)
+}
+
+type Person = { pub name String }
+
+fn nameOf(p: &Person) -> &String {
+    &p.name
+}
+
+fn applyTo[U](p: &Person, f: fn(&Person) -> U, g: fn(U) -> usize) -> usize {
+    g(f(p))
+}
+
+fn foldItems[A](items: &Array[String], init: A, step: fn(A, &String) -> A) -> A {
+    let mut acc = init
+    for s in items {
+        acc = step(acc, s)
+    }
+    acc
+}
+
+fn keepAcc(a: String, s: &String) -> String {
+    a
+}
+
+fn lastV['a](acc: V['a], s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn foldShow[A](items: &Array[String], init: A, step: fn(A, &String) -> A, show: fn(A, Int) -> String) -> String {
+    show(foldItems(items, init, step), churn())
+}
+
+fn putVia[U](out: &mut U, s: &String, f: fn(&String) -> U) {
+    out = f(s)
+}
+
+fn showRef['a](v: &V['a], k: Int) -> String {
+    "${v.s.len()} ${v.s}"
+}
+
+fn pushGot[U](out: &mut Array[U], items: &Array[String], f: fn(&String) -> U) {
+    let o = items.get(0)
+    match o {
+        Some(x) -> out.push(f(x))
+        None -> {}
+    }
+}
+
+fn putGot[U](out: &mut U, items: &Array[String], f: fn(&String) -> U) {
+    match items.get(0) {
+        Some(x) -> {
+            out = f(x)
+        }
+        None -> {}
+    }
+}
+
+fn pushHead[U](out: &mut Array[U], items: &Array[String], f: fn(&String) -> U) {
+    if let Some(x) = items.first() {
+        out.push(f(x))
+    }
+}
+
+type Pn = { pub name String, pub n Int }
+
+fn mapPn[U](items: &Array[Pn], f: fn(&String) -> U) -> Array[U] {
+    let mut out: Array[U] = Array.empty()
+    for p in items {
+        out.push(f(&p.name))
+    }
+    out
+}
+
+fn recName[U](out: &mut U, items: &Array[Pn], f: fn(&String) -> U) {
+    for p in items {
+        out = f(&p.name)
+    }
+}
+
+fn okNested2[U](out: &mut Array[U], items: &Array[String?], f: fn(&String) -> U) {
+    for o in items {
+        match o {
+            Some(s) -> out.push(f(&s))
+            None -> {}
+        }
+    }
+}
+
+type HoldFn[U] = { pub f fn(&String) -> U }
+
+fn collectAll[U](items: &Array[String], f: fn(&String) -> U) -> Array[U] {
+    let mut out: Array[U] = Array.empty()
+    for s in items {
+        out.push(f(s))
+    }
+    out
+}
+
+fn readMut[U](items: &mut Array[String], f: fn(&String) -> U, show: fn(&U, Int) -> String) -> String {
+    let u = f(&items[0])
+    show(&u, churn())
+}
+
+fn firstMut[U](items: &mut Array[String], f: fn(&String) -> U) -> U {
+    let s = &items[0]
+    f(s)
+}
+
+fn fwdKeep[U](f: fn(&String) -> U, show: fn(&U, Int) -> String) -> String {
+    let items = Array.of("aa${churn()}", "bbb")
+    let rs = collectAll(&items, f)
+    show(&rs[0], churn())
+}
+
+fn collectMut[U](items: &mut Array[String], f: fn(&String) -> U) -> Array[U] {
+    collectAll(&items[0..1], f)
+}
+
+fn fwdMut[U](items: &mut Array[String], f: fn(&String) -> U) -> Array[U] {
+    collectMut(items, f)
+}
+
+fn repAll(items: &mut Array[String]) {
+    items = Array.of("zz${churn()}")
+}
+
+fn repThenRead(items: &mut Array[String]) -> String {
+    repAll(items)
+    let u = mkV(&items[0])
+    showRef(&u, churn())
+}
+
+type HoldG[U] = { pub g fn(U) -> usize }
+
+fn applyHeld[U](p: &Person, f: fn(&Person) -> U, h: HoldG[U]) -> usize {
+    h.g(f(p))
+}
+
+fn applyFirst[U](p: &Person, f: fn(&Person) -> U, gs: Array[fn(U) -> usize]) -> usize {
+    gs[0](f(p))
+}
+
+fn copyName(p: &Person) -> String {
+    "${p.name}"
+}
+
+fn tri3[U, W](p: &Person, f: fn(&Person) -> U, h: fn(&Person) -> W, g: fn(U, W, U) -> usize) -> usize {
+    g(f(p), h(p), f(p))
+}
+
+fn plen(p: &Person) -> usize {
+    p.name.len()
+}
+
+fn passStr(s: &String) -> &String {
+    s
+}
+
+fn wrapLen[A](f: escaping fn(A) -> usize) -> fn(A) -> usize {
+    (a: A) => f(a)
+}
+
+fn wrapNamed[A](f: escaping fn(A) -> usize) -> fn(A) -> usize {
+    let g = (a: A) => f(a)
+    g
+}
+
+fn composeLen[A, B](f: escaping fn(A) -> B, g: escaping fn(B) -> usize) -> fn(A) -> usize {
+    (a: A) => g(f(a))
+}
+
+fn fwdV[A](f: fn(A) -> usize, a: A) -> usize {
+    f(a)
+}
+
+fn fwdR[A, R](f: fn(A) -> R, a: A) -> R {
+    f(a)
+}
+
+fn viaFwd[U](p: &Person, f: fn(&Person) -> U, g: fn(U) -> usize) -> usize {
+    fwdV(g, f(p))
+}
+
+fn copyS(s: &String) -> String {
+    "${s}"
+}
+
+fn nonEmpty(s: &String) -> Bool {
+    s.len() > 0
+}
+
+fn mutLen(s: &mut String) -> usize {
+    s.len()
+}
+
+fn cmpLen(a: &String, b: &String) -> Ordering {
+    if a.len() < b.len() { Ordering.Less } else if a.len() > b.len() { Ordering.Greater } else { Ordering.Equal }
+}
+
+fn refP(p: &Person) -> &Person {
+    p
+}
+
+fn wrapS[A](f: escaping fn(A) -> String) -> fn(A) -> String {
+    (a: A) => f(a)
+}
+
+fn wrapB[A](f: escaping fn(A) -> Bool) -> fn(A) -> Bool {
+    (a: A) => f(a)
+}
+
+fn wrap2[A](f: escaping fn(A, A) -> Ordering) -> fn(A, A) -> Ordering {
+    (a: A, b: A) => f(a, b)
+}
+
 fn main() {
     let mut c = C { n: 1 }
     let mut d = C { n: 1 }
@@ -301,6 +601,82 @@ fn main() {
     print "disjoint ${viaRefDisjoint(&mut pp)} ${pp.h.n} ${pp.k.n}"
     let ex = task.currentThreadExecutor()
     print "future ${ex.runToCompletion(futLen(&mks(5)))} ${ex.runToCompletion(futOpt(&mkt(6)?.s))}"
+    print "packed ${readArr(Array.of(V { s: &mks(3) }), churn())} ${readArr(packAll(V { s: &mks(4) }, V { s: &mks(5) }), churn())}"
+    let named = mks(10)
+    print "fallback ${fallbackHit(&named)} ${fallbackMiss(&named)}"
+    print "generic ${genCall(mkV, showV)} ${genField(Mk { f: mkV }, showV)} ${genIface(MkV { n: 1 }, showV)} ${genHeld(mkV, showV)}"
+    print "generic ${genUnwrap(mkV, showV)} ${genId(mkV, showV)} ${genNamed(mkV, showV)}"
+    let person = Person { name: "abc" }
+    let people = Array.of(Person { name: "a" }, Person { name: "bc" })
+    let names = people.map(nameOf)
+    print "fnitem ${applyTo(&person, nameOf, strLen)} ${names.len()} ${names[1]}"
+    let items = Array.of("a${churn()}", "bcd")
+    let mut pv = mkV(&named)
+    putVia(&mut pv, &items[1], mkV)
+    print "fold ${foldItems(&items, "z", keepAcc)} ${foldShow(&items, mkV(&named), lastV, showV)} ${showV(pv, churn())}"
+    let mut got = Array.of(mkV(&named))
+    pushGot(&mut got, &items, mkV)
+    pushHead(&mut got, &items, mkV)
+    let mut gv = mkV(&named)
+    putGot(&mut gv, &items, mkV)
+    print "opt ${got.len()} ${showRef(&got[1], churn())} ${showRef(&got[2], churn())} ${showRef(&gv, churn())}"
+    let pns = Array.of(Pn { name: "n${churn()}", n: 1 }, Pn { name: "m", n: 2 })
+    let ms = mapPn(&pns, mkV)
+    let mut rn = mkV(&named)
+    recName(&mut rn, &pns, mkV)
+    let opts = Array.of(Some("s${churn()}"), None)
+    let mut on = Array.of(mkV(&named))
+    okNested2(&mut on, &opts, mkV)
+    print "rec ${showRef(&ms[0], churn())} ${showRef(&rn, churn())} ${on.len()} ${showRef(&on[1], churn())}"
+    let mut held = Array.of("h${churn()}", "ij")
+    let hf = HoldFn { f: strLen }
+    let lens = collectAll(&held, hf.f)
+    held = Array.of("k${churn()}")
+    let rm = readMut(&mut held, mkV, showRef)
+    let fv = firstMut(&mut held, mkV)
+    print "held ${lens[0]} ${rm} ${showRef(&fv, churn())}"
+    let mut fw = Array.of("f${churn()}", "g")
+    let fm = fwdMut(&mut fw, mkV)
+    print "fwd ${fwdKeep(mkV, showRef)} ${showRef(&fm[0], churn())}"
+    print "rep ${repThenRead(&mut fw)}"
+    let hp = Person { name: "hp${churn()}" }
+    let cap = "cap${churn()}"
+    let lg = (s: &String) => s.len()
+    let lc = (s: &String) => s.len() + cap.len()
+    let l3 = (a: &String, b: String, c: &String) => a.len() + b.len() + c.len()
+    let hold = HoldG { g: (s: &String) => s.len() + 1 }
+    let lams: Array[fn(&String) -> usize] = Array.of((s: &String) => s.len() + 2)
+    print "lam ${applyTo(&hp, nameOf, lg)} ${applyTo(&hp, nameOf, lc)} ${tri3(&hp, nameOf, copyName, l3)} ${applyHeld(&hp, nameOf, hold)} ${applyFirst(&hp, nameOf, lams)}"
+    let wl = wrapLen(plen)
+    let wn = wrapNamed(plen)
+    let wc = composeLen(nameOf, strLen)
+    let wo = composeLen(copyName, (s: String) => s.len())
+    print "wrap ${wl(&hp)} ${wn(&hp)} ${wc(&hp)} ${wo(&hp)}"
+    print "fwdv ${viaFwd(&hp, nameOf, strLen)} ${applyTo(&hp, nameOf, wrapLen(strLen))} ${applyTo(&hp, nameOf, composeLen(passStr, strLen))}"
+    let harr = Array.of(mks(31), mks(320))
+    let hm1 = harr.map(wrapLen(strLen))
+    let hm2 = harr.map(composeLen(passStr, strLen))
+    let hw1 = harr.with(1, wrapLen(strLen)) || 0
+    let hc1 = harr.cloneWith(wrapS(copyS))
+    let hb1 = Box.new(mks(33)).with(wrapLen(strLen))
+    let hs1 = Shared.new(mks(34)).with(wrapLen(strLen))
+    let hm3 = harr.map(wrapLen(wrapLen(wrapLen(strLen))))
+    print "hof ${hm1[0]} ${hm2[1]} ${hw1} ${hc1[1]} ${hb1} ${hs1} ${hm3[1]}"
+    let ht = harr.tryMap(wrapLen(strLen))
+    let hf = harr.filter(wrapB(nonEmpty))
+    let hsm = Shared.new(mks(37)).withMut(wrapLen(mutLen))
+    let hsort = array.sortedBy(&harr, wrap2(cmpLen))
+    let htl = match ht {
+        Ok(v) -> v.len()
+        Err(e) -> 0
+    }
+    print "hof2 ${htl} ${hf.len()} ${hsm} ${hsort[0]}"
+    let mut tot = 0
+    for i in 0..1000 {
+        tot = tot + (fwdV(strLen, passStr(&mks(i))).toInt() || 0)
+        tot = tot + (fwdR(strLen, passStr(&mks(i))).toInt() || 0)
+    }
+    print "loop ${tot} ${fwdV(plen, refP(&hp)) + fwdV(plen, refP(&hp))} ${fwdR(plen, refP(&hp)) + fwdR(plen, refP(&hp))}"
 }
 -- stdout --
 lent 2 500 11 7 b21 yyyy a11 w
@@ -318,6 +694,23 @@ wrapped 3 5 some hi2 some hi2 2 3 some t42 4 15
 disjoint 2 2 500
 dropt 6
 future 4 2
+packed 4 hey3 4 hey4
+fallback 4 hey9 5 hey10
+generic 5 hey11 5 hey12 5 hey13 5 hey14
+generic 5 hey15 5 hey16 5 hey17
+fnitem 3 2 bc
+fold z 3 bcd 3 bcd
+opt 3 5 a2901 5 a2901 5 a2901
+rec 5 n2901 1 m 2 5 s2901
+held 5 5 k2901 5 k2901
+fwd 6 aa2901 5 f2901
+rep 6 zz2901
+lam 6 13 18 7 8
+wrap 6 6 6 6
+fwdv 6 6 6
+hof 5 6 6 hey320 5 5 6
+hof2 2 2 5 hey31
+loop 11780 12 12
 dropt 42
 droph 7
 drop 7 h

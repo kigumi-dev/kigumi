@@ -57,7 +57,7 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		}
 		c.borrow++
 		defer func() { c.borrow-- }()
-		return m.callValue(a1, []*obj{c.cell.inner})
+		return m.callValueLent(a1, []*obj{c.cell.inner})
 	case "alloc.Shared.withMut":
 		c := a0.opaqueData().(*sharedCtrl)
 		if c.borrow != 0 {
@@ -67,7 +67,7 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		defer func() { c.borrow = 0 }()
 		// The callback writes through c.cell itself, same as any
 		// other &mut Cell store, instead of a snapshot of its content.
-		return m.callValue(a1, []*obj{c.cell})
+		return m.callValueLent(a1, []*obj{c.cell})
 	case "alloc.Box.tryNew":
 		if m.faultTick() {
 			return m.allocError()
@@ -82,9 +82,9 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		m.release(old)
 		return unitObj
 	case "alloc.Box.with":
-		return m.callValue(a1, []*obj{a0.opaqueData().(*obj).inner})
+		return m.callValueLent(a1, []*obj{a0.opaqueData().(*obj).inner})
 	case "alloc.Box.withMut":
-		return m.callValue(a1, []*obj{a0.opaqueData().(*obj)})
+		return m.callValueLent(a1, []*obj{a0.opaqueData().(*obj)})
 	case "alloc.Box.into":
 		return retain(a0.opaqueData().(*obj).inner)
 	case "alloc.Weak.upgrade":

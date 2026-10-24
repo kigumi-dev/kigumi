@@ -1124,6 +1124,17 @@ void rt_stditem_init(void* slot, const char* key, uint32_t lent) {
 }
 #endif
 
+// lent marks the arguments a user function value's parameters only borrow, which rt_release_lent_arg reads.
+void rt_fnitem_lent(void* slot, int lent) {
+    ((val)slot)->u.clo.lent = (uint32_t)lent;
+}
+
+val rt_closure_lent(val v, int lent) {
+    deref(v)->u.clo.lent = (uint32_t)lent;
+    return v;
+}
+
+
 // rt_closure_async is rt_closure for an async fn/method used as a value
 // (A25-b): rt_callv on the result builds a Future instead of running fn.
 val rt_closure_async(adapter_fn fn, int n, val* caps) {
@@ -2422,6 +2433,25 @@ static val callv_async(val f, int n, val* args) {
     for (int i = 0; i < n; i++) rt_release(args[i]);
     return fut;
 }
+// rt_callv_m is rt_callv for a caller declaring each argument lent (a bit in lent) or handed over (in given): a lent one
+// a parameter of f consumes is retained first, a handed one a parameter only borrows is released after.
+val rt_callv_m(val f, int n, val* args, uint32_t lent, uint32_t given) {
+    val g = deref(f);
+    uint32_t m = g->kind == K_CLOSURE && !g->u.clo.async ? g->u.clo.lent : 0;
+    int known = g->kind == K_CLOSURE && !g->u.clo.async && (g->u.clo.key || ((m >> 31) & 1));
+    for (int i = 0; known && i < n && i < 31; i++)
+        if (((lent >> i) & 1) && !((m >> i) & 1)) rt_retain(args[i]);
+    val r = rt_callv(f, n, args);
+    for (int i = 0; known && i < n && i < 31; i++)
+        if (((given >> i) & 1) && ((m >> i) & 1)) rt_release(args[i]);
+    return r;
+}
+
+// A primitive passes its callback borrows of what it holds.
+val rt_callv_lent(val f, int n, val* args) {
+    return rt_callv_m(f, n, args, 0x7fffffffu, 0);
+}
+
 val rt_callv(val f, int n, val* args) {
     f = deref(f);
     if (f->kind != K_CLOSURE) rt_panic("value is not callable");
@@ -3657,7 +3687,7 @@ val rt_std_id(int op, int n, val* a) {
         UNWIND_PUSH(u, unwind_release_out, NULL, out, 0);
         for (int64_t i = 0; i < a0->u.arr.len; i++) {
             val arg[1] = {a0->u.arr.items[i]};
-            out->u.arr.items[out->u.arr.len++] = rt_callv(a1, 1, arg);
+            out->u.arr.items[out->u.arr.len++] = rt_callv_lent(a1, 1, arg);
         }
         UNWIND_POP(u);
         return try_ok(out);
@@ -3670,7 +3700,7 @@ val rt_std_id(int op, int n, val* a) {
         UNWIND_PUSH(u, unwind_release_out, NULL, out, 0);
         for (int64_t i = 0; i < a0->u.arr.len; i++) {
             val arg[1] = {a0->u.arr.items[i]};
-            val keep = rt_callv(a1, 1, arg);
+            val keep = rt_callv_lent(a1, 1, arg);
             int kept = deref(keep)->u.b;
             rt_release(keep);
             if (!kept) continue;
@@ -3917,7 +3947,7 @@ val rt_std_id(int op, int n, val* a) {
         int64_t i = a1->u.i;
         if (i < 0 || i >= a0->u.arr.len) return none();
         val arg[1] = {a0->u.arr.items[i]};
-        return some(rt_callv(a2, 1, arg));
+        return some(rt_callv_lent(a2, 1, arg));
     }
 #endif
 #if defined(KIGUMI_OP_ARRAY_WITH_MUT)
@@ -3930,7 +3960,7 @@ val rt_std_id(int op, int n, val* a) {
         val cell = rt_cell(a0->u.arr.items[i]);
         val arg[1] = {cell};
         UNWIND_PUSH(u, unwind_lend_back, a0, cell, i);
-        val r = rt_callv(a2, 1, arg);
+        val r = rt_callv_lent(a2, 1, arg);
         UNWIND_POP(u);
         a0->u.arr.items[i] = cell->u.cell.v;
         // free_obj on a cell releases its `.v`, already handed to the
@@ -4359,7 +4389,7 @@ val rt_std_id(int op, int n, val* a) {
         c->borrow++;
         val arg[1] = {c->cell->u.cell.v};
         UNWIND_PUSH(u, unwind_borrow_release, c, NULL, 0);
-        val r = rt_callv(a1, 1, arg);
+        val r = rt_callv_lent(a1, 1, arg);
         UNWIND_POP(u);
         c->borrow--;
         return r;
@@ -4374,7 +4404,7 @@ val rt_std_id(int op, int n, val* a) {
         // other &mut Cell store, instead of a snapshot of its content.
         val arg[1] = {c->cell};
         UNWIND_PUSH(u, unwind_borrow_free, c, NULL, 0);
-        val r = rt_callv(a1, 1, arg);
+        val r = rt_callv_lent(a1, 1, arg);
         UNWIND_POP(u);
         c->borrow = 0;
         return r;
@@ -4433,13 +4463,13 @@ val rt_std_id(int op, int n, val* a) {
 #if defined(KIGUMI_OP_BOX_WITH)
     case OP_BOX_WITH: {
         val arg[1] = {((val)a0->u.op.data)->u.cell.v};
-        return rt_callv(a1, 1, arg);
+        return rt_callv_lent(a1, 1, arg);
     }
 #endif
 #if defined(KIGUMI_OP_BOX_WITH_MUT)
     case OP_BOX_WITH_MUT: {
         val arg[1] = {(val)a0->u.op.data};
-        return rt_callv(a1, 1, arg);
+        return rt_callv_lent(a1, 1, arg);
     }
 #endif
 #if defined(KIGUMI_OP_BOX_INTO)
@@ -4638,6 +4668,13 @@ val rt_std(const char* key, int n, val* a) {
 }
 #endif
 // A std hash reached through a function value needs no box when the caller keeps the result in a register.
+int64_t rt_callv_i64_m(val f, int n, val* args, uint32_t lent, uint32_t given) {
+    val r = rt_callv_m(f, n, args, lent, given);
+    int64_t x = rt_int_val(r);
+    rt_release(r);
+    return x;
+}
+
 int64_t rt_callv_i64(val f, int n, val* args) {
 #ifdef KIGUMI_STD_DYNAMIC
     val g = deref(f);

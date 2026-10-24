@@ -116,6 +116,19 @@ fn armRecordLeaves(c: Bool) -> usize {
     }.s)
 }
 
+fn none['a](s: &'a String) -> V['a]? {
+    None
+}
+
+fn fallbackLeaves(n: &String) -> usize {
+    str((none(n) || V { s: &mks(3) }).s) //~ ERROR right side of `||`
+}
+
+fn fallbackKeeps() -> usize {
+    let k = mks(5)
+    str((Some(V { s: &mks(4) }) || V { s: &k }).s)
+}
+
 fn passed(x: &H?, c: Bool) -> usize {
     show(&x?.s) + show({ &x?.s }) + show(&(if c { x?.s } else { x?.s }))
 }
@@ -195,15 +208,21 @@ error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `
 89 |     h.w = W { z: &x?.s } //~ ERROR `h` keeps a borrow of a temporary
    |     ^^^
 
-error[E2296]: a borrow of a temporary cannot leave the `if` or `match` arm that makes the temporary; bind the temporary to a local before the `if` or `match` and borrow the local
+error[E2296]: a borrow of a temporary cannot leave the `if` or `match` arm, or the right side of `||`, that makes the temporary; bind the temporary to a local before the branch and borrow the local
    --> main.kg:106:17
     |
 106 |     show(if c { &x?.s } else { &x?.s }) //~ ERROR cannot leave the `if` or `match` arm
     |                 ^^^^^
 
-error[E2296]: a borrow of a temporary cannot leave the `if` or `match` arm that makes the temporary; bind the temporary to a local before the `if` or `match` and borrow the local
+error[E2296]: a borrow of a temporary cannot leave the `if` or `match` arm, or the right side of `||`, that makes the temporary; bind the temporary to a local before the branch and borrow the local
    --> main.kg:111:24
     |
 111 |         true -> V { s: &mks(1) } //~ ERROR cannot leave the `if` or `match` arm
     |                        ^^^^^^
+
+error[E2296]: a borrow of a temporary cannot leave the `if` or `match` arm, or the right side of `||`, that makes the temporary; bind the temporary to a local before the branch and borrow the local
+   --> main.kg:121:28
+    |
+121 |     str((none(n) || V { s: &mks(3) }).s) //~ ERROR right side of `||`
+    |                            ^^^^^^
 

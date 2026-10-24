@@ -73,7 +73,7 @@ func (m *Machine) registerFFI() {
 			m.abort("this pointer addresses a Pin that was already dropped")
 		}
 		// f borrows the value, so the reference invoke takes is the only one.
-		return m.callValue(a[1], []*obj{v})
+		return m.callValueLent(a[1], []*obj{v})
 	}
 	// Call-scoped: the handle lives only for f's call, unlike Pin's handle,
 	// which lives until an explicit drop.

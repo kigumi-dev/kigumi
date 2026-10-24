@@ -1,5 +1,7 @@
 package mir
 
+import "slices"
+
 // borrowReach computes the owners borrowed on some path into each block: a widening
 // container can be live before a borrow it will carry exists, unlike any other holder.
 func (c *borrowCheck) borrowReach() {
@@ -35,7 +37,15 @@ func (c *borrowCheck) borrowReach() {
 	}
 }
 
+// borrowRoot is the owner in borrows: an explicit borrow, or the receiver place a call's result keeps.
 func (c *borrowCheck) borrowRoot(in Inst) (LocalID, bool) {
+	if in.Op == OpCall || in.Op == OpCallValue {
+		for k, b := range c.recvBorrows {
+			if k.node == in.Node && len(b.owners) > 0 && slices.Contains(in.Args, k.arg) {
+				return b.owners[0].owner, true
+			}
+		}
+	}
 	if in.Op != OpBorrow {
 		return 0, false
 	}

@@ -14,6 +14,7 @@ import (
 type fnItem struct {
 	sym   string
 	async bool
+	lent  int
 }
 
 // objSlotBytes is the storage an immortal value is built in; RT_OBJ_SLOT
@@ -119,6 +120,9 @@ func (e *emitter) initImmortals() string {
 	for _, n := range slices.Sorted(maps.Keys(e.fnItems)) {
 		it := e.fnItems[n]
 		e.irb(&sb).Call(rtFnItemInit, vptr(n), vptr(it.sym), vi32(boolBit(it.async)))
+		if it.lent != 0 {
+			e.irb(&sb).Call(rtFnItemLent, vptr(n), vi32(it.lent))
+		}
 	}
 	for _, b := range e.stdBinds {
 		e.irb(&sb).Call(rtStdItemInit, vptr(b.slot), vptr(b.key), vi32(b.lent))

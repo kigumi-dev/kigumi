@@ -1,0 +1,465 @@
+-- module --
+mir: planned
+-- src --
+type V['a] = { pub s &'a String }
+
+type Held[U] = { pub v U }
+
+type Mk[U] = { pub f fn(&String) -> U }
+
+interface Maker[U] {
+    fn make(self, s: &String) -> U
+}
+
+type MkV = { pub n Int }
+
+fn MkV.make['a](self, s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+type Cell1[T] = { pub v T }
+
+fn Cell1[T].with[R](self, f: fn(&T) -> R) -> R {
+    f(&self.v)
+}
+
+type P = { pub name String }
+
+fn nameOf(p: &P) -> &String {
+    &p.name
+}
+
+fn mks(i: Int) -> String {
+    "s${i}"
+}
+
+fn mkV['a](s: &'a String) -> V['a] {
+    V { s: s }
+}
+
+fn showV['a](v: V['a]) -> usize {
+    v.s.len()
+}
+
+fn lenOf(s: &String) -> usize {
+    s.len()
+}
+
+fn idT[T](x: T) -> T {
+    x
+}
+
+fn viaLet[U](mk: fn(&String) -> U, show: fn(U) -> usize) -> usize {
+    let a = mk(&mks(1)) //~ ERROR `a` keeps a borrow of a temporary
+    show(a)
+}
+
+fn viaBound[U, F: Fn[fn(&String) -> U]](mk: F, show: fn(U) -> usize) -> usize {
+    let a = mk(&mks(2)) //~ ERROR `a` keeps a borrow of a temporary
+    show(a)
+}
+
+fn viaField[U](m: Mk[U], show: fn(U) -> usize) -> usize {
+    let a = m.f(&mks(3)) //~ ERROR `a` keeps a borrow of a temporary
+    show(a)
+}
+
+fn viaIface[U, M: Maker[U]](m: M, show: fn(U) -> usize) -> usize {
+    let a = m.make(&mks(4)) //~ ERROR `a` keeps a borrow of a temporary
+    show(a)
+}
+
+fn viaHeld[U](mk: fn(&String) -> U, show: fn(U) -> usize) -> usize {
+    let h = Held { v: mk(&mks(5)) }.v //~ ERROR `h` keeps a borrow of a temporary
+    show(h)
+}
+
+fn viaUnwrap[U](mk: fn(&String) -> U, show: fn(U) -> usize) -> usize {
+    let u = Some(mk(&mks(6))).unwrap() //~ ERROR `u` keeps a borrow of a temporary
+    show(u)
+}
+
+fn viaId[U](mk: fn(&String) -> U, show: fn(U) -> usize) -> usize {
+    let w = idT(mk(&mks(7))) //~ ERROR `w` keeps a borrow of a temporary
+    show(w)
+}
+
+fn viaLocal[U](mk: fn(&String) -> U) -> U {
+    let s = mks(8) //~ ERROR still borrowed when its scope ends
+    mk(&s) //~ ERROR a borrow cannot be returned
+}
+
+fn consumed[U](mk: fn(&String) -> U, show: fn(U) -> usize) -> usize {
+    show(mk(&mks(9))) + show(Held { v: mk(&mks(10)) }.v)
+}
+
+fn throughParam[U](s: &String, mk: fn(&String) -> U) -> U {
+    mk(s)
+}
+
+fn apply[U](p: &P, f: fn(&P) -> U, g: fn(U) -> usize) -> usize {
+    g(f(p))
+}
+
+type Bag[T] = { pub xs Array[T] }
+
+fn Bag[T].fold1[A](self, init: A, step: fn(A, &T) -> A) -> A {
+    let mut acc = init
+    for item in &self.xs {
+        acc = step(acc, item)
+    }
+    acc
+}
+
+fn foldRef[A](items: &Array[String], init: A, step: fn(A, &String) -> A) -> A {
+    let mut acc = init
+    for s in &items {
+        acc = step(acc, s)
+    }
+    acc
+}
+
+fn addLen(n: usize, s: &String) -> usize {
+    n + s.len()
+}
+
+type Slot[U] = { pub mut v U }
+
+fn Slot[U].fill(mut self, f: fn(&String) -> U) {
+    self.v = f(&mks(12)) //~ ERROR a borrow cannot be stored
+}
+
+fn Slot[U].reset(mut self, f: fn(&String) -> U) {
+    self = Slot { v: f(&mks(13)) } //~ ERROR cannot be stored through `self`
+}
+
+fn put[U](out: &mut U, f: fn(&String) -> U) {
+    out = f(&mks(14)) //~ ERROR cannot be stored through `out`
+}
+
+fn putLocal[U](out: &mut U, f: fn(&String) -> U) {
+    let t = mks(15)
+    out = f(&t) //~ ERROR cannot be stored through `out`
+}
+
+fn cput['a](out: &mut V['a], s: &'a String) {
+    out = mkV(&mks(16)) //~ ERROR cannot be stored through `out`
+}
+
+fn cputLocal['a](out: &mut V['a], s: &'a String) {
+    let t = mks(17)
+    out = mkV(&t) //~ ERROR cannot be stored through `out`
+}
+
+fn pushLocal[U](f: fn(&String) -> U, show: fn(U) -> usize) -> usize {
+    let mut arr: Array[U] = Array.empty()
+    arr.push(f(&mks(18))) //~ ERROR `arr` keeps a borrow of a temporary
+    show(arr.takeAt(0).unwrap())
+}
+
+fn pushOut[U](out: &mut Array[U], f: fn(&String) -> U) {
+    out.push(f(&mks(19))) //~ ERROR a borrow cannot be stored into `out`
+}
+
+fn insertOut[U](out: &mut Array[U], f: fn(&String) -> U) -> Bool {
+    let t = mks(20)
+    out.insertAt(0, f(&t)) //~ ERROR a borrow cannot be stored into `out`
+}
+
+fn foldItems[A](items: &Array[String], init: A, step: fn(A, &String) -> A) -> A {
+    let mut acc = init
+    for s in items {
+        acc = step(acc, s)
+    }
+    acc
+}
+
+fn keepAcc(a: String, s: &String) -> String {
+    a
+}
+
+fn putParam[U](out: &mut U, s: &String, f: fn(&String) -> U) {
+    out = f(s)
+}
+
+fn cputParam['a](out: &mut V['a], s: &'a String) {
+    out = mkV(s)
+}
+
+fn pushParam[U](out: &mut Array[U], s: &String, f: fn(&String) -> U) {
+    out.push(f(s))
+}
+
+fn collect[U](items: &Array[String], f: fn(&String) -> U) -> Array[U] {
+    let mut out: Array[U] = Array.empty()
+    for s in items {
+        out.push(f(s))
+    }
+    out
+}
+
+fn putCopy[U](out: &mut U, items: &Array[Int], f: fn(&Int) -> U) {
+    let x = items[0]
+    out = f(&x) //~ ERROR cannot be stored through `out`
+}
+
+fn pushCopy[U](out: &mut Array[U], items: &Array[Int], f: fn(&Int) -> U) {
+    let x = items[0]
+    out.push(f(&x)) //~ ERROR a borrow cannot be stored into `out`
+}
+
+fn Slot[U].setCopy(mut self, items: &Array[Int], f: fn(&Int) -> U) {
+    let x = items[0]
+    self.v = f(&x) //~ ERROR a borrow cannot be stored
+}
+
+fn foldFirst[A](items: &Array[Int], init: A, step: fn(A, &Int) -> A, show: fn(A) -> usize) -> usize {
+    let mut acc = init
+    for i in 0..2 {
+        let first = items[0] //~ ERROR `first` is still borrowed when its scope ends //~ ERROR `first` is borrowed and cannot be mutated
+        acc = step(acc, &first)
+    }
+    show(acc)
+}
+
+fn mixedRef[U](out: &mut U, items: &Array[Int], c: Bool, f: fn(&Int) -> U) {
+    let t = items[0]
+    let r = if c { &items[1] } else { &t }
+    out = f(r) //~ ERROR cannot be stored through `out`
+}
+
+fn copyOfLoop[U](out: &mut U, items: &Array[Int], f: fn(&Int) -> U) {
+    for n in items {
+        let x = n
+        out = f(&x) //~ ERROR cannot be stored through `out`
+    }
+}
+
+fn putLoop[U](out: &mut U, items: &Array[Int], f: fn(&Int) -> U) {
+    for n in items {
+        out = f(n) //~ ERROR cannot be stored through `out`
+    }
+}
+
+fn putGotInt[U](out: &mut U, items: &Array[Int], f: fn(&Int) -> U) {
+    match items.get(0) {
+        Some(x) -> {
+            out = f(&x) //~ ERROR cannot be stored through `out`
+        }
+        None -> {}
+    }
+}
+
+fn pushGet[U](out: &mut Array[U], items: &Array[String], f: fn(&String) -> U) {
+    let o = items.get(0)
+    match o {
+        Some(x) -> out.push(f(x))
+        None -> {}
+    }
+}
+
+fn putGet[U](out: &mut U, items: &Array[String], f: fn(&String) -> U) {
+    match items.get(0) {
+        Some(x) -> {
+            out = f(x)
+        }
+        None -> {}
+    }
+}
+
+fn pushFirst[U](out: &mut Array[U], items: &Array[String], f: fn(&String) -> U) {
+    if let Some(x) = items.first() {
+        out.push(f(x))
+    }
+}
+
+fn main() {
+    let p = P { name: "abc" }
+    let people = Array.of(P { name: "a" }, P { name: "bc" })
+    let names = people.map(nameOf)
+    let c = Cell1 { v: 4 }
+    let n = c.with((x: &Int) => x + 1)
+    let k = mks(11)
+    print "${apply(&p, nameOf, lenOf)} ${names.len()} ${n} ${consumed(mkV, showV)} ${throughParam(&k, lenOf)}"
+    let bag = Bag { xs: Array.of("ab", "c") }
+    print "${bag.fold1(0, addLen)} ${foldRef(&bag.xs, 0, addLen)}"
+    let items = Array.of("a", "bcd")
+    let mut pv = mkV(&k)
+    putParam(&mut pv, &items[1], mkV)
+    let mut cv = mkV(&k)
+    cputParam(&mut cv, &items[1])
+    let mut pa = Array.of(mkV(&k))
+    pushParam(&mut pa, &items[1], mkV)
+    print "${foldItems(&items, "z", keepAcc)} ${showV(pv)} ${showV(cv)} ${pa.len()} ${collect(&items, lenOf).len()}"
+    print "${viaLet(mkV, showV)} ${viaBound(mkV, showV)} ${viaField(Mk { f: mkV }, showV)} ${viaIface(MkV { n: 1 }, showV)}"
+    print "${viaHeld(mkV, showV)} ${viaUnwrap(mkV, showV)} ${viaId(mkV, showV)} ${viaLocal(lenOf)}"
+}
+-- expect --
+error[E2235]: `a` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:50:9
+   |
+50 |     let a = mk(&mks(1)) //~ ERROR `a` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `a` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:55:9
+   |
+55 |     let a = mk(&mks(2)) //~ ERROR `a` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `a` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:60:9
+   |
+60 |     let a = m.f(&mks(3)) //~ ERROR `a` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `a` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:65:9
+   |
+65 |     let a = m.make(&mks(4)) //~ ERROR `a` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `h` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:70:9
+   |
+70 |     let h = Held { v: mk(&mks(5)) }.v //~ ERROR `h` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `u` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:75:9
+   |
+75 |     let u = Some(mk(&mks(6))).unwrap() //~ ERROR `u` keeps a borrow of a temporary
+   |         ^
+
+error[E2235]: `w` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:80:9
+   |
+80 |     let w = idT(mk(&mks(7))) //~ ERROR `w` keeps a borrow of a temporary
+   |         ^
+
+error[borrow-escape]: a borrow cannot be returned
+  --> main.kg:86:8
+   |
+86 |     mk(&s) //~ ERROR a borrow cannot be returned
+   |        ^^
+
+error[move-while-borrowed]: `s` is still borrowed when its scope ends here
+  --> main.kg:85:9
+   |
+85 |     let s = mks(8) //~ ERROR still borrowed when its scope ends
+   |         ^
+
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:126:5
+    |
+126 |     self.v = f(&mks(12)) //~ ERROR a borrow cannot be stored
+    |     ^^^^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `self`, which outlives the call
+   --> main.kg:130:5
+    |
+130 |     self = Slot { v: f(&mks(13)) } //~ ERROR cannot be stored through `self`
+    |     ^^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:134:5
+    |
+134 |     out = f(&mks(14)) //~ ERROR cannot be stored through `out`
+    |     ^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:139:5
+    |
+139 |     out = f(&t) //~ ERROR cannot be stored through `out`
+    |     ^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:143:5
+    |
+143 |     out = mkV(&mks(16)) //~ ERROR cannot be stored through `out`
+    |     ^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:148:5
+    |
+148 |     out = mkV(&t) //~ ERROR cannot be stored through `out`
+    |     ^^^
+
+error[E2235]: `arr` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+   --> main.kg:153:5
+    |
+153 |     arr.push(f(&mks(18))) //~ ERROR `arr` keeps a borrow of a temporary
+    |     ^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `out` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:158:5
+    |
+158 |     out.push(f(&mks(19))) //~ ERROR a borrow cannot be stored into `out`
+    |     ^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `out` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:163:5
+    |
+163 |     out.insertAt(0, f(&t)) //~ ERROR a borrow cannot be stored into `out`
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:200:5
+    |
+200 |     out = f(&x) //~ ERROR cannot be stored through `out`
+    |     ^^^
+
+error[E2159]: a borrow cannot be stored into `out` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:205:5
+    |
+205 |     out.push(f(&x)) //~ ERROR a borrow cannot be stored into `out`
+    |     ^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `self` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:210:5
+    |
+210 |     self.v = f(&x) //~ ERROR a borrow cannot be stored
+    |     ^^^^^^
+
+error[move-while-borrowed]: `first` is still borrowed when its scope ends here
+   --> main.kg:216:13
+    |
+216 |         let first = items[0] //~ ERROR `first` is still borrowed when its scope ends //~ ERROR `first` is borrowed and cannot be mutated
+    |             ^^^^^
+
+error[E2198]: `first` is borrowed and cannot be mutated here
+   --> main.kg:216:13
+    |
+216 |         let first = items[0] //~ ERROR `first` is still borrowed when its scope ends //~ ERROR `first` is borrowed and cannot be mutated
+    |             ^^^^^
+    = help: end the borrow first or use a copy
+note: `first` is borrowed here
+   --> main.kg:217:25
+    |
+217 |         acc = step(acc, &first)
+    |                         ^^^^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:225:5
+    |
+225 |     out = f(r) //~ ERROR cannot be stored through `out`
+    |     ^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:231:9
+    |
+231 |         out = f(&x) //~ ERROR cannot be stored through `out`
+    |         ^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:237:9
+    |
+237 |         out = f(n) //~ ERROR cannot be stored through `out`
+    |         ^^^
+
+error[borrow-escape]: a borrow of a value this function owns cannot be stored through `out`, which outlives the call
+   --> main.kg:244:13
+    |
+244 |             out = f(&x) //~ ERROR cannot be stored through `out`
+    |             ^^^
+

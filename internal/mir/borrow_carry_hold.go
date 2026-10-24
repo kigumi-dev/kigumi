@@ -71,11 +71,11 @@ func (c *borrowCheck) referentHolders(a LocalID) []*borrowInfo {
 	return nil
 }
 
-// projectsHeld reports whether a value read out of in's source keeps what the source holds: it
-// names a lifetime, or it is a Future, Task or closure that may move out of an owned source.
+// projectsHeld reports whether a value read out of in's source keeps what the source holds: it names a lifetime,
+// a type parameter while the source borrows this frame, or a Future, Task or closure that may move out of an owned source.
 func (c *borrowCheck) projectsHeld(in Inst) bool {
 	t := c.f.Locals[in.Dst].Type
-	if c.resultMayCarryLifetime(t) {
+	if c.resultMayCarryLifetime(t) || c.projectsOwned(t, in.Args[0]) {
 		return true
 	}
 	return c.holdsDeferred(t) && (in.Op == OpFieldMove || c.p.R.Types.Kind(c.f.Locals[in.Args[0]].Type) != sem.KRef)

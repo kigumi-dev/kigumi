@@ -68,20 +68,24 @@ func (c *borrowCheck) fitsDeclared(b *borrowInfo, dst LocalID) bool {
 func (c *borrowCheck) callLifetimeSource(in Inst) (*borrowInfo, bool) {
 	c.callNode = in.Node
 	if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
-		if b, ok := c.genericFlowSource(in, 0); ok {
-			return b, true
-		}
-		if b, ok := c.entityLifetimeSource(in.Ent, c.p.R.Fn(in.Ent), in.Args, 0); ok {
-			return b, true
-		}
-		if b, ok := c.futureHandleSource(in); ok {
-			return b, true
-		}
-		if b, ok := c.carriedResultSource(in, 0); ok {
+		if b, ok := c.tiedCallSource(in); ok {
 			return b, true
 		}
 	}
 	return c.rejectUntrackedResult(in)
+}
+
+func (c *borrowCheck) calleeSource(in Inst) (*borrowInfo, bool) {
+	if b, ok := c.genericFlowSource(in, 0); ok {
+		return b, true
+	}
+	if b, ok := c.entityLifetimeSource(in.Ent, c.p.R.Fn(in.Ent), in.Args, 0); ok {
+		return b, true
+	}
+	if b, ok := c.futureHandleSource(in); ok {
+		return b, true
+	}
+	return c.carriedResultSource(in, 0)
 }
 
 // futureHandleSource keeps a future's borrows in the handle a call builds around it
@@ -105,8 +109,8 @@ func (c *borrowCheck) futureHandleSource(in Inst) (*borrowInfo, bool) {
 	return nil, false
 }
 
-// callValueLifetimeSource handles OpCallValue: a witnessed interface requirement keeps
-// Ent and lowers args[0] as the witness; a closure or fn pointer always falls to rejectUntrackedResult.
+// callValueLifetimeSource handles OpCallValue: a witnessed interface requirement keeps Ent and lowers
+// args[0] as the witness; a closure or fn pointer only reaches valueResultSource and rejectUntrackedResult.
 func (c *borrowCheck) callValueLifetimeSource(in Inst) (*borrowInfo, bool) {
 	c.callNode = in.Node
 	if in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
@@ -116,6 +120,9 @@ func (c *borrowCheck) callValueLifetimeSource(in Inst) (*borrowInfo, bool) {
 		if b, ok := c.carriedResultSource(in, 1); ok {
 			return b, true
 		}
+	}
+	if b, ok := c.valueResultSource(in); ok {
+		return b, true
 	}
 	return c.rejectUntrackedResult(in)
 }

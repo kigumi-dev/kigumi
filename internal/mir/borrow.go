@@ -27,6 +27,8 @@ type ownerRef struct {
 	temp bool
 	// cell marks a borrow of a closure-shared local's cell; sem judges its conflicts with the closures.
 	cell bool
+	// caller marks a borrow of a writable caller place, kept only to conflict with this body's writes.
+	caller bool
 	// node is where a store put this borrow into its holder, 0 for the holder's own node.
 	node syntax.NodeID
 }
@@ -117,7 +119,7 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 			real[a] = true
 		}
 		if b, ok := c.holders[a]; ok {
-			if c.callerCells(b) {
+			if c.callerCells(b) || c.callerKept(b) {
 				live[a] = true
 				continue
 			}
@@ -177,21 +179,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 			if !touched || !fieldPathsOverlap(path, o.path) {
 				continue
 			}
-			moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || c.takesPayload(in)
-			mutates := moves || (in.Op == OpBorrow && in.Index == 1) ||
-				in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet
-			name := c.f.Locals[o.owner].Name
-			switch {
-			case c.tempScopeEnd(in, holder, b, o):
-			case in.Op == OpDrop && in.EndScope:
-				c.report(in.Node, o.owner, "move-while-borrowed", "`"+name+"` is still borrowed when its scope ends here")
-			case moves:
-				c.report(c.takeNode(in), o.owner, "move-while-borrowed", "`"+name+"` is borrowed and cannot be moved or dropped here")
-			case o.mut:
-				c.reportNoted(in.Node, o.owner, "borrow-conflict", "`"+name+"` is exclusively borrowed and cannot be used here", o.at(b), "`"+name+"` is borrowed here")
-			case mutates || in.Dst == o.owner:
-				c.reportNoted(in.Node, o.owner, "borrow-conflict", "`"+name+"` is borrowed and cannot be mutated here", o.at(b), "`"+name+"` is borrowed here")
-			}
+			c.reportTouch(in, holder, b, o)
 		}
 	}
 }

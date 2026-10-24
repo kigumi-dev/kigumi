@@ -85,7 +85,7 @@ func (b *builder) fallback(e *hir.Expr) LocalID {
 		pl := b.declare(e.Param.Ent)
 		b.assign(pl, miss)
 	}
-	b.assign(result, b.expr(e.Args[1]))
+	b.assign(result, b.fullValue(func() LocalID { return b.expr(e.Args[1]) }))
 	b.exitScope()
 	b.jump(join)
 	b.cur = join

@@ -8,7 +8,7 @@ static val cap_pin_ptr(val a0) {
 }
 static val cap_pin_with(val a0, val a1) {
     val arg[1] = {(val)a0->u.p};
-    return rt_callv(a1, 1, arg);
+    return rt_callv_lent(a1, 1, arg);
 }
 static val cap_pin_drop(val a0) {
     // The zero guard makes a repeated drop a no-op.

@@ -64,7 +64,7 @@ func (m *Machine) registerFFIHandle() {
 	}
 	h["ffi.HandleTable.with"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		t, slot := handleLoc(m, a[1])
-		return m.callValue(a[2], []*obj{t.slots[slot].value})
+		return m.callValueLent(a[2], []*obj{t.slots[slot].value})
 	}
 	h["ffi.HandleTable.remove"] = func(m *Machine, fn sem.EntityID, a []*obj) *obj {
 		t, slot := handleLoc(m, a[1])

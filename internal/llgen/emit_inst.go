@@ -49,11 +49,11 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	case mir.OpCallValue:
 		arr := e.argArray(sb, args[1:])
 		if e.isScalar(in.Dst) {
-			e.storeNative(sb, in.Dst, e.irb(sb).Call(rtCallvI64, vptr(args[0]), vi32(len(args)-1), vptr(arr)))
+			e.storeNative(sb, in.Dst, e.callValue(sb, in, args, arr, true))
 			e.releaseScalarArgs(sb, in, args)
 			return
 		}
-		res = e.irb(sb).Call(rtCallv, vptr(args[0]), vi32(len(args)-1), vptr(arr)).Text
+		res = e.callValue(sb, in, args, arr, false).Text
 	case mir.OpBuiltin:
 		res = e.builtinCall(sb, in, args)
 	case mir.OpFutureNew:
@@ -141,9 +141,9 @@ func (e *emitter) instBody(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 			default:
 				sym = e.useAdapter(fn)
 			}
-			res = e.closureCtor(sb, sym, in.Async, args, arr)
+			res = e.markLent(sb, in, len(args), len(args) == 0, e.closureCtor(sb, sym, in.Async, args, arr))
 		} else if e.loweredStd(in.Ent) {
-			res = e.closureCtor(sb, e.stdBound(in.Ent, len(args), f.Locals[in.Dst].Type), in.Async, args, arr)
+			res = e.markLent(sb, in, len(args), len(args) == 0, e.closureCtor(sb, e.stdBound(in.Ent, len(args), f.Locals[in.Dst].Type), in.Async, args, arr))
 		} else {
 			res = e.irb(sb).Call(rtStdBind, vptr(e.stdKeyStr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)>>len(args)), vi32(len(args)), vptr(arr)).Text
 		}

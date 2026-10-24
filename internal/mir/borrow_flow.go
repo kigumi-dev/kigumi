@@ -42,8 +42,8 @@ func sharesParam(a, b []sem.EntityID) bool {
 	return slices.ContainsFunc(a, func(p sem.EntityID) bool { return slices.Contains(b, p) })
 }
 
-// callFlows lists, for each `&mut` / `mut self` argument whose place names a
-// lifetime, the other arguments whose declared types share a parameter with it.
+// callFlows lists, for each `&mut` / `mut self` argument whose place names a lifetime or a
+// type parameter, the other arguments whose declared types share a parameter with it.
 func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 	if in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return nil
@@ -62,15 +62,20 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 	c.linkSlots(info, slots)
 	var out []storeFlow
 	for i, t := range slots {
-		if !t.target || c.declaredLifetime(c.f.Locals[t.arg].Type) == 0 && c.declaredLifetime(c.placeOf(t.arg)) == 0 {
+		if !t.target {
 			continue
 		}
-		fl := storeFlow{target: t.arg, ref: true}
+		lifetime := c.declaredLifetime(c.f.Locals[t.arg].Type) != 0 || c.declaredLifetime(c.placeOf(t.arg)) != 0
+		if !lifetime && !c.namesTypeParam(c.f.Locals[t.arg].Type) && !c.namesTypeParam(c.placeOf(t.arg)) {
+			continue
+		}
+		fl := storeFlow{target: t.arg, ref: true, generic: !lifetime}
 		for j, v := range slots {
 			if i != j && sharesParam(t.params, v.params) {
 				fl.values = append(fl.values, flowArg{arg: v.arg, contents: v.contents})
 			}
 		}
+		fl.values = append(fl.values, c.tieValues(slots, t, fl.values)...)
 		if fl.values != nil {
 			out = append(out, fl)
 		}
@@ -85,11 +90,12 @@ func (c *borrowCheck) placeOf(l LocalID) sem.TypeID {
 	return 0
 }
 
-// genericFlowSource ties a generic call's result to every argument whose declared type names a
-// type parameter the result names, widened through callbacks returning one: only those can build it.
+// genericFlowSource ties a generic call's result to every argument whose declared type names a type parameter the result
+// names, widened through callbacks returning one; a result named only by a type parameter keeps just this frame's borrows.
 func (c *borrowCheck) genericFlowSource(in Inst, recvIdx int) (*borrowInfo, bool) {
 	info := c.p.R.Fn(in.Ent)
-	if c.fnRetLifetime(info) != 0 || !c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type) {
+	owned := !c.resultMayCarryLifetime(c.f.Locals[in.Dst].Type)
+	if c.fnRetLifetime(info) != 0 || owned && !c.namesTypeParam(c.f.Locals[in.Dst].Type) {
 		return nil, false
 	}
 	ret := c.p.R.Types.Node(info.Sig).Elem
@@ -128,12 +134,17 @@ func (c *borrowCheck) genericFlowSource(in Inst, recvIdx int) (*borrowInfo, bool
 		if !sharesParam(s.params, want) {
 			continue
 		}
-		if b, ok := c.flowInfo(flowArg{arg: s.arg, contents: s.contents}); ok {
+		b, ok := c.flowInfo(flowArg{arg: s.arg, contents: s.contents})
+		if ok && owned {
+			b = c.frameBorrows(b)
+			ok = b != nil
+		}
+		if ok {
 			srcs = append(srcs, b)
 			extra = extra || !bare || s.exact != ret
 		}
 	}
-	if bare && !extra {
+	if bare && !extra || owned && len(srcs) == 0 {
 		return nil, false
 	}
 	s := c.sink(in.Dst, in.Node)

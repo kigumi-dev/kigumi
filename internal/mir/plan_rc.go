@@ -14,6 +14,7 @@ func PlanRC(p *Program) error {
 	s := p.planShares(fs)
 	for _, f := range fs {
 		p.planRCFunc(f, s.facts[f])
+		p.markValueArgs(f)
 	}
 	return planAsync(p)
 }
