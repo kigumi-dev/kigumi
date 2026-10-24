@@ -8272,6 +8272,25 @@
       ]
     },
     {
+      "id": "run/ffi_record_scalar",
+      "kind": "run",
+      "path": "testdata/run/ffi_record_scalar.txtar",
+      "mode": [
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ],
+      "skip": {
+        "vm": "static-refusal"
+      }
+    },
+    {
       "id": "run/ffi_sizeof_fixed_array",
       "kind": "run",
       "path": "testdata/run/ffi_sizeof_fixed_array.txtar",
@@ -12978,9 +12997,43 @@
       ]
     },
     {
+      "id": "run/noalloc_move_self_partial",
+      "kind": "run",
+      "path": "testdata/run/noalloc_move_self_partial.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/noalloc_nullary_store",
       "kind": "run",
       "path": "testdata/run/noalloc_nullary_store.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/noalloc_nullary_store_nested",
+      "kind": "run",
+      "path": "testdata/run/noalloc_nullary_store_nested.txtar",
       "mode": [
         "vm",
         "native"
@@ -18526,6 +18579,17 @@
       "id": "sem/effects_noalloc_generic_copy",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_generic_copy.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_held_allocator_none",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_held_allocator_none.txtar",
       "mode": [
         "check"
       ],

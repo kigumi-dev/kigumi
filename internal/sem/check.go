@@ -32,8 +32,8 @@ type checker struct {
 	edges           *[]EffectEdge
 	// locals is the current edge scope's EntLocal list for dropsAtScopeExit.
 	locals []EntityID
-	// consumed marks a binding moved out before scope exit, skipped by dropsAtScopeExit.
-	consumed map[EntityID]bool
+	// consumed marks a binding or a part of one moved out before scope exit, skipped by dropsAtScopeExit.
+	consumed consumeLog
 	// branch counts nested if/match/loop bodies, where a consuming use doesn't mark consumed.
 	branch        int
 	vars          *varStore

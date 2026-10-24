@@ -1,0 +1,47 @@
+-- src --
+type Tick = Up(n: Int) | Flat
+
+type Clock = {
+    pub mut tick Tick
+    pub mut n Int
+}
+
+type Outer = {
+    pub mut inner Clock
+}
+
+noalloc fn clearNested(o: &mut Outer) {
+    o.inner.tick = Flat
+}
+
+noalloc fn clearNestedSlot(xs: &mut Array[Outer]) {
+    xs[0].inner.tick = Flat
+}
+
+fn clearNestedPlain(o: &mut Outer) {
+    o.inner.tick = Flat
+}
+
+fn clearLocal() -> Bool {
+    let mut o = Outer { inner: Clock { tick: Up(1), n: 2 } }
+    o.inner.tick = Flat
+    o.inner.tick is Flat
+}
+
+let mut a = Outer { inner: Clock { tick: Up(5), n: 1 } }
+clearNested(&mut a)
+print "${a.inner.tick is Flat} ${a.inner.n}"
+
+let mut xs = Array.of(Outer { inner: Clock { tick: Up(6), n: 2 } })
+clearNestedSlot(&mut xs)
+print "${xs[0].inner.tick is Flat} ${xs[0].inner.n}"
+
+let mut b = Outer { inner: Clock { tick: Up(7), n: 3 } }
+clearNestedPlain(&mut b)
+print "${b.inner.tick is Flat} ${clearLocal()}"
+-- stdout --
+true 1
+true 2
+true true
+-- exit --
+0

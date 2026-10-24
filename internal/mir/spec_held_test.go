@@ -71,3 +71,14 @@ func TestSpecializeReportsTheHeldLimit(t *testing.T) {
 		t.Fatalf("verify: %v", err)
 	}
 }
+
+func TestSpecializeCountsAnInstanceAHeldRootAdopts(t *testing.T) {
+	root := "fn plain(n: Int) -> Int { g0[Int](n) }\n\nnoalloc fn run(n: Int) -> Int { g0[Int](n) }"
+	p := specialized(t, phantomFan(14, root))
+	if len(p.Diags) != 1 || p.Diags[0].Diag.Code != "E2269" {
+		t.Fatalf("diagnostics = %+v, want one E2269", p.Diags)
+	}
+	if n := len(instances(p)); n != 4096 {
+		t.Errorf("%d instantiations kept, want 4096 with the adopted one counted", n)
+	}
+}

@@ -65,6 +65,7 @@ func (s *specializer) hold(sp *spec, root *heldRoot) {
 		return
 	}
 	sp.held = root
+	root.count++
 	if s.scanned[sp.fn] {
 		for _, f := range sp.funcs() {
 			s.scan(f, sp)

@@ -1,0 +1,34 @@
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    let xs = Array.of(self.n)
+    print "drop ${xs.len()}"
+}
+
+type W = resource { pub h Buf, pub k Int }
+
+noalloc fn W.finish(move self) -> Buf {
+    self.h
+}
+
+type N = resource { pub w W, pub k Int }
+
+noalloc fn N.inner(move self) -> Buf {
+    self.w.h
+}
+
+let w = W { h: Buf { n: 1 }, k: 2 }
+let b = w.finish()
+print "b ${b.n}"
+
+let n = N { w: W { h: Buf { n: 3 }, k: 4 }, k: 5 }
+let c = n.inner()
+print "c ${c.n}"
+-- stdout --
+b 1
+c 3
+drop 1
+drop 1
+-- exit --
+0

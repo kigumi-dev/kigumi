@@ -96,10 +96,18 @@ func TestDocumentSymbolRangeSurvivesInterpolationTokens(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	found := false
 	for _, sym := range res.(protocol.DocumentSymbolSlice) {
-		if sym.Name == "second" && (sym.Range.End.Line != 7 || sym.Range.End.Character != 1) {
+		if sym.Name != "second" {
+			continue
+		}
+		found = true
+		if sym.Range.End.Line != 7 || sym.Range.End.Character != 1 {
 			t.Errorf("second ends at %+v, want line 7 col 1", sym.Range.End)
 		}
+	}
+	if !found {
+		t.Error("no document symbol named second")
 	}
 }
 

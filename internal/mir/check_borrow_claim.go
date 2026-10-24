@@ -5,6 +5,9 @@ import "kigumi/internal/sem"
 func (p *Program) boxedType(f *Func, in Inst) sem.TypeID {
 	switch in.Op {
 	case OpBoxDirect:
+		if in.Fixed {
+			return 0
+		}
 		return in.Type
 	case OpBorrow:
 		return p.boxedLend(f, in)

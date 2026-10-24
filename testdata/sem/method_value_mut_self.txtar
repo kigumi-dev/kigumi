@@ -73,6 +73,12 @@ fn C.viaSelf(mut self) -> Int {
     self.n
 }
 
+// Through a reference the borrow checker rejects it as a borrow escape, so no E2270 here.
+fn viaRef(c: &mut C) {
+    let g = c.inc
+    g()
+}
+
 fn reads() -> Int {
     let s = C { n: 5 }
     let g = s.get
@@ -161,9 +167,9 @@ error[E2270]: `inc` takes `mut self`, but a method value runs it on its own copy
    = help: call the method directly, or write a lambda that calls it
 
 error[E2270]: `addEach` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
-   --> main/main.kg:101:30
+   --> main/main.kg:107:30
     |
-101 |     let f: fn(Int) -> Void = s.addEach //~ ERROR `addEach` takes `mut self`, but a method value runs it on its own copy of the receiver
+107 |     let f: fn(Int) -> Void = s.addEach //~ ERROR `addEach` takes `mut self`, but a method value runs it on its own copy of the receiver
     |                              ^^^^^^^^^
     = help: call the method directly, or write a lambda that calls it
 

@@ -16,6 +16,32 @@ type Plain = resource { pub n Int }
 
 noalloc fn Plain.finish(move self) {}
 
+type W = resource { pub h Buf, pub k Int }
+
+noalloc fn W.take(move self) -> Buf { self.h }
+
+noalloc fn W.takeLet(move self) -> Buf {
+    let b = move self.h
+    b
+}
+
+noalloc fn W.keep(move self) -> Int { self.k } //~ ERROR dropping `W` may allocate or deallocate
+
+noalloc fn W.maybe(move self, spare: Buf, flag: Bool) -> Buf { //~ ERROR dropping `W` may allocate or deallocate
+    if flag {
+        return self.h
+    }
+    spare
+}
+
+type N = resource { pub w W, pub k Int }
+
+noalloc fn N.inner(move self) -> Buf { self.w.h }
+
+type Two = resource { pub a Buf, pub b Buf }
+
+noalloc fn Two.first(move self) -> Buf { self.a } //~ ERROR dropping `Buf` may allocate or deallocate
+
 let b = Buf { n: 1 }
 let c = b.peek()
 c.finish()
@@ -32,4 +58,22 @@ error[E912]: dropping `Buf` may allocate or deallocate
    |
 10 | noalloc fn finishFree(b: Buf) {} //~ ERROR dropping `Buf` may allocate or deallocate
    |                       ^^^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:27:24
+   |
+27 | noalloc fn W.keep(move self) -> Int { self.k } //~ ERROR dropping `W` may allocate or deallocate
+   |                        ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:29:25
+   |
+29 | noalloc fn W.maybe(move self, spare: Buf, flag: Bool) -> Buf { //~ ERROR dropping `W` may allocate or deallocate
+   |                         ^^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:42:27
+   |
+42 | noalloc fn Two.first(move self) -> Buf { self.a } //~ ERROR dropping `Buf` may allocate or deallocate
+   |                           ^^^^
 

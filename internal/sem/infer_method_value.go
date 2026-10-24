@@ -11,6 +11,7 @@ func (c *checker) methodValue(n, base syntax.NodeID, valueType TypeID, m EntityI
 	c.rejectHiddenArgs(n, m)
 	async := info.Declared&EffAsync != 0
 	owned := info.Recv == RecvSelf && !c.r.isCopy(valueType)
+	// Through a reference the value would be a stored borrow, which the borrow checker rejects as an escape.
 	if info.Recv == RecvMut && !viaRef && c.r.isCopy(valueType) {
 		c.errAt(n, cMethodValueCopiedRecv, c.r.Entities[m].Name)
 		return TyPoison

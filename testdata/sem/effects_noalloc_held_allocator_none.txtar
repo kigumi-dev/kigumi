@@ -1,0 +1,30 @@
+-- module --
+mir: planned
+allocator: none
+-- src --
+fn g0[T](n: Int) -> Int { g1[(T, Int)](n).wrappingAdd(g1[(Int, T)](n)) }
+fn g1[T](n: Int) -> Int { g2[(T, Int)](n).wrappingAdd(g2[(Int, T)](n)) }
+fn g2[T](n: Int) -> Int { g3[(T, Int)](n).wrappingAdd(g3[(Int, T)](n)) }
+fn g3[T](n: Int) -> Int { g4[(T, Int)](n).wrappingAdd(g4[(Int, T)](n)) }
+fn g4[T](n: Int) -> Int { g5[(T, Int)](n).wrappingAdd(g5[(Int, T)](n)) }
+fn g5[T](n: Int) -> Int { g6[(T, Int)](n).wrappingAdd(g6[(Int, T)](n)) }
+fn g6[T](n: Int) -> Int { g7[(T, Int)](n).wrappingAdd(g7[(Int, T)](n)) }
+fn g7[T](n: Int) -> Int { g8[(T, Int)](n).wrappingAdd(g8[(Int, T)](n)) }
+fn g8[T](n: Int) -> Int { g9[(T, Int)](n).wrappingAdd(g9[(Int, T)](n)) }
+fn g9[T](n: Int) -> Int { g10[(T, Int)](n).wrappingAdd(g10[(Int, T)](n)) }
+fn g10[T](n: Int) -> Int { g11[(T, Int)](n).wrappingAdd(g11[(Int, T)](n)) }
+fn g11[T](n: Int) -> Int { g12[(T, Int)](n).wrappingAdd(g12[(Int, T)](n)) }
+fn g12[T](n: Int) -> Int { g13[(T, Int)](n).wrappingAdd(g13[(Int, T)](n)) } //~ ERROR `main`, which --allocator none checks, needs every instantiation it reaches specialized
+fn g13[T](n: Int) -> Int { g14[(T, Int)](n).wrappingAdd(g14[(Int, T)](n)) }
+fn g14[T](n: Int) -> Int { n }
+
+fn main() -> Void! {
+    _ = g0[Int](1)
+}
+-- expect --
+error[E2269]: `main`, which --allocator none checks, needs every instantiation it reaches specialized, but past 4096 of them this call to `g13` with `Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Tuple2[Int,Int],Int],Int],Int],Int],Int],Int],Int],Int],Int],Int],Int],Int]` would stay on its shared body and box; pass fewer distinct type arguments down the calls, or hold the values in an interface or an `alloc.Shared`
+  --> main.kg:13:28
+   |
+13 | fn g12[T](n: Int) -> Int { g13[(T, Int)](n).wrappingAdd(g13[(Int, T)](n)) } //~ ERROR `main`, which --allocator none checks, needs every instantiation it reaches specialized
+   |                            ^^^^^^^^^^^^^^^
+

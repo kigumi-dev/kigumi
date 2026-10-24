@@ -71,8 +71,14 @@ func (c *checker) crossRecv(n syntax.NodeID, fn EntityID, recv TypeID, recvNode 
 // crossStore claims the box a store needs when the place is someone else's
 // storage: a container slot, a static, or a view a write reaches the owner through.
 func (c *checker) crossStore(lhs, rhs syntax.NodeID, t TypeID) bool {
-	if _, coerced := c.info.Coerce[rhs]; !coerced && c.nullaryValue(rhs) {
-		return false
+	_, coerced := c.info.Coerce[rhs]
+	nullary := !coerced && c.nullaryValue(rhs)
+	// A payload-free variant is the shared immortal, so the slot costs no box; only the chain's root does.
+	slot := func(t TypeID) bool {
+		if !nullary {
+			c.crossDirect(lhs, t)
+		}
+		return !nullary
 	}
 	// A `&mut T` place holds T; the reference is the cell the store reaches it through.
 	if elem, ok := c.r.MutRefElem(c.vars.resolve(t)); ok {
@@ -82,32 +88,27 @@ func (c *checker) crossStore(lhs, rhs syntax.NodeID, t TypeID) bool {
 		if c.r.DirectStatic(ent) {
 			return false
 		}
-		c.crossDirect(lhs, t)
-		return true
+		return slot(t)
 	}
 	switch c.t.Kind(lhs) {
 	case syntax.Ident:
 		if c.lentPlace(lhs) || c.sharedCellPlace(lhs) {
-			c.crossDirect(lhs, t)
-			return true
+			return slot(t)
 		}
 	case syntax.MemberExpr, syntax.BracketExpr:
 		base := c.t.View(lhs).Base().ID()
 		if bt := c.vars.resolve(c.info.Types[base]); c.lentPlace(base) || !c.r.DirectAgg(bt) || c.r.containsClosure(bt) {
-			c.crossDirect(lhs, t)
-			return true
+			return slot(t)
 		}
 		if c.t.Kind(base) != syntax.Ident {
 			root := c.placeRootType(lhs)
 			c.crossDirect(lhs, root)
 			if c.foreignChain(base) || !c.r.DirectAgg(root) {
-				c.crossDirect(lhs, t)
-				return true
+				return slot(t)
 			}
 		}
 	default:
-		c.crossDirect(lhs, t)
-		return true
+		return slot(t)
 	}
 	return false
 }

@@ -7,6 +7,10 @@ type Clock = {
     pub mut tick Tick
 }
 
+type Outer = {
+    pub mut inner Clock
+}
+
 // A payload-free variant is the one immortal every site reads, so storing it builds no box.
 noalloc fn Tick.reset(mut self) {
     self = Flat
@@ -24,6 +28,17 @@ noalloc fn clearSlot(xs: &mut Array[Tick]) {
     xs[0] = Flat
 }
 
+noalloc fn clearNested(o: &mut Outer) {
+    o.inner.tick = Flat
+}
+
+noalloc fn clearNestedSlot(xs: &mut Array[Outer]) {
+    xs[0].inner.tick = Flat
+}
+
+fn clearNestedPlain(o: &mut Outer) {
+    o.inner.tick = Flat
+}
 
 noalloc fn Tick.bump(mut self) {
     self = Up(1) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
@@ -33,6 +48,10 @@ noalloc fn setUp(t: &mut Tick, n: Int) {
     t = Up(n) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
 }
 
+noalloc fn setNested(o: &mut Outer, n: Int) {
+    o.inner.tick = Up(n) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
+}
+
 fn main() -> Void! {
     let mut t = Up(3)
     t.reset()
@@ -40,16 +59,23 @@ fn main() -> Void! {
 }
 -- expect --
 error[E1610]: handing `Tick` to a slot that holds a reference allocates a box for it
-  --> main.kg:26:5
+  --> main.kg:41:5
    |
-26 |     self = Up(1) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
+41 |     self = Up(1) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
    |     ^^^^
    = help: keep it in a value of its own, or drop the declaration
 
 error[E1610]: handing `Tick` to a slot that holds a reference allocates a box for it
-  --> main.kg:30:5
+  --> main.kg:45:5
    |
-30 |     t = Up(n) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
+45 |     t = Up(n) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
    |     ^
+   = help: keep it in a value of its own, or drop the declaration
+
+error[E1610]: handing `Tick` to a slot that holds a reference allocates a box for it
+  --> main.kg:49:5
+   |
+49 |     o.inner.tick = Up(n) //~ ERROR handing `Tick` to a slot that holds a reference allocates a box for it
+   |     ^^^^^^^^^^^^
    = help: keep it in a value of its own, or drop the declaration
 

@@ -52,7 +52,7 @@ func (p *Program) copiedType(f *Func, in Inst) sem.TypeID {
 }
 
 func (p *Program) InstAllocates(f *Func, in Inst) bool {
-	if in.Op == OpBoxDirect || p.boxedResult(f, in) != 0 {
+	if in.Op == OpBoxDirect && !in.Fixed || p.boxedResult(f, in) != 0 {
 		return true
 	}
 	_, deferred := p.paramCopy(f, in)

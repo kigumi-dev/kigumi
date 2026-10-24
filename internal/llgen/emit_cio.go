@@ -132,9 +132,16 @@ func (e *emitter) ffiRecordCall(sb *strings.Builder, key string, args []string, 
 		_, align := e.cLayoutOf(elem(types[0]))
 		return e.irb(sb).Call(rtInt, vi64(int(align)), vi32(e.numKind(sem.TyUsize))).Text, true
 	case "std/ffi.readRecord":
+		if !e.isCRecord(dst) {
+			return e.loadScalar(sb, dst, rawPtr(args[0])), true
+		}
 		return e.call(sb, strings.TrimPrefix(e.cReader(recOf(dst), 0), "@"), []string{"ptr " + rawPtr(args[0])}), true
 	case "std/ffi.writeRecord":
-		fmt.Fprintf(sb, "  call void %s(ptr %s, ptr %s)\n", e.cWriter(recOf(types[1]), 0), rawPtr(args[0]), args[1])
+		if t := elem(types[1]); !e.isCRecord(t) {
+			e.storeScalar(sb, args[1], t, rawPtr(args[0]))
+		} else {
+			fmt.Fprintf(sb, "  call void %s(ptr %s, ptr %s)\n", e.cWriter(recOf(types[1]), 0), rawPtr(args[0]), args[1])
+		}
 		return e.irb(sb).Call(rtUnit).Text, true
 	case "std/ffi.CValue.new":
 		t := types[0]

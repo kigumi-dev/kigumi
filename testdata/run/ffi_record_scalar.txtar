@@ -1,0 +1,27 @@
+-- engines --
+native
+-- src --
+import ffi from std/ffi
+
+let bytes = Bytes.fromArray(&Array.of[u8](1, 2))
+let cv = ffi.CValue.new[i32](1)
+unsafe { ffi.writeRecord(cv.ptr(), &5) }
+print "cv=${cv.get()} rr=${unsafe { ffi.readRecord(ffi.toConst(cv.ptr())) }}"
+let cc = ffi.CValue.new[Char]('a')
+unsafe { ffi.writeRecord(cc.ptr(), &'z') }
+print "cc=${cc.get()}"
+let cb = ffi.CValue.new[Bool](false)
+unsafe { ffi.writeRecord(cb.ptr(), &true) }
+print "cb=${cb.get()}"
+let cp = ffi.CValue.new[*const u8](ffi.null[u8]())
+unsafe { ffi.writeRecord(cp.ptr(), &ffi.bytesPtr(&bytes)) }
+print "cp null=${ffi.isNull(cp.get())}"
+let mut x: i32 = 1
+_ = ffi.withAddress(&mut x, (p: *mut i32) => unsafe { ffi.writeRecord(p, &9); 0 })
+print "x=${x}"
+-- stdout --
+cv=5 rr=5
+cc=z
+cb=true
+cp null=false
+x=9

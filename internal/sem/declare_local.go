@@ -36,7 +36,7 @@ func (c *checker) dropsAtScopeExit(params []EntityID) {
 // implicitDrop over-approximates: a binding moved out some other way still drops wherever that reaches, so this never loses soundness.
 func (c *checker) implicitDrop(id EntityID) {
 	e := &c.r.Entities[id]
-	if c.consumed[id] {
+	if c.consumed.whole[id] {
 		return
 	}
 	// A closure's Copy-ness isn't settled until checkContextRequirements runs, so
@@ -50,7 +50,11 @@ func (c *checker) implicitDrop(id EntityID) {
 // consumeWhole marks a bare local/param identifier consumed on an unconditional whole-value use; callers decide what counts as consuming.
 func (c *checker) consumeWhole(a syntax.NodeID) {
 	c.reserveUse(a)
-	if c.branch != 0 || c.loop != 0 || c.t.Kind(a) != syntax.Ident {
+	if c.branch != 0 || c.loop != 0 {
+		return
+	}
+	if c.t.Kind(a) != syntax.Ident {
+		c.consumePart(a)
 		return
 	}
 	ent := c.info.Uses[a]
@@ -60,15 +64,12 @@ func (c *checker) consumeWhole(a syntax.NodeID) {
 	if k := c.r.Entities[ent].Kind; k != EntLocal && k != EntParam {
 		return
 	}
-	if c.consumed == nil {
-		c.consumed = map[EntityID]bool{}
-	}
-	c.consumed[ent] = true
+	c.consumed.markWhole(ent)
 }
 
 // unconsume un-marks a binding assignment just gave a fresh value to drop.
 func (c *checker) unconsume(id EntityID) {
-	delete(c.consumed, id)
+	c.consumed.clear(id)
 }
 
 func (c *checker) isResultFn() bool {

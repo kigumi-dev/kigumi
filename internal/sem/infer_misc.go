@@ -121,7 +121,7 @@ func (c *checker) synthContract(n syntax.NodeID, want TypeID) TypeID {
 	savedLocals := c.locals
 	c.locals = nil
 	savedConsumed, savedBranch := c.consumed, c.branch
-	c.consumed, c.branch = nil, 0
+	c.consumed, c.branch = consumeLog{}, 0
 	c.contracts = append(c.contracts, Effects(contract.Mods()))
 	t := c.check(contract.Body().ID(), want)
 	c.contracts = c.contracts[:len(c.contracts)-1]
