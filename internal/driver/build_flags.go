@@ -53,7 +53,7 @@ func (r BuildReport) SizeLine() string {
 	}
 	debug := ""
 	if r.Linkage.Static {
-		debug = ", stripped since zig's static libc records build paths in its debug info (--link dynamic keeps symbols)"
+		debug = ", symbol names kept and debug info dropped"
 	}
 	return "-O1" + gc + debug + " (--size-min trades symbols and unwind tables for size)"
 }

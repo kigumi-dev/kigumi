@@ -45,8 +45,7 @@ func (h hostLink) run(staged string) error {
 	switch {
 	case opts.SizeMin:
 		linkArgs = append(linkArgs, "-s")
-	case h.link.Static:
-		// zig's static libc and compiler-rt objects record absolute cache and work paths in their DWARF; zig strips symbols with it.
+	case h.link.Static && !isZig(cc):
 		linkArgs = append(linkArgs, "-Wl,--strip-debug")
 	}
 	if !isZig(cc) {
@@ -98,6 +97,10 @@ func (h hostLink) run(staged string) error {
 			return fmt.Errorf("link failed: %w; the static musl C library lacks a symbol named above, and %s", err, fix)
 		}
 		return fmt.Errorf("link failed: %w", err)
+	}
+	if h.link.Static && !opts.SizeMin && isZig(cc) {
+		// zig cc turns --strip-debug into a full strip, and its static libc objects carry absolute build paths in DWARF.
+		return stripELFDebug(linkOut)
 	}
 	return nil
 }
