@@ -188,6 +188,9 @@ func (a *owner) transfer(bid BlockID, st *dstate, report bool) *dstate {
 			if a.tracked[l] {
 				a.check(nil, l, st.val.get(l), report)
 				a.checkWhole(a.defNode[arg], l, st, report)
+				if a.pl.isPlace(arg) {
+					a.checkDropOwner(a.defNode[arg], l, report)
+				}
 			}
 		}
 		a.checkBorrowedWhole(st, report)

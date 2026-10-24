@@ -12,7 +12,8 @@ import (
 func (c *checker) stmt(n syntax.NodeID) TypeID {
 	var t TypeID
 	c.openStmts++
-	defer func() { c.openStmts-- }()
+	c.beginStmt()
+	defer func() { c.openStmts--; c.endStmt() }()
 	c.noteTakeAtKill(n)
 	switch c.t.Kind(n) {
 	case syntax.LetStmt:
@@ -167,7 +168,9 @@ func (c *checker) letStmt(n syntax.NodeID) {
 func (c *checker) letElse(n syntax.NodeID, s letSlots, got TypeID) {
 	saved := c.scope
 	onceEntry := maps.Clone(c.once.called)
+	c.branch++
 	elseType := c.check(s.Else, 0)
+	c.branch--
 	c.once.called = onceEntry
 	if c.vars.resolve(elseType) != TyNever {
 		c.errAt(s.Else, cLetElseMustDiverge)

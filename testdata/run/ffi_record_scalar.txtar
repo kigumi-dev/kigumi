@@ -9,19 +9,23 @@ unsafe { ffi.writeRecord(cv.ptr(), &5) }
 print "cv=${cv.get()} rr=${unsafe { ffi.readRecord(ffi.toConst(cv.ptr())) }}"
 let cc = ffi.CValue.new[Char]('a')
 unsafe { ffi.writeRecord(cc.ptr(), &'z') }
-print "cc=${cc.get()}"
+print "cc=${cc.get()} rr=${unsafe { ffi.readRecord(ffi.toConst(cc.ptr())) }}"
 let cb = ffi.CValue.new[Bool](false)
 unsafe { ffi.writeRecord(cb.ptr(), &true) }
-print "cb=${cb.get()}"
+print "cb=${cb.get()} rr=${unsafe { ffi.readRecord(ffi.toConst(cb.ptr())) }}"
 let cp = ffi.CValue.new[*const u8](ffi.null[u8]())
 unsafe { ffi.writeRecord(cp.ptr(), &ffi.bytesPtr(&bytes)) }
-print "cp null=${ffi.isNull(cp.get())}"
+print "cp null=${ffi.isNull(cp.get())} rr null=${ffi.isNull(unsafe { ffi.readRecord(ffi.toConst(cp.ptr())) })}"
+let cf = ffi.CValue.new[f64](0.5)
+unsafe { ffi.writeRecord(cf.ptr(), &2.5) }
+print "cf=${cf.get()} rr=${unsafe { ffi.readRecord(ffi.toConst(cf.ptr())) }}"
 let mut x: i32 = 1
 _ = ffi.withAddress(&mut x, (p: *mut i32) => unsafe { ffi.writeRecord(p, &9); 0 })
 print "x=${x}"
 -- stdout --
 cv=5 rr=5
-cc=z
-cb=true
-cp null=false
+cc=z rr=z
+cb=true rr=true
+cp null=false rr null=false
+cf=2.5 rr=2.5
 x=9

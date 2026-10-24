@@ -32,7 +32,9 @@ func (c *checker) synthMatch(n syntax.NodeID, want TypeID) TypeID {
 		pos, neg := c.patternFacts(s.Pattern, place)
 		c.addFacts(pos)
 		if s.Guard != 0 {
+			c.branch++
 			gp, _ := c.condFacts(s.Guard)
+			c.branch--
 			c.addFacts(gp)
 		} else {
 			excluded = append(excluded, neg...)

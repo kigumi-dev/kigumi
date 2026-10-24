@@ -87,7 +87,9 @@ func (c *checker) optChainOn(n, o syntax.NodeID, base TypeID) TypeID {
 		c.info.ChainHoles = map[syntax.NodeID]EntityID{}
 	}
 	c.info.ChainHoles[hole] = local
+	c.branch++
 	t := c.vars.resolve(c.synth(body))
+	c.branch--
 	c.popScope(saved)
 	for i, orig := range append(spine, o) {
 		c.info.Uses[orig] = c.info.Uses[clones[i]]

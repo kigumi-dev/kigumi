@@ -27,7 +27,7 @@ noalloc fn W.takeLet(move self) -> Buf {
 
 noalloc fn W.keep(move self) -> Int { self.k } //~ ERROR dropping `W` may allocate or deallocate
 
-noalloc fn W.maybe(move self, spare: Buf, flag: Bool) -> Buf { //~ ERROR dropping `W` may allocate or deallocate
+noalloc fn W.maybe(move self, spare: Buf, flag: Bool) -> Buf { //~ ERROR dropping `W` may allocate or deallocate //~ ERROR dropping `Buf` may allocate or deallocate
     if flag {
         return self.h
     }
@@ -68,8 +68,14 @@ error[E912]: dropping `W` may allocate or deallocate
 error[E912]: dropping `W` may allocate or deallocate
   --> main/main.kg:29:25
    |
-29 | noalloc fn W.maybe(move self, spare: Buf, flag: Bool) -> Buf { //~ ERROR dropping `W` may allocate or deallocate
+29 | noalloc fn W.maybe(move self, spare: Buf, flag: Bool) -> Buf { //~ ERROR dropping `W` may allocate or deallocate //~ ERROR dropping `Buf` may allocate or deallocate
    |                         ^^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:29:31
+   |
+29 | noalloc fn W.maybe(move self, spare: Buf, flag: Bool) -> Buf { //~ ERROR dropping `W` may allocate or deallocate //~ ERROR dropping `Buf` may allocate or deallocate
+   |                               ^^^^^^^^^^
 
 error[E912]: dropping `Buf` may allocate or deallocate
   --> main/main.kg:42:27

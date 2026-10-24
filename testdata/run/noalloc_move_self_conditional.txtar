@@ -1,0 +1,190 @@
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    let xs = Array.of(self.n)
+    print "drop ${self.n} ${xs.len()}"
+}
+
+type W = resource { pub mut h Buf, pub mut k Int }
+
+type P = { n Int }
+
+fn P.has(self, ok: Bool) -> Bool {
+    ok
+}
+
+fn keep(b: Buf) -> Bool {
+    print "keep ${b.n}"
+    true
+}
+
+fn W.andm(move self, flag: Bool) -> Bool {
+    flag && keep(move self.h)
+}
+
+fn W.orm(move self, flag: Bool) -> Bool {
+    flag || keep(move self.h)
+}
+
+fn W.guard(move self, x: Int) -> Int {
+    match x {
+        0 if keep(move self.h) -> 1
+        _ -> 2
+    }
+}
+
+fn W.fbBlock(move self, o: Int?) -> Int {
+    o || {
+        let ok = keep(move self.h)
+        4
+    }
+}
+
+fn W.fbArm(move self, r: Result[Int, Int]) -> Int {
+    r || (e) => {
+        let ok = keep(move self.h)
+        e
+    }
+}
+
+fn W.isAnd(move self, o: Int?) -> Int {
+    if o is Some(v) && keep(move self.h) {
+        return v
+    }
+    0
+}
+
+fn W.ifLetGuard(move self, o: Int?) -> Int {
+    if let Some(v) = o; keep(move self.h) {
+        return v
+    }
+    0
+}
+
+fn W.chain(move self, o: P?) -> Bool {
+    o?.has(keep(move self.h)) is Some(true)
+}
+
+fn W.le(move self, o: Int?) -> Int {
+    let Some(v) = o else {
+        let ok = keep(move self.h)
+        return 0
+    }
+    v
+}
+
+fn W.onFail(move self, fine: Bool) -> Result[Int, Int] {
+    defer(fail) {
+        let ok = keep(move self.h)
+    }
+    if fine {
+        return Ok(1)
+    }
+    Err(2)
+}
+
+noalloc fn W.uncond(move self, put: fn(Buf) -> Bool) -> Bool {
+    put(move self.h)
+}
+
+noalloc fn pass(b: Buf, i: Int, put: fn(Buf) -> Bool) -> Bool {
+    put(b)
+}
+
+fn W.qArg(move self, o: Result[Int, Int]) -> Result[Bool, Int] {
+    let r = pass(move self.h, o?, keep)
+    Ok(r)
+}
+
+noalloc fn W.qBefore(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] {
+    let r = pass(move self.h, 1, put)
+    let v = o?
+    Ok(r)
+}
+
+noalloc fn W.bothPaths(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool {
+    if flag {
+        return put(move self.h)
+    }
+    put(move self.h)
+}
+
+fn w(n: Int) -> W {
+    W { h: Buf { n: n }, k: 0 }
+}
+
+print "andm ${w(1).andm(false)} ${w(2).andm(true)}"
+print "orm ${w(3).orm(true)} ${w(4).orm(false)}"
+print "guard ${w(5).guard(5)} ${w(6).guard(0)}"
+print "fb ${w(7).fbBlock(Some(1))} ${w(8).fbBlock(None)}"
+print "arm ${w(9).fbArm(Ok(1))} ${w(10).fbArm(Err(3))}"
+print "is ${w(11).isAnd(None)} ${w(12).isAnd(Some(7))}"
+print "iflet ${w(13).ifLetGuard(None)} ${w(14).ifLetGuard(Some(8))}"
+print "chain ${w(15).chain(None)} ${w(16).chain(Some(P { n: 1 }))}"
+print "le ${w(17).le(Some(9))} ${w(18).le(None)}"
+print "fail ${w(19).onFail(true) is Ok(1)} ${w(20).onFail(false) is Err(2)}"
+print "uncond ${w(21).uncond(keep)}"
+print "qArg ${w(22).qArg(Err(5)) is Err(5)} ${w(23).qArg(Ok(1)) is Ok(true)}"
+print "qBefore ${w(24).qBefore(Err(5), keep) is Err(5)} ${w(25).qBefore(Ok(1), keep) is Ok(true)}"
+print "bothPaths ${w(26).bothPaths(true, keep)} ${w(27).bothPaths(false, keep)}"
+-- stdout --
+drop 1 1
+keep 2
+drop 2 1
+andm false true
+drop 3 1
+keep 4
+drop 4 1
+orm true true
+drop 5 1
+keep 6
+drop 6 1
+guard 2 1
+drop 7 1
+keep 8
+drop 8 1
+fb 1 4
+drop 9 1
+keep 10
+drop 10 1
+arm 1 3
+drop 11 1
+keep 12
+drop 12 1
+is 0 7
+drop 13 1
+keep 14
+drop 14 1
+iflet 0 8
+drop 15 1
+keep 16
+drop 16 1
+chain false true
+drop 17 1
+keep 18
+drop 18 1
+le 9 0
+drop 19 1
+keep 20
+drop 20 1
+fail true true
+keep 21
+drop 21 1
+uncond true
+drop 22 1
+keep 23
+drop 23 1
+qArg true true
+keep 24
+drop 24 1
+keep 25
+drop 25 1
+qBefore true true
+keep 26
+drop 26 1
+keep 27
+drop 27 1
+bothPaths true true
+-- exit --
+0

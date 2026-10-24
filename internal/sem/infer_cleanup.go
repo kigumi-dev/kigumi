@@ -12,11 +12,17 @@ func (c *checker) cleanupStmt(n syntax.NodeID) {
 	outerLoop, outerBreaks := c.loop, c.breaks
 	c.loop, c.breaks = 0, nil
 	body := c.cleanupBody(n)
+	onFail := 0
+	if c.t.Kind(n) == syntax.DeferFailStmt {
+		onFail = 1
+	}
+	c.branch += onFail
 	if c.t.Kind(body) == syntax.Block {
 		c.check(body, TyUnit)
 	} else {
 		c.stmt(body)
 	}
+	c.branch -= onFail
 	c.cleanup--
 	c.loop, c.breaks = outerLoop, outerBreaks
 	consumed, assigned := c.cleanupLog.consumed, c.cleanupLog.assigned

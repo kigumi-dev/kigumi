@@ -21,7 +21,9 @@ func (c *checker) condFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
 			lp, _ := c.condFacts(bin.Left().ID())
 			saved := c.snapshotFacts()
 			c.addFacts(lp)
+			c.branch++
 			rp, _ := c.condFacts(bin.Right().ID())
+			c.branch--
 			c.facts = saved
 			c.setType(n, TyBool)
 			return append(lp, rp...), nil

@@ -1,0 +1,109 @@
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    let xs = Array.of(self.n)
+    print "drop ${xs.len()}"
+}
+
+type W = resource { pub mut h Buf, pub mut k Int }
+
+noalloc fn set(w: &mut W, b: Buf) {
+    w.h = b //~ ERROR dropping `Buf` may allocate or deallocate
+}
+
+noalloc fn W.pre(move self, fresh: Buf, put: fn(Buf) -> Bool) -> Bool {
+    self.h = fresh //~ ERROR dropping `Buf` may allocate or deallocate
+    put(move self.h)
+}
+
+noalloc fn W.reset(mut self, fresh: Buf) {
+    self.h = fresh //~ ERROR dropping `Buf` may allocate or deallocate
+}
+
+noalloc fn store(sink: &mut Array[Buf], b: Buf) {
+    sink[0] = b //~ ERROR dropping `Buf` may allocate or deallocate
+}
+
+noalloc fn throughRef(s: &mut Buf, b: Buf) {
+    s = b //~ ERROR dropping `Buf` may allocate or deallocate
+}
+
+noalloc fn rebind(a: Buf, b: Buf) -> Buf {
+    let mut x = a
+    x = b //~ ERROR dropping `Buf` may allocate or deallocate
+    x
+}
+
+noalloc fn relayLoop(a: Buf, put: fn(Buf) -> Bool, mk: fn() -> Buf) -> Buf {
+    let mut x = a
+    let mut i = 0
+    for i < 2 {
+        x = mk() //~ ERROR dropping `Buf` may allocate or deallocate
+        i += 1
+    }
+    x
+}
+
+noalloc fn W.refill(move self, fresh: Buf, put: fn(Buf) -> Bool) -> W {
+    let ok = put(move self.h)
+    self.h = fresh
+    self
+}
+
+noalloc fn relay(a: Buf, b: Buf, put: fn(Buf) -> Bool) -> Buf {
+    let mut x = a
+    let ok = put(x)
+    x = b
+    x
+}
+
+noalloc fn setK(w: &mut W, k: Int) {
+    w.k = k
+}
+
+let w = W { h: Buf { n: 1 }, k: 2 }
+print "${w.k}"
+-- expect --
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:11:5
+   |
+11 |     w.h = b //~ ERROR dropping `Buf` may allocate or deallocate
+   |     ^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:15:5
+   |
+15 |     self.h = fresh //~ ERROR dropping `Buf` may allocate or deallocate
+   |     ^^^^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:20:5
+   |
+20 |     self.h = fresh //~ ERROR dropping `Buf` may allocate or deallocate
+   |     ^^^^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:24:5
+   |
+24 |     sink[0] = b //~ ERROR dropping `Buf` may allocate or deallocate
+   |     ^^^^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:28:5
+   |
+28 |     s = b //~ ERROR dropping `Buf` may allocate or deallocate
+   |     ^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:33:5
+   |
+33 |     x = b //~ ERROR dropping `Buf` may allocate or deallocate
+   |     ^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:41:9
+   |
+41 |         x = mk() //~ ERROR dropping `Buf` may allocate or deallocate
+   |         ^
+

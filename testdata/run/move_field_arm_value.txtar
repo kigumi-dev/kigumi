@@ -1,0 +1,36 @@
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    print "drop ${self.n}"
+}
+
+type P = resource { pub h Buf, pub k Int }
+
+fn armIf(p: P) -> Buf {
+    if p.k > 1 { p.h } else { Buf { n: 0 } }
+}
+
+fn armMatch(p: P) -> Buf {
+    match p.k {
+        4 -> p.h
+        _ -> Buf { n: 0 }
+    }
+}
+
+let a = armIf(P { h: Buf { n: 1 }, k: 2 })
+print "a ${a.n}"
+let b = armIf(P { h: Buf { n: 2 }, k: 0 })
+print "b ${b.n}"
+let c = armMatch(P { h: Buf { n: 3 }, k: 4 })
+print "c ${c.n}"
+-- stdout --
+a 1
+drop 2
+b 0
+c 3
+drop 3
+drop 0
+drop 1
+-- exit --
+0

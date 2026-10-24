@@ -14,6 +14,7 @@ func (c *checker) declareLocal(n syntax.NodeID, name string, typ TypeID, mut boo
 	c.r.Entities[id].Detail = c.r.addLocal(LocalInfo{Scope: c.scope})
 	c.info.Defs[n] = id
 	c.locals = append(c.locals, id)
+	c.consumed.declare(id)
 	if name == "nil" {
 		c.errAt(n, cNilName)
 	}
@@ -25,6 +26,7 @@ func (c *checker) declareLocal(n syntax.NodeID, name string, typ TypeID, mut boo
 
 // dropsAtScopeExit emits every owning binding's EdgeDrop except one already consumed.
 func (c *checker) dropsAtScopeExit(params []EntityID) {
+	c.consumed.commit()
 	for _, id := range params {
 		c.implicitDrop(id)
 	}
@@ -50,21 +52,14 @@ func (c *checker) implicitDrop(id EntityID) {
 // consumeWhole marks a bare local/param identifier consumed on an unconditional whole-value use; callers decide what counts as consuming.
 func (c *checker) consumeWhole(a syntax.NodeID) {
 	c.reserveUse(a)
-	if c.branch != 0 || c.loop != 0 {
+	m, ok := c.movedOut(a)
+	if !ok {
 		return
 	}
-	if c.t.Kind(a) != syntax.Ident {
-		c.consumePart(a)
-		return
+	c.noteExitTake(m)
+	if c.branch == 0 && c.loop == 0 && !c.consumed.exitedSince(m, c.consumed.born[m.ent]) {
+		c.consumed.pending = append(c.consumed.pending, pendingMove{m, len(c.consumed.exits)})
 	}
-	ent := c.info.Uses[a]
-	if ent == 0 {
-		return
-	}
-	if k := c.r.Entities[ent].Kind; k != EntLocal && k != EntParam {
-		return
-	}
-	c.consumed.markWhole(ent)
 }
 
 // unconsume un-marks a binding assignment just gave a fresh value to drop.

@@ -49,6 +49,7 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 	if in.Op == OpCopy && in.Guarded {
 		st.rel.del(a.pl.canon(in.Args[0]))
 	}
+	a.checkArmTake(in, report)
 	if a.movesIntoBinding(in) {
 		l := a.pl.canon(in.Args[0])
 		a.checkWhole(in.Node, l, st, report)
@@ -163,6 +164,7 @@ func (a *owner) movesIntoBinding(in *Inst) bool {
 }
 
 func (a *owner) fieldMove(in *Inst, l LocalID, st *dstate, report bool) {
+	a.checkDropOwner(in.Node, l, report)
 	a.checkGuardHeld(in, l, st, report, 0)
 	a.moveGuardSource(in, l, st, report)
 	st.field.set(l, ownMoved)

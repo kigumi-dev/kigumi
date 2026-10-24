@@ -1,0 +1,141 @@
+-- module --
+mir: planned
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    print "drop ${self.n}"
+}
+
+type W = resource { pub h Buf, pub k Int }
+
+fn W.drop(move self) {
+    print "W drop ${self.k} ${self.h.n}"
+}
+
+type P = resource { pub h Buf }
+
+type N = resource { pub p P, pub k Int }
+
+fn N.drop(move self) {
+    print "N drop ${self.p.h.n}"
+}
+
+type M = resource { pub w W, pub k Int }
+
+fn tail(w: W) -> Buf {
+    w.h //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+}
+
+fn early(w: W, flag: Bool, spare: Buf) -> Buf {
+    if flag {
+        return w.h //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+    }
+    spare
+}
+
+fn nestedMove(n: N) -> Buf {
+    move n.p.h //~ ERROR cannot move `n.p.h` out of `N`, which defines a custom `drop`
+}
+
+fn nestedTail(n: N) -> Buf {
+    n.p.h //~ ERROR cannot move `n.p.h` out of `N`, which defines a custom `drop`
+}
+
+fn armIf(w: W) -> Buf {
+    if w.k > 1 { w.h } else { Buf { n: 0 } } //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+}
+
+fn armMatch(w: W) -> Buf {
+    match w.k {
+        4 -> w.h //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+        _ -> Buf { n: 0 }
+    }
+}
+
+fn armNested(w: W, flag: Bool) -> Buf {
+    if flag {
+        if w.k > 2 { w.h } else { Buf { n: 1 } } //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+    } else {
+        Buf { n: 0 }
+    }
+}
+
+fn armIfLet(w: W, o: Option[P]) -> Buf {
+    if let Some(p) = o { p.h } else { w.h } //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+}
+
+fn armFree(p: P, flag: Bool) -> Buf {
+    if flag { p.h } else { Buf { n: 0 } }
+}
+
+fn M.inner(move self) -> Buf {
+    self.w.h //~ ERROR cannot move `self.w.h` out of `W`, which defines a custom `drop`
+}
+
+fn P.take(move self) -> Buf {
+    self.h
+}
+
+fn M.whole(move self) -> W {
+    self.w
+}
+
+let m = M { w: W { h: Buf { n: 1 }, k: 2 }, k: 3 }
+let w = m.whole()
+print "${w.k}"
+-- expect --
+error[E1021]: cannot move `w.h` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `w.h` instead
+  --> main.kg:24:5
+   |
+24 |     w.h //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+   |     ^^^
+
+error[E1021]: cannot move `w.h` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `w.h` instead
+  --> main.kg:29:16
+   |
+29 |         return w.h //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+   |                ^^^
+
+error[E1021]: cannot move `n.p.h` out of `N`, which defines a custom `drop`; add a `take`-style method that returns `n.p.h` instead
+  --> main.kg:35:10
+   |
+35 |     move n.p.h //~ ERROR cannot move `n.p.h` out of `N`, which defines a custom `drop`
+   |          ^^^^^
+
+error[E1021]: cannot move `n.p.h` out of `N`, which defines a custom `drop`; add a `take`-style method that returns `n.p.h` instead
+  --> main.kg:39:5
+   |
+39 |     n.p.h //~ ERROR cannot move `n.p.h` out of `N`, which defines a custom `drop`
+   |     ^^^^^
+
+error[E1021]: cannot move `w.h` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `w.h` instead
+  --> main.kg:43:18
+   |
+43 |     if w.k > 1 { w.h } else { Buf { n: 0 } } //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+   |                  ^^^
+
+error[E1021]: cannot move `w.h` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `w.h` instead
+  --> main.kg:48:14
+   |
+48 |         4 -> w.h //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+   |              ^^^
+
+error[E1021]: cannot move `w.h` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `w.h` instead
+  --> main.kg:55:22
+   |
+55 |         if w.k > 2 { w.h } else { Buf { n: 1 } } //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+   |                      ^^^
+
+error[E1021]: cannot move `w.h` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `w.h` instead
+  --> main.kg:62:39
+   |
+62 |     if let Some(p) = o { p.h } else { w.h } //~ ERROR cannot move `w.h` out of `W`, which defines a custom `drop`
+   |                                       ^^^
+
+error[E1021]: cannot move `self.w.h` out of `W`, which defines a custom `drop`; add a `take`-style method that returns `self.w.h` instead
+  --> main.kg:70:5
+   |
+70 |     self.w.h //~ ERROR cannot move `self.w.h` out of `W`, which defines a custom `drop`
+   |     ^^^^^^^^
+

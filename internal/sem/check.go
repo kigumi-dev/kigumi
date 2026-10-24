@@ -34,7 +34,7 @@ type checker struct {
 	locals []EntityID
 	// consumed marks a binding or a part of one moved out before scope exit, skipped by dropsAtScopeExit.
 	consumed consumeLog
-	// branch counts nested if/match/loop bodies, where a consuming use doesn't mark consumed.
+	// branch counts enclosing code that may not run (arms, guards, short-circuit operands), where a consuming use doesn't mark consumed.
 	branch        int
 	vars          *varStore
 	touched       []syntax.NodeID

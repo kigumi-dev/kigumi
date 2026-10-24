@@ -25,7 +25,9 @@ func (c *checker) synthBlock(n syntax.NodeID, want TypeID) TypeID {
 				c.stmtPos = e
 			}
 			c.openStmts++
+			c.beginStmt()
 			result = c.checkTail(n, e, want)
+			c.endStmt()
 			c.openStmts--
 			c.setType(s, result)
 			tailValue = true
@@ -145,7 +147,9 @@ func (c *checker) synthIfLet(n syntax.NodeID, want TypeID) TypeID {
 	pos, neg := c.patternFacts(s.Pattern, place)
 	c.addFacts(pos)
 	if s.Guard != 0 {
+		c.branch++
 		gp, _ := c.condFacts(s.Guard)
+		c.branch--
 		c.addFacts(gp)
 		neg = nil
 	}

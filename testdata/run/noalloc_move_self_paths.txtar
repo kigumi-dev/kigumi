@@ -1,0 +1,96 @@
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    let xs = Array.of(self.n)
+    print "drop ${self.n} ${xs.len()}"
+}
+
+type W = resource { pub mut h Buf, pub k Int }
+
+noalloc fn W.late(move self, flag: Bool) -> Buf {
+    let b = move self.h
+    if flag {
+        return b
+    }
+    b
+}
+
+fn W.swap(move self, fresh: Buf) -> Buf {
+    let b = move self.h
+    self.h = fresh
+    b
+}
+
+fn W.early(move self, flag: Bool) -> Int {
+    if flag {
+        return 0
+    }
+    let b = move self.h
+    b.n
+}
+
+fn keep(b: Buf) -> Bool {
+    print "keep ${b.n}"
+    true
+}
+
+fn earlyWhole(b: Buf, flag: Bool) -> Bool {
+    if flag {
+        return false
+    }
+    keep(b)
+}
+
+noalloc fn afterExit(flag: Bool, mk: fn() -> Buf, put: fn(Buf) -> Bool) -> Bool {
+    if flag {
+        return false
+    }
+    let b = mk()
+    put(b)
+}
+
+noalloc fn movedByExit(b: Buf, flag: Bool, put: fn(Buf) -> Bool) -> Bool {
+    if flag {
+        return put(b)
+    }
+    put(b)
+}
+
+let a = W { h: Buf { n: 1 }, k: 0 }.late(true)
+print "late ${a.n}"
+let b = W { h: Buf { n: 2 }, k: 0 }.late(false)
+print "late ${b.n}"
+let c = W { h: Buf { n: 3 }, k: 0 }.swap(Buf { n: 4 })
+print "swap ${c.n}"
+print "early ${W { h: Buf { n: 5 }, k: 0 }.early(true)}"
+print "early ${W { h: Buf { n: 6 }, k: 0 }.early(false)}"
+print "earlyWhole ${earlyWhole(Buf { n: 7 }, true)} ${earlyWhole(Buf { n: 8 }, false)}"
+print "afterExit ${afterExit(true, () => Buf { n: 9 }, keep)} ${afterExit(false, () => Buf { n: 10 }, keep)}"
+print "movedByExit ${movedByExit(Buf { n: 11 }, true, keep)} ${movedByExit(Buf { n: 12 }, false, keep)}"
+-- stdout --
+late 1
+late 2
+drop 4 1
+swap 3
+drop 5 1
+early 0
+drop 6 1
+early 6
+drop 7 1
+keep 8
+drop 8 1
+earlyWhole false true
+keep 10
+drop 10 1
+afterExit false true
+keep 11
+drop 11 1
+keep 12
+drop 12 1
+movedByExit true true
+drop 3 1
+drop 2 1
+drop 1 1
+-- exit --
+0

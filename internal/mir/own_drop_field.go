@@ -36,6 +36,16 @@ func (a *owner) checkDropOwner(n syntax.NodeID, l LocalID, report bool) {
 	}
 }
 
+// checkArmTake applies checkDropOwner to a field place copied out as the value of an `if` or `match` arm.
+func (a *owner) checkArmTake(in *Inst, report bool) {
+	if in.Op != OpCopy || in.Guarded || in.Share || a.f.Locals[in.Dst].Ent != 0 || !a.pl.isPlace(in.Args[0]) {
+		return
+	}
+	if l := a.pl.canon(in.Args[0]); a.tracked[l] {
+		a.checkDropOwner(a.defNode[in.Args[0]], l, report)
+	}
+}
+
 func (pl *places) payloadStep(l LocalID) bool {
 	k := pl.key[l]
 	i := strings.LastIndexByte(k, '.')

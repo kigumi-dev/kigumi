@@ -10,16 +10,12 @@ func (c *checker) synthFallback(n, lhs, rhs syntax.NodeID, want TypeID) TypeID {
 		l = c.adopt(c.literalNode(lhs), defaultOf(l))
 	}
 	if l == TyPoison {
-		if c.t.Kind(rhs) != syntax.Lambda {
-			c.synth(rhs)
-		}
+		c.fallbackPoison(rhs)
 		return TyPoison
 	}
 	v, r, witness, ok := c.fallbackParts(n, lhs, l)
 	if !ok {
-		if c.t.Kind(rhs) != syntax.Lambda {
-			c.synth(rhs)
-		}
+		c.fallbackPoison(rhs)
 		return TyPoison
 	}
 	c.info.Calls[n] = CallInfo{Kind: CallFallback, Callee: witness}
@@ -41,12 +37,22 @@ func (c *checker) synthFallback(n, lhs, rhs syntax.NodeID, want TypeID) TypeID {
 		}
 		result = want
 	}
+	c.branch++
 	if c.t.Kind(rhs) == syntax.Lambda {
 		c.fallbackArm(rhs, r, result)
 	} else {
 		c.check(rhs, result)
 	}
+	c.branch--
 	return result
+}
+
+func (c *checker) fallbackPoison(rhs syntax.NodeID) {
+	if c.t.Kind(rhs) != syntax.Lambda {
+		c.branch++
+		c.synth(rhs)
+		c.branch--
+	}
 }
 
 func (c *checker) fallbackParts(n, lhs syntax.NodeID, l TypeID) (v, r TypeID, witness EntityID, ok bool) {

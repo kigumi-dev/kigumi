@@ -114,6 +114,7 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 		c.errAt(n, cCleanupControlFlow, "`return`")
 	}
 	if !ret.Value().Valid() {
+		c.endExit(c.beginExit())
 		if c.lambdaRetUnknown() {
 			c.vars.unify(c.retType, TyUnit)
 		}
@@ -125,12 +126,14 @@ func (c *checker) synthReturn(n syntax.NodeID) TypeID {
 	val := ret.Value().ID()
 	c.exitCheck.returning = append(c.exitCheck.returning, exitSite{value: val, lambdas: len(c.lambdas)})
 	defer func() { c.exitCheck.returning = c.exitCheck.returning[:len(c.exitCheck.returning)-1] }()
+	saved := c.beginExit()
 	c.check(val, c.retType)
 	if len(c.lambdas) == 0 {
 		c.retLeaves = append(c.retLeaves, val)
 	}
 	c.checkEscapeReturn(val)
 	c.consumeWhole(val)
+	c.endExit(saved)
 	return TyNever
 }
 

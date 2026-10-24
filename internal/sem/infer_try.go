@@ -6,6 +6,7 @@ import "kigumi/internal/syntax"
 // the value never returns.
 func (c *checker) synthFail(n syntax.NodeID) TypeID {
 	operand := c.t.View(n).AsFail().Value().ID()
+	defer c.endExit(c.beginExit())
 	if c.cleanup > 0 {
 		c.errAt(n, cCleanupControlFlow, "`fail`")
 	}
@@ -34,7 +35,9 @@ func (c *checker) synthFail(n syntax.NodeID) TypeID {
 func (c *checker) synthTry(n syntax.NodeID) TypeID {
 	operand := c.t.View(n).AsTry().Operand().ID()
 	tt := c.r.Types
+	saved := c.beginExit()
 	got := c.vars.resolve(c.synth(operand))
+	c.endExit(saved)
 	if c.cleanup > 0 {
 		c.errAt(n, cCleanupControlFlow, "`?`")
 	}

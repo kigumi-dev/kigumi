@@ -85,9 +85,12 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 			c.escapeAlias[ent] = p
 		}
 	}
+	c.overwriteDrop(lhs, target)
 	c.consumeWhole(rhs)
 	if ent, ok := c.identPlaceEnt(lhs); ok {
 		c.unconsume(ent)
+	} else if p, ok := c.placeUnder(lhs); ok {
+		c.consumed.revive(p.ent, p.fields)
 	}
 	if c.t.Kind(rhs) == syntax.RecordLit {
 		if place := c.placeOf(lhs); place != 0 {

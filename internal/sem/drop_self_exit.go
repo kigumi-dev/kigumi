@@ -18,10 +18,10 @@ func (c *checker) selfExitDrop(fn EntityID) {
 	c.dropRemaining(self.Type, c.consumed.parts[sp], self.Node)
 }
 
-// dropRemaining charges the drop of a value of type t less the field paths moved out of it.
+// dropRemaining charges the drop of a value of type t less the field paths moved out of it; a type with its own drop is charged whole.
 func (c *checker) dropRemaining(t TypeID, moved [][]EntityID, node syntax.NodeID) {
 	n := c.r.Types.Node(t)
-	if len(moved) == 0 || n.Kind != KNamed {
+	if len(moved) == 0 || n.Kind != KNamed || c.r.typeDecl(n.Ent).Drop != 0 {
 		if c.r.Types.Kind(t) == KClosure || !c.r.isCopy(t) {
 			c.edge(EffectEdge{Kind: EdgeDrop, Type: t, Node: node})
 		}

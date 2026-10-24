@@ -1,0 +1,239 @@
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    let xs = Array.of(self.n)
+    print "drop ${xs.len()}"
+}
+
+type W = resource { pub mut h Buf, pub k Int }
+
+type P = { n Int }
+
+fn P.has(self, ok: Bool) -> Bool {
+    ok
+}
+
+noalloc fn W.andm(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool { //~ ERROR dropping `W` may allocate or deallocate
+    flag && put(move self.h)
+}
+
+noalloc fn W.orm(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool { //~ ERROR dropping `W` may allocate or deallocate
+    flag || put(move self.h)
+}
+
+noalloc fn W.guard(move self, x: Int, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+    match x {
+        0 if put(move self.h) -> 1
+        _ -> 2
+    }
+}
+
+noalloc fn W.fbBlock(move self, o: Int?, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+    o || {
+        let ok = put(move self.h)
+        4
+    }
+}
+
+noalloc fn W.fbArm(move self, r: Result[Int, Int], put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+    r || (e) => {
+        let ok = put(move self.h)
+        e
+    }
+}
+
+noalloc fn W.isAnd(move self, o: Int?, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+    if o is Some(v) && put(move self.h) {
+        return v
+    }
+    0
+}
+
+noalloc fn W.ifLetGuard(move self, o: Int?, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+    if let Some(v) = o; put(move self.h) {
+        return v
+    }
+    0
+}
+
+noalloc fn W.chain(move self, o: P?, put: fn(Buf) -> Bool) -> Bool? { //~ ERROR dropping `W` may allocate or deallocate
+    o?.has(put(move self.h))
+}
+
+noalloc fn W.letElse(move self, o: Int?, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+    let Some(v) = o else {
+        let ok = put(move self.h)
+        return 0
+    }
+    v
+}
+
+noalloc fn W.onFail(move self, put: fn(Buf) -> Bool, fine: Bool) -> Result[Int, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    defer(fail) {
+        let ok = put(move self.h)
+    }
+    if fine {
+        return Ok(1)
+    }
+    Err(2)
+}
+
+noalloc fn W.uncond(move self, put: fn(Buf) -> Bool) -> Bool {
+    put(move self.h)
+}
+
+noalloc fn pass(b: Buf, i: Int, put: fn(Buf) -> Bool) -> Bool {
+    put(b)
+}
+
+noalloc fn W.qArg(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    let r = pass(move self.h, o?, put)
+    Ok(r)
+}
+
+noalloc fn W.qTail(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    Ok(pass(move self.h, o?, put))
+}
+
+noalloc fn qLocal(b: Buf, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `Buf` may allocate or deallocate
+    let r = pass(b, o?, put)
+    Ok(r)
+}
+
+noalloc fn W.qMatch(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Int, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    match pass(move self.h, o?, put) {
+        true -> Ok(1)
+        false -> Ok(2)
+    }
+}
+
+noalloc fn W.qReturn(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    return Ok(pass(move self.h, o?, put))
+}
+
+type Pair = { pub a Buf, pub k Int }
+
+noalloc fn W.qLit(move self, o: Result[Int, Int], put: fn(Pair) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    let p = Pair { a: move self.h, k: o? } //~ ERROR constructing `Pair` allocates
+    Ok(put(p))
+}
+
+noalloc fn W.qBefore(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] {
+    let r = pass(move self.h, 1, put)
+    let v = o?
+    Ok(r)
+}
+
+noalloc fn W.bothPaths(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool {
+    if flag {
+        return put(move self.h)
+    }
+    put(move self.h)
+}
+
+let w = W { h: Buf { n: 1 }, k: 2 }
+print "${w.k}"
+-- expect --
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:16:24
+   |
+16 | noalloc fn W.andm(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool { //~ ERROR dropping `W` may allocate or deallocate
+   |                        ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:20:23
+   |
+20 | noalloc fn W.orm(move self, flag: Bool, put: fn(Buf) -> Bool) -> Bool { //~ ERROR dropping `W` may allocate or deallocate
+   |                       ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:24:25
+   |
+24 | noalloc fn W.guard(move self, x: Int, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+   |                         ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:31:27
+   |
+31 | noalloc fn W.fbBlock(move self, o: Int?, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+   |                           ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:38:25
+   |
+38 | noalloc fn W.fbArm(move self, r: Result[Int, Int], put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+   |                         ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:45:25
+   |
+45 | noalloc fn W.isAnd(move self, o: Int?, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+   |                         ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:52:30
+   |
+52 | noalloc fn W.ifLetGuard(move self, o: Int?, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+   |                              ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:59:25
+   |
+59 | noalloc fn W.chain(move self, o: P?, put: fn(Buf) -> Bool) -> Bool? { //~ ERROR dropping `W` may allocate or deallocate
+   |                         ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:63:27
+   |
+63 | noalloc fn W.letElse(move self, o: Int?, put: fn(Buf) -> Bool) -> Int { //~ ERROR dropping `W` may allocate or deallocate
+   |                           ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:71:26
+   |
+71 | noalloc fn W.onFail(move self, put: fn(Buf) -> Bool, fine: Bool) -> Result[Int, Int] { //~ ERROR dropping `W` may allocate or deallocate
+   |                          ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:89:24
+   |
+89 | noalloc fn W.qArg(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+   |                        ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+  --> main/main.kg:94:25
+   |
+94 | noalloc fn W.qTail(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+   |                         ^^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:98:19
+   |
+98 | noalloc fn qLocal(b: Buf, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `Buf` may allocate or deallocate
+   |                   ^^^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+   --> main/main.kg:103:26
+    |
+103 | noalloc fn W.qMatch(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Int, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    |                          ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+   --> main/main.kg:110:27
+    |
+110 | noalloc fn W.qReturn(move self, o: Result[Int, Int], put: fn(Buf) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    |                           ^^^^
+
+error[E912]: dropping `W` may allocate or deallocate
+   --> main/main.kg:116:24
+    |
+116 | noalloc fn W.qLit(move self, o: Result[Int, Int], put: fn(Pair) -> Bool) -> Result[Bool, Int] { //~ ERROR dropping `W` may allocate or deallocate
+    |                        ^^^^
+
+error[E961]: constructing `Pair` allocates
+   --> main/main.kg:117:13
+    |
+117 |     let p = Pair { a: move self.h, k: o? } //~ ERROR constructing `Pair` allocates
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

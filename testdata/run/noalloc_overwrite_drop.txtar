@@ -1,0 +1,94 @@
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    let xs = Array.of(self.n)
+    print "drop ${self.n} ${xs.len()}"
+}
+
+type W = resource { pub mut h Buf, pub mut k Int }
+
+fn keep(b: Buf) -> Bool {
+    print "keep ${b.n}"
+    true
+}
+
+noalloc fn W.refill(move self, fresh: Buf, put: fn(Buf) -> Bool) -> W {
+    let ok = put(move self.h)
+    self.h = fresh
+    self
+}
+
+noalloc fn relay(a: Buf, b: Buf, put: fn(Buf) -> Bool) -> Buf {
+    let mut x = a
+    let ok = put(x)
+    x = b
+    x
+}
+
+fn set(w: &mut W, b: Buf) {
+    w.h = b
+}
+
+fn W.pre(move self, fresh: Buf) -> Bool {
+    self.h = fresh
+    keep(move self.h)
+}
+
+fn store(sink: &mut Array[Buf], b: Buf) {
+    sink[0] = b
+}
+
+fn throughRef(s: &mut Buf, b: Buf) {
+    s = b
+}
+
+fn rebind(a: Buf, b: Buf) -> Buf {
+    let mut x = a
+    x = b
+    x
+}
+
+let r = W { h: Buf { n: 1 }, k: 0 }.refill(Buf { n: 2 }, keep)
+print "refill ${r.h.n}"
+let y = relay(Buf { n: 3 }, Buf { n: 4 }, keep)
+print "relay ${y.n}"
+let mut w = W { h: Buf { n: 5 }, k: 0 }
+set(&mut w, Buf { n: 6 })
+print "set ${w.h.n}"
+print "pre ${W { h: Buf { n: 7 }, k: 0 }.pre(Buf { n: 8 })}"
+let mut sink = Array.of(Buf { n: 9 })
+store(&mut sink, Buf { n: 10 })
+print "store ${sink.len()}"
+let mut s = Buf { n: 11 }
+throughRef(&mut s, Buf { n: 12 })
+print "ref ${s.n}"
+let z = rebind(Buf { n: 13 }, Buf { n: 14 })
+print "rebind ${z.n}"
+-- stdout --
+keep 1
+drop 1 1
+refill 2
+keep 3
+drop 3 1
+relay 4
+drop 5 1
+set 6
+drop 7 1
+keep 8
+drop 8 1
+pre true
+drop 9 1
+store 1
+drop 11 1
+ref 12
+drop 13 1
+rebind 14
+drop 14 1
+drop 12 1
+drop 10 1
+drop 6 1
+drop 4 1
+drop 2 1
+-- exit --
+0

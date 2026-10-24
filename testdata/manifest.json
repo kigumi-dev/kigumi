@@ -12383,6 +12383,23 @@
       ]
     },
     {
+      "id": "run/move_field_arm_value",
+      "kind": "run",
+      "path": "testdata/run/move_field_arm_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/move_method_value_copy",
       "kind": "run",
       "path": "testdata/run/move_method_value_copy.txtar",
@@ -13099,9 +13116,43 @@
       ]
     },
     {
+      "id": "run/noalloc_move_self_conditional",
+      "kind": "run",
+      "path": "testdata/run/noalloc_move_self_conditional.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/noalloc_move_self_partial",
       "kind": "run",
       "path": "testdata/run/noalloc_move_self_partial.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/noalloc_move_self_paths",
+      "kind": "run",
+      "path": "testdata/run/noalloc_move_self_paths.txtar",
       "mode": [
         "vm",
         "native"
@@ -13136,6 +13187,23 @@
       "id": "run/noalloc_nullary_store_nested",
       "kind": "run",
       "path": "testdata/run/noalloc_nullary_store_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/noalloc_overwrite_drop",
+      "kind": "run",
+      "path": "testdata/run/noalloc_overwrite_drop.txtar",
       "mode": [
         "vm",
         "native"
@@ -18860,6 +18928,17 @@
       ]
     },
     {
+      "id": "sem/effects_noalloc_overwrite_drop",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_overwrite_drop.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/effects_noalloc_protocol",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_protocol.txtar",
@@ -20422,9 +20501,42 @@
       ]
     },
     {
+      "id": "sem/move_drop_owner_exit",
+      "kind": "sem",
+      "path": "testdata/sem/move_drop_owner_exit.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/move_self_exit_drop_noalloc",
       "kind": "sem",
       "path": "testdata/sem/move_self_exit_drop_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_self_exit_drop_noalloc_conditional",
+      "kind": "sem",
+      "path": "testdata/sem/move_self_exit_drop_noalloc_conditional.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_self_exit_drop_noalloc_paths",
+      "kind": "sem",
+      "path": "testdata/sem/move_self_exit_drop_noalloc_paths.txtar",
       "mode": [
         "check"
       ],
