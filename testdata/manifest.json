@@ -2299,6 +2299,23 @@
       ]
     },
     {
+      "id": "run/array_lent_holders",
+      "kind": "run",
+      "path": "testdata/run/array_lent_holders.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/async",
       "kind": "run",
       "path": "testdata/run/async.txtar",
@@ -16838,6 +16855,17 @@
       ]
     },
     {
+      "id": "sem/borrow_cell_in_element_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_cell_in_element_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/borrow_hold_release_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_hold_release_err.txtar",
@@ -19195,6 +19223,17 @@
       "id": "sem/exclusive_access_alias",
       "kind": "sem",
       "path": "testdata/sem/exclusive_access_alias.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/exclusive_access_array",
+      "kind": "sem",
+      "path": "testdata/sem/exclusive_access_array.txtar",
       "mode": [
         "check"
       ],

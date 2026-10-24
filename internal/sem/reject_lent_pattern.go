@@ -41,16 +41,16 @@ func (c *checker) fieldBindings(n syntax.NodeID, from lentRef) {
 	}
 }
 
-// A tuple literal destructured in place hands each element's `&mut` to the bindings at its position; a destructured holder lends its own place.
-func (c *checker) noteTupleLent(p, expr syntax.NodeID) {
+// A literal destructured in place hands each part's `&mut` to the bindings at its position; a destructured holder lends its own place.
+func (c *checker) noteDestructureLent(p, expr syntax.NodeID) {
 	expr = c.t.Unparen(expr)
-	if c.t.Kind(p) == syntax.PatTuple && c.t.Kind(expr) == syntax.TupleLit {
-		pats, items := c.t.List(p), c.t.List(expr)
-		for i := 0; i < pats.Len() && i < items.Len(); i++ {
-			c.noteTupleLent(pats.ItemID(i), items.ItemID(i))
+	if parts, ok := c.literalParts(p, expr); ok {
+		for _, part := range parts {
+			c.noteDestructureLent(part.pat, part.expr)
 		}
 		return
 	}
+	c.notePartBindings(p, expr)
 	if root, field := c.mutBorrowRoot(expr); root != 0 {
 		c.lentBindingsIn(p, lentRef{root: root, field: field})
 		return
@@ -72,5 +72,17 @@ func (c *checker) lentBindingsIn(n syntax.NodeID, from lentRef) {
 	}
 	for ch := range c.t.View(n).Children() {
 		c.lentBindingsIn(ch.ID(), from)
+	}
+}
+
+func (c *checker) notePartBindings(p, from syntax.NodeID) {
+	if ent := c.info.Defs[p]; ent != 0 && c.r.Entities[ent].Kind == EntLocal && c.holdsLentRef(c.r.Entities[ent].Type) {
+		if c.held.partOf == nil {
+			c.held.partOf = map[EntityID]syntax.NodeID{}
+		}
+		c.held.partOf[ent] = from
+	}
+	for ch := range c.t.View(p).Children() {
+		c.notePartBindings(ch.ID(), from)
 	}
 }

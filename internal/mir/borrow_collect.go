@@ -79,7 +79,7 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 			mergeInto(b, c.throughRef(root, path, exact, in.Index == 1))
 			return set(b, true)
 		}
-		if b, ok := c.tempBorrow(in); ok && !has {
+		if b, ok := c.placelessBorrow(in); ok {
 			return set(b, true)
 		}
 		if def := c.definition(in.Args[0]); def != nil && def.Op == OpGlobalGet {

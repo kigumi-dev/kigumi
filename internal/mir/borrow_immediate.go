@@ -25,7 +25,9 @@ func checkImmediateCaptures(p *Program, f *Func) {
 				if h, ok := c.holders[in.Args[ci]]; ok {
 					if h.hasOwner {
 						for _, o := range h.owners {
-							owners = append(owners, o.owner)
+							if !o.cell {
+								owners = append(owners, o.owner)
+							}
 						}
 					}
 					continue

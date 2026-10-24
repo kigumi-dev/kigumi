@@ -25,6 +25,8 @@ type ownerRef struct {
 	lifetime sem.EntityID
 	// temp marks a borrow of a call's result temporary, which lives only to the statement's end.
 	temp bool
+	// cell marks a borrow of a closure-shared local's cell; sem judges its conflicts with the closures.
+	cell bool
 }
 
 // borrowInfo tracks every owner a holder might alias, not just one: an ambiguous
@@ -111,6 +113,10 @@ func (c *borrowCheck) checkBlock(bid BlockID) {
 			real[a] = true
 		}
 		if b, ok := c.holders[a]; ok {
+			if c.callerCells(b) {
+				live[a] = true
+				continue
+			}
 			// A holder with no owner is a borrow inherited from a
 			// parameter, not one taken of a local: returning it is the
 			// intended lifetime escape, and the caller's
@@ -160,7 +166,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 			continue
 		}
 		for _, o := range b.owners {
-			if o.view || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
+			if o.view || o.cell || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
 				continue
 			}
 			touched, path, _ := c.touch(in, o.owner)

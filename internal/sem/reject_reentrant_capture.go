@@ -10,6 +10,9 @@ func (c *checker) checkReentrantCapture(base syntax.NodeID, args []syntax.NodeID
 	}
 	roots, lent := c.exclusiveRoots(root, field)
 	c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: base, args: args, root: root, field: field, roots: roots, lent: lent, fnArgs: true})
+	for _, a := range args {
+		c.notePartAssign(base, c.t.View(a).ArgValue().ID())
+	}
 }
 
 func (c *checker) settleExclusiveSite(s exclusiveSite) {

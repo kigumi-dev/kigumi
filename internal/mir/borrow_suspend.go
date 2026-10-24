@@ -8,7 +8,7 @@ func (c *borrowCheck) checkSuspend(in Inst, liveAfter map[LocalID]bool) {
 	}
 	for holder := range liveAfter {
 		b := c.holders[holder]
-		if holder == in.Dst || b.empty {
+		if holder == in.Dst || b.empty || c.callerCells(b) {
 			continue
 		}
 		l := holder

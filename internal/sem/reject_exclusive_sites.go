@@ -1,6 +1,8 @@
 package sem
 
 import (
+	"slices"
+
 	"kigumi/internal/syntax"
 )
 
@@ -76,15 +78,11 @@ func (c *checker) settleOrDefer(roots []EntityID, settle func()) {
 
 func (c *checker) noteMutBorrowSites(args []syntax.NodeID) {
 	for i, a := range args {
+		others := slices.Delete(slices.Clone(args), i, i+1)
 		root, field := c.mutBorrowRoot(a)
 		if root == 0 {
+			c.noteHeldArgSite(a, others)
 			continue
-		}
-		var others []syntax.NodeID
-		for j, o := range args {
-			if j != i {
-				others = append(others, o)
-			}
 		}
 		roots, lent := c.exclusiveRoots(root, field)
 		c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: a, args: others, root: root, field: field, roots: roots, lent: lent})
@@ -92,6 +90,25 @@ func (c *checker) noteMutBorrowSites(args []syntax.NodeID) {
 			c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: a, root: root, field: field, roots: roots, lent: lent, byRef: true})
 		}
 	}
+}
+
+// A by-value argument that can carry a `&mut` lends that borrow to the call while it runs.
+func (c *checker) noteHeldArgSite(a syntax.NodeID, others []syntax.NodeID) {
+	expr := c.t.Unparen(a)
+	if t := c.vars.resolve(c.info.Types[expr]); c.r.Types.Kind(t) == KRef && !c.r.Types.RefMut(t) || !c.holdsLentRef(t) {
+		return
+	}
+	var start []lentRef
+	for _, from := range c.leafSources(expr, 0, true, 0) {
+		if from.root != 0 && (c.r.Entities[from.root].Kind == EntLocal || c.r.Entities[from.root].Kind == EntParam) {
+			start = append(start, from)
+		}
+	}
+	if len(start) == 0 {
+		return
+	}
+	roots, lent := c.rootsFrom(start)
+	c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: a, args: others, root: start[0].root, field: start[0].field, roots: roots, lent: lent})
 }
 
 func (c *checker) mutBorrowRoot(a syntax.NodeID) (EntityID, EntityID) {
@@ -113,6 +130,7 @@ func (c *checker) mutBorrowRoot(a syntax.NodeID) (EntityID, EntityID) {
 func (c *checker) noteLoopAlias(pat, head syntax.NodeID) {
 	head = c.t.Unparen(head)
 	if c.t.Kind(pat) != syntax.PatBind || c.t.Kind(head) != syntax.BorrowExpr || c.t.View(head).AsBorrow().Flags()&syntax.FlagMut == 0 {
+		c.notePartBindings(pat, head)
 		return
 	}
 	if root := c.rootOf(c.t.View(head).AsBorrow().Operand().ID()); root != 0 {

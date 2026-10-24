@@ -1,0 +1,186 @@
+-- src --
+type Box = {
+    pub mut n Int
+}
+
+fn Box.update(mut self, k: Int) {
+    self.n = self.n + k
+}
+
+fn Box.run[F: FnMut[fn() -> Void]](mut self, mut f: F) {
+    f()
+    self.n = self.n + 10
+}
+
+type H['a] = {
+    pub r &'a mut Box
+}
+
+type Pair['a] = {
+    pub a &'a mut Box
+    pub b &'a mut Box
+}
+
+type Hold['a] = {
+    pub mut r &'a mut Box
+    pub z Int
+}
+
+fn peek(b: &Box) -> Int {
+    b.n
+}
+
+fn bump(b: &mut Box) {
+    b.n = b.n + 1
+}
+
+fn each['a, F: FnMut[fn() -> Void]](a: Array[H['a]], mut f: F) {
+    for h in a {
+        h.r.run(() => f())
+    }
+}
+
+fn fixed1[T](a: Array[T]) -> FixedArray[T, 1] {
+    FixedArray.fromArrayMove[T, 1](a).unwrap()
+}
+
+fn loopThenRead() {
+    let mut v = Box { n: 0 }
+    let a = Array.of(H { r: &mut v })
+    for h in a {
+        h.r.update(1)
+    }
+    print "loop ${v.n}"
+}
+
+fn unrelatedWrite() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let a = Array.of(H { r: &mut v })
+    for h in a {
+        h.r.run(() => w.update(1))
+    }
+    print "unrelated ${v.n} ${w.n}"
+}
+
+fn afterDead() {
+    let mut v = Box { n: 0 }
+    let a = Array.of(H { r: &mut v })
+    for h in a {
+        h.r.update(2)
+    }
+    let mut w = Box { n: 0 }
+    w.run(() => v.update(1))
+    v.n = v.n + 3
+    print "after ${v.n} ${w.n}"
+}
+
+fn indexed() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let a = Array.of(H { r: &mut v }, H { r: &mut w })
+    a[0].r.update(4)
+    a[1].r.run(() => print "in run")
+    print "indexed ${a[0].r.n} ${a[1].r.n}"
+}
+
+fn fixed() {
+    let mut v = Box { n: 0 }
+    let fa = fixed1(Array.of(H { r: &mut v }))
+    for h in fa {
+        h.r.update(5)
+    }
+    print "fixed ${v.n}"
+}
+
+fn helper() {
+    let mut v = Box { n: 0 }
+    let mut count = 0
+    let a = Array.of(H { r: &mut v })
+    each(a, () => { count = count + 1 })
+    print "helper ${v.n} ${count}"
+}
+
+fn pairParts() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let Pair { a, b } = Pair { a: &mut v, b: &mut w }
+    a.run(() => w.update(1))
+    print "pair ${v.n} ${w.n}"
+}
+
+fn pushOther() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut u = Box { n: 0 }
+    let mut a = Array.of(H { r: &mut v })
+    a.push(H { r: &mut w })
+    for h in a {
+        h.r.run(() => u.update(1))
+    }
+    print "push ${v.n} ${w.n} ${u.n}"
+}
+
+fn fieldStore() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    h.r = &mut w
+    h.r.update(3)
+    print "store ${h.z} ${h.r.n}"
+}
+
+fn insideClosure() {
+    let mut v = Box { n: 3 }
+    let mut w = Box { n: 0 }
+    w.run(() => {
+        bump(&mut v)
+        let mut u = Box { n: 0 }
+        let mut a = Array.of(H { r: &mut u })
+        a.push(H { r: &mut v })
+        for h in a {
+            h.r.update(1)
+        }
+    })
+    print "inside ${v.n} ${w.n}"
+}
+
+fn mapInsideClosure() {
+    let mut v = Box { n: 3 }
+    let mut w = Box { n: 0 }
+    w.run(() => {
+        let xs = Array.of(1, 2)
+        let ys = xs.map((i: &Int) => peek(&v) + i)
+        print "map ${ys[0]} ${ys[1]}"
+        v.update(1)
+    })
+    print "mapped ${v.n} ${w.n}"
+}
+
+fn main() {
+    loopThenRead()
+    unrelatedWrite()
+    afterDead()
+    indexed()
+    fixed()
+    helper()
+    pairParts()
+    pushOther()
+    fieldStore()
+    insideClosure()
+    mapInsideClosure()
+}
+-- stdout --
+loop 1
+unrelated 10 1
+after 6 10
+in run
+indexed 4 10
+fixed 5
+helper 10 1
+pair 10 1
+push 10 10 2
+store 1 3
+inside 5 10
+map 4 5
+mapped 4 10

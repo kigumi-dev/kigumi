@@ -35,7 +35,7 @@ func (c *borrowCheck) throughRef(root LocalID, path []int, exact, mut bool) *bor
 		if o.exact {
 			p = append(p, path...)
 		}
-		out.owners = append(out.owners, ownerRef{owner: o.owner, mut: mut, path: p, exact: o.exact && exact, lifetime: o.lifetime})
+		out.owners = append(out.owners, ownerRef{owner: o.owner, mut: mut, path: p, exact: o.exact && exact, lifetime: o.lifetime, cell: o.cell})
 	}
 	if len(out.owners) == 0 {
 		return nil

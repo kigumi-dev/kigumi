@@ -18,8 +18,11 @@ type heldMuts struct {
 	copyLit     map[syntax.NodeID]EntityID
 	// holderAssigns lists the values a `let mut` holder of a `&mut` is rebound to after its initializer.
 	holderAssigns map[EntityID][]syntax.NodeID
-	reroot        loopReroot
-	patDepth      int
+	// partOf maps a `for` or pattern binding that can carry a `&mut` to the value it was taken from.
+	partOf      map[EntityID]syntax.NodeID
+	partAssigns map[EntityID][]partAssign
+	reroot      loopReroot
+	patDepth    int
 }
 
 type mutHolder struct {

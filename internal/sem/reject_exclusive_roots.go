@@ -14,6 +14,9 @@ func (c *checker) aliasInit(ent EntityID) (syntax.NodeID, bool) {
 	if init, ok := c.letInit[ent]; ok {
 		return init, true
 	}
+	if from, ok := c.held.partOf[ent]; ok {
+		return from, true
+	}
 	init, ok := c.mutAliasInit[ent]
 	return init, ok
 }
@@ -31,10 +34,29 @@ func (c *checker) noteMutAlias(local EntityID, init syntax.NodeID) {
 // exclusiveRoots follows `let r = &mut place`, `let r = x` and branching initializers to every root the access may reach;
 // lent maps a root reached through a field place to that first field, the only part of it the access owns.
 func (c *checker) exclusiveRoots(root, field EntityID) ([]EntityID, map[EntityID]EntityID) {
-	roots := []EntityID{root}
+	return c.rootsFrom([]lentRef{{root, field}})
+}
+
+func (c *checker) rootsFrom(start []lentRef) ([]EntityID, map[EntityID]EntityID) {
+	var roots []EntityID
 	var lent map[EntityID]EntityID
-	if field != 0 {
-		lent = map[EntityID]EntityID{root: field}
+	add := func(from lentRef) {
+		if slices.Contains(roots, from.root) {
+			if lent[from.root] != from.field {
+				delete(lent, from.root)
+			}
+			return
+		}
+		roots = append(roots, from.root)
+		if from.field != 0 {
+			if lent == nil {
+				lent = map[EntityID]EntityID{}
+			}
+			lent[from.root] = from.field
+		}
+	}
+	for _, from := range start {
+		add(from)
 	}
 	for i := 0; i < len(roots) && len(roots) < 16; i++ {
 		for _, from := range c.aliasSources(roots[i], lent[roots[i]]) {
@@ -44,19 +66,7 @@ func (c *checker) exclusiveRoots(root, field EntityID) ([]EntityID, map[EntityID
 			if k := c.r.Entities[from.root].Kind; k != EntLocal && k != EntParam {
 				continue
 			}
-			if slices.Contains(roots, from.root) {
-				if lent[from.root] != from.field {
-					delete(lent, from.root)
-				}
-				continue
-			}
-			roots = append(roots, from.root)
-			if from.field != 0 {
-				if lent == nil {
-					lent = map[EntityID]EntityID{}
-				}
-				lent[from.root] = from.field
-			}
+			add(from)
 		}
 	}
 	return roots, lent

@@ -1,0 +1,122 @@
+-- module --
+mir: planned
+-- src --
+type Box = {
+    pub mut n Int
+}
+
+fn Box.update(mut self, k: Int) {
+    self.n = self.n + k
+}
+
+fn Box.run[F: FnMut[fn() -> Void]](mut self, mut f: F) {
+    f()
+    self.n = self.n + 10
+}
+
+type Slot[T] = {
+    pub x T
+}
+
+fn arrayOfShared() -> Int {
+    let mut v = Box { n: 0 }
+    let a = Array.of(&mut v) //~ ERROR a borrow cannot go in element 0
+    for r in a {
+        r.update(1)
+    }
+    let mut w = Box { n: 0 }
+    w.run(() => v.update(1))
+    v.n
+}
+
+fn tupleOfShared() -> Int {
+    let mut v = Box { n: 0 }
+    let t = (&mut v, 1) //~ ERROR a borrow cannot go in `_0`
+    let (r, _) = t
+    r.update(1)
+    let mut w = Box { n: 0 }
+    w.run(() => v.update(1))
+    v.n
+}
+
+fn arrayInClosure() -> Int {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    w.run(() => {
+        let a = Array.of(&mut v) //~ ERROR a borrow cannot go in element 0
+        for r in a {
+            r.update(1)
+        }
+    })
+    v.n
+}
+
+fn tupleInClosure() -> Int {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    w.run(() => {
+        let t = (&mut v, 1) //~ ERROR a borrow cannot go in `_0`
+        let (_, k) = t
+        _ = k
+    })
+    v.n
+}
+
+fn payloadInClosure() -> Int {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    w.run(() => {
+        let o = Some(&mut v) //~ ERROR a borrow cannot go in payload 0
+        if let Some(r) = o {
+            r.update(1)
+        }
+    })
+    v.n
+}
+
+fn fieldInClosure() -> Int {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    w.run(() => {
+        let s = Slot { x: &mut v } //~ ERROR a borrow cannot go in `x`
+        s.x.update(1)
+    })
+    v.n
+}
+-- expect --
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
+  --> main.kg:20:13
+   |
+20 |     let a = Array.of(&mut v) //~ ERROR a borrow cannot go in element 0
+   |             ^^^^^^^^^^^^^^^
+
+error[E1531]: a borrow cannot go in `_0`, an element of `Tuple2` declared `A`: an element declared that way is released with the tuple, and this borrow has no count to give; a tuple cannot take a `['a]` of its own, so put it in a record that can, or store a value the tuple can own
+  --> main.kg:31:13
+   |
+31 |     let t = (&mut v, 1) //~ ERROR a borrow cannot go in `_0`
+   |             ^^^^^^^^^^
+
+error[E1581]: a borrow cannot go in element 0, an element of `Array[T]`: an element is released with the array and this borrow has no count to give; an array tracks a borrow only inside a value whose type takes a `['a]`, so wrap it in such a type, or store a value it can own
+  --> main.kg:43:17
+   |
+43 |         let a = Array.of(&mut v) //~ ERROR a borrow cannot go in element 0
+   |                 ^^^^^^^^^^^^^^^
+
+error[E1531]: a borrow cannot go in `_0`, an element of `Tuple2` declared `A`: an element declared that way is released with the tuple, and this borrow has no count to give; a tuple cannot take a `['a]` of its own, so put it in a record that can, or store a value the tuple can own
+  --> main.kg:55:17
+   |
+55 |         let t = (&mut v, 1) //~ ERROR a borrow cannot go in `_0`
+   |                 ^^^^^^^^^^
+
+error[E1582]: a borrow cannot go in payload 0, a payload of `Option`: a payload declared that way is released with the variant, and this borrow has no count to give; nest it in a type that takes a `['a]` and routes the borrow through its own field, or store a value it can own
+  --> main.kg:66:17
+   |
+66 |         let o = Some(&mut v) //~ ERROR a borrow cannot go in payload 0
+   |                 ^^^^^^^^^^^
+
+error[E1531]: a borrow cannot go in `x`, a field of `Slot` declared `T`: a field declared that way is released with the record, and this borrow has no count to give; declare the field `&'a T` and take a `['a]` on the record, or store a value the record can own
+  --> main.kg:78:17
+   |
+78 |         let s = Slot { x: &mut v } //~ ERROR a borrow cannot go in `x`
+   |                 ^^^^^^^^^^^^^^^^
+
