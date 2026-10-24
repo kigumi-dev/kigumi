@@ -6,9 +6,8 @@ import (
 	"kigumi/internal/hashkey"
 )
 
-// prelude implements the Option / Result helpers, Bytes.tryConcat,
-// and the Eq / Ord / Hash witnesses of the primitive types; nil for other
-// keys.
+// prelude implements the Option / Result helpers, Bytes.tryConcat and the Eq / Ord / Hash
+// witnesses of the primitive types; nil for other keys.
 func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 	switch key {
 	case "prelude.debug":

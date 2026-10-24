@@ -69,6 +69,7 @@ func reloadForHeaders(m *Module, t Target) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
+	r.Entry, r.ExplicitEntry = m.Entry, m.ExplicitEntry
 	r.headers.hostOnly = m.headers.hostOnly
 	r.diagsReported = m.diagsReported
 	return r, nil

@@ -131,6 +131,11 @@ func (m *Module) addNative(dir string, mf ModFile) error {
 	return nil
 }
 
+func (m *Module) addExtraNative(opts LoadOptions) {
+	m.Sources = append(m.Sources, opts.ExtraSources...)
+	m.Links = append(m.Links, opts.ExtraLinks...)
+}
+
 // selectSources expands a Source candidate into its matching files.
 // A directory that fails to list returns an error; an empty one does not.
 func (m *Module) selectSources(path string, asm bool) ([]string, error) {

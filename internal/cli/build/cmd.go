@@ -74,7 +74,8 @@ func Cmd() *cobra.Command {
 			return &cliutil.UsageError{Err: err}
 		}
 		if *emit {
-			ir, ok, err := driver.CompileWith(m, cmd.ErrOrStderr(), driver.BuildOptions{Target: target, CFlags: shared.CFlags(), Link: form.link, SizeMin: form.sizeMin})
+			var emitted driver.BuildReport
+			ir, ok, err := driver.CompileWith(m, cmd.ErrOrStderr(), driver.BuildOptions{Target: target, CFlags: shared.CFlags(), Link: form.link, SizeMin: form.sizeMin, Report: &emitted})
 			if err != nil {
 				return errors.WrapErr(err, "compile module")
 			}
@@ -82,6 +83,7 @@ func Cmd() *cobra.Command {
 				return cliutil.Exit(1)
 			}
 			fmt.Fprint(cmd.OutOrStdout(), ir)
+			fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, policy, false, nil, map[string]driver.BuildReport{"": emitted}).Render())
 			return nil
 		}
 		out := *exe

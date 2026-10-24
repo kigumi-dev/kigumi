@@ -17,24 +17,14 @@ func artifactOut(outDir string, a *buildgraph.Artifact) string {
 	return filepath.Join(outDir, a.Name)
 }
 
-// buildArtifact loads the module for the artifact's own target (so
-// platform files and a second target's compile fall out of LoadModule),
-// picks the entry under its directory, merges the C sources and links of
-// the artifact and of everything it uses, and links it with BuildWith.
+// buildArtifact loads the module for the artifact's own target with the C sources and links of the artifact and of
+// everything it uses, so platform files and a second target's compile fall out of LoadModule, then links it with BuildWith.
 func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(int) string, outDir string, opts ExecOptions, stderr io.Writer) error {
 	g := rg.Graph
 	a, t := g.Artifacts[idx], rg.Targets[idx]
-	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses, Compiler: p.Module.compiler, RootDirs: []string{a.Dir}})
-	if err != nil {
-		return fmt.Errorf("artifact %s: %w", a.Name, err)
-	}
-	entry, err := scriptUnder(m, a.Dir)
-	if err != nil {
-		return fmt.Errorf("artifact %s: %w", a.Name, err)
-	}
-	m.Entry = entry
-	m.ExplicitEntry = true
 	root, _ := p.Module.compiler.Abs(p.Module.Root)
+	var sources []string
+	var links []Link
 	seen := map[int]bool{}
 	var merge func(id int)
 	merge = func(id int) {
@@ -44,19 +34,29 @@ func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(in
 		seen[id] = true
 		art := g.Artifacts[id]
 		for _, f := range art.ExtraSources {
-			m.Sources = append(m.Sources, filePath(f))
+			sources = append(sources, filePath(f))
 		}
 		for _, l := range art.ExtraLinks {
 			if l.Search != "" && !filepath.IsAbs(l.Search) {
 				l.Search = filepath.Join(root, filepath.FromSlash(l.Search))
 			}
-			m.Links = append(m.Links, Link{Library: l.Library, Search: l.Search})
+			links = append(links, Link{Library: l.Library, Search: l.Search})
 		}
 		for _, u := range art.Uses {
 			merge(u)
 		}
 	}
 	merge(idx)
+	m, err := LoadModule(p.Module.Root, LoadOptions{StdRoot: p.stdRoot, Target: t, Deny: a.Deny, Ceiling: a.Ceiling, ArtifactName: a.Name, VerifyPasses: p.Module.verifyPasses, Compiler: p.Module.compiler, RootDirs: []string{a.Dir}, ExtraSources: sources, ExtraLinks: links})
+	if err != nil {
+		return fmt.Errorf("artifact %s: %w", a.Name, err)
+	}
+	entry, err := scriptUnder(m, a.Dir)
+	if err != nil {
+		return fmt.Errorf("artifact %s: %w", a.Name, err)
+	}
+	m.Entry = entry
+	m.ExplicitEntry = true
 	link, err := artifactLink(rg, idx, opts.Link)
 	if err != nil {
 		return err

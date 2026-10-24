@@ -780,6 +780,13 @@ fn takeShared['a](h: &Cnt['a]) -> Int {
     let c = h.c //~ ERROR `h.c` is a `&mut` reached through a shared reference
     0
 }
+
+fn copyReadBesideLentReceiver() -> Int {
+    let mut v = Box { n: 1 }
+    let mut h = Hold { r: &mut v, z: 2 }
+    h.r.update(h.r.n)
+    v.n
+}
 -- expect --
 error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
   --> main/main.kg:95:15

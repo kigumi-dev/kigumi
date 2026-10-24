@@ -27,6 +27,9 @@ type LoadOptions struct {
 	Deny         []string
 	Ceiling      string
 	ArtifactName string
+	// ExtraSources and ExtraLinks join the module's native sources and links before its Header records are translated.
+	ExtraSources []string
+	ExtraLinks   []Link
 	// Policy governs the release predicate: under Release a local replacement or
 	// unlocked dependency-bearing script fails the load instead of only warning.
 	Policy BuildPolicy

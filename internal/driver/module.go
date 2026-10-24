@@ -138,6 +138,7 @@ func loadModule(root string, opts LoadOptions) (*Module, error) {
 	if err := m.addNative(root, m.Manifest); err != nil {
 		return nil, err
 	}
+	m.addExtraNative(opts)
 	if err := m.addHeaders(root, m.Manifest); err != nil {
 		return nil, err
 	}

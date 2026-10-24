@@ -16,22 +16,23 @@ import (
 const panicFormSweep = 24
 
 // panicFormCases are the std functions that are a Kigumi body over their try form; setup runs before the arming eprint, call after it.
-// nativeTicks is how many ticks the native try form refuses before the call completes; the VM's try forms tick once.
+// nativeTicks is how many ticks the native try form refuses before the call completes; vmTicks is the same for the VM, 0 meaning one.
 var panicFormCases = []struct {
 	name, setup, call string
 	nativeTicks       int
+	vmTicks           int
 }{
-	{"bytes_slice", "let b = Bytes.zeros(4)", "let _ = b.slice(1, 3)", 6},
-	{"bytes_zeros", "", "let _ = Bytes.zeros(4)", 4},
-	{"bytes_fill", "", "let _ = Bytes.fill(7, 4)", 4},
-	{"bytes_from_array", "let a = Array.of[u8](1, 2, 3)", "let _ = Bytes.fromArray(&a)", 4},
-	{"bytes_concat", "let a = Bytes.zeros(2)\n    let b = Bytes.zeros(2)", "let _ = a.concat(b)", 4},
-	{"string_slice_bytes", "let s = \"hello world\".concat(\"!\")", "let _ = s.sliceBytes(1, 4)", 6},
-	{"array_clone", "let a = Array.of(1, 2, 3)", "let _ = a.clone()", 4},
-	{"shared_new", "", "let _ = alloc.Shared.new(41)", 5},
-	{"shared_get", "let s = alloc.Shared.new(41)", "let _ = s.get()", 2},
-	{"shared_downgrade", "let s = alloc.Shared.new(41)", "let _ = s.downgrade()", 3},
-	{"box_new", "", "let _ = alloc.Box.new(5)", 4},
+	{"bytes_slice", "let b = Bytes.zeros(4)", "let _ = b.slice(1, 3)", 6, 0},
+	{"bytes_zeros", "", "let _ = Bytes.zeros(4)", 4, 0},
+	{"bytes_fill", "", "let _ = Bytes.fill(7, 4)", 6, 2},
+	{"bytes_from_array", "let a = Array.of[u8](1, 2, 3)", "let _ = Bytes.fromArray(&a)", 4, 0},
+	{"bytes_concat", "let a = Bytes.zeros(2)\n    let b = Bytes.zeros(2)", "let _ = a.concat(b)", 4, 0},
+	{"string_slice_bytes", "let s = \"hello world\".concat(\"!\")", "let _ = s.sliceBytes(1, 4)", 6, 0},
+	{"array_clone", "let a = Array.of(1, 2, 3)", "let _ = a.clone()", 4, 0},
+	{"shared_new", "", "let _ = alloc.Shared.new(41)", 5, 0},
+	{"shared_get", "let s = alloc.Shared.new(41)", "let _ = s.get()", 2, 0},
+	{"shared_downgrade", "let s = alloc.Shared.new(41)", "let _ = s.downgrade()", 3, 0},
+	{"box_new", "", "let _ = alloc.Box.new(5)", 4, 0},
 }
 
 func panicFormSource(setup, call string) string {
@@ -54,17 +55,17 @@ func classifyPanicFormRun(exit int, stdout, stderr string) byte {
 // TestFaultInjectionPanickingFormsPanicWhenATickIsRefused checks that every body over its try form turns a refused tick into the out-of-memory panic on both backends, and that the ticks after the call are untouched.
 func TestFaultInjectionPanickingFormsPanicWhenATickIsRefused(t *testing.T) {
 	t.Parallel()
-	if testCompiler().CCompiler() == nil {
-		t.Skip("no C compiler")
-	}
+	hasCC := testCompiler().CCompiler() != nil
 	for _, c := range panicFormCases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			src := panicFormSource(c.setup, c.call)
-			for backend, ticks := range map[string]int{"native": c.nativeTicks, "vm": 1} {
+			for backend, ticks := range map[string]int{"native": c.nativeTicks, "vm": max(c.vmTicks, 1)} {
 				classes := panicFormNativeClasses
 				if backend == "vm" {
 					classes = panicFormVMClasses
+				} else if !hasCC {
+					continue
 				}
 				got := classes(t, src)
 				if want := regexp.MustCompile("^P{" + strconv.Itoa(ticks) + "}O+$"); !want.Match(got) {

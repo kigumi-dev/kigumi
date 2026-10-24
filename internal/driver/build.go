@@ -15,6 +15,9 @@ func Compile(m *Module, stderr io.Writer) (string, bool, error) {
 // CompileWith is the IR BuildWith links under opts, Header records included, so --emit-llvm matches the binary.
 func CompileWith(m *Module, stderr io.Writer, opts BuildOptions) (string, bool, error) {
 	l, ok, err := compileLinked(m, stderr, opts, true)
+	if ok && opts.Report != nil {
+		*opts.Report = BuildReport{Linkage: l.link, SizeMin: opts.SizeMin, SectionGC: sectionGC(l.t), LTO: lto(l.t), Archive: l.t.Bare()}
+	}
 	return l.code.IR, ok, err
 }
 
