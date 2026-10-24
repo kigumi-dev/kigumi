@@ -3364,58 +3364,6 @@ static uint64_t map_seed(void) {
     }
     return seed;
 }
-// Two-way search: linear time in constant space, unlike the naive scan.
-static int64_t max_suffix(const unsigned char* x, int64_t m, int64_t* period, int reverse) {
-    int64_t ms = -1, j = 0, k = 1;
-    *period = 1;
-    while (j + k < m) {
-        unsigned char a = x[j + k], b = x[ms + k];
-        if (reverse ? a > b : a < b) {
-            j += k;
-            k = 1;
-            *period = j - ms;
-        } else if (a == b) {
-            if (k != *period) {
-                k++;
-            } else {
-                j += *period;
-                k = 1;
-            }
-        } else {
-            ms = j;
-            j = ms + 1;
-            k = *period = 1;
-        }
-    }
-    return ms;
-}
-static int64_t bytes_index(const unsigned char* y, int64_t n, const unsigned char* x, int64_t m) {
-    if (m == 0) return 0;
-    if (m > n) return -1;
-    int64_t p, q;
-    int64_t i = max_suffix(x, m, &p, 0), j = max_suffix(x, m, &q, 1);
-    int64_t ell = i > j ? i : j, per = i > j ? p : q;
-    int periodic = ell + 1 + per <= m;
-    for (int64_t t = 0; periodic && t <= ell; t++) periodic = x[t] == x[t + per];
-    int64_t pos = 0, memory = -1;
-    if (!periodic) per = (ell + 1 > m - ell - 1 ? ell + 1 : m - ell - 1) + 1;
-    while (pos <= n - m) {
-        int64_t k = (periodic && ell < memory ? memory : ell) + 1;
-        while (k < m && x[k] == y[k + pos]) k++;
-        if (k < m) {
-            pos += k - ell;
-            memory = -1;
-            continue;
-        }
-        k = ell;
-        int64_t floor = periodic ? memory : -1;
-        while (k > floor && x[k] == y[k + pos]) k--;
-        if (k <= floor) return pos;
-        pos += per;
-        memory = periodic ? m - per - 1 : -1;
-    }
-    return -1;
-}
 // Constant-time compare: time
 // depends only on the lengths (an early return there is fine, lengths
 // aren't secret), never on where the bytes differ. `diff` is volatile so
@@ -3618,25 +3566,6 @@ val rt_std_id(int op, int n, val* a) {
     case OP_COMPARE_TO: return ordering(a0->kind == K_FLOAT ? float_total_compare(a0->u.f, a1->u.f) : cmp_vals(a0, a1));
     case OP_HASH: return rt_int((int64_t)hash_of(a0), 64);
     case OP_MAP_SEED: return rt_int((int64_t)map_seed(), 64);
-    case OP_BYTES_INDEX_OF: {
-        int64_t at = bytes_index((const unsigned char*)a0->u.s.data, a0->u.s.len, (const unsigned char*)a1->u.s.data, a1->u.s.len);
-        return at < 0 ? none() : some(rt_int(at, 64));
-    }
-    case OP_BYTES_LAST_INDEX_OF: {
-        int64_t n = a0->u.s.len, m = a1->u.s.len;
-        if (m == 0) return some(rt_int(n, 64));
-        unsigned char* rev = n >= m ? malloc((size_t)(n + m)) : NULL;
-        if (n >= m && !rev) rt_panic("out of memory");
-        int64_t at = -1;
-        if (rev) {
-            for (int64_t i = 0; i < n; i++) rev[i] = (unsigned char)a0->u.s.data[n - 1 - i];
-            for (int64_t i = 0; i < m; i++) rev[n + i] = (unsigned char)a1->u.s.data[m - 1 - i];
-            at = bytes_index(rev, n, rev + n, m);
-            free(rev);
-        }
-        return at < 0 ? none() : some(rt_int(n - m - at, 64));
-    }
-    case OP_STRING_CONTAINS: return rt_bool(bytes_index((const unsigned char*)a0->u.s.data, a0->u.s.len, (const unsigned char*)a1->u.s.data, a1->u.s.len) >= 0);
     case OP_DISPLAY: return display(a0);
     case OP_STRING_BYTES: return bytes_val(a0->u.s.data, a0->u.s.len);
     case OP_BYTES_SLICE: {
@@ -3676,21 +3605,6 @@ val rt_std_id(int op, int n, val* a) {
         val v = rt_str_take(d, n2);
         v->kind = K_BYTES;
         return v;
-    }
-    case OP_BYTES_TRY_FILL: {
-        int64_t n2 = a1->u.i;
-        if (n2 < 0) return alloc_error();
-        char* d = fault_tick() ? NULL : kg_malloc_n(n2);
-        if (!d) return alloc_error();
-        memset(d, (unsigned char)a0->u.i, n2);
-        d[n2] = 0;
-        val v = rt_str_take_try(d, n2);
-        if (!v) {
-            free(d);
-            return alloc_error();
-        }
-        v->kind = K_BYTES;
-        return try_ok(v);
     }
     case OP_BYTES_FROM_ARRAY: {
         int64_t n2 = a0->u.arr.len;
@@ -3834,20 +3748,6 @@ val rt_std_id(int op, int n, val* a) {
         return out ? try_ok(out) : alloc_error();
     }
     case OP_ALLOC_WRAP: return try_ok(rt_retain(a[0]));
-    case OP_STRING_TRY_CONCAT: {
-        int64_t l0 = a0->u.s.len, l1 = a1->u.s.len;
-        char* d = fault_tick() ? NULL : malloc(l0 + l1 + 1);
-        if (!d) return alloc_error();
-        memcpy(d, a0->u.s.data, l0);
-        memcpy(d + l0, a1->u.s.data, l1);
-        d[l0 + l1] = 0;
-        val v = rt_str_take_try(d, l0 + l1);
-        if (!v) {
-            free(d);
-            return alloc_error();
-        }
-        return try_ok(v);
-    }
     case OP_STRING_TRY_SLICE_BYTES: {
         int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
         if (s < 0 || s > e || e > len || !boundary(a0->u.s.data, len, s) || !boundary(a0->u.s.data, len, e)) return try_ok(none());
@@ -3911,22 +3811,26 @@ val rt_std_id(int op, int n, val* a) {
     }
     case OP_MAP_TRY_EMPTY: return empty_record_try(find_type("std/map.Map"), 5);
     case OP_STRING_BUILDER_TRY_NEW: return empty_record_try(find_type("std/text.StringBuilder"), 1);
-    case OP_STRING_TRY_TRIM: return try_string_trim(a0);
-    case OP_STRING_TRY_TO_UPPER: return try_string_shift(a0, 97, 122, 0);
-    case OP_STRING_TRY_TO_LOWER: return try_string_shift(a0, 65, 90, 1);
     case OP_STRING_TRY_CHARS: return try_string_chars(a0);
-    case OP_STRING_TRY_SPLIT: return try_string_split(a0, a1);
-    case OP_TEXT_TRY_LINES: return try_text_lines(a0);
-    case OP_TEXT_TRY_GRAPHEMES: return try_text_graphemes(a0);
-    case OP_TEXT_TRY_REPLACE: return try_text_replace(a0, a1, a2);
-    case OP_TEXT_TRY_TRIM_PREFIX: return try_text_trim_edge(a0, a1, 0);
-    case OP_TEXT_TRY_TRIM_SUFFIX: return try_text_trim_edge(a0, a1, 1);
-    case OP_ARRAY_TRY_JOIN: return try_array_join(a0, a1);
     case OP_ARRAY_TRY_SORTED_BY: return try_array_sorted_by(a0, a1);
-    case OP_STRING_BUILDER_TRY_PUSH: return try_builder_push(a0, a1);
-    case OP_STRING_BUILDER_TRY_PUSH_BYTE: return try_builder_push_byte(a0, a1);
     case OP_STRING_BUILDER_TRY_FREEZE: return try_builder_freeze(a0);
     case OP_DEBUG_TRY: return try_debug(a0);
+    case OP_BYTE_BUFFER_SET:
+        if (a1->u.i < 0 || a1->u.i >= a0->u.s.len) rt_panic("ByteBuffer.set: index out of range");
+        ((char*)a0->u.s.data)[a1->u.i] = (char)a2->u.i;
+        return rt_unit();
+    case OP_BYTE_BUFFER_COPY_FROM: {
+        val src = a2;
+        int64_t at = a1->u.i, lo = deref(a[3])->u.i, hi = deref(a[4])->u.i;
+        if (lo < 0 || lo > hi || hi > src->u.s.len || at < 0 || at > a0->u.s.len - (hi - lo)) rt_panic("ByteBuffer.copyFrom: range out of bounds");
+        memcpy((char*)a0->u.s.data + at, src->u.s.data + lo, (size_t)(hi - lo));
+        return rt_unit();
+    }
+    case OP_BYTE_BUFFER_FREEZE: return rt_retain(a0);
+    case OP_BYTE_BUFFER_FREEZE_STRING:
+        if (!utf8_valid(a0->u.s.data, a0->u.s.len)) rt_panic("ByteBuffer.freezeString: invalid UTF-8");
+        a0->kind = K_STR;
+        return rt_retain(a0);
     // array
     case OP_ARRAY_EMPTY: return rt_array(0, NULL);
     case OP_ARRAY_OF: return rt_retain(a0);

@@ -1,0 +1,11 @@
+-- src --
+let mut b = ByteBuffer.tryNew(2).unwrap()
+print "start"
+b.set(2, 1)
+print "unreachable"
+-- stdout --
+start
+-- stderr --
+panic: ByteBuffer.set: index out of range
+-- exit --
+2

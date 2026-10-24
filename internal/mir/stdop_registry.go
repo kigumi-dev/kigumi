@@ -29,6 +29,8 @@ type StdOpEntry struct {
 	Callback int
 	// Isr is the reviewed interrupt contract (`isr` line); IsrNone when the op has none.
 	Isr sem.IsrContract
+	// Retired keeps the id taken after the std function gained a Kigumi body; nothing resolves to it.
+	Retired bool
 }
 
 // BodilessGroup is a `bodiless` entry: std functions lowered without an op that still carry a reviewed contract.
@@ -77,6 +79,9 @@ func (reg *StdOpRegistry) validate() error {
 		if _, ok := directPrimByName[op.Direct]; op.Direct != "" && !ok {
 			return fmt.Errorf("op %s: %q is not a direct primitive", op.Name, op.Direct)
 		}
+		if op.Retired && (op.Cap != "" || op.Direct != "" || op.Elem || op.Callback >= 0 || len(op.Keys)+len(op.Suffixes)+len(op.Prefixes)+len(op.Types) > 0) {
+			return fmt.Errorf("op %s is retired but still has attributes", op.Name)
+		}
 		var claims []string
 		for _, k := range op.Keys {
 			claims = append(claims, "key "+k)
@@ -119,8 +124,8 @@ func (reg *StdOpRegistry) addLine(line string) error {
 		return reg.attachGroup(&reg.Bodiless[len(reg.Bodiless)-1], word, rest)
 	}
 	switch word {
-	case "cap", "key", "suffix", "prefix", "type", "direct", "elem", "callback", "isr":
-		if len(reg.Ops) == 0 || (rest == "" && word != "elem") {
+	case "cap", "key", "suffix", "prefix", "type", "direct", "elem", "callback", "isr", "retired":
+		if len(reg.Ops) == 0 || (rest == "" && word != "elem" && word != "retired") {
 			return fmt.Errorf("%s needs an op above it and a value", word)
 		}
 		return reg.attach(&reg.Ops[len(reg.Ops)-1], word, rest)

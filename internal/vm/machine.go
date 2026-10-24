@@ -153,6 +153,7 @@ func (m *Machine) registerAll() {
 	m.registerMapSeed()
 	m.registerError()
 	m.registerExit()
+	m.registerTextAccel()
 	m.indexHostByOp()
 }
 

@@ -1,0 +1,12 @@
+-- src --
+let mut b = ByteBuffer.tryNew(1).unwrap()
+b.set(0, 255)
+print "start"
+let s = b.freezeString()
+print "unreachable ${s}"
+-- stdout --
+start
+-- stderr --
+panic: ByteBuffer.freezeString: invalid UTF-8
+-- exit --
+2

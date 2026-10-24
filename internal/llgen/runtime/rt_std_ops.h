@@ -96,7 +96,7 @@ enum std_op {
     OP_UCELL_SET = 91,
     OP_HOST_STDERR = 92,
     OP_BYTES_TRY_ZEROS = 93,
-    OP_BYTES_TRY_FILL = 94,
+    /* 94 retired: BYTES_TRY_FILL */
     OP_SHARED_TRY_NEW = 95,
     OP_BLOCKING_POOL_NEW = 96,
     OP_BLOCKING_POOL_RUN = 97,
@@ -123,7 +123,7 @@ enum std_op {
     OP_ARRAY_TRY_SLICE = 118,
     OP_ARRAY_TRY_REVERSE = 119,
     OP_ALLOC_WRAP = 120,
-    OP_STRING_TRY_CONCAT = 121,
+    /* 121 retired: STRING_TRY_CONCAT */
     OP_STRING_TRY_SLICE_BYTES = 122,
     OP_BYTES_TRY_SLICE = 123,
     OP_MAP_TRY_CLONE = 124,
@@ -145,30 +145,30 @@ enum std_op {
     OP_BOX_WITH = 140,
     OP_BOX_WITH_MUT = 141,
     OP_BOX_INTO = 142,
-    OP_STRING_TRY_TRIM = 143,
-    OP_STRING_TRY_TO_UPPER = 144,
-    OP_STRING_TRY_TO_LOWER = 145,
+    /* 143 retired: STRING_TRY_TRIM */
+    /* 144 retired: STRING_TRY_TO_UPPER */
+    /* 145 retired: STRING_TRY_TO_LOWER */
     OP_STRING_TRY_CHARS = 146,
-    OP_STRING_TRY_SPLIT = 147,
-    OP_TEXT_TRY_LINES = 148,
-    OP_TEXT_TRY_GRAPHEMES = 149,
-    OP_TEXT_TRY_REPLACE = 150,
-    OP_TEXT_TRY_TRIM_PREFIX = 151,
-    OP_TEXT_TRY_TRIM_SUFFIX = 152,
-    OP_ARRAY_TRY_JOIN = 153,
+    /* 147 retired: STRING_TRY_SPLIT */
+    /* 148 retired: TEXT_TRY_LINES */
+    /* 149 retired: TEXT_TRY_GRAPHEMES */
+    /* 150 retired: TEXT_TRY_REPLACE */
+    /* 151 retired: TEXT_TRY_TRIM_PREFIX */
+    /* 152 retired: TEXT_TRY_TRIM_SUFFIX */
+    /* 153 retired: ARRAY_TRY_JOIN */
     OP_ARRAY_TRY_SORTED_BY = 154,
-    OP_STRING_BUILDER_TRY_PUSH = 155,
+    /* 155 retired: STRING_BUILDER_TRY_PUSH */
     OP_DEBUG_TRY = 156,
-    OP_STRING_BUILDER_TRY_PUSH_BYTE = 157,
+    /* 157 retired: STRING_BUILDER_TRY_PUSH_BYTE */
     OP_ARENA_TRY_CREATE = 158,
     OP_STRING_BUILDER_TRY_FREEZE = 159,
     OP_ARGS_GET_BYTES = 160,
     OP_OS_STRING_TRY_CLONE = 161,
     OP_TASK_YIELD_NOW = 162,
     OP_MAP_SEED = 163,
-    OP_BYTES_INDEX_OF = 164,
-    OP_STRING_CONTAINS = 165,
-    OP_BYTES_LAST_INDEX_OF = 166,
+    /* 164 retired: BYTES_INDEX_OF */
+    /* 165 retired: STRING_CONTAINS */
+    /* 166 retired: BYTES_LAST_INDEX_OF */
     OP_UCELL_ATOMIC_LOAD = 167,
     OP_UCELL_ATOMIC_STORE = 168,
     OP_UCELL_ATOMIC_EXCHANGE = 169,
@@ -185,6 +185,10 @@ enum std_op {
     OP_UNINIT_TAKE = 180,
     OP_UNINIT_DROP = 181,
     OP_UNINIT_COPY = 182,
+    OP_BYTE_BUFFER_SET = 183,
+    OP_BYTE_BUFFER_COPY_FROM = 184,
+    OP_BYTE_BUFFER_FREEZE = 185,
+    OP_BYTE_BUFFER_FREEZE_STRING = 186,
 };
 static int rt_std_op_of(const char* key) {
     const char* k = key;
@@ -271,8 +275,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "mem.UnsafeCell.get")) return OP_UCELL_GET;
     if (!strcmp(k, "mem.UnsafeCell.set")) return OP_UCELL_SET;
     if (!strcmp(k, "os.Host.stderr")) return OP_HOST_STDERR;
-    if (!strcmp(k, "prelude.Bytes.tryZeros")) return OP_BYTES_TRY_ZEROS;
-    if (!strcmp(k, "prelude.Bytes.tryFill")) return OP_BYTES_TRY_FILL;
+    if (!strcmp(k, "prelude.Bytes.tryZeros") || !strcmp(k, "prelude.ByteBuffer.tryNew")) return OP_BYTES_TRY_ZEROS;
     if (!strcmp(k, "alloc.Shared.tryNew")) return OP_SHARED_TRY_NEW;
     if (!strcmp(k, "task.BlockingPool.new")) return OP_BLOCKING_POOL_NEW;
     if (!strcmp(k, "task.BlockingPool.run")) return OP_BLOCKING_POOL_RUN;
@@ -299,7 +302,6 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "array.Array.trySlice")) return OP_ARRAY_TRY_SLICE;
     if (!strcmp(k, "array.Array.tryReverse")) return OP_ARRAY_TRY_REVERSE;
     if (!strcmp(k, "prelude.AllocError.wrap")) return OP_ALLOC_WRAP;
-    if (!strcmp(k, "prelude.String.tryConcat")) return OP_STRING_TRY_CONCAT;
     if (!strcmp(k, "prelude.String.trySliceBytes")) return OP_STRING_TRY_SLICE_BYTES;
     if (!strcmp(k, "prelude.Bytes.trySlice")) return OP_BYTES_TRY_SLICE;
     if (!strcmp(k, "map.Map.tryClone")) return OP_MAP_TRY_CLONE;
@@ -321,30 +323,15 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "alloc.Box.with")) return OP_BOX_WITH;
     if (!strcmp(k, "alloc.Box.withMut")) return OP_BOX_WITH_MUT;
     if (!strcmp(k, "alloc.Box.into")) return OP_BOX_INTO;
-    if (!strcmp(k, "prelude.String.tryTrim")) return OP_STRING_TRY_TRIM;
-    if (!strcmp(k, "prelude.String.tryToUpper")) return OP_STRING_TRY_TO_UPPER;
-    if (!strcmp(k, "prelude.String.tryToLower")) return OP_STRING_TRY_TO_LOWER;
     if (!strcmp(k, "prelude.String.tryChars")) return OP_STRING_TRY_CHARS;
-    if (!strcmp(k, "prelude.String.trySplit")) return OP_STRING_TRY_SPLIT;
-    if (!strcmp(k, "text.tryLines")) return OP_TEXT_TRY_LINES;
-    if (!strcmp(k, "text.tryGraphemes")) return OP_TEXT_TRY_GRAPHEMES;
-    if (!strcmp(k, "text.tryReplace")) return OP_TEXT_TRY_REPLACE;
-    if (!strcmp(k, "text.tryTrimPrefix")) return OP_TEXT_TRY_TRIM_PREFIX;
-    if (!strcmp(k, "text.tryTrimSuffix")) return OP_TEXT_TRY_TRIM_SUFFIX;
-    if (!strcmp(k, "array.tryJoin")) return OP_ARRAY_TRY_JOIN;
     if (!strcmp(k, "array.trySortedBy")) return OP_ARRAY_TRY_SORTED_BY;
-    if (!strcmp(k, "text.StringBuilder.tryPush")) return OP_STRING_BUILDER_TRY_PUSH;
     if (!strcmp(k, "prelude.tryDebug")) return OP_DEBUG_TRY;
-    if (!strcmp(k, "text.StringBuilder.tryPushByte")) return OP_STRING_BUILDER_TRY_PUSH_BYTE;
     if (!strcmp(k, "alloc.Arena.tryCreate")) return OP_ARENA_TRY_CREATE;
     if (!strcmp(k, "text.StringBuilder.tryFreeze")) return OP_STRING_BUILDER_TRY_FREEZE;
     if (!strcmp(k, "os.Args.getBytes")) return OP_ARGS_GET_BYTES;
     if (!strcmp(k, "os.OsString.tryClone")) return OP_OS_STRING_TRY_CLONE;
     if (!strcmp(k, "task.yieldNow")) return OP_TASK_YIELD_NOW;
     if (!strcmp(k, "map.seed")) return OP_MAP_SEED;
-    if (!strcmp(k, "prelude.Bytes.indexOf")) return OP_BYTES_INDEX_OF;
-    if (!strcmp(k, "prelude.String.contains")) return OP_STRING_CONTAINS;
-    if (!strcmp(k, "prelude.Bytes.lastIndexOf")) return OP_BYTES_LAST_INDEX_OF;
     if (!strcmp(k, "mem.UnsafeCell.atomicLoad")) return OP_UCELL_ATOMIC_LOAD;
     if (!strcmp(k, "mem.UnsafeCell.atomicStore")) return OP_UCELL_ATOMIC_STORE;
     if (!strcmp(k, "mem.UnsafeCell.atomicExchange")) return OP_UCELL_ATOMIC_EXCHANGE;
@@ -361,6 +348,10 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "mem.takeInitialized")) return OP_UNINIT_TAKE;
     if (!strcmp(k, "mem.dropInitialized")) return OP_UNINIT_DROP;
     if (!strcmp(k, "mem.copyInitialized")) return OP_UNINIT_COPY;
+    if (!strcmp(k, "prelude.ByteBuffer.set")) return OP_BYTE_BUFFER_SET;
+    if (!strcmp(k, "prelude.ByteBuffer.copyFrom") || !strcmp(k, "prelude.ByteBuffer.copyFromString")) return OP_BYTE_BUFFER_COPY_FROM;
+    if (!strcmp(k, "prelude.ByteBuffer.freeze")) return OP_BYTE_BUFFER_FREEZE;
+    if (!strcmp(k, "prelude.ByteBuffer.freezeString")) return OP_BYTE_BUFFER_FREEZE_STRING;
     const char* dot = strrchr(k, '.');
     const char* m = dot ? dot + 1 : k;
     if (!strcmp(m, "equals")) return OP_EQUALS;

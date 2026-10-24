@@ -1,0 +1,14 @@
+fn run() {
+    let n = 1
+    eprint "go"
+    let r = ByteBuffer.tryNew(8)
+    if r is Err(_) {
+        if n == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

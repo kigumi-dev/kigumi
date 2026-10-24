@@ -96,7 +96,7 @@ func TestRecoverableOnlyRejectsBoxedScalarCallbackResult(t *testing.T) {
 // standaloneTry are fallible std functions with no plain sibling: building blocks the plain forms are written with.
 var standaloneTry = map[string]bool{
 	"array.Array.tryReserve": true, "array.Array.tryWithCapacity": true, "array.Array.tryCopyRange": true,
-	"prelude.AllocError.wrap": true,
+	"prelude.AllocError.wrap": true, "prelude.ByteBuffer.tryNew": true,
 }
 
 // A new try* function must come with its plain form (or be listed above), so the family stays uniform.

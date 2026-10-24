@@ -11,6 +11,7 @@
 
 # type is a std record the C runtime builds by name; direct the DirectPrim result form;
 # elem an op that copies an array element; callback the index of a closure argument.
+# retired keeps the id of an op whose std function now has a Kigumi body; it takes no other attribute.
 
 # builtin NAME (arg classes) -> result [min=N] [iter] [vm] [native=runtime|inline]
 
@@ -287,8 +288,9 @@ cap host.stdio
 key os.Host.stderr
 op 93 BYTES_TRY_ZEROS primitive (int) -> result
 key prelude.Bytes.tryZeros
+key prelude.ByteBuffer.tryNew
 op 94 BYTES_TRY_FILL primitive (int, int) -> result
-key prelude.Bytes.tryFill
+retired
 op 95 SHARED_TRY_NEW primitive (any) -> result
 key alloc.Shared.tryNew
 op 96 BLOCKING_POOL_NEW provider (int) -> named
@@ -378,7 +380,7 @@ key array.Array.tryReverse
 op 120 ALLOC_WRAP primitive (any) -> result
 key prelude.AllocError.wrap
 op 121 STRING_TRY_CONCAT primitive (string, string) -> result
-key prelude.String.tryConcat
+retired
 op 122 STRING_TRY_SLICE_BYTES primitive (string, int, int) -> result
 key prelude.String.trySliceBytes
 op 123 BYTES_TRY_SLICE primitive (bytes, int, int) -> result
@@ -447,36 +449,36 @@ key alloc.Box.withMut
 op 142 BOX_INTO primitive (named) -> any
 key alloc.Box.into
 op 143 STRING_TRY_TRIM primitive (string) -> result
-key prelude.String.tryTrim
+retired
 op 144 STRING_TRY_TO_UPPER primitive (string) -> result
-key prelude.String.tryToUpper
+retired
 op 145 STRING_TRY_TO_LOWER primitive (string) -> result
-key prelude.String.tryToLower
+retired
 op 146 STRING_TRY_CHARS primitive (string) -> result
 key prelude.String.tryChars
 op 147 STRING_TRY_SPLIT primitive (string, string) -> result
-key prelude.String.trySplit
+retired
 op 148 TEXT_TRY_LINES primitive (string) -> result
-key text.tryLines
+retired
 op 149 TEXT_TRY_GRAPHEMES primitive (string) -> result
-key text.tryGraphemes
+retired
 op 150 TEXT_TRY_REPLACE primitive (string, string, string) -> result
-key text.tryReplace
+retired
 op 151 TEXT_TRY_TRIM_PREFIX primitive (string, string) -> result
-key text.tryTrimPrefix
+retired
 op 152 TEXT_TRY_TRIM_SUFFIX primitive (string, string) -> result
-key text.tryTrimSuffix
+retired
 op 153 ARRAY_TRY_JOIN primitive (array, string) -> result
-key array.tryJoin
+retired
 op 154 ARRAY_TRY_SORTED_BY primitive (array, fn) -> result
 callback 1
 key array.trySortedBy
 op 155 STRING_BUILDER_TRY_PUSH primitive (named, string) -> result
-key text.StringBuilder.tryPush
+retired
 op 156 DEBUG_TRY primitive (any) -> result
 key prelude.tryDebug
 op 157 STRING_BUILDER_TRY_PUSH_BYTE primitive (named, int) -> result
-key text.StringBuilder.tryPushByte
+retired
 op 158 ARENA_TRY_CREATE primitive () -> result
 key alloc.Arena.tryCreate
 op 159 STRING_BUILDER_TRY_FREEZE primitive (named) -> result
@@ -522,11 +524,11 @@ isr inert
 op 163 MAP_SEED primitive () -> int
 key map.seed
 op 164 BYTES_INDEX_OF primitive (bytes, bytes) -> option
-key prelude.Bytes.indexOf
+retired
 op 165 STRING_CONTAINS primitive (string, string) -> bool
-key prelude.String.contains
+retired
 op 166 BYTES_LAST_INDEX_OF primitive (bytes, bytes) -> option
-key prelude.Bytes.lastIndexOf
+retired
 op 167 UCELL_ATOMIC_LOAD primitive (named, any) -> any
 key mem.UnsafeCell.atomicLoad
 op 168 UCELL_ATOMIC_STORE primitive (named, any, any) -> unit
@@ -590,3 +592,16 @@ op 181 UNINIT_DROP primitive (named) -> unit
 key mem.dropInitialized
 op 182 UNINIT_COPY primitive (named) -> any
 key mem.copyInitialized
+op 183 BYTE_BUFFER_SET primitive (named, int, int) -> unit
+isr inert
+key prelude.ByteBuffer.set
+op 184 BYTE_BUFFER_COPY_FROM primitive (named, int, string|bytes, int, int) -> unit
+isr inert
+key prelude.ByteBuffer.copyFrom
+key prelude.ByteBuffer.copyFromString
+op 185 BYTE_BUFFER_FREEZE primitive (named) -> bytes
+isr inert
+key prelude.ByteBuffer.freeze
+op 186 BYTE_BUFFER_FREEZE_STRING primitive (named) -> string
+isr inert
+key prelude.ByteBuffer.freezeString

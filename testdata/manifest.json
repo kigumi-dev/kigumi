@@ -5013,6 +5013,74 @@
       ]
     },
     {
+      "id": "run/byte_buffer",
+      "kind": "run",
+      "path": "testdata/run/byte_buffer.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/byte_buffer_copy_out_of_range",
+      "kind": "run",
+      "path": "testdata/run/byte_buffer_copy_out_of_range.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/byte_buffer_freeze_invalid_utf8",
+      "kind": "run",
+      "path": "testdata/run/byte_buffer_freeze_invalid_utf8.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/byte_buffer_set_out_of_range",
+      "kind": "run",
+      "path": "testdata/run/byte_buffer_set_out_of_range.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/byte_string_in_interpolation",
       "kind": "run",
       "path": "testdata/run/byte_string_in_interpolation.txtar",
@@ -15477,6 +15545,23 @@
       "id": "run/temp_drop_unspecified",
       "kind": "run",
       "path": "testdata/run/temp_drop_unspecified.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/text_kigumi_bodies",
+      "kind": "run",
+      "path": "testdata/run/text_kigumi_bodies.txtar",
       "mode": [
         "vm",
         "native"

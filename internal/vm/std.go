@@ -45,6 +45,9 @@ func (m *Machine) std(key string, a []*obj) *obj {
 	if r := m.bytesStd(key, a0, a1, a2); r != nil {
 		return r
 	}
+	if r := m.byteBuffer(key, a); r != nil {
+		return r
+	}
 	if strings.Contains(key, ".wrapping") || strings.Contains(key, ".rotate") {
 		if r := m.intFn(key, a0, a1); r != nil {
 			return r

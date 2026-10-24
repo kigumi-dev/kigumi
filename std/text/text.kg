@@ -20,7 +20,30 @@ pub pure fn lines(s: String) -> Array[String] {
 }
 
 /// Same as lines, or AllocError when the allocator refuses (lines panics instead).
-pub pure fn tryLines(s: String) -> Result[Array[String], AllocError]
+pub pure fn tryLines(s: String) -> Result[Array[String], AllocError] {
+    let mut out = Array.tryWithCapacity[String](0)?
+    let mut end = s.len()
+    if end == 0 {
+        return AllocError.wrap(out)
+    }
+    if s[end - 1] == 10 {
+        end = end - 1
+    }
+    let mut start: usize = 0
+    let mut i: usize = 0
+    for i <= end {
+        if i == end || s[i] == 10 {
+            let mut stop = i
+            if stop > start && s[stop - 1] == 13 {
+                stop = stop - 1
+            }
+            out.tryPush(boundaryPiece(s, start, stop)?)?
+            start = i + 1
+        }
+        i = i + 1
+    }
+    AllocError.wrap(out)
+}
 
 /// One string per Unicode scalar value of s.
 pub pure fn graphemes(s: String) -> Array[String] {
@@ -28,7 +51,46 @@ pub pure fn graphemes(s: String) -> Array[String] {
 }
 
 /// Same as graphemes, or AllocError when the allocator refuses (graphemes panics instead).
-pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError]
+pub pure fn tryGraphemes(s: String) -> Result[Array[String], AllocError] {
+    let n = s.len()
+    let mut count: usize = 0
+    let mut i: usize = 0
+    for i < n {
+        i = i + utf8Width(s[i])
+        count = count + 1
+    }
+    let mut out = Array.tryWithCapacity[String](count)?
+    i = 0
+    for i < n {
+        let mut w = utf8Width(s[i])
+        if w > n - i {
+            w = n - i
+        }
+        out.tryPush(boundaryPiece(s, i, i + w)?)?
+        i = i + w
+    }
+    AllocError.wrap(out)
+}
+
+/// s[start..end] where both offsets are known character boundaries.
+pure fn boundaryPiece(s: String, start: usize, end: usize) -> Result[String, AllocError] {
+    match s.trySliceBytes(start, end)? {
+        Some(piece) -> AllocError.wrap(piece)
+        None -> panic("text piece is not on character boundaries")
+    }
+}
+
+pure noalloc fn utf8Width(lead: u8) -> usize {
+    if lead >= 240 {
+        4
+    } else if lead >= 224 {
+        3
+    } else if lead >= 192 {
+        2
+    } else {
+        1
+    }
+}
 
 /// Parses `-? digits (. digits)? ([eE] [+-]? digits)?` (the JSON number grammar); None for anything else,
 /// including a leading `+`, spaces, `inf`, `nan`, hex floats, underscores and a result that overflows to infinity.
@@ -197,7 +259,41 @@ pub pure fn replace(s: String, old: String, new: String) -> String {
 }
 
 /// Same as replace, or AllocError when the allocator refuses (replace panics instead).
-pub pure fn tryReplace(s: String, old: String, new: String) -> Result[String, AllocError]
+pub pure fn tryReplace(s: String, old: String, new: String) -> Result[String, AllocError] {
+    let n = s.len()
+    let m = old.len()
+    if m == 0 {
+        return AllocError.wrap(s)
+    }
+    let mut hits: usize = 0
+    let mut i: usize = 0
+    for i + m <= n {
+        if s.matchesAt(old, i) {
+            hits = hits + 1
+            i = i + m
+        } else {
+            i = i + 1
+        }
+    }
+    let mut buf = ByteBuffer.tryNew(n - hits * m + hits * new.len())?
+    let mut o: usize = 0
+    let mut run: usize = 0
+    i = 0
+    for i + m <= n {
+        if s.matchesAt(old, i) {
+            buf.copyFromString(o, s, run, i)
+            o = o + i - run
+            buf.copyFromString(o, new, 0, new.len())
+            o = o + new.len()
+            i = i + m
+            run = i
+        } else {
+            i = i + 1
+        }
+    }
+    buf.copyFromString(o, s, run, n)
+    AllocError.wrap(buf.freezeString())
+}
 
 /// Byte offset of the first `sub` in `s`, or None. The empty `sub` is at 0.
 /// Offsets are byte offsets, the same as `slice` takes.
@@ -245,7 +341,12 @@ pub pure fn trimPrefix(s: String, prefix: String) -> String {
 }
 
 /// Same as trimPrefix, or AllocError when the allocator refuses (trimPrefix panics instead).
-pub pure fn tryTrimPrefix(s: String, prefix: String) -> Result[String, AllocError]
+pub pure fn tryTrimPrefix(s: String, prefix: String) -> Result[String, AllocError] {
+    if prefix.len() == 0 || !s.startsWith(prefix) {
+        return AllocError.wrap(s)
+    }
+    boundaryPiece(s, prefix.len(), s.len())
+}
 
 /// `s` without a trailing `suffix`; `s` unchanged when it does not end with one.
 pub pure fn trimSuffix(s: String, suffix: String) -> String {
@@ -253,7 +354,12 @@ pub pure fn trimSuffix(s: String, suffix: String) -> String {
 }
 
 /// Same as trimSuffix, or AllocError when the allocator refuses (trimSuffix panics instead).
-pub pure fn tryTrimSuffix(s: String, suffix: String) -> Result[String, AllocError]
+pub pure fn tryTrimSuffix(s: String, suffix: String) -> Result[String, AllocError] {
+    if suffix.len() == 0 || !s.endsWith(suffix) {
+        return AllocError.wrap(s)
+    }
+    boundaryPiece(s, 0, s.len() - suffix.len())
+}
 
 /// `s` as an unsigned integer in `base` (2 to 36, letters either case), or None
 /// when it is empty, has a stray character, or does not fit in a u64.

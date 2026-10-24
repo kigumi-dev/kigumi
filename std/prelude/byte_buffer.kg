@@ -1,0 +1,21 @@
+/// Fixed-length bytes written in place, for building a Bytes or a String
+/// without a slot per byte; freezing hands the bytes over without a copy.
+pub type ByteBuffer
+
+/// n zero bytes, or AllocError when the allocator refuses.
+pub pure fn ByteBuffer.tryNew(n: usize) -> Result[ByteBuffer, AllocError]
+
+/// Sets the byte at index; panics when index is past the end.
+pub pure noalloc fn ByteBuffer.set(mut self, index: usize, b: u8)
+
+/// Copies src[start..end] to the buffer at index; panics unless the range is within src and fits at index.
+pub pure noalloc fn ByteBuffer.copyFrom(mut self, index: usize, src: Bytes, start: usize, end: usize)
+
+/// Same as copyFrom, from the bytes of a String.
+pub pure noalloc fn ByteBuffer.copyFromString(mut self, index: usize, src: String, start: usize, end: usize)
+
+/// The bytes, without a copy.
+pub pure noalloc fn ByteBuffer.freeze(move self) -> Bytes
+
+/// The bytes as a String, without a copy; panics when they are not valid UTF-8.
+pub pure noalloc fn ByteBuffer.freezeString(move self) -> String

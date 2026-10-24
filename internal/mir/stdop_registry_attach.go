@@ -22,6 +22,8 @@ func (reg *StdOpRegistry) attach(op *StdOpEntry, word, value string) error {
 		op.Direct = value
 	case "elem":
 		op.Elem = true
+	case "retired":
+		op.Retired = true
 	case "callback":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {

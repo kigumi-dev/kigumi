@@ -75,3 +75,57 @@ func benchmarkHotLoop(b *testing.B, noAccel bool) {
 		}
 	}
 }
+
+// textBenchBodies are text and bytes operations whose std bodies are Kigumi; each runs over the same line in a loop.
+var textBenchBodies = []struct{ name, body string }{
+	{"trim", `let t = line.trim()`},
+	{"split", `let t = line.split(" ")`},
+	{"lines", `let t = text.lines(para)`},
+	{"chars", `let t = line.chars()`},
+	{"graphemes", `let t = text.graphemes(line)`},
+	{"toUpper", `let t = line.toUpper()`},
+	{"replace", `let t = text.replace(line, "fox", "cat")`},
+	{"join", `let t = array.join(&words, ", ")`},
+	{"trimPrefix", `let t = text.trimPrefix(line, "  the")`},
+	{"contains", `let t = line.contains("lazy dog")`},
+	{"indexOf", `let t = line.toBytes().indexOf("lazy".toBytes())`},
+	{"lastIndexOf", `let t = line.toBytes().lastIndexOf("the".toBytes())`},
+	{"concat", `let t = line.concat(line)`},
+	{"bytesConcat", `let t = line.toBytes().concat(line.toBytes())`},
+	{"fill", `let t = Bytes.fill(65, 64)`},
+	{"sortedBy", `let t = array.sortedBy(&words, (a, b) => a.compareTo(b))`},
+	{"builder", "let mut sb = text.StringBuilder.new()\n    sb.push(line)\n    sb.pushByte(33)\n    let t = sb.freeze()"},
+}
+
+func textBenchSrc(body string) string {
+	return `import array from std/array
+import text from std/text
+
+let line = "  the quick brown fox jumps over the lazy dog, the end  "
+let para = "alpha beta\ngamma delta\r\nepsilon\n"
+let words = line.split(" ")
+for i in 0..300 {
+    ` + body + `
+}
+print "done"
+`
+}
+
+// BenchmarkVMText runs each text operation with the host accelerators on and with NoAccel, where the Kigumi body runs.
+func BenchmarkVMText(b *testing.B) {
+	for _, c := range textBenchBodies {
+		prog := buildRunnableProgramTB(b, textBenchSrc(c.body))
+		for _, mode := range []struct {
+			name    string
+			noAccel bool
+		}{{"accel", false}, {"body", true}} {
+			b.Run(c.name+"/"+mode.name, func(b *testing.B) {
+				for b.Loop() {
+					if _, err := vm.Run(prog, vm.Options{NoAccel: mode.noAccel}, io.Discard, io.Discard); err != nil {
+						b.Fatalf("run: %v", err)
+					}
+				}
+			})
+		}
+	}
+}

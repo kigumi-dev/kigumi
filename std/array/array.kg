@@ -219,4 +219,25 @@ pub pure fn join(items: &Array[String], sep: String) -> String {
 }
 
 /// Same as join, or AllocError when the allocator refuses (join panics instead).
-pub pure fn tryJoin(items: &Array[String], sep: String) -> Result[String, AllocError]
+pub pure fn tryJoin(items: &Array[String], sep: String) -> Result[String, AllocError] {
+    let mut total: usize = 0
+    for s in items {
+        total = total + s.len()
+    }
+    if items.len() > 1 {
+        total = total + (items.len() - 1) * sep.len()
+    }
+    let mut buf = ByteBuffer.tryNew(total)?
+    let mut o: usize = 0
+    let mut first = true
+    for s in items {
+        if !first {
+            buf.copyFromString(o, sep, 0, sep.len())
+            o = o + sep.len()
+        }
+        first = false
+        buf.copyFromString(o, s, 0, s.len())
+        o = o + s.len()
+    }
+    AllocError.wrap(buf.freezeString())
+}

@@ -712,11 +712,11 @@
   {
     "key": "array.tryJoin",
     "signature": "pure fn(\u0026Array[String], String) -\u003e Result[String, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -8252,6 +8252,76 @@
     "status": "ok"
   },
   {
+    "key": "prelude.ByteBuffer.copyFrom",
+    "signature": "pure noalloc fn(usize, Bytes, usize, usize) -\u003e Void",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.ByteBuffer.copyFromString",
+    "signature": "pure noalloc fn(usize, String, usize, usize) -\u003e Void",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.ByteBuffer.freeze",
+    "signature": "pure noalloc fn() -\u003e Bytes",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.ByteBuffer.freezeString",
+    "signature": "pure noalloc fn() -\u003e String",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.ByteBuffer.set",
+    "signature": "pure noalloc fn(usize, u8) -\u003e Void",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.ByteBuffer.tryNew",
+    "signature": "pure fn(usize) -\u003e Result[ByteBuffer, AllocError]",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.Bytes.at",
+    "signature": "pure noalloc fn(usize, Bool) -\u003e u8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.Bytes.compareTo",
     "signature": "pure noalloc fn(\u0026Bytes) -\u003e Ordering",
     "has_body": false,
@@ -8354,21 +8424,21 @@
   {
     "key": "prelude.Bytes.indexOf",
     "signature": "pure fn(Bytes) -\u003e usize?",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "prelude.Bytes.lastIndexOf",
     "signature": "pure fn(Bytes) -\u003e usize?",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -8384,6 +8454,16 @@
   {
     "key": "prelude.Bytes.matchesAt",
     "signature": "pure noalloc fn(Bytes, usize) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.Bytes.maxSuffix",
+    "signature": "pure noalloc fn(Bool, Bool, Bool) -\u003e usize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -8434,10 +8514,10 @@
   {
     "key": "prelude.Bytes.tryFill",
     "signature": "pure fn(u8, usize) -\u003e Result[Bytes, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
-    "vm": "implemented",
-    "native": "implemented",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -8468,6 +8548,16 @@
     "kind": "primitive",
     "vm": "implemented",
     "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.Bytes.twoWay",
+    "signature": "pure noalloc fn(\u0026Bytes, Bool) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -8842,6 +8932,26 @@
     "status": "ok"
   },
   {
+    "key": "prelude.String.asciiCased",
+    "signature": "pure fn(u8, u8, Bool) -\u003e Result[String, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.String.boundaryPiece",
+    "signature": "pure fn(usize, usize) -\u003e Result[String, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "prelude.String.bytes",
     "signature": "pure noalloc fn() -\u003e Bytes",
     "has_body": false,
@@ -8884,11 +8994,11 @@
   {
     "key": "prelude.String.contains",
     "signature": "pure noalloc fn(String) -\u003e Bool",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -8954,6 +9064,16 @@
   {
     "key": "prelude.String.matchesAt",
     "signature": "pure noalloc fn(String, usize) -\u003e Bool",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.String.maxSuffix",
+    "signature": "pure noalloc fn(Bool, Bool) -\u003e usize",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -9054,10 +9174,10 @@
   {
     "key": "prelude.String.tryConcat",
     "signature": "pure fn(String) -\u003e Result[String, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
-    "vm": "implemented",
-    "native": "implemented",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -9094,40 +9214,50 @@
   {
     "key": "prelude.String.trySplit",
     "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "prelude.String.tryToLower",
     "signature": "pure fn() -\u003e Result[String, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "prelude.String.tryToUpper",
     "signature": "pure fn() -\u003e Result[String, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "prelude.String.tryTrim",
     "signature": "pure fn() -\u003e Result[String, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.String.twoWay",
+    "signature": "pure noalloc fn(\u0026String) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -10884,6 +11014,16 @@
   {
     "key": "prelude.i8.zero",
     "signature": "pure fn() -\u003e i8",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "prelude.isAsciiSpace",
+    "signature": "pure noalloc fn(u8) -\u003e Bool",
     "has_body": true,
     "kind": "",
     "vm": "gap",
@@ -13834,20 +13974,30 @@
   {
     "key": "text.StringBuilder.tryPush",
     "signature": "pure fn(String) -\u003e Result[Void, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "text.StringBuilder.tryPushByte",
     "signature": "pure fn(u8) -\u003e Result[Void, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
-    "vm": "implemented",
-    "native": "implemented",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "text.boundaryPiece",
+    "signature": "pure fn(String, usize, usize) -\u003e Result[String, AllocError]",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -14054,31 +14204,31 @@
   {
     "key": "text.tryGraphemes",
     "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "text.tryLines",
     "signature": "pure fn(String) -\u003e Result[Array[String], AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "text.tryReplace",
     "signature": "pure fn(String, String, String) -\u003e Result[String, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -14094,20 +14244,30 @@
   {
     "key": "text.tryTrimPrefix",
     "signature": "pure fn(String, String) -\u003e Result[String, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "text.tryTrimSuffix",
     "signature": "pure fn(String, String) -\u003e Result[String, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
+    "native": "gap",
+    "accelerated": true,
+    "status": "ok"
+  },
+  {
+    "key": "text.utf8Width",
+    "signature": "pure noalloc fn(u8) -\u003e usize",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },

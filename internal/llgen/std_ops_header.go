@@ -17,6 +17,10 @@ func StdOpHeader(reg *mir.StdOpRegistry) string {
 	sb.WriteString("#ifndef KIGUMI_RT_STD_OPS_H\n#define KIGUMI_RT_STD_OPS_H\n")
 	sb.WriteString("enum std_op {\n")
 	for _, op := range reg.Ops {
+		if op.Retired {
+			fmt.Fprintf(&sb, "    /* %d retired: %s */\n", op.ID, op.Name)
+			continue
+		}
 		fmt.Fprintf(&sb, "    OP_%s = %d,\n", op.Name, op.ID)
 	}
 	sb.WriteString("};\nstatic int rt_std_op_of(const char* key) {\n    const char* k = key;\n    if (!strncmp(k, \"std/\", 4)) k += 4;\n")

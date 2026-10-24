@@ -1,27 +1,9 @@
 package vm
 
-import (
-	"bytes"
-
-	"kigumi/internal/sem"
-)
-
 // bytesStd implements Bytes primitives other than concat/tryConcat (kept in
 // prelude.go for their Eq/Hash-style naming overlap); nil for other keys.
 func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 	switch key {
-	case "prelude.Bytes.indexOf":
-		if at := bytes.Index(a0.str(), a1.str()); at >= 0 {
-			return m.some(mkInt(int64(at), m.numKind(sem.TyUsize)))
-		}
-		return m.none()
-	case "prelude.Bytes.lastIndexOf":
-		if at := bytes.LastIndex(a0.str(), a1.str()); at >= 0 {
-			return m.some(mkInt(int64(at), m.numKind(sem.TyUsize)))
-		}
-		return m.none()
-	case "prelude.String.contains":
-		return mkBool(bytes.Contains(a0.str(), a1.str()))
 	case "prelude.Bytes.slice":
 		s, e := a1.i, a2.i
 		if s < 0 || s > e || e > int64(len(a0.str())) {
@@ -33,7 +15,7 @@ func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 			m.abort("out of memory")
 		}
 		return mkBytes(make([]byte, a0.i))
-	case "prelude.Bytes.tryZeros":
+	case "prelude.Bytes.tryZeros", "prelude.ByteBuffer.tryNew":
 		if uint64(a0.i) >= maxVMAlloc || m.faultTick() {
 			return m.allocError()
 		}
@@ -47,15 +29,6 @@ func (m *Machine) bytesStd(key string, a0, a1, a2 *obj) *obj {
 			out[i] = byte(a0.i)
 		}
 		return mkBytes(out)
-	case "prelude.Bytes.tryFill":
-		if uint64(a1.i) >= maxVMAlloc || m.faultTick() {
-			return m.allocError()
-		}
-		out := make([]byte, a1.i)
-		for i := range out {
-			out[i] = byte(a0.i)
-		}
-		return m.ok(mkBytes(out))
 	case "prelude.Bytes.fromArray":
 		if m.faultTick() {
 			m.abort("out of memory")

@@ -467,7 +467,9 @@ pub pure fn String.chars(self) -> Array[Char] {
 pub pure fn String.tryChars(self) -> Result[Array[Char], AllocError]
 
 /// Whether sub occurs in the string; the empty string occurs in every string. Runs in time linear in both lengths.
-pub pure noalloc fn String.contains(self, sub: String) -> Bool
+pub pure noalloc fn String.contains(self, sub: String) -> Bool {
+    self.twoWay(&sub) <= self.len()
+}
 
 /// Whether the bytes of sub appear at byte offset at; false for any offset past the end.
 pub pure noalloc fn String.matchesAt(self, sub: String, at: usize) -> Bool {
@@ -506,7 +508,29 @@ pub pure fn String.trim(self) -> String {
 }
 
 /// Copy without leading and trailing ASCII whitespace, or AllocError when the allocator refuses (trim panics instead).
-pub pure fn String.tryTrim(self) -> Result[String, AllocError]
+pub pure fn String.tryTrim(self) -> Result[String, AllocError] {
+    let mut lo: usize = 0
+    let mut hi = self.len()
+    for lo < hi && isAsciiSpace(self[lo]) {
+        lo = lo + 1
+    }
+    for hi > lo && isAsciiSpace(self[hi - 1]) {
+        hi = hi - 1
+    }
+    self.boundaryPiece(lo, hi)
+}
+
+/// self[start..end] where both offsets are known character boundaries.
+pure fn String.boundaryPiece(self, start: usize, end: usize) -> Result[String, AllocError] {
+    match self.trySliceBytes(start, end)? {
+        Some(piece) -> AllocError.wrap(piece)
+        None -> panic("text piece is not on character boundaries")
+    }
+}
+
+pure noalloc fn isAsciiSpace(b: u8) -> Bool {
+    b == 32 || b == 9 || b == 13 || b == 10
+}
 
 /// Pieces between occurrences of sep, empty pieces included; an empty sep yields the whole string as one piece.
 pub pure fn String.split(self, sep: String) -> Array[String] {
@@ -514,7 +538,26 @@ pub pure fn String.split(self, sep: String) -> Array[String] {
 }
 
 /// Same as split, or AllocError when the allocator refuses (split panics instead).
-pub pure fn String.trySplit(self, sep: String) -> Result[Array[String], AllocError]
+pub pure fn String.trySplit(self, sep: String) -> Result[Array[String], AllocError] {
+    let mut out = Array.tryWithCapacity[String](0)?
+    if sep.len() == 0 {
+        out.tryPush(self)?
+        return AllocError.wrap(out)
+    }
+    let mut start: usize = 0
+    let mut i: usize = 0
+    for i + sep.len() <= self.len() {
+        if self.matchesAt(sep, i) {
+            out.tryPush(self.boundaryPiece(start, i)?)?
+            i = i + sep.len()
+            start = i
+        } else {
+            i = i + 1
+        }
+    }
+    out.tryPush(self.boundaryPiece(start, self.len())?)?
+    AllocError.wrap(out)
+}
 
 /// self followed by other.
 pub pure fn String.concat(self, other: String) -> String {
@@ -522,7 +565,12 @@ pub pure fn String.concat(self, other: String) -> String {
 }
 
 /// self followed by other, or AllocError when the allocator refuses (concat panics instead).
-pub pure fn String.tryConcat(self, other: String) -> Result[String, AllocError]
+pub pure fn String.tryConcat(self, other: String) -> Result[String, AllocError] {
+    let mut buf = ByteBuffer.tryNew(self.len() + other.len())?
+    buf.copyFromString(0, self, 0, self.len())
+    buf.copyFromString(self.len(), other, 0, other.len())
+    AllocError.wrap(buf.freezeString())
+}
 
 /// Copy with ASCII letters upper-cased; other bytes are kept.
 pub pure fn String.toUpper(self) -> String {
@@ -530,7 +578,9 @@ pub pure fn String.toUpper(self) -> String {
 }
 
 /// Same as toUpper, or AllocError when the allocator refuses (toUpper panics instead).
-pub pure fn String.tryToUpper(self) -> Result[String, AllocError]
+pub pure fn String.tryToUpper(self) -> Result[String, AllocError] {
+    self.asciiCased(97, 122, false)
+}
 
 /// Copy with ASCII letters lower-cased; other bytes are kept.
 pub pure fn String.toLower(self) -> String {
@@ -538,7 +588,27 @@ pub pure fn String.toLower(self) -> String {
 }
 
 /// Same as toLower, or AllocError when the allocator refuses (toLower panics instead).
-pub pure fn String.tryToLower(self) -> Result[String, AllocError]
+pub pure fn String.tryToLower(self) -> Result[String, AllocError] {
+    self.asciiCased(65, 90, true)
+}
+
+pure fn String.asciiCased(self, lo: u8, hi: u8, down: Bool) -> Result[String, AllocError] {
+    let mut buf = ByteBuffer.tryNew(self.len())?
+    buf.copyFromString(0, self, 0, self.len())
+    let mut i: usize = 0
+    for i < self.len() {
+        let b = self[i]
+        if b >= lo && b <= hi {
+            if down {
+                buf.set(i, b + 32)
+            } else {
+                buf.set(i, b - 32)
+            }
+        }
+        i = i + 1
+    }
+    AllocError.wrap(buf.freezeString())
+}
 
 /// The string repeated count times.
 pub pure fn String.repeat(self, count: usize) -> String {
@@ -618,10 +688,22 @@ pub pure fn Bytes.slice(self, start: usize, end: usize) -> Bytes?
 pub pure fn Bytes.trySlice(self, start: usize, end: usize) -> Result[Bytes?, AllocError]
 
 /// Byte-wise position of the first occurrence of sub in self; the empty sub matches at 0. Runs in time linear in both lengths.
-pub pure fn Bytes.indexOf(self, sub: Bytes) -> usize?
+pub pure fn Bytes.indexOf(self, sub: Bytes) -> usize? {
+    let at = self.twoWay(&sub, false)
+    if at > self.len() {
+        return None
+    }
+    Some(at)
+}
 
 /// Byte-wise position of the last occurrence of sub in self; the empty sub matches at self.len(). Runs in time linear in both lengths.
-pub pure fn Bytes.lastIndexOf(self, sub: Bytes) -> usize?
+pub pure fn Bytes.lastIndexOf(self, sub: Bytes) -> usize? {
+    let at = self.twoWay(&sub, true)
+    if at > self.len() {
+        return None
+    }
+    Some(self.len() - sub.len() - at)
+}
 
 pure noalloc fn Bytes.hasAt(self, sub: &Bytes, at: usize) -> Bool {
     if sub.len() > self.len() || at > self.len() - sub.len() {
@@ -667,7 +749,17 @@ pub pure fn Bytes.tryZeros(n: usize) -> Result[Bytes, AllocError]
 pub pure fn Bytes.fill(value: u8, n: usize) -> Bytes
 
 /// n bytes, each set to value, or AllocError when the allocator refuses (fill panics instead).
-pub pure fn Bytes.tryFill(value: u8, n: usize) -> Result[Bytes, AllocError]
+pub pure fn Bytes.tryFill(value: u8, n: usize) -> Result[Bytes, AllocError] {
+    let mut buf = ByteBuffer.tryNew(n)?
+    if value != 0 {
+        let mut i: usize = 0
+        for i < n {
+            buf.set(i, value)
+            i = i + 1
+        }
+    }
+    AllocError.wrap(buf.freeze())
+}
 
 /// The bytes of self followed by those of other.
 pub pure fn Bytes.concat(self, other: Bytes) -> Bytes

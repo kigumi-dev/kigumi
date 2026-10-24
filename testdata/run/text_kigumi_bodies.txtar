@@ -1,0 +1,121 @@
+-- src --
+import array from std/array
+import text from std/text
+
+fn show(xs: &Array[String]) -> String {
+    "[${array.join(xs, "|")}] ${xs.len()}"
+}
+
+fn idx(r: usize?) -> String {
+    match r {
+        Some(i) -> "${i}"
+        None -> "none"
+    }
+}
+
+let hay = "abaabaabbabaabaab aaaa abcabcabd ababababab éxé日本語日本"
+let needles = Array.of("", "a", "ab", "aab", "abaab", "aaaa", "aaaaa", "abcabd", "ababab", "bab", "z", "日本", "語日", "é", "xé日", "ab ", hay, "${hay}x", "baab", "abba")
+for nd in needles {
+    let b = hay.toBytes()
+    let nb = nd.toBytes()
+    print "${nd.len()}: contains=${hay.contains(nd)} index=${idx(b.indexOf(nb))} last=${idx(b.lastIndexOf(nb))} find=${idx(text.find(hay, nd))} rfind=${idx(text.rfind(hay, nd))}"
+}
+let periodic = "aaaaaaaaab"
+for nd in Array.of("aab", "aaab", "aaaaaaaaab", "aaaaaaaaaab", "ab", "b", "ba") {
+    print "p ${nd}: ${idx(periodic.toBytes().indexOf(nd.toBytes()))} ${idx(periodic.toBytes().lastIndexOf(nd.toBytes()))} ${periodic.contains(nd)}"
+}
+print "bytes ${idx(Bytes.fill(7, 5).indexOf(Bytes.fill(7, 2)))} ${idx(Bytes.fill(7, 5).lastIndexOf(Bytes.fill(7, 2)))} ${idx(Bytes.zeros(0).indexOf(Bytes.zeros(0)))} ${idx(Bytes.zeros(0).lastIndexOf(Bytes.zeros(1)))}"
+
+for s in Array.of("", " ", "  x  ", "\t\r\nhé\n ", "a b", "日本 ") {
+    print "trim <${s.trim()}> ${s.trim().len()}"
+}
+for sep in Array.of(",", ", ", "", "x", ",,", "日") {
+    print "split ${sep}: ${show(&"a,,b, c,日,,".split(sep))}"
+}
+for s in Array.of("", "\n", "\n\n", "a", "a\r\n", "a\r\nb\n\r\n", "\r", "x\n\ny") {
+    print "lines ${show(&text.lines(s))}"
+}
+print "graphemes ${show(&text.graphemes("aé日𝄞b"))} ${show(&text.graphemes(""))}"
+print "case ${"Hello, Wörld! zAZ@[`{".toUpper()} ${"Hello, Wörld! zAZ@[`{".toLower()} <${"".toUpper()}>"
+for c in Array.of(Array.of("aaaa", "aa", "b"), Array.of("abcabc", "abc", ""), Array.of("日本日本", "日", "x"), Array.of("abc", "abcd", "z"), Array.of("aXbXc", "X", "XYZ"), Array.of("", "a", "b"), Array.of("abc", "", "q")) {
+    let s = c.get(0) || ""
+    let o = c.get(1) || ""
+    let n = c.get(2) || ""
+    print "replace ${s}/${o}/${n}: <${text.replace(s, o, n)}>"
+}
+print "prefix <${text.trimPrefix("abc", "abc")}> <${text.trimPrefix("abc", "abcd")}> <${text.trimPrefix("日本", "日")}> <${text.trimPrefix("abc", "b")}>"
+print "suffix <${text.trimSuffix("abc", "abc")}> <${text.trimSuffix("abc", "zabc")}> <${text.trimSuffix("日本", "本")}> <${text.trimSuffix("abc", "")}>"
+print "concat <${"".concat("")}> <${"é".concat("日")}> <${"ab".repeat(3)}> <${"x".repeat(0)}>"
+print "bconcat ${Bytes.zeros(2).concat(Bytes.fill(255, 3)).len()} ${Bytes.fill(255, 3).concat(Bytes.zeros(0)).get(2) || 0} ${Bytes.fill(9, 0).len()} ${Bytes.fill(200, 4).get(3) || 0}"
+print "join <${array.join(&Array.of("", "", ""), ",")}> <${array.join(&Array.of("日", "本"), "")}> <${array.join(&Array.empty[String](), "x")}>"
+let mut sb = text.StringBuilder.new()
+sb.push("héllo")
+sb.push("")
+sb.pushByte(32)
+_ = sb.tryPush("日本")
+_ = sb.tryPushByte(33)
+print "builder ${sb.len()} <${sb.freeze() || "bad"}>"
+-- stdout --
+0: contains=true index=0 last=64 find=0 rfind=64
+1: contains=true index=0 last=41 find=0 rfind=41
+2: contains=true index=0 last=41 find=0 rfind=41
+3: contains=true index=2 last=14 find=2 rfind=14
+5: contains=true index=0 last=12 find=0 rfind=12
+4: contains=true index=18 last=18 find=18 rfind=18
+5: contains=false index=none last=none find=none rfind=none
+6: contains=true index=26 last=26 find=26 rfind=26
+6: contains=true index=33 last=37 find=33 rfind=37
+3: contains=true index=8 last=40 find=8 rfind=40
+1: contains=false index=none last=none find=none rfind=none
+6: contains=true index=49 last=58 find=49 rfind=58
+6: contains=true index=55 last=55 find=55 rfind=55
+2: contains=true index=44 last=47 find=44 rfind=47
+6: contains=true index=46 last=46 find=46 rfind=46
+3: contains=true index=15 last=41 find=15 rfind=41
+64: contains=true index=0 last=0 find=0 rfind=0
+65: contains=false index=none last=none find=none rfind=none
+4: contains=true index=1 last=13 find=1 rfind=13
+4: contains=true index=6 last=6 find=6 rfind=6
+p aab: 7 7 true
+p aaab: 6 6 true
+p aaaaaaaaab: 0 0 true
+p aaaaaaaaaab: none none false
+p ab: 8 8 true
+p b: 9 9 true
+p ba: none none false
+bytes 0 3 0 none
+trim <> 0
+trim <> 0
+trim <x> 1
+trim <hé> 3
+trim <a b> 3
+trim <日本> 6
+split ,: [a||b| c|日||] 7
+split , : [a,,b|c,日,,] 2
+split : [a,,b, c,日,,] 1
+split x: [a,,b, c,日,,] 1
+split ,,: [a|b, c,日|] 3
+split 日: [a,,b, c,|,,] 2
+lines [] 0
+lines [] 1
+lines [|] 2
+lines [a] 1
+lines [a] 1
+lines [a|b|] 3
+lines [] 1
+lines [x||y] 3
+graphemes [a|é|日|𝄞|b] 5 [] 0
+case HELLO, WöRLD! ZAZ@[`{ hello, wörld! zaz@[`{ <>
+replace aaaa/aa/b: <bb>
+replace abcabc/abc/: <>
+replace 日本日本/日/x: <x本x本>
+replace abc/abcd/z: <abc>
+replace aXbXc/X/XYZ: <aXYZbXYZc>
+replace /a/b: <>
+replace abc//q: <abc>
+prefix <> <abc> <本> <abc>
+suffix <> <abc> <日> <abc>
+concat <> <é日> <ababab> <>
+bconcat 5 255 0 200
+join <,,> <日本> <>
+builder 14 <héllo 日本!>

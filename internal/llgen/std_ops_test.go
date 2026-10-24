@@ -72,18 +72,24 @@ func TestStdOpsMatchC(t *testing.T) {
 		t.Fatal("enum std_op { ... } not found in the runtime")
 	}
 	var enumNames []string
-	for i, m := range enumEntryRe.FindAllSubmatch(block[1], -1) {
+	for _, m := range enumEntryRe.FindAllSubmatch(block[1], -1) {
 		enumNames = append(enumNames, string(m[1]))
-		if want := fmt.Sprintf("OP_%s = %d,", m[1], i); !strings.Contains(string(block[1]), want) {
-			t.Errorf("enum std_op: %s is not at id %d", m[1], i)
+	}
+	var live []mir.StdOpEntry
+	for _, op := range mir.Registry.Ops {
+		if !op.Retired {
+			live = append(live, op)
 		}
 	}
-	if len(enumNames) != len(mir.StdOpNames) {
-		t.Fatalf("enum std_op has %d entries, the registry has %d", len(enumNames), len(mir.StdOpNames))
+	if len(enumNames) != len(live) {
+		t.Fatalf("enum std_op has %d entries, the registry has %d live ops", len(enumNames), len(live))
 	}
-	for i, name := range mir.StdOpNames {
-		if enumNames[i] != name {
-			t.Errorf("id %d: the registry has %s, C's enum std_op has %s at the same position", i, name, enumNames[i])
+	for i, op := range live {
+		if enumNames[i] != op.Name {
+			t.Errorf("id %d: the registry has %s, C's enum std_op has %s at the same position", op.ID, op.Name, enumNames[i])
+		}
+		if want := fmt.Sprintf("OP_%s = %d,", op.Name, op.ID); !strings.Contains(string(block[1]), want) {
+			t.Errorf("enum std_op: %s is not at id %d", op.Name, op.ID)
 		}
 	}
 	cases := caseSites(src)

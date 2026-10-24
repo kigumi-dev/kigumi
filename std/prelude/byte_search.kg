@@ -1,0 +1,210 @@
+// Two-way string matching (Crochemore-Perrin): linear time in constant space.
+// Offsets written `x1` hold x + 1 so the algorithm's -1 sentinels stay unsigned.
+
+pure noalloc fn Bytes.at(self, i: usize, rev: Bool) -> u8 {
+    if rev {
+        self[self.len() - 1 - i]
+    } else {
+        self[i]
+    }
+}
+
+pure noalloc fn Bytes.maxSuffix(self, rev: Bool, flip: Bool, wantPeriod: Bool) -> usize {
+    let m = self.len()
+    let mut ms1: usize = 0
+    let mut j: usize = 0
+    let mut k: usize = 1
+    let mut period: usize = 1
+    for j + k < m {
+        let a = self.at(j + k, rev)
+        let b = self.at(ms1 + k - 1, rev)
+        if (flip && a > b) || (!flip && a < b) {
+            j = j + k
+            k = 1
+            period = j + 1 - ms1
+        } else if a == b {
+            if k != period {
+                k = k + 1
+            } else {
+                j = j + period
+                k = 1
+            }
+        } else {
+            ms1 = j + 1
+            j = j + 1
+            k = 1
+            period = 1
+        }
+    }
+    if wantPeriod {
+        period
+    } else {
+        ms1
+    }
+}
+
+/// Offset of sub in self, both read backwards when rev; self.len() + 1 when sub does not occur.
+pure noalloc fn Bytes.twoWay(self, sub: &Bytes, rev: Bool) -> usize {
+    let n = self.len()
+    let m = sub.len()
+    if m == 0 {
+        return 0
+    }
+    if m > n {
+        return n + 1
+    }
+    let i1 = sub.maxSuffix(rev, false, false)
+    let j1 = sub.maxSuffix(rev, true, false)
+    let mut ell1 = j1
+    let mut per = sub.maxSuffix(rev, true, true)
+    if i1 > j1 {
+        ell1 = i1
+        per = sub.maxSuffix(rev, false, true)
+    }
+    let mut periodic = ell1 + per <= m
+    let mut t: usize = 0
+    for periodic && t < ell1 {
+        periodic = sub.at(t, rev) == sub.at(t + per, rev)
+        t = t + 1
+    }
+    if !periodic {
+        per = m - ell1
+        if ell1 > per {
+            per = ell1
+        }
+        per = per + 1
+    }
+    let mut pos: usize = 0
+    let mut memory1: usize = 0
+    for pos + m <= n {
+        let mut k = ell1
+        if periodic && ell1 < memory1 {
+            k = memory1
+        }
+        for k < m && sub.at(k, rev) == self.at(k + pos, rev) {
+            k = k + 1
+        }
+        if k < m {
+            pos = pos + k + 1 - ell1
+            memory1 = 0
+            continue
+        }
+        let mut floor1: usize = 0
+        if periodic {
+            floor1 = memory1
+        }
+        k = ell1
+        for k > floor1 && sub.at(k - 1, rev) == self.at(k - 1 + pos, rev) {
+            k = k - 1
+        }
+        if k <= floor1 {
+            return pos
+        }
+        pos = pos + per
+        memory1 = 0
+        if periodic {
+            memory1 = m - per
+        }
+    }
+    n + 1
+}
+
+// The String twin of the Bytes search: String.contains is noalloc, and viewing a String as Bytes copies it.
+pure noalloc fn String.maxSuffix(self, flip: Bool, wantPeriod: Bool) -> usize {
+    let m = self.len()
+    let mut ms1: usize = 0
+    let mut j: usize = 0
+    let mut k: usize = 1
+    let mut period: usize = 1
+    for j + k < m {
+        let a = self[j + k]
+        let b = self[ms1 + k - 1]
+        if (flip && a > b) || (!flip && a < b) {
+            j = j + k
+            k = 1
+            period = j + 1 - ms1
+        } else if a == b {
+            if k != period {
+                k = k + 1
+            } else {
+                j = j + period
+                k = 1
+            }
+        } else {
+            ms1 = j + 1
+            j = j + 1
+            k = 1
+            period = 1
+        }
+    }
+    if wantPeriod {
+        period
+    } else {
+        ms1
+    }
+}
+
+pure noalloc fn String.twoWay(self, sub: &String) -> usize {
+    let n = self.len()
+    let m = sub.len()
+    if m == 0 {
+        return 0
+    }
+    if m > n {
+        return n + 1
+    }
+    let i1 = sub.maxSuffix(false, false)
+    let j1 = sub.maxSuffix(true, false)
+    let mut ell1 = j1
+    let mut per = sub.maxSuffix(true, true)
+    if i1 > j1 {
+        ell1 = i1
+        per = sub.maxSuffix(false, true)
+    }
+    let mut periodic = ell1 + per <= m
+    let mut t: usize = 0
+    for periodic && t < ell1 {
+        periodic = sub[t] == sub[t + per]
+        t = t + 1
+    }
+    if !periodic {
+        per = m - ell1
+        if ell1 > per {
+            per = ell1
+        }
+        per = per + 1
+    }
+    let mut pos: usize = 0
+    let mut memory1: usize = 0
+    for pos + m <= n {
+        let mut k = ell1
+        if periodic && ell1 < memory1 {
+            k = memory1
+        }
+        for k < m && sub[k] == self[k + pos] {
+            k = k + 1
+        }
+        if k < m {
+            pos = pos + k + 1 - ell1
+            memory1 = 0
+            continue
+        }
+        let mut floor1: usize = 0
+        if periodic {
+            floor1 = memory1
+        }
+        k = ell1
+        for k > floor1 && sub[k - 1] == self[k - 1 + pos] {
+            k = k - 1
+        }
+        if k <= floor1 {
+            return pos
+        }
+        pos = pos + per
+        memory1 = 0
+        if periodic {
+            memory1 = m - per
+        }
+    }
+    n + 1
+}

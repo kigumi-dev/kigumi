@@ -28,10 +28,14 @@ func (r *Result) fatalConveniences() map[string]bool {
 }
 
 // reservedTry lists the bodied std try functions inference cannot prove: a push after a reserve,
-// a callback forwarded to a fallible primitive. A two-call fault sweep fixture covers each.
+// a callback forwarded to a fallible primitive, a `?` that rebuilds the Err. A two-call fault sweep fixture covers each.
 var reservedTry = map[string]bool{
 	"array.Array.tryFill": true, "array.Array.tryPush": true, "array.Array.tryCloneWith": true,
-	"map.Map.trySet": true,
+	"map.Map.trySet": true, "array.tryJoin": true, "prelude.Bytes.tryFill": true,
+	"prelude.String.tryTrim": true, "prelude.String.trySplit": true, "prelude.String.tryConcat": true,
+	"prelude.String.tryToUpper": true, "prelude.String.tryToLower": true, "text.tryReplace": true,
+	"text.tryLines": true, "text.tryGraphemes": true, "text.tryTrimPrefix": true, "text.tryTrimSuffix": true,
+	"text.StringBuilder.tryPush": true, "text.StringBuilder.tryPushByte": true,
 }
 
 // isTrustedTry marks a bodied std fn on the reservedTry list; any other bodied try* is inferred like user code.

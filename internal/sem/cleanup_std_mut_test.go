@@ -14,8 +14,8 @@ import (
 var bodilessStdMutSelf = []string{
 	"alloc.Box.set", "alloc.Box.withMut",
 	"array.Array.growBy", "array.Array.push", "array.Array.takeAt", "array.Array.tryAppendAll", "array.Array.tryInsertAt", "array.Array.withMut",
+	"prelude.ByteBuffer.copyFrom", "prelude.ByteBuffer.copyFromString", "prelude.ByteBuffer.set",
 	"prelude.FixedArray.withMut", "prelude.Option.take",
-	"text.StringBuilder.tryPush", "text.StringBuilder.tryPushByte",
 }
 
 func TestBodilessStdMutSelfClassified(t *testing.T) {

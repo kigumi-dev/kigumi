@@ -67,12 +67,6 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 			return m.allocError()
 		}
 		return m.ok(retain(a[0]))
-	case "prelude.String.tryConcat":
-		m.reserveMemory(uint64(len(a0.str())) + uint64(len(a1.str())))
-		if uint64(len(a0.str()))+uint64(len(a1.str())) >= maxVMAlloc || m.faultTick() {
-			return m.allocError()
-		}
-		return m.ok(mkStr(append(append([]byte{}, a0.str()...), a1.str()...)))
 	case "prelude.String.trySliceBytes":
 		s, e := a1.i, a2.i
 		if s < 0 || s > e || e > int64(len(a0.str())) || !boundary(a0.str(), s) || !boundary(a0.str(), e) {

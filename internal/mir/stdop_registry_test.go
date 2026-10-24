@@ -24,6 +24,7 @@ func TestParseStdOpRegistryRejects(t *testing.T) {
 		{"bad callback", "op 0 A primitive () -> unit\ncallback x\n", "argument index"},
 		{"builtin flag", "builtin print (string) -> unit nope\n", "unknown flag"},
 		{"builtin min", "builtin print (string) -> unit min=2\n", "exceeds"},
+		{"retired with key", "op 0 A primitive () -> unit\nretired\nkey x.y\n", "retired but still has attributes"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -70,7 +71,7 @@ func TestRegistryAttributesMatchTheirUses(t *testing.T) {
 
 // wantCallback is the index of the op's fn argument; the blocking pool's work runs on its own worker, so it has none.
 func wantCallback(op mir.StdOpEntry) int {
-	if op.Name == "BLOCKING_POOL_RUN" {
+	if op.Name == "BLOCKING_POOL_RUN" || op.Retired {
 		return -1
 	}
 	for i, a := range op.Desc.Args {
