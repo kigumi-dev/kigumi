@@ -22,9 +22,9 @@ type place struct {
 func (b *builder) resolvePlace(pl *hir.Place) place {
 	switch pl.Kind {
 	case hir.PlaceField:
-		return place{src: pl, base: b.expr(pl.Base)}
+		return place{src: pl, base: b.expr(definedBase(pl.Base))}
 	case hir.PlaceIndex:
-		base := b.expr(pl.Base)
+		base := b.expr(definedBase(pl.Base))
 		idx := b.expr(pl.Idx)
 		return place{src: pl, base: base, idx: idx}
 	case hir.PlaceGlobal:

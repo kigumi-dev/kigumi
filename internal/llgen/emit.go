@@ -151,7 +151,7 @@ func (e *emitter) function(f *mir.Func) string {
 	e.sig, e.ssig = e.directSig(f), e.ssigs[f]
 	e.direct = e.classifyDirect(f)
 	e.boxTmp = boxTemps(f)
-	e.crossSrc = crossSources(f)
+	e.crossSrc = e.crossSources(f)
 	e.scalar = e.classifyScalars(f)
 	e.nameAlias = nameAliases(f)
 	e.lentCells = nil

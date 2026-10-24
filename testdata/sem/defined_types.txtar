@@ -106,14 +106,14 @@ error[E1171]: `UserId(...)` is a representation operation usable only inside the
    |
 29 |     let w = ids.UserId(raw) //~ ERROR `UserId(...)` is a representation operation usable only inside the package that declares `UserId`
    |             ^^^^^^^^^^^^^^
-   = help: use the functions that package exports for `{name}` instead
+   = help: use the functions that package exports for `UserId` instead
 
 error[E1172]: `.value` is `UserId`'s private representation, usable only inside the package that declares `UserId`
   --> app/t/t.kg:30:13
    |
 30 |     let v = id.value //~ ERROR `.value` is `UserId`'s private representation, usable only inside the package that declares `UserId`
    |             ^^^^^^^^
-   = help: use the functions that package exports for `{name}` instead
+   = help: use the functions that package exports for `UserId` instead
 
 error[E1176]: `Int` is a transparent alias with no representation constructor
   --> app/t/t.kg:34:5

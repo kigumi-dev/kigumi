@@ -21,13 +21,13 @@ fn lib.Holder.mix(%self: Holder['a], %other: &Bytes) -> &Bytes {
 }
 fn lib.useWitness(%x: T, %$w:T:mix: fn(&Bytes) -> &Bytes) -> &Bytes {
   b0:
-    %t2 = const 7: u8
-    %t3 = const 8: u8
-    %t4 = const 9: u8
-    %t5 = array(%t2, %t3, %t4)
-    %t6 = call std/array.Array.of(%t5)
-    %t7 = borrow 0(%t6)
-    %t8 = call std/prelude.Bytes.fromArray(%t7)
+    %t3 = const 7: u8
+    %t4 = const 8: u8
+    %t5 = const 9: u8
+    %t6 = array(%t3, %t4, %t5)
+    %t7 = call std/array.Array.of(%t6)
+    %t2 = borrow 0(%t7)
+    %t8 = call std/prelude.Bytes.fromArray(%t2)
     %buf2 = copy(%t8)
     %t10 = borrow 0(%buf2)
     %t12 = copy(%$w:T:mix)

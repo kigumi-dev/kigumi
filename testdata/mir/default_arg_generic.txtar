@@ -39,9 +39,9 @@ fn main.withTry(%a: Int, %b: Int) -> Int {
 fn main.main() -> Void! {
   b0:
     %t1 = const "s": String
-    %t2 = share copy(%t1)
-    %t3 = borrow 0(%t2)
-    %t4 = call main.pad$default.width(%t3)
+    %t3 = share copy(%t1)
+    %t2 = borrow 0(%t3)
+    %t4 = call main.pad$default.width(%t2)
     %t5 = call main.pad(%t1, %t4)
     %t0 = interp ""(%t5)
     %t6 = builtin print(%t0)

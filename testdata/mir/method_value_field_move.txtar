@@ -107,9 +107,9 @@ fn lib.reserved(%p: Pair) -> Void {
     %t1 = fieldmove 1(%p)
     %t2 = closure lib.Res.get method(%t1)
     %f = copy(%t2)
-    %t4 = field 1(%p)
-    %t5 = borrow 0(%t4)
-    %t6 = call lib.show(%t5)
+    %t5 = field 1(%p)
+    %t4 = borrow 0(%t5)
+    %t6 = call lib.show(%t4)
     drop(%t6)
     drop(%f)
     %t7 = unit

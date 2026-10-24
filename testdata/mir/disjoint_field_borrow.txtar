@@ -69,14 +69,14 @@ fn Bag.indexSameFieldConflict(mut self) {
 -- expect --
 fn lib.Pair.disjointOk(%self: Pair) -> Void {
   b0:
-    %t1 = cellget(%self)
-    %t2 = field 0(%t1)
-    %t3 = borrow 1(%t2)
-    %r = copy(%t3)
-    %t5 = cellget(%self)
-    %t6 = field 1(%t5)
-    %t7 = borrow 1(%t6)
-    %s = copy(%t7)
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t1 = borrow 1(%t3)
+    %r = copy(%t1)
+    %t6 = cellget(%self)
+    %t7 = field 1(%t6)
+    %t5 = borrow 1(%t7)
+    %s = copy(%t5)
     %t9 = borrow 1(%r)
     %t10 = share retain(%t9)
     %t11 = newcell(%t10)
@@ -98,14 +98,14 @@ fn lib.Pair.disjointOk(%self: Pair) -> Void {
 }
 fn lib.Pair.sameFieldConflict(%self: Pair) -> Void {
   b0:
-    %t1 = cellget(%self)
-    %t2 = field 0(%t1)
-    %t3 = borrow 1(%t2)
-    %r = copy(%t3)
-    %t5 = cellget(%self)
-    %t6 = field 0(%t5)
-    %t7 = borrow 1(%t6)
-    %s = copy(%t7)
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t1 = borrow 1(%t3)
+    %r = copy(%t1)
+    %t6 = cellget(%self)
+    %t7 = field 0(%t6)
+    %t5 = borrow 1(%t7)
+    %s = copy(%t5)
     %t9 = borrow 1(%r)
     %t10 = share retain(%t9)
     %t11 = newcell(%t10)
@@ -127,14 +127,14 @@ fn lib.Pair.sameFieldConflict(%self: Pair) -> Void {
 }
 fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Void {
   b0:
-    %t1 = cellget(%self)
-    %t2 = field 0(%t1)
-    %t3 = borrow 0(%t2)
-    %s = copy(%t3)
-    %t5 = cellget(%self)
-    %t6 = field 0(%t5)
-    %t7 = borrow 1(%t6)
-    %r = copy(%t7)
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t1 = borrow 0(%t3)
+    %s = copy(%t1)
+    %t6 = cellget(%self)
+    %t7 = field 0(%t6)
+    %t5 = borrow 1(%t7)
+    %r = copy(%t5)
     %t9 = call std/array.Array.len(%s)
     drop(%t9)
     %t10 = borrow 1(%r)
@@ -149,15 +149,15 @@ fn lib.Pair.sharedThenExclusiveConflict(%self: Pair) -> Void {
 }
 fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Void {
   b0:
-    %t1 = cellget(%self)
-    %t2 = field 0(%t1)
+    %t2 = cellget(%self)
     %t3 = field 0(%t2)
-    %t4 = borrow 1(%t3)
-    %r = copy(%t4)
-    %t6 = cellget(%self)
-    %t7 = field 0(%t6)
-    %t8 = borrow 1(%t7)
-    %s = copy(%t8)
+    %t4 = field 0(%t3)
+    %t1 = borrow 1(%t4)
+    %r = copy(%t1)
+    %t7 = cellget(%self)
+    %t8 = field 0(%t7)
+    %t6 = borrow 1(%t8)
+    %s = copy(%t6)
     %t10 = borrow 1(%r)
     %t11 = share retain(%t10)
     %t12 = newcell(%t11)
@@ -177,15 +177,15 @@ fn lib.Nested.nestedOverlapConflict(%self: Nested) -> Void {
 }
 fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Void {
   b0:
-    %t1 = cellget(%self)
-    %t2 = field 0(%t1)
-    %t3 = borrow 0(%t2)
-    %s = copy(%t3)
-    %t5 = cellget(%self)
-    %t6 = field 0(%t5)
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t1 = borrow 0(%t3)
+    %s = copy(%t1)
+    %t6 = cellget(%self)
     %t7 = field 0(%t6)
-    %t8 = borrow 1(%t7)
-    %r = copy(%t8)
+    %t8 = field 0(%t7)
+    %t5 = borrow 1(%t8)
+    %r = copy(%t5)
     %t10 = field 0(%s)
     %t11 = call std/array.Array.len(%t10)
     drop(%t11)
@@ -201,16 +201,16 @@ fn lib.Nested.sharedAncestorThenExclusiveDescendant(%self: Nested) -> Void {
 }
 fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Void {
   b0:
-    %t1 = cellget(%self)
-    %t2 = field 0(%t1)
+    %t2 = cellget(%self)
     %t3 = field 0(%t2)
-    %t4 = borrow 1(%t3)
-    %r = copy(%t4)
-    %t6 = cellget(%self)
-    %t7 = field 0(%t6)
-    %t8 = field 1(%t7)
-    %t9 = borrow 1(%t8)
-    %s = copy(%t9)
+    %t4 = field 0(%t3)
+    %t1 = borrow 1(%t4)
+    %r = copy(%t1)
+    %t7 = cellget(%self)
+    %t8 = field 0(%t7)
+    %t9 = field 1(%t8)
+    %t6 = borrow 1(%t9)
+    %s = copy(%t6)
     %t11 = borrow 1(%r)
     %t12 = share retain(%t11)
     %t13 = newcell(%t12)
@@ -232,12 +232,12 @@ fn lib.Nested.nestedSiblingsOk(%self: Nested) -> Void {
 }
 fn lib.Bag.indexSiblingOk(%self: Bag) -> Void {
   b0:
-    %t1 = cellget(%self)
-    %t2 = field 0(%t1)
-    %t3 = const 0: usize
-    %t4 = index(%t2, %t3)
-    %t5 = borrow 1(%t4)
-    %r = copy(%t5)
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t4 = const 0: usize
+    %t5 = index(%t3, %t4)
+    %t1 = borrow 1(%t5)
+    %r = copy(%t1)
     %t7 = cellget(%self)
     %t8 = field 1(%t7)
     %t9 = borrow 1(%t8)
@@ -258,12 +258,12 @@ fn lib.Bag.indexSiblingOk(%self: Bag) -> Void {
 }
 fn lib.Bag.indexSameFieldConflict(%self: Bag) -> Void {
   b0:
-    %t1 = cellget(%self)
-    %t2 = field 0(%t1)
-    %t3 = const 0: usize
-    %t4 = index(%t2, %t3)
-    %t5 = borrow 1(%t4)
-    %r = copy(%t5)
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t4 = const 0: usize
+    %t5 = index(%t3, %t4)
+    %t1 = borrow 1(%t5)
+    %r = copy(%t1)
     %t7 = cellget(%self)
     %t8 = field 0(%t7)
     %t9 = borrow 1(%t8)

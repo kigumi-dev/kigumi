@@ -23,9 +23,9 @@ fn lib.port() -> u32 {
 }
 fn lib.show() -> Void {
   b0:
-    %t0 = globalget lib.config
-    %t1 = borrow 0(%t0)
-    %v = copy(%t1)
+    %t1 = globalget lib.config
+    %t0 = borrow 0(%t1)
+    %v = copy(%t0)
     %t3 = copy(%v)
     %t4 = call lib.reader(%t3)
     return %t4
@@ -37,9 +37,9 @@ fn lib.reader(%v: &u32) -> Void {
 }
 fn lib.leak() -> &u32 {
   b0:
-    %t0 = globalget lib.config
-    %t1 = borrow 0(%t0)
-    return %t1
+    %t1 = globalget lib.config
+    %t0 = borrow 0(%t1)
+    return %t0
   b1:
     %t2 = unit
     return %t2

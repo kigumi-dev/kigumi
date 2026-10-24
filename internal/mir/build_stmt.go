@@ -105,6 +105,10 @@ func (b *builder) transfer(outer *hir.Expr, v LocalID) LocalID {
 		}
 		return b.emit(Inst{Op: OpAlias, Dst: b.temp(outer.Type), Args: []LocalID{out}, Node: outer.Node})
 	}
+	if wrapped && b.derefsRef(src.Type, outer.Type) {
+		// What leaves is a copy of the referent, so the reference itself is neither copied nor moved.
+		return b.emit(Inst{Op: OpShare, Dst: b.temp(outer.Type), Args: []LocalID{retag(v)}, Copy: true, Node: outer.Node})
+	}
 	if src.Kind != hir.Local {
 		return retag(v)
 	}

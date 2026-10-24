@@ -1,0 +1,20 @@
+-- src --
+pub type Money = {
+    pub cents Int
+}
+
+pub pure fn Money.+(a: Money, b: Money) -> Int {
+    a.cents + b.cents
+}
+
+fn use(a: Money, b: Money) {
+    let mut m = a
+    m += b //~ ERROR `+` on (`Money`, `Money`) yields `Int`, not `Money`
+}
+-- expect --
+error[E612]: `+` on (`Money`, `Money`) yields `Int`, not `Money`
+  --> main/main.kg:11:5
+   |
+11 |     m += b //~ ERROR `+` on (`Money`, `Money`) yields `Int`, not `Money`
+   |     ^^^^^^
+

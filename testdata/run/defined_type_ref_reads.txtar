@@ -1,0 +1,160 @@
+-- src --
+type Pt = {pub mut x i64, pub mut y i64}
+type L1 = Pt
+type L2 = L1
+type L3 = L2
+type Pair = {pub a Pt, pub b i64}
+
+type Cell = {pub mut name String, pub mut n i64}
+type C1 = Cell
+type C2 = C1
+
+type Id = u64
+type Id2 = Id
+type Id3 = Id2
+type MaybeInt = Option[i64]
+
+fn take(p: Pt) -> i64 { p.x * 10 + p.y }
+fn rd(p: &Pt) -> i64 { p.x * 10 + p.y }
+fn incId(p: &mut u64) { p += 1 }
+
+fn ret1(r: &L1) -> Pt { r.value }
+fn ret2(r: &L2) -> Pt { r.value.value }
+fn ret3(r: &L3) -> Pt { r.value.value.value }
+fn retMut1(r: &mut L1) -> Pt { r.value }
+fn retMut3(r: &mut L3) -> Pt { r.value.value.value }
+fn arg1(r: &L1) -> i64 { take(r.value) }
+fn arg2(r: &L2) -> i64 { take(r.value.value) }
+fn arg3(r: &L3) -> i64 { take(r.value.value.value) }
+fn argMut2(r: &mut L2) -> i64 { take(r.value.value) }
+fn let1(r: &L1) -> i64 {
+    let c = r.value
+    c.x + c.y
+}
+fn let2(r: &mut L2) -> i64 {
+    let c = r.value.value
+    c.x + c.y
+}
+fn inRecord(r: &L2) -> Pair { Pair { a: r.value.value, b: 9 } }
+fn inTuple(r: &L1) -> (Pt, i64) { (r.value, 5) }
+fn inArray(r: &L3) -> i64 {
+    let xs = Array.of(r.value.value.value, r.value.value.value)
+    xs[0].x + xs[1].y
+}
+fn inSome(r: &L2) -> Option[Pt] { Some(r.value.value) }
+fn inBranch(r: &L1, c: Bool) -> Pt { if c { r.value } else { Pt { x: 0, y: 0 } } }
+fn same(r: &L1, q: &L2) -> Bool { r.value == q.value.value }
+fn inMatch(r: &L2) -> i64 {
+    match r.value.value {
+        Pt { x, y } -> x - y
+    }
+}
+fn tupleSum(t: (Pt, i64)) -> i64 {
+    match t {
+        (p, n) -> p.x * 100 + p.y * 10 + n
+    }
+}
+fn pick(a: &L2) -> &L2 { a }
+fn cellRet(r: &C2) -> Cell { r.value.value }
+fn cellName(r: &mut C1) -> String { r.value.name }
+fn ids(r: &Id2) -> u64 {
+    let c = r.value.value
+    let d = r.value
+    c + d.value
+}
+fn idRet(r: &Id3) -> u64 { r.value.value.value }
+fn maybe(r: &MaybeInt) -> Option[i64] { r.value }
+fn viaId1(i: &mut Id) { incId(&mut i.value) }
+fn viaId2(i: &mut Id2) { incId(&mut i.value.value) }
+fn viaId3(i: &mut Id3) {
+    incId(&mut i.value.value.value)
+    let p = &mut i.value.value.value
+    incId(p)
+}
+
+let mut a1 = L1(Pt { x: 1, y: 2 })
+let mut a2 = L2(L1(Pt { x: 3, y: 4 }))
+let mut a3 = L3(L2(L1(Pt { x: 5, y: 6 })))
+let p1 = ret1(&a1)
+let q1 = ret1(&a1)
+let p2 = ret2(&a2)
+let q2 = ret2(&a2)
+let p3 = ret3(&a3)
+let q3 = ret3(&a3)
+let m1 = retMut1(&mut a1)
+let n1 = retMut1(&mut a1)
+let m3 = retMut3(&mut a3)
+let n3 = retMut3(&mut a3)
+print "return ${p1.x}${q1.y} ${p2.x}${q2.y} ${p3.x}${q3.y} ${m1.x}${n1.y} ${m3.x}${n3.y}"
+print "argument ${arg1(&a1)} ${arg1(&a1)} ${arg2(&a2)} ${arg2(&a2)} ${arg3(&a3)} ${arg3(&a3)} ${argMut2(&mut a2)} ${argMut2(&mut a2)}"
+print "let ${let1(&a1)} ${let1(&a1)} ${let2(&mut a2)} ${let2(&mut a2)}"
+let b = inRecord(&a2)
+let b2 = inRecord(&a2)
+print "literal ${b.a.x}${b.b} ${b2.a.y} ${tupleSum(inTuple(&a1))} ${tupleSum(inTuple(&a1))} ${inArray(&a3)} ${inArray(&a3)}"
+let o = inSome(&a2)
+let o2 = inSome(&a2)
+let ox = match o {
+    Some(p) -> p.x
+    None -> 0
+}
+let oy = match o2 {
+    Some(p) -> p.y
+    None -> 0
+}
+print "option ${ox} ${oy} branch ${inBranch(&a1, true).y} ${inBranch(&a1, true).x} ${inBranch(&a1, false).x}"
+print "compare ${same(&a1, &a2)} ${same(&a1, &a2)} ${a1.value == ret1(&a1)} match ${inMatch(&a2)} ${inMatch(&a2)}"
+
+let r = &a1
+let c = r.value
+print "local ref ${c.x} ${r.value.y} ${rd(r.value)} ${rd(r.value)} ${take(r.value)}"
+let k = pick(&a2).value.value
+let k2 = pick(&a2).value.value
+let e = (&a1).value
+let e2 = (&a3).value.value.value
+print "returned ref ${k.x} ${k2.y} ${take(pick(&a2).value.value)} ${e.y} ${e2.x} ${take((&a2).value.value)}"
+
+a1.value.y = 20
+a2.value.value.x = 30
+a3.value.value.value.y = 60
+print "after ${a1.value.x} ${a1.value.y} ${a2.value.value.x} ${a2.value.value.y} ${a3.value.value.value.y}"
+print "copies ${c.y} ${p1.y} ${q1.y} ${p2.x} ${p3.y} ${m1.y} ${m3.y} ${b.a.x} ${k.x} ${e.y} ${e2.y}"
+
+let cell = C2(C1(Cell { name: "a", n: 1 }))
+let cr = cellRet(&cell)
+let cr2 = cellRet(&cell)
+let mut cm = C1(Cell { name: "m", n: 2 })
+let nm = cellName(&mut cm)
+cm.value.name = "z"
+print "non-copy ${cr.name}${cr.n} ${cr2.name} ${nm} ${cellName(&mut cm)} ${cell.value.value.name}"
+
+let i2 = Id2(Id(7))
+let i3 = Id3(Id2(Id(8)))
+print "scalar ${ids(&i2)} ${ids(&i2)} ${idRet(&i3)} ${idRet(&i3)}"
+let mv = MaybeInt(Some(42))
+print "adt ${maybe(&mv).unwrapOr(0)} ${maybe(&mv).unwrapOr(0)} ${mv.value.unwrapOr(0)}"
+
+let mut j1 = Id(9)
+viaId1(&mut j1)
+viaId1(&mut j1)
+let mut j2 = Id2(Id(5))
+viaId2(&mut j2)
+let mut j3 = Id3(Id2(Id(20)))
+viaId3(&mut j3)
+let jr = &mut j2
+incId(&mut jr.value.value)
+print "scalar mut ${j1.value} ${j2.value.value} ${j3.value.value.value}"
+-- stdout --
+return 12 34 56 12 56
+argument 12 12 34 34 56 56 34 34
+let 3 3 7 7
+literal 39 4 125 125 11 11
+option 3 4 branch 2 1 0
+compare false false true match -1 -1
+local ref 1 2 12 12 12
+returned ref 3 4 34 2 5 34
+after 1 20 30 4 60
+copies 2 2 2 3 6 2 6 3 3 2 6
+non-copy a1 a m z a
+scalar 14 14 8 8
+adt 42 42 42
+scalar mut 11 7 22

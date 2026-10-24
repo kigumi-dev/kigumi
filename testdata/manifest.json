@@ -6570,9 +6570,60 @@
       ]
     },
     {
+      "id": "run/defined_type_layers",
+      "kind": "run",
+      "path": "testdata/run/defined_type_layers.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/defined_type_ref",
       "kind": "run",
       "path": "testdata/run/defined_type_ref.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_ref_args",
+      "kind": "run",
+      "path": "testdata/run/defined_type_ref_args.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_ref_reads",
+      "kind": "run",
+      "path": "testdata/run/defined_type_ref_reads.txtar",
       "mode": [
         "vm",
         "native"
@@ -16975,6 +17026,17 @@
       "id": "sem/compound_assign_mut_ref_err",
       "kind": "sem",
       "path": "testdata/sem/compound_assign_mut_ref_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/compound_result_type_hole",
+      "kind": "sem",
+      "path": "testdata/sem/compound_result_type_hole.txtar",
       "mode": [
         "check"
       ],

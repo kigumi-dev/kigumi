@@ -29,13 +29,13 @@ fn lib.pickOne(%cond: Bool, %a: &Bytes, %b: &Bytes) -> &Bytes {
 }
 fn lib.make5(%cond: Bool, %a: &Bytes) -> &Bytes {
   b0:
-    %t2 = const 9: u8
     %t3 = const 9: u8
     %t4 = const 9: u8
-    %t5 = array(%t2, %t3, %t4)
-    %t6 = call std/array.Array.of(%t5)
-    %t7 = borrow 0(%t6)
-    %t8 = call std/prelude.Bytes.fromArray(%t7)
+    %t5 = const 9: u8
+    %t6 = array(%t3, %t4, %t5)
+    %t7 = call std/array.Array.of(%t6)
+    %t2 = borrow 0(%t7)
+    %t8 = call std/prelude.Bytes.fromArray(%t2)
     %buf2 = copy(%t8)
     %t10 = copy(%cond)
     %t11 = copy(%a)

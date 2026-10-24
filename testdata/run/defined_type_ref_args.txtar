@@ -1,0 +1,160 @@
+-- src --
+type Pt = {pub mut x i64, pub mut y i64}
+type L1 = Pt
+type L2 = L1
+type L3 = L2
+
+type Cell = {pub mut name String, pub mut n i64}
+type C1 = Cell
+type C2 = C1
+
+type Opt1 = Option[Int]
+type Opt2 = Opt1
+
+fn bumpPt(p: &mut Pt) {
+    p.x = p.x + 1
+    p.y += 10
+}
+
+fn bumpCell(c: &mut Cell) {
+    c.n = c.n + 1
+    c.name = "w"
+}
+
+fn Pt.inc(mut self) {
+    self.x = self.x + 1
+}
+
+fn Cell.rename(mut self, s: String) {
+    self.name = s
+    self.n += 1
+}
+
+fn viaMut1(a: &mut L1) {
+    bumpPt(&mut a.value)
+    a.value.inc()
+}
+
+fn viaMut2(a: &mut L2) {
+    bumpPt(&mut a.value.value)
+    a.value.value.inc()
+}
+
+fn viaMut3(a: &mut L3) {
+    bumpPt(&mut a.value.value.value)
+    a.value.value.value.inc()
+}
+
+fn viaMutCell(a: &mut C2) {
+    bumpCell(&mut a.value.value)
+    a.value.value.rename("m")
+}
+
+fn copy1(a: &mut L1, b: &L1) {
+    a.value = b.value
+}
+
+fn copy2(a: &mut L2, b: &L2) {
+    a.value.value = b.value.value
+}
+
+fn copy3(a: &mut L3, b: &L3) {
+    a.value.value.value = b.value.value.value
+}
+
+fn takeOpt1(o: &mut Opt1) -> Option[Int] {
+    o.value.take()
+}
+
+fn takeOpt2(o: &mut Opt2) -> Option[Int] {
+    o.value.value.take()
+}
+
+let mut a1 = L1(Pt { x: 1, y: 2 })
+bumpPt(&mut a1.value)
+print "${a1.value.x} ${a1.value.y}"
+a1.value.inc()
+print "${a1.value.x}"
+
+let mut a2 = L2(L1(Pt { x: 1, y: 2 }))
+bumpPt(&mut a2.value.value)
+print "${a2.value.value.x} ${a2.value.value.y}"
+a2.value.value.inc()
+print "${a2.value.value.x}"
+
+let mut a3 = L3(L2(L1(Pt { x: 1, y: 2 })))
+bumpPt(&mut a3.value.value.value)
+print "${a3.value.value.value.x} ${a3.value.value.value.y}"
+a3.value.value.value.inc()
+print "${a3.value.value.value.x}"
+
+let mut c1 = C1(Cell { name: "a", n: 1 })
+bumpCell(&mut c1.value)
+print "${c1.value.name} ${c1.value.n}"
+c1.value.rename("r")
+print "${c1.value.name} ${c1.value.n}"
+
+let mut c2 = C2(C1(Cell { name: "a", n: 1 }))
+bumpCell(&mut c2.value.value)
+c2.value.value.rename("r")
+print "${c2.value.value.name} ${c2.value.value.n}"
+
+let mut m1 = L1(Pt { x: 1, y: 2 })
+viaMut1(&mut m1)
+print "${m1.value.x} ${m1.value.y}"
+let mut m2 = L2(L1(Pt { x: 1, y: 2 }))
+viaMut2(&mut m2)
+print "${m2.value.value.x} ${m2.value.value.y}"
+let mut m3 = L3(L2(L1(Pt { x: 1, y: 2 })))
+viaMut3(&mut m3)
+print "${m3.value.value.value.x} ${m3.value.value.value.y}"
+let mut mc = C2(C1(Cell { name: "a", n: 1 }))
+viaMutCell(&mut mc)
+print "${mc.value.value.name} ${mc.value.value.n}"
+
+let mut d1 = L1(Pt { x: 1, y: 2 })
+let s1 = L1(Pt { x: 5, y: 6 })
+copy1(&mut d1, &s1)
+print "${d1.value.x} ${d1.value.y}"
+let mut d2 = L2(L1(Pt { x: 1, y: 2 }))
+let s2 = L2(L1(Pt { x: 7, y: 8 }))
+copy2(&mut d2, &s2)
+print "${d2.value.value.x} ${d2.value.value.y}"
+let mut d3 = L3(L2(L1(Pt { x: 1, y: 2 })))
+let s3 = L3(L2(L1(Pt { x: 9, y: 10 })))
+copy3(&mut d3, &s3)
+print "${d3.value.value.value.x} ${d3.value.value.value.y}"
+let mut d4 = L1(Pt { x: 1, y: 2 })
+d4.value = s1.value
+print "${d4.value.x} ${d4.value.y}"
+
+let mut o1 = Opt1(Some(1))
+print "${takeOpt1(&mut o1).unwrap()} ${o1.value.unwrapOr(0)}"
+let mut o2 = Opt2(Opt1(Some(2)))
+print "${takeOpt2(&mut o2).unwrap()} ${o2.value.value.unwrapOr(0)}"
+let mut o3 = Opt1(Some(3))
+print "${o3.value.take().unwrap()} ${o3.value.unwrapOr(0)}"
+let mut o4 = Opt2(Opt1(Some(4)))
+print "${o4.value.value.take().unwrap()} ${o4.value.value.unwrapOr(0)}"
+-- stdout --
+2 12
+3
+2 12
+3
+2 12
+3
+w 2
+r 3
+r 3
+3 12
+3 12
+3 12
+m 3
+5 6
+7 8
+9 10
+5 6
+1 0
+2 0
+3 0
+4 0

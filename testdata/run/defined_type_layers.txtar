@@ -1,0 +1,101 @@
+-- src --
+type Point = {pub mut x i64, pub mut y i64}
+type Loc = Point
+type Spot = Loc
+type Site = Spot
+
+type Cell = {pub mut name String, pub mut n i64}
+type Tag = Cell
+type Label = Tag
+
+type Row = FixedArray[i64, 3]
+type Grid = Row
+
+fn sum1(p: &Loc) -> i64 {
+    p.value.x + p.value.y
+}
+
+fn sum2(p: &Spot) -> i64 {
+    p.value.value.x + p.value.value.y
+}
+
+fn sum3(p: &Site) -> i64 {
+    p.value.value.value.x + p.value.value.value.y
+}
+
+fn bump1(p: &mut Loc) {
+    p.value.x = p.value.x + 100
+}
+
+fn bump2(p: &mut Spot) {
+    p.value.value.y += 200
+}
+
+fn bump3(p: &mut Site) {
+    p.value.value.value.x = 7
+    p.value.value.value.y *= 3
+}
+
+fn bumpTag(p: &mut Label) {
+    p.value.value.n += 5
+    p.value.value.name = "changed"
+}
+
+fn setCell(g: &mut Grid, i: usize, v: i64) {
+    g.value.value[i] = v
+}
+
+let mut l = Loc(Point { x: 1, y: 2 })
+l.value.x = 10
+print "${l.value.x + l.value.y}"
+l.value.y += 5
+print "${l.value.y}"
+l.value = Point { x: 40, y: 50 }
+print "${l.value.x} ${l.value.y}"
+
+let mut s = Spot(Loc(Point { x: 1, y: 2 }))
+s.value.value.x = 10
+print "${s.value.value.x + s.value.value.y}"
+s.value.value = Point { x: 3, y: 4 }
+print "${sum2(&s)}"
+
+let mut t = Site(Spot(Loc(Point { x: 1, y: 2 })))
+t.value.value.value.x = 10
+t.value.value.value.y -= 1
+print "${t.value.value.value.x} ${t.value.value.value.y}"
+
+print "${sum1(&l)} ${sum2(&s)} ${sum3(&t)}"
+bump1(&mut l)
+bump2(&mut s)
+bump3(&mut t)
+print "${sum1(&l)} ${sum2(&s)} ${sum3(&t)}"
+print "${l.value.x} ${s.value.value.y} ${t.value.value.value.x}"
+
+let by2 = Spot(Loc(Point { x: 5, y: 6 }))
+let by3 = Site(Spot(Loc(Point { x: 7, y: 8 })))
+print "${by2.value.value.x + by2.value.value.y} ${by3.value.value.value.x + by3.value.value.value.y}"
+
+let mut c = Label(Tag(Cell { name: "a", n: 1 }))
+c.value.value.n = 9
+print "${c.value.value.name} ${c.value.value.n}"
+bumpTag(&mut c)
+print "${c.value.value.name} ${c.value.value.n}"
+
+let mut g = Grid(Row(FixedArray.filled[i64, 3](0)))
+g.value.value[1] = 4
+setCell(&mut g, 2, 6)
+print "${g.value.value[0]} ${g.value.value[1]} ${g.value.value[2]}"
+-- stdout --
+12
+7
+40 50
+12
+7
+10 1
+90 7 11
+190 207 10
+140 204 7
+11 15
+a 9
+changed 14
+0 4 6

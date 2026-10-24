@@ -77,7 +77,7 @@ func (rf *refFlow) step(p *Program, s *refState, bid BlockID, i int, in *Inst, b
 		s.ptr.set(in.Dst, rf.read(s, src))
 	case in.Op == OpBorrow:
 		s.ptr.set(in.Dst, rf.lent)
-	case in.Op == OpAlias && rf.track[src] && rf.counted[in.Dst] && rf.crossedFromTemp(bid, i, src):
+	case in.Op == OpAlias && rf.track[src] && rf.counted[in.Dst] && rf.crossedFromTemp(p, bid, i, src):
 		s.release(src)
 		s.fresh(in.Dst, rf.site[rf.siteBase[bid]+i], rf.loop[bid])
 	case in.Op == OpAlias && rf.track[src]:

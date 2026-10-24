@@ -8,11 +8,14 @@ import (
 // Assigning self as a whole lands back in the caller's storage, but only
 // when sync; async (sync false) cannot write back.
 func (b *builder) recvCell(base *hir.Expr, sync, inPlace bool) LocalID {
-	if id, ok := b.refCellBase(base); ok {
-		return id
-	}
 	n, inner := base.Node, peelNoOp(base)
 	rt := b.r.Types.Ref(base.Type, true)
+	if id, ok := b.refCellBase(base); ok {
+		if b.r.Types.Kind(base.Type) == sem.KRef {
+			return id
+		}
+		return b.retagTo(id, b.fn.Locals[id].Type, rt, n)
+	}
 	p, hasPlace := b.exprPlace(base, inner, sync)
 	if inPlace && sync && hasPlace {
 		if cell, ok := b.lentRecvCell(p, base, inner, rt); ok {
@@ -45,8 +48,7 @@ func (b *builder) lentRecvCell(p place, base, inner *hir.Expr, rt sem.TypeID) (L
 		v = p.id
 	}
 	n := base.Node
-	v = b.retagTo(v, inner.Type, base.Type, n)
-	ref := b.emit(Inst{Op: OpBorrow, Dst: b.temp(rt), Args: []LocalID{v}, Index: 1, Node: n})
+	ref := b.borrowRetag(v, inner.Type, rt, n)
 	cell := b.emit(Inst{Op: OpNewCell, Dst: b.temp(rt), Args: []LocalID{ref}, Node: n, Scoped: true, Lent: true})
 	b.argFixups = append(b.argFixups, argFixup{cell: cell, node: n, depth: len(b.scopes), lent: true})
 	return cell, true

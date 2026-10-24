@@ -14,10 +14,23 @@ func (b *builder) expr(e *hir.Expr) LocalID {
 	if e.Kind == hir.Fallback && e.HitLift {
 		return v
 	}
-	if e.Kind == hir.DefinedWrap || e.Kind == hir.DefinedUnwrap {
+	if isDefinedView(e) {
 		v = b.emit(Inst{Op: OpAlias, Dst: b.temp(e.Type), Args: []LocalID{v}, Node: e.Node})
 	}
 	return b.coerce(e.Coercion, e.Node, v)
+}
+
+func isDefinedView(e *hir.Expr) bool {
+	return e.Kind == hir.DefinedWrap || e.Kind == hir.DefinedUnwrap
+}
+
+// definedBase skips nested wrap/unwrap layers without a coercion: they share
+// one representation, so the outermost layer retags once.
+func definedBase(e *hir.Expr) *hir.Expr {
+	for isDefinedView(e) && len(e.Coerce) == 0 {
+		e = e.Args[0]
+	}
+	return e
 }
 
 func (b *builder) exprRaw(e *hir.Expr) LocalID {
@@ -47,8 +60,10 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return b.emit(Inst{Op: OpFnItem, Dst: b.temp(t), Ent: e.Ent, Async: async, Node: n})
 	case hir.Host:
 		return b.emit(Inst{Op: OpBuiltin, Dst: b.temp(t), Str: "host", Node: n})
-	case hir.Wrap, hir.DefinedWrap, hir.DefinedUnwrap:
+	case hir.Wrap:
 		return b.expr(e.Args[0])
+	case hir.DefinedWrap, hir.DefinedUnwrap:
+		return b.expr(definedBase(e.Args[0]))
 	case hir.Unary:
 		v := b.expr(e.Args[0])
 		if e.Ent != 0 {

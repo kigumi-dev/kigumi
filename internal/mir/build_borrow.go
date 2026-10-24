@@ -24,6 +24,9 @@ func (b *builder) borrowExpr(e *hir.Expr, n syntax.NodeID, t sem.TypeID) LocalID
 	if e.Mut {
 		if _, ok := b.r.ScalarRefElem(t); ok {
 			if base, ok := baseLocal(e.Args[0]); ok {
+				if b.r.Types.RefMut(base.Type) {
+					return b.retagTo(b.expr(base), base.Type, t, n)
+				}
 				if id := b.local(base.Ent); b.fn.Locals[id].Cell {
 					ref := b.emit(Inst{Op: OpBorrow, Dst: b.temp(b.r.Types.Ref(base.Type, true)), Args: []LocalID{id}, Index: 1, Node: n})
 					if base != e.Args[0] {
@@ -34,12 +37,16 @@ func (b *builder) borrowExpr(e *hir.Expr, n syntax.NodeID, t sem.TypeID) LocalID
 			}
 		}
 	}
-	v := b.expr(e.Args[0])
 	mut := 0
 	if e.Mut {
 		mut = 1
 	}
-	ref := b.emit(Inst{Op: OpBorrow, Dst: b.temp(t), Args: []LocalID{v}, Index: mut, Node: n})
+	var ref LocalID
+	if base := definedBase(e.Args[0]); e.Mut && base != e.Args[0] && b.r.Types.Kind(base.Type) != sem.KRef && !b.scalarRef(t) {
+		ref = b.borrowRetag(b.expr(base), base.Type, t, n)
+	} else {
+		ref = b.emit(Inst{Op: OpBorrow, Dst: b.temp(t), Args: []LocalID{b.expr(e.Args[0])}, Index: mut, Node: n})
+	}
 	// A scalar `&mut` must be stored through by replacing its referent, so
 	// it is boxed; the box takes its own reference since a borrow owns nothing.
 	if e.Mut {
@@ -49,4 +56,20 @@ func (b *builder) borrowExpr(e *hir.Expr, n syntax.NodeID, t sem.TypeID) LocalID
 		}
 	}
 	return ref
+}
+
+func (b *builder) scalarRef(t sem.TypeID) bool {
+	_, ok := b.r.ScalarRefElem(t)
+	return ok
+}
+
+// borrowRetag lends v in place under its own declared type and retags the reference, since retagging v first would copy a direct value.
+func (b *builder) borrowRetag(v LocalID, from, want sem.TypeID, n syntax.NodeID) LocalID {
+	ref := b.emit(Inst{Op: OpBorrow, Dst: b.temp(b.r.Types.Ref(from, true)), Args: []LocalID{v}, Index: 1, Node: n})
+	return b.retagTo(ref, b.r.Types.Ref(from, true), want, n)
+}
+
+// derefsRef reports a retag that reads a Copy value through a reference, which must not leave as an alias of what it borrows.
+func (b *builder) derefsRef(from, to sem.TypeID) bool {
+	return b.r.Types.Kind(from) == sem.KRef && b.r.Types.Kind(to) != sem.KRef && b.r.IsCopy(to)
 }

@@ -65,23 +65,6 @@ func (r *Result) fill(template string, args []any) string {
 	return fillTemplate(template, r.fmtArg, args)
 }
 
-func fillTemplate(template string, fmtArg func(any) string, args []any) string {
-	var sb strings.Builder
-	rest := template
-	for _, a := range args {
-		i := strings.IndexByte(rest, '{')
-		j := strings.IndexByte(rest, '}')
-		if i < 0 || j < i {
-			break
-		}
-		sb.WriteString(rest[:i])
-		sb.WriteString(fmtArg(a))
-		rest = rest[j+1:]
-	}
-	sb.WriteString(rest)
-	return sb.String()
-}
-
 // FillTemplate is fillTemplate for a caller with no *Result (internal/driver builds E994's
 // message before a sem.Result exists); args must be a string or an int.
 func FillTemplate(template string, args ...any) string {
@@ -91,13 +74,7 @@ func FillTemplate(template string, args ...any) string {
 // FillCode is FillTemplate applied to a whole Code: message holes consume
 // args first, the same way diagSpan splits them, and help takes the rest.
 func FillCode(c Code, args ...any) (msg, help string) {
-	fmtArg := func(a any) string { return fmt.Sprint(a) }
-	used := strings.Count(c.Template, "{")
-	msg = fillTemplate(c.Template, fmtArg, args)
-	if c.Help != "" {
-		help = fillTemplate(c.Help, fmtArg, args[min(used, len(args)):])
-	}
-	return msg, help
+	return fillCode(c, func(a any) string { return fmt.Sprint(a) }, args)
 }
 
 // Plural is plural, exported for the same reason as FillTemplate.
@@ -111,10 +88,7 @@ func (r *Result) diagAt(f FileID, n syntax.NodeID, c Code, args ...any) (diag.Di
 }
 
 func (r *Result) diagSpan(f FileID, span token.Span, c Code, args ...any) (diag.Diagnostic, bool) {
-	// The holes are numbered across message and help, so the help takes
-	// the arguments the message did not use.
-	used := strings.Count(c.Template, "{")
-	msg := r.fill(c.Template, args)
+	msg, help := fillCode(c, r.fmtArg, args)
 	key := diagKey{f, span.Start, c.Name, msg}
 	if _, dup := r.seen[key]; dup {
 		return diag.Diagnostic{}, false
@@ -122,7 +96,7 @@ func (r *Result) diagSpan(f FileID, span token.Span, c Code, args ...any) (diag.
 	r.seen[key] = struct{}{}
 	d := diag.Diagnostic{Severity: diag.Error, Loc: r.loc(f, span), Msg: msg, Code: c.Num}
 	if c.Help != "" {
-		d.Help = append(d.Help, r.fill(c.Help, args[min(used, len(args)):]))
+		d.Help = append(d.Help, help)
 	}
 	if strings.HasPrefix(c.Num, "W") {
 		d.Severity = diag.Warning
