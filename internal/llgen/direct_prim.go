@@ -5,22 +5,18 @@ import (
 	"strings"
 
 	"kigumi/internal/mir"
-	"kigumi/internal/sem"
 )
 
 var (
-	rtDLen          = RuntimeFn{"rt_d_len", []Type{TPtr}, TI64}
-	rtDArrayLen     = RuntimeFn{"rt_d_array_len", []Type{TPtr}, TI64}
-	rtDBytesGet     = RuntimeFn{"rt_d_bytes_get", []Type{TPtr, TI64, TPtr}, TI32}
-	rtDArrayGet     = RuntimeFn{"rt_d_array_get", []Type{TPtr, TI64, TPtr}, TI32}
-	rtDCharFromInt  = RuntimeFn{"rt_d_char_from_int", []Type{TI64, TPtr}, TI32}
-	rtDParseFloat   = RuntimeFn{"rt_d_parse_float", []Type{TPtr, TPtr}, TI32}
-	rtDConvertInt   = RuntimeFn{"rt_d_convert_int", []Type{TI64, TI32, TI32, TI32, TPtr}, TI32}
-	rtDConvertFloat = RuntimeFn{"rt_d_convert_float", []Type{TDouble, TI32, TPtr}, TI32}
-	rtDHashInt      = RuntimeFn{"rt_d_hash_int", []Type{TI64, TI32}, TI64}
-	rtDHashBool     = RuntimeFn{"rt_d_hash_bool", []Type{TI32}, TI64}
-	rtDHashChar     = RuntimeFn{"rt_d_hash_char", []Type{TI32}, TI64}
-	rtDHashFloat    = RuntimeFn{"rt_d_hash_float", []Type{TDouble, TI32}, TI64}
+	rtDLen        = RuntimeFn{"rt_d_len", []Type{TPtr}, TI64}
+	rtDArrayLen   = RuntimeFn{"rt_d_array_len", []Type{TPtr}, TI64}
+	rtDBytesGet   = RuntimeFn{"rt_d_bytes_get", []Type{TPtr, TI64, TPtr}, TI32}
+	rtDArrayGet   = RuntimeFn{"rt_d_array_get", []Type{TPtr, TI64, TPtr}, TI32}
+	rtDParseFloat = RuntimeFn{"rt_d_parse_float", []Type{TPtr, TPtr}, TI32}
+	rtDHashInt    = RuntimeFn{"rt_d_hash_int", []Type{TI64, TI32}, TI64}
+	rtDHashBool   = RuntimeFn{"rt_d_hash_bool", []Type{TI32}, TI64}
+	rtDHashChar   = RuntimeFn{"rt_d_hash_char", []Type{TI32}, TI64}
+	rtDHashFloat  = RuntimeFn{"rt_d_hash_float", []Type{TDouble, TI32}, TI64}
 )
 
 func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) {
@@ -54,7 +50,7 @@ func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 		fmt.Fprintf(sb, "  %s = sub i64 %s, 1\n", last, n)
 		present = b.Call(rtDArrayGet, args[0], vi64text(last), vptr(out))
 	case mir.DPCharFromInt:
-		present = b.Call(rtDCharFromInt, args[0], vptr(out))
+		present = e.charFromInt(sb, args[0], out)
 	case mir.DPParseFloat:
 		present = b.Call(rtDParseFloat, args[0], vptr(out))
 	case mir.DPConvert:
@@ -67,32 +63,6 @@ func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) 
 		return
 	}
 	e.storeScalarBits(sb, f, in.Dst, bits)
-}
-
-// A Char source has numeric kind 0.
-func (e *emitter) convertRaw(sb *strings.Builder, f *mir.Func, in mir.Inst, src Value, out string) Value {
-	dst := f.Locals[in.Dst].Type
-	checked := 0
-	if elem, ok := e.r.Types.IsOption(dst); ok {
-		dst, checked = elem, 1
-	}
-	dnk := rtConvertCharTarget
-	if dst != sem.TyChar {
-		dnk = e.numKind(dst)
-	}
-	b := e.irb(sb)
-	if src.Type == TDouble {
-		return b.Call(rtDConvertFloat, src, vi32(dnk), vptr(out))
-	}
-	snk := 0
-	if src.Type == TI32 {
-		z := e.newTmp()
-		fmt.Fprintf(sb, "  %s = zext i32 %s to i64\n", z, src.Text)
-		src = vi64text(z)
-	} else {
-		snk = e.numKind(f.Locals[in.Args[0]].Type)
-	}
-	return b.Call(rtDConvertInt, src, vi32(snk), vi32(dnk), vi32(checked), vptr(out))
 }
 
 // A Bool widens: an i1 argument leaves the rest of a C int undefined.

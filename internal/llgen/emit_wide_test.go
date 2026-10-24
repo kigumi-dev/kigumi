@@ -28,7 +28,7 @@ fn main() -> Void! {
 func TestWideIntegersStayInRegisters(t *testing.T) {
 	ir := emitIR(t, wideLoop)
 	body := fnBody(t, ir, "main.mac")
-	for _, want := range []string{"@llvm.uadd.with.overflow.i128", "@rt_i128_mul(", "add i128", "lshr i128"} {
+	for _, want := range []string{"@llvm.uadd.with.overflow.i128", "@kg.umulo128(", "mul i128", "add i128", "lshr i128"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("main.mac lacks %s:\n%s", want, body)
 		}
@@ -38,9 +38,9 @@ func TestWideIntegersStayInRegisters(t *testing.T) {
 			t.Errorf("main.mac goes through %s although every value is a register:\n%s", bad, body)
 		}
 	}
-	for _, bad := range []string{"udiv i128", "sdiv i128", "urem i128", "srem i128", "mul i128", "@llvm.smul.with.overflow.i128", "@llvm.umul.with.overflow.i128"} {
+	for _, bad := range []string{"udiv i128", "sdiv i128", "urem i128", "srem i128", "@llvm.smul.with.overflow.i128", "@llvm.umul.with.overflow.i128"} {
 		if strings.Contains(ir, bad) {
-			t.Errorf("the module uses %s, which a target without compiler-rt cannot lower", bad)
+			t.Errorf("the module uses %s, which needs compiler-rt's __divti3 family or __muloti4", bad)
 		}
 	}
 }

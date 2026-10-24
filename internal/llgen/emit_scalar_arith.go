@@ -46,9 +46,9 @@ func (e *emitter) scalarUnary(sb *strings.Builder, f *mir.Func, in mir.Inst) boo
 			return false
 		}
 	case ty == TI64 && in.Str == "-":
-		res = Value{TI64, e.irb(sb).Call(rtIneg, v, vi32(nk)).Text}
+		res = e.checkedNeg(sb, nk, v)
 	case ty == TI64 && in.Str == "~":
-		res = Value{TI64, e.irb(sb).Call(rtInot, v, vi32(nk)).Text}
+		res = e.bitNot(sb, nk, v)
 	case (ty == TDouble || ty == TFloat) && in.Str == "-":
 		res = Value{ty, e.fneg(sb, ty, v.Text)}
 	default:
@@ -59,7 +59,7 @@ func (e *emitter) scalarUnary(sb *strings.Builder, f *mir.Func, in mir.Inst) boo
 }
 
 // nativeBinaryOp mirrors rt_binop's dispatch: "==" and "!=" work on every
-// scalar kind, the rest need TI64 (mirrored by rt_i*) or TDouble.
+// scalar kind, the rest need an integer or a float register.
 func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int, l, r Value) (Value, bool) {
 	if ty == TDouble || ty == TFloat {
 		return e.nativeFloatOp(sb, op, ty, l, r)
@@ -81,25 +81,21 @@ func (e *emitter) nativeBinaryOp(sb *strings.Builder, op string, ty Type, nk int
 	case "<", "<=", ">", ">=":
 		return Value{TI1, e.icmp(sb, cmpCC(op, signed), ty, l, r)}, true
 	case "+":
-		return Value{TI64, e.irb(sb).Call(rtIadd, l, r, vi32(nk)).Text}, true
+		return e.checkedArith(sb, "add", nk, l, r), true
 	case "-":
-		return Value{TI64, e.irb(sb).Call(rtIsub, l, r, vi32(nk)).Text}, true
+		return e.checkedArith(sb, "sub", nk, l, r), true
 	case "*":
-		return Value{TI64, e.irb(sb).Call(rtImul, l, r, vi32(nk)).Text}, true
-	case "/":
-		return Value{TI64, e.irb(sb).Call(rtIdiv, l, r, vi32(nk)).Text}, true
-	case "%":
-		return Value{TI64, e.irb(sb).Call(rtImod, l, r, vi32(nk)).Text}, true
+		return e.checkedArith(sb, "mul", nk, l, r), true
+	case "/", "%":
+		return e.checkedDiv(sb, op, nk, l, r), true
 	case "&":
 		return Value{TI64, e.binOp(sb, "and", l, r)}, true
 	case "|":
 		return Value{TI64, e.binOp(sb, "or", l, r)}, true
 	case "^":
-		return Value{TI64, e.irb(sb).Call(rtIxor, l, r, vi32(nk)).Text}, true
-	case "<<":
-		return Value{TI64, e.irb(sb).Call(rtIshl, l, r, vi32(nk)).Text}, true
-	case ">>":
-		return Value{TI64, e.irb(sb).Call(rtIshr, l, r, vi32(nk)).Text}, true
+		return Value{TI64, e.binOp(sb, "xor", l, r)}, true
+	case "<<", ">>":
+		return e.checkedShift(sb, op, nk, l, r), true
 	}
 	return Value{}, false
 }

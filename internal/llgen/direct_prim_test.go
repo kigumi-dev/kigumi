@@ -36,12 +36,12 @@ fn main() -> Void! {}
 func TestPrimitiveResultsComeBackWithoutABox(t *testing.T) {
 	ir := emitIR(t, primSrc)
 	cases := []struct{ fn, call string }{
-		{"main.narrow", "@rt_d_convert_int("},
-		{"main.widen", "@rt_d_convert_int("},
+		{"main.narrow", "icmp ule i64"},
+		{"main.widen", "@llvm.sadd.with.overflow.i64("},
 		{"main.byteAt", "@rt_d_bytes_get("},
 		{"main.pick", "@rt_d_array_get("},
 		{"main.size", "@rt_d_len("},
-		{"main.spin", "@rt_d_wrapping("},
+		{"main.spin", "@llvm.fshl.i32("},
 	}
 	for _, c := range cases {
 		body := bodyOf(t, ir, `@"`+c.fn+`"(`)

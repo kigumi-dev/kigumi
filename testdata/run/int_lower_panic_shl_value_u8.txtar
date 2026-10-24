@@ -1,0 +1,14 @@
+-- src --
+fn f(a: u8, n: usize) -> u8 {
+    a << n
+}
+
+print "start"
+let r = f(3, 7)
+print "unreachable ${r}"
+-- stdout --
+start
+-- stderr --
+panic: integer overflow
+-- exit --
+2

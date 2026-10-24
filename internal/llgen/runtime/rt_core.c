@@ -1241,7 +1241,7 @@ void rt_const_int128(void* slot, int nk, int64_t lo, int64_t hi) {
     v->u.w.hi = hi;
     v->nk = nk;
 }
-// Entry points for llgen's register code: the 128-bit operands come in as word pairs and results go back through out[0] (low) and out[1].
+// Entry points for llgen's register code, which passes a 128-bit value as two words.
 val rt_box_int128(int64_t lo, int64_t hi, int nk) {
     return w_box(w_new((uint64_t)lo, (uint64_t)hi), nk);
 }
@@ -1250,23 +1250,6 @@ int64_t rt_int128_lo(val v) {
 }
 int64_t rt_int128_hi(val v) {
     return deref(v)->u.w.hi;
-}
-// nk carries bit 16 for a wrapping product.
-void rt_i128_mul(int64_t alo, int64_t ahi, int64_t blo, int64_t bhi, int nk, int64_t* out) {
-    w128 a = w_new((uint64_t)alo, (uint64_t)ahi), b = w_new((uint64_t)blo, (uint64_t)bhi);
-    int over;
-    w128 r = W_SIGNED(nk) && !(nk & (1 << 16)) ? w_mul_s(a, b, &over) : w_mul_u(a, b, &over);
-    if (over && !(nk & (1 << 16))) rt_panic("integer overflow");
-    w_store(r, out);
-}
-// nk carries bit 17 for the remainder.
-void rt_i128_div(int64_t alo, int64_t ahi, int64_t blo, int64_t bhi, int nk, int64_t* out) {
-    w128 a = w_new((uint64_t)alo, (uint64_t)ahi), b = w_new((uint64_t)blo, (uint64_t)bhi), rem;
-    if (w_zero(b)) rt_panic("division by zero");
-    int sg = W_SIGNED(nk);
-    if (sg && b.lo == ~(uint64_t)0 && b.hi == ~(uint64_t)0 && a.lo == 0 && a.hi == (uint64_t)1 << 63) rt_panic("integer overflow");
-    w128 q = sg ? w_divmod_s(a, b, &rem) : w_divmod_u(a, b, &rem);
-    w_store(nk & (1 << 17) ? rem : q, out);
 }
 #endif
 int equal(val a, val b) {
@@ -1616,10 +1599,7 @@ static int64_t checked_i64(int64_t v, int nk, int over) {
 static val checked(int64_t v, int nk, int over) {
     return rt_int(checked_i64(v, nk, over), nk);
 }
-// rt_i*: the scalar (unboxed) core of rt_binop/rt_unop's integer cases,
-// shared so llgen's native-register codegen computes exactly what the
-// boxed path does, minus the box.
-int64_t rt_iadd(int64_t x, int64_t y, int nk) {
+static int64_t int_add(int64_t x, int64_t y, int nk) {
     int sg = is_signed(nk);
     int64_t r;
     uint64_t u = (uint64_t)x + (uint64_t)y;
@@ -1627,14 +1607,14 @@ int64_t rt_iadd(int64_t x, int64_t y, int nk) {
     if (!sg) r = (int64_t)u;
     return checked_i64(r, nk, over);
 }
-int64_t rt_isub(int64_t x, int64_t y, int nk) {
+static int64_t int_sub(int64_t x, int64_t y, int nk) {
     int sg = is_signed(nk);
     int64_t r;
     int over = sg ? __builtin_sub_overflow(x, y, &r) : ((uint64_t)x < (uint64_t)y);
     if (!sg) r = (int64_t)((uint64_t)x - (uint64_t)y);
     return checked_i64(r, nk, over);
 }
-int64_t rt_imul(int64_t x, int64_t y, int nk) {
+static int64_t int_mul(int64_t x, int64_t y, int nk) {
     int sg = is_signed(nk);
     int64_t r;
     int over;
@@ -1647,39 +1627,39 @@ int64_t rt_imul(int64_t x, int64_t y, int nk) {
     }
     return checked_i64(r, nk, over);
 }
-int64_t rt_idiv(int64_t x, int64_t y, int nk) {
+static int64_t int_div(int64_t x, int64_t y, int nk) {
     if (y == 0) rt_panic("division by zero");
     if (is_signed(nk) && y == -1 && x == min_of(nk)) rt_panic("integer overflow");
     if (is_signed(nk)) return x / y;
     return (int64_t)((uint64_t)x / (uint64_t)y);
 }
-int64_t rt_imod(int64_t x, int64_t y, int nk) {
+static int64_t int_mod(int64_t x, int64_t y, int nk) {
     if (y == 0) rt_panic("division by zero");
     if (is_signed(nk) && y == -1 && x == min_of(nk)) rt_panic("integer overflow");
     if (is_signed(nk)) return x % y;
     return (int64_t)((uint64_t)x % (uint64_t)y);
 }
-int64_t rt_ixor(int64_t x, int64_t y, int nk) {
+static int64_t int_xor(int64_t x, int64_t y, int nk) {
     return checked_i64(x ^ y, nk, 0);
 }
-int64_t rt_ishl(int64_t x, int64_t y, int nk) {
+static int64_t int_shl(int64_t x, int64_t y, int nk) {
     if (y < 0 || y >= bits_of(nk)) rt_panic("shift count out of range");
     return checked_i64((int64_t)((uint64_t)x << y), nk, 0);
 }
-int64_t rt_ishr(int64_t x, int64_t y, int nk) {
+static int64_t int_shr(int64_t x, int64_t y, int nk) {
     if (y < 0 || y >= bits_of(nk)) rt_panic("shift count out of range");
     return is_signed(nk) ? x >> y : (int64_t)((uint64_t)x >> y);
 }
-int64_t rt_ineg(int64_t x, int nk) {
+static int64_t int_neg(int64_t x, int nk) {
     return checked_i64((int64_t)(0 - (uint64_t)x), nk, x == min_of(nk));
 }
-int64_t rt_inot(int64_t x, int nk) {
+static int64_t int_not(int64_t x, int nk) {
     return truncate_to(~x, nk);
 }
 // prelude.<T>.wrapping* / rotate*: modular arithmetic and shifts masked to the width.
 // Op ids index wrapping_names.
 static const char* const wrapping_names[] = {"wrappingAdd", "wrappingSub", "wrappingMul", "wrappingShiftLeft", "wrappingShiftRight", "rotateLeft", "rotateRight"};
-int64_t rt_d_wrapping(int op, int64_t xs, int64_t ys, int nk) {
+static int64_t wrapping_op(int op, int64_t xs, int64_t ys, int nk) {
     int b = bits_of(nk);
     uint64_t x = (uint64_t)xs, y = (uint64_t)ys;
     unsigned c = (unsigned)(y & (uint64_t)(b - 1));
@@ -1701,7 +1681,7 @@ static val int_fn(const char* k, val a0, val a1) {
     if (W_IS(a0->nk)) return w_wrapping(op, a0, a1);
 #endif
     for (int i = 0; i < 7; i++)
-        if (!strcmp(op, wrapping_names[i])) return rt_int(rt_d_wrapping(i, a0->u.i, a1->u.i, a0->nk), a0->nk);
+        if (!strcmp(op, wrapping_names[i])) return rt_int(wrapping_op(i, a0->u.i, a1->u.i, a0->nk), a0->nk);
     return NULL;
 }
 static int cmp_vals(val a, val b) {
@@ -1816,32 +1796,6 @@ int rt_d_array_get(val a, int64_t i, uint64_t* out) {
     *out = leaf_bits(a->u.arr.items[i]);
     return 1;
 }
-int rt_d_char_from_int(int64_t v, uint64_t* out) {
-    *out = 0;
-    if (v < 0 || v > 0x10FFFF || (v >= 0xD800 && v <= 0xDFFF)) return 0;
-    *out = (uint64_t)v;
-    return 1;
-}
-// snk is 0 for a Char source; the rest mirrors rt_convert case for case.
-int rt_d_convert_int(int64_t v, int snk, int dnk, int checked, uint64_t* out) {
-    *out = (uint64_t)v;
-    if (dnk & 1024) {
-        *out = (uint32_t)v;
-        return 1;
-    }
-    if (!snk) return 1;
-    if (dnk & 512) {
-        *out = double_bits(is_signed(snk) ? (double)v : (double)(uint64_t)v);
-        return 1;
-    }
-    if (!checked) {
-        *out = (uint64_t)truncate_to(v, dnk);
-        return 1;
-    }
-    if (in_range(v, snk, dnk)) return 1;
-    *out = 0;
-    return 0;
-}
 static int float_text_ok(const char* s, int64_t len) {
     int64_t i = 0;
     if (i < len && s[i] == '-') i++;
@@ -1881,32 +1835,6 @@ int rt_d_parse_float(val s, uint64_t* out) {
     *out = 0;
     if (!parse_float_text(direct_arg(s), &d)) return 0;
     *out = double_bits(d);
-    return 1;
-}
-double rt_d_sqrt(double x) {
-    return sqrt(x);
-}
-double rt_d_floor(double x) {
-    return floor(x);
-}
-double rt_d_ceil(double x) {
-    return ceil(x);
-}
-double rt_d_round(double x) {
-    return round(x);
-}
-double rt_d_pow(double x, double y) {
-    return pow(x, y);
-}
-int rt_d_convert_float(double x, int dnk, uint64_t* out) {
-    *out = 0;
-    if (dnk & 512) {
-        *out = double_bits(x);
-        return 1;
-    }
-    double t = trunc(x);
-    if (t != t || t < -9223372036854775808.0 || t >= 9223372036854775808.0) return 0;
-    *out = (uint64_t)(int64_t)t;
     return 1;
 }
 // The direct hash of a scalar leaf: FNV-1a over the text display_into renders, with no box to hold it.
@@ -1980,25 +1908,25 @@ val rt_binop(const char* op, val a, val b) {
     int nk = a->nk;
     switch (op[0]) {
     case '+':
-        return rt_int(rt_iadd(x, y, nk), nk);
+        return rt_int(int_add(x, y, nk), nk);
     case '-':
-        return rt_int(rt_isub(x, y, nk), nk);
+        return rt_int(int_sub(x, y, nk), nk);
     case '*':
-        return rt_int(rt_imul(x, y, nk), nk);
+        return rt_int(int_mul(x, y, nk), nk);
     case '/':
-        return rt_int(rt_idiv(x, y, nk), nk);
+        return rt_int(int_div(x, y, nk), nk);
     case '%':
-        return rt_int(rt_imod(x, y, nk), nk);
+        return rt_int(int_mod(x, y, nk), nk);
     case '&':
         return rt_int(x & y, nk);
     case '|':
         return rt_int(x | y, nk);
     case '^':
-        return rt_int(rt_ixor(x, y, nk), nk);
+        return rt_int(int_xor(x, y, nk), nk);
     case '<':
-        return rt_int(rt_ishl(x, y, nk), nk);
+        return rt_int(int_shl(x, y, nk), nk);
     case '>':
-        return rt_int(rt_ishr(x, y, nk), nk);
+        return rt_int(int_shr(x, y, nk), nk);
     }
     panicf("unsupported operator %s", op);
     return NULL;
@@ -2011,12 +1939,12 @@ val rt_unop(const char* op, val a) {
 #ifdef KIGUMI_INT128
         if (W_IS(a->nk)) return w_unop('-', a);
 #endif
-        return rt_int(rt_ineg(a->u.i, a->nk), a->nk);
+        return rt_int(int_neg(a->u.i, a->nk), a->nk);
     }
 #ifdef KIGUMI_INT128
     if (op[0] == '~' && W_IS(a->nk)) return w_unop('~', a);
 #endif
-    if (op[0] == '~') return rt_int(rt_inot(a->u.i, a->nk), a->nk);
+    if (op[0] == '~') return rt_int(int_not(a->u.i, a->nk), a->nk);
     panicf("unsupported unary %s", op);
     return NULL;
 }

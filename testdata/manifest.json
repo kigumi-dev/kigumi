@@ -10898,6 +10898,23 @@
       ]
     },
     {
+      "id": "run/int128_lower_muldiv",
+      "kind": "run",
+      "path": "testdata/run/int128_lower_muldiv.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/int128_overflow_ops",
       "kind": "run",
       "path": "testdata/run/int128_overflow_ops.txtar",
@@ -11207,6 +11224,278 @@
       "id": "run/int128_wrapping",
       "kind": "run",
       "path": "testdata/run/int128_wrapping.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_edges",
+      "kind": "run",
+      "path": "testdata/run/int_lower_edges.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_add_int",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_add_int.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_add_u8",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_add_u8.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_div_min_i32",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_div_min_i32.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_mul_i32",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_mul_i32.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_mul_u64",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_mul_u64.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_neg_i16",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_neg_i16.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_neg_int",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_neg_int.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_rem_min_int",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_rem_min_int.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_rem_zero_u16",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_rem_zero_u16.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_shl_count_i8",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_shl_count_i8.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_shl_value_i8",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_shl_value_i8.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_shl_value_u8",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_shl_value_u8.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_shr_count_u64",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_shr_count_u64.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_sub_i8",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_sub_i8.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/int_lower_panic_sub_u64",
+      "kind": "run",
+      "path": "testdata/run/int_lower_panic_sub_u64.txtar",
       "mode": [
         "vm",
         "native"

@@ -91,7 +91,7 @@ func TestExportInterruptNoTrapLeavesNoPanicPath(t *testing.T) {
 	ir := emitIR(t, isrNoTrapSrc)
 	handler := bodyOf(t, ir, `define ptr @"main.tick$kg"(`)
 	for name, body := range map[string]string{"handler": handler, "pick": fnBody(t, ir, "main.pick")} {
-		for _, bad := range []string{"@rt_panic", "@rt_iadd", "with.overflow", "@llvm.trap", "@llvm.debugtrap"} {
+		for _, bad := range []string{"@rt_panic", "with.overflow", "@llvm.trap", "@llvm.debugtrap"} {
 			if strings.Contains(body, bad) {
 				t.Errorf("%s reaches %s, a trap path the interrupt contract forbids:\n%s", name, bad, body)
 			}

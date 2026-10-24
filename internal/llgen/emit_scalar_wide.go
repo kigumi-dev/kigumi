@@ -9,16 +9,6 @@ import (
 	"kigumi/internal/sem"
 )
 
-// wideIntrinsics are the 128-bit intrinsics LLVM expands to plain add/shift instructions on every target, with no compiler-rt call.
-const wideIntrinsics = `declare { i128, i1 } @llvm.sadd.with.overflow.i128(i128, i128)
-declare { i128, i1 } @llvm.uadd.with.overflow.i128(i128, i128)
-declare { i128, i1 } @llvm.ssub.with.overflow.i128(i128, i128)
-declare { i128, i1 } @llvm.usub.with.overflow.i128(i128, i128)
-declare i128 @llvm.fshl.i128(i128, i128, i128)
-declare i128 @llvm.fshr.i128(i128, i128, i128)
-
-`
-
 // wideConstText is the literal as the signed decimal LLVM reads back as the same 128 bits.
 func wideConstText(in mir.Inst) string {
 	x := new(big.Int)
@@ -67,31 +57,10 @@ func (e *emitter) overflowTrap(sb *strings.Builder, flag, msg string) {
 }
 
 func (e *emitter) checkedWide(sb *strings.Builder, intrinsic string, l, r Value) Value {
-	pair := e.wideInstr(sb, "call { i128, i1 } @llvm.%s.with.overflow.i128(i128 %s, i128 %s)", intrinsic, l.Text, r.Text)
-	v := e.wideInstr(sb, "extractvalue { i128, i1 } %s, 0", pair)
-	o := e.wideInstr(sb, "extractvalue { i128, i1 } %s, 1", pair)
+	v, o := e.withOverflow(sb, intrinsic, "i128", l.Text, r.Text)
 	e.overflowTrap(sb, o, "integer overflow")
 	return Value{TI128, v}
 }
-
-// wideViaRuntime runs op in rt_core.c, which hands the two result words back through a stack slot.
-func (e *emitter) wideViaRuntime(sb *strings.Builder, fn RuntimeFn, nk int, l, r Value) Value {
-	slot := e.stackSlot(sb, "[2 x i64]")
-	llo, lhi := e.splitWide(sb, l.Text)
-	rlo, rhi := e.splitWide(sb, r.Text)
-	e.irb(sb).Call(fn, llo, lhi, rlo, rhi, vi32(nk), vptr(slot))
-	hp := e.newTmp()
-	fmt.Fprintf(sb, "  %s = getelementptr i64, ptr %s, i64 1\n", hp, slot)
-	lo, hi := e.newTmp(), e.newTmp()
-	fmt.Fprintf(sb, "  %s = load i64, ptr %s\n  %s = load i64, ptr %s\n", lo, slot, hi, hp)
-	return e.joinWide(sb, vi64text(lo), vi64text(hi))
-}
-
-// Operation flags of rt_i128_mul and rt_i128_div packed above the numeric kind.
-const (
-	wideWrap = 1 << 16
-	wideRem  = 1 << 17
-)
 
 func (e *emitter) wideShift(sb *strings.Builder, op string, signed bool, l, count Value) Value {
 	bad, ok, c := e.label("shl"), e.label("shlok"), e.newTmp()
@@ -130,11 +99,9 @@ func (e *emitter) wideBinaryOp(sb *strings.Builder, op string, nk int, l, r Valu
 	case "-":
 		return e.checkedWide(sb, pick("ssub", "usub"), l, r), true
 	case "*":
-		return e.wideViaRuntime(sb, rtI128Mul, nk, l, r), true
-	case "/":
-		return e.wideViaRuntime(sb, rtI128Div, nk, l, r), true
-	case "%":
-		return e.wideViaRuntime(sb, rtI128Div, nk|wideRem, l, r), true
+		return e.wideMul(sb, signed, l, r), true
+	case "/", "%":
+		return e.wideDiv(sb, signed, op == "%", l, r), true
 	case "&":
 		return Value{TI128, e.binOpT(sb, "and", TI128, l, r)}, true
 	case "|":

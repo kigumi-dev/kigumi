@@ -1,0 +1,251 @@
+-- src --
+import math from std/math
+
+fn ar8(a: i8, b: i8) -> String {
+    "${a + b} ${a - b} ${a * b} ${a / b} ${a % b} ${a ^ b} ${-a} ${~a}"
+}
+
+fn aru8(a: u8, b: u8) -> String {
+    "${a + b} ${a - b} ${a * b} ${a / b} ${a % b} ${a ^ b} ${~a}"
+}
+
+fn ar32(a: i32, b: i32) -> String {
+    "${a + b} ${a - b} ${a * b} ${a / b} ${a % b} ${-a} ${~a}"
+}
+
+fn aru32(a: u32, b: u32) -> String {
+    "${a + b} ${a - b} ${a * b} ${a / b} ${a % b} ${~a}"
+}
+
+fn ar64(a: Int, b: Int) -> String {
+    "${a + b} ${a - b} ${a * b} ${a / b} ${a % b} ${-a} ${~a}"
+}
+
+fn aru64(a: u64, b: u64) -> String {
+    "${a + b} ${a - b} ${a * b} ${a / b} ${a % b} ${~a}"
+}
+
+fn sh8(a: i8, n: usize) -> String {
+    "${a << n} ${a >> n}"
+}
+
+fn shu16(a: u16, n: usize) -> String {
+    "${a << n} ${a >> n}"
+}
+
+fn sh64(a: Int, n: usize) -> String {
+    "${a << n} ${a >> n}"
+}
+
+fn shu64(a: u64, n: usize) -> String {
+    "${a << n} ${a >> n}"
+}
+
+fn wr8(a: i8, b: i8) -> String {
+    "${a.wrappingAdd(b)} ${a.wrappingSub(b)} ${a.wrappingMul(b)} ${a.wrappingShiftLeft(b)} ${a.wrappingShiftRight(b)} ${a.rotateLeft(b)} ${a.rotateRight(b)}"
+}
+
+fn wru32(a: u32, b: u32) -> String {
+    "${a.wrappingAdd(b)} ${a.wrappingSub(b)} ${a.wrappingMul(b)} ${a.wrappingShiftLeft(b)} ${a.wrappingShiftRight(b)} ${a.rotateLeft(b)} ${a.rotateRight(b)}"
+}
+
+fn wr64(a: Int, b: Int) -> String {
+    "${a.wrappingAdd(b)} ${a.wrappingSub(b)} ${a.wrappingMul(b)} ${a.wrappingShiftLeft(b)} ${a.wrappingShiftRight(b)} ${a.rotateLeft(b)} ${a.rotateRight(b)}"
+}
+
+fn wru64(a: u64, b: u64) -> String {
+    "${a.wrappingAdd(b)} ${a.wrappingSub(b)} ${a.wrappingMul(b)} ${a.wrappingShiftLeft(b)} ${a.wrappingShiftRight(b)} ${a.rotateLeft(b)} ${a.rotateRight(b)}"
+}
+
+fn cv(n: Int) -> String {
+    "${n.toI8() || -1} ${n.toU8() || 7} ${n.toU16() || 7} ${n.toI32() || -1} ${n.toU64() || 7} ${n.toFloat()} ${n.truncate[u8]()} ${n.truncate[i16]()}"
+}
+
+fn cvu(n: u64) -> String {
+    "${n.toInt() || -1} ${n.toI8() || -1} ${n.toU32() || 7} ${n.toFloat()} ${n.toUsize()}"
+}
+
+fn cvi8(n: i8) -> String {
+    "${n.toU8() || 7} ${n.toU64() || 7} ${n.toInt()} ${n.toFloat()}"
+}
+
+fn cvf(x: Float) -> String {
+    "${x.toInt() || -1}"
+}
+
+fn ch(n: Int) -> String {
+    match Char.fromInt(n) {
+        Some(c) -> "${c.toInt()}"
+        None -> "none"
+    }
+}
+
+fn mth(x: Float, y: Float) -> String {
+    "${math.sqrt(x)} ${math.floor(x)} ${math.ceil(x)} ${math.round(x)} ${math.pow(x, y)}"
+}
+
+print ar8(-10, 3)
+print bound()
+print ar8(-7, 2)
+print aru8(200, 1)
+print ar32(2147483646, -1)
+print ar32(-7, -2)
+print aru32(65535, 65535)
+print ar64(4611686018427387904, -2)
+print ar64(-3074457345618258602, 3)
+print aru64(4294967297, 4294967295)
+print aru64(9223372036854775808, 1)
+print sh8(1, 6)
+print sh8(-64, 1)
+print sh8(-1, 7)
+print shu16(1, 15)
+print shu16(65535, 0)
+print sh64(1, 62)
+print sh64(-1, 63)
+print shu64(1, 63)
+print wr8(127, 9)
+print wr8(-128, -1)
+print wr8(-3, -9)
+print wru32(4294967295, 33)
+print wru32(2147483648, 31)
+print wr64(9223372036854775807, 65)
+print wr64(-9223372036854775807 - 1, -1)
+print wru64(18446744073709551615, 127)
+print cv(300)
+print cv(-129)
+print cv(-1)
+print cv(255)
+print cv(9007199254740993)
+print cv(-9223372036854775807 - 1)
+print cvu(18446744073709551615)
+print cvu(9223372036854775808)
+print cvu(9223372036854775807)
+print cvu(200)
+print cvi8(-128)
+print cvi8(127)
+print cvf(2.9)
+print cvf(-2.9)
+print cvf(9223372036854775807.0)
+print cvf(-9223372036854775808.0)
+print cvf(-9223372036854777856.0)
+print cvf(fdiv(1.0, 0.0))
+print cvf(-fdiv(1.0, 0.0))
+print cvf(fdiv(0.0, 0.0))
+print cvf(9223372036854774784.0)
+print ch(-1)
+print ch(55295)
+print ch(55296)
+print ch(57343)
+print ch(57344)
+print ch(1114111)
+print ch(1114112)
+print mth(2.0, 0.5)
+print mth(-2.5, 3.0)
+print mth(2.5, -1.0)
+print mth(-1.0, 0.5)
+print mth(0.0, -1.0)
+print mth(-0.5, 2.0)
+print mth(fdiv(1.0, 0.0), 0.0)
+
+fn fdiv(a: Float, b: Float) -> Float {
+    a / b
+}
+
+fn add8(a: i8, b: i8) -> i8 {
+    a + b
+}
+
+fn sub8(a: i8, b: i8) -> i8 {
+    a - b
+}
+
+fn mul8(a: i8, b: i8) -> i8 {
+    a * b
+}
+
+fn addu8(a: u8, b: u8) -> u8 {
+    a + b
+}
+
+fn mulu64(a: u64, b: u64) -> u64 {
+    a * b
+}
+
+fn mul64(a: Int, b: Int) -> Int {
+    a * b
+}
+
+fn sub64(a: Int, b: Int) -> Int {
+    a - b
+}
+
+fn div64(a: Int, b: Int) -> String {
+    "${a / b} ${a % b}"
+}
+
+fn bound() -> String {
+    "${add8(127, 0)} ${add8(-128, 127)} ${sub8(-128, 0)} ${sub8(-1, -128)} ${mul8(-128, 1)} ${mul8(-64, 2)} ${addu8(255, 0)} ${mulu64(4294967296, 4294967295)} ${mul64(-4611686018427387904, 2)} ${sub64(-9223372036854775807, 1)} ${div64(-9223372036854775807 - 1, 1)} ${div64(-9223372036854775807 - 1, -2)} ${div64(7, -3)}"
+}
+-- stdout --
+-7 -13 -30 -3 -1 -11 10 9
+127 -1 -128 127 -128 -128 255 18446744069414584320 -9223372036854775808 -9223372036854775808 -9223372036854775808 0 4611686018427387904 0 -2 1
+-5 -9 -14 -3 -1 -5 7 6
+201 199 200 200 0 201 55
+2147483645 2147483647 -2147483646 -2147483646 0 -2147483646 -2147483647
+-9 -5 14 3 -1 7 6
+131070 0 4294836225 1 0 4294901760
+4611686018427387902 4611686018427387906 -9223372036854775808 -2305843009213693952 0 -4611686018427387904 -4611686018427387905
+-3074457345618258599 -3074457345618258605 -9223372036854775806 -1024819115206086200 -2 3074457345618258602 3074457345618258601
+8589934592 2 18446744073709551615 1 2 18446744069414584318
+9223372036854775809 9223372036854775807 9223372036854775808 9223372036854775808 0 9223372036854775807
+64 0
+-128 -32
+-128 -1
+32768 0
+65535 65535
+4611686018427387904 0
+-9223372036854775808 -1
+9223372036854775808 0
+-120 118 119 -2 63 -2 -65
+127 -127 -128 0 -1 64 1
+-12 6 27 -128 -1 -2 -5
+32 4294967262 4294967263 4294967294 2147483647 4294967295 4294967295
+2147483679 2147483617 2147483648 0 1 1073741824 1
+-9223372036854775744 9223372036854775742 9223372036854775743 -2 4611686018427387903 -2 -4611686018427387905
+9223372036854775807 -9223372036854775807 -9223372036854775808 0 -1 4611686018427387904 1
+126 18446744073709551488 18446744073709551489 9223372036854775808 1 18446744073709551615 18446744073709551615
+-1 7 300 300 300 300 44 300
+-1 7 7 -129 7 -129 127 -129
+-1 7 7 -1 7 -1 255 -1
+-1 255 255 255 255 255 255 255
+-1 7 7 -1 9007199254740993 9.007199254740992e+15 1 1
+-1 7 7 -1 7 -9.223372036854776e+18 0 0
+-1 -1 7 1.8446744073709552e+19 18446744073709551615
+-1 -1 7 9.223372036854776e+18 9223372036854775808
+9223372036854775807 -1 7 9.223372036854776e+18 9223372036854775807
+200 -1 200 200 200
+7 7 -128 -128
+127 127 127 127
+2
+-2
+-1
+-9223372036854775808
+-1
+-1
+-1
+-1
+9223372036854774784
+none
+55295
+none
+none
+57344
+1114111
+none
+1.4142135623730951 2 2 2 1.4142135623730951
+NaN -3 -2 -3 -15.625
+1.5811388300841898 2 3 3 0.4
+NaN -1 -1 -1 NaN
+0 0 0 0 +Inf
+NaN -1 -0 -1 0.25
++Inf +Inf +Inf +Inf 1

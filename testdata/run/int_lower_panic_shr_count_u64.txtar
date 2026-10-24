@@ -1,0 +1,14 @@
+-- src --
+fn f(a: u64, n: usize) -> u64 {
+    a >> n
+}
+
+print "start"
+let r = f(1, 18446744073709551615)
+print "unreachable ${r}"
+-- stdout --
+start
+-- stderr --
+panic: shift count out of range
+-- exit --
+2

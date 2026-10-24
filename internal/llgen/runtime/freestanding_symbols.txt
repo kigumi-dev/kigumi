@@ -38,6 +38,7 @@ __aeabi_memmove8
 __aeabi_memset
 __aeabi_memset4
 __aeabi_memset8
+__aeabi_uidiv
 __aeabi_ul2d
 __aeabi_uldivmod
 __divdi3
@@ -48,6 +49,7 @@ __indirect_function_table
 __moddi3
 __multi3
 __rt_sdiv64
+__rt_udiv
 __rt_udiv64
 __stack_pointer
 __u64tod

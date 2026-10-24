@@ -6,7 +6,7 @@ import (
 )
 
 // scalarInfo is a local materialized in a native register: Ty is the
-// register type, Nk the numeric-kind tag rt_int/rt_iadd/... expect
+// register type, Nk the numeric-kind tag rt_int and the inline integer ops expect
 // (meaningless for TDouble, TFloat, TI1 and TI32).
 type scalarInfo struct {
 	Ty Type

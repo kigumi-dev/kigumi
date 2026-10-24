@@ -329,7 +329,3 @@ static int64_t w_range_len(val lo, val hi, int inclusive) {
     if (d.hi != 0 || d.lo >= (uint64_t)INT64_MAX) return INT64_MAX;
     return (int64_t)d.lo + (inclusive != 0);
 }
-static void w_store(w128 w, int64_t* out) {
-    out[0] = (int64_t)w.lo;
-    out[1] = (int64_t)w.hi;
-}

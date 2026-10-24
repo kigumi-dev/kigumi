@@ -39,13 +39,13 @@ func (e *emitter) wideCall(sb *strings.Builder, f *mir.Func, in mir.Inst, op str
 	case "WRAPPING_SUB":
 		res = Value{TI128, e.binOpT(sb, "sub", TI128, l, r)}
 	case "WRAPPING_MUL":
-		res = e.wideViaRuntime(sb, rtI128Mul, nk|wideWrap, l, r)
+		res = Value{TI128, e.binOpT(sb, "mul", TI128, l, r)}
 	case "WRAPPING_SHL", "WRAPPING_SHR":
 		c := Value{TI128, e.binOpT(sb, "and", TI128, r, Value{TI128, "127"})}
 		res = e.shiftWide(sb, map[string]string{"WRAPPING_SHL": "<<", "WRAPPING_SHR": ">>"}[op], signed, l, c)
 	default:
-		fn := map[string]string{"ROTATE_LEFT": "fshl", "ROTATE_RIGHT": "fshr"}[op]
-		res = Value{TI128, e.wideInstr(sb, "call i128 @llvm.%s.i128(i128 %s, i128 %s, i128 %s)", fn, l.Text, l.Text, r.Text)}
+		fn := map[string]string{"ROTATE_LEFT": "fshl.i128", "ROTATE_RIGHT": "fshr.i128"}[op]
+		res = Value{TI128, e.callIntrinsic(sb, fn, "i128", l.Text, l.Text, r.Text)}
 	}
 	e.storeScalarResult(sb, f, in.Dst, res)
 	return true

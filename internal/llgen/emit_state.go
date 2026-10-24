@@ -65,4 +65,5 @@ type emitter struct {
 	outer        *outerDrops
 	at           siteAt
 	std          stdUse
+	intrinsics   map[string]string
 }

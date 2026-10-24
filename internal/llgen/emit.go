@@ -55,9 +55,7 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	e.out.WriteString(header)
 	e.out.WriteString(e.aggTypes())
 	e.out.WriteString(memIntrinsics)
-	if int128 {
-		e.out.WriteString(wideIntrinsics)
-	}
+	e.out.WriteString(e.intrinsicDecls())
 	e.out.WriteString(e.modAsm.String())
 	e.out.WriteString(externs)
 	for _, name := range slices.Sorted(maps.Keys(e.foreign)) {

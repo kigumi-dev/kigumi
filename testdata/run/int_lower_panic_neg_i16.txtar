@@ -1,0 +1,14 @@
+-- src --
+fn f(a: i16) -> i16 {
+    -a
+}
+
+print "start"
+let r = f(-32768)
+print "unreachable ${r}"
+-- stdout --
+start
+-- stderr --
+panic: integer overflow
+-- exit --
+2
