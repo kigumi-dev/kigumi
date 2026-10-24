@@ -19,6 +19,16 @@ func (m *Machine) collection(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		return unitObj
 	case "array.Array.growBy":
 		return mkBool(uint64(a1.i) < maxVMAlloc && !m.faultTick())
+	case "array.Array.pushCopy":
+		if !m.writableInside(a1) {
+			a0.fields = append(a0.fields, retain(a1))
+		} else if m.faultTick() {
+			return mkBool(false)
+		} else {
+			a0.fields = append(a0.fields, m.copy(a1))
+		}
+		m.chargeMemory(a0)
+		return mkBool(true)
 	case "array.Array.len":
 		return mkInt(int64(len(a0.fields)), 64)
 	case "array.Array.get":

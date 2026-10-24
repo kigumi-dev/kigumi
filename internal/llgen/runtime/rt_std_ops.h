@@ -189,8 +189,9 @@ enum std_op {
     OP_BYTE_BUFFER_COPY_FROM = 184,
     OP_BYTE_BUFFER_FREEZE = 185,
     OP_BYTE_BUFFER_FREEZE_STRING = 186,
+    OP_ARRAY_PUSH_COPY = 187,
 };
-#define RT_STD_OPS_RETIRED_CASES case OP_BYTES_SLICE: case OP_BYTES_ZEROS: case OP_BYTES_FILL: case OP_BYTES_FROM_ARRAY: case OP_BYTES_CONCAT: case OP_SHARED_NEW: case OP_SHARED_GET: case OP_SHARED_DOWNGRADE: case OP_STRING_SLICE_BYTES: case OP_ARRAY_CLONE: case OP_BYTES_TRY_FILL: case OP_STRING_TRY_CONCAT: case OP_BOX_NEW: case OP_STRING_TRY_TRIM: case OP_STRING_TRY_TO_UPPER: case OP_STRING_TRY_TO_LOWER: case OP_STRING_TRY_SPLIT: case OP_TEXT_TRY_LINES: case OP_TEXT_TRY_GRAPHEMES: case OP_TEXT_TRY_REPLACE: case OP_TEXT_TRY_TRIM_PREFIX: case OP_TEXT_TRY_TRIM_SUFFIX: case OP_ARRAY_TRY_JOIN: case OP_STRING_BUILDER_TRY_PUSH: case OP_STRING_BUILDER_TRY_PUSH_BYTE: case OP_BYTES_INDEX_OF: case OP_STRING_CONTAINS: case OP_BYTES_LAST_INDEX_OF:
+#define RT_STD_OPS_RETIRED_CASES case OP_BYTES_SLICE: case OP_BYTES_ZEROS: case OP_BYTES_FILL: case OP_BYTES_FROM_ARRAY: case OP_BYTES_CONCAT: case OP_SHARED_NEW: case OP_SHARED_GET: case OP_SHARED_DOWNGRADE: case OP_STRING_SLICE_BYTES: case OP_ARRAY_CLONE: case OP_BYTES_TRY_FILL: case OP_ARRAY_TRY_COPY_RANGE: case OP_ARRAY_TRY_REVERSE: case OP_STRING_TRY_CONCAT: case OP_ARRAY_TRY_CONCAT: case OP_ARRAY_TRY_APPEND_ALL: case OP_ARRAY_TRY_CLONE: case OP_BOX_NEW: case OP_STRING_TRY_TRIM: case OP_STRING_TRY_TO_UPPER: case OP_STRING_TRY_TO_LOWER: case OP_STRING_TRY_SPLIT: case OP_TEXT_TRY_LINES: case OP_TEXT_TRY_GRAPHEMES: case OP_TEXT_TRY_REPLACE: case OP_TEXT_TRY_TRIM_PREFIX: case OP_TEXT_TRY_TRIM_SUFFIX: case OP_ARRAY_TRY_JOIN: case OP_STRING_BUILDER_TRY_PUSH: case OP_STRING_BUILDER_TRY_PUSH_BYTE: case OP_BYTES_INDEX_OF: case OP_STRING_CONTAINS: case OP_BYTES_LAST_INDEX_OF:
 #ifndef KIGUMI_OP_SELECT
 #define KIGUMI_OP_LEN
 #define KIGUMI_OP_STRING_TO_BYTES
@@ -298,9 +299,7 @@ enum std_op {
 #define KIGUMI_OP_ARRAY_FIRST
 #define KIGUMI_OP_ARRAY_LAST
 #define KIGUMI_OP_ARRAY_TRY_WITH_CAPACITY
-#define KIGUMI_OP_ARRAY_TRY_COPY_RANGE
 #define KIGUMI_OP_ARRAY_TRY_SLICE
-#define KIGUMI_OP_ARRAY_TRY_REVERSE
 #define KIGUMI_OP_ALLOC_WRAP
 #define KIGUMI_OP_STRING_TRY_SLICE_BYTES
 #define KIGUMI_OP_BYTES_TRY_SLICE
@@ -310,12 +309,9 @@ enum std_op {
 #define KIGUMI_OP_STRING_BUILDER_TRY_NEW
 #define KIGUMI_OP_ARRAY_TRY_MAP
 #define KIGUMI_OP_ARRAY_TRY_FILTER
-#define KIGUMI_OP_ARRAY_TRY_CONCAT
-#define KIGUMI_OP_ARRAY_TRY_APPEND_ALL
 #define KIGUMI_OP_ARRAY_TRY_INSERT_AT
 #define KIGUMI_OP_SHARED_TRY_GET
 #define KIGUMI_OP_SHARED_TRY_DOWNGRADE
-#define KIGUMI_OP_ARRAY_TRY_CLONE
 #define KIGUMI_OP_BOX_TRY_NEW
 #define KIGUMI_OP_BOX_GET
 #define KIGUMI_OP_BOX_SET
@@ -351,6 +347,7 @@ enum std_op {
 #define KIGUMI_OP_BYTE_BUFFER_COPY_FROM
 #define KIGUMI_OP_BYTE_BUFFER_FREEZE
 #define KIGUMI_OP_BYTE_BUFFER_FREEZE_STRING
+#define KIGUMI_OP_ARRAY_PUSH_COPY
 #define KIGUMI_STD_DYNAMIC
 #endif
 #ifdef KIGUMI_STD_DYNAMIC
@@ -452,9 +449,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "array.Array.first")) return OP_ARRAY_FIRST;
     if (!strcmp(k, "array.Array.last")) return OP_ARRAY_LAST;
     if (!strcmp(k, "array.Array.tryWithCapacity")) return OP_ARRAY_TRY_WITH_CAPACITY;
-    if (!strcmp(k, "array.Array.tryCopyRange")) return OP_ARRAY_TRY_COPY_RANGE;
     if (!strcmp(k, "array.Array.trySlice")) return OP_ARRAY_TRY_SLICE;
-    if (!strcmp(k, "array.Array.tryReverse")) return OP_ARRAY_TRY_REVERSE;
     if (!strcmp(k, "prelude.AllocError.wrap")) return OP_ALLOC_WRAP;
     if (!strcmp(k, "prelude.String.trySliceBytes")) return OP_STRING_TRY_SLICE_BYTES;
     if (!strcmp(k, "prelude.Bytes.trySlice")) return OP_BYTES_TRY_SLICE;
@@ -464,12 +459,9 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "text.StringBuilder.tryNew")) return OP_STRING_BUILDER_TRY_NEW;
     if (!strcmp(k, "array.Array.tryMap")) return OP_ARRAY_TRY_MAP;
     if (!strcmp(k, "array.Array.tryFilter")) return OP_ARRAY_TRY_FILTER;
-    if (!strcmp(k, "array.Array.tryConcat")) return OP_ARRAY_TRY_CONCAT;
-    if (!strcmp(k, "array.Array.tryAppendAll")) return OP_ARRAY_TRY_APPEND_ALL;
     if (!strcmp(k, "array.Array.tryInsertAt")) return OP_ARRAY_TRY_INSERT_AT;
     if (!strcmp(k, "alloc.Shared.tryGet")) return OP_SHARED_TRY_GET;
     if (!strcmp(k, "alloc.Shared.tryDowngrade")) return OP_SHARED_TRY_DOWNGRADE;
-    if (!strcmp(k, "array.Array.tryClone")) return OP_ARRAY_TRY_CLONE;
     if (!strcmp(k, "alloc.Box.tryNew")) return OP_BOX_TRY_NEW;
     if (!strcmp(k, "alloc.Box.get")) return OP_BOX_GET;
     if (!strcmp(k, "alloc.Box.set")) return OP_BOX_SET;
@@ -505,6 +497,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "prelude.ByteBuffer.copyFrom") || !strcmp(k, "prelude.ByteBuffer.copyFromString")) return OP_BYTE_BUFFER_COPY_FROM;
     if (!strcmp(k, "prelude.ByteBuffer.freeze")) return OP_BYTE_BUFFER_FREEZE;
     if (!strcmp(k, "prelude.ByteBuffer.freezeString")) return OP_BYTE_BUFFER_FREEZE_STRING;
+    if (!strcmp(k, "array.Array.pushCopy")) return OP_ARRAY_PUSH_COPY;
     const char* dot = strrchr(k, '.');
     if (dot) {
         const char* m = dot + 1;

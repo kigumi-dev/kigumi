@@ -1,0 +1,26 @@
+type Cell = {
+    mut n Int
+    tag String
+}
+
+fn run() {
+    let a = Array.of(Cell {
+        n: 1
+        tag: "a"
+    }, Cell {
+        n: 2
+        tag: "b"
+    })
+    let before = a.len()
+    eprint "go"
+    let r = a.tryClone()
+    if r is Err(_) {
+        if a.len() == before && a[0].n == 1 && a[1].tag == "b" {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

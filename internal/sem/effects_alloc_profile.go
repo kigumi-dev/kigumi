@@ -31,7 +31,8 @@ func (r *Result) fatalConveniences() map[string]bool {
 // a callback forwarded to a fallible primitive, a `?` that rebuilds the Err. A two-call fault sweep fixture covers each.
 var reservedTry = map[string]bool{
 	"array.Array.tryFill": true, "array.Array.tryPush": true, "array.Array.tryCloneWith": true,
-	"map.Map.trySet": true, "array.tryJoin": true, "prelude.Bytes.tryFill": true,
+	"array.Array.tryCopyRange": true, "array.Array.tryReverse": true, "array.Array.tryConcat": true,
+	"array.Array.tryAppendAll": true, "map.Map.trySet": true, "array.tryJoin": true, "prelude.Bytes.tryFill": true,
 	"prelude.String.tryTrim": true, "prelude.String.trySplit": true, "prelude.String.tryConcat": true,
 	"prelude.String.tryToUpper": true, "prelude.String.tryToLower": true, "text.tryReplace": true,
 	"text.tryLines": true, "text.tryGraphemes": true, "text.tryTrimPrefix": true, "text.tryTrimSuffix": true,

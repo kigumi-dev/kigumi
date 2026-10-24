@@ -154,6 +154,7 @@ func (m *Machine) registerAll() {
 	m.registerError()
 	m.registerExit()
 	m.registerTextAccel()
+	m.registerArrayAccel()
 	m.indexHostByOp()
 }
 

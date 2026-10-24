@@ -14,8 +14,19 @@ import (
 // textAccelUse finds run fixtures that reach a std text function the VM accelerates in Go, directly or through std/json, std/http, std/fmt or std/cli.
 var textAccelUse = regexp.MustCompile(`\.(trim|split|toUpper|toLower|tryTrim|trySplit|tryToUpper|tryToLower|contains|indexOf|lastIndexOf)\(|text\.|array\.(join|tryJoin)\(|StringBuilder|from std/(json|http|fmt|cli)`)
 
+// arrayAccelUse finds run fixtures that reach an array copy body the VM accelerates in Go, directly or through Map.keys / values.
+var arrayAccelUse = regexp.MustCompile(`\.(clone|tryClone|take|tryTake|reverse|tryReverse|concat|tryConcat|keys|values|tryKeys|tryValues)\(`)
+
 // TestTextAcceleratorsMatchKigumiBodies runs those fixtures with the accelerators and with NoAccel, where the Kigumi bodies run, and wants the same run from both.
 func TestTextAcceleratorsMatchKigumiBodies(t *testing.T) {
+	checkAcceleratorsMatchBodies(t, textAccelUse, 20)
+}
+
+func TestArrayAcceleratorsMatchKigumiBodies(t *testing.T) {
+	checkAcceleratorsMatchBodies(t, arrayAccelUse, 20)
+}
+
+func checkAcceleratorsMatchBodies(t *testing.T, use *regexp.Regexp, least int) {
 	manifest := loadManifest(t)
 	files, _ := filepath.Glob("../../testdata/run/*.txtar")
 	picked := 0
@@ -25,7 +36,7 @@ func TestTextAcceleratorsMatchKigumiBodies(t *testing.T) {
 			t.Fatal(err)
 		}
 		fx := manifest.ByID(fixtureID(path))
-		if fx == nil || !fx.Runs("vm") || !textAccelUse.Match(src) {
+		if fx == nil || !fx.Runs("vm") || !use.Match(src) {
 			continue
 		}
 		picked++
@@ -59,7 +70,7 @@ func TestTextAcceleratorsMatchKigumiBodies(t *testing.T) {
 			}
 		})
 	}
-	if picked < 20 {
+	if picked < least {
 		t.Fatalf("picked only %d fixtures", picked)
 	}
 }

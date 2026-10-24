@@ -1,0 +1,32 @@
+type Cell = {
+    mut n Int
+    tag String
+}
+
+fn run() {
+    let mut a = Array.of(Cell {
+        n: 1
+        tag: "a"
+    })
+    let before = a.len()
+    let mut extra = Array.empty[Cell]()
+    let mut i = 2
+    for i < 6 {
+        extra.push(Cell {
+            n: i
+            tag: "b"
+        })
+        i = i + 1
+    }
+    eprint "go"
+    let r = a.tryAppendAll(extra)
+    if r is Err(_) {
+        if a.len() == before && a[0].n == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()

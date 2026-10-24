@@ -129,3 +129,49 @@ func BenchmarkVMText(b *testing.B) {
 		}
 	}
 }
+
+// arrayBenchBodies are array operations whose std bodies are Kigumi; each runs over the same 64 elements in a loop.
+var arrayBenchBodies = []struct{ name, body string }{
+	{"clone", `let t = nums.clone()`},
+	{"take", `let t = nums.take(32)`},
+	{"reverse", `let t = nums.reverse()`},
+	{"concat", `let t = nums.concat(Array.of(1, 2, 3))`},
+	{"appendAll", "let mut t = Array.of(0)\n    t.appendAll(Array.of(1, 2, 3, 4, 5, 6, 7, 8))"},
+	{"cloneStrings", `let t = words.clone()`},
+	{"mapKeys", `let t = m.keys()`},
+}
+
+func arrayBenchSrc(body string) string {
+	return `import map from std/map
+
+let nums = Array.tryFill(7, 64).unwrap()
+let words = "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")
+let mut m = map.empty[Int, Int]()
+for k in 0..32 {
+    m.set(k, k)
+}
+for i in 0..300 {
+    ` + body + `
+}
+print "done"
+`
+}
+
+// BenchmarkVMArray runs each array operation with the host accelerators on and with NoAccel, where the Kigumi body runs.
+func BenchmarkVMArray(b *testing.B) {
+	for _, c := range arrayBenchBodies {
+		prog := buildRunnableProgramTB(b, arrayBenchSrc(c.body))
+		for _, mode := range []struct {
+			name    string
+			noAccel bool
+		}{{"accel", false}, {"body", true}} {
+			b.Run(c.name+"/"+mode.name, func(b *testing.B) {
+				for b.Loop() {
+					if _, err := vm.Run(prog, vm.Options{NoAccel: mode.noAccel}, io.Discard, io.Discard); err != nil {
+						b.Fatalf("run: %v", err)
+					}
+				}
+			})
+		}
+	}
+}

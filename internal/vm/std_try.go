@@ -9,10 +9,6 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 			return m.allocError()
 		}
 		return m.ok(mkArray(nil))
-	case "array.Array.tryCopyRange":
-		n := uint64(len(a0.fields))
-		start, end := min(uint64(a1.i), n), min(uint64(a2.i), n)
-		return m.tryCopyItems(a0, int64(start), int64(max(end, start)), false)
 	case "array.Array.trySlice":
 		if a1.i < 0 || a1.i > a2.i || a2.i > int64(len(a0.fields)) {
 			return m.ok(m.none())
@@ -22,19 +18,6 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		return m.tryMapItems(a0, a1)
 	case "array.Array.tryFilter":
 		return m.tryFilterItems(a0, a1)
-	case "array.Array.tryConcat":
-		if m.faultTick() {
-			return m.allocError()
-		}
-		items := append(append([]*obj{}, m.copyAll(a0.fields)...), retainAll(a1.fields)...)
-		return m.ok(m.sized(mkArray(items)))
-	case "array.Array.tryAppendAll":
-		if m.faultTick() {
-			return m.allocError()
-		}
-		a0.fields = append(a0.fields, retainAll(a1.fields)...)
-		m.chargeMemory(a0)
-		return m.ok(unitObj)
 	case "array.Array.tryInsertAt":
 		at, n := uint64(a1.i), uint64(len(a0.fields))
 		if m.faultTick() {
@@ -60,8 +43,6 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 		c := a0.opaqueData().(*sharedCtrl)
 		c.weak++
 		return m.ok(mkOpaque("Weak", c))
-	case "array.Array.tryClone", "array.Array.tryReverse":
-		return m.tryCopyItems(a0, 0, int64(len(a0.fields)), key == "array.Array.tryReverse")
 	case "prelude.AllocError.wrap":
 		if m.faultTick() {
 			return m.allocError()
@@ -100,28 +81,17 @@ func (m *Machine) tryFamily(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	return nil
 }
 
-func (m *Machine) tryCopyItems(src *obj, start, end int64, reverse bool) *obj {
-	if m.faultTick() {
-		return m.allocError()
-	}
-	return m.ok(copyItems(m, src, start, end, reverse))
-}
-
 func (m *Machine) tryOptionalCopy(src *obj, start, end int64) *obj {
 	if m.faultTick() {
 		return m.allocError()
 	}
-	return m.ok(m.some(copyItems(m, src, start, end, false)))
+	return m.ok(m.some(copyItems(m, src, start, end)))
 }
 
-func copyItems(m *Machine, src *obj, start, end int64, reverse bool) *obj {
+func copyItems(m *Machine, src *obj, start, end int64) *obj {
 	out := make([]*obj, 0, end-start)
 	for i := start; i < end; i++ {
-		at := i
-		if reverse {
-			at = end - 1 - (i - start)
-		}
-		out = append(out, m.copy(src.fields[at]))
+		out = append(out, m.copy(src.fields[i]))
 	}
 	c := mkArray(out)
 	m.chargeMemory(c)
@@ -153,22 +123,6 @@ func (m *Machine) tryEmptyRecord(pkg, name string, n int) *obj {
 		fields[i] = mkArray(nil)
 	}
 	return m.ok(mkRecord(m.lookup(pkg, name), fields))
-}
-
-func (m *Machine) copyAll(items []*obj) []*obj {
-	out := make([]*obj, len(items))
-	for i, x := range items {
-		out[i] = m.copy(x)
-	}
-	return out
-}
-
-func retainAll(items []*obj) []*obj {
-	out := make([]*obj, len(items))
-	for i, x := range items {
-		out[i] = retain(x)
-	}
-	return out
 }
 
 func (m *Machine) sized(v *obj) *obj {

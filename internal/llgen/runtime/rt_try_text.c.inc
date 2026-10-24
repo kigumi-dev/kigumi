@@ -52,7 +52,7 @@ static void unwind_sort(kg_unwind* u) {
 }
 #endif
 static val try_array_sorted_by(val items, val order) {
-    val out = array_try_copy(items, 0, items->u.arr.len, 0);
+    val out = array_try_copy(items, 0, items->u.arr.len);
     if (!out) return alloc_error();
     val* tmp = NULL;
     if (out->u.arr.len > 1) {

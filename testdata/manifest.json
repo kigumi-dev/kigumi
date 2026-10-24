@@ -2259,6 +2259,23 @@
       ]
     },
     {
+      "id": "run/array_append_all_resources",
+      "kind": "run",
+      "path": "testdata/run/array_append_all_resources.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/array_bulk",
       "kind": "run",
       "path": "testdata/run/array_bulk.txtar",
@@ -2313,6 +2330,23 @@
       "id": "run/array_int128_elements",
       "kind": "run",
       "path": "testdata/run/array_int128_elements.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/array_kigumi_bodies",
+      "kind": "run",
+      "path": "testdata/run/array_kigumi_bodies.txtar",
       "mode": [
         "vm",
         "native"

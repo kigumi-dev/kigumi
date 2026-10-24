@@ -360,12 +360,10 @@ elem
 key array.Array.last
 op 116 ARRAY_TRY_WITH_CAPACITY primitive (int) -> result
 key array.Array.tryWithCapacity
-op 117 ARRAY_TRY_COPY_RANGE primitive (array, int, int) -> result
-key array.Array.tryCopyRange
+op 117 ARRAY_TRY_COPY_RANGE retired
 op 118 ARRAY_TRY_SLICE primitive (array, int, int) -> result
 key array.Array.trySlice
-op 119 ARRAY_TRY_REVERSE primitive (array) -> result
-key array.Array.tryReverse
+op 119 ARRAY_TRY_REVERSE retired
 op 120 ALLOC_WRAP primitive (any) -> result
 key prelude.AllocError.wrap
 op 121 STRING_TRY_CONCAT retired
@@ -390,10 +388,8 @@ key array.Array.tryMap
 op 129 ARRAY_TRY_FILTER primitive (array, fn) -> result
 callback 1
 key array.Array.tryFilter
-op 130 ARRAY_TRY_CONCAT primitive (array, array) -> result
-key array.Array.tryConcat
-op 131 ARRAY_TRY_APPEND_ALL primitive (array, array) -> result
-key array.Array.tryAppendAll
+op 130 ARRAY_TRY_CONCAT retired
+op 131 ARRAY_TRY_APPEND_ALL retired
 op 132 ARRAY_TRY_INSERT_AT primitive (array, int, any) -> result
 key array.Array.tryInsertAt
 op 133 SHARED_TRY_GET primitive (named) -> result
@@ -416,8 +412,7 @@ builtin direct.hash (any) -> int min=1 vm native=inline
 builtin cmp.unordered (any, any, any) -> bool min=3 vm native=runtime
 builtin cmp.guard (bool, bool) -> bool min=2 vm native=runtime
 builtin task.close () -> any vm native=inline
-op 135 ARRAY_TRY_CLONE primitive (array) -> result
-key array.Array.tryClone
+op 135 ARRAY_TRY_CLONE retired
 op 136 BOX_NEW retired
 op 137 BOX_TRY_NEW primitive (any) -> result
 key alloc.Box.tryNew
@@ -577,3 +572,5 @@ key prelude.ByteBuffer.freeze
 op 186 BYTE_BUFFER_FREEZE_STRING primitive (named) -> string
 isr inert
 key prelude.ByteBuffer.freezeString
+op 187 ARRAY_PUSH_COPY primitive (array, any) -> bool
+key array.Array.pushCopy

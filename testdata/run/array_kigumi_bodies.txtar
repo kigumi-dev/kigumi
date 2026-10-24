@@ -1,0 +1,80 @@
+-- src --
+import array from std/array
+import map from std/map
+
+type Cell = {
+    mut n Int
+    tag String
+}
+
+fn ints(xs: &Array[Int]) -> String {
+    "[${array.join(&xs.map((x: &Int) => "${x}"), ",")}]"
+}
+
+fn cells(xs: &Array[Cell]) -> String {
+    "[${array.join(&xs.map((c: &Cell) => "${c.tag}${c.n}"), ",")}]"
+}
+
+fn bump(xs: &mut Array[Cell]) {
+    let mut i: usize = 0
+    for i < xs.len() {
+        _ = xs.withMut(i, (c: &mut Cell) => {
+            c.n = c.n + 100
+        })
+        i = i + 1
+    }
+}
+
+let a = Array.of(1, 2, 3, 4, 5)
+let none = Array.empty[Int]()
+print "take ${ints(&a.take(0))} ${ints(&a.take(3))} ${ints(&a.take(9))} ${ints(&none.take(2))}"
+print "reverse ${ints(&a.reverse())} ${ints(&none.reverse())} ${ints(&Array.of(7).reverse())}"
+print "clone ${ints(&a.clone())} ${a.clone().equals(&a)} ${ints(&none.clone())}"
+print "concat ${ints(&a.concat(Array.of(6, 7)))} ${ints(&none.concat(Array.of(1)))} ${ints(&a.concat(Array.empty[Int]()))}"
+let mut b = Array.of(9)
+b.appendAll(Array.of(8, 7))
+b.appendAll(Array.empty[Int]())
+print "appendAll ${ints(&b)} ${b.len()}"
+print "map ${ints(&a.map((x: &Int) => x * 10))} ${ints(&none.map((x: &Int) => x + 0))}"
+print "filter ${ints(&a.filter((x: &Int) => x % 2 == 1))} ${ints(&a.filter((x: &Int) => false))} ${ints(&a.filter((x: &Int) => true))}"
+let words = Array.of("x", "yy", "zzz")
+let moved = Array.of("p", "q")
+print "strings ${array.join(&words.concat(moved), "|")} ${array.join(&words.reverse(), "|")} ${array.join(&words.take(2), "|")}"
+print "try ${a.tryReverse() is Ok(_)} ${a.tryClone() is Ok(_)} ${a.tryConcat(Array.of(1)) is Ok(_)} ${a.tryMap((x: &Int) => x + 1) is Ok(_)} ${a.tryFilter((x: &Int) => true) is Ok(_)} ${a.tryTake(1) is Ok(_)}"
+let mut grow = Array.of(1)
+print "tryAppendAll ${grow.tryAppendAll(Array.of(2, 3)) is Ok(_)} ${ints(&grow)}"
+let cs = Array.of(Cell { n: 1, tag: "a" }, Cell { n: 2, tag: "b" }, Cell { n: 3, tag: "c" })
+let mut c1 = cs.clone()
+let mut c2 = cs.reverse()
+let mut c3 = cs.take(2)
+let mut c4 = cs.concat(Array.of(Cell { n: 4, tag: "d" }))
+let mut c5 = cs.filter((c: &Cell) => c.n != 2)
+bump(&mut c1)
+bump(&mut c2)
+bump(&mut c3)
+bump(&mut c4)
+bump(&mut c5)
+print "copies ${cells(&cs)} ${cells(&c1)} ${cells(&c2)} ${cells(&c3)} ${cells(&c4)} ${cells(&c5)}"
+let mut c6 = Array.fill(Cell { n: 5, tag: "e" }, 2)
+_ = c6.withMut(0, (c: &mut Cell) => {
+    c.n = 0
+})
+print "fill ${cells(&c6)}"
+let mut m = map.empty[String, Int]()
+m.set("one", 1)
+m.set("two", 2)
+print "map ${array.join(&m.keys(), ",")} ${ints(&m.values())}"
+-- stdout --
+take [] [1,2,3] [1,2,3,4,5] []
+reverse [5,4,3,2,1] [] [7]
+clone [1,2,3,4,5] true []
+concat [1,2,3,4,5,6,7] [1] [1,2,3,4,5]
+appendAll [9,8,7] 3
+map [10,20,30,40,50] []
+filter [1,3,5] [] [1,2,3,4,5]
+strings x|yy|zzz|p|q zzz|yy|x x|yy
+try true true true true true true
+tryAppendAll true [1,2,3]
+copies [a1,b2,c3] [a101,b102,c103] [c103,b102,a101] [a101,b102] [a101,b102,c103,d104] [a101,c103]
+fill [e0,e5]
+map one,two [1,2]

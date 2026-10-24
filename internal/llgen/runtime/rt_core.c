@@ -2222,12 +2222,11 @@ static val copy_try(val v) {
     }
     return rt_retain(v);
 }
-// array_try_copy copies items s..e, back to front when reverse is set.
-static val array_try_copy(val src, int64_t s, int64_t e, int reverse) {
+static val array_try_copy(val src, int64_t s, int64_t e) {
     val out = array_try_new(e - s);
     if (!out) return NULL;
     for (int64_t i = 0; i < e - s; i++) {
-        val x = src->u.arr.items[reverse ? e - 1 - i : s + i];
+        val x = src->u.arr.items[s + i];
         if (!copy_slot_try(&out->u.arr.items[i], x)) {
             rt_release(out);
             return NULL;
@@ -3643,32 +3642,9 @@ val rt_std_id(int op, int n, val* a) {
         return try_ok(out);
     }
 #endif
-#if defined(KIGUMI_OP_ARRAY_TRY_CONCAT)
-    case OP_ARRAY_TRY_CONCAT: {
-        val out = array_try_new(a0->u.arr.len + a1->u.arr.len);
-        if (!out) return alloc_error();
-        for (int64_t i = 0; i < a0->u.arr.len; i++) out->u.arr.items[out->u.arr.len++] = rt_copy(a0->u.arr.items[i]);
-        for (int64_t i = 0; i < a1->u.arr.len; i++) out->u.arr.items[out->u.arr.len++] = rt_retain(a1->u.arr.items[i]);
-        return try_ok(out);
-    }
-#endif
-#if defined(KIGUMI_OP_ARRAY_TRY_APPEND_ALL)
-    case OP_ARRAY_TRY_APPEND_ALL: {
-        // The Ok wrapper comes first: once the items are in, nothing may fail and leave them there.
-        val unit = rt_unit();
-        val done = rt_variant_try(V_Ok, 1, &unit);
-        if (!done) return alloc_error();
-        if (!try_grow(a0, (uint64_t)a1->u.arr.len)) {
-            rt_release(done);
-            return alloc_error();
-        }
-        for (int64_t i = 0; i < a1->u.arr.len; i++) a0->u.arr.items[a0->u.arr.len++] = rt_retain(a1->u.arr.items[i]);
-        return done;
-    }
-#endif
 #if defined(KIGUMI_OP_ARRAY_TRY_INSERT_AT)
     case OP_ARRAY_TRY_INSERT_AT: {
-        // As with append_all, the Ok wrapper is built before the array changes.
+        // The Ok wrapper is built before the array changes, so a refusal leaves it untouched.
         uint64_t at = (uint64_t)a1->u.i, len = (uint64_t)a0->u.arr.len;
         val fits = rt_bool(at <= len);
         val done = rt_variant_try(V_Ok, 1, &fits);
@@ -3690,33 +3666,12 @@ val rt_std_id(int op, int n, val* a) {
         return out ? try_ok(out) : alloc_error();
     }
 #endif
-#if defined(KIGUMI_OP_ARRAY_TRY_COPY_RANGE)
-    case OP_ARRAY_TRY_COPY_RANGE: {
-        uint64_t len = (uint64_t)a0->u.arr.len, lo = (uint64_t)a1->u.i, hi = (uint64_t)a2->u.i;
-        if (lo > len) lo = len;
-        if (hi > len) hi = len;
-        val out = array_try_copy(a0, (int64_t)lo, (int64_t)(hi < lo ? lo : hi), 0);
-        return out ? try_ok(out) : alloc_error();
-    }
-#endif
-#if defined(KIGUMI_OP_ARRAY_TRY_CLONE)
-    case OP_ARRAY_TRY_CLONE: {
-        val out = array_try_copy(a0, 0, a0->u.arr.len, 0);
-        return out ? try_ok(out) : alloc_error();
-    }
-#endif
 #if defined(KIGUMI_OP_ARRAY_TRY_SLICE)
     case OP_ARRAY_TRY_SLICE: {
         int64_t s = a1->u.i, e = a2->u.i;
         if (s < 0 || s > e || e > a0->u.arr.len) return try_ok(none());
-        val out = array_try_copy(a0, s, e, 0);
+        val out = array_try_copy(a0, s, e);
         return out ? try_ok_some(out) : alloc_error();
-    }
-#endif
-#if defined(KIGUMI_OP_ARRAY_TRY_REVERSE)
-    case OP_ARRAY_TRY_REVERSE: {
-        val out = array_try_copy(a0, 0, a0->u.arr.len, 1);
-        return out ? try_ok(out) : alloc_error();
     }
 #endif
 #if defined(KIGUMI_OP_ALLOC_WRAP)
@@ -3849,6 +3804,15 @@ val rt_std_id(int op, int n, val* a) {
 #endif
 #if defined(KIGUMI_OP_ARRAY_GROW_BY)
     case OP_ARRAY_GROW_BY: return rt_bool(try_grow(a0, (uint64_t)a1->u.i));
+#endif
+#if defined(KIGUMI_OP_ARRAY_PUSH_COPY)
+    case OP_ARRAY_PUSH_COPY: {
+        if (!try_grow(a0, 1)) return rt_bool(0);
+        val x = writable_inside(a1) ? copy_try(a1) : rt_retain(a1);
+        if (!x && a1) return rt_bool(0);
+        a0->u.arr.items[a0->u.arr.len++] = x;
+        return rt_bool(1);
+    }
 #endif
 #if defined(KIGUMI_OP_ARRAY_LEN)
     case OP_ARRAY_LEN: return rt_int(a0->u.arr.len, 64);

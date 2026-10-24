@@ -7,7 +7,9 @@ pub pure fn Array[T: Copy].clone(self) -> Array[T] {
 }
 
 /// A copy of the array, or AllocError when the allocator refuses (clone panics instead).
-pub pure fn Array[T: Copy].tryClone(self) -> Result[Array[T], AllocError]
+pub pure fn Array[T: Copy].tryClone(self) -> Result[Array[T], AllocError] {
+    self.tryCopyRange(0, self.len())
+}
 
 /// A copy of the array whose elements f builds from a borrow of each original.
 pub pure fn Array[T].cloneWith(self, f: fn(&T) -> T) -> Array[T] {
@@ -35,7 +37,9 @@ pub pure fn Array.tryFill[T: Copy](value: T, n: usize) -> Result[Array[T], Alloc
     let mut out = Array.tryWithCapacity[T](n)?
     let mut i: usize = 0
     for i < n {
-        out.push(value)
+        if !out.pushCopy(&value) {
+            return Err(AllocError.OutOfMemory)
+        }
         i = i + 1
     }
     AllocError.wrap(out)
@@ -45,16 +49,41 @@ pub pure fn Array.tryFill[T: Copy](value: T, n: usize) -> Result[Array[T], Alloc
 pub pure fn Array.tryWithCapacity[T](capacity: usize) -> Result[Array[T], AllocError]
 
 /// Copies of self[start..end], the range clamped to the array; AllocError when the allocator refuses.
-pure fn Array[T: Copy].tryCopyRange(self, start: usize, end: usize) -> Result[Array[T], AllocError]
+pure fn Array[T: Copy].tryCopyRange(self, start: usize, end: usize) -> Result[Array[T], AllocError] {
+    let lo = if start < self.len() { start } else { self.len() }
+    let hi = if end < lo { lo } else if end < self.len() { end } else { self.len() }
+    let mut out = Array.tryWithCapacity[T](hi - lo)?
+    let mut i = lo
+    for i < hi {
+        if !out.pushCopy(&self[i]) {
+            return Err(AllocError.OutOfMemory)
+        }
+        i = i + 1
+    }
+    AllocError.wrap(out)
+}
 
 /// Copy with the elements in reverse order, or AllocError when the allocator refuses (reverse panics instead).
-pub pure fn Array[T: Copy].tryReverse(self) -> Result[Array[T], AllocError]
+pub pure fn Array[T: Copy].tryReverse(self) -> Result[Array[T], AllocError] {
+    let mut out = Array.tryWithCapacity[T](self.len())?
+    let mut i = self.len()
+    for i > 0 {
+        i = i - 1
+        if !out.pushCopy(&self[i]) {
+            return Err(AllocError.OutOfMemory)
+        }
+    }
+    AllocError.wrap(out)
+}
 
 /// Appends item at the end; panics when memory runs out (tryPush reports it instead).
 pub pure fn Array[T].push(mut self, item: T)
 
 /// Makes room for extra more elements; false when the allocator refuses.
 pure fn Array[T].growBy(mut self, extra: usize) -> Bool
+
+/// Appends a copy of item, deep only when a write could reach it; false when the allocator refuses the copy.
+pure fn Array[T: Copy].pushCopy(mut self, item: &T) -> Bool
 
 /// Appends item, or returns AllocError when memory runs out.
 pub pure fn Array[T].tryPush(mut self, item: T) -> Result[Void, AllocError] {
@@ -77,7 +106,12 @@ pub pure fn Array[T].appendAll(mut self, other: Array[T]) {
 }
 
 /// Moves the elements of other into self, or AllocError when the allocator refuses.
-pub pure fn Array[T].tryAppendAll(mut self, other: Array[T]) -> Result[Void, AllocError]
+pub pure fn Array[T].tryAppendAll(mut self, other: Array[T]) -> Result[Void, AllocError] {
+    self.tryReserve(other.len())?
+    for item in other {
+        self.push(item)
+    }
+}
 
 /// Inserts item before the element at index, shifting the later ones up; false when index is past the end. Panics when memory runs out (tryInsertAt reports it instead).
 pub pure fn Array[T].insertAt(mut self, index: usize, item: T) -> Bool {
@@ -213,7 +247,16 @@ pub pure fn Array[T: Copy].concat(self, other: Array[T]) -> Array[T] {
 }
 
 /// New array holding the elements of self followed by those of other, or AllocError when the allocator refuses (concat panics instead).
-pub pure fn Array[T: Copy].tryConcat(self, other: Array[T]) -> Result[Array[T], AllocError]
+pub pure fn Array[T: Copy].tryConcat(self, other: Array[T]) -> Result[Array[T], AllocError] {
+    let mut out = Array.tryWithCapacity[T](self.len() + other.len())?
+    for item in &self {
+        if !out.pushCopy(item) {
+            return Err(AllocError.OutOfMemory)
+        }
+    }
+    out.tryAppendAll(other)?
+    AllocError.wrap(out)
+}
 
 /// Concatenates items with sep between consecutive elements.
 pub pure fn join(items: &Array[String], sep: String) -> String {

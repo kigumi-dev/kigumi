@@ -480,6 +480,16 @@
     "status": "ok"
   },
   {
+    "key": "array.Array.pushCopy",
+    "signature": "pure fn(\u0026T) -\u003e Bool",
+    "has_body": false,
+    "kind": "primitive",
+    "vm": "implemented",
+    "native": "implemented",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "array.Array.reverse",
     "signature": "pure fn() -\u003e Array[T]",
     "has_body": true,
@@ -522,20 +532,20 @@
   {
     "key": "array.Array.tryAppendAll",
     "signature": "pure fn(Array[T]) -\u003e Result[Void, AllocError]",
-    "has_body": false,
-    "kind": "primitive",
-    "vm": "implemented",
-    "native": "implemented",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
   {
     "key": "array.Array.tryClone",
     "signature": "pure fn() -\u003e Result[Array[T], AllocError]",
-    "has_body": false,
-    "kind": "primitive",
-    "vm": "implemented",
-    "native": "implemented",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
     "accelerated": false,
     "status": "ok"
   },
@@ -552,21 +562,21 @@
   {
     "key": "array.Array.tryConcat",
     "signature": "pure fn(Array[T]) -\u003e Result[Array[T], AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
     "key": "array.Array.tryCopyRange",
     "signature": "pure fn(usize, usize) -\u003e Result[Array[T], AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {
@@ -632,11 +642,11 @@
   {
     "key": "array.Array.tryReverse",
     "signature": "pure fn() -\u003e Result[Array[T], AllocError]",
-    "has_body": false,
-    "kind": "primitive",
+    "has_body": true,
+    "kind": "",
     "vm": "implemented",
-    "native": "implemented",
-    "accelerated": false,
+    "native": "gap",
+    "accelerated": true,
     "status": "ok"
   },
   {

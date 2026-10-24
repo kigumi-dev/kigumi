@@ -28,7 +28,7 @@ func (m *Machine) tryText(key string, a []*obj, a0, a1, a2 *obj) *obj {
 	case "prelude.String.tryChars":
 		return m.ok(m.sized(mkArray(charObjs(a0.str()))))
 	case "array.trySortedBy":
-		out := copyItems(m, a0, 0, int64(len(a0.fields)), false)
+		out := copyItems(m, a0, 0, int64(len(a0.fields)))
 		m.mergeSort(a1, out.fields, make([]*obj, len(out.fields)))
 		return m.ok(out)
 	}

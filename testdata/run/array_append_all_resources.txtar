@@ -1,0 +1,28 @@
+-- src --
+type Res = resource {
+    pub n Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.n}"
+}
+
+fn fill() {
+    let mut a = Array.of(Res { n: 1 })
+    a.appendAll(Array.of(Res { n: 2 }, Res { n: 3 }))
+    print "len ${a.len()}"
+    let mut b = Array.empty[Res]()
+    _ = b.tryAppendAll(Array.of(Res { n: 4 }))
+    print "b ${b.len()}"
+}
+
+fill()
+print "end"
+-- stdout --
+len 3
+b 1
+drop 4
+drop 3
+drop 2
+drop 1
+end

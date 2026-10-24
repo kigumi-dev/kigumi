@@ -1,0 +1,23 @@
+type Cell = {
+    mut n Int
+    tag String
+}
+
+fn run() {
+    let a = Array.of(1)
+    let c = Cell {
+        n: 1
+        tag: "a"
+    }
+    eprint "go"
+    let r = Array.tryFill(c, 3)
+    if r is Err(_) {
+        if a.len() == 1 {
+            print "err"
+        } else {
+            print "CHANGED"
+        }
+    }
+}
+
+run()
