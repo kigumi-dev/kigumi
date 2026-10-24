@@ -74,7 +74,11 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 		}
 		given[fld] = true
 		fieldType := c.r.Types.Subst(c.r.Entities[fld].Type, subst)
+		start := c.vars.count()
 		c.checkArg(value, fieldType, 0, false)
+		if fieldType == TyPoison {
+			c.vars.poisonFrom(start)
+		}
 		c.rejectScalarCopyStore(value, fieldType)
 		c.rejectFieldValue(value)
 		c.checkEscapeStore(value)

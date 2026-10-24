@@ -1,0 +1,53 @@
+-- src --
+type W[T] = Array[W[Option[T]]] //~ ERROR requires `W[T?]`
+
+type G[T] = {
+    pub g Array[V[T]]
+}
+
+type V[T] = G[Option[T]] //~ ERROR requires `G[T?]`
+
+type Same[T] = Array[Same[T]]
+
+type Fwd[T] = Option[Fwd2[T]]
+
+type Fwd2[T] = {
+    pub next Array[Fwd[T]]
+    pub v T
+}
+
+type Secret[T] = T
+
+type Twice[T] = Secret[Secret[T]]
+
+fn count(w: &W[Int]) -> Int {
+    w.value.len()
+}
+
+fn make() -> Int {
+    let w: W[Int] = W(Array.empty())
+    w.value.len()
+}
+
+fn main() {
+    let s: Same[Int] = Same(Array.empty())
+    let t: Twice[Int] = Twice(Secret(Secret(1)))
+    let f: Fwd[Int] = Fwd(None)
+    let g: G[Int] = G { g: Array.empty() }
+    print "${s.value.len()} ${t.value.value.value} ${g.g.len()}"
+}
+-- expect --
+error[E2213]: `W[T]` requires `W[T?]`, so the type expands without end
+ --> main/main.kg:1:13
+  |
+1 | type W[T] = Array[W[Option[T]]] //~ ERROR requires `W[T?]`
+  |             ^^^^^^^^^^^^^^^^
+  = help: use the parameter unchanged in the recursive field
+
+error[E2213]: `V[T]` requires `G[T?]` through G, so the type expands without end
+ --> main/main.kg:7:13
+  |
+7 | type V[T] = G[Option[T]] //~ ERROR requires `G[T?]`
+  |             ^^^^^^^^^^
+  = help: use the parameter unchanged in the recursive field
+

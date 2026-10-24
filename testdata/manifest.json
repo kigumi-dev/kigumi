@@ -6689,6 +6689,23 @@
       ]
     },
     {
+      "id": "run/defined_type_deep_places",
+      "kind": "run",
+      "path": "testdata/run/defined_type_deep_places.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/defined_type_ffi",
       "kind": "run",
       "path": "testdata/run/defined_type_ffi.txtar",
@@ -6709,6 +6726,23 @@
       "id": "run/defined_type_generic",
       "kind": "run",
       "path": "testdata/run/defined_type_generic.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_generic_recursive",
+      "kind": "run",
+      "path": "testdata/run/defined_type_generic_recursive.txtar",
       "mode": [
         "vm",
         "native"
@@ -6777,6 +6811,23 @@
       "id": "run/defined_type_ref_reads",
       "kind": "run",
       "path": "testdata/run/defined_type_ref_reads.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defined_type_scalar_ref_args",
+      "kind": "run",
+      "path": "testdata/run/defined_type_scalar_ref_args.txtar",
       "mode": [
         "vm",
         "native"
@@ -18175,6 +18226,17 @@
       ]
     },
     {
+      "id": "sem/defined_wrap_rejected_args",
+      "kind": "sem",
+      "path": "testdata/sem/defined_wrap_rejected_args.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/derive_json_duplicate_key",
       "kind": "sem",
       "path": "testdata/sem/derive_json_duplicate_key.txtar",
@@ -21401,6 +21463,17 @@
       "id": "sem/type_mismatch_pkg_collision",
       "kind": "sem",
       "path": "testdata/sem/type_mismatch_pkg_collision.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/type_nomono_defined",
+      "kind": "sem",
+      "path": "testdata/sem/type_nomono_defined.txtar",
       "mode": [
         "check"
       ],

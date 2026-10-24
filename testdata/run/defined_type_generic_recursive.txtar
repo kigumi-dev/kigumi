@@ -1,0 +1,59 @@
+-- src --
+type Nest[T] = Array[Nest[T]]
+
+type Fwd[T] = Option[Node[T]]
+
+type Node[T] = {
+    pub v T
+    pub kids Array[Fwd[T]]
+}
+
+type Secret[T] = T
+
+type Twice[T] = Secret[Secret[T]]
+
+fn depth[T](n: &Nest[T]) -> Int {
+    let mut best = 0
+    for k in &n.value {
+        let d = depth(k) + 1
+        if d > best {
+            best = d
+        }
+    }
+    best
+}
+
+fn total(f: &Fwd[Int]) -> Int {
+    match f.value {
+        Some(n) -> {
+            let mut s = n.v
+            for k in &n.kids {
+                s += total(k)
+            }
+            s
+        }
+        None -> 0
+    }
+}
+
+let mut inner = Array.empty[Nest[Int]]()
+inner.push(Nest(Array.empty()))
+let mut outer = Array.empty[Nest[Int]]()
+outer.push(Nest(inner))
+outer.push(Nest(Array.empty()))
+let n = Nest(outer)
+print "${depth(&n)}"
+
+let leaf = Fwd(Some(Node { v: 3, kids: Array.empty() }))
+let mut kids = Array.empty[Fwd[Int]]()
+kids.push(leaf)
+kids.push(Fwd(None))
+let root = Fwd(Some(Node { v: 4, kids: kids }))
+print "${total(&root)}"
+
+let t: Twice[Int] = Twice(Secret(Secret(5)))
+print "${t.value.value.value}"
+-- stdout --
+2
+7
+5

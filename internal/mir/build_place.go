@@ -22,15 +22,33 @@ type place struct {
 func (b *builder) resolvePlace(pl *hir.Place) place {
 	switch pl.Kind {
 	case hir.PlaceField:
-		return place{src: pl, base: b.expr(definedBase(pl.Base))}
+		return place{src: pl, base: b.storeBase(pl.Base)}
 	case hir.PlaceIndex:
-		base := b.expr(definedBase(pl.Base))
+		base := b.storeBase(pl.Base)
 		idx := b.expr(pl.Idx)
 		return place{src: pl, base: base, idx: idx}
 	case hir.PlaceGlobal:
 		return place{src: pl}
 	}
 	return place{src: pl, id: b.local(pl.Ent)}
+}
+
+// storeBase projects a stored-through base from its root, skipping the defined-type layers at every step, since a retagged layer would read a copy.
+func (b *builder) storeBase(e *hir.Expr) LocalID {
+	e = definedBase(e)
+	if len(e.Coerce) > 0 {
+		return b.expr(e)
+	}
+	switch e.Kind {
+	case hir.Field:
+		base := b.storeBase(e.Args[0])
+		return b.emit(Inst{Op: OpField, Dst: b.temp(e.Type), Args: []LocalID{base}, Index: e.Index, Node: e.Node})
+	case hir.Index:
+		base := b.storeBase(e.Args[0])
+		idx := b.expr(e.Args[1])
+		return b.emit(Inst{Op: OpIndex, Dst: b.temp(e.Type), Args: []LocalID{base, idx}, Node: e.Node})
+	}
+	return b.expr(e)
 }
 
 func (b *builder) loadPlace(p place) LocalID {

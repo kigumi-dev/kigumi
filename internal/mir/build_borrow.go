@@ -44,6 +44,8 @@ func (b *builder) borrowExpr(e *hir.Expr, n syntax.NodeID, t sem.TypeID) LocalID
 	var ref LocalID
 	if base := definedBase(e.Args[0]); e.Mut && base != e.Args[0] && b.r.Types.Kind(base.Type) != sem.KRef && !b.scalarRef(t) {
 		ref = b.borrowRetag(b.expr(base), base.Type, t, n)
+	} else if k := e.Args[0].Kind; e.Mut && (k == hir.Field || k == hir.Index) {
+		ref = b.emit(Inst{Op: OpBorrow, Dst: b.temp(t), Args: []LocalID{b.storeBase(e.Args[0])}, Index: mut, Node: n})
 	} else {
 		ref = b.emit(Inst{Op: OpBorrow, Dst: b.temp(t), Args: []LocalID{b.expr(e.Args[0])}, Index: mut, Node: n})
 	}

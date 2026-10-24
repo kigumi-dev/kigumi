@@ -1,0 +1,65 @@
+-- src --
+type Hold = {pub mut c i64, pub mut f FixedArray[i64, 2], pub mut s String}
+type Outer = {pub mut h Hold, pub mut n i64}
+type OW = Outer
+type OO = OW
+type HL = Hold
+type Box2 = {pub mut o OW, pub mut hl HL}
+
+fn incI(p: &mut i64) {
+    p += 10
+}
+
+fn setH(h: &mut Hold) {
+    h.c = 7
+    h.s = "set${h.c}"
+}
+
+fn viaRef(o: &mut OO) {
+    o.value.value.h.c += 100
+    incI(&mut o.value.value.h.f[0])
+    setH(&mut o.value.value.h)
+}
+
+fn hold() -> Hold {
+    Hold { c: 0, f: FixedArray.filled[i64, 2](0), s: "s" }
+}
+
+let mut e = OW(Outer { h: hold(), n: 0 })
+incI(&mut e.value.h.c)
+print "${e.value.h.c}"
+e.value.h.c = 5
+e.value.h.c += 1
+e.value.h.f[0] = 3
+e.value.h.f[1] += 4
+incI(&mut e.value.h.f[1])
+print "${e.value.h.c} ${e.value.h.f[0]} ${e.value.h.f[1]}"
+setH(&mut e.value.h)
+e.value.h.s = "${e.value.h.s}!"
+print "${e.value.h.c} ${e.value.h.s}"
+
+let mut c = HL(hold())
+incI(&mut c.value.f[1])
+c.value.f[0] += 2
+print "${c.value.f[0]} ${c.value.f[1]}"
+
+let mut o = OO(OW(Outer { h: hold(), n: 1 }))
+o.value.value.h.c = 4
+incI(&mut o.value.value.h.f[1])
+print "${o.value.value.h.c} ${o.value.value.h.f[1]} ${o.value.value.n}"
+viaRef(&mut o)
+print "${o.value.value.h.c} ${o.value.value.h.f[0]} ${o.value.value.h.s}"
+
+let mut bx = Box2 { o: OW(Outer { h: hold(), n: 2 }), hl: HL(hold()) }
+bx.o.value.h.c = 8
+incI(&mut bx.o.value.h.f[0])
+incI(&mut bx.hl.value.f[1])
+print "${bx.o.value.h.c} ${bx.o.value.h.f[0]} ${bx.hl.value.f[1]}"
+-- stdout --
+10
+6 3 14
+7 set7!
+2 10
+4 10 1
+7 10 set7
+8 10 10

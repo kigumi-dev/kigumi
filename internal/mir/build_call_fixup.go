@@ -40,14 +40,14 @@ func (b *builder) placeArg(a *hir.Expr, sync bool) (LocalID, bool) {
 	}
 	switch inner.Kind {
 	case hir.Index:
-		base := b.expr(inner.Args[0])
+		base := b.storeBase(inner.Args[0])
 		idx := b.expr(inner.Args[1])
 		cur := b.emit(Inst{Op: OpIndex, Dst: b.temp(inner.Type), Args: []LocalID{base, idx}, Node: inner.Node})
 		cell := b.boxScalarCell(b.retagTo(cur, inner.Type, scalarT, inner.Node), a.Type, a.Node)
 		b.argFixups = append(b.argFixups, argFixup{index: true, base: base, idx: idx, elemType: scalarT, cell: cell, node: a.Node, depth: len(b.scopes)})
 		return b.coerce(a.Coercion, a.Node, cell), true
 	case hir.Field:
-		base := b.expr(inner.Args[0])
+		base := b.storeBase(inner.Args[0])
 		cur := b.emit(Inst{Op: OpField, Dst: b.temp(inner.Type), Args: []LocalID{base}, Index: inner.Index, Node: inner.Node})
 		cell := b.boxScalarCell(b.retagTo(cur, inner.Type, scalarT, inner.Node), a.Type, a.Node)
 		b.argFixups = append(b.argFixups, argFixup{index: false, base: base, field: inner.Index, elemType: scalarT, cell: cell, node: a.Node, depth: len(b.scopes)})

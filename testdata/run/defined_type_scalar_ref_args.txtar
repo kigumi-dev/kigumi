@@ -1,0 +1,53 @@
+-- src --
+type Pt = {pub mut x i64, pub mut y i64}
+type L1 = Pt
+type L2 = L1
+type FRow = FixedArray[i64, 3]
+type Holder = {pub mut l L2, pub mut row FRow}
+type Tag = {pub mut n String, pub mut k i64}
+type TagL = Tag
+
+fn incI(p: &mut i64) {
+    p += 10
+}
+
+fn viaRef(r: &mut L2) {
+    incI(&mut r.value.value.x)
+}
+
+fn viaRow(r: &mut FRow) {
+    incI(&mut r.value[1])
+}
+
+let mut c = L1(Pt { x: 1, y: 2 })
+incI(&mut c.value.x)
+print "${c.value.x} ${c.value.y}"
+
+let mut d = L2(L1(Pt { x: 1, y: 2 }))
+incI(&mut d.value.value.y)
+incI(&mut d.value.value.y)
+print "${d.value.value.x} ${d.value.value.y}"
+
+let mut f = FRow(FixedArray.filled[i64, 3](1))
+incI(&mut f.value[2])
+print "${f.value[0]} ${f.value[2]}"
+
+let mut h = Holder { l: L2(L1(Pt { x: 3, y: 4 })), row: FRow(FixedArray.filled[i64, 3](5)) }
+incI(&mut h.l.value.value.x)
+incI(&mut h.row.value[0])
+print "${h.l.value.value.x} ${h.row.value[0]} ${h.row.value[1]}"
+
+viaRef(&mut d)
+viaRow(&mut f)
+print "${d.value.value.x} ${f.value[1]}"
+
+let mut t = TagL(Tag { n: "a${2}b", k: 7 })
+incI(&mut t.value.k)
+print "${t.value.n} ${t.value.k}"
+-- stdout --
+11 2
+1 22
+1 11
+13 15 5
+11 11
+a2b 17

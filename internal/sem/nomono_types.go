@@ -1,6 +1,10 @@
 package sem
 
-import "strings"
+import (
+	"strings"
+
+	"kigumi/internal/syntax"
+)
 
 type typeVertex struct {
 	decl  EntityID
@@ -21,7 +25,7 @@ func (r *Result) checkTypeNomono() {
 	g := &instGraph{r: r, index: map[instVertex]int{}, adj: map[int][]int{}}
 	var edges []typeEdge
 	for id := 1; id < len(r.Entities); id++ {
-		if e := &r.Entities[id]; e.Kind == EntType && r.typeDecl(EntityID(id)).Form != FormDefined {
+		if r.Entities[id].Kind == EntType {
 			edges = r.typeEdges(EntityID(id), edges)
 		}
 	}
@@ -40,11 +44,20 @@ func (r *Result) checkTypeNomono() {
 		decl := r.typeDecl(e.from.decl)
 		from := r.Entities[e.from.decl].Name + "[" + r.Entities[decl.Params[e.from.param]].Name + "]"
 		to := r.Entities[e.to.decl].Name + "[" + r.TypeString(e.arg) + "]"
-		r.errAt(r.Entities[e.site].File, r.Entities[e.site].Node, cTypeNomono, from, to, r.cycleVia(edges, g, comp, e))
+		r.errAt(r.Entities[e.site].File, r.nomonoSiteNode(e.site), cTypeNomono, from, to, r.cycleVia(edges, g, comp, e))
 	}
 	for owner := range bad {
 		r.poisonFields(owner)
 	}
+}
+
+func (r *Result) nomonoSiteNode(site EntityID) syntax.NodeID {
+	e := &r.Entities[site]
+	if e.Kind != EntType {
+		return e.Node
+	}
+	t := r.tree(e.File)
+	return t.View(typeDecl(t, e.Node).Body).AsDefinedBody().Type().ID()
 }
 
 func (r *Result) cycleVia(edges []typeEdge, g *instGraph, comp []int, bad typeEdge) string {
@@ -68,6 +81,9 @@ func (r *Result) typeEdges(decl EntityID, edges []typeEdge) []typeEdge {
 	info := r.typeDecl(decl)
 	if len(info.Params) == 0 {
 		return edges
+	}
+	if info.Form == FormDefined {
+		return r.collectTypeEdges(decl, decl, info.Underlying, edges)
 	}
 	for _, f := range info.Fields {
 		edges = r.collectTypeEdges(decl, f, r.Entities[f].Type, edges)
@@ -106,6 +122,10 @@ func (r *Result) collectTypeEdges(decl, site EntityID, t TypeID, edges []typeEdg
 
 func (r *Result) poisonFields(decl EntityID) {
 	info := r.typeDecl(decl)
+	if info.Form == FormDefined {
+		info.Underlying = TyPoison
+		return
+	}
 	for _, f := range info.Fields {
 		r.Entities[f].Type = TyPoison
 	}

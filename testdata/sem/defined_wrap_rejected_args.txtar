@@ -1,0 +1,73 @@
+-- lib/bags/b.kg --
+pub type Bag[T] = Array[T]
+-- app/t/t.kg --
+import bags from lib/bags
+
+type Ids = Array[Int]
+
+type W[T] = Array[W[Option[T]]] //~ ERROR requires `W[T?]`
+
+type Y[T] = {
+    pub a Array[Y[Option[T]]] //~ ERROR requires `Y[T?]`
+}
+
+type X[T] = Y[T]
+
+fn outside() -> Int {
+    let b: bags.Bag[Int] = bags.Bag(Array.empty()) //~ ERROR usable only inside the package that declares `Bag`
+    0
+}
+
+fn arity() -> Int {
+    let i: Ids = Ids(Array.empty(), Array.empty()) //~ ERROR takes exactly one argument, 2 given
+    0
+}
+
+fn named() -> Int {
+    let i: Ids = Ids(value: Array.empty()) //~ ERROR named, default and spread arguments are not allowed
+    0
+}
+
+fn poisonedUnderlying() -> Int {
+    let w: W[Int] = W(Array.empty())
+    0
+}
+
+fn poisonedField() -> Int {
+    let c: X[Int] = X(Y { a: Array.empty() })
+    0
+}
+-- expect --
+error[E2213]: `W[T]` requires `W[T?]`, so the type expands without end
+ --> app/t/t.kg:5:13
+  |
+5 | type W[T] = Array[W[Option[T]]] //~ ERROR requires `W[T?]`
+  |             ^^^^^^^^^^^^^^^^
+  = help: use the parameter unchanged in the recursive field
+
+error[E2213]: `Y[T]` requires `Y[T?]`, so the type expands without end
+ --> app/t/t.kg:8:5
+  |
+8 |     pub a Array[Y[Option[T]]] //~ ERROR requires `Y[T?]`
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  = help: use the parameter unchanged in the recursive field
+
+error[E1171]: `Bag(...)` is a representation operation usable only inside the package that declares `Bag`
+  --> app/t/t.kg:14:28
+   |
+14 |     let b: bags.Bag[Int] = bags.Bag(Array.empty()) //~ ERROR usable only inside the package that declares `Bag`
+   |                            ^^^^^^^^^^^^^^^^^^^^^
+   = help: use the functions that package exports for `Bag` instead
+
+error[E1173]: `Ids(...)` takes exactly one argument, 2 given
+  --> app/t/t.kg:19:18
+   |
+19 |     let i: Ids = Ids(Array.empty(), Array.empty()) //~ ERROR takes exactly one argument, 2 given
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1174]: named, default and spread arguments are not allowed when wrapping `Ids`
+  --> app/t/t.kg:24:18
+   |
+24 |     let i: Ids = Ids(value: Array.empty()) //~ ERROR named, default and spread arguments are not allowed
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^
+

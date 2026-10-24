@@ -15,22 +15,22 @@ func (c *checker) callDefinedWrap(n syntax.NodeID, head headRef, args []syntax.N
 	}
 	if !c.r.definedAccessible(c.f, ent) {
 		c.errAt(n, cDefinedWrapOutside, name, name)
-		c.synthArgs(args)
+		c.synthRejectedArgs(args)
 		return result
 	}
 	if info.Underlying == TyPoison {
-		c.synthArgs(args)
+		c.synthRejectedArgs(args)
 		return result
 	}
 	spread := len(args) > 0 && c.t.Kind(args[len(args)-1]) == syntax.Spread
 	if c.hasNamedArg(args) || spread {
 		c.errAt(n, cDefinedWrapNamedArg, name)
-		c.synthArgs(args)
+		c.synthRejectedArgs(args)
 		return result
 	}
 	if len(args) != 1 {
 		c.errAt(n, cDefinedWrapArity, name, len(args))
-		c.synthArgs(args)
+		c.synthRejectedArgs(args)
 		return result
 	}
 	subst := instSubst(info.Params, typeArgs)
@@ -41,4 +41,11 @@ func (c *checker) callDefinedWrap(n syntax.NodeID, head headRef, args []syntax.N
 	c.info.Calls[n] = CallInfo{Kind: CallDefinedWrap, Callee: ent, Inst: typeArgs, Plan: identityPlan(args)}
 	c.touched = append(c.touched, n)
 	return result
+}
+
+// A rejected constructor gives its arguments nothing to infer their open variables from.
+func (c *checker) synthRejectedArgs(args []syntax.NodeID) {
+	start := c.vars.count()
+	c.synthArgs(args)
+	c.vars.poisonFrom(start)
 }
