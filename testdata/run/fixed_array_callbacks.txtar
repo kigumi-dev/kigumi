@@ -1,22 +1,22 @@
 -- src --
-// The callback ops run in place, so a scalar element and a scalar result allocate nothing.
-noalloc fn atInPlace(n: Int) -> Int {
+// at and withMut over an inline array with scalar elements and results.
+fn atInPlace(n: Int) -> Int {
     let a = FixedArray.filled[Int, 8](n)
     a.at(3, (x: &Int) => x + 1) || 0
 }
 
-noalloc fn atMissing(n: Int) -> Bool {
+fn atMissing(n: Int) -> Bool {
     let a = FixedArray.filled[Int, 4](n)
     a.at(9, (x: &Int) => x + 1) is None
 }
 
-noalloc fn withMutInPlace(n: Int) -> Int {
+fn withMutInPlace(n: Int) -> Int {
     let mut a = FixedArray.filled[Int, 8](n)
     let _ = a.withMut(3, (x: &mut Int) => { x = x + 10 })
     a[3] + a[2]
 }
 
-noalloc fn withMutFlag(n: Int) -> Bool {
+fn withMutFlag(n: Int) -> Bool {
     let mut a = FixedArray.filled[u8, 4](1)
     let hit = a.withMut(1, (x: &mut u8) => x == 1) is Some(true)
     let miss = a.withMut(7, (x: &mut u8) => true) is None

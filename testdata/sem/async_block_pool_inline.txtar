@@ -1,0 +1,42 @@
+-- module --
+blocking: single-thread-event-loop
+-- src --
+import fs from std/fs
+import task from std/task
+
+// Without worker threads the pool runs the closure on the caller, so the read still blocks it.
+async fn useProvider() -> Result[String, task.BlockingError] { //~ ERROR reaches a direct-blocking operation
+    let pool = task.BlockingPool.new(4)
+    let fut = pool.run(() => {
+        host.files().read(fs.Path.fromString("x").unwrap()).unwrap()
+    })?
+    await fut
+}
+-- expect --
+error[E1320]: `useProvider` reaches a direct-blocking operation from its async body, which profile single-thread-event-loop forbids
+   --> main/main.kg:5:7
+    |
+  5 | async fn useProvider() -> Result[String, task.BlockingError] { //~ ERROR reaches a direct-blocking operation
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: run it through a blocking execution provider or use an async-native operation instead
+note: calls `closure`
+   --> main/main.kg:7:24
+    |
+  7 |     let fut = pool.run(() => {
+    |                        ^^^^^^^
+note: calls `read`
+   --> main/main.kg:8:9
+    |
+  8 |         host.files().read(fs.Path.fromString("x").unwrap()).unwrap()
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `readBytesUpTo`
+   --> std/fs/fs_hosted.kg:128:22
+    |
+128 |     String.fromBytes(self.readBytesUpTo(path, defaultReadLimit)?)
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `opendir`
+   --> std/fs/fs_hosted.kg:141:9
+    |
+141 |         opendir(c.ptr())
+    |         ^^^^^^^^^^^^^^
+

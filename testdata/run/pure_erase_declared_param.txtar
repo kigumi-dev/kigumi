@@ -1,0 +1,20 @@
+-- src --
+pure fn add1(x: Int) -> Int {
+    x + 1
+}
+
+fn relayP(f: pure fn(Int) -> Int, x: Int) -> Int {
+    f(x)
+}
+
+fn relayForward(f: pure fn(Int) -> Int, x: Int) -> Int {
+    relayP(f, x)
+}
+
+let g: pure fn(pure fn(Int) -> Int, Int) -> Int = relayP
+let h: pure fn(pure fn(Int) -> Int, Int) -> Int = relayForward
+print "${g(add1, 1)} ${h(add1, 2)}"
+-- stdout --
+2 3
+-- exit --
+0

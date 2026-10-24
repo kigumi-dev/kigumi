@@ -37,3 +37,25 @@ func (r *Result) closureParamViolation(target EntityID, mod Effects) (string, bo
 	}
 	return "calls `" + r.Entities[p].Name + "`, which is not declared `" + modName(mod) + "`", true
 }
+
+// deferral is what a fn's summary leaves to callers: undeclared callback params and other indirect calls.
+type deferral struct {
+	params []EntityID
+	other  bool
+}
+
+func (d deferral) any() bool { return d.other || len(d.params) > 0 }
+
+func (r *Result) fnDeferral(target EntityID, mod Effects) deferral {
+	if r.Entities[target].Kind != EntFn {
+		return deferral{}
+	}
+	info := r.Fn(target)
+	d := deferral{other: len(info.CalledFieldParams) > 0 || len(info.CalledWitnessReqs) > 0}
+	for _, p := range info.CalledParams {
+		if shape := r.fnShapeOf(r.Entities[p].Type); shape == 0 || Effects(r.Types.Node(shape).Flags)&mod == 0 {
+			d.params = append(d.params, p)
+		}
+	}
+	return d
+}

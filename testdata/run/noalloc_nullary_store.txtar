@@ -1,0 +1,55 @@
+-- src --
+type Tick = Up(n: Int) | Flat
+
+type Clock = {
+    pub mut tick Tick
+    pub mut n Int
+}
+
+noalloc fn Tick.reset(mut self) {
+    self = Flat
+}
+
+noalloc fn clear(t: &mut Tick) {
+    t = Flat
+}
+
+noalloc fn clearField(c: &mut Clock) {
+    c.tick = Flat
+}
+
+noalloc fn clearSlot(xs: &mut Array[Tick]) {
+    xs[0] = Flat
+}
+
+noalloc fn clearVia(t: &mut Tick, other: &Tick) {
+    t = Tick.Flat
+}
+
+let mut t = Up(3)
+t.reset()
+print "${t is Flat}"
+
+let mut u = Up(4)
+clear(&mut u)
+print "${u is Flat}"
+
+let mut c = Clock { tick: Up(1), n: 2 }
+clearField(&mut c)
+print "${c.tick is Flat} ${c.n}"
+
+let mut xs = Array.of(Up(1), Up(2))
+clearSlot(&mut xs)
+print "${xs[0] is Flat} ${xs[1] is Up(2)}"
+
+let mut v = Up(9)
+clearVia(&mut v, &t)
+print "${v is Flat}"
+-- stdout --
+true
+true
+true 2
+true true
+true
+-- exit --
+0

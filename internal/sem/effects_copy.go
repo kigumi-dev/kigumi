@@ -27,6 +27,8 @@ type CopySite struct {
 	Boxed   bool
 	Inst    bool
 	Content bool
+	// Erased is the generic fn item turned into a `noalloc fn` value while its copy of Type allocates.
+	Erased EntityID
 }
 
 func (r *Result) ChargeCopies(sites []CopySite) {
@@ -39,6 +41,10 @@ func (r *Result) ChargeCopies(sites []CopySite) {
 	isrBefore := r.isrScopes(handlers, nodes)
 	added := false
 	for _, s := range sites {
+		if s.Erased != 0 {
+			r.errAt(s.File, s.Node, cFnItemContract, r.Entities[s.Erased].Name, modName(EffNoalloc), "copies `"+r.TypeString(s.Type)+"`, which allocates")
+			continue
+		}
 		e := EffectEdge{Kind: EdgeAlloc, Type: s.Type, File: s.File, Node: s.Node, Why: whyCopy, Scoped: r.InAllocatorBlock(s.File, s.Node)}
 		switch {
 		case s.Held:

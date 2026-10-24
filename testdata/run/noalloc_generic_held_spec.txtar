@@ -1,0 +1,49 @@
+-- src --
+noalloc fn g0[T: Copy, U](a: &Array[T]) -> Int { g1[T, (U, Int)](a).wrappingAdd(g1[T, (Int, U)](a)) }
+noalloc fn g1[T: Copy, U](a: &Array[T]) -> Int { g2[T, (U, Int)](a).wrappingAdd(g2[T, (Int, U)](a)) }
+noalloc fn g2[T: Copy, U](a: &Array[T]) -> Int { g3[T, (U, Int)](a).wrappingAdd(g3[T, (Int, U)](a)) }
+noalloc fn g3[T: Copy, U](a: &Array[T]) -> Int { g4[T, (U, Int)](a).wrappingAdd(g4[T, (Int, U)](a)) }
+noalloc fn g4[T: Copy, U](a: &Array[T]) -> Int { g5[T, (U, Int)](a).wrappingAdd(g5[T, (Int, U)](a)) }
+noalloc fn g5[T: Copy, U](a: &Array[T]) -> Int { g6[T, (U, Int)](a).wrappingAdd(g6[T, (Int, U)](a)) }
+noalloc fn g6[T: Copy, U](a: &Array[T]) -> Int { g7[T, (U, Int)](a).wrappingAdd(g7[T, (Int, U)](a)) }
+noalloc fn g7[T: Copy, U](a: &Array[T]) -> Int { g8[T, (U, Int)](a).wrappingAdd(g8[T, (Int, U)](a)) }
+noalloc fn g8[T: Copy, U](a: &Array[T]) -> Int { g9[T, (U, Int)](a).wrappingAdd(g9[T, (Int, U)](a)) }
+noalloc fn g9[T: Copy, U](a: &Array[T]) -> Int { if a.last() is Some(_) { 1 } else { 0 } }
+
+noalloc fn has[T: Copy](a: &Array[T]) -> Bool {
+    a.last() is Some(_)
+}
+
+noalloc fn someEq[T: Copy + Eq](a: &Array[T]) -> Bool {
+    a.first() is Some(_)
+}
+
+fn plainHas(a: &Array[Int]) -> Bool {
+    has(a)
+}
+
+noalloc fn useH(a: &Array[Int]) -> Bool {
+    has(a)
+}
+
+noalloc fn viaPlain(a: &Array[Int]) -> Bool {
+    plainHas(a)
+}
+
+noalloc fn useEq(a: &Array[u8]) -> Bool {
+    someEq(a)
+}
+
+noalloc fn fan(a: &Array[Int]) -> Int {
+    g0[Int, Int](a)
+}
+
+let xs = Array.of(1, 2, 3)
+let empty: Array[u8] = Array.empty()
+print "${useH(&xs)} ${viaPlain(&xs)} ${useEq(&empty)}"
+print "${fan(&xs)}"
+-- stdout --
+true true false
+512
+-- exit --
+0

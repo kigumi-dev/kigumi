@@ -50,6 +50,11 @@ func (r *Result) applyUnions() bool {
 			changed = true
 		}
 	}
+	for _, u := range r.fnFieldUnions {
+		if r.mergeFnField(u.from, u.to, fnUnion{file: u.file, node: u.node}) {
+			changed = true
+		}
+	}
 	return changed
 }
 

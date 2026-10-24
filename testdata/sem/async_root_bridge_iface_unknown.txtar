@@ -1,0 +1,156 @@
+-- app/t/t.kg --
+import task from std/task
+
+interface Calc {
+    fn value(self) -> Int
+}
+
+type SafeCalc = {
+    pub n Int
+}
+
+fn SafeCalc.value(self) -> Int {
+    self.n
+}
+
+type RiskyCalc = {
+    pub n Int
+}
+
+async fn leaf(n: Int) -> Int {
+    n
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(leaf(7))
+}
+
+fn RiskyCalc.value(self) -> Int {
+    syncRoot()
+}
+
+fn makeSafe() -> Calc {
+    SafeCalc { n: 1 }
+}
+
+fn makeEither(risky: Bool) -> Calc {
+    if risky {
+        RiskyCalc { n: 6 }
+    } else {
+        SafeCalc { n: 6 }
+    }
+}
+
+fn makeForwarded() -> Calc {
+    makeSafe()
+}
+
+// A call result is narrowed to what the callee returns, as a let-bound receiver is to its initializer.
+async fn fromCallResult() -> Int {
+    makeSafe().value()
+}
+
+async fn fromEitherResult() -> Int {
+    makeEither(false).value() //~ ERROR cannot run inside an `async fn`
+}
+
+// A result the callee passes on from another call is not tracked, so any conformer may be behind it.
+async fn fromForwardedResult() -> Int {
+    makeForwarded().value() //~ ERROR cannot run inside an `async fn`
+}
+
+// A receiver whose witnesses are not tracked may be any conformer, so a conformer that drives a root task is a bridge.
+async fn fromMutLocal() -> Int {
+    let mut c: Calc = SafeCalc { n: 3 }
+    c = SafeCalc { n: 4 }
+    c.value() //~ ERROR cannot run inside an `async fn`
+}
+
+// A let-bound receiver is narrowed to its own witness.
+async fn fromLetLocal() -> Int {
+    let c: Calc = SafeCalc { n: 5 }
+    c.value()
+}
+
+fn supply() -> Int {
+    let e1 = task.currentThreadExecutor()
+    let a = e1.runToCompletion(fromCallResult())
+    let e2 = task.currentThreadExecutor()
+    let b = e2.runToCompletion(fromMutLocal())
+    let e3 = task.currentThreadExecutor()
+    let c = e3.runToCompletion(fromLetLocal())
+    let e4 = task.currentThreadExecutor()
+    let d = e4.runToCompletion(fromEitherResult())
+    let e5 = task.currentThreadExecutor()
+    let f = e5.runToCompletion(fromForwardedResult())
+    let risky: Calc = RiskyCalc { n: 2 }
+    a + b + c + d + f + risky.value()
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:54:5
+   |
+54 |     makeEither(false).value() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: `await` the future instead
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+  --> app/t/t.kg:28:1
+   |
+28 | fn RiskyCalc.value(self) -> Int {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+  --> app/t/t.kg:29:5
+   |
+29 |     syncRoot()
+   |     ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:25:5
+   |
+25 |     ex.runToCompletion(leaf(7))
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:59:5
+   |
+59 |     makeForwarded().value() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+   = help: `await` the future instead
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+  --> app/t/t.kg:28:1
+   |
+28 | fn RiskyCalc.value(self) -> Int {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+  --> app/t/t.kg:29:5
+   |
+29 |     syncRoot()
+   |     ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:25:5
+   |
+25 |     ex.runToCompletion(leaf(7))
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:66:5
+   |
+66 |     c.value() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^^^^
+   = help: `await` the future instead
+note: `RiskyCalc` conforms to `Calc` here and may receive this call
+  --> app/t/t.kg:28:1
+   |
+28 | fn RiskyCalc.value(self) -> Int {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: calls `syncRoot`
+  --> app/t/t.kg:29:5
+   |
+29 |     syncRoot()
+   |     ^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:25:5
+   |
+25 |     ex.runToCompletion(leaf(7))
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+

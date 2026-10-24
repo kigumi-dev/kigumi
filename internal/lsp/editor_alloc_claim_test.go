@@ -19,7 +19,7 @@ func TestEditorReportsABoxOnlyTheBuildFinds(t *testing.T) {
 func editorReportsABox(t *testing.T, lazyStd bool) {
 	root := t.TempDir()
 	os.MkdirAll(filepath.Join(root, "main"), 0o755)
-	src := "type Point = {\n    pub x Int\n    pub y Int\n}\n\nfn size[T](v: &T) -> Int { 1 }\n\nnoalloc fn lend[T](v: T) -> Int { size(&v) }\n\nnoalloc fn span(p: Point) -> Int {\n    lend(p)\n}\n\nprint \"${span(Point { x: 1, y: 2 })}\"\n"
+	src := "type Point = {\n    pub x Int\n    pub y Int\n}\n\nnoalloc fn keep['a](p: &'a Point) -> &'a Point { p }\n\nnoalloc fn span() -> Int {\n    let p = Point { x: 1, y: 2 }\n    keep(&p).x\n}\n\nprint \"${span()}\"\n"
 	path := filepath.Join(root, "main", "main.kg")
 	os.WriteFile(path, []byte(src), 0o644)
 	std, _ := filepath.Abs("../../std")
@@ -38,8 +38,8 @@ func editorReportsABox(t *testing.T, lazyStd bool) {
 			last = p
 		}
 	}
-	if last == nil || len(last.Diagnostics) != 1 || last.Diagnostics[0].Code != protocol.String("E1570") || last.Diagnostics[0].Range.Start.Line != 10 {
-		t.Fatalf("want one E1570 at `lend(p)`, got %+v", last)
+	if last == nil || len(last.Diagnostics) != 1 || last.Diagnostics[0].Code != protocol.String("E1570") || last.Diagnostics[0].Range.Start.Line != 9 {
+		t.Fatalf("want one E1570 at `keep(&p)`, got %+v", last)
 	}
 	syms, _ := s.DocumentSymbol(ctx, &protocol.DocumentSymbolParams{TextDocument: protocol.TextDocumentIdentifier{URI: doc}})
 	seen := map[string]bool{}

@@ -1,0 +1,35 @@
+-- src --
+import task from std/task
+
+type Holder = {
+    pub mut cb fn() -> Int
+}
+
+fn safeFn() -> Int {
+    9
+}
+
+async fn copied() -> Int {
+    let g = Holder { cb: safeFn }
+    let mut h = Holder { cb: safeFn }
+    h.cb = g.cb
+    h.cb()
+}
+
+async fn copiedThroughLocal() -> Int {
+    let g = Holder { cb: safeFn }
+    let f = g.cb
+    let mut h = Holder { cb: safeFn }
+    h.cb = f
+    h.cb()
+}
+
+let ex = task.currentThreadExecutor()
+print "got ${ex.runToCompletion(copied())}"
+let ex2 = task.currentThreadExecutor()
+print "got ${ex2.runToCompletion(copiedThroughLocal())}"
+-- stdout --
+got 9
+got 9
+-- exit --
+0

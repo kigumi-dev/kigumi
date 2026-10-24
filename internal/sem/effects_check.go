@@ -31,26 +31,19 @@ func (r *Result) checkContractEdge(e EffectEdge, only Effects) {
 	target := e.Target
 	s := r.summary(target)
 	fn := r.Entities[target].Kind == EntFn
-	var info *FnInfo
-	if fn {
-		info = r.Fn(target)
-	}
-	// A requirement deferred through target's own parameter has no call-site argument
-	// to resolve here, so it can't back an erased fn value's contract.
-	deferred := fn &&
-		(len(info.CalledFieldParams) > 0 || len(info.CalledWitnessReqs) > 0 || len(info.CalledParams) > 0)
 	for _, mod := range []Effects{EffPure, EffNoalloc} {
 		if e.Mods&mod == 0 || only&mod == 0 {
 			continue
 		}
+		d := r.fnDeferral(target, mod)
 		if !fn && allows(s, mod) && r.closureCalledParam(target, mod) == 0 {
 			continue
 		}
-		if fn && allows(s, mod) && !deferred {
+		if fn && allows(s, mod) && !d.any() {
 			continue
 		}
-		if fn && allows(s, mod) && len(info.CalledParams) > 0 && len(info.CalledFieldParams) == 0 && len(info.CalledWitnessReqs) == 0 {
-			r.reportDeferredParam(e, target, info.CalledParams[0], mod)
+		if fn && allows(s, mod) && len(d.params) > 0 && !d.other {
+			r.reportDeferredParam(e, target, d.params[0], mod)
 			continue
 		}
 		why := r.violationText(target, mod)
@@ -105,8 +98,8 @@ func (r *Result) violationText(target EntityID, mod Effects) string {
 			key := info.CalledWitnessReqs[0]
 			return "calls `" + r.Entities[key.Param].Name + "." + r.Entities[key.Req].Name + "`"
 		}
-		if len(info.CalledParams) > 0 {
-			return "calls `" + r.Entities[info.CalledParams[0]].Name + "`"
+		if d := r.fnDeferral(target, mod); len(d.params) > 0 {
+			return "calls `" + r.Entities[d.params[0]].Name + "`"
 		}
 	}
 	if _, fixed := r.fixedSummary(target); fixed {

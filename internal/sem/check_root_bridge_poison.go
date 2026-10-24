@@ -33,6 +33,21 @@ func (r *Result) retractPoisonedBindings() {
 	}
 }
 
+// runnerDriven reports whether any fn or closure names the runner, so a poisoned field could hold one.
+func (r *Result) runnerDriven(nodes []EntityID, runner EntityID) bool {
+	for _, id := range nodes {
+		if k := r.Entities[id].Kind; k != EntFn && k != EntClosure {
+			continue
+		}
+		for _, e := range r.edgesOf(id) {
+			if e.Target == runner {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // A poisoned fn-typed field reaches the runner: a fn type has no witness pool to fall back on, unlike an interface.
 func (r *Result) rootRunPoisonedFnFields(rr *rootRun) {
 	for key := range r.fieldWitnessPoisoned {

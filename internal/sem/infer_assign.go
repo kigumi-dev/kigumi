@@ -34,7 +34,8 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	}
 	deferred := !op.IsCompoundAssign() && c.copyShape(lhs, rhs)
 	_, refTarget := c.r.MutRefElem(c.vars.resolve(target))
-	boxedSlot := !deferred && c.crossStore(lhs, target) || refTarget && c.isIdentPlace(lhs)
+	late := !deferred && !op.IsCompoundAssign() && c.nullaryShape(rhs)
+	boxedSlot := !deferred && !late && c.crossStore(lhs, rhs, target) || refTarget && c.isIdentPlace(lhs)
 	c.invalidatePlace(lhs)
 	c.rejectAsyncSelfAssign(lhs)
 	c.noteWholeSelfAssign(lhs)
@@ -55,6 +56,9 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 	c.check(rhs, target)
 	c.rejectFieldValue(rhs)
 	c.onceReassign(lhs)
+	if late {
+		boxedSlot = c.crossStore(lhs, rhs, target) || boxedSlot
+	}
 	if deferred {
 		if c.elementCopy(lhs, rhs, target) || c.fieldCopy(lhs, rhs, target) {
 			c.crossOwnedRoot(lhs)
@@ -62,7 +66,7 @@ func (c *checker) assignStmt(n syntax.NodeID) {
 				c.crossOwnedRoot(src)
 			}
 		} else {
-			boxedSlot = c.crossStore(lhs, target) || boxedSlot
+			boxedSlot = c.crossStore(lhs, rhs, target) || boxedSlot
 		}
 	}
 	if boxedSlot && !c.constScalar(rhs) {

@@ -50,6 +50,9 @@ func typeSize(tt *sem.TypeTable, t sem.TypeID) int {
 }
 
 func charge(sp, ctx *spec) {
+	if sp.held != nil {
+		sp.held.count++
+	}
 	if ctx == nil {
 		sp.root = sp
 		return
@@ -77,6 +80,10 @@ func (s *specializer) overBudget(ctx *spec) bool {
 }
 
 func (s *specializer) warn(f *Func, node syntax.NodeID, code string, args ...any) {
+	s.report(diag.Warning, f, node, code, args...)
+}
+
+func (s *specializer) report(sev diag.Severity, f *Func, node syntax.NodeID, code string, args ...any) {
 	c, ok := sem.CodeByName(code)
 	if !ok {
 		return
@@ -86,7 +93,7 @@ func (s *specializer) warn(f *Func, node syntax.NodeID, code string, args ...any
 		msg += "; " + c.Help
 	}
 	t := s.p.R.Tree(f.File)
-	s.p.Diags = append(s.p.Diags, FileDiag{File: f.File, Diag: diag.Diagnostic{Severity: diag.Warning, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num}})
+	s.p.Diags = append(s.p.Diags, FileDiag{File: f.File, Diag: diag.Diagnostic{Severity: sev, Loc: diag.At(t.File, t.Span(node)), Msg: msg, Code: c.Num}})
 }
 
 // reclaim reports whether a capped root held instantiations that went unused for another reason; each raises its limit.

@@ -72,8 +72,8 @@ func (p *Program) chargeCopies() {
 				if !p.allocCopy(f, in) {
 					continue
 				}
-				if k, ok := p.paramCopy(f, in); ok {
-					facts.add(f.Ent, k)
+				if fact, ok := p.paramCopy(f, in); ok {
+					facts.add(f.Ent, fact)
 					continue
 				}
 				sites = append(sites, p.copySite(f, in))

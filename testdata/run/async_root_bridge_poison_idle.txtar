@@ -1,0 +1,25 @@
+-- src --
+import task from std/task
+import map from std/map
+
+type Holder = {
+    pub mut cb fn() -> Int
+}
+
+fn safeA() -> Int {
+    1
+}
+
+async fn outer() -> Int {
+    let mut hs = map.empty[Int, fn() -> Int]()
+    hs.set(0, safeA)
+    let h = Holder { cb: hs.get(&0).unwrap() }
+    h.cb()
+}
+
+let ex = task.currentThreadExecutor()
+print "got ${ex.runToCompletion(outer())}"
+-- stdout --
+got 1
+-- exit --
+0

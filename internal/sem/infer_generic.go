@@ -119,5 +119,6 @@ func (c *checker) coerceGenericFnItem(n syntax.NodeID, item EntityID, got, want 
 	if need := Effects(w.Flags) & (EffPure | EffNoalloc); Effects(g.Flags)&need != need {
 		c.edge(EffectEdge{Kind: EdgeContract, Target: item, Mods: need, Node: n})
 	}
+	c.noteNoallocErase(n, want)
 	return true
 }

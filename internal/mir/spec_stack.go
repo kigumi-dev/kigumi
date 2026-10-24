@@ -6,35 +6,8 @@ import "kigumi/internal/sem"
 const regLeaves = 2
 
 // The shared body holds a wide value in one boxed word per level.
-func (s *specializer) deepens(sp *spec, held map[*spec]bool) bool {
-	return sp.fn.Proto == "" && !held[sp] && s.holdsWide(sp) && s.recursive(sp)
-}
-
-// A caller declared `noalloc` would have to box for a shared body anywhere down its chain of specializations.
-func (s *specializer) noallocHeld(live []*spec) map[*spec]bool {
-	held := map[*spec]bool{}
-	var work []*spec
-	for _, sp := range live {
-		for _, site := range sp.sites {
-			if !site.gone && !held[sp] && s.byFunc[site.f] == nil && s.p.declaredNoalloc(site.f) {
-				held[sp] = true
-				work = append(work, sp)
-			}
-		}
-	}
-	for len(work) > 0 {
-		sp := work[len(work)-1]
-		work = work[:len(work)-1]
-		for _, blk := range sp.fn.Blocks {
-			for _, in := range blk.Insts {
-				if c := s.byEnt[in.Ent]; in.Op == OpCall && c != nil && !held[c] {
-					held[c] = true
-					work = append(work, c)
-				}
-			}
-		}
-	}
-	return held
+func (s *specializer) deepens(sp *spec) bool {
+	return sp.fn.Proto == "" && sp.held == nil && s.holdsWide(sp) && s.recursive(sp)
 }
 
 func (s *specializer) holdsWide(sp *spec) bool {

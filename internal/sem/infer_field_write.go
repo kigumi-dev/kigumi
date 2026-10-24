@@ -66,7 +66,7 @@ func (c *checker) recordFnFieldWrite(key fieldFnKey, init syntax.NodeID) {
 		c.pendingFieldEdges = append(c.pendingFieldEdges, pendingFieldEdge{key, EdgeFieldBind, ent, init})
 		return
 	}
-	if c.stageFnResultWrite(key, init) {
+	if c.stageFnResultWrite(key, init) || c.stageFnFieldCopy(key, init) {
 		return
 	}
 	c.recordFieldPoisonSite(key, init)

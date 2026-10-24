@@ -15,6 +15,9 @@ func (r *Result) opFixedSummary(id EntityID) (OpSummary, bool) {
 		return OpSummary{}, false
 	}
 	if s, ok := trustedOpSummaries[r.stdKey(id)]; ok {
+		if offloadingCallbacks[r.stdKey(id)] && !r.workerThreads() {
+			s.Facts[FactBlock] = OpFactState{}
+		}
 		return s, true
 	}
 	if s, ok := callbackOpSummaries[r.stdKey(id)]; ok {

@@ -80,6 +80,7 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 		c.edge(EffectEdge{Kind: EdgeWitnessCall, Target: req, Node: n})
 	} else {
 		c.edge(EffectEdge{Kind: EdgeCall, Target: req, Param: c.ifaceRecvEnt(base, recv), Node: n})
+		c.noteIfaceRecvFn(n, base)
 	}
 	sig = c.instantiateRequirement(n, req, sig, typeArgs)
 	from := len(*c.edges)

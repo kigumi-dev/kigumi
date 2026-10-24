@@ -1,0 +1,33 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+noalloc fn has[T: Copy](a: &Array[T]) -> Bool {
+    a.last() is Some(_)
+}
+
+// The profile checks every body main reaches, so the call is specialized and hands the element out directly.
+fn helper(a: &Array[Int]) -> Bool {
+    has(a)
+}
+
+fn copied(a: &Array[String]) -> Bool {
+    has(a)
+}
+
+fn main() {
+    let mut xs: Array[Int] = Array.empty()
+    let mut ws: Array[String] = Array.empty()
+    if xs.tryPush(1) is Ok(_) {
+        let b = helper(&xs)
+        let c = copied(&ws) //~ ERROR `copied` may terminate on a refused allocation
+    }
+}
+-- expect --
+error[E1280]: `copied` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:19:17
+   |
+19 |         let c = copied(&ws) //~ ERROR `copied` may terminate on a refused allocation
+   |                 ^^^^^^^^^^
+   = help: use the fallible (`try`-prefixed) form instead
+

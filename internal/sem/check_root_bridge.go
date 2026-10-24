@@ -36,9 +36,7 @@ type rootRun struct {
 	final  string
 	dist   map[EntityID]int
 	bind   map[EntityID]EffectEdge
-	// invoked marks a parameter actually invoked, directly or through a
-	// forwarding chain that bottoms out in an invocation; a parameter merely
-	// stored or returned is never flagged even if a root-driving fn reaches it.
+	// invoked marks a parameter called directly or through a forwarding chain, not one only stored.
 	invoked map[EntityID]bool
 	impls   map[EntityID][]EntityID
 	witness map[EntityID]EntityID
@@ -85,7 +83,9 @@ func (r *Result) inferRunnerReach(nodes []EntityID, runner EntityID, final strin
 	rr := &rootRun{runner: runner, final: final, dist: map[EntityID]int{}, bind: map[EntityID]EffectEdge{}, invoked: map[EntityID]bool{},
 		impls: r.ifaceReqImpls(), witness: map[EntityID]EntityID{}, paramWitness: map[EntityID][]EntityID{}, openParam: map[EntityID]bool{},
 		poisonedFnField: map[EntityID]OpHop{}, poisonAt: map[bindSite]OpHop{}}
-	r.rootRunPoisonedFnFields(rr)
+	if r.runnerDriven(nodes, runner) {
+		r.rootRunPoisonedFnFields(rr)
+	}
 	for changed := true; changed; {
 		changed = false
 		if r.rootRunResolveInvoked(nodes, rr) {
@@ -117,9 +117,7 @@ func (r *Result) inferRunnerReach(nodes []EntityID, runner EntityID, final strin
 	return rr
 }
 
-// rootRunResolveInvoked finds which forwarded parameters are actually called:
-// an EdgeParamCall with Param == 0 is a direct invocation, and one forwarding
-// into an already-invoked parameter is invoked transitively.
+// rootRunResolveInvoked marks forwarded parameters called directly or through another invoked one.
 func (r *Result) rootRunResolveInvoked(nodes []EntityID, rr *rootRun) bool {
 	changed := false
 	for _, id := range nodes {

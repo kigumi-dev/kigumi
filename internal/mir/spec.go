@@ -19,6 +19,7 @@ type spec struct {
 	sites   []*callSite
 	dead    bool
 	scalar  bool
+	held    *heldRoot
 }
 
 type callSite struct {
@@ -38,6 +39,7 @@ type specializer struct {
 	noSpec   map[sem.EntityID]bool
 	reported map[string]bool
 	scanned  map[*Func]bool
+	rooted   map[*Func]*heldRoot
 	scalars  bool
 	bonus    map[string]int
 	lent     map[lendParam]bool
@@ -79,6 +81,7 @@ func newSpecializer(p *Program, bonus map[string]int) *specializer {
 }
 
 func (s *specializer) run() {
+	s.markRooted()
 	for _, f := range append([]*Func(nil), s.p.Funcs...) {
 		s.scan(f, nil)
 	}
@@ -97,6 +100,7 @@ func (s *specializer) scan(f *Func, ctx *spec) {
 			}
 			// A copy of a body scanned before it was copied already names the instantiation.
 			if sp := s.byEnt[insts[i].Ent]; sp != nil {
+				s.hold(sp, s.heldIn(f, ctx))
 				if !s.scanned[f] {
 					sp.sites = append(sp.sites, &callSite{f: f, blk: bid, idx: i})
 				}
@@ -119,7 +123,9 @@ func (s *specializer) scan(f *Func, ctx *spec) {
 func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []sem.WitnessArg) *spec {
 	gen := in.Ent
 	key := s.key(gen, args, wit)
+	held := s.heldIn(f, ctx)
 	if sp, ok := s.byKey[key]; ok {
+		s.hold(sp, held)
 		return sp
 	}
 	if s.runaway(ctx, gen, args) {
@@ -130,7 +136,7 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 		return nil
 	}
 	g := s.p.ByEnt[gen]
-	if s.noSpec[gen] || s.overBudget(ctx) {
+	if s.noSpec[gen] || held != nil && s.overHeldLimit(f, in, held, gen, args) || held == nil && s.overBudget(ctx) {
 		return nil
 	}
 	sub := s.p.R.InstanceSubst(gen, args)
@@ -152,7 +158,7 @@ func (s *specializer) get(f *Func, ctx *spec, in Inst, args []sem.TypeID, wit []
 		s.noSpec[gen] = true
 		return nil
 	}
-	sp := &spec{key: key, ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones, scalar: s.scalars}
+	sp := &spec{key: key, ent: ent, gen: gen, args: args, wit: wit, parent: ctx, fn: fn, sub: sub, clones: clones, scalar: s.scalars, held: held}
 	charge(sp, ctx)
 	s.p.Funcs = append(s.p.Funcs, fn)
 	s.p.ByEnt[ent] = fn

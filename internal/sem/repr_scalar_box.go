@@ -1,10 +1,6 @@
 package sem
 
-import (
-	"slices"
-
-	"kigumi/internal/syntax"
-)
+import "kigumi/internal/syntax"
 
 // ScalarBoxes reports whether a t crossing into a boxed slot may take a heap box on native; Bool and Void boxes are immortals.
 func (r *Result) ScalarBoxes(t TypeID) bool {
@@ -85,20 +81,6 @@ func (c *checker) scalarEdge(n syntax.NodeID, t TypeID, why uint8) { c.scalarEdg
 func (c *checker) scalarEdgeAt(n syntax.NodeID, t TypeID, why uint8, target EntityID) {
 	if t = c.vars.resolve(t); !c.r.Types.ContainsVar(t) && c.r.ScalarBoxes(t) {
 		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Type: t, Why: why, Target: target, Captured: c.capturedRead(n)})
-	}
-}
-
-// An in-place FixedArray op runs the callback over its own storage, so its result and its writes through a parameter take no box.
-func (r *Result) inlineCallback(lam EntityID) {
-	if lam == 0 || r.Entities[lam].Kind != EntClosure {
-		return
-	}
-	info := r.closure(lam)
-	for i := range info.Edges {
-		e := &info.Edges[i]
-		if e.Why == whyClosureScalar && e.Node == r.Entities[lam].Node || e.Why == whyScalarStore && e.Target != 0 && slices.Contains(info.Params, e.Target) {
-			e.Why = whyInlined
-		}
 	}
 }
 

@@ -64,6 +64,7 @@ func (c *checker) noteResultSite(n syntax.NodeID, fn EntityID, args []syntax.Nod
 
 func (c *checker) recordResultLeaves(body syntax.NodeID) {
 	c.recordFnResultLeaves(body)
+	c.recordIfaceResult(body)
 	if c.r.holdsFnElem(c.retType) {
 		c.recordContainerResult(body)
 		return

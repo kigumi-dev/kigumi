@@ -1,0 +1,149 @@
+-- app/t/t.kg --
+import task from std/task
+
+async fn work() -> Int {
+    0
+}
+
+fn syncRoot() -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(work())
+}
+
+fn safeFn() -> Int {
+    9
+}
+
+type Holder = {
+    pub mut cb fn() -> Int
+}
+
+fn pickCb(risky: Bool) -> fn() -> Int {
+    if risky { syncRoot } else { safeFn }
+}
+
+async fn safeCopy() -> Int {
+    let g = Holder { cb: safeFn }
+    let mut h = Holder { cb: safeFn }
+    h.cb = g.cb
+    h.cb()
+}
+
+async fn safeCopyThroughLocal() -> Int {
+    let g = Holder { cb: safeFn }
+    let f = g.cb
+    let mut h = Holder { cb: safeFn }
+    h.cb = f
+    h.cb()
+}
+
+async fn riskyCopy() -> Int {
+    let g = Holder { cb: syncRoot }
+    let mut h = Holder { cb: safeFn }
+    h.cb = g.cb
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn poisonedCopy() -> Int {
+    let mut g = Holder { cb: safeFn }
+    let all = Array.of(safeFn, syncRoot)
+    g.cb = all[1] //~ ERROR cannot run inside an `async fn`
+    let mut h = Holder { cb: safeFn }
+    h.cb = g.cb
+    h.cb()
+}
+
+async fn resolvedCopy() -> Int {
+    let mut g = Holder { cb: safeFn }
+    g.cb = pickCb(true)
+    let mut h = Holder { cb: safeFn }
+    h.cb = g.cb
+    h.cb() //~ ERROR cannot run inside an `async fn`
+}
+
+async fn selfCopy() -> Int {
+    let mut h = Holder { cb: safeFn }
+    h.cb = h.cb
+    h.cb()
+}
+
+async fn paramCopy(b: &Holder) -> Int {
+    let mut h = Holder { cb: safeFn }
+    h.cb = b.cb //~ ERROR cannot run inside an `async fn`
+    h.cb()
+}
+
+fn supply() -> Int {
+    let e1 = task.currentThreadExecutor()
+    let a = e1.runToCompletion(safeCopy())
+    let e2 = task.currentThreadExecutor()
+    let b = e2.runToCompletion(safeCopyThroughLocal())
+    let e3 = task.currentThreadExecutor()
+    let c = e3.runToCompletion(riskyCopy())
+    let e4 = task.currentThreadExecutor()
+    let d = e4.runToCompletion(poisonedCopy())
+    let e5 = task.currentThreadExecutor()
+    let e = e5.runToCompletion(selfCopy())
+    let e6 = task.currentThreadExecutor()
+    let f = e6.runToCompletion(resolvedCopy())
+    a + b + c + d + e + f
+}
+-- expect --
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:43:5
+   |
+43 |     h.cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:40:26
+   |
+40 |     let g = Holder { cb: syncRoot }
+   |                          ^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:49:12
+   |
+49 |     g.cb = all[1] //~ ERROR cannot run inside an `async fn`
+   |            ^^^^^
+   = help: `await` the future instead
+note: `cb` was written to an unresolved value here, and could hold any fn
+  --> app/t/t.kg:49:12
+   |
+49 |     g.cb = all[1] //~ ERROR cannot run inside an `async fn`
+   |            ^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:60:5
+   |
+60 |     h.cb() //~ ERROR cannot run inside an `async fn`
+   |     ^^^^^
+   = help: `await` the future instead
+note: `syncRoot` is stored in the field here
+  --> app/t/t.kg:57:12
+   |
+57 |     g.cb = pickCb(true)
+   |            ^^^^^^^^^^^
+note: drives a new root task here
+  --> app/t/t.kg:9:5
+   |
+ 9 |     ex.runToCompletion(work())
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E1291]: `runToCompletion` cannot run inside an `async fn`: this executor cannot host a task already bound to the running one
+  --> app/t/t.kg:71:12
+   |
+71 |     h.cb = b.cb //~ ERROR cannot run inside an `async fn`
+   |            ^^^^
+   = help: `await` the future instead
+note: `cb` was written to an unresolved value here, and could hold any fn
+  --> app/t/t.kg:71:12
+   |
+71 |     h.cb = b.cb //~ ERROR cannot run inside an `async fn`
+   |            ^^^^
+

@@ -96,6 +96,10 @@ type Result struct {
 	// localWitness is an immutable local's witnesses when its let
 	// initializer coerces it to an interface; check_root_bridge.go reads it.
 	localWitness map[EntityID][]EntityID
+	// ifaceResult is the witnesses a fn's interface result can come from; absent when a return is untracked.
+	ifaceResult map[EntityID][]EntityID
+	// ifaceRecvFn is the fn whose call result is an interface call's receiver.
+	ifaceRecvFn map[literalEntKey]EntityID
 	// knownFn is a local/param's known fn item target(s) traced through
 	// `let` aliasing; check_root_bridge.go uses it for a captured-variable call.
 	knownFn map[EntityID][]EntityID
@@ -130,6 +134,8 @@ type Result struct {
 	// literalFieldEnts caches literalFieldEnt's synthetic entity per literal node.
 	literalFieldEnts        map[literalEntKey]EntityID
 	fnUnions                []fnUnion
+	fnFieldUnions           []fnFieldUnion
+	noallocErase            map[literalEntKey]bool
 	flow                    flowState
 	fieldFnSites            map[fieldSiteKey]fieldPoisonSiteInfo
 	edgeFnSites             map[edgeSiteKey]fieldPoisonSiteInfo

@@ -44,7 +44,7 @@ async fn pull(c: net.Conn) -> usize! {
 	}
 }
 
-func TestAsyncHTTPServerAndClientQuiet(t *testing.T) {
+func TestAsyncHTTPServerQuiet(t *testing.T) {
 	res := checkBlocking(t, "single-thread-event-loop", `
 import http from std/http
 import net from std/net
@@ -54,17 +54,32 @@ fn ok(req: http.Request) -> http.Response! {
     http.Response.ofText(200, "ok")
 }
 
-async fn both(n: net.Net, l: net.Listener) -> Void! {
+async fn serve(l: net.Listener) -> Void! {
     let server = http.Server.new(http.Router.new().get("/", ok).handler(), (line) => {})
     let stop = http.Shutdown.new()
     let t = task.spawn(server.serve(l, stop.clone()))
-    let c = http.Client.new(n, task.BlockingPool.new(1))
-    _ = (await c.get("http://127.0.0.1:1/"))?
     stop.request()
     (await t)?
 }
 `)
 	if out := res.Render(); res.HasErrors() {
-		t.Fatalf("std/http must not reach a direct-blocking call from its async bodies:\n%s", out)
+		t.Fatalf("std/http must not reach a direct-blocking call from its server's async bodies:\n%s", out)
+	}
+}
+
+func TestAsyncHTTPClientConnectBlocksWithoutWorkers(t *testing.T) {
+	res := checkBlocking(t, "single-thread-event-loop", `
+import http from std/http
+import net from std/net
+import task from std/task
+
+async fn fetch(n: net.Net) -> Void! {
+    let c = http.Client.new(n, task.BlockingPool.new(1))
+    _ = (await c.get("http://127.0.0.1:1/"))?
+}
+`)
+	out := res.Render()
+	if !strings.Contains(out, "E1320") || !strings.Contains(out, "calls `connect`") {
+		t.Fatalf("without worker threads the client's pool runs connect on the event loop, so a strict profile must reject it:\n%s", out)
 	}
 }

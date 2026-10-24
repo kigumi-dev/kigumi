@@ -1,0 +1,40 @@
+-- src --
+noalloc fn firstOf[T: Copy](a: &Array[T]) -> T? {
+    a.first()
+}
+
+noalloc fn lastOf[T: Copy](a: &Array[T]) -> T? {
+    a.last()
+}
+
+noalloc fn getOf[T: Copy](a: &Array[T], i: usize) -> T? {
+    a.get(i)
+}
+
+noalloc fn viaFirst[T: Copy](a: &Array[T]) -> T? {
+    firstOf(a)
+}
+
+noalloc fn sumInt(a: &Array[Int]) -> Int {
+    (firstOf(a) || -1) + (lastOf(a) || -1) + (getOf(a, 1) || -1) + (viaFirst(a) || -1)
+}
+
+noalloc fn flagOf(a: &Array[Bool]) -> Bool {
+    (getOf(a, 0) || false) && (lastOf(a) || false)
+}
+
+noalloc fn missing(a: &Array[u8]) -> Bool {
+    firstOf(a) is None && getOf(a, 3) is None
+}
+
+let xs = Array.of(4, 5, 6)
+print "${sumInt(&xs)}"
+print "${flagOf(&Array.of(true, true))}"
+let empty: Array[u8] = Array.empty()
+print "${missing(&empty)}"
+-- stdout --
+19
+true
+true
+-- exit --
+0

@@ -1,0 +1,36 @@
+-- src --
+type Named = {
+    pub name String
+    pub n Int
+}
+
+noalloc fn id[T: Copy](x: T) -> T {
+    let y = x
+    y
+}
+
+noalloc fn lastOf[T: Copy](a: &Array[T]) -> T? {
+    a.last()
+}
+
+fn mk() -> fn(Named) -> Named {
+    id[Named]
+}
+
+fn callPlain(f: fn(&Array[String]) -> String?, a: &Array[String]) -> String {
+    f(a) || "none"
+}
+
+let f = mk()
+let r = f(Named { name: "a", n: 1 })
+print "${r.n} ${r.name}"
+let words = Array.of("x", "y")
+print callPlain(lastOf[String], &words)
+let g: fn(&Array[String]) -> String? = lastOf
+print (g(&words) || "none")
+-- stdout --
+1 a
+y
+y
+-- exit --
+0

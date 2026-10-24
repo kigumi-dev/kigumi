@@ -70,7 +70,10 @@ func (c *checker) crossRecv(n syntax.NodeID, fn EntityID, recv TypeID, recvNode 
 
 // crossStore claims the box a store needs when the place is someone else's
 // storage: a container slot, a static, or a view a write reaches the owner through.
-func (c *checker) crossStore(lhs syntax.NodeID, t TypeID) bool {
+func (c *checker) crossStore(lhs, rhs syntax.NodeID, t TypeID) bool {
+	if _, coerced := c.info.Coerce[rhs]; !coerced && c.nullaryValue(rhs) {
+		return false
+	}
 	// A `&mut T` place holds T; the reference is the cell the store reaches it through.
 	if elem, ok := c.r.MutRefElem(c.vars.resolve(t)); ok {
 		t = elem
@@ -141,6 +144,12 @@ func (c *checker) nullaryValue(n syntax.NodeID) bool {
 	n = c.t.Unparen(n)
 	v := c.info.Uses[n]
 	return v != 0 && c.r.Entities[v].Kind == EntVariant && len(c.r.variant(v).Payload) == 0
+}
+
+// nullaryShape is a name a payload-free variant may be written as, which only the checked value settles.
+func (c *checker) nullaryShape(n syntax.NodeID) bool {
+	k := c.t.Kind(c.t.Unparen(n))
+	return k == syntax.Ident || k == syntax.MemberExpr
 }
 
 // foreignChain reports whether a projection chain reaches into storage a caller or a container owns, where a field or slot holds a reference.

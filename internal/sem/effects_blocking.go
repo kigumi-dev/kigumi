@@ -1,7 +1,6 @@
 package sem
 
-// directBlockingPrimitives lists bodiless std fns (extern(C) syscalls) that occupy the calling execution agent
-// until the syscall returns, keyed like mir.StdKey; this only sets FactBlock, leaving their other facts unknown.
+// directBlockingPrimitives are bodiless std fns that hold the calling agent until the syscall returns.
 var directBlockingPrimitives = map[string]bool{
 	"net.getaddrinfo": true,
 	"net.connect":     true,
@@ -29,16 +28,14 @@ var directBlockingPrimitives = map[string]bool{
 	"shell.waitpid":   true,
 }
 
-// nonBlockingStd lists bodied std fns that reach a blocking syscall only on a descriptor they first make
-// non-blocking, so the call returns at once and their own FactBlock is cleared.
+// nonBlockingStd are bodied std fns that make their descriptor non-blocking first.
 var nonBlockingStd = map[string]bool{
 	"net.Listener.pollAccept": true,
 	"net.Conn.pollRead":       true,
 	"net.Conn.pollWrite":      true,
 }
 
-// trustedOpSummaries lists bodiless std fns whose op summary is a complete, hand-verified fact set rather than
-// the bodiless default's unknown widening; run's Offloaded is the API's contract, trusted like a declared noalloc.
+// trustedOpSummaries are hand-verified fact sets for bodiless std fns.
 var trustedOpSummaries = map[string]OpSummary{
 	"task.BlockingPool.new": {Known: true, Facts: [numOpFacts]OpFactState{
 		FactAlloc: {Maybe: true},
@@ -49,23 +46,24 @@ var trustedOpSummaries = map[string]OpSummary{
 	}},
 }
 
-// offloadingCallbacks lists bodiless std fns whose fn-typed argument runs on the provider's own worker, never
-// synchronously in the caller's frame; callbackEdges marks that argument's EdgeCallback Offloaded so its facts
-// merge the same way run's own FactBlock does, instead of being blamed on the caller directly.
+// offloadingCallbacks are std fns whose fn argument runs on a provider worker when threads exist.
 var offloadingCallbacks = map[string]bool{
 	"task.BlockingPool.run": true,
 }
 
+// A strict profile rejects threadPoolExecutor, so BlockingPool.run runs its closure on the caller.
+func (r *Result) workerThreads() bool { return r.blockingProfile == hostedBlockingProfile }
+
 func (r *Result) isOffloadingCallback(fn EntityID) bool {
-	return offloadingCallbacks[r.stdKey(fn)]
+	return r.workerThreads() && offloadingCallbacks[r.stdKey(fn)]
 }
 
-// checkAsyncDirectBlocking flags a direct-blocking operation reachable from an async function's body;
-// hostedBlockingProfile's default warns, every other profile name rejects.
+// checkAsyncDirectBlocking flags a blocking op reachable from an async body; hosted warns, strict rejects.
 func (r *Result) checkAsyncDirectBlocking() {
 	for id := 1; id < len(r.Entities); id++ {
 		e := &r.Entities[id]
-		if e.Kind != EntFn || e.Flags&EfPoison != 0 {
+		// Without worker threads a std pool closure runs on the caller, whose own async fn is reported.
+		if e.Kind != EntFn || e.Flags&EfPoison != 0 || r.Packages[e.Pkg].Std && !r.workerThreads() {
 			continue
 		}
 		info := r.Fn(EntityID(id))

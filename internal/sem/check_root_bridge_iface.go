@@ -111,6 +111,10 @@ func (r *Result) ifaceCallWitness(e EffectEdge, rr *rootRun) (hops int, witness 
 		return 0, 0, false
 	}
 	w, known := r.witnessOf(e.Param, rr)
+	if e.Param == 0 {
+		w, known = r.ifaceResult[r.ifaceRecvFn[literalEntKey{File: e.File, Node: e.Node}]]
+		known = known && len(w) > 0
+	}
 	if !known {
 		return 0, 0, false
 	}

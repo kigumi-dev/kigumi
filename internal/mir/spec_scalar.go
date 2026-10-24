@@ -34,9 +34,9 @@ func (s *specializer) scalarArgs(args []sem.TypeID) bool {
 	return false
 }
 
-// A scalar instance never brings in an aggregate instance, so no instance chain can grow from one.
+// A scalar instance never brings in an aggregate instance, so no chain grows from one; a held one has its own limit.
 func (s *specializer) grows(ctx *spec, args []sem.TypeID) bool {
-	return ctx != nil && ctx.root.scalar && s.p.R.SpecializeArgs(args)
+	return ctx != nil && ctx.held == nil && ctx.root.scalar && s.p.R.SpecializeArgs(args)
 }
 
 // A scalar instance gains by returning an aggregate unboxed or a type-parameter scalar in a register;

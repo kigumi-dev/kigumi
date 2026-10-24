@@ -1,0 +1,45 @@
+-- src --
+import task from std/task
+
+interface Calc {
+    fn value(self) -> Int
+}
+
+type SafeCalc = {
+    pub n Int
+}
+
+type RiskyCalc = {
+    pub n Int
+}
+
+async fn leaf(n: Int) -> Int {
+    n
+}
+
+fn SafeCalc.value(self) -> Int {
+    self.n
+}
+
+fn RiskyCalc.value(self) -> Int {
+    let ex = task.currentThreadExecutor()
+    ex.runToCompletion(leaf(self.n))
+}
+
+fn makeSafe() -> Calc {
+    SafeCalc { n: 4 }
+}
+
+async fn fromCallResult() -> Int {
+    makeSafe().value()
+}
+
+let ex = task.currentThreadExecutor()
+print "got ${ex.runToCompletion(fromCallResult())}"
+let risky: Calc = RiskyCalc { n: 2 }
+print "risky ${risky.value()}"
+-- stdout --
+got 4
+risky 2
+-- exit --
+0

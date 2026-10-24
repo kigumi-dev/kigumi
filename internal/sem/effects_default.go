@@ -90,6 +90,17 @@ func (r *Result) allocRoots() []EntityID {
 	return roots
 }
 
+// AllocProfileRoots lists the roots a restricting allocation profile checks, with the flag that chose it.
+func (r *Result) AllocProfileRoots() ([]EntityID, string) {
+	switch {
+	case r.recoverableOnly:
+		return r.allocRoots(), "--profile recoverable-only"
+	case r.noDefault:
+		return r.allocRoots(), "--allocator none"
+	}
+	return nil, ""
+}
+
 // checkDefaultAllocator enforces `allocator = none` at every root: the first
 // edge that reaches the ambient allocator is reported.
 func (r *Result) checkDefaultAllocator() {

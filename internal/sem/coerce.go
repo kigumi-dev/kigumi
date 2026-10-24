@@ -100,9 +100,7 @@ func (c *checker) coerceSteps(n syntax.NodeID, got, want TypeID) ([]CoStep, bool
 	return nil, false
 }
 
-// coerceToFn erases a function item or plain fn value into the expected fn
-// type: shapes must match exactly and contracts must be at least as
-// strong.
+// coerceToFn erases a fn item or fn value into want; shapes must match and contracts be at least as strong.
 func (c *checker) coerceToFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool) {
 	tt := c.r.Types
 	g, w := tt.Node(got), tt.Node(want)
@@ -132,6 +130,7 @@ func (c *checker) coerceToFn(n syntax.NodeID, got, want TypeID) ([]CoStep, bool)
 		}
 	}
 	if item := c.info.Uses[n]; item != 0 && c.r.Entities[item].Kind == EntFn {
+		c.noteNoallocErase(n, want)
 		return []CoStep{{CoFnItem, want}}, true
 	}
 	return nil, true
