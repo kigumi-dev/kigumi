@@ -15,7 +15,7 @@ func (c *checker) checkCArgs(n syntax.NodeID, name string, sn typeNode, args []s
 			c.checkArg(a, params[i], 0, false)
 			continue
 		}
-		t := c.readThrough(c.vars.resolve(c.synth(a)))
+		t := c.readThrough(c.vars.resolve(c.synthRead(a)))
 		if c.r.Types.Kind(t) == KUntyped {
 			t = c.adopt(c.literalNode(a), c.variadicLiteralType(a, t))
 		}

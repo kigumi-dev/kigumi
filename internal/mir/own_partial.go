@@ -73,6 +73,10 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 			a.checkGuardHeld(in, l, st, report, 0)
 		}
 		if !a.tracked[l] {
+			// A `mut self` receiver is an untracked cell; a whole use still needs every field back.
+			if a.f.Locals[l].Borrowed && wholeUse(in.Op) {
+				a.checkWhole(in.Node, l, st, report)
+			}
 			continue
 		}
 		a.check(in, l, st.val.get(l), report)
@@ -85,10 +89,14 @@ func (a *owner) useArgs(in *Inst, st *dstate, report bool) {
 			st.val.set(l, ownMoved)
 			st.at.set(l, in.Node)
 			a.noteMove(in, l, report)
-		case in.Op == OpCall || in.Op == OpCallValue || in.Op == OpBuiltin || in.Op == OpBorrow || in.Op == OpTag || in.Op == OpIsVariant:
+		case wholeUse(in.Op):
 			a.checkWhole(in.Node, l, st, report)
 		}
 	}
+}
+
+func wholeUse(op Opcode) bool {
+	return op == OpCall || op == OpCallValue || op == OpBuiltin || op == OpBorrow || op == OpTag || op == OpIsVariant
 }
 
 // primitiveTakes: a runtime primitive retains what it keeps, so a field place it gets by value is spent like a moved local.

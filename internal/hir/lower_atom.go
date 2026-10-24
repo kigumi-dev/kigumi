@@ -108,7 +108,11 @@ func (l *lowerer) member(n syntax.NodeID) *Expr {
 	}
 	switch l.r.Entity(ent).Kind {
 	case sem.EntField:
-		out := l.node(n, Field)
+		kind := Field
+		if l.info.FieldMoves[n] {
+			kind = FieldMove
+		}
+		out := l.node(n, kind)
 		out.Args, out.Index = []*Expr{l.expr(base)}, l.r.Field(ent).Index
 		return out
 	case sem.EntType:

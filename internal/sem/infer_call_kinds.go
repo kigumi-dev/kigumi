@@ -144,6 +144,8 @@ func (c *checker) callMethodOn(n, callee, base syntax.NodeID, recv, valueType Ty
 	if info.Recv == RecvMut {
 		c.checkReentrantCapture(base, args)
 	}
+	c.noteRecvStores(n, base, m, args)
+	c.rejectLentRecv(base, args)
 	c.checkSelfAliasArgs(base, info.Recv, info.Declared&EffAsync != 0, args)
 	c.noteBorrowedRecv(base, recv, m)
 	c.noteSelfRecvCall(base, m, false, 0)
@@ -157,6 +159,7 @@ func (c *checker) checkReceiver(base syntax.NodeID, recv TypeID, m EntityID) {
 	switch info.Recv {
 	case RecvMut:
 		if tt.Kind(recv) == KRef && tt.Node(recv).Flags&flagMut != 0 {
+			c.rejectSharedMutRef(base, recv)
 			return
 		}
 		if c.rootIsChainHole(base) {

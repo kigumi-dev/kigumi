@@ -39,7 +39,7 @@ func (c *borrowCheck) plainRefRelease(l LocalID) bool {
 }
 
 func (c *borrowCheck) refRelease(l LocalID) bool {
-	return c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef || c.releaseOnly(l)
+	return c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef || c.releaseOnly(l) || c.inertDrop(l)
 }
 
 // mayDrop reports whether in may end or replace a counted value, which a pending release could outlive.

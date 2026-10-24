@@ -162,6 +162,7 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 				c.markImmediate(a, c.r.nonEscapingParam(entAt(declParams, pi)))
 			}
 			from := len(*c.edges)
+			c.markReborrowArg(a, param, entAt(declParams, pi), async)
 			c.checkArg(a, param, entAt(declParams, pi), async)
 			c.rejectScalarCopyArg(a, param)
 			c.crossArg(a, entAt(declParams, pi))
@@ -174,7 +175,8 @@ func (c *checker) checkArgs(n syntax.NodeID, name string, sig TypeID, args []syn
 		}
 	}
 	c.checkMutAliasArgs(args)
-	c.noteMutBorrowSites(args)
+	c.rejectTwiceLent(args)
+	c.noteMutBorrowSites(args, declParams)
 	tailSpread := len(args) > 0 && c.t.Kind(args[len(args)-1]) == syntax.Spread
 	if variadic && !tailSpread {
 		c.edge(EffectEdge{Kind: EdgeAlloc, Node: n, Why: 2})

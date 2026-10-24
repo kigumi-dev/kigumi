@@ -30,10 +30,14 @@ func checkBorrowedMoves(p *Program, f *Func) {
 			}
 		}
 	}
+	fieldRead := make([]syntax.NodeID, len(f.Locals))
 	for _, blk := range f.Blocks {
 		for _, in := range blk.Insts {
 			if in.Dst != 0 {
 				defNode[in.Dst] = in.Node
+				if in.Op == OpField {
+					fieldRead[in.Dst] = in.Node
+				}
 			}
 			propagates := len(in.Args) > 0 && borrowed[in.Args[0]] && !in.Share && f.Locals[in.Dst].Ent == 0
 			switch in.Op {
@@ -115,7 +119,8 @@ func checkBorrowedMoves(p *Program, f *Func) {
 		for _, in := range blk.Insts {
 			switch in.Op {
 			case OpMove:
-				if borrowed[in.Args[0]] {
+				// refFieldMove's move out of `mut self` is a partial move, as OpFieldMove is.
+				if borrowed[in.Args[0]] && (isClosure || in.Node == 0 || fieldRead[in.Args[0]] != in.Node) {
 					report(in.Node, in.Args[0])
 				}
 			case OpCopy:

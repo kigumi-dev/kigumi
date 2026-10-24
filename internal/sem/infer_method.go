@@ -101,6 +101,8 @@ func (c *checker) callRequirement(n, callee, base syntax.NodeID, recv TypeID, re
 		call.Witness = c.witnessLocal(n, paramEnt, req)
 	}
 	c.info.Calls[n] = call
+	c.noteRecvStores(n, base, req, effArgs)
+	c.rejectLentRecv(base, effArgs)
 	c.touched = append(c.touched, n)
 	return ret
 }

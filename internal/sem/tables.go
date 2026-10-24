@@ -41,6 +41,8 @@ type FileInfo struct {
 	Defaults map[syntax.NodeID]EntityID
 	// Imported maps each package this file imports to its first import entity.
 	Imported map[PackageID]EntityID
+	// FieldMoves marks a `&mut` field read by value, lowered as `move` of the field.
+	FieldMoves map[syntax.NodeID]bool
 }
 
 func newFileInfo(t *syntax.Tree, pkg PackageID) FileInfo {

@@ -23,6 +23,10 @@ type heldMuts struct {
 	partAssigns map[EntityID][]partAssign
 	reroot      loopReroot
 	patDepth    int
+	// reborrows: `&mut` field arguments lent to one synchronous call instead of moved.
+	reborrows map[syntax.NodeID]bool
+	// wantRead: the next synth reads through a reference, so a `&mut` field is not taken.
+	wantRead bool
 }
 
 type mutHolder struct {

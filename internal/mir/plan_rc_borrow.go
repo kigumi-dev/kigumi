@@ -68,6 +68,11 @@ func (p *Program) lentParam(in Inst, i int) bool {
 	return ok && p.R.Types.Kind(t) == sem.KRef
 }
 
+// A holder keeps no count of a reference stored in it, as borrowField says of records.
+func (p *Program) lentStore(f *Func, in Inst, i int) bool {
+	return in.Op == OpSetField && i == 1 && p.R.Types.Kind(f.Locals[in.Args[1]].Type) == sem.KRef
+}
+
 // A record does not own what a reference-typed field holds, so building one leaves the count with the caller.
 func (p *Program) borrowField(rec sem.EntityID, i int) bool {
 	if rec == 0 || p.R.Entity(rec).Kind != sem.EntType {

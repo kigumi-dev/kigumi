@@ -114,7 +114,9 @@ func (p *Program) takesForGood(f *Func, in *Inst, k int) bool {
 		return !p.borrowField(in.Ent, k)
 	case OpVariant, OpArray:
 		return true
-	case OpSetField, OpCellSet:
+	case OpSetField:
+		return k == 1 && !p.lentStore(f, *in, k)
+	case OpCellSet:
 		return k == 1
 	case OpSetIndex:
 		return k == 2

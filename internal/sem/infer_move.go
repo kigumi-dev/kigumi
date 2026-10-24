@@ -30,32 +30,38 @@ func (c *checker) synthMove(n syntax.NodeID, want TypeID) TypeID {
 	if t == TyPoison {
 		return TyPoison
 	}
+	c.checkMoveOut(target, t, baseType, isField)
+	return t
+}
+
+func (c *checker) checkMoveOut(target syntax.NodeID, t, baseType TypeID, isField bool) bool {
 	if c.indexRooted(target) {
 		c.errAtHelp(target, c.noCloneHelp(t, "take the element out with `.takeAt` instead"), cMoveIndex)
-		return t
+		return false
 	}
 	p, ok := c.buildPlace(target)
 	if !ok {
-		return t
+		return true
 	}
 	if p.Deref {
 		c.errAt(target, cMoveOutOfBorrow, t)
-		return t
+		return false
 	}
 	if !isField {
-		return t
+		return true
 	}
 	if root, ok := c.capturedFieldRoot(target); ok {
 		c.errAt(target, cMoveCapturedField, c.placeName(target), c.r.Entities[root].Name)
-		return t
+		return false
 	}
 	if bn := c.r.Types.Node(baseType); bn.Kind == KNamed {
 		if info := c.r.typeDecl(bn.Ent); info.Drop != 0 {
 			name := c.placeName(target)
 			c.errAt(target, cMoveDropType, name, baseType, name)
+			return false
 		}
 	}
-	return t
+	return true
 }
 
 func (c *checker) capturedFieldRoot(field syntax.NodeID) (EntityID, bool) {

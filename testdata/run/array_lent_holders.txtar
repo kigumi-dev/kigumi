@@ -12,6 +12,11 @@ fn Box.run[F: FnMut[fn() -> Void]](mut self, mut f: F) {
     self.n = self.n + 10
 }
 
+fn Box.addFrom(mut self, other: &mut Box) {
+    self.n = self.n + other.n
+    other.n = 0
+}
+
 type H['a] = {
     pub r &'a mut Box
 }
@@ -24,6 +29,10 @@ type Pair['a] = {
 type Hold['a] = {
     pub mut r &'a mut Box
     pub z Int
+}
+
+type Bag['a] = {
+    pub mut items Array[H['a]]
 }
 
 fn peek(b: &Box) -> Int {
@@ -42,6 +51,38 @@ fn each['a, F: FnMut[fn() -> Void]](a: Array[H['a]], mut f: F) {
 
 fn fixed1[T](a: Array[T]) -> FixedArray[T, 1] {
     FixedArray.fromArrayMove[T, 1](a).unwrap()
+}
+
+fn pushTo['a](a: &mut Array[H['a]], h: H['a]) {
+    a.push(h)
+}
+
+fn relay['a](a: &mut Array[H['a]], h: H['a]) {
+    pushTo(a, h)
+}
+
+fn storeAt['a](a: &mut Array[H['a]], h: H['a]) {
+    a[0] = h
+}
+
+fn setHold['a](out: &mut Hold['a], h: H['a]) {
+    out.r = h.r
+}
+
+fn emit['a](out: &mut H['a], h: H['a]) {
+    out = h
+}
+
+fn tally['a](a: &mut Array[H['a]], c: &mut Int) {
+    c = c + 1
+}
+
+fn bumpBeside['a](a: &mut Array[H['a]], b: &mut Box) {
+    b.n = b.n + 1
+}
+
+fn dropOther['a, 'b](a: &mut Array[H['a]], h: H['b]) {
+    h.r.update(1)
 }
 
 fn loopThenRead() {
@@ -157,6 +198,320 @@ fn mapInsideClosure() {
     print "mapped ${v.n} ${w.n}"
 }
 
+fn throughParam() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut u = Box { n: 0 }
+    let mut a = Array.of(H { r: &mut v })
+    pushTo(&mut a, H { r: &mut w })
+    for h in a {
+        h.r.run(() => u.update(1))
+    }
+    print "param ${v.n} ${w.n} ${u.n}"
+}
+
+fn throughAlias() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut x = Box { n: 0 }
+    let mut u = Box { n: 0 }
+    let mut a = Array.of(H { r: &mut v })
+    let ra = &mut a
+    ra.push(H { r: &mut w })
+    relay(ra, H { r: &mut x })
+    for h in a {
+        h.r.run(() => u.update(1))
+    }
+    print "alias ${v.n} ${w.n} ${x.n} ${u.n}"
+}
+
+fn aliasChain() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut u = Box { n: 0 }
+    let mut bag = Bag { items: Array.of(H { r: &mut v }) }
+    let rb = &mut bag
+    let ri = &mut rb.items
+    ri.push(H { r: &mut w })
+    bag.items[1].r.run(() => u.update(1))
+    print "chain ${bag.items.len()} ${u.n}"
+}
+
+fn intoElement() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut u = Box { n: 0 }
+    let mut a = Array.of(H { r: &mut v })
+    storeAt(&mut a, H { r: &mut w })
+    a[0].r.run(() => u.update(1))
+    print "element ${a[0].r.n} ${u.n}"
+}
+
+fn outParam() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut x = Box { n: 0 }
+    let mut y = Box { n: 0 }
+    let mut u = Box { n: 0 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    setHold(&mut h, H { r: &mut w })
+    h.r.run(() => u.update(1))
+    let mut g = H { r: &mut x }
+    emit(&mut g, H { r: &mut y })
+    g.r.run(() => u.update(2))
+    print "out ${h.r.n} ${g.r.n} ${u.n} ${h.z}"
+}
+
+fn plainReceiver() {
+    let mut acc = Box { n: 1 }
+    let mut v = Box { n: 5 }
+    acc.addFrom(&mut v)
+    acc.run(() => v.update(1))
+    print "plain ${acc.n} ${v.n}"
+}
+
+fn unrelatedArgs() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 5 }
+    let mut count = 0
+    let mut a = Array.of(H { r: &mut v })
+    tally(&mut a, &mut count)
+    bumpBeside(&mut a, &mut w)
+    dropOther(&mut a, H { r: &mut w })
+    for h in a {
+        h.r.run(() => {
+            count = count + 1
+            w.update(1)
+        })
+    }
+    print "args ${count} ${w.n} ${v.n}"
+}
+
+type Wrap['a] = {
+    pub mut a &'a mut Array[H['a]]
+}
+
+fn H['a].into(move self, dst: &mut Array[H['a]]) {
+    dst.push(self)
+}
+
+fn H['a].dropBeside['b](move self, dst: &mut Array[H['b]]) {
+    self.r.update(1)
+}
+
+fn Bag['a].drainTo(move self, dst: &mut Array[H['a]]) {
+    dst.appendAll(self.items)
+}
+
+fn Bag['a].takeInto(mut self, dst: &mut Array[H['a]]) {
+    dst.push(self.items.takeAt(0).unwrap())
+}
+
+fn Wrap['a].add(mut self, h: H['a]) {
+    self.a.push(h)
+}
+
+fn via['a](wr: Wrap['a], h: H['a]) {
+    wr.a.push(h)
+}
+
+fn receiverStores() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut x = Box { n: 0 }
+    let mut y = Box { n: 0 }
+    let mut u = Box { n: 0 }
+    let mut a = Array.of(H { r: &mut v })
+    let h = H { r: &mut w }
+    h.into(&mut a)
+    let bag = Bag { items: Array.of(H { r: &mut x }) }
+    bag.drainTo(&mut a)
+    let left = {
+        let mut more = Bag { items: Array.of(H { r: &mut y }) }
+        more.takeInto(&mut a)
+        more.items.len()
+    }
+    let n = a.len()
+    for e in a {
+        e.r.run(() => u.update(1))
+    }
+    print "recv ${n} ${left} ${v.n} ${w.n} ${x.n} ${u.n}"
+}
+
+fn receiverApart() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut a = Array.of(H { r: &mut v })
+    let h = H { r: &mut w }
+    h.dropBeside(&mut a)
+    for e in a {
+        e.r.run(() => w.update(2))
+    }
+    print "apart ${v.n} ${w.n}"
+}
+
+fn wrapStores() {
+    let mut v = Box { n: 0 }
+    let mut w = Box { n: 0 }
+    let mut x = Box { n: 0 }
+    let mut y = Box { n: 0 }
+    let mut u = Box { n: 0 }
+    let mut a = Array.of(H { r: &mut v })
+    {
+        let mut wr = Wrap { a: &mut a }
+        wr.a.push(H { r: &mut w })
+        wr.add(H { r: &mut x })
+    }
+    via(Wrap { a: &mut a }, H { r: &mut y })
+    let n = a.len()
+    for e in a {
+        e.r.run(() => u.update(1))
+    }
+    print "wrap ${n} ${v.n} ${w.n} ${x.n} ${y.n} ${u.n}"
+}
+
+type Rows['a] = {
+    pub mut rows &'a mut Array[Box]
+}
+
+fn sumRows['a](src: &Rows['a]) -> Int {
+    let mut t = src.rows[0].n
+    for b in src.rows {
+        t = t + b.n
+    }
+    t
+}
+
+fn Hold['a].look(self) -> Int {
+    self.r.n + self.z
+}
+
+fn sharedReads() {
+    let mut v = Array.of(Box { n: 1 }, Box { n: 2 })
+    let mut rows = Rows { rows: &mut v }
+    rows.rows.push(Box { n: 4 })
+    for b in rows.rows {
+        b.n = b.n + 10
+    }
+    let mut x = Box { n: 3 }
+    let h = Hold { r: &mut x, z: 1 }
+    print "shared ${sumRows(&rows)} ${rows.rows.len()} ${h.look()}"
+}
+
+type RBox = resource {
+    pub mut n Int
+    tag Int
+}
+
+fn RBox.drop(move self) {
+    print "drop ${self.tag}"
+}
+
+type RHold['a] = {
+    pub mut r &'a mut RBox
+}
+
+fn bumpR(b: &mut RBox) {
+    b.n = b.n + 1
+}
+
+fn twoR(a: &mut RBox, b: &mut RBox) {
+    a.n = a.n + b.n
+}
+
+fn viaParam['a](h: RHold['a]) {
+    bumpR(h.r)
+    let r = h.r
+    bumpR(r)
+}
+
+fn refFieldForms() {
+    let mut a = RBox { n: 1, tag: 1 }
+    let mut c = RBox { n: 5, tag: 2 }
+    let mut h = RHold { r: &mut a }
+    bumpR(h.r)
+    bumpR(h.r)
+    twoR(h.r, &mut c)
+    h.r.n = h.r.n + 100
+    print "a ${h.r.n}"
+    let m = h.r
+    bumpR(m)
+    h.r = &mut c
+    bumpR(h.r)
+    print "c ${h.r.n}"
+}
+
+fn refFieldParam() {
+    let mut b = RBox { n: 1, tag: 3 }
+    viaParam(RHold { r: &mut b })
+    print "b ${b.n}"
+}
+
+fn RHold['a].swapIn(mut self, mut other: RHold['a]) -> RHold['a] {
+    let old = self.r
+    old.n = old.n + 10
+    self.r = other.r
+    other.r = old
+    other
+}
+
+fn RHold['a].swapMove(mut self, mut other: RHold['a]) -> RHold['a] {
+    let old = move self.r
+    bumpR(old)
+    self.r = move other.r
+    other.r = old
+    other
+}
+
+fn selfSwap() {
+    let mut a = RBox { n: 1, tag: 4 }
+    let mut c = RBox { n: 5, tag: 5 }
+    {
+        let mut h = RHold { r: &mut a }
+        let o = h.swapIn(RHold { r: &mut c })
+        bumpR(h.r)
+        bumpR(o.r)
+        print "swap ${h.r.n} ${o.r.n}"
+        let p = h.swapMove(o)
+        print "swap ${h.r.n} ${p.r.n}"
+    }
+    print "swapped ${a.n} ${c.n}"
+}
+
+type Cnt['a] = {
+    pub mut c &'a mut Int
+}
+
+fn sumC['a](h: Cnt['a]) -> Int {
+    h.c + h.c
+}
+
+fn showC['a](h: &Cnt['a]) -> String {
+    "${h.c} ${h.c + 1} ${h.c == 3} ${-h.c}"
+}
+
+fn twoB(a: &mut Box, b: &mut Box) {
+    a.n = a.n + b.n
+}
+
+fn readForms() {
+    let mut k = 3
+    let s = sumC(Cnt { c: &mut k })
+    let h = Cnt { c: &mut k }
+    print "read ${s} ${showC(&h)}"
+}
+
+fn lastUse() {
+    let mut x = Box { n: 1 }
+    let mut y = Box { n: 2 }
+    let mut h = Hold { r: &mut x, z: 0 }
+    bump(h.r)
+    print "last ${x.n}"
+    let p = Pair { a: &mut x, b: &mut y }
+    twoB(p.a, p.b)
+    print "last ${x.n} ${y.n}"
+}
+
 fn main() {
     loopThenRead()
     unrelatedWrite()
@@ -169,6 +524,22 @@ fn main() {
     fieldStore()
     insideClosure()
     mapInsideClosure()
+    throughParam()
+    throughAlias()
+    aliasChain()
+    intoElement()
+    outParam()
+    plainReceiver()
+    unrelatedArgs()
+    receiverStores()
+    receiverApart()
+    wrapStores()
+    sharedReads()
+    refFieldForms()
+    refFieldParam()
+    selfSwap()
+    readForms()
+    lastUse()
 }
 -- stdout --
 loop 1
@@ -184,3 +555,28 @@ store 1 3
 inside 5 10
 map 4 5
 mapped 4 10
+param 10 10 2
+alias 10 10 10 3
+chain 2 1
+element 10 1
+out 10 10 3 1
+plain 16 1
+args 2 8 10
+recv 4 0 10 10 10 4
+apart 10 3
+wrap 4 10 10 10 10 4
+shared 48 3 4
+a 108
+c 6
+drop 2
+drop 1
+b 3
+drop 3
+swap 6 12
+swap 12 7
+swapped 12 7
+drop 5
+drop 4
+read 6 3 4 true -3
+last 2
+last 4 2

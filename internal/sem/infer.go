@@ -9,16 +9,17 @@ func (c *checker) synth(n syntax.NodeID) TypeID {
 	if n == 0 {
 		return TyPoison
 	}
-	place := c.wantIndexPlace
-	c.wantIndexPlace = false
+	place, read := c.wantIndexPlace, c.held.wantRead
+	c.wantIndexPlace, c.held.wantRead = false, false
 	if t := c.info.Types[n]; t != 0 {
 		return t
 	}
 	if root := c.optChainRoot(n); root != 0 {
 		return c.setType(n, c.synthOptChain(n, root))
 	}
-	if place && c.t.Kind(n) == syntax.Paren {
-		return c.setType(n, c.synthPlace(c.t.View(n).AsParen().Inner().ID()))
+	if (place || read) && c.t.Kind(n) == syntax.Paren {
+		c.wantIndexPlace, c.held.wantRead = place, read
+		return c.setType(n, c.synth(c.t.View(n).AsParen().Inner().ID()))
 	}
 	if place && c.t.Kind(n) == syntax.BracketExpr {
 		if c.indexAsPlace == nil {
@@ -29,6 +30,9 @@ func (c *checker) synth(n syntax.NodeID) TypeID {
 	t := c.synthKind(n, 0)
 	if !place && (c.t.Kind(n) == syntax.MemberExpr || c.t.Kind(n) == syntax.OptMemberExpr) {
 		t = c.checkIndexFieldValue(n, t)
+		if !read {
+			c.noteMutFieldValue(n, t)
+		}
 	}
 	return c.setType(n, t)
 }

@@ -134,7 +134,7 @@ func (c *checker) synthOperands(op token.Kind, lhs, rhs syntax.NodeID, want Type
 	read := func(t TypeID) TypeID { return c.readThrough(c.vars.resolve(t)) }
 	shifted := func(n syntax.NodeID, ctx TypeID) TypeID {
 		if ctx == 0 || c.info.Types[n] != 0 || !c.shiftShaped(n) {
-			return read(c.synth(n))
+			return read(c.synthRead(n))
 		}
 		return read(c.setType(n, c.synthKind(n, ctx)))
 	}
@@ -144,11 +144,11 @@ func (c *checker) synthOperands(op token.Kind, lhs, rhs syntax.NodeID, want Type
 	}
 	switch {
 	case !shiftOperandOp(op):
-		return read(c.synth(lhs)), read(c.synth(rhs))
+		return read(c.synthRead(lhs)), read(c.synthRead(rhs))
 	case shiftOp(op):
-		return shifted(lhs, result), read(c.synth(rhs))
+		return shifted(lhs, result), read(c.synthRead(rhs))
 	case c.shiftShaped(lhs) && !c.shiftShaped(rhs):
-		r := read(c.synth(rhs))
+		r := read(c.synthRead(rhs))
 		return shifted(lhs, cmp.Or(c.shiftContext(r), result)), r
 	}
 	l := shifted(lhs, result)

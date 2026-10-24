@@ -65,7 +65,7 @@ func (c *checker) asmOperand(line syntax.NodeID, arch *asmArch, labels map[strin
 
 // An untyped literal takes the register's natural integer width.
 func (c *checker) asmInput(op *AsmOperand, arch *asmArch) TypeID {
-	t := c.readThrough(c.vars.resolve(c.synth(op.Expr)))
+	t := c.readThrough(c.vars.resolve(c.synthRead(op.Expr)))
 	if c.r.Types.Kind(t) != KUntyped {
 		return t
 	}

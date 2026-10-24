@@ -48,6 +48,28 @@ func (c *checker) carriesLentRef(t TypeID, depth int) bool {
 	return slices.ContainsFunc(c.r.typeDecl(n.Ent).Fields, func(f EntityID) bool { return c.carriesLentRef(c.r.Entities[f].Type, depth+1) })
 }
 
+func (c *checker) holdsLentHolder(t TypeID) bool {
+	return c.carriesLentHolder(t, 0)
+}
+
+func (c *checker) carriesLentHolder(t TypeID, depth int) bool {
+	t = c.vars.resolve(t)
+	n := c.r.Types.Node(t)
+	if c.r.Types.RefMut(t) {
+		return c.holdsLentRef(n.Elem)
+	}
+	if depth >= 8 {
+		return false
+	}
+	if slices.ContainsFunc(n.Args, func(a TypeID) bool { return c.carriesLentHolder(a, depth+1) }) {
+		return true
+	}
+	if n.Kind != KNamed || c.r.Entities[n.Ent].Kind != EntType {
+		return false
+	}
+	return slices.ContainsFunc(c.r.typeDecl(n.Ent).Fields, func(f EntityID) bool { return c.carriesLentHolder(c.r.Entities[f].Type, depth+1) })
+}
+
 // A `let mut` holder rebound later may hold what each assigned value lends.
 func (c *checker) noteHolderAssign(lhs, rhs syntax.NodeID) {
 	if c.t.Kind(c.t.Unparen(lhs)) != syntax.Ident {

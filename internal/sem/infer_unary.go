@@ -114,7 +114,7 @@ func (c *checker) unaryOperand(n syntax.NodeID, op token.Kind, want TypeID) Type
 	if ctx := c.shiftContext(want); op == token.Minus && ctx != 0 && c.info.Types[n] == 0 && c.shiftShaped(n) {
 		return c.setType(n, c.synthKind(n, ctx))
 	}
-	return c.synth(n)
+	return c.synthRead(n)
 }
 
 func (c *checker) unaryLiteralTarget(operand TypeID, op token.Kind, want TypeID) TypeID {

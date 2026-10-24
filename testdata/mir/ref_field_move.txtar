@@ -1,0 +1,591 @@
+-- lib/m.kg --
+// A `&mut` field read by value moves out of its holder; passed to a `&mut T` parameter it is lent for the call.
+// Out of a `mut self` receiver the move is partial: the field must be back before any whole use and every return.
+type Box = {
+    pub mut n Int
+}
+
+type Hold['a] = {
+    pub mut r &'a mut Array[Box]
+    pub z Int
+}
+
+fn grow(a: &mut Array[Box]) {
+    a.push(Box { n: 0 })
+}
+
+async fn later(a: &mut Array[Box]) {
+    a.push(Box { n: 1 })
+}
+
+fn assignMoves['a](mut dst: Hold['a], src: Hold['a]) -> usize {
+    dst.r = src.r
+    src.r.len()
+}
+
+fn letMoves['a](h: Hold['a]) -> usize {
+    let r = h.r
+    h.r.len()
+}
+
+fn wholeAfter['a](h: Hold['a]) -> Hold['a] {
+    let r = h.r
+    h
+}
+
+fn asyncMoves['a](h: Hold['a]) -> usize {
+    let f = later(h.r)
+    h.r.len()
+}
+
+fn Hold['a].steal(mut self) -> usize {
+    let r = self.r
+    r.len()
+}
+
+fn Hold['a].peek(self) -> usize {
+    self.r.len()
+}
+
+fn Hold['a].useAfter(mut self, other: Hold['a]) {
+    let old = self.r
+    grow(self.r)
+    self.r = other.r
+}
+
+fn Hold['a].wholeAfter(mut self, other: Hold['a]) -> usize {
+    let old = self.r
+    let k = self.peek()
+    self.r = other.r
+    k
+}
+
+fn Hold['a].earlyExit(mut self, other: Hold['a], x: Result[Int, String]) -> Result[Int, String] {
+    let old = move self.r
+    let v = x?
+    self.r = other.r
+    Ok(v)
+}
+
+fn call[F: FnMut[fn() -> Void]](mut f: F) {
+    f()
+}
+
+fn Hold['a].lendInClosure(mut self) {
+    call(() => {
+        let r = self.r
+        grow(r)
+    })
+}
+
+fn Hold['a].swapIn(mut self, mut other: Hold['a]) -> Hold['a] {
+    let old = self.r
+    grow(old)
+    self.r = other.r
+    other.r = old
+    other
+}
+
+fn reborrows['a](h: Hold['a]) -> usize {
+    grow(h.r)
+    grow(h.r)
+    h.r.len()
+}
+
+fn restores['a](mut h: Hold['a], other: Hold['a]) -> Hold['a] {
+    let r = h.r
+    grow(r)
+    h.r = other.r
+    h
+}
+
+type Cnt['a] = {
+    pub mut c &'a mut Int
+}
+
+type Guard['a] = resource {
+    pub r &'a mut Array[Box]
+}
+
+fn Guard['a].drop(move self) {
+    self.r.push(Box { n: 9 })
+}
+
+fn sumReads['a](h: Cnt['a]) -> Int {
+    h.c + h.c
+}
+
+fn lastUseEnds() -> usize {
+    let mut v = Array.of(Box { n: 1 })
+    let h = Hold { r: &mut v, z: 0 }
+    grow(h.r)
+    v.len()
+}
+
+fn usedLater() -> usize {
+    let mut v = Array.of(Box { n: 1 })
+    let h = Hold { r: &mut v, z: 0 }
+    let n = v.len()
+    grow(h.r)
+    n
+}
+
+fn dropKeeps() -> usize {
+    let mut v = Array.of(Box { n: 1 })
+    let g = Guard { r: &mut v }
+    v.len()
+}
+-- expect --
+fn lib.grow(%a: &mut Array[Box]) -> Void {
+  b0:
+    %t1 = borrow 1(%a)
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const 0: Int
+    %t5 = record lib.Box(%t4)
+    %t6 = call std/array.Array.push(%t3, %t5)
+    %t7 = celltake(%t3)
+    drop(%t3)
+    drop(%t7)
+    return %t6
+}
+async fn lib.later(%a: &mut Array[Box]) -> Void {
+  b0:
+    %t1 = borrow 1(%a)
+    %t2 = share retain(%t1)
+    %t3 = newcell(%t2)
+    %t4 = const 1: Int
+    %t5 = record lib.Box(%t4)
+    %t6 = call std/array.Array.push(%t3, %t5)
+    %t7 = celltake(%t3)
+    drop(%t3)
+    drop(%t7)
+    %t8 = builtin task.close
+    return %t6
+}
+fn lib.assignMoves(%dst: Hold['a], %src: Hold['a]) -> usize {
+  b0:
+    %t2 = field 0(%src)
+    %t3 = move(%t2)
+    setfield 0(%dst, %t3)
+    %t4 = field 0(%src)
+    %t5 = call std/array.Array.len(%t4)
+    drop(%src)
+    drop(%dst)
+    return %t5
+}
+fn lib.letMoves(%h: Hold['a]) -> usize {
+  b0:
+    %t1 = field 0(%h)
+    %t2 = move(%t1)
+    %r = copy(%t2)
+    drop(%r)
+    %t4 = field 0(%h)
+    %t5 = call std/array.Array.len(%t4)
+    drop(%h)
+    return %t5
+}
+fn lib.wholeAfter(%h: Hold['a]) -> Hold['a] {
+  b0:
+    %t1 = field 0(%h)
+    %t2 = move(%t1)
+    %r = copy(%t2)
+    drop(%r)
+    %t4 = move(%h)
+    nop
+    return %t4
+}
+fn lib.asyncMoves(%h: Hold['a]) -> usize {
+  b0:
+    %t1 = field 0(%h)
+    %t2 = move(%t1)
+    %t3 = fnitem lib.later async
+    %t4 = future(%t3, %t2)
+    %f = copy(%t4)
+    %t6 = field 0(%h)
+    %t7 = call std/array.Array.len(%t6)
+    drop(%f)
+    drop(%h)
+    return %t7
+}
+fn lib.Hold.steal(%self: Hold['a]) -> usize {
+  b0:
+    %t1 = cellget(%self)
+    %t2 = field 0(%t1)
+    %t3 = move(%t2)
+    %r = copy(%t3)
+    %t5 = call std/array.Array.len(%r)
+    drop(%r)
+    return %t5
+}
+fn lib.Hold.peek(%self: Hold['a]) -> usize {
+  b0:
+    %t1 = field 0(%self)
+    %t2 = call std/array.Array.len(%t1)
+    return %t2
+}
+fn lib.Hold.useAfter(%self: Hold['a], %other: Hold['a]) -> Void {
+  b0:
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t4 = move(%t3)
+    %old = copy(%t4)
+    drop(%old)
+    %t7 = cellget(%self)
+    %t8 = field 0(%t7)
+    %t6 = alias(%t8)
+    %t9 = call lib.grow(%t6)
+    drop(%t9)
+    %t10 = cellget(%self)
+    %t11 = field 0(%other)
+    %t12 = move(%t11)
+    setfield 0(%t10, %t12)
+    %t13 = unit
+    drop(%other)
+    return %t13
+}
+fn lib.Hold.wholeAfter(%self: Hold['a], %other: Hold['a]) -> usize {
+  b0:
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t4 = move(%t3)
+    %old = copy(%t4)
+    drop(%old)
+    %t6 = cellget(%self)
+    %t7 = call lib.Hold.peek(%t6)
+    %k = copy(%t7)
+    %t9 = cellget(%self)
+    %t10 = field 0(%other)
+    %t11 = move(%t10)
+    setfield 0(%t9, %t11)
+    %t12 = copy(%k)
+    drop(%k)
+    drop(%other)
+    return %t12
+}
+fn lib.Hold.earlyExit(%self: Hold['a], %other: Hold['a], %x: Result[Int, String]) -> Result[Int, String] {
+  b0:
+    %t3 = cellget(%self)
+    %t4 = field 0(%t3)
+    %t5 = move(%t4)
+    %old = copy(%t5)
+    %t7 = isvariant Result.Ok(%x)
+    branch %t7 ? b1 : b2
+  b1:
+    %t10 = payload 0(%x)
+    %v = copy(%t10)
+    %t12 = cellget(%self)
+    %t13 = field 0(%other)
+    %t14 = move(%t13)
+    setfield 0(%t12, %t14)
+    %t15 = copy(%v)
+    %t16 = variant Result.Ok(%t15)
+    drop(%v)
+    drop(%old)
+    drop(%x)
+    drop(%other)
+    return %t16
+  b2:
+    %t8 = payload 0(%x)
+    drop(%old)
+    drop(%x)
+    drop(%other)
+    %t9 = variant Result.Err(%t8)
+    return %t9
+}
+fn lib.call(%f: F) -> Void {
+  b0:
+    %t1 = callv(%f)
+    drop(%f)
+    return %t1
+}
+fn lib.Hold.lendInClosure.closure1(%self: Hold['a]) -> Void {
+  b0:
+    %t1 = cellget(%self)
+    %t2 = field 0(%t1)
+    %t3 = move(%t2)
+    %r = copy(%t3)
+    %t5 = call lib.grow(%r)
+    drop(%r)
+    return %t5
+}
+fn lib.Hold.lendInClosure(%self: Hold['a]) -> Void {
+  b0:
+    %t1 = closure lib.Hold.lendInClosure.closure1(%self)
+    %t2 = call lib.call(%t1)
+    return %t2
+}
+fn lib.Hold.swapIn(%self: Hold['a], %other: Hold['a]) -> Hold['a] {
+  b0:
+    %t2 = cellget(%self)
+    %t3 = field 0(%t2)
+    %t4 = move(%t3)
+    %old = copy(%t4)
+    %t6 = call lib.grow(%old)
+    drop(%t6)
+    %t7 = cellget(%self)
+    %t8 = field 0(%other)
+    %t9 = move(%t8)
+    setfield 0(%t7, %t9)
+    %t10 = move(%old)
+    setfield 0(%other, %t10)
+    %t11 = move(%other)
+    nop
+    nop
+    return %t11
+}
+fn lib.reborrows(%h: Hold['a]) -> usize {
+  b0:
+    %t2 = field 0(%h)
+    %t1 = alias(%t2)
+    %t3 = call lib.grow(%t1)
+    drop(%t3)
+    %t5 = field 0(%h)
+    %t4 = alias(%t5)
+    %t6 = call lib.grow(%t4)
+    drop(%t6)
+    %t7 = field 0(%h)
+    %t8 = call std/array.Array.len(%t7)
+    drop(%h)
+    return %t8
+}
+fn lib.restores(%h: Hold['a], %other: Hold['a]) -> Hold['a] {
+  b0:
+    %t2 = field 0(%h)
+    %t3 = move(%t2)
+    %r = copy(%t3)
+    %t5 = call lib.grow(%r)
+    drop(%r)
+    drop(%t5)
+    %t6 = field 0(%other)
+    %t7 = move(%t6)
+    setfield 0(%h, %t7)
+    %t8 = move(%h)
+    drop(%other)
+    nop
+    return %t8
+}
+fn lib.Guard.drop(%self: Guard['a]) -> Void {
+  b0:
+    %t1 = field 0(%self)
+    %t2 = borrow 1(%t1)
+    %t3 = share retain(%t2)
+    %t4 = newcell(%t3)
+    %t5 = const 9: Int
+    %t6 = record lib.Box(%t5)
+    %t7 = call std/array.Array.push(%t4, %t6)
+    %t8 = celltake(%t4)
+    drop(%t4)
+    drop(%t8)
+    return %t7
+}
+fn lib.sumReads(%h: Cnt['a]) -> Int {
+  b0:
+    %t1 = field 0(%h)
+    %t2 = field 0(%h)
+    %t3 = bin +(%t1, %t2)
+    drop(%h)
+    return %t3
+}
+fn lib.lastUseEnds() -> usize {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record lib.Box(%t0)
+    %t2 = array(%t1)
+    %t3 = call std/array.Array.of(%t2)
+    %v = copy(%t3)
+    %t5 = borrow 1(%v)
+    %t6 = const 0: Int
+    %t7 = record lib.Hold(%t5, %t6)
+    %h = copy(%t7)
+    %t10 = field 0(%h)
+    %t9 = alias(%t10)
+    %t11 = call lib.grow(%t9)
+    drop(%t11)
+    %t12 = call std/array.Array.len(%v)
+    drop(%h)
+    drop(%v)
+    return %t12
+}
+fn lib.usedLater() -> usize {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record lib.Box(%t0)
+    %t2 = array(%t1)
+    %t3 = call std/array.Array.of(%t2)
+    %v = copy(%t3)
+    %t5 = borrow 1(%v)
+    %t6 = const 0: Int
+    %t7 = record lib.Hold(%t5, %t6)
+    %h = copy(%t7)
+    %t9 = call std/array.Array.len(%v)
+    %n = copy(%t9)
+    %t12 = field 0(%h)
+    %t11 = alias(%t12)
+    %t13 = call lib.grow(%t11)
+    drop(%t13)
+    %t14 = copy(%n)
+    drop(%n)
+    drop(%h)
+    drop(%v)
+    return %t14
+}
+fn lib.dropKeeps() -> usize {
+  b0:
+    %t0 = const 1: Int
+    %t1 = record lib.Box(%t0)
+    %t2 = array(%t1)
+    %t3 = call std/array.Array.of(%t2)
+    %v = copy(%t3)
+    %t5 = borrow 1(%v)
+    %t6 = record lib.Guard(%t5)
+    %g = copy(%t6)
+    %t8 = call std/array.Array.len(%v)
+    drop(%g)
+    drop(%v)
+    return %t8
+}
+error[E2197]: `src.r` was moved; it cannot be used again
+  --> lib/m.kg:22:5
+   |
+22 |     src.r.len()
+   |     ^^^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
+note: `src.r` is moved here
+  --> lib/m.kg:21:13
+   |
+21 |     dst.r = src.r
+   |             ^^^^^
+
+error[E2197]: `src.r` was moved; it cannot be used again
+  --> lib/m.kg:22:5
+   |
+22 |     src.r.len()
+   |     ^^^^^^^^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
+note: `src.r` is moved here
+  --> lib/m.kg:21:13
+   |
+21 |     dst.r = src.r
+   |             ^^^^^
+
+error[E2197]: `h.r` was moved; it cannot be used again
+  --> lib/m.kg:27:5
+   |
+27 |     h.r.len()
+   |     ^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
+note: `h.r` is moved here
+  --> lib/m.kg:26:13
+   |
+26 |     let r = h.r
+   |             ^^^
+
+error[E2197]: `h.r` was moved; it cannot be used again
+  --> lib/m.kg:27:5
+   |
+27 |     h.r.len()
+   |     ^^^^^^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
+note: `h.r` is moved here
+  --> lib/m.kg:26:13
+   |
+26 |     let r = h.r
+   |             ^^^
+
+error[E1025]: `h.r` was moved out of `h`; using the whole value needs it back
+  --> lib/m.kg:32:5
+   |
+32 |     h
+   |     ^
+
+error[E2197]: `h.r` was moved; it cannot be used again
+  --> lib/m.kg:37:5
+   |
+37 |     h.r.len()
+   |     ^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
+note: `h.r` is moved here
+  --> lib/m.kg:36:19
+   |
+36 |     let f = later(h.r)
+   |                   ^^^
+
+error[E2197]: `h.r` was moved; it cannot be used again
+  --> lib/m.kg:37:5
+   |
+37 |     h.r.len()
+   |     ^^^^^^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
+note: `h.r` is moved here
+  --> lib/m.kg:36:19
+   |
+36 |     let f = later(h.r)
+   |                   ^^^
+
+error[borrow-escape]: a borrow cannot be captured by a future; the future may run after the borrowed value is gone, so pass the value itself
+  --> lib/m.kg:36:13
+   |
+36 |     let f = later(h.r)
+   |             ^^^^^^^^^
+
+error[E1025]: `self.r` was moved out of `self`; using the whole value needs it back
+  --> lib/m.kg:41:13
+   |
+41 |     let r = self.r
+   |             ^^^^^^
+
+error[E2197]: `self.r` was moved; it cannot be used again
+  --> lib/m.kg:51:10
+   |
+51 |     grow(self.r)
+   |          ^^^^^^
+   = help: clone it before the move, borrow it with `&`, or make the move its last use
+note: `self.r` is moved here
+  --> lib/m.kg:50:15
+   |
+50 |     let old = self.r
+   |               ^^^^^^
+
+error[E1025]: `self.r` was moved out of `self`; using the whole value needs it back
+  --> lib/m.kg:57:13
+   |
+57 |     let k = self.peek()
+   |             ^^^^^^^^^^
+
+error[E1025]: `self.r` was moved out of `self`; using the whole value needs it back
+  --> lib/m.kg:63:20
+   |
+63 |     let old = move self.r
+   |                    ^^^^^^
+
+error[move-from-borrow]: a value borrowed here cannot be moved out; clone it
+  --> lib/m.kg:75:17
+   |
+75 |         let r = self.r
+   |                 ^^^^^^
+
+error[E2198]: `v` is exclusively borrowed and cannot be used here
+   --> lib/m.kg:127:13
+    |
+127 |     let n = v.len()
+    |             ^^^^^^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> lib/m.kg:126:23
+    |
+126 |     let h = Hold { r: &mut v, z: 0 }
+    |                       ^^^^^^
+
+error[E2198]: `v` is exclusively borrowed and cannot be used here
+   --> lib/m.kg:135:5
+    |
+135 |     v.len()
+    |     ^^^^^^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> lib/m.kg:134:24
+    |
+134 |     let g = Guard { r: &mut v }
+    |                        ^^^^^^
+

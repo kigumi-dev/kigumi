@@ -11,7 +11,7 @@ func (c *checker) synthString(n syntax.NodeID) TypeID {
 			continue
 		}
 		interpolated = true
-		t := c.readThrough(c.vars.resolve(c.synth(p.Expr)))
+		t := c.readThrough(c.vars.resolve(c.synthRead(p.Expr)))
 		tt := c.r.Types
 		switch {
 		case t == TyPoison, t == TyString, t == TyChar, t == TyBool, tt.IsNumeric(t), c.vars.pendingLiteral(t):

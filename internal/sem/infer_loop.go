@@ -24,7 +24,7 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	sites := c.markLoopSites()
 	switch {
 	case s.Pattern != 0:
-		iter := c.vars.resolve(c.synthPlace(s.Head))
+		iter := c.sharedIter(s.Head, c.vars.resolve(c.synthPlace(s.Head)))
 		sites = c.markLoopSites()
 		elem := c.iterElement(n, s.Head, iter)
 		if !c.r.isCopy(c.vars.resolve(elem)) {

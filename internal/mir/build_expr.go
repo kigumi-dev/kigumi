@@ -98,6 +98,9 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		return b.emit(Inst{Op: OpField, Dst: b.temp(t), Args: []LocalID{base}, Index: e.Index, Node: n})
 	case hir.FieldMove:
 		base := b.expr(e.Args[0])
+		if b.r.Types.RefMut(t) {
+			return b.refFieldMove(base, t, e.Index, n)
+		}
 		return b.emit(Inst{Op: OpFieldMove, Dst: b.temp(t), Args: []LocalID{base}, Index: e.Index, Node: n})
 	case hir.MethodValue:
 		return b.methodValue(e, b.methodReceiver(e, e.Type), t)

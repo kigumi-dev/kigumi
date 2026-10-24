@@ -1425,6 +1425,17 @@
       ]
     },
     {
+      "id": "mir/ref_field_move",
+      "kind": "mir",
+      "path": "testdata/mir/ref_field_move.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/reinit",
       "kind": "mir",
       "path": "testdata/mir/reinit.txtar",

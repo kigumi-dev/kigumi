@@ -76,19 +76,19 @@ func (c *checker) settleOrDefer(roots []EntityID, settle func()) {
 	settle()
 }
 
-func (c *checker) noteMutBorrowSites(args []syntax.NodeID) {
+func (c *checker) noteMutBorrowSites(args []syntax.NodeID, declParams []EntityID) {
 	for i, a := range args {
 		others := slices.Delete(slices.Clone(args), i, i+1)
-		root, field := c.mutBorrowRoot(a)
-		if root == 0 {
+		if root, field := c.mutBorrowRoot(a); root == 0 {
 			c.noteHeldArgSite(a, others)
-			continue
+		} else {
+			roots, lent := c.exclusiveRoots(root, field)
+			c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: a, args: others, root: root, field: field, roots: roots, lent: lent})
+			if !c.capturedHere(root) {
+				c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: a, root: root, field: field, roots: roots, lent: lent, byRef: true})
+			}
 		}
-		roots, lent := c.exclusiveRoots(root, field)
-		c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: a, args: others, root: root, field: field, roots: roots, lent: lent})
-		if !c.capturedHere(root) {
-			c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: a, root: root, field: field, roots: roots, lent: lent, byRef: true})
-		}
+		c.noteArgStores(args, i, declParams)
 	}
 }
 

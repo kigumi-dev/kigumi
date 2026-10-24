@@ -138,7 +138,7 @@ func (p *Program) ArgConsumed(f *Func, in Inst, i int) bool { return p.consumes(
 // consumes reports whether argument i is stored, moved, boxed or handed to
 // an owning callee; reads, arithmetic, display and borrowed receivers do not.
 func (p *Program) consumes(f *Func, in Inst, i int) bool {
-	if p.inPlace(in, i) || p.lentParam(in, i) || p.lentByType(f, &in, i) {
+	if p.inPlace(in, i) || p.lentParam(in, i) || p.lentByType(f, &in, i) || p.lentStore(f, in, i) {
 		return false
 	}
 	switch in.Op {

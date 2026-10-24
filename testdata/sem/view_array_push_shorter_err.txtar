@@ -52,12 +52,6 @@ error[move-while-borrowed]: `inner` is still borrowed when its scope ends here
 15 |         let inner = bytes()
    |             ^^^^^
 
-error[move-while-borrowed]: `next` is still borrowed when its scope ends here
-  --> main.kg:24:9
-   |
-24 |     let next = bytes()
-   |         ^^^^
-
 error[move-while-borrowed]: `b` is still borrowed when its scope ends here
   --> main.kg:35:13
    |

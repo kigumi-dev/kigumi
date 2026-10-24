@@ -14,3 +14,7 @@ var (
 	cBorrowStoreOpaque    = defineCode("E2161", "borrow-store-opaque-call", "a call through a function value may store a borrow into `{name}`, and that write cannot be tracked; call the function by name, or pass a value it can own")
 	cBorrowMultiLifetime  = defineCode("E2162", "borrow-multi-lifetime", "a borrow inside `{type}` cannot be traced here: that type names more than one lifetime, and a borrow is traced across calls under a single one; give the element type a single `'a` of its own, or keep each lifetime in a separate value")
 )
+
+var cMutFieldLentTwice = defineCode("E2293", "mut-field-lent-twice", "`{place}` is lent to this call as `&mut`, and another argument or the receiver of the same call reaches that value too; the callee would hold two paths to it; pass it once, or read the other value before the call")
+
+var cSharedMutRef = defineCode("E2292", "shared-mut-ref", "`{place}` is a `&mut` reached through a shared reference, so it cannot be copied out or written through: another path to the same value can still use it; read through it, or take the holder with `&mut` or `mut self`")
