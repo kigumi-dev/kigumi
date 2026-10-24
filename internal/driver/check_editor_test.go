@@ -19,8 +19,10 @@ fn size[T](v: &T) -> Int { 1 }
 
 noalloc fn lend[T](v: T) -> Int { size(&v) }
 
+noalloc fn keep['a](p: &'a Point) -> &'a Point { p }
+
 noalloc fn span(p: Point) -> Int {
-    lend(p)
+    lend(p) + keep(&p).y
 }
 
 fn main() -> Void! {

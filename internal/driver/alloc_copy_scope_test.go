@@ -15,15 +15,24 @@ type Nm = {
     pub mut n Int
 }
 
+fn bump(b: &mut Nm?) {
+    match b {
+        Some(x) -> { x.n = 2 }
+        None -> {}
+    }
+}
+
 fn outside(o: Nm?) -> Int {
     let mut b = o
-    if b is Some(_) { 1 } else { 0 }
+    bump(&mut b)
+    if o is Some(_) { 1 } else { 0 }
 }
 
 fn inside(h: AllocatorHandle, o: Nm?) -> Int {
     allocator h.scope() {
         let mut b = o
-        if b is Some(_) { 1 } else { 0 }
+        bump(&mut b)
+        if o is Some(_) { 1 } else { 0 }
     }
 }
 
@@ -31,7 +40,8 @@ fn nested(h: AllocatorHandle, o: Nm?) -> Int {
     allocator h.scope() {
         let read = () => {
             let mut b = o
-            let r: Int = if b is Some(_) { 1 } else { 0 }
+            bump(&mut b)
+            let r: Int = if o is Some(_) { 1 } else { 0 }
             r
         }
         read()

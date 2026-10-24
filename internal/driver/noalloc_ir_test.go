@@ -108,7 +108,7 @@ type noallocProbe struct {
 }
 
 var noallocProbes = []noallocProbe{
-	{"noalloc fn p0(n: Nm) -> Int { let m = n\n m.n }", "E1700"},
+	{"noalloc fn p0(n: Nm) -> Int { let mut m = n\n m.n = 4\n n.n }", "E1700"},
 	{"noalloc fn p1(a: &Array[Nm]) -> Int { if a.get(0) is Some(v) { v.n } else { 0 } }", "E1700"},
 	{"noalloc fn p2(xs: FixedArray[Nm, 2]) -> Int { let mut t = 0\n for x in xs { t = t + x.n }\n t }", ""},
 	{"noalloc fn p3(w: &mut W, q: Nm) -> Int { w.nm = q\n q.n }", "E1700"},
@@ -128,7 +128,7 @@ var noallocProbes = []noallocProbe{
 	{"noalloc fn p17(p: Pt) -> Int { let q = p\n takeP(q) + takeP(p) }", ""},
 	{"noalloc fn p18(p: &Pt) -> Int { let q = p\n q.x }", ""},
 	{"noalloc fn p19(xs: &Array[Nm]) -> Int { let mut t = 0\n for x in xs { t = t + x.n }\n t }", ""},
-	{"noalloc fn p20(t: Tree) -> Int { match t { Leaf(v) -> v, Node(kids) -> { let k = kids\n 0 } } }", "E1700"},
+	{"noalloc fn p20(t: Tree) -> Int { match t { Leaf(v) -> v, Node(kids) -> { let mut k = kids\n k[0] = Leaf(1)\n 0 } } }", "E1700"},
 	{"noalloc fn p21(w: &W) -> Int { let mut n = w.nm\n n.n = 4\n w.nm.n }", "E1700"},
 	{"noalloc fn p22(n: Nm) -> Nm { let m = n\n m }", "E1700"},
 	{"noalloc fn p23(w: &mut W) -> Int { let a = w.nm\n w.nm.n = a.n + 1\n w.nm.n }", "E2125"},
