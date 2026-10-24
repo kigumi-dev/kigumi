@@ -124,9 +124,12 @@ func (reg *StdOpRegistry) addLine(line string) error {
 		return reg.attachGroup(&reg.Bodiless[len(reg.Bodiless)-1], word, rest)
 	}
 	switch word {
-	case "cap", "key", "suffix", "prefix", "type", "direct", "elem", "callback", "isr", "retired":
-		if len(reg.Ops) == 0 || (rest == "" && word != "elem" && word != "retired") {
+	case "cap", "key", "suffix", "prefix", "type", "direct", "elem", "callback", "isr":
+		if len(reg.Ops) == 0 || (rest == "" && word != "elem") {
 			return fmt.Errorf("%s needs an op above it and a value", word)
+		}
+		if last := reg.Ops[len(reg.Ops)-1]; last.Retired {
+			return fmt.Errorf("%s: op %s is retired and takes no attributes", word, last.Name)
 		}
 		return reg.attach(&reg.Ops[len(reg.Ops)-1], word, rest)
 	}
@@ -135,8 +138,8 @@ func (reg *StdOpRegistry) addLine(line string) error {
 
 func (reg *StdOpRegistry) addOp(rest string) error {
 	fields := strings.SplitN(rest, " ", 4)
-	if len(fields) != 4 {
-		return fmt.Errorf("op wants ID NAME KIND (args) -> result")
+	if len(fields) < 3 || (len(fields) == 3) != (fields[2] == "retired") {
+		return fmt.Errorf("op wants ID NAME KIND (args) -> result, or ID NAME retired")
 	}
 	id, err := strconv.Atoi(fields[0])
 	if err != nil || id != len(reg.Ops) {
@@ -146,6 +149,10 @@ func (reg *StdOpRegistry) addOp(rest string) error {
 		if o.Name == fields[1] {
 			return fmt.Errorf("op %s appears twice", o.Name)
 		}
+	}
+	if fields[2] == "retired" {
+		reg.Ops = append(reg.Ops, StdOpEntry{ID: id, Callback: -1, Name: fields[1], Retired: true})
+		return nil
 	}
 	if fields[2] != "primitive" && fields[2] != "provider" {
 		return fmt.Errorf("op %s: kind %q is neither primitive nor provider", fields[1], fields[2])

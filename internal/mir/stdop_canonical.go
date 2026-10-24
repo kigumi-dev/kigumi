@@ -10,6 +10,10 @@ import (
 func (reg *StdOpRegistry) Canonical() string {
 	var sb strings.Builder
 	for _, op := range reg.Ops {
+		if op.Retired {
+			fmt.Fprintf(&sb, "op %d %s retired\n", op.ID, op.Name)
+			continue
+		}
 		kind := "primitive"
 		if op.Provider {
 			kind = "provider"

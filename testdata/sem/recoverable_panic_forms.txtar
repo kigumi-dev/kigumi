@@ -1,0 +1,148 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+import {Box, Shared} from std/alloc
+
+
+export(C) {
+    pub fn lib_zeros(n: i64) -> i64 {
+        let _ = Bytes.zeros(3) //~ ERROR `zeros`
+        n
+    }
+
+    pub fn lib_fill(n: i64) -> i64 {
+        let _ = Bytes.fill(1, 3) //~ ERROR `fill`
+        n
+    }
+
+    pub fn lib_from_array(n: i64) -> i64 {
+        let raw = Array.tryFill[u8](1, 2) || return n
+        let _ = Bytes.fromArray(&raw) //~ ERROR `fromArray`
+        n
+    }
+
+    pub fn lib_concat(n: i64) -> i64 {
+        let part = Bytes.tryZeros(2) || return n
+        let _ = part.concat(part) //~ ERROR `concat`
+        n
+    }
+
+    pub fn lib_slice(n: i64) -> i64 {
+        let part = Bytes.tryZeros(2) || return n
+        let _ = part.slice(0, 1) //~ ERROR `slice`
+        n
+    }
+
+    pub fn lib_slice_bytes(n: i64) -> i64 {
+        let _ = "text".sliceBytes(0, 1) //~ ERROR `sliceBytes`
+        n
+    }
+
+    pub fn lib_clone(n: i64) -> i64 {
+        let items = Array.tryFill(n, 2) || return n
+        let _ = items.clone() //~ ERROR `clone`
+        n
+    }
+
+    pub fn lib_shared_new(n: i64) -> i64 {
+        let _ = Shared.new(n) //~ ERROR `new`
+        n
+    }
+
+    pub fn lib_shared_get(n: i64) -> i64 {
+        let cell = Shared.tryNew(n) || return n
+        cell.get() //~ ERROR `get`
+    }
+
+    pub fn lib_downgrade(n: i64) -> i64 {
+        let cell = Shared.tryNew(n) || return n
+        let _ = cell.downgrade() //~ ERROR `downgrade`
+        n
+    }
+
+    pub fn lib_box_new(n: i64) -> i64 {
+        let b = Box.new(n) //~ ERROR `new`
+        b.into()
+    }
+}
+
+fn main() -> Void! {}
+-- expect --
+error[E1280]: `zeros` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+ --> main.kg:6:17
+  |
+6 |         let _ = Bytes.zeros(3) //~ ERROR `zeros`
+  |                 ^^^^^^^^^^^^^
+  = help: use the fallible form `tryZeros` instead
+
+error[E1280]: `fill` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:11:17
+   |
+11 |         let _ = Bytes.fill(1, 3) //~ ERROR `fill`
+   |                 ^^^^^^^^^^^^^^^
+   = help: use the fallible form `tryFill` instead
+
+error[E1280]: `fromArray` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:17:17
+   |
+17 |         let _ = Bytes.fromArray(&raw) //~ ERROR `fromArray`
+   |                 ^^^^^^^^^^^^^^^^^^^^
+   = help: use the fallible form `tryFromArray` instead
+
+error[E1280]: `concat` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:23:17
+   |
+23 |         let _ = part.concat(part) //~ ERROR `concat`
+   |                 ^^^^^^^^^^^^^^^^
+   = help: use the fallible form `tryConcat` instead
+
+error[E1280]: `slice` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:29:17
+   |
+29 |         let _ = part.slice(0, 1) //~ ERROR `slice`
+   |                 ^^^^^^^^^^^^^^^
+   = help: use the fallible form `trySlice` instead
+
+error[E1280]: `sliceBytes` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:34:17
+   |
+34 |         let _ = "text".sliceBytes(0, 1) //~ ERROR `sliceBytes`
+   |                 ^^^^^^^^^^^^^^^^^^^^^^
+   = help: use the fallible form `trySliceBytes` instead
+
+error[E1280]: `clone` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:40:17
+   |
+40 |         let _ = items.clone() //~ ERROR `clone`
+   |                 ^^^^^^^^^^^^
+   = help: use the fallible form `tryClone` instead
+
+error[E1280]: `new` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:45:17
+   |
+45 |         let _ = Shared.new(n) //~ ERROR `new`
+   |                 ^^^^^^^^^^^^
+   = help: use the fallible form `tryNew` instead
+
+error[E1280]: `get` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:51:9
+   |
+51 |         cell.get() //~ ERROR `get`
+   |         ^^^^^^^^^
+   = help: use the fallible form `tryGet` instead
+
+error[E1280]: `downgrade` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:56:17
+   |
+56 |         let _ = cell.downgrade() //~ ERROR `downgrade`
+   |                 ^^^^^^^^^^^^^^^
+   = help: use the fallible form `tryDowngrade` instead
+
+error[E1280]: `new` may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:61:17
+   |
+61 |         let b = Box.new(n) //~ ERROR `new`
+   |                 ^^^^^^^^^
+   = help: use the fallible form `tryNew` instead
+

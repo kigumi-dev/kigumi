@@ -35,7 +35,9 @@ pub noalloc fn AllocatorHandle.scope(self) -> AllocatorScope
 pub fn AllocatorHandle.allocated(self) -> Int
 
 /// Wraps a value in a shared cell.
-pub fn Shared.new[T](value: T) -> Shared[T]
+pub fn Shared.new[T](value: T) -> Shared[T] {
+    Shared.tryNew(value) || panic("out of memory")
+}
 
 /// Wraps a value in a shared cell, or AllocError when the allocator refuses (new panics instead).
 pub fn Shared.tryNew[T](value: T) -> Result[Shared[T], AllocError]
@@ -44,7 +46,9 @@ pub fn Shared.tryNew[T](value: T) -> Result[Shared[T], AllocError]
 pub fn Shared[T].clone(self) -> Shared[T]
 
 /// A copy of the current content.
-pub fn Shared[T: Copy].get(self) -> T
+pub fn Shared[T: Copy].get(self) -> T {
+    self.tryGet() || panic("out of memory")
+}
 
 /// A copy of the current content, or AllocError when the allocator refuses (get panics instead).
 pub fn Shared[T: Copy].tryGet(self) -> Result[T, AllocError]
@@ -61,7 +65,9 @@ pub fn Shared[T].with[R](self, f: fn(&T) -> R) -> R
 pub fn Shared[T].withMut[R](self, f: fn(&mut T) -> R) -> R
 
 /// A weak handle to the same cell.
-pub fn Shared[T].downgrade(self) -> Weak[T]
+pub fn Shared[T].downgrade(self) -> Weak[T] {
+    self.tryDowngrade() || panic("out of memory")
+}
 
 /// A weak handle to the same cell, or AllocError when the allocator refuses (downgrade panics instead).
 pub fn Shared[T].tryDowngrade(self) -> Result[Weak[T], AllocError]
@@ -73,7 +79,9 @@ pub fn Weak[T].upgrade(self) -> Shared[T]?
 pub fn Weak[T].clone(self) -> Weak[T]
 
 /// Moves value onto the heap.
-pub pure fn Box.new[T](value: T) -> Box[T]
+pub pure fn Box.new[T](value: T) -> Box[T] {
+    Box.tryNew(value) || panic("out of memory")
+}
 
 /// Moves value onto the heap, or AllocError when the allocator refuses (new panics instead).
 pub pure fn Box.tryNew[T](value: T) -> Result[Box[T], AllocError]

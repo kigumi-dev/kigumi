@@ -6,7 +6,7 @@ import (
 	"kigumi/internal/hashkey"
 )
 
-// prelude implements the Option / Result helpers, Bytes.concat / tryConcat,
+// prelude implements the Option / Result helpers, Bytes.tryConcat,
 // and the Eq / Ord / Hash witnesses of the primitive types; nil for other
 // keys.
 func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
@@ -31,14 +31,6 @@ func (m *Machine) prelude(key string, a []*obj, a0, a1 *obj) *obj {
 			return mkVariant(miss, []*obj{retain(a0.fields[0])})
 		}
 		return mkVariant(miss, []*obj{unitObj})
-	case "prelude.Bytes.concat":
-		if m.faultTick() {
-			m.abort("out of memory")
-		}
-		out := make([]byte, 0, len(a0.str())+len(a1.str()))
-		out = append(out, a0.str()...)
-		out = append(out, a1.str()...)
-		return mkBytes(out)
 	case "prelude.Bytes.tryConcat":
 		m.reserveMemory(uint64(len(a0.str())) + uint64(len(a1.str())))
 		if uint64(len(a0.str()))+uint64(len(a1.str())) >= maxVMAlloc || m.faultTick() {

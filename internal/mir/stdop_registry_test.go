@@ -22,9 +22,10 @@ func TestParseStdOpRegistryRejects(t *testing.T) {
 		{"unknown directive", "frob 1\n", "unknown directive"},
 		{"unknown direct", "op 0 A primitive () -> unit\ndirect Bogus\n", "not a direct primitive"},
 		{"bad callback", "op 0 A primitive () -> unit\ncallback x\n", "argument index"},
+		{"retired with attributes", "op 0 A retired\nkey x.y\n", "retired"},
+		{"retired with descriptor", "op 0 A retired () -> unit\n", "retired"},
 		{"builtin flag", "builtin print (string) -> unit nope\n", "unknown flag"},
 		{"builtin min", "builtin print (string) -> unit min=2\n", "exceeds"},
-		{"retired with key", "op 0 A primitive () -> unit\nretired\nkey x.y\n", "retired but still has attributes"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -54,6 +55,19 @@ func TestStdOpRegistryRoundTrip(t *testing.T) {
 	b := reg.Builtins[0]
 	if b.Min != 1 || !b.Iter || !b.VM || b.Native != mir.NativeInline || len(b.Args) != 2 {
 		t.Fatalf("parsed builtin = %+v", b)
+	}
+}
+
+func TestRetiredOpKeepsItsIdAndResolvesNothing(t *testing.T) {
+	reg, err := mir.ParseStdOpRegistry("op 0 A retired\nop 1 B primitive () -> unit\nkey b\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reg.Ops[0].Retired || reg.Ops[1].Retired || reg.Ops[1].ID != 1 || len(reg.Ops[0].Keys) != 0 {
+		t.Fatalf("parsed ops = %+v", reg.Ops)
+	}
+	if got := reg.Canonical(); !strings.Contains(got, "op 0 A retired\n") {
+		t.Errorf("canonical form drops the retired row: %q", got)
 	}
 }
 

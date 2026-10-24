@@ -76,12 +76,6 @@ func (m *Machine) std(key string, a []*obj) *obj {
 			return m.errMsg("out of memory")
 		}
 		return m.ok(mkStr(append([]byte{}, a0.str()...)))
-	case "prelude.String.sliceBytes":
-		s, e := a1.i, a2.i
-		if s < 0 || s > e || e > int64(len(a0.str())) || !boundary(a0.str(), s) || !boundary(a0.str(), e) {
-			return m.none()
-		}
-		return m.some(mkStr(append([]byte{}, a0.str()[s:e]...)))
 	// The VM has no timing guarantee to keep; this mirrors the algorithm
 	// for correctness only (subtle.kg's doc comment says so).
 	case "crypto/subtle.constantTimeEq":

@@ -497,7 +497,9 @@ pub pure noalloc fn String.endsWith(self, suffix: String) -> Bool {
 }
 
 /// Bytes start..end of the string; None unless both offsets are within it and on character boundaries.
-pub pure fn String.sliceBytes(self, start: usize, end: usize) -> String?
+pub pure fn String.sliceBytes(self, start: usize, end: usize) -> String? {
+    self.trySliceBytes(start, end) || panic("out of memory")
+}
 
 /// Same as sliceBytes, or AllocError when the allocator refuses (sliceBytes panics instead).
 pub pure fn String.trySliceBytes(self, start: usize, end: usize) -> Result[String?, AllocError]
@@ -645,7 +647,9 @@ pub type AllocError = | OutOfMemory
 pub pure fn AllocError.wrap[T](value: T) -> Result[T, AllocError]
 
 /// Bytes holding the items in order.
-pub pure fn Bytes.fromArray(items: &Array[u8]) -> Bytes
+pub pure fn Bytes.fromArray(items: &Array[u8]) -> Bytes {
+    Bytes.tryFromArray(items) || panic("out of memory")
+}
 
 /// Bytes holding the items in order, or AllocError when the allocator
 /// refuses (fromArray panics instead).
@@ -682,7 +686,9 @@ pub pure noalloc fn Bytes.len(self) -> usize
 pub pure noalloc fn Bytes.get(self, index: usize) -> u8?
 
 /// Bytes start..end of self; None unless start <= end <= self.len().
-pub pure fn Bytes.slice(self, start: usize, end: usize) -> Bytes?
+pub pure fn Bytes.slice(self, start: usize, end: usize) -> Bytes? {
+    self.trySlice(start, end) || panic("out of memory")
+}
 
 /// Same as slice, or AllocError when the allocator refuses (slice panics instead).
 pub pure fn Bytes.trySlice(self, start: usize, end: usize) -> Result[Bytes?, AllocError]
@@ -740,13 +746,17 @@ pub pure fn Bytes.contains(self, sub: Bytes) -> Bool {
 }
 
 /// n zero bytes.
-pub pure fn Bytes.zeros(n: usize) -> Bytes
+pub pure fn Bytes.zeros(n: usize) -> Bytes {
+    Bytes.tryZeros(n) || panic("out of memory")
+}
 
 /// n zero bytes, or AllocError when the allocator refuses (zeros panics instead).
 pub pure fn Bytes.tryZeros(n: usize) -> Result[Bytes, AllocError]
 
 /// n bytes, each set to value.
-pub pure fn Bytes.fill(value: u8, n: usize) -> Bytes
+pub pure fn Bytes.fill(value: u8, n: usize) -> Bytes {
+    Bytes.tryFill(value, n) || panic("out of memory")
+}
 
 /// n bytes, each set to value, or AllocError when the allocator refuses (fill panics instead).
 pub pure fn Bytes.tryFill(value: u8, n: usize) -> Result[Bytes, AllocError] {
@@ -762,7 +772,9 @@ pub pure fn Bytes.tryFill(value: u8, n: usize) -> Result[Bytes, AllocError] {
 }
 
 /// The bytes of self followed by those of other.
-pub pure fn Bytes.concat(self, other: Bytes) -> Bytes
+pub pure fn Bytes.concat(self, other: Bytes) -> Bytes {
+    self.tryConcat(other) || panic("out of memory")
+}
 
 /// self followed by other, or AllocError when the allocator refuses (concat panics instead).
 pub pure fn Bytes.tryConcat(self, other: Bytes) -> Result[Bytes, AllocError]

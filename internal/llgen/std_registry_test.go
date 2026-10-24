@@ -26,7 +26,10 @@ func TestRegistryMatchesStd(t *testing.T) {
 		t.Fatalf("only %d bodiless std functions found; std not loaded as std?", len(bodiless))
 	}
 	for _, op := range mir.Registry.Ops {
-		if !op.Retired && len(op.Keys)+len(op.Suffixes)+len(op.Prefixes) == 0 {
+		if op.Retired {
+			continue
+		}
+		if len(op.Keys)+len(op.Suffixes)+len(op.Prefixes) == 0 {
 			t.Errorf("op %s has no key, suffix or prefix, so no std function can resolve to it", op.Name)
 		}
 		for _, key := range op.Keys {

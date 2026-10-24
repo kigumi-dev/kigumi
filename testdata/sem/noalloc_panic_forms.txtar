@@ -1,0 +1,117 @@
+-- module --
+mir: planned
+-- src --
+import {Box, Shared} from std/alloc
+
+noalloc fn zeros() {
+    let _ = Bytes.zeros(3) //~ ERROR `zeros` is not `noalloc`
+}
+
+noalloc fn fill() {
+    let _ = Bytes.fill(1, 3) //~ ERROR `fill` is not `noalloc`
+}
+
+noalloc fn fromArray(raw: &Array[u8]) {
+    let _ = Bytes.fromArray(raw) //~ ERROR `fromArray` is not `noalloc`
+}
+
+noalloc fn concat(a: Bytes, b: Bytes) {
+    let _ = a.concat(b) //~ ERROR `concat` is not `noalloc`
+}
+
+noalloc fn slice(a: Bytes) {
+    let _ = a.slice(0, 1) //~ ERROR `slice` is not `noalloc`
+}
+
+noalloc fn sliceBytes(s: String) {
+    let _ = s.sliceBytes(0, 1) //~ ERROR `sliceBytes` is not `noalloc`
+}
+
+noalloc fn clone(a: Array[Int]) {
+    let _ = a.clone() //~ ERROR `clone` is not `noalloc`
+}
+
+noalloc fn sharedNew(n: Int) {
+    let _ = Shared.new(n) //~ ERROR `new` is not `noalloc`
+}
+
+noalloc fn sharedGet(s: Shared[Int]) {
+    let _ = s.get() //~ ERROR `get` is not `noalloc`
+}
+
+noalloc fn downgrade(s: Shared[Int]) {
+    let _ = s.downgrade() //~ ERROR `downgrade` is not `noalloc`
+}
+
+noalloc fn boxNew(n: Int) {
+    let _ = Box.new(n) //~ ERROR `new` is not `noalloc`
+}
+
+fn main() -> Void! {}
+-- expect --
+error[E907]: `zeros` is not `noalloc`
+ --> main.kg:4:13
+  |
+4 |     let _ = Bytes.zeros(3) //~ ERROR `zeros` is not `noalloc`
+  |             ^^^^^^^^^^^^^
+
+error[E907]: `fill` is not `noalloc`
+ --> main.kg:8:13
+  |
+8 |     let _ = Bytes.fill(1, 3) //~ ERROR `fill` is not `noalloc`
+  |             ^^^^^^^^^^^^^^^
+
+error[E907]: `fromArray` is not `noalloc`
+  --> main.kg:12:13
+   |
+12 |     let _ = Bytes.fromArray(raw) //~ ERROR `fromArray` is not `noalloc`
+   |             ^^^^^^^^^^^^^^^^^^^
+
+error[E907]: `concat` is not `noalloc`
+  --> main.kg:16:13
+   |
+16 |     let _ = a.concat(b) //~ ERROR `concat` is not `noalloc`
+   |             ^^^^^^^^^^
+
+error[E907]: `slice` is not `noalloc`
+  --> main.kg:20:13
+   |
+20 |     let _ = a.slice(0, 1) //~ ERROR `slice` is not `noalloc`
+   |             ^^^^^^^^^^^^
+
+error[E907]: `sliceBytes` is not `noalloc`
+  --> main.kg:24:13
+   |
+24 |     let _ = s.sliceBytes(0, 1) //~ ERROR `sliceBytes` is not `noalloc`
+   |             ^^^^^^^^^^^^^^^^^
+
+error[E907]: `clone` is not `noalloc`
+  --> main.kg:28:13
+   |
+28 |     let _ = a.clone() //~ ERROR `clone` is not `noalloc`
+   |             ^^^^^^^^
+
+error[E907]: `new` is not `noalloc`
+  --> main.kg:32:13
+   |
+32 |     let _ = Shared.new(n) //~ ERROR `new` is not `noalloc`
+   |             ^^^^^^^^^^^^
+
+error[E907]: `get` is not `noalloc`
+  --> main.kg:36:13
+   |
+36 |     let _ = s.get() //~ ERROR `get` is not `noalloc`
+   |             ^^^^^^
+
+error[E907]: `downgrade` is not `noalloc`
+  --> main.kg:40:13
+   |
+40 |     let _ = s.downgrade() //~ ERROR `downgrade` is not `noalloc`
+   |             ^^^^^^^^^^^^
+
+error[E907]: `new` is not `noalloc`
+  --> main.kg:44:13
+   |
+44 |     let _ = Box.new(n) //~ ERROR `new` is not `noalloc`
+   |             ^^^^^^^^^
+

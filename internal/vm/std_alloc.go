@@ -31,13 +31,6 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		return mkOpaque("AllocatorScope", retain(a0))
 	case "alloc.AllocatorHandle.allocated":
 		return mkInt(0, 64|256)
-	case "alloc.Shared.new":
-		if m.faultTick() {
-			m.abort("out of memory")
-		}
-		c := &sharedCtrl{cell: mkCell(retain(a0)), alive: true}
-		c.shared = mkOpaque("Shared", c)
-		return c.shared
 	case "alloc.Shared.tryNew":
 		if m.faultTick() {
 			return m.allocError()
@@ -47,8 +40,6 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		return m.ok(c.shared)
 	case "alloc.Shared.clone", "alloc.Weak.clone":
 		return retain(a0)
-	case "alloc.Shared.get":
-		return m.copy(a0.opaqueData().(*sharedCtrl).cell.inner)
 	case "alloc.Shared.set":
 		c := a0.opaqueData().(*sharedCtrl)
 		if c.borrow != 0 {
@@ -77,15 +68,6 @@ func (m *Machine) alloc(key string, a []*obj, a0, a1 *obj) *obj {
 		// The callback writes through c.cell itself, same as any
 		// other &mut Cell store, instead of a snapshot of its content.
 		return m.callValue(a1, []*obj{c.cell})
-	case "alloc.Shared.downgrade":
-		c := a0.opaqueData().(*sharedCtrl)
-		c.weak++
-		return mkOpaque("Weak", c)
-	case "alloc.Box.new":
-		if m.faultTick() {
-			m.abort("out of memory")
-		}
-		return mkOpaque("Box", mkCell(retain(a0)))
 	case "alloc.Box.tryNew":
 		if m.faultTick() {
 			return m.allocError()

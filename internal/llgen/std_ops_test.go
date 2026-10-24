@@ -11,12 +11,13 @@ import (
 )
 
 var (
-	enumBlockRe = regexp.MustCompile(`(?s)enum std_op \{(.*?)\};`)
-	enumEntryRe = regexp.MustCompile(`OP_([A-Z0-9_]+)`)
-	caseLabelRe = regexp.MustCompile(`case OP_([A-Z0-9_]+):`)
-	ppIfRe      = regexp.MustCompile(`^#\s*(if|ifdef|ifndef)\b`)
-	ppElseRe    = regexp.MustCompile(`^#\s*(elif|else)\b`)
-	ppEndifRe   = regexp.MustCompile(`^#\s*endif\b`)
+	enumBlockRe    = regexp.MustCompile(`(?s)enum std_op \{(.*?)\};`)
+	retiredCasesRe = regexp.MustCompile(`(?m)^#define RT_STD_OPS_RETIRED_CASES (.*)$`)
+	enumEntryRe    = regexp.MustCompile(`OP_([A-Z0-9_]+)`)
+	caseLabelRe    = regexp.MustCompile(`case OP_([A-Z0-9_]+):`)
+	ppIfRe         = regexp.MustCompile(`^#\s*(if|ifdef|ifndef)\b`)
+	ppElseRe       = regexp.MustCompile(`^#\s*(elif|else)\b`)
+	ppEndifRe      = regexp.MustCompile(`^#\s*endif\b`)
 )
 
 // ppFrame is one open #if/#ifdef/#ifndef: group identifies the directive
@@ -64,7 +65,7 @@ func exclusive(a, b []ppFrame) bool {
 }
 
 // TestStdOpsMatchC checks the generated `enum std_op` carries the registry's
-// ids in order, and that rt_std_id has one case per op (real, or a capability-guarded panic stub) across every runtime file.
+// ids in order, and that rt_std_id has one case per live op (real, or a capability-guarded panic stub) across every runtime file, none per retired op.
 func TestStdOpsMatchC(t *testing.T) {
 	src := []byte(RuntimeSource())
 	block := enumBlockRe.FindSubmatch(src)
@@ -75,14 +76,9 @@ func TestStdOpsMatchC(t *testing.T) {
 	for _, m := range enumEntryRe.FindAllSubmatch(block[1], -1) {
 		enumNames = append(enumNames, string(m[1]))
 	}
-	var live []mir.StdOpEntry
-	for _, op := range mir.Registry.Ops {
-		if !op.Retired {
-			live = append(live, op)
-		}
-	}
+	live := mir.Registry.Ops
 	if len(enumNames) != len(live) {
-		t.Fatalf("enum std_op has %d entries, the registry has %d live ops", len(enumNames), len(live))
+		t.Fatalf("enum std_op has %d entries, the registry has %d ops", len(enumNames), len(live))
 	}
 	for i, op := range live {
 		if enumNames[i] != op.Name {
@@ -92,11 +88,26 @@ func TestStdOpsMatchC(t *testing.T) {
 			t.Errorf("enum std_op: %s is not at id %d", op.Name, op.ID)
 		}
 	}
-	cases := caseSites(src)
+	retiredCases := retiredCasesRe.FindSubmatch(src)
+	if retiredCases == nil {
+		t.Fatal("RT_STD_OPS_RETIRED_CASES not defined in the runtime")
+	}
+	for i, name := range enumNames {
+		if want := "case OP_" + name + ":"; mir.Registry.Ops[i].Retired != strings.Contains(string(retiredCases[1]), want) {
+			t.Errorf("OP_%s: retired=%v but RT_STD_OPS_RETIRED_CASES disagrees", name, mir.Registry.Ops[i].Retired)
+		}
+	}
+	cases := caseSites(retiredCasesRe.ReplaceAll(src, nil))
 	declared := map[string]bool{}
-	for _, name := range enumNames {
+	for i, name := range enumNames {
 		declared[name] = true
 		sites := cases[name]
+		if mir.Registry.Ops[i].Retired {
+			if len(sites) != 0 {
+				t.Errorf("OP_%s is retired but rt_std_id still has a case for it", name)
+			}
+			continue
+		}
 		if len(sites) == 0 {
 			t.Errorf("OP_%s is declared but rt_std_id has no case for it", name)
 			continue

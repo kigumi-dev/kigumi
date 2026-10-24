@@ -3420,7 +3420,7 @@ static int subtle_constant_time_eq(val a, val b) {
 #include "rt_try_text.c.inc"
 // A constructor keeps its argument as is: an interface value must stay a witness-carrying box inside the cell.
 static int op_stores_a0(int op) {
-    return op == OP_BOX_NEW || op == OP_BOX_TRY_NEW || op == OP_SHARED_NEW || op == OP_SHARED_TRY_NEW || op == OP_UCELL_NEW;
+    return op == OP_BOX_TRY_NEW || op == OP_SHARED_TRY_NEW || op == OP_UCELL_NEW;
 }
 #ifdef KIGUMI_THREADS
 static pthread_mutex_t g_ucell_atomic = PTHREAD_MUTEX_INITIALIZER;
@@ -3540,6 +3540,9 @@ val rt_std_id(int op, int n, val* a) {
     val a0 = n > 0 ? deref(a[0]) : NULL, a1 = n > 1 ? deref(a[1]) : NULL, a2 = n > 2 ? deref(a[2]) : NULL;
     if (a0 && a0->kind == K_BOX && !op_stores_a0(op)) a0 = a0->u.box.v;
     switch ((enum std_op)op) {
+    RT_STD_OPS_RETIRED_CASES
+        rt_panic("retired std op");
+        return NULL;
     // prelude
     case OP_LEN: return rt_int(a0->u.s.len, 64);
     case OP_STRING_TO_BYTES: return bytes_val(a0->u.s.data, a0->u.s.len);
@@ -3568,20 +3571,6 @@ val rt_std_id(int op, int n, val* a) {
     case OP_MAP_SEED: return rt_int((int64_t)map_seed(), 64);
     case OP_DISPLAY: return display(a0);
     case OP_STRING_BYTES: return bytes_val(a0->u.s.data, a0->u.s.len);
-    case OP_BYTES_SLICE: {
-        int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
-        if (s < 0 || s > e || e > len) return none();
-        return some(bytes_val(a0->u.s.data + s, e - s));
-    }
-    case OP_BYTES_ZEROS: {
-        int64_t n2 = a0->u.i;
-        if (n2 < 0) rt_panic("out of memory");
-        char* d = fault_tick() ? NULL : kg_calloc_n(n2);
-        if (!d) rt_panic("out of memory");
-        val v = rt_str_take(d, n2);
-        v->kind = K_BYTES;
-        return v;
-    }
     case OP_BYTES_TRY_ZEROS: {
         int64_t n2 = a0->u.i;
         if (n2 < 0) return alloc_error();
@@ -3594,27 +3583,6 @@ val rt_std_id(int op, int n, val* a) {
         }
         v->kind = K_BYTES;
         return try_ok(v);
-    }
-    case OP_BYTES_FILL: {
-        int64_t n2 = a1->u.i;
-        if (n2 < 0) rt_panic("out of memory");
-        char* d = fault_tick() ? NULL : kg_malloc_n(n2);
-        if (!d) rt_panic("out of memory");
-        memset(d, (unsigned char)a0->u.i, n2);
-        d[n2] = 0;
-        val v = rt_str_take(d, n2);
-        v->kind = K_BYTES;
-        return v;
-    }
-    case OP_BYTES_FROM_ARRAY: {
-        int64_t n2 = a0->u.arr.len;
-        char* d = fault_tick() ? NULL : malloc(n2 + 1);
-        if (!d) rt_panic("out of memory");
-        for (int64_t i = 0; i < n2; i++) d[i] = (char)deref(a0->u.arr.items[i])->u.i;
-        d[n2] = 0;
-        val v = rt_str_take(d, n2);
-        v->kind = K_BYTES;
-        return v;
     }
     case OP_BYTES_TRY_FROM_ARRAY: {
         int64_t n2 = a0->u.arr.len;
@@ -3629,17 +3597,6 @@ val rt_std_id(int op, int n, val* a) {
         }
         v->kind = K_BYTES;
         return try_ok(v);
-    }
-    case OP_BYTES_CONCAT: {
-        int64_t l0 = a0->u.s.len, l1 = a1->u.s.len;
-        char* d = fault_tick() ? NULL : malloc(l0 + l1 + 1);
-        if (!d) rt_panic("out of memory");
-        memcpy(d, a0->u.s.data, l0);
-        memcpy(d + l0, a1->u.s.data, l1);
-        d[l0 + l1] = 0;
-        val v = rt_str_take(d, l0 + l1);
-        v->kind = K_BYTES;
-        return v;
     }
     case OP_BYTES_TRY_CONCAT: {
         int64_t l0 = a0->u.s.len, l1 = a1->u.s.len;
@@ -4098,14 +4055,6 @@ val rt_std_id(int op, int n, val* a) {
     }
     case OP_ALLOCATOR_SCOPE: return opaque_in(&((arena*)a0->u.op.data)->a, "AllocatorScope", rt_retain(a0));
     case OP_ALLOCATOR_ALLOCATED: return rt_int((int64_t)((arena*)a0->u.op.data)->a.bytes, 64 | 256);
-    case OP_SHARED_NEW: {
-        sctrl* c = fault_tick() ? NULL : calloc(1, sizeof *c);
-        if (!c) rt_panic("out of memory");
-        c->cell = rt_cell(rt_retain(a0));
-        c->alive = 1;
-        c->shared = opaque("Shared", c);
-        return c->shared;
-    }
     case OP_SHARED_TRY_NEW: {
         sctrl* c = fault_tick() ? NULL : calloc(1, sizeof *c);
         if (!c) return alloc_error();
@@ -4127,7 +4076,6 @@ val rt_std_id(int op, int n, val* a) {
         return try_ok(sh);
     }
     case OP_SHARED_CLONE: return rt_retain(a0);
-    case OP_SHARED_GET: return rt_copy(((sctrl*)a0->u.op.data)->cell->u.cell.v);
     case OP_SHARED_SET: {
         sctrl* c = a0->u.op.data;
         if (c->borrow != 0) rt_panic("Shared is already borrowed");
@@ -4174,16 +4122,10 @@ val rt_std_id(int op, int n, val* a) {
         c->weak++;
         return try_ok(weak);
     }
-    case OP_SHARED_DOWNGRADE: {
-        sctrl* c = a0->u.op.data;
-        c->weak++;
-        return opaque("Weak", c);
-    }
     case OP_WEAK_UPGRADE: {
         sctrl* c = a0->u.op.data;
         return c->alive ? some(rt_retain(c->shared)) : none();
     }
-    case OP_BOX_NEW: return opaque("Box", rt_cell(rt_retain(a0)));
     case OP_BOX_TRY_NEW: {
         val cell = rt_cell_try(rt_retain(a0));
         if (!cell) {
@@ -4240,16 +4182,6 @@ val rt_std_id(int op, int n, val* a) {
     case OP_MATH_CEIL: return rt_float(ceil(a0->u.f), 64 | 512);
     case OP_MATH_ROUND: return rt_float(round(a0->u.f), 64 | 512);
     case OP_MATH_POW: return rt_float(pow(a0->u.f, a1->u.f), 64 | 512);
-    case OP_STRING_SLICE_BYTES: {
-        int64_t s = a1->u.i, e = a2->u.i, len = a0->u.s.len;
-        if (s < 0 || s > e || e > len || !boundary(a0->u.s.data, len, s) || !boundary(a0->u.s.data, len, e)) return none();
-        return some(strdup_val(a0->u.s.data + s, e - s));
-    }
-    case OP_ARRAY_CLONE: {
-        val out = array_try_copy(a0, 0, a0->u.arr.len, 0);
-        if (!out) rt_panic("out of memory");
-        return out;
-    }
     // int_fn reads the op name after the key's last '.', so a leading dot
     // is enough; reusing it keeps the wrapping/rotate math in one place.
     case OP_WRAPPING_ADD: return int_fn(".wrappingAdd", a0, a1);

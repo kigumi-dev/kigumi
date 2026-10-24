@@ -3,6 +3,7 @@
 
 # Ids are explicit and only appended. Regenerate the header with
 # UPDATE=1 go test ./internal/llgen -run StdOpHeader.
+# `op ID NAME retired` keeps the id of an op that became a Kigumi body; it takes no attributes.
 
 # op ID NAME primitive|provider (arg classes) -> result class
 
@@ -11,7 +12,6 @@
 
 # type is a std record the C runtime builds by name; direct the DirectPrim result form;
 # elem an op that copies an array element; callback the index of a closure argument.
-# retired keeps the id of an op whose std function now has a Kigumi body; it takes no other attribute.
 
 # builtin NAME (arg classes) -> result [min=N] [iter] [vm] [native=runtime|inline]
 
@@ -40,18 +40,13 @@ key prelude.debug
 key text.fromChar
 op 8 STRING_BYTES primitive (string) -> bytes
 key prelude.String.bytes
-op 9 BYTES_SLICE primitive (bytes, int, int) -> option
-key prelude.Bytes.slice
-op 10 BYTES_ZEROS primitive (int) -> bytes
-key prelude.Bytes.zeros
-op 11 BYTES_FILL primitive (int, int) -> bytes
-key prelude.Bytes.fill
-op 12 BYTES_FROM_ARRAY primitive (array) -> bytes
-key prelude.Bytes.fromArray
+op 9 BYTES_SLICE retired
+op 10 BYTES_ZEROS retired
+op 11 BYTES_FILL retired
+op 12 BYTES_FROM_ARRAY retired
 op 13 BYTES_TRY_FROM_ARRAY primitive (array) -> result
 key prelude.Bytes.tryFromArray
-op 14 BYTES_CONCAT primitive (bytes, bytes) -> bytes
-key prelude.Bytes.concat
+op 14 BYTES_CONCAT retired
 op 15 BYTES_TRY_CONCAT primitive (bytes, bytes) -> result
 key prelude.Bytes.tryConcat
 op 16 ARRAY_EMPTY primitive () -> array
@@ -190,13 +185,11 @@ op 58 ALLOCATOR_SCOPE primitive (named) -> named
 key alloc.AllocatorHandle.scope
 op 59 ALLOCATOR_ALLOCATED primitive (named) -> int
 key alloc.AllocatorHandle.allocated
-op 60 SHARED_NEW primitive (any) -> named
-key alloc.Shared.new
+op 60 SHARED_NEW retired
 op 61 SHARED_CLONE primitive (named) -> named
 key alloc.Shared.clone
 key alloc.Weak.clone
-op 62 SHARED_GET primitive (named) -> any
-key alloc.Shared.get
+op 62 SHARED_GET retired
 op 63 SHARED_SET primitive (named, any) -> unit
 key alloc.Shared.set
 op 64 SHARED_WITH primitive (named, fn) -> any
@@ -205,8 +198,7 @@ key alloc.Shared.with
 op 65 SHARED_WITH_MUT primitive (named, fn) -> any
 callback 1
 key alloc.Shared.withMut
-op 66 SHARED_DOWNGRADE primitive (named) -> named
-key alloc.Shared.downgrade
+op 66 SHARED_DOWNGRADE retired
 op 67 WEAK_UPGRADE primitive (named) -> option
 key alloc.Weak.upgrade
 op 68 NET_HTTP provider (named) -> named
@@ -238,10 +230,8 @@ key math.round
 op 77 MATH_POW primitive (float, float) -> float
 direct Pow
 key math.pow
-op 78 STRING_SLICE_BYTES primitive (string, int, int) -> option
-key prelude.String.sliceBytes
-op 79 ARRAY_CLONE primitive (array) -> array
-key array.Array.clone
+op 78 STRING_SLICE_BYTES retired
+op 79 ARRAY_CLONE retired
 op 80 WRAPPING_ADD primitive (int, int) -> int
 isr inert
 direct WrapAdd
@@ -289,8 +279,7 @@ key os.Host.stderr
 op 93 BYTES_TRY_ZEROS primitive (int) -> result
 key prelude.Bytes.tryZeros
 key prelude.ByteBuffer.tryNew
-op 94 BYTES_TRY_FILL primitive (int, int) -> result
-retired
+op 94 BYTES_TRY_FILL retired
 op 95 SHARED_TRY_NEW primitive (any) -> result
 key alloc.Shared.tryNew
 op 96 BLOCKING_POOL_NEW provider (int) -> named
@@ -379,8 +368,7 @@ op 119 ARRAY_TRY_REVERSE primitive (array) -> result
 key array.Array.tryReverse
 op 120 ALLOC_WRAP primitive (any) -> result
 key prelude.AllocError.wrap
-op 121 STRING_TRY_CONCAT primitive (string, string) -> result
-retired
+op 121 STRING_TRY_CONCAT retired
 op 122 STRING_TRY_SLICE_BYTES primitive (string, int, int) -> result
 key prelude.String.trySliceBytes
 op 123 BYTES_TRY_SLICE primitive (bytes, int, int) -> result
@@ -430,8 +418,7 @@ builtin cmp.guard (bool, bool) -> bool min=2 vm native=runtime
 builtin task.close () -> any vm native=inline
 op 135 ARRAY_TRY_CLONE primitive (array) -> result
 key array.Array.tryClone
-op 136 BOX_NEW primitive (any) -> named
-key alloc.Box.new
+op 136 BOX_NEW retired
 op 137 BOX_TRY_NEW primitive (any) -> result
 key alloc.Box.tryNew
 op 138 BOX_GET primitive (named) -> any
@@ -448,37 +435,25 @@ isr inert
 key alloc.Box.withMut
 op 142 BOX_INTO primitive (named) -> any
 key alloc.Box.into
-op 143 STRING_TRY_TRIM primitive (string) -> result
-retired
-op 144 STRING_TRY_TO_UPPER primitive (string) -> result
-retired
-op 145 STRING_TRY_TO_LOWER primitive (string) -> result
-retired
+op 143 STRING_TRY_TRIM retired
+op 144 STRING_TRY_TO_UPPER retired
+op 145 STRING_TRY_TO_LOWER retired
 op 146 STRING_TRY_CHARS primitive (string) -> result
 key prelude.String.tryChars
-op 147 STRING_TRY_SPLIT primitive (string, string) -> result
-retired
-op 148 TEXT_TRY_LINES primitive (string) -> result
-retired
-op 149 TEXT_TRY_GRAPHEMES primitive (string) -> result
-retired
-op 150 TEXT_TRY_REPLACE primitive (string, string, string) -> result
-retired
-op 151 TEXT_TRY_TRIM_PREFIX primitive (string, string) -> result
-retired
-op 152 TEXT_TRY_TRIM_SUFFIX primitive (string, string) -> result
-retired
-op 153 ARRAY_TRY_JOIN primitive (array, string) -> result
-retired
+op 147 STRING_TRY_SPLIT retired
+op 148 TEXT_TRY_LINES retired
+op 149 TEXT_TRY_GRAPHEMES retired
+op 150 TEXT_TRY_REPLACE retired
+op 151 TEXT_TRY_TRIM_PREFIX retired
+op 152 TEXT_TRY_TRIM_SUFFIX retired
+op 153 ARRAY_TRY_JOIN retired
 op 154 ARRAY_TRY_SORTED_BY primitive (array, fn) -> result
 callback 1
 key array.trySortedBy
-op 155 STRING_BUILDER_TRY_PUSH primitive (named, string) -> result
-retired
+op 155 STRING_BUILDER_TRY_PUSH retired
 op 156 DEBUG_TRY primitive (any) -> result
 key prelude.tryDebug
-op 157 STRING_BUILDER_TRY_PUSH_BYTE primitive (named, int) -> result
-retired
+op 157 STRING_BUILDER_TRY_PUSH_BYTE retired
 op 158 ARENA_TRY_CREATE primitive () -> result
 key alloc.Arena.tryCreate
 op 159 STRING_BUILDER_TRY_FREEZE primitive (named) -> result
@@ -523,12 +498,9 @@ key prelude.usize.truncate
 isr inert
 op 163 MAP_SEED primitive () -> int
 key map.seed
-op 164 BYTES_INDEX_OF primitive (bytes, bytes) -> option
-retired
-op 165 STRING_CONTAINS primitive (string, string) -> bool
-retired
-op 166 BYTES_LAST_INDEX_OF primitive (bytes, bytes) -> option
-retired
+op 164 BYTES_INDEX_OF retired
+op 165 STRING_CONTAINS retired
+op 166 BYTES_LAST_INDEX_OF retired
 op 167 UCELL_ATOMIC_LOAD primitive (named, any) -> any
 key mem.UnsafeCell.atomicLoad
 op 168 UCELL_ATOMIC_STORE primitive (named, any, any) -> unit

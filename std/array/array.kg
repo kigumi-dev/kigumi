@@ -2,7 +2,9 @@
 pub type Array[T]
 
 /// A copy of the array; the elements are Copy, so nothing is shared.
-pub pure fn Array[T: Copy].clone(self) -> Array[T]
+pub pure fn Array[T: Copy].clone(self) -> Array[T] {
+    self.tryClone() || panic("out of memory")
+}
 
 /// A copy of the array, or AllocError when the allocator refuses (clone panics instead).
 pub pure fn Array[T: Copy].tryClone(self) -> Result[Array[T], AllocError]

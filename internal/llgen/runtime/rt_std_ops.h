@@ -96,7 +96,7 @@ enum std_op {
     OP_UCELL_SET = 91,
     OP_HOST_STDERR = 92,
     OP_BYTES_TRY_ZEROS = 93,
-    /* 94 retired: BYTES_TRY_FILL */
+    OP_BYTES_TRY_FILL = 94,
     OP_SHARED_TRY_NEW = 95,
     OP_BLOCKING_POOL_NEW = 96,
     OP_BLOCKING_POOL_RUN = 97,
@@ -123,7 +123,7 @@ enum std_op {
     OP_ARRAY_TRY_SLICE = 118,
     OP_ARRAY_TRY_REVERSE = 119,
     OP_ALLOC_WRAP = 120,
-    /* 121 retired: STRING_TRY_CONCAT */
+    OP_STRING_TRY_CONCAT = 121,
     OP_STRING_TRY_SLICE_BYTES = 122,
     OP_BYTES_TRY_SLICE = 123,
     OP_MAP_TRY_CLONE = 124,
@@ -145,30 +145,30 @@ enum std_op {
     OP_BOX_WITH = 140,
     OP_BOX_WITH_MUT = 141,
     OP_BOX_INTO = 142,
-    /* 143 retired: STRING_TRY_TRIM */
-    /* 144 retired: STRING_TRY_TO_UPPER */
-    /* 145 retired: STRING_TRY_TO_LOWER */
+    OP_STRING_TRY_TRIM = 143,
+    OP_STRING_TRY_TO_UPPER = 144,
+    OP_STRING_TRY_TO_LOWER = 145,
     OP_STRING_TRY_CHARS = 146,
-    /* 147 retired: STRING_TRY_SPLIT */
-    /* 148 retired: TEXT_TRY_LINES */
-    /* 149 retired: TEXT_TRY_GRAPHEMES */
-    /* 150 retired: TEXT_TRY_REPLACE */
-    /* 151 retired: TEXT_TRY_TRIM_PREFIX */
-    /* 152 retired: TEXT_TRY_TRIM_SUFFIX */
-    /* 153 retired: ARRAY_TRY_JOIN */
+    OP_STRING_TRY_SPLIT = 147,
+    OP_TEXT_TRY_LINES = 148,
+    OP_TEXT_TRY_GRAPHEMES = 149,
+    OP_TEXT_TRY_REPLACE = 150,
+    OP_TEXT_TRY_TRIM_PREFIX = 151,
+    OP_TEXT_TRY_TRIM_SUFFIX = 152,
+    OP_ARRAY_TRY_JOIN = 153,
     OP_ARRAY_TRY_SORTED_BY = 154,
-    /* 155 retired: STRING_BUILDER_TRY_PUSH */
+    OP_STRING_BUILDER_TRY_PUSH = 155,
     OP_DEBUG_TRY = 156,
-    /* 157 retired: STRING_BUILDER_TRY_PUSH_BYTE */
+    OP_STRING_BUILDER_TRY_PUSH_BYTE = 157,
     OP_ARENA_TRY_CREATE = 158,
     OP_STRING_BUILDER_TRY_FREEZE = 159,
     OP_ARGS_GET_BYTES = 160,
     OP_OS_STRING_TRY_CLONE = 161,
     OP_TASK_YIELD_NOW = 162,
     OP_MAP_SEED = 163,
-    /* 164 retired: BYTES_INDEX_OF */
-    /* 165 retired: STRING_CONTAINS */
-    /* 166 retired: BYTES_LAST_INDEX_OF */
+    OP_BYTES_INDEX_OF = 164,
+    OP_STRING_CONTAINS = 165,
+    OP_BYTES_LAST_INDEX_OF = 166,
     OP_UCELL_ATOMIC_LOAD = 167,
     OP_UCELL_ATOMIC_STORE = 168,
     OP_UCELL_ATOMIC_EXCHANGE = 169,
@@ -190,6 +190,7 @@ enum std_op {
     OP_BYTE_BUFFER_FREEZE = 185,
     OP_BYTE_BUFFER_FREEZE_STRING = 186,
 };
+#define RT_STD_OPS_RETIRED_CASES case OP_BYTES_SLICE: case OP_BYTES_ZEROS: case OP_BYTES_FILL: case OP_BYTES_FROM_ARRAY: case OP_BYTES_CONCAT: case OP_SHARED_NEW: case OP_SHARED_GET: case OP_SHARED_DOWNGRADE: case OP_STRING_SLICE_BYTES: case OP_ARRAY_CLONE: case OP_BYTES_TRY_FILL: case OP_STRING_TRY_CONCAT: case OP_BOX_NEW: case OP_STRING_TRY_TRIM: case OP_STRING_TRY_TO_UPPER: case OP_STRING_TRY_TO_LOWER: case OP_STRING_TRY_SPLIT: case OP_TEXT_TRY_LINES: case OP_TEXT_TRY_GRAPHEMES: case OP_TEXT_TRY_REPLACE: case OP_TEXT_TRY_TRIM_PREFIX: case OP_TEXT_TRY_TRIM_SUFFIX: case OP_ARRAY_TRY_JOIN: case OP_STRING_BUILDER_TRY_PUSH: case OP_STRING_BUILDER_TRY_PUSH_BYTE: case OP_BYTES_INDEX_OF: case OP_STRING_CONTAINS: case OP_BYTES_LAST_INDEX_OF:
 static int rt_std_op_of(const char* key) {
     const char* k = key;
     if (!strncmp(k, "std/", 4)) k += 4;
@@ -199,12 +200,7 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "prelude.String.tryFromBytes")) return OP_STRING_TRY_FROM_BYTES;
     if (!strcmp(k, "prelude.debug") || !strcmp(k, "text.fromChar")) return OP_DISPLAY;
     if (!strcmp(k, "prelude.String.bytes")) return OP_STRING_BYTES;
-    if (!strcmp(k, "prelude.Bytes.slice")) return OP_BYTES_SLICE;
-    if (!strcmp(k, "prelude.Bytes.zeros")) return OP_BYTES_ZEROS;
-    if (!strcmp(k, "prelude.Bytes.fill")) return OP_BYTES_FILL;
-    if (!strcmp(k, "prelude.Bytes.fromArray")) return OP_BYTES_FROM_ARRAY;
     if (!strcmp(k, "prelude.Bytes.tryFromArray")) return OP_BYTES_TRY_FROM_ARRAY;
-    if (!strcmp(k, "prelude.Bytes.concat")) return OP_BYTES_CONCAT;
     if (!strcmp(k, "prelude.Bytes.tryConcat")) return OP_BYTES_TRY_CONCAT;
     if (!strcmp(k, "array.Array.empty")) return OP_ARRAY_EMPTY;
     if (!strcmp(k, "array.Array.of") || !strcmp(k, "prelude.FixedArray.adopt")) return OP_ARRAY_OF;
@@ -250,13 +246,10 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "alloc.Arena.create")) return OP_ARENA_CREATE;
     if (!strcmp(k, "alloc.AllocatorHandle.scope")) return OP_ALLOCATOR_SCOPE;
     if (!strcmp(k, "alloc.AllocatorHandle.allocated")) return OP_ALLOCATOR_ALLOCATED;
-    if (!strcmp(k, "alloc.Shared.new")) return OP_SHARED_NEW;
     if (!strcmp(k, "alloc.Shared.clone") || !strcmp(k, "alloc.Weak.clone")) return OP_SHARED_CLONE;
-    if (!strcmp(k, "alloc.Shared.get")) return OP_SHARED_GET;
     if (!strcmp(k, "alloc.Shared.set")) return OP_SHARED_SET;
     if (!strcmp(k, "alloc.Shared.with")) return OP_SHARED_WITH;
     if (!strcmp(k, "alloc.Shared.withMut")) return OP_SHARED_WITH_MUT;
-    if (!strcmp(k, "alloc.Shared.downgrade")) return OP_SHARED_DOWNGRADE;
     if (!strcmp(k, "alloc.Weak.upgrade")) return OP_WEAK_UPGRADE;
     if (!strcmp(k, "net.Net.http")) return OP_NET_HTTP;
     if (!strcmp(k, "net.Conn.drop")) return OP_NET_CONN_DROP;
@@ -267,8 +260,6 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "math.ceil")) return OP_MATH_CEIL;
     if (!strcmp(k, "math.round")) return OP_MATH_ROUND;
     if (!strcmp(k, "math.pow")) return OP_MATH_POW;
-    if (!strcmp(k, "prelude.String.sliceBytes")) return OP_STRING_SLICE_BYTES;
-    if (!strcmp(k, "array.Array.clone")) return OP_ARRAY_CLONE;
     if (!strcmp(k, "prelude.Char.fromInt")) return OP_CHAR_FROM_INT;
     if (!strcmp(k, "ffi.stringLossy")) return OP_FFI_STRING_LOSSY;
     if (!strcmp(k, "mem.UnsafeCell.new")) return OP_UCELL_NEW;
@@ -316,7 +307,6 @@ static int rt_std_op_of(const char* key) {
     if (!strcmp(k, "alloc.Shared.tryGet")) return OP_SHARED_TRY_GET;
     if (!strcmp(k, "alloc.Shared.tryDowngrade")) return OP_SHARED_TRY_DOWNGRADE;
     if (!strcmp(k, "array.Array.tryClone")) return OP_ARRAY_TRY_CLONE;
-    if (!strcmp(k, "alloc.Box.new")) return OP_BOX_NEW;
     if (!strcmp(k, "alloc.Box.tryNew")) return OP_BOX_TRY_NEW;
     if (!strcmp(k, "alloc.Box.get")) return OP_BOX_GET;
     if (!strcmp(k, "alloc.Box.set")) return OP_BOX_SET;

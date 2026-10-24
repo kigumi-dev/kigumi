@@ -17,13 +17,11 @@ func StdOpHeader(reg *mir.StdOpRegistry) string {
 	sb.WriteString("#ifndef KIGUMI_RT_STD_OPS_H\n#define KIGUMI_RT_STD_OPS_H\n")
 	sb.WriteString("enum std_op {\n")
 	for _, op := range reg.Ops {
-		if op.Retired {
-			fmt.Fprintf(&sb, "    /* %d retired: %s */\n", op.ID, op.Name)
-			continue
-		}
 		fmt.Fprintf(&sb, "    OP_%s = %d,\n", op.Name, op.ID)
 	}
-	sb.WriteString("};\nstatic int rt_std_op_of(const char* key) {\n    const char* k = key;\n    if (!strncmp(k, \"std/\", 4)) k += 4;\n")
+	sb.WriteString("};\n")
+	writeRetiredCases(&sb, reg)
+	sb.WriteString("static int rt_std_op_of(const char* key) {\n    const char* k = key;\n    if (!strncmp(k, \"std/\", 4)) k += 4;\n")
 	for _, op := range reg.Ops {
 		writeMatch(&sb, "k", op.Keys, op.Name)
 	}
@@ -38,6 +36,20 @@ func StdOpHeader(reg *mir.StdOpRegistry) string {
 	}
 	sb.WriteString("    return -1;\n}\n#endif\n")
 	return sb.String()
+}
+
+// writeRetiredCases defines the case labels of retired ops so rt_std_id keeps -Wswitch complete.
+func writeRetiredCases(sb *strings.Builder, reg *mir.StdOpRegistry) {
+	var labels []string
+	for _, op := range reg.Ops {
+		if op.Retired {
+			labels = append(labels, "case OP_"+op.Name+":")
+		}
+	}
+	if len(labels) == 0 {
+		labels = []string{"default:"}
+	}
+	fmt.Fprintf(sb, "#define RT_STD_OPS_RETIRED_CASES %s\n", strings.Join(labels, " "))
 }
 
 func writeMatch(sb *strings.Builder, subject string, values []string, op string) {

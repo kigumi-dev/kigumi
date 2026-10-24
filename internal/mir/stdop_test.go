@@ -36,8 +36,8 @@ func TestResolveStdOpKind(t *testing.T) {
 		{"array.Array.push", KindPrimitive},
 		{"math.sqrt", KindPrimitive},
 		{"alloc.Arena.create", KindPrimitive},
-		{"alloc.Shared.new", KindPrimitive},
-		{"alloc.Box.new", KindPrimitive},
+		{"alloc.Shared.tryNew", KindPrimitive},
+		{"alloc.Box.tryNew", KindPrimitive},
 		{"alloc.Box.into", KindPrimitive},
 		{"crypto/subtle.constantTimeEq", KindPrimitive},
 		{"os.Host.files", KindProvider},
@@ -59,6 +59,18 @@ func TestResolveStdOpKind(t *testing.T) {
 		}
 		if got != c.kind {
 			t.Errorf("%s: kind = %v, want %v", c.key, got, c.kind)
+		}
+	}
+}
+
+func TestPanickingFormsResolveToNoOp(t *testing.T) {
+	for _, key := range []string{
+		"prelude.Bytes.slice", "prelude.Bytes.zeros", "prelude.Bytes.fill", "prelude.Bytes.fromArray", "prelude.Bytes.concat",
+		"prelude.String.sliceBytes", "array.Array.clone", "alloc.Shared.new", "alloc.Shared.get", "alloc.Shared.downgrade",
+		"alloc.Box.new",
+	} {
+		if _, ok := StdOpFor(key); ok {
+			t.Errorf("%s resolves to an op; it is a Kigumi body over its try form", key)
 		}
 	}
 }
