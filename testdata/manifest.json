@@ -14113,6 +14113,23 @@
       ]
     },
     {
+      "id": "run/ref_scrutinee_guard",
+      "kind": "run",
+      "path": "testdata/run/ref_scrutinee_guard.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/ref_scrutinee_is",
       "kind": "run",
       "path": "testdata/run/ref_scrutinee_is.txtar",
@@ -14133,6 +14150,23 @@
       "id": "run/ref_scrutinee_temp",
       "kind": "run",
       "path": "testdata/run/ref_scrutinee_temp.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/ref_scrutinee_value",
+      "kind": "run",
+      "path": "testdata/run/ref_scrutinee_value.txtar",
       "mode": [
         "vm",
         "native"
@@ -20243,6 +20277,17 @@
       ]
     },
     {
+      "id": "sem/is_binding_value_chain",
+      "kind": "sem",
+      "path": "testdata/sem/is_binding_value_chain.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/is_consume_diverge_err",
       "kind": "sem",
       "path": "testdata/sem/is_consume_diverge_err.txtar",
@@ -21346,6 +21391,17 @@
       "id": "sem/reentrant_capture_param_shapes",
       "kind": "sem",
       "path": "testdata/sem/reentrant_capture_param_shapes.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/ref_scrutinee_guard_err",
+      "kind": "sem",
+      "path": "testdata/sem/ref_scrutinee_guard_err.txtar",
       "mode": [
         "check"
       ],

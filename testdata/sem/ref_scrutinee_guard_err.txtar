@@ -1,0 +1,153 @@
+-- module --
+mir: planned
+-- src --
+type Bag = {pub items Array[i64], pub tag String}
+type Sh = Boxy(b: Bag) | Nil
+type H = {pub b Bag, pub n i64}
+type Holder = {pub mut sh Sh}
+
+fn pickSh(r: &Sh) -> &Sh { r }
+fn pickBag(r: &Bag) -> &Bag { r }
+fn mkSh(t: String) -> Sh { Sh.Boxy(Bag { items: Array.of(1), tag: t }) }
+fn mkh(t: String) -> H { H { b: Bag { items: Array.of(1), tag: t }, n: 1 } }
+
+fn behindAnd(r: &Sh, c: Bool) -> String {
+    match 0 {
+        0 if c && pickSh(r) is Boxy(b) -> b.tag, //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+        _ -> "",
+    }
+}
+
+fn shorthandBehindAnd(c: Bool) -> String {
+    match 0 {
+        0 if c && (&mkh("s") is H { b, n }) -> b.tag, //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+        _ -> "",
+    }
+}
+
+fn secondIs(r: &Sh) -> String {
+    match 0 {
+        0 if pickSh(r) is Boxy(b) && pickSh(r) is Boxy(d) -> d.tag, //~ ERROR `d` keeps a borrow of a temporary that the right side of `&&` creates
+        _ -> "",
+    }
+}
+
+fn letBehindAnd(o: i64?, r: &Sh, c: Bool) -> String {
+    if let Some(k) = o; c && pickSh(r) is Boxy(b) { //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+        return b.tag
+    }
+    ""
+}
+
+fn rootMoved() -> String {
+    let mut s = mkSh("a")
+    match 0 {
+        0 if pickSh(&s) is Boxy(b) -> {
+            s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here
+            b.tag
+        }
+        _ -> "",
+    }
+}
+
+fn rootWritten(h: &mut Holder) -> String {
+    match 0 {
+        0 if pickSh(&h.sh) is Boxy(b) -> {
+            h.sh = Sh.Nil //~ ERROR `h` is borrowed and cannot be mutated here
+            b.tag
+        }
+        _ -> "",
+    }
+}
+
+fn keptPastMatch() -> String {
+    let k = match 0 { //~ ERROR `k` keeps a borrow of a temporary past the statement
+        0 if pickSh(&mkSh("k")) is Boxy(b) -> b,
+        _ -> return "",
+    }
+    k.tag
+}
+
+fn wholeOfTemp(k: i64) -> String {
+    match k {
+        0 if pickBag(&Bag { items: Array.of(1), tag: "w" }) is x -> x.tag, //~ ERROR `x` keeps a borrow of a temporary past the statement
+        _ -> "",
+    }
+}
+
+fn valueBehindAnd(c: Bool) -> Bool {
+    let r = c && (&mkSh("x") is Boxy(b)) && b.tag == "x" //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+    r
+}
+
+fn countedValueBehindAnd(s: &Sh, c: Bool) -> Bool {
+    c && pickSh(s) is Boxy(b) && b.tag == "x" //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+}
+
+-- expect --
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:13:37
+   |
+13 |         0 if c && pickSh(r) is Boxy(b) -> b.tag, //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                                     ^
+
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:20:37
+   |
+20 |         0 if c && (&mkh("s") is H { b, n }) -> b.tag, //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                                     ^
+
+error[E2235]: `d` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:27:56
+   |
+27 |         0 if pickSh(r) is Boxy(b) && pickSh(r) is Boxy(d) -> d.tag, //~ ERROR `d` keeps a borrow of a temporary that the right side of `&&` creates
+   |                                                        ^
+
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:33:48
+   |
+33 |     if let Some(k) = o; c && pickSh(r) is Boxy(b) { //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                                                ^
+
+error[move-while-borrowed]: `s` is borrowed and cannot be moved or dropped here
+  --> main.kg:43:13
+   |
+43 |             s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here
+   |             ^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:53:13
+   |
+53 |             h.sh = Sh.Nil //~ ERROR `h` is borrowed and cannot be mutated here
+   |             ^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:52:21
+   |
+52 |         0 if pickSh(&h.sh) is Boxy(b) -> {
+   |                     ^^^^^
+
+error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:61:9
+   |
+61 |     let k = match 0 { //~ ERROR `k` keeps a borrow of a temporary past the statement
+   |         ^
+
+error[E2235]: `x` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:70:64
+   |
+70 |         0 if pickBag(&Bag { items: Array.of(1), tag: "w" }) is x -> x.tag, //~ ERROR `x` keeps a borrow of a temporary past the statement
+   |                                                                ^
+
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:76:38
+   |
+76 |     let r = c && (&mkSh("x") is Boxy(b)) && b.tag == "x" //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                                      ^
+
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:81:28
+   |
+81 |     c && pickSh(s) is Boxy(b) && b.tag == "x" //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                            ^
+

@@ -1,0 +1,185 @@
+-- src --
+type Cell = {pub name String, pub mut n i64}
+type Bag = {pub mut items Array[i64], pub mut tag String}
+type Sh = Round(c: Cell) | Boxy(b: Bag) | Nil
+type Hold = {pub mut sh Sh}
+
+fn pickSh(r: &Sh) -> &Sh { r }
+fn pickBag(r: &Bag) -> &Bag { r }
+fn shMut(h: &mut Hold) -> &mut Sh { &mut h.sh }
+fn mkSh(t: String) -> Sh { Sh.Boxy(Bag { items: Array.of(1), tag: t }) }
+fn mkBag(t: String) -> Bag { Bag { items: Array.of(2, 3), tag: t } }
+fn callS(f: fn() -> String) -> String { f() }
+
+fn temp(k: i64) -> String {
+    match k {
+        1 if &mkSh("g") is Boxy(b) -> b.tag,
+        _ -> "-",
+    }
+}
+fn counted(r: &Sh, g: &Bag, k: i64) -> String {
+    match k {
+        0 if pickSh(r) is Boxy(b) -> b.tag,
+        1 if pickSh(r) is Round(c) -> c.name,
+        2 if pickSh(&mkSh("ft")) is Boxy(b) -> b.tag,
+        3 if pickBag(g) is x -> x.tag,
+        _ -> "-",
+    }
+}
+fn andAfter(r: &Sh, want: String) -> String {
+    match want {
+        w if pickSh(r) is Boxy(b) && b.tag == w -> "eq ${b.tag}",
+        w if &mkSh(w) is Boxy(b) && b.tag.len() > 2 -> "long ${b.tag}",
+        _ if (&mkBag("bg") is Bag { items, tag }) && items.len() == 2 -> tag,
+        _ -> "ne",
+    }
+}
+fn orNot(r: &Sh, c: Bool) -> String {
+    match c {
+        true if !(pickSh(r) is Round(_)) -> "notround",
+        false if c || pickSh(r) is Boxy(_) -> "boxy",
+        _ -> "other",
+    }
+}
+fn several(r: &Sh, s: &Sh) -> String {
+    match 0 {
+        0 if pickSh(r) is Round(c) -> "r ${c.name}",
+        0 if pickSh(s) is Boxy(b) && b.tag == "zz" -> "zz",
+        0 if &mkSh("m") is Boxy(b) && b.tag == "m" -> "m ${b.tag}",
+        _ -> "none",
+    }
+}
+fn mutGuard(h: &mut Hold, k: i64) -> String {
+    match k {
+        0 if shMut(h) is Boxy(b) -> {
+            b.tag = "set"
+            b.tag
+        }
+        _ -> "-",
+    }
+}
+fn closure(r: &Sh, k: i64) -> String {
+    match k {
+        0 if pickSh(r) is Boxy(b) -> callS(() => b.tag),
+        1 if &mkSh("cl") is Boxy(b) -> callS(() => "${b.tag}!"),
+        _ -> "-",
+    }
+}
+fn loops(r: &Sh) -> String {
+    let mut out = ""
+    for i in 0..5 {
+        match i {
+            0 if &mkSh("l0") is Boxy(b) -> {
+                out = "${out}${b.tag}"
+            }
+            1 if pickSh(r) is Boxy(b) && b.tag == "no" -> {
+                out = "${out}bad"
+            }
+            2 if pickSh(r) is Boxy(b) -> {
+                if b.tag == "bt" {
+                    continue
+                }
+                out = "${out}x"
+            }
+            3 if &mkSh("l3") is Boxy(b) -> {
+                out = "${out}${b.tag}"
+                break
+            }
+            _ -> {
+                out = "${out}."
+            }
+        }
+    }
+    out
+}
+fn whileHead(r: &Sh) -> i64 {
+    let mut n = 0
+    for n < 3 {
+        n += match n {
+            0 if &mkSh("w") is Boxy(b) -> b.items.len().toInt() || 0,
+            _ if pickSh(r) is Boxy(b) -> b.items.len().toInt() || 0,
+            _ -> 5,
+        }
+    }
+    n
+}
+fn early(r: &Sh, k: i64) -> String {
+    match k {
+        0 if pickSh(r) is Boxy(b) -> {
+            if b.items.len() > 0 {
+                return "early ${b.tag}"
+            }
+            "late"
+        }
+        _ -> "-",
+    }
+}
+fn armBind(o: String?, r: &Sh) -> String {
+    match o {
+        Some(s) if pickSh(r) is Boxy(b) && b.tag == s -> "same ${s}",
+        Some(s) if &mkSh(s) is Boxy(b) -> "made ${b.tag}",
+        _ -> "none",
+    }
+}
+fn owned(k: i64) -> String {
+    match k {
+        0 if mkSh("ow") is Boxy(b) -> b.tag,
+        _ -> "-",
+    }
+}
+fn nested(o: Sh?, r: &Sh) -> String {
+    match o {
+        Some(x) if &x is Boxy(b) && &b.items is xs && xs.len() > 0 -> "n ${b.tag}",
+        None if (match 1 { 1 if pickSh(r) is Boxy(b) -> b.tag == "bt", _ -> false }) -> "gg",
+        _ -> "-",
+    }
+}
+fn letGuard(o: i64?, r: &Sh) -> String {
+    if let Some(k) = o; pickSh(r) is Boxy(c) && &mkSh("lg") is Boxy(_) {
+        return "${k} ${c.tag}"
+    }
+    if let Some(k) = o; &mkSh("lg") is Boxy(b) && b.tag == "lg" {
+        return "${k} ${b.tag}"
+    }
+    "-"
+}
+
+fn notGuard(s: &Sh, k: i64) -> String {
+    match k {
+        1 if !(s is Boxy(b) && b.tag == "bt") -> "n",
+        1 if !(&mkSh("q") is Boxy(b) && b.tag == "q") -> "never",
+        2 if !(pickSh(s) is Boxy(b) && b.tag == "bt") -> "cn",
+        3 if !(!(&mkSh("dn") is Boxy(b) && b.tag == "dn")) -> b.tag,
+        _ -> "y",
+    }
+}
+
+let sg = mkBag("sg")
+let sa = Sh.Round(Cell { name: "sr", n: 7 })
+let sb = Sh.Boxy(Bag { items: Array.of(4), tag: "bt" })
+let mut h = Hold { sh: Sh.Boxy(Bag { items: Array.of(1), tag: "h" }) }
+print "${temp(1)} ${temp(2)} ${counted(&sb, &sg, 0)} ${counted(&sa, &sg, 0)} ${counted(&sa, &sg, 1)} ${counted(&sb, &sg, 2)} ${counted(&sb, &sg, 3)} ${counted(&sb, &sg, 4)}"
+print "${andAfter(&sb, "bt")} ${andAfter(&sb, "zzz")} ${andAfter(&sa, "q")}"
+print "${orNot(&sb, true)} ${orNot(&sa, true)} ${orNot(&sb, false)} ${orNot(&sa, false)}"
+print "${several(&sa, &sb)} ${several(&sb, &sb)} ${mutGuard(&mut h, 0)} ${mutGuard(&mut h, 1)}"
+print "${closure(&sb, 0)} ${closure(&sb, 1)} ${closure(&sa, 0)} ${closure(&sb, 2)}"
+print "${loops(&sb)} ${loops(&sa)} ${whileHead(&sb)} ${whileHead(&sa)} ${early(&sb, 0)} ${early(&sa, 0)}"
+print "${armBind(Some("bt"), &sb)} ${armBind(Some("q"), &sb)} ${armBind(None, &sb)}"
+print "${owned(0)} ${owned(1)} ${nested(Some(mkSh("ne")), &sa)} ${nested(Some(Sh.Nil), &sb)} ${nested(None, &sb)} ${nested(None, &sa)}"
+print "${letGuard(Some(1), &sb)} ${letGuard(Some(1), &sa)} ${letGuard(None, &sb)}"
+print "${notGuard(&sb, 1)} ${notGuard(&sa, 1)} ${notGuard(&sb, 2)} ${notGuard(&sa, 2)} ${notGuard(&sb, 3)}"
+if h.sh is Boxy(b) {
+    print "after ${b.tag}"
+}
+-- stdout --
+g - bt - sr ft sg -
+eq bt long zzz bg
+notround other boxy other
+r sr m m set -
+bt cl! - -
+l0.l3 l0..l3 3 6 early bt -
+same bt made q none
+ow - n ne - gg -
+1 bt 1 lg -
+y n y cn dn
+after set

@@ -1,6 +1,22 @@
 package mir
 
+import "kigumi/internal/hir"
+
 const guardFailed = "guard-failed"
+
+// guard lowers g as an `if` condition, so a temporary its `is` bindings borrow lives until the arm's scope ends.
+func (b *builder) guard(g *hir.Expr, run, orElse BlockID) []guardMove {
+	var c LocalID
+	var moves []guardMove
+	b.fullExpr(func() { c, moves = b.cond(g) })
+	fail := b.newBlockAt()
+	b.term(Term{Op: TermBranch, Args: []LocalID{c}, Targets: []BlockID{run, fail}})
+	b.cur = fail
+	b.releaseGuardMoves(moves)
+	b.unwindScope(b.scopes[len(b.scopes)-1], false)
+	b.jump(orElse)
+	return moves
+}
 
 func (b *builder) releaseGuardMoves(moves []guardMove) {
 	for _, m := range moves {

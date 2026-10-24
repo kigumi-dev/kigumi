@@ -14,6 +14,10 @@ func (c *checker) reportImmutable(lhs syntax.NodeID) {
 	case syntax.Ident:
 		if root := c.rootOf(lhs); root != 0 {
 			name := node.Tok().Text()
+			if fix, ok := c.rebindRefFix(root); ok {
+				c.errAt(lhs, cAssignImmutable, name, fix)
+				return
+			}
 			fix := "declare `let mut " + name + "`"
 			if e := c.r.Entities[root]; e.File == c.f && e.Tok != 0 {
 				c.errFix(lhs, c.r.insertAt(c.f, e.Tok, "Declare `mut "+name+"`", "mut "), cAssignImmutable, name, fix)
@@ -119,4 +123,13 @@ func (c *checker) sharedRefFix(root EntityID) (string, bool) {
 		return "", false
 	}
 	return "annotate `" + e.Name + "` as `&mut " + c.r.TypeString(c.r.Types.Node(e.Type).Elem) + "`", true
+}
+
+func (c *checker) rebindRefFix(root EntityID) (string, bool) {
+	e := &c.r.Entities[root]
+	t := c.vars.resolve(e.Type)
+	if e.Flags&EfMut == 0 || c.r.Types.Kind(t) != KRef || c.r.Types.RefMut(t) {
+		return "", false
+	}
+	return "a binding holding a shared reference cannot be reassigned", true
 }

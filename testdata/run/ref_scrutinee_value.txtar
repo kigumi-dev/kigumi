@@ -1,0 +1,167 @@
+-- src --
+type Cell = {pub name String, pub mut n i64}
+type Bag = {pub mut items Array[i64], pub mut tag String}
+type Sh = Round(c: Cell) | Boxy(b: Bag) | Nil
+type Hold = {pub mut sh Sh}
+
+fn mkSh(t: String) -> Sh { Sh.Boxy(Bag { items: Array.of(1), tag: t }) }
+fn pickSh(r: &Sh) -> &Sh { r }
+fn shMut(h: &mut Hold) -> &mut Sh { &mut h.sh }
+fn idB(x: Bool) -> Bool { x }
+fn callB(f: fn() -> Bool) -> Bool { f() }
+fn parse(s: String) -> Result[i64, String] { if s == "1" { Ok(1) } else { Err("bad") } }
+
+fn letForm(k: String) -> Bool {
+    let r = &mkSh("n1") is Boxy(b) && b.tag == k
+    r
+}
+fn paren(k: String) -> Bool {
+    let r = (&mkSh("x") is Boxy(b)) && b.tag == k
+    r
+}
+fn ret(k: String) -> Bool {
+    return &mkSh("x") is Boxy(b) && b.tag == k
+}
+fn arg(k: String) -> Bool {
+    idB(&mkSh("x") is Boxy(b) && b.tag == k)
+}
+fn counted(r: &Sh) -> Bool {
+    let v = pickSh(r) is Boxy(b) && b.tag == "bt"
+    v
+}
+fn interp(k: String) -> String {
+    "${&mkSh("x") is Boxy(b) && b.tag == k}"
+}
+fn negated(k: String) -> Bool {
+    !(&mkSh("x") is Boxy(b) && b.tag == k)
+}
+fn either(k: String) -> Bool {
+    (&mkSh("x") is Boxy(b) && b.tag == k) || (&mkSh("y") is Boxy(c) && c.tag == k)
+}
+fn inCond(r: &Sh, k: Bool) -> String {
+    if idB(&mkSh("x") is Boxy(b) && b.tag == "x") && k && idB(pickSh(r) is Boxy(c) && c.tag == "bt") {
+        return "both"
+    }
+    "no"
+}
+fn nested(k: String) -> Bool {
+    &mkSh("a") is Boxy(b) && idB(&mkSh(k) is Boxy(c) && c.tag == b.tag) && b.tag == "a"
+}
+fn parenChain(k: String) -> Bool {
+    (&mkSh(k) is Boxy(b) && true) && b.tag == "x"
+}
+fn owned(k: String) -> Bool {
+    mkSh(k) is Boxy(b) && b.tag == "x"
+}
+fn placeRef(r: &Sh) -> Bool {
+    r is Boxy(b) && b.tag == "bt"
+}
+fn copyPayload(r: &Sh) -> Bool {
+    pickSh(r) is Round(c) && c.name == "sr"
+}
+fn mutRef(h: &mut Hold) -> Bool {
+    let r = shMut(h) is Boxy(b) && b.tag == "h"
+    r
+}
+fn loops(r: &Sh) -> String {
+    let mut out = ""
+    for i in 0..4 {
+        let hit = &mkSh("i${i}") is Boxy(b) && {
+            if b.tag == "i1" {
+                continue
+            }
+            if b.tag == "i3" {
+                break
+            }
+            b.tag.len() > 0
+        }
+        let cnt = pickSh(r) is Boxy(b) && b.items.len() > 0
+        out = "${out}${hit}/${cnt} "
+    }
+    out
+}
+fn early(k: String) -> String {
+    let r = &mkSh(k) is Boxy(b) && {
+        if b.tag == "e" {
+            return "early"
+        }
+        true
+    }
+    "${r}"
+}
+fn tried(k: String) -> Result[Bool, String] {
+    let r = &mkSh(k) is Boxy(b) && parse(b.tag)? == 1
+    Ok(r)
+}
+fn closure(k: String) -> Bool {
+    &mkSh(k) is Boxy(b) && callB(() => b.tag == "x")
+}
+fn inClosure(k: String) -> Bool {
+    callB(() => &mkSh(k) is Boxy(b) && b.tag == "x")
+}
+fn armLoop(r: &Sh) -> i64 {
+    let mut n = 0
+    for i in 0..3 {
+        let ok = match i {
+            0 -> &mkSh("m") is Boxy(b) && b.tag == "m",
+            1 -> pickSh(r) is Boxy(b) && b.tag == "bt",
+            _ -> !(&mkSh("z") is Boxy(b) && b.tag == "m"),
+        }
+        if ok {
+            n += 1
+        }
+    }
+    n
+}
+
+fn notIf(s: &Sh, k: String) -> String {
+    if !(s is Boxy(b) && b.tag == k) { "n" } else { "y" }
+}
+fn notIfTemp(k: String) -> String {
+    if !(&mkSh("x") is Boxy(b) && b.tag == k) { "n" } else { "y" }
+}
+fn notIfCounted(r: &Sh) -> String {
+    if !(pickSh(r) is Boxy(b) && b.tag == "bt") { "n" } else { "y" }
+}
+fn notNested(s: &Sh, c: Bool) -> String {
+    let a = if c && !(&mkSh("x") is Boxy(b) && b.tag == "z") { "a" } else { "-" }
+    let o = if !(&mkSh("x") is Boxy(b) && b.tag == "x") || c { "o" } else { "-" }
+    let d = if s is Boxy(e) && !(&mkSh("x") is Boxy(b) && b.tag == e.tag) { "d" } else { "-" }
+    "${a}${o}${d}"
+}
+fn doubleNot(k: String) -> String {
+    if !(!(&mkSh(k) is Boxy(b) && b.tag == "x")) { b.tag } else { "-" }
+}
+fn notLetGuard(o: i64?, k: String) -> String {
+    if let Some(v) = o; !(&mkSh(k) is Boxy(b) && b.tag == "x") { "lg ${v}" } else { "-" }
+}
+fn notLoop() -> i64 {
+    let mut n = 0
+    for !(&mkSh("i${n}") is Boxy(b) && b.tag == "i3") {
+        n += 1
+    }
+    n
+}
+
+let sa = Sh.Round(Cell { name: "sr", n: 7 })
+let sb = Sh.Boxy(Bag { items: Array.of(4), tag: "bt" })
+let mut h = Hold { sh: Sh.Boxy(Bag { items: Array.of(1), tag: "h" }) }
+print "${letForm("n1")} ${letForm("q")} ${paren("x")} ${ret("x")} ${arg("x")} ${arg("q")} ${counted(&sb)} ${counted(&sa)}"
+print "${interp("x")} ${negated("x")} ${negated("q")} ${either("x")} ${either("y")} ${either("z")}"
+print "${inCond(&sb, true)} ${inCond(&sa, true)} ${inCond(&sb, false)} ${nested("a")} ${nested("b")} ${parenChain("x")} ${parenChain("q")}"
+print "${owned("x")} ${owned("q")} ${placeRef(&sb)} ${placeRef(&sa)} ${copyPayload(&sa)} ${copyPayload(&sb)} ${mutRef(&mut h)}"
+print "${loops(&sb)}| ${loops(&sa)}| ${early("e")} ${early("f")}"
+print "${tried("1") || false} ${tried("2") || false} ${closure("x")} ${closure("q")} ${inClosure("x")} ${inClosure("q")}"
+print "${armLoop(&sb)} ${armLoop(&sa)}"
+print "${notIf(&sb, "bt")} ${notIf(&sb, "q")} ${notIf(&sa, "bt")} ${notIfTemp("x")} ${notIfTemp("q")} ${notIfCounted(&sb)} ${notIfCounted(&sa)}"
+print "${notNested(&sb, true)} ${notNested(&sb, false)} ${doubleNot("x")} ${doubleNot("q")} ${notLetGuard(Some(1), "q")} ${notLetGuard(Some(1), "x")} ${notLoop()}"
+-- stdout --
+true false true true true false true false
+true false true true true false
+both no no true false true false
+true false true false true false true
+true/true true/true | true/false true/false | early true
+true false true false true false
+3 2
+y n n y n y n
+aod --d x - lg 1 - 3

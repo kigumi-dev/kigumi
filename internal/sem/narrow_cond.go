@@ -18,6 +18,9 @@ func (c *checker) condFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
 		bin := node.AsBinary()
 		switch bin.Op().Kind() {
 		case token.AndAnd:
+			if c.negated {
+				return c.scopedChain(n)
+			}
 			lp, _ := c.condFacts(bin.Left().ID())
 			saved := c.snapshotFacts()
 			c.addFacts(lp)
@@ -51,6 +54,16 @@ func (c *checker) condFacts(n syntax.NodeID) (pos, neg []NarrowFact) {
 	}
 	c.condLeaf(n)
 	return nil, nil
+}
+
+func (c *checker) scopedChain(n syntax.NodeID) (pos, neg []NarrowFact) {
+	saved, negated := c.scope, c.negated
+	c.pushScope(ScopeArm, n)
+	c.negated = false
+	pos, neg = c.condFacts(n)
+	c.negated = negated
+	c.popScope(saved)
+	return pos, neg
 }
 
 func (c *checker) condLeaf(n syntax.NodeID) TypeID {

@@ -28,10 +28,9 @@ func (b *builder) ownBorrowedTemp(e *hir.Expr, ref LocalID) {
 	}
 }
 
-// borrowedIsTemp keeps a condition's `&mk()` temporary, or a counted `&T` one its bindings borrow through,
-// for those bindings; behind `&&` it may never be created, so such a binding is rejected. It reports whether the scope owns v.
+// borrowedIsTemp keeps a temporary an `is` binding borrows through; behind `&&` it may never be created, so such a binding is rejected.
 func (b *builder) borrowedIsTemp(e *hir.Expr, v LocalID) bool {
-	if !b.condIs[e.Pat] {
+	if !b.condIs[e.Pat] && !b.valueIs[e.Pat] {
 		return false
 	}
 	if b.countedRefTemp(v) {
@@ -119,8 +118,7 @@ func borrowsTemporary(e *hir.Expr) bool {
 	return true
 }
 
-// handOverBindings moves an `if` condition's bindings to the enclosing scope on the else path;
-// a scrutinee temporary has no ownership tracking to skip a second drop there, so it goes now.
+// handOverBindings gives outer a closed scope's named bindings and drops its temporaries now, since nothing skips a temporary's second drop.
 func (b *builder) handOverBindings(outer, bindings *scope) {
 	for _, l := range bindings.owned {
 		if b.fn.Locals[l].Ent == 0 {

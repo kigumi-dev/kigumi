@@ -50,6 +50,29 @@ func (b *builder) cond(e *hir.Expr) (LocalID, []guardMove) {
 	return c, moves
 }
 
+// valueAnd opens a scope for an `&&` chain outside a condition so a temporary its `is` bindings borrow is dropped once, where the chain ends.
+func (b *builder) valueAnd(e *hir.Expr) LocalID {
+	pats := map[*hir.Pat]bool{}
+	condTests(e, pats)
+	if len(pats) == 0 {
+		return b.shortAnd(e)
+	}
+	for p := range pats {
+		if b.condIs[p] || b.valueIs[p] {
+			return b.shortAnd(e)
+		}
+	}
+	savedIs, savedShort := b.valueIs, b.shortRHS
+	b.valueIs, b.shortRHS = pats, 0
+	b.pushScope()
+	chain := b.scopes[len(b.scopes)-1]
+	c := b.shortAnd(e)
+	b.scopes = b.scopes[:len(b.scopes)-1]
+	b.handOverBindings(b.scopes[len(b.scopes)-1], chain)
+	b.valueIs, b.shortRHS = savedIs, savedShort
+	return c
+}
+
 func condTests(e *hir.Expr, into map[*hir.Pat]bool) {
 	switch e.Kind {
 	case hir.Is:
@@ -61,5 +84,21 @@ func condTests(e *hir.Expr, into map[*hir.Pat]bool) {
 		condTests(e.Args[1], into)
 	case hir.Wrap:
 		condTests(e.Args[0], into)
+	case hir.Unary:
+		if inner := notOperand(e); inner != nil {
+			if pos := notOperand(inner); pos != nil {
+				condTests(pos, into)
+			}
+		}
 	}
+}
+
+func notOperand(e *hir.Expr) *hir.Expr {
+	for e.Kind == hir.Wrap {
+		e = e.Args[0]
+	}
+	if e.Kind != hir.Unary || e.Name != "!" || e.Ent != 0 {
+		return nil
+	}
+	return e.Args[0]
 }

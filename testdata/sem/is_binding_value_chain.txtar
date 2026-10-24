@@ -1,0 +1,51 @@
+-- src --
+type Bag = {pub tag String}
+type Sh = Boxy(b: Bag) | Nil
+
+fn pastChain(s: &Sh) -> String {
+    let r = s is Boxy(b) && b.tag == "x"
+    b.tag //~ ERROR undefined name `b`
+}
+
+fn insideChain(s: &Sh) -> Bool {
+    let r = s is Boxy(b) && b.tag == "x"
+    r
+}
+
+fn parenthesised(s: &Sh) -> Bool {
+    (s is Boxy(b) && true) && b.tag == "x"
+}
+
+fn notThen(s: &Sh) -> String {
+    if !(s is Boxy(b) && b.tag == "x") { b.tag } else { "" } //~ ERROR undefined name `b`
+}
+
+fn notElse(s: &Sh) -> String {
+    if !(s is Boxy(b) && b.tag == "x") { "" } else { b.tag } //~ ERROR undefined name `b`
+}
+
+fn notGuard(s: &Sh) -> String {
+    match 1 {
+        1 if !(s is Boxy(b) && b.tag == "x") -> "n",
+        _ -> "y",
+    }
+}
+-- expect --
+error[E100]: undefined name `b`
+ --> main/main.kg:6:5
+  |
+6 |     b.tag //~ ERROR undefined name `b`
+  |     ^
+
+error[E100]: undefined name `b`
+  --> main/main.kg:19:42
+   |
+19 |     if !(s is Boxy(b) && b.tag == "x") { b.tag } else { "" } //~ ERROR undefined name `b`
+   |                                          ^
+
+error[E100]: undefined name `b`
+  --> main/main.kg:23:54
+   |
+23 |     if !(s is Boxy(b) && b.tag == "x") { "" } else { b.tag } //~ ERROR undefined name `b`
+   |                                                      ^
+

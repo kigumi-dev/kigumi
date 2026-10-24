@@ -78,7 +78,7 @@ func (b *builder) exprRaw(e *hir.Expr) LocalID {
 		}
 		return b.emit(Inst{Op: OpBinary, Dst: b.temp(t), Str: e.Name, Args: []LocalID{l, r}, Node: n})
 	case hir.And:
-		return b.shortAnd(e)
+		return b.valueAnd(e)
 	case hir.Fallback:
 		return b.fallback(e)
 	case hir.Pipe:

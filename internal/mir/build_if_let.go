@@ -16,12 +16,7 @@ func (b *builder) ifLet(e *hir.Expr) LocalID {
 	b.pushScope()
 	moves := b.bindGuarded(e.Pat, init, e.Guard != nil)
 	if e.Guard != nil {
-		gv := b.expr(e.Guard)
-		fail := b.newBlockAt()
-		b.term(Term{Op: TermBranch, Args: []LocalID{gv}, Targets: []BlockID{then, fail}})
-		b.cur = fail
-		b.unwindScope(b.scopes[len(b.scopes)-1], false)
-		b.jump(els)
+		moves = append(moves, b.guard(e.Guard, then, els)...)
 	} else {
 		b.jump(then)
 	}

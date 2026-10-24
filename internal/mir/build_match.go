@@ -23,13 +23,8 @@ func (b *builder) matchExpr(e *hir.Expr) LocalID {
 		b.pushScope()
 		moves := b.bindGuarded(arm.Pat, scrutinee, arm.Guard != nil)
 		if arm.Guard != nil {
-			gv := b.fullValue(func() LocalID { return b.expr(arm.Guard) })
-			run, fail := b.newBlockAt(), b.newBlockAt()
-			b.term(Term{Op: TermBranch, Args: []LocalID{gv}, Targets: []BlockID{run, fail}})
-			// A failed guard leaves the arm: its bindings die here too.
-			b.cur = fail
-			b.unwindScope(b.scopes[len(b.scopes)-1], false)
-			b.jump(next)
+			run := b.newBlockAt()
+			moves = append(moves, b.guard(arm.Guard, run, next)...)
 			b.cur = run
 			b.markGuardMoves(moves)
 		}

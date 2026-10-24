@@ -15,7 +15,7 @@ func (c *checker) synthBinary(n syntax.NodeID, want TypeID) TypeID {
 	case token.PipeGt:
 		return c.synthPipe(n, lhs, rhs)
 	case token.AndAnd:
-		c.condFacts(n)
+		c.scopedChain(n)
 		return TyBool
 	}
 	l, r := c.synthOperands(op, lhs, rhs, want)

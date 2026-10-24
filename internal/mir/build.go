@@ -48,6 +48,7 @@ type builder struct {
 	// condIs holds the patterns of the `is` tests a condition's `&&` chain needs; isMoves holds the places their bindings take, moved on the true branch only.
 	condIs  map[*hir.Pat]bool
 	isMoves []guardMove
+	valueIs map[*hir.Pat]bool
 	// shortRHS counts the `&&` right operands being lowered, which may never run.
 	shortRHS int
 	p        *Program
