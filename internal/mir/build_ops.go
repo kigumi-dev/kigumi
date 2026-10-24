@@ -17,11 +17,30 @@ func (b *builder) shortAnd(e *hir.Expr) LocalID {
 	b.jump(join)
 	b.cur = right
 	b.shortRHS++
+	b.pushScope()
 	b.assign(result, b.expr(e.Args[1]))
+	b.closeOperandScope()
 	b.shortRHS--
 	b.jump(join)
 	b.cur = join
 	return result
+}
+
+// closeOperandScope ends the scope of an operand that may not run: its temporaries are dropped on this path,
+// and its bindings move to the enclosing scope, whose drop of a never-assigned binding is a no-op.
+func (b *builder) closeOperandScope() {
+	s := b.scopes[len(b.scopes)-1]
+	b.scopes = b.scopes[:len(b.scopes)-1]
+	outer := b.scopes[len(b.scopes)-1]
+	temps := &scope{}
+	for _, l := range s.owned {
+		if b.fn.Locals[l].Ent == 0 {
+			temps.owned = append(temps.owned, l)
+		} else {
+			outer.owned = append(outer.owned, l)
+		}
+	}
+	b.dropOwnedFrom(temps, 0, nil)
 }
 
 // fallback lowers `a || b`: Bool, Option and Result are split inline,

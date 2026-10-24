@@ -1,0 +1,173 @@
+-- src --
+// Temporaries created on the right side of `&&` exist only on the path that evaluates it.
+import task from std/task
+
+type Tag = resource { pub n Int }
+
+fn Tag.drop(move self) {
+    print "drop ${self.n}"
+}
+
+type H = { pub s String, pub n Int }
+
+fn mkTag(n: Int) -> Tag { Tag { n: n } }
+
+fn mkh(n: Int) -> H { H { s: "h${n}", n: n } }
+
+fn andLet(z: FixedArray[u8, 4], k: Int) -> Bool {
+    let r = k > 0 && (z.at(1, (v: &u8) => v + 1) || 0) > 0
+    r
+}
+
+fn orLet(z: FixedArray[u8, 4], k: Int) -> Bool {
+    let mut y = z
+    let r = k > 0 || (y.withMut(1, (v: &mut u8) => { v = v + 1 }) is Some(_))
+    r && y[1] < 2
+}
+
+fn notLet(z: FixedArray[u8, 4], k: Int) -> Bool {
+    let mut y = z
+    let r = k > 0 && !(y.withMut(k.toUsize() || 0, (v: &mut u8) => { v = v + 1 }) is None)
+    r
+}
+
+fn andIf(z: FixedArray[u8, 4], k: Int, i: usize) -> Int {
+    let mut y = z
+    if k > 0 && (y.withMut(i, (v: &mut u8) => { v = v + 1 }) is Some(_)) {
+        y[2].toInt() + 10
+    } else {
+        y[2].toInt() + 20
+    }
+}
+
+fn isBind(z: FixedArray[u8, 4], k: Int) -> Int {
+    if k > 0 && z.at(1, (v: &u8) => v + 1) is Some(x) { x.toInt() } else { -1 }
+}
+
+fn andGuard(z: FixedArray[u8, 4], k: Int) -> Int {
+    match k {
+        n if n > 0 && (z.at(1, (v: &u8) => v + 1) || 0).toInt() > n - 2 -> n
+        _ -> -1
+    }
+}
+
+fn andFor(z: FixedArray[u8, 4], k: Int) -> Int {
+    let mut y = z
+    let mut i = k
+    let mut c = 0
+    for i > 0 && (y.withMut(0, (v: &mut u8) => { v = v + 1 }) is Some(_)) && y[0] < 3 {
+        i = i - 1
+        c = c + 1
+    }
+    c * 10 + y[0].toInt()
+}
+
+fn nested(z: FixedArray[u8, 4], k: Int) -> Bool {
+    k > 0 && (k > 1 || (z.at(1, (v: &u8) => v + 1) || 0) > 0) && (k > 2 && (z.at(0, (v: &u8) => v + 2) || 0) > 1)
+}
+
+fn interp(z: FixedArray[u8, 4], k: Int) -> Bool {
+    k > 0 && "${k}:${z.at(1, (v: &u8) => v + 1) || 0}".len() > 2
+}
+
+fn borrowMk(z: FixedArray[u8, 4], k: Int) -> Bool {
+    k > 0 && (&mkh(k)).s.len() > 1 && (z.at(1, (v: &u8) => v + 1) || 0) > 0
+}
+
+fn captures(z: FixedArray[u8, 4], k: Int) -> Bool {
+    let w: u8 = 3
+    let s = "cap${k}"
+    k > 0 && (z.at(1, (v: &u8) => if s.len() > 3 { v + w } else { v + 0 }) || 0) > 2
+}
+
+fn tagCapture(z: FixedArray[u8, 4], k: Int) -> Bool {
+    let t = mkTag(k)
+    let r = k > 0 && (z.at(1, (v: &u8) => if t.n > 1 { v + 2 } else { v + 1 }) || 0) > 1
+    r
+}
+
+fn tagTemp(z: FixedArray[u8, 4], k: Int) -> Bool {
+    k > 0 && mkTag(k * 10).n > 0 && (z.at(1, (v: &u8) => v + 1) || 0) > 0
+}
+
+fn earlyReturn(z: FixedArray[u8, 4], k: Int, i: usize) -> Bool {
+    let r = k > 0 && (z.at(i, (v: &u8) => v + 1) || return false) > 0
+    r
+}
+
+fn earlyBreak(z: FixedArray[u8, 4], k: Int) -> Int {
+    let mut i: usize = 0
+    let mut c = 0
+    for i < 8 {
+        if k > 0 && (z.at(i, (v: &u8) => v + 1) || break) > 0 {
+            c = c + 1
+        }
+        i = i + 1
+    }
+    c
+}
+
+fn mayFail(k: Int) -> Result[Int, String] {
+    if k > 5 { Err("big") } else { Ok(k) }
+}
+
+fn tryRhs(z: FixedArray[u8, 4], k: Int) -> Result[Bool, String] {
+    let r = k > 0 && (z.at(1, (v: &u8) => v + 1) || 0).toInt() + mayFail(k)? > 1
+    Ok(r)
+}
+
+async fn twice(n: Int) -> Int {
+    n * 2
+}
+
+async fn awaitRhs(z: FixedArray[u8, 4], k: Int) -> Bool {
+    let t = mkTag(k + 100)
+    let a = await twice(k)
+    let r = k > 0 && (z.at(1, (v: &u8) => v + 1) || 0).toInt() + await twice(t.n) > a && (await twice(k)) > 1
+    r && (await twice(a)) >= 0
+}
+
+let z = FixedArray.zeroed[u8, 4]()
+print "and ${andLet(z, 1)} ${andLet(z, 0)}"
+print "or ${orLet(z, 1)} ${orLet(z, 0)}"
+print "not ${notLet(z, 1)} ${notLet(z, 9)} ${notLet(z, 0)}"
+print "if ${andIf(z, 1, 2)} ${andIf(z, 1, 9)} ${andIf(z, 0, 2)}"
+print "is ${isBind(z, 1)} ${isBind(z, 0)}"
+print "guard ${andGuard(z, 1)} ${andGuard(z, 5)} ${andGuard(z, 0)}"
+print "for ${andFor(z, 2)} ${andFor(z, 5)} ${andFor(z, 0)}"
+print "nested ${nested(z, 3)} ${nested(z, 1)} ${nested(z, 0)}"
+print "interp ${interp(z, 1)} ${interp(z, 0)}"
+print "borrow ${borrowMk(z, 1)} ${borrowMk(z, 0)}"
+print "cap ${captures(z, 1)} ${captures(z, 0)}"
+print "tag ${tagCapture(z, 2)} ${tagCapture(z, 0)}"
+print "temp ${tagTemp(z, 1)} ${tagTemp(z, 0)}"
+print "ret ${earlyReturn(z, 1, 1)} ${earlyReturn(z, 1, 9)} ${earlyReturn(z, 0, 9)}"
+print "break ${earlyBreak(z, 1)} ${earlyBreak(z, 0)}"
+print "try ${tryRhs(z, 1) is Ok(true)} ${tryRhs(z, 9) is Err(_)} ${tryRhs(z, 0) is Ok(false)}"
+let ex = task.currentThreadExecutor()
+print "await ${ex.runToCompletion(awaitRhs(z, 1))} ${ex.runToCompletion(awaitRhs(z, 0))}"
+-- stdout --
+and true false
+or true true
+not true false false
+if 11 20 20
+is 1 -1
+guard 1 -1 -1
+for 22 23 0
+nested true false false
+interp true false
+borrow true false
+cap true false
+drop 2
+drop 0
+tag true false
+drop 10
+temp true false
+ret true false false
+break 4 0
+try true true true
+drop 101
+drop 100
+await true false
+-- exit --
+0

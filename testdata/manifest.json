@@ -2242,6 +2242,23 @@
       ]
     },
     {
+      "id": "run/and_rhs_temporaries",
+      "kind": "run",
+      "path": "testdata/run/and_rhs_temporaries.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/array_bulk",
       "kind": "run",
       "path": "testdata/run/array_bulk.txtar",
