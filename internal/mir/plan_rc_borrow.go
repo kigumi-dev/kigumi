@@ -49,6 +49,8 @@ func lendsOn(in Inst, out []bool) bool {
 		return len(in.Args) == 1 && out[in.Args[0]]
 	case OpCopy:
 		return !in.Share && len(in.Args) == 1 && out[in.Args[0]]
+	case OpUnboxDirect:
+		return in.Lent && out[in.Args[0]]
 	}
 	return false
 }

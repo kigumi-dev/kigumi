@@ -76,10 +76,7 @@ func (p *Program) planFunc(f *Func) *Plan {
 	}
 	life := p.newBorrowLife(f, isTemp, defs, borrowed)
 	life.extend(last, crossUse)
-	noRelease := p.unownedTemps(f, isTemp, defs, materialize, func(l LocalID) bool { return crossUse[l] && reads[l] > 1 })
-	for t := range joins {
-		noRelease[t] = true
-	}
+	noRelease := p.unownedTemps(f, isTemp, defs, materialize, joins, func(l LocalID) bool { return crossUse[l] && reads[l] > 1 })
 	touch := map[LocalID]map[int]bool{}
 	for t, bs := range defBlocks {
 		for b := range bs {

@@ -6853,6 +6853,23 @@
       ]
     },
     {
+      "id": "run/defined_type_ref_join",
+      "kind": "run",
+      "path": "testdata/run/defined_type_ref_join.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/defined_type_ref_reads",
       "kind": "run",
       "path": "testdata/run/defined_type_ref_reads.txtar",

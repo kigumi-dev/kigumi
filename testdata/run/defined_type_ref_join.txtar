@@ -1,0 +1,130 @@
+-- src --
+type Pt = {pub x i64, pub y i64}
+type P = Pt
+type P2 = P
+type Cell = {pub name String, pub n i64}
+type C = Cell
+type Hold = {pub c Cell, pub k i64}
+
+fn Cell.nm(self) -> String { self.name }
+fn pick(r: &P) -> &P { r }
+fn pickC(r: &C) -> &C { r }
+fn take(p: Pt) -> i64 { p.x * 10 + p.y }
+
+fn named(r: &P, c: Bool) -> i64 {
+    let q = r
+    (if c { q } else { r }).value.x
+}
+
+fn params(r: &P, s: &P, c: Bool) -> i64 { (if c { s } else { r }).value.y }
+
+fn calls(r: &P, s: &P, c: Bool) -> i64 {
+    let q = s
+    (if c { pick(r) } else { r }).value.x * 100 + (if c { q } else { pick(r) }).value.x * 10 + (if c { pick(s) } else { pick(r) }).value.y
+}
+
+fn nested(r: &P, s: &P, c: Bool, d: Bool) -> i64 {
+    let q = s
+    let v = (if c { (if d { q } else { r }) } else { (if d { r } else { pick(s) }) }).value
+    v.x * 10 + (if c { (if d { q } else { r }) } else { s }).value.y
+}
+
+fn deep(r: &P2, s: &P2, c: Bool) -> i64 {
+    let q = r
+    (if c { q } else { s }).value.value.y
+}
+
+fn loop(r: &P, s: &P) -> i64 {
+    let q = s
+    let mut t = 0
+    for i in 0..4 {
+        t += (if i % 2 == 0 { q } else { r }).value.x
+        t += (if i % 3 == 0 { pick(r) } else { q }).value.y
+    }
+    t
+}
+
+fn arms(r: &P, s: &P, k: i64) -> i64 {
+    let q = s
+    let a = (match k {
+        0 -> q,
+        1 -> r,
+        _ -> s,
+    }).value.x
+    let b = (match k {
+        0 -> q,
+        1 -> r,
+        _ -> pick(r),
+    }).value.y
+    a * 10 + b
+}
+
+fn scrut(r: &P, s: &P, c: Bool) -> i64 {
+    let q = r
+    match (if c { q } else { s }).value {
+        Pt { x, y } -> x - y
+    }
+}
+
+fn values(r: &P, s: &P, c: Bool) -> i64 {
+    let q = r
+    take((if c { q } else { s }).value) + take(pick((if c { s } else { q })).value)
+}
+
+fn borrows(c: Bool) -> i64 {
+    let a = P(Pt { x: 30, y: 31 })
+    let b = P(Pt { x: 40, y: 41 })
+    let q = &b
+    (if c { &a } else { q }).value.x + (if c { q } else { &a }).value.y
+}
+
+fn cells(r: &C, s: &C, c: Bool) -> String {
+    let q = r
+    let v = (if c { q } else { s }).value
+    let h = Hold { c: (if c { s } else { q }).value, k: 1 }
+    let w = (if c { pickC(r) } else { q }).value
+    "${v.name} ${h.c.name} ${w.name} ${(if c { q } else { s }).value.nm()} ${(if c { s } else { q }).value.n}"
+}
+
+fn inner['a](r: &'a C, s: &'a C, c: Bool) -> &'a Cell {
+    let q = r
+    &(if c { q } else { s }).value
+}
+
+fn retC(r: &C, s: &C, c: Bool) -> Cell {
+    let q = s
+    (if c { r } else { q }).value
+}
+
+fn loopC(r: &C, s: &C) -> String {
+    let q = s
+    let mut out = ""
+    for i in 0..3 {
+        let v = (if i == 1 { q } else { r }).value
+        out = "${out}${v.name}${(if i == 2 { r } else { q }).value.name}"
+    }
+    out
+}
+
+let a = P(Pt { x: 1, y: 2 })
+let b = P(Pt { x: 3, y: 4 })
+let a2 = P2(P(Pt { x: 5, y: 6 }))
+let b2 = P2(P(Pt { x: 7, y: 8 }))
+let ca = C(Cell { name: "ca", n: 1 })
+let cb = C(Cell { name: "cb", n: 2 })
+for c in Array.of(true, false) {
+    print "named ${named(&a, c)} ${params(&a, &b, c)} ${calls(&a, &b, c)} ${deep(&a2, &b2, c)} ${scrut(&a, &b, c)}"
+    print "nested ${nested(&a, &b, c, true)} ${nested(&a, &b, c, false)} values ${values(&a, &b, c)} borrows ${borrows(c)}"
+    print "cells ${cells(&ca, &cb, c)} ${inner(&ca, &cb, c).name} ${retC(&ca, &cb, c).name}"
+}
+print "loop ${loop(&a, &b)} ${loopC(&ca, &cb)} arms ${arms(&a, &b, 0)} ${arms(&a, &b, 1)} ${arms(&a, &b, 2)}"
+print "after ${a.value.x} ${b.value.y} ${a2.value.value.x} ${ca.value.name} ${cb.value.name}"
+-- stdout --
+named 1 4 134 6 -1
+nested 34 12 values 46 borrows 71
+cells ca cb ca ca 2 ca ca
+named 1 2 112 8 -1
+nested 14 34 values 46 borrows 71
+cells cb ca ca cb 1 cb cb
+loop 20 cacbcbcbcaca arms 34 12 32
+after 1 4 5 ca cb

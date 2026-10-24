@@ -1,7 +1,10 @@
 package mir
 
-// unownedTemps finds temporaries with no reference of their own; each set iterates to a fixed point since block numbers do not follow definition order.
-func (p *Program) unownedTemps(f *Func, isTemp func(LocalID) bool, defs map[LocalID]int, materialize map[LocalID]bool, sharedAcross func(LocalID) bool) map[LocalID]bool {
+import "maps"
+
+// unownedTemps finds temporaries with no reference of their own, lent joins and their aliases included;
+// each set iterates to a fixed point since block numbers do not follow definition order.
+func (p *Program) unownedTemps(f *Func, isTemp func(LocalID) bool, defs map[LocalID]int, materialize, joins map[LocalID]bool, sharedAcross func(LocalID) bool) map[LocalID]bool {
 	each := func(visit func(in Inst) bool) {
 		for changed := true; changed; {
 			changed = false
@@ -38,6 +41,7 @@ func (p *Program) unownedTemps(f *Func, isTemp func(LocalID) bool, defs map[Loca
 		return true
 	})
 	unowned := map[LocalID]bool{}
+	maps.Copy(unowned, joins)
 	for l := range root {
 		unowned[l] = true
 	}
