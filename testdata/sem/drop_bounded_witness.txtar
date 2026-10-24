@@ -46,6 +46,14 @@ fn Box[T: Closer].drop(move self) {
     print "drop ${self.v.close()}" //~ ERROR `Box.drop` uses the `Closer` bound on `T`
 }
 
+type Tagged[T: Closer] = resource {
+    pub v T
+}
+
+fn Tagged[T: Closer].drop(move self) {
+    print "drop ${self.v.close()}" //~ ERROR `Tagged.drop` uses the `Closer` bound on `T`
+}
+
 type Fwd[T] = resource {
     pub v T
 }
@@ -104,24 +112,31 @@ error[E2257]: `Box.drop` uses the `Closer` bound on `T`, but a drop runs whereve
    |                   ^^^^^^^^^^^^^
    = help: read what the drop needs when the value is made and keep it in a field
 
-error[E2257]: `Fwd.drop` uses the `Closer` bound on `T`, but a drop runs wherever its value is released and receives no hidden argument there
+error[E2257]: `Tagged.drop` uses the `Closer` bound on `T`, but a drop runs wherever its value is released and receives no hidden argument there
   --> main/main.kg:53:19
    |
-53 |     print "drop ${helper(self.v)}" //~ ERROR `Fwd.drop` uses the `Closer` bound on `T`
+53 |     print "drop ${self.v.close()}" //~ ERROR `Tagged.drop` uses the `Closer` bound on `T`
+   |                   ^^^^^^^^^^^^^
+   = help: read what the drop needs when the value is made and keep it in a field
+
+error[E2257]: `Fwd.drop` uses the `Closer` bound on `T`, but a drop runs wherever its value is released and receives no hidden argument there
+  --> main/main.kg:61:19
+   |
+61 |     print "drop ${helper(self.v)}" //~ ERROR `Fwd.drop` uses the `Closer` bound on `T`
    |                   ^^^^^^^^^^^^^
    = help: read what the drop needs when the value is made and keep it in a field
 
 error[E2257]: `Stat.drop` uses the `Zero` bound on `T`, but a drop runs wherever its value is released and receives no hidden argument there
-  --> main/main.kg:61:19
+  --> main/main.kg:69:19
    |
-61 |     let f = () => T.zero() //~ ERROR `Stat.drop` uses the `Zero` bound on `T`
+69 |     let f = () => T.zero() //~ ERROR `Stat.drop` uses the `Zero` bound on `T`
    |                   ^^^^^^^
    = help: read what the drop needs when the value is made and keep it in a field
 
 error[E1217]: `close` requires context key `port` and can't be used as a plain function value
-  --> main/main.kg:92:25
-   |
-92 |     let h = Holder { c: R { id: 3 } } //~ ERROR `close` requires context key `port` and can't be used as a plain function value
-   |                         ^^^^^^^^^
-   = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
+   --> main/main.kg:100:25
+    |
+100 |     let h = Holder { c: R { id: 3 } } //~ ERROR `close` requires context key `port` and can't be used as a plain function value
+    |                         ^^^^^^^^^
+    = help: call it directly, or wrap the use in a closure inside a bound `context (...) { }`
 
