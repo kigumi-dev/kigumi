@@ -20,6 +20,10 @@ var (
 )
 
 func (e *emitter) directPrimCall(sb *strings.Builder, f *mir.Func, in mir.Inst) {
+	if in.DPrim == mir.DPTryRef || in.DPrim == mir.DPTryOpt {
+		e.tryRefCall(sb, f, in)
+		return
+	}
 	args := make([]Value, len(in.Args))
 	for i, l := range in.Args {
 		args[i] = e.primArg(sb, f, l)

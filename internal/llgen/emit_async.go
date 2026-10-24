@@ -20,6 +20,7 @@ func (e *emitter) asyncFunction(f *mir.Func) string {
 	e.scalar = e.classifyScalars(f)
 	e.boxTmp = boxTemps(f)
 	e.crossSrc = e.crossSources(f)
+	e.countedX = e.countedCrosses(f)
 	e.nameAlias = nameAliases(f)
 	e.lentCells = nil
 	e.scalarAliasBoxes(f)

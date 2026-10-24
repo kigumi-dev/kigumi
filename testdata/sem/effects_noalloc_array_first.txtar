@@ -61,19 +61,6 @@ noalloc fn viaNamed(xs: &Array[Named]) -> Bool {
     genericFirst(xs) is Some(_) //~ ERROR copying `Named`
 }
 
-noalloc fn callGet(f: noalloc fn(&Array[Named]) -> Named?, xs: &Array[Named]) -> Bool {
-    f(xs) is Some(_)
-}
-
-noalloc fn erasedLocal(xs: &Array[Named]) -> Bool {
-    let f: noalloc fn(&Array[Named]) -> Named? = genericGet[Named] //~ ERROR `genericGet` is not `noalloc`
-    f(xs) is Some(_)
-}
-
-fn erasedArg(xs: &Array[Named]) -> Bool {
-    callGet(genericGet[Named], xs) //~ ERROR `genericGet` is not `noalloc`
-}
-
 noalloc fn lastStr(xs: &Array[String]) -> Bool {
     genericLast(xs) is Some(_) //~ ERROR copying `String?`
 }
@@ -154,41 +141,29 @@ error[E1700]: copying `Named` here allocates a box of its own for the copy
    |     ^^^^^^^^^^^^^^^
    = help: use the original instead of a copy, or drop the declaration
 
-error[E423]: `genericGet` is not `noalloc` (copies `Named`, which allocates)
-  --> main.kg:66:50
-   |
-66 |     let f: noalloc fn(&Array[Named]) -> Named? = genericGet[Named] //~ ERROR `genericGet` is not `noalloc`
-   |                                                  ^^^^^^^^^^^^^^^^
-
-error[E423]: `genericGet` is not `noalloc` (copies `Named`, which allocates)
-  --> main.kg:71:13
-   |
-71 |     callGet(genericGet[Named], xs) //~ ERROR `genericGet` is not `noalloc`
-   |             ^^^^^^^^^^^^^^^^
-
 error[E1700]: copying `String?` here allocates a box of its own for the copy
-  --> main.kg:75:5
+  --> main.kg:62:5
    |
-75 |     genericLast(xs) is Some(_) //~ ERROR copying `String?`
+62 |     genericLast(xs) is Some(_) //~ ERROR copying `String?`
    |     ^^^^^^^^^^^^^^
    = help: use the original instead of a copy, or drop the declaration
 
 error[E1700]: copying `String?` here allocates a box of its own for the copy
-  --> main.kg:79:5
+  --> main.kg:66:5
    |
-79 |     genericThrough(xs) is Some(_) //~ ERROR copying `String?`
+66 |     genericThrough(xs) is Some(_) //~ ERROR copying `String?`
    |     ^^^^^^^^^^^^^^^^^
    = help: use the original instead of a copy, or drop the declaration
 
 error[E423]: `genericAny` is not `noalloc` (copies `Int?`, which allocates)
-   --> main.kg:108:46
-    |
-108 |     let f: noalloc fn(&Array[Int]) -> Bool = genericAny[Int] //~ ERROR `genericAny` is not `noalloc`
-    |                                              ^^^^^^^^^^^^^^
+  --> main.kg:95:46
+   |
+95 |     let f: noalloc fn(&Array[Int]) -> Bool = genericAny[Int] //~ ERROR `genericAny` is not `noalloc`
+   |                                              ^^^^^^^^^^^^^^
 
 error[E423]: `genericLast` is not `noalloc` (copies `String?`, which allocates)
-   --> main.kg:113:52
+   --> main.kg:100:52
     |
-113 |     let f: noalloc fn(&Array[String]) -> String? = genericLast //~ ERROR `genericLast` is not `noalloc`
+100 |     let f: noalloc fn(&Array[String]) -> String? = genericLast //~ ERROR `genericLast` is not `noalloc`
     |                                                    ^^^^^^^^^^^
 

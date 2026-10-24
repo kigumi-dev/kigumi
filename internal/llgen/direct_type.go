@@ -15,6 +15,8 @@ type aggField struct {
 	Nk   int
 	Agg  *aggInfo
 	Unit bool
+	// Ref holds one counted reference as an i64, so the layout stays the same on every target.
+	Ref bool
 }
 
 func (f aggField) mem() Type {
@@ -124,6 +126,10 @@ func (e *emitter) leafField(t sem.TypeID) aggField {
 		f.Agg = sub
 		return f
 	}
+	if e.r.CountedSlot(t) {
+		f.Ref = true
+		return f
+	}
 	ty, _ := e.scalarType(t)
 	f.Ty, f.Nk = ty, e.numKind(t)
 	return f
@@ -135,6 +141,8 @@ func (f aggField) llType() string {
 		return "[0 x i8]"
 	case f.Agg != nil:
 		return f.Agg.Name
+	case f.Ref:
+		return "i64"
 	case f.mem() == TI128:
 		return wideSlot
 	}

@@ -16,7 +16,7 @@ noalloc fn variadic() -> Array[Int] {
 }
 
 noalloc fn widen() -> Void! {
-    fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Void!` allocates
+    fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates
 }
 
 pure noalloc fn ok(data: Bytes) -> usize {
@@ -199,16 +199,10 @@ error[E911]: listed variadic arguments allocate
    |     ^^^^^^^^^^^^^
    = help: pass `...array`
 
-error[E961]: constructing `Void!` allocates
-  --> lib/na.kg:18:5
-   |
-18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Void!` allocates
-   |     ^^^^^^^^^^^^^^^^^^^^
-
 error[E910]: boxing `MyErr` into `Error` allocates
   --> lib/na.kg:18:10
    |
-18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates //~ ERROR constructing `Void!` allocates
+18 |     fail MyErr { code: 1 } //~ ERROR boxing `MyErr` into `Error` allocates
    |          ^^^^^^^^^^^^^^^
 
 error[E1610]: handing `MyErr` to a slot that holds a reference allocates a box for it

@@ -76,6 +76,9 @@ func (p *Program) primTypesFit(f *Func, in Inst, kind DirectPrim) bool {
 	case DPPow:
 		return len(in.Args) == 2 && arg(0) == sem.TyF64 && arg(1) == sem.TyF64 && f.Locals[in.Dst].Type == sem.TyF64
 	}
+	if kind == DPTryRef || kind == DPTryOpt {
+		return p.tryRefResult(f.Locals[in.Dst].Type, kind == DPTryOpt)
+	}
 	if kind >= DPWrapAdd && kind <= DPRotr {
 		t := f.Locals[in.Dst].Type
 		return len(in.Args) == 2 && p.R.RegScalar(t) && p.R.Types.IsInteger(t) && arg(0) == t && arg(1) == t

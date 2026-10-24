@@ -26,7 +26,7 @@ func TestFaultInjectionPanickingNewDropsTheMovedValue(t *testing.T) {
 	for _, c := range []struct {
 		ctor        string
 		nativeTicks int
-	}{{"alloc.Box.new", 4}, {"alloc.Shared.new", 5}} {
+	}{{"alloc.Box.new", 2}, {"alloc.Shared.new", 3}} {
 		t.Run(c.ctor, func(t *testing.T) {
 			t.Parallel()
 			src := panicDropSource(c.ctor)

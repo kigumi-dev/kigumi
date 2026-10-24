@@ -89,6 +89,10 @@ func (e *emitter) readPayload(sb *strings.Builder, f *mir.Func, a *aggInfo, in m
 		return
 	}
 	t := f.Locals[in.Dst].Type
+	if e.r.CountedSlot(t) {
+		e.loadLeaf(sb, f, aggField{T: t, Ref: true}, e.slotPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Dst)
+		return
+	}
 	ty, _ := e.scalarType(e.r.UnderlyingRepr(t))
 	fld := aggField{T: t, Ty: ty, Nk: e.numKind(t), Agg: e.direct[in.Dst]}
 	e.loadLeaf(sb, f, fld, e.slotPtr(sb, a, aggPtr(in.Args[0]), in.Index), in.Dst)

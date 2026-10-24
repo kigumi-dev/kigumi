@@ -23,16 +23,17 @@ func (p *Program) pinned(f *Func) []bool {
 		}
 	}
 	pinCopyStoreSources(f, out, foreign)
-	spreadPins(f, out)
+	p.spreadPins(f, out)
 	return out
 }
 
-func spreadPins(f *Func, out []bool) {
+// A counted payload is a reference the slot shares with the view, so a pin on the view leaves the Option or Result unboxed.
+func (p *Program) spreadPins(f *Func, out []bool) {
 	for changed := true; changed; {
 		changed = false
 		for _, blk := range f.Blocks {
 			for _, in := range blk.Insts {
-				if !in.Op.Yields() || !out[in.Dst] {
+				if !in.Op.Yields() || !out[in.Dst] || in.Op == OpPayload && p.R.CountedSlot(f.Locals[in.Dst].Type) {
 					continue
 				}
 				if src, ok := storageSource(in); ok && !out[src] {

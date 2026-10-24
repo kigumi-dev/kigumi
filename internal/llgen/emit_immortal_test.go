@@ -82,13 +82,14 @@ fn nothing() -> String? {
 
 fn main() -> Void! {}
 `)
-	for _, fn := range []string{`define ptr @"main.pick"(`, `define ptr @"main.nothing"(`} {
-		body := bodyOf(t, ir, fn)
-		checkNoHeap(t, fn, body)
-		if !strings.Contains(body, "@rt_nullary(") {
-			t.Errorf("%s does not build its variant through rt_nullary:\n%s", fn, body)
-		}
+	pick := `define ptr @"main.pick"(`
+	body := bodyOf(t, ir, pick)
+	checkNoHeap(t, pick, body)
+	if !strings.Contains(body, "@rt_nullary(") {
+		t.Errorf("%s does not build its variant through rt_nullary:\n%s", pick, body)
 	}
+	nothing := `define %"kg.adt.Option[String]" @"main.nothing"(`
+	checkNoHeap(t, nothing, bodyOf(t, ir, nothing))
 }
 
 func TestCaptureFreeFunctionValueBuildsWithoutAllocating(t *testing.T) {

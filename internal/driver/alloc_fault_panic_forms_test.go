@@ -22,21 +22,21 @@ var panicFormCases = []struct {
 	nativeTicks       int
 	vmTicks           int
 }{
-	{"bytes_slice", "let b = Bytes.zeros(4)", "let _ = b.slice(1, 3)", 6, 0},
-	{"bytes_zeros", "", "let _ = Bytes.zeros(4)", 4, 0},
-	{"bytes_fill", "", "let _ = Bytes.fill(7, 4)", 6, 2},
-	{"bytes_from_array", "let a = Array.of[u8](1, 2, 3)", "let _ = Bytes.fromArray(&a)", 4, 0},
-	{"bytes_concat", "let a = Bytes.zeros(2)\n    let b = Bytes.zeros(2)", "let _ = a.concat(b)", 4, 0},
-	{"string_slice_bytes", "let s = \"hello world\".concat(\"!\")", "let _ = s.sliceBytes(1, 4)", 6, 0},
-	{"array_clone", "let a = Array.of(1, 2, 3)", "let _ = a.clone()", 6, 2},
-	{"array_take", "let a = Array.of(1, 2, 3)", "let _ = a.take(2)", 6, 2},
-	{"array_reverse", "let a = Array.of(1, 2, 3)", "let _ = a.reverse()", 6, 2},
-	{"array_concat", "let a = Array.of(1, 2, 3)\n    let b = Array.of(7, 8)", "let _ = a.concat(b)", 6, 3},
+	{"bytes_slice", "let b = Bytes.zeros(4)", "let _ = b.slice(1, 3)", 2, 0},
+	{"bytes_zeros", "", "let _ = Bytes.zeros(4)", 2, 0},
+	{"bytes_fill", "", "let _ = Bytes.fill(7, 4)", 2, 2},
+	{"bytes_from_array", "let a = Array.of[u8](1, 2, 3)", "let _ = Bytes.fromArray(&a)", 2, 0},
+	{"bytes_concat", "let a = Bytes.zeros(2)\n    let b = Bytes.zeros(2)", "let _ = a.concat(b)", 2, 0},
+	{"string_slice_bytes", "let s = \"hello world\".concat(\"!\")", "let _ = s.sliceBytes(1, 4)", 2, 0},
+	{"array_clone", "let a = Array.of(1, 2, 3)", "let _ = a.clone()", 2, 2},
+	{"array_take", "let a = Array.of(1, 2, 3)", "let _ = a.take(2)", 2, 2},
+	{"array_reverse", "let a = Array.of(1, 2, 3)", "let _ = a.reverse()", 2, 2},
+	{"array_concat", "let a = Array.of(1, 2, 3)\n    let b = Array.of(7, 8)", "let _ = a.concat(b)", 2, 3},
 	{"array_append_all", "let mut a = Array.of(1, 2, 3, 4)\n    let b = Array.of(4, 5, 6, 7)", "a.appendAll(b)", 1, 0},
-	{"shared_new", "", "let _ = alloc.Shared.new(41)", 5, 0},
-	{"shared_get", "let s = alloc.Shared.new(41)", "let _ = s.get()", 2, 0},
-	{"shared_downgrade", "let s = alloc.Shared.new(41)", "let _ = s.downgrade()", 3, 0},
-	{"box_new", "", "let _ = alloc.Box.new(5)", 4, 0},
+	{"shared_new", "", "let _ = alloc.Shared.new(41)", 3, 0},
+	{"shared_get", "let s = alloc.Shared.new(41)", "let _ = s.get()", 0, 0},
+	{"shared_downgrade", "let s = alloc.Shared.new(41)", "let _ = s.downgrade()", 1, 0},
+	{"box_new", "", "let _ = alloc.Box.new(5)", 2, 0},
 }
 
 func panicFormSource(setup, call string) string {

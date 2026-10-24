@@ -52,11 +52,11 @@ func iterElement(d *Inst) bool {
 	return d.Op == OpBuiltin && (d.Str == "iter.at" || d.Str == "iter.at_ref")
 }
 
-// inlineValue reports whether a binding of a t holds its own copy in a frame slot, a scalar or a direct aggregate whose
-// borrow points at that slot; any other value is a pointer to a heap object the binding shares with its source.
+// inlineValue reports whether a binding of a t holds its own copy in a frame slot, a scalar or a count-free direct aggregate whose
+// borrow points at that slot; any other value, a counted Option or Result too, shares a heap object with its source.
 func (c *borrowCheck) inlineValue(t sem.TypeID) bool {
 	u := c.p.R.UnderlyingRepr(t)
-	return u == sem.TyUnit || c.p.R.RegScalar(u) || sem.WideScalar(u) || c.p.R.DirectAgg(u)
+	return u == sem.TyUnit || c.p.R.RegScalar(u) || sem.WideScalar(u) || c.p.R.CountFree(u)
 }
 
 // callFromCaller reports whether what a call returns, or a part read out of it, is the caller's storage: the result

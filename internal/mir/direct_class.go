@@ -39,7 +39,7 @@ func (p *Program) classifyDirect(f *Func, pin []bool) []bool {
 	out := make([]bool, len(f.Locals))
 	cand := make([]bool, len(f.Locals))
 	for i, l := range f.Locals {
-		cand[i] = p.R.DirectAgg(l.Type)
+		cand[i] = p.R.DirectAgg(l.Type) && !(f.Async && p.R.CountedAdt(l.Type))
 		out[i] = cand[i] && !pin[i]
 	}
 	for i, prm := range f.Params {

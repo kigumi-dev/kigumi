@@ -12,7 +12,7 @@ import (
 )
 
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
-	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, entrySymbol: opts.EntrySymbol, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
+	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, refDone: map[string]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, entrySymbol: opts.EntrySymbol, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	e.catch = e.wantsCatch(opts)
 	if opts.AbiCheck {
 		e.abiSym = e.cstr(AbiPlaceholder)
@@ -47,6 +47,7 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	// Both add foreign declarations before those are written, and a static's
 	// initializer adds literal pool and immortal slots that data() emits.
 	globalDecls, globalInit := e.staticGlobals()
+	main := e.mainSym()
 	body.WriteString(e.emitWrappers())
 	data := e.data()
 	// data() can name a wrapper nothing else asked for.
@@ -67,7 +68,7 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	e.out.WriteString(globalInit)
 	e.out.WriteString(e.helpers.String())
 	e.out.WriteString(e.initImmortals())
-	e.out.WriteString(e.mainWrapper())
+	e.out.WriteString(e.mainWrapper(main))
 	var caps []string
 	if opts.Reachable != nil {
 		caps = mir.CapabilityMacros(opts.Reachable.Ops)
@@ -91,6 +92,7 @@ func (e *emitter) function(f *mir.Func) string {
 	e.direct = e.classifyDirect(f)
 	e.boxTmp = boxTemps(f)
 	e.crossSrc = e.crossSources(f)
+	e.countedX = e.countedCrosses(f)
 	e.scalar = e.classifyScalars(f)
 	e.nameAlias = nameAliases(f)
 	e.lentCells = nil

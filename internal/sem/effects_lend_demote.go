@@ -39,6 +39,25 @@ func (r *Result) SettleLendDemotions() {
 			}
 		}
 	}
+	if r.noDefault || r.recoverableOnly {
+		r.recheckProfiles(nodes)
+	}
+}
+
+// profileDeferred: a profile leaves to the built program a lend it kept direct and a crossing an instance takes unboxed.
+func (r *Result) profileDeferred(e EffectEdge) bool {
+	return e.Why == whyLendCross && !r.boxedLends[lendSite{e.File, e.Node}] || r.takenUnboxed(e) || witnessWhy(e.Why)
+}
+
+// ProfileTrusts reports whether the active allocation profile accepted fn, possibly on crossings it left to the built program.
+func (r *Result) ProfileTrusts(fn EntityID) bool {
+	switch {
+	case r.recoverableOnly:
+		return r.recoverableSafe[fn]
+	case r.noDefault:
+		return r.defaultOf(fn)
+	}
+	return false
 }
 
 type noallocStates struct {

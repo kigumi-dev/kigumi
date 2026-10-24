@@ -11,6 +11,8 @@ import (
 
 type unwindFrame struct {
 	slot map[mir.LocalID]int
+	// agg holds the counted direct locals: slot k is the local's address with bit 0 set, slot k+1 its drop helper.
+	agg  map[mir.LocalID]*aggInfo
 	n    int
 	plan *mir.UnwindPlan
 	// inFrame: the slots are the Future's frame words, not an array beside the record.
@@ -39,10 +41,12 @@ func (e *emitter) unwindFor(f *mir.Func) *unwindFrame {
 	}
 	plan := e.p.UnwindPlanOf(f)
 	slot := map[mir.LocalID]int{}
+	agg := map[mir.LocalID]*aggInfo{}
 	var ids []mir.LocalID
 	for _, set := range plan.Sets[1:] {
 		for _, l := range set {
-			if _, ok := e.direct[l]; ok {
+			a, direct := e.direct[l]
+			if direct && !a.counted() {
 				continue
 			}
 			if _, ok := e.scalar[l]; ok {
@@ -52,16 +56,24 @@ func (e *emitter) unwindFor(f *mir.Func) *unwindFrame {
 				slot[l] = 0
 				ids = append(ids, l)
 			}
+			if direct {
+				agg[l] = a
+			}
 		}
 	}
 	if len(ids) == 0 {
 		return nil
 	}
 	slices.Sort(ids)
-	for k, l := range ids {
-		slot[l] = k
+	n := 0
+	for _, l := range ids {
+		slot[l] = n
+		n++
+		if agg[l] != nil {
+			n++
+		}
 	}
-	return &unwindFrame{slot: slot, n: len(ids), plan: plan}
+	return &unwindFrame{slot: slot, agg: agg, n: n, plan: plan}
 }
 
 func (u *unwindFrame) words() int { return (u.n + 63) / 64 }
@@ -90,7 +102,7 @@ func (e *emitter) slotAddr(sb *strings.Builder, l mir.LocalID) bool {
 		return false
 	}
 	k, ok := e.unwind.slot[l]
-	if !ok {
+	if !ok || e.unwind.agg[l] != nil {
 		return false
 	}
 	fmt.Fprintf(sb, "  %%l%d = getelementptr i64, ptr %%urec, i64 %d\n", l, e.unwind.slotWord(k))
@@ -102,12 +114,13 @@ func (e *emitter) unslot(sb *strings.Builder, l mir.LocalID) {
 	if e.unwind == nil {
 		return
 	}
-	if _, ok := e.unwind.slot[l]; ok {
+	if _, ok := e.unwind.slot[l]; ok && e.unwind.agg[l] == nil {
 		e.store(sb, l, "null")
 	}
 }
 
 func (e *emitter) unwindEnter(sb *strings.Builder) {
+	e.unwindAggSlots(sb)
 	switch {
 	case e.unwind == nil:
 	case e.unwind.inFrame:

@@ -137,7 +137,7 @@ var runtimeFns = []RuntimeFn{
 	rtDropOuter, rtReleaseOuter, rtSweepRelease, rtOuterFatal,
 	rtSetfieldSwap, rtSetindexSwap, rtSetindexCopySwap, rtSetfieldCopySwap, rtCellsetSwap,
 	rtDLen, rtDArrayLen, rtDBytesGet, rtDArrayGet, rtDParseFloat,
-	rtDHashInt, rtDHashBool, rtDHashChar, rtDHashFloat,
+	rtDHashInt, rtDHashBool, rtDHashChar, rtDHashFloat, rtDTry, rtDTryOpt,
 }
 
 // renderExterns renders the `declare` list, one line per RuntimeFn in

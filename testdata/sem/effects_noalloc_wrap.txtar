@@ -1,6 +1,8 @@
 -- lib/na.kg --
 type Tick = Up(n: Int) | Flat
 
+type Held = Has(s: String) | Gone
+
 type Named = {
     pub name String
     pub n Int
@@ -11,19 +13,24 @@ type Spot = {
     pub y Int
 }
 
-// Some and Ok a coercion adds build the wrapper like a constructor call:
-// in the frame when the wrapper is direct, a box when it is not.
+// Some and Ok a coercion adds build the wrapper like a constructor call, in the frame:
+// an Option or Result keeps a String or a boxed record inline as the reference it already is.
 noalloc fn wrapDirect(t: Tick, n: Int) -> Result[Tick?, Int] {
     if n > 0 { return t }
     Ok(None)
 }
 
-noalloc fn wrapCarrier(s: String) -> String? {
-    s //~ ERROR constructing `String?` allocates
+noalloc fn wrapCounted(s: String) -> String? {
+    s
 }
 
-noalloc fn wrapIntoABox(t: Tick) -> Result[Tick, String] {
-    t //~ ERROR constructing `Result[Tick, String]` allocates
+noalloc fn wrapBesideCounted(t: Tick) -> Result[Tick, String] {
+    t
+}
+
+// Any other sum type with a reference payload is still a box.
+noalloc fn wrapIntoABox(s: String) -> Held {
+    Held.Has(s) //~ ERROR constructing `Held` allocates
 }
 
 // `fail` and a `?` that cannot hand its operand on build an Err the same way.
@@ -32,8 +39,8 @@ noalloc fn failDirect(n: Int) -> Result[Int, Tick] {
     Ok(n)
 }
 
-noalloc fn failIntoABox(n: Int) -> Result[String, Tick] {
-    fail Up(n) //~ ERROR constructing `Result[String, Tick]` allocates
+noalloc fn failCounted(n: Int) -> Result[String, Tick] {
+    fail Up(n)
 }
 
 noalloc fn rethrowDirect(r: Result[Int, Tick]) -> Result[Bool, Tick] {
@@ -41,8 +48,8 @@ noalloc fn rethrowDirect(r: Result[Int, Tick]) -> Result[Bool, Tick] {
     Ok(v > 0)
 }
 
-noalloc fn rethrowIntoABox(r: Result[Int, Tick], s: Result[String, Tick]) -> Result[String, Tick] {
-    let v = r? //~ ERROR constructing `Result[String, Tick]` allocates
+noalloc fn rethrowCounted(r: Result[Int, Tick], s: Result[String, Tick]) -> Result[String, Tick] {
+    let v = r?
     s
 }
 
@@ -51,8 +58,8 @@ noalloc fn optDirect(o: Spot?) -> Int? {
     o?.y
 }
 
-noalloc fn optCarrier(o: Named?) -> String? {
-    o?.name //~ ERROR constructing `String?` allocates
+noalloc fn optCounted(o: Named?) -> String? {
+    o?.name
 }
 
 // A wrapper around a fixed value is one immortal shared by every site.
@@ -71,7 +78,7 @@ noalloc fn fixedNullary() -> Result[String, Tick] {
 }
 
 noalloc fn notFixed(n: Int) -> Result[String, Tick] {
-    Err(Up(n)) //~ ERROR constructing `Result[String, Tick]` allocates
+    Err(Up(n))
 }
 
 noalloc fn fixedFail(n: Int) -> Result[String, Tick] {
@@ -79,39 +86,9 @@ noalloc fn fixedFail(n: Int) -> Result[String, Tick] {
     Ok("ok")
 }
 -- expect --
-error[E961]: constructing `String?` allocates
-  --> lib/na.kg:21:5
+error[E961]: constructing `Held` allocates
+  --> lib/na.kg:32:5
    |
-21 |     s //~ ERROR constructing `String?` allocates
-   |     ^
-
-error[E961]: constructing `Result[Tick, String]` allocates
-  --> lib/na.kg:25:5
-   |
-25 |     t //~ ERROR constructing `Result[Tick, String]` allocates
-   |     ^
-
-error[E961]: constructing `Result[String, Tick]` allocates
-  --> lib/na.kg:35:5
-   |
-35 |     fail Up(n) //~ ERROR constructing `Result[String, Tick]` allocates
-   |     ^^^^^^^^^
-
-error[E961]: constructing `Result[String, Tick]` allocates
-  --> lib/na.kg:44:13
-   |
-44 |     let v = r? //~ ERROR constructing `Result[String, Tick]` allocates
-   |             ^^
-
-error[E961]: constructing `String?` allocates
-  --> lib/na.kg:54:5
-   |
-54 |     o?.name //~ ERROR constructing `String?` allocates
-   |     ^^^^^^^
-
-error[E961]: constructing `Result[String, Tick]` allocates
-  --> lib/na.kg:73:5
-   |
-73 |     Err(Up(n)) //~ ERROR constructing `Result[String, Tick]` allocates
-   |     ^^^^^^^^
+32 |     Held.Has(s) //~ ERROR constructing `Held` allocates
+   |     ^^^^^^^^^^
 

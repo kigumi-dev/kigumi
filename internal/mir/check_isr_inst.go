@@ -78,7 +78,7 @@ func (p *Program) isrForbidden(f *Func, in Inst, inert []bool, releases bool) st
 
 func (p *Program) isrInertDrop(f *Func, l LocalID, inert []bool) bool {
 	t := f.Locals[l].Type
-	return p.R.CannotOwn(t) || f.IsDirect(l) || p.isrImmortal(f, l, inert)
+	return p.R.CannotOwn(t) || f.IsDirect(l) && !p.R.CountedAdt(t) || p.isrImmortal(f, l, inert)
 }
 
 // isrInertArgs marks the parameters of g that the call in passes an immortal value; a callback reached through a primitive has no positional mapping.

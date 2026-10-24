@@ -24,6 +24,7 @@ func CheckAllocClaims(p *Program) []AllocClaim {
 	seen := map[claimKey]bool{}
 	reached := p.namedCallees()
 	p.demoteBoxedLends(reached)
+	out = append(out, p.profileClaims()...)
 	for _, f := range p.allFuncs() {
 		if p.sharedUnreached(f, reached) {
 			continue

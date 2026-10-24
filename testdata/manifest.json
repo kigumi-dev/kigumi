@@ -7261,6 +7261,57 @@
       ]
     },
     {
+      "id": "run/direct_counted_closures",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_closures.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_counted_payloads",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_payloads.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/direct_counted_unwind",
+      "kind": "run",
+      "path": "testdata/run/direct_counted_unwind.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/direct_entry_crossings",
       "kind": "run",
       "path": "testdata/run/direct_entry_crossings.txtar",
@@ -19234,6 +19285,17 @@
       "id": "sem/effects_noalloc_closure_variant",
       "kind": "sem",
       "path": "testdata/sem/effects_noalloc_closure_variant.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/effects_noalloc_counted_fn_value",
+      "kind": "sem",
+      "path": "testdata/sem/effects_noalloc_counted_fn_value.txtar",
       "mode": [
         "check"
       ],

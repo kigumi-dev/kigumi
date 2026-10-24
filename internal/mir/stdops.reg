@@ -45,9 +45,11 @@ op 10 BYTES_ZEROS retired
 op 11 BYTES_FILL retired
 op 12 BYTES_FROM_ARRAY retired
 op 13 BYTES_TRY_FROM_ARRAY primitive (array) -> result
+direct TryRef
 key prelude.Bytes.tryFromArray
 op 14 BYTES_CONCAT retired
 op 15 BYTES_TRY_CONCAT primitive (bytes, bytes) -> result
+direct TryRef
 key prelude.Bytes.tryConcat
 op 16 ARRAY_EMPTY primitive () -> array
 key array.Array.empty
@@ -277,10 +279,12 @@ op 92 HOST_STDERR provider (named) -> named
 cap host.stdio
 key os.Host.stderr
 op 93 BYTES_TRY_ZEROS primitive (int) -> result
+direct TryRef
 key prelude.Bytes.tryZeros
 key prelude.ByteBuffer.tryNew
 op 94 BYTES_TRY_FILL retired
 op 95 SHARED_TRY_NEW primitive (any) -> result
+direct TryRef
 key alloc.Shared.tryNew
 op 96 BLOCKING_POOL_NEW provider (int) -> named
 cap task.blocking-pool
@@ -359,27 +363,35 @@ direct ArrayLast
 elem
 key array.Array.last
 op 116 ARRAY_TRY_WITH_CAPACITY primitive (int) -> result
+direct TryRef
 key array.Array.tryWithCapacity
 op 117 ARRAY_TRY_COPY_RANGE retired
 op 118 ARRAY_TRY_SLICE primitive (array, int, int) -> result
+direct TryOpt
 key array.Array.trySlice
 op 119 ARRAY_TRY_REVERSE retired
 op 120 ALLOC_WRAP primitive (any) -> result
+direct TryRef
 key prelude.AllocError.wrap
 op 121 STRING_TRY_CONCAT retired
 op 122 STRING_TRY_SLICE_BYTES primitive (string, int, int) -> result
+direct TryOpt
 key prelude.String.trySliceBytes
 op 123 BYTES_TRY_SLICE primitive (bytes, int, int) -> result
+direct TryOpt
 key prelude.Bytes.trySlice
 op 124 MAP_TRY_CLONE primitive (named) -> result
+direct TryRef
 key map.Map.tryClone
 op 125 MAP_TRY_ENTRIES primitive (named) -> result
 key map.Map.tryEntries
 type std/map Entry
 op 126 MAP_TRY_EMPTY primitive () -> result
+direct TryRef
 key map.tryEmpty
 type std/map Map
 op 127 STRING_BUILDER_TRY_NEW primitive () -> result
+direct TryRef
 key text.StringBuilder.tryNew
 type std/text StringBuilder
 op 128 ARRAY_TRY_MAP primitive (array, fn) -> result
@@ -393,8 +405,10 @@ op 131 ARRAY_TRY_APPEND_ALL retired
 op 132 ARRAY_TRY_INSERT_AT primitive (array, int, any) -> result
 key array.Array.tryInsertAt
 op 133 SHARED_TRY_GET primitive (named) -> result
+direct TryRef
 key alloc.Shared.tryGet
 op 134 SHARED_TRY_DOWNGRADE primitive (named) -> result
+direct TryRef
 key alloc.Shared.tryDowngrade
 builtin print (string) -> unit min=1 vm native=runtime
 builtin eprint (string) -> unit min=1 vm native=runtime
@@ -415,6 +429,7 @@ builtin task.close () -> any vm native=inline
 op 135 ARRAY_TRY_CLONE retired
 op 136 BOX_NEW retired
 op 137 BOX_TRY_NEW primitive (any) -> result
+direct TryRef
 key alloc.Box.tryNew
 op 138 BOX_GET primitive (named) -> any
 key alloc.Box.get
@@ -457,6 +472,7 @@ op 160 ARGS_GET_BYTES provider (named, int) -> option
 cap host.args
 key os.Args.getBytes
 op 161 OS_STRING_TRY_CLONE primitive (named) -> result
+direct TryRef
 key os.OsString.tryClone
 op 162 TASK_YIELD_NOW provider () -> named
 cap task.executor

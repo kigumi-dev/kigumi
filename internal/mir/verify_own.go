@@ -114,6 +114,7 @@ func (p *Program) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], tr
 	// A plain copy of a named local into a temporary aliases it (the plan
 	// takes no reference); dropping that temporary releases the local.
 	alias := map[LocalID]LocalID{}
+	crossed := map[LocalID]LocalID{}
 	blk := &f.Blocks[bid]
 	broken := func(i int, format string, args ...any) (*cowVec[ownVerify], *Error) {
 		if check {
@@ -150,6 +151,12 @@ func (p *Program) transferOwn(f *Func, bid BlockID, entry *cowVec[ownVerify], tr
 			if !in.Rest && (in.Op == OpMove || p.consumesArg(in, k)) {
 				st.set(a, ovNone)
 			}
+		}
+		if src, ok := movedCross(in, crossed); ok {
+			st.set(src, ovNone)
+		}
+		if src, ok := p.countedCrossSource(f, in, tracked); ok {
+			crossed[in.Dst] = src
 		}
 		if in.Op == OpCopy && !in.Share && f.Locals[in.Dst].Ent == 0 && tracked[in.Args[0]] {
 			alias[in.Dst] = in.Args[0]

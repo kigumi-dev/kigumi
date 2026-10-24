@@ -5,9 +5,20 @@ import (
 	"strings"
 )
 
+// The C entry calls main boxed, through its entry when main carries a direct result.
+func (e *emitter) mainSym() string {
+	switch {
+	case e.p.Entry == nil:
+		return ""
+	case e.p.Entry.Entry != nil:
+		return e.useEntry(e.p.Entry)
+	}
+	return e.sym(e.p.Entry)
+}
+
 // An artifact with no entry still initializes here: an embedder calls its
 // exported functions with no other chance to set the runtime up.
-func (e *emitter) mainWrapper() string {
+func (e *emitter) mainWrapper(main string) string {
 	name := "main"
 	switch {
 	case e.freestanding:
@@ -27,7 +38,7 @@ func (e *emitter) mainWrapper() string {
 		sb.WriteString("  ret i32 0\n}\n")
 		return sb.String()
 	}
-	fmt.Fprintf(&sb, "  %%r = call ptr %s()\n", e.sym(e.p.Entry))
+	fmt.Fprintf(&sb, "  %%r = call ptr %s()\n", main)
 	sb.WriteString("  call void @kg_fini_statics()\n")
 	exitDesc, ctxDesc, wrapped, code := e.exitDescriptors()
 	e.irb(&sb).CallAs("%c", rtExitCode, vptr("%r"), vptr(exitDesc), vptr(ctxDesc), vi64(wrapped), vi64(code))

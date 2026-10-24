@@ -32,6 +32,8 @@ const (
 	DPCeil
 	DPRound
 	DPPow
+	DPTryRef
+	DPTryOpt
 )
 
 var directPrimByName = map[string]DirectPrim{
@@ -39,9 +41,10 @@ var directPrimByName = map[string]DirectPrim{
 	"ArrayFirst": DPArrayFirst, "ArrayLast": DPArrayLast, "CharFromInt": DPCharFromInt, "ParseFloat": DPParseFloat,
 	"WrapAdd": DPWrapAdd, "WrapSub": DPWrapSub, "WrapMul": DPWrapMul, "WrapShl": DPWrapShl, "WrapShr": DPWrapShr,
 	"Rotl": DPRotl, "Rotr": DPRotr, "Sqrt": DPSqrt, "Floor": DPFloor, "Ceil": DPCeil, "Round": DPRound, "Pow": DPPow,
+	"TryRef": DPTryRef, "TryOpt": DPTryOpt,
 }
 
-// A call takes the direct form only when its result type is a register scalar or an Option of one.
+// A call takes the direct form only when its result type is a register scalar, an Option of one, or a direct Result[T, AllocError].
 var directResultOps = func() map[string]DirectPrim {
 	m := map[string]DirectPrim{}
 	for _, op := range Registry.Ops {

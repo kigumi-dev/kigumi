@@ -57,7 +57,7 @@ func (r *Result) edgeAllowsDefault(e EffectEdge) bool {
 	}
 	switch e.Kind {
 	case EdgeAlloc:
-		return false
+		return r.profileDeferred(e)
 	case EdgeCall, EdgeWitness:
 		return r.defaultOf(e.Target)
 	case EdgeCallback:

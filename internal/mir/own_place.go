@@ -139,6 +139,9 @@ func (p *Program) consumesArg(in *Inst, i int) bool {
 		if i >= len(in.Args)-ctxArgCount(info) {
 			return false
 		}
+		if g := p.ByEnt[in.Ent]; g != nil && i < len(g.Params) && g.Locals[g.Params[i]].Borrowed {
+			return false
+		}
 		return i != 0 || info.Recv == sem.RecvNone || info.Recv == sem.RecvMove
 	case OpCallValue:
 		// A witness call names its requirement: a `self` / `mut self`

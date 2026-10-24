@@ -1,0 +1,45 @@
+-- module --
+mir: planned
+-- src --
+type Named = {
+    pub name String
+    pub n Int
+}
+
+noalloc fn genericGet[T: Copy](xs: &Array[T]) -> T? {
+    xs.get(0)
+}
+
+// `Named?` holds its String inline, so a call through a function value gets it from the entry's box.
+noalloc fn callGet(f: noalloc fn(&Array[Named]) -> Named?, xs: &Array[Named]) -> Bool {
+    f(xs) is Some(_) //~ ERROR arrives in a box the callee allocates
+}
+
+noalloc fn erasedLocal(xs: &Array[Named]) -> Bool {
+    let f: noalloc fn(&Array[Named]) -> Named? = genericGet[Named] //~ ERROR allocates a box for the result
+    f(xs) is Some(_) //~ ERROR arrives in a box the callee allocates
+}
+
+fn main() -> Void! {}
+-- expect --
+error[E1841]: this call goes through a function value or an interface, so the `Named?` it returns arrives in a box the callee allocates
+  --> main.kg:12:5
+   |
+12 |     f(xs) is Some(_) //~ ERROR arrives in a box the callee allocates
+   |     ^^^^
+   = help: call the function directly, or drop the declaration
+
+error[E1840]: `genericGet` returns `Named?` unboxed, so every call through this function value allocates a box for the result
+  --> main.kg:16:50
+   |
+16 |     let f: noalloc fn(&Array[Named]) -> Named? = genericGet[Named] //~ ERROR allocates a box for the result
+   |                                                  ^^^^^^^^^^^^^^^^
+   = help: call `genericGet` directly, or drop the declaration
+
+error[E1841]: this call goes through a function value or an interface, so the `Named?` it returns arrives in a box the callee allocates
+  --> main.kg:17:5
+   |
+17 |     f(xs) is Some(_) //~ ERROR arrives in a box the callee allocates
+   |     ^^^^
+   = help: call the function directly, or drop the declaration
+

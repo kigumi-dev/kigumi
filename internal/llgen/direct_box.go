@@ -70,6 +70,9 @@ func (e *emitter) boxLeaves(sb *strings.Builder, a *aggInfo, src string) (arr st
 }
 
 func (e *emitter) boxLeafAt(sb *strings.Builder, f aggField, p string) string {
+	if f.Ref {
+		return e.loadRef(sb, p)
+	}
 	b := e.newTmp()
 	switch {
 	case f.Unit:
@@ -95,6 +98,10 @@ func (e *emitter) boxLeafAt(sb *strings.Builder, f aggField, p string) string {
 }
 
 func (e *emitter) unboxLeafAt(sb *strings.Builder, f aggField, p, box string) {
+	if f.Ref {
+		e.storeRef(sb, p, box)
+		return
+	}
 	switch {
 	case f.Unit:
 	case f.Agg != nil:

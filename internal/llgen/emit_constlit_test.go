@@ -64,8 +64,7 @@ fn main() -> Void! {}
 	}
 }
 
-// Forwarding the Result a `?` took apart costs nothing; rebuilding an Err
-// around its payload allocates an object and a payload array.
+// Forwarding the Result a `?` took apart costs nothing, and the Result holding a Fault is built in the frame.
 func TestTryForwardsErrWithoutRebuilding(t *testing.T) {
 	ir := emitIR(t, `
 type Fault = Low | Named(why: String)
@@ -81,10 +80,8 @@ fn forwards(bad: Bool) -> Result[Int, Fault] {
 
 fn main() -> Void! {}
 `)
-	body := bodyOf(t, ir, `define ptr @"main.forwards"(`)
-	if n := strings.Count(body, "@rt_variant("); n != 1 {
-		t.Errorf("want only the Ok built, found %d rt_variant calls:\n%s", n, body)
-	}
+	body := bodyOf(t, ir, `define %"kg.adt.Result[Int,main.Fault]" @"main.forwards"(`)
+	checkNoHeap(t, "main.forwards", body)
 }
 
 var scalarRewrite = regexp.MustCompile(`(?m)^\s*((\S+)->u\.(?:i|f|c|b|s\.[a-z]+) = [^;]*;)`)
@@ -123,7 +120,7 @@ fn main() -> Void! {
     print "${largest(&xs)}"
 }
 `)
-	body := bodyOf(t, ir, `define ptr @"main.main"(`)
+	body := bodyOf(t, ir, `define %"kg.adt.Result[Void,std/prelude.Error]" @"main.main"(`)
 	if strings.Contains(body, "@rt_std_bind(") {
 		t.Errorf("a capture-free witness is still built per call:\n%s", body)
 	}

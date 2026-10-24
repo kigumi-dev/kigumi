@@ -104,7 +104,7 @@ func TestFaultInjectionTryFamilyNative(t *testing.T) {
 					t.Errorf("N=%d: %d objects live after the Err return, %d without a fault", n, live, baseLive)
 				}
 			}
-			checkTryFamilyWindow(t, name, classes)
+			checkTryFamilyWindow(t, name, classes, true)
 		})
 	}
 }
@@ -112,12 +112,15 @@ func TestFaultInjectionTryFamilyNative(t *testing.T) {
 // tryFamilyNoAlloc are the fixtures on a path that allocates nothing, so no tick can be refused inside the call.
 var tryFamilyNoAlloc = map[string]bool{"map_set_existing_key": true, "map_set_existing_key_twice": true}
 
+// tryFamilyNoAllocNative build their Result inline and copy or wrap nothing that allocates; the VM still ticks once per try op.
+var tryFamilyNoAllocNative = map[string]bool{"shared_get": true, "shared_get_twice": true, "alloc_wrap": true, "alloc_wrap_twice": true}
+
 var tryFamilyNoAllocWindow = regexp.MustCompile(`^O+$`)
 
-func checkTryFamilyWindow(t *testing.T, name string, classes []byte) {
+func checkTryFamilyWindow(t *testing.T, name string, classes []byte, native bool) {
 	t.Helper()
 	window := tryFamilyWindow
-	if tryFamilyNoAlloc[name] {
+	if tryFamilyNoAlloc[name] || native && tryFamilyNoAllocNative[name] {
 		window = tryFamilyNoAllocWindow
 	}
 	if !window.Match(classes) {
@@ -143,7 +146,7 @@ func TestFaultInjectionTryFamilyVM(t *testing.T) {
 				}
 				classes = append(classes, classifyTryRun(code, out.String()))
 			}
-			checkTryFamilyWindow(t, name, classes)
+			checkTryFamilyWindow(t, name, classes, false)
 		})
 	}
 }

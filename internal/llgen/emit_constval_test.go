@@ -14,11 +14,13 @@ func TestFixedPayloadVariantBuildsWithoutAllocating(t *testing.T) {
 	ir := emitIR(t, `
 type Tag = Lit(name: String) | Plain
 
-fn pick(bad: Bool) -> Result[Tag, Int] {
+type Pick = Good(t: Tag) | Bad(n: Int)
+
+fn pick(bad: Bool) -> Pick {
     if bad {
-        return Err(7)
+        return Bad(7)
     }
-    Ok(Plain)
+    Good(Plain)
 }
 
 fn main() -> Void! {}
@@ -26,7 +28,7 @@ fn main() -> Void! {}
 	body := bodyOf(t, ir, `define ptr @"main.pick"(`)
 	checkNoHeap(t, "main.pick", body)
 	if n := strings.Count(body, `@".constval.`); n < 2 {
-		t.Errorf("want both the Ok and the Err from a shared slot, found %d:\n%s", n, body)
+		t.Errorf("want both variants from a shared slot, found %d:\n%s", n, body)
 	}
 	init := bodyOf(t, ir, "define void @kg_init_immortals() {")
 	if !strings.Contains(init, "@rt_const_variant(") {
@@ -79,12 +81,11 @@ fn here() -> Option[Mark] { Some(Cold) }
 
 fn main() -> Void! {}
 `)
-	body := bodyOf(t, ir, `define ptr @"main.here"(`)
+	body := bodyOf(t, ir, `define %"kg.adt.Option[main.Mark]" @"main.here"(`)
 	checkNoHeap(t, "main.here", body)
 }
 
-// take() empties the receiver through its write-back cell, not through the
-// Some it found, so a program that calls it still shares one Some.
+// take() empties the receiver through its write-back cell, so a program that calls it still builds its Some in the frame.
 func TestOptionTakeSharesSome(t *testing.T) {
 	ir := emitIR(t, `
 type Mark = Cold | Named(s: String)
@@ -96,11 +97,8 @@ fn main() -> Void! {
     _ = o.take()
 }
 `)
-	body := bodyOf(t, ir, `define ptr @"main.here"(`)
+	body := bodyOf(t, ir, `define %"kg.adt.Option[main.Mark]" @"main.here"(`)
 	checkNoHeap(t, "main.here", body)
-	if !strings.Contains(body, `@".constval.`) {
-		t.Errorf("a Some whose payload is fixed must come from the shared slot:\n%s", body)
-	}
 }
 
 var varRewrite = regexp.MustCompile(`(?m)^\s*(a[0-9]->u\.var\.[a-z]+ = [^;]*;)`)

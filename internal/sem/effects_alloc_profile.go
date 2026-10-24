@@ -119,7 +119,7 @@ func (r *Result) recoverableTargetSafe(target EntityID, safe map[EntityID]bool) 
 func (r *Result) recoverableEdgeSafe(e EffectEdge, safe map[EntityID]bool) bool {
 	switch e.Kind {
 	case EdgeAlloc:
-		return false
+		return r.profileDeferred(e)
 	case EdgeCall:
 		return r.recoverableTargetSafe(e.Target, safe)
 	case EdgeCallback:
@@ -138,6 +138,7 @@ func (r *Result) checkRecoverableOnly(nodes []EntityID) {
 		return
 	}
 	safe := r.inferRecoverableSafe(nodes)
+	r.recoverableSafe = safe
 	for _, root := range roots {
 		if safe[root] {
 			continue

@@ -51,6 +51,8 @@ type emitter struct {
 	direct       map[mir.LocalID]*aggInfo
 	boxTmp       map[mir.LocalID]bool
 	crossSrc     map[mir.LocalID]mir.LocalID
+	countedX     map[mir.LocalID]countedCross
+	refDone      map[string]bool
 	nameAlias    map[mir.LocalID]bool
 	lentCells    map[mir.LocalID]bool
 	sigs         map[*mir.Func]*aggSig

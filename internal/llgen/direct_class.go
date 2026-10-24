@@ -55,6 +55,7 @@ func (e *emitter) crossSources(f *mir.Func) map[mir.LocalID]mir.LocalID {
 func (e *emitter) inst(sb *strings.Builder, f *mir.Func, in mir.Inst) {
 	e.instBody(sb, f, in)
 	e.releaseCrossSources(sb, f, in)
+	e.settleCountedCross(sb, f, in)
 }
 
 func (e *emitter) releaseCrossSources(sb *strings.Builder, f *mir.Func, in mir.Inst) {

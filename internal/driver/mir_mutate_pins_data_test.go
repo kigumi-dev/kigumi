@@ -76,7 +76,7 @@ arg-swap "main.bumpForwarded" b0/6 call | i3 i0
 	{"iface_static", "shape", `
 flag "main.showAll" b0/6 drop | i2
 `},
-	{"direct_closure", "refs", `
+	{"direct_closure", "droplent", `
 insert "main.peek" b0/0 field | i0 l"p"
 `},
 	{"mut_self_dispatch", "cellops", `

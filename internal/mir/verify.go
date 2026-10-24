@@ -67,7 +67,7 @@ func (p *Program) verifyFunc(f *Func) error {
 			return err
 		}
 	}
-	if err := runRules(f, []func(*Func) *Error{p.verifyDirect, p.verifyDirectSig, p.verifyBoxedEntry, p.verifyDirectForms, p.verifyCrossLocals, p.verifyFixedBoxes, p.verifyAllocClaim}); err != nil {
+	if err := runRules(f, []func(*Func) *Error{p.verifyDirect, p.verifyDirectSig, p.verifyBoxedEntry, p.verifyDirectForms, p.verifyCrossLocals, p.verifyCounted, p.verifyFixedBoxes, p.verifyAllocClaim}); err != nil {
 		return err
 	}
 	f.flowOK = hash

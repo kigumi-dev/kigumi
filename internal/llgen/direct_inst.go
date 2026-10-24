@@ -51,6 +51,10 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 			return true
 		}
 	case mir.OpAlias, mir.OpMove, mir.OpCopy, mir.OpShare:
+		if a, ok := e.direct[in.Dst]; ok && a.counted() {
+			e.countedCopyInst(sb, f, a, in)
+			return true
+		}
 		if a, ok := e.direct[in.Dst]; ok {
 			copyAgg(sb, a, aggPtr(in.Dst), aggPtr(in.Args[0]))
 			return true
@@ -67,7 +71,10 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 			}
 		}
 	case mir.OpDrop, mir.OpRelease:
-		// A pure direct value owns no reference and has no drop glue.
+		if a, ok := e.countedLocal(in.Args[0]); ok {
+			e.refCall(sb, a, refDrop, aggPtr(in.Args[0]))
+			return true
+		}
 		return e.isDirect(in.Args[0])
 	case mir.OpFutureDone:
 		// The runtime only marks the frame done; the return hands the boxed result over.
@@ -81,6 +88,9 @@ func (e *emitter) tryDirectInst(sb *strings.Builder, f *mir.Func, in mir.Inst) b
 			return true
 		}
 		if a, ok := e.agg(in.Type); ok {
+			if a.counted() && !f.Locals[in.Args[0]].Cross {
+				e.refCall(sb, a, refRetain, aggPtr(in.Args[0]))
+			}
 			e.store(sb, in.Dst, e.boxAgg(sb, a, aggPtr(in.Args[0])))
 			return true
 		}

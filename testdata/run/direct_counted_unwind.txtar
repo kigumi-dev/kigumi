@@ -1,0 +1,59 @@
+-- src --
+import task from std/task
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Wrap = {
+    pub r Res
+}
+
+fn nothing() -> Int? {
+    None
+}
+
+// The Option stays in the frame, so the sweep drops it in place.
+fn hold(n: Int) -> Int {
+    let w: Wrap? = Some(Wrap { r: Res { id: n } })
+    let label: Result[String, Int] = Ok("label ${n}")
+    let _z = nothing().expect("boom ${n}")
+    match w {
+        Some(x) -> x.r.id
+        None -> 0
+    }
+}
+
+async fn tick() -> Int {
+    1
+}
+
+async fn boom() -> Int {
+    let _ = await tick()
+    hold(7)
+}
+
+async fn sib() -> Int {
+    4
+}
+
+async fn root() -> Int {
+    let a = task.spawn(boom())
+    let b = task.spawn(sib())
+    let x = await b
+    print "b ${x}"
+    await a
+}
+
+let ex = task.currentThreadExecutor()
+print "total ${ex.runToCompletion(root())}"
+-- stdout --
+drop 7
+-- stderr --
+panic: boom 7
+-- exit --
+2

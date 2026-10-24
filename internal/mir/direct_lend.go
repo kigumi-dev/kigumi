@@ -20,6 +20,7 @@ func (p *Program) lendByValue() {
 		elem := p.R.Types.Node(c.f.Locals[c.f.Params[c.i]].Type).Elem
 		for l := range p.refAliases(c.f, c.f.Params[c.i]) {
 			c.f.Locals[l].Type = elem
+			c.f.Locals[l].Borrowed = c.f.Locals[l].Ent != 0
 		}
 	}
 	for _, f := range p.allFuncs() {
@@ -123,9 +124,17 @@ func (p *Program) readsOnly(c lendParam, cands map[lendParam]bool) bool {
 	return true
 }
 
+// A counted value lent by its bits holds none of its counts, so nothing may drop it or take it by value.
 func (p *Program) readsAt(f *Func, in Inst, k int, cands map[lendParam]bool) bool {
+	t := f.Locals[in.Args[k]].Type
+	if p.R.Types.Kind(t) == sem.KRef {
+		t = p.R.Types.Node(t).Elem
+	}
+	counted := p.R.CountedAdt(t)
 	switch in.Op {
-	case OpField, OpPayload, OpIsVariant, OpTag, OpDrop, OpRelease, OpNop:
+	case OpDrop, OpRelease:
+		return k == 0 && !counted
+	case OpField, OpPayload, OpIsVariant, OpTag, OpNop:
 		return k == 0
 	case OpBuiltin:
 		return protoBuiltin(in)
@@ -134,7 +143,7 @@ func (p *Program) readsAt(f *Func, in Inst, k int, cands map[lendParam]bool) boo
 		if g == nil || k >= len(g.Params) || p.IsStdPrimitive(in.Ent) {
 			return false
 		}
-		return cands[lendParam{g, k}] || p.takesValue(g, k, f.Locals[in.Args[k]].Type)
+		return cands[lendParam{g, k}] || !counted && p.takesValue(g, k, f.Locals[in.Args[k]].Type)
 	}
 	return false
 }

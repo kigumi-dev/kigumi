@@ -433,6 +433,11 @@ static void unwind_slots(val* slots, uint64_t* mask, int64_t n) {
         *w &= ~bit;
         val v = slots[k];
         slots[k] = NULL;
+        // Bit 0 marks an inline Option or Result: the next slot holds the helper that drops it in place.
+        if ((uintptr_t)v & 1) {
+            ((void (*)(void*))slots[k + 1])((void*)((uintptr_t)v & ~(uintptr_t)1));
+            continue;
+        }
         rt_release(v);
     }
 }
@@ -2094,9 +2099,15 @@ static val rt_variant_try(rt_vdesc* d, int64_t n, val* payload) {
     for (int64_t i = 0; i < n; i++) v->u.var.payload[i] = payload[i];
     return v;
 }
+// Set by rt_d_try while its op runs; try_ok clears it and hands back the payload unwrapped.
+static KG_TLS int g_try_bare;
 // try_ok wraps v as Ok(v), or releases v and reports the refusal when the
 // Result wrapper itself can't be allocated.
 static val try_ok(val v) {
+    if (g_try_bare) {
+        g_try_bare = 0;
+        return v;
+    }
     val r = rt_variant_try(V_Ok, 1, &v);
     if (!r) {
         rt_release(v);
@@ -2251,6 +2262,10 @@ static val empty_record_try(rt_type* t, int64_t n) {
 }
 // try_ok_some wraps v as Ok(Some(v)).
 static val try_ok_some(val v) {
+    if (g_try_bare) {
+        g_try_bare = 0;
+        return v;
+    }
     val s = rt_variant_try(V_Some, 1, &v);
     if (!s) {
         rt_release(v);
@@ -2671,6 +2686,7 @@ static void task_raise(void) {
     KG_LONGJMP(*g_task_catch);
 }
 static void task_fault(const char* msg) {
+    g_try_bare = 0;
     join_fault(msg);
     task_raise();
 }
@@ -3501,6 +3517,36 @@ static val with_address(val arg, val value, val f) {
 // rt_std_id never compares key strings: llgen resolves a call's std key to
 // an enum std_op at compile time (rt_std_op_of does the same resolution
 // for rt_std's few dynamic callers).
+val rt_std_id(int op, int n, val* a);
+// A try op for a caller holding Result[T, AllocError] inline: the Ok payload, or NULL for the refusal.
+val rt_d_try(int op, int n, val* a) {
+    g_try_bare = 1;
+    val r = rt_std_id(op, n, a);
+    int bare = !g_try_bare;
+    g_try_bare = 0;
+    if (bare || !r || r->kind != K_VARIANT) return r;
+    if (r->u.var.v == V_Err) {
+        rt_release(r);
+        return NULL;
+    }
+    val p = rt_retain(r->u.var.payload[0]);
+    rt_release(r);
+    return p;
+}
+// The same for an Ok payload that is an Option: 0 is the refusal, 1 Ok(None), 2 Ok(Some(*out)).
+int rt_d_try_opt(int op, int n, val* a, val* out) {
+    val r = rt_d_try(op, n, a);
+    *out = NULL;
+    if (!r) return 0;
+    if (r->kind == K_VARIANT && r->u.var.v == V_None) return 1;
+    if (r->kind == K_VARIANT && r->u.var.v == V_Some) {
+        *out = rt_retain(r->u.var.payload[0]);
+        rt_release(r);
+        return 2;
+    }
+    *out = r;
+    return 2;
+}
 val rt_std_id(int op, int n, val* a) {
     val a0 = n > 0 ? deref(a[0]) : NULL, a1 = n > 1 ? deref(a[1]) : NULL, a2 = n > 2 ? deref(a[2]) : NULL;
     if (a0 && a0->kind == K_BOX && !op_stores_a0(op)) a0 = a0->u.box.v;

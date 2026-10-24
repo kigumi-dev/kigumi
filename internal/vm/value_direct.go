@@ -15,7 +15,7 @@ type crossing struct {
 // cross copies where native copies, so a frame value and a box never share storage.
 func (m *Machine) cross(fr *frame, in *mir.Inst, v *obj) *obj {
 	if in.Op == mir.OpBoxDirect && !in.Fixed && m.opts.FaultInjectAt > 0 {
-		for range boxTicks(v) {
+		for range m.crossTicks(in.Type, v) {
 			if m.faultTick() {
 				m.abort("out of memory")
 			}
@@ -24,7 +24,7 @@ func (m *Machine) cross(fr *frame, in *mir.Inst, v *obj) *obj {
 	if m.crossShares(fr, in) {
 		return v
 	}
-	c := m.copy(v)
+	c := m.crossCopy(in.Type, v)
 	if fr.f.Locals[in.Dst].Cross {
 		fr.pending = append(fr.pending, crossing{dst: in.Dst, src: in.Args[0], from: v, copy: c})
 		return c

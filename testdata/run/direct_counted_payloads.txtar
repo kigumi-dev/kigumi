@@ -1,0 +1,140 @@
+-- src --
+import {Box, Shared} from std/alloc
+
+type Named = {
+    pub name String
+    pub n Int
+}
+
+type Res = resource {
+    pub id Int
+}
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn find(xs: &Array[String], want: String) -> String? {
+    for x in xs {
+        if x == want {
+            return Some(x.concat("!"))
+        }
+    }
+    None
+}
+
+fn half(n: Int) -> Result[Int, String] {
+    if n % 2 == 1 {
+        return Err("odd ${n}")
+    }
+    Ok(n / 2)
+}
+
+fn quarter(n: Int) -> Result[Int, String] {
+    let h = half(n)?
+    half(h)
+}
+
+fn nested(n: Int) -> Result[String?, Int] {
+    if n < 0 {
+        return Err(n)
+    }
+    if n == 0 {
+        return Ok(None)
+    }
+    Ok(Some("n${n}"))
+}
+
+fn ident[T](x: T) -> T {
+    x
+}
+
+fn named(o: Named?) -> String? {
+    o?.name
+}
+
+fn boxed(n: Int) -> Result[Box[Int], AllocError] {
+    Box.tryNew(n)
+}
+
+fn keepRes(r: Res) -> Res? {
+    Some(r)
+}
+
+fn main() {
+    let words = Array.of("a", "bb", "ccc")
+    let f = find(&words, "bb")
+    let g = f
+    print "${f || "none"} ${g || "none"} ${find(&words, "zz") || "none"}"
+    for n in Array.of(8, 6, 3) {
+        match quarter(n) {
+            Ok(q) -> print "q ${q}"
+            Err(e) -> print "e ${e}"
+        }
+    }
+    for n in Array.of(-1, 0, 4) {
+        match nested(n) {
+            Ok(Some(s)) -> print "some ${s}"
+            Ok(None) -> print "none"
+            Err(e) -> print "err ${e}"
+        }
+    }
+    let through = ident(find(&words, "a"))
+    print "generic ${through || "-"}"
+    let mut held = Array.empty[String?]()
+    held.push(find(&words, "ccc"))
+    held.push(None)
+    let first = held[0]
+    print "held ${held.len()} ${first || "-"} ${held[1] || "-"}"
+    let pick: fn(String?) -> String? = ident
+    print "value ${pick(Some("v")) || "-"}"
+    let tag = "t"
+    let add = (o: String?) => match o {
+        Some(s) -> s.concat(tag)
+        None -> tag
+    }
+    print "closure ${add(Some("x"))} ${add(None)}"
+    print "field ${named(Some(Named { name: "nm", n: 1 })) || "-"} ${named(None) || "-"}"
+    let b = boxed(5) || Box.new(0)
+    print "box ${b.get()}"
+    let sh = Shared.new(40)
+    let got: Result[Int, AllocError] = sh.tryGet()
+    match got {
+        Ok(v) -> print "shared ${v + sh.get()}"
+        Err(_) -> print "oom"
+    }
+    let weak = sh.tryDowngrade()
+    print "weak ${weak is Ok(_)}"
+    let joined = Bytes.zeros(2).tryConcat(Bytes.zeros(3))
+    match joined {
+        Ok(bs) -> print "bytes ${bs.len()}"
+        Err(_) -> print "oom"
+    }
+    let r = keepRes(Res { id: 3 })
+    match r {
+        Some(x) -> print "res ${x.id}"
+        None -> print "no res"
+    }
+    let piece = "  pad  ".trim()
+    print "[${piece}]"
+}
+-- stdout --
+bb! bb! none
+q 2
+e odd 3
+e odd 3
+err -1
+none
+some n4
+generic a!
+held 2 ccc! -
+value v
+closure xt t
+field nm -
+box 5
+shared 80
+weak true
+bytes 5
+res 3
+drop 3
+[pad]

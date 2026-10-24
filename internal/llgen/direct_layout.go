@@ -28,6 +28,8 @@ func fieldBytes(f aggField) (int64, int64) {
 		return 0, 1
 	case f.Agg != nil:
 		return f.Agg.Size, f.Agg.Align
+	case f.Ref:
+		return 8, 8
 	}
 	b := scalarBytes(f.mem())
 	if f.mem() == TI128 {

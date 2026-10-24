@@ -16,7 +16,7 @@ func (r *Result) RegScalar(t TypeID) bool {
 func WideScalar(t TypeID) bool { return t == TyI128 || t == TyU128 }
 
 func (r *Result) directLeaf(t TypeID) bool {
-	return t == TyUnit || r.RegScalar(t) || WideScalar(t) || r.DirectAgg(t) || r.nominalScalar(t) != 0
+	return t == TyUnit || r.RegScalar(t) || WideScalar(t) || r.DirectAgg(t) && !r.CountedAdt(t) || r.nominalScalar(t) != 0
 }
 
 func (r *Result) DirectAgg(t TypeID) bool {
@@ -63,7 +63,7 @@ func (r *Result) computeDirectAgg(t TypeID) bool {
 	case FormRecord:
 		return len(info.Fields) > 0 && r.leavesDirect(r.fieldTypes(info, subst))
 	case FormAdt:
-		return len(info.Variants) > 0 && r.variantsDirect(info, subst)
+		return len(info.Variants) > 0 && r.variantsDirect(t, info, subst)
 	}
 	return false
 }
@@ -77,10 +77,12 @@ func (r *Result) leavesDirect(ts []TypeID) bool {
 	return true
 }
 
-func (r *Result) variantsDirect(info *TypeDeclInfo, subst map[EntityID]TypeID) bool {
+func (r *Result) variantsDirect(t TypeID, info *TypeDeclInfo, subst map[EntityID]TypeID) bool {
 	for _, v := range info.Variants {
-		if !r.leavesDirect(r.payloadTypes(v, subst)) {
-			return false
+		for _, pt := range r.payloadTypes(v, subst) {
+			if !r.payloadInline(t, pt) {
+				return false
+			}
 		}
 	}
 	return true

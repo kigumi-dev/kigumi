@@ -1,0 +1,64 @@
+-- src --
+import {Box, Shared} from std/alloc
+
+fn mkb(n: Int) -> Box[Int]? { Some(Box.new(n)) }
+fn useb(a: Box[Int]?) -> Int { if a is Some(b) { b.get() } else { 0 } }
+fn mks(n: Int) -> String? { Some("heap${n}") }
+fn uses(a: String?) -> Int { if a is Some(s) { s.len().toInt() || 0 } else { 0 } }
+fn mkr(n: Int) -> Result[Shared[Int], String] {
+    if n < 0 { return Err("neg${n}") }
+    Ok(Shared.new(n))
+}
+fn user(r: Result[Shared[Int], String]) -> Int {
+    match r {
+        Ok(s) -> s.get()
+        Err(e) -> e.len().toInt() || 0
+    }
+}
+fn apply(f: fn(String?) -> Int, n: Int) -> Int { f(mks(n)) }
+fn applyb(f: fn(Box[Int]?) -> Int, n: Int) -> Int { f(mkb(n)) }
+
+fn peek(a: &Box[Int]?) -> Int { if a is Some(b) { b.get() } else { 0 } }
+fn peeks(a: &String?) -> Int { if a is Some(s) { s.len().toInt() || 0 } else { 0 } }
+
+fn lent() {
+    let a = mkb(5)
+    let p = &a
+    let n = peek(p)
+    let s = mks(77)
+    let q = &s
+    let m = peeks(q)
+    let f = () => uses(s)
+    print "${n} ${useb(a)} ${m} ${f()} ${uses(s)}"
+    let k = mkb(6)
+    let t = mks(4321)
+    print "${peek(&k)} ${peeks(&t)} ${peek(&k) + useb(k)} ${uses(t)}"
+}
+
+fn main() {
+    let f = (a: Box[Int]?) => useb(a)
+    let f2 = (a: Box[Int]?, k: Int) => useb(a) + k
+    let g = (a: Box[Int]?) => {
+        let b = a
+        useb(b)
+    }
+    let c = mkb(3)
+    let h = () => useb(c)
+    let k = (a: String?) => uses(a)
+    let d = mks(30)
+    let m = () => uses(d)
+    let r = (x: Result[Shared[Int], String]) => user(x)
+    let ignore = (a: String?) => 4
+    let back = (a: Box[Int]?) => a
+    let twice = (a: String?) => uses(a) + uses(a)
+    print "${f(mkb(1))} ${f2(mkb(1), 10)} ${g(mkb(2))} ${h()} ${k(mks(1))} ${m()}"
+    print "${apply(k, 123)} ${applyb(f, 9)} ${r(mkr(7))} ${r(mkr(-12))} ${ignore(mks(5))}"
+    print "${useb(back(mkb(8)))} ${twice(mks(22))} ${apply(twice, 4444)}"
+    lent()
+}
+-- stdout --
+1 11 2 3 5 6
+7 9 7 6 4
+8 12 16
+5 5 6 6 6
+6 8 12 8
