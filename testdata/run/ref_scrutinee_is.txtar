@@ -1,0 +1,113 @@
+-- src --
+type Cell = {pub name String, pub n i64}
+type C = Cell
+type Bag = {pub mut items Array[i64], pub mut tag String}
+type Sh = Round(c: Cell) | Boxy(b: Bag) | Nil
+type Hold = {pub mut sh Sh}
+
+fn pickSh(r: &Sh) -> &Sh { r }
+fn pickBag(r: &Bag) -> &Bag { r }
+fn shMut(h: &mut Hold) -> &mut Sh { &mut h.sh }
+fn mkSh(t: String) -> Sh { Sh.Boxy(Bag { items: Array.of(1), tag: t }) }
+fn callS(f: fn() -> String) -> String { f() }
+
+fn whole(r: &C, s: &C, k: Bool) -> i64 {
+    if (if k { r } else { s }) is x {
+        return x.value.n
+    }
+    0
+}
+fn payload(r: &Sh) -> String {
+    if pickSh(r) is Boxy(b) {
+        return b.tag
+    }
+    "no"
+}
+fn chained(r: &Sh) -> String {
+    if pickSh(r) is Boxy(b) && b.tag == "bt" {
+        return callS(() => b.tag)
+    }
+    "no"
+}
+fn joined(r: &Sh, s: &Sh, k: Bool) -> String {
+    if (if k { r } else { s }) is Boxy(b) {
+        return b.tag
+    }
+    "no"
+}
+fn wholeBag(r: &Bag) -> String {
+    if pickBag(r) is x {
+        return x.tag
+    }
+    "no"
+}
+fn copyPayload(r: &Sh) -> String {
+    if pickSh(r) is Round(c) {
+        return callS(() => c.name)
+    }
+    "-"
+}
+fn wrapped(r: &Sh) -> String {
+    if (pickSh(r) is Boxy(b)) {
+        return b.tag
+    }
+    "-"
+}
+fn wrappedTemp() -> String {
+    if (&mkSh("wt") is Boxy(b)) {
+        return b.tag
+    }
+    "-"
+}
+fn fromTemp() -> String {
+    if pickSh(&mkSh("ft")) is Boxy(b) {
+        return b.tag
+    }
+    "-"
+}
+fn loopHead(r: &Sh) -> i64 {
+    let mut t = 0
+    for pickSh(r) is Boxy(b) {
+        t += b.items.len().toInt() || 0
+        if t > 1 {
+            break
+        }
+    }
+    t
+}
+fn mutPayload(h: &mut Hold) -> String {
+    if shMut(h) is Boxy(b) {
+        b.tag = "set"
+        return b.tag
+    }
+    "-"
+}
+fn optional(r: &Cell?) -> String {
+    if let Some(x) = r {
+        return x.name
+    }
+    "none"
+}
+
+let ca = C(Cell { name: "ca", n: 1 })
+let cb = C(Cell { name: "cb", n: 2 })
+let sa = Sh.Round(Cell { name: "sr", n: 7 })
+let sb = Sh.Boxy(Bag { items: Array.of(4), tag: "bt" })
+let sc = Sh.Boxy(Bag { items: Array.of(4), tag: "bc" })
+let ga = Bag { items: Array.of(9), tag: "ga" }
+let mut h = Hold { sh: Sh.Boxy(Bag { items: Array.of(1), tag: "h" }) }
+let oa: Cell? = Some(Cell { name: "oa", n: 8 })
+for k in Array.of(true, false) {
+    print "${whole(&ca, &cb, k)} ${joined(&sa, &sb, k)} ${optional(&oa)} ${optional(&None)}"
+}
+print "${payload(&sb)} ${payload(&sa)} ${chained(&sb)} ${chained(&sc)} ${wholeBag(&ga)} ${copyPayload(&sa)} ${copyPayload(&sb)}"
+print "${wrapped(&sb)} ${wrappedTemp()} ${fromTemp()} ${loopHead(&sb)} ${loopHead(&sa)} ${mutPayload(&mut h)}"
+if h.sh is Boxy(b) {
+    print "after ${b.tag} ${ca.value.name} ${sa is Round(_)}"
+}
+-- stdout --
+1 no oa none
+2 bt oa none
+bt no bt no ga sr -
+bt wt ft 2 0 set
+after set ca true

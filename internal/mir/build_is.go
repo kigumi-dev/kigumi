@@ -12,11 +12,9 @@ func (b *builder) ownTemp(v LocalID) {
 	}
 }
 
-// isExpr lowers `v is pat`: the test, then the bindings on success. A
-// temporary scrutinee dies at the join, after the bindings copied out of
-// it; an `is` may sit behind `&&`, so its cleanup stays inside its own
-// evaluation rather than in the enclosing scope.
-func (b *builder) isExpr(p *hir.Pat, v LocalID) LocalID {
+// isExpr lowers `v is pat`; an `is` may sit behind `&&`, so a temporary scrutinee dies at the join
+// after the bindings copy out of it, unless kept says the enclosing scope already owns it.
+func (b *builder) isExpr(p *hir.Pat, v LocalID, kept bool) LocalID {
 	cond := b.testPattern(p, v)
 	yes, join := b.newBlockAt(), b.newBlockAt()
 	b.term(Term{Op: TermBranch, Args: []LocalID{cond}, Targets: []BlockID{yes, join}})
@@ -32,7 +30,7 @@ func (b *builder) isExpr(p *hir.Pat, v LocalID) LocalID {
 	}
 	b.jump(join)
 	b.cur = join
-	if b.fn.Locals[v].Ent == 0 {
+	if b.fn.Locals[v].Ent == 0 && !kept {
 		b.emit(Inst{Op: OpDrop, Args: []LocalID{v}, Node: p.Node})
 	}
 	return cond
@@ -61,5 +59,7 @@ func condTests(e *hir.Expr, into map[*hir.Pat]bool) {
 	case hir.And:
 		condTests(e.Args[0], into)
 		condTests(e.Args[1], into)
+	case hir.Wrap:
+		condTests(e.Args[0], into)
 	}
 }

@@ -29,7 +29,7 @@ func (b *builder) witnessCompare(e *hir.Expr, mark int) LocalID {
 		if e.Cmp == ">" || e.Cmp == "<=" {
 			variant = "Greater"
 		}
-		res = b.isExpr(&hir.Pat{Kind: hir.PatCtor, Ent: b.variantNamed(ordering, variant), Type: ret, Node: n}, res)
+		res = b.isExpr(&hir.Pat{Kind: hir.PatCtor, Ent: b.variantNamed(ordering, variant), Type: ret, Node: n}, res, false)
 		if e.Cmp == "<=" || e.Cmp == ">=" {
 			res = b.emit(Inst{Op: OpUnary, Dst: b.temp(sem.TyBool), Str: "!", Args: []LocalID{res}, Node: n})
 		}

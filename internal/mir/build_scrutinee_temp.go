@@ -4,6 +4,7 @@ import (
 	"kigumi/internal/diag"
 	"kigumi/internal/hir"
 	"kigumi/internal/sem"
+	"kigumi/internal/syntax"
 )
 
 // ownBorrowedTemp hands the temporary a `&mk()` scrutinee points into to the current scope,
@@ -27,48 +28,75 @@ func (b *builder) ownBorrowedTemp(e *hir.Expr, ref LocalID) {
 	}
 }
 
-// borrowedIsTemp keeps a condition's `&mk() is P(x)` temporary for its bindings; behind `&&`
-// the temporary may never be created, so a binding into it there is rejected instead.
-func (b *builder) borrowedIsTemp(e *hir.Expr, v LocalID) {
-	if !b.condIs[e.Pat] || !borrowsTemporary(e.Args[0]) {
-		return
+// borrowedIsTemp keeps a condition's `&mk()` temporary, or a counted `&T` one its bindings borrow through,
+// for those bindings; behind `&&` it may never be created, so such a binding is rejected. It reports whether the scope owns v.
+func (b *builder) borrowedIsTemp(e *hir.Expr, v LocalID) bool {
+	if !b.condIs[e.Pat] {
+		return false
+	}
+	if b.countedRefTemp(v) {
+		bind, at := innerBinding(e.Pat, func(ent sem.EntityID) bool { return b.r.Types.Kind(b.r.Entity(ent).Type) == sem.KRef })
+		if bind == 0 {
+			return false
+		}
+		b.own(v)
+		if b.shortRHS > 0 {
+			b.tempBorrowKept(bind, at)
+		}
+		return true
+	}
+	if !borrowsTemporary(e.Args[0]) {
+		return false
 	}
 	if b.shortRHS == 0 {
 		b.ownBorrowedTemp(e.Args[0], v)
-		return
+		return false
 	}
 	if t := b.r.Types.Node(e.Args[0].Type).Elem; b.r.Types.Kind(t) == sem.KPrim && t != sem.TyString && t != sem.TyBytes {
-		return
+		return false
 	}
-	if bind := innerBinding(e.Pat); bind != nil {
-		code, _ := sem.CodeByName("temporary-borrow-kept")
-		msg := sem.FillTemplate(code.Template, b.r.Entity(bind.Ent).Name, "that the right side of `&&` creates only when the left side holds") + "; " + code.Help
-		t := b.r.Tree(b.fn.File)
-		b.fn.Diags = append(b.fn.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(bind.Node)), Code: diagCode(code.Num), Msg: msg})
+	if bind, at := innerBinding(e.Pat, func(sem.EntityID) bool { return true }); bind != 0 {
+		b.tempBorrowKept(bind, at)
 	}
+	return false
 }
 
-// innerBinding finds a binding below p's top level; binding the whole borrow counts the temporary.
-func innerBinding(p *hir.Pat) *hir.Pat {
-	var walk func(q *hir.Pat, top bool) *hir.Pat
-	walk = func(q *hir.Pat, top bool) *hir.Pat {
+func (b *builder) tempBorrowKept(bind sem.EntityID, at syntax.NodeID) {
+	code, _ := sem.CodeByName("temporary-borrow-kept")
+	msg := sem.FillTemplate(code.Template, b.r.Entity(bind).Name, "that the right side of `&&` creates only when the left side holds") + "; " + code.Help
+	t := b.r.Tree(b.fn.File)
+	b.fn.Diags = append(b.fn.Diags, diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(at)), Code: diagCode(code.Num), Msg: msg})
+}
+
+func (b *builder) countedRefTemp(v LocalID) bool {
+	l := b.fn.Locals[v]
+	return l.Ent == 0 && !l.Borrowed && !b.unowned[v] && b.r.Types.Kind(l.Type) == sem.KRef
+}
+
+// innerBinding finds a binding below p's top level that want accepts; binding the whole borrow counts the temporary.
+func innerBinding(p *hir.Pat, want func(sem.EntityID) bool) (sem.EntityID, syntax.NodeID) {
+	var walk func(q *hir.Pat, top bool) (sem.EntityID, syntax.NodeID)
+	walk = func(q *hir.Pat, top bool) (sem.EntityID, syntax.NodeID) {
 		if q == nil {
-			return nil
+			return 0, 0
 		}
-		if q.Kind == hir.PatBind && !top {
-			return q
+		if q.Kind == hir.PatBind && !top && want(q.Ent) {
+			return q.Ent, q.Node
 		}
 		for _, s := range q.Subs {
-			if r := walk(s, q.Kind == hir.PatOr && top); r != nil {
-				return r
+			if r, n := walk(s, q.Kind == hir.PatOr && top); r != 0 {
+				return r, n
 			}
 		}
 		for _, f := range q.Fields {
-			if r := walk(f.Sub, false); r != nil {
-				return r
+			if f.Sub == nil && f.Bind != 0 && want(f.Bind) {
+				return f.Bind, f.Node
+			}
+			if r, n := walk(f.Sub, false); r != 0 {
+				return r, n
 			}
 		}
-		return nil
+		return 0, 0
 	}
 	return walk(p, true)
 }

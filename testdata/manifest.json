@@ -14028,6 +14028,40 @@
       ]
     },
     {
+      "id": "run/ref_scrutinee_is",
+      "kind": "run",
+      "path": "testdata/run/ref_scrutinee_is.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/ref_scrutinee_temp",
+      "kind": "run",
+      "path": "testdata/run/ref_scrutinee_temp.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/reinit",
       "kind": "run",
       "path": "testdata/run/reinit.txtar",
@@ -21160,6 +21194,17 @@
       "id": "sem/reentrant_capture_param_shapes",
       "kind": "sem",
       "path": "testdata/sem/reentrant_capture_param_shapes.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/ref_scrutinee_temp_err",
+      "kind": "sem",
+      "path": "testdata/sem/ref_scrutinee_temp_err.txtar",
       "mode": [
         "check"
       ],

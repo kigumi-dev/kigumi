@@ -124,6 +124,10 @@ func (b *builder) bindLocal(id, v LocalID, n syntax.NodeID) {
 		b.emit(Inst{Op: OpBorrow, Dst: id, Args: []LocalID{v}, Index: mut, Node: n})
 		return
 	}
+	if tt.Kind(idT) != sem.KRef && !vNotRef {
+		b.emit(Inst{Op: OpCopy, Dst: id, Args: []LocalID{b.retagTo(v, b.fn.Locals[v].Type, idT, n)}, Node: n, Share: b.shared[v]})
+		return
+	}
 	if !b.guardedArm && b.wholeLocal(v) {
 		b.emit(Inst{Op: OpMove, Dst: id, Args: []LocalID{v}, Node: n})
 		return

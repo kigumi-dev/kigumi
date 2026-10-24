@@ -1,0 +1,111 @@
+-- src --
+type Cell = {pub name String, pub mut n i64}
+type C = Cell
+type Bag = {pub items Array[i64], pub tag String}
+type B = Bag
+type Pair = {pub a Cell, pub b Bag}
+type Sh = Round(c: Cell) | Boxy(b: Bag) | Nil
+type Id = i64
+
+fn pickC(r: &C) -> &C { r }
+fn pickCell(r: &Cell) -> &Cell { r }
+fn pickB(r: &B) -> &B { r }
+fn pickBag(r: &Bag) -> &Bag { r }
+fn pickPair(r: &Pair) -> &Pair { r }
+fn pickSh(r: &Sh) -> &Sh { r }
+fn pickInt(r: &i64) -> &i64 { r }
+fn pickId(r: &Id) -> &Id { r }
+fn call(f: fn() -> i64) -> i64 { f() }
+fn callS(f: fn() -> String) -> String { f() }
+
+fn joinC(r: &C, s: &C, k: Bool) -> i64 { match (if k { r } else { s }) { x -> x.value.n } }
+fn callC(r: &C) -> i64 { match pickC(r) { x -> x.value.n * 10 } }
+fn joinCell(r: &Cell, s: &Cell, k: Bool) -> String { match (if k { r } else { s }) { x -> x.name } }
+fn callCell(r: &Cell) -> String { match pickCell(r) { x -> "${x.name}${x.n}" } }
+fn closureC(r: &C) -> i64 { match r { x -> call(() => x.value.n) } }
+fn closureJoin(r: &C, s: &C, k: Bool) -> i64 { match (if k { r } else { s }) { x -> call(() => x.value.n + 100) } }
+fn closureCall(r: &Cell) -> String { match pickCell(r) { x -> callS(() => x.name) } }
+fn guarded(r: &C, s: &C, k: Bool) -> i64 {
+    match (if k { r } else { s }) {
+        x if x.value.n > 1 -> x.value.n * 1000,
+        x -> x.value.n,
+    }
+}
+fn stored(r: &Cell) -> i64 {
+    let f = match pickCell(r) { x -> () => x.n + 7 }
+    f()
+}
+fn copied(r: &Cell) -> i64 {
+    match pickCell(r) {
+        x -> {
+            let mut y = x
+            y.n = 9
+            y.n + x.n * 10
+        }
+    }
+}
+fn scalars(r: &i64, s: &i64, k: Bool) -> i64 {
+    let a = match (if k { r } else { s }) { n -> n * 2 }
+    let b = match pickInt(r) { n -> call(() => n + 1) }
+    a * 10 + b
+}
+fn ids(r: &Id, s: &Id, k: Bool) -> i64 { match (if k { pickId(r) } else { s }) { x -> x.value } }
+fn generic[T: Copy](r: &T, s: &T, k: Bool) -> T { match (if k { r } else { s }) { x -> x } }
+
+fn joinB(r: &B, s: &B, k: Bool) -> String { match (if k { r } else { s }) { x -> x.value.tag } }
+fn closureBag(r: &Bag) -> String { match pickBag(r) { x -> callS(() => x.tag) } }
+fn closureBagJoin(r: &Bag, s: &Bag, k: Bool) -> i64 { match (if k { r } else { s }) { x -> call(() => x.items.len().toInt() || 0) } }
+fn callB(r: &B) -> String { match pickB(r) { x -> "${x.value.tag}${x.value.items.len()}" } }
+
+fn parts(r: &Pair, s: &Pair, k: Bool) -> String { match (if k { r } else { s }) { Pair { a, b } -> "${a.name}${a.n}${b.tag}" } }
+fn nested(r: &Pair) -> String { match pickPair(r) { Pair { a, b: Bag { items, tag } } -> callS(() => "${a.name}${tag}${items.len()}") } }
+fn variants(r: &Sh, s: &Sh, k: Bool) -> String {
+    match (if k { r } else { s }) {
+        Round(c) -> "round ${c.name}",
+        Boxy(b) -> "boxy ${b.tag}",
+        Nil -> "nil",
+    }
+}
+fn options(r: &Cell?, s: &Cell?, k: Bool) -> String {
+    match (if k { r } else { s }) {
+        Some(Cell { name, n: 3 }) -> "three ${name}",
+        Some(c) -> callS(() => c.name),
+        None -> "none",
+    }
+}
+fn destructure(r: &Cell) -> String {
+    let Cell { name, n } = pickCell(r)
+    "${name}${n}"
+}
+
+let ca = C(Cell { name: "ca", n: 1 })
+let cb = C(Cell { name: "cb", n: 2 })
+let pa = Cell { name: "pa", n: 3 }
+let pb = Cell { name: "pb", n: 4 }
+let ba = B(Bag { items: Array.of(1, 2), tag: "ba" })
+let bb = B(Bag { items: Array.of(1, 2, 3), tag: "bb" })
+let ga = Bag { items: Array.of(9), tag: "ga" }
+let gb = Bag { items: Array.of(), tag: "gb" }
+let qa = Pair { a: Cell { name: "qa", n: 5 }, b: Bag { items: Array.of(1), tag: "qb" } }
+let qb = Pair { a: Cell { name: "qc", n: 6 }, b: Bag { items: Array.of(1, 2), tag: "qd" } }
+let sa = Sh.Round(Cell { name: "sr", n: 7 })
+let sb = Sh.Boxy(Bag { items: Array.of(4), tag: "bt" })
+let oa: Cell? = Some(Cell { name: "oa", n: 3 })
+let ob: Cell? = Some(Cell { name: "ob", n: 4 })
+for k in Array.of(true, false) {
+    print "copy ${joinC(&ca, &cb, k)} ${callC(&ca)} ${joinCell(&pa, &pb, k)} ${callCell(&pb)} ${closureC(&cb)} ${closureJoin(&ca, &cb, k)} ${closureCall(&pa)}"
+    print "more ${guarded(&ca, &cb, k)} ${stored(&pa)} ${copied(&pa)} ${scalars(&4, &5, k)} ${ids(&Id(5), &Id(6), k)} ${generic(&pa, &pb, k).name} ${generic(&7, &8, k)}"
+    print "borrow ${joinB(&ba, &bb, k)} ${closureBag(&ga)} ${closureBagJoin(&ga, &gb, k)} ${callB(&bb)}"
+    print "nested ${parts(&qa, &qb, k)} ${nested(&qb)} ${variants(&sa, &sb, k)} ${options(&oa, &ob, k)} ${options(&None, &None, k)} ${destructure(&pb)}"
+}
+print "after ${ca.value.name} ${cb.value.n} ${pa.n} ${ba.value.tag} ${ga.items.len()} ${qa.a.name} ${oa is Some(_)}"
+-- stdout --
+copy 1 10 pa pb4 2 101 pa
+more 1 10 39 85 5 pa 7
+borrow ba ga 1 bb3
+nested qa5qb qcqd2 round sr three oa none pb4
+copy 2 10 pb pb4 2 102 pa
+more 2000 10 39 105 6 pb 8
+borrow bb ga 0 bb3
+nested qc6qd qcqd2 boxy bt ob none pb4
+after ca 2 3 ba 1 qa true

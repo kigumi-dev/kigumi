@@ -1,0 +1,79 @@
+-- module --
+mir: planned
+-- src --
+type Bag = {pub items Array[i64], pub tag String}
+type Sh = Boxy(b: Bag) | Nil
+type H = {pub b Bag, pub n i64}
+type Holder = {pub mut sh Sh}
+
+fn pickSh(r: &Sh) -> &Sh { r }
+fn mkSh(t: String) -> Sh { Sh.Boxy(Bag { items: Array.of(1), tag: t }) }
+fn mkh(t: String) -> H { H { b: Bag { items: Array.of(1), tag: t }, n: 1 } }
+
+fn behindAnd(r: &Sh, c: Bool) -> String {
+    if c && pickSh(r) is Boxy(b) { b.tag } else { "" } //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+}
+
+fn shorthandBehindAnd(c: Bool) -> String {
+    if c && (&mkh("s") is H { b, n }) { b.tag } else { "" } //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+}
+
+fn rootMoved() -> String {
+    let mut s = mkSh("a")
+    if pickSh(&s) is Boxy(b) {
+        s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here
+        return b.tag
+    }
+    ""
+}
+
+fn rootWritten(h: &mut Holder) -> String {
+    if pickSh(&h.sh) is Boxy(b) {
+        h.sh = Sh.Nil //~ ERROR `h` is borrowed and cannot be mutated here
+        return b.tag
+    }
+    ""
+}
+
+fn keptPastIf() -> String {
+    let k = if pickSh(&mkSh("k")) is Boxy(b) { b } else { return "" } //~ ERROR `k` keeps a borrow of a temporary past the statement
+    k.tag
+}
+
+-- expect --
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:11:31
+   |
+11 |     if c && pickSh(r) is Boxy(b) { b.tag } else { "" } //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                               ^
+
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:15:31
+   |
+15 |     if c && (&mkh("s") is H { b, n }) { b.tag } else { "" } //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                               ^
+
+error[move-while-borrowed]: `s` is borrowed and cannot be moved or dropped here
+  --> main.kg:21:9
+   |
+21 |         s = Sh.Nil //~ ERROR `s` is borrowed and cannot be moved or dropped here
+   |         ^
+
+error[E2198]: `h` is borrowed and cannot be mutated here
+  --> main.kg:29:9
+   |
+29 |         h.sh = Sh.Nil //~ ERROR `h` is borrowed and cannot be mutated here
+   |         ^^^^
+   = help: end the borrow first or use a copy
+note: `h` is borrowed here
+  --> main.kg:28:15
+   |
+28 |     if pickSh(&h.sh) is Boxy(b) {
+   |               ^^^^^
+
+error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `if` that drops it; bind the temporary to a local first and borrow the local
+  --> main.kg:36:9
+   |
+36 |     let k = if pickSh(&mkSh("k")) is Boxy(b) { b } else { return "" } //~ ERROR `k` keeps a borrow of a temporary past the statement
+   |         ^
+
