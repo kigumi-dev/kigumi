@@ -36,13 +36,13 @@ func (c *borrowCheck) resetReaches(holder, owner LocalID, at int) bool {
 	key := [2]LocalID{holder, owner}
 	in, ok := c.resets.in[key]
 	if !ok {
-		in = c.carryDataflow(holder, owner, sites)
+		in = c.carryDataflow(holder, owner, sites, true)
 		if c.resets.in == nil {
 			c.resets.in = map[[2]LocalID][]bool{}
 		}
 		c.resets.in[key] = in
 	}
-	return c.carryStep(c.curBlock, holder, owner, sites, in[c.curBlock], at)
+	return c.carryStep(c.curBlock, holder, owner, sites, in[c.curBlock], at, true)
 }
 
 // resetTracked holds for a named local nothing stores into and whose every definition widens it at a recorded site.
@@ -50,7 +50,7 @@ func (c *borrowCheck) resetTracked(holder LocalID) bool {
 	if t, ok := c.resets.tracked[holder]; ok {
 		return t
 	}
-	ok := !c.targets[holder] && c.widens(holder)
+	ok := (!c.targets[holder] || c.storesOnlyReplace(holder)) && c.widens(holder)
 	for _, p := range c.f.Params {
 		ok = ok && p != holder
 	}

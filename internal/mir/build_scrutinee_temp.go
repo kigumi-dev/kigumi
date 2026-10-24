@@ -16,25 +16,14 @@ func (b *builder) ownBorrowedTemp(e *hir.Expr, ref LocalID) {
 	for i := len(insts) - 1; i >= 0; i-- {
 		if in := insts[i]; shapes[in.Op].result && in.Dst == ref {
 			if in.Op == OpBorrow && b.fn.Locals[in.Args[0]].Ent == 0 {
-				b.ownProjected(insts[:i], in.Args[0])
+				parents := b.projectedFrom(in.Args[0], map[LocalID]bool{}, nil)
+				for k := len(parents) - 1; k >= 0; k-- {
+					b.own(parents[k])
+				}
+				b.own(in.Args[0])
 			}
 			return
 		}
-	}
-}
-
-// ownProjected owns a borrowed temporary and every temporary it was projected from, so a parent's drop waits for the arm too.
-func (b *builder) ownProjected(insts []Inst, l LocalID) {
-	b.own(l)
-	for i := len(insts) - 1; i >= 0; i-- {
-		in := insts[i]
-		if !shapes[in.Op].result || in.Dst != l {
-			continue
-		}
-		if (in.Op == OpField || in.Op == OpIndex) && b.fn.Locals[in.Args[0]].Ent == 0 {
-			b.ownProjected(insts[:i], in.Args[0])
-		}
-		return
 	}
 }
 

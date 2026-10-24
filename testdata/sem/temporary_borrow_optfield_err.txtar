@@ -1,0 +1,86 @@
+-- module --
+stage: driver
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {}
+
+type H = resource { pub mut r R, pub n Int }
+
+fn H.drop(move self) {}
+
+fn mko(i: Int) -> H? {
+    if i > 0 { Some(H { r: R { id: i }, n: i }) } else { None }
+}
+
+fn flag() -> Bool {
+    true
+}
+
+fn kept() -> Int {
+    let k = match &mko(4)?.r {
+        Some(r) -> r
+        None -> return 0
+    }
+    k.id
+}
+
+fn keptIfLet() -> Int {
+    let k = if let Some(r) = &mko(4)?.r { r } else { return 0 }
+    k.id
+}
+
+fn behindAnd() -> Int {
+    if flag() && &mko(4)?.r is Some(r) {
+        return r.id
+    }
+    0
+}
+
+fn letKept() -> Int {
+    let z = &mko(5)?.r
+    match z {
+        Some(r) -> r.id
+        None -> 0
+    }
+}
+
+fn letKeptScalar() -> Int {
+    let z = &mko(5)?.n
+    match z {
+        Some(n) -> n
+        None -> 0
+    }
+}
+
+type W = { pub h H? }
+
+fn letKeptChain() -> Int {
+    let z = &W { h: mko(6) }.h?.r
+    match z {
+        Some(r) -> r.id
+        None -> 0
+    }
+}
+-- expect --
+error[E2234]: `let` cannot keep a borrow of the result of `mko(..)`, which is dropped at the end of this statement
+  --> main.kg:38:13
+   |
+38 |     let z = &mko(5)?.r
+   |             ^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of the result of `mko(..)`, which is dropped at the end of this statement
+  --> main.kg:46:13
+   |
+46 |     let z = &mko(5)?.n
+   |             ^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+
+error[E2234]: `let` cannot keep a borrow of a temporary `W`, which is dropped at the end of this statement
+  --> main.kg:56:13
+   |
+56 |     let z = &W { h: mko(6) }.h?.r
+   |             ^^^^^^^^^^^^^^^^^^^^^
+   = help: bind the value to a local first and borrow the local
+

@@ -12,17 +12,19 @@ func writesLocal(r *sem.Result, e *hir.Expr, ent sem.EntityID) bool {
 }
 
 // moves also counts a by-value use of an owned ent as a write, since moving it out ends the value too;
-// path limits the writes to places overlapping that field path of ent.
+// path limits the writes to places overlapping that field path of ent, or with whole to places containing it.
 type localWrites struct {
 	r     *sem.Result
 	ent   sem.EntityID
 	whole bool
 	moves bool
+	// deep keeps a move from inside the receiver a write under whole, since a resource's lent view would see the hole.
+	deep bool
+	// lends marks ent as a `&mut` reference, whose plain use may replace the whole referent.
+	lends bool
 	path  []int
-}
-
-func (w localWrites) hits(e *hir.Expr) bool {
-	return rootedAt(e, w.ent) && fieldPathsOverlap(placePath(e), w.path)
+	// steps is the receiver's path with its elements kept, which path loses past an index.
+	steps []int
 }
 
 func (w localWrites) expr(e *hir.Expr) bool {
@@ -34,19 +36,26 @@ func (w localWrites) expr(e *hir.Expr) bool {
 	case hir.Lambda:
 		return false
 	case hir.Local:
-		return w.moves && e.Ent == ent && !r.IsCopy(e.Type) && r.Types.Kind(e.Type) != sem.KRef
+		return e.Ent == ent && (w.lends || w.moves && !r.IsCopy(e.Type) && r.Types.Kind(e.Type) != sem.KRef)
 	case hir.Borrow:
-		if !w.whole && e.Mut && w.hits(e.Args[0]) {
+		if e.Mut && w.hits(e.Args[0]) {
 			return true
 		}
 	case hir.FieldMove:
-		if !w.whole && w.hits(e.Args[0]) {
+		if !w.whole && w.hits(e.Args[0]) || w.whole && w.movesOut(e) {
 			return true
 		}
 	case hir.MethodCall:
 		if len(e.Args) > 0 && e.Ent != 0 && r.Entity(e.Ent).Kind == sem.EntFn {
-			if recv := r.Fn(e.Ent).Recv; (recv == sem.RecvMut && !w.whole || recv == sem.RecvMove) && w.hits(e.Args[0]) {
-				return true
+			switch r.Fn(e.Ent).Recv {
+			case sem.RecvMove:
+				if w.movesOut(e.Args[0]) {
+					return true
+				}
+			case sem.RecvMut:
+				if w.hits(e.Args[0]) && (!w.whole || r.ReplacesSelf(e.Ent) || w.above(e.Args[0])) {
+					return true
+				}
 			}
 		}
 	}

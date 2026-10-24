@@ -18,7 +18,7 @@ func (c *borrowCheck) tempPlace(l LocalID) (LocalID, []int, bool, bool) {
 	for c.f.Locals[l].Ent == 0 {
 		d := c.definition(l)
 		if d == nil {
-			return 0, nil, false, false
+			return l, path, exact, c.multiDefined(l) && c.joinsBuilt(l)
 		}
 		switch d.Op {
 		case OpCall, OpCallValue, OpRecord, OpVariant, OpArray:
@@ -36,6 +36,23 @@ func (c *borrowCheck) tempPlace(l LocalID) (LocalID, []int, bool, bool) {
 		l = d.Args[0]
 	}
 	return 0, nil, false, false
+}
+
+// joinsBuilt reports whether every definition of l builds a fresh value, as the branches of `x?.f` do.
+func (c *borrowCheck) joinsBuilt(l LocalID) bool {
+	for _, blk := range c.f.Blocks {
+		for _, in := range blk.Insts {
+			if !shapes[in.Op].result || in.Dst != l {
+				continue
+			}
+			switch in.Op {
+			case OpCall, OpCallValue, OpRecord, OpVariant, OpArray:
+			default:
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // checkTempKept rejects binding a name to a borrow of a statement's temporary.

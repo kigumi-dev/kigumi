@@ -2,7 +2,7 @@ package sem
 
 import "kigumi/internal/syntax"
 
-// rejectTempBorrowLet stops `let k = &mk()` (also through a field or index of the temporary)
+// rejectTempBorrowLet stops `let k = &mk()` (also through a field, `?.` field or index of the temporary)
 // when the temporary owns something its end-of-statement drop would free under k.
 func (c *checker) rejectTempBorrowLet(init syntax.NodeID) {
 	n := c.t.Unparen(init)
@@ -22,6 +22,9 @@ func (c *checker) rejectTempBorrowLet(init syntax.NodeID) {
 		switch c.t.Kind(root) {
 		case syntax.MemberExpr:
 			root = c.t.View(root).AsMember().Base().ID()
+			continue
+		case syntax.OptMemberExpr:
+			root = c.t.View(root).AsOptMember().Base().ID()
 			continue
 		case syntax.BracketExpr:
 			root = c.t.View(root).AsBracket().Base().ID()

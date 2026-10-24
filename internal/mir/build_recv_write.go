@@ -6,15 +6,11 @@ import (
 	"kigumi/internal/sem"
 )
 
-// rejectRecvWrite reports a later argument writing the local a resource-holding receiver is borrowed from, which a snapshot cannot cover;
-// a plain `&mut` of it is left to the borrow checker.
+// rejectRecvWrite reports a later argument a snapshot or the lent view cannot cover: any write under a `self` resource receiver, or a
+// replace, move or `&mut` of a place holding a `mut self` receiver; a top-level `&mut` or reborrow is the borrow checker's.
 func (b *builder) rejectRecvWrite(e *hir.Expr, later []*hir.Expr) {
-	w := localWrites{r: b.r, moves: true}
-	switch b.r.Fn(e.Ent).Recv {
-	case sem.RecvSelf:
-	case sem.RecvMut:
-		w.whole = true
-	default:
+	recv := b.r.Fn(e.Ent).Recv
+	if recv != sem.RecvSelf && recv != sem.RecvMut {
 		return
 	}
 	root := recvRoot(e.Args[0])
@@ -22,15 +18,18 @@ func (b *builder) rejectRecvWrite(e *hir.Expr, later []*hir.Expr) {
 		return
 	}
 	t := b.r.Entity(root).Type
-	if elem, _ := b.r.MutRefElem(t); elem != 0 {
+	elem, lends := b.r.MutRefElem(t)
+	if lends {
 		t = elem
 	}
-	if !b.r.HoldsResource(t) || b.r.IsCopy(t) {
+	resource := b.r.HoldsResource(t) && !b.r.IsCopy(t)
+	if !resource && recv != sem.RecvMut {
 		return
 	}
-	w.ent, w.path = root, placePath(e.Args[0])
+	w := localWrites{r: b.r, ent: root, moves: true, whole: recv == sem.RecvMut, deep: resource, lends: lends}
+	w.path, w.steps = placePath(e.Args[0]), placeSteps(e.Args[0])
 	for _, x := range later {
-		if x == nil || x.Kind == hir.Borrow && x.Mut && rootedAt(x.Args[0], root) || !w.expr(x) {
+		if x == nil || x.Kind == hir.Borrow && x.Mut && rootedAt(x.Args[0], root) || lends && x.Kind == hir.Local && x.Ent == root || !w.expr(x) {
 			continue
 		}
 		code, _ := sem.CodeByName("borrow-conflict")

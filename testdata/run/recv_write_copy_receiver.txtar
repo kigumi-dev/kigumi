@@ -1,0 +1,155 @@
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn R.bump(mut self, k: Int) -> Int {
+    self.id = self.id + k
+    self.id
+}
+
+type C = { pub mut n Int }
+
+fn C.bump(mut self, k: Int) -> Int {
+    self.n = self.n + k
+    self.n
+}
+
+fn C.show(self, k: Int) -> Int {
+    self.n + k
+}
+
+type P = { pub mut h C, pub mut k C }
+
+type S = { pub mut name String, pub mut n Int }
+
+fn S.bump(mut self, k: Int) -> Int {
+    self.n = self.n + k
+    self.n
+}
+
+fn S.show(self, k: Int) -> Int {
+    self.n + k
+}
+
+fn takeS(s: S) -> Int {
+    s.n
+}
+
+type A = { pub mut xs Array[Int], pub mut n Int }
+
+fn A.bump(mut self, k: Int) -> Int {
+    self.n = self.n + k
+    self.n
+}
+
+fn A.show(self, k: Int) -> Int {
+    self.n + k
+}
+
+fn inc(n: &mut Int) -> Int {
+    n = n + 5
+    10
+}
+
+fn zap(c: &mut C) -> Int {
+    c = C { n: 500 }
+    1
+}
+
+fn throughRef(c: &mut C) -> Int {
+    c.bump(c.bump(2))
+}
+
+type W = { pub mut h C, pub mut xs Array[C] }
+
+fn throughField(w: &mut W) -> Int {
+    w.h.bump(inc(&mut w.h.n)) + w.h.bump({ w.h.n = 100; 1 }) + w.xs[0].bump(w.h.bump(1))
+}
+
+fn S.label(self, k: Int) -> String {
+    "${self.name}${self.n}${k}"
+}
+
+type Q = { pub mut s S }
+
+type T = resource { pub mut n Int, pub mut m Int, pub mut r R }
+
+fn T.drop(move self) {
+    print "dropt ${self.n} ${self.m}"
+}
+
+fn T.bump(mut self, k: Int) -> Int {
+    self.n = self.n + k + self.r.id
+    self.n
+}
+
+fn main() {
+    let mut c = C { n: 1 }
+    let r1 = c.bump({ c.n = 100; 10 })
+    let r2 = c.show({ c = C { n: 7 }; 10 })
+    let r3 = c.bump({ c.bump(50) })
+    print "copy ${r1} ${r2} ${r3} ${c.n}"
+    let mut p = P { h: C { n: 1 }, k: C { n: 2 } }
+    let r4 = p.h.bump({ p.h.n = 100; 10 })
+    let r5 = p.h.bump({ p.k = C { n: 30 }; 10 })
+    print "field ${r4} ${r5} ${p.h.n} ${p.k.n}"
+    let mut xs = Array.of(C { n: 1 }, C { n: 2 })
+    let r6 = xs[0].bump({ xs[0].n = 100; 10 })
+    print "element ${r6} ${xs[0].n} ${xs[1].n}"
+    let mut s = S { name: "x", n: 1 }
+    let r7 = s.bump({ let _ = takeS(s); s.name = "y"; 10 })
+    let r8 = s.show({ s = S { name: "z", n: 40 }; 10 })
+    print "string ${r7} ${r8} ${s.name} ${s.n}"
+    let mut a = A { xs: Array.of(1), n: 1 }
+    let r9 = a.bump({ a.xs = Array.of(5); a.n = 100; 10 })
+    let r10 = a.show({ a = A { xs: Array.of(9), n: 3 }; 10 })
+    print "array ${r9} ${r10} ${a.n} ${a.xs[0]}"
+    let mut res = R { id: 1 }
+    print "resource ${res.bump({ res.bump(50) })}"
+    let mut d = C { n: 1 }
+    let r11 = d.bump(inc(&mut d.n))
+    let r12 = d.bump(d.bump(2))
+    let r13 = throughRef(&mut d)
+    print "lent ${r11} ${r12} ${r13} ${d.n}"
+    let mut ys = Array.of(C { n: 1 }, C { n: 2 })
+    let r14 = ys[0].bump(ys[1].bump(5))
+    print "sibling ${r14} ${ys[0].n} ${ys[1].n}"
+    let mut w = W { h: C { n: 1 }, xs: Array.of(C { n: 1 }) }
+    let r15 = throughField(&mut w)
+    print "ref ${r15} ${w.h.n} ${w.xs[0].n}"
+    let mut st = S { name: "a", n: 1 }
+    let mut q = Q { s: S { name: "a", n: 1 } }
+    let mut ss = Array.of(S { name: "a", n: 1 })
+    print "self ${st.label({ st.name = "z"; 1 })} ${q.s.label({ q.s.name = "z"; 1 })} ${ss[0].label({ ss[0].name = "z"; 1 })} ${q.s.name}"
+    let mut t = T { n: 1, m: 0, r: R { id: 0 } }
+    let r16 = t.bump(inc(&mut t.m))
+    let r17 = t.bump(inc(&mut t.n))
+    let r18 = t.bump({ t.m = 7; t.r = R { id: 1000 }; 1 })
+    print "inner ${r16} ${r17} ${r18} ${t.n} ${t.m}"
+    let mut es = Array.of(P { h: C { n: 1 }, k: C { n: 5 } }, P { h: C { n: 2 }, k: C { n: 6 } })
+    let i: usize = 1
+    let j: usize = 1
+    let r19 = es[i].h.bump({ es[j].k = C { n: 500 }; 1 })
+    let r20 = es[i].h.bump({ es[j].h.n = 70; 1 })
+    print "elemfield ${r19} ${r20} ${es[1].h.n} ${es[1].k.n}"
+}
+-- stdout --
+copy 110 120 114 114
+field 110 120 120 30
+element 110 110 2
+string 11 21 z 40
+array 110 120 3 9
+resource 102
+lent 16 36 76 76
+sibling 8 8 7
+ref 220 102 103
+self a11 a11 a11 z
+drop 0
+inner 11 26 1027 1027 7
+elemfield 3 71 71 500
+dropt 1027 7
+drop 1000
+drop 102

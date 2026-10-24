@@ -1,0 +1,108 @@
+-- src --
+type Box = resource { pub mut n Int, tag Int }
+
+fn Box.drop(move self) -> Void {
+    print "drop ${self.tag}"
+}
+
+type Holder['a] = { pub mut r &'a mut Box }
+
+type Shared['a] = { pub mut r &'a Box }
+
+type Tagged['a] = { pub mut r &'a mut Box, pub k Int }
+
+type Two['a] = { pub mut r &'a Box, pub mut s &'a Box }
+
+fn flag() -> Bool {
+    true
+}
+
+fn replaced() {
+    let mut a = Box { n: 1, tag: 1 }
+    let mut b = Box { n: 10, tag: 2 }
+    let mut h = Holder { r: &mut a }
+    h.r = &mut b
+    a.n = 100
+    h.r.n = h.r.n + 1
+    print "replaced ${h.r.n} ${a.n}"
+}
+
+fn bothPaths() {
+    let mut a = Box { n: 1, tag: 3 }
+    let mut b = Box { n: 10, tag: 4 }
+    let mut c = Box { n: 20, tag: 5 }
+    let mut h = Holder { r: &mut a }
+    if flag() {
+        h.r = &mut b
+    } else {
+        h.r = &mut c
+    }
+    a.n = 100
+    print "paths ${h.r.n} ${a.n}"
+}
+
+fn storedBack() {
+    let mut a = Box { n: 1, tag: 6 }
+    let mut b = Box { n: 10, tag: 7 }
+    let mut h = Holder { r: &mut a }
+    h.r = &mut b
+    a.n = 5
+    h.r = &mut a
+    b.n = 7
+    print "back ${h.r.n} ${b.n}"
+}
+
+fn shared() {
+    let mut a = Box { n: 1, tag: 8 }
+    let b = Box { n: 10, tag: 9 }
+    let mut h = Shared { r: &a }
+    h.r = &b
+    a.n = 100
+    print "shared ${h.r.n} ${a.n}"
+}
+
+fn tagged() {
+    let mut a = Box { n: 1, tag: 10 }
+    let mut b = Box { n: 10, tag: 11 }
+    let mut h = Tagged { r: &mut a, k: 3 }
+    h.r = &mut b
+    a.n = 100
+    print "tagged ${h.r.n} ${a.n} ${h.k}"
+}
+
+fn twoRefs() {
+    let a = Box { n: 1, tag: 12 }
+    let b = Box { n: 10, tag: 13 }
+    let mut h = Two { r: &a, s: &a }
+    h.r = &b
+    print "two ${h.r.n} ${h.s.n} ${a.n}"
+}
+
+fn main() {
+    replaced()
+    bothPaths()
+    storedBack()
+    shared()
+    tagged()
+    twoRefs()
+}
+-- stdout --
+replaced 11 100
+drop 2
+drop 1
+paths 10 100
+drop 5
+drop 4
+drop 3
+back 5 7
+drop 7
+drop 6
+shared 10 100
+drop 9
+drop 8
+tagged 10 100 3
+drop 11
+drop 10
+two 10 1 1
+drop 13
+drop 12

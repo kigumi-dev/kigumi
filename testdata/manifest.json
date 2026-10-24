@@ -4424,6 +4424,23 @@
       ]
     },
     {
+      "id": "run/borrow_holder_field_replace",
+      "kind": "run",
+      "path": "testdata/run/borrow_holder_field_replace.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_index_through_field",
       "kind": "run",
       "path": "testdata/run/borrow_index_through_field.txtar",
@@ -4631,6 +4648,23 @@
       "id": "run/borrow_temp_iflet_scrutinee",
       "kind": "run",
       "path": "testdata/run/borrow_temp_iflet_scrutinee.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_temp_optfield_scrutinee",
+      "kind": "run",
+      "path": "testdata/run/borrow_temp_optfield_scrutinee.txtar",
       "mode": [
         "vm",
         "native"
@@ -13830,6 +13864,23 @@
       ]
     },
     {
+      "id": "run/recv_write_copy_receiver",
+      "kind": "run",
+      "path": "testdata/run/recv_write_copy_receiver.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/recv_write_disjoint_field",
       "kind": "run",
       "path": "testdata/run/recv_write_disjoint_field.txtar",
@@ -16920,6 +16971,17 @@
       "id": "sem/borrow_hold_release_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_hold_release_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_holder_field_store",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_holder_field_store.txtar",
       "mode": [
         "check"
       ],
@@ -20866,6 +20928,17 @@
       ]
     },
     {
+      "id": "sem/recv_write_copy_receiver",
+      "kind": "sem",
+      "path": "testdata/sem/recv_write_copy_receiver.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/recv_write_later_arg",
       "kind": "sem",
       "path": "testdata/sem/recv_write_later_arg.txtar",
@@ -21353,6 +21426,17 @@
       "id": "sem/temporary_borrow_let_err",
       "kind": "sem",
       "path": "testdata/sem/temporary_borrow_let_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/temporary_borrow_optfield_err",
+      "kind": "sem",
+      "path": "testdata/sem/temporary_borrow_optfield_err.txtar",
       "mode": [
         "check"
       ],

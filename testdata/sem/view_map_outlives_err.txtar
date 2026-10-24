@@ -65,10 +65,10 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |     ^^^
    = help: end the borrow first or use a copy
 note: `buf` is borrowed here
-  --> main.kg:25:13
+  --> main.kg:24:29
    |
-25 |     let v = m.get(&"x")
-   |             ^^^^^^^^^^
+24 |     m.set("x", View { data: &buf, off: 0 })
+   |                             ^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> main.kg:26:5

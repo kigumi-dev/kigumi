@@ -1,0 +1,188 @@
+-- module --
+stage: driver
+-- src --
+type Box = resource { pub mut n Int, tag Int }
+
+fn Box.drop(move self) -> Void {}
+
+type Holder['a] = { pub mut r &'a mut Box }
+
+type Owning['a] = { pub mut r &'a mut Box, pub other Box }
+
+fn flag() -> Bool {
+    true
+}
+
+fn storedBorrow() -> Int {
+    let mut a = Box { n: 1, tag: 1 }
+    let mut b = Box { n: 10, tag: 2 }
+    let mut h = Holder { r: &mut a }
+    h.r = &mut b
+    b.n = 100
+    h.r.n
+}
+
+fn storedOnOnePath() -> Int {
+    let mut a = Box { n: 1, tag: 1 }
+    let mut b = Box { n: 10, tag: 2 }
+    let mut h = Holder { r: &mut a }
+    if flag() {
+        h.r = &mut b
+    }
+    a.n = 100
+    h.r.n
+}
+
+fn storedBack() -> Int {
+    let mut a = Box { n: 1, tag: 1 }
+    let mut b = Box { n: 10, tag: 2 }
+    let mut h = Holder { r: &mut a }
+    h.r = &mut b
+    h.r = &mut a
+    a.n = 5
+    h.r.n
+}
+
+fn storedThroughRef() -> Int {
+    let mut a = Box { n: 1, tag: 1 }
+    let mut b = Box { n: 10, tag: 2 }
+    let mut h = Holder { r: &mut a }
+    let hr = &mut h
+    hr.r = &mut b
+    a.n = 100
+    h.r.n
+}
+
+fn ownsAnother() -> Int {
+    let mut a = Box { n: 1, tag: 1 }
+    let mut b = Box { n: 10, tag: 2 }
+    let mut h = Owning { r: &mut a, other: Box { n: 0, tag: 9 } }
+    h.r = &mut b
+    a.n = 100
+    h.r.n
+}
+
+type Two['a] = { pub mut r &'a Box, pub mut s &'a Box }
+
+type Mixed['a] = { pub mut r &'a mut Box, pub mut s &'a Box }
+
+fn eat(b: Box) -> Void {}
+
+fn secondRefMoved() -> Int {
+    let a = Box { n: 1, tag: 1 }
+    let b = Box { n: 10, tag: 2 }
+    let mut h = Two { r: &a, s: &a }
+    h.r = &b
+    eat(a)
+    h.s.n
+}
+
+fn secondRefMutated() -> Int {
+    let mut a = Box { n: 1, tag: 1 }
+    let b = Box { n: 10, tag: 2 }
+    let mut h = Two { r: &a, s: &a }
+    h.r = &b
+    a.n = 100
+    h.s.n
+}
+
+fn mixedRefs() -> Int {
+    let mut a = Box { n: 1, tag: 1 }
+    let mut b = Box { n: 10, tag: 2 }
+    let mut c = Box { n: 20, tag: 3 }
+    let mut h = Mixed { r: &mut a, s: &c }
+    h.r = &mut b
+    c.n = 5
+    h.s.n
+}
+-- expect --
+error[E2198]: `b` is exclusively borrowed and cannot be used here
+  --> main.kg:18:5
+   |
+18 |     b.n = 100
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `b` is borrowed here
+  --> main.kg:17:11
+   |
+17 |     h.r = &mut b
+   |           ^^^^^^
+
+error[E2198]: `a` is exclusively borrowed and cannot be used here
+  --> main.kg:29:5
+   |
+29 |     a.n = 100
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:25:29
+   |
+25 |     let mut h = Holder { r: &mut a }
+   |                             ^^^^^^
+
+error[E2198]: `a` is exclusively borrowed and cannot be used here
+  --> main.kg:39:5
+   |
+39 |     a.n = 5
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:36:29
+   |
+36 |     let mut h = Holder { r: &mut a }
+   |                             ^^^^^^
+
+error[E2198]: `a` is exclusively borrowed and cannot be used here
+  --> main.kg:49:5
+   |
+49 |     a.n = 100
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:46:29
+   |
+46 |     let mut h = Holder { r: &mut a }
+   |                             ^^^^^^
+
+error[E2198]: `a` is exclusively borrowed and cannot be used here
+  --> main.kg:58:5
+   |
+58 |     a.n = 100
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:56:29
+   |
+56 |     let mut h = Owning { r: &mut a, other: Box { n: 0, tag: 9 } }
+   |                             ^^^^^^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:73:9
+   |
+73 |     eat(a)
+   |         ^
+
+error[E2198]: `a` is borrowed and cannot be mutated here
+  --> main.kg:82:5
+   |
+82 |     a.n = 100
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:80:17
+   |
+80 |     let mut h = Two { r: &a, s: &a }
+   |                 ^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `c` is borrowed and cannot be mutated here
+  --> main.kg:92:5
+   |
+92 |     c.n = 5
+   |     ^^^
+   = help: end the borrow first or use a copy
+note: `c` is borrowed here
+  --> main.kg:90:17
+   |
+90 |     let mut h = Mixed { r: &mut a, s: &c }
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+

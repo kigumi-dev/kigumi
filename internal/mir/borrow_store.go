@@ -123,7 +123,10 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 	}
 	for _, v := range fl.values {
 		if b, ok := c.flowInfo(v); ok {
-			c.merge(c.sink(root, in.Node), b)
+			c.merge(c.sink(root, in.Node), storedAt(b))
+			if c.replacesHolder(in, root) {
+				c.noteResetSite(root, b)
+			}
 		}
 	}
 }

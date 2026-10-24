@@ -1,0 +1,334 @@
+-- module --
+stage: driver
+-- src --
+type C = { pub mut n Int }
+
+fn C.bump(mut self, k: Int) -> Int {
+    self.n = self.n + k
+    self.n
+}
+
+fn C.reset(mut self, k: Int) -> Int {
+    self = C { n: k }
+    self.n
+}
+
+type P = { pub mut h C, pub mut k C }
+
+type S = { pub mut name String, pub mut n Int }
+
+fn S.bump(mut self, k: Int) -> Int {
+    self.n = self.n + k
+    self.n
+}
+
+type A = { pub mut xs Array[Int], pub mut n Int }
+
+fn A.bump(mut self, k: Int) -> Int {
+    self.n = self.n + k
+    self.n
+}
+
+fn takeA(a: A) -> Int {
+    a.n
+}
+
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {}
+
+fn R.bump(mut self, k: Int) -> Int {
+    self.id = self.id + k
+    self.id
+}
+
+fn R.reset(mut self, k: Int) -> Int {
+    self = R { id: k }
+    self.id
+}
+
+fn copyReplaced() -> Int {
+    let mut a = C { n: 1 }
+    a.bump({ a = C { n: 100 }; 10 })
+}
+
+fn stringReplaced() -> Int {
+    let mut s = S { name: "x", n: 1 }
+    s.bump({ s = S { name: "y", n: 100 }; 10 })
+}
+
+fn arrayMoved() -> Int {
+    let mut a = A { xs: Array.of(1), n: 1 }
+    a.bump({ let _ = takeA(a); 10 })
+}
+
+fn fieldReplaced() -> Int {
+    let mut p = P { h: C { n: 1 }, k: C { n: 2 } }
+    p.h.bump({ p.h = C { n: 100 }; 10 })
+}
+
+fn parentReplaced() -> Int {
+    let mut p = P { h: C { n: 1 }, k: C { n: 2 } }
+    p.h.bump({ p = P { h: C { n: 100 }, k: C { n: 5 } }; 10 })
+}
+
+fn elementReplaced() -> Int {
+    let mut xs = Array.of(C { n: 1 }, C { n: 2 })
+    xs[0].bump({ xs[1] = C { n: 100 }; 10 })
+}
+
+fn copyReset() -> Int {
+    let mut a = C { n: 1 }
+    a.bump({ a.reset(50) })
+}
+
+fn resourceReset() -> Int {
+    let mut r = R { id: 1 }
+    r.bump({ r.reset(50) })
+}
+
+fn zap(c: &mut C) -> Int {
+    c = C { n: 500 }
+    1
+}
+
+fn zapR(r: &mut R) -> Int {
+    r = R { id: 500 }
+    1
+}
+
+fn P.setH(mut self) -> Int {
+    self.h = C { n: 100 }
+    10
+}
+
+fn setH(p: &mut P) -> Int {
+    p.h = C { n: 100 }
+    10
+}
+
+type Q = resource { pub mut items Array[R], pub counter Int }
+
+fn Q.fill(mut self) -> R {
+    self.items = Array.of(R { id: 0 })
+    R { id: 5 }
+}
+
+fn copyLentMut() -> Int {
+    let mut a = C { n: 1 }
+    a.bump(zap(&mut a))
+}
+
+fn resourceLentMut() -> Int {
+    let mut r = R { id: 1 }
+    r.bump(zapR(&mut r))
+}
+
+fn ancestorMethod() -> Int {
+    let mut p = P { h: C { n: 1 }, k: C { n: 2 } }
+    p.h.bump(p.setH())
+}
+
+fn ancestorLentMut() -> Int {
+    let mut p = P { h: C { n: 1 }, k: C { n: 2 } }
+    p.h.bump(setH(&mut p))
+}
+
+fn ancestorResourceMethod() -> Int {
+    let mut q = Q { items: Array.of(R { id: 1 }), counter: 0 }
+    q.items.push(q.fill())
+    q.counter
+}
+
+type W = { pub mut h C, pub mut xs Array[C] }
+
+fn zapW(w: &mut W) -> Int {
+    w = W { h: C { n: 500 }, xs: Array.of(C { n: 1 }) }
+    1
+}
+
+fn zapXs(w: &mut W) -> Int {
+    w.xs = Array.of(C { n: 1000 })
+    1
+}
+
+fn fieldThroughRef(w: &mut W) -> Int {
+    w.h.bump(zapW(w))
+}
+
+fn elementThroughRef(w: &mut W) -> Int {
+    w.xs[0].bump(zapXs(w))
+}
+
+fn wholeThroughRef(c: &mut C) -> Int {
+    c.bump(zap(c))
+}
+
+fn R.peek(self, k: Int) -> Int {
+    self.id + k
+}
+
+fn R.eat(move self) -> Int {
+    self.id
+}
+
+type RP = resource { pub mut r R, pub n Int }
+
+fn zapRP(p: &mut RP) -> Int {
+    p.r = R { id: 500 }
+    1
+}
+
+fn resourceThroughRef(p: &mut RP) -> Int {
+    p.r.bump(zapRP(p))
+}
+
+fn selfResourceThroughRef(p: &mut RP) -> Int {
+    p.r.peek(zapRP(p))
+}
+
+fn RP.bump(mut self, k: Int) -> Int {
+    self.n + k
+}
+
+fn resourceMovedOut() -> Int {
+    let mut p = RP { r: R { id: 1 }, n: 0 }
+    p.bump(p.r.eat())
+}
+
+fn elementFieldReplaced(i: usize, j: usize) -> Int {
+    let mut xs = Array.of(P { h: C { n: 1 }, k: C { n: 2 } })
+    xs[i].h.bump({ xs[j].h = C { n: 500 }; 1 })
+}
+
+fn elementFieldReplacedResource(i: usize, j: usize) -> Int {
+    let mut ps = Array.of(RP { r: R { id: 1 }, n: 0 })
+    ps[i].r.bump({ ps[j].r = R { id: 600 }; 1 })
+}
+-- expect --
+error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:49:12
+   |
+49 |     a.bump({ a = C { n: 100 }; 10 })
+   |            ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `s` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:54:12
+   |
+54 |     s.bump({ s = S { name: "y", n: 100 }; 10 })
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:59:12
+   |
+59 |     a.bump({ let _ = takeA(a); 10 })
+   |            ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:64:14
+   |
+64 |     p.h.bump({ p.h = C { n: 100 }; 10 })
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:69:14
+   |
+69 |     p.h.bump({ p = P { h: C { n: 100 }, k: C { n: 5 } }; 10 })
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `xs` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:74:16
+   |
+74 |     xs[0].bump({ xs[1] = C { n: 100 }; 10 })
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:79:12
+   |
+79 |     a.bump({ a.reset(50) })
+   |            ^^^^^^^^^^^^
+
+error[E2198]: `r` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:84:12
+   |
+84 |     r.bump({ r.reset(50) })
+   |            ^^^^^^^^^^^^
+
+error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:116:12
+    |
+116 |     a.bump(zap(&mut a))
+    |            ^^^^^^^^^^
+
+error[E2198]: `r` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:121:12
+    |
+121 |     r.bump(zapR(&mut r))
+    |            ^^^^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:126:14
+    |
+126 |     p.h.bump(p.setH())
+    |              ^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:131:14
+    |
+131 |     p.h.bump(setH(&mut p))
+    |              ^^^^^^^^^^^
+
+error[E2198]: `q` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:136:18
+    |
+136 |     q.items.push(q.fill())
+    |                  ^^^^^^^
+
+error[E2198]: `w` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:153:14
+    |
+153 |     w.h.bump(zapW(w))
+    |              ^^^^^^
+
+error[E2198]: `w` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:157:18
+    |
+157 |     w.xs[0].bump(zapXs(w))
+    |                  ^^^^^^^
+
+error[E2198]: `c` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:161:12
+    |
+161 |     c.bump(zap(c))
+    |            ^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:180:14
+    |
+180 |     p.r.bump(zapRP(p))
+    |              ^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:184:14
+    |
+184 |     p.r.peek(zapRP(p))
+    |              ^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:193:12
+    |
+193 |     p.bump(p.r.eat())
+    |            ^^^^^^^^
+
+error[E2198]: `xs` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:198:18
+    |
+198 |     xs[i].h.bump({ xs[j].h = C { n: 500 }; 1 })
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `ps` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+   --> main.kg:203:18
+    |
+203 |     ps[i].r.bump({ ps[j].r = R { id: 600 }; 1 })
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

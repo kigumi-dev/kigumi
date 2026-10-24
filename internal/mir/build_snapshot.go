@@ -33,14 +33,23 @@ func (b *builder) snapshot(v LocalID, src *hir.Expr, n syntax.NodeID, later ...*
 	return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: n})
 }
 
-// snapshotPath copies a field or element read whose root local a later operand writes; a Copy read is already a value.
+// snapshotPath copies a field or element read whose root local a later operand writes; a Copy read is already a value,
+// except a Copy record's, which shares the record a later field store writes in place.
 func (b *builder) snapshotPath(v LocalID, src *hir.Expr, n syntax.NodeID, later []*hir.Expr) LocalID {
 	t := b.fn.Locals[v].Type
 	root := pathRoot(src)
-	if root == 0 || b.r.IsCopy(t) || b.r.HoldsResource(t) || !b.writtenLater(root, later) {
+	if root == 0 || b.r.IsCopy(t) && !b.copyRecord(t) || b.r.HoldsResource(t) && !b.r.IsCopy(t) || !b.writtenLater(root, later) {
 		return v
 	}
 	return b.emit(Inst{Op: OpShare, Dst: b.temp(t), Args: []LocalID{v}, Copy: true, Node: n})
+}
+
+func (b *builder) copyRecord(t sem.TypeID) bool {
+	if b.r.Types.Kind(t) != sem.KNamed {
+		return false
+	}
+	d := b.r.TypeDecl(b.r.Types.Node(t).Ent)
+	return d != nil && d.Form == sem.FormRecord
 }
 
 // pathRoot names the local a field or element read starts from, or 0.

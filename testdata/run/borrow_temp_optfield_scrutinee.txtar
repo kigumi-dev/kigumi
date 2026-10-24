@@ -1,0 +1,139 @@
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type H = resource { pub mut r R, pub n Int }
+
+fn H.drop(move self) {
+    self.r.id = 999
+    print "droph ${self.n}"
+}
+
+type O = resource { pub mut h H?, pub k Int }
+
+fn O.drop(move self) {
+    print "dropo ${self.k}"
+}
+
+type W = { pub o O }
+
+fn mkh(i: Int) -> H {
+    H { r: R { id: i }, n: i }
+}
+
+fn mko(i: Int) -> H? {
+    if i > 0 { Some(mkh(i)) } else { None }
+}
+
+fn mkoo(i: Int) -> O? {
+    if i > 0 { Some(O { h: mko(i), k: i }) } else { None }
+}
+
+fn mkw(i: Int) -> W {
+    W { o: O { h: mko(i), k: i } }
+}
+
+type G = resource { pub mut r R, pub n Int, pub mut xs Array[R] }
+
+fn G.drop(move self) {
+    print "dropg ${self.n}"
+}
+
+fn mkg(i: Int) -> G {
+    G { r: R { id: i }, n: i, xs: Array.of(R { id: i + 50 }) }
+}
+
+fn mkog(i: Int) -> G? {
+    if i > 0 { Some(mkg(i)) } else { None }
+}
+
+fn order() {
+    match &mkg(10).xs {
+        _ -> print "gx"
+    }
+    match &mkg(20).r {
+        _ -> print "gr"
+    }
+    match &mkog(30)?.xs {
+        Some(_) -> print "ogx"
+        None -> print "none"
+    }
+    match &mkog(40)?.r {
+        Some(_) -> print "ogr"
+        None -> print "none"
+    }
+    let g = mkg(50)
+    print "local ${g.n}"
+}
+
+fn main() {
+    if let Some(r) = &mko(4)?.r {
+        print "opt ${r.id}"
+    } else {
+        print "else"
+    }
+    if let Some(r) = &mko(0)?.r {
+        print "opt ${r.id}"
+    } else {
+        print "else0"
+    }
+    match &mko(5)?.r {
+        Some(r) -> print "m ${r.id}"
+        None -> print "none"
+    }
+    match &mko(-1)?.r {
+        Some(r) -> print "m ${r.id}"
+        None -> print "none"
+    }
+    match &mkw(6).o.h?.r {
+        Some(r) -> print "w ${r.id}"
+        None -> print "none"
+    }
+    match &mkoo(7)?.h {
+        Some(Some(h)) -> print "oo ${h.n}"
+        _ -> print "none"
+    }
+    order()
+    print "end"
+}
+-- stdout --
+opt 4
+droph 4
+drop 999
+else0
+m 5
+droph 5
+drop 999
+none
+w 6
+dropo 6
+droph 6
+drop 999
+oo 7
+dropo 7
+droph 7
+drop 999
+gx
+dropg 10
+drop 60
+drop 10
+gr
+dropg 20
+drop 70
+drop 20
+ogx
+dropg 30
+drop 80
+drop 30
+ogr
+dropg 40
+drop 90
+drop 40
+local 50
+dropg 50
+drop 100
+drop 50
+end

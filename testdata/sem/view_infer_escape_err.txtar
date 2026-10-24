@@ -103,10 +103,10 @@ error[E2198]: `buf` is borrowed and cannot be mutated here
    |     ^^^
    = help: end the borrow first or use a copy
 note: `buf` is borrowed here
-  --> main.kg:50:35
+  --> main.kg:51:26
    |
-50 |     let mut vs: Array[View['a]] = Array.empty()
-   |                                   ^^^^^^^^^^^^
+51 |     vs.push(View { data: &buf, off: 1 })
+   |                          ^^^^
 
 error[move-while-borrowed]: `buf` is borrowed and cannot be moved or dropped here
   --> main.kg:54:5

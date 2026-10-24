@@ -100,21 +100,22 @@ func (c *borrowCheck) carryReaches(holder, owner LocalID, at int) bool {
 	key := [2]LocalID{holder, owner}
 	in, ok := c.carryIn[key]
 	if !ok {
-		in = c.carryDataflow(holder, owner, sites)
+		in = c.carryDataflow(holder, owner, sites, false)
 		if c.carryIn == nil {
 			c.carryIn = map[[2]LocalID][]bool{}
 		}
 		c.carryIn[key] = in
 	}
-	return c.carryStep(c.curBlock, holder, owner, sites, in[c.curBlock], at)
+	return c.carryStep(c.curBlock, holder, owner, sites, in[c.curBlock], at, false)
 }
 
-func (c *borrowCheck) carryDataflow(holder, owner LocalID, sites []carrySite) []bool {
+// stores also ends the borrow at a store that replaces holder's only borrow-carrying field.
+func (c *borrowCheck) carryDataflow(holder, owner LocalID, sites []carrySite, stores bool) []bool {
 	in := make([]bool, len(c.f.Blocks))
 	for changed := true; changed; {
 		changed = false
 		for bid := range c.f.Blocks {
-			out := c.carryStep(BlockID(bid), holder, owner, sites, in[bid], len(c.f.Blocks[bid].Insts))
+			out := c.carryStep(BlockID(bid), holder, owner, sites, in[bid], len(c.f.Blocks[bid].Insts), stores)
 			if !out {
 				continue
 			}
@@ -128,11 +129,11 @@ func (c *borrowCheck) carryDataflow(holder, owner LocalID, sites []carrySite) []
 	return in
 }
 
-func (c *borrowCheck) carryStep(bid BlockID, holder, owner LocalID, sites []carrySite, cur bool, end int) bool {
+func (c *borrowCheck) carryStep(bid BlockID, holder, owner LocalID, sites []carrySite, cur bool, end int, stores bool) bool {
 	insts := c.f.Blocks[bid].Insts
 	for i := 0; i < end && i < len(insts); i++ {
 		in := insts[i]
-		if shapes[in.Op].result && in.Dst == holder || (in.Op == OpMove || in.Op == OpDrop) && len(in.Args) > 0 && in.Args[0] == holder {
+		if shapes[in.Op].result && in.Dst == holder || (in.Op == OpMove || in.Op == OpDrop) && len(in.Args) > 0 && in.Args[0] == holder || stores && c.replacesHolder(in, holder) {
 			cur = false
 		}
 		for _, s := range sites {

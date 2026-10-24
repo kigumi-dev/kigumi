@@ -117,12 +117,6 @@ error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method
    |            ^^^^^^^^^^^^^^^^^^^^^
 
 error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
-  --> main.kg:38:12
-   |
-38 |     a.bump({ a.id = 3; 10 })
-   |            ^^^^^^^^^^^^^^
-
-error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
   --> main.kg:43:12
    |
 43 |     a.show({ a = R { id: 2 }; 10 })
