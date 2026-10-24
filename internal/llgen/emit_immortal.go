@@ -77,7 +77,7 @@ func (e *emitter) stdBindSlot(key string, lent int) string {
 	}
 	slot := fmt.Sprintf("@\".stdbind.%d\"", len(e.stdBinds))
 	e.stdBindOf[id] = slot
-	e.stdBinds = append(e.stdBinds, stdBind{slot: slot, key: e.cstr(key), lent: lent})
+	e.stdBinds = append(e.stdBinds, stdBind{slot: slot, key: e.stdKeyStr(key), lent: lent})
 	return slot
 }
 

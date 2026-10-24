@@ -23,7 +23,7 @@ func splitArchiveCFlags(flags []string) (compile, linkerLike []string) {
 // arTool is the archiver for cc: zig's own, since a plain system `ar`
 // cannot read object files zig cc produced for some targets.
 func arTool(o CompilerOptions, cc []string) ([]string, error) {
-	if strings.HasSuffix(cc[0], "zig") || filepath.Base(cc[0]) == "zig" {
+	if isZig(cc) {
 		return []string{cc[0], "ar"}, nil
 	}
 	ar, err := o.LookTool("ar")

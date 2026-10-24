@@ -9,3 +9,28 @@ type AddrInfo layout(C) = {
     pub canonname *const u8
     pub next *const u8
 }
+
+/// glibc's gai_strerror text, so a static musl build reads like the host C library.
+fn gaiText(code: i32) -> String {
+    match code {
+        -1 -> "Bad value for ai_flags"
+        -2 -> "Name or service not known"
+        -3 -> "Temporary failure in name resolution"
+        -4 -> "Non-recoverable failure in name resolution"
+        -5 -> "No address associated with hostname"
+        -6 -> "ai_family not supported"
+        -7 -> "ai_socktype not supported"
+        -8 -> "Servname not supported for ai_socktype"
+        -9 -> "Address family for hostname not supported"
+        -10 -> "Memory allocation failure"
+        -11 -> "System error"
+        -12 -> "Result too large for supplied buffer"
+        -100 -> "Processing request in progress"
+        -101 -> "Request canceled"
+        -102 -> "Request not canceled"
+        -103 -> "All requests done"
+        -104 -> "Interrupted by a signal"
+        -105 -> "Parameter string not correctly encoded"
+        _ -> "Unknown error"
+    }
+}

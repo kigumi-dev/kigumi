@@ -57,7 +57,12 @@ func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(in
 		}
 	}
 	merge(idx)
-	buildOpts := BuildOptions{Target: t, CFlags: opts.CFlags, LinkFlags: a.LinkFlags, Entry: a.Entry, Reproducible: opts.Reproducible, Env: opts.Env}
+	link, err := artifactLink(rg, idx, opts.Link)
+	if err != nil {
+		return err
+	}
+	var built BuildReport
+	buildOpts := BuildOptions{Target: t, CFlags: opts.CFlags, LinkFlags: a.LinkFlags, Entry: a.Entry, Reproducible: opts.Reproducible, Env: opts.Env, Link: link, SizeMin: opts.SizeMin, Report: &built}
 	if a.LinkerScript != nil {
 		buildOpts.LinkerScript = filePath(*a.LinkerScript)
 	}
@@ -67,6 +72,9 @@ func buildArtifact(p *BuildProgram, rg *ResolvedGraph, idx int, filePath func(in
 	}
 	if !ok {
 		return fmt.Errorf("artifact %s did not build", a.Name)
+	}
+	if opts.Reports != nil {
+		opts.Reports[a.Name] = built
 	}
 	if report := ResourceReport(m.LastAnalysis()); len(report) > 0 {
 		fmt.Fprintf(stderr, "artifact %s resources:\n", a.Name)

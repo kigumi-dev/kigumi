@@ -1,10 +1,8 @@
 package driver
 
 import (
-	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -27,32 +25,13 @@ func bareJumpTarget(t Target) bool {
 // buildOnce is BuildWith's single-build implementation; buildReproducible
 // calls it twice with pinCompDir and ccEnv set.
 func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool, error) {
-	t := opts.Target
-	if t.OS == "" {
-		t = m.compiler.HostOrAmbient()
-	}
-	code, ok, err := compile(m, stderr, t, emitOptionsFor(t))
+	l, ok, err := compileLinked(m, stderr, opts, false)
 	if err != nil || !ok {
 		return ok, err
 	}
-	code = withRuntimeABI(t, code, opts.CFlags)
-	cflags, err := resolveFlagPaths(m.compiler, opts.CFlags)
-	if err != nil {
-		return false, err
-	}
-	lflags, err := resolveFlagPaths(m.compiler, opts.LinkFlags)
-	if err != nil {
-		return false, err
-	}
-	if err := checkLinkedRuntimeABI(m, cflags, lflags, code.Abi); err != nil {
-		return false, err
-	}
-	cc, err := CCompilerFor(m)
-	if err != nil {
-		return false, err
-	}
-	if cc == nil {
-		return false, fmt.Errorf("no C compiler found (need zig or clang)")
+	m, code, t, link, cc, cflags, lflags := l.m, l.code, l.t, l.link, l.cc, l.cflags, l.lflags
+	if opts.Report != nil {
+		*opts.Report = BuildReport{Linkage: link, SizeMin: opts.SizeMin, SectionGC: sectionGC(t), LTO: lto(t), Archive: t.Bare()}
 	}
 	dir, err := os.MkdirTemp("", "kigumi-build")
 	if err != nil {
@@ -81,18 +60,17 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		}
 	}
 	inputs = append(inputs, m.Sources...)
-	// -O1 keeps zig cc out of Debug mode, which instruments C with UBSan calls freestanding has no runtime for.
-	args := append(cc[1:], "-Wno-override-module", "-O1")
+	args := append(append(cc[1:], "-Wno-override-module"), codegenFlags(t, opts.SizeMin)...)
 	if t.compileTriple() != "" {
 		args = append(args, "-target", t.compileTriple())
 	}
 	if t.Freestanding() {
 		args = append(args, "-nostdlib")
 	}
-	if t.Bare() && t.Arch == "arm" {
-		args = append(args, "-fno-unwind-tables", "-fno-asynchronous-unwind-tables")
+	if sectionGC(t) {
+		args = append(args, "-ffunction-sections", "-fdata-sections")
 	}
-	for _, def := range runtimeDefines(t, code) {
+	for _, def := range append(runtimeDefines(t, code), code.StdOps...) {
 		args = append(args, "-D"+def)
 	}
 	args = append(args, abiDefine(code.Abi))
@@ -124,57 +102,7 @@ func buildOnce(m *Module, out string, stderr io.Writer, opts BuildOptions) (bool
 		return true, WriteFingerprintSidecar(out, fp)
 	}
 	ok, err = publishBuildOutput(out, func(staged string) error {
-		linkOut, linkInputsList, err := linkInputs(m.compiler, opts.pinCompDir, dir, staged, inputs)
-		if err != nil {
-			return err
-		}
-		linkArgs := append(append([]string{}, args...), "-o", linkOut)
-		linkArgs = append(linkArgs, linkInputsList...)
-		if opts.pinCompDir {
-			linkArgs = append(linkArgs, "-fdebug-compilation-dir=.")
-			linkArgs = append(linkArgs, prefixMapFlag(m.compiler)...)
-		}
-		linkArgs = append(linkArgs, "-lm")
-		if _, ok := m.Packages["std/dl"]; ok {
-			linkArgs = append(linkArgs, "-ldl")
-		}
-		for _, l := range m.Links {
-			if l.Search != "" {
-				// l.Search may be relative to the compiler Cwd; resolve now since -L is read against cmd.Dir, which pinCompDir moves to dir.
-				search := l.Search
-				if abs, err := m.compiler.Abs(search); err == nil {
-					search = abs
-				}
-				linkArgs = append(linkArgs, "-L"+search)
-			}
-			if l.Library != "" {
-				linkArgs = append(linkArgs, "-l"+l.Library)
-			}
-		}
-		if opts.LinkerScript != "" {
-			script := opts.LinkerScript
-			if abs, err := m.compiler.Abs(script); err == nil {
-				script = abs
-			}
-			linkArgs = append(linkArgs, "-T", script)
-		}
-		if opts.Entry != "" {
-			linkArgs = append(linkArgs, "-Wl,--entry="+opts.Entry)
-		}
-		linkArgs = append(linkArgs, lflags...)
-		linkArgs = append(linkArgs, cflags...)
-		cmd := exec.Command(cc[0], linkArgs...)
-		cmd.Stderr = stderr
-		if opts.pinCompDir {
-			cmd.Dir = dir
-		}
-		if opts.ccEnv != nil {
-			cmd.Env = opts.ccEnv
-		}
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("link failed: %w", err)
-		}
-		return nil
+		return hostLink{m: m, cc: cc, args: args, inputs: inputs, dir: dir, opts: opts, t: t, link: link, cflags: cflags, lflags: lflags, stderr: stderr}.run(staged)
 	})
 	if err != nil || !ok {
 		return ok, err

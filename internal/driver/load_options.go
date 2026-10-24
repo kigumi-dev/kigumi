@@ -70,4 +70,6 @@ type LoadOptions struct {
 	FileOrder func(names []string)
 	// Compiler carries the process facts the compiler consults; internal/cli fills it in.
 	Compiler CompilerOptions
+	// headerTriple, when set, is the triple Header records translate against instead of the default link's.
+	headerTriple *string
 }

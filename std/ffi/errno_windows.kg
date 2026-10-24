@@ -1,4 +1,5 @@
 extern(C) {
+    fn strerror(code: i32) -> *const u8
     fn _errno() -> *mut i32
 }
 
@@ -14,5 +15,11 @@ pub fn errno() -> i32 {
 pub fn clearErrno() {
     unsafe {
         writeI32(_errno(), 0)
+    }
+}
+
+fn osErrorText(code: i32) -> String {
+    unsafe {
+        string(strerror(code))
     }
 }

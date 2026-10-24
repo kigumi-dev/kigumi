@@ -48,15 +48,14 @@ func (m *Module) addHeaders(dir string, mf ModFile) error {
 		if !withinSandbox([]string{dir}, headerPath) {
 			return fmt.Errorf("%s: Header path %q resolves outside the module", mf.Name, h.Path)
 		}
-		res, err := cheader.Import(cheader.Options{
+		res, err := m.importHeader(cheader.Options{
 			ZigPath:    zigPath,
-			Target:     m.target.compileTriple(),
 			ABI:        cheader.ABIFor(m.target.OS, m.target.Arch),
 			HeaderPath: headerPath,
 			Root:       dir,
 			Abs:        m.compiler.Abs,
 			CacheDir:   cacheDir,
-		})
+		}, h.Path)
 		if err != nil {
 			return fmt.Errorf("importing %s (%s): %w", h.Path, h.Package, err)
 		}

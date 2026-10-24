@@ -21,6 +21,15 @@ func TestColorFlagValidation(t *testing.T) {
 	}
 }
 
+func TestBuildLinkFlagValidation(t *testing.T) {
+	std, _ := filepath.Abs("../../std")
+	hello, _ := filepath.Abs("../../examples/hello/main.kg")
+	out := filepath.Join(t.TempDir(), "a.out")
+	if code, errOut := executeReal(t, "--std", std, "build", "--link", "banana", "-o", out, hello); code != 2 || !strings.Contains(errOut, "link") {
+		t.Fatalf("--link banana: exit %d, stderr %q", code, errOut)
+	}
+}
+
 // `build --plan/--out-dir/--secret` only mean anything for a module whose
 // build.kg has a Program.
 func TestBuildRejectsBuildProgramFlagsWithoutOne(t *testing.T) {

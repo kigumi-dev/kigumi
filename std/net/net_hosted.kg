@@ -2,7 +2,6 @@ import ffi from std/ffi
 
 extern(C) {
     fn getaddrinfo(host: *const u8, port: *const u8, hints: *const AddrInfo, out: *mut PtrBox) -> i32
-    fn gai_strerror(code: i32) -> *const u8
     fn freeaddrinfo(res: *const u8)
     fn socket(family: i32, socktype: i32, protocol: i32) -> i32
     fn connect(fd: i32, addr: *const u8, len: u32) -> i32
@@ -61,9 +60,9 @@ fn fails(text: String) -> Failure {
 }
 
 // getaddrinfo reports failure through its own EAI_* code space, not errno,
-// so its text comes from gai_strerror rather than ffi.lastError().
+// so its text comes from gaiText rather than ffi.lastError().
 fn gaiFails(code: i32) -> Failure {
-    fails("cannot resolve host: ${unsafe { ffi.stringLossy(gai_strerror(code)) }}")
+    fails("cannot resolve host: ${gaiText(code)}")
 }
 
 fn pollFdPtr(buf: *mut u8) -> *mut Pollfd {

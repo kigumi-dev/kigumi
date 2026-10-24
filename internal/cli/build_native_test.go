@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"kigumi/internal/testtool"
@@ -23,8 +24,17 @@ func TestBuildPlainBuildNative(t *testing.T) {
 	os.WriteFile(file, []byte("fn main() -> Void! {}\n"), 0o644)
 	out := filepath.Join(dir, "a.out")
 
-	if code, _, errOut := execute(t, "--std", std, "build", "-o", out, file); code != 0 {
+	code, _, errOut := execute(t, "--std", std, "build", "-o", out, file)
+	if code != 0 {
 		t.Fatalf("plain build without those flags should still work: exit %d, stderr %q", code, errOut)
+	}
+	for _, line := range []string{"\n  linking: ", "\n  size: "} {
+		if !strings.Contains(errOut, line) {
+			t.Errorf("the build summary lacks %q:\n%s", strings.TrimSpace(line), errOut)
+		}
+	}
+	if code, errOut := executeReal(t, "--std", std, "--target", "x86_64-linux-gnu", "build", "--link", "static", "-o", out, file); code == 0 || !strings.Contains(errOut, "--link static contradicts --target x86_64-linux-gnu") {
+		t.Fatalf("--link static with --target: exit %d, stderr %q", code, errOut)
 	}
 	if _, err := os.Stat(out); err != nil {
 		t.Fatalf("plain build did not produce %s: %v", out, err)

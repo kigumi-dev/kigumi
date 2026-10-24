@@ -17,6 +17,10 @@ type Output struct {
 	Unwind bool
 	// Int128 asks for the runtime built with KIGUMI_INT128: some reachable function holds a 128-bit integer.
 	Int128 bool
+	// StdOps are the -D macros that compile only the rt_std_id cases and the keyed dispatch the IR calls.
+	StdOps []string
+	// Foreign are the C symbols the IR declares, sorted.
+	Foreign []string
 }
 
 // EmitOptions selects the entry point: a hosted `main`, or `kigumi_main`

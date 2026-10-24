@@ -11,65 +11,6 @@ import (
 	"kigumi/internal/sem"
 )
 
-type emitter struct {
-	p            *mir.Program
-	entryAllocas []string
-	cancelFlag   string
-	hoisting     bool
-	freestanding bool
-	entrySymbol  string
-	reachable    *mir.Reachability
-	r            *sem.Result
-	out          strings.Builder
-	strs         map[string]string
-	strList      []string
-	descs        map[sem.EntityID]string
-	vdescs       map[sem.EntityID]string
-	primDescs    map[string]string
-	tables       strings.Builder
-	foreign      map[string]string
-	helpers      strings.Builder
-	cio          map[string]bool
-	ntypes       int
-	tmp          int
-	stdDrops     map[sem.EntityID]bool
-	shim         *cshim
-	modAsm       strings.Builder
-	symPrefix    string
-	scalar       map[mir.LocalID]scalarInfo
-	raw          map[mir.LocalID]bool
-	fnItems      map[string]fnItem
-	stdBinds     []stdBind
-	stdBindOf    map[string]string
-	constVals    map[string]constVal
-	constShape   map[string]constVal
-	aggLabels    map[string]bool
-	constIndex   map[string]int
-	constOrder   []string
-	constKey     map[mir.LocalID]string
-	constOwned   map[mir.LocalID]bool
-	aggs         map[sem.TypeID]*aggInfo
-	aggOrder     []sem.TypeID
-	aggDone      map[sem.TypeID]bool
-	protoDone    map[protoKey]bool
-	direct       map[mir.LocalID]*aggInfo
-	boxTmp       map[mir.LocalID]bool
-	crossSrc     map[mir.LocalID]mir.LocalID
-	nameAlias    map[mir.LocalID]bool
-	lentCells    map[mir.LocalID]bool
-	sigs         map[*mir.Func]*aggSig
-	sig          *aggSig
-	ssigs        map[*mir.Func]*scalarSig
-	ssig         *scalarSig
-	wrapNeed     map[wrapperKey]bool
-	wrapDone     map[wrapperKey]bool
-	catch        bool
-	abiSym       string
-	unwind       *unwindFrame
-	outer        *outerDrops
-	at           siteAt
-}
-
 func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	e := &emitter{p: p, r: p.R, strs: map[string]string{}, descs: map[sem.EntityID]string{}, vdescs: map[sem.EntityID]string{}, foreign: map[string]string{}, stdDrops: map[sem.EntityID]bool{}, cio: map[string]bool{}, fnItems: map[string]fnItem{}, stdBindOf: map[string]string{}, constVals: map[string]constVal{}, constShape: map[string]constVal{}, constIndex: map[string]int{}, aggs: map[sem.TypeID]*aggInfo{}, aggDone: map[sem.TypeID]bool{}, sigs: map[*mir.Func]*aggSig{}, wrapNeed: map[wrapperKey]bool{}, wrapDone: map[wrapperKey]bool{}, freestanding: opts.Freestanding, entrySymbol: opts.EntrySymbol, symPrefix: opts.SymbolPrefix, reachable: opts.Reachable, shim: newCshim()}
 	e.catch = e.wantsCatch(opts)
@@ -137,7 +78,7 @@ func EmitProgram(p *mir.Program, opts EmitOptions) Output {
 	if e.freestanding {
 		ir = markNoUnwind(ir)
 	}
-	return Output{IR: ir, CShim: e.shim.text(), Capabilities: caps, Unwind: e.catch, Int128: int128}
+	return Output{IR: ir, CShim: e.shim.text(), Capabilities: caps, Unwind: e.catch, Int128: int128, StdOps: e.std.macros(), Foreign: slices.Sorted(maps.Keys(e.foreign))}
 }
 
 func (e *emitter) newTmp() string {

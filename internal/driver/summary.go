@@ -25,6 +25,9 @@ type Summary struct {
 	ReproducibleChecked bool
 	Reproducible        bool
 	DeriveProvenance    []schema.GeneratedArtifact
+	// Linking and Size are each build's resolved C library form and size settings, prefixed by artifact name in a build program.
+	Linking []string
+	Size    []string
 }
 
 func (s Summary) Render() string {
@@ -40,6 +43,8 @@ func (s Summary) Render() string {
 	writeListOrNone(&sb, s.Resources)
 	sb.WriteString("  capabilities: ")
 	writeListOrNone(&sb, s.Capabilities)
+	writeIfAny(&sb, "  linking: ", s.Linking)
+	writeIfAny(&sb, "  size: ", s.Size)
 	sb.WriteString("  derive generators: ")
 	writeListOrNone(&sb, deriveProvenanceLines(s.DeriveProvenance))
 	sb.WriteString("  build isolation: trusted host (not sandboxed)\n")
@@ -65,6 +70,13 @@ func deriveProvenanceLines(items []schema.GeneratedArtifact) []string {
 		out[i] = fmt.Sprintf("%s on %s (%s)", g.Generator, name, short(g.ContentHash))
 	}
 	return out
+}
+
+func writeIfAny(sb *strings.Builder, label string, items []string) {
+	if len(items) > 0 {
+		sb.WriteString(label)
+		writeListOrNone(sb, items)
+	}
 }
 
 func writeListOrNone(sb *strings.Builder, items []string) {

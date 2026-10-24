@@ -12,7 +12,7 @@ import (
 	"kigumi/internal/errors"
 )
 
-func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outDir string, secretSpecs []string, reproducible bool, policy driver.BuildPolicy) error {
+func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outDir string, secretSpecs []string, reproducible bool, policy driver.BuildPolicy, form outputShape) error {
 	target, err := shared.Target(cmd)
 	if err != nil {
 		return &cliutil.UsageError{Err: err}
@@ -70,10 +70,12 @@ func runProgram(cmd *cobra.Command, root string, flags []string, plan bool, outD
 			}
 		}
 	}
-	if err := driver.ExecuteGraph(p, rg, outDir, driver.ExecOptions{Secrets: secrets, CFlags: shared.CFlags(), ToolEnv: shared.ToolEnv(), Reproducible: reproducible, Env: shared.CCEnv()}, cmd.ErrOrStderr()); err != nil {
+	reports := map[string]driver.BuildReport{}
+	exec := driver.ExecOptions{Secrets: secrets, CFlags: shared.CFlags(), ToolEnv: shared.ToolEnv(), Reproducible: reproducible, Env: shared.CCEnv(), Link: form.link, SizeMin: form.sizeMin, Reports: reports}
+	if err := driver.ExecuteGraph(p, rg, outDir, exec, cmd.ErrOrStderr()); err != nil {
 		cmd.PrintErrln("build: " + err.Error())
 		return cliutil.Exit(1)
 	}
-	fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, p.Module, policy, reproducible, driver.ToolCapabilities(rg.Graph)).Render())
+	fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, p.Module, policy, reproducible, driver.ToolCapabilities(rg.Graph), reports).Render())
 	return nil
 }

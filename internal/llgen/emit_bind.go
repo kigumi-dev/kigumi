@@ -18,5 +18,5 @@ func (e *emitter) bindValue(sb *strings.Builder, in mir.Inst, args []string) str
 	case own:
 		return e.closureCtor(sb, e.useBind(fn), false, args, arr)
 	}
-	return e.irb(sb).Call(rtStdBind, vptr(e.cstr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)), vi32(len(args)), vptr(arr)).Text
+	return e.irb(sb).Call(rtStdBind, vptr(e.stdKeyStr(e.stdKey(in.Ent))), vi32(mir.LentMask(e.r, in.Ent)), vi32(len(args)), vptr(arr)).Text
 }

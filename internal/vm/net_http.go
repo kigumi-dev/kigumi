@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"kigumi/internal/hostshell"
 	"kigumi/internal/sem"
 )
 
@@ -77,7 +78,7 @@ func writeHTTP(conn net.Conn, data []byte) error {
 	return nil
 }
 
-// ioError renders a read/write failure like ffi.lastError(): EAGAIN's strerror text on timeout, else the errno's message capitalized to match strerror (Go's is lowercase).
+// ioError renders a read/write failure like ffi.lastError(): EAGAIN's strerror text on timeout, else the errno's strerror text.
 func ioError(err error) error {
 	var ne net.Error
 	if errors.As(err, &ne) && ne.Timeout() {
@@ -85,8 +86,7 @@ func ioError(err error) error {
 	}
 	var errno syscall.Errno
 	if errors.As(err, &errno) {
-		msg := errno.Error()
-		return errors.New(strings.ToUpper(msg[:1]) + msg[1:])
+		return errors.New(hostshell.OSErrText(errno))
 	}
 	return err
 }

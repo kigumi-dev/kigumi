@@ -1,3 +1,9 @@
+import ffi from std/ffi
+
+extern(C) {
+    fn gai_strerror(code: i32) -> *const u8
+}
+
 /// struct addrinfo as this platform lays it out.
 type AddrInfo layout(C) = {
     pub flags i32
@@ -8,4 +14,10 @@ type AddrInfo layout(C) = {
     pub canonname *const u8
     pub addr *const u8
     pub next *const u8
+}
+
+fn gaiText(code: i32) -> String {
+    unsafe {
+        ffi.stringLossy(gai_strerror(code))
+    }
 }

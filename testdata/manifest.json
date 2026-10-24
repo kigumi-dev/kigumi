@@ -10031,6 +10031,23 @@
       ]
     },
     {
+      "id": "run/fs_errno_text",
+      "kind": "run",
+      "path": "testdata/run/fs_errno_text.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/fs_error_text_parity",
       "kind": "run",
       "path": "testdata/run/fs_error_text_parity.txtar",
@@ -15001,6 +15018,23 @@
       "id": "run/std_ffi_cstring_nul",
       "kind": "run",
       "path": "testdata/run/std_ffi_cstring_nul.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/std_ffi_errno_text",
+      "kind": "run",
+      "path": "testdata/run/std_ffi_errno_text.txtar",
       "mode": [
         "vm",
         "native"

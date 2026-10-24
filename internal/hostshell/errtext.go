@@ -16,6 +16,6 @@ func OSErrText(err error) string {
 	if !errors.As(err, &errno) {
 		return err.Error()
 	}
-	text := errno.Error()
+	text := glibcText(errno, errno.Error())
 	return strings.ToUpper(text[:1]) + text[1:]
 }

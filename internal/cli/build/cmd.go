@@ -26,12 +26,17 @@ func Cmd() *cobra.Command {
 	outDir := cmd.Flags().String("out-dir", ".", "with a build.kg, the directory artifacts and generated files go to")
 	secrets := cmd.Flags().StringArray("secret", nil, "with a build.kg, name=file of a secret a tool step may read")
 	reproducible := cmd.Flags().Bool("reproducible", false, "build twice, each with a fresh build dir and compiler cache, and fail if the outputs differ")
+	shape := shapeFlags(cmd)
 	shared.ReleaseFlag(cmd)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if *reproducible && *emit {
 			return &cliutil.UsageError{Err: errors.NewErr("--reproducible and --emit-llvm are incompatible")}
 		}
 		policy := shared.Policy(cmd)
+		form, err := shape()
+		if err != nil {
+			return err
+		}
 		if !strings.HasSuffix(args[0], ".kg") {
 			if _, hasProgram, err := driver.ReadBuildFile(args[0]); err != nil {
 				cmd.PrintErr(err.Error())
@@ -40,7 +45,7 @@ func Cmd() *cobra.Command {
 				if *exe != "" || *emit {
 					return &cliutil.UsageError{Err: errors.NewErr("a module with build.kg takes --out-dir and --plan, not -o or --emit-llvm")}
 				}
-				return runProgram(cmd, args[0], args[1:], *plan, *outDir, *secrets, *reproducible, policy)
+				return runProgram(cmd, args[0], args[1:], *plan, *outDir, *secrets, *reproducible, policy, form)
 			}
 		}
 		if cmd.Flags().Changed("plan") || cmd.Flags().Changed("out-dir") || cmd.Flags().Changed("secret") {
@@ -64,8 +69,12 @@ func Cmd() *cobra.Command {
 		if report.HasErrors() {
 			return cliutil.Exit(1)
 		}
+		target, err := shared.Target(cmd)
+		if err != nil {
+			return &cliutil.UsageError{Err: err}
+		}
 		if *emit {
-			ir, ok, err := driver.Compile(m, cmd.ErrOrStderr())
+			ir, ok, err := driver.CompileWith(m, cmd.ErrOrStderr(), driver.BuildOptions{Target: target, CFlags: shared.CFlags(), Link: form.link, SizeMin: form.sizeMin})
 			if err != nil {
 				return errors.WrapErr(err, "compile module")
 			}
@@ -75,10 +84,6 @@ func Cmd() *cobra.Command {
 			fmt.Fprint(cmd.OutOrStdout(), ir)
 			return nil
 		}
-		target, err := shared.Target(cmd)
-		if err != nil {
-			return &cliutil.UsageError{Err: err}
-		}
 		out := *exe
 		if out == "" {
 			out = "a.out"
@@ -86,14 +91,15 @@ func Cmd() *cobra.Command {
 				out = "kigumi.a"
 			}
 		}
-		ok, err := driver.BuildWith(m, out, cmd.ErrOrStderr(), driver.BuildOptions{Target: target, CFlags: shared.CFlags(), Reproducible: *reproducible, Env: shared.CCEnv()})
+		var built driver.BuildReport
+		ok, err := driver.BuildWith(m, out, cmd.ErrOrStderr(), driver.BuildOptions{Target: target, CFlags: shared.CFlags(), Reproducible: *reproducible, Env: shared.CCEnv(), Link: form.link, SizeMin: form.sizeMin, Report: &built})
 		if err != nil {
 			return errors.WrapErr(err, "build module")
 		}
 		if !ok {
 			return cliutil.Exit(1)
 		}
-		fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, policy, *reproducible, nil).Render())
+		fmt.Fprint(cmd.ErrOrStderr(), buildSummary(cmd, m, policy, *reproducible, nil, map[string]driver.BuildReport{"": built}).Render())
 		return nil
 	}
 	return cmd

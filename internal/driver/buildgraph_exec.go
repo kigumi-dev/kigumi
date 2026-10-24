@@ -21,7 +21,11 @@ type ExecOptions struct {
 	Reproducible bool
 	// Env is the allowlisted compiler environment (shared.CCEnv) each
 	// artifact's Reproducible build runs its two internal builds in.
-	Env []string
+	Env     []string
+	Link    LinkMode
+	SizeMin bool
+	// Reports, when set, receives each artifact's BuildReport by artifact name.
+	Reports map[string]BuildReport
 }
 
 func ExecuteGraph(p *BuildProgram, rg *ResolvedGraph, outDir string, opts ExecOptions, stderr io.Writer) error {

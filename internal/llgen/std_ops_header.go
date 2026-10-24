@@ -9,8 +9,8 @@ import (
 
 //go:generate env UPDATE=1 go test -run TestStdOpHeaderFresh .
 
-// StdOpHeader renders the registry as rt_std_ops.h: the `enum std_op` the
-// runtime dispatches on and rt_std_op_of, the string-key resolver for dynamic calls.
+// StdOpHeader renders the registry as rt_std_ops.h: `enum std_op`, the retired case labels, the live ops' KIGUMI_OP_<NAME>
+// case guards (all on without KIGUMI_OP_SELECT) and rt_std_op_of, the key resolver that mirrors mir.StdOpFor.
 func StdOpHeader(reg *mir.StdOpRegistry) string {
 	var sb strings.Builder
 	sb.WriteString("// Generated from internal/mir/stdops.reg by TestStdOpHeaderFresh; do not edit.\n")
@@ -21,20 +21,28 @@ func StdOpHeader(reg *mir.StdOpRegistry) string {
 	}
 	sb.WriteString("};\n")
 	writeRetiredCases(&sb, reg)
+	sb.WriteString("#ifndef KIGUMI_OP_SELECT\n")
+	for _, op := range reg.Ops {
+		if !op.Retired {
+			fmt.Fprintf(&sb, "#define %s\n", OpMacro(op.Name))
+		}
+	}
+	sb.WriteString("#define KIGUMI_STD_DYNAMIC\n#endif\n#ifdef KIGUMI_STD_DYNAMIC\n")
 	sb.WriteString("static int rt_std_op_of(const char* key) {\n    const char* k = key;\n    if (!strncmp(k, \"std/\", 4)) k += 4;\n")
 	for _, op := range reg.Ops {
-		writeMatch(&sb, "k", op.Keys, op.Name)
+		writeMatch(&sb, "    ", "k", op.Keys, op.Name)
 	}
-	sb.WriteString("    const char* dot = strrchr(k, '.');\n    const char* m = dot ? dot + 1 : k;\n")
+	sb.WriteString("    const char* dot = strrchr(k, '.');\n    if (dot) {\n        const char* m = dot + 1;\n")
 	for _, op := range reg.Ops {
-		writeMatch(&sb, "m", op.Suffixes, op.Name)
+		writeMatch(&sb, "        ", "m", op.Suffixes, op.Name)
 	}
+	sb.WriteString("    }\n")
 	for _, op := range reg.Ops {
 		for _, p := range op.Prefixes {
 			fmt.Fprintf(&sb, "    if (!strncmp(k, %q, %d)) return OP_%s;\n", p, len(p), op.Name)
 		}
 	}
-	sb.WriteString("    return -1;\n}\n#endif\n")
+	sb.WriteString("    return -1;\n}\n#endif\n#endif\n")
 	return sb.String()
 }
 
@@ -52,7 +60,7 @@ func writeRetiredCases(sb *strings.Builder, reg *mir.StdOpRegistry) {
 	fmt.Fprintf(sb, "#define RT_STD_OPS_RETIRED_CASES %s\n", strings.Join(labels, " "))
 }
 
-func writeMatch(sb *strings.Builder, subject string, values []string, op string) {
+func writeMatch(sb *strings.Builder, indent, subject string, values []string, op string) {
 	if len(values) == 0 {
 		return
 	}
@@ -60,5 +68,8 @@ func writeMatch(sb *strings.Builder, subject string, values []string, op string)
 	for i, v := range values {
 		conds[i] = fmt.Sprintf("!strcmp(%s, %q)", subject, v)
 	}
-	fmt.Fprintf(sb, "    if (%s) return OP_%s;\n", strings.Join(conds, " || "), op)
+	fmt.Fprintf(sb, "%sif (%s) return OP_%s;\n", indent, strings.Join(conds, " || "), op)
 }
+
+// OpMacro is the -D name that compiles the runtime case of the op named name.
+func OpMacro(name string) string { return "KIGUMI_OP_" + name }

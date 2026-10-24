@@ -3017,6 +3017,16 @@
     "reason": "ffi/dl: native-only; kigumi build diagnoses it on the VM"
   },
   {
+    "key": "ffi.osErrorText",
+    "signature": "fn(i32) -\u003e String",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
     "key": "ffi.readF64",
     "signature": "unsafe fn(*const Float) -\u003e Float",
     "has_body": false,
@@ -7493,6 +7503,16 @@
   {
     "key": "net.gaiFails",
     "signature": "fn(i32) -\u003e Failure",
+    "has_body": true,
+    "kind": "",
+    "vm": "gap",
+    "native": "gap",
+    "accelerated": false,
+    "status": "ok"
+  },
+  {
+    "key": "net.gaiText",
+    "signature": "fn(i32) -\u003e String",
     "has_body": true,
     "kind": "",
     "vm": "gap",

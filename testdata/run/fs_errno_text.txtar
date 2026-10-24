@@ -1,0 +1,19 @@
+-- src --
+import fs from std/fs
+
+let files = host.files()
+match files.read(fs.Path.fromString("/proc/self/mem")?) {
+    Ok(_) -> print "ok"
+    Err(e) -> print e.message()
+}
+let mut name = "/tmp/"
+for _ in 0..300 {
+    name = "${name}x"
+}
+match files.read(fs.Path.fromString(name)?) {
+    Ok(_) -> print "ok"
+    Err(e) -> print e.message()
+}
+-- stdout --
+Input/output error
+File name too long
