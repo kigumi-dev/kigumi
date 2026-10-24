@@ -116,7 +116,9 @@ func (b *builder) methodArgs(e *hir.Expr) (LocalID, []LocalID) {
 	full := b.evalArgs(1, len(e.Args), e.EvalOrder, func(i int) LocalID {
 		if i == 0 {
 			recv := b.receiver(e.Args[0], e.Ent, !e.Async, e.Witness == 0 && !b.r.ReplacesSelf(e.Ent))
-			if later := laterArgs(e.Args, e.EvalOrder, 0); b.r.Fn(e.Ent).Recv == sem.RecvSelf && !mutBorrowsReceiver(e.Args[0], later) {
+			later := laterArgs(e.Args, e.EvalOrder, 0)
+			b.rejectRecvWrite(e, later)
+			if b.r.Fn(e.Ent).Recv == sem.RecvSelf && !mutBorrowsReceiver(e.Args[0], later) {
 				recv = b.snapshot(recv, e.Args[0], e.Args[0].Node, later...)
 			}
 			return recv

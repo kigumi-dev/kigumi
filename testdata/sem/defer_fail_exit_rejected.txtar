@@ -1,6 +1,4 @@
 -- src --
-import test from std/test
-
 type Handle = resource {
     pub id Int
 }
@@ -49,12 +47,6 @@ fn tailReturnsResult() -> Handle! {
     let h = Handle { id: 1 }
     defer(fail) { h.close() }
     wrapR(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
-}
-
-fn conditionalMoveThenFail(flag: Bool) -> Handle! {
-    let h = Handle { id: 1 }
-    defer(fail) { h.close() }
-    if flag { h } else { fail test.failure("no") } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
 }
 
 fn branchMayBeErr(flag: Bool) -> Handle! {
@@ -107,152 +99,140 @@ fn bodyCheckedWithoutFailureExit() -> Void! {
 }
 -- expect --
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:31:10
+  --> main/main.kg:29:10
    |
-31 |     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+29 |     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |          ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:30:5
+  --> main/main.kg:28:5
    |
-30 |     defer(fail) { h.close() }
+28 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:38:15
+  --> main/main.kg:36:15
    |
-38 |     Pair { h: h, n: num()? } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+36 |     Pair { h: h, n: num()? } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |               ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:37:5
+  --> main/main.kg:35:5
    |
-37 |     defer(fail) { h.close() }
+35 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:44:22
+  --> main/main.kg:42:22
    |
-44 |     return Pair { h: h, n: num()? } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+42 |     return Pair { h: h, n: num()? } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |                      ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:43:5
+  --> main/main.kg:41:5
    |
-43 |     defer(fail) { h.close() }
+41 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:50:11
+  --> main/main.kg:48:11
    |
-50 |     wrapR(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+48 |     wrapR(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |           ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:49:5
+  --> main/main.kg:47:5
    |
-49 |     defer(fail) { h.close() }
+47 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:56:15
+  --> main/main.kg:54:15
    |
-56 |     if flag { h } else { fail test.failure("no") } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+54 |     if flag { h } else { wrapR(Handle { id: 2 }) } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |               ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:55:5
+  --> main/main.kg:53:5
    |
-55 |     defer(fail) { h.close() }
+53 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:62:15
+  --> main/main.kg:60:25
    |
-62 |     if flag { h } else { wrapR(Handle { id: 2 }) } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
-   |               ^
-   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
-note: `h` is reserved by this cleanup
-  --> main/main.kg:61:5
-   |
-61 |     defer(fail) { h.close() }
-   |     ^^^^^^^^^^^^^^^^^^^^^^
-
-error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:68:25
-   |
-68 |     return Ok(Pair { h: h, n: num()? }) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+60 |     return Ok(Pair { h: h, n: num()? }) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |                         ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:67:5
+  --> main/main.kg:59:5
    |
-67 |     defer(fail) { h.close() }
+59 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:75:14
+  --> main/main.kg:67:14
    |
-75 |         take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+67 |         take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |              ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:73:5
+  --> main/main.kg:65:5
    |
-73 |     defer(fail) { h.close() }
+65 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
-  --> main/main.kg:83:5
+  --> main/main.kg:75:5
    |
-83 |     h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+75 |     h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
    |     ^
    = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
 note: `h` is reserved by this cleanup
-  --> main/main.kg:82:5
+  --> main/main.kg:74:5
    |
-82 |     defer(fail) { h.close() }
+74 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2102]: `h` is already consumed by an earlier cleanup
-  --> main/main.kg:90:18
+  --> main/main.kg:82:18
    |
-90 |     defer { take(h) } //~ ERROR `h` is already consumed by an earlier cleanup
+82 |     defer { take(h) } //~ ERROR `h` is already consumed by an earlier cleanup
    |                  ^
    = help: only one cleanup in scope may consume a binding
 note: `h` is reserved by this cleanup
-  --> main/main.kg:89:5
+  --> main/main.kg:81:5
    |
-89 |     defer(fail) { h.close() }
+81 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:91:5
+  --> main/main.kg:83:5
    |
-91 |     h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+83 |     h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |     ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:89:5
+  --> main/main.kg:81:5
    |
-89 |     defer(fail) { h.close() }
+81 |     defer(fail) { h.close() }
    |     ^^^^^^^^^^^^^^^^^^^^^^
 
 error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
-  --> main/main.kg:97:5
+  --> main/main.kg:89:5
    |
-97 |     h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+89 |     h //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
    |     ^
    = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
 note: `h` is reserved by this cleanup
-  --> main/main.kg:96:5
+  --> main/main.kg:88:5
    |
-96 |     defer { h.close() }
+88 |     defer { h.close() }
    |     ^^^^^^^^^^^^^^^^
 
 error[E400]: expected `String`, found `Int`
-   --> main/main.kg:103:25
-    |
-103 |         let s: String = h.id //~ ERROR expected `String`, found `Int`
-    |                         ^^^^
+  --> main/main.kg:95:25
+   |
+95 |         let s: String = h.id //~ ERROR expected `String`, found `Int`
+   |                         ^^^^
 

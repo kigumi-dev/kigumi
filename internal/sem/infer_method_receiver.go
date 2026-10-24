@@ -34,14 +34,8 @@ func (c *checker) movableField(n, field syntax.NodeID, recv TypeID) bool {
 		c.errAt(n, cMethodValuePlace, recv, "this expression", "bind the value to a local first, or call the method directly")
 		return false
 	}
-	container := c.readThrough(c.vars.resolve(c.info.Types[c.t.View(field).Base().ID()]))
-	if bn := c.r.Types.Node(container); bn.Kind == KNamed {
-		if c.isSharedEnt(bn.Ent) {
-			c.errAt(n, cMethodValuePlace, recv, "`"+c.placeName(field)+"` inside a `Shared`", "borrow the content and call the method directly")
-			return false
-		}
-		if c.r.typeDecl(bn.Ent).Drop != 0 {
-			c.errAt(n, cMethodValueDropField, recv, c.placeName(field), container, container)
+	for m := field; c.t.Kind(m) == syntax.MemberExpr; m = c.t.Unparen(c.t.View(m).Base().ID()) {
+		if !c.movableFrom(n, field, c.t.View(m).Base().ID(), recv) {
 			return false
 		}
 	}
@@ -70,6 +64,22 @@ func (c *checker) movableField(n, field syntax.NodeID, recv TypeID) bool {
 		}
 		return false
 	}
+}
+
+// movableFrom rejects moving field out of base's record when that record is a `Shared` or defines a custom `drop`.
+func (c *checker) movableFrom(n, field, base syntax.NodeID, recv TypeID) bool {
+	container := c.readThrough(c.vars.resolve(c.info.Types[base]))
+	bn := c.r.Types.Node(container)
+	switch {
+	case bn.Kind != KNamed:
+	case c.isSharedEnt(bn.Ent):
+		c.errAt(n, cMethodValuePlace, recv, "`"+c.placeName(field)+"` inside a `Shared`", "borrow the content and call the method directly")
+		return false
+	case c.r.typeDecl(bn.Ent).Drop != 0:
+		c.errAt(n, cMethodValueDropField, recv, c.placeName(field), container, container)
+		return false
+	}
+	return true
 }
 
 func (c *checker) lentRoot(n syntax.NodeID) bool {

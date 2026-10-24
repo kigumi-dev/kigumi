@@ -1,0 +1,35 @@
+-- src --
+type Buf = resource { pub n Int }
+
+fn Buf.drop(move self) {
+    let xs = Array.of(self.n)
+    print "drop ${xs.len()}"
+}
+
+noalloc fn Buf.finish(move self) {} //~ ERROR dropping `Buf` may allocate or deallocate
+
+noalloc fn finishFree(b: Buf) {} //~ ERROR dropping `Buf` may allocate or deallocate
+
+noalloc fn Buf.peek(move self) -> Buf { self }
+
+type Plain = resource { pub n Int }
+
+noalloc fn Plain.finish(move self) {}
+
+let b = Buf { n: 1 }
+let c = b.peek()
+c.finish()
+Plain { n: 2 }.finish()
+-- expect --
+error[E912]: dropping `Buf` may allocate or deallocate
+ --> main/main.kg:8:28
+  |
+8 | noalloc fn Buf.finish(move self) {} //~ ERROR dropping `Buf` may allocate or deallocate
+  |                            ^^^^
+
+error[E912]: dropping `Buf` may allocate or deallocate
+  --> main/main.kg:10:23
+   |
+10 | noalloc fn finishFree(b: Buf) {} //~ ERROR dropping `Buf` may allocate or deallocate
+   |                       ^^^^^^
+

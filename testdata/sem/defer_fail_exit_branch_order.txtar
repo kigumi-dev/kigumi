@@ -1,0 +1,38 @@
+-- src --
+import test from std/test
+
+type Handle = resource { pub id Int }
+
+fn Handle.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Handle.close(move self) {
+    print "close ${self.id}"
+}
+
+fn open(id: Int) -> Handle! {
+    Handle { id: id }
+}
+
+fn okFirst(n: Int) -> Handle! {
+    let h = open(6)?
+    defer(fail) { h.close() }
+    if n > 0 { Ok(h) } else { fail test.failure("first ${n}") }
+}
+
+fn plainFirst(flag: Bool) -> Handle! {
+    let h = open(7)?
+    defer(fail) { h.close() }
+    if flag { h } else { fail test.failure("no") }
+}
+
+fn matchFirst(n: Int) -> Handle! {
+    let h = open(8)?
+    defer(fail) { h.close() }
+    match n {
+        1 -> Ok(h)
+        _ -> fail test.failure("x")
+    }
+}
+-- expect --

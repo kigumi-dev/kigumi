@@ -1,0 +1,54 @@
+-- src --
+import test from std/test
+
+type Handle = resource { pub id Int }
+
+fn Handle.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Handle.close(move self) {
+    print "close ${self.id}"
+}
+
+fn open(id: Int) -> Handle! {
+    Handle { id: id }
+}
+
+fn okFirst(n: Int) -> Handle! {
+    let h = open(6)?
+    defer(fail) { h.close() }
+    if n > 0 { Ok(h) } else { fail test.failure("first ${n}") }
+}
+
+fn matchFirst(n: Int) -> Handle! {
+    let h = open(8)?
+    defer(fail) { h.close() }
+    match n {
+        1 -> Ok(h)
+        _ -> fail test.failure("x")
+    }
+}
+
+fn show(r: Handle!) {
+    match r {
+        Ok(h) -> print "got ${h.id}",
+        Err(_) -> print "err",
+    }
+}
+
+show(okFirst(1))
+show(okFirst(0))
+show(matchFirst(1))
+show(matchFirst(2))
+-- stdout --
+got 6
+drop 6
+close 6
+drop 6
+err
+got 8
+drop 8
+close 8
+drop 8
+err

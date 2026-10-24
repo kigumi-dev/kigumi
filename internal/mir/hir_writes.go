@@ -8,80 +8,105 @@ import (
 // writesLocal reports whether evaluating e can store into local ent; a closure body is skipped
 // because a local a closure writes lives in a cell, whose reads copy.
 func writesLocal(r *sem.Result, e *hir.Expr, ent sem.EntityID) bool {
+	return localWrites{r: r, ent: ent}.expr(e)
+}
+
+// moves also counts a by-value use of an owned ent as a write, since moving it out ends the value too;
+// path limits the writes to places overlapping that field path of ent.
+type localWrites struct {
+	r     *sem.Result
+	ent   sem.EntityID
+	whole bool
+	moves bool
+	path  []int
+}
+
+func (w localWrites) hits(e *hir.Expr) bool {
+	return rootedAt(e, w.ent) && fieldPathsOverlap(placePath(e), w.path)
+}
+
+func (w localWrites) expr(e *hir.Expr) bool {
+	r, ent := w.r, w.ent
 	if e == nil {
 		return false
 	}
 	switch e.Kind {
 	case hir.Lambda:
 		return false
+	case hir.Local:
+		return w.moves && e.Ent == ent && !r.IsCopy(e.Type) && r.Types.Kind(e.Type) != sem.KRef
 	case hir.Borrow:
-		if e.Mut && rootedAt(e.Args[0], ent) {
+		if !w.whole && e.Mut && w.hits(e.Args[0]) {
 			return true
 		}
 	case hir.FieldMove:
-		if rootedAt(e.Args[0], ent) {
+		if !w.whole && w.hits(e.Args[0]) {
 			return true
 		}
 	case hir.MethodCall:
 		if len(e.Args) > 0 && e.Ent != 0 && r.Entity(e.Ent).Kind == sem.EntFn {
-			if recv := r.Fn(e.Ent).Recv; (recv == sem.RecvMut || recv == sem.RecvMove) && rootedAt(e.Args[0], ent) {
+			if recv := r.Fn(e.Ent).Recv; (recv == sem.RecvMut && !w.whole || recv == sem.RecvMove) && w.hits(e.Args[0]) {
 				return true
 			}
 		}
 	}
-	for _, a := range e.Args {
-		if writesLocal(r, a, ent) {
+	for i, a := range e.Args {
+		if i == 0 && w.moves && placeBase[e.Kind] && a.Kind == hir.Local {
+			continue
+		}
+		if w.expr(a) {
 			return true
 		}
 	}
 	for _, a := range e.CtxArgs {
-		if writesLocal(r, a, ent) {
+		if w.expr(a) {
 			return true
 		}
 	}
 	for _, en := range e.Entries {
-		if writesLocal(r, en.Value, ent) {
+		if w.expr(en.Value) {
 			return true
 		}
 	}
 	for _, arm := range e.Arms {
-		if writesLocal(r, arm.Guard, ent) || writesLocal(r, arm.Body, ent) {
+		if w.expr(arm.Guard) || w.expr(arm.Body) {
 			return true
 		}
 	}
-	return writesLocal(r, e.Cond, ent) || writesLocal(r, e.Else, ent) || writesLocal(r, e.Guard, ent) ||
-		blockWrites(r, e.Then, ent) || blockWrites(r, e.Block, ent)
+	return w.expr(e.Cond) || w.expr(e.Else) || w.expr(e.Guard) || w.block(e.Then) || w.block(e.Block)
 }
 
-func blockWrites(r *sem.Result, blk *hir.Block, ent sem.EntityID) bool {
+var placeBase = map[hir.ExprKind]bool{hir.Field: true, hir.OptField: true, hir.Index: true, hir.Borrow: true, hir.MethodCall: true, hir.MethodValue: true}
+
+func (w localWrites) block(blk *hir.Block) bool {
 	if blk == nil {
 		return false
 	}
 	for _, s := range blk.Stmts {
-		if stmtWrites(r, s, ent) {
+		if w.stmt(s) {
 			return true
 		}
 	}
-	return writesLocal(r, blk.Tail, ent)
+	return w.expr(blk.Tail)
 }
 
-func stmtWrites(r *sem.Result, s *hir.Stmt, ent sem.EntityID) bool {
+func (w localWrites) stmt(s *hir.Stmt) bool {
 	if s == nil {
 		return false
 	}
 	if pl := s.Place; pl != nil {
 		switch pl.Kind {
 		case hir.PlaceLocal:
-			if pl.Ent == ent {
+			if pl.Ent == w.ent {
 				return true
 			}
 		case hir.PlaceField, hir.PlaceIndex:
-			if rootedAt(pl.Base, ent) || writesLocal(r, pl.Base, ent) || writesLocal(r, pl.Idx, ent) {
+			if w.hitsPlace(pl) || pl.Base.Kind != hir.Local && w.expr(pl.Base) || w.expr(pl.Idx) {
 				return true
 			}
 		}
 	}
-	return writesLocal(r, s.Expr, ent) || blockWrites(r, s.Else, ent) || stmtWrites(r, s.Body, ent) || blockWrites(r, s.Block, ent)
+	return w.expr(s.Expr) || w.block(s.Else) || w.stmt(s.Body) || w.block(s.Block)
 }
 
 // rootedAt reports whether e names local ent or a field or element reached from it.

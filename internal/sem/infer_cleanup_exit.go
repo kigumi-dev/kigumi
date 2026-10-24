@@ -1,6 +1,10 @@
 package sem
 
-import "kigumi/internal/syntax"
+import (
+	"slices"
+
+	"kigumi/internal/syntax"
+)
 
 // exitMoveState lets a success exit move out a binding only a defer(fail) reserves.
 type exitMoveState struct {
@@ -98,6 +102,40 @@ func (c *checker) staticOk(n syntax.NodeID) bool {
 
 // noFailureAfter rejects any `?`, `fail` or nested `return` in n that can run after use, and a use inside a loop or lambda.
 func (c *checker) noFailureAfter(n, use syntax.NodeID) bool {
+	return c.noFailureAfterSkip(n, use, nil)
+}
+
+// otherBranches marks the if / match alternatives that exclude the one holding use; none of them runs after it.
+func (c *checker) otherBranches(n, use syntax.NodeID, skip map[syntax.NodeID]bool) map[syntax.NodeID]bool {
+	var alts []syntax.NodeID
+	switch c.t.Kind(n) {
+	case syntax.IfExpr:
+		s := ifExpr(c.t, n)
+		alts = []syntax.NodeID{s.Then, s.Else}
+	case syntax.IfLetExpr:
+		s := ifLet(c.t, n)
+		alts = []syntax.NodeID{s.Then, s.Else}
+	case syntax.MatchExpr:
+		alts = c.t.View(n).AsMatch().Arms().AppendIDs(nil)
+	}
+	if !slices.ContainsFunc(alts, func(a syntax.NodeID) bool { return a != 0 && c.within(use, a) }) {
+		return skip
+	}
+	for _, a := range alts {
+		if a != 0 && !c.within(use, a) {
+			if skip == nil {
+				skip = map[syntax.NodeID]bool{}
+			}
+			skip[a] = true
+		}
+	}
+	return skip
+}
+
+func (c *checker) noFailureAfterSkip(n, use syntax.NodeID, skip map[syntax.NodeID]bool) bool {
+	if skip[n] {
+		return true
+	}
 	u := c.t.Span(use)
 	sp := c.t.Span(n)
 	switch c.t.Kind(n) {
@@ -115,9 +153,11 @@ func (c *checker) noFailureAfter(n, use syntax.NodeID) bool {
 		if sp.End > u.Start {
 			return false
 		}
+	case syntax.IfExpr, syntax.IfLetExpr, syntax.MatchExpr:
+		skip = c.otherBranches(n, use, skip)
 	}
 	for ch := range c.t.View(n).Children() {
-		if !c.noFailureAfter(ch.ID(), use) {
+		if !c.noFailureAfterSkip(ch.ID(), use, skip) {
 			return false
 		}
 	}

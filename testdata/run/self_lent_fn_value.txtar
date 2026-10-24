@@ -1,0 +1,47 @@
+-- src --
+import a from lib/a
+import b from lib/b
+
+let mut local = a.Pad { n: 1 }
+b.growVia(&mut local, 7)
+print "local ${local.n}"
+let mut plain = a.Pad { n: 1 }
+plain.grow(5)
+print "plain ${plain.n}"
+let mut t = a.Tag { name: "x" }
+t.rename("y")
+print "tag ${t.name}"
+-- lib/a/a.kg --
+fn reset(p: &mut Pad, k: Int) -> Void {
+    p = Pad { n: k }
+}
+
+pub type Pad = { pub mut n Int }
+
+pub fn Pad.grow(mut self, k: Int) -> Void {
+    let f: fn(&mut Pad, Int) -> Void = reset
+    f(&mut self, k)
+}
+
+fn retag(t: &mut Tag, s: String) {
+    t = Tag { name: s }
+}
+
+pub type Tag = { pub mut name String }
+
+pub fn Tag.rename(mut self, s: String) {
+    let f: fn(&mut Tag, String) -> Void = retag
+    f(&mut self, s)
+}
+-- lib/b/b.kg --
+pub interface Grower {
+    fn grow(mut self, k: Int) -> Void
+}
+
+pub fn growVia[G: Grower](g: &mut G, k: Int) -> Void {
+    g.grow(k)
+}
+-- stdout --
+local 7
+plain 5
+tag y

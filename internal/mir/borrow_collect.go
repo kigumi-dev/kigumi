@@ -15,6 +15,7 @@ func (c *borrowCheck) collect() {
 		c.grew = false
 		for bid, blk := range c.f.Blocks {
 			for i, in := range blk.Insts {
+				c.resets.at = carrySite{block: BlockID(bid), idx: i}
 				if c.collectInst(in) {
 					changed = true
 				}
@@ -123,6 +124,7 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 // widen merges b into dst's sink; a sink created here blames b's borrow, as sharing b did.
 func (c *borrowCheck) widen(dst LocalID, b *borrowInfo) {
 	c.merge(c.sink(dst, b.node), b)
+	c.noteResetSite(dst, b)
 }
 
 // widens reports whether dst keeps the union of every value written to it instead of the first

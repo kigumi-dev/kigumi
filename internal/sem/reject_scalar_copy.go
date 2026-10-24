@@ -90,20 +90,41 @@ func (c *checker) rejectScalarCopyWrite(lhs syntax.NodeID) {
 }
 
 func (c *checker) rejectScalarCopyArg(arg syntax.NodeID, param TypeID) {
-	if _, ok := c.r.ScalarRefElem(c.vars.resolve(param)); !ok {
+	if len(c.held.scalarCopy) == 0 {
 		return
 	}
-	ent, ok := c.identPlaceEnt(c.t.Unparen(arg))
-	if !ok {
+	_, ref := c.r.ScalarRefElem(c.vars.resolve(param))
+	for _, leaf := range c.tailLeaves(arg, 0) {
+		src, k := c.copyCarrier(leaf)
+		if k == carryNone || k == carryDirect && !ref {
+			continue
+		}
+		place := "a `&mut` borrow of the matched place"
+		if p := c.held.scalarCopy[src].place(); p != "" {
+			place = "`&mut " + p[1:]
+		}
+		c.errAt(leaf, cScalarCopyArg, c.r.Entities[src].Name, place)
+	}
+}
+
+// A `&mut` scalar result built from a copy binding would alias nothing the caller passed.
+func (c *checker) rejectScalarCopyResult(body syntax.NodeID) {
+	_, ref := c.r.ScalarRefElem(c.vars.resolve(c.retType))
+	c.rejectCopyLeaves(c.resultLeaves(body), ref)
+}
+
+func (c *checker) rejectScalarCopyStore(value syntax.NodeID, field TypeID) {
+	_, ref := c.r.ScalarRefElem(c.vars.resolve(field))
+	c.rejectCopyLeaves(c.tailLeaves(value, 0), ref)
+}
+
+func (c *checker) rejectCopyLeaves(leaves []syntax.NodeID, ref bool) {
+	if len(c.held.scalarCopy) == 0 {
 		return
 	}
-	sc, ok := c.held.scalarCopy[ent]
-	if !ok {
-		return
+	for _, leaf := range leaves {
+		if src, k := c.copyCarrier(leaf); k == carryInside || k == carryDirect && ref {
+			c.errAt(leaf, cScalarCopyResult, c.r.Entities[src].Name)
+		}
 	}
-	place := "a `&mut` borrow of the matched place"
-	if p := sc.place(); p != "" {
-		place = "`&mut " + p[1:]
-	}
-	c.errAt(arg, cScalarCopyArg, c.r.Entities[ent].Name, place)
 }

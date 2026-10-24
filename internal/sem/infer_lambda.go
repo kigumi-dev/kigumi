@@ -78,6 +78,7 @@ func (c *checker) synthLambda(n syntax.NodeID, want TypeID) TypeID {
 	info.Copy = closureCopy(ctx.list)
 	info.Once = c.lambdaOnce(ctx)
 	c.noteNestedCaptureMoves(n, ctx)
+	c.reserveCleanupCaptures(n, ctx)
 	info.Immediate = ctx.immediate
 	info.Edges = edges
 	c.closures = append(c.closures, id)

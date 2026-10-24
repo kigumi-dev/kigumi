@@ -132,13 +132,13 @@ func (c *borrowCheck) carryStep(bid BlockID, holder, owner LocalID, sites []carr
 	insts := c.f.Blocks[bid].Insts
 	for i := 0; i < end && i < len(insts); i++ {
 		in := insts[i]
+		if shapes[in.Op].result && in.Dst == holder || (in.Op == OpMove || in.Op == OpDrop) && len(in.Args) > 0 && in.Args[0] == holder {
+			cur = false
+		}
 		for _, s := range sites {
 			if s.block == bid && s.idx == i && s.owner == owner {
 				cur = true
 			}
-		}
-		if shapes[in.Op].result && in.Dst == holder || (in.Op == OpMove || in.Op == OpDrop) && len(in.Args) > 0 && in.Args[0] == holder {
-			cur = false
 		}
 	}
 	return cur

@@ -1,0 +1,53 @@
+-- src --
+type Res = resource { pub n Int }
+
+fn Res.drop(move self) {
+    print "drop ${self.n}"
+}
+
+fn Res.get(self, k: Int) -> Int {
+    self.n + k
+}
+
+type Pair = { pub tag Int, pub left Res, pub opt Res? }
+
+type Outer = resource { pub inner Pair }
+
+fn Outer.drop(move self) {
+    print "drop outer"
+}
+
+fn nested() {
+    let o = Outer { inner: Pair { tag: 1, left: Res { n: 10 }, opt: None } }
+    let f = o.inner.left.get //~ ERROR a method value on move-only `Res` would move `o.inner.left` out of `Outer`
+    print "${f(1)}"
+}
+
+fn nestedOpt() {
+    let o = Outer { inner: Pair { tag: 1, left: Res { n: 10 }, opt: Some(Res { n: 3 }) } }
+    let f = o.inner.opt?.get //~ ERROR a method value on move-only `Res` would move `o.inner.opt` out of `Outer`
+    if let Some(g) = f {
+        print "${g(1)}"
+    }
+}
+
+fn plain() {
+    let p = Pair { tag: 1, left: Res { n: 4 }, opt: None }
+    let f = p.left.get
+    print "${f(1)}"
+}
+-- expect --
+error[E2177]: a method value on move-only `Res` would move `o.inner.left` out of `Outer`, which defines a custom `drop`
+  --> main/main.kg:21:13
+   |
+21 |     let f = o.inner.left.get //~ ERROR a method value on move-only `Res` would move `o.inner.left` out of `Outer`
+   |             ^^^^^^^^^^^^^^^^
+   = help: call the method directly, or add a `take`-style method on `Outer` that returns the field
+
+error[E2177]: a method value on move-only `Res` would move `o.inner.opt` out of `Outer`, which defines a custom `drop`
+  --> main/main.kg:27:13
+   |
+27 |     let f = o.inner.opt?.get //~ ERROR a method value on move-only `Res` would move `o.inner.opt` out of `Outer`
+   |             ^^^^^^^^^^^^^^^^
+   = help: call the method directly, or add a `take`-style method on `Outer` that returns the field
+

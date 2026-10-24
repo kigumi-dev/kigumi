@@ -1,0 +1,28 @@
+-- src --
+fn relayP(f: pure fn(Int) -> Int, x: Int) -> Int { f(x) }
+
+fn relayAny(f: fn(Int) -> Int, x: Int) -> Int { f(x) }
+
+pure fn add1(x: Int) -> Int { x + 1 }
+
+fn go() -> Int {
+    let g: pure fn(pure fn(Int) -> Int, Int) -> Int = relayP
+    g(add1, 1)
+}
+
+fn open() -> Int {
+    let g: pure fn(fn(Int) -> Int, Int) -> Int = relayAny //~ ERROR calls `f`, whose effect is not fixed
+    g(add1, 1)
+}
+
+pure fn direct(x: Int) -> Int { relayP(add1, x) }
+
+print "${go()} ${open()} ${direct(4)}"
+-- expect --
+error[E1060]: `relayAny` is not `pure` (calls `f`, whose effect is not fixed)
+  --> main/main.kg:13:50
+   |
+13 |     let g: pure fn(fn(Int) -> Int, Int) -> Int = relayAny //~ ERROR calls `f`, whose effect is not fixed
+   |                                                  ^^^^^^^^
+   = help: declare `f` as `pure fn(...)`, or call `relayAny` directly instead of using it as a value
+

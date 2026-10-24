@@ -4526,6 +4526,23 @@
       ]
     },
     {
+      "id": "run/borrow_reset_before_drop",
+      "kind": "run",
+      "path": "testdata/run/borrow_reset_before_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_return_last_use",
       "kind": "run",
       "path": "testdata/run/borrow_return_last_use.txtar",
@@ -4563,6 +4580,40 @@
       "id": "run/borrow_return_projection",
       "kind": "run",
       "path": "testdata/run/borrow_return_projection.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_temp_field_scrutinee",
+      "kind": "run",
+      "path": "testdata/run/borrow_temp_field_scrutinee.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/borrow_temp_iflet_scrutinee",
+      "kind": "run",
+      "path": "testdata/run/borrow_temp_iflet_scrutinee.txtar",
       "mode": [
         "vm",
         "native"
@@ -5264,6 +5315,23 @@
       "id": "run/char_nul_survives",
       "kind": "run",
       "path": "testdata/run/char_nul_survives.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/cleanup_field_reserve_read",
+      "kind": "run",
+      "path": "testdata/run/cleanup_field_reserve_read.txtar",
       "mode": [
         "vm",
         "native"
@@ -6369,6 +6437,23 @@
       "id": "run/defer_fail_compound_exit",
       "kind": "run",
       "path": "testdata/run/defer_fail_compound_exit.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/defer_fail_exit_branch_order",
+      "kind": "run",
+      "path": "testdata/run/defer_fail_exit_branch_order.txtar",
       "mode": [
         "vm",
         "native"
@@ -9681,6 +9766,23 @@
       "id": "run/for_owned_consume",
       "kind": "run",
       "path": "testdata/run/for_owned_consume.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/for_wild_resource_drop",
+      "kind": "run",
+      "path": "testdata/run/for_wild_resource_drop.txtar",
       "mode": [
         "vm",
         "native"
@@ -13386,6 +13488,23 @@
       ]
     },
     {
+      "id": "run/pure_param_erase",
+      "kind": "run",
+      "path": "testdata/run/pure_param_erase.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/range_inclusive_max",
       "kind": "run",
       "path": "testdata/run/range_inclusive_max.txtar",
@@ -13590,6 +13709,23 @@
       ]
     },
     {
+      "id": "run/recv_write_disjoint_field",
+      "kind": "run",
+      "path": "testdata/run/recv_write_disjoint_field.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/reinit",
       "kind": "run",
       "path": "testdata/run/reinit.txtar",
@@ -13777,6 +13913,23 @@
       ]
     },
     {
+      "id": "run/scalar_copy_tuple_read",
+      "kind": "run",
+      "path": "testdata/run/scalar_copy_tuple_read.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/scalar_literal_returns",
       "kind": "run",
       "path": "testdata/run/scalar_literal_returns.txtar",
@@ -13935,6 +14088,40 @@
       "id": "run/self_capture_copy",
       "kind": "run",
       "path": "testdata/run/self_capture_copy.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/self_lent_fn_value",
+      "kind": "run",
+      "path": "testdata/run/self_lent_fn_value.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/self_lent_generic_callable",
+      "kind": "run",
+      "path": "testdata/run/self_lent_generic_callable.txtar",
       "mode": [
         "vm",
         "native"
@@ -16510,6 +16697,17 @@
       ]
     },
     {
+      "id": "sem/async_self_replace_call",
+      "kind": "sem",
+      "path": "testdata/sem/async_self_replace_call.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/async_witness_mismatch",
       "kind": "sem",
       "path": "testdata/sem/async_witness_mismatch.txtar",
@@ -16700,6 +16898,17 @@
       "id": "sem/borrow_pattern_through_ref_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_pattern_through_ref_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_reset_before_drop",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_reset_before_drop.txtar",
       "mode": [
         "check"
       ],
@@ -17052,6 +17261,39 @@
       "id": "sem/cleanup_exit_forms",
       "kind": "sem",
       "path": "testdata/sem/cleanup_exit_forms.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cleanup_field_reserve_read_method",
+      "kind": "sem",
+      "path": "testdata/sem/cleanup_field_reserve_read_method.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cleanup_reserve_lend_below",
+      "kind": "sem",
+      "path": "testdata/sem/cleanup_reserve_lend_below.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/cleanup_reserve_move_capture",
+      "kind": "sem",
+      "path": "testdata/sem/cleanup_reserve_move_capture.txtar",
       "mode": [
         "check"
       ],
@@ -17701,6 +17943,17 @@
       "id": "sem/default_args_vis_err",
       "kind": "sem",
       "path": "testdata/sem/default_args_vis_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/defer_fail_exit_branch_order",
+      "kind": "sem",
+      "path": "testdata/sem/defer_fail_exit_branch_order.txtar",
       "mode": [
         "check"
       ],
@@ -19315,6 +19568,17 @@
       ]
     },
     {
+      "id": "sem/holder_rebind_loop",
+      "kind": "sem",
+      "path": "testdata/sem/holder_rebind_loop.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/if_let_refutable",
       "kind": "sem",
       "path": "testdata/sem/if_let_refutable.txtar",
@@ -19590,6 +19854,28 @@
       ]
     },
     {
+      "id": "sem/lent_tuple_pattern",
+      "kind": "sem",
+      "path": "testdata/sem/lent_tuple_pattern.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/lent_view_spawned",
+      "kind": "sem",
+      "path": "testdata/sem/lent_view_spawned.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/lifetime_err",
       "kind": "sem",
       "path": "testdata/sem/lifetime_err.txtar",
@@ -19788,6 +20074,28 @@
       ]
     },
     {
+      "id": "sem/method_value_mut_self",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_mut_self.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_value_nested_drop_field",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_nested_drop_field.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/method_value_open_and_captured",
       "kind": "sem",
       "path": "testdata/sem/method_value_open_and_captured.txtar",
@@ -19813,6 +20121,17 @@
       "id": "sem/method_value_place_receiver",
       "kind": "sem",
       "path": "testdata/sem/method_value_place_receiver.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/method_value_self_replace",
+      "kind": "sem",
+      "path": "testdata/sem/method_value_self_replace.txtar",
       "mode": [
         "check"
       ],
@@ -19868,6 +20187,17 @@
       "id": "sem/methods_receiver",
       "kind": "sem",
       "path": "testdata/sem/methods_receiver.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/move_self_exit_drop_noalloc",
+      "kind": "sem",
+      "path": "testdata/sem/move_self_exit_drop_noalloc.txtar",
       "mode": [
         "check"
       ],
@@ -20305,6 +20635,17 @@
       ]
     },
     {
+      "id": "sem/pure_param_erase",
+      "kind": "sem",
+      "path": "testdata/sem/pure_param_erase.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/range_literal_element",
       "kind": "sem",
       "path": "testdata/sem/range_literal_element.txtar",
@@ -20352,6 +20693,17 @@
       "id": "sem/recursive_adt_box",
       "kind": "sem",
       "path": "testdata/sem/recursive_adt_box.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recv_write_later_arg",
+      "kind": "sem",
+      "path": "testdata/sem/recv_write_later_arg.txtar",
       "mode": [
         "check"
       ],
@@ -20503,6 +20855,17 @@
       ]
     },
     {
+      "id": "sem/scalar_copy_result",
+      "kind": "sem",
+      "path": "testdata/sem/scalar_copy_result.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/scalar_copy_write",
       "kind": "sem",
       "path": "testdata/sem/scalar_copy_write.txtar",
@@ -20517,6 +20880,28 @@
       "id": "sem/schema_metadata",
       "kind": "sem",
       "path": "testdata/sem/schema_metadata.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/self_lent_fn_value_field",
+      "kind": "sem",
+      "path": "testdata/sem/self_lent_fn_value_field.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/self_lent_generic_callable",
+      "kind": "sem",
+      "path": "testdata/sem/self_lent_generic_callable.txtar",
       "mode": [
         "check"
       ],

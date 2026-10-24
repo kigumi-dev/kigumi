@@ -73,7 +73,9 @@ func (c *checker) synthRecord(n syntax.NodeID, want TypeID) TypeID {
 			c.errAt(entry, cDuplicateFieldInit, name)
 		}
 		given[fld] = true
-		c.checkArg(value, c.r.Types.Subst(c.r.Entities[fld].Type, subst), 0, false)
+		fieldType := c.r.Types.Subst(c.r.Entities[fld].Type, subst)
+		c.checkArg(value, fieldType, 0, false)
+		c.rejectScalarCopyStore(value, fieldType)
 		c.rejectFieldValue(value)
 		c.checkEscapeStore(value)
 	}

@@ -1,0 +1,230 @@
+-- src --
+type B = { pub mut n Int, pub mut m Int }
+
+fn pick(b: &mut B) -> &mut Int {
+    match b {
+        B { n } -> n //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+    }
+}
+
+fn pickReturn(b: &mut B) -> &mut Int {
+    match b {
+        B { n } -> {
+            return n //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+        }
+    }
+}
+
+fn pickLet(b: &mut B) -> &mut Int {
+    match b {
+        B { m } -> {
+            let r = m
+            r //~ ERROR `r` holds a copy of the scalar from a `&mut` match
+        }
+    }
+}
+
+type H['a] = { pub r &'a mut Int }
+
+fn pickStore['a](b: &'a mut B) -> H['a] {
+    match b {
+        B { n } -> H { r: n } //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+    }
+}
+
+fn pickLetStore['a](b: &'a mut B) -> H['a] {
+    let B { n, m } = b
+    H { r: n } //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+}
+
+fn bump(x: &mut Int) { x = x + 1 }
+
+fn pickTuple(b: &mut B) {
+    match b {
+        B { n } -> {
+            let t = (n, 0)
+            let (r, _) = t
+            bump(r) //~ ERROR `r` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+        }
+    }
+}
+
+fn readTupleByValue(b: &mut B) -> Int {
+    match b {
+        B { n } -> {
+            let t = (n + 0, 1)
+            let (x, _) = t
+            x + 0
+        }
+    }
+}
+
+fn readTuple(b: &mut B) -> Int {
+    match b {
+        B { n } -> {
+            let t = (n, 1)
+            let (x, _) = t
+            x + 0
+        }
+    }
+}
+
+fn pickIf(b: &mut B, c: Bool) -> &mut Int {
+    let B { n, m } = b
+    let k = if c { n } else { m }
+    k //~ ERROR `k` holds a copy of the scalar from a `&mut` match
+}
+
+type HM['a] = { pub mut r &'a mut Int }
+
+fn storeField['a](b: &'a mut B, h: &mut HM['a]) {
+    match b {
+        B { n } -> { h.r = n } //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+    }
+}
+
+fn readPair(b: &mut B) -> Int {
+    let B { n, m } = b
+    let t = (n, m)
+    let (x, y) = t
+    x + y
+}
+
+fn readPairMatch(b: &mut B) -> Int {
+    match b {
+        B { n, m } -> {
+            let t = ((n, 1), m)
+            let ((p, q), r) = t
+            p + q + r
+        }
+    }
+}
+
+fn tupleField(b: &mut B) {
+    let B { n, m } = b
+    let t = (n, 0)
+    bump(t._0) //~ ERROR `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+}
+
+fn tupleMatch(b: &mut B) {
+    let B { n, m } = b
+    let t = (n, 0)
+    match t {
+        (r, _) -> bump(r) //~ ERROR `r` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+    }
+}
+
+fn tupleAlias(b: &mut B) {
+    let B { n, m } = b
+    let t = (n, 0)
+    let u = t
+    let r = u._0
+    r = 5 //~ ERROR assignment to `r` is lost
+}
+
+fn id[T](x: T) -> T { x }
+
+fn tupleThroughCall(b: &mut B) {
+    let B { n, m } = b
+    let t = id((n, 0)) //~ ERROR `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+    let (r, _) = t
+}
+
+fn tupleCaptured(b: &mut B) {
+    let B { n, m } = b
+    let t = (n, 0)
+    let g = () => bump(t._0) //~ ERROR `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+    g()
+}
+-- expect --
+error[E2261]: `n` holds a copy of the scalar from a `&mut` match, so returning or storing it as `&mut` aliases nothing the caller lent
+ --> main/main.kg:5:20
+  |
+5 |         B { n } -> n //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+  |                    ^
+  = help: use the scalar by value, or a `&mut` of the whole place
+
+error[E2261]: `n` holds a copy of the scalar from a `&mut` match, so returning or storing it as `&mut` aliases nothing the caller lent
+  --> main/main.kg:12:20
+   |
+12 |             return n //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+   |                    ^
+   = help: use the scalar by value, or a `&mut` of the whole place
+
+error[E2261]: `r` holds a copy of the scalar from a `&mut` match, so returning or storing it as `&mut` aliases nothing the caller lent
+  --> main/main.kg:21:13
+   |
+21 |             r //~ ERROR `r` holds a copy of the scalar from a `&mut` match
+   |             ^
+   = help: use the scalar by value, or a `&mut` of the whole place
+
+error[E2261]: `n` holds a copy of the scalar from a `&mut` match, so returning or storing it as `&mut` aliases nothing the caller lent
+  --> main/main.kg:30:27
+   |
+30 |         B { n } -> H { r: n } //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+   |                           ^
+   = help: use the scalar by value, or a `&mut` of the whole place
+
+error[E2261]: `n` holds a copy of the scalar from a `&mut` match, so returning or storing it as `&mut` aliases nothing the caller lent
+  --> main/main.kg:36:12
+   |
+36 |     H { r: n } //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+   |            ^
+   = help: use the scalar by value, or a `&mut` of the whole place
+
+error[E2170]: `r` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+  --> main/main.kg:46:18
+   |
+46 |             bump(r) //~ ERROR `r` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+   |                  ^
+   = help: pass `&mut b.n` instead
+
+error[E2261]: `k` holds a copy of the scalar from a `&mut` match, so returning or storing it as `&mut` aliases nothing the caller lent
+  --> main/main.kg:74:5
+   |
+74 |     k //~ ERROR `k` holds a copy of the scalar from a `&mut` match
+   |     ^
+   = help: use the scalar by value, or a `&mut` of the whole place
+
+error[E2261]: `n` holds a copy of the scalar from a `&mut` match, so returning or storing it as `&mut` aliases nothing the caller lent
+  --> main/main.kg:81:28
+   |
+81 |         B { n } -> { h.r = n } //~ ERROR `n` holds a copy of the scalar from a `&mut` match
+   |                            ^
+   = help: use the scalar by value, or a `&mut` of the whole place
+
+error[E2170]: `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+   --> main/main.kg:105:10
+    |
+105 |     bump(t._0) //~ ERROR `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+    |          ^^^^
+    = help: pass `&mut b.n` instead
+
+error[E2170]: `r` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+   --> main/main.kg:112:24
+    |
+112 |         (r, _) -> bump(r) //~ ERROR `r` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+    |                        ^
+    = help: pass `&mut b.n` instead
+
+error[E2169]: assignment to `r` is lost: a binding from a `&mut` match holds a copy of the scalar
+   --> main/main.kg:121:5
+    |
+121 |     r = 5 //~ ERROR assignment to `r` is lost
+    |     ^
+    = help: assign to `b.n` instead
+
+error[E2170]: `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+   --> main/main.kg:128:16
+    |
+128 |     let t = id((n, 0)) //~ ERROR `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+    |                ^^^^^
+    = help: pass `&mut b.n` instead
+
+error[E2170]: `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+   --> main/main.kg:135:24
+    |
+135 |     let g = () => bump(t._0) //~ ERROR `n` holds a copy of the scalar from a `&mut` match, so a callee's write through it is lost
+    |                        ^^^^
+    = help: pass `&mut b.n` instead
+

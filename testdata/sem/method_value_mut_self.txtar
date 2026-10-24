@@ -1,0 +1,169 @@
+-- src --
+type C = { pub mut n Int }
+
+fn C.inc(mut self) {
+    self.n = self.n + 1
+}
+
+fn C.add(mut self, k: Int) {
+    self.n = self.n + k
+}
+
+fn C.get(self) -> Int {
+    self.n
+}
+
+type H = { pub mut c C, pub k Int }
+
+fn apply(f: fn() -> Void) {
+    f()
+}
+
+fn applyG[F: FnMut[fn() -> Void]](mut f: F) {
+    f()
+}
+
+fn local() -> Int {
+    let mut s = C { n: 0 }
+    let f = s.inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f()
+    f()
+    s.n
+}
+
+fn withArg() -> Int {
+    let mut s = C { n: 0 }
+    let f = s.add //~ ERROR `add` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f(3)
+    s.n
+}
+
+fn passed() -> Int {
+    let mut s = C { n: 0 }
+    apply(s.inc) //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+    applyG(s.inc) //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+    s.n
+}
+
+fn param(mut c: C) -> Int {
+    let g = c.inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+    g()
+    c.n
+}
+
+fn field() -> Int {
+    let mut h = H { c: C { n: 0 }, k: 1 }
+    let f = h.c.inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f()
+    h.c = C { n: 10 }
+    f()
+    h.c.n
+}
+
+fn element() -> Int {
+    let mut xs = Array.of(C { n: 0 })
+    let f = xs[0].inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f()
+    xs[0].n
+}
+
+fn C.viaSelf(mut self) -> Int {
+    let f = self.inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f()
+    self.n
+}
+
+fn reads() -> Int {
+    let s = C { n: 5 }
+    let g = s.get
+    g()
+}
+
+fn lambda() -> Int {
+    let mut s = C { n: 0 }
+    let mut f = () => s.inc()
+    f()
+    f()
+    s.n
+}
+
+fn direct() -> Int {
+    let mut s = C { n: 0 }
+    s.inc()
+    s.n
+}
+
+fn C.addEach[T](mut self, v: T) {
+    self.n = self.n + 1
+}
+
+fn generic() -> Int {
+    let mut s = C { n: 0 }
+    let f: fn(Int) -> Void = s.addEach //~ ERROR `addEach` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f(1)
+    s.n
+}
+-- expect --
+error[E2270]: `inc` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:27:13
+   |
+27 |     let f = s.inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `add` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:35:13
+   |
+35 |     let f = s.add //~ ERROR `add` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `inc` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:42:11
+   |
+42 |     apply(s.inc) //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |           ^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `inc` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:43:12
+   |
+43 |     applyG(s.inc) //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |            ^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `inc` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:48:13
+   |
+48 |     let g = c.inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `inc` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:55:13
+   |
+55 |     let f = h.c.inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `inc` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:64:13
+   |
+64 |     let f = xs[0].inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `inc` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:70:13
+   |
+70 |     let f = self.inc //~ ERROR `inc` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `addEach` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+   --> main/main.kg:101:30
+    |
+101 |     let f: fn(Int) -> Void = s.addEach //~ ERROR `addEach` takes `mut self`, but a method value runs it on its own copy of the receiver
+    |                              ^^^^^^^^^
+    = help: call the method directly, or write a lambda that calls it
+

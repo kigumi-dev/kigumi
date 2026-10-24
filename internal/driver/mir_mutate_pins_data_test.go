@@ -123,7 +123,7 @@ local-flag "main" b14/3 alias | i25 i3
 local-flag "main" b2/6 interp | i25 i3
 `},
 	{"mut_self_dispatch", "shape", `
-opcode-arity "main" b0/241 release | i3
+opcode-arity "main" b0/219 release | i3
 `},
 	{"iface_static", "calls", `
 arg-drop "main" b4/25 call | i0

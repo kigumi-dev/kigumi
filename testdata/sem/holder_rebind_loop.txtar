@@ -1,0 +1,334 @@
+-- src --
+type Item = { pub mut count Int }
+
+fn Item.update(mut self, d: Int) {
+    self.count = self.count + d
+}
+
+fn Item.run[F: FnMut[fn() -> Void]](mut self, f: F) {
+    f()
+    self.count = self.count + 100
+}
+
+type Hold['a] = { pub r &'a mut Item, pub z Int }
+
+fn forRange() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    for i in 0..3 {
+        h.r.run(() => { w.update(i) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+        h = Hold { r: &mut w, z: 1 }
+    }
+    w.count
+}
+
+fn forCond() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    let mut i = 0
+    for i < 3 {
+        h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+        h = Hold { r: &mut w, z: 1 }
+        i = i + 1
+    }
+    w.count
+}
+
+fn forBare() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    let mut i = 0
+    for {
+        i = i + 1
+        if i > 3 {
+            break
+        }
+        h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+        if i == 2 {
+            continue
+        }
+        h = Hold { r: &mut w, z: 1 }
+    }
+    w.count
+}
+
+fn inIf() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    for i in 0..3 {
+        h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+        if i == 1 {
+            h = Hold { r: &mut w, z: 1 }
+        }
+    }
+    w.count
+}
+
+fn nestedInner() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    for _ in 0..2 {
+        for _ in 0..2 {
+            h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+        }
+        h = Hold { r: &mut w, z: 1 }
+    }
+    w.count
+}
+
+fn nestedBoth() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    for _ in 0..2 {
+        for _ in 0..2 {
+            h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+            h = Hold { r: &mut w, z: 1 }
+        }
+    }
+    w.count
+}
+
+fn viaTuple() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut t = (&mut v, 0)
+    for _ in 0..2 {
+        let (r, _) = t
+        r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+        t = (&mut w, 1)
+    }
+    w.count
+}
+
+fn afterLoop() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    for i in 0..3 {
+        h.r.run(() => { w.update(i) })
+    }
+    h = Hold { r: &mut w, z: 1 }
+    h.r.update(1)
+    v.count + w.count
+}
+
+fn straightAfter() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    h.r.run(() => { w.update(1) })
+    h = Hold { r: &mut w, z: 1 }
+    h.r.update(1)
+    v.count + w.count
+}
+
+fn declaredInside() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    for i in 0..3 {
+        let mut h = Hold { r: &mut v, z: 1 }
+        h.r.run(() => { w.update(i) })
+        h = Hold { r: &mut w, z: 1 }
+        h.r.update(1)
+    }
+    v.count + w.count
+}
+
+fn innerDeclared() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    for _ in 0..2 {
+        let mut h = Hold { r: &mut v, z: 1 }
+        for _ in 0..2 {
+            h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+            h = Hold { r: &mut w, z: 1 }
+        }
+    }
+    w.count
+}
+
+fn otherItem() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 10 }
+    let mut u = Item { count: 20 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    for i in 0..3 {
+        h.r.run(() => { w.update(i) })
+        h = Hold { r: &mut u, z: 1 }
+    }
+    v.count + w.count + u.count
+}
+type Res = resource { pub mut count Int }
+
+fn Res.drop(move self) {
+    print "drop ${self.count}"
+}
+
+fn Res.run[F: FnMut[fn() -> Void]](mut self, f: F) {
+    f()
+    self.count = self.count + 100
+}
+
+type HoldRes['a] = { pub r &'a mut Res, pub z Int }
+
+fn resourceAfterCall() {
+    let mut v = Res { count: 0 }
+    let mut w = Res { count: 10 }
+    let mut h = HoldRes { r: &mut v, z: 1 }
+    for i in 0..3 {
+        h.r.run(() => { w = Res { count: 50 + i } }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+        h = HoldRes { r: &mut w, z: 1 }
+    }
+    print "w=${w.count}"
+}
+-- expect --
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+  --> main/main.kg:19:17
+   |
+19 |         h.r.run(() => { w.update(i) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                 ^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+  --> main/main.kg:19:9
+   |
+19 |         h.r.run(() => { w.update(i) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |         ^^^
+note: this closure captures `w`
+  --> main/main.kg:19:17
+   |
+19 |         h.r.run(() => { w.update(i) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                 ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+  --> main/main.kg:31:17
+   |
+31 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                 ^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+  --> main/main.kg:31:9
+   |
+31 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |         ^^^
+note: this closure captures `w`
+  --> main/main.kg:31:17
+   |
+31 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                 ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+  --> main/main.kg:48:17
+   |
+48 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                 ^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+  --> main/main.kg:48:9
+   |
+48 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |         ^^^
+note: this closure captures `w`
+  --> main/main.kg:48:17
+   |
+48 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                 ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+  --> main/main.kg:62:17
+   |
+62 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                 ^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+  --> main/main.kg:62:9
+   |
+62 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |         ^^^
+note: this closure captures `w`
+  --> main/main.kg:62:17
+   |
+62 |         h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                 ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+  --> main/main.kg:76:21
+   |
+76 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                     ^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+  --> main/main.kg:76:13
+   |
+76 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |             ^^^
+note: this closure captures `w`
+  --> main/main.kg:76:21
+   |
+76 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                     ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+  --> main/main.kg:89:21
+   |
+89 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                     ^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+  --> main/main.kg:89:13
+   |
+89 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |             ^^^
+note: this closure captures `w`
+  --> main/main.kg:89:21
+   |
+89 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+   |                     ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+   --> main/main.kg:102:15
+    |
+102 |         r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |               ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> main/main.kg:102:9
+    |
+102 |         r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |         ^
+note: this closure captures `w`
+   --> main/main.kg:102:15
+    |
+102 |         r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |               ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+   --> main/main.kg:148:21
+    |
+148 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |                     ^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+   --> main/main.kg:148:13
+    |
+148 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |             ^^^
+note: this closure captures `w`
+   --> main/main.kg:148:21
+    |
+148 |             h.r.run(() => { w.update(1) }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |                     ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `w` while this call exclusively borrows it
+   --> main/main.kg:184:17
+    |
+184 |         h.r.run(() => { w = Res { count: 50 + i } }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+   --> main/main.kg:184:9
+    |
+184 |         h.r.run(() => { w = Res { count: 50 + i } }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |         ^^^
+note: this closure captures `w`
+   --> main/main.kg:184:17
+    |
+184 |         h.r.run(() => { w = Res { count: 50 + i } }) //~ ERROR a closure argument cannot capture `w` while this call exclusively borrows it
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

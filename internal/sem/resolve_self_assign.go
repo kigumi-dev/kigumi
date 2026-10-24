@@ -20,6 +20,8 @@ type selfRecvCall struct {
 	callee  EntityID
 	witness bool
 	iface   TypeID
+	file    FileID
+	node    syntax.NodeID
 }
 
 func (c *checker) noteSelfRecvCall(base syntax.NodeID, m EntityID, witness bool, iface TypeID) {
@@ -34,25 +36,30 @@ func (c *checker) noteSelfRecvCall(base syntax.NodeID, m EntityID, witness bool,
 	if e.Flags&EfSelf == 0 || e.Flags&EfMove != 0 || e.Parent == 0 {
 		return
 	}
-	c.r.selfRecvCalls = append(c.r.selfRecvCalls, selfRecvCall{owner: e.Parent, callee: m, witness: witness, iface: iface})
+	c.r.selfRecvCalls = append(c.r.selfRecvCalls, selfRecvCall{owner: e.Parent, callee: m, witness: witness, iface: iface, file: c.f, node: base})
 }
 
 // `f(&mut self)` inside a `mut self` body: a callee whose param takes a cell may replace the receiver through it.
-type selfLentArg struct{ owner, param EntityID }
+// param 0 is a call through a fn value, taken as replacing.
+type selfLentArg struct {
+	owner, param EntityID
+	file         FileID
+	node         syntax.NodeID
+}
 
 func (c *checker) noteSelfLentArg(a syntax.NodeID, param EntityID) {
-	if param == 0 || c.t.Kind(a) != syntax.BorrowExpr || c.t.View(a).AsBorrow().Flags()&syntax.FlagMut == 0 {
+	if c.t.Kind(a) != syntax.BorrowExpr || c.t.View(a).AsBorrow().Flags()&syntax.FlagMut == 0 {
 		return
 	}
 	ent, ok := c.identPlaceEnt(c.t.View(a).AsBorrow().Operand().ID())
-	if !ok || !c.r.wholeRefBinding(c.r.Entities[param].Type) {
+	if !ok || param != 0 && !c.r.wholeRefBinding(c.r.Entities[param].Type) {
 		return
 	}
 	e := c.r.Entities[ent]
 	if e.Flags&EfSelf == 0 || e.Flags&EfMove != 0 || e.Parent == 0 {
 		return
 	}
-	c.r.selfLentArgs = append(c.r.selfLentArgs, selfLentArg{owner: e.Parent, param: param})
+	c.r.selfLentArgs = append(c.r.selfLentArgs, selfLentArg{owner: e.Parent, param: param, file: c.f, node: a})
 }
 
 // Settles which bindings take a cell and which methods replace self together, as each decides the other.
@@ -62,7 +69,7 @@ func (r *Result) closeSelfReplacement() {
 		params := r.provisionalRefCells()
 		changed := false
 		for _, l := range r.selfLentArgs {
-			if params[l.param] && !r.selfWholeAssign[l.owner] {
+			if (l.param == 0 || params[l.param]) && !r.selfWholeAssign[l.owner] {
 				r.selfWholeAssign[l.owner], changed = true, true
 			}
 		}

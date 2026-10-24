@@ -1,0 +1,36 @@
+-- src --
+type View['a] = { pub data &'a Array[Int], pub off usize }
+
+fn View['a].at(self) -> Int {
+    self.data[self.off]
+}
+
+fn resetBeforeDrop() -> Int {
+    let a = Array.of(1, 2, 3)
+    let mut cur = View { data: &a, off: 0 }
+    {
+        let b = Array.of(42)
+        cur = View { data: &b, off: 0 }
+        print "inner ${cur.at()}"
+        cur = View { data: &a, off: 2 }
+    }
+    cur.at()
+}
+
+fn containerResetBeforeDrop() -> Int {
+    let a = Array.of(1, 2, 3)
+    let mut vs = Array.of(View { data: &a, off: 0 })
+    {
+        let b = Array.of(42)
+        vs = Array.of(View { data: &b, off: 0 })
+        print "inner ${vs[0].at()}"
+        vs = Array.of(View { data: &a, off: 1 })
+    }
+    vs[0].at()
+}
+
+print "${resetBeforeDrop()} ${containerResetBeforeDrop()}"
+-- stdout --
+inner 42
+inner 42
+3 2

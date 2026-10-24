@@ -44,7 +44,9 @@ func (c *checker) callVariant(n syntax.NodeID, head headRef, args []syntax.NodeI
 			c.errAt(a, cSpreadNonVariadic, name)
 			continue
 		}
-		c.checkArg(a, c.r.Types.Subst(vi.Payload[i], subst), 0, false)
+		payload := c.r.Types.Subst(vi.Payload[i], subst)
+		c.checkArg(a, payload, 0, false)
+		c.rejectScalarCopyStore(a, payload)
 		if c.t.Kind(c.t.Unparen(a)) == syntax.MemberExpr {
 			c.rejectFieldValue(a)
 		}

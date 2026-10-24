@@ -19,7 +19,7 @@ func (c *checker) aliasInit(ent EntityID) (syntax.NodeID, bool) {
 }
 
 func (c *checker) noteMutAlias(local EntityID, init syntax.NodeID) {
-	if !c.r.Types.RefMut(c.vars.resolve(c.r.Entities[local].Type)) {
+	if t := c.r.Entities[local].Type; !c.r.Types.RefMut(c.vars.resolve(t)) && !c.holdsLentRef(t) {
 		return
 	}
 	if c.mutAliasInit == nil {
@@ -37,12 +37,9 @@ func (c *checker) exclusiveRoots(root, field EntityID) ([]EntityID, map[EntityID
 		lent = map[EntityID]EntityID{root: field}
 	}
 	for i := 0; i < len(roots) && len(roots) < 16; i++ {
-		for _, from := range c.aliasSources(roots[i]) {
+		for _, from := range c.aliasSources(roots[i], lent[roots[i]]) {
 			if from.root == 0 {
 				continue
-			}
-			if from.field == 0 {
-				from.field = lent[roots[i]]
 			}
 			if k := c.r.Entities[from.root].Kind; k != EntLocal && k != EntParam {
 				continue
@@ -63,27 +60,6 @@ func (c *checker) exclusiveRoots(root, field EntityID) ([]EntityID, map[EntityID
 		}
 	}
 	return roots, lent
-}
-
-func (c *checker) aliasSources(ent EntityID) []lentRef {
-	if from, ok := c.lentFrom[ent]; ok && from.root != 0 {
-		return []lentRef{from}
-	}
-	init, ok := c.aliasInit(ent)
-	if !ok {
-		return nil
-	}
-	var out []lentRef
-	for _, leaf := range c.aliasLeaves(init, 0) {
-		switch c.t.Kind(leaf) {
-		case syntax.BorrowExpr:
-			root, field := c.placeRoot(c.t.View(leaf).AsBorrow().Operand().ID())
-			out = append(out, lentRef{root, field})
-		case syntax.Ident:
-			out = append(out, lentRef{root: c.info.Uses[leaf]})
-		}
-	}
-	return out
 }
 
 // aliasLeaves lists every expression an initializer can evaluate to.

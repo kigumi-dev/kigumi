@@ -132,6 +132,10 @@ func (p *Program) lentByType(f *Func, in *Inst, k int) bool {
 	if in.Op != OpCallValue || in.Ent != 0 || k == 0 {
 		return false
 	}
-	node := p.R.Types.Node(p.fnType(p.derefAll(f.Locals[in.Args[0]].Type)))
+	t := p.fnType(p.derefAll(f.Locals[in.Args[0]].Type))
+	if shape := p.R.FnShapeOf(t); shape != 0 {
+		t = shape
+	}
+	node := p.R.Types.Node(t)
 	return node.Kind == sem.KFn && k-1 < len(node.Args) && p.R.Types.Kind(node.Args[k-1]) == sem.KRef
 }

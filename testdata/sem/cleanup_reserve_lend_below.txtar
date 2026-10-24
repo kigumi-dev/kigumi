@@ -1,0 +1,59 @@
+-- src --
+type Handle = resource { pub mut id Int }
+
+fn Handle.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Handle.renew(mut self) {
+    self = Handle { id: 0 }
+}
+
+type W = { pub mut h Handle, pub mut k Int }
+
+fn W.close(move self) {
+    print "close ${self.h.id}"
+}
+
+type Pack = { pub mut w W }
+
+fn swapIn(p: &mut Handle) {
+    p = Handle { id: 9 }
+}
+
+fn bumpK(k: &mut Int) {
+    k = k + 1
+}
+
+fn main() {
+    let mut b = Pack { w: W { h: Handle { id: 1 }, k: 0 } }
+    defer { b.w.close() }
+    swapIn(&mut b.w.h) //~ ERROR `b.w` is reserved by a cleanup that consumes it and cannot be borrowed mutably
+    b.w.h.renew() //~ ERROR `b.w` is reserved by a cleanup that consumes it and cannot be borrowed mutably
+    bumpK(&mut b.w.k)
+}
+-- expect --
+error[E2150]: `b.w` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+  --> main/main.kg:30:12
+   |
+30 |     swapIn(&mut b.w.h) //~ ERROR `b.w` is reserved by a cleanup that consumes it and cannot be borrowed mutably
+   |            ^^^^^^^^^^
+   = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.w` is reserved by this cleanup
+  --> main/main.kg:29:5
+   |
+29 |     defer { b.w.close() }
+   |     ^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.w` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+  --> main/main.kg:31:5
+   |
+31 |     b.w.h.renew() //~ ERROR `b.w` is reserved by a cleanup that consumes it and cannot be borrowed mutably
+   |     ^^^^^
+   = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.w` is reserved by this cleanup
+  --> main/main.kg:29:5
+   |
+29 |     defer { b.w.close() }
+   |     ^^^^^^^^^^^^^^^^^^
+

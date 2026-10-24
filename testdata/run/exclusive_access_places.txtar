@@ -118,6 +118,8 @@ fn Cnt.tick(mut self) {
     self.n = self.n + 1
 }
 
+fn Cnt.look(self) {}
+
 fn Cnt.runFn(mut self, f: fn() -> Void) {
     f()
 }
@@ -129,19 +131,19 @@ type CntPair = {
 
 fn methodValueSnapshot() -> Int {
     let mut v = Cnt { n: 0 }
-    v.runFn(v.tick)
+    v.runFn(v.look)
     v.n
 }
 
 fn methodValueSibling() -> Int {
     let mut p = CntPair { a: Cnt { n: 0 }, b: Cnt { n: 0 } }
-    p.a.runFn(p.b.tick)
+    p.a.runFn(p.b.look)
     p.a.n
 }
 
 fn methodValueLet() -> Int {
     let mut v = Cnt { n: 0 }
-    let f = v.tick
+    let f = v.look
     v.runFn(f)
     f()
     v.n

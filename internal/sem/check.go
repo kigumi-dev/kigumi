@@ -86,9 +86,7 @@ type checker struct {
 	// taintedCall: callValue nodes whose result may hold a non-escaping parameter (opaque callee).
 	taintedCall map[syntax.NodeID]EntityID
 	once        onceFlow
-	// fieldFact stashes a resolved `pure?` field-call's FactPureField
-	// between callMethod finding it and callValue adding
-	// the matching effect edge.
+	// fieldFact stashes a resolved `pure?` field-call's FactPureField between callMethod and callValue adding its edge.
 	fieldFact      map[syntax.NodeID]NarrowFact
 	methodValues   methodValueState
 	wantIndexPlace bool
@@ -165,6 +163,7 @@ func (r *Result) checkFnBody(id EntityID) {
 		c.crossDirect(info.Body, c.retType)
 	}
 	c.dropsAtScopeExit(info.Params)
+	c.selfExitDrop(id)
 	r.Fn(id).Edges = edges
 }
 
@@ -173,6 +172,7 @@ func (r *Result) checkFnBody(id EntityID) {
 func (c *checker) checkBodyBlock(body syntax.NodeID) {
 	c.exitCheck.tail = c.bodyTail(body)
 	c.check(body, c.retType)
+	c.rejectScalarCopyResult(body)
 	c.checkExitMoves()
 	c.checkEscapeTailReturn(body)
 	c.finish()

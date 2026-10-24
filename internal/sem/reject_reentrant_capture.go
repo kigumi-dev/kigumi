@@ -9,7 +9,7 @@ func (c *checker) checkReentrantCapture(base syntax.NodeID, args []syntax.NodeID
 		return
 	}
 	roots, lent := c.exclusiveRoots(root, field)
-	c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: base, args: args, root: root, roots: roots, lent: lent, fnArgs: true})
+	c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: base, args: args, root: root, field: field, roots: roots, lent: lent, fnArgs: true})
 }
 
 func (c *checker) settleExclusiveSite(s exclusiveSite) {

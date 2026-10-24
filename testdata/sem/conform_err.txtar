@@ -28,7 +28,7 @@ fn use(p: P, q: Q) {
     let e: Display = 1 //~ ERROR expected `Display`, found `Int`
     let f: Dup = q //~ ERROR `Dup` is not object-safe
     let g: Display = q //~ ERROR expected `Display`, found `Q`
-    let h = p.display //~ TYPE h : fn() -> String
+    let h = p.display //~ ERROR `display` takes `mut self`, but a method value runs it on its own copy of the receiver
 }
 -- expect --
 error[E400]: expected `Display`, found `P`
@@ -55,4 +55,11 @@ error[E400]: expected `Display`, found `Q`
    |
 29 |     let g: Display = q //~ ERROR expected `Display`, found `Q`
    |                      ^
+
+error[E2270]: `display` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> lib/cf.kg:30:13
+   |
+30 |     let h = p.display //~ ERROR `display` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^^^^^
+   = help: call the method directly, or write a lambda that calls it
 

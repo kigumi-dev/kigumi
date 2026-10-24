@@ -7,11 +7,7 @@ func (c *checker) mutBorrowKeeps(at syntax.NodeID, r reservation, borrowed []Ent
 	if param == 0 {
 		return false
 	}
-	field := ""
-	if rel := r.fields[len(borrowed):]; len(rel) > 0 {
-		field = c.r.Entities[rel[0]].Name
-	}
-	s := selfScan{c: c, field: field, seen: map[selfScanKey]bool{}}
+	s := selfScan{c: c, field: c.reservedBelow(r, borrowed), seen: map[selfScanKey]bool{}}
 	return !s.mayReplaceParam(param)
 }
 

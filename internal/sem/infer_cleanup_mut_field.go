@@ -75,3 +75,47 @@ func (s *selfScan) fieldMethodMayReplace(t *syntax.Tree, v syntax.View) bool {
 	}
 	return false
 }
+
+// firstSelfField names the field of self a field path n starts with, "" when n is not one.
+func (s *selfScan) firstSelfField(t *syntax.Tree, n syntax.NodeID) string {
+	for {
+		switch t.Kind(n) {
+		case syntax.Paren:
+			n = t.View(n).AsParen().Inner().ID()
+			continue
+		case syntax.MemberExpr:
+			base := t.Unparen(t.View(n).AsMember().Base().ID())
+			if t.Kind(base) == syntax.Ident && t.View(base).Tok().Text() == s.root {
+				return t.View(n).Tok().Text()
+			}
+			n = base
+			continue
+		}
+		return ""
+	}
+}
+
+// reservedPartWrite reports whether writing or lending n mutably may replace the reserved field or a resource inside it.
+func (s *selfScan) reservedPartWrite(t *syntax.Tree, n syntax.NodeID) bool {
+	if s.field == "" || s.firstSelfField(t, n) != s.field {
+		return false
+	}
+	ty, depth, ok := s.selfFieldType(t, n)
+	return !ok || depth <= 1 || s.c.r.mayHoldResource(ty, map[TypeID]bool{})
+}
+
+// reservedPartUse judges a member of a path inside the reserved field: reading a field keeps it, a method keeps it unless it may replace its receiver.
+func (s *selfScan) reservedPartUse(t *syntax.Tree, v syntax.View) (bool, bool) {
+	base := v.AsMember().Base().ID()
+	if s.field == "" || s.firstSelfField(t, base) != s.field {
+		return false, false
+	}
+	ty, _, ok := s.selfFieldType(t, base)
+	if !ok {
+		return true, true
+	}
+	if owner := s.typeEnt(ty); owner != 0 && s.c.r.findField(owner, v.Tok().Text()) != 0 {
+		return true, false
+	}
+	return true, s.fieldMethodMayReplace(t, v)
+}

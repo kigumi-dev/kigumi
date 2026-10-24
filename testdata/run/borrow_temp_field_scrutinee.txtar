@@ -1,0 +1,47 @@
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type H = resource { pub mut r R, pub n Int }
+
+fn H.drop(move self) {
+    self.r.id = 999
+    print "droph ${self.n}"
+}
+
+type Outer = { pub h H }
+
+fn mkh(i: Int) -> H {
+    H { r: R { id: i }, n: i }
+}
+
+fn mko(i: Int) -> Outer {
+    Outer { h: mkh(i) }
+}
+
+fn main() {
+    match &mkh(2).r {
+        r -> print "field ${r.id}"
+    }
+    match &mkh(3).r {
+        R { id } -> print "is ${id}"
+    }
+    match &mko(4).h.r {
+        r -> print "deep ${r.id}"
+    }
+    print "end"
+}
+-- stdout --
+field 2
+droph 2
+drop 999
+is 3
+droph 3
+drop 999
+deep 4
+droph 4
+drop 999
+end

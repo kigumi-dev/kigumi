@@ -14,7 +14,12 @@ type heldMuts struct {
 	patWhole    bool
 	mutArgParam map[syntax.NodeID]EntityID
 	scalarCopy  map[EntityID]scalarCopy
-	patDepth    int
+	copyHold    map[EntityID]EntityID
+	copyLit     map[syntax.NodeID]EntityID
+	// holderAssigns lists the values a `let mut` holder of a `&mut` is rebound to after its initializer.
+	holderAssigns map[EntityID][]syntax.NodeID
+	reroot        loopReroot
+	patDepth      int
 }
 
 type mutHolder struct {

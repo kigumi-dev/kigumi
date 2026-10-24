@@ -1,0 +1,29 @@
+-- src --
+type B = { pub mut n Int, pub mut m Int }
+
+fn readPair(b: &mut B) -> Int {
+    let B { n, m } = b
+    let t = (n, m)
+    let (x, y) = t
+    x + y
+}
+
+fn readPairMatch(b: &mut B) -> Int {
+    match b {
+        B { n, m } -> {
+            let t = ((n, 10), m)
+            let ((p, q), r) = t
+            p + q + r
+        }
+    }
+}
+
+fn main() {
+    let mut b = B { n: 1, m: 2 }
+    print "${readPair(&mut b)} ${readPairMatch(&mut b)}"
+    b.n = 5
+    print "${readPair(&mut b)} ${b.n} ${b.m}"
+}
+-- stdout --
+3 13
+7 5 2

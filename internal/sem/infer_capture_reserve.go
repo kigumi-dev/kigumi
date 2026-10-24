@@ -74,3 +74,18 @@ func (c *checker) pathTo(root, target syntax.NodeID) []syntax.NodeID {
 	}
 	return nil
 }
+
+// A move capture inside a cleanup consumes the binding when the closure is built, so the cleanup reserves it.
+func (c *checker) reserveCleanupCaptures(n syntax.NodeID, ctx *lambdaCtx) {
+	if c.cleanup == 0 {
+		return
+	}
+	for _, cp := range ctx.list {
+		if cp.Mode != capMove || cp.OwnCell || !c.ownsValue(cp.Local) || c.declaredIn(cp.Local, c.cleanupNode) {
+			continue
+		}
+		p := reservedPlace{ent: cp.Local, node: n}
+		c.consumeAfterAssign(n, p)
+		c.cleanupLog.consumed = append(c.cleanupLog.consumed, p)
+	}
+}

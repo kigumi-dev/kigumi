@@ -1,0 +1,61 @@
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn R.add(mut self, n: Int) -> Int {
+    self.id = self.id + n
+    self.id
+}
+
+fn R.take(move self) -> Int {
+    self.id
+}
+
+fn mk(i: Int) -> R {
+    R { id: i }
+}
+
+type P = resource { pub mut h R, pub mut k R }
+
+fn viaParam(p: &mut P) -> Int {
+    p.h.add({ p.k = mk(7); 1 })
+}
+
+fn viaLocal() -> Int {
+    let mut p = P { h: mk(10), k: mk(20) }
+    let got = p.h.add({ p.k = mk(30); 1 })
+    print "local ${got} ${p.h.id} ${p.k.id}"
+    got
+}
+
+fn viaElement() -> Int {
+    let mut xs = Array.of(mk(1), mk(2))
+    xs[0].add(xs[1].id)
+}
+
+fn main() {
+    let mut p = P { h: mk(1), k: mk(2) }
+    print "taken ${p.h.add(p.k.take())}"
+    p.k = mk(3)
+    print "param ${viaParam(&mut p)} ${p.h.id} ${p.k.id}"
+    print "after ${viaLocal()}"
+    print "element ${viaElement()}"
+}
+-- stdout --
+taken 3
+drop 2
+drop 3
+param 4 4 7
+drop 20
+local 11 11 30
+drop 30
+drop 11
+after 11
+drop 2
+drop 3
+element 3
+drop 7
+drop 4

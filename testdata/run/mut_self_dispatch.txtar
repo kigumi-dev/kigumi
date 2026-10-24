@@ -158,14 +158,10 @@ s.flattenViaClosure()
 print "closureAdt=${s.size()}"
 
 let mut mv = Counter { n: 1 }
-let bump = mv.grow
+let mut bump = (k: Int) => mv.grow(k)
 bump(4)
 bump(5)
-print "methodValue=${mv.n}"
-
-let mut opt: Int? = Some(5)
-let take = opt.take
-print "optValue=${debug(take())} ${debug(opt)}"
+print "lambdaGrow=${mv.n}"
 
 let mut bc = Counter { n: 1 }
 print "borrowedParam=${bumpBorrowed(&mut bc, 5)} ${bc.n}"
@@ -191,8 +187,7 @@ dynamicRecord=18
 async=11 11
 closure=7 7
 closureAdt=0
-methodValue=1
-optValue=Some(5) Some(5)
+lambdaGrow=10
 borrowedParam=11 11
 borrowedParamRecord=206 2 6
 borrowedDynAdt=9 9

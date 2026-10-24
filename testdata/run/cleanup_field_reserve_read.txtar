@@ -1,0 +1,41 @@
+-- src --
+type Handle = resource { pub mut id Int }
+
+fn Handle.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Handle.close(move self) {
+    print "close ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn Handle.bump(mut self) {
+    self.id = self.id + 1
+}
+
+type Pack = { pub mut inner Handle, pub mut n Int }
+
+fn Pack.countInner(mut self) {
+    self.n = self.n + self.inner.peek()
+}
+
+fn Pack.bumpInner(mut self) {
+    self.inner.bump()
+}
+
+fn main() {
+    let mut b = Pack { inner: Handle { id: 1 }, n: 0 }
+    defer { b.inner.close() }
+    b.countInner()
+    b.bumpInner()
+    b.countInner()
+    print "n ${b.n}"
+}
+-- stdout --
+n 3
+close 2
+drop 2

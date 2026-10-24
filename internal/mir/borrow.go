@@ -81,6 +81,7 @@ type borrowCheck struct {
 	keptTemp    map[LocalID]bool
 	carry       map[LocalID][]carrySite
 	carryIn     map[[2]LocalID][]bool
+	resets      resetState
 	recvBorrows map[recvBorrowKey]*borrowInfo
 	callNode    syntax.NodeID
 	thread      *flagThread
@@ -146,6 +147,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 	c.checkTempKept(in)
 	c.checkRecvArgs(in)
 	c.checkViewReuse(in, liveAfter)
+	c.checkViewSpawn(in)
 	c.checkSuspend(in, liveAfter)
 	// A receiver cell's write-back releases the place's old value; the
 	// exclusive borrow the call took of that place already reported.
@@ -158,7 +160,7 @@ func (c *borrowCheck) checkInst(in Inst, liveAfter, realAfter map[LocalID]bool) 
 			continue
 		}
 		for _, o := range b.owners {
-			if o.view || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) {
+			if o.view || !c.mayBeBorrowed(o.owner, c.curIdx) || o.carried && !c.carryReaches(holder, o.owner, c.curIdx) || !c.resetReaches(holder, o.owner, c.curIdx) {
 				continue
 			}
 			touched, path, _ := c.touch(in, o.owner)

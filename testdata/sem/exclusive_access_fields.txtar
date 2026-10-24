@@ -92,45 +92,45 @@ fn sameFieldClosureBeforeCall() -> Int {
 
 fn methodValueOfCopy() -> Int {
     let mut v = Item { count: 0 }
-    v.run(v.tick)
+    v.run(v.look)
     v.count
 }
 
 fn methodValueIntoFn() -> Int {
     let mut v = Item { count: 0 }
-    v.runFn(v.tick)
+    v.runFn(v.look)
     v.count
 }
 
 fn methodValueOfOtherPlace() -> Int {
     let mut v = Item { count: 0 }
     let mut w = Item { count: 0 }
-    w.runFn(v.tick)
+    w.runFn(v.look)
     v.count + w.count
 }
 
 fn methodValueOfSiblingField() -> Int {
     let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
-    p.a.runFn(p.b.tick)
+    p.a.runFn(p.b.look)
     p.a.count
 }
 
 fn methodValueThroughLet() -> Int {
     let mut v = Item { count: 0 }
-    let f = v.tick
+    let f = v.look
     v.runFn(f)
     v.count
 }
 
 fn methodValueOfSameField() -> Int {
     let mut p = Pair { a: Item { count: 0 }, b: Item { count: 0 } }
-    p.a.runFn(p.a.tick) //~ ERROR cannot see what this closure captures
+    p.a.runFn(p.a.look) //~ ERROR cannot see what this closure captures
     p.a.count
 }
 
 fn methodValueOfElement() -> Int {
     let mut xs = Array.of(Item { count: 0 }, Item { count: 0 })
-    xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
+    xs[0].runFn(xs[1].look) //~ ERROR cannot see what this closure captures
     xs[0].count
 }
 
@@ -152,6 +152,8 @@ fn methodValueOfMoveOnly() -> Int {
     v.runWith(v.tickWith) //~ ERROR closure captures `v` (move-only) and cannot be a plain `fn`
     v.count
 }
+
+fn Item.look(self) {}
 -- expect --
 error[E979]: a closure argument cannot capture `self` while this call exclusively borrows it
   --> app/t/t.kg:31:16
@@ -231,35 +233,35 @@ note: `p` is shared with a closure that writes it here
 error[E1051]: cannot see what this closure captures while `p` is exclusively borrowed by this call
    --> app/t/t.kg:126:15
     |
-126 |     p.a.runFn(p.a.tick) //~ ERROR cannot see what this closure captures
+126 |     p.a.runFn(p.a.look) //~ ERROR cannot see what this closure captures
     |               ^^^^^^^^
     = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
 note: `p` is exclusively borrowed by this call
    --> app/t/t.kg:126:5
     |
-126 |     p.a.runFn(p.a.tick) //~ ERROR cannot see what this closure captures
+126 |     p.a.runFn(p.a.look) //~ ERROR cannot see what this closure captures
     |     ^^^
 note: this method value holds `p.a`, which it may share
    --> app/t/t.kg:126:15
     |
-126 |     p.a.runFn(p.a.tick) //~ ERROR cannot see what this closure captures
+126 |     p.a.runFn(p.a.look) //~ ERROR cannot see what this closure captures
     |               ^^^
 
 error[E1051]: cannot see what this closure captures while `xs` is exclusively borrowed by this call
    --> app/t/t.kg:132:17
     |
-132 |     xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
+132 |     xs[0].runFn(xs[1].look) //~ ERROR cannot see what this closure captures
     |                 ^^^^^^^^^^
     = help: bind it to a named closure literal here, or pass it directly, so its captures are visible
 note: `xs` is exclusively borrowed by this call
    --> app/t/t.kg:132:5
     |
-132 |     xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
+132 |     xs[0].runFn(xs[1].look) //~ ERROR cannot see what this closure captures
     |     ^^^^
 note: this method value holds `xs[..]`, which it may share
    --> app/t/t.kg:132:17
     |
-132 |     xs[0].runFn(xs[1].tick) //~ ERROR cannot see what this closure captures
+132 |     xs[0].runFn(xs[1].look) //~ ERROR cannot see what this closure captures
     |                 ^^^^
 
 error[E413]: closure captures `v` (move-only) and cannot be a plain `fn`

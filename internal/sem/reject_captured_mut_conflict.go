@@ -11,5 +11,5 @@ func (c *checker) checkCapturedMutConflict(base syntax.NodeID, root EntityID) {
 	}
 	_, field := c.placeRoot(base)
 	roots, lent := c.exclusiveRoots(root, field)
-	c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: base, root: root, roots: roots, lent: lent})
+	c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: base, root: root, field: field, roots: roots, lent: lent})
 }

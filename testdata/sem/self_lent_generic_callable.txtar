@@ -1,0 +1,24 @@
+-- module --
+stage: driver
+-- src --
+type Pad = { pub mut n Int }
+
+fn reset(p: &mut Pad, k: Int) -> Void {
+    p = Pad { n: k }
+}
+
+fn Pad.growG[F: Fn[fn(&mut Pad, Int) -> Void]](mut self, f: F, k: Int) {
+    f(&mut self, k)
+}
+
+fn Pad.growM[F: FnMut[fn(&mut Pad, Int) -> Void]](mut self, f: F, k: Int) -> Int {
+    f(&mut self, k)
+    self.n
+}
+
+fn grow() -> Int {
+    let mut a = Pad { n: 1 }
+    a.growG(reset, 5)
+    a.growM(reset, 6)
+}
+-- expect --

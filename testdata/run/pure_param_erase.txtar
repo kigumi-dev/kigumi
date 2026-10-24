@@ -1,0 +1,15 @@
+-- src --
+fn relayP(f: pure fn(Int) -> Int, x: Int) -> Int { f(x) }
+
+pure fn add1(x: Int) -> Int { x + 1 }
+
+pure fn twice(x: Int) -> Int { x * 2 }
+
+fn go(h: pure fn(Int) -> Int) -> Int {
+    let g: pure fn(pure fn(Int) -> Int, Int) -> Int = relayP
+    g(h, 10)
+}
+
+print "${go(add1)} ${go(twice)}"
+-- stdout --
+11 20

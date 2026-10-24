@@ -18,9 +18,25 @@ func (c *checker) reserveMutBorrow(at, operand syntax.NodeID) {
 	if !ok {
 		return
 	}
-	if i, held := c.reservedWithin(p.Root, p.Fields); held && !c.mutBorrowKeeps(at, c.reserved[p.Root][i], p.Fields) {
+	if i, held := c.reservedLent(operand, p); held && !c.mutBorrowKeeps(at, c.reserved[p.Root][i], p.Fields) {
 		c.reservedError(at, cCleanupReservedBorrowMut, c.reserved[p.Root][i])
 	}
+}
+
+// reservedLent also matches a resource-holding place inside a reservation, which a `&mut` can replace as plain assignment can.
+func (c *checker) reservedLent(n syntax.NodeID, p Place) (int, bool) {
+	if c.r.mayHoldResource(c.vars.resolve(c.info.Types[c.stripParen(n)]), map[TypeID]bool{}) {
+		return c.reservedOver(p.Root, p.Fields)
+	}
+	return c.reservedWithin(p.Root, p.Fields)
+}
+
+// reservedBelow names the first field of the reservation below the lent place, "" when the place is the reservation or inside it.
+func (c *checker) reservedBelow(r reservation, lent []EntityID) string {
+	if len(lent) >= len(r.fields) {
+		return ""
+	}
+	return c.r.Entities[r.fields[len(lent)]].Name
 }
 
 func (c *checker) reserveMutRecv(base syntax.NodeID, m EntityID) {
@@ -31,16 +47,12 @@ func (c *checker) reserveMutRecv(base syntax.NodeID, m EntityID) {
 	if !ok {
 		return
 	}
-	i, held := c.reservedWithin(p.Root, p.Fields)
+	i, held := c.reservedLent(base, p)
 	if !held {
 		return
 	}
 	r := c.reserved[p.Root][i]
-	field := ""
-	if rel := r.fields[len(p.Fields):]; len(rel) > 0 {
-		field = c.r.Entities[rel[0]].Name
-	}
-	if !c.mutRecvKeepsPlace(m, field) {
+	if !c.mutRecvKeepsPlace(m, c.reservedBelow(r, p.Fields)) {
 		c.reservedError(base, cCleanupReservedBorrowMut, r)
 	}
 }
@@ -99,15 +111,19 @@ func (s *selfScan) scan(t *syntax.Tree, n syntax.NodeID) bool {
 		if base := v.AsMember().Base().ID(); t.Kind(base) == syntax.Ident && t.View(base).Tok().Text() == s.root {
 			return s.selfMember(v.Tok().Text())
 		}
+		if handled, replaced := s.reservedPartUse(t, v); handled {
+			return replaced
+		}
 		if s.field == "" && s.fieldMethodMayReplace(t, v) {
 			return true
 		}
 	case syntax.AssignStmt:
-		if rootedAtSelf(t, v.AsAssign().Target().ID(), s.root, false) || s.field == "" && s.ownsFieldPlace(t, v.AsAssign().Target().ID()) {
+		target := v.AsAssign().Target().ID()
+		if rootedAtSelf(t, target, s.root, false) || s.field == "" && s.ownsFieldPlace(t, target) || s.reservedPartWrite(t, target) {
 			return true
 		}
 	case syntax.BorrowExpr:
-		if b := v.AsBorrow(); b.Flags()&syntax.FlagMut != 0 && s.field == "" && s.ownsFieldPlace(t, b.Operand().ID()) {
+		if b := v.AsBorrow(); b.Flags()&syntax.FlagMut != 0 && (s.field == "" && s.ownsFieldPlace(t, b.Operand().ID()) || s.reservedPartWrite(t, b.Operand().ID())) {
 			return true
 		}
 	}

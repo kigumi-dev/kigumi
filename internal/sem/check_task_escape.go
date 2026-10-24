@@ -130,3 +130,8 @@ func (r *Result) IsTaskType(t TypeID) bool {
 func (r *Result) IsTaskYieldNow(ent EntityID) bool {
 	return r.isStdTaskEnt(ent, "yieldNow")
 }
+
+// IsTaskRunToCompletion reports whether ent is `Executor.runToCompletion`, which finishes its future and every task it spawns before returning.
+func (r *Result) IsTaskRunToCompletion(ent EntityID) bool {
+	return r.Entities[ent].Kind == EntFn && r.isStdTaskEnt(ent, "runToCompletion")
+}

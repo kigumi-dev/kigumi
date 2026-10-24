@@ -1,0 +1,26 @@
+-- src --
+type Res = resource { pub id Int }
+
+fn Res.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn main() {
+    let xs = Array.of(Res { id: 1 }, Res { id: 2 })
+    for _ in xs {
+        print "iter"
+    }
+    print "after"
+    let mut n = 0
+    for _ in 0..3 {
+        n = n + 1
+    }
+    print "count ${n}"
+}
+-- stdout --
+drop 1
+iter
+drop 2
+iter
+after
+count 3

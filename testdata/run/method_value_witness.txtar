@@ -66,9 +66,10 @@ print shw(">> ")
 let escaped = pick(Pt { x: 1 })
 print "${escaped(4, 4)} ${escaped(4, 5)}"
 let mut t = Tally { n: 0 }
-let bump: fn(Tag) -> String = t.bump
+let mut bump = (v: Tag) => t.bump(v)
 print bump(Tag { s: "a" })
 print bump(Tag { s: "b" })
+print "${t.n}"
 let shifted: fn(Tag) -> String = p.shift
 print shifted(Tag { s: "c" })
 print shifted(Tag { s: "d" })
@@ -84,6 +85,7 @@ true false
 true false
 1:<a>
 2:<b>
+2
 8:<c>
 8:<d>
 7

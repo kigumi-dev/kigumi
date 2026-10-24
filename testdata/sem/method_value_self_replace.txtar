@@ -1,0 +1,82 @@
+-- src --
+type Counter = Off | N(n: Int)
+
+fn Counter.reset(mut self) {
+    self = N(7)
+}
+
+fn Counter.resetVia(mut self) {
+    self.reset()
+}
+
+fn Counter.keep(mut self) {
+    match self {
+        Off -> {}
+        N(n) -> {}
+    }
+}
+
+fn local() {
+    let mut d = Off
+    let f = d.reset //~ ERROR `reset` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f()
+}
+
+fn forwarded() {
+    let mut d = Off
+    let f = d.resetVia //~ ERROR `resetVia` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f()
+}
+
+fn Counter.viaValue(mut self) {
+    let f = self.reset //~ ERROR `reset` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f()
+}
+
+fn keeps() {
+    let mut d = Off
+    let f = d.keep //~ ERROR `keep` takes `mut self`, but a method value runs it on its own copy of the receiver
+    f()
+}
+
+fn optionTake() -> Int? {
+    let mut opt: Int? = Some(5)
+    let take = opt.take //~ ERROR `take` takes `mut self`, but a method value runs it on its own copy of the receiver
+    take()
+}
+-- expect --
+error[E2270]: `reset` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:20:13
+   |
+20 |     let f = d.reset //~ ERROR `reset` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `resetVia` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:26:13
+   |
+26 |     let f = d.resetVia //~ ERROR `resetVia` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `reset` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:31:13
+   |
+31 |     let f = self.reset //~ ERROR `reset` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `keep` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:37:13
+   |
+37 |     let f = d.keep //~ ERROR `keep` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |             ^^^^^^
+   = help: call the method directly, or write a lambda that calls it
+
+error[E2270]: `take` takes `mut self`, but a method value runs it on its own copy of the receiver, so its writes are lost
+  --> main/main.kg:43:16
+   |
+43 |     let take = opt.take //~ ERROR `take` takes `mut self`, but a method value runs it on its own copy of the receiver
+   |                ^^^^^^^^
+   = help: call the method directly, or write a lambda that calls it
+

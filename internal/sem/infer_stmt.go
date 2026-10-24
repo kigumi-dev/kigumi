@@ -104,6 +104,7 @@ func (c *checker) letStmt(n syntax.NodeID) {
 		c.info.Pats[s.Pattern] = PatInfo{Kind: PatBinding, Type: got, Borrow: borrow}
 		c.declareLocal(s.Pattern, c.t.View(s.Pattern).Tok().Text(), typ, mut)
 		c.setType(s.Pattern, typ)
+		c.inheritScalarCopy(c.info.Defs[s.Pattern], s.Init)
 		// `let g = f` keeps a callback parameter's polymorphism: calls of g
 		// count as calls of f.
 		if p := c.polyParam(s.Init); p != 0 && !mut {

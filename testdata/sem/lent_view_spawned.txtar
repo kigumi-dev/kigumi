@@ -1,0 +1,138 @@
+-- module --
+stage: driver
+-- src --
+import task from std/task
+
+interface Show {
+    fn show(self) -> String
+}
+
+type Num = { pub n Int }
+
+fn Num.show(self) -> String {
+    "num:${self.n}"
+}
+
+async fn show(v: &Show) -> Int {
+    await task.yieldNow()
+    _ = v.show()
+    1
+}
+
+async fn showNum(v: &Num) -> Int {
+    await task.yieldNow()
+    v.n
+}
+
+async fn spawnsView() -> Int {
+    let n = Num { n: 7 }
+    let c = task.spawn(show(&n))
+    0
+}
+
+async fn awaitsView() -> Int {
+    let n = Num { n: 8 }
+    await show(&n)
+}
+
+async fn spawnsConcrete() -> Int {
+    let n = Num { n: 9 }
+    let c = task.spawn(showNum(&n))
+    0
+}
+
+async fn spawnsBound() -> Int {
+    let n = Num { n: 10 }
+    let f = show(&n)
+    let c = task.spawn(f)
+    0
+}
+
+fn pass(f: Future[Int]) {
+    let c = task.spawn(f)
+}
+
+async fn viaHelper() -> Int {
+    let n = Num { n: 11 }
+    pass(show(&n))
+    0
+}
+
+async fn spawnLater(f: Future[Int]) -> Int {
+    let c = task.spawn(f)
+    0
+}
+
+async fn viaAsyncHelper() -> Int {
+    let n = Num { n: 12 }
+    await spawnLater(show(&n))
+}
+
+type Job = { pub f Future[Int] }
+
+fn runJob(j: Job) {
+    let c = task.spawn(j.f)
+}
+
+async fn viaRecordArg() -> Int {
+    let n = Num { n: 13 }
+    runJob(Job { f: show(&n) })
+    0
+}
+
+fn id[T](x: T) -> T {
+    x
+}
+
+async fn awaitsThroughGeneric() -> Int {
+    let n = Num { n: 14 }
+    await id(show(&n))
+}
+
+async fn spawnsThroughGeneric() -> Int {
+    let n = Num { n: 15 }
+    let c = task.spawn(id(show(&n)))
+    0
+}
+
+fn drivesToEnd() -> Int {
+    let n = Num { n: 16 }
+    task.currentThreadExecutor().runToCompletion(show(&n))
+}
+-- expect --
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+  --> main.kg:26:13
+   |
+26 |     let c = task.spawn(show(&n))
+   |             ^^^^^^^^^^^^^^^^^^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+  --> main.kg:44:13
+   |
+44 |     let c = task.spawn(f)
+   |             ^^^^^^^^^^^^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+  --> main.kg:54:5
+   |
+54 |     pass(show(&n))
+   |     ^^^^^^^^^^^^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+  --> main.kg:65:11
+   |
+65 |     await spawnLater(show(&n))
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+  --> main.kg:76:5
+   |
+76 |     runJob(Job { f: show(&n) })
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2262]: a future holding an `&Interface` view made in this frame cannot be spawned or passed to a call that may spawn it, since the frame ends before the task may next run; pass `&T` of the concrete type, or await the future here
+  --> main.kg:91:13
+   |
+91 |     let c = task.spawn(id(show(&n)))
+   |             ^^^^^^^^^^^^^^^^^^^^^
+

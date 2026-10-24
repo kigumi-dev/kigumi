@@ -21,9 +21,11 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	saved := c.scope
 	c.pushScope(ScopeArm, n)
 	once := c.onceLoopBegin()
+	sites := c.markLoopSites()
 	switch {
 	case s.Pattern != 0:
 		iter := c.vars.resolve(c.synthPlace(s.Head))
+		sites = c.markLoopSites()
 		elem := c.iterElement(n, s.Head, iter)
 		if !c.r.isCopy(c.vars.resolve(elem)) {
 			c.rejectFieldLeaf(c.t.Unparen(s.Head))
@@ -55,6 +57,7 @@ func (c *checker) synthFor(n syntax.NodeID) TypeID {
 	c.loop++
 	c.onceLoopBody(once)
 	c.onceLoopEnd(once, c.check(s.Body, TyUnit), bare)
+	c.rerootLoopSites(n, sites)
 	c.loop--
 	c.breaks = savedBreaks
 	c.popScope(saved)

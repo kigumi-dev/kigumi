@@ -98,8 +98,8 @@ print "value ${asValue()}"
 -- stdout --
 whole 1
 drop 1
-droph 2
 field 2
+droph 2
 drop 2
 payload 3
 drop 3
@@ -108,8 +108,8 @@ droph 4
 drop 4
 id 5
 drop 5
-droph 6
 field id 6
+droph 6
 drop 6
 plain 7 s
 is 8

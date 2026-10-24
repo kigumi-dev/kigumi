@@ -1,0 +1,72 @@
+-- src --
+type Handle = resource { pub id Int }
+
+fn Handle.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn take(h: Handle) {
+    print "take ${h.id}"
+}
+
+fn reassign() {
+    let mut h = Handle { id: 1 }
+    defer {
+        let f = move () => take(h)
+        f()
+    }
+    h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+}
+
+fn moveOut() {
+    let h = Handle { id: 3 }
+    defer {
+        let f = move () => take(h)
+        f()
+    }
+    take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+}
+
+fn copyFields() {
+    let mut h = Handle { id: 4 }
+    defer {
+        match h {
+            Handle { id } -> print "m ${id}"
+        }
+    }
+    h = Handle { id: 5 }
+}
+
+fn ownedInside() {
+    defer {
+        let k = Handle { id: 6 }
+        let f = move () => take(k)
+        f()
+    }
+    print "body"
+}
+-- expect --
+error[E2100]: `h` is reserved by a cleanup that consumes it and cannot be assigned before the scope exits
+  --> main/main.kg:17:5
+   |
+17 |     h = Handle { id: 2 } //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be assigned
+   |     ^
+   = help: bind the new value to another name, or let the cleanup borrow the binding instead of consuming it
+note: `h` is reserved by this cleanup
+  --> main/main.kg:13:5
+   |
+13 |     defer {
+   |     ^^^^^^^
+
+error[E2101]: `h` is reserved by a cleanup that consumes it and cannot be moved before the scope exits
+  --> main/main.kg:26:10
+   |
+26 |     take(h) //~ ERROR `h` is reserved by a cleanup that consumes it and cannot be moved
+   |          ^
+   = help: move it after the scope, return it as the success value when only a `defer(fail)` reserves it, or drop the cleanup and consume it yourself
+note: `h` is reserved by this cleanup
+  --> main/main.kg:22:5
+   |
+22 |     defer {
+   |     ^^^^^^^
+

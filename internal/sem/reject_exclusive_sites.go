@@ -5,20 +5,20 @@ import (
 )
 
 type exclusiveSite struct {
-	base  syntax.NodeID
-	args  []syntax.NodeID
-	root  EntityID
-	roots []EntityID
-	lent  map[EntityID]EntityID
+	base        syntax.NodeID
+	args        []syntax.NodeID
+	root, field EntityID
+	roots       []EntityID
+	lent        map[EntityID]EntityID
 	// fnArgs: the strict fn-shaped argument rule applies to `mut self` calls only.
 	fnArgs bool
 }
 
 type outsideMutCall struct {
-	base  syntax.NodeID
-	root  EntityID
-	roots []EntityID
-	lent  map[EntityID]EntityID
+	base        syntax.NodeID
+	root, field EntityID
+	roots       []EntityID
+	lent        map[EntityID]EntityID
 	// byRef: the access is a `&mut` argument, not a `mut self` receiver.
 	byRef bool
 }
@@ -87,9 +87,9 @@ func (c *checker) noteMutBorrowSites(args []syntax.NodeID) {
 			}
 		}
 		roots, lent := c.exclusiveRoots(root, field)
-		c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: a, args: others, root: root, roots: roots, lent: lent})
+		c.exclusiveSites = append(c.exclusiveSites, exclusiveSite{base: a, args: others, root: root, field: field, roots: roots, lent: lent})
 		if !c.capturedHere(root) {
-			c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: a, root: root, roots: roots, lent: lent, byRef: true})
+			c.outsideCalls = append(c.outsideCalls, outsideMutCall{base: a, root: root, field: field, roots: roots, lent: lent, byRef: true})
 		}
 	}
 }

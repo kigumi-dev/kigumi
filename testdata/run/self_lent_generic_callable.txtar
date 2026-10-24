@@ -1,0 +1,58 @@
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type Pad = { pub mut n Int }
+
+fn reset(p: &mut Pad, k: Int) -> Void {
+    p = Pad { n: k }
+}
+
+fn Pad.growG[F: Fn[fn(&mut Pad, Int) -> Void]](mut self, f: F, k: Int) {
+    f(&mut self, k)
+}
+
+type Box = resource { pub mut r R, pub mut tag String }
+
+fn swapIn(b: &mut Box, k: Int) -> Void {
+    b = Box { r: R { id: k }, tag: "new" }
+}
+
+fn peek(s: &String) -> Int {
+    if s == "old" { 1 } else { 2 }
+}
+
+fn Box.viaG[F: FnMut[fn(&mut Box, Int) -> Void]](mut self, f: F, k: Int) {
+    f(&mut self, k)
+}
+
+fn Box.readG[F: Fn[fn(&String) -> Int]](self, f: F) -> Int {
+    f(&self.tag)
+}
+
+fn once[F: FnOnce[fn(&mut Box, Int) -> Void]](b: &mut Box, f: F) {
+    f(b, 9)
+}
+
+fn main() {
+    let mut a = Pad { n: 1 }
+    a.growG(reset, 5)
+    print "G ${a.n}"
+    let mut b = Box { r: R { id: 1 }, tag: "old" }
+    print "read ${b.readG(peek)}"
+    b.viaG(swapIn, 5)
+    print "after viaG ${b.r.id} ${b.tag} ${b.readG(peek)}"
+    once(&mut b, swapIn)
+    print "after once ${b.r.id}"
+}
+-- stdout --
+G 5
+read 1
+drop 1
+after viaG 5 new 2
+drop 5
+after once 9
+drop 9

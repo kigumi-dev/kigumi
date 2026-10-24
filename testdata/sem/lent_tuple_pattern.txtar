@@ -1,0 +1,274 @@
+-- src --
+type Item = { pub mut count Int }
+
+fn Item.update(mut self, d: Int) {
+    self.count = self.count + d
+}
+
+fn Item.run[F: FnMut[fn() -> Void]](mut self, f: F) {
+    f()
+}
+
+fn viaTuple() -> Int {
+    let mut v = Item { count: 0 }
+    let (r, _) = (&mut v, 0)
+    r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    v.count
+}
+
+fn viaNested() -> Int {
+    let mut v = Item { count: 0 }
+    let (_, (r, _)) = (1, (&mut v, 2))
+    r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    v.count
+}
+
+fn other() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 0 }
+    let (r, _) = (&mut w, 0)
+    r.run(() => { v.update(1) })
+    v.count + w.count
+}
+
+type Hold['a] = { pub r &'a mut Item, pub z Int }
+
+type Two['a] = { pub r &'a mut Item, pub s &'a mut Item }
+
+fn viaNamedTuple() -> Int {
+    let mut v = Item { count: 0 }
+    let t = (&mut v, 0)
+    let (r, _) = t
+    r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    v.count
+}
+
+fn viaRecordField() -> Int {
+    let mut v = Item { count: 0 }
+    let h = Hold { r: &mut v, z: 1 }
+    h.r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    v.count
+}
+
+fn viaRecordPattern() -> Int {
+    let mut v = Item { count: 0 }
+    let h = Hold { r: &mut v, z: 1 }
+    let Hold { r, z } = h
+    r.run(() => { v.update(z) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    v.count
+}
+
+fn viaOption() -> Int {
+    let mut v = Item { count: 0 }
+    let o = Some(&mut v)
+    if let Some(r) = o {
+        r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    }
+    v.count
+}
+
+fn otherField() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 0 }
+    let h = Two { r: &mut v, s: &mut w }
+    h.r.run(() => { w.update(1) })
+    v.count
+}
+
+fn otherPatternField() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 0 }
+    let h = Two { r: &mut v, s: &mut w }
+    let Two { r, s } = h
+    r.run(() => { w.update(1) })
+    v.count
+}
+
+fn copyElement() -> Int {
+    let mut v = Item { count: 0 }
+    let x = 3
+    let t = (&mut v, x)
+    let (r, _) = t
+    r.run(() => { let y = x })
+    v.count
+}
+
+fn viaMutTuple() -> Int {
+    let mut v = Item { count: 0 }
+    let mut t = (&mut v, 0)
+    let (r, _) = t
+    r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    v.count
+}
+
+fn viaMutRecord() -> Int {
+    let mut v = Item { count: 0 }
+    let mut h = Hold { r: &mut v, z: 1 }
+    let Hold { r, z } = h
+    r.run(() => { v.update(z) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    v.count
+}
+
+fn viaRebound() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 0 }
+    let mut t = (&mut w, 0)
+    t = (&mut v, 1)
+    let (r, _) = t
+    r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    v.count
+}
+
+fn otherMutTuple() -> Int {
+    let mut v = Item { count: 0 }
+    let mut w = Item { count: 0 }
+    let mut t = (&mut w, 0)
+    let (r, _) = t
+    r.run(() => { v.update(1) })
+    v.count
+}
+-- expect --
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> main/main.kg:14:11
+   |
+14 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> main/main.kg:14:5
+   |
+14 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |     ^
+note: this closure captures `v`
+  --> main/main.kg:14:11
+   |
+14 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> main/main.kg:21:11
+   |
+21 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> main/main.kg:21:5
+   |
+21 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |     ^
+note: this closure captures `v`
+  --> main/main.kg:21:11
+   |
+21 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> main/main.kg:41:11
+   |
+41 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> main/main.kg:41:5
+   |
+41 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |     ^
+note: this closure captures `v`
+  --> main/main.kg:41:11
+   |
+41 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> main/main.kg:48:13
+   |
+48 |     h.r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |             ^^^^^^^^^^^^^^^^^^
+note: `h` is exclusively borrowed by this call
+  --> main/main.kg:48:5
+   |
+48 |     h.r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |     ^^^
+note: this closure captures `v`
+  --> main/main.kg:48:13
+   |
+48 |     h.r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |             ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> main/main.kg:56:11
+   |
+56 |     r.run(() => { v.update(z) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> main/main.kg:56:5
+   |
+56 |     r.run(() => { v.update(z) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |     ^
+note: this closure captures `v`
+  --> main/main.kg:56:11
+   |
+56 |     r.run(() => { v.update(z) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> main/main.kg:64:15
+   |
+64 |         r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |               ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> main/main.kg:64:9
+   |
+64 |         r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |         ^
+note: this closure captures `v`
+  --> main/main.kg:64:15
+   |
+64 |         r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |               ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+  --> main/main.kg:99:11
+   |
+99 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+  --> main/main.kg:99:5
+   |
+99 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |     ^
+note: this closure captures `v`
+  --> main/main.kg:99:11
+   |
+99 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+   |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+   --> main/main.kg:107:11
+    |
+107 |     r.run(() => { v.update(z) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> main/main.kg:107:5
+    |
+107 |     r.run(() => { v.update(z) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    |     ^
+note: this closure captures `v`
+   --> main/main.kg:107:11
+    |
+107 |     r.run(() => { v.update(z) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    |           ^^^^^^^^^^^^^^^^^^
+
+error[E979]: a closure argument cannot capture `v` while this call exclusively borrows it
+   --> main/main.kg:117:11
+    |
+117 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    |           ^^^^^^^^^^^^^^^^^^
+note: `r` is exclusively borrowed by this call
+   --> main/main.kg:117:5
+    |
+117 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    |     ^
+note: this closure captures `v`
+   --> main/main.kg:117:11
+    |
+117 |     r.run(() => { v.update(1) }) //~ ERROR a closure argument cannot capture `v` while this call exclusively borrows it
+    |           ^^^^^^^^^^^^^^^^^^
+

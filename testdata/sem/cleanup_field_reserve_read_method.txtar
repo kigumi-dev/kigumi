@@ -1,0 +1,84 @@
+-- src --
+type Handle = resource { pub mut id Int }
+
+fn Handle.drop(move self) {
+    print "drop ${self.id}"
+}
+
+fn Handle.close(move self) {
+    print "close ${self.id}"
+}
+
+fn Handle.peek(self) -> Int {
+    self.id
+}
+
+fn Handle.bump(mut self) {
+    self.id = self.id + 1
+}
+
+fn Handle.renew(mut self) {
+    self = Handle { id: 0 }
+}
+
+type Pack = { pub mut inner Handle, pub mut n Int }
+
+fn Pack.countInner(mut self) {
+    self.n = self.n + self.inner.peek()
+}
+
+fn Pack.readId(mut self) {
+    self.n = self.inner.id
+}
+
+fn Pack.bumpInner(mut self) {
+    self.inner.bump()
+}
+
+fn Pack.renewInner(mut self) {
+    self.inner.renew()
+}
+
+fn Pack.replaceInner(mut self) {
+    self.inner = Handle { id: 5 }
+}
+
+fn reads() {
+    let mut b = Pack { inner: Handle { id: 1 }, n: 0 }
+    defer { b.inner.close() }
+    b.countInner()
+    b.readId()
+    b.bumpInner()
+}
+
+fn replaces() {
+    let mut b = Pack { inner: Handle { id: 1 }, n: 0 }
+    defer { b.inner.close() }
+    b.renewInner() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably
+    b.replaceInner() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably
+}
+-- expect --
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+  --> main/main.kg:56:5
+   |
+56 |     b.renewInner() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably
+   |     ^
+   = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+  --> main/main.kg:55:5
+   |
+55 |     defer { b.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2150]: `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably before the scope exits
+  --> main/main.kg:57:5
+   |
+57 |     b.replaceInner() //~ ERROR `b.inner` is reserved by a cleanup that consumes it and cannot be borrowed mutably
+   |     ^
+   = help: a `&mut` borrow or a `mut self` call may replace it behind the cleanup, so borrow it shared, or bind the value to another name
+note: `b.inner` is reserved by this cleanup
+  --> main/main.kg:55:5
+   |
+55 |     defer { b.inner.close() }
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+

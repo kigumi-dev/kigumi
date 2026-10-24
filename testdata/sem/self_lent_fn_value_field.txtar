@@ -1,0 +1,42 @@
+-- lib/a/a.kg --
+fn reset(p: &mut Pad, k: Int) -> Void {
+    p = Pad { n: k }
+}
+
+pub type Pad = { pub mut n Int }
+
+pub fn Pad.grow(mut self, k: Int) -> Void {
+    let f: fn(&mut Pad, Int) -> Void = reset
+    f(&mut self, k)
+}
+
+pub type Holder['a] = { pub mut r &'a mut Pad }
+-- lib/b/b.kg --
+pub interface Grower {
+    fn grow(mut self, k: Int) -> Void
+}
+
+pub fn growVia[G: Grower](g: &mut G, k: Int) -> Void {
+    g.grow(k)
+}
+-- src --
+import a from lib/a
+import b from lib/b
+
+fn viaField['x](h: a.Holder['x]) -> Void {
+    b.growVia(h.r, 9) //~ ERROR a `&mut` held in a field is lent here
+}
+
+fn viaLocal() -> Int {
+    let mut local = a.Pad { n: 1 }
+    b.growVia(&mut local, 7)
+    local.n
+}
+-- expect --
+error[E1503]: a `&mut` held in a field is lent here, and the callee may replace its referent as a whole with no owner to return the new value to
+ --> main/main.kg:5:15
+  |
+5 |     b.growVia(h.r, 9) //~ ERROR a `&mut` held in a field is lent here
+  |               ^^^
+  = help: borrow the place at the call with `&mut`, or pass the value itself
+

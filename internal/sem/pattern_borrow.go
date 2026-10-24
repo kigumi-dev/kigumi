@@ -34,6 +34,9 @@ func (c *checker) checkPatternOn(p, expr syntax.NodeID, scrutinee TypeID, mut bo
 	}
 	if expr != 0 && c.patBorrowMut {
 		c.noteLentBindings(p, expr, info, c.locals[bound:])
+	} else if expr != 0 {
+		c.noteTupleLent(p, expr)
+		c.inheritPatternCopy(expr, c.locals[bound:])
 	}
 	if expr != 0 && !mut {
 		c.trackPatternPlaces(p, c.r.fnChainEnt(c.f, expr))

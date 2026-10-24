@@ -1,0 +1,72 @@
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {
+    print "drop ${self.id}"
+}
+
+type H = resource { pub mut r R, pub n Int }
+
+fn H.drop(move self) {
+    self.r.id = 999
+    print "droph ${self.n}"
+}
+
+fn mkh(i: Int) -> H {
+    H { r: R { id: i }, n: i }
+}
+
+fn mko(i: Int) -> Option[H] {
+    if i > 0 { Some(mkh(i)) } else { None }
+}
+
+fn main() {
+    if let r = &mkh(5).r {
+        print "bind ${r.id}"
+    }
+    if let R { id } = &mkh(4).r {
+        print "field ${id}"
+    }
+    if let H { n } = &mkh(6) {
+        print "whole ${n}"
+    }
+    if let R { id } = &mkh(7).r {
+        print "then ${id}"
+    } else {
+        print "else"
+    }
+    let k = if let r = &mkh(8).r { r.id + 1 } else { 0 }
+    print "k ${k}"
+    if let Some(h) = &mko(9) {
+        print "opt ${h.n} ${h.r.id}"
+    } else {
+        print "none"
+    }
+    if let Some(h) = &mko(0) {
+        print "opt ${h.n}"
+    } else {
+        print "none"
+    }
+    print "end"
+}
+-- stdout --
+bind 5
+droph 5
+drop 999
+field 4
+droph 4
+drop 999
+whole 6
+droph 6
+drop 999
+then 7
+droph 7
+drop 999
+droph 8
+drop 999
+k 9
+opt 9 9
+droph 9
+drop 999
+none
+end

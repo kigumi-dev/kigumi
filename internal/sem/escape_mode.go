@@ -16,6 +16,8 @@ func (r *Result) fnShapeOf(t TypeID) TypeID {
 	return 0
 }
 
+func (r *Result) FnShapeOf(t TypeID) TypeID { return r.fnShapeOf(t) }
+
 // paramIsEscaping decides a declared parameter's escape mode: explicit `escaping`, implied by
 // async/extern(C), or (for a bodiless non-interface function) absent from nonEscapingIntrinsics.
 func (r *Result) paramIsEscaping(id EntityID, info *FnInfo, typ TypeID) bool {

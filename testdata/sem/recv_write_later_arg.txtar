@@ -1,0 +1,154 @@
+-- module --
+stage: driver
+-- src --
+type R = resource { pub mut id Int }
+
+fn R.drop(move self) {
+    _ = self.id
+}
+
+fn R.bump(mut self, k: Int) -> Int {
+    self.id += k
+    self.id
+}
+
+fn R.show(self, k: Int) -> Int {
+    self.id + k
+}
+
+fn take(r: R) -> Int {
+    r.id
+}
+
+type P = { pub mut id Int }
+
+fn P.show(self, k: Int) -> Int {
+    self.id + k
+}
+
+fn mutReplaced() -> Int {
+    let mut a = R { id: 1 }
+    a.bump({ a = R { id: 2 }; 10 })
+}
+
+fn mutMoved() -> Int {
+    let mut a = R { id: 1 }
+    a.bump({ let _ = take(a); 10 })
+}
+
+fn mutFieldWrite() -> Int {
+    let mut a = R { id: 1 }
+    a.bump({ a.id = 3; 10 })
+}
+
+fn sharedReplaced() -> Int {
+    let mut a = R { id: 1 }
+    a.show({ a = R { id: 2 }; 10 })
+}
+
+fn sharedFieldWrite() -> Int {
+    let mut b = R { id: 1 }
+    b.show({ b.id = 5; 10 })
+}
+
+fn sharedRead() -> Int {
+    let b = R { id: 1 }
+    b.show(b.id)
+}
+
+fn plainFieldWrite() -> Int {
+    let mut p = P { id: 1 }
+    p.show({ p.id = 5; 10 })
+}
+
+fn mk(i: Int) -> R {
+    R { id: i }
+}
+
+fn R.take(move self) -> Int {
+    self.id
+}
+
+type Pair = resource { pub mut h R, pub mut k R }
+
+fn disjointMove() -> Int {
+    let mut p = Pair { h: mk(1), k: mk(2) }
+    p.h.bump(p.k.take())
+}
+
+fn disjointAssign() -> Int {
+    let mut p = Pair { h: mk(1), k: mk(2) }
+    p.h.bump({ p.k = mk(3); 1 })
+}
+
+fn sameField() -> Int {
+    let mut p = Pair { h: mk(1), k: mk(2) }
+    p.h.bump({ p.h = mk(4); 1 })
+}
+
+fn paramField(p: &mut Pair) -> Int {
+    p.h.bump({ p.h = mk(6); 1 })
+}
+
+fn paramDisjoint(p: &mut Pair) -> Int {
+    p.h.bump({ p.k = mk(7); 1 })
+}
+
+fn element() -> Int {
+    let mut xs = Array.of(mk(1))
+    xs[0].bump({ xs = Array.of(mk(5)); 1 })
+}
+
+fn elementRead() -> Int {
+    let mut xs = Array.of(mk(1), mk(2))
+    xs[0].bump(xs[1].id)
+}
+-- expect --
+error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:28:12
+   |
+28 |     a.bump({ a = R { id: 2 }; 10 })
+   |            ^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:33:12
+   |
+33 |     a.bump({ let _ = take(a); 10 })
+   |            ^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:38:12
+   |
+38 |     a.bump({ a.id = 3; 10 })
+   |            ^^^^^^^^^^^^^^
+
+error[E2198]: `a` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:43:12
+   |
+43 |     a.show({ a = R { id: 2 }; 10 })
+   |            ^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `b` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:48:12
+   |
+48 |     b.show({ b.id = 5; 10 })
+   |            ^^^^^^^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:83:14
+   |
+83 |     p.h.bump({ p.h = mk(4); 1 })
+   |              ^^^^^^^^^^^^^^^^
+
+error[E2198]: `p` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:87:14
+   |
+87 |     p.h.bump({ p.h = mk(6); 1 })
+   |              ^^^^^^^^^^^^^^^^
+
+error[E2198]: `xs` is borrowed and this use conflicts with the borrow; the method's receiver borrows it while this argument writes it
+  --> main.kg:96:16
+   |
+96 |     xs[0].bump({ xs = Array.of(mk(5)); 1 })
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
