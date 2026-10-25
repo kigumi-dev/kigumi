@@ -129,6 +129,10 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 		if b, ok := c.storedInfo(fl, v, false); ok {
 			if v.tie != tieNone {
 				b = c.tiedAt(fl.target, root, b)
+			} else if idx, ok := c.tieSite(fl.target, root); ok {
+				c.retie(root, idx, v.arg, b)
+			} else {
+				b = untied(b)
 			}
 			c.merge(c.sink(root, in.Node), storedAt(b))
 			if c.replacesHolder(in, root) {

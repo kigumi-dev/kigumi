@@ -12,10 +12,13 @@ func (c *borrowCheck) returnedCaptures(def *Inst) *borrowInfo {
 	for i := 0; i < 8 && c.fnResult(res) != 0; i++ {
 		res = c.fnResult(res)
 	}
-	mut := c.holdsMutRef(res)
+	mut, viaFn := c.holdsMutRef(res), !c.mayBorrowResult(res)
+	if viaFn {
+		mut = c.carriesMaker(res, map[sem.TypeID]bool{}, func(r sem.TypeID) bool { return c.mayBorrowResult(r) && c.holdsMutRef(r) })
+	}
 	out := &borrowInfo{hasOwner: true, node: def.Node}
 	for i, cp := range info.Captures {
-		if cp.Mode == sem.CapCopy || cp.Mode == sem.CapMove || cp.Mode == sem.CapRetain || !c.reaches(c.p.R.Entity(cp.Local).Type, false, info.Ret) {
+		if cp.Mode == sem.CapCopy || cp.Mode == sem.CapMove || cp.Mode == sem.CapRetain || !viaFn && !c.reaches(c.p.R.Entity(cp.Local).Type, false, info.Ret) {
 			continue
 		}
 		if root, path, exact, ok := c.projectionPlace(def.Args[i]); ok {
@@ -28,14 +31,17 @@ func (c *borrowCheck) returnedCaptures(def *Inst) *borrowInfo {
 	return out
 }
 
+// resultMayBorrow also looks into a payload, field or element holding a fn value whose result may borrow.
 func (c *borrowCheck) resultMayBorrow(t sem.TypeID) bool {
 	for range 8 {
 		if c.mayBorrowResult(t) {
 			return true
 		}
-		if t = c.fnResult(t); t == 0 {
-			return false
+		r := c.fnResult(t)
+		if r == 0 {
+			return c.mayHoldFn(t) && c.carriesBorrowMaker(t, map[sem.TypeID]bool{})
 		}
+		t = r
 	}
 	return true
 }

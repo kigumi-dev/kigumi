@@ -91,6 +91,7 @@ type borrowCheck struct {
 	ties        tieState
 	held        *heldState
 	resets      resetState
+	writeBacks  map[carrySite]bool
 	recvBorrows map[recvBorrowKey]*borrowInfo
 	callNode    syntax.NodeID
 	thread      *flagThread

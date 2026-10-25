@@ -83,8 +83,6 @@ func (p *Program) build(hf *hir.Func) *Func {
 	hoistRefReleases(p, f)
 	analyzeOwnership(p, f)
 	f.dropGhosts()
-	analyzeBorrows(p, f)
-	checkBorrowedMoves(p, f)
-	checkImmediateCaptures(p, f)
+	p.checkBorrowsOf(f)
 	return f
 }

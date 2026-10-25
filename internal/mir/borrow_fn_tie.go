@@ -59,15 +59,21 @@ func (c *borrowCheck) tieValues(info *sem.FnInfo, slots []callSlot, t callSlot, 
 // carriesBorrowMaker reports whether a value of type t holds, in an argument, element, field or payload, a function
 // whose result may borrow its arguments.
 func (c *borrowCheck) carriesBorrowMaker(t sem.TypeID, seen map[sem.TypeID]bool) bool {
+	return c.carriesMaker(t, seen, c.mayBorrowResult)
+}
+
+// carriesMaker: t holds a function whose result, or the result of a function that result holds, satisfies yields.
+func (c *borrowCheck) carriesMaker(t sem.TypeID, seen map[sem.TypeID]bool, yields func(sem.TypeID) bool) bool {
 	if t == 0 || seen[t] {
 		return false
 	}
 	seen[t] = true
 	n := c.p.R.Types.Node(t)
 	if r := c.fnResult(t); r != 0 {
-		return c.mayBorrowResult(r)
+		return yields(r) || c.carriesMaker(r, seen, yields)
 	}
-	if c.carriesBorrowMaker(n.Elem, seen) || slices.ContainsFunc(n.Args, func(a sem.TypeID) bool { return c.carriesBorrowMaker(a, seen) }) {
+	in := func(a sem.TypeID) bool { return c.carriesMaker(a, seen, yields) }
+	if in(n.Elem) || slices.ContainsFunc(n.Args, in) {
 		return true
 	}
 	if n.Kind != sem.KNamed || c.p.R.Entity(n.Ent).Kind != sem.EntType || len(n.Args) != len(c.p.R.TypeDecl(n.Ent).Params) {
@@ -78,7 +84,7 @@ func (c *borrowCheck) carriesBorrowMaker(t sem.TypeID, seen map[sem.TypeID]bool)
 	for _, v := range d.Variants {
 		parts = append(parts, c.p.R.AggPayload(t, v)...)
 	}
-	return slices.ContainsFunc(parts, func(p sem.TypeID) bool { return c.carriesBorrowMaker(p, seen) })
+	return slices.ContainsFunc(parts, in)
 }
 
 // mayBorrowResult reports whether a function returning r, whose definition is not known, may return a borrow.

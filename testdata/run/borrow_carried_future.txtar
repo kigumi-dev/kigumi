@@ -100,12 +100,33 @@ fn sharedFutures() -> Int {
     s
 }
 
+async fn lenOf(s: &String) -> usize {
+    s.len()
+}
+
+fn setF(out: &mut Future[usize], f: Future[usize]) {
+    out = f
+}
+
+fn replacedViaMutParam() -> usize {
+    let ex = task.currentThreadExecutor()
+    let k = "k"
+    let mut x = "x1"
+    let y = "yy3"
+    let mut h = lenOf(&k)
+    setF(&mut h, lenOf(&x))
+    setF(&mut h, lenOf(&y))
+    x = "zzzz"
+    ex.runToCompletion(h) + x.len()
+}
+
 print "consume ${consumeThenNext()}"
 print "fresh ${freshPerIteration()}"
 print "reassigned ${reassigned()}"
 let ex = task.currentThreadExecutor()
 print "async ${ex.runToCompletion(oneAtATime())}"
 print "shared ${sharedFutures()}"
+print "replaced ${replacedViaMutParam()}"
 -- stdout --
 drop 1
 consume 204
@@ -117,3 +138,4 @@ drop 402
 async 803
 drop 7
 shared 14
+replaced 7

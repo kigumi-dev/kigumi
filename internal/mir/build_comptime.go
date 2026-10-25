@@ -27,9 +27,7 @@ func (b *builder) comptime(e *hir.Expr) LocalID {
 	cb.exitScope()
 	cb.returnValue(v)
 	analyzeOwnership(b.p, f)
-	analyzeBorrows(b.p, f)
-	checkBorrowedMoves(b.p, f)
-	checkImmediateCaptures(b.p, f)
+	b.p.checkBorrowsOf(f)
 	slot := len(b.p.Comptime)
 	dst := b.emit(Inst{Op: OpBuiltin, Dst: b.temp(e.Type), Str: "comptime", Index: slot, Node: e.Node})
 	b.p.Comptime = append(b.p.Comptime, &ComptimeFunc{

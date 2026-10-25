@@ -12,6 +12,7 @@ type carrySite struct {
 	block BlockID
 	idx   int
 	owner LocalID
+	from  LocalID // when set, the site holds owner only if from holds it there
 }
 
 // carryFlows lists a call's `mut self` / `&mut` arguments and the by-value arguments carrying a borrow their
@@ -55,14 +56,18 @@ func (c *borrowCheck) collectCarry(in Inst, bid BlockID, idx int) {
 		}
 		c.targets[root] = true
 		s := c.sink(root, in.Node)
+		at := idx
+		if wb, found := c.tieSite(t, root); found {
+			at = wb
+		}
 		for _, v := range values {
 			b := c.holders[v]
 			carried := *b
 			carried.owners = nil
 			for _, o := range b.owners {
-				o.carried = true
+				o.carried, o.node = true, in.Node
 				carried.owners = append(carried.owners, o)
-				c.addCarrySite(root, carrySite{block: bid, idx: idx, owner: o.owner})
+				c.addCarrySite(root, carrySite{block: bid, idx: at, owner: o.owner})
 			}
 			c.merge(s, &carried)
 		}
@@ -134,12 +139,13 @@ func (c *borrowCheck) carryStep(bid BlockID, holder, owner LocalID, sites []carr
 	insts := c.f.Blocks[bid].Insts
 	for i := 0; i < end && i < len(insts); i++ {
 		in := insts[i]
-		if shapes[in.Op].result && in.Dst == holder || (in.Op == OpMove || in.Op == OpDrop) && len(in.Args) > 0 && in.Args[0] == holder || stores && c.replacesHolder(in, holder) {
+		ends := shapes[in.Op].result && in.Dst == holder || (in.Op == OpMove || in.Op == OpDrop) && len(in.Args) > 0 && in.Args[0] == holder
+		if ends && !c.writeBackKeeps(bid, i, holder) || stores && c.replacesHolder(in, holder) {
 			cur = false
 		}
 		for _, s := range sites {
 			if s.block == bid && s.idx == i && s.owner == owner {
-				cur = true
+				cur = cur || s.from == 0 || c.tieHeld(s.from, owner, bid, i, len(c.f.Locals))
 			}
 		}
 	}

@@ -65,6 +65,19 @@ fn loopReset(n: Int) -> Int {
     }
     cur.at()
 }
+fn bumpView['a](v: &mut View['a], n: Int) {
+    if n > 100 {
+        v = View { data: v.data, off: 0 }
+    }
+}
+
+fn writeBackKeeps() -> Int {
+    let mut a = Array.of(1, 2, 3)
+    let mut cur = View { data: &a, off: 0 }
+    bumpView(&mut cur, 1)
+    a = Array.of(9)
+    cur.at()
+}
 -- expect --
 error[move-while-borrowed]: `b` is still borrowed when its scope ends here
   --> main.kg:34:13
@@ -83,4 +96,22 @@ error[move-while-borrowed]: `b` is still borrowed when its scope ends here
    |
 57 |         let b = Array.of(42)
    |             ^
+
+error[E2198]: `a` is borrowed and cannot be mutated here
+  --> main.kg:75:5
+   |
+75 |     a = Array.of(9)
+   |     ^
+   = help: end the borrow first or use a copy
+note: `a` is borrowed here
+  --> main.kg:73:32
+   |
+73 |     let mut cur = View { data: &a, off: 0 }
+   |                                ^^
+
+error[move-while-borrowed]: `a` is borrowed and cannot be moved or dropped here
+  --> main.kg:75:5
+   |
+75 |     a = Array.of(9)
+   |     ^
 

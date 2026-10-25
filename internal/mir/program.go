@@ -28,6 +28,8 @@ type Program struct {
 	Skipped []sem.EntityID
 	// ArgBoxes is the native call lowering's scalar boxes, set by whoever links a backend; a profile check panics without it.
 	ArgBoxes func(*Program) map[*Func][]ArgBox
+
+	paramStores map[paramSlot]bool
 }
 
 // Unlowered reports whether ent has a body Build left out because nothing reaches it.

@@ -132,6 +132,41 @@ async fn outlives() -> Int {
     }
     s
 }
+async fn lenOf(s: &String) -> usize {
+    s.len()
+}
+
+fn setF(out: &mut Future[usize], f: Future[usize]) {
+    out = f
+}
+
+fn maybeSetF(out: &mut Future[usize], f: Future[usize], c: Bool) {
+    if c {
+        out = f
+    }
+}
+
+fn intoMutParam() -> usize {
+    let ex = task.currentThreadExecutor()
+    let k = "k"
+    let mut x = "x"
+    let mut h = lenOf(&k)
+    setF(&mut h, lenOf(&x))
+    x = "zzz"
+    ex.runToCompletion(h)
+}
+
+fn intoMutParamThenMaybe() -> usize {
+    let ex = task.currentThreadExecutor()
+    let k = "k"
+    let mut x = "x"
+    let y = "yy"
+    let mut h = lenOf(&k)
+    setF(&mut h, lenOf(&x))
+    maybeSetF(&mut h, lenOf(&y), false)
+    x = "zzz"
+    ex.runToCompletion(h)
+}
 -- expect --
 error[E2198]: `x` is exclusively borrowed and cannot be used here
   --> main.kg:34:18
@@ -246,4 +281,40 @@ error[E1290]: a borrow of `x` is still live across this `await`
     |
 128 |         s += await t
     |              ^^^^^^^
+
+error[E2198]: `x` is borrowed and cannot be mutated here
+   --> main.kg:152:5
+    |
+152 |     x = "zzz"
+    |     ^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:151:5
+    |
+151 |     setF(&mut h, lenOf(&x))
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `x` is borrowed and cannot be moved or dropped here
+   --> main.kg:152:5
+    |
+152 |     x = "zzz"
+    |     ^
+
+error[E2198]: `x` is borrowed and cannot be mutated here
+   --> main.kg:164:5
+    |
+164 |     x = "zzz"
+    |     ^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:162:5
+    |
+162 |     setF(&mut h, lenOf(&x))
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `x` is borrowed and cannot be moved or dropped here
+   --> main.kg:164:5
+    |
+164 |     x = "zzz"
+    |     ^
 

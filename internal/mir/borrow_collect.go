@@ -92,6 +92,7 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 		src, ok := c.holders[in.Args[0]]
 		if ok && c.widens(in.Dst) {
 			c.widen(in.Dst, src)
+			c.retie(in.Dst, c.resets.at.idx, in.Args[0], src)
 			return false
 		}
 		return set(src, ok)
@@ -131,11 +132,8 @@ func (c *borrowCheck) widen(dst LocalID, b *borrowInfo) {
 // widens reports whether dst keeps the union of every value written to it instead of the first
 // one: a store target, a temporary joining branches, or a named local of a type carrying a lifetime.
 func (c *borrowCheck) widens(dst LocalID) bool {
-	if c.targets[dst] || c.multiDefined(dst) {
-		return true
-	}
 	l := c.f.Locals[dst]
-	return l.Ent != 0 && c.elementHolder(l.Type)
+	return c.targets[dst] || c.multiDefined(dst) || l.Ent != 0 && c.elementHolder(l.Type)
 }
 
 // collectArray makes an array literal a container of its elements' sources

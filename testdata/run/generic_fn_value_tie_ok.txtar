@@ -161,6 +161,116 @@ fn closureForms() {
     print "copy ${o4.s} ${items.len()}"
 }
 
+fn fwdPutTie[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    putMut(out, items, f)
+}
+
+fn putValTie[U](out: &mut U, v: U, items: &mut Array[String], f: fn(&String) -> U) {
+    out = v
+}
+
+fn idTie[T](x: T) -> T {
+    x
+}
+
+type WTie['a] = { pub inner V['a], pub n Int }
+
+fn runTie[T](f: fn() -> T) -> T {
+    f()
+}
+
+fn wrapTie['a](x: V['a]) -> WTie['a] {
+    WTie { inner: x, n: 1 }
+}
+
+fn writeBackForms() {
+    let k = "k"
+    let mut items = Array.of("w1", "w22")
+    let mut other = Array.of("o1")
+    let mut o3 = mkV(&k)
+    putMut(&mut o3, &mut items, mkV)
+    putMut(&mut o3, &mut other, mkV)
+    items.push("w333")
+    print "rewrite ${o3.s} ${items.len()}"
+    let mut s1 = Sack { xs: Array.of("s1") }
+    let s2 = Sack { xs: Array.of("s2") }
+    let mut so = mkV(&k)
+    s1.putInto(&mut so, mkV)
+    s2.putInto(&mut so, mkV)
+    s1.xs.push("s11")
+    print "rewriteRecv ${so.s} ${s1.xs.len()}"
+    let mut o4 = mkV(&k)
+    putMut(&mut o4, &mut items, mkV)
+    fwdPutTie(&mut o4, &mut other, mkV)
+    items.push("w4444")
+    print "rewriteFwd ${o4.s} ${items.len()}"
+    let mut o5 = mkV(&k)
+    putMut(&mut o5, &mut items, mkV)
+    putValTie(&mut o5, mkV(&k), &mut other, mkV)
+    items.push("w55555")
+    print "rewriteOwned ${o5.s} ${items.len()}"
+    let mut o6 = mkV(&k)
+    putMut(&mut o6, &mut items, mkV)
+    putValTie(&mut o6, idTie(mkV(&k)), &mut other, mkV)
+    items.push("w666666")
+    print "rewriteCall ${o6.s} ${items.len()}"
+    let mut o7 = mkV(&k)
+    let early = o7
+    putMut(&mut o7, &mut items, mkV)
+    putMut(&mut o7, &mut other, mkV)
+    o7 = idTie(early)
+    items.push("w7777777")
+    print "callBeforeTie ${o7.s} ${items.len()}"
+    let mut o8 = mkV(&k)
+    let early8 = o8
+    putMut(&mut o8, &mut items, mkV)
+    o8 = runTie(() => early8)
+    items.push("w88888888")
+    print "closureBeforeTie ${o8.s} ${items.len()}"
+    let mut o9 = mkV(&k)
+    let early9 = o9
+    putMut(&mut o9, &mut items, mkV)
+    o9 = wrapTie(early9).inner
+    items.push("w999999999")
+    print "fieldBeforeTie ${o9.s} ${items.len()}"
+}
+
+fn writeBackLateForms() {
+    let k = "k"
+    let mut items = Array.of("l1", "l22")
+    let mut other = Array.of("p1")
+    let mut o3 = mkV(&k)
+    putLateTie(&mut o3, &mut items, mkV)
+    putLateTie(&mut o3, &mut other, mkV)
+    items.push("l333")
+    print "rewriteLate ${o3.s} ${items.len()}"
+    let mut o4 = mkV(&k)
+    putLateTie(&mut o4, &mut items, mkV)
+    fwdLateTie(&mut o4, &mut other, mkV)
+    items.push("l4444")
+    print "rewriteFwdLate ${o4.s} ${items.len()}"
+    let s2 = Sack { xs: Array.of("q2") }
+    let mut so = mkV(&k)
+    putLateTie(&mut so, &mut items, mkV)
+    s2.fwdLateInto(&mut so, mkV)
+    items.push("l55555")
+    print "rewriteRecvLate ${so.s} ${items.len()}"
+}
+
+fn makerForms() {
+    let mut items = Array.of("m1", "m22")
+    let mut n = 1
+    let mut so = "s"
+    let mk = () => Some((s: &String) => "${s}${n}")
+    let g = mk()
+    if g is Some(h) {
+        putMut(&mut so, &mut items, h)
+    }
+    n = 3
+    items.push("m333")
+    print "ownedSome ${so} ${n} ${items.len()}"
+}
+
 async fn wrapAsync[T](x: T) -> T {
     x
 }
@@ -230,7 +340,25 @@ fn main() {
     print "reset ${yo.s} ${ys.len()}"
     carrierForms()
     closureForms()
+    writeBackForms()
+    makerForms()
+    writeBackLateForms()
     print "asyncForms ${task.currentThreadExecutor().runToCompletion(asyncForms())}"
+}
+fn putLateTie[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    out = f(&items[0])
+}
+
+fn fwdLateTie[U](out: &mut U, items: &mut Array[String], f: fn(&String) -> U) {
+    putLateTie(out, items, f)
+}
+
+fn Sack.fwdLateInto[U](self, out: &mut U, f: fn(&String) -> U) {
+    self.putLateInto(out, f)
+}
+
+fn Sack.putLateInto[U](self, out: &mut U, f: fn(&String) -> U) {
+    out = f(&self.xs[0])
 }
 -- stdout --
 putMut 2 a
@@ -260,5 +388,17 @@ borrowing o1 o1
 after o9
 tie c1
 copy k 4
+rewrite o1 3
+rewriteRecv s2 2
+rewriteFwd o1 4
+rewriteOwned k 5
+rewriteCall k 6
+callBeforeTie k 7
+closureBeforeTie k 8
+fieldBeforeTie k 9
+ownedSome m11 3 3
+rewriteLate p1 3
+rewriteFwdLate p1 4
+rewriteRecvLate q2 5
 async a11 2
 asyncForms 2

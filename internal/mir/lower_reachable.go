@@ -10,9 +10,10 @@ import (
 
 // lowering is Build's state: which top-level body is being lowered, and which body each Func came from.
 type lowering struct {
-	cur   sem.EntityID
-	top   map[*Func]sem.EntityID
-	tried map[sem.EntityID]bool
+	cur    sem.EntityID
+	top    map[*Func]sem.EntityID
+	tried  map[sem.EntityID]bool
+	checks []pendingCheck
 }
 
 func (p *Program) lowerable(id sem.EntityID) bool {
@@ -52,6 +53,7 @@ func (p *Program) lowerReachable(all bool) {
 		}
 		w.drain()
 	}
+	p.runPendingChecks()
 	top := p.lowering.top
 	slices.SortStableFunc(p.Funcs, func(a, b *Func) int { return cmp.Compare(top[a], top[b]) })
 	p.lowering = nil
