@@ -83,19 +83,7 @@ func (c *checker) noteCaptureWrite(n syntax.NodeID, ent EntityID) {
 	if c.capturedHere(ent) {
 		c.edge(EffectEdge{Kind: EdgeMutateCaller, Target: ent, Node: n})
 	}
-	sites := c.captureSites[ent]
-	if len(sites) == 0 || c.movedCaptureWrite(n, ent, sites) {
-		return
-	}
-	c.r.Entities[ent].Flags |= EfCapturedMut
-	c.noteMutCapture(n, ent)
-	// Every closure that captured ent needs a shared cell, even ones already
-	// closed: ctx.list aliases the backing array copied into ClosureInfo.
-	for _, site := range sites {
-		if site.ctx.list[site.idx].Mode == capCopy {
-			site.ctx.list[site.idx].Mode = capCell
-		}
-	}
+	c.promoteCaptures(n, ent)
 }
 
 // markImmediate records a lambda passed to a verified non-escaping parameter; only then may its

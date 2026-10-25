@@ -1,0 +1,277 @@
+-- src --
+import json from std/json
+
+type P = { mut x Int, mut y Int }
+type Count = Int
+
+fn P.shift(mut self) { self.x = self.x + 10 }
+fn Count.inc(mut self) { self = Count(self.value + 1) }
+
+fn bump(k: &mut Int) { k = k + 1 }
+fn bump8(k: &mut u8) { k = k + 1 }
+fn flip(k: &mut Bool) { k = !k }
+fn half(k: &mut f64) { k = k / 2.0 }
+fn next(k: &mut Char) { k = 'z' }
+fn moveP(k: &mut P) { k.x = k.x + 1 }
+fn grow(k: &mut String) { k = "${k}!" }
+fn fill(k: &mut Int?) { k = Some(9) }
+
+fn rangeLit() -> String {
+    let mut out = ""
+    for i in 0..3 {
+        let mut k = i
+        let before = k
+        bump(&mut k)
+        out = "${out} ${i}:${before}>${k}"
+    }
+    out
+}
+
+fn rangeParam(n: Int) -> String {
+    let mut out = ""
+    for i in 0..n {
+        let mut k = i
+        bump(&mut k)
+        bump(&mut k)
+        out = "${out} ${i}>${k}"
+    }
+    out
+}
+
+fn rangeU8() -> String {
+    let mut out = ""
+    for i in 0..3 {
+        let mut k = i
+        bump8(&mut k)
+        out = "${out} ${i}>${k}"
+    }
+    out
+}
+
+fn rangeF64() -> String {
+    let mut out = ""
+    for x in Array.of(1.0, 3.0) {
+        let mut k = x
+        half(&mut k)
+        out = "${out} ${x}>${k}"
+    }
+    out
+}
+
+fn arrayLit() -> String {
+    let mut out = ""
+    for x in Array.of(10, 20) {
+        let mut k = x
+        bump(&mut k)
+        out = "${out} ${x}>${k}"
+    }
+    out
+}
+
+fn bools() -> String {
+    let mut out = ""
+    for b in Array.of(true, false) {
+        let mut k = b
+        flip(&mut k)
+        out = "${out} ${b}>${k}"
+    }
+    out
+}
+
+fn chars() -> String {
+    let mut out = ""
+    for c in Array.of('a', 'b') {
+        let mut k = c
+        next(&mut k)
+        out = "${out} ${c}>${k}"
+    }
+    out
+}
+
+fn records() -> String {
+    let mut out = ""
+    for p in Array.of(P { x: 1, y: 2 }, P { x: 3, y: 4 }) {
+        let mut k = p
+        moveP(&mut k)
+        k.shift()
+        out = "${out} ${p.x}>${k.x}"
+    }
+    out
+}
+
+fn strings() -> String {
+    let mut out = ""
+    for s in Array.of("a", "b") {
+        let mut k = s
+        grow(&mut k)
+        out = "${out} ${s}>${k}"
+    }
+    out
+}
+
+fn options() -> String {
+    let mut out = ""
+    for o in Array.of(Some(1), None) {
+        let mut k = o
+        let was = k || 0
+        fill(&mut k)
+        out = "${out} ${o || 0}:${was}>${k || 0}"
+    }
+    out
+}
+
+fn whileLoop() -> String {
+    let mut out = ""
+    let mut j = 0
+    for j < 3 {
+        let mut k = j
+        bump(&mut k)
+        out = "${out} ${j}>${k}"
+        j += 1
+    }
+    out
+}
+
+fn bareLoop() -> String {
+    let mut out = ""
+    let mut j = 0
+    for {
+        if j == 3 { break }
+        let mut k = j
+        bump(&mut k)
+        out = "${out} ${j}>${k}"
+        j += 1
+    }
+    out
+}
+
+fn ifLet() -> String {
+    let mut out = ""
+    if let Some(v) = Some(4) {
+        let mut k = v
+        bump(&mut k)
+        out = "${v}>${k}"
+    }
+    out
+}
+
+fn matchArm() -> String {
+    match 7 {
+        n -> {
+            let mut k = n
+            bump(&mut k)
+            "${n}>${k}"
+        }
+    }
+}
+
+fn decoded() -> String {
+    let mut out = ""
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        bump(&mut k)
+        out = "${v}>${k}"
+    }
+    out
+}
+
+fn param(a: Int) -> String {
+    let mut k = a
+    bump(&mut k)
+    "${a}>${k}"
+}
+
+fn locals(xs: Array[Int], p: P) -> String {
+    let base = 3
+    let mut a = base
+    bump(&mut a)
+    let mut f = p.x
+    bump(&mut f)
+    let mut e = xs[1]
+    bump(&mut e)
+    "${base}>${a} ${p.x}>${f} ${xs[1]}>${e}"
+}
+
+fn writes() -> String {
+    let mut out = ""
+    for i in 0..2 {
+        let mut k = i
+        k = k + 5
+        let mut c = Count(i)
+        c.inc()
+        let mut d = i
+        let add = () => { d = d + 7 }
+        add()
+        out = "${out} ${i}>${k},${c.value},${d}"
+    }
+    out
+}
+
+fn capturedOpen() -> String {
+    let mut out = ""
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let peek = () => k
+        bump(&mut k)
+        out = "${v}>${k},${peek()}"
+    }
+    out
+}
+
+fn inLambda() -> String {
+    let mut out = ""
+    for i in 0..2 {
+        let mut k = i
+        let f = () => {
+            bump(&mut k)
+            k
+        }
+        let got = f()
+        out = "${out} ${i}>${got},${k}"
+    }
+    out
+}
+
+fn main() {
+    print "range${rangeLit()}"
+    print "rangen${rangeParam(2)}"
+    print "u8${rangeU8()}"
+    print "f64${rangeF64()}"
+    print "array${arrayLit()}"
+    print "bool${bools()}"
+    print "char${chars()}"
+    print "record${records()}"
+    print "string${strings()}"
+    print "option${options()}"
+    print "while${whileLoop()}"
+    print "bare${bareLoop()}"
+    print "iflet ${ifLet()}"
+    print "match ${matchArm()}"
+    print "decoded ${decoded()}"
+    print "param ${param(1)}"
+    print "locals ${locals(Array.of(1, 2), P { x: 8, y: 0 })}"
+    print "writes${writes()}"
+    print "captured ${capturedOpen()}"
+    print "lambda${inLambda()}"
+}
+-- stdout --
+range 0:0>1 1:1>2 2:2>3
+rangen 0>2 1>3
+u8 0>1 1>2 2>3
+f64 1>0.5 3>1.5
+array 10>11 20>21
+bool true>false false>true
+char a>z b>z
+record 1>12 3>14
+string a>a! b>b!
+option 1:1>9 0:0>9
+while 0>1 1>2 2>3
+bare 0>1 1>2 2>3
+iflet 4>5
+match 7>8
+decoded 5>6
+param 1>2
+locals 3>4 8>9 2>3
+writes 0>5,1,7 1>6,2,8
+captured 5>6,6
+lambda 0>1,1 1>2,2

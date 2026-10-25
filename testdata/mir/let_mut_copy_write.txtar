@@ -1,0 +1,72 @@
+-- src --
+fn bump(k: &mut Int) { k = k + 1 }
+
+fn plain() -> String {
+    let mut out = ""
+    for i in 0..3 {
+        let mut k = i
+        bump(&mut k)
+        out = "${out} ${k}"
+    }
+    out
+}
+
+fn main() { print plain() }
+-- expect --
+fn main.bump(%k: &mut Int) -> Void {
+  b0:
+    %t1 = const 1: Int
+    %t2 = bin +(%k, %t1)
+    cellset(%k, %t2)
+    %t3 = unit
+    return %t3
+}
+fn main.plain() -> String {
+  b0:
+    %t0 = const "": String
+    %out = copy(%t0)
+    %t2 = const 0: Int
+    %t3 = const 3: Int
+    %t4 = copy(%t2)
+    %t5 = copy(%t3)
+    jump b1
+  b1:
+    %t6 = bin <(%t4, %t5)
+    branch %t6 ? b2 : b4
+  b2:
+    %t7 = copy(%t4)
+    %i = copy(%t7)
+    %t9 = copy(%i)
+    %k = newcell(%t9)
+    %t11 = borrow 1(%k)
+    %t12 = call main.bump(%t11)
+    drop(%t12)
+    %t14 = cellget(%k)
+    %t13 = interp "\x00 \x00"(%out, %t14)
+    drop(%out)
+    %out = copy(%t13)
+    drop(%k)
+    %t15 = unit
+    drop(%i)
+    jump b3
+  b3:
+    %t16 = const 1: Int
+    %t17 = bin +(%t4, %t16)
+    drop(%t4)
+    %t4 = copy(%t17)
+    jump b1
+  b4:
+    drop(%t5)
+    drop(%t4)
+    %t18 = unit
+    drop(%t18)
+    %t19 = copy(%out)
+    drop(%out)
+    return %t19
+}
+fn main.main() -> Void {
+  b0:
+    %t0 = call main.plain
+    %t1 = builtin print(%t0)
+    return %t1
+}

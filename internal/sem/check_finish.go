@@ -9,6 +9,7 @@ func (c *checker) finish() { c.finishWith(false) }
 func (c *checker) finishWith(nested bool) {
 	c.bindCallableConstraints()
 	c.vars.settle(c)
+	c.settleBorrows()
 	c.settleAllocs()
 	c.settleInline()
 	c.checkConstraints()

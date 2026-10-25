@@ -875,6 +875,17 @@
       ]
     },
     {
+      "id": "mir/let_mut_copy_write",
+      "kind": "mir",
+      "path": "testdata/mir/let_mut_copy_write.txtar",
+      "mode": [
+        "build"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "mir/lifetime_borrow_err",
       "kind": "mir",
       "path": "testdata/mir/lifetime_borrow_err.txtar",
@@ -12125,6 +12136,23 @@
       "id": "run/let_else_nested",
       "kind": "run",
       "path": "testdata/run/let_else_nested.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/let_mut_copy_write",
+      "kind": "run",
+      "path": "testdata/run/let_mut_copy_write.txtar",
       "mode": [
         "vm",
         "native"

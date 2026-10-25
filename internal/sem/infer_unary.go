@@ -82,28 +82,8 @@ func (c *checker) synthBorrow(n syntax.NodeID, want TypeID) TypeID {
 	}
 	c.crossBorrow(inner)
 	refT := c.r.Types.Ref(t, mut)
-	// A scalar `&mut` of a bare local/parameter can be stored (MIR
-	// build_expr.go hir.Borrow): flag the local so it gets a cell to alias
-	// into, instead of the borrow copying a disconnected snapshot.
 	if mut {
-		if _, ok := c.r.ScalarRefElem(refT); ok {
-			ent, ok := c.identPlaceEnt(inner)
-			switch {
-			case ok && c.r.Types.Kind(c.r.Entities[ent].Type) == KRef:
-				// `.value` through a reference reaches the referent's own cell; the local is not the storage.
-			case ok:
-				c.r.Entities[ent].Flags |= EfAddrTaken
-				// Writes go through this borrow, not ent, so promote the
-				// capture here instead of relying on assignStmt.
-				c.noteCaptureWrite(inner, ent)
-			case c.argAsyncPlace[n]:
-				if !c.indexAssignUnsupported(inner) && c.isMutablePlace(inner) {
-					c.errAt(inner, cMutPlaceAsyncArg)
-				}
-			case !c.argPlace[n] && !c.indexAssignUnsupported(inner) && c.isMutablePlace(inner):
-				c.errAt(inner, cMutPlaceEscape)
-			}
-		}
+		c.noteScalarBorrow(n, inner, refT)
 	}
 	return refT
 }

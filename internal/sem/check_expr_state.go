@@ -20,4 +20,6 @@ type exprState struct {
 	loopSpans []token.Span
 	// loopValues lists the break values of each bare `for { }`.
 	loopValues map[syntax.NodeID][]syntax.NodeID
+	// openBorrows are the `&mut` borrows whose referent type is still an open variable.
+	openBorrows []scalarBorrow
 }
