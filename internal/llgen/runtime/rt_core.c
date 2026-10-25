@@ -843,6 +843,14 @@ void rt_const_variant(void* slot, val* payload, rt_vdesc* d, int64_t n) {
     v->u.var.n = n;
     v->u.var.payload = payload;
 }
+void rt_const_record(void* slot, val* fields, rt_type* t, int64_t n) {
+    val v = (val)slot;
+    v->kind = K_RECORD;
+    v->rc = -1;
+    v->u.rec.type = t;
+    v->u.rec.n = n;
+    v->u.rec.fields = fields;
+}
 // A literal has one value per program, so every site that builds it reads
 // the same immortal out of emitter-reserved storage.
 void rt_const_num(void* slot, int kind, int nk, int64_t i, double f) {

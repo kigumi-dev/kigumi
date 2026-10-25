@@ -1,0 +1,19 @@
+-- src --
+type Boom = {
+    pub n Int
+}
+
+fn Boom.message(self) -> String {
+    "boom ${self.n}"
+}
+
+fn main() -> Void! {
+    print "start"
+    fail Boom { n: 3 }
+}
+-- stdout --
+start
+-- stderr --
+error: boom 3
+-- exit --
+1

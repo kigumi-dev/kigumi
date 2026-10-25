@@ -12,10 +12,13 @@ import (
 // one with them, a variant whose payload values are all themselves fixed.
 const constUnitKey = "unit"
 
+const constTrueKey, constFalseKey = "bool:1", "bool:0"
+
 // constVal is a value fixed for the whole program, so every site that
 // builds it can share one immortal instead of allocating.
 type constVal struct {
 	vdesc string
+	rec   string
 	args  []string
 	lit   *constLit
 }
@@ -141,7 +144,11 @@ func (e *emitter) initConstVals(sb *strings.Builder) {
 			fmt.Fprintf(sb, "  %s = getelementptr ptr, ptr %s, i64 %d\n", p, payload, i)
 			fmt.Fprintf(sb, "  store ptr %s, ptr %s\n", v, p)
 		}
-		e.irb(sb).Call(rtConstVariant, vptr(e.constSlotName(key)), vptr(payload), vptr(cv.vdesc), vi64(len(cv.args)))
+		ctor, desc := rtConstVariant, cv.vdesc
+		if cv.rec != "" {
+			ctor, desc = rtConstRecord, cv.rec
+		}
+		e.irb(sb).Call(ctor, vptr(e.constSlotName(key)), vptr(payload), vptr(desc), vi64(len(cv.args)))
 	}
 }
 
@@ -150,6 +157,8 @@ func (e *emitter) constArgValue(sb *strings.Builder, key string) string {
 	switch {
 	case key == constUnitKey:
 		return e.irb(sb).Call(rtUnit).Text
+	case key == constTrueKey || key == constFalseKey:
+		return e.irb(sb).Call(rtBool, vi32(boolBit(key == constTrueKey))).Text
 	case cv.lit == nil && len(cv.args) == 0:
 		return e.irb(sb).Call(rtNullary, vptr(cv.vdesc)).Text
 	}

@@ -40,6 +40,7 @@ var (
 	rtVariant          = RuntimeFn{"rt_variant", []Type{TPtr, TI64, TPtr}, TPtr}
 	rtNullary          = RuntimeFn{"rt_nullary", []Type{TPtr}, TPtr}
 	rtConstVariant     = RuntimeFn{"rt_const_variant", []Type{TPtr, TPtr, TPtr, TI64}, TVoid}
+	rtConstRecord      = RuntimeFn{"rt_const_record", []Type{TPtr, TPtr, TPtr, TI64}, TVoid}
 	rtConstNum         = RuntimeFn{"rt_const_num", []Type{TPtr, TI32, TI32, TI64, TDouble}, TVoid}
 	rtConstInt128      = RuntimeFn{"rt_const_int128", []Type{TPtr, TI32, TI64, TI64}, TVoid}
 	rtBoxInt128        = RuntimeFn{"rt_box_int128", []Type{TI64, TI64, TI32}, TPtr}
@@ -127,7 +128,7 @@ var runtimeFns = []RuntimeFn{
 	rtInit, rtAbiCheck, rtExitCode, rtUnit, rtInt, rtFloat, rtBool, rtChar, rtStr, rtBytes, rtCopy, rtCopyMut,
 	rtTruth, rtAt, rtCallv, rtCallvI64, rtIterCount, rtIterAt, rtIterAtInt, rtBuiltin, rtStd, rtStdId, rtStdClosure, rtStdBind, rtCallSlot,
 	rtBinop, rtUnop, rtCast,
-	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstNum, rtConstInt128, rtBoxInt128, rtInt128Lo, rtInt128Hi, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
+	rtRecord, rtVariant, rtNullary, rtConstVariant, rtConstRecord, rtConstNum, rtConstInt128, rtBoxInt128, rtInt128Lo, rtInt128Hi, rtConstText, rtInitNullary, rtField, rtFieldMove, rtSetfield, rtArray,
 	rtIndex, rtSetindex, rtSetindexCopy, rtSetfieldCopy, rtPayload, rtIsvariant, rtVariantIndex, rtIstype, rtUnbox, rtBox, rtBoxLent,
 	rtClosure, rtClosureAsync, rtClosureBindAsync, rtClosureEnv, rtArrayPush, rtFnItemInit, rtFnItemLent, rtClosureLent, rtCallvM, rtCallvI64M, rtStdItemInit, rtCell, rtCellInit, rtCellget, rtCellTake, rtCellset, rtInterp, rtDisplay, rtDrop,
 	rtRetain, rtRelease, rtPanic, rtPanicIndex, rtIntVal, rtPtr, rtConvert, rtPtrVal,

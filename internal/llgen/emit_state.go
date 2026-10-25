@@ -68,4 +68,6 @@ type emitter struct {
 	at           siteAt
 	std          stdUse
 	intrinsics   map[string]string
+
+	immortalStatics map[sem.EntityID]bool
 }

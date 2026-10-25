@@ -33,8 +33,13 @@ func (e *emitter) staticGlobals() (decls, initFn string) {
 				fmt.Fprintf(&g, "%s = internal global %s %s%s, align %d\n", e.globalSym(ent), ty, scalarConstText(e.r.Types, mir.Inst{Lit: lit, Type: typ}), sectionClause(e.r.StaticSectionOf(ent)), alignOf(ty.String()))
 				continue
 			}
-			fmt.Fprintf(&g, "%s = internal global ptr null%s\n", e.globalSym(ent), sectionClause(e.r.StaticSectionOf(ent)))
 			lit, _ := e.r.StaticValueOf(ent)
+			if key, ok := e.constRecordKey(ent, lit); ok {
+				fmt.Fprintf(&g, "%s = internal global ptr %s%s\n", e.globalSym(ent), e.constSlotName(key), sectionClause(e.r.StaticSectionOf(ent)))
+				e.immortalStatics[ent] = true
+				continue
+			}
+			fmt.Fprintf(&g, "%s = internal global ptr null%s\n", e.globalSym(ent), sectionClause(e.r.StaticSectionOf(ent)))
 			v := e.constant(&init, mir.Inst{Lit: lit, Type: typ})
 			fmt.Fprintf(&init, "  store ptr %s, ptr %s\n", v, e.globalSym(ent))
 		}
@@ -52,7 +57,7 @@ func (e *emitter) finiStatics() string {
 		if owner, _ := e.r.StaticOwnerOf(ent); owner != sem.StaticOwned {
 			continue
 		}
-		if _, direct := e.directStatic(ent); direct {
+		if _, direct := e.directStatic(ent); direct || e.immortalStatics[ent] {
 			continue
 		}
 		v := e.newTmp()

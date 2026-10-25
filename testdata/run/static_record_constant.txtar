@@ -1,0 +1,54 @@
+-- src --
+type Pt = {
+    pub x Int
+    pub y Int
+}
+
+type Cfg = {
+    pub name String
+    pub scale Float
+    pub at Pt
+    pub on Bool
+    pub tag Char
+}
+
+type Cell = {
+    pub mut hits Int
+    pub label String
+}
+
+fn mkCfg() -> Cfg {
+    Cfg { name: "cfg", scale: 1.5, at: Pt { x: 3, y: 4 }, on: true, tag: 'z' }
+}
+
+fn mkCell() -> Cell {
+    Cell { hits: 1, label: "cell" }
+}
+
+static cfg: Cfg = comptime mkCfg()
+static cell: Cell = comptime mkCell()
+
+fn take(c: Cfg) -> String {
+    c.name
+}
+
+fn pass(c: Cfg) -> Cfg {
+    c
+}
+
+let c = cfg
+let name = c.name
+let at = c.at
+let mut d = cfg
+d = Cfg { name: "other", scale: 2.0, at: Pt { x: 1, y: 1 }, on: false, tag: 'q' }
+let e = pass(cfg)
+print "${name} ${at.x} ${c.scale} ${c.at.y} ${c.on} ${c.tag} ${cfg.name} ${cfg.at.x} ${d.name} ${take(cfg)} ${e.name}"
+let moved = cfg.name
+print "${moved} ${cfg.name} ${cfg.at.y}"
+let mut w = cell
+w.hits = 9
+print "${w.hits} ${cell.hits} ${cell.label}"
+-- stdout --
+cfg 3 1.5 4 true z cfg 3 other cfg cfg
+cfg cfg 4
+9 1 cell

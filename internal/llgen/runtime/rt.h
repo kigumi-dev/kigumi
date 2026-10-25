@@ -161,6 +161,7 @@ void push(val a, val x);
 val rt_record(rt_type* t, int64_t n, val* fields);
 val rt_nullary(rt_vdesc* d);
 void rt_const_variant(void* slot, val* payload, rt_vdesc* d, int64_t n);
+void rt_const_record(void* slot, val* fields, rt_type* t, int64_t n);
 void rt_const_num(void* slot, int kind, int nk, int64_t i, double f);
 void rt_const_text(void* slot, int kind, const char* data, int64_t len);
 void rt_init_nullary(int ntypes, rt_type** types);

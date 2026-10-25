@@ -12700,6 +12700,23 @@
       ]
     },
     {
+      "id": "run/main_void_result_err",
+      "kind": "run",
+      "path": "testdata/run/main_void_result_err.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/map_debug_insertion_order",
       "kind": "run",
       "path": "testdata/run/map_debug_insertion_order.txtar",
@@ -15562,6 +15579,23 @@
       "id": "run/static_direct_scalars",
       "kind": "run",
       "path": "testdata/run/static_direct_scalars.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
+      "id": "run/static_record_constant",
+      "kind": "run",
+      "path": "testdata/run/static_record_constant.txtar",
       "mode": [
         "vm",
         "native"
