@@ -142,6 +142,30 @@ fn notLoop() -> i64 {
     }
     n
 }
+fn innerCounted(s: &Sh, c: Bool) -> Bool { c && (pickSh(s) is Boxy(b) && b.tag == "bt") }
+fn innerTemp(c: Bool, k: String) -> Bool { c && (&mkSh(k) is Boxy(b) && b.tag == "x") }
+fn innerTail(s: &Sh, c: Bool) -> Bool { c && (pickSh(s) is Boxy(b) && b.tag == "bt") && c }
+fn innerDeep(c: Bool, k: String) -> Bool { c && (c && ((&mkSh(k) is Boxy(b) && b.tag == "x"))) }
+fn innerTwo(s: &Sh, k: String) -> Bool { s is Boxy(e) && (&mkSh(k) is Boxy(b) && b.tag == "x") && (pickSh(s) is Boxy(d) && d.tag == e.tag) }
+fn innerOwned(c: Bool, k: String) -> Bool { c && (mkSh(k) is Boxy(b) && b.tag == "x") }
+fn innerNot(c: Bool, k: String) -> Bool { c && !(!(&mkSh(k) is Boxy(b) && b.tag == "x")) }
+fn innerTried(c: Bool, k: String) -> Result[Bool, String] { Ok(c && (&mkSh(k) is Boxy(b) && parse(b.tag)? == 1)) }
+fn innerLoop(s: &Sh) -> String {
+    let mut out = ""
+    for i in 0..4 {
+        let hit = i > 0 && (&mkSh("i${i}") is Boxy(b) && {
+            if b.tag == "i2" {
+                continue
+            }
+            pickSh(s) is Boxy(d) && d.tag == "bt"
+        })
+        out = "${out}${hit} "
+    }
+    out
+}
+fn bareDoubleNot(k: String) -> String {
+    if !(!(&mkSh(k) is Boxy(b))) { b.tag } else { "-" }
+}
 
 let sa = Sh.Round(Cell { name: "sr", n: 7 })
 let sb = Sh.Boxy(Bag { items: Array.of(4), tag: "bt" })
@@ -155,6 +179,10 @@ print "${tried("1") || false} ${tried("2") || false} ${closure("x")} ${closure("
 print "${armLoop(&sb)} ${armLoop(&sa)}"
 print "${notIf(&sb, "bt")} ${notIf(&sb, "q")} ${notIf(&sa, "bt")} ${notIfTemp("x")} ${notIfTemp("q")} ${notIfCounted(&sb)} ${notIfCounted(&sa)}"
 print "${notNested(&sb, true)} ${notNested(&sb, false)} ${doubleNot("x")} ${doubleNot("q")} ${notLetGuard(Some(1), "q")} ${notLetGuard(Some(1), "x")} ${notLoop()}"
+print "${innerCounted(&sb, true)} ${innerCounted(&sa, true)} ${innerCounted(&sb, false)} ${innerTemp(true, "x")} ${innerTemp(true, "q")} ${innerTemp(false, "x")}"
+print "${innerTail(&sb, true)} ${innerTail(&sa, true)} ${innerDeep(true, "x")} ${innerDeep(true, "q")} ${innerTwo(&sb, "x")} ${innerTwo(&sb, "q")} ${innerTwo(&sa, "x")}"
+print "${innerOwned(true, "x")} ${innerOwned(true, "q")} ${innerNot(true, "x")} ${innerNot(true, "q")} ${innerTried(true, "1") || false} ${innerTried(true, "2") || false} ${innerTried(false, "2") || false}"
+print "${innerLoop(&sb)}| ${innerLoop(&sa)}| ${bareDoubleNot("x")} ${bareDoubleNot("q")}"
 -- stdout --
 true false true true true false true false
 true false true true true false
@@ -165,3 +193,7 @@ true false true false true false
 3 2
 y n n y n y n
 aod --d x - lg 1 - 3
+true false false true false false
+true false true false true false false
+true false true false true false false
+false true true | false false false | x q

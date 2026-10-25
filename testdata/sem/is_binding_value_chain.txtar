@@ -30,6 +30,13 @@ fn notGuard(s: &Sh) -> String {
         _ -> "y",
     }
 }
+
+fn notGuardArm(s: &Sh) -> String {
+    match 1 {
+        1 if !(s is Boxy(b) && b.tag == "x") -> b.tag, //~ ERROR undefined name `b`
+        _ -> "-",
+    }
+}
 -- expect --
 error[E100]: undefined name `b`
  --> main/main.kg:6:5
@@ -48,4 +55,10 @@ error[E100]: undefined name `b`
    |
 23 |     if !(s is Boxy(b) && b.tag == "x") { "" } else { b.tag } //~ ERROR undefined name `b`
    |                                                      ^
+
+error[E100]: undefined name `b`
+  --> main/main.kg:35:49
+   |
+35 |         1 if !(s is Boxy(b) && b.tag == "x") -> b.tag, //~ ERROR undefined name `b`
+   |                                                 ^
 

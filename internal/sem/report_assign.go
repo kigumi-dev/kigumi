@@ -14,8 +14,8 @@ func (c *checker) reportImmutable(lhs syntax.NodeID) {
 	case syntax.Ident:
 		if root := c.rootOf(lhs); root != 0 {
 			name := node.Tok().Text()
-			if fix, ok := c.rebindRefFix(root); ok {
-				c.errAt(lhs, cAssignImmutable, name, fix)
+			if c.rebindsSharedRef(root) {
+				c.errRebindSharedRef(lhs, name)
 				return
 			}
 			fix := "declare `let mut " + name + "`"
@@ -125,11 +125,19 @@ func (c *checker) sharedRefFix(root EntityID) (string, bool) {
 	return "annotate `" + e.Name + "` as `&mut " + c.r.TypeString(c.r.Types.Node(e.Type).Elem) + "`", true
 }
 
-func (c *checker) rebindRefFix(root EntityID) (string, bool) {
+func (c *checker) rebindsSharedRef(root EntityID) bool {
 	e := &c.r.Entities[root]
 	t := c.vars.resolve(e.Type)
-	if e.Flags&EfMut == 0 || c.r.Types.Kind(t) != KRef || c.r.Types.RefMut(t) {
-		return "", false
+	return e.Flags&EfMut != 0 && c.r.Types.Kind(t) == KRef && !c.r.Types.RefMut(t)
+}
+
+// errRebindSharedRef keeps E701 but states the real reason, since the binding is `let mut`.
+func (c *checker) errRebindSharedRef(lhs syntax.NodeID, name string) {
+	d, ok := c.r.diagAt(c.f, lhs, cAssignImmutable, name, "")
+	if !ok {
+		return
 	}
-	return "a binding holding a shared reference cannot be reassigned", true
+	d.Msg = "`" + name + "` holds a shared reference and cannot be reassigned"
+	d.Help = []string{"shadow it with a new `let " + name + "` to refer to another value"}
+	c.r.emitDiag(c.f, d)
 }

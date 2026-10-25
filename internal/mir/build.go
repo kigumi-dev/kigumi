@@ -49,6 +49,8 @@ type builder struct {
 	condIs  map[*hir.Pat]bool
 	isMoves []guardMove
 	valueIs map[*hir.Pat]bool
+	// valueChain is the value-position `&&` chain whose scope is open.
+	valueChain *hir.Expr
 	// shortRHS counts the `&&` right operands being lowered, which may never run.
 	shortRHS int
 	p        *Program

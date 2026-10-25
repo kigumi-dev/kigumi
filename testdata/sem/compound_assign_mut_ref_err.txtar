@@ -40,7 +40,7 @@ fn rebindMut() {
     let x = 1
     let y = 2
     let mut r = &x
-    r = &y //~ ERROR `r` is immutable
+    r = &y //~ ERROR `r` holds a shared reference and cannot be reassigned
 }
 -- expect --
 error[E701]: `c` is immutable
@@ -83,10 +83,10 @@ error[E701]: `r` is immutable
    |     ^
    = help: declare `let mut r`
 
-error[E701]: `r` is immutable
+error[E701]: `r` holds a shared reference and cannot be reassigned
   --> main/main.kg:42:5
    |
-42 |     r = &y //~ ERROR `r` is immutable
+42 |     r = &y //~ ERROR `r` holds a shared reference and cannot be reassigned
    |     ^
-   = help: a binding holding a shared reference cannot be reassigned
+   = help: shadow it with a new `let r` to refer to another value
 

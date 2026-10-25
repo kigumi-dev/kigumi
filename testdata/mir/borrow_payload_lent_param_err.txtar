@@ -31,9 +31,9 @@ fn lib.wrap(%r: &Box) -> Void {
     %t4 = copy(%t8)
     jump b5
   b5:
+    drop(%x)
     %seen = copy(%t4)
     drop(%seen)
-    drop(%x)
     drop(%o)
     %t13 = unit
     return %t13

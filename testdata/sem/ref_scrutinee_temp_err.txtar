@@ -40,6 +40,29 @@ fn keptPastIf() -> String {
     k.tag
 }
 
+fn callB(f: fn() -> Bool) -> Bool { f() }
+
+fn innerChainReadAfter(r: &Sh, c: Bool) -> Bool {
+    c && (pickSh(r) is Boxy(b) && true) && b.tag == "bt" //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+}
+
+fn innerChainCaptured(c: Bool) -> Bool {
+    c && (&mkSh("x") is Boxy(b) && true) && callB(() => b.tag == "x") //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+}
+
+fn innerChainNested(c: Bool) -> Bool {
+    c && (c && (&mkSh("x") is Boxy(b) && true)) && { b.tag == "x" } //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+}
+
+type V['a] = { pub mut s &'a String }
+
+fn keptPastChain() -> usize {
+    let base = "none"
+    let mut v = V { s: &base }
+    let r = mkSh("o") is Boxy(b) && { v.s = &b.tag; true } //~ ERROR `b` is still borrowed when its scope ends here
+    v.s.len()
+}
+
 -- expect --
 error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
   --> main.kg:11:31
@@ -88,4 +111,28 @@ error[E2235]: `k` keeps a borrow of a temporary past the statement, `match` or `
    |
 36 |     let k = if pickSh(&mkSh("k")) is Boxy(b) { b } else { return "" } //~ ERROR `k` keeps a borrow of a temporary past the statement
    |         ^
+
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:43:29
+   |
+43 |     c && (pickSh(r) is Boxy(b) && true) && b.tag == "bt" //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                             ^
+
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:47:30
+   |
+47 |     c && (&mkSh("x") is Boxy(b) && true) && callB(() => b.tag == "x") //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                              ^
+
+error[E2235]: `b` keeps a borrow of a temporary that the right side of `&&` creates only when the left side holds; bind the temporary to a local first and borrow the local
+  --> main.kg:51:36
+   |
+51 |     c && (c && (&mkSh("x") is Boxy(b) && true)) && { b.tag == "x" } //~ ERROR `b` keeps a borrow of a temporary that the right side of `&&` creates
+   |                                    ^
+
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:59:31
+   |
+59 |     let r = mkSh("o") is Boxy(b) && { v.s = &b.tag; true } //~ ERROR `b` is still borrowed when its scope ends here
+   |                               ^
 

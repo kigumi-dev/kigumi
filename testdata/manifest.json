@@ -14606,6 +14606,23 @@
       ]
     },
     {
+      "id": "run/ref_scrutinee_value_drop",
+      "kind": "run",
+      "path": "testdata/run/ref_scrutinee_value_drop.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/reinit",
       "kind": "run",
       "path": "testdata/run/reinit.txtar",

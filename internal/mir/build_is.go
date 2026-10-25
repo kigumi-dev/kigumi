@@ -1,6 +1,9 @@
 package mir
 
-import "kigumi/internal/hir"
+import (
+	"kigumi/internal/hir"
+	"kigumi/internal/sem"
+)
 
 // ownTemp hands a scrutinee temporary to the innermost scope, which must
 // open after the temporary is assigned: pattern bindings copy out of it,
@@ -50,27 +53,41 @@ func (b *builder) cond(e *hir.Expr) (LocalID, []guardMove) {
 	return c, moves
 }
 
-// valueAnd opens a scope for an `&&` chain outside a condition so a temporary its `is` bindings borrow is dropped once, where the chain ends.
+// valueAnd opens a scope for an `&&` chain outside a condition that drops its `is` bindings and the temporaries they borrow where the chain ends;
+// a chain nested on a right side gets its own scope when the enclosing chain does not read its bindings.
 func (b *builder) valueAnd(e *hir.Expr) LocalID {
 	pats := map[*hir.Pat]bool{}
 	condTests(e, pats)
 	if len(pats) == 0 {
 		return b.shortAnd(e)
 	}
+	nested := false
 	for p := range pats {
-		if b.condIs[p] || b.valueIs[p] {
+		if b.condIs[p] {
 			return b.shortAnd(e)
 		}
+		nested = nested || b.valueIs[p]
 	}
-	savedIs, savedShort := b.valueIs, b.shortRHS
-	b.valueIs, b.shortRHS = pats, 0
+	if nested && (b.shortRHS == 0 || b.chainReads(e, pats)) {
+		return b.shortAnd(e)
+	}
+	savedIs, savedShort, savedChain := b.valueIs, b.shortRHS, b.valueChain
+	b.valueIs, b.shortRHS, b.valueChain = pats, 0, e
 	b.pushScope()
-	chain := b.scopes[len(b.scopes)-1]
 	c := b.shortAnd(e)
+	chain := b.scopes[len(b.scopes)-1]
 	b.scopes = b.scopes[:len(b.scopes)-1]
-	b.handOverBindings(b.scopes[len(b.scopes)-1], chain)
-	b.valueIs, b.shortRHS = savedIs, savedShort
+	b.unwindScope(chain, false)
+	b.valueIs, b.shortRHS, b.valueChain = savedIs, savedShort, savedChain
 	return c
+}
+
+func (b *builder) chainReads(inner *hir.Expr, pats map[*hir.Pat]bool) bool {
+	ents := map[sem.EntityID]bool{}
+	for p := range pats {
+		patBinds(p, ents)
+	}
+	return mentions(b.valueChain, inner, ents)
 }
 
 func condTests(e *hir.Expr, into map[*hir.Pat]bool) {

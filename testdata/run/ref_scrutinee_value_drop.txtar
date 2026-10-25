@@ -1,0 +1,93 @@
+-- src --
+type Res = resource { pub id Int }
+fn Res.drop(move self) { print "drop ${self.id}" }
+type Bag = {pub tag String, pub r Res}
+type Sh = Boxy(b: Bag) | Nil
+
+fn mkSh(t: String, i: Int) -> Sh { if i >= 0 { Sh.Boxy(Bag { tag: t, r: Res { id: i } }) } else { Sh.Nil } }
+fn eat(b: Bag) -> Bool { print "eat ${b.r.id}"; true }
+fn idB(x: Bool, i: Int) -> Bool { print "idB ${i}"; x }
+
+fn borrowed(k: String) -> Bool {
+    let r = &mkSh("v", 3) is Boxy(b) && { print "rhs ${b.tag}"; b.tag == k }
+    print "after borrowed"
+    r
+}
+fn owned(i: Int) -> Bool {
+    let r = mkSh("o", i) is Boxy(b) && { print "rhs ${b.tag}"; true }
+    print "after owned"
+    r
+}
+fn inIf(i: Int) -> String {
+    if mkSh("c", i) is Boxy(b) && { print "rhs ${b.tag}"; true } { print "then" } else { print "else" }
+    "after if"
+}
+fn looped(c: Bool) {
+    for i in 0..4 {
+        let r = c && mkSh("l", 10 + i - i % 2 * 20) is Boxy(b) && { print "rhs ${b.r.id}"; true }
+        print "iter ${i} ${r}"
+    }
+}
+fn inner(c: Bool) -> Bool {
+    let r = c && (mkSh("n", 6) is Boxy(b) && { print "rhs ${b.tag}"; true }) && { print "outer rhs"; true }
+    print "after inner"
+    r
+}
+fn moved(i: Int) -> Bool {
+    let r = mkSh("m", i) is Boxy(b) && eat(b)
+    print "after moved"
+    r
+}
+fn inArg(i: Int) -> Bool {
+    let r = idB(mkSh("a", i) is Boxy(b) && b.tag == "a", i)
+    print "after arg"
+    r
+}
+
+print "${borrowed("v")}"
+print "${owned(4)} ${owned(-1)}"
+print inIf(5)
+print inIf(-1)
+looped(true)
+print "${inner(true)} ${inner(false)}"
+print "${moved(7)} ${moved(-1)}"
+print "${inArg(8)}"
+-- stdout --
+rhs v
+drop 3
+after borrowed
+true
+rhs o
+drop 4
+after owned
+after owned
+true false
+rhs c
+then
+drop 5
+after if
+else
+after if
+rhs 10
+drop 10
+iter 0 true
+iter 1 false
+rhs 12
+drop 12
+iter 2 true
+iter 3 false
+rhs n
+drop 6
+outer rhs
+after inner
+after inner
+true false
+eat 7
+drop 7
+after moved
+after moved
+true false
+drop 8
+idB 8
+after arg
+true
