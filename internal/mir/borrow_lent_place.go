@@ -11,7 +11,7 @@ import (
 // local or call result it is reached through, if any.
 type lentPlace struct {
 	root  LocalID
-	path  []int
+	path  stepPath
 	exact bool
 	node  syntax.NodeID
 	// via is the named `&mut` holder the place was reached through, when hasVia.
@@ -37,8 +37,8 @@ func (c *borrowCheck) lentMutPlaces(a LocalID) []lentPlace {
 			if d.Index != 1 {
 				return nil
 			}
-			if refs := c.storedReferents(d.Args[0]); len(refs) > 0 {
-				return lentPlaces(c.heldReferents(d.Args[0], refs), d.Node)
+			if refs := c.referents(d.Args[0]); len(refs) > 0 {
+				return lentPlaces(refs, d.Node)
 			}
 			if out := c.refPlaces(d.Args[0]); len(out) > 0 {
 				for i := range out {
@@ -69,8 +69,8 @@ func (c *borrowCheck) passedRefPlaces(l LocalID) []lentPlace {
 	if !ok {
 		return nil
 	}
-	if refs := c.storedReferents(l); len(refs) > 0 {
-		return lentPlaces(c.heldReferents(l, refs), b.node, l)
+	if refs := c.referents(l); len(refs) > 0 {
+		return lentPlaces(refs, b.node, l)
 	}
 	return c.refPlaces(l)
 }
@@ -145,26 +145,4 @@ func (c *borrowCheck) literalPart(l LocalID) (ownerRef, bool) {
 		return ownerRef{}, false
 	}
 	return ownerRef{}, false
-}
-
-// otherReferents are the owners past the first that a flow's target `&mut` may point into (storeRoot takes the first).
-func (c *borrowCheck) otherReferents(fl storeFlow) []LocalID {
-	l := fl.target
-	for fl.ref && c.f.Locals[l].Ent == 0 {
-		in := c.definition(l)
-		if in == nil || len(in.Args) == 0 || in.Op != OpBorrow && in.Op != OpNewCell && in.Op != OpShare && in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
-			return nil
-		}
-		l = in.Args[0]
-		if in.Op == OpBorrow {
-			break
-		}
-	}
-	var out []LocalID
-	for i, o := range c.storedReferents(l) {
-		if t := c.f.Locals[o.owner].Type; i > 0 && !c.callerPlace(o.owner) && c.p.R.Types.Kind(t) != sem.KRef {
-			out = append(out, o.owner)
-		}
-	}
-	return out
 }

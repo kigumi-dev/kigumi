@@ -1,0 +1,609 @@
+-- src --
+import map from std/map
+import task from std/task
+
+type V['a] = { pub s &'a String }
+type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+type S2['a] = { pub mut inner &'a mut Sink['a] }
+type Slot['a] = { pub mut v V['a] }
+type SS['a] = { pub mut slot &'a mut Slot['a] }
+type OS['a] = { pub mut o Option[Sink['a]] }
+type Pair['a] = { pub mut x Sink['a], pub mut y Sink['a] }
+type H['a] = { pub mut fs &'a mut Array[Future[String]] }
+type H2['a] = { pub mut inner &'a mut H['a] }
+type PO['a] = { pub mut x Option[Sink['a]], pub mut y Option[Sink['a]] }
+type W['a] = { pub mut inner &'a mut Sink['a] }
+type Mix['a] = { pub s &'a String, pub k &'a mut Array[V['a]] }
+type PairH['a] = { pub p Mix['a], pub n Int }
+fn pushV['a](k: &mut Sink['a], x: V['a]) { k.items.push(x) }
+fn pushV2['a](k: &mut S2['a], x: V['a]) { k.inner.items.push(x) }
+fn noop['a](k1: &mut Sink['a], k2: &mut Sink['a]) { }
+fn readOnly['a](k: &mut Sink['a], x: V['a]) -> usize { k.items.len() }
+fn pushOne['a](k1: &mut Sink['a], k2: &mut Sink['a], x: V['a]) { k1.items.push(x) }
+async fn show(r: &String) -> String { "${r}" }
+fn pushF1['a](k: &mut H['a], f: Future[String]) { k.fs.push(f) }
+fn pushF2['a](k: &mut H2['a], f: Future[String]) { k.inner.fs.push(f) }
+fn pushX['a](k: &mut Pair['a], x: V['a]) { k.x.items.push(x) }
+fn mvall['a](k1: &mut Sink['a], k2: &mut Sink['a]) { let t = k2.items.takeAt(0); if let Some(x) = t { k1.items.push(x) } }
+fn tk['a](k: &mut Sink['a]) -> Option[V['a]] { k.items.takeAt(0) }
+fn recY['a](p: &mut Pair['a], n: Int, x: V['a]) { if n > 0 { recY(p, n - 1, x) } else { p.y.items.push(x) } }
+fn mf['a](p: &mut Pair['a], n: Int, x: V['a]) { if n > 0 { mg(p, n - 1, x) } else { p.y.items.push(x) } }
+fn mg['a](p: &mut Pair['a], n: Int, x: V['a]) { mf(p, n, x) }
+fn mvP['a](k1: &mut Array[V['a]], k2: &mut Array[V['a]]) { let t = k2.takeAt(0); if let Some(x) = t { k1.push(x) } }
+fn pushByValue['a](k: Sink['a], x: V['a]) { k.items.push(x) }
+fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
+
+fn twoHops() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sk = Sink { items: &mut a }
+    let k = &mut sk
+    k.items.push(V { s: &v })
+    let n = churn()
+    let out = "${a[1].s} ${n} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn threeHops() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sk = Sink { items: &mut a }
+    let mut s2 = S2 { inner: &mut sk }
+    let k = &mut s2
+    k.inner.items.push(V { s: &v })
+    let out = "${a[1].s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn indexHop() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sks = Array.of(Sink { items: &mut a })
+    let k = &mut sks
+    k[0].items.push(V { s: &v })
+    let out = "${a[1].s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn passHolder() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sk = Sink { items: &mut a }
+    pushV(&mut sk, V { s: &v })
+    let out = "${a[1].s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn passNamedHolder() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sk = Sink { items: &mut a }
+    let k = &mut sk
+    pushV(k, V { s: &v })
+    let out = "${a[1].s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn setFieldTwo() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut sl = Slot { v: V { s: &u } }
+    let mut ss = SS { slot: &mut sl }
+    let k = &mut ss
+    k.slot.v = V { s: &v }
+    let out = "${sl.v.s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn setIndexTwo() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sk = Sink { items: &mut a }
+    let k = &mut sk
+    k.items[0] = V { s: &v }
+    let out = "${a[0].s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn optionHop() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    {
+        let mut os = OS { o: Some(Sink { items: &mut a }) }
+        let k = &mut os
+        if let Some(it) = &mut k.o { it.items.push(V { s: &v }) }
+    }
+    let out = "${a[1].s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn setIndexThree() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sk = Sink { items: &mut a }
+    let mut s2 = S2 { inner: &mut sk }
+    let k = &mut s2
+    k.inner.items[0] = V { s: &v }
+    let out = "${a[0].s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn passHolderOfHolder() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sk = Sink { items: &mut a }
+    let mut s2 = S2 { inner: &mut sk }
+    pushV2(&mut s2, V { s: &v })
+    let out = "${a[1].s} ${churn()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn noopTwo() -> String {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut s1 = Sink { items: &mut a }
+    let mut s2 = Sink { items: &mut b }
+    noop(&mut s1, &mut s2)
+    "${a.len()} ${b.len()}"
+}
+fn readOnlyHolder() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sa = Sink { items: &mut a }
+    let n = readOnly(&mut sa, V { s: &v })
+    v = "zz${churn()}"
+    "${a[0].s} ${n} ${v}"
+}
+fn pairDisjoint() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut p = Pair { x: Sink { items: &mut a }, y: Sink { items: &mut b } }
+    let k = &mut p
+    k.x.items.push(V { s: &v })
+    v = "zz${churn()}"
+    "${b[0].s} ${v}"
+}
+fn oneOfTwo() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut s1 = Sink { items: &mut a }
+    let mut s2 = Sink { items: &mut b }
+    pushOne(&mut s1, &mut s2, V { s: &v })
+    let first = "${a[1].s}"
+    v = "zz${churn()}"
+    "${first} ${b[0].s} ${v}"
+}
+fn carryAwaited() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut fs = Array.empty[Future[String]]()
+    let mut h = H { fs: &mut fs }
+    let mut x = "val${churn()}"
+    pushF1(&mut h, show(&x))
+    let mut s = ""
+    for f in fs { s = "${s}${ex.runToCompletion(f)}" }
+    x = "zz${churn()}"
+    "${s} ${x}"
+}
+fn carryAwaitedTwoHops() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut fs = Array.empty[Future[String]]()
+    let mut h = H { fs: &mut fs }
+    let mut h2 = H2 { inner: &mut h }
+    let mut x = "val${churn()}"
+    pushF2(&mut h2, show(&x))
+    let mut s = ""
+    for f in fs { s = "${s}${ex.runToCompletion(f)}" }
+    x = "zz${churn()}"
+    "${s} ${x}"
+}
+fn calleeOneField() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut p = Pair { x: Sink { items: &mut a }, y: Sink { items: &mut b } }
+    pushX(&mut p, V { s: &v })
+    let out = "${a[1].s}"
+    v = "zz${churn()}"
+    "${out} ${b[0].s} ${v}"
+}
+fn indexElementField() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut ps = Array.of(Pair { x: Sink { items: &mut a }, y: Sink { items: &mut b } })
+    let k = &mut ps
+    k[0].x.items.push(V { s: &v })
+    v = "zz${churn()}"
+    "${b[0].s} ${v}"
+}
+fn payloadPairInBlock() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut c = Array.of(V { s: &u })
+    {
+        let mut q = PO { x: Some(Sink { items: &mut a }), y: Some(Sink { items: &mut c }) }
+        let k = &mut q
+        if let Some(it) = &mut k.x { it.items.push(V { s: &v }) }
+    }
+    v = "zz${churn()}"
+    "${c.len()} ${c[0].s} ${v}"
+}
+fn movedRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let mut s1 = Sink { items: &mut a }
+    let mut s2 = Sink { items: &mut b }
+    mvall(&mut s1, &mut s2)
+    let out = "${a[1].s} ${b.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn recursiveOtherField() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut p = Pair { x: Sink { items: &mut a }, y: Sink { items: &mut b } }
+    recY(&mut p, 3, V { s: &v })
+    v = "zz${churn()}"
+    "${a[0].s} ${v}"
+}
+fn mutualOtherField() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut p = Pair { x: Sink { items: &mut a }, y: Sink { items: &mut b } }
+    mf(&mut p, 3, V { s: &v })
+    v = "zz${churn()}"
+    "${a[0].s} ${v}"
+}
+fn constIndexOthers() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut c = Array.of(V { s: &u })
+    let mut ks = Array.of(Sink { items: &mut a }, Sink { items: &mut b }, Sink { items: &mut c })
+    let k = &mut ks
+    k[1].items.push(V { s: &v })
+    v = "zz${churn()}"
+    "${a[0].s} ${c[0].s} ${v}"
+}
+fn moveInBlockRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let mut s1 = Sink { items: &mut a }
+    let mut s2 = Sink { items: &mut b }
+    {
+        let t = s2.items.takeAt(0)
+        if let Some(x) = t { s1.items.push(x) }
+    }
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn moveHelperRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let mut s1 = Sink { items: &mut a }
+    let mut s2 = Sink { items: &mut b }
+    {
+        let t = tk(&mut s2)
+        if let Some(x) = t { s1.items.push(x) }
+    }
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn moveMatchRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let mut s1 = Sink { items: &mut a }
+    let mut s2 = Sink { items: &mut b }
+    match s2.items.takeAt(0) {
+        Some(x) -> s1.items.push(x)
+        None -> {}
+    }
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn copyRefRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let q = &mut b
+    a.push(q[0])
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn copyHolderRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let mut s1 = Sink { items: &mut a }
+    let mut s2 = Sink { items: &mut b }
+    s1.items.push(V { s: s2.items[0].s })
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn fieldReadUsed() -> String {
+    let mut v = "v${churn()}"
+    let mut b = Array.of(V { s: &v })
+    let mut s2 = Sink { items: &mut b }
+    let r = s2.items[0].s
+    let out = "${r}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn twoHopCopyRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let mut s2 = Sink { items: &mut b }
+    let mut w = W { inner: &mut s2 }
+    a.push(w.inner.items[0])
+    let out = "${a[1].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn fnValueRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let f = mvP
+    f(&mut a, &mut b)
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn fnValueHolderRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let mut s1 = Sink { items: &mut a }
+    let mut s2 = Sink { items: &mut b }
+    let f = mvall
+    f(&mut s1, &mut s2)
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn callbackReadsHolder() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let mut s1 = Sink { items: &mut a }
+    let n = b.with(0, (x: &V['a]) => { s1.items.len() + x.s.len() }) || 0
+    v = "zz${churn()}"
+    "${n} ${a[0].s} ${v}"
+}
+fn byValueHolder() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    pushByValue(Sink { items: &mut a }, V { s: &v })
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn directConstIndex() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    let mut c = Array.of(V { s: &u })
+    let mut ks = Array.of(Sink { items: &mut a }, Sink { items: &mut b }, Sink { items: &mut c })
+    ks[1].items.push(V { s: &v })
+    v = "zz${churn()}"
+    "${a[0].s} ${c[0].s} ${v}"
+}
+fn mixFieldRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut c = Array.of(V { s: &u })
+    let mut m = Mix { s: &v, k: &mut c }
+    let q = &mut m
+    a.push(V { s: q.s })
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn mixElemFieldRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut c = Array.of(V { s: &u })
+    let mut ms = Array.of(Mix { s: &v, k: &mut c })
+    let q = &mut ms
+    a.push(V { s: q[0].s })
+    let out = "${a[1].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn mixSiblingUntouched() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut c = Array.of(V { s: &v })
+    let mut m = Mix { s: &u, k: &mut c }
+    let q = &mut m
+    a.push(V { s: q.s })
+    v = "zz${churn()}"
+    "${a[1].s} ${v}"
+}
+fn iterMutRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    for x in &mut b { a.push(V { s: x.s }) }
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn iterMutOnlyReads() -> String {
+    let mut v = "v${churn()}"
+    let mut b = Array.of(V { s: &v })
+    let mut n: usize = 0
+    for x in &mut b { n = n + x.s.len() }
+    v = "zz${churn()}"
+    "${n} ${v}"
+}
+fn mapIterRead() -> String {
+    let v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut m: map.Map[String, V['a]] = map.empty()
+    m.set("k", V { s: &v })
+    for (k, x) in &m { a.push(V { s: x.s }) }
+    let n = churn()
+    "${a[1].s} ${a.len()} ${n}"
+}
+fn mapGetRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    {
+        let mut m: map.Map[String, V['a]] = map.empty()
+        m.set("k", V { s: &v })
+        if let Some(x) = m.get("k") { a.push(V { s: x.s }) }
+    }
+    let out = "${a[1].s} ${a.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn mixSharedFieldThroughRef() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut c = Array.of(V { s: &u })
+    let mut o = PairH { p: Mix { s: &v, k: &mut c }, n: 1 }
+    let q = &mut o
+    let s = q.p.s
+    let out = "${s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+print twoHops()
+print threeHops()
+print indexHop()
+print passHolder()
+print passNamedHolder()
+print setFieldTwo()
+print setIndexTwo()
+print optionHop()
+print setIndexThree()
+print passHolderOfHolder()
+print noopTwo()
+print readOnlyHolder()
+print pairDisjoint()
+print oneOfTwo()
+print carryAwaited()
+print carryAwaitedTwoHops()
+print calleeOneField()
+print indexElementField()
+print payloadPairInBlock()
+print movedRead()
+print recursiveOtherField()
+print mutualOtherField()
+print constIndexOthers()
+print moveInBlockRead()
+print moveHelperRead()
+print moveMatchRead()
+print copyRefRead()
+print copyHolderRead()
+print fieldReadUsed()
+print twoHopCopyRead()
+print fnValueRead()
+print fnValueHolderRead()
+print callbackReadsHolder()
+print byValueHolder()
+print directConstIndex()
+print mixFieldRead()
+print mixElemFieldRead()
+print mixSiblingUntouched()
+print iterMutRead()
+print iterMutOnlyReads()
+print mapIterRead()
+print mapGetRead()
+print mixSharedFieldThroughRef()
+-- stdout --
+v301 301 2 zz301
+v301 301 zz301
+v301 301 zz301
+v301 301 zz301
+v301 301 zz301
+v301 301 zz301
+v301 301 zz301
+v301 301 zz301
+v301 301 zz301
+v301 301 zz301
+1 1
+u 1 zz301
+u zz301
+v301 u zz301
+val301 zz301
+val301 zz301
+v301 u zz301
+u zz301
+1 u zz301
+v301 0 zz301
+u zz301
+u zz301
+u u zz301
+v301 2 zz301
+v301 2 zz301
+v301 2 zz301
+v301 2 zz301
+v301 2 zz301
+v301 zz301
+v301 zz301
+v301 2 zz301
+v301 2 zz301
+5 u zz301
+v301 2 zz301
+u u zz301
+v301 2 zz301
+v301 zz301
+u zz301
+v301 2 zz301
+4 zz301
+v301 2 301
+v301 2 zz301
+v301 zz301

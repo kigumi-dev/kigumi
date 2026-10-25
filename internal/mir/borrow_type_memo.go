@@ -12,9 +12,9 @@ type borrowTypeMemo struct {
 	lifetimes map[sem.TypeID]sem.EntityID
 	params    map[sem.TypeID]bool
 	holds     map[sem.TypeID]bool
-	// decls is declYes, declNo, or the 1-based slot in stack of a declaration whose component is still open.
+	// decls is declYes or declNo for a settled declaration; scc holds those whose component is still open.
 	decls      map[sem.EntityID]int
-	stack      []sem.EntityID
+	scc        sccStack[sem.EntityID]
 	expansions int
 }
 
@@ -123,14 +123,11 @@ func (c *borrowCheck) holdsBorrowLow(t sem.TypeID) (bool, int) {
 // mutually recursive declarations settle together, as Tarjan's strongly connected components.
 func (c *borrowCheck) declHoldsBorrow(e sem.EntityID) (bool, int) {
 	m := &c.typeMemo
-	switch v, ok := m.decls[e]; {
-	case !ok:
-	case v == declYes:
-		return true, noCut
-	case v == declNo:
-		return false, noCut
-	default:
-		return false, v
+	if v, ok := m.decls[e]; ok {
+		return v == declYes, noCut
+	}
+	if slot, open := m.scc.slot(e); open {
+		return false, slot
 	}
 	d := c.p.R.TypeDecl(e)
 	if d == nil {
@@ -140,9 +137,7 @@ func (c *borrowCheck) declHoldsBorrow(e sem.EntityID) (bool, int) {
 		m.decls = map[sem.EntityID]int{}
 	}
 	m.expansions++
-	m.stack = append(m.stack, e)
-	slot := len(m.stack)
-	m.decls[e] = slot
+	slot := m.scc.push(e)
 	parts := []sem.TypeID{d.Underlying}
 	for _, f := range d.Fields {
 		parts = append(parts, c.p.R.Entity(f).Type)
@@ -172,8 +167,7 @@ func (c *borrowCheck) declHoldsBorrow(e sem.EntityID) (bool, int) {
 
 // settle gives answer to the declaration at slot and to the open ones above it, all in its component.
 func (m *borrowTypeMemo) settle(slot, answer int) {
-	for _, e := range m.stack[slot-1:] {
+	for _, e := range m.scc.pop(slot) {
 		m.decls[e] = answer
 	}
-	m.stack = m.stack[:slot-1]
 }

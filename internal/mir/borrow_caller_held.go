@@ -31,28 +31,32 @@ func (c *borrowCheck) heldBorrows() []heldBorrow {
 	for bid, blk := range c.f.Blocks {
 		for i, in := range blk.Insts {
 			c.callNode = in.Node
-			add := func(root LocalID, b *borrowInfo) {
+			add := func(root LocalID, place sem.TypeID, b *borrowInfo) {
 				for _, o := range b.owners {
 					var at []LocalID
 					if c.callerStorageFrom(o.owner, false, 0, &at) && len(at) == 1 && c.writableCaller(at[0]) {
 						o.node, o.tied, o.caller = in.Node, false, true
+						o.mut = o.mut && !c.plainData(place)
 						out = append(out, heldBorrow{holder: root, site: carrySite{block: BlockID(bid), idx: i, owner: o.owner}, info: &borrowInfo{owners: []ownerRef{o}, hasOwner: true, node: in.Node}})
 					}
 				}
 			}
 			if in.Op == OpCellSet {
-				if root, _, caller, ok := c.storeRoot(storeFlow{target: in.Args[0], ref: true}); ok && caller {
+				if root, place, caller, ok := c.storeRoot(storeFlow{target: in.Args[0], ref: true}); ok && caller {
 					if b, ok := c.holders[in.Args[len(in.Args)-1]]; ok {
-						add(root, b)
+						add(root, place, b)
 					}
 				}
 				continue
 			}
 			for _, fl := range c.storeFlows(in) {
-				root, _, caller, ok := c.storeRoot(fl)
+				root, place, caller, ok := c.storeRoot(fl)
+				if !ok || !caller {
+					continue
+				}
 				for _, v := range fl.values {
-					if b, has := c.heldInfo(fl, v); ok && caller && has {
-						add(root, b)
+					if b, has := c.heldInfo(fl, v); has {
+						add(root, place, b)
 					}
 				}
 			}

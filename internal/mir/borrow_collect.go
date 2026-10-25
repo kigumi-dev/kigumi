@@ -13,6 +13,7 @@ func (c *borrowCheck) collect() {
 	for changed := true; changed; {
 		changed = false
 		c.grew = false
+		c.contentsMemo = map[LocalID]contentsResult{}
 		for bid, blk := range c.f.Blocks {
 			for i, in := range blk.Insts {
 				c.resets.at = carrySite{block: BlockID(bid), idx: i}
@@ -25,6 +26,7 @@ func (c *borrowCheck) collect() {
 		c.refreshReborrows()
 		changed = changed || c.grew
 	}
+	c.contentsMemo = nil
 }
 
 func (c *borrowCheck) collectParams() {
@@ -116,7 +118,7 @@ func (c *borrowCheck) collectInst(in Inst) bool {
 	case OpBuiltin:
 		c.collectBuiltin(in)
 	case OpField, OpIndex, OpPayload, OpFieldMove:
-		if !has && c.projectsHeld(in) {
+		if !c.collectRefRead(in) && !has && c.projectsHeld(in) {
 			return set(c.readInfo(in.Args[0]))
 		}
 	}

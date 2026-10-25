@@ -10,12 +10,12 @@ func cellUses(p *Program, g *Func, cell LocalID, depth int) []cellUse {
 	}
 	defs, chained := soleDefs(g), chainedTemps(g)
 	var out []cellUse
-	add := func(path []int, w bool) {
+	add := func(path stepPath, w bool) {
 		if !slices.ContainsFunc(out, func(u cellUse) bool { return u.writes == w && slices.Equal(u.path, path) }) {
 			out = append(out, cellUse{path, w})
 		}
 	}
-	place := func(l LocalID) ([]int, bool, bool) {
+	place := func(l LocalID) (stepPath, bool, bool) {
 		root, path, exact, ok := cellContentPlace(g, defs, l)
 		return path, exact, ok && root == cell
 	}
@@ -69,7 +69,7 @@ func cellUses(p *Program, g *Func, cell LocalID, depth int) []cellUse {
 
 // cellContentPlace follows a temporary back to the cell whose content it reads, with the field chain; an index or unbox
 // step cuts the chain there, as walkPlace does.
-func cellContentPlace(g *Func, defs map[LocalID]*Inst, l LocalID) (cell LocalID, path []int, exact, ok bool) {
+func cellContentPlace(g *Func, defs map[LocalID]*Inst, l LocalID) (cell LocalID, path stepPath, exact, ok bool) {
 	exact = true
 	for g.Locals[l].Ent == 0 {
 		d := defs[l]
@@ -79,12 +79,8 @@ func cellContentPlace(g *Func, defs map[LocalID]*Inst, l LocalID) (cell LocalID,
 		switch d.Op {
 		case OpCellGet:
 			return d.Args[0], path, exact, true
-		case OpField:
-			path = append([]int{d.Index}, path...)
-		case OpPayload:
-			path = append([]int{payloadStep(d.Index)}, path...)
-		case OpIndex, OpUnbox:
-			path, exact = nil, false
+		case OpField, OpPayload, OpIndex, OpUnbox:
+			path, exact = path.under(d, exact, nil)
 		case OpCopy, OpAlias:
 		default:
 			return 0, nil, false, false

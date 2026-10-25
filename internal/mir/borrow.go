@@ -13,7 +13,7 @@ import (
 type ownerRef struct {
 	owner LocalID
 	mut   bool
-	path  []int
+	path  stepPath
 	exact bool
 	// view names the `lendbox` result whose frame slot this borrow points at.
 	view bool
@@ -99,6 +99,7 @@ type borrowCheck struct {
 	mixed       map[syntax.NodeID]LocalID
 
 	cellState
+	fields fieldState
 }
 
 func analyzeBorrows(p *Program, f *Func) {

@@ -38,24 +38,28 @@ func (c *borrowCheck) replacesHolder(in Inst, holder LocalID) bool {
 	return true
 }
 
-// storesOnlyReplace reports whether every store or carried value written into holder is a replacing field store.
+// storesOnlyReplace reports whether every store or carried value written into holder is a replacing field store;
+// it is asked once holders are final, so one pass over the stores answers it for every holder.
 func (c *borrowCheck) storesOnlyReplace(holder LocalID) bool {
-	for _, blk := range c.f.Blocks {
-		for _, in := range blk.Insts {
-			for _, fl := range c.storeFlows(in) {
-				if root, _, _, ok := c.storeRoot(fl); ok && root == holder && !c.replacesHolder(in, holder) {
-					return false
+	if c.resets.stored == nil {
+		c.resets.stored = map[LocalID]bool{}
+		for _, blk := range c.f.Blocks {
+			for _, in := range blk.Insts {
+				for _, fl := range c.storeFlows(in) {
+					for _, r := range c.storeDests(fl) {
+						c.resets.stored[r] = c.resets.stored[r] || !c.replacesHolder(in, r)
+					}
 				}
-			}
-			targets, _ := c.carryFlows(in)
-			for _, t := range targets {
-				if root, _, _, ok := c.storeRoot(storeFlow{target: t, ref: true}); ok && root == holder {
-					return false
+				targets, _ := c.carryFlows(in)
+				for _, fl := range targets {
+					for _, r := range c.storeDests(fl) {
+						c.resets.stored[r] = true
+					}
 				}
 			}
 		}
 	}
-	return true
+	return !c.resets.stored[holder]
 }
 
 // storedAt stamps the owners a store brings into a holder with the store's borrow, so a conflict's note points there.

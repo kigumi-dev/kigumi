@@ -17,7 +17,7 @@ type carrySite struct {
 
 // carryFlows lists a call's `mut self` / `&mut` arguments and the by-value arguments carrying a borrow their
 // types do not name (a Future or Task); a plain type parameter's borrow goes through callFlows instead.
-func (c *borrowCheck) carryFlows(in Inst) (targets, values []LocalID) {
+func (c *borrowCheck) carryFlows(in Inst) (targets []storeFlow, values []LocalID) {
 	if in.Op != OpCall && in.Op != OpCallValue || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return nil, nil
 	}
@@ -28,7 +28,7 @@ func (c *borrowCheck) carryFlows(in Inst) (targets, values []LocalID) {
 	}
 	for i, s := range c.callSlots(info, in.Args, recvIdx) {
 		if s.target {
-			targets = append(targets, s.arg)
+			targets = append(targets, storeFlow{target: s.arg, ref: true, callee: in.Ent, param: i})
 			continue
 		}
 		if i == 0 && info.Recv != sem.RecvNone || c.p.R.Types.Kind(s.exact) == sem.KRef {
@@ -42,6 +42,11 @@ func (c *borrowCheck) carryFlows(in Inst) (targets, values []LocalID) {
 	if len(values) == 0 {
 		return nil, nil
 	}
+	for i := range targets {
+		for _, v := range values {
+			targets[i].values = append(targets[i].values, flowArg{arg: v})
+		}
+	}
 	return targets, values
 }
 
@@ -49,27 +54,25 @@ func (c *borrowCheck) carryFlows(in Inst) (targets, values []LocalID) {
 // what that value borrows; the owners are marked so only a reaching call counts.
 func (c *borrowCheck) collectCarry(in Inst, bid BlockID, idx int) {
 	targets, values := c.carryFlows(in)
-	for _, t := range targets {
-		root, _, caller, ok := c.storeRoot(storeFlow{target: t, ref: true})
-		if !ok || caller {
-			continue
-		}
-		c.targets[root] = true
-		s := c.sink(root, in.Node)
-		at := idx
-		if wb, found := c.tieSite(t, root); found {
-			at = wb
-		}
-		for _, v := range values {
-			b := c.holders[v]
-			carried := *b
-			carried.owners = nil
-			for _, o := range b.owners {
-				o.carried, o.node = true, in.Node
-				carried.owners = append(carried.owners, o)
-				c.addCarrySite(root, carrySite{block: bid, idx: at, owner: o.owner})
+	for _, fl := range targets {
+		for _, root := range c.storeDests(fl) {
+			c.targets[root] = true
+			s := c.sink(root, in.Node)
+			at := idx
+			if wb, found := c.tieSite(fl.target, root); found {
+				at = wb
 			}
-			c.merge(s, &carried)
+			for _, v := range values {
+				b := c.holders[v]
+				carried := *b
+				carried.owners = nil
+				for _, o := range b.owners {
+					o.carried, o.node = true, in.Node
+					carried.owners = append(carried.owners, o)
+					c.addCarrySite(root, carrySite{block: bid, idx: at, owner: o.owner})
+				}
+				c.merge(s, &carried)
+			}
 		}
 	}
 }
@@ -89,8 +92,8 @@ func (c *borrowCheck) addCarrySite(root LocalID, site carrySite) {
 // checkCarry rejects putting a carried borrow into a container the caller owns.
 func (c *borrowCheck) checkCarry(in Inst) {
 	targets, values := c.carryFlows(in)
-	for _, t := range targets {
-		if _, _, caller, ok := c.storeRoot(storeFlow{target: t, ref: true}); ok && caller {
+	for _, fl := range targets {
+		if _, _, caller, ok := c.storeRoot(fl); ok && caller {
 			c.report(in.Node, values[0], "borrow-escape", "a borrow cannot be stored")
 		}
 	}

@@ -29,12 +29,7 @@ func mergeInto(dst, src *borrowInfo) bool {
 		if !dst.hasOwner {
 			dst.hasOwner, dst.lifetime, dst.fromStatic, changed = true, 0, false, true
 		}
-		for _, o := range src.owners {
-			if !slices.ContainsFunc(dst.owners, o.same) {
-				dst.owners = append(dst.owners, o)
-				changed = true
-			}
-		}
+		changed = appendNew(&dst.owners, src.owners) || changed
 	case dst.hasOwner || src.fromStatic:
 	case dst.fromStatic:
 		dst.lifetime, dst.fromStatic, changed = src.lifetime, false, true
@@ -42,6 +37,30 @@ func mergeInto(dst, src *borrowInfo) bool {
 		dst.lifetime, changed = 0, true
 	}
 	return changed
+}
+
+// appendNew appends the owners of src not already in dst; past a few, a key set replaces the pairwise scan.
+func appendNew(dst *[]ownerRef, src []ownerRef) bool {
+	grew := false
+	if len(*dst)*len(src) <= 256 {
+		for _, o := range src {
+			if !slices.ContainsFunc(*dst, o.same) {
+				*dst, grew = append(*dst, o), true
+			}
+		}
+		return grew
+	}
+	have := make(map[ownerKey]bool, len(*dst)+len(src))
+	for _, o := range *dst {
+		have[keyOf(o)] = true
+	}
+	for _, o := range src {
+		if k := keyOf(o); !have[k] {
+			have[k] = true
+			*dst, grew = append(*dst, o), true
+		}
+	}
+	return grew
 }
 
 func (o ownerRef) same(p ownerRef) bool {

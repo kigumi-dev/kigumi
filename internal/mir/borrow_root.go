@@ -9,19 +9,19 @@ import (
 
 // projectionPlace follows a temporary read out of a value back to its named local, with the field chain
 // (root-first); an index or unbox step cuts the chain there, marking it inexact.
-func (c *borrowCheck) projectionPlace(l LocalID) (root LocalID, path []int, exact bool, ok bool) {
+func (c *borrowCheck) projectionPlace(l LocalID) (root LocalID, path stepPath, exact bool, ok bool) {
 	return c.walkPlace(l, false)
 }
 
 // patternPlace is projectionPlace also crossing a temporary borrow and a borrowed loop's element,
 // so a binding destructured from `&e` or `&mut e`, or bound by `for x in &e`, holds e itself.
-func (c *borrowCheck) patternPlace(l LocalID) (root LocalID, path []int, exact bool, ok bool) {
+func (c *borrowCheck) patternPlace(l LocalID) (root LocalID, path stepPath, exact bool, ok bool) {
 	return c.walkPlace(l, true)
 }
 
 // throughRef is what a borrow of root's referent at path holds when root is a reference
 // local: the places root borrows, extended by path, so they stay borrowed while it lives.
-func (c *borrowCheck) throughRef(root LocalID, path []int, exact, mut bool) *borrowInfo {
+func (c *borrowCheck) throughRef(root LocalID, path stepPath, exact, mut bool) *borrowInfo {
 	b, ok := c.holders[root]
 	if !ok || !b.hasOwner || c.p.R.Types.Kind(c.f.Locals[root].Type) != sem.KRef {
 		return nil
@@ -44,10 +44,7 @@ func (c *borrowCheck) throughRef(root LocalID, path []int, exact, mut bool) *bor
 	return out
 }
 
-// payloadStep keeps payload i apart from field i in a path; payloads of different variants share a step.
-func payloadStep(i int) int { return -1 - i }
-
-func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, path []int, exact bool, ok bool) {
+func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, path stepPath, exact bool, ok bool) {
 	exact = true
 	for {
 		if c.f.Locals[l].Ent != 0 {
@@ -58,14 +55,8 @@ func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, pa
 			return 0, nil, false, false
 		}
 		switch in.Op {
-		case OpField:
-			path = append([]int{in.Index}, path...)
-			l = in.Args[0]
-		case OpPayload:
-			path = append([]int{payloadStep(in.Index)}, path...)
-			l = in.Args[0]
-		case OpIndex, OpUnbox:
-			path, exact = nil, false
+		case OpField, OpPayload, OpIndex, OpUnbox:
+			path, exact = path.under(in, exact, nil)
 			l = in.Args[0]
 		case OpCopy:
 			l = in.Args[0]
@@ -75,7 +66,7 @@ func (c *borrowCheck) walkPlace(l LocalID, throughBorrow bool) (root LocalID, pa
 			}
 			l = in.Args[0]
 		case OpBuiltin:
-			if !throughBorrow || in.Str != "iter.at_ref" {
+			if !throughBorrow || !iterElement(in) {
 				return 0, nil, false, false
 			}
 			path, exact = nil, false
@@ -149,21 +140,6 @@ func (c *borrowCheck) definition(l LocalID) *Inst {
 		}
 	}
 	return c.defs[l]
-}
-
-// fieldPathsOverlap reports whether two field chains of one owner can name overlapping storage:
-// one is a prefix of the other, a cut chain standing for its whole last field.
-func fieldPathsOverlap(a, b []int) bool {
-	n := len(a)
-	if len(b) < n {
-		n = len(b)
-	}
-	for i := range n {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (c *borrowCheck) takesPayload(in Inst) bool {

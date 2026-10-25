@@ -69,7 +69,7 @@ type unionSite struct {
 type reborrowSite struct {
 	info  *borrowInfo
 	root  LocalID
-	path  []int
+	path  stepPath
 	exact bool
 	mut   bool
 }

@@ -4718,6 +4718,23 @@
       ]
     },
     {
+      "id": "run/borrow_store_holder_chain",
+      "kind": "run",
+      "path": "testdata/run/borrow_store_holder_chain.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_temp_field_scrutinee",
       "kind": "run",
       "path": "testdata/run/borrow_temp_field_scrutinee.txtar",
@@ -18135,9 +18152,31 @@
       ]
     },
     {
+      "id": "sem/borrow_lent_arg_report_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_lent_arg_report_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/borrow_merge_branch_owner_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_merge_branch_owner_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_mut_holder_copy_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_mut_holder_copy_err.txtar",
       "mode": [
         "check"
       ],
@@ -18248,6 +18287,17 @@
       "id": "sem/borrow_return_projection_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_return_projection_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_store_holder_chain_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_store_holder_chain_err.txtar",
       "mode": [
         "check"
       ],

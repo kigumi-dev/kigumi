@@ -11,7 +11,7 @@ import (
 // touch reports whether in touches owner, and its field path if so.
 // OpField/OpSetField/OpBorrow resolve the full projection so a
 // field-chain borrow is checked by field, not by the temp it borrows.
-func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path []int, exact bool) {
+func (c *borrowCheck) touch(in Inst, owner LocalID) (touched bool, path stepPath, exact bool) {
 	switch in.Op {
 	case OpField, OpPayload:
 		if c.chainedOnly(in.Dst) {

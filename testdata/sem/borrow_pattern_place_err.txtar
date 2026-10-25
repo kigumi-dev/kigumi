@@ -269,18 +269,6 @@ error[move-while-borrowed]: `o` is borrowed and cannot be moved or dropped here
     |     ^
 
 error[E2198]: `o` is borrowed and cannot be mutated here
-   --> main.kg:116:24
-    |
-116 |             touch(&mut o)
-    |                        ^
-    = help: end the borrow first or use a copy
-note: `o` is borrowed here
-   --> main.kg:115:14
-    |
-115 |         Some(a) -> {
-    |              ^
-
-error[E2198]: `o` is borrowed and cannot be mutated here
    --> main.kg:116:19
     |
 116 |             touch(&mut o)

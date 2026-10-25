@@ -20,55 +20,54 @@ func (c *borrowCheck) refPlaces(l LocalID) []lentPlace {
 	return lentPlaces(c.heldReferents(r, b.owners), 0, r)
 }
 
-// refBase walks l's field, payload and index reads down to the reference they read through, with l's path below it.
-func (c *borrowCheck) refBase(l LocalID) (LocalID, []int, bool, bool) {
-	path, exact := []int(nil), true
-	for seen := map[LocalID]bool{}; !seen[l]; {
-		seen[l] = true
-		if c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef {
-			return l, path, exact, !slices.Contains(c.f.Params, l)
-		}
-		in := c.definition(l)
-		if c.f.Locals[l].Ent != 0 || in == nil || len(in.Args) == 0 {
-			return 0, nil, false, false
-		}
-		switch in.Op {
-		case OpField:
-			path = append([]int{in.Index}, path...)
-		case OpPayload:
-			path = append([]int{payloadStep(in.Index)}, path...)
-		case OpIndex, OpUnbox:
-			path, exact = nil, false
-		case OpCopy:
-		default:
-			return 0, nil, false, false
-		}
-		l = in.Args[0]
+// referents resolves each holder a stored `&mut` was read through to what that holder keeps.
+func (c *borrowCheck) referents(l LocalID) []ownerRef {
+	refs := c.storedReferents(l)
+	if len(refs) == 0 {
+		return nil
 	}
-	return 0, nil, false, false
+	if d := c.definition(l); d != nil && len(d.Args) > 0 {
+		if r, ok := c.readBase(d.Args[0], true); ok && !r.ref {
+			if step, has := pathStep(d, c.definition); has {
+				refs = c.heldAt(ownerRef{owner: r.base, exact: true}, refs, readHop{path: r.path.with(step), exact: r.exact})
+			}
+		}
+	}
+	return c.heldReferents(l, refs)
 }
 
 // heldReferents follows r back through each read of a field below another reference (`k.fb` with `k = &mut hr`):
-// the holder of such a read lists what the outer reference points at, so each owner gives way to the borrows it holds.
+// the holder of such a read lists what the outer reference points at, so each owner gives way to what it holds there.
 func (c *borrowCheck) heldReferents(r LocalID, owners []ownerRef) []ownerRef {
-	for seen := map[LocalID]bool{}; !seen[r]; {
-		seen[r] = true
-		outer, ok := c.outerRef(r)
-		if !ok {
-			return owners
+	var hops []readHop
+	looped := false
+	for seen := map[LocalID]bool{}; ; {
+		if looped = seen[r]; looped {
+			break
 		}
+		seen[r] = true
+		outer, hop, ok := c.outerRef(r)
+		if !ok {
+			break
+		}
+		hops, r = append(hops, hop), outer
+	}
+	for i := len(hops) - 1; i >= 0; i-- {
 		var next []ownerRef
-		for _, o := range owners {
+		for _, o := range c.derefOwners(owners) {
 			h, ok := c.holders[o.owner]
 			if !ok || !h.hasOwner || len(h.owners) == 0 {
 				next = append(next, o)
 				continue
 			}
-			for _, p := range h.owners {
+			for _, p := range c.heldAt(o, h.owners, hops[i]) {
 				next = append(next, ownerRef{owner: p.owner, mut: true, path: p.path})
 			}
 		}
-		owners, r = next, outer
+		owners = next
+	}
+	if !looped {
+		return owners
 	}
 	// A chain of reads that loops back keeps every owner it could reach.
 	for _, o := range slices.Clone(owners) {
@@ -79,8 +78,25 @@ func (c *borrowCheck) heldReferents(r LocalID, owners []ownerRef) []ownerRef {
 	return owners
 }
 
-// outerRef is the reference r was read out of a field below, through copies of the read.
-func (c *borrowCheck) outerRef(r LocalID) (LocalID, bool) {
+// derefOwners puts what a reference local points at, at the same path, in place of the local, as throughRef does.
+func (c *borrowCheck) derefOwners(owners []ownerRef) []ownerRef {
+	var out []ownerRef
+	for _, o := range owners {
+		h, ok := c.holders[o.owner]
+		if c.p.R.Types.Kind(c.f.Locals[o.owner].Type) != sem.KRef || !ok || !h.hasOwner || len(h.owners) == 0 {
+			out = append(out, o)
+			continue
+		}
+		for _, p := range h.owners {
+			path := append(slices.Clone(p.path), o.path...)
+			out = append(out, ownerRef{owner: p.owner, mut: o.mut, path: path, exact: (len(p.path) == 0 || p.exact) && (len(o.path) == 0 || o.exact)})
+		}
+	}
+	return out
+}
+
+// outerRef is the reference r was read out of a field below, through copies of the read, with the path of that read.
+func (c *borrowCheck) outerRef(r LocalID) (LocalID, readHop, bool) {
 	for seen := map[LocalID]bool{}; !seen[r]; {
 		seen[r] = true
 		d := c.definition(r)
@@ -88,19 +104,19 @@ func (c *borrowCheck) outerRef(r LocalID) (LocalID, bool) {
 			d = soleDef(c.f, r)
 		}
 		if d == nil || len(d.Args) == 0 {
-			return 0, false
+			return 0, readHop{}, false
 		}
 		switch d.Op {
 		case OpCopy, OpMove, OpAlias:
 			r = d.Args[0]
 		case OpField, OpPayload, OpIndex, OpUnbox:
-			base, _, _, ok := c.refBase(d.Args[0])
-			return base, ok
+			base, hop, ok := c.readHopOf(d)
+			return base, hop, ok && !slices.Contains(c.f.Params, base)
 		default:
-			return 0, false
+			return 0, readHop{}, false
 		}
 	}
-	return 0, false
+	return 0, readHop{}, false
 }
 
 // heldMutOwners are the locals l keeps a `&mut` of, directly or through holders it keeps, so a callee lent l may

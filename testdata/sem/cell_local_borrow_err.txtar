@@ -90,7 +90,7 @@ fn mutWhileShared() -> Int {
     let mut other = "o"
     let g = () => other.len()
     let r = &other
-    setS(&mut other) //~ ERROR `other` is borrowed //~ ERROR `other` is borrowed
+    setS(&mut other) //~ ERROR `other` is borrowed and cannot be mutated here
     let n = r.len() + g()
     other = "later"
     n.toInt() || 0
@@ -909,21 +909,9 @@ note: `other` is borrowed here
    |             ^^^^^^
 
 error[E2198]: `other` is borrowed and cannot be mutated here
-  --> main.kg:90:15
-   |
-90 |     setS(&mut other) //~ ERROR `other` is borrowed //~ ERROR `other` is borrowed
-   |               ^^^^^
-   = help: end the borrow first or use a copy
-note: `other` is borrowed here
-  --> main.kg:89:13
-   |
-89 |     let r = &other
-   |             ^^^^^^
-
-error[E2198]: `other` is borrowed and cannot be mutated here
   --> main.kg:90:10
    |
-90 |     setS(&mut other) //~ ERROR `other` is borrowed //~ ERROR `other` is borrowed
+90 |     setS(&mut other) //~ ERROR `other` is borrowed and cannot be mutated here
    |          ^^^^^^^^^^
    = help: end the borrow first or use a copy
 note: `other` is borrowed here
@@ -1375,7 +1363,7 @@ error[E2198]: `a` is passed twice as `&mut`; the callee would get two exclusive 
     |
 372 |     two(&mut a, &mut a) //~ ERROR `a` is passed twice as `&mut`
     |     ^^^^^^^^^^^^^^^^^^
-    = help: end the borrow first or use a copy
+    = help: split the call so each `&mut a` goes to a call of its own, or pass a different place for one of them
 
 error[E2198]: `v` is borrowed and cannot be mutated here
    --> main.kg:385:9

@@ -28,3 +28,29 @@ func (c *borrowCheck) checkOpaqueStores(in Inst) {
 		}
 	}
 }
+
+// opaqueFlows let a call through a function value store what each argument holds into every `&mut` argument.
+func (c *borrowCheck) opaqueFlows(in Inst) []storeFlow {
+	if in.Op != OpCallValue || in.Ent != 0 && c.p.R.Entity(in.Ent).Kind == sem.EntFn || len(in.Args) < 2 {
+		return nil
+	}
+	args := in.Args[1:]
+	var out []storeFlow
+	for i, t := range args {
+		if _, mut := c.p.R.MutRefElem(c.f.Locals[t].Type); !mut {
+			continue
+		}
+		lifetime := c.declaredLifetime(c.f.Locals[t].Type) != 0 || c.declaredLifetime(c.placeOf(t)) != 0
+		if !lifetime && !c.namesTypeParam(c.f.Locals[t].Type) && !c.namesTypeParam(c.placeOf(t)) {
+			continue
+		}
+		fl := storeFlow{target: t, ref: true, generic: !lifetime, opaque: true}
+		for j, v := range args {
+			if j != i {
+				fl.values = append(fl.values, flowArg{arg: v, contents: c.p.R.Types.Kind(c.f.Locals[v].Type) == sem.KRef})
+			}
+		}
+		out = append(out, fl)
+	}
+	return out
+}

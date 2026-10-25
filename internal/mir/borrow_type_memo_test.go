@@ -55,8 +55,8 @@ func queryHolds(t *testing.T, c *borrowCheck, typ func(string) sem.TypeID, names
 		if got := c.holdsBorrow(typ(name)); got != oracle || got != want(name) {
 			t.Fatalf("%s: holdsBorrow = %v, typeHolds = %v, want %v", name, got, oracle, want(name))
 		}
-		if m := &c.typeMemo; len(m.stack) != 0 || m.expansions != len(m.decls) {
-			t.Fatalf("after %s: %d expansions for %d declarations, %d left open", name, m.expansions, len(m.decls), len(m.stack))
+		if m := &c.typeMemo; len(m.scc.stack) != 0 || m.expansions != len(m.decls) {
+			t.Fatalf("after %s: %d expansions for %d declarations, %d left open", name, m.expansions, len(m.decls), len(m.scc.stack))
 		}
 	}
 }

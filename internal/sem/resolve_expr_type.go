@@ -96,8 +96,11 @@ func (r *Result) exprAsType(f FileID, scope ScopeID, n syntax.NodeID) TypeID {
 // ordinary type.
 func (r *Result) resolveExprGenericArg(f FileID, scope ScopeID, n syntax.NodeID, param EntityID) TypeID {
 	if param != 0 {
-		if info := r.typeParam(param); info.IsConst {
+		switch info := r.typeParam(param); {
+		case info.IsConst:
 			return r.resolveConstArg(f, scope, n, info.ConstType)
+		case info.IsLifetime:
+			return r.resolveLifetimeArg(f, scope, n)
 		}
 	}
 	return r.exprAsType(f, scope, n)

@@ -16,7 +16,12 @@ type cellState struct {
 	runMemo         map[sem.EntityID]bool
 	closureTypeMemo map[sem.TypeID][]sem.EntityID
 	closureUseMemo  map[closureUseKey][]cellUse
-	storeMemo       map[paramKey]bool
+	storeMemo       map[paramKey]*siteEntry
+	siteSCC         sccStack[paramKey]
+	siteLow         int
+	siteRuns        int
+	contentsMemo    map[LocalID]contentsResult
+	plainTypes      map[sem.TypeID]bool
 }
 
 // dropFact marks, among the closure facts, a value that may hold a resource whose user `drop` runs when it is dropped.

@@ -17,12 +17,19 @@ func (c *checker) synthRead(n syntax.NodeID) TypeID {
 	return c.synth(n)
 }
 
-// A `&mut T` value is move-only, so reading the field by value moves it.
+// A `&mut T` value is move-only, so reading the field by value moves it. A value holding a `&mut` read by value out
+// of a borrowed place would copy that `&mut`, so it is a move out of the borrow, rejected as for the `&mut` itself.
 func (c *checker) noteFieldMove(n syntax.NodeID, t TypeID) {
-	if c.t.Kind(n) != syntax.MemberExpr || c.held.reborrows[n] || !c.r.Types.RefMut(c.vars.resolve(t)) {
+	rt := c.vars.resolve(t)
+	holder := !c.r.Types.RefMut(rt) && c.borrowedPlace(n) && c.r.ownsMutRef(rt, map[TypeID]bool{})
+	if c.t.Kind(n) != syntax.MemberExpr || c.held.reborrows[n] || !c.r.Types.RefMut(rt) && !holder {
 		return
 	}
-	if fld := c.info.Uses[n]; fld == 0 || c.r.Entities[fld].Kind != EntField || c.behindShared(n) || c.indexRooted(n) {
+	if fld := c.info.Uses[n]; fld == 0 || c.r.Entities[fld].Kind != EntField || !holder && c.behindShared(n) || c.indexRooted(n) {
+		return
+	}
+	if holder {
+		c.errAt(n, cMoveOutOfBorrow, t)
 		return
 	}
 	baseType := c.readThrough(c.vars.resolve(c.info.Types[c.t.Unparen(c.t.View(n).AsMember().Base().ID())]))

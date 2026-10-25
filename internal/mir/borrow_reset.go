@@ -6,6 +6,7 @@ type resetState struct {
 	sites   map[LocalID][]carrySite
 	tracked map[LocalID]bool
 	in      map[[2]LocalID][]bool
+	stored  map[LocalID]bool
 }
 
 func (c *borrowCheck) noteResetSite(dst LocalID, b *borrowInfo) {

@@ -1,9 +1,17 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	"kigumi/internal/syntax"
+)
 
 // reportTouch reports in touching o.owner while holder still borrows it.
 func (c *borrowCheck) reportTouch(in Inst, holder LocalID, b *borrowInfo, o ownerRef) {
+	// A `&mut` argument's write-back reports at the borrow that lent it, so the argument gets one diagnostic.
+	if site, ok := c.writeBackSite(in); ok {
+		in.Node = site
+	}
 	moves := in.Op == OpMove || in.Op == OpDrop || in.Op == OpFieldMove || in.Op == OpCellTake || c.takesPayload(in)
 	passes := c.passesMutRef(in, o.owner)
 	_, runs := c.cellRunHit(in, o)
@@ -71,4 +79,26 @@ func (c *borrowCheck) onlyDropped(l LocalID) bool {
 func (c *borrowCheck) touchesDirect(in Inst, owner LocalID) bool {
 	touched, _, _ := c.touch(in, owner)
 	return touched
+}
+
+// writeBackSite is the node of the borrow whose `&mut` cell in stores back into its place, if in is such a store.
+func (c *borrowCheck) writeBackSite(in Inst) (syntax.NodeID, bool) {
+	switch in.Op {
+	case OpCopy, OpCellSet, OpSetField, OpSetIndex, OpGlobalSet:
+	default:
+		return 0, false
+	}
+	v := in.Args[len(in.Args)-1]
+	d := c.definition(v)
+	for d != nil && d.Op == OpAlias {
+		d = c.definition(d.Args[0])
+	}
+	if d == nil || d.Op != OpCellTake && d.Op != OpCellGet {
+		return 0, false
+	}
+	cell := c.definition(d.Args[0])
+	if cell == nil || cell.Op != OpNewCell {
+		return 0, false
+	}
+	return cell.Node, true
 }

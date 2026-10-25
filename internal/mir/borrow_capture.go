@@ -60,9 +60,11 @@ func (c *borrowCheck) checkCapture(in Inst) {
 		}
 	case OpCall, OpCallValue:
 		c.checkOwningArgs(in)
+		c.contentsMemo = map[LocalID]contentsResult{}
 		for _, fl := range c.storeFlows(in) {
 			c.checkFlow(fl, in)
 		}
+		c.contentsMemo = nil
 		c.checkOpaqueStores(in)
 		c.checkCarry(in)
 	case OpBox:

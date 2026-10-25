@@ -15,15 +15,15 @@ func (c *borrowCheck) tempBorrow(in Inst) (*borrowInfo, bool) {
 }
 
 // heldPlace is the place a borrow of l takes: under a named root, else in a statement's temporary.
-func (c *borrowCheck) heldPlace(l LocalID) (LocalID, []int, bool, bool) {
+func (c *borrowCheck) heldPlace(l LocalID) (LocalID, stepPath, bool, bool) {
 	if root, path, exact, ok := c.patternPlace(l); ok {
 		return root, path, exact, true
 	}
 	return c.tempPlace(l)
 }
 
-func (c *borrowCheck) tempPlace(l LocalID) (LocalID, []int, bool, bool) {
-	var path []int
+func (c *borrowCheck) tempPlace(l LocalID) (LocalID, stepPath, bool, bool) {
+	var path stepPath
 	exact := true
 	for c.f.Locals[l].Ent == 0 {
 		d := c.definition(l)
@@ -33,12 +33,8 @@ func (c *borrowCheck) tempPlace(l LocalID) (LocalID, []int, bool, bool) {
 		switch d.Op {
 		case OpCall, OpCallValue, OpRecord, OpVariant, OpArray:
 			return l, path, exact, true
-		case OpField:
-			path = append([]int{d.Index}, path...)
-		case OpPayload:
-			path = append([]int{payloadStep(d.Index)}, path...)
-		case OpIndex, OpUnbox:
-			path, exact = nil, false
+		case OpField, OpPayload, OpIndex, OpUnbox:
+			path, exact = path.under(d, exact, nil)
 		case OpCopy, OpBorrow:
 		default:
 			return 0, nil, false, false

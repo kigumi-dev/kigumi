@@ -48,3 +48,40 @@ func (r *Result) mayHoldResource(t TypeID, visited map[TypeID]bool) bool {
 
 // HoldsResource reports whether an owned t could hold a resource, which cannot be cloned.
 func (r *Result) HoldsResource(t TypeID) bool { return r.mayHoldResource(t, map[TypeID]bool{}) }
+
+// ownsMutRef reports whether an owned t keeps a `&mut` inside it, which a copy would duplicate.
+func (r *Result) ownsMutRef(t TypeID, visited map[TypeID]bool) bool {
+	if t == 0 || visited[t] {
+		return false
+	}
+	visited[t] = true
+	n := r.Types.Node(t)
+	switch n.Kind {
+	case KRef:
+		return r.Types.RefMut(t)
+	case KNamed:
+		decl := r.typeDecl(n.Ent)
+		if decl == nil {
+			break
+		}
+		subst := instSubst(decl.Params, n.Args)
+		parts := []TypeID{decl.Underlying}
+		for _, fld := range decl.Fields {
+			parts = append(parts, r.field(fld).Type)
+		}
+		for _, v := range decl.Variants {
+			parts = append(parts, r.variant(v).Payload...)
+		}
+		for _, p := range parts {
+			if p != 0 && r.ownsMutRef(r.Types.Subst(p, subst), visited) {
+				return true
+			}
+		}
+	}
+	for _, a := range n.Args {
+		if r.ownsMutRef(a, visited) {
+			return true
+		}
+	}
+	return false
+}

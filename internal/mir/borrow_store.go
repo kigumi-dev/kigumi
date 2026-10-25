@@ -12,6 +12,11 @@ type storeFlow struct {
 	ref    bool
 	// generic marks a flow found only through a type parameter the target's type names.
 	generic bool
+	// callee and param name the parameter a call's `&mut` argument is lent to; callee is 0 for a plain store.
+	callee sem.EntityID
+	param  int
+	// opaque marks a `&mut` argument of a call through a function value, whose body is unknown.
+	opaque bool
 }
 
 // storeTargets finds, before any holder is known, the locals some store may
@@ -40,7 +45,7 @@ func (c *borrowCheck) storeFlows(in Inst) []storeFlow {
 		}
 		return []storeFlow{{target: in.Args[0], values: []flowArg{{arg: v}}, generic: !lifetime}}
 	case OpCall, OpCallValue:
-		return c.callFlows(in)
+		return append(c.callFlows(in), c.opaqueFlows(in)...)
 	}
 	return nil
 }
@@ -83,7 +88,7 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, c
 			l = in.Args[0]
 		}
 	}
-	if refs := c.storedReferents(l); len(refs) > 0 {
+	if refs := c.referents(l); len(refs) > 0 {
 		l = refs[0].owner
 	}
 	if c.p.R.Types.Kind(place) == sem.KRef {
@@ -96,7 +101,8 @@ func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, c
 	if !ok {
 		return 0, 0, false, false
 	}
-	if c.callerPlace(root) {
+	// A reference read out of a parameter taken by value points into storage the caller owns.
+	if c.callerPlace(root) || root != l && slices.Contains(c.f.Params, root) && c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef {
 		return root, place, true, true
 	}
 	if c.p.R.Types.Kind(c.f.Locals[root].Type) == sem.KRef {
@@ -112,43 +118,6 @@ func (c *borrowCheck) callerPlace(l LocalID) bool {
 		return false
 	}
 	return c.p.R.Types.Kind(c.f.Locals[l].Type) == sem.KRef || c.f.Locals[l].Borrowed
-}
-
-// collectFlows widens each local target's sources with every value written
-// into it; a caller's place is left to checkFlow, which only validates.
-func (c *borrowCheck) collectFlows(in Inst) {
-	for _, fl := range c.storeFlows(in) {
-		c.collectFlow(fl, in)
-	}
-}
-
-func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
-	c.callNode = in.Node
-	root, _, caller, ok := c.storeRoot(fl)
-	if !ok || caller {
-		return
-	}
-	for _, r := range append([]LocalID{root}, c.otherReferents(fl)...) {
-		// A store through a `&mut` read out of a stored value finds its root only once holders are known.
-		if !c.targets[r] {
-			c.targets[r], c.grew = true, true
-		}
-		for _, v := range fl.values {
-			if b, ok := c.storedInfo(fl, v, false); ok {
-				if v.tie != tieNone {
-					b = c.tiedAt(fl.target, r, b)
-				} else if idx, ok := c.tieSite(fl.target, r); ok {
-					c.retie(r, idx, v.arg, b)
-				} else {
-					b = untied(b)
-				}
-				c.merge(c.sink(r, in.Node), storedAt(b))
-				if c.replacesHolder(in, r) {
-					c.noteResetSite(r, b)
-				}
-			}
-		}
-	}
 }
 
 // checkFlow rejects a write into a place whose type keeps no sources, or into the caller's

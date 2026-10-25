@@ -1,0 +1,60 @@
+-- src --
+import map from std/map
+
+type V['a] = { pub s &'a String }
+type Mix['a] = { pub s &'a String, pub k &'a mut Array[V['a]] }
+type PairH['a] = { pub p Mix['a], pub n Int }
+type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+type Outer['a] = { pub sink Sink['a], pub n Int }
+
+fn wholeMixThroughRef() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut c = Array.of(V { s: &u })
+    let mut o = PairH { p: Mix { s: &v, k: &mut c }, n: 1 }
+    let q = &mut o
+    let p = q.p //~ ERROR cannot move `Mix['a]` out of a borrow
+    p.s.len()
+}
+
+fn wholeSinkThroughRef() -> usize {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut o = Outer { sink: Sink { items: &mut a }, n: 1 }
+    let q = &mut o
+    let s = q.sink //~ ERROR cannot move `Sink['a]` out of a borrow
+    s.items.len()
+}
+
+fn sharedFieldThroughRef() -> usize {
+    let u = "u"
+    let mut c = Array.of(V { s: &u })
+    let mut o = PairH { p: Mix { s: &u, k: &mut c }, n: 1 }
+    let q = &mut o
+    let s = q.p.s
+    s.len()
+}
+
+fn typeInLifetimeSlot() -> usize {
+    let m = map.empty[String, V[String]]() //~ ERROR expects a lifetime argument here, not a type
+    m.len()
+}
+-- expect --
+error[E517]: cannot move `Mix['a]` out of a borrow
+  --> main/main.kg:15:13
+   |
+15 |     let p = q.p //~ ERROR cannot move `Mix['a]` out of a borrow
+   |             ^^^
+
+error[E517]: cannot move `Sink['a]` out of a borrow
+  --> main/main.kg:24:13
+   |
+24 |     let s = q.sink //~ ERROR cannot move `Sink['a]` out of a borrow
+   |             ^^^^^^
+
+error[E1018]: `this` expects a lifetime argument here, not a type
+  --> main/main.kg:38:33
+   |
+38 |     let m = map.empty[String, V[String]]() //~ ERROR expects a lifetime argument here, not a type
+   |                                 ^^^^^^
+

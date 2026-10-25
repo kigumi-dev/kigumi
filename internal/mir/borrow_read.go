@@ -39,40 +39,6 @@ func (c *borrowCheck) paramContents(l LocalID) (*borrowInfo, bool) {
 	return info, true
 }
 
-// argContents is what a reference argument's referent holds: the borrowed root's holder, a lent
-// parameter's contents, or the reference's own holder when neither can be traced.
-func (c *borrowCheck) argContents(a LocalID) (*borrowInfo, bool) {
-	for {
-		if b, ok := c.paramContents(a); ok {
-			return b, true
-		}
-		if c.f.Locals[a].Ent != 0 {
-			break
-		}
-		in := c.definition(a)
-		if in == nil || len(in.Args) == 0 {
-			break
-		}
-		if in.Op == OpBorrow {
-			root, _, _, ok := c.projectionPlace(in.Args[0])
-			if !ok {
-				break
-			}
-			if b, ok := c.paramContents(root); ok {
-				return b, true
-			}
-			b, ok := c.holders[root]
-			return b, ok
-		}
-		if in.Op != OpNewCell && in.Op != OpShare && in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
-			break
-		}
-		a = in.Args[0]
-	}
-	b, ok := c.holders[a]
-	return b, ok
-}
-
 // flowArg is one argument whose value may flow into a call's result or a
 // store target; contents means the value is behind the argument's reference.
 type flowArg struct {
@@ -80,6 +46,8 @@ type flowArg struct {
 	contents bool
 	tie      tieKind
 	shared   bool
+	// param is the callee parameter a contents argument is passed to.
+	param int
 }
 
 // flowInfoOf is what one flowing argument contributes: an immediate closure

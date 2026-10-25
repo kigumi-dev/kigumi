@@ -8,7 +8,7 @@ import (
 
 // cellUse is a place a closure reaches in a cell it shares: a field path (nil for the whole value), read or written.
 type cellUse struct {
-	path   []int
+	path   stepPath
 	writes bool
 }
 
@@ -111,7 +111,9 @@ func (c *borrowCheck) checkLentTwice(in Inst) {
 				if ps[0].hasVia {
 					name = ps[0].via
 				}
-				c.report(in.Node, name, "borrow-conflict", "`"+c.f.Locals[name].Name+"` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value")
+				n := c.f.Locals[name].Name
+				c.reportHelped(in.Node, name, "borrow-conflict", "`"+n+"` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value", 0, "",
+					"split the call so each `&mut "+n+"` goes to a call of its own, or pass a different place for one of them")
 			}
 		}
 		seen = append(seen, ps[0])

@@ -7,7 +7,7 @@ import (
 
 type capturedPlace struct {
 	root LocalID
-	path []int
+	path stepPath
 }
 
 func checkCapturedFieldMoves(p *Program, f *Func) {
@@ -26,12 +26,12 @@ func checkCapturedFieldMoves(p *Program, f *Func) {
 		}
 	}
 	place := func(l LocalID) capturedPlace {
-		var path []int
+		var path stepPath
 		for !multi[l] && defs[l] != nil {
 			d := defs[l]
 			switch {
 			case d.Op == OpField:
-				path = append([]int{d.Index}, path...)
+				path, _ = path.under(d, true, nil)
 			case d.Op == OpCopy && f.Locals[l].Ent == 0:
 			default:
 				return capturedPlace{l, path}

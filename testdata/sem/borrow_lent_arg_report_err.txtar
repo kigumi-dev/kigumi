@@ -1,0 +1,71 @@
+-- module --
+mir: planned
+-- src --
+type P = { pub mut a String, pub mut b String }
+
+fn setS(s: &mut String) { s = "q" }
+fn two(a: &mut String, b: &mut String) { a = "1"; b = "2" }
+
+fn sharedThenLent() -> usize {
+    let mut other = "o"
+    let r = &other
+    setS(&mut other) //~ ERROR `other` is borrowed and cannot be mutated here
+    r.len()
+}
+
+fn sharedFieldThenLent() -> usize {
+    let mut p = P { a: "a", b: "b" }
+    let r = &p.a
+    setS(&mut p.a) //~ ERROR `p` is borrowed and cannot be mutated here
+    r.len()
+}
+
+fn lentTwice() -> String {
+    let mut s = "x"
+    two(&mut s, &mut s) //~ ERROR `s` is passed twice as `&mut`
+    s
+}
+
+fn disjointFields() -> String {
+    let mut p = P { a: "a", b: "b" }
+    two(&mut p.a, &mut p.b)
+    "${p.a}${p.b}"
+}
+
+fn indexPlaces() -> usize {
+    let mut xs = Array.of("a", "b")
+    two(&mut xs[0], &mut xs[1])
+    xs.len()
+}
+-- expect --
+error[E2198]: `other` is borrowed and cannot be mutated here
+ --> main.kg:9:10
+  |
+9 |     setS(&mut other) //~ ERROR `other` is borrowed and cannot be mutated here
+  |          ^^^^^^^^^^
+  = help: end the borrow first or use a copy
+note: `other` is borrowed here
+ --> main.kg:8:13
+  |
+8 |     let r = &other
+  |             ^^^^^^
+
+error[E2198]: `p` is borrowed and cannot be mutated here
+  --> main.kg:16:10
+   |
+16 |     setS(&mut p.a) //~ ERROR `p` is borrowed and cannot be mutated here
+   |          ^^^^^^^^
+   = help: end the borrow first or use a copy
+note: `p` is borrowed here
+  --> main.kg:15:13
+   |
+15 |     let r = &p.a
+   |             ^^^^
+
+error[E2198]: `s` is passed twice as `&mut`; the callee would get two exclusive borrows of the same value
+  --> main.kg:22:5
+   |
+22 |     two(&mut s, &mut s) //~ ERROR `s` is passed twice as `&mut`
+   |     ^^^^^^^^^^^^^^^^^^
+   = help: split the call so each `&mut s` goes to a call of its own, or pass a different place for one of them
+
