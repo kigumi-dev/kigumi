@@ -1,0 +1,25 @@
+-- module --
+stage: driver
+profile: recoverable-only
+-- src --
+import map from std/map
+
+type Id = { n Int }
+
+// trySet[Id, Int] is specialized and verified; the profile reports the box its key parameter needs.
+fn run() -> Result[Void, AllocError] {
+    let mut m = map.tryEmpty[Id, Int]()?
+    m.trySet(Id { n: 1 }, 2)?
+    Ok(())
+}
+
+fn main() {
+    _ = run()
+}
+-- expect --
+error[E2313]: `run` passed the recoverable-only profile as if `Id` stayed unboxed, yet handing it to a slot that holds a reference allocates a box here that a refused allocation would end the program on; call a form that takes it unboxed, or allocate inside an `allocator` block
+ --> main.kg:8:5
+  |
+8 |     m.trySet(Id { n: 1 }, 2)?
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+

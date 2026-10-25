@@ -1,0 +1,58 @@
+-- src --
+import map from std/map
+import {Box} from std/alloc
+
+type Id = { n Int }
+type Shape = Circle(r: Int) | Rect(w: Int, h: Int) | Dot
+type Wrap = { id Id, s Shape, tag Bool }
+type Tagged = { id Id, b Box[Int]? }
+
+fn mkb(n: Int) -> Box[Int]? { Some(Box.new(n)) }
+fn useb(a: Box[Int]?) -> Int { if a is Some(b) { b.get() } else { 0 } }
+fn useTagged(t: Tagged) -> Int { t.id.n + useb(t.b) }
+
+fn tally[K: Eq + Hash](a: K, b: K, again: K, absent: &K) -> Result[String, AllocError] {
+    let mut m = map.tryEmpty[K, Int]()?
+    m.trySet(a, 10)?
+    m.trySet(b, 20)?
+    let first = m.len()
+    m.trySet(again, 11)?
+    Ok("${first} ${m.len()} ${m.contains(absent)}")
+}
+
+fn ids() -> Result[String, AllocError] {
+    let mut m = map.tryEmpty[Id, Int]()?
+    m.trySet(Id { n: 1 }, 10)?
+    m.trySet(Id { n: 2 }, 20)?
+    m.trySet(Id { n: 1 }, 11)?
+    m.remove(&Id { n: 2 })
+    m.trySet(Id { n: 2 }, 22)?
+    m.set(Id { n: 3 }, 30)
+    Ok("${m.len()} ${m.get(&Id { n: 1 }) || 0} ${m.get(&Id { n: 2 }) || 0} ${m.get(&Id { n: 3 }) || 0} ${m.contains(&Id { n: 4 })}")
+}
+
+fn main() {
+    print "ids ${ids().unwrap()}"
+    print "id ${tally(Id { n: 1 }, Id { n: 2 }, Id { n: 1 }, &Id { n: 9 }).unwrap()}"
+    print "shape ${tally(Circle(1), Rect(2, 3), Circle(1), &Dot).unwrap()}"
+    let w = Wrap { id: Id { n: 1 }, s: Dot, tag: true }
+    let v = Wrap { id: Id { n: 1 }, s: Dot, tag: false }
+    print "wrap ${tally(w, v, w, &Wrap { id: Id { n: 2 }, s: Dot, tag: true }).unwrap()}"
+    let f = (a: Box[Int]?, keep: Bool) => {
+        let mut r = 0
+        if keep { r = useb(a) }
+        r
+    }
+    let g = (t: Tagged, keep: Bool) => {
+        let mut r = t.id.n
+        if keep { r = useTagged(t) }
+        r
+    }
+    print "moves ${f(mkb(3), true)} ${f(mkb(4), false)} ${g(Tagged { id: Id { n: 5 }, b: mkb(6) }, true)} ${g(Tagged { id: Id { n: 7 }, b: mkb(8) }, false)}"
+}
+-- stdout --
+ids 3 11 22 30 false
+id 2 2 false
+shape 2 2 false
+wrap 2 2 false
+moves 3 0 11 7

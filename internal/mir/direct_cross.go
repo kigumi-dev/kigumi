@@ -55,8 +55,10 @@ func (p *Program) argPos(f *Func, in Inst, i int) sem.TypeID {
 		return p.wholePos(f, in.Args[0])
 	case OpField, OpFieldMove, OpDrop, OpRelease, OpFutureDone:
 		return p.wholePos(f, in.Args[0])
-	case OpAlias, OpMove, OpCopy, OpShare:
+	case OpAlias, OpCopy, OpShare:
 		return p.wholePos(f, in.Dst)
+	case OpMove:
+		return p.moveCrossPos(f, in)
 	case OpBoxDirect:
 		return in.Type
 	case OpIndex, OpSetIndex, OpBuiltin:
@@ -77,8 +79,10 @@ func (p *Program) dstPos(f *Func, in Inst) sem.TypeID {
 		return p.fieldPos(f, in.Args[0], in.Index)
 	case OpPayload:
 		return p.payloadDst(f, in)
-	case OpRecord, OpVariant, OpClosure, OpAlias, OpMove, OpCopy, OpShare:
+	case OpRecord, OpVariant, OpClosure, OpAlias, OpCopy, OpShare:
 		return p.wholePos(f, in.Dst)
+	case OpMove:
+		return p.moveCrossPos(f, in)
 	case OpUnboxDirect:
 		return in.Type
 	case OpIndex, OpBuiltin:
@@ -89,6 +93,14 @@ func (p *Program) dstPos(f *Func, in Inst) sem.TypeID {
 		}
 	}
 	return 0
+}
+
+// A move out of a named local keeps the local's form so the move still empties it; the result crosses afterwards.
+func (p *Program) moveCrossPos(f *Func, in Inst) sem.TypeID {
+	if f.Locals[in.Args[0]].Ent != 0 {
+		return p.wholePos(f, in.Args[0])
+	}
+	return p.wholePos(f, in.Dst)
 }
 
 // wholePos reads the aggregate out of the local that names it.

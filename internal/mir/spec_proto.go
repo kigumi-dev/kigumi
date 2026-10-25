@@ -72,7 +72,7 @@ func (p *Program) intrinsify(f *Func, kind string, t sem.TypeID) {
 	f.Ret, f.PanicDrop, f.rcBase, f.Proto = ret, nil, len(f.Locals), kind
 }
 
-// A borrow that only passes a local is dropped and the call becomes the builtin, which takes the value.
+// A borrow that only passes a local is dropped and the call becomes the builtin, which reads the value without consuming it.
 func (p *Program) inlineProtoCalls() {
 	for _, f := range p.Funcs {
 		var uses map[LocalID]int

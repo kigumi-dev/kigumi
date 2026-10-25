@@ -12734,6 +12734,23 @@
       ]
     },
     {
+      "id": "run/map_derived_key_move",
+      "kind": "run",
+      "path": "testdata/run/map_derived_key_move.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/map_remove_reinsert",
       "kind": "run",
       "path": "testdata/run/map_remove_reinsert.txtar",
@@ -22037,6 +22054,17 @@
       "id": "sem/recoverable_bound_noalloc",
       "kind": "sem",
       "path": "testdata/sem/recoverable_bound_noalloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_map_derived_key",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_map_derived_key.txtar",
       "mode": [
         "check"
       ],
