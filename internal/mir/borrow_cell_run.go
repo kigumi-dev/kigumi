@@ -25,6 +25,10 @@ func (c *borrowCheck) cellRunHit(in Inst, o ownerRef) (hit, writes bool) {
 
 // cellRunHitExcept is cellRunHit leaving out each closure skip names for the value in would run it through.
 func (c *borrowCheck) cellRunHitExcept(in Inst, o ownerRef, skip func(LocalID, sem.EntityID) bool) (hit, writes bool) {
+	return c.runHitVia(in, o, skip, cellReach)
+}
+
+func (c *borrowCheck) runHitVia(in Inst, o ownerRef, skip func(LocalID, sem.EntityID) bool, reach capReach) (hit, writes bool) {
 	loc := c.f.Locals[o.owner]
 	if !loc.Cell || loc.Ent == 0 {
 		return false, false
@@ -35,7 +39,7 @@ func (c *borrowCheck) cellRunHitExcept(in Inst, o ownerRef, skip func(LocalID, s
 				continue
 			}
 			for i, cp := range c.p.R.Closure(cl).Captures {
-				if cp.Local != loc.Ent || cp.Mode != sem.CapCell {
+				if cp.Local != loc.Ent || !reach(cp.Mode) {
 					continue
 				}
 				for _, u := range c.closureUses(cl, i) {

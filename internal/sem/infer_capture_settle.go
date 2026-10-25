@@ -15,7 +15,7 @@ type openCapture struct {
 
 func (c *checker) noteOpenCapture(ctx *lambdaCtx, n syntax.NodeID, ent EntityID) {
 	e := &c.r.Entities[ent]
-	if c.copyNow(e.Type) || !c.r.Types.ContainsVar(c.vars.resolve(e.Type)) {
+	if c.copyNow(e.Type) || !c.openType(e.Type, c.openCaptures) {
 		return
 	}
 	cell := e.Flags&EfCapturedMut != 0 || !ctx.immediate && c.writtenInLoopOf(ent, n)
@@ -30,18 +30,36 @@ func (c *checker) markOpenWritten(ent EntityID) {
 	}
 }
 
-// settleOpenCaptures gives a capture whose local settled to a copy type the mode a known type would have had.
-func (c *checker) settleOpenCaptures() {
-	kept := c.openCaptures[:0]
-	for _, oc := range c.openCaptures {
-		switch t := c.r.Entities[oc.ent].Type; {
-		case c.copyNow(t):
-			c.recopyCapture(oc)
-		case c.r.Types.ContainsVar(c.vars.resolve(t)):
-			kept = append(kept, oc)
-		}
+// openType: t may still settle to a copy type, holding a type variable or naming a closure with a capture in open.
+func (c *checker) openType(t TypeID, open []openCapture) bool {
+	t = c.vars.resolve(t)
+	if c.r.Types.ContainsVar(t) {
+		return true
 	}
-	c.openCaptures = kept
+	n := c.r.Types.Node(t)
+	return n.Kind == KClosure && slices.ContainsFunc(open, func(oc openCapture) bool { return oc.site.ctx.ent == n.Ent })
+}
+
+// settleOpenCaptures gives a capture whose local settled to a copy type the mode a known type would have had; a closure
+// turns copy once its own open captures do, so the rounds repeat until none settles.
+func (c *checker) settleOpenCaptures() {
+	for again := true; again; {
+		open := c.openCaptures
+		c.openCaptures = nil
+		for _, oc := range open {
+			if c.copyNow(c.r.Entities[oc.ent].Type) {
+				c.recopyCapture(oc)
+			} else {
+				c.openCaptures = append(c.openCaptures, oc)
+			}
+		}
+		again = len(c.openCaptures) < len(open)
+	}
+	for again := true; again; {
+		open := c.openCaptures
+		c.openCaptures = slices.DeleteFunc(slices.Clone(open), func(oc openCapture) bool { return !c.openType(c.r.Entities[oc.ent].Type, open) })
+		again = len(c.openCaptures) < len(open)
+	}
 }
 
 func (c *checker) recopyCapture(oc openCapture) {

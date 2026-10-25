@@ -8,7 +8,8 @@ type eraseRule uint8
 const (
 	// ruleFull: the plain fn may run anywhere later (stored, returned, passed to an `escaping` parameter).
 	ruleFull eraseRule = iota
-	// ruleInline: the plain fn lives only for the call it is lent to, so only a write inside the closure counts.
+	// ruleInline: the plain fn lives only for the call it is lent to; sem judges a write inside the closure, MIR one by another
+	// argument of that call.
 	ruleInline
 	// ruleLocal: bound to a local in the body that built the closure; MIR's liveness check judges a direct write, sem a write
 	// inside a closure.

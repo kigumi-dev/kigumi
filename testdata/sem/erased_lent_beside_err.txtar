@@ -1,0 +1,421 @@
+-- module --
+mir: planned
+-- src --
+type H[F] = { pub mut f F }
+type P = { pub mut a Int, pub mut b Int }
+type Q = { pub mut xs Array[Int] }
+
+fn H[F: FnMut[fn() -> Void]].run(mut self, r: fn() -> Int) -> Int { self.f(); r() }
+fn both2[F: FnMut[fn() -> Void]](f: fn() -> Int, mut g: F) -> Int { g(); f() }
+fn both2r[F: FnMut[fn() -> Void]](mut g: F, f: fn() -> Int) -> Int { g(); f() }
+fn bothFn(f: fn() -> Int, g: fn() -> Void) -> Int { g(); f() }
+fn bothRef[F: FnMut[fn() -> Void]](f: fn() -> Int, g: &mut F) -> Int { g(); f() }
+fn bothOpt[F: FnMut[fn() -> Void]](f: fn() -> Int, g: Option[F]) -> Int {
+    if let Some(h) = g {
+        let mut hh = h
+        hh()
+    }
+    f()
+}
+fn packed[F: FnMut[fn() -> Void]](mut g: F, fs: ...fn() -> Int) -> Int { g(); fs[0]() }
+fn keepOnly[T](f: fn() -> Int, x: T) -> Int { f() }
+fn bump(k: &mut Int) { k = k + 1 }
+
+fn besideWriter() -> Int {
+    let mut k = 1
+    both2(() => k, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn besideReader() -> Int {
+    let mut k = 1
+    let a = both2(() => k, () => { _ = k + 1 })
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn besideNamedReader() -> Int {
+    let mut k = 1
+    let r = () => k
+    both2(r, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn besideNamedReaderReads() -> Int {
+    let mut k = 1
+    let r = () => k
+    let a = both2(r, () => { _ = k + 1 })
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn writerFirst() -> Int {
+    let mut k = 1
+    both2r(() => { k = k + 1 }, () => k) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn readerFirstReads() -> Int {
+    let mut k = 1
+    let a = both2r(() => { _ = k + 1 }, () => k)
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn namedWriter() -> Int {
+    let mut k = 1
+    let w = () => { k = k + 1 }
+    both2(() => k, w) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn namedSiblingReads() -> Int {
+    let mut k = 1
+    let w = () => { _ = k + 1 }
+    let a = both2(() => k, w)
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn writerCapturedBeside() -> Int {
+    let mut k = 1
+    let w = () => { k = k + 1 }
+    both2(() => k, () => w()) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn readerCapturedBeside() -> Int {
+    let mut k = 1
+    let w = () => { _ = k + 1 }
+    let a = both2(() => k, () => w())
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn writerInLentFn() -> Int {
+    let mut k = 1
+    let mut w = () => { k = k + 1 }
+    bothFn(() => k, () => w()) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn readerInLentFn() -> Int {
+    let mut k = 1
+    let w = () => { _ = k + 1 }
+    let a = bothFn(() => k, () => w())
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn receiverWrites() -> Int {
+    let mut k = 1
+    let mut h = H { f: () => { k = k + 1 } }
+    h.run(() => k) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn receiverReads() -> Int {
+    let mut k = 1
+    let mut h = H { f: () => { _ = k + 1 } }
+    let a = h.run(() => k)
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn readerRunsReader() -> Int {
+    let mut k = 1
+    let g = () => k
+    both2(() => g(), () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn readerRunsReaderReads() -> Int {
+    let mut k = 1
+    let g = () => k
+    let a = both2(() => g(), () => { _ = k + 1 })
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn mergedReader(c: Bool) -> Int {
+    let mut k = 1
+    both2(if c { () => k } else { () => 0 }, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn mergedReaderReads(c: Bool) -> Int {
+    let mut k = 1
+    let a = both2(if c { () => k } else { () => 0 }, () => { _ = k + 1 })
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn writerInOption() -> Int {
+    let mut k = 1
+    bothOpt(() => k, Some(() => { k = k + 1 })) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn readerInOption() -> Int {
+    let mut k = 1
+    let a = bothOpt(() => k, Some(() => { _ = k + 1 }))
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn writerByRef() -> Int {
+    let mut k = 1
+    let mut w = () => { k = k + 1 }
+    bothRef(() => k, &mut w) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn readerByRef() -> Int {
+    let mut k = 1
+    let mut w = () => { _ = k + 1 }
+    let a = bothRef(() => k, &mut w)
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn readerInPack() -> Int {
+    let mut k = 1
+    packed(() => { k = k + 1 }, () => k) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn readerInPackReads() -> Int {
+    let mut k = 1
+    let a = packed(() => { _ = k + 1 }, () => k)
+    a + both2(() => 0, () => { k = k + 1 })
+}
+
+fn writerBorrows() -> Int {
+    let mut k = 1
+    both2(() => k, () => bump(&mut k)) //~ ERROR closure captures `k` (written outside this closure
+}
+
+fn writerBorrowsReadField() -> Int {
+    let mut p = P { a: 1, b: 2 }
+    both2(() => p.a, () => bump(&mut p.a)) //~ ERROR closure captures `p` (written outside this closure
+}
+
+fn writerBorrowsOtherField() -> Int {
+    let mut p = P { a: 1, b: 2 }
+    both2(() => p.a, () => bump(&mut p.b))
+}
+
+fn writerReplacesWhole() -> Int {
+    let mut p = P { a: 1, b: 2 }
+    both2(() => p.a, () => { p = P { a: 9, b: 9 } }) //~ ERROR closure captures `p` (written outside this closure
+}
+
+fn borrowedBesideWriter() -> Int {
+    let mut ks: Array[Int] = Array.empty()
+    both2(() => ks.len().toInt() || 0, () => { ks.push(1) }) //~ ERROR closure captures `ks` (written outside this closure
+}
+
+fn borrowedBesideReader() -> Int {
+    let mut ks: Array[Int] = Array.empty()
+    let a = both2(() => ks.len().toInt() || 0, () => { _ = ks.len() })
+    a + both2(() => 0, () => { ks.push(1) })
+}
+
+fn borrowedFieldBesideWriter() -> Int {
+    let mut q = Q { xs: Array.empty() }
+    both2(() => q.xs.len().toInt() || 0, () => { q.xs.push(1) }) //~ ERROR closure captures `q` (written outside this closure
+}
+
+fn borrowedFieldBesideReader() -> Int {
+    let mut q = Q { xs: Array.empty() }
+    let a = both2(() => q.xs.len().toInt() || 0, () => { _ = q.xs.len() })
+    a + both2(() => 0, () => { q.xs.push(1) })
+}
+
+fn besideCannotRun() -> Int {
+    let mut k = 1
+    let w = () => { k = k + 1 }
+    keepOnly(() => k, w)
+}
+-- expect --
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:23:11
+   |
+23 |     both2(() => k, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+   |           ^^^^^^^
+   = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+  --> main.kg:23:20
+   |
+23 |     both2(() => k, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+   |                    ^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:35:11
+   |
+35 |     both2(r, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+   |           ^
+   = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+  --> main.kg:35:14
+   |
+35 |     both2(r, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+   |              ^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:47:33
+   |
+47 |     both2r(() => { k = k + 1 }, () => k) //~ ERROR closure captures `k` (written outside this closure
+   |                                 ^^^^^^^
+   = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+  --> main.kg:47:12
+   |
+47 |     both2r(() => { k = k + 1 }, () => k) //~ ERROR closure captures `k` (written outside this closure
+   |            ^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:59:11
+   |
+59 |     both2(() => k, w) //~ ERROR closure captures `k` (written outside this closure
+   |           ^^^^^^^
+   = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+  --> main.kg:59:20
+   |
+59 |     both2(() => k, w) //~ ERROR closure captures `k` (written outside this closure
+   |                    ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:72:11
+   |
+72 |     both2(() => k, () => w()) //~ ERROR closure captures `k` (written outside this closure
+   |           ^^^^^^^
+   = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+  --> main.kg:72:20
+   |
+72 |     both2(() => k, () => w()) //~ ERROR closure captures `k` (written outside this closure
+   |                    ^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:85:12
+   |
+85 |     bothFn(() => k, () => w()) //~ ERROR closure captures `k` (written outside this closure
+   |            ^^^^^^^
+   = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+  --> main.kg:85:21
+   |
+85 |     bothFn(() => k, () => w()) //~ ERROR closure captures `k` (written outside this closure
+   |                     ^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+  --> main.kg:98:11
+   |
+98 |     h.run(() => k) //~ ERROR closure captures `k` (written outside this closure
+   |           ^^^^^^^
+   = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+  --> main.kg:98:5
+   |
+98 |     h.run(() => k) //~ ERROR closure captures `k` (written outside this closure
+   |     ^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:111:11
+    |
+111 |     both2(() => g(), () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+    |           ^^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:111:22
+    |
+111 |     both2(() => g(), () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+    |                      ^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:123:5
+    |
+123 |     both2(if c { () => k } else { () => 0 }, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:123:46
+    |
+123 |     both2(if c { () => k } else { () => 0 }, () => { k = k + 1 }) //~ ERROR closure captures `k` (written outside this closure
+    |                                              ^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:134:13
+    |
+134 |     bothOpt(() => k, Some(() => { k = k + 1 })) //~ ERROR closure captures `k` (written outside this closure
+    |             ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:134:22
+    |
+134 |     bothOpt(() => k, Some(() => { k = k + 1 })) //~ ERROR closure captures `k` (written outside this closure
+    |                      ^^^^^^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:146:13
+    |
+146 |     bothRef(() => k, &mut w) //~ ERROR closure captures `k` (written outside this closure
+    |             ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:146:22
+    |
+146 |     bothRef(() => k, &mut w) //~ ERROR closure captures `k` (written outside this closure
+    |                      ^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:158:5
+    |
+158 |     packed(() => { k = k + 1 }, () => k) //~ ERROR closure captures `k` (written outside this closure
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:158:12
+    |
+158 |     packed(() => { k = k + 1 }, () => k) //~ ERROR closure captures `k` (written outside this closure
+    |            ^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:169:11
+    |
+169 |     both2(() => k, () => bump(&mut k)) //~ ERROR closure captures `k` (written outside this closure
+    |           ^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `k` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `k` while the call runs the plain `fn`
+   --> main.kg:169:20
+    |
+169 |     both2(() => k, () => bump(&mut k)) //~ ERROR closure captures `k` (written outside this closure
+    |                    ^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `p` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:174:11
+    |
+174 |     both2(() => p.a, () => bump(&mut p.a)) //~ ERROR closure captures `p` (written outside this closure
+    |           ^^^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `p` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `p` while the call runs the plain `fn`
+   --> main.kg:174:22
+    |
+174 |     both2(() => p.a, () => bump(&mut p.a)) //~ ERROR closure captures `p` (written outside this closure
+    |                      ^^^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `p` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:184:11
+    |
+184 |     both2(() => p.a, () => { p = P { a: 9, b: 9 } }) //~ ERROR closure captures `p` (written outside this closure
+    |           ^^^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `p` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `p` while the call runs the plain `fn`
+   --> main.kg:184:22
+    |
+184 |     both2(() => p.a, () => { p = P { a: 9, b: 9 } }) //~ ERROR closure captures `p` (written outside this closure
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `ks` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:189:11
+    |
+189 |     both2(() => ks.len().toInt() || 0, () => { ks.push(1) }) //~ ERROR closure captures `ks` (written outside this closure
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `ks` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `ks` while the call runs the plain `fn`
+   --> main.kg:189:40
+    |
+189 |     both2(() => ks.len().toInt() || 0, () => { ks.push(1) }) //~ ERROR closure captures `ks` (written outside this closure
+    |                                        ^^^^^^^^^^^^^^^^^
+
+error[E413]: closure captures `q` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main.kg:200:11
+    |
+200 |     both2(() => q.xs.len().toInt() || 0, () => { q.xs.push(1) }) //~ ERROR closure captures `q` (written outside this closure
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: a plain `fn` cannot share a captured variable's cell; read what it needs from `q` into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+note: this argument of the same call may write `q` while the call runs the plain `fn`
+   --> main.kg:200:42
+    |
+200 |     both2(() => q.xs.len().toInt() || 0, () => { q.xs.push(1) }) //~ ERROR closure captures `q` (written outside this closure
+    |                                          ^^^^^^^^^^^^^^^^^^^
+

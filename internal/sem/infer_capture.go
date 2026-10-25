@@ -129,6 +129,7 @@ func (c *checker) closureErase(n syntax.NodeID, closure EntityID, want TypeID) (
 		c.errAt(n, cEscapingCoerce, c.typeText(info.Sig), i+1, c.typeText(want))
 		return nil, true
 	}
+	c.settleOpenCaptures()
 	if !c.eraseCaptures(n, closure, want, ruleFull) {
 		return nil, true
 	}

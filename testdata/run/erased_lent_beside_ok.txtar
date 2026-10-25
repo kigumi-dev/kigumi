@@ -1,0 +1,125 @@
+-- src --
+import json from std/json
+
+type H[F] = { pub mut f F }
+type P = { pub mut a Int, pub mut b Int }
+type Q = { pub mut xs Array[Int] }
+
+fn H[F: FnMut[fn() -> Void]].run(mut self, r: fn() -> Int) -> Int { self.f(); r() }
+fn apply(f: fn() -> Int) -> Int { f() }
+fn both2[F: FnMut[fn() -> Void]](f: fn() -> Int, mut g: F) -> Int { g(); f() }
+fn both2r[F: FnMut[fn() -> Void]](mut g: F, f: fn() -> Int) -> Int { g(); f() }
+fn packed[F: FnMut[fn() -> Void]](mut g: F, fs: ...fn() -> Int) -> Int { g(); fs[0]() }
+fn keepOnly[T](f: fn() -> Int, x: T) -> Int { f() }
+fn bump(k: &mut Int) { k = k + 1 }
+
+fn besideReader() -> String {
+    let mut k = 1
+    let mut seen = 0
+    let a = both2(() => k, () => { seen = k + 1 })
+    let b = both2(() => 0, () => { k = k + 1 })
+    "${a} ${b} ${seen} ${k}"
+}
+
+fn readerFirstReads() -> String {
+    let mut k = 1
+    let a = both2r(() => { _ = k + 1 }, () => k)
+    let b = both2(() => 0, () => { k = k + 1 })
+    "${a} ${b} ${k}"
+}
+
+fn receiverReads() -> String {
+    let mut k = 1
+    let mut h = H { f: () => { _ = k + 1 } }
+    let a = h.run(() => k)
+    let b = both2(() => 0, () => { k = k + 1 })
+    "${a} ${b} ${k}"
+}
+
+fn readerInPackReads() -> String {
+    let mut k = 1
+    let a = packed(() => { _ = k + 1 }, () => k)
+    let b = both2(() => 0, () => { k = k + 1 })
+    "${a} ${b} ${k}"
+}
+
+fn writerBorrowsOtherField() -> String {
+    let mut p = P { a: 1, b: 2 }
+    let a = both2(() => p.a, () => bump(&mut p.b))
+    "${a} ${p.a} ${p.b}"
+}
+
+fn borrowedBesideReader() -> String {
+    let mut ks: Array[Int] = Array.empty()
+    let a = both2(() => ks.len().toInt() || 0, () => { _ = ks.len() })
+    let b = both2(() => 0, () => { ks.push(1) })
+    "${a} ${b} ${ks.len()}"
+}
+
+fn borrowedFieldBesideReader() -> String {
+    let mut q = Q { xs: Array.empty() }
+    let a = both2(() => q.xs.len().toInt() || 0, () => { _ = q.xs.len() })
+    let b = both2(() => 0, () => { q.xs.push(1) })
+    "${a} ${b} ${q.xs.len()}"
+}
+
+fn besideCannotRun() -> String {
+    let mut k = 1
+    let w = () => { k = k + 1 }
+    let a = keepOnly(() => k, w)
+    "${a} ${k}"
+}
+
+fn openNamedErased() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let g = () => k
+        let h: fn() -> Int = g
+        let a = apply(g) + h()
+        k = 2
+        return "${a} ${k}"
+    }
+    ""
+}
+
+fn closedNamedErased() -> String {
+    let mut k = 5
+    let g = () => k
+    let h: fn() -> Int = g
+    let a = apply(g) + h()
+    k = 2
+    "${a} ${k}"
+}
+
+fn openThroughClosure() -> String {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let g = () => k
+        let g2 = () => g()
+        let h: fn() -> Int = g2
+        let a = apply(g2) + h()
+        k = 2
+        return "${a} ${k}"
+    }
+    ""
+}
+
+fn closedThroughClosure() -> String {
+    let mut k = 5
+    let g = () => k
+    let g2 = () => g()
+    let h: fn() -> Int = g2
+    let a = apply(g2) + h()
+    k = 2
+    "${a} ${k}"
+}
+
+fn main() {
+    print "${besideReader()} | ${readerFirstReads()} | ${receiverReads()} | ${readerInPackReads()}"
+    print "${writerBorrowsOtherField()} | ${borrowedBesideReader()} | ${borrowedFieldBesideReader()} | ${besideCannotRun()}"
+    print "${openNamedErased()} | ${closedNamedErased()} | ${openThroughClosure()} | ${closedThroughClosure()}"
+}
+-- stdout --
+1 0 2 2 | 1 0 2 | 1 0 2 | 1 0 2
+1 1 3 | 0 0 1 | 0 0 1 | 1 1
+10 2 | 10 2 | 10 2 | 10 2

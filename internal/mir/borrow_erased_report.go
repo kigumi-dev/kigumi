@@ -3,6 +3,7 @@ package mir
 import (
 	"maps"
 	"slices"
+	"strings"
 
 	"kigumi/internal/diag"
 	"kigumi/internal/syntax"
@@ -62,7 +63,7 @@ func definedAt(blk Block, l LocalID, fallback syntax.NodeID) syntax.NodeID {
 func (e *erasedReaders) noteLeave(n syntax.NodeID, root, holder LocalID) {
 	if at := e.site[holder]; at != 0 && n != 0 {
 		if _, ok := e.found[at]; !ok {
-			e.found[at] = erasedWrite{write: n, root: root, leaves: true}
+			e.found[at] = erasedWrite{write: n, root: root, how: leavesBody}
 		}
 	}
 }
@@ -88,12 +89,27 @@ func (e *erasedReaders) flush() {
 		name := "`" + e.f.Locals[w.root].Name + "`"
 		d := diag.Diagnostic{Severity: diag.Error, Loc: diag.At(t.File, t.Span(at)), Code: diagCode("closure-not-plain-fn"),
 			Msg: "closure captures " + name + " (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`"}
-		note := name + " is written here while the plain `fn` may still run"
-		if w.leaves {
-			note = "the plain `fn` leaves this closure here, and the enclosing body may write " + name + " before it runs"
-		}
-		d = d.WithNote(diag.At(t.File, t.Span(w.write)), note)
-		d = d.WithHelp("a plain `fn` cannot share a captured variable's cell; use it before writing " + name + ", or bind the closure without a `fn` type")
+		text := erasedTexts[w.how]
+		d = d.WithNote(diag.At(t.File, t.Span(w.write)), strings.ReplaceAll(text.note, "{name}", name))
+		d = d.WithHelp(strings.ReplaceAll(text.help, "{name}", name))
 		e.f.Diags = append(e.f.Diags, d)
 	}
+}
+
+// erasedHow is how a write reaches the cell a plain `fn` reads after the closure was erased.
+type erasedHow uint8
+
+const (
+	writtenLive erasedHow = iota
+	leavesBody
+	lentBeside
+)
+
+var erasedTexts = [...]struct{ note, help string }{
+	writtenLive: {"{name} is written here while the plain `fn` may still run",
+		"a plain `fn` cannot share a captured variable's cell; use it before writing {name}, or bind the closure without a `fn` type"},
+	leavesBody: {"the plain `fn` leaves this closure here, and the enclosing body may write {name} before it runs",
+		"a plain `fn` cannot share a captured variable's cell; use it before writing {name}, or bind the closure without a `fn` type"},
+	lentBeside: {"this argument of the same call may write {name} while the call runs the plain `fn`",
+		"a plain `fn` cannot share a captured variable's cell; read what it needs from {name} into a local before the call, or take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`"},
 }

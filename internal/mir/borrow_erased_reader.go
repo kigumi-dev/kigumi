@@ -25,36 +25,35 @@ type erasedReaders struct {
 type erasedWrite struct {
 	write syntax.NodeID
 	root  LocalID
-	// leaves marks a holder leaving a closure body whose captured cell the enclosing body may write later.
-	leaves bool
+	how   erasedHow
 }
 
-// checkErasedReaders: a plain `fn` cannot share a cell, so the local is not written directly while one made from a
-// closure reading it may still run; sem judges writes made inside closures.
+// checkErasedReaders: a plain `fn` cannot share a cell, so while one made from a closure reading it may still run the local
+// is not written directly or by another argument of a call it is lent to; sem judges writes made inside closures.
 func checkErasedReaders(p *Program, f *Func) {
 	if !slices.ContainsFunc(f.Blocks, func(b Block) bool {
-		return slices.ContainsFunc(b.Insts, func(in Inst) bool { return cellClosure(p, in) })
+		return slices.ContainsFunc(b.Insts, func(in Inst) bool { return storageClosure(p, in, storageReach) })
 	}) {
 		return
 	}
 	e := &erasedReaders{bc: quietBorrowCheck(p, f), p: p, f: f, closures: map[LocalID][]capturedPlace{}, caps: map[LocalID][]capturedPlace{},
 		site: map[LocalID]syntax.NodeID{}, found: map[syntax.NodeID]erasedWrite{}, fates: fateMemo{results: map[resultKey]paramFate{}, checks: map[*Func]*borrowCheck{}}, defs: soleDefs(f)}
 	e.solve()
-	if len(e.caps) == 0 {
-		return
+	e.lentReaders()
+	if len(e.caps) > 0 {
+		c := newReadCheck(p, f)
+		c.emit = e.note
+		c.dropUse = e.dropRuns
+		c.escapeFn = e.escapes
+		c.scan(e.caps, e.writes())
+		e.leaving()
 	}
-	c := newReadCheck(p, f)
-	c.emit = e.note
-	c.dropUse = e.dropRuns
-	c.escapeFn = e.escapes
-	c.scan(e.caps, e.writes())
-	e.leaving()
 	e.flush()
 }
 
-func cellClosure(p *Program, in Inst) bool {
+func storageClosure(p *Program, in Inst, reach capReach) bool {
 	return in.Op == OpClosure && p.R.Entity(in.Ent).Kind == sem.EntClosure &&
-		slices.ContainsFunc(p.R.Closure(in.Ent).Captures, func(cp sem.Capture) bool { return cp.Mode == sem.CapCell })
+		slices.ContainsFunc(p.R.Closure(in.Ent).Captures, func(cp sem.Capture) bool { return reach(cp.Mode) })
 }
 
 // solve follows the shared value-flow edges (copies, containers, field and payload reads, call results, stores).
@@ -66,7 +65,7 @@ func (e *erasedReaders) solve() {
 				if in.Op == OpDrop {
 					continue
 				}
-				if cellClosure(e.p, in) && addPlaces(e.closures, in.Dst, e.cellCaptures(in)) {
+				if storageClosure(e.p, in, cellReach) && addPlaces(e.closures, in.Dst, e.cellCaptures(in)) {
 					changed = true
 				}
 				dsts, srcs := e.bc.flowEdges(in)

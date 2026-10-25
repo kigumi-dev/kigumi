@@ -143,6 +143,39 @@ fn namedLentThenWritten() -> Int {
     k = 2
     a + k
 }
+
+fn openNamedErased() -> Int {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let g = () => k
+        let g2 = () => g()
+        let h: fn() -> Int = g
+        let a = apply(g) + h() + apply(g2)
+        k = 2
+        return a + k
+    }
+    0
+}
+
+fn openWrittenThenErased() -> Int {
+    if let Ok(v) = json.decode("5") {
+        let mut k = v
+        let g = () => k
+        k = v
+        let h: fn() -> Int = g //~ ERROR closure captures `k` (written outside this closure
+        return h()
+    }
+    0
+}
+
+fn closedWrittenThenErased() -> Int {
+    let v = 5
+    let mut k = v
+    let g = () => k
+    k = v
+    let h: fn() -> Int = g //~ ERROR closure captures `k` (written outside this closure
+    h()
+}
 -- expect --
 error[E413]: closure captures `k` (assigned inside the closure) and cannot be a plain `fn`
   --> main/main.kg:13:25
@@ -204,4 +237,18 @@ error[E413]: closure captures `k` (assigned inside the closure) and cannot be a 
 83 |     run(() => { k = k + 1; k }) //~ ERROR closure captures `k` (assigned inside the closure)
    |         ^^^^^^^^^^^^^^^^^^^^
    = help: a plain `fn` cannot assign a captured variable; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main/main.kg:164:30
+    |
+164 |         let h: fn() -> Int = g //~ ERROR closure captures `k` (written outside this closure
+    |                              ^
+    = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
+
+error[E413]: closure captures `k` (written outside this closure, so the closure shares it through a cell) and cannot be a plain `fn`
+   --> main/main.kg:175:26
+    |
+175 |     let h: fn() -> Int = g //~ ERROR closure captures `k` (written outside this closure
+    |                          ^
+    = help: a plain `fn` cannot share a captured variable's cell; take the callback as `F: FnMut[...]` and declare the parameter `mut callback: F`
 

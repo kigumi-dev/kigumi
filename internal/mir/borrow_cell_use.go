@@ -1,6 +1,18 @@
 package mir
 
-import "slices"
+import (
+	"slices"
+
+	"kigumi/internal/sem"
+)
+
+// capReach picks the capture modes through which a closure works on a local's own storage.
+type capReach func(sem.CaptureMode) bool
+
+func cellReach(m sem.CaptureMode) bool { return m == sem.CapCell }
+
+// storageReach adds a lent borrow, which reads and writes the local's storage in place as a cell capture does.
+func storageReach(m sem.CaptureMode) bool { return m == sem.CapCell || m == sem.CapBorrow }
 
 // cellUses lists the places g reaches in cell: field reads and stores through it, `&` / `&mut` of a part of it,
 // what a nested closure capturing it reaches, and the whole value when the cell itself is replaced or handed on.
