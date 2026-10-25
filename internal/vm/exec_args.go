@@ -58,6 +58,9 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 	case mir.OpFutureDone:
 		return
 	case mir.OpRecord:
+		if len(args) > 0 {
+			m.aggTicks(f, in, args, 2)
+		}
 		res = mkRecord(in.Ent, args)
 		m.chargeMemory(res)
 	case mir.OpVariant:
@@ -109,6 +112,9 @@ func (m *Machine) execArgs(fr *frame, in *mir.Inst, ic *instCode) {
 			res.fields = []*obj{args[0]}
 		}
 	case mir.OpClosure, mir.OpFnItem, mir.OpBind, mir.OpCFnPtr:
+		if len(args) > 0 && (in.Op == mir.OpBind || in.Op == mir.OpClosure && in.Str == "method") {
+			m.tick(bindAllocs)
+		}
 		res = m.closure(in, ic, args)
 		m.chargeMemory(res)
 	case mir.OpNewCell:

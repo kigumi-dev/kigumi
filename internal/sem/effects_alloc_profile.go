@@ -132,7 +132,7 @@ func (r *Result) recoverableEdgeSafe(e EffectEdge, safe map[EntityID]bool) bool 
 		return r.boundLocal(e) != 0 || r.recoverableTargetSafe(e.Target, safe)
 	case EdgeCallback:
 		if e.Target == 0 {
-			return e.Mods&EffNoalloc != 0
+			return e.Why == whyWitnessCallback || e.Mods&EffNoalloc != 0
 		}
 		return r.recoverableTargetSafe(e.Target, safe)
 	case EdgeParamCall:

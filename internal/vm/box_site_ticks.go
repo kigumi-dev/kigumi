@@ -92,6 +92,9 @@ func (m *Machine) aggTicks(f *mir.Func, in *mir.Inst, args []*obj, n int) {
 	}
 }
 
+// bindAllocs is the closure object, its environment array and the array's slots that native builds for a bind with witnesses.
+const bindAllocs = 3
+
 func (m *Machine) tick(n int) {
 	for range n {
 		if m.faultTick() {

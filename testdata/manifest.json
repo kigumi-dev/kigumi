@@ -22106,6 +22106,28 @@
       ]
     },
     {
+      "id": "sem/recoverable_bound_pure_alloc",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_bound_pure_alloc.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/recoverable_bound_pure_impl",
+      "kind": "sem",
+      "path": "testdata/sem/recoverable_bound_pure_impl.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
       "id": "sem/recoverable_map_derived_key",
       "kind": "sem",
       "path": "testdata/sem/recoverable_map_derived_key.txtar",

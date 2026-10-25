@@ -1,0 +1,32 @@
+-- module --
+mir: planned
+profile: recoverable-only
+-- src --
+interface Scaled {
+    pure? fn scale(self, v: Int) -> Int
+}
+
+type Tally = {
+    pub n Int
+}
+
+fn Tally.scale(self, v: Int) -> Int {
+    let s = "a".concat("b")
+    self.n * v
+}
+
+fn scaled[T: Scaled](g: T, n: Int) -> Int {
+    g.scale(n)
+}
+
+fn main() {
+    let a = scaled(Tally { n: 1 }, 3) //~ ERROR `scaled`, which calls `Tally.scale` as `Scaled.scale`
+}
+-- expect --
+error[E1280]: `scaled`, which calls `Tally.scale` as `Scaled.scale`, may terminate on a refused allocation instead of returning it as a value, which the recoverable-only profile forbids
+  --> main.kg:19:13
+   |
+19 |     let a = scaled(Tally { n: 1 }, 3) //~ ERROR `scaled`, which calls `Tally.scale` as `Scaled.scale`
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: use `noalloc` or only the fallible (`try`-prefixed) forms in `Tally.scale` instead
+

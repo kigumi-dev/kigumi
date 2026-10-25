@@ -77,7 +77,7 @@ func (r *Result) witnessCallbackEdges(p pendingWitnessCallback) {
 		if i < 0 || i >= len(p.passes) {
 			continue
 		}
-		r.addEdge(p.owner, EffectEdge{Kind: EdgeCallback, Mods: r.witnessArgMods(p.passes[i]), Node: p.node, File: p.file, Scoped: p.scoped})
+		r.addEdge(p.owner, EffectEdge{Kind: EdgeCallback, Mods: r.witnessArgMods(p.passes[i]), Why: whyWitnessCallback, Node: p.node, File: p.file, Scoped: p.scoped})
 	}
 }
 
@@ -119,6 +119,9 @@ func (r *Result) witnessArgMods(arg WitnessArg) Effects {
 
 // whyWitnessBind: handing a generic impl over as a witness binds its own witnesses into a closure.
 const whyWitnessBind = 24
+
+// whyWitnessCallback marks the callback edge of a call through a witness; the recoverable-only profile judges the impl at the site instead.
+const whyWitnessCallback = 25
 
 func boundWitness(passes []WitnessArg) EntityID {
 	for _, a := range passes {
