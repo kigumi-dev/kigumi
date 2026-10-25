@@ -6,11 +6,11 @@ import (
 	"kigumi/internal/sem"
 )
 
-// collectRefRead gives a value read below a reference what the referent holds at the read's path; a component holding
-// a `&mut` is left alone, as a step towards a stored reference that heldReferents resolves.
+// collectRefRead gives a value read below a reference what the referent holds at the read's path, and the reference's
+// own borrow only if the value could be such a reference; a component holding a `&mut` is left to heldReferents.
 func (c *borrowCheck) collectRefRead(in Inst) bool {
 	t := c.f.Locals[in.Dst].Type
-	if !c.projectsHeld(in) || c.typeHolds(t, func(t sem.TypeID) bool { _, mut := c.p.R.MutRefElem(t); return mut }) {
+	if !c.projectsHeld(in) || c.mutRefInside(t) {
 		return false
 	}
 	r, ok := c.readBase(in.Args[0], true)
@@ -20,6 +20,9 @@ func (c *borrowCheck) collectRefRead(in Inst) bool {
 	step, has := pathStep(&in, c.definition)
 	b, ok := c.refReadContents(r.base, readHop{path: r.path.with(step), exact: r.exact && has})
 	read, _ := c.readInfo(in.Args[0])
+	if known := ok && (b.empty || b.hasOwner || b.lifetime != 0 || b.fromStatic); known && !c.mayHoldRef(t, c.f.Locals[r.base].Type) {
+		read = nil
+	}
 	_, sunk := c.sinks[in.Dst]
 	if !sunk && (!ok || read != nil && !slices.ContainsFunc(b.owners, func(o ownerRef) bool { return !slices.ContainsFunc(read.owners, o.same) })) {
 		return false
@@ -50,7 +53,10 @@ func (c *borrowCheck) refReadContents(r LocalID, hop readHop) (*borrowInfo, bool
 	out := &borrowInfo{empty: true}
 	for _, p := range c.derefOwners(pointees) {
 		h, ok := c.holders[p.owner]
+		pc, param := c.paramContents(p.owner)
 		switch {
+		case param:
+			mergeInto(out, pc)
 		case !ok:
 		case !h.hasOwner:
 			mergeInto(out, h)
@@ -62,4 +68,12 @@ func (c *borrowCheck) refReadContents(r LocalID, hop readHop) (*borrowInfo, bool
 		return out, !out.empty
 	}
 	return c.withHeld(out), true
+}
+
+// mayHoldRef reports whether a value of t could keep a reference like ref: one to the same type, or a type parameter.
+func (c *borrowCheck) mayHoldRef(t, ref sem.TypeID) bool {
+	elem := c.p.R.Types.Node(ref).Elem
+	return c.namesTypeParam(t) || c.typeHolds(t, func(u sem.TypeID) bool {
+		return c.p.R.Types.Kind(u) == sem.KRef && c.p.R.Types.Node(u).Elem == elem
+	})
 }

@@ -48,6 +48,8 @@ type flowArg struct {
 	shared   bool
 	// param is the callee parameter a contents argument is passed to.
 	param int
+	// at, when set, keeps only what the argument holds at these paths: the parts a callee may store back into it.
+	at []stepPath
 }
 
 // flowInfoOf is what one flowing argument contributes: an immediate closure

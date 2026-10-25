@@ -7,9 +7,11 @@ import (
 )
 
 type callSlot struct {
-	arg      LocalID
-	params   []sem.EntityID
-	target   bool
+	arg    LocalID
+	params []sem.EntityID
+	target bool
+	// holder marks an argument handed over by value whose type holds a `&mut`: the callee may store through it.
+	holder   bool
 	contents bool
 	exact    sem.TypeID
 }
@@ -20,7 +22,8 @@ func (c *borrowCheck) callSlots(info *sem.FnInfo, args []LocalID, recvIdx int) [
 	if info.Recv != sem.RecvNone {
 		start++
 		if recvIdx < len(args) {
-			out = append(out, callSlot{arg: args[recvIdx], params: c.recvLifetimeParams(info), target: info.Recv == sem.RecvMut, contents: info.Recv != sem.RecvMove})
+			out = append(out, callSlot{arg: args[recvIdx], params: c.recvLifetimeParams(info), target: info.Recv == sem.RecvMut,
+				holder: info.Recv == sem.RecvMove && c.holdsMutPlace(args[recvIdx]), contents: info.Recv != sem.RecvMove})
 		}
 	}
 	for i, prm := range info.Params {
@@ -33,7 +36,8 @@ func (c *borrowCheck) callSlots(info *sem.FnInfo, args []LocalID, recvIdx int) [
 		if lt := c.p.R.Local(prm).Lifetime; lt != 0 {
 			params = append(params, lt)
 		}
-		out = append(out, callSlot{arg: args[start+i], params: params, target: ref && c.p.R.Types.RefMut(decl), contents: ref && c.p.R.Local(prm).Lifetime == 0, exact: decl})
+		out = append(out, callSlot{arg: args[start+i], params: params, target: ref && c.p.R.Types.RefMut(decl),
+			holder: !ref && (c.holdsMutPlace(args[start+i]) || c.capturesHolder(args[start+i])), contents: ref && c.p.R.Local(prm).Lifetime == 0, exact: decl})
 	}
 	return out
 }
@@ -42,8 +46,8 @@ func sharesParam(a, b []sem.EntityID) bool {
 	return slices.ContainsFunc(a, func(p sem.EntityID) bool { return slices.Contains(b, p) })
 }
 
-// callFlows lists, for each `&mut` / `mut self` argument whose place names a lifetime or a
-// type parameter, the other arguments whose declared types share a parameter with it.
+// callFlows lists, for each `&mut` / `mut self` argument or by-value `&mut` holder whose place names a lifetime
+// or a type parameter, the other arguments whose declared types share a parameter with it.
 func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 	if in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return nil
@@ -51,7 +55,7 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 	info := c.p.R.Fn(in.Ent)
 	if info.Recv != sem.RecvMut && !slices.ContainsFunc(info.Params, func(p sem.EntityID) bool {
 		return c.p.R.Types.RefMut(c.p.R.Entity(p).Type)
-	}) {
+	}) && !slices.ContainsFunc(in.Args, func(a LocalID) bool { return c.holdsMutPlace(a) || c.capturesHolder(a) }) {
 		return nil
 	}
 	recvIdx := 0
@@ -62,18 +66,28 @@ func (c *borrowCheck) callFlows(in Inst) []storeFlow {
 	c.linkSlots(info, slots)
 	var out []storeFlow
 	for i, t := range slots {
-		if !t.target {
+		if !t.target && !t.holder {
 			continue
 		}
 		kind := c.targetKindOf(t.arg)
+		if t.holder && c.closureLiteral(t.arg) != nil {
+			kind = targetLifetime
+		}
 		if kind == targetNone {
 			continue
 		}
-		fl := storeFlow{target: t.arg, ref: true, generic: kind == targetParam, callee: in.Ent, param: i}
+		fl := storeFlow{target: t.arg, ref: t.target, byValue: t.holder, generic: kind == targetParam, callee: in.Ent, param: i, args: append(slotArgs(slots), in.Args[min(recvIdx+len(slots), len(in.Args)):]...)}
+		params := c.linkedParams(slots, i)
 		for j, v := range slots {
-			if i != j && kind != targetDeferred && sharesParam(t.params, v.params) {
+			if i != j && kind != targetDeferred && sharesParam(params, v.params) {
 				fl.values = append(fl.values, flowArg{arg: v.arg, contents: v.contents, param: j})
 			}
+		}
+		if lit := c.closureLiteral(t.arg); t.holder && lit != nil {
+			fl.values = append(c.closureFed(c.p.ByEnt[in.Ent], i, lit, fl.values), c.captureValues(lit)...)
+		}
+		if at := c.selfSources(in.Ent, i, slots); at != nil {
+			fl.values = append(fl.values, flowArg{arg: t.arg, contents: t.contents, param: i, at: at})
 		}
 		fl.values = append(fl.values, c.tieValues(info, slots, t, fl.values)...)
 		if fl.values != nil {

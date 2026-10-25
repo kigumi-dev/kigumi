@@ -23,6 +23,9 @@ type cellState struct {
 	siteRuns        int
 	contentsMemo    map[LocalID]contentsResult
 	plainTypes      map[sem.TypeID]bool
+	mutHolders      map[sem.TypeID]bool
+	storeThrough    map[sem.TypeID]bool
+	callableTypes   map[sem.TypeID]bool
 	offloadNode     map[sem.EntityID]syntax.NodeID
 	keeperState     *keeperGraph
 }

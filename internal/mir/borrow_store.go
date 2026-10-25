@@ -17,6 +17,10 @@ type storeFlow struct {
 	param  int
 	// opaque marks a `&mut` argument of a call through a function value, whose body is unknown.
 	opaque bool
+	// byValue marks a holder handed over by value: what is stored lands in the places its `&mut`s reach.
+	byValue bool
+	// args are a named call's arguments by parameter, for the callee's sites that hand on to code an argument gives.
+	args []LocalID
 }
 
 // storeTargets finds, before any holder is known, the locals some store may
@@ -26,7 +30,7 @@ func (c *borrowCheck) storeTargets() map[LocalID]bool {
 	for _, blk := range c.f.Blocks {
 		for _, in := range blk.Insts {
 			for _, fl := range c.storeFlows(in) {
-				if root, _, caller, ok := c.storeRoot(fl); ok && !caller {
+				if root, _, caller, ok := c.storeRoot(fl); ok && !caller && !fl.byValue {
 					out[root] = true
 				}
 			}
@@ -71,6 +75,11 @@ func (c *borrowCheck) borrowIntoHolderField(in Inst, v LocalID) bool {
 func (c *borrowCheck) storeRoot(fl storeFlow) (root LocalID, place sem.TypeID, caller, ok bool) {
 	l := fl.target
 	place = c.f.Locals[l].Type
+	if fl.byValue {
+		// A parameter's `&mut`s reach places its caller owns.
+		l = c.valueSource(l)
+		return l, c.f.Locals[l].Type, slices.Contains(c.f.Params, l), true
+	}
 	if fl.ref {
 		for c.f.Locals[l].Ent == 0 {
 			in := c.definition(l)
@@ -127,13 +136,13 @@ func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
 	root, place, caller, ok := c.storeRoot(fl)
 	for _, v := range fl.values {
 		b, has := c.storedInfo(fl, v, caller)
-		if !has || b.empty {
+		if !has || b.empty || v.at != nil {
 			continue
 		}
 		switch {
 		case !ok:
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.untrackedPlace(fl))
-		case !c.placeKeeps(place, v) && (v.tie == tieNone || !c.callerKept(b)):
+		case !c.placeKeeps(place, v) && (v.tie == tieNone || !c.callerKept(b)) && (!fl.byValue || c.closureLiteral(root) == nil):
 			c.reportCode(in.Node, v.arg, "borrow-store-untracked", c.typeName(place))
 		case !caller && c.keepsTemp(b):
 			c.reportCode(in.Node, v.arg, "temporary-borrow-kept", c.f.Locals[root].Name, tempDropped)
@@ -144,6 +153,9 @@ func (c *borrowCheck) checkFlow(fl storeFlow, in Inst) {
 		case caller && !c.fitsOwnLifetime(b, place):
 			c.reportCode(in.Node, v.arg, "borrow-store-outlives", c.f.Locals[root].Name)
 		}
+	}
+	if ok && !caller {
+		c.checkHeldCallers(fl, in)
 	}
 }
 

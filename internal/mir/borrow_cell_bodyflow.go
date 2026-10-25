@@ -35,6 +35,12 @@ var bodyRoles = map[Opcode]bodyRole{
 	OpDrop: roleVoid, OpRelease: roleVoid, OpPanic: roleVoid, OpNop: roleVoid, OpFutureDone: roleVoid, OpCancelDone: roleVoid,
 }
 
+// inertOp reports an opcode that hands none of its operands on: its result is fresh, or it has none.
+func inertOp(op Opcode) bool {
+	r, ok := bodyRoles[op]
+	return ok && (r == roleFresh || r == roleVoid)
+}
+
 // bodyFacts says, flow-insensitively, what each local of g may hold: g's declared parameters and the fn items and
 // closure literals it may be made from, by entity, and opaqueFact for a value from anywhere else.
 func (c *borrowCheck) bodyFacts(g *Func) flowSets {

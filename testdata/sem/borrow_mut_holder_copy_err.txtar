@@ -36,8 +36,14 @@ fn sharedFieldThroughRef() -> usize {
 }
 
 fn typeInLifetimeSlot() -> usize {
-    let m = map.empty[String, V[String]]() //~ ERROR expects a lifetime argument here, not a type
+    let m = map.empty[String, V[String]]() //~ ERROR `V` expects a lifetime argument here, not a type
     m.len()
+}
+
+fn typeInDeclaredLifetimeSlot() -> usize {
+    let u = "u"
+    let x: V[String] = V { s: &u } //~ ERROR `V` expects a lifetime argument here, not a type
+    x.s.len()
 }
 -- expect --
 error[E517]: cannot move `Mix['a]` out of a borrow
@@ -52,9 +58,15 @@ error[E517]: cannot move `Sink['a]` out of a borrow
 24 |     let s = q.sink //~ ERROR cannot move `Sink['a]` out of a borrow
    |             ^^^^^^
 
-error[E1018]: `this` expects a lifetime argument here, not a type
+error[E1018]: `V` expects a lifetime argument here, not a type
   --> main/main.kg:38:33
    |
-38 |     let m = map.empty[String, V[String]]() //~ ERROR expects a lifetime argument here, not a type
+38 |     let m = map.empty[String, V[String]]() //~ ERROR `V` expects a lifetime argument here, not a type
    |                                 ^^^^^^
+
+error[E1018]: `V` expects a lifetime argument here, not a type
+  --> main/main.kg:44:14
+   |
+44 |     let x: V[String] = V { s: &u } //~ ERROR `V` expects a lifetime argument here, not a type
+   |              ^^^^^^
 

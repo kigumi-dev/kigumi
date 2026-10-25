@@ -8,36 +8,64 @@ import (
 
 // A caller's place gets none: checkFlow only validates stores into it.
 func (c *borrowCheck) storeDests(fl storeFlow) []LocalID {
+	out, _ := c.storeReach(fl)
+	return out
+}
+
+// storeReach is where a flow's values land: this frame's locals, and the caller's places a local holder keeps a `&mut` of.
+func (c *borrowCheck) storeReach(fl storeFlow) (out, callers []LocalID) {
 	root, _, caller, ok := c.storeRoot(fl)
 	if !ok || caller {
-		return nil
+		return nil, nil
 	}
-	out := []LocalID{root}
 	add := func(o LocalID) {
-		if !slices.Contains(out, o) && !c.callerPlace(o) && c.p.R.Types.Kind(c.f.Locals[o].Type) != sem.KRef {
+		switch {
+		case c.callerPlace(o):
+			if !slices.Contains(callers, o) {
+				callers = append(callers, o)
+			}
+		case !slices.Contains(out, o) && c.p.R.Types.Kind(c.f.Locals[o].Type) != sem.KRef:
 			out = append(out, o)
 		}
 	}
-	for i, o := range c.referents(c.flowPlace(fl)) {
-		if i > 0 {
-			add(o.owner)
+	holders := []LocalID{root}
+	if !fl.byValue {
+		out = append(out, root)
+		for i, o := range c.referents(c.flowPlace(fl)) {
+			if i > 0 {
+				add(o.owner)
+			}
 		}
+		holders = slices.Clone(out)
 	}
 	sites := c.calleeStoreSites(fl)
-	for _, d := range slices.Clone(out) {
+	if lit := c.closureLiteral(root); fl.byValue && lit != nil {
+		if len(sites) > 0 {
+			c.captureReach(lit, add, func(o LocalID) {
+				if !slices.Contains(callers, o) {
+					callers = append(callers, o)
+				}
+			})
+		}
+		return out, callers
+	}
+	for _, d := range holders {
 		for _, u := range c.siteOwners(d, sites) {
-			if c.keepsBorrows(u) {
+			if c.callerPlace(u) || c.keepsBorrows(u) {
 				add(u)
 			}
 		}
 	}
-	return out
+	return out, callers
 }
 
 // Only the `&mut`s d holds at the sites lead further; a shared borrow cannot be stored through.
 func (c *borrowCheck) siteOwners(d LocalID, sites []paramStore) []LocalID {
 	var out []LocalID
 	for _, s := range sites {
+		if !s.via {
+			continue
+		}
 		for _, o := range c.heldAt(ownerRef{owner: d, exact: true}, c.holderOwners(d), readHop{path: s.path, exact: true}) {
 			if o.mut && !slices.Contains(out, o.owner) {
 				out = append(append(out, o.owner), c.heldMutOwners(o.owner)...)
@@ -50,6 +78,18 @@ func (c *borrowCheck) siteOwners(d LocalID, sites []paramStore) []LocalID {
 func (c *borrowCheck) keepsBorrows(l LocalID) bool {
 	t := c.f.Locals[l].Type
 	return c.elementHolder(t) || c.namesTypeParam(t) || c.holdsDeferred(t)
+}
+
+// valueSource follows the copies and moves of a temporary back to the local it came from.
+func (c *borrowCheck) valueSource(l LocalID) LocalID {
+	for range 8 {
+		in := c.definition(l)
+		if c.f.Locals[l].Ent != 0 || in == nil || len(in.Args) == 0 || in.Op != OpCopy && in.Op != OpMove && in.Op != OpAlias {
+			break
+		}
+		l = in.Args[0]
+	}
+	return l
 }
 
 // For a call's `&mut` argument, flowPlace is the place it borrows.
@@ -66,31 +106,6 @@ func (c *borrowCheck) flowPlace(fl storeFlow) LocalID {
 		}
 	}
 	return l
-}
-
-// A callee without a body may store only when the call hands it a value that carries a borrow.
-func (c *borrowCheck) calleeStoreSites(fl storeFlow) []paramStore {
-	if fl.callee == 0 && !fl.opaque {
-		return nil
-	}
-	if g := c.p.ByEnt[fl.callee]; g != nil && !fl.opaque {
-		return c.paramStoreSites(g, fl.param)
-	}
-	if slices.ContainsFunc(fl.values, func(v flowArg) bool { return c.carries(c.f.Locals[v.arg].Type) }) {
-		return []paramStore{{}}
-	}
-	return nil
-}
-
-// lentContents drops the exclusive borrows from another `&mut` argument's contents when the callee never stores
-// through that parameter, since only such a store can move them.
-func (c *borrowCheck) lentContents(fl storeFlow, v flowArg, b *borrowInfo) *borrowInfo {
-	if !v.contents || fl.callee == 0 || !b.hasOwner || len(c.calleeStoreSites(storeFlow{callee: fl.callee, param: v.param, values: fl.values})) > 0 {
-		return b
-	}
-	out := *b
-	out.owners = slices.DeleteFunc(slices.Clone(b.owners), func(o ownerRef) bool { return o.mut })
-	return &out
 }
 
 // collectFlows widens each local target's sources with every value written
@@ -120,7 +135,7 @@ func (c *borrowCheck) collectFlow(fl storeFlow, in Inst) {
 		}
 		for i, v := range fl.values {
 			b := infos[i]
-			if b == nil {
+			if b == nil || v.at != nil && !fl.byValue && r == dests[0] {
 				continue
 			}
 			if v.tie != tieNone {
@@ -156,18 +171,4 @@ func (c *borrowCheck) fitDest(b *borrowInfo, r LocalID) *borrowInfo {
 		}
 	}
 	return &out
-}
-
-// plainData reports whether a value of t holds no `&mut`, closure, Future or type parameter, so it can keep a
-// borrow only as a shared one.
-func (c *borrowCheck) plainData(t sem.TypeID) bool {
-	plain, ok := c.plainTypes[t]
-	if !ok {
-		plain = !c.namesTypeParam(t) && !c.holdsDeferred(t) && !c.typeHolds(t, func(t sem.TypeID) bool { _, mut := c.p.R.MutRefElem(t); return mut })
-		if c.plainTypes == nil {
-			c.plainTypes = map[sem.TypeID]bool{}
-		}
-		c.plainTypes[t] = plain
-	}
-	return plain
 }

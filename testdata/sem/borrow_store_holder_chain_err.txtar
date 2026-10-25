@@ -29,7 +29,7 @@ fn setX['a](q: &mut Pair['a], s: Sink['a]) { q.x = s }
 fn tk['a](k: &mut Sink['a]) -> Option[V['a]] { k.items.takeAt(0) }
 fn recY['a](p: &mut Pair['a], n: Int, x: V['a]) { if n > 0 { recY(p, n - 1, x) } else { p.y.items.push(x) } }
 fn mvP['a](k1: &mut Array[V['a]], k2: &mut Array[V['a]]) { let t = k2.takeAt(0); if let Some(x) = t { k1.push(x) } }
-fn cpAll['a](b: &mut Array[V['a]], dst: &mut Array[V['a]]) { for x in b { dst.push(V { s: x.s }) } } //~ ERROR a borrow cannot be stored into `dst` here
+fn cpAll['a](b: &mut Array[V['a]], dst: &mut Array[V['a]]) { for x in b { dst.push(V { s: x.s }) } }
 async fn show(r: &String) -> String { "${r}" }
 fn pushF1['a](k: &mut H['a], f: Future[String]) { k.fs.push(f) }
 fn pushF2['a](k: &mut H2['a], f: Future[String]) { k.inner.fs.push(f) }
@@ -422,7 +422,7 @@ fn callbackStoresIntoCapturedHolder() -> usize {
     let mut b = Array.of(V { s: &v })
     let mut s1 = Sink { items: &mut a }
     let n = b.with(0, (x: &V['a]) => { s1.items.push(V { s: x.s }) }) //~ ERROR a borrow cannot be stored into `s1` here
-    v = "zz"
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
     a.len()
 }
 
@@ -553,12 +553,6 @@ fn readBeforeWrite() -> usize {
     n + v.len()
 }
 -- expect --
-error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
-  --> main.kg:29:75
-   |
-29 | fn cpAll['a](b: &mut Array[V['a]], dst: &mut Array[V['a]]) { for x in b { dst.push(V { s: x.s }) } } //~ ERROR a borrow cannot be stored into `dst` here
-   |                                                                           ^^^^^^^^^^^^^^^^^^^
-
 error[E2198]: `v` is borrowed and cannot be mutated here
   --> main.kg:40:5
    |
@@ -1055,7 +1049,7 @@ note: `v` is borrowed here
    --> main.kg:365:26
     |
 365 |     s1.items.push(V { s: s2.items[0].s })
-    |                          ^^^^^^^^^^
+    |                          ^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
    --> main.kg:366:5
@@ -1073,7 +1067,7 @@ note: `v` is borrowed here
    --> main.kg:374:13
     |
 374 |     let r = s2.items[0].s
-    |             ^^^^^^^^^^
+    |             ^^^^^^^^^^^^^
 
 error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
    --> main.kg:375:5
@@ -1140,6 +1134,24 @@ error[E2159]: a borrow cannot be stored into `s1` here: it belongs to the caller
     |
 421 |     let n = b.with(0, (x: &V['a]) => { s1.items.push(V { s: x.s }) }) //~ ERROR a borrow cannot be stored into `s1` here
     |                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:422:5
+    |
+422 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:419:17
+    |
+419 |     let mut b = Array.of(V { s: &v })
+    |                 ^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:422:5
+    |
+422 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
 
 error[E2198]: `v` is borrowed and cannot be mutated here
    --> main.kg:434:5

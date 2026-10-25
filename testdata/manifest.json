@@ -4837,6 +4837,23 @@
       ]
     },
     {
+      "id": "run/borrow_store_dest",
+      "kind": "run",
+      "path": "testdata/run/borrow_store_dest.txtar",
+      "mode": [
+        "vm",
+        "native"
+      ],
+      "requires": [
+        "c-compiler"
+      ],
+      "observes": [
+        "stdout",
+        "stderr",
+        "exit"
+      ]
+    },
+    {
       "id": "run/borrow_store_holder_chain",
       "kind": "run",
       "path": "testdata/run/borrow_store_holder_chain.txtar",
@@ -18524,6 +18541,17 @@
       "id": "sem/borrow_return_projection_err",
       "kind": "sem",
       "path": "testdata/sem/borrow_return_projection_err.txtar",
+      "mode": [
+        "check"
+      ],
+      "observes": [
+        "expect"
+      ]
+    },
+    {
+      "id": "sem/borrow_store_dest_err",
+      "kind": "sem",
+      "path": "testdata/sem/borrow_store_dest_err.txtar",
       "mode": [
         "check"
       ],

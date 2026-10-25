@@ -1,20 +1,43 @@
 package mir
 
-import (
-	"slices"
-
-	"kigumi/internal/sem"
-)
+import "slices"
 
 type paramKey struct {
-	g *Func
-	i int
+	g    *Func
+	i    int
+	kind siteKind
 }
 
-// path is a prefix, empty for the whole parameter; beyond lies past a reference the place holds, leaving its fields.
+// siteKind is the question a parameter summary answers; each lists paths under the parameter.
+type siteKind uint8
+
+const (
+	// siteStores: where the callee may store, or hand a `&mut` from the parameter to code that may.
+	siteStores siteKind = iota
+	// siteMoves: where it may take something out and put it in another place or return it.
+	siteMoves
+	// siteSelf: where the parts it may store back under the same parameter are read from.
+	siteSelf
+	// siteOut: where it may put a part of the parameter that carries a borrow into another place or return it.
+	siteOut
+)
+
+// wholeParam is the answer that assumes anything: a store anywhere under the parameter, through what it holds too.
+var wholeParam = []paramStore{{via: true}}
+
+// path is a prefix, empty for the whole parameter; beyond lies past a reference the place holds, leaving its fields;
+// via marks a store that may go through such a reference, so only it reaches the places the reference points at.
 type paramStore struct {
 	path   stepPath
 	beyond bool
+	via    bool
+	// callee, when set, is 1 + the parameter holding the code the store hands the value to; the caller drops the site
+	// when its argument there is code that stores through nothing it is called with.
+	callee int
+}
+
+func (s paramStore) same(o paramStore) bool {
+	return s.beyond == o.beyond && s.via == o.via && s.callee == o.callee && slices.Equal(s.path, o.path)
 }
 
 // siteEntry is a callee summary; from is kept while its call-graph component is open in siteSCC.
@@ -32,12 +55,33 @@ func (c *borrowCheck) paramStores(g *Func, i int) bool {
 }
 
 // paramStoreSites: a write into a place under the parameter, or a hand-off of a `&mut` from it to code that may store.
-// Mutually recursive summaries settle together as one strongly connected component (Tarjan), iterated to a fixpoint.
 func (c *borrowCheck) paramStoreSites(g *Func, i int) []paramStore {
-	if g == nil || i >= len(g.Params) {
-		return []paramStore{{}}
+	return c.paramSites(paramKey{g: g, i: i})
+}
+
+// paramMoves reports whether g may put something taken out of parameter i into another place or return it.
+func (c *borrowCheck) paramMoves(g *Func, i int) bool {
+	return len(c.paramSites(paramKey{g: g, i: i, kind: siteMoves})) > 0
+}
+
+func (c *borrowCheck) paramOut(g *Func, i int) bool {
+	return len(c.paramSites(paramKey{g: g, i: i, kind: siteOut})) > 0
+}
+
+func (c *borrowCheck) paramSelfSources(g *Func, i int) []stepPath {
+	var out []stepPath
+	for _, s := range c.paramSites(paramKey{g: g, i: i, kind: siteSelf}) {
+		out = append(out, s.path)
 	}
-	key := paramKey{g, i}
+	return out
+}
+
+// Mutually recursive summaries settle together as one strongly connected component (Tarjan), iterated to a fixpoint.
+func (c *borrowCheck) paramSites(key paramKey) []paramStore {
+	g, i := key.g, key.i
+	if g == nil || i >= len(g.Params) {
+		return wholeParam
+	}
 	if e, ok := c.storeMemo[key]; ok {
 		if slot, open := c.siteSCC.slot(key); open {
 			c.siteLow = min(c.siteLow, slot)
@@ -52,7 +96,7 @@ func (c *borrowCheck) paramStoreSites(g *Func, i int) []paramStore {
 	slot := c.siteSCC.push(key)
 	outer := c.siteLow
 	c.siteLow = noCut
-	e.sites = c.collectStoreSites(g, e.from)
+	e.sites = c.collectStoreSites(key, e.from)
 	low := c.siteLow
 	if low < slot {
 		c.siteLow = min(outer, low)
@@ -71,7 +115,7 @@ func (c *borrowCheck) settleSites(slot int, recursive bool) {
 		changed := false
 		for _, k := range slices.Backward(members) {
 			m := c.storeMemo[k]
-			if s := c.collectStoreSites(k.g, m.from); !sameSites(s, m.sites) {
+			if s := c.collectStoreSites(k, m.from); !sameSites(s, m.sites) {
 				m.sites, changed = s, true
 			}
 		}
@@ -80,81 +124,12 @@ func (c *borrowCheck) settleSites(slot int, recursive bool) {
 		}
 		if round == 64 {
 			for _, k := range members {
-				c.storeMemo[k].sites = []paramStore{{}}
+				c.storeMemo[k].sites = wholeParam
 			}
 			break
 		}
 	}
 	for _, k := range c.siteSCC.pop(slot) {
 		c.storeMemo[k].from = nil
-	}
-}
-
-func (c *borrowCheck) collectStoreSites(g *Func, from map[LocalID]derivation) []paramStore {
-	c.siteRuns++
-	holdsMut := func(l LocalID) bool {
-		_, ok := from[l]
-		return ok && c.typeHolds(g.Locals[l].Type, func(t sem.TypeID) bool { _, mut := c.p.R.MutRefElem(t); return mut })
-	}
-	var out []paramStore
-	add := func(d derivation, below paramStore) {
-		s := paramStore{path: d.path, beyond: d.beyond || below.beyond}
-		if !d.cut {
-			s.path = d.path.with(below.path...)
-		}
-		if !slices.ContainsFunc(out, func(o paramStore) bool { return o.beyond == s.beyond && slices.Equal(o.path, s.path) }) {
-			out = append(out, s)
-		}
-	}
-	for _, blk := range g.Blocks {
-		for _, a := range blk.Term.Args {
-			if holdsMut(a) {
-				add(from[a], paramStore{})
-			}
-		}
-		for _, in := range blk.Insts {
-			c.instStoreSites(g, in, from, holdsMut, add)
-		}
-	}
-	return out
-}
-
-func sameSites(a, b []paramStore) bool {
-	return len(a) == len(b) && !slices.ContainsFunc(a, func(s paramStore) bool {
-		return !slices.ContainsFunc(b, func(o paramStore) bool { return o.beyond == s.beyond && slices.Equal(o.path, s.path) })
-	})
-}
-
-// instStoreSites adds the stores in may make through a value reached from the parameter: a write of a tracked value
-// under it, or a `&mut` from it handed on to code that may store, or put anywhere else.
-func (c *borrowCheck) instStoreSites(g *Func, in Inst, from map[LocalID]derivation, holdsMut func(LocalID) bool, add func(derivation, paramStore)) {
-	switch {
-	case in.Op == OpSetField || in.Op == OpSetIndex || in.Op == OpCellSet:
-		v := in.Args[len(in.Args)-1]
-		if d, ok := from[in.Args[0]]; ok && c.carries(g.Locals[v].Type) {
-			add(d, paramStore{})
-		}
-		if holdsMut(v) {
-			add(from[v], paramStore{})
-		}
-		return
-	case derives[in.Op], in.Op == OpDrop, in.Op == OpRelease:
-		return
-	}
-	for k, a := range in.Args {
-		if !holdsMut(a) {
-			continue
-		}
-		if h := c.p.ByEnt[in.Ent]; in.Op == OpClosure || in.Op == OpCall && h != nil && c.p.R.Entity(in.Ent).Kind == sem.EntFn {
-			for _, s := range c.paramStoreSites(h, k) {
-				add(from[a], s)
-			}
-			continue
-		}
-		// A callee without a body here can only store what it is handed, and an index cannot hold a closure.
-		other := func(b LocalID) bool { return b != a && c.carries(g.Locals[b].Type) }
-		if in.Op != OpCall && in.Op != OpCallValue && in.Op != OpBuiltin || slices.ContainsFunc(in.Args, other) {
-			add(from[a], paramStore{})
-		}
 	}
 }

@@ -44,7 +44,7 @@ func (r *Result) resolveGenericArg(f FileID, scope ScopeID, n syntax.NodeID, par
 		case info.IsConst:
 			return r.resolveConstArg(f, scope, n, info.ConstType)
 		case info.IsLifetime:
-			return r.resolveLifetimeArg(f, scope, n)
+			return r.resolveLifetimeArg(f, scope, n, param)
 		}
 	}
 	return r.resolveType(f, scope, n, posTypeArg)

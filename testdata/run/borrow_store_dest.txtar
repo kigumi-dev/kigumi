@@ -1,0 +1,343 @@
+-- src --
+type V['a] = { pub s &'a String }
+type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+type W['a] = { pub mut inner Sink['a] }
+type Pair['a] = { pub k Sink['a], pub x V['a] }
+type Pair2['a] = { pub k Sink['a], pub y Sink['a], pub x V['a] }
+
+fn churn() -> Int { let mut arr: Array[String] = Array.of("x"); for i in 100..400 { arr.push("w${i}") }; arr.len().toInt() || 0 }
+fn cpAll['a](b: &mut Array[V['a]], dst: &mut Array[V['a]]) { for x in b { dst.push(V { s: x.s }) } }
+fn cpShared['a](b: &Array[V['a]], dst: &mut Array[V['a]]) { dst.push(V { s: b[0].s }) }
+fn cpIdx['a](b: &mut Array[V['a]], dst: &mut Array[V['a]]) { dst.push(b[0]) }
+fn mvS['a](k1: &mut Array[Sink['a]], k2: &mut Array[Sink['a]]) { let t = k2.takeAt(0); if let Some(s) = t { k1.push(s) } }
+fn readSource['a](k1: &mut Array[Sink['a]], k2: &mut Array[Sink['a]]) -> usize { let mut n: usize = 0; for s in k2 { n = n + s.items.len() }; n }
+fn rotateSource['a](k1: &mut Array[Sink['a]], k2: &mut Array[Sink['a]]) { if let Some(s) = k2.takeAt(0) { k2.push(s) } }
+fn pushByValue['a](k: Sink['a], x: V['a]) { k.items.push(x) }
+fn pushByValueCopy['a](k: Sink['a], x: V['a]) { let mut kk = k; kk.items.push(x) }
+fn Sink['a].put(move self, x: V['a]) { self.items.push(x) }
+fn pushNested['a](w: W['a], x: V['a]) { w.inner.items.push(x) }
+fn readByValue['a](k: Sink['a], x: V['a]) -> usize { k.items.len() }
+fn forward['a](k: Sink['a], x: V['a]) { pushByValue(k, x) }
+fn pushEach['a](k: &mut Array[Sink['a]], x: V['a]) { for s in k { s.items.push(x) } }
+fn pushTaken['a](k: &mut Array[Sink['a]], x: V['a]) { let t = k.takeAt(0); if let Some(s) = t { s.items.push(x) } }
+fn pushRef['a](k: &mut Sink['a], x: V['a]) { k.items.push(x) }
+fn heldCallerRef['a](arr: &mut Array[Array[V['a]]], x: V['a]) { let mut sk = Sink { items: &mut arr[0] }; pushRef(&mut sk, x) }
+fn heldCallerByValue['a](arr: &mut Array[Array[V['a]]], x: V['a]) { pushByValue(Sink { items: &mut arr[0] }, x) }
+fn selfStore['a](p: Pair['a]) { p.k.items.push(p.x) }
+fn selfStoreRef['a](p: &mut Pair2['a]) { p.k.items.push(p.x) }
+fn viaClo['a](f: fn(V['a]) -> Void, x: V['a]) { f(x) }
+fn fwdG[T, 'a](k: T, x: V['a], f: fn(T, V['a]) -> Void) { f(k, x) }
+fn fwdM[T, 'a](k: &mut T, x: V['a], f: fn(&mut T, V['a]) -> Void) { f(k, x) }
+fn run2(f: fn() -> Void) { f() }
+fn viaCloBound['a, F: FnMut[fn(V['a]) -> Void]](mut f: F, x: V['a]) { f(x) }
+fn fwdBound[T, 'a, F: FnMut[fn(T, V['a]) -> Void]](k: T, x: V['a], mut f: F) { f(k, x) }
+fn runFn1['a](f: fn(V['a]) -> Void, x: V['a]) { f(x) }
+interface Putter['a] { fn put(move self, x: V['a]) }
+type SinkP['a] = { pub k Sink['a] }
+type Peek['a] = { pub k Sink['a] }
+fn SinkP['a].put(move self, x: V['a]) { self.k.items.push(x) }
+fn Peek['a].put(move self, x: V['a]) { if self.k.items.len() > 1000 { print "big" } }
+fn viaIface['a, P: Putter['a]](p: P, x: V['a]) { p.put(x) }
+fn cb2['a](f: fn(V['a], Sink['a]) -> Void, x: V['a], k: Sink['a]) { f(x, k) }
+fn cb3['a](f: fn(V['a], Sink['a]) -> Void, x: V['a], k: Sink['a]) { cb2(f, x, k) }
+fn cbG['a, F: FnMut[fn(V['a], Sink['a]) -> Void]](mut f: F, x: V['a], k: Sink['a]) { f(x, k) }
+fn readXK['a](x: V['a], k: Sink['a]) { if k.items.len() > 1000 { print "big" } }
+fn cbCap['a](h: fn(V['a], Sink['a]) -> Void, x: V['a], k: Sink['a]) { cb2((xx, kk) => { h(xx, kk) }, x, k) }
+fn viaPair['a](f: fn(V['a], V['a]) -> Void, x: V['a], z: V['a]) { f(x, z) }
+
+fn iterCopyThenGrow() -> String {
+    let u = "u"
+    let v = "v"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    for x in &mut b { a.push(V { s: x.s }) }
+    b.push(V { s: &u })
+    "${a.len()} ${b.len()} ${a[1].s}"
+}
+fn refCopyThenGrow() -> String {
+    let u = "u"
+    let v = "v"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    let q = &mut b
+    a.push(q[0])
+    b.push(V { s: &u })
+    "${a.len()} ${b.len()} ${a[1].s}"
+}
+fn copyThroughLoopRef() -> String {
+    let u = "u"
+    let v = "v"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &v })
+    cpAll(&mut b, &mut a)
+    cpShared(&b, &mut a)
+    cpIdx(&mut b, &mut a)
+    "${a.len()} ${a[1].s} ${a[2].s} ${a[3].s}"
+}
+fn moveOutUsedInBlock() -> String {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut ks1 = Array.of(Sink { items: &mut a })
+    let mut out = ""
+    {
+        let mut b = Array.of(V { s: &u })
+        b.push(V { s: &u })
+        let mut ks2 = Array.of(Sink { items: &mut b })
+        mvS(&mut ks1, &mut ks2)
+        out = "${ks1.len()} ${ks1[1].items.len()} ${ks2.len()}"
+    }
+    "${out} ${a.len()}"
+}
+fn sourceReadOnly() -> String {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut ks1 = Array.of(Sink { items: &mut a })
+    let mut n: usize = 0
+    {
+        let mut b = Array.of(V { s: &u })
+        let mut ks2 = Array.of(Sink { items: &mut b })
+        n = readSource(&mut ks1, &mut ks2)
+    }
+    "${ks1.len()} ${n}"
+}
+fn sourceRotated() -> String {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut ks1 = Array.of(Sink { items: &mut a })
+    {
+        let mut b = Array.of(V { s: &u })
+        let mut ks2 = Array.of(Sink { items: &mut b })
+        rotateSource(&mut ks1, &mut ks2)
+    }
+    "${ks1.len()} ${ks1[0].items.len()}"
+}
+fn byValueReadFirst() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    pushByValue(Sink { items: &mut a }, V { s: &v })
+    pushByValueCopy(Sink { items: &mut a }, V { s: &v })
+    let sk = Sink { items: &mut a }
+    pushByValue(sk, V { s: &v })
+    Sink { items: &mut a }.put(V { s: &v })
+    pushNested(W { inner: Sink { items: &mut a } }, V { s: &v })
+    let out = "${a.len()} ${a[1].s} ${a[5].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn byValueNoStore() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let n = readByValue(Sink { items: &mut a }, V { s: &v })
+    v = "zz${churn()}"
+    "${a[0].s} ${n} ${v}"
+}
+fn byValueForward() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    forward(Sink { items: &mut a }, V { s: &v })
+    let out = "${a[1].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn calleeElementsReadFirst() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut out = ""
+    {
+        let mut ks = Array.of(Sink { items: &mut a })
+        pushEach(&mut ks, V { s: &v })
+        pushTaken(&mut ks, V { s: &v })
+        out = "${ks.len()}"
+    }
+    out = "${out} ${a.len()} ${a[1].s} ${a[2].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn heldCallerOwnLifetime() -> String {
+    let u = "u"
+    let w = "w"
+    let mut arr = Array.of(Array.of(V { s: &u }))
+    heldCallerRef(&mut arr, V { s: &w })
+    heldCallerByValue(&mut arr, V { s: &u })
+    "${arr[0].len()} ${arr[0][1].s} ${arr[0][2].s}"
+}
+fn selfStoreReadFirst() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    selfStore(Pair { k: Sink { items: &mut a }, x: V { s: &v } })
+    {
+        let mut p = Pair2 { k: Sink { items: &mut a }, y: Sink { items: &mut b }, x: V { s: &v } }
+        selfStoreRef(&mut p)
+    }
+    b.push(V { s: &u })
+    let out = "${a.len()} ${a[1].s} ${a[2].s} ${b.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn closureHolderReadFirst() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    viaClo((x) => { k.items.push(x) }, V { s: &v })
+    viaClo((x) => { let n = k.items.len() }, V { s: &v })
+    let out = "${a.len()} ${a[1].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn closureOnlyReads() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    viaClo((x) => { let n = k.items.len() }, V { s: &v })
+    v = "zz${churn()}"
+    "${a.len()} ${v}"
+}
+fn forwarderReadFirst() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    fwdG(Sink { items: &mut a }, V { s: &v }, pushByValue)
+    let mut sk = Sink { items: &mut a }
+    fwdM(&mut sk, V { s: &v }, pushRef)
+    let out = "${a.len()} ${a[1].s} ${a[2].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn capturesReadFirst() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    let y = V { s: &v }
+    run2(() => { k.items.push(y) })
+    viaCloBound((x) => { k.items.push(x) }, y)
+    let out = "${a.len()} ${a[1].s} ${a[2].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn capturesOnlyRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    let y = V { s: &v }
+    run2(() => { let n = k.items.len() + y.s.len() })
+    viaCloBound((x) => { let n = k.items.len() + x.s.len() }, y)
+    v = "zz${churn()}"
+    "${a.len()} ${v}"
+}
+fn forwarderClosureReads() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    fwdG(k, V { s: &v }, (k2, x) => { k2.items.len(); () })
+    fwdBound(Sink { items: &mut a }, V { s: &v }, (k2, x) => { let n = k2.items.len() })
+    v = "zz${churn()}"
+    "${a.len()} ${v}"
+}
+fn nestedClosureReads() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    run2(() => { let y = V { s: &v }; run2(() => { let n = k.items.len() + y.s.len() }) })
+    runFn1((x) => { run2(() => { k.items.push(x) }) }, V { s: &v })
+    let out = "${a.len()} ${a[1].s}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn interfaceImpls() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut b = Array.of(V { s: &u })
+    viaIface(Peek { k: Sink { items: &mut b } }, V { s: &v })
+    viaIface(SinkP { k: Sink { items: &mut a } }, V { s: &v })
+    let out = "${a.len()} ${a[1].s} ${b.len()}"
+    v = "zz${churn()}"
+    "${out} ${v}"
+}
+fn callableParamsRead() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    cb2(readXK, V { s: &v }, Sink { items: &mut a })
+    cb3(readXK, V { s: &v }, Sink { items: &mut a })
+    cb2((x, kk) => { if kk.items.len() > 1000 { print "b" } }, V { s: &v }, Sink { items: &mut a })
+    cbG((x, kk) => { let mut loc = Array.of(x); loc.push(x) }, V { s: &v }, Sink { items: &mut a })
+    v = "zz${churn()}"
+    "${a.len()} ${v}"
+}
+fn capturedCallableReads() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    cbCap(readXK, V { s: &v }, Sink { items: &mut a })
+    v = "zz${churn()}"
+    "${a.len()} ${v}"
+}
+fn closureStoresFirstArg() -> String {
+    let mut v = "v${churn()}"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    viaPair((x, z) => { run2(() => { k.items.push(x) }) }, V { s: &u }, V { s: &v })
+    v = "zz${churn()}"
+    "${a.len()} ${a[1].s} ${v}"
+}
+print iterCopyThenGrow()
+print refCopyThenGrow()
+print copyThroughLoopRef()
+print moveOutUsedInBlock()
+print sourceReadOnly()
+print sourceRotated()
+print byValueReadFirst()
+print byValueNoStore()
+print byValueForward()
+print calleeElementsReadFirst()
+print heldCallerOwnLifetime()
+print selfStoreReadFirst()
+print closureHolderReadFirst()
+print closureOnlyReads()
+print forwarderReadFirst()
+print capturesReadFirst()
+print capturesOnlyRead()
+print forwarderClosureReads()
+print nestedClosureReads()
+print interfaceImpls()
+print callableParamsRead()
+print capturedCallableReads()
+print closureStoresFirstArg()
+-- stdout --
+2 2 v
+2 2 v
+4 v v v
+2 2 0 1
+1 1
+1 1
+6 v301 v301 zz301
+u 1 zz301
+v301 zz301
+0 3 v301 v301 zz301
+3 w u
+3 v301 v301 2 zz301
+2 v301 zz301
+1 zz301
+3 v301 v301 zz301
+3 v301 v301 zz301
+1 zz301
+1 zz301
+2 v301 zz301
+2 v301 1 zz301
+1 zz301
+1 zz301
+2 u zz301

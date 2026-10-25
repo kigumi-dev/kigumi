@@ -1,0 +1,1025 @@
+-- module --
+mir: planned
+-- src --
+import task from std/task
+
+type V['a] = { pub s &'a String }
+type Sink['a] = { pub mut items &'a mut Array[V['a]] }
+type W['a] = { pub mut inner Sink['a] }
+type OS['a] = { pub mut o Option[Sink['a]] }
+type H['a] = { pub mut fs &'a mut Array[Future[String]] }
+type Pair['a] = { pub k Sink['a], pub x V['a] }
+type PairM['a] = { pub mut k Sink['a], pub mut x V['a] }
+type P2['a, 'b] = { pub s &'a String, pub t &'b String }
+
+fn mvS['a](k1: &mut Array[Sink['a]], k2: &mut Array[Sink['a]]) { let t = k2.takeAt(0); if let Some(s) = t { k1.push(s) } }
+fn tk2['a](k: &mut Array[Sink['a]]) -> Option[Sink['a]] { k.takeAt(0) }
+fn mvThroughHelper['a](k1: &mut Array[Sink['a]], k2: &mut Array[Sink['a]]) { if let Some(s) = tk2(k2) { k1.push(s) } }
+fn mvO['a](k1: &mut Array[Sink['a]], k2: &mut OS['a]) { if let Some(s) = k2.o.take() { k1.push(s) } }
+fn pushByValue['a](k: Sink['a], x: V['a]) { k.items.push(x) }
+fn pushByValueCopy['a](k: Sink['a], x: V['a]) { let mut kk = k; kk.items.push(x) }
+fn Sink['a].put(move self, x: V['a]) { self.items.push(x) }
+fn pushNested['a](w: W['a], x: V['a]) { w.inner.items.push(x) }
+fn pushOption['a](o: Option[Sink['a]], x: V['a]) { if let Some(k) = o { k.items.push(x) } }
+fn pushOwnedArray['a](ks: Array[Sink['a]], x: V['a]) { for k in ks { k.items.push(x) } }
+async fn show(r: &String) -> String { "${r}" }
+fn pushFutureByValue['a](k: H['a], f: Future[String]) { k.fs.push(f) }
+fn forwardLocal['a](k: Sink['a]) { let loc = "l"; pushByValue(k, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `k` here
+fn pushEach['a](k: &mut Array[Sink['a]], x: V['a]) { for s in k { s.items.push(x) } }
+fn pushTaken['a](k: &mut Array[Sink['a]], x: V['a]) { let t = k.takeAt(0); if let Some(s) = t { s.items.push(x) } }
+fn pushRef['a](k: &mut Sink['a], x: V['a]) { k.items.push(x) }
+fn heldCallerRef['a](arr: &mut Array[Array[V['a]]]) { let loc = "l"; let mut sk = Sink { items: &mut arr[0] }; pushRef(&mut sk, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `arr` here
+fn selfStore['a](p: Pair['a]) { p.k.items.push(p.x) }
+fn selfStoreRef['a](p: &mut Pair['a]) { p.k.items.push(p.x) }
+fn selfStoreHelper['a](p: &mut PairM['a]) { pushRef(&mut p.k, p.x) }
+fn viaClo['a](f: fn(V['a]) -> Void, x: V['a]) { f(x) }
+fn fwdG[T, 'a](k: T, x: V['a], f: fn(T, V['a]) -> Void) { f(k, x) }
+fn fwdM[T, 'a](k: &mut T, x: V['a], f: fn(&mut T, V['a]) -> Void) { f(k, x) }
+fn run2(f: fn() -> Void) { f() }
+fn runBound[F: FnMut[fn() -> Void]](mut f: F) { f() }
+fn viaCloBound['a, F: FnMut[fn(V['a]) -> Void]](mut f: F, x: V['a]) { f(x) }
+fn fwdBound[T, 'a, F: FnMut[fn(T, V['a]) -> Void]](k: T, x: V['a], mut f: F) { f(k, x) }
+fn runFn1['a](f: fn(V['a]) -> Void, x: V['a]) { f(x) }
+interface Putter['a] { fn put(move self, x: V['a]) }
+type SinkP['a] = { pub k Sink['a] }
+fn SinkP['a].put(move self, x: V['a]) { self.k.items.push(x) }
+fn viaIface['a, P: Putter['a]](p: P, x: V['a]) { p.put(x) }
+fn cb2['a](f: fn(V['a], Sink['a]) -> Void, x: V['a], k: Sink['a]) { f(x, k) }
+fn cb3['a](f: fn(V['a], Sink['a]) -> Void, x: V['a], k: Sink['a]) { cb2(f, x, k) }
+fn pushXK['a](x: V['a], k: Sink['a]) { k.items.push(x) }
+fn cbCap['a](h: fn(V['a], Sink['a]) -> Void, x: V['a], k: Sink['a]) { cb2((xx, kk) => { h(xx, kk) }, x, k) }
+fn viaPair['a](f: fn(V['a], V['a]) -> Void, x: V['a], z: V['a]) { f(x, z) }
+fn twoLifetimes['a, 'b](b: &mut Array[P2['a, 'b]], dst: &mut Array[V['a]]) { for x in b { dst.push(V { s: x.t }) } } //~ ERROR a borrow cannot be stored into `dst` here
+fn heldCallerByValue['a](arr: &mut Array[Array[V['a]]]) { let loc = "l"; pushByValue(Sink { items: &mut arr[0] }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `arr` here
+
+fn moveOutOfSourceArg() -> usize {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut ks1 = Array.of(Sink { items: &mut a })
+    {
+        let mut b = Array.of(V { s: &u }) //~ ERROR `b` is still borrowed when its scope ends here
+        let mut ks2 = Array.of(Sink { items: &mut b })
+        mvS(&mut ks1, &mut ks2)
+    }
+    ks1.len()
+}
+
+fn moveOutThroughHelper() -> usize {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut ks1 = Array.of(Sink { items: &mut a })
+    {
+        let mut b = Array.of(V { s: &u }) //~ ERROR `b` is still borrowed when its scope ends here
+        let mut ks2 = Array.of(Sink { items: &mut b })
+        mvThroughHelper(&mut ks1, &mut ks2)
+    }
+    ks1.len()
+}
+
+fn moveOutOfOptionField() -> usize {
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut ks1 = Array.of(Sink { items: &mut a })
+    {
+        let mut b = Array.of(V { s: &u }) //~ ERROR `b` is still borrowed when its scope ends here
+        let mut o2 = OS { o: Some(Sink { items: &mut b }) }
+        mvO(&mut ks1, &mut o2)
+    }
+    ks1.len()
+}
+
+fn byValueLiteral() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    pushByValue(Sink { items: &mut a }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueCopiedInCallee() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    pushByValueCopy(Sink { items: &mut a }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueNamed() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let sk = Sink { items: &mut a }
+    pushByValue(sk, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueReceiver() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    Sink { items: &mut a }.put(V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueNested() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    pushNested(W { inner: Sink { items: &mut a } }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueOption() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    pushOption(Some(Sink { items: &mut a }), V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueOwnedArray() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    pushOwnedArray(Array.of(Sink { items: &mut a }), V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueFieldOfHolder() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let w = W { inner: Sink { items: &mut a } }
+    pushByValue(w.inner, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueFnValue() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let f = pushByValue
+    f(Sink { items: &mut a }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn byValueFuture() -> String {
+    let ex = task.currentThreadExecutor()
+    let mut fs = Array.empty[Future[String]]()
+    let mut x = "x"
+    pushFutureByValue(H { fs: &mut fs }, show(&x))
+    x = "zz" //~ ERROR `x` is borrowed and cannot be mutated here //~ ERROR `x` is borrowed and cannot be moved or dropped here
+    let mut s = ""
+    for f in fs { s = "${s} ${ex.runToCompletion(f)}" }
+    s
+}
+
+fn calleeStoresThroughLoopElement() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut ks = Array.of(Sink { items: &mut a })
+    pushEach(&mut ks, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn calleeStoresThroughTakenElement() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut ks = Array.of(Sink { items: &mut a })
+    pushTaken(&mut ks, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn selfStoreByValue() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    selfStore(Pair { k: Sink { items: &mut a }, x: V { s: &v } })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn selfStoreNamed() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let p = Pair { k: Sink { items: &mut a }, x: V { s: &v } }
+    selfStore(p)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn selfStoreThroughRef() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut p = Pair { k: Sink { items: &mut a }, x: V { s: &v } }
+    selfStoreRef(&mut p)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn selfStoreThroughHelper() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut p = PairM { k: Sink { items: &mut a }, x: V { s: &v } }
+    selfStoreHelper(&mut p)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn closureCapturesHolder() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    viaClo((x) => { k.items.push(x) }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn genericForwarderByValue() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    fwdG(Sink { items: &mut a }, V { s: &v }, pushByValue)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn genericForwarderNamed() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let sk = Sink { items: &mut a }
+    fwdG(sk, V { s: &v }, pushByValue)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn genericForwarderMutRef() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let mut sk = Sink { items: &mut a }
+    fwdM(&mut sk, V { s: &v }, pushRef)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn closureCapturesHolderAndValue() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    let y = V { s: &v }
+    run2(() => { k.items.push(y) })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn closureCapturedValueBesideArg() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    let y = V { s: &v }
+    viaClo((x) => { k.items.push(y) }, V { s: &u })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn closureRunThroughBound() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    let y = V { s: &v }
+    runBound(() => { k.items.push(y) })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn closureBoundSignature() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    viaCloBound((x) => { k.items.push(x) }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn boundForwarderStores() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    fwdBound(Sink { items: &mut a }, V { s: &v }, pushByValue)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn nestedClosureStoresLocal() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    run2(() => { let y = V { s: &v }; run2(() => { k.items.push(y) }) }) //~ ERROR a borrow cannot be stored into `k` here
+    a.len()
+}
+
+fn nestedClosureHandsLocal() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    run2(() => { let z = V { s: &v }; runFn1((x) => { k.items.push(x) }, z) }) //~ ERROR a borrow cannot be stored into `k` here
+    a.len()
+}
+
+fn nestedClosureOuterParam() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    runFn1((x) => { run2(() => { k.items.push(x) }) }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn interfaceBoundReceiver() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    viaIface(SinkP { k: k }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn callableParamStores() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    cb3(pushXK, V { s: &v }, k)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn callableClosureStores() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    cb2((x, kk) => { kk.items.push(x) }, V { s: &v }, k)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn capturedCallableStores() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    cbCap(pushXK, V { s: &v }, k)
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+
+fn closureStoresSecondArg() -> usize {
+    let mut v = "v"
+    let u = "u"
+    let mut a = Array.of(V { s: &u })
+    let k = Sink { items: &mut a }
+    viaPair((x, z) => { run2(() => { k.items.push(z) }) }, V { s: &u }, V { s: &v })
+    v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    a[1].s.len()
+}
+-- expect --
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:24:51
+   |
+24 | fn forwardLocal['a](k: Sink['a]) { let loc = "l"; pushByValue(k, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `k` here
+   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `arr` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:28:112
+   |
+28 | fn heldCallerRef['a](arr: &mut Array[Array[V['a]]]) { let loc = "l"; let mut sk = Sink { items: &mut arr[0] }; pushRef(&mut sk, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `arr` here
+   |                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `dst` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:49:91
+   |
+49 | fn twoLifetimes['a, 'b](b: &mut Array[P2['a, 'b]], dst: &mut Array[V['a]]) { for x in b { dst.push(V { s: x.t }) } } //~ ERROR a borrow cannot be stored into `dst` here
+   |                                                                                           ^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `arr` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+  --> main.kg:50:74
+   |
+50 | fn heldCallerByValue['a](arr: &mut Array[Array[V['a]]]) { let loc = "l"; pushByValue(Sink { items: &mut arr[0] }, V { s: &loc }) } //~ ERROR a borrow cannot be stored into `arr` here
+   |                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:57:17
+   |
+57 |         let mut b = Array.of(V { s: &u }) //~ ERROR `b` is still borrowed when its scope ends here
+   |                 ^
+
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:69:17
+   |
+69 |         let mut b = Array.of(V { s: &u }) //~ ERROR `b` is still borrowed when its scope ends here
+   |                 ^
+
+error[move-while-borrowed]: `b` is still borrowed when its scope ends here
+  --> main.kg:81:17
+   |
+81 |         let mut b = Array.of(V { s: &u }) //~ ERROR `b` is still borrowed when its scope ends here
+   |                 ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+  --> main.kg:93:5
+   |
+93 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+   |     ^
+   = help: end the borrow first or use a copy
+note: `v` is borrowed here
+  --> main.kg:92:48
+   |
+92 |     pushByValue(Sink { items: &mut a }, V { s: &v })
+   |                                                ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+  --> main.kg:93:5
+   |
+93 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+   |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:102:5
+    |
+102 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:101:52
+    |
+101 |     pushByValueCopy(Sink { items: &mut a }, V { s: &v })
+    |                                                    ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:102:5
+    |
+102 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:112:5
+    |
+112 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:111:28
+    |
+111 |     pushByValue(sk, V { s: &v })
+    |                            ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:112:5
+    |
+112 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:121:5
+    |
+121 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:120:39
+    |
+120 |     Sink { items: &mut a }.put(V { s: &v })
+    |                                       ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:121:5
+    |
+121 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:130:5
+    |
+130 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:129:60
+    |
+129 |     pushNested(W { inner: Sink { items: &mut a } }, V { s: &v })
+    |                                                            ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:130:5
+    |
+130 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:139:5
+    |
+139 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:138:53
+    |
+138 |     pushOption(Some(Sink { items: &mut a }), V { s: &v })
+    |                                                     ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:139:5
+    |
+139 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:148:5
+    |
+148 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:147:61
+    |
+147 |     pushOwnedArray(Array.of(Sink { items: &mut a }), V { s: &v })
+    |                                                             ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:148:5
+    |
+148 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:158:5
+    |
+158 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:157:33
+    |
+157 |     pushByValue(w.inner, V { s: &v })
+    |                                 ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:158:5
+    |
+158 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:168:5
+    |
+168 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:167:38
+    |
+167 |     f(Sink { items: &mut a }, V { s: &v })
+    |                                      ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:168:5
+    |
+168 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `x` is borrowed and cannot be mutated here
+   --> main.kg:177:5
+    |
+177 |     x = "zz" //~ ERROR `x` is borrowed and cannot be mutated here //~ ERROR `x` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `x` is borrowed here
+   --> main.kg:176:5
+    |
+176 |     pushFutureByValue(H { fs: &mut fs }, show(&x))
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `x` is borrowed and cannot be moved or dropped here
+   --> main.kg:177:5
+    |
+177 |     x = "zz" //~ ERROR `x` is borrowed and cannot be mutated here //~ ERROR `x` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:189:5
+    |
+189 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:188:30
+    |
+188 |     pushEach(&mut ks, V { s: &v })
+    |                              ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:189:5
+    |
+189 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:199:5
+    |
+199 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:198:31
+    |
+198 |     pushTaken(&mut ks, V { s: &v })
+    |                               ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:199:5
+    |
+199 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:208:5
+    |
+208 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:207:15
+    |
+207 |     selfStore(Pair { k: Sink { items: &mut a }, x: V { s: &v } })
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:208:5
+    |
+208 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:218:5
+    |
+218 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:216:13
+    |
+216 |     let p = Pair { k: Sink { items: &mut a }, x: V { s: &v } }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:218:5
+    |
+218 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:228:5
+    |
+228 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:226:17
+    |
+226 |     let mut p = Pair { k: Sink { items: &mut a }, x: V { s: &v } }
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:228:5
+    |
+228 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:238:5
+    |
+238 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:236:17
+    |
+236 |     let mut p = PairM { k: Sink { items: &mut a }, x: V { s: &v } }
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:238:5
+    |
+238 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:248:5
+    |
+248 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:247:47
+    |
+247 |     viaClo((x) => { k.items.push(x) }, V { s: &v })
+    |                                               ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:248:5
+    |
+248 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:257:5
+    |
+257 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:256:41
+    |
+256 |     fwdG(Sink { items: &mut a }, V { s: &v }, pushByValue)
+    |                                         ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:257:5
+    |
+257 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:267:5
+    |
+267 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:266:21
+    |
+266 |     fwdG(sk, V { s: &v }, pushByValue)
+    |                     ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:267:5
+    |
+267 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:277:5
+    |
+277 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:276:26
+    |
+276 |     fwdM(&mut sk, V { s: &v }, pushRef)
+    |                          ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:277:5
+    |
+277 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:288:5
+    |
+288 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:286:20
+    |
+286 |     let y = V { s: &v }
+    |                    ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:288:5
+    |
+288 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:299:5
+    |
+299 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:297:20
+    |
+297 |     let y = V { s: &v }
+    |                    ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:299:5
+    |
+299 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:310:5
+    |
+310 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:308:20
+    |
+308 |     let y = V { s: &v }
+    |                    ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:310:5
+    |
+310 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:320:5
+    |
+320 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:319:52
+    |
+319 |     viaCloBound((x) => { k.items.push(x) }, V { s: &v })
+    |                                                    ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:320:5
+    |
+320 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:329:5
+    |
+329 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:328:45
+    |
+328 |     fwdBound(Sink { items: &mut a }, V { s: &v }, pushByValue)
+    |                                             ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:329:5
+    |
+329 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:338:39
+    |
+338 |     run2(() => { let y = V { s: &v }; run2(() => { k.items.push(y) }) }) //~ ERROR a borrow cannot be stored into `k` here
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2159]: a borrow cannot be stored into `k` here: it belongs to the caller and outlives this call; only a value carrying this function's own lifetime, the one that place's type names, may go in it, so build the container here and return it instead
+   --> main.kg:347:39
+    |
+347 |     run2(() => { let z = V { s: &v }; runFn1((x) => { k.items.push(x) }, z) }) //~ ERROR a borrow cannot be stored into `k` here
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:357:5
+    |
+357 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:356:63
+    |
+356 |     runFn1((x) => { run2(() => { k.items.push(x) }) }, V { s: &v })
+    |                                                               ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:357:5
+    |
+357 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:367:5
+    |
+367 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:366:37
+    |
+366 |     viaIface(SinkP { k: k }, V { s: &v })
+    |                                     ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:367:5
+    |
+367 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:377:5
+    |
+377 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:376:24
+    |
+376 |     cb3(pushXK, V { s: &v }, k)
+    |                        ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:377:5
+    |
+377 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:387:5
+    |
+387 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:386:49
+    |
+386 |     cb2((x, kk) => { kk.items.push(x) }, V { s: &v }, k)
+    |                                                 ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:387:5
+    |
+387 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:397:5
+    |
+397 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:396:26
+    |
+396 |     cbCap(pushXK, V { s: &v }, k)
+    |                          ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:397:5
+    |
+397 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+
+error[E2198]: `v` is borrowed and cannot be mutated here
+   --> main.kg:407:5
+    |
+407 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+    = help: end the borrow first or use a copy
+note: `v` is borrowed here
+   --> main.kg:406:80
+    |
+406 |     viaPair((x, z) => { run2(() => { k.items.push(z) }) }, V { s: &u }, V { s: &v })
+    |                                                                                ^^
+
+error[move-while-borrowed]: `v` is borrowed and cannot be moved or dropped here
+   --> main.kg:407:5
+    |
+407 |     v = "zz" //~ ERROR `v` is borrowed and cannot be mutated here //~ ERROR `v` is borrowed and cannot be moved or dropped here
+    |     ^
+

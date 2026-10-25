@@ -100,7 +100,7 @@ func (r *Result) resolveExprGenericArg(f FileID, scope ScopeID, n syntax.NodeID,
 		case info.IsConst:
 			return r.resolveConstArg(f, scope, n, info.ConstType)
 		case info.IsLifetime:
-			return r.resolveLifetimeArg(f, scope, n)
+			return r.resolveLifetimeArg(f, scope, n, param)
 		}
 	}
 	return r.exprAsType(f, scope, n)

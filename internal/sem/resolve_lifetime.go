@@ -111,13 +111,16 @@ func (r *Result) lookupLifetimeName(scope ScopeID, name string) EntityID {
 	return b.Ent
 }
 
-// Unlike a bare reference's tag, this value becomes part of the resulting
-// TypeID: two instantiations of the same generic record with different
-// lifetimes are meant to stay distinct types.
-func (r *Result) resolveLifetimeArg(f FileID, scope ScopeID, n syntax.NodeID) TypeID {
+// Unlike a bare reference's tag, the lifetime becomes part of the TypeID, so instantiations of one generic record
+// with different lifetimes stay distinct types.
+func (r *Result) resolveLifetimeArg(f FileID, scope ScopeID, n syntax.NodeID, param EntityID) TypeID {
 	t := r.tree(f)
 	if t.Kind(n) != syntax.TypeLifetime {
-		r.errAt(f, n, cLifetimeArgKind, "this", "a lifetime", "a type")
+		name := r.Entities[param].Name
+		if owner := r.Entities[param].Parent; owner != 0 {
+			name = r.Entities[owner].Name
+		}
+		r.errAt(f, n, cLifetimeArgKind, name, "a lifetime", "a type")
 		return TyPoison
 	}
 	ent := r.resolveLifetimeName(f, scope, n, t.View(n).Tok().Text())

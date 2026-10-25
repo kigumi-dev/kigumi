@@ -65,7 +65,9 @@ func (c *borrowCheck) projectsOwned(t sem.TypeID, src LocalID) bool {
 // and into this frame's own place also the marked borrows of a caller place the body may write.
 func (c *borrowCheck) storedInfo(fl storeFlow, v flowArg, caller bool) (*borrowInfo, bool) {
 	b, ok := c.tieInfo(v, fl.generic, caller)
-	if !ok && v.tie == tieRef {
+	if v.at != nil {
+		b, ok = c.partInfo(v)
+	} else if !ok && v.tie == tieRef {
 		c.scalarCell(v.arg)
 	}
 	if !ok || !fl.generic {

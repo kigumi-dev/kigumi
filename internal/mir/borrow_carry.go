@@ -15,8 +15,8 @@ type carrySite struct {
 	from  LocalID // when set, the site holds owner only if from holds it there
 }
 
-// carryFlows lists a call's `mut self` / `&mut` arguments and the by-value arguments carrying a borrow their
-// types do not name (a Future or Task); a plain type parameter's borrow goes through callFlows instead.
+// carryFlows lists a call's `mut self` / `&mut` arguments and by-value `&mut` holders, and the by-value arguments
+// carrying a borrow their types do not name (a Future or Task); a plain type parameter's borrow goes through callFlows.
 func (c *borrowCheck) carryFlows(in Inst) (targets []storeFlow, values []LocalID) {
 	if in.Op != OpCall && in.Op != OpCallValue || in.Ent == 0 || c.p.R.Entity(in.Ent).Kind != sem.EntFn {
 		return nil, nil
@@ -27,8 +27,8 @@ func (c *borrowCheck) carryFlows(in Inst) (targets []storeFlow, values []LocalID
 		recvIdx = 1
 	}
 	for i, s := range c.callSlots(info, in.Args, recvIdx) {
-		if s.target {
-			targets = append(targets, storeFlow{target: s.arg, ref: true, callee: in.Ent, param: i})
+		if s.target || s.holder {
+			targets = append(targets, storeFlow{target: s.arg, ref: s.target, byValue: s.holder, callee: in.Ent, param: i})
 			continue
 		}
 		if i == 0 && info.Recv != sem.RecvNone || c.p.R.Types.Kind(s.exact) == sem.KRef {
